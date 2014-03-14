@@ -1,0 +1,61 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
+#pragma once
+
+#include "GenericWindow.h"
+#include <android/native_window.h> 
+#include <android/native_window_jni.h> 
+
+
+/**
+ * A platform specific implementation of FNativeWindow.
+ * Native windows provide platform-specific backing for and are always owned by an SWindow.
+ */
+ 
+class CORE_API FAndroidWindow : public FGenericWindow
+{
+public:
+	~FAndroidWindow();
+
+	/** Create a new FAndroidWindow.
+	 *
+	 * @param OwnerWindow		The SlateWindow for which we are crating a backing AndroidWindow
+	 * @param InParent			Parent iOS window; usually NULL.
+	 */
+	static TSharedRef<FAndroidWindow> Make();
+
+	
+	virtual void* GetOSWindowHandle() const OVERRIDE { return Window; } //can be null.
+
+	void Initialize( class FAndroidApplication* const Application, const TSharedRef< FGenericWindowDefinition >& InDefinition, const TSharedPtr< FAndroidWindow >& InParent, const bool bShowImmediately );
+
+	/** Returns the rectangle of the screen the window is associated with */
+	virtual bool GetFullScreenInfo( int32& X, int32& Y, int32& Width, int32& Height ) const OVERRIDE;
+
+	
+	virtual void SetOSWindowHandle(void*);
+
+	static FPlatformRect GetScreenRect();
+
+	static void CalculateSurfaceSize(void* InWindow, int32_t& SurfaceWidth, int32_t& SurfaceHeight);
+
+
+protected:
+	/** @return true if the native window is currently in fullscreen mode, false otherwise */
+	virtual EWindowMode::Type GetWindowMode() const OVERRIDE { return EWindowMode::Fullscreen; }
+
+private:
+	/**
+	 * Protect the constructor; only TSharedRefs of this class can be made.
+	 */
+	FAndroidWindow();
+
+	FAndroidApplication* OwningApplication;
+
+	/** iOS window handle, typically, only one should ever exist */
+	ANativeWindow *Window;
+
+	/** Store the window region size for querying whether a point lies within the window */
+	int32 RegionX;
+	int32 RegionY;
+};

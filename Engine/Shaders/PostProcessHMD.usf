@@ -1,0 +1,72 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
+/*=============================================================================
+	PostProcessHMD.usf: PostProcessing shader to distort and chromaab correction 
+	for HMD devices
+=============================================================================*/
+
+#include "Common.usf"
+#include "PostProcessCommon.usf"
+
+float2 LensCenter;
+float2 ScreenCenter;
+float2 Scale;
+float4 HMDWarpParam;
+
+#if USE_CHA_CORRECTION
+float4 ChromaAbParam;
+half4 HMDWarpChaTex2D(Texture2D tex, SamplerState texSam, float2 in01, out float2 tccenter)
+{
+	float2 inhc = in01;
+	float  r2 = (inhc.x * inhc.x + inhc.y * inhc.y);
+
+	float2 outhc = inhc * (HMDWarpParam.x + HMDWarpParam.y * r2 + HMDWarpParam.z * r2 * r2 + HMDWarpParam.w * r2 * r2 * r2);
+	float2 tcbase = Scale * outhc;
+	tccenter = LensCenter + tcbase;
+	
+	float2 tcblue = LensCenter + tcbase * (ChromaAbParam.z + ChromaAbParam.w * r2);
+	float2 tcred = LensCenter + tcbase * (ChromaAbParam.x + ChromaAbParam.y * r2);
+	float4 tvcenter = Texture2DSample(tex, texSam, tccenter);
+	return half4(Texture2DSample(tex, texSam, tcred).r, tvcenter.g,
+	             Texture2DSample(tex, texSam, tcblue).b, tvcenter.a);
+}
+#else
+float2 HMDWarp(float2 in01)
+{
+	float2 inhc = in01;
+	float  r2 = (inhc.x * inhc.x + inhc.y * inhc.y);
+
+	float2 outhc = inhc * (HMDWarpParam.x + HMDWarpParam.y * r2 + HMDWarpParam.z * r2 * r2 + HMDWarpParam.w * r2 * r2 * r2);
+
+	return LensCenter + Scale * outhc;
+}
+#endif
+
+void MainPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
+{
+    float2 InUV = UVAndScreenPos.xy;
+#if USE_CHA_CORRECTION 
+	// HMD WARP + CHROMAAB
+	float2 MappedUV;
+	half4 SceneColor = HMDWarpChaTex2D(PostprocessInput0, PostprocessInput0Sampler, InUV, MappedUV);
+	if (MappedUV.x >= 1 || MappedUV.y >= 1 || MappedUV.x < 0 || MappedUV.y < 0)
+	{
+		OutColor = 0;
+		return;
+	}
+
+	half4 SceneColorAndDepth = half4(SceneColor.rgb, CalcSceneDepth(MappedUV.xy));
+	OutColor = SceneColorAndDepth; 
+
+#else  
+	// WARPING W/O CHROMAAB CORR
+	float2 MappedUV = HMDWarp(InUV);
+	if (MappedUV.x >= 1 || MappedUV.y >= 1 || MappedUV.x < 0 || MappedUV.y < 0)
+	{
+		OutColor = 0;
+		return;
+	}
+	OutColor = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, MappedUV);
+#endif
+
+}

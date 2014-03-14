@@ -1,0 +1,856 @@
+﻿/*// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.*/
+
+/*----------------------------------------------------------
+The base color for this template is #5c87b2. If you'd like
+to use a different color start by replacing all instances of
+#5c87b2 with your new color.
+----------------------------------------------------------*/
+body
+{
+	background-color: #000;
+	font-size: .75em;
+	font-family: Verdana, Helvetica, Sans-Serif;
+	margin: 0;
+	padding: 0;
+	color: #696969;
+}
+
+a:link
+{
+	color: #5c87b2;
+	text-decoration: underline;
+}
+
+a:visited
+{
+	color: #505abc;
+}
+
+a:hover
+{
+	color: #1d60ff;
+	text-decoration: none;
+}
+
+a:active
+{
+	color: #12eb87;
+}
+
+p, ul
+{
+	line-height: 1.6em;
+}
+
+/* HEADINGS
+----------------------------------------------------------*/
+h1, h2, h3, h4, h5, h6
+{
+	font-size: 1.5em;
+	color: #000;
+	font-family: Arial, Helvetica, sans-serif;
+}
+
+h1
+{
+	font-size: 2em;
+	padding-bottom: 0;
+	margin-bottom: 0;
+}
+
+h2
+{
+	padding: 0 0 10px 0;
+}
+
+h3
+{
+	font-size: 1.2em;
+}
+
+h4
+{
+	font-size: 1.1em;
+}
+
+h5, h6
+{
+	font-size: 1em;
+}
+
+/* this rule styles <h2> tags that are the 
+first child of the left and right table columns */
+.rightColumn > h1, .rightColumn > h2, .leftColumn > h1, .leftColumn > h2
+{
+	margin-top: 0;
+}
+
+/* PRIMARY LAYOUT ELEMENTS   
+----------------------------------------------------------*/
+
+/* you can specify a greater or lesser percentage for the 
+page width. Or, you can specify an exact pixel width. */
+.page
+{
+	padding: 2em;
+	float: left;
+}
+
+#header
+{
+	color: #000;
+	height: 100px;
+	background-color: #000;
+}
+
+#header h1
+{
+	font-weight: bold;
+	padding: 5px 0;
+	margin: 0;
+	color: #fff;
+	border: none;
+	line-height: 2em;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 32px !important;
+}
+
+#main
+{
+	background:#3E4B54 url('/Content/Images/MainHeaderBackground.jpg') top left repeat-x;
+}
+
+#mainRight
+{
+	margin: 0;
+	padding: 0;
+	background: url('/Content/Images/MainHeaderBackground-Right.jpg') top right no-repeat;
+}
+
+#mainLeft
+{
+	margin: 0;
+	padding: 0;
+	background: url('/Content/Images/MainHeaderBackground-Left.jpg') top left no-repeat;
+}
+
+#footer
+{
+	color: #999;
+	padding: 1em 0;
+	text-align: center;
+	line-height: normal;
+	margin: 0;
+	font-size: .9em;
+}
+
+/* TAB MENU   
+----------------------------------------------------------*/
+ul#menu
+{
+	border-bottom: 1px #5C87B2 solid;
+	padding: 0 0 2px;
+	position: relative;
+	margin: 0;
+	text-align: right;
+}
+
+ul#menu li
+{
+	display: inline;
+	list-style: none;
+}
+
+ul#menu li#greeting
+{
+	padding: 10px 20px;
+	font-weight: bold;
+	text-decoration: none;
+	line-height: 2.8em;
+	color: #fff;
+}
+
+ul#menu li a
+{
+	padding: 10px 20px;
+	font-weight: bold;
+	text-decoration: none;
+	line-height: 2.8em;
+	background-color: #e8eef4;
+	color: #034af3;
+}
+
+ul#menu li a:hover
+{
+	background-color: #fff;
+	text-decoration: none;
+}
+
+ul#menu li a:active
+{
+	background-color: #a6e2a6;
+	text-decoration: none;
+}
+
+ul#menu li.selected a
+{
+	background-color: #fff;
+	color: #000;
+}
+
+/* FORM LAYOUT ELEMENTS   
+----------------------------------------------------------*/
+
+fieldset
+{
+	margin: 1em 0;
+	padding: 1em;
+	border: 1px solid #CCC;
+}
+
+fieldset p
+{
+	margin: 2px 12px 10px 10px;
+}
+
+legend
+{
+	font-size: 1.1em;
+	font-weight: 600;
+	padding: 2px 4px 8px 4px;
+}
+
+input[type="text"]
+{
+	width: 200px;
+	border: 1px solid #CCC;
+}
+
+input[type="password"]
+{
+	width: 200px;
+	border: 1px solid #CCC;
+}
+
+/* TABLE
+----------------------------------------------------------*/
+table
+{
+	border-collapse:collapse;
+	border-top: none;
+	padding-top: 0;
+	margin-top: 0;
+}
+
+table td
+{
+	padding: 5px;
+}
+
+table th
+{
+	padding: 6px 5px;
+	text-align: left;
+	background-color: #e8eef4;
+	border: none;
+}
+
+/* MISC  
+----------------------------------------------------------*/
+.clear
+{
+	clear: both;
+}
+
+.error
+{
+	color: Red;
+}
+
+div#title
+{
+	display: block;
+	float: left;
+	text-align: left;
+}
+div#utils
+{
+	display: block;
+	float: right;
+	text-align: right;
+}
+
+#logindisplay
+{
+	font-size: 1.1em;
+	display: block;
+	text-align: right;
+	margin: 10px;
+	color: White;
+}
+
+#logindisplay a:link
+{
+	color: white;
+	text-decoration: underline;
+}
+
+#logindisplay a:visited
+{
+	color: white;
+	text-decoration: underline;
+}
+
+#logindisplay a:hover
+{
+	color: white;
+	text-decoration: none;
+}
+
+/* Styles for validation helpers
+-----------------------------------------------------------*/
+.field-validation-error
+{
+	color: #ff0000;
+}
+
+.field-validation-valid
+{
+	display: none;
+}
+
+.input-validation-error
+{
+	border: 1px solid #ff0000;
+	background-color: #ffeeee;
+}
+
+.validation-summary-errors
+{
+	font-weight: bold;
+	color: #ff0000;
+}
+
+.validation-summary-valid
+{
+	display: none;
+}
+
+/* Styles for editor and display helpers
+----------------------------------------------------------*/
+.display-label,
+.editor-label,
+.display-field,
+.editor-field
+{
+	margin: 0.5em 0;
+}
+
+.text-box
+{
+	width: 30em;
+}
+
+.text-box.multi-line
+{
+	height: 6.5em;
+}
+
+.tri-state
+{
+	width: 6em;
+}
+
+
+.status
+{
+	color: black;
+}
+
+.description
+{
+	
+}
+
+.callstack
+{
+	color: blue;
+}
+
+.result
+{
+	float: right;
+	width: 80%;
+}
+
+.actions
+{
+	float: left;
+	width: 15%;
+}
+
+/* Custom styles for the filter options
+----------------------------------------------------------*/
+#SearchForm
+{
+	margin-left: auto;
+	margin-right: auto;
+	margin-bottom: 5px !important;
+}
+
+#SearchBox
+{
+	float: left;
+}
+
+.SearchButton
+{
+	width: 62px;
+	height: 23px;
+	border: none;
+	padding: 0;
+	cursor: pointer;
+	background : url('/Content/Images/Searchbutton.png') no-repeat left top;
+	outline: none;
+	color: white;
+}
+
+.SetButton
+{
+	width: 41px;
+	height: 25px;
+	border: none;
+	padding: 0;
+	cursor: pointer;
+	background : url('/Content/Images/Setbutton.png') no-repeat left top;
+	outline: none;
+	color: white;
+}
+
+.SetButtonGreen
+{
+	width: 41px;
+	height: 25px;
+	border: none;
+	padding: 0;
+	cursor: pointer;
+	background : url('/Content/Images/SetbuttonGreen.png') no-repeat left top;
+	outline: none;
+	color: white;
+}
+
+#SearchBox #SearchQuery
+{
+	width: 492px;
+	height: 23px;
+	border: none;
+	padding: 0;
+	padding-left: 4px;
+	padding-right: 4px;
+	margin-left: 1em;
+	background-image: url('/Content/Images/RoundedInputBarBlack-500px.png');
+	background-repeat: no-repeat;
+	outline: none;
+}
+
+input.date,
+#BranchName,
+#GameName
+{
+	width: 67px;
+	height: 23px;
+	border: none;
+	padding: 0;
+	padding-left: 4px;
+	padding-right: 4px;
+	vertical-align: middle;
+	background-image: url('/Content/Images/RoundedInputBarBlack.png');
+	background-repeat: no-repeat;
+	outline: none;
+	color: black;
+}
+
+.selectedPage
+{
+	font-size: large;
+}
+
+/* Custom styles for the user group display
+----------------------------------------------------------*/
+
+#UserGroupBar
+{
+	margin: 0;
+	padding: 0;
+	padding-top: 1.5em;
+	padding-bottom: 1.5em;
+	border: none;
+	width: 100%;
+}
+
+.UserGroupTab
+{
+	margin: .1em;
+	padding: .1em;
+	font-weight: bold;
+	color: White;
+	text-decoration: none;
+}
+
+.UserGroupTab a:link, .UserGroupTab a:visited, .UserGroupTab a:active
+{
+	color: white;
+	text-decoration: none;
+}
+
+.UserGroupTab a:hover
+{
+	Color: Black;
+}
+
+.UserGroupTabSelected
+{
+	margin: 1em;
+	padding: 1em;
+	background: url('/Content/Images/UserGroupSelected.png') top right no-repeat;
+	color: White;
+	font-weight: bold;
+	text-decoration: none;
+}
+
+.UserGroupTabSelected a:link, .UserGroupTabSelected a:visited, .UserGroupTabSelected a:active
+{
+	color: White;
+	text-decoration: none;
+}
+
+.UserGroupResults
+{
+	font-size: 12px;
+	color: lightgray;
+}
+
+/* Custom styles for the crashes and buggs form
+----------------------------------------------------------*/
+
+#CrashesForm
+{
+	padding: 1em;
+}
+
+#CrashesTable
+{
+	width: auto; 
+	min-width: 1280px;
+	table-layout: auto; 
+}
+
+#SelectBar
+{
+	height:4em;
+	background-color: #e8eef4;
+	border: none !important;
+}
+
+.SelectorTitle
+{
+	padding: 1em;
+	cursor: pointer;
+	vertical-align: middle;
+}
+
+.SelectorLink
+{
+	padding: 1em;
+	color: blue;
+	cursor: pointer;
+	vertical-align: middle;
+}
+
+#SetStatusForm,
+#SetStatusInput
+{
+	display: inline;
+	color: black;
+	font-size: 12px;
+	vertical-align: middle;
+}
+
+.PaginationBox
+{
+	padding: 1em;
+	display: inline;
+	vertical-align: middle;
+	color: #5c87b2;
+}
+
+.PaginationBox a
+{
+	color: #5c87b2;
+	text-decoration: none;
+}
+
+th,
+th a,
+th a:link,
+th a:visited
+{
+	background-color: #718698 !important;
+	color: white;
+	text-decoration: none;
+}
+
+#CrashesTableHeader
+{
+	border: 1px solid black;
+}
+
+#CrashesTable td
+{
+	border-right: 1px solid grey;
+}
+
+#CrashesTable td.Id a 
+{
+	font-weight: bold;
+	Color: #5c87b2;
+	text-decoration: none;
+}
+
+#CrashesTable td.Id a:hover 
+{
+	font-weight: bold;
+	text-decoration: underline;
+}
+
+#CrashesTable td.CallStack a
+{
+	color: #5c87b2;
+	font-size: 1em;
+	font-family: monospace;
+	text-decoration: none;
+}
+
+#CrashesTable td.CallStack a:hover
+{
+	text-decoration: underline;
+}
+
+#CrashesTable .FullCallStackTriggerText
+{
+	font-size: 1.1em;
+	font-weight: bold;
+}
+
+.FullCallStackBox
+{
+	text-decoration: none;
+}
+
+.FullCallStackTrigger
+{
+	position: relative;
+}
+
+.FullCallStackTrigger div
+{
+	cursor: text;
+	display: none;
+	background-color: #5c87b2;
+}
+
+.FullCallStackTrigger:hover div
+{
+	display: block;
+	left: 7em;
+	min-width: 400px;
+	z-index: 500;
+	border: thin solid black; 
+	position: absolute;
+	background-color: #D1D1D1;
+	padding: 0.5em;
+	color: Black;
+	text-decoration: none;
+}
+
+/* Custom styles for the detail view of crashes and buggs
+----------------------------------------------------------*/
+
+#SetInput
+{
+	margin: 0 2em 0 2em;
+	padding: 1.3em 0 1.3em 0;
+	color: white;
+}
+
+#CrashDataContainer 
+{
+	margin: 1em;
+	width: 400px;
+	height: 850px;
+	float: left;
+	background: #2e363f;
+	font-size: 14px;
+	border-top: 1px solid black;
+	border-left: 1px solid black;
+	border-right: 1px solid #718698;
+	border-bottom: 1px solid #718698;
+}
+
+#CrashDataContainer dt
+{
+	clear: both;
+	display: block;
+	float: left;
+	width: 150px;
+	margin: 0.5em 0.5em 0.5em 0.5em;
+	font-weight: bold;
+	text-align: right;
+	color: #718698;
+}
+
+#CrashDataContainer dd
+{
+	display: block;
+	float: left;
+	width: 150px;
+	margin: 0.5em 0.5em 0.5em 0.5em;
+	font-weight: normal;
+	color: #C3CAD0;
+}
+
+#CallStackContainer
+{
+	min-width: 900px;
+	margin: 1em;
+	margin-left: 450px;
+	padding: 1em;
+	background-color: #758a98;
+}
+
+#CallStackContainer h3
+{
+	margin-top: 0;
+	margin-bottom: 1em;
+	color: white;
+}
+
+#FormattedCallStackContainer, #RawCallStackContainer
+{
+	height: 20em;
+	background-color: #c3cad0;
+	white-space: nowrap;
+	overflow: scroll;
+	overflow-x: scroll;
+}
+
+.module-name 
+{
+	color: #778a99;
+	font-weight: bold;
+}
+
+.function-name 
+{
+	color: #000;
+	font-weight: bold;
+}
+
+.file-name 
+{
+	color: #778a99;
+	font-weight: bold;
+}
+
+.file-path 
+{
+	font-style: italic;
+}
+
+#FormatCallStack
+{
+	padding: 0.5em;
+	color: #c3cad0;
+}
+
+#SourceContextDisplay
+{
+	height: 34em;
+	background-color: #c3cad0;
+	white-space: nowrap;
+	overflow: scroll;
+	overflow-x: scroll;
+	color: black;
+}
+
+.EditButton
+{
+	color: blue;
+	cursor: pointer;
+}
+
+#SaveDescription 
+{
+	display: none;
+}
+
+#CrashCommandLine
+{
+	min-height: 1em;
+	padding: .3em;
+	background-color: #eeeeee;
+	border: 1px solid #ccc;
+	color: black;
+}
+
+#InputCrashDescription input[type="text"] 
+{
+	width: 100%;
+	height: 100%;
+	border: 1px solid #ccc;
+}
+
+/* Custom styles for the dashboard
+----------------------------------------------------------*/
+
+#DashBoard
+{
+	min-width: 1600px;
+	min-height: 1200px;
+}
+
+#DashBoard h2
+{
+	margin: 0;
+	padding: 1em;
+	color: white;
+}
+
+#weekly_chart
+{
+	width: 100%; 
+	height: 40em;
+	padding: 0.75em;
+}
+
+#daily_chart
+{
+	width: 100%; 
+	height: 40em;
+	padding: 0.75em;
+}
+
+/* User admin screen
+----------------------------------------------------------*/
+
+#UserNames
+{
+	padding: 1em;
+}
+
+#UserNames form
+{
+	font-weight: bold;
+	font-size: 1.25em;
+	color: #c3cad0;
+}

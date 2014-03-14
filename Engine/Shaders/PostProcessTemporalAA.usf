@@ -1,0 +1,174 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
+/*=============================================================================
+	PostProcessTemporalAA.usf: Temporal AA
+=============================================================================*/
+
+#include "Common.usf"
+#include "PostProcessCommon.usf"
+#include "DeferredShadingCommon.usf"		// FGBufferData
+
+#ifndef ENABLE_TEMPORAL_AA
+#define ENABLE_TEMPORAL_AA	1
+#endif
+
+float4 CameraMotion[5];
+float SampleWeights[9];
+float LowpassWeights[9];
+float2 RandomOffset;
+
+// TODO: This can be removed.
+float ClampFeebackMix;
+
+float Luma(float3 Color) 
+{
+	#if 1
+		// This seems to work better (less same luma ghost trails).
+		// CCIR 601 function for luma.
+		return dot(Color, float3(0.299, 0.587, 0.114));
+	#else
+		// Rec 709 function for luma.
+		return dot(Color, float3(0.2126, 0.7152, 0.0722));
+	#endif
+}
+
+float HighlightCompression(float Channel) 
+{
+	return Channel * rcp(1.0 + Channel);
+}
+	
+float HighlightDecompression(float Channel) 
+{
+	return Channel * rcp(1.0 - Channel);
+}
+
+float PerceptualLuma(float3 Color, float Exposure) 
+{
+	return sqrt(HighlightCompression(Luma(Color) * Exposure));
+}
+
+float LinearLuma(float Channel) 
+{
+	// This returns exposure normalized linear luma from a PerceptualLuma().
+	return HighlightDecompression(Channel * Channel);
+}
+
+// Intersect ray with AABB, knowing there is an intersection.
+//   Dir = Ray direction.
+//   Org = Start of the ray.
+//   Box = Box is at {0,0,0} with this size.
+// Returns distance on line segment.
+float IntersectAABB(float3 Dir, float3 Org, float3 Box)
+{
+	#if 1 // PS4_PROFILE
+	    // Turning this on for all platforms in case of bad AABB test.
+		if(min(min(abs(Dir.x), abs(Dir.y)), abs(Dir.z)) < (1.0/16384.0)) return 1.0;
+	#endif
+	float3 RcpDir = rcp(Dir);
+	float3 TNeg = (  Box  - Org) * RcpDir;
+	float3 TPos = ((-Box) - Org) * RcpDir;
+	return max(max(min(TNeg.x, TPos.x), min(TNeg.y, TPos.y)), min(TNeg.z, TPos.z));
+}
+
+float HistoryClamp(float3 History, float3 Filtered, float3 NeighborMin, float3 NeighborMax, float Exposure)
+{
+	float3 Min = min(Filtered, min(NeighborMin, NeighborMax));
+	float3 Max = max(Filtered, max(NeighborMin, NeighborMax));	
+	float3 Avg2 = Max + Min;
+	float3 Dir = Filtered - History;
+	float3 Org = History - Avg2 * 0.5;
+	float3 Scale = Max - Avg2 * 0.5;
+	return saturate(IntersectAABB(Dir, Org, Scale));	
+}
+
+float HdrWeight(float3 Color, float Exposure) 
+{
+	return rcp(max(Luma(Color) * Exposure, 1.0));
+}
+
+float4 HdrLerp(float4 ColorA, float4 ColorB, float Blend, float Exposure) 
+{
+	float BlendA = (1.0 - Blend) * HdrWeight(ColorA.rgb, Exposure);
+	float BlendB =        Blend  * HdrWeight(ColorB.rgb, Exposure);
+	float RcpBlend = rcp(BlendA + BlendB);
+	BlendA *= RcpBlend;
+	BlendB *= RcpBlend;
+	return ColorA * BlendA + ColorB * BlendB;
+}
+
+
+
+void SSRTemporalAAPS( float4 UVAndScreenPos : TEXCOORD0, float3 InExposureScaleVignette : TEXCOORD1, out float4 OutColor : SV_Target0 )
+{
+#if ENABLE_TEMPORAL_AA
+	float InExposureScale = InExposureScaleVignette.x;
+	#define AA_ALPHA 0
+	#define AA_CROSS 0
+	#define AA_DYNAMIC 0
+	#define AA_LERP 8
+	#define AA_NAN 1
+	#include "PostProcessTemporalCommon.usf"
+#else 
+	// On broken platforms then at least draw something without AA.
+	OutColor = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0);
+#endif
+}
+
+void DOFTemporalAAPS( float4 UVAndScreenPos : TEXCOORD0, float3 InExposureScaleVignette : TEXCOORD1, out float4 OutColor : SV_Target0 )
+{
+#if ENABLE_TEMPORAL_AA
+	float InExposureScale = InExposureScaleVignette.x;
+	#define AA_ALPHA 0
+	#define AA_CROSS 4
+	#define AA_DYNAMIC 0
+	#define AA_NAN 1
+	#define AA_BORDER 1
+	#define AA_FORCE_ALPHA_CLAMP 1
+	#include "PostProcessTemporalCommon.usf"
+#else 
+	OutColor = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0);
+#endif
+}
+
+void LightShaftTemporalAAPS( float4 UVAndScreenPos : TEXCOORD0, float3 InExposureScaleVignette : TEXCOORD1, out float4 OutColor : SV_Target0 )
+{
+#if ENABLE_TEMPORAL_AA
+	float InExposureScale = InExposureScaleVignette.x;
+	#define AA_ALPHA 0
+	#define AA_CROSS 0
+	#define AA_DYNAMIC 0
+	#define AA_LERP 64
+	#define AA_NAN 1
+	#include "PostProcessTemporalCommon.usf"
+#else 
+	OutColor = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0);
+#endif
+}
+
+void MainTemporalAAPS( float4 UVAndScreenPos : TEXCOORD0, float3 InExposureScaleVignette : TEXCOORD1, out float4 OutColor : SV_Target0 )
+{
+#if ENABLE_TEMPORAL_AA
+	float InExposureScale = InExposureScaleVignette.x;
+	#define AA_BORDER 1
+	#define AA_GRAIN 1
+	#include "PostProcessTemporalCommon.usf"
+#else 
+	OutColor = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0);
+#endif
+}
+
+void MainFastTemporalAAPS( float4 UVAndScreenPos : TEXCOORD0, float3 InExposureScaleVignette : TEXCOORD1, out float4 OutColor : SV_Target0 )
+{
+#if ENABLE_TEMPORAL_AA
+	float InExposureScale = InExposureScaleVignette.x;
+	#define AA_BORDER 1
+	#define AA_GRAIN 1
+	#define AA_HDR 0
+	#define AA_HDR_HISTORY 0
+	#define AA_LOWPASS 0
+	#define AA_ONE_DYNAMIC_SAMPLE 1
+	#include "PostProcessTemporalCommon.usf"
+#else 
+	OutColor = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0);
+#endif
+}

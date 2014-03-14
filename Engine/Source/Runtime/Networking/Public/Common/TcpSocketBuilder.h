@@ -1,0 +1,248 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
+/*=============================================================================
+	TcpSocketBuilder.h: Declares the FTcpSocketBuilder class.
+=============================================================================*/
+
+#pragma once
+
+
+/**
+ * Implements a fluent builder for TCP sockets.
+ */
+class FTcpSocketBuilder
+{
+public:
+
+	/**
+	 * Creates and initializes a new instance.
+	 *
+	 * @param InDescription - Debug description for the socket.
+	 */
+	FTcpSocketBuilder( const FString& InDescription )
+		: Blocking(false)
+		, Bound(false)
+		, BoundEndpoint(FIPv4Address::Any, 0)
+		, Description(InDescription)
+		, Linger(false)
+		, LingerTimeout(0)
+		, Listen(false)
+		, Reusable(false)
+	{ }
+
+
+public:
+
+	/**
+	 * Sets socket operations to be blocking.
+	 *
+	 * @return This instance (for method chaining).
+	 */
+	FTcpSocketBuilder AsBlocking( )
+	{
+		Blocking = true;
+
+		return *this;
+	}
+
+	/**
+	 * Sets socket operations to be non-blocking.
+	 *
+	 * @return This instance (for method chaining).
+	 */
+	FTcpSocketBuilder AsNonBlocking( )
+	{
+		Blocking = false;
+
+		return *this;
+	}
+
+	/**
+	 * Makes the bound address reusable by other sockets.
+	 *
+	 * @return This instance (for method chaining).
+	 */
+	FTcpSocketBuilder AsReusable( )
+	{
+		Reusable = true;
+
+		return *this;
+	}
+
+	/**
+ 	 * Sets the local address to bind the socket to.
+	 *
+	 * Unless specified in a subsequent call to BoundToPort(), a random
+	 * port number will be assigned by the underlying provider.
+	 *
+	 * @param Address - The IP address to bind the socket to.
+	 *
+	 * @return This instance (for method chaining).
+	 *
+	 * @see BoundToEndpoint
+	 * @see BoundToPort
+	 */
+	FTcpSocketBuilder BoundToAddress( const FIPv4Address& Address )
+	{
+		BoundEndpoint = FIPv4Endpoint(Address, BoundEndpoint.GetPort());
+		Bound = true;
+
+		return *this;
+	}
+
+	/**
+ 	 * Sets the local endpoint to bind the socket to.
+	 *
+	 * @param Endpoint - The IP endpoint to bind the socket to.
+	 *
+	 * @return This instance (for method chaining).
+	 *
+	 * @see BoundToAddress
+	 * @see BoundToPort
+	 */
+	FTcpSocketBuilder BoundToEndpoint( const FIPv4Endpoint& Endpoint )
+	{
+		BoundEndpoint = Endpoint;
+		Bound = true;
+
+		return *this;
+	}
+
+	/**
+	 * Sets the local port to bind the socket to.
+	 *
+	 * Unless specified in a subsequent call to BoundToAddress(), the local
+	 * address will be determined automatically by the underlying provider.
+	 *
+	 * @param Port - The local port number to bind the socket to.
+	 *
+	 * @return This instance (for method chaining).
+	 *
+	 * @see BoundToAddress
+	 */
+	FTcpSocketBuilder BoundToPort( int32 Port )
+	{
+		BoundEndpoint = FIPv4Endpoint(BoundEndpoint.GetAddress(), Port);
+		Bound = true;
+
+		return *this;
+	}
+
+	/**
+	 * Sets how long the socket will linger after closing.
+	 *
+	 * @param Timeout - The amount of time to linger before closing.
+	 *
+	 * @return This instance (for method chaining).
+	 */
+	FTcpSocketBuilder Lingering( int32 Timeout )
+	{
+		Linger = true;
+		LingerTimeout = Timeout;
+
+		return *this;
+	}
+
+	/**
+	 * Sets the socket into a listening state for incoming connections.
+	 *
+	 * @param MaxBacklog - The number of connections to queue before refusing them.
+	 *
+	 * @return This instance (for method chaining).
+	 */
+	FTcpSocketBuilder Listening( int32 MaxBacklog )
+	{
+		Listen = true;
+		ListenBacklog = MaxBacklog;
+
+		return *this;
+	}
+
+
+public:
+
+	/**
+	 * Implicit conversion operator that builds the socket as configured.
+	 *
+	 * @return The built socket.
+	 */
+	operator FSocket*( ) const
+	{
+		return Build();
+	}
+
+	/**
+	 * Builds the socket as configured.
+	 *
+	 * @return The built socket.
+	 */
+	FSocket* Build( ) const
+	{
+		FSocket* Socket = NULL;
+
+		ISocketSubsystem* SocketSubsystem = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
+
+		if (SocketSubsystem != NULL)
+		{
+			Socket = SocketSubsystem->CreateSocket(NAME_Stream, *Description, true);
+
+			if (Socket != NULL)
+			{
+				bool Error = !Socket->SetReuseAddr(Reusable) ||
+							 !Socket->SetLinger(Linger, LingerTimeout) ||
+							 !Socket->SetRecvErr();
+
+				if (!Error)
+				{
+					Error = Bound && !Socket->Bind(*SocketSubsystem->CreateInternetAddr(BoundEndpoint.GetAddress().GetValue(), BoundEndpoint.GetPort()));
+				}
+
+				if (!Error)
+				{
+					Error = Listen && !Socket->Listen(ListenBacklog);
+				}
+
+				if (Error)
+				{
+					GLog->Logf(TEXT("FTcpSocketBuilder: Failed to create the socket %s as configured"), *Description);
+
+					SocketSubsystem->DestroySocket(Socket);
+
+					Socket = NULL;
+				}
+			}
+		}
+
+		return Socket;
+	}
+
+
+private:
+
+	// Holds a flag indicating whether socket operations are blocking.
+	bool Blocking;
+
+	// Holds a flag indicating whether the socket should be bound.
+	bool Bound;
+
+	// Holds the IP address (and port) that the socket will be bound to.
+	FIPv4Endpoint BoundEndpoint;
+
+	// Holds the socket's debug description text.
+	FString Description;
+
+	// Holds a flag indicating whether the socket should linger after closing.
+	bool Linger;
+
+	// Holds the amount of time the socket will linger before closing.
+	int32 LingerTimeout;
+
+	// Holds a flag indicating whether the socket should listen for incoming connections.
+	bool Listen;
+
+	// Holds the number of connections to queue up before refusing them.
+	int32 ListenBacklog;
+
+	// Holds a flag indicating whether the bound address can be reused by other sockets.
+	bool Reusable;
+};

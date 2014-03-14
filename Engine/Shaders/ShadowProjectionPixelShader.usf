@@ -1,0 +1,547 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
+/*=============================================================================
+	ShadowProjectionPixelShader.usf: Pixel shader for projecting a shadow depth buffer onto the scene.
+=============================================================================*/
+
+#include "Common.usf"
+
+#ifndef USE_FADE_PLANE
+	#define USE_FADE_PLANE 0
+#endif
+
+#ifndef SHADOW_QUALITY
+	#define SHADOW_QUALITY 6
+#endif
+
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
+	// Gather() is supported
+	#define FEATURE_GATHER4 1
+#else
+	// Gather() is not supported
+	#define FEATURE_GATHER4 0
+#endif
+
+#include "ShadowProjectionCommon.usf"
+#include "DeferredShadingCommon.usf"
+
+float ShadowFadeFraction;
+float ShadowSharpen;
+float4x4 ScreenToShadowMatrix;
+// .x:DepthBias, y: MaxSubjectZ - MinSubjectZ
+float2 ProjectionDepthBiasParameters;
+Texture2D ShadowDepthTextureObject;
+SamplerState ShadowDepthSampler;
+
+#if USE_FADE_PLANE
+	float FadePlaneOffset;
+	float InvFadePlaneLength;
+#endif
+
+struct FPCFSamplerSettings
+{
+	float SceneDepth;
+
+	// set by the caller, constant for the code so only one code branch should be compiled
+	bool bSubsurface;
+
+	// only used if bSubsurface is true
+	float DensityMulConstant;
+};
+
+// linear PCF, input 4x4
+// @param Values0 in column 0 from top to bottom: x,y,z,w
+// @param Values1 in column 1 from top to bottom: x,y,z,w
+// @param Values2 in column 2 from top to bottom: x,y,z,w
+// @param Values3 in column 3 from top to bottom: x,y,z,w
+// can be optimized
+float PCF3x3(float2 Fraction, float4 Values0, float4 Values1, float4 Values2, float4 Values3)
+{
+	float2 VerticalLerp00 = lerp(float2(Values0.x, Values1.x), float2(Values0.y, Values1.y), Fraction.xx);
+	float PCFResult00 = lerp(VerticalLerp00.x, VerticalLerp00.y, Fraction.y);
+	float2 VerticalLerp10 = lerp(float2(Values0.y, Values1.y), float2(Values0.z, Values1.z), Fraction.xx);
+	float PCFResult10 = lerp(VerticalLerp10.x, VerticalLerp10.y, Fraction.y);
+	float2 VerticalLerp20 = lerp(float2(Values0.z, Values1.z), float2(Values0.w, Values1.w), Fraction.xx);
+	float PCFResult20 = lerp(VerticalLerp20.x, VerticalLerp20.y, Fraction.y);
+
+	float2 VerticalLerp01 = lerp(float2(Values1.x, Values2.x), float2(Values1.y, Values2.y), Fraction.xx);
+	float PCFResult01 = lerp(VerticalLerp01.x, VerticalLerp01.y, Fraction.y);
+	float2 VerticalLerp11 = lerp(float2(Values1.y, Values2.y), float2(Values1.z, Values2.z), Fraction.xx);
+	float PCFResult11 = lerp(VerticalLerp11.x, VerticalLerp11.y, Fraction.y);
+	float2 VerticalLerp21 = lerp(float2(Values1.z, Values2.z), float2(Values1.w, Values2.w), Fraction.xx);
+	float PCFResult21 = lerp(VerticalLerp21.x, VerticalLerp21.y, Fraction.y);
+
+	float2 VerticalLerp02 = lerp(float2(Values2.x, Values3.x), float2(Values2.y, Values3.y), Fraction.xx);
+	float PCFResult02 = lerp(VerticalLerp02.x, VerticalLerp02.y, Fraction.y);
+	float2 VerticalLerp12 = lerp(float2(Values2.y, Values3.y), float2(Values2.z, Values3.z), Fraction.xx);
+	float PCFResult12 = lerp(VerticalLerp12.x, VerticalLerp12.y, Fraction.y);
+	float2 VerticalLerp22 = lerp(float2(Values2.z, Values3.z), float2(Values2.w, Values3.w), Fraction.xx);
+	float PCFResult22 = lerp(VerticalLerp22.x, VerticalLerp22.y, Fraction.y);
+
+	return saturate((PCFResult00 + PCFResult10 + PCFResult20 + PCFResult01 + PCFResult11 + PCFResult21 + PCFResult02 + PCFResult12 + PCFResult22) * .11111f);
+}
+
+
+// linear PCF, input 4x4
+// using Gather: xyzw in counter clockwise order starting with the sample to the lower left of the queried location
+// @param Values0 left top
+// @param Values1 right top
+// @param Values2 left bottom
+// @param Values3 right bottom
+float PCF3x3gather(float2 Fraction, float4 Values0, float4 Values1, float4 Values2, float4 Values3)
+{
+	// mostly vectorized
+	float4 PCFResult0 = float4(lerp(Values0.wx, Values0.zy, Fraction.xx), lerp(Values2.wx, Values2.zy, Fraction.x));
+	float4 PCFResult1 = float4(lerp(Values0.zy, Values1.wx, Fraction.xx), lerp(Values2.zy, Values3.wx, Fraction.x));
+	float4 PCFResult2 = float4(lerp(Values1.wx, Values1.zy, Fraction.xx), lerp(Values3.wx, Values3.zy, Fraction.x));
+
+	float4 PCFResult012 = PCFResult0 + PCFResult1 + PCFResult2;
+
+	float3 PCFResults = lerp(PCFResult012.xyz, PCFResult012.yzw, Fraction.y);
+
+	return dot(PCFResults, 1.0f / 9.0f);
+}
+
+float PCF5x2(float2 Fraction, float4 Values00, float4 Values20, float4 Values40, float4 Values02, float4 Values22, float4 Values42)
+{
+	float4 Results0;
+	float2 Results1;
+	float2 HorizontalLerp00 = lerp(float2(Values00.w, Values00.x), float2(Values00.z, Values00.y), Fraction.xx);
+	Results0.x = lerp(HorizontalLerp00.x, HorizontalLerp00.y, Fraction.y);
+
+	float2 HorizontalLerp10 = lerp(float2(Values00.z, Values00.y), float2(Values20.w, Values20.x), Fraction.xx);
+	Results0.y = lerp(HorizontalLerp10.x, HorizontalLerp10.y, Fraction.y);
+
+	float2 HorizontalLerp20 = lerp(float2(Values20.w, Values20.x), float2(Values20.z, Values20.y), Fraction.xx);
+	Results0.z = lerp(HorizontalLerp20.x, HorizontalLerp20.y, Fraction.y);
+
+	float2 HorizontalLerp30 = lerp(float2(Values20.z, Values20.y), float2(Values40.w, Values40.x), Fraction.xx);
+	Results0.w = lerp(HorizontalLerp30.x, HorizontalLerp30.y, Fraction.y);
+
+	float2 HorizontalLerp40 = lerp(float2(Values40.w, Values40.x), float2(Values40.z, Values40.y), Fraction.xx);
+	Results1.x = lerp(HorizontalLerp40.x, HorizontalLerp40.y, Fraction.y);
+
+	float4 Results2;
+	float2 HorizontalLerp01 = lerp(float2(Values00.x, Values02.w), float2(Values00.y, Values02.z), Fraction.xx);
+	Results2.x = lerp(HorizontalLerp01.x, HorizontalLerp01.y, Fraction.y);
+
+	float2 HorizontalLerp11 = lerp(float2(Values00.y, Values02.z), float2(Values20.x, Values22.w), Fraction.xx);
+	Results2.y = lerp(HorizontalLerp11.x, HorizontalLerp11.y, Fraction.y);
+
+	float2 HorizontalLerp21 = lerp(float2(Values20.x, Values22.w), float2(Values20.y, Values22.z), Fraction.xx);
+	Results2.z = lerp(HorizontalLerp21.x, HorizontalLerp21.y, Fraction.y);
+
+	float2 HorizontalLerp31 = lerp(float2(Values20.y, Values22.z), float2(Values40.x, Values42.w), Fraction.xx);
+	Results2.w = lerp(HorizontalLerp31.x, HorizontalLerp31.y, Fraction.y);
+
+	float2 HorizontalLerp41 = lerp(float2(Values40.x, Values42.w), float2(Values40.y, Values42.z), Fraction.xx);
+	Results1.y = lerp(HorizontalLerp41.x, HorizontalLerp41.y, Fraction.y);
+
+	return dot(Results0, .04f) + dot(Results1, .04f) + dot(Results2, .04f);
+}
+
+float PCF5x1(float2 Fraction, float4 Values00, float4 Values20, float4 Values40)
+{
+	float4 Results0;
+	float2 HorizontalLerp00 = lerp(float2(Values00.w, Values00.x), float2(Values00.z, Values00.y), Fraction.xx);
+	Results0.x = lerp(HorizontalLerp00.x, HorizontalLerp00.y, Fraction.y);
+
+	float2 HorizontalLerp10 = lerp(float2(Values00.z, Values00.y), float2(Values20.w, Values20.x), Fraction.xx);
+	Results0.y = lerp(HorizontalLerp10.x, HorizontalLerp10.y, Fraction.y);
+
+	float2 HorizontalLerp20 = lerp(float2(Values20.w, Values20.x), float2(Values20.z, Values20.y), Fraction.xx);
+	Results0.z = lerp(HorizontalLerp20.x, HorizontalLerp20.y, Fraction.y);
+
+	float2 HorizontalLerp30 = lerp(float2(Values20.z, Values20.y), float2(Values40.w, Values40.x), Fraction.xx);
+	Results0.w = lerp(HorizontalLerp30.x, HorizontalLerp30.y, Fraction.y);
+
+	float2 HorizontalLerp40 = lerp(float2(Values40.w, Values40.x), float2(Values40.z, Values40.y), Fraction.xx);
+	float Results1 = lerp(HorizontalLerp40.x, HorizontalLerp40.y, Fraction.y);
+
+	return dot(Results0, .04f) + Results1 * .04f;
+}
+
+// lowest quality ith PCF
+float PCF1x1(float2 Fraction, float4 Values00)
+{
+	float2 HorizontalLerp00 = lerp(Values00.wx, Values00.zy, Fraction.xx);
+
+	return lerp(HorizontalLerp00.x, HorizontalLerp00.y, Fraction.y);
+}
+
+float4 CalculateOcclusion(float4 ShadowmapDepth, FPCFSamplerSettings Settings)
+{
+	if(Settings.bSubsurface)
+	{
+		// Determine the distance that the light traveled through the subsurface object
+		// This assumes that anything between this subsurface pixel and the light was also a subsurface material,
+		// As a result, subsurface materials receive leaked light based on how transparent they are
+		float4 Thickness = max(Settings.SceneDepth - ShadowmapDepth, 0);
+		float4 Occlusion = saturate(exp(-Thickness * Settings.DensityMulConstant));
+		// Never shadow from depths that were never written to (max depth value)
+		return ShadowmapDepth > .99f ? 1 : Occlusion;
+	}
+	else
+	{
+		// The standard comparison is SceneDepth < ShadowmapDepth
+		// Using a soft transition based on depth difference
+		// Offsets shadows a bit but reduces self shadowing artifacts considerably
+		float TransitionScale = SoftTransitionScale.z;
+		return saturate((ShadowmapDepth - Settings.SceneDepth) * TransitionScale + 1);
+	}
+}
+
+float3 CalculateOcclusion(float3 ShadowmapDepth, FPCFSamplerSettings Settings)
+{
+	if(Settings.bSubsurface)
+	{
+		// Determine the distance that the light traveled through the subsurface object
+		// This assumes that anything between this subsurface pixel and the light was also a subsurface material,
+		// As a result, subsurface materials receive leaked light based on how transparent they are
+		float3 Thickness = max(Settings.SceneDepth - (ShadowmapDepth - ProjectionDepthBiasParameters.x), 0);
+		float3 Occlusion = saturate(exp(-Thickness * Settings.DensityMulConstant));
+		// Never shadow from depths that were never written to (max depth value)
+		return ShadowmapDepth > .99f ? 1 : Occlusion;
+	}
+	else
+	{
+		// The standard comparison is Settings.SceneDepth < ShadowmapDepth
+		// Using a soft transition based on depth difference
+		// Offsets shadows a bit but reduces self shadowing artifacts considerably
+		float TransitionScale = SoftTransitionScale.z;
+		return saturate((ShadowmapDepth - Settings.SceneDepth) * TransitionScale + 1);
+	}
+}
+
+void FetchRowOfFour(float2 Sample00TexelCenter, float VerticalOffset, out float4 Values0, FPCFSamplerSettings Settings)
+{
+	Values0.x = Texture2DSampleLevel(ShadowDepthTexture, ShadowDepthTextureSampler, (Sample00TexelCenter + float2(0, VerticalOffset)) * ShadowBufferSize.zw, 0).r;
+	Values0.y = Texture2DSampleLevel(ShadowDepthTexture, ShadowDepthTextureSampler, (Sample00TexelCenter + float2(1, VerticalOffset)) * ShadowBufferSize.zw, 0).r;
+	Values0.z = Texture2DSampleLevel(ShadowDepthTexture, ShadowDepthTextureSampler, (Sample00TexelCenter + float2(2, VerticalOffset)) * ShadowBufferSize.zw, 0).r;
+	Values0.w = Texture2DSampleLevel(ShadowDepthTexture, ShadowDepthTextureSampler, (Sample00TexelCenter + float2(3, VerticalOffset)) * ShadowBufferSize.zw, 0).r;
+	Values0 = CalculateOcclusion(Values0, Settings);
+}
+
+void FetchRowOfThreeAfterFour(float2 Sample00TexelCenter, float VerticalOffset, out float3 Values1, FPCFSamplerSettings Settings)
+{
+	Values1.x = Texture2DSampleLevel(ShadowDepthTexture, ShadowDepthTextureSampler, (Sample00TexelCenter + float2(4, VerticalOffset)) * ShadowBufferSize.zw, 0).r;
+	Values1.y = Texture2DSampleLevel(ShadowDepthTexture, ShadowDepthTextureSampler, (Sample00TexelCenter + float2(5, VerticalOffset)) * ShadowBufferSize.zw, 0).r;
+	Values1.z = Texture2DSampleLevel(ShadowDepthTexture, ShadowDepthTextureSampler, (Sample00TexelCenter + float2(6, VerticalOffset)) * ShadowBufferSize.zw, 0).r;
+	Values1 = CalculateOcclusion(Values1, Settings);
+}
+
+float ManualPCF(float2 ShadowPosition, FPCFSamplerSettings Settings)
+{
+
+#if SHADOW_QUALITY == 1
+	// very low quality but very good performance, useful to profile, 1 sample, not using gather4
+	return CalculateOcclusion(Texture2DSampleLevel(ShadowDepthTexture, ShadowDepthTextureSampler, ShadowPosition, 0).rrr, Settings).r;
+#endif
+
+#if SHADOW_QUALITY == 2
+	// low quality, 2x2 samples, using and not using gather4
+	{
+		float2 TexelPos = ShadowPosition * ShadowBufferSize.xy - 0.5f;	// bias to be consistent with texture filtering hardware
+		float2 Fraction = frac(TexelPos);
+		float2 TexelCenter = floor(TexelPos) + 0.5f;	// bias to get reliable texel center content
+
+		// using Gather: xyzw in counter clockwise order starting with the sample to the lower left of the queried location
+		float4 Samples;
+
+#if FEATURE_GATHER4
+		Samples = ShadowDepthTextureObject.Gather(ShadowDepthSampler, TexelCenter * ShadowBufferSize.zw);
+#else
+		Samples.x = Texture2DSampleLevel(ShadowDepthTexture, ShadowDepthTextureSampler, (TexelCenter.xy + float2(0, 1)) * ShadowBufferSize.zw, 0).r;
+		Samples.y = Texture2DSampleLevel(ShadowDepthTexture, ShadowDepthTextureSampler, (TexelCenter.xy + float2(1, 1)) * ShadowBufferSize.zw, 0).r;
+		Samples.z = Texture2DSampleLevel(ShadowDepthTexture, ShadowDepthTextureSampler, (TexelCenter.xy + float2(1, 0)) * ShadowBufferSize.zw, 0).r;
+		Samples.w = Texture2DSampleLevel(ShadowDepthTexture, ShadowDepthTextureSampler, (TexelCenter.xy + float2(0, 0)) * ShadowBufferSize.zw, 0).r;
+#endif
+
+		float4 Values00 = CalculateOcclusion(Samples, Settings);
+		return PCF1x1(Fraction, Values00);
+	}
+#endif
+
+#if SHADOW_QUALITY == 3
+	// medium quality, 4x4 samples, using and not using gather4
+	{
+		float2 TexelPos = ShadowPosition * ShadowBufferSize.xy - 0.5f;	// bias to be consistent with texture filtering hardware
+		float2 Fraction = frac(TexelPos);
+		float2 TexelCenter = floor(TexelPos) + 0.5f;	// bias to get reliable texel center content
+		{
+			float2 Sample00TexelCenter = TexelCenter - float2(1, 1);
+
+			float4 SampleValues0, SampleValues1, SampleValues2, SampleValues3;
+
+#if FEATURE_GATHER4
+			float2 SamplePos = TexelCenter * ShadowBufferSize.zw;	// bias to get reliable texel center content
+			SampleValues0 = CalculateOcclusion(ShadowDepthTextureObject.Gather(ShadowDepthSampler, SamplePos, int2(-1, -1)), Settings);
+			SampleValues1 = CalculateOcclusion(ShadowDepthTextureObject.Gather(ShadowDepthSampler, SamplePos, int2( 1, -1)), Settings);
+			SampleValues2 = CalculateOcclusion(ShadowDepthTextureObject.Gather(ShadowDepthSampler, SamplePos, int2(-1,  1)), Settings);
+			SampleValues3 = CalculateOcclusion(ShadowDepthTextureObject.Gather(ShadowDepthSampler, SamplePos, int2( 1,  1)), Settings);
+			return PCF3x3gather(Fraction, SampleValues0, SampleValues1, SampleValues2, SampleValues3);
+#else // FEATURE_GATHER4 
+			FetchRowOfFour(Sample00TexelCenter, 0, SampleValues0, Settings);
+			FetchRowOfFour(Sample00TexelCenter, 1, SampleValues1, Settings);
+			FetchRowOfFour(Sample00TexelCenter, 2, SampleValues2, Settings);
+			FetchRowOfFour(Sample00TexelCenter, 3, SampleValues3, Settings);
+			return PCF3x3(Fraction, SampleValues0, SampleValues1, SampleValues2, SampleValues3);
+#endif // FEATURE_GATHER4
+		}
+	}
+#endif
+
+#if FEATURE_GATHER4
+	// high quality, 6x6 samples, using gather4
+	{
+		float2 TexelPos = ShadowPosition * ShadowBufferSize.xy - 0.5f;	// bias to be consistent with texture filtering hardware
+		float2 Fraction = frac(TexelPos);
+		float2 TexelCenter = floor(TexelPos);
+		float2 SamplePos = (TexelCenter + 0.5f) * ShadowBufferSize.zw;	// bias to get reliable texel center content
+
+		float3 Results;
+
+		float4 Values00 = CalculateOcclusion(ShadowDepthTextureObject.Gather(ShadowDepthSampler, SamplePos, int2(-2, -2)), Settings);
+		float4 Values20 = CalculateOcclusion(ShadowDepthTextureObject.Gather(ShadowDepthSampler, SamplePos, int2(0, -2)), Settings);
+		float4 Values40 = CalculateOcclusion(ShadowDepthTextureObject.Gather(ShadowDepthSampler, SamplePos, int2(2, -2)), Settings);
+
+		float4 Values02 = CalculateOcclusion(ShadowDepthTextureObject.Gather(ShadowDepthSampler, SamplePos, int2(-2, 0)), Settings);
+		float4 Values22 = CalculateOcclusion(ShadowDepthTextureObject.Gather(ShadowDepthSampler, SamplePos, int2(0, 0)), Settings);
+		float4 Values42 = CalculateOcclusion(ShadowDepthTextureObject.Gather(ShadowDepthSampler, SamplePos, int2(2, 0)), Settings);
+
+		Results.x = PCF5x2(Fraction, Values00, Values20, Values40, Values02, Values22, Values42);
+
+		float4 Values04 = CalculateOcclusion(ShadowDepthTextureObject.Gather(ShadowDepthSampler, SamplePos, int2(-2, 2)), Settings);
+		float4 Values24 = CalculateOcclusion(ShadowDepthTextureObject.Gather(ShadowDepthSampler, SamplePos, int2(0, 2)), Settings);
+		float4 Values44 = CalculateOcclusion(ShadowDepthTextureObject.Gather(ShadowDepthSampler, SamplePos, int2(2, 2)), Settings);
+
+		Results.y = PCF5x2(Fraction, Values02, Values22, Values42, Values04, Values24, Values44);
+		Results.z = PCF5x1(Fraction, Values04, Values24, Values44);
+
+		return dot(Results, 1);
+	}
+
+#else // FEATURE_GATHER4
+
+	// high quality, 7x7 samples, not using gather4 (todo: ideally we make this 6x6 to get same results with gather code)
+	{
+		float2 Fraction = frac(ShadowPosition * ShadowBufferSize.xy);
+		float2 Sample00TexelCenter = floor(ShadowPosition * ShadowBufferSize.xy) - float2(3, 3);
+	
+		// Fetch 7x7 shadowmap point samples
+		// Do 6x6 PCF samples, sharing the point samples between neighboring PCF samples
+		float4 Results;
+	
+		float4 SampleValues03;
+		float4 SampleValues13;
+	
+		{
+			float4 SampleValues10;
+			float4 SampleValues11;
+			float4 SampleValues12;
+		
+			// Group work to minimize temporary registers and to split texture work with PCF ALU operations to hide texture latency
+			// Without this layout (all texture lookups at the beginning, PCF ALU's at the end) this shader was 4x slower on Nvidia cards
+			{
+				float4 SampleValues00;
+				FetchRowOfFour(Sample00TexelCenter, 0, SampleValues00, Settings);
+				SampleValues10.x = SampleValues00.w;
+	
+				float4 SampleValues01;
+				FetchRowOfFour(Sample00TexelCenter, 1, SampleValues01, Settings);
+				SampleValues11.x = SampleValues01.w;
+	
+				float4 SampleValues02;
+				FetchRowOfFour(Sample00TexelCenter, 2, SampleValues02, Settings);
+				SampleValues12.x = SampleValues02.w;
+	
+				FetchRowOfFour(Sample00TexelCenter, 3, SampleValues03, Settings);
+				SampleValues13.x = SampleValues03.w;
+				Results.x = PCF3x3(Fraction, SampleValues00, SampleValues01, SampleValues02, SampleValues03);
+			}
+		
+			{
+				FetchRowOfThreeAfterFour(Sample00TexelCenter, 0, SampleValues10.yzw, Settings);
+				FetchRowOfThreeAfterFour(Sample00TexelCenter, 1, SampleValues11.yzw, Settings);
+				FetchRowOfThreeAfterFour(Sample00TexelCenter, 2, SampleValues12.yzw, Settings);
+				FetchRowOfThreeAfterFour(Sample00TexelCenter, 3, SampleValues13.yzw, Settings);
+				Results.y = PCF3x3(Fraction, SampleValues10, SampleValues11, SampleValues12, SampleValues13);
+			}
+		}
+
+		{
+			float4 SampleValues14;
+			float4 SampleValues15;
+			float4 SampleValues16;
+		
+			{
+				float4 SampleValues04;
+				FetchRowOfFour(Sample00TexelCenter, 4, SampleValues04, Settings);
+				SampleValues14.x = SampleValues04.w;
+	
+				float4 SampleValues05;
+				FetchRowOfFour(Sample00TexelCenter, 5, SampleValues05, Settings);
+				SampleValues15.x = SampleValues05.w;
+	
+				float4 SampleValues06;
+				FetchRowOfFour(Sample00TexelCenter, 6, SampleValues06, Settings);
+				SampleValues16.x = SampleValues06.w;
+	
+				Results.z = PCF3x3(Fraction, SampleValues03, SampleValues04, SampleValues05, SampleValues06);
+			}
+		
+			{
+				FetchRowOfThreeAfterFour(Sample00TexelCenter, 4, SampleValues14.yzw, Settings);
+				FetchRowOfThreeAfterFour(Sample00TexelCenter, 5, SampleValues15.yzw, Settings);
+				FetchRowOfThreeAfterFour(Sample00TexelCenter, 6, SampleValues16.yzw, Settings);
+				Results.w = PCF3x3(Fraction, SampleValues13, SampleValues14, SampleValues15, SampleValues16);
+			}
+		}
+	
+		return dot(Results, .25f);
+	}
+#endif	// FEATURE_GATHER4
+}
+
+/**
+* Entry point for uniform manual PCF that supports lights using normal shadows.
+*/
+EARLYDEPTHSTENCIL
+void Main(
+	in float4 SVPos : SV_POSITION,
+	out float4 OutColor : SV_Target0
+	)
+{
+	float2 ScreenUV = float2( SVPos.xy * View.ViewSizeAndSceneTexelSize.zw );
+	float SceneW = CalcSceneDepth( ScreenUV );
+	float2 ScreenPosition = ( ScreenUV.xy - View.ScreenPositionScaleBias.wz ) / View.ScreenPositionScaleBias.xy;
+	float4 ShadowPosition = mul(float4(ScreenPosition.xy * SceneW,SceneW,1), ScreenToShadowMatrix);
+
+	ShadowPosition.xy /= ShadowPosition.w;
+	// Clamp pixel depth in light space for shadowing opaque, because areas of the shadow depth buffer that weren't rendered to will have been cleared to 1
+	// We want to force the shadow comparison to result in 'unshadowed' in that case, regardless of whether the pixel being shaded is in front or behind that plane
+	float LightSpacePixelDepthForOpaque = min(ShadowPosition.z, 0.999);
+	// Must not clamp for SSS shadowing, the subsurface gradient must continue past the far plane
+	float LightSpacePixelDepthForSSS = ShadowPosition.z;
+
+	float Shadow = 1;
+	float SSSTransmission = 1;
+	
+	float BlendFactor = 1;
+
+#if APPLY_TRANSLUCENCY_SHADOWS
+	
+	Shadow = CalculateTranslucencyShadowing(ShadowPosition.xy, ShadowPosition.z);
+
+#else
+
+	FGBufferData InGBufferData = GetGBufferData(ScreenUV);
+
+	// For debugging
+	#define UNFILTERED_SHADOW_PROJECTION 0
+	#if UNFILTERED_SHADOW_PROJECTION
+
+		Shadow = LightSpacePixelDepthForOpaque < Texture2DSampleLevel(ShadowDepthTexture, ShadowDepthTextureSampler, ShadowPosition.xy, 0).r;
+
+	#else
+
+		FPCFSamplerSettings Settings;
+
+		Settings.SceneDepth = LightSpacePixelDepthForOpaque;
+		Settings.bSubsurface = false;
+		Settings.DensityMulConstant = 0;
+
+		Shadow = ManualPCF(ShadowPosition.xy, Settings);
+
+	#endif
+		
+	#if USE_FADE_PLANE
+		// Create a blend factor which is one before and at the fade plane, and lerps to zero at the far plane.
+		BlendFactor = 1.0f - saturate((InGBufferData.Depth - FadePlaneOffset) * InvFadePlaneLength);
+	#endif
+
+	#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
+
+		BRANCH
+		if (InGBufferData.LightingModelId == LIGHTINGMODELID_SUBSURFACE || InGBufferData.LightingModelId == LIGHTINGMODELID_PREINTEGRATED_SKIN)
+		{
+			// Derive density from a heuristic using opacity, tweaked for useful falloff ranges and to give a linear depth falloff with opacity
+			float Density = -.05f * log(1 - min(InGBufferData.Opacity, .999f));
+			//@todo - Use a larger kernel filter based on material opacity
+			// This is not being done currently because a varying opacity causes discontinuities in the shadow result
+			// Note: Snapping based on the largest size kernel is done in FProjectedShadowInfo::FProjectedShadowInfo, MaxDownsampleFactor is set to 4
+			// Only factors of MaxDownsampleFactor will be stable
+			float SquareRootFilterScale = lerp(1.999f, 0, InGBufferData.Opacity);
+			int SquareRootFilterScaleInt = SquareRootFilterScale + 1;
+
+			#if UNFILTERED_SHADOW_PROJECTION
+				float ShadowMapDepth = Texture2DSampleLevel(ShadowDepthTexture, ShadowDepthTextureSampler, ShadowPosition.xy, 0).x;
+				SSSTransmission = CalculateSubsurfaceOcclusion(Density, LightSpacePixelDepthForSSS, ShadowMapDepth.xxx).x;
+			#else
+		
+				// default code path
+				FPCFSamplerSettings Settings;
+				
+				Settings.SceneDepth = LightSpacePixelDepthForSSS + ProjectionDepthBiasParameters.x;
+				Settings.bSubsurface = true;
+				Settings.DensityMulConstant = Density * ProjectionDepthBiasParameters.y;
+				
+				// ideally we use a larger filter kernel for SSSbut as Gather4 makes that harder
+				SSSTransmission = ManualPCF(ShadowPosition.xy, Settings); 
+			#endif
+		}
+
+	#endif
+	
+#endif
+		
+	Shadow = saturate( (Shadow - 0.5) * ShadowSharpen + 0.5 );
+
+	// 0 is shadowed, 1 is unshadowed
+	// RETURN_COLOR not needed unless writing to SceneColor;
+	float FadedShadow = lerp(1.0f, Square(Shadow), ShadowFadeFraction);
+	float FadedSSSShadow = lerp(1.0f, Square(SSSTransmission), ShadowFadeFraction);
+
+	// the channel assignment is documented in ShadowRendering.cpp (look for Light Attenuation channel assignment)
+
+	OutColor = EncodeLightAttenuation(half4(FadedShadow, FadedSSSShadow, FadedShadow, FadedSSSShadow));
+
+	#if USE_FADE_PLANE
+		// When the fade plane is in use for CSMs, we output the fade value in the alpha channel for blending.
+		OutColor.a = BlendFactor;
+	#endif
+}
+
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
+
+float4 LightPositionAndInvRadius;
+// .x:DepthBias, y: unused
+float2 PointLightDepthBiasParameters;
+
+/** Pixel shader for projecting a one pass point light shadow from a cube map. */
+void MainOnePassPointLightPS(
+	in float4 SVPos : SV_POSITION,
+	out float4 OutColor : SV_Target0
+	)
+{
+
+	float2 ScreenUV = float2( SVPos.xy * View.ViewSizeAndSceneTexelSize.zw );
+	float SceneW = CalcSceneDepth( ScreenUV );
+	float2 ScreenPosition = ( ScreenUV.xy - View.ScreenPositionScaleBias.wz ) / View.ScreenPositionScaleBias.xy;
+	float4 HomogeneousWorldPosition = mul(float4(ScreenPosition.xy * SceneW, SceneW, 1), View.ScreenToWorld);
+ 	float3 WorldPosition = HomogeneousWorldPosition.xyz / HomogeneousWorldPosition.w;
+
+ 	float Shadow = CubemapHardwarePCF(WorldPosition, LightPositionAndInvRadius.xyz, LightPositionAndInvRadius.w, PointLightDepthBiasParameters.x);
+
+	Shadow = saturate( (Shadow - 0.5) * ShadowSharpen + 0.5 );
+
+	float FadedShadow = lerp(1.0f, Square(Shadow), ShadowFadeFraction);
+	// Light attenuation buffer has been remapped. 
+	// Point light shadows now write to the blue channel.
+	OutColor.b = EncodeLightAttenuation(Square(FadedShadow));
+	OutColor.rga = 1;
+	// SSS is not correctly handled but at least it should be shadowed
+	OutColor.a = OutColor.b;
+}
+ 
+#endif

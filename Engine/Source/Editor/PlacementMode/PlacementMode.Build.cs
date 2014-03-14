@@ -1,0 +1,35 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
+using UnrealBuildTool;
+
+public class PlacementMode : ModuleRules
+{
+    public PlacementMode(TargetInfo Target)
+    {
+        PrivateIncludePathModuleNames.Add("AssetTools");
+
+        PrivateDependencyModuleNames.AddRange( 
+            new string[] { 
+                "Core", 
+                "CoreUObject",
+                "Engine", 
+                "InputCore",
+                "Slate",
+                "UnrealEd",
+                "ContentBrowser",
+                "CollectionManager",
+                "LevelEditor",
+                "AssetTools",
+                "EditorStyle",
+				"BspMode"
+            } 
+        );
+
+        DynamicallyLoadedModuleNames.AddRange(
+            new string[] { 
+                "AssetTools",
+                "LevelEditor"
+            }
+        );
+    }
+}

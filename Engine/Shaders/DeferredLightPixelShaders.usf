@@ -1,0 +1,321 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
+/*=============================================================================
+	DeferredLightPixelShaders.usf: 
+=============================================================================*/
+
+#include "Common.usf"
+#include "DeferredShadingCommon.usf"
+#include "DeferredLightingCommon.usf"
+
+float4 GetPerPixelLightAttenuation(float2 UV)
+{
+	return Square(Texture2DSampleLevel(LightAttenuationTexture, LightAttenuationTextureSampler, UV, 0));
+}
+
+FDeferredLightData SetupLightDataForStandardDeferred()
+{
+	// Build the light data struct using the DeferredLightUniforms and light defines
+	// We are heavily relying on the shader compiler to optimize out constant subexpressions in GetDynamicLighting()
+	FDeferredLightData LightData;
+	LightData.LightPositionAndInvRadius = float4(DeferredLightUniforms.LightPosition, DeferredLightUniforms.LightInvRadius);
+	LightData.LightColorAndFalloffExponent = float4(DeferredLightUniforms.LightColor, DeferredLightUniforms.LightFalloffExponent);
+	LightData.LightDirection = DeferredLightUniforms.NormalizedLightDirection;
+	LightData.SpotAnglesAndSourceRadius = float4(DeferredLightUniforms.SpotAngles, DeferredLightUniforms.SourceRadius, DeferredLightUniforms.SourceLength);
+	LightData.MinRoughness = DeferredLightUniforms.MinRoughness;
+	LightData.DistanceFadeMAD = DeferredLightUniforms.DistanceFadeMAD;
+	LightData.ShadowMapChannelMask = DeferredLightUniforms.ShadowMapChannelMask;
+
+	LightData.bInverseSquared = INVERSE_SQUARED_FALLOFF;
+	LightData.bRadialLight = RADIAL_ATTENUATION;
+	//@todo - permutation opportunity
+	LightData.bSpotLight = RADIAL_ATTENUATION;
+	//@todo - permutation opportunity
+	LightData.bShadowed = true;
+
+	return LightData;
+}
+
+bool RayHitSphere( float3 R, float3 SphereCenter, float SphereRadius )
+{
+	float3 ClosestPointOnRay = max( 0, dot( SphereCenter, R ) ) * R;
+	float3 CenterToRay = ClosestPointOnRay - SphereCenter;
+	return dot( CenterToRay, CenterToRay ) <= Square( SphereRadius );
+}
+
+bool RayHitRect( float3 R, float3 RectCenter, float3 RectX, float3 RectY, float3 RectZ, float RectExtentX, float RectExtentY )
+{
+	// Intersect ray with plane
+	float3 PointOnPlane = R * max( 0, dot( RectZ, RectCenter ) / dot( RectZ, R ) );
+
+	bool InExtentX = abs( dot( RectX, PointOnPlane - RectCenter ) ) <= RectExtentX;
+	bool InExtentY = abs( dot( RectY, PointOnPlane - RectCenter ) ) <= RectExtentY;
+	return InExtentX && InExtentY;
+}
+
+float3 UniformSampleCone( float2 E, float3 Axis, float CosThetaMax )
+{
+	float Phi = 2 * PI * E.x;
+	float CosTheta = lerp( CosThetaMax, 1, E.y );
+	float SinTheta = sqrt( 1 - CosTheta * CosTheta );
+
+	float3 L;
+	L.x = SinTheta * cos( Phi );
+	L.y = SinTheta * sin( Phi );
+	L.z = CosTheta;
+
+	float3 UpVector = abs(Axis.z) < 0.999 ? float3(0,0,1) : float3(1,0,0);
+	float3 TangentX = normalize( cross( UpVector, Axis ) );
+	float3 TangentY = cross( Axis, TangentX );
+	// tangent to world space
+	return TangentX * L.x + TangentY * L.y + Axis * L.z;
+}
+
+float3 SampleLight( FDeferredLightData LightData, uint2 Random, float3 LightCenter, float3 SpecularColor, float Roughness, float3 N, float3 V )
+{
+	float NoV = saturate( dot( N, V ) );
+	NoV = max( 0.001, NoV );
+	
+	const float SourceRadius = LightData.SpotAnglesAndSourceRadius.z;
+
+	float DistanceSqr = dot( LightCenter, LightCenter );
+
+	float3 ConeAxis = normalize( LightCenter );
+	float ConeCos = sqrt( 1 - Square( SourceRadius ) / DistanceSqr );
+
+	float3 SpecularLighting = 0;
+
+	const uint NumSamples = 64;
+	for( uint i = 0; i < NumSamples; i++ )
+	{
+		float2 E = Hammersley( i, NumSamples, Random );
+		float3 L = UniformSampleCone( E, ConeAxis, ConeCos );
+
+		float3 H = normalize(V + L);
+		float NoL = saturate( dot(N, L) );
+		float NoV = saturate( dot(N, V) );
+		float NoH = saturate( dot(N, H) );
+		float VoH = saturate( dot(V, H) );
+		
+		if( NoL > 0 )
+		{
+			// Generalized microfacet specular
+			float  D = Distribution( Roughness, NoH ) / PI;
+			float  G = GeometricVisibility( Roughness, NoV, NoL, VoH, L, V );
+			float3 F = Fresnel( SpecularColor, VoH );
+
+			SpecularLighting += NoL / ( DistanceSqr + 1 )  * D * G * F;
+		}
+	}
+
+	return SpecularLighting / NumSamples;
+}
+
+float3 ImportanceSample( FDeferredLightData LightData, uint2 Random, float3 LightCenter, float3 SpecularColor, float Roughness, float3 N, float3 V, float3 R )
+{
+	float NoV = saturate( dot( N, V ) );
+	NoV = max( 0.001, NoV );
+
+	float3 SpecularLighting = 0;
+
+	const uint NumSamples = 64;
+	for( uint i = 0; i < NumSamples; i++ )
+	{
+		float2 E = Hammersley( i, NumSamples, Random );
+		float3 H = ImportanceSampleGGX( E, Roughness, N );
+		float3 L = 2 * dot( V, H ) * H - V;
+
+		float NoL = saturate( dot( N, L ) );
+		float NoH = saturate( dot( N, H ) );
+		float VoH = saturate( dot( V, H ) );
+		
+		if( NoL > 0 )
+		{
+			float SampleColor = 0;
+			
+			if( LIGHT_SOURCE_SHAPE == 1 )
+			{
+				const float SourceRadius = LightData.SpotAnglesAndSourceRadius.z;
+				bool Hit = RayHitSphere( L, LightCenter, SourceRadius );
+				SampleColor = Hit ? (1.0/PI) / Square(SourceRadius) : 0;
+			}
+			else
+			{
+				const float SourceRadiusX = LightData.SpotAnglesAndSourceRadius.z;
+				const float SourceRadiusY = LightData.SpotAnglesAndSourceRadius.w;
+
+				const float3 LightX = float3(1,0,0);
+				const float3 LightY = float3(0,1,0);
+				const float3 LightZ = float3(0,0,1);
+
+				bool Hit = RayHitRect( L, LightCenter, LightX, LightY, LightZ, SourceRadiusX, SourceRadiusY );
+				SampleColor = Hit ? (1.0/PI) / (SourceRadiusX*SourceRadiusY) : 0;
+			}
+
+			float  G = GeometricVisibility( Roughness, NoV, NoL, VoH, L, V );
+			float3 F = Fresnel( SpecularColor, VoH );
+
+			// Incident light = SampleColor * NoL
+			// Microfacet specular = D*G*F / (4*NoL*NoV)
+			// pdf = D * NoH / (4 * VoH)
+			//SpecularLighting += SampleColor * G * F * VoH / (NoH * NoV);
+			SpecularLighting += SampleColor * F * ( G * 4 * VoH * (NoL / NoH) );
+		}
+	}
+
+	return SpecularLighting / NumSamples;
+}
+
+float3 GetDynamicLightingRef(float3 WorldPosition, float3 CameraVector, float2 InUV, FScreenSpaceData ScreenSpaceData, int LightingModelId, FDeferredLightData LightData, float4 LightAttenuation, uint2 Random)
+{
+	float3 N = ScreenSpaceData.GBuffer.WorldNormal;
+	float3 L = LightData.LightDirection;
+	float NoL = BiasedNDotL( dot(N, L) );
+	float DistanceAttenuation = 1;
+	float LightRadiusMask = 1;
+	float SpotFalloff = 1;
+
+	{
+		L = LightData.LightPositionAndInvRadius.xyz - WorldPosition;
+
+		if (LightData.bInverseSquared)
+		{
+			float DistanceSqr = dot( L, L );
+
+			const float SourceLength = LightData.SpotAnglesAndSourceRadius.w;
+
+			BRANCH
+			if( SourceLength > 0 )
+			{
+				// Line segment irradiance
+				float3 Ld = LightData.LightDirection * SourceLength;
+				float3 L0 = L - 0.5 * Ld;
+				float3 L1 = L + 0.5 * Ld;
+				float LengthL0 = length( L0 );
+				float LengthL1 = length( L1 );
+
+				DistanceAttenuation = 2 / ( LengthL0 * LengthL1 + dot( L0, L1 ) + 2 );
+				NoL = saturate( 0.5 * ( dot(N, L0) / LengthL0 + dot(N, L1) / LengthL1 ) );
+			}
+			else
+			{
+				// Sphere irradiance (technically just 1/d^2 but this avoids inf)
+				DistanceAttenuation = 1 / ( DistanceSqr + 1 );
+				NoL = saturate( dot( N, normalize(L) ) );
+				//NoL = BiasedNDotL( dot( N, normalize(L) ) );
+			}
+
+			// TODO scale LightColor
+			// Correction for lumen units
+			DistanceAttenuation *= 16;
+
+			// TODO optimize
+			LightRadiusMask = Square( saturate( 1 - Square( DistanceSqr * Square(LightData.LightPositionAndInvRadius.w) ) ) );
+		}
+
+		if (LightData.bSpotLight)
+		{
+			SpotFalloff = SpotAttenuation(L, -LightData.LightDirection, LightData.SpotAnglesAndSourceRadius.xy);
+		}
+	}
+
+	float3 OutLighting = 0;
+
+	BRANCH
+	if (DistanceAttenuation > 0 && SpotFalloff > 0)
+	{
+		float OpaqueShadowTerm = 1;
+		float SSSShadowTerm = 1;
+
+		if (LightData.bShadowed)
+		{
+			GetShadowTerms(ScreenSpaceData, LightData, WorldPosition, LightAttenuation, OpaqueShadowTerm, SSSShadowTerm);
+		}
+
+		const float3 LightColor = LightData.LightColorAndFalloffExponent.rgb;
+
+		float3 DiffuseLighting = PointLightDiffuse( ScreenSpaceData, L, -CameraVector, N );
+		float3 SpecularLighting = PointLightSpecular( ScreenSpaceData, LightData, L, -CameraVector, N );
+		float3 SubsurfaceLighting = PointLightSubsurface( ScreenSpaceData, LightingModelId, L, -CameraVector, N, SSSShadowTerm );
+
+		float NonShadowedAttenuation = DistanceAttenuation * LightRadiusMask * SpotFalloff;
+		float ShadowedAttenuation = NonShadowedAttenuation * OpaqueShadowTerm;
+		
+		OutLighting += LightColor * ( (NoL * ShadowedAttenuation) * DiffuseLighting + SubsurfaceLighting * NonShadowedAttenuation );
+
+		Random.x ^= View.Random;
+		Random.y ^= View.Random;
+			
+		float3 R = reflect( CameraVector, N );
+		if( ScreenSpaceData.GBuffer.Roughness < 0.2 )
+			SpecularLighting = ImportanceSample( LightData, Random, L, ScreenSpaceData.GBuffer.SpecularColor, ScreenSpaceData.GBuffer.Roughness, N, -CameraVector, R );
+		else
+			SpecularLighting = SampleLight( LightData, Random, L, ScreenSpaceData.GBuffer.SpecularColor, ScreenSpaceData.GBuffer.Roughness, N, -CameraVector );
+
+		OutLighting += 16 * LightColor * SpecularLighting * (LightRadiusMask * SpotFalloff * OpaqueShadowTerm);
+	}
+
+	return OutLighting;
+}
+
+/** 
+ * Pixel shader for rendering a directional light using a full screen quad. 
+ */
+void DirectionalPixelMain(
+	float2 InUV : TEXCOORD0,
+	float3 ScreenVector : TEXCOORD1,
+	out float4 OutColor : SV_Target0
+	)
+{
+	OutColor = 0;
+	float3 CameraVector = normalize(ScreenVector);
+	float4 WorldNormal = Texture2DSampleLevel(GBufferATexture, GBufferATextureSampler, InUV, 0) * float4(2,2,2,1) - float4(1,1,1,0);
+
+	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(InUV);
+
+	BRANCH
+	// Only light pixels marked as using deferred shading
+	if (WorldNormal.w > 0)
+	{
+		float SceneDepth = CalcSceneDepth(InUV);
+		float3 WorldPosition = ScreenVector * SceneDepth + View.ViewOrigin.xyz;
+
+		FDeferredLightData LightData = SetupLightDataForStandardDeferred();
+		OutColor = GetDynamicLighting(WorldPosition, CameraVector, InUV, ScreenSpaceData, ScreenSpaceData.GBuffer.LightingModelId, LightData, GetPerPixelLightAttenuation(InUV), uint2(0,0));
+	}
+}
+
+/** 
+ * Pixel shader for rendering a point or spot light using approximate bounding geometry. 
+ */
+void RadialPixelMain(
+	float4 InScreenPosition : TEXCOORD0,
+	float4 SVPos : SV_POSITION,
+	out float4 OutColor : SV_Target0
+	)
+{
+	OutColor = 0;
+	float2 ScreenUV = InScreenPosition.xy / InScreenPosition.w * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
+	float4 WorldNormal = Texture2DSampleLevel(GBufferATexture, GBufferATextureSampler, ScreenUV, 0) * float4(2,2,2,1) - float4(1,1,1,0);
+	
+	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(ScreenUV);
+
+	BRANCH
+	// Only light pixels marked as using deferred shading
+	if (WorldNormal.w > 0)
+	{
+		float SceneDepth = CalcSceneDepth(ScreenUV);
+		float4 HomogeneousWorldPosition = mul(float4(InScreenPosition.xy / InScreenPosition.w * SceneDepth, SceneDepth, 1), View.ScreenToWorld);
+		float3 WorldPosition = HomogeneousWorldPosition.xyz / HomogeneousWorldPosition.w;
+		float3 CameraVector = normalize(WorldPosition - View.ViewOrigin.xyz);
+
+		FDeferredLightData LightData = SetupLightDataForStandardDeferred();
+
+#if 0
+		OutColor.rgb = GetDynamicLightingRef(WorldPosition, CameraVector, ScreenUV, ScreenSpaceData, ScreenSpaceData.GBuffer.LightingModelId, LightData, GetPerPixelLightAttenuation(ScreenUV), ScrambleTEA( uint2( SVPos.xy ) ));
+#else
+		OutColor = GetDynamicLighting(WorldPosition, CameraVector, ScreenUV, ScreenSpaceData, ScreenSpaceData.GBuffer.LightingModelId, LightData, GetPerPixelLightAttenuation(ScreenUV), uint2(0,0));
+#endif
+		OutColor *= ComputeLightProfileMultiplier(WorldPosition, DeferredLightUniforms.LightPosition, DeferredLightUniforms.NormalizedLightDirection);
+	}
+}

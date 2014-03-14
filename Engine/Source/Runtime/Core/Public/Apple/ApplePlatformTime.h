@@ -1,0 +1,39 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
+/*=============================================================================================
+	ApplePlatformTime.h: Apple platform Time functions
+==============================================================================================*/
+
+#pragma once
+
+/**
+ * Please see following UDN post about using rdtsc on processors that support
+ * result being invariant across cores.
+ *
+ * https://udn.epicgames.com/lists/showpost.php?id=46794&list=unprog3
+ */
+
+
+
+/**
+* Apple platform implementation of the Time OS functions
+**/
+struct CORE_API FApplePlatformTime : public FGenericPlatformTime
+{
+	static double InitTiming();
+
+	static FORCEINLINE double Seconds()
+	{
+		uint64 Cycles = mach_absolute_time();
+		// Add big number to make bugs apparent where return value is being passed to float
+		return Cycles * GetSecondsPerCycle() + 16777216.0;
+	}
+
+	static FORCEINLINE uint32 Cycles()
+	{
+		uint64 Cycles = mach_absolute_time();
+		return Cycles;
+	}
+};
+
+typedef FApplePlatformTime FPlatformTime;

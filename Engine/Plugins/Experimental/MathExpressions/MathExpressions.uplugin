@@ -1,0 +1,20 @@
+{
+    "PluginFileVersion" : 1,
+
+	"FriendlyName" : "Math Expression",
+	"Version" : 1,
+	"VersionName" : "1.0",
+	"CreatedBy" : "Epic Games, Inc.",
+	"CreatedByURL" : "http://epicgames.com",
+	"MinEngineVersion" : 1579795,
+	"Description" : "Provides math expression nodes for blueprints",
+	"CategoryPath" : "Editor.Blueprints",
+	
+    "Modules" :
+	[
+		{
+			"Name" : "MathExpressions",
+			"Type" : "Developer"
+		}
+	]
+}

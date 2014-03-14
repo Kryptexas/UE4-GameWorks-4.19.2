@@ -1,0 +1,25 @@
+//
+// Prefix header for all source files of the 'UDKRemote' target in the 'UDKRemote' project
+//
+#import <Availability.h>
+
+#ifndef __IPHONE_3_0
+#warning "This project uses features only available in iPhone SDK 3.0 and later."
+#endif
+
+
+#ifdef __OBJC__
+    #import <Foundation/Foundation.h>
+    #import <UIKit/UIKit.h>
+
+	#import <CoreFoundation/CFSocket.h>
+	#import <CFNetwork/CFHost.h>
+	#import <CoreMotion/CoreMotion.h>
+	#include <sys/socket.h>
+	#include <netinet/in.h>
+	#include <unistd.h>
+	#include <arpa/inet.h>
+#endif
+
+// count elements in a static array
+#define ARRAY_COUNT(A) (sizeof(A) / sizeof(A[0]))

@@ -1,0 +1,34 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
+/*================================================================================
+	WinRTPlatformIncludes.h: Includes the platform specific headers for WinRT
+==================================================================================*/
+
+#pragma once
+
+// Pre-system API include
+#include "WinRT/PreWinRTApi.h"
+
+#ifndef STRICT
+	#define STRICT
+#endif
+
+// System API include
+#include "WinRT/MinWinRTApi.h"
+
+// Post-system API include
+#include "WinRT/PostWinRTApi.h"
+
+// Set up compiler pragmas, etc
+#include "WinRT/WinRTCompilerSetup.h"
+
+// Macro for releasing COM objects
+#define SAFE_RELEASE(p) { if(p) { (p)->Release(); (p)=NULL; } }
+
+#include <tchar.h>
+
+// SIMD intrinsics
+#include <intrin.h>
+
+// include platform implementations
+#include "WinRT/WinRTIncludes.h"

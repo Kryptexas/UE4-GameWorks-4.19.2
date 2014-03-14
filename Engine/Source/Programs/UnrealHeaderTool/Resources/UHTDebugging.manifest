@@ -1,0 +1,35 @@
+{
+	"UseRelativePaths": false,
+	"RootLocalPath": "..\\..\\..\\..",
+	"RootBuildPath": "..\\..\\..\\..",
+	"Modules":[{
+			"Name": "CoreUObject",
+			"BaseDirectory": "..\\..\\..\\Runtime\\CoreUObject",
+			"OutputDirectory": "..\\..\\..\\..\\Intermediate/Build/Include\\CoreUObject\\",
+			"ClassesHeaders": [
+				"..\\..\\..\\Runtime\\CoreUObject\\Classes\\Object.h"
+			],
+			"PublicHeaders": [
+			],
+			"PrivateHeaders": [
+			],
+			"SaveExportedHeaders": true
+		}, {
+			"Name": "UHTDebugging",
+			"BaseDirectory": ".\\UHTDebugging",
+			"OutputDirectory": "..\\..\\..\\..\\Intermediate/Build/Include\\UHTDebugging\\",
+			"ClassesHeaders": [
+				".\\UHTDebugging\\TestObject.h",
+				".\\UHTDebugging\\TestInterface.h",
+				".\\UHTDebugging\\TestInterfaceObject.h",
+				".\\UHTDebugging\\StructOnlyHeader.h",
+				".\\UHTDebugging\\EnumOnlyHeader.h"
+			],
+			"PublicHeaders": [
+			],
+			"PrivateHeaders": [
+			],
+			"SaveExportedHeaders": true
+		}
+	]
+}

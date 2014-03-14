@@ -1,0 +1,17 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
+/*=============================================================================
+	PostProcessUIBlur.usf: PostProcessing shader to blur content behind some UI elements
+=============================================================================*/
+
+#include "Common.usf"
+#include "PostProcessCommon.usf"
+
+void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
+{
+	float2 UV = UVAndScreenPos.xy;
+	
+	OutColor = Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, UV);
+	
+	// later we can add here more interesting effects e.g. distortion
+}

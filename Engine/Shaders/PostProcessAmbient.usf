@@ -1,0 +1,224 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
+/*=============================================================================
+	PostprocessAmbient.usf: To apply a ambient cubemap as a postprocess
+=============================================================================*/
+
+#include "Common.usf"
+#include "PostProcessCommon.usf"
+#include "DeferredShadingCommon.usf"
+#include "CubemapCommon.usf"
+#include "Random.usf"
+#include "BRDF.usf"
+
+#define IMPORTANCE_SAMPLE		0
+
+#if 1
+float3 SpecularIBL( uint2 Random, float3 SpecularColor, float Roughness, float3 N, float3 V )
+{
+	float3 SpecularLighting = 0;
+
+	const uint NumSamples = 64;
+	for( uint i = 0; i < NumSamples; i++ )
+	{
+		float2 E = Hammersley( i, NumSamples, Random );
+		float3 H = ImportanceSampleGGX( E, Roughness, N );
+		float3 L = 2 * dot( V, H ) * H - V;
+
+		float NoV = saturate( dot( N, V ) );
+		float NoL = saturate( dot( N, L ) );
+		float NoH = saturate( dot( N, H ) );
+		float VoH = saturate( dot( V, H ) );
+		
+		if( NoL > 0 )
+		{
+			float3 SampleColor = AmbientCubemap.SampleLevel( AmbientCubemapSampler, L, 0 ).rgb;
+
+			float G = G_Smith( Roughness, NoV, NoL );
+			float Fc = pow( 1 - VoH, 5 );
+			float3 F = (1 - Fc) * SpecularColor + Fc;
+
+			// Incident light = SampleColor * NoL
+			// Microfacet specular = D*G*F / (4*NoL*NoV)
+			// pdf = D * NoH / (4 * VoH)
+			//SpecularLighting += SampleColor * G * F * VoH / (NoH * NoV);
+
+			SpecularLighting += SampleColor * F * ( G * 4 * VoH * (NoL / NoH) );
+		}
+	}
+
+	return SpecularLighting / NumSamples;
+}
+
+float3 FilterEnvMap( uint2 Random, float Roughness, float3 N, float3 V )
+{
+	float3 FilteredColor = 0;
+	float Weight = 0;
+
+	const uint NumSamples = 64;
+	for( uint i = 0; i < NumSamples; i++ )
+	{
+		float2 E = Hammersley( i, NumSamples, Random );
+		float3 H = ImportanceSampleGGX( E, Roughness, N );
+		float3 L = 2 * dot( V, H ) * H - V;
+
+		float NoL = saturate( dot( N, L ) );
+		if( NoL > 0 )
+		{
+			FilteredColor += AmbientCubemap.SampleLevel( AmbientCubemapSampler, L, 0 ).rgb * NoL;
+			Weight += NoL;
+		}
+	}
+
+	return FilteredColor / max( Weight, 0.001 );
+}
+
+float3 PrefilterEnvMap( uint2 Random, float Roughness, float3 R )
+{
+	float3 FilteredColor = 0;
+	float Weight = 0;
+		
+	const uint NumSamples = 64;
+	for( uint i = 0; i < NumSamples; i++ )
+	{
+		float2 E = Hammersley( i, NumSamples, Random );
+		float3 H = ImportanceSampleGGX( E, Roughness, R );
+		float3 L = 2 * dot( R, H ) * H - R;
+
+		float NoL = saturate( dot( R, L ) );
+		if( NoL > 0 )
+		{
+			FilteredColor += AmbientCubemap.SampleLevel( AmbientCubemapSampler, L, 0 ).rgb * NoL;
+			Weight += NoL;
+		}
+	}
+
+	return FilteredColor / max( Weight, 0.001 );
+}
+
+float2 IntegrateBRDF( uint2 Random, float Roughness, float NoV )
+{
+	float3 V;
+	V.x = sqrt( 1.0f - NoV * NoV );	// sin
+	V.y = 0;
+	V.z = NoV;						// cos
+
+	float A = 0;
+	float B = 0;
+
+	const uint NumSamples = 64;
+	for( uint i = 0; i < NumSamples; i++ )
+	{
+		float2 E = Hammersley( i, NumSamples, Random );
+		float3 H = ImportanceSampleGGX( E, Roughness, float3(0,0,1) );
+		float3 L = 2 * dot( V, H ) * H - V;
+
+		float NoL = saturate( L.z );
+		float NoH = saturate( H.z );
+		float VoH = saturate( dot( V, H ) );
+
+		if( NoL > 0 )
+		{
+			float G = G_Smith( Roughness, NoV, NoL );
+			//float G_Vis = G * VoH / (NoH * NoV);
+			float G_Vis = 4 * G * VoH * (NoL / NoH);
+
+			float Fc = pow( 1 - VoH, 5 );
+			A += (1 - Fc) * G_Vis;
+			B += Fc * G_Vis;
+		}
+	}
+
+	return float2( A, B ) / NumSamples;
+}
+
+float3 ApproximateSpecularIBL( uint2 Random, float3 SpecularColor, float Roughness, float3 N, float3 V )
+{
+	// Function replaced with prefiltered environment map sample
+	float3 R = 2 * dot( V, N ) * N - V;
+	float3 PrefilteredColor = PrefilterEnvMap( Random, Roughness, R );
+	//float3 PrefilteredColor = FilterEnvMap( Random, Roughness, N, V );
+
+	// Function replaced with 2D texture sample
+	float NoV = saturate( dot( N, V ) );
+	float2 AB = IntegrateBRDF( Random, Roughness, NoV );
+
+	return PrefilteredColor * ( SpecularColor * AB.x + AB.y );
+}
+#endif
+
+void MainPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
+{
+	float2 UV = UVAndScreenPos.xy;
+
+	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(UV);
+	FGBufferData GBuffer = ScreenSpaceData.GBuffer;
+	float AbsoluteDiffuseMip = AmbientCubemapMipAdjust.z;
+
+	// screen position in [-1, 1] screen space
+	float2 ScreenSpacePos = UVAndScreenPos.zw;
+	int2 PixelPos = int2(UVAndScreenPos.zw * ScreenPosToPixel.xy + ScreenPosToPixel.zw + 0.5f);
+
+	float3 ScreenVector = normalize(mul(float4(ScreenSpacePos, 1, 0), View.ScreenToWorld).xyz);
+
+	float3 DiffuseAndSpecular = 0;
+
+	float3 DiffuseLookup =  TextureCubeSampleLevel(AmbientCubemap, AmbientCubemapSampler, GBuffer.WorldNormal, AbsoluteDiffuseMip).rgb;
+
+	// Diffuse
+	{
+		// we want to access the mip with the preconvolved diffuse lighting (coneangle=90 degree)
+
+		DiffuseAndSpecular += GBuffer.DiffuseColor * DiffuseLookup;
+	}
+
+	// Specular
+	{
+		float3 R = reflect( ScreenVector, GBuffer.WorldNormal );
+
+	#if IMPORTANCE_SAMPLE
+		uint2 Random = ScrambleTEA( PixelPos );
+		Random.x ^= uint( View.RealTime * 21389 );
+		Random.y ^= uint( View.RealTime * 49233 );
+
+		DiffuseAndSpecular += SpecularIBL( Random, GBuffer.SpecularColor, GBuffer.Roughness, GBuffer.WorldNormal, -ScreenVector );
+		//DiffuseAndSpecular += ApproximateSpecularIBL( Random, GBuffer.SpecularColor, GBuffer.Roughness, GBuffer.WorldNormal, -ScreenVector );
+	#else
+		float AbsoluteSpecularMip = ComputeCubemapMipFromRoughness( GBuffer.Roughness, AmbientCubemapMipAdjust.w );
+		float3 SampleColor = TextureCubeSampleLevel( AmbientCubemap, AmbientCubemapSampler, R, AbsoluteSpecularMip ).rgb;
+
+		float NoV = saturate( dot( GBuffer.WorldNormal, -ScreenVector ) );
+		DiffuseAndSpecular += SampleColor * EnvBRDF( GBuffer.SpecularColor, GBuffer.Roughness, NoV );
+	#endif
+	}
+	
+	// apply darkening from ambient occlusion (does not use PostprocessInput1 to set white texture if SSAO is off)
+	float AmbientOcclusion = GBuffer.GBufferAO * ScreenSpaceData.AmbientOcclusion;
+
+	// Subsurface
+	BRANCH if(GBuffer.LightingModelId == LIGHTINGMODELID_SUBSURFACE || GBuffer.LightingModelId == LIGHTINGMODELID_PREINTEGRATED_SKIN)
+	{
+		// some view dependent and some non view dependent (hard coded)
+		float DependentSplit = 0.5f;
+
+		float3 SubsurfaceLighting = 0;
+
+		// view independent (shared lookup for diffuse for better performance
+		SubsurfaceLighting += DiffuseLookup * (DependentSplit);
+		// view dependent (blurriness is hard coded)
+		SubsurfaceLighting += TextureCubeSampleLevel(AmbientCubemap, AmbientCubemapSampler, ScreenVector, AbsoluteDiffuseMip - 2.5f).rgb * AmbientOcclusion * (1.0f - DependentSplit);
+
+		DiffuseAndSpecular += GBuffer.SubsurfaceColor * SubsurfaceLighting;
+	}
+	
+	OutColor = float4(DiffuseAndSpecular * AmbientCubemapColor.rgb, 0);
+
+	OutColor *= AmbientOcclusion;
+
+	// to visualize the cubemap in the distance
+// 	{
+//  		float SceneDepth = CalcSceneDepth(UV);
+//  		OutColor.rgb = lerp(OutColor.rgb, TextureCubeSample(AmbientCubemap, AmbientCubemapSampler, ScreenVector).rgb, saturate(SceneDepth * 0.001f - 90));
+//  	}
+}
+

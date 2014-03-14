@@ -1,0 +1,21 @@
+{
+    "FileVersion" : 1,
+	
+	"FriendlyName" : "Live Editor - Listen Server",
+	"Version" : 1,
+	"VersionName" : "1.0",
+	"CreatedBy" : "Epic Games, Inc.",
+	"CreatedByURL" : "http://epicgames.com",
+	"MinEngineVersion" : 1579795,
+	"Description" : "This is a plugin that the LiveEditor uses to replicate tuning changes to different machines on the network",
+	"CategoryPath" : "Editor Productivity",
+	
+    "Modules" :
+	[
+		{
+			"Name" : "LiveEditorListenServer",
+			"Type" : "Runtime",
+			"WhitelistPlatforms" : [ "Win64", "Win32", "Mac" ]
+		}
+	]
+}

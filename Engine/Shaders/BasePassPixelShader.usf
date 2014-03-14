@@ -1,0 +1,707 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
+/*=============================================================================
+	BasePassPixelShader.usf: Base pass pixel shader
+=============================================================================*/
+
+#include "Common.usf"
+#include "SHCommon.usf"
+#include "BasePassCommon.usf"
+#include "Material.usf"
+#include "VertexFactory.usf"
+#include "LightmapCommon.usf"
+#include "ReflectionEnvironmentShared.usf"
+#include "BRDF.usf"
+
+#include "DeferredShadingCommon.usf"
+
+#if TRANSLUCENT_SELF_SHADOWING
+
+	#include "ShadowProjectionCommon.usf"
+
+	float4x4 WorldToShadowMatrix;
+	float4 ShadowUVMinMax;
+	float3 DirectionalLightDirection;
+	float4 DirectionalLightColor;
+	 
+#endif
+
+Texture3D TranslucencyLightingVolumeAmbientInner;
+SamplerState TranslucencyLightingVolumeAmbientInnerSampler;
+Texture3D TranslucencyLightingVolumeAmbientOuter;
+SamplerState TranslucencyLightingVolumeAmbientOuterSampler;
+Texture3D TranslucencyLightingVolumeDirectionalInner;
+SamplerState TranslucencyLightingVolumeDirectionalInnerSampler;
+Texture3D TranslucencyLightingVolumeDirectionalOuter;
+SamplerState TranslucencyLightingVolumeDirectionalOuterSampler;
+
+float4 IndirectLightingSHCoefficients[3];
+
+#ifndef COMPILER_GLSL
+	#define COMPILER_GLSL 0
+#endif
+
+#define EDITOR_ALPHA2COVERAGE (EDITOR_PRIMITIVE_MATERIAL && FEATURE_LEVEL >= FEATURE_LEVEL_SM5 && !COMPILER_GLSL)
+
+// for now we only use it on EDITOR_PRIMITIVE_MATERIAL (LevelGrid bias can be much lower) but later we might want to use it for all materials
+// On consoles we don't need the editor rendering features
+#if EDITOR_PRIMITIVE_MATERIAL && FEATURE_LEVEL >= FEATURE_LEVEL_SM5 && !PS4_PROFILE && !XBOXONE_PROFILE
+	// not available on mobile, if not available we have to reconstruct it from the world position interpolator which is much worse quality (noticable for depth bias)
+	#define HIGHQUALITY_PS_POSITION 1
+#endif
+
+
+#if TRANSLUCENCY_LIGHTING_SURFACE
+
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
+/** Prenormalized capture of the scene that's closest to the object being rendered. */
+TextureCubeArray ReflectionCubemap;
+SamplerState ReflectionCubemapSampler;
+int CubemapArrayIndex;
+#endif
+
+half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameters, half Roughness, half3 SpecularColor, half3 LowGlossIndirectSpecular)
+{
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
+	half AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(Roughness);
+	float4 SpecularIBL = TextureCubeArraySampleLevel(ReflectionCubemap, ReflectionCubemapSampler, MaterialParameters.ReflectionVector, CubemapArrayIndex, AbsoluteSpecularMip);
+
+	half NoV = saturate( dot( MaterialParameters.WorldNormal, MaterialParameters.CameraVector ) );
+	half3 Reflectance = EnvBRDFApprox( SpecularColor, Roughness, NoV );
+
+	// Note: make sure this matches the lightmap mixing done on opaque (ReflectionEnvironmentTiledDeferredMain)
+	float MixAlpha = saturate( Roughness * 4 - 3 );
+	float3 SmoothColor = Luminance( LowGlossIndirectSpecular ) * ( 1 - MixAlpha );
+	float3 RoughColor = LowGlossIndirectSpecular * MixAlpha;
+	
+	// Combine with brightness from LowGlossIndirectSpecular
+	float3 MixedSpecularIBL = lerp(SpecularIBL.xyz, (SpecularIBL.rgb * SmoothColor + Luminance( SpecularIBL.rgb ) * RoughColor), View.ReflectionLightmapMixingMask);
+	return MixedSpecularIBL * Reflectance;
+#else
+	return 0;
+#endif
+}
+
+#endif
+
+/** Calculates lighting for translucency. */
+float3 GetTranslucencyLighting(FMaterialPixelParameters MaterialParameters, float3 DiffuseColor, half Roughness, half3 SpecularColor, float3 LowGlossIndirectSpecular, float MaterialAO)
+{
+	// Apply a stable offset to the world position used for lighting, which breaks up artifacts from using a low res volume texture
+	float3 InnerVolumeUVs = (MaterialParameters.WorldPosition + MaterialParameters.LightingPositionOffset - View.TranslucencyLightingVolumeMin[0].xyz) * View.TranslucencyLightingVolumeInvSize[0].xyz;
+	float3 OuterVolumeUVs = (MaterialParameters.WorldPosition + MaterialParameters.LightingPositionOffset - View.TranslucencyLightingVolumeMin[1].xyz) * View.TranslucencyLightingVolumeInvSize[1].xyz;
+
+	// Controls how fast the lerp between the inner and outer cascades happens
+	// Larger values result in a shorter transition distance
+	float TransitionScale = 6;
+	// Setup a 3d lerp factor going to 0 at the edge of the inner volume
+	float3 LerpFactors = saturate((.5f - abs(InnerVolumeUVs - .5f)) * TransitionScale);
+	float FinalLerpFactor = LerpFactors.x * LerpFactors.y * LerpFactors.z;
+
+	#if TRANSLUCENCY_LIGHTING_VOLUMETRIC_DIRECTIONAL || TRANSLUCENCY_LIGHTING_SURFACE
+
+		// Fetch both the ambient and directional values for both cascades
+		float4 InnerVector0 = Texture3DSampleLevel(TranslucencyLightingVolumeAmbientInner, TranslucencyLightingVolumeAmbientInnerSampler, InnerVolumeUVs, 0);
+		float3 InnerVector1 = Texture3DSampleLevel(TranslucencyLightingVolumeDirectionalInner, TranslucencyLightingVolumeDirectionalInnerSampler, InnerVolumeUVs, 0).rgb;
+		float4 OuterVector0 = Texture3DSampleLevel(TranslucencyLightingVolumeAmbientOuter, TranslucencyLightingVolumeAmbientOuterSampler, OuterVolumeUVs, 0);
+		float3 OuterVector1 = Texture3DSampleLevel(TranslucencyLightingVolumeDirectionalOuter, TranslucencyLightingVolumeDirectionalOuterSampler, OuterVolumeUVs, 0).rgb;
+
+		float DirectionalLightingIntensity = GetMaterialTranslucencyDirectionalLightingIntensity();
+
+		// Lerp between cascades
+		// Increase the directional coefficients and attenuate the ambient coefficient based on a tweaked value
+		float4 Vector0 = lerp(OuterVector0, InnerVector0, FinalLerpFactor) / DirectionalLightingIntensity;
+		float3 Vector1 = lerp(OuterVector1, InnerVector1, FinalLerpFactor) * DirectionalLightingIntensity;
+
+		// Reconstruct the SH coefficients based on what was encoded
+		FTwoBandSHVectorRGB TranslucentLighting;
+		TranslucentLighting.R.V.x = Vector0.r;
+		TranslucentLighting.G.V.x = Vector0.g;
+		TranslucentLighting.B.V.x = Vector0.b;
+		float3 NormalizedAmbientColor = Vector0.rgb / max(Vector0.r, max(Vector0.g, Vector0.b));
+
+		// Scale the monocrome directional coefficients with the normalzed ambient color as an approximation to the uncompressed values
+		TranslucentLighting.R.V.yzw = Vector1.rgb * NormalizedAmbientColor.r;
+		TranslucentLighting.G.V.yzw = Vector1.rgb * NormalizedAmbientColor.g;
+		TranslucentLighting.B.V.yzw = Vector1.rgb * NormalizedAmbientColor.b;
+			
+		// Compute diffuse lighting which takes the normal into account
+		FTwoBandSHVector DiffuseTransferSH = CalcDiffuseTransferSH(MaterialParameters.WorldNormal, 1);
+		float4 VolumeLighting = float4(max(half3(0,0,0), DotSH(TranslucentLighting, DiffuseTransferSH)) * 2, Vector0.a);
+		float3 InterpolatedLighting = DiffuseColor * VolumeLighting.rgb;
+
+	#elif TRANSLUCENCY_LIGHTING_VOLUMETRIC_NONDIRECTIONAL
+
+		// Lookup the inner and outer cascade ambient lighting values
+		float4 InnerLighting = Texture3DSampleLevel(TranslucencyLightingVolumeAmbientInner, TranslucencyLightingVolumeAmbientInnerSampler, InnerVolumeUVs, 0);
+		float4 OuterLighting = Texture3DSampleLevel(TranslucencyLightingVolumeAmbientOuter, TranslucencyLightingVolumeAmbientOuterSampler, OuterVolumeUVs, 0);
+
+		// Lerp between cascades
+		// Normal is not taken into account with non directional lighting, and only the ambient term of the SH coefficients are needed
+		float4 VolumeLighting = lerp(OuterLighting, InnerLighting, FinalLerpFactor);
+
+		// Undo the SH ambient coefficient scaling
+		VolumeLighting.rgb /= SHAmbientFunction();
+
+		// Determine lighting if no self shadowing is applied
+		float3 InterpolatedLighting = DiffuseColor * VolumeLighting.rgb;
+
+	#endif
+
+	#if (TRANSLUCENCY_LIGHTING_VOLUMETRIC_DIRECTIONAL || TRANSLUCENCY_LIGHTING_VOLUMETRIC_NONDIRECTIONAL || TRANSLUCENCY_LIGHTING_SURFACE) && TRANSLUCENT_SELF_SHADOWING
+
+		// Only apply self shadowing if the shadow hasn't faded out completely
+		if (DirectionalLightColor.a > 0)
+		{
+			// Determine the shadow space position
+			// Apply a stable offset to the world position used for shadowing, which blurs out high frequency details in the shadowmap with many layers
+			float4 HomogeneousShadowPosition = mul(float4(MaterialParameters.WorldPosition + MaterialParameters.LightingPositionOffset, 1), WorldToShadowMatrix);
+			float2 ShadowUVs = HomogeneousShadowPosition.xy / HomogeneousShadowPosition.w;
+			// Lookup the shadow density at the point being shaded
+			float3 ShadowDensity = CalculateTranslucencyShadowingDensity(ShadowUVs, HomogeneousShadowPosition.z) / GetMaterialTranslucentMultipleScatteringExtinction();
+			// Compute colored transmission based on the density that the light ray passed through
+			float3 SelfShadowing = saturate(exp(-ShadowDensity * GetMaterialTranslucentSelfShadowDensityScale()));
+			// Compute a second shadow gradient to add interesting information in the shadowed area of the first
+			// This is a stop gap for not having self shadowing from other light sources
+			float3 SelfShadowing2 = lerp(float3(1, 1, 1), saturate(exp(-ShadowDensity * GetMaterialTranslucentSelfShadowSecondDensityScale())), GetMaterialTranslucentSelfShadowSecondOpacity());
+			SelfShadowing = SelfShadowing * SelfShadowing2;
+
+			// Force unshadowed if we read outside the valid area of the shadowmap atlas
+			// This can happen if the particle system's bounds don't match its visible area
+			FLATTEN
+			if (any(ShadowUVs < ShadowUVMinMax.xy || ShadowUVs > ShadowUVMinMax.zw))
+			{
+				SelfShadowing = 1;
+			}
+
+			float3 BackscatteredLighting = 0;
+
+			#if MATERIAL_LIGHTINGMODEL_SUBSURFACE
+
+				float InScatterPower = GetMaterialTranslucentBackscatteringExponent();
+				// Setup a pow lobe to approximate anisotropic in-scattering near to the light direction
+				float InScattering = pow(saturate(dot(View.DirectionalLightDirection, MaterialParameters.CameraVector)), InScatterPower);
+
+				BackscatteredLighting = 
+					GetMaterialSubsurfaceColor(MaterialParameters) 
+					* InScattering 
+					* View.DirectionalLightColor.rgb
+					// Energy normalization, tighter lobes should be brighter
+					* (InScatterPower + 2.0f) / 8.0f 
+					// Mask by shadowing, exaggerated
+					* SelfShadowing * SelfShadowing
+					* VolumeLighting.a;
+			#endif
+
+			// The volume lighting already contains the contribution of the directional light, 
+			// So calculate the amount of light to remove from the volume lighting in order to apply per-pixel self shadowing
+			// VolumeLighting.a stores all attenuation and opaque shadow factors
+			float3 SelfShadowingCorrection = DirectionalLightColor.rgb * VolumeLighting.a * (1 - SelfShadowing);
+				
+			// Combine backscattering and directional light self shadowing
+			InterpolatedLighting = (BackscatteredLighting + DiffuseColor * max(VolumeLighting.rgb - SelfShadowingCorrection, 0));
+		}
+
+	#endif
+
+	#if CACHED_POINT_INDIRECT_LIGHTING 
+		#if TRANSLUCENCY_LIGHTING_VOLUMETRIC_DIRECTIONAL || TRANSLUCENCY_LIGHTING_SURFACE
+
+			FTwoBandSHVectorRGB PointIndirectLighting;
+			PointIndirectLighting.R.V = IndirectLightingSHCoefficients[0];
+			PointIndirectLighting.G.V = IndirectLightingSHCoefficients[1];
+			PointIndirectLighting.B.V = IndirectLightingSHCoefficients[2];
+
+			// Compute diffuse lighting which takes the normal into account
+			float3 DiffuseGI = max(half3(0,0,0), DotSH(PointIndirectLighting, DiffuseTransferSH));
+			LowGlossIndirectSpecular = DiffuseGI;
+
+			InterpolatedLighting += DiffuseColor * DiffuseGI * MaterialAO;
+
+		#elif TRANSLUCENCY_LIGHTING_VOLUMETRIC_NONDIRECTIONAL
+
+			float3 PointIndirectLighting = float3(IndirectLightingSHCoefficients[0].x, IndirectLightingSHCoefficients[1].x, IndirectLightingSHCoefficients[2].x);
+			//@todo - why is /2 needed to match directional?
+			float3 DiffuseGI = PointIndirectLighting / (SHAmbientFunction() * 2);
+			LowGlossIndirectSpecular = DiffuseGI;
+
+			InterpolatedLighting += DiffuseColor * DiffuseGI * MaterialAO;
+
+		#endif
+	#endif
+
+	#if TRANSLUCENCY_LIGHTING_SURFACE
+		InterpolatedLighting += GetImageBasedReflectionLighting(MaterialParameters, Roughness, SpecularColor, LowGlossIndirectSpecular);
+	#endif
+
+	return InterpolatedLighting;
+}
+
+/** Stores the SH ambient term and Coefficient3.x. */
+Texture3D IndirectLightingCacheTexture0;
+/** Stores Coefficient1 and Coefficient3.y. */
+Texture3D IndirectLightingCacheTexture1;
+/** Stores Coefficient2 and Coefficient3.z. */
+Texture3D IndirectLightingCacheTexture2;
+SamplerState IndirectLightingCacheTextureSampler0;
+SamplerState IndirectLightingCacheTextureSampler1;
+SamplerState IndirectLightingCacheTextureSampler2;
+
+/** Add and Scale to convert world space position into indirect lighting cache volume texture UVs. */
+float3 IndirectlightingCachePrimitiveAdd;
+float3 IndirectlightingCachePrimitiveScale;
+float3 IndirectlightingCacheMinUV;
+float3 IndirectlightingCacheMaxUV;
+
+/** 
+ * Computes sky diffuse lighting from the SH irradiance map.  
+ * This has the SH basis evaluation and diffuse convolusion weights combined for minimal ALU's - see "Stupid Spherical Harmonics (SH) Tricks" 
+ */
+float3 GetSkySHDiffuse(float3 Normal)
+{
+	float4 NormalVector = float4(Normal, 1);
+
+	float3 Intermediate0, Intermediate1, Intermediate2;
+	Intermediate0.x = dot(View.SkyIrradianceEnvironmentMap[0], NormalVector);
+	Intermediate0.y = dot(View.SkyIrradianceEnvironmentMap[1], NormalVector);
+	Intermediate0.z = dot(View.SkyIrradianceEnvironmentMap[2], NormalVector);
+
+	float4 vB = NormalVector.xyzz * NormalVector.yzzx;
+	Intermediate1.x = dot(View.SkyIrradianceEnvironmentMap[3], vB);
+	Intermediate1.y = dot(View.SkyIrradianceEnvironmentMap[4], vB);
+	Intermediate1.z = dot(View.SkyIrradianceEnvironmentMap[5], vB);
+
+	float vC = NormalVector.x * NormalVector.x - NormalVector.y * NormalVector.y;
+	Intermediate2 = View.SkyIrradianceEnvironmentMap[6].xyz * vC;
+
+	return Intermediate0 + Intermediate1 + Intermediate2;
+}
+
+/** Computes sky diffuse lighting, including precomputed shadowing. */
+float3 GetSkyLighting(float3 WorldNormal, float2 LightmapUV)
+{
+	float3 Lighting = 0;
+
+#if ENABLE_SKY_LIGHT
+
+	float SkyOcclusion = 1;
+	float DotProductFactor = 1;
+	float3 SkyLightingNormal = WorldNormal;
+	
+	#if HQ_TEXTURE_LIGHTMAP
+		BRANCH
+		if (View.SkyLightParameters.x > 0)
+		{
+			float4 WorldSkyBentNormalAndOcclusion = GetSkyBentNormalAndOcclusion(LightmapUV * float2(1, 2));
+			float3 NormalizedBentNormal = normalize(WorldSkyBentNormalAndOcclusion.xyz);
+			SkyOcclusion = WorldSkyBentNormalAndOcclusion.w;
+
+			// Weight toward the material normal to increase directionality
+			float BentNormalWeightFactor = 1 - (1 - SkyOcclusion) * (1 - SkyOcclusion);
+
+			// We are lerping between the inputs of two lighting scenarios based on occlusion
+			// In the mostly unoccluded case, evaluate sky lighting with the material normal, because it has higher detail
+			// In the mostly occluded case, evaluate sky lighting with the bent normal, because it is a better representation of the incoming lighting
+			// Then treat the lighting evaluated along the bent normal as an area light, so we must apply the lambert term
+			SkyLightingNormal = lerp(NormalizedBentNormal, WorldNormal, BentNormalWeightFactor);
+			DotProductFactor = lerp(dot(NormalizedBentNormal, WorldNormal), 1, BentNormalWeightFactor);
+		}
+	#endif
+			
+	// Compute the preconvolved incoming lighting with the bent normal direction
+	float3 DiffuseLookup = GetSkySHDiffuse(SkyLightingNormal) * View.SkyLightColor.rgb;
+
+	// Apply AO to the sky diffuse and account for darkening due to the geometry term
+	Lighting += DiffuseLookup * SkyOcclusion * DotProductFactor;
+#endif
+
+	return Lighting;
+}
+
+/** Calculates indirect lighting contribution on this object. */
+float3 GetPrecomputedIndirectLighting(
+	FMaterialPixelParameters MaterialParameters, 
+	FVertexFactoryInterpolantsVSToPS Interpolants,
+	FBasePassInterpolantsVSToPS BasePassInterpolants,
+	out float3 LowGlossIndirectSpecular)
+{
+	LowGlossIndirectSpecular = 0;
+	float3 Lighting = 0;
+	float2 SkyOcclusionUV = 0;
+
+	#define AMBIENTONLY 0
+
+	#if CACHED_VOLUME_INDIRECT_LIGHTING
+	
+		// Compute volume teture UVs from world position
+		float3 VolumeUVs = MaterialParameters.WorldPosition * IndirectlightingCachePrimitiveScale + IndirectlightingCachePrimitiveAdd;
+		// Clamp UV to be within the valid region
+		// Pixels outside of the object's bounding box would read garbage otherwise
+		VolumeUVs = clamp(VolumeUVs, IndirectlightingCacheMinUV, IndirectlightingCacheMaxUV);
+		float4 Vector0 = Texture3DSample(IndirectLightingCacheTexture0, IndirectLightingCacheTextureSampler0, VolumeUVs);
+
+		#if AMBIENTONLY
+
+			Lighting = Vector0.rgb / SHAmbientFunction() / PI;
+
+		#else
+
+			float4 Vector1 = Texture3DSample(IndirectLightingCacheTexture1, IndirectLightingCacheTextureSampler1, VolumeUVs);
+			float4 Vector2 = Texture3DSample(IndirectLightingCacheTexture2, IndirectLightingCacheTextureSampler2, VolumeUVs);
+
+			// Construct the SH environment
+			FTwoBandSHVectorRGB CachedSH;
+			CachedSH.R.V = float4(Vector0.x, Vector1.x, Vector2.x, Vector0.w);
+			CachedSH.G.V = float4(Vector0.y, Vector1.y, Vector2.y, Vector1.w);
+			CachedSH.B.V = float4(Vector0.z, Vector1.z, Vector2.z, Vector2.w);
+
+			// Diffuse convolution
+			FTwoBandSHVector DiffuseTransferSH = CalcDiffuseTransferSH(MaterialParameters.WorldNormal, 1);
+			Lighting = max(half3(0,0,0), DotSH(CachedSH, DiffuseTransferSH)) / PI;
+
+		#endif
+
+	#elif HQ_TEXTURE_LIGHTMAP
+
+		float4 LightmapUV = GetLightMapCoordinate(Interpolants);
+		SkyOcclusionUV = LightmapUV.xy;
+		Lighting = GetLightMapColorHQ(LightmapUV, MaterialParameters.WorldNormal).rgb;
+
+	#elif LQ_TEXTURE_LIGHTMAP
+
+		Lighting = GetLightMapColorLQ( GetLightMapCoordinate(Interpolants), MaterialParameters.WorldNormal ).rgb;
+
+	#endif
+
+	Lighting += GetSkyLighting(MaterialParameters.WorldNormal, SkyOcclusionUV);
+
+	#if HQ_TEXTURE_LIGHTMAP || LQ_TEXTURE_LIGHTMAP || CACHED_VOLUME_INDIRECT_LIGHTING
+		Lighting *= View.IndirectLightingColorScale;
+		LowGlossIndirectSpecular = Lighting;
+	#endif
+
+	return Lighting;
+}
+
+#if EDITOR_PRIMITIVE_MATERIAL
+	bool bEnableEditorPrimitiveDepthTest;
+	int MSAASampleCount;
+
+	// depth in the red channel in DeviceZ
+	Texture2D		FilteredSceneDepthTexture;
+	SamplerState	FilteredSceneDepthTextureSampler;
+#endif
+
+// @return 0:translucent..1:opaque
+float ClipForEditorPrimitives(FMaterialPixelParameters MaterialParameters)
+{
+	float Ret = 1;
+
+#if EDITOR_PRIMITIVE_MATERIAL && FEATURE_LEVEL >= FEATURE_LEVEL_SM4
+	// Depth test manually if compositing editor primitives since the depth buffer is different (MSAA only)
+	BRANCH
+	if (bEnableEditorPrimitiveDepthTest)
+	{
+		bool bIsPerspective = (View.ViewToClip._m33 < 1.0f);
+ 		
+		// dejitter the sample position and make a filtered lookup - for planes this allows to reconstruct a much less jittery depth comparison function, it however doesn't fix silhuetes
+		float DeviceZ = Texture2DSampleLevel(FilteredSceneDepthTexture, FilteredSceneDepthTextureSampler, (MaterialParameters.SVPosition.xy - View.TemporalAAParams.zw) * View.ViewSizeAndSceneTexelSize.zw, 0).r;
+
+		float PixelDeviceZ = MaterialParameters.SVPosition.z;
+
+		// Soft Bias with DeviceZ for best quality
+		const float DeviceDepthFade = 0.00005f * View.GeneralPurposeTweak;
+
+		// 0.5f is to bias around the actual value, 1 or 0 are another option
+		Ret = saturate(0.5f - (DeviceZ - PixelDeviceZ) / DeviceDepthFade);
+	}
+#endif
+
+	// Note: multiple returns cause strange HLSL compiler error for CV_Coverage in later code
+	return Ret;
+}
+
+
+#if EDITOR_ALPHA2COVERAGE != 0
+uint CustomAlpha2Coverage(inout float4 InOutColor)
+{
+	uint MaskedCoverage = 0xff;
+
+	MaskedCoverage = 0;
+
+	uint EnabledSampleCount = 1;
+
+	// todo: support non 4xMSAA as well
+
+	// conservatively on but can be 0 if the opacity is too low
+	if(InOutColor.a > 0.01f) { MaskedCoverage |= 0x1; }
+	if(InOutColor.a > 0.25f) { MaskedCoverage |= 0x2; ++EnabledSampleCount; }
+	if(InOutColor.a > 0.50f) { MaskedCoverage |= 0x4; ++EnabledSampleCount; }
+	if(InOutColor.a > 0.75f) { MaskedCoverage |= 0x8; ++EnabledSampleCount; }
+
+	// renormalize to make this sample the correct weight
+	InOutColor *= (float)MSAASampleCount / EnabledSampleCount;
+
+	return MaskedCoverage;
+}
+#endif
+
+void Main(
+	FVertexFactoryInterpolantsVSToPS Interpolants,
+	FBasePassInterpolantsVSToPS BasePassInterpolants,
+	OPTIONAL_IsFrontFace,
+	out float4 OutColor		: SV_Target0
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && (MATERIALBLENDING_SOLID || MATERIALBLENDING_MASKED)
+	,out float4 OutGBufferA : SV_Target1 
+	,out float4 OutGBufferB : SV_Target2
+	,out float4 OutGBufferC : SV_Target3
+	,out float4 OutGBufferD : SV_Target4
+	#if ALLOW_STATIC_LIGHTING
+		,out float4 OutGBufferE : SV_Target5
+	#endif
+#endif
+
+#if EDITOR_ALPHA2COVERAGE != 0
+   ,in uint InCoverage : SV_Coverage
+   ,out uint OutCoverage : SV_Coverage
+#endif
+
+#if HIGHQUALITY_PS_POSITION
+   ,float4 InSVPosition : SV_POSITION
+#endif
+   )
+{
+#if EDITOR_ALPHA2COVERAGE != 0
+	OutCoverage = InCoverage;
+#endif
+
+	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Interpolants, BasePassInterpolants.PixelPosition);
+
+	CalcMaterialParameters(MaterialParameters,bIsFrontFace,BasePassInterpolants.PixelPosition
+#if USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS
+		, BasePassInterpolants.PixelPositionExcludingWPO
+#endif
+	);
+
+#if HIGHQUALITY_PS_POSITION
+	// SVPosition was already computed but only at low quality.
+	// Here we override it with the higher quality.
+
+	// Pixel position relative to left top of screen (not viewport), center of pixel
+	// z:DeviceZ, .w:SceneDepth
+	MaterialParameters.SVPosition = InSVPosition;
+#endif
+
+
+#if EDITOR_PRIMITIVE_MATERIAL && FEATURE_LEVEL >= FEATURE_LEVEL_SM4
+	const bool bEditorWeightedZBuffering = true;
+#else
+	const bool bEditorWeightedZBuffering = false;
+#endif
+
+
+	//Clip if the blend mode requires it.
+	if(!bEditorWeightedZBuffering)
+	{
+		GetMaterialCoverageAndClipping(MaterialParameters);
+	}
+
+
+	// Store the results in local variables and reuse instead of calling the functions multiple times.
+#if DIFFUSE_SPEC_INPUTS
+	half3 DiffuseColor = GetMaterialDiffuseColor( MaterialParameters );
+	half3 SpecularColor = GetMaterialSpecularColor( MaterialParameters );
+#else
+	// Store the results in local variables and reuse instead of calling the functions multiple times.
+	half3 BaseColor = GetMaterialBaseColor( MaterialParameters );
+	half  Metallic = GetMaterialMetallic( MaterialParameters );
+	half  Specular = GetMaterialSpecular( MaterialParameters );
+#endif
+
+	float MaterialAO = GetMaterialAmbientOcclusion(MaterialParameters);
+	float Roughness = GetMaterialRoughness(MaterialParameters);
+	float3 SubsurfaceColor = GetMaterialSubsurfaceColor(MaterialParameters);
+
+#if MATERIAL_FULLY_ROUGH
+	Roughness = 1;
+#endif
+
+#if USE_DBUFFER && !(MATERIALBLENDING_TRANSLUCENT || MATERIALBLENDING_ADDITIVE || MATERIALBLENDING_MODULATE)
+	// apply decals from the DBuffer
+	BRANCH if(Primitive.DecalReceiverMask > 0)
+	{
+		float2 NDC = MaterialParameters.ScreenPosition.xy / MaterialParameters.ScreenPosition.w;
+		float2 ScreenUV = NDC * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
+
+		FDBufferData DBufferData = GetDBufferData(ScreenUV);
+
+#if DIFFUSE_SPEC_INPUTS
+		ApplyDBufferData(DBufferData, MaterialParameters.WorldNormal, SubsurfaceColor, Roughness, DiffuseColor, SpecularColor);
+#else
+		ApplyDBufferData(DBufferData, MaterialParameters.WorldNormal, SubsurfaceColor, Roughness, BaseColor, Metallic, Specular);
+#endif
+	}
+#endif
+
+#if !DIFFUSE_SPEC_INPUTS
+	// So that the following code can still use DiffuseColor and SpecularColor.
+	half3 DiffuseColor = BaseColor - BaseColor * Metallic;
+	half3 SpecularColor = lerp( 0.08 * Specular.xxx, BaseColor, Metallic.xxx );
+#endif
+
+#if COMPILE_SHADERS_FOR_DEVELOPMENT
+	{
+		// this feature is only needed for development/editor - we can compile it out for a shipping build (see r.CompileShadersForDevelopment cvar help)
+		DiffuseColor = DiffuseColor * View.DiffuseOverrideParameter.w + View.DiffuseOverrideParameter.xyz;
+		SpecularColor = SpecularColor * View.SpecularOverrideParameter.w + View.SpecularOverrideParameter.xyz;
+	}
+#endif
+
+
+	half3 Color = 0;
+	float3 LowGlossIndirectSpecular = 0;
+
+	#if !MATERIAL_LIGHTINGMODEL_UNLIT
+
+		Color += GetPrecomputedIndirectLighting(MaterialParameters, Interpolants, BasePassInterpolants, LowGlossIndirectSpecular) * DiffuseColor * MaterialAO;
+
+		#if SIMPLE_DYNAMIC_LIGHTING
+			// always unshadowed so BiasedNDotL is not needed
+			half Lambert = saturate(dot(MaterialParameters.WorldNormal, View.DirectionalLightDirection));
+			Color += DiffuseColor * Lambert * View.DirectionalLightColor.rgb;
+
+			Color += GetMaterialHemisphereLightTransferFull(
+				DiffuseColor,
+				MaterialParameters,
+				View.UpperSkyColor.rgb,
+				View.LowerSkyColor.rgb
+				);
+		#endif
+	#endif
+
+	half Opacity = GetMaterialOpacity(MaterialParameters);
+
+	#if NEEDS_BASEPASS_FOGGING
+		float4 VertexFog = BasePassInterpolants.VertexFog;
+	#else
+		float4 VertexFog = float4(0,0,0,1);
+	#endif
+		
+	// Volume lighting for lit translucency
+	#if (MATERIAL_LIGHTINGMODEL_DEFAULT_LIT || MATERIAL_LIGHTINGMODEL_SUBSURFACE) && (MATERIALBLENDING_TRANSLUCENT || MATERIALBLENDING_ADDITIVE)
+		Color += GetTranslucencyLighting(MaterialParameters, DiffuseColor, Roughness, SpecularColor, LowGlossIndirectSpecular, MaterialAO);
+	#endif
+
+	#if !MATERIAL_LIGHTINGMODEL_UNLIT
+		Color = lerp(Color, DiffuseColor + SpecularColor, View.UnlitViewmodeMask);
+	#endif
+
+	half3 Emissive = GetMaterialEmissive(MaterialParameters);
+
+#if COMPILE_SHADERS_FOR_DEVELOPMENT
+	// this feature is only needed for development/editor - we can compile it out for a shipping build (see r.CompileShadersForDevelopment cvar help)
+	#if SM5_PROFILE || SM4_PROFILE
+		BRANCH
+		if (View.OutOfBoundsMask > 0)
+		{
+			if (any(abs(MaterialParameters.WorldPosition - Primitive.ObjectWorldPositionAndRadius.xyz) > Primitive.ObjectBounds + 1))
+			{
+				float Gradient = frac(dot(MaterialParameters.WorldPosition, float3(.577f, .577f, .577f)) / 500.0f);
+				Emissive = lerp(float3(1,1,0), float3(0,1,1), Gradient.xxx > .5f);
+				Opacity = 1;
+			}
+		}
+	#endif
+#endif
+
+	Color += Emissive;
+
+
+	#if MATERIALBLENDING_TRANSLUCENT
+		OutColor = half4(Color * VertexFog.a + VertexFog.rgb, Opacity);
+		OutColor = RETURN_COLOR(OutColor);
+	#elif MATERIALBLENDING_ADDITIVE
+		OutColor = half4(Color * VertexFog.aaa * Opacity.xxx, 0.0f);
+		OutColor = RETURN_COLOR(OutColor);
+	#elif MATERIALBLENDING_MODULATE
+		// RETURN_COLOR not needed with modulative blending
+		half3 FoggedColor = lerp(float3(1, 1, 1), Color, VertexFog.aaa * VertexFog.aaa);
+		OutColor = half4(FoggedColor, Opacity);
+	#else
+		// Scene color alpha is used to specify how much specular is in the color, for efficiency we approximate with 0
+		OutColor = RETURN_COLOR(float4(Color, 0)); 
+	#endif
+
+	float4 PrecomputedShadowFactors = GetPrecomputedShadowMasks(Interpolants);
+
+	#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && (MATERIALBLENDING_SOLID || MATERIALBLENDING_MASKED)
+
+		FGBufferData Data = (FGBufferData)0;
+
+		Data.WorldNormal = MaterialParameters.WorldNormal;
+#if DIFFUSE_SPEC_INPUTS
+		Data.DiffuseColor = DiffuseColor;
+		Data.SpecularColor = SpecularColor;
+#else
+		Data.BaseColor = BaseColor;
+		Data.Metallic = Metallic;
+		Data.Specular = Specular;
+#endif
+		Data.Roughness = Roughness;
+		Data.SubsurfaceColor = SubsurfaceColor;
+		Data.LowGlossIndirectSpecular = LowGlossIndirectSpecular;
+		Data.PrecomputedShadowFactors = PrecomputedShadowFactors;
+		Data.GBufferAO = MaterialAO;
+		Data.Opacity = Opacity;
+		Data.DecalMask = Primitive.DecalReceiverMask;
+
+		#if MATERIAL_LIGHTINGMODEL_UNLIT
+			Data.LightingModelId = LIGHTINGMODELID_UNLIT;
+		#elif MATERIAL_LIGHTINGMODEL_DEFAULT_LIT
+			Data.LightingModelId = LIGHTINGMODELID_DEFAULT_LIT;
+		#elif MATERIAL_LIGHTINGMODEL_SUBSURFACE
+			Data.LightingModelId = LIGHTINGMODELID_SUBSURFACE;
+		#elif MATERIAL_LIGHTINGMODEL_PREINTEGRATED_SKIN
+			Data.LightingModelId = LIGHTINGMODELID_PREINTEGRATED_SKIN;
+		#else
+			// missing lighting model, compiler should report LightingModelId is not set
+		#endif
+
+		#if !ALLOW_STATIC_LIGHTING
+			float4 OutGBufferE = 0;
+		#endif
+
+		EncodeGBuffer(Data,OutGBufferA,OutGBufferB,OutGBufferC,OutGBufferD,OutGBufferE);
+	#endif 
+	
+
+
+
+	if(bEditorWeightedZBuffering)
+	{
+		OutColor.a = 1;
+
+#if MATERIALBLENDING_MASKED
+		// some material might have a opacity value
+		OutColor.a = GetMaterialMaskInputRaw(MaterialParameters);
+#endif
+		// we output premultiplied alpha to we have to darken all 4 channels
+		OutColor *= ClipForEditorPrimitives(MaterialParameters);
+
+		#if EDITOR_ALPHA2COVERAGE != 0
+			// per MSAA sample
+			if(MSAASampleCount > 1)
+			{
+				OutCoverage = InCoverage & CustomAlpha2Coverage(OutColor);
+			}
+			else
+			{
+				// no MSAA is handle like per pixel
+				clip(OutColor.a - GetMaterialOpacityMaskClipValue());
+			}
+		#else
+			// per pixel
+			clip(OutColor.a - GetMaterialOpacityMaskClipValue());
+		#endif
+	}
+}

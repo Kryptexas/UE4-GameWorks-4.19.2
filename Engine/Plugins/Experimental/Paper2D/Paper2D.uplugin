@@ -1,0 +1,35 @@
+{
+	"FileVersion" : 3,
+	
+	"FriendlyName" : "Paper2D",
+	"Version" : 1,
+	"VersionName" : "1.0",
+	"CreatedBy" : "Epic Games, Inc.",
+	"CreatedByURL" : "http://epicgames.com",
+	"EngineVersion" : 1579795,
+	"Description" : "Paper2D adds tools and assets to help create 2D games including animated sprite assets, tilesets, 2D level editing tools, and more.",
+	"Category" : "2D.Helpers",
+
+	"Modules" :
+	[
+		{
+			"Name" : "Paper2D",
+			"Type" : "Editor",
+			"LoadingPhase" : "PreDefault"
+		},
+		{
+			"Name" : "Paper2DEditor",
+			"Type" : "Editor"
+		},
+		{
+			"Name" : "PaperJsonImporter",
+			"Type" : "Editor"
+		},
+		{
+			"Name" : "SmartSnapping",
+			"Type" : "Editor"
+		}
+	],
+
+	"CanContainContent" : true
+}

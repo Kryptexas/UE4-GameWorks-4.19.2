@@ -1,0 +1,5 @@
+// Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
+
+#ifdef __OBJC__
+	#import <Cocoa/Cocoa.h>
+#endif

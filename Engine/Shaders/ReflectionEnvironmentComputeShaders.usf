@@ -1,0 +1,541 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
+/*=============================================================================
+	ReflectionEnvironmentComputeShaders - functionality to apply local cubemaps.
+=============================================================================*/
+  
+#include "Common.usf"
+#include "DeferredShadingCommon.usf"  
+#include "BRDF.usf"
+#include "ReflectionEnvironmentShared.usf"
+#include "SkyLightShared.usf"
+
+#if TILED_DEFERRED_CULL_SHADER
+
+/** Cube map array of reflection captures. */
+TextureCubeArray ReflectionEnvironmentColorTexture;
+SamplerState ReflectionEnvironmentColorSampler;
+
+#define THREADGROUP_TOTALSIZE (THREADGROUP_SIZEX * THREADGROUP_SIZEY)
+
+// Workaround performance issue with shared memory bank collisions in GLSL
+#if GL4_PROFILE
+#define ATOMIC_REDUCTION 0
+#else
+#define ATOMIC_REDUCTION 1
+#endif
+
+uint NumCaptures;
+/** View rect min in xy, max in zw. */
+uint4 ViewDimensions;
+
+/** Min and Max depth for this tile. */
+groupshared uint IntegerTileMinZ;
+groupshared uint IntegerTileMaxZ;
+/** Inner Min and Max depth for this tile. */
+groupshared uint IntegerTileMinZ2;
+groupshared uint IntegerTileMaxZ2;
+
+/** Number of reflection captures affecting this tile, after culling. */
+groupshared uint TileNumReflectionCaptures;
+/** Indices into the capture data buffer of captures that affect this tile, computed by culling. */
+groupshared uint TileReflectionCaptureIndices[MAX_CAPTURES];
+/** Capture indices after sorting. */
+groupshared uint SortedTileReflectionCaptureIndices[MAX_CAPTURES];
+
+#if !ATOMIC_REDUCTION
+groupshared float TileZ[THREADGROUP_TOTALSIZE];
+#endif
+
+void ComputeTileMinMax(uint ThreadIndex, float SceneDepth, out float MinTileZ, out float MaxTileZ, out float MinTileZ2, out float MaxTileZ2)
+{
+#if ATOMIC_REDUCTION
+
+	// Initialize per-tile variables
+	if (ThreadIndex == 0) 
+	{
+		IntegerTileMinZ = 0x7F7FFFFF;     
+		IntegerTileMaxZ = 0;
+		IntegerTileMinZ2 = 0x7F7FFFFF;  
+		IntegerTileMaxZ2 = 0;
+	}
+
+	GroupMemoryBarrierWithGroupSync();
+	
+	// Use shared memory atomics to build the depth bounds for this tile
+	// Each thread is assigned to a pixel at this point
+	InterlockedMin(IntegerTileMinZ, asuint(SceneDepth));
+	InterlockedMax(IntegerTileMaxZ, asuint(SceneDepth));
+
+	GroupMemoryBarrierWithGroupSync();
+
+	MinTileZ = asfloat(IntegerTileMinZ);
+	MaxTileZ = asfloat(IntegerTileMaxZ);
+	
+	float HalfZ = .5f * (MinTileZ + MaxTileZ);
+
+	// Compute a second min and max Z, clipped by HalfZ, so that we get two depth bounds per tile
+	// This results in more conservative tile depth bounds and fewer intersections
+	if (SceneDepth >= HalfZ)
+	{
+		InterlockedMin(IntegerTileMinZ2, asuint(SceneDepth));
+	}
+
+	if (SceneDepth <= HalfZ)
+	{
+		InterlockedMax(IntegerTileMaxZ2, asuint(SceneDepth));
+	}
+
+	GroupMemoryBarrierWithGroupSync();
+	
+	MinTileZ2 = asfloat(IntegerTileMinZ2);
+	MaxTileZ2 = asfloat(IntegerTileMaxZ2);
+#else
+
+	TileZ[ThreadIndex] = SceneDepth;
+
+	GroupMemoryBarrierWithGroupSync();
+
+	THREADGROUP_TOTALSIZE;
+
+	if (ThreadIndex < 32)
+	{
+		float Min = SceneDepth;
+		float Max = SceneDepth;
+		for ( int i = ThreadIndex+32; i< THREADGROUP_TOTALSIZE; i+=32)
+		{
+			Min = min( Min, TileZ[i]);
+			Max = max( Max, TileZ[i]);
+		}
+		TileZ[ThreadIndex] = Min;
+		TileZ[ThreadIndex + 32] = Max;
+	}
+
+	GroupMemoryBarrierWithGroupSync();
+
+	if (ThreadIndex < 8)
+	{
+		float Min = TileZ[ThreadIndex];
+		float Max = TileZ[ThreadIndex + 32];
+		
+		Min = min( Min, TileZ[ThreadIndex + 8]);
+		Max = max( Max, TileZ[ThreadIndex + 40]);
+
+		Min = min( Min, TileZ[ThreadIndex + 16]);
+		Max = max( Max, TileZ[ThreadIndex + 48]);
+
+		Min = min( Min, TileZ[ThreadIndex + 24]);
+		Max = max( Max, TileZ[ThreadIndex + 56]);
+		
+		TileZ[ThreadIndex + 64] = Min;
+		TileZ[ThreadIndex + 96] = Max;
+	}
+
+	GroupMemoryBarrierWithGroupSync();
+
+	if (ThreadIndex == 0)
+	{
+		float Min = TileZ[64];
+		float Max = TileZ[96];
+		
+		for ( int i = 1; i< 8; i++)
+		{
+			Min = min( Min, TileZ[i+64]);
+			Max = max( Max, TileZ[i+96]);
+		}
+		
+		IntegerTileMinZ = asuint(Min);
+		IntegerTileMaxZ = asuint(Max);
+	}
+
+	GroupMemoryBarrierWithGroupSync();
+
+	MinTileZ = asfloat(IntegerTileMinZ);
+	MaxTileZ = asfloat(IntegerTileMaxZ);
+	
+	float HalfZ = .5f * (MinTileZ + MaxTileZ);
+
+	MinTileZ2 = HalfZ;
+	MaxTileZ2 = HalfZ;
+#endif
+}
+
+// Culls reflection captures in the scene with the current tile
+// Outputs are stored in shared memory
+void DoTileCulling(uint3 GroupId, uint ThreadIndex, float MinTileZ, float MaxTileZ, float MinTileZ2, float MaxTileZ2)
+{
+	// Setup tile frustum planes
+	float2 TileScale = float2(ViewDimensions.zw - ViewDimensions.xy) * rcp(2 * float2(THREADGROUP_SIZEX, THREADGROUP_SIZEY));
+	float2 TileBias = TileScale - GroupId.xy;
+
+    float4 C1 = float4(View.ViewToClip._11 * TileScale.x,	0.0f,								View.ViewToClip._31 * TileScale.x + TileBias.x,	0.0f);
+    float4 C2 = float4(0.0f,								-View.ViewToClip._22 * TileScale.y, View.ViewToClip._32 * TileScale.y + TileBias.y,	0.0f);
+    float4 C4 = float4(0.0f,								0.0f,								1.0f,											0.0f);
+
+	float4 frustumPlanes[8];
+	frustumPlanes[0] = C4 - C1;
+	frustumPlanes[1] = C4 + C1;
+	frustumPlanes[2] = C4 - C2;
+	frustumPlanes[3] = C4 + C2;
+	frustumPlanes[4] = float4(0.0f, 0.0f,  1.0f, -MinTileZ);
+	frustumPlanes[5] = float4(0.0f, 0.0f, -1.0f,  MaxTileZ2);
+	frustumPlanes[6] = float4(0.0f, 0.0f,  1.0f, -MinTileZ2);
+	frustumPlanes[7] = float4(0.0f, 0.0f, -1.0f,  MaxTileZ);
+
+	// Normalize tile frustum planes
+	UNROLL 
+	for (uint i = 0; i < 4; ++i) 
+	{
+		frustumPlanes[i] *= rcp(length(frustumPlanes[i].xyz));
+	}
+
+	if (ThreadIndex == 0) 
+	{
+		TileNumReflectionCaptures = 0;
+	}
+
+	GroupMemoryBarrierWithGroupSync();
+
+	// Compute per-tile lists of affecting captures through bounds culling
+	// Each thread now operates on a sample instead of a pixel
+	LOOP
+	for (uint CaptureIndex = ThreadIndex; CaptureIndex < NumCaptures && CaptureIndex < MAX_CAPTURES; CaptureIndex += THREADGROUP_TOTALSIZE)
+	{
+		float4 CapturePositionAndRadius = ReflectionCapture.PositionAndRadius[CaptureIndex];
+
+		float3 BoundsViewPosition = mul(float4(CapturePositionAndRadius.xyz + View.PreViewTranslation.xyz, 1), View.TranslatedWorldToView).xyz;
+
+		// Cull the light against the tile's frustum planes
+		// Note: this has some false positives, a light that is intersecting three different axis frustum planes yet not intersecting the volume of the tile will be treated as intersecting
+		bool bInTile = true;  
+				
+		// Test against the screen x and y oriented planes first
+		UNROLL
+		for (uint i = 0; i < 4; ++i) 
+		{
+			float PlaneDistance = dot(frustumPlanes[i], float4(BoundsViewPosition, 1.0f));
+			bInTile = bInTile && (PlaneDistance >= -CapturePositionAndRadius.w);
+		}
+
+		BRANCH
+		if (bInTile)
+		{
+			bool bInNearDepthRange = true;  
+				
+			// Test against the near depth range
+			UNROLL
+			for (uint i = 4; i < 6; ++i) 
+			{
+				float PlaneDistance = dot(frustumPlanes[i], float4(BoundsViewPosition, 1.0f));
+				bInNearDepthRange = bInNearDepthRange && (PlaneDistance >= -CapturePositionAndRadius.w);
+			}
+
+			bool bInFarDepthRange = true;  
+				
+			// Test against the far depth range
+			UNROLL
+			for (uint j = 6; j < 8; ++j) 
+			{
+				float PlaneDistance = dot(frustumPlanes[j], float4(BoundsViewPosition, 1.0f));
+				bInFarDepthRange = bInFarDepthRange && (PlaneDistance >= -CapturePositionAndRadius.w);
+			}
+				 
+			// Add this capture to the list of indices if it intersects
+			BRANCH
+			if (bInNearDepthRange || bInFarDepthRange) 
+			{
+				uint ListIndex;
+				InterlockedAdd(TileNumReflectionCaptures, 1U, ListIndex);
+				TileReflectionCaptureIndices[ListIndex] = CaptureIndex;
+			}
+		}
+	}
+
+	GroupMemoryBarrierWithGroupSync();
+		  
+	uint NumCapturesAffectingTile = TileNumReflectionCaptures;
+		 
+	// Sort captures by their original capture index
+	// This is necessary because the culling used InterlockedAdd to generate compacted array indices, 
+	// Which rearranged the original capture order, in which the captures were sorted smallest to largest on the CPU.
+	//@todo - parallel stream compaction could be faster than this
+	#define SORT_CAPTURES 1
+	#if SORT_CAPTURES
+
+		// O(N^2) simple parallel sort
+		LOOP
+		for (uint CaptureIndex = ThreadIndex; CaptureIndex < NumCapturesAffectingTile; CaptureIndex += THREADGROUP_TOTALSIZE)
+		{
+			// Sort by original capture index
+			int SortKey = TileReflectionCaptureIndices[CaptureIndex];
+			uint NumSmaller = 0;
+
+			// Count how many items have a smaller key, so we can insert ourselves into the correct position, without requiring interaction between threads
+			for (uint OtherSampleIndex = 0; OtherSampleIndex < NumCapturesAffectingTile; OtherSampleIndex++) 
+			{
+				int OtherSortKey = TileReflectionCaptureIndices[OtherSampleIndex];
+
+				if (OtherSortKey < SortKey)
+				{
+					NumSmaller++;
+				}
+			}
+
+			// Move this entry into its sorted position
+			SortedTileReflectionCaptureIndices[NumSmaller] = TileReflectionCaptureIndices[CaptureIndex];
+		}
+
+	#endif
+
+	GroupMemoryBarrierWithGroupSync();
+}
+
+/** Output HDR target. */
+RWTexture2D<float4> RWLightAccumulation;
+
+[numthreads(THREADGROUP_SIZEX, THREADGROUP_SIZEY, 1)]
+void ReflectionEnvironmentTiledDeferredMain(
+	uint3 GroupId : SV_GroupID,
+	uint3 DispatchThreadId : SV_DispatchThreadID,
+	uint3 GroupThreadId : SV_GroupThreadID) 
+{
+	uint ThreadIndex = GroupThreadId.y * THREADGROUP_SIZEX + GroupThreadId.x;
+	
+	uint2 PixelPos = DispatchThreadId.xy + ViewDimensions.xy;
+	float2 ScreenUV = (float2(DispatchThreadId.xy) + .5f) / (ViewDimensions.zw - ViewDimensions.xy);
+	float2 ScreenPosition = float2(2.0f, -2.0f) * ScreenUV + float2(-1.0f, 1.0f);
+	float SceneDepth = CalcSceneDepth(PixelPos);
+
+	float MinTileZ;
+	float MaxTileZ;
+	float MinTileZ2;
+	float MaxTileZ2;
+	ComputeTileMinMax(ThreadIndex, SceneDepth, MinTileZ, MaxTileZ, MinTileZ2, MaxTileZ2);
+
+#define DO_CULLING_AND_SHADING 1
+#if DO_CULLING_AND_SHADING
+
+	DoTileCulling(GroupId, ThreadIndex, MinTileZ, MaxTileZ, MinTileZ2, MaxTileZ2);
+
+	// Lookup GBuffer properties once per pixel
+	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(PixelPos);
+	FGBufferData InGBufferData = ScreenSpaceData.GBuffer;
+	
+	float4 HomogeneousWorldPosition = mul(float4(ScreenPosition * SceneDepth, SceneDepth, 1), View.ScreenToWorld);
+	float3 WorldPosition = HomogeneousWorldPosition.xyz / HomogeneousWorldPosition.w;
+	float3 CameraToPixel = normalize(WorldPosition - View.ViewOrigin.xyz);
+	float3 ReflectionVector = reflect(CameraToPixel, InGBufferData.WorldNormal);
+	float3 SmoothColor = 0;
+	float3 RoughColor = 0;
+	float Overdraw = 0;
+
+	uint NumCapturesAffectingTile = TileNumReflectionCaptures;
+	float4 CompositedLighting = float4(0, 0, 0, 1);
+
+	#define VISUALIZE_NUM_CAPTURES 0
+	#if VISUALIZE_NUM_CAPTURES 
+
+		CompositedLighting = NumCapturesAffectingTile / 5.0f;
+		CompositedLighting.a = 0;
+
+	#else
+
+		BRANCH
+		// Only light pixels marked as using deferred shading
+		if (InGBufferData.LightingModelId > 0)
+		{
+			// Compute GBuffer dependent intermediates for lit pixels
+			// Note: These are all combined into a few temporary registers (SmoothColor, RoughColor) to reduce temporary register pressure during the shading loop
+			// Increased temporary register pressure during shading was causing a performance cliff on AMD 7970
+			GetReflectionSmoothAndRoughColor(ScreenSpaceData, CameraToPixel, SmoothColor, RoughColor);
+
+			// Accumulate reflections from captures affecting this tile, applying largest captures first so that the smallest ones display on top
+			LOOP
+			for (uint TileCaptureIndex = 0; TileCaptureIndex < NumCapturesAffectingTile && CompositedLighting.a > .001f; TileCaptureIndex++) 
+			{
+				#if SORT_CAPTURES
+					uint CaptureIndex = SortedTileReflectionCaptureIndices[TileCaptureIndex];
+				#else
+					uint CaptureIndex = TileReflectionCaptureIndices[TileCaptureIndex];
+				#endif
+			
+				float4 CapturePositionAndRadius = ReflectionCapture.PositionAndRadius[CaptureIndex];
+				float4 CaptureProperties = ReflectionCapture.CaptureProperties[CaptureIndex];
+				float3 CaptureVector = WorldPosition - CapturePositionAndRadius.xyz;
+				float CaptureVectorLength = sqrt(dot(CaptureVector, CaptureVector));
+
+				BRANCH
+				if (CaptureVectorLength < CapturePositionAndRadius.w)
+				{
+					float NormalizedDistanceToCapture = saturate(CaptureVectorLength / CapturePositionAndRadius.w);
+					float3 ProjectedCaptureVector = ReflectionVector;
+
+					// Fade out based on distance to capture
+					float DistanceAlpha = 0;
+
+					#define PROJECT_ONTO_SHAPE 1
+					#if PROJECT_ONTO_SHAPE
+					
+						#define SUPPORT_PLANE 0
+						#if SUPPORT_PLANE
+							BRANCH
+							// Plane
+							if (CaptureProperties.b > 1)
+							{
+								float4 ImagePlane = float4(ReflectionCapture.BoxTransform[CaptureIndex][0][0], ReflectionCapture.BoxTransform[CaptureIndex][1][0], ReflectionCapture.BoxTransform[CaptureIndex][2][0], ReflectionCapture.BoxTransform[CaptureIndex][3][0]);
+
+								float VectorDotPlaneNormal = dot(ImagePlane.xyz, ReflectionVector);
+								// VectorDotPlaneNormal < 0 means the ray hit the front face
+								BRANCH
+								if (VectorDotPlaneNormal < 0)
+								{
+									float PlaneDistance = dot(ImagePlane.xyz, WorldPosition) - ImagePlane.w;
+									// Time along the ray defined by WorldPosition + IntersectionTime * RayDirection that the intersection took place
+									float IntersectionTime = -PlaneDistance / VectorDotPlaneNormal;
+
+									BRANCH
+									// Skip intersections behind the pixel being shaded
+									if (IntersectionTime > 0)
+									{
+										// Calculate the world space intersection position
+										float3 IntersectPosition = WorldPosition + IntersectionTime * ReflectionVector;
+									
+										float2 ReflectionUVs;
+										float4 CurrentReflectionXAxis = float4(ReflectionCapture.BoxTransform[CaptureIndex][0][1], ReflectionCapture.BoxTransform[CaptureIndex][1][1], ReflectionCapture.BoxTransform[CaptureIndex][2][1], ReflectionCapture.BoxTransform[CaptureIndex][3][1]);
+										float3 CurrentImageReflectionOrigin = CapturePositionAndRadius.xyz;
+										float XLength = length(CurrentReflectionXAxis.xyz);
+										float3 NormalizedXAxis = CurrentReflectionXAxis.xyz / XLength;
+										// Calculate the quad UVs by projecting the vector from the intersection to the quad origin onto each quad axis
+										ReflectionUVs.x = dot(NormalizedXAxis, IntersectPosition - CurrentImageReflectionOrigin.xyz);
+										float3 ReflectionYAxis = cross(ImagePlane.xyz, NormalizedXAxis) * CurrentReflectionXAxis.w;
+										ReflectionUVs.y = dot(ReflectionYAxis, IntersectPosition - CurrentImageReflectionOrigin.xyz);
+										ReflectionUVs = .5f * ReflectionUVs / float2(XLength, XLength * CurrentReflectionXAxis.w) + .5f;
+
+										ProjectedCaptureVector = IntersectPosition - CapturePositionAndRadius.xyz;
+
+										if (ReflectionUVs.x > 0 && ReflectionUVs.x < 1 && ReflectionUVs.y > 0 && ReflectionUVs.y < 1)
+										{
+											CompositedLighting.rgb += 1;
+										}
+									}
+								}
+							}
+							else 
+						#endif
+						// Box
+						if (CaptureProperties.b > 0)
+						{
+							float3 RayDirection = ReflectionVector * CapturePositionAndRadius.w * 2;
+
+							// Transform the ray into the local space of the box, where it is an AABB with mins at -1 and maxs at 1
+							float3 LocalRayStart = mul(float4(WorldPosition, 1), ReflectionCapture.BoxTransform[CaptureIndex]).xyz;
+							float3 LocalRayDirection = mul(RayDirection, (float3x3)ReflectionCapture.BoxTransform[CaptureIndex]);
+
+							// Intersections.y is the intersection with the far side of the box
+							float2 Intersections = LineBoxIntersect(LocalRayStart, LocalRayStart + LocalRayDirection, -1, 1);
+
+							//if (Intersections.y > Intersections.x)
+							{
+								// Compute the reprojected vector
+								float3 IntersectPosition = WorldPosition + Intersections.y * RayDirection;
+								ProjectedCaptureVector = IntersectPosition - CapturePositionAndRadius.xyz;
+
+								// Compute the distance from the receiving pixel to the box for masking
+								// Apply local to world scale to take scale into account without transforming back to world space
+								// Shrink the box by the transition distance (BoxScales.w) so that the fade happens inside the box influence area
+								float4 BoxScales = ReflectionCapture.BoxScales[CaptureIndex];
+								float BoxDistance = ComputeDistanceFromBoxToPoint(-(BoxScales.xyz - .5f * BoxScales.w), BoxScales.xyz - .5f * BoxScales.w, LocalRayStart * BoxScales.xyz);
+
+								// Setup a fade based on receiver distance to the box, hides the box influence shape
+								float BoxDistanceAlpha = 1.0 - smoothstep(0, .7f * BoxScales.w, BoxDistance);
+								// Setup a fade based on reflection ray intersection distance, hides the discontinuity between rays that just barely 
+								float RayDistanceAlpha = smoothstep(0, BoxScales.w, Intersections.y * CapturePositionAndRadius.w * 2);
+								DistanceAlpha = BoxDistanceAlpha * RayDistanceAlpha;
+							}
+						}
+						// Sphere
+						else
+						{
+							float3 RayDirection = ReflectionVector * CapturePositionAndRadius.w;
+							float ProjectionSphereRadius = CapturePositionAndRadius.w * 1.2f;
+							float SphereRadiusSquared = ProjectionSphereRadius * ProjectionSphereRadius;
+
+							float3 ReceiverToSphereCenter = WorldPosition - CapturePositionAndRadius.xyz;
+							float ReceiverToSphereCenterSq = dot(ReceiverToSphereCenter, ReceiverToSphereCenter);
+
+							// Find the intersection between the ray along the reflection vector and the capture's sphere
+							float3 QuadraticCoef;
+							QuadraticCoef.x = dot(RayDirection, RayDirection);
+							QuadraticCoef.y = 2 * dot(RayDirection, ReceiverToSphereCenter);
+							QuadraticCoef.z = ReceiverToSphereCenterSq - SphereRadiusSquared;
+
+							float Determinant = QuadraticCoef.y * QuadraticCoef.y - 4 * QuadraticCoef.x * QuadraticCoef.z;
+							 
+							// Only continue if the ray intersects the sphere
+							if (Determinant >= 0)
+							{ 
+								float Epsilon = .000001f;
+								float InvTwoA = .5 / (QuadraticCoef.x + Epsilon);
+								float FarIntersection = (sqrt(Determinant) - QuadraticCoef.y) * InvTwoA;
+
+								float3 IntersectPosition = WorldPosition + FarIntersection * RayDirection;
+								ProjectedCaptureVector = IntersectPosition - CapturePositionAndRadius.xyz;
+								// Note: some compilers don't handle smoothstep min > max (this was 1, .6)
+								DistanceAlpha = 1.0 - smoothstep(.6, 1, NormalizedDistanceToCapture);
+							}
+						}
+
+					#else 
+						DistanceAlpha = 1.0;
+					#endif
+
+					float CaptureArrayIndex = CaptureProperties.g;
+					float AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(InGBufferData.Roughness);
+					float4 Reflection = TextureCubeArraySampleLevel(ReflectionEnvironmentColorTexture, ReflectionEnvironmentColorSampler, ProjectedCaptureVector, CaptureArrayIndex, AbsoluteSpecularMip);
+
+					Reflection.rgb *= CaptureProperties.r;
+
+					// Composite using the influence shape's alpha, which allows it to only override where it has valid data
+					CompositedLighting.rgb = lerp(CompositedLighting.rgb, Reflection.rgb, DistanceAlpha * CompositedLighting.a);
+					CompositedLighting.a *= saturate(1 - DistanceAlpha * Reflection.a);
+					Overdraw += .05f;
+				}
+			}
+		}
+	#endif
+#else
+	CompositedLighting = abs(MaxTileZ - MinTileZ) * .0001f;
+#endif
+
+#define APPLY_SKY_LIGHT 1
+#if APPLY_SKY_LIGHT
+	BRANCH
+	// Only light pixels marked as using deferred shading
+	if (InGBufferData.LightingModelId > 0 && SkyLightParameters.y > 0 && CompositedLighting.a > .001f)
+	{
+		float3 SkyLighting = GetSkyLightReflection(ReflectionVector, InGBufferData.Roughness);
+		CompositedLighting.rgb = lerp(CompositedLighting.rgb, SkyLighting, CompositedLighting.a);
+		Overdraw += .05f;
+	}
+#endif
+
+	// Only write to the buffer for threads inside the view
+	BRANCH
+	if (all(DispatchThreadId.xy < ViewDimensions.zw)) 
+	{
+		#define VISUALIZE_CAPTURE_OVERDRAW 0
+		#if VISUALIZE_CAPTURE_OVERDRAW
+			CompositedLighting.rgb = Overdraw / 4;
+		#else
+			// Optimization for temporaries
+			//float3 SmoothReflection = CompositedLighting.rgb * Luminance( InGBufferData.LowGlossIndirectSpecular );
+			//float3 RoughReflection = Luminance( CompositedLighting.rgb ) * InGBufferData.LowGlossIndirectSpecular;
+			//CompositedLighting.rgb = lerp( SmoothReflection, RoughReflection, MixAlpha );
+			CompositedLighting.rgb = CompositedLighting.rgb * SmoothColor + Luminance( CompositedLighting.rgb ) * RoughColor;
+		#endif
+
+		RWLightAccumulation[PixelPos.xy] = float4(CompositedLighting.rgb, 0);
+	}
+}
+
+#endif

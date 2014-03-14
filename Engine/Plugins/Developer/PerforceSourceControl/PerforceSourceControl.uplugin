@@ -1,0 +1,20 @@
+{
+    "PluginFileVersion" : 1,
+	
+	"FriendlyName" : "Perforce",
+	"Version" : 1,
+	"VersionName" : "1.0",
+	"CreatedBy" : "Epic Games, Inc.",
+	"CreatedByURL" : "http://epicgames.com",
+	"MinEngineVersion" : 1684048,
+	"Description" : "Perforce source control management",
+	"CategoryPath" : "Editor.Source Control",
+	
+    "Modules" :
+	[
+		{
+			"Name" : "PerforceSourceControl",
+			"Type" : "Developer"
+		}
+	]
+}

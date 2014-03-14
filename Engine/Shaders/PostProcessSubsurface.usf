@@ -1,0 +1,188 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
+/*=============================================================================
+	PostProcessSubsurface.usf: Screenspace subsurface scattering shaders.
+=============================================================================*/
+
+#include "Common.usf"
+#include "PostProcessCommon.usf"
+#include "DeferredShadingCommon.usf"
+
+#if SSSS_SPECULAR_CORRECTION == 1
+	// requires alpha channel for scenecolor
+#elif SSSS_SPECULAR_CORRECTION == 0
+	// speculars leak into SSS
+#else
+	error
+#endif
+
+#if METHOD == 0
+	// horizontal
+#elif METHOD == 1
+	// vertical
+#elif METHOD == 2
+	// vertical and reconstruct specular
+#else
+	error
+#endif
+
+// 0 / 1
+#define VISUALIZE_KERNEL 0
+
+// x:Radius
+float4 SSSParams;
+
+
+float3 ReconstructDiffuseLighting(float4 SceneColor4)
+{
+	float SceneColorLum = Luminance(SceneColor4.rgb);
+
+	// max to avoid division by 0
+	return SceneColor4.rgb * max(0, SceneColorLum - SceneColor4.a) / max(0.0001f, SceneColorLum);
+}
+
+float3 ReconstructNonDiffuseLighting(float4 SceneColor4)
+{
+	float SceneColorLum = Luminance(SceneColor4.rgb);
+
+	// max to avoid division by 0
+	return SceneColor4.rgb * SceneColor4.a / max(0.0001f, SceneColorLum);
+}
+
+void SetupPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
+{
+	float2 UV = UVAndScreenPos.xy;
+
+	OutColor = 0;
+
+	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(UV);
+
+	FLATTEN if(ScreenSpaceData.GBuffer.LightingModelId >= LIGHTINGMODELID_SUBSURFACE)
+	{
+		float4 SceneColor4 = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV);
+
+#if SSSS_SPECULAR_CORRECTION == 1
+		// we take out the specular highlights
+		float3 Lighting = ReconstructDiffuseLighting(SceneColor4);
+#else
+		float3 Lighting = SceneColor4.rgb;
+#endif
+
+		OutColor.rgb = Lighting;
+	}
+}
+
+// Gaussian in window -2/c0 .. 2/c0, 2d integral: 1
+// @param XSquared x * x
+float ComputeWindowedGaussian(float x, float c0)
+{
+	x *= c0;
+
+	float XSquared = x * x;
+	return max(exp2(-XSquared) - 0.065f, 0) / 3.4324f * (c0 * c0);
+}
+
+// Subsurface function
+// @param x > 0
+float3 ColorOverDistance(float3 SubsurfaceColor, float x)
+{
+	// larger means tighter gaussian
+	x *= 2.0f;	// -1..1 to -2..2
+
+	float3 Color = SubsurfaceColor;
+
+	// to avoid stuff gets brighter
+//	Color /= dot(Color, 1);
+
+	float3 Hack = 1;//float3(0.8f, 0.5f, 0.35f);
+
+	return Hack * float3(
+		ComputeWindowedGaussian(x, Color.r),
+		ComputeWindowedGaussian(x, Color.g),
+		ComputeWindowedGaussian(x, Color.b) );
+}
+
+float3 SampleDiffuseLighting(float2 LocalUV)
+{
+#if VISUALIZE_KERNEL
+	float Aspect = ViewportSize.x / ViewportSize.y;
+
+	float2 Dxy = (LocalUV - float2(0.75f, 0.25f)) * float2(Aspect, 1);
+
+	if(dot(Dxy, Dxy) < 0.000006f) return 2;
+	if(dot(Dxy, Dxy) < 0.05f) return 0;
+#endif
+
+	return Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, LocalUV).rgb;
+}
+
+// input0 is created by the SetupPS shader
+void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
+{
+	float2 UV = UVAndScreenPos.xy;
+
+	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(UV);
+	
+	float2 Offset = PostprocessInput0Size.zw;
+
+	const int Count = 20;
+	float AccumSum = 0.0001f;
+
+	// scale in world space, todo: expose scale
+	float Radius = SSSParams.x * saturate(45 / ScreenSpaceData.GBuffer.Depth);
+
+
+	LOOP for(int i = -Count; i <= Count; ++i)
+	{
+#if METHOD == 0
+		int x = i, y = 0;
+#else
+		int x = 0, y = i;
+#endif
+
+		{
+			float2 NormDelta = float2(x, y) / Count;
+
+			float r = length(NormDelta);
+
+			//		float2 LocalUV = UV + float2(x, y) * Offset;
+			float2 LocalUV = UV + NormDelta * Radius * Offset;
+
+			FScreenSpaceData LocalScreenSpaceData = GetScreenSpaceData(LocalUV);
+
+			// hack
+			//		float Subsurface = ScreenSpaceData.GBuffer.Roughness > 0.4f;
+			//		float Subsurface = (1 - ScreenSpaceData.GBuffer.DecalMask) > 0.5f && ScreenSpaceData.GBuffer.Depth < 1000.0f;
+			FLATTEN if(LocalScreenSpaceData.GBuffer.LightingModelId == LIGHTINGMODELID_SUBSURFACE)
+			{
+				float3 Color = ColorOverDistance(LocalScreenSpaceData.GBuffer.SubsurfaceColor, r);
+				float ColorLum = Luminance(Color);
+
+				OutColor += float4(Color, 1) * float4(SampleDiffuseLighting(LocalUV), 1);	
+				AccumSum += ColorLum;
+			}
+		}
+	}
+
+	OutColor.rgb /= AccumSum;
+	OutColor.a /= (2 * Count + 1);
+
+
+#if METHOD >= 1
+	
+	float4 SceneColor4 = Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, UV);
+	float4 SSSColor = OutColor;
+
+	SSSColor.a = (ScreenSpaceData.GBuffer.LightingModelId == LIGHTINGMODELID_SUBSURFACE);
+
+	// partly translucent surface (0.9 means 10% of the opaque is blended in)
+	SSSColor.a *= 0.3f;
+
+#if METHOD > 1
+	// we took the specular highlights out, now we add them back in
+	SSSColor.rgb += ReconstructNonDiffuseLighting(SceneColor4);
+#endif
+
+	OutColor = float4(lerp(SceneColor4.rgb, SSSColor.rgb, SSSColor.a), 1);
+#endif
+}

@@ -1,0 +1,499 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
+/*=============================================================================
+	MLAAShader.usf : Postprocess Anti aliasing based on MLAA code from AMD
+=============================================================================*/
+
+#include "Common.usf"
+
+#if SM5_PROFILE	
+	#define UINT						uint
+	#define UINT2						uint2
+	#define UINT4						uint4
+	#define TEX2D(tex, coord, size)		tex.Load(float3(coord*size, 0))	
+#else
+	#define UINT						int
+	#define UINT2						int2
+	#define UINT4						int4
+	#define TEX2D(tex, coord, size)		tex2Dlod(tex, float4(coord, 0, 0))	
+#endif
+
+//-----------------------------------------------------------------------------------------
+// Defines
+//-----------------------------------------------------------------------------------------
+// Set the number of bits to use when storing the horizontal and vertical counts
+// This number should be half the number of bits in the color channels used
+// E.g. with a RT format of DXGI_R8G8_int this number should be 8/2 = 4
+// Longer edges can be detected by increasing this number; however this requires a 
+// larger bit depth format, and also makes the edge length detection function slower
+#ifndef MAX_EDGE_COUNT_BITS
+#define MAX_EDGE_COUNT_BITS 4					// Default is 4 bits wide, more bits means better AA quality but slower performance.					
+#endif
+
+#ifndef SHOW_EDGES
+#define SHOW_EDGES 0							// Disabled by default      
+#endif
+
+//-----------------------------------------------------------------------------------------
+// Static Constants
+//-----------------------------------------------------------------------------------------
+static const UINT kNumCountBits				= MAX_EDGE_COUNT_BITS;
+
+// The maximum edge length that can be detected
+static const UINT kMaxEdgeLength			= ( (1<<(kNumCountBits-1)) - 1 );
+
+// Various constants used by the shaders below
+static const UINT kUpperMask				= (1<<0);
+static const UINT kUpperMask_BitPosition	= 0;
+static const UINT kRightMask				= (1<<1);
+static const UINT kRightMask_BitPosition	= 1;
+static const UINT kStopBit					= (1<<(kNumCountBits-1));
+static const UINT kStopBit_BitPosition		= (kNumCountBits-1);
+static const UINT kNegCountShift			= (kNumCountBits);
+static const UINT kPosCountShift			= (00);
+static const UINT kCountShiftMask			= ((1<<kNumCountBits)-1);
+
+static const int3 kZero						= int3( 0, 0, 0);
+static const int3 kUp						= int3( 0,-1, 0);
+static const int3 kDown						= int3( 0, 1, 0);
+static const int3 kRight					= int3( 1, 0, 0);
+static const int3 kLeft						= int3(-1, 0, 0);
+
+//-----------------------------------------------------------------------------------------
+// Constants
+//-----------------------------------------------------------------------------------------
+// (x, y)	- The size of render target.
+// (z)		- This constant defines the luminance intensity difference to check for when testing any two pixels for an edge.
+//            The higher the value the fewer edges wil be detected.
+float4 gParam;
+//-----------------------------------------------------------------------------------------
+// Shader resources
+//-----------------------------------------------------------------------------------------
+// Render target for edge detection
+sampler2D EdgeMaskTexture;
+// Render target for edge length computing
+sampler2D EdgeCountTexture;
+//-----------------------------------------------------------------------------------------
+// Utility functions
+//-----------------------------------------------------------------------------------------
+// Returns true if the colors are different
+bool CompareColors( float a, float b )
+{
+    return ( abs(a - b) > gParam.z );
+}
+
+float2 ComputeOffset(float2 pos, float2 offset, float2 min, float2 max)
+{
+	return float2( clamp( pos + offset, min, max).xy);
+}
+
+float2 manual_vect_mult(float2 a, float2 b)
+{
+    return float2(a.x*b.x, a.y*b.y);
+}
+
+#if SM5_PROFILE	
+	bool IsBitSet(UINT Value, const UINT uBitPosition)
+	{
+		return ((Value & (1<<uBitPosition)) ? true : false);
+	}	
+	
+	UINT BitwiseOR(UINT a, UINT b)
+	{
+		return (a | b);
+	}
+	
+	UINT RemoveStopBit(UINT a)
+	{
+		return a & (kStopBit-1);
+	}
+
+	UINT DecodeCountNoStopBit(UINT count, UINT shift)
+	{
+		return RemoveStopBit((count >> shift) & kCountShiftMask);
+	}
+
+	UINT DecodeCount(UINT count, UINT shift)
+	{
+		return (count >> shift) & kCountShiftMask;
+	}
+
+	UINT EncodeCount(UINT negCount, UINT posCount)
+	{
+		return ((negCount & kCountShiftMask) << kNegCountShift) | (posCount & kCountShiftMask);
+	}
+	
+	float EncodeMaskColor(UINT mask)
+	{
+		return float(mask/255.0);		
+	}
+	
+	UINT DecodeMaskColor(float mask)
+	{
+		return UINT(mask * 255);		
+	}	
+	
+	UINT4 DecodeMaskColor4(float4 mask)
+	{
+		return UINT4(mask * 255);		
+	}
+	
+	float EncodeCountColor(UINT mask)
+	{
+		return float(mask);
+	}
+	UINT DecodeCountColor(float mask)
+	{
+		return UINT(mask);
+	}
+	
+	UINT2 DecodeCountColor2(float2 mask)
+	{
+		return UINT2(mask);
+	}	
+#else	
+	bool IsBitSet(float fValue, const UINT uBitPosition)
+	{
+		const float fModulo[9] = { 1, 2, 4, 8, 16, 32, 64, 128, 256 };
+
+		return (fmod(fValue, fModulo[uBitPosition+1]) >= fModulo[uBitPosition]);
+	}	
+	
+	bool4 IsBitSet4(float4 fValue, const UINT4 uBitPosition)
+	{
+		const float fModulo[9] = { 1, 2, 4, 8, 16, 32, 64, 128, 256 };
+		bool4 Ret;
+		
+		Ret.xy = (fmod(fValue.xy, fModulo[uBitPosition.x+1]) >= fModulo[uBitPosition.x]);
+		Ret.zw = (fmod(fValue.zw, fModulo[uBitPosition.z+1]) >= fModulo[uBitPosition.z]);
+		
+		return (Ret);
+	}
+	
+	UINT BitwiseOR(UINT a, UINT b)
+	{
+		return (a + b);
+	}
+	
+	UINT RemoveStopBit(UINT a)
+	{
+		a = a - ( IsBitSet(float(a), kStopBit_BitPosition) ? kStopBit : 0 );    
+		return a;
+	}	
+	
+	UINT DecodeCount(UINT count, UINT shift)
+	{
+		return UINT(fmod( float(count) / pow(2, shift), kCountShiftMask+1));
+	}
+
+	UINT DecodeCountNoStopBit(UINT count, UINT shift)
+	{
+		return RemoveStopBit( floor( fmod( float(count) / pow(2,shift), kCountShiftMask+1 ) ) );
+	}	
+
+	UINT EncodeCount(UINT negCount, UINT posCount)
+	{
+		return int(floor((fmod(float(negCount), kCountShiftMask+1))) * (1<<kNegCountShift) ) + floor((fmod(float(posCount), kCountShiftMask+1)));
+	}	
+	
+	float EncodeMaskColor(UINT mask)
+	{
+		return float(mask);
+	}
+	
+	UINT DecodeMaskColor(float mask)
+	{
+		return UINT(mask);
+	}	
+	
+	float EncodeCountColor(UINT mask)
+	{
+		return float(mask);
+	}
+	
+	UINT DecodeCountColor(float mask)
+	{
+		return UINT(mask);
+	}
+	
+	UINT2 DecodeCountColor2(float2 mask)
+	{
+		return UINT2(mask);
+	}
+#endif
+
+/*-----------------------------------------------------------------------------
+	MLAA vertex shader
+-----------------------------------------------------------------------------*/
+void MLAA_VertexMain(
+	in float4 InPosition : POSITION,
+	in float2 UV : TEXCOORD0,
+	out float2 OutCenterUV : TEXCOORD0,
+	out float4 OutPosition : POSITION
+	)
+{
+	OutPosition = InPosition;
+	OutCenterUV = UV.xy;
+}
+
+/*-----------------------------------------------------------------------------
+	MLAA pixel shader for edge detection.
+	Pixel shader used in the first phase of MLAA.
+	This pixel shader is used to detect vertical and horizontal edges.
+-----------------------------------------------------------------------------*/
+void MLAA_SeperatingLines_PS(    
+	float2 InCenterUV : TEXCOORD0,
+	out float4 OutColor : COLOR0
+	)
+{
+	float center = (CalcFullSceneColor( ComputeOffset(InCenterUV, float2(0, 0),			float2(0, 0), float2(1, 1)) ).a);
+	float up	 = (CalcFullSceneColor( ComputeOffset(InCenterUV, kUp.xy/gParam.xy,		float2(0, 0), float2(1, 1)) ).a);
+	float right  = (CalcFullSceneColor( ComputeOffset(InCenterUV, kRight.xy/gParam.xy,	float2(0, 0), float2(1, 1)) ).a);	
+	UINT rVal = 0;		
+	
+	// Check for seperating lines
+	if ( CompareColors( center, up )) 
+		rVal = BitwiseOR(rVal, kUpperMask);
+	if ( CompareColors( center, right ))
+		rVal = BitwiseOR(rVal,  kRightMask);
+	
+	float fVal = EncodeMaskColor(rVal);	
+	OutColor = float4(fVal, fVal, fVal, 1);	
+}	
+
+/*-----------------------------------------------------------------------------
+	MLAA pixel shader
+-----------------------------------------------------------------------------*/
+void ComputeEdgeCount(	
+		in UINT pixel,
+		in float2 InCenterUV,
+		in out UINT4 EdgeCount
+		)
+{
+	#if SM5_PROFILE	
+		// We use a single branch for vertical and horizontal edge testing
+		// Doing this is faster than two different branches (one for vertical, one for horizontal)
+		// In most case both V and H edges are spatially coherent (apart from purely horizontal or 
+		// vertical edges but those don't happen often compared to other cases).				
+		BRANCH
+		if ( (pixel & (kUpperMask | kRightMask)) )
+		{
+			static UINT4 EdgeDirMask = float4(kUpperMask, kUpperMask, kRightMask, kRightMask);
+			UINT4 EdgeFound;
+			UINT4 StopBit;
+			
+			EdgeFound = (pixel & EdgeDirMask) ? 0xFFFFFFFF : 0;								
+			StopBit = EdgeFound ? kStopBit : 0;  // A bit of clever code: nullify the stopbit if we're not supposed to look at this edge							
+			
+			UNROLL
+			for (int i=1; i<=int(kMaxEdgeLength); i++)
+			{
+				UINT4 uEdgeMask;
+				float4 EdgeMask;	
+				
+				EdgeMask.x = (tex2Dlod(EdgeMaskTexture, float4(clamp(InCenterUV + float2(-i,  0)/gParam.xy, float2(0, 0), float2(1, 1)), 0, 0)).r);
+				EdgeMask.y = (tex2Dlod(EdgeMaskTexture, float4(clamp(InCenterUV + float2( i,  0)/gParam.xy, float2(0, 0), float2(1, 1)), 0, 0)).r);
+				EdgeMask.z = (tex2Dlod(EdgeMaskTexture, float4(clamp(InCenterUV + float2( 0,  i)/gParam.xy, float2(0, 0), float2(1, 1)), 0, 0)).r);				
+				EdgeMask.w = (tex2Dlod(EdgeMaskTexture, float4(clamp(InCenterUV + float2( 0, -i)/gParam.xy, float2(0, 0), float2(1, 1)), 0, 0)).r);		
+				uEdgeMask = DecodeMaskColor4(EdgeMask);
+				
+				EdgeFound = EdgeFound & (uEdgeMask & EdgeDirMask);
+				EdgeCount = EdgeFound ? (EdgeCount + 1) : (EdgeCount | StopBit);				
+			}						
+		}		
+	#else	
+		bool bVNegEdgeFound = IsBitSet(pixel, kUpperMask_BitPosition);
+		bool bHNegEdgeFound = IsBitSet(pixel, kRightMask_BitPosition);
+
+	    // We use a single branch for vertical and horizontal edge testing
+		// Doing this is faster than two different branches (one for vertical, one for horizontal)
+		// In most case both V and H edges are spatially coherent (apart from purely horizontal or 
+		// vertical edges but those don't happen often compared to other cases).	      
+		BRANCH
+		if ( bVNegEdgeFound || bHNegEdgeFound )
+		{	
+			UINT VStopBit = bVNegEdgeFound ? kStopBit : 0;  // A bit of clever code: nullify the stopbit if we're not supposed to look at this edge			
+			UINT HStopBit = bHNegEdgeFound ? kStopBit : 0;  // A bit of clever code: nullify the stopbit if we're not supposed to look at this edge
+			UINT4 StopBit = UINT4(VStopBit, VStopBit, HStopBit, HStopBit);
+			UINT4 IncStep = UINT4(1, 1, 1, 1);
+			UINT4 Found = UINT4(0, 0, 0, 0);
+			const UINT4 Mask_BitPosition = UINT4(kUpperMask_BitPosition, kUpperMask_BitPosition, kRightMask_BitPosition, kRightMask_BitPosition);
+			
+			UNROLL
+			for (int i=1; i<=int(kMaxEdgeLength); i++)
+			{		
+				float4 EdgeMask;				
+				EdgeMask.x = DecodeMaskColor(tex2Dlod(EdgeMaskTexture, float4(clamp(InCenterUV + float2(-i,  0)/gParam.xy, float2(0, 0), float2(1, 1)), 0, 0)).r);				
+				EdgeMask.y = DecodeMaskColor(tex2Dlod(EdgeMaskTexture, float4(clamp(InCenterUV + float2( i,  0)/gParam.xy, float2(0, 0), float2(1, 1)), 0, 0)).r);
+				EdgeMask.z = DecodeMaskColor(tex2Dlod(EdgeMaskTexture, float4(clamp(InCenterUV + float2( 0,  i)/gParam.xy, float2(0, 0), float2(1, 1)), 0, 0)).r);
+				EdgeMask.w = DecodeMaskColor(tex2Dlod(EdgeMaskTexture, float4(clamp(InCenterUV + float2( 0, -i)/gParam.xy, float2(0, 0), float2(1, 1)), 0, 0)).r);
+				
+				Found = UINT4(IsBitSet4(EdgeMask, Mask_BitPosition));			
+								
+				EdgeCount += (IncStep*Found);
+				EdgeCount += (StopBit*(!Found));	
+				
+				IncStep *= Found;
+				StopBit *= Found;													
+			}			
+		}
+	#endif
+}
+
+/*-----------------------------------------------------------------------------
+	Pixel shader for the second phase of the algorithm
+	This pixel shader calculates the length of edges
+-----------------------------------------------------------------------------*/
+void MLAA_ComputeLineLength_PS(
+	float2 InCenterUV : TEXCOORD0,
+	out float4 OutColor : COLOR0
+	)
+{
+	// Retrieve edge mask for current pixel
+	UINT pixel = DecodeMaskColor(tex2Dlod(EdgeMaskTexture, float4(InCenterUV, 0, 0)).r);	
+	
+    UINT4 EdgeCount = UINT4(0, 0, 0, 0); // x = Horizontal Count Negative, y = Horizontal Count Positive, z = Vertical Count Negative, w = Vertical Count Positive				
+    
+    ComputeEdgeCount(pixel, InCenterUV, EdgeCount);
+        
+    OutColor.x = EncodeCountColor(EncodeCount(EdgeCount.x, EdgeCount.y));
+    OutColor.y = EncodeCountColor(EncodeCount(EdgeCount.z, EdgeCount.w));
+    OutColor.z = 0;
+    OutColor.w = 1;
+}
+
+/*-----------------------------------------------------------------------------	
+	Main function used in third and final phase of the algorithm
+	This code reads previous inputs and perform anti-aliasing of edges by 
+    blending colors as required
+-----------------------------------------------------------------------------*/
+void BlendColor(sampler2D txImage, 
+                UINT count,
+                float2 pos, 
+                float2 dir, 
+                float2 ortho, 
+                bool inverse, 
+                in out float4 color)
+{
+    // Only process pixel edge if it contains a stop bit    
+    BRANCH      
+    if ( IsBitSet(count, kStopBit_BitPosition+kPosCountShift) || IsBitSet(count, kStopBit_BitPosition+kNegCountShift) )  
+    {
+        // Retrieve edge length
+        UINT negCount = DecodeCountNoStopBit(count, kNegCountShift);
+        UINT posCount = DecodeCountNoStopBit(count, kPosCountShift);
+                  
+        BRANCH      
+        if ( (negCount + posCount) == 0)
+        {
+	        return;
+        }
+        else
+        {
+            // If no sign bit is found on either edge then artificially increase the edge length so that
+            // we don't start anti-aliasing pixels for which we don't have valid data (
+			if ( !(IsBitSet(count, (kStopBit_BitPosition+kPosCountShift)))) posCount = kMaxEdgeLength+1;
+			if ( !(IsBitSet(count, (kStopBit_BitPosition+kNegCountShift)))) negCount = kMaxEdgeLength+1;
+			
+            // Calculate some variables
+            float length = negCount + posCount + 1;
+            float midPoint = (length)/2;
+            float distance = (float)negCount;
+            
+            static const UINT upperU   = 0x00;
+            static const UINT risingZ  = 0x01;
+            static const UINT fallingZ = 0x02;
+            static const UINT lowerU   = 0x03;
+
+            ///////////////////////////////////////////////////////////////////////////////////////
+            // Determining what pixels to blend
+            // 4 possible values for shape - x indicates a blended pixel:
+            //
+            // 0: |xxxxxx| -> (h0 > 0) && (h1 > 0) : upperU     - blend along the entire inverse edge
+            //     ------
+            //
+            //
+            // 1:     xxx| -> (h0 < 0) && (h1 > 0) : risingZ    - blend first half on inverse, 
+            //     ------                                         blend second half on non-inverse
+            //    |xxx                                            
+            //
+            // 2: |xxx     -> (h0 > 0) && (h1 < 0) : fallingZ   - blend first half on non-inverse, 
+            //     ------                                         blend second half on inverse
+            //        xxx|                                        
+            //
+            // 3:          -> (h0 < 0) && (h1 < 0) : lowerU     - blend along the entire non-inverse edge
+            //     ------
+            //    |xxxxxx|
+            ///////////////////////////////////////////////////////////////////////////////////////
+
+            UINT shape = 0x00;
+        	if (CompareColors((tex2Dlod(txImage, float4(pos-(ortho*negCount.xx), 0, 0)).a), (tex2Dlod(txImage, float4(pos-(ortho*(negCount.xx+1)), 0, 0)).a)))
+            {
+                shape = BitwiseOR(shape, risingZ);                
+            }
+            if (CompareColors((tex2Dlod(txImage, float4(pos+(ortho*posCount.xx), 0, 0)).a), (tex2Dlod(txImage, float4(pos+(ortho*(posCount.xx+1)), 0, 0)).a)))
+            {
+                shape = BitwiseOR(shape, fallingZ);                
+            }
+        	// Parameter "inverse" is hard-coded on call so will not generate a dynamic branch condition
+			FLATTEN
+			if (    (  inverse && ( ( (shape == fallingZ) && (float(negCount) <= midPoint) ) ||
+									( (shape == risingZ)  && (float(negCount) >= midPoint) ) ||
+									( (shape == upperU)                             ) ) ) 
+				 || ( !inverse && ( ( (shape == fallingZ) && (float(negCount) >= midPoint) ) ||
+									( (shape == risingZ)  && (float(negCount) <= midPoint) ) ||
+									( (shape == lowerU)                             ) ) ) )
+			{
+				// Fetch color adjacent to the edge
+				float4 adjacentcolor = tex2Dlod(txImage, float4(pos+dir, 0, 0));
+        
+				float h0 = abs( (1.0/length) * (length-distance)     - 0.5);
+				float h1 = abs( (1.0/length) * (length-distance-1.0) - 0.5);
+				float area = 0.5 * (h0+h1);				
+				// Cheap approximation of gamma to linear and then back again
+				color.xyz = sqrt( lerp(color.xyz*color.xyz, adjacentcolor.xyz*adjacentcolor.xyz, area) );				
+			}
+		}
+    }
+}
+
+/*-----------------------------------------------------------------------------
+	MLAA pixel shader for color blending.
+	Pixel shader used in third and final phase of the algorithm
+-----------------------------------------------------------------------------*/
+void MLAA_BlendColor_PS(
+	float2 InCenterUV : TEXCOORD0,
+	out float4 OutColor : COLOR0
+	)
+{
+#if SHOW_EDGES	
+    float4 rVal;
+    
+    // Retrieve pixel from original image
+    rVal.rgb = CalcSceneColor(InCenterUV);
+    rVal.a = 1;    
+    
+    UINT2 count = DecodeCountColor2(tex2Dlod(EdgeCountTexture, float4(InCenterUV, 0, 0)).xy);
+        
+    // If the pixel is in edge
+    if (count.x || count.y)
+		OutColor = float4(1, 0, 0, 1);
+    else
+		OutColor = rVal;  				
+#else
+    // Retrieve pixel from original image
+    float4 rVal = float4(CalcSceneColor(InCenterUV), 1);    
+    
+	UINT2 count = DecodeCountColor2(tex2Dlod(EdgeCountTexture, float4(InCenterUV, 0, 0)).xy);
+	UINT hcountup    = DecodeCountColor(tex2Dlod(EdgeCountTexture, float4(InCenterUV-(kUp.xy/gParam.xy),	0, 0)).x);
+	UINT vcountright = DecodeCountColor(tex2Dlod(EdgeCountTexture, float4(InCenterUV-(kRight.xy/gParam.xy),	0, 0)).y);
+	
+    // Blend pixel colors as required for anti-aliasing edges
+    BlendColor(SceneColorTexture, count.x,		InCenterUV,								float2(kUp.xy)/gParam.xy,		float2(kRight.xy)/gParam.xy, false, rVal);   // H down-up
+    BlendColor(SceneColorTexture, hcountup,		InCenterUV-float2(kUp.xy)/gParam.xy,	float2(kZero.xy),				float2(kRight.xy)/gParam.xy, true,  rVal);   // H up-down
+    BlendColor(SceneColorTexture, count.y,      InCenterUV,								float2(kRight.xy)/gParam.xy,	float2(kUp.xy)/gParam.xy,    false, rVal);   // V left-right
+    BlendColor(SceneColorTexture, vcountright,	InCenterUV-float2(kRight.xy)/gParam.xy,	float2(kZero.xy),				float2(kUp.xy)/gParam.xy,    true,  rVal);   // V right-left
+
+    OutColor = rVal;
+#endif
+}

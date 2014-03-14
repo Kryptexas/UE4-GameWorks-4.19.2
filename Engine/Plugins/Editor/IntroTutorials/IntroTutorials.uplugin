@@ -1,0 +1,20 @@
+{
+    "FileVersion" : 3,
+	
+	"FriendlyName" : "Intro Tutorials",
+	"Version" : 1,
+	"VersionName" : "1.0",
+	"CreatedBy" : "Epic Games, Inc.",
+	"CreatedByURL" : "http://epicgames.com",
+	"EngineVersion" : 1579795,
+	"Description" : "Interactive tutorial system for the editor",
+	"Category" : "Editor.Learning",
+	
+    "Modules" :
+	[
+		{
+			"Name" : "IntroTutorials",
+			"Type" : "EditorNoCommandlet"
+		}
+	]
+}

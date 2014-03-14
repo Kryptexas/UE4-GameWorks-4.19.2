@@ -1,0 +1,92 @@
+﻿<!doctype html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>%GAME%</title>
+    <style>
+      .emscripten { padding-right: 0; margin-left: auto; margin-right: auto; display: block; }
+      canvas.emscripten { border: 1px solid black; }
+      textarea.emscripten { font-family: monospace; width: 80%; }
+      div.emscripten { text-align: center; }
+    </style>
+  </head>
+  <body>
+    <hr/>
+    <div class="emscripten" id="status">Downloading...</div>
+    <div class="emscripten">
+      <progress value="0" max="100" id="progress" hidden=1></progress>  
+    </div>
+    <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()"></canvas>
+    <hr/>
+    <div class="emscripten">
+		<input type="button" value="fullscreen" onclick="Module.requestFullScreen()">
+		<input type="button" value="Pause" onclick="Module['pauseMainLoop']();">
+		<input type="button" value="Resume" onclick="Module['resumeMainLoop']();">
+		<input type="button" value="Quit" onclick="__exit(0)">
+	</div>
+    <hr/>
+    <textarea class="emscripten" id="output" rows="8"></textarea>
+    <hr>
+    <script type='text/javascript'>
+	 var tstart = Date.now();
+ 
+      // connect to canvas
+      var Module = {
+        preRun: [],
+        postRun: [],
+		noImageDecoding: true,
+		noAudioDecoding: true,
+        arguments: [%UE4CMDLINE%],
+        print: (function() {
+          var element = document.getElementById('output');
+          element.value = ''; // clear browser cache
+          return function(text) {
+				element.value += text + "\n";
+				element.scrollTop = 99999; // focus on bottom
+		  };
+        })(),
+        printErr: function(text) {
+          if (0) { // XXX disabled for safety typeof dump == 'function') {
+            dump(text + '\n'); // fast, straight to the real console
+          } else {
+            console.log(text);
+          }
+        },
+        canvas: document.getElementById('canvas'),
+        setStatus: function(text) {
+          if (Module.setStatus.interval) clearInterval(Module.setStatus.interval);
+          var m = text.match(/([^(]+)\((\d+(\.\d+)?)\/(\d+)\)/);
+          var statusElement = document.getElementById('status');
+          var progressElement = document.getElementById('progress');
+          if (m) {
+            text = m[1];
+            progressElement.value = parseInt(m[2])*100;
+            progressElement.max = parseInt(m[4])*100;
+            progressElement.hidden = false;
+          } else {
+            progressElement.value = null;
+            progressElement.max = null;
+            progressElement.hidden = true;
+          }
+          statusElement.innerHTML = text;
+        },
+        totalDependencies: 0,
+        monitorRunDependencies: function(left) {
+          this.totalDependencies = Math.max(this.totalDependencies, left);
+          Module.setStatus(left ? 'Preparing... (' + (this.totalDependencies-left) + '/' + this.totalDependencies + ')' : 'All downloads complete.');
+        }
+      };
+      Module.setStatus('Downloading...');
+    </script>
+	<script type="text/javascript">
+      var tmid = Date.now();
+    </script>
+	<script src="%GAME%.data.js"></script>
+	<script async src="%CONFIG%.js"></script>
+	<script type="text/javascript">
+    var tend = Date.now();
+      console.log("Script load time: Data[js]: " + (tmid-tstart).toFixed(2) + "ms, code[js]: " + (tend-tmid).toFixed(2));
+    </script>
+  </body>
+</html>

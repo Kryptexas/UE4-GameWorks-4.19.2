@@ -1,0 +1,43 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
+
+#include "Common.usf"
+
+
+sampler2D ElementTexture;
+uint DrawEffects;
+
+struct VertexOut
+{
+	float4 Position : POSITION;
+	float4 Color : COLOR0;
+	float4 TextureCoordinates : TEXCOORD0;
+	float4 ClipCoords : TEXCOORD1;
+	float2 SSPosition : TEXCOORD2;
+};
+
+float4 Main( VertexOut VIn ) : COLOR0
+{
+	
+	// Clip pixels which are outside of the clipping rect
+	clip( float4( VIn.SSPosition.x - VIn.ClipCoords.x, VIn.ClipCoords.z - VIn.SSPosition.x, VIn.SSPosition.y - VIn.ClipCoords.y, VIn.ClipCoords.w - VIn.SSPosition.y ) );
+
+
+	float4 OutColor = VIn.Color;
+	OutColor *= tex2D(ElementTexture, VIn.TextureCoordinates.xy*VIn.TextureCoordinates.zw);
+
+	if( DrawEffects != 0 )
+	{
+		//desaturate
+		float3 LumCoeffs = float3( 0.3, 0.59, .11 );
+		float Lum = dot( LumCoeffs, OutColor.rgb );
+		OutColor.rgb = lerp( OutColor.rgb, float3(Lum,Lum,Lum), .8 );
+	
+		float3 Grayish = {.4, .4, .4};
+	
+		OutColor.rgb = lerp( OutColor.rgb, Grayish, clamp( distance( OutColor.rgb, Grayish ), 0, .8)  );
+	}
+
+	return OutColor;
+}
+

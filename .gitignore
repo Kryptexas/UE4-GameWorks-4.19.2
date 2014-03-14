@@ -1,0 +1,65 @@
+#
+# This file tells Git about engine files that never really belong in source control.  They are usually build products, log 
+# files and intermediate files generated from a compiler or the engine runtime.
+#
+#
+# NOTE:
+#  Paths that start with / match paths relative to the root (where the .gitignore file is)
+#  Paths that end with / will match a folder and all files under it (but not a regular file with no extension)
+#  Use * for wildcards.  Wildcards stop at path separators
+#  Use ** for a wildcard that spans path separators
+#  Paths in this file should use forward slash characters, not back slashes
+#  Use \ to escape special characters like ! and #
+#  Use ! to negate a previous pattern
+# 
+
+
+# Ignore project files in the root
+*.sln
+*.suo
+*.opensdf
+*.sdf
+*.xcodeproj
+
+# Derived data cache is never checked in
+/Engine/DerivedDataCache/**
+
+# Engine intermediates
+/Engine/Intermediate/**
+/Engine/Plugins/**/Intermediate/**
+
+# Ignore binary files...
+/Engine/Binaries/**
+/Engine/Plugins/**/Binaries/**
+
+# ...but Mac Mono binaries will stay, for now.
+!/Engine/Binaries
+!/Engine/Binaries/ThirdParty
+!/Engine/Binaries/ThirdParty/Mono
+!/Engine/Binaries/ThirdParty/Mono/Mac
+!/Engine/Binaries/ThirdParty/Mono/Mac/bin
+!/Engine/Binaries/ThirdParty/Mono/Mac/bin/**
+
+# Intermediate folders created for various C# programs
+/Engine/Source/Programs/**/obj/**
+
+# Saved folders for programs should not be checked in
+/Engine/Programs/**/Saved/**
+
+# Ignore various other dependencies that are never checked in
+/Engine/Content/**
+/Engine/Documentation/**
+/Engine/Extras/**
+
+# We don't want any third party libraries...
+/Engine/Source/ThirdParty/**
+
+# ...except for the build script files, which we'll keep
+!/Engine/Source/ThirdParty/**Build.cs
+
+# Ignore any saved local files
+/Engine/Saved/**
+
+# Ignore template projects
+/Templates/**
+

@@ -1,0 +1,54 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
+/*=============================================================================
+	SkyLightShared.usf
+=============================================================================*/
+
+TextureCube SkyLightCubemap;
+SamplerState SkyLightCubemapSampler;
+
+/** X = max mip, Y = 1 if sky light should be rendered, 0 otherwise. */
+float2 SkyLightParameters;
+
+float3 GetSkyLightReflection(float3 ReflectionVector, float Roughness)
+{
+	float AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(Roughness);
+	float3 Reflection = TextureCubeSampleLevel(SkyLightCubemap, SkyLightCubemapSampler, ReflectionVector, AbsoluteSpecularMip).rgb;
+
+	FLATTEN
+	if (View.ReflectionLightmapMixingMask > 0)
+	{
+		// Sample the lowest resolution mip to get the average color
+		//@todo - put this in a shader constant
+		//@todo - can't normalize sky lighting and reflection capture lighting separately
+		float3 LowFrequencyReflection = TextureCubeSampleLevel(SkyLightCubemap, SkyLightCubemapSampler, ReflectionVector, SkyLightParameters.x).rgb;
+		float LowFrequencyBrightness = Luminance(LowFrequencyReflection);
+		Reflection /= max(LowFrequencyBrightness, .00001f);
+	}
+
+	return Reflection * View.SkyLightColor.rgb;
+}
+
+void GetReflectionSmoothAndRoughColor(FScreenSpaceData ScreenSpaceData, float3 CameraToPixel, out float3 SmoothColor, out float3 RoughColor)
+{
+	FGBufferData InGBufferData = ScreenSpaceData.GBuffer;
+	float NoV = saturate( dot( InGBufferData.WorldNormal, -CameraToPixel ) );
+	float3 Reflectance = EnvBRDF( InGBufferData.SpecularColor, InGBufferData.Roughness, NoV );
+
+	float AO = InGBufferData.GBufferAO * ScreenSpaceData.AmbientOcclusion;
+	float SpecularOcclusion = saturate( Square( NoV + AO ) - 1 + AO );
+	Reflectance *= SpecularOcclusion;
+		
+	// We have high frequency directional data but low frequency spatial data in the envmap.
+	// We have high frequency spatial data but low frequency directional data in the lightmap.
+	// So, we combine the two for the best of both. This is done by removing the low spatial frequencies from the envmap and replacing them with the lightmap data.
+	// This is only done with luma so as to not get odd color shifting. Chroma is chosen based on roughness.
+	// Use lightmap's chroma for rough and envmap's chroma for smooth as that is where the dominant variation is for each.
+	// Note: make sure this matches the lightmap mixing done for translucency (BasePassPixelShader.usf)
+	float MixAlpha = saturate( InGBufferData.Roughness * 4 - 3 );
+	SmoothColor = Reflectance * Luminance( InGBufferData.LowGlossIndirectSpecular ) * ( 1 - MixAlpha );
+	RoughColor = Reflectance * InGBufferData.LowGlossIndirectSpecular * MixAlpha;
+
+	SmoothColor = lerp(Reflectance, SmoothColor, View.ReflectionLightmapMixingMask);
+	RoughColor = lerp(float3(0,0,0), RoughColor, View.ReflectionLightmapMixingMask);
+}

@@ -1,0 +1,27 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
+#include "CoreUObjectPrivate.h"
+#include "ArchiveFindAllRefs.h"
+
+
+FArchiveFindAllRefs::FArchiveFindAllRefs( UObject* Src )
+{
+	// use the optimized RefLink to skip over properties which don't contain object references
+	ArIsObjectReferenceCollector = true;
+
+	ArIgnoreArchetypeRef				= false;
+	ArIgnoreOuterRef					= true;
+	ArIgnoreClassRef					= false;
+
+	GSerializedProperty = NULL;
+	Src->Serialize( *this );
+}
+
+FArchive& FArchiveFindAllRefs::operator<<( class UObject*& Obj )
+{
+	if (Obj)
+	{
+		References.AddUnique(Obj);
+	}
+	return *this;
+}

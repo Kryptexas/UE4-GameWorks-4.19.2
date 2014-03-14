@@ -1,0 +1,12 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
+/*=============================================================================
+	NULLPixelShader.usf: Dummy pixel shader to use instead of SetPixelShader(NULL).
+=============================================================================*/
+
+#include "Common.usf"
+
+float4 Main() : SV_Target0
+{
+	return 0;
+}

@@ -1,0 +1,20 @@
+{
+    "FileVersion" : 3,
+	
+	"FriendlyName" : "Epic Survey",
+	"Version" : 1,
+	"VersionName" : "1.0",
+	"CreatedBy" : "Epic Games, Inc.",
+	"CreatedByURL" : "http://epicgames.com",
+	"EngineVersion" : 1579795,
+	"Description" : "Send your feedback to Epic to improve Unreal Engine.",
+	"Category" : "Editor.Feedback",
+	
+    "Modules" :
+	[
+		{
+			"Name" : "EpicSurvey",
+			"Type" : "Editor"
+		}
+	]
+}
