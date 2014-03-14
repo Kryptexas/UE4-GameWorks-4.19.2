@@ -33,15 +33,15 @@ is made that the code in 'master' is stable or compiles.
 Getting up and running
 ----------------------
 
-1. **Create a folder** on for the code and dependencies.
+1. **Create a folder** on your computer for the code and dependencies.
 
 1. **Download the source** and unzip it into your folder, or [create a fork](https://github.com/EpicGames/UnrealEngine/tree/4.0.1-release)
    and clone it in.  If you clone, don't forget to switch to the correct branch for this release!  (The 'master' branch has unstable code, 
    so you will want to make sure to choose a release branch.)
 
 1. Download the **required dependencies** files for the [latest release](https://github.com/EpicGames/UnrealEngine/releases/tag/4.0.1-release): 
-   [First](https://github.com/EpicGames/UnrealEngine/releases/download/4.0.1-release/Required_1of2.zip), 
-   [Second](https://github.com/EpicGames/UnrealEngine/releases/download/4.0.1-release/Required_2of2.zip).
+   [Required_1of2.zip](https://github.com/EpicGames/UnrealEngine/releases/download/4.0.1-release/Required_1of2.zip), 
+   [Required_2of2.zip](https://github.com/EpicGames/UnrealEngine/releases/download/4.0.1-release/Required_2of2.zip).
 
 1. Unzip the dependencies to the **same folder** that you saved the source.  Be careful to make sure the folders are merged together 
    correctly.  On Mac, we recommend **Alt + dragging** the unzipped files into your source folder, then selecting 'Keep Newer' if prompted.
@@ -93,7 +93,7 @@ on the [releases page](https://github.com/EpicGames/UnrealEngine/releases/tag/4.
 documentation for more details about using older versions of Visual Studio.
 
 You should probably always work with a versioned **release** branch.  The master branch contains unstable and possibly untested code,
-but it should be a great reference for new developments, or for spot merging bug fixes.  Use it fat your own risk.  
+but it should be a great reference for new developments, or for spot merging bug fixes.  Use it at your own risk.  
 Full engine releases tend to lag behind latest development branch due to QA testing, but we wanted to make sure that 
 you have access to the very latest stuff we're doing.
 
