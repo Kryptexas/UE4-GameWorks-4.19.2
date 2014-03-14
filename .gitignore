@@ -10,7 +10,7 @@
 #  Use ** for a wildcard that spans path separators
 #  Paths in this file should use forward slash characters, not back slashes
 #  Use \ to escape special characters like ! and #
-#  Use ! to negate a previous pattern
+#  Use ! to negate a previous pattern.  But it doesn't work if the parent sub-folder was masked out already.
 # 
 
 
@@ -50,12 +50,6 @@
 /Engine/Content/**
 /Engine/Documentation/**
 /Engine/Extras/**
-
-# We don't want any third party libraries...
-/Engine/Source/ThirdParty/**
-
-# ...except for the build script files, which we'll keep
-!/Engine/Source/ThirdParty/**Build.cs
 
 # Ignore any saved local files
 /Engine/Saved/**
