@@ -16,7 +16,7 @@ namespace ENavLinkDirection
 }
 
 USTRUCT()
-struct ENGINE_API FNavigationLinkBase
+struct FNavigationLinkBase
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -91,7 +91,7 @@ struct ENGINE_API FNavigationLinkBase
 };
 
 USTRUCT()
-struct ENGINE_API FNavigationLink : public FNavigationLinkBase
+struct FNavigationLink : public FNavigationLinkBase
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -139,7 +139,7 @@ struct ENGINE_API FNavigationLink : public FNavigationLinkBase
 };
 
 USTRUCT()
-struct ENGINE_API FNavigationSegmentLink : public FNavigationLinkBase
+struct FNavigationSegmentLink : public FNavigationLinkBase
 {
 	GENERATED_USTRUCT_BODY()
 

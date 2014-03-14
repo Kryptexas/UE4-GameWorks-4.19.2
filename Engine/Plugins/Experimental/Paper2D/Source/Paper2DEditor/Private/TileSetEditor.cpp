@@ -148,14 +148,14 @@ void STileSetSelectorViewport::ChangeTileSet(UPaperTileSet* InTileSet)
 	TypedViewportClient->TileSetBeingEdited = InTileSet;
 }
 
-FText STileSetSelectorViewport::GetTitleText() const
+FString STileSetSelectorViewport::GetTitleText() const
 {
 	if (UPaperTileSet* TileSet = TileSetPtr.Get())
 	{
-		return FText::FromString(TileSet->GetName());
+		return TileSet->GetName();
 	}
 
-	return LOCTEXT("TileSetSelectorTitle", "Tile Set Selector");
+	return TEXT("Tile Set Selector");
 }
 
 

@@ -458,47 +458,38 @@ namespace UnrealVS
 		/// <param name="Stream">The stream to load the option data from.</param>
 		public void LoadOptions(Stream Stream)
 		{
-			try
+			_BuildJobSetsCollection.Clear();
+
+			using (BinaryReader Reader = new BinaryReader(Stream))
 			{
-				_BuildJobSetsCollection.Clear();
+				int SetCount = Reader.ReadInt32();
 
-				using (BinaryReader Reader = new BinaryReader(Stream))
+				for (int SetIdx = 0; SetIdx < SetCount; SetIdx++)
 				{
-					int SetCount = Reader.ReadInt32();
-
-					for (int SetIdx = 0; SetIdx < SetCount; SetIdx++)
+					BuildJobSet LoadedSet = new BuildJobSet();
+					LoadedSet.Name = Reader.ReadString();
+					int JobCount = Reader.ReadInt32();
+					for (int JobIdx = 0; JobIdx < JobCount; JobIdx++)
 					{
-						BuildJobSet LoadedSet = new BuildJobSet();
-						LoadedSet.Name = Reader.ReadString();
-						int JobCount = Reader.ReadInt32();
-						for (int JobIdx = 0; JobIdx < JobCount; JobIdx++)
+						Utils.SafeProjectReference ProjectRef = new Utils.SafeProjectReference { FullName = Reader.ReadString(), Name = Reader.ReadString() };
+
+						string Config = Reader.ReadString();
+						string Platform = Reader.ReadString();
+						BuildJob.BuildJobType JobType;
+
+						if (Enum.TryParse(Reader.ReadString(), out JobType))
 						{
-							Utils.SafeProjectReference ProjectRef = new Utils.SafeProjectReference { FullName = Reader.ReadString(), Name = Reader.ReadString() };
-
-							string Config = Reader.ReadString();
-							string Platform = Reader.ReadString();
-							BuildJob.BuildJobType JobType;
-
-							if (Enum.TryParse(Reader.ReadString(), out JobType))
-							{
-								LoadedSet.BuildJobs.Add(new BuildJob(ProjectRef, Config, Platform, JobType));
-							}
+							LoadedSet.BuildJobs.Add(new BuildJob(ProjectRef, Config, Platform, JobType));
 						}
-						_BuildJobSetsCollection.Add(LoadedSet);
 					}
-				}
-
-				EnsureDefaultBuildJobSet();
-				if (SetCombo.SelectedItem == null)
-				{
-					SetCombo.SelectedItem = _BuildJobSetsCollection[0];
+					_BuildJobSetsCollection.Add(LoadedSet);
 				}
 			}
-			catch (Exception ex)
+
+			EnsureDefaultBuildJobSet();
+			if (SetCombo.SelectedItem == null)
 			{
-				Exception AppEx = new ApplicationException("BatchBuilder failed to load options from .suo", ex);
-				Logging.WriteLine(AppEx.ToString());
-				throw AppEx;
+				SetCombo.SelectedItem = _BuildJobSetsCollection[0];
 			}
 		}
 
@@ -508,31 +499,22 @@ namespace UnrealVS
 		/// <param name="Stream">The stream to save the option data to.</param>
 		public void SaveOptions(Stream Stream)
 		{
-			try
+			using (BinaryWriter Writer = new BinaryWriter(Stream))
 			{
-				using (BinaryWriter Writer = new BinaryWriter(Stream))
+				Writer.Write(_BuildJobSetsCollection.Count);
+				foreach (var Set in _BuildJobSetsCollection)
 				{
-					Writer.Write(_BuildJobSetsCollection.Count);
-					foreach (var Set in _BuildJobSetsCollection)
+					Writer.Write(Set.Name);
+					Writer.Write(Set.BuildJobs.Count);
+					foreach (var Job in Set.BuildJobs)
 					{
-						Writer.Write(Set.Name);
-						Writer.Write(Set.BuildJobs.Count);
-						foreach (var Job in Set.BuildJobs)
-						{
-							Writer.Write(Job.Project.FullName);
-							Writer.Write(Job.Project.Name);
-							Writer.Write(Job.Config);
-							Writer.Write(Job.Platform);
-							Writer.Write(Enum.GetName(typeof(BuildJob.BuildJobType), Job.JobType) ?? "INVALIDJOBTYPE");
-						}
+						Writer.Write(Job.Project.FullName);
+						Writer.Write(Job.Project.Name);
+						Writer.Write(Job.Config);
+						Writer.Write(Job.Platform);
+						Writer.Write(Enum.GetName(typeof(BuildJob.BuildJobType), Job.JobType) ?? "INVALIDJOBTYPE");
 					}
 				}
-			}
-			catch (Exception ex)
-			{
-				Exception AppEx = new ApplicationException("BatchBuilder failed to save options to .suo", ex);
-				Logging.WriteLine(AppEx.ToString());
-				throw AppEx;
 			}
 		}
 

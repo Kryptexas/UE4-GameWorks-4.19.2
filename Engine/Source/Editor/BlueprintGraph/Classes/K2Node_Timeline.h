@@ -29,6 +29,7 @@ class UK2Node_Timeline : public UK2Node
 	UPROPERTY(Transient)
 	uint32 bReplicated:1;
 
+#if WITH_EDITOR
 	// Begin UEdGraphNode interface.
 	virtual void AllocateDefaultPins() OVERRIDE;
 	virtual void DestroyNode() OVERRIDE;
@@ -92,5 +93,7 @@ class UK2Node_Timeline : public UK2Node
 
 private:
 	void ExpandForPin(UEdGraphPin* TimelinePin, const FName PropertyName, FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph);
+
+#endif
 };
 

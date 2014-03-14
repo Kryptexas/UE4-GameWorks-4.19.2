@@ -59,9 +59,6 @@ public:
 	/** Gets the current projects source file count */
 	virtual int32 GetProjectCodeFileCount();
 
-	/** Update code resource files */
-	virtual bool UpdateCodeResourceFiles(TArray<FString>& OutCreatedFiles, FText& OutFailReason);
-
 private:
 	FAddCodeToProjectDialogOpenedEvent AddCodeToProjectDialogOpenedEvent;
 

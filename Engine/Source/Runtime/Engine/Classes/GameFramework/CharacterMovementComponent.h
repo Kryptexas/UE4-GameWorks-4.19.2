@@ -266,7 +266,7 @@ public:
 	uint32 bForceMaxAccel:1;    
 
 	/** When there is no Controller, Walking Physics abort and force a velocity and acceleration of 0. Set this to true to override. */
-	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, AdvancedDisplay)
+	UPROPERTY()
 	uint32 bRunPhysicsWithNoController:1;
 
 	/**
@@ -607,9 +607,6 @@ public:
 	/** Make movement impossible (sets movement mode to MOVE_None). */
 	virtual void DisableMovement();
 
-	/** Return true if we have a valid CharacterOwner and UpdatedComponent. */
-	virtual bool HasValidData() const;
-
 	/** Update Velocity and Acceleration to air control in the desired Direction for AIControlled Pawn 
 		@PARAM Direction is the desired direction of movement
 		@Param ZDiff is the height difference between the destination and the Pawn's current position */
@@ -632,20 +629,14 @@ public:
 	/** Update controller's view rotation as pawn's base rotates */
 	virtual void UpdateBasedRotation(FRotator &FinalRotation, const FRotator& ReducedRotation);
 
-	/** Update OldBaseLocation and OldBaseRotation if there is a valid movement base. */
-	virtual void SaveBaseLocation();
-
 	/** changes physics based on MovementMode */
 	virtual void StartNewPhysics(float deltaTime, int32 Iterations);
 	
 	/** Perform jump. Note that you should usually trigger a jump through Character::Jump() instead. */
 	virtual bool DoJump();
 
-	/** Queue a pending launch with velocity LaunchVel. */
+	/** Launch player with LaunchVel. */
 	virtual void Launch(FVector const& LaunchVel);
-
-	/** Handle a pending launch during an update. Returns true if the launch was triggered. */
-	virtual bool HandlePendingLaunch();
 
 	/**
 	 * If we have a movement base, get the velocity that should be imparted by that base, usually when jumping off of it.
@@ -1151,19 +1142,18 @@ protected:
 	virtual bool ClientUpdatePositionAfterServerUpdate();
 
 	/** Call the appropriate replicated servermove() function to send a client player move to the server. */
-	virtual void CallServerMove(const class FSavedMove_Character* NewMove, const class FSavedMove_Character* OldMove);
+	virtual void CallServerMove(class FSavedMove_Character* NewMove, const FVector& ClientLoc, uint8 ClientRoll, int32 View, class FSavedMove_Character* OldMove);
 	
-	/** Have the server check if the client is outside an error tolerance, and set a client adjustment if so. ClientLoc will be a relative location if MovementBaseUtility::UseRelativePosition(ClientMovementBase) is true. */
-	void ServerMoveHandleClientError(float TimeStamp, float DeltaTime, const FVector& Accel, const FVector& ClientLoc, class UPrimitiveComponent* ClientMovementBase);
+	/** Have the server check if the client is outside an error tolerance, and set a client adjustment if so. */
+	void ServerMoveHandleClientError(float TimeStamp, float DeltaTime, const FVector& Accel, const FVector& ClientLoc);
 
 	/* Process a move at the given time stamp, given the compressed flags representing various events that occurred (ie jump). */
 	virtual void MoveAutonomous( float ClientTimeStamp, float DeltaTime, uint8 CompressedFlags, const FVector& NewAccel);
 
-public:
-
-	/** React to instantaneous change in position. Invalidates cached floor and base information, recomputing it if possible, and determines a new movement mode. */
+	/** Update character movement mode after a client adjustment. */
 	virtual void UpdateMovementModeFromAdjustment();
 
+public:
 	/** Minimum time between client TimeStamp resets.
 	 !! This has to be large enough so that we don't confuse the server if the client can stall or timeout.
 	 We do this as we use floats for TimeStamps, and server derives DeltaTime from two TimeStamps. 
@@ -1179,8 +1169,8 @@ public:
 	bool VerifyClientTimeStamp(float TimeStamp, FNetworkPredictionData_Server_Character & ServerData);
 
 	// Callbacks for RPCs on Character
-	virtual void ServerMove_Implementation(float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 CompressedMoveFlags, uint8 ClientRoll, uint32 View, class UPrimitiveComponent* ClientMovementBase);
-	virtual void ServerMoveDual_Implementation(float TimeStamp0, FVector_NetQuantize100 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, class UPrimitiveComponent* ClientMovementBase);
+	virtual void ServerMove_Implementation(float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 CompressedMoveFlags, uint8 ClientRoll, uint32 View);
+	virtual void ServerMoveDual_Implementation(float TimeStamp0, FVector_NetQuantize100 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View);
 	virtual void ServerMoveOld_Implementation(float OldTimeStamp, FVector_NetQuantize100 OldAccel, uint8 OldMoveFlags);
 	virtual void ClientAckGoodMove_Implementation(float TimeStamp);
 	virtual void ClientAdjustPosition_Implementation(float TimeStamp, FVector NewLoc, FVector NewVel, class UPrimitiveComponent* NewBase, bool bHasBase, bool bBaseRelativePosition);
@@ -1192,10 +1182,6 @@ public:
 	/** Root Motion movement params */
 	UPROPERTY(Transient)
 	FRootMotionMovementParams RootMotionParams;
-
-	/** True when SimulatedProxies are simulating RootMotion */
-	UPROPERTY(Transient)
-	bool bWasSimulatingRootMotion;
 
 	/** @return true if we have Root Motion to use in PerformMovement() physics. 
 		Not valid outside of the scope of that function. Since RootMotion is extracted and used in it. */
@@ -1252,32 +1238,25 @@ public:
 	uint32 bWantsToCrouch:1;
 	uint32 bForceMaxAccel:1;
 
-	/** If true, can't combine this move with another move. */
-	uint32 bForceNoCombine:1;
-
 	/** If true this move is using an old TimeStamp, before a reset occurred. */
-	uint32 bOldTimeStampBeforeReset:1;
+	bool bOldTimeStampBeforeReset;
 
 	float TimeStamp;    // Time of this move.
 	float DeltaTime;    // amount of time for this move
 	float CustomTimeDilation;
 
-	// Information at the start of the move
 	FVector StartLocation;
 	FVector StartRelativeLocation;
 	FVector StartVelocity;
 	FFindFloorResult StartFloor;
 	FRotator StartRotation;
 	FRotator StartControlRotation;
-
-	// Information after the move has been performed
 	FVector SavedLocation;
 	FRotator SavedRotation;
 	FVector SavedVelocity;
 	FVector SavedRelativeLocation;
-	FRotator SavedControlRotation;
-
 	FVector Acceleration;
+	FRotator ControlRotation;
 
 	// Cached to speed up iteration over IsImportantMove().
 	FVector AccelNormal;
@@ -1298,35 +1277,32 @@ public:
 	/** Clear saved move properties, so it can be re-used. */
 	virtual void Clear();
 
-	/** Called to set up this saved move (when initially created) to make a predictive correction. */
+	/** Called to set up this saved move to make a predictive correction. */
 	virtual void SetMoveFor(class ACharacter* C, float DeltaTime, FVector const& NewAccel, class FNetworkPredictionData_Client_Character & ClientData);
 
 	/** Set the properties describing the position, etc. of the moved pawn at the start of the move. */
 	virtual void SetInitialPosition(class ACharacter* C);
 
 	/** @Return true if this move is an "important" move that should be sent again if not acked by the server */
-	virtual bool IsImportantMove(const FSavedMovePtr& LastAckedMove) const;
+	virtual bool IsImportantMove(const FSavedMovePtr& LastAckedMove);
 	
-	/** Returns starting position of move, either absolute StartLocation, or StartRelativeLocation offset from MovementBase. */
-	virtual FVector GetStartLocation(const class UPrimitiveComponent* MovementBase) const;
+	/** Returns starting position of move, either absolute StartLocation, or StartRelativeLocation offset from StartBase. */
+	virtual FVector GetStartLocation();
 
-	enum EPostUpdateMode
-	{
-		PostUpdate_Record,		// Record a move after having run the simulation
-		PostUpdate_Replay,		// Update after replaying a move for a client correction
-	};
-
-	/** Set the properties describing the final position, etc. of the moved pawn. */
-	virtual void PostUpdate(class ACharacter* C, EPostUpdateMode PostUpdateMode);
+	/** Set the properties describing the final position, etc. of the moved pawn */
+	virtual void PostUpdate(class ACharacter* C);
 	
 	/** @Return true if this move can be combined with NewMove for replication without changing any behavior */
-	virtual bool CanCombineWith(const FSavedMovePtr& NewMove, class ACharacter* InPawn, float MaxDelta) const;
+	virtual bool CanCombineWith(const FSavedMovePtr& NewMove, class ACharacter* InPawn, float MaxDelta);
 	
 	/** Called before ClientUpdatePosition uses this SavedMove to make a predictive correction	 */
 	virtual void PrepMoveFor( class ACharacter* C );
 
+	/** Called after ClientUpdatePosition used this SavedMove to make a predictive correction	 */
+	virtual void ResetMoveFor( class ACharacter* C );
+
 	/** @returns a byte containing encoded special movement information (jumping, crouching, etc.)	 */
-	virtual uint8 GetCompressedFlags() const;
+	virtual uint8 GetCompressedFlags();
 
 	// Bit masks used by GetCompressedFlags() to encode movement information.
 	enum CompressedFlags
@@ -1389,7 +1365,7 @@ public:
 	FSavedMovePtr LastAckedMove;			// Last acknowledged sent move.
 
 	int32 MaxFreeMoveCount;					// Limit on size of free list
-	int32 MaxSavedMoveCount;				// Limit on the size of the saved move buffer
+	int32 MaxSavedMoveCount;					// Limit on the size of the saved move buffer
 
 	uint32 bUpdatePosition:1; // when true, update the position (via ClientUpdatePosition)
 	

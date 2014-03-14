@@ -355,8 +355,8 @@ void FOnlineAsyncTaskSteamCreateServer::Tick()
 	}
 
 	// Wait for the connection and policy response callbacks
-	FOnlineSessionSteamPtr SessionInt = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
-	if (SessionInt->bSteamworksGameServerConnected && SessionInt->GameServerSteamId->IsValid() && SessionInt->bPolicyResponseReceived)
+	FOnlineSessionSteamPtr SessionInterface = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
+	if (SessionInterface->bSteamworksGameServerConnected && SessionInterface->GameServerSteamId->IsValid() && SessionInterface->bPolicyResponseReceived)
 	{
 		bIsComplete = true;
 		bWasSuccessful = true;
@@ -378,14 +378,14 @@ void FOnlineAsyncTaskSteamCreateServer::Tick()
  */
 void FOnlineAsyncTaskSteamCreateServer::Finalize() 	
 {
-	FOnlineSessionSteamPtr SessionInt = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
+	FOnlineSessionSteamPtr SessionInterface = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
 	if (bWasSuccessful)
 	{
-		FNamedOnlineSession* Session = SessionInt->GetNamedSession(SessionName);
+		FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
 		if (Session)
 		{
 			// Setup the host session info
-			FOnlineSessionInfoSteam* NewSessionInfo = new FOnlineSessionInfoSteam(ESteamSession::AdvertisedSessionHost, *SessionInt->GameServerSteamId);
+			FOnlineSessionInfoSteam* NewSessionInfo = new FOnlineSessionInfoSteam(ESteamSession::AdvertisedSessionHost, *SessionInterface->GameServerSteamId);
 			NewSessionInfo->Init();
 
 			ISteamGameServer* SteamGameServerPtr = SteamGameServer();
@@ -404,7 +404,7 @@ void FOnlineAsyncTaskSteamCreateServer::Finalize()
 			{
 				check(Session->SessionSettings.bIsDedicated);
 				// Associate the dedicated server anonymous login as the owning user
-				Session->OwningUserId = SessionInt->GameServerSteamId;
+				Session->OwningUserId = SessionInterface->GameServerSteamId;
 				Session->OwningUserName = Session->OwningUserId->ToString();
 			}
 			
@@ -415,7 +415,7 @@ void FOnlineAsyncTaskSteamCreateServer::Finalize()
 
 			UpdatePublishedSettings(Session);
 
-			SessionInt->RegisterLocalPlayers(Session);
+			SessionInterface->RegisterLocalPlayers(Session);
 
 			if (SteamUser())
 			{
@@ -436,7 +436,7 @@ void FOnlineAsyncTaskSteamCreateServer::Finalize()
 	}
 	else
 	{
-		SessionInt->RemoveNamedSession(SessionName);
+		SessionInterface->RemoveNamedSession(SessionName);
 	}
 }
 
@@ -445,10 +445,10 @@ void FOnlineAsyncTaskSteamCreateServer::Finalize()
  */
 void FOnlineAsyncTaskSteamCreateServer::TriggerDelegates() 
 {
-	IOnlineSessionPtr SessionInt = Subsystem->GetSessionInterface();
-	if (SessionInt.IsValid())
+	IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
+	if (SessionInterface.IsValid())
 	{
-		SessionInt->TriggerOnCreateSessionCompleteDelegates(SessionName, bWasSuccessful);
+		SessionInterface->TriggerOnCreateSessionCompleteDelegates(SessionName, bWasSuccessful);
 	}
 }
 
@@ -468,8 +468,8 @@ FString FOnlineAsyncTaskSteamUpdateServer::ToString() const
  */
 void FOnlineAsyncTaskSteamUpdateServer::Tick()
 {
-	FOnlineSessionSteamPtr SessionInt = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
-	FNamedOnlineSession* Session = SessionInt->GetNamedSession(SessionName);
+	FOnlineSessionSteamPtr SessionInterface = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
+	FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
 	if (Session)
 	{
 		bool bUsesPresence = Session->SessionSettings.bUsesPresence;
@@ -502,10 +502,10 @@ void FOnlineAsyncTaskSteamUpdateServer::Tick()
  */
 void FOnlineAsyncTaskSteamUpdateServer::TriggerDelegates() 
 {
-	IOnlineSessionPtr SessionInt = Subsystem->GetSessionInterface();
-	if (SessionInt.IsValid())
+	IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
+	if (SessionInterface.IsValid())
 	{
-		SessionInt->TriggerOnUpdateSessionCompleteDelegates(SessionName, bWasSuccessful);
+		SessionInterface->TriggerOnUpdateSessionCompleteDelegates(SessionName, bWasSuccessful);
 	}
 }
 
@@ -533,8 +533,8 @@ void FOnlineAsyncTaskSteamLogoffServer::Tick()
 	}
 
 	// Wait for the disconnect
-	FOnlineSessionSteamPtr SessionInt = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
-	if (!SessionInt->bSteamworksGameServerConnected && !SessionInt->GameServerSteamId.IsValid())
+	FOnlineSessionSteamPtr SessionInterface = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
+	if (!SessionInterface->bSteamworksGameServerConnected && !SessionInterface->GameServerSteamId.IsValid())
 	{
 		bIsComplete = true;
 		bWasSuccessful = true;
@@ -544,8 +544,8 @@ void FOnlineAsyncTaskSteamLogoffServer::Tick()
 		// Fallback timeout in case we don't hear from Steam
 		if (GetElapsedTime() >= ASYNC_TASK_TIMEOUT)
 		{
-			SessionInt->bSteamworksGameServerConnected = false;
-			SessionInt->GameServerSteamId = NULL;
+			SessionInterface->bSteamworksGameServerConnected = false;
+			SessionInterface->GameServerSteamId = NULL;
 			bIsComplete = true;
 			bWasSuccessful = false;
 		}
@@ -705,8 +705,8 @@ void FPendingSearchResultSteam::RulesRefreshComplete()
 	ParentQuery->ElapsedTime = 0.0f;
 
 	// Only append this data if there is an existing search (NULL CurrentSessionSearch implies no active search query)
-	FOnlineSessionSteamPtr SessionInt = StaticCastSharedPtr<FOnlineSessionSteam>(ParentQuery->Subsystem->GetSessionInterface());
-	if (SessionInt.IsValid() && SessionInt->CurrentSessionSearch.IsValid() && SessionInt->CurrentSessionSearch->SearchState == EOnlineAsyncTaskState::InProgress)
+	FOnlineSessionSteamPtr Sessions = StaticCastSharedPtr<FOnlineSessionSteam>(ParentQuery->Subsystem->GetSessionInterface());
+	if (Sessions.IsValid() && Sessions->CurrentSessionSearch.IsValid() && Sessions->CurrentSessionSearch->SearchState == EOnlineAsyncTaskState::InProgress)
 	{
 		if (FillSessionFromServerRules())
 		{
@@ -1121,7 +1121,7 @@ void FOnlineAsyncTaskSteamFindServerBase::RefreshComplete(HServerListRequest Req
  */
 void FOnlineAsyncTaskSteamFindServerBase::Finalize()
 {
-	FOnlineSessionSteamPtr SessionInt = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
+	FOnlineSessionSteamPtr SessionInterface = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
 
 	SearchSettings->SearchState = bWasSuccessful ? EOnlineAsyncTaskState::Done : EOnlineAsyncTaskState::Failed;
 	if (bWasSuccessful)
@@ -1129,9 +1129,9 @@ void FOnlineAsyncTaskSteamFindServerBase::Finalize()
 		SearchSettings->SortSearchResults();
 	}
 
-	if (SessionInt->CurrentSessionSearch.IsValid() && SearchSettings == SessionInt->CurrentSessionSearch)
+	if (SessionInterface->CurrentSessionSearch.IsValid() && SearchSettings == SessionInterface->CurrentSessionSearch)
 	{
-		SessionInt->CurrentSessionSearch = NULL;
+		SessionInterface->CurrentSessionSearch = NULL;
 	}
 }
 
@@ -1187,13 +1187,13 @@ void FOnlineAsyncTaskSteamFindServers::TriggerDelegates()
  */
 void FOnlineAsyncEventSteamInviteAccepted::Finalize()
 {
-	FOnlineSessionSteamPtr SessionInt = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
-	if (SessionInt.IsValid() && !SessionInt->CurrentSessionSearch.IsValid())
+	FOnlineSessionSteamPtr Sessions = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
+	if (Sessions.IsValid() && !Sessions->CurrentSessionSearch.IsValid())
 	{
 		// Create a search settings object
 		TSharedRef<FOnlineSessionSearch> SearchSettings = MakeShareable(new FOnlineSessionSearch());
-		SessionInt->CurrentSessionSearch = SearchSettings;
-		SessionInt->CurrentSessionSearch->SearchState = EOnlineAsyncTaskState::InProgress;
+		Sessions->CurrentSessionSearch = SearchSettings;
+		Sessions->CurrentSessionSearch->SearchState = EOnlineAsyncTaskState::InProgress;
 
 		TCHAR ParsedURL[1024];
 		if (!FParse::Value(*ConnectionURL, TEXT("SteamConnectIP="), ParsedURL, ARRAY_COUNT(ParsedURL)))
@@ -1219,8 +1219,8 @@ void FOnlineAsyncEventSteamInviteAccepted::Finalize()
 		IpAddr->SetIp(ParsedURL, bIsValid);
 		if (bIsValid)
 		{
-			SessionInt->CurrentSessionSearch->QuerySettings.Set(FName(SEARCH_STEAM_HOSTIP), IpAddr->ToString(false), EOnlineComparisonOp::Equals);
-			FOnlineAsyncTaskSteamFindServer* NewTask = new FOnlineAsyncTaskSteamFindServer(Subsystem, SearchSettings, LocalUserNum, SessionInt->OnSessionInviteAcceptedDelegates[LocalUserNum]);
+			Sessions->CurrentSessionSearch->QuerySettings.Set(FName(SEARCH_STEAM_HOSTIP), IpAddr->ToString(false), EOnlineComparisonOp::Equals);
+			FOnlineAsyncTaskSteamFindServer* NewTask = new FOnlineAsyncTaskSteamFindServer(Subsystem, SearchSettings, LocalUserNum, Sessions->OnSessionInviteAcceptedDelegates[LocalUserNum]);
 			Subsystem->QueueAsyncTask(NewTask);
 		}
 	}

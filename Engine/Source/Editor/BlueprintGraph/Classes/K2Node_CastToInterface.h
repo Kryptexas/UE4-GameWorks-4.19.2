@@ -10,6 +10,8 @@ class UK2Node_CastToInterface : public UK2Node_DynamicCast
 	GENERATED_UCLASS_BODY()
 
 
+#if WITH_EDITOR
+	
 	// UEdGraphNode interface
 	//virtual void AllocateDefaultPins() OVERRIDE;
 	//virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
@@ -26,5 +28,6 @@ class UK2Node_CastToInterface : public UK2Node_DynamicCast
 	//BLUEPRINTGRAPH_API UEdGraphPin* GetInvalidInterfacePin() const;
 	/** Get the interface result pin */
 	//BLUEPRINTGRAPH_API UEdGraphPin* GetInterfaceResultPin() const;
+#endif
 };
 

@@ -99,7 +99,8 @@ void FIOSPlatformTextField::ShowKeyboard(bool bShow, TSharedPtr<SVirtualKeyboard
 	if(buttonIndex == 1)
 	{
 		UITextField* TextField = [alertView textFieldAtIndex:0];
-		TextWidget->SetText(FText::FromString(TextField.text));
+		FString Text = ANSI_TO_TCHAR([TextField.text cStringUsingEncoding: NSASCIIStringEncoding]);
+		TextWidget->SetText(FText::FromString(Text));
 	}
 }
 

@@ -119,7 +119,7 @@ public:
 						.VAlign(VAlign_Center)
 						[
 							SNew(STextBlock)
-							.Text(LOCTEXT("MeshPaint_ImportLODLabel", "LOD"))
+							.Text(LOCTEXT("MeshPaint_ImportUVLabel", "LOD"))
 						]
 						+SHorizontalBox::Slot()
 						.AutoWidth() 
@@ -252,11 +252,8 @@ private:
 		bool bOpened = false;
 		if (DesktopPlatform != NULL)
 		{
-			TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(AsShared());
-			void* ParentWindowHandle = (ParentWindow.IsValid() && ParentWindow->GetNativeWindow().IsValid()) ? ParentWindow->GetNativeWindow()->GetOSWindowHandle() : nullptr;
-
 			bOpened = DesktopPlatform->OpenFileDialog(
-				ParentWindowHandle, 
+				NULL, 
 				TEXT("Select TGA file.."), 
 				TEXT(""), 
 				TEXT(""), 
@@ -1106,13 +1103,10 @@ void SMeshPaint::Construct(const FArguments& InArgs, TSharedRef<FMeshPaintToolKi
 
 	FMargin StandardPadding(0.0f, 4.0f, 0.0f, 4.0f);
 
-	const float BrushRadius = MeshPaintEditMode->GetBrushRadiiDefault();
-
-	float MinBrushSliderRadius, MaxBrushSliderRadius;
+	float MinBrushSliderRadius, MaxBrushSliderRadius, MinBrushRadius, MaxBrushRadius;
 	MeshPaintEditMode->GetBrushRadiiSliderLimits(MinBrushSliderRadius, MaxBrushSliderRadius);
-
-	float MinBrushRadius, MaxBrushRadius;
 	MeshPaintEditMode->GetBrushRadiiLimits(MinBrushRadius, MaxBrushRadius);
+	FMeshPaintSettings::Get().BrushRadius = (int32)FMath::Clamp(FMeshPaintSettings::Get().BrushRadius, MinBrushRadius, MaxBrushRadius);
 
 	ChildSlot
 	[
@@ -2060,7 +2054,7 @@ EVisibility SMeshPaint::GetImportVertexColorsVisibility() const
 
 TOptional<float> SMeshPaint::GetBrushRadius() const
 {
-	return MeshPaintEditMode->GetBrushRadiiDefault();
+	return FMeshPaintSettings::Get().BrushRadius;
 }
 
 TOptional<float> SMeshPaint::GetBrushStrength() const
@@ -2131,7 +2125,7 @@ void SMeshPaint::OnVertexPaintColorSetChanged(EMeshPaintColorSet::Type InPaintCo
 
 void SMeshPaint::OnBrushRadiusChanged(float InBrushRadius)
 {
-	MeshPaintEditMode->SetBrushRadiiDefault( InBrushRadius );
+	FMeshPaintSettings::Get().BrushRadius = InBrushRadius;
 }
 
 void SMeshPaint::OnBrushStrengthChanged(float InBrushStrength)

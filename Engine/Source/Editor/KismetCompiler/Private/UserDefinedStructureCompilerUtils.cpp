@@ -31,8 +31,9 @@ struct FUserDefinedStructureCompilerInner
 			DuplicatedStruct->SetFlags(RF_Transient);
 			DuplicatedStruct->AddToRoot();
 
-			for (auto StructProperty : TObjectRange<UStructProperty>(RF_ClassDefaultObject | RF_PendingKill))
+			for (TObjectIterator<UStructProperty> PropertyIter(RF_ClassDefaultObject|RF_PendingKill); PropertyIter; ++PropertyIter)
 			{
+				UStructProperty* StructProperty = *PropertyIter;
 				if (StructProperty && (StructureToReinstance == StructProperty->Struct))
 				{
 					UBlueprint* FoundBlueprint = NULL;

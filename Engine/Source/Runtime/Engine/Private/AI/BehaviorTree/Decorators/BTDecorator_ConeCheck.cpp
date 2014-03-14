@@ -11,7 +11,6 @@ UBTDecorator_ConeCheck::UBTDecorator_ConeCheck(const class FPostConstructInitial
 	ConeOrigin.AddVectorFilter(this);
 	ConeDirection.AddObjectFilter(this, AActor::StaticClass());
 	ConeDirection.AddVectorFilter(this);
-	ConeDirection.AllowNoneAsValue(true);
 	Observed.AddObjectFilter(this, AActor::StaticClass());
 	Observed.AddVectorFilter(this);
 
@@ -40,23 +39,12 @@ bool UBTDecorator_ConeCheck::CalculateDirection(const UBlackboardComponent* Blac
 {
 	FVector PointA = FVector::ZeroVector;
 	FVector PointB = FVector::ZeroVector;
-	FRotator Rotation = FRotator::ZeroRotator;
 
-	if (BlackboardComp)
+	if (BlackboardComp && BlackboardComp->GetLocationFromEntry(Origin.SelectedKeyID, PointA)
+		&& BlackboardComp->GetLocationFromEntry(End.SelectedKeyID, PointB))
 	{
-		if (End.IsNone())
-		{
-			if (BlackboardComp->GetRotationFromEntry(Origin.GetSelectedKeyID(), Rotation))
-			{
-				Direction = Rotation.Vector();
-				return true;
-			}
-		}
-		else if (BlackboardComp->GetLocationFromEntry(Origin.GetSelectedKeyID(), PointA) && BlackboardComp->GetLocationFromEntry(End.GetSelectedKeyID(), PointB))
-		{
-			Direction = (PointB - PointA).SafeNormal();
-			return true;
-		}
+		Direction = (PointB - PointA).SafeNormal();
+		return true;
 	}
 
 	return false;
@@ -67,11 +55,11 @@ FORCEINLINE bool UBTDecorator_ConeCheck::CalcConditionImpl(UBehaviorTreeComponen
 	const UBlackboardComponent* BBComponent = OwnerComp->GetBlackboardComponent();
 
 	FVector ConeDir;
-	FVector DirectionToObserve;
+	FVector DirectionToObserved;
 
-	return CalculateDirection(BBComponent, ConeOrigin, Observed, DirectionToObserve)
+	return CalculateDirection(BBComponent, ConeOrigin, Observed, DirectionToObserved)
 		&& CalculateDirection(BBComponent, ConeOrigin, ConeDirection, ConeDir)
-		&& ConeDir.CosineAngle2D(DirectionToObserve) > ConeHalfAngleDot;
+		&& ConeDir.CosineAngle2D(DirectionToObserved) > ConeHalfAngleDot;
 }
 
 bool UBTDecorator_ConeCheck::CalculateRawConditionValue(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
@@ -79,10 +67,15 @@ bool UBTDecorator_ConeCheck::CalculateRawConditionValue(class UBehaviorTreeCompo
 	return CalcConditionImpl(OwnerComp, NodeMemory);
 }
 
-void UBTDecorator_ConeCheck::OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+void UBTDecorator_ConeCheck::OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
 {
 	TNodeInstanceMemory* DecoratorMemory = (TNodeInstanceMemory*)NodeMemory;
 	DecoratorMemory->bLastRawResult = CalcConditionImpl(OwnerComp, NodeMemory);
+}
+
+void UBTDecorator_ConeCheck::OnCeaseRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+{
+
 }
 
 void UBTDecorator_ConeCheck::OnBlackboardChange(const class UBlackboardComponent* Blackboard, uint8 ChangedKeyID)
@@ -90,7 +83,7 @@ void UBTDecorator_ConeCheck::OnBlackboardChange(const class UBlackboardComponent
 	check(false);
 }
 
-void UBTDecorator_ConeCheck::TickNode(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds)
+void UBTDecorator_ConeCheck::TickNode(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) const
 {
 	const TNodeInstanceMemory* DecoratorMemory = (TNodeInstanceMemory*)NodeMemory;
 

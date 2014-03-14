@@ -77,18 +77,6 @@ void UEnvironmentQueryGraph::UpdateAsset()
 	UEnvQueryManager::NotifyAssetUpdate(Query);
 }
 
-void UEnvironmentQueryGraph::CalculateAllWeights()
-{
-	for (int32 i = 0; i < Nodes.Num(); i++)
-	{
-		UEnvironmentQueryGraphNode_Option* OptionNode = Cast<UEnvironmentQueryGraphNode_Option>(Nodes[i]);
-		if (OptionNode)
-		{
-			OptionNode->CalculateWeights();
-		}
-	}
-}
-
 void UEnvironmentQueryGraph::MarkVersion()
 {
 	GraphVersion = EQSGraphVersion::Latest;

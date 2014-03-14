@@ -18,13 +18,6 @@ FOnlineVoiceSteam::FOnlineVoiceSteam(FOnlineSubsystemSteam* InSteamSubsystem) :
 {
 }
 
-FOnlineVoiceSteam::~FOnlineVoiceSteam()
-{
-	LocalTalkers.Empty();
-	RemoteTalkers.Empty();
-	VoiceEngine = NULL;
-}
-
 bool FOnlineVoiceSteam::Init()
 {
 	bool bSuccess = false;
@@ -55,7 +48,7 @@ bool FOnlineVoiceSteam::Init()
 
 	if (bSuccess && !IsRunningDedicatedServer())
 	{
-		VoiceEngine = MakeShareable(new FVoiceEngineSteam(SteamSubsystem));
+		VoiceEngine = new FVoiceEngineSteam(SteamSubsystem);
 		bSuccess = VoiceEngine->Init(MaxLocalTalkers, MaxRemoteTalkers);
 		LocalTalkers.Init(FLocalTalker(), MaxLocalTalkers);
 	}
@@ -64,11 +57,13 @@ bool FOnlineVoiceSteam::Init()
 
 	if (!bSuccess)
 	{
-		UE_LOG(LogVoice, Warning, TEXT("Failed to initialize Steam voice interface"));
-
 		LocalTalkers.Empty();
 		RemoteTalkers.Empty();
+
+		delete VoiceEngine;
 		VoiceEngine = NULL;
+
+		UE_LOG(LogVoice, Warning, TEXT("Failed to initialize Steam voice interface"));
 	}
 
 	return bSuccess;
@@ -95,7 +90,7 @@ void FOnlineVoiceSteam::Tick(float DeltaTime)
 	if (SessionInt && SessionInt->GetNumSessions() > 0)
 	{
 		// Processing voice data only valid with a voice engine to capture/play
-		if (VoiceEngine.IsValid())
+		if (VoiceEngine)
 		{
 			VoiceEngine->Tick(DeltaTime);
 
@@ -149,7 +144,7 @@ bool FOnlineVoiceSteam::RegisterLocalTalker(uint32 LocalUserNum)
 		// Make local user capable of sending voice data
 		StartNetworkedVoice(LocalUserNum);
 		// Don't register talkers when voice is disabled
-		if (VoiceEngine.IsValid())
+		if (VoiceEngine != NULL)
 		{
 			if (Talker.bIsRegistered == false)
 			{
@@ -206,9 +201,9 @@ bool FOnlineVoiceSteam::UnregisterLocalTalker(uint32 LocalUserNum)
 		// Skip the unregistration if not registered
 		if (Talker.bIsRegistered == true &&
 			// Or when voice is disabled
-			VoiceEngine.IsValid())
+			VoiceEngine != NULL)
 		{
-			if (OnPlayerTalkingStateChangedDelegates.IsBound() && (Talker.bIsTalking || Talker.bWasTalking))
+			if (OnPlayerTalkingStateChangedDelegates.IsBound() && Talker.bIsTalking)
 			{
 				TSharedPtr<FUniqueNetId> UniqueId = IdentityInt->GetUniquePlayerId(LocalUserNum);
 				OnPlayerTalkingStateChangedDelegates.Broadcast(UniqueId.ToSharedRef(), Talker.bIsTalking);
@@ -249,7 +244,7 @@ bool FOnlineVoiceSteam::RegisterRemoteTalker(const FUniqueNetId& UniqueId)
 		// Skip this if the session isn't active
 		if (SessionInt && SessionInt->GetNumSessions() > 0 &&
 			// Or when voice is disabled
-			VoiceEngine.IsValid())
+			VoiceEngine != NULL)
 		{
 			// See if this talker has already been registered or not
 			FRemoteTalker* Talker = FindRemoteTalker(UniqueId);
@@ -290,7 +285,7 @@ bool FOnlineVoiceSteam::UnregisterRemoteTalker(const FUniqueNetId& UniqueId)
 		// Skip this if the session isn't active
 		if (SessionInt && SessionInt->GetNumSessions() > 0 &&
 			// Or when voice is disabled
-			VoiceEngine.IsValid())
+			VoiceEngine != NULL)
 		{
 			// Make sure the talker is valid
 			if (FindRemoteTalker(UniqueId) != NULL)
@@ -302,8 +297,7 @@ bool FOnlineVoiceSteam::UnregisterRemoteTalker(const FUniqueNetId& UniqueId)
 					// Is this the remote talker?
 					if (*Talker.TalkerId == UniqueId)
 					{
-						// Going to remove the talker, so if they were talking recently make sure to indicate they've stopped
-						if (OnPlayerTalkingStateChangedDelegates.IsBound() && (Talker.bIsTalking || Talker.bWasTalking))
+						if (OnPlayerTalkingStateChangedDelegates.IsBound() && Talker.bIsTalking)
 						{
 							OnPlayerTalkingStateChangedDelegates.Broadcast(Talker.TalkerId.ToSharedRef(), false);
 						}
@@ -328,7 +322,7 @@ bool FOnlineVoiceSteam::UnregisterRemoteTalker(const FUniqueNetId& UniqueId)
 void FOnlineVoiceSteam::RemoveAllRemoteTalkers()
 {
 	UE_LOG(LogVoice, Log, TEXT("Removing all remote talkers"));
-	if (VoiceEngine.IsValid())
+	if (VoiceEngine != NULL)
 	{
 		// Work backwards through array removing the talkers
 		for (int32 Index = RemoteTalkers.Num() - 1; Index >= 0; Index--)
@@ -365,17 +359,17 @@ FRemoteTalker* FOnlineVoiceSteam::FindRemoteTalker(const FUniqueNetId& UniqueId)
 
 bool FOnlineVoiceSteam::IsHeadsetPresent(uint32 LocalUserNum) 
 {
-	return VoiceEngine.IsValid() && VoiceEngine->IsHeadsetPresent(LocalUserNum);
+	return VoiceEngine != NULL && VoiceEngine->IsHeadsetPresent(LocalUserNum);
 }
 
 bool FOnlineVoiceSteam::IsLocalPlayerTalking(uint32 LocalUserNum) 
 {
-	return VoiceEngine.IsValid() && VoiceEngine->IsLocalPlayerTalking(LocalUserNum);
+	return VoiceEngine != NULL && VoiceEngine->IsLocalPlayerTalking(LocalUserNum);
 }
 
 bool FOnlineVoiceSteam::IsRemotePlayerTalking(const FUniqueNetId& UniqueId) 
 {
-	return VoiceEngine.IsValid() && VoiceEngine->IsRemotePlayerTalking(UniqueId);
+	return VoiceEngine != NULL && VoiceEngine->IsRemotePlayerTalking(UniqueId);
 }
 
 bool FOnlineVoiceSteam::IsMuted(uint32 LocalUserNum, const FUniqueNetId& UniqueId) const
@@ -389,41 +383,27 @@ bool FOnlineVoiceSteam::IsMuted(uint32 LocalUserNum, const FUniqueNetId& UniqueI
 	return Index != INDEX_NONE;
 }
 
-bool FOnlineVoiceSteam::IsLocallyMuted(const FUniqueNetId& UniqueId) const
-{
-	int32 Index = MuteList.Find((const FUniqueNetIdSteam&)UniqueId);
-	return Index != INDEX_NONE;
-}
-
 bool FOnlineVoiceSteam::MuteRemoteTalker(uint8 LocalUserNum, const FUniqueNetId& PlayerId, bool bIsSystemWide)
 {
 	uint32 Return = E_FAIL;
 	if (LocalUserNum >= 0 && LocalUserNum < MAX_LOCAL_PLAYERS)
 	{
-		if (bIsSystemWide)
+		// Skip this if the session isn't active
+		if (SessionInt && SessionInt->GetNumSessions() > 0 &&
+			// Or if voice is disabled
+			VoiceEngine != NULL)
 		{
-			SystemMuteList.AddUnique((const FUniqueNetIdSteam&)PlayerId);
-			ProcessMuteChangeNotification();
-		}
-		else
-		{
-			// Skip this if the session isn't active
-			if (SessionInt && SessionInt->GetNumSessions() > 0 &&
-				// Or if voice is disabled
-					VoiceEngine.IsValid())
+			// Find the specified talker
+			FRemoteTalker* Talker = FindRemoteTalker(PlayerId);
+			if (Talker != NULL)
 			{
-				// Find the specified talker
-				FRemoteTalker* Talker = FindRemoteTalker(PlayerId);
-				if (Talker != NULL)
-				{
-					MuteList.AddUnique((const FUniqueNetIdSteam&)PlayerId);
-					Return = S_OK;
-					UE_LOG(LogVoice, Log, TEXT("Muting remote talker (%s)"), *PlayerId.ToDebugString());
-				}
-				else
-				{
-					UE_LOG(LogVoice, Warning, TEXT("Unknown remote talker (%s) specified to MuteRemoteTalker()"), *PlayerId.ToDebugString());
-				}
+				MuteList.AddUnique((const FUniqueNetIdSteam&)PlayerId);
+				Return = S_OK;
+				UE_LOG(LogVoice, Log, TEXT("Muting remote talker (%s)"), *PlayerId.ToDebugString());
+			}
+			else
+			{
+				UE_LOG(LogVoice, Warning, TEXT("Unknown remote talker (%s) specified to MuteRemoteTalker()"), *PlayerId.ToDebugString());
 			}
 		}
 	}
@@ -440,36 +420,22 @@ bool FOnlineVoiceSteam::UnmuteRemoteTalker(uint8 LocalUserNum, const FUniqueNetI
 	uint32 Return = E_FAIL;
 	if (LocalUserNum >= 0 && LocalUserNum < MAX_LOCAL_PLAYERS)
 	{
-		if (bIsSystemWide)
+		// Skip this if the session isn't active
+		if (SessionInt && SessionInt->GetNumSessions() > 0 &&
+			// Or if voice is disabled
+			VoiceEngine != NULL)
 		{
-			// Remove them from the mute list
-			SystemMuteList.RemoveSingleSwap((const FUniqueNetIdSteam&)PlayerId);
-			ProcessMuteChangeNotification();
-		}
-		else
-		{
-			// Skip this if the session isn't active
-			if (SessionInt && SessionInt->GetNumSessions() > 0 &&
-				// Or if voice is disabled
-				VoiceEngine.IsValid())
+			// Find the specified talker
+			FRemoteTalker* Talker = FindRemoteTalker(PlayerId);
+			if (Talker != NULL)
 			{
-				// Find the specified talker
-				FRemoteTalker* Talker = FindRemoteTalker(PlayerId);
-				if (Talker != NULL)
-				{
-					// Make sure there isn't a system mute
-					bool bIsMuted = IsMuted(LocalUserNum, PlayerId);
-					if (!bIsMuted)
-					{
-						// Remove them from the mute list
-						MuteList.RemoveSingleSwap((const FUniqueNetIdSteam&)PlayerId);
-						UE_LOG(LogVoice, Log, TEXT("Unmuting remote talker (%s)"), *PlayerId.ToDebugString());
-					}
-				}
-				else
-				{
-					UE_LOG(LogVoice, Warning, TEXT("Unknown remote talker (%s) specified to UnmuteRemoteTalker()"), *PlayerId.ToDebugString());
-				}
+				// Remove them from the mute list
+				MuteList.RemoveSingleSwap((const FUniqueNetIdSteam&)PlayerId);
+				UE_LOG(LogVoice, Log, TEXT("Unmuting remote talker (%s)"), *PlayerId.ToDebugString());
+			}
+			else
+			{
+				UE_LOG(LogVoice, Warning, TEXT("Unknown remote talker (%s) specified to UnmuteRemoteTalker()"), *PlayerId.ToDebugString());
 			}
 		}
 	}
@@ -484,7 +450,7 @@ bool FOnlineVoiceSteam::UnmuteRemoteTalker(uint8 LocalUserNum, const FUniqueNetI
 void FOnlineVoiceSteam::ProcessMuteChangeNotification()
 {
 	// Nothing to update if there isn't an active session
-	if (VoiceEngine.IsValid())
+	if (VoiceEngine != NULL)
 	{
 		if (SessionInt && SessionInt->GetNumSessions() > 0)
 		{
@@ -516,7 +482,7 @@ void FOnlineVoiceSteam::UpdateMuteListForLocalTalker(int32 TalkerIndex, APlayerC
 		FUniqueNetIdRepl UniqueIdRepl(Talker.TalkerId);
 
 		// Is the remote talker on this local player's mute list?
-		if (SystemMuteList.Find((FUniqueNetIdSteam&)*Talker.TalkerId) == INDEX_NONE)
+		if (MuteList.Find((FUniqueNetIdSteam&)*Talker.TalkerId) == INDEX_NONE)
 		{
 			// Unmute on the server
 			PlayerController->ServerUnmutePlayer(UniqueIdRepl);
@@ -603,7 +569,7 @@ void FOnlineVoiceSteam::ProcessTalkingDelegates(float DeltaTime)
 				}
 
 				Talker.bWasTalking = Talker.bIsTalking;
-				UE_LOG(LogVoice, Log, TEXT("Trigger Local %d %sTALKING"), LocalUserNum, Talker.bIsTalking ? TEXT("") : TEXT("NOT"));
+				UE_LOG(LogVoice, Log, TEXT("Trigger %sTALKING"), Talker.bIsTalking ? TEXT("") : TEXT("NOT"));
 			}
 		}
 	}
@@ -632,7 +598,7 @@ void FOnlineVoiceSteam::ProcessTalkingDelegates(float DeltaTime)
 				OnPlayerTalkingStateChangedDelegates.Broadcast(Talker.TalkerId.ToSharedRef(), Talker.bIsTalking);
 			}
 
-			UE_LOG(LogVoice, Log, TEXT("Trigger Remote %s %sTALKING"), *Talker.TalkerId->ToString(), Talker.bIsTalking ? TEXT("") : TEXT("NOT"));
+			UE_LOG(LogVoice, Log, TEXT("Trigger %sTALKING"), Talker.bIsTalking ? TEXT("") : TEXT("NOT"));
 
 			// Clear the flag so it only activates when needed
 			Talker.bWasTalking = Talker.bIsTalking;
@@ -643,7 +609,7 @@ void FOnlineVoiceSteam::ProcessTalkingDelegates(float DeltaTime)
 
 void FOnlineVoiceSteam::ProcessLocalVoicePackets()
 {
-	if (VoiceEngine.IsValid())
+	if (VoiceEngine != NULL)
 	{
 		// Read the data from any local talkers
 		uint32 DataReadyFlags = VoiceEngine->GetVoiceDataReadyFlags();
@@ -694,12 +660,12 @@ void FOnlineVoiceSteam::ProcessLocalVoicePackets()
 						}
 						else
 						{
-							UE_LOG(LogVoiceEncode, Warning, TEXT("Voice data error in ReadLocalVoiceData"));
+							UE_LOG(LogVoice, Warning, TEXT("Voice data error in ReadLocalVoiceData"));
 						}
 					}
 					else
 					{
-						UE_LOG(LogVoiceEncode, Warning, TEXT("Dropping voice data due to network layer not processing fast enough"));
+						UE_LOG(LogVoice, Warning, TEXT("Dropping voice data due to network layer not processing fast enough"));
 						// Buffer overflow, so drop previous data
 						VoiceData.LocalPackets[Index].Length = 0;
 					}
@@ -724,7 +690,7 @@ void FOnlineVoiceSteam::ProcessRemoteVoicePackets()
 		if (VoicePacket.IsValid())
 		{
 			// Skip local submission of voice if dedicated server or no voice
-			if (VoiceEngine.IsValid())
+			if (VoiceEngine != NULL)
 			{
 				// Get the size since it is an in/out param
 				uint32 VoiceBufferSize = VoicePacket->GetBufferSize();
@@ -732,7 +698,7 @@ void FOnlineVoiceSteam::ProcessRemoteVoicePackets()
 				uint32 Result = VoiceEngine->SubmitRemoteVoiceData(*VoicePacket->Sender, VoicePacket->Buffer.GetData(), &VoiceBufferSize);
 				if (Result != S_OK)
 				{
-					UE_LOG(LogVoiceDecode, Log,
+					UE_LOG(LogVoice, Log,
 						TEXT("SubmitRemoteVoiceData(%s) failed with 0x%08X"),
 						*VoicePacket->Sender->ToDebugString(),
 						Result);
@@ -747,7 +713,7 @@ void FOnlineVoiceSteam::ProcessRemoteVoicePackets()
 				if (*Talker.TalkerId == *VoicePacket->Sender)
 				{
 					// If the player is marked as muted, they can't be talking
-					Talker.bIsTalking = !IsLocallyMuted(*Talker.TalkerId);
+					Talker.bIsTalking = MuteList.Find((const FUniqueNetIdSteam&)*Talker.TalkerId) == INDEX_NONE;
 					Talker.LastNotificationTime = VoiceNotificationDelta;
 				}
 			}
@@ -759,55 +725,33 @@ void FOnlineVoiceSteam::ProcessRemoteVoicePackets()
 
 FString FOnlineVoiceSteam::GetVoiceDebugState() const
 {
+	FString Output;
 	TSharedPtr<FUniqueNetId> UniqueId;
 
-	FString Output = TEXT("Voice state\n");
-	Output += VoiceEngine.IsValid() ? VoiceEngine->GetVoiceDebugState() : TEXT("No Voice Engine!");
+	Output = VoiceEngine ? VoiceEngine->GetVoiceDebugState() : TEXT("No Voice Engine! \n");
 
-	Output += TEXT("\nLocal Talkers:\n");
+	Output += TEXT("Local Talkers:\n");
 	for (int32 idx=0; idx < LocalTalkers.Num(); idx++)
 	{
 		UniqueId = IdentityInt->GetUniquePlayerId(idx);
 		
 		const FLocalTalker& Talker = LocalTalkers[idx];
-		Output += FString::Printf(TEXT("[%d]: %s\n Registered: %d\n Networked: %d\n Talking: %d\n WasTalking: %d\n Last:%0.2f\n"),
-			idx,
+		Output += FString::Printf(TEXT("ID: %s\n Registered: %d\n Networked: %d\n Talking: %d\n "),
 			UniqueId.IsValid() ? *UniqueId->ToDebugString() : TEXT("NULL"), 
 			Talker.bIsRegistered,
 			Talker.bHasNetworkedVoice,
-			Talker.bIsTalking,
-			Talker.bWasTalking,
-			Talker.LastNotificationTime);
+			Talker.bIsTalking);
 	}
 
-	Output += TEXT("\nRemote Talkers:\n");
+	Output += TEXT("Remote Talkers:\n");
 	for (int32 idx=0; idx < RemoteTalkers.Num(); idx++)
 	{
 		const FRemoteTalker& Talker = RemoteTalkers[idx];
-		Output += FString::Printf(TEXT("[%d]: %s\n Talking: %d\n WasTalking: %d\n Muted: %s\n Last:%0.2f\n"),
-			idx,
+		Output += FString::Printf(TEXT("ID: %s\n IsTalking: %d\n Muted: %s\n"),
 			*Talker.TalkerId->ToDebugString(), 
 			Talker.bIsTalking,
-			Talker.bWasTalking,
-			IsLocallyMuted(*Talker.TalkerId) ? TEXT("1") : TEXT("0"),
-			Talker.LastNotificationTime);
+			IsMuted(0, *Talker.TalkerId) ? TEXT("1") : TEXT("0"));
 
-	}
-
-	Output += TEXT("\nRaw SystemMutelist:\n");
-	for (int32 idx=0; idx < SystemMuteList.Num(); idx++)
-	{
-		Output += FString::Printf(TEXT("[%d]=%s\n"),
-			idx,
-			*SystemMuteList[idx].ToString());
-	}
-
-	Output += TEXT("\nRaw Mutelist:\n");
-	for (int32 idx=0; idx < MuteList.Num(); idx++)
-	{
-		Output += FString::Printf(TEXT("[%d]=%s\n"),
-			idx,
-			*MuteList[idx].ToString());
 	}
 
 	return Output;

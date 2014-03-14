@@ -18,14 +18,6 @@ class UArrowComponent : public UPrimitiveComponent
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=ArrowComponent)
 	float ArrowSize;
 
-	/** Set to limit the screen size of this arrow */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=ArrowComponent)
-	bool bIsScreenSizeScaled;
-
-	/** The size on screen to limit this arrow to (in screen space) */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=ArrowComponent)
-	float ScreenSize;
-
 	/** If true, don't show the arrow when EngineShowFlags.BillboardSprites is disabled. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=ArrowComponent)
 	uint32 bTreatAsASprite:1;
@@ -43,9 +35,6 @@ class UArrowComponent : public UPrimitiveComponent
 	UPROPERTY()
 	uint32 bLightAttachment:1;
 
-	/** Whether to use in-editor arrow scaling (i.e. to be affected by the global arrow scale) */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=ArrowComponent)
-	bool bUseInEditorScaling;	
 #endif // WITH_EDITORONLY_DATA
 	// @NOTE!!!!! please remove _NEW when we can remove all _DEPRECATED functions and create redirect in BaseEngine.INI
 	/** Updates the arrow's colour, and tells it to refresh */
@@ -63,14 +52,6 @@ class UArrowComponent : public UPrimitiveComponent
 	// Begin USceneComponent interface.
 	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const OVERRIDE;
 	// Begin USceneComponent interface.
-
-#if WITH_EDITORONLY_DATA
-	/** Set the scale that we use when rendering in-editor */
-	ENGINE_API static void SetEditorScale(float InEditorScale);
-
-	/** The scale we use when rendering in-editor */
-	static float EditorScale;
-#endif
 };
 
 

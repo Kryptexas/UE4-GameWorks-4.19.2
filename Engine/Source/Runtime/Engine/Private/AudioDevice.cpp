@@ -41,15 +41,16 @@ bool FAudioDevice::Init()
 	// initialize config variables
 	verify(GConfig->GetInt(TEXT("Audio"), TEXT("MaxChannels"), MaxChannels, GEngineIni));
 	verify(GConfig->GetInt(TEXT("Audio"), TEXT("CommonAudioPoolSize"), CommonAudioPoolSize, GEngineIni));
+	verify(GConfig->GetFloat(TEXT("Audio"), TEXT("LowPassFilterResonance"), LowPassFilterResonance, GEngineIni));
 	
+	FString DefaultBaseSoundMixName;
+	if (GConfig->GetString(TEXT("Audio"), TEXT("DefaultBaseSoundMixName"), DefaultBaseSoundMixName, GEngineIni))
+	{
+		DefaultBaseSoundMix = LoadObject<USoundMix>(NULL, *DefaultBaseSoundMixName);
+	}
+
 	// If this is true, skip the initial startup precache so we can do it later in the flow
 	GConfig->GetBool(TEXT("Audio"), TEXT("DeferStartupPrecache"), bDeferStartupPrecache, GEngineIni);
-
-	const FStringAssetReference DefaultBaseSoundMixName = GetDefault<UAudioSettings>()->DefaultBaseSoundMix;
-	if (DefaultBaseSoundMixName.IsValid())
-	{
-		DefaultBaseSoundMix = LoadObject<USoundMix>(NULL, *DefaultBaseSoundMixName.ToString());
-	}
 
 	GetDefault<USoundGroups>()->Initialize();
 
@@ -81,11 +82,6 @@ bool FAudioDevice::Init()
 	UE_LOG(LogInit, Log, TEXT("FAudioDevice initialized." ));
 
 	return true;
-}
-
-float FAudioDevice::GetLowPassFilterResonance() const
-{
-	return GetDefault<UAudioSettings>()->LowPassFilterResonance;
 }
 
 void FAudioDevice::PrecacheStartupSounds()
@@ -903,16 +899,11 @@ void FAudioDevice::InitSoundSources( void )
 
 void FAudioDevice::SetDefaultBaseSoundMix( USoundMix* SoundMix )
 {
-	if (SoundMix == NULL)
+	if( !SoundMix )
 	{
-		const FStringAssetReference DefaultBaseSoundMixName = GetDefault<UAudioSettings>()->DefaultBaseSoundMix;
-		if (DefaultBaseSoundMixName.IsValid())
-		{			
-			SoundMix = LoadObject<USoundMix>(NULL, *DefaultBaseSoundMixName.ToString());
-		}
+		SoundMix = DefaultBaseSoundMix;
 	}
 
-	DefaultBaseSoundMix = SoundMix;
 	SetBaseSoundMix(SoundMix);
 }
 
@@ -931,7 +922,7 @@ void FAudioDevice::RemoveSoundMix( USoundMix* SoundMix )
 		// Try setting to global default if base SoundMix has been cleared
 		if( BaseSoundMix == NULL )
 		{
-			SetBaseSoundMix(DefaultBaseSoundMix);
+			SetBaseSoundMix( DefaultBaseSoundMix );
 		}
 	}
 }
@@ -2523,24 +2514,6 @@ void FAudioDevice::StopSoundsForReimport(USoundWave* ReimportedSoundWave, TArray
 				}
 			}
 		}
-	}
-}
-
-void FAudioDevice::OnBeginPIE(const bool bIsSimulating)
-{
-	for (TObjectIterator<USoundNode> It; It; ++It)
-	{
-		USoundNode* SoundNode = *It;
-		SoundNode->OnBeginPIE(bIsSimulating);
-	}
-}
-
-void FAudioDevice::OnEndPIE(const bool bIsSimulating)
-{
-	for (TObjectIterator<USoundNode> It; It; ++It)
-	{
-		USoundNode* SoundNode = *It;
-		SoundNode->OnEndPIE(bIsSimulating);
 	}
 }
 #endif

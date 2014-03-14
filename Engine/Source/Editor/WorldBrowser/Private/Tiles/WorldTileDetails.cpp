@@ -89,6 +89,7 @@ void UWorldTileDetails::SetInfo(const FWorldTileInfo& Info)
 	AbsolutePosition	= Info.AbsolutePosition;
 	Layer				= Info.Layer;
 	Bounds				= Info.Bounds;
+	bAlwaysLoaded		= Info.bAlwaysLoaded;
 	ZOrder				= Info.ZOrder;
 
 	// Sync LOD settings
@@ -109,6 +110,7 @@ FWorldTileInfo UWorldTileDetails::GetInfo() const
 	Info.AbsolutePosition		= AbsolutePosition;
 	Info.Layer					= Layer;
 	Info.Bounds					= Bounds;
+	Info.bAlwaysLoaded			= bAlwaysLoaded;
 	Info.ZOrder					= ZOrder;
 
 	// Sync LOD settings
@@ -160,6 +162,10 @@ void UWorldTileDetails::PostEditChangeProperty( struct FPropertyChangedEvent& Pr
 	else if (PropertyName == GET_MEMBER_NAME_CHECKED(UWorldTileDetails, ParentPackageName))
 	{
 		ParentPackageNameChangedEvent.Broadcast();
+	}
+	else if (PropertyName == GET_MEMBER_NAME_CHECKED(UWorldTileDetails, bAlwaysLoaded))
+	{
+		AlwaysLoadedChangedEvent.Broadcast();
 	}
 	else if (PropertyName == GET_MEMBER_NAME_CHECKED(UWorldTileDetails, StreamingLevels)
 			|| MemberPropertyName == GET_MEMBER_NAME_CHECKED(UWorldTileDetails, StreamingLevels))

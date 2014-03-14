@@ -235,3 +235,13 @@ struct HMatineeMarker : public HHitProxy
 		return EMouseCursor::Crosshairs;
 	}
 };
+
+/** Hitproxy for when the user clicks on a filter tab in matinee. */
+struct HMatineeTab : public HHitProxy
+{
+	/** Pointer to the interp filter for this hit proxy. */
+	class UInterpFilter* Filter;
+
+	DECLARE_HIT_PROXY();
+	HMatineeTab(UInterpFilter* InFilter): HHitProxy(HPP_UI), Filter(InFilter) {}
+};

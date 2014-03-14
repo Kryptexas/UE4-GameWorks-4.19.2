@@ -3,14 +3,46 @@
 #pragma once
 #include "EnvQueryTest_Trace.generated.h"
 
+UENUM()
+namespace EEnvTestTrace
+{
+	enum Type
+	{
+		Line,
+		Box,
+		Sphere,
+		Capsule,
+	};
+}
+
 UCLASS(MinimalAPI)
 class UEnvQueryTest_Trace : public UEnvQueryTest
 {
 	GENERATED_UCLASS_BODY()
 
-	/** trace data */
+	/** trace channel */
 	UPROPERTY(EditDefaultsOnly, Category=Trace)
-	FEnvTraceData TraceData;
+	TEnumAsByte<enum ETraceTypeQuery> TraceChannel;
+
+	/** shape used for tracing */
+	UPROPERTY(EditDefaultsOnly, Category=Trace)
+	TEnumAsByte<EEnvTestTrace::Type> TraceMode;
+
+	/** shape param */
+	UPROPERTY(EditDefaultsOnly, Category=Trace)
+	FEnvFloatParam TraceExtentX;
+
+	/** shape param */
+	UPROPERTY(EditDefaultsOnly, Category=Trace)
+	FEnvFloatParam TraceExtentY;
+
+	/** shape param */
+	UPROPERTY(EditDefaultsOnly, Category=Trace)
+	FEnvFloatParam TraceExtentZ;
+
+	/** test against complex collisions */
+	UPROPERTY(EditDefaultsOnly, Category=Trace, AdvancedDisplay)
+	FEnvBoolParam TraceComplex;
 
 	/** trace direction */
 	UPROPERTY(EditDefaultsOnly, Category=Trace)

@@ -127,8 +127,6 @@ protected:
 	FShaderResourceViewRHIRef DummyVertexBufferSRVRHI;
 	ID3D11ShaderResourceView* DummyVertexBufferSRVD3D;
 
-	bool bAlwaysSetIndexBuffers;
-
 #endif
 
 	template <EShaderFrequency ShaderFrequency>
@@ -179,8 +177,7 @@ protected:
 	{
 #if D3D11_ALLOW_STATE_CACHE
 		D3D11_STATE_CACHE_VERIFY_PRE();
-
-		if ( bAlwaysSetIndexBuffers || (CurrentIndexBuffer != IndexBuffer || CurrentIndexFormat != Format || CurrentIndexOffset != Offset) || GD3D11SkipStateCaching)
+		if ((CurrentIndexBuffer != IndexBuffer || CurrentIndexFormat != Format || CurrentIndexOffset != Offset) || GD3D11SkipStateCaching)
 		{
 			CurrentIndexBuffer = IndexBuffer;
 			CurrentIndexFormat = Format;
@@ -856,7 +853,7 @@ public:
 	{
 	}
 
-	void Init(ID3D11DeviceContext* InDeviceContext, bool bInAlwaysSetIndexBuffers = false )
+	void Init(ID3D11DeviceContext* InDeviceContext)
 	{
 		SetContext(InDeviceContext);
 		
@@ -868,7 +865,6 @@ public:
 		FShaderResourceViewRHIParamRef SRVParamRHI = DummyVertexBufferSRVRHI;
 		DYNAMIC_CAST_D3D11RESOURCE(ShaderResourceView,SRVParam);
 		DummyVertexBufferSRVD3D = SRVParam->View;
-		bAlwaysSetIndexBuffers = bInAlwaysSetIndexBuffers;
 #endif
 	}
 

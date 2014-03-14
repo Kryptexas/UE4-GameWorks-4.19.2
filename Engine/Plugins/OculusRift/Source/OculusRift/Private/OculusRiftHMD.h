@@ -1,4 +1,4 @@
-// Copyright 1998-2012 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #if OCULUS_RIFT_SUPPORTED_PLATFORMS
@@ -26,9 +26,11 @@ public:
 	virtual bool HasValidTrackingPosition() const OVERRIDE;
 	virtual void GetPositionalTrackingCameraProperties(FVector& OutOrigin, FRotator& OutOrientation, float& OutHFOV, float& OutVFOV, float& OutCameraDistance, float& OutNearPlane, float& OutFarPlane) const OVERRIDE;
 
+	virtual void SetUserDistanceToScreenModifier(float NewUserDistanceToScreenModifier) OVERRIDE;
+	virtual float GetUserDistanceToScreenModifier() const OVERRIDE;
 	virtual void SetInterpupillaryDistance(float NewInterpupillaryDistance) OVERRIDE;
 	virtual float GetInterpupillaryDistance() const OVERRIDE;
-    virtual float GetFieldOfViewInRadians() const OVERRIDE;
+    virtual float GetFieldOfView() const OVERRIDE;
 
     virtual void GetCurrentOrientationAndPosition(FQuat& CurrentOrientation, FVector& CurrentPosition) const OVERRIDE;
 	virtual void ApplyHmdRotation(APlayerController* PC, FRotator& ViewRotation) OVERRIDE;
@@ -49,22 +51,16 @@ public:
 	virtual bool EnableStereo(bool stereo = true) OVERRIDE;
     virtual void AdjustViewRect(EStereoscopicPass StereoPass, int32& X, int32& Y, uint32& SizeX, uint32& SizeY) const OVERRIDE;
 	virtual void CalculateStereoViewOffset(const EStereoscopicPass StereoPassType, const FRotator& ViewRotation, 
-										   const float MetersToWorld, FVector& ViewLocation) OVERRIDE;
+										   const float MetersToWorld, FVector& ViewLocation) const OVERRIDE;
 	virtual FMatrix GetStereoProjectionMatrix(const EStereoscopicPass StereoPassType, const float FOV) const OVERRIDE;
 	virtual void InitCanvasFromView(FSceneView* InView, UCanvas* Canvas) OVERRIDE;
 	virtual void PushViewportCanvas(EStereoscopicPass StereoPass, FCanvas *InCanvas, UCanvas *InCanvasObject, FViewport *InViewport) const OVERRIDE;
 	virtual void PushViewCanvas(EStereoscopicPass StereoPass, FCanvas *InCanvas, UCanvas *InCanvasObject, FSceneView *InView) const OVERRIDE;
-	virtual void GetEyeRenderParams_RenderThread(EStereoscopicPass StereoPass, FVector2D& EyeToSrcUVScaleValue, FVector2D& EyeToSrcUVOffsetValue) const OVERRIDE
-	{
-		EyeToSrcUVOffsetValue = FVector2D::ZeroVector;
-		EyeToSrcUVScaleValue = FVector2D(1.0f, 1.0f);
-	}
 
     /** ISceneViewExtension interface */
     virtual void ModifyShowFlags(FEngineShowFlags& ShowFlags) OVERRIDE;
     virtual void SetupView(FSceneView& InView) OVERRIDE;
-	virtual void PreRenderViewFamily_RenderThread(FSceneViewFamily& InViewFamily) OVERRIDE {}
-	virtual void PreRenderView_RenderThread(FSceneView& InView) OVERRIDE;
+    virtual void PreRenderView_RenderThread(FSceneView& InView) OVERRIDE;
 
 	/** Positional tracking control methods */
 	virtual bool IsPositionalTrackingEnabled() const OVERRIDE;
@@ -83,7 +79,6 @@ public:
 		current position as 0 point. */
 	virtual void ResetOrientationAndPosition(float yaw = 0.f) OVERRIDE;
 
-	virtual void DrawDistortionMesh_RenderThread(struct FRenderingCompositePassContext& Context, const FSceneView& View, const FIntPoint& TextureSize) OVERRIDE {}
 	virtual void UpdateScreenSettings(const FViewport*) OVERRIDE;
 
 #if !UE_BUILD_SHIPPING

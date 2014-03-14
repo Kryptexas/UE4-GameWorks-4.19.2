@@ -19,7 +19,4 @@ private:
 
 	/** Delegate used to display a directory picker */
 	FReply OnPickDirectory(TSharedRef<IPropertyHandle> PropertyHandle) const;
-
-	/** The browse button widget */
-	TSharedPtr<SButton> BrowseButton;
 };

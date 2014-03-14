@@ -555,11 +555,7 @@ FReply SMaterialEditorCanvas::OnDrop( const FGeometry& MyGeometry, const FDragDr
 
 			if (!FunctionNode->MaterialFunction)
 			{
-				if(FunctionNode->SetMaterialFunction(GetMaterialFunction(), NULL, Func))
-				{
-					FunctionNode->PostEditChange();
-				}
-				else
+				if(!FunctionNode->SetMaterialFunction(GetMaterialFunction(), NULL, Func))
 				{
 					SelectedExpressions.Add(FunctionNode);
 					DeleteSelectedObjects();
@@ -678,7 +674,7 @@ TSharedRef<SWidget> SMaterialEditorCanvas::BuildMenuWidgetEmpty()
 
 		MenuBuilder.BeginSection("MaterialEditorCanvasEmpty3");
 		{
-			MenuBuilder.AddMenuEntry(FMaterialEditorCommands::Get().MatertialPasteHere);
+			MenuBuilder.AddMenuEntry(FMaterialEditorCommands::Get().PasteHere);
 		}
 		MenuBuilder.EndSection();
 	}
@@ -3428,7 +3424,7 @@ bool SMaterialEditorCanvas::EdHandleKeyInput(FViewport* InViewport, FKey Key, EI
 		}
 		else
 		{
-			if ( Key == EKeys::Platform_Delete )
+			if( Key == EKeys::Delete )
 			{
 				DeleteSelectedObjects();
 			}
@@ -5013,13 +5009,13 @@ void SMaterialEditorCanvas::BindCommands()
 		FIsActionChecked::CreateSP( this, &SMaterialEditorCanvas::IsOnAlwaysRefreshAllPreviews ) );
 
 	UICommandList->MapAction(
-		Commands.ToggleMaterialStats,
+		Commands.ToggleStats,
 		FExecuteAction::CreateSP( this, &SMaterialEditorCanvas::ToggleStats ),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP( this, &SMaterialEditorCanvas::IsToggleStatsChecked ) );
 	
 	UICommandList->MapAction(
-		Commands.ToggleMobileStats,
+		Commands.ToggleStats,
 		FExecuteAction::CreateSP( this, &SMaterialEditorCanvas::ToggleMobileStats ),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP( this, &SMaterialEditorCanvas::IsToggleMobileStatsChecked ) );
@@ -5029,7 +5025,7 @@ void SMaterialEditorCanvas::BindCommands()
 		FExecuteAction::CreateSP(this, &SMaterialEditorCanvas::OnNewComment));
 	
 	UICommandList->MapAction(
-		Commands.MatertialPasteHere,
+		Commands.PasteHere,
 		FExecuteAction::CreateSP(this, &SMaterialEditorCanvas::OnPasteHere));
 	
 	UICommandList->MapAction(

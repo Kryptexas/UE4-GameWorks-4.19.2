@@ -308,29 +308,21 @@ namespace UnrealBuildTool
 				foreach( var UObjectModule in Manifest.Modules )
 				{
 					// @todo uht: Ideally would only copy exactly the files emitted by UnrealHeaderTool, rather than scanning directory (could copy stale files; not a big deal though)
-					try
+					var GeneratedCodeDirectory = UEBuildModuleCPP.GetGeneratedCodeDirectoryForModule(Target, UObjectModule.BaseDirectory, UObjectModule.Name);
+					var GeneratedCodeFiles     = Directory.GetFiles( GeneratedCodeDirectory, "*", SearchOption.AllDirectories );
+					foreach( var GeneratedCodeFile in GeneratedCodeFiles )
 					{
-						var GeneratedCodeDirectory = UEBuildModuleCPP.GetGeneratedCodeDirectoryForModule(Target, UObjectModule.BaseDirectory, UObjectModule.Name);
-						var GeneratedCodeFiles     = Directory.GetFiles( GeneratedCodeDirectory, "*", SearchOption.AllDirectories );
-						foreach( var GeneratedCodeFile in GeneratedCodeFiles )
+						// Skip copying "Timestamp" files (UBT temporary files)
+						if( !Path.GetFileName( GeneratedCodeFile ).Equals( @"Timestamp", StringComparison.InvariantCultureIgnoreCase ) )
 						{
-							// Skip copying "Timestamp" files (UBT temporary files)
-							if( !Path.GetFileName( GeneratedCodeFile ).Equals( @"Timestamp", StringComparison.InvariantCultureIgnoreCase ) )
-							{
-								var GeneratedCodeFileItem = FileItem.GetExistingItemByPath( GeneratedCodeFile );
-								QueueFileForBatchUpload( GeneratedCodeFileItem );
-							}
+							var GeneratedCodeFileItem = FileItem.GetExistingItemByPath( GeneratedCodeFile );
+							QueueFileForBatchUpload( GeneratedCodeFileItem );
 						}
-					}
-					catch (System.IO.DirectoryNotFoundException)
-					{
-						// Ignore directory not found
 					}
 
 					// For source files in legacy "Classes" directories, we need to make sure they all get copied over too, since
 					// they may not have been directly included in any C++ source files (only generated headers), and the initial
 					// header scan wouldn't have picked them up if they hadn't been generated yet!
-					try
 					{
 						var SourceFiles = Directory.GetFiles( UObjectModule.BaseDirectory, "*", SearchOption.AllDirectories );
 						foreach( var SourceFile in SourceFiles )
@@ -338,10 +330,6 @@ namespace UnrealBuildTool
 							var SourceFileItem = FileItem.GetExistingItemByPath( SourceFile );
 							QueueFileForBatchUpload( SourceFileItem );
 						}
-					}
-					catch (System.IO.DirectoryNotFoundException)
-					{
-						// Ignore directory not found
 					}
 				}
 			}

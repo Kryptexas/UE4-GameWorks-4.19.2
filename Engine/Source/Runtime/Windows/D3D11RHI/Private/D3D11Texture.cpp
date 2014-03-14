@@ -67,7 +67,7 @@ static TStatId GetD3D11StatEnum(uint32 BindFlags, bool bCubeMap, bool b3D)
 // Note: This function can be called from many different threads
 // @param TextureSize >0 to allocate, <0 to deallocate
 // @param b3D true:3D, false:2D or cube map
-void UpdateD3D11TextureStats(uint32 BindFlags, uint32 MiscFlags, int64 TextureSize, bool b3D)
+static void UpdateD3D11TextureStats(uint32 BindFlags, uint32 MiscFlags, int64 TextureSize, bool b3D)
 {
 	if(TextureSize == 0)
 	{
@@ -838,9 +838,6 @@ FD3D11Texture3D* FD3D11DynamicRHI::CreateD3D11Texture3D(uint32 SizeX,uint32 Size
 		TextureDesc.BindFlags |= D3D11_BIND_RENDER_TARGET;
 		bCreateRTV = true;
 	}
-
-	// not yet supported, would require FFastVRAMAllocator::GetFastVRAMAllocator()->AllocTexture3D
-	check(!(Flags & TexCreate_FastVRAM));
 
 	// Set up the texture bind flags.
 	check(!(Flags & TexCreate_DepthStencilTargetable));

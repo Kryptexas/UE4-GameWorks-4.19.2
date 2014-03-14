@@ -29,7 +29,6 @@ public:
 
 		FGlobalTabmanager::Get()->RegisterTabSpawner(DeviceManagerTabName, FOnSpawnTab::CreateRaw(this, &FDeviceManagerModule::SpawnDeviceManagerTab))
 			.SetDisplayName(NSLOCTEXT("FDeviceManagerModule", "DeviceManagerTabTitle", "Device Manager"))
-			.SetTooltipText(NSLOCTEXT("FDeviceManagerModule", "DeviceManagerTooltipText", "Open the Device Manager tab."))
 			.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "DeviceDetails.TabIcon"));
 	}
 
@@ -64,12 +63,12 @@ private:
 	 */
 	TSharedRef<SDockTab> SpawnDeviceManagerTab( const FSpawnTabArgs& SpawnTabArgs )
 	{
-		const TSharedRef<SDockTab> DockTab = SNew(SDockTab)
+		const TSharedRef<SDockTab> MajorTab = SNew(SDockTab)
 			.TabRole(ETabRole::MajorTab);
 
-		DockTab->SetContent(CreateDeviceManager(TargetDeviceServiceManager.ToSharedRef(), DockTab, SpawnTabArgs.GetOwnerWindow()));
+		MajorTab->SetContent(CreateDeviceManager(TargetDeviceServiceManager.ToSharedRef(), MajorTab, SpawnTabArgs.GetOwnerWindow()));
 
-		return DockTab;
+		return MajorTab;
 	}
 
 

@@ -339,8 +339,8 @@ private:
 												.DefaultQuality(DefaultQuality)
 												.Skeleton(UpdateContext.SkeletalMesh->Skeleton)
 												.DesiredLOD(LODLevel);
+			FString AreaTitle = FString::Printf(*LOCTEXT("LODLevel", "LOD %d").ToString(), LODLevel);
 			
-			const FString AreaTitle = FText::Format( LOCTEXT("LODLevel", "LOD {0}"), FText::AsNumber( LODLevel ) ).ToString();
 			LODChainContent->AddSlot()
 				.AutoHeight()
 				.Padding(5.0)

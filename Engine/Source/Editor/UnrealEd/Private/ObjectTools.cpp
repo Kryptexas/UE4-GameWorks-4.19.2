@@ -9,7 +9,6 @@
 #include "BusyCursor.h"
 #include "Dialogs/DlgMoveAssets.h"
 #include "Dialogs/DlgReferenceTree.h"
-#include "Dialogs/SDeleteAssetsDialog.h"
 #include "SoundDefinitions.h"
 #include "ReferencedAssetsUtils.h"
 #include "AssetRegistryModule.h"
@@ -27,7 +26,6 @@
 #include "Editor/MainFrame/Public/MainFrame.h"
 #include "DesktopPlatformModule.h"
 #include "LevelUtils.h"
-#include "ConsolidateWindow.h"
 DEFINE_LOG_CATEGORY_STATIC(LogObjectTools, Log, All);
 
 namespace ObjectTools
@@ -662,7 +660,7 @@ namespace ObjectTools
 		}
 	}
 
-	FConsolidationResults ConsolidateObjects( UObject* ObjectToConsolidateTo, TArray<UObject*>& ObjectsToConsolidate, bool bShowDeleteConfirmation )
+	FConsolidationResults ConsolidateObjects( UObject* ObjectToConsolidateTo, TArray<UObject*>& ObjectsToConsolidate )
 	{
 		FConsolidationResults ConsolidationResults;
 
@@ -670,12 +668,9 @@ namespace ObjectTools
 		if ( ObjectToConsolidateTo )
 		{
 			// Confirm that the consolidate was intentional
-			if ( bShowDeleteConfirmation )
+			if ( !ShowDeleteConfirmationDialog(ObjectsToConsolidate) )
 			{
-				if ( !ShowDeleteConfirmationDialog( ObjectsToConsolidate ) )
-				{
-					return ConsolidationResults;
-				}
+				return ConsolidationResults;
 			}
 
 			// Close all editors to avoid changing references to temporary objects used by the editor
@@ -951,7 +946,7 @@ namespace ObjectTools
 	}
 
 	/**
-	 * Displays a tree(currently) of all assets which reference the passed in object.  
+ 	 * Displays a tree(currently) of all assets which reference the passed in object.  
 	 *
 	 * @param ObjectToGraph		The object to find references to.
 	 */
@@ -1449,17 +1444,6 @@ namespace ObjectTools
 		}
 	}
 
-	int32 DeleteAssets( const TArray<FAssetData>& AssetsToDelete, bool bShowConfirmation )
-	{
-		TArray<UObject*> ObjectsToDelete;
-		for ( int i = 0; i < AssetsToDelete.Num(); i++ )
-		{
-			ObjectsToDelete.Add( AssetsToDelete[i].GetAsset() );
-		}
-
-		return DeleteObjects( ObjectsToDelete, bShowConfirmation );
-	}
-
 	int32 DeleteObjects( const TArray< UObject* >& ObjectsToDelete, bool bShowConfirmation )
 	{
 		// Allows deleting of sounds after they have been previewed
@@ -1473,97 +1457,32 @@ namespace ObjectTools
 			return 0;
 		}
 
-		// Load the asset registry module
-		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-
-		// Don't delete anything if we're still building the asset registry, warn the user and don't delete.
-		if (AssetRegistryModule.Get().IsLoadingAssets())
-		{
-			FNotificationInfo Info( NSLOCTEXT("UnrealEd", "Warning_CantDeleteRebuildingAssetRegistry", "Unable To Delete While Discovering Assets") );
-			Info.ExpireDuration = 3.0f;
-			FSlateNotificationManager::Get().AddNotification(Info);
-			return false;
-		}
-
-		TSharedRef<FAssetDeleteModel> DeleteModel = MakeShareable(new FAssetDeleteModel(ObjectsToDelete));
-
-		if ( bShowConfirmation )
-		{
-			const FVector2D DEFAULT_WINDOW_SIZE = FVector2D( 600, 700 );
-
-			/** Create the window to host our package dialog widget */
-			TSharedRef< SWindow > DeleteAssetsWindow = SNew( SWindow )
-				.Title( FText::FromString( "Delete Assets" ) )
-				.ClientSize( DEFAULT_WINDOW_SIZE );
-
-			/** Set the content of the window to our package dialog widget */
-			TSharedRef< SDeleteAssetsDialog > DeleteDialog =
-				SNew(SDeleteAssetsDialog, DeleteModel)
-				.ParentWindow( DeleteAssetsWindow );
-
-			DeleteAssetsWindow->SetContent( DeleteDialog );
-
-			/** Show the package dialog window as a modal window */
-			GEditor->EditorAddModalWindow( DeleteAssetsWindow );
-
-			return DeleteModel->GetDeletedObjectCount();
-		}
-		
-		bool bUserCanceled = false;
-
-		GWarn->BeginSlowTask(NSLOCTEXT("UnrealEd", "VerifyingDelete", "Verifying Delete"), true, true);
-		while ( !bUserCanceled && DeleteModel->GetState() != FAssetDeleteModel::Finished )
-		{
-			DeleteModel->Tick(0);
-			GWarn->StatusUpdate((int32)( DeleteModel->GetProgress() * 100 ), 100, DeleteModel->GetProgressText());
-
-			bUserCanceled = GWarn->ReceivedUserCancel();
-		}
-		GWarn->EndSlowTask();
-
-		if ( bUserCanceled )
+		// Confirm that the delete was intentional
+		if ( bShowConfirmation && !ShowDeleteConfirmationDialog(ObjectsToDelete) )
 		{
 			return 0;
 		}
 
-		if ( !DeleteModel->DoDelete() )
-		{
-			//@todo ndarnell explain why the delete failed?  Maybe we should show the delete UI
-			// when this fails?
-		}
-
-		return DeleteModel->GetDeletedObjectCount();
-	}
-
-	int32 DeleteObjectsUnchecked( const TArray< UObject* >& ObjectsToDelete )
-	{
-		GWarn->BeginSlowTask( NSLOCTEXT( "UnrealEd", "Deleting", "Deleting" ), true );
+		GWarn->BeginSlowTask( NSLOCTEXT("UnrealEd", "Deleting", "Deleting"), true );
 
 		TArray<UObject*> ObjectsDeletedSuccessfully;
-		TArray<UObject*> ObjectsDeletedUnsuccessfully;
 
-		bool bSawSuccessfulDelete = true;
+		bool bSawSuccessfulDelete = false;
 
-		for ( int32 Index = 0; Index < ObjectsToDelete.Num(); Index++ )
+		for (int32 Index = 0; Index < ObjectsToDelete.Num(); Index++)
 		{
-			GWarn->StatusUpdate( Index, ObjectsToDelete.Num(), FText::Format( NSLOCTEXT( "UnrealEd", "Deletingf", "Deleting ({0} of {1})" ), FText::AsNumber( Index ), FText::AsNumber( ObjectsToDelete.Num() ) ) );
+			GWarn->StatusUpdate( Index, ObjectsToDelete.Num(), FText::Format(NSLOCTEXT("UnrealEd", "Deletingf", "Deleting ({0} of {1})"), FText::AsNumber(Index), FText::AsNumber(ObjectsToDelete.Num()) ) );
 			UObject* ObjectToDelete = ObjectsToDelete[Index];
 
-			if ( !ensure( ObjectToDelete != NULL ) )
+			if ( !ensure(ObjectToDelete != NULL) )
 			{
 				continue;
 			}
 
-			// We already know it's not referenced or we wouldn't be performing the safe delete, so don't repeat the reference check.
-			bool bPerformReferenceCheck = false;
-			if ( DeleteSingleObject( ObjectToDelete, bPerformReferenceCheck ) )
+			if ( DeleteSingleObject( ObjectToDelete ) )
 			{
+				bSawSuccessfulDelete = true;
 				ObjectsDeletedSuccessfully.Push( ObjectToDelete );
-			}
-			else
-			{
-				ObjectsDeletedUnsuccessfully.Push( ObjectToDelete );
-				bSawSuccessfulDelete = false;
 			}
 		}
 
@@ -1578,18 +1497,20 @@ namespace ObjectTools
 			TArray<UPackage*> PotentialPackagesToDelete;
 			for ( int32 ObjIdx = 0; ObjIdx < ObjectsDeletedSuccessfully.Num(); ++ObjIdx )
 			{
-				PotentialPackagesToDelete.AddUnique( ObjectsDeletedSuccessfully[ObjIdx]->GetOutermost() );
+				PotentialPackagesToDelete.AddUnique(ObjectsDeletedSuccessfully[ObjIdx]->GetOutermost());
 			}
 
-			CleanupAfterSuccessfulDelete( PotentialPackagesToDelete );
+			CleanupAfterSuccessfulDelete(PotentialPackagesToDelete);
 			ObjectsDeletedSuccessfully.Empty();
 		}
-
+		
 		return NumObjectsDeletedSuccessfully;
 	}
 
-	bool DeleteSingleObject( UObject* ObjectToDelete, bool bPerformReferenceCheck )
+	bool DeleteSingleObject( UObject* ObjectToDelete )
 	{
+		bool bDeleteSuccessful = false;
+		
 		GEditor->GetSelectedObjects()->Deselect( ObjectToDelete );
 
 		{
@@ -1602,70 +1523,69 @@ namespace ObjectTools
 			}
 		}
 
-		if ( bPerformReferenceCheck )
+		FReferencerInformationList Refs;
+
+		// Check and see whether we are referenced by any objects that won't be garbage collected. 
+		bool bIsReferenced = IsReferenced( ObjectToDelete, GARBAGE_COLLECTION_KEEPFLAGS, true, &Refs);
+		if ( bIsReferenced )
 		{
-			FReferencerInformationList Refs;
+			// determine whether the transaction buffer is the only thing holding a reference to the object
+			// and if so, offer the user the option to reset the transaction buffer.
+			GEditor->Trans->DisableObjectSerialization();
+			bIsReferenced = IsReferenced(ObjectToDelete, GARBAGE_COLLECTION_KEEPFLAGS, true, &Refs);
+			GEditor->Trans->EnableObjectSerialization();
 
-			// Check and see whether we are referenced by any objects that won't be garbage collected. 
-			bool bIsReferenced = IsReferenced( ObjectToDelete, GARBAGE_COLLECTION_KEEPFLAGS, true, &Refs );
-			if ( bIsReferenced )
+			// only ref to this object is the transaction buffer - let the user choose whether to clear the undo buffer
+			if ( !bIsReferenced )
 			{
-				// determine whether the transaction buffer is the only thing holding a reference to the object
-				// and if so, offer the user the option to reset the transaction buffer.
-				GEditor->Trans->DisableObjectSerialization();
-				bIsReferenced = IsReferenced( ObjectToDelete, GARBAGE_COLLECTION_KEEPFLAGS, true, &Refs );
-				GEditor->Trans->EnableObjectSerialization();
-
-				// only ref to this object is the transaction buffer - let the user choose whether to clear the undo buffer
-				if ( !bIsReferenced )
+				if ( EAppReturnType::Yes == FMessageDialog::Open( EAppMsgType::YesNo, NSLOCTEXT("UnrealEd", "ResetUndoBufferForObjectDeletionPrompt", "The only reference to this object is the undo history.  In order to delete this object, you must clear all undo history - would you like to clear undo history?")) )
 				{
-					if ( EAppReturnType::Yes == FMessageDialog::Open( EAppMsgType::YesNo, NSLOCTEXT( "UnrealEd", "ResetUndoBufferForObjectDeletionPrompt", "The only reference to this object is the undo history.  In order to delete this object, you must clear all undo history - would you like to clear undo history?" ) ) )
-					{
-						GEditor->Trans->Reset( NSLOCTEXT( "UnrealEd", "DeleteSelectedItem", "Delete Selected Item" ) );
-					}
-					else
-					{
-						bIsReferenced = true;
-					}
+					GEditor->Trans->Reset( NSLOCTEXT("UnrealEd", "DeleteSelectedItem", "Delete Selected Item") );
 				}
-			}
-
-			if ( bIsReferenced )
-			{
-				// We cannot safely delete this object. Print out a list of objects referencing this one
-				// that prevent us from being able to delete it.
-				FStringOutputDevice Ar;
-				ObjectToDelete->OutputReferencers( Ar, &Refs );
-				FMessageDialog::Open( EAppMsgType::Ok,
-					FText::Format( NSLOCTEXT( "UnrealEd", "Error_InUse", "{0} is in use.\n\n---\nRunning the editor with '-NoLoadStartupPackages' may help if the object is loaded at startup.\n---\n\n{1}" ),
-					FText::FromString( ObjectToDelete->GetFullName() ), FText::FromString( *Ar ) ) );
-
-				// Reselect the object as it failed to be deleted
-				GEditor->GetSelectedObjects()->Select( ObjectToDelete );
-
-				return false;
+				else
+				{
+					bIsReferenced = true;
+				}
 			}
 		}
 
-		// Mark its package as dirty as we're going to delete it.
-		ObjectToDelete->MarkPackageDirty();
+		if ( bIsReferenced )
+		{
+			// We cannot safely delete this object. Print out a list of objects referencing this one
+			// that prevent us from being able to delete it.
+			FStringOutputDevice Ar;
+			ObjectToDelete->OutputReferencers(Ar, &Refs);
+			FMessageDialog::Open( EAppMsgType::Ok,
+				FText::Format(NSLOCTEXT("UnrealEd", "Error_InUse", "{0} is in use.\n\n---\nRunning the editor with '-NoLoadStartupPackages' may help if the object is loaded at startup.\n---\n\n{1}"),
+				FText::FromString(ObjectToDelete->GetFullName()), FText::FromString(*Ar)) );
 
-		// Remove standalone flag so garbage collection can delete the object.
-		ObjectToDelete->ClearFlags( RF_Standalone );
+			// Reselect the object as it failed to be deleted
+			GEditor->GetSelectedObjects()->Select( ObjectToDelete );
+		}
+		else
+		{
+			bDeleteSuccessful = true;
 
-		// Notify the asset registry
-		FAssetRegistryModule::AssetDeleted( ObjectToDelete );
+			// Mark its package as dirty as we're going to delete it.
+			ObjectToDelete->MarkPackageDirty();
 
-		return true;
+			// Remove standalone flag so garbage collection can delete the object.
+			ObjectToDelete->ClearFlags( RF_Standalone );
+
+			// Notify the asset registry
+			FAssetRegistryModule::AssetDeleted(ObjectToDelete);
+		}
+
+		return bDeleteSuccessful;
 	}
 
-	int32 ForceDeleteObjects( const TArray< UObject* >& InObjectsToDelete, bool ShowConfirmation )
+	int32 ForceDeleteObjects( const TArray< UObject* >& InObjectsToDelete )
 	{
 		int32 NumDeletedObjects = 0;
 		bool ForceDeleteAll = false;
 
 		// Confirm that the delete was intentional
-		if ( ShowConfirmation && !ShowDeleteConfirmationDialog(InObjectsToDelete) )
+		if ( !ShowDeleteConfirmationDialog(InObjectsToDelete) )
 		{
 			return 0;
 		}
@@ -1811,10 +1731,6 @@ namespace ObjectTools
 		ObjectsToDelete.Empty();
 
 		GWarn->EndSlowTask();
-
-		// Redraw viewports
-		GUnrealEd->RedrawAllViewports();
-
 		return NumDeletedObjects;
 	}	
 
@@ -1826,7 +1742,7 @@ namespace ObjectTools
 	 * @param RefObjNames			String list of all objects
 	 * @param DefObjNames			String list of all objects referenced in default properties
 	 *
-	 * @return Whether or not any objects are in default properties
+     * @return Whether or not any objects are in default properties
 	 */
 	bool ComposeStringOfReferencingObjects( TArray<FReferencerInformation>& References, FString& RefObjNames, FString& DefObjNames )
 	{
@@ -3133,6 +3049,11 @@ namespace ObjectTools
 		PropertyEditorModule.RemoveDeletedObjects( DeletedObjects );
 	}
 
+	bool IsAssetValidForLoading(const FString& ObjectPath)
+	{
+		return !FEditorFileUtils::IsMapPackageAsset(ObjectPath);
+	}
+
 	bool IsAssetValidForPlacing(UWorld* InWorld, const FString& ObjectPath)
 	{
 		bool bResult = ObjectPath.Len() > 0;
@@ -3166,74 +3087,6 @@ namespace ObjectTools
 		}
 
 		return bResult;
-	}
-
-	bool AreObjectsOfEquivalantType( const TArray<UObject*>& InProposedObjects )
-	{
-		if ( InProposedObjects.Num() > 0 )
-		{
-			// Use the first proposed object as the basis for the compatible check.
-			const UObject* ComparisonObject = InProposedObjects[0];
-			check( ComparisonObject );
-
-			const UClass* ComparisonClass = ComparisonObject->GetClass();
-			check( ComparisonClass );
-
-			// Iterate over each proposed consolidation object, checking if each shares a common class with the consolidation objects, or at least, a common base that
-			// is allowed as an exception (currently only exceptions made for textures and materials).
-			for ( TArray<UObject*>::TConstIterator ProposedObjIter( InProposedObjects ); ProposedObjIter; ++ProposedObjIter )
-			{
-				UObject* CurProposedObj = *ProposedObjIter;
-				check( CurProposedObj );
-
-				const UClass* CurProposedClass = CurProposedObj->GetClass();
-
-				if ( !AreClassesInterchangeable( ComparisonClass, CurProposedClass ) )
-				{
-					return false;
-				}
-			}
-		}
-
-		return true;
-	}
-
-	bool IsClassRedirector( const UClass* Class )
-	{
-		if ( Class == nullptr )
-		{
-			return false;
-		}
-
-		// You may not consolidate object redirectors
-		if ( Class->IsChildOf( UObjectRedirector::StaticClass() ) )
-		{
-			return true;
-		}
-
-		return false;
-	}
-
-	bool AreClassesInterchangeable( const UClass* ClassA, const UClass* ClassB )
-	{
-		// You may not consolidate object redirectors
-		if ( IsClassRedirector( ClassB ) )
-		{
-			return false;
-		}
-
-		if ( ClassB != ClassA )
-		{
-			const UClass* NearestCommonBase = ClassB->FindNearestCommonBaseClass( ClassA );
-
-			// If the proposed object doesn't share a common class or a common base that is allowed as an exception, it is not a compatible object
-			if ( !( NearestCommonBase->IsChildOf( UTexture::StaticClass() ) ) && !( NearestCommonBase->IsChildOf( UMaterialInterface::StaticClass() ) ) )
-			{
-				return false;
-			}
-		}
-
-		return true;
 	}
 }
 
@@ -3296,7 +3149,7 @@ namespace ThumbnailTools
 		// @todo CB: This helps but doesn't result in 100%-streamed-in resources every time! :(
 		if( InFlushMode == EThumbnailTextureFlushMode::AlwaysFlush )
 		{
-			FlushAsyncLoading();
+	 		FlushAsyncLoading();
 
 			GStreamingManager->StreamAllResources( 100.0f );
 		}

@@ -87,7 +87,8 @@ void FTextureEditorToolkit::InitTextureEditor( const EToolkitMode::Type Mode, co
 
 	SavedCompressionSetting = false;
 
-	Zoom = 1.0f;
+	const UTextureEditorSettings& Settings = *GetDefault<UTextureEditorSettings>();
+	Zoom = Settings.FillViewport ? 0.0f : 1.0f;
 
 	// Register our commands. This will only register them if not previously registered
 	FTextureEditorCommands::Register();
@@ -190,8 +191,9 @@ void FTextureEditorToolkit::CalculateTextureDimensions( uint32& Width, uint32& H
 	uint32 MaxWidth; 
 	uint32 MaxHeight;
 
-	const bool bFitToViewport = GetFitToViewport();
-	if (bFitToViewport)
+	const UTextureEditorSettings& Settings = *GetDefault<UTextureEditorSettings>();
+
+	if (Settings.FillViewport)
 	{
 		// Subtract off the viewport space devoted to padding (2 * PreviewPadding)
 		// so that the texture is padded on all sides
@@ -630,10 +632,10 @@ void FTextureEditorToolkit::BindCommands()
 		FIsActionChecked::CreateSP(this, &FTextureEditorToolkit::IsSaturationChecked));
 
 	ToolkitCommands->MapAction(
-		Commands.FitToViewport,
-		FExecuteAction::CreateSP(this, &FTextureEditorToolkit::OnFitToViewport),
+		Commands.FillViewport,
+		FExecuteAction::CreateSP(this, &FTextureEditorToolkit::OnFillViewport),
 		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &FTextureEditorToolkit::IsFitToViewportChecked));
+		FIsActionChecked::CreateSP(this, &FTextureEditorToolkit::IsFillViewportChecked));
 
 	ToolkitCommands->MapAction(
 		Commands.CheckeredBackground,
@@ -754,23 +756,25 @@ bool FTextureEditorToolkit::IsSaturationChecked() const
 }
 
 
-void FTextureEditorToolkit::OnFitToViewport()
+void FTextureEditorToolkit::OnFillViewport()
 {
-	ToggleFitToViewport();
+	UTextureEditorSettings* Settings = Cast<UTextureEditorSettings>(UTextureEditorSettings::StaticClass()->GetDefaultObject());
+	Settings->FillViewport = !Settings->FillViewport;
 }
 
 
-bool FTextureEditorToolkit::IsFitToViewportChecked() const
+bool FTextureEditorToolkit::IsFillViewportChecked() const
 {
-	return GetFitToViewport();
+	const UTextureEditorSettings& Settings = *GetDefault<UTextureEditorSettings>();
+
+	return Settings.FillViewport;
 }
 
 
 void FTextureEditorToolkit::HandleBackgroundActionExecute( ETextureEditorBackgrounds Background )
 {
-	UTextureEditorSettings& Settings = *GetMutableDefault<UTextureEditorSettings>();
-	Settings.Background = Background;
-	Settings.PostEditChange();
+	UTextureEditorSettings* Settings = Cast<UTextureEditorSettings>(UTextureEditorSettings::StaticClass()->GetDefaultObject());
+	Settings->Background = Background;
 }
 
 
@@ -784,9 +788,8 @@ bool FTextureEditorToolkit::HandleBackgroundActionIsChecked( ETextureEditorBackg
 
 void FTextureEditorToolkit::OnShowBorder()
 {
-	UTextureEditorSettings& Settings = *GetMutableDefault<UTextureEditorSettings>();
-	Settings.TextureBorderEnabled = !Settings.TextureBorderEnabled;
-	Settings.PostEditChange();
+	UTextureEditorSettings* Settings = Cast<UTextureEditorSettings>(UTextureEditorSettings::StaticClass()->GetDefaultObject());
+	Settings->TextureBorderEnabled = !Settings->TextureBorderEnabled;
 }
 
 
@@ -962,14 +965,23 @@ bool FTextureEditorToolkit::GetUseSpecifiedMip() const
 
 double FTextureEditorToolkit::GetZoom() const
 {
+	const UTextureEditorSettings& Settings = *GetDefault<UTextureEditorSettings>();
+
+	if (Settings.FillViewport)
+	{
+		return 0.0;
+	}
+
 	return Zoom;
 }
 
 
 void FTextureEditorToolkit::SetZoom( double ZoomValue )
 {
-	Zoom = FMath::Clamp(ZoomValue, MinZoom, MaxZoom);
-	SetFitToViewport(false);
+	UTextureEditorSettings* Settings = Cast<UTextureEditorSettings>(UTextureEditorSettings::StaticClass()->GetDefaultObject());
+
+	Zoom = FMath::Clamp(ZoomValue, 0.0, MaxZoom);
+	Settings->FillViewport = FMath::IsNearlyZero(Zoom);
 }
 
 
@@ -982,21 +994,6 @@ void FTextureEditorToolkit::ZoomIn()
 void FTextureEditorToolkit::ZoomOut()
 {
 	SetZoom(Zoom - ZoomStep);
-}
-
-
-bool FTextureEditorToolkit::GetFitToViewport() const
-{
-	const UTextureEditorSettings& Settings = *GetDefault<UTextureEditorSettings>();
-	return Settings.FitToViewport;
-}
-
-
-void FTextureEditorToolkit::SetFitToViewport(const bool bFitToViewport)
-{
-	UTextureEditorSettings& Settings = *GetMutableDefault<UTextureEditorSettings>();
-	Settings.FitToViewport = bFitToViewport;
-	Settings.PostEditChange();
 }
 
 

@@ -46,14 +46,6 @@ public:
 protected:
 
 	/**
-	 * Fills the Window menu with menu items.
-	 *
-	 * @param MenuBuilder - The multi-box builder that should be filled with content for this pull-down menu.
-	 * @param RootMenuGroup - The root menu group.
-	 */
-	static void FillWindowMenu( FMenuBuilder& MenuBuilder, TSharedRef<FWorkspaceItem> RootMenuGroup );
-
-	/**
 	 * Launches the selected profile.
 	 */
 	void LaunchSelectedProfile( );

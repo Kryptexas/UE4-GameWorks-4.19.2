@@ -159,7 +159,7 @@ private:
 typedef TSharedPtr<struct FNavigationPath, ESPMode::ThreadSafe> FNavPathSharedPtr;
 typedef TWeakPtr<struct FNavigationPath, ESPMode::ThreadSafe> FNavPathWeakPtr;
 
-struct ENGINE_API FNavigationPath : public TSharedFromThis<FNavigationPath, ESPMode::ThreadSafe>
+struct FNavigationPath : public TSharedFromThis<FNavigationPath, ESPMode::ThreadSafe>
 {
 	DECLARE_DELEGATE_OneParam(FPathObserverDelegate, FNavigationPath*);
 
@@ -210,7 +210,7 @@ struct ENGINE_API FNavigationPath : public TSharedFromThis<FNavigationPath, ESPM
 	FORCEINLINE float GetCost() const { return GetCostFromIndex(0); }
 
 	/** calculates total length of segments from NextPathPoint to the end of path, plus distance from CurrentPosition to NextPathPoint */
-	float GetLengthFromPosition(FVector SegmentStart, uint32 NextPathPointIndex) const;
+	ENGINE_API float GetLengthFromPosition(FVector SegmentStart, uint32 NextPathPointIndex) const;
 
 	FORCEINLINE float GetLength() const { return PathPoints.Num() ? GetLengthFromPosition(PathPoints[0].Location, 1) : 0.0f; }
 

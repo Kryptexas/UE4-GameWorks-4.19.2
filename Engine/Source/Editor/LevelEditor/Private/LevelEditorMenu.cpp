@@ -38,7 +38,7 @@ class SFavouriteMenuEntry : public SCompoundWidget
 		OnOpenClickedDelegate = InArgs._OnOpenClickedDelegate;
 		OnRemoveClickedDelegate = InArgs._OnRemoveClickedDelegate;
 
-		FString OpenDisplayName( *FString::Printf( *LOCTEXT("OpenLevelToolTip", "Open level: %s").ToString(), *AssetDisplayName ) );
+		FString OpenDisplayName( *FString::Printf( *LOCTEXT("FavoriteFileToolTip", "Open level: %s").ToString(), *AssetDisplayName ) );
 		FSlateFontInfo MenuEntryFont = FEditorStyle::GetFontStyle( "Menu.Label.Font" );
 
 		ChildSlot
@@ -74,7 +74,7 @@ class SFavouriteMenuEntry : public SCompoundWidget
 					SNew(SButton)
 					.ContentPadding( FMargin(4.0, 0.0) )
 					.ButtonStyle( FEditorStyle::Get(), "Docking.Tab.CloseButton" )
-					.ToolTipText( FString::Printf( *LOCTEXT("RemoveFavoriteToolTip", "Remove %s from Favorites").ToString(), *AssetDisplayName ) )
+					.ToolTipText( FString::Printf( *LOCTEXT("FavoriteFileToolTip", "Remove %s from Favorites").ToString(), *AssetDisplayName ) )
 					.OnClicked(this, &SFavouriteMenuEntry::OnRemove)
 				]
 			]
@@ -161,7 +161,7 @@ TSharedRef< SWidget > FLevelEditorMenu::MakeLevelEditorMenu( const TSharedPtr<FU
 					OpenFavoriteFile, 
 					NAME_None, 
 					CurBasename, 
-					FText::Format( LOCTEXT("OpenFavoriteFileToolTip", "Open favorite file: {0}"), CurFavoriteText ) );
+					FText::Format( LOCTEXT("FavoriteFileToolTip", "Open favorite file: {0}"), CurFavoriteText ) );
 
 				TSharedPtr< FUICommandInfo > RemoveFavoriteFile = FLevelEditorCommands::Get().RemoveFavoriteCommands[ CurFavoriteIndex ];
 				MenuBuilder.AddMenuEntry( 

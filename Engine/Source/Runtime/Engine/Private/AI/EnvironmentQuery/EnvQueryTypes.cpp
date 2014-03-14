@@ -17,9 +17,9 @@ AActor* FEnvQueryResult::GetItemAsActor(int32 Index) const
 FVector FEnvQueryResult::GetItemAsLocation(int32 Index) const
 {
 	if (Items.IsValidIndex(Index) &&
-		ItemType->IsChildOf(UEnvQueryItemType_VectorBase::StaticClass()))
+		ItemType->IsChildOf(UEnvQueryItemType_LocationBase::StaticClass()))
 	{
-		UEnvQueryItemType_VectorBase* DefTypeOb = (UEnvQueryItemType_VectorBase*)ItemType->GetDefaultObject();
+		UEnvQueryItemType_LocationBase* DefTypeOb = (UEnvQueryItemType_LocationBase*)ItemType->GetDefaultObject();
 		return DefTypeOb->GetLocation(RawData.GetTypedData() + Items[Index].DataOffset);
 	}
 
@@ -82,89 +82,6 @@ FString UEnvQueryTypes::DescribeBoolParam(const FEnvBoolParam& Param)
 	}
 
 	return Param.Value ? TEXT("true") : TEXT("false");
-}
-
-FString FEnvDirection::ToString() const
-{
-	return (DirMode == EEnvDirection::TwoPoints) ?
-		FString::Printf(TEXT("[%s - %s]"), *UEnvQueryTypes::DescribeContext(LineFrom), *UEnvQueryTypes::DescribeContext(LineTo)) :
-		FString::Printf(TEXT("[%s rotation]"), *UEnvQueryTypes::DescribeContext(Rotation));
-}
-
-FString FEnvTraceData::ToString(FEnvTraceData::EDescriptionMode DescMode) const
-{
-	FString Desc;
-
-	if (TraceMode == EEnvQueryTrace::Geometry)
-	{
-		Desc = (TraceShape == EEnvTraceShape::Line) ? TEXT("line") :
-			(TraceShape == EEnvTraceShape::Sphere) ? FString::Printf(TEXT("sphere (radius: %.2f)"), ExtentX) :
-			(TraceShape == EEnvTraceShape::Capsule) ? FString::Printf(TEXT("capsule (radius: %.2f, half height: %.2f)"), ExtentX, ExtentZ) :
-			(TraceShape == EEnvTraceShape::Box) ? FString::Printf(TEXT("box (extent: %.2f %.2f %.2f)"), ExtentX, ExtentY, ExtentZ) :
-			TEXT("unknown");
-
-		if (DescMode == FEnvTraceData::Brief)
-		{
-			static UEnum* ChannelEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("ETraceTypeQuery"), true);
-			Desc += FString::Printf(TEXT(" %s on %s"), bCanProjectDown ? TEXT("projection") : TEXT("trace"), *ChannelEnum->GetEnumString(TraceChannel));
-		}
-		else
-		{
-			if (bTraceComplex)
-			{
-				Desc += TEXT(", complex collision");
-			}
-
-			if (!bOnlyBlockingHits)
-			{
-				Desc += TEXT(", accept non blocking");
-			}
-		}
-	}
-	else if (TraceMode == EEnvQueryTrace::Navigation)
-	{
-		Desc = TEXT("navmesh ");
-		if (bCanProjectDown)
-		{
-			Desc += FString::Printf(TEXT("projection (%s: %.0f"),
-				(ProjectDown == ProjectUp) ? TEXT("height") : (ProjectDown > ProjectUp) ? TEXT("down") : TEXT("up"),
-				FMath::Max(ProjectDown, ProjectUp));
-
-			if (ExtentX > 1.0f)
-			{
-				Desc += FString::Printf(TEXT(", radius: %.2f"), ExtentX);
-			}
-			Desc += TEXT(")");
-		}
-		else
-		{
-			Desc += TEXT("trace");
-			if (NavigationFilter)
-			{
-				Desc += TEXT(" (filter: ");
-				Desc += NavigationFilter->GetName();
-				Desc += TEXT(")");
-			}
-		}
-	}
-
-	return Desc;
-}
-
-void FEnvTraceData::SetGeometryOnly()
-{
-	TraceMode = EEnvQueryTrace::Geometry;
-	bCanTraceOnGeometry = true;
-	bCanTraceOnNavMesh = false;
-	bCanDisableTrace = false;
-}
-
-void FEnvTraceData::SetNavmeshOnly()
-{
-	TraceMode = EEnvQueryTrace::Navigation;
-	bCanTraceOnGeometry = false;
-	bCanTraceOnNavMesh = true;
-	bCanDisableTrace = false;
 }
 
 //----------------------------------------------------------------------//

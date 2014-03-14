@@ -8,15 +8,15 @@ DECLARE_LOG_CATEGORY_EXTERN(LogEQS, Log, All);
 // If set, normalized partial weights will be stored
 #define EQS_STORE_PARTIAL_WEIGHTS		0
 
-DECLARE_STATS_GROUP(TEXT("EnvironmentQuery"),STATGROUP_AI_EQS);
+DECLARE_STATS_GROUP(TEXT("EnvironmentQuery"),STATGROUP_AIEnvQuery);
 
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Tick"),STAT_AI_EQS_Tick,STATGROUP_AI_EQS, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Load Time"),STAT_AI_EQS_LoadTime,STATGROUP_AI_EQS, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Generator Time"),STAT_AI_EQS_GeneratorTime,STATGROUP_AI_EQS, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Test Time"),STAT_AI_EQS_TestTime,STATGROUP_AI_EQS, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Num Instances"),STAT_AI_EQS_NumInstances,STATGROUP_AI_EQS, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Num Items"),STAT_AI_EQS_NumItems,STATGROUP_AI_EQS, );
-DECLARE_MEMORY_STAT_EXTERN(TEXT("Instance memory"),STAT_AI_EQS_InstanceMemory,STATGROUP_AI_EQS, ENGINE_API);
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Tick"),STAT_AI_EnvQuery_Tick,STATGROUP_AIEnvQuery, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Load Time"),STAT_AI_EnvQuery_LoadTime,STATGROUP_AIEnvQuery, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Generator Time"),STAT_AI_EnvQuery_GeneratorTime,STATGROUP_AIEnvQuery, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Test Time"),STAT_AI_EnvQuery_TestTime,STATGROUP_AIEnvQuery, );
+DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Num Instances"),STAT_AI_EnvQuery_NumInstances,STATGROUP_AIEnvQuery, );
+DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Num Items"),STAT_AI_EnvQuery_NumItems,STATGROUP_AIEnvQuery, );
+DECLARE_MEMORY_STAT_EXTERN(TEXT("Instance memory"),STAT_AI_EnvQuery_InstanceMemory,STATGROUP_AIEnvQuery, ENGINE_API);
 
 UENUM()
 namespace EEnvTestCondition
@@ -96,29 +96,7 @@ namespace EEnvQueryTrace
 	{
 		None,
 		Navigation,
-		Geometry,
-	};
-}
-
-UENUM()
-namespace EEnvTraceShape
-{
-	enum Type
-	{
-		Line,
-		Box,
-		Sphere,
-		Capsule,
-	};
-}
-
-UENUM()
-namespace EEnvDirection
-{
-	enum Type
-	{
-		TwoPoints	UMETA(DisplayName="Two Points",ToolTip="Direction from location of one context to another."),
-		Rotation	UMETA(ToolTip="Context's rotation will be used as a direction."),
+		Geometry_NOT_IMPLEMENTED,
 	};
 }
 
@@ -191,112 +169,6 @@ struct ENGINE_API FEnvNamedValue
 	float Value;
 };
 
-USTRUCT()
-struct ENGINE_API FEnvDirection
-{
-	GENERATED_USTRUCT_BODY()
-
-	/** line A: start context */
-	UPROPERTY(EditDefaultsOnly, Category=Direction)
-	TSubclassOf<class UEnvQueryContext> LineFrom;
-
-	/** line A: finish context */
-	UPROPERTY(EditDefaultsOnly, Category=Direction)
-	TSubclassOf<class UEnvQueryContext> LineTo;
-
-	/** line A: direction context */
-	UPROPERTY(EditDefaultsOnly, Category=Direction)
-	TSubclassOf<class UEnvQueryContext> Rotation;
-
-	/** defines direction of second line used by test */
-	UPROPERTY(EditDefaultsOnly, Category=Direction, meta=(DisplayName="Mode"))
-	TEnumAsByte<EEnvDirection::Type> DirMode;
-
-	FString ToString() const;
-};
-
-USTRUCT()
-struct ENGINE_API FEnvTraceData
-{
-	GENERATED_USTRUCT_BODY()
-
-	enum EDescriptionMode
-	{
-		Brief,
-		Detailed,
-	};
-
-	FEnvTraceData() : 
-		ProjectDown(1024.0f), ProjectUp(1024.0f), ExtentX(10.0f), ExtentY(10.0f), ExtentZ(10.0f), bOnlyBlockingHits(true),
-		bCanTraceOnNavMesh(true), bCanTraceOnGeometry(true), bCanDisableTrace(true), bCanProjectDown(false)
-	{
-	}
-
-	/** navigation filter for tracing */
-	UPROPERTY(EditDefaultsOnly, Category=Trace)
-	TSubclassOf<class UNavigationQueryFilter> NavigationFilter;
-
-	/** search height: below point */
-	UPROPERTY(EditDefaultsOnly, Category=Trace, meta=(UIMin=0, ClampMin=0))
-	float ProjectDown;
-
-	/** search height: above point */
-	UPROPERTY(EditDefaultsOnly, Category=Trace, meta=(UIMin=0, ClampMin=0))
-	float ProjectUp;
-
-	/** shape parameter for trace */
-	UPROPERTY(EditDefaultsOnly, Category=Trace, meta=(UIMin=0, ClampMin=0))
-	float ExtentX;
-
-	/** shape parameter for trace */
-	UPROPERTY(EditDefaultsOnly, Category=Trace, meta=(UIMin=0, ClampMin=0))
-	float ExtentY;
-
-	/** shape parameter for trace */
-	UPROPERTY(EditDefaultsOnly, Category=Trace, meta=(UIMin=0, ClampMin=0))
-	float ExtentZ;
-
-	/** geometry trace channel */
-	UPROPERTY(EditDefaultsOnly, Category=Trace)
-	TEnumAsByte<enum ETraceTypeQuery> TraceChannel;
-
-	/** shape used for geometry tracing */
-	UPROPERTY(EditDefaultsOnly, Category=Trace)
-	TEnumAsByte<EEnvTraceShape::Type> TraceShape;
-
-	/** shape used for geometry tracing */
-	UPROPERTY(EditDefaultsOnly, Category=Trace)
-	TEnumAsByte<EEnvQueryTrace::Type> TraceMode;
-
-	/** if set, trace will run on complex collisions */
-	UPROPERTY(EditDefaultsOnly, Category=Trace, AdvancedDisplay)
-	uint32 bTraceComplex : 1;
-
-	/** if set, trace will look only for blocking hits */
-	UPROPERTY(EditDefaultsOnly, Category=Trace, AdvancedDisplay)
-	uint32 bOnlyBlockingHits : 1;
-
-	/** if set, editor will allow picking navmesh trace */
-	UPROPERTY(EditDefaultsOnly, Category=Trace)
-	uint32 bCanTraceOnNavMesh : 1;
-
-	/** if set, editor will allow picking geometry trace */
-	UPROPERTY(EditDefaultsOnly, Category=Trace)
-	uint32 bCanTraceOnGeometry : 1;
-
-	/** if set, editor will allow  */
-	UPROPERTY(EditDefaultsOnly, Category=Trace)
-	uint32 bCanDisableTrace : 1;
-
-	/** if set, editor show height up/down properties for projection */
-	UPROPERTY(EditDefaultsOnly, Category=Trace)
-	uint32 bCanProjectDown : 1;
-
-	FString ToString(EDescriptionMode DescMode) const;
-
-	void SetGeometryOnly();
-	void SetNavmeshOnly();
-};
 
 //////////////////////////////////////////////////////////////////////////
 // Returned results
@@ -425,10 +297,6 @@ struct ENGINE_API FEnvQueryContextData
 	/** data of stored values */
 	TArray<uint8> RawData;
 
-	FEnvQueryContextData()
-		: NumValues(0)
-	{}
-
 	FORCEINLINE uint32 GetAllocatedSize() const { return sizeof(*this) + RawData.GetAllocatedSize(); }
 };
 
@@ -525,7 +393,7 @@ struct ENGINE_API FEnvQueryInstance : public FEnvQueryResult
 	TEnumAsByte<EEnvQueryRunMode::Type> Mode;
 
 	/** item type's CDO for location tests */
-	class UEnvQueryItemType_VectorBase* ItemTypeVectorCDO;
+	class UEnvQueryItemType_LocationBase* ItemTypeLocationCDO;
 
 	/** item type's CDO for actor tests */
 	class UEnvQueryItemType_ActorBase* ItemTypeActorCDO;
@@ -584,13 +452,13 @@ struct ENGINE_API FEnvQueryInstance : public FEnvQueryResult
 	template<typename TypeItem, typename TypeValue>
 	void AddItemData(TypeValue ItemValue)
 	{
-		DEC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, RawData.GetAllocatedSize() + Items.GetAllocatedSize());
+		DEC_MEMORY_STAT_BY(STAT_AI_EnvQuery_InstanceMemory, RawData.GetAllocatedSize() + Items.GetAllocatedSize());
 
 		const int32 DataOffset = RawData.AddUninitialized(ValueSize);
 		TypeItem::SetValue(RawData.GetTypedData() + DataOffset, ItemValue);
 		Items.Add(FEnvQueryItem(DataOffset));
 
-		INC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, RawData.GetAllocatedSize() + Items.GetAllocatedSize());
+		INC_MEMORY_STAT_BY(STAT_AI_EnvQuery_InstanceMemory, RawData.GetAllocatedSize() + Items.GetAllocatedSize());
 	}
 
 protected:
@@ -627,14 +495,14 @@ public:
 #if STATS
 	FORCEINLINE void IncStats()
 	{
-		INC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, GetAllocatedSize());
-		INC_DWORD_STAT_BY(STAT_AI_EQS_NumItems, Items.Num());
+		INC_MEMORY_STAT_BY(STAT_AI_EnvQuery_InstanceMemory, GetAllocatedSize());
+		INC_DWORD_STAT_BY(STAT_AI_EnvQuery_NumItems, Items.Num());
 	}
 
 	FORCEINLINE void DecStats()
 	{
-		DEC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, GetAllocatedSize()); 
-		DEC_DWORD_STAT_BY(STAT_AI_EQS_NumItems, Items.Num());
+		DEC_MEMORY_STAT_BY(STAT_AI_EnvQuery_InstanceMemory, GetAllocatedSize()); 
+		DEC_DWORD_STAT_BY(STAT_AI_EnvQuery_NumItems, Items.Num());
 	}
 
 	uint32 GetAllocatedSize() const;
@@ -732,7 +600,7 @@ public:
 			bPassed = true;
 		}
 
-		ENGINE_API void StoreTestResult();
+		void StoreTestResult();
 	};
 #endif
 

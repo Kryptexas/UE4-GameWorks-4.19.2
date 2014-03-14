@@ -129,8 +129,6 @@ UInstancedFoliageSettings::UInstancedFoliageSettings(const class FPostConstructI
 	bCastStaticShadow = true;
 	bCastHiddenShadow = false;
 	bCastShadowAsTwoSided = false;
-
-	BodyInstance.SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 }
 
 //
@@ -291,8 +289,13 @@ void FFoliageMeshInfo::AddInstance( AInstancedFoliageActor* InIFA, UStaticMesh* 
 			ConstructObject<UInstancedStaticMeshComponent>(UInstancedStaticMeshComponent::StaticClass(),InIFA,NAME_None,RF_Transactional),
 			InMesh->GetBounds().TransformBy(InstanceTransform)
 			);
-		BestCluster->ClusterComponent->Mobility = EComponentMobility::Static;
-
+		// Set IsPendingKill() to true so that when the initial undo record is made,
+		// the component will be treated as destroyed, in that undo an add will
+		// actually work
+		BestCluster->ClusterComponent->SetFlags(RF_PendingKill);
+		BestCluster->ClusterComponent->Modify( false );
+		BestCluster->ClusterComponent->ClearFlags(RF_PendingKill);
+			
 		BestCluster->ClusterComponent->StaticMesh = InMesh;
 		BestCluster->ClusterComponent->bSelectable = true;
 		BestCluster->ClusterComponent->bHasPerInstanceHitProxies = true;
@@ -306,8 +309,6 @@ void FFoliageMeshInfo::AddInstance( AInstancedFoliageActor* InIFA, UStaticMesh* 
 		BestCluster->ClusterComponent->bCastStaticShadow = Settings->bCastStaticShadow;
 		BestCluster->ClusterComponent->bCastHiddenShadow = Settings->bCastHiddenShadow;
 		BestCluster->ClusterComponent->bCastShadowAsTwoSided = Settings->bCastShadowAsTwoSided;
-
-		BestCluster->ClusterComponent->BodyInstance.CopyBodyInstancePropertiesFrom(&Settings->BodyInstance);
 
 		BestCluster->ClusterComponent->SetRelativeTransform(FTransform::Identity);
 		BestCluster->ClusterComponent->RegisterComponent();
@@ -733,7 +734,7 @@ void FFoliageMeshInfo::SelectInstances( AInstancedFoliageActor* InIFA, bool bSel
 AInstancedFoliageActor::AInstancedFoliageActor(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	SetActorEnableCollision(true);
+	SetActorEnableCollision(false);
 #if WITH_EDITORONLY_DATA
 	bListedInSceneOutliner = false;
 #endif // WITH_EDITORONLY_DATA
@@ -1426,20 +1427,6 @@ void AInstancedFoliageActor::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
 	Ar << FoliageMeshes;
-
-	if (Ar.UE4Ver() < VER_UE4_FOLIAGE_COLLISION)
-	{
-		for (const TPair<UStaticMesh*, FFoliageMeshInfo>& MeshInfo : FoliageMeshes)
-		{
-			for (const FFoliageInstanceCluster& Cluster : MeshInfo.Value.InstanceClusters)
-			{
-				if (Ar.UE4Ver() < VER_UE4_FOLIAGE_MOBILITY)
-					Cluster.ClusterComponent->SetMobility(EComponentMobility::Static);
-				if (Ar.UE4Ver() < VER_UE4_FOLIAGE_COLLISION)
-					Cluster.ClusterComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-			}
-		}
-	}
 }
 
 void AInstancedFoliageActor::PostLoad()

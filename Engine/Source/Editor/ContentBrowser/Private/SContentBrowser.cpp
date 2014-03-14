@@ -781,12 +781,6 @@ bool SContentBrowser::IsLocked() const
 	return bIsLocked;
 }
 
-void SContentBrowser::SetKeyboardFocusOnSearch() const
-{
-	// Focus on the search box
-	FSlateApplication::Get().SetKeyboardFocus( SearchBoxPtr, EKeyboardFocusCause::SetDirectly );
-}
-
 FReply SContentBrowser::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
 {
 	if( Commands->ProcessCommandBindings( InKeyboardEvent ) )
@@ -1139,9 +1133,17 @@ TSharedPtr<SWidget> SContentBrowser::OnGetCrumbDelimiterContent(const FString& C
 		{
 			FMenuBuilder MenuBuilder( true, NULL );
 
+			const bool bDisplayDev = GetDefault<UContentBrowserSettings>()->GetDisplayDevelopersFolder();
+			const bool bDisplayEngine = GetDefault<UContentBrowserSettings>()->GetDisplayEngineFolder();
 			for( int32 PathIndex = 0; PathIndex < SubPaths.Num(); ++PathIndex )
 			{
 				const FString& SubPath = SubPaths[PathIndex];
+
+				// If this is a developer or engine folder, and we don't want to show them, continue
+				if ( (!bDisplayDev && ContentBrowserUtils::IsDevelopersFolder( SubPath )) || (!bDisplayEngine && ContentBrowserUtils::IsEngineFolder( SubPath )) )
+				{
+					continue;
+				}
 
 				// For displaying in the menu cut off the parent path since it is redundant
 				FString PathWithoutParent = SubPath.RightChop( CrumbData.Len() + 1 );
@@ -1604,7 +1606,7 @@ void SContentBrowser::UpdatePath()
 		for ( auto CrumbIt = Crumbs.CreateConstIterator(); CrumbIt; ++CrumbIt )
 		{
 			CrumbPath += *CrumbIt;
-			PathBreadcrumbTrail->PushCrumb(FText::FromString(*CrumbIt), CrumbPath);
+			PathBreadcrumbTrail->PushCrumb(*CrumbIt, CrumbPath);
 			CrumbPath += TEXT("/");
 		}
 	}
@@ -1612,17 +1614,14 @@ void SContentBrowser::UpdatePath()
 	{
 		const FString CollectionName = SourcesData.Collections[0].Name.ToString();
 		const FString CollectionType = FString::FromInt(SourcesData.Collections[0].Type);
+		const FString DisplayName = FString::Printf(TEXT("%s (%s)"), *CollectionName, *LOCTEXT("CollectionPathIndicator", "Collection").ToString());
 		const FString CrumbData = CollectionName + TEXT("?") + CollectionType;
-
-		FFormatNamedArguments Args;
-		Args.Add(TEXT("CollectionName"), FText::FromString(CollectionName));
-		const FText DisplayName = FText::Format(LOCTEXT("CollectionPathIndicator", "{CollectionName} (Collection)"), Args);
 
 		PathBreadcrumbTrail->PushCrumb(DisplayName, CrumbData);
 	}
 	else
 	{
-		PathBreadcrumbTrail->PushCrumb(LOCTEXT("AllAssets", "All Assets"), TEXT(""));
+		PathBreadcrumbTrail->PushCrumb(LOCTEXT("AllAssets", "All Assets").ToString(), TEXT(""));
 	}
 }
 

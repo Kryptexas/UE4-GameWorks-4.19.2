@@ -102,7 +102,7 @@ bool FOnlineIdentityFacebook::Login(int32 LocalUserNum, const FOnlineAccountCred
 					{
 						UE_LOG(LogOnline, Display, TEXT("[FBSession bSuccessfullyLoggedIn = true]"));
 
-						FString Token([session accessTokenData].accessToken);
+						FString Token = ANSI_TO_TCHAR([[session accessTokenData].accessToken cStringUsingEncoding:NSASCIIStringEncoding]);
 						UserAccount->AuthTicket = Token;
 						UE_LOG(LogOnline, Display, TEXT("Got signin token: %s"), *Token );
 
@@ -110,7 +110,7 @@ bool FOnlineIdentityFacebook::Login(int32 LocalUserNum, const FOnlineAccountCred
 							{
 								if (!error2)
 								{
-									const FString UserId([user objectForKey:@"id"]);
+									FString UserId = ANSI_TO_TCHAR([[user objectForKey:@"id"] cStringUsingEncoding:NSASCIIStringEncoding]);
 									UserAccount->UserId = MakeShareable(new FUniqueNetIdString(UserId));
 									UE_LOG(LogOnline, Display, TEXT("got user profile for id: %s"), *UserId );
 								}

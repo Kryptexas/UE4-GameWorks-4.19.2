@@ -87,133 +87,47 @@ TSharedPtr<SUniformGridPanel> FDataTableEditor::CreateGridPanel()
 {
 	TSharedPtr<SUniformGridPanel> GridPanel = SNew(SUniformGridPanel).SlotPadding( FMargin( 2.0f ) );
 
-	if (DataTable != NULL)
+	if(DataTable != NULL)
 	{
-		if (CachedDataTable.Num() == 0)
+		TArray<TArray<FString> > RowData = DataTable->GetTableData();
+		TArray<FString>& ColumnTitles = RowData[0];
+		for(int i = 0;i<RowData.Num();++i)
 		{
-			CachedDataTable = DataTable->GetTableData();
-
-			RowsVisibility.SetNum(CachedDataTable.Num());
-			for (int32 i = 0; i < RowsVisibility.Num(); ++i)
+			bool bIsHeader =  (i == 0);
+			TArray<FString>& Row = RowData[i];
+			FLinearColor RowColor = bIsHeader ? FLinearColor::Gray : FLinearColor::Black;
+			for(int Column = 0;Column<Row.Num();++Column)
 			{
-				RowsVisibility[i] = true;
-			}
-		}
-
-		check(CachedDataTable.Num() > 0 && CachedDataTable.Num() == RowsVisibility.Num());
-
-		int32 RowIndex = 0;
-		TArray<FString>& ColumnTitles = CachedDataTable[0];
-		for(int i = 0;i<CachedDataTable.Num();++i)
-		{
-			if (RowsVisibility[i])
-			{
-				bool bIsHeader =  (i == 0);
-
-				FLinearColor RowColor = (RowIndex % 2 == 0) ? FLinearColor::Gray : FLinearColor::Black;				
-				if (bIsHeader)
-				{
-					RowColor = FLinearColor::Gray;
-				}
-				
-				TArray<FString>& Row = CachedDataTable[i];				
-				for(int Column = 0;Column<Row.Num();++Column)
-				{
-					GridPanel->AddSlot(Column, RowIndex)
+				GridPanel->AddSlot(Column, i)
+					[
+						SNew(SBorder)
+						.Padding(1)
+						.BorderImage( FEditorStyle::GetBrush( "ToolPanel.GroupBorder" ) )
+						.BorderBackgroundColor(RowColor)
 						[
-							SNew(SBorder)
-							.Padding(1)
-							.BorderImage( FEditorStyle::GetBrush( "ToolPanel.GroupBorder" ) )
-							.BorderBackgroundColor(RowColor)						
-							[
-								SNew(STextBlock)
-								.Text(Row[Column])
-								.ToolTipText(bIsHeader 
-								?	(FString::Printf(TEXT("Column '%s"), *ColumnTitles[Column])) 
-								:	(FString::Printf(TEXT("%s: %s"), *ColumnTitles[Column], *Row[Column])))
-							]
-						];
-				}
-
-				++RowIndex;
+							SNew(STextBlock)
+							.Text(Row[Column])
+							.ToolTipText(bIsHeader 
+							?	(FString::Printf(TEXT("Column '%s"), *ColumnTitles[Column])) 
+							:	(FString::Printf(TEXT("%s: %s"), *ColumnTitles[Column], *Row[Column])))
+						]
+					];
 			}
 		}
 	}
 	return GridPanel;
 }
 
-void FDataTableEditor::OnSearchTextChanged(const FText& SearchText)
-{
-	FString SearchFor = SearchText.ToString();
-	if (!SearchFor.IsEmpty())
-	{
-		check(CachedDataTable.Num() == RowsVisibility.Num());
-
-		// starting from index 1, because 0 is header
-		for (int32 RowIdx = 1; RowIdx < CachedDataTable.Num(); ++RowIdx)
-		{
-			RowsVisibility[RowIdx] = false;
-
-			for (int32 i = 0; i < CachedDataTable[RowIdx].Num(); ++i)
-			{
-				if (SearchFor.Len() < CachedDataTable[RowIdx][i].Len())
-				{
-					if (CachedDataTable[RowIdx][i].Contains(SearchFor))
-					{
-						RowsVisibility[RowIdx] = true;
-						break;
-					}
-				}
-			}
-		}
-	}
-	else
-	{
-		for (int32 RowIdx = 0; RowIdx < RowsVisibility.Num(); ++RowIdx)
-		{
-			RowsVisibility[RowIdx] = true;
-		}
-	}
-
-	ReloadVisibleData();
-}
-
-void FDataTableEditor::ReloadVisibleData()
-{
-	if (ScrollBoxWidget.IsValid())
-	{
-		ScrollBoxWidget->ClearChildren();
-		ScrollBoxWidget->AddSlot()
-			[
-				CreateGridPanel().ToSharedRef()
-			];
-	}
-}
-
-TSharedRef<SVerticalBox> FDataTableEditor::CreateContentBox()
-{
-	return SNew(SVerticalBox)
-		+SVerticalBox::Slot()
-		.AutoHeight()
-		[
-			SAssignNew(SearchBox, SSearchBox)
-			.OnTextChanged(this, &FDataTableEditor::OnSearchTextChanged)
-		]
-		+SVerticalBox::Slot()
-		[
-			SAssignNew(ScrollBoxWidget, SScrollBox)
-			+SScrollBox::Slot()
-			[
-				CreateGridPanel().ToSharedRef()
-			]
-		];
-}
-
 void FDataTableEditor::OnDataTableReloaded() 
 {
-	TSharedRef<SVerticalBox> ContentBox = CreateContentBox();
+	TSharedPtr<SScrollBox> Scroll = 
+		SNew(SScrollBox)
+		+SScrollBox::Slot()
+		[
+			CreateGridPanel().ToSharedRef()
+		];
 	
-	GridPanelOwner->SetContent(ContentBox);
+	GridPanelOwner->SetContent(Scroll.ToSharedRef());
 }
 
 TSharedRef<SDockTab> FDataTableEditor::SpawnTab_DataTable( const FSpawnTabArgs& Args )
@@ -222,8 +136,6 @@ TSharedRef<SDockTab> FDataTableEditor::SpawnTab_DataTable( const FSpawnTabArgs& 
 
 	DataTable = Cast<UDataTable>(GetEditingObject());
 
-	TSharedRef<SVerticalBox> ContentBox = CreateContentBox();
-
 	GridPanelOwner = 
 		SNew(SBorder)
 		.Padding(2)
@@ -231,7 +143,11 @@ TSharedRef<SDockTab> FDataTableEditor::SpawnTab_DataTable( const FSpawnTabArgs& 
 		.HAlign(HAlign_Left)
 		.BorderImage( FEditorStyle::GetBrush( "ToolPanel.GroupBorder" ) )
 		[
-			ContentBox
+			SNew(SScrollBox)
+			+SScrollBox::Slot()
+			[
+				CreateGridPanel().ToSharedRef()
+			]
 		];
 
 	return SNew(SDockTab)

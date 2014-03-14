@@ -97,7 +97,4 @@ public:
 
 	/* Migrate packages to another game content folder */
 	virtual void MigratePackages(const TArray<FName>& PackageNamesToMigrate) const = 0;
-
-	/** Fix up references to the specified redirectors */
-	virtual void FixupReferencers(const TArray<UObjectRedirector*>& Objects) const = 0;
 };

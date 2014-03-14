@@ -333,33 +333,6 @@ UActorComponent* FSCSEditorTreeNode::FindComponentInstanceInActor(const AActor* 
 	return ComponentInstance;
 }
 
-UBlueprint* FSCSEditorTreeNode::GetBlueprint() const
-{
-	USCS_Node* SCS_Node = GetSCSNode();
-	UActorComponent* ComponentTemplate = GetComponentTemplate();
-
-	if(SCS_Node)
-	{
-		USimpleConstructionScript* SCS = SCS_Node->GetSCS();
-		if(SCS)
-		{
-			return SCS->GetBlueprint();
-		}
-	}
-	else if(ComponentTemplate)
-	{
-		AActor* CDO = ComponentTemplate->GetOwner();
-		if(CDO)
-		{
-			check(CDO->GetClass());
-
-			return Cast<UBlueprint>(CDO->GetClass()->ClassGeneratedBy);
-		}
-	}
-
-	return NULL;
-}
-
 bool FSCSEditorTreeNode::IsRoot() const
 {
 	bool bIsRoot = true;
@@ -888,24 +861,16 @@ TSharedPtr<SWidget> SSCS_RowWidget::BuildSceneRootDropActionMenu(FSCSEditorTreeN
 		const FText DroppedVariableNameText = FText::FromName( DroppedNodePtr->GetVariableName() );
 		const FText NodeVariableNameText = FText::FromName( NodePtr->GetVariableName() );
 
-		check(SCSEditor.IsValid());
-		check(SCSEditor.Pin()->SCS);
-		const bool bDroppedInSameBlueprint = DroppedNodePtr->GetBlueprint() == SCSEditor.Pin()->SCS->GetBlueprint();
-
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("DropActionLabel_AttachToRootNode", "Attach"),
-			bDroppedInSameBlueprint 
-			? FText::Format( LOCTEXT("DropActionToolTip_AttachToRootNode", "Attach {0} to {1}."), DroppedVariableNameText, NodeVariableNameText )
-			: FText::Format( LOCTEXT("DropActionToolTip_AttachToRootNodeFromCopy", "Copy {0} to a new variable and attach it to {1}."), DroppedVariableNameText, NodeVariableNameText ),
+			FText::Format( LOCTEXT("DropActionToolTip_AttachToRootNode", "Attach {0} to {1}."), DroppedVariableNameText, NodeVariableNameText ),
 			FSlateIcon(),
 			FUIAction(
 				FExecuteAction::CreateSP(this, &SSCS_RowWidget::OnAttachToDropAction, DroppedNodePtr),
 				FCanExecuteAction()));
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("DropActionLabel_MakeNewRootNode", "Make New Root"),
-			bDroppedInSameBlueprint
-			? FText::Format( LOCTEXT("DropActionToolTip_MakeNewRootNode", "Make {0} the new root."), DroppedVariableNameText )
-			: FText::Format( LOCTEXT("DropActionToolTip_MakeNewRootNodeFromCopy", "Copy {0} to a new variable and make it the new root."), DroppedVariableNameText ),
+			FText::Format( LOCTEXT("DropActionToolTip_MakeNewRootNode", "Make {0} the new root."), DroppedVariableNameText ),
 			FSlateIcon(),
 			FUIAction(
 				FExecuteAction::CreateSP(this, &SSCS_RowWidget::OnMakeNewRootDropAction, DroppedNodePtr),
@@ -989,44 +954,33 @@ void SSCS_RowWidget::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEv
 				// Can't attach non-USceneComponent types
 				DragRowOp->CurrentHoverText = LOCTEXT("DropActionToolTip_Error_NotAttachable", "Cannot attach to this component.");
 			}
-			else if(NodePtr == SceneRootNodePtr)
+			else if(DraggedNodePtr->IsAttachedTo(NodePtr))
 			{
-				if(!NodePtr->CanReparent() && !NodePtr->IsDefaultSceneRoot())
+				if(NodePtr == SceneRootNodePtr)
 				{
-					// Cannot make the dropped node the new root if we cannot reparent the current root
-					DragRowOp->CurrentHoverText = LOCTEXT("DropActionToolTip_Error_CannotReparentRootNode", "The root component in this Blueprint cannot be replaced.");						
-				}
-				else if (DraggedTemplate->IsEditorOnly() && !HoveredTemplate->IsEditorOnly()) 
-				{
-					// can't have a new root that's editor-only (when children would be around in-game)
-					DragRowOp->CurrentHoverText = LOCTEXT("DropActionToolTip_Error_CannotReparentEditorOnly", "Cannot re-parent game components under editor-only ones.");
-				}
-				else if(!NodePtr->IsDefaultSceneRoot() && !DraggedNodePtr->IsDirectlyAttachedTo(NodePtr) && HoveredTemplate->CanAttachAsChild(DraggedTemplate, NAME_None))
-				{
-					// User can choose to either attach to the current root or make the dropped node the new root
-					DragRowOp->CurrentHoverText = LOCTEXT("DropActionToolTip_AttachToOrMakeNewRoot", "Drop here to see available actions.");
-					DragRowOp->PendingDropAction = FSCSRowDragDropOp::DropAction_AttachToOrMakeNewRoot;
-				}
-				else
-				{
-					// Only available action is to make the dropped node the new root
-					if(DraggedNodePtr->GetBlueprint() != SCSEditor.Pin()->SCS->GetBlueprint())
+					if(!NodePtr->CanReparent())
 					{
-						DragRowOp->CurrentHoverText = FText::Format( LOCTEXT("DropActionToolTip_DropMakeNewRootNodeFromCopy", "Drop here to copy {0} to a new variable and make it the new root."), FText::FromName( DraggedNodePtr->GetVariableName() ) );
+						// Cannot make the dropped node the new root if we cannot reparent the current root
+						DragRowOp->CurrentHoverText = LOCTEXT("DropActionToolTip_Error_CannotReparentRootNode", "The root component in this Blueprint cannot be replaced.");						
+					}
+					else if (DraggedTemplate->IsEditorOnly() && !HoveredTemplate->IsEditorOnly()) 
+					{
+						// can't have a new root that's editor-only (when children would be around in-game)
+						DragRowOp->CurrentHoverText = LOCTEXT("DropActionToolTip_Error_CannotReparentEditorOnly", "Cannot re-parent game components under editor-only ones.");
 					}
 					else
 					{
+						// Make the dropped node the new root
 						DragRowOp->CurrentHoverText = FText::Format( LOCTEXT("DropActionToolTip_DropMakeNewRootNode", "Drop here to make {0} the new root."), FText::FromName( DraggedNodePtr->GetVariableName() ) );
+						DragRowOp->PendingDropAction = FSCSRowDragDropOp::DropAction_MakeNewRoot;
 					}
-					
-					DragRowOp->PendingDropAction = FSCSRowDragDropOp::DropAction_MakeNewRoot;
 				}
-			}
-			else if(DraggedNodePtr->IsDirectlyAttachedTo(NodePtr)) // if dropped onto parent
-			{
-				// Detach the dropped node from the current node and reattach it to the root node
-				DragRowOp->CurrentHoverText = FText::Format( LOCTEXT("DropActionToolTip_DetachFromThisNode", "Drop here to detach {0} from {1}."), FText::FromName( DraggedNodePtr->GetVariableName() ),  FText::FromName( NodePtr->GetVariableName() ) );
-				DragRowOp->PendingDropAction = FSCSRowDragDropOp::DropAction_DetachFrom;
+				else if(DraggedNodePtr->IsDirectlyAttachedTo(NodePtr)) // if dropped onto parent
+				{
+					// Detach the dropped node from the current node and reattach it to the root node
+					DragRowOp->CurrentHoverText = FText::Format( LOCTEXT("DropActionToolTip_DetachFromThisNode", "Drop here to detach {0} from {1}."), FText::FromName( DraggedNodePtr->GetVariableName() ),  FText::FromName( NodePtr->GetVariableName() ) );
+					DragRowOp->PendingDropAction = FSCSRowDragDropOp::DropAction_DetachFrom;
+				}
 			}
 			else if (!DraggedTemplate->IsEditorOnly() && HoveredTemplate->IsEditorOnly()) 
 			{
@@ -1043,18 +997,25 @@ void SSCS_RowWidget::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEv
 				// Can't attach Static components to mobile ones
 				DragRowOp->CurrentHoverText = LOCTEXT("DropActionToolTip_Error_CannotAttachStationary", "Cannot attach Stationary components to movable ones.");
 			}
-			else if(HoveredTemplate->CanAttachAsChild(DraggedTemplate, NAME_None))
+			else if(NodePtr == SceneRootNodePtr && NodePtr->CanReparent())
 			{
-				// Attach the dropped node to this node
-				if(DraggedNodePtr->GetBlueprint() != SCSEditor.Pin()->SCS->GetBlueprint())
+				if(HoveredTemplate->CanAttachAsChild(DraggedTemplate, NAME_None))
 				{
-					DragRowOp->CurrentHoverText = FText::Format( LOCTEXT("DropActionToolTip_AttachToThisNodeFromCopy", "Drop here to copy {0} to a new variable and attach it to {1}."), FText::FromName( DraggedNodePtr->GetVariableName() ), FText::FromName( NodePtr->GetVariableName() ) );
+					// User can choose to either attach to the current root or make the dropped node the new root
+					DragRowOp->CurrentHoverText = LOCTEXT("DropActionToolTip_AttachToOrMakeNewRoot", "Drop here to see available actions.");
+					DragRowOp->PendingDropAction = FSCSRowDragDropOp::DropAction_AttachToOrMakeNewRoot;
 				}
 				else
 				{
-					DragRowOp->CurrentHoverText = FText::Format( LOCTEXT("DropActionToolTip_AttachToThisNode", "Drop here to attach {0} to {1}."), FText::FromName( DraggedNodePtr->GetVariableName() ), FText::FromName( NodePtr->GetVariableName() ) );
+					// Only available action is to make the dropped node the new root
+					DragRowOp->CurrentHoverText = FText::Format( LOCTEXT("DropActionToolTip_DropMakeNewRootNode", "Drop here to make {0} the new root."), FText::FromName( DraggedNodePtr->GetVariableName() ) );
+					DragRowOp->PendingDropAction = FSCSRowDragDropOp::DropAction_MakeNewRoot;
 				}
-
+			}
+			else if(HoveredTemplate->CanAttachAsChild(DraggedTemplate, NAME_None))
+			{
+				// Attach the dropped node to this node
+				DragRowOp->CurrentHoverText = FText::Format( LOCTEXT("DropActionToolTip_AttachToThisNode", "Drop here to attach {0} to {1}."), FText::FromName( DraggedNodePtr->GetVariableName() ), FText::FromName( NodePtr->GetVariableName() ) );
 				DragRowOp->PendingDropAction = FSCSRowDragDropOp::DropAction_AttachTo;
 			}
 			else
@@ -1154,59 +1115,18 @@ void SSCS_RowWidget::OnAttachToDropAction(FSCSEditorTreeNodePtrType DroppedNodeP
 	check(NodePtr.IsValid());
 	check(DroppedNodePtr.IsValid());
 
-	check(SCSEditor.IsValid());
-	check(SCSEditor.Pin()->SCS);
-
-	// Get the current Blueprint context
-	UBlueprint* Blueprint = SCSEditor.Pin()->SCS->GetBlueprint();
-	check(Blueprint);
-
-	FScopedTransaction* TransactionContext = NULL;
-
-	// Clone the component if it's being dropped into a different SCS
-	bool bRegenerateTreeNodes = false;
-	if(DroppedNodePtr->GetBlueprint() != Blueprint)
+	if(DroppedNodePtr->GetParent().IsValid())
 	{
-		bRegenerateTreeNodes = true;
-
-		UActorComponent* ComponentTemplate = DroppedNodePtr->GetComponentTemplate();
-		check(ComponentTemplate);
-
-		// Note: This will mark the Blueprint as structurally modified
-		UActorComponent* ClonedComponent = SCSEditor.Pin()->AddNewComponent(ComponentTemplate->GetClass(), NULL);
-		check(ClonedComponent);
-
-		//Serialize object properties using write/read operations.
-		TArray<uint8> SavedProperties;
-		FObjectWriter Writer(ComponentTemplate, SavedProperties);
-		FObjectReader(ClonedComponent, SavedProperties);
-
-		DroppedNodePtr = SCSEditor.Pin()->GetNodeFromActorComponent(ClonedComponent);
-		check(DroppedNodePtr.IsValid());
-	}
-	else
-	{
-		TransactionContext = new FScopedTransaction( LOCTEXT("AttachComponent", "Attach Component") );
-	}
-
-	if(DroppedNodePtr->GetParent().IsValid()
-		&& DroppedNodePtr->GetBlueprint() == Blueprint)
-	{
-		// Remove the dropped node from its existing parent
 		DroppedNodePtr->GetParent()->RemoveChild(DroppedNodePtr);
 	}
 	
 	NodePtr->AddChild(DroppedNodePtr);
 
-	if(TransactionContext)
-	{
-		delete TransactionContext;
-	}
-
+	check(SCSEditor.IsValid());
 	check(SCSEditor.Pin()->SCSTreeWidget.IsValid());
 	SCSEditor.Pin()->SCSTreeWidget->SetItemExpansion(NodePtr, true);
 
-	PostDragDropAction(bRegenerateTreeNodes);
+	PostDragDropAction(false);
 }
 
 void SSCS_RowWidget::OnDetachFromDropAction(FSCSEditorTreeNodePtrType DroppedNodePtr)
@@ -1214,18 +1134,13 @@ void SSCS_RowWidget::OnDetachFromDropAction(FSCSEditorTreeNodePtrType DroppedNod
 	check(NodePtr.IsValid());
 	check(DroppedNodePtr.IsValid());
 
+	NodePtr->RemoveChild(DroppedNodePtr);
+
 	check(SCSEditor.IsValid());
-	check(SCSEditor.Pin()->SCS);
 
-	{
-		const FScopedTransaction Transaction( LOCTEXT("DetachComponent", "Detach Component") );
+	check(SCSEditor.Pin()->SceneRootNodePtr.IsValid());
+	SCSEditor.Pin()->SceneRootNodePtr->AddChild(DroppedNodePtr);
 
-		NodePtr->RemoveChild(DroppedNodePtr);
-
-		check(SCSEditor.Pin()->SceneRootNodePtr.IsValid());
-		SCSEditor.Pin()->SceneRootNodePtr->AddChild(DroppedNodePtr);
-	}
-	
 	PostDragDropAction(false);
 }
 
@@ -1237,65 +1152,25 @@ void SSCS_RowWidget::OnMakeNewRootDropAction(FSCSEditorTreeNodePtrType DroppedNo
 	USimpleConstructionScript* SCS = SCSEditor.Pin()->SCS;
 	check(SCS != NULL);
 
-	// Get the current Blueprint context
-	UBlueprint* Blueprint = SCS->GetBlueprint();
-	check(Blueprint != NULL);
-
 	// Get the current scene root node
 	FSCSEditorTreeNodePtrType& SceneRootNodePtr = SCSEditor.Pin()->SceneRootNodePtr;
 
 	check(NodePtr.IsValid() && NodePtr == SceneRootNodePtr);
 	check(DroppedNodePtr.IsValid());
 
-	FScopedTransaction* TransactionContext = NULL;
-
-	// Remember whether or not we're replacing the default scene root
-	bool bWasDefaultSceneRoot = SceneRootNodePtr.IsValid() && SceneRootNodePtr->IsDefaultSceneRoot();
-
-	// Clone the component if it's being dropped into a different SCS
-	if(DroppedNodePtr->GetBlueprint() != Blueprint)
+	// Remove the dropped node from its existing parent
+	if(DroppedNodePtr->GetParent().IsValid())
 	{
-		UActorComponent* ComponentTemplate = DroppedNodePtr->GetComponentTemplate();
-		check(ComponentTemplate);
-
-		// Note: This will mark the Blueprint as structurally modified
-		UActorComponent* ClonedComponent = SCSEditor.Pin()->AddNewComponent(ComponentTemplate->GetClass(), NULL);
-		check(ClonedComponent);
-
-		//Serialize object properties using write/read operations.
-		TArray<uint8> SavedProperties;
-		FObjectWriter Writer(ComponentTemplate, SavedProperties);
-		FObjectReader(ClonedComponent, SavedProperties);
-
-		DroppedNodePtr = SCSEditor.Pin()->GetNodeFromActorComponent(ClonedComponent);
-		check(DroppedNodePtr.IsValid());
-	}
-	else
-	{
-		TransactionContext = new FScopedTransaction( LOCTEXT("MakeNewSceneRoot", "Make New Scene Root") );
-	}
-
-	if(DroppedNodePtr->GetParent().IsValid()
-		&& DroppedNodePtr->GetBlueprint() == Blueprint)
-	{
-		// Remove the dropped node from its existing parent
 		DroppedNodePtr->GetParent()->RemoveChild(DroppedNodePtr);
 	}
 
-	if(!bWasDefaultSceneRoot)
-	{
-		check(SceneRootNodePtr->CanReparent());
+	check(SceneRootNodePtr->CanReparent());
 
-		// Remove the current scene root node from the SCS context
-		SCS->RemoveNode(SceneRootNodePtr->GetSCSNode());
-	}
+	// Remove the current scene root node from the SCS context
+	SCS->RemoveNode(SceneRootNodePtr->GetSCSNode());
 
 	// Save old root node
-	FSCSEditorTreeNodePtrType OldSceneRootNodePtr;
-	if(!bWasDefaultSceneRoot)
-	{
-		OldSceneRootNodePtr = SceneRootNodePtr;
-	}
+	FSCSEditorTreeNodePtrType OldSceneRootNodePtr = SceneRootNodePtr;
 
 	// Set node we are dropping as new root
 	SceneRootNodePtr = DroppedNodePtr;
@@ -1307,11 +1182,6 @@ void SSCS_RowWidget::OnMakeNewRootDropAction(FSCSEditorTreeNodePtrType DroppedNo
 	if(OldSceneRootNodePtr.IsValid())
 	{
 		SceneRootNodePtr->AddChild(OldSceneRootNodePtr);
-	}
-
-	if(TransactionContext)
-	{
-		delete TransactionContext;
 	}
 
 	PostDragDropAction(true);

@@ -35,7 +35,7 @@ class ONLINESUBSYSTEMUTILS_API UIpNetDriver : public UNetDriver
 	virtual bool InitBase(bool bInitAsClient, FNetworkNotify* InNotify, const FURL& URL, bool bReuseAddressAndPort, FString& Error) OVERRIDE;
 	virtual bool InitConnect( FNetworkNotify* InNotify, const FURL& ConnectURL, FString& Error ) OVERRIDE;
 	virtual bool InitListen( FNetworkNotify* InNotify, FURL& LocalURL, bool bReuseAddressAndPort, FString& Error ) OVERRIDE;
-	virtual void ProcessRemoteFunction(class AActor* Actor, class UFunction* Function, void* Parameters, struct FOutParmRec* OutParms, struct FFrame* Stack, class UObject * SubObject = NULL) OVERRIDE;
+	virtual void ProcessRemoteFunction(class AActor* Actor, class UFunction* Function, void* Parameters, struct FFrame* Stack, class UObject * SubObject = NULL) OVERRIDE;
 	virtual void TickDispatch( float DeltaTime ) OVERRIDE;
 	virtual FString LowLevelGetNetworkNumber() OVERRIDE;
 	virtual void LowLevelDestroy() OVERRIDE;

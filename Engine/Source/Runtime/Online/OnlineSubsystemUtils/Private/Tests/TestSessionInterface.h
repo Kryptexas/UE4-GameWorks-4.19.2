@@ -32,7 +32,7 @@
 	/** Convenient access to the identity interface */
 	IOnlineIdentityPtr Identity;
 	/** Convenient access to the session interface */
-	IOnlineSessionPtr SessionInt;
+	IOnlineSessionPtr Sessions;
 	/** Convenient access to friends interface */
 	IOnlineFriendsPtr Friends;
 
@@ -245,7 +245,7 @@
 		bOverallSuccess(false),
 		bIsHost(false),
 		Identity(NULL),
-		SessionInt(NULL),
+		Sessions(NULL),
 		Friends(NULL),
 		TestPhase(0),
 		LastTestPhase(-1),
@@ -264,7 +264,7 @@
 		bOverallSuccess(true),
 		bIsHost(bInIsHost),
 		Identity(NULL),
-		SessionInt(NULL),
+		Sessions(NULL),
 		Friends(NULL),
 		TestPhase(0),
 		LastTestPhase(-1),
@@ -275,15 +275,13 @@
 	~FTestSessionInterface()
 	{
 		ClearDelegates();
-		SessionInt = NULL;
+		Sessions = NULL;
 		Friends = NULL;
 	}
 
 	// FTickerObjectBase
-	bool Tick( float DeltaTime ) OVERRIDE;
 
-	// FSelfRegisteringExec
-	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) OVERRIDE;
+	bool Tick( float DeltaTime ) OVERRIDE;
 
 	// FTestSessionInterface
 
@@ -298,4 +296,15 @@
 	 * Clear out any existing delegates created
 	 */
 	void ClearDelegates();
+
+	/**
+	 * Exec handler routed via StaticExec
+	 *
+ 	 * @param	InWorld 		World context
+	 * @param	Cmd		Command to parse
+	 * @param	Ar		Output device to log to
+	 *
+	 * @return	true if command was handled, false otherwise
+	 */
+	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) OVERRIDE;
  };

@@ -146,17 +146,10 @@ void FLevelUtils::ToggleLevelLock(ULevel* Level)
 	ULevelStreaming* StreamingLevel = FindStreamingLevel( Level );
 	if ( StreamingLevel != NULL )
 	{
-		// We need to set the RF_Transactional to make a streaming level serialize itself. so store the original ones, set the flag, and put the original flags back when done
-		EObjectFlags cachedFlags = StreamingLevel->GetFlags();
-		StreamingLevel->SetFlags( RF_Transactional );
-		StreamingLevel->Modify();			
-		StreamingLevel->SetFlags( cachedFlags );
-
 		StreamingLevel->bLocked = !StreamingLevel->bLocked;
 	}
 	else
 	{
-		Level->Modify();
 		Level->bLocked = !Level->bLocked;	
 	}
 }

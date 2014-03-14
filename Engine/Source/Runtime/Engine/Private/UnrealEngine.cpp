@@ -828,14 +828,6 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 
 	// Connect the engine analytics provider
 	FEngineAnalytics::Initialize();
-
-#if WITH_EDITOR
-	// register screenshot capture if we are dumping a movie
-	if(GIsDumpingMovie)
-	{
-		UGameViewportClient::OnScreenshotCaptured().AddUObject(this, &UEngine::HandleScreenshotCaptured);
-	}
-#endif
 }
 
 void UEngine::OnExternalUIChange(bool bInIsOpening)
@@ -856,10 +848,6 @@ void UEngine::PreExit()
 {
 	ShutdownRenderingCVarsCaching();
 	FEngineAnalytics::Shutdown();
-
-#if WITH_EDITOR
-	UGameViewportClient::OnScreenshotCaptured().RemoveUObject(this, &UEngine::HandleScreenshotCaptured);
-#endif
 }
 
 void UEngine::TickDeferredCommands()
@@ -1055,30 +1043,12 @@ void UEngine::ParseCommandline()
 #if WITH_EDITOR
 	if (!GIsEditor && FParse::Value(FCommandLine::Get(), TEXT("-MATINEEAVICAPTURE="), MatineeCaptureName))
 	{
-		MatineeCaptureType = EMatineeCaptureType::AVI;
+		MatineeCaptureType = 0; // AVI
 		bStartWithMatineeCapture = true;
 	}
 	else if (!GIsEditor && FParse::Value(FCommandLine::Get(), TEXT("-MATINEESSCAPTURE="), MatineeCaptureName))
 	{
-		MatineeCaptureType = EMatineeCaptureType::BMP;
-
-		FString MatineeCaptureFormat;
-		if(FParse::Value(FCommandLine::Get(), TEXT("-MATINEESSFORMAT="), MatineeCaptureFormat))
-		{
-			if(MatineeCaptureFormat == TEXT("BMP"))
-			{
-				MatineeCaptureType = EMatineeCaptureType::BMP;
-			}
-			else if(MatineeCaptureFormat == TEXT("PNG"))
-			{
-				MatineeCaptureType = EMatineeCaptureType::PNG;
-			}
-			else if(MatineeCaptureFormat == TEXT("JPEG"))
-			{
-				MatineeCaptureType = EMatineeCaptureType::JPEG;
-			}
-		}
-
+		MatineeCaptureType = 1; // Screen Shots
 		bStartWithMatineeCapture = true;
 	}
 
@@ -1096,6 +1066,7 @@ void UEngine::ParseCommandline()
 	if (bStartWithMatineeCapture)
 	{
 		FParse::Value(FCommandLine::Get(), TEXT("-MATINEEPACKAGE="), MatineePackageCaptureName);
+		FParse::Value(FCommandLine::Get(), TEXT("-VISIBLEPACKAGES="), VisibleLevelsForMatineeCapture);
 	}
 
 	if ( !GIsEditor && FParse::Param(FCommandLine::Get(), TEXT("COMPRESSCAPTURE")) )
@@ -1179,11 +1150,9 @@ void UEngine::InitializeObjectReferences()
 	// Materials that may or may not be needed when debug viewmodes are disabled but haven't been fixed up yet
 	LoadSpecialMaterial(RemoveSurfaceMaterialName.AssetLongPathname, RemoveSurfaceMaterial, false);	
 
-	// these one's are needed both editor and standalone 
+	// this one's needed both editor and standalone 
 	LoadSpecialMaterial(DebugMeshMaterialName.AssetLongPathname, DebugMeshMaterial, false);
 	LoadSpecialMaterial(InvalidLightmapSettingsMaterialName.AssetLongPathname, InvalidLightmapSettingsMaterial, false);
-	LoadSpecialMaterial(ArrowMaterialName.AssetLongPathname, ArrowMaterial, false);
-
 
 	if (GIsEditor && !IsRunningCommandlet())
 	{
@@ -1307,6 +1276,11 @@ void UEngine::InitializeObjectReferences()
 		LevelScriptActorClass = LoadClass<ALevelScriptActor>(NULL, *LevelScriptActorClassName.ClassName, NULL, LOAD_None, NULL);
 	}
 
+	if( DefaultSound == NULL && DefaultSoundName.AssetLongPathname.Len() )
+	{
+		DefaultSound = LoadObject<USoundWave>( NULL, *DefaultSoundName.AssetLongPathname, NULL, LOAD_None, NULL );
+	}
+
 	// set the font object pointers
 	if( TinyFont == NULL && TinyFontName.AssetLongPathname.Len() )
 	{
@@ -1418,28 +1392,24 @@ void UEngine::CleanupGameViewport()
 	for (auto WorldIt = WorldList.CreateIterator(); WorldIt; ++WorldIt)
 	{
 		FWorldContext &Context = *WorldIt;
-		// Clean up the viewports that have been closed.
+	// Clean up the viewports that have been closed.
 		for(int32 idx = Context.GamePlayers.Num()-1; idx >= 0; --idx)
-		{
+	{
 			ULocalPlayer *Player = Context.GamePlayers[idx];
 
 			if(Player && Player->ViewportClient && !Player->ViewportClient->Viewport)
-			{
-				if (Player->PlayerController)
-				{
-					Player->PlayerController->CleanupGameViewport();
-				}
+		{
 				Player->ViewportClient = NULL;
 				Context.GamePlayers.RemoveAt(idx);
-			}
 		}
+	}
 
 		if ( Context.GameViewport != NULL && Context.GameViewport->Viewport == NULL )
 		{
 			if (Context.GameViewport == GameViewport)
-			{
-				GameViewport = NULL;
-			}
+	{
+		GameViewport = NULL;
+	}
 
 			Context.GameViewport->DetachViewportClient();
 			Context.GameViewport = NULL;
@@ -1565,7 +1535,7 @@ public:
 		}
 	}
 
-	virtual void CalculateStereoViewOffset(const enum EStereoscopicPass StereoPassType, const FRotator& ViewRotation, const float WorldToMeters, FVector& ViewLocation)
+	virtual void CalculateStereoViewOffset(const enum EStereoscopicPass StereoPassType, const FRotator& ViewRotation, const float WorldToMeters, FVector& ViewLocation) const
 	{
 		if( StereoPassType != eSSP_FULL)
 		{
@@ -1611,12 +1581,6 @@ public:
 		FMatrix m;
 		m.SetIdentity();
 		InCanvas->PushAbsoluteTransform(m);
-	}
-
-	virtual void GetEyeRenderParams_RenderThread(EStereoscopicPass StereoPass, FVector2D& EyeToSrcUVScaleValue, FVector2D& EyeToSrcUVOffsetValue) const
-	{
-		EyeToSrcUVOffsetValue = FVector2D::ZeroVector;
-		EyeToSrcUVScaleValue = FVector2D(1.0f, 1.0f);
 	}
 };
 
@@ -2044,14 +2008,7 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 #endif
 	else if( FParse::Command(&Cmd,TEXT("STAT")) )
 	{
-		bool bHandledStatCommand = HandleStatCommand( Cmd, Ar );
-#if WITH_EDITOR
-		if(bHandledStatCommand)
-		{
-			FCoreDelegates::StatsEnabled.Broadcast();
-		}
-#endif
-		return bHandledStatCommand;
+		return HandleStatCommand( Cmd, Ar );
 	}
 	else if( FParse::Command(&Cmd,TEXT("STARTMOVIECAPTURE")) && (GEngine->bStartWithMatineeCapture == true || GIsEditor) )
 	{
@@ -5648,8 +5605,6 @@ void UEngine::OnHardwareSurveyComplete(const FHardwareSurveyResults& SurveyResul
 		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "CPU.Brand" ), SurveyResults.CPUBrand));
 		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "CPU.Speed" ), FString::Printf( TEXT( "%.1fGHz" ), SurveyResults.CPUClockGHz )));
 		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "CPU.Count" ), FString::Printf( TEXT( "%d" ), SurveyResults.CPUCount )));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "CPU.Name" ), SurveyResults.CPUNameString));
-		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "CPU.Info" ), FString::Printf( TEXT( "0x%08x" ), SurveyResults.CPUInfo )));
 		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "GPU.WEI" ), FString::Printf( TEXT( "%.1f" ), SurveyResults.GPUPerformanceIndex )));
 		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "GPU.Name" ), MainGPUName));
 		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "GPU.VRAM" ), BucketedVRAM));
@@ -10002,7 +9957,10 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 		WorldContext.World()->NavigateTo(FIntPoint::ZeroValue);
 	}
 	
-	UNavigationSystem::InitializeForWorld(WorldContext.World(), NavigationSystem::GameMode);
+	if (WorldContext.World()->GetNavigationSystem() != NULL)
+	{
+		WorldContext.World()->GetNavigationSystem()->OnWorldInitDone(NavigationSystem::GameMode);
+	}
 
 	// Initialize gameplay for the level.
 	WorldContext.World()->BeginPlay(URL);
@@ -11190,47 +11148,6 @@ void FSystemResolution::RequestResolutionChange(int32 InResX, int32 InResY, bool
 {
 	FString NewValue = FString::Printf(TEXT("%dx%d%s"), InResX, InResY, bInFullScreen ? TEXT("f") : TEXT("w"));
 	CVarSystemResolution->Set(*NewValue);
-}
-
-
-void UEngine::HandleScreenshotCaptured(int32 Width, int32 Height, const TArray<FColor>& Colors, const FString& Filename)
-{
-#if WITH_EDITOR
-	if(GIsDumpingMovie && Colors.Num() > 0)
-	{
-		IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>( FName("ImageWrapper") );
-
-		switch(MatineeCaptureType.GetValue())
-		{
-		case EMatineeCaptureType::BMP:
-			{
-				const FString FilenameWithExtension = Filename + TEXT(".bmp");
-				FFileHelper::CreateBitmap(*FilenameWithExtension, Width, Height, Colors.GetTypedData());
-			}
-			break;
-		case EMatineeCaptureType::PNG:
-			{
-				IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper( EImageFormat::PNG );
-				if ( ImageWrapper.IsValid() && ImageWrapper->SetRaw( &Colors[ 0 ], Colors.Num() * sizeof(FColor), Width, Height, ERGBFormat::BGRA, 8 ) )
-				{
-					const FString FilenameWithExtension = Filename + TEXT(".png");
-					FFileHelper::SaveArrayToFile(ImageWrapper->GetCompressed(), *FilenameWithExtension);
-				}
-			}
-			break;
-		case EMatineeCaptureType::JPEG:
-			{
-				IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper( EImageFormat::JPEG );
-				if ( ImageWrapper.IsValid() && ImageWrapper->SetRaw( &Colors[ 0 ], Colors.Num() * sizeof(FColor), Width, Height, ERGBFormat::BGRA, 8 ) )
-				{
-					const FString FilenameWithExtension = Filename + TEXT(".jpeg");
-					FFileHelper::SaveArrayToFile(ImageWrapper->GetCompressed(), *FilenameWithExtension);
-				}
-			}
-			break;
-		}
-	}
-#endif
 }
 
 #undef LOCTEXT_NAMESPACE

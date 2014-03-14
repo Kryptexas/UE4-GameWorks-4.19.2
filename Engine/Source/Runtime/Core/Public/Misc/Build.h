@@ -29,7 +29,6 @@
 #endif
 #ifndef UE_ROCKET
 	#define UE_ROCKET					0
-	#error UBT should always define UE_ROCKET to be 0 or 1
 #endif
 #ifndef UE_GAME
 	#define UE_GAME						0

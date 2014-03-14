@@ -72,10 +72,9 @@ protected:
 class FMemoryWriter : public FMemoryArchive
 {
 public:
-	FMemoryWriter( TArray<uint8>& InBytes, bool bIsPersistent = false, bool bSetOffset = false, const FName InArchiveName = NAME_None )
+	FMemoryWriter( TArray<uint8>& InBytes, bool bIsPersistent = false, bool bSetOffset = false )
 	: FMemoryArchive()
 	, Bytes(InBytes)
-	, ArchiveName(InArchiveName)
 	{
 		ArIsSaving		= true;
 		ArIsPersistent	= bIsPersistent;
@@ -87,16 +86,10 @@ public:
 
 	void Serialize( void* Data, int64 Num )
 	{
-		const int64 NumBytesToAdd = Offset + Num - Bytes.Num();
+		int32 NumBytesToAdd = Offset + Num - Bytes.Num();
 		if( NumBytesToAdd > 0 )
 		{
-			const int64 NewArrayCount = Bytes.Num() + NumBytesToAdd;
-			if( NewArrayCount >= MAX_int32 )
-			{
-				UE_LOG( LogSerialization, Fatal, TEXT( "FMemoryWriter does not support data larger than 2GB. Archive name: %s." ), *ArchiveName.ToString() );
-			}
-
-			Bytes.AddUninitialized( (int32)NumBytesToAdd );
+			Bytes.AddUninitialized( NumBytesToAdd );
 		}
 
 		check((Offset + Num) <= Bytes.Num());
@@ -123,9 +116,6 @@ public:
 protected:
 
 	TArray<uint8>&	Bytes;
-
-	/** Archive name, used to debugging, by default set to NAME_None. */
-	const FName ArchiveName;
 };
 
 
@@ -135,8 +125,8 @@ protected:
 class FBufferArchive : public FMemoryWriter, public TArray<uint8>
 {
 public:
-	FBufferArchive( bool bIsPersistent = false, const FName InArchiveName = NAME_None )
-	: FMemoryWriter( (TArray<uint8>&)*this, bIsPersistent, false, InArchiveName )
+	FBufferArchive( bool bIsPersistent=false )
+	: FMemoryWriter( (TArray<uint8>&)*this, bIsPersistent )
 	{}
 	/**
   	 * Returns the name of the Archive.  Useful for getting the name of the package a struct or object

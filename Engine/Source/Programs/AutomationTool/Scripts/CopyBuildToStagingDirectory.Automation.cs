@@ -48,7 +48,7 @@ public partial class Project : CommandUtils
 		return Result;
 	}
 
-	static public void RunUnrealPak(Dictionary<string, string> UnrealPakResponseFile, string OutputLocation, string EncryptionKeys, string PakOrderFileLocation)
+	static public void RunUnrealPak(Dictionary<string, string> UnrealPakResponseFile, string OutputLocation, string EncryptionKeys)
 	{
 		if (UnrealPakResponseFile.Count < 1)
 		{
@@ -70,7 +70,6 @@ public partial class Project : CommandUtils
 		{
 			CmdLine += " -installed";
 		}
-		CmdLine += " -order=" + CommandUtils.MakePathSafeToUseWithCommandLine(PakOrderFileLocation);
 		RunAndLog(CmdEnv, UnrealPakExe, CmdLine);
 		Log("UnrealPak Done *******");
 	}
@@ -137,7 +136,7 @@ public partial class Project : CommandUtils
 		{
 			return;
 		}
-		var ThisPlatform = SC.StageTargetPlatform;		
+		var ThisPlatform = SC.StageTargetPlatform;
 
 		ThisPlatform.GetFilesToDeployOrStage(Params, SC);
 
@@ -197,14 +196,6 @@ public partial class Project : CommandUtils
 
 			// eliminate the sand box
 			SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Saved", "Sandboxes", "Cooked-" + SC.CookPlatform), "*", true, null, "", true, !Params.Pak);
-
-			// CrashReportClient is a standalone slate app that does not look in the generated pak file, so it needs the Content/Slate and Shaders/StandaloneRenderer folders Non-UFS
-			// @todo Make CrashReportClient more portable so we don't have to do this
-			if (SC.bStageCrashReporter && !SC.DedicatedServer)
-			{
-				SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Content/Slate"));
-				SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Shaders/StandaloneRenderer"));
-			}
 		}
 	}
 
@@ -347,19 +338,11 @@ public partial class Project : CommandUtils
 		}
 		OutputRealtiveLocation = SC.StageTargetPlatform.Remap(OutputRealtiveLocation);
 		var OutputLocation = CombinePaths(SC.RuntimeRootDir, OutputRealtiveLocation);
-		// Add input file to controll order of file within the pak
-		var PakOrderFileLocationBase = CombinePaths(SC.ProjectRoot, "Build", SC.CookPlatform, "FileOpenOrder");
-		var PakOrderFileLocation = CombinePaths(PakOrderFileLocationBase, "GameOpenOrder.log");
-		if (!FileExists_NoExceptions(PakOrderFileLocation))
-		{
-			// Use a fall back, it doesn't matter if this file exists or not. GameOpenOrder.log is preferred however
-			PakOrderFileLocation = CombinePaths(PakOrderFileLocationBase, "EditorOpenOrder.log");
-		}
 
-		RunUnrealPak(UnrealPakResponseFile, OutputLocation, Params.SignPak, PakOrderFileLocation);
+		RunUnrealPak(UnrealPakResponseFile, OutputLocation, Params.SignPak);
 
 		// add the pak file as needing deployment and convert to lower case again if needed
-		SC.UFSStagingFiles.Add(OutputLocation, OutputRealtiveLocation);		
+		SC.UFSStagingFiles.Add(OutputLocation, OutputRealtiveLocation);
 	}
 
 	/// <summary>
@@ -464,9 +447,6 @@ public partial class Project : CommandUtils
 		}
 		DumpManifest(SC, CombinePaths(CmdEnv.LogFolder, "FinalCopy" + (SC.DedicatedServer ? "_Server" : "")), !Params.Pak);
 		CopyUsingStagingManifest(Params, SC);
-
-		var ThisPlatform = SC.StageTargetPlatform;
-		ThisPlatform.PostStagingFileCopy(Params, SC);
 	}
 
 	private static string GetIntermediateCommandlineDir(DeploymentContext SC)
@@ -474,8 +454,10 @@ public partial class Project : CommandUtils
 		return CombinePaths(SC.LocalRoot, "Engine/Intermediate/UAT", SC.CookPlatform);
 	}
 
-	public static void WriteStageCommandline(string IntermediateCmdLineFile, ProjectParams Params, DeploymentContext SC)
+	private static void WriteStageCommandline(ProjectParams Params, DeploymentContext SC)
 	{
+		// always delete the existing commandline text file, so it doesn't reuse an old one
+		string IntermediateCmdLineFile = CombinePaths(GetIntermediateCommandlineDir(SC), "UE4CommandLine.txt");
 		// this file needs to be treated as a UFS file for casing, but NonUFS for being put into the .pak file. 
 		// @todo: Maybe there should be a new category - UFSNotForPak
 		if (SC.StageTargetPlatform.DeployLowerCaseFilenames(true))
@@ -487,27 +469,27 @@ public partial class Project : CommandUtils
 			File.Delete(IntermediateCmdLineFile);
 		}
 
-		if (!string.IsNullOrEmpty(Params.StageCommandline) || !string.IsNullOrEmpty(Params.RunCommandline))
+		if (!string.IsNullOrEmpty(Params.StageCommandline))
 		{
 			string FileHostParams = " ";
 			if (Params.CookOnTheFly || Params.FileServer)
 			{
 				FileHostParams += "-filehostip=";
 
-				if (UnrealBuildTool.ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Mac)
+				if (UnrealBuildTool.ExternalExecution.GetRuntimePlatform () == UnrealTargetPlatform.Mac)
 				{
-					NetworkInterface[] Interfaces = NetworkInterface.GetAllNetworkInterfaces();
+					NetworkInterface[] Interfaces = NetworkInterface.GetAllNetworkInterfaces ();
 					foreach (NetworkInterface adapter in Interfaces)
 					{
 						if (adapter.NetworkInterfaceType != NetworkInterfaceType.Loopback)
 						{
-							IPInterfaceProperties IP = adapter.GetIPProperties();
+							IPInterfaceProperties IP = adapter.GetIPProperties ();
 							for (int Index = 0; Index < IP.UnicastAddresses.Count; ++Index)
 							{
-								if (IP.UnicastAddresses[Index].IsDnsEligible && IP.UnicastAddresses[Index].Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+								if (IP.UnicastAddresses [Index].IsDnsEligible && IP.UnicastAddresses [Index].Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
 								{
 									FileHostParams += IP.UnicastAddresses[Index].Address.ToString();
-									if (String.IsNullOrEmpty(Params.Port) == false)
+									if (String.IsNullOrEmpty (Params.Port) == false)
 									{
 										FileHostParams += ":";
 										FileHostParams += Params.Port;
@@ -520,7 +502,7 @@ public partial class Project : CommandUtils
 				}
 				else
 				{
-					NetworkInterface[] Interfaces = NetworkInterface.GetAllNetworkInterfaces();
+					NetworkInterface[] Interfaces = NetworkInterface.GetAllNetworkInterfaces ();
 					foreach (NetworkInterface adapter in Interfaces)
 					{
 						if (adapter.OperationalStatus == OperationalStatus.Up)
@@ -553,7 +535,7 @@ public partial class Project : CommandUtils
 
 			String ProjectFile = String.Format("{0} ", SC.ProjectArgForCommandLines);
 			Directory.CreateDirectory(GetIntermediateCommandlineDir(SC));
-			string CommandLine = String.Format("{0} {1} {2} {3}\n", ProjectFile, Params.StageCommandline.Trim(new char[] { '\"' }), Params.RunCommandline.Trim(new char[] { '\"' }), FileHostParams);
+			string CommandLine = String.Format ("{0} {1} {2} {3}\n", ProjectFile, Params.StageCommandline.Trim(new char[]{'\"'}), Params.RunCommandline.Trim(new char[]{'\"'}), FileHostParams);
 			File.WriteAllText(IntermediateCmdLineFile, CommandLine);
 		}
 		else if (!Params.IsCodeBasedProject)
@@ -562,13 +544,6 @@ public partial class Project : CommandUtils
 			Directory.CreateDirectory(GetIntermediateCommandlineDir(SC));
 			File.WriteAllText(IntermediateCmdLineFile, ProjectFile);
 		}
-	}
-
-	private static void WriteStageCommandline(ProjectParams Params, DeploymentContext SC)
-	{
-		// always delete the existing commandline text file, so it doesn't reuse an old one
-		string IntermediateCmdLineFile = CombinePaths(GetIntermediateCommandlineDir(SC), "UE4CommandLine.txt");
-		WriteStageCommandline(IntermediateCmdLineFile, Params, SC);
 	}
 
 	#endregion

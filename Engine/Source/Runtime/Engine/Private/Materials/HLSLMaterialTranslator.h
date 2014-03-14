@@ -467,7 +467,7 @@ public:
 		return bSuccess;
 	}
 
-	void GetMaterialEnvironment(EShaderPlatform InPlatform, FShaderCompilerEnvironment& OutEnvironment)
+	void GetMaterialEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		if (bNeedsParticlePosition || Material->ShouldGenerateSphericalParticleNormals() || bUsesSphericalParticleOpacity)
 		{
@@ -543,7 +543,7 @@ public:
 		{
 			// Add uniform buffer declarations for any parameter collections referenced
 			const FString CollectionName = FString::Printf(TEXT("MaterialCollection%u"), CollectionIndex);
-			FShaderUniformBufferParameter::ModifyCompilationEnvironment(*CollectionName, ParameterCollections[CollectionIndex]->GetUniformBufferStruct(), InPlatform, OutEnvironment);
+			FShaderUniformBufferParameter::ModifyCompilationEnvironment(*CollectionName,ParameterCollections[CollectionIndex]->GetUniformBufferStruct(),Platform,OutEnvironment);
 		}
 	}
 
@@ -1114,7 +1114,6 @@ protected:
 			// Add the first function node on the stack because that's the one visible in the material being compiled, the rest are all nested functions.
 			UMaterialExpressionMaterialFunctionCall* ErrorFunction = FunctionStack[1].FunctionCall;
 			Material->ErrorExpressions.Add(ErrorFunction);
-			ErrorFunction->LastErrorText = Text;
 			ErrorString = FString(TEXT("Function ")) + ErrorFunction->MaterialFunction->GetName() + TEXT(": ");
 		}
 
@@ -1129,7 +1128,6 @@ protected:
 			{
 				// Add the expression currently being compiled to ErrorExpressions so we can draw it differently
 				Material->ErrorExpressions.Add(ErrorExpression);
-				ErrorExpression->LastErrorText = Text;
 
 				const int32 ChopCount = FCString::Strlen(TEXT("MaterialExpression"));
 				const FString ErrorClassName = ErrorExpression->GetClass()->GetName();
@@ -1623,10 +1621,6 @@ protected:
 		if (ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute && ShaderFrequency != SF_Domain)
 		{
 			return NonPixelShaderExpressionError();
-		}
-		if (ShaderFrequency != SF_Vertex)
-		{
-			bUsesTransformVector = true;
 		}
 		return AddInlinedCodeChunk(MCT_Float3,TEXT("Parameters.CameraVector"));
 	}
@@ -3053,10 +3047,6 @@ protected:
 
 	virtual int32 VertexNormal() OVERRIDE
 	{
-		if (ShaderFrequency != SF_Vertex)
-		{
-			bUsesTransformVector = true;
-		}
 		return AddInlinedCodeChunk(MCT_Float3,TEXT("Parameters.TangentToWorld[2]"));	
 	}
 
@@ -3069,10 +3059,6 @@ protected:
 		if(MaterialProperty == MP_Normal)
 		{
 			return Errorf(TEXT("Invalid node PixelNormalWS used for Normal input."));
-		}
-		if (ShaderFrequency != SF_Vertex)
-		{
-			bUsesTransformVector = true;
 		}
 		return AddInlinedCodeChunk(MCT_Float3,TEXT("Parameters.WorldNormal"));	
 	}

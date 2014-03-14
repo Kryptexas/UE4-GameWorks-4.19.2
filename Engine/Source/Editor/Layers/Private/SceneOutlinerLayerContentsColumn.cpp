@@ -2,7 +2,6 @@
 
 
 #include "LayersPrivatePCH.h"
-#include "SceneOutlinerTreeItems.h"
 
 #define LOCTEXT_NAMESPACE "SceneOutlinerLayerContentsColumn"
 
@@ -29,28 +28,21 @@ SHeaderRow::FColumn::FArguments FSceneOutlinerLayerContentsColumn::ConstructHead
 		];
 }
 
-const TSharedRef< SWidget > FSceneOutlinerLayerContentsColumn::ConstructRowWidget( const TSharedRef<SceneOutliner::TOutlinerTreeItem> TreeItem )
+
+const TSharedRef< SWidget > FSceneOutlinerLayerContentsColumn::ConstructRowWidget( const TWeakObjectPtr< AActor >&  InActor )
 {
-	if (TreeItem->Type == SceneOutliner::TOutlinerTreeItem::Actor)
-	{
-		auto ActorTreeItem = StaticCastSharedRef<SceneOutliner::TOutlinerActorTreeItem>(TreeItem);
-		return 	SNew( SButton )
-			.HAlign( HAlign_Center )
-			.VAlign( VAlign_Center )
-			.ButtonStyle( FEditorStyle::Get(), "LayerBrowserButton" )
-			.ContentPadding( 0 )
-			.OnClicked( this, &FSceneOutlinerLayerContentsColumn::OnRemoveFromLayerClicked, ConstCastSharedRef<SceneOutliner::TOutlinerActorTreeItem>(ActorTreeItem)->Actor )
-			.ToolTipText( LOCTEXT("RemoveFromLayerButtonText", "Remove from Layer").ToString() )
-			[
-				SNew( SImage )
-				.Image( FEditorStyle::GetBrush( TEXT( "LayerBrowser.Actor.RemoveFromLayer" ) ) )
-			]
-		;
-	}
-	else
-	{
-		return SNullWidget::NullWidget;
-	}
+	return 	SNew( SButton )
+		.HAlign( HAlign_Center )
+		.VAlign( VAlign_Center )
+		.ButtonStyle( FEditorStyle::Get(), "LayerBrowserButton" )
+		.ContentPadding( 0 )
+		.OnClicked( this, &FSceneOutlinerLayerContentsColumn::OnRemoveFromLayerClicked, InActor )
+		.ToolTipText( LOCTEXT("RemoveFromLayerButtonText", "Remove from Layer").ToString() )
+		[
+			SNew( SImage )
+			.Image( FEditorStyle::GetBrush( TEXT( "LayerBrowser.Actor.RemoveFromLayer" ) ) )
+		]
+	;
 }
 
 

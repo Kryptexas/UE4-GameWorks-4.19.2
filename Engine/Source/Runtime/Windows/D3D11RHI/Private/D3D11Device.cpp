@@ -62,6 +62,20 @@ FD3D11DynamicRHI::FD3D11DynamicRHI(IDXGIFactory* InDXGIFactory,D3D_FEATURE_LEVEL
 	ZeroBuffer = FMemory::Malloc(ZeroBufferSize);
 	FMemory::Memzero(ZeroBuffer,ZeroBufferSize);
 
+
+#if WITH_D3DX_LIBS
+	// ensure we are running against the proper D3DX runtime
+	if (FAILED(D3DX11CheckVersion(D3D11_SDK_VERSION, D3DX11_SDK_VERSION)))
+	{
+		UE_LOG(LogD3D11RHI, Fatal,
+			TEXT("The D3DX11 runtime version does not match what the application was built with (%d). Cannot continue."),
+			D3DX11_SDK_VERSION
+			);
+	}
+#else
+	UE_LOG(LogD3D11RHI, Warning, TEXT("DX11 built without D3DX. Version checking disabled!"));
+#endif
+
 	GPoolSizeVRAMPercentage = 0;
 	GTexturePoolSize = 0;
 	if ( GReadTexturePoolSizeFromIni )

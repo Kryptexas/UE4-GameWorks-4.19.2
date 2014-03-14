@@ -16,7 +16,6 @@ AGameMode::AGameMode(const class FPostConstructInitializeProperties& PCIP)
 	)
 {
 	bDelayedStart = false;
-	bNetLoadOnClient = false;
 
 	// One-time initialization
 	PrimaryActorTick.bCanEverTick = true;
@@ -134,10 +133,10 @@ void AGameMode::InitGame( const FString& MapName, const FString& Options, FStrin
 	if (GetNetMode() != NM_Standalone)
 	{
 		FOnlineSessionSettings* SessionSettings = NULL;
-		IOnlineSessionPtr SessionInt = Online::GetSessionInterface();
-		if (SessionInt.IsValid())
+		IOnlineSessionPtr Sessions = Online::GetSessionInterface();
+		if (Sessions.IsValid())
 		{
-			SessionSettings = SessionInt->GetSessionSettings(GameSessionName);
+			SessionSettings = Sessions->GetSessionSettings(GameSessionName);
 		}
 
 		if (!SessionSettings && !GameSession->ProcessAutoLogin())
@@ -253,9 +252,6 @@ void AGameMode::PostLogin( APlayerController* NewPlayer )
 
 	// Tell the player to enable voice by default or use the push to talk method
 	NewPlayer->ClientEnableNetworkVoice(!GameSession->RequiresPushToTalk());
-
-	// Notify Blueprints that a new player has logged in.  Calling it here, because this is the first time that the PlayerController can take RPCs
-	K2_PostLogin(NewPlayer);
 }
 
 bool AGameMode::ShouldStartInCinematicMode(bool& OutHidePlayer,bool& OutHideHUD,bool& OutDisableMovement,bool& OutDisableTurning)
@@ -314,12 +310,10 @@ void AGameMode::InitGameState()
 
 AActor* AGameMode::FindPlayerStart( AController* Player, const FString& IncomingName )
 {
-	UWorld* World = GetWorld();
-
 	// if incoming start is specified, then just use it
 	if( !IncomingName.IsEmpty() )
 	{
-		for( FActorIterator It(World); It; ++It )
+		for( FActorIterator It(GetWorld()); It; ++It )
 		{
 			APlayerStart* Start = Cast<APlayerStart>(*It);
 			if ( Start && Start->PlayerStartTag == FName(*IncomingName) )
@@ -332,7 +326,6 @@ AActor* AGameMode::FindPlayerStart( AController* Player, const FString& Incoming
 	// always pick StartSpot at start of match
 	if ( ShouldSpawnAtStartSpot(Player) )
 	{
-		// NULL CHECK MISSING!!!!!
 		return Player->StartSpot.Get();
 	}
 
@@ -344,12 +337,11 @@ AActor* AGameMode::FindPlayerStart( AController* Player, const FString& Incoming
 		UE_LOG(LogGameMode, Log, TEXT("Warning - PATHS NOT DEFINED or NO PLAYERSTART with positive rating"));
 
 		// Search all loaded levels for possible player start object
-		for ( int32 LevelIndex = 0; LevelIndex < World->GetNumLevels(); ++LevelIndex )
+		for ( int32 LevelIndex = 0; LevelIndex < GetWorld()->GetNumLevels(); ++LevelIndex )
 		{
-			ULevel* Level = World->GetLevel( LevelIndex );
+			ULevel* Level = GetWorld()->GetLevel( LevelIndex );
 			for ( int32 ActorIndex = 0; ActorIndex < Level->Actors.Num(); ++ActorIndex )
 			{
-				// BROKEN NOT A NAV OBJECT!!!!!!
 				AActor* NavObject = Level->Actors[ ActorIndex ];
 				if ( NavObject )
 				{
@@ -421,8 +413,6 @@ void AGameMode::RestartPlayer(AController* NewPlayer)
 	{
 		return;
 	}
-
-	UE_LOG(LogGameMode, Log, TEXT("RestartPlayer %s"), (NewPlayer && NewPlayer->PlayerState) ? *NewPlayer->PlayerState->PlayerName : TEXT("Unknown"));
 	AActor* StartSpot = FindPlayerStart(NewPlayer);
 
 	// if a start spot wasn't found,
@@ -793,14 +783,13 @@ void AGameMode::SetBandwidthLimit(float AsyncIOBandwidthLimit)
 	GAsyncIOBandwidthLimit = AsyncIOBandwidthLimit;
 }
 
-void AGameMode::InitNewPlayer(AController* NewPlayer, const TSharedPtr<FUniqueNetId>& UniqueId, const FString& Options)
-{
-}
+void AGameMode::InitNewPlayer(AController* NewPlayer, const FString& Options) {}
 
 bool AGameMode::MustSpectate(APlayerController* NewPlayer)
 {
 	return NewPlayer->PlayerState->bOnlySpectator;
 }
+
 
 APlayerController* AGameMode::Login(const FString& Portal, const FString& Options, const TSharedPtr<FUniqueNetId>& UniqueId, FString& ErrorMessage)
 {
@@ -821,7 +810,7 @@ APlayerController* AGameMode::Login(const FString& Portal, const FString& Option
 	}
 
 	// Customize incoming player based on URL options
-	InitNewPlayer(NewPlayer, UniqueId, Options);
+	InitNewPlayer(NewPlayer, Options);
 
 	// Find a start spot.
 	AActor* const StartSpot = FindPlayerStart( NULL, Portal );
@@ -843,7 +832,7 @@ APlayerController* AGameMode::Login(const FString& Portal, const FString& Option
 	FString InName = ParseOption( Options, TEXT("Name")).Left(20);
 	if( InName.IsEmpty() )
 	{
-		InName = FString::Printf(TEXT("%s%i"), *DefaultPlayerName, NewPlayer->PlayerState->PlayerId);
+		InName=FString::Printf(TEXT("%s%i"), *DefaultPlayerName, NewPlayer->PlayerState->PlayerId);
 	}
 	ChangeName( NewPlayer, InName, false );
 
@@ -861,8 +850,6 @@ APlayerController* AGameMode::Login(const FString& Portal, const FString& Option
 		NewPlayer->ChangeState(NAME_Spectating);
 		return NewPlayer;
 	}
-
-
 
 	return NewPlayer;
 }
@@ -1171,9 +1158,6 @@ void AGameMode::GenericPlayerInitialization(AController* C)
 	APlayerController* PC = Cast<APlayerController>(C);
 	if (PC != NULL)
 	{
-		// Notify the game that we can now be muted and mute others
-		UpdateGameplayMuteList(PC);
-
 		ReplicateStreamingStatus(PC);
 	}
 }
@@ -1308,15 +1292,6 @@ bool AGameMode::PlayerCanRestartGame( APlayerController* aPlayer )
 bool AGameMode::PlayerCanRestart( APlayerController* aPlayer )
 {
 	return true;
-}
-
-void AGameMode::UpdateGameplayMuteList( APlayerController* aPlayer )
-{
-	if (aPlayer)
-	{
-		aPlayer->MuteList.bHasVoiceHandshakeCompleted = true;
-		aPlayer->ClientVoiceHandshakeComplete();
-	}
 }
 
 bool AGameMode::AllowCheats(APlayerController* P)
@@ -1480,9 +1455,10 @@ bool AGameMode::ReadyToStartMatch()
 	return (bWaitingToStartMatch && NumPlayers + NumBots > 0);
 }
 
-void AGameMode::MatineeCancelled()
-{
-}
+void AGameMode::MatineeCancelled() {}
+
+void AGameMode::OnEngineHasLoaded() {}
+
 
 FString AGameMode::StaticGetFullGameClassName(FString const& Str)
 {

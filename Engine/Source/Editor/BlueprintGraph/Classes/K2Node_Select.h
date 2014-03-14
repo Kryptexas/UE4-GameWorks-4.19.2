@@ -33,6 +33,7 @@ class UK2Node_Select : public UK2Node
 	UPROPERTY()
 	bool bReconstructNode;
 
+#if WITH_EDITOR
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() OVERRIDE;
 	virtual FString GetTooltip() const OVERRIDE;
@@ -88,5 +89,6 @@ class UK2Node_Select : public UK2Node
 
 	// Bind the options to a named enum 
 	virtual void SetEnum(UEnum* InEnum);
+#endif
 };
 

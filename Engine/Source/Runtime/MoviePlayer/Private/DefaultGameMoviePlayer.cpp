@@ -12,7 +12,7 @@
 #include "Spinlock.h"
 #include "MoviePlayerThreading.h"
 #include "DefaultGameMoviePlayer.h"
-#include "MoviePlayerSettings.h"
+
 
 
 TSharedPtr<FDefaultGameMoviePlayer> FDefaultGameMoviePlayer::MoviePlayer;
@@ -259,23 +259,18 @@ void FDefaultGameMoviePlayer::SetupLoadingScreenFromIni()
 	// We may have already setup a movie from a startup module
 	if( !LoadingScreenAttributes.IsValid() )
 	{
-		// look in the settings for a list of loading movies
-		GetMutableDefault<UMoviePlayerSettings>()->LoadConfig();
-		const TArray<FFilePath>& StartupMovies = GetDefault<UMoviePlayerSettings>()->StartupMovies;
+		// look in the .ini for a list of loading movies
+		TArray<FString> StartupMovies;
+		GConfig->GetArray(TEXT("StartupLoadingSequence"), TEXT("StartupMovies"), StartupMovies, GEngineIni);
 
 		// if we didn't have any, nothing to do here
 		if (StartupMovies.Num() > 0)
 		{
+		
 			// fill out the attributes
 			FLoadingScreenAttributes LoadingScreen;
 			LoadingScreen.bAutoCompleteWhenLoadingCompletes = true;
-			for(const auto& Movie : StartupMovies)
-			{
-				if(Movie.FilePath.Len() > 0)
-				{
-					LoadingScreen.MoviePaths.Add(Movie.FilePath);
-				}
-			}
+			LoadingScreen.MoviePaths = StartupMovies;
 
 			// now setup the actual loading screen
 			SetupLoadingScreen(LoadingScreen);

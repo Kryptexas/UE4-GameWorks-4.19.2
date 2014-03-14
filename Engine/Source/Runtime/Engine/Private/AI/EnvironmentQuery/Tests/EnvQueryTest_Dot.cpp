@@ -7,12 +7,12 @@ UEnvQueryTest_Dot::UEnvQueryTest_Dot(const class FPostConstructInitializePropert
 	ExecuteDelegate.BindUObject(this, &UEnvQueryTest_Dot::RunTest);
 
 	Cost = EEnvTestCost::Low;
-	ValidItemType = UEnvQueryItemType_VectorBase::StaticClass();
-	LineA.DirMode = EEnvDirection::Rotation;
-	LineA.Rotation = UEnvQueryContext_Querier::StaticClass();
-	LineB.DirMode = EEnvDirection::TwoPoints;
-	LineB.LineFrom = UEnvQueryContext_Querier::StaticClass();
-	LineB.LineTo = UEnvQueryContext_Item::StaticClass();
+	ValidItemType = UEnvQueryItemType_LocationBase::StaticClass();
+	LineA = EEnvTestDot::Direction;
+	LineADirection = UEnvQueryContext_Querier::StaticClass();
+	LineB = EEnvTestDot::Segment;
+	LineBFrom = UEnvQueryContext_Querier::StaticClass();
+	LineBTo = UEnvQueryContext_Item::StaticClass();
 }
 
 void UEnvQueryTest_Dot::RunTest(struct FEnvQueryInstance& QueryInstance)
@@ -25,10 +25,10 @@ void UEnvQueryTest_Dot::RunTest(struct FEnvQueryInstance& QueryInstance)
 
 	// gather all possible directions: for contexts different than Item
 	TArray<FVector> LineADirs;
-	const bool bUpdateLineAPerItem = RequiresPerItemUpdates(LineA.LineFrom, LineA.LineTo, LineA.Rotation, LineA.DirMode == EEnvDirection::Rotation);
+	const bool bUpdateLineAPerItem = RequiresPerItemUpdates(LineAFrom, LineATo, LineADirection, LineA == EEnvTestDot::Direction);
 	if (!bUpdateLineAPerItem)
 	{
-		GatherLineDirections(LineADirs, QueryInstance, LineA.LineFrom, LineA.LineTo, LineA.Rotation, LineA.DirMode == EEnvDirection::Rotation);
+		GatherLineDirections(LineADirs, QueryInstance, LineAFrom, LineATo, LineADirection, LineA == EEnvTestDot::Direction);
 		if (LineADirs.Num() == 0)
 		{
 			return;
@@ -36,10 +36,10 @@ void UEnvQueryTest_Dot::RunTest(struct FEnvQueryInstance& QueryInstance)
 	}
 
 	TArray<FVector> LineBDirs;
-	const bool bUpdateLineBPerItem = RequiresPerItemUpdates(LineB.LineFrom, LineB.LineTo, LineB.Rotation, LineB.DirMode == EEnvDirection::Rotation);
+	const bool bUpdateLineBPerItem = RequiresPerItemUpdates(LineBFrom, LineBTo, LineBDirection, LineB == EEnvTestDot::Direction);
 	if (!bUpdateLineBPerItem)
 	{
-		GatherLineDirections(LineBDirs, QueryInstance, LineB.LineFrom, LineB.LineTo, LineB.Rotation, LineB.DirMode == EEnvDirection::Rotation);
+		GatherLineDirections(LineBDirs, QueryInstance, LineBFrom, LineBTo, LineBDirection, LineB == EEnvTestDot::Direction);
 		if (LineBDirs.Num() == 0)
 		{
 			return;
@@ -52,19 +52,19 @@ void UEnvQueryTest_Dot::RunTest(struct FEnvQueryInstance& QueryInstance)
 		// update lines for contexts using current item
 		if (bUpdateLineAPerItem || bUpdateLineBPerItem)
 		{
-			const FVector ItemLocation = (LineA.DirMode == EEnvDirection::Rotation && LineB.DirMode == EEnvDirection::Rotation) ? FVector::ZeroVector : GetItemLocation(QueryInstance, *It);
-			const FRotator ItemRotation = (LineA.DirMode == EEnvDirection::Rotation || LineB.DirMode == EEnvDirection::Rotation) ? GetItemRotation(QueryInstance, *It) : FRotator::ZeroRotator;
+			const FVector ItemLocation = (LineA == EEnvTestDot::Direction && LineB == EEnvTestDot::Direction) ? FVector::ZeroVector : GetItemLocation(QueryInstance, *It);
+			const FRotator ItemRotation = (LineA == EEnvTestDot::Direction || LineB == EEnvTestDot::Direction) ? GetItemRotation(QueryInstance, *It) : FRotator::ZeroRotator;
 
 			if (bUpdateLineAPerItem)
 			{
 				LineADirs.Reset();
-				GatherLineDirections(LineADirs, QueryInstance, LineA.LineFrom, LineA.LineTo, LineA.Rotation, LineA.DirMode == EEnvDirection::Rotation, ItemLocation, ItemRotation);
+				GatherLineDirections(LineADirs, QueryInstance, LineAFrom, LineATo, LineADirection, LineA == EEnvTestDot::Direction, ItemLocation, ItemRotation);
 			}
 
 			if (bUpdateLineBPerItem)
 			{
 				LineBDirs.Reset();
-				GatherLineDirections(LineBDirs, QueryInstance, LineB.LineFrom, LineB.LineTo, LineB.Rotation, LineB.DirMode == EEnvDirection::Rotation, ItemLocation, ItemRotation);
+				GatherLineDirections(LineBDirs, QueryInstance, LineBFrom, LineBTo, LineBDirection, LineB == EEnvTestDot::Direction, ItemLocation, ItemRotation);
 			}
 		}
 
@@ -164,7 +164,15 @@ bool UEnvQueryTest_Dot::RequiresPerItemUpdates(TSubclassOf<class UEnvQueryContex
 
 FString UEnvQueryTest_Dot::GetDescriptionTitle() const
 {
-	return FString::Printf(TEXT("%s: %s and %s"), *Super::GetDescriptionTitle(), *LineA.ToString(), *LineB.ToString());
+	FString LineADesc = LineA == EEnvTestDot::Segment ?
+		FString::Printf(TEXT("[%s - %s]"), *UEnvQueryTypes::DescribeContext(LineAFrom), *UEnvQueryTypes::DescribeContext(LineATo)) :
+		FString::Printf(TEXT("[%s rotation]"), *UEnvQueryTypes::DescribeContext(LineADirection));
+
+	FString LineBDesc = LineB == EEnvTestDot::Segment ?
+		FString::Printf(TEXT("[%s - %s]"), *UEnvQueryTypes::DescribeContext(LineBFrom), *UEnvQueryTypes::DescribeContext(LineBTo)) :
+		FString::Printf(TEXT("[%s rotation]"), *UEnvQueryTypes::DescribeContext(LineBDirection));
+
+	return FString::Printf(TEXT("%s: %s and %s"), *Super::GetDescriptionTitle(), *LineADesc, *LineBDesc);
 }
 
 FString UEnvQueryTest_Dot::GetDescriptionDetails() const

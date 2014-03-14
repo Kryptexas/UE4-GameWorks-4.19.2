@@ -186,7 +186,6 @@ void SBlueprintLibraryPalette::Construct(FArguments const& InArgs, TWeakPtr<FBlu
 	SuperArgs._Title       = LOCTEXT("PaletteTitle", "Find a Node").ToString();
 	SuperArgs._Icon        = FEditorStyle::GetBrush("Kismet.Palette.Library");
 	SuperArgs._ToolTipText = LOCTEXT("PaletteToolTip", "An all encompassing list of every node that is available for this blueprint.").ToString();
-	SuperArgs._ShowFavoriteToggles = true;
 
 	bUseLegacyLayout = InArgs._UseLegacyLayout.Get();
 
@@ -288,7 +287,7 @@ void SBlueprintLibraryPalette::BindCommands(TSharedPtr<FUICommandList> CommandLi
 		FExecuteAction::CreateStatic(&SBlueprintLibraryPaletteUtils::AddSelectedToFavorites, CategoryGetter),
 		FCanExecuteAction::CreateStatic(&SBlueprintLibraryPaletteUtils::IsAnyActionFavoritable, CategoryGetter),
 		FIsActionChecked(),
-		FIsActionButtonVisible::CreateStatic(&SBlueprintLibraryPaletteUtils::IsAnyActionFavoritable, CategoryGetter)
+		FIsActionButtonVisible::CreateStatic(&FActionVisibilityUtils::CanNotRemoveAny, CategoryGetter)
 	);
 
 	CommandListIn->MapAction(

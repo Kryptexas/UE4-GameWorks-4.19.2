@@ -276,41 +276,28 @@ EVisibility SMessagingHistory::HandleShowHiddenHyperlinkVisibility( ) const
 }
 
 
-FText SMessagingHistory::HandleStatusBarText() const
+FString SMessagingHistory::HandleStatusBarText( ) const
 {
-	FText Result;
+	FString Result;
 	int32 VisibleMessages = MessageList.Num();
 
 	if (VisibleMessages > 0)
 	{
-		FFormatNamedArguments Args;
-		Args.Add(TEXT("NumberOfMessages"), MessageList.Num());
-		Args.Add(TEXT("NumberOfSelectedMessages"), MessageListView->GetNumItemsSelected());
-		Args.Add(TEXT("NumberOfHiddenMessages"), TotalMessages - VisibleMessages);
+		Result = FString::Printf(*LOCTEXT("StatusBarNumMessages", "%i messages").ToString(), MessageList.Num());
 
-		const bool bHasSelectedMessages = MessageListView->GetNumItemsSelected() > 0;
-		const bool bHasHiddenMessages = VisibleMessages < TotalMessages;
+		if (MessageListView->GetNumItemsSelected() > 0)
+		{
+			Result += FString::Printf(*LOCTEXT("StatusBarNumSelected", ", %i selected").ToString(), MessageListView->GetNumItemsSelected());
+		}
 
-		if (bHasSelectedMessages && bHasHiddenMessages)
+		if (VisibleMessages < TotalMessages)
 		{
-			Result = FText::Format(LOCTEXT("StatusBar Number Messages, Selected Messages and Hidden Messages", "{NumberOfMessages} messages, {NumberOfSelectedMessages} selected, {NumberOfHiddenMessages} hidden"), Args);
-		}
-		else if (bHasSelectedMessages && !bHasHiddenMessages)
-		{
-			Result = FText::Format(LOCTEXT("StatusBar Number Messages and Selected Messages", "{NumberOfMessages} messages, {NumberOfSelectedMessages} selected"), Args);
-		}
-		else if (!bHasSelectedMessages && bHasHiddenMessages)
-		{
-			Result = FText::Format(LOCTEXT("StatusBar Number Messages and Hidden Messages", "{NumberOfMessages} messages, {NumberOfHiddenMessages} hidden"), Args);
-		}
-		else //if(!bHasSelectedMessages && !bHasHiddenMessages)
-		{
-			Result = FText::Format(LOCTEXT("StatusBar Number Messages", "{NumberOfMessages} messages"), Args);
+			Result += FString::Printf(*LOCTEXT("StatusBarNumHidden", ", %i hidden - ").ToString(), (TotalMessages - VisibleMessages));
 		}
 	}
 	else
 	{
-		Result = LOCTEXT("StatusBarBeginTracing", "Press the 'Start' button to trace messages");
+		Result = TEXT("Press the 'Start' button to trace messages");
 	}
 
 	return Result;

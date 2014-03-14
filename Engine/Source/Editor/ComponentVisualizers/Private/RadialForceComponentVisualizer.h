@@ -2,12 +2,8 @@
 
 #pragma once
 
-#include "ComponentVisualizer.h"
-
-class FRadialForceComponentVisualizer : public FComponentVisualizer
+class FRadialForceComponentVisualizer
 {
 public:
-	// Begin FComponentVisualizer interface
-	virtual void DrawVisualization( const UActorComponent* Component, const FSceneView* View, FPrimitiveDrawInterface* PDI ) OVERRIDE;
-	// End FComponentVisualizer interface
+	static void DrawVisualization( const UActorComponent* Component, const FSceneView* View, FPrimitiveDrawInterface* PDI );
 };

@@ -36,7 +36,7 @@ void FMatineeActorDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout 
 		SNew(SHorizontalBox)
 		+SHorizontalBox::Slot()
 		.FillWidth(1.f)
-		.Padding(0, 5, 10, 5)
+		.Padding(10,5)
 		[
 			SNew(SButton)
 			.ContentPadding(3)

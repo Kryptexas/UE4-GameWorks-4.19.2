@@ -9,13 +9,9 @@ class UObjectLibrary : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	/** Class that Objects must be of. If ContainsBlueprints is true, this is the native class that the blueprints are instances of and not UClass  */
+	/** Class that Objects must be of */
 	UPROPERTY(EditAnywhere, Category=ObjectLibrary, meta=(AllowAbstract = ""))
 	UClass*				ObjectBaseClass;
-
-	/** True if this library holds blueprint classes, false if it holds other objects */
-	UPROPERTY(EditAnywhere, Category=ObjectLibrary)
-	bool bHasBlueprintClasses;
 
 protected:
 
@@ -44,14 +40,6 @@ public:
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
 #endif // WITH_EDITOR
 	// End UObject Interface
-
-	/** 
-	 * Static function to create a new ObjectLibrary at runtime, with various options set 
-	 * @param	InBaseClass				Only objects of this class can exist in the library
-	 * @param	bInHasBlueprintClasses	If true, this library contains blueprint classes derived from BaseClass, will convert them correctly
-	 * @param	InUseWeak				If true, references to objects are weak, so they can be garbage collected. Useful in the editor to allow deletion
-	 */
-	ENGINE_API static class UObjectLibrary* CreateLibrary(UClass* InBaseClass, bool bInHasBlueprintClasses, bool bInUseWeak);
 
 	/** Set rather this library is using weak or strong references */
 	virtual void UseWeakReferences(bool bSetUseWeak);
@@ -104,46 +92,19 @@ public:
 	virtual void ClearLoaded();
 
 	/** Load an entire subdirectory of assets into this object library. Returns number of assets loaded */
-	virtual int32 LoadAssetsFromPaths(TArray<FString> Paths);
-
-	virtual int32 LoadAssetsFromPath(const FString& Path)
-	{
-		TArray<FString> Paths;
-		Paths.Add(Path);
-		return LoadAssetsFromPaths(Paths);
-	}
+	virtual int32 LoadAssetsFromPath(const FString& Path);
 
 	/** Load an entire subdirectory of blueprints into this object library. Only loads blueprints of passed in class. Returns number of assets loaded */
-	virtual int32 LoadBlueprintsFromPaths(TArray<FString> Paths);
-
-	virtual int32 LoadBlueprintsFromPath(const FString& Path)
-	{
-		TArray<FString> Paths;
-		Paths.Add(Path);
-		return LoadBlueprintsFromPaths(Paths);
-	}
+	virtual int32 LoadBlueprintsFromPath(const FString& Path, UClass *ParentClass);
 
 	/** Gets asset data for assets in a subdirectory. Returns number of assets data loaded */
-	virtual int32 LoadAssetDataFromPaths(TArray<FString> Paths);
-
-	virtual int32 LoadAssetDataFromPath(const FString& Path)
-	{
-		TArray<FString> Paths;
-		Paths.Add(Path);
-		return LoadAssetDataFromPaths(Paths);
-	}
+	virtual int32 LoadAssetDataFromPath(const FString& Path);
 
 	/** Load an entire subdirectory of blueprints into this object library. Only loads asset data for blueprints of passed in class. Returns number of asset data loaded loaded */
-	virtual int32 LoadBlueprintAssetDataFromPaths(TArray<FString> Paths);
+	virtual int32 LoadBlueprintAssetDataFromPath(const FString& Path, UClass *ParentClass);
 
-	virtual int32 LoadBlueprintAssetDataFromPath(const FString& Path)
-	{
-		TArray<FString> Paths;
-		Paths.Add(Path);
-		return LoadBlueprintAssetDataFromPaths(Paths);
-	}
-
-	/** Load all of the objects in asset data list into memory */
+	/** Load all of the objects in asset data list into memory  */
 	virtual int32 LoadAssetsFromAssetData();
+
 
 };

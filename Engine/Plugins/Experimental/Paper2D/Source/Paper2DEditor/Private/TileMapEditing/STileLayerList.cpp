@@ -10,8 +10,8 @@
 void STileLayerList::Construct(const FArguments& InArgs, UPaperTileMapRenderComponent* TileMap)
 {
 	TSharedRef<SHeaderRow> HeaderRowWidget = SNew(SHeaderRow)
-		+SHeaderRow::Column("Name").DefaultLabel(NSLOCTEXT("TileLayerList", "TileLayerNameHeader", "Layer Name")).FillWidth(0.7)
-		+SHeaderRow::Column("TileSet").DefaultLabel(NSLOCTEXT("TileLayerList", "TileLayerTileSetHeader", "Tile Set")).FillWidth(0.7);
+		+SHeaderRow::Column("Name").DefaultLabel(NSLOCTEXT("TileLayerList", "TileLayerNameHeader", "Layer Name").ToString()).FillWidth(0.7)
+		+SHeaderRow::Column("TileSet").DefaultLabel(NSLOCTEXT("TileLayerList", "TileLayerTileSetHeader", "Tile Set").ToString()).FillWidth(0.7);
 
 	ChildSlot
 	[

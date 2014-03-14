@@ -26,7 +26,6 @@ public:
 	virtual FString DumpAssetToTempFile(UObject* Asset) const OVERRIDE;
 	virtual bool CreateDiffProcess(const FString& DiffCommand, const FString& DiffArgs) const OVERRIDE;
 	virtual void MigratePackages(const TArray<FName>& PackageNamesToMigrate) const OVERRIDE;
-	virtual void FixupReferencers(const TArray<UObjectRedirector*>& Objects) const OVERRIDE;
 
 public:
 	/** Gets the asset tools singleton as a FAssetTools for asset tools module use */
@@ -58,9 +57,6 @@ private:
 private:
 	/** The manager to handle renaming assets */
 	TSharedRef<FAssetRenameManager> AssetRenameManager;
-
-	/** The manager to handle fixing up redirectors */
-	TSharedRef<FAssetFixUpRedirectors> AssetFixUpRedirectors;
 
 	/** The list of all registered AssetTypeActions */
 	TArray<TSharedRef<IAssetTypeActions>> AssetTypeActionsList;

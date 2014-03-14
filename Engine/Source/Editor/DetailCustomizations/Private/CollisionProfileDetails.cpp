@@ -1266,7 +1266,7 @@ TSharedRef<SWidget> SProfileListItem::GenerateWidgetForColumn(const FName& Colum
 				[
 					SNew(SImage)
 					.Image(FEditorStyle::GetBrush("SettingsEditor.Collision_Engine"))
-					.ToolTipText(LOCTEXT("CantModify_Tooltip", "You can't modify the name of Engine profiles").ToString())
+					.ToolTipText(LOCTEXT("SProfileListItem_Tooltip", "You can't modify the name of Engine profiles").ToString())
 				];
 		}
 		else
@@ -1277,7 +1277,7 @@ TSharedRef<SWidget> SProfileListItem::GenerateWidgetForColumn(const FName& Colum
 				[
 					SNew(SImage)
 					.Image(FEditorStyle::GetBrush("SettingsEditor.Collision_Game"))
-					.ToolTipText(LOCTEXT("CanModify_Tooltip", "This is your custom project profie").ToString())
+					.ToolTipText(LOCTEXT("SProfileListItem_Tooltip", "This is your custom project profie").ToString())
 				];
 		}
 	}
@@ -1359,9 +1359,9 @@ void FCollisionProfileDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBui
 	const FString TraceChannelDocLink = TEXT("Shared/Collision");
 	const FString PresetsDocLink = TEXT("Shared/Collision");
 
-	TSharedPtr<SToolTip> ObjectChannelTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("EditCollisionObject", "Edit collision object types."), NULL, ObjectChannelDocLink, TEXT("ObjectChannel"));
-	TSharedPtr<SToolTip> TraceChannelTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("EditCollisionChannel", "Edit collision trace channels."), NULL, TraceChannelDocLink, TEXT("TraceChannel"));
-	TSharedPtr<SToolTip> ProfileTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("EditCollisionPreset", "Edit collision presets."), NULL, PresetsDocLink, TEXT("Preset"));
+	TSharedPtr<SToolTip> ObjectChannelTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("CollisionChannel", "Edit collision object types."), NULL, ObjectChannelDocLink, TEXT("ObjectChannel"));
+	TSharedPtr<SToolTip> TraceChannelTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("CollisionChannel", "Edit collision trace channels."), NULL, TraceChannelDocLink, TEXT("TraceChannel"));
+	TSharedPtr<SToolTip> ProfileTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("CollisionChannel", "Edit collision presets."), NULL, PresetsDocLink, TEXT("Preset"));
 
 	// Customize collision section
 	ObjectChannelCategory.AddCustomRow(LOCTEXT("CustomCollisionObjectChannels", "ObjectChannels").ToString())
@@ -1385,7 +1385,8 @@ void FCollisionProfileDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBui
 					.ColorAndOpacity(FSlateColor::UseSubduedForeground())
 					.Font(IDetailLayoutBuilder::GetDetailFont())
 					.ToolTip(ObjectChannelTooltip)
-					.Text(LOCTEXT("ObjectChannel_Menu_Description", "You can have up to 18 custom channels including object and trace channels. This is list of object type for your project. \nIf you delete the object type that has been used by game, it will go back to WorldStatic."))
+					.Text(LOCTEXT("ObjectChannel_Menu_Description", "You can have up to 18 custom channels including object and trace channels. This is list of object type for your project. \n\
+															 If you delete the object type that has been used by game, it will go back to WorldStatic.").ToString())
 				]
 
 				+SHorizontalBox::Slot()
@@ -1489,7 +1490,8 @@ void FCollisionProfileDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBui
 					.ColorAndOpacity(FSlateColor::UseSubduedForeground())
 					.Font(IDetailLayoutBuilder::GetDetailFont())
 					.ToolTip(TraceChannelTooltip)
-					.Text(LOCTEXT("TraceChannel_Menu_Description", "You can have up to 18 custom channels including object and trace channels. This is list of trace channel for your project. \nIf you delete the trace channel that has been used by game, the behavior of trace is undefined."))
+					.Text(LOCTEXT("TraceChannel_Menu_Description", "You can have up to 18 custom channels including object and trace channels. This is list of trace channel for your project. \n\
+									If you delete the trace channel that has been used by game, the behavior of trace is undefined.").ToString())
 				]
 
 				+SHorizontalBox::Slot()
@@ -1593,7 +1595,8 @@ void FCollisionProfileDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBui
 					.ColorAndOpacity(FSlateColor::UseSubduedForeground())
 					.Font(IDetailLayoutBuilder::GetDetailFont())
 					.ToolTip(ProfileTooltip)
-					.Text(LOCTEXT("Profile_Menu_Description", "You can modify any of your project profiles. Please note that if you modify profile, it can change collision behavior.\nPlease be careful when you change currently exisiting (used) collision profiles."))
+					.Text(LOCTEXT("Profile_Menu_Description", "You can modify any of your project profiles. Please note that if you modify profile, it can change collision behavior.\n\
+															 Please be careful when you change currently exisiting (used) collision profiles.").ToString())
 				]
 
 				+SHorizontalBox::Slot()
@@ -1989,9 +1992,9 @@ bool	FCollisionProfileDetails::IsAnyChannelSelected(bool bTraceType) const
 	return (bTraceType)? TraceChannelListView->GetNumItemsSelected() > 0: ObjectChannelListView->GetNumItemsSelected() > 0;
 }
 
-FReply	FCollisionProfileDetails::OnDeleteChannel(bool bInTraceType)
+FReply	FCollisionProfileDetails::OnDeleteChannel(bool bTraceType)
 {
-	TArray< TSharedPtr< FChannelListItem > > SelectedItems = (bInTraceType) ? TraceChannelListView->GetSelectedItems() : ObjectChannelListView->GetSelectedItems();
+	TArray< TSharedPtr< FChannelListItem > > SelectedItems = (bTraceType)? TraceChannelListView->GetSelectedItems() : ObjectChannelListView->GetSelectedItems();
 
 	if(SelectedItems.Num() == 1)
 	{

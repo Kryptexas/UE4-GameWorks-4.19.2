@@ -345,15 +345,6 @@ class TestTempStorage : BuildCommand
 	}
 }
 
-[Help("Reads the build time from build.properties")]
-class TestBuildTime : BuildCommand
-{
-    public override void ExecuteBuild()
-    {
-		FEngineVersionSupport.BuildTime();
-    }
-}
-
 [Help("Tests P4 functionality. Creates a new changelist under the workspace %P4CLIENT%")]
 [RequireP4]
 class TestP4_CreateChangelist : BuildCommand
@@ -1477,20 +1468,6 @@ public class GenerateAutomationProject : BuildCommand
 		}
 
 	}
-}
-
-class DumpBranch : BuildCommand
-{
-
-    public override void ExecuteBuild()
-    {
-        Log("************************* DumpBranch");
-
-        var HostPlatforms = new List<UnrealTargetPlatform>();
-        HostPlatforms.Add(UnrealTargetPlatform.Win64);
-        HostPlatforms.Add(UnrealTargetPlatform.Mac);
-        new BranchInfo(HostPlatforms);
-    }
 }
 
 [Help("Sleeps for 20 seconds and then exits")]

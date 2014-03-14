@@ -65,21 +65,15 @@ struct FSimulatedRootMotionReplicatedMove
 /** Utility for determining if we should use relative positioning when based on a component (because it may move). */
 namespace MovementBaseUtility
 {
-	FORCEINLINE bool IsDynamicBase(const class UPrimitiveComponent* MovementBase)
+	FORCEINLINE bool IsDynamicBase(class UPrimitiveComponent* MovementBase)
 	{
 		return (MovementBase && !MovementBase->IsWorldGeometry());
 	}
 
-	FORCEINLINE bool UseRelativePosition(const class UPrimitiveComponent* MovementBase)
+	FORCEINLINE bool UseRelativePosition(class UPrimitiveComponent* MovementBase)
 	{
 		return IsDynamicBase(MovementBase);
 	}
-
-	/** Ensure that BasedObjectTick ticks after NewBase */
-	void AddTickDependency(FTickFunction& BasedObjectTick, class UPrimitiveComponent* NewBase);
-
-	/** Remove tick dependency of BasedObjectTick on OldBase */
-	void RemoveTickDependency(FTickFunction& BasedObjectTick, class UPrimitiveComponent* OldBase);
 }
 
 /** Struct to hold relative position information from the server. */
@@ -155,7 +149,7 @@ class ENGINE_API ACharacter : public APawn
 	/** Name of the CapsuleComponent. */
 	static FName CapsuleComponentName;
 
-	/** Sets the MovementBase used by CharacterMovement walking movement. */
+	/** Attaches the RootComponent of this Actor to NewBase, and sets the replicated Base Actor to the owner of NewBase (or the WorldSettings if NewBase->IsWorldGeometry()) */
 	virtual void SetBase(UPrimitiveComponent* NewBase, bool bNotifyActor=true);
 
 protected:
@@ -211,7 +205,7 @@ public:
 
 	/** If server disagrees with root motion track position, client has to resimulate root motion from last AckedMove. */
 	UPROPERTY(Transient)
-	uint32 bClientResimulateRootMotion:1;
+	bool bClientResimulateRootMotion;
 
 	/** Simulate gravity for this character on network clients when predicting position (true if character is walking or falling). */
 	UPROPERTY(replicated)
@@ -220,6 +214,9 @@ public:
 	/** Disable simulated gravity (set when character encroaches geometry on client, to keep him from falling through floors) */
 	UPROPERTY()
 	uint32 bSimGravityDisabled:1;    
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AI)
+	uint32 bUseAvoidancePathing:1;
 
 	// Begin AActor Interface.
 	virtual void TeleportSucceeded(bool bIsATest) OVERRIDE;
@@ -392,11 +389,11 @@ public:
 
 	/** Replicated function sent by client to server - contains client movement and firing info. */
 	UFUNCTION(unreliable, server, WithValidation)
-	void ServerMove(float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 MoveFlags, uint8 ClientRoll, uint32 View, class UPrimitiveComponent* ClientMovementBase);
+	void ServerMove(float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 MoveFlags, uint8 ClientRoll, uint32 View);
 
 	/** Replicated function sent by client to server - contains client movement and firing info for two moves. */
 	UFUNCTION(unreliable, server, WithValidation)
-	void ServerMoveDual(float TimeStamp0, FVector_NetQuantize100 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, class UPrimitiveComponent* ClientMovementBase);
+	void ServerMoveDual(float TimeStamp0, FVector_NetQuantize100 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View);
 
 	/* Resending an (important) old move.  Process it if not already processed. */
 	UFUNCTION(unreliable, server, WithValidation)

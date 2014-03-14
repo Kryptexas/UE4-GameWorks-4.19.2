@@ -518,6 +518,12 @@ class FOnlineAsyncTaskSteamGetAchievements : public FOnlineAsyncTaskSteam
 {
 public:
 
+	enum EReadMode
+	{
+		TriggerOnAchievementsReadDelegates,
+		TriggerOnAchievementDescriptionsReadDelegates
+	};
+
 private:
 
 	/** Has this task been initialized yet */
@@ -526,27 +532,25 @@ private:
 	FUniqueNetIdSteam UserId;
 	/** Returned results from Steam */
 	UserStatsReceived_t CallbackResults;
-	/** Delegate for achievements */
-	FOnQueryAchievementsCompleteDelegate AchievementDelegate;
+	/** Whether we should call delegates for achievements or for achievement descriptions */
+	EReadMode DelegatesToTrigger;
 
 	/** Hidden on purpose */
 	FOnlineAsyncTaskSteamGetAchievements() :
 		FOnlineAsyncTaskSteam(NULL, k_uAPICallInvalid),
 		bInit(false),
-		UserId(0)
+		UserId(0),
+		DelegatesToTrigger(TriggerOnAchievementsReadDelegates)
 	{
 	}
 
 public:
 
-	FOnlineAsyncTaskSteamGetAchievements(
-		FOnlineSubsystemSteam* InSteamSubsystem, 
-		const FUniqueNetIdSteam& InUserId, 
-		const FOnQueryAchievementsCompleteDelegate & InAchievementDelegate ) :
+	FOnlineAsyncTaskSteamGetAchievements(FOnlineSubsystemSteam* InSteamSubsystem, const FUniqueNetIdSteam& InUserId, EReadMode InDelegatesToTrigger) :
 		FOnlineAsyncTaskSteam(InSteamSubsystem, k_uAPICallInvalid),
 		bInit(false),
 		UserId(InUserId),
-		AchievementDelegate(InAchievementDelegate)
+		DelegatesToTrigger(InDelegatesToTrigger)
 	{
 	}
 
@@ -616,7 +620,15 @@ public:
 		FOnlineAsyncTaskSteam::TriggerDelegates();
 		
 		FOnlineAchievementsSteamPtr Achievements = StaticCastSharedPtr<FOnlineAchievementsSteam>(Subsystem->GetAchievementsInterface());
-		AchievementDelegate.ExecuteIfBound( UserId, bWasSuccessful );
+		if (DelegatesToTrigger == TriggerOnAchievementsReadDelegates)
+		{
+			Achievements->TriggerOnAchievementsReadDelegates(UserId, bWasSuccessful);
+		}
+		else
+		{
+			check(DelegatesToTrigger == TriggerOnAchievementDescriptionsReadDelegates);
+			Achievements->TriggerOnAchievementDescriptionsReadDelegates(UserId, bWasSuccessful);
+		}
 	}
 };
 
@@ -1292,10 +1304,11 @@ bool FOnlineLeaderboardsSteam::ReadLeaderboards(const TArray< TSharedRef<FUnique
 	return true;
 }
 
-void FOnlineLeaderboardsSteam::QueryAchievements( const FUniqueNetIdSteam &	UserId, const FOnQueryAchievementsCompleteDelegate & AchievementDelegate )
+void FOnlineLeaderboardsSteam::ReadAchievements(const FUniqueNetIdSteam& UserId, bool bTriggerDescriptionsDelegatesInstead)
 {
-	FOnlineAsyncTaskSteamGetAchievements* NewStatsTask = new FOnlineAsyncTaskSteamGetAchievements( SteamSubsystem, UserId, AchievementDelegate );
-
+	FOnlineAsyncTaskSteamGetAchievements* NewStatsTask = new FOnlineAsyncTaskSteamGetAchievements(SteamSubsystem, UserId, 
+		bTriggerDescriptionsDelegatesInstead ? FOnlineAsyncTaskSteamGetAchievements::TriggerOnAchievementDescriptionsReadDelegates : FOnlineAsyncTaskSteamGetAchievements::TriggerOnAchievementsReadDelegates
+		);
 	SteamSubsystem->QueueAsyncTask(NewStatsTask);
 }
 

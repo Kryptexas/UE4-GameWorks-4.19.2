@@ -257,7 +257,7 @@ class ENGINE_API UWheeledVehicleMovementComponent : public UPawnMovementComponen
 	virtual void GenerateTireForces(class UVehicleWheel* Wheel, const FTireShaderInput& Input, FTireShaderOutput& Output);
 
 	/** Return true if we are ready to create a vehicle */
-	virtual bool CanCreateVehicle() const;
+	virtual bool CanCreateVehicle();
 
 	/** Create and setup the physx vehicle */
 	virtual void CreateVehicle();
@@ -271,9 +271,7 @@ class ENGINE_API UWheeledVehicleMovementComponent : public UPawnMovementComponen
 	/** Used to shut down and pysics engine structure for this component */
 	virtual void DestroyPhysicsState() OVERRIDE;
 
-	virtual bool ShouldCreatePhysicsState() const OVERRIDE;
-
-	virtual bool HasValidPhysicsState() const OVERRIDE;
+	virtual bool ShouldCreatePhysicsState() const OVERRIDE { return true; }
 
 	/** Draw debug text for the wheels and suspension */
 	virtual void DrawDebug(UCanvas* Canvas, float& YL, float& YPos);

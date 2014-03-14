@@ -90,22 +90,6 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 	static FString GetCPUVendor();
 
 	/**
-	 * Uses cpuid instruction to get the vendor string
-	 *
-	 * @return	CPU info bitfield
-	 *
-	 *			Bits 0-3	Stepping ID
-	 *			Bits 4-7	Model
-	 *			Bits 8-11	Family
-	 *			Bits 12-13	Processor type (Intel) / Reserved (AMD)
-	 *			Bits 14-15	Reserved
-	 *			Bits 16-19	Extended model
-	 *			Bits 20-27	Extended family
-	 *			Bits 28-31	Reserved
-	 */
-	static uint32 GetCPUInfo();
-
-	/**
 	 * Converts Y position from Slate (left-top origin) to Cocoa (left-bottom origin) coordinates
 	 *
 	 * @param	YPosition		Position to convert

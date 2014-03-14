@@ -40,11 +40,6 @@ class FAndroid_DXTTargetPlatform
 		}
 		return false;
 	}
-
-	virtual bool SupportedByExtensionsString( const FString& ExtensionsString, const int GLESVersion ) const OVERRIDE
-	{
-		return (ExtensionsString.Contains(TEXT("GL_NV_texture_compression_s3tc")) || ExtensionsString.Contains(TEXT("GL_EXT_texture_compression_s3tc")));
-	}
 };
 
 /**

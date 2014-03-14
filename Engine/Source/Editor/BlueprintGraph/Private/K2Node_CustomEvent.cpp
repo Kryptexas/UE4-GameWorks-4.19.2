@@ -6,94 +6,10 @@
 #include "EngineLevelScriptClasses.h"
 #include "Kismet2NameValidators.h"
 #include "K2Node_BaseMCDelegate.h"
-#include "CompilerResultsLog.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_CustomEvent"
 
 #define SNAP_GRID (16) // @todo ensure this is the same as SNodePanel::GetSnapGridSize()
-
-/**
- * Attempts to find a CustomEvent node associated with the specified function.
- * 
- * @param  CustomEventFunc	The function you want to find an associated node for.
- * @return A pointer to the found node (NULL if a corresponding node wasn't found)
- */
-static UK2Node_CustomEvent const* FindCustomEventNodeFromFunction(UFunction* CustomEventFunc)
-{
-	UK2Node_CustomEvent const* FoundEventNode = NULL;
-	if (CustomEventFunc != NULL)
-	{
-		UObject const* const FuncOwner = CustomEventFunc->GetOuter();
-		check(FuncOwner != NULL);
-
-		// if the found function is a NOT a native function (it's user generated)
-		if (FuncOwner->IsA(UBlueprintGeneratedClass::StaticClass()))
-		{
-			UBlueprintGeneratedClass* FuncClass = Cast<UBlueprintGeneratedClass>(CustomEventFunc->GetOuter());
-			check(FuncClass != NULL);
-			UBlueprint* FuncBlueprint = Cast<UBlueprint>(FuncClass->ClassGeneratedBy);
-			check(FuncBlueprint != NULL);
-
-			TArray<UK2Node_CustomEvent*> BpCustomEvents;
-			FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_CustomEvent>(FuncBlueprint, BpCustomEvents);
-
-			// look to see if the function that this is overriding is a custom-event
-			for (UK2Node_CustomEvent const* const UserEvent : BpCustomEvents)
-			{
-				if (UserEvent->CustomFunctionName == CustomEventFunc->GetFName())
-				{
-					FoundEventNode = UserEvent;
-					break;
-				}
-			}
-		}
-	}
-
-	return FoundEventNode;
-}
-
-/**
- * Custom handler for validating CustomEvent renames
- */
-class FCustomEventNameValidator : public FKismetNameValidator
-{
-public:
-	FCustomEventNameValidator(UK2Node_CustomEvent const* CustomEventIn)
-		: FKismetNameValidator(CustomEventIn->GetBlueprint(), CustomEventIn->CustomFunctionName)
-		, CustomEvent(CustomEventIn)
-	{
-		check(CustomEvent != NULL);
-	}
-
-	// Begin INameValidatorInterface
-	virtual EValidatorResult IsValid(FString const& Name, bool bOriginal = false) OVERRIDE
-	{
-		EValidatorResult NameValidity = FKismetNameValidator::IsValid(Name, bOriginal);
-		if ((NameValidity == EValidatorResult::Ok) || (NameValidity == EValidatorResult::ExistingName))
-		{
-			UBlueprint* Blueprint = CustomEvent->GetBlueprint();
-			check(Blueprint != NULL);
-
-			UFunction* ParentFunction = FindField<UFunction>(Blueprint->ParentClass, *Name);
-			// if this custom-event is overriding a function belonging to the blueprint's parent
-			if (ParentFunction != NULL)
-			{
-				UK2Node_CustomEvent const* OverriddenEvent = FindCustomEventNodeFromFunction(ParentFunction);
-				// if the function that we're overriding isn't another custom event,
-				// then we can't name it this (only allow custom-event to override other custom-events)
-				if (OverriddenEvent == NULL)
-				{
-					NameValidity = EValidatorResult::AlreadyInUse;
-				}		
-			}
-		}
-		return NameValidity;
-	}
-	// End INameValidatorInterface
-
-private:
-	UK2Node_CustomEvent const* CustomEvent;
-};
 
 UK2Node_CustomEvent::UK2Node_CustomEvent(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -159,69 +75,7 @@ void UK2Node_CustomEvent::OnRenameNode(const FString& NewName)
 
 TSharedPtr<class INameValidatorInterface> UK2Node_CustomEvent::MakeNameValidator() const
 {
-	return MakeShareable(new FCustomEventNameValidator(this));
-}
-
-bool UK2Node_CustomEvent::IsOverride() const
-{
-	UBlueprint* Blueprint = GetBlueprint();
-	check(Blueprint != NULL);
-
-	UFunction* ParentFunction = FindField<UFunction>(Blueprint->ParentClass, CustomFunctionName);
-	UK2Node_CustomEvent const* OverriddenEvent = FindCustomEventNodeFromFunction(ParentFunction);
-
-	return (OverriddenEvent != NULL);
-}
-
-uint32 UK2Node_CustomEvent::GetNetFlags() const
-{
-	uint32 NetFlags = (FunctionFlags & FUNC_NetFuncFlags);
-	if (IsOverride())
-	{
-		UBlueprint* Blueprint = GetBlueprint();
-		check(Blueprint != NULL);
-
-		UFunction* ParentFunction = FindField<UFunction>(Blueprint->ParentClass, CustomFunctionName);
-		check(ParentFunction != NULL);
-
-		// inherited net flags take precedence 
-		NetFlags = (ParentFunction->FunctionFlags & FUNC_NetFuncFlags);
-	}
-	return NetFlags;
-}
-
-void UK2Node_CustomEvent::ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const
-{
-	Super::ValidateNodeDuringCompilation(MessageLog);
-
-	UBlueprint* Blueprint = GetBlueprint();
-	check(Blueprint != NULL);
-
-	UFunction* ParentFunction = FindField<UFunction>(Blueprint->ParentClass, CustomFunctionName);
-	// if this custom-event is overriding a function belonging to the blueprint's parent
-	if (ParentFunction != NULL)
-	{
-		UObject const* const FuncOwner = ParentFunction->GetOuter();
-		check(FuncOwner != NULL);
-
-		// if this custom-event is attempting to override a native function, we can't allow that
-		if (!FuncOwner->IsA(UBlueprintGeneratedClass::StaticClass()))
-		{
-			MessageLog.Error(*FString::Printf(*LOCTEXT("NativeFunctionConflict", "@@ name conflicts with a native '%s' function").ToString(), *FuncOwner->GetName()), this);
-		}
-		else 
-		{
-			UK2Node_CustomEvent const* OverriddenEvent = FindCustomEventNodeFromFunction(ParentFunction);
-			// if the function that this is attempting to override is NOT another 
-			// custom-event, then we want to error (a custom-event shouldn't override something different)
-			if (OverriddenEvent == NULL)
-			{
-				MessageLog.Error(*FString::Printf(*LOCTEXT("NonCustomEventOverride", "@@ name conflicts with a '%s' function").ToString(), *FuncOwner->GetName()), this);
-			}
-			// else, we assume the user was attempting to override the parent's custom-event
-			// the signitures could still be off, but FKismetCompilerContext::PrecompileFunction() should catch that
-		}		
-	}
+	return MakeShareable(new FKismetNameValidator(GetBlueprint(), CustomFunctionName));
 }
 
 void UK2Node_CustomEvent::ReconstructNode()

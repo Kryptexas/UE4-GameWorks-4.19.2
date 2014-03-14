@@ -140,7 +140,7 @@ void USelection::MarkBatchDirty()
 
 
 
-bool USelection::IsSelected(const UObject* InObject) const
+bool USelection::IsSelected(UObject* InObject) const
 {
 	if ( InObject )
 	{

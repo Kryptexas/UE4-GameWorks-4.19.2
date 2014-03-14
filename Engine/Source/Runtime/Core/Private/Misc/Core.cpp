@@ -75,9 +75,6 @@ bool GAllowActorScriptExecutionInEditor = false;
 /** Forces use of template names for newly instanced components in a CDO */
 bool GCompilingBlueprint = false;
 
-/** True if we're reconstructing blueprint instances. Should never be true on cooked builds */
-bool GIsReconstructingBlueprintInstances = false;
-
 /** Force blueprints to not compile on load */
 bool GForceDisableBlueprintCompileOnLoad = false;
 
@@ -294,7 +291,7 @@ DEFINE_STAT(STAT_TotalAllocatorCalls);
 
 DEFINE_STAT(STAT_RenderingIdleTime_WaitingForGPUQuery);
 DEFINE_STAT(STAT_RenderingIdleTime_WaitingForGPUPresent);
-DEFINE_STAT(STAT_RenderingIdleTime_RenderThreadSleepTime);
+DEFINE_STAT(STAT_RenderingIdleTime_WaitingForRenderCommands);
 
 DEFINE_STAT(STAT_RenderingIdleTime);
 DEFINE_STAT(STAT_RenderingBusyTime);

@@ -142,7 +142,7 @@ void SDocumentationToolTip::ConstructSimpleTipContent()
 					.HAlign( HAlign_Right )
 					[
 						SNew( SHyperlink )
-						.Text( NSLOCTEXT( "SToolTip", "EditDocumentationMessage_Create", "create" ) )
+						.Text( NSLOCTEXT( "SToolTip", "EditDocumentationMessage", "create" ) )
 						.OnNavigate( this, &SDocumentationToolTip::CreateExcerpt, DocPath, ExcerptName )
 					];
 			}
@@ -282,7 +282,7 @@ void SDocumentationToolTip::ConstructFullTipContent()
 				.HAlign( HAlign_Right )
 				[
 					SNew( SHyperlink )
-						.Text( NSLOCTEXT( "SToolTip", "EditDocumentationMessage_Edit", "edit" ) )
+						.Text( NSLOCTEXT( "SToolTip", "EditDocumentationMessage", "edit" ) )
 						.OnNavigate_Static( &Local::EditSource, FPaths::ConvertRelativePathToFull( FDocumentationLink::ToSourcePath( DocumentationLink ) ) + TEXT("|") + FString::FromInt( Excerpts[ ExcerptIndex ].LineNumber ) )
 				];
 			}

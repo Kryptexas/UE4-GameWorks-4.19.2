@@ -144,8 +144,6 @@ void USCS_Node::AddChildNode(USCS_Node* InNode)
 {
 	if(InNode != NULL && !ChildNodes.Contains(InNode))
 	{
-		Modify();
-
 		ChildNodes.Add(InNode);
 	}
 }
@@ -281,8 +279,6 @@ void USCS_Node::SetParent(USCS_Node* InParentNode)
 	check(InParentNode->GetSCS()->GetBlueprint() != NULL);
 	check(InParentNode->GetSCS()->GetBlueprint()->GeneratedClass != NULL);
 
-	Modify();
-
 	bIsParentComponentNative = false;
 	ParentComponentOrVariableName = InParentNode->VariableName;
 	ParentComponentOwnerClassName = InParentNode->GetSCS()->GetBlueprint()->GeneratedClass->GetFName();
@@ -291,8 +287,6 @@ void USCS_Node::SetParent(USCS_Node* InParentNode)
 void USCS_Node::SetParent(USceneComponent* InParentComponent)
 {
 	check(InParentComponent != NULL);
-
-	Modify();
 
 	bIsParentComponentNative = true;
 	ParentComponentOrVariableName = InParentComponent->GetFName();

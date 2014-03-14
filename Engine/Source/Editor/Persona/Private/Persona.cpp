@@ -817,19 +817,32 @@ void FPersona::InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< clas
 	if (InitMesh != NULL)
 	{
 		SetPreviewMesh(InitMesh);
-
-		if(!TargetSkeleton->GetPreviewMesh())
-		{
-			TargetSkeleton->SetPreviewMesh(InitMesh);
-		}
 	}
 	else if (TargetSkeleton)
 	{
 		//If no preview mesh set, just find the first mesh that uses this skeleton
-		USkeletalMesh * PreviewMesh = TargetSkeleton->GetPreviewMesh(true);
-		if ( PreviewMesh )
+		USkeletalMesh * PreviewMesh = TargetSkeleton->GetPreviewMesh();
+		if(!PreviewMesh)
 		{
-			SetPreviewMesh( PreviewMesh );
+			FARFilter Filter;
+			Filter.ClassNames.Add(USkeletalMesh::StaticClass()->GetFName());
+
+			FString SkeletonString = FAssetData(TargetSkeleton).GetExportTextName();
+			Filter.TagsAndValues.Add(GET_MEMBER_NAME_CHECKED(USkeletalMesh, Skeleton), SkeletonString);
+
+			TArray<FAssetData> AssetList;
+			FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+			AssetRegistryModule.Get().GetAssets(Filter, AssetList);
+
+			if(AssetList.Num() > 0)
+			{
+				TargetSkeleton->SetPreviewMesh( Cast<USkeletalMesh>(AssetList[0].GetAsset()), false );
+			}
+		}
+
+		if (TargetSkeleton->GetPreviewMesh() != NULL)
+		{
+			SetPreviewMesh(TargetSkeleton->GetPreviewMesh());
 		}
 	}
 
@@ -1729,6 +1742,15 @@ void FPersona::SetSelectedBone(USkeleton* InTargetSkeleton, const FName& BoneNam
 						// Broadcast that a bone has been selected
 						OnBoneSelected.Broadcast( BoneName );
 					}
+
+					FAnimNode_ModifyBone& SkelControl = Preview->PreviewInstance->SingleBoneController;
+					
+					// Zero out the skelcontrol since we're switching bones
+					SkelControl.Rotation = FRotator::ZeroRotator;
+					SkelControl.Translation = FVector::ZeroVector;
+
+					// Update who this skelcontrol is operating on
+					SkelControl.BoneToModify.BoneName = BoneName;
 
 					if( Viewport.IsValid() )
 					{

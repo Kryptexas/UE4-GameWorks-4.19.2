@@ -767,7 +767,7 @@ int32 UFixupRedirectsCommandlet::Main( const FString& Params )
 		}
 
 		// Check in all changed files
-		const FText Description = NSLOCTEXT("FixupRedirectsCmdlet", "ChangelistDescription", "Fixed up Redirects");
+		FString Description = FString::Printf( TEXT( "Fixupredirects" ) );
 		TSharedRef<FCheckIn, ESPMode::ThreadSafe> CheckInOperation = ISourceControlOperation::Create<FCheckIn>();
 		CheckInOperation->SetDescription( Description );
 		SourceControlProvider.Execute(CheckInOperation, SourceControlHelpers::PackageFilenames(FilesToSubmit));

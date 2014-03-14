@@ -542,7 +542,6 @@ bool UEdGraphSchema_K2::IsAllowableBlueprintVariableType(const class UClass* InC
 			return true;
 		}
 
-
 		const UClass* ParentClass = InClass;
 		while(ParentClass)
 		{

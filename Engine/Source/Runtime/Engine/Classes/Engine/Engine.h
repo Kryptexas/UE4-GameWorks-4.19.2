@@ -406,7 +406,7 @@ struct FDropNoteInfo
 
 /** On-screen debug message handling */
 /** Helper struct for tracking on screen messages. */
-USTRUCT()
+USTRUCT(transient)
 struct FScreenMessageString
 {
 	GENERATED_USTRUCT_BODY()
@@ -442,18 +442,6 @@ struct FScreenMessageString
 		}
 	
 };
-
-UENUM()
-namespace EMatineeCaptureType
-{
-	enum Type
-	{
-		AVI		UMETA(DisplayName="AVI Movie"),
-		BMP		UMETA(DisplayName="BMP Image Sequence"),
-		PNG		UMETA(DisplayName="PNG Image Sequence"),
-		JPEG	UMETA(DisplayName="JPEG Image Sequence")
-	};
-}
 
 class IAnalyticsProvider;
 
@@ -844,14 +832,6 @@ public:
 	UPROPERTY(globalconfig, EditAnywhere, Category=DefaultMaterials, meta=(AllowedClasses="Material", DisplayName="Preview Shadows Indicator Material"))
 	FStringAssetReference PreviewShadowsIndicatorMaterialName;
 
-	/** Material that 'fakes' lighting, used for arrows, widgets. */
-	UPROPERTY()
-	class UMaterial* ArrowMaterial;
-
-	/** @todo document */
-	UPROPERTY(globalconfig)
-	FStringAssetReference ArrowMaterialName;
-
 	/** @todo document */
 	UPROPERTY(globalconfig)
 	FLinearColor LightingOnlyBrightness;
@@ -964,6 +944,14 @@ public:
 	/** @todo document */
 	UPROPERTY(globalconfig)
 	FStringAssetReference LightMapDensityTextureName;
+
+	/** White noise sound */
+	UPROPERTY()
+	class USoundWave* DefaultSound;
+
+	/** @todo document */
+	UPROPERTY(globalconfig, EditAnywhere, Category=DefaultSounds, meta=(AllowedClasses="SoundWave", DisplayName="Default Sound"))
+	FStringAssetReference DefaultSoundName;
 
 	// Variables.
 
@@ -1293,13 +1281,17 @@ public:
 	UPROPERTY(transient)
 	FString MatineePackageCaptureName;
 
+	/** The visible levels that should be loaded when the matinee starts */
+	UPROPERTY(transient)
+	FString VisibleLevelsForMatineeCapture;
+
 	/** the fps of the matine that we want to record */
 	UPROPERTY(transient)
 	int32 MatineeCaptureFPS;
 
-	/** The capture type, e.g. AVI or Screen Shots */
+	/** The capture type 0 - AVI, 1 - Screen Shots */
 	UPROPERTY(transient)
-	TEnumAsByte<EMatineeCaptureType::Type> MatineeCaptureType;
+	int32 MatineeCaptureType;
 
 	/** Whether or not to disable texture streaming during matinee movie capture */
 	UPROPERTY(transient)
@@ -1419,13 +1411,12 @@ public:
 
 	virtual bool IsInitialized() const { return bIsInitialized; }
 
-	/** Editor-only event triggered when the actor list of the world has changed */
-	DECLARE_EVENT( UEngine, FLevelActorListChangedEvent );
-	FLevelActorListChangedEvent& OnLevelActorListChanged() { return LevelActorListChangedEvent; }
+	/** Editor-only event triggered when actors are added or removed from the world, or if the world changes entirely */
+	DECLARE_EVENT( UEngine, FLevelActorsChangedEvent );
+	FLevelActorsChangedEvent& OnLevelActorsChanged() { return LevelActorsChangedEvent; }
 
-
-	/** Called by internal engine systems after a world's actor list changes in a way not specifiable through other LevelActor__Events to notify other subsystems */
-	void BroadcastLevelActorListChanged() { LevelActorListChangedEvent.Broadcast(); }
+	/** Called by internal engine systems after level actors have changed to notify other subsystems */
+	void BroadcastLevelActorsChanged() { LevelActorsChangedEvent.Broadcast(); }
 
 	/** Editor-only event triggered when actors are added to the world */
 	DECLARE_EVENT_OneParam( UEngine, FLevelActorAddedEvent, AActor* );
@@ -1454,13 +1445,6 @@ public:
 
 	/** Called by internal engine systems after a level actor has been detached */
 	void BroadcastLevelActorDetached(AActor* InActor, const AActor* InParent) { LevelActorDetachedEvent.Broadcast(InActor, InParent); }
-
-	/** Editor-only event triggered when actors' folders are changed */
-	DECLARE_EVENT_TwoParams( UEngine, FLevelActorFolderChangedEvent, const AActor*, FName );
-	FLevelActorFolderChangedEvent& OnLevelActorFolderChanged() { return LevelActorFolderChangedEvent; }
-
-	/** Called by internal engine systems after a level actor's folder has been changed */
-	void BroadcastLevelActorFolderChanged(const AActor* InActor, FName OldPath) { LevelActorFolderChangedEvent.Broadcast(InActor, OldPath); }
 
 	/** Editor-only event triggered after an actor is moved, rotated or scaled (AActor::PostEditMove) */
 	DECLARE_EVENT_OneParam( UEngine, FOnActorMovedEvent, AActor* );
@@ -2063,8 +2047,8 @@ protected:
 	FWorldDestroyedEvent		WorldDestroyedEvent;
 private:
 
-	/** Broadcasts whenever a world's actor list changes in a way not specifiable through other LevelActor__Events */
-	FLevelActorListChangedEvent LevelActorListChangedEvent;
+	/** Broadcasts whenever actors change. */
+	FLevelActorsChangedEvent LevelActorsChangedEvent;
 
 	/** Broadcasts whenever an actor is added. */
 	FLevelActorAddedEvent LevelActorAddedEvent;
@@ -2077,9 +2061,6 @@ private:
 
 	/** Broadcasts whenever an actor is detached. */
 	FLevelActorDetachedEvent LevelActorDetachedEvent;
-
-	/** Broadcasts whenever an actor's folder has changed. */
-	FLevelActorFolderChangedEvent LevelActorFolderChangedEvent;
 
 	/** Broadcasts whenever an actor is being renamed */
 	FLevelActorRequestRenameEvent LevelActorRequestRenameEvent;
@@ -2415,9 +2396,6 @@ public:
 	 */
 	const UGameUserSettings* GetGameUserSettings() const;
 	UGameUserSettings* GetGameUserSettings();
-
-	/** Delegate handler for screenshots */
-	void HandleScreenshotCaptured(int32 Width, int32 Height, const TArray<FColor>& Colors, const FString& Filename);
 
 private:
 	void CreateGameUserSettings();

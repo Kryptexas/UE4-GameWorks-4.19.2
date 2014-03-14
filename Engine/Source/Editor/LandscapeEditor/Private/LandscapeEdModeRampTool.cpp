@@ -554,5 +554,3 @@ void FEdModeLandscape::InitializeToolSet_Ramp()
 	ToolSet_Ramp->AddTool(new FLandscapeToolRamp(this));
 	ToolSet_Ramp->ValidBrushes.Add("BrushSet_Dummy");
 }
-
-#undef LOCTEXT_NAMESPACE

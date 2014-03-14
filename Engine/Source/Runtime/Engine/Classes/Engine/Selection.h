@@ -233,7 +233,7 @@ public:
 	 * @param	InObject	The object to query.  Can be NULL.
 	 * @return				true if the object is selected, or false if InObject is unselected or NULL.
 	 */
-	bool IsSelected(const UObject* InObject) const;
+	bool IsSelected(UObject* InObject) const;
 
 	/**
 	 * Returns the number of selected objects of the specified type.

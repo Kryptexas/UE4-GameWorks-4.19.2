@@ -26,7 +26,7 @@ public:
 	 * Constructor
 	 *
 	 * @param	InType	Type of MultiBox
-	 * @param	bInShouldCloseWindowAfterMenuSelection	Sets whether or not the window that contains this multibox should be destroyed after the user clicks on a menu item in this box
+ 	 * @param	bInShouldCloseWindowAfterMenuSelection	Sets whether or not the window that contains this multibox should be destroyed after the user clicks on a menu item in this box
 	 * @param	InCommandList	The action list that maps command infos to delegates that should be called for each command associated with a multiblock widget.  This can be modified after the MultiBox is created by calling the PushCommandList() and PopCommandList() methods.
 	 */
 	FMultiBoxBuilder( const EMultiBoxType::Type InType, FMultiBoxCustomization InCustomization, const bool bInShouldCloseWindowAfterMenuSelection, const TSharedPtr< const FUICommandList >& InCommandList, TSharedPtr<FExtender> InExtender = TSharedPtr<FExtender>() );
@@ -36,8 +36,8 @@ public:
 	 * Adds an editable text entry
 	 *
 	 * @param	InLabel				The label to display in the menu
-	 * @param	InToolTip			The tool tip to display when the menu entry is hovered over
-	 * @param	InIcon				The icon to display to the left of the label
+ 	 * @param	InToolTip			The tool tip to display when the menu entry is hovered over
+ 	 * @param	InIcon				The icon to display to the left of the label
 	 * @param	InTextAttribute		The text string we're editing (often, a delegate will be bound to the attribute)
 	 * @param	InOnTextCommitted	Called when the user commits their change to the editable text control
 	 * @param	InOnTextChanged		Called when the text is changed interactively
@@ -97,7 +97,7 @@ protected:
 	TSharedRef< class FMultiBox > MultiBox;
 
 	/** A stack of command lists which map command infos to delegates that should be called.  New multi blocks will always use
-		the command-list at the top of the stack at the time they are added. */
+	    the command-list at the top of the stack at the time they are added. */
 	TArray< TSharedPtr< const FUICommandList > > CommandListStack;
 
 	/** The extender holding all the possible extensions for this menu builder */
@@ -118,7 +118,7 @@ public:
 	 * Constructor
 	 *
 	 * @param	InType	Type of MultiBox
-	 * @param	bInShouldCloseWindowAfterMenuSelection	Sets whether or not the window that contains this multibox should be destroyed after the user clicks on a menu item in this box
+ 	 * @param	bInShouldCloseWindowAfterMenuSelection	Sets whether or not the window that contains this multibox should be destroyed after the user clicks on a menu item in this box
 	 * @param	InCommandList	The action list that maps command infos to delegates that should be called for each command associated with a multiblock widget
 	 * @param	bInCloseSelfOnly	True if clicking on a menu entry closes itself only and its children but not the entire stack 
 	 */
@@ -163,7 +163,7 @@ public:
 	/**
 	 * Constructor
 	 *
-	 * @param	bInShouldCloseWindowAfterMenuSelection	Sets whether or not the window that contains this multibox should be destroyed after the user clicks on a menu item in this box
+ 	 * @param	bInShouldCloseWindowAfterMenuSelection	Sets whether or not the window that contains this multibox should be destroyed after the user clicks on a menu item in this box
 	 * @param	InCommandList	The action list that maps command infos to delegates that should be called for each command associated with a multiblock widget
 	 * @param	bInCloseSelfOnly	True if clicking on a menu entry closes itself only and its children but not the entire stack
 	 */
@@ -311,7 +311,7 @@ public:
 	FToolBarBuilder( TSharedPtr< const FUICommandList > InCommandList, FMultiBoxCustomization InCustomization, TSharedPtr<FExtender> InExtender = TSharedPtr<FExtender>(), EOrientation Orientation = Orient_Horizontal, const bool InForceSmallIcons = false )
 		: FMultiBoxBuilder( (Orientation == Orient_Horizontal) ? EMultiBoxType::ToolBar : EMultiBoxType::VerticalToolBar, InCustomization, false, InCommandList, InExtender )
 		, bSectionNeedsToBeApplied(false)
-		, bIsFocusable(false)
+		, bIsFocusable(true)
 		, bForceSmallIcons(InForceSmallIcons)
 	{
 	}

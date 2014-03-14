@@ -8,7 +8,6 @@
 #include "OnlineSubsystemUtils.generated.inl"
 #include "NboSerializer.h"
 
-#include "Voice.h"
 #include "SoundDefinitions.h"
 
 // Testing classes
@@ -24,7 +23,6 @@
 #include "Tests/TestSharingInterface.h"
 #include "Tests/TestUserInterface.h"
 #include "Tests/TestMessageInterface.h"
-#include "Tests/TestVoice.h"
 
 IMPLEMENT_MODULE( FOnlineSubsystemUtilsModule, OnlineSubsystemUtils );
 
@@ -62,15 +60,8 @@ UAudioComponent* CreateVoiceAudioComponent(uint32 SampleRate)
 			SoundStreaming->bLooping = false;
 
 			AudioComponent = AudioDevice->CreateComponent(SoundStreaming, NULL, NULL, false);
-			if (AudioComponent)
-			{
-				AudioComponent->bIsUISound = true;
-				AudioComponent->SetVolumeMultiplier(1.5f);
-			}
-			else
-			{
-				UE_LOG(LogVoiceDecode, Warning, TEXT("Unable to create voice audio component!"));
-			}
+			AudioComponent->bIsUISound = true;
+			AudioComponent->SetVolumeMultiplier(1.5f);
 		}
 	}
 
@@ -121,7 +112,7 @@ static bool OnlineExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 		}
 		if (OnlineSub != NULL)
 		{
-			bWasHandled = OnlineSub->Exec(InWorld, Cmd, Ar);
+			bWasHandled = OnlineSub->Exec(Cmd, Ar);
 			// If this wasn't handled, see if this is a testing request
 			if (!bWasHandled)
 			{
@@ -168,12 +159,6 @@ static bool OnlineExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 					{
 						// This class deletes itself once done
 						(new FTestLeaderboardInterface(SubName))->Test();
-						bWasHandled = true;
-					}
-					else if (FParse::Command(&Cmd, TEXT("VOICE")))
-					{
-						// This class deletes itself once done
-						(new FTestVoice())->Test();
 						bWasHandled = true;
 					}
 					else if (FParse::Command(&Cmd, TEXT("TIME")))

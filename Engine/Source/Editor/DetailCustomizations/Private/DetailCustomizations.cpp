@@ -69,8 +69,6 @@
 #include "CollisionProfileDetails.h"
 #include "PhysicsSettingsDetails.h"
 #include "GeneralProjectSettingsDetails.h"
-#include "WindowsTargetSettingsDetails.h"
-#include "MoviePlayerSettingsDetails.h"
 
 IMPLEMENT_MODULE( FDetailCustomizationsModule, DetailCustomizations );
 
@@ -123,73 +121,69 @@ void FDetailCustomizationsModule::StartupModule()
 	// in the order they are customized.  This is only relevant for inheritance where both a child and a parent have properties that are customized.
 	// In the order below, Actor will get a chance to display details first, followed by USceneComponent.
 
-	RegisterCustomPropertyLayout( "Actor", FOnGetDetailCustomizationInstance::CreateStatic( &FActorDetails::MakeInstance ) );
-	RegisterCustomPropertyLayout( "SceneComponent", FOnGetDetailCustomizationInstance::CreateStatic( &FSceneComponentDetails::MakeInstance ) );
-	RegisterCustomPropertyLayout( "PrimitiveComponent", FOnGetDetailCustomizationInstance::CreateStatic( &FPrimitiveComponentDetails::MakeInstance ) );
-	RegisterCustomPropertyLayout( "StaticMeshComponent", FOnGetDetailCustomizationInstance::CreateStatic( &FStaticMeshComponentDetails::MakeInstance ) );
-	RegisterCustomPropertyLayout( "SkeletalMeshComponent", FOnGetDetailCustomizationInstance::CreateStatic( &FSkeletalMeshComponentDetails::MakeInstance ) );
-	RegisterCustomPropertyLayout( "SkinnedMeshComponent", FOnGetDetailCustomizationInstance::CreateStatic( &FSkinnedMeshComponentDetails::MakeInstance ) );
-	RegisterCustomPropertyLayout( "LightComponent", FOnGetDetailCustomizationInstance::CreateStatic( &FLightComponentDetails::MakeInstance ) );
-	RegisterCustomPropertyLayout( "PointLightComponent", FOnGetDetailCustomizationInstance::CreateStatic( &FPointLightComponentDetails::MakeInstance ) );
-	RegisterCustomPropertyLayout( "DirectionalLightComponent", FOnGetDetailCustomizationInstance::CreateStatic( &FDirectionalLightComponentDetails::MakeInstance ) );
-	RegisterCustomPropertyLayout( "StaticMeshActor", FOnGetDetailCustomizationInstance::CreateStatic( &FStaticMeshActorDetails::MakeInstance ) );
-	RegisterCustomPropertyLayout( "MeshComponent", FOnGetDetailCustomizationInstance::CreateStatic( &FMeshComponentDetails::MakeInstance ) );
-	RegisterCustomPropertyLayout( "MatineeActor", FOnGetDetailCustomizationInstance::CreateStatic( &FMatineeActorDetails::MakeInstance ) );
-	RegisterCustomPropertyLayout( "ReflectionCapture", FOnGetDetailCustomizationInstance::CreateStatic( &FReflectionCaptureDetails::MakeInstance ) );
-	RegisterCustomPropertyLayout( "SkyLight", FOnGetDetailCustomizationInstance::CreateStatic( &FSkyLightComponentDetails::MakeInstance ) );
-	RegisterCustomPropertyLayout( "Brush", FOnGetDetailCustomizationInstance::CreateStatic( &FBrushDetails::MakeInstance ) );
-	RegisterCustomPropertyLayout( "Emitter", FOnGetDetailCustomizationInstance::CreateStatic( &FEmitterDetails::MakeInstance ) );
-	RegisterCustomPropertyLayout( "AmbientSound", FOnGetDetailCustomizationInstance::CreateStatic( &FAmbientSoundDetails::MakeInstance ) );
-	RegisterCustomPropertyLayout( "WorldSettings", FOnGetDetailCustomizationInstance::CreateStatic( &FWorldSettingsDetails::MakeInstance ) );
-	RegisterCustomPropertyLayout( "GeneralProjectSettings", FOnGetDetailCustomizationInstance::CreateStatic(&FGeneralProjectSettingsDetails::MakeInstance));
+	RegisterCustomPropertyLayout( AActor::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FActorDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( USceneComponent::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FSceneComponentDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( UPrimitiveComponent::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FPrimitiveComponentDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( UStaticMeshComponent::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FStaticMeshComponentDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( USkeletalMeshComponent::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FSkeletalMeshComponentDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( USkinnedMeshComponent::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FSkinnedMeshComponentDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( ULightComponent::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FLightComponentDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( UPointLightComponent::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FPointLightComponentDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( UDirectionalLightComponent::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FDirectionalLightComponentDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( AStaticMeshActor::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FStaticMeshActorDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( UMeshComponent::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FMeshComponentDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( AMatineeActor::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FMatineeActorDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( AReflectionCapture::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FReflectionCaptureDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( ASkyLight::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FSkyLightComponentDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( ABrush::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FBrushDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( AEmitter::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FEmitterDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( AAmbientSound::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FAmbientSoundDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( AWorldSettings::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FWorldSettingsDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( UGeneralProjectSettings::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic(&FGeneralProjectSettingsDetails::MakeInstance));
 
 	//@TODO: A2REMOVAL: Rename FSkeletalControlNodeDetails to something more generic
-	RegisterCustomPropertyLayout( "K2Node_StructMemberGet", FOnGetDetailCustomizationInstance::CreateStatic( &FSkeletalControlNodeDetails::MakeInstance ) );
-	RegisterCustomPropertyLayout( "K2Node_StructMemberSet", FOnGetDetailCustomizationInstance::CreateStatic( &FSkeletalControlNodeDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( UK2Node_StructMemberGet::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FSkeletalControlNodeDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( UK2Node_StructMemberSet::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FSkeletalControlNodeDetails::MakeInstance ) );
 
-	RegisterCustomPropertyLayout( "AnimSequence", FOnGetDetailCustomizationInstance::CreateStatic( &FAnimSequenceDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( UAnimSequence::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FAnimSequenceDetails::MakeInstance ) );
 
-	RegisterCustomPropertyLayout( "EditorAnimSegment", FOnGetDetailCustomizationInstance::CreateStatic( &FAnimMontageSegmentDetails::MakeInstance ) );
-	RegisterCustomPropertyLayout( "EditorAnimCompositeSegment", FOnGetDetailCustomizationInstance::CreateStatic( &FAnimMontageSegmentDetails::MakeInstance ) );
-	RegisterCustomPropertyLayout( "EditorSkeletonNotifyObj", FOnGetDetailCustomizationInstance::CreateStatic( &FSkeletonNotifyDetails::MakeInstance ) );
-	RegisterCustomPropertyLayout( "AnimStateNode", FOnGetDetailCustomizationInstance::CreateStatic( &FAnimStateNodeDetails::MakeInstance ) );
-	RegisterCustomPropertyLayout( "AnimStateTransitionNode", FOnGetDetailCustomizationInstance::CreateStatic( &FAnimTransitionNodeDetails::MakeInstance ) );
-	RegisterCustomPropertyLayout( "AnimGraphNode_TransitionPoseEvaluator", FOnGetDetailCustomizationInstance::CreateStatic( &FTransitionPoseEvaluatorNodeDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( UEditorAnimSegment::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FAnimMontageSegmentDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( UEditorAnimCompositeSegment::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FAnimMontageSegmentDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( UEditorSkeletonNotifyObj::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FSkeletonNotifyDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( UAnimStateNode::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FAnimStateNodeDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( UAnimStateTransitionNode::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FAnimTransitionNodeDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( UAnimGraphNode_TransitionPoseEvaluator::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FTransitionPoseEvaluatorNodeDetails::MakeInstance ) );
 
-	RegisterCustomPropertyLayout( "LandscapeSplineControlPoint", FOnGetDetailCustomizationInstance::CreateStatic( &FLandscapeSplineDetails::MakeInstance ) );
-	RegisterCustomPropertyLayout( "LandscapeSplineSegment", FOnGetDetailCustomizationInstance::CreateStatic( &FLandscapeSplineDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( ULandscapeSplineControlPoint::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FLandscapeSplineDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( ULandscapeSplineSegment::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FLandscapeSplineDetails::MakeInstance ) );
 
-	RegisterCustomPropertyLayout( "DialogueWave", FOnGetDetailCustomizationInstance::CreateStatic( &FDialogueWaveDetails::MakeInstance ) );
-	RegisterCustomPropertyLayout( "BodySetup", FOnGetDetailCustomizationInstance::CreateStatic( &FBodySetupDetails::MakeInstance ) );
-	RegisterCustomPropertyLayout( "PhysicsConstraintTemplate", FOnGetDetailCustomizationInstance::CreateStatic( &FPhysicsConstraintComponentDetails::MakeInstance ) );
-	RegisterCustomPropertyLayout( "PhysicsConstraintComponent", FOnGetDetailCustomizationInstance::CreateStatic( &FPhysicsConstraintComponentDetails::MakeInstance ) );
-	RegisterCustomPropertyLayout( "CollisionProfile", FOnGetDetailCustomizationInstance::CreateStatic(&FCollisionProfileDetails::MakeInstance));
-	RegisterCustomPropertyLayout( "PhysicsSettings", FOnGetDetailCustomizationInstance::CreateStatic(&FPhysicsSettingsDetails::MakeInstance));
+	RegisterCustomPropertyLayout( UDialogueWave::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FDialogueWaveDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( UBodySetup::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FBodySetupDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( UPhysicsConstraintTemplate::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FPhysicsConstraintComponentDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( UPhysicsConstraintComponent::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FPhysicsConstraintComponentDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( UCollisionProfile::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic(&FCollisionProfileDetails::MakeInstance));
+	RegisterCustomPropertyLayout( UPhysicsSettings::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic(&FPhysicsSettingsDetails::MakeInstance));
 
-	RegisterCustomPropertyLayout( "ParticleModuleColorOverLife", FOnGetDetailCustomizationInstance::CreateStatic( &FParticleModuleColorOverLifeDetails::MakeInstance ) );
-	RegisterCustomPropertyLayout( "ParticleModuleRequired", FOnGetDetailCustomizationInstance::CreateStatic( &FParticleModuleRequiredDetails::MakeInstance ) );
-	RegisterCustomPropertyLayout( "ParticleModuleSubUV", FOnGetDetailCustomizationInstance::CreateStatic( &FParticleModuleSubUVDetails::MakeInstance ) );
-	RegisterCustomPropertyLayout( "ParticleModuleAccelerationDrag", FOnGetDetailCustomizationInstance::CreateStatic( &FParticleModuleAccelerationDragDetails::MakeInstance ) );
-	RegisterCustomPropertyLayout( "ParticleModuleAcceleration", FOnGetDetailCustomizationInstance::CreateStatic( &FParticleModuleAccelerationDetails::MakeInstance ) );
-	RegisterCustomPropertyLayout( "ParticleModuleAccelerationDragScaleOverLife", FOnGetDetailCustomizationInstance::CreateStatic( &FParticleModuleAccelerationDragScaleOverLifeDetails::MakeInstance ) );
-	RegisterCustomPropertyLayout( "ParticleModuleCollisionGPU", FOnGetDetailCustomizationInstance::CreateStatic( &FParticleModuleCollisionGPUDetails::MakeInstance ) );
-	RegisterCustomPropertyLayout( "ParticleModuleOrbit", FOnGetDetailCustomizationInstance::CreateStatic( &FParticleModuleOrbitDetails::MakeInstance ) );
-	RegisterCustomPropertyLayout( "ParticleModuleSizeMultiplyLife", FOnGetDetailCustomizationInstance::CreateStatic( &FParticleModuleSizeMultiplyLifeDetails::MakeInstance ) );
-	RegisterCustomPropertyLayout( "ParticleModuleSizeScale", FOnGetDetailCustomizationInstance::CreateStatic( &FParticleModuleSizeScaleDetails::MakeInstance ) );
-	RegisterCustomPropertyLayout( "ParticleModuleVectorFieldScale", FOnGetDetailCustomizationInstance::CreateStatic( &FParticleModuleVectorFieldScaleDetails::MakeInstance ) );
-	RegisterCustomPropertyLayout( "ParticleModuleVectorFieldScaleOverLife", FOnGetDetailCustomizationInstance::CreateStatic( &FParticleModuleVectorFieldScaleOverLifeDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( UParticleModuleColorOverLife::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FParticleModuleColorOverLifeDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( UParticleModuleRequired::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FParticleModuleRequiredDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( UParticleModuleSubUV::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FParticleModuleSubUVDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( UParticleModuleAccelerationDrag::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FParticleModuleAccelerationDragDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( UParticleModuleAcceleration::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FParticleModuleAccelerationDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( UParticleModuleAccelerationDragScaleOverLife::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FParticleModuleAccelerationDragScaleOverLifeDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( UParticleModuleCollisionGPU::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FParticleModuleCollisionGPUDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( UParticleModuleOrbit::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FParticleModuleOrbitDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( UParticleModuleSizeMultiplyLife::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FParticleModuleSizeMultiplyLifeDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( UParticleModuleSizeScale::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FParticleModuleSizeScaleDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( UParticleModuleVectorFieldScale::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FParticleModuleVectorFieldScaleDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( UParticleModuleVectorFieldScaleOverLife::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FParticleModuleVectorFieldScaleOverLifeDetails::MakeInstance ) );
 
-	RegisterCustomPropertyLayout( "CameraComponent", FOnGetDetailCustomizationInstance::CreateStatic( &FCameraDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( UCameraComponent::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FCameraDetails::MakeInstance ) );
 
-	RegisterCustomPropertyLayout( "DeviceProfile", FOnGetDetailCustomizationInstance::CreateStatic( &FDeviceProfileDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( UDeviceProfile::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FDeviceProfileDetails::MakeInstance ) );
 
-	RegisterCustomPropertyLayout( "EditorStyleSettings", FOnGetDetailCustomizationInstance::CreateStatic( &FEditorStyleSettingsDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( UEditorStyleSettings::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FEditorStyleSettingsDetails::MakeInstance ) );
 
-	RegisterCustomPropertyLayout( "InputSettings", FOnGetDetailCustomizationInstance::CreateStatic( &FInputSettingsDetails::MakeInstance ) );
-
-	RegisterCustomPropertyLayout( "WindowsTargetSettings", FOnGetDetailCustomizationInstance::CreateStatic( &FWindowsTargetSettingsDetails::MakeInstance ) );
-
-	RegisterCustomPropertyLayout( "MoviePlayerSettings", FOnGetDetailCustomizationInstance::CreateStatic( &FMoviePlayerSettingsDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout(UInputSettings::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic(&FInputSettingsDetails::MakeInstance));
 
 	PropertyModule.NotifyCustomizationModuleChanged();
 }
@@ -200,12 +194,12 @@ void FDetailCustomizationsModule::ShutdownModule()
 	{
 		FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
 
-		// Unregister all classes customized by name
-		for( auto It = RegisteredClassNames.CreateConstIterator(); It; ++It )
+		// Unregister all classes
+		for( auto It = RegisteredClasses.CreateConstIterator(); It; ++It )
 		{
 			if( It->IsValid() )
 			{
-				PropertyModule.UnregisterCustomPropertyLayout( *It );
+				PropertyModule.UnregisterCustomPropertyLayout( It->Get() );
 			}
 		}
 
@@ -222,16 +216,16 @@ void FDetailCustomizationsModule::ShutdownModule()
 	}
 }
 
-void FDetailCustomizationsModule::RegisterCustomPropertyLayout(FName ClassName, FOnGetDetailCustomizationInstance DetailLayoutDelegate )
+void FDetailCustomizationsModule::RegisterCustomPropertyLayout( UClass* Class, FOnGetDetailCustomizationInstance DetailLayoutDelegate )
 {
-	check( ClassName != NAME_None );
+	check( Class );
 
 	// Add the class to the list of classes we should unregister later
-	RegisteredClassNames.Add( ClassName );
+	RegisteredClasses.Add( Class );
 
 	FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
 
-	PropertyModule.RegisterCustomPropertyLayout( ClassName, DetailLayoutDelegate );
+	PropertyModule.RegisterCustomPropertyLayout( Class, DetailLayoutDelegate );
 }
 
 void FDetailCustomizationsModule::RegisterStructPropertyLayout(FName StructTypeName, FOnGetStructCustomizationInstance StructLayoutDelegate)

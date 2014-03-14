@@ -51,6 +51,9 @@ void SEditableTextBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet, cons
 	// Allow the block to override the tool bar icon, too
 	const FSlateIcon& ActualIcon = !EditableTextBlock->IconOverride.IsSet() ? ActionIcon : EditableTextBlock->IconOverride;
 
+	FSlateFontInfo LabelFont = StyleSet->GetFontStyle( StyleName, ".Label.Font" );
+	FSlateFontInfo EditableTextFont = StyleSet->GetFontStyle( StyleName, ".EditableText.Font" );
+
 	// If we were supplied an image than go ahead and use that, otherwise we use a null widget
 	TSharedRef< SWidget > IconWidget = SNullWidget::NullWidget;
 	if( ActualIcon.IsSet() )
@@ -101,7 +104,7 @@ void SEditableTextBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet, cons
 				.VAlign( VAlign_Center )
 				[
 					SNew( STextBlock )
-					.TextStyle( StyleSet, ISlateStyle::Join(StyleName, ".Label") )
+					.Font( LabelFont )
 					.Text( Label )
 					.ToolTipText( ToolTip )
 				]
@@ -113,8 +116,8 @@ void SEditableTextBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet, cons
 		.Padding( FMargin( 2.0f, 1.0f ) )
 		[
 			SNew( SEditableTextBox )
-			.Style( StyleSet, ISlateStyle::Join(StyleName, ".EditableText") )
 			.Text( EditableTextBlock->TextAttribute )
+			.Font( EditableTextFont )
 			.IsReadOnly( EditableTextBlock->bReadOnly )
 			.SelectAllTextWhenFocused( true )
 			.RevertTextOnEscape( true )

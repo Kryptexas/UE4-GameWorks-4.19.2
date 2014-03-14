@@ -23,7 +23,6 @@ class ENGINE_API UBTDecorator_ConeCheck : public UBTDecorator
 	UPROPERTY(EditAnywhere, Category=Blackboard)
 	struct FBlackboardKeySelector ConeOrigin;
 
-	/** "None" means "use ConeOrigin's direction" */
 	UPROPERTY(EditAnywhere, Category=Blackboard)
 	struct FBlackboardKeySelector ConeDirection;
 
@@ -41,10 +40,11 @@ class ENGINE_API UBTDecorator_ConeCheck : public UBTDecorator
 protected:
 
 	virtual bool CalculateRawConditionValue(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const OVERRIDE;
-	virtual void OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) OVERRIDE;
+	virtual void OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const OVERRIDE;
+	virtual void OnCeaseRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const OVERRIDE;
 	void OnBlackboardChange(const class UBlackboardComponent* Blackboard, uint8 ChangedKeyID);
 
-	virtual void TickNode(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) OVERRIDE;
+	virtual void TickNode(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) const OVERRIDE;
 	
 	bool CalculateDirection(const UBlackboardComponent* BlackboardComp, const FBlackboardKeySelector& Origin, const FBlackboardKeySelector& End, FVector& Direction) const;
 

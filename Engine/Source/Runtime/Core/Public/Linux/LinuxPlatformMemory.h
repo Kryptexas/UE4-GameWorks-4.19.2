@@ -18,32 +18,6 @@ struct FPlatformMemoryStats : public FGenericPlatformMemoryStats
 **/
 struct CORE_API FLinuxPlatformMemory : public FGenericPlatformMemory
 {
-	/**
-	 * Linux representation of a shared memory region
-	 */
-	struct FLinuxSharedMemoryRegion : public FSharedMemoryRegion
-	{
-		/** Returns file descriptor of a shared memory object */
-		int GetFileDescriptor() const { return Fd; }
-
-		/** Returns true if we need to unlink this region on destruction (no other process will be able to access it) */
-		bool NeedsToUnlinkRegion() const { return bCreatedThisRegion; }
-
-		FLinuxSharedMemoryRegion(const FString & InName, uint32 InAccessMode, void * InAddress, SIZE_T InSize, int InFd, bool bInCreatedThisRegion)
-			:	FSharedMemoryRegion(InName, InAccessMode, InAddress, InSize)
-			,	Fd(InFd)
-			,	bCreatedThisRegion(bInCreatedThisRegion)
-		{}
-
-	protected:
-
-		/** File descriptor of a shared region */
-		int				Fd;
-
-		/** Whether we created this region */
-		bool			bCreatedThisRegion;
-	};
-
 	// Begin FGenericPlatformMemory interface
 	static void Init();
 	static class FMalloc* BaseAllocator();
@@ -51,8 +25,6 @@ struct CORE_API FLinuxPlatformMemory : public FGenericPlatformMemory
 	static const FPlatformMemoryConstants& GetConstants();
 	static void* BinnedAllocFromOS( SIZE_T Size );
 	static void BinnedFreeToOS( void* Ptr );
-	static FSharedMemoryRegion * MapNamedSharedMemoryRegion(const FString & InName, bool bCreate, uint32 AccessMode, SIZE_T Size);
-	static bool UnmapNamedSharedMemoryRegion(FSharedMemoryRegion * MemoryRegion);
 	// End FGenericPlatformMemory interface
 };
 

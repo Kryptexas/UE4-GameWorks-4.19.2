@@ -9,31 +9,31 @@ const int32 NumZoomLevels = 13;
 
 struct FZoomLevelEntry
 {
-	FZoomLevelEntry(float InZoomAmount, const FText& InDisplayText)
-		: DisplayText(FText::Format(NSLOCTEXT("PaperEditor", "Zoom", "Zoom {0}"), InDisplayText))
+	FZoomLevelEntry( float InZoomAmount, const FString& InPrettyString)
+		: PrettyString( FText::Format( NSLOCTEXT("PaperEditor", "Zoom", "Zoom {0}"), FText::FromString(InPrettyString) ).ToString() )
 		, ZoomAmount(InZoomAmount)
 	{
 	}
 
-	FText DisplayText;
+	FString PrettyString;
 	float ZoomAmount;
 };
 
 static const FZoomLevelEntry ZoomLevels[NumZoomLevels] =
 {
-	FZoomLevelEntry(0.125f, NSLOCTEXT("PaperEditor", "ZoomLevel", "1:8")),
-	FZoomLevelEntry(0.250f, NSLOCTEXT("PaperEditor", "ZoomLevel", "1:4")),
-	FZoomLevelEntry(0.500f, NSLOCTEXT("PaperEditor", "ZoomLevel", "1:2")),
-	FZoomLevelEntry(0.750f, NSLOCTEXT("PaperEditor", "ZoomLevel", "3:4")),
-	FZoomLevelEntry(0.875f, NSLOCTEXT("PaperEditor", "ZoomLevel", "7:8")),
-	FZoomLevelEntry(1.000f, NSLOCTEXT("PaperEditor", "ZoomLevel", "1:1")),
-	FZoomLevelEntry(2.000f, NSLOCTEXT("PaperEditor", "ZoomLevel", "2x")),
-	FZoomLevelEntry(3.000f, NSLOCTEXT("PaperEditor", "ZoomLevel", "3x")),
-	FZoomLevelEntry(4.500f, NSLOCTEXT("PaperEditor", "ZoomLevel", "4x")),
-	FZoomLevelEntry(5.000f, NSLOCTEXT("PaperEditor", "ZoomLevel", "5x")),
-	FZoomLevelEntry(6.000f, NSLOCTEXT("PaperEditor", "ZoomLevel", "6x")),
-	FZoomLevelEntry(7.000f, NSLOCTEXT("PaperEditor", "ZoomLevel", "7x")),
-	FZoomLevelEntry(8.000f, NSLOCTEXT("PaperEditor", "ZoomLevel", "8x"))
+	FZoomLevelEntry( 0.125f, TEXT("1:8") ),
+	FZoomLevelEntry( 0.250f, TEXT("1:4") ),
+	FZoomLevelEntry( 0.500f, TEXT("1:2") ),
+	FZoomLevelEntry( 0.750f, TEXT("3:4") ),
+	FZoomLevelEntry( 0.875f, TEXT("7:8") ),
+	FZoomLevelEntry( 1.000f, TEXT("1:1") ),
+	FZoomLevelEntry( 2.000f, TEXT("2x") ),
+	FZoomLevelEntry( 3.000f, TEXT("3x") ),
+	FZoomLevelEntry( 4.500f, TEXT("4x") ),
+	FZoomLevelEntry( 5.000f, TEXT("5x") ),
+	FZoomLevelEntry( 6.000f, TEXT("6x") ),
+	FZoomLevelEntry( 7.000f, TEXT("7x") ),
+	FZoomLevelEntry( 8.000f, TEXT("8x") )
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -73,7 +73,7 @@ void SPaperEditorViewport::Construct(const FArguments& InArgs, TSharedRef<FPaper
 		[
 			SNew(STextBlock)
 			.Font(FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-BoldCondensed"), 16))
-			.Text(this, &SPaperEditorViewport::GetZoomText)
+			.Text(this, &SPaperEditorViewport::GetZoomString)
 			.ColorAndOpacity(this, &SPaperEditorViewport::GetZoomTextColorAndOpacity)
 		]
 		+SOverlay::Slot()
@@ -499,9 +499,9 @@ float SPaperEditorViewport::GetZoomAmount() const
 	}
 }
 
-FText SPaperEditorViewport::GetZoomText() const
+FString SPaperEditorViewport::GetZoomString() const
 {
-	return ZoomLevels[ZoomLevel].DisplayText;
+	return ZoomLevels[ZoomLevel].PrettyString;
 }
 
 FSlateColor SPaperEditorViewport::GetZoomTextColorAndOpacity() const
@@ -624,7 +624,7 @@ FSlateRect SPaperEditorViewport::ComputeSensibleGraphBounds() const
 	return FSlateRect( Left - Padding, Top - Padding, Right + Padding, Bottom + Padding );
 }
 
-FText SPaperEditorViewport::GetTitleText() const
+FString SPaperEditorViewport::GetTitleText() const
 {
-	return NSLOCTEXT("PaperEditor", "TileSetPaletteTitle", "tile set palette");
+	return TEXT("tile set palette");
 }

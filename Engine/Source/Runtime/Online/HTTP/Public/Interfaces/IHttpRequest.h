@@ -18,31 +18,6 @@ namespace EHttpRequestStatus
 		/** Finished and was successful */
 		Succeeded
 	};
-
-	/** @return the stringified version of the enum passed in */
-	inline const TCHAR* ToString(EHttpRequestStatus::Type EnumVal)
-	{
-		switch (EnumVal)
-		{
-			case NotStarted:
-			{
-				return TEXT("NotStarted");
-			}
-			case Processing:
-			{
-				return TEXT("Processing");
-			}
-			case Failed:
-			{
-				return TEXT("Failed");
-			}
-			case Succeeded:
-			{
-				return TEXT("Succeeded");
-			}
-		}
-		return TEXT("");
-	}
 }
 
 typedef TSharedPtr<class IHttpRequest> FHttpRequestPtr;

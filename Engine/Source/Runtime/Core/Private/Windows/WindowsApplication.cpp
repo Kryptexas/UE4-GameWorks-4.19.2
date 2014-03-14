@@ -574,12 +574,6 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 			}
 			break;
 
-		case WM_SHOWWINDOW:
-			{
-				DeferMessage( CurrentNativeEventWindowPtr, hwnd, msg, wParam, lParam );
-			}
-			break;
-
 		case WM_SIZE:
 			{
 				DeferMessage( CurrentNativeEventWindowPtr, hwnd, msg, wParam, lParam );
@@ -1224,26 +1218,6 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 				return 0;
 			}
 			break;
-
-		case WM_SHOWWINDOW:
-			{
-				if( CurrentNativeEventWindowPtr.IsValid() )
-				{
-					switch(lParam)
-					{
-					case SW_PARENTCLOSING:
-						CurrentNativeEventWindowPtr->OnParentWindowMinimized();
-						break;
-					case SW_PARENTOPENING:
-						CurrentNativeEventWindowPtr->OnParentWindowRestored();
-						break;
-					default:
-						break;
-					}
-				}
-			}
-			break;
-
 		case WM_SIZE:
 			{
 				if( CurrentNativeEventWindowPtr.IsValid() )
@@ -1293,31 +1267,6 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 	}
 
 	return 0;
-}
-
-void FWindowsApplication::ProcessDeferredDragDropOperation(const FDeferredWindowsDragDropOperation& Op)
-{
-	// Since we deferred the drag/drop event, we could not specify the correct cursor effect in time. Now we will just throw away the value.
-	DWORD DummyCursorEffect = 0;
-
-	switch (Op.OperationType)
-	{
-		case EWindowsDragDropOperationType::DragEnter:
-			OnOLEDragEnter(Op.HWnd, Op.OLEData, Op.KeyState, Op.CursorPosition, &DummyCursorEffect);
-			break;
-		case EWindowsDragDropOperationType::DragOver:
-			OnOLEDragOver(Op.HWnd, Op.KeyState, Op.CursorPosition, &DummyCursorEffect);
-			break;
-		case EWindowsDragDropOperationType::DragLeave:
-			OnOLEDragOut(Op.HWnd);
-			break;
-		case EWindowsDragDropOperationType::Drop:
-			OnOLEDrop(Op.HWnd, Op.OLEData, Op.KeyState, Op.CursorPosition, &DummyCursorEffect);
-			break;
-		default:
-			ensureMsgf(0, TEXT("Unhandled deferred drag/drop operation type: %d"), Op.OperationType);
-			break;
-	}
 }
 
 bool FWindowsApplication::IsInputMessage( uint32 msg )
@@ -1397,34 +1346,19 @@ void FWindowsApplication::PumpMessages( const float TimeDelta )
 
 void FWindowsApplication::ProcessDeferredEvents( const float TimeDelta )
 {
-	// Process windows messages
+	// This function can be reentered when entering a modal tick loop.
+	// We need to make a copy of the events that need to be processed or we may end up processing the same messages twice 
+	TArray<FDeferredWindowsMessage> EventsToProcess( DeferredMessages );
+
+	DeferredMessages.Empty();
+	for( int32 MessageIndex = 0; MessageIndex < EventsToProcess.Num(); ++MessageIndex )
 	{
-		// This function can be reentered when entering a modal tick loop.
-		// We need to make a copy of the events that need to be processed or we may end up processing the same messages twice 
-		TArray<FDeferredWindowsMessage> EventsToProcess( DeferredMessages );
-
-		DeferredMessages.Empty();
-		for( int32 MessageIndex = 0; MessageIndex < EventsToProcess.Num(); ++MessageIndex )
-		{
-			const FDeferredWindowsMessage& DeferredMessage = EventsToProcess[MessageIndex];
-			ProcessDeferredMessage( DeferredMessage );
-		}
-
-		CheckForShiftUpEvents(VK_LSHIFT);
-		CheckForShiftUpEvents(VK_RSHIFT);
+		const FDeferredWindowsMessage& DeferredMessage = EventsToProcess[MessageIndex];
+		ProcessDeferredMessage( DeferredMessage );
 	}
 
-	// Process drag/drop operations
-	{
-		TArray<FDeferredWindowsDragDropOperation> DragDropOperationsToProcess(DeferredDragDropOperations);
-
-		DeferredDragDropOperations.Empty();
-		for (int32 OperationIndex = 0; OperationIndex < DragDropOperationsToProcess.Num(); ++OperationIndex)
-		{
-			const FDeferredWindowsDragDropOperation& DeferredDragDropOperation = DragDropOperationsToProcess[OperationIndex];
-			ProcessDeferredDragDropOperation(DeferredDragDropOperation);
-		}
-	}
+	CheckForShiftUpEvents(VK_LSHIFT);
+	CheckForShiftUpEvents(VK_RSHIFT);
 }
 
 void FWindowsApplication::PollGameDeviceState( const float TimeDelta )
@@ -1474,12 +1408,7 @@ void FWindowsApplication::SetChannelValues (int32 ControllerId, const FForceFeed
 	}
 }
 
-void FWindowsApplication::DeferDragDropOperation(const FDeferredWindowsDragDropOperation& DeferredDragDropOperation)
-{
-	DeferredDragDropOperations.Add(DeferredDragDropOperation);
-}
-
-HRESULT FWindowsApplication::OnOLEDragEnter( const HWND HWnd, const FDragDropOLEData& OLEData, DWORD KeyState, POINTL CursorPosition, DWORD *CursorEffect)
+HRESULT FWindowsApplication::OnOLEDragEnter( const HWND HWnd, IDataObject *DataObjectPointer, DWORD KeyState, POINTL CursorPosition, DWORD *CursorEffect)
 {
 	const TSharedPtr< FWindowsWindow > Window = FindWindowByHWND( Windows, HWnd );
 
@@ -1488,18 +1417,93 @@ HRESULT FWindowsApplication::OnOLEDragEnter( const HWND HWnd, const FDragDropOLE
 		return 0;
 	}
 
-	switch (OLEData.Type)
+	// Decipher the OLE data
+
+	// Utility to ensure resource release
+	struct FOLEResourceGuard
 	{
-		case FDragDropOLEData::Text:
-			*CursorEffect = MessageHandler->OnDragEnterText(Window.ToSharedRef(), OLEData.OperationText);
-			break;
-		case FDragDropOLEData::Files:
-			*CursorEffect = MessageHandler->OnDragEnterFiles(Window.ToSharedRef(), OLEData.OperationFilenames);
-			break;
-		case FDragDropOLEData::None:
-		default:
-			ensureMsgf(0, TEXT("Unhandled drag/drop OLE data type: %d"), OLEData.Type);
-			break;
+		STGMEDIUM& StorageMedium;
+		LPVOID DataPointer;
+
+		FOLEResourceGuard( STGMEDIUM& InStorage )
+		: StorageMedium( InStorage )
+		, DataPointer( GlobalLock(InStorage.hGlobal) ) 
+		{
+		}
+
+		~FOLEResourceGuard()
+		{
+			GlobalUnlock( StorageMedium.hGlobal );
+			ReleaseStgMedium( &StorageMedium );
+		}
+	};
+
+	// Attempt to get plain text or unicode text from the data being dragged in
+
+	FORMATETC FormatEtc_Ansii = { CF_TEXT, 0, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
+	const bool bHaveAnsiText = (DataObjectPointer->QueryGetData(&FormatEtc_Ansii) == S_OK)
+		? true
+		: false;
+
+	FORMATETC FormatEtc_UNICODE = { CF_UNICODETEXT, 0, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
+	const bool bHaveUnicodeText = (DataObjectPointer->QueryGetData(&FormatEtc_UNICODE) == S_OK)
+		? true
+		: false;
+
+	FORMATETC FormatEtc_File = { CF_HDROP, 0, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
+	const bool bHaveFiles = (DataObjectPointer->QueryGetData(&FormatEtc_File) == S_OK)
+		? true
+		: false;
+
+	STGMEDIUM StorageMedium;
+
+	if ( bHaveUnicodeText && S_OK == DataObjectPointer->GetData( &FormatEtc_UNICODE, &StorageMedium ) )
+	{
+		FOLEResourceGuard ResourceGuard(StorageMedium);
+		const TCHAR* TextData = static_cast<TCHAR*>( ResourceGuard.DataPointer );
+		*CursorEffect = MessageHandler->OnDragEnterText( Window.ToSharedRef(), FString(TextData) );
+	}
+	else if ( bHaveAnsiText && S_OK == DataObjectPointer->GetData( &FormatEtc_Ansii, &StorageMedium ) )
+	{
+		FOLEResourceGuard ResourceGuard(StorageMedium);
+		const ANSICHAR* TextData = static_cast<ANSICHAR*>( ResourceGuard.DataPointer );
+		*CursorEffect = MessageHandler->OnDragEnterText( Window.ToSharedRef(), FString(TextData) );
+	}
+	else if ( bHaveFiles && S_OK == DataObjectPointer->GetData( &FormatEtc_File, &StorageMedium ) )
+	{
+		FOLEResourceGuard ResourceGuard(StorageMedium);
+		const DROPFILES* DropFiles = static_cast<DROPFILES*>( ResourceGuard.DataPointer );
+			
+		// pFiles is the offset to the beginning of the file list, in bytes
+		LPVOID FileListStart = (BYTE*)ResourceGuard.DataPointer + DropFiles->pFiles;
+
+		TArray<FString> FileList;
+		if ( DropFiles->fWide )
+		{
+			// Unicode filenames
+			// The file list is NULL delimited with an extra NULL character at the end.
+			TCHAR* Pos = static_cast<TCHAR*>( FileListStart );
+			while (Pos[0] != 0)
+			{
+				const FString ListElement = FString(Pos);
+				FileList.Add(ListElement);
+				Pos += ListElement.Len() + 1;
+			}
+		}
+		else
+		{
+			// Ansi filenames
+			// The file list is NULL delimited with an extra NULL character at the end.
+			ANSICHAR* Pos = static_cast<ANSICHAR*>( FileListStart );
+			while (Pos[0] != 0)
+			{
+				const FString ListElement = FString(Pos);
+				FileList.Add(ListElement);
+				Pos += ListElement.Len() + 1;
+			}
+		}
+
+		*CursorEffect = MessageHandler->OnDragEnterFiles( Window.ToSharedRef(), FileList );
 	}
 
 	return 0;
@@ -1531,7 +1535,7 @@ HRESULT FWindowsApplication::OnOLEDragOut( const HWND HWnd )
 	return 0;
 }
 
-HRESULT FWindowsApplication::OnOLEDrop( const HWND HWnd, const FDragDropOLEData& OLEData, DWORD KeyState, POINTL CursorPosition, DWORD *CursorEffect)
+HRESULT FWindowsApplication::OnOLEDrop( const HWND HWnd, IDataObject *DataObjectPointer, DWORD KeyState, POINTL CursorPosition, DWORD *CursorEffect)
 {
 	const TSharedPtr< FWindowsWindow > Window = FindWindowByHWND( Windows, HWnd );
 

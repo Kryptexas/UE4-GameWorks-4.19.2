@@ -437,7 +437,7 @@ void UPrimitiveComponent::PostEditChangeProperty(FPropertyChangedEvent& Property
 		// We disregard cull distance volumes in this case as we have no way of handling cull 
 		// distance changes to without refreshing all cull distance volumes. Saving or updating 
 		// any cull distance volume will set the proper value again.
-		if( PropertyName == TEXT("LDMaxDrawDistance") || PropertyName == TEXT("bAllowCullDistanceVolume") )
+		if( PropertyName == TEXT("MaxDrawDistance") || PropertyName == TEXT("bAllowCullDistanceVolume") )
 		{
 			CachedMaxDrawDistance = LDMaxDrawDistance;
 		}
@@ -747,11 +747,6 @@ bool UPrimitiveComponent::ShouldCreatePhysicsState() const
 	}
 #endif
 	return bShouldCreatePhysicsState;
-}
-
-bool UPrimitiveComponent::HasValidPhysicsState() const
-{
-	return BodyInstance.IsValidBodyInstance();
 }
 
 bool UPrimitiveComponent::ShouldRenderSelected() const
@@ -2073,7 +2068,7 @@ void UPrimitiveComponent::UpdateOverlaps(TArray<FOverlapInfo> const* PendingOver
 	}
 }
 
-bool UPrimitiveComponent::ComponentOverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const UWorld * World, const FVector& Pos, const FRotator& Rot, ECollisionChannel TestChannel, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const
+bool UPrimitiveComponent::ComponentOverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const UWorld * World, const FVector& Pos, const FRotator& Rot, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const
 {
 #if WITH_PHYSX
 	PxRigidActor* PRigidActor = BodyInstance.GetPxRigidActor();
@@ -2112,7 +2107,7 @@ bool UPrimitiveComponent::ComponentOverlapMulti(TArray<struct FOverlapResult>& O
 			if(PGeom != NULL)
 			{
 				// if object query param isn't valid, it will use trace channel
-				if (GeomOverlapMulti(World, *PGeom, PShapeGlobalPose, Overlaps, TestChannel, Params, FCollisionResponseParams(GetCollisionResponseToChannels()), ObjectQueryParams))
+				if( GeomOverlapMulti(World, *PGeom, PShapeGlobalPose, Overlaps, GetCollisionObjectType(), Params, FCollisionResponseParams(GetCollisionResponseToChannels()), ObjectQueryParams) )
 				{
 					bHaveBlockingHit = true;
 				}

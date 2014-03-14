@@ -542,7 +542,7 @@ void FLODUtilities::SimplifySkeletalMesh( FSkeletalMeshUpdateContext& UpdateCont
 	IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
 	IMeshReduction* MeshReduction = MeshUtilities.GetMeshReductionInterface();
 
-	if ( MeshReduction && MeshReduction->IsSupported() && SkeletalMesh )
+	if ( MeshReduction && SkeletalMesh )
 	{
 		// Simplify each LOD
 		for( int32 LODIndex = 0; LODIndex < InSettings.Num(); ++LODIndex)

@@ -94,14 +94,14 @@ void FMainFrameCommands::RegisterCommands()
 
 	ActionList->MapAction( FGenericCommands::Get().Redo, FExecuteAction::CreateStatic( &FMainFrameActionCallbacks::ExecuteExecCommand, FString( TEXT("TRANSACTION REDO") ) ), FCanExecuteAction::CreateStatic( &FMainFrameActionCallbacks::Redo_CanExecute ) );
 
-	UI_COMMAND( OpenDeviceManagerApp, "Device Manager", "Opens up the device manager app", EUserInterfaceActionType::Check, FInputGesture() );
-	ActionList->MapAction( OpenDeviceManagerApp, 
+	UI_COMMAND( OpenDeviceManager, "Device Manager", "Opens up the device manager app", EUserInterfaceActionType::Check, FInputGesture() );
+	ActionList->MapAction( OpenDeviceManager, 
 												FExecuteAction::CreateStatic( &FMainFrameActionCallbacks::OpenSlateApp, FName( TEXT( "DeviceManager" ) ) ),
 												FCanExecuteAction(),
 												FIsActionChecked::CreateStatic( &FMainFrameActionCallbacks::OpenSlateApp_IsChecked, FName( TEXT( "DeviceManager" ) ) ) );
 
-	UI_COMMAND( OpenSessionManagerApp, "Session Manager", "Opens up the session manager app", EUserInterfaceActionType::Check, FInputGesture() );
-	ActionList->MapAction( OpenSessionManagerApp, 
+	UI_COMMAND( OpenSessionManager, "Session Manager", "Opens up the session manager app", EUserInterfaceActionType::Check, FInputGesture() );
+	ActionList->MapAction( OpenSessionManager, 
 												FExecuteAction::CreateStatic( &FMainFrameActionCallbacks::OpenSlateApp, FName( "SessionFrontend" ) ),
 												FCanExecuteAction(),
 												FIsActionChecked::CreateStatic( &FMainFrameActionCallbacks::OpenSlateApp_IsChecked, FName("SessionFrontend" ) ) );
@@ -491,15 +491,7 @@ void FMainFrameActionCallbacks::PackageProject( const FString InPlatformName, co
 
 	FString OutFolderName;
 
-	void* ParentWindowWindowHandle = nullptr;
-	IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-	const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-	if ( MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid() )
-	{
-		ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
-	}
-	
-	if (!FDesktopPlatformModule::Get()->OpenDirectoryDialog(ParentWindowWindowHandle, LOCTEXT("PackageDirectoryDialogTitle", "Package project...").ToString(), PackagingSettings->StagingDirectory.Path, OutFolderName))
+	if (!FDesktopPlatformModule::Get()->OpenDirectoryDialog(NULL, LOCTEXT("PackageDirectoryDialogTitle", "Package project...").ToString(), PackagingSettings->StagingDirectory.Path, OutFolderName))
 	{
 		return;
 	}
@@ -840,7 +832,7 @@ void FMainFrameActionCallbacks::AboutUnrealEd_Execute()
 
 	if ( ParentWindow.IsValid() )
 	{
-		FSlateApplication::Get().AddModalWindow(AboutWindow.ToSharedRef(), ParentWindow.ToSharedRef());
+		FSlateApplication::Get().AddWindowAsNativeChild(AboutWindow.ToSharedRef(), ParentWindow.ToSharedRef());
 	}
 	else
 	{

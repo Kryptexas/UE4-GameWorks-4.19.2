@@ -72,7 +72,7 @@ protected:
 
 	void RebuildBreadcrumbTrail();
 
-	static FText GetTitleForOneCrumb(const UEdGraph* Graph);
+	static FString GetTitleForOneCrumb(const UEdGraph* Graph);
 
 	/** Function to fetch outer class which is of type UEGraph. */
 	UEdGraph* GetOuterGraph( UObject* Obj );

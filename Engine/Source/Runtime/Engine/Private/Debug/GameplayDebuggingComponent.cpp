@@ -8,10 +8,6 @@
 #include "../AI/Navigation/RecastNavMeshGenerator.h"
 #include "../NavMeshRenderingHelpers.h"
 
-#if WITH_EDITOR
-#include "UnrealEd.h"
-#endif
-
 //----------------------------------------------------------------------//
 // Composite Scene proxy
 //----------------------------------------------------------------------//
@@ -128,11 +124,6 @@ UGameplayDebuggingComponent::UGameplayDebuggingComponent(const class FPostConstr
 
 	bHiddenInGame = false;
 	bEnabledTargetSelection = false;
-	NavmeshRenderData = MakeShareable(new FNavMeshSceneProxyData());
-#if WITH_RECAST
-	NavmeshRenderData->bNeedsNewData = false;
-	NavmeshRenderData->bEnableDrawing = false;
-#endif
 }
 
 void UGameplayDebuggingComponent::Activate(bool bReset)
@@ -175,7 +166,12 @@ void UGameplayDebuggingComponent::GetLifetimeReplicatedProps( TArray< FLifetimeP
 	DOREPLIFETIME( UGameplayDebuggingComponent, PathPoints );
 	DOREPLIFETIME( UGameplayDebuggingComponent, PathErrorString );
 
-	DOREPLIFETIME( UGameplayDebuggingComponent, NavmeshRepData );
+	DOREPLIFETIME( UGameplayDebuggingComponent, NavMeshBoundingBox );
+	DOREPLIFETIME( UGameplayDebuggingComponent, AllNavMeshAreas );
+	DOREPLIFETIME( UGameplayDebuggingComponent, NavMeshEdgeVerts );
+	DOREPLIFETIME( UGameplayDebuggingComponent, TileEdgeVerts );
+	DOREPLIFETIME( UGameplayDebuggingComponent, OffMeshSegmentAreas );
+	DOREPLIFETIME( UGameplayDebuggingComponent, OffMeshLinks );
 
 	DOREPLIFETIME( UGameplayDebuggingComponent, TargetActor );
 
@@ -448,21 +444,6 @@ void UGameplayDebuggingComponent::SelectForDebugging(bool bNewStatus)
 	}
 }
 
-bool UGameplayDebuggingComponent::ToggleStaticView(EAIDebugDrawDataView::Type View) 
-{ 
-	StaticActiveViews ^= 1 << View; 
-	const bool bIsActive = (StaticActiveViews & (1 << View)) != 0;
-
-#if WITH_EDITOR
-	if (View == EAIDebugDrawDataView::EQS && GCurrentLevelEditingViewportClient)
-	{
-		GCurrentLevelEditingViewportClient->EngineShowFlags.SetSingleFlag(UGameplayDebuggingComponent::ShowFlagIndex, bIsActive);
-	}
-#endif
-
-	return bIsActive; 
-}
-
 uint32 UGameplayDebuggingComponent::GetActiveViews()
 {
 	return ActiveViews;
@@ -472,6 +453,7 @@ void UGameplayDebuggingComponent::SetActiveViews( uint32 InActiveViews )
 {
 	ActiveViews = InActiveViews;
 }
+
 
 void UGameplayDebuggingComponent::SetActiveView( EAIDebugDrawDataView::Type NewView )
 {
@@ -493,13 +475,18 @@ void UGameplayDebuggingComponent::EnableActiveView( EAIDebugDrawDataView::Type V
 void UGameplayDebuggingComponent::ToggleActiveView(EAIDebugDrawDataView::Type NewView)
 {
 	ActiveViews ^= 1 << NewView;
-
 #if WITH_EDITOR
-	const bool bCleared = !(ActiveViews & ( 1 << NewView));
-	if (bCleared && NewView == EAIDebugDrawDataView::EQS)
+	bool bCleared = !(ActiveViews & ( 1 << NewView));
+
+	switch (NewView)
 	{
-		EQSQueryInstance = NULL;
-		MarkRenderStateDirty();
+	case EAIDebugDrawDataView::EQS:
+		if (bCleared)
+		{
+			EQSQueryInstance = NULL;
+			MarkRenderStateDirty();
+		}
+		break;
 	}
 #endif // WITH_EDITOR
 }
@@ -541,15 +528,12 @@ void UGameplayDebuggingComponent::ServerReplicateData_Implementation( EDebugComp
 	case EDebugComponentMessage::EnableExtendedView:
 		ShowExtendedInformatiomCounter++;
 		break;
-
 	case EDebugComponentMessage::DisableExtendedView:
 		if (--ShowExtendedInformatiomCounter <= 0) ShowExtendedInformatiomCounter = 0;
 		break;
-
 	case EDebugComponentMessage::ActivateReplication:
 		Activate();
 		break;
-
 	case EDebugComponentMessage::DeactivateReplilcation:
 		{
 			Deactivate();
@@ -560,11 +544,9 @@ void UGameplayDebuggingComponent::ServerReplicateData_Implementation( EDebugComp
 			}
 		}
 		break;
-
 	case EDebugComponentMessage::CycleReplicationView:
 		CycleActiveView();
 		break;
-
 	default:
 		break;
 	}
@@ -584,336 +566,266 @@ void UGameplayDebuggingComponent::CycleActiveView()
 	ActiveViews = (1 << EAIDebugDrawDataView::OverHead) | (1 << Index);
 }
 
-void UGameplayDebuggingComponent::GetKeyboardDesc(TArray<FDebugCategoryView>& Categories)
+FString UGameplayDebuggingComponent::GetKeyboardDesc()
 {
-	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::NavMesh, "NavMesh"));			// Num0
-	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::Basic, "Basic"));				// Num1
-	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::BehaviorTree, "Behavior"));		// Num2
-	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::EQS, "EQS"));					// Num3
-	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::Perception, "Perception"));		// Num4
+	return TEXT("/-NavMesh, 1-Basic, 2-BT, 3-EQS, 4-Perception");
+}
+
+void UGameplayDebuggingComponent::GatherDataForProxy()
+{
+	if (NavmeshData.IsValid())
+	{
+#if WITH_RECAST
+		FScopeLock ScopeLock(&NavmeshData.Get()->CriticalSection);
+		GatherData( NavmeshData.Get() );
+		NavmeshData->bNeedsNewData = false;
+#endif
+	}
 }
 
 //----------------------------------------------------------------------//
 // NavMesh rendering
 //----------------------------------------------------------------------//
-void UGameplayDebuggingComponent::OnRep_UpdateNavmesh()
+void UGameplayDebuggingComponent::OnRep_MarkRenderStateDirty()
 {
-	PrepareNavMeshData(NavmeshRenderData.Get());
-
-	UpdateBounds();
 	MarkRenderStateDirty();
 }
 
-bool UGameplayDebuggingComponent::ServerCollectNavmeshData_Validate(FVector_NetQuantize10 TargetLocation)
+bool UGameplayDebuggingComponent::ServerCollectNavmeshData_Validate()
 {
 	bool bIsValid = false;
 #if WITH_RECAST
-	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
-	bIsValid = NavSys && NavSys->GetMainNavData(NavigationSystem::DontCreate);
+	bIsValid = GetWorld()->GetNavigationSystem() != NULL && GetWorld()->GetNavigationSystem()->GetMainNavData(NavigationSystem::DontCreate) != NULL;
 #endif
 
 	return bIsValid;
 }
 
-bool UGameplayDebuggingComponent::ServerDiscardNavmeshData_Validate()
-{
-	return true;
-}
-
-namespace NavMeshDebug
-{
-	struct FOffMeshLink
-	{
-		FVector Left;
-		FVector Right;
-		FColor Color;
-		float Radius;
-		uint8 Direction;
-		uint8 ValidEnds;
-	};
-
-	struct FAreaPolys
-	{
-		TArray<int32> Indices;
-		FColor Color;
-	};
-
-	struct FTileData
-	{
-		TArray<FAreaPolys> Areas;
-		TArray<FVector> Verts;
-		TArray<FVector> EdgesInner;
-		TArray<FVector> EdgesOuter;
-		TArray<FOffMeshLink> Links;
-	};
-}
-
-FArchive& operator<<(FArchive& Ar, NavMeshDebug::FOffMeshLink& Data)
-{
-	Ar << Data.Left;
-	Ar << Data.Right;
-	Ar << Data.Color;
-	Ar << Data.Radius;
-	Ar << Data.Direction;
-	Ar << Data.ValidEnds;
-	return Ar;
-}
-
-FArchive& operator<<(FArchive& Ar, NavMeshDebug::FAreaPolys& Data)
-{
-	Ar << Data.Indices;
-	Ar << Data.Color;
-	return Ar;
-}
-
-FArchive& operator<<(FArchive& Ar, NavMeshDebug::FTileData& Data)
-{
-	Ar << Data.Areas;
-	Ar << Data.Verts;
-	Ar << Data.EdgesInner;
-	Ar << Data.EdgesOuter;
-	Ar << Data.Links;
-	return Ar;
-}
-
-void UGameplayDebuggingComponent::ServerDiscardNavmeshData_Implementation()
-{
-	NavmeshRepData.Empty();
-}
-
-void UGameplayDebuggingComponent::ServerCollectNavmeshData_Implementation(FVector_NetQuantize10 TargetLocation)
+void UGameplayDebuggingComponent::ServerCollectNavmeshData_Implementation()
 {
 #if WITH_RECAST
-	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
-	ARecastNavMesh* NavData = NavSys ? Cast<ARecastNavMesh>(NavSys->GetMainNavData(NavigationSystem::DontCreate)) : NULL;
-	const APawn* MyPawn = Cast<APawn>(GetOwner());	
-	if (NavData == NULL || MyPawn == NULL)
+	if (const UNavigationSystem* NavSys = GetWorld()->GetNavigationSystem())
 	{
-		NavmeshRepData.Empty();
-		return;
-	}
+		const ARecastNavMesh* const NavData = (ARecastNavMesh*)GetWorld()->GetNavigationSystem()->GetMainNavData(NavigationSystem::DontCreate);
+		const FNavigationOctree* NavOctree = NavSys->GetNavOctree();
+		const APawn* MyPawn = Cast<APawn>(GetOwner());	
+		const FVector Center = MyPawn->GetActorLocation();
+		const float Radius = 1024;
+		const float RadiusSq = Radius*Radius;
 
-	const double Timer1 = FPlatformTime::Seconds();
-
-	TArray<int32> Indices;
-	int32 TileX = 0;
-	int32 TileY = 0;
-	const int32 DeltaX[] = { 0, 1, 1, 0, -1, -1, -1,  0,  1 };
-	const int32 DeltaY[] = { 0, 0, 1, 1,  1,  0, -1, -1, -1 };
-
-	NavData->BeginBatchQuery();
-
-	// gather 3x3 neighborhood of player
-	NavData->GetNavMeshTileXY(MyPawn->GetActorLocation(), TileX, TileY);
-	for (int32 i = 0; i < ARRAY_COUNT(DeltaX); i++)
-	{
-		NavData->GetNavMeshTilesAt(TileX + DeltaX[i], TileY + DeltaY[i], Indices);
-	}
-
-	// add 3x3 neighborhood of target
-	int32 TargetTileX = 0;
-	int32 TargetTileY = 0;
-	NavData->GetNavMeshTileXY(TargetLocation, TargetTileX, TargetTileY);
-	for (int32 i = 0; i < ARRAY_COUNT(DeltaX); i++)
-	{
-		const int32 NeiX = TargetTileX + DeltaX[i];
-		const int32 NeiY = TargetTileY + DeltaY[i];
-		if (FMath::Abs(NeiX - TileX) > 1 || FMath::Abs(NeiY - TileY) > 1)
-		{
-			NavData->GetNavMeshTilesAt(NeiX, NeiY, Indices);
-		}
-	}
-
-	const FNavDataConfig& NavConfig = NavData->GetConfig();
-	FColor NavMeshColors[RECAST_MAX_AREAS];
-	NavMeshColors[RECAST_DEFAULT_AREA] = NavConfig.Color.DWColor() > 0 ? NavConfig.Color : NavMeshRenderColor_RecastMesh;
-	for (uint8 i = 0; i < RECAST_DEFAULT_AREA; ++i)
-	{
-		NavMeshColors[i] = NavData->GetAreaIDColor(i);
-	}
-
-	TArray<uint8> UncompressedBuffer;
-	FMemoryWriter ArWriter(UncompressedBuffer);
-
-	int32 NumIndices = Indices.Num();
-	ArWriter << NumIndices;
-
-	for (int32 i = 0; i < NumIndices; i++)
-	{
+		NavMeshBoundingBox = FBoxCenterAndExtent( Center, FVector(512) ).GetBox();
 		FRecastDebugGeometry NavMeshGeometry;
 		NavMeshGeometry.bGatherPolyEdges = true;
 		NavMeshGeometry.bGatherNavMeshEdges = true;
-		NavData->GetDebugGeometry(NavMeshGeometry, Indices[i]);
+		NavData->GetDebugGeometry(NavMeshGeometry);
 
-		NavMeshDebug::FTileData TileData;
-		TileData.Verts = NavMeshGeometry.MeshVerts;
-		TileData.EdgesInner = NavMeshGeometry.PolyEdges;
-		TileData.EdgesOuter = NavMeshGeometry.NavMeshEdges;
-
-		for (int32 iArea = 0; iArea < RECAST_MAX_AREAS; iArea++)
+		const FNavDataConfig& NavConfig = NavData->GetConfig();
+		FColor NavMeshColors[RECAST_MAX_AREAS];
+		NavMeshColors[RECAST_DEFAULT_AREA] = NavConfig.Color.DWColor() > 0 ? NavConfig.Color : NavMeshRenderColor_RecastMesh;
+		for (uint8 i = 0; i < RECAST_DEFAULT_AREA; ++i)
 		{
-			const int32 NumTris = NavMeshGeometry.AreaIndices[iArea].Num();
-			if (NumTris)
+			NavMeshColors[i] = NavData->GetAreaIDColor(i);
+		}
+
+		for(int32 Index=0; Index < RECAST_MAX_AREAS; ++Index)
+		{
+			AllNavMeshAreas[Index].IndexBuffer.Empty();
+			AllNavMeshAreas[Index].CoordBuffer.Empty();
+			OffMeshLinks.Empty();
+			AllNavMeshAreas[Index].NavMeshColor = NavMeshColors[Index];
+
+			const TArray<int32>& CurrentIndices = NavMeshGeometry.AreaIndices[Index];
+			for(int32 i=0; i<CurrentIndices.Num(); i+=3)
 			{
-				NavMeshDebug::FAreaPolys AreaPolys;
-				AreaPolys.Indices = NavMeshGeometry.AreaIndices[iArea];
-				AreaPolys.Color = NavMeshColors[iArea];
-				TileData.Areas.Add(AreaPolys);
+				const FVector& V1 = NavMeshGeometry.MeshVerts[CurrentIndices[i+0]];
+				const FVector& V2 = NavMeshGeometry.MeshVerts[CurrentIndices[i+1]];
+				const FVector& V3 = NavMeshGeometry.MeshVerts[CurrentIndices[i+2]];
+
+				if ( (V1-Center).SizeSquared() <= RadiusSq || (V2-Center).SizeSquared() <= RadiusSq || (V3-Center).SizeSquared() <= RadiusSq )
+				{
+					AllNavMeshAreas[Index].IndexBuffer.Add( AllNavMeshAreas[Index].CoordBuffer.Add( V1 ) );
+					AllNavMeshAreas[Index].IndexBuffer.Add( AllNavMeshAreas[Index].CoordBuffer.Add( V2 ) );
+					AllNavMeshAreas[Index].IndexBuffer.Add( AllNavMeshAreas[Index].CoordBuffer.Add( V3 ) );
+				}
+			}
+
+			// cache segment links
+			OffMeshSegmentAreas = NavMeshGeometry.OffMeshSegmentAreas[Index];
+
+			for (int32 OffMeshLineIndex = 0; OffMeshLineIndex < NavMeshGeometry.OffMeshLinks.Num(); ++OffMeshLineIndex)
+			{
+				const FRecastDebugGeometry::FOffMeshLink &CurrentLink = NavMeshGeometry.OffMeshLinks[OffMeshLineIndex];
+				if ( (CurrentLink.Left-Center).SizeSquared() <= RadiusSq || (CurrentLink.Right-Center).SizeSquared() <= RadiusSq )
+				{
+					FOffMeshLinkRenderData Link;
+					Link.AreaID = CurrentLink.AreaID;
+					Link.Left = CurrentLink.Left;
+					Link.Right = CurrentLink.Right;
+					Link.Direction = CurrentLink.Direction;
+					Link.ValidEnds = CurrentLink.ValidEnds;
+					Link.Radius = CurrentLink.Direction;
+					Link.Color = CurrentLink.Color;
+					OffMeshLinks.Add(Link);
+				}
+			}
+
+		}
+
+		NavMeshEdgeVerts.Empty();
+		for(int32 Index=0; Index < NavMeshGeometry.NavMeshEdges.Num(); Index+=2)
+		{
+			const FVector& V1 = NavMeshGeometry.NavMeshEdges[Index+0];
+			const FVector& V2 = NavMeshGeometry.NavMeshEdges[Index+1];
+			if( (V1-Center).SizeSquared() <= RadiusSq || (V2-Center).SizeSquared() <= RadiusSq )
+			{
+				NavMeshEdgeVerts.Add( V1 );
+				NavMeshEdgeVerts.Add( V2 );
 			}
 		}
 
-		TileData.Links.Reserve(NavMeshGeometry.OffMeshLinks.Num());
-		for (int32 iLink = 0; iLink < NavMeshGeometry.OffMeshLinks.Num(); iLink++)
+		TileEdgeVerts.Empty();
+		for(int32 Index=0; Index < NavMeshGeometry.PolyEdges.Num(); Index+=2)
 		{
-			const FRecastDebugGeometry::FOffMeshLink& SrcLink = NavMeshGeometry.OffMeshLinks[iLink];
-			NavMeshDebug::FOffMeshLink Link;
-			Link.Left = SrcLink.Left;
-			Link.Right = SrcLink.Right;
-			Link.Radius = SrcLink.Radius;
-			Link.Color = NavMeshColors[SrcLink.AreaID];
-			Link.Direction = SrcLink.Direction;
-			Link.ValidEnds = SrcLink.ValidEnds;
-			TileData.Links.Add(Link);
+			const FVector& V1 = NavMeshGeometry.PolyEdges[Index+0];
+			const FVector& V2 = NavMeshGeometry.PolyEdges[Index+1];
+			if( (V1-Center).SizeSquared() <= RadiusSq || (V2-Center).SizeSquared() <= RadiusSq )
+			{
+				TileEdgeVerts.Add( V1 );
+				TileEdgeVerts.Add( V2 );
+			}
 		}
-
-		ArWriter << TileData;
 	}
-	NavData->FinishBatchQuery();
-
-	const double Timer2 = FPlatformTime::Seconds();
-
-	const int32 HeaderSize = sizeof(int32);
-	NavmeshRepData.Init(0, HeaderSize + FMath::Trunc(1.1f * UncompressedBuffer.Num()));
-
-	const int32 UncompressedSize = UncompressedBuffer.Num();
-	int32 CompressedSize = NavmeshRepData.Num() - HeaderSize;
-	uint8* DestBuffer = NavmeshRepData.GetTypedData();
-	FMemory::Memcpy(DestBuffer, &UncompressedSize, HeaderSize);
-	DestBuffer += HeaderSize;
-
-	FCompression::CompressMemory((ECompressionFlags)(COMPRESS_ZLIB | COMPRESS_BiasMemory),
-		(void*)DestBuffer, CompressedSize, (void*)UncompressedBuffer.GetData(), UncompressedSize);
-
-	NavmeshRepData.SetNum(CompressedSize + HeaderSize, false);
-
-	const double Timer3 = FPlatformTime::Seconds();
-	UE_LOG(LogNavigation, Log, TEXT("Preparing navmesh data: %.1fkB took %.3fms (collect: %.3fms + compress %d%%: %.3fms)"),
-		NavmeshRepData.Num() / 1024.0f, 1000.0f * (Timer3 - Timer1),
-		1000.0f * (Timer2 - Timer1),
-		FMath::Trunc(100.0f * NavmeshRepData.Num() / UncompressedBuffer.Num()), 1000.0f * (Timer3 - Timer2));
 #endif
-
-	if (GetWorld()->GetNetMode() != NM_DedicatedServer)
-	{
-		OnRep_UpdateNavmesh();
-	}
 }
 
-void UGameplayDebuggingComponent::PrepareNavMeshData(struct FNavMeshSceneProxyData* CurrentData) const
+void UGameplayDebuggingComponent::GatherData(struct FNavMeshSceneProxyData* CurrentData) const
 {
 #if WITH_RECAST
 	if (CurrentData)
 	{
 		CurrentData->Reset();
-		CurrentData->bNeedsNewData = false;
+		CurrentData->bEnableDrawing = true;
 
-		// uncompress data
-		TArray<uint8> UncompressedBuffer;
-		const int32 HeaderSize = sizeof(int32);
-		if (NavmeshRepData.Num() > HeaderSize)
+		const TArray<FVector>& MeshVerts = CurrentData->NavMeshGeometry.MeshVerts;
+		
+		for(int32 Index=0; Index < RECAST_MAX_AREAS; ++Index)
 		{
-			int32 UncompressedSize = 0;
-			uint8* SrcBuffer = (uint8*)NavmeshRepData.GetTypedData();
-			FMemory::Memcpy(&UncompressedSize, SrcBuffer, HeaderSize);
-			SrcBuffer += HeaderSize;
-			const int32 CompressedSize = NavmeshRepData.Num() - HeaderSize;
-
-			UncompressedBuffer.AddZeroed(UncompressedSize);
-
-			FCompression::UncompressMemory((ECompressionFlags)(COMPRESS_ZLIB),
-				(void*)UncompressedBuffer.GetTypedData(), UncompressedSize, SrcBuffer, CompressedSize);
-		}
-
-		// read serialized values
-		CurrentData->bEnableDrawing = (UncompressedBuffer.Num() > 0);
-		if (!CurrentData->bEnableDrawing)
-		{
-			return;
-		}
-
-		FMemoryReader ArReader(UncompressedBuffer);
-		int32 NumTiles = 0;
-		ArReader << NumTiles;
-
-		for (int32 iTile = 0; iTile < NumTiles; iTile++)
-		{
-			NavMeshDebug::FTileData TileData;
-			ArReader << TileData;
-
-			CurrentData->Bounds += FBox(TileData.Verts);
-
-			for (int32 iArea = 0; iArea < TileData.Areas.Num(); iArea++)
+			FNavMeshSceneProxyData::FDebugMeshData DebugMeshData;
+			for (int32 VertIdx=0; VertIdx < AllNavMeshAreas[Index].CoordBuffer.Num(); ++VertIdx)
 			{
-				const NavMeshDebug::FAreaPolys& SrcArea = TileData.Areas[iArea];
-				FNavMeshSceneProxyData::FDebugMeshData DebugMeshData;
-				DebugMeshData.ClusterColor = SrcArea.Color;
-
-				for (int32 iVert = 0; iVert < TileData.Verts.Num(); iVert++)
-				{
-					AddVertexHelper(DebugMeshData, TileData.Verts[iVert] + CurrentData->NavMeshDrawOffset);
-				}
-				
-				for (int32 iTri = 0; iTri < SrcArea.Indices.Num(); iTri += 3)
-				{
-					AddTriangleHelper(DebugMeshData, SrcArea.Indices[iTri], SrcArea.Indices[iTri + 1], SrcArea.Indices[iTri + 2]);
-				}
-
-				CurrentData->MeshBuilders.Add(DebugMeshData);
+				AddVertexHelper(DebugMeshData, AllNavMeshAreas[Index].CoordBuffer[VertIdx] + CurrentData->NavMeshDrawOffset);
 			}
 
-			for (int32 i = 0; i < TileData.EdgesInner.Num(); i += 2)
+			for (int32 TriIdx=0; TriIdx < AllNavMeshAreas[Index].IndexBuffer.Num(); TriIdx+=3)
 			{
-				CurrentData->TileEdgeLines.Add( FDebugRenderSceneProxy::FDebugLine(TileData.EdgesInner[i] + CurrentData->NavMeshDrawOffset, TileData.EdgesInner[i+1] + CurrentData->NavMeshDrawOffset, NavMeshRenderColor_Recast_TileEdges));
+				AddTriangleHelper(DebugMeshData, AllNavMeshAreas[Index].IndexBuffer[TriIdx], AllNavMeshAreas[Index].IndexBuffer[TriIdx+1], AllNavMeshAreas[Index].IndexBuffer[TriIdx+2]);
 			}
 
-			const FColor EdgesColor = DarkenColor(NavMeshRenderColor_Recast_NavMeshEdges);
-			for (int32 i = 0; i < TileData.EdgesOuter.Num(); i += 2)
+			DebugMeshData.ClusterColor = AllNavMeshAreas[Index].NavMeshColor;
+			CurrentData->MeshBuilders.Add(DebugMeshData);
+
+			/** off mesh links */
+			for (int32 OffMeshLineIndex = 0; OffMeshLineIndex < OffMeshLinks.Num(); ++OffMeshLineIndex)
 			{
-				CurrentData->NavMeshEdgeLines.Add( FDebugRenderSceneProxy::FDebugLine(TileData.EdgesOuter[i] + CurrentData->NavMeshDrawOffset, TileData.EdgesOuter[i+1] + CurrentData->NavMeshDrawOffset, EdgesColor));
-			}
+				const FOffMeshLinkRenderData& Link = OffMeshLinks[OffMeshLineIndex];
+				const bool bLinkValid = (Link.ValidEnds & FRecastDebugGeometry::OMLE_Left) && (Link.ValidEnds & FRecastDebugGeometry::OMLE_Right);
 
-			for (int32 i = 0; i < TileData.Links.Num(); i++)
-			{
-				const NavMeshDebug::FOffMeshLink& SrcLink = TileData.Links[i];
-
-				const FVector V0 = SrcLink.Left + CurrentData->NavMeshDrawOffset;
-				const FVector V1 = SrcLink.Right + CurrentData->NavMeshDrawOffset;
-				const FColor LinkColor = SrcLink.Color;
-
-				CacheArc(CurrentData->NavLinkLines, V0, V1, 0.4f, 4, LinkColor, LinkLines_LineThickness);
-
-				const FVector VOffset(0, 0, FVector::Dist(V0, V1) * 1.333f);
-				CacheArrowHead(CurrentData->NavLinkLines, V1, V0+VOffset, 30.f, LinkColor, LinkLines_LineThickness);
-				if (SrcLink.Direction)
+				if (true /*NavMesh->bDrawFailedNavLinks || (NavMesh->bDrawNavLinks && bLinkValid)*/)
 				{
-					CacheArrowHead(CurrentData->NavLinkLines, V0, V1+VOffset, 30.f, LinkColor, LinkLines_LineThickness);
-				}
+					const FVector V0 = Link.Left + CurrentData->NavMeshDrawOffset;
+					const FVector V1 = Link.Right + CurrentData->NavMeshDrawOffset;
+					const FColor LinkColor = Link.Color;//((Link.Direction && Link.ValidEnds) || (Link.ValidEnds & FRecastDebugGeometry::OMLE_Left)) ? DarkenColor(CurrentData->NavMeshColors[Link.AreaID]) : NavMeshRenderColor_OffMeshConnectionInvalid;
 
-				// if the connection as a whole is valid check if there are any of ends is invalid
-				if (LinkColor != NavMeshRenderColor_OffMeshConnectionInvalid)
-				{
-					if (SrcLink.Direction && (SrcLink.ValidEnds & FRecastDebugGeometry::OMLE_Left) == 0)
+					CacheArc(CurrentData->NavLinkLines, V0, V1, 0.4f, 4, LinkColor, LinkLines_LineThickness);
+
+					const FVector VOffset(0, 0, FVector::Dist(V0, V1) * 1.333f);
+					CacheArrowHead(CurrentData->NavLinkLines, V1, V0+VOffset, 30.f, LinkColor, LinkLines_LineThickness);
+					if (Link.Direction)
 					{
-						// left end invalid - mark it
-						DrawWireCylinder(CurrentData->NavLinkLines, V0, FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), NavMeshRenderColor_OffMeshConnectionInvalid, SrcLink.Radius, 30 /*NavMesh->AgentMaxStepHeight*/, 16, 0, DefaultEdges_LineThickness);
+						CacheArrowHead(CurrentData->NavLinkLines, V0, V1+VOffset, 30.f, LinkColor, LinkLines_LineThickness);
 					}
 
-					if ((SrcLink.ValidEnds & FRecastDebugGeometry::OMLE_Right) == 0)
+					// if the connection as a whole is valid check if there are any of ends is invalid
+					if (LinkColor != NavMeshRenderColor_OffMeshConnectionInvalid)
 					{
-						DrawWireCylinder(CurrentData->NavLinkLines, V1, FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), NavMeshRenderColor_OffMeshConnectionInvalid, SrcLink.Radius, 30 /*NavMesh->AgentMaxStepHeight*/, 16, 0, DefaultEdges_LineThickness);
+						if (Link.Direction && (Link.ValidEnds & FRecastDebugGeometry::OMLE_Left) == 0)
+						{
+							// left end invalid - mark it
+							DrawWireCylinder(CurrentData->NavLinkLines, V0, FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), NavMeshRenderColor_OffMeshConnectionInvalid, Link.Radius, 30 /*NavMesh->AgentMaxStepHeight*/, 16, 0, DefaultEdges_LineThickness);
+						}
+						if ((Link.ValidEnds & FRecastDebugGeometry::OMLE_Right) == 0)
+						{
+							DrawWireCylinder(CurrentData->NavLinkLines, V1, FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), NavMeshRenderColor_OffMeshConnectionInvalid, Link.Radius, 30 /*NavMesh->AgentMaxStepHeight*/, 16, 0, DefaultEdges_LineThickness);
+						}
 					}
+				}					
+			}
+
+			/** off mesh segment areas */
+			FNavMeshSceneProxyData::FDebugMeshData OffMeshDebugMeshData;
+			int32 VertBase = 0;
+
+			for (int32 i = 0; i < OffMeshSegmentAreas.Num(); i++)
+			{
+				int32 OffIndex = OffMeshSegmentAreas[i];
+				FRecastDebugGeometry::FOffMeshSegment& SegInfo = CurrentData->NavMeshGeometry.OffMeshSegments[OffIndex];
+				const FVector A0 = SegInfo.LeftStart + CurrentData->NavMeshDrawOffset;
+				const FVector A1 = SegInfo.LeftEnd + CurrentData->NavMeshDrawOffset;
+				const FVector B0 = SegInfo.RightStart + CurrentData->NavMeshDrawOffset;
+				const FVector B1 = SegInfo.RightEnd + CurrentData->NavMeshDrawOffset;
+				const FVector Edge0 = B0 - A0;
+				const FVector Edge1 = B1 - A1;
+				const float Len0 = Edge0.Size();
+				const float Len1 = Edge1.Size();
+				const FColor SegColor = DarkenColor(CurrentData->NavMeshColors[SegInfo.AreaID]);
+				const FColor ColA = (SegInfo.ValidEnds & FRecastDebugGeometry::OMLE_Left) ? FColor::White : FColor::Black;
+				const FColor ColB = (SegInfo.ValidEnds & FRecastDebugGeometry::OMLE_Right) ? FColor::White : FColor::Black;
+
+				const int32 NumArcPoints = 8;
+				const float ArcPtsScale = 1.0f / NumArcPoints;
+
+				FVector Prev0 = EvalArc(A0, Edge0, Len0*0.25f, 0);
+				FVector Prev1 = EvalArc(A1, Edge1, Len1*0.25f, 0);
+				AddVertexHelper(OffMeshDebugMeshData, Prev0, ColA);
+				AddVertexHelper(OffMeshDebugMeshData, Prev1, ColA);
+				for (int32 j = 1; j <= NumArcPoints; j++)
+				{
+					const float u = j * ArcPtsScale;
+					FVector Pt0 = EvalArc(A0, Edge0, Len0*0.25f, u);
+					FVector Pt1 = EvalArc(A1, Edge1, Len1*0.25f, u);
+
+					AddVertexHelper(OffMeshDebugMeshData, Pt0, (j == NumArcPoints) ? ColB : FColor::White);
+					AddVertexHelper(OffMeshDebugMeshData, Pt1, (j == NumArcPoints) ? ColB : FColor::White);
+
+					AddTriangleHelper(OffMeshDebugMeshData, VertBase+0, VertBase+2, VertBase+1);
+					AddTriangleHelper(OffMeshDebugMeshData, VertBase+2, VertBase+3, VertBase+1);
+					AddTriangleHelper(OffMeshDebugMeshData, VertBase+0, VertBase+1, VertBase+2);
+					AddTriangleHelper(OffMeshDebugMeshData, VertBase+2, VertBase+1, VertBase+3);
+
+					VertBase += 2;
+					Prev0 = Pt0;
+					Prev1 = Pt1;
+				}
+				VertBase += 2;
+
+				OffMeshDebugMeshData.ClusterColor = SegColor;
+				if (OffMeshDebugMeshData.Indices.Num())
+				{
+					CurrentData->MeshBuilders.Add(OffMeshDebugMeshData);
 				}
 			}
+		}
+		
+		const FColor EdgesColor = DarkenColor(NavMeshRenderColor_Recast_NavMeshEdges);
+		for (int32 Idx=0; Idx < NavMeshEdgeVerts.Num(); Idx += 2)
+		{
+			CurrentData->NavMeshEdgeLines.Add( FDebugRenderSceneProxy::FDebugLine(NavMeshEdgeVerts[Idx] + CurrentData->NavMeshDrawOffset, NavMeshEdgeVerts[Idx+1] + CurrentData->NavMeshDrawOffset, EdgesColor));
+		}
+
+
+		for (int32 Idx=0; Idx < TileEdgeVerts.Num(); Idx += 2)
+		{
+			CurrentData->TileEdgeLines.Add( FDebugRenderSceneProxy::FDebugLine(TileEdgeVerts[Idx] + CurrentData->NavMeshDrawOffset, TileEdgeVerts[Idx+1] + CurrentData->NavMeshDrawOffset, NavMeshRenderColor_Recast_TileEdges));
 		}
 	}
 #endif
@@ -938,7 +850,12 @@ FPrimitiveSceneProxy* UGameplayDebuggingComponent::CreateSceneProxy()
 #if WITH_RECAST	
 	if (IsViewActive(EAIDebugDrawDataView::NavMesh))
 	{
-		CompositeProxy->AddChild(new FRecastRenderingSceneProxy(this, NavmeshRenderData, FSimpleDelegateGraphTask::FDelegate(), true));
+		if (!NavmeshData.IsValid())
+		{
+			NavmeshData = MakeShareable(new FNavMeshSceneProxyData());
+		}
+		NavmeshData->bNeedsNewData = true;
+		CompositeProxy->AddChild(new FRecastRenderingSceneProxy(this, NavmeshData, FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &UGameplayDebuggingComponent::GatherDataForProxy), true));
 	}
 #endif
 	if (EQSQueryInstance.IsValid())
@@ -951,22 +868,14 @@ FPrimitiveSceneProxy* UGameplayDebuggingComponent::CreateSceneProxy()
 
 FBoxSphereBounds UGameplayDebuggingComponent::CalcBounds(const FTransform & LocalToWorld) const
 {
-	FBox MyBounds;
-	MyBounds.Init();
-
-#if WITH_RECAST
-	if (NavmeshRenderData.IsValid())
-	{
-		MyBounds += NavmeshRenderData->Bounds;
-	}
-#endif
-
 	if (EQSQueryInstance.IsValid())
 	{
-		MyBounds += EQSQueryInstance->GetBoundingBox();
+		return FBoxSphereBounds(NavMeshBoundingBox + EQSQueryInstance->GetBoundingBox());
 	}
-
-	return MyBounds;
+	else
+	{
+		return FBoxSphereBounds(NavMeshBoundingBox);
+	}
 }
 
 void UGameplayDebuggingComponent::CreateRenderState_Concurrent()

@@ -1920,11 +1920,6 @@ void SColorPicker::HandleHSVColorChanged( FLinearColor NewValue )
 
 void SColorPicker::HandleInteractiveChangeBegin( )
 {
-	if( bIsInteractive && OnInteractivePickEnd.IsBound() )
-	{
-		OnInteractivePickEnd.Execute();
-	}
-
 	OnInteractivePickBegin.ExecuteIfBound();
 	bIsInteractive = true;
 }
@@ -2033,13 +2028,6 @@ bool SColorPicker::HandleColorPickerUseSRGB( ) const
 void SColorPicker::HandleParentWindowClosed( const TSharedRef<SWindow>& Window )
 {
 	check(Window == ParentWindowPtr.Pin());
-
-	// End picking interaction if still active
-	if( bIsInteractive && OnInteractivePickEnd.IsBound() )
-	{
-		OnInteractivePickEnd.Execute();
-		bIsInteractive = false;
-	}
 
 	// We always have to call the close callback
 	if (OnColorPickerWindowClosed.IsBound())

@@ -70,7 +70,7 @@ public partial class Project : CommandUtils
 
 		try
 		{
-			var CommandletParams = "-unattended -buildmachine -forcelogflush -AllowStdOutTraceEventType -Unversioned -fileopenlog";
+			var CommandletParams = "-unattended -buildmachine -forcelogflush -AllowStdOutTraceEventType -Unversioned";
 			if (Params.Compressed)
 			{
 				CommandletParams += " -Compressed";

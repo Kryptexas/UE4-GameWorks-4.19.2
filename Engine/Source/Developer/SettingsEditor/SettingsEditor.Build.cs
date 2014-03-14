@@ -9,9 +9,9 @@ public class SettingsEditor : ModuleRules
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
-                "EditorStyle",
 				"Settings",
 				"Slate",
+                "EditorStyle",
 			}
 		);
 

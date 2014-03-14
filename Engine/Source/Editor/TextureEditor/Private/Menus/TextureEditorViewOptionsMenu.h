@@ -45,7 +45,7 @@ public:
 			);
 
 			MenuBuilder.AddMenuEntry(FTextureEditorCommands::Get().TextureBorder);
-			MenuBuilder.AddMenuEntry(FTextureEditorCommands::Get().FitToViewport);
+			MenuBuilder.AddMenuEntry(FTextureEditorCommands::Get().FillViewport);
 		}
 		MenuBuilder.EndSection();
 

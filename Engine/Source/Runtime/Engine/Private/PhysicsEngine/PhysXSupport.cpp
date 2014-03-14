@@ -45,6 +45,8 @@ TArray<PxTriangleMesh*>	GPhysXPendingKillTriMesh;
 TArray<PxHeightField*>	GPhysXPendingKillHeightfield;
 TArray<PxMaterial*>		GPhysXPendingKillMaterial;
 
+TMap< uint32, TMap<FRigidBodyIndexPair,bool>* >		GCollisionDisableTableLookup;
+
 ///////////////////// Unreal to PhysX conversion /////////////////////
 
 PxTransform UMatrix2PTransform(const FMatrix& UTM)
@@ -319,14 +321,7 @@ PxFilterFlags PhysXSimFilterShader(	PxFilterObjectAttributes attributes0, PxFilt
 	// if these bodies are from the same skeletal mesh component, use the disable table to see if we should disable collision
 	if((filterData0.word2 == filterData1.word2) && (filterData0.word2 != 0))
 	{
-		check(constantBlockSize == sizeof(FPhysSceneShaderInfo));
-		const FPhysSceneShaderInfo * PhysSceneShaderInfo = (const FPhysSceneShaderInfo*) constantBlock;
-		check(PhysSceneShaderInfo);
-		FPhysScene * PhysScene = PhysSceneShaderInfo->PhysScene;
-		check(PhysScene);
-
-		const TMap<uint32, TMap<FRigidBodyIndexPair, bool> *> & CollisionDisableTableLookup = PhysScene->GetCollisionDisableTableLookup();
-		TMap<FRigidBodyIndexPair, bool>* const * DisableTablePtrPtr = CollisionDisableTableLookup.Find(filterData1.word2);
+		TMap<FRigidBodyIndexPair,bool>** DisableTablePtrPtr = GCollisionDisableTableLookup.Find(filterData1.word2);
 		check(DisableTablePtrPtr);
 		TMap<FRigidBodyIndexPair,bool>* DisableTablePtr = *DisableTablePtrPtr;
 		FRigidBodyIndexPair BodyPair(filterData0.word0, filterData1.word0); // body indexes are stored in word 0
@@ -679,18 +674,8 @@ SIZE_T GetPhysxObjectSize(PxBase* Obj, PxCollection* SharedCollection)
 void FApexChunkReport::onDamageNotify(const NxApexDamageEventReportData& damageEvent)
 {
 	UDestructibleComponent* DestructibleComponent = Cast<UDestructibleComponent>(FPhysxUserData::Get<UPrimitiveComponent>(damageEvent.destructible->userData));
-	check(DestructibleComponent);
-
-#if WITH_SUBSTEPPING
-	if (UPhysicsSettings::Get()->bSubstepping)
-	{
-		DestructibleComponent->GetWorld()->GetPhysicsScene()->DeferredDestructibleDamageNotify(damageEvent);
-	}
-	else
-#endif
-	{
-		DestructibleComponent->OnDamageEvent(damageEvent);
-	}
+	check( DestructibleComponent );
+	DestructibleComponent->OnDamageEvent(damageEvent);
 }
 
 ///////// FApexPhysX3Interface //////////////////////////////////

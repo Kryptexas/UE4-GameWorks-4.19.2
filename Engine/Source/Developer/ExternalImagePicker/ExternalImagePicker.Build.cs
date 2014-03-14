@@ -14,8 +14,7 @@ public class ExternalImagePicker : ModuleRules
 				"DesktopPlatform",
 				"ImageWrapper",
 				"EditorStyle",
-				"InputCore",
-				"PropertyEditor",	// for 'reset to default'
+				"InputCore"
             }
         );
 	}

@@ -105,11 +105,6 @@ which can be configured via defines for various temporal AA passes.
 	#define AA_FORCE_ALPHA_CLAMP 0
 #endif
 
-// Optimized path to avoid a second dynamic motion sample.
-#ifndef AA_ONE_DYNAMIC_SAMPLE
-	#define AA_ONE_DYNAMIC_SAMPLE 0
-#endif
-
 	// FIND MOTION OF PIXEL AND NEAREST IN NEIGHBORHOOD
     // ------------------------------------------------
 	float3 PosP; // Position of this pixel.
@@ -183,14 +178,12 @@ which can be configured via defines for various temporal AA passes.
 	DoublePixelMotionCamera = sqrt(DoublePixelMotionCamera);
 	#if AA_DYNAMIC
 		// Dynamic motion of pixel.
-		#if (AA_CROSS == 0) || (AA_ONE_DYNAMIC_SAMPLE == 0)
-			float2 VelocityP = PostprocessInput3.SampleLevel(PostprocessInput3Sampler, UVAndScreenPos.xy, 0).xy;
-			bool DynamicP = VelocityP.x > 0.0;
-			if(DynamicP)
-			{
-				BackP = DecodeVelocityFromTexture(VelocityP);
-			}
-		#endif
+		float2 VelocityP = PostprocessInput3.SampleLevel(PostprocessInput3Sampler, UVAndScreenPos.xy, 0).xy;
+		bool DynamicP = VelocityP.x > 0.0;
+		if(DynamicP)
+		{
+			BackP = DecodeVelocityFromTexture(VelocityP);
+		}
 		BackTemp = BackP * ViewportSize.xy;
 		// At this point DoublePixelMotionDynamic is kept squared until later.
 		float DoublePixelMotionDynamic = dot(BackTemp, BackTemp);
@@ -202,11 +195,7 @@ which can be configured via defines for various temporal AA passes.
 			{
 				BackN = DecodeVelocityFromTexture(VelocityN);
 			}
-			#if (AA_ONE_DYNAMIC_SAMPLE == 0)
-				bool DynamicMotion = DynamicN || DynamicP;
-			#else
-				bool DynamicMotion = DynamicN;
-			#endif
+			bool DynamicMotion = DynamicN || DynamicP;
 			BackTemp = BackN * ViewportSize.xy;
 			DoublePixelMotionDynamic = max(DoublePixelMotionDynamic, dot(BackTemp, BackTemp));
 		#else
@@ -606,4 +595,3 @@ which can be configured via defines for various temporal AA passes.
 #undef AA_NAN
 #undef AA_BORDER
 #undef AA_FORCE_ALPHA_CLAMP
-#undef AA_ONE_DYNAMIC_SAMPLE

@@ -207,10 +207,6 @@ class UInstancedFoliageSettings : public UObject
 	/** Whether this primitive should cast dynamic shadows as if it were a two sided material. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting)
 	uint32 bCastShadowAsTwoSided:1;
-
-	/** Custom Collision for foliage */
-	UPROPERTY(EditAnywhere, Category=Collision, meta=(HideObjectType=true))
-	struct FBodyInstance BodyInstance;
 };
 
 

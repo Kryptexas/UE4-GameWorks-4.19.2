@@ -289,35 +289,28 @@ void ULandscapeHeightfieldCollisionComponent::CreatePhysicsState()
 		HeightFieldShapeSync->setFlag(PxShapeFlag::eSIMULATION_SHAPE, true); 
 		HeightFieldShapeSync->setFlag(PxShapeFlag::eVISUALIZATION, true);
 
+		// Create the async scene actor
+		PxRigidStatic* HeightFieldActorAsync = GPhysXSDK->createRigidStatic(PhysXLandscapeComponentTransform);
+		PxShape* HeightFieldShapeAsync = HeightFieldActorAsync->createShape(LandscapeComponentGeom, HeightfieldRef->UsedPhysicalMaterialArray.GetTypedData(), HeightfieldRef->UsedPhysicalMaterialArray.Num());
+		HeightFieldShapeAsync->setContactOffset(GPhysXCooking->getParams().skinWidth);
+		
+		HeightFieldShapeAsync->setQueryFilterData(PQueryFilterData);
+		HeightFieldShapeAsync->setSimulationFilterData(PSimFilterData);
+		// Only perform scene queries in the synchronous scene for static shapes
+		HeightFieldShapeAsync->setFlag(PxShapeFlag::eSCENE_QUERY_SHAPE, false);
+		HeightFieldShapeAsync->setFlag(PxShapeFlag::eSIMULATION_SHAPE, true);	
+		HeightFieldShapeAsync->setFlag(PxShapeFlag::eVISUALIZATION, true);
+
 		FPhysScene* PhysScene = GetWorld()->GetPhysicsScene();
-
-		PxRigidStatic* HeightFieldActorAsync = NULL;
-		if (PhysScene->HasAsyncScene())
-		{
-			// Create the async scene actor
-			HeightFieldActorAsync = GPhysXSDK->createRigidStatic(PhysXLandscapeComponentTransform);
-			PxShape* HeightFieldShapeAsync = HeightFieldActorAsync->createShape(LandscapeComponentGeom, HeightfieldRef->UsedPhysicalMaterialArray.GetTypedData(), HeightfieldRef->UsedPhysicalMaterialArray.Num());
-			HeightFieldShapeAsync->setContactOffset(GPhysXCooking->getParams().skinWidth);
-
-			HeightFieldShapeAsync->setQueryFilterData(PQueryFilterData);
-			HeightFieldShapeAsync->setSimulationFilterData(PSimFilterData);
-			// Only perform scene queries in the synchronous scene for static shapes
-			HeightFieldShapeAsync->setFlag(PxShapeFlag::eSCENE_QUERY_SHAPE, false);
-			HeightFieldShapeAsync->setFlag(PxShapeFlag::eSIMULATION_SHAPE, true);
-			HeightFieldShapeAsync->setFlag(PxShapeFlag::eVISUALIZATION, true);
-		}
 
 		// Set body instance data
 		BodyInstance.OwnerComponent = this;
 		BodyInstance.SceneIndexSync = PhysScene->PhysXSceneIndex[PST_Sync];
-		BodyInstance.SceneIndexAsync = PhysScene->HasAsyncScene() ? PhysScene->PhysXSceneIndex[PST_Async] : 0;
+		BodyInstance.SceneIndexAsync = PhysScene->PhysXSceneIndex[PST_Async];
 		BodyInstance.RigidActorSync = HeightFieldActorSync;
 		BodyInstance.RigidActorAsync = HeightFieldActorAsync;
 		HeightFieldActorSync->userData = &BodyInstance.PhysxUserData;
-		if (PhysScene->HasAsyncScene())
-		{
-			HeightFieldActorAsync->userData = &BodyInstance.PhysxUserData;
-		}
+		HeightFieldActorAsync->userData = &BodyInstance.PhysxUserData;
 
 		// Add to scenes
 		PhysScene->GetPhysXScene(PST_Sync)->addActor(*HeightFieldActorSync);
@@ -644,33 +637,26 @@ void ULandscapeMeshCollisionComponent::CreatePhysicsState()
 				MeshShapeSync->setFlag(PxShapeFlag::eSIMULATION_SHAPE, true); 
 				MeshShapeSync->setFlag(PxShapeFlag::eVISUALIZATION, true);
 
+				// Create the async scene actor
+				PxRigidStatic* MeshActorAsync = GPhysXSDK->createRigidStatic(PhysXLandscapeComponentTransform);
+				PxShape* MeshShapeAsync = MeshActorAsync->createShape(PTriMeshGeom, MeshRef->UsedPhysicalMaterialArray.GetTypedData(), MeshRef->UsedPhysicalMaterialArray.Num());
+				MeshShapeAsync->setContactOffset(GPhysXCooking->getParams().skinWidth);
+				check(MeshShapeAsync);
+
+				// No need for query filter data.  That will all be take care of by the sync actor
+				MeshShapeAsync->setFlag(PxShapeFlag::eSIMULATION_SHAPE, true); 
+				MeshShapeAsync->setFlag(PxShapeFlag::eVISUALIZATION, true);	// Setting visualization flag, in case we visualize only the async scene
+
 				FPhysScene* PhysScene = GetWorld()->GetPhysicsScene();
-
-				PxRigidStatic* MeshActorAsync = NULL;
-				if (PhysScene->HasAsyncScene())
-				{
-					// Create the async scene actor
-					MeshActorAsync = GPhysXSDK->createRigidStatic(PhysXLandscapeComponentTransform);
-					PxShape* MeshShapeAsync = MeshActorAsync->createShape(PTriMeshGeom, MeshRef->UsedPhysicalMaterialArray.GetTypedData(), MeshRef->UsedPhysicalMaterialArray.Num());
-					MeshShapeAsync->setContactOffset(GPhysXCooking->getParams().skinWidth);
-					check(MeshShapeAsync);
-
-					// No need for query filter data.  That will all be take care of by the sync actor
-					MeshShapeAsync->setFlag(PxShapeFlag::eSIMULATION_SHAPE, true);
-					MeshShapeAsync->setFlag(PxShapeFlag::eVISUALIZATION, true);	// Setting visualization flag, in case we visualize only the async scene
-				}
 
 				// Set body instance data
 				BodyInstance.OwnerComponent = this;
 				BodyInstance.SceneIndexSync = PhysScene->PhysXSceneIndex[PST_Sync];
-				BodyInstance.SceneIndexAsync = PhysScene->HasAsyncScene() ? PhysScene->PhysXSceneIndex[PST_Async] : 0;
+				BodyInstance.SceneIndexAsync = PhysScene->PhysXSceneIndex[PST_Async];
 				BodyInstance.RigidActorSync = MeshActorSync;
 				BodyInstance.RigidActorAsync = MeshActorAsync;
 				MeshActorSync->userData = &BodyInstance.PhysxUserData;
-				if (PhysScene->HasAsyncScene())
-				{
-					MeshActorAsync->userData = &BodyInstance.PhysxUserData;
-				}
+				MeshActorAsync->userData = &BodyInstance.PhysxUserData;
 
 				// Add to scenes
 				PhysScene->GetPhysXScene(PST_Sync)->addActor(*MeshActorSync);
@@ -1530,7 +1516,6 @@ ULandscapeHeightfieldCollisionComponent::ULandscapeHeightfieldCollisionComponent
 {
 	BodyInstance.bEnableCollision_DEPRECATED = true;
 	SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
-	bGenerateOverlapEvents = false;
 	CastShadow = false;
 	bUseAsOccluder = true;
 	bAllowCullDistanceVolume = false;

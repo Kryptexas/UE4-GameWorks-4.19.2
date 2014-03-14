@@ -338,11 +338,6 @@ void UArrayProperty::InstanceSubobjects( void* Data, void const* DefaultData, UO
 	}
 }
 
-bool UArrayProperty::SameType(const UProperty* Other) const
-{
-	return Super::SameType(Other) && Inner && Inner->SameType(((UArrayProperty*)Other)->Inner);
-}
-
 IMPLEMENT_CORE_INTRINSIC_CLASS(UArrayProperty, UProperty,
 	{
 		Class->EmitObjectReference( STRUCT_OFFSET( UArrayProperty, Inner ) );

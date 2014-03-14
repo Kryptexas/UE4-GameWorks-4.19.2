@@ -357,8 +357,6 @@ void USimpleConstructionScript::AddNode(USCS_Node* Node)
 {
 	if(!RootNodes.Contains(Node))
 	{
-		Modify();
-
 		RootNodes.Add(Node);
 
 		ValidateSceneRootNodes();
@@ -370,11 +368,7 @@ void USimpleConstructionScript::RemoveNode(USCS_Node* Node)
 	// If it's a root node we are removing, clear it from the list
 	if(RootNodes.Contains(Node))
 	{
-		Modify();
-
 		RootNodes.Remove(Node);
-
-		Node->Modify();
 
 		Node->bIsParentComponentNative = false;
 		Node->ParentComponentOrVariableName = NAME_None;
@@ -388,8 +382,6 @@ void USimpleConstructionScript::RemoveNode(USCS_Node* Node)
 		USCS_Node* ParentNode = FindParentNode(Node);
 		if(ParentNode != NULL)
 		{
-			ParentNode->Modify();
-
 			ParentNode->ChildNodes.Remove(Node);
 		}
 	}
@@ -397,8 +389,6 @@ void USimpleConstructionScript::RemoveNode(USCS_Node* Node)
 
 USCS_Node* USimpleConstructionScript::RemoveNodeAndPromoteChildren(USCS_Node* Node)
 {
-	Node->Modify();
-	   
 	USCS_Node* ChildToPromote = NULL;
 
 	// Pick the first child to promote as a new 'root'
@@ -422,18 +412,13 @@ USCS_Node* USimpleConstructionScript::RemoveNodeAndPromoteChildren(USCS_Node* No
 				}
 			}
 		}
-
 		Node->ChildNodes.RemoveAt(PromoteIndex);
 	}
 
 	if (RootNodes.Contains(Node))
 	{
-		Modify();
-
 		if(ChildToPromote != NULL)
 		{
-			ChildToPromote->Modify();
-
 			RootNodes.Add(ChildToPromote);
 			ChildToPromote->ChildNodes.Append(Node->ChildNodes);
 
@@ -456,12 +441,8 @@ USCS_Node* USimpleConstructionScript::RemoveNodeAndPromoteChildren(USCS_Node* No
 		USCS_Node* ParentNode = FindParentNode(Node);
 		checkSlow(ParentNode);
 
-		ParentNode->Modify();
-
 		if ( ChildToPromote != NULL )
 		{
-			ChildToPromote->Modify();
-
 			// Insert promoted node next to node being removed.
 			int32 Location = ParentNode->ChildNodes.Find(Node);
 			ParentNode->ChildNodes.Insert(ChildToPromote,Location);

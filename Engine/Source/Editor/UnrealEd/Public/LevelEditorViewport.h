@@ -278,6 +278,9 @@ public:
 	void ApplyDeltaToActors( const FVector& InDrag, const FRotator& InRot, const FVector& InScale );
 	void ApplyDeltaToActor( AActor* InActor, const FVector& InDeltaDrag, const FRotator& InDeltaRot, const FVector& InDeltaScale );
 
+	void ApplyDeltaToComponents( const FVector& InDrag, const FRotator& InRot, const FVector& InScale );
+	void ApplyDeltaToComponent( USceneComponent* InComponent, const FVector& InDeltaDrag, const FRotator& InDeltaRot, const FVector& InDeltaScale );
+
 	/** Updates the rotate widget with the passed in delta rotation. */
 	void ApplyDeltaToRotateWidget( const FRotator& InRot );
 
@@ -458,53 +461,6 @@ public:
 	 */
 	FViewportCursorLocation GetCursorWorldLocationFromMousePos();
 	
-	/** 
-	 * Access the 'active' actor lock. This is the actor locked to the viewport via the viewport menus.
-	 * It is forced to be inactive if Matinee is controlling locking.
-	 * 
-	 * @return  The actor currently locked to the viewport and actively linked to the camera movements.
-	 */
-	TWeakObjectPtr<AActor> GetActiveActorLock() const
-	{
-		if (ActorLockedByMatinee.IsValid())
-		{
-			return TWeakObjectPtr<AActor>();
-		}
-		return ActorLockedToCamera;
-	}
-
-	/** 
-	 * Set the actor lock. This is the actor locked to the viewport via the viewport menus.
-	 */
-	void SetActorLock(AActor* Actor)
-	{
-		return ActorLockedToCamera = Actor;
-	}
-
-	/** 
-	 * Set the actor locked to the viewport by Matinee.
-	 */
-	void SetMatineeActorLock(AActor* Actor)
-	{
-		return ActorLockedByMatinee = Actor;
-	}
-
-	/** 
-	 * Check whether this viewport is locked to the specified actor
-	 */
-	bool IsLockedToActor(AActor* Actor) const
-	{
-		return ActorLockedToCamera.Get() == Actor || ActorLockedByMatinee.Get() == Actor;
-	}
-
-	/** 
-	 * Check whether this viewport is locked to display the matinee view
-	 */
-	bool IsLockedToMatinee() const
-	{
-		return ActorLockedByMatinee.IsValid();
-	}
-
 protected:
 	/** 
 	 * Checks the viewport to see if the given blueprint asset can be dropped on the viewport.
@@ -531,7 +487,6 @@ protected:
 	virtual void PerspectiveCameraMoved() OVERRIDE;
 	virtual bool ShouldLockPitch() const OVERRIDE;
 	virtual void CheckHoveredHitProxy( HHitProxy* HoveredHitProxy ) OVERRIDE;
-	virtual bool GetActiveSafeFrame(float& OutAspectRatio) const OVERRIDE;
 
 private:
 	/**
@@ -617,6 +572,7 @@ private:
 	void ModifyScale( AActor* InActor, FVector& ScaleDelta, bool bCheckSmallExtent = false ) const;
 	void ValidateScale( const FVector& CurrentScale, const FVector& BoxExtent, FVector& ScaleDelta, bool bCheckSmallExtent = false ) const;
 
+
 public:
 	/** Static: List of objects we're hovering over */
 	static TSet< FViewportHoverTarget > HoveredObjects;
@@ -629,6 +585,9 @@ public:
 
 	/** Special volume actor visibility settings. Each bit represents a visibility state for a specific volume class. 1 = visible, 0 = hidden */
 	TBitArray<>				VolumeActorVisibility;
+
+	/** When the viewpoint is locked to an actor this references the actor, invalid if not locked (replaces bLockSelectedToCamera) */
+	TWeakObjectPtr<AActor>	ActorLockedToCamera;
 
 	/** The viewport location that is restored when exiting PIE */
 	FVector					LastEditorViewLocation;
@@ -703,10 +662,4 @@ private:
 
 	/** If this view was controlled by another view this/last frame, don't update itself */
 	bool bWasControlledByOtherViewport;
-
-	/** When the viewpoint is locked to an actor this references the actor, invalid if not locked (replaces bLockSelectedToCamera) */
-	TWeakObjectPtr<AActor>	ActorLockedToCamera;
-
-	/** When the viewpoint is locked to an actor (by Matinee) this references the actor, invalid if not locked */
-	TWeakObjectPtr<AActor>	ActorLockedByMatinee;
 };

@@ -1797,12 +1797,7 @@ namespace AutomationTool
 		/// </summary>
 		public static void SignSingleExecutableIfEXEOrDLL(string Filename, bool bIgnoreExtension = false)
 		{
-            if (UnrealBuildTool.Utils.IsRunningOnMono)
-            {
-                CommandUtils.Log(TraceEventType.Information, String.Format("Can't sign '{0}', we are running under mono.", Filename));
-                return;
-            }
-            if (!CommandUtils.FileExists(Filename))
+			if (!CommandUtils.FileExists(Filename))
 			{
 				throw new AutomationException("Can't sign '{0}', file does not exist.", Filename);
 			}

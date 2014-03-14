@@ -43,7 +43,7 @@ struct ENGINE_API FStreamableManager
 	 * Request streaming of one or more target objects, and call a delegate on completion. 
 	 * Objects will be strongly referenced until the delegate is called, then Unload is called automatically 
 	 */
-	void RequestAsyncLoad(const TArray<FStringAssetReference>& TargetsToStream, FStreamableDelegate DelegateToCall);
+	void RequestAsyncLoad(const TArray<FStringAssetReference> TargetsToStream, FStreamableDelegate DelegateToCall);
 
 	/** Exposes references to GC system */
 	void AddStructReferencedObjects(class FReferenceCollector& Collector) const;

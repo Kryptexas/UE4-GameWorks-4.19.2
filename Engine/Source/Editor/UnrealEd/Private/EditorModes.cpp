@@ -431,7 +431,7 @@ FVector FEdMode::GetWidgetLocation() const
 
 bool FEdMode::ShouldDrawWidget() const
 {
-	return (GEditor->GetSelectedActors()->GetTop<AActor>() != NULL);
+	return (GEditor->GetSelectedActors()->GetTop<AActor>() != NULL || GEditor->GetSelectedComponents()->GetTop<USceneComponent>() != NULL);
 }
 
 /**

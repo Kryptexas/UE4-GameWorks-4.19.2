@@ -4,6 +4,7 @@
 #include "OnlineSubsystemSteam.h"
 #include "ModuleManager.h"
 
+#include "Engine.h"
 #include "IpAddressSteam.h"
 #include "OnlineSubsystemUtilsClasses.h"
 #include "OnlineSubsystemSteamClasses.h"
@@ -20,6 +21,13 @@
 #include "VoiceInterfaceSteam.h"
 #include "OnlineExternalUIInterfaceSteam.h"
 #include "OnlineAchievementsInterfaceSteam.h"
+
+IMPLEMENT_MODULE(FOnlineSubsystemSteamModule, OnlineSubsystemSteam);
+
+FOnlineSubsystemSteam* FOnlineSubsystemSteam::SteamSingleton = NULL;
+
+//HACKTASTIC (Needed to keep delete function from being stripped out and crashing when protobuffers deallocate memory)
+void* HackDeleteFunctionPointer = (void*)(void(*)(void*))(::operator delete[]);
 
 extern "C" 
 { 
@@ -154,81 +162,293 @@ void ConfigureSteamInitDevOptions(bool& RequireRelaunch, int32& RelaunchAppId)
 #endif
 }
 
+bool FOnlineSubsystemSteamModule::AreSteamDllsLoaded() const
+{
+	bool bLoadedClientDll = true;
+	bool bLoadedServerDll = true;
+
+#if PLATFORM_WINDOWS
+	bLoadedClientDll = (SteamDLLHandle != NULL) ? true : false;
+#if PLATFORM_32BITS
+	bLoadedServerDll = IsRunningDedicatedServer() ? ((SteamServerDLLHandle != NULL) ? true : false) : true;
+#endif //PLATFORM_32BITS
+#endif //PLATFORM_WINDOWS
+
+	return bLoadedClientDll && bLoadedServerDll;
+}
+
+/**
+ *	Load the required modules for Steam
+ */
+void FOnlineSubsystemSteamModule::LoadSteamModules()
+{
+#if PLATFORM_WINDOWS
+	#if PLATFORM_64BITS
+		FString RootSteamPath = FPaths::EngineDir() / FString::Printf(TEXT("Binaries/ThirdParty/Steamworks/%s/Win64/"), STEAM_SDK_VER); 
+		FPlatformProcess::PushDllDirectory(*RootSteamPath);
+		SteamDLLHandle = FPlatformProcess::GetDllHandle(*(RootSteamPath + "steam_api64.dll"));
+#if 0 //64 bit not supported well at present, use Steam Client dlls
+		// Load the Steam dedicated server dlls (assumes no Steam Client running)
+		if (IsRunningDedicatedServer())
+		{
+			SteamServerDLLHandle = FPlatformProcess::GetDllHandle(*(RootSteamPath + "steamclient64.dll"));
+		}
+#endif 
+		FPlatformProcess::PopDllDirectory(*RootSteamPath);
+	#else	//PLATFORM_64BITS
+		FString RootSteamPath = FPaths::EngineDir() / FString::Printf(TEXT("Binaries/ThirdParty/Steamworks/%s/Win32/"), STEAM_SDK_VER); 
+		FPlatformProcess::PushDllDirectory(*RootSteamPath);
+		SteamDLLHandle = FPlatformProcess::GetDllHandle(*(RootSteamPath + "steam_api.dll"));
+		if (IsRunningDedicatedServer())
+		{
+			SteamServerDLLHandle = FPlatformProcess::GetDllHandle(*(RootSteamPath + "steamclient.dll"));
+		}
+		FPlatformProcess::PopDllDirectory(*RootSteamPath);
+	#endif	//PLATFORM_64BITS
+#endif	//PLATFORM_WINDOWS
+}
+
+/** 
+ *	Unload the required modules for Steam
+ */
+void FOnlineSubsystemSteamModule::UnloadSteamModules()
+{
+#if PLATFORM_WINDOWS
+	if (SteamDLLHandle != NULL)
+	{
+		FPlatformProcess::FreeDllHandle(SteamDLLHandle);
+		SteamDLLHandle = NULL;
+	}
+
+	if (SteamServerDLLHandle != NULL)
+	{
+		FPlatformProcess::FreeDllHandle(SteamServerDLLHandle);
+		SteamServerDLLHandle = NULL;
+	}
+#endif	//PLATFORM_WINDOWS
+}
+
+/**
+ * Called right after the module DLL has been loaded and the module object has been created
+ * Registers the actual implementation of the STEAM online subsystem with the engine
+ */
+void FOnlineSubsystemSteamModule::StartupModule()
+{
+	bool bSuccess = false;
+	// Create and register our singleton factory with the main online subsystem for easy access
+	FOnlineSubsystemSteam* OnlineSubsystem = FOnlineSubsystemSteam::Create();
+	if (OnlineSubsystem->IsEnabled())
+	{
+		// Load the Steam DLL before first call to API
+		LoadSteamModules();
+		if (AreSteamDllsLoaded())
+		{
+			if (OnlineSubsystem->Init())
+			{
+				FOnlineSubsystemModule& OSS = FModuleManager::GetModuleChecked<FOnlineSubsystemModule>("OnlineSubsystem");
+				OSS.RegisterPlatformService(STEAM_SUBSYSTEM, OnlineSubsystem);
+				bSuccess = true;
+			}
+			else
+			{
+				UE_LOG_ONLINE(Warning, TEXT("Steam API failed to initialize!"));
+			}
+		}
+		else
+		{
+			UE_LOG_ONLINE(Warning, TEXT("Steam DLLs not present or failed to load!"));
+		}
+	}
+	else
+	{
+		UE_LOG_ONLINE(Warning, TEXT("Steam API disabled!"));
+	}
+
+	if (!bSuccess)
+	{
+		FOnlineSubsystemSteam::Destroy();
+		UnloadSteamModules();
+	}
+}
+
+/**
+ * Called before the module is unloaded, right before the module object is destroyed.
+ * Overloaded to shut down all loaded online subsystems
+ */
+void FOnlineSubsystemSteamModule::ShutdownModule()
+{
+	FOnlineSubsystemModule& OSS = FModuleManager::GetModuleChecked<FOnlineSubsystemModule>("OnlineSubsystem");
+	OSS.UnregisterPlatformService(STEAM_SUBSYSTEM);
+	FOnlineSubsystemSteam::Destroy();
+	UnloadSteamModules();
+}
+
+/** 
+ * Singleton interface for the STEAM subsystem 
+ * @return the only instance of the STEAM subsystem
+ */
+FOnlineSubsystemSteam* FOnlineSubsystemSteam::Create()
+{
+	if (SteamSingleton == NULL)
+	{
+		SteamSingleton = new FOnlineSubsystemSteam();
+	}
+
+	return SteamSingleton;
+}
+
+/** 
+ * Destroy the singleton STEAM subsystem
+ */
+void FOnlineSubsystemSteam::Destroy()
+{
+	if (SteamSingleton != NULL)
+	{
+		SteamSingleton->Shutdown();
+		delete SteamSingleton;
+		SteamSingleton = NULL;
+	}
+}
+
+/** 
+ * Get the interface for accessing the session management services
+ * @return Interface pointer for the appropriate session service
+ */
 IOnlineSessionPtr FOnlineSubsystemSteam::GetSessionInterface() const
 {
 	return SessionInterface;
 }
 
+/** 
+ * Get the interface for accessing the player friends services
+ * @return Interface pointer for the appropriate friend service
+ */
 IOnlineFriendsPtr FOnlineSubsystemSteam::GetFriendsInterface() const
 {
 	return FriendInterface;
 }
 
+/** 
+ * Get the interface for sharing user files in the cloud
+ * @return Interface pointer for the appropriate cloud service
+ */
 IOnlineSharedCloudPtr FOnlineSubsystemSteam::GetSharedCloudInterface() const
 {
 	return SharedCloudInterface;
 }
 
+/** 
+ * Get the interface for accessing user files in the cloud 
+ * @return Interface pointer for the appropriate cloud service
+ */
 IOnlineUserCloudPtr FOnlineSubsystemSteam::GetUserCloudInterface() const
 {
 	return UserCloudInterface;
 }
 
+/** 
+ * Get the interface for accessing leaderboards/rankings of a service
+ * @return Interface pointer for the appropriate leaderboard service
+ */
 IOnlineLeaderboardsPtr FOnlineSubsystemSteam::GetLeaderboardsInterface() const
 {
 	return LeaderboardsInterface;
 }
 
+/** 
+ * Get the interface for accessing voice related data
+ * @return Interface pointer for the appropriate voice service
+ */
 IOnlineVoicePtr FOnlineSubsystemSteam::GetVoiceInterface() const
 {
 	return VoiceInterface;
 }
 
+/** 
+ * Get the interface for accessing the external UIs of a service
+ * @return Interface pointer for the appropriate external UI service
+ */
 IOnlineExternalUIPtr FOnlineSubsystemSteam::GetExternalUIInterface() const
 {
 	return ExternalUIInterface;
 }
 
+/** 
+ * Get the interface for accessing the server time from an online service
+ * @return Interface pointer for the appropriate server time service
+ */
 IOnlineTimePtr FOnlineSubsystemSteam::GetTimeInterface() const
 {
 	return NULL;
 }
 
+/** 
+ * Get the interface for accessing identity online services
+ * @return Interface pointer for the appropriate identity service
+ */
 IOnlineIdentityPtr FOnlineSubsystemSteam::GetIdentityInterface() const
 {
 	return IdentityInterface;
 }
 
+/** 
+* Get the interface for accessing title file online services
+* @return Interface pointer for the appropriate title file service
+*/
 IOnlineTitleFilePtr FOnlineSubsystemSteam::GetTitleFileInterface() const
 {
 	return NULL;
 }
 
+/** 
+* Get the interface for accessing entitlements online service
+* @return Interface pointer for the appropriate entitlements service
+*/
 IOnlineEntitlementsPtr FOnlineSubsystemSteam::GetEntitlementsInterface() const
 {
 	return NULL;
 }
 
+/** 
+* Get the interface for accessing an online store
+* @return Interface pointer for the appropriate online store service
+*/
 IOnlineStorePtr FOnlineSubsystemSteam::GetStoreInterface() const
 {
 	return NULL;
 }
 
+/** 
+ * Get the interface for accessing online events
+ * @return Interface pointer for the appropriate online events service
+ */
 IOnlineEventsPtr FOnlineSubsystemSteam::GetEventsInterface() const
 {
 	return NULL;
 }
 
+/** 
+ * Get the interface for accessing online achievements
+ * @return Interface pointer for the appropriate online achievements service
+ */
 IOnlineAchievementsPtr FOnlineSubsystemSteam::GetAchievementsInterface() const
 {
 	return AchievementsInterface;
 }
 
+/** 
+ * Get the interface for accessing online sharing
+ * @return Interface pointer for the appropriate online sharing service
+ */
 IOnlineSharingPtr FOnlineSubsystemSteam::GetSharingInterface() const
 {
 	return NULL;
 }
 
+/** 
+ * Get the interface for accessing online user information
+ * @return Interface pointer for the appropriate online user service
+ */
 IOnlineUserPtr FOnlineSubsystemSteam::GetUserInterface() const
 {
 	return NULL;
@@ -244,24 +464,39 @@ IOnlinePresencePtr FOnlineSubsystemSteam::GetPresenceInterface() const
 	return NULL;
 }
 
+/**
+ *	Add an async task onto the task queue for processing
+ * @param AsyncTask - new heap allocated task to process on the async task thread
+ */
 void FOnlineSubsystemSteam::QueueAsyncTask(FOnlineAsyncTask* AsyncTask)
 {
 	check(OnlineAsyncTaskThreadRunnable);
 	OnlineAsyncTaskThreadRunnable->AddToInQueue(AsyncTask);
 }
 
+/**
+ *	Add an async task onto the outgoing task queue for processing
+ * @param AsyncItem - new heap allocated task to process on the async task thread
+ */
 void FOnlineSubsystemSteam::QueueAsyncOutgoingItem(FOnlineAsyncItem* AsyncItem)
 {
 	check(OnlineAsyncTaskThreadRunnable);
 	OnlineAsyncTaskThreadRunnable->AddToOutQueue(AsyncItem);
 }
 
+/**
+ *	Add an async msg onto the msg queue for processing
+ * @param AsyncMsg - new heap allocated task to process on the async task thread
+ */
 void FOnlineSubsystemSteam::QueueAsyncMsg(FOnlineAsyncMsgSteam* AsyncMsg)
 {
 	check(OnlineAsyncTaskThreadRunnable);
 	OnlineAsyncTaskThreadRunnable->AddToInMsgQueue(AsyncMsg);
 }
 
+/**
+ *	Give the online subsystem a chance to tick its tasks
+ */
 bool FOnlineSubsystemSteam::Tick(float DeltaTime)
 {
 	if (OnlineAsyncTaskThreadRunnable)
@@ -281,6 +516,10 @@ bool FOnlineSubsystemSteam::Tick(float DeltaTime)
 	return true;
 }
 
+/** 
+ * Initialize the underlying subsystem APIs
+ * @return true if the subsystem was successfully initialized, false otherwise
+ */
 bool FOnlineSubsystemSteam::Init()
 {
 	bool bRelaunchInSteam = false;
@@ -323,7 +562,7 @@ bool FOnlineSubsystemSteam::Init()
 			{
 				VoiceInterface = NULL;
 			}
-			ExternalUIInterface = MakeShareable(new FOnlineExternalUISteam(this));
+			ExternalUIInterface = MakeShareable(new FOnlineExternalUISteam());
 			AchievementsInterface = MakeShareable(new FOnlineAchievementsSteam(this));
 
 			// Kick off a download/cache of the current user's stats
@@ -342,6 +581,10 @@ bool FOnlineSubsystemSteam::Init()
 	return bClientInitSuccess && bServerInitSuccess;
 }
 
+/**  
+ * Shutdown the underlying subsystem APIs
+ * @return true if the subsystem shutdown successfully, false otherwise
+ */
 bool FOnlineSubsystemSteam::Shutdown()
 {
 	UE_LOG_ONLINE(Display, TEXT("OnlineSubsystemSteam::Shutdown()"));
@@ -392,6 +635,11 @@ bool FOnlineSubsystemSteam::Shutdown()
 	return true;
 }
 
+/** 
+ * Check to see if we can or have enabled Steam
+ *
+ * @return true		if Steam is currently enabled or able to be enabled, false otherwise
+ */
 bool FOnlineSubsystemSteam::IsEnabled()
 {
 	if (bSteamworksClientInitialized || bSteamworksGameServerInitialized)
@@ -416,6 +664,9 @@ bool FOnlineSubsystemSteam::IsEnabled()
 	return bEnableSteam;
 }
 
+/** 
+ * Initialize the steam client API hooks into the engine, possibly relaunching if required by the Steam service
+ */
 bool FOnlineSubsystemSteam::InitSteamworksClient(bool bRelaunchInSteam, int32 SteamAppId)
 {
 	bSteamworksClientInitialized = false;
@@ -497,6 +748,9 @@ bool FOnlineSubsystemSteam::InitSteamworksClient(bool bRelaunchInSteam, int32 St
 	return bSteamworksClientInitialized;
 }
 
+/** 
+ * Initialize the steam client API hooks into the engine, possibly relaunching if required by the Steam service
+ */
 bool FOnlineSubsystemSteam::InitSteamworksServer()
 {
 	bSteamworksGameServerInitialized = false;
@@ -571,6 +825,9 @@ bool FOnlineSubsystemSteam::InitSteamworksServer()
 	return bSteamworksGameServerInitialized;
 }
 
+/** 
+ * Cleanup the Steam subsystem
+ */
 void FOnlineSubsystemSteam::ShutdownSteamworks()
 {
 	if (bSteamworksGameServerInitialized)
@@ -600,20 +857,38 @@ void FOnlineSubsystemSteam::ShutdownSteamworks()
 	}
 }
 
+/**
+ *	@return true if the specified Id is considered a local player, false otherwise
+ */
 bool FOnlineSubsystemSteam::IsLocalPlayer(const FUniqueNetId& UniqueId) const
 {
 	ISteamUser* SteamUserPtr = SteamUser();
 	return SteamUserPtr && SteamUserPtr->GetSteamID() == (const FUniqueNetIdSteam&)UniqueId;
 }
 
+/** 
+ * **INTERNAL** 
+ * Get the interface for accessing leaderboards/stats.
+ *
+ * @return pointer for the appropriate class
+ */
 FOnlineLeaderboardsSteam * FOnlineSubsystemSteam::GetInternalLeaderboardsInterface()
 {
 	return LeaderboardsInterface.Get();
 }
 
+/** 
+ * **INTERNAL**
+ * Get the metadata related to a given user
+ * This information is only available after calling EnumerateUserFiles
+ *
+ * @param UserId the UserId to search for
+ * @return the struct with the metadata about the requested user, will always return a valid struct, creating one if necessary
+ *
+ */
 FSteamUserCloudData* FOnlineSubsystemSteam::GetUserCloudEntry(const FUniqueNetId& UserId)
 {
-	FScopeLock ScopeLock(&UserCloudDataLock);
+ 	FScopeLock ScopeLock(&UserCloudDataLock);
 	for (int32 UserIdx=0; UserIdx < UserCloudData.Num(); UserIdx++)
 	{
 		FSteamUserCloudData* UserMetadata = UserCloudData[UserIdx];
@@ -630,6 +905,17 @@ FSteamUserCloudData* FOnlineSubsystemSteam::GetUserCloudEntry(const FUniqueNetId
 	return UserCloudData[UserIdx];
 }
 
+/** 
+ * **INTERNAL**
+ * Clear the metadata related to a given user's file on Steam
+ * This information is only available after calling EnumerateUserFiles
+ * It doesn't actually delete any of the actual data on disk
+ *
+ * @param UserId the UserId for the file to search for
+ * @param FileName the file to get metadata about
+ * @return the true if the delete was successful, false otherwise
+ *
+ */
 bool FOnlineSubsystemSteam::ClearUserCloudMetadata(const FUniqueNetId& UserId, const FString& FileName)
 {
 	if (FileName.Len() > 0)
@@ -646,6 +932,9 @@ bool FOnlineSubsystemSteam::ClearUserCloudMetadata(const FUniqueNetId& UserId, c
 	return true;
 }
 
+/**
+ *	Clear out all the data related to user cloud storage
+ */
 void FOnlineSubsystemSteam::ClearUserCloudFiles()
 {
 	FScopeLock ScopeLock(&UserCloudDataLock);
@@ -658,6 +947,9 @@ void FOnlineSubsystemSteam::ClearUserCloudFiles()
 	UserCloudData.Empty();
 }
 
+/**
+ *	Delete all files that have been enumerated for the given user
+ */
 static void DeleteFromEnumerateUserFilesComplete(bool bWasSuccessful, const FUniqueNetId& UserId)
 {
 	IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get();
@@ -679,7 +971,15 @@ static void DeleteFromEnumerateUserFilesComplete(bool bWasSuccessful, const FUni
 	}
 }
 
-bool FOnlineSubsystemSteam::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) 
+/**
+ * Exec handler that allows the Steam to process exec commands
+ *
+ * @param Cmd the exec command being executed
+ * @param Ar the archive to log results to
+ *
+ * @return true if the handler consumed the input, false to continue searching handlers
+ */
+bool FOnlineSubsystemSteam::Exec(const TCHAR* Cmd, FOutputDevice& Ar)
 {
 	if (FParse::Command(&Cmd, TEXT("DELETECLOUDFILES")))
 	{

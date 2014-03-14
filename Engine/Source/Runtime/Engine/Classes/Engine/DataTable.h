@@ -54,13 +54,13 @@ class UDataTable : public UObject
 
 		if(!RowStruct->IsChildOf(T::StaticStruct()))
 		{
-			UE_CLOG(bWarnIfRowMissing, LogDataTable, Error, TEXT("UDataTable::FindRow : Incorrect type specified for DataTable '%s' (%s)."), *GetPathName(), *ContextString);
+			UE_LOG(LogDataTable, Error, TEXT("UDataTable::FindRow : Incorrect type specified for DataTable '%s' (%s)."), *GetPathName(), *ContextString);
 			return NULL;
 		}
 
 		if(RowName == NAME_None)
 		{
-			UE_CLOG(bWarnIfRowMissing, LogDataTable, Warning, TEXT("UDataTable::FindRow : NAME_None is invalid row name for DataTable '%s' (%s)."), *GetPathName(), *ContextString);
+			UE_LOG(LogDataTable, Warning, TEXT("UDataTable::FindRow : NAME_None is invalid row name for DataTable '%s' (%s)."), *GetPathName(), *ContextString);
 			return NULL;
 		}
 
@@ -82,33 +82,6 @@ class UDataTable : public UObject
 
 	/** Returns the column property where PropertyName matches the name of the column property. Returns NULL if no match is found or the match is not a supported table property */
 	ENGINE_API UProperty* FindTableProperty(const FName& PropertyName) const;
-
-	void* FindRowUnchecked(FName RowName, bool MustExist=false) const
-	{
-		if(RowStruct == NULL)
-		{
-			//UE_CLOG(MustExist, LogDataTable, Error, TEXT("UDataTable::FindRow : DataTable '%s' has no RowStruct specified (%s)."), *GetPathName(), *ContextString);
-			return NULL;
-		}
-
-		if(RowName == NAME_None)
-		{
-			//UE_CLOG(MustExist, LogDataTable, Warning, TEXT("UDataTable::FindRow : NAME_None is invalid row name for DataTable '%s' (%s)."), *GetPathName(), *ContextString);
-			return NULL;
-		}
-
-		uint8* const* RowDataPtr = RowMap.Find(RowName);
-
-		if(RowDataPtr == NULL)
-		{
-			return NULL;
-		}
-
-		void* RowData = *RowDataPtr;
-		check(RowData);
-
-		return RowData;
-	}
 
 	/** Output entire contents of table as a string */
 	ENGINE_API FString GetTableAsString();
@@ -138,18 +111,6 @@ class UDataTable : public UObject
 
 	/** Get array for each row in the table. The first row is the titles*/
 	ENGINE_API TArray< TArray<FString> > GetTableData() const;
-
-	ENGINE_API static FString AssignStringToProperty(const FString& InString, const UProperty* InProp, uint8* InData);
-
-	ENGINE_API static FString GetPropertyValueAsString(const UProperty* InProp, uint8* InData);
-
-	ENGINE_API static TArray<FName> GetStructPropertyNames(UStruct* InStruct);
-
-	ENGINE_API static FName MakeValidName(const FString& InString);
-
-	ENGINE_API static bool IsSupportedTableProperty(const UProperty* InProp);
-
-	TArray<UProperty*> GetTablePropertyArray(const FString& FirstRowString, UStruct* RowStruct, TArray<FString>& OutProblems);
 
 	// End UDataTable interface
 };

@@ -57,12 +57,6 @@ class ENGINE_API UDestructibleComponent : public USkinnedMeshComponent
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=DestructibleComponent)
 	bool bEnableHardSleeping;
 
-	/**
-	 * The minimum size required to treat chunks as Large.
-	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = DestructibleComponent)
-	float LargeChunkThreshold;
-
 #if WITH_EDITORONLY_DATA
 	/** Provide a blueprint interface for setting the destructible mesh */
 	UPROPERTY(Transient, EditAnywhere, BlueprintReadWrite, Category=DestructibleComponent)
@@ -187,16 +181,15 @@ public:
 	FORCEINLINE static int32 BoneIdxToChunkIdx(int32 BoneIdx) { return FMath::Max(BoneIdx - 1, 0); }
 private:
 	/** Collision response used for chunks */
-	FCollisionResponse LargeChunkCollisionResponse;
-	FCollisionResponse SmallChunkCollisionResponse;
+	FCollisionResponse ChunkCollisionResponse;
 #if WITH_PHYSX
 	/** User data wrapper for this component passed to physx */
 	FPhysxUserData PhysxUserData;
 
 	/** User data wrapper for the chunks passed to physx */
 	TArray<FPhysxUserData> PhysxChunkUserData;
-	bool IsChunkLarge(int32 ChunkIdx) const;
-	void SetCollisionResponseForActor(physx::PxRigidDynamic* Actor, int32 ChunkIdx);
+
+	void SetCollisionResponseForActor(const FCollisionResponse& ColResponse, physx::PxRigidDynamic* Actor, int32 ChunkIdx);
 #endif
 };
 

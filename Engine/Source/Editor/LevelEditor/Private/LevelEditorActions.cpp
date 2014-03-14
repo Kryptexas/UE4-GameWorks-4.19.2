@@ -401,22 +401,27 @@ void FLevelEditorActionCallbacks::AttachToSocketSelection(const FName SocketName
 	if(ParentActorPtr != NULL)
 	{
 		// Attach each child
-		FScopedTransaction Transaction(LOCTEXT("AttachActors", "Attach actors"));
 		bool bAttached = false;
 
 		for ( FSelectionIterator It( GEditor->GetSelectedActorIterator() ) ; It ; ++It )
 		{
 			AActor* Actor = Cast<AActor>( *It );
 			if (GEditor->CanParentActors(ParentActorPtr, Actor))
-			{
-				bAttached = true;
+			{				
+				if( bAttached == false )
+				{
+					GEditor->BeginTransaction( LOCTEXT("AttachActors", "Attach actors") );
+					bAttached = true;
+				}				
 				GEditor->ParentActors(ParentActorPtr, Actor, SocketName);
 			}
 		}
 
-		if (!bAttached)
-		{
-			Transaction.Cancel();
+		// refresh the tree, and ensure parent is expanded so we can still see the child if we attached something
+		if (bAttached)
+		{			
+			GEngine->BroadcastLevelActorsChanged();
+			GEditor->EndTransaction();
 		}
 	}	
 }
@@ -480,7 +485,7 @@ bool FLevelEditorActionCallbacks::BuildLighting_CanExecute()
 {
 	static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
 	const bool bAllowStaticLighting = (!AllowStaticLightingVar || AllowStaticLightingVar->GetValueOnGameThread() != 0);
-	return bAllowStaticLighting;
+	return !GWorld->GetWorldSettings()->bForceNoPrecomputedLighting && bAllowStaticLighting;
 }
 
 void FLevelEditorActionCallbacks::BuildReflectionCapturesOnly_Execute()
@@ -1589,7 +1594,7 @@ void FLevelEditorActionCallbacks::OnShowWorldProperties( TWeakPtr< SLevelEditor 
 void FLevelEditorActionCallbacks::OpenContentBrowser()
 {
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
-	ContentBrowserModule.Get().FocusPrimaryContentBrowser(true);
+	ContentBrowserModule.Get().FocusPrimaryContentBrowser();
 }
 
 void FLevelEditorActionCallbacks::OpenMarketplace()
@@ -1640,8 +1645,8 @@ void FLevelEditorActionCallbacks::OpenLevelBlueprint( TWeakPtr< SLevelEditor > L
 {
 	if( LevelEditor.Pin()->GetWorld()->GetCurrentLevel() )
 	{
-		ULevelScriptBlueprint* LevelScriptBlueprint = LevelEditor.Pin()->GetWorld()->PersistentLevel->GetLevelScriptBlueprint();
-		if (LevelScriptBlueprint)
+		ULevelScriptBlueprint* LevelScriptBlueprint = LevelEditor.Pin()->GetWorld()->GetCurrentLevel()->GetLevelScriptBlueprint();
+		if( LevelScriptBlueprint )
 		{
 			// @todo Re-enable once world centric works
 			const bool bOpenWorldCentric = false;
@@ -2457,7 +2462,7 @@ void FLevelEditorCommands::RegisterCommands()
 				this->AsShared(),
 				FName( *FString::Printf( TEXT( "OpenFavoriteFile%i" ), CurFavoriteIndex ) ),
 				FText::Format( NSLOCTEXT( "LevelEditorCommands", "OpenFavoriteFile", "Open Favorite File {0}" ), FText::AsNumber( CurFavoriteIndex ) ),
-				NSLOCTEXT( "LevelEditorCommands", "OpenFavoriteFileTaggedToolTip", "Opens a file that was tagged as a favorite" ) )
+				NSLOCTEXT( "LevelEditorCommands", "OpenFavoriteFileToolTip", "Opens a file that was tagged as a favorite" ) )
 			.UserInterfaceType( EUserInterfaceActionType::Button )
 			.DefaultGesture( FInputGesture() );
 		OpenFavoriteFileCommands.Add( OpenFavoriteFile );

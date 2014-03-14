@@ -17,6 +17,8 @@ class UK2Node_DelegateSet : public UK2Node
 	UPROPERTY()
 	TSubclassOf<class UObject>  DelegatePropertyClass;
 
+
+#if WITH_EDITOR
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() OVERRIDE;
 	virtual FString GetTooltip() const OVERRIDE;
@@ -47,5 +49,7 @@ class UK2Node_DelegateSet : public UK2Node
 	// @todo document
 	BLUEPRINTGRAPH_API UFunction* GetDelegateSignature();
 	BLUEPRINTGRAPH_API UFunction* GetDelegateSignature() const;
+
+#endif
 };
 

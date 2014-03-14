@@ -12,11 +12,9 @@ void FCurveEditorCommands::RegisterCommands()
 	UI_COMMAND(SetValue, "Set Value", "Set Value", EUserInterfaceActionType::Button, FInputGesture());
 	UI_COMMAND(SetColor, "Set Color", "Set Color", EUserInterfaceActionType::Button, FInputGesture());
 	UI_COMMAND(DeleteKeys, "Delete Key", "Delete Key", EUserInterfaceActionType::Button, FInputGesture());
-	UI_COMMAND(ScaleTimes, "Scale All Times", "Scales the times of all points of all visible tracks", EUserInterfaceActionType::Button, FInputGesture());
-	UI_COMMAND(ScaleValues, "Scale All Values", "Scales the values of all points of all visible tracks", EUserInterfaceActionType::Button, FInputGesture());
-	UI_COMMAND(ScaleSingleCurveTimes, "Scale Curve Times", "Scales the times of all points of this curve & its sub-curves", EUserInterfaceActionType::Button, FInputGesture());
-	UI_COMMAND(ScaleSingleCurveValues, "Scale Curve Values", "Scales the values of all points of this curve & its sub-curves", EUserInterfaceActionType::Button, FInputGesture());
-	UI_COMMAND(ScaleSingleSubCurveValues, "Scale Sub-Curve Values", "Scales the values of all points of this curve", EUserInterfaceActionType::Button, FInputGesture());
+	UI_COMMAND(ScaleTimes, "Scale Times", "Scale Times", EUserInterfaceActionType::Button, FInputGesture());
+	UI_COMMAND(ScaleValues, "Scale Values", "Scale Values", EUserInterfaceActionType::Button, FInputGesture());
+
 	UI_COMMAND(FitHorizontally, "Horizontal", "Fit Horizontally", EUserInterfaceActionType::Button, FInputGesture());
 	UI_COMMAND(FitVertically, "Vertical", "Fit Vertically", EUserInterfaceActionType::Button, FInputGesture());
 	UI_COMMAND(FitToAll, "All", "Fit to All", EUserInterfaceActionType::Button, FInputGesture());

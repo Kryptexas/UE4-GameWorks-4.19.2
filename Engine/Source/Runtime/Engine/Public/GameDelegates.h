@@ -8,16 +8,6 @@
 
 #include "Delegate.h"
 
-// enum class with size so it can be forward declared.
-enum class EGameDelegates_SaveGame : short
-{	
-	MaxSize,
-	Icon,
-	Title,
-	SubTitle,
-	Detail,	
-};
-
 /** Delegate to modify cooking behavior - return extra packages to cook, load up the asset registry, etc */
 // FCookModificationDelegate(TArray<FString>& ExtraPackagesToCook);
 DECLARE_DELEGATE_OneParam(FCookModificationDelegate, TArray<FString>&);
@@ -25,8 +15,8 @@ DECLARE_DELEGATE_OneParam(FCookModificationDelegate, TArray<FString>&);
 DECLARE_DELEGATE_FiveParams(FAssignStreamingChunkDelegate, const FString&, const FString&, const TArray<int32>&, const TArray<int32>&, int32&);
 
 /** A delegate for platforms that need extra information to flesh out save data information (name of an icon, for instance) */
-// FExtendedSaveGameInfoDelegate(const TCHAR* SaveName, const EGameDelegates_SaveGame Key, FString& Value); 
-DECLARE_DELEGATE_ThreeParams(FExtendedSaveGameInfoDelegate, const TCHAR*, const EGameDelegates_SaveGame, FString&);
+// FExtendedSaveGameInfoDelegate(const TCHAR* SaveName, const TCHAR* Key, FString& Value); 
+DECLARE_DELEGATE_ThreeParams(FExtendedSaveGameInfoDelegate, const TCHAR*, const TCHAR*, FString&);
 
 /** A delegate for a web server running in engine to tell the game about events received from a client, and for game to respond to the client */
 // using a TMap in the DECLARE_DELEGATE macro caused compiler problems (in clang anyway), a typedef solves it
@@ -41,8 +31,6 @@ DECLARE_DELEGATE_FiveParams(FWebServerActionDelegate, int32, const FString&, con
 #define DEFINE_GAME_DELEGATE(DelegateType) \
 	public: F##DelegateType& Get##DelegateType() { return DelegateType; } \
 	private: F##DelegateType DelegateType;
-
-
 
 /** Class to set and get game callbacks */
 class ENGINE_API FGameDelegates

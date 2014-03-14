@@ -70,10 +70,6 @@ public:
 	virtual void SetInSnap(bool bEnabled, float SnapAmount, bool bInSnapToFrames) = 0;
 	virtual void SetViewInterval(float StartIn, float EndIn) = 0;
 
-	/** Fit Accessors */
-	virtual void FitViewHorizontally() = 0;
-	virtual void FitViewVertically() = 0;
-
 	/** Additional Options */
 	struct FCurveEdOptions
 	{

@@ -482,8 +482,8 @@ GLuint FOpenGLTextureBase::GetOpenGLFramebuffer(uint32 ArrayIndices, uint32 Mipm
 	{
 		case GL_COLOR_ATTACHMENT0:
 		{
-			FOpenGLTextureBase* RenderTarget[] = {this};
-			FBO = OpenGLRHI->GetOpenGLFramebuffer(1, RenderTarget, &ArrayIndices, &MipmapLevels, NULL);
+			FOpenGLTextureBase* Target[] = {this};
+			FBO = OpenGLRHI->GetOpenGLFramebuffer(1, Target, &ArrayIndices, &MipmapLevels, NULL);
 			break;
 		}
 		case GL_DEPTH_ATTACHMENT:

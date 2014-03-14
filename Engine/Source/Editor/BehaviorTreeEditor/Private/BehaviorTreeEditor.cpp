@@ -231,10 +231,20 @@ void FBehaviorTreeEditor::InitBehaviorTreeEditor( const EToolkitMode::Type Mode,
 		FTabManager::NewPrimaryArea() ->SetOrientation(Orient_Vertical)
 		->Split
 		(
-			FTabManager::NewStack()
-			->SetSizeCoefficient(0.1f)
-			->AddTab(GetToolbarTabId(), ETabState::OpenedTab) 
-			->SetHideTabWell(true) 
+			FTabManager::NewSplitter() ->SetOrientation(Orient_Horizontal)
+			->Split
+			(
+				FTabManager::NewStack()
+				->SetSizeCoefficient(0.1f)
+				->AddTab(GetToolbarTabId(), ETabState::OpenedTab) 
+				->SetHideTabWell(true) 
+			)
+			->Split
+			(
+				FTabManager::NewStack()
+				->SetSizeCoefficient(0.2f)
+				->AddTab(BTSearchTabId, ETabState::ClosedTab)
+			)			
 		)
 		->Split
 		(
@@ -250,7 +260,6 @@ void FBehaviorTreeEditor::InitBehaviorTreeEditor( const EToolkitMode::Type Mode,
 				FTabManager::NewStack()
 				->SetSizeCoefficient(0.3f)
 				->AddTab( BTPropertiesTabId, ETabState::OpenedTab )
-				->AddTab( BTSearchTabId, ETabState::ClosedTab )
 			)
 		)
 	);
@@ -275,7 +284,6 @@ void FBehaviorTreeEditor::InitBehaviorTreeEditor( const EToolkitMode::Type Mode,
 		else
 		{
 			MyGraph->UpdatePinConnectionTypes();
-			MyGraph->UpdateDeprecatedNodes();
 		}
 
 		MyGraph->UpdateBlackboardChange();

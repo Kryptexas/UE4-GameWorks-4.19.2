@@ -18,47 +18,12 @@ void UAnimPreviewInstance::NativeInitializeAnimation()
 	Super::NativeInitializeAnimation();
 
 	SetPlaying(bCachedIsPlaying);
-}
 
-FAnimNode_ModifyBone* UAnimPreviewInstance::FindModifiedBone(const FName& InBoneName)
-{
-	return BoneControllers.FindByPredicate(
-		[InBoneName](const FAnimNode_ModifyBone& InController) -> bool
-		{
-			return InController.BoneToModify.BoneName == InBoneName;
-		}
-	);
-}
+	SingleBoneController.TranslationMode = BMM_Replace;
+	SingleBoneController.TranslationSpace = BCS_BoneSpace;
 
-FAnimNode_ModifyBone& UAnimPreviewInstance::ModifyBone(const FName& InBoneName)
-{
-	FAnimNode_ModifyBone* SingleBoneController = FindModifiedBone(InBoneName);
-
-	if(SingleBoneController == nullptr)
-	{
-		int32 NewIndex = BoneControllers.Add(FAnimNode_ModifyBone());
-		SingleBoneController = &BoneControllers[NewIndex];
-	}
-
-	SingleBoneController->BoneToModify.BoneName = InBoneName;
-
-	SingleBoneController->TranslationMode = BMM_Replace;
-	SingleBoneController->TranslationSpace = BCS_BoneSpace;
-
-	SingleBoneController->RotationMode = BMM_Replace;
-	SingleBoneController->RotationSpace = BCS_BoneSpace;
-
-	return *SingleBoneController;
-}
-
-void UAnimPreviewInstance::RemoveBoneModification(const FName& InBoneName)
-{
-	BoneControllers.RemoveAll(
-		[InBoneName](const FAnimNode_ModifyBone& InController)
-		{
-			return InController.BoneToModify.BoneName == InBoneName;
-		}
-	);
+	SingleBoneController.RotationMode = BMM_Replace;
+	SingleBoneController.RotationSpace = BCS_BoneSpace;
 }
 
 bool UAnimPreviewInstance::NativeEvaluateAnimation(FPoseContext& Output)
@@ -69,23 +34,19 @@ bool UAnimPreviewInstance::NativeEvaluateAnimation(FPoseContext& Output)
 
 	if (Component && CurrentSkeleton)
 	{
-		if(BoneControllers.Num() > 0)
+		SingleBoneController.BoneToModify.BoneIndex = RequiredBones.GetPoseBoneIndexForBoneName(SingleBoneController.BoneToModify.BoneName);
+		if (SingleBoneController.BoneToModify.BoneIndex != INDEX_NONE)
 		{
 			FA2CSPose OutMeshPose;
 			OutMeshPose.AllocateLocalPoses(RequiredBones, Output.Pose);
 
-			for(auto& SingleBoneController : BoneControllers)
+			// now evaluate skelcontrol
+			TArray<FBoneTransform> BoneTransforms;
+			SingleBoneController.EvaluateBoneTransforms(Component, RequiredBones, OutMeshPose, BoneTransforms);
+
+			if (BoneTransforms.Num() > 0)
 			{
-				SingleBoneController.BoneToModify.BoneIndex = RequiredBones.GetPoseBoneIndexForBoneName(SingleBoneController.BoneToModify.BoneName);
-				if (SingleBoneController.BoneToModify.BoneIndex != INDEX_NONE)
-				{
-					TArray<FBoneTransform> BoneTransforms;
-					SingleBoneController.EvaluateBoneTransforms(Component, RequiredBones, OutMeshPose, BoneTransforms);
-					if (BoneTransforms.Num() > 0)
-					{
-						OutMeshPose.LocalBlendCSBoneTransforms(BoneTransforms, 1.0f);
-					}
-				}
+				OutMeshPose.LocalBlendCSBoneTransforms(BoneTransforms, 1.0f);
 			}
 
 			// convert back to local @todo check this

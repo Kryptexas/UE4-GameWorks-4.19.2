@@ -399,7 +399,7 @@ public:
 	/**
 	 * Update collision component dominant layer data for the whole component, locking and unlocking the weightmap textures.
 	 */
-	ENGINE_API void UpdateCollisionLayerData();
+	void UpdateCollisionLayerData();
 
 	/**
 	 * Create weightmaps for this component for the layers specified in the WeightmapLayerAllocations array

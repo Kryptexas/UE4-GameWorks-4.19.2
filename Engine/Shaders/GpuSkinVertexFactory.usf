@@ -441,15 +441,15 @@ float3x3 SkinTangents( FVertexFactoryInput Input, FVertexFactoryIntermediates In
 #if GPUSKIN_PASS_THROUGH
 	TangentToLocal[0] = float3(Tangents[0]);
 	TangentToLocal[2] = float3(Tangents[1]);
-#else	
+#else
 	// Note the use of mul(Matrix,Vector), bone matrices are stored transposed
 	// for tighter packing.
 	TangentToLocal[0] = mul( Intermediates.BlendMatrix, float4(Tangents[0],0) );
 	TangentToLocal[2] = mul( Intermediates.BlendMatrix, float4(Tangents[1],0) );
-#endif	// GPUSKIN_PASS_THROUGH
 	// derive the new binormal by getting the cross product of the normal and tangent
 	// and flip vector based on sign of tangent basis determinant
 	TangentToLocal[1] = cross(TangentToLocal[2], TangentToLocal[0]) * TangentZ.w;
+#endif
 	return TangentToLocal;
 }
 

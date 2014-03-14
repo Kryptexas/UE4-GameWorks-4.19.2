@@ -17,11 +17,9 @@ namespace VisualLogJson
 	static const FString TAG_ENTRIES = TEXT("Entries");
 	static const FString TAG_TIMESTAMP = TEXT("TimeStamp");
 	static const FString TAG_LOCATION = TEXT("Location");
-	static const FString TAG_STATUS = TEXT("Status");
-	static const FString TAG_STATUSLINES = TEXT("StatusLines");
+	static const FString TAG_STATUSSTRING = TEXT("StatusString");
 	static const FString TAG_CATEGORY = TEXT("Category");
 	static const FString TAG_LINE = TEXT("Line");
-	static const FString TAG_VERBOSITY = TEXT("Verb");
 	static const FString TAG_LOGLINES = TEXT("LogLines");
 	static const FString TAG_DESCRIPTION = TEXT("Description");
 	static const FString TAG_TYPECOLORSIZE = TEXT("TypeColorSize");
@@ -35,21 +33,19 @@ namespace VisualLogJson
 //----------------------------------------------------------------------//
 FVisLogEntry::FVisLogEntry(const class AActor* InActor, TArray<TWeakObjectPtr<AActor> >* Children)
 {
-	if (InActor->IsPendingKill() == false)
+	TimeStamp = InActor->GetWorld()->TimeSeconds;
+	Location = InActor->GetActorLocation();
+	InActor->GrabDebugSnapshot(this);
+	if (Children != NULL)
 	{
-		TimeStamp = InActor->GetWorld()->TimeSeconds;
-		Location = InActor->GetActorLocation();
-		InActor->GrabDebugSnapshot(this);
-		if (Children != NULL)
+		TWeakObjectPtr<AActor>* WeakActorPtr = Children->GetTypedData();
+		for (int32 Index = 0; Index < Children->Num(); ++Index, ++WeakActorPtr)
 		{
-			TWeakObjectPtr<AActor>* WeakActorPtr = Children->GetTypedData();
-			for (int32 Index = 0; Index < Children->Num(); ++Index, ++WeakActorPtr)
+			if (WeakActorPtr->IsValid())
 			{
-				if (WeakActorPtr->IsValid())
-				{
-					const AActor* ChildActor = WeakActorPtr->Get();
-					ChildActor->GrabDebugSnapshot(this);
-				}
+				const AActor* ChildActor = WeakActorPtr->Get();
+				StatusString += FString::Printf(TEXT("\n--- %s snapshot: ---\n"), *ChildActor->GetName());
+				ChildActor->GrabDebugSnapshot(this);
 			}
 		}
 	}
@@ -65,31 +61,8 @@ FVisLogEntry::FVisLogEntry(TSharedPtr<FJsonValue> FromJson)
 
 	TimeStamp = JsonEntryObject->GetNumberField(VisualLogJson::TAG_TIMESTAMP);
 	Location.InitFromString(JsonEntryObject->GetStringField(VisualLogJson::TAG_LOCATION));
-
-	TArray< TSharedPtr<FJsonValue> > JsonStatus = JsonEntryObject->GetArrayField(VisualLogJson::TAG_STATUS);
-	if (JsonStatus.Num() > 0)
-	{
-		Status.AddZeroed(JsonStatus.Num());
-		for (int32 StatusIndex = 0; StatusIndex < JsonStatus.Num(); ++StatusIndex)
-		{
-			TSharedPtr<FJsonObject> JsonStatusCategory = JsonStatus[StatusIndex]->AsObject();
-			if (JsonStatusCategory.IsValid())
-			{
-				Status[StatusIndex].Category = JsonStatusCategory->GetStringField(VisualLogJson::TAG_CATEGORY);
-				
-				TArray< TSharedPtr<FJsonValue> > JsonStatusLines = JsonStatusCategory->GetArrayField(VisualLogJson::TAG_STATUSLINES);
-				if (JsonStatusLines.Num() > 0)
-				{
-					Status[StatusIndex].Data.AddZeroed(JsonStatusLines.Num());					
-					for (int32 LineIdx = 0; LineIdx < JsonStatusLines.Num(); LineIdx++)
-					{
-						Status[StatusIndex].Data.Add(JsonStatusLines[LineIdx]->AsString());
-					}
-				}
-			}
-		}
-	}
-
+	StatusString = JsonEntryObject->GetStringField(VisualLogJson::TAG_STATUSSTRING);
+	
 	TArray< TSharedPtr<FJsonValue> > JsonLines = JsonEntryObject->GetArrayField(VisualLogJson::TAG_LOGLINES);
 	if (JsonLines.Num() > 0)
 	{
@@ -100,7 +73,6 @@ FVisLogEntry::FVisLogEntry(TSharedPtr<FJsonValue> FromJson)
 			if (JsonLogLine.IsValid())
 			{
 				LogLines[LogLineIndex].Category = FName(*(JsonLogLine->GetStringField(VisualLogJson::TAG_CATEGORY)));
-				LogLines[LogLineIndex].Verbosity = TEnumAsByte<ELogVerbosity::Type>((uint8)FMath::Trunc(JsonLogLine->GetNumberField(VisualLogJson::TAG_VERBOSITY)));
 				LogLines[LogLineIndex].Line = JsonLogLine->GetStringField(VisualLogJson::TAG_LINE);
 			}
 		}
@@ -146,28 +118,7 @@ TSharedPtr<FJsonValue> FVisLogEntry::ToJson() const
 
 	JsonEntryObject->SetNumberField(VisualLogJson::TAG_TIMESTAMP, TimeStamp);
 	JsonEntryObject->SetStringField(VisualLogJson::TAG_LOCATION, Location.ToString());
-
-	const int32 StatusCategoryCount = Status.Num();
-	const FVisLogEntry::FStatusCategory* StatusCategory = Status.GetTypedData();
-	TArray< TSharedPtr<FJsonValue> > JsonStatus;
-	JsonStatus.AddZeroed(StatusCategoryCount);
-
-	for (int32 StatusIdx = 0; StatusIdx < Status.Num(); StatusIdx++, StatusCategory++)
-	{
-		TSharedPtr<FJsonObject> JsonStatusCategoryObject = MakeShareable(new FJsonObject);
-		JsonStatusCategoryObject->SetStringField(VisualLogJson::TAG_CATEGORY, StatusCategory->Category);
-
-		TArray< TSharedPtr<FJsonValue> > JsonStatusLines;
-		JsonStatusLines.AddZeroed(StatusCategory->Data.Num());
-		for (int32 LineIdx = 0; LineIdx < StatusCategory->Data.Num(); LineIdx++)
-		{
-			JsonStatusLines[LineIdx] = MakeShareable(new FJsonValueString(StatusCategory->Data[LineIdx]));
-		}
-
-		JsonStatusCategoryObject->SetArrayField(VisualLogJson::TAG_STATUSLINES, JsonStatusLines);
-		JsonStatus[StatusIdx] = MakeShareable(new FJsonValueObject(JsonStatusCategoryObject));
-	}
-	JsonEntryObject->SetArrayField(VisualLogJson::TAG_STATUS, JsonStatus);
+	JsonEntryObject->SetStringField(VisualLogJson::TAG_STATUSSTRING, StatusString);
 
 	const int32 LogLineCount = LogLines.Num();
 	const FVisLogEntry::FLogLine* LogLine = LogLines.GetTypedData();
@@ -178,7 +129,6 @@ TSharedPtr<FJsonValue> FVisLogEntry::ToJson() const
 	{
 		TSharedPtr<FJsonObject> JsonLogLineObject = MakeShareable(new FJsonObject);
 		JsonLogLineObject->SetStringField(VisualLogJson::TAG_CATEGORY, LogLine->Category.ToString());
-		JsonLogLineObject->SetNumberField(VisualLogJson::TAG_VERBOSITY, LogLine->Verbosity);
 		JsonLogLineObject->SetStringField(VisualLogJson::TAG_LINE, LogLine->Line);
 		JsonLines[LogLineIndex] = MakeShareable(new FJsonValueObject(JsonLogLineObject));
 	}
@@ -379,19 +329,17 @@ void FVisualLog::Redirect(AActor* Actor, const AActor* NewRedirection)
 
 void FVisualLog::LogLine(const AActor* Actor, const FName& CategoryName, ELogVerbosity::Type Verbosity, const FString& Line)
 {
-	if (IsRecording() == false || Actor == NULL || Actor->IsPendingKill())
+	if (IsRecording() == false)
 	{
 		return;
 	}
 	
 	FVisLogEntry* Entry = GetEntryToWrite(Actor);
 
-	if (Entry != NULL)
-	{
-		// @todo will have to store CategoryName separately, and create a map of names 
-		// used in log to have saved logs independent from FNames index changes
-		Entry->LogLines.Add(FVisLogEntry::FLogLine(CategoryName, Verbosity, Line));
-	}
+	check(Entry);
+	// @todo will have to store CategoryName separately, and create a map of names 
+	// used in log to have saved logs independent from FNames index changes
+	Entry->LogLines.Add(FVisLogEntry::FLogLine(CategoryName, Line, Verbosity));
 }
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)

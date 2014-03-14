@@ -24,11 +24,8 @@ struct ENGINE_API FGameWorldContext
 	/* Returns the player controller. */
 	class APlayerController* GetPlayerController() const;
 
-	/** Is this GameWorldContext initialized and still valid? */
+	/** Is this GameWorldContext initialized? */
 	bool IsValid() const;
-
-	/** Is this GameWorldContext initialized */
-	bool IsInitialized() const;
 
 private:	
 
@@ -69,10 +66,6 @@ class ENGINE_API ULocalPlayer : public UPlayer
 	/** How to constrain perspective viewport FOV */
 	UPROPERTY(config)
 	TEnumAsByte<enum EAspectRatioAxisConstraint> AspectRatioAxisConstraint;
-
-	/** The class of PlayerController to spawn for players logging in. */
-	UPROPERTY()
-	TSubclassOf<class APlayerController> PendingLevelPlayerControllerClass;
 
 	/** set when we've sent a split join request */
 	UPROPERTY(VisibleAnywhere, transient, Category=LocalPlayer)
@@ -191,7 +184,7 @@ public:
 	 *
 	 * @param	NewControllerId		the ControllerId to assign to this player.
 	 */
-	virtual void SetControllerId(int32 NewControllerId);
+	void SetControllerId(int32 NewControllerId);
 
 	/** 
 	 * Retrieves this player's name/tag from the online subsystem

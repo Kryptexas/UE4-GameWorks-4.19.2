@@ -150,18 +150,3 @@ FText UKismetTextLibrary::AsPercent_Float(float Value, TEnumAsByte<ERoundingMode
 
 	return FText::AsPercent(Value, &NumberFormatOptions);
 }
-
-FText UKismetTextLibrary::Format(FText InPattern, TArray<FFormatTextArgument> InArgs)
-{
-	TArray< FFormatArgumentData > Arguments;
-	for(auto It = InArgs.CreateConstIterator(); It; ++It)
-	{
-		FFormatArgumentData argument;
-		argument.ArgumentName = It->ArgumentName;
-		argument.ArgumentValue = It->TextValue;
-
-		Arguments.Add(argument);
-	}
-
-	return FText::Format(InPattern, Arguments);
-}

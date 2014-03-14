@@ -20,7 +20,6 @@ UCLASS()
 class ENGINE_API UBlackboardData : public UDataAsset
 {
 	GENERATED_UCLASS_BODY()
-	DECLARE_MULTICAST_DELEGATE_OneParam(FKeyUpdate, UBlackboardData* /*asset*/);
 
 	enum 
 	{
@@ -66,40 +65,6 @@ class ENGINE_API UBlackboardData : public UDataAsset
 	/** @return true if blackboard keys are not conflicting with parent key chain */
 	bool IsValid() const;
 
-	/** updates persistent key with given name, depending on currently defined entries and parent chain
-	 *  @return key type of newly created entry for further setup
-	 */
-	template<class T>
-	T* UpdatePersistentKey(const FName& KeyName)
-	{
-		T* CreatedKeyType = NULL;
-
-		const uint8 KeyID = InternalGetKeyID(KeyName, DontCheckParentKeys);
-		if (KeyID == InvalidKeyID && Parent == NULL)
-		{
-			FBlackboardEntry Entry;
-			Entry.EntryName = KeyName;
-
-			CreatedKeyType = ConstructObject<T>(T::StaticClass(), this);
-			Entry.KeyType = CreatedKeyType;		
-
-			Keys.Add(Entry);
-			MarkPackageDirty();
-		}
-		else if (KeyID != InvalidKeyID && Parent != NULL)
-		{
-			const int32 KeyIndex = KeyID - FirstKeyID;
-			Keys.RemoveAt(KeyIndex);
-			MarkPackageDirty();
-		}
-
-		return CreatedKeyType;
-	}
-
-	/** delegate called for every loaded blackboard asset
-	 *  meant for adding game specific persistent keys */
-	static FKeyUpdate OnUpdateKeys;
-
 protected:
 
 	enum EKeyLookupMode
@@ -116,4 +81,7 @@ protected:
 
 	/** updates parent key cache for editor */
 	void UpdateParentKeys();
+
+	/** If you want some keys always present in BB assets make it happen in this function */
+	virtual void UpdatePersistentKeys();
 };

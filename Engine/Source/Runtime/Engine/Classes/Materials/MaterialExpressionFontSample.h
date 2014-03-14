@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionFontSample.generated.h"
 
-UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object, MinimalAPI)
+UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
 class UMaterialExpressionFontSample : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

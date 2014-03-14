@@ -28,20 +28,10 @@ namespace EAnimationPlaybackSpeeds
 //////////////////////////////////////////////////////////////////////////
 // SAnimationEditorViewport
 
-SAnimationEditorViewport::~SAnimationEditorViewport()
-{
-	if(PersonaPtr.IsValid())
-	{
-		PersonaPtr.Pin()->UnregisterOnPostUndo(this);
-	}
-}
-
 void SAnimationEditorViewport::Construct(const FArguments& InArgs, TSharedPtr<class FPersona> InPersona, TSharedPtr<class SAnimationEditorViewportTabBody> InTabBody)
 {
 	PersonaPtr = InPersona;
 	TabBodyPtr = InTabBody;
-
-	PersonaPtr.Pin()->RegisterOnPostUndo(FPersona::FOnPostUndo::CreateSP(this, &SAnimationEditorViewport::OnUndoRedo));
 
 	SEditorViewport::Construct(
 		SEditorViewport::FArguments()
@@ -66,11 +56,6 @@ TSharedPtr<SWidget> SAnimationEditorViewport::MakeViewportToolbar()
 {
 	return SNew(SAnimViewportToolBar, TabBodyPtr.Pin(), SharedThis(this))
 		.Cursor(EMouseCursor::Default);
-}
-
-void SAnimationEditorViewport::OnUndoRedo()
-{
-	LevelViewportClient->Invalidate();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -422,7 +407,7 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FIsActionChecked::CreateSP( EditorViewportClientRef, &FAnimationViewportClient::IsSetShowBinormalsChecked ) );
 
 	CommandList.MapAction(
-		MenuActions.AnimSetDrawUVs,
+		MenuActions.SetDrawUVs,
 		FExecuteAction::CreateSP( EditorViewportClientRef, &FAnimationViewportClient::ToggleDrawUVOverlay ),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP( EditorViewportClientRef, &FAnimationViewportClient::IsSetDrawUVOverlayChecked ) );
@@ -608,7 +593,7 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowLevelOfDetailSettings));
 
 	CommandList.MapAction( 
-		ViewportShowMenuCommands.ToggleGrid,
+		ViewportShowMenuCommands.ShowGrid,
 		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowGrid),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingGrid));
@@ -621,13 +606,13 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsHighlightingOrigin));
 
 	CommandList.MapAction( 
-		ViewportShowMenuCommands.ToggleFloor,
+		ViewportShowMenuCommands.ShowFloor,
 		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowFloor),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingFloor));
 
 	CommandList.MapAction( 
-		ViewportShowMenuCommands.ToggleSky,
+		ViewportShowMenuCommands.ShowSky,
 		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowSky),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingSky));
@@ -1058,7 +1043,7 @@ void SAnimationEditorViewportTabBody::PopulateUVChoices()
 		{
 			for(int32 UVChannelID = 0; UVChannelID < NumUVChannels[CurrentLOD]; ++UVChannelID)
 			{
-				UVChannels.Add( MakeShareable( new FString( FText::Format( NSLOCTEXT("AnimationEditorViewport", "UVChannel_ID", "UV Channel {0}"), FText::AsNumber( UVChannelID ) ).ToString() ) ) );
+				UVChannels.Add( MakeShareable( new FString( FString::Printf(*NSLOCTEXT("AnimationEditorViewport", "UVChannel_ID", "UV Channel %d").ToString(), UVChannelID ) ) ) );
 			}
 
 			TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
@@ -1572,7 +1557,6 @@ bool SAnimationEditorViewportTabBody::IsShowingOnlyClothSections() const
 
 	return false;
 }
-#endif // #if WITH_APEX_CLOTHING
 
 EVisibility SAnimationEditorViewportTabBody::GetViewportCornerTextVisibility() const
 {
@@ -1629,4 +1613,5 @@ FReply SAnimationEditorViewportTabBody::ClickedOnViewportCornerText()
 	return FReply::Handled();
 }
 
+#endif // #if WITH_APEX_CLOTHING
 #undef LOCTEXT_NAMESPACE

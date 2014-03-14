@@ -9,6 +9,7 @@ class UK2Node_EnumEquality : public UK2Node
 {
 	GENERATED_UCLASS_BODY()
 
+#if WITH_EDITOR
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() OVERRIDE;
 	virtual FString GetTooltip() const OVERRIDE;
@@ -37,5 +38,6 @@ class UK2Node_EnumEquality : public UK2Node
 
 	/** Gets the name and class of the EqualEqual_ByteByte function */
 	BLUEPRINTGRAPH_API void GetConditionalFunction(FName& FunctionName, UClass** FunctionClass);
+#endif
 };
 

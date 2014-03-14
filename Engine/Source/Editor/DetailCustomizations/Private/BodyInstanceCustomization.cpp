@@ -27,14 +27,14 @@ void FBodyInstanceCustomization::RefreshCollisionProfiles()
 	CollisionProfileComboList.Add(MakeShareable(new FString(TEXT("Custom..."))));
 
 	// go through profile and see if it has mine
-	for (int32 ProfileId = 0; ProfileId < NumProfiles; ++ProfileId)
+	for(int32 ProfileId = 0; ProfileId < NumProfiles; ++ProfileId)
 	{
 		CollisionProfileComboList.Add(MakeShareable(new FString(CollisionProfile->GetProfileByIndex(ProfileId)->Name.ToString())));
 	}
 }
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-void FBodyInstanceCustomization::CustomizeStructChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
+void FBodyInstanceCustomization::CustomizeStructChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils ) 
 {
 	CollisionProfileNameHandle = StructPropertyHandle->GetChildHandle(TEXT("CollisionProfileName"));
 	CollisionEnabledHandle = StructPropertyHandle->GetChildHandle(TEXT("CollisionEnabled"));
@@ -71,13 +71,13 @@ void FBodyInstanceCustomization::CustomizeStructChildren( TSharedRef<class IProp
 	}
 
 	const FString PresetsDocLink = TEXT("Shared/Collision");
-	TSharedPtr<SToolTip> ProfileTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("SelectCollisionPreset", "Select collision presets. You can set this data in Project settings."), NULL, PresetsDocLink, TEXT("PresetDetail"));
+	TSharedPtr<SToolTip> ProfileTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("CollisionChannel", "Select collision presets. You can set this data in Project settings. "), NULL, PresetsDocLink, TEXT("PresetDetail"));
 
 	IDetailGroup& CollisionGroup = StructBuilder.AddChildGroup( TEXT("Collision"), LOCTEXT("CollisionPresetsLabel", "Collision Presets").ToString() );
 	CollisionGroup.HeaderRow()
 	.NameContent()
 	[
-		SNew(STextBlock)
+		SNew (STextBlock)
 		.Text(LOCTEXT("CollisionPresetsLabel", "Collision Presets"))
 		.ToolTip(ProfileTooltip)
 		.Font( IDetailLayoutBuilder::GetDetailFont() )
@@ -102,7 +102,7 @@ void FBodyInstanceCustomization::CustomizeStructChildren( TSharedRef<class IProp
 				.Text(this, &FBodyInstanceCustomization::GetCollisionProfileComboBoxContent)
 				.Font( IDetailLayoutBuilder::GetDetailFont() )
 				.ToolTipText(this, &FBodyInstanceCustomization::GetCollisionProfileComboBoxToolTip)
-			]
+			]	
 		]
 		+SHorizontalBox::Slot()
 		.VAlign(VAlign_Center)
@@ -122,7 +122,7 @@ void FBodyInstanceCustomization::CustomizeStructChildren( TSharedRef<class IProp
 			]
 		]
 	];
-
+	
 	// now create custom set up
 	CreateCustomCollisionSetup( StructPropertyHandle, CollisionGroup );
 }
@@ -133,7 +133,7 @@ int32 FBodyInstanceCustomization::InitializeObjectTypeComboList()
 	ObjectTypeComboList.Empty();
 	ObjectTypeValues.Empty();
 
-	UEnum * Enum = FindObject<UEnum>(ANY_PACKAGE, TEXT("ECollisionChannel"), true);
+	UEnum * Enum = FindObject<UEnum>(ANY_PACKAGE, TEXT("ECollisionChannel"), true);	
 	const FString KeyName = TEXT("DisplayName");
 	const FString QueryType = TEXT("TraceQuery");
 
@@ -142,7 +142,7 @@ int32 FBodyInstanceCustomization::InitializeObjectTypeComboList()
 	uint8 ObjectTypeIndex = 0;
 	if (ObjectTypeHandle->GetValue(ObjectTypeIndex) != FPropertyAccess::Result::Success)
 	{
-		ObjectTypeIndex = 0; // if multi, just let it be 0
+		ObjectTypeIndex = 0; // if multi, just let it be 0 
 	}
 
 	// go through enum and fill up the list
@@ -256,38 +256,35 @@ void FBodyInstanceCustomization::CreateCustomCollisionSetup( TSharedRef<class IP
 	// we only display things that has "DisplayName"
 	int32 IndexSelected = InitializeObjectTypeComboList();
 
-	CollisionGroup.AddPropertyRow(CollisionEnabledHandle.ToSharedRef())
+	CollisionGroup.AddPropertyRow( CollisionEnabledHandle.ToSharedRef() )
 	.IsEnabled(CustomCollisionEnabled)
 	.Visibility(CustomCollisionVisibility);
 
-	if (!StructPropertyHandle->GetProperty()->GetBoolMetaData(TEXT("HideObjectType")))
-	{
-		CollisionGroup.AddWidgetRow()
-		.IsEnabled(CustomCollisionEnabled)
-		.Visibility(CustomCollisionVisibility)
-		.NameContent()
+	CollisionGroup.AddWidgetRow()
+	.IsEnabled(CustomCollisionEnabled)
+	.Visibility(CustomCollisionVisibility)
+	.NameContent()
+	[
+		ObjectTypeHandle->CreatePropertyNameWidget()
+	]
+	.ValueContent()
+	[
+		SAssignNew(ObjectTypeComboBox, SComboBox< TSharedPtr<FString> >)
+		.OptionsSource(&ObjectTypeComboList)
+		.OnGenerateWidget(this, &FBodyInstanceCustomization::MakeObjectTypeComboWidget)
+		.OnSelectionChanged(this, &FBodyInstanceCustomization::OnObjectTypeChanged)
+		.InitiallySelectedItem(ObjectTypeComboList[IndexSelected])
+		.IsEnabled( FSlateApplication::Get().GetNormalExecutionAttribute() )
+		.ContentPadding(2)
+		.Content()
 		[
-			ObjectTypeHandle->CreatePropertyNameWidget()
-		]
-		.ValueContent()
-		[
-			SAssignNew(ObjectTypeComboBox, SComboBox<TSharedPtr<FString>>)
-			.OptionsSource(&ObjectTypeComboList)
-			.OnGenerateWidget(this, &FBodyInstanceCustomization::MakeObjectTypeComboWidget)
-			.OnSelectionChanged(this, &FBodyInstanceCustomization::OnObjectTypeChanged)
-			.InitiallySelectedItem(ObjectTypeComboList[IndexSelected])
-			.IsEnabled(FSlateApplication::Get().GetNormalExecutionAttribute())
-			.ContentPadding(2)
-			.Content()
-			[
-				SNew(STextBlock)
-				.Text(this, &FBodyInstanceCustomization::GetObjectTypeComboBoxContent)
-				.Font(IDetailLayoutBuilder::GetDetailFont())
-			]
-		];
-	}
+			SNew( STextBlock )
+			.Text(this, &FBodyInstanceCustomization::GetObjectTypeComboBoxContent)
+			.Font( IDetailLayoutBuilder::GetDetailFont() )
+		]	
+	];
 
-	// Add Title
+	// Add Title 
 	CollisionGroup.AddWidgetRow()
 	.IsEnabled(CustomCollisionEnabled)
 	.Visibility(CustomCollisionVisibility)
@@ -304,7 +301,7 @@ void FBodyInstanceCustomization::CreateCustomCollisionSetup( TSharedRef<class IP
 			.HAlign( HAlign_Left )
 			.Content()
 			[
-				SNew(STextBlock)
+				SNew (STextBlock)
 				.Text(LOCTEXT("IgnoreCollisionLabel", "Ignore"))
 				.Font( IDetailLayoutBuilder::GetDetailFontBold() )
 			]
@@ -317,7 +314,7 @@ void FBodyInstanceCustomization::CreateCustomCollisionSetup( TSharedRef<class IP
 			.WidthOverride(RowWidth_Customization)
 			.Content()
 			[
-				SNew(STextBlock)
+				SNew (STextBlock)
 				.Text(LOCTEXT("OverlapCollisionLabel", "Overlap"))
 				.Font( IDetailLayoutBuilder::GetDetailFontBold() )
 			]
@@ -325,7 +322,7 @@ void FBodyInstanceCustomization::CreateCustomCollisionSetup( TSharedRef<class IP
 		+SHorizontalBox::Slot()
 		.AutoWidth()
 		[
-			SNew(STextBlock)
+			SNew (STextBlock)
 			.Text(LOCTEXT("BlockCollisionLabel", "Block"))
 			.Font( IDetailLayoutBuilder::GetDetailFontBold() )
 		]
@@ -399,7 +396,7 @@ void FBodyInstanceCustomization::CreateCustomCollisionSetup( TSharedRef<class IP
 	];
 
 	// add header
-	// Add Title
+	// Add Title 
 	CollisionGroup.AddWidgetRow()
 	.IsEnabled(CustomCollisionEnabled)
 	.Visibility(CustomCollisionVisibility)
@@ -434,7 +431,7 @@ void FBodyInstanceCustomization::CreateCustomCollisionSetup( TSharedRef<class IP
 				.Padding(FMargin(15, 0))
 				.Content()
 				[
-					SNew(STextBlock)
+					SNew (STextBlock)
 					.Text(DisplayName)
 					.Font( IDetailLayoutBuilder::GetDetailFont() )
 				]
@@ -497,7 +494,7 @@ void FBodyInstanceCustomization::CreateCustomCollisionSetup( TSharedRef<class IP
 		}
 	}
 
-	// Add Title
+	// Add Title 
 	CollisionGroup.AddWidgetRow()
 	.IsEnabled(CustomCollisionEnabled)
 	.Visibility(CustomCollisionVisibility)
@@ -529,7 +526,7 @@ void FBodyInstanceCustomization::CreateCustomCollisionSetup( TSharedRef<class IP
 				.Padding(FMargin(15, 0))
 				.Content()
 				[
-					SNew(STextBlock)
+					SNew (STextBlock)
 					.Text(DisplayName)
 					.Font( IDetailLayoutBuilder::GetDetailFont() )
 				]
@@ -621,7 +618,7 @@ void FBodyInstanceCustomization::OnObjectTypeChanged( TSharedPtr<FString> NewSel
 				NewEnumVal = ObjectTypeValues[Iter.GetIndex()];
 			}
 		}
-		ensure(ObjectTypeHandle->SetValue(NewEnumVal) == FPropertyAccess::Result::Success);
+		ensure ( ObjectTypeHandle->SetValue(NewEnumVal) ==  FPropertyAccess::Result::Success );	
 	}
 }
 
@@ -633,15 +630,12 @@ FString FBodyInstanceCustomization::GetObjectTypeComboBoxContent() const
 		return TEXT("Multiple Values");
 	}
 
-	return *ObjectTypeComboBox.Get()->GetSelectedItem().Get();
+	return (*ObjectTypeComboBox.Get()->GetSelectedItem().Get());
 }
 
-TSharedRef<SWidget> FBodyInstanceCustomization::MakeCollisionProfileComboWidget(TSharedPtr<FString> InItem)
+TSharedRef<SWidget> FBodyInstanceCustomization::MakeCollisionProfileComboWidget( TSharedPtr<FString> InItem )
 {
-	return
-		SNew(STextBlock)
-		.Text(*InItem)
-		.Font(IDetailLayoutBuilder::GetDetailFont());
+	return SNew(STextBlock) .Text( *InItem ) .Font( IDetailLayoutBuilder::GetDetailFont() );
 }
 
 
@@ -673,10 +667,10 @@ void FBodyInstanceCustomization::OnCollisionProfileChanged( TSharedPtr<FString> 
 		for (int32 ProfileId = 0; ProfileId < NumProfiles; ++ProfileId)
 		{
 			const FCollisionResponseTemplate * CurProfile = CollisionProfile->GetProfileByIndex(ProfileId);
-			if ( NewValue == CurProfile->Name.ToString() )
+			if ( NewValue == CurProfile->Name.ToString() )	
 			{
 				// trigget transaction before UpdateCollisionProfile
-				const FScopedTransaction Transaction( LOCTEXT( "ChangeCollisionProfile", "Change Collision Profile" ) );
+				const FScopedTransaction Transaction( LOCTEXT( "ChangeCollisionProfile", "Change Collision Profile" ) ); 
 				// set profile set up
 				ensure ( CollisionProfileNameHandle->SetValue(NewValue) ==  FPropertyAccess::Result::Success );
 				UpdateCollisionProfile();
@@ -689,7 +683,7 @@ void FBodyInstanceCustomization::OnCollisionProfileChanged( TSharedPtr<FString> 
 			// Force expansion when the user chooses the selected item
 			CollisionGroup->ToggleExpansion( true );
 		}
-		// if none of them found, clear it
+		// if none of them found, clear it 
 		FName Name=NAME_None;
 		ensure ( CollisionProfileNameHandle->SetValue(Name) ==  FPropertyAccess::Result::Success );
 	}
@@ -706,26 +700,23 @@ void FBodyInstanceCustomization::UpdateCollisionProfile()
 		for (int32 ProfileId = 0; ProfileId < NumProfiles; ++ProfileId)
 		{
 			// find the profile
-			const FCollisionResponseTemplate* CurProfile = CollisionProfile->GetProfileByIndex(ProfileId);
-			if (ProfileName == CurProfile->Name)
+			const FCollisionResponseTemplate * CurProfile = CollisionProfile->GetProfileByIndex(ProfileId);
+			if ( ProfileName == CurProfile->Name )
 			{
 				// set the profile set up
-				ensure(CollisionEnabledHandle->SetValue((uint8)CurProfile->CollisionEnabled) == FPropertyAccess::Result::Success);
-				ensure(ObjectTypeHandle->SetValue((uint8)CurProfile->ObjectType) == FPropertyAccess::Result::Success);
+				ensure ( CollisionEnabledHandle->SetValue((uint8)CurProfile->CollisionEnabled) == FPropertyAccess::Result::Success);
+				ensure ( ObjectTypeHandle->SetValue((uint8)CurProfile->ObjectType) == FPropertyAccess::Result::Success);
 
 				SetCollisionResponseContainer(CurProfile->ResponseToChannels);
 
 				// now update combo box
 				CollsionProfileComboBox.Get()->SetSelectedItem(CollisionProfileComboList[ProfileId+1]);
-				if (ObjectTypeComboBox.IsValid())
+				for (auto Iter=ObjectTypeValues.CreateConstIterator(); Iter; ++Iter)
 				{
-					for (auto Iter = ObjectTypeValues.CreateConstIterator(); Iter; ++Iter)
+					if (*Iter == CurProfile->ObjectType)
 					{
-						if (*Iter == CurProfile->ObjectType)
-						{
-							ObjectTypeComboBox.Get()->SetSelectedItem(ObjectTypeComboList[Iter.GetIndex()]);
-							break;
-						}
+						ObjectTypeComboBox.Get()->SetSelectedItem(ObjectTypeComboList[Iter.GetIndex()]);
+						break;
 					}
 				}
 
@@ -739,8 +730,8 @@ void FBodyInstanceCustomization::UpdateCollisionProfile()
 
 FReply FBodyInstanceCustomization::SetToDefaultProfile()
 {
-	// trigger transaction before UpdateCollisionProfile
-	const FScopedTransaction Transaction( LOCTEXT( "ResetCollisionProfile", "Reset Collision Profile" ) );
+	// trigget transaction before UpdateCollisionProfile
+	const FScopedTransaction Transaction( LOCTEXT( "ResetCollisionProfile", "Reset Collision Profile" ) ); 
 	CollisionProfileNameHandle.Get()->ResetToDefault();
 	UpdateCollisionProfile();
 	return FReply::Handled();
@@ -760,9 +751,9 @@ FReply FBodyInstanceCustomization::SetToDefaultResponse(int32 ValidIndex)
 {
 	if ( ValidCollisionChannels.IsValidIndex(ValidIndex) )
 	{
-		const FScopedTransaction Transaction( LOCTEXT( "ResetCollisionResponse", "Reset Collision Response" ) );
+		const FScopedTransaction Transaction( LOCTEXT( "ResetCollisionResponse", "Reset Collision Response" ) ); 
 		const ECollisionResponse DefaultResponse = FCollisionResponseContainer::GetDefaultResponseContainer().GetResponse(ValidCollisionChannels[ValidIndex].CollisionChannel);
-
+		
 		SetResponse(ValidIndex, DefaultResponse);
 		return FReply::Handled();
 	}
@@ -880,7 +871,7 @@ ESlateCheckBoxState::Type FBodyInstanceCustomization::IsCollisionChannelChecked(
 			return ESlateCheckBoxState::Undetermined;
 		}
 
-		// if it didn't contain and it's not found, return Unchecked
+		// if it didn't contain and it's not found, return Unchecked		
 		return ESlateCheckBoxState::Unchecked;
 	}
 
@@ -894,45 +885,43 @@ void FBodyInstanceCustomization::OnAllCollisionChannelChanged(ESlateCheckBoxStat
 	SetCollisionResponseContainer(NewContainer);
 }
 
-ESlateCheckBoxState::Type FBodyInstanceCustomization::IsAllCollisionChannelChecked(ECollisionResponse InCollisionResponse) const
+ESlateCheckBoxState::Type FBodyInstanceCustomization::IsAllCollisionChannelChecked( ECollisionResponse InCollisionResponse) const
 {
-	ESlateCheckBoxState::Type State = ESlateCheckBoxState::Undetermined;
+	TArray<ESlateCheckBoxState::Type> States;
 
 	uint32 TotalNumChildren = ValidCollisionChannels.Num();
-	if (TotalNumChildren >= 1)
+	for ( uint32 Index=0; Index<TotalNumChildren; ++Index )
 	{
-		State = IsCollisionChannelChecked(0, InCollisionResponse);
-
-		for (uint32 Index = 1; Index < TotalNumChildren; ++Index)
-		{
-			if (State != IsCollisionChannelChecked(Index, InCollisionResponse))
-			{
-				State = ESlateCheckBoxState::Undetermined;
-				break;
-			}
-		}
+		States.AddUnique(IsCollisionChannelChecked(Index, InCollisionResponse));
 	}
 
-	return State;
+	// @todo I see this might not protect well enough of static array, but when the size changes, we should fix this
+	if ( States.Num() == 1 )
+	{
+		return States[0];
+	}
+
+	return ESlateCheckBoxState::Undetermined;
 }
 
 void FBodyInstanceCustomization::SetCollisionResponseContainer(const FCollisionResponseContainer & ResponseContainer)
 {
 	// trigget transaction before UpdateCollisionProfile
-	const FScopedTransaction Transaction( LOCTEXT( "Collision", "Collision Channel Changes" ) );
+	const FScopedTransaction Transaction( LOCTEXT( "Collision", "Collision Channel Changes" ) ); 
 
 	CollisionResponsesHandle->NotifyPreChange();
 
 	uint32 TotalNumChildren = ValidCollisionChannels.Num();
 	// only go through valid channels
-	for (uint32 Index = 0; Index < TotalNumChildren; ++Index)
+	for ( uint32 Index=0; Index<TotalNumChildren; ++Index )
 	{
 		ECollisionChannel Channel = ValidCollisionChannels[Index].CollisionChannel;
 		ECollisionResponse Response = ResponseContainer.GetResponse(Channel);
 
 		// iterate through bodyinstance and fix it
-		for (FBodyInstance* BodyInstance : BodyInstances)
+		for (auto Iter=BodyInstances.CreateIterator(); Iter; ++Iter)
 		{
+			FBodyInstance* BodyInstance = *Iter;
 			BodyInstance->CollisionResponses.SetResponse(Channel, Response);
 		}
 	}

@@ -997,7 +997,7 @@ namespace UnrealBuildTool
 		}
 
 		/** Generates a public manifest file for writing out */
-        public void GenerateManifest(List<UEBuildBinary> Binaries, CPPTargetPlatform Platform, List<string> SpecialRocketLibFilesThatAreBuildProducts)
+		public void GenerateManifest( List<UEBuildBinary> Binaries, CPPTargetPlatform Platform )
 		{
 			string ManifestPath;
 			if (UnrealBuildTool.RunningRocket())
@@ -1019,24 +1019,22 @@ namespace UnrealBuildTool
 			UnrealTargetPlatform TargetPlatform = CPPTargetPlatformToUnrealTargetPlatform( Platform );
 			UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform( TargetPlatform );
 
-
 			// Iterate over all the binaries, and add the relevant info to the manifest
 			foreach( UEBuildBinary Binary in Binaries )
 			{
 				// Get the platform specific extension for debug info files
+				string DebugInfoExtension = BuildPlatform.GetDebugInfoExtension( Binary.Config.Type );
 
 				// Don't add static library files to the manifest as we do not check them into perforce.
 				// However, add them to the manifest when cleaning the project as we do want to delete 
 				// them in that case.
 				if (UEBuildConfiguration.bCleanProject == false)
 				{
-                    if (Binary.Config.Type == UEBuildBinaryType.StaticLibrary)
+					if (Binary.Config.Type == UEBuildBinaryType.StaticLibrary)
 					{
 						continue;
 					}
 				}
-                string DebugInfoExtension = BuildPlatform.GetDebugInfoExtension(Binary.Config.Type);
-
 				// Create and add the binary and associated debug info
 				Manifest.AddBinaryNames(Binary.Config.OutputFilePath, DebugInfoExtension);
 				if (Binary.Config.Type == UEBuildBinaryType.Executable && 
@@ -1051,24 +1049,7 @@ namespace UnrealBuildTool
 					// Add all the resources and third party dylibs stored in app bundle
 					MacToolChain.AddAppBundleContentsToManifest(ref Manifest, Binary);
 				}
-                // ok, this is pretty awful, we want the import libraries that go with the editor, only on the PC
-                else if (UnrealBuildTool.BuildingRocket() && 
-                    Path.GetFileNameWithoutExtension(Binary.Config.OutputFilePath).StartsWith("UE4Editor-", StringComparison.InvariantCultureIgnoreCase) &&
-                    Path.GetExtension(Binary.Config.OutputFilePath).EndsWith("dll", StringComparison.InvariantCultureIgnoreCase) && 
-                    Binary.Config.Type == UEBuildBinaryType.DynamicLinkLibrary)
-                {
-                    // ok, this is pretty awful, we want the import libraries that go with the editor, only on the PC
-                    Manifest.AddBinaryNames(Path.Combine(Binary.Config.IntermediateDirectory, Path.GetFileNameWithoutExtension(Binary.Config.OutputFilePath) + ".lib"), "");
-                }
 			}
-            {
-                string DebugInfoExtension = BuildPlatform.GetDebugInfoExtension(UEBuildBinaryType.StaticLibrary);
-                foreach (var RedistLib in SpecialRocketLibFilesThatAreBuildProducts)
-                {
-                    Manifest.AddBinaryNames(RedistLib, DebugInfoExtension);
-                }
-            }
-
 
 			if (UEBuildConfiguration.bCleanProject)
 			{
@@ -1254,7 +1235,7 @@ namespace UnrealBuildTool
 					throw new BuildException("Rocket: No modules found to build?");
 				}
 			}
-            var SpecialRocketLibFilesThatAreBuildProducts = new List<string>();
+
 			// If we're compiling monolithic, make sure the executable knows about all referenced modules
 			if (ShouldCompileMonolithic())
 			{
@@ -1302,10 +1283,6 @@ namespace UnrealBuildTool
 							UnrealTargetConfiguration LibraryConfiguration = (Configuration == UnrealTargetConfiguration.DebugGame)? UnrealTargetConfiguration.Development : Configuration;
 							Module.RedistStaticLibraryPath = MakeBinaryPath("", "UE4Game-Redist-" + Module.Name, Platform, LibraryConfiguration, UEBuildBinaryType.StaticLibrary, Rules.Type, false, null, AppName);
 							Module.bBuildingRedistStaticLibrary = UnrealBuildTool.BuildingRocket();
-                            if (Module.bBuildingRedistStaticLibrary)
-                            {
-                                SpecialRocketLibFilesThatAreBuildProducts.Add(Module.RedistStaticLibraryPath);
-                            }
 						}
 					}
 				}
@@ -1334,7 +1311,7 @@ namespace UnrealBuildTool
 			// If we're only generating the manifest, return now
 			if (UEBuildConfiguration.bGenerateManifest || UEBuildConfiguration.bCleanProject)
 			{
-                GenerateManifest(AppBinaries, GlobalLinkEnvironment.Config.TargetPlatform, SpecialRocketLibFilesThatAreBuildProducts);
+				GenerateManifest( AppBinaries, GlobalLinkEnvironment.Config.TargetPlatform );
                 if (!BuildConfiguration.bXGEExport)
                 {
                     return new List<FileItem>();
@@ -2036,16 +2013,7 @@ namespace UnrealBuildTool
 			string PlatformString = Platform.ToString();
 
 			string OutputAppName = GetAppName();
-
-            // Mark it as a Rocket build
-            if (UnrealBuildTool.BuildingRocket() || UnrealBuildTool.RunningRocket())
-            {
-                GlobalCompileEnvironment.Config.Definitions.Add("UE_ROCKET=1");
-            }
-            else
-            {
-                GlobalCompileEnvironment.Config.Definitions.Add("UE_ROCKET=0");
-            }
+		
 			
 			// Rocket intermediates go to the project's intermediate folder.  Rocket never writes to the engine intermediate folder. (Those files are immutable)
 			// Also, when compiling in monolithic, all intermediates go to the project's folder.  This is because a project can change definitions that affects all engine translation

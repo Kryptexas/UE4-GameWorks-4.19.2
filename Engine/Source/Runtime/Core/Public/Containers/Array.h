@@ -879,8 +879,12 @@ public:
 			ArrayMax = AllocatorInstance.CalculateSlack( ArrayNum, ArrayMax, sizeof(ElementType) );
 			AllocatorInstance.ResizeAllocation(OldNum,ArrayMax,sizeof(ElementType));
 		}
-		ElementType* Data = GetTypedData() + Index;
-		RelocateItems(Data + Count, Data, OldNum - Index);
+		FMemory::Memmove
+		(
+			(uint8*)AllocatorInstance.GetAllocation() + (Index+Count )*sizeof(ElementType),
+			(uint8*)AllocatorInstance.GetAllocation() + (Index       )*sizeof(ElementType),
+			                                               (OldNum-Index)*sizeof(ElementType)
+		);
 	}
 	/** Caution, InsertZeroed() will create elements without calling the constructor and this is not appropriate for element types that require a constructor to function properly. */
 	void InsertZeroed( int32 Index, int32 Count=1 )
@@ -900,26 +904,6 @@ public:
 		}
 		return InIndex;
 	}
-
-	/**
-	 * Inserts a raw array of elements at a particular index in the TArray.
-	 *
-	 * @param Ptr   A pointer to an array of elements to add.
-	 * @param Count The number of elements to insert from Ptr.
-	 * @param Index The index to insert the elements at.
-	 *
-	 * @return The index of the first element inserted.
-	 */
-	int32 Insert(const ElementType* Ptr, int32 Count, int32 Index)
-	{
-		check(Ptr != NULL);
-
-		InsertUninitialized(Index, Count);
-		CopyConstructItems(GetTypedData() + Index, Ptr, Count);
-
-		return Index;
-	}
-
 	int32 Insert( ElementType&& Item, int32 Index )
 	{
 		// It isn't valid to specify an Item that is in the array, since adding an item might resize the array, which would make the item invalid
@@ -1094,20 +1078,6 @@ public:
 		Source.ArrayNum = 0;
 
 		ArrayNum += SourceCount;
-	}
-
-	/**
-	 * Adds a raw array of elements to the end of the TArray.
-	 *
-	 * @param Ptr   A pointer to an array of elements to add.
-	 * @param Count The number of elements to insert from Ptr.
-	 */
-	void Append(const ElementType* Ptr, int32 Count)
-	{
-		check(Ptr != NULL);
-
-		int32 Pos = AddUninitialized(Count);
-		CopyConstructItems(GetTypedData() + Pos, Ptr, Count);
 	}
 
 	/**

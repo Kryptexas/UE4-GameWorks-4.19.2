@@ -10,6 +10,7 @@ class UK2Node_AssignmentStatement : public UK2Node
 	GENERATED_UCLASS_BODY()
 
 
+#if WITH_EDITOR
 	// Name of the Variable pin for this node
 	static FString VariablePinName;
 	// Name of the Value pin for this node
@@ -33,5 +34,6 @@ class UK2Node_AssignmentStatement : public UK2Node
 	BLUEPRINTGRAPH_API UEdGraphPin* GetVariablePin() const;
 	/** Get the Value input pin */
 	BLUEPRINTGRAPH_API UEdGraphPin* GetValuePin() const;
+#endif
 };
 

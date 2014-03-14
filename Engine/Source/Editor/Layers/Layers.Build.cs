@@ -14,8 +14,7 @@ public class Layers : ModuleRules
                 "InputCore",
 				"Slate",
                 "EditorStyle",
-				"UnrealEd",
-				"SceneOutliner"
+				"UnrealEd"
 			}
 			);
 

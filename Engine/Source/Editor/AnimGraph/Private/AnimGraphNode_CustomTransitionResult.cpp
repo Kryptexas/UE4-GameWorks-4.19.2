@@ -12,7 +12,7 @@ UAnimGraphNode_CustomTransitionResult::UAnimGraphNode_CustomTransitionResult(con
 
 FLinearColor UAnimGraphNode_CustomTransitionResult::GetNodeTitleColor() const
 {
-	return GEditor->AccessEditorUserSettings().ResultNodeTitleColor;
+	return FLinearColor(1.0f, 0.65f, 0.4f);
 }
 
 FString UAnimGraphNode_CustomTransitionResult::GetTooltip() const

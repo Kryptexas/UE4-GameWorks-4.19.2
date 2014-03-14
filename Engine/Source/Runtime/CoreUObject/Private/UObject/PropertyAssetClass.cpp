@@ -41,11 +41,6 @@ void UAssetClassProperty::AddReferencedObjects(UObject* InThis, FReferenceCollec
 	Super::AddReferencedObjects( This, Collector );
 }
 
-bool UAssetClassProperty::SameType(const UProperty* Other) const
-{
-	return Super::SameType(Other) && (MetaClass == ((UAssetClassProperty*)Other)->MetaClass);
-}
-
 IMPLEMENT_CORE_INTRINSIC_CLASS(UAssetClassProperty, UAssetObjectProperty,
 	{
 		Class->EmitObjectReference( STRUCT_OFFSET( UAssetClassProperty, MetaClass ) );

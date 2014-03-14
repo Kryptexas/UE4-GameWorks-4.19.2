@@ -9,8 +9,7 @@ class FAssetDataGatherer : public FRunnable
 {
 public:
 	/** Constructor */
-	FAssetDataGatherer(const TArray<FString>& Paths, bool bInIsSynchronous, bool bInLoadAndSaveCache = false);
-	virtual ~FAssetDataGatherer();
+	FAssetDataGatherer(const TArray<FString>& Paths, bool bInIsSynchronous);
 
 	// FRunnable implementation
 	virtual bool Init() OVERRIDE;
@@ -48,9 +47,6 @@ private:
 	 * @return true if the file was successfully read
 	 */
 	bool ReadAssetFile(const FString& AssetFilename, TArray<FBackgroundAssetData*>& AssetDataList, FPackageDependencyData& DependencyData) const;
-
-	/** Serializes the timestamped cache of discovered assets. Used for quick loading of data for assets that have not changed on disk */
-	void SerializeCache(FArchive& Ar);
 
 private:
 	/** A critical section to protect data transfer to the main thread */
@@ -90,31 +86,6 @@ private:
 
 	/** Set of characters that are invalid in packages, thus files containing them can not be loaded. */
 	TSet<TCHAR> InvalidAssetFileCharacters;
-
-	///////////////////////////////////////////////////////////////
-	// Asset discovery caching
-	///////////////////////////////////////////////////////////////
-
-	/** True if this gather request should both load and save the asset cache. Only one gatherer should do this at a time! */
-	bool bLoadAndSaveCache;
-
-	/** True if we have finished discovering our first wave of files. Used to preemptively save the discovered assets cache once a full scan has completed */
-	bool bSavedCacheAfterInitialDiscovery;
-
-	/** The name of the file that contains the timestamped cache of discovered assets */
-	FString CacheFilename;
-
-	/** When loading a registry from disk, we can allocate all the FAssetData objects in one chunk, to save on 10s of thousands of heap allocations */
-	FDiskCachedAssetData* DiskCachedAssetDataBuffer;
-
-	/** An array of all cached data that was newly discovered this run. This array is just used to make sure they are all deleted at shutdown */
-	TArray<FDiskCachedAssetData*> NewCachedAssetData;
-
-	/** Map of PackageName to cached discovered assets that were loaded from disk */
-	TMap<FName, FDiskCachedAssetData*> DiskCachedAssetDataMap;
-
-	/** Map of PackageName to cached discovered assets that will be written to disk at shutdown */
-	TMap<FName, FDiskCachedAssetData*> NewCachedAssetDataMap;
 
 public:
 	/** Thread to run the cleanup FRunnable on */

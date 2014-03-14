@@ -56,7 +56,7 @@ ULinkerSave::ULinkerSave(const class FPostConstructInitializeProperties& PCIP, U
 	if (FPlatformProperties::HasEditorOnlyData())
 	{
 		// Create file saver.
-		Saver = new FBufferArchive( false, InParent->FileName );
+		Saver = new FBufferArchive();
 		check(Saver);
 
 		// Set main summary info.

@@ -333,7 +333,7 @@ bool FDeferredShadingSceneRenderer::RenderBasePass(FViewInfo& View)
 			// Draw the dynamic non-occluded primitives using a base pass drawing policy.
 			TDynamicPrimitiveDrawer<FBasePassOpaqueDrawingPolicyFactory> Drawer(
 				&View,FBasePassOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::DontSet),true);
-			for(int32 PrimitiveIndex = 0, Num = View.VisibleDynamicPrimitives.Num();PrimitiveIndex < Num;PrimitiveIndex++)
+			for(int32 PrimitiveIndex = 0;PrimitiveIndex < View.VisibleDynamicPrimitives.Num();PrimitiveIndex++)
 			{
 				const FPrimitiveSceneInfo* PrimitiveSceneInfo = View.VisibleDynamicPrimitives[PrimitiveIndex];
 				int32 PrimitiveId = PrimitiveSceneInfo->GetIndex();
@@ -422,7 +422,7 @@ void FDeferredShadingSceneRenderer::RenderFinish()
 	FSceneRenderer::RenderFinish();
 
 	//grab the new transform out of the proxies for next frame
-	if(ViewFamily.EngineShowFlags.MotionBlur || ViewFamily.EngineShowFlags.TemporalAA)
+	if(ViewFamily.EngineShowFlags.MotionBlur)
 	{
 		Scene->MotionBlurInfoData.UpdateMotionBlurCache();
 	}

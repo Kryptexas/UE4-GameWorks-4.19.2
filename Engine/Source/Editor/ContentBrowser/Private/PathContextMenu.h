@@ -46,9 +46,6 @@ public:
 	/** Handler for when "ReferenceViewer" is selected */
 	void ExecuteReferenceViewer();
 
-	/** Handler for when "Fix up Redirectors in Folder" is selected */
-	void ExecuteFixUpRedirectorsInFolder();
-
 	/** Handler for when "Delete" is selected and the delete was confirmed */
 	FReply ExecuteDeleteFolderConfirmed();
 

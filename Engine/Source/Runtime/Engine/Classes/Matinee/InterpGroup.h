@@ -136,9 +136,6 @@ public:
 	/** Returns true if this group has been selected.  */
 	bool IsSelected() const { return bIsSelected; }
 
-	/** @return true if this group contains selected tracks.  */
-	ENGINE_API bool HasSelectedTracks() const;
-
 	/** Ensure this group name is unique within this InterpData (its Outer). */
 	ENGINE_API void EnsureUniqueName();
 

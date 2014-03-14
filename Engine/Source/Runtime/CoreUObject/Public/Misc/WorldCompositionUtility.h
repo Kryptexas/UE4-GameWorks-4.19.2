@@ -93,7 +93,7 @@ public:
 		: Position(0,0)
 		, AbsolutePosition(0,0)
 		, Bounds(0)
-		, Reserved0(false)
+		, bAlwaysLoaded(false)
 		, ZOrder(0)
 	{
 	}
@@ -105,6 +105,7 @@ public:
 		return (Position == OtherInfo.Position) &&
 				(Bounds.Min.Equals(OtherInfo.Bounds.Min, 0.5f)) &&
 				(Bounds.Max.Equals(OtherInfo.Bounds.Max, 0.5f)) &&
+				(bAlwaysLoaded == OtherInfo.bAlwaysLoaded) &&
 				(ParentTilePackageName == OtherInfo.ParentTilePackageName) &&
 				(Layer == OtherInfo.Layer) &&
 				(ZOrder == OtherInfo.ZOrder) &&
@@ -134,8 +135,8 @@ public:
 	FBox				Bounds;
 	/** Tile assigned layer  */
 	FWorldTileLayer		Layer;
-	/** */
-	bool				Reserved0;
+	/** Whether this tile always loaded*/
+	bool				bAlwaysLoaded;
 	/** Parent tile package name */
 	FString				ParentTilePackageName;
 	/** LOD information */

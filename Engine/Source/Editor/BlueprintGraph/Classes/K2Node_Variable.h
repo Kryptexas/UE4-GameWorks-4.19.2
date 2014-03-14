@@ -27,6 +27,7 @@ protected:
 	uint32 bSelfContext_DEPRECATED:1;
 
 public:
+#if WITH_EDITOR
 	// Begin UObject interface
 	virtual void Serialize(FArchive& Ar) OVERRIDE;
 	// End UObject interface
@@ -41,7 +42,7 @@ public:
 	// End UEdGraphNode interface
 
 	// Begin K2Node interface
-	virtual bool HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput) const OVERRIDE;
+	virtual bool HasExternalBlueprintDependencies() const OVERRIDE;
 	virtual bool DrawNodeAsVariable() const OVERRIDE { return true; }
 	virtual ERedirectType DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex)  const OVERRIDE;
 	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const OVERRIDE;
@@ -123,5 +124,6 @@ public:
 	 * @return A icon representing the specified variable's type.
 	 */
 	BLUEPRINTGRAPH_API static FName GetVarIconFromPinType(FEdGraphPinType& InPinType, FLinearColor& IconColorOut);
+#endif
 };
 

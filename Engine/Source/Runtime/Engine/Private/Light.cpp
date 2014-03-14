@@ -233,7 +233,6 @@ ADirectionalLight::ADirectionalLight(const class FPostConstructInitializePropert
 		ArrowComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Lighting;
 		ArrowComponent->AttachParent = DirectionalLightComponent;
 		ArrowComponent->bLightAttachment = true;
-		ArrowComponent->bIsScreenSizeScaled = true;
 	}
 #endif // WITH_EDITORONLY_DATA
 
@@ -247,12 +246,6 @@ void ADirectionalLight::PostLoad()
 	{
 		LightComponent->LightFunctionMaterial = NULL;
 	}
-#if WITH_EDITORONLY_DATA
-	if(ArrowComponent != nullptr)
-	{
-		ArrowComponent->ArrowColor = GetLightColor();
-	}
-#endif
 }
 
 #if WITH_EDITOR
@@ -287,16 +280,6 @@ void ADirectionalLight::LoadedFromAnotherClass(const FName& OldClassName)
 				DirLightComp->DynamicShadowDistanceStationaryLight = DirLightComp->WholeSceneDynamicShadowRadius_DEPRECATED;  // copy radius to correct var
 			}
 		}
-	}
-}
-
-void ADirectionalLight::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
-{
-	Super::PostEditChangeProperty(PropertyChangedEvent);
-
-	if(ArrowComponent != nullptr)
-	{
-		ArrowComponent->ArrowColor = GetLightColor();
 	}
 }
 #endif // WITH_EDITOR

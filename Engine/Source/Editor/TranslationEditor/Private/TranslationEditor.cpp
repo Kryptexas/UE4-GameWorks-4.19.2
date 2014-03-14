@@ -720,12 +720,6 @@ void FTranslationEditor::UpdateTranslationUnitSelection()
 		ContextPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>( FTranslationContextInfo::StaticStruct(), "Key"));
 		ContextPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>( FTranslationContextInfo::StaticStruct(), "Context"));
 
-		TArray<TSharedRef<IPropertyTableColumn>> Columns = ContextPropertyTable->GetColumns();
-		for (TSharedRef<IPropertyTableColumn> Column : Columns)
-		{
-			Column->SetFrozen(true);
-		}
-
 		// Add the HistoryPropertyTable-specific path
 		TSharedRef<FPropertyPath> HistoryPath = ContextPropertyTable->GetRootPath();
 		FPropertyInfo ContextPropInfo;
@@ -744,12 +738,6 @@ void FTranslationEditor::UpdateTranslationUnitSelection()
 		HistoryPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>( FTranslationChange::StaticStruct(), "DateAndTime"));
 		HistoryPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>( FTranslationChange::StaticStruct(), "Source"));
 		HistoryPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>( FTranslationChange::StaticStruct(), "Translation"));
-
-		Columns = HistoryPropertyTable->GetColumns();
-		for (TSharedRef<IPropertyTableColumn> Column : Columns)
-		{
-			Column->SetFrozen(true);
-		}
 	
 		// Maybe we should save every time the user changes their selection to be safe?
 		//DataManager->WriteTranslationData();
@@ -820,12 +808,6 @@ void FTranslationEditor::UpdateContextSelection()
 		HistoryPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>( FTranslationChange::StaticStruct(), "DateAndTime"));
 		HistoryPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>( FTranslationChange::StaticStruct(), "Source"));
 		HistoryPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>( FTranslationChange::StaticStruct(), "Translation"));
-
-		TArray<TSharedRef<IPropertyTableColumn>> Columns = HistoryPropertyTable->GetColumns();
-		for (TSharedRef<IPropertyTableColumn> Column : Columns)
-		{
-			Column->SetFrozen(true);
-		}
 	}
 }
 

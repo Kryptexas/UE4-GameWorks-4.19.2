@@ -60,7 +60,7 @@ void FLevelCollectionModel::BindCommands()
 		FExecuteAction::CreateSP(this, &FLevelCollectionModel::ExpandSelectedItems_Executed),
 		FCanExecuteAction::CreateSP(this, &FLevelCollectionModel::AreAnyLevelsSelected));
 
-	ActionList.MapAction(Commands.World_MakeLevelCurrent,
+	ActionList.MapAction(Commands.MakeLevelCurrent,
 		FExecuteAction::CreateSP(this, &FLevelCollectionModel::MakeLevelCurrent_Executed),
 		FCanExecuteAction::CreateSP(this, &FLevelCollectionModel::IsOneLevelSelected));
 	
@@ -68,73 +68,73 @@ void FLevelCollectionModel::BindCommands()
 		FExecuteAction::CreateSP(this, &FLevelCollectionModel::MoveActorsToSelected_Executed),
 		FCanExecuteAction::CreateSP(this, &FLevelCollectionModel::IsSelectedLevelEditable));
 		
-	ActionList.MapAction(Commands.World_SaveSelectedLevels,
+	ActionList.MapAction(Commands.SaveSelectedLevels,
 		FExecuteAction::CreateSP(this, &FLevelCollectionModel::SaveSelectedLevels_Executed),
 		FCanExecuteAction::CreateSP(this, &FLevelCollectionModel::AreAnySelectedLevelsDirty));
 
-	ActionList.MapAction(Commands.World_SaveSelectedLevelAs,
+	ActionList.MapAction(Commands.SaveSelectedLevelAs,
 		FExecuteAction::CreateSP(this, &FLevelCollectionModel::SaveSelectedLevelAs_Executed),
 		FCanExecuteAction::CreateSP(this, &FLevelCollectionModel::IsSelectedLevelEditable));
 		
-	ActionList.MapAction(Commands.World_LoadLevel,
+	ActionList.MapAction(Commands.LoadLevel,
 		FExecuteAction::CreateSP(this, &FLevelCollectionModel::LoadSelectedLevels_Executed),
 		FCanExecuteAction::CreateSP(this, &FLevelCollectionModel::AreAnySelectedLevelsUnloaded));
 
-	ActionList.MapAction(Commands.World_UnloadLevel,
+	ActionList.MapAction(Commands.UnloadLevel,
 		FExecuteAction::CreateSP(this, &FLevelCollectionModel::UnloadSelectedLevels_Executed),
 		FCanExecuteAction::CreateSP(this, &FLevelCollectionModel::AreAnySelectedLevelsLoaded));
 
-	ActionList.MapAction( Commands.World_MigrateSelectedLevels,
+	ActionList.MapAction( Commands.MigrateSelectedLevels,
 		FExecuteAction::CreateSP( this, &FLevelCollectionModel::MigrateSelectedLevels_Executed),
 		FCanExecuteAction::CreateSP( this, &FLevelCollectionModel::AreAllSelectedLevelsEditable));
 
 	//actors
-	ActionList.MapAction(Commands.AddsActors,
+	ActionList.MapAction(Commands.SelectActors,
 		FExecuteAction::CreateSP(this, &FLevelCollectionModel::SelectActors_Executed),
 		FCanExecuteAction::CreateSP(this, &FLevelCollectionModel::AreAnySelectedLevelsEditable));
 	
-	ActionList.MapAction(Commands.RemovesActors,
+	ActionList.MapAction(Commands.DeselectActors,
 		FExecuteAction::CreateSP(this, &FLevelCollectionModel::DeselectActors_Executed),
 		FCanExecuteAction::CreateSP(this, &FLevelCollectionModel::AreAnySelectedLevelsEditable));
 
 	//visibility
-	ActionList.MapAction( Commands.World_ShowSelectedLevels,
+	ActionList.MapAction( Commands.ShowSelectedLevels,
 		FExecuteAction::CreateSP( this, &FLevelCollectionModel::ShowSelectedLevels_Executed  ),
 		FCanExecuteAction::CreateSP( this, &FLevelCollectionModel::AreAnySelectedLevelsLoaded ) );
 	
-	ActionList.MapAction( Commands.World_HideSelectedLevels,
+	ActionList.MapAction( Commands.HideSelectedLevels,
 		FExecuteAction::CreateSP( this, &FLevelCollectionModel::HideSelectedLevels_Executed  ),
 		FCanExecuteAction::CreateSP( this, &FLevelCollectionModel::AreAnySelectedLevelsLoaded ) );
 	
-	ActionList.MapAction( Commands.World_ShowOnlySelectedLevels,
+	ActionList.MapAction( Commands.ShowOnlySelectedLevels,
 		FExecuteAction::CreateSP( this, &FLevelCollectionModel::ShowOnlySelectedLevels_Executed  ),
 		FCanExecuteAction::CreateSP( this, &FLevelCollectionModel::AreAnySelectedLevelsLoaded ) );
 
-	ActionList.MapAction(Commands.World_ShowAllLevels,
+	ActionList.MapAction(Commands.ShowAllLevels,
 		FExecuteAction::CreateSP(this, &FLevelCollectionModel::ShowAllLevels_Executed));
 	
-	ActionList.MapAction(Commands.World_HideAllLevels,
+	ActionList.MapAction(Commands.HideAllLevels,
 		FExecuteAction::CreateSP(this, &FLevelCollectionModel::HideAllLevels_Executed));
 		
 	//lock
-	ActionList.MapAction( Commands.World_LockSelectedLevels,
+	ActionList.MapAction( Commands.LockSelectedLevels,
 		FExecuteAction::CreateSP( this, &FLevelCollectionModel::LockSelectedLevels_Executed  ),
 		FCanExecuteAction::CreateSP( this, &FLevelCollectionModel::AreAnySelectedLevelsEditable ) );
 	
-	ActionList.MapAction( Commands.World_UnockSelectedLevels,
+	ActionList.MapAction( Commands.UnockSelectedLevels,
 		FExecuteAction::CreateSP( this, &FLevelCollectionModel::UnockSelectedLevels_Executed  ),
 		FCanExecuteAction::CreateSP( this, &FLevelCollectionModel::AreAnySelectedLevelsEditable ) );
 	
-	ActionList.MapAction( Commands.World_LockAllLevels,
+	ActionList.MapAction( Commands.LockAllLevels,
 		FExecuteAction::CreateSP( this, &FLevelCollectionModel::LockAllLevels_Executed  ) );
 	
-	ActionList.MapAction( Commands.World_UnockAllLevels,
+	ActionList.MapAction( Commands.UnockAllLevels,
 		FExecuteAction::CreateSP( this, &FLevelCollectionModel::UnockAllLevels_Executed  ) );
 
-	ActionList.MapAction( Commands.World_LockReadOnlyLevels,
+	ActionList.MapAction( Commands.LockReadOnlyLevels,
 		FExecuteAction::CreateSP( this, &FLevelCollectionModel::ToggleReadOnlyLevels_Executed  ) );
 
-	ActionList.MapAction( Commands.World_UnlockReadOnlyLevels,
+	ActionList.MapAction( Commands.UnlockReadOnlyLevels,
 		FExecuteAction::CreateSP( this, &FLevelCollectionModel::ToggleReadOnlyLevels_Executed  ) );
 	
 	
@@ -145,7 +145,7 @@ void FLevelCollectionModel::BindCommands()
 	ActionList.MapAction( Commands.DeselectAllLevels,
 		FExecuteAction::CreateSP( this, &FLevelCollectionModel::DeselectAllLevels_Executed  ) );
 
-	ActionList.MapAction( Commands.InvertLevelSelection,
+	ActionList.MapAction( Commands.InvertSelection,
 		FExecuteAction::CreateSP( this, &FLevelCollectionModel::InvertSelection_Executed  ) );
 	
 	//source control
@@ -229,30 +229,9 @@ void FLevelCollectionModel::Tick( float DeltaTime )
 	
 	if (IsSimulating())
 	{
-		// Reset simulation status for all levels
-		for (TSharedPtr<FLevelModel>& LevelModel : AllLevelsList)
+		for (auto It = AllLevelsList.CreateIterator(); It; ++It)
 		{
-			LevelModel->UpdateSimulationStatus(nullptr);
-		}
-		
-		// Traverse streaming levels in all inner worlds and update simulation status for corresponding level models  
-		for (ULevel* Level : GetSimulationWorld()->GetLevels())
-		{
-			UWorld* InnerWorld = CastChecked<UWorld>(Level->GetOuter());
-			
-			for (ULevelStreaming* StreamingLevel : InnerWorld->StreamingLevels)
-			{
-				// Rebuild the original NonPrefixedPackageName so we can find it
-				const FString PrefixedPackageName = StreamingLevel->PackageName.ToString();
-				const FString NonPrefixedPackageName = FPackageName::GetLongPackagePath(PrefixedPackageName) + "/" 
-						+ FPackageName::GetLongPackageAssetName(PrefixedPackageName).RightChop(GetSimulationWorld()->StreamingLevelsPrefix.Len());
-								
-				TSharedPtr<FLevelModel> LevelModel = FindLevelModel(FName(*NonPrefixedPackageName));
-				if (LevelModel.IsValid())
-				{
-					LevelModel->UpdateSimulationStatus(StreamingLevel);
-				}
-			}
+			(*It)->UpdateSimulationStatus(GetSimulationWorld());
 		}
 	}
 }
@@ -492,22 +471,13 @@ void FLevelCollectionModel::LoadLevels(const FLevelModelList& InLevelList)
 	{
 		return;
 	}
-
-	GWarn->BeginSlowTask(LOCTEXT("LoadWorldTiles", "Loading levels"), true);
 	
 	OnPreLoadLevels(InLevelList);
 	
-	int32 LevelIdx = 0;
-	for (TSharedPtr<FLevelModel> LevelModel : InLevelList)
+	for (auto It = InLevelList.CreateConstIterator(); It; ++It)
 	{
-		GWarn->StatusUpdate(LevelIdx++, InLevelList.Num(), 
-			FText::Format(LOCTEXT("LoadingWorldTiles", "Loading: {0}..." ), FText::FromString(LevelModel->GetLongPackageName().ToString()))
-			);
-
-		LevelModel->LoadLevel();
+		(*It)->LoadLevel();
 	}
-
-	GWarn->EndSlowTask();	
 }
 
 void FLevelCollectionModel::UnloadLevels(const FLevelModelList& InLevelList)
@@ -554,6 +524,9 @@ void FLevelCollectionModel::UnloadLevels(const FLevelModelList& InLevelList)
 				FUnmodifiableObject ImmuneWorld(CurrentWorld.Get());
 				EditorLevelUtils::RemoveLevelFromWorld(Level);
 			}
+			
+			// Notify level model
+			LevelModel->OnLevelUnloaded();
 		}
 	}
 
@@ -562,7 +535,7 @@ void FLevelCollectionModel::UnloadLevels(const FLevelModelList& InLevelList)
 	// Collect garbage to clear out the destroyed level
 	CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
 
-	PopulateLevelsList();
+	RequestUpdateAllLevels();
 }
 
 void FLevelCollectionModel::TranslateLevels(const FLevelModelList& InLevels, FVector2D InDelta, bool bSnapDelta)
@@ -654,15 +627,15 @@ void FLevelCollectionModel::BuildHierarchyMenu(FMenuBuilder& InMenuBuilder) cons
 	{
 		InMenuBuilder.AddMenuEntry( Commands.SelectAllLevels );
 		InMenuBuilder.AddMenuEntry( Commands.DeselectAllLevels );
-		InMenuBuilder.AddMenuEntry( Commands.InvertLevelSelection );
+		InMenuBuilder.AddMenuEntry( Commands.InvertSelection );
 	}
 	InMenuBuilder.EndSection();
 	
 	// Level actors selection commands
 	InMenuBuilder.BeginSection("ActorsSelection", LOCTEXT("ActorsHeader", "Actors") );
 	{
-		InMenuBuilder.AddMenuEntry( Commands.AddsActors );
-		InMenuBuilder.AddMenuEntry( Commands.RemovesActors );
+		InMenuBuilder.AddMenuEntry( Commands.SelectActors );
+		InMenuBuilder.AddMenuEntry( Commands.DeselectActors );
 
 		if (AreAnyLevelsSelected())
 		{
@@ -686,9 +659,9 @@ void FLevelCollectionModel::CustomizeFileMainMenu(FMenuBuilder& InMenuBuilder) c
 		
 	if (AreAnyLevelsSelected())
 	{
-		InMenuBuilder.AddMenuEntry( Commands.World_SaveSelectedLevels );
-		InMenuBuilder.AddMenuEntry( Commands.World_SaveSelectedLevelAs );
-		InMenuBuilder.AddMenuEntry( Commands.World_MigrateSelectedLevels );
+		InMenuBuilder.AddMenuEntry( Commands.SaveSelectedLevels );
+		InMenuBuilder.AddMenuEntry( Commands.SaveSelectedLevelAs );
+		InMenuBuilder.AddMenuEntry( Commands.MigrateSelectedLevels );
 	}
 }
 
@@ -1453,15 +1426,17 @@ void FLevelCollectionModel::DeselectActors_Executed()
 
 void FLevelCollectionModel::ExpandSelectedItems_Executed()
 {
-	struct FExpandLevelVisitor : public FLevelModelVisitor
-	{
-		virtual void Visit(FLevelModel& Item) OVERRIDE { Item.SetLevelExpansionFlag(true); }
-	} Expander;
-	
-	for (TSharedPtr<FLevelModel> LevelModel: SelectedLevelsList)
-	{
-		LevelModel->Accept(Expander);
-	}
+	//struct Expander	{
+	//	void operator()(TSharedPtr<FWorldTileModel>& TreeItem) {
+	//		TreeItem->bItemExpanded = true;
+	//	};
+	//};
+	//
+	//for(int32 ItemIndex = 0; ItemIndex < SelectedLevelsList.Num(); ItemIndex++)
+	//{
+	//	Expander()(SelectedLevelsList[ItemIndex]);
+	//	SelectedLevelsList[ItemIndex]->ForEachDescendant(Expander());
+	//}
 
 	BroadcastHierarchyChanged();
 }
@@ -1471,18 +1446,18 @@ void FLevelCollectionModel::FillLockMenu(FMenuBuilder& InMenuBuilder)
 {
 	const FLevelCollectionCommands& Commands = FLevelCollectionCommands::Get();
 
-	InMenuBuilder.AddMenuEntry( Commands.World_LockSelectedLevels );
-	InMenuBuilder.AddMenuEntry( Commands.World_UnockSelectedLevels );
-	InMenuBuilder.AddMenuEntry( Commands.World_LockAllLevels );
-	InMenuBuilder.AddMenuEntry( Commands.World_UnockAllLevels );
+	InMenuBuilder.AddMenuEntry( Commands.LockSelectedLevels );
+	InMenuBuilder.AddMenuEntry( Commands.UnockSelectedLevels );
+	InMenuBuilder.AddMenuEntry( Commands.LockAllLevels );
+	InMenuBuilder.AddMenuEntry( Commands.UnockAllLevels );
 
 	if (Editor->bLockReadOnlyLevels)
 	{
-		InMenuBuilder.AddMenuEntry( Commands.World_UnlockReadOnlyLevels );
+		InMenuBuilder.AddMenuEntry( Commands.UnlockReadOnlyLevels );
 	}
 	else
 	{
-		InMenuBuilder.AddMenuEntry( Commands.World_LockReadOnlyLevels );
+		InMenuBuilder.AddMenuEntry( Commands.LockReadOnlyLevels );
 	}
 }
 
@@ -1490,11 +1465,11 @@ void FLevelCollectionModel::FillVisibilityMenu(FMenuBuilder& InMenuBuilder)
 {
 	const FLevelCollectionCommands& Commands = FLevelCollectionCommands::Get();
 
-	InMenuBuilder.AddMenuEntry( Commands.World_ShowSelectedLevels );
-	InMenuBuilder.AddMenuEntry( Commands.World_HideSelectedLevels );
-	InMenuBuilder.AddMenuEntry( Commands.World_ShowOnlySelectedLevels );
-	InMenuBuilder.AddMenuEntry( Commands.World_ShowAllLevels );
-	InMenuBuilder.AddMenuEntry( Commands.World_HideAllLevels );
+	InMenuBuilder.AddMenuEntry( Commands.ShowSelectedLevels );
+	InMenuBuilder.AddMenuEntry( Commands.HideSelectedLevels );
+	InMenuBuilder.AddMenuEntry( Commands.ShowOnlySelectedLevels );
+	InMenuBuilder.AddMenuEntry( Commands.ShowAllLevels );
+	InMenuBuilder.AddMenuEntry( Commands.HideAllLevels );
 }
 
 void FLevelCollectionModel::FillSourceControlMenu(FMenuBuilder& InMenuBuilder)
@@ -1568,10 +1543,10 @@ void FLevelCollectionModel::OnLevelAddedToWorld(ULevel* InLevel, UWorld* InWorld
 {
 	if (InWorld == GetWorld())
 	{
-		TSharedPtr<FLevelModel> LevelModel = FindLevelModel(InLevel->GetOutermost()->GetFName());
+		TSharedPtr<FLevelModel> LevelModel = FindLevelModel(InLevel);
 		if (LevelModel.IsValid())
 		{
-			LevelModel->OnLevelAddedToWorld(InLevel);
+			LevelModel->OnLevelAddedToWorld();
 		}
 	}
 }
@@ -1580,7 +1555,7 @@ void FLevelCollectionModel::OnLevelRemovedFromWorld(ULevel* InLevel, UWorld* InW
 {
 	if (InWorld == GetWorld())
 	{
-		TSharedPtr<FLevelModel> LevelModel = FindLevelModel(InLevel->GetOutermost()->GetFName());
+		TSharedPtr<FLevelModel> LevelModel = FindLevelModel(InLevel);
 		if (LevelModel.IsValid())
 		{
 			LevelModel->OnLevelRemovedFromWorld();

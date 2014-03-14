@@ -403,12 +403,10 @@ void FWindowsPlatformStackWalkExt::GetExceptionInfo( FCrashInfo* CrashInfo )
 }
 
 /** 
- * Get the callstack of the crash. Returns true if at least one function name was found in the debugging symbols
+ * Get the callstack of the crash
  */
-bool FWindowsPlatformStackWalkExt::GetCallstacks( FCrashInfo* CrashInfo )
+void FWindowsPlatformStackWalkExt::GetCallstacks( FCrashInfo* CrashInfo )
 {
-	bool bAtLeastOneFunctionNameFound = false;
-
 	FCrashExceptionInfo& Exception = CrashInfo->Exception;
 
 	byte Context[4096] = { 0 };
@@ -420,7 +418,7 @@ bool FWindowsPlatformStackWalkExt::GetCallstacks( FCrashInfo* CrashInfo )
 	// Get the context of the crashed thread
 	if( Control->GetStoredEventInformation( &DebugEvent, &ProcessID, &ThreadID, Context, sizeof( Context ), &ContextSize, NULL, 0, 0) )
 	{
-		return bAtLeastOneFunctionNameFound;
+		return;
 	}
 
 	// Some magic number checks
@@ -481,11 +479,9 @@ bool FWindowsPlatformStackWalkExt::GetCallstacks( FCrashInfo* CrashInfo )
 				bFoundSourceFile = false;
 			}
 
-			// According to MSDN, the symbol name will include an ! if the function name could be discovered, delimiting it from the module name
 			if( Line.Contains(TEXT( "!" )) )
 			{
 				Line += TEXT( "()" );
-				bAtLeastOneFunctionNameFound = true;
 			}
 
 			Line += FString::Printf( TEXT( " + %d bytes" ), Displacement );
@@ -512,8 +508,6 @@ bool FWindowsPlatformStackWalkExt::GetCallstacks( FCrashInfo* CrashInfo )
 	FMemory::Free( ContextData );
 
 	CrashInfo->Log( FString::Printf( TEXT( " ... callstack generated!" ) ) );
-
-	return bAtLeastOneFunctionNameFound;
 }
 
 /** 

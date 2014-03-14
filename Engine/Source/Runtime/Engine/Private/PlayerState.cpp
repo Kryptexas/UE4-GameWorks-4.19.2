@@ -26,7 +26,7 @@ APlayerState::APlayerState(const class FPostConstructInitializeProperties& PCIP)
 	bNetLoadOnClient = false;
 
 	EngineMessageClass = UEngineMessage::StaticClass();
-	SessionName = GameSessionName;
+	SessionName = TEXT("Game");
 }
 
 void APlayerState::UpdatePing(float InPing)

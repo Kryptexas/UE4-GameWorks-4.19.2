@@ -193,11 +193,11 @@ void UNetConnection::Close()
 	if (Driver != NULL && State != USOCK_Closed)
 	{
 		NETWORK_PROFILER(GNetworkProfiler.TrackEvent(TEXT("CLOSE"), *(GetName() + TEXT(" ") + LowLevelGetRemoteAddress())));
-		UE_LOG(LogNet, Log, TEXT("UNetConnection::Close: Name: %s, Driver: %s, Owner: %s, RemoteAddr: %s, Time: %s"), 
-			*GetName(), 
+		UE_LOG(LogNet, Log, TEXT("Close %s %s owner: %s from %s at %s"), 
 			*Driver->GetDescription(), 
+			*GetName(), 
 			OwningActor ? *OwningActor->GetName() : TEXT("No Owner"),
-			*LowLevelGetRemoteAddress(true),
+			*LowLevelGetRemoteAddress(true), 
 			*FDateTime::UtcNow().ToString(TEXT("%Y.%m.%d-%H.%M.%S")));
 
 		if (Channels[0] != NULL)
@@ -206,10 +206,6 @@ void UNetConnection::Close()
 		}
 		State = USOCK_Closed;
 		FlushNet();
-	}
-	else
-	{
-		UE_LOG(LogNet, Log, TEXT("UNetConnection::Close: Already closed. Name: %s"), *GetName() );
 	}
 
 	LogCallLastTime		= 0;
@@ -226,13 +222,7 @@ void UNetConnection::CleanUp()
 	}
 	Children.Empty();
 
-	UE_LOG(LogNet, Log, TEXT("UNetConnection::Cleanup: Closing connection. Name: %s, RemoteAddr: %s [%s] [%s] [%s] from CleanUp()"),
-		*GetName(),
-		*LowLevelGetRemoteAddress(true),
-		Driver ? *Driver->NetDriverName.ToString() : TEXT("NULL"),
-		PlayerController ? *PlayerController->GetName() : TEXT("NoPC"),
-		OwningActor ? *OwningActor->GetName() : TEXT("No Owner"));
-
+	UE_LOG(LogNet, Log, TEXT("UNetConnection::CleanUp() calling Close()"));
 	Close();
 
 	if (Driver != NULL)
@@ -422,7 +412,6 @@ void UNetConnection::SendPackageInfo(FPackageInfo& Info)
 
 bool UNetConnection::ClientHasInitializedLevelFor(const UObject* TestObject)
 {
-	check(Driver);
 	checkSlow(Driver->IsServer());
 
 	// get the level for the object
@@ -436,9 +425,7 @@ bool UNetConnection::ClientHasInitializedLevelFor(const UObject* TestObject)
 		}
 	}
 
-	UWorld* World = Driver->GetWorld();
-	check(World);
-	return (Level == NULL || (Level->IsPersistentLevel() && World->GetOutermost()->GetFName() == ClientWorldPackageName) ||
+	return ( Level == NULL || (Level->IsPersistentLevel() && Driver->GetWorld()->GetOutermost()->GetFName() == ClientWorldPackageName) ||
 			ClientVisibleLevelNames.Contains(Level->GetOutermost()->GetFName()) );
 }
 
@@ -1019,7 +1006,6 @@ void UNetConnection::PreSend( int32 SizeBits )
 	{
 		Out.WriteIntWrapped(OutPacketId, MAX_PACKETID);
 		check(Out.GetNumBits()<=MAX_PACKET_HEADER_BITS);
-		check(!Out.IsError());		// Shouldn't be possible, but just in case
 	}
 
 	// Make sure there's enough space now.
@@ -1070,9 +1056,7 @@ void UNetConnection::SendAck( int32 AckPacketId, bool FirstTime/*=1*/, bool bHav
 
 		PreSend(SendSize);
 		Out.WriteBit( 1 );
-		//check(!Out.IsError());
 		Out.WriteIntWrapped(AckPacketId, MAX_PACKETID);
-		//check(!Out.IsError());
 
 		if (bPingAck)
 		{
@@ -1155,14 +1139,8 @@ int32 UNetConnection::SendRawBunch( FOutBunch& Bunch, bool InAllowMerge )
 
 	// Remember start position, and write data.
 	LastStart = FBitWriterMark( Out );
-
 	Out.SerializeBits( Header.GetData(), Header.GetNumBits() );
-
-	check( !Out.IsError() );
-
 	Out.SerializeBits( Bunch .GetData(), Bunch .GetNumBits() );
-
-	check( !Out.IsError() );
 
 	if ( PackageMap && Bunch.bHasGUIDs )
 	{
@@ -1339,15 +1317,14 @@ void UNetConnection::Tick()
 	if( Driver->Time - LastReceiveTime > Timeout )
 	{
 		// Timeout.
-		FString Error = FString::Printf(TEXT("UNetConnection::Tick: Connection TIMED OUT. Closing connection. Driver: %s, Elapsed: %f, Threshold: %f, RemoteAddr: %s, PC: %s, Owner: %s"),
-			*Driver->GetName(),
-			Driver->Time - LastReceiveTime,
-			Timeout, *LowLevelGetRemoteAddress(true),
-			PlayerController ? *PlayerController->GetName() : TEXT("NoPC"),
-			OwningActor ? *OwningActor->GetName() : TEXT("No Owner")
-			);
-		UE_LOG(LogNet, Warning, TEXT("%s"), *Error);
+		FString Error = FString::Printf(TEXT("%s Connection timed out after %f seconds (%f)"), *Driver->GetName(), Timeout, Driver->Time - LastReceiveTime);
+		if( State != USOCK_Closed )
+		{
+			UE_LOG(LogNet, Warning, TEXT("%s"), *Error);
+		}
+
 		GEngine->BroadcastNetworkFailure(Driver->GetWorld(), Driver, ENetworkFailure::ConnectionTimeout, Error);
+		UE_LOG(LogNet, Log, TEXT("NetConnection::Close() [%s] from timeout"), Driver ? *Driver->NetDriverName.ToString() : TEXT("NULL"));
 		Close();
 
 		if (Driver == NULL)
@@ -1557,9 +1534,9 @@ void UNetConnection::UpdatePacketSimulationSettings(void)
  */
 bool UNetConnection::ShouldReplicateVoicePacketFrom(const FUniqueNetId& Sender)
 {
-	if (PlayerController &&
+	if (PlayerController)// &&
 		// Has the handshaking of the mute list completed?
-		PlayerController->MuteList.bHasVoiceHandshakeCompleted)
+		//PlayerController->bHasVoiceHandshakeCompleted)
 	{	
 		// Check with the owning player controller first.
 		if (Sender.IsValid() &&
@@ -1763,7 +1740,7 @@ bool UNetConnection::TrackLogsPerSecond()
 		if ( LogsPerSecond > MAX_LOGS_PER_SECOND_INSTANT )
 		{
 			// Hit this instant limit, we instantly disconnect them
-			UE_LOG( LogNet, Warning, TEXT( "UNetConnection::TrackLogsPerSecond instant FAILED. LogsPerSecond: %f, RemoteAddr: %s" ), (float)LogsPerSecond, *LowLevelGetRemoteAddress() );
+			UE_LOG( LogNet, Warning, TEXT( "UNetConnection::TrackLogsPerSecond instant FAILED (%f) - Remote Address = %s" ), (float)LogsPerSecond, *LowLevelGetRemoteAddress() );
 			Close();		// Close the connection
 			return false;
 		}
@@ -1774,12 +1751,12 @@ bool UNetConnection::TrackLogsPerSecond()
 			LogSustainedCount++;
 
 			// Warn that we are approaching getting disconnected (will be useful when going over historical logs)
-			UE_LOG( LogNet, Warning, TEXT( "UNetConnection::TrackLogsPerSecond: LogsPerSecond > MAX_LOGS_PER_SECOND_SUSTAINED. LogSustainedCount: %i, LogsPerSecond: %f, RemoteAddr: %s" ), LogSustainedCount, (float)LogsPerSecond, *LowLevelGetRemoteAddress() );
+			UE_LOG( LogNet, Warning, TEXT( "UNetConnection::TrackLogsPerSecond LogSustainedCount: %i (%f) - Remote Address = %s" ), LogSustainedCount, (float)LogsPerSecond, *LowLevelGetRemoteAddress() );
 
 			if ( LogSustainedCount > MAX_SUSTAINED_COUNT )
 			{
 				// Hit the sustained limit for too long, disconnect them
-				UE_LOG( LogNet, Warning, TEXT( "UNetConnection::TrackLogsPerSecond: LogSustainedCount > MAX_SUSTAINED_COUNT. LogsPerSecond: %f, RemoteAddr: %s" ), (float)LogsPerSecond, *LowLevelGetRemoteAddress() );
+				UE_LOG( LogNet, Warning, TEXT( "UNetConnection::TrackLogsPerSecond LogSustainedCount FAILED (%f) - Remote Address = %s" ), (float)LogsPerSecond, *LowLevelGetRemoteAddress() );
 				Close();		// Close the connection
 				return false;
 			}

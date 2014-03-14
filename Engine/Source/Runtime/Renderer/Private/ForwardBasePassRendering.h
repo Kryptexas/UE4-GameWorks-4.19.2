@@ -63,7 +63,7 @@ public:
 		ESceneRenderTargetsMode::Type TextureMode
 		)
 	{
-		HeightFogParameters.Set(GetVertexShader(), &View);
+		HeightFogParameters.Set(GetVertexShader(), &View, true);
 		FMeshMaterialShader::SetParameters(GetVertexShader(),MaterialRenderProxy,InMaterialResource,View,TextureMode);
 	}
 

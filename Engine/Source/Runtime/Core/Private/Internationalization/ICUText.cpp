@@ -391,14 +391,7 @@ FText FText::Format(const FText& Pattern, const FFormatOrderedArguments& Argumen
 	FString NativeResultString;
 	ICUUtilities::Convert(ICUResultString, NativeResultString);
 
-	FText ResultText = FText(NativeResultString);
-
-	if (!GIsEditor)
-	{
-		ResultText.Flags = ResultText.Flags | ETextFlag::Transient;
-	}
-
-	return ResultText;
+	return FText(NativeResultString);
 }
 
 FText FText::Format(const FText& Pattern, const TArray< FFormatArgumentData > InArguments)
@@ -477,14 +470,7 @@ FText FText::Format(const FText& Pattern, const TArray< FFormatArgumentData > In
 	FString NativeResultString;
 	ICUUtilities::Convert(Result, NativeResultString);
 
-	FText ResultText = FText(NativeResultString);
-
-	if (!GIsEditor)
-	{
-		ResultText.Flags = ResultText.Flags | ETextFlag::Transient;
-	}
-
-	return ResultText;
+	return FText(NativeResultString);
 }
 
 #endif

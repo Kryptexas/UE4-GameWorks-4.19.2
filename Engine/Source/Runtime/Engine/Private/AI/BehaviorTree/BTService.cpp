@@ -12,13 +12,13 @@ UBTService::UBTService(const class FPostConstructInitializeProperties& PCIP) : S
 	RandomDeviation = 0.1f;
 }
 
-void UBTService::TickNode(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds)
+void UBTService::TickNode(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) const
 {
 	const float NextTickTime = FMath::FRandRange(FMath::Max(0.0f, Interval - RandomDeviation), (Interval + RandomDeviation));
 	SetNextTickTime(NodeMemory, NextTickTime);
 }
 
-void UBTService::OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+void UBTService::OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
 {
 	// force it, without checking delays in ConditionalTickNode
 	TickNode(OwnerComp, NodeMemory, 0.0f);

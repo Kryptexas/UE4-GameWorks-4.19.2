@@ -12,6 +12,8 @@ class UK2Node_Composite : public UK2Node_Tunnel
 	UPROPERTY()
 	class UEdGraph* BoundGraph;
 
+
+#if WITH_EDITOR
 	// Begin UEdGraphNode interface
 	BLUEPRINTGRAPH_API virtual void AllocateDefaultPins() OVERRIDE;
 	BLUEPRINTGRAPH_API virtual void DestroyNode() OVERRIDE;
@@ -45,6 +47,8 @@ private:
 
 	/** Determine if the name already used by another graph in composite nodes chain */
 	bool IsCompositeNameAvailable( const FString& NewName );
+
+#endif
 };
 
 

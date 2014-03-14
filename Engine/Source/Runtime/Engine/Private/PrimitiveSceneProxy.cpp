@@ -410,7 +410,6 @@ bool FPrimitiveSceneProxy::IsShadowCast(const FSceneView* View) const
 			return false;
 		}
 
-#if WITH_EDITOR
 		// For editor views, we use a show flag to determine whether shadows from editor-hidden actors are desired.
 		if(View->Family->EngineShowFlags.Editor && !View->Family->EngineShowFlags.ShadowsFromEditorHiddenActors)
 		{
@@ -419,13 +418,14 @@ bool FPrimitiveSceneProxy::IsShadowCast(const FSceneView* View) const
 				return false;
 			}
 		
+#if WITH_EDITOR
 			// if all of it's groups are hidden in this view, don't draw
 			if ((HiddenEditorViews & View->EditorViewBitflag) != 0)
 			{
 				return false;
 			}
-		}
 #endif	//#if WITH_EDITOR
+		}
 
 		// In the OwnerSee cases, we still want to respect hidden shadows...
 		// This assumes that bCastHiddenShadow trumps the owner see flags.

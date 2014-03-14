@@ -347,13 +347,3 @@ bool FCurveTableRowHandle::Eval(float XValue, float* YValue) const
 
 	return false;
 }
-
-bool FCurveTableRowHandle::operator==(const FCurveTableRowHandle& Other) const
-{
-	return ((Other.CurveTable == CurveTable) && (Other.RowName == RowName));
-}
-
-bool FCurveTableRowHandle::operator!=(const FCurveTableRowHandle& Other) const
-{
-	return ((Other.CurveTable != CurveTable) || (Other.RowName != RowName));
-}

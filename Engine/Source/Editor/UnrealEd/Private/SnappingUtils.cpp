@@ -255,6 +255,7 @@ bool FEditorViewportSnapping::SnapActorsToNearestActor( FVector& Drag, FLevelEdi
 						const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "SnapActorsToActor", "Snap Actors To Actor") );
 						const FVector PivotDelta = ( BestPoint - PivotLocation );
 						ViewportClient->ApplyDeltaToActors( PivotDelta, FRotator::ZeroRotator, FVector::ZeroVector );
+						ViewportClient->ApplyDeltaToComponents( PivotDelta, FRotator::ZeroRotator, FVector::ZeroVector );
 						Tools.SetPivotLocation( BestPoint, false );	// Overwrite the location for next time we check
 						Drag = FVector::ZeroVector;	// Reset the drag so the pivot doesn't jump
 					}
@@ -263,6 +264,7 @@ bool FEditorViewportSnapping::SnapActorsToNearestActor( FVector& Drag, FLevelEdi
 				{
 					const FVector PivotDelta = ( PivotLocation - BestPoint );
 					ViewportClient->ApplyDeltaToActors( PivotDelta, FRotator::ZeroRotator, FVector::ZeroVector );
+					ViewportClient->ApplyDeltaToComponents( PivotDelta, FRotator::ZeroRotator, FVector::ZeroVector );
 					//GUnrealEd->UpdatePivotLocationForSelection();	// Calling this ends up forcing the pivot back inside the threshold?!
 					Tools.SetPivotLocation( PivotLocation, false );	// Overwrite the location for next time we check
 					Drag = FVector::ZeroVector;	// Reset the drag so the pivot doesn't jump

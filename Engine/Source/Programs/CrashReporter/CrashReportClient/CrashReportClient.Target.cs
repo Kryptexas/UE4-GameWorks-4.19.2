@@ -69,18 +69,11 @@ public class CrashReportClientTarget : TargetRules
 
 		// Do NOT produce additional console app exe
 		OutLinkEnvironmentConfiguration.bBuildAdditionalConsoleApplication = false;
-	}
-    public override bool GUBP_AlwaysBuildWithTools(UnrealTargetPlatform InHostPlatform, out bool bInternalToolOnly)
-    {
-        bInternalToolOnly = false;
-        return true;
-    }
-    public override List<UnrealTargetPlatform> GUBP_ToolPlatforms(UnrealTargetPlatform InHostPlatform)
-    {
-        if (InHostPlatform == UnrealTargetPlatform.Win64)
+
+        if (UnrealBuildTool.UnrealBuildTool.BuildingRocket())
         {
-            return new List<UnrealTargetPlatform> { UnrealTargetPlatform.Win64, UnrealTargetPlatform.Win32 };
+            // Tag it as a Rocket build
+            OutCPPEnvironmentConfiguration.Definitions.Add("UE_ROCKET=1");
         }
-        return base.GUBP_ToolPlatforms(InHostPlatform);
-    }   
+	}
 }

@@ -15,9 +15,9 @@ void FPhATCommands::RegisterCommands()
 	UI_COMMAND(EditingMode_Constraint, "Constraint Mode", "Constraint Editing Mode", EUserInterfaceActionType::RadioButton, FInputGesture());
 	UI_COMMAND(MovementSpace_Local, "Local", "Local Movement Space", EUserInterfaceActionType::RadioButton, FInputGesture());
 	UI_COMMAND(MovementSpace_World, "World", "World Movement Space", EUserInterfaceActionType::RadioButton, FInputGesture());
-	UI_COMMAND(PhATTranslationMode, "Translation", "Translation Mode", EUserInterfaceActionType::ToggleButton, FInputGesture(EKeys::W));
-	UI_COMMAND(PhATRotationMode, "Rotation", "Rotation Mode", EUserInterfaceActionType::ToggleButton, FInputGesture(EKeys::E));
-	UI_COMMAND(PhATScaleMode, "Scale", "Scale Mode", EUserInterfaceActionType::ToggleButton, FInputGesture(EKeys::R));
+	UI_COMMAND(TranslationMode, "Translation", "Translation Mode", EUserInterfaceActionType::ToggleButton, FInputGesture(EKeys::W));
+	UI_COMMAND(RotationMode, "Rotation", "Rotation Mode", EUserInterfaceActionType::ToggleButton, FInputGesture(EKeys::E));
+	UI_COMMAND(ScaleMode, "Scale", "Scale Mode", EUserInterfaceActionType::ToggleButton, FInputGesture(EKeys::R));
 	UI_COMMAND(CopyProperties, "Copy Properties", "Copy Properties: Copy Properties Of Currently Selected Object To Next Selected Object", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::Control, EKeys::C));
 	UI_COMMAND(PasteProperties, "Paste Properties", "Paste Properties: Copy Properties Of Currently Selected Object To Next Selected Object", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::Control, EKeys::V));
 	UI_COMMAND(InstanceProperties, "Instance Properties", "Instance Properties: Displays Instance Properties When In Body Editing Mode", EUserInterfaceActionType::ToggleButton, FInputGesture(EKeys::I));
@@ -68,7 +68,7 @@ void FPhATCommands::RegisterCommands()
 	UI_COMMAND(ToggleMotor, "Toggle Motor", "Toggle Motor", EUserInterfaceActionType::Button, FInputGesture());
 	UI_COMMAND(EnableMotorsBelow, "Enable Motors Below", "Enable Motors Below", EUserInterfaceActionType::Button, FInputGesture());
 	UI_COMMAND(DisableMotorsBelow, "Disable Motors Below", "Disable Motors Below", EUserInterfaceActionType::Button, FInputGesture());
-	UI_COMMAND(SelectAllObjects, "Select All Objects", "Select All Objects", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::Control, EKeys::A));
+	UI_COMMAND(SelectAll, "Select All Objects", "Select All Objects", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::Control, EKeys::A));
 	UI_COMMAND(HierarchyFilterAll, "All Bones", "Show Entire Hierarchy", EUserInterfaceActionType::Button, FInputGesture());
 	UI_COMMAND(HierarchyFilterBodies, "Bones With Bodies", "Filter Bones With Bodies", EUserInterfaceActionType::Button, FInputGesture());
 
@@ -77,7 +77,7 @@ void FPhATCommands::RegisterCommands()
 	/** As two commands cannot have the same key; this command wraps both 
 	  * DeletePrimitive and DeleteConstraint so the user can delete whatever is selected 
 	  */
-	UI_COMMAND(DeleteSelected, "Delete selected primitive or constraint", "", EUserInterfaceActionType::Button, FInputGesture(EKeys::Platform_Delete));
+	UI_COMMAND(DeleteSelection, "Delete selected primitive or constraint", "", EUserInterfaceActionType::Button, FInputGesture(EKeys::Delete));
 	UI_COMMAND(CycleConstraintOrientation, "Cycle selected constraint orientation", "", EUserInterfaceActionType::Button, FInputGesture(EKeys::Q));
 	UI_COMMAND(CycleConstraintActive, "Cycle active constraint", "", EUserInterfaceActionType::Button, FInputGesture(EKeys::Four));
 	UI_COMMAND(ToggleSwing1, "Toggle Swing1 Constraint", "", EUserInterfaceActionType::Button, FInputGesture(EKeys::One));

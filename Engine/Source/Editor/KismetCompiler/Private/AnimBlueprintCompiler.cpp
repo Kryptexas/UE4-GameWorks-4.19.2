@@ -54,8 +54,8 @@ bool FAnimBlueprintCompiler::FEffectiveConstantRecord::Apply(UObject* Object)
 //////////////////////////////////////////////////////////////////////////
 // FAnimBlueprintCompiler
 
-FAnimBlueprintCompiler::FAnimBlueprintCompiler(UAnimBlueprint* SourceSketch, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompileOptions, TArray<UObject*>* InObjLoaded)
-	: FKismetCompilerContext(SourceSketch, InMessageLog, InCompileOptions, InObjLoaded)
+FAnimBlueprintCompiler::FAnimBlueprintCompiler(UAnimBlueprint* SourceSketch, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompileOptions)
+	: FKismetCompilerContext(SourceSketch, InMessageLog, InCompileOptions)
 	, AnimBlueprint(SourceSketch)
 	, bIsDerivedAnimBlueprint(false)
 {
@@ -90,8 +90,7 @@ void FAnimBlueprintCompiler::CreateEvaluationHandler(UAnimGraphNode_Base* Visual
 	check(Record.NodeVariableProperty != NULL);
 
 	//@TODO: Want to name these better
-	const FString FunctionName = FString::Printf(TEXT("%s_%s_%s"), *Record.EvaluationHandlerProperty->GetName(), *VisualAnimNode->GetOuter()->GetName(), *VisualAnimNode->GetName());
-	Record.HandlerFunctionName = FName(*FunctionName);
+	Record.HandlerFunctionName = FName(*FString::Printf(TEXT("%s_%s_%s"), *Record.EvaluationHandlerProperty->GetName(), *VisualAnimNode->GetName(), *VisualAnimNode->GetOuter()->GetName()));
 	
 	// Add a custom event in the graph
 	UK2Node_CustomEvent* EntryNode = SpawnIntermediateNode<UK2Node_CustomEvent>(VisualAnimNode, ConsolidatedEventGraph);

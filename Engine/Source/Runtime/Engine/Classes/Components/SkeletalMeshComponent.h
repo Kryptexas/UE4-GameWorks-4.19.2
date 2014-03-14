@@ -28,23 +28,6 @@ class FPhysScene;
 class FClothingActor
 {
 public:
-	enum TeleportMode
-	{
-		/** Simulation continues smoothly. This is the most commonly used mode */
-		Continuous,
-		/**
-		 * Transforms the current simulation state from the old global pose to the new global pose.
-		 * This will transform positions and velocities and thus keep the simulation state, just translate it to a new pose.
-		 */
-		Teleport,
-
-		/**
-		 * Forces the cloth to the animated position in the next frame.
-		 * This can be used to reset it from a bad state or by a teleport where the old state is not important anymore.
-		 */
-		TeleportAndReset,
-	};
-
 	void Clear(bool bReleaseResource = false);
 
 	/** 
@@ -272,6 +255,11 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=SkeletalMesh)
 	uint32 bUpdateJointsFromAnimation:1;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Clothing)
+	uint32	bFreezeClothSection:1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Clothing)
+	uint32	bAutomaticLodCloth:1;
 	/** Disable cloth simulation and play original animation without simulation */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Clothing)
 	uint32 bDisableClothSimulation:1;
@@ -280,24 +268,6 @@ public:
 	uint32 bCollideWithEnvironment:1;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Clothing)
 	uint32 bCollideWithAttachedChildren:1;
-	/** reset the clothing after moving the clothing position (called teleport) */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Clothing)
-	uint32 bResetAfterTeleport:1;
-	/** 
-	 * conduct teleportation if the character's movement is greater than this threshold in 1 frame. 
-	 * Zero or negative values will skip the check 
-	 * you can also do force teleport manually using ForceNextUpdateTeleport() / ForceNextUpdateTeleportAndReset()
-	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Clothing)
-	float TeleportDistanceThreshold;
-	/** 
-	 * rotation threshold in degree, ranging from 0 to 180
-	 * conduct teleportation if the character's rotation is greater than this threshold in 1 frame. 
-	 * Zero or negative values will skip the check 
-	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Clothing)
-	float TeleportRotationThreshold;
-	
 
 	/** Draw the APEX Clothing Normals on clothing sections. */
 	uint32 bDisplayClothingNormals:1;
@@ -444,25 +414,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh")
 	void SetClothMaxDistanceScale(float Scale);
 
-	/** 
-	 * Used to indicate we should force 'teleport' during the next call to UpdateClothState, 
-	 * This will transform positions and velocities and thus keep the simulation state, just translate it to a new pose.
-	 */
-	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh")
-	void ForceClothNextUpdateTeleport();
-	/** 
-	 * Used to indicate we should force 'teleport and reset' during the next call to UpdateClothState.
-	 * This can be used to reset it from a bad state or by a teleport where the old state is not important anymore.
-	 */
-	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh")
-	void ForceClothNextUpdateTeleportAndReset();
-
-	/**
-	 * Reset the teleport mode of a next update to 'Continuous'
-	 */
-	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh")
-	void ResetClothTeleportMode();
-
 	/** We detach the Component once we are done playing it.
 	 *
 	 * @param	ParticleSystemComponent that finished
@@ -506,19 +457,6 @@ public:
 
 	float ClothMaxDistanceScale;
 
-	FClothingActor::TeleportMode ClothTeleportMode;
-	/** previous root bone matrix to compare the difference and decide to do clothing teleport  */
-	FMatrix	PrevRootBoneMatrix;
-	/** used for pre-computation using TeleportRotationThreshold property */
-	float ClothTeleportCosineThresholdInRad;
-	/** used for pre-computation using tTeleportDistanceThreshold property */
-	float ClothTeleportDistThresholdSquared;
-	/** 
-	 * clothing reset is needed once more to avoid clothing pop up 
-	 * use until Apex clothing bug is resolved 
-	 */
-	bool bNeedTeleportAndResetOnceMore;
-
 #if WITH_CLOTH_COLLISION_DETECTION
 	/** increase every tick to update clothing collision  */
 	uint32 ClothingCollisionRevision; 
@@ -546,7 +484,7 @@ public:
 	void TickAnimation(float DeltaTime);
 
 	/** Tick Clothing Animation , basically this is called inside TickComponent */
-	void TickClothing(float DeltaTime);
+	void TickClothing();
 
 	/** Store cloth simulation data into OutClothSimData */
 	void GetUpdateClothSimulationData(TArray<FClothSimulData>& OutClothSimData);
@@ -628,11 +566,10 @@ public:
 	 *  @param  World			World to use for overlap test
 	 *  @param  Pos             Location to place the component's geometry at to test against the world
 	 *  @param  Rot             Rotation to place components' geometry at to test against the world
-	 *  @param  TestChannel		The 'channel' that this ray is in, used to determine which components to hit
 	 *	@param	ObjectQueryParams	List of object types it's looking for. When this enters, we do object query with component shape
 	 *  @return TRUE if OutOverlaps contains any blocking results
 	 */
-	virtual bool ComponentOverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const class UWorld* World, const FVector& Pos, const FRotator& Rot, ECollisionChannel TestChannel, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams = FCollisionObjectQueryParams::DefaultObjectQueryParam) const OVERRIDE;
+	virtual bool ComponentOverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const class UWorld* World, const FVector& Pos, const FRotator& Rot, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams=FCollisionObjectQueryParams::DefaultObjectQueryParam) const OVERRIDE;
 	// End USceneComponent interface.
 
 	// Begin UPrimitiveComponent interface.
@@ -852,12 +789,10 @@ public:
 	void AddClothingBounds(FBoxSphereBounds& InOutBounds) const;
 	/** changes clothing LODs, if clothing LOD is disabled or LODIndex is greater than apex clothing LODs, simulation will be disabled */
 	void SetClothingLOD(int32 LODIndex);
-	/** check whether clothing teleport is needed or not to avoid a weird simulation result */
-	void CheckClothTeleport(float DeltaTime);
 	/** 
 	 * Updates all clothing animation states including ComponentToWorld-related states.
 	 */
-	void UpdateClothState(float DeltaTime);
+	void UpdateClothState();
 	/** 
 	 * Updates clothing actor's global pose.
 	 * So should be called when ComponentToWorld is changed.

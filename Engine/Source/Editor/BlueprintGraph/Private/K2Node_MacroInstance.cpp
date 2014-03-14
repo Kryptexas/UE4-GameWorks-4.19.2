@@ -56,13 +56,9 @@ void UK2Node_MacroInstance::AllocateDefaultPins()
 {
 	UK2Node::AllocateDefaultPins();
 
-	PreloadObject(MacroGraphReference.GetBlueprint());
 	UEdGraph* MacroGraph = MacroGraphReference.GetGraph();
-	
 	if (MacroGraph != NULL)
 	{
-		PreloadObject(MacroGraph);
-
 		// Preload the macro graph, if needed, so that we can get the proper pins
 		if (MacroGraph->HasAnyFlags(RF_NeedLoad))
 		{
@@ -393,20 +389,6 @@ void UK2Node_MacroInstance::ReallocatePinsDuringReconstruction(TArray<UEdGraphPi
 FText UK2Node_MacroInstance::GetActiveBreakpointToolTipText() const
 {
 	return LOCTEXT("ActiveBreakpointToolTip", "Execution will break inside the macro.");
-}
-
-bool UK2Node_MacroInstance::HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput) const
-{
-	UBlueprint* OtherBlueprint = MacroGraphReference.GetBlueprint();
-	const bool bResult = OtherBlueprint && (OtherBlueprint != GetBlueprint());
-	if (bResult && OptionalOutput)
-	{
-		if (UClass* OtherClass = *OtherBlueprint->GeneratedClass)
-		{
-			OptionalOutput->Add(OtherClass);
-		}
-	}
-	return bResult;
 }
 
 #undef LOCTEXT_NAMESPACE

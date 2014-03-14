@@ -40,7 +40,6 @@ class ASpotLight : public ALight
 	virtual void PostLoad() OVERRIDE;
 #if WITH_EDITOR
 	virtual void LoadedFromAnotherClass(const FName& OldClassName) OVERRIDE;
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
 #endif
 	// End UObject Interface
 

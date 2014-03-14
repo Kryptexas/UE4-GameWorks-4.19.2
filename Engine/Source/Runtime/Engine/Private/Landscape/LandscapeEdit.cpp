@@ -2282,14 +2282,14 @@ void ALandscapeProxy::Import(FGuid Guid, int32 VertsX, int32 VertsY,
 
 bool ALandscapeProxy::ExportToRawMesh(FRawMesh& OutRawMesh) const
 {
-	TArray<ULandscapeComponent*> RegisteredLandscapeComponents;
-	GetComponents<ULandscapeComponent>(RegisteredLandscapeComponents);
+	TArray<ULandscapeComponent*> LandscapeComponents;
+	GetComponents<ULandscapeComponent>(LandscapeComponents);
 	
 	const FIntRect LandscapeSectionRect = GetBoundingRect();
 	const FVector2D LandscapeUVScale = FVector2D(1.f, 1.f)/FVector2D(LandscapeSectionRect.Size());
 		
 	// Export data for each component
-	for (auto It = RegisteredLandscapeComponents.CreateConstIterator(); It; ++It)
+	for (auto It = LandscapeComponents.CreateConstIterator(); It; ++It)
 	{
 		ULandscapeComponent* Component = (*It);
 		FLandscapeComponentDataInterface CDI(Component, ExportLOD);
@@ -3392,38 +3392,14 @@ ULandscapeLayerInfoObject::ULandscapeLayerInfoObject(const class FPostConstructI
 void ULandscapeLayerInfoObject::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	static const FName NAME_Hardness = FName(TEXT("Hardness"));
-	static const FName NAME_PhysMaterial = FName(TEXT("PhysMaterial"));
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
 	const FName PropertyName = PropertyChangedEvent.Property ? PropertyChangedEvent.Property->GetFName() : NAME_None;
 
-	if (GIsEditor)
+	if (GIsEditor && PropertyName == NAME_Hardness)
 	{
-		if (PropertyName == NAME_Hardness)
-		{
-			Hardness = FMath::Clamp<float>(Hardness, 0.f, 1.f);
-		}
-		else if (PropertyName == NAME_PhysMaterial)
-		{
-			// Only care current world object
-			for (TActorIterator<ALandscapeProxy> It(GWorld); It; ++It)
-			{
-				ALandscapeProxy* Proxy = *It;
-				ULandscapeInfo* Info = Proxy->GetLandscapeInfo(false);
-				if (Info)
-				{
-					for (int32 i = 0; i < Info->Layers.Num(); ++i)
-					{
-						if (Info->Layers[i].LayerInfoObj == this)
-						{
-							Proxy->ChangedPhysMaterial();
-							break;
-						}
-					}
-				}
-			}
-		}
+		Hardness = FMath::Clamp<float>(Hardness, 0.f, 1.f);
 	}
 }
 

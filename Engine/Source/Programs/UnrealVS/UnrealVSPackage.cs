@@ -147,9 +147,7 @@ namespace UnrealVS
 			// Setup singleton instance
 			PrivateInstance = this;
 
-			Logging.Initialize();
-			Logging.WriteLine(DateTime.Now.ToLongDateString() + " - " + DateTime.Now.ToLongTimeString());
-			Logging.WriteLine("Loading UnrealVS extension package...");
+			Trace.WriteLine( "Starting up UnrealVS extension..." );
 		}
 
 
@@ -158,7 +156,7 @@ namespace UnrealVS
 		/// </summary>
 		protected override void Initialize()
 		{
-			Logging.WriteLine("Initializing UnrealVS extension...");
+			Trace.WriteLine( "Initializing UnrealVS extension..." );
 
 			// Grab the MenuCommandService
 			MenuCommandService = GetService( typeof( IMenuCommandService ) ) as OleMenuCommandService;
@@ -266,10 +264,6 @@ namespace UnrealVS
 				UpdateSolutionEventsHandle = 0;
 			}
 			SolutionBuildManager = null;
-
-			Logging.WriteLine("Closing UnrealVS extension");
-			Logging.WriteLine(DateTime.Now.ToLongDateString() + " - " + DateTime.Now.ToLongTimeString());
-			Logging.Close();
 		}
 
 
@@ -333,7 +327,7 @@ namespace UnrealVS
 			}
 
 
-			Logging.WriteLine(String.Format("Executing: {0} {1}", ActionStartInfo.FileName, ActionStartInfo.Arguments));
+			Trace.WriteLine( String.Format( "Executing: {0} {1}", ActionStartInfo.FileName, ActionStartInfo.Arguments ) );
 
 			System.Diagnostics.Process ActionProcess;
 
@@ -375,8 +369,8 @@ namespace UnrealVS
 			catch( Exception Ex)
 			{
 				// Couldn't launch program
-				Logging.WriteLine("Couldn't launch program: " + ActionStartInfo.FileName);
-				Logging.WriteLine("Exception: " + Ex.Message);
+				Trace.WriteLine( "Couldn't launch program: " + ActionStartInfo.FileName );
+				Trace.WriteLine( "Exception: " + Ex.Message );
 				ActionProcess = null;
 			}
 
@@ -404,12 +398,10 @@ namespace UnrealVS
 		{
 			if (0 == string.Compare(key, CommandLineOptionKey))
 			{
-				Logging.WriteLine("Restoring CommandLineEditor options");
 				CommandLineEditor.LoadOptions(stream);
 			}
 			else if (0 == string.Compare(key, BatchBuildSetsOptionKey))
 			{
-				Logging.WriteLine("Restoring BatchBuilder options");
 				BatchBuilder.LoadOptions(stream);
 			}
 		}
@@ -425,12 +417,10 @@ namespace UnrealVS
 		{
 			if (0 == string.Compare(key, CommandLineOptionKey))
 			{
-				Logging.WriteLine("Saving CommandLineEditor options");
 				CommandLineEditor.SaveOptions(stream);
 			}
 			else if (0 == string.Compare(key, BatchBuildSetsOptionKey))
 			{
-				Logging.WriteLine("Saving BatchBuilder options");
 				BatchBuilder.SaveOptions(stream);
 			}
 		}

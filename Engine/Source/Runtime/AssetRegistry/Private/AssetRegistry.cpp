@@ -46,7 +46,7 @@ FAssetRegistry::FAssetRegistry()
 	}
 
 	// Report startup time. This does not include DirectoryWatcher startup time.
-	UE_LOG(LogAssetRegistry, Log, TEXT( "FAssetRegistry took %0.4f seconds to start up" ), FPlatformTime::Seconds() - StartupStartTime );
+	UE_LOG(LogAssetRegistry, Log, TEXT( "FAssetRegistry took %0.6f seconds to start up" ), FPlatformTime::Seconds() - StartupStartTime );
 
 #if WITH_EDITOR
 	// Commandlets and in-game don't listen for directory changes
@@ -183,8 +183,7 @@ void FAssetRegistry::SearchAllAssets(bool bSynchronousSearch)
 	}
 	else
 	{
-		const bool bLoadAndSaveCache = !FParse::Param(FCommandLine::Get(), TEXT("NoAssetRegistryCache"));
-		BackgroundAssetSearch = MakeShareable( new FAssetDataGatherer(PathsToSearch, bSynchronousSearch, bLoadAndSaveCache) );
+		BackgroundAssetSearch = MakeShareable( new FAssetDataGatherer(PathsToSearch, bSynchronousSearch) );
 	}
 }
 
@@ -548,7 +547,7 @@ bool FAssetRegistry::GetAssets(const FARFilter& Filter, TArray<FAssetData>& OutA
 		}
 	}
 
-	UE_LOG(LogAssetRegistry, Verbose, TEXT("GetAssets completed in %0.4f seconds"), FPlatformTime::Seconds() - GetAssetsStartTime);
+	UE_LOG(LogAssetRegistry, Verbose, TEXT("GetAssets completed in %0.6f seconds"), FPlatformTime::Seconds() - GetAssetsStartTime);
 
 	return true;
 }
@@ -605,7 +604,7 @@ bool FAssetRegistry::GetAllAssets(TArray<FAssetData>& OutAssetData) const
 		}
 	}
 
-	UE_LOG(LogAssetRegistry, VeryVerbose, TEXT("GetAllAssets completed in %0.4f seconds"), FPlatformTime::Seconds() - GetAllAssetsStartTime);
+	UE_LOG(LogAssetRegistry, VeryVerbose, TEXT("GetAllAssets completed in %0.6f seconds"), FPlatformTime::Seconds() - GetAllAssetsStartTime);
 
 	return true;
 }
@@ -723,11 +722,6 @@ bool FAssetRegistry::GetAncestorClassNames(FName ClassName, TArray<FName>& OutAn
 	{
 		return true;
 	}
-}
-
-void FAssetRegistry::GetDerivedClassNames(const TArray<FName>& ClassNames, const TSet<FName>& ExcludedClassNames, TSet<FName>& OutDerivedClassNames) const
-{
-	GetSubClasses(ClassNames, ExcludedClassNames, OutDerivedClassNames);
 }
 
 void FAssetRegistry::GetAllCachedPaths(TArray<FString>& OutPathList) const
@@ -1024,55 +1018,45 @@ bool FAssetRegistry::RemovePath(const FString& PathToRemove)
 	return RemoveAssetPath(PathToRemove);
 }
 
-void FAssetRegistry::ScanPathsSynchronous(const TArray<FString>& InPaths, bool bForceRescan)
+void FAssetRegistry::ScanPathsSynchronous(const TArray<FString>& InPaths)
 {
 	const double SearchStartTime = FPlatformTime::Seconds();
 
-	// Only scan paths that were not previously synchronously scanned, unless we were asked to force rescan.
-	TArray<FString> PathsToScan;
-	for ( auto PathIt = InPaths.CreateConstIterator(); PathIt; ++PathIt )
+	// Start the sync asset search
+	FAssetDataGatherer AssetSearch(InPaths, /*bSynchronous=*/true);
+
+	// Get the search results
+	TArray<FBackgroundAssetData*> AssetResults;
+	TArray<FString> PathResults;
+	TArray<FPackageDependencyData> DependencyResults;
+	TArray<double> SearchTimes;
+	int32 NumFilesToSearch = 0;
+	AssetSearch.GetAndTrimSearchResults(AssetResults, PathResults, DependencyResults, SearchTimes, NumFilesToSearch);
+
+	// Cache the search results
+	const int32 NumResults = AssetResults.Num();
+	AssetSearchDataGathered(-1, AssetResults);
+	PathDataGathered(-1, PathResults);
+	DependencyDataGathered(-1, DependencyResults);
+
+	// Log stats
+	if ( InPaths.Num() > 0 )
 	{
-		if ( bForceRescan || !SynchronouslyScannedPaths.Contains(*PathIt) )
-		{
-			PathsToScan.Add(*PathIt);
-			SynchronouslyScannedPaths.Add(*PathIt);
-		}
-	}
-
-	if ( PathsToScan.Num() > 0 )
-	{
-		// Start the sync asset search
-		FAssetDataGatherer AssetSearch(PathsToScan, /*bSynchronous=*/true);
-
-		// Get the search results
-		TArray<FBackgroundAssetData*> AssetResults;
-		TArray<FString> PathResults;
-		TArray<FPackageDependencyData> DependencyResults;
-		TArray<double> SearchTimes;
-		int32 NumFilesToSearch = 0;
-		AssetSearch.GetAndTrimSearchResults(AssetResults, PathResults, DependencyResults, SearchTimes, NumFilesToSearch);
-
-		// Cache the search results
-		const int32 NumResults = AssetResults.Num();
-		AssetSearchDataGathered(-1, AssetResults);
-		PathDataGathered(-1, PathResults);
-		DependencyDataGathered(-1, DependencyResults);
-
-		// Log stats
-		const FString& Path = PathsToScan[0];
+		const FString& Path = InPaths[0];
 		FString PathsString;
-		if ( PathsToScan.Num() > 1 )
+		if ( InPaths.Num() > 1 )
 		{
-			PathsString = FString::Printf(TEXT("'%s' and %d other paths"), *Path, PathsToScan.Num());
+			PathsString = FString::Printf(TEXT("'%s' and %d other paths"), *Path, InPaths.Num());
 		}
 		else
 		{
 			PathsString = FString::Printf(TEXT("'%s'"), *Path);
 		}
 
-		UE_LOG(LogAssetRegistry, Log, TEXT("ScanPathsSynchronous completed scanning %s to find %d assets in %0.4f seconds"), *PathsString, NumResults, FPlatformTime::Seconds() - SearchStartTime);
+		UE_LOG(LogAssetRegistry, Log, TEXT("ScanPathsSynchronous completed scanning %s to find %d assets in %0.6f seconds"), *PathsString, NumResults, FPlatformTime::Seconds() - SearchStartTime);
 	}
 }
+
 
 void FAssetRegistry::AssetCreated(UObject* NewAsset)
 {
@@ -1104,7 +1088,7 @@ void FAssetRegistry::AssetDeleted(UObject* DeletedAsset)
 	if ( ensure(DeletedAsset) && DeletedAsset->IsAsset() )
 	{
 		UPackage* DeletedObjectPackage = DeletedAsset->GetOutermost();
-		if ( DeletedObjectPackage != nullptr )
+		if (DeletedObjectPackage != NULL)
 		{
 			const FString PackageName = DeletedObjectPackage->GetName();
 
@@ -1112,9 +1096,9 @@ void FAssetRegistry::AssetDeleted(UObject* DeletedAsset)
 			// If the UPackage object is GCed, it will be considered 'Unloaded' which will cause it to
 			// be fully loaded from disk when save is invoked.
 			// We want to keep the package around so we can save it empty or delete the file.
-			if ( UPackage::IsEmptyPackage( DeletedObjectPackage, DeletedAsset ) )
+			if ( UPackage::IsEmptyPackage(DeletedObjectPackage, DeletedAsset) )
 			{
-				AddEmptyPackage( DeletedObjectPackage->GetFName() );
+				AddEmptyPackage(DeletedObjectPackage->GetFName());
 			}
 		}
 
@@ -1180,7 +1164,7 @@ void FAssetRegistry::Tick(float DeltaTime)
 	// Report the search times
 	for (int32 SearchTimeIdx = 0; SearchTimeIdx < SearchTimes.Num(); ++SearchTimeIdx)
 	{
-		UE_LOG(LogAssetRegistry, Verbose, TEXT("### Background search completed in %0.4f seconds"), SearchTimes[SearchTimeIdx]);
+		UE_LOG(LogAssetRegistry, Verbose, TEXT("### Background search completed in %0.6f seconds"), SearchTimes[SearchTimeIdx]);
 	}
 
 	// Add discovered paths
@@ -1222,8 +1206,8 @@ void FAssetRegistry::Tick(float DeltaTime)
 	// If completing an initial search, refresh the content browser
 	if ( !bInitialSearchCompleted && NumFilesToSearch == 0 && !bIsSearching && BackgroundPathResults.Num() == 0 && BackgroundAssetResults.Num() == 0 && BackgroundDependencyResults.Num() == 0 )
 	{
-		UE_LOG(LogAssetRegistry, Verbose, TEXT("### Time spent amortizing search results: %0.4f seconds"), TotalAmortizeTime);
-		UE_LOG(LogAssetRegistry, Log, TEXT("Asset discovery search completed in %0.4f seconds"), FPlatformTime::Seconds() - FullSearchStartTime);
+		UE_LOG(LogAssetRegistry, Verbose, TEXT("### Time spent amortizing search results: %0.6f seconds"), TotalAmortizeTime);
+		UE_LOG(LogAssetRegistry, Log, TEXT("Asset discovery search completed in %0.6f seconds"), FPlatformTime::Seconds() - FullSearchStartTime);
 
 		bInitialSearchCompleted = true;
 
@@ -1359,7 +1343,7 @@ void FAssetRegistry::DependencyDataGathered(const double TickStartTime, TArray<F
 	{
 		FPackageDependencyData& Result = DependsResults[ResultIdx];
 
-		FDependsNode* Node = CreateOrFindDependsNode(Result.PackageName);
+		FDependsNode* Node = CreateOrFindDependsNode(FName(*Result.PackageName));
 
 		// We will populate the node dependencies below. Empty the set here in case this file was already read
 		// Also remove references to all existing dependencies, those will be also repopulated below
@@ -1416,51 +1400,14 @@ FDependsNode* FAssetRegistry::CreateOrFindDependsNode(FName ObjectPath)
 	return NewNode;
 }
 
-bool FAssetRegistry::RemoveDependsNode( FName PackageName )
-{
-	FDependsNode* Node = *(CachedDependsNodes.Find( PackageName ));
-
-	if ( Node != nullptr )
-	{
-		TArray<FDependsNode*> DependencyNodes;
-		Node->GetDependencies( DependencyNodes );
-
-		// Remove the reference to this node from all dependencies
-		for ( FDependsNode* DependencyNode : DependencyNodes )
-		{
-			DependencyNode->Referencers.Remove( Node );
-		}
-
-		TArray<FDependsNode*> ReferencerNodes;
-		Node->GetReferencers( ReferencerNodes );
-
-		// Remove the reference to this node from all referencers
-		for ( FDependsNode* ReferencerNode : ReferencerNodes )
-		{
-			ReferencerNode->Dependencies.Remove( Node );
-		}
-
-		// Remove the node and delete it
-		CachedDependsNodes.Remove( PackageName );
-		NumDependsNodes--;
-		delete Node;
-
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-
 void FAssetRegistry::AddEmptyPackage(FName PackageName)
 {
 	CachedEmptyPackages.Add(PackageName);
 }
 
-bool FAssetRegistry::RemoveEmptyPackage(FName PackageName)
+void FAssetRegistry::RemoveEmptyPackage(FName PackageName)
 {
-	return CachedEmptyPackages.Remove( PackageName ) > 0;
+	CachedEmptyPackages.Remove(PackageName);
 }
 
 bool FAssetRegistry::AddAssetPath(const FString& PathToAdd)
@@ -1677,10 +1624,6 @@ bool FAssetRegistry::RemoveAssetData(FAssetData* AssetData)
 			OldTagAssets->Remove(AssetData);
 		}
 
-		// We need to update the cached dependencies references cache so that they know we no
-		// longer exist and so don't reference them.
-		RemoveDependsNode( AssetData->PackageName );
-
 		// if the assets were preallocated in a block, we can't delete them one at a time, only the whole chunk in the destructor
 		if (PreallocatedAssetDataBuffer == NULL)
 		{
@@ -1712,49 +1655,22 @@ void FAssetRegistry::AddFilesToSearch (const TArray<FString>& Files)
 
 void FAssetRegistry::OnDirectoryChanged (const TArray<FFileChangeData>& FileChanges)
 {
-	// Take local copy of FileChanges array as we wish to collapse pairs of 'Removed then Added' FileChangeData
-	// entries into a single 'Modified' entry.
-	TArray<FFileChangeData> FileChangesProcessed(FileChanges);
-
-	for (int32 FileEntryIndex = 0; FileEntryIndex < FileChangesProcessed.Num(); FileEntryIndex++)
-	{
-		if (FileChangesProcessed[FileEntryIndex].Action == FFileChangeData::FCA_Added)
-		{
-			// Search back through previous entries to see if this Added can be paired with a previous Removed
-			const FString& FilenameToCompare = FileChangesProcessed[FileEntryIndex].Filename;
-			for (int32 SearchIndex = FileEntryIndex - 1; SearchIndex >= 0; SearchIndex--)
-			{
-				if (FileChangesProcessed[SearchIndex].Action == FFileChangeData::FCA_Removed &&
-					FileChangesProcessed[SearchIndex].Filename == FilenameToCompare)
-				{
-					// Found a Removed which matches the Added - change the Added file entry to be a Modified...
-					FileChangesProcessed[FileEntryIndex].Action = FFileChangeData::FCA_Modified;
-
-					// ...and remove the Removed entry
-					FileChangesProcessed.RemoveAt(SearchIndex);
-					FileEntryIndex--;
-					break;
-				}
-			}
-		}
-	}
-
 	TArray<FString> FilteredFiles;
-	for (int32 FileIdx = 0; FileIdx < FileChangesProcessed.Num(); ++FileIdx)
+	for (int32 FileIdx = 0; FileIdx < FileChanges.Num(); ++FileIdx)
 	{
 		FString LongPackageName;
-		const FString File = FString(FileChangesProcessed[FileIdx].Filename);
+		const FString File = FString(FileChanges[FileIdx].Filename);
 		const bool bIsPackageFile = FPackageName::IsPackageExtension(*FPaths::GetExtension(File, true));
 		const bool bIsValidPackageName = FPackageName::TryConvertFilenameToLongPackageName(File, LongPackageName);
 		const bool bIsValidPackage = bIsPackageFile && bIsValidPackageName;
 
 		if ( bIsValidPackage )
 		{
-			switch( FileChangesProcessed[FileIdx].Action )
+			switch( FileChanges[FileIdx].Action )
 			{
 				case FFileChangeData::FCA_Added:
 					// This is a package file that was created on disk. Mark it to be scanned for asset data.
-					FilteredFiles.AddUnique(File);
+					FilteredFiles.Add(File);
 
 					// Make sure this file is added to the package file cache since it is new.
 					UE_LOG(LogAssetRegistry, Verbose, TEXT("File was added to content directory: %s"), *File);
@@ -1762,7 +1678,7 @@ void FAssetRegistry::OnDirectoryChanged (const TArray<FFileChangeData>& FileChan
 
 				case FFileChangeData::FCA_Modified:
 					// This is a package file that changed on disk. Mark it to be scanned for asset data.
-					FilteredFiles.AddUnique(File);
+					FilteredFiles.Add(File);
 					UE_LOG(LogAssetRegistry, Verbose, TEXT("File changed in content directory: %s"), *File);
 					break;
 

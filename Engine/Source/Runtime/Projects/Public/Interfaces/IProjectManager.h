@@ -15,9 +15,6 @@ public:
 	/** The name of this project */
 	FString Name;
 
-	/** The description of this project */
-	FString Description;
-
 	/** The UI category of this project */
 	FString Category;
 

@@ -982,7 +982,7 @@ namespace UnrealBuildTool
 					// Force specification of TargetName on XboxOne so that the manifest can identify the correct executable to the debugger.
 					if (Platform == UnrealTargetPlatform.XboxOne)
 					{
-						VCProjectFileContent.Append("		<TargetName>" + Utils.GetFilenameWithoutAnyExtensions( TargetFilePath ));
+						VCProjectFileContent.Append("		<TargetName>$(ProjectName)");
 						if (Configuration != UnrealTargetConfiguration.Development)
 						{
 							VCProjectFileContent.Append(UBTConfigurationName);

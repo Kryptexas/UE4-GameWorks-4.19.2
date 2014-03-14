@@ -484,34 +484,6 @@ void AActor::ClearActorLabel()
 	ActorLabel = TEXT("");
 }
 
-const FName& AActor::GetFolderPath() const
-{
-	return FolderPath;
-}
-
-void AActor::SetFolderPath(const FName& NewFolderPath)
-{
-	Modify();
-
-	FName OldPath = FolderPath;
-	FolderPath = NewFolderPath;
-	
-	// Detach the actor if it is attached
-	USceneComponent* RootComp = GetRootComponent();
-	if (RootComp  && RootComp->AttachParent)
-	{
-		AActor* OldParentActor = RootComp->AttachParent->GetOwner();
-		OldParentActor->Modify();
-
-		RootComp->DetachFromParent(true);
-	}
-
-	if (GEngine)
-	{
-		GEngine->BroadcastLevelActorFolderChanged(this, OldPath);
-	}
-}
-
 void AActor::CheckForDeprecated()
 {
 	if ( GetClass()->HasAnyClassFlags(CLASS_Deprecated) )

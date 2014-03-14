@@ -18,7 +18,6 @@
 
 FAssetTools::FAssetTools()
 	: AssetRenameManager( MakeShareable(new FAssetRenameManager) )
-	, AssetFixUpRedirectors( MakeShareable(new FAssetFixUpRedirectors) )
 {
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_AnimationAsset) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_AnimBlueprint) );
@@ -959,7 +958,7 @@ bool FAssetTools::CheckForDeletedPackage(const UPackage* Package) const
 				if( bWantCheckin )
 				{
 					TSharedRef<FCheckIn, ESPMode::ThreadSafe> CheckInOperation = ISourceControlOperation::Create<FCheckIn>();
-					CheckInOperation->SetDescription( LOCTEXT("AutomaticDeleteDesc", "Automatic Delete") );
+					CheckInOperation->SetDescription( LOCTEXT("AutomaticDeleteDesc", "Automatic Delete").ToString() );
 					if ( !SourceControlProvider.Execute(CheckInOperation, Package) )
 					{
 						// Failed to check in file
@@ -1193,9 +1192,9 @@ void FAssetTools::MigratePackages_ReportConfirmed(TArray<FString> ConfirmedPacka
 		FString SrcFilename;
 		if ( !FPackageName::DoesPackageExist(PackageName, NULL, &SrcFilename) )
 		{
-			const FText ErrorMessage = FText::Format(LOCTEXT("MigratePackages_PackageMissing", "{0} does not exist on disk."), FText::FromString(PackageName));
-			UE_LOG(LogAssetTools, Warning, TEXT("%s"), *ErrorMessage.ToString());
-			CopyErrors += ErrorMessage.ToString() + LINE_TERMINATOR;
+			const FString ErrorMessage = FText::Format(LOCTEXT("MigratePackages_PackageMissing", "{0} does not exist on disk."), FText::FromString(PackageName)).ToString();
+			UE_LOG(LogAssetTools, Warning, TEXT("%s"), *ErrorMessage);
+			CopyErrors += ErrorMessage + LINE_TERMINATOR;
 		}
 		else if (SrcFilename.Contains(FPaths::EngineContentDir()))
 		{
@@ -1346,11 +1345,6 @@ void FAssetTools::RecursiveGetDependencies(const FName& PackageName, TSet<FName>
 			}
 		}
 	}
-}
-
-void FAssetTools::FixupReferencers(const TArray<UObjectRedirector*>& Objects) const
-{
-	AssetFixUpRedirectors->FixupReferencers(Objects);
 }
 
 #undef LOCTEXT_NAMESPACE

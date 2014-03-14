@@ -1403,7 +1403,7 @@ bool FModuleManager::GenerateCodeProjectFiles( const FString& ProjectFilename, F
 bool FModuleManager::IsUnrealBuildToolAvailable()
 {
 	// If using Rocket and the Rocket unreal build tool executable exists, then UBT is available
-	if ( FApp::IsEngineInstalled() )
+	if ( FRocketSupport::IsRocket() )
 	{
 		return FPaths::FileExists(GetUnrealBuildToolExecutableFilename());
 	}
@@ -1587,7 +1587,7 @@ FString FModuleManager::GetUnrealBuildToolExecutableFilename()
 bool FModuleManager::BuildUnrealBuildTool(FOutputDevice &Ar)
 {
 #if !IS_MONOLITHIC
-	if ( FApp::IsEngineInstalled() )
+	if ( FRocketSupport::IsRocket() )
 	{
 		// We may not build UBT in rocket
 		return false;
@@ -1693,7 +1693,7 @@ bool FModuleManager::InvokeUnrealBuildTool( const FString& InCmdLineParams, FOut
 	FString ExecutableFileName = GetUnrealBuildToolExecutableFilename();
 
 	// Rocket never builds UBT, UnrealBuildTool should already exist
-	if ( !FApp::IsEngineInstalled() )
+	if ( !FRocketSupport::IsRocket() )
 	{
 		// When not using rocket, we should attempt to build UBT to make sure it is up to date
 		// Only do this if we have not already successfully done it once during this session.

@@ -219,7 +219,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 	TSharedPtr<SComboButton> NewComboButton;
 	TSharedPtr<SListView<TSharedPtr<FString>>> NewListView;
 
-	TSharedPtr<SToolTip> CategoryTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("EditCategoryName_Tooltip", "The category of the variable; editing this will place the variable into another category or create a new one."), NULL, DocLink, TEXT("Category"));
+	TSharedPtr<SToolTip> CategoryTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("EditCategoryName_Tooltip", "The category of the variable; editing this will place the variable into another category or create a new one"), NULL, DocLink, TEXT("Category"));
 
 	Category.AddCustomRow( TEXT("Category") )
 	.NameContent()
@@ -1600,7 +1600,7 @@ void FBlueprintLocalVarActionDetails::OnLocalVarNameCommitted(const FText& InNew
 {
 	if(InTextCommit == ETextCommit::OnEnter && !bIsVarNameInvalid)
 	{
-		const FScopedTransaction Transaction( LOCTEXT( "RenameLocalVariable", "Rename Local Variable" ) );
+		const FScopedTransaction Transaction( LOCTEXT( "RenameVariable", "Rename Local Variable" ) );
 
 		FName NewVarName = FName(*InNewText.ToString());
 
@@ -2132,68 +2132,23 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 
 		if (IsCustomEvent())
 		{
-			/** A collection of static utility callbacks to provide the custom-event details ui with */
-			struct LocalCustomEventUtils
-			{
-				/** Checks to see if the selected node is NOT an override */
-				static bool IsNotCustomEventOverride(TWeakObjectPtr<UK2Node_EditablePinBase> SelectedNode)
-				{
-					bool bIsOverride = false;
-					if (SelectedNode.IsValid())
-					{
-						UK2Node_CustomEvent const* SelectedCustomEvent = Cast<UK2Node_CustomEvent const>(SelectedNode.Get());
-						check(SelectedCustomEvent != NULL);
-
-						bIsOverride = SelectedCustomEvent->IsOverride();
-					}
-
-					return !bIsOverride;
-				}
-
-				/** If the selected node represent an override, this returns tooltip text explaining why you can't alter the replication settings */
-				static FText GetDisabledTooltip(TWeakObjectPtr<UK2Node_EditablePinBase> SelectedNode)
-				{
-					FText ToolTipOut = FText::GetEmpty();
-					if (!IsNotCustomEventOverride(SelectedNode))
-					{
-						ToolTipOut = LOCTEXT("CannotChangeOverrideReplication", "Cannot alter a custom-event's replication settings when it overrides an event declared in a parent.");
-					}
-					return ToolTipOut;
-				}
-
-				/** Determines if the selected node's "Reliable" net setting should be enabled for the user */
-				static bool CanSetReliabilityProperty(TWeakObjectPtr<UK2Node_EditablePinBase> SelectedNode)
-				{
-					bool bIsReliabilitySettingEnabled = false;
-					if (IsNotCustomEventOverride(SelectedNode))
-					{
-						UK2Node_CustomEvent const* SelectedCustomEvent = Cast<UK2Node_CustomEvent const>(SelectedNode.Get());
-						check(SelectedCustomEvent != NULL);
-
-						bIsReliabilitySettingEnabled = ((SelectedCustomEvent->GetNetFlags() & FUNC_Net) != 0);
-					}
-					return bIsReliabilitySettingEnabled;
-				}
-			};
-			FCanExecuteAction CanExecuteDelegate = FCanExecuteAction::CreateStatic(&LocalCustomEventUtils::IsNotCustomEventOverride, FunctionEntryNodePtr);
-
 			FMenuBuilder RepComboMenu( true, NULL );
 			RepComboMenu.AddMenuEntry( 	ReplicationSpecifierProperName(0), 
 										LOCTEXT("NotReplicatedToolTip", "This event is not replicated to anyone."),
 										FSlateIcon(),
-										FUIAction(FExecuteAction::CreateStatic( &FBlueprintGraphActionDetails::SetNetFlags, FunctionEntryNodePtr, 0U ), CanExecuteDelegate));
+										FUIAction(FExecuteAction::CreateStatic( &FBlueprintGraphActionDetails::SetNetFlags, FunctionEntryNodePtr, 0U )));
 			RepComboMenu.AddMenuEntry(	ReplicationSpecifierProperName(FUNC_NetMulticast), 
 										LOCTEXT("MulticastToolTip", "Replicate this event from the server to everyone else. Server executes this event locally too. Only call this from the server."),
 										FSlateIcon(),
-										FUIAction(FExecuteAction::CreateStatic( &FBlueprintGraphActionDetails::SetNetFlags, FunctionEntryNodePtr, static_cast<uint32>(FUNC_NetMulticast) ), CanExecuteDelegate));
+										FUIAction(FExecuteAction::CreateStatic( &FBlueprintGraphActionDetails::SetNetFlags, FunctionEntryNodePtr, static_cast<uint32>(FUNC_NetMulticast) )));
 			RepComboMenu.AddMenuEntry(	ReplicationSpecifierProperName(FUNC_NetServer), 
 										LOCTEXT("ServerToolTip", "Replicate this event from net owning client to server."),
 										FSlateIcon(),
-										FUIAction(FExecuteAction::CreateStatic( &FBlueprintGraphActionDetails::SetNetFlags, FunctionEntryNodePtr, static_cast<uint32>(FUNC_NetServer) ), CanExecuteDelegate));
+										FUIAction(FExecuteAction::CreateStatic( &FBlueprintGraphActionDetails::SetNetFlags, FunctionEntryNodePtr, static_cast<uint32>(FUNC_NetServer) )));
 			RepComboMenu.AddMenuEntry(	ReplicationSpecifierProperName(FUNC_NetClient), 
 										LOCTEXT("ClientToolTip", "Replicate this event from the server to owning client."),
 										FSlateIcon(),
-										FUIAction(FExecuteAction::CreateStatic( &FBlueprintGraphActionDetails::SetNetFlags, FunctionEntryNodePtr, static_cast<uint32>(FUNC_NetClient) ), CanExecuteDelegate));
+										FUIAction(FExecuteAction::CreateStatic( &FBlueprintGraphActionDetails::SetNetFlags, FunctionEntryNodePtr, static_cast<uint32>(FUNC_NetClient) )));
 
 			Category.AddCustomRow( LOCTEXT( "FunctionReplicate", "Replicates" ).ToString() )
 			.NameContent()
@@ -2209,47 +2164,44 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 				+SVerticalBox::Slot()
 				[
 					SNew(SComboButton)
-						.ContentPadding(0)
-						.IsEnabled_Static(&LocalCustomEventUtils::IsNotCustomEventOverride, FunctionEntryNodePtr)
-						.ToolTipText_Static(&LocalCustomEventUtils::GetDisabledTooltip, FunctionEntryNodePtr)
-						.ButtonContent()
-						[
-							SNew(STextBlock)
-								.Text(this, &FBlueprintGraphActionDetails::GetCurrentReplicatedEventString)
-								.Font( IDetailLayoutBuilder::GetDetailFont() )
-						]
-						.MenuContent()
+					.ContentPadding(0)
+					.ButtonContent()
+					[
+						SNew(STextBlock)
+						.Text(this, &FBlueprintGraphActionDetails::GetCurrentReplicatedEventString)
+						.Font( IDetailLayoutBuilder::GetDetailFont() )
+					]
+					.MenuContent()
+					[
+						SNew(SVerticalBox)
+						+SVerticalBox::Slot()
 						[
 							SNew(SVerticalBox)
 							+SVerticalBox::Slot()
+							.AutoHeight()
+							.MaxHeight(400.0f)
 							[
-								SNew(SVerticalBox)
-								+SVerticalBox::Slot()
-									.AutoHeight()
-									.MaxHeight(400.0f)
-								[
-									RepComboMenu.MakeWidget()
-								]
+								RepComboMenu.MakeWidget()
 							]
 						]
+					]
 				]
 
 				+SVerticalBox::Slot()
-					.AutoHeight()
-					.MaxHeight(400.0f)
+				.AutoHeight()
+				.MaxHeight(400.0f)
 				[
 					SNew(SHorizontalBox)
-					+SHorizontalBox::Slot()
-						.AutoWidth()
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
 					[
 						SNew( SCheckBox )
-							.IsChecked( this, &FBlueprintGraphActionDetails::GetIsReliableReplicatedFunction )
-							.IsEnabled_Static(&LocalCustomEventUtils::CanSetReliabilityProperty, FunctionEntryNodePtr)
-							.ToolTipText_Static(&LocalCustomEventUtils::GetDisabledTooltip, FunctionEntryNodePtr)
-							.OnCheckStateChanged( this, &FBlueprintGraphActionDetails::OnIsReliableReplicationFunctionModified )
+						.IsChecked( this, &FBlueprintGraphActionDetails::GetIsReliableReplicatedFunction )
+						.IsEnabled( this, &FBlueprintGraphActionDetails::GetIsReplicatedFunction )
+						.OnCheckStateChanged( this, &FBlueprintGraphActionDetails::OnIsReliableReplicationFunctionModified )
 						[
 							SNew(STextBlock)
-								.Text( LOCTEXT( "FunctionReplicateReliable", "Reliable" ).ToString() )
+							.Text( LOCTEXT( "FunctionReplicateReliable", "Reliable" ).ToString() )
 						]
 					]
 				]
@@ -2363,17 +2315,7 @@ FString FBlueprintGraphActionDetails::GetCurrentReplicatedEventString() const
 	const UK2Node_EditablePinBase * FunctionEntryNode = FunctionEntryNodePtr.Get();
 	const UK2Node_CustomEvent* CustomEvent = Cast<const UK2Node_CustomEvent>(FunctionEntryNode);
 
-	uint32 const ReplicatedNetMask = (FUNC_NetMulticast | FUNC_NetServer | FUNC_NetClient);
-
-	uint32 NetFlags = CustomEvent->FunctionFlags & ReplicatedNetMask;
-	if (CustomEvent->IsOverride())
-	{
-		UFunction* SuperFunction = FindField<UFunction>(CustomEvent->GetBlueprint()->ParentClass, CustomEvent->CustomFunctionName);
-		check(SuperFunction != NULL);
-
-		NetFlags = SuperFunction->FunctionFlags & ReplicatedNetMask;
-	}
-
+	uint32 NetFlags = CustomEvent->FunctionFlags & (FUNC_NetMulticast | FUNC_NetServer | FUNC_NetClient);
 	return ReplicationSpecifierProperName(NetFlags).ToString();
 }
 
@@ -3445,13 +3387,29 @@ ESlateCheckBoxState::Type FBlueprintGraphActionDetails::GetIsReliableReplicatedF
 		ESlateCheckBoxState::Undetermined;
 	}
 
-	uint32 const NetReliableMask = (FUNC_Net | FUNC_NetReliable);
-	if ((CustomEvent->GetNetFlags() & NetReliableMask) == NetReliableMask)
+	if (((CustomEvent->FunctionFlags & FUNC_Net) != 0) && ((CustomEvent->FunctionFlags & FUNC_NetReliable) != 0))
 	{
 		return ESlateCheckBoxState::Checked;
 	}
 	
 	return ESlateCheckBoxState::Unchecked;
+}
+
+bool FBlueprintGraphActionDetails::GetIsReplicatedFunction() const
+{
+	const UK2Node_EditablePinBase * FunctionEntryNode = FunctionEntryNodePtr.Get();
+	const UK2Node_CustomEvent* CustomEvent = Cast<const UK2Node_CustomEvent>(FunctionEntryNode);
+	if(!CustomEvent)
+	{
+		false;
+	}
+
+	if (((CustomEvent->FunctionFlags & FUNC_Net) != 0))
+	{
+		return true;
+	}
+
+	return false;
 }
 
 bool FBlueprintGraphActionDetails::IsPureFunctionVisible() const

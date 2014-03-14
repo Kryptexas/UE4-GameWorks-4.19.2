@@ -49,7 +49,6 @@ APlayerStart::APlayerStart(const class FPostConstructInitializeProperties& PCIP)
 		ArrowComponent->SpriteInfo.Category = ConstructorStatics.ID_Navigation;
 		ArrowComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Navigation;
 		ArrowComponent->AttachParent = CapsuleComponent;
-		ArrowComponent->bIsScreenSizeScaled = true;
 	}
 #endif // WITH_EDITORONLY_DATA
 }

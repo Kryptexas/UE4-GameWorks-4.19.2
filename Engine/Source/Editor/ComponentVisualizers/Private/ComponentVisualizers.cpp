@@ -4,7 +4,6 @@
 #include "ComponentVisualizers.h"
 
 #include "SoundDefinitions.h"
-#include "EngineSplineClasses.h"
 
 #include "PointLightComponentVisualizer.h"
 #include "SpotLightComponentVisualizer.h"
@@ -12,38 +11,31 @@
 #include "RadialForceComponentVisualizer.h"
 #include "ConstraintComponentVisualizer.h"
 #include "SpringArmComponentVisualizer.h"
-#include "SplineComponentVisualizer.h"
 
 IMPLEMENT_MODULE( FComponentVisualizersModule, ComponentVisualizers );
 
 void FComponentVisualizersModule::StartupModule()
 {
-	RegisterComponentVisualizer(USpotLightComponent::StaticClass()->GetFName(), MakeShareable(new FSpotLightComponentVisualizer));
-	RegisterComponentVisualizer(UAudioComponent::StaticClass()->GetFName(), MakeShareable(new FAudioComponentVisualizer));
-	RegisterComponentVisualizer(URadialForceComponent::StaticClass()->GetFName(), MakeShareable(new FRadialForceComponentVisualizer));
-	RegisterComponentVisualizer(UPhysicsConstraintComponent::StaticClass()->GetFName(), MakeShareable(new FConstraintComponentVisualizer));
-	RegisterComponentVisualizer(USpringArmComponent::StaticClass()->GetFName(), MakeShareable(new FSpringArmComponentVisualizer));
-	RegisterComponentVisualizer(USplineComponent::StaticClass()->GetFName(), MakeShareable(new FSplineComponentVisualizer));
+	if(GUnrealEd != NULL)
+	{
+		GUnrealEd->RegisterComponentVisualizer(UPointLightComponent::StaticClass(), FOnDrawComponentVisualizer::CreateStatic( &FPointLightComponentVisualizer::DrawVisualization ));
+		GUnrealEd->RegisterComponentVisualizer(USpotLightComponent::StaticClass(), FOnDrawComponentVisualizer::CreateStatic( &FSpotLightComponentVisualizer::DrawVisualization ));
+		GUnrealEd->RegisterComponentVisualizer(UAudioComponent::StaticClass(), FOnDrawComponentVisualizer::CreateStatic( &FAudioComponentVisualizer::DrawVisualization ));
+		GUnrealEd->RegisterComponentVisualizer(URadialForceComponent::StaticClass(), FOnDrawComponentVisualizer::CreateStatic( &FRadialForceComponentVisualizer::DrawVisualization ));
+		GUnrealEd->RegisterComponentVisualizer(UPhysicsConstraintComponent::StaticClass(), FOnDrawComponentVisualizer::CreateStatic( &FConstraintComponentVisualizer::DrawVisualization ));
+		GUnrealEd->RegisterComponentVisualizer(USpringArmComponent::StaticClass(), FOnDrawComponentVisualizer::CreateStatic( &FSpringArmComponentVisualizer::DrawVisualization ));
+	}
 }
 
 void FComponentVisualizersModule::ShutdownModule()
 {
 	if(GUnrealEd != NULL)
 	{
-		// Iterate over all class names we registered for
-		for(FName ClassName : RegisteredComponentClassNames)
-		{
-			GUnrealEd->UnregisterComponentVisualizer(ClassName);
-		}
+		GUnrealEd->UnregisterComponentVisualizer(UPointLightComponent::StaticClass());
+		GUnrealEd->UnregisterComponentVisualizer(USpotLightComponent::StaticClass());
+		GUnrealEd->UnregisterComponentVisualizer(UAudioComponent::StaticClass());
+		GUnrealEd->UnregisterComponentVisualizer(URadialForceComponent::StaticClass());
+		GUnrealEd->UnregisterComponentVisualizer(UPhysicsConstraintComponent::StaticClass());
+		GUnrealEd->UnregisterComponentVisualizer(USpringArmComponent::StaticClass());
 	}
-}
-
-void FComponentVisualizersModule::RegisterComponentVisualizer(FName ComponentClassName, TSharedPtr<FComponentVisualizer> Visualizer)
-{
-	if (GUnrealEd != NULL)
-	{
-		GUnrealEd->RegisterComponentVisualizer(ComponentClassName, Visualizer);
-	}
-
-	RegisteredComponentClassNames.Add(ComponentClassName);
 }

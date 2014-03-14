@@ -150,9 +150,6 @@ int32 AndroidMain(struct android_app* state)
 {
 	FPlatformMisc::LowLevelOutputDebugString(L"Entered AndroidMain()");
 
-	// Force the first call to GetJavaEnv() to happen on the game thread, allowing subsequent calls to occur on any thread
-	GetJavaEnv();
-
 	// adjust the file descriptor limits to allow as many open files as possible
 	rlimit cur_fd_limit;
 	{
@@ -395,7 +392,7 @@ static int32_t HandleInputCB(struct android_app* app, AInputEvent* event)
 				float y = FMath::Min<float>(AMotionEvent_getY(event, actionPointer) / Height, 1.f);
 				y *= (ScreenRect.Bottom - 1);
 
-				UE_LOG(LogAndroid, Verbose, TEXT("Received targeted motion event from pointer %u (id %d) action %d: (%.2f, %.2f)"), actionPointer, pointerId, action, x, y);
+//  				UE_LOG(LogAndroid, Log, TEXT("Received targeted motion event from pointer %u (id %d) action %d: (%.2f, %.2f)"), actionPointer, pointerId, action, x, y);
 
 				TouchInput TouchMessage;
 				TouchMessage.Handle = pointerId;
@@ -415,7 +412,7 @@ static int32_t HandleInputCB(struct android_app* app, AInputEvent* event)
 					float y = FMath::Min<float>(AMotionEvent_getY(event, i) / Height, 1.f);
 					y *= (ScreenRect.Bottom - 1);
 
-					UE_LOG(LogAndroid, Verbose, TEXT("Received motion event from pointer %u (id %d) action %d: (%.2f, %.2f)"), i, action, AMotionEvent_getPointerId(event,i), x, y);
+//  					UE_LOG(LogAndroid, Log, TEXT("Received motion event from pointer %u (id %d) action %d: (%.2f, %.2f)"), i, action, AMotionEvent_getPointerId(event,i), x, y);
 
 					TouchInput TouchMessage;
 					TouchMessage.Handle = AMotionEvent_getPointerId(event, i);

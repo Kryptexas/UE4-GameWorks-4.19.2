@@ -47,6 +47,7 @@ class UAnimStateTransitionNode : public UAnimStateNodeBase
 	UPROPERTY(EditAnywhere, Category=Transition)
 	bool Bidirectional;
 
+#if WITH_EDITORONLY_DATA
 	/** The rules for this transition may be shared with other transition nodes */
 	UPROPERTY()
 	bool bSharedRules;
@@ -75,6 +76,8 @@ class UAnimStateTransitionNode : public UAnimStateNodeBase
 
 	UPROPERTY()
 	int32 SharedCrossfadeIdx;
+
+#endif
 
 	// Begin UObject interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;

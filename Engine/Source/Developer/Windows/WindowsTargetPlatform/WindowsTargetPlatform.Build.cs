@@ -28,6 +28,19 @@ public class WindowsTargetPlatform : ModuleRules
 			PrivateIncludePathModuleNames.Add("TextureCompressor");
 		}
 
+		if (UEBuildConfiguration.bBuildEditor)
+		{
+			PrivateDependencyModuleNames.AddRange(
+				new string[]
+				{
+					"Slate",
+					"PropertyEditor",
+					"SharedSettingsWidgets",
+					"EditorStyle"
+				}
+			);
+		}
+
 		PrivateIncludePaths.AddRange(
 			new string[]
 			{

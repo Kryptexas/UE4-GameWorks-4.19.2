@@ -176,7 +176,15 @@ bool FPngImageWrapper::SetCompressed( const void* InCompressedData, int32 InComp
 {
 	bool bResult = FImageWrapperBase::SetCompressed( InCompressedData, InCompressedSize );
 
-	return bResult && LoadPNGHeader();	// Fetch the variables from the header info
+	return bResult && LoadHeader();	// Fetch the variables from the header info
+}
+
+
+bool FPngImageWrapper::SetRaw( const void* InRawData, int32 InRawSize, const int32 InWidth, const int32 InHeight, const ERGBFormat::Type InFormat, const int32 InBitDepth )
+{
+	bool bResult = FImageWrapperBase::SetRaw( InRawData, InRawSize, InWidth, InHeight, InFormat, InBitDepth );
+
+	return bResult;
 }
 
 
@@ -184,151 +192,145 @@ void FPngImageWrapper::Uncompress( const ERGBFormat::Type InFormat, const int32 
 {
 	if( !RawData.Num() || InFormat != RawFormat || InBitDepth != RawBitDepth)
 	{
+		// thread safety
+		FScopeLock PNGLock(&GPNGSection);
+
 		check( CompressedData.Num() );
-		UncompressPNGData( InFormat, InBitDepth );
-	}
-}
+		check( Width > 0 );
+		check( Height > 0 );
 
-void FPngImageWrapper::UncompressPNGData( const ERGBFormat::Type InFormat, const int32 InBitDepth )
-{
-	// thread safety
-	FScopeLock PNGLock(&GPNGSection);
+		// Note that PNGs on PC tend to be BGR
+		check( InFormat == ERGBFormat::BGRA || InFormat == ERGBFormat::RGBA || InFormat == ERGBFormat::Gray )	// Other formats unsupported at present
+		check( InBitDepth == 8 || InBitDepth == 16 )	// Other formats unsupported at present
 
-	check( CompressedData.Num() );
-	check( Width > 0 );
-	check( Height > 0 );
-
-	// Note that PNGs on PC tend to be BGR
-	check( InFormat == ERGBFormat::BGRA || InFormat == ERGBFormat::RGBA || InFormat == ERGBFormat::Gray )	// Other formats unsupported at present
-	check( InBitDepth == 8 || InBitDepth == 16 )	// Other formats unsupported at present
-
-	// Reset to the beginning of file so we can use png_read_png(), which expects to start at the beginning.
-	ReadOffset = 0;
+		// Reset to the beginning of file so we can use png_read_png(), which expects to start at the beginning.
+		ReadOffset = 0;
 		
-	png_structp png_ptr	= png_create_read_struct( PNG_LIBPNG_VER_STRING, this, FPngImageWrapper::user_error_fn, FPngImageWrapper::user_warning_fn );
-	check( png_ptr );
+		png_structp png_ptr	= png_create_read_struct( PNG_LIBPNG_VER_STRING, this, FPngImageWrapper::user_error_fn, FPngImageWrapper::user_warning_fn );
+		check( png_ptr );
 
-	png_infop info_ptr	= png_create_info_struct( png_ptr );
-	check( info_ptr );
-	PNGReadGuard PNGGuard( &png_ptr, &info_ptr );
-	{
-		if (ColorType == PNG_COLOR_TYPE_PALETTE)
+		png_infop info_ptr	= png_create_info_struct( png_ptr );
+		check( info_ptr );
+		PNGReadGuard PNGGuard( &png_ptr, &info_ptr );
 		{
-			png_set_palette_to_rgb(png_ptr);
-		}
-
-		if ((ColorType & PNG_COLOR_MASK_COLOR) == 0 && BitDepth < 8)
-		{
-			png_set_expand_gray_1_2_4_to_8(png_ptr);
-		}
-
-		// Insert alpha channel with full opacity for RGB images without alpha
-		if ((ColorType & PNG_COLOR_MASK_ALPHA) == 0 && (InFormat == ERGBFormat::BGRA || InFormat == ERGBFormat::RGBA))
-		{
-			// png images don't set PNG_COLOR_MASK_ALPHA if they have alpha from a tRNS chunk, but png_set_add_alpha seems to be safe regardless
-			if ((ColorType & PNG_COLOR_MASK_COLOR) == 0)
+			if (ColorType == PNG_COLOR_TYPE_PALETTE)
 			{
-				png_set_tRNS_to_alpha(png_ptr);
+				png_set_palette_to_rgb(png_ptr);
 			}
-			else if (ColorType == PNG_COLOR_TYPE_PALETTE)
+
+			if ((ColorType & PNG_COLOR_MASK_COLOR) == 0 && BitDepth < 8)
 			{
-				png_set_tRNS_to_alpha(png_ptr);
+				png_set_expand_gray_1_2_4_to_8(png_ptr);
 			}
-			if (InBitDepth == 8)
+
+			// Insert alpha channel with full opacity for RGB images without alpha
+			if ((ColorType & PNG_COLOR_MASK_ALPHA) == 0 && (InFormat == ERGBFormat::BGRA || InFormat == ERGBFormat::RGBA))
 			{
-				png_set_add_alpha(png_ptr, 0xff , PNG_FILLER_AFTER);
+				// png images don't set PNG_COLOR_MASK_ALPHA if they have alpha from a tRNS chunk, but png_set_add_alpha seems to be safe regardless
+				if ((ColorType & PNG_COLOR_MASK_COLOR) == 0)
+				{
+					png_set_tRNS_to_alpha(png_ptr);
+				}
+				else if (ColorType == PNG_COLOR_TYPE_PALETTE)
+				{
+					png_set_tRNS_to_alpha(png_ptr);
+				}
+				if (InBitDepth == 8)
+				{
+					png_set_add_alpha(png_ptr, 0xff , PNG_FILLER_AFTER);
+				}
+				else if (InBitDepth == 16)
+				{
+					png_set_add_alpha(png_ptr, 0xffff , PNG_FILLER_AFTER);
+				}
 			}
-			else if (InBitDepth == 16)
+
+			// Calculate Pixel Depth
+			const uint32 PixelChannels = (InFormat == ERGBFormat::Gray) ? 1 : 4;
+			const uint32 BytesPerPixel = (InBitDepth * PixelChannels) / 8;
+			const uint32 BytesPerRow = BytesPerPixel * Width;
+			RawData.Empty(Height * BytesPerRow);
+			RawData.AddUninitialized(Height * BytesPerRow);
+
+			png_set_read_fn( png_ptr, this, FPngImageWrapper::user_read_compressed );
+
+			png_bytep* row_pointers = (png_bytep*) png_malloc( png_ptr, Height*sizeof(png_bytep) );
+			PNGGuard.SetRowPointers(&row_pointers);
+			for (int32 i = 0; i < Height; i++)
 			{
-				png_set_add_alpha(png_ptr, 0xffff , PNG_FILLER_AFTER);
+				row_pointers[i]= &RawData[i * BytesPerRow];
 			}
-		}
+			png_set_rows(png_ptr, info_ptr, row_pointers);
 
-		// Calculate Pixel Depth
-		const uint32 PixelChannels = (InFormat == ERGBFormat::Gray) ? 1 : 4;
-		const uint32 BytesPerPixel = (InBitDepth * PixelChannels) / 8;
-		const uint32 BytesPerRow = BytesPerPixel * Width;
-		RawData.Empty(Height * BytesPerRow);
-		RawData.AddUninitialized(Height * BytesPerRow);
-
-		png_set_read_fn( png_ptr, this, FPngImageWrapper::user_read_compressed );
-
-		png_bytep* row_pointers = (png_bytep*) png_malloc( png_ptr, Height*sizeof(png_bytep) );
-		PNGGuard.SetRowPointers(&row_pointers);
-		for (int32 i = 0; i < Height; i++)
-		{
-			row_pointers[i]= &RawData[i * BytesPerRow];
-		}
-		png_set_rows(png_ptr, info_ptr, row_pointers);
-
-		uint32 Transform = (InFormat == ERGBFormat::BGRA) ? PNG_TRANSFORM_BGR : PNG_TRANSFORM_IDENTITY;
+			uint32 Transform = (InFormat == ERGBFormat::BGRA) ? PNG_TRANSFORM_BGR : PNG_TRANSFORM_IDENTITY;
 			
-		// PNG files store 16-bit pixels in network byte order (big-endian, ie. most significant bits first).
+			// PNG files store 16-bit pixels in network byte order (big-endian, ie. most significant bits first).
 #if PLATFORM_LITTLE_ENDIAN
-		// We're little endian so we need to swap
-		if (BitDepth == 16)
-		{
-			Transform |= PNG_TRANSFORM_SWAP_ENDIAN;
-		}
+			// We're little endian so we need to swap
+			if (BitDepth == 16)
+			{
+				Transform |= PNG_TRANSFORM_SWAP_ENDIAN;
+			}
 #endif
 
-		// Convert grayscale png to RGB if requested
-		if ((ColorType & PNG_COLOR_MASK_COLOR) == 0 &&
-			(InFormat == ERGBFormat::RGBA || InFormat == ERGBFormat::BGRA))
-		{
-			Transform |= PNG_TRANSFORM_GRAY_TO_RGB;
-		}
+			// Convert grayscale png to RGB if requested
+			if ((ColorType & PNG_COLOR_MASK_COLOR) == 0 &&
+				(InFormat == ERGBFormat::RGBA || InFormat == ERGBFormat::BGRA))
+			{
+				Transform |= PNG_TRANSFORM_GRAY_TO_RGB;
+			}
 
-		// Convert RGB png to grayscale if requested
-		if ((ColorType & PNG_COLOR_MASK_COLOR) != 0 && InFormat == ERGBFormat::Gray)
-		{
-			png_set_rgb_to_gray_fixed(png_ptr, 2 /* warn if image is in color */, -1, -1);
-		}
+			// Convert RGB png to grayscale if requested
+			if ((ColorType & PNG_COLOR_MASK_COLOR) != 0 && InFormat == ERGBFormat::Gray)
+			{
+				png_set_rgb_to_gray_fixed(png_ptr, 2 /* warn if image is in color */, -1, -1);			}
 
-		// Strip alpha channel if requested output is grayscale
-		if (InFormat == ERGBFormat::Gray)
-		{
-			// this is not necessarily the best option, instead perhaps:
-			// png_color background = {0,0,0};
-			// png_set_background(png_ptr, &background, PNG_BACKGROUND_GAMMA_SCREEN, 0, 1.0);
-			Transform |= PNG_TRANSFORM_STRIP_ALPHA;
-		}
+			// Strip alpha channel if requested output is grayscale
+			if (InFormat == ERGBFormat::Gray)
+			{
+				// this is not necessarily the best option, instead perhaps:
+				// png_color background = {0,0,0};
+				// png_set_background(png_ptr, &background, PNG_BACKGROUND_GAMMA_SCREEN, 0, 1.0);
+				Transform |= PNG_TRANSFORM_STRIP_ALPHA;
+			}
 
-		// Reduce 16-bit to 8-bit if requested
-		if (BitDepth == 16 && InBitDepth == 8)
-		{
+			// Reduce 16-bit to 8-bit if requested
+			if (BitDepth == 16 && InBitDepth == 8)
+			{
 #if PNG_LIBPNG_VER >= 10504
-			check(0); // Needs testing
-			Transform |= PNG_TRANSFORM_SCALE_16;
+				check(0); // Needs testing
+				Transform |= PNG_TRANSFORM_SCALE_16;
 #else
-			Transform |= PNG_TRANSFORM_STRIP_16;
+				Transform |= PNG_TRANSFORM_STRIP_16;
 #endif
-		}
+			}
 
-		// Increase 8-bit to 16-bit if requested
-		if (BitDepth <= 8 && InBitDepth == 16)
-		{
+			// Increase 8-bit to 16-bit if requested
+			if (BitDepth <= 8 && InBitDepth == 16)
+			{
 #if PNG_LIBPNG_VER >= 10504
-			check(0); // Needs testing
-			Transform |= PNG_TRANSFORM_EXPAND_16
+				check(0); // Needs testing
+				Transform |= PNG_TRANSFORM_EXPAND_16
 #else
-			// Expanding 8-bit images to 16-bit via transform needs a libpng update
-			check(0);
+				// Expanding 8-bit images to 16-bit via transform needs a libpng update
+				check(0);
 #endif
+			}
+
+			png_read_png(png_ptr, info_ptr, Transform, NULL);
 		}
 
-		png_read_png(png_ptr, info_ptr, Transform, NULL);
+		RawFormat = InFormat;
+		RawBitDepth = InBitDepth;
 	}
-
-	RawFormat = InFormat;
-	RawBitDepth = InBitDepth;
 }
+
 
 /* FPngImageWrapper implementation
  *****************************************************************************/
 
 
-bool FPngImageWrapper::IsPNG() const
+bool FPngImageWrapper::IsPNG( ) const
 {
 	check( CompressedData.Num() );
 
@@ -336,7 +338,7 @@ bool FPngImageWrapper::IsPNG() const
 
 	if (CompressedData.Num() > PNGSigSize)
 	{
-		png_size_t PNGSignature = *reinterpret_cast<const png_size_t*>(CompressedData.GetData());
+		png_size_t PNGSignature = *reinterpret_cast<const png_size_t*>(CompressedData.GetTypedData());
 		return (0 == png_sig_cmp(reinterpret_cast<png_bytep>(&PNGSignature), 0, PNGSigSize));
 	}
 
@@ -344,7 +346,7 @@ bool FPngImageWrapper::IsPNG() const
 }
 
 
-bool FPngImageWrapper::LoadPNGHeader()
+bool FPngImageWrapper::LoadHeader( )
 {
 	check(CompressedData.Num());
 

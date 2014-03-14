@@ -90,12 +90,6 @@ private:
 	// Callback for clicking an item in the 'Zoom' menu.
 	void HandleZoomMenuEntryClicked( double ZoomValue );
 
-	// Callback for clicking the 'Fit' item in the 'Zoom' menu.
-	void HandleZoomMenuFitClicked();
-
-	// Callback for setting the checked state of the 'Fit' item in the 'Zoom' menu.
-	bool IsZoomMenuFitChecked() const;
-
 	// Callback for getting the zoom percentage text.
 	FText HandleZoomPercentageText( ) const;
 

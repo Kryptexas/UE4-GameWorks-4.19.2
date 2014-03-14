@@ -8,7 +8,7 @@ UEnvQueryTest_Pathfinding::UEnvQueryTest_Pathfinding(const class FPostConstructI
 
 	Context = UEnvQueryContext_Querier::StaticClass();
 	Cost = EEnvTestCost::High;
-	ValidItemType = UEnvQueryItemType_VectorBase::StaticClass();
+	ValidItemType = UEnvQueryItemType_LocationBase::StaticClass();
 	TestMode = EEnvTestPathfinding::PathExist;
 	PathToItem.Value = true;
 	FloatFilter.Value = 1000.0f;

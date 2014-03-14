@@ -471,11 +471,11 @@ void FOnlineAsyncTaskSteamCreateLobby::Tick()
  */
 void FOnlineAsyncTaskSteamCreateLobby::Finalize()
 {
-	FOnlineSessionSteamPtr SessionInt = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
+	FOnlineSessionSteamPtr SessionInterface = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
 
 	if (bWasSuccessful)
 	{
-		FNamedOnlineSession* Session = SessionInt->GetNamedSession(SessionName);
+		FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
 		if (Session)
 		{
 			ISteamMatchmaking* SteamMatchMakingPtr = SteamMatchmaking();
@@ -516,20 +516,20 @@ void FOnlineAsyncTaskSteamCreateLobby::Finalize()
 			{
 				bWasSuccessful = false;
 				SteamMatchMakingPtr->LeaveLobby(LobbyId);
-				SessionInt->RemoveNamedSession(SessionName);
+				SessionInterface->RemoveNamedSession(SessionName);
 				UE_LOG_ONLINE(Warning, TEXT("Failed to set lobby data for session %s, cleaning up."), *SessionName.ToString());
 			}
 			else
 			{
-				SessionInt->JoinedLobby(LobbyId);
-				SessionInt->RegisterLocalPlayers(Session);
+				SessionInterface->JoinedLobby(LobbyId);
+				SessionInterface->RegisterLocalPlayers(Session);
 				DumpNamedSession(Session);
 			}
 		}
 	}
 	else
 	{
-		SessionInt->RemoveNamedSession(SessionName);
+		SessionInterface->RemoveNamedSession(SessionName);
 	}
 }
 
@@ -538,10 +538,10 @@ void FOnlineAsyncTaskSteamCreateLobby::Finalize()
  */
 void FOnlineAsyncTaskSteamCreateLobby::TriggerDelegates()
 {
-	IOnlineSessionPtr SessionInt = Subsystem->GetSessionInterface();
-	if (SessionInt.IsValid())
+	IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
+	if (SessionInterface.IsValid())
 	{
-		SessionInt->TriggerOnCreateSessionCompleteDelegates(SessionName, bWasSuccessful);
+		SessionInterface->TriggerOnCreateSessionCompleteDelegates(SessionName, bWasSuccessful);
 	}
 }
 
@@ -575,11 +575,11 @@ void FOnlineAsyncTaskSteamUpdateLobby::Tick()
 {
 	bWasSuccessful = false;
 	
-	IOnlineSessionPtr SessionInt = Subsystem->GetSessionInterface();
-	if (SessionInt.IsValid())
+	IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
+	if (SessionInterface.IsValid())
 	{
 		// Grab the session information by name
-		FNamedOnlineSession* Session = SessionInt->GetNamedSession(SessionName);
+		FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
 		if (Session)
 		{
 			FOnlineSessionInfoSteam* SessionInfo = (FOnlineSessionInfoSteam*)(Session->SessionInfo.Get());
@@ -661,10 +661,10 @@ void FOnlineAsyncTaskSteamUpdateLobby::Tick()
  */
 void FOnlineAsyncTaskSteamUpdateLobby::TriggerDelegates()
 {
-	IOnlineSessionPtr SessionInt = Subsystem->GetSessionInterface();
-	if (SessionInt.IsValid())
+	IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
+	if (SessionInterface.IsValid())
 	{
-		SessionInt->TriggerOnUpdateSessionCompleteDelegates(SessionName, bWasSuccessful);
+		SessionInterface->TriggerOnUpdateSessionCompleteDelegates(SessionName, bWasSuccessful);
 	}
 }
 
@@ -715,18 +715,18 @@ void FOnlineAsyncTaskSteamJoinLobby::Tick()
  */
 void FOnlineAsyncTaskSteamJoinLobby::Finalize()
 {
-	FOnlineSessionSteamPtr SessionInt = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
-	if (SessionInt.IsValid())
+	FOnlineSessionSteamPtr SessionInterface = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
+	if (SessionInterface.IsValid())
 	{
 		if (bWasSuccessful)
 		{
-			FNamedOnlineSession* Session = SessionInt->GetNamedSession(SessionName);
+			FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
 			if (Session)
 			{
 				// Session settings were set in the LobbyUpdate async event triggered upon join
 				Session->SessionState = EOnlineSessionState::Pending;
-				SessionInt->JoinedLobby(LobbyId);
-				SessionInt->RegisterLocalPlayers(Session);
+				SessionInterface->JoinedLobby(LobbyId);
+				SessionInterface->RegisterLocalPlayers(Session);
 			}
 			else
 			{
@@ -738,7 +738,7 @@ void FOnlineAsyncTaskSteamJoinLobby::Finalize()
 	if (!bWasSuccessful)
 	{
 		// Clean up partial create/join
-		SessionInt->RemoveNamedSession(SessionName);
+		SessionInterface->RemoveNamedSession(SessionName);
 	}
 }
 
@@ -747,10 +747,10 @@ void FOnlineAsyncTaskSteamJoinLobby::Finalize()
  */
 void FOnlineAsyncTaskSteamJoinLobby::TriggerDelegates()
 {
-	IOnlineSessionPtr SessionInt = Subsystem->GetSessionInterface();
-	if (SessionInt.IsValid())
+	IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
+	if (SessionInterface.IsValid())
 	{
-		SessionInt->TriggerOnJoinSessionCompleteDelegates(SessionName, bWasSuccessful);
+		SessionInterface->TriggerOnJoinSessionCompleteDelegates(SessionName, bWasSuccessful);
 	}
 }
 
@@ -769,10 +769,10 @@ FString FOnlineAsyncTaskSteamLeaveLobby::ToString() const
 void FOnlineAsyncTaskSteamLeaveLobby::Tick()
 {
 	SteamMatchmaking()->LeaveLobby(LobbyId);
-    FOnlineSessionSteamPtr SessionInt = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
-	if (SessionInt.IsValid())
+    FOnlineSessionSteamPtr SessionInterface = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
+	if (SessionInterface.IsValid())
 	{
-		SessionInt->LeftLobby(LobbyId);
+		SessionInterface->LeftLobby(LobbyId);
 	}
 
 	bIsComplete = true;
@@ -970,10 +970,10 @@ void FOnlineAsyncTaskSteamFindLobbies::Tick()
 		}
 		else if (bWasSuccessful)
 		{
-			FOnlineSessionSteamPtr SessionInt = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
+			FOnlineSessionSteamPtr SessionInterface = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
 
 			// Waiting for the lobby updates to fill in
-			if (CallbackResults.m_nLobbiesMatching == SessionInt->PendingSearchLobbyIds.Num())
+			if (CallbackResults.m_nLobbiesMatching == SessionInterface->PendingSearchLobbyIds.Num())
 			{
 				bIsComplete = true;
 			}
@@ -1005,14 +1005,14 @@ void FOnlineAsyncTaskSteamFindLobbies::Tick()
  */
 void FOnlineAsyncTaskSteamFindLobbies::Finalize()
 {
-	FOnlineSessionSteamPtr SessionInt = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
+	FOnlineSessionSteamPtr SessionInterface = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
 
 	if (bWasSuccessful)
 	{
 		// Parse any ready search results
-		for (int32 LobbyIdx=0; LobbyIdx < SessionInt->PendingSearchLobbyIds.Num(); LobbyIdx++)
+		for (int32 LobbyIdx=0; LobbyIdx < SessionInterface->PendingSearchLobbyIds.Num(); LobbyIdx++)
 		{
-			FUniqueNetIdSteam& LobbyId = SessionInt->PendingSearchLobbyIds[LobbyIdx];
+			FUniqueNetIdSteam& LobbyId = SessionInterface->PendingSearchLobbyIds[LobbyIdx];
 			if (LobbyId.IsValid() && CSteamID(LobbyId).IsLobby())
 			{
 				ParseSearchResult(LobbyId);
@@ -1023,12 +1023,12 @@ void FOnlineAsyncTaskSteamFindLobbies::Finalize()
 	}
 
 	SearchSettings->SearchState = bWasSuccessful ? EOnlineAsyncTaskState::Done : EOnlineAsyncTaskState::Failed;
-	if (SessionInt->CurrentSessionSearch.IsValid() && SearchSettings == SessionInt->CurrentSessionSearch)
+	if (SessionInterface->CurrentSessionSearch.IsValid() && SearchSettings == SessionInterface->CurrentSessionSearch)
 	{
-		SessionInt->CurrentSessionSearch = NULL;
+		SessionInterface->CurrentSessionSearch = NULL;
 	}
 
-	SessionInt->PendingSearchLobbyIds.Empty();
+	SessionInterface->PendingSearchLobbyIds.Empty();
 }
 
 /**
@@ -1036,10 +1036,10 @@ void FOnlineAsyncTaskSteamFindLobbies::Finalize()
  */
 void FOnlineAsyncTaskSteamFindLobbies::TriggerDelegates()
 {
-	IOnlineSessionPtr SessionInt = Subsystem->GetSessionInterface();
-	if (SessionInt.IsValid())
+	IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
+	if (SessionInterface.IsValid())
 	{
-		SessionInt->TriggerOnFindSessionsCompleteDelegates(bWasSuccessful);
+		SessionInterface->TriggerOnFindSessionsCompleteDelegates(bWasSuccessful);
 	}
 }
 
@@ -1073,10 +1073,10 @@ void FOnlineAsyncTaskSteamFindLobby::Tick()
 	
 	if (bWasSuccessful)
 	{
-		FOnlineSessionSteamPtr SessionInt = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
+		FOnlineSessionSteamPtr SessionInterface = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
 
 		// Waiting for the lobby updates to fill in
-		if (SessionInt->PendingSearchLobbyIds.Num() >= 1)
+		if (SessionInterface->PendingSearchLobbyIds.Num() >= 1)
 		{
 			bIsComplete = true;
 		}
@@ -1095,15 +1095,15 @@ void FOnlineAsyncTaskSteamFindLobby::Tick()
  */
 void FOnlineAsyncTaskSteamFindLobby::Finalize()
 {
-	FOnlineSessionSteamPtr SessionInt = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
-	if (SessionInt.IsValid())
+	FOnlineSessionSteamPtr SessionInterface = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
+	if (SessionInterface.IsValid())
 	{
 		if (bWasSuccessful)
 		{
 			// Parse any ready search results
-			for (int32 LobbyIdx=0; LobbyIdx < SessionInt->PendingSearchLobbyIds.Num(); LobbyIdx++)
+			for (int32 LobbyIdx=0; LobbyIdx < SessionInterface->PendingSearchLobbyIds.Num(); LobbyIdx++)
 			{
-				FUniqueNetIdSteam& LobbyId = SessionInt->PendingSearchLobbyIds[LobbyIdx];
+				FUniqueNetIdSteam& LobbyId = SessionInterface->PendingSearchLobbyIds[LobbyIdx];
 				if (LobbyId.IsValid() && CSteamID(LobbyId).IsLobby())
 				{
 					ParseSearchResult(LobbyId);
@@ -1114,12 +1114,12 @@ void FOnlineAsyncTaskSteamFindLobby::Finalize()
 		}
 
 		SearchSettings->SearchState = bWasSuccessful ? EOnlineAsyncTaskState::Done : EOnlineAsyncTaskState::Failed;
-		if (SessionInt->CurrentSessionSearch.IsValid() && SearchSettings == SessionInt->CurrentSessionSearch)
+		if (SessionInterface->CurrentSessionSearch.IsValid() && SearchSettings == SessionInterface->CurrentSessionSearch)
 		{
-			SessionInt->CurrentSessionSearch = NULL;
+			SessionInterface->CurrentSessionSearch = NULL;
 		}
 
-		SessionInt->PendingSearchLobbyIds.Empty();
+		SessionInterface->PendingSearchLobbyIds.Empty();
 	}
 }
 
@@ -1155,14 +1155,14 @@ FString FOnlineAsyncEventSteamLobbyInviteAccepted::ToString() const
  */
 void FOnlineAsyncEventSteamLobbyInviteAccepted::Finalize()
 {
-	FOnlineSessionSteamPtr SessionInt = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
-	if (SessionInt.IsValid() && !SessionInt->CurrentSessionSearch.IsValid())
+	FOnlineSessionSteamPtr Sessions = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
+	if (Sessions.IsValid() && !Sessions->CurrentSessionSearch.IsValid())
 	{
 		// Create a search settings object 
-		SessionInt->CurrentSessionSearch = MakeShareable(new FOnlineSessionSearch());
-		SessionInt->CurrentSessionSearch->SearchState = EOnlineAsyncTaskState::InProgress;
+		Sessions->CurrentSessionSearch = MakeShareable(new FOnlineSessionSearch());
+		Sessions->CurrentSessionSearch->SearchState = EOnlineAsyncTaskState::InProgress;
 
-		FOnlineAsyncTaskSteamFindLobby* NewTask = new FOnlineAsyncTaskSteamFindLobby(Subsystem, LobbyId, SessionInt->CurrentSessionSearch, LocalUserNum, SessionInt->OnSessionInviteAcceptedDelegates[LocalUserNum]);
+		FOnlineAsyncTaskSteamFindLobby* NewTask = new FOnlineAsyncTaskSteamFindLobby(Subsystem, LobbyId, Sessions->CurrentSessionSearch, LocalUserNum, Sessions->OnSessionInviteAcceptedDelegates[LocalUserNum]);
 		Subsystem->QueueAsyncTask(NewTask);
 	}
 	else

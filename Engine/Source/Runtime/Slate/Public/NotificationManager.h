@@ -53,38 +53,24 @@ protected:
 	/** Protect constructor as this is a singleton */
 	FSlateNotificationManager();
 
+	/** 
+	 *	Moves the anchor rect if required or if forced 
+	 *	@param bForce	Force a recalculation of the anchor rect - used (for example) when the desktop is resized.	
+	*/
+	void RecalculateAnchorRect( const bool bForce );
+
 	/** Arranges the active notifications in a stack */
 	void ArrangeNotifications();
 
-	/** Create a notification list for the specified screen rectangle */
-	TSharedRef<SNotificationList> CreateStackForArea(const FSlateRect& InRectangle);
-
 private:
-
-	/** A list of notifications, bound to a particular region */
-	struct FRegionalNotificationList
-	{
-		/** Constructor */
-		FRegionalNotificationList(const FSlateRect& InRectangle);
-
-		/** Arranges the notifications in a stack */
-		void Arrange();
-
-		/** Remove any dead notifications */
-		void RemoveDeadNotifications();
-
-		/** The notification list itself (one per notification) */
-		TArray<TSharedRef<SNotificationList>> Notifications;
-
-		/** The rectangle we use to determine the anchor point for this list */
-		FSlateRect Region;
-	};
-
 	/** A window under which all of the notification windows will nest. */
 	TWeakPtr<SWindow> RootWindowPtr;
 
-	/** An array of notification lists grouped by work area regions */
-	TArray< FRegionalNotificationList > RegionalLists;
+	/** All current notification lists */
+	TArray< TSharedPtr<SNotificationList> > NotificationLists;
+
+	/** The rectangle we use to determine the anchor point */
+	FSlateRect AnchorReferenceRect;
 
 	/** Thread safe queue of notifications to display */
 	TLockFreePointerList<FNotificationInfo> PendingNotifications;

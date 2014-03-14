@@ -165,7 +165,7 @@ void SGraphActionMenu::Construct( const FArguments& InArgs, bool bIsReadOnly/* =
 	this->OnActionDragged = InArgs._OnActionDragged;
 	this->OnCategoryDragged = InArgs._OnCategoryDragged;
 	this->OnCreateWidgetForAction = InArgs._OnCreateWidgetForAction;
-	this->OnCreateCustomRowExpander = InArgs._OnCreateCustomRowExpander;
+	this->OnCreateHoverOverlayWidget = InArgs._OnCreateHoverOverlayWidget;
 	this->OnCollectAllActions = InArgs._OnCollectAllActions;
 	this->OnCategoryTextCommitted = InArgs._OnCategoryTextCommitted;
 	this->OnCanRenameSelectedAction = InArgs._OnCanRenameSelectedAction;
@@ -801,6 +801,7 @@ TSharedRef<ITableRow> SGraphActionMenu::MakeWidget( TSharedPtr<FGraphActionNode>
 
 
 	TSharedPtr<SWidget> RowContent;
+	TSharedPtr<SWidget> RowOverlay;
 
 	if( InItem->IsActionNode() )
 	{
@@ -821,6 +822,11 @@ TSharedRef<ITableRow> SGraphActionMenu::MakeWidget( TSharedPtr<FGraphActionNode>
 		else
 		{
 			RowContent = SNew(SDefaultGraphActionWidget, &CreateData);
+		}
+
+		if (OnCreateHoverOverlayWidget.IsBound())
+		{
+			RowOverlay = OnCreateHoverOverlayWidget.Execute( &CreateData );
 		}
 	}
 	else if( InItem->IsCategoryNode() )
@@ -906,45 +912,56 @@ TSharedRef<ITableRow> SGraphActionMenu::MakeWidget( TSharedPtr<FGraphActionNode>
 		}
 	}
 
-	TSharedPtr<SHorizontalBox> RowContainer;
+	TSharedPtr<SOverlay> OverlayContainer;
 	TableRow->SetContent
 	( 
- 		SAssignNew(RowContainer, SHorizontalBox)
+		SAssignNew(OverlayContainer, SOverlay)
+		+SOverlay::Slot()
+		[
+			SNew(SHorizontalBox)		
+			+SHorizontalBox::Slot()
+				.AutoWidth()
+				.HAlign(HAlign_Right) .VAlign(VAlign_Fill)
+			[
+				SNew(SExpanderArrow, TableRow )
+			]
+
+			+SHorizontalBox::Slot()
+				.FillWidth(1)
+			[
+				RowContent.ToSharedRef()
+			]
+		]
 	);
 
-	TSharedPtr<SExpanderArrow> ExpanderWidget;
-	if (OnCreateCustomRowExpander.IsBound())
+	if (RowOverlay.IsValid())
 	{
-		FCustomExpanderData CreateData;
-		CreateData.TableRow        = TableRow;
-		CreateData.WidgetContainer = RowContainer;
-
-		if (InItem->IsActionNode())
+		struct HoverOverlayUtils
 		{
-			check(InItem->Actions.Num() > 0);
-			CreateData.RowAction = InItem->Actions[0];
-		}
+			static EVisibility IsHovered(TSharedPtr<SOverlay> Container)
+			{
+				return Container->IsHovered() ? EVisibility::Visible :EVisibility::Collapsed;
+			}
+		};
 
-		ExpanderWidget = OnCreateCustomRowExpander.Execute(CreateData);
+		OverlayContainer->AddSlot(0)
+		[
+			SNew(SHorizontalBox)
+			+SHorizontalBox::Slot()
+				.AutoWidth()
+			[
+				// nested horizontal-box that we can turn up the visibility on 
+				// (so the outer one doesn't block tooltips for underlaid widgets)
+				SNew(SHorizontalBox)
+					.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateStatic(&HoverOverlayUtils::IsHovered, OverlayContainer)))
+				+SHorizontalBox::Slot()
+					.AutoWidth()
+				[
+					RowOverlay.ToSharedRef()
+				]
+			]
+		];
 	}
-	else 
-	{
-		ExpanderWidget = SNew(SExpanderArrow, TableRow);
-	}
-
-	RowContainer->AddSlot()
-		.AutoWidth()
-		.VAlign(VAlign_Fill)
-		.HAlign(HAlign_Right)
-	[
-		ExpanderWidget.ToSharedRef()
-	];
-
-	RowContainer->AddSlot()
-		.FillWidth(1.0)
-	[
-		RowContent.ToSharedRef()
-	];
 
 	return TableRow.ToSharedRef();
 }

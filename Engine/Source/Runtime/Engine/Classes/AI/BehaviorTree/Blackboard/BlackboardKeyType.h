@@ -22,9 +22,6 @@ class ENGINE_API UBlackboardKeyType : public UObject
 	/** extract location from entry */
 	virtual bool GetLocation(const uint8* MemoryBlock, FVector& Location) const;
 
-	/** extract rotation from entry */
-	virtual bool GetRotation(const uint8* MemoryBlock, FRotator& Rotation) const;
-
 	enum CompareResult
 	{
 		Less = -1,

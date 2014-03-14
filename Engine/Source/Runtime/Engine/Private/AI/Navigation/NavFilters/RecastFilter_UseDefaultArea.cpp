@@ -2,15 +2,14 @@
 
 #include "EnginePrivate.h"
 
-URecastFilter_UseDefaultArea::URecastFilter_UseDefaultArea(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
-{
-}
-
-void URecastFilter_UseDefaultArea::InitializeFilter(const ANavigationData* NavData, FNavigationQueryFilter* Filter) const
-{
 #if WITH_RECAST
-	Filter->SetFilterImplementation((const INavigationQueryFilterInterface*)ARecastNavMesh::GetNamedFilter(ERecastNamedFilter::FilterOutAreas));
+#include "DetourNavMeshQuery.h"
 #endif // WITH_RECAST
 
-	Super::InitializeFilter(NavData, Filter);
+URecastFilter_UseDefaultArea::URecastFilter_UseDefaultArea(const class FPostConstructInitializeProperties& PCIP) 
+	: Super(PCIP)
+{
+#if WITH_RECAST
+	QueryFilter->SetFilterImplementation((const INavigationQueryFilterInterface*)ARecastNavMesh::GetNamedFilter(ERecastNamedFilter::FilterOutAreas));
+#endif // WITH_RECAST
 }

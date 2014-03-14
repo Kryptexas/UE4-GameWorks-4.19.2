@@ -146,6 +146,12 @@ void SDeviceManager::FillWindowMenu( FMenuBuilder& MenuBuilder, TSharedRef<FWork
 		return;
 	}
 
+	MenuBuilder.BeginSection("WindowLocalTabSpawners", LOCTEXT("DeviceManagerMenuGroup", "Device Manager"));
+	{
+		TabManager->PopulateTabSpawnerMenu(MenuBuilder, AppMenuGroup);
+	}
+	MenuBuilder.EndSection();
+
 #if !WITH_EDITOR
 	MenuBuilder.BeginSection("WindowGlobalTabSpawners", LOCTEXT("UfeMenuGroup", "Unreal Frontend"));
 	{
@@ -153,12 +159,6 @@ void SDeviceManager::FillWindowMenu( FMenuBuilder& MenuBuilder, TSharedRef<FWork
 	}
 	MenuBuilder.EndSection();
 #endif //!WITH_EDITOR
-
-	MenuBuilder.BeginSection("WindowLocalTabSpawners", LOCTEXT("DeviceManagerMenuGroup", "Device Manager"));
-	{
-		TabManager->PopulateTabSpawnerMenu(MenuBuilder, AppMenuGroup);
-	}
-	MenuBuilder.EndSection();
 }
 
 

@@ -363,7 +363,7 @@ void UObject::CallFunction( FFrame& Stack, RESULT_DECL, UFunction* Function )
 		if (FunctionCallspace & FunctionCallspace::Remote)
 		{
 			SavedCode = Stack.Code; // Since this is native, we need to rollback the stack if we are calling both remotely and locally
-			CallRemoteFunction(Function, Buffer, Stack.OutParms, &Stack);
+			CallRemoteFunction(Function, Buffer, &Stack);
 		}
 
 		if (FunctionCallspace & FunctionCallspace::Local)
@@ -529,7 +529,7 @@ void UObject::ProcessInternal( FFrame& Stack, RESULT_DECL )
 	int32 FunctionCallspace = GetFunctionCallspace( (UFunction*)Stack.Node, Stack.Locals, NULL );
 	if (FunctionCallspace & FunctionCallspace::Remote)
 	{
-		CallRemoteFunction((UFunction*)Stack.Node, Stack.Locals, Stack.OutParms, NULL);
+		CallRemoteFunction((UFunction*)Stack.Node, Stack.Locals, NULL);
 	}
 
 	if (FunctionCallspace & FunctionCallspace::Local)
@@ -781,7 +781,7 @@ void UObject::ProcessEvent( UFunction* Function, void* Parms )
 		int32 FunctionCallspace = GetFunctionCallspace(Function, Parms, NULL);
 		if (FunctionCallspace & FunctionCallspace::Remote)
 		{
-			CallRemoteFunction(Function, Parms, NULL, NULL);
+			CallRemoteFunction(Function, Parms, NULL);
 		}
 
 		if ((FunctionCallspace & FunctionCallspace::Local) == 0)

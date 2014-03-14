@@ -29,13 +29,12 @@ ASpotLight::ASpotLight(const class FPostConstructInitializeProperties& PCIP)
 	ArrowComponent = PCIP.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("ArrowComponent0"));
 	if (ArrowComponent)
 	{
-		ArrowComponent->ArrowColor = GetLightColor();
+		ArrowComponent->ArrowColor = FColor(150, 200, 255);
 		ArrowComponent->bTreatAsASprite = true;
 		ArrowComponent->SpriteInfo.Category = ConstructorStatics.ID_Lighting;
 		ArrowComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Lighting;
 		ArrowComponent->AttachParent = SpotLightComponent;
 		ArrowComponent->bLightAttachment = true;
-		ArrowComponent->bIsScreenSizeScaled = true;
 	}
 #endif // WITH_EDITORONLY_DATA
 }
@@ -48,13 +47,6 @@ void ASpotLight::PostLoad()
 	{
 		LightComponent->LightFunctionMaterial = NULL;
 	}
-
-#if WITH_EDITORONLY_DATA
-	if(ArrowComponent)
-	{
-		ArrowComponent->ArrowColor = GetLightColor();
-	}
-#endif
 }
 
 #if WITH_EDITOR
@@ -125,15 +117,5 @@ void ASpotLight::EditorApplyScale(const FVector& DeltaScale, const FVector* Pivo
 	}
 
 	PostEditChange();
-}
-
-void ASpotLight::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
-{
-	Super::PostEditChangeProperty(PropertyChangedEvent);
-
-	if(ArrowComponent)
-	{
-		ArrowComponent->ArrowColor = GetLightColor();
-	}
 }
 #endif

@@ -3,10 +3,10 @@
 
 #include "SceneOutlinerPrivatePCH.h"
 #include "SSceneOutliner.h"
-#include "SceneOutlinerTreeItems.h"
 
 #include "ScopedTransaction.h"
 
+#include "Editor/UnrealEd/Public/DragAndDrop/ActorDragDropGraphEdOp.h"
 #include "ClassIconFinder.h"
 
 #include "SSocketChooser.h"
@@ -19,29 +19,11 @@ DEFINE_LOG_CATEGORY_STATIC(LogSceneOutliner, Log, All);
 
 #define LOCTEXT_NAMESPACE "SSceneOutliner"
 
-// The amount of time that must past before the Scene Outliner will attempt a sort when in PIE/SIE.
+// The amoung of time that must past before the Scene Outliner will attempt a sort when in PIE/SIE.
 #define SCENE_OUTLINER_RESORT_TIMER 1.0f
 
 namespace SceneOutliner
 {
-	FOnFolderCreate SSceneOutliner::OnFolderCreate;
-	FOnFolderMove	SSceneOutliner::OnFolderMove;
-	FOnFolderDelete SSceneOutliner::OnFolderDelete;
-
-	/** Gets the label for a tree item */
-	FText GetLabelForItem( const TSharedRef<TOutlinerTreeItem> TreeItem )
-	{
-		if (TreeItem->Type == SceneOutliner::TOutlinerTreeItem::Actor)
-		{
-			const AActor* Actor = StaticCastSharedRef<const SceneOutliner::TOutlinerActorTreeItem>(TreeItem)->Actor.Get();
-			return Actor ? FText::FromString( Actor->GetActorLabel() ) : LOCTEXT("ActorLabelForMissingActor", "(Deleted Actor)");
-		}
-		else
-		{
-			return FText::FromName(StaticCastSharedRef<const SceneOutliner::TOutlinerFolderTreeItem>(TreeItem)->LeafName);
-		}
-	}
-
 	namespace Helpers
 	{
 		/** Sorts tree items alphabetically */
@@ -49,22 +31,28 @@ namespace SceneOutliner
 		{
 			bool operator()( const FOutlinerTreeItemPtr& A, const FOutlinerTreeItemPtr& B ) const
 			{
-				if ((A->Type == TOutlinerTreeItem::Folder) != (B->Type == TOutlinerTreeItem::Folder))
+				auto ActorA = A.Get()->Actor;
+				auto ActorB = B.Get()->Actor;
+				if( ActorA != NULL && ActorB != NULL )
 				{
-					return A->Type == TOutlinerTreeItem::Folder;
+					return ActorA->GetActorLabel() < ActorB->GetActorLabel();
 				}
-				return GetLabelForItem(A.ToSharedRef()).ToString() < GetLabelForItem(B.ToSharedRef()).ToString();
+
+				return false;
 			}
 		};
 		struct FSortByActorDescending
 		{
 			bool operator()( const FOutlinerTreeItemPtr& A, const FOutlinerTreeItemPtr& B ) const
 			{
-				if ((A->Type == TOutlinerTreeItem::Folder) != (B->Type == TOutlinerTreeItem::Folder))
+				auto ActorA = A.Get()->Actor;
+				auto ActorB = B.Get()->Actor;
+				if( ActorA != NULL && ActorB != NULL )
 				{
-					return A->Type != TOutlinerTreeItem::Folder;
+					return ActorA->GetActorLabel() > ActorB->GetActorLabel();
 				}
-				return GetLabelForItem(A.ToSharedRef()).ToString() > GetLabelForItem(B.ToSharedRef()).ToString();
+
+				return false;
 			}
 		};
 	}
@@ -72,7 +60,6 @@ namespace SceneOutliner
 	void SSceneOutliner::Construct( const FArguments& InArgs, const FSceneOutlinerInitializationOptions& InitOptions )
 	{
 		this->InitOptions = InitOptions;
-		OnContextMenuOpening = InArgs._MakeContextMenuWidgetDelegate;
 
 		OnActorPicked = InArgs._OnActorPickedDelegate;
 
@@ -84,14 +71,10 @@ namespace SceneOutliner
 		bFullRefresh = true;
 		bNeedsRefresh = true;
 		bIsReentrant = false;
-		bForgetEmptyFolders = false;
 		TotalActorCount = 0;
 		FilteredActorCount = 0;
 		SortOutlinerTimer = 0.0f;
 		bPendingFocusNextFrame = InitOptions.bFocusSearchBoxWhenOpened;
-
-		SortByColumn = ColumnID_ActorLabel;
-		SortMode = EColumnSortMode::Ascending;
 
 		// @todo outliner: Should probably save this in layout!
 		// @todo outliner: Should save spacing for list view in layout
@@ -104,10 +87,7 @@ namespace SceneOutliner
 		MobilityMovableBrush = FEditorStyle::GetBrush( "ClassIcon.ComponentMobilityMovablePip" );
 
 		//Setup the SearchBox filter
-		{
-			auto Delegate = TreeItemTextFilter::FItemToStringArray::CreateSP( this, &SSceneOutliner::PopulateSearchStrings );
-			SearchBoxFilter = MakeShareable( new TreeItemTextFilter( Delegate ) );
-		}
+		SearchBoxActorFilter = MakeShareable( new ActorTextFilter( ActorTextFilter::FItemToStringArray::CreateSP( this, &SSceneOutliner::PopulateActorSearchStrings ) ) );
 
 		TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
 
@@ -122,8 +102,8 @@ namespace SceneOutliner
 			CustomFilters = MakeShareable( new ActorFilterCollection() );
 		}
 	
-		SearchBoxFilter->OnChanged().AddSP( this, &SSceneOutliner::FullRefresh, false );
-		CustomFilters->OnChanged().AddSP( this, &SSceneOutliner::FullRefresh, false );
+		SearchBoxActorFilter->OnChanged().AddSP( this, &SSceneOutliner::FullRefresh );
+		CustomFilters->OnChanged().AddSP( this, &SSceneOutliner::FullRefresh );
 
 		//Apply custom filters based on global preferences
 		if ( InitOptions.Mode == ESceneOutlinerMode::ActorBrowsing )
@@ -201,10 +181,9 @@ namespace SceneOutliner
 			]
 		];
 
-		auto Toolbar = SNew(SHorizontalBox);
-
-		Toolbar->AddSlot()
-		.VAlign(VAlign_Center)
+		VerticalBox->AddSlot()
+		.AutoHeight()
+		.Padding( 0.0f, 4.0f )
 		[
 			SAssignNew( FilterTextBoxWidget, SSearchBox )
 			.Visibility( this, &SSceneOutliner::GetSearchBoxVisibility )
@@ -212,31 +191,6 @@ namespace SceneOutliner
 			.ToolTipText( LOCTEXT("FilterSearchActorsHint", "Type here to search actors.  (Pressing enter selects actors.)").ToString() )
 			.OnTextChanged( this, &SSceneOutliner::OnFilterTextChanged )
 			.OnTextCommitted( this, &SSceneOutliner::OnFilterTextCommitted )
-		];
-
-		if (InitOptions.Mode == ESceneOutlinerMode::ActorBrowsing)
-		{
-			Toolbar->AddSlot()
-				.VAlign(VAlign_Center)
-				.AutoWidth()
-				.Padding(4.f, 0.f, 0.f, 0.f)
-				[
-					SNew(SButton)
-					.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
-					.ToolTipText(LOCTEXT("CreateFolderToolTip", "Create a folder at the root of the scene containing the current actor selection"))
-					.OnClicked(this, &SSceneOutliner::OnCreateFolderClicked)
-					[
-						SNew(SImage)
-						.Image(FEditorStyle::GetBrush("SceneOutliner.NewFolderIcon"))
-					]
-				];
-		}
-
-		VerticalBox->AddSlot()
-		.AutoHeight()
-		.Padding( 0.0f, 0.0f, 0.0f, 4.0f )
-		[
-			Toolbar
 		];
 
 		VerticalBox->AddSlot()
@@ -254,7 +208,7 @@ namespace SceneOutliner
 
 			+SOverlay::Slot()
 			[
-				SAssignNew( OutlinerTreeView, SOutlinerTreeView, StaticCastSharedRef<SSceneOutliner>(AsShared()) )
+				SAssignNew( OutlinerTreeView, SOutlinerTreeView )
 
 				// multi-select if we're in browsing mode, 
 				// single-select if we're in picking mode,
@@ -279,7 +233,7 @@ namespace SceneOutliner
 				.OnGenerateRow( this, &SSceneOutliner::OnGenerateRowForOutlinerTree ) 
 
 				// Use the level viewport context menu as the right click menu for tree items
-				.OnContextMenuOpening(this, &SSceneOutliner::OnOpenContextMenu)
+				.OnContextMenuOpening( InArgs._MakeContextMenuWidgetDelegate )
 
 				// Header for the tree
 				.HeaderRow( HeaderRowWidget )
@@ -365,14 +319,12 @@ namespace SceneOutliner
 
 		// Register to find out when actors are added or removed
 		// @todo outliner: Might not catch some cases (see: CALLBACK_ActorPropertiesChange, CALLBACK_LayerChange, CALLBACK_LevelDirtied, CALLBACK_OnActorMoved, CALLBACK_UpdateLevelsForAllActors)
-		FEditorDelegates::MapChange.AddSP( this, &SSceneOutliner::OnMapChange );
-		GEngine->OnLevelActorListChanged().AddSP( this, &SSceneOutliner::FullRefresh, false );
+		GEngine->OnLevelActorsChanged().AddSP( this, &SSceneOutliner::FullRefresh );
 		FWorldDelegates::LevelAddedToWorld.AddSP( this, &SSceneOutliner::OnLevelAdded );
 		FWorldDelegates::LevelRemovedFromWorld.AddSP( this, &SSceneOutliner::OnLevelRemoved );
 
 		GEngine->OnLevelActorAdded().AddSP( this, &SSceneOutliner::OnLevelActorsAdded );
 		GEngine->OnLevelActorDetached().AddSP( this, &SSceneOutliner::OnLevelActorsDetached );
-		GEngine->OnLevelActorFolderChanged().AddSP( this, &SSceneOutliner::OnLevelActorFolderChanged );
 
 		GEngine->OnLevelActorDeleted().AddSP( this, &SSceneOutliner::OnLevelActorsRemoved );
 		GEngine->OnLevelActorAttached().AddSP( this, &SSceneOutliner::OnLevelActorsAttached );
@@ -384,10 +336,6 @@ namespace SceneOutliner
 
 		// Register to be notified when properties are edited
 		FCoreDelegates::OnActorLabelChanged.Add( FCoreDelegates::FOnActorLabelChanged::FDelegate::CreateRaw(this, &SSceneOutliner::OnActorLabelChanged) );
-
-		OnFolderCreate.AddSP(this, &SSceneOutliner::OnBroadcastFolderCreate);
-		OnFolderMove.AddSP(this, &SSceneOutliner::OnBroadcastFolderMove);
-		OnFolderDelete.AddSP(this, &SSceneOutliner::OnBroadcastFolderDelete);
 	}
 
 	SSceneOutliner::~SSceneOutliner()
@@ -398,36 +346,16 @@ namespace SceneOutliner
 			USelection::SelectionChangedEvent.RemoveAll(this);
 			USelection::SelectObjectEvent.RemoveAll(this);
 		}
-		FEditorDelegates::MapChange.RemoveAll( this );
-		GEngine->OnLevelActorListChanged().RemoveAll( this );
+		GEngine->OnLevelActorsChanged().RemoveAll( this );
 		GEditor->UnregisterForUndo( this );
 
-		SearchBoxFilter->OnChanged().RemoveAll( this );
+		SearchBoxActorFilter->OnChanged().RemoveAll( this );
 		CustomFilters->OnChanged().RemoveAll( this );
 		
 		FWorldDelegates::LevelAddedToWorld.RemoveAll( this );
 		FWorldDelegates::LevelRemovedFromWorld.RemoveAll( this );
 
 		FCoreDelegates::OnActorLabelChanged.Remove( FCoreDelegates::FOnActorLabelChanged::FDelegate::CreateRaw(this, &SSceneOutliner::OnActorLabelChanged) );
-
-		OnFolderCreate.RemoveAll(this);
-		OnFolderMove.RemoveAll(this);
-		OnFolderDelete.RemoveAll(this);
-	}
-
-	TArray<FOutlinerTreeItemPtr> SSceneOutliner::GetSelectedItems()
-	{
-		return OutlinerTreeView->GetSelectedItems();
-	}
-
-	const TSharedPtr<TOutlinerFolderTreeItem> SSceneOutliner::FindFolderByPath(FName Path) const
-	{
-		auto* FolderPtr = FolderToTreeItemMap.Find(Path);
-		if (FolderPtr)
-		{
-			return *FolderPtr;
-		}
-		return nullptr;
 	}
 
 	FSlateColor SSceneOutliner::GetViewButtonForegroundColor() const
@@ -565,11 +493,8 @@ namespace SceneOutliner
 		bNeedsRefresh = true;
 	}
 
-	void SSceneOutliner::FullRefresh(const bool bInForgetEmptyFolders)
+	void SSceneOutliner::FullRefresh()
 	{
-		// Only ever set the forget empty folders flag if it's not already set
-		bForgetEmptyFolders |= bInForgetEmptyFolders;
-
 		bFullRefresh = true;
 		Refresh();
 	}
@@ -609,17 +534,9 @@ namespace SceneOutliner
 			// Clear the selection here - UpdateActorMapWithWorld will reconstruct it.
 			OutlinerTreeView->ClearSelection();
 
-			EmptyTreeItems();
-			UpdateActorMapWithWorld( RepresentingWorld );
-
-			// Add any empty folders which may have been removed as part of the refresh
-			for (auto EmptyFolderPathIt = EmptyFolderBackup.CreateConstIterator(); EmptyFolderPathIt; ++EmptyFolderPathIt)
-			{
-				if (FilterTextBoxWidget->GetText().IsEmpty() && !FolderToTreeItemMap.Find(*EmptyFolderPathIt))
-				{
-					AddFolderToTree(MakeShareable(new TOutlinerFolderTreeItem(*EmptyFolderPathIt)));
-				}
-			}
+			ActorToTreeItemMap.Reset();
+			RootTreeItems.Empty();
+			UpdateActorMapWithWorld( ActorToTreeItemMap, RepresentingWorld );
 
 			bMadeAnySignificantChanges = true;
 			bFullRefresh = false;
@@ -628,79 +545,103 @@ namespace SceneOutliner
 		{
 			TSet< AActor* > ParentActors;
 
-			// Add actors that have been added to the world
-			for(int32 ItemIdx = 0; ItemIdx < AddedItemsList.Num(); ++ItemIdx)
+			for(int32 ActorIdx = 0; ActorIdx < AddedActorsList.Num(); ++ActorIdx)
 			{
-				bMadeAnySignificantChanges |= AddItemToTree(AddedItemsList[ItemIdx], ParentActors);
+				if(AddedActorsList[ActorIdx].IsValid() && AddedActorsList[ActorIdx]->Actor.IsValid() && IsActorDisplayable(AddedActorsList[ActorIdx]->Actor.Get()))
+				{
+					bMadeAnySignificantChanges |= AddActorToTree(AddedActorsList[ActorIdx], ActorToTreeItemMap, ParentActors);
+				}
 			}
 
-			// Attach actors to other actors
-			for(int32 ItemIdx = 0; ItemIdx < AttachedActorsList.Num(); ++ItemIdx)
+			for(int32 ActorIdx = 0; ActorIdx < AttachedActorsList.Num(); ++ActorIdx)
 			{
-				const int32 RootIndex = RootTreeItems.Find(AttachedActorsList[ItemIdx]);
-
-				auto ActorItem = AttachedActorsList[ItemIdx];
-				auto* Actor = ActorItem->Actor.Get();
-				if (!Actor)
+				if(AttachedActorsList[ActorIdx].IsValid())
 				{
-					continue;
-				}
+					int32 FoundIndex(INDEX_NONE);
+					FoundIndex = RootTreeItems.Find(AttachedActorsList[ActorIdx]);
 
-				if (RootIndex != INDEX_NONE)
+					if(FoundIndex != INDEX_NONE)
+					{
+						bMadeAnySignificantChanges = true;
+
+						RootTreeItems.RemoveAt(FoundIndex);
+
+						if( AttachedActorsList[ActorIdx]->Actor.IsValid() )
+						{
+							// Since the item is being removed from the root, whatever parent (or hierarchy of parents) it has needs to be added to the tree (and likely filtered out).
+							AActor* Parent = AttachedActorsList[ActorIdx]->Actor->GetAttachParentActor();
+							while(Parent)
+							{
+								ParentActors.Add(Parent);
+								Parent = Parent->GetAttachParentActor();
+							}
+						}
+					}
+
+					// We only synchronize selection when in actor browsing mode
+					if( InitOptions.Mode == ESceneOutlinerMode::ActorBrowsing )
+					{
+						// Synchronize selection
+						if( GEditor->GetSelectedActors()->IsSelected( AttachedActorsList[ActorIdx]->Actor.Get() ) )
+						{
+							OutlinerTreeView->SetItemSelection( AttachedActorsList[ActorIdx], true );
+						}
+					}
+				}
+			}
+
+			for(int32 ActorIdx = 0; ActorIdx < DetachedActorsList.Num(); ++ActorIdx)
+			{
+				if(DetachedActorsList[ActorIdx].IsValid())
 				{
 					bMadeAnySignificantChanges = true;
 
-					// Item currently exists at the root of the tree, remove it then enumerate its parents
-					RootTreeItems.RemoveAt(RootIndex);
+					--TotalActorCount;
 
-
-					// Since the item is being removed from the root, whatever parent (or hierarchy of parents) it has needs to be added to the tree (and likely filtered out).
-					AActor* Parent = Actor->GetAttachParentActor();
-					while(Parent)
+					if(!DetachedActorsList[ActorIdx]->bIsFilteredOut)
 					{
-						ParentActors.Add(Parent);
-						Parent = Parent->GetAttachParentActor();
+						--FilteredActorCount;
+					}
+
+					if(!AddActorToTree(DetachedActorsList[ActorIdx], ActorToTreeItemMap, ParentActors))
+					{
+						// The actor has been filtered out. Remove the item from the map.
+						ActorToTreeItemMap.Remove(DetachedActorsList[ActorIdx]->Actor);
 					}
 				}
-				else
+			}
+
+			for(int32 ActorIdx = 0; ActorIdx < RemovedActorsList.Num(); ++ActorIdx)
+			{
+				if(RemovedActorsList[ActorIdx].IsValid())
 				{
-					// Item currently exists inside a folder - remove this item from our parent, and set the folder name
-					TSharedRef<TOutlinerFolderTreeItem>* ParentFolderItem = FolderToTreeItemMap.Find(Actor->GetFolderPath());
+					int32 FoundIndex(INDEX_NONE);
+					FoundIndex = RootTreeItems.Find(RemovedActorsList[ActorIdx]);
 
-
-					if (ParentFolderItem)
+					if(FoundIndex != INDEX_NONE)
 					{
 						bMadeAnySignificantChanges = true;
-						(*ParentFolderItem)->ChildItems.Remove(AttachedActorsList[ItemIdx]);
+						--TotalActorCount;
+
+						if(!RemovedActorsList[ActorIdx]->bIsFilteredOut)
+						{
+							--FilteredActorCount;
+						}
+
+						// We only synchronize selection when in actor browsing mode
+						if( InitOptions.Mode == ESceneOutlinerMode::ActorBrowsing )
+						{
+							// Synchronize selection since we no longer clear the selection list!
+							if( GEditor->GetSelectedActors()->IsSelected( RemovedActorsList[ActorIdx]->Actor.Get() ) )
+							{
+								OutlinerTreeView->SetItemSelection( RemovedActorsList[ActorIdx], false );
+							}
+						}
+
+						RootTreeItems.RemoveAt(FoundIndex);
+						ActorToTreeItemMap.Remove(RemovedActorsList[ActorIdx]->Actor);
 					}
 				}
-
-				// We only synchronize selection when in actor browsing mode
-				if( InitOptions.Mode == ESceneOutlinerMode::ActorBrowsing )
-				{
-					// Synchronize selection
-					if( GEditor->GetSelectedActors()->IsSelected( Actor ) )
-					{
-						OutlinerTreeView->SetItemSelection( AttachedActorsList[ItemIdx], true );
-					}
-				}
-			}
-
-			// Refresh items
-			for(int32 ItemIdx = 0; ItemIdx < RefreshItemsList.Num(); ++ItemIdx)
-			{
-				bMadeAnySignificantChanges = true;
-
-				// Refresh items by removing and re-adding them
-				RemoveItemFromTree(RefreshItemsList[ItemIdx]);
-				AddItemToTree(RefreshItemsList[ItemIdx], ParentActors);
-			}
-
-			// Remove items from the tree
-			for(int32 ItemIdx = 0; ItemIdx < RemovedItemsList.Num(); ++ItemIdx)
-			{
-				bMadeAnySignificantChanges = true;
-				RemoveItemFromTree(RemovedItemsList[ItemIdx]);
 			}
 
 			if( InitOptions.bShowParentTree )
@@ -709,14 +650,14 @@ namespace SceneOutliner
 				{
 					AActor* Actor = *ActorIt;
 
-					AddFilteredParentActorToTree(Actor);
+					AddFilteredParentActorToTree(Actor, ActorToTreeItemMap);
 				}
 			}
 		}
 		
-		AddedItemsList.Empty();
-		RefreshItemsList.Empty();
-		RemovedItemsList.Empty();
+		AddedActorsList.Empty();
+		DetachedActorsList.Empty();
+		RemovedActorsList.Empty();
 		AttachedActorsList.Empty();
 
 		if (bMadeAnySignificantChanges)
@@ -728,62 +669,33 @@ namespace SceneOutliner
 		bNeedsRefresh = false;
 	}
 
-	void SSceneOutliner::EmptyTreeItems()
-	{
-		TotalActorCount = 0;
-		FilteredActorCount = 0;
 
-		ActorToTreeItemMap.Reset();
-		if (bForgetEmptyFolders)
-		{
-			EmptyFolderBackup.Empty();
-		}
-		else for (auto FolderIt = FolderToTreeItemMap.CreateConstIterator(); FolderIt; ++FolderIt)
-		{
-			if (FolderIt->Value->ChildItems.Num() == 0)
-			{
-				EmptyFolderBackup.AddUnique(FolderIt->Key);
-			}
-		}
-		
-		FolderToTreeItemMap.Reset();
-		RootTreeItems.Empty();
-	}
-
-	void SSceneOutliner::UpdateActorMapWithWorld( UWorld* World )
+	void SSceneOutliner::UpdateActorMapWithWorld( FActorToTreeItemMap& ActorMap, UWorld* World )
 	{
 		if ( World == NULL )
 		{
 			return;
 		}
 
-		EmptyTreeItems();
+		TotalActorCount = 0;
+		FilteredActorCount = 0;
+		ActorMap.Reset();
 
 		TSet< AActor* > ParentActors;
 
 		// We only synchronize selection when in actor browsing mode
-		const bool bSyncSelection = ( InitOptions.Mode == ESceneOutlinerMode::ActorBrowsing );
+		bool bSyncSelection = ( InitOptions.Mode == ESceneOutlinerMode::ActorBrowsing );
 		FOutlinerTreeItemPtr LastSelectedItem;
-
-		TSet<FName> FolderPaths;
 
 		// Iterate over every actor in memory.  WARNING: This is potentially very expensive!
 		for( FActorIterator ActorIt(World); ActorIt; ++ActorIt )
 		{
 			AActor* Actor = *ActorIt;
 
-			TSharedRef<TOutlinerActorTreeItem> NewItem = MakeShareable( new TOutlinerActorTreeItem(Actor) );
+			FOutlinerTreeItemPtr NewItem = MakeShareable( new TOutlinerTreeItem );
+			NewItem->Actor = Actor;
 
-			const bool bAddedToTree = AddItemToTree(NewItem, ParentActors);
-
-			if (!bAddedToTree)
-			{
-				FName Path = Actor->GetFolderPath();
-				if (!Path.IsNone())
-				{
-					FolderPaths.Add(Path);
-				}
-			}
+			bool bAddedToTree = AddActorToTree(NewItem, ActorMap, ParentActors);
 
 			//Tag PlayWorld Actors that have counterparts in EditorWorld
 			NewItem->bExistsInCurrentWorldAndPIE = GEditor->ObjectsThatExistInEditorWorld.Get( Actor );
@@ -799,29 +711,9 @@ namespace SceneOutliner
 		   to check these actors and add them to the list so their children can correctly appear during filtering. */
 		if( InitOptions.bShowParentTree )
 		{
-			// Add any parents for matched actors
 			for( auto ActorIt = ParentActors.CreateConstIterator(); ActorIt; ++ActorIt )
 			{
-				AddFilteredParentActorToTree(*ActorIt);
-			}
-
-			// Add any folders which might match the current search terms
-			for (const auto& Path : FolderPaths)
-			{
-				if (!FolderToTreeItemMap.Find(Path))
-				{
-					TSharedRef<TOutlinerFolderTreeItem> NewFolderItem = MakeShareable(new TOutlinerFolderTreeItem(Path));
-					if (!AddFolderToTree(NewFolderItem))
-					{
-						// If we didn't add that folder, attempt to add its parents too
-						TSet<FName> Parents;
-						NewFolderItem->GetParentPaths(Parents);
-						for (const auto& ParentPath : Parents)
-						{
-							AddFolderToTree(MakeShareable(new TOutlinerFolderTreeItem(ParentPath)));
-						}
-					}
-				}
+				AddFilteredParentActorToTree(*ActorIt, ActorMap);
 			}
 		}
 
@@ -833,210 +725,83 @@ namespace SceneOutliner
 		}
 	}
 
-	void SSceneOutliner::RemoveItemFromTree(TSharedRef<TOutlinerTreeItem> InItem)
+	bool SSceneOutliner::AddActorToTree(FOutlinerTreeItemPtr InActorItem, FActorToTreeItemMap& InActorMap, TSet< AActor* >& InParentActors)
 	{
-		TSharedRef<TOutlinerFolderTreeItem>* ParentFolderItem = nullptr;
-		if (InItem->Type == TOutlinerTreeItem::Actor)
-		{
-			auto ActorItemPtr = StaticCastSharedRef<TOutlinerActorTreeItem>(InItem);
-			auto* Actor = ActorItemPtr->Actor.Get();
-			// We only synchronize selection when in actor browsing mode
-			if( InitOptions.Mode == ESceneOutlinerMode::ActorBrowsing )
-			{
-				// Synchronize selection since we no longer clear the selection list!
-				if( GEditor->GetSelectedActors()->IsSelected( ActorItemPtr->Actor.Get() ) )
-				{
-					OutlinerTreeView->SetItemSelection( InItem, false );
-				}
-			}
+		bool bSuccessful = false;
 
-			if (Actor)
-			{
-				FName Path = Actor->GetFolderPath();
-				if (!Path.IsNone())
-				{
-					ParentFolderItem = FolderToTreeItemMap.Find(Path);
-				}
-			}
-			ActorToTreeItemMap.Remove(ActorItemPtr->Actor);
-
-			--TotalActorCount;
-
-			if(!InItem->Flags.IsFilteredOut)
-			{
-				--FilteredActorCount;
-			}
-		}
-		else
+		if(!InActorItem.IsValid() || !InActorItem->Actor.IsValid())
 		{
-			auto FolderItemPtr = StaticCastSharedRef<TOutlinerFolderTreeItem>(InItem);
-			ParentFolderItem = FolderToTreeItemMap.Find(FolderItemPtr->GetParentPath());
-			FolderToTreeItemMap.Remove(FolderItemPtr->Path);
-			EmptyFolderBackup.Remove(FolderItemPtr->Path);
-		}
-
-		if (ParentFolderItem)
-		{
-			auto Parent = (*ParentFolderItem);
-
-			Parent->ChildItems.Remove(InItem);
-			if (Parent->Flags.HasMoved && Parent->ChildItems.Num() == 0)
-			{
-				// Always remove empty folders that have been moved
-				RemoveItemFromTree(*ParentFolderItem);
-			}
-		}
-		else
-		{
-			RootTreeItems.Remove(InItem);
-		}
-	}
-
-	bool SSceneOutliner::AddItemToTree(TSharedRef<TOutlinerTreeItem> InItem, TSet<AActor*>& ParentActors)
-	{
-		if (InItem->Type == TOutlinerTreeItem::Actor)
-		{
-			return AddActorToTree(StaticCastSharedRef<TOutlinerActorTreeItem>(InItem), ParentActors);
-		}
-		else
-		{
-			return AddFolderToTree(StaticCastSharedRef<TOutlinerFolderTreeItem>(InItem));
-		}
-	}
-
-	bool SSceneOutliner::AddActorToTree(TSharedRef<TOutlinerActorTreeItem> InActorItem, TSet< AActor* >& ParentActors)
-	{
-		if (!InActorItem->Actor.IsValid())
-		{
-			return false;
+			return bSuccessful;
 		}
 
 		AActor* Actor = InActorItem->Actor.Get();
-		if (!IsActorDisplayable(Actor) || !CustomFilters->PassesAllFilters(Actor))
-		{
-			return false;
-		}
 
-		++TotalActorCount;
-
-		// Apply text filter
-		if (!SearchBoxFilter->PassesFilter(*InActorItem))
+		if( IsActorDisplayable( Actor ) )
 		{
-			return false;
-		}
-
-		if( InitOptions.bShowParentTree )
-		{
-			// OK so we know that this actor needs to be visible.  Let's gather any parent actors
-			// and make sure they're visible as well, so the user can see the hierarchy.
-			AActor* ParentActor = Actor->GetAttachParentActor();
-			if( ParentActor != NULL )
+			// Apply custom filters
+			if( CustomFilters->PassesAllFilters( Actor ) )
 			{
-				for( auto NextParent = ParentActor; NextParent != NULL; NextParent = NextParent->GetAttachParentActor() )
+				++TotalActorCount;
+
+				// Apply text filter
+				if( SearchBoxActorFilter->PassesFilter( Actor ) )
 				{
-					ParentActors.Add( NextParent );
-				}					
-			}
-			else
-			{
-				const FName ActorFolder = Actor->GetFolderPath();
-				if (ActorFolder.IsNone())
-				{
-					// Setup our root-level item list
-					RootTreeItems.Add( InActorItem );
+					if( InitOptions.bShowParentTree )
+					{
+						// OK so we know that this actor needs to be visible.  Let's gather any parent actors
+						// and make sure they're visible as well, so the user can see the hierarchy.
+						AActor* ParentActor = Actor->GetAttachParentActor();
+						if( ParentActor != NULL )
+						{
+							for( auto NextParent = ParentActor; NextParent != NULL; NextParent = NextParent->GetAttachParentActor() )
+							{
+								InParentActors.Add( NextParent );
+							}					
+						}
+
+						// Setup our root-level item list
+						if( ParentActor == NULL )
+						{
+							RootTreeItems.Add( InActorItem );
+						}
+					}
+					else
+					{
+						RootTreeItems.Add( InActorItem );
+					}
+
+					// Add the item to the map, making it available for display in the tree when its parent is looking for its children.
+					InActorMap.Add(Actor, InActorItem);
+					bSuccessful = true;
+
+					++FilteredActorCount;
+
+					// We only synchronize selection when in actor browsing mode
+					if( InitOptions.Mode == ESceneOutlinerMode::ActorBrowsing )
+					{
+						// Synchronize selection
+						if( GEditor->GetSelectedActors()->IsSelected( Actor ) )
+						{
+							OutlinerTreeView->SetItemSelection( InActorItem, true );
+						}
+					}
 				}
-				else
-				{
-					// Ignore search text since we know we pass the filter, and will need to show parents
-					const bool bIgnoreSearch = true;
-					AddChildToParent(InActorItem, ActorFolder, bIgnoreSearch);
-				}
 			}
 		}
-		else
-		{
-			RootTreeItems.Add( InActorItem );
-		}
-
-		// Add the item to the map, making it available for display in the tree when its parent is looking for its children.
-		ActorToTreeItemMap.Add(Actor, InActorItem);
-
-		++FilteredActorCount;
-
-		// We only synchronize selection when in actor browsing mode
-		if( InitOptions.Mode == ESceneOutlinerMode::ActorBrowsing )
-		{
-			// Synchronize selection
-			if( GEditor->GetSelectedActors()->IsSelected( Actor ) )
-			{
-				OutlinerTreeView->SetItemSelection( InActorItem, true );
-			}
-		}
-
-		if (InActorItem->Flags.RenameWhenInView)
-		{
-			OutlinerTreeView->RequestScrollIntoView(InActorItem);
-		}
-
-		return true;
+		return bSuccessful;
 	}
 
-	bool SSceneOutliner::AddFolderToTree(TSharedRef<TOutlinerFolderTreeItem> InFolderItem, bool bIgnoreSearchFilter)
-	{
-		if (!InitOptions.bShowParentTree)
-		{
-			return false;
-		}
-
-		if (FolderToTreeItemMap.Find(InFolderItem->Path))
-		{
-			return false;
-		}
-
-		// Apply text filter
-		if (!bIgnoreSearchFilter && !SearchBoxFilter->PassesFilter(*InFolderItem))
-		{
-			return false;
-		}
-
-		// Ensure our parent is added first
-		FName ParentPath = InFolderItem->GetParentPath();
-		
-		if (ParentPath.IsNone())
-		{
-			RootTreeItems.Add(InFolderItem);
-		}
-		else
-		{
-			// Ignore search text since we know we pass the filter, and will need to show parents
-			const bool bIgnoreSearch = true;
-			AddChildToParent(InFolderItem, ParentPath, bIgnoreSearch);
-		}
-
-		// Add the item to the map, making it available for display in the tree when its parent is looking for its children.
-		FolderToTreeItemMap.Add(InFolderItem->Path, InFolderItem);
-
-		// Folders are always expanded by default
-		OutlinerTreeView->SetItemExpansion(InFolderItem, true);
-
-		if (InFolderItem->Flags.RenameWhenInView)
-		{
-			OutlinerTreeView->RequestScrollIntoView(InFolderItem);
-		}
-
-		return true;
-	}
-
-	void SSceneOutliner::AddFilteredParentActorToTree(AActor* InActor)
+	void SSceneOutliner::AddFilteredParentActorToTree(AActor* InActor, FActorToTreeItemMap& InActorMap)
 	{
 		/* Parents that are filtered out (or otherwise found and added to the list) will not appear in the actor map at this point
 		   and should be added as requested. If they have no parent, they will be added to the root of the tree, otherwise they will
 		   simply be added to the map, so when displaying the tree, their display item can be found. */
-		if( !ActorToTreeItemMap.Contains( InActor ) )
+		if( !InActorMap.Contains( InActor ) )
 		{
-			TSharedRef<TOutlinerActorTreeItem> NewItem = MakeShareable( new TOutlinerActorTreeItem(InActor) );
+			FOutlinerTreeItemPtr NewItem = MakeShareable( new TOutlinerTreeItem );
+			NewItem->Actor = InActor;
 
-			ActorToTreeItemMap.Add( InActor, NewItem );
+			InActorMap.Add( InActor, NewItem );
 
 			// Setup our root-level item list
 			const auto ParentActor = InActor->GetAttachParentActor();
@@ -1055,31 +820,25 @@ namespace SceneOutliner
 				}
 			}
 
-			NewItem->Flags.IsFilteredOut = true;
+			NewItem->bIsFilteredOut = true;
 		}
 
 
 		// Make sure all parent actors are expanded by default
 		// @todo Outliner: Really we should be remembering expansion state and trying to restore that
-		OutlinerTreeView->SetItemExpansion( ActorToTreeItemMap.FindChecked( InActor ), true );
+		OutlinerTreeView->SetItemExpansion( InActorMap.FindChecked( InActor ), true );
 	}
 
-	void SSceneOutliner::PopulateSearchStrings( const TOutlinerTreeItem& TreeItem, OUT TArray< FString >& OutSearchStrings ) const
+	void SSceneOutliner::PopulateActorSearchStrings( const AActor* const Actor, OUT TArray< FString >& OutSearchStrings ) const
 	{
-		if (TreeItem.Type == TOutlinerTreeItem::Actor)
-		{
-			AActor* ActorPtr = static_cast<const TOutlinerActorTreeItem&>(TreeItem).Actor.Get();
-			if (ActorPtr)
-			{
-				OutSearchStrings.Add(ActorPtr->GetActorLabel());
-				CustomColumn->PopulateActorSearchStrings( ActorPtr, OUT OutSearchStrings );
-			}
-		}
-		else
-		{
-			OutSearchStrings.Add(static_cast<const TOutlinerFolderTreeItem&>(TreeItem).LeafName.ToString());
-			OutSearchStrings.Add(LOCTEXT("FolderClassName", "Folder").ToString());
-		}
+		OutSearchStrings.Add( Actor->GetActorLabel() );
+		CustomColumn->PopulateActorSearchStrings( Actor, OUT OutSearchStrings );
+	}
+
+	FText SSceneOutliner::GetLabelForActor( FOutlinerTreeItemPtr TreeItem ) const
+	{
+		const AActor* Actor = TreeItem->Actor.Get();
+		return Actor ? FText::FromString( Actor->GetActorLabel() ) : NSLOCTEXT("SceneOutliner", "ActorLabelForMissingActor", "(Deleted Actor)");
 	}
 
 	EVisibility SSceneOutliner::IsActorClassNameVisible() const
@@ -1087,84 +846,43 @@ namespace SceneOutliner
 		return CustomColumn->ProvidesSearchStrings() || FilterTextBoxWidget->GetText().IsEmpty() ? EVisibility::Collapsed : EVisibility::Visible;
 	}
 
-	FString SSceneOutliner::GetClassNameForItem( FOutlinerTreeItemPtr TreeItem ) const
+	FString SSceneOutliner::GetClassNameForActor( FOutlinerTreeItemPtr TreeItem ) const
 	{
 		FString LabelText;
-		const FString& CurrentFilterText = FilterTextBoxWidget->GetText().ToString();
-
-		if( !CustomColumn->ProvidesSearchStrings() && !CurrentFilterText.IsEmpty() )
+		AActor* Actor = TreeItem->Actor.Get();
+		if( Actor )
 		{
-			// If the user is currently searching, then also display the actor class name.  The class name is
-			// searchable, too, and we want to indicate that to the user.
-			if (TreeItem->Type == TOutlinerTreeItem::Actor)
+			const FString& CurrentFilterText = FilterTextBoxWidget->GetText().ToString();
+
+			if( !CustomColumn->ProvidesSearchStrings() && !CurrentFilterText.IsEmpty() )
 			{
-				AActor* Actor = StaticCastSharedPtr<TOutlinerActorTreeItem>(TreeItem)->Actor.Get();
-				if( Actor )
-				{
-					FString ActorClassName;
-					Actor->GetClass()->GetName( ActorClassName );
-					LabelText = FString::Printf( TEXT( " (%s)" ), *ActorClassName );
-				}
-			}
-			else
-			{
-				LabelText = FString::Printf(TEXT(" (%s)"), *LOCTEXT("FolderClassName", "Folder").ToString());
+				// If the user is currently searching, then also display the actor class name.  The class name is
+				// searchable, too, and we want to indicate that to the user.
+				FString ActorClassName;
+				Actor->GetClass()->GetName( ActorClassName );
+				LabelText = FString::Printf( TEXT( " (%s)" ), *ActorClassName );
 			}
 		}
 
 		return LabelText;
 	}
 
-	FSlateColor SSceneOutliner::GetColorAndOpacityForItem( FOutlinerTreeItemPtr TreeItem ) const
+	FSlateColor SSceneOutliner::GetColorAndOpacityForActor( FOutlinerTreeItemPtr TreeItem ) const
 	{
-		FString LabelText;
-		bool bDarkenItem = false;
-		if (TreeItem->Type == TOutlinerTreeItem::Actor)
+		AActor* Actor = TreeItem->Actor.Get();
+
+		if( Actor == NULL )
 		{
-			auto ActorTreeItem = StaticCastSharedPtr<TOutlinerActorTreeItem>(TreeItem);
-			AActor* Actor = ActorTreeItem->Actor.Get();
+			return FLinearColor( 0.2f, 0.2f, 0.25f );		// Deleted actor!
+		}
 
-			if( Actor == NULL )
-			{
-				return FLinearColor( 0.2f, 0.2f, 0.25f );		// Deleted actor!
-			}
-
-			if ( bRepresentingPlayWorld && !ActorTreeItem->bExistsInCurrentWorldAndPIE )
+		if ( bRepresentingPlayWorld )
+		{
+			if( !TreeItem->bExistsInCurrentWorldAndPIE )
 			{
 				// Highlight actors that are exclusive to PlayWorld
-				return FLinearColor( 0.12f, 0.56f, 1.0f );
+				return FLinearColor( 0.12f, 0.56f, 1.0f );	
 			}
-
-			// Darken items that aren't suitable targets for an active drag and drop actor attachment action
-			bool bDarkenItem = false;
-			if ( FSlateApplication::Get().IsDragDropping() )
-			{
-				TSharedPtr<FDragDropOperation> DragDropOp = FSlateApplication::Get().GetDragDroppingContent();
-
-				if (DragDrop::IsTypeMatch<FActorDragDropGraphEdOp>(DragDropOp))	
-				{
-					TSharedPtr<FActorDragDropGraphEdOp> DragDropActorOp = StaticCastSharedPtr<FActorDragDropGraphEdOp>(DragDropOp);
-
-					bool CanAttach = true;
-					for(int32 i=0; i<DragDropActorOp->Actors.Num(); i++)
-					{
-						AActor* ChildActor = DragDropActorOp->Actors[i].Get();
-						if (ChildActor)
-						{
-							if (!GEditor->CanParentActors(Actor, ChildActor))
-							{
-								bDarkenItem = true;
-								break;
-							}
-						}
-					}
-				}
-			}
-
-			// also darken items that are non selectable in the active mode(s)
-			const bool bInSelected = true;
-			const bool bSelectEvenIfHidden = true;		// @todo outliner: Is this actually OK?
-			bDarkenItem |= !GEditor->CanSelectActor( Actor, bInSelected, bSelectEvenIfHidden );
 		}
 
 		if( !InitOptions.bShowParentTree )
@@ -1174,72 +892,75 @@ namespace SceneOutliner
 
 		// Highlight text differently if it doesn't match the search filter (e.g., parent actors to child actors that
 		// match search criteria.)
-		if( TreeItem->Flags.IsFilteredOut )
+		if( TreeItem->bIsFilteredOut )
 		{
 			return FLinearColor( 0.30f, 0.30f, 0.30f );
 		}
 
-		return (!bDarkenItem) ? FSlateColor::UseForeground() : FLinearColor( 0.30f, 0.30f, 0.30f );
-	}
+		// Darken items that aren't suitable targets for an active drag and drop actor attachment action
+		bool bDarkenItem = false;
+		if ( FSlateApplication::Get().IsDragDropping() )
+		{
+			TSharedPtr<FDragDropOperation> DragDropOp = FSlateApplication::Get().GetDragDroppingContent();
 
-	const FSlateBrush* SSceneOutliner::GetIconForItem(FOutlinerTreeItemRef Item) const
-	{
-		if (Item->Type == TOutlinerTreeItem::Actor)
-		{
-			AActor* Actor = StaticCastSharedRef<TOutlinerActorTreeItem>(Item)->Actor.Get();
-			return FClassIconFinder::FindIconForActor(Actor);
-		}
-		else
-		{
-			auto Folder = StaticCastSharedRef<TOutlinerFolderTreeItem>(Item);
-			if (OutlinerTreeView->IsItemExpanded(Item) && Folder->ChildItems.Num())
+			if (DragDrop::IsTypeMatch<FActorDragDropGraphEdOp>(DragDropOp))	
 			{
-				return FEditorStyle::Get().GetBrush(TEXT("SceneOutliner.FolderOpen"));
-			}
-			else
-			{
-				return FEditorStyle::Get().GetBrush(TEXT("SceneOutliner.FolderClosed"));
-			}
-		}
-	}
+				TSharedPtr<FActorDragDropGraphEdOp> DragDropActorOp = StaticCastSharedPtr<FActorDragDropGraphEdOp>(DragDropOp);
 
-	FText SSceneOutliner::GetToolTipTextForItemIcon( FOutlinerTreeItemPtr TreeItem ) const
-	{
-		FText ToolTipText;
-		if (TreeItem->Type == TOutlinerTreeItem::Actor)
-		{
-			auto ActorTreeItem = StaticCastSharedPtr<TOutlinerActorTreeItem>(TreeItem);
-			AActor* Actor = ActorTreeItem->Actor.Get();
-			if( Actor )
-			{
-				ToolTipText = FText::FromString( Actor->GetClass()->GetName() );
-				if( InitOptions.Mode == ESceneOutlinerMode::ActorBrowsing )
+				bool CanAttach = true;
+				for(int32 i=0; i<DragDropActorOp->Actors.Num(); i++)
 				{
-					USceneComponent* RootComponent = Actor->GetRootComponent();
-					if( RootComponent )
+					AActor* ChildActor = DragDropActorOp->Actors[i].Get();
+					if (ChildActor)
 					{
-						FFormatNamedArguments Args;
-						Args.Add( TEXT("ActorClassName"), ToolTipText );
-
-						if( RootComponent->Mobility == EComponentMobility::Static )
+						if (!GEditor->CanParentActors(Actor, ChildActor))
 						{
-							ToolTipText = FText::Format( LOCTEXT( "ComponentMobility_Static", "Static {ActorClassName}" ), Args );
-						}
-						else if( RootComponent->Mobility == EComponentMobility::Stationary )
-						{
-							ToolTipText = FText::Format( LOCTEXT( "ComponentMobility_Stationary", "Stationary {ActorClassName}" ), Args );
-						}
-						else if( RootComponent->Mobility == EComponentMobility::Movable )
-						{
-							ToolTipText = FText::Format( LOCTEXT( "ComponentMobility_Movable", "Movable {ActorClassName}" ), Args );
+							bDarkenItem = true;
+							break;
 						}
 					}
 				}
 			}
 		}
-		else
+
+		// also darken items that are non selectable in the active mode(s)
+		const bool bInSelected = true;
+		const bool bSelectEvenIfHidden = true;		// @todo outliner: Is this actually OK?
+		bDarkenItem |= !GEditor->CanSelectActor( Actor, bInSelected, bSelectEvenIfHidden );
+
+		return (!bDarkenItem) ? FSlateColor::UseForeground() : FLinearColor( 0.30f, 0.30f, 0.30f );
+	}
+
+	FText SSceneOutliner::GetToolTipTextForActorIcon( FOutlinerTreeItemPtr TreeItem ) const
+	{
+		FText ToolTipText;
+		AActor* Actor = TreeItem->Actor.Get();
+
+		if( Actor )
 		{
-			ToolTipText = LOCTEXT("FolderClassName", "Folder");
+			ToolTipText = FText::FromString( Actor->GetClass()->GetName() );
+			if( InitOptions.Mode == ESceneOutlinerMode::ActorBrowsing )
+			{
+				USceneComponent* RootComponent = Actor->GetRootComponent();
+				if( RootComponent )
+				{
+					FFormatNamedArguments Args;
+					Args.Add( TEXT("ActorClassName"), ToolTipText );
+
+					if( RootComponent->Mobility == EComponentMobility::Static )
+					{
+						ToolTipText = FText::Format( LOCTEXT( "ComponentMobility_Static", "Static {ActorClassName}" ), Args );
+					}
+					else if( RootComponent->Mobility == EComponentMobility::Stationary )
+					{
+						ToolTipText = FText::Format( LOCTEXT( "ComponentMobility_Stationary", "Stationary {ActorClassName}" ), Args );
+					}
+					else if( RootComponent->Mobility == EComponentMobility::Movable )
+					{
+						ToolTipText = FText::Format( LOCTEXT( "ComponentMobility_Movable", "Movable {ActorClassName}" ), Args );
+					}
+				}
+			}
 		}
 
 		return ToolTipText;
@@ -1248,14 +969,8 @@ namespace SceneOutliner
 	const FSlateBrush* SSceneOutliner::GetBrushForComponentMobilityIcon( FOutlinerTreeItemPtr TreeItem ) const
 	{
 		const FSlateBrush* IconBrush = MobilityStaticBrush;
-		
+		AActor* Actor = TreeItem->Actor.Get();
 
-		if (TreeItem->Type == TOutlinerTreeItem::Folder)
-		{
-			return IconBrush;
-		}
-
-		AActor* Actor = StaticCastSharedPtr<TOutlinerActorTreeItem>(TreeItem)->Actor.Get();
 		if( Actor )
 		{
 			USceneComponent* RootComponent = Actor->GetRootComponent();
@@ -1282,22 +997,10 @@ namespace SceneOutliner
 			/** Gets the tool-tip text for an actor */
 			static FString GetToolTipTextForActor( FOutlinerTreeItemPtr TreeItem )
 			{
-				if (TreeItem->Type == TOutlinerTreeItem::Actor)
+				const auto Actor = TreeItem.Get()->Actor;
+				if( Actor != NULL )
 				{
-					const auto Actor = StaticCastSharedPtr<TOutlinerActorTreeItem>(TreeItem)->Actor;
-					if( Actor != NULL )
-					{
-						FFormatNamedArguments Args;
-						Args.Add(TEXT("ID_Name"), LOCTEXT("CustomColumnMode_InternalName", "ID Name"));
-						Args.Add(TEXT("Name"), FText::FromString(Actor->GetName()));
-						return FText::Format(LOCTEXT("ActorNameTooltip", "{ID_Name}: {Name}"), Args).ToString();
-					}
-				}
-				else
-				{
-					FFormatNamedArguments Args;
-					Args.Add(TEXT("Name"), FText::FromName(StaticCastSharedPtr<TOutlinerFolderTreeItem>(TreeItem)->LeafName));
-					return FText::Format(LOCTEXT("FolderNameTooltip", "Folder: {Name}"), Args).ToString();
+					return FString::Printf( TEXT( "%s: %s" ), *LOCTEXT("CustomColumnMode_InternalName", "ID Name").ToString(), *Actor->GetName() );
 				}
 
 				return FString();
@@ -1305,59 +1008,50 @@ namespace SceneOutliner
 
 		};
 
+		// Find the icon that goes with this actor's type
+		AActor* Actor = Item->Actor.Get();
+		const FSlateBrush* IconBrush = FClassIconFinder::FindIconForActor(Actor);		
 		TSharedPtr< SWidget > TableRowContent;
+
 		if( ColumnID == ColumnID_ActorLabel )
 		{
 			TSharedPtr< SInlineEditableTextBlock > InlineTextBlock;
 			TSharedPtr< SHorizontalBox > HBox = SNew( SHorizontalBox );
 
-			const FSlateColor IconColor = InitOptions.Mode == ESceneOutlinerMode::ActorBrowsing ? FLinearColor::White : FEditorStyle::GetSlateColor( "DefaultForeground" );
-
-			auto IconOverlay = SNew(SOverlay)
-				+SOverlay::Slot()
-				.HAlign(HAlign_Right)
-				.VAlign(VAlign_Center)
-				[
-					SNew( SImage )
-					.Image( this, &SSceneOutliner::GetIconForItem, Item.ToSharedRef() )
-					.ToolTipText( this, &SSceneOutliner::GetToolTipTextForItemIcon, Item )
-					.ColorAndOpacity( IconColor )
-				];
-
 			if( InitOptions.Mode == ESceneOutlinerMode::ActorBrowsing )
 			{
 				// Add the component mobility icon
-				IconOverlay->AddSlot()
-					.HAlign(HAlign_Left)
+				HBox->AddSlot()
+					.AutoWidth()
+					.Padding( 0.0f, 1.0f, 1.0f, 0.0f )
 					[
 						SNew( SImage )
 						.Image( this, &SSceneOutliner::GetBrushForComponentMobilityIcon, Item )
 					];
 			}
 
+			const FSlateColor IconColor = InitOptions.Mode == ESceneOutlinerMode::ActorBrowsing ? FLinearColor::White : FEditorStyle::GetSlateColor( "DefaultForeground" );
+
 			HBox->AddSlot()
 				.AutoWidth()
-				.VAlign(VAlign_Center)
-				.Padding( FMargin(0.0f, 0.0f, 6.0f, 0.0f) )
+				.Padding( 0.0f, 2.0f, 6.0f, 0.0f )
 				[
-					SNew(SBox)
-					.WidthOverride(18.f)
-					[
-						IconOverlay
-					]
+					SNew( SImage )
+						.Image( IconBrush )
+						.ToolTipText( this, &SSceneOutliner::GetToolTipTextForActorIcon, Item )
+						.ColorAndOpacity( IconColor )
 				];
 
 			HBox->AddSlot()
 				.FillWidth(1.0f)
-				.VAlign(VAlign_Center)
-				.Padding( 0.0f, 2.0f, 0.0f, 2.0f )
+				.Padding( 0.0f, 3.0f, 0.0f, 0.0f )
 				[
 					SAssignNew( InlineTextBlock, SInlineEditableTextBlock )
 
 						// Bind a delegate for getting the actor's name.  This ensures that the current actor name is
 						// shown accurately, even if it gets renamed while the tree is visible. (Without requiring us
 						// to refresh anything.)
- 						.Text_Static( &GetLabelForItem, Item.ToSharedRef() )
+ 						.Text( this, &SSceneOutliner::GetLabelForActor, Item ) 
 
 						// Bind our filter text as the highlight string for the text block, so that when the user
 						// starts typing search criteria, this text highlights
@@ -1367,11 +1061,11 @@ namespace SceneOutliner
 						.ToolTipText_Static( &Local::GetToolTipTextForActor, Item )
 
 						// Actor names that pass the search criteria are shown in a brighter color
-						.ColorAndOpacity( this, &SSceneOutliner::GetColorAndOpacityForItem, Item )
+						.ColorAndOpacity( this, &SSceneOutliner::GetColorAndOpacityForActor, Item )
 
-						.OnTextCommitted( this, &SSceneOutliner::OnItemLabelCommitted, Item )
+						.OnTextCommitted( this, &SSceneOutliner::OnActorLabelCommitted, Item->Actor )
 
-						.OnVerifyTextChanged( this, &SSceneOutliner::OnVerifyItemLabelChanged, Item )
+						.OnVerifyTextChanged( this, &SSceneOutliner::OnVerifyActorLabelChanged )
 
 						.IsSelected( InIsSelected )
 				];
@@ -1383,7 +1077,7 @@ namespace SceneOutliner
 					SNew( STextBlock )
 
 						// Bind a delegate for getting the actor's class name
- 						.Text( this, &SSceneOutliner::GetClassNameForItem, Item )
+ 						.Text( this, &SSceneOutliner::GetClassNameForActor, Item )
 
 						.Visibility( this, &SSceneOutliner::IsActorClassNameVisible )
 
@@ -1404,46 +1098,31 @@ namespace SceneOutliner
 		}
 		else if( Gutter.IsValid() && ColumnID == Gutter->GetColumnID() )
 		{
-			TableRowContent = Gutter->ConstructRowWidget( Item.ToSharedRef() );
+			TableRowContent = Gutter->ConstructRowWidget( Actor );
 		}
 		else if( ensure( ColumnID == CustomColumn->GetColumnID() ) )
 		{
-			TableRowContent = CustomColumn->ConstructRowWidget( Item.ToSharedRef() );
+			TableRowContent = CustomColumn->ConstructRowWidget( Actor );
 		}
 
 		return TableRowContent.ToSharedRef();
 	}
 
-	void SSceneOutliner::OnItemLabelCommitted( const FText& InLabel, ETextCommit::Type InCommitInfo, FOutlinerTreeItemPtr TreeItem )
+	void SSceneOutliner::OnActorLabelCommitted( const FText& InLabel, ETextCommit::Type InCommitInfo, TWeakObjectPtr<AActor> InActor )
 	{
-		if (TreeItem->Type == TOutlinerTreeItem::Actor)
+		if(InLabel.ToString() != InActor->GetActorLabel() && InActor->IsActorLabelEditable())
 		{
-			auto ActorTreeItem = StaticCastSharedPtr<TOutlinerActorTreeItem>(TreeItem);
-			auto* Actor = ActorTreeItem->Actor.Get();
+			const FScopedTransaction Transaction( LOCTEXT( "SceneOutlinerRenameActorTransaction", "Rename Actor" ) );
+			InActor->SetActorLabel( InLabel.ToString() );
 
-			if (Actor && InLabel.ToString() != Actor->GetActorLabel() && Actor->IsActorLabelEditable())
-			{
-				const FScopedTransaction Transaction( LOCTEXT( "SceneOutlinerRenameActorTransaction", "Rename Actor" ) );
-				Actor->SetActorLabel( InLabel.ToString() );
-
-				// Set the keyboard focus back to the SceneOutliner, so the user can perform keyboard commands
-				FWidgetPath SceneOutlinerWidgetPath;
-				FSlateApplication::Get().GeneratePathToWidgetUnchecked( SharedThis( this ), SceneOutlinerWidgetPath );
-				FSlateApplication::Get().SetKeyboardFocus( SceneOutlinerWidgetPath, EKeyboardFocusCause::SetDirectly );
-			}
+			// Set the keyboard focus back to the SceneOutliner, so the user can perform keyboard commands
+			FWidgetPath SceneOutlinerWidgetPath;
+			FSlateApplication::Get().GeneratePathToWidgetUnchecked( SharedThis( this ), SceneOutlinerWidgetPath );
+			FSlateApplication::Get().SetKeyboardFocus( SceneOutlinerWidgetPath, EKeyboardFocusCause::SetDirectly );
 		}
-		else
-		{
-			auto FolderTreeItem = StaticCastSharedPtr<TOutlinerFolderTreeItem>(TreeItem);
-			if (!InLabel.EqualTo(FText::FromName(FolderTreeItem->LeafName)))
-			{
-				FolderTreeItem->Rename(FName(*InLabel.ToString()));
-			}
-		}
-		
 	}
 
-	bool SSceneOutliner::OnVerifyItemLabelChanged( const FText& InLabel, FText& OutErrorMessage, FOutlinerTreeItemPtr TreeItem )
+	bool SSceneOutliner::OnVerifyActorLabelChanged( const FText& InLabel, FText& OutErrorMessage )
 	{
 		if( InLabel.IsEmpty() )
 		{
@@ -1455,42 +1134,8 @@ namespace SceneOutliner
 		{
 			FFormatNamedArguments Arguments;
 			Arguments.Add( TEXT("CharCount"), NAME_SIZE );
-			OutErrorMessage = FText::Format(LOCTEXT("RenameFailed_TooLong", "Names must be less than {CharCount} characters long."), Arguments);
+			OutErrorMessage = FText::Format(LOCTEXT("RenameFailed_TooLong", "Actor names must be less than {CharCount} characters long."), Arguments);
 			return false;
-		}
-
-		FString LabelString = InLabel.ToString();
-		if (TreeItem->Type == TOutlinerTreeItem::Folder)
-		{
-			auto FolderTreeItem = StaticCastSharedPtr<TOutlinerFolderTreeItem>(TreeItem);
-			if (FolderTreeItem->LeafName == FName(*LabelString))
-			{
-				return true;
-			}
-
-			int32 Dummy = 0;
-			if (LabelString.FindChar('/', Dummy) || LabelString.FindChar('\\', Dummy))
-			{
-				OutErrorMessage = LOCTEXT("RenameFailed_InvalidChar", "Folder names cannot contain / or \\.");
-				return false;
-			}
-
-			// Validate that this folder doesn't exist already
-			FName NewPath = FolderTreeItem->GetParentPath();
-			if (NewPath.IsNone())
-			{
-				NewPath = FName(*LabelString);
-			}
-			else
-			{
-				NewPath = FName(*(NewPath.ToString() / LabelString));
-			}
-
-			if (FolderToTreeItemMap.Find(NewPath))
-			{
-				OutErrorMessage = LOCTEXT("RenameFailed_AlreadyExists", "This folder already exists");
-				return false;
-			}
 		}
 
 		return true;
@@ -1504,231 +1149,6 @@ namespace SceneOutliner
 		}
 
 		OutlinerTreeView->SetItemExpansion(*ActorToTreeItemMap.Find(Actor), true);
-	}
-
-	/** Open a context menu for this scene outliner */
-	TSharedPtr<SWidget> SSceneOutliner::OnOpenContextMenu() const
-	{
-		TArray<AActor*> SelectedActors;
-		GEditor->GetSelectedActors()->GetSelectedObjects<AActor>( SelectedActors );
-
-		if (SelectedActors.Num())
-		{
-			if (OnContextMenuOpening.IsBound())
-			{
-				return OnContextMenuOpening.Execute();
-			}
-		}
-		else if (InitOptions.Mode == ESceneOutlinerMode::ActorBrowsing)
-		{
-			// Build up the menu
-			const bool bCloseAfterSelection = true;
-			FMenuBuilder MenuBuilder(bCloseAfterSelection, TSharedPtr<FUICommandList>());
-
-			TSharedPtr<TOutlinerFolderTreeItem> ParentFolder;
-			auto SelectedItems = OutlinerTreeView->GetSelectedItems();
-			if (SelectedItems.Num() == 1 && SelectedItems[0]->Type == TOutlinerTreeItem::Folder)
-			{
-				ParentFolder = StaticCastSharedPtr<TOutlinerFolderTreeItem>(SelectedItems[0]);
-			}
-
-			MenuBuilder.BeginSection(FName(), LOCTEXT("FolderClassName", "Folder"));
-			{
-				MenuBuilder.AddMenuEntry(LOCTEXT("CreateFolder", "Create Folder"), FText(), FSlateIcon(FEditorStyle::GetStyleSetName(), "SceneOutliner.NewFolderIcon"), FUIAction(FExecuteAction::CreateSP(this, &SSceneOutliner::CreateFolder, ParentFolder)));
-
-				if (ParentFolder.IsValid())
-				{
-					MenuBuilder.AddMenuEntry(LOCTEXT("RenameFolder", "Rename Folder"), FText(), FSlateIcon(), FUIAction(FExecuteAction::CreateSP(this, &SSceneOutliner::RenameFolder, ParentFolder.ToSharedRef())));
-					MenuBuilder.AddMenuEntry(LOCTEXT("DeleteFolder", "Delete Folder"), FText(), FSlateIcon(), FUIAction(FExecuteAction::CreateSP(this, &SSceneOutliner::DeleteFolder, ParentFolder.ToSharedRef())));
-				}
-			}
-			MenuBuilder.EndSection();
-			
-			
-			return MenuBuilder.MakeWidget();
-		}
-
-		return TSharedPtr<SWidget>();
-	}
-
-	bool SSceneOutliner::AddChildToParent(FOutlinerTreeItemRef TreeItem, FName ParentPath, bool bIgnoreSearchFilter)
-	{
-		TSharedRef<TOutlinerFolderTreeItem>* ExistingParent = FolderToTreeItemMap.Find(ParentPath);
-		if (ExistingParent)
-		{
-			(*ExistingParent)->ChildItems.Add(TreeItem);
-			OutlinerTreeView->SetItemExpansion(*ExistingParent, true);
-			return true;
-		}
-		else
-		{
-			TSharedRef<TOutlinerFolderTreeItem> NewFolderItem = MakeShareable(new TOutlinerFolderTreeItem(ParentPath));
-			if (AddFolderToTree(NewFolderItem, bIgnoreSearchFilter))
-			{
-				NewFolderItem->ChildItems.Add(TreeItem);
-				OutlinerTreeView->SetItemExpansion(NewFolderItem, true);
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	FReply SSceneOutliner::OnCreateFolderClicked()
-	{
-		CreateFolder(nullptr);
-		return FReply::Handled();
-	}
-
-	void SSceneOutliner::CreateFolder(TSharedPtr<TOutlinerFolderTreeItem> ParentFolder)
-	{
-		// Create a valid base name for this folder
-
-		uint32 Suffix = 1;
-		FText LeafName = FText::Format(LOCTEXT("DefaultFolderNamePattern", "NewFolder{0}"), FText::AsNumber(Suffix++));
-
-		FString ParentFolderPath = ParentFolder.IsValid() ? ParentFolder->Path.ToString() : TEXT("");
-		if (!ParentFolderPath.IsEmpty())
-		{
-			ParentFolderPath += "/";
-		}
-
-
-		FName NewName(*(ParentFolderPath + LeafName.ToString()));
-		while (FolderToTreeItemMap.Find(NewName))
-		{
-			LeafName = FText::Format(LOCTEXT("DefaultFolderNamePattern", "NewFolder{0}"), FText::AsNumber(Suffix++));
-			NewName = FName(*(ParentFolderPath + LeafName.ToString()));
-			if (Suffix == 0)
-			{
-				// We've wrapped around a 32bit unsigned int - something must be seriously wrong!
-				return;
-			}
-		}
-
-		// Broadcast the folder creation event to all clients
-		OnFolderCreate.Broadcast(NewName, this);
-	}
-
-	void SSceneOutliner::OnBroadcastFolderCreate(FName NewPath, const SSceneOutliner* Origin)
-	{
-		TSharedRef<TOutlinerFolderTreeItem>* ExistingFolder = FolderToTreeItemMap.Find(NewPath);
-		if (!ExistingFolder)
-		{
-			TSharedRef<TOutlinerFolderTreeItem> NewFolderItem = MakeShareable(new TOutlinerFolderTreeItem(NewPath));	
-			if (Origin == this)
-			{
-				// Rename the folder if this scene outliner is the one which caused the addition
-				NewFolderItem->Flags.RenameWhenInView = true;
-			}
-			AddedItemsList.Add(NewFolderItem);
-
-			// Move the currently selected actors into the new folder
-			for( FSelectionIterator SelectionIt( *GEditor->GetSelectedActors() ); SelectionIt; ++SelectionIt )
-			{
-				AActor* Actor = CastChecked<AActor>(*SelectionIt);
-				Actor->SetFolderPath(NewPath);
-			}
-
-			Refresh();
-		}
-	}
-
-	void SSceneOutliner::OnBroadcastFolderMove(FName OldPath, FName NewPath)
-	{
-		TSharedRef<TOutlinerFolderTreeItem>* SrcFolder = FolderToTreeItemMap.Find(OldPath);
-		if (SrcFolder)
-		{
-			// Detach the item from the parent while we know the old path
-			DetachChildFromParent(*SrcFolder, TOutlinerFolderTreeItem::GetParentPath(OldPath));
-			FolderToTreeItemMap.Remove(OldPath);
-
-			TSharedRef<TOutlinerFolderTreeItem>* DestFolder = FolderToTreeItemMap.Find(NewPath);
-			if (DestFolder)
-			{
-				RefreshItemsList.Add(*DestFolder);
-			}
-			else
-			{
-				// Set the path on the new folder
-				(*SrcFolder)->ParsePath(NewPath);
-				AddedItemsList.Add(*SrcFolder);
-			}
-
-			Refresh();
-		}
-	}
-
-	void SSceneOutliner::DetachChildFromParent(TSharedRef<TOutlinerTreeItem> Child, FName ParentPath)
-	{
-		if (ParentPath.IsNone())
-		{
-			RootTreeItems.Remove(Child);
-		}
-		else
-		{
-			auto* ParentFolder = FolderToTreeItemMap.Find(ParentPath);
-			if (ParentFolder)
-			{
-				ParentFolder->Get().ChildItems.Remove(Child);
-			}
-		}
-	}
-
-	void SSceneOutliner::OnBroadcastFolderDelete(FName Path)
-	{
-		auto* Folder = FolderToTreeItemMap.Find(Path);
-		if (Folder)
-		{
-			(*Folder)->ChildItems.Empty();
-			RemovedItemsList.Add(*Folder);
-			Refresh();
-		}
-	}
-
-	void SSceneOutliner::RenameFolder(TSharedRef<TOutlinerFolderTreeItem> Folder)
-	{
-		Folder->RenameRequestEvent.ExecuteIfBound();
-	}
-
-	void SSceneOutliner::DeleteFolderAndSelectActors(TSharedRef<TOutlinerFolderTreeItem> Folder)
-	{
-		for (auto ChildIt = Folder->ChildItems.CreateIterator(); ChildIt; ++ChildIt)
-		{
-			auto Item = ChildIt->Pin();
-			if (!Item.IsValid())
-			{
-				continue;
-			}
-
-			if (Item->Type == TOutlinerTreeItem::Actor)
-			{
-				AActor* Actor = StaticCastSharedPtr<TOutlinerActorTreeItem>(Item)->Actor.Get();
-				if (Actor)
-				{
-					GEditor->SelectActor(Actor, true, true);
-				}
-			}
-			else
-			{
-				DeleteFolderAndSelectActors(StaticCastSharedPtr<TOutlinerFolderTreeItem>(Item).ToSharedRef());
-			}
-		}
-
-		OnFolderDelete.Broadcast(Folder->Path);
-	}
-
-	void SSceneOutliner::DeleteFolder(TSharedRef<TOutlinerFolderTreeItem> Folder)
-	{
-		const FScopedTransaction Transaction( LOCTEXT("DeleteFolder", "Delete Folder") );
-		GEditor->SelectNone(false, true);
-
-		DeleteFolderAndSelectActors(Folder);
-
-		// At this point we're ready to delete all the child assets (they are now selected)
-		GEditor->edactDeleteSelected(RepresentingWorld);
-
-		Refresh();
 	}
 
 	TSharedRef< ITableRow > SSceneOutliner::OnGenerateRowForOutlinerTree( FOutlinerTreeItemPtr Item, const TSharedRef< STableViewBase >& OwnerTable )
@@ -1747,95 +1167,59 @@ namespace SceneOutliner
 			return;
 		}
 
-		if (InParent->Type == TOutlinerTreeItem::Actor)
+		AActor* ParentActor = InParent->Actor.Get();
+		if( ParentActor != NULL )
 		{
-			auto Actor = StaticCastSharedPtr<TOutlinerActorTreeItem>(InParent)->Actor;
-			AActor* ParentActor = Actor.Get();
-			if( !ParentActor )
-			{
-				return;
-			}
 			// Does this actor have anything attached?
 			static TArray< AActor* > AttachedActors;
 			AttachedActors.Reset();
 			// @todo outliner: Perf: This call always will allocate heap memory and do a bit of work, even for actors with no children!
 			ParentActor->GetAttachedActors( AttachedActors );
 
-			if( AttachedActors.Num() == 0 )
+			if( AttachedActors.Num() > 0 )
 			{
-				return;
-			}
-
-			// Walk the list of attached actors and add their tree nodes to the output array
-			for( TArray< AActor* >::TConstIterator AttachedActorIt( AttachedActors ); AttachedActorIt; ++AttachedActorIt )
-			{
-				AActor* ChildActor = *AttachedActorIt;
-				if( !ensure( ChildActor != NULL ) )
+				// Walk the list of attached actors and add their tree nodes to the output array
+				for( TArray< AActor* >::TConstIterator AttachedActorIt( AttachedActors ); AttachedActorIt; ++AttachedActorIt )
 				{
-					continue;
-				}
-
-				// NOTE: We don't call Filters->PassesAllFilters() here because we may need to display branches
-				// in the tree for actors that don't pass our actor inclusion list, so that we can
-				// represent the heirarchy correctly.  We only call IsActorDisplayable() to avoid showing
-				// deleted actors and such.
-
-				// We MUST limit child actors displayed to those whose root component is attached to this actor
-				// Otherwise, the attached actors could be present elsewhere in the hierarchy, causing a crash
-				if( ChildActor->GetAttachParentActor() == ParentActor && IsActorDisplayable( ChildActor ) )
-				{
-					// NOTE: We don't need to apply filters here because we always repopulate the tree after
-					// the filter changes.  Besides, we may need to display child actors that were filtered out
-					// simply because they may have their own children that do match the filter.
-
-					// Find this actor in our list of tree items for each actor
-					auto* ChildTreeItem = ActorToTreeItemMap.Find( ChildActor );
-
-					// There's a chance we won't actually have a tree item for the child actor (e.g. because
-					// Outliner wasn't notified when an actor was destroyed or reparented), so we handle that here.
-					// In any other case though, we should always have an item for the actor in our list
-					if( ChildTreeItem )
+					AActor* ChildActor = *AttachedActorIt;
+					if( ensure( ChildActor != NULL ) )
 					{
-						OutChildren.Add( *ChildTreeItem );
+						// NOTE: We don't call Filters->PassesAllFilters() here because we may need to display branches
+						// in the tree for actors that don't pass our actor inclusion list, so that we can
+						// represent the heirarchy correctly.  We only call IsActorDisplayable() to avoid showing
+						// deleted actors and such.
+
+						// We MUST limit child actors displayed to those whose root component is attached to this actor
+						// Otherwise, the attached actors could be present elsewhere in the hierarchy, causing a crash
+						if( ChildActor->GetAttachParentActor() == ParentActor && IsActorDisplayable( ChildActor ) )
+						{
+							// NOTE: We don't need to apply filters here because we always repopulate the tree after
+							// the filter changes.  Besides, we may need to display child actors that were filtered out
+							// simply because they may have their own children that do match the filter.
+
+							// Find this actor in our list of tree items for each actor
+							FOutlinerTreeItemPtr ChildTreeItem = ActorToTreeItemMap.FindRef( ChildActor );
+
+							// There's a chance we won't actually have a tree item for the child actor (e.g. because
+							// Outliner wasn't notified when an actor was destroyed or reparented), so we handle that here.
+							// In any other case though, we should always have an item for the actor in our list
+							if( ChildTreeItem.IsValid() )
+							{
+								OutChildren.Add( ChildTreeItem );
+							}
+						}
 					}
 				}
-			}
-		}
-		else
-		{
-			// Folders
-			auto& ChildItems = StaticCastSharedPtr<TOutlinerFolderTreeItem>(InParent)->ChildItems;
-			for (auto ChildIt = ChildItems.CreateIterator(); ChildIt; ++ChildIt)
-			{
-				auto Child = ChildIt->Pin();
-				if (Child.IsValid())
-				{
-					OutChildren.Add( Child );
-				}
-			}
 
-		}
-
-		if (OutChildren.Num())
-		{
-			if (SortByColumn == ColumnID_ActorLabel)
-			{
-				if (SortMode == EColumnSortMode::Ascending)
+				if (SortByColumn == ColumnID_ActorLabel)
 				{
+					// Always sort children by their name ascending, regardless of current sort mode
 					OutChildren.Sort(Helpers::FSortByActorAscending());
 				}
-				else if (SortMode == EColumnSortMode::Descending)
+				else if (CustomColumn.IsValid())
 				{
-					OutChildren.Sort(Helpers::FSortByActorDescending());
+					CustomColumn->SortItems(OutChildren, SortMode);
 				}
-			}
-			else if (Gutter.IsValid() && SortByColumn == Gutter->GetColumnID())
-			{
-				Gutter->SortItems(OutChildren, SortMode);
-			}
-			else if (CustomColumn.IsValid())
-			{
-				CustomColumn->SortItems(OutChildren, SortMode);
 			}
 		}
 	}
@@ -1865,21 +1249,17 @@ namespace SceneOutliner
 			FOutlinerData SelectedItems = OutlinerTreeView->GetSelectedItems();
 			if( SelectedItems.Num() > 0 )
 			{
-				auto FirstItem = SelectedItems[0];
-				if (FirstItem->Type == TOutlinerTreeItem::Actor)
+				AActor* FirstSelectedActor = SelectedItems[ 0 ]->Actor.Get();
+				if( FirstSelectedActor != NULL )				
 				{
-					AActor* FirstSelectedActor = StaticCastSharedPtr<TOutlinerActorTreeItem>(FirstItem)->Actor.Get();
-					if( FirstSelectedActor != NULL )				
+					// Only fire the callback if this actor actually passes our required filters.  It's possible that
+					// some actors displayed are parent actors which don't actually match the requested criteria.
+					if( IsActorDisplayable( FirstSelectedActor ) && 
+						CustomFilters->PassesAllFilters( FirstSelectedActor ) &&
+						SearchBoxActorFilter->PassesFilter( FirstSelectedActor ) )
 					{
-						// Only fire the callback if this actor actually passes our required filters.  It's possible that
-						// some actors displayed are parent actors which don't actually match the requested criteria.
-						if( IsActorDisplayable( FirstSelectedActor ) && 
-							CustomFilters->PassesAllFilters( FirstSelectedActor ) &&
-							SearchBoxFilter->PassesFilter( *FirstItem ) )
-						{
-							// Signal that an actor was selected
-							OnActorPicked.ExecuteIfBound( FirstSelectedActor );
-						}
+						// Signal that an actor was selected
+						OnActorPicked.ExecuteIfBound( FirstSelectedActor );
 					}
 				}
 			}
@@ -1901,22 +1281,13 @@ namespace SceneOutliner
 
 				// Make a list of all the actors that should now be selected in the world.
 				TArray< AActor* > ActorsToSelect;
-				TArray<FOutlinerTreeItemRef> FoldersToSelect;
 				const FOutlinerData SelectedItems = OutlinerTreeView->GetSelectedItems();
 				for( FOutlinerData::TConstIterator SelectedItemIt( SelectedItems ); SelectedItemIt; ++SelectedItemIt )
 				{
-					FOutlinerTreeItemPtr TreeItem = *SelectedItemIt;
-					if (TreeItem->Type == TOutlinerTreeItem::Actor)
+					AActor* Actor = ( *SelectedItemIt )->Actor.Get();
+					if( Actor != NULL )
 					{
-						AActor* Actor = StaticCastSharedPtr<TOutlinerActorTreeItem>(TreeItem)->Actor.Get();
-						if( Actor != NULL )
-						{
-							ActorsToSelect.Add( Actor );
-						}
-					}
-					else
-					{
-						FoldersToSelect.Add(TreeItem.ToSharedRef());
+						ActorsToSelect.Add( Actor );
 					}
 				}
 
@@ -1991,15 +1362,11 @@ namespace SceneOutliner
 				for( FSelectionIterator SelectionIt( *GEditor->GetSelectedActors() ); SelectionIt; ++SelectionIt )
 				{
 					AActor* Actor = CastChecked< AActor >( *SelectionIt );
-					auto* TreeItem = ActorToTreeItemMap.Find( Actor );
-					if( TreeItem )
+					FOutlinerTreeItemPtr TreeItem = ActorToTreeItemMap.FindRef( Actor );
+					if( TreeItem.IsValid() )
 					{
-						OutlinerTreeView->SetItemSelection( *TreeItem, true );
+						OutlinerTreeView->SetItemSelection( TreeItem, true );
 					}
-				}
-				for (auto FolderIt = FoldersToSelect.CreateConstIterator(); FolderIt; ++FolderIt)
-				{
-					OutlinerTreeView->SetItemSelection(*FolderIt, true);
 				}
 
 				// Broadcast selection changed delegate
@@ -2041,12 +1408,12 @@ namespace SceneOutliner
 					for( FSelectionIterator SelectionIt( *GEditor->GetSelectedActors() ); SelectionIt; ++SelectionIt )
 					{
 						AActor* Actor = CastChecked< AActor >( *SelectionIt );
-						auto* TreeItem = ActorToTreeItemMap.Find( Actor );
-						if( TreeItem )
+						FOutlinerTreeItemPtr TreeItem = ActorToTreeItemMap.FindRef( Actor );
+						if( TreeItem.IsValid() )
 						{
-							OutlinerTreeView->SetItemSelection( *TreeItem, true );
+							OutlinerTreeView->SetItemSelection( TreeItem, true );
 
-							LastSelectedItem = *TreeItem;
+							LastSelectedItem = TreeItem;
 						}
 					}
 
@@ -2094,20 +1461,11 @@ namespace SceneOutliner
 			TArray< AActor* > SelectedActors;
 			for( FOutlinerData::TConstIterator SelectedItemIt( SelectedItems ); SelectedItemIt; ++SelectedItemIt )
 			{
-				FOutlinerTreeItemPtr TreeItem = *SelectedItemIt;
-				if (TreeItem->Type == TOutlinerTreeItem::Actor)
+				AActor* Actor = ( *SelectedItemIt )->Actor.Get();
+				if( Actor != NULL )
 				{
-					AActor* Actor = StaticCastSharedPtr<TOutlinerActorTreeItem>(TreeItem)->Actor.Get();
-					if( Actor != NULL )
-					{
-						SelectedActors.Add( Actor );
-					}
+					SelectedActors.Add( Actor );
 				}
-				else
-				{
-					OutlinerTreeView->SetItemExpansion(TreeItem, !OutlinerTreeView->IsItemExpanded(TreeItem));
-				}
-				
 			}
 
 			if( SelectedActors.Num() > 0 )
@@ -2120,10 +1478,10 @@ namespace SceneOutliner
 
 	void SSceneOutliner::OnOutlinerTreeItemScrolledIntoView( FOutlinerTreeItemPtr TreeItem, const TSharedPtr<ITableRow>& Widget )
 	{
-		auto FolderItem = StaticCastSharedPtr<TOutlinerFolderTreeItem>(TreeItem);
-		if (TreeItem->Flags.RenameWhenInView)
+		if(TreeItem->bRenameWhenScrolledIntoView)
 		{
-			TreeItem->Flags.RenameWhenInView = false;
+			TreeItem->bRenameWhenScrolledIntoView = false;
+
 			if(Widget.IsValid() && Widget->GetContent().IsValid())
 			{
 				TreeItem->RenameRequestEvent.ExecuteIfBound();
@@ -2150,8 +1508,10 @@ namespace SceneOutliner
 			{
 				if(!ActorToTreeItemMap.Find(InActor))
 				{
-					FOutlinerTreeItemRef NewItem = MakeShareable( new TOutlinerActorTreeItem((AActor*)InActor) );
-					AddedItemsList.AddUnique(NewItem);
+					FOutlinerTreeItemPtr NewItem = MakeShareable( new TOutlinerTreeItem );
+					NewItem->Actor = InActor;
+
+					AddedActorsList.AddUnique(NewItem);
 				}
 
 				Refresh();
@@ -2165,10 +1525,10 @@ namespace SceneOutliner
 		{
 			if( InActor && RepresentingWorld == InActor->GetWorld() )
 			{
-				auto* ItemPtr = ActorToTreeItemMap.Find(InActor);
+				FOutlinerTreeItemPtr* ItemPtr = ActorToTreeItemMap.Find(InActor);
 				if(ItemPtr)
 				{
-					RemovedItemsList.AddUnique(*ItemPtr);
+					RemovedActorsList.AddUnique(*ItemPtr);
 					Refresh();
 				}
 			}
@@ -2182,7 +1542,7 @@ namespace SceneOutliner
 		{
 			if( InActor && RepresentingWorld == InActor->GetWorld() )
 			{
-				auto* ItemPtr = ActorToTreeItemMap.Find(InActor);
+				FOutlinerTreeItemPtr* ItemPtr = ActorToTreeItemMap.Find(InActor);
 				if(ItemPtr)
 				{
 					AttachedActorsList.AddUnique(*ItemPtr);
@@ -2199,11 +1559,11 @@ namespace SceneOutliner
 		{
 			if( InActor && RepresentingWorld == InActor->GetWorld() )
 			{
-				auto* ItemPtr = ActorToTreeItemMap.Find(InActor);
+				FOutlinerTreeItemPtr* ItemPtr = ActorToTreeItemMap.Find(InActor);
 
 				if(ItemPtr)
 				{
-					RefreshItemsList.AddUnique(*ItemPtr);
+					DetachedActorsList.AddUnique(*ItemPtr);
 					Refresh();
 				}
 				else
@@ -2234,33 +1594,17 @@ namespace SceneOutliner
 				if ( !bHasVisibileChild )
 				{
 					// No children remaining, make sure this gets re-evaluated for the list too
-					auto* ItemPtr = ActorToTreeItemMap.Find(InParent);
+					FOutlinerTreeItemPtr* ItemPtr = ActorToTreeItemMap.Find(InParent);
 
 					if(ItemPtr)
 					{
-						RefreshItemsList.AddUnique(*ItemPtr);
+						RootTreeItems.Remove(*ItemPtr);
+						DetachedActorsList.AddUnique(*ItemPtr);
 						Refresh();
 					}
 				}
 			}
 		}
-	}
-
-	/** Called by the engine when an actor's folder is changed */
-	void SSceneOutliner::OnLevelActorFolderChanged(const AActor* InActor, FName OldPath)
-	{
-		auto* ActorTreeItem = ActorToTreeItemMap.Find(InActor);
-		if (!InActor || !ActorTreeItem)
-		{
-			return;
-		}
-		
-		// Detach the item from its old parent while we know the old path
-		DetachChildFromParent(*ActorTreeItem, OldPath);
-
-		// Refresh the tree item
-		RefreshItemsList.AddUnique(*ActorTreeItem);
-		Refresh();
 	}
 
 	void SSceneOutliner::OnLevelActorsRequestRename(const AActor* InActor)
@@ -2270,14 +1614,9 @@ namespace SceneOutliner
 		{
 			// Ensure that the item we want to rename is visible in the tree
 			TSharedPtr<TOutlinerTreeItem> ItemToRename = SelectedItems[SelectedItems.Num() - 1];
-			ItemToRename->Flags.RenameWhenInView = true;
+			ItemToRename->bRenameWhenScrolledIntoView = true;
 			OutlinerTreeView->RequestScrollIntoView(ItemToRename);
 		}
-	}
-
-	void SSceneOutliner::OnMapChange(uint32 MapFlags)
-	{
-		FullRefresh(true);
 	}
 
 	void SSceneOutliner::PostUndo(bool bSuccess)
@@ -2296,16 +1635,13 @@ namespace SceneOutliner
 			return;
 		}
 		
-		auto* TreeItem = ActorToTreeItemMap.Find( ChangedActor );
-		if (TreeItem)
-		{
-			OutlinerTreeView->FlashHighlightOnItem(*TreeItem);
-		}
+		FOutlinerTreeItemPtr TreeItem = ActorToTreeItemMap.FindRef( ChangedActor );
+		OutlinerTreeView->FlashHighlightOnItem(TreeItem);
 	}
 
 	void SSceneOutliner::OnFilterTextChanged( const FText& InFilterText )
 	{
-		SearchBoxFilter->SetRawFilterText( InFilterText );
+		SearchBoxActorFilter->SetRawFilterText( InFilterText );
 	}
 
 	void SSceneOutliner::OnFilterTextCommitted( const FText& InFilterText, ETextCommit::Type CommitInfo )
@@ -2330,7 +1666,7 @@ namespace SceneOutliner
 						// pending kill), in which case we don't want to try to select it
 						if( IsActorDisplayable( Actor ) )
 						{
-							if( CustomFilters->PassesAllFilters( Actor ) && SearchBoxFilter->PassesFilter( *ActorIt.Value() ) )
+							if( CustomFilters->PassesAllFilters( Actor ) && SearchBoxActorFilter->PassesFilter( Actor ) )
 							{
 								ActorsToSelect.Add( Actor );
 							}
@@ -2388,8 +1724,15 @@ namespace SceneOutliner
 						AActor* FirstSelectedActor = ActorsToSelect[ 0 ];
 						if( FirstSelectedActor != NULL )				
 						{
-							// Signal that an actor was selected. We assume it is valid as it won't have been added to ActorsToSelect if not.
-							OnActorPicked.ExecuteIfBound( FirstSelectedActor );
+							// Only fire the callback if this actor actually passes our required filters.  It's possible that
+							// some actors displayed are parent actors which don't actually match the requested criteria.
+							if( IsActorDisplayable( FirstSelectedActor ) && 
+								CustomFilters->PassesAllFilters( FirstSelectedActor ) &&
+								SearchBoxActorFilter->PassesFilter( FirstSelectedActor ) )
+							{
+								// Signal that an actor was selected
+								OnActorPicked.ExecuteIfBound( FirstSelectedActor );
+							}
 						}
 					}
 				}
@@ -2485,7 +1828,7 @@ namespace SceneOutliner
 
 	FText SSceneOutliner::GetFilterHighlightText() const
 	{
-		return SearchBoxFilter->GetRawFilterText();
+		return SearchBoxActorFilter->GetRawFilterText();
 	}
 
 
@@ -2506,20 +1849,11 @@ namespace SceneOutliner
 	{
 		// @todo outliner: Use command system for these for discoverability? (allow bindings?)
 
-		// We only allow these operations in actor browsing mode
+		// We only allow users to delete actors when in actor browsing mode
 		if( InitOptions.Mode == ESceneOutlinerMode::ActorBrowsing )
 		{
 			// Delete key: Delete selected actors (not rebindable, because it doesn't make much sense to bind.)
-			if( InKeyboardEvent.GetKey() == EKeys::F2 )
-			{
-				auto SelectedItems = OutlinerTreeView->GetSelectedItems();
-				if (SelectedItems.Num() == 1 && SelectedItems[0]->Type == TOutlinerTreeItem::Folder)
-				{
-					SelectedItems[0]->RenameRequestEvent.ExecuteIfBound();
-					return FReply::Handled();
-				}
-			}
-			else if ( InKeyboardEvent.GetKey() == EKeys::Platform_Delete )
+			if( InKeyboardEvent.GetKey() == EKeys::Delete )
 			{
 				if( InitOptions.CustomDelete.IsBound() )
 				{
@@ -2539,28 +1873,7 @@ namespace SceneOutliner
 				}
 				else
 				{
-					const FScopedTransaction Transaction( LOCTEXT("UndoAction_DeleteSelection", "Delete selection") );
-
-					// Delete selected folders too
-					auto SelectedItems = OutlinerTreeView->GetSelectedItems();
-					
-					GEditor->SelectNone(true, true);
-					for (auto ItemIt = SelectedItems.CreateIterator(); ItemIt; ++ItemIt)
-					{
-						auto Item = (*ItemIt);
-						if (Item->Type == TOutlinerTreeItem::Folder)
-						{
-							DeleteFolderAndSelectActors(StaticCastSharedPtr<TOutlinerFolderTreeItem>(Item).ToSharedRef());
-						}
-						else
-						{
-							auto* Actor = StaticCastSharedPtr<TOutlinerActorTreeItem>(Item)->Actor.Get();
-							if (Actor)
-							{
-								GEditor->SelectActor(Actor, true, true);
-							}
-						}
-					}
+					const FScopedTransaction Transaction( LOCTEXT("UndoAction_DeleteSelectedActors", "Delete selected actors") );
 
 					// Code from FLevelEditorActionCallbacks::Delete_CanExecute()
 					// Should this be just return FReply::Unhandled()?
@@ -2623,7 +1936,7 @@ namespace SceneOutliner
 
 	EColumnSortMode::Type SSceneOutliner::GetColumnSortMode( const FName ColumnId ) const
 	{
-		if ( SortByColumn != ColumnId || (SortByColumn == CustomColumn->GetColumnID() && !CustomColumn->SupportsSorting()) )
+		if ( SortByColumn != ColumnId )
 		{
 			return EColumnSortMode::None;
 		}

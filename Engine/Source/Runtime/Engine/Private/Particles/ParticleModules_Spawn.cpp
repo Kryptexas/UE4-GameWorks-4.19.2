@@ -100,7 +100,7 @@ void UParticleModuleSpawn::PostEditChangeProperty(FPropertyChangedEvent& Propert
 #endif // WITH_EDITOR
 
 bool UParticleModuleSpawn::GetSpawnAmount(FParticleEmitterInstance* Owner, 
-	int32 Offset, float OldLeftover, float DeltaTime, int32& Number, float& InRate)
+	int32 Offset, float OldLeftover, float DeltaTime, int32& Number, float& Rate)
 {
 	check(Owner);
 	return false;

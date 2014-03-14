@@ -37,8 +37,8 @@ public:
 		
 		// Register the details customizer
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
-		PropertyModule.RegisterCustomPropertyLayout("PlacedEditorUtilityBase", FOnGetDetailCustomizationInstance::CreateStatic(&FEditorUtilityInstanceDetails::MakeInstance));
-		PropertyModule.RegisterCustomPropertyLayout("GlobalEditorUtilityBase", FOnGetDetailCustomizationInstance::CreateStatic(&FEditorUtilityInstanceDetails::MakeInstance));
+		PropertyModule.RegisterCustomPropertyLayout(APlacedEditorUtilityBase::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic(&FEditorUtilityInstanceDetails::MakeInstance));
+		PropertyModule.RegisterCustomPropertyLayout(UGlobalEditorUtilityBase::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic(&FEditorUtilityInstanceDetails::MakeInstance));
 		PropertyModule.NotifyCustomizationModuleChanged();
 
 		if (GetDefault<UEditorExperimentalSettings>()->bEnableEditorUtilityBlueprints)
@@ -72,8 +72,8 @@ public:
 		if (FModuleManager::Get().IsModuleLoaded("PropertyEditor"))
 		{
 			FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
-			PropertyModule.UnregisterCustomPropertyLayout("PlacedEditorUtilityBase");
-			PropertyModule.UnregisterCustomPropertyLayout("GlobalEditorUtilityBase");
+			PropertyModule.UnregisterCustomPropertyLayout(APlacedEditorUtilityBase::StaticClass());
+			PropertyModule.UnregisterCustomPropertyLayout(UGlobalEditorUtilityBase::StaticClass());
 			PropertyModule.NotifyCustomizationModuleChanged();
 		}
 	}

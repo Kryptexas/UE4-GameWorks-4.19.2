@@ -589,7 +589,7 @@ bool FCascadeEmitterCanvasClient::InputKey(FViewport* Viewport, int32 Controller
 		}
 		else
 		{
-			if ( Key == EKeys::Platform_Delete )
+			if (Key == EKeys::Delete)
 			{
 				if (CascadePtr.Pin()->GetSelectedModule())
 				{

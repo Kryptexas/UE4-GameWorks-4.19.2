@@ -164,7 +164,7 @@ namespace AutomationTool
 			}
 			PrepareUBT();
 
-            string UBTManifest = GetUBTManifest(UprojectPath, AddArgs);
+			string UBTManifest = GetUBTManifest(UprojectPath);
 
 			DeleteFile(UBTManifest);
 			XGEItem Result = new XGEItem();
@@ -308,7 +308,7 @@ namespace AutomationTool
 
 			if (UseManifest)
 			{
-                string UBTManifest = GetUBTManifest(UprojectPath, AddArgs);
+				string UBTManifest = GetUBTManifest(UprojectPath);
 
 				DeleteFile(UBTManifest);
 
@@ -324,7 +324,7 @@ namespace AutomationTool
 
 			if (UseManifest)
 			{
-                string UBTManifest = GetUBTManifest(UprojectPath, AddArgs);
+				string UBTManifest = GetUBTManifest(UprojectPath);
 
 				AddBuildProductsFromManifest(UBTManifest);
 
@@ -338,6 +338,7 @@ namespace AutomationTool
 			{
 				".dll",
 				".pdb",
+				".xml",
 				".exe.config",
 				".exe",
 				"exe.mdb"
@@ -1272,22 +1273,10 @@ namespace AutomationTool
 
 				// Change file type on binary files to be always writeable.
 				var FileStats = FStat(File);
-
-                if (IsProbablyAMacOrIOSExe(File))
-                {
-                    if (FileStats.Type == P4FileType.Binary && (FileStats.Attributes & (P4FileAttributes.Executable | P4FileAttributes.Writeable)) != (P4FileAttributes.Executable | P4FileAttributes.Writeable))
-                    {
-                        ChangeFileType(File, (P4FileAttributes.Executable | P4FileAttributes.Writeable));
-                    }
-                }
-                else
-                {
-                    if (FileStats.Type == P4FileType.Binary && (FileStats.Attributes & P4FileAttributes.Writeable) != P4FileAttributes.Writeable)
-                    {
-                        ChangeFileType(File, P4FileAttributes.Writeable);
-                    }
-
-                }                    
+				if (FileStats.Type == P4FileType.Binary && (FileStats.Attributes & P4FileAttributes.Writeable) != P4FileAttributes.Writeable)
+				{
+					ChangeFileType(File, P4FileAttributes.Writeable);
+				}
 			}
 		}
 
@@ -1337,7 +1326,6 @@ namespace AutomationTool
 			var UATFiles = new List<string>(new string[] 
 					{
 						"AutomationTool.exe",
-						"AutomationTool.exe.config",
 						"UnrealBuildTool.exe",
 						"DotNETUtilities.dll",
 					});
@@ -1364,12 +1352,10 @@ namespace AutomationTool
 			}
 		}
 
-		string GetUBTManifest(string UProjectPath, string InAddArgs)
+		string GetUBTManifest(string UProjectPath)
 		{
 			// Can't write to Engine directory on 
-            bool bForceRocket = InAddArgs.ToLowerInvariant().Contains(" -rocket"); //awful
-
-            if ((GlobalCommandLine.Rocket || bForceRocket) && !String.IsNullOrEmpty(UProjectPath))
+			if (GlobalCommandLine.Rocket && !String.IsNullOrEmpty(UProjectPath))
 			{
 				return Path.Combine(Path.GetDirectoryName(UProjectPath), "Intermediate/Build/Manifest.xml");
 			}

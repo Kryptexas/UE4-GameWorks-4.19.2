@@ -22,7 +22,7 @@ public:
 	virtual TSharedRef<class SWidget> CreatePathPicker(const FPathPickerConfig& PathPickerConfig) OVERRIDE;
 	virtual TSharedRef<class SWidget> CreateCollectionPicker(const FCollectionPickerConfig& CollectionPickerConfig) OVERRIDE;
 	virtual bool HasPrimaryContentBrowser() const OVERRIDE;
-	virtual void FocusPrimaryContentBrowser(bool bFocusSearch) OVERRIDE;
+	virtual void FocusPrimaryContentBrowser() OVERRIDE;
 	virtual void CreateNewAsset(const FString& DefaultAssetName, const FString& PackagePath, UClass* AssetClass, UFactory* Factory) OVERRIDE;
 	virtual void SyncBrowserToAssets(const TArray<class FAssetData>& AssetDataList, bool bAllowLockedBrowsers = false) OVERRIDE;
 	virtual void SyncBrowserToAssets(const TArray<UObject*>& AssetList, bool bAllowLockedBrowsers = false) OVERRIDE;

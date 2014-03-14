@@ -22,6 +22,3 @@ public:
 	static jmethodID AndroidThunkJava_ShowConsoleWindow;
 	static jmethodID AndroidThunkJava_LaunchURL;
 };
-
-// Returns the java environment
-JNIEnv* GetJavaEnv(bool bRequireGlobalThis = true);

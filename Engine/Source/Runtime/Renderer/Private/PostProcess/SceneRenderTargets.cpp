@@ -450,13 +450,12 @@ bool FSceneRenderTargets::BeginRenderingSeparateTranslucency(const FViewInfo& Vi
 
 		// Use a separate render target for translucency
 		RHISetRenderTarget(SeparateTranslucency->GetRenderTargetItem().TargetableTexture, GetSceneDepthSurface());
+		RHISetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 		
 		if(bFirstTimeThisFrame)
 		{
 			RHIClear(true, FLinearColor(0, 0, 0, 1), false, 0, false, 0, FIntRect());
 		}
-
-		RHISetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 
 		return true;
 	}

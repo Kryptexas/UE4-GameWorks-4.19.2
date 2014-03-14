@@ -33,10 +33,6 @@ class UEnvQueryGenerator_PathingGrid : public UEnvQueryGenerator
 	UPROPERTY(EditAnywhere, Category=Generator)
 	TEnumAsByte<EEnvQueryTrace::Type> TraceType;
 
-	/** navigation filter for tracing */
-	UPROPERTY(EditDefaultsOnly, Category=Generator)
-	TSubclassOf<class UNavigationQueryFilter> NavigationFilter;
-
 	void GenerateItems(struct FEnvQueryInstance& QueryInstance); 
 
 	virtual FString GetDescriptionTitle() const OVERRIDE;

@@ -252,9 +252,6 @@ class ENGINE_API UCheatManager : public UObject
 	UFUNCTION(exec)
 	virtual void DumpOnlineSessionState();
 
-	UFUNCTION(exec)
-	virtual void DumpVoiceMutingState();
-
 	/**
 	 * This will move the player and set their rotation to the passed in values.
 	 * We have this version of the BugIt family as it is easier to type in just raw numbers in the console.
@@ -288,14 +285,6 @@ class ENGINE_API UCheatManager : public UObject
 	/** Translate world origin to this player position */
 	UFUNCTION(exec)
 	void SetWorldOrigin();
-
-	/** toggle "always on" GameplayDebuggingComponent's channels*/
-	UFUNCTION(exec)
-	void ToggleGameplayDebugView(const FString& ViewName);
-
-	/** insta-runs EQS query for GameplayDebugComponent selected AI */
-	UFUNCTION(exec)
-	void RunEQS(const FString& QueryName);
 
 	/**
 	 * This will move the player and set their rotation to the passed in values.

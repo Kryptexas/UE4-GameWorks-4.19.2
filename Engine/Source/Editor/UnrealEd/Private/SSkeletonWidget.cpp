@@ -589,7 +589,7 @@ void SRemapFailures::Construct( const FArguments& InArgs )
 {
 	for ( auto RemapIt = InArgs._FailedRemaps.CreateConstIterator(); RemapIt; ++RemapIt )
 	{
-		FailedRemaps.Add( MakeShareable( new FText(*RemapIt) ) );
+		FailedRemaps.Add( MakeShareable( new FString(*RemapIt) ) );
 	}
 
 	ChildSlot
@@ -615,7 +615,7 @@ void SRemapFailures::Construct( const FArguments& InArgs )
 					SNew(SBorder)
 					.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
 					[
-						SNew(SListView<TSharedRef<FText>>)
+						SNew(SListView<TSharedPtr<FString>>)
 						.ListItemsSource(&FailedRemaps)
 						.SelectionMode(ESelectionMode::None)
 						.OnGenerateRow(this, &SRemapFailures::MakeListViewWidget)
@@ -643,7 +643,7 @@ void SRemapFailures::Construct( const FArguments& InArgs )
 		];
 }
 
-void SRemapFailures::OpenRemapFailuresDialog(const TArray<FText>& InFailedRemaps)
+void SRemapFailures::OpenRemapFailuresDialog(const TArray<FString>& InFailedRemaps)
 {
 	TSharedRef<SWindow> RemapWindow = SNew(SWindow)
 		.Title(LOCTEXT("FailedRemapsDialog", "Failed Remaps"))
@@ -666,12 +666,12 @@ void SRemapFailures::OpenRemapFailuresDialog(const TArray<FText>& InFailedRemaps
 	}
 }
 
-TSharedRef<ITableRow> SRemapFailures::MakeListViewWidget(TSharedRef<FText> Item, const TSharedRef<STableViewBase>& OwnerTable)
+TSharedRef<ITableRow> SRemapFailures::MakeListViewWidget(TSharedPtr<FString> Item, const TSharedRef<STableViewBase>& OwnerTable)
 {
 	return
-		SNew(STableRow< TSharedRef<FText> >, OwnerTable)
+		SNew( STableRow< TSharedPtr<FString> >, OwnerTable )
 		[
-			SNew(STextBlock) .Text( Item.Get() )
+			SNew(STextBlock) .Text( *Item.Get() )
 		];
 }
 

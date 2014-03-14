@@ -27,7 +27,6 @@ ANavLinkProxy::ANavLinkProxy(const class FPostConstructInitializeProperties& PCI
 
 		SpriteComponent->AttachParent = RootComponent;
 		SpriteComponent->SetAbsolute(false, false, true);
-		SpriteComponent->bIsScreenSizeScaled = true;
 	}
 #endif
 

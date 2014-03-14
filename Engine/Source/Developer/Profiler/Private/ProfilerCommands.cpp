@@ -35,7 +35,7 @@ void FProfilerCommands::RegisterCommands()
 		Global commands.
 	-----------------------------------------------------------------------------*/
 
-	UI_COMMAND( ProfilerManager_Save, "Save", "Saves all collected data to file or files", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Control, EKeys::S ) );
+	UI_COMMAND( Save, "Save", "Saves all collected data to file or files", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Control, EKeys::S ) );
 	UI_COMMAND( StatsProfiler, "Statistics", "Enables the Stats Profiler", EUserInterfaceActionType::ToggleButton, FInputGesture( EModifierKey::Control, EKeys::P ) );
 	UI_COMMAND( MemoryProfiler, "Memory", "Enables the Memory Profiler", EUserInterfaceActionType::ToggleButton, FInputGesture( EModifierKey::Control, EKeys::M ) );
 	UI_COMMAND( FPSChart, "FPS Chart", "Shows the FPS Chart", EUserInterfaceActionType::ToggleButton, FInputGesture( EModifierKey::Control, EKeys::H ) );

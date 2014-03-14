@@ -1074,35 +1074,28 @@ namespace MarkdownSharp
             //Generate links to other languages for this page
             foreach (var translatedLanguage in data.LanguagesLinksToGenerate)
             {
-                var linkParams =
-                    Hash.FromAnonymousObject(
-                        new
-                            {
-                                pathToPage =
-                                    String.IsNullOrWhiteSpace(
-                                        data.CurrentFolderDetails.CurrentFolderFromMarkdownAsTopLeaf)
-                                        ? ""
-                                        : data.CurrentFolderDetails.CurrentFolderFromMarkdownAsTopLeaf,
-                                otherLanguage = translatedLanguage,
-                                relativeHTMLPath = data.CurrentFolderDetails.RelativeHTMLPath
-                            });
-
-                if (translatedLanguage.Equals(data.CurrentFolderDetails.Language))
-                {
-                    linkParams.Add("selected", "selected");
-                }
-
-                if(Directory.GetFiles(Path.Combine(
+                // Other languages except for the currents page or if there is no file in the directory.
+                if (translatedLanguage.Equals(data.CurrentFolderDetails.Language) ||
+                    Directory.GetFiles(Path.Combine(
                         Path.Combine(data.CurrentFolderDetails.AbsoluteMarkdownPath,
                         data.CurrentFolderDetails.CurrentFolderFromMarkdownAsTopLeaf)),
                         string.Format("*.{0}.udn", translatedLanguage)).Length == 0)
                 {
-                    linkParams.Add("disabled", "disabled");
+                    continue;
                 }
 
                 // Cope with top level folders having blank current folder.
                 translatedPageLinks += 
-                    Templates.TranslatedPageLink.Render(linkParams);
+                    Templates.TranslatedPageLink.Render(Hash.FromAnonymousObject(
+                        new
+                            {
+                                pathToPage = 
+                                    String.IsNullOrWhiteSpace(data.CurrentFolderDetails.CurrentFolderFromMarkdownAsTopLeaf) ?
+                                    "" :
+                                    data.CurrentFolderDetails.CurrentFolderFromMarkdownAsTopLeaf + "/",
+                                otherLanguage = translatedLanguage,
+                                relativeHTMLPath = data.CurrentFolderDetails.RelativeHTMLPath
+                            }));
             }
 
             //add a warning if crumbs for the document have not been updated to new format
@@ -1207,12 +1200,11 @@ namespace MarkdownSharp
 
             if (!IsURLProblem)
             {
-                string linkText;
-                var cacheKey = Path.Combine(FileLocation, InstanceVariablesForThisRun.CurrentFolderDetails.Language);
-                if (!CachedLinkText.TryGetValue(cacheKey, out linkText))
+                string LinkText;
+                if (!CachedLinkText.TryGetValue(FileLocation, out LinkText))
                 {
-                    linkText = GetTitleFromDocument(FileLocation, InstanceVariablesForThisRun);
-                    CachedLinkText.Add(cacheKey, linkText);
+                    LinkText = GetTitleFromDocument(FileLocation, InstanceVariablesForThisRun);
+                    CachedLinkText.Add(FileLocation, LinkText);
                 }
 
                 bool bChangedLanguage = false;
@@ -1258,7 +1250,7 @@ namespace MarkdownSharp
                             IsURLProblem = true;
 
                             //If we had to replace the language with int then update the linkText to include link to image of flag
-                            linkText += Templates.ImageFrame.Render(
+                            LinkText += Templates.ImageFrame.Render(
                                 Hash.FromAnonymousObject(
                                     new
                                     {
@@ -1295,7 +1287,7 @@ namespace MarkdownSharp
                         new
                         {
                             linkUrl = FileLocation,
-                            linkText = linkText
+                            linkText = LinkText
                         }));
 
                 if (bChangedLanguage)

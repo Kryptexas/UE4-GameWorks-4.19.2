@@ -8,7 +8,6 @@ class FBackgroundAssetData
 public:
 	/** Constructor */
 	FBackgroundAssetData(const FString& InPackageName, const FString& InPackagePath, const FString& InGroupNames, const FString& InAssetName, const FString& InAssetClass, const TMap<FString, FString>& InTags, const TArray<int32>& InChunkIDs);
-	FBackgroundAssetData(const FAssetData& InAssetData);
 
 	/** Creates an AssetData object based on this object */
 	FAssetData ToAssetData() const;

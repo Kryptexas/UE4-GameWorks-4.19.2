@@ -42,7 +42,7 @@ struct FBuilderPoly
 	int32 PolyFlags;
 
 	FBuilderPoly()
-	: Direction(0), ItemName(NAME_None), PolyFlags(0)
+	: VertexIndices(), Direction(0), ItemName(NAME_None), PolyFlags(0)
 	{}
 };
 

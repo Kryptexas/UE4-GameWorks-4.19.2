@@ -16,44 +16,29 @@ void SExternalImagePicker::Construct(const FArguments& InArgs)
 	DefaultImagePath = InArgs._DefaultImagePath;
 	Extension = FPaths::GetExtension(InArgs._TargetImagePath).ToUpper();
 	OnExternalImagePicked = InArgs._OnExternalImagePicked;
-	OnGetPickerPath = InArgs._OnGetPickerPath;
 	MaxDisplayedImageDimensions = InArgs._MaxDisplayedImageDimensions;
-	bRequiresSpecificSize = InArgs._RequiresSpecificSize;
+	bRequiresSpecificSize = InArgs._bRequiresSpecificSize;
 	RequiredImageDimensions = InArgs._RequiredImageDimensions;
-
-	TSharedPtr<SHorizontalBox> HorizontalBox = nullptr;
 
 	ChildSlot
 	[
 		SNew(SVerticalBox)
 		+SVerticalBox::Slot()
 		[
-			SAssignNew(HorizontalBox, SHorizontalBox)
+			SNew(SHorizontalBox)
 			+SHorizontalBox::Slot()
 			.AutoWidth()
 			.VAlign(VAlign_Center)
 			[
-				SNew(SBorder)
-				.BorderImage(FEditorStyle::Get().GetBrush("ExternalImagePicker.ThumbnailShadow"))
-				.Padding(5.0f)
-				.Content()
+				SNew(SBox)
+				.WidthOverride(this, &SExternalImagePicker::GetImageWidth)
+				.HeightOverride(this, &SExternalImagePicker::GetImageHeight)
 				[
-					SNew(SBorder)
-					.BorderImage(FEditorStyle::Get().GetBrush("ExternalImagePicker.BlankImage"))
-					.Padding(0.0f)
-					.Content()
+					SNew(SEnableBox)
 					[
-						SNew(SBox)
-						.WidthOverride(this, &SExternalImagePicker::GetImageWidth)
-						.HeightOverride(this, &SExternalImagePicker::GetImageHeight)
-						[
-							SNew(SEnableBox)
-							[
-								SNew(SImage)
-								.Image(this, &SExternalImagePicker::GetImage)
-								.ToolTipText(this, &SExternalImagePicker::GetImageTooltip)
-							]
-						]
+						SNew(SImage)
+						.Image(this, &SExternalImagePicker::GetImage)
+						.ToolTipText(this, &SExternalImagePicker::GetImageTooltip)
 					]
 				]
 			]
@@ -83,20 +68,6 @@ void SExternalImagePicker::Construct(const FArguments& InArgs)
 		]
 	];
 
-	if(HorizontalBox.IsValid() && DefaultImagePath.Len() > 0)
-	{
-		HorizontalBox->AddSlot()
-			.AutoWidth()
-			.Padding(2.0f)
-			.VAlign(VAlign_Center)
-			[
-				SNew(SResetToDefaultMenu)
-				.OnResetToDefault(FSimpleDelegate::CreateSP(this, &SExternalImagePicker::HandleResetToDefault))
-				.OnGetResetToDefaultText(FOnGetResetToDefaultText::CreateSP(this, &SExternalImagePicker::GetResetToDefaultText))
-				.DiffersFromDefault(this, &SExternalImagePicker::DiffersFromDefault)
-			];
-	}
-
 	ApplyImage();
 }
 
@@ -122,7 +93,7 @@ FText SExternalImagePicker::GetImageTooltip() const
 		ImageTooltip = FText::Format(LOCTEXT("ImageTooltip_Default", "Default Image\n({0})\nDimensions: {1} x {2}"), FText::FromString(DefaultImagePath), XText, YText);
 		break;
 	case UsingTargetImage:
-		ImageTooltip = FText::Format(LOCTEXT("ImageTooltip_Target", "Target Image\n({0})\nDimensions: {1} x {2}"), FText::FromString(TargetImagePath), XText, YText);
+		ImageTooltip = FText::Format(LOCTEXT("ImageTooltip_Default", "Target Image\n({0})\nDimensions: {1} x {2}"), FText::FromString(TargetImagePath), XText, YText);
 		break;
 	}
 	
@@ -131,7 +102,7 @@ FText SExternalImagePicker::GetImageTooltip() const
 
 FVector2D SExternalImagePicker::GetConstrainedImageSize() const
 {
-	const FVector2D Size = GetImage()->ImageSize;
+	const FVector2D Size = ImageBrush.IsValid() ? ImageBrush->ImageSize : FVector2D::ZeroVector;
 
 	// make sure we have a valid size in case the image didn't get loaded
 	const FVector2D ValidSize( FMath::Max(Size.X, 32.0f), FMath::Max(Size.Y, 32.0f) );
@@ -217,11 +188,10 @@ TSharedPtr< FSlateDynamicImageBrush > SExternalImagePicker::LoadImageAsBrush( co
 	if( FFileHelper::LoadFileToArray( RawFileData, *ImagePath ) )
 	{
 		IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>( FName("ImageWrapper") );
-		IImageWrapperPtr ImageWrappers[3] =
+		IImageWrapperPtr ImageWrappers[2] =
 		{ 
 			ImageWrapperModule.CreateImageWrapper( EImageFormat::PNG ),
-			ImageWrapperModule.CreateImageWrapper( EImageFormat::BMP ),
-			ImageWrapperModule.CreateImageWrapper( EImageFormat::ICO ),
+			ImageWrapperModule.CreateImageWrapper( EImageFormat::BMP )
 		};
 
 		for( auto ImageWrapper : ImageWrappers )
@@ -243,7 +213,7 @@ TSharedPtr< FSlateDynamicImageBrush > SExternalImagePicker::LoadImageAsBrush( co
 
 		if(!bSucceeded)
 		{
-			UE_LOG(LogSlate, Log, TEXT("Only BGRA pngs, bmps or icos are supported in by External Image Picker"));
+			UE_LOG(LogSlate, Log, TEXT("Only BGRA pngs or bmps are supported in by External Image Picker"));
 			ErrorHintWidget->SetError(LOCTEXT("BadFormatHint", "Unsupported image format"));
 		}
 		else
@@ -279,12 +249,7 @@ FReply SExternalImagePicker::OnPickFile()
 	{
 		TArray<FString> OutFiles;
 		const FString Filter = FString::Printf(TEXT("%s files (*.%s)|*.%s"), *Extension, *Extension, *Extension);
-		const FString DefaultPath = OnGetPickerPath.IsBound() ? OnGetPickerPath.Execute() : FPaths::GetPath(FPaths::GetProjectFilePath());
-
-		TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(AsShared());
-		void* ParentWindowHandle = (ParentWindow.IsValid() && ParentWindow->GetNativeWindow().IsValid()) ? ParentWindow->GetNativeWindow()->GetOSWindowHandle() : nullptr;
-
-		if (DesktopPlatform->OpenFileDialog(ParentWindowHandle, FText::Format(LOCTEXT("ImagePickerDialogTitle", "Choose a {0} file"), FText::FromString(Extension)).ToString(), DefaultPath, TEXT(""), Filter, EFileDialogFlags::None, OutFiles))
+		if (DesktopPlatform->OpenFileDialog(NULL, FText::Format(LOCTEXT("ImagePickerDialogTitle", "Choose a {0} file"), FText::FromString(Extension)).ToString(), TEXT(""), TEXT(""), Filter, EFileDialogFlags::None, OutFiles))
 		{
 			check(OutFiles.Num() == 1);
 
@@ -296,24 +261,6 @@ FReply SExternalImagePicker::OnPickFile()
 	}
 
 	return FReply::Handled();
-}
-
-void SExternalImagePicker::HandleResetToDefault()
-{
-	if(OnExternalImagePicked.Execute(DefaultImagePath, TargetImagePath))
-	{
-		ApplyImage();
-	}
-}
-
-FText SExternalImagePicker::GetResetToDefaultText() const
-{
-	return FText::FromString(DefaultImagePath);
-}
-
-bool SExternalImagePicker::DiffersFromDefault() const
-{
-	return TargetImagePath != DefaultImagePath;
 }
 
 #undef LOCTEXT_NAMESPACE

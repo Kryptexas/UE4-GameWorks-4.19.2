@@ -273,8 +273,8 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 		.NameContent()
 		[
 			SNew(STextBlock)
-			.Font( IDetailLayoutBuilder::GetDetailFont() )
-			.Text(LOCTEXT("RecomputeNormals", "Recompute Normals").ToString())
+				.Font( IDetailLayoutBuilder::GetDetailFont() )
+				.Text(LOCTEXT("RecomputeNormals", "Recompute Normals").ToString())
 		
 		]
 		.ValueContent()
@@ -335,84 +335,42 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 
 	{
 		ChildrenBuilder.AddChildContent(LOCTEXT("BuildScale", "Build Scale").ToString())
-		.NameContent()
-		[
-			SNew(STextBlock)
-			.Font(IDetailLayoutBuilder::GetDetailFont())
-			.Text(LOCTEXT("BuildScale", "Build Scale").ToString())
-			.ToolTipText( LOCTEXT("BuildScale_ToolTip", "The local scale applied when building the mesh") )
-		]
+			.NameContent()
+			[
+				SNew(STextBlock)
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+				.Text(LOCTEXT("BuildScale", "Build Scale").ToString())
+			]
 		.ValueContent()
-		[
-			SNew( SVerticalBox )
-			+SVerticalBox::Slot()
-			.Padding( FMargin(0.0f, 1.0f, 0.0f, 6.0f ) )
 			[
 				SNew(SNumericEntryBox<float>)
 				.AllowSpin(true)
+				.ToolTipText( LOCTEXT("BuildScale_ToolTip", "The local scale applied when building the mesh") )
 				.Font(IDetailLayoutBuilder::GetDetailFont())
 				.MinValue(0.0f)
 				.MaxValue(TOptional<float>())
 				.MaxSliderValue(TOptional<float>())
 				.MinSliderValue(TOptional<float>())
-				.Value( this, &FMeshBuildSettingsLayout::GetBuildScaleX)
-				.OnValueChanged(this, &FMeshBuildSettingsLayout::OnBuildScaleXChanged)
-				.Label()
-				[
-					SNumericEntryBox<float>::BuildLabel( LOCTEXT("BuildScaleX_Label", "X"), FLinearColor::White, SNumericEntryBox<float>::RedLabelBackgroundColor )
-				]
-			]
-			+SVerticalBox::Slot()
-			.Padding( FMargin(0.0f, 1.0f, 0.0f, 6.0f ) )
-			[
-				SNew(SNumericEntryBox<float>)
-				.AllowSpin(true)
-				.Font(IDetailLayoutBuilder::GetDetailFont())
-				.MinValue(0.0f)
-				.MaxValue(TOptional<float>())
-				.MaxSliderValue(TOptional<float>())
-				.MinSliderValue(TOptional<float>())
-				.Value( this, &FMeshBuildSettingsLayout::GetBuildScaleY)
-				.OnValueChanged(this, &FMeshBuildSettingsLayout::OnBuildScaleYChanged)
-				.Label()
-				[
-					SNumericEntryBox<float>::BuildLabel( LOCTEXT("BuildScaleY_Label", "Y"), FLinearColor::White, SNumericEntryBox<float>::GreenLabelBackgroundColor )
-				]
-			]
-			+SVerticalBox::Slot()
-			.Padding( FMargin(0.0f, 1.0f, 0.0f, 2.0f ) )
-			[
-				SNew(SNumericEntryBox<float>)
-				.AllowSpin(true)
-				.Font(IDetailLayoutBuilder::GetDetailFont())
-				.MinValue(0.0f)
-				.MaxValue(TOptional<float>())
-				.MaxSliderValue(TOptional<float>())
-				.MinSliderValue(TOptional<float>())
-				.Value( this, &FMeshBuildSettingsLayout::GetBuildScaleZ)
-				.OnValueChanged(this, &FMeshBuildSettingsLayout::OnBuildScaleZChanged)
-				.Label()
-				[
-					SNumericEntryBox<float>::BuildLabel( LOCTEXT("BuildScaleZ_Label", "Z"), FLinearColor::White, SNumericEntryBox<float>::BlueLabelBackgroundColor )
-				]
-			]
-		];
+				.Value( this, &FMeshBuildSettingsLayout::GetBuildScale)
+				.OnValueChanged(this, &FMeshBuildSettingsLayout::OnBuildScaleChanged)
+			];
 	}
+
 		
 	{
 		ChildrenBuilder.AddChildContent( LOCTEXT("ApplyChanges", "Apply Changes").ToString() )
-		.ValueContent()
-		.HAlign(HAlign_Left)
-		[
-			SNew(SButton)
-			.OnClicked(this, &FMeshBuildSettingsLayout::OnApplyChanges)
-			.IsEnabled(ParentLODSettings.Pin().ToSharedRef(), &FLevelOfDetailSettingsLayout::IsApplyNeeded)
+			.ValueContent()
+			.HAlign(HAlign_Left)
 			[
-				SNew( STextBlock )
-				.Text(LOCTEXT("ApplyChanges", "Apply Changes").ToString())
-				.Font( IDetailLayoutBuilder::GetDetailFont() )
-			]
-		];
+				SNew(SButton)
+				.OnClicked(this, &FMeshBuildSettingsLayout::OnApplyChanges)
+				.IsEnabled(ParentLODSettings.Pin().ToSharedRef(), &FLevelOfDetailSettingsLayout::IsApplyNeeded)
+				[
+					SNew( STextBlock )
+					.Text(LOCTEXT("ApplyChanges", "Apply Changes").ToString())
+					.Font( IDetailLayoutBuilder::GetDetailFont() )
+				]
+			];
 	}
 }
 
@@ -450,19 +408,9 @@ ESlateCheckBoxState::Type FMeshBuildSettingsLayout::ShouldUseFullPrecisionUVs() 
 	return BuildSettings.bUseFullPrecisionUVs ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
 }
 
-TOptional<float> FMeshBuildSettingsLayout::GetBuildScaleX() const
+TOptional<float> FMeshBuildSettingsLayout::GetBuildScale() const
 {
-	return BuildSettings.BuildScale3D.X;
-}
-
-TOptional<float> FMeshBuildSettingsLayout::GetBuildScaleY() const
-{
-	return BuildSettings.BuildScale3D.Y;
-}
-
-TOptional<float> FMeshBuildSettingsLayout::GetBuildScaleZ() const
-{
-	return BuildSettings.BuildScale3D.Z;
+	return BuildSettings.BuildScale;
 }
 
 void FMeshBuildSettingsLayout::OnRecomputeNormalsChanged(ESlateCheckBoxState::Type NewState)
@@ -485,19 +433,9 @@ void FMeshBuildSettingsLayout::OnUseFullPrecisionUVsChanged(ESlateCheckBoxState:
 	BuildSettings.bUseFullPrecisionUVs = (NewState == ESlateCheckBoxState::Checked) ? true : false;
 }
 
-void FMeshBuildSettingsLayout::OnBuildScaleXChanged( float NewScaleX )
+void FMeshBuildSettingsLayout::OnBuildScaleChanged( float NewScale )
 {
-	BuildSettings.BuildScale3D.X = NewScaleX;
-}
-
-void FMeshBuildSettingsLayout::OnBuildScaleYChanged( float NewScaleY )
-{
-	BuildSettings.BuildScale3D.Y = NewScaleY;
-}
-
-void FMeshBuildSettingsLayout::OnBuildScaleZChanged( float NewScaleZ )
-{
-	BuildSettings.BuildScale3D.Z = NewScaleZ;
+	BuildSettings.BuildScale = NewScale;
 }
 
 FMeshReductionSettingsLayout::FMeshReductionSettingsLayout( TSharedRef<FLevelOfDetailSettingsLayout> InParentLODSettings )
@@ -1098,7 +1036,7 @@ void FLevelOfDetailSettingsLayout::AddToDetailsPanel( IDetailLayoutBuilder& Deta
 	[
 		SNew(STextBlock)
 		.Font( IDetailLayoutBuilder::GetDetailFont() )
-		.Text(LOCTEXT("AutoComputeLOD", "Auto Compute LOD Distances").ToString())
+		.Text(LOCTEXT("AutoComputeLOD", "Auto compute LOD Distances").ToString())
 	]
 	.ValueContent()
 	[
@@ -1201,7 +1139,7 @@ void FLevelOfDetailSettingsLayout::AddLODLevelCategories( IDetailLayoutBuilder& 
 			FString CategoryName = FString(TEXT("LOD"));
 			CategoryName.AppendInt( LODIndex );
 
-			FString LODLevelString = FText::Format( LOCTEXT("LODLevel", "LOD {0}"), FText::AsNumber( LODIndex ) ).ToString();
+			FString LODLevelString = FText::Format( LOCTEXT("LODLevel", "LOD{0}"), FText::AsNumber( LODIndex ) ).ToString();
 
 			IDetailCategoryBuilder& LODCategory = DetailBuilder.EditCategory( *CategoryName, LODLevelString, ECategoryPriority::Important );
 

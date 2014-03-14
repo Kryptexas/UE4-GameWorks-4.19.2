@@ -532,7 +532,7 @@ bool FCheckInLatentCommand::Update()
 	if(!AsyncHelper.IsDispatched())
 	{
 		TSharedRef<FCheckIn, ESPMode::ThreadSafe> CheckInOperation = ISourceControlOperation::Create<FCheckIn>();
-		CheckInOperation->SetDescription(NSLOCTEXT("SourceControlTests", "TestChangelistDescription", "[AUTOMATED TEST] Automatic checkin, testing functionality."));
+		CheckInOperation->SetDescription(TEXT("[AUTOMATED TEST] Automatic checkin, testing functionality."));
 
 		if(!ISourceControlModule::Get().GetProvider().Execute( 
 			CheckInOperation, 

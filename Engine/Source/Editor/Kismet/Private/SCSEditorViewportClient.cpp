@@ -14,7 +14,6 @@
 #include "SoundDefinitions.h"
 #include "Editor/UnrealEd/Public/Kismet2/ComponentEditorUtils.h"
 #include "ISCSEditorCustomization.h"
-#include "ComponentVisualizer.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSCSEditorViewport, Log, All);
 
@@ -230,10 +229,10 @@ void FSCSEditorViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInterf
 				if(Comp != NULL && Comp->IsRegistered())
 				{
 					// Try and find a visualizer
-					TSharedPtr<FComponentVisualizer>* VisualizerPtr = GUnrealEd->ComponentVisualizerMap.Find(Comp->GetClass()->GetFName());
-					if (VisualizerPtr != NULL && (*VisualizerPtr).IsValid())
+					FOnDrawComponentVisualizer* VisualizerPtr = GUnrealEd->ComponentVisualizerMap.Find(Comp->GetClass());
+					if(VisualizerPtr != NULL && (*VisualizerPtr).IsBound())
 					{
-						(*VisualizerPtr)->DrawVisualization(Comp, View, PDI);
+						(*VisualizerPtr).Execute(Comp, View, PDI);
 					}
 				}
 			}
@@ -371,7 +370,7 @@ bool FSCSEditorViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 							USceneComponent* ParentSceneComp = SceneComp->GetAttachParent();
 							if( ParentSceneComp )
 							{
-								const FTransform ParentToWorldSpace = ParentSceneComp->GetSocketTransform(SceneComp->AttachSocketName);
+								const FTransform ParentToWorldSpace = ParentSceneComp->GetComponentToWorld();
 								const FVector ParentScale( ParentToWorldSpace.GetScale3D() );
 								if( ParentScale.X != 0.f && ParentScale.Y != 0.f && ParentScale.Z != 0.f )
 								{
@@ -379,7 +378,6 @@ bool FSCSEditorViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 								}
 
 								Drag = ParentToWorldSpace.InverseSafe().TransformVector(Drag);
-								Rot = (ParentToWorldSpace.InverseSafe().GetRotation() * Rot.Quaternion() * ParentToWorldSpace.GetRotation()).Rotator();
 							}
 
 							FComponentEditorUtils::FTransformData OldTransform(*SelectedTemplate);
@@ -585,7 +583,7 @@ FVector FSCSEditorViewportClient::GetWidgetLocation() const
 				}
 				else
 				{
-					Location = SceneComp->GetComponentLocation();
+					Location = SceneComp->GetComponentToWorld().GetTranslation();
 				}
 			}
 		}
@@ -616,16 +614,11 @@ FMatrix FSCSEditorViewportClient::GetWidgetCoordSystem() const
 					}					
 					else
 					{
-						Matrix = FRotationMatrix( SceneComp->GetComponentRotation() );
+						Matrix = FRotationMatrix( SceneComp->RelativeRotation );
 					}
 				}
 			}
 		}
-	}
-
-	if(!Matrix.Equals(FMatrix::Identity))
-	{
-		Matrix.RemoveScaling();
 	}
 
 	return Matrix;

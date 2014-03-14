@@ -465,6 +465,7 @@ private:
 	bool IsCustomEvent() const;
 	void OnIsReliableReplicationFunctionModified(const ESlateCheckBoxState::Type NewCheckedState);
 	ESlateCheckBoxState::Type GetIsReliableReplicatedFunction() const;
+	bool GetIsReplicatedFunction() const;
 
 	struct FReplicationSpecifierLabel
 	{

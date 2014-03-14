@@ -66,4 +66,10 @@ public class SymbolDebuggerTarget : TargetRules
 		// Do NOT produce additional console app exe
 		OutLinkEnvironmentConfiguration.bBuildAdditionalConsoleApplication = false;
 	}
+#if false
+    public override bool GUBP_AlwaysBuildWithTools()
+    {
+        return true;
+    }
+#endif
 }

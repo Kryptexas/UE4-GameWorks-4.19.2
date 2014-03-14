@@ -231,7 +231,7 @@ bool FSymbolDebugger::SetMethodText(const FString& InNewMethodText)
 	return true;
 }
 
-bool FSymbolDebugger::OnFileOpen(TSharedRef<SWidget> ParentWidget)
+bool FSymbolDebugger::OnFileOpen()
 {
 	//@todo. Get the extension from the CrashDebugHelper
 	// Prompt the user for the filenames
@@ -240,11 +240,8 @@ bool FSymbolDebugger::OnFileOpen(TSharedRef<SWidget> ParentWidget)
 	bool bOpened = false;
 	if (DesktopPlatform != NULL)
 	{
-		TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(ParentWidget);
-		void* ParentWindowHandle = (ParentWindow.IsValid() && ParentWindow->GetNativeWindow().IsValid()) ? ParentWindow->GetNativeWindow()->GetOSWindowHandle() : nullptr;
-
 		bOpened = DesktopPlatform->OpenFileDialog(
-			ParentWindowHandle, 
+			NULL, 
 			TEXT("Open crash dump file..."), 
 			TEXT(""), 
 			TEXT(""), 

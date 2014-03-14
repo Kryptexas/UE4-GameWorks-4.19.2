@@ -68,10 +68,7 @@ FFavoritedBlueprintPaletteItem::FFavoritedBlueprintPaletteItem(FString const& Se
 	{
 		// @TODO look for redirects first
 
-		if ((NodeClassName == UK2Node_MacroInstance::StaticClass()->GetName()) ||
-			(NodeClassName == UK2Node_InputKey::StaticClass()->GetName())      ||
-			(NodeClassName == UK2Node_InputAction::StaticClass()->GetName())   || 
-			(NodeClassName == UK2Node_InputAxisEvent::StaticClass()->GetName()) )
+		if (NodeClassName == UK2Node_MacroInstance::StaticClass()->GetName())
 		{
 			FieldName = ParsedFieldName;
 		}
@@ -103,23 +100,6 @@ FFavoritedBlueprintPaletteItem::FFavoritedBlueprintPaletteItem(TSharedPtr<FEdGra
 			FieldOuter = AddComponentAction->ComponentClass->GetOuter();
 			FieldName  = AddComponentAction->ComponentClass->GetName();
 		}
-		else if (ActionId == FEdGraphSchemaAction_K2AddComment::StaticGetTypeId())
-		{
-			UClass* NodeClass = UEdGraphNode_Comment::StaticClass();
-			NodeClassOuter = NodeClass->GetOuter();
-			NodeClassName  = NodeClass->GetName();
-		}
-		else if (ActionId == FEdGraphSchemaAction_K2Delegate::StaticGetTypeId())
-		{
-			FEdGraphSchemaAction_K2Delegate* DelegateAction = (FEdGraphSchemaAction_K2Delegate*)PaletteActionIn.Get();
-
-			UClass* NodeClass = UK2Node_BaseMCDelegate::StaticClass();
-			NodeClassOuter = NodeClass->GetOuter();
-			NodeClassName  = NodeClass->GetName();
-
-			FieldOuter = DelegateAction->GetDelegateClass();
-			FieldName  = DelegateAction->GetDelegateName().ToString();
-		}
 		// if we can pull out a node associated with this action
 		else if (UK2Node const* NodeTemplate = FK2SchemaActionUtils::ExtractNodeTemplateFromAction(PaletteActionIn))
 		{
@@ -140,13 +120,6 @@ FFavoritedBlueprintPaletteItem::FFavoritedBlueprintPaletteItem(TSharedPtr<FEdGra
 					bIsSupported = true;
 				}
 			}
-			else if (UK2Node_InputAxisEvent const* InputAxisEventNode = Cast<UK2Node_InputAxisEvent const>(NodeTemplate))
-			{
-				FieldName  = InputAxisEventNode->InputAxisName.ToString();
-				FieldOuter = NULL;
-
-				bIsSupported = true;
-			}
 			else if (UK2Node_Event const* EventNode = Cast<UK2Node_Event const>(NodeTemplate))
 			{
 				FieldName  = EventNode->EventSignatureName.ToString();
@@ -161,26 +134,10 @@ FFavoritedBlueprintPaletteItem::FFavoritedBlueprintPaletteItem(TSharedPtr<FEdGra
 
 				bIsSupported = true;
 			}
-			else if (UK2Node_InputKey const* InputKeyNode = Cast<UK2Node_InputKey const>(NodeTemplate))
-			{
-				FieldName  = InputKeyNode->InputKey.ToString();
-				FieldOuter = NULL;
-
-				bIsSupported = true;
-			}
-			else if (UK2Node_InputAction const* InputActionNode = Cast<UK2Node_InputAction const>(NodeTemplate))
-			{
-				FieldName  = InputActionNode->InputActionName.ToString();
-				FieldOuter = NULL;
-
-				bIsSupported = true;
-			}
 			else if (Cast<UK2Node_IfThenElse const>(NodeTemplate) || 
 			         Cast<UK2Node_MakeArray const>(NodeTemplate)  || 
 					 Cast<UK2Node_SpawnActorFromClass const>(NodeTemplate) || 
-					 Cast<UK2Node_SpawnActor const>(NodeTemplate) ||
-					 Cast<UK2Node_Timeline const>(NodeTemplate)   ||
-					 Cast<UK2Node_InputTouch const>(NodeTemplate))
+					 Cast<UK2Node_SpawnActor const>(NodeTemplate) )
 			{
 				// @TODO eventually we should switch this from being inclusive to exclusive 
 				//       (once we figure out what smaller subset is not explicitly supported)

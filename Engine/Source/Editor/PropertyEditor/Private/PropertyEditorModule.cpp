@@ -46,6 +46,16 @@ void FPropertyEditorModule::ShutdownModule()
 
 void FPropertyEditorModule::NotifyCustomizationModuleChanged()
 {
+	// Remove invalid entries from our detail layout map.
+	for( auto It = ClassToDetailLayoutMap.CreateIterator(); It; ++It )
+	{
+		TWeakObjectPtr<UStruct> Key = It.Key();
+		if( !Key.IsValid() )
+		{
+			It.RemoveCurrent();
+		}
+	}
+
 	// The module was changed (loaded or unloaded), force a refresh.  Note it is assumed the module unregisters all customization delegates before this
 	for( int32 ViewIndex = 0; ViewIndex < AllDetailViews.Num(); ++ViewIndex )
 	{
@@ -320,6 +330,18 @@ TSharedRef<IPropertyChangeListener> FPropertyEditorModule::CreatePropertyChangeL
 	return MakeShareable( new FPropertyChangeListener );
 }
 
+void FPropertyEditorModule::RegisterCustomPropertyLayout( UClass* Class, FOnGetDetailCustomizationInstance DetailLayoutDelegate )
+{
+	if( Class )
+	{
+		FDetailLayoutCallback Callback;
+		Callback.DetailLayoutDelegate = DetailLayoutDelegate;
+		// @todo: DetailsView: Fix me: this specifies the order in which detail layouts should be queried
+		Callback.Order = ClassToDetailLayoutMap.Num() + ClassNameToDetailLayoutNameMap.Num();
+
+		ClassToDetailLayoutMap.Add( Class, Callback );
+	}
+}
 
 void FPropertyEditorModule::RegisterCustomPropertyLayout( FName ClassName, FOnGetDetailCustomizationInstance DetailLayoutDelegate )
 {
@@ -328,7 +350,7 @@ void FPropertyEditorModule::RegisterCustomPropertyLayout( FName ClassName, FOnGe
 		FDetailLayoutCallback Callback;
 		Callback.DetailLayoutDelegate = DetailLayoutDelegate;
 		// @todo: DetailsView: Fix me: this specifies the order in which detail layouts should be queried
-		Callback.Order = ClassNameToDetailLayoutNameMap.Num();
+		Callback.Order = ClassToDetailLayoutMap.Num() + ClassNameToDetailLayoutNameMap.Num();
 
 		ClassNameToDetailLayoutNameMap.Add( ClassName, Callback );
 	}
@@ -340,6 +362,13 @@ void FPropertyEditorModule::RegisterStructPropertyLayout( FName StructTypeName, 
 	{
 		StructTypeToLayoutMap.Add( StructTypeName, StructLayoutDelegate );
 	}
+}
+
+void FPropertyEditorModule::UnregisterCustomPropertyLayout( UClass* Class )
+{
+	check( Class );
+
+	ClassToDetailLayoutMap.Remove( Class );
 }
 
 void FPropertyEditorModule::UnregisterCustomPropertyLayout( FName ClassName )

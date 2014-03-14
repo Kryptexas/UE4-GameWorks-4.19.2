@@ -62,7 +62,6 @@ AReflectionCapture::AReflectionCapture(const class FPostConstructInitializePrope
 		SpriteComponent->bAbsoluteScale = true;
 		SpriteComponent->BodyInstance.bEnableCollision_DEPRECATED = false;	
 		SpriteComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
-		SpriteComponent->bIsScreenSizeScaled = true;
 	}
 #endif // WITH_EDITORONLY_DATA
 	

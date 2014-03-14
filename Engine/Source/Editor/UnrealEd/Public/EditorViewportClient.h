@@ -810,12 +810,11 @@ public:
 	bool IsInGameView() const { return bInGameViewMode; }
 
 	/**
-	 * Aspect ratio bar display settings
+	 * Overrides the aspect ratio bar display setting
 	 */
-	void SetShowAspectRatioBarDisplay(bool bEnable) { EngineShowFlags.CameraAspectRatioBars = bEnable ? 1 : 0; Invalidate(false,false); }
-	void SetShowSafeFrameBoxDisplay(bool bEnable) { EngineShowFlags.CameraSafeFrames = bEnable ? 1 : 0; Invalidate(false,false); }
-	bool IsShowingAspectRatioBarDisplay() const { return EngineShowFlags.CameraAspectRatioBars; }
-	bool IsShowingSafeFrameBoxDisplay() const { return EngineShowFlags.CameraSafeFrames; }
+	void OverrideSafeFrameDisplay( bool bEnableOverrides, bool bShowAspectRatioBars, bool bShowSafeFrameBox );
+	bool IsOverridingAspectRatioBarDisplay() const { return bEnableSafeFrameOverride && bShowAspectRatioBarsOverride; }
+	bool IsOverridingSafeFrameBoxDisplay() const { return bEnableSafeFrameOverride && bShowSafeFrameBoxOverride; }
 
 	/** Get the near clipping plane for this viewport. */
 	float GetNearClipPlane() const;
@@ -946,10 +945,6 @@ protected:
 	 * Gets a joystick state cache for the specified controller ID
 	 */
 	FCachedJoystickState* GetJoystickState(const uint32 InControllerID);
-
-	/** Helper used by DrawSafeFrames to get the current safe frame aspect ratio. */
-	virtual bool GetActiveSafeFrame(float& OutAspectRatio) const { return false; }
-
 private:
 	/** @return Whether or not the camera should be panned */
 	bool ShouldPanCamera() const;
@@ -978,10 +973,13 @@ private:
 	 * Forcibly disables lighting show flags if there are no lights in the scene, or restores lighting show
 	 * flags if lights are added to the scene.
 	 */
-	void UpdateLightingShowFlags( FEngineShowFlags& InOutShowFlags );
+	void UpdateLightingShowFlags();
 
 	/** InOut might get adjusted depending on viewmode or viewport type */
 	void ApplyEditorViewModeAdjustments(FEngineShowFlags& InOut) const;
+
+	/** Helper used by DrawSafeFrames to get the current safe frame aspect ratio. */
+	bool GetActiveSafeFrame(float& OutAspectRatio) const;
 
 	/** Renders the safe frame lines. */
 	void DrawSafeFrames(FViewport& Viewport, FSceneView& View, FCanvas& Canvas);
@@ -1065,10 +1063,7 @@ public:
 
 	/** If true, the listener position will be set */
 	bool					bSetListenerPosition;
-
-	// Override the LOD of landscape in this viewport
-	int8 LandscapeLODOverride;
-
+	
 protected:
 
 	FWidget*				Widget;
@@ -1158,6 +1153,11 @@ protected:
 
 	/** Camera Lock or not **/
 	bool bCameraLock;
+
+	/** Viewport specific overrides for safe frame display */
+	bool bEnableSafeFrameOverride;
+	bool bShowAspectRatioBarsOverride;
+	bool bShowSafeFrameBoxOverride;
 
 	/** Draw helper for rendering common editor functionality like the grid */
 	FEditorCommonDrawHelper DrawHelper;

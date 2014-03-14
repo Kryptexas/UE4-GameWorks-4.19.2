@@ -33,10 +33,8 @@ bool FOnlineIdentityIOS::Login(int32 LocalUserNum, const FOnlineAccountCredentia
 	if( GetLocalGameCenterUser() && 
 		GetLocalGameCenterUser().isAuthenticated )
 	{
-		UE_LOG(LogOnline, Verbose, TEXT("FOnlineIdentityIOS::Login - Already logged in and authenticated!"));
-
 		// Login was handled by gamecenter
-		FString PlayerId(GetLocalGameCenterUser().playerID);
+		FString PlayerId( ANSI_TO_TCHAR( [GetLocalGameCenterUser().playerID cStringUsingEncoding:NSASCIIStringEncoding] ) );
 		UniqueNetId = MakeShareable( new FUniqueNetIdString( PlayerId ) );
 		TriggerOnLoginCompleteDelegates(LocalUserNum, true, *UniqueNetId, TEXT(""));
 		bStartedLogin = true;
@@ -61,7 +59,7 @@ bool FOnlineIdentityIOS::Login(int32 LocalUserNum, const FOnlineAccountCredentia
 					if (GetLocalGameCenterUser().isAuthenticated)
 					{
 						/* Perform additional tasks for the authenticated player here */
-						FString PlayerId(GetLocalGameCenterUser().playerID);
+						FString PlayerId( ANSI_TO_TCHAR( [GetLocalGameCenterUser().playerID cStringUsingEncoding:NSASCIIStringEncoding] ) );
 						UE_LOG(LogOnline, Verbose, TEXT("FOnlineIdentityIOS::Player Authenticated >IOS6.0 - playerid: %s"), *PlayerId);
 						UniqueNetId = MakeShareable( new FUniqueNetIdString( PlayerId ) );
 						
@@ -71,13 +69,6 @@ bool FOnlineIdentityIOS::Login(int32 LocalUserNum, const FOnlineAccountCredentia
 					{
 						UE_LOG(LogOnline, Verbose, TEXT("FOnlineIdentityIOS::Player NOT Authenticated >IOS6.0"));
 						ErrorMessage = TEXT("Player NOT Authenticated");
-					}
-
-					if (error)
-					{
-						NSDictionary *userInfo = [error userInfo];
-						NSString *errstr = [[userInfo objectForKey : NSUnderlyingErrorKey] localizedDescription];
-						UE_LOG(LogOnline, Warning, TEXT("FOnlineIdentityIOS::Login failed with error: %d [%s]"), (int32)(error.code), *FString(errstr));
 					}
 				}
 
@@ -175,8 +166,8 @@ FString FOnlineIdentityIOS::GetPlayerNickname(int32 LocalUserNum) const
         if (PersonaName != nil)
         {
             NSString* UserNameString = [NSString stringWithFormat:@"FOnlineIdentityIOS::GetPlayerNickname - %@", PersonaName];
-            UE_LOG(LogOnline, Verbose, TEXT("%s"), *FString(UserNameString));
-            return FString(PersonaName);
+            UE_LOG(LogOnline, Verbose, TEXT("%s"), ANSI_TO_TCHAR([UserNameString cStringUsingEncoding:NSASCIIStringEncoding]) );
+            return FString(ANSI_TO_TCHAR([PersonaName cStringUsingEncoding:NSASCIIStringEncoding]));
         }
 	}
 

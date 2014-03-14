@@ -398,10 +398,9 @@ public:
 			}
 		}
 
-		if (!GIsEditor)
-		{
-			Result.Flags = Result.Flags | ETextFlag::Transient;
-		}
+	#if !WITH_EDITOR
+		Result.Flags = Result.Flags | ETextFlag::Transient;
+	#endif
 
 		return Result;
 	}

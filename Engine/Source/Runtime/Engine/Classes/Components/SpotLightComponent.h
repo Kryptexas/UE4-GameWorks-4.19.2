@@ -7,8 +7,8 @@
 /**
  * A spot light component emits a directional cone shaped light (Eg a Torch).
  */
-UCLASS(HeaderGroup=Light, ClassGroup=Lights, hidecategories=Object, editinlinenew, meta=(BlueprintSpawnableComponent))
-class ENGINE_API USpotLightComponent : public UPointLightComponent
+UCLASS(HeaderGroup=Light, ClassGroup=Lights, hidecategories=Object, editinlinenew, meta=(BlueprintSpawnableComponent), MinimalAPI)
+class USpotLightComponent : public UPointLightComponent
 {
 	GENERATED_UCLASS_BODY()
 

@@ -811,8 +811,6 @@ public:
 		return (PropertyFlags & CPF_DevelopmentAssets) != 0;
 	}
 
-	/** returns true, if Other is property of exactly the same type */
-	virtual bool SameType(const UProperty* Other) const;
 };
 
 
@@ -1603,7 +1601,6 @@ class COREUOBJECT_API UObjectPropertyBase : public UProperty
 	virtual const TCHAR* ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* OwnerObject, FOutputDevice* ErrorText ) const OVERRIDE;
 	virtual FName GetID() const OVERRIDE;
 	virtual void InstanceSubobjects( void* Data, void const* DefaultData, UObject* Owner, struct FObjectInstancingGraph* InstanceGraph ) OVERRIDE;
-	virtual bool SameType(const UProperty* Other) const OVERRIDE;
 	/**
 	 * Copy the value for a single element of this property. To the script VM.
 	 * 
@@ -1924,7 +1921,6 @@ public:
 
 	// UProperty interface
 	virtual const TCHAR* ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* OwnerObject, FOutputDevice* ErrorText ) const OVERRIDE;
-	virtual bool SameType(const UProperty* Other) const OVERRIDE;
 	// End of UProperty interface
 };
 
@@ -1956,10 +1952,6 @@ public:
 	virtual void Serialize( FArchive& Ar ) OVERRIDE;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End of UObject interface
-
-	// UProperty interface
-	virtual bool SameType(const UProperty* Other) const OVERRIDE;
-	// End of UProperty interface
 };
 
 /*-----------------------------------------------------------------------------
@@ -2003,7 +1995,6 @@ public:
 	virtual void ExportTextItem( FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const OVERRIDE;
 	virtual const TCHAR* ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* OwnerObject, FOutputDevice* ErrorText ) const OVERRIDE;
 	virtual bool ContainsObjectReference() const OVERRIDE;
-	virtual bool SameType(const UProperty* Other) const OVERRIDE;
 	// End of UProperty interface
 
 	// UObject interface
@@ -2124,7 +2115,6 @@ public:
 	virtual bool ContainsObjectReference() const OVERRIDE;
 	virtual bool ContainsWeakObjectReference() const OVERRIDE;
 	virtual void EmitReferenceInfo( FGCReferenceTokenStream* ReferenceTokenStream, int32 BaseOffset ) OVERRIDE;
-	virtual bool SameType(const UProperty* Other) const OVERRIDE;
 	// End of UProperty interface
 };
 
@@ -2482,7 +2472,6 @@ public:
 	virtual bool ContainsObjectReference() const OVERRIDE;
 	virtual bool ContainsWeakObjectReference() const OVERRIDE;
 	virtual void EmitReferenceInfo( FGCReferenceTokenStream* ReferenceTokenStream, int32 BaseOffset ) OVERRIDE;
-	virtual bool SameType(const UProperty* Other) const OVERRIDE;
 	// End of UProperty interface
 
 	bool UseNativeSerialization() const;
@@ -2545,7 +2534,6 @@ public:
 	virtual const TCHAR* ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* OwnerObject, FOutputDevice* ErrorText ) const OVERRIDE;
 	virtual bool ContainsWeakObjectReference() const OVERRIDE;
 	virtual void InstanceSubobjects( void* Data, void const* DefaultData, UObject* Owner, struct FObjectInstancingGraph* InstanceGraph ) OVERRIDE;
-	virtual bool SameType(const UProperty* Other) const OVERRIDE;
 	// End of UProperty interface
 };
 
@@ -2590,7 +2578,6 @@ public:
 	virtual const TCHAR* ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* OwnerObject, FOutputDevice* ErrorText ) const OVERRIDE;
 	virtual bool ContainsWeakObjectReference() const OVERRIDE;
 	virtual void InstanceSubobjects( void* Data, void const* DefaultData, UObject* Owner, struct FObjectInstancingGraph* InstanceGraph ) OVERRIDE;
-	virtual bool SameType(const UProperty* Other) const OVERRIDE;
 	// End of UProperty interface
 
 protected:

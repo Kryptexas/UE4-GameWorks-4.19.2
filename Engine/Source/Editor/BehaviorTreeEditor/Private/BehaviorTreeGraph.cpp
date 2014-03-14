@@ -124,37 +124,6 @@ void UBehaviorTreeGraph::UpdatePinConnectionTypes()
 	}
 }
 
-void UBehaviorTreeGraph::UpdateDeprecatedNodes()
-{
-	for (int32 Index = 0; Index < Nodes.Num(); ++Index)
-	{
-		UBehaviorTreeGraphNode* Node = Cast<UBehaviorTreeGraphNode>(Nodes[Index]);
-		if (Node)
-		{
-			if (Node->NodeInstance)
-			{
-				Node->DeprecationMessage = FClassBrowseHelper::GetDeprecationMessage(Node->NodeInstance->GetClass());
-			}
-
-			for (int32 i = 0; i < Node->Decorators.Num(); i++)
-			{
-				if (Node->Decorators[i] && Node->Decorators[i]->NodeInstance)
-				{
-					Node->Decorators[i]->DeprecationMessage = FClassBrowseHelper::GetDeprecationMessage(Node->Decorators[i]->NodeInstance->GetClass());
-				}
-			}
-
-			for (int32 i = 0; i < Node->Services.Num(); i++)
-			{
-				if (Node->Services[i] && Node->Services[i]->NodeInstance)
-				{
-					Node->Services[i]->DeprecationMessage = FClassBrowseHelper::GetDeprecationMessage(Node->Services[i]->NodeInstance->GetClass());
-				}
-			}
-		}
-	}
-}
-
 void CreateBTChildren(UBehaviorTree* BTAsset, UBTCompositeNode* RootNode, const UBehaviorTreeGraphNode* RootEdNode, uint16* ExecutionIndex, uint8 TreeDepth)
 {
 	if (RootEdNode == NULL || RootEdNode == NULL)

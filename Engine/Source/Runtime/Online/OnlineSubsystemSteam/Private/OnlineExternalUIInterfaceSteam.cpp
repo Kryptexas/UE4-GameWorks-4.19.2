@@ -24,7 +24,7 @@ void FOnlineAsyncEventSteamExternalUITriggered::TriggerDelegates()
 	ExternalUIInterface->TriggerOnExternalUIChangeDelegates(bIsActive);
 }
 
-bool FOnlineExternalUISteam::ShowLoginUI(const int ControllerIndex, bool bShowOnlineOnly, const FOnLoginUIClosedDelegate& Delegate)
+bool FOnlineExternalUISteam::ShowLoginUI(const int ControllerIndex, bool bShowOnlineOnly)
 {
 	return false;
 }
@@ -37,8 +37,9 @@ bool FOnlineExternalUISteam::ShowFriendsUI(int32 LocalUserNum)
 
 bool FOnlineExternalUISteam::ShowInviteUI(int32 LocalUserNum)
 {
-	IOnlineSessionPtr SessionInt = SteamSubsystem->GetSessionInterface();
-	if (SessionInt.IsValid() && SessionInt->HasPresenceSession())
+	IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get();
+	IOnlineSessionPtr Sessions = OnlineSub->GetSessionInterface();
+	if (Sessions.IsValid() && Sessions->HasPresenceSession())
 	{
 		SteamFriends()->ActivateGameOverlay("LobbyInvite");
 		return true;
@@ -65,11 +66,6 @@ bool FOnlineExternalUISteam::ShowWebURL(const FString& WebURL)
 	}
 	
 	return true;
-}
-
-void FOnlineExternalUISteam::ShowProfileUI( const FUniqueNetId& Requestor, const FUniqueNetId& Requestee, const FOnProfileUIClosedDelegate& Delegate )
-{
-	//@todo
 }
 
 

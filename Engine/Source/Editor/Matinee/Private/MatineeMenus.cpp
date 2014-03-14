@@ -13,25 +13,15 @@
 #include "PackageTools.h"
 #include "SoundDefinitions.h"
 
-#include "WorkspaceMenuStructureModule.h"
+#include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 
 #include "FbxExporter.h"
 #include "FbxImporter.h"
 
 #include "IDocumentation.h"
-#include "MainFrame.h"
 
 #define LOCTEXT_NAMESPACE "MatineeMenus"
 
-namespace
-{
-void* GetMatineeDialogParentWindow()
-{
-	IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>("MainFrame");
-	const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-	return (MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid()) ? MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle() : nullptr;
-}
-}
 
 FText FMatinee::GenericTextEntryModal(const FText& Title, const FText& DialogText, const FText& DefaultText)
 {
@@ -193,7 +183,7 @@ void FMatinee::OnContextNewGroup( FMatineeCommands::EGroupAction::Type InActionI
 				continue;
 			}
 
-			if ( PrepareToAddActorAndWarnUser(Actor) )
+			if( MatineeActor->IsValidActorToAdd( Actor ) == AMatineeActor::ActorAddOk )
 			{
 				// first set the GroupActor
 				if (GroupActor==NULL)
@@ -204,6 +194,10 @@ void FMatinee::OnContextNewGroup( FMatineeCommands::EGroupAction::Type InActionI
 				{
 					OtherActorsToAddToGroup.Add(Actor);
 				}
+			}
+			else
+			{
+				ShowAddActorWarningSlateNotification( Actor );
 			}
 		}
 
@@ -298,7 +292,7 @@ void FMatinee::NewGroupPopup( FMatineeCommands::EGroupAction::Type InActionId, A
 				FName NewName;
 				const FText GroupName = FText::FromName( (*GroupIt)->GroupName );
 
-				GetNewNamePopup(DialogName, FText::GetEmpty(), GroupName, GroupName,
+				GetNewNamePopup(DialogName, DialogName, GroupName, GroupName, 
 					FOnTextCommitted::CreateSP(this, 
 						&FMatinee::NewGroupPopupTextCommitted, InActionId, GroupActor, OtherActorsToAddToGroup, *GroupIt)
 					);
@@ -307,7 +301,7 @@ void FMatinee::NewGroupPopup( FMatineeCommands::EGroupAction::Type InActionId, A
 		}
 		else
 		{
-			GetNewNamePopup(DialogName, FText::GetEmpty(), DefaultNewGroupName, FText::GetEmpty(),  
+			GetNewNamePopup(DialogName, DialogName, DefaultNewGroupName, FText::GetEmpty(),  
 				FOnTextCommitted::CreateSP(this, 
 					&FMatinee::NewGroupPopupTextCommitted, InActionId, GroupActor, OtherActorsToAddToGroup, (UInterpGroup*)NULL)
 				);
@@ -423,6 +417,8 @@ void FMatinee::NewGroupPopupTextCommitted(
 
 		NewGroup->Modify();
 
+		SelectGroup(NewGroup, false);
+
 		// Folders don't need a group instance
 		UInterpGroupInst* NewGroupInst = NULL;
 		//@todo UE4 Matinee: No Kismet
@@ -438,7 +434,7 @@ void FMatinee::NewGroupPopupTextCommitted(
 			else
 			{
 				NewGroupInst = ConstructObject<UInterpGroupInst>( UInterpGroupInst::StaticClass(), MatineeActor, NAME_None, RF_Transactional );
-				// Initialize group instance, saving ref to actor it works on.
+				// Initialise group instance, saving ref to actor it works on.
 				NewGroupInst->InitGroupInst(NewGroup, GroupActor);
 			}
 
@@ -563,9 +559,6 @@ void FMatinee::NewGroupPopupTextCommitted(
 				AddActorToGroup(NewGroup, OtherActorsToAddToGroup[I]);
 			}
 		}
-
-		// After the group has been setup, add it to the current group selection.
-		SelectGroup(NewGroup, false);
 	}
 
 
@@ -573,6 +566,12 @@ void FMatinee::NewGroupPopupTextCommitted(
 
 	// Make sure particle replay tracks have up-to-date editor-only transient state
 	UpdateParticleReplayTracks();
+
+	// Invoke the director tab/group if we've added to it.
+	if(bDirGroup)
+	{
+		UpdateDirectorTrackWindowVisibility();
+	}
 
 	// A new group or track may have been added, so we'll update the group list scroll bar
 	UpdateTrackWindowScrollBars();
@@ -589,7 +588,7 @@ void FMatinee::NewGroupPopupTextCommitted(
 	GEditor->RedrawAllViewports();
 }
 
-void FMatinee::OnContextNewTrack(UClass* NewInterpTrackClass)
+void FMatinee::OnContextNewTrack( int32 InIndex )
 {
 	// You can only add a new track if only one group is selected
 	if( GetSelectedGroupCount() != 1 )
@@ -597,15 +596,23 @@ void FMatinee::OnContextNewTrack(UClass* NewInterpTrackClass)
 		return;
 	}
 
-	check(NewInterpTrackClass->IsChildOf(UInterpTrack::StaticClass()));
+	// Find the class of the new track we want to add.
+	const int32 NewTrackClassIndex = InIndex;
+	check( NewTrackClassIndex >= 0 && NewTrackClassIndex < InterpTrackClasses.Num() );
+
+	UClass* NewInterpTrackClass = InterpTrackClasses[NewTrackClassIndex];
+	check( NewInterpTrackClass->IsChildOf(UInterpTrack::StaticClass()) );
 
 	AddTrackToSelectedGroup(NewInterpTrackClass, NULL);
 }
 
-bool FMatinee::CanCreateNewTrack(UClass* NewInterpTrackClass) const
+bool FMatinee::CanCreateNewTrack( int32 InIndex ) const
 {
 	if(IsCameraAnim())
 	{
+		check( InIndex >= 0 && InIndex < InterpTrackClasses.Num() );
+
+		UClass* NewInterpTrackClass = InterpTrackClasses[InIndex];
 		check( NewInterpTrackClass->IsChildOf(UInterpTrack::StaticClass()) );
 
 		return  NewInterpTrackClass->IsChildOf(UInterpTrackMove::StaticClass()) ||
@@ -700,7 +707,7 @@ void FMatinee::OnMenuPause()
 	else
 	{
 		// Start playback and retain whatever direction we were already playing
-		ResumePlaying();
+		StartPlaying( false, true );
 	}
 }
 
@@ -1296,13 +1303,11 @@ void FMatinee::OnContextRemoveAllActors()
 	RemoveActorFromGroup(SelectedGroup, NULL);
 }
 
-bool FMatinee::PrepareToAddActorAndWarnUser(AActor* ActorToAdd)
+void FMatinee::ShowAddActorWarningSlateNotification( AActor* ActorToAdd )
 {
 	const AMatineeActor::EActorAddWarningType ActorAddWarning = MatineeActor->IsValidActorToAdd( ActorToAdd );
 	if( ActorAddWarning != AMatineeActor::ActorAddOk )
 	{
-		bool Success = false;
-
 		FText Message;
 
 		switch( ActorAddWarning )
@@ -1311,24 +1316,12 @@ bool FMatinee::PrepareToAddActorAndWarnUser(AActor* ActorToAdd)
 			Message = FText::Format(LOCTEXT("CannotAddActorSameLevelInAMatinee", "Cannot add {0} to matinee {1},\nit has be the same level to avoid cross reference"),
 				FText::FromString(ActorToAdd->GetName()), FText::FromString(MatineeActor->GetLevel()->GetName()));
 			break;
-		case AMatineeActor::ActorAddWarningStatic:
-			if ( ActorToAdd->IsA(ABrush::StaticClass()) && !Cast<ABrush>(ActorToAdd)->IsVolumeBrush() )
-			{
-				Message = FText::Format(LOCTEXT("CannotAddActorStaticInAMatinee", "Cannot add {0} to matinee {1}.  It is static and can not be movable"),
-					FText::FromString(ActorToAdd->GetName()), FText::FromString(MatineeActor->GetLevel()->GetName()));
-			}
-			else
-			{
-				if ( ActorToAdd->GetRootComponent() )
-				{
-					ActorToAdd->GetRootComponent()->SetMobility(EComponentMobility::Movable);
 
-					Message = FText::Format(LOCTEXT("ChangingStaticActorToMovableInAMatinee", "Changing {0}'s Mobility to Movable"),
-						FText::FromString(ActorToAdd->GetName()));
-					Success = true;
-				}
-			}
+		case AMatineeActor::ActorAddWarningStatic:
+			Message = FText::Format(LOCTEXT("CannotAddActorStaticInAMatinee", "Cannot add {0} to matinee {1}, as it is static"),
+				FText::FromString(ActorToAdd->GetName()), FText::FromString(MatineeActor->GetLevel()->GetName()));
 			break;
+
 		case AMatineeActor::ActorAddWarningGroup:
 			Message = FText::Format(LOCTEXT("CannotAddActorMatineeInAMatinee", "Cannot add {0} to matinee {1}, as it is a Matinee Actor"),
 				FText::FromString(ActorToAdd->GetName()), FText::FromString(MatineeActor->GetLevel()->GetName()));
@@ -1336,13 +1329,9 @@ bool FMatinee::PrepareToAddActorAndWarnUser(AActor* ActorToAdd)
 		}
 
 		FNotificationInfo Info( Message );
-		Info.ExpireDuration = 4.0f;
+		Info.ExpireDuration = 3.0f;
 		FSlateNotificationManager::Get().AddNotification( Info );
-
-		return Success;
 	}
-
-	return true;
 }
 
 void FMatinee::AddActorToGroup(UInterpGroup * GroupToAdd, AActor * ActorToAdd)
@@ -1351,8 +1340,9 @@ void FMatinee::AddActorToGroup(UInterpGroup * GroupToAdd, AActor * ActorToAdd)
 	UInterpGroupInst* NewGroupInst = NULL;
 
 	// verify ActorToAdd isn't in the group yet
-	if ( !PrepareToAddActorAndWarnUser(ActorToAdd) )
+	if( MatineeActor->IsValidActorToAdd( ActorToAdd ) != AMatineeActor::ActorAddOk )
 	{
+		ShowAddActorWarningSlateNotification( ActorToAdd );
 		return;
 	}
 
@@ -1510,7 +1500,7 @@ void FMatinee::OnContextTrackExportAnimFBX()
 				if (DesktopPlatform != NULL)
 				{
 					bSaved = DesktopPlatform->SaveFileDialog(
-						GetMatineeDialogParentWindow(), 
+						NULL, 
 						NSLOCTEXT("UnrealEd", "ExportMatineeAnimTrack", "Export UnrealMatinee Animation Track").ToString(), 
 						*(FEditorDirectories::Get().GetLastDirectory(ELastDirectory::GENERIC_EXPORT)), 
 						TEXT(""), 
@@ -1889,7 +1879,7 @@ void FMatinee::OnContextGroupExportAnimFBX()
 						if (DesktopPlatform != NULL)
 						{
 							bSaved = DesktopPlatform->SaveFileDialog(
-								GetMatineeDialogParentWindow(), 
+								NULL, 
 								NSLOCTEXT("UnrealEd", "ExportMatineeAnimTrack", "Export UnrealMatinee Animation Track").ToString(), 
 								*(FEditorDirectories::Get().GetLastDirectory(ELastDirectory::GENERIC_EXPORT)), 
 								TEXT(""), 
@@ -3673,7 +3663,7 @@ void FMatinee::OnMenuImport()
 		if (DesktopPlatform != NULL)
 		{
 			bOpened = DesktopPlatform->OpenFileDialog(
-				GetMatineeDialogParentWindow(), 
+				NULL, 
 				NSLOCTEXT("UnrealEd", "ImportMatineeSequence", "Import UnrealMatinee Sequence").ToString(),
 				*(FEditorDirectories::Get().GetLastDirectory(ELastDirectory::GENERIC_IMPORT)),
 				TEXT(""),
@@ -3732,7 +3722,7 @@ void FMatinee::OnMenuExport()
 		if (DesktopPlatform != NULL)
 		{
 			bSaved = DesktopPlatform->SaveFileDialog(
-				GetMatineeDialogParentWindow(), 
+				NULL, 
 				NSLOCTEXT("UnrealEd", "ExportMatineeSequence", "Export UnrealMatinee Sequence").ToString(), 
 				*(FEditorDirectories::Get().GetLastDirectory(ELastDirectory::GENERIC_EXPORT)), 
 				TEXT(""), 
@@ -3805,7 +3795,7 @@ void FMatinee::OnExportSoundCueInfoCommand()
 	if (DesktopPlatform != NULL)
 	{
 		bOpened = DesktopPlatform->SaveFileDialog(
-			GetMatineeDialogParentWindow(), 
+			NULL, 
 			NSLOCTEXT("UnrealEd", "InterpEd_ExportSoundCueInfoDialogTitle", "Export Sound Cue Info" ).ToString(),
 			*(FEditorDirectories::Get().GetLastDirectory(ELastDirectory::GENERIC_EXPORT)),
 			TEXT( "" ),
@@ -3951,7 +3941,7 @@ void FMatinee::OnExportAnimationInfoCommand()
 	if (DesktopPlatform != NULL)
 	{
 		bSaved = DesktopPlatform->SaveFileDialog(
-			GetMatineeDialogParentWindow(), 
+			NULL, 
 			NSLOCTEXT("UnrealEd", "InterpEd_ExportSoundCueInfoDialogTitle", "Export Sound Cue Info" ).ToString(),
 			*(FEditorDirectories::Get().GetLastDirectory(ELastDirectory::GENERIC_EXPORT)),
 			*FileName,
@@ -4906,6 +4896,13 @@ void FMatinee::ExtendDefaultToolbarMenu()
 		
 		static void FillEditMenu( FMenuBuilder& InMenuBarBuilder )
 		{
+			InMenuBarBuilder.BeginSection("EditMatineeHistory", NSLOCTEXT("Matinee", "MatineeFileHeading", "Matinee"));
+			{
+				InMenuBarBuilder.AddMenuEntry(FMatineeCommands::Get().MatineeUndo);
+				InMenuBarBuilder.AddMenuEntry(FMatineeCommands::Get().MatineeRedo);
+			}
+			InMenuBarBuilder.EndSection();
+
 			InMenuBarBuilder.BeginSection("EditMatineeKeys", NSLOCTEXT("Matinee", "MatineeFileHeading.Keys", "Keys"));
 			{
 				InMenuBarBuilder.AddMenuEntry(FMatineeCommands::Get().DeleteSelectedKeys);
@@ -4933,29 +4930,6 @@ void FMatinee::ExtendDefaultToolbarMenu()
 			{
 				InMenuBarBuilder.AddMenuEntry(FMatineeCommands::Get().SavePathTime);
 				InMenuBarBuilder.AddMenuEntry(FMatineeCommands::Get().JumpToPathTime);
-			}
-			InMenuBarBuilder.EndSection();
-		}
-
-		static void AddPlaybackMenu(FMenuBarBuilder& InMenuBarBuilder, FMatinee* InMatinee)
-		{
-			InMenuBarBuilder.AddPullDownMenu(
-				NSLOCTEXT("Matinee.Menus", "PlaybackMenu", "Playback"),
-				FText::GetEmpty(),
-				FNewMenuDelegate::CreateStatic(&Local::FillPlaybackMenu, InMatinee),
-				"Playback");
-		}
-
-		static void FillPlaybackMenu(FMenuBuilder& InMenuBarBuilder, FMatinee* InMatinee)
-		{
-			InMenuBarBuilder.BeginSection("PlaybackSection");
-			{
-				InMenuBarBuilder.AddMenuEntry(FMatineeCommands::Get().PlayPause);
-				InMenuBarBuilder.AddMenuSeparator();
-				InMenuBarBuilder.AddMenuEntry(FMatineeCommands::Get().Play);
-				InMenuBarBuilder.AddMenuEntry(FMatineeCommands::Get().PlayLoop);
-				InMenuBarBuilder.AddMenuEntry(FMatineeCommands::Get().Stop);
-				InMenuBarBuilder.AddMenuEntry(FMatineeCommands::Get().PlayReverse);
 			}
 			InMenuBarBuilder.EndSection();
 		}
@@ -5064,7 +5038,7 @@ void FMatinee::ExtendDefaultToolbarMenu()
 		static void FillSafeFrameSettings( FMenuBuilder&  InMenuBarBuilder, FMatinee* InMatinee )
 		{
 			{
-				FUIAction AspectRatioBarsAction( FExecuteAction::CreateSP( InMatinee, &FMatinee::OnToggleAspectRatioBars ), FCanExecuteAction(), FIsActionChecked::CreateSP( InMatinee, &FMatinee::AreAspectRatioBarsEnabled ) );
+				FUIAction AspectRatioBarsAction( FExecuteAction::CreateSP( InMatinee, &FMatinee::OnEnableAspectRatioBars ), FCanExecuteAction(), FIsActionChecked::CreateSP( InMatinee, &FMatinee::AreAspectRatioBarsEnabled ) );
 				InMenuBarBuilder.AddMenuEntry
 				(
 					NSLOCTEXT("Matinee", "ShowCameraAspectRatioBars", "Enable Aspect Ratio Bars"), 
@@ -5077,7 +5051,7 @@ void FMatinee::ExtendDefaultToolbarMenu()
 			}
 
 			{
-				FUIAction SafeFrameAction( FExecuteAction::CreateSP( InMatinee, &FMatinee::OnToggleSafeFrames ), FCanExecuteAction(), FIsActionChecked::CreateSP( InMatinee, &FMatinee::IsSafeFrameDisplayEnabled ) );
+				FUIAction SafeFrameAction( FExecuteAction::CreateSP( InMatinee, &FMatinee::OnEnableSafeFrames ), FCanExecuteAction(), FIsActionChecked::CreateSP( InMatinee, &FMatinee::IsSafeFrameDisplayEnabled ) );
 				InMenuBarBuilder.AddMenuEntry
 				( 
 					NSLOCTEXT("Matinee", "EnableSafeFrames", "Enable Safe Frames"), 
@@ -5107,13 +5081,6 @@ void FMatinee::ExtendDefaultToolbarMenu()
 		EExtensionHook::After,
 		GetToolkitCommands(), 
 		FMenuExtensionDelegate::CreateStatic( &Local::FillEditMenu )
-		);
-
-	MenuExtender->AddMenuBarExtension(
-		"Edit",
-		EExtensionHook::After,
-		GetToolkitCommands(),
-		FMenuBarExtensionDelegate::CreateStatic(&Local::AddPlaybackMenu, this)
 		);
 
 	MenuExtender->AddMenuBarExtension(
@@ -5275,60 +5242,23 @@ TSharedPtr<SWidget> FMatinee::CreateGroupMenu()
 		{
 			MenuBuilder.BeginSection("MatineeMenusContextNewTrack");
 			{
-				for ( UClass* TrackClass : InterpTrackClasses )
+				for(int32 i=0; i<InterpTrackClasses.Num(); i++)
 				{
-					UInterpTrack* DefTrack = TrackClass->GetDefaultObject<UInterpTrack>();
-					if ( !DefTrack->bDirGroupOnly && !DefTrack->bSubTrackOnly )
+					UInterpTrack* DefTrack = InterpTrackClasses[i]->GetDefaultObject<UInterpTrack>();
+					if( !DefTrack->bDirGroupOnly && !DefTrack->bSubTrackOnly )
 					{
-						FText NewTrackText = FText::Format(NSLOCTEXT("UnrealEd", "AddNew_F", "Add New {0}"), FText::FromString(TrackClass->GetDescription()));
+						FText NewTrackText = FText::Format( NSLOCTEXT("UnrealEd", "AddNew_F", "Add New {0}"), FText::FromString(InterpTrackClasses[i]->GetDescription()) );
 						MenuBuilder.AddMenuEntry(
-							NewTrackText,
+							NewTrackText, 
 							FText::GetEmpty(),
 							FSlateIcon(),
-							FUIAction(FExecuteAction::CreateSP(this, &FMatinee::OnContextNewTrack, TrackClass), FCanExecuteAction::CreateSP(this, &FMatinee::CanCreateNewTrack, TrackClass))
+							FUIAction(FExecuteAction::CreateSP(this, &FMatinee::OnContextNewTrack, i), FCanExecuteAction::CreateSP(this, &FMatinee::CanCreateNewTrack, i))
 							);
 
 					}
 				}
 			}
 			MenuBuilder.EndSection();
-
-			//TMap<FString, TArray<UClass*>> TrackGroups;
-
-			//for ( UClass* TrackClass : InterpTrackClasses)
-			//{
-			//	UInterpTrack* DefTrack = TrackClass->GetDefaultObject<UInterpTrack>();
-			//	if ( !DefTrack->bDirGroupOnly && !DefTrack->bSubTrackOnly )
-			//	{
-			//		FString DisplayGroup = TrackClass->GetMetaData("DisplayGroup");
-			//		TrackGroups.FindOrAdd(DisplayGroup).Add(TrackClass);
-			//	}
-			//}
-
-			//TArray<FString> GroupKeys;
-			//TrackGroups.GetKeys(GroupKeys);
-			//GroupKeys.Sort();
-
-			//for ( FString& GroupKey : GroupKeys )
-			//{
-			//	const TArray<UClass*>& Group = TrackGroups.FindRef(GroupKey);
-			//	FText GroupText = FText::Format(FText::FromString("Add {0} Track"), FText::FromString(GroupKey));
-
-			//	MenuBuilder.BeginSection(NAME_None, GroupText);
-			//	{
-			//		for ( UClass* TrackClass : Group )
-			//		{
-			//			FText NewTrackText = FText::FromString(TrackClass->GetDescription());
-			//			MenuBuilder.AddMenuEntry(
-			//				NewTrackText,
-			//				FText::GetEmpty(),
-			//				FSlateIcon(),
-			//				FUIAction(FExecuteAction::CreateSP(this, &FMatinee::OnContextNewTrack, TrackClass), FCanExecuteAction::CreateSP(this, &FMatinee::CanCreateNewTrack, TrackClass))
-			//				);
-			//		}
-			//	}
-			//	MenuBuilder.EndSection();
-			//}
 		}
 
 
@@ -5337,17 +5267,17 @@ TSharedPtr<SWidget> FMatinee::CreateGroupMenu()
 		{
 			MenuBuilder.BeginSection("MatineeMenusContextNewTrack");
 			{
-				for ( UClass* TrackClass : InterpTrackClasses )
+				for(int32 i=0; i<InterpTrackClasses.Num(); i++)
 				{
-					UInterpTrack* DefTrack = TrackClass->GetDefaultObject<UInterpTrack>();
+					UInterpTrack* DefTrack = InterpTrackClasses[i]->GetDefaultObject<UInterpTrack>();
 					if(DefTrack->bDirGroupOnly)
 					{
-						FText NewTrackText = FText::Format(NSLOCTEXT("UnrealEd", "AddNew_F", "Add New {0}"), FText::FromString(TrackClass->GetDescription()));
+						FText NewTrackText = FText::Format( NSLOCTEXT("UnrealEd", "AddNew_F", "Add New {0}"), FText::FromString(InterpTrackClasses[i]->GetDescription()) );
 						MenuBuilder.AddMenuEntry( 
 							NewTrackText, 
 							NewTrackText,
 							FSlateIcon(),
-							FUIAction(FExecuteAction::CreateSP(this, &FMatinee::OnContextNewTrack, TrackClass))
+							FUIAction(FExecuteAction::CreateSP(this, &FMatinee::OnContextNewTrack, i))
 							);
 					}
 				}
@@ -5430,9 +5360,8 @@ TSharedPtr<SWidget> FMatinee::CreateGroupMenu()
 		MenuBuilder.AddMenuEntry( FMatineeCommands::Get().GroupDuplicate );
 	}
 
-	MenuBuilder.AddMenuEntry( DeleteText, FText::GetEmpty(), FSlateIcon(),
-		FUIAction(FExecuteAction::CreateSP(this, &FMatinee::OnContextGroupDelete))
-		);
+	MenuBuilder.AddMenuEntry( FMatineeCommands::Get().GroupDelete );
+
 
 	bool bPotentialParentFoldersMenu = false;
 	bool bPotentialChildGroupsMenu = false;
@@ -5445,7 +5374,7 @@ TSharedPtr<SWidget> FMatinee::CreateGroupMenu()
 			{
 				FInterpGroupParentInfo& CurrentParent = *ParentIter;
 				InMenuBuilder.AddMenuEntry(
-					FText::FromString( CurrentParent.Group->GroupName.ToString() ),
+					FText::FromString( CurrentParent.Group->GroupName.GetPlainNameString() ),
 					FText::GetEmpty(),
 					FSlateIcon(),
 					FUIAction(FExecuteAction::CreateSP( InMatinee, &FMatinee::OnContextGroupChangeGroupFolder, FMatineeCommands::EGroupAction::MoveActiveGroupToFolder, CurrentParent.GroupIndex))
@@ -5480,7 +5409,7 @@ TSharedPtr<SWidget> FMatinee::CreateGroupMenu()
 				if( InMatinee->CanReparent(CurrentGroupInfo, SelectedGroupInfo) )
 				{
 					InMenuBuilder.AddMenuEntry( 
-						FText::FromString( CurrentGroupInfo.Group->GroupName.ToString() ),
+						FText::FromString( CurrentGroupInfo.Group->GroupName.GetPlainNameString() ),
 						FText::GetEmpty(),
 						FSlateIcon(),
 						FUIAction(

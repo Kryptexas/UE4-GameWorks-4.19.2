@@ -803,29 +803,6 @@ void FBlueprintEditor::EnsureBlueprintIsUpToDate(UBlueprint* BlueprintObj)
 			UCSGraph->bAllowDeletion = false;
 		}
 	}
-	else
-	{
-		// If we have an SCS but don't support it, then we remove it
-		if(BlueprintObj->SimpleConstructionScript)
-		{
-			// Remove any SCS variable nodes
-			TArray<USCS_Node*> AllSCSNodes = BlueprintObj->SimpleConstructionScript->GetAllNodes();
-			for(auto SCSNodeIt = AllSCSNodes.CreateConstIterator(); SCSNodeIt; ++SCSNodeIt)
-			{
-				USCS_Node* SCS_Node = *SCSNodeIt;
-				if(SCS_Node)
-				{
-					FBlueprintEditorUtils::RemoveVariableNodes(BlueprintObj, SCS_Node->VariableName);
-				}
-			}
-		
-			// Remove the SCS object reference
-			BlueprintObj->SimpleConstructionScript = NULL;
-
-			// Mark the Blueprint as having been structurally modified
-			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BlueprintObj);
-		}
-	}
 
 	// Set transactional flag on SimpleConstructionScript and Nodes associated with it.
 	if ((BlueprintObj->SimpleConstructionScript != NULL) && (BlueprintObj->GetLinkerUE4Version() < VER_UE4_FLAG_SCS_TRANSACTIONAL))
@@ -880,13 +857,7 @@ void FBlueprintEditor::CommonInitialization(const TArray<UBlueprint*>& InitBluep
 
 	if (InitBlueprints.Num() == 1)
 	{
-		// Load blueprint libraries
-		LoadLibrariesFromAssetRegistry();
-
-		LoadUserDefinedEnumsFromAssetRegistry();
-
 		UBlueprint* InitBlueprint = InitBlueprints[0];
-
 		// Update the blueprint if required
 		EBlueprintStatus OldStatus = InitBlueprint->Status;
 		EnsureBlueprintIsUpToDate(InitBlueprint);
@@ -894,6 +865,11 @@ void FBlueprintEditor::CommonInitialization(const TArray<UBlueprint*>& InitBluep
 
 		// Flag the blueprint as having been opened
 		InitBlueprint->bIsNewlyCreated = false;
+
+		// Load blueprint libraries
+		LoadLibrariesFromAssetRegistry();
+
+		LoadUserDefinedEnumsFromAssetRegistry();
 
 		// When the blueprint that we are observing changes, it will notify this wrapper widget.
 		InitBlueprint->OnChanged().AddSP( this, &FBlueprintEditor::OnBlueprintChanged );

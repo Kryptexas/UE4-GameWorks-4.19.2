@@ -26,6 +26,8 @@ public:
 	/** Whether we need to reconstruct the node after the pins have changed */
 	bool bReconstructNode;
 
+#if WITH_EDITOR
+
 	// Begin UObject interface
 	virtual void Serialize(FArchive& Ar) OVERRIDE;
 	// End UObject interface
@@ -51,15 +53,14 @@ public:
 	virtual void NotifyPinConnectionListChanged(UEdGraphPin* Pin) OVERRIDE;
 	virtual void PostReconstructNode() OVERRIDE;
 	virtual FText GetActiveBreakpointToolTipText() const OVERRIDE;
-	virtual bool HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput) const OVERRIDE;
 	// End UK2Node interface
 
 	void SetMacroGraph(UEdGraph* Graph) { MacroGraphReference.SetGraph(Graph); }
 	UEdGraph* GetMacroGraph() const { return MacroGraphReference.GetGraph(); }
-	UBlueprint* GetSourceBlueprint() const { return MacroGraphReference.GetBlueprint(); }
 
 	// Finds the associated metadata for the macro instance if there is any; this function is not particularly fast.
 	BLUEPRINTGRAPH_API static FKismetUserDeclaredFunctionMetadata* GetAssociatedGraphMetadata(const UEdGraph* AssociatedMacroGraph);
 	static void FindInContentBrowser(TWeakObjectPtr<UK2Node_MacroInstance> MacroInstance);
+#endif
 };
 

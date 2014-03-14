@@ -58,7 +58,7 @@ private:
 
 template<> uint32 FThreadSingleton<FJNIHelper>::TlsSlot = 0;
 
-JNIEnv* GetJavaEnv(bool bRequireGlobalThis)
+JNIEnv* GetJavaEnv(bool bRequireGlobalThis = true)
 {
 	//@TODO: ANDROID: Remove the other version if the helper works well
 #if 0

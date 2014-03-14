@@ -190,7 +190,7 @@ namespace ObjectTools
 	 *
 	 * @return	Structure of consolidation results, specifying which packages were dirtied, which objects failed consolidation (if any), etc.
 	 */
-	UNREALED_API FConsolidationResults ConsolidateObjects( UObject* ObjectToConsolidateTo, TArray<UObject*>& ObjectsToConsolidate, bool bShowDeleteConfirmation = true );
+	UNREALED_API FConsolidationResults ConsolidateObjects( UObject* ObjectToConsolidateTo, TArray<UObject*>& ObjectsToConsolidate );
 
 	/**
 	 * Copies references for selected generic browser objects to the clipboard.
@@ -200,7 +200,7 @@ namespace ObjectTools
 	UNREALED_API void ShowReferencers( const TArray< UObject* >& SelectedObjects ); // const
 
 	/**
-	 * Displays a tree(currently) of all assets which reference the passed in object.  
+ 	 * Displays a tree(currently) of all assets which reference the passed in object.  
 	 *
 	 * @param ObjectToGraph		The object to find references to.
 	 * @param InBrowsableTypes	A mapping of classes to browsable types.  The tool only shows browsable types or actors
@@ -271,43 +271,22 @@ namespace ObjectTools
 	UNREALED_API int32 DeleteObjects( const TArray< UObject* >& ObjectsToDelete, bool bShowConfirmation = true );
 
 	/**
-	* Deletes the list of objects without checking if they are still being used.  This should not be called directly
-	* this is primarily used by the delete system after it has done the work of making sure it's safe to delete.
-	*
-	* @param	ObjectsToDelete		The list of objects to delete
-	*
-	* @return The number of objects successfully deleted
-	*/
-	UNREALED_API int32 DeleteObjectsUnchecked( const TArray< UObject* >& ObjectsToDelete );
-
-	/**
-	* Deletes the list of objects
-	*
-	* @param	AssetsToDelete		The list of assets to delete
-	* @param	bShowConfirmation	True when a dialog should prompt the user that he/she is about to delete something
-	*
-	* @return The number of assets successfully deleted
-	*/
-	UNREALED_API int32 DeleteAssets( const TArray<FAssetData>& AssetsToDelete, bool bShowConfirmation = true );
-
-	/**
 	 * Delete a single object
 	 *
 	 * @param	ObjectToDelete		The object to delete
 	 *
 	 * @return If the object was successfully
 	 */
-	UNREALED_API bool DeleteSingleObject( UObject* ObjectToDelete, bool bPerformReferenceCheck = true );
+	UNREALED_API bool DeleteSingleObject( UObject* ObjectToDelete );
 
 	/**
 	 * Deletes the list of objects
 	 *
 	 * @param	ObjectsToDelete		The list of objects to delete
-	 * @param   ShowConfirmation    Show the confirmation dialog.
 	 *
 	 * @return The number of objects successfully deleted
 	 */
-	UNREALED_API int32 ForceDeleteObjects( const TArray< UObject* >& ObjectsToDelete, bool ShowConfirmation = true );
+	UNREALED_API int32 ForceDeleteObjects( const TArray< UObject* >& ObjectsToDelete );
 
 	/**
 	 * Utility function to compose a string list of referencing objects
@@ -316,7 +295,7 @@ namespace ObjectTools
 	 * @param RefObjNames			String list of all objects
 	 * @param DefObjNames			String list of all objects referenced in default properties
 	 *
-	 * @return Whether or not any objects are in default properties
+     * @return Whether or not any objects are in default properties
 	 */
 	UNREALED_API bool ComposeStringOfReferencingObjects( TArray<FReferencerInformation>& References, FString& RefObjNames, FString& DefObjNames );
 
@@ -476,44 +455,8 @@ namespace ObjectTools
 	 */
 	UNREALED_API void RemoveDeletedObjectsFromPropertyWindows( TArray<UObject*>& DeletedObjects );
 
-	/**
-	 * Determines if the asset is placeable in a world.
-	 *
-	 * @param InWorld	The world.
-	 * @param ObjectPath	Object path.
-	 * 
-	 * @return true if the asset can be placed in the world.
-	 */
+	UNREALED_API bool IsAssetValidForLoading(const FString& ObjectPath);
 	UNREALED_API bool IsAssetValidForPlacing(UWorld* InWorld, const FString& ObjectPath);
-
-	/**
-	 * Determines if a given class is a redirector.
-	 *
-	 * @param Class	The class
-	 * 
-	 * @return true if the class is a redirector, otherwise false.
-	 */
-	UNREALED_API bool IsClassRedirector( const UClass* Class );
-
-	/**
-	 * Determines if an array of objects are all of interchangeable types.
-	 *
-	 * @param InProposedObjects	The objects to check.
-	 * 
-	 * @return true if all objects are interchangeable, otherwise false.
-	 */
-	UNREALED_API bool AreObjectsOfEquivalantType( const TArray<UObject*>& InProposedObjects );
-
-	/**
-	 * Determines if two classes are interchangeable.  This would tell you if you could substitute one object 
-	 * reference for another.  For example, Material and MaterialInstances are interchangeable.
-	 *
-	 * @param ClassA	The first class
-	 * @param ClassB	The second class
-	 *
-	 * @return true if they are interchangeable otherwise false.
-	 */
-	UNREALED_API bool AreClassesInterchangeable( const UClass* ClassA, const UClass* ClassB );
 }
 
 

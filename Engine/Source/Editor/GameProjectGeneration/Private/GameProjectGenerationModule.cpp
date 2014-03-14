@@ -70,11 +70,4 @@ int32 FGameProjectGenerationModule::GetProjectCodeFileCount()
 	return GameProjectUtils::GetProjectCodeFileCount();
 }
 
-
-bool FGameProjectGenerationModule::UpdateCodeResourceFiles(TArray<FString>& OutCreatedFiles, FText& OutFailReason)
-{
-	const FString GameModuleSourcePath = FPaths::GetPath(FPaths::GetProjectFilePath()) / TEXT("Source") / FApp::GetGameName();
-	return GameProjectUtils::GenerateGameResourceFiles(GameModuleSourcePath, FApp::GetGameName(), OutCreatedFiles, OutFailReason);
-}
-
 #undef LOCTEXT_NAMESPACE

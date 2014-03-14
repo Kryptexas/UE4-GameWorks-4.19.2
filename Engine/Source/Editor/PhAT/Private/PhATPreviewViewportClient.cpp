@@ -651,7 +651,7 @@ void FPhATEdPreviewViewportClient::Tick(float DeltaSeconds)
 
 		UWorld* World = SharedData->PreviewScene.GetWorld();
 		AWorldSettings* Setting = World->GetWorldSettings();
-		Setting->WorldGravityZ = SharedData->bNoGravitySimulation ? 0.0f : UPhysicsSettings::Get()->DefaultGravityZ*SharedData->EditorSimOptions->GravScale;
+		Setting->WorldGravityZ = SharedData->bNoGravitySimulation ? 0.0f : Setting->DefaultGravityZ*SharedData->EditorSimOptions->GravScale;
 		Setting->bWorldGravitySet = true;
 
 		// We back up the transforms array now

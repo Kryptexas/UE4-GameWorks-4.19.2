@@ -4,23 +4,6 @@
 #include "BehaviorTreeTypes.h"
 #include "BTDecorator.generated.h"
 
-/** 
- * Decorators are supporting nodes placed on parent-child connection, that receive notification about execution flow and can be ticked
- *
- * Because some of them can be instanced for specific AI, following virtual functions are not marked as const:
- *  - OnNodeActivation
- *  - OnNodeDeactivation
- *  - OnNodeProcessed
- *  - OnBecomeRelevant (from UBTAuxiliaryNode)
- *  - OnCeaseRelevant (from UBTAuxiliaryNode)
- *  - TickNode (from UBTAuxiliaryNode)
- *
- * If your node is not being instanced (default behavior), DO NOT change any properties of object within those functions!
- * Template nodes are shared across all behavior tree components using the same tree asset and must store
- * their runtime properties in provided NodeMemory block (allocation size determined by GetInstanceMemorySize() )
- *
- */
-
 UCLASS(Abstract)
 class ENGINE_API UBTDecorator : public UBTAuxiliaryNode
 {
@@ -29,17 +12,17 @@ class ENGINE_API UBTDecorator : public UBTAuxiliaryNode
 	/** fill in data about tree structure */
 	void InitializeDecorator(uint8 InChildIndex);
 
-	/** wrapper for node instancing: CalculateRawConditionValue */
-	bool WrappedCanExecute(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const;
+	/** execution check wrapper, including inversed condition check */
+	bool CanExecute(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const;
 
-	/** wrapper for node instancing: OnNodeActivation  */
-	void WrappedOnNodeActivation(struct FBehaviorTreeSearchData& SearchData) const;
+	/** called when underlying node is activated  */
+	void ConditionalOnNodeActivation(struct FBehaviorTreeSearchData& SearchData) const;
 	
-	/** wrapper for node instancing: OnNodeDeactivation */
-	void WrappedOnNodeDeactivation(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type NodeResult) const;
+	/** called when underlying node has finished */
+	void ConditionalOnNodeDeactivation(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type NodeResult) const;
 
-	/** wrapper for node instancing: OnNodeProcessed */
-	void WrappedOnNodeProcessed(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type& NodeResult) const;
+	/** called when underlying node was processed (before deactivation) */
+	void ConditionalOnNodeProcessed(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type& NodeResult) const;
 
 	/** @return decorated child */
 	const class UBTNode* GetMyNode() const;
@@ -98,17 +81,14 @@ protected:
 
 	void SetIsInversed(bool bShouldBeInversed);
 
-	/** called when underlying node is activated
-	  * this function should be considered as const (don't modify state of object) if node is not instanced! */
-	virtual void OnNodeActivation(struct FBehaviorTreeSearchData& SearchData);
+	/** called when underlying node is activated  */
+	virtual void OnNodeActivation(struct FBehaviorTreeSearchData& SearchData) const;
 
-	/** called when underlying node has finished
-	 * this function should be considered as const (don't modify state of object) if node is not instanced! */
-	virtual void OnNodeDeactivation(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type NodeResult);
+	/** called when underlying node has finished */
+	virtual void OnNodeDeactivation(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type NodeResult) const;
 
-	/** called when underlying node was processed (deactivated or failed to activate)
-	 * this function should be considered as const (don't modify state of object) if node is not instanced! */
-	virtual void OnNodeProcessed(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type& NodeResult);
+	/** called when underlying node was processed (deactivated or failed to activate) */
+	virtual void OnNodeProcessed(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type& NodeResult) const;
 
 	/** calculates raw, core value of decorator's condition. Should not include calling IsInversed */
 	virtual bool CalculateRawConditionValue(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const;
@@ -139,4 +119,10 @@ FORCEINLINE bool UBTDecorator::IsInversed() const
 FORCEINLINE uint8 UBTDecorator::GetChildIndex() const
 {
 	return ChildIndex;
+}
+
+FORCEINLINE bool UBTDecorator::CanExecute(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+{
+	// same as IsInversed ? !CheckRawCondition : CheckRawCondition
+	return IsInversed() != CalculateRawConditionValue(OwnerComp, NodeMemory);
 }

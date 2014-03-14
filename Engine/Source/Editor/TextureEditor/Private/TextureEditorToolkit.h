@@ -95,8 +95,6 @@ public:
 	virtual void SetZoom( double ZoomValue ) OVERRIDE;
 	virtual void ZoomIn( ) OVERRIDE;
 	virtual void ZoomOut( ) OVERRIDE;
-	virtual bool GetFitToViewport( ) const OVERRIDE;
-	virtual void SetFitToViewport( const bool bFitToViewport ) OVERRIDE;
 
 	// End IToolkit interface
 
@@ -120,6 +118,18 @@ protected:
 	}
 	
 	// End FEditorUndoClient interface
+
+protected:
+
+	/**
+	 * Checks whether the texture should be filling the view port.
+	 *
+	 * @return true if the view port is filled, false otherwise.
+	 */
+	bool IsFillingViewport( )
+	{
+		return FMath::IsNearlyZero(Zoom);
+	}
 
 private:
 
@@ -153,8 +163,8 @@ private:
 	bool IsAlphaChannelChecked() const;
 	void OnSaturation();
 	bool IsSaturationChecked() const;
-	void OnFitToViewport();
-	bool IsFitToViewportChecked() const;
+	void OnFillViewport();
+	bool IsFillViewportChecked() const;
 	void HandleBackgroundActionExecute( ETextureEditorBackgrounds Background );
 	bool HandleBackgroundActionIsChecked( ETextureEditorBackgrounds Background );
 	void OnShowBorder();

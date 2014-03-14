@@ -193,8 +193,8 @@ bool FAssetContextMenu::AddCommonMenuOptions(FMenuBuilder& MenuBuilder)
 	if ( CanExecuteConsolidate() )
 	{
 		MenuBuilder.AddMenuEntry(
-			LOCTEXT("ReplaceReferences", "Replace References"),
-			LOCTEXT("ConsolidateTooltip", "Replace references to the selected assets."),
+			LOCTEXT("Consolidate", "Consolidate"),
+			LOCTEXT("ConsolidateTooltip", "Consolidate the selected assets into one."),
 			FSlateIcon(),
 			FUIAction(
 				FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteConsolidate )
@@ -623,7 +623,7 @@ void FAssetContextMenu::ExecuteFindAssetInWorld()
 		const bool ShowProgressDialog = true;
 		GWarn->BeginSlowTask(NSLOCTEXT("AssetContextMenu", "FindAssetInWorld", "Finding actors that use this asset..."), ShowProgressDialog);
 
-		CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
+ 		CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
 
 		TArray< TWeakObjectPtr<UObject> > OutObjects;
 		WorldReferenceGenerator ObjRefGenerator;
@@ -785,7 +785,7 @@ void FAssetContextMenu::ExecuteDelete()
 	TArray< FAssetData > AssetViewSelectedAssets = AssetView.Pin()->GetSelectedAssets();
 	if(AssetViewSelectedAssets.Num() > 0)
 	{
-		TArray<FAssetData> AssetsToDelete;
+		TArray<UObject*> ObjectsToDelete;
 
 		for( auto AssetIt = AssetViewSelectedAssets.CreateConstIterator(); AssetIt; ++AssetIt )
 		{
@@ -803,12 +803,16 @@ void FAssetContextMenu::ExecuteDelete()
 				continue;
 			}
 
-			AssetsToDelete.Add( AssetData );
+			UObject* Object = AssetData.GetAsset();
+			if( Object )
+			{
+				ObjectsToDelete.Add( Object );
+			}
 		}
 
-		if ( AssetsToDelete.Num() > 0 )
+		if ( ObjectsToDelete.Num() > 0 )
 		{
-			ObjectTools::DeleteAssets( AssetsToDelete );
+			ObjectTools::DeleteObjects(ObjectsToDelete);
 		}
 	}
 
@@ -826,7 +830,7 @@ void FAssetContextMenu::ExecuteDelete()
 		}
 
 		// Spawn a confirmation dialog since this is potentially a highly destructive operation
-		ContentBrowserUtils::DisplayConfirmationPopup(
+ 		ContentBrowserUtils::DisplayConfirmationPopup(
 			Prompt,
 			LOCTEXT("FolderDeleteConfirm_Yes", "Delete"),
 			LOCTEXT("FolderDeleteConfirm_No", "Cancel"),

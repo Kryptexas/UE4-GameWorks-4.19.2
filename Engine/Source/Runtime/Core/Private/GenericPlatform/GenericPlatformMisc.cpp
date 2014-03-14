@@ -685,11 +685,6 @@ void FGenericPlatformMisc::GetValidTargetPlatforms(class TArray<class FString>& 
 	TargetPlatformNames.Add(FPlatformProperties::PlatformName());
 }
 
-const TCHAR* FGenericPlatformMisc::GetDefaultPathSeparator()
-{
-	return TEXT( "/" );
-}
-
 FString FGenericPlatformMisc::GetDefaultLocale()
 {
 #if UE_ENABLE_ICU

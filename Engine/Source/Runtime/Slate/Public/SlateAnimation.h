@@ -47,9 +47,6 @@ struct SLATE_API FCurveHandle
 	/** Just like GetLerp, but loops forever */
 	float GetLerpLooping() const;
 
-	/** Returns true if we have an OwnerSequence */
-	bool IsInitialized() const;
-
 private:
 	/** The sequence containing this curve */
 	const struct FCurveSequence* OwnerSequence;

@@ -63,33 +63,6 @@ public:
 	/** 
 	 * Finds the action instance for the supplied UUID, or will return NULL if one does not already exist.
 	 *
-	 * @param	InOject			ActionListType to check for pending actions.
- 	 * @param	UUID			UUID of the action we are looking for.
-	 * @param	FilterPredicate	Filter predicate indicating which instance to return
-	 *
-	 */	
-	template<typename ActionType, typename PredicateType>
-	ActionType* FindExistingActionWithPredicate(UObject* InActionObject, int32 UUID, const PredicateType& FilterPredicate)
-	{
-		FActionList* ObjectActionList = ObjectToActionListMap.Find(InActionObject);
-		if ((ObjectActionList != nullptr) && (ObjectActionList->Num(UUID) > 0))
-		{
-			for (auto It = ObjectActionList->CreateKeyIterator(UUID); It; ++It)
-			{
-				ActionType* Item = (ActionType*)(It.Value());
-				if (FilterPredicate(Item))
-				{
-					return Item;
-				}
-			}
-		}
-
-		return nullptr;
-	}
-
-	/** 
-	 * Finds the action instance for the supplied UUID, or will return NULL if one does not already exist.
-	 *
 	 * @param		InOject		ActionListType to check for pending actions.
  	 * @param		UUID		UUID of the action we are looking for.
 	 *
@@ -97,12 +70,16 @@ public:
 	template<typename ActionType>
 	ActionType* FindExistingAction(UObject* InActionObject, int32 UUID)
 	{
-		struct FFirstItemPredicate
+		FActionList* ObjectActionList = ObjectToActionListMap.Find( InActionObject );
+		if (ObjectActionList && ObjectActionList->Num(UUID) > 0)
 		{
-			FORCEINLINE bool operator()(void*) const { return true; }
-		};
+			for(auto It = ObjectActionList->CreateKeyIterator(UUID);It;++It)
+			{
+				return (ActionType*)(It.Value());
+			}
+		}
 
-		return FindExistingActionWithPredicate<ActionType, FFirstItemPredicate>(InActionObject, UUID, FFirstItemPredicate());
+		return NULL;
 	}
 
 	/** 

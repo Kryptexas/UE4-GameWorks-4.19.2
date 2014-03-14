@@ -7,4 +7,6 @@ UCLASS()
 class UEnvQueryContext_Item : public UEnvQueryContext
 {
 	GENERATED_UCLASS_BODY()
+
+	void ProvideContext(struct FEnvQueryInstance& QueryInstance, struct FEnvQueryContextData& ContextData) const;
 };

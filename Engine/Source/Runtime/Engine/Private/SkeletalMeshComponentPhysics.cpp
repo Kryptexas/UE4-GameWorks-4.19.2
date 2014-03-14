@@ -625,7 +625,7 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 	// Set up the map from skelmeshcomp ID to collision disable table
 #if WITH_PHYSX
 	uint32 SkelMeshCompID = GetUniqueID();
-	PhysScene->DeferredAddCollisionDisableTable(SkelMeshCompID, &PhysicsAsset->CollisionDisableTable);
+	GCollisionDisableTableLookup.Add(SkelMeshCompID, &PhysicsAsset->CollisionDisableTable);
 
 	if(Aggregate == NULL && Bodies.Num() > AggregatePhysicsAssetThreshold)
 	{
@@ -702,13 +702,6 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 
 	// Update Flag
 	ResetAllBodiesSimulatePhysics();
-
-#if WITH_APEX_CLOTHING
-	PrevRootBoneMatrix = GetBoneMatrix(0); // save the root bone transform
-	// pre-compute cloth teleport thresholds for performance
-	ClothTeleportCosineThresholdInRad = FMath::Cos(FMath::DegreesToRadians(TeleportRotationThreshold));
-	ClothTeleportDistThresholdSquared = TeleportDistanceThreshold * TeleportDistanceThreshold;
-#endif // #if WITH_APEX_CLOTHING
 }
 
 
@@ -716,11 +709,7 @@ void USkeletalMeshComponent::TermArticulated()
 {
 #if WITH_PHYSX
 	uint32 SkelMeshCompID = GetUniqueID();
-	FPhysScene * PhysScene = GetWorld()->GetPhysicsScene();
-	if (PhysScene)
-	{
-		PhysScene->DeferredRemoveCollisionDisableTable(SkelMeshCompID);
-	}
+	GCollisionDisableTableLookup.Remove(SkelMeshCompID);
 #endif	//#if WITH_PHYSX
 
 	// We shut down the physics for each body and constraint here. 
@@ -1671,13 +1660,13 @@ bool USkeletalMeshComponent::OverlapComponent(const FVector& Pos, const FQuat& R
 	return false;
 }
 
-bool USkeletalMeshComponent::ComponentOverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const UWorld* World, const FVector& Pos, const FRotator& Rot, ECollisionChannel TestChannel, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const
+bool USkeletalMeshComponent::ComponentOverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const UWorld* World, const FVector& Pos, const FRotator& Rot, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const
 {
 #if WITH_PHYSX
 
 	if(bUseSingleBodyPhysics)
 	{
-		return UPrimitiveComponent::ComponentOverlapMulti(OutOverlaps, World, Pos, Rot, TestChannel, Params, ObjectQueryParams);
+		return UPrimitiveComponent::ComponentOverlapMulti(OutOverlaps, World, Pos, Rot, Params, ObjectQueryParams);
 	}
 
 	OutOverlaps.Reset();
@@ -1731,7 +1720,7 @@ bool USkeletalMeshComponent::ComponentOverlapMulti(TArray<struct FOverlapResult>
 				if(PGeom != NULL)
 				{
 					// if object query param isn't valid, it will use trace channel
-					if (GeomOverlapMulti(World, *PGeom, PShapeGlobalPose, Overlaps, TestChannel, Params, FCollisionResponseParams(GetCollisionResponseToChannels()), ObjectQueryParams))
+					if( GeomOverlapMulti(World, *PGeom, PShapeGlobalPose, Overlaps, GetCollisionObjectType(), Params, FCollisionResponseParams(GetCollisionResponseToChannels()), ObjectQueryParams) )
 					{
 						bHaveBlockingHit = true;
 					}
@@ -1792,11 +1781,11 @@ bool USkeletalMeshComponent::HasValidClothingActors()
 	return false;
 }
 
-// if any changes in clothing assets, will create new actors 
+//if any changes in clothing assets, will create new actors 
 void USkeletalMeshComponent::ValidateClothingActors()
 {
-	// newly spawned component's tick group could be "specified tick group + 1" for the first few frames
-	// but it comes back to original tick group soon
+	//newly spawned component's tick group could be "specified tick group + 1" for the first few frames
+	//but it comes back to original tick group soon
 	if(PrimaryComponentTick.GetActualTickGroup() != PrimaryComponentTick.TickGroup)
 	{
 		return;
@@ -1809,7 +1798,7 @@ void USkeletalMeshComponent::ValidateClothingActors()
 
 	int32 NumAssets = SkeletalMesh->ClothingAssets.Num();
 
-	// if clothing assets are added or removed, re-create after removing all
+	//if clothing assets are added or removed, re-create after removing all
 	if(ClothingActors.Num() != NumAssets)
 	{
 		RemoveAllClothingActors();
@@ -1827,7 +1816,7 @@ void USkeletalMeshComponent::ValidateClothingActors()
 	{
 		FClothingAssetData& ClothAsset = SkeletalMesh->ClothingAssets[AssetIdx];
 
-		// if there exist mapped sections, create a clothing actor
+		//if there exist mapped sections, create clothing actor
 		if(SkeletalMesh->HasClothSections(0, AssetIdx))
 		{
 			if(CreateClothingActor(AssetIdx, ClothAsset.ApexClothingAsset))
@@ -1836,10 +1825,10 @@ void USkeletalMeshComponent::ValidateClothingActors()
 			}
 		}
 		else 
-		{	// don't have cloth sections but clothing actor is alive
+		{	//don't have cloth sections but clothing actor is alive
 			if(IsValidClothingActor(AssetIdx))
 			{
-				// clear because mapped sections are removed
+				//clear because mapped sections are removed
 				ClothingActors[AssetIdx].Clear(true);
 			}
 		}
@@ -1851,10 +1840,9 @@ void USkeletalMeshComponent::ValidateClothingActors()
 	}
 }
 
-/** 
- * APEX clothing actor is created from APEX clothing asset for cloth simulation 
- * If this is invalid, re-create actor , but if valid ,just skip to create
- */
+/** APEX clothing actor is created from APEX clothing asset for cloth simulation 
+	If this is invalid, re-create actor , but if valid ,just skip to create
+*/
 bool USkeletalMeshComponent::CreateClothingActor(int32 AssetIndex, TSharedPtr<FClothingAssetWrapper> ClothingAssetWrapper)
 {	
 	int32 NumActors = ClothingActors.Num();
@@ -1968,9 +1956,13 @@ bool USkeletalMeshComponent::CreateClothingActor(int32 AssetIndex, TSharedPtr<FC
 
 	ClothingActor->setGraphicalLOD(PredictedLODLevel);
 
+	if(!bAutomaticLodCloth)
+	{
 	// 0 means no simulation
 	ClothingActor->forcePhysicalLod(1); // 1 will be changed to "GetActivePhysicalLod()" later
-	ClothingActor->setFrozen(false);
+	}
+
+	ClothingActor->setFrozen(bFreezeClothSection);
 
 	return true;
 }
@@ -2712,57 +2704,7 @@ void USkeletalMeshComponent::UpdateClothTransform()
 	}
 }
 
-void USkeletalMeshComponent::CheckClothTeleport(float DeltaTime)
-{
-	// Get the root bone transform
-	FMatrix CurRootBoneMat = GetBoneMatrix(0);
-
-	if(bNeedTeleportAndResetOnceMore)
-	{
-		ForceClothNextUpdateTeleportAndReset();
-		bNeedTeleportAndResetOnceMore = false;
-	}
-
-	float DeltaTimeThreshold = 0.2f;
-	// clothing simulation could be broken if frame-rate goes under 5 fps
-	if(DeltaTime > DeltaTimeThreshold)
-	{
-		ForceClothNextUpdateTeleportAndReset();
-	}
-
-	// distance check 
-	// TeleportDistanceThreshold is greater than Zero and not teleported yet
-	if(TeleportDistanceThreshold > 0 && ClothTeleportMode == FClothingActor::Continuous)
-	{
-		float DistSquared = FVector::DistSquared(PrevRootBoneMatrix.GetOrigin(), CurRootBoneMat.GetOrigin());
-		if ( DistSquared > ClothTeleportDistThresholdSquared ) // if it has traveled too far
-		{
-			ClothTeleportMode = bResetAfterTeleport ? FClothingActor::TeleportAndReset : FClothingActor::Teleport;
-			// clothing reset is needed once more to avoid clothing pop up when moved the component too far
-			bNeedTeleportAndResetOnceMore = true;
-		}
-	}
-
-	// rotation check
-	// if TeleportRotationThreshold is greater than Zero and the user didn't do force teleport
-	if(TeleportRotationThreshold > 0 && ClothTeleportMode == FClothingActor::Continuous)
-	{
-		// Detect whether teleportation is needed or not
-		// Rotation matrix's transpose means an inverse but can't use a transpose because this matrix includes scales
-		FMatrix AInvB = CurRootBoneMat * PrevRootBoneMatrix.Inverse();
-		float Trace = AInvB.M[0][0] + AInvB.M[1][1] + AInvB.M[2][2];
-		float CosineTheta = (Trace - 1.0f) / 2.0f; // trace = 1+2cos(еш) for a 3б┐3 matrix
-
-		if ( CosineTheta < ClothTeleportCosineThresholdInRad ) // has the root bone rotated too much
-		{
-			ClothTeleportMode = bResetAfterTeleport ? FClothingActor::TeleportAndReset : FClothingActor::Teleport;
-		}
-	}
-
-	PrevRootBoneMatrix = CurRootBoneMat;
-}
-
-void USkeletalMeshComponent::UpdateClothState(float DeltaTime)
+void USkeletalMeshComponent::UpdateClothState()
 {
 	int32 NumActors = ClothingActors.Num();
 
@@ -2774,16 +2716,11 @@ void USkeletalMeshComponent::UpdateClothState(float DeltaTime)
 	}
 #endif // WITH_CLOTH_COLLISION_DETECTION
 
-	if(NumActors == 0)
-	{
-		return;
-	}
-
 	TArray<FTransform>* BoneTransforms = &SpaceBases;
 
-	if(MasterPoseComponent.IsValid())
+	if(MasterPoseComponent)
 	{
-		BoneTransforms = &(MasterPoseComponent.Get()->SpaceBases);
+		BoneTransforms = &(MasterPoseComponent->SpaceBases);
 	}
 
 	if(BoneTransforms->Num() == 0)
@@ -2792,11 +2729,6 @@ void USkeletalMeshComponent::UpdateClothState(float DeltaTime)
 	}
 
 	physx::PxMat44 PxGlobalPose = U2PMatrix(ComponentToWorld.ToMatrixWithScale());
-
-	CheckClothTeleport(DeltaTime);
-
-	// convert teleport mode to apex clothing teleport enum
-	physx::apex::ClothingTeleportMode::Enum CurTeleportMode = (physx::apex::ClothingTeleportMode::Enum)ClothTeleportMode;
 
 	for(int32 ActorIdx=0; ActorIdx<NumActors; ActorIdx++)
 	{
@@ -2823,7 +2755,7 @@ void USkeletalMeshComponent::UpdateClothState(float DeltaTime)
 
 		   int32 BoneIndex = GetBoneIndex(BoneName);
 
-			if(MasterPoseComponent.IsValid())
+			if(MasterPoseComponent)
 			{
 				int32 TempBoneIndex = BoneIndex;
 				BoneIndex = INDEX_NONE;
@@ -2860,27 +2792,16 @@ void USkeletalMeshComponent::UpdateClothState(float DeltaTime)
 			BoneMatrices.GetTypedData(), 
 			sizeof(physx::PxMat44), 
 			NumUsedBones,
-			CurTeleportMode);
+			physx::apex::ClothingTeleportMode::Enum::Continuous);
 	}
-
-	// reset to Continuous
-	ClothTeleportMode = FClothingActor::Continuous;
 }
 #endif// #if WITH_APEX_CLOTHING
 
-void USkeletalMeshComponent::TickClothing(float DeltaTime)
+void USkeletalMeshComponent::TickClothing()
 {
 #if WITH_APEX_CLOTHING
-	// animated but bone transforms were not updated because it was not rendered
-	if(bPoseTicked && !bRecentlyRendered)
-	{
-		ForceClothNextUpdateTeleportAndReset();
-	}
-	else
-	{
-		ValidateClothingActors();
-		UpdateClothState(DeltaTime);
-	}
+	ValidateClothingActors();
+	UpdateClothState();
 #if 0 //if turn on this flag, you can check which primitive objects are activated for collision detection
 	DrawDebugClothCollisions();
 #endif 
@@ -2959,6 +2880,8 @@ void USkeletalMeshComponent::GetUpdateClothSimulationData(TArray<FClothSimulData
 void USkeletalMeshComponent::FreezeClothSection(bool bFreeze)
 {
 #if WITH_APEX_CLOTHING
+
+	bFreezeClothSection = bFreeze;
 
 	int32 NumActors = ClothingActors.Num();
 
@@ -3329,28 +3252,5 @@ void USkeletalMeshComponent::SetClothMaxDistanceScale(float Scale)
 	}
 #endif// #if WITH_APEX_CLOTHING
 }
-
-
-void USkeletalMeshComponent::ResetClothTeleportMode()
-{
-#if WITH_APEX_CLOTHING
-	ClothTeleportMode = FClothingActor::Continuous;
-#endif// #if WITH_APEX_CLOTHING
-}
-
-void USkeletalMeshComponent::ForceClothNextUpdateTeleport()
-{
-#if WITH_APEX_CLOTHING
-	ClothTeleportMode = FClothingActor::Teleport;
-#endif// #if WITH_APEX_CLOTHING
-}
-
-void USkeletalMeshComponent::ForceClothNextUpdateTeleportAndReset()
-{
-#if WITH_APEX_CLOTHING
-	ClothTeleportMode = FClothingActor::TeleportAndReset;
-#endif// #if WITH_APEX_CLOTHING
-}
-
 
 #undef LOCTEXT_NAMESPACE

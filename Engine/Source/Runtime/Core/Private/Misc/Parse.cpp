@@ -200,11 +200,8 @@ bool FParse::Text( const TCHAR* Str, FText& Value, const TCHAR* Namespace )
 		++Str;
 	}
 
-	//this prevents our source code text gatherer from trying to gather the following messages
-#define LOC_DEFINE_REGION
 	const bool bFoundNSLocText = FCString::Strncmp( Str, TEXT("NSLOCTEXT"), 9 ) == 0;
 	const bool bFoundLocText = !bFoundNSLocText && FCString::Strncmp( Str, TEXT("LOCTEXT"), 7 ) == 0;
-#undef LOC_DEFINE_REGION
 
 	if( bFoundNSLocText || (Namespace && bFoundLocText) )
 	{

@@ -31,7 +31,6 @@ public:
 		, _AllowDragging(true)
 		, _AllowFocusOnSync(true)
 		, _FillEmptySpaceInTileView(true)
-		, _PreloadAssetsForContextMenu(true)
 		{}
 
 		/** Called to check if an asset should be filtered out by external code */
@@ -129,9 +128,6 @@ public:
 
 		/** Indicates if the 'Show Developers' option should be visible */
 		SLATE_ARGUMENT( bool, CanShowDevelopersFolder )
-
-		/** Indicates if the context menu is going to load the assets, and if so to preload before the context menu is shown, and warn about the pending load. */
-		SLATE_ARGUMENT( bool, PreloadAssetsForContextMenu )
 
 		/** The selection mode the asset view should use */
 		SLATE_ARGUMENT( ESelectionMode::Type, SelectionMode )
@@ -757,9 +753,6 @@ private:
 
 	/** Indicates if the 'Show Developers' option should be visible */
 	bool bCanShowDevelopersFolder;
-
-	/** Indicates if the context menu is going to load the assets, and if so to preload before the context menu is shown, and warn about the pending load. */
-	bool bPreloadAssetsForContextMenu;
 
 	/** The current selection mode used by the asset view */
 	ESelectionMode::Type SelectionMode;

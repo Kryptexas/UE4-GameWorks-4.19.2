@@ -1,10 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-#if WITH_RECAST
-#	include "DetourNavMeshQuery.h"
-#endif
-#define USE_PHYSIC_FOR_VISIBILITY_TESTS 1 // Physic will be used for visibility tests if set or only raycasts on navmesh if not
 
 DEFINE_LOG_CATEGORY_STATIC(LogPathFollowing, Warning, All);
 
@@ -41,11 +37,8 @@ UPathFollowingComponent::UPathFollowingComponent(const class FPostConstructIniti
 	NextSampleIdx = 0;
 	bUseBlockDetection = true;
 	bLastMoveReachedGoal = false;
-	bUseVisibilityTestsSimplification = false;
-	bPendingPathStartUpdate = false;
 
 	MoveSegmentStartIndex = 0;
-	MoveSegmentEndIndex = 1;
 	MoveSegmentStartRef = INVALID_NAVNODEREF;
 	MoveSegmentEndRef = INVALID_NAVNODEREF;
 
@@ -89,7 +82,7 @@ void LogPathHelper(AActor* LogOwner, FNavPathSharedPtr Path, const AActor* GoalA
 #endif // ENABLE_VISUAL_LOG
 }
 
-void LogBlockHelper(AActor* LogOwner, class UNavMovementComponent* MoveComp, float RadiusPct, float HeightPct, const FVector& SegmentStart, const FVector& SegmentEnd)
+void LogBlockHelper(AActor* LogOwner, class UNavMovementComponent* MoveComp, const FVector& SegmentStart, const FVector& SegmentEnd)
 {
 #if ENABLE_VISUAL_LOG
 	if (MoveComp && LogOwner)
@@ -105,10 +98,10 @@ void LogBlockHelper(AActor* LogOwner, class UNavMovementComponent* MoveComp, flo
 		MovingAgent->GetSimpleCollisionCylinder(AgentRadius, AgentHalfHeight);
 
 		const float Dist2D = ToTarget.Size2D();
-		UE_VLOG(LogOwner, LogPathFollowing, Verbose, TEXT("dist 2d: %f (agent radius: %f [%f])"), Dist2D, AgentRadius, AgentRadius * (1 + RadiusPct));
+		UE_VLOG(LogOwner, LogPathFollowing, Verbose, TEXT("dist 2d: %f (agent radius: %f)"), Dist2D, AgentRadius);
 
 		const float ZDiff = FMath::Abs(ToTarget.Z);
-		UE_VLOG(LogOwner, LogPathFollowing, Verbose, TEXT("Z diff: %f (agent halfZ: %f [%f])"), ZDiff, AgentHalfHeight, AgentHalfHeight * (1 + HeightPct));
+		UE_VLOG(LogOwner, LogPathFollowing, Verbose, TEXT("Z diff: %f (agent halfZ: %f)"), ZDiff, AgentHalfHeight);
 	}
 #endif // ENABLE_VISUAL_LOG
 }
@@ -199,7 +192,6 @@ uint32 UPathFollowingComponent::RequestMove(FNavPathSharedPtr InPath, FRequestCo
 
 			// determine with path segment should be followed
 			const uint32 CurrentSegment = DetermineStartingPathPoint(InPath.Get());
-			bPendingPathStartUpdate = false;
 			SetMoveSegment(CurrentSegment);
 		}
 		else
@@ -233,12 +225,7 @@ bool UPathFollowingComponent::UpdateMove(FNavPathSharedPtr InPath, uint32 Reques
 		Status = EPathFollowingStatus::Moving;
 
 		const uint32 CurrentSegment = DetermineStartingPathPoint(InPath.Get());
-		bPendingPathStartUpdate = false;
 		SetMoveSegment(CurrentSegment);
-	}
-	else if (Status == EPathFollowingStatus::Paused)
-	{
-		bPendingPathStartUpdate = true;
 	}
 
 	return true;
@@ -316,13 +303,12 @@ void UPathFollowingComponent::ResumeMove(uint32 RequestID)
 	if (RequestID == UPathFollowingComponent::CurrentMoveRequestMetaId || RequestID == CurrentRequestId)
 	{
 		const bool bMovedDuringPause = ShouldCheckPathOnResume();
-		const bool bIsOnPath = IsOnPath();
+		const bool bIsOnPath = bMovedDuringPause ? IsOnPath() : true;
 		if (bIsOnPath)
 		{
-			if (bMovedDuringPause || bPendingPathStartUpdate)
+			if (bMovedDuringPause)
 			{
 				const uint32 CurrentSegment = DetermineStartingPathPoint(Path.Get());
-				bPendingPathStartUpdate = false;
 				SetMoveSegment(CurrentSegment);
 			}
 			else
@@ -544,34 +530,12 @@ void UPathFollowingComponent::SetMoveSegment(uint32 SegmentStartIndex)
 		CurrentSmartLink = NULL;
 	}
 
-	uint32 EndSegmentIndex = SegmentStartIndex + 1;
-	if (Path.IsValid() && Path->PathPoints.IsValidIndex(SegmentStartIndex) &&
-		Path->PathPoints.IsValidIndex(EndSegmentIndex))
+	if (Path->PathPoints.IsValidIndex(SegmentStartIndex) &&
+		Path->PathPoints.IsValidIndex(SegmentStartIndex + 1))
 	{
-#if WITH_RECAST
-#	define CHECK_WITH_RECAST( __code_block__ ) __code_block__ 
-#else
-#	define CHECK_WITH_RECAST(__code_block__) 1
-#endif
-
-		if (bUseVisibilityTestsSimplification && !bResumedFromSmartLink && 
-			!Path->PathPoints[SegmentStartIndex].SmartLink.IsValid() && !Path->PathPoints[EndSegmentIndex].SmartLink.IsValid() &&
-			CHECK_WITH_RECAST( FNavMeshNodeFlags(Path->PathPoints[SegmentStartIndex].Flags).Area == FNavMeshNodeFlags(Path->PathPoints[EndSegmentIndex].Flags).Area &&
-											   (!(FNavMeshNodeFlags(Path->PathPoints[SegmentStartIndex].Flags).PathFlags & RECAST_STRAIGHTPATH_OFFMESH_CONNECTION) ||
-											   !(FNavMeshNodeFlags(Path->PathPoints[EndSegmentIndex].Flags).PathFlags & RECAST_STRAIGHTPATH_OFFMESH_CONNECTION)))
-			)
-		{
-			SCOPE_CYCLE_COUNTER(STAT_Navigation_PathVisibilityOptimisation);
-			// possibly skipping a point on a path if visibility checks of a point after 
-			// EndSegmentIndex are satisfied
-			EndSegmentIndex = PrepareBestNextMoveSegment(SegmentStartIndex);
-		}
-#undef CHECK_WITH_RECAST
-
 		MoveSegmentStartIndex = SegmentStartIndex;
-		MoveSegmentEndIndex = EndSegmentIndex;
 		const FNavPathPoint& PathPt0 = Path->PathPoints[MoveSegmentStartIndex];
-		const FNavPathPoint& PathPt1 = Path->PathPoints[MoveSegmentEndIndex];
+		const FNavPathPoint& PathPt1 = Path->PathPoints[MoveSegmentStartIndex + 1];
 
 		MoveSegmentStartRef = PathPt0.NodeRef;
 		MoveSegmentEndRef = PathPt1.NodeRef;
@@ -596,80 +560,6 @@ void UPathFollowingComponent::SetMoveSegment(uint32 SegmentStartIndex)
 	}
 }
 
-uint32 UPathFollowingComponent::PrepareBestNextMoveSegment(uint32 NextSegmentStartIndex)
-{
-	const AAIController* MyAI = Cast<AAIController>(GetOwner());
-	const ANavigationData* NavData = MyAI && MyAI->NavComponent ? MyAI->NavComponent->GetNavData() : NULL;
-	if (NavData == NULL)
-	{
-		return NextSegmentStartIndex + 1;
-	}
-
-	const APawn* MyPawn = MyAI->GetPawn();
-	const float PawnHalfHeight = (MyAI->GetCharacter() && MyAI->GetCharacter()->CapsuleComponent) ? MyAI->GetCharacter()->CapsuleComponent->GetScaledCapsuleHalfHeight() : 0.0f;
-	const FVector PawnLocation = MyPawn->GetActorLocation();
-
-#if USE_PHYSIC_FOR_VISIBILITY_TESTS
-	static const FName NAME_NavAreaTrace = TEXT("NavmeshVisibilityTrace");
-	const FCollisionShape CollisionShape = FCollisionShape::MakeCapsule(MyAI->GetPawn()->GetSimpleCollisionRadius(), 24.f);
-	FCollisionQueryParams CapsuleParams(NAME_NavAreaTrace, false, MyAI->GetCharacter());
-	if (MyPawn->GetRootPrimitiveComponent())
-	{
-		CapsuleParams.AddIgnoredActors( MyPawn->GetRootPrimitiveComponent()->MoveIgnoreActors );
-	}
-
-#endif
-	TSharedPtr<FNavigationQueryFilter> QueryFilter = (NavComp && NavComp->GetStoredQueryFilter().IsValid()) ? NavComp->GetStoredQueryFilter()->GetCopy() : NavData->GetDefaultQueryFilter()->GetCopy();
-#if WITH_RECAST
-	const uint8 StartArea = FNavMeshNodeFlags(Path->PathPoints[NextSegmentStartIndex].Flags).Area;
-	TArray<float> CostArray;
-	CostArray.Init(DT_UNWALKABLE_POLY_COST, DT_MAX_AREAS);
-	CostArray[StartArea] = 0;
-	QueryFilter->SetAllAreaCosts(CostArray);
-#endif
-
-	const int32 MaxPoints = Path->PathPoints.Num();
-	int32 Index = NextSegmentStartIndex + 2;
-	for (; Index <= MaxPoints; ++Index)
-	{
-		if (!Path->PathPoints.IsValidIndex(Index))
-		{
-			break;
-		}
-
-		const FNavPathPoint& PathPt1 = Path->PathPoints[Index];
-		const FVector AdjustedDestination = PathPt1.Location + FVector(0.0f, 0.0f, PawnHalfHeight);
-
-		FVector HitLocation;
-		if ( NavData->Raycast(PawnLocation, AdjustedDestination, HitLocation, QueryFilter) )
-		{
-			break;
-		}
-#if USE_PHYSIC_FOR_VISIBILITY_TESTS
-		else
-		{
-			FHitResult Result;
-			if (GetWorld()->SweepSingle(Result, PawnLocation, AdjustedDestination, FQuat::Identity, ECC_WorldStatic, CollisionShape, CapsuleParams))
-			{
-				break;
-			}
-		}
-#endif
-
-#if WITH_RECAST
-		/** don't move to next point if we are changing area, we are at off mesh connection or it's a smart link*/
-		if (FNavMeshNodeFlags(Path->PathPoints[NextSegmentStartIndex].Flags).Area != FNavMeshNodeFlags(PathPt1.Flags).Area ||
-			FNavMeshNodeFlags(PathPt1.Flags).PathFlags & RECAST_STRAIGHTPATH_OFFMESH_CONNECTION || 
-			PathPt1.SmartLink.IsValid())
-		{
-			return Index;
-		}
-#endif
-	}
-
-	return Index-1;
-}
-
 void UPathFollowingComponent::UpdatePathSegment()
 {
 	if (!Path.IsValid() || !Path->IsValid() || MovementComp == NULL)
@@ -683,8 +573,8 @@ void UPathFollowingComponent::UpdatePathSegment()
 	if (bCanReachTarget && Status == EPathFollowingStatus::Moving)
 	{
 		const FVector CurrentLocation = MovementComp->GetActorLocation();
-		const uint32 LastSegmentEndIndex = Path->PathPoints.Num() - 1;
-		const bool bFollowingLastSegment = (MoveSegmentEndIndex >= LastSegmentEndIndex);
+		const uint32 LastSegmentStartIndex = Path->PathPoints.Num() - 2;
+		const bool bFollowingLastSegment = (MoveSegmentStartIndex >= LastSegmentStartIndex);
 
 		if (bCollidedWithGoal)
 		{
@@ -731,16 +621,15 @@ void UPathFollowingComponent::UpdatePathSegment()
 		const bool bHasNewSample = UpdateBlockDetection();
 		if (bHasNewSample && IsBlocked())
 		{
-			if (Path->PathPoints.IsValidIndex(MoveSegmentEndIndex) && Path->PathPoints.IsValidIndex(MoveSegmentStartIndex))
+			if (Path->PathPoints.IsValidIndex(MoveSegmentStartIndex + 1) && Path->PathPoints.IsValidIndex(MoveSegmentStartIndex))
 			{
-				LogBlockHelper(GetOwner(), MovementComp, MinAgentRadiusPct, MinAgentHeightPct,
-					Path->PathPoints[MoveSegmentStartIndex].Location, Path->PathPoints[MoveSegmentEndIndex].Location);
+				LogBlockHelper(GetOwner(), MovementComp, Path->PathPoints[MoveSegmentStartIndex].Location, Path->PathPoints[MoveSegmentStartIndex + 1].Location);
 			}
 			else
 			{
 				if ((GetOwner() != NULL) && (MovementComp != NULL))
 				{
-					UE_VLOG(GetOwner(), LogPathFollowing, Verbose, TEXT("Path blocked, but move segment indices are not valid: start %d, end %d of %d"), MoveSegmentStartIndex, MoveSegmentEndIndex, Path->PathPoints.Num());
+					UE_VLOG(GetOwner(), LogPathFollowing, Verbose, TEXT("Path blocked, but move segment indices are not valid: start %d, end %d of %d"), MoveSegmentStartIndex, MoveSegmentStartIndex + 1, Path->PathPoints.Num());
 				}
 			}
 			OnPathFinished(EPathFollowingResult::Blocked);
@@ -890,66 +779,6 @@ bool UPathFollowingComponent::HasReachedInternal(const FVector& Goal, float Goal
 	}
 
 	return true;
-}
-
-void UPathFollowingComponent::DebugReachTest(float& CurrentDot, float& CurrentDistance, float& CurrentHeight, uint8& bDotFailed, uint8& bDistanceFailed, uint8& bHeightFailed)
-{
-	if (!Path.IsValid() || MovementComp == NULL)
-	{
-		return;
-	}
-
-	const uint32 LastSegmentEndIndex = Path->PathPoints.Num() - 1;
-	const bool bFollowingLastSegment = (MoveSegmentEndIndex >= LastSegmentEndIndex);
-
-	float GoalRadius = 0.0f;
-	float GoalHalfHeight = 0.0f;
-	bool bUseAgentRadius = false;
-	float RadiusThreshold = 0.0f;
-
-	FVector AgentLocation = MovementComp->GetActorLocation();
-	FVector GoalLocation = GetCurrentTargetLocation();
-	
-	if (bFollowingLastSegment)
-	{
-		GoalLocation = Path->PathPoints[Path->PathPoints.Num() - 1].Location;
-		bUseAgentRadius = bStopOnOverlap;
-		RadiusThreshold = AcceptanceRadius;
-
-		// take goal's current location, unless path is partial
-		if (DestinationActor.IsValid() && !Path->IsPartial())
-		{
-			if (DestinationAgent)
-			{
-				FVector GoalOffset;
-				DestinationAgent->GetMoveGoalReachTest(GetOwner(), MoveOffset, GoalOffset, GoalRadius, GoalHalfHeight);
-
-				GoalLocation = FRotationTranslationMatrix(DestinationActor->GetActorRotation(), DestinationAgent->GetNavAgentLocation()).TransformPosition(GoalOffset);
-			}
-			else
-			{
-				GoalLocation = DestinationActor->GetActorLocation();
-			}
-		}
-	}
-
-	const FVector ToGoal = (GoalLocation - AgentLocation);
-	CurrentDot = FVector::DotProduct(ToGoal.SafeNormal(), MoveSegmentDirection);
-	bDotFailed = (CurrentDot < 0.0f) ? 1 : 0;
-
-	// get cylinder of moving agent
-	float AgentRadius = 0.0f;
-	float AgentHalfHeight = 0.0f;
-	AActor* MovingAgent = MovementComp->GetOwner();
-	MovingAgent->GetSimpleCollisionCylinder(AgentRadius, AgentHalfHeight);
-
-	CurrentDistance = ToGoal.Size2D();
-	const float UseRadius = GoalRadius + RadiusThreshold + (bUseAgentRadius ? AgentRadius : 0.0f) + (AgentRadius * MinAgentRadiusPct);
-	bDistanceFailed = (CurrentDistance > UseRadius) ? 1 : 0;
-
-	CurrentHeight = FMath::Abs(ToGoal.Z);
-	const float UseHeight = GoalHalfHeight + AgentHalfHeight + (AgentHalfHeight * MinAgentHeightPct);
-	bHeightFailed = (CurrentHeight > UseHeight) ? 1 : 0;
 }
 
 bool UPathFollowingComponent::UpdateMovementComponent(bool bForce)
@@ -1199,7 +1028,7 @@ void UPathFollowingComponent::DisplayDebug(class UCanvas* Canvas, const TArray<F
 	{
 		const int32 NumMoveSegments = (Path.IsValid() && Path->IsValid()) ? Path->PathPoints.Num() : -1;
 		FString TargetDesc = FString::Printf(TEXT("  Move target [%d/%d]: %s (%s)"),
-			MoveSegmentEndIndex, NumMoveSegments, *GetCurrentTargetLocation().ToString(), *GetNameSafe(DestinationActor.Get()));
+			MoveSegmentStartIndex + 1, NumMoveSegments, *GetCurrentTargetLocation().ToString(), *GetNameSafe(DestinationActor.Get()));
 		
 		Canvas->DrawText(RenderFont, TargetDesc, 4.0f, YPos);
 		YPos += YL;
@@ -1209,62 +1038,23 @@ void UPathFollowingComponent::DisplayDebug(class UCanvas* Canvas, const TArray<F
 #if ENABLE_VISUAL_LOG
 void UPathFollowingComponent::DescribeSelfToVisLog(struct FVisLogEntry* Snapshot) const
 {
-	FVisLogEntry::FStatusCategory Category;
-	Category.Category = TEXT("Path following");
-
+	Snapshot->StatusString += TEXT("PathFollowingComponent:\n");
+	
 	if (DestinationActor.IsValid())
 	{
-		Category.Add(TEXT("Goal"), GetNameSafe(DestinationActor.Get()));
+		Snapshot->StatusString += FString::Printf(TEXT("  Goal: %s\n"), *GetNameSafe(DestinationActor.Get()));
 	}
 	
-	FString StatusDesc = GetStatusDesc();
+	FString StatusDesc = FString(TEXT("  Status: ")) + GetStatusDesc();
 	if (Status == EPathFollowingStatus::Moving)
 	{
 		const int32 NumMoveSegments = (Path.IsValid() && Path->IsValid()) ? Path->PathPoints.Num() : -1;
-		StatusDesc += FString::Printf(TEXT(" [%d..%d/%d]"), MoveSegmentStartIndex + 1, MoveSegmentEndIndex + 1, NumMoveSegments);
+		StatusDesc += FString::Printf(TEXT(" [%d/%d]"), MoveSegmentStartIndex + 1, NumMoveSegments);
 	}
 
-	Category.Add(TEXT("Status"), StatusDesc);
-	Category.Add(TEXT("Path"), !Path.IsValid() ? TEXT("none") : (Path->CastPath<FNavMeshPath>() != NULL) ? TEXT("navmesh") : TEXT("direct"));
-	
-	if (CurrentSmartLink)
-	{
-		Category.Add(TEXT("SmartLink"), CurrentSmartLink->GetName());
-	}
-
-	Snapshot->Status.Add(Category);
+	Snapshot->StatusString += StatusDesc + TEXT("\n");
 }
 #endif // ENABLE_VISUAL_LOG
-
-FString UPathFollowingComponent::GetDebugString() const
-{
-	FString StatusDesc = GetStatusDesc();
-	if (Status == EPathFollowingStatus::Moving)
-	{
-		if (Path.IsValid())
-		{
-			const int32 NumMoveSegments = (Path.IsValid() && Path->IsValid()) ? Path->PathPoints.Num() : -1;
-			const bool bIsDirect = (Path->CastPath<FNavMeshPath>() == NULL);
-			const bool bIsSmartLink = (CurrentSmartLink != NULL);
-
-			if (!bIsDirect)
-			{
-				StatusDesc += FString::Printf(TEXT(" (%d..%d/%d)%s"), MoveSegmentStartIndex + 1, MoveSegmentEndIndex + 1, NumMoveSegments,
-					bIsSmartLink ? TEXT(" (SmartLink)") : TEXT(""));
-			}
-			else
-			{
-				StatusDesc += TEXT(" (direct)");
-			}
-		}
-		else
-		{
-			StatusDesc += TEXT(" (invalid path)");
-		}
-	}
-
-	return StatusDesc;
-}
 
 void UPathFollowingComponent::LockResource(EAILockSource::Type LockSource)
 {

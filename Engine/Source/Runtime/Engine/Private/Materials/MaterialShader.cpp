@@ -856,9 +856,9 @@ void FMaterialShaderMap::SaveForRemoteRecompile(FArchive& Ar, const TMap<FString
 				ShaderMap->GetShaderList(Shaders);
 
 				// get the resources from the shaders
-				for (TMap<FShaderId, FShader*>::TIterator ShaderIt(Shaders); It; ++It)
+				for (TMap<FShaderId, FShader*>::TIterator It(Shaders); It; ++It)
 				{
-					FShaderResourceId ShaderId = ShaderIt.Value()->GetResourceId();
+					FShaderResourceId ShaderId = It.Value()->GetResourceId();
 					// skip this shader if the Id was already on the client (ie, it didn't change)
 					if (ClientResourceIds.Contains(ShaderId) == false)
 					{

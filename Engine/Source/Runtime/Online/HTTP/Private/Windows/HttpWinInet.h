@@ -168,8 +168,6 @@ private:
 	int32 volatile ElapsedTimeSinceLastServerResponse;
 	/** Number of bytes sent to progress update */
 	int32 ProgressBytesSent;
-	/** Used to calculate total elapsed time for the request */
-	double StartRequestTime;
 };
 
 /**

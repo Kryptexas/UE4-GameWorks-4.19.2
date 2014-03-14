@@ -264,7 +264,7 @@ void UIpNetDriver::TickDispatch( float DeltaTime )
 	}
 }
 
-void UIpNetDriver::ProcessRemoteFunction(class AActor* Actor, UFunction* Function, void* Parameters, FOutParmRec* OutParms, FFrame* Stack, class UObject * SubObject )
+void UIpNetDriver::ProcessRemoteFunction(class AActor* Actor, UFunction* Function, void* Parameters, FFrame* Stack, class UObject * SubObject )
 {
 	bool bIsServer = IsServer();
 
@@ -309,7 +309,7 @@ void UIpNetDriver::ProcessRemoteFunction(class AActor* Actor, UFunction* Functio
 							Connection = ((UChildConnection*)Connection)->Parent;
 						}
 						
-						InternalProcessRemoteFunction( Actor, SubObject, Connection, Function, Parameters, OutParms, Stack, bIsServer );
+						InternalProcessRemoteFunction( Actor, SubObject, Connection, Function, Parameters, Stack, bIsServer );
 					}
 				}
 			}			
@@ -323,7 +323,7 @@ void UIpNetDriver::ProcessRemoteFunction(class AActor* Actor, UFunction* Functio
 	Connection = Actor->GetNetConnection();
 	if (Connection)
 	{
-		InternalProcessRemoteFunction( Actor, SubObject, Connection, Function, Parameters, OutParms, Stack, bIsServer );
+		InternalProcessRemoteFunction( Actor, SubObject, Connection, Function, Parameters, Stack, bIsServer );
 	}
 }
 

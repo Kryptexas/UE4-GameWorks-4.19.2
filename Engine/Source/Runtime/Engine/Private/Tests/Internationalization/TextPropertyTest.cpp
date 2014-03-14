@@ -117,11 +117,11 @@ bool FTextPropertyTest::RunTest (const FString& Parameters)
 		// Test Transient - Transient text properties should save out an error message instead of their actual string value
 		const FString* const LoadedTransientTextString = FTextInspector::GetSourceString(LoadedObject->TransientText);
 		const FString* const TransientTextString = FTextInspector::GetSourceString(TransientText);
-		if ( GIsEditor && LoadedTransientTextString && TransientTextString && *(LoadedTransientTextString) != *(TransientTextString) )
+		if ( WITH_EDITOR && LoadedTransientTextString && TransientTextString && *(LoadedTransientTextString) != *(TransientTextString) )
 		{
 			AddError(TEXT("Transient Texts should not exist in the editor."));
 		}
-		else if ( !GIsEditor && LoadedObject->TransientText.ToString() != FText::Format( FText::SerializationFailureError, TransientText ).ToString() )
+		else if ( !WITH_EDITOR && LoadedObject->TransientText.ToString() != FText::Format( FText::SerializationFailureError, TransientText ).ToString() )
 		{
 			//AddError(TEXT("Transient Texts should persist an error message when they are serialized."));
 		}

@@ -548,21 +548,6 @@ public:
 /** Updates tracked stats for a buffer. */
 extern void UpdateBufferStats(TRefCountPtr<ID3D11Buffer> Buffer, bool bAllocating);
 
-/** Forward declare the constants ring buffer. */
-class FD3D11ConstantsRingBuffer;
-
-/** A ring allocation from the constants ring buffer. */
-struct FRingAllocation
-{
-	ID3D11Buffer* Buffer;
-	void* DataPtr;
-	uint32 Offset;
-	uint32 Size;
-
-	FRingAllocation() : Buffer(NULL) {}
-	inline bool IsValid() const { return Buffer != NULL; }
-};
-
 /** Uniform buffer resource class. */
 class FD3D11UniformBuffer : public FRHIUniformBuffer
 {
@@ -571,14 +556,10 @@ public:
 	/** The D3D11 constant buffer resource */
 	TRefCountPtr<ID3D11Buffer> Resource;
 
-	/** Allocation in the constants ring buffer if applicable. */
-	FRingAllocation RingAllocation;
-
 	/** Initialization constructor. */
-	FD3D11UniformBuffer(uint32 Size,ID3D11Buffer* InResource,const FRingAllocation& InRingAllocation)
+	FD3D11UniformBuffer(uint32 Size,ID3D11Buffer* InResource)
 	: FRHIUniformBuffer(Size)
 	, Resource(InResource)
-	, RingAllocation(InRingAllocation)
 	{}
 
 	virtual ~FD3D11UniformBuffer();

@@ -22,7 +22,6 @@
 
 // It may be useful to integrate this into a class derived from FArchive to allow streaming encryption/decryption - but that's a mission for another day.
 
-
 #ifdef AES_KEY
 
 #define TEST_ENCRYPTION			0
@@ -33,7 +32,7 @@
 #define NROUNDS( keybits )			( ( keybits ) / 32 + 6 )
 
 // This is quite insecure and could do with some obfuscation work
-static ANSICHAR* DefinedKey = (ANSICHAR*)AES_KEY;
+static int8* key = ( int8* )AES_KEY;
 
 static const uint32 Te0[256] =
 {
@@ -1143,21 +1142,14 @@ static void rijndaelDecrypt( const uint32 *rk, int32 nrounds, const uint8 cipher
 }
 #endif
 
-void FAES::EncryptData(uint8 *Contents, uint32 NumBytes)
-{
-#ifdef AES_KEY
-	FAES::EncryptData(Contents, NumBytes, DefinedKey);
-#endif
-}
-
-void FAES::EncryptData( uint8 *Contents, uint32 NumBytes, ANSICHAR* Key )
+void FAES::EncryptData( uint8 *Contents, uint32 NumBytes )
 {
 #ifdef AES_KEY
 	uint32 rk[RKLENGTH(AES_KEYBITS)] = { 0 };
 	int32 nrounds;
 
-	checkf( ( NumBytes & ( AESBlockSize - 1 ) ) == 0, TEXT( "NumBytes needs to be a multiple of 16 bytes" ) );
-	checkf( TCString<ANSICHAR>::Strlen( Key ) >= KEYLENGTH( AES_KEYBITS ), TEXT( "AES_KEY needs to be at least %d characters" ), KEYLENGTH( AES_KEYBITS ) );
+	checkf( ( NumBytes & ( AESBlockSize - 1 ) ) == 0, TEXT( "NumBytes needs to tbe a multiple of 16 bytes" ) );
+	checkf( FCString::Strlen( AES_KEY ) >= KEYLENGTH( AES_KEYBITS ), TEXT( "AES_KEY needs to be at least %d characters" ), KEYLENGTH( AES_KEYBITS ) );
 
 #if TEST_ENCRYPTION
 	TArray<uint8> OriginalBlob;
@@ -1166,7 +1158,7 @@ void FAES::EncryptData( uint8 *Contents, uint32 NumBytes, ANSICHAR* Key )
 #endif
 
 	// Set up the rk buffer
-	nrounds = rijndaelSetupEncrypt( rk, ( const uint8* )Key, AES_KEYBITS );
+	nrounds = rijndaelSetupEncrypt( rk, ( const uint8* )key, AES_KEYBITS );
 
 	// Encrypt the data a block at a time
 	for( uint32 Offset = 0; Offset < NumBytes; Offset += AESBlockSize )
@@ -1186,24 +1178,17 @@ void FAES::EncryptData( uint8 *Contents, uint32 NumBytes, ANSICHAR* Key )
 #endif
 }
 
-void FAES::DecryptData(uint8 *Contents, uint32 NumBytes)
-{
-#ifdef AES_KEY
-	FAES::DecryptData(Contents, NumBytes, DefinedKey);
-#endif
-}
-
-void FAES::DecryptData( uint8 *Contents, uint32 NumBytes, ANSICHAR* Key )
+void FAES::DecryptData( uint8 *Contents, uint32 NumBytes )
 {
 #ifdef AES_KEY
 	uint32 rk[RKLENGTH(AES_KEYBITS)] = { 0 };
 	int32 nrounds;
 
 	checkf( ( NumBytes & ( AESBlockSize - 1 ) ) == 0, TEXT( "NumBytes needs to tbe a multiple of 16 bytes" ) );
-	checkf( TCString<ANSICHAR>::Strlen( Key ) >= KEYLENGTH( AES_KEYBITS ), TEXT( "AES_KEY needs to be at least %d characters" ), KEYLENGTH( AES_KEYBITS ) );
+	checkf( FCString::Strlen( AES_KEY ) >= KEYLENGTH( AES_KEYBITS ), TEXT( "AES_KEY needs to be at least %d characters" ), KEYLENGTH( AES_KEYBITS ) );
 
 	// Set up the rk buffer
-	nrounds = rijndaelSetupDecrypt( rk, ( const uint8* )Key, AES_KEYBITS );
+	nrounds = rijndaelSetupDecrypt( rk, ( const uint8* )key, AES_KEYBITS );
 
 	// Decrypt the data a block at a time
 	for( uint32 Offset = 0; Offset < NumBytes; Offset += AESBlockSize )

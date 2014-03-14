@@ -7,7 +7,6 @@ class SLATE_API SExpanderArrow : public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS( SExpanderArrow ){}
-		SLATE_ATTRIBUTE(float, IndentAmount)
 	SLATE_END_ARGS()
 
 	void Construct( const FArguments& InArgs, const TSharedPtr<class ITableRow>& TableRow );
@@ -31,6 +30,4 @@ protected:
 	/** A reference to the expander button */
 	TSharedPtr<SButton> ExpanderArrow;
 
-	/** The amount of space to indent at each level */
-	TAttribute<float> IndentAmount;
 };

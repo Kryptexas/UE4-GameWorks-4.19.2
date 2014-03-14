@@ -893,14 +893,14 @@ void FMultiSizeIndexContainer::ReleaseResources()
 /**
  * Creates a new index buffer
  */
-void FMultiSizeIndexContainer::CreateIndexBuffer(uint8 InDataTypeSize)
+void FMultiSizeIndexContainer::CreateIndexBuffer(uint8 DataTypeSize)
 {
 	check( IndexBuffer == NULL );
 	bool bNeedsCPUAccess = true;
 
-	DataTypeSize = InDataTypeSize;
+	this->DataTypeSize = DataTypeSize;
 
-	if (InDataTypeSize == sizeof(uint16))
+	if (DataTypeSize == sizeof(uint16))
 	{
 		IndexBuffer = new FRawStaticIndexBuffer16or32<uint16>(bNeedsCPUAccess);
 	}

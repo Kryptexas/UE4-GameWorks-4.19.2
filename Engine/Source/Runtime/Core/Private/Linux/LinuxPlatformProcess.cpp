@@ -9,8 +9,6 @@
 #include <spawn.h>
 #include <sys/wait.h>
 #include <sys/resource.h>
-#include <sys/ioctl.h>	// ioctl
-#include <asm/ioctls.h>	// FIONREAD
 
 namespace PlatformProcessLimits
 {
@@ -106,78 +104,27 @@ const TCHAR* FLinuxPlatformProcess::ExecutableName(bool bRemoveExtension)
 	return CachedResult;
 }
 
-FPipeHandle::~FPipeHandle()
-{
-	close(PipeDesc);
-}
-
-FString FPipeHandle::Read()
-{
-	const int kBufferSize = 4096;
-	ANSICHAR Buffer[kBufferSize];
-	FString Output;
-
-	int BytesAvailable = 0;
-	if (ioctl(PipeDesc, FIONREAD, &BytesAvailable) == 0)
-	{
-		if (BytesAvailable > 0)
-		{
-			int BytesRead = read(PipeDesc, Buffer, kBufferSize - 1);
-			if (BytesRead > 0)
-			{
-				Buffer[BytesRead] = 0;
-				Output += StringCast< TCHAR >(Buffer).Get();
-			}
-		}
-	}
-	else
-	{
-		UE_LOG(LogHAL, Fatal, TEXT("ioctl(..., FIONREAD, ...) failed with errno=%d (%s)"), errno, StringCast< TCHAR >(strerror(errno)).Get());
-	}
-
-	return Output;
-}
 
 void FLinuxPlatformProcess::ClosePipe( void* ReadPipe, void* WritePipe )
 {
-	if (ReadPipe)
-	{
-		FPipeHandle * PipeHandle = reinterpret_cast< FPipeHandle* >(ReadPipe);
-		delete PipeHandle;
-	}
-
-	if (WritePipe)
-	{
-		FPipeHandle * PipeHandle = reinterpret_cast< FPipeHandle* >(WritePipe);
-		delete PipeHandle;
-	}
+	//close(*(int*)WritePipe);
+	UE_LOG(LogHAL, Fatal, TEXT("FGenericPlatformProcess::ClosePipe not implemented on this platform"));
 }
 
 bool FLinuxPlatformProcess::CreatePipe( void*& ReadPipe, void*& WritePipe )
 {
-	int PipeFd[2];
-	if (-1 == pipe(PipeFd))
-	{
-		int ErrNo = errno;
-		UE_LOG(LogHAL, Warning, TEXT("pipe() failed with errno = %d (%s)"), ErrNo, 
-			StringCast< TCHAR >(strerror(ErrNo)).Get());
-		return false;
-	}
-
-	ReadPipe = new FPipeHandle(PipeFd[ 0 ]);
-	WritePipe = new FPipeHandle(PipeFd[ 1 ]);
-
-	return true;
+	//int pipefd[2];
+	//pipe(pipefd);
+	//ReadPipe = &pipefd[0];
+	//WritePipe = &pipefd[1];
+	UE_LOG(LogHAL, Fatal, TEXT("FGenericPlatformProcess::CreatePipe not implemented on this platform"));
+	return false;
 }
 
 FString FLinuxPlatformProcess::ReadPipe( void* ReadPipe )
 {
-	if (ReadPipe)
-	{
-		FPipeHandle * PipeHandle = reinterpret_cast< FPipeHandle* >(ReadPipe);
-		return PipeHandle->Read();
-	}
-
+	//BytesRead = read(*(int *)ReadPipe, Buffer, sizeof(Buffer) - 1)
+	UE_LOG(LogHAL, Fatal, TEXT("FGenericPlatformProcess::ReadPipe not implemented on this platform"));
 	return FString();
 }
 
@@ -247,17 +194,7 @@ FProcHandle FLinuxPlatformProcess::CreateProc( const TCHAR* URL, const TCHAR* Pa
 	extern char ** environ;	// provided by libc
 	pid_t ChildPid = -1;
 
-	posix_spawn_file_actions_t FileActions;
-	
-	posix_spawn_file_actions_init(&FileActions);
-	if (PipeWrite)
-	{
-		const FPipeHandle* PipeWriteHandle = reinterpret_cast< const FPipeHandle* >(PipeWrite);
-		posix_spawn_file_actions_adddup2(&FileActions, PipeWriteHandle->GetHandle(), STDOUT_FILENO);
-	}
-
-	int ErrNo = posix_spawn(&ChildPid, TCHAR_TO_ANSI(*AbsolutePath), &FileActions, NULL, Argv, environ);
-	posix_spawn_file_actions_destroy(&FileActions);
+	int ErrNo = posix_spawn(&ChildPid, TCHAR_TO_ANSI(*AbsolutePath), NULL, NULL, Argv, environ);
 	if (ErrNo != 0)
 	{
 		UE_LOG(LogHAL, Fatal, TEXT("FLinuxPlatformProcess::CreateProc: posix_spawn() failed (%d, %s)"), ErrNo, ANSI_TO_TCHAR(strerror(ErrNo)));

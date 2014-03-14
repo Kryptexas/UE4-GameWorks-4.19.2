@@ -89,11 +89,6 @@ APlayerController* FGameWorldContext::GetPlayerController() const
 
 bool FGameWorldContext::IsValid() const
 {
-	return LocalPlayer.IsValid() && GetWorld() && GetPlayerController() && GetLocalPlayer();
-}
-
-bool FGameWorldContext::IsInitialized() const
-{
 	return LocalPlayer.IsValid();
 }
 
@@ -114,7 +109,6 @@ void FGameWorldContext::SetPlayerController( const APlayerController* InPlayerCo
 ULocalPlayer::ULocalPlayer(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	PendingLevelPlayerControllerClass = APlayerController::StaticClass();
 }
 
 void ULocalPlayer::PostInitProperties()
@@ -193,8 +187,17 @@ bool ULocalPlayer::SpawnPlayActor(const FString& URL,FString& OutError, UWorld* 
 	}
 	else
 	{
+		UGameEngine* GameEngine = Cast<UGameEngine>(GEngine);
 		// Statically bind to the specified player controller
-		UClass* PCClass = PendingLevelPlayerControllerClass;
+		UClass* PCClass = GameEngine != NULL ?
+			LoadClass<APlayerController>(NULL, *GameEngine->PendingLevelPlayerControllerClassName, NULL, LOAD_None, NULL) :
+			NULL;
+		if (PCClass == NULL)
+		{
+			// This failed to load so use the engine one as default
+			PCClass = APlayerController::StaticClass();
+			UE_LOG(LogPlayerManagement, Log, TEXT("PlayerController class for the pending level is %s"),*PCClass->GetFName().ToString());
+		}
 		// The PlayerController gets replicated from the client though the engine assumes that every Player always has
 		// a valid PlayerController so we spawn a dummy one that is going to be replaced later.
 		PlayerController = CastChecked<APlayerController>(InWorld->SpawnActor(PCClass));
@@ -291,7 +294,7 @@ void ULocalPlayer::GetViewPoint(FMinimalViewInfo& OutViewInfo)
     // allow HMDs to override fov
     if (GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D())
     {
-        float HmdFov = GEngine->HMDDevice->GetFieldOfViewInRadians();
+        float HmdFov = GEngine->HMDDevice->GetFieldOfView();
         if (HmdFov > 0)
         {
             OutViewInfo.FOV = HmdFov;
@@ -378,6 +381,11 @@ FSceneView* ULocalPlayer::CalcSceneView( class FSceneViewFamily* ViewFamily,
 
 	check( PlayerController->GetWorld() );
 
+    for( int ViewExt = 0; ViewExt < ViewFamily->ViewExtensions.Num(); ViewExt++ )
+    {
+        ViewFamily->ViewExtensions[ViewExt]->SetupView(*View);
+    }
+
 	ViewFamily->Views.Add(View);
 
 	{
@@ -436,10 +444,6 @@ FSceneView* ULocalPlayer::CalcSceneView( class FSceneViewFamily* ViewFamily,
 		}
 	}
 
-	for (int ViewExt = 0; ViewExt < ViewFamily->ViewExtensions.Num(); ViewExt++)
-	{
-		ViewFamily->ViewExtensions[ViewExt]->SetupView(*View);
-	}
 	return View;
 }
 

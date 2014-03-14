@@ -950,66 +950,64 @@ void FBodyInstance::InitBody(UBodySetup* Setup, const FTransform& Transform, UPr
 }
 #endif // WITH_PHYSX
 
-//helper function for TermBody to avoid code duplication between scenes
-#if WITH_PHYSX
-void TermBodyHelper(int32 & SceneIndex, PxRigidActor *& PRigidActor, FBodyInstance * BodyInstance)
-{
-	if (SceneIndex)
-	{
-		PxScene* PScene = GetPhysXSceneFromIndex(SceneIndex);
-
-		if (PScene)
-		{
-			// Enable scene lock
-			SCOPED_SCENE_WRITE_LOCK(PScene);
-
-			if (PRigidActor)
-			{
-				// Let FPhysScene know
-				FPhysScene * PhysScene = FPhysxUserData::Get<FPhysScene>(PScene->userData);
-				if (PhysScene)
-				{
-					PhysScene->TermBody(BodyInstance);
-				}
-
-				PRigidActor->release();
-				PRigidActor = NULL;	//we must do this within the lock because we use it in the sub-stepping thread to determine that RigidActor is still valid
-			}
-		}
-
-		SceneIndex = 0;
-	}
-#if WITH_APEX
-	else
-	{
-		if (PRigidActor)
-		{
-			//When DestructibleMesh is used we create fake BodyInstances. In this case the RigidActor is set, but InitBody is never called.
-			//The RigidActor is released by the destructible component, but it's still up to us to NULL out the pointer
-			checkSlow(FPhysxUserData::Get<FDestructibleChunkInfo>(PRigidActor->userData));	//Make sure we are really a destructible
-			PRigidActor = NULL;
-		}
-	}
-#endif
-
-	checkSlow(PRigidActor == NULL);
-	checkSlow(SceneIndex == 0);
-}
-
-#endif
-
 /**
  *	Clean up the physics engine info for this instance.
  */
 void FBodyInstance::TermBody()
 {
 #if WITH_PHYSX
-	// Release sync actor
-	TermBodyHelper(SceneIndexSync, RigidActorSync, this);
-	// Release async actor
-	TermBodyHelper(SceneIndexAsync, RigidActorAsync, this);
+	// Release sync actor if the scene still exists
+	PxScene* PSceneSync = GetPhysXSceneFromIndex( SceneIndexSync );
 
-	BodySetup = NULL;
+	if( PSceneSync != NULL )
+	{
+		// Enable scene lock, in case it is required
+		SCOPED_SCENE_WRITE_LOCK(PSceneSync);
+
+		if( RigidActorSync )
+		{
+			// Let FPhysScene know
+			FPhysScene * PhysScene = FPhysxUserData::Get<FPhysScene>(PSceneSync->userData);
+			if (PhysScene)
+			{
+				PhysScene->TermBody(this);
+			}
+
+			RigidActorSync->release();
+			RigidActorSync = NULL;	//we must do this within the lock because we use it in the substepping thread to determine that RigidActorSync is still valid
+		}
+	}
+	
+	SceneIndexSync = 0;
+
+	// Release async actor if the scene still exists
+	if (SceneIndexAsync != 0)
+	{
+		PxScene* PSceneAsync = GetPhysXSceneFromIndex( SceneIndexAsync );
+		if( PSceneAsync != NULL )
+		{
+			// Enable scene lock, in case it is required
+			SCOPED_SCENE_WRITE_LOCK(PSceneAsync);
+
+			if( RigidActorAsync )
+			{
+				// Let FPhysScene know
+				FPhysScene * PhysScene = FPhysxUserData::Get<FPhysScene>(PSceneAsync->userData);
+				if (PhysScene)
+				{
+					PhysScene->TermBody(this);
+				}
+
+				RigidActorAsync->release();
+				RigidActorAsync = NULL;
+			}
+		}
+		
+		SceneIndexAsync = 0;
+	}
+	
+
+	BodySetup	= NULL;
 	// releasing BodyAggregate, it shouldn't contain RigidActor now, because it's released above
 	if(BodyAggregate)
 	{

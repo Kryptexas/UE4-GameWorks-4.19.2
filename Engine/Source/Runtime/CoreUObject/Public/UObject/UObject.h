@@ -709,7 +709,7 @@ public:
 	 * @param Parameters arguments to the function call
 	 * @param Stack stack frame for the function call
 	 */
-	virtual bool CallRemoteFunction( UFunction* Function, void* Parms, struct FOutParmRec* OutParms, FFrame* Stack )
+	virtual bool CallRemoteFunction( UFunction* Function, void* Parms, FFrame* Stack )
 	{
 		return false;
 	}

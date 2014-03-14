@@ -246,7 +246,7 @@ void FStreamableManager::SimpleAsyncLoad(FStringAssetReference const& InTargetNa
 	StreamInternal(InTargetName);
 }
 
-void FStreamableManager::RequestAsyncLoad(const TArray<FStringAssetReference>& TargetsToStream, FStreamableDelegate DelegateToCall)
+void FStreamableManager::RequestAsyncLoad(const TArray<FStringAssetReference> TargetsToStream, FStreamableDelegate DelegateToCall)
 {
 	// Schedule a new callback, this will get called when all related async loads are completed
 	TSharedRef<FStreamableRequest> NewRequest = MakeShareable(new FStreamableRequest());

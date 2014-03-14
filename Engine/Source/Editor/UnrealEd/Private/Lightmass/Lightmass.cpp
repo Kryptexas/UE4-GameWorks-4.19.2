@@ -688,7 +688,7 @@ void FLightmassExporter::WriteVisibilityData( int32 Channel )
 		&& NumVisVolumes == 0
 		&& World->GetWorldSettings()->bPlaceCellsOnlyAlongCameraTracks == false)
 	{
-		FMessageLog("LightingResults").Error(LOCTEXT("LightmassError_MissingPrecomputedVisibilityVolume", "Level has bPrecomputeVisibility enabled but no Precomputed Visibility Volumes, precomputed visibility will not be effective."));
+		FMessageLog("LightingResults").Error(LOCTEXT("LightmassError_MissingPrecomputedVisibilityVolume", "Level has bPrecomputeVisibility enabled but no Precomputed Visibility Volumes, precomputed visibility will not be effective.)"));
 	}
 
 	// Export the visibility volumes that indicate to lightmass where to place visibility cells

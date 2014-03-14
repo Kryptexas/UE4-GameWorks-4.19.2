@@ -360,18 +360,18 @@ class SRemapFailures : public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS(SRemapFailures){}
-		SLATE_ARGUMENT(TArray<FText>, FailedRemaps)
+		SLATE_ARGUMENT(TArray<FString>, FailedRemaps)
 	SLATE_END_ARGS()
 
 	void Construct( const FArguments& InArgs );
-	static UNREALED_API void OpenRemapFailuresDialog(const TArray<FText>& InFailedRemaps);
+	static UNREALED_API void OpenRemapFailuresDialog(const TArray<FString>& InFailedRemaps);
 
 private:
-	TSharedRef<ITableRow> MakeListViewWidget(TSharedRef<FText> Item, const TSharedRef<STableViewBase>& OwnerTable);
+	TSharedRef<ITableRow> MakeListViewWidget(TSharedPtr<FString> Item, const TSharedRef<STableViewBase>& OwnerTable);
 	FReply CloseClicked();
 
 private:
-	TArray< TSharedRef<FText> > FailedRemaps;
+	TArray< TSharedPtr<FString> > FailedRemaps;
 };
 
 #undef LOCTEXT_NAMESPACE

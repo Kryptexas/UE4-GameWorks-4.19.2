@@ -2,8 +2,6 @@
 
 #include "Common.usf"
 
-#if HZBBUILD_PIXELSHADER
-
 float2 InvSize;
 
 Texture2D		Texture;
@@ -51,9 +49,6 @@ void HZBBuildPS(float2 InUV : TEXCOORD0, out float4 OutColor : SV_Target0)
 #include "PS4/PS4Pragmas.usf"
 #endif
 
-#endif
-
-#if HZBTEST_PIXELSHADER
 
 Texture2D		HZBTexture;
 SamplerState	HZBSampler;
@@ -263,4 +258,3 @@ void HZBTestPS(float2 InUV : TEXCOORD0, out float4 OutColor : SV_Target0)
 	OutColor = RectMax.z >= MinDepth.x ? 1 : 0;
 #endif
 }
-#endif

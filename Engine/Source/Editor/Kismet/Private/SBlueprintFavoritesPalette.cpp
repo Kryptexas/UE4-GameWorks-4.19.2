@@ -163,11 +163,12 @@ struct SBlueprintFavoritesPaletteUtils
 					);
 				}
 
+				FSlateFontInfo MenuFont = MenuBuilder.GetStyleSet()->GetFontStyle("Menu", ".Label.Font");
 				// build the text that goes in the sub-menu
 				TSharedRef<STextBlock> MenuTextEntry = SNew(STextBlock)
-					.TextStyle(MenuBuilder.GetStyleSet(), FEditorStyle::Join("Menu", ".Label"))
 					// @TODO how do we best localize this
-					.Text(FriendlyProfileName);
+					.Text(FriendlyProfileName)
+					.Font(MenuFont);
 
 				FSlateFontInfo ToolTipFont(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 8);
 
@@ -252,9 +253,9 @@ public:
 	/** Registers context menu commands for the blueprint favorites palette. */
 	virtual void RegisterCommands() OVERRIDE
 	{
-		UI_COMMAND(RemoveSingleFavorite, "Remove from Favorites",          "Removes this item from your favorites list.",                 EUserInterfaceActionType::Button, FInputGesture());
-		UI_COMMAND(RemoveSubFavorites,   "Remove Category from Favorites", "Removes all the nodes in this category from your favorites.", EUserInterfaceActionType::Button, FInputGesture());
-		UI_COMMAND(ClearFavorites,       "Clear All Favorites",			   "Clears out all of your favorited nodes.",                     EUserInterfaceActionType::Button, FInputGesture());
+		UI_COMMAND(RemoveSingleFavorite, "Remove from Favorites",  "Removes this item from your favorites list.",                 EUserInterfaceActionType::Button, FInputGesture());
+		UI_COMMAND(RemoveSubFavorites,   "Remove from Favorites",  "Removes all the nodes in this category from your favorites.", EUserInterfaceActionType::Button, FInputGesture());
+		UI_COMMAND(ClearFavorites,       "Clear All Favorites",	   "Clears out all of your favorited nodes.",                     EUserInterfaceActionType::Button, FInputGesture());
 	}
 };
 

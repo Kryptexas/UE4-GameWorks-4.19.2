@@ -219,7 +219,6 @@ void FLiveEditorManager::FPieObjectCache::OnObjectDeletion( const class UObjectB
 struct FLiveEditorManager_Dispatch_Parms
 {
 	int Delta;
-	int32 MidiValue;
 	TEnumAsByte<ELiveEditControllerType::Type> ControlType;
 };
 
@@ -766,7 +765,6 @@ void FLiveEditorManager::Dispatch( int Status, int Data1, int Data2, const struc
 		UObject *Target = Listener->Target.Get();
 		FLiveEditorManager_Dispatch_Parms Parms;
 		Parms.Delta = Delta;
-		Parms.MidiValue = (int32)Data2;
 		Parms.ControlType = Listener->Binding.ControlType;
 		Target->ProcessEvent( Target->FindFunctionChecked( Listener->Name ), &Parms );
 	}

@@ -15,8 +15,6 @@ using Microsoft.VisualStudio.TextManager.Interop;
 namespace MarkdownMode.AutoCompletion
 {
     using MarkdownMode.Properties;
-    using System.IO;
-
 
     public class AutoCompletionHandler : IOleCommandTarget
     {
@@ -40,36 +38,17 @@ namespace MarkdownMode.AutoCompletion
                 return nextCommandTarget.Exec(pguidCmdGroup, nCmdID, nCmdexecopt, pvaIn, pvaOut);
             }
 
-            var separatorInserted = false;
-
-            if (nCmdID == (uint)VSConstants.VSStd2KCmdID.TYPECHAR)
+            if (nCmdID == (uint)VSConstants.VSStd2KCmdID.RETURN)
             {
-                var typedChar = (char)(ushort)Marshal.GetObjectForNativeVariant(pvaIn);
-
-                separatorInserted = IsPathSeparator(typedChar);
-            }
-
-            if (nCmdID == (uint)VSConstants.VSStd2KCmdID.RETURN || separatorInserted)
-            {
-                if (session != null)
+                if (this.session != null)
                 {
-                    if (session.SelectedCompletionSet.SelectionStatus.IsSelected)
+                    if (this.session.SelectedCompletionSet.SelectionStatus.IsSelected)
                     {
-                        session.Commit();
-
-                        if (!separatorInserted)
-                        {
-                            return VSConstants.S_OK;
-                        }
-
-                        // Replace typed in character (which could be '/' or '\') to
-                        // enforce '/' in the paths.
-                        Marshal.GetNativeVariantForObject('/', pvaIn);
+                        this.session.Commit();
+                        return VSConstants.S_OK;
                     }
-                    else
-                    {
-                        session.Dismiss();
-                    }
+
+                    this.session.Dismiss();
                 }
             }
 
@@ -108,11 +87,6 @@ namespace MarkdownMode.AutoCompletion
             return handled ? VSConstants.S_OK : retVal;
         }
 
-        private bool IsPathSeparator(char typedChar)
-        {
-            return typedChar == Path.DirectorySeparatorChar || typedChar == Path.AltDirectorySeparatorChar;
-        }
-
         private void StartSession()
         {
             var caretPosition = wpfTextView.Caret.Position.Point.GetPoint(
@@ -129,7 +103,6 @@ namespace MarkdownMode.AutoCompletion
                 true);
 
             session.Dismissed += SessionDismissed;
-            session.Committed += SessionCommitted;
 
             session.Start();
 
@@ -139,22 +112,10 @@ namespace MarkdownMode.AutoCompletion
             }
         }
 
-        private void ClearSession()
-        {
-            session.Dismissed -= SessionDismissed;
-            session.Committed -= SessionCommitted;
-
-            session = null;
-        }
-
-        private void SessionCommitted(object sender, EventArgs eventArgs)
-        {
-            ClearSession();
-        }
-
         private void SessionDismissed(object sender, EventArgs eventArgs)
         {
-            ClearSession();
+            session.Dismissed -= SessionDismissed;
+            session = null;
         }
 
         private readonly AutoCompletionHandlerProvider autoCompletionHandlerProvider;

@@ -26,9 +26,6 @@ public:
 	TSharedPtr<FUICommandInfo> DeleteKeys;
 	TSharedPtr<FUICommandInfo> ScaleTimes;
 	TSharedPtr<FUICommandInfo> ScaleValues;
-	TSharedPtr<FUICommandInfo> ScaleSingleCurveTimes;
-	TSharedPtr<FUICommandInfo> ScaleSingleCurveValues;
-	TSharedPtr<FUICommandInfo> ScaleSingleSubCurveValues;
 	TSharedPtr<FUICommandInfo> FitHorizontally;
 	TSharedPtr<FUICommandInfo> FitVertically;
 	TSharedPtr<FUICommandInfo> FitToAll;

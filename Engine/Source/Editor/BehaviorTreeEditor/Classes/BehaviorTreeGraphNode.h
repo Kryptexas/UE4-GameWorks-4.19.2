@@ -132,9 +132,6 @@ class UBehaviorTreeGraphNode : public UEdGraphNode
 	/** used to show node's runtime description rather than static one */
 	FString DebuggerRuntimeDescription;
 
-	/** message for deprecated classes */
-	FString DeprecationMessage;
-
 	/** subnode index assigned during copy operation to connect nodes again on paste */
 	UPROPERTY()
 	int32 CopySubNodeIndex;

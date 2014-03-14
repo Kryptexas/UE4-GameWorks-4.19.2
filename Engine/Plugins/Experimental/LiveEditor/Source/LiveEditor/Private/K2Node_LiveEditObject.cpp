@@ -345,8 +345,7 @@ void UK2Node_LiveEditObject::ExpandNode(class FKismetCompilerContext& CompilerCo
 
 			// Cache these out because we'll connect the sequence to it
 			UEdGraphPin *EventThenPin = EventNode->FindPinChecked( Schema->PN_Then );
-			UEdGraphPin *EventDeltaPin = EventNode->FindPinChecked( FString(TEXT("Delta")) );
-			UEdGraphPin *EventMidiValuePin = EventNode->FindPinChecked( FString(TEXT("MidiValue")) );
+			UEdGraphPin *EventDeltaPin = EventNode->FindPinChecked( FString(TEXT("RawDeltaMIDI")) );
 			UEdGraphPin *EventControlTypePin = EventNode->FindPinChecked( FString(TEXT("ControlType")) );
 
 
@@ -465,10 +464,6 @@ void UK2Node_LiveEditObject::ExpandNode(class FKismetCompilerContext& CompilerCo
 			//link up the PropertyName Pin
 			UEdGraphPin *ModifyVarNodePropertyNamePin = ModifyVarNode->FindPinChecked( TEXT("PropertyName") );
 			ModifyVarNodePropertyNamePin->DefaultValue = SourceVariablePin->DefaultValue;
-
-			//link up the MIDI Value Pin
-			UEdGraphPin *ModifyVarNodeMidiValuePin = ModifyVarNode->FindPinChecked( TEXT("MidiValue") );
-			EventMidiValuePin->MakeLinkTo(ModifyVarNodeMidiValuePin);
 
 			//link up the ControlType Pin
 			UEdGraphPin *ModifyVarNodeControlTypePin = ModifyVarNode->FindPinChecked( TEXT("ControlType") );

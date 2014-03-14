@@ -348,7 +348,7 @@ public:
 		// Build Text box
 		HorizontalBox->AddSlot()
 		.AutoWidth()
-		.Padding(10.f, 0.f, 25.f, 0.f)
+		.Padding(20.f, 0.f, 20.f, 0.f)
 		.VAlign(VAlign_Center)
 		.HAlign(HAlign_Left)
 		[
@@ -366,7 +366,7 @@ public:
 			// Build pending throbber
 			HorizontalBox->AddSlot()
 			.AutoWidth()
-			.Padding(0.f, 0.f, 25.f, 0.f)
+			.Padding(45.f, 0.f, 45.f, 0.f)
 			.HAlign(HAlign_Center)
 			.VAlign(VAlign_Center)
 			[
@@ -380,7 +380,7 @@ public:
 			// Build success image
 			HorizontalBox->AddSlot()
 			.AutoWidth()
-			.Padding(0.f, 0.f, 25.f, 0.f)
+			.Padding(5.f, 0.f, 45.f, 0.f)
 			.HAlign(HAlign_Center)
 			.VAlign(VAlign_Center)
 			[
@@ -392,7 +392,7 @@ public:
 			// Build fail image
 			HorizontalBox->AddSlot()
 			.AutoWidth()
-			.Padding(0.f, 0.f, 25.f, 0.f )
+			.Padding(5.f, 0.f, 45.f, 0.f )
 			.HAlign(HAlign_Center)
 			.VAlign(VAlign_Center)
 			[

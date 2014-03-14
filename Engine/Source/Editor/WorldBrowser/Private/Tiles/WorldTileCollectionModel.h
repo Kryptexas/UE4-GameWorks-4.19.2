@@ -84,6 +84,9 @@ public:
 	/** Show a levels in the editor and place them to actual world position */
 	void UnshelveLevels(const FWorldTileModelList& InLevels);
 
+	/** Toggles levels always loaded flag*/
+	void ToggleAlwaysLoaded(const FLevelModelList& InLevels);
+
 	/** Whether specified list of levels has at least one landscape level */
 	bool HasLandscapeLevel(const FWorldTileModelList& InLevels) const;
 	
@@ -207,6 +210,9 @@ private:
 	/** Reset world origin offset */
 	void ResetLevelOrigin_Executed();
 
+	/** Toggles always loaded flag for selected levels */
+	void ToggleAlwaysLoaded_Executed();
+		
 	/** Clear parent links fro selected levels */
 	void ClearParentLink_Executed();
 
@@ -236,6 +242,9 @@ public:
 private:
 	/** List of tiles currently not affected by user selection set */
 	FLevelModelList						StaticTileList;	
+
+	/** Streamed in tiles which have to be added to the world*/
+	TArray<TWeakPtr<FWorldTileModel>>	PendingVisibilityTiles;
 
 	/** Cached streaming tiles which are potentially visible from specified view point*/
 	TArray<FName>						PreviewVisibleTiles;

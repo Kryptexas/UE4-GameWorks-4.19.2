@@ -33,8 +33,6 @@
 #include "MaterialEditorUtilities.h"
 #include "SMaterialPalette.h"
 
-#include "Developer/MessageLog/Public/MessageLogModule.h"
-
 #define LOCTEXT_NAMESPACE "MaterialEditor"
 
 DEFINE_LOG_CATEGORY_STATIC(LogMaterialEditor, Log, All);
@@ -46,7 +44,6 @@ const FName FMaterialEditor::ExpressionsTabId( TEXT( "MaterialEditor_MaterialExp
 const FName FMaterialEditor::FunctionsTabId( TEXT( "MaterialEditor_MaterialFunctions" ) );
 const FName FMaterialEditor::HLSLCodeTabId( TEXT( "MaterialEditor_HLSLCode" ) );
 const FName FMaterialEditor::PaletteTabId( TEXT( "MaterialEditor_Palette" ) );
-const FName FMaterialEditor::StatsTabId( TEXT( "MaterialEditor_Stats" ) );
 
 /**
  * Material Items are used to populate the list views for material expressions and functions
@@ -565,10 +562,6 @@ void FMaterialEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& T
 		TabManager->RegisterTabSpawner( PaletteTabId, FOnSpawnTab::CreateSP(this, &FMaterialEditor::SpawnTab_Palette) )
 			.SetDisplayName( LOCTEXT("PaletteTab", "Palette") )
 			.SetGroup( MenuStructure.GetAssetEditorCategory() );
-
-		TabManager->RegisterTabSpawner( StatsTabId, FOnSpawnTab::CreateSP(this, &FMaterialEditor::SpawnTab_Stats) )
-			.SetDisplayName( LOCTEXT("StatsTab", "Stats") )
-			.SetGroup( MenuStructure.GetAssetEditorCategory() );
 	}
 	else
 	{
@@ -597,7 +590,6 @@ void FMaterialEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>&
 	if (bUseNewGraphEditor)
 	{
 		TabManager->UnregisterTabSpawner( PaletteTabId );
-		TabManager->UnregisterTabSpawner( StatsTabId );
 	}
 	else
 	{
@@ -867,7 +859,7 @@ void FMaterialEditor::InitMaterialEditor( const EToolkitMode::Type Mode, const T
 		)
 	);
 
-	const TSharedRef<FTabManager::FLayout> NewDefaultLayout = FTabManager::NewLayout( "Standalone_MaterialEditor_Layout_v4" )
+	const TSharedRef<FTabManager::FLayout> NewDefaultLayout = FTabManager::NewLayout( "Standalone_MaterialEditor_Layout_v3" )
 	->AddArea
 	(
 		FTabManager::NewPrimaryArea() ->SetOrientation(Orient_Vertical)
@@ -898,22 +890,10 @@ void FMaterialEditor::InitMaterialEditor( const EToolkitMode::Type Mode, const T
 			)
 			->Split
 			(
-				FTabManager::NewSplitter() ->SetOrientation( Orient_Vertical )
-				->SetSizeCoefficient(0.80f)
-				->Split
-				(
-					FTabManager::NewStack() 
-					->SetSizeCoefficient(0.8f)
-					->SetHideTabWell( true )
-					->AddTab( GraphCanvasTabId, ETabState::OpenedTab )
-				)
-				->Split
-				(
-					FTabManager::NewStack()
-					->SetSizeCoefficient( 0.20f )
-					->AddTab( StatsTabId, ETabState::ClosedTab )
-				)
-				
+				FTabManager::NewStack() 
+				->SetSizeCoefficient(0.6f)
+				->SetHideTabWell( true )
+				->AddTab( GraphCanvasTabId, ETabState::OpenedTab )
 			)
 			->Split
 			(
@@ -1187,21 +1167,6 @@ void FMaterialEditor::CreateInternalWidgets()
 	if (bUseNewGraphEditor)
 	{
 		Palette = SNew(SMaterialPalette, SharedThis(this));
-
-		FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
-		FMessageLogInitializationOptions LogOptions;
-		// Show Pages so that user is never allowed to clear log messages
-		LogOptions.bShowPages = true;
-		LogOptions.MaxPageCount = 1;
-		StatsListing = MessageLogModule.CreateLogListing( "MaterialEditorStats", LogOptions );
-
-		Stats = 
-			SNew(SBorder)
-			.Padding(0.0f)
-			.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
-			[
-				MessageLogModule.CreateLogListingWidget( StatsListing.ToSharedRef() )
-			];
 	}
 	else
 	{
@@ -1399,7 +1364,7 @@ void FMaterialEditor::ExtendToolbar()
 				ToolbarBuilder.AddToolBarButton(FMaterialEditorCommands::Get().ShowHideConnectors);
 				ToolbarBuilder.AddToolBarButton(FMaterialEditorCommands::Get().ToggleRealtimeExpressions);
 				ToolbarBuilder.AddToolBarButton(FMaterialEditorCommands::Get().AlwaysRefreshAllPreviews);
-				ToolbarBuilder.AddToolBarButton(FMaterialEditorCommands::Get().ToggleMaterialStats);
+				ToolbarBuilder.AddToolBarButton(FMaterialEditorCommands::Get().ToggleStats);
 				ToolbarBuilder.AddToolBarButton(FMaterialEditorCommands::Get().ToggleMobileStats);
 			}
 			ToolbarBuilder.EndSection();
@@ -2309,16 +2274,16 @@ void FMaterialEditor::UpdateOriginalMaterial()
 	GWarn->EndSlowTask();
 }
 
-void FMaterialEditor::UpdateMaterialInfoList(bool bForceDisplay)
+void FMaterialEditor::UpdateMaterialInfoList()
 {
-	TArray< TSharedRef<class FTokenizedMessage> > Messages;
-
 	TArray<TSharedPtr<FMaterialInfo>> TempMaterialInfoList;
 
 	ERHIFeatureLevel::Type FeatureLevelsToDisplay[2];
 	int32 NumFeatureLevels = 0;
-	// Always show basic features so that errors aren't hidden
-	FeatureLevelsToDisplay[NumFeatureLevels++] = GRHIFeatureLevel;
+	if (bShowStats)
+	{
+		FeatureLevelsToDisplay[NumFeatureLevels++] = GRHIFeatureLevel;
+	}
 	if (bShowMobileStats)
 	{
 		FeatureLevelsToDisplay[NumFeatureLevels++] = ERHIFeatureLevel::ES2;
@@ -2359,8 +2324,7 @@ void FMaterialEditor::UpdateMaterialInfoList(bool bForceDisplay)
 				CompileErrors = MaterialResource->GetCompileErrors();
 			}
 
-			// Only show general info if stats enabled
-			if (!MaterialFunction && bShowStats)
+			if (!MaterialFunction)
 			{
 				// Display any errors and messages in the upper left corner of the viewport.
 				TArray<FString> Descriptions;
@@ -2371,9 +2335,6 @@ void FMaterialEditor::UpdateMaterialInfoList(bool bForceDisplay)
 				{
 					FString InstructionCountString = FString::Printf(TEXT("%s: %u instructions"),*Descriptions[InstructionIndex],InstructionCounts[InstructionIndex]);
 					TempMaterialInfoList.Add(MakeShareable(new FMaterialInfo(InstructionCountString, FLinearColor::Yellow)));
-					TSharedRef<FTokenizedMessage> Line = FTokenizedMessage::Create( EMessageSeverity::Info );
-					Line->AddToken( FTextToken::Create( FText::FromString( InstructionCountString ) ) );
-					Messages.Add(Line);
 				}
 
 				// Display the number of samplers used by the material.
@@ -2382,11 +2343,7 @@ void FMaterialEditor::UpdateMaterialInfoList(bool bForceDisplay)
 				if (SamplersUsed >= 0)
 				{
 					int32 MaxSamplers = GetFeatureLevelMaxTextureSamplers(MaterialResource->GetFeatureLevel());
-					FString SamplersString = FString::Printf(TEXT("%s samplers: %u/%u"), FeatureLevel == ERHIFeatureLevel::ES2 ? TEXT("Mobile texture") : TEXT("Texture"), SamplersUsed, MaxSamplers);
-					TempMaterialInfoList.Add(MakeShareable(new FMaterialInfo(SamplersString, FLinearColor::Yellow)));
-					TSharedRef<FTokenizedMessage> Line = FTokenizedMessage::Create( EMessageSeverity::Info );
-					Line->AddToken( FTextToken::Create( FText::FromString( SamplersString ) ) );
-					Messages.Add(Line);
+					TempMaterialInfoList.Add(MakeShareable(new FMaterialInfo(FString::Printf(TEXT("%s samplers: %u/%u"), FeatureLevel == ERHIFeatureLevel::ES2 ? TEXT("Mobile texture") : TEXT("Texture"), SamplersUsed, MaxSamplers), FLinearColor::Yellow)));
 				}
 			}
 
@@ -2394,12 +2351,7 @@ void FMaterialEditor::UpdateMaterialInfoList(bool bForceDisplay)
 			GetFeatureLevelName(FeatureLevel,FeatureLevelName);
 			for(int32 ErrorIndex = 0; ErrorIndex < CompileErrors.Num(); ErrorIndex++)
 			{
-				FString ErrorString = FString::Printf(TEXT("[%s] %s"), *FeatureLevelName, *CompileErrors[ErrorIndex]);
-				TempMaterialInfoList.Add(MakeShareable(new FMaterialInfo(ErrorString, FLinearColor::Red)));
-				TSharedRef<FTokenizedMessage> Line = FTokenizedMessage::Create( EMessageSeverity::Error );
-				Line->AddToken( FTextToken::Create( FText::FromString( ErrorString ) ) );
-				Messages.Add(Line);
-				bForceDisplay = true;
+				TempMaterialInfoList.Add(MakeShareable(new FMaterialInfo(FString::Printf(TEXT("[%s] %s"), *FeatureLevelName, *CompileErrors[ErrorIndex]), FLinearColor::Red)));
 			}
 		}
 	}
@@ -2428,18 +2380,10 @@ void FMaterialEditor::UpdateMaterialInfoList(bool bForceDisplay)
 	if (bNeedsRefresh)
 	{
 		MaterialInfoList = TempMaterialInfoList;
-		/*TSharedPtr<SWidget> TitleBar = GraphEditor->GetTitleBar();
+		TSharedPtr<SWidget> TitleBar = GraphEditor->GetTitleBar();
 		if (TitleBar.IsValid())
 		{
 			StaticCastSharedPtr<SMaterialEditorTitleBar>(TitleBar)->RequestRefresh();
-		}*/
-
-		StatsListing->ClearMessages();
-		StatsListing->AddMessages(Messages);
-
-		if (bForceDisplay)
-		{
-			TabManager->InvokeTab(StatsTabId);
 		}
 	}
 }
@@ -2453,8 +2397,6 @@ void FMaterialEditor::UpdateGraphNodeStates()
 		ErrorMaterialResourceES2 = PreviewExpression ? ExpressionPreviewMaterial->GetMaterialResource(ERHIFeatureLevel::ES2) : Material->GetMaterialResource(ERHIFeatureLevel::ES2);
 	}
 
-	bool bUpdatedErrorState = false;
-
 	// Have to loop through everything here as there's no way to be notified when the material resource updates
 	for (int32 Index = 0; Index < Material->MaterialGraph->Nodes.Num(); ++Index)
 	{
@@ -2465,26 +2407,7 @@ void FMaterialEditor::UpdateGraphNodeStates()
 			MaterialNode->bIsErrorExpression = (ErrorMaterialResource->GetErrorExpressions().Find(MaterialNode->MaterialExpression) != INDEX_NONE)
 												|| (ErrorMaterialResourceES2 && ErrorMaterialResourceES2->GetErrorExpressions().Find(MaterialNode->MaterialExpression) != INDEX_NONE);
 			MaterialNode->bIsCurrentSearchResult = (SelectedSearchResult >= 0 && SelectedSearchResult < SearchResults.Num() && SearchResults[SelectedSearchResult] == MaterialNode->MaterialExpression);
-
-			if (MaterialNode->bIsErrorExpression && !MaterialNode->bHasCompilerMessage)
-			{
-				bUpdatedErrorState = true;
-				MaterialNode->bHasCompilerMessage = true;
-				MaterialNode->ErrorMsg = MaterialNode->MaterialExpression->LastErrorText;
-				MaterialNode->ErrorType = EMessageSeverity::Error;
-			}
-			else if (!MaterialNode->bIsErrorExpression && MaterialNode->bHasCompilerMessage)
-			{
-				bUpdatedErrorState = true;
-				MaterialNode->bHasCompilerMessage = false;
-			}
 		}
-	}
-
-	if (bUpdatedErrorState)
-	{
-		// Rebuild the SGraphNodes to display/hide error block
-		GraphEditor->NotifyGraphChanged();
 	}
 }
 
@@ -2551,7 +2474,7 @@ void FMaterialEditor::BindCommands()
 			FIsActionChecked::CreateSP(this, &FMaterialEditor::IsOnAlwaysRefreshAllPreviews));
 
 		ToolkitCommands->MapAction(
-			Commands.ToggleMaterialStats,
+			Commands.ToggleStats,
 			FExecuteAction::CreateSP(this, &FMaterialEditor::ToggleStats),
 			FCanExecuteAction(),
 			FIsActionChecked::CreateSP(this, &FMaterialEditor::IsToggleStatsChecked));
@@ -2672,7 +2595,7 @@ void FMaterialEditor::ToggleStats()
 {
 	// Toggle the showing of material stats each time the user presses the show stats button
 	bShowStats = !bShowStats;
-	UpdateMaterialInfoList(bShowStats);
+	UpdateMaterialInfoList();
 }
 
 bool FMaterialEditor::IsToggleStatsChecked() const
@@ -2701,7 +2624,7 @@ void FMaterialEditor::ToggleMobileStats()
 		}
 		RefreshPreviewViewport();
 	}
-	UpdateMaterialInfoList(bShowMobileStats);
+	UpdateMaterialInfoList();
 }
 
 bool FMaterialEditor::IsToggleMobileStatsChecked() const
@@ -3308,25 +3231,6 @@ TSharedRef<SDockTab> FMaterialEditor::SpawnTab_Palette(const FSpawnTabArgs& Args
 			.Content()
 			[
 				Palette.ToSharedRef()
-			]
-		];
-
-	return SpawnedTab;
-}
-
-TSharedRef<SDockTab> FMaterialEditor::SpawnTab_Stats(const FSpawnTabArgs& Args)
-{
-	check( Args.GetTabId() == StatsTabId );
-
-	TSharedRef<SDockTab> SpawnedTab = SNew(SDockTab)
-		.Icon(FEditorStyle::GetBrush("Kismet.Tabs.CompilerResults"))
-		.Label(LOCTEXT("MaterialStatsTitle", "Stats"))
-		[
-			SNew(STutorialWrapper)
-			.Name(TEXT("MaterialStats"))
-			.Content()
-			[
-				Stats.ToSharedRef()
 			]
 		];
 
@@ -4522,8 +4426,7 @@ TSharedRef<SGraphEditor> FMaterialEditor::CreateGraphEditorWidget()
 
 	// Create the title bar widget
 	TSharedPtr<SWidget> TitleBarWidget = SNew(SMaterialEditorTitleBar)
-		.TitleText(this, &FMaterialEditor::GetOriginalObjectName);
-		//.MaterialInfoList(&MaterialInfoList);
+		.MaterialInfoList(&MaterialInfoList);
 
 	return SNew(SGraphEditor)
 		.AdditionalCommands(GraphEditorCommands)

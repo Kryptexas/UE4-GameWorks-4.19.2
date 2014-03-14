@@ -115,8 +115,6 @@ private:
 			.OnGenerateRow( this, &FDataTableCustomizationLayout::HandleRowNameComboBoxGenarateWidget )
 			.SelectionMode(ESelectionMode::Single);
 
-		// Ensure no filter is applied at the time the menu opens
-		OnFilterTextChanged(FText::GetEmpty());
 
 		if( CurrentSelectedItem.IsValid() )
 		{

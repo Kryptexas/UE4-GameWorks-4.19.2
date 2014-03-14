@@ -5,7 +5,6 @@ using System.Linq;
 using System.Text;
 using System.IO;
 using System.Diagnostics;
-using System.Net.NetworkInformation;
 using AutomationTool;
 using UnrealBuildTool;
 
@@ -194,12 +193,6 @@ public class AndroidPlatform : Platform
 		string InstallCommandline = AdbCommand + "install \"" + ApkName + "\"";
 		RunAndLog(CmdEnv, CmdEnv.CmdExe, InstallCommandline);
 
-		// update the ue4commandline.txt
-		// update and deploy ue4commandline.txt
-		// always delete the existing commandline text file, so it doesn't reuse an old one
-		string IntermediateCmdLineFile = CombinePaths(SC.StageDirectory, "UE4CommandLine.txt");
-		Project.WriteStageCommandline(IntermediateCmdLineFile, Params, SC);
-
 		// copy files to device if we were staging
 		if (SC.Stage)
 		{
@@ -238,23 +231,7 @@ public class AndroidPlatform : Platform
 			// delete the .obb file, since it will cause nothing we just deployed to be used
 			Run(CmdEnv.CmdExe, AdbCommand + "shell rm -f " + DeviceObbName);
 		}
-		else
-		{
-			// cache some strings
-			string BaseCommandline = AdbCommand + "push";
-			string RemoteDir = "/mnt/sdcard/" + Params.ShortProjectName;
 
-			string FinalRemoteDir = RemoteDir;
-			// handle the special case of the UE4Commandline.txt when using content only game (UE4Game)
-			if (!Params.IsCodeBasedProject)
-			{
-				FinalRemoteDir = "/mnt/sdcard/UE4Game";
-			}
-
-			string RemoteFilename = IntermediateCmdLineFile.Replace(SC.StageDirectory, FinalRemoteDir).Replace("\\", "/");
-			string Commandline = string.Format("{0} \"{1}\" \"{2}\"", BaseCommandline, IntermediateCmdLineFile, RemoteFilename);
-			Run(CmdEnv.CmdExe, Commandline);
-		}
 	}
 
 	/** Internal usage for GetPackageName */
@@ -425,13 +402,9 @@ public class AndroidPlatform : Platform
 		}
 	}
 	#endregion
+
     public override string GUBP_GetPlatformFailureEMails(string Branch)
     {
         return "Josh.Adams[epic] JJ.Hoesing[epic]";
-    }
-
-    public override List<string> GetDebugFileExtentions()
-    {
-        return new List<string> { };
     }
 }

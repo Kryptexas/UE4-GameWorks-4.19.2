@@ -65,12 +65,11 @@ public:
 	virtual int32 GetMouseY() const OVERRIDE;
 
 	/**
-	 * Sets MousePosition to the current mouse position 
+	 * Sets MousePosition to the current mouse position in local space
 	 *
 	 * @param MousePosition	Populated with the current mouse position     
-	 * @param bLocalPosition Indicates whether the mouse position returned should be in local or absolute space
 	 */
-	virtual void GetMousePos( FIntPoint& MousePosition, const bool bLocalPosition = true) OVERRIDE;
+	virtual void GetMousePos( FIntPoint& MousePosition ) OVERRIDE;
 
 	/**
 	 * Not implemented                   

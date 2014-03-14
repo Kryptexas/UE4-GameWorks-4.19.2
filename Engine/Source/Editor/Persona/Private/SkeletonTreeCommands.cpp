@@ -11,7 +11,6 @@ void FSkeletonTreeCommands::RegisterCommands()
 	UI_COMMAND( HideBones, "Hide Bones", "Hides all bones (sockets and attached assets will still be listed)", EUserInterfaceActionType::RadioButton, FInputGesture() );
 
 	UI_COMMAND( CopyBoneNames, "Copy Selected Bone Names", "Copy selected bone names to clipboard", EUserInterfaceActionType::Button, FInputGesture() );
-	UI_COMMAND( ResetBoneTransforms, "Reset Selected Bone Transforms", "Reset the transforms of the selected bones", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( CopySockets, "Copy Selected Sockets", "Copy selected sockets to clipboard", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Control, EKeys::C ) );
 	UI_COMMAND( PasteSockets, "Paste Selected Sockets", "Paste selected sockets from clipboard", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Control, EKeys::V ) );
 
@@ -20,7 +19,7 @@ void FSkeletonTreeCommands::RegisterCommands()
 	UI_COMMAND( RemoveSocketCustomization, "Remove Socket Customization", "Remove customization of this socket for the current mesh (reverts to the socket in the skeleton)", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( PromoteSocketToSkeleton, "Promote Socket To Skeleton", "Makes this socket available for all meshes that use the same skeleton (copies the socket from this mesh to the skeleton)", EUserInterfaceActionType::Button, FInputGesture() );
 
-	UI_COMMAND(DeleteSelectedRows, "Delete", "Delete all selected sockets and attached meshes in the tree", EUserInterfaceActionType::Button, FInputGesture(EKeys::Platform_Delete));
+	UI_COMMAND( DeleteSelectedRows, "Delete", "Delete all selected sockets and attached meshes in the tree", EUserInterfaceActionType::Button, FInputGesture( EKeys::Delete ) );
 
 	UI_COMMAND( ShowActiveSockets, "Show Active Sockets", "Show mesh and skeleton sockets, hiding the skeleton sockets that have a customized mesh socket", EUserInterfaceActionType::RadioButton, FInputGesture() );
 	UI_COMMAND( ShowAllSockets, "Show All Sockets", "Show all sockets that are in the mesh and skeleton", EUserInterfaceActionType::RadioButton, FInputGesture() );

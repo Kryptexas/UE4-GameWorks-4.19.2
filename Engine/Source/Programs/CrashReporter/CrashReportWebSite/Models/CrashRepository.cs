@@ -558,11 +558,16 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			{
 				Results =
 				(
+#if WOOBLE
 					from CrashDetail in Crashes
-					from UserDetail in CrashRepositoryDataContext.Users
+					join UserDetail in CrashRepositoryDataContext.Users on CrashDetail.UserNameId equals UserDetail.Id
 					join UserGroupDetail in CrashRepositoryDataContext.UserGroups on UserDetail.UserGroupId equals UserGroupDetail.Id
-					where CrashDetail.UserNameId == UserDetail.Id || CrashDetail.UserName == UserDetail.UserName
 					group CrashDetail by UserGroupDetail.Name into GroupCount
+#else
+					 from UserDetail in CrashRepositoryDataContext.Users
+					 join UserGroupDetail in CrashRepositoryDataContext.UserGroups on UserDetail.UserGroupId equals UserGroupDetail.Id
+					 group UserDetail by UserGroupDetail.Name into GroupCount
+#endif
 					select new { Key = GroupCount.Key, Count = GroupCount.Count() }
 				).ToDictionary(x => x.Key, y => y.Count);
 
@@ -659,15 +664,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			return Results;
 		}
 
-		/// <summary>
-		/// Ordering helper to allow a flag to be passed in for descending
-		/// </summary>
-		/// <typeparam name="TSource">Type of data source</typeparam>
-		/// <typeparam name="TKey">Type of key to search for</typeparam>
-		/// <param name="Query">Query to sort results of</param>
-		/// <param name="Predicate">Predicate to determine order</param>
-		/// <param name="bDescending">Whether results should be listed in descending order</param>
-		/// <returns>The query with ordering applied</returns>
 		public static IQueryable<TSource> OrderBy<TSource, TKey>(IQueryable<TSource> Query, Expression<Func<TSource, TKey>> Predicate, bool bDescending)
 		{
 			return bDescending ? Query.OrderByDescending(Predicate) : Query.OrderBy(Predicate);
@@ -756,6 +752,63 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		{
 			CachedDataService CachedResults = new CachedDataService( HttpContext.Current.Cache, this );
 			return CachedResults.GetCallStack( CrashInstance );
+		}
+
+		/// <summary>
+		/// Build a callstack pattern for a crash to ease bucketing of crashes into Buggs.
+		/// </summary>
+		/// <param name="CrashInstance">A crash that was recently added to the database.</param>
+		public void BuildPattern( Crash CrashInstance )
+		{
+			List<string> Pattern = new List<string>();
+
+			// Get an array of callstack items
+			CallStackContainer CallStack = new CallStackContainer( CrashInstance );
+			CallStack.bDisplayFunctionNames = true;
+
+			if( CrashInstance.Pattern == null )
+			{
+				// Set the module based on the modules in the callstack
+				CrashInstance.Module = CallStack.GetModuleName();
+				try
+				{
+					foreach( CallStackEntry Entry in CallStack.CallStackEntries )
+					{
+						FunctionCall CurrentFunctionCall = new FunctionCall();
+
+						if( CrashRepositoryDataContext.FunctionCalls.Where( f => f.Call == Entry.FunctionName ).Count() > 0 )
+						{
+							CurrentFunctionCall = CrashRepositoryDataContext.FunctionCalls.Where( f => f.Call == Entry.FunctionName ).First();
+						}
+						else
+						{
+							CurrentFunctionCall = new FunctionCall();
+							CurrentFunctionCall.Call = Entry.FunctionName;
+							CrashRepositoryDataContext.FunctionCalls.InsertOnSubmit( CurrentFunctionCall );
+						}
+
+						int Count = CrashRepositoryDataContext.Crash_FunctionCalls.Where( c => c.CrashId == CrashInstance.Id && c.FunctionCallId == CurrentFunctionCall.Id ).Count();
+						if( Count < 1 )
+						{
+							Crash_FunctionCall JoinTable = new Crash_FunctionCall();
+							JoinTable.Crash = CrashInstance;
+							JoinTable.FunctionCall = CurrentFunctionCall;
+							CrashRepositoryDataContext.Crash_FunctionCalls.InsertOnSubmit( JoinTable );
+						}
+
+						CrashRepositoryDataContext.SubmitChanges();
+
+						Pattern.Add( CurrentFunctionCall.Id.ToString() );
+					}
+
+					CrashInstance.Pattern = string.Join( "+", Pattern );
+					CrashRepositoryDataContext.SubmitChanges();
+				}
+				catch( Exception Ex )
+				{
+					Debug.WriteLine( "Exception in BuildPattern: " + Ex.ToString() );
+				}
+			}
 		}
 
 		/// <summary>
@@ -966,7 +1019,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			NewID = NewCrash.Id;
 
 			// Build a callstack pattern for crash bucketing
-			CrashRepositoryDataContext.BuildPattern(NewCrash);
+			BuildPattern( NewCrash );
 
 			return NewID;
 		}
@@ -1012,63 +1065,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			}
 
 			return UserNameId;
-		}
-
-		/// <summary>
-		/// Build a callstack pattern for a crash to ease bucketing of crashes into Buggs.
-		/// </summary>
-		/// <param name="CrashInstance">A crash that was recently added to the database.</param>
-		public void BuildPattern( Crash CrashInstance )
-		{
-			List<string> Pattern = new List<string>();
-
-			// Get an array of callstack items
-			CallStackContainer CallStack = new CallStackContainer( CrashInstance );
-			CallStack.bDisplayFunctionNames = true;
-
-			if( CrashInstance.Pattern == null )
-			{
-				// Set the module based on the modules in the callstack
-				CrashInstance.Module = CallStack.GetModuleName();
-				try
-				{
-					foreach( CallStackEntry Entry in CallStack.CallStackEntries )
-					{
-						FunctionCall CurrentFunctionCall = new FunctionCall();
-
-						if( FunctionCalls.Where( f => f.Call == Entry.FunctionName ).Count() > 0 )
-						{
-							CurrentFunctionCall = FunctionCalls.Where( f => f.Call == Entry.FunctionName ).First();
-						}
-						else
-						{
-							CurrentFunctionCall = new FunctionCall();
-							CurrentFunctionCall.Call = Entry.FunctionName;
-							FunctionCalls.InsertOnSubmit( CurrentFunctionCall );
-						}
-
-						int Count = Crash_FunctionCalls.Where( c => c.CrashId == CrashInstance.Id && c.FunctionCallId == CurrentFunctionCall.Id ).Count();
-						if( Count < 1 )
-						{
-							Crash_FunctionCall JoinTable = new Crash_FunctionCall();
-							JoinTable.Crash = CrashInstance;
-							JoinTable.FunctionCall = CurrentFunctionCall;
-							Crash_FunctionCalls.InsertOnSubmit( JoinTable );
-						}
-
-						SubmitChanges();
-
-						Pattern.Add( CurrentFunctionCall.Id.ToString() );
-					}
-
-					CrashInstance.Pattern = string.Join( "+", Pattern );
-					SubmitChanges();
-				}
-				catch( Exception Ex )
-				{
-					Debug.WriteLine( "Exception in BuildPattern: " + Ex.ToString() );
-				}
-			}
 		}
 	}
 }

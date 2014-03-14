@@ -116,7 +116,8 @@ void FSourceControlModule::ShowLoginDialog(const FSourceControlLoginClosed& InOn
 			.SupportsMaximize(false) 
 			.SupportsMinimize(false)
 			.CreateTitleBar(false)
-			.SizingRule( ESizingRule::Autosized );
+			.SizingRule( ESizingRule::Autosized )
+			.AutoCenter( EAutoCenter::PrimaryWorkArea );
 
 		// Set the closed callback
 		SourceControlLoginWindowPtr->SetOnWindowClosed(FOnWindowClosed::CreateRaw(this, &FSourceControlModule::OnSourceControlDialogClosed));

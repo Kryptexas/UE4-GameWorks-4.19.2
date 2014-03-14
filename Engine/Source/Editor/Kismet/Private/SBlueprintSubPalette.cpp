@@ -11,7 +11,6 @@
 #include "SBlueprintEditorToolbar.h"
 #include "BlueprintPaletteFavorites.h"
 #include "BlueprintEditorUtils.h"
-#include "SBlueprintActionMenu.h" // for SBlueprintActionMenuExpander
 
 #define LOCTEXT_NAMESPACE "BlueprintSubPalette"
 
@@ -176,23 +175,6 @@ void SBlueprintSubPalette::Construct(FArguments const& InArgs, TWeakPtr<FBluepri
 {
 	BlueprintEditorPtr = InBlueprintEditor;
 
-	struct LocalUtils
-	{
-		static TSharedRef<SExpanderArrow> CreateCustomExpander(const FCustomExpanderData& ActionMenuData, bool bShowFavoriteToggle)
-		{
-			TSharedPtr<SExpanderArrow> CustomExpander;
-			if (bShowFavoriteToggle)
-			{
-				SAssignNew(CustomExpander, SBlueprintActionMenuExpander, ActionMenuData);
-			}
-			else
-			{
-				SAssignNew(CustomExpander, SExpanderArrow, ActionMenuData.TableRow);
-			}
-			return CustomExpander.ToSharedRef();
-		}
-	};
-
 	ChildSlot
  	[
 		SNew(SBorder)
@@ -219,7 +201,6 @@ void SBlueprintSubPalette::Construct(FArguments const& InArgs, TWeakPtr<FBluepri
 						.OnActionDragged(this, &SBlueprintSubPalette::OnActionDragged)
 						.OnCollectAllActions(this, &SBlueprintSubPalette::CollectAllActions)
 						.OnContextMenuOpening(this, &SBlueprintSubPalette::ConstructContextMenuWidget)
-						.OnCreateCustomRowExpander_Static(&LocalUtils::CreateCustomExpander, InArgs._ShowFavoriteToggles.Get())
 				]
 			]
 		]

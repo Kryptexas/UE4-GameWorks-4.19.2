@@ -16,6 +16,7 @@ UK2Node_BaseAsyncTask::UK2Node_BaseAsyncTask(const class FPostConstructInitializ
 {
 }
 
+#if WITH_EDITOR
 FName UK2Node_BaseAsyncTask::GetProxyFactoryFunctionName()
 {
 	return ProxyFactoryFunctionName;
@@ -139,6 +140,16 @@ void UK2Node_BaseAsyncTask::AllocateDefaultPins()
 	Super::AllocateDefaultPins();
 }
 
+FString UK2Node_BaseAsyncTask::GetTooltip() const
+{
+	return Super::GetTooltip();
+}
+
+FString UK2Node_BaseAsyncTask::GetNodeTitle(ENodeTitleType::Type TitleType) const
+{
+	return "Base Latent Task";
+}
+
 void UK2Node_BaseAsyncTask::ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)
 {
 	if (!CompilerContext.bIsFullCompile)
@@ -166,7 +177,7 @@ void UK2Node_BaseAsyncTask::ExpandNode(class FKismetCompilerContext& CompilerCon
 		return;
 	}
 
-	const FName CreateMoveToProxyObjectBlueprintFuncName = CurrentNode->GetProxyFactoryFunctionName();
+	static FName CreateMoveToProxyObjectBlueprintFuncName = CurrentNode->GetProxyFactoryFunctionName();
 	UK2Node_CallFunction* CallCreateMoveToProxyObjectNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(CurrentNode, SourceGraph);
 	CallCreateMoveToProxyObjectNode->FunctionReference.SetExternalMember(CreateMoveToProxyObjectBlueprintFuncName, CurrentNode->GetProxyFactoryClass());
 	CallCreateMoveToProxyObjectNode->AllocateDefaultPins();
@@ -348,23 +359,7 @@ void UK2Node_BaseAsyncTask::ExpandNode(class FKismetCompilerContext& CompilerCon
 	CurrentNode->BreakAllNodeLinks();
 }
 
-bool UK2Node_BaseAsyncTask::HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput) const
-{
-	const UBlueprint* SourceBlueprint = GetBlueprint();
+#endif // WITH_EDITOR
 
-	const bool bProxyFactoryResult = (ProxyFactoryClass != NULL) && (ProxyFactoryClass->ClassGeneratedBy != NULL) && (ProxyFactoryClass->ClassGeneratedBy != SourceBlueprint);
-	if (bProxyFactoryResult && OptionalOutput)
-	{
-		OptionalOutput->Add(ProxyFactoryClass);
-	}
-
-	const bool bProxyResult = (ProxyClass != NULL) && (ProxyClass->ClassGeneratedBy != NULL) && (ProxyClass->ClassGeneratedBy != SourceBlueprint);
-	if (bProxyResult && OptionalOutput)
-	{
-		OptionalOutput->Add(ProxyClass);
-	}
-
-	return bProxyFactoryResult || bProxyResult;
-}
 
 #undef LOCTEXT_NAMESPACE

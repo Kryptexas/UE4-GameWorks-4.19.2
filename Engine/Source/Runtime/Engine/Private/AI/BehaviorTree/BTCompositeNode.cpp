@@ -166,7 +166,7 @@ void UBTCompositeNode::NotifyDecoratorsOnActivation(struct FBehaviorTreeSearchDa
 	for (int32 i = 0; i < ChildInfo.Decorators.Num(); i++)
 	{
 		const UBTDecorator* DecoratorOb = ChildInfo.Decorators[i];
-		DecoratorOb->WrappedOnNodeActivation(SearchData);
+		DecoratorOb->ConditionalOnNodeActivation(SearchData);
 
 		switch (DecoratorOb->GetFlowAbortMode())
 		{
@@ -191,8 +191,8 @@ void UBTCompositeNode::NotifyDecoratorsOnDeactivation(struct FBehaviorTreeSearch
 	for (int32 i = 0; i < ChildInfo.Decorators.Num(); i++)
 	{
 		const UBTDecorator* DecoratorOb = ChildInfo.Decorators[i];
-		DecoratorOb->WrappedOnNodeProcessed(SearchData, NodeResult);
-		DecoratorOb->WrappedOnNodeDeactivation(SearchData, NodeResult);
+		DecoratorOb->ConditionalOnNodeProcessed(SearchData, NodeResult);
+		DecoratorOb->ConditionalOnNodeDeactivation(SearchData, NodeResult);
 
 		if (DecoratorOb->GetFlowAbortMode() == EBTFlowAbortMode::Self)
 		{
@@ -209,7 +209,7 @@ void UBTCompositeNode::NotifyDecoratorsOnFailedActivation(struct FBehaviorTreeSe
 	for (int32 i = 0; i < ChildInfo.Decorators.Num(); i++)
 	{
 		const UBTDecorator* DecoratorOb = ChildInfo.Decorators[i];
-		DecoratorOb->WrappedOnNodeProcessed(SearchData, NodeResult);
+		DecoratorOb->ConditionalOnNodeProcessed(SearchData, NodeResult);
 
 		if (DecoratorOb->GetFlowAbortMode() == EBTFlowAbortMode::LowerPriority ||
 			DecoratorOb->GetFlowAbortMode() == EBTFlowAbortMode::Both)
@@ -354,7 +354,7 @@ bool UBTCompositeNode::DoDecoratorsAllowExecution(class UBehaviorTreeComponent* 
 		for (int32 i = 0; i < ChildInfo.Decorators.Num(); i++)
 		{
 			const UBTDecorator* TestDecorator = ChildInfo.Decorators[i];
-			const bool bIsAllowed = TestDecorator ? TestDecorator->WrappedCanExecute(OwnerComp, TestDecorator->GetNodeMemory<uint8>(MyInstance)) : false;
+			const bool bIsAllowed = TestDecorator->CanExecute(OwnerComp, TestDecorator->GetNodeMemory<uint8>(MyInstance));
 			OwnerComp->StoreDebuggerSearchStep(TestDecorator, InstanceIdx, bIsAllowed);
 
 			if (!bIsAllowed)
@@ -407,7 +407,7 @@ bool UBTCompositeNode::DoDecoratorsAllowExecution(class UBehaviorTreeComponent* 
 				}
 
 				UBTDecorator* TestDecorator = ChildInfo.Decorators[DecoratorOp.Number];
-				const bool bIsAllowed = bHasOverride ? bCurrentOverride : TestDecorator->WrappedCanExecute(OwnerComp, TestDecorator->GetNodeMemory<uint8>(MyInstance));
+				const bool bIsAllowed = bHasOverride ? bCurrentOverride : TestDecorator->CanExecute(OwnerComp, TestDecorator->GetNodeMemory<uint8>(MyInstance));
 				UE_VLOG(OwnerComp->GetOwner(), LogBehaviorTree, Verbose, TEXT("%s%s %s: %s"), *Indent,
 					bHasOverride ? TEXT("skipping") : TEXT("testing"),
 					*UBehaviorTreeTypes::DescribeNodeHelper(TestDecorator),

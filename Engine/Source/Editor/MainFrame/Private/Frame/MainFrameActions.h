@@ -38,8 +38,8 @@ public:
 	TSharedPtr< FUICommandInfo > OpenOutputLog;
 	TSharedPtr< FUICommandInfo > OpenMessageLog;
 	TSharedPtr< FUICommandInfo > OpenKeybindings;
-	TSharedPtr< FUICommandInfo > OpenSessionManagerApp;
-	TSharedPtr< FUICommandInfo > OpenDeviceManagerApp;
+	TSharedPtr< FUICommandInfo > OpenSessionManager;
+	TSharedPtr< FUICommandInfo > OpenDeviceManager;
 	TSharedPtr< FUICommandInfo > OpenToolbox;
 	TSharedPtr< FUICommandInfo > OpenDebugView;
 	TSharedPtr< FUICommandInfo > OpenClassViewer;

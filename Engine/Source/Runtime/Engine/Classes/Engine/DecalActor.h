@@ -40,17 +40,13 @@ class ADecalActor : public AActor
 	virtual class UMaterialInstanceDynamic* CreateDynamicMaterialInstance();
 	// END DEPRECATED
 
-	
-#if WITH_EDITOR
 	// Begin UObject Interface
+#if WITH_EDITOR
 	virtual void PostEditMove(bool bFinished) OVERRIDE;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+#endif // WITH_EDITOR
 	// End UObject Interface
 
-	// Begin AActor interface.
-	virtual void EditorApplyScale(const FVector& DeltaScale, const FVector* PivotLocation, bool bAltDown, bool bShiftDown, bool bCtrlDown) OVERRIDE;
-	// End AActor interface.
-#endif // WITH_EDITOR
 };
 
 

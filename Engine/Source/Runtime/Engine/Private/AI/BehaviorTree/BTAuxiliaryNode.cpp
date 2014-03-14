@@ -10,37 +10,29 @@ UBTAuxiliaryNode::UBTAuxiliaryNode(const class FPostConstructInitializePropertie
 	bTickIntervals = false;
 }
 
-void UBTAuxiliaryNode::WrappedOnBecomeRelevant(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+void UBTAuxiliaryNode::ConditionalOnBecomeRelevant(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
 {
 	if (bNotifyBecomeRelevant)
 	{
-		const UBTNode* NodeOb = bCreateNodeInstance ? GetNodeInstance(OwnerComp, NodeMemory) : this;
-		if (NodeOb)
-		{
-			((UBTAuxiliaryNode*)NodeOb)->OnBecomeRelevant(OwnerComp, NodeMemory);
-		}
+		OnBecomeRelevant(OwnerComp, NodeMemory);
 	}
 }
 
-void UBTAuxiliaryNode::WrappedOnCeaseRelevant(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+void UBTAuxiliaryNode::ConditionalOnCeaseRelevant(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
 {
 	if (bNotifyCeaseRelevant)
 	{
-		const UBTNode* NodeOb = bCreateNodeInstance ? GetNodeInstance(OwnerComp, NodeMemory) : this;
-		if (NodeOb)
-		{
-			((UBTAuxiliaryNode*)NodeOb)->OnCeaseRelevant(OwnerComp, NodeMemory);
-		}
+		OnCeaseRelevant(OwnerComp, NodeMemory);
 	}
 }
 
-void UBTAuxiliaryNode::WrappedTickNode(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) const
+void UBTAuxiliaryNode::ConditionalTickNode(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) const
 {
 	if (bNotifyTick)
 	{
 		if (bTickIntervals)
 		{
-			FBTAuxiliaryMemory* AuxMemory = GetSpecialNodeMemory<FBTAuxiliaryMemory>(NodeMemory);
+			FBTAuxiliaryMemory* AuxMemory = GetAuxNodeMemory(NodeMemory);
 			AuxMemory->NextTickRemainingTime -= DeltaSeconds;
 			if (AuxMemory->NextTickRemainingTime > 0.0f)
 			{
@@ -48,11 +40,7 @@ void UBTAuxiliaryNode::WrappedTickNode(class UBehaviorTreeComponent* OwnerComp, 
 			}	
 		}
 
-		const UBTNode* NodeOb = bCreateNodeInstance ? GetNodeInstance(OwnerComp, NodeMemory) : this;
-		if (NodeOb)
-		{
-			((UBTAuxiliaryNode*)NodeOb)->TickNode(OwnerComp, NodeMemory, DeltaSeconds);
-		}
+		TickNode(OwnerComp, NodeMemory, DeltaSeconds);
 	}
 }
 
@@ -60,7 +48,7 @@ void UBTAuxiliaryNode::SetNextTickTime(uint8* NodeMemory, float RemainingTime) c
 {
 	if (bTickIntervals)
 	{
-		FBTAuxiliaryMemory* AuxMemory = GetSpecialNodeMemory<FBTAuxiliaryMemory>(NodeMemory);
+		FBTAuxiliaryMemory* AuxMemory = GetAuxNodeMemory(NodeMemory);
 		AuxMemory->NextTickRemainingTime = RemainingTime;
 	}
 }
@@ -71,27 +59,38 @@ void UBTAuxiliaryNode::DescribeRuntimeValues(const class UBehaviorTreeComponent*
 
 	if (Verbosity == EBTDescriptionVerbosity::Detailed && bTickIntervals)
 	{
-		FBTAuxiliaryMemory* AuxMemory = GetSpecialNodeMemory<FBTAuxiliaryMemory>(NodeMemory);
+		FBTAuxiliaryMemory* AuxMemory = GetAuxNodeMemory(NodeMemory);
 		Values.Add(FString::Printf(TEXT("next tick: %ss"), *FString::SanitizeFloat(AuxMemory->NextTickRemainingTime)));
 	}
 }
 
-void UBTAuxiliaryNode::OnBecomeRelevant(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+void UBTAuxiliaryNode::OnBecomeRelevant(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
 {
 	// empty in base class
 }
 
-void UBTAuxiliaryNode::OnCeaseRelevant(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+void UBTAuxiliaryNode::OnCeaseRelevant(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
 {
 	// empty in base class
 }
 
-void UBTAuxiliaryNode::TickNode(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds)
+void UBTAuxiliaryNode::TickNode(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) const
 {
 	// empty in base class
 }
 
-uint16 UBTAuxiliaryNode::GetSpecialMemorySize() const
+uint16 UBTAuxiliaryNode::GetInstanceAuxMemorySize() const
 {
-	return bTickIntervals ? sizeof(FBTAuxiliaryMemory) : Super::GetSpecialMemorySize();
+	return bTickIntervals ? sizeof(FBTAuxiliaryMemory) : 0;
+}
+
+FBTAuxiliaryMemory* UBTAuxiliaryNode::GetAuxNodeMemory(uint8* NodeMemory) const
+{
+	if (bTickIntervals)
+	{
+		const int32 AlignedAuxMemory = ((sizeof(FBTAuxiliaryMemory) + 3) & ~3);
+		return (FBTAuxiliaryMemory*)(NodeMemory - AlignedAuxMemory);
+	}
+
+	return NULL;
 }

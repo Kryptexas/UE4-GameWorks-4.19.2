@@ -302,14 +302,14 @@ bool FNumberFormattingRulesTest::RunTest (const FString& Parameters)
 	FText Percent = FText::AsPercent(DoubleValue);
 	FText Currency = FText::AsCurrency(DoubleValue);
 
-	if ( GIsEditor && ( Number.IsTransient() || Percent.IsTransient() || Currency.IsTransient() ) )
+	if ( WITH_EDITOR && ( Number.IsTransient() || Percent.IsTransient() || Currency.IsTransient() ) )
 	{
-		AddError( TEXT("Number formatting functions should not produce transient text in the editor") );
+		AddError( TEXT("Number formatting functions should not produce transient text when WITH_EDITOR is defined") );
 	}
 
-	if ( !GIsEditor && ( !Number.IsTransient() || !Percent.IsTransient() || !Currency.IsTransient() ) )
+	if ( !WITH_EDITOR && ( !Number.IsTransient() || !Percent.IsTransient() || !Currency.IsTransient() ) )
 	{
-		AddError( TEXT("Number formatting functions should always produce transient text outside of the editor") );
+		AddError( TEXT("Number formatting functions should always produce transient text when WITH_EDITOR is not defined") );
 	}
 
 	if ( Number.IsCultureInvariant() || Percent.IsCultureInvariant() || Currency.IsCultureInvariant() )

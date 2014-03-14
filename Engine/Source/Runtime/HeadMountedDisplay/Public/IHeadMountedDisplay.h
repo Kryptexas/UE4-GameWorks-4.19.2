@@ -55,7 +55,7 @@ public:
     /**
 	 * Calculates the FOV, based on the screen dimensions of the device
 	 */
-	virtual float	GetFieldOfViewInRadians() const = 0;
+	virtual float	GetFieldOfView() const = 0;
 
 	/**
 	 * Whether or not the HMD supports positional tracking (either via camera or other means)
@@ -71,6 +71,12 @@ public:
 	 * If the HMD supports positional tracking via a camera, this returns the frustum properties (all in game-world space) of the tracking camera.
 	 */
 	virtual void	GetPositionalTrackingCameraProperties(FVector& OutOrigin, FRotator& OutOrientation, float& OutHFOV, float& OutVFOV, float& OutCameraDistance, float& OutNearPlane, float& OutFarPlane) const = 0;
+
+	/**
+	 * Accessors to modify the user-tweakable distance-to-screen modifier
+	 */
+	virtual void	SetUserDistanceToScreenModifier(float NewUserDistanceToScreenModifier) = 0;
+	virtual float	GetUserDistanceToScreenModifier() const = 0;
 
 	/**
 	 * Accessors to modify the interpupillary distance (meters)
@@ -183,8 +189,6 @@ public:
 	 * @param Yaw				(in) the desired yaw to be set after orientation reset.
 	 */
 	virtual void ResetOrientationAndPosition(float Yaw = 0.f) = 0;
-
-	virtual void DrawDistortionMesh_RenderThread(struct FRenderingCompositePassContext& Context, const FSceneView& View, const FIntPoint& TextureSize) = 0;
 
 	/**
 	 * This method is able to change screen settings (such as rendering scale) right before

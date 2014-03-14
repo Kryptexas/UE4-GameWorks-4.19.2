@@ -142,14 +142,14 @@ public:
 			{
 				MenuBuilder.AddMenuEntry( Commands.SelectAllLevels );
 				MenuBuilder.AddMenuEntry( Commands.DeselectAllLevels );
-				MenuBuilder.AddMenuEntry( Commands.InvertLevelSelection );
+				MenuBuilder.AddMenuEntry( Commands.InvertSelection );
 			}
 			MenuBuilder.EndSection();
 
 			MenuBuilder.BeginSection("ActorsSelection", LOCTEXT("ActorsHeader", "Actors") );
 			{
-				MenuBuilder.AddMenuEntry( Commands.SelectLevelActors );
-				MenuBuilder.AddMenuEntry( Commands.DeselectLevelActors );
+				MenuBuilder.AddMenuEntry( Commands.SelectActors );
+				MenuBuilder.AddMenuEntry( Commands.DeselectActors );
 			}
 			MenuBuilder.EndSection();
 		}

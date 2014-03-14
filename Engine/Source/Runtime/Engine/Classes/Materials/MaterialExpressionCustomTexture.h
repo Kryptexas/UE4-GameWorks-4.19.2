@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionCustomTexture.generated.h"
 
-UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object, MinimalAPI)
+UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
 class UMaterialExpressionCustomTexture : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

@@ -23,24 +23,6 @@ FBackgroundAssetData::FBackgroundAssetData(const FString& InPackageName, const F
 	ChunkIDs = InChunkIDs;
 }
 
-FBackgroundAssetData::FBackgroundAssetData(const FAssetData& InAssetData)
-{
-	PackageName = InAssetData.PackageName.ToString();
-	PackagePath = InAssetData.PackagePath.ToString();
-	GroupNames = InAssetData.GroupNames.ToString();
-	AssetName = InAssetData.AssetName.ToString();
-	AssetClass = InAssetData.AssetClass.ToString();
-
-	for ( auto TagIt = InAssetData.TagsAndValues.CreateConstIterator(); TagIt; ++TagIt )
-	{
-		TagsAndValues.Add(TagIt.Key().ToString(), TagIt.Value());
-	}
-
-	ObjectPath = InAssetData.ObjectPath.ToString();
-
-	ChunkIDs = InAssetData.ChunkIDs;
-}
-
 FAssetData FBackgroundAssetData::ToAssetData() const
 {
 	TMap<FName, FString> CopiedTagsAndValues;

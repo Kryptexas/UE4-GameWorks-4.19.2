@@ -15,6 +15,7 @@ class UK2Node_SwitchString : public UK2Node_Switch
 	UPROPERTY(EditAnywhere, Category=PinOptions)
 	uint32 bIsCaseSensitive : 1;
 
+#if WITH_EDITOR
 	// UObject interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
 	// End of UObject interface
@@ -37,4 +38,5 @@ protected:
 	virtual void CreateSelectionPin() OVERRIDE;
 	virtual void CreateCasePins() OVERRIDE;
 	virtual void RemovePin(UEdGraphPin* TargetPin) OVERRIDE;
+#endif 
 };

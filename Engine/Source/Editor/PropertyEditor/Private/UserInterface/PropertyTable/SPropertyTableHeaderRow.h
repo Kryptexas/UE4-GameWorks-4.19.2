@@ -110,9 +110,6 @@ public:
 					]
 				);
 			}
-
-			Column->OnFrozenStateChanged()->RemoveAll(this);
-			Column->OnFrozenStateChanged()->AddSP(this, &SPropertyTableHeaderRow::RegenerateColumnMenu);
 		}
 	}
 
@@ -168,13 +165,6 @@ private:
 		}
 
 		return MenuBuilder.MakeWidget();
-	}
-
-	void RegenerateColumnMenu( const TSharedRef< IPropertyTableColumn >& Column )
-	{
-		// Seems like a waste to update all the columns just because one changed,
-		// but if I try to just remove the one and re-add it, UpdateColumns ends up getting called by RemoveColumn() anyway
-		UpdateColumns();
 	}
 
 	void RemoveColumn( const TSharedRef< IPropertyTableColumn > Column )

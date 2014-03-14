@@ -55,9 +55,9 @@ void FPersonaModule::StartupModule()
 	}
 	{
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
-		PropertyModule.RegisterCustomPropertyLayout( "SkeletalMeshSocket", FOnGetDetailCustomizationInstance::CreateStatic( &FSkeletalMeshSocketDetails::MakeInstance ) );
-		PropertyModule.RegisterCustomPropertyLayout( "AnimNotify", FOnGetDetailCustomizationInstance::CreateStatic( &FAnimNotifyDetails::MakeInstance ) );
-		PropertyModule.RegisterCustomPropertyLayout( "AnimGraphNode_Base", FOnGetDetailCustomizationInstance::CreateStatic( &FAnimGraphNodeDetails::MakeInstance ) );
+		PropertyModule.RegisterCustomPropertyLayout( USkeletalMeshSocket::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FSkeletalMeshSocketDetails::MakeInstance ) );
+		PropertyModule.RegisterCustomPropertyLayout( UAnimNotify::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FAnimNotifyDetails::MakeInstance ) );
+		PropertyModule.RegisterCustomPropertyLayout( UAnimGraphNode_Base::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FAnimGraphNodeDetails::MakeInstance ) );
 
 		PropertyModule.RegisterStructPropertyLayout( "InputScaleBias", FOnGetStructCustomizationInstance::CreateStatic( &FInputScaleBiasCustomization::MakeInstance ) );
 		PropertyModule.RegisterStructPropertyLayout( "BoneReference", FOnGetStructCustomizationInstance::CreateStatic( &FBoneReferenceCustomization::MakeInstance ) );

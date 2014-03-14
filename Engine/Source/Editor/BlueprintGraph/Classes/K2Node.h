@@ -129,11 +129,8 @@ class UK2Node : public UEdGraphNode
 	/** Returns whether this node is considered 'pure' by the compiler */
 	virtual bool IsNodePure() const { return false; }
 
-	/** 
-	 * Returns whether or not this node has dependencies on an external blueprint 
-	 * If OptionalOutput isn't null, it should be filled with the known dependencies objects (Classes, Functions, etc).
-	 */
-	virtual bool HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput = NULL) const { return false; }
+	/** Returns whether or not this node has dependencies on an external blueprint */
+	virtual bool HasExternalBlueprintDependencies() const { return false; }
 
 	/** Returns whether this node can have breakpoints placed on it in the debugger */
 	virtual bool CanPlaceBreakpoints() const { return !IsNodePure(); }
@@ -430,10 +427,12 @@ public:
 		return MemberName;
 	}
 
+#if WITH_EDITORONLY_DATA
 	FGuid GetMemberGuid() const
 	{
 		return MemberGuid;
 	}
+#endif
 
 	/** Returns if this is a 'self' context. */
 	bool IsSelfContext() const
@@ -490,8 +489,10 @@ public:
 			MemberName = ReturnField->GetFName();
 			MemberParentClass = Cast<UClass>(ReturnField->GetOuter());
 
+#if WITH_EDITORONLY_DATA
 			MemberGuid.Invalidate();
 			UBlueprint::GetGuidFromClassByFieldName<TFieldType>(TargetScope, MemberName, MemberGuid);
+#endif
 
 			// Re-evaluate self-ness against the redirect if we were given a valid SelfScope
 			if(MemberParentClass != NULL && SelfScope != NULL)
@@ -504,6 +505,7 @@ public:
 			// Find in target scope
 			ReturnField = FindField<TFieldType>(TargetScope, MemberName);
 
+#if WITH_EDITORONLY_DATA
 			// If we have a GUID find the reference variable and make sure the name is up to date and find the field again
 			// For now only variable references will have valid GUIDs.  Will have to deal with finding other names subsequently
 			if (ReturnField == NULL && MemberGuid.IsValid())
@@ -515,6 +517,7 @@ public:
 					ReturnField = FindField<TFieldType>(TargetScope, MemberName);
 				}
 			}
+#endif
 		}
 
 		return ReturnField;

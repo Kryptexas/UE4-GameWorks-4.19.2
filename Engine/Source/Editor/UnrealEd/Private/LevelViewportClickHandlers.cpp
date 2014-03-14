@@ -1014,6 +1014,9 @@ namespace ClickHandlers
 
 		// Report errors
 		EditorErrors.Notify(NSLOCTEXT("ActorAttachmentError", "AttachmentsFailed", "Attachments Failed!"));
+
+		// Notify other systems that actors have been updated.
+		GEngine->BroadcastLevelActorsChanged();
 	}
 }
 

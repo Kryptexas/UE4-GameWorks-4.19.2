@@ -63,6 +63,11 @@ void FWorldTileDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& Deta
 		TAttribute<bool>::FGetter::CreateSP(this, &FWorldTileDetailsCustomization::IsPropertyEditable)
 		);
 	
+	// Property visibility for always loaded tiles
+	TAttribute<EVisibility> IsPropertyVisible = TAttribute<EVisibility>::Create(
+		TAttribute<EVisibility>::FGetter::CreateSP(this, &FWorldTileDetailsCustomization::GetPropertyVisibility)
+		);
+
 	IDetailCategoryBuilder& TileCategory = DetailLayoutBuilder.EditCategory("Tile");
 
 	// Set properties state
@@ -75,6 +80,8 @@ void FWorldTileDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& Deta
 			auto ParentPackagePropertyHandle = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UWorldTileDetails, ParentPackageName));
 			TileCategory.AddProperty(ParentPackagePropertyHandle)
 				.IsEnabled(IsPropertyEnabled)
+				// Hide parent package property in case all selected tiles are "AlwaysLoaded"
+				.Visibility(IsPropertyVisible)
 				.CustomWidget()
 					.NameContent()
 					[
@@ -92,19 +99,32 @@ void FWorldTileDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& Deta
 
 		// Position
 		TileCategory.AddProperty(GET_MEMBER_NAME_CHECKED(UWorldTileDetails, Position))
-			.IsEnabled(IsPropertyEnabled);
+			.IsEnabled(IsPropertyEnabled)
+			// Hide position property in case all selected tiles are "AlwaysLoaded"
+			.Visibility(IsPropertyVisible);
 
 		// Absolute Position
 		TileCategory.AddProperty(GET_MEMBER_NAME_CHECKED(UWorldTileDetails, AbsolutePosition))
-			.IsEnabled(false);
+			.IsEnabled(false)
+			// Hide absolute position property in case all selected tiles are "AlwaysLoaded"
+			.Visibility(IsPropertyVisible);
 
 		// Z Order
 		TileCategory.AddProperty(GET_MEMBER_NAME_CHECKED(UWorldTileDetails, ZOrder))
+			.IsEnabled(IsPropertyEnabled)
+			// Hide ZOrder property in case all selected tiles are "AlwaysLoaded"
+			.Visibility(IsPropertyVisible);
+		
+		// bAlways loaded
+		AlwaysLoadedHandle = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UWorldTileDetails, bAlwaysLoaded));
+		TileCategory.AddProperty(AlwaysLoadedHandle)
 			.IsEnabled(IsPropertyEnabled);
 		
 		// Streaming levels
 		TileCategory.AddProperty(GET_MEMBER_NAME_CHECKED(UWorldTileDetails, StreamingLevels))
-			.IsEnabled(IsPropertyEnabled);
+			.IsEnabled(IsPropertyEnabled)
+			// Hide streaming levels property in case all selected tiles are "AlwaysLoaded"
+			.Visibility(IsPropertyVisible);
 
 		// bTileEditable (invisible property to control other properties editable state)
 		TileEditableHandle = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UWorldTileDetails, bTileEditable));
@@ -117,7 +137,9 @@ void FWorldTileDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& Deta
 	{
 		NumLODHandle = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UWorldTileDetails, NumLOD));
 		LODSettingsCategory.AddProperty(NumLODHandle)
-			.IsEnabled(IsPropertyEnabled);
+			.IsEnabled(IsPropertyEnabled)
+			// Hide LOD property in case all selected tiles are "AlwaysLoaded"
+			.Visibility(IsPropertyVisible);
 		
 		LODSettingsCategory.AddProperty(GET_MEMBER_NAME_CHECKED(UWorldTileDetails, LOD1))
 			.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FWorldTileDetailsCustomization::GetLODPropertyVisibility, 1)));
@@ -145,12 +167,27 @@ bool FWorldTileDetailsCustomization::IsPropertyEditable() const
 	return false;
 }
 
+EVisibility FWorldTileDetailsCustomization::GetPropertyVisibility() const
+{
+	// Position property should be visible in case any of the selected tiles are not "AlwaysLoaded"
+	bool bAlwaysLoaded = false;
+	if (AlwaysLoadedHandle->GetValue(bAlwaysLoaded) == FPropertyAccess::Success)
+	{
+		return bAlwaysLoaded ? EVisibility::Hidden : EVisibility::Visible;
+	}
+
+	return EVisibility::Visible;
+}
+
 EVisibility FWorldTileDetailsCustomization::GetLODPropertyVisibility(int LODIndex) const
 {
-	int32 NumLOD = MAX_int32;
-	if (NumLODHandle->GetValue(NumLOD) != FPropertyAccess::Fail)
+	if (GetPropertyVisibility() == EVisibility::Visible)
 	{
-		return (NumLOD >= LODIndex ? EVisibility::Visible : EVisibility::Hidden);
+		int32 NumLOD = MAX_int32;
+		if (NumLODHandle->GetValue(NumLOD) != FPropertyAccess::Fail)
+		{
+			return (NumLOD >= LODIndex ? EVisibility::Visible : EVisibility::Hidden);
+		}
 	}
 	
 	return EVisibility::Hidden;

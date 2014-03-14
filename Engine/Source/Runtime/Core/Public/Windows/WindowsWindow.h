@@ -124,12 +124,6 @@ public:
 	/** @return	Gives the native window a chance to adjust our stored window size before we cache it off */
 	virtual void AdjustCachedSize( FVector2D& Size ) const OVERRIDE;
 
-	/** Called when our parent window is minimized (which will in turn cause us to become minimized) */
-	void OnParentWindowMinimized();
-
-	/** Called when our parent window is restored (which will in turn cause us to become restored) */
-	void OnParentWindowRestored();
-
 private:
 
 	/**
@@ -161,9 +155,6 @@ private:
 		
 	/** The placement of the window before it entered a fullscreen state */
 	WINDOWPLACEMENT PreFullscreenWindowPlacement;
-
-	/** The placement of the window before it entered a minimized state due to its parent window being minimized */
-	WINDOWPLACEMENT PreParentMinimizedWindowPlacement;
 
 	/** Virtual width and height of the window.  This is only different than the actual width and height for
 	    windows which we're trying to optimize because their size changes frequently.  We'll create a larger

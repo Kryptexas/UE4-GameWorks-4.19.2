@@ -34,8 +34,7 @@ UBodySetup::UBodySetup(const class FPostConstructInitializeProperties& PCIP)
 	bGenerateMirroredCollision = true;
 	bGenerateNonMirroredCollision = true;
 	DefaultInstance.SetObjectType(ECC_PhysicsBody);
-	BuildScale_DEPRECATED = 1.0f;
-	BuildScale3D = FVector(1.0f, 1.0f, 1.0f);
+	BuildScale = 1.0f;
 }
 
 void UBodySetup::CopyBodyPropertiesFrom(class UBodySetup* FromSetup)
@@ -460,12 +459,14 @@ void UBodySetup::RemoveSimpleCollision()
 	InvalidatePhysicsData();
 }
 
-void UBodySetup::RescaleSimpleCollision( FVector BuildScale )
+void UBodySetup::RescaleSimpleCollision( float UniformScale )
 {
-	if( BuildScale3D != BuildScale )
-	{					
+	if( BuildScale != UniformScale )
+	{
+		float PrevBuildScale = BuildScale;
+						
 		// Back out the old scale when applying the new scale
-		const FVector ScaleMultiplier3D = (BuildScale / BuildScale3D);
+		const float ScaleMultiplier = (UniformScale / PrevBuildScale);
 
 		for (int32 i = 0; i < AggGeom.ConvexElems.Num(); i++)
 		{
@@ -474,20 +475,18 @@ void UBodySetup::RescaleSimpleCollision( FVector BuildScale )
 			TArray<FVector>& Vertices = ConvexElem->VertexData;
 			for (int32 VertIndex = 0; VertIndex < Vertices.Num(); ++VertIndex)
 			{
-				Vertices[VertIndex] *= ScaleMultiplier3D;
+
+				Vertices[VertIndex] *= ScaleMultiplier;
 			}
 
 			ConvexElem->UpdateElemBox();
 		}
 
-		// @todo Deal with non-vector properties by just applying the max value for the time being
-		const float ScaleMultiplier = ScaleMultiplier3D.GetMax();
-
 		for (int32 i = 0; i < AggGeom.SphereElems.Num(); i++)
 		{
 			FKSphereElem* SphereElem = &(AggGeom.SphereElems[i]);
 
-			SphereElem->Center *= ScaleMultiplier3D;
+			SphereElem->Center *= ScaleMultiplier;
 			SphereElem->Radius *= ScaleMultiplier;
 		}
 
@@ -495,22 +494,23 @@ void UBodySetup::RescaleSimpleCollision( FVector BuildScale )
 		{
 			FKBoxElem* BoxElem = &(AggGeom.BoxElems[i]);
 
-			BoxElem->Center *= ScaleMultiplier3D;
-			BoxElem->X *= ScaleMultiplier3D.X;
-			BoxElem->Y *= ScaleMultiplier3D.Y;
-			BoxElem->Z *= ScaleMultiplier3D.Z;
+			BoxElem->Center *= ScaleMultiplier;
+			BoxElem->X *= ScaleMultiplier;
+			BoxElem->Y *= ScaleMultiplier;
+			BoxElem->Z *= ScaleMultiplier;
 		}
+
 
 		for (int32 i = 0; i < AggGeom.SphylElems.Num(); i++)
 		{
 			FKSphylElem* SphylElem = &(AggGeom.SphylElems[i]);
 
-			SphylElem->Center *= ScaleMultiplier3D;
+			SphylElem->Center *= ScaleMultiplier;
 			SphylElem->Radius *= ScaleMultiplier;
 			SphylElem->Length *= ScaleMultiplier;
 		}
 
-		BuildScale3D = BuildScale;
+		BuildScale = UniformScale;
 	}
 }
 
@@ -607,11 +607,6 @@ void UBodySetup::PostLoad()
 	if (Outer)
 	{
 		Outer->ConditionalPostLoad();
-	}
-
-	if ( GetLinkerUE4Version() < VER_UE4_BUILD_SCALE_VECTOR )
-	{
-		BuildScale3D = FVector( BuildScale_DEPRECATED );
 	}
 
 	DefaultInstance.FixupData(this);

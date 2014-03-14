@@ -1855,7 +1855,7 @@ FString SFoliageEditMeshDisplayItem::GetSaveRemoveSettingsTooltip() const
 bool SFoliageEditMeshDisplayItem::IsPropertyVisible(UProperty const * const InProperty) const
 {
 	const FString Category = FObjectEditorUtils::GetCategory(InProperty);
-	return Category == TEXT("Clustering") || Category == TEXT("Culling") || Category == TEXT("Lighting") || Category == TEXT("Collision");
+	return Category == TEXT("Clustering") || Category == TEXT("Culling") || Category == TEXT("Lighting");
 }
 
 FString SFoliageEditMeshDisplayItem::GetInstanceCountString() const

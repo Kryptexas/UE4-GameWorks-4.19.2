@@ -47,9 +47,6 @@ struct FAssetPickerConfig
 	/** Dynamic filters that get applied after the backend and frontend filters*/
 	TSharedRef< AssetFilterCollectionType > ExtraFilters;
 
-	/** Custom front end filters to be displayed */
-	TArray< TSharedRef<class FFrontendFilter> > ExtraFrontendFilters;
-
 	/** The text to highlight on assets */
 	TAttribute< FText > HighlightedText;
 
@@ -136,14 +133,6 @@ struct FAssetPickerConfig
 	/** Indicates if the 'Show Developers' option should be visible */
 	bool bCanShowDevelopersFolder;
 
-	/** Indicates if the context menu is going to load the assets, and if so to preload before the context menu is shown, and warn about the pending load. */
-	bool bPreloadAssetsForContextMenu;
-
-	/** Indicates that we would like to build the filter UI with the Asset Picker */
-	bool bAddFilterUI;
-
-	/** Override the default filter context menu layout */
-	EAssetTypeCategories::Type DefaultFilterMenuExpansion;
 	FAssetPickerConfig()
 		: SelectionMode( ESelectionMode::Multi )
 		, ClearSelectionDelegate( NULL )
@@ -164,9 +153,6 @@ struct FAssetPickerConfig
 		, bCanShowOnlyAssetsInSelectedFolders(false)
 		, bCanShowRealTimeThumbnails(false)
 		, bCanShowDevelopersFolder(false)
-		, bPreloadAssetsForContextMenu(true)
-		, bAddFilterUI(false)
-		, DefaultFilterMenuExpansion(EAssetTypeCategories::Basic)
 	{}
 };
 
@@ -254,7 +240,7 @@ public:
 	virtual bool HasPrimaryContentBrowser() const = 0;
 
 	/** Brings the primary content browser to the front or opens one if it does not exist. */
-	virtual void FocusPrimaryContentBrowser(bool bFocusSearch) = 0;
+	virtual void FocusPrimaryContentBrowser() = 0;
 
 	/** Sets up an inline-name for the creation of a new asset in the primary content browser using the specified path and the specified class and/or factory */
 	virtual void CreateNewAsset(const FString& DefaultAssetName, const FString& PackagePath, UClass* AssetClass, UFactory* Factory) = 0;

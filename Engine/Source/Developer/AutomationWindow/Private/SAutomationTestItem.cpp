@@ -73,9 +73,6 @@ TSharedRef<SWidget> SAutomationTestItem::GenerateWidgetForColumn( const FName& C
 			TSharedPtr< SHorizontalBox > HBox = SNew( SHorizontalBox );
 			if( TestStatus->GetTotalNumChildren() == 0 )
 			{
-				FFormatNamedArguments Args;
-				Args.Add(TEXT("NumParticipantsRequired"), TestStatus->GetNumParticipantsRequired());
-
 				// Display a network PC and the number which are required for this test.
 				HBox->AddSlot()
 					[
@@ -85,10 +82,10 @@ TSharedRef<SWidget> SAutomationTestItem::GenerateWidgetForColumn( const FName& C
 				HBox->AddSlot()
 					[
 						SNew( STextBlock )
-						.Text( FText::Format( LOCTEXT( "NumParticipantsRequiredWrapper", "x{NumParticipantsRequired}" ), Args ) )
+						.Text( FString::Printf( TEXT( "x%d" ), TestStatus->GetNumParticipantsRequired() ) )
 					];
 
-				HBox->SetToolTipText(FText::Format(LOCTEXT("NumParticipantsRequiredMessage", "This test requires {NumParticipantsRequired} participants to be run."), Args));
+				HBox->SetToolTipText( FString::Printf( TEXT( "This test requires %d participants to be run." ), TestStatus->GetNumParticipantsRequired() ) );
 
 			}
 			else
@@ -212,35 +209,26 @@ const FSlateBrush* SAutomationTestItem::GetSmokeTestImage() const
 }
 
 
-FText SAutomationTestItem::GetTestToolTip( int32 ClusterIndex ) const
+FString SAutomationTestItem::GetTestToolTip( int32 ClusterIndex ) const
 {
-	FText ToolTip;
+	FString ToolTip;
 	EAutomationState::Type TestState = TestStatus->GetState( ClusterIndex );
 	if ( TestState == EAutomationState::NotRun )
 	{
-		ToolTip = LOCTEXT("TestToolTipNotRun", "Not Run");
+		ToolTip = LOCTEXT("TestToolTipNotRun", "Not Run").ToString();
 	}
 	else if( TestState == EAutomationState::InProcess )
 	{
-		ToolTip = LOCTEXT("TestToolTipInProgress", "In progress");
+		ToolTip = LOCTEXT("TestToolTipInProgress", "In progress").ToString();
 	}
 	else if( TestState == EAutomationState::NotEnoughParticipants )
 	{
-		ToolTip = LOCTEXT("ToolTipNotEnoughParticipants", "This test could not be completed as there were not enough participants.");
+		ToolTip = LOCTEXT("ToolTipNotEnoughParticipants", "This test could not be completed as there were not enough participants.").ToString();
 	}
 	else
 	{
-		FFormatNamedArguments Args;
-		Args.Add(TEXT("GameName"), FText::FromString(TestStatus->GetGameInstanceName(ClusterIndex)));
-
-		if (TestState == EAutomationState::Success)
-		{
-			ToolTip = LOCTEXT("TestToolTipComplete", "Completed on: ");
-		}
-		else
-		{
-			ToolTip = LOCTEXT("TestToolTipFailed", "Failed on: ");
-		}
+		ToolTip = TestState == EAutomationState::Success ? LOCTEXT("TestToolTipComplete", "Completed on: ").ToString() : LOCTEXT("TestToolTipFailed", "Failed on: ").ToString();
+		ToolTip += TestStatus->GetGameInstanceName( ClusterIndex );
 	}
 	return ToolTip;
 }
@@ -284,32 +272,24 @@ FSlateColor SAutomationTestItem::ItemStatus_BackgroundColor(const int32 ClusterI
 }
 
 
-FText SAutomationTestItem::ItemStatus_DurationText() const
+FString SAutomationTestItem::ItemStatus_DurationText() const
 {
-	FText DurationText;
+	FString DurationString;
 	float MinDuration;
 	float MaxDuration;
 	if (TestStatus->GetDurationRange(MinDuration, MaxDuration))
 	{
-		FNumberFormattingOptions Options;
-		Options.MaximumFractionalDigits = 4;
-		Options.MaximumIntegralDigits = 4;
-
-		FFormatNamedArguments Args;
-		Args.Add(TEXT("MinDuration"), MinDuration);
-		Args.Add(TEXT("MaxDuration"), MaxDuration);
-
 		//if there is a duration range
 		if (MinDuration != MaxDuration)
 		{
-			DurationText = FText::Format(LOCTEXT("ItemStatusDurationRange", "{MinDuration}s - {MaxDuration}s"), Args);
+			DurationString = FString::Printf(TEXT("%4.4fs - %4.4fs"), MinDuration, MaxDuration);
 		}
 		else
 		{
-			DurationText = FText::Format(LOCTEXT("ItemStatusDuration", "{MinDuration}s"), Args);
+			DurationString = FString::Printf(TEXT("%4.4fs"), MinDuration);
 		}
 	}
-	return DurationText;
+	return DurationString;
 }
 
 
@@ -324,12 +304,9 @@ EVisibility SAutomationTestItem::ItemStatus_GetStatusVisibility(const int32 Clus
 }
 
 
-FText SAutomationTestItem::ItemStatus_NumParticipantsRequiredText() const
+FString SAutomationTestItem::ItemStatus_NumParticipantsRequiredText() const
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("NumParticipantsRequired"), TestStatus->GetNumParticipantsRequired());
-
-	return FText::Format(LOCTEXT("NumParticipantsRequiredWrapper", "x{NumParticipantsRequired}"), Args);
+	return FString::Printf( TEXT( "x %d" ), TestStatus->GetNumParticipantsRequired() );
 }
 
 

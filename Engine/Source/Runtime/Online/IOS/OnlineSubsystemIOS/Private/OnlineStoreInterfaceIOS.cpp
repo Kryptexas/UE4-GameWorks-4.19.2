@@ -185,7 +185,7 @@ bool FOnlineStoreInterfaceIOS::QueryForAvailablePurchases()
 		NSMutableSet* ProductSet = [NSMutableSet setWithCapacity:ProductIDs.Num()];
 		for (int32 ProductIdx = 0; ProductIdx < ProductIDs.Num(); ProductIdx++)
 		{
-			NSString* ID = [NSString stringWithFString:ProductIDs[ ProductIdx ]];
+			NSString* ID = [NSString stringWithCString:TCHAR_TO_UTF8( *ProductIDs[ ProductIdx ] ) encoding:NSUTF8StringEncoding];
 			// convert to NSString for the set objects
 			[ProductSet addObject:ID];
 		}
@@ -228,7 +228,7 @@ bool FOnlineStoreInterfaceIOS::BeginPurchase(int Index)
 		UE_LOG(LogOnline, Display, TEXT( "FOnlineStoreInterfaceIOS - Making a transaction of product %i" ), Index);
 
 		NSMutableSet* ProductSet = [NSMutableSet setWithCapacity:1];
-		NSString* ID = [NSString stringWithFString:AvailableProducts[Index].Identifier];
+		NSString* ID = [NSString stringWithCString:TCHAR_TO_UTF8( *AvailableProducts[Index].Identifier ) encoding:NSUTF8StringEncoding];
 		// convert to NSString for the set objects
 		[ProductSet addObject:ID];
 				
@@ -289,7 +289,7 @@ void FOnlineStoreInterfaceIOS::ProcessProductsResponse( SKProductsResponse* Resp
 			[numberFormatter setNumberStyle:NSNumberFormatterCurrencyStyle];
 			[numberFormatter setLocale:Product.priceLocale];
 
-			UE_LOG(LogOnline, Display, TEXT("Making a purchase: Product: %s, Price: %s"), *FString([Product localizedTitle]), *FString([numberFormatter stringFromNumber:Product.price]));
+			UE_LOG(LogOnline, Display, TEXT("Making a purchase: Product: %s, Price: %s"), ANSI_TO_TCHAR([[Product localizedTitle] cStringUsingEncoding:NSASCIIStringEncoding]), ANSI_TO_TCHAR([[numberFormatter stringFromNumber:Product.price] cStringUsingEncoding:NSASCIIStringEncoding]));
 
 			// now that we have recently refreshed the info, we can purchase it
 			SKPayment* Payment = [SKPayment paymentWithProduct:Product];
@@ -303,7 +303,7 @@ void FOnlineStoreInterfaceIOS::ProcessProductsResponse( SKProductsResponse* Resp
 		{
 			for(NSString *invalidProduct in Response.invalidProductIdentifiers)
 			{
-				UE_LOG(LogOnline, Display, TEXT("Problem in iTunes connect configuration for product: %s"), *FString(invalidProduct));
+				UE_LOG(LogOnline, Display, TEXT("Problem in iTunes connect configuration for product: %s"), ANSI_TO_TCHAR( [invalidProduct cStringUsingEncoding:NSASCIIStringEncoding]));
 			}
 
 			UE_LOG(LogOnline, Display, TEXT("Wrong number of products, [%d], in the response when trying to make a single purchase"), [Response.products count]);
@@ -328,13 +328,13 @@ void FOnlineStoreInterfaceIOS::ProcessProductsResponse( SKProductsResponse* Resp
 			[numberFormatter setNumberStyle:NSNumberFormatterCurrencyStyle];
 			[numberFormatter setLocale:Product.priceLocale];
 		
-			UE_LOG(LogOnline, Display, TEXT(": Product: %s, Price: %s"), *FString([Product localizedTitle]), *FString([numberFormatter stringFromNumber:Product.price]));
+			UE_LOG(LogOnline, Display, TEXT(": Product: %s, Price: %s"), ANSI_TO_TCHAR([[Product localizedTitle] cStringUsingEncoding:NSASCIIStringEncoding]), ANSI_TO_TCHAR([[numberFormatter stringFromNumber:Product.price] cStringUsingEncoding:NSASCIIStringEncoding]));
 			[numberFormatter release];
 		}
 		
 		for(NSString *invalidProduct in Response.invalidProductIdentifiers)
 		{
-			UE_LOG(LogOnline, Display, TEXT("Problem in iTunes connect configuration for product: %s"), *FString(invalidProduct));
+			UE_LOG(LogOnline, Display, TEXT("Problem in iTunes connect configuration for product: %s"), ANSI_TO_TCHAR( [invalidProduct cStringUsingEncoding:NSASCIIStringEncoding]));
 		}
 
 		TriggerOnQueryForAvailablePurchasesCompleteDelegates( bWasSuccessful );

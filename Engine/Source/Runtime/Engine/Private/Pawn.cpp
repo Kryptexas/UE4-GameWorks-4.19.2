@@ -90,23 +90,15 @@ void APawn::PostInitializeComponents()
 		}
 
 		UPawnMovementComponent* MovementComponent = GetMovementComponent();
-		// Update Nav Agent props with collision component's setup if it's not set yet
-		if (RootComponent != NULL && MovementComponent != NULL && MovementComponent->ShouldUpdateNavAgentWithOwnersCollision())
+		if (MovementComponent != NULL)
 		{
-			RootComponent->UpdateBounds();
-			MovementComponent->UpdateNavAgent(this);
+			// Update Nav Agent props with collision component's setup if it's not set yet
+			float BoundRadius, BoundHalfHeight;
+			GetSimpleCollisionCylinder(BoundRadius, BoundHalfHeight);
+			FNavAgentProperties* NavAgent = MovementComponent->GetNavAgentProperties();
+			NavAgent->AgentRadius = BoundRadius;
+			NavAgent->AgentHeight = BoundHalfHeight * 2.f;
 		}
-
-		//UPawnMovementComponent* MovementComponent = GetMovementComponent();
-		//if (MovementComponent != NULL)
-		//{
-		//	// Update Nav Agent props with collision component's setup if it's not set yet
-		//	float BoundRadius, BoundHalfHeight;
-		//	GetSimpleCollisionCylinder(BoundRadius, BoundHalfHeight);
-		//	FNavAgentProperties* NavAgent = MovementComponent->GetNavAgentProperties();
-		//	NavAgent->AgentRadius = BoundRadius;
-		//	NavAgent->AgentHeight = BoundHalfHeight * 2.f;
-		//}
 	}
 }
 
@@ -114,6 +106,22 @@ void APawn::PostInitializeComponents()
 void APawn::PostInitProperties()
 {
 	Super::PostInitProperties();
+
+	UPawnMovementComponent* MovementComponent = GetMovementComponent();
+	if (MovementComponent != NULL)
+	{
+		// Update Nav Agent props with collision component's setup if it's not set yet
+		if (RootComponent)
+		{
+			// Can't call GetSimpleCollisionCylinder(), because no components will be registered.
+			float BoundRadius, BoundHalfHeight;
+			RootComponent->UpdateBounds();
+			RootComponent->CalcBoundingCylinder(BoundRadius, BoundHalfHeight);
+			FNavAgentProperties* NavAgent = MovementComponent->GetNavAgentProperties();
+			NavAgent->AgentRadius = BoundRadius;
+			NavAgent->AgentHeight = BoundHalfHeight * 2.f;
+		}	
+	}
 }
 
 void APawn::PostLoad()

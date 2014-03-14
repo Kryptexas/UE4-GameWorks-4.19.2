@@ -16,5 +16,8 @@ class UAnimationStateMachineGraph : public UEdGraph
 	// Parent instance node
 	UPROPERTY()
 	class UAnimGraphNode_StateMachineBase* OwnerAnimGraphNode;
+
+#if WITH_EDITOR
+#endif
 };
 

@@ -82,8 +82,12 @@ class UK2Node_EditablePinBase : public UK2Node
 	UPROPERTY()
 	uint32 bIsEditable:1;
 
+
+
+#if WITH_EDITORONLY_DATA
 	/** Pins defined by the user */
 	TArray< TSharedPtr<FUserPinInfo> >UserDefinedPins;
+#endif // WITH_EDITORONLY_DATA
 
 	BLUEPRINTGRAPH_API virtual bool IsEditable() const { return bIsEditable; }
 

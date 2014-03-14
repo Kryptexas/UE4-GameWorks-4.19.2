@@ -37,27 +37,30 @@ public:
 	virtual void Reset( ) OVERRIDE;
 	
 	virtual bool SetCompressed( const void* InCompressedData, int32 InCompressedSize ) OVERRIDE;
+	
+	virtual bool SetRaw( const void* InRawData, int32 InRawSize, const int32 InWidth, const int32 InHeight, const ERGBFormat::Type InFormat, const int32 InBitDepth ) OVERRIDE;
 
 	virtual void Uncompress( const ERGBFormat::Type InFormat, int32 InBitDepth ) OVERRIDE;
 	
 	// End FImageWrapper Interface
+
+
+protected:
 
 	/** 
 	 * Query whether this is a valid PNG type.
 	 *
 	 * @return true if data a PNG
 	 */
-	bool IsPNG() const;
+	bool IsPNG( ) const;
 
 	/** 
 	 * Load the header information, returns true if successful.
 	 *
 	 * @return true if successful
 	 */
-	bool LoadPNGHeader();
+	bool LoadHeader( );
 
-	/** Helper function used to uncompress PNG data from a buffer */
-	void UncompressPNGData( const ERGBFormat::Type InFormat, const int32 InBitDepth );
 
 protected:
 

@@ -84,7 +84,6 @@ DECLARE_LOG_CATEGORY_EXTERN(LogAssetTools, Log, All);
 
 #include "SDiscoveringAssetsDialog.h"
 #include "AssetRenameManager.h"
-#include "AssetFixUpRedirectors.h"
 #include "AssetTools.h"
 
 #endif

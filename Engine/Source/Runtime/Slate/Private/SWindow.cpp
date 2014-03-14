@@ -96,10 +96,6 @@ private:
 		const FVector2D WindowDesktopPosition = (ensure(OwnerWindow.IsValid()))
 			? OwnerWindow.Pin()->GetPositionInScreen()
 			: FVector2D::ZeroVector;
-
-		const FVector2D WindowSize = (ensure(OwnerWindow.IsValid()))
-			? OwnerWindow.Pin()->GetClientSizeInScreen()
-			: FVector2D::ZeroVector;
 		
 		for ( int32 ChildIndex = 0; ChildIndex < Children.Num(); ++ChildIndex )
 		{
@@ -107,19 +103,9 @@ private:
 			const EVisibility ChildVisibility = CurChild.Widget->GetVisibility();
 			if ( ArrangedChildren.Accepts(ChildVisibility) )
 			{
+				const FVector2D ChildLocalPosition = CurChild.DesktopPosition_Attribute.Get() - WindowDesktopPosition;
 				const FVector2D WidgetDesiredSize = CurChild.Widget->GetDesiredSize();
 				const float ChildScale = CurChild.Scale_Attribute.Get();
-				const bool bClampToWindow = CurChild.Clamp_Attribute.Get();
-				const FVector2D ChildSize = WidgetDesiredSize * ChildScale;
-				FVector2D ChildLocalPosition = CurChild.DesktopPosition_Attribute.Get() - WindowDesktopPosition;
-				
-				if(bClampToWindow)
-				{
-					FVector2D ClampBufferReducedWindowSize = WindowSize - CurChild.ClampBuffer_Attribute.Get();
-					ChildLocalPosition.X = FMath::Clamp(ChildLocalPosition.X - FMath::Max(0.0f, (ChildLocalPosition.X  + WidgetDesiredSize.X ) - ClampBufferReducedWindowSize.X), 0.0f, MAX_flt);
-					ChildLocalPosition.Y = FMath::Clamp(ChildLocalPosition.Y - FMath::Max(0.0f, (ChildLocalPosition.Y  + WidgetDesiredSize.Y ) - ClampBufferReducedWindowSize.Y), 0.0f, MAX_flt);
-				}
-
 				// The position is explicitly in desktop pixels.
 				// The size and DPI scale come from the widget that is using
 				// this overlay to "punch" through the UI.

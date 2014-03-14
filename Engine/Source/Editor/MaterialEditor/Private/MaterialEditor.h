@@ -323,10 +323,8 @@ public:
 
 	/**
 	 * Updates list of Material Info used to show stats
-	 *
-	 * @param bForceDisplay	Whether we want to ensure stats tab is displayed.
 	 */
-	void UpdateMaterialInfoList(bool bForceDisplay = false);
+	void UpdateMaterialInfoList();
 
 	/**
 	 * Updates flags on the Material Nodes to avoid expensive look up calls when rendering
@@ -696,7 +694,6 @@ private:
 	TSharedRef<SDockTab> SpawnTab_MaterialFunctions(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_HLSLCode(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_Palette(const FSpawnTabArgs& Args);
-	TSharedRef<SDockTab> SpawnTab_Stats(const FSpawnTabArgs& Args);
 private:
 	/** List of open tool panels; used to ensure only one exists at any one time */
 	TMap< FName, TWeakPtr<class SDockableTab> > SpawnedToolPanels;
@@ -723,10 +720,6 @@ private:
 
 	/** Palette of Material Expressions and functions */
 	TSharedPtr<class SMaterialPalette> Palette;
-
-	/** Stats log, with the log listing that it reflects */
-	TSharedPtr<class SWidget> Stats;
-	TSharedPtr<class IMessageLogListing> StatsListing;
 
 	/** True if the Material Editor's function list needs to refresh. */
 	bool bFunctionListNeedsRefresh;
@@ -790,7 +783,6 @@ private:
 	static const FName FunctionsTabId;	
 	static const FName HLSLCodeTabId;	
 	static const FName PaletteTabId;
-	static const FName StatsTabId;
 };
 
 

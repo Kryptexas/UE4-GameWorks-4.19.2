@@ -803,7 +803,6 @@ void UAnimSequence::GetBonePose(FTransformArrayA2 & OutAtoms, const FBoneContain
 		ExtractionContext.CurrentTime,
 		bDoLoopingInterpolation);
 
-	// Once pose has been extracted, snap root bone back to first frame if we are extracting root motion.
 	if( ExtractionContext.bExtractRootMotionTranslation || ExtractionContext.bExtractRootMotionRotation )
 	{
 		ResetRootBoneForRootMotion(OutAtoms, RequiredBones, ExtractionContext);

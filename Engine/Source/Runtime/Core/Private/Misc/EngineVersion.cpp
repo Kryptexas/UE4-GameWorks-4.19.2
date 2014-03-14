@@ -45,8 +45,8 @@ bool FEngineVersion::IsPromotedBuild() const
 
 bool FEngineVersion::IsCompatibleWith(const FEngineVersion &Other) const
 {
-	// If this or the other is not a promoted build, always assume compatibility. 
-	if(!IsPromotedBuild() || !Other.IsPromotedBuild())
+	// If this is not a promoted build, always assume compatibility. 
+	if(!IsPromotedBuild())
 	{
 		return true;
 	}

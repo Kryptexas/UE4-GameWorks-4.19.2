@@ -1450,7 +1450,7 @@ struct ENGINE_API FOverlapResult
 };
 
 /** Struct used for passing information from Matinee to an Actor for blending animations during a sequence. */
-USTRUCT()
+USTRUCT(transient)
 struct FAnimSlotInfo
 {
 	GENERATED_USTRUCT_BODY()
@@ -1465,7 +1465,7 @@ struct FAnimSlotInfo
 };
 
 /** Used to indicate each slot name and how many channels they have. */
-USTRUCT()
+USTRUCT(transient)
 struct FAnimSlotDesc
 {
 	GENERATED_USTRUCT_BODY()
@@ -1639,12 +1639,9 @@ struct FMeshBuildSettings
 	UPROPERTY(EditAnywhere, Category=BuildSettings)
 	bool bUseFullPrecisionUVs;
 
-	UPROPERTY()
-	float BuildScale_DEPRECATED;
-
 	/** The local scale applied when building the mesh */
-	UPROPERTY(EditAnywhere, Category=BuildSettings, meta=(DisplayName="Build Scale"))
-	FVector BuildScale3D;
+	UPROPERTY(EditAnywhere, Category=BuildSettings)
+	float BuildScale;
 
 	/** Default settings. */
 	FMeshBuildSettings()
@@ -1652,8 +1649,7 @@ struct FMeshBuildSettings
 		, bRecomputeTangents(true)
 		, bRemoveDegenerates(true)
 		, bUseFullPrecisionUVs(false)
-		, BuildScale_DEPRECATED(1.0f)
-		, BuildScale3D(1.0f, 1.0f, 1.0f)
+		, BuildScale(1.0f)
 	{
 	}
 
@@ -1664,7 +1660,7 @@ struct FMeshBuildSettings
 			&& bRecomputeTangents == Other.bRecomputeTangents
 			&& bRemoveDegenerates == Other.bRemoveDegenerates
 			&& bUseFullPrecisionUVs == Other.bUseFullPrecisionUVs
-			&& BuildScale3D == Other.BuildScale3D;
+			&& BuildScale == Other.BuildScale;
 	}
 
 	/** Inequality. */

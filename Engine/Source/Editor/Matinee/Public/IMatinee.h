@@ -18,7 +18,7 @@ public:
 	virtual UInterpData* GetInterpData() = 0;
 
 	virtual void ActorModified( bool bUpdateViewportTransform = true ) = 0;
-	virtual void ActorSelectionChange( const bool bClearSelectionIfInvalid = true ) = 0;
+	virtual void ActorSelectionChange() = 0;
 	virtual void CamMoved(const FVector& NewCamLocation, const FRotator& NewCamRotation) = 0;
 	virtual bool ProcessKeyPress(FKey Key, bool bCtrlDown, bool bAltDown) = 0;
 
@@ -48,8 +48,6 @@ public:
 
 	virtual void StartPlaying( bool bPlayLoop, bool bPlayForward ) = 0;
 	virtual void StopPlaying() = 0;
-	virtual void ResumePlaying() = 0;
-
 	virtual void StartRecordingMovie() = 0;
 	virtual bool Hide3DTrackView() = 0;
 	virtual void ToggleRecordMenuDisplay() = 0;

@@ -39,11 +39,6 @@ class FAndroid_PVRTCTargetPlatform
 		}
 		return false;
 	}
-
-	virtual bool SupportedByExtensionsString( const FString& ExtensionsString, const int GLESVersion ) const OVERRIDE
-	{
-		return ExtensionsString.Contains(TEXT("GL_IMG_texture_compression_pvrtc"));
-	}
 };
 
 /**

@@ -9,7 +9,6 @@
 #include "Engine.h"
 #include "StereoRendering.h"
 #include "HighResScreenshot.h"
-#include "Slate/SceneViewport.h"
 
 DEFINE_LOG_CATEGORY(LogBufferVisualization);
 
@@ -25,6 +24,17 @@ static TAutoConsoleVariable<float> CVarSSRMaxRoughness(
 	TEXT("(Useful for testing, no scalability or project setting)\n")
 	TEXT(" 0..1: use specified max roughness (overrride PostprocessVolume setting)\n")
 	TEXT(" -1: no override (default)"),
+	ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<float> CVarSSRRoughnessScale(
+	TEXT("r.SSR.RoughnessScale"),
+	-1.0f,
+	TEXT("Allows to override the post process setting ScreenSpaceReflectionRoughnessScale.\n")
+	TEXT("(Useful for testing, no scalability or project setting)\n")
+	TEXT("   0: don't do glossy screen space reflections (faster, no noise)\n")
+	TEXT("0..1: transiation betwene 0 and 1 (adjustable noise)\n")
+	TEXT("   1: realistic and fitting to other reflections\n")
+	TEXT("  -1: no override (default)"),
 	ECVF_RenderThreadSafe);
 #endif
 
@@ -601,6 +611,7 @@ void FSceneView::OverridePostProcessSettings(const FPostProcessSettings& Src, fl
 	LERP_PP(ScreenSpaceReflectionQuality);
 	LERP_PP(ScreenSpaceReflectionIntensity);
 	LERP_PP(ScreenSpaceReflectionMaxRoughness);
+	LERP_PP(ScreenSpaceReflectionRoughnessScale);
 
 	// cubemaps are getting blended additively - in contrast to other properties, maybe we should make that consistent
 	if(Src.AmbientCubemap && Src.bOverride_AmbientCubemapIntensity)
@@ -870,6 +881,15 @@ void FSceneView::EndFinalPostprocessSettings()
 			FinalPostProcessSettings.ScreenSpaceReflectionMaxRoughness = Value;
 		}
 	}
+
+	{
+		float Value = CVarSSRRoughnessScale.GetValueOnGameThread();
+
+		if(Value >= 0.0f)
+		{
+			FinalPostProcessSettings.ScreenSpaceReflectionRoughnessScale = Value;
+		}
+	}
 #endif
 
 	{
@@ -936,7 +956,6 @@ void FSceneView::EndFinalPostprocessSettings()
 		ConfigureBufferVisualizationSettings();
 	}
 
-#if WITH_EDITOR
 	// Access the materials for the hires screenshot system
 	static UMaterial* HighResScreenshotMaterial = NULL;
 	static UMaterial* HighResScreenshotMaskMaterial = NULL;
@@ -975,29 +994,23 @@ void FSceneView::EndFinalPostprocessSettings()
 	// If the highres screenshot UI is open and we're not taking a highres screenshot this frame
 	if (Config.bDisplayCaptureRegion && !GIsHighResScreenshot)
 	{
-		// Only enable the capture region effect if the capture region is different from the view rectangle...
+		// Only enable the capture region effect if the capture region is different from the view rectangle
 		if (Config.UnscaledCaptureRegion != ViewRect && Config.UnscaledCaptureRegion.Width() != -1 && Config.UnscaledCaptureRegion.Height() != -1 && State != NULL)
 		{
-			// ...and if this is the viewport associated with the highres screenshot UI
-			auto ConfigViewport = Config.TargetViewport.Pin();
-			if (ConfigViewport.IsValid() && Family && Family->RenderTarget == ConfigViewport->GetViewport())
-			{
-				static const FName ParamName = "RegionRect";
-				FLinearColor NormalizedCaptureRegion;
+			static const FName ParamName = "RegionRect";
+			FLinearColor NormalizedCaptureRegion;
 
-				// Normalize capture region into view rectangle
-				NormalizedCaptureRegion.R = (float)Config.UnscaledCaptureRegion.Min.X / (float)ViewRect.Width();
-				NormalizedCaptureRegion.G = (float)Config.UnscaledCaptureRegion.Min.Y / (float)ViewRect.Height();
-				NormalizedCaptureRegion.B = (float)Config.UnscaledCaptureRegion.Max.X / (float)ViewRect.Width();
-				NormalizedCaptureRegion.A = (float)Config.UnscaledCaptureRegion.Max.Y / (float)ViewRect.Height();
+			// Normalize capture region into view rectangle
+			NormalizedCaptureRegion.R = (float)Config.UnscaledCaptureRegion.Min.X / (float)ViewRect.Width();
+			NormalizedCaptureRegion.G = (float)Config.UnscaledCaptureRegion.Min.Y / (float)ViewRect.Height();
+			NormalizedCaptureRegion.B = (float)Config.UnscaledCaptureRegion.Max.X / (float)ViewRect.Width();
+			NormalizedCaptureRegion.A = (float)Config.UnscaledCaptureRegion.Max.Y / (float)ViewRect.Height();
 
-				// Get a MID for drawing this frame and push the capture region into the shader parameter
-				FinalPostProcessSettings.HighResScreenshotCaptureRegionMaterial = State->GetReusableMID(HighResScreenshotCaptureRegionMaterial);
-				FinalPostProcessSettings.HighResScreenshotCaptureRegionMaterial->SetVectorParameterValue(ParamName, NormalizedCaptureRegion);
-			}
+			// Get a MID for drawing this frame and push the capture region into the shader parameter
+			FinalPostProcessSettings.HighResScreenshotCaptureRegionMaterial = State->GetReusableMID(HighResScreenshotCaptureRegionMaterial);
+			FinalPostProcessSettings.HighResScreenshotCaptureRegionMaterial->SetVectorParameterValue(ParamName, NormalizedCaptureRegion);
 		}
 	}
-#endif // WITH_EDITOR
 }
 
 void FSceneView::ConfigureBufferVisualizationSettings()

@@ -174,18 +174,6 @@ bool UK2Node_BaseMCDelegate::IsAuthorityOnly() const
 
 }
 
-bool UK2Node_BaseMCDelegate::HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput) const
-{
-	const UClass* SourceClass = DelegateReference.GetMemberParentClass(this);
-	const UBlueprint* SourceBlueprint = GetBlueprint();
-	const bool bResult = (SourceClass != NULL) && (SourceClass->ClassGeneratedBy != NULL) && (SourceClass->ClassGeneratedBy != SourceBlueprint);
-	if (bResult && OptionalOutput)
-	{
-		OptionalOutput->Add(GetDelegateSignature());
-	}
-	return bResult;
-}
-
 /////// UK2Node_AddDelegate ///////////
 
 UK2Node_AddDelegate::UK2Node_AddDelegate(const class FPostConstructInitializeProperties& PCIP)

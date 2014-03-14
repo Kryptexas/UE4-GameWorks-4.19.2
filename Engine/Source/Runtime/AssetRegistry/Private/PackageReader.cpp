@@ -248,10 +248,12 @@ bool FPackageReader::ReadAssetDataFromThumbnailCache(TArray<FBackgroundAssetData
 
 bool FPackageReader::ReadDependencyData (FPackageDependencyData& OutDependencyData)
 {
-	OutDependencyData.PackageName = FName(*FPackageName::FilenameToLongPackageName(PackageFilename));
+	OutDependencyData.PackageName = FPackageName::FilenameToLongPackageName(PackageFilename);
 
 	SerializeNameMap();
 	SerializeImportMap(OutDependencyData.ImportMap);
+	SerializeExportMap(OutDependencyData.ExportMap);
+	SerializeDependsMap(OutDependencyData.DependsMap);
 
 	return true;
 }
@@ -286,6 +288,32 @@ void FPackageReader::SerializeImportMap(TArray<FObjectImport>& OutImportMap)
 		{
 			FObjectImport* Import = new(OutImportMap)FObjectImport;
 			*this << *Import;
+		}
+	}
+}
+
+void FPackageReader::SerializeExportMap(TArray<FObjectExport>& OutExportMap)
+{
+	if( PackageFileSummary.ExportCount > 0 )
+	{
+		Seek( PackageFileSummary.ExportOffset );
+		for ( int32 ExportMapIdx = 0; ExportMapIdx < PackageFileSummary.ExportCount; ++ExportMapIdx )
+		{
+			FObjectExport* Export = new(OutExportMap)FObjectExport;
+			*this << *Export;
+		}
+	}
+}
+
+void FPackageReader::SerializeDependsMap(TArray<TArray<FPackageIndex> >& OutDependsMap)
+{
+	if( PackageFileSummary.ExportCount > 0 )
+	{
+		Seek(PackageFileSummary.DependsOffset);
+		for ( int32 DependsMapIdx = 0; DependsMapIdx < PackageFileSummary.ExportCount; ++DependsMapIdx)
+		{
+			TArray<FPackageIndex>* Depends = new(OutDependsMap)TArray<FPackageIndex>;
+			*this << *Depends;
 		}
 	}
 }

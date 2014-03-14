@@ -49,7 +49,7 @@ void UAudioComponent::OnRegister()
 
 	if ( bVisualizeComponent && SpriteComponent == NULL && GetOwner() && !GetWorld()->IsGameWorld() )
 	{
-		SpriteComponent = ConstructObject<UBillboardComponent>(UBillboardComponent::StaticClass(), GetOwner(), NAME_None, RF_Transactional | RF_TextExportTransient);
+		SpriteComponent = ConstructObject<UBillboardComponent>(UBillboardComponent::StaticClass(), GetOwner(), NAME_None, RF_Transactional);
 
 		UpdateSpriteTexture();
 		SpriteComponent->AttachTo(this);
@@ -58,8 +58,6 @@ void UAudioComponent::OnRegister()
 		SpriteComponent->SpriteInfo.Category = TEXT("Misc");
 		SpriteComponent->SpriteInfo.DisplayName = NSLOCTEXT( "SpriteCategory", "Misc", "Misc" );
 		SpriteComponent->bCreatedByConstructionScript = bCreatedByConstructionScript;
-		SpriteComponent->bIsScreenSizeScaled = true;
-		SpriteComponent->bUseInEditorScaling = true;
 
 		SpriteComponent->RegisterComponent();
 	}

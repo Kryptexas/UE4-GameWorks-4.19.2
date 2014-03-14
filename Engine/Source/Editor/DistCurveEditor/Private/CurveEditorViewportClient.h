@@ -42,9 +42,6 @@ private:
 		AxisLock_Vertical
 	};
 
-	/** Checks to see if the hit was on a non-graph element and processes */
-	bool ProcessNonGraphHit(HHitProxy* HitResult);
-
 	/** Updates the states of the scrollbars */
 	void UpdateScrollBars();
 

@@ -452,11 +452,6 @@ void UObjectPropertyBase::CheckValidObject(void* Value) const
 	}
 }
 
-bool UObjectPropertyBase::SameType(const UProperty* Other) const
-{
-	return Super::SameType(Other) && (PropertyClass == ((UObjectPropertyBase*)Other)->PropertyClass);
-}
-
 IMPLEMENT_CORE_INTRINSIC_CLASS(UObjectPropertyBase, UProperty,
 	{
 		Class->EmitObjectReference( STRUCT_OFFSET( UObjectProperty, PropertyClass ) );

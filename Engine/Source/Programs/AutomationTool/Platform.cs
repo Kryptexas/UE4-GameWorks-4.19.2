@@ -202,16 +202,6 @@ namespace AutomationTool
 		}
 
 		/// <summary>
-		/// Called after CopyUsingStagingManifest.  Does anything platform specific that requires a final list of staged files.
-		/// e.g.  PlayGo emulation control file generation for PS4.
-		/// </summary>
-		/// <param name="Params"></param>
-		/// <param name="SC"></param>
-		public virtual void PostStagingFileCopy(ProjectParams Params, DeploymentContext SC)
-		{
-		}
-
-		/// <summary>
 		/// Get the files to deploy, specific to this platform, typically binaries
 		/// </summary>
 		/// <param name="SC">Deployment Context</param>
@@ -231,15 +221,6 @@ namespace AutomationTool
 		{
 			throw new AutomationException("{0} does not yet implement GetCookPlatform.", PlatformType);
 		}
-
-        /// <summary>
-        /// Gets editor cook platform name for this platform. Cooking the editor is not useful, but this is used to fill the derived data cache
-        /// </summary>
-        /// <returns>Cook platform string.</returns>
-        public virtual string GetEditorCookPlatform()
-        {
-            return GetCookPlatform(false, false, "");
-        }
 
 		/// <summary>
 		/// return true if we need to change the case of filenames inside of pak files
@@ -269,15 +250,6 @@ namespace AutomationTool
 		{
 			return LocalPath;
 		}
-        /// <summary>
-        /// Returns a list of the compiler produced debug file extensions
-        /// </summary>
-        /// <returns>a list of the compiler produced debug file extensions</returns>
-        public virtual List<string> GetDebugFileExtentions()
-        {
-            return new List<string>();
-        }
-
 
         /// <summary>
         /// Allow the platform to setup emails for the GUBP for folks that care about node failures relating to this platform
@@ -359,14 +331,6 @@ namespace AutomationTool
 		{
 			return true;
 		}
-
-        /// <summary>
-        /// Only relevant for the mac and PC at the moment. Example calling the Mac platform with PS4 as an arg will return false. Can't compile or cook for the PS4 on the mac.
-        /// </summary>
-        public virtual bool CanHostPlatform(UnrealTargetPlatform Platform)
-        {
-            return false;
-        }
 
 		#endregion
 

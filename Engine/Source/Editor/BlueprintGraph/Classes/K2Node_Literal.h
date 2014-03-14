@@ -16,6 +16,7 @@ private:
 
 public:
 
+#if WITH_EDITOR
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() OVERRIDE;
 	virtual FString GetTooltip() const OVERRIDE;
@@ -43,5 +44,7 @@ public:
 
 	/** Gets the referenced object */
 	BLUEPRINTGRAPH_API UObject* GetObjectRef() const { return ObjectRef; }
+
+#endif
 };
 

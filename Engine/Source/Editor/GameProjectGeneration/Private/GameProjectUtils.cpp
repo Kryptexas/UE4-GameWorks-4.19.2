@@ -85,7 +85,7 @@ bool GameProjectUtils::IsValidProjectFileForCreation(const FString& ProjectFile,
 	{
 		FFormatNamedArguments Args;
 		Args.Add( TEXT("IllegalPathCharacters"), FText::FromString( IllegalPathCharacters ) );
-		OutFailReason = FText::Format( LOCTEXT( "ProjectNameContainsIllegalCharacters", "Project names may not contain the following characters: {IllegalNameCharacters}" ), Args );
+		OutFailReason = FText::Format( LOCTEXT( "ProjectPathContainsIllegalCharacters", "Project names may not contain the following characters: {IllegalNameCharacters}" ), Args );
 		return false;
 	}
 
@@ -1670,22 +1670,13 @@ bool GameProjectUtils::GenerateGameResourceFile(const FString& NewResourceFolder
 	
 	FString OutputFilename = TemplateFilename.Replace(TEXT("_GAME_NAME_"), *GameName);
 	FString FullOutputFilename = NewResourceFolderName / OutputFilename;
-
-	struct Local
+	if (WriteOutputFile(FullOutputFilename, FinalOutput, OutFailReason))
 	{
-		static bool WriteFile(const FString& InDestFile, const FText& InFileDescription, FText& OutFailReason, FString* InFileContents, TArray<FString>* OutCreatedFiles)
-		{
-			if (WriteOutputFile(InDestFile, *InFileContents, OutFailReason))
-			{
-				OutCreatedFiles->Add(InDestFile);
-				return true;
-			}
+		OutCreatedFiles.Add(FullOutputFilename);
+		return true;
+	}
 
-			return false;
-		}
-	};
-
-	return SourceControlHelpers::CheckoutOrMarkForAdd(FullOutputFilename, LOCTEXT("ResourceFileDescription", "resource"), FOnPostCheckOut::CreateStatic(&Local::WriteFile, &FinalOutput, &OutCreatedFiles), OutFailReason);
+	return false;
 }
 
 bool GameProjectUtils::GenerateGameResourceFiles(const FString& NewResourceFolderName, const FString& GameName, TArray<FString>& OutCreatedFiles, FText& OutFailReason)
@@ -1701,8 +1692,8 @@ bool GameProjectUtils::GenerateGameResourceFiles(const FString& NewResourceFolde
 	FString FullTemplateFilename = FPaths::EngineContentDir() / TEXT("Editor") / TEXT("Templates") / TemplateFilename;
 	FString OutputFilename = TemplateFilename.Replace(*IconPartialName, *GameName);
 	FString FullOutputFilename = NewResourceFolderName / OutputFilename;
-	bSucceeded &= SourceControlHelpers::CopyFileUnderSourceControl(FullOutputFilename, FullTemplateFilename, LOCTEXT("IconFileDescription", "icon"), OutFailReason);
-	if(bSucceeded)
+	bSucceeded &= (IFileManager::Get().Copy(*FullOutputFilename, *FullTemplateFilename) == COPY_OK);
+	if (bSucceeded)
 	{
 		OutCreatedFiles.Add(FullOutputFilename);
 	}

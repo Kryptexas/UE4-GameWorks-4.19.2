@@ -151,12 +151,6 @@ public:
 
 	/** Helper function to set the position of a sound node on a grid */
 	void PlaceNode(int32 NodeColumn, int32 NodeRow, int32 RowCount );
-
-	/** Called as PIE begins */
-	virtual void OnBeginPIE(const bool bIsSimulating) {};
-
-	/** Called as PIE ends */
-	virtual void OnEndPIE(const bool bIsSimulating) {};
 #endif //WITH_EDITOR
 
 	/** 

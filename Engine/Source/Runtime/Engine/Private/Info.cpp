@@ -27,7 +27,6 @@ AInfo::AInfo(const class FPostConstructInitializeProperties& PCIP)
 		SpriteComponent->Sprite = ConstructorStatics.SpriteTexture.Get();
 		SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Info;
 		SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Info;
-		SpriteComponent->bIsScreenSizeScaled = true;
 	}
 #endif // WITH_EDITORONLY_DATA
 

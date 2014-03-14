@@ -26,7 +26,7 @@ public:
 
 	virtual SHeaderRow::FColumn::FArguments ConstructHeaderRowColumn() OVERRIDE;
 
-	virtual const TSharedRef< SWidget > ConstructRowWidget( const TSharedRef<SceneOutliner::TOutlinerTreeItem> TreeItem ) OVERRIDE;
+	virtual const TSharedRef< SWidget > ConstructRowWidget( const TWeakObjectPtr< AActor >&  Actor ) OVERRIDE;
 
 	virtual bool ProvidesSearchStrings() OVERRIDE;
 
@@ -47,15 +47,13 @@ private:
 
 	EVisibility GetColumnDataVisibility( bool bIsClassHyperlink ) const;
 
-	FString GetTextForItem( const TSharedRef<SceneOutliner::TOutlinerTreeItem> TreeItem ) const;
-
 	FString GetTextForActor( const TWeakObjectPtr< AActor > TreeItem ) const;
 
 	FText MakeComboText( const ECustomColumnMode::Type& Mode ) const;
 
 	FText MakeComboToolTipText( const ECustomColumnMode::Type& Mode );
 
-	TSharedRef< ITableRow > MakeComboButtonItemWidget( TSharedPtr< ECustomColumnMode::Type > Mode, const TSharedRef<STableViewBase> & );
+	TSharedRef< SWidget > MakeComboButtonItemWidget( TSharedPtr< ECustomColumnMode::Type > Mode );
 
 	FText GetSelectedMode() const;
 

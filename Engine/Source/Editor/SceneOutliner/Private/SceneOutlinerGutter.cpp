@@ -2,7 +2,6 @@
 
 
 #include "SceneOutlinerPrivatePCH.h"
-#include "SceneOutlinerTreeItems.h"
 
 #define LOCTEXT_NAMESPACE "SceneOutlinerGutter"
 
@@ -12,9 +11,6 @@ public:
 	
 	/** Flag which defines whether to hide destination actors or not */
 	bool bHidden;
-
-	/** Undo transaction stolen from the gutter which is kept alive for the duration of the drag */
-	TUniquePtr<FScopedTransaction> UndoTransaction;
 
 	/** Get the type ID for this drag/drop operation */
 	static FString GetTypeId() { static FString Type = TEXT("FVisibilityDragDropOp"); return Type; }
@@ -26,13 +22,12 @@ public:
 	}
 
 	/** Create a new drag and drop operation out of the specified flag */
-	static TSharedRef<FVisibilityDragDropOp> New(const bool _bHidden, TUniquePtr<FScopedTransaction>& ScopedTransaction)
+	static TSharedRef<FVisibilityDragDropOp> New(const bool _bHidden)
 	{
 		TSharedRef<FVisibilityDragDropOp> Operation = MakeShareable(new FVisibilityDragDropOp);
 		FSlateApplication::GetDragDropReflector().RegisterOperation<FVisibilityDragDropOp>(Operation);
 
 		Operation->bHidden = _bHidden;
-		Operation->UndoTransaction = MoveTemp(ScopedTransaction);
 
 		Operation->Construct();
 		return Operation;
@@ -44,13 +39,13 @@ class SVisibilityWidget : public SImage
 {
 public:
 	SLATE_BEGIN_ARGS(SVisibilityWidget){}
-		SLATE_ARGUMENT(TWeakPtr<SceneOutliner::TOutlinerTreeItem>, TreeItem);
+		SLATE_ARGUMENT(TWeakObjectPtr<AActor>, Actor);
 	SLATE_END_ARGS()
 
 	/** Construct this widget */
 	void Construct(const FArguments& InArgs)
 	{
-		WeakTreeItem = InArgs._TreeItem;
+		WeakActor = InArgs._Actor;
 
 		SImage::Construct(
 			SImage::FArguments()
@@ -59,8 +54,9 @@ public:
 	}
 
 	/** Check if the specified actor is visible */
-	static bool IsActorVisible(const AActor* Actor)
+	static bool IsActorVisible(TWeakObjectPtr<AActor> WeakActor)
 	{
+		const auto* Actor = WeakActor.Get();
 		return Actor && !Actor->IsTemporarilyHiddenInEditor();
 	}
 
@@ -69,9 +65,11 @@ private:
 	/** Start a new drag/drop operation for this widget */
 	virtual FReply OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) OVERRIDE
 	{
-		if (MouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton))
+		const auto* Actor = WeakActor.Get();
+
+		if (MouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton) && Actor)
 		{
-			return FReply::Handled().BeginDragDrop(FVisibilityDragDropOp::New(!IsVisible(), UndoTransaction));
+			return FReply::Handled().BeginDragDrop(FVisibilityDragDropOp::New(Actor->IsTemporarilyHiddenInEditor()));
 		}
 		else
 		{
@@ -85,7 +83,7 @@ private:
 		if (DragDrop::IsTypeMatch<FVisibilityDragDropOp>(DragDropEvent.GetOperation()))
 		{
 			TSharedPtr<FVisibilityDragDropOp> DragOp = StaticCastSharedPtr<FVisibilityDragDropOp>(DragDropEvent.GetOperation());
-			SetIsVisible(!DragOp->bHidden);
+			SetActorHidden(DragOp->bHidden);
 		}
 	}
 
@@ -97,36 +95,19 @@ private:
 			return FReply::Unhandled();
 		}
 
-		// Open an undo transaction
-		UndoTransaction.Reset(new FScopedTransaction(LOCTEXT("SetActorVisibility", "Set Actor Visibility")));
-
-		SetIsVisible(!IsVisible());
-
-		return FReply::Handled().DetectDrag(SharedThis(this), EKeys::LeftMouseButton);
-	}
-
-	/** Process a mouse up message */
-	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE
-	{
-		if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
+		auto* Actor = WeakActor.Get();
+		if (Actor)
 		{
-			UndoTransaction.Reset();
-			return FReply::Handled();
+			SetActorHidden(IsActorVisible());
 		}
 
-		return FReply::Unhandled();
-	}
-
-	/** Called when this widget had captured the mouse, but that capture has been revoked for some reason. */
-	virtual void OnMouseCaptureLost() OVERRIDE
-	{
-		UndoTransaction.Reset();
+		return FReply::Handled().DetectDrag(SharedThis(this), EKeys::LeftMouseButton);
 	}
 
 	/** Get the brush for this widget */
 	const FSlateBrush* GetBrush() const
 	{
-		if (IsVisible())
+		if (IsActorVisible())
 		{
 			return IsHovered() ? FEditorStyle::GetBrush( "Level.VisibleHighlightIcon16x" ) :
 				FEditorStyle::GetBrush( "Level.VisibleIcon16x" );
@@ -139,36 +120,31 @@ private:
 	}
 
 	/** Check if the specified actor is visible */
-	bool IsVisible() const
+	bool IsActorVisible() const
 	{
-		auto TreeItem = WeakTreeItem.Pin();
-		if (TreeItem.IsValid())
-		{
-			return TreeItem->IsVisible();
-		}
-		return false;
+		return IsActorVisible(WeakActor);
 	}
 
 	/** Set the actor this widget is responsible for to be hidden or shown */
-	void SetIsVisible(const bool bVisible)
+	void SetActorHidden(const bool bHidden)
 	{
-		if (IsVisible() != bVisible)
+		if (IsActorVisible() == bHidden)
 		{
-			auto TreeItem = WeakTreeItem.Pin();
-			if (TreeItem.IsValid())
+			auto* Actor = WeakActor.Get();
+			if (Actor)
 			{
-				TreeItem->SetIsVisible(bVisible);
+				// Save the actor to the transaction buffer to support undo/redo, but do
+				// not call Modify, as we do not want to dirty the actor's package and
+				// we're only editing temporary, transient values
+				SaveToTransactionBuffer(Actor, false);
+				Actor->SetIsTemporarilyHiddenInEditor( bHidden );
+				GEditor->RedrawAllViewports();
 			}
-
-			GEditor->RedrawAllViewports();
 		}
 	}
 
-	/** Tree item that we relate to */
-	TWeakPtr<SceneOutliner::TOutlinerTreeItem> WeakTreeItem;
-
-	/** Scoped undo transaction */
-	TUniquePtr<FScopedTransaction> UndoTransaction;
+	/** Pointer to the actor that we relate to */
+	TWeakObjectPtr<AActor> WeakActor;
 };
 
 FSceneOutlinerGutter::FSceneOutlinerGutter()
@@ -186,7 +162,7 @@ SHeaderRow::FColumn::FArguments FSceneOutlinerGutter::ConstructHeaderRowColumn()
 	return SHeaderRow::Column(GetColumnID())[ SNew(SSpacer) ];
 }
 
-const TSharedRef<SWidget> FSceneOutlinerGutter::ConstructRowWidget(const TSharedRef<SceneOutliner::TOutlinerTreeItem> TreeItem)
+const TSharedRef<SWidget> FSceneOutlinerGutter::ConstructRowWidget(const TWeakObjectPtr<AActor>& Actor)
 {
 	return SNew(SHorizontalBox)
 		+SHorizontalBox::Slot()
@@ -194,52 +170,29 @@ const TSharedRef<SWidget> FSceneOutlinerGutter::ConstructRowWidget(const TShared
 		.VAlign(VAlign_Center)
 		[
 			SNew(SVisibilityWidget)
-			.TreeItem(TreeItem)
+				.Actor(Actor)
 		];
 }
 
 void FSceneOutlinerGutter::SortItems(TArray<TSharedPtr<SceneOutliner::TOutlinerTreeItem>>& RootItems, const EColumnSortMode::Type SortMode) const
 {
-	using namespace SceneOutliner;
-	struct SortPredicate
-	{
-		/** Constructor */
-		SortPredicate(const bool InSence) : bSense(InSence) {}
-
-		/** The sense of the sort (identical items are always sorted by name, Ascending) */
-		bool bSense;
-
-		/** Sort predicate operator */
-		bool operator ()(TSharedPtr<TOutlinerTreeItem> A, TSharedPtr<TOutlinerTreeItem> B) const
-		{
-			if ((A->Type == TOutlinerTreeItem::Folder) != (B->Type == TOutlinerTreeItem::Folder))
-			{
-				// Folders appear first
-				return A->Type == TOutlinerTreeItem::Folder;
-			}
-
-			const bool VisibleA = A->IsVisible();
-			const bool VisibleB = A->IsVisible();
-
-			if (VisibleA == VisibleB)
-			{
-				// Always sort identical items by name
-				return GetLabelForItem(A.ToSharedRef()).ToString() < GetLabelForItem(B.ToSharedRef()).ToString();
-			}
-			else
-			{
-				return bSense == VisibleA;
-			}
-		}
-	};
-
 	if (SortMode == EColumnSortMode::Ascending)
 	{
-		RootItems.Sort(SortPredicate(true));
+		RootItems.Sort(
+			[=](TSharedPtr<SceneOutliner::TOutlinerTreeItem> A, TSharedPtr<SceneOutliner::TOutlinerTreeItem> B)
+			{
+				return SVisibilityWidget::IsActorVisible(A->Actor);
+			}
+		);
 	}
 	else if (SortMode == EColumnSortMode::Descending)
 	{
-		RootItems.Sort(SortPredicate(false));
+		RootItems.Sort(
+			[=](TSharedPtr<SceneOutliner::TOutlinerTreeItem> A, TSharedPtr<SceneOutliner::TOutlinerTreeItem> B)
+			{
+				return SVisibilityWidget::IsActorVisible(B->Actor);
+			}
+		);
 	}
 }
 

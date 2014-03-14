@@ -150,17 +150,12 @@ void FDebugCanvasDrawer::InitDebugCanvas(UWorld* InWorld)
 {
 	// If the canvas is not null there is more than one viewport draw call before slate draws.  This can happen on resizes. 
 	// We need to delete the old canvas
-        // This can also happen if we are debugging a HUD blueprint and in that case we need to continue using
-        // the same canvas
-	if (FSlateApplication::Get().IsNormalExecution())
+	if( GameThreadCanvas != NULL )
 	{
-		if( GameThreadCanvas != NULL )
-		{
-			delete GameThreadCanvas;
-		}
-
-		GameThreadCanvas = new FCanvasProxy( RenderTarget, InWorld );
+		delete GameThreadCanvas;
 	}
+
+	GameThreadCanvas = new FCanvasProxy( RenderTarget, InWorld );
 }
 
 void FDebugCanvasDrawer::DrawRenderThread( const void* InWindowBackBuffer )

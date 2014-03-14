@@ -15,7 +15,7 @@ namespace MarkdownSharp.EpicMarkdown.PathProviders
 
         public override string GetPath(TransformationData data)
         {
-            return Normalizer.NormalizePath(path);
+            return path;
         }
 
         private static readonly Regex ExternalPathPattern = new Regex(@"^\w+\:\/\/", RegexOptions.Compiled);

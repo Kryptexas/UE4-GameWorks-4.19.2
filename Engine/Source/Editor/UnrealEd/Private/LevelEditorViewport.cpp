@@ -588,7 +588,7 @@ static bool AttemptApplyObjToActor( UObject* ObjToUse, AActor* ActorToApplyTo, b
 					}
 					else if ( DroppedObjAsSkeleton )
 					{
-						SkelMeshComponent->SetSkeletalMesh(DroppedObjAsSkeleton->GetPreviewMesh(true));
+						SkelMeshComponent->SetSkeletalMesh(DroppedObjAsSkeleton->GetPreviewMesh());
 					}
 					bResult = true;
 				}
@@ -614,7 +614,7 @@ static bool AttemptApplyObjToActor( UObject* ObjToUse, AActor* ActorToApplyTo, b
 					USkeleton* NeedsSkeleton = DroppedObjAsAnimBlueprint->TargetSkeleton;
 					if ( NeedsSkeleton && ! SkelMeshComponent->SkeletalMesh->Skeleton->IsCompatible(NeedsSkeleton) )
 					{
-						SkelMeshComponent->SetSkeletalMesh(NeedsSkeleton->GetPreviewMesh(true));
+						SkelMeshComponent->SetSkeletalMesh(NeedsSkeleton->GetPreviewMesh());
 					}
 					if ( SkelMeshComponent && SkelMeshComponent->SkeletalMesh )
 					{
@@ -657,7 +657,7 @@ static bool AttemptApplyObjToActor( UObject* ObjToUse, AActor* ActorToApplyTo, b
 					SkelComponent->Modify();
 					if ( NeedsSkeleton && ! SkelComponent->SkeletalMesh->Skeleton->IsCompatible(NeedsSkeleton) )
 					{
-						SkelComponent->SetSkeletalMesh(NeedsSkeleton->GetPreviewMesh(true));
+						SkelComponent->SetSkeletalMesh(NeedsSkeleton->GetPreviewMesh());
 					}
 					if ( DroppedObjAsAnimationAsset )
 					{
@@ -1599,6 +1599,15 @@ void FTrackingTransaction::Begin(const FText& Description)
 
 		Actor->Modify();
 	}
+
+	// Modify selected components to record their state at the start of the transaction
+	for ( FSelectionIterator It( GEditor->GetSelectedComponentIterator() ) ; It ; ++It )
+	{
+		USceneComponent* Comp = static_cast<USceneComponent*>( *It );
+		checkSlow( Comp->IsA(USceneComponent::StaticClass()) );
+
+		Comp->Modify();
+	}
 }
 
 void FTrackingTransaction::End()
@@ -1642,7 +1651,6 @@ FLevelEditorViewportClient::FLevelEditorViewportClient()
 	, ViewHiddenLayers()
 	, VolumeActorVisibility()
 	, ActorLockedToCamera(NULL)
-	, ActorLockedByMatinee(NULL)
 	, LastEditorViewLocation( FVector::ZeroVector )
 	, LastEditorViewRotation( FRotator::ZeroRotator )
 	, ColorScale( FVector(1,1,1) )
@@ -1791,7 +1799,7 @@ ELevelViewportType FLevelEditorViewportClient::GetViewportType() const
 {
 	UCameraComponent* ActiveCameraComponent = NULL;
 
-	if (AActor* TestActor = GetActiveActorLock().Get())
+	if (AActor* TestActor = ActorLockedToCamera.Get())
 	{
 		ActiveCameraComponent = TestActor->FindComponentByClass<UCameraComponent>();
 	}
@@ -1830,9 +1838,9 @@ void FLevelEditorViewportClient::PerspectiveCameraMoved()
 	MoveLockedActorToCamera();
 
 	// If any other viewports have this actor locked too, we need to update them
-	if( GetActiveActorLock().IsValid() )
+	if( ActorLockedToCamera.IsValid() )
 	{
-		UpdateLockedActorViewports(GetActiveActorLock().Get(), false);
+		UpdateLockedActorViewports(ActorLockedToCamera.Get(), false);
 	}
 
 	// Tell the editing mode that the camera moved, in case its interested.
@@ -2199,6 +2207,7 @@ bool FLevelEditorViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisLis
 
 						// Apply deltas to selected actors/components or viewport cameras
 						ApplyDeltaToActors( Drag, Rot, Scale );
+						ApplyDeltaToComponents( Drag, Rot, Scale );
 						ApplyDeltaToRotateWidget( Rot );
 					}
 				}
@@ -2236,9 +2245,6 @@ bool FLevelEditorViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisLis
 
 TSharedPtr<FDragTool> FLevelEditorViewportClient::MakeDragTool( EDragTool::Type DragToolType )
 {
-	// Let the drag tool handle the transaction
-	TrackingTransaction.Cancel();
-
 	TSharedPtr<FDragTool> DragTool;
 	switch( DragToolType )
 	{
@@ -3107,15 +3113,7 @@ void FLevelEditorViewportClient::SetWidgetMode( FWidget::EWidgetMode ActivatedMo
 		// Fire event delegate
 		GEditorModeTools().BroadcastWidgetModeChanged(ActivatedMode);
 	}
-	
-	// Invalidate all viewports, so the new gizmo is rendered in each one
-	for (auto ViewportClient : GEditor->LevelViewportClients)
-	{
-		if (ViewportClient)
-		{
-			ViewportClient->Invalidate();
-		}
-	}
+	Invalidate();
 }
 
 bool FLevelEditorViewportClient::CanSetWidgetMode( FWidget::EWidgetMode NewMode ) const
@@ -3153,21 +3151,20 @@ ECoordSystem FLevelEditorViewportClient::GetWidgetCoordSystemSpace() const
 void FLevelEditorViewportClient::MoveLockedActorToCamera() const
 {
 	// If turned on, move any selected actors to the cameras location/rotation
-	TWeakObjectPtr<AActor> ActiveActorLock = GetActiveActorLock();
-	if( ActiveActorLock.IsValid() )
+	if( ActorLockedToCamera.IsValid() )
 	{
-		if ( !ActiveActorLock->bLockLocation )
+		if ( !ActorLockedToCamera->bLockLocation )
 		{
-			ActiveActorLock->SetActorLocation( GCurrentLevelEditingViewportClient->GetViewLocation(), false );
+			ActorLockedToCamera->SetActorLocation( GCurrentLevelEditingViewportClient->GetViewLocation(), false );
 		}
-		ABrush* Brush = Cast< ABrush >( ActiveActorLock.Get() );
+		ABrush* Brush = Cast< ABrush >( ActorLockedToCamera.Get() );
 		if( Brush )
 		{
-			FBSPOps::RotateBrushVerts( (ABrush*)ActiveActorLock.Get(), GCurrentLevelEditingViewportClient->GetViewRotation(), true );
+			FBSPOps::RotateBrushVerts( (ABrush*)ActorLockedToCamera.Get(), GCurrentLevelEditingViewportClient->GetViewRotation(), true );
 		}
 		else
 		{
-			ActiveActorLock->SetActorRotation( GCurrentLevelEditingViewportClient->GetViewRotation() );
+			ActorLockedToCamera->SetActorRotation( GCurrentLevelEditingViewportClient->GetViewRotation() );
 		}
 
 		FScopedLevelDirtied LevelDirtyCallback;
@@ -3185,22 +3182,22 @@ bool FLevelEditorViewportClient::HaveSelectedObjectsBeenChanged() const
 void FLevelEditorViewportClient::MoveCameraToLockedActor()
 {
 	// If turned on, move cameras location/rotation to the selected actors
-	if( GetActiveActorLock().IsValid() )
+	if( ActorLockedToCamera.IsValid() )
 	{
-		SetViewLocation( GetActiveActorLock()->GetActorLocation() );
-		SetViewRotation( GetActiveActorLock()->GetActorRotation() );
+		SetViewLocation( ActorLockedToCamera->GetActorLocation() );
+		SetViewRotation( ActorLockedToCamera->GetActorRotation() );
 		Invalidate();
 	}
 }
 
 bool FLevelEditorViewportClient::IsActorLocked(const TWeakObjectPtr<AActor> InActor) const
 {
-	return (InActor.IsValid() && GetActiveActorLock() == InActor);
+	return (InActor.IsValid() && ActorLockedToCamera == InActor);
 }
 
 bool FLevelEditorViewportClient::IsAnyActorLocked() const
 {
-	return GetActiveActorLock().IsValid();
+	return ActorLockedToCamera.IsValid();
 }
 
 void FLevelEditorViewportClient::UpdateLockedActorViewports(const AActor* InActor, const bool bCheckRealtime)
@@ -3541,6 +3538,64 @@ void FLevelEditorViewportClient::ApplyDeltaToActor( AActor* InActor, const FVect
 	UpdateLockedActorViewports(InActor, true);
 }
 
+
+void FLevelEditorViewportClient::ApplyDeltaToComponents( const FVector& InDrag, const FRotator& InRot, const FVector& InScale )
+{
+	if( (InDrag.IsZero() && InRot.IsZero() && InScale.IsZero()) )
+	{
+		return;
+	}
+
+	// If we are scaling, we need to change the scaling factor a bit to properly align to grid.
+	FVector ModifiedScale = InScale;
+	if( GEditor->UsePercentageBasedScaling() )
+	{
+		USelection* SelectedComponents = GEditor->GetSelectedComponents();
+		const bool bScalingActors = !InScale.IsNearlyZero();
+
+		if( bScalingActors )
+		{
+			ModifiedScale = InScale * ((GEditor->GetScaleGridSize() / 100.0f) / GEditor->GetGridSize());
+		}
+	}
+
+	// Apply the deltas to any selected actors.
+	for ( FSelectionIterator It( GEditor->GetSelectedComponentIterator() ) ; It ; ++It )
+	{
+		USceneComponent* Comp = static_cast<USceneComponent*>( *It );
+		checkSlow( Comp->IsA(USceneComponent::StaticClass()) );
+
+		ApplyDeltaToComponent( Comp, InDrag, InRot, ModifiedScale );
+	}
+}
+
+void FLevelEditorViewportClient::ApplyDeltaToComponent( USceneComponent* InComponent, const FVector& InDeltaDrag, const FRotator& InDeltaRot, const FVector& InDeltaScale )
+{
+	// If we are scaling, we need to change the scaling factor a bit to properly align to grid.
+	FVector ModifiedDeltaScale = InDeltaScale;
+
+	// we dont scale components when we only have a very small scale change
+	if( !InDeltaScale.IsNearlyZero() )
+	{
+		if(!GEditor->UsePercentageBasedScaling())
+		{
+			ModifyScale( InComponent, ModifiedDeltaScale );
+		}
+	}
+	else
+	{
+		ModifiedDeltaScale = FVector::ZeroVector;
+	}
+
+	GEditor->ApplyDeltaToComponent(
+		InComponent,
+		true,
+		&InDeltaDrag,
+		&InDeltaRot,
+		&ModifiedDeltaScale,
+		GEditorModeTools().PivotLocation );
+}
+
 /** Updates the rotate widget with the passed in delta rotation. */
 void FLevelEditorViewportClient::ApplyDeltaToRotateWidget( const FRotator& InRot )
 {
@@ -3658,60 +3713,60 @@ void FLevelEditorViewportClient::CheckHoveredHitProxy( HHitProxy* HoveredHitProx
 
 		// If the cursor is visible over level viewports, then we'll check for new objects to be hovered over
 	if( bUseHoverFeedback && HoveredHitProxy )
-	{
+		{
 			// Set mouse hover cue for objects under the cursor
 		if( HoveredHitProxy->IsA( HActor::StaticGetType() ) )
-		{
+			{
 				// Hovered over an actor
 			HActor* ActorHitProxy = static_cast< HActor* >( HoveredHitProxy );
-			AActor* ActorUnderCursor = ActorHitProxy->Actor;
+				AActor* ActorUnderCursor = ActorHitProxy->Actor;
 
-			if( ActorUnderCursor != NULL  )
-			{
-				// Check to see if the actor under the cursor is part of a group.  If so, we will how a hover cue the whole group
-				AGroupActor* GroupActor = AGroupActor::GetRootForActor( ActorUnderCursor, true, false );
-
-				if( GroupActor && GEditor->bGroupingActive)
+				if( ActorUnderCursor != NULL  )
 				{
-					// Get all the actors in the group and add them to the list of objects to show a hover cue for.
-					TArray<AActor*> ActorsInGroup;
-					GroupActor->GetGroupActors( ActorsInGroup, true );
-					for( int32 ActorIndex = 0; ActorIndex < ActorsInGroup.Num(); ++ActorIndex )
+					// Check to see if the actor under the cursor is part of a group.  If so, we will how a hover cue the whole group
+					AGroupActor* GroupActor = AGroupActor::GetRootForActor( ActorUnderCursor, true, false );
+
+					if( GroupActor && GEditor->bGroupingActive)
 					{
-						NewHoveredObjects.Add( FViewportHoverTarget( ActorsInGroup[ActorIndex] ) );
+						// Get all the actors in the group and add them to the list of objects to show a hover cue for.
+						TArray<AActor*> ActorsInGroup;
+						GroupActor->GetGroupActors( ActorsInGroup, true );
+						for( int32 ActorIndex = 0; ActorIndex < ActorsInGroup.Num(); ++ActorIndex )
+						{
+							NewHoveredObjects.Add( FViewportHoverTarget( ActorsInGroup[ActorIndex] ) );
+						}
+					}
+					else
+					{
+						NewHoveredObjects.Add( FViewportHoverTarget( ActorUnderCursor ) );
 					}
 				}
-				else
-				{
-					NewHoveredObjects.Add( FViewportHoverTarget( ActorUnderCursor ) );
-				}
 			}
-		}
 		else if( HoveredHitProxy->IsA( HModel::StaticGetType() ) )
-		{
+			{
 				// Hovered over a model (BSP surface)
 			HModel* ModelHitProxy = static_cast< HModel* >( HoveredHitProxy );
-			UModel* ModelUnderCursor = ModelHitProxy->GetModel();
-			if (ModelUnderCursor != NULL)
-			{
-				FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
-					Viewport,
-					GetScene(),
-					EngineShowFlags)
-					.SetRealtimeUpdate(IsRealtime()));
-				FSceneView* SceneView = CalcSceneView(&ViewFamily);
-
-				uint32 SurfaceIndex = INDEX_NONE;
-				if (ModelHitProxy->ResolveSurface(SceneView, CachedMouseX, CachedMouseY, SurfaceIndex))
+				UModel* ModelUnderCursor = ModelHitProxy->GetModel();
+				if( ModelUnderCursor != NULL )
 				{
-					FBspSurf& Surf = ModelUnderCursor->Surfs[SurfaceIndex];
-					Surf.PolyFlags |= PF_Hovered;
+					FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
+						Viewport, 
+						GetScene(),
+						EngineShowFlags)
+						.SetRealtimeUpdate( IsRealtime() ));
+					FSceneView* SceneView = CalcSceneView( &ViewFamily );
 
-					NewHoveredObjects.Add(FViewportHoverTarget(ModelUnderCursor, SurfaceIndex));
+					uint32 SurfaceIndex = INDEX_NONE;
+					if( ModelHitProxy->ResolveSurface( SceneView, CachedMouseX, CachedMouseY, SurfaceIndex ) )
+					{
+						FBspSurf& Surf = ModelUnderCursor->Surfs[ SurfaceIndex ];
+						Surf.PolyFlags |= PF_Hovered;
+
+						NewHoveredObjects.Add( FViewportHoverTarget( ModelUnderCursor, SurfaceIndex ) );
+					}
 				}
 			}
 		}
-	}
 
 
 	// Check to see if there are any hovered objects that need to be updated
@@ -3755,33 +3810,6 @@ void FLevelEditorViewportClient::CheckHoveredHitProxy( HHitProxy* HoveredHitProx
 			RedrawRequested( Viewport );
 		}
 	}
-}
-
-bool FLevelEditorViewportClient::GetActiveSafeFrame(float& OutAspectRatio) const
-{
-	ACameraActor* LockedCamera = NULL;
-
-	if (!IsOrtho())
-	{
-		ACameraActor* Camera = NULL;
-
-		if (ActorLockedByMatinee.IsValid())
-		{
-			Camera = Cast<ACameraActor>(ActorLockedByMatinee.Get());
-		}
-		else if (ActorLockedToCamera.IsValid())
-		{
-			Camera = Cast<ACameraActor>(ActorLockedToCamera.Get());
-		}
-
-		if (Camera != NULL && Camera->CameraComponent->bConstrainAspectRatio)
-		{
-			LockedCamera = Camera;
-			OutAspectRatio = Camera->CameraComponent->AspectRatio;
-		}
-	}
-
-	return LockedCamera != NULL;
 }
 
 void FLevelEditorViewportClient::SetCurrentWidgetAxis( EAxisList::Type NewAxis )

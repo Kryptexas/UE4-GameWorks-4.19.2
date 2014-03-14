@@ -43,5 +43,5 @@ class ULiveEditorKismetLibrary : public UBlueprintFunctionLibrary
 	static UObject *GetBlueprintClassDefaultObject( UBlueprint *Blueprint );
 
 	UFUNCTION(BlueprintCallable, Category="Development|LiveEditor")
-	static void ModifyPropertyByName( UObject *Target, const FString &PropertyName, TEnumAsByte<ELiveEditControllerType::Type> ControlType, float Delta, int32 MidiValue, bool bShouldClamp, float ClampMin=0.0f, float ClampMax=0.0f );
+	static void ModifyPropertyByName( UObject *Target, const FString &PropertyName, TEnumAsByte<ELiveEditControllerType::Type> ControlType, float Delta, bool bShouldClamp, float ClampMin=0.0f, float ClampMax=0.0f );
 };

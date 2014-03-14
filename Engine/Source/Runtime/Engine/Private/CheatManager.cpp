@@ -6,10 +6,6 @@
 #include "AI/NavDataGenerator.h"
 #include "Online.h"
 
-#if WITH_EDITOR
-#include "UnrealEd.h"
-#endif
-
 DEFINE_LOG_CATEGORY_STATIC(LogCheatManager, Log, All);
 
 #define LOCTEXT_NAMESPACE "CheatManager"	
@@ -858,28 +854,9 @@ void UCheatManager::DumpOnlineSessionState()
 	IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get();
 	if (OnlineSub)
 	{
-		IOnlineSessionPtr SessionInt = OnlineSub->GetSessionInterface();
-		SessionInt->DumpSessionState();
+		IOnlineSessionPtr Session = OnlineSub->GetSessionInterface();
+		Session->DumpSessionState();
 	}
-}
-
-void UCheatManager::DumpVoiceMutingState()
-{
-	TSharedPtr<FUniqueNetId> NetId;
-	
-	UE_LOG(LogCheatManager, Display, TEXT(""));
-	UE_LOG(LogCheatManager, Display, TEXT("-------------------------------------------------------------"));
-	UE_LOG(LogCheatManager, Display, TEXT(""));
-
-	// Log the online view of the voice state
-	IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface();
-	if (VoiceInt.IsValid())
-	{
-		UE_LOG(LogCheatManager, Display, TEXT("\n%s"), *VoiceInt->GetVoiceDebugState());
-	}
-
-	// For each player list their gameplay mutes and system wide mutes
-	UE_LOG(LogCheatManager, Display, TEXT("\n%s"), *DumpMutelistState(GetWorld()));
 }
 
 UWorld* UCheatManager::GetWorld() const
@@ -1003,90 +980,6 @@ void UCheatManager::SetWorldOrigin()
 	
 	FIntPoint NewOrigin = FIntPoint(ViewLocation.X, ViewLocation.Y) + World->GlobalOriginOffset;
 	World->RequestNewWorldOrigin(NewOrigin);
-}
-
-void UCheatManager::ToggleGameplayDebugView(const FString& InViewName)
-{
-	static TArray<FString> ViewNames;
-	if (ViewNames.Num() == 0)
-	{
-		const UEnum* ViewlEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EAIDebugDrawDataView"), true);
-		ViewNames.AddZeroed(EAIDebugDrawDataView::MAX);
-		for (int32 Index = 0; Index < EAIDebugDrawDataView::MAX; ++Index)
-		{
-			ViewNames[Index] = ViewlEnum->GetEnumString(Index);
-		}
-	}
-
-	int32 ViewIndex = ViewNames.Find(InViewName);
-	if (ViewIndex != INDEX_NONE)
-	{
-		const bool bIsEnabled = UGameplayDebuggingComponent::ToggleStaticView(EAIDebugDrawDataView::Type(ViewIndex));
-		GetOuterAPlayerController()->ClientMessage(FString::Printf(TEXT("View %s %s")
-			, *InViewName
-			, bIsEnabled ? TEXT("enabled") : TEXT("disabled")));
-	}
-	else
-	{
-		GetOuterAPlayerController()->ClientMessage(TEXT("Unknown debug view name. Valid options are:"));
-		for (int32 Index = 0; Index < EAIDebugDrawDataView::MAX; ++Index)
-		{
-			GetOuterAPlayerController()->ClientMessage(*ViewNames[Index]);
-		}
-	}
-}
-
-void UCheatManager::RunEQS(const FString& QueryName)
-{
-	APlayerController* MyPC = GetOuterAPlayerController();
-	UEnvQueryManager* EQS = GetWorld()->GetEnvironmentQueryManager();
-	if (MyPC && EQS)
-	{
-		AActor* Target = NULL;
-		UGameplayDebuggingControllerComponent* DebugComp = MyPC->FindComponentByClass<UGameplayDebuggingControllerComponent>();
-		if (DebugComp)
-		{
-			Target = DebugComp->GetCurrentDebugTarget();
-		}
-
-#if WITH_EDITOR
-		if (Target == NULL && GEditor != NULL)
-		{
-			Target = GEditor->GetSelectedObjects()->GetTop<AActor>();
-
-			// this part should not be needed, but is due to gameplay debugging messed up design
-			if (Target == NULL)
-			{
-				for (FObjectIterator It(UGameplayDebuggingComponent::StaticClass()); It && (Target == NULL); ++It)
-				{
-					UGameplayDebuggingComponent* Comp = ((UGameplayDebuggingComponent*)*It);
-					if (Comp->IsSelected())
-					{
-						Target = Comp->GetOwner();
-					}
-				}
-			}
-		}
-#endif // WITH_EDITOR
-
-		if (Target)
-		{
-			UEnvQuery* QueryTemplate = EQS->FindQueryTemplate(QueryName);
-			
-			if (QueryTemplate)
-			{
-				EQS->RunInstantQuery(FEnvQueryRequest(QueryTemplate, Target), EEnvQueryRunMode::AllMatching);
-			}
-			else
-			{
-				GetOuterAPlayerController()->ClientMessage(FString::Printf(TEXT("Unable to fing query template \'%s\'"), *QueryName));
-			}
-		}
-		else
-		{
-			GetOuterAPlayerController()->ClientMessage(TEXT("No debugging target"));
-		}
-	}
 }
 
 void UCheatManager::LogOutBugItGoToLogFile( const FString& InScreenShotDesc, const FString& InGoString, const FString& InLocString )

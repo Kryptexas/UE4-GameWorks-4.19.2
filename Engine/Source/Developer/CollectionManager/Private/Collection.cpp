@@ -707,7 +707,7 @@ bool FCollection::CheckinCollection(FText& OutError)
 
 	// Finally check in the file
 	TSharedRef<FCheckIn, ESPMode::ThreadSafe> CheckInOperation = ISourceControlOperation::Create<FCheckIn>();
-	CheckInOperation->SetDescription( ChangelistDesc );
+	CheckInOperation->SetDescription( ChangelistDesc.ToString() );
 	if ( SourceControlProvider.Execute( CheckInOperation, AbsoluteFilename ) )
 	{
 		return true;
@@ -859,7 +859,7 @@ bool FCollection::DeleteFromSourceControl(FText& OutError)
 				// Now check in the delete
 				const FText ChangelistDesc = FText::Format( LOCTEXT("CollectionDeletedDesc", "Deleted collection: {CollectionName}"), CollectionNameText );
 				TSharedRef<FCheckIn, ESPMode::ThreadSafe> CheckInOperation = ISourceControlOperation::Create<FCheckIn>();
-				CheckInOperation->SetDescription(ChangelistDesc);
+				CheckInOperation->SetDescription(ChangelistDesc.ToString());
 				if ( SourceControlProvider.Execute( CheckInOperation, AbsoluteFilename ) )
 				{
 					// Deleted successfully!

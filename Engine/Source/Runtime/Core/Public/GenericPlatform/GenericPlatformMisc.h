@@ -509,11 +509,6 @@ public:
 	}
 
 	/**
-	* @return platform specific path separator.
-	*/
-	static const TCHAR* GetDefaultPathSeparator();
-
-	/**
 	 * return the number of hardware CPU cores
 	 */
 	static int32 NumberOfCores()

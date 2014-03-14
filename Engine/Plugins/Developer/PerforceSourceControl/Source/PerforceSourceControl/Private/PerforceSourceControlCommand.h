@@ -77,8 +77,8 @@ public:
 	TArray< FString > Files;
 
 	/**Info and/or warning message message storage*/
-	TArray< FText > InfoMessages;
+	TArray< FString > InfoMessages;
 
 	/**Potential error message storage*/
-	TArray< FText > ErrorMessages;
+	TArray< FString > ErrorMessages;
 };

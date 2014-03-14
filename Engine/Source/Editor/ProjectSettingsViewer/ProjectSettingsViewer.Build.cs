@@ -22,7 +22,6 @@ namespace UnrealBuildTool.Rules
 					"SettingsEditor",
 					"Slate",
 					"UnrealEd",
-					"MoviePlayer"
 				}
 			);
 

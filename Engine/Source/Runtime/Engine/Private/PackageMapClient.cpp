@@ -506,16 +506,8 @@ UObject * UPackageMapClient::NetGUIDAssign(FNetworkGUID NetGUID, FString PathNam
 		}
 		else
 		{
-			UPackage* Package = Cast<UPackage>(ObjOuter);
-			if (!ObjOuter || Package)
-			{
-				Object = LoadPackage(Package, *PathName, LOAD_None);
-				UE_LOG(LogNetPackageMap, Log, TEXT("UPackageMapClient::NetGUIDAssign  LoadPackage %s. Found: %s"), *PathName, Object ? *Object->GetName() : TEXT("NULL") );
-			}
-			else
-			{
-				UE_LOG(LogNetPackageMap, Warning, TEXT("Outer %s is not a package for object %s"), ObjOuter ? *ObjOuter->GetName() : TEXT("NULL"), *PathName );
-			}
+			Object = LoadPackage(Cast<UPackage>(ObjOuter), *PathName, LOAD_None);
+			UE_LOG(LogNetPackageMap, Log, TEXT("UPackageMapClient::NetGUIDAssign  LoadPackage. Found: %s"), Object ? *Object->GetName() : TEXT("NULL") );
 		}
 	}
 

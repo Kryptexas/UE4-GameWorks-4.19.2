@@ -38,6 +38,11 @@ FString UK2Node_FormatText::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	return LOCTEXT("FormatText_Title", "Format Text").ToString();
 }
 
+void UK2Node_FormatText::FindDiffs( class UEdGraphNode* OtherNode, struct FDiffResults& Results )  
+{
+	
+}
+
 FString UK2Node_FormatText::GetPinDisplayName(const UEdGraphPin* Pin) const
 {
 	return Pin->PinName;
@@ -174,7 +179,7 @@ void UK2Node_FormatText::ExpandNode(class FKismetCompilerContext& CompilerContex
 
 		// This is the node that does all the Format work.
 		UK2Node_CallFunction* CallFunction = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this, SourceGraph);
-		CallFunction->SetFromFunction(UKismetTextLibrary::StaticClass()->FindFunctionByName("Format"));
+		CallFunction->SetFromFunction(UK2Node_FormatText::StaticClass()->FindFunctionByName("Format"));
 		CallFunction->AllocateDefaultPins();
 		CompilerContext.MessageLog.NotifyIntermediateObjectCreation(CallFunction, this);
 
@@ -223,6 +228,21 @@ void UK2Node_FormatText::ExpandNode(class FKismetCompilerContext& CompilerContex
 		BreakAllNodeLinks();
 	}
 
+}
+
+FText UK2Node_FormatText::Format(FText InPattern, TArray<FFormatTextArgument> InArgs)
+{
+	TArray< FFormatArgumentData > Arguments;
+	for(auto It = InArgs.CreateConstIterator(); It; ++It)
+	{
+		FFormatArgumentData argument;
+		argument.ArgumentName = It->ArgumentName;
+		argument.ArgumentValue = It->TextValue;
+
+		Arguments.Add(argument);
+	}
+
+	return FText::Format(InPattern, Arguments);
 }
 
 UEdGraphPin* UK2Node_FormatText::FindArgumentPin(const FText& InPinName) const

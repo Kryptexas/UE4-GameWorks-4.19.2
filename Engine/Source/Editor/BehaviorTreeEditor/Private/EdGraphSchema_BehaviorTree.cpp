@@ -322,7 +322,7 @@ void UEdGraphSchema_BehaviorTree::GetGraphContextActions(FGraphContextMenuBuilde
 		const FString ParallelClassName = UBTComposite_SimpleParallel::StaticClass()->GetName();
 
 		for (int32 i = 0; i < NodeClasses.Num(); i++)
-		{
+	{
 			const FString NodeTypeName = EngineUtils::SanitizeDisplayName(NodeClasses[i].ToString(), false);
 
 			TSharedPtr<FBehaviorTreeSchemaAction_NewNode> AddOpAction = AddNewNodeAction(ContextMenuBuilder, TEXT("Composites"), NodeTypeName, "");
@@ -334,10 +334,10 @@ void UEdGraphSchema_BehaviorTree::GetGraphContextActions(FGraphContextMenuBuilde
 			OpNode->ClassData = NodeClasses[i];
 			AddOpAction->NodeTemplate = OpNode;
 		}
-	}
+		}
 
 	if (bAllowTasks)
-	{
+		{
 		TArray<FClassData> NodeClasses;
 		FClassBrowseHelper::GatherClasses(UBTTaskNode::StaticClass(), NodeClasses);
 
@@ -354,7 +354,7 @@ void UEdGraphSchema_BehaviorTree::GetGraphContextActions(FGraphContextMenuBuilde
 	}
 	
 	if (bNoParent)
-	{
+		{
 		TSharedPtr<FBehaviorTreeSchemaAction_AutoArrange> Action = TSharedPtr<FBehaviorTreeSchemaAction_AutoArrange>(new FBehaviorTreeSchemaAction_AutoArrange(FString(),FString(TEXT("Auto Arrange")),FString(),0));
 		ContextMenuBuilder.AddAction(Action);
 	}

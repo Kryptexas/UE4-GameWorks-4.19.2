@@ -291,18 +291,18 @@ void AController::ClientSetRotation_Implementation( FRotator NewRotation, bool b
 	}
 }
 
-void AController::RemovePawnTickDependency(APawn* InOldPawn)
+void AController::RemovePawnTickDependency(APawn* OldPawn)
 {
-	if (InOldPawn != NULL)
+	if (OldPawn != NULL)
 	{
-		UPawnMovementComponent* PawnMovement = InOldPawn->GetMovementComponent();
+		UPawnMovementComponent* PawnMovement = OldPawn->GetMovementComponent();
 		if (PawnMovement)
 		{
 			PawnMovement->PrimaryComponentTick.RemovePrerequisite(this, this->PrimaryActorTick);
 		}
 		else
 		{
-			InOldPawn->PrimaryActorTick.RemovePrerequisite(this, this->PrimaryActorTick);
+			OldPawn->PrimaryActorTick.RemovePrerequisite(this, this->PrimaryActorTick);
 		}
 	}
 }

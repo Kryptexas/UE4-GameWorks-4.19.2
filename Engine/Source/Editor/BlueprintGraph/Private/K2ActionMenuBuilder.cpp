@@ -379,12 +379,16 @@ static UClass* FindMostDerivedCommonActor( TArray<AActor*>& InObjects )
 FBlueprintGraphActionListBuilder::FBlueprintGraphActionListBuilder(const UEdGraph* InGraph)
 	: FGraphContextMenuBuilder(InGraph)
 {
+#if WITH_EDITORONLY_DATA
 	check(CurrentGraph != NULL);
 	Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(CurrentGraph);
 
 	OwnerOfTemporaries = NewObject<UEdGraph>((Blueprint != NULL) ? (UObject*)Blueprint : (UObject*)GetTransientPackage());
 	OwnerOfTemporaries->Schema = CurrentGraph->Schema;
 	OwnerOfTemporaries->SetFlags(RF_Transient);
+#else
+	check(false);
+#endif
 }
 
 /*******************************************************************************
@@ -2205,7 +2209,7 @@ void FK2ActionMenuBuilder::GetFunctionCallsOnSelectedComponents(FBlueprintGraphA
 	else
 	{
 		FText SelectComponentMsg = LOCTEXT("SelectComponentForEvents", "Select a Component to see available Events & Functions");
-		FText SelectComponentToolTip = LOCTEXT("SelectComponentForEventsTooltip", "Select a Component in the MyBlueprint tab to see available Events and Functions in this menu.");
+		FText SelectComponentToolTip = LOCTEXT("SelectActorForEventsTooltip", "Select a Component in the MyBlueprint tab to see available Events and Functions in this menu.");
 		TSharedPtr<FEdGraphSchemaAction_Dummy> MsgAction = TSharedPtr<FEdGraphSchemaAction_Dummy>(new FEdGraphSchemaAction_Dummy(TEXT(""), SelectComponentMsg.ToString(), SelectComponentToolTip.ToString(), K2Schema->AG_LevelReference));
 		ContextMenuBuilder.AddAction(MsgAction);
 	}

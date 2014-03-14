@@ -1840,7 +1840,7 @@ void FRepLayout::AddPropertyCmd( UProperty * Property, int32 Offset, int32 Relat
 		}
 		else
 		{
-			UE_LOG( LogNet, Verbose, TEXT( "AddPropertyCmd: Falling back to default type for property [%s]" ), *Cmd.Property->GetFullName() );
+			UE_LOG( LogNet, Warning, TEXT( "AddPropertyCmd: Unsupported object type! [%s]" ), *Cmd.Property->GetFullName() );
 		}
 	}
 	else if ( Property->IsA( UBoolProperty::StaticClass() ) )
@@ -1881,7 +1881,7 @@ void FRepLayout::AddPropertyCmd( UProperty * Property, int32 Offset, int32 Relat
 	}
 	else
 	{
-		UE_LOG( LogNet, Verbose, TEXT( "AddPropertyCmd: Falling back to default type for property [%s]" ), *Cmd.Property->GetFullName() );
+		UE_LOG( LogNet, Warning, TEXT( "AddPropertyCmd: Unsupported object type! [%s]" ), *Cmd.Property->GetFullName() );
 	}
 }
 
@@ -2199,15 +2199,6 @@ void FRepLayout::SerializeProperties_DynamicArray_r(
 		return;
 	}
 
-	const int MAX_ARRAY_MEMORY = 1024 * 64;
-
-	if ( (int32)ArrayNum * Cmd.ElementSize > MAX_ARRAY_MEMORY )
-	{
-		UE_LOG( LogNetTraffic, Error, TEXT( "SerializeProperties_DynamicArray_r: ArrayNum * Cmd.ElementSize > MAX_ARRAY_MEMORY (%s)" ), *Cmd.Property->GetName() );
-		Ar.SetError();
-		return;
-	}
-
 	if ( Ar.IsLoading() && ArrayNum != Array->Num() )
 	{
 		// If we are reading, size the array to the incoming value
@@ -2240,7 +2231,7 @@ void FRepLayout::SerializeProperties_r(
 		if ( Cmd.Type == REPCMD_DynamicArray )
 		{
 			SerializeProperties_DynamicArray_r( Ar, Map, CmdIndex, (uint8*)Data + Cmd.Offset, bHasUnmapped );
-			CmdIndex = Cmd.EndCmd - 1;		// The -1 to handle the ++ in the for loop
+			CmdIndex = Cmd.EndCmd;
 			continue;
 		}
 
@@ -2270,6 +2261,7 @@ void FRepLayout::SerializeProperties_r(
 			Map->ClearDebugContextString();
 		}
 #endif
+
 	}
 }
 

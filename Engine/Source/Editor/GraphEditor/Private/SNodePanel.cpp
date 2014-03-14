@@ -6,15 +6,15 @@
 struct FZoomLevelEntry
 {
 public:
-	FZoomLevelEntry(float InZoomAmount, const FText& InDisplayText, EGraphRenderingLOD::Type InLOD)
-		: DisplayText(FText::Format(NSLOCTEXT("GraphEditor", "Zoom", "Zoom {0}"), InDisplayText))
+	FZoomLevelEntry(float InZoomAmount, const FString& InPrettyString, EGraphRenderingLOD::Type InLOD)
+	 : PrettyString( NSLOCTEXT("GraphEditor", "Zoom", "Zoom ").ToString() + InPrettyString )
 	 , ZoomAmount(InZoomAmount)
 	 , LOD(InLOD)
 	{
 	}
 
 public:
-	FText DisplayText;
+	FString PrettyString;
 	float ZoomAmount;
 	EGraphRenderingLOD::Type LOD;
 };
@@ -27,26 +27,26 @@ struct FFixedZoomLevelsContainer : public FZoomLevelsContainer
 		if (ZoomLevels.Num() == 0)
 		{
 			ZoomLevels.Reserve(20);
-			ZoomLevels.Add(FZoomLevelEntry(0.100f, NSLOCTEXT("GraphEditor", "ZoomLevel", "-12"), EGraphRenderingLOD::LowestDetail));
-			ZoomLevels.Add(FZoomLevelEntry(0.125f, NSLOCTEXT("GraphEditor", "ZoomLevel", "-11"), EGraphRenderingLOD::LowestDetail));
-			ZoomLevels.Add(FZoomLevelEntry(0.150f, NSLOCTEXT("GraphEditor", "ZoomLevel", "-10"), EGraphRenderingLOD::LowestDetail));
-			ZoomLevels.Add(FZoomLevelEntry(0.175f, NSLOCTEXT("GraphEditor", "ZoomLevel", "-9"), EGraphRenderingLOD::LowestDetail));
-			ZoomLevels.Add(FZoomLevelEntry(0.200f, NSLOCTEXT("GraphEditor", "ZoomLevel", "-8"), EGraphRenderingLOD::LowestDetail));
-			ZoomLevels.Add(FZoomLevelEntry(0.225f, NSLOCTEXT("GraphEditor", "ZoomLevel", "-7"), EGraphRenderingLOD::LowDetail));
-			ZoomLevels.Add(FZoomLevelEntry(0.250f, NSLOCTEXT("GraphEditor", "ZoomLevel", "-6"), EGraphRenderingLOD::LowDetail));
-			ZoomLevels.Add(FZoomLevelEntry(0.375f, NSLOCTEXT("GraphEditor", "ZoomLevel", "-5"), EGraphRenderingLOD::MediumDetail));
-			ZoomLevels.Add(FZoomLevelEntry(0.500f, NSLOCTEXT("GraphEditor", "ZoomLevel", "-4"), EGraphRenderingLOD::MediumDetail));
-			ZoomLevels.Add(FZoomLevelEntry(0.675f, NSLOCTEXT("GraphEditor", "ZoomLevel", "-3"), EGraphRenderingLOD::MediumDetail));
-			ZoomLevels.Add(FZoomLevelEntry(0.750f, NSLOCTEXT("GraphEditor", "ZoomLevel", "-2"), EGraphRenderingLOD::DefaultDetail));
-			ZoomLevels.Add(FZoomLevelEntry(0.875f, NSLOCTEXT("GraphEditor", "ZoomLevel", "-1"), EGraphRenderingLOD::DefaultDetail));
-			ZoomLevels.Add(FZoomLevelEntry(1.000f, NSLOCTEXT("GraphEditor", "ZoomLevel", "1:1"), EGraphRenderingLOD::DefaultDetail));
-			ZoomLevels.Add(FZoomLevelEntry(1.250f, NSLOCTEXT("GraphEditor", "ZoomLevel", "+1"), EGraphRenderingLOD::DefaultDetail));
-			ZoomLevels.Add(FZoomLevelEntry(1.375f, NSLOCTEXT("GraphEditor", "ZoomLevel", "+2"), EGraphRenderingLOD::DefaultDetail));
-			ZoomLevels.Add(FZoomLevelEntry(1.500f, NSLOCTEXT("GraphEditor", "ZoomLevel", "+3"), EGraphRenderingLOD::FullyZoomedIn));
-			ZoomLevels.Add(FZoomLevelEntry(1.675f, NSLOCTEXT("GraphEditor", "ZoomLevel", "+4"), EGraphRenderingLOD::FullyZoomedIn));
-			ZoomLevels.Add(FZoomLevelEntry(1.750f, NSLOCTEXT("GraphEditor", "ZoomLevel", "+5"), EGraphRenderingLOD::FullyZoomedIn));
-			ZoomLevels.Add(FZoomLevelEntry(1.875f, NSLOCTEXT("GraphEditor", "ZoomLevel", "+6"), EGraphRenderingLOD::FullyZoomedIn));
-			ZoomLevels.Add(FZoomLevelEntry(2.000f, NSLOCTEXT("GraphEditor", "ZoomLevel", "+7"), EGraphRenderingLOD::FullyZoomedIn));
+			ZoomLevels.Add( FZoomLevelEntry( 0.100f, TEXT("-12"), EGraphRenderingLOD::LowestDetail ) );
+			ZoomLevels.Add( FZoomLevelEntry( 0.125f, TEXT("-11"), EGraphRenderingLOD::LowestDetail ) );
+			ZoomLevels.Add( FZoomLevelEntry( 0.150f, TEXT("-10"), EGraphRenderingLOD::LowestDetail ) );
+			ZoomLevels.Add( FZoomLevelEntry( 0.175f, TEXT("-9"), EGraphRenderingLOD::LowestDetail ) );
+			ZoomLevels.Add( FZoomLevelEntry( 0.200f, TEXT("-8"), EGraphRenderingLOD::LowestDetail ) );
+			ZoomLevels.Add( FZoomLevelEntry( 0.225f, TEXT("-7"), EGraphRenderingLOD::LowDetail ) );
+			ZoomLevels.Add( FZoomLevelEntry( 0.250f, TEXT("-6"), EGraphRenderingLOD::LowDetail ) );
+			ZoomLevels.Add( FZoomLevelEntry( 0.375f, TEXT("-5"), EGraphRenderingLOD::MediumDetail ) );
+			ZoomLevels.Add( FZoomLevelEntry( 0.500f, TEXT("-4"), EGraphRenderingLOD::MediumDetail ) );
+			ZoomLevels.Add( FZoomLevelEntry( 0.675f, TEXT("-3"), EGraphRenderingLOD::MediumDetail ) );
+			ZoomLevels.Add( FZoomLevelEntry( 0.750f, TEXT("-2"), EGraphRenderingLOD::DefaultDetail ) );
+			ZoomLevels.Add( FZoomLevelEntry( 0.875f, TEXT("-1"), EGraphRenderingLOD::DefaultDetail ) );
+			ZoomLevels.Add( FZoomLevelEntry( 1.000f, TEXT("1:1"), EGraphRenderingLOD::DefaultDetail ) );
+			ZoomLevels.Add( FZoomLevelEntry( 1.250f, TEXT("+1"), EGraphRenderingLOD::DefaultDetail ) );
+			ZoomLevels.Add( FZoomLevelEntry( 1.375f, TEXT("+2"), EGraphRenderingLOD::DefaultDetail ) );
+			ZoomLevels.Add( FZoomLevelEntry( 1.500f, TEXT("+3"), EGraphRenderingLOD::FullyZoomedIn ) );
+			ZoomLevels.Add( FZoomLevelEntry( 1.675f, TEXT("+4"), EGraphRenderingLOD::FullyZoomedIn ) );
+			ZoomLevels.Add( FZoomLevelEntry( 1.750f, TEXT("+5"), EGraphRenderingLOD::FullyZoomedIn ) );
+			ZoomLevels.Add( FZoomLevelEntry( 1.875f, TEXT("+6"), EGraphRenderingLOD::FullyZoomedIn ) );
+			ZoomLevels.Add( FZoomLevelEntry( 2.000f, TEXT("+7"), EGraphRenderingLOD::FullyZoomedIn ) );
 		}
 	}
 
@@ -69,10 +69,10 @@ struct FFixedZoomLevelsContainer : public FZoomLevelsContainer
 		return GetDefaultZoomLevel();
 	}
 	
-	FText GetZoomText(int32 InZoomLevel) const OVERRIDE
+	FString GetZoomPrettyString(int32 InZoomLevel) const OVERRIDE
 	{
 		checkSlow(ZoomLevels.IsValidIndex(InZoomLevel));
-		return ZoomLevels[InZoomLevel].DisplayText;
+		return ZoomLevels[InZoomLevel].PrettyString;
 	}
 	
 	int32 GetNumZoomLevels() const OVERRIDE
@@ -246,9 +246,9 @@ float SNodePanel::GetZoomAmount() const
 	}
 }
 
-FText SNodePanel::GetZoomText() const
+FString SNodePanel::GetZoomString() const
 {
-	return ZoomLevels->GetZoomText(ZoomLevel);
+	return ZoomLevels->GetZoomPrettyString(ZoomLevel);
 }
 
 FSlateColor SNodePanel::GetZoomTextColorAndOpacity() const

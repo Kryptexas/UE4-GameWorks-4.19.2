@@ -232,133 +232,124 @@ namespace UnrealVS
 		/// </summary>
 		public static bool IsProjectExecutable(Project Project)
 		{
-			try
+			bool IsExecutable = false;
+
+			if (Project.Kind == GuidList.VCSharpProjectKindGuidString)
 			{
-				bool IsExecutable = false;
+				// C# project
 
-				if (Project.Kind == GuidList.VCSharpProjectKindGuidString)
+				Property StartActionProp = GetProjectConfigProperty(Project, null, "StartAction");
+				if (StartActionProp != null)
 				{
-					// C# project
-
-					Property StartActionProp = GetProjectConfigProperty(Project, null, "StartAction");
-					if (StartActionProp != null)
+					prjStartAction StartAction = (prjStartAction)StartActionProp.Value;
+					if (StartAction == prjStartAction.prjStartActionProject)
 					{
-						prjStartAction StartAction = (prjStartAction)StartActionProp.Value;
-						if (StartAction == prjStartAction.prjStartActionProject)
+						// Project starts the project's output file when run
+						Property OutputTypeProp = GetProjectProperty(Project, "OutputType");
+						if (OutputTypeProp != null)
 						{
-							// Project starts the project's output file when run
-							Property OutputTypeProp = GetProjectProperty(Project, "OutputType");
-							if (OutputTypeProp != null)
+							prjOutputType OutputType = (prjOutputType)OutputTypeProp.Value;
+							if (OutputType == prjOutputType.prjOutputTypeWinExe ||
+								OutputType == prjOutputType.prjOutputTypeExe)
 							{
-								prjOutputType OutputType = (prjOutputType)OutputTypeProp.Value;
-								if (OutputType == prjOutputType.prjOutputTypeWinExe ||
-									OutputType == prjOutputType.prjOutputTypeExe)
-								{
-									IsExecutable = true;
-								}
-							}
-						}
-						else if (StartAction == prjStartAction.prjStartActionProgram ||
-								 StartAction == prjStartAction.prjStartActionURL)
-						{
-							// Project starts an external program or a URL when run - assume it has been set deliberately to something executable
-							IsExecutable = true;
-						}
-					}
-				}
-				else if (Project.Kind == GuidList.VCProjectKindGuidString)
-				{
-					// C++ project 
-
-					SolutionConfiguration SolutionConfig = UnrealVSPackage.Instance.DTE.Solution.SolutionBuild.ActiveConfiguration;
-					SolutionContext ProjectSolutionCtxt = SolutionConfig.SolutionContexts.Item(Project.UniqueName);
-
-					// Get the correct config object from the VCProject
-					string ActiveConfigName = string.Format(
-						"{0}|{1}",
-						ProjectSolutionCtxt.ConfigurationName,
-						ProjectSolutionCtxt.PlatformName);
-
-					// Get the VS version-specific VC project object.
-					VCProject VCProject = new VCProject(Project, ActiveConfigName);
-
-					if (VCProject != null)
-					{
-						// Sometimes the configurations is null.
-						if (VCProject.Configurations != null)
-						{
-							var VCConfigMatch = VCProject.Configurations.FirstOrDefault(VCConfig => VCConfig.Name == ActiveConfigName);
-
-							if (VCConfigMatch != null)
-							{
-								if (VCConfigMatch.DebugAttach)
-								{
-									// Project attaches to a running process
-									IsExecutable = true;
-								}
-								else
-								{
-									// Project runs its own process
-
-									if (VCConfigMatch.DebugFlavor == DebuggerFlavor.Remote)
-									{
-										// Project debugs remotely
-										if (VCConfigMatch.DebugRemoteCommand.Length != 0)
-										{
-											// An remote program is specified to run
-											IsExecutable = true;
-										}
-									}
-									else
-									{
-										// Local debugger
-
-										if (VCConfigMatch.DebugCommand.Length != 0 && VCConfigMatch.DebugCommand != "$(TargetPath)")
-										{
-											// An external program is specified to run
-											IsExecutable = true;
-										}
-										else
-										{
-											// No command so the project runs the target file
-
-											if (VCConfigMatch.ConfigType == ConfigType.Application)
-											{
-												IsExecutable = true;
-											}
-											else if (VCConfigMatch.ConfigType == ConfigType.Generic)
-											{
-												// Makefile
-
-												if (VCConfigMatch.NMakeToolOutput.Length != 0)
-												{
-													string Ext = Path.GetExtension(VCConfigMatch.NMakeToolOutput);
-													if (0 == string.Compare(Ext, ".exe", StringComparison.InvariantCultureIgnoreCase))
-													{
-														IsExecutable = true;
-													}
-												}
-											}
-										}
-									}
-								}
+								IsExecutable = true;
 							}
 						}
 					}
+					else if (StartAction == prjStartAction.prjStartActionProgram ||
+							 StartAction == prjStartAction.prjStartActionURL)
+					{
+						// Project starts an external program or a URL when run - assume it has been set deliberately to something executable
+						IsExecutable = true;
+					}
 				}
-				else
-				{
-					// @todo: support other project types
-				}
-
-				return IsExecutable;
 			}
-			catch (Exception ex)
+			else if (Project.Kind == GuidList.VCProjectKindGuidString)
 			{
-				Exception AppEx = new ApplicationException("IsProjectExecutable() failed", ex);
-				Logging.WriteLine(AppEx.ToString());
-				throw AppEx;
+				// C++ project 
+
+				SolutionConfiguration SolutionConfig = UnrealVSPackage.Instance.DTE.Solution.SolutionBuild.ActiveConfiguration;
+				SolutionContext ProjectSolutionCtxt = SolutionConfig.SolutionContexts.Item(Project.UniqueName);
+
+                // Get the correct config object from the VCProject
+                string ActiveConfigName = string.Format(
+                    "{0}|{1}",
+					ProjectSolutionCtxt.ConfigurationName,
+					ProjectSolutionCtxt.PlatformName);
+
+                // Get the VS version-specific VC project object.
+				VCProject VCProject = new VCProject(Project, ActiveConfigName);
+
+				if (VCProject != null)
+				{
+                    // Sometimes the configurations is null.
+                    if (VCProject.Configurations != null)
+                    {
+                        var VCConfigMatch = VCProject.Configurations.FirstOrDefault(VCConfig => VCConfig.Name == ActiveConfigName);
+
+                        if (VCConfigMatch != null)
+                        {
+                            if (VCConfigMatch.DebugAttach)
+                            {
+                                // Project attaches to a running process
+                                IsExecutable = true;
+                            }
+                            else
+                            {
+                                // Project runs its own process
+
+                                if (VCConfigMatch.DebugFlavor == DebuggerFlavor.Remote)
+                                {
+                                    // Project debugs remotely
+                                    if (VCConfigMatch.DebugRemoteCommand.Length != 0)
+                                    {
+                                        // An remote program is specified to run
+                                        IsExecutable = true;
+                                    }
+                                }
+                                else
+                                {
+                                    // Local debugger
+
+                                    if (VCConfigMatch.DebugCommand.Length != 0 && VCConfigMatch.DebugCommand != "$(TargetPath)")
+                                    {
+                                        // An external program is specified to run
+                                        IsExecutable = true;
+                                    }
+                                    else
+                                    {
+                                        // No command so the project runs the target file
+
+                                        if (VCConfigMatch.ConfigType == ConfigType.Application)
+                                        {
+                                            IsExecutable = true;
+                                        }
+                                        else if (VCConfigMatch.ConfigType == ConfigType.Generic)
+                                        {
+                                            // Makefile
+
+                                            if (VCConfigMatch.NMakeToolOutput.Length != 0)
+                                            {
+                                                string Ext = Path.GetExtension(VCConfigMatch.NMakeToolOutput);
+                                                if (0 == string.Compare(Ext, ".exe", StringComparison.InvariantCultureIgnoreCase))
+                                                {
+                                                    IsExecutable = true;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+				}
 			}
+			else
+			{
+				// @todo: support other project types
+			}
+
+			return IsExecutable;
 		}
 
 		/// <summary>
@@ -373,31 +364,22 @@ namespace UnrealVS
 		/// Recurses into items because these are actually in a tree structure
 		public static Project[] GetAllProjectsFromDTE()
 		{
-			try
+			List<Project> Projects = new List<Project>();
+
+			foreach (Project Project in UnrealVSPackage.Instance.DTE.Solution.Projects)
 			{
-				List<Project> Projects = new List<Project>();
+				Projects.Add(Project);
 
-				foreach (Project Project in UnrealVSPackage.Instance.DTE.Solution.Projects)
+				if (Project.ProjectItems != null)
 				{
-					Projects.Add(Project);
-
-					if (Project.ProjectItems != null)
+					foreach (ProjectItem Item in Project.ProjectItems)
 					{
-						foreach (ProjectItem Item in Project.ProjectItems)
-						{
-							GetSubProjectsOfProjectItem(Item, Projects);
-						}
+						GetSubProjectsOfProjectItem(Item, Projects);
 					}
 				}
+			}
 
-				return Projects.ToArray();
-			}
-			catch (Exception ex)
-			{
-				Exception AppEx = new ApplicationException("GetAllProjectsFromDTE() failed", ex);
-				Logging.WriteLine(AppEx.ToString());
-				throw AppEx;
-			}
+			return Projects.ToArray();
 		}
 
 		/// Called by GetAllProjectsFromDTE() to list items from the project tree

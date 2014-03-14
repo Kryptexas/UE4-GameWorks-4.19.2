@@ -108,7 +108,7 @@ UWheeledVehicleMovementComponent::UWheeledVehicleMovementComponent(const class F
 
 #if WITH_PHYSX
 
-bool UWheeledVehicleMovementComponent::CanCreateVehicle() const
+bool UWheeledVehicleMovementComponent::CanCreateVehicle()
 {
 	if ( UpdatedComponent == NULL )
 	{
@@ -570,30 +570,6 @@ void UWheeledVehicleMovementComponent::DestroyPhysicsState()
 	}
 }
 
-bool UWheeledVehicleMovementComponent::ShouldCreatePhysicsState() const
-{
-	// only create physx vehicle in game
-	if (GetWorld()->IsGameWorld())
-	{
-		FPhysScene* PhysScene = World->GetPhysicsScene();
-
-		if (PhysScene && PhysScene->GetVehicleManager())
-		{
-			if (CanCreateVehicle())
-			{
-				return true;
-			}
-		}
-	}
-
-	return false;
-}
-
-bool UWheeledVehicleMovementComponent::HasValidPhysicsState() const
-{
-	return PVehicle != NULL;
-}
-
 void UWheeledVehicleMovementComponent::CreateWheels()
 {
 	// Wheels num is getting copied when blueprint recompiles, so we have to manually reset here
@@ -1017,6 +993,7 @@ void UWheeledVehicleMovementComponent::DrawDebug( UCanvas* Canvas, float& YL, fl
 	for ( uint32 w = 0; w < PVehicle->mWheelsSimData.getNbWheels(); ++w )
 	{
 
+		UVehicleWheel* Wheel = Wheels[w];
 		const PxMaterial* ContactSurface = WheelsStates[w].tireSurfaceMaterial;
 		const PxReal TireFriction = WheelsStates[w].tireFriction;
 		const PxReal LatSlip = WheelsStates[w].lateralSlip;

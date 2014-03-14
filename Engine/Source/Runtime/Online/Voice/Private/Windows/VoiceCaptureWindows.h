@@ -17,72 +17,6 @@
 #define MAX_UNCOMPRESSED_VOICE_BUFFER_SIZE 30 * 1024
 
 /**
- * DirectSound wrapper for initialization / shutdown
- */ 
-class FVoiceCaptureDeviceWindows
-{
-private:
-
-    /** One instance of the direct sound API */
-	static FVoiceCaptureDeviceWindows* Singleton;
-	/** All outstanding voice capture objects */
-	TArray<class IVoiceCapture*> ActiveVoiceCaptures;
-	/** Is DirectSound setup correctly */
-	bool bInitialized;
-
-    /** Initialize DirectSound and the voice capture device */
-	bool Init();
-    /** Shutdown DirectSound and the voice capture device */
-	void Shutdown();
-
-PACKAGE_SCOPE:
-
-	/**
-	 * Create the device singleton 
-	 *
-	 * @return singleton capable of providing voice capture features
-	 */
-	static FVoiceCaptureDeviceWindows* Create();
-	/**
-	 * Destroy the device singleton
-	 */
-	static void Destroy();
-	/**
-	 * Free a voice capture object created by CreateVoiceCaptureObject()
-	 *
-	 * @param VoiceCaptureObj voice capture object to free
-	 */
-	void FreeVoiceCaptureObject(class IVoiceCapture* VoiceCaptureObj);
-
-public:
-
-	/** DirectSound8 Interface */
-	LPDIRECTSOUND8 DirectSound;
-	/** Voice capture device */
-	LPDIRECTSOUNDCAPTURE8 VoiceCaptureDev;
-	/** Voice capture device caps */
-	DSCCAPS VoiceCaptureDevCaps;
-
-	/** Constructors */
-	FVoiceCaptureDeviceWindows();
-	~FVoiceCaptureDeviceWindows();
-
-	/**
-	 * Create a single voice capture buffer
-	 *
-	 * @return class capable of recording voice on a given device
-	 */
-	class FVoiceCaptureWindows* CreateVoiceCaptureObject();
-
-	/**
-	 * Singleton accessor
-	 * 
-	 * @return access to the voice capture device
-	 */
-	static FVoiceCaptureDeviceWindows* Get();
-};
-
-/**
  * Windows implementation of voice capture using DirectSound
  */
 class FVoiceCaptureWindows : public IVoiceCapture, public FTickerObjectBase
@@ -108,8 +42,14 @@ private:
 
 	/** State of capture device */
 	EVoiceCaptureState::Type VoiceCaptureState;
+	/** DirectSound8 Interface */
+	LPDIRECTSOUND8 DirectSound;
+	/** Voice capture device */
+	LPDIRECTSOUNDCAPTURE8 VoiceCaptureDev;
 	/** Voice capture buffer */
 	LPDIRECTSOUNDCAPTUREBUFFER8 VoiceCaptureBuffer8;
+	/** Voice capture caps */
+	DSCCAPS VoiceCaptureDevCaps;
 	/** Wave format of buffer */
 	WAVEFORMATEX WavFormat;
 	/** Buffer description */
@@ -120,8 +60,11 @@ private:
 	uint32 LastEventTriggered;
 	/** Notification events */
 	HANDLE Events[NUM_EVENTS];
-	/** Uncompressed audio buffer */
-	TArray<uint8> UncompressedAudioBuffer;
+
+	/** Double buffered audio */
+	uint32 LastBufferWritten;
+	TArray<uint8> AudioBuffers[2];
+
 	/** Current audio position of valid data in capture buffer */
 	DWORD NextCaptureOffset;
 

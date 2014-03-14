@@ -165,8 +165,7 @@ class ENGINE_API UPathFollowingComponent : public UActorComponent, public IAIRes
 	FORCEINLINE bool DidMoveReachGoal() const { return bLastMoveReachedGoal && (Status == EPathFollowingStatus::Idle); }
 
 	FORCEINLINE uint32 GetCurrentRequestId() const { return CurrentRequestId; }
-	FORCEINLINE uint32 GetCurrentPathIndex() const { return MoveSegmentStartIndex; }
-	FORCEINLINE uint32 GetNextPathIndex() const { return MoveSegmentEndIndex; }
+	FORCEINLINE uint32 GetNextPathIndex() const { return MoveSegmentStartIndex + 1; }
 	FORCEINLINE FVector GetCurrentTargetLocation() const { return *CurrentDestination; }
 	FORCEINLINE FVector GetCurrentDirection() const { return MoveSegmentDirection; }
 	FORCEINLINE FBasedPosition GetCurrentTargetLocationBased() const { return CurrentDestination; }
@@ -184,10 +183,6 @@ class ENGINE_API UPathFollowingComponent : public UActorComponent, public IAIRes
 	/** readable name of result enum */
 	FString GetResultDesc(EPathFollowingResult::Type Result) const;
 
-	/** debug point reach test values */
-	void DebugReachTest(float& CurrentDot, float& CurrentDistance, float& CurrentHeight, uint8& bDotFailed, uint8& bDistanceFailed, uint8& bHeightFailed); 
-
-	virtual FString GetDebugString() const;
 	virtual void DisplayDebug(class UCanvas* Canvas, const TArray<FName>& DebugDisplay, float& YL, float& YPos) const;
 #if ENABLE_VISUAL_LOG
 	virtual void DescribeSelfToVisLog(struct FVisLogEntry* Snapshot) const;
@@ -276,12 +271,6 @@ protected:
 	/** set when last move request was finished at goal */
 	uint32 bLastMoveReachedGoal : 1;
 
-	/** set when paths simplification using visibility tests are needed  (disabled by default because of performance) */
-	uint32 bUseVisibilityTestsSimplification : 1;
-
-	/** set when UpdateMove() is called during paused move, will update path's start segment on resuming */
-	uint32 bPendingPathStartUpdate : 1;
-
 	/** detect blocked movement when distance between center of location samples and furthest one (centroid radius) is below threshold */
 	float BlockDetectionDistance;
 
@@ -336,11 +325,6 @@ protected:
 	FORCEINLINE static uint32 GetNextRequestId() { return NextRequestId++; }
 	FORCEINLINE void StoreRequestId() { CurrentRequestId = UPathFollowingComponent::GetNextRequestId(); }
 
-	/** Visibility tests to skip some path points if possible
-	@param NextSegmentStartIndex Selected next segment to follow
-	@return  better path segment to follow, to use as MoveSegmentEndIndex */
-	uint32 PrepareBestNextMoveSegment(uint32 NextSegmentStartIndex);
-
 	void SetDestinationActor(const AActor* InDestinationActor);
 
 	/** check if movement component is valid or tries to grab one from owner 
@@ -358,11 +342,8 @@ protected:
 
 private:
 
-	/** index of path point being current move beginning */
-	uint32 MoveSegmentStartIndex;
-
 	/** index of path point being current move target */
-	uint32 MoveSegmentEndIndex;
+	uint32 MoveSegmentStartIndex;
 
 	/** reference of node at segment start */
 	NavNodeRef MoveSegmentStartRef;

@@ -684,7 +684,7 @@ TSharedRef< SWidget > FPlayWorldCommands::GenerateLaunchMenuContent( TSharedRef<
 
 				FFormatNamedArguments LabelArguments;
 				LabelArguments.Add(TEXT("PlatformName"), Platform->DisplayName());
-				FText Label = FText::Format(LOCTEXT("LaunchPlatformLabel", "{PlatformName} Support"), LabelArguments);
+				FText Label = FText::Format(LOCTEXT("LaunchDeviceLabel", "{PlatformName} Support"), LabelArguments);
 
 
 				MenuBuilder.AddMenuEntry( 
@@ -1011,7 +1011,7 @@ void FInternalPlayWorldCommandCallbacks::PlayInViewport_Clicked( )
 
 	TSharedPtr<ILevelViewport> ActiveLevelViewport = LevelEditorModule.GetFirstActiveViewport();
 
-	const bool bAtPlayerStart = (GetDefault<ULevelEditorPlaySettings>()->LastExecutedPlayModeLocation == PlayLocation_DefaultPlayerStart) && (GEditor->CheckForPlayerStart() != nullptr);
+	const bool bAtPlayerStart = (GetDefault<ULevelEditorPlaySettings>()->LastExecutedPlayModeLocation == PlayLocation_DefaultPlayerStart);
 	const bool bSimulateInEditor = false;
 
 	// Make sure we can find a path to the view port.  This will fail in cases where the view port widget

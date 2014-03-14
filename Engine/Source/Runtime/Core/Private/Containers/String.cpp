@@ -1124,7 +1124,7 @@ FArchive& operator<<( FArchive& Ar, FString& A )
 
 		// Protect against network packets allocating too much memory
 		auto MaxSerializeSize = Ar.GetMaxSerializeSize();
-		if (MaxSerializeSize > 0 && ( SaveNum > MaxSerializeSize || SaveNum < 0 ))		// If SaveNum is still less than 0, they must have passed in MIN_INT
+		if (MaxSerializeSize > 0 && SaveNum > MaxSerializeSize)
 		{
 			Ar.ArIsError         = 1;
 			Ar.ArIsCriticalError = 1;

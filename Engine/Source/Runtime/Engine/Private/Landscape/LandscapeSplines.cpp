@@ -112,7 +112,7 @@ public:
 		const FMatrix& LocalToWorld = GetLocalToWorld();
 
 		const FLinearColor SelectedSplineColor = GEngine->GetSelectedMaterialColor();
-		const FLinearColor SelectedControlPointSpriteColor = FLinearColor::White + (GEngine->GetSelectedMaterialColor() * GEngine->SelectionHighlightIntensityBillboards * 10); // copied from FSpriteSceneProxy::DrawDynamicElements()
+		const FLinearColor SelectedControlPointSpriteColor = FLinearColor::White + (GEngine->GetSelectedMaterialColor() * GEngine->SelectionHighlightIntensity * 10); // copied from FSpriteSceneProxy::DrawDynamicElements()
 
 		for (int32 iSegment = 0; iSegment < Segments.Num(); iSegment++)
 		{
@@ -460,8 +460,6 @@ ULandscapeSplineControlPoint::ULandscapeSplineControlPoint(const class FPostCons
 	Mesh = NULL;
 	MeshScale = FVector(1);
 
-	LDMaxDrawDistance = 0;
-
 	LayerName = NAME_None;
 	bRaiseTerrain = true;
 	bLowerTerrain = true;
@@ -762,14 +760,6 @@ void ULandscapeSplineControlPoint::UpdateSplinePoints(bool bUpdateCollision)
 			}
 		}
 
-		if (MeshComponent->LDMaxDrawDistance != LDMaxDrawDistance)
-		{
-			MeshComponent->Modify();
-			MeshComponent->LDMaxDrawDistance = LDMaxDrawDistance;
-			MeshComponent->CachedMaxDrawDistance = 0;
-			MeshComponent->MarkRenderStateDirty();
-		}
-
 		if (MeshComponent->CastShadow != bCastShadow)
 		{
 			MeshComponent->Modify();
@@ -941,7 +931,6 @@ ULandscapeSplineSegment::ULandscapeSplineSegment(const class FPostConstructIniti
 
 	// SplineMesh properties
 	SplineMeshes.Empty();
-	LDMaxDrawDistance = 0;
 	bEnableCollision = true;
 	bCastShadow = true;
 
@@ -1533,17 +1522,6 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 				MeshComponent->SplineParams.EndRoll = -MeshComponent->SplineParams.EndRoll;
 				MeshComponent->SplineParams.StartOffset.X = -MeshComponent->SplineParams.StartOffset.X;
 				MeshComponent->SplineParams.EndOffset.X = -MeshComponent->SplineParams.EndOffset.X;
-			}
-
-			// Set Mesh component's location to half way between the start and end points. Improves the bounds and allows LDMaxDrawDistance to work
-			MeshComponent->RelativeLocation = (MeshComponent->SplineParams.StartPos + MeshComponent->SplineParams.EndPos) / 2;
-			MeshComponent->SplineParams.StartPos -= MeshComponent->RelativeLocation;
-			MeshComponent->SplineParams.EndPos -= MeshComponent->RelativeLocation;
-
-			if (MeshComponent->LDMaxDrawDistance != LDMaxDrawDistance)
-			{
-				MeshComponent->LDMaxDrawDistance = LDMaxDrawDistance;
-				MeshComponent->CachedMaxDrawDistance = 0;
 			}
 
 			MeshComponent->SetCastShadow(bCastShadow);

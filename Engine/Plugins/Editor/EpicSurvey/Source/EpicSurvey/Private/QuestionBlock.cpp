@@ -125,11 +125,11 @@ TSharedPtr< FQuestionBlock > FQuestionBlock::Create( const TSharedRef< class FEp
 
 								if( BranchObject.IsValid() )
 								{
-									FString BranchName;
+									FText BranchName;
 									int32 BranchPoints = 0;
 									if( BranchObject->HasTypedField< EJson::String >("branch") )
 									{
-										BranchName = BranchObject->GetStringField("branch");
+										BranchName = FText::FromString( BranchObject->GetStringField("branch") );
 									}
 									if( BranchObject->HasTypedField< EJson::Number >("points") )
 									{
@@ -137,7 +137,7 @@ TSharedPtr< FQuestionBlock > FQuestionBlock::Create( const TSharedRef< class FEp
 									}
 									if( !BranchName.IsEmpty() && (BranchPoints > 0) )
 									{
-										Answer.Branches.Add( BranchName, BranchPoints );
+										Answer.Branches.Add( BranchName.ToString(), BranchPoints );
 									}
 								}
 							}

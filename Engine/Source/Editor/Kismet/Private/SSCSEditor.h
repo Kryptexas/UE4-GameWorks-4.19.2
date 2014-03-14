@@ -71,22 +71,17 @@ public:
 	 * @return The set of nodes which are parented to this node (read-only).
 	 */
 	const TArray<FSCSEditorTreeNodePtrType>& GetChildren() const { return Children; }
-	/**
-	 * @return The Blueprint to which this node belongs.
-	 */
-	UBlueprint* GetBlueprint() const;
 	/** 
 	 * @return Whether or not this object represents a root component.
 	 */
 	bool IsRoot() const;
-	/**
-	 * @return Whether or not this node is a direct child of the given node.
-	 */
+
+	/** @return Whether or not this node is a direct child of the given node. */
 	bool IsDirectlyAttachedTo(FSCSEditorTreeNodePtrType InNodePtr) const { return ParentNodePtr == InNodePtr; } 
-	/**
-	 * @return Whether or not this node is a child (direct or indirect) of the given node.
-	 */
+
+	/** @return Whether or not this node is a child (direct or indirect) of the given node. */
 	bool IsAttachedTo(FSCSEditorTreeNodePtrType InNodePtr) const;
+
 	/**
 	 * @return Whether or not this object represents a "native" component template (i.e. one that is not found in the SCS tree).
 	 */

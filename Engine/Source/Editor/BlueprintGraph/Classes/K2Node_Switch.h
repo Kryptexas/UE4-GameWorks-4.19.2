@@ -21,6 +21,8 @@ class UK2Node_Switch : public UK2Node
 	UPROPERTY()
 	TSubclassOf<class UObject> FunctionClass;
 
+#if WITH_EDITOR
+
 	// UObject interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
 	// End of UObject interface
@@ -74,5 +76,6 @@ protected:
 private:
 	// Editor-only field that signals a default pin setting change
 	bool bHasDefaultPinValueChanged;
+#endif 
 };
 

@@ -521,18 +521,6 @@ bool UTransBuffer::CanRedo( FText* Text )
 	return 1;
 }
 
-
-const FTransaction* UTransBuffer::GetTransaction( int32 QueueIndex ) const
-{
-	if (UndoBuffer.Num() > QueueIndex)
-	{
-		return &UndoBuffer[QueueIndex];
-	}
-
-	return NULL;
-}
-
-
 FUndoSessionContext UTransBuffer::GetUndoContext( bool bCheckWhetherUndoPossible )
 {
 	FUndoSessionContext Context;
@@ -566,25 +554,16 @@ FUndoSessionContext UTransBuffer::GetRedoContext()
 bool UTransBuffer::Undo()
 {
 	CheckState();
-
-	if (!CanUndo())
+	if( !CanUndo() )
 	{
-		UndoDelegate.Broadcast(FUndoSessionContext(), false);
-
 		return false;
 	}
 
 	// Apply the undo changes.
-	GIsTransacting = true;
-	{
-		FTransaction& Transaction = UndoBuffer[ UndoBuffer.Num() - ++UndoCount ];
-		UE_LOG(LogEditorTransaction, Log,  TEXT("Undo %s"), *Transaction.GetTitle().ToString() );
+	FTransaction& Transaction = UndoBuffer[ UndoBuffer.Num() - ++UndoCount ];
 
-		BeforeRedoUndoDelegate.Broadcast(Transaction.GetContext());
-		Transaction.Apply();
-		UndoDelegate.Broadcast(Transaction.GetContext(), true);
-	}
-	GIsTransacting = false;
+	UE_LOG(LogEditorTransaction, Log,  TEXT("Undo %s"), *Transaction.GetTitle().ToString() );
+	Transaction.Apply();
 
 	CheckState();
 
@@ -594,25 +573,16 @@ bool UTransBuffer::Undo()
 bool UTransBuffer::Redo()
 {
 	CheckState();
-
-	if (!CanRedo())
+	if( !CanRedo() )
 	{
-		UndoDelegate.Broadcast(FUndoSessionContext(), false);
-
 		return false;
 	}
 
 	// Apply the redo changes.
-	GIsTransacting = true;
-	{
-		FTransaction& Transaction = UndoBuffer[ UndoBuffer.Num() - UndoCount-- ];
-		UE_LOG(LogEditorTransaction, Log,  TEXT("Redo %s"), *Transaction.GetTitle().ToString() );
+	FTransaction& Transaction = UndoBuffer[ UndoBuffer.Num() - UndoCount-- ];
 
-		BeforeRedoUndoDelegate.Broadcast(Transaction.GetContext());
-		Transaction.Apply();
-		UndoDelegate.Broadcast(Transaction.GetContext(), true);
-	}
-	GIsTransacting = false;
+	UE_LOG(LogEditorTransaction, Log,  TEXT("Redo %s"), *Transaction.GetTitle().ToString() );
+	Transaction.Apply();
 
 	CheckState();
 
@@ -653,6 +623,16 @@ void UTransBuffer::CheckState() const
 	check(ActiveCount>=0);
 }
 
+
+UTransactor* UEditorEngine::CreateTrans()
+{
+	int32 UndoBufferSize;
+	if( !GConfig->GetInt( TEXT("Undo"), TEXT("UndoBufferSize"), UndoBufferSize, GEditorUserSettingsIni ) )
+	{
+		UndoBufferSize = 16;
+	}
+	return new UTransBuffer( FPostConstructInitializeProperties(),UndoBufferSize*1024*1024 );
+}
 
 void UTransBuffer::SetPrimaryUndoObject(UObject* PrimaryObject)
 {

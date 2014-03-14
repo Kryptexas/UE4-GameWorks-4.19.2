@@ -694,10 +694,4 @@ void FPropertyTableColumn::Tick()
 	}
 }
 
-void FPropertyTableColumn::SetFrozen(bool InIsFrozen)
-{
-	bIsFrozen = InIsFrozen;
-	FrozenStateChanged.Broadcast( SharedThis(this) );
-}
-
 #undef LOCTEXT_NAMESPACE

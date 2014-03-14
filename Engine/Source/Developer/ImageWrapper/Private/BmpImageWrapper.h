@@ -13,7 +13,7 @@ public:
 	/**
 	 * Default Constructor.
 	 */
-	FBmpImageWrapper(bool bInHasHeader = true, bool bInHalfHeight = false);
+	FBmpImageWrapper();
 
 public:
 
@@ -27,28 +27,12 @@ public:
 
 	// End FImageWrapper Interface
 
-
-	/** Helper function used to uncompress BMP data from a buffer */
-	void UncompressBMPData( const ERGBFormat::Type InFormat, const int32 InBitDepth );
+private:
 
 	/** 
 	 * Load the header information, returns true if successful.
 	 *
 	 * @return true if successful
 	 */
-	bool LoadBMPHeader();
-
-	/** 
-	 * Load the sub-header information, returns true if successful.
-	 *
-	 * @return true if successful
-	 */
-	bool LoadBMPInfoHeader();
-
-private:
-	/** Whether this file has a BMP file header */
-	bool bHasHeader;
-
-	/** BMP as a sub-format of ICO stores its height as half their actual size */
-	bool bHalfHeight;
+	bool LoadHeader();
 };

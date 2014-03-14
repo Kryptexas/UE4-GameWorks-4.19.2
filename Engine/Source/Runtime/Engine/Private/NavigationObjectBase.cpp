@@ -47,7 +47,6 @@ ANavigationObjectBase::ANavigationObjectBase(const class FPostConstructInitializ
 		GoodSprite->SpriteInfo.DisplayName = ConstructorStatics.NAME_Navigation;
 		GoodSprite->AttachParent = CapsuleComponent;
 		GoodSprite->bAbsoluteScale = true;
-		GoodSprite->bIsScreenSizeScaled = true;
 	}
 #endif // WITH_EDITORONLY_DATA
 
@@ -61,7 +60,6 @@ ANavigationObjectBase::ANavigationObjectBase(const class FPostConstructInitializ
 		BadSprite->SpriteInfo.DisplayName = ConstructorStatics.NAME_Navigation;
 		BadSprite->bAbsoluteScale = true;
 		BadSprite->AttachParent = CapsuleComponent;
-		BadSprite->bIsScreenSizeScaled = true;
 	}
 #endif // WITH_EDITORONLY_DATA
 }

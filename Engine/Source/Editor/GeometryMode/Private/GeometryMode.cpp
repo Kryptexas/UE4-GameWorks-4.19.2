@@ -91,46 +91,41 @@ void SGeometryModeControls::CreateLayout()
 {
 	this->ChildSlot
 	[
-		SNew(SScrollBox)
-		+SScrollBox::Slot()
-		.Padding(0.0f)
+		SNew( SBorder )
+		.BorderImage( FEditorStyle::GetBrush( "ToolPanel.GroupBorder" ) )
 		[
-			SNew(SBorder)
-			.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+			SNew(SVerticalBox)
+			+SVerticalBox::Slot()
+			.AutoHeight()
+			.HAlign(HAlign_Center)
 			[
-				SNew(SVerticalBox)
-				+SVerticalBox::Slot()
-				.AutoHeight()
-				.HAlign(HAlign_Center)
-				[
-					CreateTopModifierButtons()
-				]
-				+SVerticalBox::Slot()
-				.AutoHeight()
-				.Padding(3.0f)
-				[
-					SNew(SSeparator)
-					.Orientation(Orient_Horizontal)
-				]	
-				+SVerticalBox::Slot()
-				.AutoHeight()
-				[
-					CreateModifierProperties()
-				]	
-				+SVerticalBox::Slot()
-				.AutoHeight()
-				.Padding(3.0f)
-				[
-					SNew(SSeparator)
-					.Orientation(Orient_Horizontal)
-					.Visibility(this, &SGeometryModeControls::IsPropertiesVisible)
-				]
-				+SVerticalBox::Slot()
-				.AutoHeight()
-				.HAlign(HAlign_Center)
-				[
-					CreateBottomModifierButtons()
-				]
+				CreateTopModifierButtons()
+			]
+			+SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(3.0f)
+			[
+				SNew(SSeparator)
+				.Orientation(Orient_Horizontal)
+			]	
+			+SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				CreateModifierProperties()
+			]	
+			+SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(3.0f)
+			[
+				SNew(SSeparator)
+				.Orientation(Orient_Horizontal)
+				.Visibility(this, &SGeometryModeControls::IsPropertiesVisible)
+			]
+			+SVerticalBox::Slot()
+			.AutoHeight()
+			.HAlign(HAlign_Center)
+			[
+				CreateBottomModifierButtons()
 			]
 		]
 	];

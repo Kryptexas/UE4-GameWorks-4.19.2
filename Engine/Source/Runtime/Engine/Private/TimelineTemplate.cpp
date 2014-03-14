@@ -225,7 +225,7 @@ void UTimelineTemplate::PostDuplicate(bool bDuplicateForPIE)
 		}
 		else
 		{
-			UE_LOG(LogBlueprint, Warning, TEXT("Timeline %s Track %s has an invalid curve.  Please fix!"), *TimelineTemplateNameToVariableName(GetFName()), *Track.TrackName.ToString());
+			UE_LOG(LogBlueprint, Warning, TEXT("Track %s has an invalid curve.  Please fix!"), *Track.TrackName.ToString());
 		}
 	}
 
@@ -238,7 +238,7 @@ void UTimelineTemplate::PostDuplicate(bool bDuplicateForPIE)
 		}
 		else
 		{
-			UE_LOG(LogBlueprint, Warning, TEXT("Timeline %s Track %s has an invalid curve.  Please fix!"), *TimelineTemplateNameToVariableName(GetFName()), *Track.TrackName.ToString());
+			UE_LOG(LogBlueprint, Warning, TEXT("Track %s has an invalid curve.  Please fix!"), *Track.TrackName.ToString());
 		}
 	}
 
@@ -251,7 +251,7 @@ void UTimelineTemplate::PostDuplicate(bool bDuplicateForPIE)
 		}
 		else
 		{
-			UE_LOG(LogBlueprint, Warning, TEXT("Timeline %s Track %s has an invalid curve.  Please fix!"), *TimelineTemplateNameToVariableName(GetFName()), *Track.TrackName.ToString());
+			UE_LOG(LogBlueprint, Warning, TEXT("Track %s has an invalid curve.  Please fix!"), *Track.TrackName.ToString());
 		}
 	}
 
@@ -264,7 +264,7 @@ void UTimelineTemplate::PostDuplicate(bool bDuplicateForPIE)
 		}
 		else
 		{
-			UE_LOG(LogBlueprint, Warning, TEXT("Timeline %s Track %s has an invalid curve.  Please fix!"), *TimelineTemplateNameToVariableName(GetFName()), *Track.TrackName.ToString());
+			UE_LOG(LogBlueprint, Warning, TEXT("Track %s has an invalid curve.  Please fix!"), *Track.TrackName.ToString());
 		}
 	}
 

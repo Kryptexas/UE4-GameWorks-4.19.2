@@ -197,10 +197,6 @@ public class HTML5Platform : Platform
         return "Peter.Sauerbrei[epic]";
     }
 
-    public override List<string> GetDebugFileExtentions()
-    {
-        return new List<string> { ".pdb" };
-    }
 	#region Hooks
 
 	public override void PreBuildAgenda(UE4Build Build, UE4Build.BuildAgenda Agenda)

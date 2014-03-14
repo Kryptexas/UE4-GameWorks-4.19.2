@@ -193,12 +193,6 @@ void UPackageMap::Serialize( FArchive& Ar )
 {
 	Super::Serialize( Ar );
 	Ar << Cache;
-
-	if ( Ar.IsCountingMemory() && Cache )
-	{
-		Cache->ObjectLookup.CountBytes( Ar );
-		Cache->NetGUIDLookup.CountBytes( Ar );
-	}
 }
 
 void UPackageMap::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
@@ -309,7 +303,7 @@ UObject * UPackageMap::GetObjectFromNetGUID( FNetworkGUID NetGUID )
 	else
 	{
 		// If we actually found the object, we probably shouldn't have GC'd it, so that's odd
-		//UE_LOG( LogNetPackageMap, Warning, TEXT( "GetObjectFromNetGUID: Object should not be found after GC: <%s, %s>" ), *NetGUID.ToString(), *CacheObjectPtr->FullPath );
+		UE_LOG( LogNetPackageMap, Warning, TEXT( "GetObjectFromNetGUID: Object should not be found after GC: <%s, %s>" ), *NetGUID.ToString(), *CacheObjectPtr->FullPath );
 	}
 
 	if ( Object == NULL )
@@ -393,26 +387,23 @@ FNetworkGUID UPackageMap::AssignNetGUID(const UObject* Object, FNetworkGUID NewN
 
 	// Remove any existing entries
 	{
-		const FNetGuidCacheObject * ExistingCacheObjectPtr = Cache->ObjectLookup.Find( NewNetworkGUID );
-
+		FNetGuidCacheObject* ExistingCacheObjectPtr = Cache->ObjectLookup.Find( NewNetworkGUID );
 		if ( ExistingCacheObjectPtr )
 		{
-			const UObject * OldObject = ExistingCacheObjectPtr->Object.Get();
-			UE_LOG( LogNetPackageMap, Warning, TEXT( "Reassigning NetGUID <%s> to %s (was assigned to object %s)" ), *NewNetworkGUID.ToString(), Object ? *Object->GetName() : TEXT( "NULL" ), OldObject ? *OldObject->GetName() : TEXT( "NULL" ) );
-			Cache->NetGUIDLookup.Remove( ExistingCacheObjectPtr->Object );
+			const FNetGuidCacheObject& ExistingCacheObject = *ExistingCacheObjectPtr;
+			Cache->NetGUIDLookup.Remove( ExistingCacheObject.Object );
 		}
 
-		const FNetworkGUID * ExistingNetworkGUIDPtr = Cache->NetGUIDLookup.Find( Object );
-
+		FNetworkGUID* ExistingNetworkGUIDPtr = Cache->NetGUIDLookup.Find( Object );
 		if ( ExistingNetworkGUIDPtr )
 		{
-			UE_LOG( LogNetPackageMap, Warning, TEXT( "Changing NetGUID on object %s from <%s> to <%s>" ), Object ? *Object->GetName() : TEXT( "NULL" ), *ExistingNetworkGUIDPtr->ToString(), *NewNetworkGUID.ToString() );
-			Cache->ObjectLookup.Remove( *ExistingNetworkGUIDPtr );
+			const FNetworkGUID& ExistingNetworkGUID = *ExistingNetworkGUIDPtr;
+			Cache->ObjectLookup.Remove( ExistingNetworkGUID );
 		}
 	}
 
 	Cache->ObjectLookup.Add( NewNetworkGUID, CacheObject );
-	Cache->NetGUIDLookup.Add( Object, NewNetworkGUID );
+	Cache->NetGUIDLookup.Add(Object, NewNetworkGUID);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	Cache->History.Add(NewNetworkGUID, Object ? Object->GetPathName() : TEXT("NULL"));
@@ -440,37 +431,20 @@ void UPackageMap::ResetPackageMap()
 	Cache->UniqueNetIDs[0] = Cache->UniqueNetIDs[1] = 0;
 }
 
-class FArchiveCountMemGUID : public FArchive
-{
-public:
-	FArchiveCountMemGUID() : Mem( 0 ) { ArIsCountingMemory = true; }
-	void CountBytes( SIZE_T InNum, SIZE_T InMax ) { Mem += InMax; }
-	SIZE_T Mem;
-};
-
 void UPackageMap::CleanPackageMap()
 {
-	// NOTE - Quick fix for some package map issues where client was cleaning up guids, which was causing issues.
-	// For now, we no longer clean these up.  The client can sometimes cleanup guids that the server doesn't which causes issues.
-	// The guid memory will leak for now until we find a better way.
-
-	// Free any dynamic guids that refer to objects that are dead
 	for ( auto It = Cache->ObjectLookup.CreateIterator(); It; ++It )
 	{
-		if ( It.Value().Object.IsValid() )
+		if ( !It.Value().Object.IsValid() )
 		{
-			// Make sure the path matches (which can change during seamless travel)
-			It.Value().FullPath = It.Value().Object->GetPathName();
+			UE_LOG( LogNetPackageMap, Log, TEXT( "Cleaning reference to NetGUID: <%s> (ObjectLookup)" ), *It.Key().ToString() );
+			It.RemoveCurrent();
 			continue;
 		}
 
-		if ( It.Key().IsDynamic() )
-		{
-			UE_LOG( LogNetPackageMap, Log, TEXT( "Cleaning reference to NetGUID: <%s> (%s) (ObjectLookup)" ), *It.Key().ToString(), *It.Value().FullPath );
-			It.RemoveCurrent();
-		}
+		// Make sure the path matches (which can change during seamless travel)
+		It.Value().FullPath = It.Value().Object->GetPathName();
 	}
-	
 
 	for ( auto It = Cache->NetGUIDLookup.CreateIterator(); It; ++It )
 	{
@@ -484,19 +458,8 @@ void UPackageMap::CleanPackageMap()
 	// Sanity check
 	for ( auto It = Cache->ObjectLookup.CreateIterator(); It; ++It )
 	{
-		check( It.Value().Object.IsValid() || It.Key().IsStatic() );
-
-		if ( It.Value().Object.IsValid() )
-		{
-			checkf( !It.Value().Object.IsValid() || Cache->NetGUIDLookup.FindRef( It.Value().Object ) == It.Key(), TEXT("Failed to validate ObjectLookup map in UPackageMap. Object '%s' was not in the NetGUIDLookup map with with value '%s'."), *It.Value().Object.Get()->GetPathName(), *It.Key().ToString());
-		}
-		else
-		{
-			for ( auto It2 = Cache->NetGUIDLookup.CreateIterator(); It2; ++It2 )
-			{
-				checkf( It2.Value() != It.Key(), TEXT("Failed to validate ObjectLookup map in UPackageMap. Object '%s' was in the NetGUIDLookup map with with value '%s'."), *It.Value().Object.Get()->GetPathName(), *It.Key().ToString());
-			}
-		}
+		check( It.Value().Object.IsValid() );
+		checkf( Cache->NetGUIDLookup.FindRef( It.Value().Object ) == It.Key(), TEXT("Failed to validate ObjectLookup map in UPackageMap. Object '%s' was not in the NetGUIDLookup map with with value '%s'."), *It.Value().Object.Get()->GetPathName(), *It.Key().ToString());
 	}
 
 	for ( auto It = Cache->NetGUIDLookup.CreateIterator(); It; ++It )
@@ -504,14 +467,6 @@ void UPackageMap::CleanPackageMap()
 		check( It.Key().IsValid() );
 		checkf( Cache->ObjectLookup.FindRef( It.Value() ).Object == It.Key(), TEXT("Failed to validate NetGUIDLookup map in UPackageMap. GUID '%s' was not in the ObjectLookup map with with object '%s'."), *It.Value().ToString(), *It.Key().Get()->GetPathName());
 	}
-
-	FArchiveCountMemGUID CountBytesAr;
-
-	Cache->ObjectLookup.CountBytes( CountBytesAr );
-	Cache->NetGUIDLookup.CountBytes( CountBytesAr );
-
-	// Make this a warning to be a constant reminder that we need to ultimately free this memory when we find a solution
-	UE_LOG( LogNetPackageMap, Warning, TEXT( "CleanPackageMap ObjectLookup: %i, NetGUIDLookup: %i, Mem: %i kB" ), Cache->ObjectLookup.Num(), Cache->NetGUIDLookup.Num(), ( CountBytesAr.Mem / 1024 ) );
 }
 
 void UPackageMap::PostInitProperties()

@@ -27,7 +27,6 @@
 #include "GlobalEditorCommonCommands.h"
 #include "LevelEditorCreateActorMenu.h"
 #include "SourceCodeNavigation.h"
-#include "Developer/MeshUtilities/Public/MeshUtilities.h"
 
 #define LOCTEXT_NAMESPACE "LevelViewportContextMenu"
 
@@ -784,15 +783,7 @@ void FLevelViewportContextMenuImpl::FillActorMenu( FMenuBuilder& MenuBuilder )
 				{
 					AActor* Actor = static_cast<AActor*>( *It );
 					if (!GEditor->CanParentActors(ParentActor, Actor))
-					{
-						return false;
-					}
-
-					USceneComponent* ChildRoot = Actor->GetRootComponent();
-					USceneComponent* ParentRoot = ParentActor->GetRootComponent();
-
-					if (ChildRoot != nullptr && ParentRoot != nullptr && ChildRoot->IsAttachedTo(ParentRoot))
-					{
+					{		
 						return false;
 					}
 				}
@@ -987,17 +978,13 @@ void FLevelViewportContextMenuImpl::FillMergeActorsMenu( class FMenuBuilder& Men
 {
 	MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().MergeActorsByMaterials );
 
-	IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
-	IMeshReduction* MeshReduction = MeshUtilities.GetMeshReductionInterface();
-
-	if (MeshReduction && MeshReduction->IsSupported())
+#if WITH_SIMPLYGON
+	MenuBuilder.BeginSection("ProxySimplygon", LOCTEXT("SimplygonHeading", "Simplygon") );
 	{
-		MenuBuilder.BeginSection("ProxySimplygon", LOCTEXT("SimplygonHeading", "Simplygon"));
-		{
-			MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().MergeActors);
-		}
-		MenuBuilder.EndSection();
+		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().MergeActors );
 	}
+	MenuBuilder.EndSection();
+#endif
 }
 
 void FLevelScriptEventMenuHelper::FillLevelBlueprintEventsMenu(class FMenuBuilder& MenuBuilder, const TArray<AActor*>& SelectedActors)

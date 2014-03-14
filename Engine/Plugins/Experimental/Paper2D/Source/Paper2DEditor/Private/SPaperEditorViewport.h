@@ -99,7 +99,7 @@ public:
 
 
 	float GetZoomAmount() const;
-	FText GetZoomText() const;
+	FString GetZoomString() const;
 	FSlateColor GetZoomTextColorAndOpacity() const;
 	FVector2D GetViewOffset() const;
 
@@ -119,7 +119,7 @@ protected:
 
 	FSlateRect ComputeSensibleGraphBounds() const;
 
-	virtual FText GetTitleText() const;
+	virtual FString GetTitleText() const;
 protected:
 	/** The position within the graph at which the user is looking */
 	FVector2D ViewOffset;

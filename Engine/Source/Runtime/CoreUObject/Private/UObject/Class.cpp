@@ -3247,29 +3247,15 @@ void UClass::GetHideCategories(TArray<FString>& OutHideCategories) const
 	}
 }
 
-bool UClass::IsCategoryHidden(const FString& InCategory) const
+bool UClass::IsCategoryHidden(const TCHAR* InCategory) const
 {
-	bool bHidden = false;
 	static const FName NAME_HideCategories(TEXT("HideCategories"));
 	if (HasMetaData(NAME_HideCategories))
 	{
 		const FString& HideCategories = GetMetaData(NAME_HideCategories);
-		bHidden = !!FCString::StrfindDelim(*HideCategories, *InCategory, TEXT(" "));
-		if (!bHidden)
-		{
-			TArray<FString> SubCategoryList;
-			InCategory.ParseIntoArray(&SubCategoryList, TEXT("|"), true);
-			for (const FString& SubCategory : SubCategoryList)
-			{
-				if (!!FCString::StrfindDelim(*HideCategories, *SubCategory, TEXT(" ")))
-				{
-					bHidden = true;
-					break;
-				}
-			}		
-		}
+		return !!FCString::StrfindDelim(*HideCategories, InCategory, TEXT(" "));
 	}
-	return bHidden;
+	return false;
 }
 
 void UClass::GetHideFunctions(TArray<FString>& OutHideFunctions) const

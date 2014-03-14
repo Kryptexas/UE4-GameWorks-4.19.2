@@ -131,11 +131,6 @@ void FRecastQueryFilter::SetFixedAreaEnteringCost(uint8 AreaType, float Cost)
 #endif // WITH_FIXED_AREA_ENTERING_COST
 }
 
-void FRecastQueryFilter::SetExcludedArea(uint8 AreaType)
-{
-	setAreaCost(AreaType, DT_UNWALKABLE_POLY_COST);
-}
-
 void FRecastQueryFilter::SetAllAreaCosts(const float* CostArray, const int32 Count) 
 {
 	// @todo could get away with memcopying to m_areaCost, but it's private and would require a little hack
@@ -175,26 +170,6 @@ bool FRecastQueryFilter::IsEqual(const INavigationQueryFilterInterface* Other) c
 {
 	// @NOTE: not type safe, should be changed when another filter type is introduced
 	return FMemory::Memcmp(this, Other, sizeof(this)) == 0;
-}
-
-void FRecastQueryFilter::SetIncludeFlags(uint16 Flags)
-{
-	setIncludeFlags(Flags);
-}
-
-uint16 FRecastQueryFilter::GetIncludeFlags() const
-{
-	return getIncludeFlags();
-}
-
-void FRecastQueryFilter::SetExcludeFlags(uint16 Flags)
-{
-	setExcludeFlags(Flags);
-}
-
-uint16 FRecastQueryFilter::GetExcludeFlags() const
-{
-	return getExcludeFlags();
 }
 
 //----------------------------------------------------------------------//
@@ -635,8 +610,8 @@ void FPImplRecastNavMesh::Raycast2D(const FVector& StartLoc, const FVector& EndL
 	if (StartPolyID != INVALID_NAVNODEREF)
 	{
 		const dtStatus RaycastStatus = NavQuery.raycast(StartPolyID, &RecastStart.X, &RecastEnd.X
-					, QueryFilter, &RaycastResult.HitTime, &RaycastResult.HitNormal.X
-					, RaycastResult.CorridorPolys, &RaycastResult.CorridorPolysCount, RaycastResult.GetMaxCorridorSize());
+			, QueryFilter, &RaycastResult.HitTime, &RaycastResult.HitNormal.X
+			, RaycastResult.CorridorPolys, &RaycastResult.CorridorPolysCount, RaycastResult.GetMaxCorridorSize());
 
 		if (dtStatusSucceed(RaycastStatus) == false)
 		{
@@ -682,7 +657,6 @@ ENavigationQueryResult::Type FPImplRecastNavMesh::FindPath(const FVector& StartL
 	}
 
 	// initialize output
-	// @todo this should be moved into a FNavMeshPath function 
 	Path.PathPoints.Reset();
 	Path.PathCorridor.Reset();
 	Path.PathCorridorCost.Reset();
@@ -697,37 +671,9 @@ ENavigationQueryResult::Type FPImplRecastNavMesh::FindPath(const FVector& StartL
 		&RecastStartPos.X, &RecastEndPos.X, QueryFilter,
 		PathCorridorPolys, &NumPathCorridorPolys, MAX_PATH_CORRIDOR_POLYS, PathCorridorCost, 0);
 
-	// check for special case, where path has not been found, and starting polygon
-	// was the one closest to the target
-	if (NumPathCorridorPolys == 1 && dtStatusDetail(FindPathStatus, DT_PARTIAL_RESULT))
-	{
-		// in this case we find a point on starting polygon, that's closest to destination
-		// and store it as path end
-		FVector RecastHandPlacedPathEnd;
-		NavQuery.closestPointOnPolyBoundary(StartPolyID, &RecastEndPos.X, &RecastHandPlacedPathEnd.X);
-
-		new(Path.PathPoints) FNavPathPoint(StartLoc, StartPolyID);
-		new(Path.PathPoints) FNavPathPoint(Recast2UnrVector(&RecastHandPlacedPathEnd.X), StartPolyID);
-
-		Path.PathCorridor.Add(PathCorridorPolys[0]);
-		Path.PathCorridorCost.Add(CalcSegmentCostOnPoly(StartPolyID, QueryFilter, RecastHandPlacedPathEnd, RecastStartPos));
-	}
-	else
-	{
-		PostProcessPath(FindPathStatus, Path, NavQuery, QueryFilter,
-			StartPolyID, EndPolyID, StartLoc, EndLoc, RecastStartPos, RecastEndPos,
-			PathCorridorPolys, PathCorridorCost, NumPathCorridorPolys);
-	}
-
-	if (dtStatusDetail(FindPathStatus, DT_PARTIAL_RESULT))
-	{
-		Path.SetIsPartial(true);
-		// this means path finding algorithm reached the limit of InQueryFilter.GetMaxSearchNodes()
-		// nodes in A* node pool. This can mean resulting path is way off.
-		Path.SetSearchReachedLimit(dtStatusDetail(FindPathStatus, DT_OUT_OF_NODES));
-	}
-
-	Path.MarkReady();
+	PostProcessPath(FindPathStatus, Path, NavQuery, QueryFilter,
+		StartPolyID, EndPolyID, StartLoc, EndLoc, RecastStartPos, RecastEndPos,
+		PathCorridorPolys, PathCorridorCost, NumPathCorridorPolys);
 
 	return DTStatusToNavQueryResult(FindPathStatus);
 }
@@ -845,16 +791,6 @@ ENavigationQueryResult::Type FPImplRecastNavMesh::FindPathThroughClusters(NavNod
 			PathCorridorPolys, PathCorridorCost, NumPathCorridorPolys);
 	}
 
-	if (dtStatusDetail(FindPathStatus, DT_PARTIAL_RESULT))
-	{
-		Path.SetIsPartial(true);
-		// this means path finding algorithm reached the limit of InQueryFilter.GetMaxSearchNodes()
-		// nodes in A* node pool. This can mean resulting path is way off.
-		Path.SetSearchReachedLimit(dtStatusDetail(FindPathStatus, DT_OUT_OF_NODES));
-	}
-
-	Path.MarkReady();
-
 	return DTStatusToNavQueryResult(FindPathStatus);
 }
 
@@ -909,15 +845,6 @@ bool FPImplRecastNavMesh::InitPathfinding(const FVector& UnrealStart, const FVec
 	return true;
 }
 
-float FPImplRecastNavMesh::CalcSegmentCostOnPoly(NavNodeRef PolyID, const dtQueryFilter* Filter, const FVector& StartLoc, const FVector& EndLoc) const
-{
-	uint8 AreaID = RECAST_DEFAULT_AREA;
-	DetourNavMesh->getPolyArea(PolyID, &AreaID);
-
-	const float AreaTravelCost = Filter->getAreaCost(AreaID);
-	return AreaTravelCost * (EndLoc - StartLoc).Size();
-}
-
 void FPImplRecastNavMesh::PostProcessPath(dtStatus FindPathStatus, FNavMeshPath& Path,
 	const dtNavMeshQuery& NavQuery, const dtQueryFilter* Filter,
 	NavNodeRef StartPolyID, NavNodeRef EndPolyID,
@@ -925,14 +852,17 @@ void FPImplRecastNavMesh::PostProcessPath(dtStatus FindPathStatus, FNavMeshPath&
 	const FVector& RecastStartPos, FVector& RecastEndPos,
 	NavNodeRef* PathCorridorPolys, float* PathCorridorCost, int32 NumPathCorridorPolys) const
 {
-	// note that for recast partial path is successful, while we treat it as failed, just marking it as partial
 	if (dtStatusSucceed(FindPathStatus))
 	{
 		Path.PathCorridorCost.AddUninitialized(NumPathCorridorPolys);
 		if (NumPathCorridorPolys == 1)
 		{
 			// failsafe cost for single poly corridor
-			Path.PathCorridorCost[0] = CalcSegmentCostOnPoly(StartPolyID, Filter, EndLoc, StartLoc);
+			uint8 AreaID = RECAST_DEFAULT_AREA;
+			DetourNavMesh->getPolyArea(StartPolyID, &AreaID);
+			
+			const float AreaTravelCost = Filter->getAreaCost(AreaID);
+			Path.PathCorridorCost[0] = AreaTravelCost * (EndLoc - StartLoc).Size();
 		}
 		else
 		{
@@ -942,8 +872,15 @@ void FPImplRecastNavMesh::PostProcessPath(dtStatus FindPathStatus, FNavMeshPath&
 			}
 		}
 
-		
-		// copy over corridor poly data
+		// "string pulling" to get final path
+
+		// temp data to catch output in detour's preferred format
+		float RecastPathVerts[RECAST_MAX_PATH_VERTS*3];
+		uint8 RecastPathFlags[RECAST_MAX_PATH_VERTS];
+		NavNodeRef RecastPolyRefs[RECAST_MAX_PATH_VERTS];
+
+		int32 NumPathVerts = 0;
+
 		Path.PathCorridor.AddUninitialized(NumPathCorridorPolys);
 		NavNodeRef* CorridorPoly = PathCorridorPolys;
 		NavNodeRef* DestCorridorPoly = Path.PathCorridor.GetTypedData();
@@ -968,12 +905,6 @@ void FPImplRecastNavMesh::PostProcessPath(dtStatus FindPathStatus, FNavMeshPath&
 
 		if (Path.WantsStringPulling())
 		{
-			// temp data to catch output in detour's preferred formatint32 NumPathVerts = 0;
-			int32 NumPathVerts = 0;
-			float RecastPathVerts[RECAST_MAX_PATH_VERTS*3];
-			uint8 RecastPathFlags[RECAST_MAX_PATH_VERTS];
-			NavNodeRef RecastPolyRefs[RECAST_MAX_PATH_VERTS];
-
 			// if path is partial (path corridor doesn't contain EndPolyID), find new RecastEndPos on last poly in corridor
 			if (dtStatusDetail(FindPathStatus, DT_PARTIAL_RESULT))
 			{
@@ -1047,17 +978,39 @@ void FPImplRecastNavMesh::PostProcessPath(dtStatus FindPathStatus, FNavMeshPath&
 		else
 		{
 			// make sure at least beginning and end of path are added
-			new(Path.PathPoints) FNavPathPoint(StartLoc, StartPolyID);
-			new(Path.PathPoints) FNavPathPoint(EndLoc, EndPolyID);
+			Path.PathPoints.AddUninitialized(2);
+			Path.PathPoints[0].NodeRef = StartPolyID;
+			Path.PathPoints[0].Location = StartLoc;
+			Path.PathPoints[1].NodeRef = EndPolyID;
+			Path.PathPoints[1].Location = EndLoc;
 		}
 
 		if (Path.WantsPathCorridor())
 		{
 			TArray<FNavigationPortalEdge> PathCorridorEdges;
-			GetEdgesForPathCorridorImpl(&Path.PathCorridor, &PathCorridorEdges, NavQuery);
+			PathCorridorEdges.Empty(NumPathCorridorPolys - 1);
+			for (int32 i = 0; i < NumPathCorridorPolys - 1; ++i)
+			{
+				unsigned char FromType = 0, ToType = 0;
+				float Left[3] = {0.f}, Right[3] = {0.f};
+
+				NavQuery.getPortalPoints(Path.PathCorridor[i], Path.PathCorridor[i+1], Left, Right, FromType, ToType);
+
+				PathCorridorEdges.Add(FNavigationPortalEdge(Recast2UnrVector(Left), Recast2UnrVector(Right), Path.PathCorridor[i+1]));
+			}
+
 			Path.SetPathCorridorEdges(PathCorridorEdges);
 		}
 	}
+
+	if (dtStatusDetail(FindPathStatus, DT_PARTIAL_RESULT))
+	{
+		Path.SetIsPartial(true);
+		// this means path finding algorithm reached the limit of InQueryFilter.GetMaxSearchNodes()
+		// nodes in A* node pool. This can mean resulting path is way off.
+		Path.SetSearchReachedLimit(dtStatusDetail(FindPathStatus, DT_OUT_OF_NODES));
+	}
+	Path.MarkReady();
 }
 
 static bool IsDebugNodeModified(const FRecastDebugPathfindingNode& NodeData, const FRecastDebugPathfindingStep& PreviousStep)
@@ -1348,14 +1301,13 @@ bool FPImplRecastNavMesh::ProjectPointMulti(const FVector& Point, TArray<FNavLoc
 					if ((HitLocation.Location - AdjustedPoint).SizeSquared2D() < KINDA_SMALL_NUMBER)
 					{
 						Result.Add(HitLocation);
-						bSuccess = true;
 					}
 				}
 			}
 		}
 	}
 
-	return bSuccess;
+	return (bSuccess);
 }
 
 NavNodeRef FPImplRecastNavMesh::FindNearestPoly(FVector const& Loc, FVector const& Extent, const FNavigationQueryFilter& Filter) const
@@ -1624,22 +1576,6 @@ bool FPImplRecastNavMesh::GetClusterBounds(NavNodeRef ClusterRef, FBox& OutBound
 	return NumPolys > 0;
 }
 
-FORCEINLINE void FPImplRecastNavMesh::GetEdgesForPathCorridorImpl(TArray<NavNodeRef>* PathCorridor, TArray<FNavigationPortalEdge>* PathCorridorEdges, const dtNavMeshQuery& NavQuery) const
-{
-	const int32 CorridorLenght = PathCorridor->Num();
-
-	PathCorridorEdges->Empty(CorridorLenght - 1);
-	for (int32 i = 0; i < CorridorLenght - 1; ++i)
-	{
-		unsigned char FromType = 0, ToType = 0;
-		float Left[3] = {0.f}, Right[3] = {0.f};
-
-		NavQuery.getPortalPoints((*PathCorridor)[i], (*PathCorridor)[i+1], Left, Right, FromType, ToType);
-
-		PathCorridorEdges->Add(FNavigationPortalEdge(Recast2UnrVector(Left), Recast2UnrVector(Right), (*PathCorridor)[i+1]));
-	}
-}
-
 void FPImplRecastNavMesh::GetEdgesForPathCorridor(TArray<NavNodeRef>* PathCorridor, TArray<FNavigationPortalEdge>* PathCorridorEdges) const
 {
 	// sanity check
@@ -1650,7 +1586,18 @@ void FPImplRecastNavMesh::GetEdgesForPathCorridor(TArray<NavNodeRef>* PathCorrid
 
 	INITIALIZE_NAVQUERY(NavQuery, RECAST_MAX_SEARCH_NODES);
 
-	GetEdgesForPathCorridorImpl(PathCorridor, PathCorridorEdges, NavQuery);
+	const int32 CorridorLenght = PathCorridor->Num();
+
+	PathCorridorEdges->Empty(CorridorLenght - 1);
+	for (int32 i = 0; i < CorridorLenght - 1; ++i)
+	{
+		unsigned char FromType = 0, ToType = 0;
+		float Left[3] = {0.f}, Right[3] = {0.f};
+		
+		NavQuery.getPortalPoints((*PathCorridor)[i], (*PathCorridor)[i+1], Left, Right, FromType, ToType);
+
+		PathCorridorEdges->Add(FNavigationPortalEdge(Recast2UnrVector(Left), Recast2UnrVector(Right), (*PathCorridor)[i+1]));
+	}
 }
 
 bool FPImplRecastNavMesh::FilterPolys(TArray<NavNodeRef>& PolyRefs, const class FRecastQueryFilter* Filter) const
@@ -2204,47 +2151,6 @@ void FPImplRecastNavMesh::GetNavMeshTileXY(int32 TileIndex, int32& OutX, int32& 
 	}
 }
 
-void FPImplRecastNavMesh::GetNavMeshTileXY(const FVector& Point, int32& OutX, int32& OutY) const
-{
-	if (DetourNavMesh)
-	{
-		// workaround for privacy issue in the recast API
-		dtNavMesh const* const ConstRecastNavMesh = DetourNavMesh;
-
-		const FVector RecastPt = Unreal2RecastPoint(Point);
-		int32 TileX = 0;
-		int32 TileY = 0;
-
-		ConstRecastNavMesh->calcTileLoc(&RecastPt.X, &TileX, &TileY);
-		OutX = TileX;
-		OutY = TileY;
-	}
-}
-
-void FPImplRecastNavMesh::GetNavMeshTilesAt(int32 TileX, int32 TileY, TArray<int32>& Indices) const
-{
-	if (DetourNavMesh)
-	{
-		// workaround for privacy issue in the recast API
-		dtNavMesh const* const ConstRecastNavMesh = DetourNavMesh;
-
-		const int32 MaxTiles = ConstRecastNavMesh->getTileCountAt(TileX, TileY);
-		TArray<const dtMeshTile*> Tiles;
-		Tiles.AddZeroed(MaxTiles);
-
-		const int32 NumTiles = ConstRecastNavMesh->getTilesAt(TileX, TileY, Tiles.GetTypedData(), MaxTiles);
-		for (int32 i = 0; i < NumTiles; i++)
-		{
-			dtTileRef TileRef = ConstRecastNavMesh->getTileRef(Tiles[i]);
-			if (TileRef)
-			{
-				const int32 TileIndex = (int32)ConstRecastNavMesh->decodePolyIdTile(TileRef);
-				Indices.Add(TileIndex);
-			}
-		}
-	}
-}
-
 float FPImplRecastNavMesh::GetTotalDataSize() const
 {
 	float TotalBytes = sizeof(*this);
@@ -2288,7 +2194,5 @@ void FPImplRecastNavMesh::SetFilterForbiddenFlags(FRecastQueryFilter* Filter, ui
 	((dtQueryFilter*)Filter)->setExcludeFlags(ForbiddenFlags);
 	// include-exclude don't need to be symmetrical, filter will check both conditions
 }
-
-#undef INITIALIZE_NAVQUERY
 
 #endif // WITH_RECAST

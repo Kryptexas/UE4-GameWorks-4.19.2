@@ -43,96 +43,6 @@ struct FDeferredWindowsMessage
 	uint32 RawInputFlags;
 };
 
-namespace EWindowsDragDropOperationType
-{
-	enum Type
-	{
-		DragEnter,
-		DragOver,
-		DragLeave,
-		Drop
-	};
-}
-
-struct FDragDropOLEData
-{
-	enum EWindowsOLEDataType
-	{
-		None,
-		Text,
-		Files
-	};
-
-	FDragDropOLEData()
-		: Type(None)
-	{}
-
-	FString OperationText;
-	TArray<FString> OperationFilenames;
-	EWindowsOLEDataType Type;
-};
-
-struct FDeferredWindowsDragDropOperation
-{
-private:
-	// Private constructor. Use the factory functions below.
-	FDeferredWindowsDragDropOperation()
-		: HWnd(NULL)
-		, KeyState(0)
-	{
-		CursorPosition.x = 0;
-		CursorPosition.y = 0;
-	}
-
-public:
-	static FDeferredWindowsDragDropOperation MakeDragEnter(HWND InHwnd, const FDragDropOLEData& InOLEData, ::DWORD InKeyState, POINTL InCursorPosition)
-	{
-		FDeferredWindowsDragDropOperation NewOperation;
-		NewOperation.OperationType = EWindowsDragDropOperationType::DragEnter;
-		NewOperation.HWnd = InHwnd;
-		NewOperation.OLEData = InOLEData;
-		NewOperation.KeyState = InKeyState;
-		NewOperation.CursorPosition = InCursorPosition;
-		return NewOperation;
-	}
-
-	static FDeferredWindowsDragDropOperation MakeDragOver(HWND InHwnd, ::DWORD InKeyState, POINTL InCursorPosition)
-	{
-		FDeferredWindowsDragDropOperation NewOperation;
-		NewOperation.OperationType = EWindowsDragDropOperationType::DragOver;
-		NewOperation.HWnd = InHwnd;
-		NewOperation.KeyState = InKeyState;
-		NewOperation.CursorPosition = InCursorPosition;
-		return NewOperation;
-	}
-
-	static FDeferredWindowsDragDropOperation MakeDragLeave(HWND InHwnd)
-	{
-		FDeferredWindowsDragDropOperation NewOperation;
-		NewOperation.OperationType = EWindowsDragDropOperationType::DragLeave;
-		NewOperation.HWnd = InHwnd;
-		return NewOperation;
-	}
-
-	static FDeferredWindowsDragDropOperation MakeDrop(HWND InHwnd, const FDragDropOLEData& InOLEData, ::DWORD InKeyState, POINTL InCursorPosition)
-	{
-		FDeferredWindowsDragDropOperation NewOperation;
-		NewOperation.OperationType = EWindowsDragDropOperationType::Drop;
-		NewOperation.HWnd = InHwnd;
-		NewOperation.OLEData = InOLEData;
-		NewOperation.KeyState = InKeyState;
-		NewOperation.CursorPosition = InCursorPosition;
-		return NewOperation;
-	}
-
-	EWindowsDragDropOperationType::Type OperationType;
-
-	HWND HWnd;
-	FDragDropOLEData OLEData;
-	::DWORD KeyState;
-	POINTL CursorPosition;
-};
-
 /**
  * Windows-specific application implementation.
  */
@@ -219,15 +129,10 @@ protected:
 
 	int32 ProcessDeferredMessage( const FDeferredWindowsMessage& DeferredMessage );
 
-	void ProcessDeferredDragDropOperation(const FDeferredWindowsDragDropOperation& Op);
-
 public:
 
-	/** Called by a window when an OLE Drag and Drop operation occurred on a non-game thread */
-	void DeferDragDropOperation( const FDeferredWindowsDragDropOperation& DeferredDragDropOperation );
-
 	/** Invoked by a window when an OLE Drag and Drop first enters it. */
-	HRESULT OnOLEDragEnter( const HWND HWnd, const FDragDropOLEData& OLEData, ::DWORD KeyState, POINTL CursorPosition, ::DWORD *CursorEffect);
+	HRESULT OnOLEDragEnter( const HWND HWnd, IDataObject *DataObjectPointer, ::DWORD KeyState, POINTL CursorPosition, ::DWORD *CursorEffect);
 
 	/** Invoked by a window when an OLE Drag and Drop moves over the window. */
 	HRESULT OnOLEDragOver( const HWND HWnd, ::DWORD KeyState, POINTL CursorPosition, ::DWORD *CursorEffect);
@@ -236,7 +141,7 @@ public:
 	HRESULT OnOLEDragOut( const HWND HWnd );
 
 	/** Invoked by a window when an OLE Drag and Drop is dropped onto the window. */
-	HRESULT OnOLEDrop( const HWND HWnd, const FDragDropOLEData& OLEData, ::DWORD KeyState, POINTL CursorPosition, ::DWORD *CursorEffect);
+	HRESULT OnOLEDrop( const HWND HWnd, IDataObject *DataObjectPointer, ::DWORD KeyState, POINTL CursorPosition, ::DWORD *CursorEffect);
 
 
 private:
@@ -262,8 +167,6 @@ private:
 	bool bUsingHighPrecisionMouseInput;
 
 	TArray< FDeferredWindowsMessage > DeferredMessages;
-
-	TArray< FDeferredWindowsDragDropOperation > DeferredDragDropOperations;
 
 	TArray< TSharedRef< FWindowsWindow > > Windows;
 

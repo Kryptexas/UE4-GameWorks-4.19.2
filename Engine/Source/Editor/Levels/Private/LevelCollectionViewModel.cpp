@@ -208,16 +208,16 @@ void FLevelCollectionViewModel::BindCommands()
 	ActionList.MapAction( Commands.DeselectAllLevels,
 		FExecuteAction::CreateSP( this, &FLevelCollectionViewModel::DeselectAllLevels_Executed  ) );
 	
-	ActionList.MapAction( Commands.InvertLevelSelection,
+	ActionList.MapAction( Commands.InvertSelection,
 		FExecuteAction::CreateSP( this, &FLevelCollectionViewModel::InvertSelection_Executed  ) );
 	
 	
 	//actors
-	ActionList.MapAction( Commands.SelectLevelActors,
+	ActionList.MapAction( Commands.SelectActors,
 		FExecuteAction::CreateSP( this, &FLevelCollectionViewModel::SelectActors_Executed  ),
 		FCanExecuteAction::CreateSP( this, &FLevelCollectionViewModel::AreSelectedLevelsUnlocked ) );
 	
-	ActionList.MapAction( Commands.DeselectLevelActors,
+	ActionList.MapAction( Commands.DeselectActors,
 		FExecuteAction::CreateSP( this, &FLevelCollectionViewModel::DeselectActors_Executed  ),
 		FCanExecuteAction::CreateSP( this, &FLevelCollectionViewModel::AreSelectedLevelsUnlocked ) );
 	
@@ -1874,12 +1874,6 @@ void FLevelCollectionViewModel::HideAllLevels_Executed()
 //lock
 void FLevelCollectionViewModel::LockSelectedLevels_Executed()
 {
-	const FText UndoTransactionText = (SelectedLevels.Num() == 1) ?
-		LOCTEXT("LockLevel", "Lock Level") :
-		LOCTEXT("LockMultipleLevels", "Lock Multiple Levels");
-
-	const FScopedTransaction Transaction( UndoTransactionText );
-
 	for( auto LevelIt = SelectedLevels.CreateIterator(); LevelIt; ++LevelIt )
 	{
 		// Only lock the level if its valid.
@@ -1892,12 +1886,6 @@ void FLevelCollectionViewModel::LockSelectedLevels_Executed()
 
 void FLevelCollectionViewModel::UnockSelectedLevels_Executed()
 {
-	const FText UndoTransactionText = (SelectedLevels.Num() == 1) ?
-		LOCTEXT("UnlockLevel", "Unlock Level") :
-		LOCTEXT("UnlockMultipleLevels", "Unlock Multiple Levels");
-
-	const FScopedTransaction Transaction( UndoTransactionText );
-
 	for( auto LevelIt = SelectedLevels.CreateIterator(); LevelIt; ++LevelIt )
 	{
 		// Only unlock the level if its valid.
@@ -1910,8 +1898,6 @@ void FLevelCollectionViewModel::UnockSelectedLevels_Executed()
 
 void FLevelCollectionViewModel::LockAllLevels_Executed()
 {
-	const FScopedTransaction Transaction( LOCTEXT("LockAllLevels", "Lock All Levels") );
-
 	for( auto LevelIt = FilteredLevelViewModels.CreateIterator(); LevelIt; ++LevelIt )
 	{
 		// Only lock the level if its valid.
@@ -1924,8 +1910,6 @@ void FLevelCollectionViewModel::LockAllLevels_Executed()
 
 void FLevelCollectionViewModel::UnockAllLevels_Executed()
 {
-	const FScopedTransaction Transaction( LOCTEXT("UnlockAllLevels", "Unlock All Levels") );
-
 	for( auto LevelIt = FilteredLevelViewModels.CreateIterator(); LevelIt; ++LevelIt )
 	{
 		// Only unlock the level if its valid.

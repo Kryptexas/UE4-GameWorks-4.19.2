@@ -301,17 +301,33 @@ void UGameplayStatics::UnloadStreamLevel(UObject* WorldContextObject, FName Leve
 	}
 }
 
-ULevelStreaming* UGameplayStatics::GetStreamingLevel(UObject* WorldContextObject, FName InPackageName)
+ULevelStreamingKismet* UGameplayStatics::GetStreamingLevel(UObject* WorldContextObject, FName InPackageName)
 {
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
-	
-	FString ShortPackageName = FStreamLevelAction::MakeSafeShortLevelName(InPackageName, World);
+
+	// User can pass in short package name
+	const bool bShortName = FPackageName::IsShortPackageName(InPackageName);
 
 	for (auto It = World->StreamingLevels.CreateConstIterator(); It; ++It)
 	{
-		if (FPackageName::GetShortName((*It)->PackageName) == ShortPackageName)
+		FName PackageName = (*It)->PackageName;
+
+#ifdef WITH_EDITOR 
+		// PIE uses this field to store original package name
+		if (World->IsPlayInEditor())
 		{
-			return *It;
+			PackageName = (*It)->PackageNameToLoad;
+		}
+#endif // WITH_EDITOR
+
+		if (bShortName)
+		{
+			PackageName = FPackageName::GetShortFName(PackageName);
+		}
+
+		if (PackageName == InPackageName)
+		{
+			return Cast<ULevelStreamingKismet>(*It);
 		}
 	}
 	
@@ -930,7 +946,7 @@ USaveGame* UGameplayStatics::CreateSaveGameObjectFromBlueprint(UBlueprint* SaveG
 	return OutSaveGameObject;
 }
 
-bool UGameplayStatics::SaveGameToSlot(USaveGame* SaveGameObject, const FString& SlotName, const int32 UserIndex)
+bool UGameplayStatics::SaveGameToSlot(USaveGame* SaveGameObject, const FString& SlotName)
 {
 	bool bSuccess = false;
 
@@ -950,27 +966,27 @@ bool UGameplayStatics::SaveGameToSlot(USaveGame* SaveGameObject, const FString& 
 		SaveGameObject->Serialize(Ar);
 
 		// Stuff that data into the save system with the desired file name
-		bSuccess = SaveSystem->SaveGame(false, *SlotName, UserIndex, ObjectBytes);
+		bSuccess = SaveSystem->SaveGame(false, *SlotName, ObjectBytes);
 	}
 
 	return bSuccess;
 }
 
-bool UGameplayStatics::DoesSaveGameExist(const FString& SlotName, const int32 UserIndex)
+bool UGameplayStatics::DoesSaveGameExist(const FString& SlotName)
 {
 	bool bExists = false;
 
 	ISaveGameSystem* SaveSystem = IPlatformFeaturesModule::Get().GetSaveGameSystem();
 	if(SaveSystem != NULL)
 	{
-		bExists = SaveSystem->DoesSaveGameExist(*SlotName, UserIndex);
+		bExists = SaveSystem->DoesSaveGameExist(*SlotName);
 	}
 
 	return bExists;
 }
 
 
-USaveGame* UGameplayStatics::LoadGameFromSlot(const FString& SlotName, const int32 UserIndex)
+USaveGame* UGameplayStatics::LoadGameFromSlot(const FString& SlotName)
 {
 	USaveGame* OutSaveGameObject = NULL;
 
@@ -980,7 +996,7 @@ USaveGame* UGameplayStatics::LoadGameFromSlot(const FString& SlotName, const int
 	{
 		// Load raw data from slot
 		TArray<uint8> ObjectBytes;
-		bool bSuccess = SaveSystem->LoadGame(false, *SlotName, UserIndex, ObjectBytes);
+		bool bSuccess = SaveSystem->LoadGame(false, *SlotName, ObjectBytes);
 		if(bSuccess)
 		{
 			FMemoryReader MemoryReader(ObjectBytes, true);

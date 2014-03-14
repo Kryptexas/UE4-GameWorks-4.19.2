@@ -46,15 +46,6 @@ namespace AutomationTool
 		/// </summary>
 		public bool bUsesSlateEditorStyle = false;
 
-        /// <summary>
-        // By default we use the Release C++ Runtime (CRT), even when compiling Debug builds.  This is because the Debug C++
-        // Runtime isn't very useful when debugging Unreal Engine projects, and linking against the Debug CRT libraries forces
-        // our third party library dependencies to also be compiled using the Debug CRT (and often perform more slowly.)  Often
-        // it can be inconvenient to require a separate copy of the debug versions of third party static libraries simply
-        // so that you can debug your program's code.
-        /// </summary>
-        public bool bDebugBuildsActuallyUseDebugCRT = false;
-
 		/// <summary>
 		/// List of all targets detected for this project.
 		/// </summary>
@@ -333,7 +324,6 @@ namespace AutomationTool
 
 					Properties.bUsesSteam |= Rules.bUsesSteam;
 					Properties.bUsesSlate |= Rules.bUsesSlate;
-                    Properties.bDebugBuildsActuallyUseDebugCRT |= Rules.bDebugBuildsActuallyUseDebugCRT;
 					Properties.bUsesSlateEditorStyle |= Rules.bUsesSlateEditorStyle;
 				}
 			}
@@ -384,165 +374,4 @@ namespace AutomationTool
 			return Name;
 		}
 	}
-
-    public class BranchInfo
-    {
-
-        public static TargetRules.TargetType[] MonolithicKinds = new TargetRules.TargetType[]
-        {
-            TargetRules.TargetType.Game,
-            TargetRules.TargetType.Client,
-            TargetRules.TargetType.Server,
-        };
-        public class BranchUProject
-        {
-            public string GameName;
-            public string FilePath;
-            public ProjectProperties Properties;
-
-            public BranchUProject(UnrealBuildTool.UProjectInfo InfoEntry)
-            {
-                GameName = InfoEntry.GameName;
-
-                //not sure what the heck this path is relative to
-                FilePath = Path.GetFullPath(CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Binaries", InfoEntry.FilePath));
-
-                if (!CommandUtils.FileExists_NoExceptions(FilePath))
-                {
-                    throw new AutomationException("Could not resolve relative path corrctly {0} -> {1} which doesn't exist.", InfoEntry.FilePath, FilePath);
-                }
-
-                Properties = ProjectUtils.GetProjectProperties(Path.GetFullPath(FilePath));
-
-
-
-            }
-            public BranchUProject()
-            {
-                GameName = "UE4";
-                Properties = ProjectUtils.GetProjectProperties("");
-                if (!Properties.Targets.ContainsKey(TargetRules.TargetType.Editor))
-                {
-                    throw new AutomationException("Base UE4 project did not contain an editor target.");
-                }
-            }
-            public TargetRules.GUBPProjectOptions Options(UnrealTargetPlatform HostPlatform)
-            {
-                var Options = new TargetRules.GUBPProjectOptions();
-                if (Properties.Targets.ContainsKey(TargetRules.TargetType.Editor))
-                {
-                    var Target = Properties.Targets[TargetRules.TargetType.Editor];
-                    Options = Target.Rules.GUBP_IncludeProjectInPromotedBuild_EditorTypeOnly(HostPlatform);
-                }
-                return Options;
-            }
-            public void Dump(List<UnrealTargetPlatform> InHostPlatforms)
-            {
-                CommandUtils.Log("    ShortName:    " + GameName);
-                CommandUtils.Log("      FilePath          : " + FilePath);
-                CommandUtils.Log("      bIsCodeBasedProject  : " + (Properties.bIsCodeBasedProject ? "YES" : "NO"));
-                CommandUtils.Log("      bUsesSteam  : " + (Properties.bUsesSteam ? "YES" : "NO"));
-                CommandUtils.Log("      bUsesSlate  : " + (Properties.bUsesSlate ? "YES" : "NO"));
-                foreach (var HostPlatform in InHostPlatforms)
-                {
-                    CommandUtils.Log("      For Host : " + HostPlatform.ToString());
-                    if (Properties.bIsCodeBasedProject)
-                    {
-                        CommandUtils.Log("          Promoted  : " + (Options(HostPlatform).bIsPromotable ? "YES" : "NO"));
-                        CommandUtils.Log("          SeparatePromotable  : " + (Options(HostPlatform).bSeparateGamePromotion ? "YES" : "NO"));
-                        CommandUtils.Log("          Test With Shared  : " + (Options(HostPlatform).bTestWithShared ? "YES" : "NO"));
-                    }
-                    CommandUtils.Log("          Targets {0}:", Properties.Targets.Count);
-                    foreach (var ThisTarget in Properties.Targets)
-                    {
-                        CommandUtils.Log("            TargetName          : " + ThisTarget.Value.TargetName);
-                        CommandUtils.Log("              Type          : " + ThisTarget.Key.ToString());
-                        CommandUtils.Log("              bUsesSteam  : " + (ThisTarget.Value.Rules.bUsesSteam ? "YES" : "NO"));
-                        CommandUtils.Log("              bUsesSlate  : " + (ThisTarget.Value.Rules.bUsesSlate ? "YES" : "NO"));
-                        if (Array.IndexOf(MonolithicKinds, ThisTarget.Key) >= 0)
-                        {
-                            var Plats = ThisTarget.Value.Rules.GUBP_GetPlatforms_MonolithicOnly(HostPlatform);
-                            foreach (var Plat in Plats)
-                            {
-                                var Configs = ThisTarget.Value.Rules.GUBP_GetConfigs_MonolithicOnly(HostPlatform, Plat);
-                                foreach (var Config in Configs)
-                                {
-                                    CommandUtils.Log("                Config  : " + Plat.ToString() + " " + Config.ToString());
-                                }
-                            }
-
-                        }
-                    }
-                }
-                CommandUtils.Log("      Programs {0}:", Properties.Programs.Count);
-                foreach (var ThisTarget in Properties.Programs)
-                {
-                    CommandUtils.Log("        TargetName          : " + ThisTarget.TargetName);
-                    CommandUtils.Log("          Build With Editor  : " + (ThisTarget.Rules.GUBP_AlwaysBuildWithBaseEditor() ? "YES" : "NO"));
-                }
-            }
-        };
-        public BranchUProject BaseEngineProject = null;
-        public List<BranchUProject> CodeProjects = new List<BranchUProject>();
-        public List<BranchUProject> NonCodeProjects = new List<BranchUProject>();
-
-        public BranchInfo(List<UnrealTargetPlatform> InHostPlatforms)
-        {
-            BaseEngineProject = new BranchUProject();
-
-            var AllProjects = UnrealBuildTool.UProjectInfo.FilterGameProjects(false, null);
-
-            foreach (var InfoEntry in AllProjects)
-            {
-                var UProject = new BranchUProject(InfoEntry);
-                if (UProject.Properties.bIsCodeBasedProject)
-                {
-                    CodeProjects.Add(UProject);
-                }
-                else
-                {
-                    NonCodeProjects.Add(UProject);
-                    // the base project uses BlankProject if it really needs a .uproject file
-                    if (String.IsNullOrEmpty(BaseEngineProject.FilePath) && UProject.GameName == "BlankProject")
-                    {
-                        BaseEngineProject.FilePath = UProject.FilePath;
-                    }
-                }
-            }
-
-            CommandUtils.Log("  Base Engine:");
-            BaseEngineProject.Dump(InHostPlatforms);
-
-            CommandUtils.Log("  {0} Code projects:", CodeProjects.Count);
-            foreach (var Proj in CodeProjects)
-            {
-                Proj.Dump(InHostPlatforms);
-            }
-            CommandUtils.Log("  {0} Non-Code projects:", CodeProjects.Count);
-            foreach (var Proj in NonCodeProjects)
-            {
-                Proj.Dump(InHostPlatforms);
-            }
-        }
-
-        public BranchUProject FindGame(string GameName)
-        {
-            foreach (var Proj in CodeProjects)
-            {
-                if (Proj.GameName.Equals(GameName, StringComparison.InvariantCultureIgnoreCase))
-                {
-                    return Proj;
-                }
-            }
-            foreach (var Proj in NonCodeProjects)
-            {
-                if (Proj.GameName.Equals(GameName, StringComparison.InvariantCultureIgnoreCase))
-                {
-                    return Proj;
-                }
-            }
-            return null;
-        }
-    };
-
 }

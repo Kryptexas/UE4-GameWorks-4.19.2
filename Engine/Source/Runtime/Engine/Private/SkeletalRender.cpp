@@ -194,7 +194,7 @@ Global functions
 void UpdateRefToLocalMatrices( TArray<FMatrix>& ReferenceToLocal, const USkinnedMeshComponent* InMeshComponent, const FSkeletalMeshResource* InSkeletalMeshResource, int32 LODIndex, const TArray<FBoneIndexType>* ExtraRequiredBoneIndices )
 {
 	const USkeletalMesh* const ThisMesh = InMeshComponent->SkeletalMesh;
-	const USkinnedMeshComponent* const MasterComp = InMeshComponent->MasterPoseComponent.Get();
+	const USkinnedMeshComponent* const MasterComp = InMeshComponent->MasterPoseComponent;
 	const FStaticLODModel& LOD = InSkeletalMeshResource->LODModels[LODIndex];
 
 	check( ThisMesh->RefBasesInvMatrix.Num() != 0 );
@@ -271,7 +271,7 @@ void UpdateRefToLocalMatrices( TArray<FMatrix>& ReferenceToLocal, const USkinned
 void UpdateCustomLeftRightVectors( TArray<FTwoVectors>& OutVectors, const USkinnedMeshComponent* InMeshComponent, const FSkeletalMeshResource* InSkeletalMeshResource, int32 LODIndex )
 {
 	const USkeletalMesh* const ThisMesh = InMeshComponent->SkeletalMesh;
-	const USkinnedMeshComponent* const MasterComp = InMeshComponent->MasterPoseComponent.Get();
+	const USkinnedMeshComponent* const MasterComp = InMeshComponent->MasterPoseComponent;
 	const FStaticLODModel& LOD = InSkeletalMeshResource->LODModels[LODIndex];
 	const FSkeletalMeshLODInfo& LODInfo = ThisMesh->LODInfo[LODIndex];
 

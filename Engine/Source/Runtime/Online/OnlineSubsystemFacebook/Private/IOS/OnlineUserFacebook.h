@@ -3,9 +3,9 @@
 
 #pragma once
  
+
 // Module includes
 #include "OnlineUserInterface.h"
-#include "OnlineSubsystemFacebookPackage.h"
 
 /**
  * Info associated with an online user on the facebook service

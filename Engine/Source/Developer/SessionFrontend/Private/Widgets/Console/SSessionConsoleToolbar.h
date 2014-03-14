@@ -37,11 +37,11 @@ public:
 		// create the toolbar
 		FToolBarBuilder Toolbar(CommandList, FMultiBoxCustomization::None);
 		{
-			Toolbar.AddToolBarButton(FSessionConsoleCommands::Get().SessionCopy);
+			Toolbar.AddToolBarButton(FSessionConsoleCommands::Get().Copy);
 			Toolbar.AddSeparator();
 
 			Toolbar.AddToolBarButton(FSessionConsoleCommands::Get().Clear);
-			Toolbar.AddToolBarButton(FSessionConsoleCommands::Get().SessionSave);
+			Toolbar.AddToolBarButton(FSessionConsoleCommands::Get().Save);
 		}
 
 		ChildSlot

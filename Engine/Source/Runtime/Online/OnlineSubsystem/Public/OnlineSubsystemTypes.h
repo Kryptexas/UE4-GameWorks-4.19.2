@@ -627,12 +627,6 @@ protected:
 		return *this;
 	}
 
-	virtual bool Compare(const IOnlinePlatformData& Other) const
-	{
-		return (GetSize() == Other.GetSize()) &&
-			(FMemory::Memcmp(GetBytes(), Other.GetBytes(), GetSize()) == 0);
-	}
-
 public:
 
 	virtual ~IOnlinePlatformData() {}
@@ -642,7 +636,8 @@ public:
 	 */
 	bool operator==(const IOnlinePlatformData& Other) const
 	{
-		return Other.Compare(*this);
+		return (GetSize() == Other.GetSize()) &&
+			(FMemory::Memcmp(GetBytes(), Other.GetBytes(), GetSize()) == 0);
 	}
 
 	bool operator!=(const IOnlinePlatformData& Other) const
@@ -725,7 +720,7 @@ public:
 			return BytesToHex(GetBytes(),GetSize());
 		}
 		return FString();
-	}	
+	}
 
 	virtual ~FUniqueNetId() {}
 };
@@ -1206,24 +1201,22 @@ namespace EOnlineStatusUpdatePrivacy
 	}
 }
 
-class FJsonValue;
-
 /** Notification object, used to send messages between systems */
 struct FOnlineNotification
 {
 	/** A string defining the type of this notification, used to determine how to parse the payload */
 	FString TypeStr;
 
-	/** The payload of this notification */
-	TSharedPtr<FJsonValue> Payload;
+	/** The payload of this notification, type-specific but usually Json */
+	FString PayloadStr;
 
 	FOnlineNotification() 
 	{
 
 	}
 
-	FOnlineNotification(const FString& InTypeStr, const TSharedPtr<FJsonValue>& InPayload)
-		: TypeStr(InTypeStr), Payload(InPayload)
+	FOnlineNotification(const FString& InTypeStr, const FString& InPayloadStr)
+		: TypeStr(InTypeStr), PayloadStr(InPayloadStr)
 	{
 
 	}

@@ -98,7 +98,7 @@ FString	UBehaviorTreeGraphNode::GetDescription() const
 
 FString UBehaviorTreeGraphNode::GetTooltip() const
 {
-	return (DebuggerRuntimeDescription.Len() > 0) ? DebuggerRuntimeDescription : DeprecationMessage;
+	return DebuggerRuntimeDescription;
 }
 
 UEdGraphPin* UBehaviorTreeGraphNode::GetInputPin(int32 InputIndex) const

@@ -59,7 +59,7 @@ public:
 			SettingsModule->RegisterSettings("Editor", "ContentEditors", "TextureEditor",
 				LOCTEXT("TextureEditorSettingsName", "Texture Editor"),
 				LOCTEXT("TextureEditorSettingsDescription", "Configure the look and feel of the Texture Editor."),
-				TWeakObjectPtr<UObject>(GetMutableDefault<UTextureEditorSettings>())
+				TWeakObjectPtr<UObject>(UTextureEditorSettings::StaticClass()->GetDefaultObject())
 			);
 		}
 	}

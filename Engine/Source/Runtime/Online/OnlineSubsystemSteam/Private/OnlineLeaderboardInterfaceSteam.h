@@ -3,7 +3,6 @@
 #pragma once
 
 #include "OnlineLeaderboardInterface.h"
-#include "OnlineAchievementsInterface.h"
 #include "OnlineSubsystemSteamTypes.h"
 #include "OnlineSubsystemSteamPackage.h"
 
@@ -145,7 +144,7 @@ PACKAGE_SCOPE:
 	 * @param bTriggerDescriptionsDelegatesInstead - async task will normally trigger OnAchievementsRead delegates, this bool tells it to trigger OnAchievementDescriptionsRead instead
 	 * @return true if the call is successful, false otherwise
 	 */
-	void QueryAchievements(const FUniqueNetIdSteam& UserId, const FOnQueryAchievementsCompleteDelegate& AchievementDelegate);
+	void ReadAchievements(const FUniqueNetIdSteam& UserId, bool bTriggerDescriptionsDelegatesInstead);
 
 public:
 

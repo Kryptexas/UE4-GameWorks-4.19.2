@@ -37,9 +37,7 @@ public class LevelEditor : ModuleRules
                 "StatsViewer",
 				"UnrealEd", 
 				"RenderCore",
-				"DeviceProfileServices",
-				"ContentBrowser",
-                "SceneOutliner"
+				"DeviceProfileServices"
 			}
 		);
 
@@ -49,6 +47,7 @@ public class LevelEditor : ModuleRules
 				"PropertyEditor",
 				"SceneOutliner",
 				"ClassViewer",
+				"ContentBrowser",
 				"DeviceManager",
 				"SettingsEditor",
 				"SessionFrontend",

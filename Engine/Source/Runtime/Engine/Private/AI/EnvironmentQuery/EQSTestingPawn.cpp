@@ -39,7 +39,6 @@ AEQSTestingPawn::AEQSTestingPawn(const class FPostConstructInitializeProperties&
 	if (ArrowComponent != NULL)
 	{
 		ArrowComponent->SetRelativeScale3D(FVector(2,2,2));
-		ArrowComponent->bIsScreenSizeScaled = true;
 	}
 
 	TSubobjectPtr<UBillboardComponent> SpriteComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
@@ -53,7 +52,7 @@ AEQSTestingPawn::AEQSTestingPawn(const class FPostConstructInitializeProperties&
 		SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Misc;
 #endif // WITH_EDITORONLY_DATA
 		SpriteComponent->AttachParent = RootComponent;
-		SpriteComponent->bIsScreenSizeScaled = true;
+		SpriteComponent->SetRelativeScale3D(FVector(6,6,6));
 	}
 
 	EdRenderComp = PCIP.CreateEditorOnlyDefaultSubobject<UEQSRenderingComponent>(this, TEXT("EQSRender"));

@@ -834,7 +834,7 @@ void FUnrealEdMisc::OnMessageTokenActivated(const TSharedRef<IMessageToken>& Tok
 
 FText FUnrealEdMisc::OnGetDisplayName(UObject* InObject, bool bFullPath)
 {
-	FText Name = LOCTEXT("DisplayNone", "<None>");
+	FText Name = LOCTEXT("None", "<None>");
 
 	if(InObject != NULL)
 	{

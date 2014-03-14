@@ -96,6 +96,18 @@ void FOutputDeviceWindowsError::Serialize( const TCHAR* Msg, ELogVerbosity::Type
 		FCString::Strncpy( GErrorHist, Msg, ARRAY_COUNT(GErrorHist) - 5 );
 		FCString::Strncat( GErrorHist, TEXT("\r\n\r\n"), ARRAY_COUNT(GErrorHist) - 1  );
 		ErrorPos = FCString::Strlen(GErrorHist);
+
+		const SIZE_T StackTraceSize = 65535;
+		ANSICHAR* StackTrace = (ANSICHAR*)FMemory::SystemMalloc(StackTraceSize);
+		if (StackTrace != NULL)
+		{
+			StackTrace[0] = 0;
+			// Walk the stack and dump it to the allocated memory.
+			FPlatformStackWalk::StackWalkAndDump(StackTrace, StackTraceSize, 2);
+
+			FCString::Strncat(GErrorHist, ANSI_TO_TCHAR(StackTrace), ARRAY_COUNT(GErrorHist) - 1);
+			FMemory::SystemFree(StackTrace);
+		}
 	}
 	else
 	{

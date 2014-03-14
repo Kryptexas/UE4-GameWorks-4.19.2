@@ -395,9 +395,6 @@ private:
 	UPROPERTY()
 	FString ActorLabel;
 
-	/** The folder path of this actor in the world (empty=root, / separated)*/
-	UPROPERTY()
-	FName FolderPath;
 
 public:
 	/** Is hidden within the editor at its startup. */
@@ -452,8 +449,8 @@ public:
 	UPROPERTY()
 	TWeakObjectPtr<class AActor> ParentComponentActor;	
 
-	/** The scale to apply to any billboard components in editor builds (happens in any WITH_EDITOR build, including non-cooked games) */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Rendering, meta=(DisplayName="Editor Billboard Scale"))
+	/** The scale to apply to any editor billboard components */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Rendering, meta=(DisplayName="Editor Sprite Scale"))
 	float SpriteScale;
 
 	/** Returns how many lights are uncached for this actor */
@@ -665,10 +662,6 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
 	bool SetActorLocationAndRotation(const FVector& NewLocation, FRotator NewRotation, bool bSweep=false);
-
-	/** Set the Actor's world-space scale. */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
-	void SetActorScale3D(const FVector& NewScale3D);
 
 	/** Returns the distance from this Actor to OtherActor. */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
@@ -992,7 +985,7 @@ public:
 	virtual bool Modify( bool bAlwaysMarkDirty=true ) OVERRIDE;
 	virtual void ProcessEvent( UFunction* Function, void* Parameters ) OVERRIDE;
 	virtual int32 GetFunctionCallspace( UFunction* Function, void* Parameters, FFrame* Stack ) OVERRIDE;
-	virtual bool CallRemoteFunction( UFunction* Function, void* Parameters, FOutParmRec* OutParms, FFrame* Stack ) OVERRIDE;
+	virtual bool CallRemoteFunction( UFunction* Function, void* Parameters, FFrame* Stack ) OVERRIDE;
 	virtual void PostLoad() OVERRIDE;
 	virtual void PostLoadSubobjects( FObjectInstancingGraph* OuterInstanceGraph ) OVERRIDE;
 	virtual void BeginDestroy() OVERRIDE;
@@ -1254,18 +1247,6 @@ public:
 	 * @return	The editable status of the actor's label
 	 */
 	bool IsActorLabelEditable() const;
-
-	/**
-	 * Returns this actor's folder path. Actor folder paths are only available in development builds.
-	 * @return	The folder path
-	 */
-	const FName& GetFolderPath() const;
-
-	/**
-	 * Assigns a new folder to this actor. Actor folder paths are only available in development builds.
-	 * @param	NewFolderPath	The new folder to assign to the actor.
-	 */
-	void SetFolderPath(const FName& NewFolderPath);
 
 	/**
 	 * Used by the "Sync to Content Browser" right-click menu option in the editor.

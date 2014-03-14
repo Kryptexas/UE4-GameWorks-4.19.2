@@ -4,7 +4,6 @@
 
 #include "IFilter.h"
 #include "FilterCollection.h"
-#include "SResetToDefaultMenu.h"
 
 DECLARE_DELEGATE_OneParam(FOnAssetSelected, const class FAssetData& /*AssetData*/);
 DECLARE_DELEGATE_OneParam( FOnGetAllowedClasses, TArray<const UClass*>& );
@@ -28,6 +27,62 @@ namespace PropertyCustomizationHelpers
 	PROPERTYEDITOR_API TSharedRef<SWidget> MakeActorPickerWithMenu( AActor* const InitialActor, const bool AllowClear, const TSharedPtr< TFilterCollection<const AActor* const> >& ActorFilters, FOnActorSelected OnSet, FSimpleDelegate OnClose, FSimpleDelegate OnUseSelected );
 	PROPERTYEDITOR_API TSharedRef<SWidget> MakeInteractiveActorPicker( FOnGetAllowedClasses OnClearClicked, FOnActorSelected OnActorSelectedFromPicker );
 }
+
+/**
+ * Displays a reset to default menu for a set of properties
+ * Will hide itself automatically when all of the properties being observed are already at their default values
+ */
+class PROPERTYEDITOR_API SResetToDefaultMenu : public SCompoundWidget
+{
+public:
+
+	SLATE_BEGIN_ARGS( SResetToDefaultMenu )
+		: _VisibilityWhenDefault( EVisibility::Hidden )
+	{}
+		/** 
+		 * The visibility of this widget when the value is default 
+		 * and the reset to default option does need to be shown
+		 */
+		SLATE_ARGUMENT( EVisibility, VisibilityWhenDefault )
+	SLATE_END_ARGS()
+
+	void Construct( const FArguments& InArgs );
+
+	/**
+	 * Adds a new property to the menu that is displayed when a user clicks the reset to default button
+	 *
+	 * @param InProperty	The property handle to display
+	 */
+	void AddProperty( TSharedRef<IPropertyHandle> InProperty );
+
+private:
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
+
+	/**
+	 * @return The visibility of the reset to default widget
+	 */
+	EVisibility GetResetToDefaultVisibility() const;
+
+	/**
+	 * Called when the menu is open to regenerate the default menu content
+	 */
+	TSharedRef<SWidget> OnGenerateResetToDefaultMenuContent();
+
+	/**
+	 * Resets all properties to default
+	 */
+	void ResetAllToDefault();
+private:
+
+	/** Properties that should be displayed in the menu */
+	TArray< TSharedRef<IPropertyHandle> > Properties;
+
+	/** The visibility to use when the properties are already the default */
+	EVisibility VisibilityWhenDefault;
+
+	/** Whether or this menu should be visible */
+	bool bShouldBeVisible;
+};
 
 /** Delegate used to get a generic object */
 DECLARE_DELEGATE_RetVal( const UObject*, FOnGetObject );

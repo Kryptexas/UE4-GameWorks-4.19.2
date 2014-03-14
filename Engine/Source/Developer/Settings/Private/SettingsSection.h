@@ -96,14 +96,14 @@ public:
 		return (ResetDefaultsDelegate.IsBound() || (SettingsObject.IsValid() && SettingsObject->GetClass()->HasAnyClassFlags(CLASS_Config) && !SettingsObject->GetClass()->HasAnyClassFlags(CLASS_DefaultConfig)));
 	}
 
-	virtual bool CanSave( ) const OVERRIDE
-	{
-		return (SaveDelegate.IsBound() || (SettingsObject.IsValid() && SettingsObject->GetClass()->HasAnyClassFlags(CLASS_Config)));
-	}
-
 	virtual bool CanSaveDefaults( ) const OVERRIDE
 	{
-		return (SaveDefaultsDelegate.IsBound() || (SettingsObject.IsValid() && SettingsObject->GetClass()->HasAnyClassFlags(CLASS_Config)));
+		if (SaveDefaultsDelegate.IsBound())
+		{
+			return true;
+		}
+
+		return (SettingsObject.IsValid() && SettingsObject->GetClass()->HasAnyClassFlags(CLASS_Config));
 	}
 
 	virtual bool Export( const FString& Filename ) OVERRIDE
@@ -226,14 +226,14 @@ public:
 			return SaveDelegate.Execute();
 		}
 
-		if (SettingsObject.IsValid())
+		if (!SettingsObject.IsValid())
 		{
-			SettingsObject->SaveConfig();
-
-			return true;
+			return false;
 		}
 
-		return false;
+		SettingsObject->SaveConfig();
+
+		return true;
 	}
 
 	virtual bool SaveDefaults( ) OVERRIDE
@@ -243,15 +243,15 @@ public:
 			return SaveDefaultsDelegate.Execute();
 		}
 
-		if (SettingsObject.IsValid())
+		if (!SettingsObject.IsValid())
 		{
-			SettingsObject->UpdateDefaultConfigFile();
-			SettingsObject->ReloadConfig(NULL, NULL, UE4::LCPF_PropagateToInstances);
-
-			return true;			
+			return false;
 		}
 
-		return false;
+		SettingsObject->UpdateDefaultConfigFile();
+		SettingsObject->ReloadConfig(NULL, NULL, UE4::LCPF_PropagateToInstances);
+
+		return true;
 	}
 
 	// End ISettingsSection interface

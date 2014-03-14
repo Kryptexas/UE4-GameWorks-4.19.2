@@ -862,15 +862,15 @@ void TMeshSimplifier<T, NumAttributes>::UpdateEdgeCosts( TSimpVert<T>* vert ) {
 			for( TriIterator j = adjVerts[i]->adjTris.Begin(); j != adjVerts[i]->adjTris.End(); ++j ) {
 				TSimpTri<T>* tri = *j;
 				for( int k = 0; k < 3; k++ ) {
-					TSimpVert<T>* simpVert = tri->verts[k];
-					if (simpVert->TestFlags(SIMP_MARK1) && !simpVert->TestFlags(SIMP_MARK2)) {
-						TSimpEdge<T>* edge = FindEdge(adjVerts[i], simpVert);
+					TSimpVert<T>* vert = tri->verts[k];
+					if( vert->TestFlags( SIMP_MARK1 ) && !vert->TestFlags( SIMP_MARK2 ) ) {
+						TSimpEdge<T>* edge = FindEdge( adjVerts[i], vert );
 						if( !edge->TestFlags( SIMP_MARK1 ) ) {
 							edge->EnableFlags( SIMP_MARK1 );
 							edgeList[ edgeListNum++ ] = edge;
 						}
 					}
-					simpVert->DisableFlags(SIMP_MARK1);
+					vert->DisableFlags( SIMP_MARK1 );
 				}
 			}
 			adjVerts[i]->DisableFlags( SIMP_MARK2 );
@@ -1322,7 +1322,7 @@ void TMeshSimplifier<T, NumAttributes>::SimplifyMesh( float maxError, int minTri
 
 		// move verts to new verts
 		{	
-			edge = top;
+			TSimpEdge<T>* edge = top;
 			
 			T newVerts[256];
 			ComputeNewVerts( edge, newVerts );

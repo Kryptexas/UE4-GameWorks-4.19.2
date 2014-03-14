@@ -2043,11 +2043,11 @@ namespace
 		}
 		else
 		{
-			TArray<uint8> Values;
-			Values.Empty(ArraySize);
-			Values.AddZeroed(ArraySize);
-			Values[LayerIdx] = Weight;
-			SparseData.Add(ALandscape::MakeKey(LandscapeX, LandscapeY), Values);
+			TArray<uint8> Value;
+			Value.Empty(ArraySize);
+			Value.AddZeroed(ArraySize);
+			Value[LayerIdx] = Weight;
+			SparseData.Add(ALandscape::MakeKey(LandscapeX,LandscapeY), Value);
 		}
 	}
 

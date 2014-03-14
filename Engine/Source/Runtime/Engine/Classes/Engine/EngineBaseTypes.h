@@ -73,7 +73,7 @@ enum ETickingGroup
 /**
  * This is small structure to hold prerequisite tick functions
  */
-USTRUCT()
+USTRUCT(transient)
 struct FTickPrerequisite
 {
 	GENERATED_USTRUCT_BODY()
@@ -297,7 +297,7 @@ private:
 /** 
 * Tick function that calls AActor::TickActor
 **/
-USTRUCT()
+USTRUCT(transient)
 struct FActorTickFunction : public FTickFunction
 {
 	GENERATED_USTRUCT_BODY()
@@ -320,7 +320,7 @@ struct FActorTickFunction : public FTickFunction
 /** 
 * Tick function that calls UActorComponent::ConditionalTick
 **/
-USTRUCT()
+USTRUCT(transient)
 struct FActorComponentTickFunction : public FTickFunction
 {
 	GENERATED_USTRUCT_BODY()
@@ -343,7 +343,7 @@ struct FActorComponentTickFunction : public FTickFunction
 /** 
 * Tick function that calls UPrimitiveComponent::PostPhysicsTick
 **/
-USTRUCT()
+USTRUCT(transient)
 struct FPrimitiveComponentPostPhysicsTickFunction : public FTickFunction
 {
 	GENERATED_USTRUCT_BODY()
@@ -377,7 +377,7 @@ enum ETravelType
 };
 
 //URL structure.
-USTRUCT()
+USTRUCT(transient)
 struct ENGINE_API FURL
 {
 	GENERATED_USTRUCT_BODY()

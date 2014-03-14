@@ -292,11 +292,6 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprint(UClass* ParentClass, UObject
 
 void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIsRegeneratingOnLoad, bool bSkipGarbageCollection, bool bSaveIntermediateProducts, FCompilerResultsLog* pResults)
 {
-	UPackage* const BlueprintPackage = Cast<UPackage>(BlueprintObj->GetOutermost());
-	// compiling the blueprint will inherently dirty the package, but if there 
-	// weren't any changes to save before, there shouldn't be after
-	bool const bStartedWithUnsavedChanges = (BlueprintPackage != NULL) ? BlueprintPackage->IsDirty() : true;
-
 	// The old class is either the GeneratedClass if we had an old successful compile, or the SkeletonGeneratedClass stub if there were previously fatal errors
 	UClass* OldClass = (BlueprintObj->GeneratedClass != NULL && (BlueprintObj->GeneratedClass != BlueprintObj->SkeletonGeneratedClass)) ? BlueprintObj->GeneratedClass : NULL;
 
@@ -397,11 +392,6 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 	{
 		UBlueprint::ValidateGeneratedClass(BlueprintObj->GeneratedClass);
 	}
-
-	if (BlueprintPackage != NULL)
-	{
-		BlueprintPackage->SetDirtyFlag(bStartedWithUnsavedChanges);
-	}	
 }
 
 /** Generates a blueprint skeleton only.  Minimal compile, no notifications will be sent, no GC, etc.  Only successful if there isn't already a skeleton generated */
@@ -432,7 +422,7 @@ void FKismetEditorUtilities::GenerateBlueprintSkeleton(UBlueprint* BlueprintObj,
 }
 
 /** Recompiles the bytecode of a blueprint only.  Should only be run for recompiling dependencies during compile on load */
-void FKismetEditorUtilities::RecompileBlueprintBytecode(UBlueprint* BlueprintObj, TArray<UObject*>* ObjLoaded)
+void FKismetEditorUtilities::RecompileBlueprintBytecode(UBlueprint* BlueprintObj)
 {
 	check(BlueprintObj);
 	check(BlueprintObj->GeneratedClass);
@@ -446,7 +436,7 @@ void FKismetEditorUtilities::RecompileBlueprintBytecode(UBlueprint* BlueprintObj
 
 	FKismetCompilerOptions CompileOptions;
 	CompileOptions.CompileType = EKismetCompileType::BytecodeOnly;
-	Compiler.CompileBlueprint(BlueprintObj, CompileOptions, Results, NULL, ObjLoaded);
+	Compiler.CompileBlueprint(BlueprintObj, CompileOptions, Results);
 
 	ReinstanceHelper.UpdateBytecodeReferences();
 }

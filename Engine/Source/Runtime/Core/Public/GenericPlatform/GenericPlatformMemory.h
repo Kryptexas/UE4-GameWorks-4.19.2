@@ -103,54 +103,6 @@ struct CORE_API FGenericPlatformMemory
 		MCR_MAX
 	};
 
-	/**
-	 * Flags used for shared memory creation/open
-	 */
-	enum ESharedMemoryAccess
-	{
-		Read	=		(1 << 1),
-		Write	=		(1 << 2)
-	};
-
-	/**
-	 * Generic representation of a shared memory region
-	 */
-	struct FSharedMemoryRegion
-	{
-		/** Returns the name of the region */
-		const TCHAR *	GetName() const			{ return Name; }
-
-		/** Returns the beginning of the region in process address space */
-		void *			GetAddress()			{ return Address; }
-
-		/** Returns the beginning of the region in process address space */
-		const void *	GetAddress() const		{ return Address; }
-
-		/** Returns size of the region in bytes */
-		SIZE_T			GetSize() const			{ return Size; }
-	
-		
-		FSharedMemoryRegion(const FString & InName, uint32 InAccessMode, void * InAddress, SIZE_T InSize);
-
-	protected:
-
-		enum Limits
-		{
-			MaxSharedMemoryName		=	128
-		};
-
-		/** Name of the region */
-		TCHAR			Name[MaxSharedMemoryName];
-
-		/** Access mode for the region */
-		uint32			AccessMode;
-
-		/** The actual buffer */
-		void *			Address;
-
-		/** Size of the buffer */
-		SIZE_T			Size;
-	};
 
 	/** Initializes platform memory specific constants. */
 	static void Init();
@@ -247,25 +199,5 @@ struct CORE_API FGenericPlatformMemory
 	}
 
 	static void Memswap( void* Ptr1, void* Ptr2, SIZE_T Size );
-
-	/**
-	 * Maps a named shared memory region into process address space (creates or opens it)
-	 *
-	 * @param Name unique name of the shared memory region (should not contain [back]slashes to remain cross-platform).
-	 * @param bCreate whether we're creating it or just opening existing (created by some other process).
-	 * @param AccessMode mode which we will be accessing it (use values from ESharedMemoryAccess)
-	 * @param Size size of the buffer (should be >0. Also, the real size is subject to platform limitations and may be increased to match page size)
-	 *
-	 * @return pointer to FSharedMemoryRegion (or its descendants) if successful, NULL if not.
-	 */
-	static FSharedMemoryRegion * MapNamedSharedMemoryRegion(const FString & Name, bool bCreate, uint32 AccessMode, SIZE_T Size);
-
-	/**
-	 * Unmaps a name shared memory region
-	 *
-	 * @param MemoryRegion an object that encapsulates a shared memory region (will be destroyed even if function fails!)
-	 *
-	 * @return true if successful
-	 */
-	static bool UnmapNamedSharedMemoryRegion(FSharedMemoryRegion * MemoryRegion);
 };
+

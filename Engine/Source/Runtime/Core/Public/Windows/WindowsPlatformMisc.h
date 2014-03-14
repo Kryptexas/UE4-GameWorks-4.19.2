@@ -144,22 +144,6 @@ struct CORE_API FWindowsPlatformMisc : public FGenericPlatformMisc
 	 */
 	static FString GetCPUVendor();
 
-	/**
-	 * Uses cpuid instruction to get the vendor string
-	 *
-	 * @return	CPU info bitfield
-	 *
-	 *			Bits 0-3	Stepping ID
-	 *			Bits 4-7	Model
-	 *			Bits 8-11	Family
-	 *			Bits 12-13	Processor type (Intel) / Reserved (AMD)
-	 *			Bits 14-15	Reserved
-	 *			Bits 16-19	Extended model
-	 *			Bits 20-27	Extended family
-	 *			Bits 28-31	Reserved
-	 */
-	static uint32 GetCPUInfo();
-
 	static bool GetRegistryString(const FString& InRegistryKey, const FString& InValueName, bool bPerUserSetting, FString& OutValue);
 
 	/** 
@@ -187,11 +171,6 @@ struct CORE_API FWindowsPlatformMisc : public FGenericPlatformMisc
 	 * @return The cache line size.
 	 */
 	static int32 GetCacheLineSize();
-
-	/**
-	* @return Windows path separator.
-	*/
-	static const TCHAR* GetDefaultPathSeparator();
 };
 
 typedef FWindowsPlatformMisc FPlatformMisc;

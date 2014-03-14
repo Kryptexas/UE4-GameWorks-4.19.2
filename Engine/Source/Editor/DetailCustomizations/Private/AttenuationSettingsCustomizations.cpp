@@ -23,6 +23,18 @@ void FAttenuationSettingsCustomization::CustomizeStructHeader( TSharedRef<class 
 
 void FAttenuationSettingsCustomization::CustomizeStructChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IStructCustomizationUtils& StructCustomizationUtils )
 {
+	static const FName NAME_bAttenuate("bAttenuate");
+	static const FName NAME_bSpatialize("bSpatialize");
+	static const FName NAME_bAttenuateWithLPF("bAttenuateWithLPF");
+	static const FName NAME_DistanceAlgorithm("DistanceAlgorithm");
+	static const FName NAME_AttenuationShape("AttenuationShape");
+	static const FName NAME_dBAttenuationAtMax("dBAttenuationAtMax");
+	static const FName NAME_AttenuationShapeExtents("AttenuationShapeExtents");
+	static const FName NAME_ConeOffset("ConeOffset");
+	static const FName NAME_FalloffDistance("FalloffDistance");
+	static const FName NAME_LPFRadiusMin("LPFRadiusMin");
+	static const FName NAME_LPFRadiusMax("LPFRadiusMax");
+
 	uint32 NumChildren;
 	StructPropertyHandle->GetNumChildren( NumChildren );
 
@@ -40,13 +52,17 @@ void FAttenuationSettingsCustomization::CustomizeStructChildren( TSharedRef<IPro
 	const bool bDisplayResetToDefault = false;
 	const FString DisplayNameOverride = TEXT("");
 
-	AttenuationShapeHandle = PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, AttenuationShape));
-	DistanceAlgorithmHandle = PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, DistanceAlgorithm));
+	AttenuationShapeHandle = PropertyHandles.FindChecked(NAME_AttenuationShape);
+	DistanceAlgorithmHandle = PropertyHandles.FindChecked(NAME_DistanceAlgorithm);
 
-	TSharedRef<IPropertyHandle> AttenuationExtentsHandle = PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, AttenuationShapeExtents)).ToSharedRef();
+	TSharedRef<IPropertyHandle> AttenuationExtentsHandle = PropertyHandles.FindChecked(NAME_AttenuationShapeExtents).ToSharedRef();
 
 	uint32 NumExtentChildren;
 	AttenuationExtentsHandle->GetNumChildren( NumExtentChildren );
+
+	static const FName NAME_X("X");
+	static const FName NAME_Y("Y");
+	static const FName NAME_Z("Z");
 
 	TSharedPtr< IPropertyHandle > ExtentXHandle;
 	TSharedPtr< IPropertyHandle > ExtentYHandle;
@@ -57,26 +73,26 @@ void FAttenuationSettingsCustomization::CustomizeStructChildren( TSharedRef<IPro
 		TSharedRef<IPropertyHandle> ChildHandle = AttenuationExtentsHandle->GetChildHandle( ExtentChildIndex ).ToSharedRef();
 		const FName PropertyName = ChildHandle->GetProperty()->GetFName();
 
-		if (PropertyName == GET_MEMBER_NAME_CHECKED(FVector, X))
+		if (PropertyName == NAME_X)
 		{
 			ExtentXHandle = ChildHandle;
 		}
-		else if (PropertyName == GET_MEMBER_NAME_CHECKED(FVector, Y))
+		else if (PropertyName == NAME_Y)
 		{
 			ExtentYHandle = ChildHandle;
 		}
 		else
 		{
-			check(PropertyName == GET_MEMBER_NAME_CHECKED(FVector, Z));
+			check(PropertyName == NAME_Z);
 			ExtentZHandle = ChildHandle;
 		}
 	}
 
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, bAttenuate)).ToSharedRef());
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, bSpatialize)).ToSharedRef());
+	ChildBuilder.AddChildProperty( PropertyHandles.FindChecked(NAME_bAttenuate).ToSharedRef() );
+	ChildBuilder.AddChildProperty( PropertyHandles.FindChecked(NAME_bSpatialize).ToSharedRef() );
 	ChildBuilder.AddChildProperty( DistanceAlgorithmHandle.ToSharedRef() );
 	
-	IDetailPropertyRow& dbAttenuationRow = ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, dBAttenuationAtMax)).ToSharedRef());
+	IDetailPropertyRow& dbAttenuationRow = ChildBuilder.AddChildProperty( PropertyHandles.FindChecked(NAME_dBAttenuationAtMax).ToSharedRef() );
 	dbAttenuationRow.Visibility(TAttribute<EVisibility>(this, &FAttenuationSettingsCustomization::IsNaturalSoundSelected));
 
 	IDetailPropertyRow& AttenuationShapeRow = ChildBuilder.AddChildProperty( AttenuationShapeHandle.ToSharedRef() );
@@ -163,23 +179,15 @@ void FAttenuationSettingsCustomization::CustomizeStructChildren( TSharedRef<IPro
 		]
 	.Visibility(TAttribute<EVisibility>(this, &FAttenuationSettingsCustomization::IsConeSelected));
 
-	IDetailPropertyRow& ConeOffsetRow = ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, ConeOffset)).ToSharedRef());
+	IDetailPropertyRow& ConeOffsetRow = ChildBuilder.AddChildProperty( PropertyHandles.FindChecked(NAME_ConeOffset).ToSharedRef() );
 	ConeOffsetRow.Visibility(TAttribute<EVisibility>(this, &FAttenuationSettingsCustomization::IsConeSelected));
 
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, FalloffDistance)).ToSharedRef());
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, bAttenuateWithLPF)).ToSharedRef());
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, LPFRadiusMin)).ToSharedRef());
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, LPFRadiusMax)).ToSharedRef());
+	ChildBuilder.AddChildProperty( PropertyHandles.FindChecked(NAME_FalloffDistance).ToSharedRef() );
+	ChildBuilder.AddChildProperty( PropertyHandles.FindChecked(NAME_bAttenuateWithLPF).ToSharedRef() );
+	ChildBuilder.AddChildProperty( PropertyHandles.FindChecked(NAME_LPFRadiusMin).ToSharedRef() );
+	ChildBuilder.AddChildProperty( PropertyHandles.FindChecked(NAME_LPFRadiusMax).ToSharedRef() );
 
-	if (PropertyHandles.Num() != 11)
-	{
-		FString PropertyList;
-		for (auto It(PropertyHandles.CreateConstIterator()); It; ++It)
-		{
-			PropertyList += It.Key().ToString() + TEXT(", ");
-		}
-		ensureMsgf(false, TEXT("Unexpected property handle(s) customizing FAttenuationSettings: %s"), *PropertyList);
-	}
+	ensure(PropertyHandles.Num() == 11);
 }
 
 EVisibility FAttenuationSettingsCustomization::IsConeSelected() const

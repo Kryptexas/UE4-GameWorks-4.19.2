@@ -80,7 +80,7 @@ private:
 	void SummonTutorialHome();
 
 	/** Summon blueprint tutorial home page to front */
-	void SummonBlueprintTutorialHome(UObject* Asset, bool bForceWelcome);
+	void SummonBlueprintTutorialHome(UObject* Asset);
 
 	/** Event to be called when Tutorial window is closed. */
 	void OnTutorialWindowClosed(const TSharedRef<SWindow>& Window);
@@ -112,7 +112,6 @@ private:
 	bool HasSeenTutorial(const FWelcomeTutorialProperties& TutProps) const;
 
 	FWelcomeTutorialProperties const* ChooseBlueprintWelcomeTutorial(UObject* BlueprintObject);
-	FWelcomeTutorialProperties const* ChooseBlueprintWelcomeTutorial(UObject* BlueprintObject, bool bForceWelcome);
 	FWelcomeTutorialProperties const* FindAssetEditorTutorialProperties(UClass const* Class) const;
 
 	FString AnalyticsEventNameFromTutorialPath(const FString& TutorialPath) const;
@@ -149,8 +148,8 @@ private:
 
 	TMap<FName, FWelcomeTutorialProperties> EditorModeTutorialPropertyMap;
 
-	/** The current object we are using as a basis for displaying a tutorial */
-	UClass* CurrentObjectClass;
+	/** Whether to show the home button */
+	bool bShowHome;
 
 	bool bEnablePostTutorialSurveys;
 

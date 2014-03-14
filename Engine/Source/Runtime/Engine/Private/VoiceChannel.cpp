@@ -56,8 +56,7 @@ void UVoiceChannel::ReceivedBunch(FInBunch& Bunch)
 void UVoiceChannel::Tick()
 {
 	// If the handshaking hasn't completed throw away all voice data
-	if (Connection->PlayerController &&
-		Connection->PlayerController->MuteList.bHasVoiceHandshakeCompleted)
+	if (Connection->PlayerController)
 	{
 		// Try to append each packet in turn
 		for (int32 Index = 0; Index < VoicePackets.Num(); Index++)

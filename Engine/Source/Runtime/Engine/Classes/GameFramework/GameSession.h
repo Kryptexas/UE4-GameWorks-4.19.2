@@ -99,7 +99,7 @@ class ENGINE_API AGameSession : public AInfo
 	virtual void UnregisterPlayer(APlayerController* ExitingPlayer);
 
 	/** Forcibly remove KickedPlayer from the server */
-	virtual bool KickPlayer(class APlayerController* KickedPlayer, const FText& KickReason);
+	virtual bool KickPlayer(class APlayerController* KickedPlayer, const FString& KickReason);
 
 	/** Gracefully tell all clients then local players to return to lobby */
 	virtual void ReturnToMainMenuHost();

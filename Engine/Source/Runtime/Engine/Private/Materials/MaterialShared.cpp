@@ -1461,7 +1461,7 @@ void FMaterialRenderProxy::CacheUniformExpressions()
 			{
 				FMaterialRenderContext MaterialRenderContext(this, *Material, NULL);
 				MaterialRenderContext.bShowSelection = GIsEditor;
-				EvaluateUniformExpressions(UniformExpressionCache[(int32)FeatureLevel], MaterialRenderContext);
+				EvaluateUniformExpressions(UniformExpressionCache[i], MaterialRenderContext);
 			}
 			else
 			{
@@ -1541,7 +1541,7 @@ TSet<FMaterialRenderProxy*> FMaterialRenderProxy::MaterialRenderProxyMap;
 
 bool FColoredMaterialRenderProxy::GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const
 {
-	if(ParameterName == ColorParamName)
+	if(ParameterName == NAME_Color)
 	{
 		*OutValue = Color;
 		return true;

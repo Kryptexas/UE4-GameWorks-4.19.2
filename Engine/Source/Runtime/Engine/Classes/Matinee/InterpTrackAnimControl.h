@@ -51,7 +51,7 @@ struct FAnimControlTrackKey
 
 };
 
-UCLASS(HeaderGroup=Interpolation, MinimalAPI, meta=( DisplayName = "Animation Track" ))
+UCLASS(HeaderGroup=Interpolation, MinimalAPI, meta=( DisplayName = "Anim Track" ) )
 class UInterpTrackAnimControl : public UInterpTrackFloatBase
 {
 	GENERATED_UCLASS_BODY()

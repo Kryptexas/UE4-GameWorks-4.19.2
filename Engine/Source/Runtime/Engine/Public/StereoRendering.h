@@ -27,7 +27,7 @@ public:
     /**
 	 * Calculates the offset for the camera position, given the specified position, rotation, and world scale
 	 */
-	virtual void CalculateStereoViewOffset(const enum EStereoscopicPass StereoPassType, const FRotator& ViewRotation, const float WorldToMeters, FVector& ViewLocation) = 0;
+	virtual void CalculateStereoViewOffset(const enum EStereoscopicPass StereoPassType, const FRotator& ViewRotation, const float WorldToMeters, FVector& ViewLocation) const = 0;
 
 	/**
 	 * Gets a projection matrix for the device, given the specified eye setup
@@ -50,9 +50,4 @@ public:
 	 * object afterwards.
 	 */
 	virtual void PushViewCanvas(EStereoscopicPass StereoPass, FCanvas *InCanvas, UCanvas *InCanvasObject, FSceneView *InView) const = 0;
-
-	/**
-	 * Returns eye render params, used from PostProcessHMD, RenderThread.
-	 */
-	virtual void GetEyeRenderParams_RenderThread(EStereoscopicPass StereoPass, FVector2D& EyeToSrcUVScaleValue, FVector2D& EyeToSrcUVOffsetValue) const = 0;
 };

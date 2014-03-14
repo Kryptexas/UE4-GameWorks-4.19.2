@@ -87,11 +87,6 @@ struct FAndroidPlatformProperties
 	{
 		return false;
 	}
-
-	static FORCEINLINE bool HasFixedResolution()
-	{
-		return true;
-	}
 };
 
 struct FAndroid_PVRTCPlatformProperties : public FAndroidPlatformProperties

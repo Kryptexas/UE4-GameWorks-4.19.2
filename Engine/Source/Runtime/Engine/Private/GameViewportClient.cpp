@@ -28,8 +28,6 @@ extern ENGINE_API UPrimitiveComponent* GDebugSelectedComponent;
 /** The lightmap used by the currently selected component, if it's a static mesh component. */
 extern ENGINE_API FLightMap2D* GDebugSelectedLightmap;
 
-/** Delegate called at the end of the frame when a screenshot is captured */
-FOnScreenshotCaptured UGameViewportClient::ScreenshotCapturedDelegate;
 
 DEFINE_STAT(STAT_UIDrawingTime);
 
@@ -275,31 +273,6 @@ bool UGameViewportClient::InputMotion(FViewport* InViewport, int32 ControllerId,
 	return bResult;
 }
 
-void UGameViewportClient::MouseEnter(FViewport* Viewport, int32 x, int32 y)
-{
-	Super::MouseEnter(Viewport, x, y);
-
-	if (GetDefault<UInputSettings>()->bUseMouseForTouch)
-	{
-		FSlateApplication::Get().SetGameIsFakingTouchEvents(true);
-	}
-}
-
-void UGameViewportClient::MouseLeave(FViewport* Viewport)
-{
-	Super::MouseLeave(Viewport);
-
-	if (GetDefault<UInputSettings>()->bUseMouseForTouch)
-	{
-		UE_LOG(LogTemp, Log, TEXT("MouseLeave"));
-		FIntPoint LastViewportCursorPos;
-		Viewport->GetMousePos(LastViewportCursorPos, false);
-		const FVector2D CurrentCursorPos = FSlateApplication::Get().GetCursorPos();
-		FSlateApplication::Get().SetCursorPos(FVector2D(LastViewportCursorPos.X,LastViewportCursorPos.Y));
-		FSlateApplication::Get().SetGameIsFakingTouchEvents(false);
-		FSlateApplication::Get().SetCursorPos(CurrentCursorPos);
-	}
-}
 
 FVector2D UGameViewportClient::GetMousePosition()
 {
@@ -844,12 +817,6 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 							DebugCanvasObject->SceneView = View;
 							PlayerController->MyHUD->SetCanvas(CanvasObject, DebugCanvasObject);
 							PlayerController->MyHUD->PostRender();
-							
-							// Put these pointers back as if a blueprint breakpoint hits during HUD PostRender they can
-							// have been changed
-							CanvasObject->Canvas = SceneCanvas;
-							DebugCanvasObject->Canvas = DebugCanvas;
-
 							// A side effect of PostRender is that the playercontroller could be destroyed
 							if (!PlayerController->IsPendingKill())
 							{
@@ -975,7 +942,8 @@ void UGameViewportClient::ProcessScreenShots(FViewport* InViewport)
 		{
 			if(ScreenshotCapturedDelegate.IsBound())
 			{
-				ScreenshotCapturedDelegate.Broadcast(InViewport->GetSizeXY().X, InViewport->GetSizeXY().Y, Bitmap, ScreenShotName);
+				ScreenshotCapturedDelegate.Execute(InViewport->GetSizeXY().X, InViewport->GetSizeXY().Y, Bitmap);
+				ScreenshotCapturedDelegate.Unbind();
 			}
 			else if ( PNGScreenshotCapturedDelegate.IsBound() && FPaths::GetExtension(ScreenShotName).ToLower() == TEXT("png") )
 			{
@@ -1045,11 +1013,6 @@ void UGameViewportClient::LostFocus(FViewport* InViewport)
 void UGameViewportClient::ReceivedFocus(FViewport* InViewport)
 {
 	InViewport->CaptureJoystickInput(true);
-
-	if (GetDefault<UInputSettings>()->bUseMouseForTouch)
-	{
-		FSlateApplication::Get().SetGameIsFakingTouchEvents(true);
-	}
 }
 
 bool UGameViewportClient::IsFocused(FViewport* InViewport)
@@ -1060,8 +1023,6 @@ bool UGameViewportClient::IsFocused(FViewport* InViewport)
 void UGameViewportClient::CloseRequested(FViewport* InViewport)
 {
 	check(InViewport == Viewport);
-
-	FSlateApplication::Get().SetGameIsFakingTouchEvents(false);
 
 	SetViewportFrame(NULL);
 

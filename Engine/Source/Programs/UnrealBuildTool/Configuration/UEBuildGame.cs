@@ -120,6 +120,12 @@ namespace UnrealBuildTool
 
 			// no exports, so no need to verify that a .lib and .exp file was emitted by the linker.
 			OutLinkEnvironmentConfiguration.bHasExports = false;
+
+			// Mark it as a Rocket build
+			if (UnrealBuildTool.BuildingRocket() || UnrealBuildTool.RunningRocket())
+			{
+				OutCPPEnvironmentConfiguration.Definitions.Add("UE_ROCKET=1");
+			}
 		}
 	}
 }

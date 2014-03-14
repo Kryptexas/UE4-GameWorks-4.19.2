@@ -49,7 +49,7 @@ struct FInterpGroupActorInfo
 
 };
 
-UCLASS(dependson=UEngineBaseTypes, MinimalAPI, NotBlueprintable, hidecategories=(Collision, Game, Input))
+UCLASS(dependson = UEngineBaseTypes, MinimalAPI, NotBlueprintable, hidecategories=(Input))
 class AMatineeActor : public AActor
 {
 	GENERATED_UCLASS_BODY()
@@ -184,25 +184,8 @@ class AMatineeActor : public AActor
 	/** How much error is tolerated in the client-side position before the position that the server replicated is applied */
 	float ClientSidePositionErrorTolerance;
 
-private:
-
-	/** Counter to indicate that play count has changed. Used to work around single frames that go from play-stop-play where bIsPlaying won't get replicated. */
-	UPROPERTY(replicated)
-	uint8 ReplicationForceIsPlaying;
-
-	/** Special flag to ignore internal matinee actor selection*/
-	static uint8 IgnoreActorSelectionCount;
-
-public:
-
-	/** Increment the count to ignore internal matinee actor selection */
-	ENGINE_API static void PushIgnoreActorSelection();
-
-	/** Decrement the count to ignore internal matinee actor selection */
-	ENGINE_API static void PopIgnoreActorSelection();
-
-	/** @return Should we ignore internal matinee actor selection? */
-	ENGINE_API static bool IgnoreActorSelection();
+	/** Special flag for ignore internal matinee actor selection*/
+	ENGINE_API static bool bIgnoreActorSelection;
 
 	/**
 	 * Check if we should perform a network positional update of this matinee

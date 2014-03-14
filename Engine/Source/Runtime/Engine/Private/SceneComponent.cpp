@@ -673,12 +673,13 @@ void USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName
 			return;
 		}
 
-		if (IsSimulatingPhysics() && GetWorld() && GetWorld()->IsGameWorld())
+		if (IsSimulatingPhysics())
 		{
-			//Only at run time we break this attachment
+			//Temporary fix we need to reset the relative values
 			RelativeLocation = ComponentToWorld.GetLocation();
 			RelativeRotation = ComponentToWorld.GetRotation().Rotator();
 			RelativeScale3D = ComponentToWorld.GetScale3D();
+			UE_LOG(LogSceneComponent, Warning, TEXT("AttachTo: '%s' will not allow '%s' to be attached as a child because child is physics simulated."), *Parent->GetPathName(), *GetPathName());
 			return;
 		}
 

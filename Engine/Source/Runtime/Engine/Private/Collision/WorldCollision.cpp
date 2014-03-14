@@ -650,7 +650,7 @@ bool UWorld::ComponentOverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, c
 		return false;
 	}
 
-	return PrimComp->ComponentOverlapMulti(OutOverlaps, this, Pos, Rot, TestChannel, Params, ObjectQueryParams);
+	return PrimComp->ComponentOverlapMulti(OutOverlaps, this, Pos, Rot, Params, ObjectQueryParams);
 }
 
 bool UWorld::ComponentSweepSingle(struct FHitResult& OutHit,class UPrimitiveComponent* PrimComp, const FVector& Start, const FVector& End, const FRotator& Rot, const struct FComponentQueryParams& Params) const

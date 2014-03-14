@@ -6,11 +6,6 @@ using System.IO;
 using AutomationTool;
 using UnrealBuildTool;
 
-[Help("Compiles a bunch of stuff together with megaxge: Example arguments: -Target1=\"PlatformerGame win32|ios debug|development\"")]
-[Help(typeof(UE4Build))]
-[Help("Target1", "target1[|target2...] platform1[|platform2...] config1[|config2...]")]
-[Help("Target2", "target1[|target2...] platform1[|platform2...] config1[|config2...]")]
-
 class MegaXGE : BuildCommand
 {
 	public override void ExecuteBuild()

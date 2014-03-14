@@ -13,6 +13,7 @@ UK2Node_AIMoveTo::UK2Node_AIMoveTo(const class FPostConstructInitializePropertie
 	ProxyClass = UKismetAIAsyncTaskProxy::StaticClass();
 }
 
+#if WITH_EDITOR
 FString UK2Node_AIMoveTo::GetCategoryName()
 {
 	return TEXT("AI");
@@ -27,4 +28,5 @@ FString UK2Node_AIMoveTo::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	return "AI MoveTo";
 }
+#endif // WITH_EDITOR
 

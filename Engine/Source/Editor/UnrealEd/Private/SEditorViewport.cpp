@@ -5,9 +5,6 @@
 #include "EditorViewportClient.h"
 #include "SceneViewport.h"
 #include "EditorViewportCommands.h"
-#include "IDocumentation.h"
-
-#define LOCTEXT_NAMESPACE "EditorViewport"
 
 SEditorViewport::SEditorViewport()
 {
@@ -38,6 +35,7 @@ void SEditorViewport::Construct( const FArguments& InArgs )
 		.Content()
 		[
 			SAssignNew( ViewportWidget, SViewport )
+			.IsEnabled( FSlateApplication::Get().GetNormalExecutionAttribute() )
 			.ShowEffectWhenDisabled( false )
 			.EnableGammaCorrection( false ) // Scene rendering handles this
 			[
@@ -76,8 +74,6 @@ void SEditorViewport::Construct( const FArguments& InArgs )
 				ViewportToolbar.ToSharedRef()
 			];
 	}
-
-	FCoreDelegates::StatsEnabled.AddSP(this, &SEditorViewport::HandleViewportStatsEnabled);
 }
 
 FReply SEditorViewport::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
@@ -310,20 +306,12 @@ void SEditorViewport::OnToggleRealtime()
 void SEditorViewport::OnToggleStats()
 {
 	bool bIsEnabled =  Client->ShouldShowStats();
-	Client->SetShowStats( !bIsEnabled );
+	 Client->SetShowStats( !bIsEnabled );
 
 	if( !bIsEnabled )
 	{
 		// We cannot show stats unless realtime rendering is enabled
 		 Client->SetRealtime( true );
-
-		 // let the user know how they can enable stats via the console
-		 FNotificationInfo Info(LOCTEXT("StatsEnableHint", "Stats display can be toggled via the STAT [type] console command"));
-		 Info.ExpireDuration = 3.0f;
-		 Info.HyperlinkText = LOCTEXT("StatsEnableHyperlink", "Learn more");
-		 Info.Hyperlink = FSimpleDelegate::CreateStatic([](){ IDocumentation::Get()->Open(TEXT("Engine/Basics/ConsoleCommands#statisticscommands")); });
-
-		 FSlateNotificationManager::Get().AddNotification(Info);
 	}
 }
 
@@ -429,14 +417,3 @@ void SEditorViewport::OnCycleCoordinateSystem()
 
 	Client->SetWidgetCoordSystemSpace( (ECoordSystem)CoordSystemAsInt );
 }
-
-void SEditorViewport::HandleViewportStatsEnabled()
-{
-	if(Client.Get() == GCurrentLevelEditingViewportClient)
-	{
-		Client->SetShowStats( true );
-		Client->SetRealtime( true );
-	}
-}
-
-#undef LOCTEXT_NAMESPACE

@@ -12,6 +12,7 @@ class UK2Node_StructMemberGet : public UK2Node_StructOperation
 	UPROPERTY(EditAnywhere, Category=PinOptions, EditFixedSize)
 	TArray<FOptionalPinFromProperty> ShowPinForProperties;
 
+#if WITH_EDITOR
 	// UObject interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
 	// End of UObject interface
@@ -30,5 +31,6 @@ class UK2Node_StructMemberGet : public UK2Node_StructOperation
 
 	// AllocateDefaultPins with just one member set
 	BLUEPRINTGRAPH_API void AllocatePinsForSingleMemberGet(FName MemberName);
+#endif
 };
 

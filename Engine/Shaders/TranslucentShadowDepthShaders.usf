@@ -5,7 +5,9 @@
 #include "Common.usf"
 #include "Material.usf"
 #include "VertexFactory.usf"
-#include "ShadowDepthCommon.usf"
+
+/** Used to normalize the outputted depth */
+float InvMaxSubjectDepth;
 
 struct FTranslucencyShadowDepthVSToPS
 {
@@ -34,10 +36,8 @@ void SetShadowDepthOutputs(float4 WorldPosition, out float4 OutPosition, out flo
 	#if PERSPECTIVE_CORRECT_DEPTH
 		ShadowDepth = OutPosition.z;
 	#else
-		float InvMaxSubjectDepth = ShadowParams.y;
-
 		// Output linear, normalized depth
-		ShadowDepth = OutPosition.z * InvMaxSubjectDepth;
+		ShadowDepth = (OutPosition.z * InvMaxSubjectDepth);
 		OutPosition.z = ShadowDepth * OutPosition.w;
 	#endif
 }
@@ -66,8 +66,6 @@ void MainVS(
 }
 
 float TranslucentShadowStartOffset;
-/** Used to normalize the outputted depth */
-float TranslInvMaxSubjectDepth;
 
 /** Pixel shader used to accumulate layer opacities in different channels based on the first translucent layer's depth. */
 void MainOpacityPS( 
@@ -86,7 +84,7 @@ void MainOpacityPS(
 	float Density = GetMaterialOpacity(MaterialParameters) * GetMaterialTranslucentShadowDensityScale();
 
 #if PERSPECTIVE_CORRECT_DEPTH
-	Inputs.ShadowDepth *= TranslInvMaxSubjectDepth;
+	Inputs.ShadowDepth *= InvMaxSubjectDepth;
 #endif
 
 	Inputs.ShadowDepth += TranslucentShadowStartOffset;

@@ -663,7 +663,7 @@ void FParticleEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
  *
  *	@return	float				The EmitterDelay
  */
-float FParticleEmitterInstance::Tick_EmitterTimeSetup(float DeltaTime, UParticleLODLevel* InCurrentLODLevel)
+float FParticleEmitterInstance::Tick_EmitterTimeSetup(float DeltaTime, UParticleLODLevel* CurrentLODLevel)
 {
 	// Make sure we don't try and do any interpolation on the first frame we are attached (OldLocation is not valid in this circumstance)
 	if (Component->bJustRegistered)
@@ -683,7 +683,7 @@ float FParticleEmitterInstance::Tick_EmitterTimeSetup(float DeltaTime, UParticle
 
 	// Update time within emitter loop.
 	bool bLooped = false;
-	if (InCurrentLODLevel->RequiredModule->bUseLegacyEmitterTime == false)
+	if (CurrentLODLevel->RequiredModule->bUseLegacyEmitterTime == false)
 	{
 		EmitterTime += DeltaTime;
 		bLooped = (EmitterDuration > 0.0f) && (EmitterTime >= EmitterDuration);
@@ -715,13 +715,13 @@ float FParticleEmitterInstance::Tick_EmitterTimeSetup(float DeltaTime, UParticle
 		EventCount = 0;
 #endif	//#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
-		if (InCurrentLODLevel->RequiredModule->bUseLegacyEmitterTime == false)
+		if (CurrentLODLevel->RequiredModule->bUseLegacyEmitterTime == false)
 		{
 			EmitterTime -= EmitterDuration;
 		}
 
-		if ((InCurrentLODLevel->RequiredModule->bDurationRecalcEachLoop == true)
-			|| ((InCurrentLODLevel->RequiredModule->bDelayFirstLoopOnly == true) && (LoopCount == 1))
+		if ((CurrentLODLevel->RequiredModule->bDurationRecalcEachLoop == true)
+			|| ((CurrentLODLevel->RequiredModule->bDelayFirstLoopOnly == true) && (LoopCount == 1))
 			)
 		{
 			SetupEmitterDuration();
@@ -729,7 +729,7 @@ float FParticleEmitterInstance::Tick_EmitterTimeSetup(float DeltaTime, UParticle
 
 		if (bRequiresLoopNotification == true)
 		{
-			for (int32 ModuleIdx = -3; ModuleIdx < InCurrentLODLevel->Modules.Num(); ModuleIdx++)
+			for (int32 ModuleIdx = -3; ModuleIdx < CurrentLODLevel->Modules.Num(); ModuleIdx++)
 			{
 				int32 ModuleFetchIdx;
 				switch (ModuleIdx)
@@ -740,7 +740,7 @@ float FParticleEmitterInstance::Tick_EmitterTimeSetup(float DeltaTime, UParticle
 				default:	ModuleFetchIdx = ModuleIdx;				break;
 				}
 
-				UParticleModule* Module = InCurrentLODLevel->GetModuleAtIndex(ModuleFetchIdx);
+				UParticleModule* Module = CurrentLODLevel->GetModuleAtIndex(ModuleFetchIdx);
 				if (Module != NULL)
 				{
 					if (Module->RequiresLoopingNotification() == true)
@@ -753,7 +753,7 @@ float FParticleEmitterInstance::Tick_EmitterTimeSetup(float DeltaTime, UParticle
 	}
 
 	// Don't delay unless required
-	if ((InCurrentLODLevel->RequiredModule->bDelayFirstLoopOnly == true) && (LoopCount > 0))
+	if ((CurrentLODLevel->RequiredModule->bDelayFirstLoopOnly == true) && (LoopCount > 0))
 	{
 		EmitterDelay = 0;
 	}
@@ -774,16 +774,16 @@ float FParticleEmitterInstance::Tick_EmitterTimeSetup(float DeltaTime, UParticle
  *
  *	@return	float				The SpawnFraction remaining
  */
-float FParticleEmitterInstance::Tick_SpawnParticles(float DeltaTime, UParticleLODLevel* InCurrentLODLevel, bool bSuppressSpawning, bool bFirstTime)
+float FParticleEmitterInstance::Tick_SpawnParticles(float DeltaTime, UParticleLODLevel* CurrentLODLevel, bool bSuppressSpawning, bool bFirstTime)
 {
 	if (!bHaltSpawning && !bSuppressSpawning && (EmitterTime >= 0.0f))
 	{
 		SCOPE_CYCLE_COUNTER(STAT_SpriteSpawnTime);
 		// If emitter is not done - spawn at current rate.
 		// If EmitterLoops is 0, then we loop forever, so always spawn.
-		if ((InCurrentLODLevel->RequiredModule->EmitterLoops == 0) ||
-			(LoopCount < InCurrentLODLevel->RequiredModule->EmitterLoops) ||
-			(SecondsSinceCreation < (EmitterDuration * InCurrentLODLevel->RequiredModule->EmitterLoops)) ||
+		if ((CurrentLODLevel->RequiredModule->EmitterLoops == 0) || 
+			(LoopCount < CurrentLODLevel->RequiredModule->EmitterLoops) ||
+			(SecondsSinceCreation < (EmitterDuration * CurrentLODLevel->RequiredModule->EmitterLoops)) ||
 			bFirstTime)
 		{
 			bFirstTime = false;
@@ -800,13 +800,13 @@ float FParticleEmitterInstance::Tick_SpawnParticles(float DeltaTime, UParticleLO
  *	@param	DeltaTime			The current time slice
  *	@param	CurrentLODLevel		The current LOD level for the instance
  */
-void FParticleEmitterInstance::Tick_ModuleUpdate(float DeltaTime, UParticleLODLevel* InCurrentLODLevel)
+void FParticleEmitterInstance::Tick_ModuleUpdate(float DeltaTime, UParticleLODLevel* CurrentLODLevel)
 {
 	UParticleLODLevel* HighestLODLevel = SpriteTemplate->LODLevels[0];
 	check(HighestLODLevel);
-	for (int32 ModuleIndex = 0; ModuleIndex < InCurrentLODLevel->UpdateModules.Num(); ModuleIndex++)
+	for (int32 ModuleIndex = 0; ModuleIndex < CurrentLODLevel->UpdateModules.Num(); ModuleIndex++)
 	{
-		UParticleModule* CurrentModule = InCurrentLODLevel->UpdateModules[ModuleIndex];
+		UParticleModule* CurrentModule	= CurrentLODLevel->UpdateModules[ModuleIndex];
 		if (CurrentModule && CurrentModule->bEnabled && CurrentModule->bUpdateModule)
 		{
 			uint32* Offset = ModuleOffsetMap.Find(HighestLODLevel->UpdateModules[ModuleIndex]);
@@ -821,10 +821,10 @@ void FParticleEmitterInstance::Tick_ModuleUpdate(float DeltaTime, UParticleLODLe
  *	@param	DeltaTime			The current time slice
  *	@param	CurrentLODLevel		The current LOD level for the instance
  */
-void FParticleEmitterInstance::Tick_ModulePostUpdate(float DeltaTime, UParticleLODLevel* InCurrentLODLevel)
+void FParticleEmitterInstance::Tick_ModulePostUpdate(float DeltaTime, UParticleLODLevel* CurrentLODLevel)
 {
 	// Handle the TypeData module
-	UParticleModuleTypeDataBase* TypeData = Cast<UParticleModuleTypeDataBase>(InCurrentLODLevel->TypeDataModule);
+	UParticleModuleTypeDataBase* TypeData = Cast<UParticleModuleTypeDataBase>(CurrentLODLevel->TypeDataModule);
 	if (TypeData)
 	{
 		TypeData->Update(this, TypeDataOffset, DeltaTime);
@@ -837,13 +837,13 @@ void FParticleEmitterInstance::Tick_ModulePostUpdate(float DeltaTime, UParticleL
  *	@param	DeltaTime			The current time slice
  *	@param	CurrentLODLevel		The current LOD level for the instance
  */
-void FParticleEmitterInstance::Tick_ModuleFinalUpdate(float DeltaTime, UParticleLODLevel* InCurrentLODLevel)
+void FParticleEmitterInstance::Tick_ModuleFinalUpdate(float DeltaTime, UParticleLODLevel* CurrentLODLevel)
 {
 	UParticleLODLevel* HighestLODLevel = SpriteTemplate->LODLevels[0];
 	check(HighestLODLevel);
-	for (int32 ModuleIndex = 0; ModuleIndex < InCurrentLODLevel->UpdateModules.Num(); ModuleIndex++)
+	for (int32 ModuleIndex = 0; ModuleIndex < CurrentLODLevel->UpdateModules.Num(); ModuleIndex++)
 	{
-		UParticleModule* CurrentModule = InCurrentLODLevel->UpdateModules[ModuleIndex];
+		UParticleModule* CurrentModule	= CurrentLODLevel->UpdateModules[ModuleIndex];
 		if (CurrentModule && CurrentModule->bEnabled && CurrentModule->bFinalUpdateModule)
 		{
 			uint32* Offset = ModuleOffsetMap.Find(HighestLODLevel->UpdateModules[ModuleIndex]);
@@ -851,10 +851,10 @@ void FParticleEmitterInstance::Tick_ModuleFinalUpdate(float DeltaTime, UParticle
 		}
 	}
 
-	if (InCurrentLODLevel->TypeDataModule && InCurrentLODLevel->TypeDataModule->bEnabled && InCurrentLODLevel->TypeDataModule->bFinalUpdateModule)
+	if (CurrentLODLevel->TypeDataModule && CurrentLODLevel->TypeDataModule->bEnabled && CurrentLODLevel->TypeDataModule->bFinalUpdateModule)
 	{
 		uint32* Offset = ModuleOffsetMap.Find(HighestLODLevel->TypeDataModule);
-		InCurrentLODLevel->TypeDataModule->FinalUpdate(this, Offset ? *Offset : 0, DeltaTime);
+		CurrentLODLevel->TypeDataModule->FinalUpdate(this, Offset ? *Offset : 0, DeltaTime);
 	}
 }
 
@@ -989,7 +989,7 @@ void FParticleEmitterInstance::UpdateBoundingBox(float DeltaTime)
 		UParticleLODLevel* HighestLODLevel = SpriteTemplate->LODLevels[0];
 		check(HighestLODLevel);
 
-		FVector ParticlePivotOffset(-0.5f,-0.5f,0.0f);
+		FVector PivotOffset(-0.5f,-0.5f,0.0f);
 		if( bUpdateBox )
 		{
 			uint32 NumModules = HighestLODLevel->Modules.Num();
@@ -999,7 +999,7 @@ void FParticleEmitterInstance::UpdateBoundingBox(float DeltaTime)
 				if( Module )
 				{
 					FVector2D PivotOff = Module->PivotOffset;
-					ParticlePivotOffset += FVector(PivotOff.X, PivotOff.Y, 0.0f);
+					PivotOffset += FVector(PivotOff.X, PivotOff.Y, 0.0f);
 					break;
 				}
 			}
@@ -1078,7 +1078,7 @@ void FParticleEmitterInstance::UpdateBoundingBox(float DeltaTime)
 					LocalMax = OrbitPayload.Offset.GetAbsMax();
 				}
 
-				LocalMax += (Particle.Size * ParticlePivotOffset).GetAbsMax();
+				LocalMax += (Particle.Size * PivotOffset).GetAbsMax();
 			}
 
 			NewLocation			+= PositionOffsetThisTick;
@@ -1297,9 +1297,9 @@ uint8* FParticleEmitterInstance::GetTypeDataModuleInstanceData()
  *
  *	@return	uint32			The stride of the particle
  */
-uint32 FParticleEmitterInstance::CalculateParticleStride(uint32 InParticleSize)
+uint32 FParticleEmitterInstance::CalculateParticleStride(uint32 ParticleSize)
 {
-	return InParticleSize;
+	return ParticleSize;
 }
 
 /**
@@ -2263,7 +2263,7 @@ void FParticleEmitterInstance::SetupEmitterDuration()
  *
  *	@return	bool		true if GetDynamicData should continue, false if it should return NULL
  */
-bool FParticleEmitterInstance::IsDynamicDataRequired(UParticleLODLevel* InCurrentLODLevel)
+bool FParticleEmitterInstance::IsDynamicDataRequired(UParticleLODLevel* CurrentLODLevel)
 {
 	if ((ActiveParticles <= 0) || 
 		(SpriteTemplate && (SpriteTemplate->EmitterRenderMode == ERM_None)))
@@ -2271,8 +2271,8 @@ bool FParticleEmitterInstance::IsDynamicDataRequired(UParticleLODLevel* InCurren
 		return false;
 	}
 
-	if ((InCurrentLODLevel == NULL) || (InCurrentLODLevel->bEnabled == false) ||
-		((InCurrentLODLevel->RequiredModule->bUseMaxDrawCount == true) && (InCurrentLODLevel->RequiredModule->MaxDrawCount == 0)))
+	if ((CurrentLODLevel == NULL) || (CurrentLODLevel->bEnabled == false) || 
+		((CurrentLODLevel->RequiredModule->bUseMaxDrawCount == true) && (CurrentLODLevel->RequiredModule->MaxDrawCount == 0)))
 	{
 		return false;
 	}

@@ -1,33 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #include "CoreUObjectPrivate.h"
 
-
-struct FPreloadMembersHelper
-{
-	static void PreloadMembers(UObject* InObject)
-	{
-		// Collect a list of all things this element owns
-		TArray<UObject*> BPMemberReferences;
-		FReferenceFinder ComponentCollector(BPMemberReferences, InObject, false, true, true, true);
-		ComponentCollector.FindReferences(InObject);
-
-		// Iterate over the list, and preload everything so it is valid for refreshing
-		for (TArray<UObject*>::TIterator it(BPMemberReferences); it; ++it)
-		{
-			UObject* CurrentObject = *it;
-			if (!CurrentObject->HasAnyFlags(RF_LoadCompleted))
-			{
-				CurrentObject->SetFlags(RF_NeedLoad);
-				if (auto Linker = CurrentObject->GetLinker())
-				{
-					Linker->Preload(CurrentObject);
-					PreloadMembers(CurrentObject);
-				}
-			}
-		}
-	}
-};
-
 /**
  * Regenerates/Refreshes a blueprint class
  *
@@ -73,8 +46,6 @@ bool ULinkerLoad::RegenerateBlueprintClass(UClass* LoadClass, UObject* ExportObj
  		{
 			// Always load the parent blueprint here in case there is a circular dependency. This will
 			// ensure that the blueprint is fully serialized before attempting to regenerate the class.
-			FPreloadMembersHelper::PreloadMembers(ClassChain->ClassGeneratedBy);
-
 			ClassChain->ClassGeneratedBy->SetFlags(RF_NeedLoad);
 			ClassChain->ClassGeneratedBy->GetLinker()->Preload(ClassChain->ClassGeneratedBy);
 
@@ -234,20 +205,14 @@ FScopedClassDependencyGather::~FScopedClassDependencyGather()
 			UClass* Dependency = *DependencyIter;
 			if( Dependency->ClassGeneratedBy != BatchMasterClass->ClassGeneratedBy )
 			{
-				Dependency->ConditionalRecompileClass(&GObjLoaded);
+				Dependency->ConditionalRecompileClass();
 			}
 		}
 
 		// Finally, recompile the master class to make sure it gets updated too
-		BatchMasterClass->ConditionalRecompileClass(&GObjLoaded);
+		BatchMasterClass->ConditionalRecompileClass();
 		
 		BatchMasterClass = NULL;
 	}
 }
-
-TArray<UClass*> const& FScopedClassDependencyGather::GetCachedDependencies()
-{
-	return BatchClassDependencies;
-}
-
 #endif //WITH_EDITOR

@@ -410,6 +410,7 @@ private:
 			&& ((ULevel*)(DestNavMesh->GetOuter()))->OwningWorld->GetNavigationSystem() != NULL;
 	}
 
+public:
 	// Loads navmesh generation config
 	// Params:
 	//		cellSize - (in) size of voxel 2D grid
@@ -418,8 +419,10 @@ private:
 	//		agentMaxHeight - (in) max walkable height
 	//		agentMaxSlope - (in) max angle of walkable slope (degrees)
 	//		agentMaxClimb - (in) max height of walkable step
+	// @fixme make me private
 	void SetUpGeneration(float CellSize, float CellHeight, float AgentMinHeight, float AgentMaxHeight, float AgentMaxSlope, float AgentMaxClimb, float AgentRadius);
 
+private:
 	// Generates tiled navmesh. NavMesh tile size defined by FRecastNavMeshGenerator::TileSize
 	// @todo considering passing TileSize as a parameter to this function
 	bool GenerateTiledNavMesh();

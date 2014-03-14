@@ -117,9 +117,6 @@ struct ENGINE_API FCurveTableRowHandle
 	 * @return True if it filled out YValue with a valid number, false otherwise
 	 */
 	bool Eval(float XValue, float* YValue) const;
-
-	bool operator==(const FCurveTableRowHandle& Other) const;
-	bool operator!=(const FCurveTableRowHandle& Other) const;
 };
 
 /** Macro to call GetCurve with a correct error info. Assumed to be called within a UObject */

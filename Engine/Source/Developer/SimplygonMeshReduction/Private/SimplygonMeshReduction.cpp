@@ -320,14 +320,6 @@ public:
 		return true;
 	}
 	
-	bool IsSupported() const 
-	{
-#if WITH_SIMPLYGON_DLL
-		return true;
-#else
-		return false;
-#endif
-	}
 	static FSimplygonMeshReduction* Create()
 	{
 		SimplygonSDK::ISimplygonSDK* SDK = NULL;

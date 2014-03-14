@@ -112,7 +112,7 @@ public:
 					.VAlign(VAlign_Top)
 					[
 						SNew(STextBlock)
-						.TextStyle( FEditorStyle::Get(), FEditorStyle::Join( InArgs._Style.Get(), ".Label" ) )
+						.Font( FEditorStyle::GetFontStyle( InArgs._Style.Get(), ".Label.Font" ) )
 						.Text(InArgs._Label)
 					]
 					+SVerticalBox::Slot()
@@ -298,7 +298,7 @@ public:
 					.VAlign(VAlign_Top)
 					[
 						SNew(STextBlock)
-						.TextStyle( FEditorStyle::Get(), FEditorStyle::Join( InArgs._Style.Get(), ".Label" ) )
+						.Font( FEditorStyle::GetFontStyle( InArgs._Style.Get(), ".Label.Font" ) )
 						.Text(InArgs._Label)
 					]
 					+SVerticalBox::Slot()

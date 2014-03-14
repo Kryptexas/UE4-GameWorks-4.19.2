@@ -451,16 +451,11 @@ void UK2Node_SpawnActor::ExpandNode(class FKismetCompilerContext& CompilerContex
 	}
 }
 
-bool UK2Node_SpawnActor::HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput) const
+bool UK2Node_SpawnActor::HasExternalBlueprintDependencies() const
 {
-	UClass* SourceClass = GetClassToSpawn();
+	const UClass* SourceClass = GetClassToSpawn();
 	const UBlueprint* SourceBlueprint = GetBlueprint();
-	const bool bResult = (SourceClass != NULL) && (SourceClass->ClassGeneratedBy != NULL) && (SourceClass->ClassGeneratedBy != SourceBlueprint);
-	if (bResult && OptionalOutput)
-	{
-		OptionalOutput->Add(SourceClass);
-	}
-	return bResult;
+	return (SourceClass != NULL) && (SourceClass->ClassGeneratedBy != NULL) && (SourceClass->ClassGeneratedBy != SourceBlueprint);
 }
 
 bool UK2Node_SpawnActor::IsDeprecated() const

@@ -47,7 +47,6 @@ ULandscapeComponent::ULandscapeComponent(const class FPostConstructInitializePro
 {
 	BodyInstance.bEnableCollision_DEPRECATED = true;
 	SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
-	bGenerateOverlapEvents = false;
 	CastShadow = true;
 	bUseAsOccluder = true;
 	bAllowCullDistanceVolume = false;

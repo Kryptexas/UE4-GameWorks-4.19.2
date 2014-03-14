@@ -139,9 +139,26 @@ FString FOnlineSubsystemFacebook::GetAppId() const
 	return TEXT("Facebook");
 }
 
-bool FOnlineSubsystemFacebook::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) 
+bool FOnlineSubsystemFacebook::Exec(const TCHAR* Cmd, FOutputDevice& Ar)
 {
 	return false;
+}
+
+FOnlineSubsystemFacebook* FOnlineSubsystemFacebook::FacebookSingleton = NULL;
+
+FOnlineSubsystemFacebook* FOnlineSubsystemFacebook::Create()
+{
+	if (FacebookSingleton == NULL)
+	{
+		FacebookSingleton = new FOnlineSubsystemFacebook();
+	}
+	return FacebookSingleton;
+}
+
+void FOnlineSubsystemFacebook::Destroy()
+{
+	delete FacebookSingleton;
+	FacebookSingleton = NULL;
 }
 
 bool FOnlineSubsystemFacebook::IsEnabled()

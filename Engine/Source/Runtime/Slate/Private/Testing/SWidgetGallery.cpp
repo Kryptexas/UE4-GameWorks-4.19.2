@@ -761,9 +761,9 @@ public:
 
 		// initialize SBreadcrumbTrail
 		{
-			BreadcrumbTrail->PushCrumb(LOCTEXT("PlaceholderRootBreadcrumb", "RootCrumb"), 0);
-			BreadcrumbTrail->PushCrumb(LOCTEXT("PlaceholderBreadcrumb", "SomeCrumb"), 549);
-			BreadcrumbTrail->PushCrumb(LOCTEXT("PlaceholderBreadcrumb", "SomeCrumb"), 33);
+			BreadcrumbTrail->PushCrumb("RootCrumb", 0);
+			BreadcrumbTrail->PushCrumb("SomeCrumb", 549);
+			BreadcrumbTrail->PushCrumb("SomeCrumb", 33);
 		}
 
 		// initialize SCheckBox
@@ -882,7 +882,7 @@ private:
 	// Callback for clicking the Add button in the SBreadcrumbTrail example.
 	FReply HandleBreadcrumbTrailAddButtonClicked( )
 	{
-		BreadcrumbTrail->PushCrumb(LOCTEXT("PlaceholderBreadcrumb02", "SomeNewCrumb"), 0);
+		BreadcrumbTrail->PushCrumb("SomeNewCrumb", 0);
 
 		return FReply::Handled();
 	}

@@ -31,7 +31,7 @@ FSlateEditorStyle::FStyle::FStyle( const TWeakObjectPtr< UEditorStyleSettings >&
 
 	// Note, these sizes are in Slate Units.
 	// Slate Units do NOT have to map to pixels.
-	, Icon7x16(7.0f, 16.0f)
+	, Icon5x16(5.0f, 16.0f)
 	, Icon8x4(8.0f, 4.0f)
 	, Icon8x8(8.0f, 8.0f)
 	, Icon10x10(10.0f, 10.0f)
@@ -422,11 +422,6 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 	}
 
 	// EditableTextBox
-	NormalEditableTextBoxStyle = FEditableTextBoxStyle()
-		.SetBackgroundImageNormal( BOX_BRUSH( "Common/TextBox", FMargin(4.0f/16.0f) ) )
-		.SetBackgroundImageHovered( BOX_BRUSH( "Common/TextBox_Hovered", FMargin(4.0f/16.0f) ) )
-		.SetBackgroundImageFocused( BOX_BRUSH( "Common/TextBox_Hovered", FMargin(4.0f/16.0f) ) )
-		.SetBackgroundImageReadOnly( BOX_BRUSH( "Common/TextBox_ReadOnly", FMargin(4.0f/16.0f) ) );
 	{
 		Set( "EditableTextBox.Background.Normal", new BOX_BRUSH( "Common/TextBox", FMargin(4.0f/16.0f) ) );
 		Set( "EditableTextBox.Background.Hovered", new BOX_BRUSH( "Common/TextBox_Hovered", FMargin(4.0f/16.0f) ) );
@@ -684,7 +679,7 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 			.SetSortDescendingImage( IMAGE_BRUSH( "Common/SortDownArrow", Icon8x4 ) )
 			.SetNormalBrush( BOX_BRUSH( "Common/ColumnHeader", 4.f/32.f ) )
 			.SetHoveredBrush( BOX_BRUSH( "Common/ColumnHeader_Hovered", 4.f/32.f ) )
-			.SetMenuDropdownImage( IMAGE_BRUSH( "Common/ColumnHeader_Arrow", Icon8x8 ) )
+			.SetMenuDropdownImage( IMAGE_BRUSH( "Common/ComboArrow", Icon8x8 ) )
 			.SetMenuDropdownNormalBorderBrush( BOX_BRUSH( "Common/ColumnHeaderMenuButton_Normal", 4.f/32.f ) )
 			.SetMenuDropdownHoveredBorderBrush( BOX_BRUSH( "Common/ColumnHeaderMenuButton_Hovered", 4.f/32.f ) );
 		Set( "TableView.Header.Column", TableColumnHeaderStyle );
@@ -694,7 +689,7 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 			.SetSortDescendingImage( IMAGE_BRUSH( "Common/SortDownArrow", Icon8x4 ) )
 			.SetNormalBrush( FSlateNoResource() )
 			.SetHoveredBrush( BOX_BRUSH( "Common/LastColumnHeader_Hovered", 4.f/32.f ) )
-			.SetMenuDropdownImage( IMAGE_BRUSH( "Common/ColumnHeader_Arrow", Icon8x8 ) )
+			.SetMenuDropdownImage( IMAGE_BRUSH( "Common/ComboArrow", Icon8x8 ) )
 			.SetMenuDropdownNormalBorderBrush( BOX_BRUSH( "Common/ColumnHeaderMenuButton_Normal", 4.f/32.f ) )
 			.SetMenuDropdownHoveredBorderBrush( BOX_BRUSH( "Common/ColumnHeaderMenuButton_Hovered", 4.f/32.f ) );
 
@@ -883,12 +878,12 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 
 	// Session Console Window
 	{
-		Set( "SessionConsole.SessionCopy", new IMAGE_BRUSH( "Icons/icon_file_open_40x", Icon40x40 ) );
-		Set( "SessionConsole.SessionCopy.Small", new IMAGE_BRUSH( "Icons/icon_file_open_16px", Icon20x20 ) );
+		Set( "SessionConsole.Copy", new IMAGE_BRUSH( "Icons/icon_file_open_40x", Icon40x40 ) );
+		Set( "SessionConsole.Copy.Small", new IMAGE_BRUSH( "Icons/icon_file_open_16px", Icon20x20 ) );
 		Set( "SessionConsole.Clear", new IMAGE_BRUSH( "Icons/icon_file_new_40x", Icon40x40 ) );
 		Set( "SessionConsole.Clear.Small", new IMAGE_BRUSH( "Icons/icon_file_new_16px", Icon20x20 ) );
-		Set( "SessionConsole.SessionSave", new IMAGE_BRUSH( "Icons/icon_file_savelevels_40x", Icon40x40 ) );
-		Set( "SessionConsole.SessionSave.Small", new IMAGE_BRUSH( "Icons/icon_file_savelevels_16px", Icon20x20 ) );
+		Set( "SessionConsole.Save", new IMAGE_BRUSH( "Icons/icon_file_savelevels_40x", Icon40x40 ) );
+		Set( "SessionConsole.Save.Small", new IMAGE_BRUSH( "Icons/icon_file_savelevels_16px", Icon20x20 ) );
 	}
 
 	// Session Frontend Window
@@ -901,11 +896,6 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 	{
 		Set("SessionLauncher.TabIcon", new IMAGE_BRUSH( "Icons/icon_tab_SessionLauncher_16x", Icon16x16 ) );
 		Set("SessionLauncher.Tabs.Tools", new IMAGE_BRUSH( "/Icons/icon_tab_Tools_16x", Icon16x16 ) );
-	}
-
-	// Undo History Window
-	{
-		Set("UndoHistory.TabIcon", new IMAGE_BRUSH( "Icons/icon_tab_UndoHistory_16px", Icon16x16 ) );
 	}
 
 	// InputBinding editor
@@ -1086,9 +1076,6 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 	{
 		Set( "SceneOutliner.FilterSearch", new IMAGE_BRUSH( "Old/FilterSearch", Icon16x16 ) );
 		Set( "SceneOutliner.FilterCancel", new IMAGE_BRUSH( "Old/FilterCancel", Icon16x16 ) );
-		Set( "SceneOutliner.FolderClosed", new IMAGE_BRUSH( "Icons/FolderClosed", Icon16x16 ) );
-		Set( "SceneOutliner.FolderOpen", new IMAGE_BRUSH( "Icons/FolderOpen", Icon16x16 ) );
-		Set( "SceneOutliner.NewFolderIcon", new IMAGE_BRUSH("Icons/icon_AddFolder_16x", Icon16x16 ) );
 		Set( "SceneOutliner.ChangedItemHighlight", new BOX_BRUSH( "Common/EditableTextSelectionBackground", FMargin(4.f/16.f) ) );
 		// Selection color should still be orange to align with the editor viewport.
 		// But must also give the hint that the tree is no longer focused.
@@ -1173,8 +1160,8 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "AssetEditor.SaveAsset.Greyscale", new IMAGE_BRUSH( "icons/icon_file_save_16px", Icon16x16 ) );
 		Set( "AssetEditor.SaveAsset", new IMAGE_BRUSH( "Icons/icon_SaveAsset_40x", Icon40x40 ) );
 		Set( "AssetEditor.SaveAsset.Small", new IMAGE_BRUSH( "Icons/icon_SaveAsset_40x", Icon20x20 ) );
-		Set( "AssetEditor.ReimportAsset", new IMAGE_BRUSH( "Icons/icon_TextureEd_Reimport_40x", Icon40x40 ) );
-		Set( "AssetEditor.ReimportAsset.Small", new IMAGE_BRUSH( "Icons/icon_TextureEd_Reimport_40x", Icon20x20 ) );		
+		Set( "AssetEditor.Reimport", new IMAGE_BRUSH( "Icons/icon_TextureEd_Reimport_40x", Icon40x40 ) );
+		Set( "AssetEditor.Reimport.Small", new IMAGE_BRUSH( "Icons/icon_TextureEd_Reimport_40x", Icon20x20 ) );		
 	}
 		
 	// Asset Thumbnail
@@ -1542,7 +1529,7 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "ToolBar.Separator.Padding", FMargin( 0.5f ) );
 
 		Set( "ToolBar.Label", FTextBlockStyle(NormalText) .SetFont( TTF_CORE_FONT( "Fonts/Roboto-Regular", 9 ) ) );
-		Set( "ToolBar.EditableText", FEditableTextBoxStyle(NormalEditableTextBoxStyle) .SetFont( TTF_CORE_FONT( "Fonts/Roboto-Regular", 9 ) ) );
+		Set( "ToolBar.EditableText", FTextBlockStyle(NormalText) .SetFont( TTF_CORE_FONT( "Fonts/Roboto-Regular", 9 ) ) );
 		Set( "ToolBar.Keybinding", FTextBlockStyle(NormalText) .SetFont( TTF_CORE_FONT( "Fonts/Roboto-Regular", 8 ) ) );
 
 		Set( "ToolBar.Heading", FTextBlockStyle(NormalText)
@@ -1620,7 +1607,7 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "Menu.Separator.Padding", FMargin( 0.5f ) );
 
 		Set( "Menu.Label", FTextBlockStyle(NormalText) .SetFont( TTF_CORE_FONT( "Fonts/Roboto-Regular", 9 ) ) );
-		Set( "Menu.EditableText", FEditableTextBoxStyle(NormalEditableTextBoxStyle) .SetFont( TTF_CORE_FONT( "Fonts/Roboto-Regular", 9 ) ) );
+		Set( "Menu.EditableText", FTextBlockStyle(NormalText) .SetFont( TTF_CORE_FONT( "Fonts/Roboto-Regular", 9 ) ) );
 		Set( "Menu.Keybinding", FTextBlockStyle(NormalText) .SetFont( TTF_CORE_FONT( "Fonts/Roboto-Regular", 8 ) ) );
 
 		Set( "Menu.Heading", FTextBlockStyle(NormalText)
@@ -1739,7 +1726,7 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "NotificationBar.Separator.Padding", FMargin( 0.5f ) );
 
 		Set( "NotificationBar.Label", FTextBlockStyle(NormalText) .SetFont( TTF_CORE_FONT( "Fonts/Roboto-Regular", 9 ) ) );
-		Set( "NotificationBar.EditableText", FEditableTextBoxStyle(NormalEditableTextBoxStyle) .SetFont( TTF_CORE_FONT( "Fonts/Roboto-Regular", 9 ) ) );
+		Set( "NotificationBar.EditableText", FTextBlockStyle(NormalText) .SetFont( TTF_CORE_FONT( "Fonts/Roboto-Regular", 9 ) ) );
 		Set( "NotificationBar.Keybinding", FTextBlockStyle(NormalText) .SetFont( TTF_CORE_FONT( "Fonts/Roboto-Regular", 8 ) ) );
 
 		Set( "NotificationBar.Heading", FTextBlockStyle(NormalText)
@@ -1822,9 +1809,9 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "ViewportMenu.Separator", new BOX_BRUSH( "Old/Button", 8.0f/32.0f, FLinearColor::Transparent ) );
 		Set( "ViewportMenu.Separator.Padding", FMargin( 100.0f ) );
 
-		Set( "ViewportMenu.Label", FTextBlockStyle(NormalText) .SetFont( TTF_CORE_FONT( "Fonts/Roboto-Bold", 9) ) );
-		Set( "ViewportMenu.EditableText", FEditableTextBoxStyle(NormalEditableTextBoxStyle) .SetFont( TTF_CORE_FONT( "Fonts/Roboto-Regular", 9) ) );
-		Set( "ViewportMenu.Keybinding", FTextBlockStyle(NormalText) .SetFont( TTF_CORE_FONT( "Fonts/Roboto-Regular", 8) ) );
+		Set( "ViewportMenu.Label.Font", TTF_CORE_FONT( "Fonts/Roboto-Bold", 9) );
+		Set( "ViewportMenu.EditableText.Font", TTF_CORE_FONT( "Fonts/Roboto-Regular", 9 ) );
+		Set( "ViewportMenu.Keybinding.Font", TTF_CORE_FONT( "Fonts/Roboto-Regular", 8 ) );
 
 		Set( "ViewportMenu.Block.IndentedPadding", FMargin( 0 ) );
 		Set( "ViewportMenu.Block.Padding", FMargin( 0 ) );
@@ -2354,7 +2341,7 @@ void FSlateEditorStyle::FStyle::SetupPropertyEditorStyles()
 			.SetSortDescendingImage( IMAGE_BRUSH( "Common/SortDownArrow", Icon8x4 ) )
 			.SetNormalBrush( BOX_BRUSH( "Common/ColumnHeader", 4.f/32.f ) )
 			.SetHoveredBrush( BOX_BRUSH( "Common/ColumnHeader_Hovered", 4.f/32.f ) )
-			.SetMenuDropdownImage( IMAGE_BRUSH( "Common/ColumnHeader_Arrow", Icon8x8 ) )
+			.SetMenuDropdownImage( IMAGE_BRUSH( "Common/ComboArrow", Icon8x8 ) )
 			.SetMenuDropdownNormalBorderBrush( BOX_BRUSH( "Common/ColumnHeaderMenuButton_Normal", 4.f/32.f ) )
 			.SetMenuDropdownHoveredBorderBrush( BOX_BRUSH( "Common/ColumnHeaderMenuButton_Hovered", 4.f/32.f ) );
 
@@ -2363,7 +2350,7 @@ void FSlateEditorStyle::FStyle::SetupPropertyEditorStyles()
 			.SetSortDescendingImage( IMAGE_BRUSH( "Common/SortDownArrow", Icon8x4 ) )
 			.SetNormalBrush( FSlateNoResource() )
 			.SetHoveredBrush( BOX_BRUSH( "Common/LastColumnHeader_Hovered", 4.f/32.f ) )
-			.SetMenuDropdownImage( IMAGE_BRUSH( "Common/ColumnHeader_Arrow", Icon8x8 ) )
+			.SetMenuDropdownImage( IMAGE_BRUSH( "Common/ComboArrow", Icon8x8 ) )
 			.SetMenuDropdownNormalBorderBrush( BOX_BRUSH( "Common/ColumnHeaderMenuButton_Normal", 4.f/32.f ) )
 			.SetMenuDropdownHoveredBorderBrush( BOX_BRUSH( "Common/ColumnHeaderMenuButton_Hovered", 4.f/32.f ) );
 
@@ -2492,8 +2479,8 @@ void FSlateEditorStyle::FStyle::SetupProfilerStyle()
 		Set( "ProfilerCommand.ProfilerManager_Load", new IMAGE_BRUSH( "Icons/Profiler/Profiler_Load_Profiler_40x", Icon40x40 ) );
 		Set( "ProfilerCommand.ProfilerManager_Load.Small", new IMAGE_BRUSH( "Icons/Profiler/Profiler_Load_Profiler_40x", Icon20x20 ) );
 
-		Set( "ProfilerCommand.ProfilerManager_Save", new IMAGE_BRUSH( "Icons/LV_Save", Icon40x40 ) );
-		Set( "ProfilerCommand.ProfilerManager_Save.Small", new IMAGE_BRUSH( "Icons/LV_Save", Icon20x20 ) );
+		Set( "ProfilerCommand.Save", new IMAGE_BRUSH( "Icons/LV_Save", Icon40x40 ) );
+		Set( "ProfilerCommand.Save.Small", new IMAGE_BRUSH( "Icons/LV_Save", Icon20x20 ) );
 		
 		Set( "ProfilerCommand.ProfilerManager_ToggleLivePreview", new IMAGE_BRUSH( "Automation/RefreshTests", Icon40x40) );
 		Set( "ProfilerCommand.ProfilerManager_ToggleLivePreview.Small", new IMAGE_BRUSH( "Automation/RefreshTests", Icon20x20) );
@@ -3557,9 +3544,9 @@ void FSlateEditorStyle::FStyle::SetupLevelEditorStyle()
 		Set( "EditorModesToolbar.Separator", new BOX_BRUSH( "Old/Button", 4.0f / 32.0f ) );
 		Set( "EditorModesToolbar.Separator.Padding", FMargin( 0.5f ) );
 
-		Set( "EditorModesToolbar.Label", FTextBlockStyle(NormalText) .SetFont( TTF_CORE_FONT( "Fonts/Roboto-Regular", 7 ) ) );
-		Set( "EditorModesToolbar.EditableText", FEditableTextBoxStyle(NormalEditableTextBoxStyle) .SetFont( TTF_CORE_FONT( "Fonts/Roboto-Regular", 9 ) ) );
-		Set( "EditorModesToolbar.Keybinding", FTextBlockStyle(NormalText) .SetFont( TTF_CORE_FONT( "Fonts/Roboto-Regular", 8 ) ) );
+		Set( "EditorModesToolbar.Label.Font", TTF_CORE_FONT( "Fonts/Roboto-Regular", 7 ) );
+		Set( "EditorModesToolbar.EditableText.Font", TTF_CORE_FONT( "Fonts/Roboto-Regular", 9 ) );
+		Set( "EditorModesToolbar.Keybinding.Font", TTF_CORE_FONT( "Fonts/Roboto-Regular", 8 ) );
 
 		Set( "EditorModesToolbar.Heading.Font", TTF_CORE_FONT( "Fonts/Roboto-Regular", 8 ) );
 		Set( "EditorModesToolbar.Heading.ColorAndOpacity", FLinearColor( 0.4f, 0.4, 0.4f, 1.0f ) );
@@ -3659,8 +3646,8 @@ void FSlateEditorStyle::FStyle::SetupPersonaStyle()
 		Set( "AnimViewportMenu.SetShowTangents.Small", new IMAGE_BRUSH( TEXT("Icons/icon_StaticMeshEd_Tangents_40x"), Icon20x20 ) );
 		Set( "AnimViewportMenu.SetShowBinormals", new IMAGE_BRUSH( TEXT("Icons/icon_StaticMeshEd_Binormals_40x"), Icon40x40 ) );
 		Set( "AnimViewportMenu.SetShowBinormals.Small", new IMAGE_BRUSH( TEXT("Icons/icon_StaticMeshEd_Binormals_40x"), Icon20x20 ) );
-		Set( "AnimViewportMenu.AnimSetDrawUVs", new IMAGE_BRUSH( TEXT("Icons/icon_StaticMeshEd_UVOverlay_40x"), Icon40x40 ) );
-		Set( "AnimViewportMenu.AnimSetDrawUVs.Small", new IMAGE_BRUSH( TEXT("Icons/icon_StaticMeshEd_UVOverlay_40x"), Icon20x20 ) );
+		Set( "AnimViewportMenu.SetDrawUVs", new IMAGE_BRUSH( TEXT("Icons/icon_StaticMeshEd_UVOverlay_40x"), Icon40x40 ) );
+		Set( "AnimViewportMenu.SetDrawUVs.Small", new IMAGE_BRUSH( TEXT("Icons/icon_StaticMeshEd_UVOverlay_40x"), Icon20x20 ) );
 
 		Set( "AnimViewport.MessageFont", TTF_CORE_FONT("Fonts/Roboto-Bold", 9) );
 		
@@ -3718,12 +3705,12 @@ void FSlateEditorStyle::FStyle::SetupPersonaStyle()
 		Set("Kismet.Palette.Library",   new IMAGE_BRUSH("Icons/icon_MeshPaint_Find_16x", Icon16x16, FLinearColor(0.4f, 0.4, 0.4f, 1.f)));
 		const FCheckBoxStyle KismetFavoriteToggleStyle = FCheckBoxStyle()
 			.SetCheckBoxType(ESlateCheckBoxType::CheckBox)
-			.SetUncheckedImage( IMAGE_BRUSH("Icons/EmptyStar_16x", Icon10x10, FLinearColor(0.8f, 0.8f, 0.8f, 1.f)) )
-			.SetUncheckedHoveredImage( IMAGE_BRUSH("Icons/EmptyStar_16x", Icon10x10, FLinearColor(2.5f, 2.5f, 2.5f, 1.f)) )
-			.SetUncheckedPressedImage( IMAGE_BRUSH("Icons/EmptyStar_16x", Icon10x10, FLinearColor(0.8f, 0.8f, 0.8f, 1.f)) )
-			.SetCheckedImage( IMAGE_BRUSH("Icons/Star_16x", Icon10x10, FLinearColor(0.2f, 0.2f, 0.2f, 1.f)) )
-			.SetCheckedHoveredImage( IMAGE_BRUSH("Icons/Star_16x", Icon10x10, FLinearColor(0.4f, 0.4f, 0.4f, 1.f)) )
-			.SetCheckedPressedImage( IMAGE_BRUSH("Icons/Star_16x", Icon10x10, FLinearColor(0.2f, 0.2f, 0.2f, 1.f)) );
+			.SetUncheckedImage( IMAGE_BRUSH("Icons/EmptyStar_16x", Icon16x16, FLinearColor(0.8f, 0.8f, 0.8f, 1.f)) )
+			.SetUncheckedHoveredImage( IMAGE_BRUSH("Icons/EmptyStar_16x", Icon16x16, FLinearColor(2.5f, 2.5f, 2.5f, 1.f)) )
+			.SetUncheckedPressedImage( IMAGE_BRUSH("Icons/EmptyStar_16x", Icon16x16, FLinearColor(0.8f, 0.8f, 0.8f, 1.f)) )
+			.SetCheckedImage( IMAGE_BRUSH("Icons/Star_16x", Icon16x16, FLinearColor(0.2f, 0.2f, 0.2f, 1.f)) )
+			.SetCheckedHoveredImage( IMAGE_BRUSH("Icons/Star_16x", Icon16x16, FLinearColor(0.4f, 0.4f, 0.4f, 1.f)) )
+			.SetCheckedPressedImage( IMAGE_BRUSH("Icons/Star_16x", Icon16x16, FLinearColor(0.2f, 0.2f, 0.2f, 1.f)) );
 		Set("Kismet.Palette.FavoriteToggleStyle", KismetFavoriteToggleStyle);
 
 		Set( "Kismet.Tooltip.SubtextFont", TTF_CORE_FONT("Fonts/Roboto-Regular", 8) );
@@ -3971,12 +3958,12 @@ void FSlateEditorStyle::FStyle::SetupClassIconsAndThumbnails()
 		Set( "ClassIcon.TextRenderComponent", new IMAGE_BRUSH( "Icons/ActorIcons/TextRenderer_16px", Icon16x16 ) );
 		Set( "ClassIcon.TimelineComponent", new IMAGE_BRUSH("Icons/ActorIcons/TimelineComponent_16px", Icon16x16));
 		Set( "ClassIcon.ChildActorComponent", new IMAGE_BRUSH( "Icons/ActorIcons/ChildActorComponent_16px", Icon16x16 ) );
-		Set( "ClassIcon.ComponentMobilityStaticPip", new IMAGE_BRUSH( "Icons/ActorIcons/ComponentMobilityStationary_7x16px", Icon7x16, FLinearColor(0.f, 0.f, 0.f, 0.f) ) );
-		Set( "ClassIcon.ComponentMobilityStationaryPip", new IMAGE_BRUSH( "Icons/ActorIcons/ComponentMobilityStationary_7x16px", Icon7x16 ) );
-		Set( "ClassIcon.ComponentMobilityMovablePip", new IMAGE_BRUSH( "Icons/ActorIcons/ComponentMobilityMovable_7x16px", Icon7x16 ) );
+		Set( "ClassIcon.ComponentMobilityStaticPip", new IMAGE_BRUSH( "Icons/ActorIcons/ComponentMobilityStationary_5x16px", Icon5x16, FLinearColor(0.f, 0.f, 0.f, 0.f) ) );
+		Set( "ClassIcon.ComponentMobilityStationaryPip", new IMAGE_BRUSH( "Icons/ActorIcons/ComponentMobilityStationary_5x16px", Icon5x16 ) );
+		Set( "ClassIcon.ComponentMobilityMovablePip", new IMAGE_BRUSH( "Icons/ActorIcons/ComponentMobilityMovable_5x16px", Icon5x16 ) );
 		Set( "ClassIcon.MovableMobilityIcon", new IMAGE_BRUSH( "Icons/ActorIcons/Light_Movable_16x", Icon16x16));
 		Set( "ClassIcon.StationaryMobilityIcon", new IMAGE_BRUSH( "Icons/ActorIcons/Light_Adjustable_16x", Icon16x16));
-		Set( "ClassIcon.ComponentMobilityHeaderIcon", new IMAGE_BRUSH( "Icons/ActorIcons/ComponentMobilityHeader_7x16", Icon7x16));
+		Set( "ClassIcon.ComponentMobilityHeaderIcon", new IMAGE_BRUSH( "Icons/ActorIcons/ComponentMobilityHeader_5x16", Icon5x16));
 		
 		
 		// Factory classes
@@ -4475,8 +4462,8 @@ void FSlateEditorStyle::FStyle::SetupToolkitStyles()
 
 		Set( "MaterialEditor.ToggleStats", new IMAGE_BRUSH( "Icons/icon_MatEd_Stats_40x", Icon40x40 ) );
 		Set( "MaterialEditor.ToggleStats.Small", new IMAGE_BRUSH( "Icons/icon_MatEd_Stats_40x", Icon20x20 ) );
-		Set( "MaterialEditor.ToggleMobileStats", new IMAGE_BRUSH( "Icons/icon_MobileStats_40x", Icon40x40 ) );
-		Set( "MaterialEditor.ToggleMobileStats.Small", new IMAGE_BRUSH( "Icons/icon_MobileStats_40x", Icon20x20 ) );
+		Set( "MaterialEditor.ToggleMobileStats", new IMAGE_BRUSH( "Icons/icon_tab_DeviceManager_40x", Icon40x40 ) );
+		Set( "MaterialEditor.ToggleMobileStats.Small", new IMAGE_BRUSH( "Icons/icon_tab_DeviceManager_40x", Icon20x20 ) );
 		Set( "MaterialEditor.CleanUnusedExpressions", new IMAGE_BRUSH( "Icons/icon_MatEd_CleanUp_40x", Icon40x40 ) );
 		Set( "MaterialEditor.CleanUnusedExpressions.Small", new IMAGE_BRUSH( "Icons/icon_MatEd_CleanUp_40x", Icon20x20 ) );
 		Set( "MaterialEditor.ToggleRealtimeExpressions", new IMAGE_BRUSH( "Icons/icon_MatEd_LiveNodes_40x", Icon40x40 ) );
@@ -4530,8 +4517,8 @@ void FSlateEditorStyle::FStyle::SetupToolkitStyles()
 		Set("SoundCueGraphEditor.PlayCue.Small", new IMAGE_BRUSH( "Icons/icon_SCueEd_PlayCue_40x", Icon20x20));
 		Set("SoundCueGraphEditor.PlayNode", new IMAGE_BRUSH( "Icons/icon_SCueEd_PlayNode_40x", Icon40x40));
 		Set("SoundCueGraphEditor.PlayNode.Small", new IMAGE_BRUSH( "Icons/icon_SCueEd_PlayNode_40x", Icon20x20));
-		Set("SoundCueGraphEditor.StopCueNode", new IMAGE_BRUSH( "Icons/icon_SCueEd_Stop_40x", Icon40x40));
-		Set("SoundCueGraphEditor.StopCueNode.Small", new IMAGE_BRUSH( "Icons/icon_SCueEd_Stop_40x", Icon20x20));
+		Set("SoundCueGraphEditor.Stop", new IMAGE_BRUSH( "Icons/icon_SCueEd_Stop_40x", Icon40x40));
+		Set("SoundCueGraphEditor.Stop.Small", new IMAGE_BRUSH( "Icons/icon_SCueEd_Stop_40x", Icon20x20));
 	}
 
 	// Static Mesh Editor
@@ -4704,9 +4691,9 @@ void FSlateEditorStyle::FStyle::SetupToolkitStyles()
 		Set( "PhAT.ApplyPhysicalMaterial", new IMAGE_BRUSH( "Icons/icon_PhAT_Physmat_40x", Icon40x40 ) );
 		Set( "PhAT.CopyJointSettings", new IMAGE_BRUSH( "Icons/icon_PhAT_CopyJoints_40x", Icon40x40 ) );
 		Set( "PhAT.PlayAnimation", new IMAGE_BRUSH( "Icons/icon_PhAT_Play_40x", Icon40x40 ) );
-		Set( "PhAT.PhATTranslationMode", new IMAGE_BRUSH( "Icons/icon_translate_40x", Icon40x40 ) );
-		Set( "PhAT.PhATRotationMode", new IMAGE_BRUSH( "Icons/icon_rotate_40x", Icon40x40 ) );
-		Set( "PhAT.PhATScaleMode", new IMAGE_BRUSH( "Icons/icon_scale_40x", Icon40x40 ) );
+		Set( "PhAT.TranslationMode", new IMAGE_BRUSH( "Icons/icon_translate_40x", Icon40x40 ) );
+		Set( "PhAT.RotationMode", new IMAGE_BRUSH( "Icons/icon_rotate_40x", Icon40x40 ) );
+		Set( "PhAT.ScaleMode", new IMAGE_BRUSH( "Icons/icon_scale_40x", Icon40x40 ) );
 		Set( "PhAT.Snap", new IMAGE_BRUSH( "Icons/icon_PhAT_Snap_40x", Icon40x40 ) );
 		Set( "PhAT.CopyProperties", new IMAGE_BRUSH( "Icons/icon_PhAT_CopyProperties_40x", Icon40x40 ) );
 		Set( "PhAT.DisableCollision", new IMAGE_BRUSH( "Icons/icon_PhAT_DisableCollision_40x", Icon40x40 ) );
@@ -4736,9 +4723,9 @@ void FSlateEditorStyle::FStyle::SetupToolkitStyles()
 		Set( "PhAT.ApplyPhysicalMaterial.Small", new IMAGE_BRUSH( "Icons/icon_PhAT_Physmat_40x", Icon20x20 ) );
 		Set( "PhAT.CopyJointSettings.Small", new IMAGE_BRUSH( "Icons/icon_PhAT_CopyJoints_40x", Icon20x20 ) );
 		Set( "PhAT.PlayAnimation.Small", new IMAGE_BRUSH( "Icons/icon_PhAT_Play_40x", Icon20x20 ) );
-		Set( "PhAT.PhATTranslationMode.Small", new IMAGE_BRUSH( "Icons/icon_translate_40x", Icon20x20 ) );
-		Set( "PhAT.PhATRotationMode.Small", new IMAGE_BRUSH( "Icons/icon_rotate_40x", Icon20x20 ) );
-		Set( "PhAT.PhATScaleMode.Small", new IMAGE_BRUSH( "Icons/icon_scale_40x", Icon20x20 ) );
+		Set( "PhAT.TranslationMode.Small", new IMAGE_BRUSH( "Icons/icon_translate_40x", Icon20x20 ) );
+		Set( "PhAT.RotationMode.Small", new IMAGE_BRUSH( "Icons/icon_rotate_40x", Icon20x20 ) );
+		Set( "PhAT.ScaleMode.Small", new IMAGE_BRUSH( "Icons/icon_scale_40x", Icon20x20 ) );
 		Set( "PhAT.Snap.Small", new IMAGE_BRUSH( "Icons/icon_PhAT_Snap_40x", Icon20x20 ) );
 		Set( "PhAT.CopyProperties.Small", new IMAGE_BRUSH( "Icons/icon_PhAT_CopyProperties_40x", Icon20x20 ) );
 		Set( "PhAT.DisableCollision.Small", new IMAGE_BRUSH( "Icons/icon_PhAT_DisableCollision_40x", Icon20x20 ) );
@@ -4766,52 +4753,46 @@ void FSlateEditorStyle::FStyle::SetupMatineeStyle()
 {
 	//Matinee
 #if WITH_EDITOR
-	{
-		Set("Matinee.Filters.Text", FTextBlockStyle(NormalText)
-			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Bold", 9))
-			.SetColorAndOpacity(FLinearColor(1.0f, 1.0f, 1.0f, 0.9f))
-			.SetShadowOffset(FVector2D(1, 1))
-			.SetShadowColorAndOpacity(FLinearColor(0, 0, 0, 0.9f)));
-
-		Set( "Matinee.AddKey", new IMAGE_BRUSH( "Icons/icon_Matinee_AddKey_40x", Icon40x40 ) );
-		Set( "Matinee.CreateMovie", new IMAGE_BRUSH( "Icons/icon_Matinee_CreateMovie_40x", Icon40x40 ) );
-		Set( "Matinee.Play", new IMAGE_BRUSH( "Icons/icon_Matinee_Play_40x", Icon40x40 ) );
-		Set( "Matinee.PlayLoop", new IMAGE_BRUSH( "Icons/icon_Matinee_PlayLoopSection_40x", Icon40x40 ) );
-		Set( "Matinee.Stop", new IMAGE_BRUSH( "Icons/icon_Matinee_Stop_40x", Icon40x40 ) );
-		Set( "Matinee.PlayReverse", new IMAGE_BRUSH( "Icons/icon_Matinee_PlayReverse_40x", Icon40x40 ) );
+	{	
+		Set( "Matinee.AddKey", new IMAGE_BRUSH( "Icons/icon_Matinee_AddKey_40x", Icon40x40 ) );	
+		Set( "Matinee.CreateMovie", new IMAGE_BRUSH( "Icons/icon_Matinee_CreateMovie_40x", Icon40x40 ) );	
+		Set( "Matinee.Play", new IMAGE_BRUSH( "Icons/icon_Matinee_Play_40x", Icon40x40 ) );	
+		Set( "Matinee.PlayLoop", new IMAGE_BRUSH( "Icons/icon_Matinee_PlayLoopSection_40x", Icon40x40 ) );	
+		Set( "Matinee.Stop", new IMAGE_BRUSH( "Icons/icon_Matinee_Stop_40x", Icon40x40 ) );	
+		Set( "Matinee.PlayReverse", new IMAGE_BRUSH( "Icons/icon_Matinee_PlayReverse_40x", Icon40x40 ) );	
+		Set( "Matinee.Undo", new IMAGE_BRUSH( "Icons/icon_Generic_Undo_40x", Icon40x40 ) );	
+		Set( "Matinee.Redo", new IMAGE_BRUSH( "Icons/icon_Generic_Redo_40x", Icon40x40 ) );	
 		Set( "Matinee.ToggleSnap", new IMAGE_BRUSH( "Icons/icon_Matinee_ToggleSnap_40x", Icon40x40 ) );
-		Set( "Matinee.FitSequence", new IMAGE_BRUSH( "Icons/icon_Matinee_FitSequence_40x", Icon40x40 ) );
-		Set( "Matinee.FitViewToSelected", new IMAGE_BRUSH( "Icons/icon_Matinee_FitSelected_40x", Icon40x40 ) );
-		Set( "Matinee.FitLoop", new IMAGE_BRUSH( "Icons/icon_Matinee_FitLoop_40x", Icon40x40 ) );
-		Set( "Matinee.FitLoopSequence", new IMAGE_BRUSH( "Icons/icon_Matinee_FitLoopSequnce_40x", Icon40x40 ) );
-		Set( "Matinee.ViewEndofTrack", new IMAGE_BRUSH( "Icons/icon_Matinee_EndOfTrack_40x", Icon40x40 ) );
-		Set( "Matinee.ToggleSnapTimeToFrames", new IMAGE_BRUSH( "Icons/icon_Matinee_SnapTimeToFrames_40x", Icon40x40 ) );
-		Set( "Matinee.FixedTimeStepPlayback", new IMAGE_BRUSH( "Icons/icon_Matinee_FixedTimeStepPlayback_40x", Icon40x40 ) );
-		Set( "Matinee.ToggleGorePreview", new IMAGE_BRUSH( "Icons/icon_Matinee_GorePreview_40x", Icon40x40 ) );
-		Set( "Matinee.CreateCameraActor", new IMAGE_BRUSH( "Icons/icon_Matinee_CreateCameraActor_40x", Icon40x40 ) );
-		Set( "Matinee.LaunchRecordWindow", new IMAGE_BRUSH( "Icons/icon_Matinee_LaunchRecorderWindow_40x", Icon40x40 ) );
-		Set( "Matinee.ToggleCurveEditor", new IMAGE_BRUSH("Icons/icon_MatineeCurveView_40px", Icon40x40) );
-		Set( "Matinee.ToggleDirectorTimeline", new IMAGE_BRUSH("Icons/icon_MatineeDirectorView_40px", Icon40x40) );
+		Set( "Matinee.FitSequence", new IMAGE_BRUSH( "Icons/icon_Matinee_FitSequence_40x", Icon40x40 ) );	
+		Set( "Matinee.FitViewToSelected", new IMAGE_BRUSH( "Icons/icon_Matinee_FitSelected_40x", Icon40x40 ) );	
+		Set( "Matinee.FitLoop", new IMAGE_BRUSH( "Icons/icon_Matinee_FitLoop_40x", Icon40x40 ) );	
+		Set( "Matinee.FitLoopSequence", new IMAGE_BRUSH( "Icons/icon_Matinee_FitLoopSequnce_40x", Icon40x40 ) );	
+		Set( "Matinee.ViewEndofTrack", new IMAGE_BRUSH( "Icons/icon_Matinee_EndOfTrack_40x", Icon40x40 ) );		
+		Set( "Matinee.ToggleSnapTimeToFrames", new IMAGE_BRUSH( "Icons/icon_Matinee_SnapTimeToFrames_40x", Icon40x40 ) );	
+		Set( "Matinee.FixedTimeStepPlayback", new IMAGE_BRUSH( "Icons/icon_Matinee_FixedTimeStepPlayback_40x", Icon40x40 ) );	
+		Set( "Matinee.ToggleGorePreview", new IMAGE_BRUSH( "Icons/icon_Matinee_GorePreview_40x", Icon40x40 ) );	
+		Set( "Matinee.CreateCameraActor", new IMAGE_BRUSH( "Icons/icon_Matinee_CreateCameraActor_40x", Icon40x40 ) );	
+		Set( "Matinee.LaunchRecordWindow", new IMAGE_BRUSH( "Icons/icon_Matinee_LaunchRecorderWindow_40x", Icon40x40 ) );	
 
-		Set( "Matinee.AddKey.Small", new IMAGE_BRUSH( "Icons/icon_Matinee_AddKey_40x", Icon20x20 ) );
-		Set( "Matinee.CreateMovie.Small", new IMAGE_BRUSH( "Icons/icon_Matinee_CreateMovie_40x", Icon20x20 ) );
-		Set( "Matinee.Play.Small", new IMAGE_BRUSH( "Icons/icon_Matinee_Play_40x", Icon20x20 ) );
-		Set( "Matinee.PlayLoop.Small", new IMAGE_BRUSH( "Icons/icon_Matinee_PlayLoopSection_40x", Icon20x20 ) );
-		Set( "Matinee.Stop.Small", new IMAGE_BRUSH( "Icons/icon_Matinee_Stop_40x", Icon20x20 ) );
-		Set( "Matinee.PlayReverse.Small", new IMAGE_BRUSH( "Icons/icon_Matinee_PlayReverse_40x", Icon20x20 ) );
+		Set( "Matinee.AddKey.Small", new IMAGE_BRUSH( "Icons/icon_Matinee_AddKey_40x", Icon20x20 ) );	
+		Set( "Matinee.CreateMovie.Small", new IMAGE_BRUSH( "Icons/icon_Matinee_CreateMovie_40x", Icon20x20 ) );	
+		Set( "Matinee.Play.Small", new IMAGE_BRUSH( "Icons/icon_Matinee_Play_40x", Icon20x20 ) );	
+		Set( "Matinee.PlayLoop.Small", new IMAGE_BRUSH( "Icons/icon_Matinee_PlayLoopSection_40x", Icon20x20 ) );	
+		Set( "Matinee.Stop.Small", new IMAGE_BRUSH( "Icons/icon_Matinee_Stop_40x", Icon20x20 ) );	
+		Set( "Matinee.PlayReverse.Small", new IMAGE_BRUSH( "Icons/icon_Matinee_PlayReverse_40x", Icon20x20 ) );	
+		Set( "Matinee.Undo.Small", new IMAGE_BRUSH( "Icons/icon_Generic_Undo_40x", Icon20x20 ) );	
+		Set( "Matinee.Redo.Small", new IMAGE_BRUSH( "Icons/icon_Generic_Redo_40x", Icon20x20 ) );	
 		Set( "Matinee.ToggleSnap.Small", new IMAGE_BRUSH( "Icons/icon_Matinee_ToggleSnap_40x", Icon20x20 ) );
-		Set( "Matinee.FitSequence.Small", new IMAGE_BRUSH( "Icons/icon_Matinee_FitSequence_40x", Icon20x20 ) );
-		Set( "Matinee.FitViewToSelected.Small", new IMAGE_BRUSH( "Icons/icon_Matinee_FitSelected_40x", Icon20x20 ) );
-		Set( "Matinee.FitLoop.Small", new IMAGE_BRUSH( "Icons/icon_Matinee_FitLoop_40x", Icon20x20 ) );
-		Set( "Matinee.FitLoopSequence.Small", new IMAGE_BRUSH( "Icons/icon_Matinee_FitLoopSequnce_40x", Icon20x20 ) );
-		Set( "Matinee.ViewEndofTrack.Small", new IMAGE_BRUSH( "Icons/icon_Matinee_EndOfTrack_40x", Icon20x20 ) );
-		Set( "Matinee.ToggleSnapTimeToFrames.Small", new IMAGE_BRUSH( "Icons/icon_Matinee_SnapTimeToFrames_40x", Icon20x20 ) );
-		Set( "Matinee.FixedTimeStepPlayback.Small", new IMAGE_BRUSH( "Icons/icon_Matinee_FixedTimeStepPlayback_40x", Icon20x20 ) );
-		Set( "Matinee.ToggleGorePreview.Small", new IMAGE_BRUSH( "Icons/icon_Matinee_GorePreview_40x", Icon20x20 ) );
-		Set( "Matinee.CreateCameraActor.Small", new IMAGE_BRUSH( "Icons/icon_Matinee_CreateCameraActor_40x", Icon20x20 ) );
-		Set( "Matinee.LaunchRecordWindow.Small", new IMAGE_BRUSH( "Icons/icon_Matinee_LaunchRecorderWindow_40x", Icon20x20 ) );
-		Set( "Matinee.ToggleCurveEditor.Small", new IMAGE_BRUSH("Icons/icon_MatineeCurveView_40px", Icon20x20) );
-		Set( "Matinee.ToggleDirectorTimeline.Small", new IMAGE_BRUSH("Icons/icon_MatineeDirectorView_40px", Icon20x20) );
+		Set( "Matinee.FitSequence.Small", new IMAGE_BRUSH( "Icons/icon_Matinee_FitSequence_40x", Icon20x20 ) );	
+		Set( "Matinee.FitViewToSelected.Small", new IMAGE_BRUSH( "Icons/icon_Matinee_FitSelected_40x", Icon20x20 ) );	
+		Set( "Matinee.FitLoop.Small", new IMAGE_BRUSH( "Icons/icon_Matinee_FitLoop_40x", Icon20x20 ) );	
+		Set( "Matinee.FitLoopSequence.Small", new IMAGE_BRUSH( "Icons/icon_Matinee_FitLoopSequnce_40x", Icon20x20 ) );	
+		Set( "Matinee.ViewEndofTrack.Small", new IMAGE_BRUSH( "Icons/icon_Matinee_EndOfTrack_40x", Icon20x20 ) );		
+		Set( "Matinee.ToggleSnapTimeToFrames.Small", new IMAGE_BRUSH( "Icons/icon_Matinee_SnapTimeToFrames_40x", Icon20x20 ) );	
+		Set( "Matinee.FixedTimeStepPlayback.Small", new IMAGE_BRUSH( "Icons/icon_Matinee_FixedTimeStepPlayback_40x", Icon20x20 ) );	
+		Set( "Matinee.ToggleGorePreview.Small", new IMAGE_BRUSH( "Icons/icon_Matinee_GorePreview_40x", Icon20x20 ) );	
+		Set( "Matinee.CreateCameraActor.Small", new IMAGE_BRUSH( "Icons/icon_Matinee_CreateCameraActor_40x", Icon20x20 ) );	
+		Set( "Matinee.LaunchRecordWindow.Small", new IMAGE_BRUSH( "Icons/icon_Matinee_LaunchRecorderWindow_40x", Icon20x20 ) );	
 	}
 #endif // WITH_EDITOR || IS_PROGRAM
 	}
@@ -4938,7 +4919,7 @@ void FSlateEditorStyle::FStyle::SetupAutomationStyles()
 		Set( "Launcher.Instance_Unknown", new IMAGE_BRUSH( "Launcher/Instance_Unknown", Icon25x25 ) );
 		Set( "LauncherCommand.DeployBuild", new IMAGE_BRUSH( "Launcher/Launcher_Deploy", Icon40x40 ) );
 		Set( "LauncherCommand.QuickLaunch", new IMAGE_BRUSH( "Launcher/Launcher_Launch", Icon40x40 ) );
-		Set( "LauncherCommand.CreateBuild", new IMAGE_BRUSH( "Launcher/Launcher_Build", Icon40x40 ) );
+		Set( "LauncherCommand.Build", new IMAGE_BRUSH( "Launcher/Launcher_Build", Icon40x40 ) );
 		Set( "LauncherCommand.AdvancedBuild", new IMAGE_BRUSH( "Launcher/Launcher_Advanced", Icon40x40 ) );
 
 #if (WITH_EDITOR || (IS_PROGRAM && PLATFORM_DESKTOP))
@@ -5030,7 +5011,6 @@ void FSlateEditorStyle::FStyle::SetupAutomationStyles()
 	// External image picker
 	{
 		Set("ExternalImagePicker.BlankImage", new IMAGE_BRUSH( "Icons/BlankIcon", Icon16x16 ) );
-		Set("ExternalImagePicker.ThumbnailShadow", new BOX_BRUSH( "ContentBrowser/ThumbnailShadow" , FMargin( 5.0f / 64.0f ) ) );
 		Set("ExternalImagePicker.PickImageButton", new IMAGE_BRUSH( "Icons/ellipsis_12x", Icon12x12 ) );
 	}
 }

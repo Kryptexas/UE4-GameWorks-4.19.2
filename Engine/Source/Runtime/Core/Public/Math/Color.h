@@ -177,7 +177,7 @@ struct FLinearColor
 		return FMath::Abs(this->R - ColorB.R) < Tolerance && FMath::Abs(this->G - ColorB.G) < Tolerance && FMath::Abs(this->B - ColorB.B) < Tolerance && FMath::Abs(this->A - ColorB.A) < Tolerance;
 	}
 
-	CORE_API FLinearColor CopyWithNewOpacity(float NewOpacicty) const
+	CORE_API FLinearColor CopyWithNewOpacity(float NewOpacicty)
 	{
 		FLinearColor NewCopy = *this;
 		NewCopy.A = NewOpacicty;

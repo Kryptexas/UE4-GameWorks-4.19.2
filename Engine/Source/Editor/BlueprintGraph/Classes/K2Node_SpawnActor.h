@@ -9,6 +9,7 @@ class UK2Node_SpawnActor : public UK2Node
 {
 	GENERATED_UCLASS_BODY()
 
+#if WITH_EDITOR
 	// Begin UEdGraphNode interface.
 	virtual void AllocateDefaultPins() OVERRIDE;
 	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
@@ -27,7 +28,7 @@ class UK2Node_SpawnActor : public UK2Node
 	virtual bool CanPasteHere(const UEdGraph* TargetGraph, const UEdGraphSchema* Schema) const OVERRIDE;
 	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const OVERRIDE;
 	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) OVERRIDE;
-	virtual bool HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput) const OVERRIDE;
+	virtual bool HasExternalBlueprintDependencies() const OVERRIDE;
 	// End UK2Node interface
 
 
@@ -55,4 +56,5 @@ private:
 
 	/** Tooltip text for this node. */
 	FString NodeTooltip;
+#endif
 };

@@ -119,14 +119,14 @@ TSharedRef<SWidget> SKismetLinearExpression::MakeNodeWidget(const UEdGraphNode* 
 			];
 			*/
 	}
-	else if (const UK2Node* AnyNode = Cast<const UK2Node>(Node))
+	else if (auto FuncNode = Cast<const UK2Node_CallFunction>(Node))
 	{
-		const bool bIsCompact = AnyNode->ShouldDrawCompact() && (InputPinCount <= 2);
+		const bool bIsCompact = FuncNode->ShouldDrawCompact() && (InputPinCount <= 2);
 
 		TSharedRef<SWidget> OperationWidget = 
 			SNew(STextBlock)
 			.TextStyle( FEditorStyle::Get(), bIsCompact ? TEXT("KismetExpression.OperatorNode") : TEXT("KismetExpression.FunctionNode") )
-			.Text(AnyNode->GetCompactNodeTitle());
+			.Text(FuncNode->GetCompactNodeTitle());
 
 		if ((InputPinCount == 1) && bIsCompact)
 		{

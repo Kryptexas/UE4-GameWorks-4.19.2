@@ -1805,12 +1805,11 @@ struct FDynamicSpriteEmitterData : public FDynamicSpriteEmitterDataBase
 	    this particle system frame.  It does not include any transient rendering thread data.  Also, for
 		non-simulating 'replay' particle systems, this data may have come straight from disk! */
 	FDynamicSpriteEmitterReplayData Source;
-
-	/** Uniform parameters. Most fields are filled in when updates are sent to the rendering thread, some are per-view! */
-	FParticleSpriteUniformParameters UniformParameters;
 		
+	/** Sprite uniform buffer reference. */
+	FParticleSpriteUniformBufferRef UniformBuffer;
 	/** Per-view sprite uniform buffers. */
-	TArray<FParticleSpriteUniformBufferRef, TInlineAllocator<2> > PerViewUniformBuffers;
+	TArray<FParticleSpriteViewUniformBufferRef, TInlineAllocator<2> > PerViewUniformBuffers;
 };
 
 /** Source data for Mesh emitters */

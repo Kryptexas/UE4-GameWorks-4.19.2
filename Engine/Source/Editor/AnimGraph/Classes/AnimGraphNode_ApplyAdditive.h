@@ -11,6 +11,7 @@ class UAnimGraphNode_ApplyAdditive : public UAnimGraphNode_Base
 	UPROPERTY(EditAnywhere, Category=Settings)
 	FAnimNode_ApplyAdditive Node;
 
+#if WITH_EDITOR
 	// UEdGraphNode interface
 	virtual FString GetTooltip() const OVERRIDE;
 	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
@@ -20,4 +21,5 @@ class UAnimGraphNode_ApplyAdditive : public UAnimGraphNode_Base
 	// UAnimGraphNode_Base interface
 	virtual FString GetNodeCategory() const OVERRIDE;
 	// End of UAnimGraphNode_Base interface
+#endif
 };

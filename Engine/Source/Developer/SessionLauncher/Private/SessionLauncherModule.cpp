@@ -39,7 +39,6 @@ public:
 	{
 		FGlobalTabmanager::Get()->RegisterTabSpawner(SessionLauncherTabName, FOnSpawnTab::CreateRaw(this, &FSessionLauncherModule::SpawnSessionLauncherTab))
 			.SetDisplayName(NSLOCTEXT("FSessionLauncherModule", "LauncherTabTitle", "Game Launcher"))
-			.SetTooltipText(NSLOCTEXT("FSessionLauncherModule", "LauncherTooltipText", "Open the Game Launcher tab."))
 			.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "SessionLauncher.TabIcon"));
 	}
 
@@ -61,7 +60,7 @@ private:
 	 */
 	TSharedRef<SDockTab> SpawnSessionLauncherTab( const FSpawnTabArgs& SpawnTabArgs )
 	{
-		const TSharedRef<SDockTab> DockTab = SNew(SDockTab)
+		const TSharedRef<SDockTab> MajorTab = SNew(SDockTab)
 			.Icon(FEditorStyle::GetBrush("SessionLauncher.TabIcon"))
 			.TabRole(ETabRole::MajorTab);
 
@@ -74,9 +73,9 @@ private:
 			LauncherServicesModule.GetProfileManager()
 		));
 
-		DockTab->SetContent(SNew(SSessionLauncher, DockTab, SpawnTabArgs.GetOwnerWindow(), Model));
+		MajorTab->SetContent(SNew(SSessionLauncher, MajorTab, SpawnTabArgs.GetOwnerWindow(), Model));
 
-		return DockTab;
+		return MajorTab;
 	}
 };
 

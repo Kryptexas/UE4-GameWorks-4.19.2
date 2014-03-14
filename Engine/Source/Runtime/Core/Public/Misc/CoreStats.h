@@ -55,10 +55,10 @@ DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Free calls"),STAT_FreeCalls,STATGROUP_Me
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Realloc calls"),STAT_ReallocCalls,STATGROUP_MemoryChurn, CORE_API);
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Total Allocator calls"),STAT_TotalAllocatorCalls,STATGROUP_MemoryChurn, CORE_API);
 
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Total Render thread idle time"),STAT_RenderingIdleTime,STATGROUP_Threading, CORE_API);
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Rendering thread idle time"),STAT_RenderingIdleTime,STATGROUP_Threading, CORE_API);
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Wait for GPU Query"),STAT_RenderingIdleTime_WaitingForGPUQuery,STATGROUP_Threading, CORE_API);
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Wait for GPU Present"),STAT_RenderingIdleTime_WaitingForGPUPresent,STATGROUP_Threading, CORE_API);
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Other Render Thread Sleep Time"),STAT_RenderingIdleTime_RenderThreadSleepTime,STATGROUP_Threading, CORE_API);
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Wait for Render Commands"),STAT_RenderingIdleTime_WaitingForRenderCommands,STATGROUP_Threading, CORE_API);
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Rendering thread busy time"),STAT_RenderingBusyTime,STATGROUP_Threading, CORE_API);
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Game thread idle time"),STAT_GameIdleTime,STATGROUP_Threading, CORE_API);
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Game thread tick wait time"),STAT_GameTickWaitTime,STATGROUP_Threading, CORE_API);

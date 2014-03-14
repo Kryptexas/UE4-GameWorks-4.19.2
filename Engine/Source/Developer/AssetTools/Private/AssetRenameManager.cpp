@@ -14,7 +14,7 @@
 struct FAssetRenameDataWithReferencers : public FAssetRenameData
 {
 	TArray<FName> ReferencingPackageNames;
-	FText FailureReason;
+	FString FailureReason;
 	bool bCreateRedirector;
 	bool bRenameFailed;
 
@@ -30,7 +30,7 @@ class SRenameFailures : public SCompoundWidget
 public:
 	SLATE_BEGIN_ARGS(SRenameFailures){}
 
-		SLATE_ARGUMENT(TArray<FText>, FailedRenames)
+		SLATE_ARGUMENT(TArray<FString>, FailedRenames)
 
 	SLATE_END_ARGS()
 
@@ -39,7 +39,7 @@ public:
 	{
 		for ( auto RenameIt = InArgs._FailedRenames.CreateConstIterator(); RenameIt; ++RenameIt )
 		{
-			FailedRenames.Add( MakeShareable( new FText(*RenameIt) ) );
+			FailedRenames.Add( MakeShareable( new FString(*RenameIt) ) );
 		}
 
 		ChildSlot
@@ -65,7 +65,7 @@ public:
 					SNew(SBorder)
 					.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
 					[
-						SNew(SListView<TSharedRef<FText>>)
+						SNew(SListView<TSharedPtr<FString>>)
 						.ListItemsSource(&FailedRenames)
 						.SelectionMode(ESelectionMode::None)
 						.OnGenerateRow(this, &SRenameFailures::MakeListViewWidget)
@@ -87,7 +87,7 @@ public:
 	}
 	END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-	static void OpenRenameFailuresDialog(const TArray<FText>& InFailedRenames)
+	static void OpenRenameFailuresDialog(const TArray<FString>& InFailedRenames)
 	{
 		TSharedRef<SWindow> RenameWindow = SNew(SWindow)
 			.Title(LOCTEXT("FailedRenamesDialog", "Failed Renames"))
@@ -111,12 +111,12 @@ public:
 	}
 
 private:
-	TSharedRef<ITableRow> MakeListViewWidget(TSharedRef<FText> Item, const TSharedRef<STableViewBase>& OwnerTable)
+	TSharedRef<ITableRow> MakeListViewWidget(TSharedPtr<FString> Item, const TSharedRef<STableViewBase>& OwnerTable)
 	{
 		return
-			SNew(STableRow< TSharedRef<FText> >, OwnerTable)
+			SNew( STableRow< TSharedPtr<FString> >, OwnerTable )
 			[
-				SNew(STextBlock) .Text( Item.Get() )
+				SNew(STextBlock) .Text( FText::FromString( *Item.Get() ) )
 			];
 	}
 
@@ -134,7 +134,7 @@ private:
 	}
 
 private:
-	TArray< TSharedRef<FText> > FailedRenames;
+	TArray< TSharedPtr<FString> > FailedRenames;
 };
 
 
@@ -367,12 +367,12 @@ void FAssetRenameManager::LoadReferencingPackages(TArray<FAssetRenameDataWithRef
 				if ( SourceControlState->IsCheckedOutOther() )
 				{
 					RenameData.bRenameFailed = true;
-					RenameData.FailureReason = LOCTEXT("RenameFailedCheckedOutByOther", "Checked out by another user.");
+					RenameData.FailureReason = LOCTEXT("RenameFailedCheckedOutByOther", "Checked out by another user.").ToString();
 				}
 				else if ( !SourceControlState->IsCurrent() )
 				{
 					RenameData.bRenameFailed = true;
-					RenameData.FailureReason = LOCTEXT("RenameFailedNotCurrent", "Out of date.");
+					RenameData.FailureReason = LOCTEXT("RenameFailedNotCurrent", "Out of date.").ToString();
 				}
 
 				continue;
@@ -573,7 +573,7 @@ void FAssetRenameManager::PerformAssetRename(TArray<FAssetRenameDataWithReferenc
 
 			// Mark the rename as a failure to report it later
 			RenameData.bRenameFailed = true;
-			RenameData.FailureReason = ErrorMessage;
+			RenameData.FailureReason = ErrorMessage.ToString();
 		}
 	}
 
@@ -615,7 +615,7 @@ void FAssetRenameManager::SaveReferencingPackages(const TArray<UPackage*>& Refer
 
 void FAssetRenameManager::ReportFailures(const TArray<FAssetRenameDataWithReferencers>& AssetsToRename) const
 {
-	TArray<FText> FailedRenames;
+	TArray<FString> FailedRenames;
 	for ( auto RenameIt = AssetsToRename.CreateConstIterator(); RenameIt; ++RenameIt )
 	{
 		const FAssetRenameDataWithReferencers& RenameData = *RenameIt;
@@ -624,15 +624,11 @@ void FAssetRenameManager::ReportFailures(const TArray<FAssetRenameDataWithRefere
 			UObject* Asset = RenameData.Asset.Get();
 			if ( Asset )
 			{
-				FFormatNamedArguments Args;
-				Args.Add(TEXT("FailureReason"), RenameData.FailureReason);
-				Args.Add(TEXT("AssetName"), FText::FromString(Asset->GetOutermost()->GetName()));
-
-				FailedRenames.Add(FText::Format(LOCTEXT("AssetRenameFailure", "{AssetName} - {FailureReason}"), Args));
+				FailedRenames.Add(Asset->GetOutermost()->GetName() + TEXT(" - ") + RenameData.FailureReason);
 			}
 			else
 			{
-				FailedRenames.Add(LOCTEXT("InvalidAssetText", "Invalid Asset"));
+				FailedRenames.Add(LOCTEXT("InvalidAssetText", "Invalid Asset").ToString());
 			}
 		}
 	}

@@ -1156,18 +1156,19 @@ void SNewProjectWizard::CreateAndOpenProject( )
 			// Prevent periodic validity checks. This is to prevent a brief error message about the project already existing while you are exiting.
 			bPreventPeriodicValidityChecksUntilNextChange = true;
 
+			/** Only prompt for project switching if we are already in a project */
+			const bool bPromptForConfirmation = FApp::HasGameName();
+
 			const bool bCodeAdded = GetSelectedTemplateItem()->bGenerateCode;
 			if ( bCodeAdded )
 			{
 				// In non-rocket, the engine executable may need to be built in order to build the game binaries,
 				// just open the code editing ide now instead of automatically building for them since it is not safe to do so.
-				const bool bPromptForConfirmation = FApp::HasGameName(); /** Only prompt for project switching if we are already in a project */
 				OpenCodeIDE( ProjectFile, bPromptForConfirmation );
 			}
 			else
 			{
 				// Successfully created a content only project. Now open it.
-				const bool bPromptForConfirmation = false;
 				OpenProject( ProjectFile, bPromptForConfirmation );
 			}
 		}

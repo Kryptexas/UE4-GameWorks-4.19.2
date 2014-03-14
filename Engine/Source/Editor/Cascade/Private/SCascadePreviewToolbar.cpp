@@ -167,7 +167,7 @@ TSharedRef<SWidget> SCascadePreviewViewportToolBar::GenerateTimeMenu() const
 
 	TimeMenuBuilder.BeginSection("CascadeTimeMenu");
 	{
-		TimeMenuBuilder.AddMenuEntry(FCascadeCommands::Get().CascadePlay);
+		TimeMenuBuilder.AddMenuEntry(FCascadeCommands::Get().Play);
 	}
 	TimeMenuBuilder.EndSection();
 

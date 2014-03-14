@@ -47,7 +47,7 @@ struct FGenericPlatformString
 	 * @return The name of the CharType as a TCHAR string.
 	 */
 	template <typename Encoding>
-	static const TCHAR* GetEncodingTypeName();
+	static const TCHAR* GetEncodingName();
 
 
 	/**

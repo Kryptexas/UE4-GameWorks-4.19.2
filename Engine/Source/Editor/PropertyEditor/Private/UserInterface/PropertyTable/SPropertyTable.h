@@ -643,7 +643,7 @@ private:
 		if ( BreadcrumbTrail.IsValid() )
 		{
 			BreadcrumbTrail->ClearCrumbs( false );
-			BreadcrumbTrail->PushCrumb( LOCTEXT("BreadcrumbRootDisplayName", "Root"), -1 );
+			BreadcrumbTrail->PushCrumb( LOCTEXT("BreadcrumbRootDisplayName", "Root").ToString(), -1 );
 
 			const TSharedPtr< FPropertyPath > RootPath = Table->GetRootPath();
 			if ( RootPath.IsValid() )
@@ -654,13 +654,11 @@ private:
 
 					if ( PropInfo.ArrayIndex != INDEX_NONE )
 					{
-						FFormatNamedArguments Args;
-						Args.Add(TEXT("ArrayIndex"), PropInfo.ArrayIndex);
-						BreadcrumbTrail->PushCrumb(FText::Format(LOCTEXT("ArrayIndexWrapper", "[{ArrayIndex}]"), Args), Index);
+						BreadcrumbTrail->PushCrumb( FString::Printf( TEXT( "[%d]" ), PropInfo.ArrayIndex ), Index );
 					}
 					else
 					{
-						BreadcrumbTrail->PushCrumb( FText::FromName(PropInfo.Property->GetFName()), Index );
+						BreadcrumbTrail->PushCrumb( PropInfo.Property->GetFName().ToString(), Index );
 					}
 				}
 			}

@@ -82,7 +82,7 @@ public:
 		void SettingsChanged( UObject* ChangedObject );
 		void SyncSettings();
 
-		const FVector2D Icon7x16;
+		const FVector2D Icon5x16;
 		const FVector2D Icon8x4;
 		const FVector2D Icon8x8;
 		const FVector2D Icon10x10;
@@ -119,7 +119,6 @@ public:
 		const FSlateColor SelectionColor_Pressed;
 
 		FTextBlockStyle NormalText;
-		FEditableTextBoxStyle NormalEditableTextBoxStyle;
 		FTableRowStyle NormalTableRowStyle;
 		FButtonStyle Button;
 		FButtonStyle HoverHintOnly;

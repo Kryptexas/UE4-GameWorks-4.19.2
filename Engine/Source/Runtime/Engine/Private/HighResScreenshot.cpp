@@ -1,7 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #include "EnginePrivate.h"
 #include "HighResScreenshot.h"
-#include "Slate/SceneViewport.h"
 
 FHighResScreenshotConfig& GetHighResScreenshotConfig()
 {
@@ -17,16 +16,19 @@ FHighResScreenshotConfig::FHighResScreenshotConfig()
 	, ResolutionMultiplierScale(0.0f)
 	, bMaskEnabled(false)
 	, bDumpBufferVisualizationTargets(false)
+	, TargetViewport(NULL)
+
 {
-	ChangeViewport(TWeakPtr<FSceneViewport>());
+	ChangeViewport(NULL);
 }
 
-void FHighResScreenshotConfig::ChangeViewport(TWeakPtr<FSceneViewport> InViewport)
+void FHighResScreenshotConfig::ChangeViewport(FViewport* InViewport)
 {
-	if (FSceneViewport* Viewport = TargetViewport.Pin().Get())
+	if (TargetViewport != NULL)
 	{
 		// Force an invalidate on the old viewport to make sure we clear away the capture region effect
-		Viewport->Invalidate();
+		TargetViewport->Invalidate();
+		TargetViewport = NULL;
 	}
 
 	UnscaledCaptureRegion = FIntRect(0, 0, -1, -1);

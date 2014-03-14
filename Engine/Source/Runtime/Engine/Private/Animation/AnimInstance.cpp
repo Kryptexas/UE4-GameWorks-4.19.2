@@ -516,32 +516,31 @@ void UAnimInstance::BlendRotationOffset(const struct FA2Pose& BasePose/* local s
 
 	FA2Pose BlendedPose;
 	BlendedPose.Bones.AddUninitialized(Pose.Bones.Num());
+	FA2Pose MeshBasePose;
+	MeshBasePose.Bones.AddUninitialized(Pose.Bones.Num());
+
+	// note that RotationOffsetPose has MeshSpaceRotation additive but everything else (translation/scale) is local space
+	// First calculate Mesh space for Base Pose
+	const TArray<FBoneIndexType> & RequiredBoneIndices = RequiredBones.GetBoneIndicesArray();
+
+	for (int32 I=0; I<RequiredBoneIndices.Num(); ++I)
+	{
+		int32 BoneIndex = RequiredBoneIndices[I];
+		int32 ParentIndex = RequiredBones.GetParentBoneIndex(BoneIndex);
+		if ( ParentIndex != INDEX_NONE )
+		{
+			MeshBasePose.Bones[BoneIndex] = BasePose.Bones[BoneIndex] * MeshBasePose.Bones[ParentIndex];
+		}
+		else
+		{
+			MeshBasePose.Bones[BoneIndex] = BasePose.Bones[BoneIndex];
+		}
+	}
 
 	// now Pose has Mesh based BasePose
 	// apply additive
 	if (Alpha > ZERO_ANIMWEIGHT_THRESH)
 	{
-		FA2Pose MeshBasePose;
-		MeshBasePose.Bones.AddUninitialized(Pose.Bones.Num());
-
-		// note that RotationOffsetPose has MeshSpaceRotation additive but everything else (translation/scale) is local space
-		// First calculate Mesh space for Base Pose
-		const TArray<FBoneIndexType> & RequiredBoneIndices = RequiredBones.GetBoneIndicesArray();
-
-		for (int32 I=0; I<RequiredBoneIndices.Num(); ++I)
-		{
-			int32 BoneIndex = RequiredBoneIndices[I];
-			int32 ParentIndex = RequiredBones.GetParentBoneIndex(BoneIndex);
-			if ( ParentIndex != INDEX_NONE )
-			{
-				MeshBasePose.Bones[BoneIndex] = BasePose.Bones[BoneIndex] * MeshBasePose.Bones[ParentIndex];
-			}
-			else
-			{
-				MeshBasePose.Bones[BoneIndex] = BasePose.Bones[BoneIndex];
-			}
-		}	
-		
 		const ScalarRegister VBlendWeight(Alpha);
 		for (int32 I=0; I<RequiredBoneIndices.Num(); ++I)
 		{
@@ -560,25 +559,25 @@ void UAnimInstance::BlendRotationOffset(const struct FA2Pose& BasePose/* local s
 
 		// Ensure that all of the resulting rotations are normalized
 		FAnimationRuntime::NormalizeRotations(RequiredBones, BlendedPose.Bones);
-
-		// now convert back to Local
-		for(int32 I=0; I<RequiredBoneIndices.Num(); ++I)
-		{
-			int32 BoneIndex = RequiredBoneIndices[I];
-			int32 ParentIndex = RequiredBones.GetParentBoneIndex(BoneIndex);
-
-			Pose.Bones[BoneIndex] = BlendedPose.Bones[BoneIndex];
-			if(ParentIndex != INDEX_NONE)
-			{
-				// convert to local space first
-				FQuat Rotation = BlendedPose.Bones[ParentIndex].GetRotation().Inverse() * BlendedPose.Bones[BoneIndex].GetRotation();
-				Pose.Bones[BoneIndex].SetRotation(Rotation);
-			}
-		}
 	}
 	else
 	{
 		BlendedPose = BasePose;
+	}
+
+	// now convert back to Local
+	for (int32 I=0; I<RequiredBoneIndices.Num(); ++I)
+	{
+		int32 BoneIndex = RequiredBoneIndices[I];
+		int32 ParentIndex = RequiredBones.GetParentBoneIndex(BoneIndex);
+
+		Pose.Bones[BoneIndex] = BlendedPose.Bones[BoneIndex];
+		if ( ParentIndex != INDEX_NONE )
+		{
+			// convert to local space first
+			FQuat Rotation = BlendedPose.Bones[ParentIndex].GetRotation().Inverse() * BlendedPose.Bones[BoneIndex].GetRotation();
+			Pose.Bones[BoneIndex].SetRotation(Rotation);
+		}
 	}
 }
 
@@ -656,9 +655,7 @@ void UAnimInstance::AddAnimNotifies(const TArray<const FAnimNotifyEvent*>& NewNo
 		// only add if it is over TriggerWeightThreshold
 		if ((*Iter)->TriggerWeightThreshold <= InstanceWeight)
 		{
-			// Only add unique AnimNotifyState instances just once. We can get multiple triggers if looping over an animation.
-			// It is the same state, so just report it once.
-			(*Iter)->NotifyStateClass ? AnimNotifies.AddUnique(*Iter) : AnimNotifies.Add(*Iter);
+			AnimNotifies.AddUnique(*Iter);
 		}
 	}
 }

@@ -19,7 +19,6 @@ FCurveEditorSharedData::FCurveEditorSharedData(UInterpCurveEdSetup* InEdSetup)
 	LabelContentBoxHeight = 0;
 
 	RightClickCurveIndex = INDEX_NONE;
-	RightClickCurveSubIndex = INDEX_NONE;
 
 	EdMode = CEM_Pan;
 

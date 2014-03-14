@@ -1323,7 +1323,7 @@ void CreateConsoleVariables()
 		0,
 		TEXT("Allows to freeze time based effects in order to provide more deterministic render profiling.\n")
 		TEXT(" 0: off\n")
-		TEXT(" 1: on (Note: this also disables occlusion queries)"),
+		TEXT(" 1: on"),
 		ECVF_Cheat);
 
 	IConsoleManager::Get().RegisterConsoleVariable(TEXT("FreezeAtPosition"),
@@ -1633,6 +1633,11 @@ void CreateConsoleVariables()
 		TEXT("A contact with a relative velocity below this will not bounce. Default: 200"),
 		ECVF_Default);
 
+	IConsoleManager::Get().RegisterConsoleVariable(TEXT("p.EnableAsyncScene"),
+		1,
+		TEXT("If enabled, an additional async scene is created."),
+		ECVF_Default);
+
 	// ---------------------------------------
 	// APEX
 
@@ -1687,7 +1692,7 @@ void CreateConsoleVariables()
 	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.PostProcessAAQuality"),
 		4,
 		TEXT("Defines the postprocess anti aliasing method which allows to adjust for quality or performance.\n")
-		TEXT(" 0:off, 1:very low (faster FXAA), 2:low (FXAA), 3:medium (faster TemporalAA), 4:high (default TemporalAA), 5:very high, 6:max"),
+		TEXT(" 0:off, 1:very low, 2:low, 3:medium, 4:high (default), 4:very high, 6:max"),
 		ECVF_Scalability | ECVF_RenderThreadSafe);
 
 	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.MotionBlurSoftEdgeSize"),
@@ -2057,14 +2062,6 @@ void CreateConsoleVariables()
 		TEXT("0: Keep buffers(default)\n")
 		TEXT("1: Free buffers"),
 		ECVF_RenderThreadSafe );
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.PreventInvalidMaterialConnections"),
-		1,
-		TEXT("Controls whether users can make connections in the material editor if the system\n")
-		TEXT("determines that they may cause compile errors\n")
-		TEXT("0: Allow all connections\n")
-		TEXT("1: Prevent invalid connections"),
-		ECVF_Cheat );
 
 	// testing code
 	{

@@ -7,7 +7,7 @@
 
 #pragma once
 
-/** Wrapper around Linux pid_t. */
+/** Dummy process handle for platforms that use generic implementation. */
 struct FProcHandle : public TProcHandle<pid_t, -1>
 {
 	typedef TProcHandle<pid_t, -1> Parent;
@@ -93,37 +93,9 @@ protected:	// the below is not a public API!
 	int32	ReturnCode;
 };
 
-/** Wrapper around Linux file descriptors */
-struct FPipeHandle
-{
-	FPipeHandle(int Fd)
-		:	PipeDesc(Fd)
-	{
-	}
-
-	~FPipeHandle();
-
-	/**
-	 * Reads until EOF.
-	 */
-	FString Read();
-
-	/**
-	 * Returns raw file handle.
-	 */
-	int GetHandle() const
-	{
-		return PipeDesc;
-	}
-
-protected:
-
-	int	PipeDesc;
-};
-
 /**
- * Linux implementation of the Process OS functions
- */
+ * Android implementation of the Process OS functions
+ **/
 struct CORE_API FLinuxPlatformProcess : public FGenericPlatformProcess
 {
 	static const TCHAR* ComputerName();

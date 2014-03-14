@@ -3,27 +3,48 @@
 #pragma once
 #include "BTTask_BlueprintBase.generated.h"
 
+/**
+ *  Blueprint implementable task
+ *
+ *  Properties defined in blueprint class marked as "Use Behavior Tree Instance Memory"
+ *  will be saved in context's memory, so they can be safely used from Receive* events.
+ */
+
 UCLASS(Abstract, Blueprintable)
 class ENGINE_API UBTTask_BlueprintBase : public UBTTaskNode
 {
 	GENERATED_UCLASS_BODY()
 
+	/** initialize data about blueprint defined properties */
+	void DelayedInitialize();
+
 	/** setup node name */
 	virtual void PostInitProperties() OVERRIDE;
 
-	virtual EBTNodeResult::Type ExecuteTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) OVERRIDE;
-	virtual EBTNodeResult::Type AbortTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) OVERRIDE;
+	virtual EBTNodeResult::Type ExecuteTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const OVERRIDE;
+	virtual EBTNodeResult::Type AbortTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const OVERRIDE;
 
+	virtual uint16 GetInstanceMemorySize() const OVERRIDE;
 	virtual FString GetStaticDescription() const OVERRIDE;
 	virtual void DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const OVERRIDE;
+	virtual class UBehaviorTreeComponent* GetCurrentCallOwner() const OVERRIDE { return CurrentCallOwner; }
+	virtual void StartUsingExternalEvent(AActor* OwningActor) OVERRIDE;
+	virtual void StopUsingExternalEvent() OVERRIDE;
 
 protected:
+
+	/** temporary variable for Receive* event chain */
+	UPROPERTY(transient)
+	mutable class UBehaviorTreeComponent* CurrentCallOwner;
 
 	/** temporary variable for ReceiveExecute(Abort)-FinishExecute(Abort) chain */
 	mutable TEnumAsByte<EBTNodeResult::Type> CurrentCallResult;
 
 	/** properties that should be copied */
 	TArray<UProperty*> PropertyData;
+
+	/** cached memory size (PropertyData is accessible AFTER a tick, so it could read meta data) */
+	int32 PropertyMemorySize;
 
 	/** show detailed information about properties */
 	UPROPERTY(EditInstanceOnly, Category=Description)
@@ -55,23 +76,29 @@ protected:
 	virtual void ReceiveTick(AActor* OwnerActor, float DeltaSeconds);
 
 	/** finishes task execution with Success or Fail result */
-	UFUNCTION(BlueprintCallable, Category="AI|BehaviorTree")
-	void FinishExecute(bool bSuccess);
+	UFUNCTION(BlueprintCallable, Category="AI|BehaviorTree", Meta=(HidePin="NodeOwner", DefaultToSelf="NodeOwner"))
+	static void FinishExecute(UBTTask_BlueprintBase* NodeOwner, bool bSuccess);
 
 	/** aborts task execution */
-	UFUNCTION(BlueprintCallable, Category="AI|BehaviorTree")
-	void FinishAbort();
+	UFUNCTION(BlueprintCallable, Category="AI|BehaviorTree", Meta=(HidePin="NodeOwner", DefaultToSelf="NodeOwner"))
+	static void FinishAbort(UBTTask_BlueprintBase* NodeOwner);
 
 	/** task execution will be finished (with result \'Success\') after receiving specified message */
-	UFUNCTION(BlueprintCallable, Category="AI|BehaviorTree")
-	void SetFinishOnMessage(FName MessageName);
+	UFUNCTION(BlueprintCallable, Category="AI|BehaviorTree", Meta=(HidePin="NodeOwner", DefaultToSelf="NodeOwner"))
+	static void SetFinishOnMessage(UBTTask_BlueprintBase* NodeOwner, FName MessageName);
 
 	/** task execution will be finished (with result \'Success\') after receiving specified message with indicated ID */
-	UFUNCTION(BlueprintCallable, Category="AI|BehaviorTree")
-	void SetFinishOnMessageWithId(FName MessageName, int32 RequestID = -1);
+	UFUNCTION(BlueprintCallable, Category="AI|BehaviorTree", Meta=(HidePin="NodeOwner", DefaultToSelf="NodeOwner"))
+	static void SetFinishOnMessageWithId(UBTTask_BlueprintBase* NodeOwner, FName MessageName, int32 RequestID = -1);
+
+	/** copy all property data to context memory */
+	void CopyPropertiesToMemory(uint8* NodeMemory) const;
+
+	/** copy all property data from context memory */
+	void CopyPropertiesFromMemory(const uint8* NodeMemory);
 
 	/** ticks this task */
-	virtual void TickTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) OVERRIDE;
+	virtual void TickTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) const OVERRIDE;
 
 	friend class FBehaviorBlueprintDetails;
 };

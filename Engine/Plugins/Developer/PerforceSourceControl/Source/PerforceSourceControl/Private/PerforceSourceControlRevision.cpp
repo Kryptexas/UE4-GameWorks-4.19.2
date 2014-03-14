@@ -20,7 +20,7 @@ bool FPerforceSourceControlRevision::Get( FString& InOutFilename ) const
 		FPerforceConnection& Connection = ScopedConnection.GetConnection();
 		FP4RecordSet Records;
 		bool bConnectionDropped;
-		TArray<FText> ErrorMessages;
+		TArray<FString> ErrorMessages;
 		TArray<FString> Parameters;
 
 		// Suppress the one-line file header normally added by Perforce.
@@ -53,7 +53,7 @@ bool FPerforceSourceControlRevision::Get( FString& InOutFilename ) const
 		{
 			for(auto Iter(ErrorMessages.CreateConstIterator()); Iter; Iter++)
 			{
-				FMessageLog("SourceControl").Error(*Iter);
+				FMessageLog("SourceControl").Error(FText::FromString(*Iter));
 			}
 		}
 	}
@@ -71,7 +71,7 @@ static FString GetUserFromChangelist(int32 ChangeNumber, FPerforceConnection& In
 {
 	FP4RecordSet Records;
 	bool bConnectionDropped;
-	TArray<FText> ErrorMessages;
+	TArray<FString> ErrorMessages;
 	TArray<FString> Parameters;
 
 	// Only describe the basic changelist information, suppress output of the file diffs
@@ -89,7 +89,7 @@ static FString GetUserFromChangelist(int32 ChangeNumber, FPerforceConnection& In
 	{
 		for(auto Iter(ErrorMessages.CreateConstIterator()); Iter; Iter++)
 		{
-			FMessageLog("SourceControl").Error(*Iter);
+			FMessageLog("SourceControl").Error(FText::FromString(*Iter));
 		}
 	}
 
@@ -142,7 +142,7 @@ bool FPerforceSourceControlRevision::GetAnnotated( TArray<FAnnotationLine>& OutL
 		FPerforceConnection& Connection = ScopedConnection.GetConnection();
 		FP4RecordSet Records;
 		bool bConnectionDropped;
-		TArray<FText> ErrorMessages;
+		TArray<FString> ErrorMessages;
 		TArray<FString> Parameters;
 
 		Parameters.Add(TEXT("-q"));	// Suppress the one-line file header normally added by Perforce.
@@ -161,7 +161,7 @@ bool FPerforceSourceControlRevision::GetAnnotated( TArray<FAnnotationLine>& OutL
 		{
 			for(auto Iter(ErrorMessages.CreateConstIterator()); Iter; Iter++)
 			{
-				FMessageLog("SourceControl").Error(*Iter);
+				FMessageLog("SourceControl").Error(FText::FromString(*Iter));
 			}
 		}
 	}

@@ -152,11 +152,11 @@ struct ENGINE_API FConstraintInstance
 	float LinearLimitDamping;
 
 	/** Defines whether the joint is breakable or not. */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Linear)
+	UPROPERTY(/*EditAnywhere, AdvancedDisplay, Category=Linear*/)
 	uint32 bLinearBreakable:1;
 
 	/** Force needed to break the joint. */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Linear, meta=(editcondition = "bLinearBreakable", ClampMin = "0.0"))
+	UPROPERTY(/*EditAnywhere, AdvancedDisplay, Category=Linear, meta=(editcondition = "bLinearBreakable", ClampMin = "0.0")*/)
 	float LinearBreakThreshold;
 
 	// ANGULAR DOF
@@ -223,11 +223,11 @@ struct ENGINE_API FConstraintInstance
 	float TwistLimitDamping;
 	
 	/** Whether it is possible to break the joint with angular force. */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Angular)
+	UPROPERTY(/*EditAnywhere, AdvancedDisplay, Category=Angular*/)
 	uint32 bAngularBreakable:1;
 
 	/** Angular force needed to break the joint. */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Angular, meta=(editcondition = "bAngularBreakable", ClampMin = "0.0"))
+	UPROPERTY(/*EditAnywhere, AdvancedDisplay, Category=Angular, meta=(editcondition = "bAngularBreakable", ClampMin = "0.0")*/)
 	float AngularBreakThreshold;
 
 	/** Enables/Disables linear drive along the x axis. */

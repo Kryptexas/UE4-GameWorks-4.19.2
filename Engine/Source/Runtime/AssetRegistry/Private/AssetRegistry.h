@@ -24,7 +24,6 @@ public:
 	virtual bool GetDependencies(FName PackageName, TArray<FName>& OutDependencies) const OVERRIDE;
 	virtual bool GetReferencers(FName PackageName, TArray<FName>& OutReferencers) const OVERRIDE;
 	virtual bool GetAncestorClassNames(FName ClassName, TArray<FName>& OutAncestorClassNames) const OVERRIDE;
-	virtual void GetDerivedClassNames(const TArray<FName>& ClassNames, const TSet<FName>& ExcludedClassNames, TSet<FName>& OutDerivedClassNames) const OVERRIDE;
 	virtual void GetAllCachedPaths(TArray<FString>& OutPathList) const OVERRIDE;
 	virtual void GetSubPaths(const FString& InBasePath, TArray<FString>& OutPathList, bool bInRecurse) const OVERRIDE;
 	virtual void RunAssetsThroughFilter (TArray<FAssetData>& AssetDataList, const FARFilter& Filter) const OVERRIDE;
@@ -35,7 +34,7 @@ public:
 	virtual bool AddPath(const FString& PathToAdd) OVERRIDE;
 	virtual bool RemovePath(const FString& PathToRemove) OVERRIDE;
 	virtual void SearchAllAssets(bool bSynchronousSearch) OVERRIDE;
-	virtual void ScanPathsSynchronous(const TArray<FString>& InPaths, bool bForceRescan = false) OVERRIDE;
+	virtual void ScanPathsSynchronous(const TArray<FString>& InPaths) OVERRIDE;
 	virtual void Serialize(FArchive& Ar) OVERRIDE;
 	virtual void SaveRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data, int32 AssetCount) OVERRIDE;
 
@@ -85,20 +84,17 @@ private:
 	/** Called every tick to when data is retrieved by the background path search. If TickStartTime is < 0, the entire list of gathered assets will be cached. Also used in sychronous searches */
 	void PathDataGathered(const double TickStartTime, TArray<FString>& PathResults);
 
-	/** Called every tick to when data is retrieved by the background dependency search */
+	/** Called every tick to when data is retrieved by the background depenency search */
 	void DependencyDataGathered(const double TickStartTime, TArray<FPackageDependencyData>& DependsResults);
 
 	/** Creates a node in the CachedDependsNodes map or finds the existing node and returns it */
 	FDependsNode* CreateOrFindDependsNode(FName ObjectName);
 
-	/** Removes the depends node and updates the dependencies to no longer contain it as as a referencer. */
-	bool RemoveDependsNode( FName PackageName );
-
 	/** Adds an asset to the empty package list which contains packages that have no assets left in them */
 	void AddEmptyPackage(FName PackageName);
 
 	/** Removes an asset from the empty package list because it is no longer empty */
-	bool RemoveEmptyPackage(FName PackageName);
+	void RemoveEmptyPackage(FName PackageName);
 
 	/** Adds a path to the cached paths tree. Returns true if the path was added to the tree, as opposed to already existing in the tree */
 	bool AddAssetPath(const FString& PathToAdd);
@@ -231,7 +227,4 @@ private:
 
 	/** When loading a registry from disk, we can allocate all the FAssetData objects in one chunk, to save on 10s of thousands of heap allocations */
 	FAssetData* PreallocatedAssetDataBuffer;
-
-	/** A set used to ignore repeated requests to synchronously scan the same folder multiple times */
-	TSet<FString> SynchronouslyScannedPaths;
 };

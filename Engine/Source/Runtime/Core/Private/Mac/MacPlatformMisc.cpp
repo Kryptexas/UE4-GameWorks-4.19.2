@@ -1040,14 +1040,6 @@ FString FMacPlatformMisc::GetCPUVendor()
 	return ANSI_TO_TCHAR(VendorResult.Buffer);
 }
 
-uint32 FMacPlatformMisc::GetCPUInfo()
-{
-	uint32 Args[4];
-	asm( "cpuid" : "=a" (Args[0]), "=b" (Args[1]), "=c" (Args[2]), "=d" (Args[3]) : "a" (1));
-
-	return Args[0];
-}
-
 int32 FMacPlatformMisc::ConvertSlateYPositionToCocoa(int32 YPosition)
 {
 	NSScreen* PrimaryScreen = [[NSScreen screens] objectAtIndex: 0];

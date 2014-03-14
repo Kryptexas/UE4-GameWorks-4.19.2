@@ -313,7 +313,7 @@ public:
 	/** Builds the slate widget for the data column */
 	virtual TSharedRef< SWidget > GenerateWidgetForDataColumn();
 
-	/** Return the name of the asset */
+	/** Return the name of the socket */
 	virtual FName GetRowItemName() const OVERRIDE {return FName( *Asset->GetName() ) ;}
 
 	/** Return the name used to attach to this item (in assets case return the item we are attached to */
@@ -404,10 +404,12 @@ public:
 	/** Set Bone Translation Retargeting Mode for bone selection, and their children. */
 	void SetBoneTranslationRetargetingModeRecursive(EBoneTranslationRetargetingMode::Type NewRetargetingMode);
 
+#if WITH_SIMPLYGON
 	/** Remove the selected bones from LOD of LODIndex when using simplygon **/
 	void RemoveFromLOD(int32 LODIndex);
 	/** Add the selected bones to LOD of LODIndex when using simplygon **/
 	void AddToLOD(int32 LODIndex);
+#endif
 
 private:
 	/** Binds the commands in FSkeletonTreeCommands to functions in this class */
@@ -431,9 +433,6 @@ private:
 	/** Function to copy selected bone name to the clipboard */
 	void OnCopyBoneNames();
 
-	/** Function to reset the transforms of selected bones */
-	void OnResetBoneTransforms();
-
 	/** Function to copy selected sockets to the clipboard */
 	void OnCopySockets() const;
 
@@ -451,6 +450,9 @@ private:
 
 	/** Function to start renaming a socket */
 	void OnRenameSocket();
+
+	/** Function to delete a socket */
+	void OnDeleteSocket();
 
 	/** Function to customize a socket - this essentially copies a socket from the skeleton to the mesh */
 	void OnCustomizeSocket();
@@ -527,11 +529,11 @@ private:
 	/** Function to delete all the selected sockets/assets */
 	void OnDeleteSelectedRows();
 
-	/** Function to remove attached assets from the skeleton/mesh */
-	void DeleteAttachedAssets( TArray<TSharedPtr<FDisplayedAttachedAssetInfo>> InDisplayedAttachedAssetInfos );
+	/** Function to delete a single asset from the tree */
+	void DeleteSingleAttachedAsset( FDisplayedAttachedAssetInfo* InDisplayedAttachedAssetInfo );
 
-	/** Function to remove sockets from the skeleton/mesh */
-	void DeleteSockets( TArray<TSharedPtr<FDisplayedSocketInfo>> InDisplayedSocketInfos );
+	/** Function to delete a single socket from the tree */
+	void DeleteSingleSocket( FDisplayedSocketInfo* InDisplayedSocketInfo );
 
 	/** Add attached assets from a given TArray of them */
 	void AddAttachedAssets( const FPreviewAssetAttachContainer& AttachedObjects );
@@ -539,8 +541,10 @@ private:
 	/** Deletes a set of attached objects from a FPreviewAssetAttachContainer and notifies Persona*/
 	void DeleteAttachedObjects( FPreviewAssetAttachContainer& AttachedAssets );
 
+#if WITH_SIMPLYGON
 	/** Submenu creator handler for the given skeleton */
 	static void CreateMenuForBoneReduction(FMenuBuilder& MenuBuilder, SSkeletonTree * Widget, USkeleton * Skeleton, bool bAdd);
+#endif // #if WITH_SIMPLYGON
 
 private:
 	/** Pointer back to the kismet 2 tool that owns us */

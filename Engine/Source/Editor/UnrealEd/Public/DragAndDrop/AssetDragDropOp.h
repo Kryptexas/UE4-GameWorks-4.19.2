@@ -5,9 +5,8 @@
 #include "Runtime/AssetRegistry/Public/AssetData.h"
 #include "AssetThumbnail.h"
 #include "ClassIconFinder.h"
-#include "DecoratedDragDropOp.h"
 
-class FAssetDragDropOp : public FDecoratedDragDropOp
+class FAssetDragDropOp : public FDragDropOperation
 {
 public:
 	static FString GetTypeId() {static FString Type = TEXT("FAssetDragDropOp"); return Type;}
@@ -20,6 +19,12 @@ public:
 
 	/** Handle to the thumbnail resource */
 	TSharedPtr<FAssetThumbnail> AssetThumbnail;
+	
+	/** Optional additional tooltip text */
+	FString TooltipText;
+
+	/** Optional additional icon to show next to tooltip */
+	const FSlateBrush* TooltipIcon;
 
 	/** The actor factory to use if converting this asset to an actor */
 	TWeakObjectPtr< UActorFactory > ActorFactory;
@@ -39,6 +44,7 @@ public:
 		Operation->MouseCursor = EMouseCursor::GrabHandClosed;
 
 		Operation->ThumbnailSize = 64;
+		Operation->TooltipIcon = NULL;
 
 		Operation->AssetData = InAssetData;
 		Operation->ActorFactory = ActorFactory;
@@ -138,7 +144,7 @@ public:
 				.VAlign(VAlign_Top)
 				[
 					SNew(SBox)
-					.Visibility(this, &FAssetDragDropOp::GetTooltipVisibility)
+					.Visibility_Raw(this, &FAssetDragDropOp::GetTooltipVisibility)
 					.Content()
 					[
 						SNew(SHorizontalBox)
@@ -148,7 +154,7 @@ public:
 						.Padding(3.0f)
 						[
 							SNew(SImage) 
-							.Image(this, &FAssetDragDropOp::GetIcon)
+							.Image_Raw(this, &FAssetDragDropOp::GetTooltipIcon)
 						]
 
 						+SHorizontalBox::Slot()
@@ -157,7 +163,7 @@ public:
 						.VAlign(VAlign_Center)
 						[
 							SNew(STextBlock) 
-							.Text(this, &FAssetDragDropOp::GetHoverText)
+							.Text_Raw(this, &FAssetDragDropOp::GetTooltipText)
 						]
 					]
 				]
@@ -181,9 +187,34 @@ public:
 		}
 	}
 
+	/** Allows you to specify an additional tooltip when this asset is hovered over something */
+	void SetTooltip(const FString& InTooltipText, const FSlateBrush* InTooltipIcon)
+	{
+		TooltipText = InTooltipText;
+		TooltipIcon = InTooltipIcon;
+	}
+
+	/** Clear any tooltip assigned to this drag operation */
+	void ClearTooltip()
+	{
+		TooltipText = TEXT("");
+		TooltipIcon = NULL;
+	}
+
+	FString GetTooltipText() const
+	{
+		return TooltipText;
+	}
+
+	
+	const FSlateBrush* GetTooltipIcon() const
+	{
+		return TooltipIcon;
+	}
+
 	EVisibility GetTooltipVisibility() const
 	{
-		if(CurrentIconBrush != NULL && CurrentHoverText.Len() > 0)
+		if(TooltipIcon != NULL && TooltipText.Len() > 0)
 		{
 			return EVisibility::Visible;
 		}

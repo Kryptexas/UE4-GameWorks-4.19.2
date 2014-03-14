@@ -117,12 +117,17 @@ void UEnvQueryGenerator_PathingGrid::FindNodeRefsInPathDistance(const class ARec
 		}
 	}
 #else
-	TSharedPtr<FNavigationQueryFilter> NavFilterInstance = NavigationFilter != NULL 
-		? UNavigationQueryFilter::GetQueryFilter<URecastFilter_UseDefaultArea>(NavMesh)->GetCopy()
-		: NavMesh->GetDefaultQueryFilter()->GetCopy();
+	if (!bPathFromContext)
+	{
+		TSharedPtr<FNavigationQueryFilter> BacktrackingFilter = NavMesh->GetDefaultQueryFilter()->GetCopy();
+		BacktrackingFilter->SetBacktrackingEnabled(true);
 
-	NavFilterInstance->SetBacktrackingEnabled(!bPathFromContext);
-	NavMesh->GetPolysWithinPathingDistance(ContextLocation, InMaxPathDistance, NodeRefs, NavFilterInstance);
+		NavMesh->GetPolysWithinPathingDistance(ContextLocation, InMaxPathDistance, NodeRefs, BacktrackingFilter);
+	}
+	else
+	{
+		NavMesh->GetPolysWithinPathingDistance(ContextLocation, InMaxPathDistance, NodeRefs);
+	}
 
 	TArray<FVector> PolyVerts;
 	for (int32 i = 0; i < NodeRefs.Num(); i++)

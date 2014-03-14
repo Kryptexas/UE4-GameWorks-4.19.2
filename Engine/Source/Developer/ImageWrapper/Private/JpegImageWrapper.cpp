@@ -77,7 +77,7 @@ bool FJpegImageWrapper::SetCompressed( const void* InCompressedData, int32 InCom
 
 bool FJpegImageWrapper::SetRaw( const void* InRawData, int32 InRawSize, const int32 InWidth, const int32 InHeight, const ERGBFormat::Type InFormat, const int32 InBitDepth )
 {
-	check((InFormat == ERGBFormat::RGBA || InFormat == ERGBFormat::BGRA) && InBitDepth == 8);
+	check(InFormat == ERGBFormat::RGBA && InBitDepth == 8);
 
 	bool bResult = FImageWrapperBase::SetRaw( InRawData, InRawSize, InWidth, InHeight, InFormat, InBitDepth );
 
@@ -98,22 +98,9 @@ void FJpegImageWrapper::Compress( int32 Quality )
 		check( Width > 0 );
 		check( Height > 0 );
 
-		// re-order components if required - JPEGs expect RGBA
-		if(RawFormat == ERGBFormat::BGRA)
-		{
-			FColor* Colors = (FColor*)RawData.GetData();
-			const int32 NumColors = RawData.Num() / 4;
-			for(int32 ColorIndex = 0; ColorIndex < NumColors; ColorIndex++)
-			{
-				uint8 Temp = Colors[ColorIndex].B;
-				Colors[ColorIndex].B = Colors[ColorIndex].R;
-				Colors[ColorIndex].R = Temp;
-			}
-		}
-
 		CompressedData.Empty();
 		CompressedData.AddUninitialized(RawData.Num());
-
+		
 		int OutBufferSize = CompressedData.Num();
 
 		jpge::params Parameters;

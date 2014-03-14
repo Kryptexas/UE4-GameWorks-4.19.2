@@ -127,9 +127,6 @@ public:
 
 	virtual void Tick() OVERRIDE {}
 
-	DECLARE_DERIVED_EVENT( FPropertyTableColumn, IPropertyTableColumn::FFrozenStateChanged, FFrozenStateChanged );
-	FFrozenStateChanged* OnFrozenStateChanged() OVERRIDE { return &FrozenStateChanged; }
-
 	// End IPropertyTable Interface
 
 public:
@@ -173,8 +170,6 @@ private:
 	TMap< TSharedRef< IPropertyTableRow >, TSharedRef< class IPropertyTableCell > > Cells;
 	float Width;
 	bool bIsHidden;
-
-	FFrozenStateChanged FrozenStateChanged;
 };
 
 #undef LOCTEXT_NAMESPACE

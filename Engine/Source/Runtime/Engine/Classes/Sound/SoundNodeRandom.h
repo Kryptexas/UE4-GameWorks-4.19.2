@@ -47,11 +47,6 @@ class USoundNodeRandom : public USoundNode
 	UPROPERTY(transient)
 	int32 NumRandomUsed;
 
-#if WITH_EDITORONLY_DATA
-	/** Editor only list of nodes hidden to duplicate behavior of PreselectAtLevelLoad */
-	UPROPERTY(transient)
-	TArray<int32> PIEHiddenNodes;
-#endif //WITH_EDITORONLY_DATA
 
 public:
 	// Begin UObject Interface
@@ -69,7 +64,6 @@ public:
 #if WITH_EDITOR
 	/** Ensure Random weights and usage array matches new amount of children */
 	virtual void SetChildNodes(TArray<USoundNode*>& InChildNodes) OVERRIDE;
-	virtual void OnBeginPIE(const bool bIsSimulating) OVERRIDE;
 #endif //WITH_EDITOR
 	virtual void CreateStartingConnectors( void ) OVERRIDE;
 	virtual FString GetUniqueString() const OVERRIDE;
@@ -81,9 +75,6 @@ public:
 	// @todo document
 	void FixHasBeenUsedArray( void );
 
-#if WITH_EDITOR
-	void UpdatePIEHiddenNodes();
-#endif //WITH_EDITOR
 };
 
 

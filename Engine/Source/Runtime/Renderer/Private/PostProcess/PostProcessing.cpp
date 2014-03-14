@@ -1050,9 +1050,7 @@ void FPostProcessing::Process(const FViewInfo& View, TRefCountPtr<IPooledRenderT
 
 		AddGBufferVisualization(Context, SeparateTranslucency);
 
-		bool bStereoRenderingAndHMD = View.Family->EngineShowFlags.StereoRendering && View.Family->EngineShowFlags.HMDDistortion;
-
-		if (bStereoRenderingAndHMD)
+		if (GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D() && View.Family->EngineShowFlags.HMDDistortion)
 		{
 			FRenderingCompositePass* Node = Context.Graph.RegisterPass(new FRCPassPostProcessHMD());
 			Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
@@ -1079,7 +1077,7 @@ void FPostProcessing::Process(const FViewInfo& View, TRefCountPtr<IPooledRenderT
 
 		AddHighResScreenshotMask(Context, SeparateTranslucency);
 
-		if(View.UnscaledViewRect != View.ViewRect && !bStereoRenderingAndHMD)
+		if((View.UnscaledViewRect != View.ViewRect) && (!(View.Family->EngineShowFlags.HMDDistortion) || !(GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D())))
 		{
 			static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.UpsampleQuality")); 
 			int32 UpsampleMethod = CVar->GetValueOnRenderThread();

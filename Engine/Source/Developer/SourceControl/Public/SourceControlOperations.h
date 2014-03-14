@@ -55,19 +55,19 @@ public:
 		return LOCTEXT("SourceControl_CheckIn", "Checking file(s) into Source Control..."); 
 	}
 
-	void SetDescription( const FText& InDescription )
+	void SetDescription( const FString& InDescription )
 	{
 		Description = InDescription;
 	}
 
-	const FText& GetDescription() const
+	const FString& GetDescription() const
 	{
 		return Description;
 	}
 
 protected:
 	/** Description of the checkin */
-	FText Description;
+	FString Description;
 };
 
 /**

@@ -3,7 +3,6 @@
 #pragma once
 
 #include "OnlineSubsystem.h"
-#include "OnlineSubsystemIOSPackage.h"
 
 
 /**
@@ -13,6 +12,9 @@ class ONLINESUBSYSTEMIOS_API FOnlineSubsystemIOS :
 	public IOnlineSubsystem,
 	public FTickerObjectBase
 {
+protected:
+	/** Single instantiation of the IOS interface */
+	static FOnlineSubsystemIOS* IOSSingleton;
 
 public:
 	FOnlineSubsystemIOS();
@@ -40,11 +42,22 @@ public:
 	virtual bool Init() OVERRIDE;
 	virtual bool Shutdown() OVERRIDE;
 	virtual FString GetAppId() const OVERRIDE;
-	virtual bool Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) OVERRIDE;
+	virtual bool Exec(const TCHAR* Cmd, FOutputDevice& Ar) OVERRIDE;
 	virtual bool Tick(float DeltaTime) OVERRIDE;
 	// End IOnlineSubsystem Interface
 
 PACKAGE_SCOPE:
+
+	/** 
+	 * Singleton interface for the IOS subsystem 
+	 * @return the only instance of the IOS subsystem
+	 */
+	static FOnlineSubsystemIOS* Create();
+
+	/** 
+	 * Destroy the singleton IOS subsystem
+	 */
+	static void Destroy();
 
 	/**
 	 * Is IOS available for use

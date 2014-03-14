@@ -42,17 +42,6 @@ namespace ELogsSortMode
 	};
 }
 
-struct FLogStatusItem
-{
-	FString ItemText;
-	FString ValueText;
-
-	TArray< TSharedPtr< FLogStatusItem > > Children;
-
-	FLogStatusItem(const FString& InItemText) : ItemText(InItemText) {}
-	FLogStatusItem(const FString& InItemText, const FString& InValueText) : ItemText(InItemText), ValueText(InValueText) {}
-};
-
 /** Main LogVisualizer UI widget */
 class SLogVisualizer : public SCompoundWidget
 {
@@ -153,10 +142,6 @@ protected:
 	void SaveSelectedLogs(FString& Filename);
 
 private:
-	void UpdateStatusItems(const FVisLogEntry* LogEntry);
-	TSharedRef<ITableRow> HandleGenerateLogStatus(TSharedPtr<FLogStatusItem> InItem, const TSharedRef<STableViewBase>& OwnerTable);
-	void OnLogStatusGetChildren(TSharedPtr<FLogStatusItem> InItem, TArray< TSharedPtr<FLogStatusItem> >& OutItems);
-
 	/** Construct main menu */
 	TSharedRef< SWidget > MakeMainMenu();
 	void FillHelpMenu(FMenuBuilder& MenuBuilder);
@@ -250,13 +235,12 @@ private:
 	bool bIgnoreTrivialLogs;
 
 	TWeakObjectPtr<class ALogVisualizerCameraController> CameraController;
-	TArray< TSharedPtr<FLogStatusItem> > StatusItems;
 
 	// WIDGETS
 
 	/** Main log list widget */
 	TSharedPtr<SListView<TSharedPtr<FLogsListItem> > > LogsListWidget;
-	TSharedPtr< STreeView< TSharedPtr<FLogStatusItem> > > StatusItemsView;
+	
 	TSharedPtr<SEditableTextBox> LogNameFilterBox;
 	TSharedPtr<STextBlock> StatusTextBlock;
 	TSharedPtr<SListView<TSharedPtr<FLogEntryItem> > > LogsLinesWidget;

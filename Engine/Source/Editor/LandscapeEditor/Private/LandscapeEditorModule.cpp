@@ -35,7 +35,7 @@ public:
 		EdModeLandscape = NewEditorMode;
 
 		FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
-		PropertyModule.RegisterCustomPropertyLayout("LandscapeEditorObject", FOnGetDetailCustomizationInstance::CreateStatic(&FLandscapeEditorDetails::MakeInstance));
+		PropertyModule.RegisterCustomPropertyLayout(ULandscapeEditorObject::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic(&FLandscapeEditorDetails::MakeInstance));
 		PropertyModule.RegisterStructPropertyLayout("GizmoImportLayer", FOnGetStructCustomizationInstance::CreateStatic(&FLandscapeEditorStructCustomization_FGizmoImportLayer::MakeInstance));
 		PropertyModule.RegisterStructPropertyLayout("LandscapeImportLayer", FOnGetStructCustomizationInstance::CreateStatic(&FLandscapeEditorStructCustomization_FLandscapeImportLayer::MakeInstance));
 
@@ -47,7 +47,7 @@ public:
 		CommandList->MapAction(LandscapeActions.ViewModeLayerDebug,   FExecuteAction::CreateStatic(&ChangeLandscapeViewMode, ELandscapeViewMode::DebugLayer),   FCanExecuteAction(), FIsActionChecked::CreateStatic(&IsLandscapeViewModeSelected, ELandscapeViewMode::DebugLayer));
 
 		TSharedRef<FExtender> ViewportMenuExtender = MakeShareable(new FExtender);
-		ViewportMenuExtender->AddMenuExtension("Exposure", EExtensionHook::Before, CommandList, FMenuExtensionDelegate::CreateStatic(&ConstructLandscapeViewportMenu));
+		ViewportMenuExtender->AddMenuExtension("LevelViewportExposure", EExtensionHook::Before, CommandList, FMenuExtensionDelegate::CreateStatic(&ConstructLandscapeViewportMenu));
 		FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
 		LevelEditorModule.GetMenuExtensibilityManager()->AddExtender(ViewportMenuExtender);
 

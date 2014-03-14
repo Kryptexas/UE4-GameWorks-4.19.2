@@ -64,7 +64,7 @@ protected:
 	 * @param ClusterIndex - the cluster index.
 	 * @return The tooltip text
 	 */
-	FText GetTestToolTip( int32 ClusterIndex ) const;
+	FString GetTestToolTip( int32 ClusterIndex ) const;
 
 	/**
 	* Is the test enabled.
@@ -86,7 +86,7 @@ protected:
 	 *
 	 * @return The duration the test took as text.
 	 */
-	FText ItemStatus_DurationText( ) const;
+	FString ItemStatus_DurationText( ) const;
 
 	/**
 	 * Helper to ensure throbber is visible when in process and icon is visible otherwise.
@@ -126,7 +126,7 @@ protected:
 	 *
 	 * @return The number of participants needed
 	 */
-	FText ItemStatus_NumParticipantsRequiredText( ) const;
+	FString ItemStatus_NumParticipantsRequiredText( ) const;
 
 private:
 

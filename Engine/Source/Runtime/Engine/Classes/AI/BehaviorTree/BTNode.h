@@ -6,11 +6,6 @@
 #include "BehaviorTreeTypes.h"
 #include "BTNode.generated.h"
 
-struct FBTInstancedNodeMemory
-{
-	int32 NodeIdx;
-};
-
 UCLASS(Abstract,config=Game)
 class ENGINE_API UBTNode : public UObject
 {
@@ -33,18 +28,6 @@ class ENGINE_API UBTNode : public UObject
 	/** size of instance memory */
 	virtual uint16 GetInstanceMemorySize() const;
 
-	/** called when node instance is added to tree */
-	virtual void OnInstanceCreated(class UBehaviorTreeComponent* OwnerComp);
-
-	/** called when node instance is removed from tree */
-	virtual void OnInstanceDestroyed(class UBehaviorTreeComponent* OwnerComp);
-
-	/** initialize memory and instancing */
-	void InitializeForInstance(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, int32& NextInstancedIndex) const;
-
-	/** size of special, hidden memory block for internal mechanics */
-	virtual uint16 GetSpecialMemorySize() const;
-
 #if USE_BEHAVIORTREE_DEBUGGER
 	/** fill in data about execution order */
 	void InitializeExecutionOrder(class UBTNode* NextNode);
@@ -65,10 +48,6 @@ class ENGINE_API UBTNode : public UObject
 	template<typename T>
 	const T* GetNodeMemory(const struct FBehaviorTreeInstance& BTInstance) const;
 
-	/** get special memory block used for hidden shared data (e.g. node instancing) */
-	template<typename T>
-	T* GetSpecialNodeMemory(uint8* NodeMemory) const;
-
 	/** @return parent node */
 	class UBTCompositeNode* GetParentNode() const;
 
@@ -78,33 +57,32 @@ class ENGINE_API UBTNode : public UObject
 	/** @return execution index */
 	uint16 GetExecutionIndex() const;
 
-	/** @return memory offset */
+	/** @return mmeory offset */
 	uint16 GetMemoryOffset() const;
 
 	/** @return depth in tree */
 	uint8 GetTreeDepth() const;
 
-	/** @return true if node wants to be instanced */
-	bool HasInstance() const;
-
-	/** @return true if this object is instanced node */
-	bool IsInstanced() const;
-
-	/** @return tree asset */
+	/** get tree asset */
 	class UBehaviorTree* GetTreeAsset() const;
 
-	/** @return blackboard asset */
+	/** get blackboard asset */
 	class UBlackboardData* GetBlackboardAsset() const;
 
-	/** @return node instance if bCreateNodeInstance was set */
-	class UBTNode* GetNodeInstance(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const;
-	class UBTNode* GetNodeInstance(struct FBehaviorTreeSearchData& SearchData) const;
+	/** @return string containing description of this node with all setup values */
+	virtual FString GetStaticDescription() const;
 
 	/** @return string containing description of this node instance with all relevant runtime values */
 	FString GetRuntimeDescription(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity) const;
 
-	/** @return string containing description of this node with all setup values */
-	virtual FString GetStaticDescription() const;
+	/** Used to retrieve "current blueprint call owner" in a single-threaded fashion */
+	virtual class UBehaviorTreeComponent* GetCurrentCallOwner() const;
+
+	/** hook for blueprint based nodes receiving external event */
+	virtual void StartUsingExternalEvent(AActor* OwningActor);
+
+	/** hook for blueprint based nodes receiving external event */
+	virtual void StopUsingExternalEvent();
 
 protected:
 
@@ -135,14 +113,6 @@ private:
 
 	/** depth in tree */
 	uint8 TreeDepth;
-
-protected:
-
-	/** if set, node will be instanced instead of using memory block and template shared with all other BT components */
-	uint8 bCreateNodeInstance : 1;
-
-	/** set automatically for node instances */
-	uint8 bIsInstanced : 1;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -185,15 +155,10 @@ FORCEINLINE uint8 UBTNode::GetTreeDepth() const
 	return TreeDepth;
 }
 
-FORCEINLINE bool UBTNode::HasInstance() const
+FORCEINLINE class UBehaviorTreeComponent* UBTNode::GetCurrentCallOwner() const
 {
-	return bCreateNodeInstance;
-}
-
-FORCEINLINE bool UBTNode::IsInstanced() const
-{
-	return bIsInstanced;
-}
+	return NULL;
+};
 
 template<typename T>
 T* UBTNode::GetNodeMemory(struct FBehaviorTreeSearchData& SearchData) const
@@ -219,8 +184,3 @@ const T* UBTNode::GetNodeMemory(const struct FBehaviorTreeInstance& BTInstance) 
 	return (const T*)(BTInstance.InstanceMemory.GetTypedData() + MemoryOffset);
 }
 
-template<typename T>
-T* UBTNode::GetSpecialNodeMemory(uint8* NodeMemory) const
-{
-	return (T*)(NodeMemory - ((GetSpecialMemorySize() + 3) & ~3));
-}

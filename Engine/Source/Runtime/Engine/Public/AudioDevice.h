@@ -257,12 +257,6 @@ public:
 #if WITH_EDITOR
 	/* Stop any playing sounds so that we can reimport a specific sound wave */
 	void StopSoundsForReimport(USoundWave* ReimportedSoundWave, TArray<UAudioComponent*>& ComponentsToRestart);
-
-	/** Deals with anything audio related that should happen when PIE starts */
-	void OnBeginPIE(const bool bIsSimulating);
-
-	/** Deals with anything audio related that should happen when PIE ends */
-	void OnEndPIE(const bool bIsSimulating);
 #endif
 
 	/**
@@ -672,16 +666,15 @@ protected:
 	/** Creates a new platform specific sound source */
 	virtual class FSoundSource* CreateSoundSource() PURE_VIRTUAL(FAudioDevice::CreateSoundSource,return NULL;);
 
-	/** Low pass filter OneOverQ value */
-	float GetLowPassFilterResonance() const;
-
 public:
-
 	/** The maximum number of concurrent audible sounds */
 	int32 MaxChannels;
 
 	/** The amount of memory to reserve for always resident sounds */
 	int32 CommonAudioPoolSize;
+
+	/** Low pass filter OneOverQ value */
+	float LowPassFilterResonance;
 
 	/** Pointer to permanent memory allocation stack. */
 	void* CommonAudioPool;

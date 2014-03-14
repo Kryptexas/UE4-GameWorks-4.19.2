@@ -146,7 +146,7 @@ FMaterialPixelParameters GetMaterialPixelParameters(FVertexFactoryInterpolantsVS
 #endif
 
 	Result.UnMirrored = 1;
-	Result.Particle.MacroUV = SpriteVF.MacroUVParameters;
+	Result.Particle.MacroUV = SpriteView.MacroUVParameters;
 
 #if NEEDS_PARTICLE_COLOR
 	Result.Particle.Color = Interpolants.Color;
@@ -199,7 +199,7 @@ FMaterialVertexParameters GetMaterialVertexParameters(FVertexFactoryInput Input,
 	Result.WorldPosition = WorldPosition - View.PreViewTranslation.xyz;
 	Result.VertexColor = Input.Color;
 	Result.TangentToWorld = mul(TangentToLocal, GetLocalToWorld3x3()); 
-	Result.Particle.MacroUV = SpriteVF.MacroUVParameters;
+	Result.Particle.MacroUV = SpriteView.MacroUVParameters;
 	Result.Particle.Color = Intermediates.Color;
 	Result.Particle.MotionBlurFade = 1.0f;
 

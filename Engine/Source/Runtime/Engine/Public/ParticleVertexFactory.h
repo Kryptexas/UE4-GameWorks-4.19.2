@@ -78,7 +78,6 @@ BEGIN_UNIFORM_BUFFER_STRUCT( FParticleSpriteUniformParameters, )
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX( FVector4, NormalsSphereCenter, EShaderPrecisionModifier::Half )
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX( FVector4, NormalsCylinderUnitDirection, EShaderPrecisionModifier::Half )
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX( FVector4, SubImageSize, EShaderPrecisionModifier::Half )
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER( FVector4, MacroUVParameters )
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX( float, RotationScale, EShaderPrecisionModifier::Half )
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX( float, RotationBias, EShaderPrecisionModifier::Half )
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX( float, NormalsType, EShaderPrecisionModifier::Half )
@@ -86,6 +85,14 @@ BEGIN_UNIFORM_BUFFER_STRUCT( FParticleSpriteUniformParameters, )
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX( FVector2D, PivotOffset, EShaderPrecisionModifier::Half )
 END_UNIFORM_BUFFER_STRUCT( FParticleSpriteUniformParameters )
 typedef TUniformBufferRef<FParticleSpriteUniformParameters> FParticleSpriteUniformBufferRef;
+
+/**
+ * Per-view uniform buffer for particle sprite vertex factories.
+ */
+BEGIN_UNIFORM_BUFFER_STRUCT( FParticleSpriteViewUniformParameters, )
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER( FVector4, MacroUVParameters )
+END_UNIFORM_BUFFER_STRUCT( FParticleSpriteViewUniformParameters )
+typedef TUniformBufferRef<FParticleSpriteViewUniformParameters> FParticleSpriteViewUniformBufferRef;
 
 /**
  * Vertex factory for rendering particle sprites.
@@ -134,11 +141,27 @@ public:
 	}
 
 	/**
+	 * Set the uniform buffer for this vertex factory.
+	 */
+	FORCEINLINE void SetSpriteViewUniformBuffer( const FParticleSpriteViewUniformBufferRef& InSpriteViewUniformBuffer )
+	{
+		SpriteViewUniformBuffer = InSpriteViewUniformBuffer;
+	}
+
+	/**
 	 * Retrieve the uniform buffer for this vertex factory.
 	 */
 	FORCEINLINE FUniformBufferRHIParamRef GetSpriteUniformBuffer()
 	{
 		return SpriteUniformBuffer;
+	}
+
+	/**
+	 * Retrieve the per-view uniform buffer for this vertex factory.
+	 */
+	FORCEINLINE FUniformBufferRHIParamRef GetSpriteViewUniformBuffer()
+	{
+		return SpriteViewUniformBuffer;
 	}
 
 	/**
@@ -154,4 +177,6 @@ private:
 
 	/** Uniform buffer with sprite paramters. */
 	FUniformBufferRHIParamRef SpriteUniformBuffer;
+	/** Uniform buffer with per-view sprite paramters. */
+	FUniformBufferRHIParamRef SpriteViewUniformBuffer;
 };

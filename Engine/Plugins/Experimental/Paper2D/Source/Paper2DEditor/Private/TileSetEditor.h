@@ -51,7 +51,7 @@ public:
 	void ChangeTileSet(UPaperTileSet* InTileSet);
 protected:
 	// SPaperEditorViewport interface
-	virtual FText GetTitleText() const OVERRIDE;
+	virtual FString GetTitleText() const OVERRIDE;
 	// End of SPaperEditorViewport interface
 
 private:

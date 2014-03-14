@@ -125,7 +125,7 @@ inline void RHISetRenderTarget(FTextureRHIParamRef NewRenderTarget, FTextureRHIP
 /** Helper for the common case of using a single color and depth render target, with a mip index for the color target. */
 inline void RHISetRenderTarget(FTextureRHIParamRef NewRenderTarget, int32 MipIndex, FTextureRHIParamRef NewDepthStencilTarget)
 {
-	FRHIRenderTargetView RTV(NewRenderTarget, MipIndex, -1);
+	FRHIRenderTargetView RTV(NewRenderTarget, MipIndex, 0);
 	RHISetRenderTargets(1, &RTV, NewDepthStencilTarget, 0, NULL);
 }
 

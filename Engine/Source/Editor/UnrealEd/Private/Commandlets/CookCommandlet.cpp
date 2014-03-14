@@ -829,12 +829,6 @@ void UCookCommandlet::CollectFilesToCook(TArray<FString>& FilesInPath)
 	GEditor->ParseMapSectionIni(*Params, MapList);
 	for (int32 MapIdx = 0; MapIdx < MapList.Num(); MapIdx++)
 	{
-		if (UWorldComposition::CollectTilesToCook(MapList[MapIdx], FilesInPath))
-		{
-			// Entry has been handled by world composition, no further processing required
-			continue;
-		}
-				
 		FilesInPath.AddUnique(MapList[MapIdx]);
 	}
 
@@ -879,14 +873,6 @@ void UCookCommandlet::CollectFilesToCook(TArray<FString>& FilesInPath)
 	for (int32 CmdLineMapIdx = 0; CmdLineMapIdx < CmdLineMapEntries.Num(); CmdLineMapIdx++)
 	{
 		FString CurrEntry = CmdLineMapEntries[CmdLineMapIdx];
-		
-		// Check if this cmd entry is related to world composition
-		if (UWorldComposition::CollectTilesToCook(CurrEntry, FilesInPath))
-		{
-			// Entry has been handled by world composition, no further processing required
-			continue;
-		}
-		
 		if (FPackageName::IsShortPackageName(CurrEntry))
 		{
 			if (FPackageName::SearchForPackageOnDisk(CurrEntry, NULL, &CurrEntry) == false)

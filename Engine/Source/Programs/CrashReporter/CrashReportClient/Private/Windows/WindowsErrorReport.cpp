@@ -49,10 +49,8 @@ FText FWindowsErrorReport::DiagnoseReport() const
 		}
 	}
 
-	if (!CrashDebugHelper->CreateMinidumpDiagnosticReport(ReportDirectory / DumpFilename))
-	{
-		return LOCTEXT("NoDebuggingSymbols", "You do not have any debugging symbols required to display the callstack for this crash");
-	}
+	// Note: at time of writing this function always returns false, regardless of success
+	CrashDebugHelper->CreateMinidumpDiagnosticReport(ReportDirectory / DumpFilename);
 
 	// There's a callstack, so write it out to save the server trying to do it
 	CrashDebugHelper->CrashInfo.GenerateReport(ReportDirectory / GDiagnosticsFilename);

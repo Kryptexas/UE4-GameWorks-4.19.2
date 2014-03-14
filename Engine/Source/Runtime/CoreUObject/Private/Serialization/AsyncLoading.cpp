@@ -51,9 +51,6 @@ void NotifyConstructedDuringAsyncLoading(UObject* Object)
 /** Array of packages that are being preloaded							*/
 static TIndirectArray<struct FAsyncPackage>	GObjAsyncPackages;
 
-int32 FAsyncPackage::PreLoadIndex = 0;
-int32 FAsyncPackage::PostLoadIndex = 0;
-
 /**
  * Returns an estimated load completion percentage.
  */
@@ -706,7 +703,7 @@ EAsyncPackageState::Type FAsyncPackage::PostLoadObjects()
 	TGuardValue<bool> GuardIsRoutingPostLoad(GIsRoutingPostLoad, true);
 
 	// PostLoad objects.
-	while( PostLoadIndex < GObjLoaded.Num() && PostLoadIndex < PreLoadIndex && !IsTimeLimitExceeded() )
+	while( PostLoadIndex < GObjLoaded.Num() && !IsTimeLimitExceeded() )
 	{
 		UObject* Object	= GObjLoaded[ PostLoadIndex++ ];
 		check(Object);
@@ -745,8 +742,6 @@ EAsyncPackageState::Type FAsyncPackage::FinishObjects()
 	// Simulate what EndLoad does.
 	GObjLoaded.Empty();
 	DissociateImportsAndForcedExports(); //@todo: this should be avoidable
-	PreLoadIndex = 0;
-	PostLoadIndex = 0;
 
 
 	// If we successfully loaded
@@ -818,21 +813,13 @@ FAsyncPackage& LoadPackageAsync( const FString& InPackageName, const FGuid* Pack
 	{
 		PackageName = InPackageName;
 	}
-	else if ( FPackageName::IsPackageFilename(InPackageName) && FPackageName::TryConvertFilenameToLongPackageName(InPackageName, PackageName) )
+	else if ( FPackageName::TryConvertFilenameToLongPackageName(InPackageName, PackageName) )
 	{
-		// PackageName got populated by the conditional function
+		PackageName = FPackageName::FilenameToLongPackageName(InPackageName);
 	}
 	else
 	{
-		FString ClassName;
-		if (FPackageName::ParseExportTextPath(InPackageName, &ClassName, &PackageName))
-		{
-			// PackageName got populated by the conditional function
-		}
-		else
-		{
-			UE_LOG(LogStreaming, Fatal, TEXT("LoadPackageAsync failed to begin to load a level because the supplied package name was neither a valid long package name nor a filename of a map within a content folder: '%s'"), *InPackageName);
-		}
+		UE_LOG(LogStreaming, Fatal,TEXT("LoadPackageAsync failed to begin to load a level because the supplied package name was neither a valid long package name nor a filename of a map within a content folder: '%s'"), *InPackageName);
 	}
 
 	// Check whether the file is already in the queue.

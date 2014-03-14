@@ -52,7 +52,7 @@ public:
 	 * @param OutErrorMessages	Any error messages output.
 	 * @return - List of client spec names
 	 */
-	bool GetWorkspaceList(const FString& InUserName, FOnIsCancelled InOnIsCancelled, TArray<FString>& OutWorkspaceList, TArray<FText>& OutErrorMessages);
+	bool GetWorkspaceList(const FString& InUserName, FOnIsCancelled InOnIsCancelled, TArray<FString>& OutWorkspaceList, TArray<FString>& OutErrorMessages);
 
 	/** Returns true if connection is currently active */
 	bool IsValidConnection();
@@ -63,7 +63,7 @@ public:
 	/**
 	 * Runs internal perforce command, catches exceptions, returns results
 	 */
-	bool RunCommand(const FString& InCommand, const TArray<FString>& InParameters, FP4RecordSet& OutRecordSet, TArray<FText>&  OutErrorMessage, FOnIsCancelled InIsCancelled, bool& OutConnectionDropped)
+	bool RunCommand(const FString& InCommand, const TArray<FString>& InParameters, FP4RecordSet& OutRecordSet, TArray<FString>&  OutErrorMessage, FOnIsCancelled InIsCancelled, bool& OutConnectionDropped)
 	{
 		const bool bStandardDebugOutput=true;
 		const bool bAllowRetry=true;
@@ -73,17 +73,17 @@ public:
 	/**
 	 * Runs internal perforce command, catches exceptions, returns results
 	 */
-	bool RunCommand(const FString& InCommand, const TArray<FString>& InParameters, FP4RecordSet& OutRecordSet, TArray<FText>& OutErrorMessage, FOnIsCancelled InIsCancelled, bool& OutConnectionDropped, const bool bInStandardDebugOutput, const bool bInAllowRetry);
+	bool RunCommand(const FString& InCommand, const TArray<FString>& InParameters, FP4RecordSet& OutRecordSet, TArray<FString>& OutErrorMessage, FOnIsCancelled InIsCancelled, bool& OutConnectionDropped, const bool bInStandardDebugOutput, const bool bInAllowRetry);
 
 	/**
 	 * Creates a changelist with the specified description
 	 */
-	int32 CreatePendingChangelist(const FText &Description, FOnIsCancelled InIsCancelled, TArray<FText>& OutErrorMessages);
+	int32 CreatePendingChangelist(const FString &Description, FOnIsCancelled InIsCancelled, TArray<FString>& OutErrorMessages);
 
 	/**
 	 * Submits the specified changelist
 	 */
-	bool SubmitChangelist(int32 ChangeList, FOnIsCancelled InIsCancelled, TArray<FText>& OutErrorMessages);
+	bool SubmitChangelist(int32 ChangeList, FOnIsCancelled InIsCancelled, TArray<FString>& OutErrorMessages);
 
 	/**
 	 * Make a valid connection if possible

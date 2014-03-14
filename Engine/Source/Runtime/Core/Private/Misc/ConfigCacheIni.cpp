@@ -60,8 +60,6 @@ class FTextFriendHelper
 			}
 		}
 
-		//this prevents our source code text gatherer from trying to gather the following messages
-#define LOC_DEFINE_REGION
 		if( Text.IsCultureInvariant() )
 		{
 			return FString::Printf( TEXT( "NSLOCTEXT(\"\",\"\",\"%s\")" ), *Str );
@@ -71,7 +69,6 @@ class FTextFriendHelper
 			return FString::Printf( TEXT( "NSLOCTEXT(\"%s\",\"%s\",\"%s\")" ),
 				FTextInspector::GetNamespace(Text) ? **FTextInspector::GetNamespace(Text) : TEXT(""), FTextInspector::GetKey(Text) ? **FTextInspector::GetKey(Text) : TEXT(""), *Str );
 		}
-#undef LOC_DEFINE_REGION
 	}
 };
 
@@ -886,8 +883,6 @@ bool FConfigFile::GetString( const TCHAR* Section, const TCHAR* Key, FString& Va
 		return false;
 	}
 
-	//this prevents our source code text gatherer from trying to gather the following messages
-#define LOC_DEFINE_REGION
 	if( FCString::Strstr( **PairString, TEXT("LOCTEXT") ) )
 	{
 		UE_LOG( LogConfig, Warning, TEXT( "FConfigFile::GetString( %s, %s ) contains LOCTEXT"), Section, Key );
@@ -898,7 +893,6 @@ bool FConfigFile::GetString( const TCHAR* Section, const TCHAR* Key, FString& Va
 		Value = **PairString;
 		return true;
 	}
-#undef LOC_DEFINE_REGION
 }
 
 bool FConfigFile::GetText( const TCHAR* Section, const TCHAR* Key, FText& Value ) const
@@ -1437,8 +1431,6 @@ bool FConfigCacheIni::GetString( const TCHAR* Section, const TCHAR* Key, FString
 		return false;
 	}
 
-	//this prevents our source code text gatherer from trying to gather the following messages
-#define LOC_DEFINE_REGION
 	if( FCString::Strstr( **PairString, TEXT("LOCTEXT") ) )
 	{
 		UE_LOG( LogConfig, Warning, TEXT( "FConfigCacheIni::GetString( %s, %s, %s ) contains LOCTEXT"), Section, Key, *Filename );
@@ -1449,7 +1441,6 @@ bool FConfigCacheIni::GetString( const TCHAR* Section, const TCHAR* Key, FString
 		Value = **PairString;
 		return true;
 	}
-#undef LOC_DEFINE_REGION
 }
 
 bool FConfigCacheIni::GetText( const TCHAR* Section, const TCHAR* Key, FText& Value, const FString& Filename )

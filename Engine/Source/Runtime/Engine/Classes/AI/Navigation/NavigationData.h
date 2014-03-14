@@ -22,8 +22,8 @@ struct FSupportedAreaData
  *	Represents abstract Navigation Data (sub-classed as NavMesh, NavGraph, etc)
  *	Used as a common interface for all navigation types handled by NavigationSystem
  */
-UCLASS(config=Engine, dependson=UNavigationSystem, NotBlueprintable, abstract)
-class ENGINE_API ANavigationData : public AActor
+UCLASS(config=Engine, dependson=UNavigationSystem, MinimalAPI, NotBlueprintable, abstract)
+class ANavigationData : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
@@ -34,8 +34,12 @@ class ENGINE_API ANavigationData : public AActor
 	FNavDataConfig NavDataConfig;
 
 	/** if set to true then this navigation data will be drawing itself when requested as part of "show navigation" */
-	UPROPERTY(Transient, EditAnywhere, Category=Display)
+	UPROPERTY(EditAnywhere, Category=Display)
 	uint32 bEnableDrawing:1;
+
+	/** navigation data will be drawn only if it's for default agent (SupportedAgents[0]) */
+	UPROPERTY(EditAnywhere, Category=Display)
+	uint32 bShowOnlyDefaultAgent:1;
 
 	//----------------------------------------------------------------------//
 	// game-time config
@@ -83,10 +87,8 @@ public:
 	const FNavDataConfig& GetConfig() const { return NavDataConfig; }
 	virtual void SetConfig(const FNavDataConfig& Src) { NavDataConfig = Src; }
 
-	void SetSupportsDefaultAgent(bool bIsDefault) { bSupportsDefaultAgent = bIsDefault; bEnableDrawing = bIsDefault; } 
+	void SetSupportsDefaultAgent(bool bIsDefault) { bSupportsDefaultAgent = bIsDefault; } 
 	bool IsSupportingDefaultAgent() const { return bSupportsDefaultAgent; }
-
-	virtual bool DoesSupportAgent(const FNavAgentProperties& AgentProps) const { return false; }
 
 protected:
 	virtual void FillConfig(FNavDataConfig& Dest) { Dest = NavDataConfig; }
@@ -143,10 +145,10 @@ public:
 	//----------------------------------------------------------------------//
 	// Debug                                                                
 	//----------------------------------------------------------------------//
-	void DrawDebugPath(FNavigationPath* Path, FColor PathColor = FColor::White, class UCanvas* Canvas = NULL, bool bPersistent = true, const uint32 NextPathPointIndex = 0) const;
+	ENGINE_API void DrawDebugPath(FNavigationPath* Path, FColor PathColor = FColor::White, class UCanvas* Canvas = NULL, bool bPersistent = true, const uint32 NextPathPointIndex = 0) const;
 
 	/** @return Total mem counted, including super calls. */
-	virtual uint32 LogMemUsed() const;
+	virtual ENGINE_API uint32 LogMemUsed() const;
 
 	//----------------------------------------------------------------------//
 	// Batch processing (important with async rebuilding)
@@ -237,15 +239,15 @@ public:
 		return (*RaycastImplementation)(this, RayStart, RayEnd, HitLocation, QueryFilter);
 	}
 
-	virtual FNavLocation GetRandomPoint(TSharedPtr<const FNavigationQueryFilter> Filter = NULL) const PURE_VIRTUAL(ANavigationData::GetRandomPoint,return FNavLocation(););
+	virtual FNavLocation ENGINE_API GetRandomPoint(TSharedPtr<const FNavigationQueryFilter> Filter = NULL) const PURE_VIRTUAL(ANavigationData::GetRandomPoint,return FNavLocation(););
 
-	virtual bool GetRandomPointInRadius(const FVector& Origin, float Radius, FNavLocation& OutResult, TSharedPtr<const FNavigationQueryFilter> Filter = NULL) const PURE_VIRTUAL(ANavigationData::GetRandomPointInRadius,return false;);
+	virtual bool ENGINE_API GetRandomPointInRadius(const FVector& Origin, float Radius, FNavLocation& OutResult, TSharedPtr<const FNavigationQueryFilter> Filter = NULL) const PURE_VIRTUAL(ANavigationData::GetRandomPointInRadius,return false;);
 
 	/**	Tries to project given Point to this navigation type, within given Extent.
 	 *	@param OutLocation if successful this variable will be filed with result
 	 *	@return true if successful, false otherwise
 	 */
-	virtual bool ProjectPoint(const FVector& Point, FNavLocation& OutLocation, const FVector& Extent, TSharedPtr<const FNavigationQueryFilter> Filter = NULL) const PURE_VIRTUAL(ANavigationData::ProjectPoint,return false;);
+	virtual bool ENGINE_API ProjectPoint(const FVector& Point, FNavLocation& OutLocation, const FVector& Extent, TSharedPtr<const FNavigationQueryFilter> Filter = NULL) const PURE_VIRTUAL(ANavigationData::ProjectPoint,return false;);
 
 	/** Calculates path from PathStart to PathEnd and retrieves its cost. 
 	 *	@NOTE this function does not generate string pulled path so the result is an (over-estimated) approximation
@@ -278,13 +280,13 @@ public:
 	void ProcessNavAreas(const TArray<const UClass*>& AreaClasses, int32 AgentIndex);
 
 	/** get class associated with AreaID */
-	const UClass* GetAreaClass(int32 AreaID) const;
+	ENGINE_API const UClass* GetAreaClass(int32 AreaID) const;
 	
 	/** check if AreaID was assigned to class (class itself may not be loaded yet!) */
 	bool IsAreaAssigned(int32 AreaID) const;
 
 	/** get ID assigned to AreaClas or -1 when not assigned */
-	int32 GetAreaID(const UClass* AreaClass) const;
+	ENGINE_API int32 GetAreaID(const UClass* AreaClass) const;
 
 	/** get max areas supported by this navigation data */
 	virtual int32 GetMaxSupportedAreas() const { return MAX_int32; }
@@ -297,19 +299,6 @@ public:
 	//----------------------------------------------------------------------//
 
 	virtual void UpdateSmartLink(class USmartNavLinkComponent* LinkComp);
-
-	//----------------------------------------------------------------------//
-	// Filters
-	//----------------------------------------------------------------------//
-
-	/** get cached query filter */
-	TSharedPtr<const FNavigationQueryFilter> GetQueryFilter(TSubclassOf<class UNavigationQueryFilter> FilterClass) const;
-
-	/** store cached query filter */
-	void StoreQueryFilter(TSubclassOf<class UNavigationQueryFilter> FilterClass, TSharedPtr<const FNavigationQueryFilter> NavFilter);
-
-	/** removes cached query filter */
-	void RemoveQueryFilter(TSubclassOf<class UNavigationQueryFilter> FilterClass);
 
 	//----------------------------------------------------------------------//
 	// all the rest                                                                
@@ -362,9 +351,6 @@ protected:
 
 	/** Query filter used when no other has been passed to relevant functions */
 	TSharedPtr<FNavigationQueryFilter> DefaultQueryFilter;
-
-	/** Map of query filters by UNavigationQueryFilter class */
-	TMap<UClass*,TSharedPtr<const FNavigationQueryFilter> > QueryFilters;
 
 	/** serialized area class - ID mapping */
 	UPROPERTY()

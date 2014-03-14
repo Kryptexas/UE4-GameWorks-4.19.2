@@ -1078,8 +1078,6 @@ void FPersonaMeshDetails::CheckLODMaterialMapChanges()
 		OldLODInfo = SkelMesh->LODInfo;
 	}
 }
-#endif// #if WITH_APEX_CLOTHING
-
 
 FReply FPersonaMeshDetails::OnAddMaterialButtonClicked()
 {
@@ -1110,11 +1108,9 @@ FReply FPersonaMeshDetails::OnDeleteButtonClicked( int32 SectionIndex )
 	if(SkelMesh)
 	{
 
-		const FScopedTransaction Transaction(LOCTEXT("DeleteMaterial", "Delete Material"));
 		UProperty* MaterialProperty = FindField<UProperty>( USkeletalMesh::StaticClass(), "Materials" );
 		SkelMesh->PreEditChange( MaterialProperty );
 
-		// Patch up LOD mapping indices
 		int32 NumLODInfos = SkelMesh->LODInfo.Num();
 		for(int32 LODInfoIdx=0; LODInfoIdx < NumLODInfos; LODInfoIdx++)
 		{
@@ -1134,26 +1130,6 @@ FReply FPersonaMeshDetails::OnDeleteButtonClicked( int32 SectionIndex )
 				}
 			}
 		}
-		
-		// Patch up section indices
-		for(auto ModelIter = SkelMesh->GetImportedResource()->LODModels.CreateIterator() ; ModelIter ; ++ModelIter)
-		{
-			FStaticLODModel& Model = *ModelIter;
-			for(auto SectionIter = Model.Sections.CreateIterator() ; SectionIter ; ++SectionIter)
-			{
-				FSkelMeshSection& Section = *SectionIter;
-
-				if(Section.MaterialIndex == SectionIndex)
-				{
-					Section.MaterialIndex = 0;
-				}
-				else if(Section.MaterialIndex > SectionIndex)
-				{
-					Section.MaterialIndex--;
-				}
-			}
-		}
-
 		SkelMesh->Materials.RemoveAt(SectionIndex);
 
 		// Notify the change in material
@@ -1161,13 +1137,13 @@ FReply FPersonaMeshDetails::OnDeleteButtonClicked( int32 SectionIndex )
 		SkelMesh->PostEditChangeProperty(PropertyChangedEvent);
 	}
 
-#if WITH_APEX_CLOTHING
 	// Check LOD map changes and update if necessary
 	CheckLODMaterialMapChanges();
-#endif// #if WITH_APEX_CLOTHING
 
 	return FReply::Handled();
 }
+
+#endif// #if WITH_APEX_CLOTHING
 
 #undef LOCTEXT_NAMESPACE
 

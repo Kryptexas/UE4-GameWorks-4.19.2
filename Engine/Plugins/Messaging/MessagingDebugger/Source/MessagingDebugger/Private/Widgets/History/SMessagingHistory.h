@@ -81,7 +81,7 @@ private:
 	EVisibility HandleShowHiddenHyperlinkVisibility( ) const;
 
 	// Callback for getting the status bar text.
-	FText HandleStatusBarText( ) const;
+	FString HandleStatusBarText( ) const;
 
 	// Callback for when a message has been added to the message tracer.
 	void HandleTracerMessageAdded( FMessageTracerMessageInfoRef MessageInfo );

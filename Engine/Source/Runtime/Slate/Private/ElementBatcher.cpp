@@ -48,7 +48,7 @@ static FVector2D RotatePoint( FVector2D InPoint, const FVector2D& AboutPoint, fl
 
 
 FSlateElementBatcher::FSlateElementBatcher( TSharedRef<FSlateRenderingPolicy> InRenderingPolicy )
-	: SplineBrush( FCoreStyle::Get().GetBrush("SplineFilterTable") )
+	: SplineBrush( FPaths::EngineContentDir() / "Editor/Slate/SplineFilterTable.png", FVector2D(0,0) )
 	, RenderingPolicy( InRenderingPolicy )
 {
 
@@ -695,8 +695,7 @@ void FSlateElementBatcher::AddSplineElement( const FVector2D& Position, float Sc
 	// The amount we increase each side of the line to generate enough pixels
 	const float HalfThickness = LineThickness * .5f + Radius;
 
-	// Currently splines are not atlased because they are tiled.  So we just assume the texture proxy holds the actual texture
-	FSlateShaderResourceProxy* ResourceProxy = RenderingPolicy->GetTextureResource( *SplineBrush );
+	FSlateShaderResourceProxy* ResourceProxy = RenderingPolicy->GetTextureResource( SplineBrush );
 	check(ResourceProxy && ResourceProxy->Resource);
 
 	// Find a batch for the element
@@ -814,8 +813,8 @@ void FSlateElementBatcher::AddLineElement( const FVector2D& Position, const FVec
 
 	if( InPayload.bAntialias )
 	{
-		// Currently splines are not atlased because they are tiled.  So we just assume the texture proxy holds the actual texture
-		FSlateShaderResourceProxy* ResourceProxy = RenderingPolicy->GetTextureResource( *SplineBrush );
+
+		FSlateShaderResourceProxy* ResourceProxy = RenderingPolicy->GetTextureResource( SplineBrush );
 		check(ResourceProxy && ResourceProxy->Resource);
 
 		// The radius to use when checking the distance of pixels to the actual line.  Arbitrary value based on what looks the best

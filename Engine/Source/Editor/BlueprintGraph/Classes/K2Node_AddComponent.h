@@ -16,6 +16,7 @@ class UK2Node_AddComponent : public UK2Node_CallFunction
 	UPROPERTY()
 	FString TemplateBlueprint;
 
+#if WITH_EDITOR
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() OVERRIDE;
 	virtual void DestroyNode() OVERRIDE;
@@ -66,6 +67,7 @@ private:
 	{
 		return FindPin(TEXT("TemplateName"));
 	}
+#endif
 };
 
 

@@ -19,7 +19,7 @@ class FOnlineVoiceSteam : public IOnlineVoice
 	/** Reference to the profile interface */
 	class FOnlineIdentitySteam* IdentityInt;
 	/** Reference to the voice engine for acquiring voice data */
-	IVoiceEnginePtr VoiceEngine;
+	class FVoiceEngineSteam* VoiceEngine;
 
 	/** Maximum permitted local talkers */
 	int32 MaxLocalTalkers;
@@ -30,8 +30,6 @@ class FOnlineVoiceSteam : public IOnlineVoice
 	TArray<FLocalTalker> LocalTalkers;
 	/** State of all possible remote talkers */
 	TArray<FRemoteTalker> RemoteTalkers;
-	/** Remote players locally muted explicitly */
-	TArray<FUniqueNetIdSteam> SystemMuteList;
 	/** Remote players locally muted */
 	TArray<FUniqueNetIdSteam> MuteList;
 
@@ -50,11 +48,6 @@ class FOnlineVoiceSteam : public IOnlineVoice
 	 */
 	struct FRemoteTalker* FindRemoteTalker(const FUniqueNetId& UniqueId);
 
-	/**
-	 * Is a given id presently muted (either by system mute or game server)
-	 */
-	bool IsLocallyMuted(const FUniqueNetId& UniqueId) const;
-
 PACKAGE_SCOPE:
 	FOnlineVoiceSteam() :
 		SteamSubsystem(NULL),
@@ -69,7 +62,7 @@ PACKAGE_SCOPE:
 	// IOnlineVoice
 	virtual bool Init() OVERRIDE;
 	void ProcessMuteChangeNotification() OVERRIDE;
-
+	
 	/**
 	 * Processes any talking delegates that need to be fired off
 	 *
@@ -101,7 +94,7 @@ public:
 	FOnlineVoiceSteam(class FOnlineSubsystemSteam* InSteamSubsystem);
 
 	/** Virtual destructor to force proper child cleanup */
-	virtual ~FOnlineVoiceSteam();
+	virtual ~FOnlineVoiceSteam() {}
 
 	// IOnlineVoice
 	virtual void StartNetworkedVoice(uint8 LocalUserNum) OVERRIDE;

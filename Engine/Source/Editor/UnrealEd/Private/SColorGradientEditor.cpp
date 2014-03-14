@@ -431,7 +431,7 @@ FReply SColorGradientEditor::OnMouseButtonUp( const FGeometry& MyGeometry, const
 
 FReply SColorGradientEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
 {
-	if ( IsEditingEnabled.Get() == true && InKeyboardEvent.GetKey() == EKeys::Platform_Delete )
+	if( IsEditingEnabled.Get() == true && InKeyboardEvent.GetKey() == EKeys::Delete)
 	{
 		DeleteStop( SelectedStop );
 		return FReply::Handled();

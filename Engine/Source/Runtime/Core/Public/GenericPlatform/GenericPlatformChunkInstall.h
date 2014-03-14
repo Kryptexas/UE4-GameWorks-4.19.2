@@ -7,7 +7,6 @@
 
 #pragma once
 
-DECLARE_LOG_CATEGORY_EXTERN(LogChunkInstaller, Log, All);
 
 namespace EChunkLocation
 {
@@ -93,13 +92,6 @@ public:
 	 * @return				false if the operation is not allowed or the chunk doesn't exist, otherwise true.
 	 **/
 	virtual bool PrioritizeChunk( uint32 ChunkID ) = 0;
-
-	/**
-	 * For platforms that support emulation of the Chunk install.  Starts transfer of the next chunk.
-	 * Does nothing in a shipping build.
-	 * @return				true if the opreation succeeds.
-	 **/
-	virtual bool DebugStartNextChunk() = 0;
 };
 
 
@@ -165,15 +157,5 @@ public:
 	virtual bool PrioritizeChunk( uint32 ChunkID ) OVERRIDE
 	{
 		return false;
-	}
-
-	/**
-	 * For platforms that support emulation of the Chunk install.  Starts transfer of the next chunk.
-	 * Does nothing in a shipping build.
-	 * @return				true if the opreation succeeds.
-	 **/
-	virtual bool DebugStartNextChunk()
-	{
-		return true;
 	}
 };

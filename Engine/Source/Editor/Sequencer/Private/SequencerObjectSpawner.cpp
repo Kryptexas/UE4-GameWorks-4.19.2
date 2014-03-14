@@ -163,6 +163,8 @@ void FSequencerActorObjectSpawner::SpawnOrDestroyPuppetObjects( TSharedRef<FMovi
 				
 						if( NewActor )
 						{
+							bAnyLevelActorsChanged = true;
+
 							// @todo sequencer: We're naming the actor based off of the spawnable's name.  Is that really what we want?
 							GEditor->SetActorLabelUnique( NewActor, Spawnable.GetName() );
 
@@ -183,6 +185,11 @@ void FSequencerActorObjectSpawner::SpawnOrDestroyPuppetObjects( TSharedRef<FMovi
 				}
 			}
 		}
+	}
+
+	if( bAnyLevelActorsChanged )
+	{
+		GEditor->BroadcastLevelActorsChanged();
 	}
 }
 

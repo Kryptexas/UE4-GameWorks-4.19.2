@@ -552,8 +552,6 @@ FString	SMontageEditor::GetBranchPointName(int32 BranchPointIndex) const
 	return FString();
 }
 
-const float SMontageEditor::MinimumBranchPointSeperation = 1.0f/30.0f;
-
 void SMontageEditor::SetBranchPointStartPos(float NewStartPos, int32 BranchPointIndex)
 {
 	if (ValidBranch(BranchPointIndex))
@@ -562,68 +560,6 @@ void SMontageEditor::SetBranchPointStartPos(float NewStartPos, int32 BranchPoint
 		MontageObj->Modify();
 
 		FBranchingPoint& BranchPoint = MontageObj->BranchingPoints[BranchPointIndex];
-
-		float OriginalPosition = BranchPoint.DisplayTime;
-		float TempPosition = NewStartPos;
-		int32 MovementDirection = 1;
-
-		int32 BranchIndex = 0;
-		bool bHasSnapped = false;
-		float Prediction = NewStartPos;
-		for (; MontageObj->BranchingPoints.IsValidIndex(BranchIndex); BranchIndex += MovementDirection)
-		{
-			// Don't check self
-			if (BranchPointIndex == BranchIndex)
-			{
-				continue;
-			}
-
-			float BranchTime = MontageObj->BranchingPoints[BranchIndex].DisplayTime;
-			float LowerBound = BranchTime - MinimumBranchPointSeperation;
-			float UpperBound = BranchTime + MinimumBranchPointSeperation;
-
-			if (Prediction > BranchTime && Prediction < UpperBound)
-			{
-				if (!bHasSnapped)
-				{
-					bHasSnapped = true;
-					MovementDirection = 1;
-				}
-
-				Prediction = MovementDirection == 1 ? UpperBound : LowerBound;
-			}
-			else if (Prediction <= BranchTime && Prediction > LowerBound)
-			{
-				if (!bHasSnapped)
-				{
-					bHasSnapped = true;
-					MovementDirection = -1;
-				}
-
-				Prediction = MovementDirection == 1 ? UpperBound : LowerBound;
-			}
-			else if (bHasSnapped)
-			{
-				break;
-			}
-		}
-
-		if (bHasSnapped)
-		{
-			float ToOrig = FMath::Abs(OriginalPosition - NewStartPos);
-			float ToPrediction = FMath::Abs(Prediction - NewStartPos);
-			
-			NewStartPos = ToOrig < ToPrediction ? OriginalPosition : Prediction;
-		}
-
-		float CurrentLowerBound = NewStartPos - MinimumBranchPointSeperation;
-		float CurrentUpperBound = NewStartPos + MinimumBranchPointSeperation;
-
-		if (!(CurrentLowerBound >= 0.0f && CurrentUpperBound <= MontageObj->SequenceLength))
-		{
-			NewStartPos = OriginalPosition;
-		}
-
 		BranchPoint.DisplayTime = NewStartPos;
 		BranchPoint.RefreshTriggerOffset(MontageObj->CalculateOffsetForBranchingPoint(BranchPoint.DisplayTime));
 	}

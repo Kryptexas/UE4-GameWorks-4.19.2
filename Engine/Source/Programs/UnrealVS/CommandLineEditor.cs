@@ -23,7 +23,7 @@ namespace UnrealVS
 		private const int ComboID = 0x1030;
 		private const int ComboListID = 0x1040;
 		private const string InvalidProjectString = "<No Command-line>";
-		private const int ComboListCountMax = 32;
+		private const int ComboListCountMax = 10;
 
 		/** methods */
 
@@ -177,58 +177,49 @@ namespace UnrealVS
 		/// Called by combo control to query the text to display or to apply newly-entered text
 		private void ComboHandler(object Sender, EventArgs Args)
 		{
-			try
+			var OleArgs = (OleMenuCmdEventArgs)Args;
+
+			string InString = OleArgs.InValue as string;
+			if (InString != null)
 			{
-				var OleArgs = (OleMenuCmdEventArgs)Args;
-
-				string InString = OleArgs.InValue as string;
-				if (InString != null)
+				// New text set on the combo - set the command line property
+				DesiredCommandLine = null;
+				CommitCommandLineText(InString);
+			}
+			else if (OleArgs.OutValue != IntPtr.Zero)
+			{
+				string EditingString = null;
+				if (OleArgs.InValue != null)
 				{
-					// New text set on the combo - set the command line property
-					DesiredCommandLine = null;
-					CommitCommandLineText(InString);
-				}
-				else if (OleArgs.OutValue != IntPtr.Zero)
-				{
-					string EditingString = null;
-					if (OleArgs.InValue != null)
+					object[] InArray = OleArgs.InValue as object[];
+					if (InArray != null && 0 < InArray.Length)
 					{
-						object[] InArray = OleArgs.InValue as object[];
-						if (InArray != null && 0 < InArray.Length)
-						{
-							EditingString = InArray.Last() as string;
-						}
+						EditingString = InArray.Last() as string;
 					}
+				}
 
-					string TextToDisplay = string.Empty;
-					if (EditingString != null)
+				string TextToDisplay = string.Empty;
+				if (EditingString != null)
+				{
+					// The control wants to put EditingString in the box
+					TextToDisplay = DesiredCommandLine = EditingString;
+				}
+				else
+				{
+					// This is always hit at the end of interaction with the combo
+					if (DesiredCommandLine != null)
 					{
-						// The control wants to put EditingString in the box
-						TextToDisplay = DesiredCommandLine = EditingString;
+						TextToDisplay = DesiredCommandLine;
+						DesiredCommandLine = null;
+						CommitCommandLineText(TextToDisplay);
 					}
 					else
 					{
-						// This is always hit at the end of interaction with the combo
-						if (DesiredCommandLine != null)
-						{
-							TextToDisplay = DesiredCommandLine;
-							DesiredCommandLine = null;
-							CommitCommandLineText(TextToDisplay);
-						}
-						else
-						{
-							TextToDisplay = MakeCommandLineComboText();
-						}
+						TextToDisplay = MakeCommandLineComboText();
 					}
-
-					Marshal.GetNativeVariantForObject(TextToDisplay, OleArgs.OutValue);
 				}
-			}
-			catch (Exception ex)
-			{
-				Exception AppEx = new ApplicationException("CommandLineEditor threw an exception in ComboHandler()", ex);
-				Logging.WriteLine(AppEx.ToString());
-				throw AppEx;
+
+				Marshal.GetNativeVariantForObject(TextToDisplay, OleArgs.OutValue);
 			}
 		}
 

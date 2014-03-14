@@ -32,7 +32,6 @@ void FClassViewerModule::StartupModule()
 {
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner( ClassViewerModule::ClassViewerApp, FOnSpawnTab::CreateStatic( &CreateClassPickerTab ) )
 		.SetDisplayName( NSLOCTEXT("ClassViewerApp", "TabTitle", "Class Viewer") )
-		.SetTooltipText( NSLOCTEXT("ClassViewerApp", "TooltipText", "Open the Class Viewer tab.") )
 		.SetGroup( WorkspaceMenu::GetMenuStructure().GetToolsCategory() )
 		.SetIcon( FSlateIcon(FEditorStyle::GetStyleSetName(), "ClassViewer.TabIcon") );
 }

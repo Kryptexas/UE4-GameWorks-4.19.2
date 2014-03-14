@@ -128,7 +128,7 @@ void SButtonRowBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet, const F
 					.Visibility( this, &SButtonRowBlock::GetIconVisibility, false )
 
 					// Smaller font for tool tip labels
-					.TextStyle( StyleSet, ISlateStyle::Join( StyleName, ".Label" ) )
+					.Font( StyleSet->GetFontStyle( StyleName, ".Label.Font" ) )
 			]
 		;
 

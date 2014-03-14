@@ -358,42 +358,14 @@ inline void FAndroidTargetPlatform::QueryConnectedDevices( )
 		FString SerialNumber = DeviceString.Left(TabIndex);
 		ConnectedDeviceIds.Add(DeviceString.Left(TabIndex));
 
-		// move on to next device if this one is already a known device
-		if (Devices.Find(SerialNumber))
+		// create target device if needed
+		FAndroidTargetDevicePtr& Device = Devices.FindOrAdd(SerialNumber);
+
+		if (!Device.IsValid())
 		{
-			continue;
+			Device = MakeShareable(new FAndroidTargetDevice(*this, SerialNumber, GetAndroidVariantName()));
+			DeviceDiscoveredEvent.Broadcast(Device.ToSharedRef());
 		}
-
-		// get the GL extensions string (and a bunch of other stuff)
-		FString ExtensionsString;
-
-		FString ExtensionsCommand = FString::Printf(TEXT("-s %s shell dumpsys SurfaceFlinger"), *SerialNumber);
-		if (!ExecuteAdbCommand(*ExtensionsCommand, &ExtensionsString, nullptr))
-		{
-			continue;
-		}
-
-		// grab the GL ES version
-		FString GLESVersionString;
-
-		FString VersionCommand = FString::Printf(TEXT("-s %s shell getprop ro.opengles.version"), *SerialNumber);
-		if (!ExecuteAdbCommand(*VersionCommand, &GLESVersionString, nullptr))
-		{
-			continue;
-		}
-
-		int GLESVersion = FCString::Atoi(*GLESVersionString);
-
-		// check if this platform is supported by the extensions and version
-		if (!SupportedByExtensionsString(ExtensionsString, GLESVersion))
-		{
-			continue;
-		}
-
-		// create target device
-		FAndroidTargetDevicePtr& Device = Devices.Add(SerialNumber);
-
-		Device = MakeShareable(new FAndroidTargetDevice(*this, SerialNumber, GetAndroidVariantName()));
 
 		Device->SetConnected(true);
 
@@ -404,7 +376,7 @@ inline void FAndroidTargetPlatform::QueryConnectedDevices( )
 		{
 			Device->SetModel(Model);
 		}
-	
+
 		// parse device name
 		FString DeviceName;
 
@@ -412,8 +384,6 @@ inline void FAndroidTargetPlatform::QueryConnectedDevices( )
 		{
 			Device->SetDeviceName(DeviceName);
 		}
-
-		DeviceDiscoveredEvent.Broadcast(Device.ToSharedRef());
 	}
 
 	// remove disconnected devices

@@ -9,7 +9,7 @@ UBTTask_Wait::UBTTask_Wait(const class FPostConstructInitializeProperties& PCIP)
 	bNotifyTick = true;
 }
 
-EBTNodeResult::Type UBTTask_Wait::ExecuteTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UBTTask_Wait::ExecuteTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
 {
 	FBTWaitTaskMemory* MyMemory = (FBTWaitTaskMemory*)NodeMemory;
 	MyMemory->RemainingWaitTime = WaitTime;
@@ -17,7 +17,7 @@ EBTNodeResult::Type UBTTask_Wait::ExecuteTask(class UBehaviorTreeComponent* Owne
 	return EBTNodeResult::InProgress;
 }
 
-void UBTTask_Wait::TickTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds)
+void UBTTask_Wait::TickTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) const
 {
 	FBTWaitTaskMemory* MyMemory = (FBTWaitTaskMemory*)NodeMemory;
 	MyMemory->RemainingWaitTime -= DeltaSeconds;

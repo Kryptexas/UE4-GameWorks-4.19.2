@@ -350,11 +350,6 @@ public:
 		return false;
 	}
 
-	virtual bool IsSupported() const
-	{
-		return true;
-	}
-
 	static FQuadricSimplifierMeshReduction* Create()
 	{
 		return new FQuadricSimplifierMeshReduction;

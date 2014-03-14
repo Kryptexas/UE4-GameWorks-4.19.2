@@ -43,28 +43,10 @@ public:
 
 private:
 
-	void ReloadVisibleData();
-
-	void OnSearchTextChanged(const FText& SearchText);
-
-	TSharedRef<SVerticalBox> CreateContentBox();
-
 	/**	Spawns the tab with the data table inside */
 	TSharedRef<SDockTab> SpawnTab_DataTable( const FSpawnTabArgs& Args );
 
 private:
-
-	/** Cached table data */
-	TArray<TArray<FString> > CachedDataTable;
-
-	/** Visibility of data table rows */
-	TArray<bool> RowsVisibility;
-
-	/** Search box */
-	TSharedPtr<SWidget> SearchBox;
-
-	/** Scroll containing data table */
-	TSharedPtr<SScrollBox> ScrollBoxWidget;
 
 	/**Border surrounding the GridPanel */
 	TSharedPtr<SBorder>	 GridPanelOwner;

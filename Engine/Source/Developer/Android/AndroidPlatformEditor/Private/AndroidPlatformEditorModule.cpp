@@ -17,7 +17,7 @@ class FAndroidPlatformEditorModule : public IModuleInterface
 		// Register the settings detail panel customization
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 		PropertyModule.RegisterCustomPropertyLayout(
-			UAndroidRuntimeSettings::StaticClass()->GetFName(),
+			UAndroidRuntimeSettings::StaticClass(),
 			FOnGetDetailCustomizationInstance::CreateStatic(&FAndroidTargetSettingsCustomization::MakeInstance));
 		PropertyModule.NotifyCustomizationModuleChanged();
 

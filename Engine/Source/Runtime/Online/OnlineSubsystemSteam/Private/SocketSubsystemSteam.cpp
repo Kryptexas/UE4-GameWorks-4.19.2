@@ -178,13 +178,13 @@ FSocket* FSocketSubsystemSteam::CreateSocket(const FName& SocketType, const FStr
 	else if (SocketType == FName("SteamServerSocket"))
 	{
 		IOnlineSubsystem* SteamSubsystem = IOnlineSubsystem::Get(STEAM_SUBSYSTEM);
-		FOnlineSessionSteamPtr SessionInt = StaticCastSharedPtr<FOnlineSessionSteam>(SteamSubsystem->GetSessionInterface());
-		if (SessionInt.IsValid())
+		FOnlineSessionSteamPtr SessionInterface = StaticCastSharedPtr<FOnlineSessionSteam>(SteamSubsystem->GetSessionInterface());
+		if (SessionInterface.IsValid())
 		{
 			// If the GameServer connection hasn't been created yet, mark the socket as invalid for now
-			if (SessionInt->bSteamworksGameServerConnected && SessionInt->GameServerSteamId->IsValid() && SessionInt->bPolicyResponseReceived)
+			if (SessionInterface->bSteamworksGameServerConnected && SessionInterface->GameServerSteamId->IsValid() && SessionInterface->bPolicyResponseReceived)
 			{
-				NewSocket = new FSocketSteam(SteamGameServerNetworking(), *SessionInt->GameServerSteamId, SocketDescription);
+				NewSocket = new FSocketSteam(SteamGameServerNetworking(), *SessionInterface->GameServerSteamId, SocketDescription);
 			}
 			else
 			{

@@ -37,9 +37,6 @@ void FHttpModule::StartupModule()
 
 	HttpSendTimeout = HttpConnectionTimeout;
 	GConfig->GetFloat(TEXT("HTTP"), TEXT("HttpSendTimeout"), HttpSendTimeout, GEngineIni);
-
-	HttpMaxConnectionsPerServer = 16;
-	GConfig->GetInt(TEXT("HTTP"), TEXT("HttpMaxConnectionsPerServer"), HttpMaxConnectionsPerServer, GEngineIni);
 	
 	bEnableHttp = true;
 	GConfig->GetBool(TEXT("HTTP"), TEXT("bEnableHttp"), bEnableHttp, GEngineIni);
@@ -88,10 +85,6 @@ bool FHttpModule::HandleHTTPCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 		}		
 		FHttpTest* HttpTest = new FHttpTest(TEXT("GET"),TEXT(""),Url,Iterations);
 		HttpTest->Run();
-	}
-	else if (FParse::Command(&Cmd, TEXT("DUMPREQ")))
-	{
-		GetHttpManager().DumpRequests(Ar);
 	}
 	return true;	
 }
@@ -198,11 +191,11 @@ bool FHttpManager::IsValidRequest(class IHttpRequest* RequestPtr)
 
 void FHttpManager::DumpRequests(FOutputDevice& Ar)
 {
-	Ar.Logf(TEXT("------- (%d) Http Requests"), Requests.Num());
 	for (TArray<TSharedRef<class IHttpRequest> >::TIterator It(Requests); It; ++It)
 	{
 		TSharedRef<class IHttpRequest> Request = *It;
-		Ar.Logf(TEXT("	verb=[%s] url=[%s] status=%s"),
-			*Request->GetVerb(), *Request->GetURL(), EHttpRequestStatus::ToString(Request->GetStatus()));
+		Ar.Logf(TEXT("------- Http Requests"));
+		Ar.Logf(TEXT("	verb=[%s] url=[%s] status=%d"),
+			*Request->GetVerb(), *Request->GetURL(), (int32)Request->GetStatus());
 	}
 }

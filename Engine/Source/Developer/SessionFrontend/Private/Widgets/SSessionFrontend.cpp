@@ -124,6 +124,12 @@ void SSessionFrontend::FillWindowMenu( FMenuBuilder& MenuBuilder, TSharedRef<FWo
 		return;
 	}
 
+	MenuBuilder.BeginSection("WindowLocalTabSpawners", LOCTEXT("SessionFrontendMenuGroup", "Session Frontend"));
+	{
+		TabManager->PopulateTabSpawnerMenu(MenuBuilder, AppMenuGroup);
+	}
+	MenuBuilder.EndSection();
+
 #if !WITH_EDITOR
 	MenuBuilder.BeginSection("WindowGlobalTabSpawners", LOCTEXT("UfeMenuGroup", "Unreal Frontend"));
 	{
@@ -131,12 +137,6 @@ void SSessionFrontend::FillWindowMenu( FMenuBuilder& MenuBuilder, TSharedRef<FWo
 	}
 	MenuBuilder.EndSection();
 #endif //!WITH_EDITOR
-
-	MenuBuilder.BeginSection("WindowLocalTabSpawners", LOCTEXT("SessionFrontendMenuGroup", "Session Frontend"));
-	{
-		TabManager->PopulateTabSpawnerMenu(MenuBuilder, AppMenuGroup);
-	}
-	MenuBuilder.EndSection();
 }
 
 

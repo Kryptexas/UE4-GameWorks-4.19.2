@@ -4,12 +4,15 @@
 #include "BspModeModule.h"
 #include "BspMode.h"
 #include "SBspPalette.h"
+#include "BspModeActions.h"
 
 #define LOCTEXT_NAMESPACE "BspMode"
 
 void FBspModeModule::StartupModule()
 {
 	FBspModeStyle::Initialize();
+
+	FBspModeCommands::Register();
 
 	BspMode = FBspMode::Create();
 	GEditorModeTools().RegisterMode( BspMode.ToSharedRef() );
@@ -28,6 +31,8 @@ void FBspModeModule::ShutdownModule()
 {
 	GEditorModeTools().UnregisterMode( BspMode.ToSharedRef() );
 	BspMode = NULL;
+
+	FBspModeCommands::Unregister();
 
 	BspBuilderTypes.Empty();
 }

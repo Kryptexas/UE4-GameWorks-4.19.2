@@ -15,9 +15,9 @@ namespace FEQSRenderingHelper
 	FVector ExtractLocation(TSubclassOf<class UEnvQueryItemType> ItemType, TArray<uint8> RawData, const TArray<FEnvQueryItem>& Items, int32 Index)
 	{
 		if (Items.IsValidIndex(Index) &&
-			ItemType->IsChildOf(UEnvQueryItemType_VectorBase::StaticClass()))
+			ItemType->IsChildOf(UEnvQueryItemType_LocationBase::StaticClass()))
 		{
-			UEnvQueryItemType_VectorBase* DefTypeOb = (UEnvQueryItemType_VectorBase*)ItemType->GetDefaultObject();
+			UEnvQueryItemType_LocationBase* DefTypeOb = (UEnvQueryItemType_LocationBase*)ItemType->GetDefaultObject();
 			return DefTypeOb->GetLocation(RawData.GetTypedData() + Items[Index].DataOffset);
 		}
 		return FVector::ZeroVector;
@@ -269,7 +269,7 @@ FPrimitiveViewRelevance FEQSSceneProxy::GetViewRelevance(const FSceneView* View)
 	Result.bDrawRelevance = !!View->Family->EngineShowFlags.GetSingleFlag(ViewFlagIndex) && IsShown(View) 
 		&& (bDrawOnlyWhenSelected == false || ActorOwner->IsSelected());
 	Result.bDynamicRelevance = true;
-	Result.bNormalTranslucencyRelevance = IsShown(View);
+	Result.bNormalTranslucencyRelevance = IsShown(View) && GIsEditor;
 	return Result;
 }
 
@@ -289,13 +289,12 @@ uint32 FEQSSceneProxy::GetAllocatedSize( void ) const
 UEQSRenderingComponent::UEQSRenderingComponent(const class FPostConstructInitializeProperties& PCIP) 
 	: Super(PCIP)
 	, DrawFlagName("GameplayDebug")
-	, bDrawOnlyWhenSelected(true)
 {
 }
 
 FPrimitiveSceneProxy* UEQSRenderingComponent::CreateSceneProxy()
 {
-	return new FEQSSceneProxy(this, DrawFlagName, bDrawOnlyWhenSelected);
+	return new FEQSSceneProxy(this, DrawFlagName);
 }
 
 FBoxSphereBounds UEQSRenderingComponent::CalcBounds(const FTransform & LocalToWorld) const

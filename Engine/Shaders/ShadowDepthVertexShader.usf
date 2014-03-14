@@ -29,11 +29,8 @@ void SetShadowDepthOutputs(float4 WorldPosition, out float4 OutPosition, out flo
 	#if PERSPECTIVE_CORRECT_DEPTH
 		ShadowDepth = OutPosition.z;
 	#else
-		float DepthBias = ShadowParams.x;
-		float InvMaxSubjectDepth = ShadowParams.y;
-
 		// Output linear, normalized depth
-		ShadowDepth = OutPosition.z * InvMaxSubjectDepth + DepthBias;
+		ShadowDepth = (OutPosition.z * InvMaxSubjectDepth + DepthBias);
 		OutPosition.z = ShadowDepth * OutPosition.w;
 	#endif
 }

@@ -5,9 +5,6 @@
 #include "Core.h"
 #include "ModuleInterface.h"
 
-typedef TSharedPtr<class IOnlineSubsystem, ESPMode::ThreadSafe> IOnlineSubsystemPtr;
-
-
 /**
  * Online subsystem module class
  * Wraps the loading of an online subsystem by name and allows new services to register themselves for use
@@ -23,12 +20,8 @@ private:
 	 */
 	FName DefaultPlatformService;
 
-	TMap<FName, class IOnlineFactory*> OnlineFactories;
-
 	/** Mapping of all currently loaded platform service subsystems to their name */
-	TMap<FName, IOnlineSubsystemPtr> OnlineSubsystems;
-
-	void ParseOnlineSubsystemName(const FName& FullName, FName& SubsystemName, FName& InstanceName);
+	TMap<FName, class IOnlineSubsystem*> PlatformServices;
 
 	/**
 	 *	Shuts down all registered online subsystem platforms and unloads their modules
@@ -65,7 +58,7 @@ public:
 	 * @param FactoryName - name of subsystem as referenced by consumers
 	 * @param Factory - instantiation of the online subsystem interface, this will take ownership
 	 */
-	virtual void RegisterPlatformService(const FName FactoryName, class IOnlineFactory* Factory);
+	virtual void RegisterPlatformService(const FName FactoryName, class IOnlineSubsystem* Factory);
 	
 	/** 
 	 * Unregister an existing online subsystem interface from the base level factory provider

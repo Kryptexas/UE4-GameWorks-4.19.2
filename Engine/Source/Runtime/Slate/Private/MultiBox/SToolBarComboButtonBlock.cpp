@@ -6,14 +6,14 @@
 
 
 FToolBarComboButtonBlock::FToolBarComboButtonBlock( const FUIAction& InAction, const FOnGetContent& InMenuContentGenerator, const TAttribute<FText>& InLabel, const TAttribute<FText>& InToolTip, const TAttribute<FSlateIcon>& InIcon, bool bInSimpleComboBox )
-	: FMultiBlock( InAction )
-	, MenuContentGenerator( InMenuContentGenerator )
-	, Label( InLabel )
-	, ToolTip( InToolTip )
-	, Icon( InIcon )
-	, LabelVisibility()
-	, bSimpleComboBox( bInSimpleComboBox )
-	, bForceSmallIcons( false )
+	: FMultiBlock( InAction ),
+	  MenuContentGenerator( InMenuContentGenerator ),
+	  Label( InLabel ),
+	  ToolTip( InToolTip ),
+	  Icon( InIcon ),
+	  LabelVisibility(),
+	  bSimpleComboBox( bInSimpleComboBox ),
+	  bForceSmallIcons( false )
 {
 }
 
@@ -132,7 +132,7 @@ void SToolBarComboButtonBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet
 				.Text( Label )
 
 				// Smaller font for tool tip labels
-				.TextStyle( StyleSet, ISlateStyle::Join( StyleName, ".Label" ) )
+				.Font( StyleSet->GetFontStyle( StyleName, ".Label.Font" ) )
 				.ShadowOffset(FVector2D::UnitVector)
 		]
 		;

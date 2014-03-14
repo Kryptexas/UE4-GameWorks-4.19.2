@@ -75,10 +75,6 @@ class ULandscapeSplineControlPoint : public UObject
 	UPROPERTY(EditAnywhere, Category=Mesh)
 	FVector MeshScale;
 
-	/**  Max draw distance for the mesh used on this control point */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Mesh, meta = (DisplayName = "Max Draw Distance"))
-	float LDMaxDrawDistance;
-
 	/**
 	 * Name of blend layer to paint when applying spline to landscape
 	 * If "none", no layer is painted

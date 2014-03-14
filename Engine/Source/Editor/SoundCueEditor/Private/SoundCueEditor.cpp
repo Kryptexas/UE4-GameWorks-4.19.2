@@ -256,7 +256,7 @@ void FSoundCueEditor::ExtendToolbar()
 
 				ToolbarBuilder.AddToolBarButton(FSoundCueGraphEditorCommands::Get().PlayNode);
 
-				ToolbarBuilder.AddToolBarButton(FSoundCueGraphEditorCommands::Get().StopCueNode);
+				ToolbarBuilder.AddToolBarButton(FSoundCueGraphEditorCommands::Get().Stop);
 			}
 			ToolbarBuilder.EndSection();
 		}
@@ -291,7 +291,7 @@ void FSoundCueEditor::BindGraphCommands()
 		FCanExecuteAction::CreateSP( this, &FSoundCueEditor::CanPlayNode ));
 
 	ToolkitCommands->MapAction(
-		Commands.StopCueNode,
+		Commands.Stop,
 		FExecuteAction::CreateSP(this, &FSoundCueEditor::Stop));
 
 	ToolkitCommands->MapAction(

@@ -73,7 +73,6 @@ APhysicsThruster::APhysicsThruster(const class FPostConstructInitializePropertie
 		ArrowComponent->SpriteInfo.Category = ConstructorStatics.ID_Physics;
 		ArrowComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Physics;
 		ArrowComponent->AttachParent = ThrusterComponent;
-		ArrowComponent->bIsScreenSizeScaled = true;
 	}
 
 	SpriteComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
@@ -83,7 +82,6 @@ APhysicsThruster::APhysicsThruster(const class FPostConstructInitializePropertie
 		SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Physics;
 		SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Physics;
 		SpriteComponent->AttachParent = ThrusterComponent;
-		SpriteComponent->bIsScreenSizeScaled = true;
 	}
 #endif // WITH_EDITORONLY_DATA
 }

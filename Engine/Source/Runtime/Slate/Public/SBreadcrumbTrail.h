@@ -112,7 +112,7 @@ public:
 	}
 
 	/** Adds a crumb to the end of the trail.*/
-	void PushCrumb(const TAttribute<FText>& CrumbText, const ItemType& NewCrumbData)
+	void PushCrumb(const TAttribute<FString>& CrumbText, const ItemType& NewCrumbData)
 	{
 		// Create the crumb and add it to the crumb box
 		TSharedPtr<SButton> NewButton;

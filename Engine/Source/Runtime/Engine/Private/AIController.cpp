@@ -77,11 +77,10 @@ void AAIController::DisplayDebug(class UCanvas* Canvas, const TArray<FName>& Deb
 
 void AAIController::GrabDebugSnapshot(FVisLogEntry* Snapshot) const
 {
-	FVisLogEntry::FStatusCategory MyCategory;
-	MyCategory.Category = TEXT("AI Contoller");
-	MyCategory.Add(TEXT("Pawn"), GetNameSafe(GetPawn()));
-	MyCategory.Add(TEXT("Focus"), GetDebugName(GetFocusActor()));
-	Snapshot->Status.Add(MyCategory);
+	Snapshot->StatusString += FString::Printf(TEXT("\
+										Pawn: %s\n\
+										Focus: %s\n")
+		, *GetDebugName(GetPawn()), *GetDebugName(GetFocusActor()));
 
 	if (GetPawn())
 	{
@@ -356,15 +355,12 @@ void AAIController::UpdateControlRotation(float DeltaTime, bool bUpdatePawn)
 		}
 		NewControlRotation.Yaw = FRotator::ClampAxis(NewControlRotation.Yaw);
 
-		if (!GetControlRotation().Equals(NewControlRotation, 1e-3f))
-		{
-			SetControlRotation(NewControlRotation);
+		SetControlRotation(NewControlRotation);
 
-			APawn* const P = GetPawn();
-			if (P && bUpdatePawn)
-			{
-				P->FaceRotation(NewControlRotation, DeltaTime);
-			}
+		APawn* const P = GetPawn();
+		if (P && bUpdatePawn)
+		{
+			P->FaceRotation(NewControlRotation, DeltaTime);
 		}
 	}
 }
@@ -413,7 +409,7 @@ EPathFollowingRequestResult::Type AAIController::MoveToActor(class AActor* Goal,
 		}
 		else 
 		{
-			FNavPathSharedPtr Path = FindPath(Goal, bUsePathfinding, UNavigationQueryFilter::GetQueryFilter(this, FilterClass));
+			FNavPathSharedPtr Path = FindPath(Goal, bUsePathfinding, UNavigationQueryFilter::GetQueryFilter(FilterClass));
 			if (Path.IsValid())
 			{
 				bAllowStrafe = bCanStrafe;
@@ -478,12 +474,12 @@ EPathFollowingRequestResult::Type AAIController::MoveToLocation(const FVector& D
 
 	if (bCanRequestMove)
 	{
-		FNavPathSharedPtr Path = FindPath(GoalLocation, bUsePathfinding, UNavigationQueryFilter::GetQueryFilter(this, FilterClass));
-		if (Path.IsValid())
-		{
-			bAllowStrafe = bCanStrafe;
+		FNavPathSharedPtr Path = FindPath(GoalLocation, bUsePathfinding, UNavigationQueryFilter::GetQueryFilter(FilterClass));
+	if (Path.IsValid())
+	{
+		bAllowStrafe = bCanStrafe;
 
-			const uint32 RequestID = RequestMove(Path, NULL, AcceptanceRadius, bStopOnOverlap);
+		const uint32 RequestID = RequestMove(Path, NULL, AcceptanceRadius, bStopOnOverlap);
 			Result = (RequestID != INVALID_MOVEREQUESTID) ? EPathFollowingRequestResult::RequestSuccessful : EPathFollowingRequestResult::Failed;
 		}
 	}

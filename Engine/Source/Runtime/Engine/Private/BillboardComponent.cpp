@@ -3,15 +3,6 @@
 #include "EnginePrivate.h"
 #include "LevelUtils.h"
 
-namespace BillboardConstants
-{
-	static const float DefaultScreenSize = 0.0025f;
-}
-
-#if WITH_EDITORONLY_DATA
-float UBillboardComponent::EditorScale = 1.0f;
-#endif
-
 /** Represents a billboard sprite to the scene manager. */
 class FSpriteSceneProxy : public FPrimitiveSceneProxy
 {
@@ -26,10 +17,6 @@ public:
 		, LevelColor(255,255,255)
 		, PropertyColor(255,255,255)
 		, bIsScreenSizeScaled(InComponent->bIsScreenSizeScaled)
-#if WITH_EDITORONLY_DATA
-		, bUseInEditorScaling(InComponent->bUseInEditorScaling)
-		, EditorScale(InComponent->EditorScale)
-#endif
 	{
 #if WITH_EDITOR
 		// Extract the sprite category from the component if in the editor
@@ -49,7 +36,7 @@ public:
 			Texture = InComponent->Sprite;
 			// Set UL and VL to the size of the texture if they are set to 0.0, otherwise use the given value
 			UL = InComponent->UL == 0.0f ? InComponent->Sprite->GetSurfaceWidth() : InComponent->UL;
-			VL = InComponent->VL == 0.0f ? InComponent->Sprite->GetSurfaceHeight() : InComponent->VL;	
+			VL = InComponent->VL == 0.0f ? InComponent->Sprite->GetSurfaceHeight() : InComponent->VL;
 			SizeX = Scale * UL * SpriteScale * 0.25f;
 			SizeY = Scale * VL * SpriteScale * 0.25f;
 		}
@@ -122,21 +109,13 @@ public:
 			if (bIsScreenSizeScaled && (View->ViewMatrices.ProjMatrix.M[3][3] != 1.0f))
 			{
 				const float ZoomFactor	= FMath::Min<float>(View->ViewMatrices.ProjMatrix.M[0][0], View->ViewMatrices.ProjMatrix.M[1][1]);
-				if(ZoomFactor != 0.0f)
+				const float Radius		= View->WorldToScreen(Origin).W * (ScreenSize / ZoomFactor);
+				if (Radius < 1.0f)
 				{
-					const float Radius = View->WorldToScreen(Origin).W * (ScreenSize / ZoomFactor);
-					if (Radius < 1.0f)
-					{
-						ViewedSizeX *= Radius;
-						ViewedSizeY *= Radius;
-					}					
+					ViewedSizeX *= Radius;
+					ViewedSizeY *= Radius;
 				}
 			}
-
-#if WITH_EDITORONLY_DATA
-			ViewedSizeX *= EditorScale;
-			ViewedSizeY *= EditorScale;
-#endif
 
 			FLinearColor ColorToUse = Color;
 
@@ -218,8 +197,6 @@ private:
 	uint32 bIsActorLocked : 1;
 #if WITH_EDITOR
 	int32 SpriteCategoryIndex;
-	bool bUseInEditorScaling;
-	float EditorScale;
 #endif // #if WITH_EDITOR
 };
 
@@ -247,7 +224,7 @@ UBillboardComponent::UBillboardComponent(const class FPostConstructInitializePro
 	bAbsoluteScale = true;
 
 	bIsScreenSizeScaled = false;
-	ScreenSize = BillboardConstants::DefaultScreenSize;
+	ScreenSize = 0.1;
 	U = 0;
 	V = 0;
 	UL = 0;
@@ -259,7 +236,6 @@ UBillboardComponent::UBillboardComponent(const class FPostConstructInitializePro
 #if WITH_EDITORONLY_DATA
 	SpriteInfo.Category = ConstructorStatics.ID_Misc;
 	SpriteInfo.DisplayName = ConstructorStatics.NAME_Misc;
-	bUseInEditorScaling = true;
 #endif // WITH_EDITORONLY_DATA
 }
 
@@ -304,14 +280,3 @@ void UBillboardComponent::SetSpriteAndUV(UTexture2D* NewSprite, int32 NewU, int3
 	VL = NewVL;
 	SetSprite(NewSprite);
 }
-
-#if WITH_EDITORONLY_DATA
-void UBillboardComponent::SetEditorScale(float InEditorScale)
-{
-	EditorScale = InEditorScale;
-	for(TObjectIterator<UBillboardComponent> It; It; ++It)
-	{
-		It->MarkRenderStateDirty();
-	}
-}
-#endif

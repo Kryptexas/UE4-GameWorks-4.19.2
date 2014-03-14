@@ -96,35 +96,36 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 				return RedirectToAction( "" );
 			}
 
-			string FormValue;
-
-			FormValue = CrashesForm["SetStatus"];
-			if (!string.IsNullOrEmpty(FormValue))
+			if( !string.IsNullOrEmpty( CrashesForm["SetStatus"] ) )
 			{
-				CurrentCrash.Status = FormValue;
-				LocalCrashRepository.SetCrashStatus(FormValue, Id.Value);
+				CurrentCrash.Status = CrashesForm["SetStatus"];
+				LocalCrashRepository.SetCrashStatus(CurrentCrash.Status, Id.Value);
 			}
 
-			FormValue = CrashesForm["SetFixedIn"];
-			if (!string.IsNullOrEmpty(FormValue))
+			if( !string.IsNullOrEmpty( CrashesForm["SetFixedIn"] ) )
 			{
-				CurrentCrash.FixedChangeList = FormValue;
-				LocalCrashRepository.SetCrashFixedChangeList(FormValue, Id.Value);
+				CurrentCrash.FixedChangeList = CrashesForm["SetFixedIn"];
+				LocalCrashRepository.SetCrashFixedChangeList(CurrentCrash.FixedChangeList, Id.Value);
 			}
 
-			FormValue = CrashesForm["SetTTP"];
-			if (!string.IsNullOrEmpty(FormValue))
+			if( !string.IsNullOrEmpty( CrashesForm["SetTTP"] ) )
 			{
-				CurrentCrash.TTPID = FormValue;
-				LocalCrashRepository.SetCrashTTPID(FormValue, Id.Value);
+				CurrentCrash.TTPID = CrashesForm["SetTTP"];
+				LocalCrashRepository.SetCrashTTPID(CurrentCrash.TTPID, Id.Value);
 			}
 
-			// Valid to set description to an empty string
-			FormValue = CrashesForm["Description"];
-			if (FormValue != null)
+			if( !string.IsNullOrEmpty( CrashesForm["Description"] ) )
 			{
-				CurrentCrash.Description = FormValue;
-				LocalCrashRepository.SetCrashDescription(FormValue, Id.Value);
+				CurrentCrash.Description = CrashesForm["Description"];
+				LocalCrashRepository.SetCrashDescription(CurrentCrash.Description, Id.Value);
+			}
+			else
+			{
+				if( !string.IsNullOrEmpty( CurrentCrash.Description ) && string.IsNullOrEmpty( CrashesForm["Description"] ) )
+				{
+					CurrentCrash.Description = "";
+					LocalCrashRepository.SetCrashDescription(CurrentCrash.Description, Id.Value);
+				}
 			}
 
 			CurrentCallStack = new CallStackContainer( CurrentCrash );

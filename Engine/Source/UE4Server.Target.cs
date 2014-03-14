@@ -40,6 +40,9 @@ public class UE4ServerTarget : TargetRules
 
             UEBuildConfiguration.bCompileAgainstEngine = true;
 
+            // Tag it as a Rocket build
+            OutCPPEnvironmentConfiguration.Definitions.Add("UE_ROCKET=1");
+
             // no exports, so no need to verify that a .lib and .exp file was emitted by the linker.
             OutLinkEnvironmentConfiguration.bHasExports = false;
         }

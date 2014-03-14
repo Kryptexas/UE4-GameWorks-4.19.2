@@ -147,6 +147,7 @@ void FObjectReplicator::InitWithObject( UObject * InObject, UNetConnection * InC
 	check( GetObject() == NULL );
 	check( ObjectClass == NULL );
 	check( bLastUpdateEmpty == false );
+	check( TempBitWriter == NULL );
 	check( Connection == NULL );
 	check( OwningChannel == NULL );
 	check( RepState == NULL );
@@ -215,6 +216,8 @@ void FObjectReplicator::StartReplicating( class UActorChannel * InActorChannel )
 		check( !ObjectNetGUID.IsDefault() && ObjectNetGUID.IsValid() );
 	}
 
+	TempBitWriter = new FNetBitWriter( OwningChannel->Connection->PackageMap, 0 );
+
 	// Allocate retirement list.
 	// SetNum now constructs, so this is safe
 	Retirement.SetNum( ObjectClass->ClassReps.Num() );
@@ -243,23 +246,6 @@ void FObjectReplicator::StartReplicating( class UActorChannel * InActorChannel )
 	}
 }
 
-static FORCEINLINE void ValidateRetirementHistory( FPropertyRetirement & Retire )
-{
-	FPropertyRetirement * Rec = Retire.Next;	// Note the first element is 'head' that we dont actually use
-
-	FPacketIdRange LastRange;
-
-	while ( Rec != NULL )
-	{
-		check( Rec->OutPacketIdRange.Last >= Rec->OutPacketIdRange.First );
-		check( Rec->OutPacketIdRange.First >= LastRange.Last );		// Bunch merging and queuing can cause this overlap
-
-		LastRange = Rec->OutPacketIdRange;
-
-		Rec = Rec->Next;
-	}
-}
-
 void FObjectReplicator::StopReplicating( class UActorChannel * InActorChannel )
 {
 	check( OwningChannel != NULL );
@@ -270,8 +256,6 @@ void FObjectReplicator::StopReplicating( class UActorChannel * InActorChannel )
 	// Cleanup retirement records
 	for ( int32 i = Retirement.Num() - 1; i >= 0; i-- )
 	{
-		ValidateRetirementHistory( Retirement[i] );
-
 		FPropertyRetirement * Rec = Retirement[i].Next;
 		Retirement[i].Next = NULL;
 
@@ -290,6 +274,29 @@ void FObjectReplicator::StopReplicating( class UActorChannel * InActorChannel )
 	{
 		delete RemoteFunctions;
 		RemoteFunctions = NULL;
+	}
+
+	if ( TempBitWriter != NULL )
+	{
+		delete TempBitWriter;
+		TempBitWriter = NULL;
+	}
+}
+
+static FORCEINLINE void ValidateRetirementHistory( FPropertyRetirement & Retire )
+{
+	FPropertyRetirement * Rec = Retire.Next;	// Note the first element is 'head' that we dont actually use
+
+	FPacketIdRange LastRange;
+
+	while ( Rec != NULL )
+	{
+		check( Rec->OutPacketIdRange.Last >= Rec->OutPacketIdRange.First );
+		check( Rec->OutPacketIdRange.First >= LastRange.Last );		// Bunch merging and queuing can cause this overlap
+
+		LastRange = Rec->OutPacketIdRange;
+
+		Rec = Rec->Next;
 	}
 }
 
@@ -450,8 +457,6 @@ bool FObjectReplicator::ReceivedBunch( FInBunch &Bunch, const FReplicationFlags 
 
 				bool bDiscardLayout = false;
 
-				check( Bunch.PacketId >= Retire.InPacketId );
-
 				if ( Bunch.PacketId >= Retire.InPacketId ) //!! problem with reliable pkts containing dynamic references, being retransmitted, and overriding newer versions. Want "OriginalPacketId" for retransmissions?
 				{
 					// Receive this new property.
@@ -493,8 +498,6 @@ bool FObjectReplicator::ReceivedBunch( FInBunch &Bunch, const FReplicationFlags 
 
 				// Check property ordering.
 				FPropertyRetirement & Retire = Retirement[ ReplicatedProp->RepIndex + Element ];
-
-				check( Bunch.PacketId >= Retire.InPacketId );
 
 				if ( Bunch.PacketId >= Retire.InPacketId ) //!! problem with reliable pkts containing dynamic references, being retransmitted, and overriding newer versions. Want "OriginalPacketId" for retransmissions?
 				{
@@ -683,7 +686,7 @@ bool FObjectReplicator::ReceivedBunch( FInBunch &Bunch, const FReplicationFlags 
 			{
 				UE_LOG( LogNet, Warning, TEXT( "Rejected unwanted function %s in %s" ), *Message.ToString(), *Object->GetFullName() );
 
-				if ( !OwningChannel->Connection->TrackLogsPerSecond() )	// This will disconnect the client if we get here too often
+				if ( !OwningChannel->Connection->TrackLogsPerSecond() )	// This will disconnect the client if we get her too often
 				{
 					return false;
 				}
@@ -886,30 +889,29 @@ void FObjectReplicator::ReplicateCustomDeltaProperties( FOutBunch & Bunch, int32
 		TSharedPtr<INetDeltaBaseState> NewState;
 
 		// Update Retirement records with this new state so we can handle packet drops.
-		// LastNext will be pointer to the last "Next" pointer in the list (so pointer to a pointer)
-		FPropertyRetirement ** LastNext = UpdateAckedRetirements( Retire, OwningChannelConnection->OutAckPacketId );
-
-		check( LastNext != NULL );
-		check( *LastNext == NULL );
+		FPropertyRetirement ** Rec = UpdateAckedRetirements( Retire, OwningChannelConnection->OutAckPacketId );
 
 		ValidateRetirementHistory( Retire );
 
-		FNetBitWriter TempBitWriter( OwningChannel->Connection->PackageMap, 0 );
+		// Our temp writer should always be in a reset state here
+		check( TempBitWriter->GetNumBits() == 0 );
 
 		//-----------------------------------------
 		//	Do delta serialization on dynamic properties
 		//-----------------------------------------
-		const bool WroteSomething = SerializeCustomDeltaProperty( OwningChannelConnection, (void*)Object, It, Index, TempBitWriter, NewState, OldState );
+		const bool WroteSomething = SerializeCustomDeltaProperty( OwningChannelConnection, (void*)Object, It, Index, *TempBitWriter, NewState, OldState );
 
 		if ( !WroteSomething )
 		{
 			continue;
 		}
 
-		*LastNext = new FPropertyRetirement();
+		check( TempBitWriter->GetNumBits() > 0 );
+
+		*Rec = new FPropertyRetirement();
 
 		// Remember what the old state was at this point in time.  If we get a nak, we will need to revert back to this.
-		(*LastNext)->DynamicState = OldState;		
+		(*Rec)->DynamicState = OldState;		
 
 		// Save NewState into the RecentCustomDeltaState array (old state is a reference into our RecentCustomDeltaState map)
 		OldState = NewState; 
@@ -918,7 +920,10 @@ void FObjectReplicator::ReplicateCustomDeltaProperties( FOutBunch & Bunch, int32
 		RepLayout->WritePropertyHeader( Object, ObjectClass, OwningChannel, It, Bunch, Index, LastIndex, bContentBlockWritten );
 
 		// Send property.
-		Bunch.SerializeBits( TempBitWriter.GetData(), TempBitWriter.GetNumBits() );
+		Bunch.SerializeBits( TempBitWriter->GetData(), TempBitWriter->GetNumBits() );
+
+		// Reset our temp bit writer
+		TempBitWriter->Reset();
 	}
 }
 

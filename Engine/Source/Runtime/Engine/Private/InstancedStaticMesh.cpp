@@ -1173,7 +1173,7 @@ FPrimitiveSceneProxy* UInstancedStaticMeshComponent::CreateSceneProxy()
 	}
 }
 
-void UInstancedStaticMeshComponent::InitInstanceBody(int32 InstanceIdx, FBodyInstance* InstanceBodyInstance)
+void UInstancedStaticMeshComponent::InitInstanceBody(int32 InstanceIdx, FBodyInstance* BodyInstance)
 {
 	if (!StaticMesh)
 	{
@@ -1183,7 +1183,7 @@ void UInstancedStaticMeshComponent::InitInstanceBody(int32 InstanceIdx, FBodyIns
 
 	check(InstanceIdx < PerInstanceSMData.Num());
 	check(InstanceIdx < InstanceBodies.Num());
-	check(InstanceBodyInstance);
+	check(BodyInstance);
 
 	UBodySetup* BodySetup = GetBodySetup();
 	check(BodySetup);
@@ -1191,15 +1191,15 @@ void UInstancedStaticMeshComponent::InitInstanceBody(int32 InstanceIdx, FBodyIns
 	// Get transform of the instance
 	FTransform InstanceTransform = ComponentToWorld * FTransform(PerInstanceSMData[InstanceIdx].Transform);
 	
-	InstanceBodyInstance->CopyBodyInstancePropertiesFrom(&BodyInstance);
-	InstanceBodyInstance->InstanceBodyIndex = InstanceIdx; // Set body index 
+	BodyInstance->CopyBodyInstancePropertiesFrom(&BodySetup->DefaultInstance);
+	BodyInstance->InstanceBodyIndex = InstanceIdx; // Set body index 
 
 	// make sure we never enable bSimulatePhysics for ISMComps
-	InstanceBodyInstance->bSimulatePhysics = false;
+	BodyInstance->bSimulatePhysics = false;
 
 #if WITH_PHYSX
 	// Create physics body instance.
-	InstanceBodyInstance->InitBody( BodySetup, InstanceTransform, this, GetWorld()->GetPhysicsScene(), Aggregate);
+	BodyInstance->InitBody( BodySetup, InstanceTransform, this, GetWorld()->GetPhysicsScene(), Aggregate);
 #endif //WITH_PHYSX
 }
 
@@ -1223,6 +1223,8 @@ void UInstancedStaticMeshComponent::CreatePhysicsState()
 	// Create all the bodies.
 	int32 NumBodies = PerInstanceSMData.Num();
 	InstanceBodies.Init(NumBodies);
+
+	UBodySetup* BodySetup = GetBodySetup();
 
 	for(int32 i=0; i < NumBodies; ++i)
 	{

@@ -179,7 +179,7 @@ public:
 	}
 };
 
-FCodeGeneratorConfigState CodeGeneratorConfig;
+FCodeGeneratorConfigState CodeGeneneratorConfig;
 
 static TArray<FString> ChangeMessages;
 static bool bWriteContents = false;
@@ -371,7 +371,7 @@ bool MakeCommandlet_FindPackageLocation(const TCHAR* InPackage, FString& OutLoca
 
 	if (!ModuleInfoPtr)
 	{
-		FUObjectModuleInfo* ModuleInfoPtr2 = CodeGeneratorConfig.UObjectModuleList.FindByPredicate([&](FUObjectModuleInfo& Module) { return Module.Name == CheckPackage; });
+		FUObjectModuleInfo* ModuleInfoPtr2 = CodeGeneneratorConfig.UObjectModuleList.FindByPredicate([&](FUObjectModuleInfo& Module) { return Module.Name == CheckPackage; });
 		if (ModuleInfoPtr2 && IFileManager::Get().DirectoryExists(*ModuleInfoPtr2->BaseDirectory))
 		{
 			ModuleInfoPtr = ModuleInfoPtr2;
@@ -2186,9 +2186,9 @@ void FNativeClassHeaderGenerator::ExportClassHeaderWrapper( UClass* Class, bool 
 			NewFileName.ReplaceInline(TEXT("\\"), TEXT("/"));
 		}
 		// ...we cannot rebase paths relative to the install directory. It may be on a different drive.
-		else if (FPaths::MakePathRelativeTo(NewFileName, *CodeGeneratorConfig.RootLocalPath))
+		else if (FPaths::MakePathRelativeTo(NewFileName, *CodeGeneneratorConfig.RootLocalPath))
 		{
-			NewFileName = CodeGeneratorConfig.RootBuildPath / NewFileName;
+			NewFileName = CodeGeneneratorConfig.RootBuildPath / NewFileName;
 		}
 
 		// Keep track of all of the UObject headers for this module, in the same order that we digest them in
@@ -4768,12 +4768,12 @@ int32 UnrealHeaderTool_Main(const FString& ModuleInfoFilename)
 	// Load the manifest file, giving a list of all modules to be processed, pre-sorted by dependency ordering
 	try
 	{
-		CodeGeneratorConfig.LoadManifest( ModuleInfoPath, ModuleInfoFilename );
+		CodeGeneneratorConfig.LoadManifest( ModuleInfoPath, ModuleInfoFilename );
 	}
 	catch (const TCHAR* Ex)
 	{
 		UE_LOG(LogCompile, Error, TEXT("Failed to load manifest file '%s': %s"), *ModuleInfoFilename, Ex);
-		return 3;
+		return 1;
 	}
 
 	NameLookupCPP = new FNameLookupCPP();
@@ -4812,7 +4812,7 @@ int32 UnrealHeaderTool_Main(const FString& ModuleInfoFilename)
 			};
 		}
 
-		for (const FUObjectModuleInfo& Module : CodeGeneratorConfig.UObjectModuleList)
+		for (const FUObjectModuleInfo& Module : CodeGeneneratorConfig.UObjectModuleList)
 		{
 			if (!Success)
 				break;
@@ -4944,11 +4944,11 @@ int32 UnrealHeaderTool_Main(const FString& ModuleInfoFilename)
 
 		if (Success)
 		{
-			for (const FUObjectModuleInfo& Module : CodeGeneratorConfig.UObjectModuleList)
+			for (const FUObjectModuleInfo& Module : CodeGeneneratorConfig.UObjectModuleList)
 			{
 				if (UPackage* Package = Cast<UPackage>( StaticFindObjectFast( UPackage::StaticClass(), NULL, FName(*Module.LongPackageName), false, false ) ))
 				{
-					Success = FHeaderParser::ParseAllHeadersInside(GWarn, Package, Module.SaveExportedHeaders, CodeGeneratorConfig.UseRelativePaths);
+					Success = FHeaderParser::ParseAllHeadersInside(GWarn, Package, Module.SaveExportedHeaders, CodeGeneneratorConfig.UseRelativePaths);
 					if (!Success)
 					{
 						++NumFailures;
@@ -4992,7 +4992,7 @@ int32 UnrealHeaderTool_Main(const FString& ModuleInfoFilename)
 
 	GIsRequestingExit = true;
 	
-	return NumFailures > 0 ? 4 : 0;
+	return NumFailures > 0 ? 1 : 0;
 }
 
 UClass* GenerateCodeForHeader

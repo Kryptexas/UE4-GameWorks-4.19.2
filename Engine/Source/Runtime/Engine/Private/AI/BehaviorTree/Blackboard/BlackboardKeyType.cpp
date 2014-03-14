@@ -33,11 +33,6 @@ bool UBlackboardKeyType::GetLocation(const uint8* RawData, FVector& Location) co
 	return false;
 }
 
-bool UBlackboardKeyType::GetRotation(const uint8* MemoryBlock, FRotator& Rotation) const
-{
-	return false;
-}
-
 int32 UBlackboardKeyType::Compare(const uint8* MemoryBlockA, const uint8* MemoryBlockB) const
 { 
 	return MemoryBlockA == MemoryBlockB ? UBlackboardKeyType::Equal : UBlackboardKeyType::NotEqual;

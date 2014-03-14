@@ -46,6 +46,7 @@ public:
 		ObjectClass( NULL ), 
 		bLastUpdateEmpty( false ), 
 		bOpenAckCalled( false ),
+		TempBitWriter( NULL ), 
 		Connection( NULL ),
 		OwningChannel( NULL ),
 		RepState( NULL ),
@@ -68,6 +69,8 @@ public:
 
 	uint32											bLastUpdateEmpty	: 1;	// True if last update (ReplicateActor) produced no replicated properties
 	uint32											bOpenAckCalled		: 1;
+
+	FNetBitWriter *									TempBitWriter;
 
 	UNetConnection *								Connection;					// Connection this replicator was created on
 	class UActorChannel	*							OwningChannel;

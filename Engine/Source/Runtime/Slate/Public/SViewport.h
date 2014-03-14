@@ -146,6 +146,9 @@ public:
 private:
 	FSimpleSlot& Decl_GetContent() { return ChildSlot; }
 	
+	FPointerEvent MouseEventToTouchEvent(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) const;
+
+	bool ShouldThunkMouseEventsAsTouchEvents() const { return CurrentlyThunkingMouseEventsAsTouchEvents.Get(); }
 private:
 	/** Interface to the rendering and I/O implementation of the viewport */
 	TWeakPtr<ISlateViewport> ViewportInterface;
@@ -159,6 +162,8 @@ private:
 	bool bEnableBlending;
 	/** Whether or not to allow texture alpha to be used in blending calculations */
 	bool bIgnoreTextureAlpha;
+	/** Whether or not to convert mouse movement with the LMB pressed into touch events */
+	TAttribute<bool> CurrentlyThunkingMouseEventsAsTouchEvents;
 
 	/** Widget to transfer keyboard focus to when this window becomes active, if any.  This is used to
 	    restore focus to a widget after a popup has been dismissed. */

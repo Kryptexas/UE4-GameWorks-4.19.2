@@ -47,28 +47,24 @@ struct FBlueprintAction_PromoteVariable : public FEdGraphSchemaAction
 	TWeakPtr<class FBlueprintEditor> MyBlueprintEditor;
 };
 
-/**
- * Static method for binding with delegates. Spawns an instance of the custom
- * expander.
- * 
- * @param  ActionMenuData	A set of useful data for detailing the specific action menu row this is for.
- * @return A new widget, intended to lead entries in an SGraphActionMenu.
- */
-static TSharedRef<SExpanderArrow> CreateCustomBlueprintActionExpander(const FCustomExpanderData& ActionMenuData)
+class SPaletteItemFavoriteToggle : public SCompoundWidget
 {
-	return SNew(SBlueprintActionMenuExpander, ActionMenuData);
-}
-
-/*******************************************************************************
-* SBlueprintActionFavoriteToggle
-*******************************************************************************/
-
-class SBlueprintActionFavoriteToggle : public SCompoundWidget
-{
-	SLATE_BEGIN_ARGS( SBlueprintActionFavoriteToggle ) {}
+public:
+	SLATE_BEGIN_ARGS( SPaletteItemFavoriteToggle ) {}
 	SLATE_END_ARGS()
 
-public:
+	/**
+	 * Static method for binding with delegates. Spawns an instance of the 
+	 * favorite toggle.
+	 * 
+	 * @param  InCreateData	Data detailing the associated action for the containing action list item.
+	 * @return A new widget for the hover overlay.
+	 */
+	static TSharedRef<SWidget> Create(FCreateWidgetForActionData* const InCreateData)
+	{
+		return SNew(SPaletteItemFavoriteToggle, InCreateData->Action);
+	}
+
 	/**
 	 * Constructs a favorite-toggle widget (so that user can easily modify the 
 	 * item's favorited state).
@@ -77,26 +73,17 @@ public:
 	 * @param  ActionPtrIn		The FEdGraphSchemaAction that the parent item represents.
 	 * @param  BlueprintEdPtrIn	A pointer to the blueprint editor that the palette belongs to.
 	 */
-	void Construct(const FArguments& InArgs, const FCustomExpanderData& CustomExpanderData)
+	void Construct(const FArguments& InArgs, TWeakPtr<FEdGraphSchemaAction> ActionPtrIn)
 	{
-		Container = CustomExpanderData.WidgetContainer;
-		ActionPtr = CustomExpanderData.RowAction;
-
+		ActionPtr = ActionPtrIn;
 		ChildSlot
 		[
-			SNew(SHorizontalBox)
-			+SHorizontalBox::Slot()
-				.VAlign(VAlign_Fill)
-				.HAlign(HAlign_Center)
-				.FillWidth(1.0)
-			[
-				SNew( SCheckBox )
-					.Visibility(this, &SBlueprintActionFavoriteToggle::IsVisibile)
-					.ToolTipText(this, &SBlueprintActionFavoriteToggle::GetToolTipText)
-					.IsChecked(this, &SBlueprintActionFavoriteToggle::GetFavoritedState)
-					.OnCheckStateChanged(this, &SBlueprintActionFavoriteToggle::OnFavoriteToggled)
-					.Style(FEditorStyle::Get(), "Kismet.Palette.FavoriteToggleStyle")
-			]
+			SNew( SCheckBox )
+				.Visibility(this, &SPaletteItemFavoriteToggle::IsVisibile)
+				.ToolTipText(this, &SPaletteItemFavoriteToggle::GetToolTipText)
+				.IsChecked(this, &SPaletteItemFavoriteToggle::GetFavoritedState)
+ 				.OnCheckStateChanged(this, &SPaletteItemFavoriteToggle::OnFavoriteToggled)
+ 				.Style(FEditorStyle::Get(), "Kismet.Palette.FavoriteToggleStyle")	
 		];
 	}
 
@@ -112,15 +99,10 @@ private:
 		bool bNoFavorites = false;
 		GConfig->GetBool(TEXT("BlueprintEditor.Palette"), TEXT("bUseLegacyLayout"), bNoFavorites, GEditorIni);
 
-		UBlueprintPaletteFavorites const* const BlueprintFavorites = GEditor->EditorUserSettings->BlueprintFavorites;
-
-		EVisibility CurrentVisibility = EVisibility::Hidden;
-		if (!bNoFavorites && BlueprintFavorites && BlueprintFavorites->CanBeFavorited(ActionPtr.Pin()))
+		EVisibility CurrentVisibility = EVisibility::Collapsed;
+		if (!bNoFavorites && GEditor->EditorUserSettings->BlueprintFavorites->CanBeFavorited(ActionPtr.Pin()))
 		{
-			if (BlueprintFavorites->IsFavorited(ActionPtr.Pin()) || Container->IsHovered())
-			{
-				CurrentVisibility = EVisibility::Visible;
-			}			
+			CurrentVisibility = EVisibility::Visible;
 		}
 
 		return CurrentVisibility;
@@ -178,14 +160,7 @@ private:
 private:
 	/** The action that the owning palette entry represents */
 	TWeakPtr<FEdGraphSchemaAction> ActionPtr;
-
-	/** The widget that this widget is nested inside */
-	TSharedPtr<SPanel> Container;
 };
-
-/*******************************************************************************
-* SBlueprintActionMenu
-*******************************************************************************/
 
 SBlueprintActionMenu::~SBlueprintActionMenu()
 {
@@ -300,7 +275,7 @@ void SBlueprintActionMenu::Construct( const FArguments& InArgs, TSharedPtr<FBlue
 					.OnActionSelected(this, &SBlueprintActionMenu::OnActionSelected)
 					.OnCreateWidgetForAction( SGraphActionMenu::FOnCreateWidgetForAction::CreateSP(this, &SBlueprintActionMenu::OnCreateWidgetForAction) )
 					.OnCollectAllActions(this, &SBlueprintActionMenu::CollectAllActions)
-					.OnCreateCustomRowExpander_Static(&CreateCustomBlueprintActionExpander)
+					.OnCreateHoverOverlayWidget(SGraphActionMenu::FOnCreateWidgetForAction::CreateStatic(&SPaletteItemFavoriteToggle::Create))
 				]
 			]
 		]
@@ -430,10 +405,10 @@ TSharedRef<SEditableTextBox> SBlueprintActionMenu::GetFilterTextBox()
 }
 
 
-TSharedRef<SWidget> SBlueprintActionMenu::OnCreateWidgetForAction(FCreateWidgetForActionData* const InCreateData)
+TSharedRef<SWidget> SBlueprintActionMenu::OnCreateWidgetForAction(FCreateWidgetForActionData* const InCreateData )
 {
 	InCreateData->bHandleMouseButtonDown = true;
-	return SNew(SBlueprintPaletteItem, InCreateData, EditorPtr.Pin()); 
+	return	SNew(SBlueprintPaletteItem, InCreateData, EditorPtr.Pin());
 }
 
 void SBlueprintActionMenu::OnActionSelected( const TArray< TSharedPtr<FEdGraphSchemaAction> >& SelectedAction )
@@ -472,45 +447,6 @@ void SBlueprintActionMenu::TryInsertPromoteToVariable( FGraphContextMenuBuilder 
 			OutAllActions.AddAction( PromoteAction );
 		}
 	}
-}
-
-/*******************************************************************************
-* SBlueprintActionMenuExpander
-*******************************************************************************/
-
-void SBlueprintActionMenuExpander::Construct(const FArguments& InArgs, const FCustomExpanderData& ActionMenuData)
-{
-	OwnerRowPtr  = ActionMenuData.TableRow;
-	IndentAmount = InArgs._IndentAmount;
-	ActionPtr    = ActionMenuData.RowAction;
-
-	if (!ActionPtr.IsValid())
-	{
-		SExpanderArrow::FArguments SuperArgs;
-		SuperArgs._IndentAmount = InArgs._IndentAmount;
-
-		SExpanderArrow::Construct(SuperArgs, ActionMenuData.TableRow);
-	}
-	else
-	{			
-		ChildSlot
-			.Padding(TAttribute<FMargin>(this, &SBlueprintActionMenuExpander::GetCustomIndentPadding))
-			[
-				SNew(SBlueprintActionFavoriteToggle, ActionMenuData)
-			];
-	}
-}
-
-FMargin SBlueprintActionMenuExpander::GetCustomIndentPadding() const
-{
-	FMargin CustomPadding = SExpanderArrow::GetExpanderPadding();
-	// if this is a action row (not a category or separator)
-	if (ActionPtr.IsValid())
-	{
-		// flip the left/right margins (we want the favorite toggle aligned to the far left)
-		//CustomPadding = FMargin(CustomPadding.Right, CustomPadding.Top, CustomPadding.Left, CustomPadding.Bottom);
-	}
-	return CustomPadding;
 }
 
 #undef LOCTEXT_NAMESPACE

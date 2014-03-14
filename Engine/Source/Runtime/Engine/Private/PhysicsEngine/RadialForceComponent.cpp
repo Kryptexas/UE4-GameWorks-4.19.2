@@ -130,7 +130,6 @@ ARadialForceActor::ARadialForceActor(const class FPostConstructInitializePropert
 		SpriteComponent->RelativeScale3D.Y = 0.5f;
 		SpriteComponent->RelativeScale3D.Z = 0.5f;
 		SpriteComponent->AttachParent = ForceComponent;
-		SpriteComponent->bIsScreenSizeScaled = true;
 	}
 #endif
 

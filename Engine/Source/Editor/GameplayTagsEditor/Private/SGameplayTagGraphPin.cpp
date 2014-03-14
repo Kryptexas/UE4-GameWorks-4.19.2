@@ -55,10 +55,6 @@ void SGameplayTagGraphPin::ParseDefaultValueData()
 			TagString = Remainder;
 			TagContainer->AddTag( FName( *ReadTag ) );
 		}
-		if( Remainder.IsEmpty() )
-		{
-			Remainder = TagString;
-		}
 		if( !Remainder.IsEmpty() )
 		{
 			Remainder.Split( "=", NULL, &Remainder );

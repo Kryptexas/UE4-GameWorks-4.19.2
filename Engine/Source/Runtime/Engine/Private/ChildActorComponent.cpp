@@ -36,7 +36,6 @@ void UChildActorComponent::CreateChildActor()
 			Params.bNoCollisionFail = true;
 			Params.bDeferConstruction = true; // We defer construction so that we set ParentComponentActor prior to component registration so they appear selected
 			Params.bAllowDuringConstructionScript = true;
-			Params.OverrideLevel = GetOwner()->GetLevel();
 
 			// Spawn actor of desired class
 			FVector Location = GetComponentLocation();

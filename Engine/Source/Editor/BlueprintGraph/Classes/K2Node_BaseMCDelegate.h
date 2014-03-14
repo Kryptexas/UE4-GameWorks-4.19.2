@@ -22,7 +22,6 @@ public:
 	virtual FString GetDocumentationExcerptName() const OVERRIDE;
 	virtual bool AllowMultipleSelfs(bool bInputAsArray) const OVERRIDE { return true; }
 	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) OVERRIDE;
-	virtual bool HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput) const OVERRIDE;
 	// End of UK2Node interface
 
 	// UEdGraphNode interface

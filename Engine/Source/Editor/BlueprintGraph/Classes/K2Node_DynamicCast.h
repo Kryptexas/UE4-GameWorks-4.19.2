@@ -13,6 +13,8 @@ class UK2Node_DynamicCast : public UK2Node
 	UPROPERTY()
 	TSubclassOf<class UObject>  TargetType;
 
+
+#if WITH_EDITOR
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() OVERRIDE;
 	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
@@ -36,5 +38,6 @@ class UK2Node_DynamicCast : public UK2Node
 
 	/** Get the input object to be casted pin */
 	BLUEPRINTGRAPH_API UEdGraphPin* GetCastSourcePin() const;
+#endif
 };
 

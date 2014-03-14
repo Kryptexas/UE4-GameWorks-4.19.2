@@ -8,13 +8,8 @@ DEFINE_LOG_CATEGORY(LogDataTable);
 ENGINE_API const FString FDataTableRowHandle::Unknown(TEXT("UNKNOWN"));
 ENGINE_API const FString FDataTableCategoryHandle::Unknown(TEXT("UNKNOWN"));
 
-UDataTable::UDataTable(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
-{
-}
-
 /** Util that removes invalid chars and then make an FName */
-FName UDataTable::MakeValidName(const FString& InString)
+FName MakeValidName(const FString& InString)
 {
 	FString InvalidChars(INVALID_NAME_CHARACTERS);
 
@@ -38,7 +33,7 @@ FName UDataTable::MakeValidName(const FString& InString)
 }
 
 /** Util to see if this property is supported in a row struct. */
-bool UDataTable::IsSupportedTableProperty(const UProperty* InProp)
+static bool IsSupportedTableProperty(const UProperty* InProp)
 {
 	return(	InProp->IsA(UIntProperty::StaticClass()) || 
 			InProp->IsA(UFloatProperty::StaticClass()) ||
@@ -54,7 +49,7 @@ bool UDataTable::IsSupportedTableProperty(const UProperty* InProp)
 
 
 /** Util to assign a value (given as a string) to a struct property. */
-FString UDataTable::AssignStringToProperty(const FString& InString, const UProperty* InProp, uint8* InData)
+static FString AssignStringToProperty(const FString& InString, const UProperty* InProp, uint8* InData)
 {
 	FStringOutputDevice ImportError;
 	if(InProp != NULL && IsSupportedTableProperty(InProp))
@@ -67,7 +62,7 @@ FString UDataTable::AssignStringToProperty(const FString& InString, const UPrope
 }
 
 /** Util to assign get a property as a string */
-FString UDataTable::GetPropertyValueAsString(const UProperty* InProp, uint8* InData)
+static FString GetPropertyValueAsString(const UProperty* InProp, uint8* InData)
 {
 	FString Result(TEXT(""));
 
@@ -80,7 +75,7 @@ FString UDataTable::GetPropertyValueAsString(const UProperty* InProp, uint8* InD
 }
 
 /** Util to get all property names from a struct */
-TArray<FName> UDataTable::GetStructPropertyNames(UStruct* InStruct)
+TArray<FName> GetStructPropertyNames(UStruct* InStruct)
 {
 	TArray<FName> PropNames;
 	for (TFieldIterator<UProperty> It(InStruct); It; ++It)
@@ -92,6 +87,11 @@ TArray<FName> UDataTable::GetStructPropertyNames(UStruct* InStruct)
 
 
 //////////////////////////////////////////////////////////////////////////
+
+UDataTable::UDataTable(const class FPostConstructInitializeProperties& PCIP)
+	: Super(PCIP)
+{
+}
 
 void UDataTable::Serialize( FArchive& Ar )
 {
@@ -340,7 +340,7 @@ UProperty* UDataTable::FindTableProperty(const FName& PropertyName) const
 }
 
 /** Get array of UProperties that corresponds to columns in the table */
-TArray<UProperty*> UDataTable::GetTablePropertyArray(const FString& FirstRowString, UStruct* RowStruct, TArray<FString>& OutProblems)
+TArray<UProperty*> GetTablePropertyArray(const FString& FirstRowString, UStruct* RowStruct, TArray<FString>& OutProblems)
 {
 	TArray<UProperty*> ColumnProps;
 

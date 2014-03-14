@@ -25,7 +25,7 @@ FString UMaterialGraphNode_Root::GetNodeTitle(ENodeTitleType::Type TitleType) co
 
 FLinearColor UMaterialGraphNode_Root::GetNodeTitleColor() const
 {
-	return GEditor->AccessEditorUserSettings().ResultNodeTitleColor;
+	return FLinearColor(1.0f, 0.65f, 0.4f);
 }
 
 FString UMaterialGraphNode_Root::GetTooltip() const

@@ -113,7 +113,7 @@ float AWorldSettings::GetGravityZ() const
 	{
 		// try to initialize cached value
 		AWorldSettings* const MutableThis = const_cast<AWorldSettings*>(this);
-		MutableThis->WorldGravityZ = bGlobalGravitySet ? GlobalGravityZ : UPhysicsSettings::Get()->DefaultGravityZ;	//allows us to override DefaultGravityZ
+		MutableThis->WorldGravityZ = bGlobalGravitySet ? GlobalGravityZ : DefaultGravityZ;	//allows us to override DefaultGravityZ
 	}
 
 	return WorldGravityZ;

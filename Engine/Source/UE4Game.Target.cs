@@ -73,6 +73,9 @@ public class UE4GameTarget : TargetRules
 
 			UEBuildConfiguration.bCompileAgainstEngine = true;
 
+			// Tag it as a Rocket build
+			OutCPPEnvironmentConfiguration.Definitions.Add("UE_ROCKET=1");
+
 			// no exports, so no need to verify that a .lib and .exp file was emitted by the linker.
 			OutLinkEnvironmentConfiguration.bHasExports = false;
 		}
@@ -89,9 +92,5 @@ public class UE4GameTarget : TargetRules
             return new List<UnrealTargetPlatform> { HostPlatform, UnrealTargetPlatform.IOS };
         }
         return new List<UnrealTargetPlatform> { HostPlatform, UnrealTargetPlatform.Win32, UnrealTargetPlatform.IOS, UnrealTargetPlatform.XboxOne, UnrealTargetPlatform.PS4, UnrealTargetPlatform.Android };
-    }
-    public override List<UnrealTargetConfiguration> GUBP_GetConfigs_MonolithicOnly(UnrealTargetPlatform HostPlatform, UnrealTargetPlatform Platform)
-    {
-        return new List<UnrealTargetConfiguration> { UnrealTargetConfiguration.Development, UnrealTargetConfiguration.Shipping };
     }
 }

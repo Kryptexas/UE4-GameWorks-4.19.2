@@ -70,10 +70,6 @@ int LightmassMain(int argc, ANSICHAR* argv[])
 	// Initialize FCommandLine
 	InitCommandLine(argc, argv);
 
-	// Output devices.
-	GError = FPlatformOutputDevices::GetError(); 
-	GWarn = FPlatformOutputDevices::GetWarn();
-
 #if USE_LOCAL_SWARM_INTERFACE
 	FString CommandLine = FCommandLine::Get();
 	if (!FParse::Param(*CommandLine, TEXT("-Messaging")))
@@ -459,7 +455,7 @@ bool VerifyDLL( const TCHAR* DLLFilename )
 
 void SendSwarmCriticalErrorMessage()
 {
-	FString ErrorLog = (FString(TEXT("=== Lightmass crashed: ===")) + GErrorExceptionDescription + LINE_TERMINATOR) + GErrorHist;
+	FString ErrorLog = FString(TEXT("=== Lightmass crashed: ===")) + GErrorExceptionDescription + LINE_TERMINATOR + GErrorHist;
 
 	// For editor log
 	GSwarm->SendMessage(NSwarm::FInfoMessage(*ErrorLog));
@@ -489,7 +485,7 @@ int main(int argc, ANSICHAR* argv[])
 	}
 #endif
 
-#if PLATFORM_MAC
+#if UE_BUILD_DEBUG || PLATFORM_MAC
  	if ( true )
 #else
 	if ( FPlatformMisc::IsDebuggerPresent() )

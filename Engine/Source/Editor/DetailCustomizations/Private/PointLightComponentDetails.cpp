@@ -17,7 +17,6 @@ void FPointLightComponentDetails::CustomizeDetails( IDetailLayoutBuilder& Detail
 	// Inverse squared falloff point lights (the default) are in units of lumens, instead of just being a brightness scale
 	LightIntensityProperty->GetProperty()->SetMetaData("UIMin",TEXT("0.0f"));
 	LightIntensityProperty->GetProperty()->SetMetaData("UIMax",TEXT("100000.0f"));
-	LightIntensityProperty->GetProperty()->SetMetaData("SliderExponent",TEXT("5.0f"));
 }
 
 #undef LOCTEXT_NAMESPACE

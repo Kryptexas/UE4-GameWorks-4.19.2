@@ -14,15 +14,15 @@
 
 bool FRocketSupport::IsRocket( const TCHAR* CmdLine )
 {
-#if UE_ROCKET
-	return true;
-#else
 	static int32 RocketState = -1;
 
 	if (RocketState == -1)
 	{
 		checkf(CmdLine, TEXT("RocketSupport::IsRocket first call must have a valid command line!"));
-
+#if UE_ROCKET
+		// Shipping editor builds are always in rocket mode
+		RocketState = 1;
+#else
 		// Pass "rocket" on the command-line in non-shipping editor builds to get rocket-like behavior
 		static bool bIsRocket = FParse::Param(CmdLine, TEXT("rocket"));
 		if (bIsRocket == true)
@@ -34,10 +34,10 @@ bool FRocketSupport::IsRocket( const TCHAR* CmdLine )
 			// Rocket is not enabled
 			RocketState = 0;
 		}
+#endif
 	}
 
 	return (RocketState == 1) ? true : false;
-#endif
 }
 
 FString FRocketSupport::GetInstalledEngineDirectory()

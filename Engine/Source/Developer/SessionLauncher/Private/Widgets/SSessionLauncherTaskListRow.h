@@ -220,7 +220,7 @@ private:
 
 			case ELauncherTaskStatus::Pending:
 
-				return LOCTEXT("StatusPendingText", "Pending").ToString();
+				return LOCTEXT("StatusCancelingText", "Pending").ToString();
 			}
 		}
 

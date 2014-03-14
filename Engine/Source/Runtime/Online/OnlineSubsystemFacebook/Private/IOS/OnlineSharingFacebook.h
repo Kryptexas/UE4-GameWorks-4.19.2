@@ -6,7 +6,7 @@
 
 // Module includes
 #include "OnlineSharingInterface.h"
-#include "OnlineSubsystemFacebookPackage.h"
+
 
 /**
  * Facebook implementation of the Online Sharing Interface

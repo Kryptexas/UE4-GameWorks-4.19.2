@@ -19,7 +19,7 @@ USoundCueGraphNode_Root::USoundCueGraphNode_Root(const class FPostConstructIniti
 
 FLinearColor USoundCueGraphNode_Root::GetNodeTitleColor() const
 {
-	return GEditor->AccessEditorUserSettings().ResultNodeTitleColor;
+	return FLinearColor(1.0f, 0.65f, 0.4f);
 }
 
 FString USoundCueGraphNode_Root::GetNodeTitle(ENodeTitleType::Type TitleType) const

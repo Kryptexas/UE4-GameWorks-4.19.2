@@ -108,7 +108,18 @@ struct FReferencePose
 	 *
 	 * @return Reference to the Archive after serialization.
 	 */
-	friend FArchive& operator<<(FArchive& Ar, FReferencePose & P);
+	friend FArchive& operator<<( FArchive& Ar, FReferencePose & P )
+	{ 
+		Ar << P.PoseName;	
+		Ar << P.ReferencePose;
+#if WITH_EDITORONLY_DATA
+		if (!Ar.IsCooking())
+		{
+			Ar << P.ReferenceMesh;
+		}
+#endif
+		return Ar;
+	}
 };
 
 USTRUCT()
@@ -254,7 +265,7 @@ public:
 	ENGINE_API void AddNewAnimationNotify(FName NewAnimNotifyName);
 
 	/** Returns the skeletons preview mesh, loading it if necessary */
-	ENGINE_API USkeletalMesh* GetPreviewMesh(bool bFindIfNotSet=false);
+	ENGINE_API USkeletalMesh* GetPreviewMesh();
 
 	/** Returns the skeletons preview mesh, loading it if necessary */
 	ENGINE_API void SetPreviewMesh(USkeletalMesh* PreviewMesh, bool bMarkAsDirty=true);
@@ -516,7 +527,5 @@ public:
 	static const FName AnimNotifyTag;
 	static const TCHAR AnimNotifyTagDeliminator;
 #endif
-private:
-	void RegenerateGuid();
 };
 

@@ -26,8 +26,8 @@ public:
 	 * Constructor
 	 *
 	 * @param	InLabel				The label to display in the menu
-	 * @param	InToolTip			The tool tip to display when the menu entry is hovered over
-	 * @param	InIcon				The icon to display to the left of the label
+ 	 * @param	InToolTip			The tool tip to display when the menu entry is hovered over
+ 	 * @param	InIcon				The icon to display to the left of the label
 	 * @param	InUIAction			UI action to take when this menu item is clicked as well as to determine if the menu entry can be executed or appears "checked"
 	 * @param	InUserInterfaceActionType	Type of interface action
 	 */
@@ -69,7 +69,7 @@ private:
 	TOptional< EVisibility > LabelVisibility;
 	
 	/** In the case where a command is not bound, the user interface action type to use.  If a command is bound, we
-		simply use the action type associated with that command. */
+	    simply use the action type associated with that command. */
 	EUserInterfaceActionType::Type UserInterfaceActionType;
 
 	/** Whether ToolBar will have Focusable buttons */
@@ -91,7 +91,7 @@ class SLATE_API SToolBarButtonBlock
 public:
 
 	SLATE_BEGIN_ARGS( SToolBarButtonBlock )
-		: _IsFocusable(false)
+		: _IsFocusable(true)
 		, _ForceSmallIcons(false)
 		, _TutorialHighlightName(NAME_None)
 		{}

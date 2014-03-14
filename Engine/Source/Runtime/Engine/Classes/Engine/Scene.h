@@ -763,6 +763,10 @@ struct FPostProcessSettings
 	UPROPERTY(interp, Category=ScreenSpaceReflections, meta=(ClampMin = "0.01", ClampMax = "1.0", editcondition = "bOverride_ScreenSpaceReflectionMaxRoughness", DisplayName = "Max Roughness"))
 	float ScreenSpaceReflectionMaxRoughness;
 
+	/** 0: don't do glossy screen space reflections, 0.01 to 0.99 as transition, 1:realistic and fitting to other reflections, lower values allows to reduce noise */
+	UPROPERTY(interp, Category=ScreenSpaceReflections, AdvancedDisplay, meta=(ClampMin = "0.0", ClampMax = "1.0", editcondition = "bOverride_ScreenSpaceReflectionRoughnessScale", DisplayName = "Roughness Scale"))
+	float ScreenSpaceReflectionRoughnessScale;
+
 	// Note: Adding properties before this line require also changes to the OverridePostProcessSettings() function and 
 	// FPostProcessSettings constructor and possibly the SetBaseValues() method.
 	// -----------------------------------------------------------------------
@@ -879,7 +883,8 @@ struct FPostProcessSettings
 		AntiAliasingMethod = AAM_TemporalAA;
 		ScreenSpaceReflectionIntensity = 100.0f;
 		ScreenSpaceReflectionQuality = 50.0f;
-		ScreenSpaceReflectionMaxRoughness = 0.6f;
+		ScreenSpaceReflectionMaxRoughness = 0.5f;
+		ScreenSpaceReflectionRoughnessScale = 0.7f;
 	}
 
 	/**

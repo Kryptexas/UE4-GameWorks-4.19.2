@@ -17,22 +17,12 @@ class ENGINE_API UNavMovementComponent : public UMovementComponent
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MovementComponent)
 	FNavAgentProperties NavAgentProps;
 
-protected:
-	/** If set to true NavAgentProps' radius and height will be updated with Owner's collision capsule size */
-	UPROPERTY(EditAnywhere, Category=MovementComponent)
-	uint32 bUpdateNavAgentWithOwnersCollision:1;
-
-public:
 	/** Expresses runtime state of character's movement. Put all temporal changes to movement properties here */
 	UPROPERTY()
 	FMovementProperties MovementState;
 
 	/** associated path following component */
 	TWeakObjectPtr<class UPathFollowingComponent> PathFollowingComp;
-
-	FORCEINLINE bool ShouldUpdateNavAgentWithOwnersCollision() const { return bUpdateNavAgentWithOwnersCollision != 0; }
-	void UpdateNavAgent(class AActor* Owner);
-	void UpdateNavAgent(class UCapsuleComponent* CapsuleComponent);
 
 	/** @returns location of controlled actor (on ground level) */
 	FORCEINLINE FVector GetActorLocation() const { return UpdatedComponent ? (UpdatedComponent->GetComponentLocation() - FVector(0,0,UpdatedComponent->Bounds.BoxExtent.Z)) : FVector::ZeroVector; }

@@ -62,9 +62,8 @@ public class MinidumpDiagnosticsTarget : TargetRules
 
 		OutCPPEnvironmentConfiguration.Definitions.Add("MINIDUMPDIAGNOSTICS=1");
 	}
-    public override bool GUBP_AlwaysBuildWithTools(UnrealTargetPlatform InHostPlatform, out bool bInternalToolOnly)
+    public override bool GUBP_AlwaysBuildWithTools()
     {
-        bInternalToolOnly = true;
         return true;
     }
 }

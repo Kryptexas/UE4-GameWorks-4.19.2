@@ -13,9 +13,6 @@ class FOnlineSubsystemSteamModule : public IModuleInterface
 {
 private:
 
-	/** Class responsible for creating instance(s) of the subsystem */
-	class FOnlineFactorySteam* SteamFactory;
-
 #if PLATFORM_WINDOWS
 	/** Handle to the STEAM API dll */
 	void* SteamDLLHandle;
@@ -36,10 +33,9 @@ private:
 public:
 
 	FOnlineSubsystemSteamModule()
-        : SteamFactory(NULL)
 #if PLATFORM_WINDOWS
-		, SteamDLLHandle(NULL)
-		, SteamServerDLLHandle(NULL)
+		 :	SteamDLLHandle(NULL),
+			SteamServerDLLHandle(NULL)
 #endif	//PLATFORM_WINDOWS
 	{}
 
@@ -65,3 +61,5 @@ public:
 	 */
 	bool AreSteamDllsLoaded() const;
 };
+
+typedef TSharedPtr<FOnlineSubsystemSteamModule, ESPMode::ThreadSafe> FOnlineSubsystemSteamModulePtr;

@@ -261,19 +261,13 @@ static bool PassesAllFilters( const FDetailLayoutCustomization& InCustomization,
 		bPassesAllFilters = false;
 		if( PropertyNodePin.IsValid() && !PropertyNodePin->AsCategoryNode() )
 		{
-			const bool bSearchFilterIsEmpty = InFilter.FilterStrings.Num() == 0;
-			const bool bIsNotBeingFiltered = PropertyNodePin->HasNodeFlags(EPropertyNodeFlags::IsBeingFiltered) == 0;
-			const bool bIsSeenDueToFiltering = PropertyNodePin->HasNodeFlags(EPropertyNodeFlags::IsSeenDueToFiltering) != 0;
-			const bool bIsParentSeenDueToFiltering = PropertyNodePin->HasNodeFlags(EPropertyNodeFlags::IsParentSeenDueToFiltering) != 0;
-
-			const bool bPassesSearchFilter = bSearchFilterIsEmpty || ( bIsNotBeingFiltered || bIsSeenDueToFiltering || bIsParentSeenDueToFiltering );
+			const bool bPassesSearchFilter =  InFilter.FilterStrings.Num()  == 0 || ( ( PropertyNodePin->HasNodeFlags( EPropertyNodeFlags::IsBeingFiltered ) == 0 || PropertyNodePin->HasNodeFlags( EPropertyNodeFlags::IsSeenDueToFiltering ) || PropertyNodePin->HasNodeFlags( EPropertyNodeFlags::IsParentSeenDueToFiltering ) ) );
 			const bool bPassesModifiedFilter = bPassesSearchFilter && ( InFilter.bShowOnlyModifiedProperties == false || PropertyNodePin->GetDiffersFromDefault() == true );
-
 			// The property node is visible (note categories are never visible unless they have a child that is visible )
 			bPassesAllFilters = bPassesSearchFilter && bPassesModifiedFilter;
 		}
 		else if( InCustomization.HasCustomWidget() )
-		{
+		{		
 			if( InFilter.FilterStrings.Num() > 0 && InCustomization.WidgetDecl->FilterTextString.Len() > 0  )
 			{
 				// We default to acceptable
@@ -294,6 +288,7 @@ static bool PassesAllFilters( const FDetailLayoutCustomization& InCustomization,
 				}
 			}
 		}
+
 	}
 
 	return bPassesAllFilters;
@@ -365,36 +360,18 @@ void FDetailItemNode::FilterNode( const FDetailFilter& InFilter )
 	{
 		TSharedRef<IDetailTreeNode>& Child = Children[ChildIndex];
 
-		// If the parent is visible, we pass an empty filter to all children so that they resume their
-		// default expansion.  This is a lot safer method, otherwise customized details panels tend to be
-		// filtered incorrectly because they have no means of discovering if their parents were filtered.
-		if ( bShouldBeVisibleDueToFiltering )
+		Child->FilterNode( InFilter );
+
+		if( Child->GetVisibility() == ENodeVisibility::Visible )
 		{
-			Child->FilterNode(FDetailFilter());
-
-			// The child should be visible, but maybe something else has it hidden, check if it's
-			// visible just for safety reasons.
-			if ( Child->GetVisibility() == ENodeVisibility::Visible )
+			if( !InFilter.IsEmptyFilter() )
 			{
-				// Expand the child after filtering if it wants to be expanded
-				ParentCategory.Pin()->RequestItemExpanded(Child, Child->ShouldBeExpanded());
+				// The child is visible due to filtering so we must also be visible
+				bShouldBeVisibleDueToChildFiltering = true;
 			}
-		}
-		else
-		{
-			Child->FilterNode(InFilter);
 
-			if ( Child->GetVisibility() == ENodeVisibility::Visible )
-			{
-				if ( !InFilter.IsEmptyFilter() )
-				{
-					// The child is visible due to filtering so we must also be visible
-					bShouldBeVisibleDueToChildFiltering = true;
-				}
-
-				// Expand the child after filtering if it wants to be expanded
-				ParentCategory.Pin()->RequestItemExpanded(Child, Child->ShouldBeExpanded());
-			}
+			// Expand the child after filtering if it wants to be expanded
+			ParentCategory.Pin()->RequestItemExpanded( Child, Child->ShouldBeExpanded() );
 		}
 	}
 }

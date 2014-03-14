@@ -59,7 +59,7 @@ class USteamMessagingNetDriver : public UIpNetDriver
 	 * @param Params parameters in a UObject memory layout
 	 * @param Stack stack frame the UFunction is called in
 	 */
-	virtual void ProcessRemoteFunction(class AActor* Actor, class UFunction* Function, void* Parameters, struct FOutParmRec* OutParms, struct FFrame* Stack, UObject * SubObject = NULL) OVERRIDE;
+	virtual void ProcessRemoteFunction(class AActor* Actor, class UFunction* Function, void* Parameters, struct FFrame* Stack, UObject * SubObject = NULL) OVERRIDE;
 
 	// End UIpNetDriver Interface
 

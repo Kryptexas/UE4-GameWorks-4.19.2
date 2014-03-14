@@ -127,7 +127,7 @@ protected:
 	bool CleanClassesFromContentPackages( class UPackage* Package );
 
 	// Get the changelist description to use if automatically checking packages out
-	virtual FText GetChangelistDescription() const;
+	virtual FString GetChangelistDescription() const;
 
 	// Print out a message only if running in very verbose mode
 	void VerboseMessage(const FString& Message);

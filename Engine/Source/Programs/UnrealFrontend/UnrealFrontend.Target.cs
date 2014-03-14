@@ -50,6 +50,12 @@ public class UnrealFrontendTarget : TargetRules
 
         OutLinkEnvironmentConfiguration.bBuildAdditionalConsoleApplication = false;
 		OutLinkEnvironmentConfiguration.bHasExports = false;
+
+		if (UnrealBuildTool.UnrealBuildTool.BuildingRocket())
+		{
+			// Tag it as a Rocket build
+			OutCPPEnvironmentConfiguration.Definitions.Add("UE_ROCKET=1");
+		}
 	}
     public override bool GUBP_AlwaysBuildWithBaseEditor()
     {

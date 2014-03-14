@@ -48,18 +48,6 @@ bool UBlackboardKeyType_Object::GetLocation(const uint8* RawData, FVector& Locat
 	return false;
 }
 
-bool UBlackboardKeyType_Object::GetRotation(const uint8* RawData, FRotator& Rotation) const
-{
-	AActor* MyActor = Cast<AActor>(GetValue(RawData));
-	if (MyActor)
-	{
-		Rotation = MyActor->GetActorRotation();
-		return true;
-	}
-
-	return false;
-}
-
 int32 UBlackboardKeyType_Object::Compare(const uint8* MemoryBlockA, const uint8* MemoryBlockB) const
 {
 	return GetValueFromMemory<FWeakObjectPtr>(MemoryBlockA) == GetValueFromMemory<FWeakObjectPtr>(MemoryBlockB)

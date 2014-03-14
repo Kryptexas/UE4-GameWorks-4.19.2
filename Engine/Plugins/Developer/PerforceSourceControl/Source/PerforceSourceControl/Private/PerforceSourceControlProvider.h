@@ -24,7 +24,7 @@ public:
 	/* ISourceControlProvider implementation */
 	virtual void Init(bool bForceConnection = true) OVERRIDE;
 	virtual void Close() OVERRIDE;
-	virtual FText GetStatusText() const OVERRIDE;
+	virtual FString GetStatusText() const OVERRIDE;
 	virtual bool IsEnabled() const OVERRIDE;
 	virtual bool IsAvailable() const OVERRIDE;
 	virtual const FName& GetName(void) const OVERRIDE;
@@ -53,7 +53,7 @@ public:
 	 * @param	OutWorkspaceList	List of client spec name strings
 	 * @param	OutErrorMessages	List of any error messages that may have occurred
 	 */
-	void GetWorkspaceList(const FString& InServerName, const FString& InUserName, TArray<FString>& OutWorkspaceList, TArray<FText>& OutErrorMessages);
+	void GetWorkspaceList(const FString& InServerName, const FString& InUserName, TArray<FString>& OutWorkspaceList, TArray<FString>& OutErrorMessages);
 
 	/** Get the P4 port we will use for connections */
 	const FString& GetPort() const;

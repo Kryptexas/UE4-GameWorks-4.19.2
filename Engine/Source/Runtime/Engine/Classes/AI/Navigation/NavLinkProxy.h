@@ -7,7 +7,7 @@
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FSmartLinkReachedSignature, class AActor*, MovingActor, const FVector&, DestinationPoint );
 
 UCLASS(Blueprintable)
-class ENGINE_API ANavLinkProxy : public AActor, public INavLinkHostInterface, public INavRelevantActorInterface
+class ANavLinkProxy : public AActor, public INavLinkHostInterface, public INavRelevantActorInterface
 {
 	GENERATED_UCLASS_BODY()
 

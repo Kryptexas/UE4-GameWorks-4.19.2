@@ -147,9 +147,8 @@ struct FDebugDisplayProperty
  * The first parameter is the width.
  * The second parameter is the height.
  * The third parameter is the array of bitmap data.
- * The fourth parameter is the filename. Filename does not contain a specific extension.
  */
-DECLARE_MULTICAST_DELEGATE_FourParams(FOnScreenshotCaptured, int32 /*Width*/, int32 /*Height*/, const TArray<FColor>& /*Colors*/, const FString& /*Filename*/);
+DECLARE_DELEGATE_ThreeParams(FOnScreenshotCaptured, int, int, const TArray<FColor>&);
 
 /**
  * Delegate type for when a png screenshot has been captured
@@ -159,7 +158,7 @@ DECLARE_MULTICAST_DELEGATE_FourParams(FOnScreenshotCaptured, int32 /*Width*/, in
  * The third parameter is the array of bitmap data.
  * The fourth parameter is the screen shot filename.
  */
-DECLARE_DELEGATE_FourParams(FOnPNGScreenshotCaptured, int32, int32, const TArray<FColor>&, const FString&);
+DECLARE_DELEGATE_FourParams(FOnPNGScreenshotCaptured, int, int, const TArray<FColor>&, const FString&);
 
 UCLASS(Within=Engine, transient, config=Engine)
 class ENGINE_API UGameViewportClient : public UScriptViewportClient, public FExec
@@ -277,8 +276,6 @@ public:
 	virtual void CloseRequested(FViewport* Viewport) OVERRIDE;
 	virtual bool RequiresHitProxyStorage() OVERRIDE { return 0; }
 	virtual bool IsOrtho() const OVERRIDE;
-	virtual void MouseEnter(FViewport* Viewport, int32 x, int32 y) OVERRIDE;
-	virtual void MouseLeave(FViewport* Viewport) OVERRIDE;
 	// End of FViewportClient interface.
 
 	// Begin FExec interface.
@@ -590,7 +587,7 @@ public:
 	}
 
 	/** Accessor for delegate called when a screenshot is captured */
-	static FOnScreenshotCaptured& OnScreenshotCaptured()
+	FOnScreenshotCaptured& OnScreenshotCaptured()
 	{
 		return ScreenshotCapturedDelegate;
 	}
@@ -618,6 +615,9 @@ private:
 	/** Overlay widget that contains widgets to draw on top of the game viewport */
 	TWeakPtr<class SOverlay> ViewportOverlayWidget;
 
+	/** The virtual joystick widget, if one exists */
+	TWeakPtr<class SVirtualJoystick> VirtualJoystickWidget;
+
 	/** Current buffer visualization mode for this game viewport */
 	FName CurrentBufferVisualizationMode;
 
@@ -637,7 +637,7 @@ private:
 	FOnPNGScreenshotCaptured PNGScreenshotCapturedDelegate;
 
 	/** Delegate called at the end of the frame when a screenshot is captured */
-	static FOnScreenshotCaptured ScreenshotCapturedDelegate;
+	FOnScreenshotCaptured ScreenshotCapturedDelegate;
 };
 
 

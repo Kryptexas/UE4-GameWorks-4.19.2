@@ -347,8 +347,7 @@ enum EStructFlags
 	STRUCT_IdenticalNative		= 0x00000002,
 	
 	STRUCT_HasInstancedReference= 0x00000004,
-
-	// Unused entry				= 0x00000008,
+	STRUCT_Transient			= 0x00000008,
 
 	/** Indicates that this struct should always be serialized as a single unit */
 	STRUCT_Atomic				= 0x00000010,
@@ -1586,11 +1585,8 @@ public:
 	UObject* ClassGeneratedBy;
 
 #if WITH_EDITOR
-	/**
-	 * Conditionally recompiles the class after loading, in case any dependencies were also newly loaded
-	 * @param ObjLoaded	If set this is the list of objects that are currently loading, usualy GObjLoaded
-	 */
-	virtual void ConditionalRecompileClass(TArray<UObject*>* ObjLoaded) {};
+	// Conditionally recompiles the class after loading, in case any dependencies were also newly loaded
+	virtual void ConditionalRecompileClass() {};
 #endif //WITH_EDITOR
 
 	//
@@ -1605,7 +1601,7 @@ public:
 #if WITH_EDITOR || HACK_HEADER_GENERATOR 
 	// Editor only properties
 	void GetHideCategories(TArray<FString>& OutHideCategories) const;
-	bool IsCategoryHidden(const FString& InCategory) const;
+	bool IsCategoryHidden(const TCHAR* InCategory) const;
 	void GetHideFunctions(TArray<FString>& OutHideFunctions) const;
 	bool IsFunctionHidden(const TCHAR* InFunction) const;
 	void GetAutoExpandCategories(TArray<FString>& OutAutoExpandCategories) const;

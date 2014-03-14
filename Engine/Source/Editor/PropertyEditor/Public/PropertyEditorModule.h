@@ -218,6 +218,14 @@ public:
 	virtual bool HasUnlockedDetailViews() const;
 
 	/**
+	 * Registers a custom detail layout delegate for a specific class
+	 *
+	 * @param Class	The class the custom detail layout is for
+	 * @param DetailLayoutDelegate	The delegate to call when querying for custom detail layouts for the classes properties
+	 */
+	virtual void RegisterCustomPropertyLayout( UClass* Class, FOnGetDetailCustomizationInstance DetailLayoutDelegate );
+
+	/**
 	 * Registers a custom detail layout delegate for a specific class name
 	 *
 	 * @param ClassName	The class name the custom detail layout is for
@@ -232,6 +240,13 @@ public:
 	 * @param DetailLayoutDelegate	The delegate to call when querying for custom detail layouts for the classes properties
 	 */
 	virtual void RegisterStructPropertyLayout( FName StructTypeName, FOnGetStructCustomizationInstance StructLayoutDelegate );
+
+	/**
+	 * Unregisters a custom detail layout delegate for a specific class
+	 *
+	 * @param Class	The class with the custom detail layout delegate to remove
+	 */
+	virtual void UnregisterCustomPropertyLayout( UClass* Class );
 
 	/**
 	 * Unregisters a custom detail layout delegate for a specific class name
@@ -340,6 +355,8 @@ private:
 	TArray< TWeakPtr<class SDetailsView> > AllDetailViews;
 	/** All created single property views */
 	TArray< TWeakPtr<class SSingleProperty> > AllSinglePropertyViews;
+	/** A mapping of classes to detail layout delegates, called when querying for custom detail layouts */
+	FCustomDetailLayoutMap ClassToDetailLayoutMap;
 	/** A mapping of class names to detail layout delegates, called when querying for custom detail layouts */
 	FCustomDetailLayoutNameMap ClassNameToDetailLayoutNameMap;
 	/** A mapping of structs to struct layout delegates, called when querying for custom struct layouts */

@@ -127,10 +127,10 @@ int32 UGenerateTextLocalizationResourceCommandlet::Main(const FString& Params)
 
 		if( SourceControlInfo.IsValid() )
 		{
-			FText SCCErrorText;
-			if (!SourceControlInfo->CheckOutFile(TextLocalizationResourcePath, SCCErrorText))
+			FString SCCErrorString;
+			if( !SourceControlInfo->CheckOutFile( TextLocalizationResourcePath, SCCErrorString ) )
 			{
-				UE_LOG(LogGenerateTextLocalizationResourceCommandlet, Error, TEXT("Check out of file %s failed: %s"), *TextLocalizationResourcePath, *SCCErrorText.ToString());
+				UE_LOG(LogGenerateTextLocalizationResourceCommandlet, Error, TEXT("Check out of file %s failed: %s"), *TextLocalizationResourcePath, *SCCErrorString);
 				return -1;
 			}
 		}

@@ -43,7 +43,7 @@ public:
 };
 
 // Compiles a blueprint.
-void FKismet2CompilerModule::CompileBlueprintInner(class UBlueprint* Blueprint, bool bPrintResultSuccess, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, TArray<UObject*>* ObjLoaded)
+void FKismet2CompilerModule::CompileBlueprintInner(class UBlueprint* Blueprint, bool bPrintResultSuccess, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results)
 {
 	FBlueprintIsBeingCompiledHelper BeingCompiled(Blueprint);
 
@@ -58,13 +58,13 @@ void FKismet2CompilerModule::CompileBlueprintInner(class UBlueprint* Blueprint, 
 	}
 	else if (UAnimBlueprint* AnimBlueprint = Cast<UAnimBlueprint>(Blueprint))
 	{
-		FAnimBlueprintCompiler Compiler(AnimBlueprint, Results, CompileOptions, ObjLoaded);
+		FAnimBlueprintCompiler Compiler(AnimBlueprint, Results, CompileOptions);
 		Compiler.Compile();
 		check(Compiler.NewClass);
 	}
 	else
 	{
-		FKismetCompilerContext Compiler(Blueprint, Results, CompileOptions, ObjLoaded);
+		FKismetCompilerContext Compiler(Blueprint, Results, CompileOptions);
 		Compiler.Compile();
 		check(Compiler.NewClass);
 	}
@@ -105,7 +105,7 @@ void FKismet2CompilerModule::CompileBlueprintInner(class UBlueprint* Blueprint, 
 }
 
 // Compiles a blueprint.
-void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, FBlueprintCompileReinstancer* ParentReinstancer, TArray<UObject*>* ObjLoaded)
+void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, FBlueprintCompileReinstancer* ParentReinstancer)
 {
 	SCOPE_SECONDS_COUNTER(GBlueprintCompileTime);
 
@@ -125,14 +125,14 @@ void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const
 		SkeletonResults.bSilentMode = true;
 		FKismetCompilerOptions SkeletonCompileOptions;
 		SkeletonCompileOptions.CompileType = EKismetCompileType::SkeletonOnly;
-		CompileBlueprintInner(Blueprint, /*bPrintResultSuccess=*/ false, SkeletonCompileOptions, SkeletonResults, ObjLoaded);
+		CompileBlueprintInner(Blueprint, /*bPrintResultSuccess=*/ false, SkeletonCompileOptions, SkeletonResults);
 	}
 
 	// If this was a full compile, take appropriate actions depending on the success of failure of the compile
 	if( CompileOptions.IsGeneratedClassCompileType() )
 	{
  		// Perform the full compile
-		CompileBlueprintInner(Blueprint, /*bPrintResultSuccess=*/ true, CompileOptions, Results, ObjLoaded);
+		CompileBlueprintInner(Blueprint, /*bPrintResultSuccess=*/ true, CompileOptions, Results);
 
 		if (Results.NumErrors == 0)
 		{
@@ -175,7 +175,7 @@ void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const
 			FKismetCompilerOptions StubCompileOptions(CompileOptions);
 			StubCompileOptions.CompileType = EKismetCompileType::StubAfterFailure;
 
-			CompileBlueprintInner(Blueprint, /*bPrintResultSuccess=*/ false, StubCompileOptions, StubResults, ObjLoaded);
+			CompileBlueprintInner(Blueprint, /*bPrintResultSuccess=*/ false, StubCompileOptions, StubResults);
 
 			StubReinstancer.UpdateBytecodeReferences();
 			if( !Blueprint->bIsRegeneratingOnLoad )

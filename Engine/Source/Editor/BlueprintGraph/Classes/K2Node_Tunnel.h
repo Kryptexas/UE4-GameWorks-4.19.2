@@ -33,6 +33,8 @@ class UK2Node_Tunnel : public UK2Node_EditablePinBase
 	UPROPERTY()
 	struct FKismetUserDeclaredFunctionMetadata MetaData;
 
+
+#if WITH_EDITOR
 	// Begin UEdGraphNode interface.
 	virtual void DestroyNode() OVERRIDE;
 	virtual void PostPasteNode() OVERRIDE;
@@ -62,6 +64,7 @@ public:
 
 	// The output pins of this tunnel node came from the input pins of OutputSourceNode (can be NULL).
 	BLUEPRINTGRAPH_API virtual UK2Node_Tunnel* GetOutputSource() const;
+#endif
 };
 
 

@@ -15,7 +15,7 @@ void FPreferencesEditor::StartupModule()
 	FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
 
 	PropertyModule.RegisterCustomPropertyLayout( 
-		"EditorUserSettings", 
+		UEditorUserSettings::StaticClass(), 
 		FOnGetDetailCustomizationInstance::CreateStatic(&FPreferencesDetails::MakeInstance)
 	);
 }
@@ -26,6 +26,6 @@ void FPreferencesEditor::ShutdownModule()
 	{
 		FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
 
-		PropertyModule.UnregisterCustomPropertyLayout( "EditorUserSettings" );
+		PropertyModule.UnregisterCustomPropertyLayout( UEditorUserSettings::StaticClass() );
 	}
 }

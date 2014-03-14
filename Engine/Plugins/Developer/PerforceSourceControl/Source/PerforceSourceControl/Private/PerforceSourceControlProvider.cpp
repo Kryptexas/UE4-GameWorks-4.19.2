@@ -58,16 +58,45 @@ TSharedRef<FPerforceSourceControlState, ESPMode::ThreadSafe> FPerforceSourceCont
 	}
 }
 
-FText FPerforceSourceControlProvider::GetStatusText() const
+FString FPerforceSourceControlProvider::GetStatusText() const
 {
-	FFormatNamedArguments Args;
-	Args.Add( TEXT("IsEnabled"), IsEnabled() ? LOCTEXT("Yes", "Yes") : LOCTEXT("No", "No") );
-	Args.Add( TEXT("IsConnected"), (IsEnabled() && IsAvailable()) ? LOCTEXT("Yes", "Yes") : LOCTEXT("No", "No") );
-	Args.Add( TEXT("PortNumber"), FText::FromString( GetPort() ) );
-	Args.Add( TEXT("UserName"), FText::FromString( GetUser() ) );
-	Args.Add( TEXT("ClientSpecName"), FText::FromString( GetClientSpec() ) );
+	FString StatusText = LOCTEXT("ProviderName", "Provider: Perforce").ToString();
+	StatusText += LINE_TERMINATOR;
+	StatusText += LOCTEXT("EnabledLabel", "Enabled: ").ToString();
 
-	return FText::Format( NSLOCTEXT("Status", "Provider: Perforce\nEnabledLabel", "Enabled: {IsEnabled}\nConnected: {IsConnected}\n\nPort: {PortNumber}\nUser name: {UserName}\nClient name: {ClientSpecName}"), Args );
+	if (IsEnabled())
+	{
+		StatusText += LOCTEXT("Yes", "Yes").ToString();
+	}
+	else
+	{
+		StatusText += LOCTEXT("No", "No").ToString();
+	}
+	StatusText += LINE_TERMINATOR;
+
+	StatusText += LOCTEXT("ConnectedLabel", "Connected: ").ToString();
+
+	if (IsEnabled() && IsAvailable())
+	{
+		StatusText += LOCTEXT("Yes", "Yes").ToString();
+	}
+	else
+	{
+		StatusText += LOCTEXT("No", "No").ToString();
+	}
+	StatusText += LINE_TERMINATOR;
+	StatusText += LINE_TERMINATOR;
+
+	StatusText += LOCTEXT("PortNameLabel", "Port: ").ToString();
+	StatusText += GetPort();
+	StatusText += LINE_TERMINATOR;
+	StatusText += LOCTEXT("UserNameLabel", "User name: ").ToString();
+	StatusText += GetUser();
+	StatusText += LINE_TERMINATOR;
+	StatusText += LOCTEXT("ClientSpecNameLabel", "Client name: ").ToString();
+	StatusText += GetClientSpec();
+
+	return StatusText;
 }
 
 bool FPerforceSourceControlProvider::IsEnabled() const
@@ -147,7 +176,7 @@ void FPerforceSourceControlProvider::ParseCommandLineSettings(bool bForceConnect
  * @param	OutWorkspaceList	List of client spec name strings
  * @param	OutErrorMessages	List of any error messages that may have occurred
  */
-void FPerforceSourceControlProvider::GetWorkspaceList(const FString& InServerName, const FString& InUserName, TArray<FString>& OutWorkspaceList, TArray<FText>& OutErrorMessages)
+void FPerforceSourceControlProvider::GetWorkspaceList(const FString& InServerName, const FString& InUserName, TArray<FString>& OutWorkspaceList, TArray<FString>& OutErrorMessages)
 {
 	//attempt to ask perforce for a list of client specs that belong to this user
 	FPerforceConnection Connection(InServerName, InUserName, TEXT(""), TEXT(""));
@@ -315,12 +344,12 @@ void FPerforceSourceControlProvider::OutputCommandMessages(const FPerforceSource
 
 	for (int32 ErrorIndex = 0; ErrorIndex < InCommand.ErrorMessages.Num(); ++ErrorIndex)
 	{
-		SourceControlLog.Error(InCommand.ErrorMessages[ErrorIndex]);
+		SourceControlLog.Error(FText::FromString(InCommand.ErrorMessages[ErrorIndex]));
 	}
 
 	for (int32 InfoIndex = 0; InfoIndex < InCommand.InfoMessages.Num(); ++InfoIndex)
 	{
-		SourceControlLog.Info(InCommand.InfoMessages[InfoIndex]);
+		SourceControlLog.Info(FText::FromString(InCommand.InfoMessages[InfoIndex]));
 	}
 }
 
@@ -401,7 +430,7 @@ TArray< TSharedRef<ISourceControlLabel> > FPerforceSourceControlProvider::GetLab
 		FPerforceConnection& Connection = ScopedConnection.GetConnection();
 		FP4RecordSet Records;
 		TArray<FString> Parameters;
-		TArray<FText> ErrorMessages;
+		TArray<FString> ErrorMessages;
 		Parameters.Add(TEXT("-E"));
 		Parameters.Add(InMatchingSpec);
 		bool bConnectionDropped = false;
@@ -414,7 +443,7 @@ TArray< TSharedRef<ISourceControlLabel> > FPerforceSourceControlProvider::GetLab
 			// output errors if any
 			for (int32 ErrorIndex = 0; ErrorIndex < ErrorMessages.Num(); ++ErrorIndex)
 			{
-				FMessageLog("SourceControl").Warning(ErrorMessages[ErrorIndex]);
+				FMessageLog("SourceControl").Warning(FText::FromString(ErrorMessages[ErrorIndex]));
 			}
 		}
 	}

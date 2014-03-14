@@ -82,11 +82,6 @@ bool FWinInetConnection::InitConnection()
 	UE_LOG(LogHttp, Log, TEXT("Connected State: %s. Flags: (%s)"), 
 		bConnected ? TEXT("Good") : TEXT("Bad"), *ConnectionType);
 
-	// max simultaneous connections allowed by wininet
-	::DWORD MaxServerConnections = FHttpModule::Get().GetHttpMaxConnectionsPerServer();
-	InternetSetOption(NULL, INTERNET_OPTION_MAX_CONNS_PER_SERVER, (LPVOID)&MaxServerConnections, sizeof(::DWORD));
-	InternetSetOption(NULL, INTERNET_OPTION_MAX_CONNS_PER_1_0_SERVER, (LPVOID)&MaxServerConnections, sizeof(::DWORD));
-
 	if (InternetAttemptConnect(0) != ERROR_SUCCESS)
 	{
 		UE_LOG(LogHttp, Warning, TEXT("InternetAttemptConnect failed: %s\n"), 
@@ -205,49 +200,49 @@ void CALLBACK InternetStatusCallbackWinInet(
 	switch (dwInternetStatus)
 	{
 	case INTERNET_STATUS_PREFETCH:
-		UE_LOG(LogHttp, VeryVerbose, TEXT("STATUS_PREFETCH: %p"), dwContext);
+		UE_LOG(LogHttp, Verbose, TEXT("STATUS_PREFETCH: %p"), dwContext);
 		break;
 	case INTERNET_STATUS_USER_INPUT_REQUIRED:
-		UE_LOG(LogHttp, VeryVerbose, TEXT("USER_INPUT_REQUIRED: %p"), dwContext);
+		UE_LOG(LogHttp, Verbose, TEXT("USER_INPUT_REQUIRED: %p"), dwContext);
 		break;
 	case INTERNET_STATUS_DETECTING_PROXY:
-		UE_LOG(LogHttp, VeryVerbose, TEXT("DETECTING_PROXY: %p"), dwContext);
+		UE_LOG(LogHttp, Verbose, TEXT("DETECTING_PROXY: %p"), dwContext);
 		break;
 	case INTERNET_STATUS_CLOSING_CONNECTION:
-		UE_LOG(LogHttp, VeryVerbose, TEXT("CLOSING_CONNECTION: %p"), dwContext);
+		UE_LOG(LogHttp, Verbose, TEXT("CLOSING_CONNECTION: %p"), dwContext);
 		break;
 	case INTERNET_STATUS_CONNECTED_TO_SERVER:
-		UE_LOG(LogHttp, VeryVerbose, TEXT("CONNECTED_TO_SERVER: %p"), dwContext);
+		UE_LOG(LogHttp, Verbose, TEXT("CONNECTED_TO_SERVER: %p"), dwContext);
 		break;
 	case INTERNET_STATUS_CONNECTING_TO_SERVER:
-		UE_LOG(LogHttp, VeryVerbose, TEXT("CONNECTING_TO_SERVER: %p"), dwContext);
+		UE_LOG(LogHttp, Verbose, TEXT("CONNECTING_TO_SERVER: %p"), dwContext);
 		break;
 	case INTERNET_STATUS_CONNECTION_CLOSED:
-		UE_LOG(LogHttp, VeryVerbose, TEXT("CONNECTION_CLOSED: %p"), dwContext);
+		UE_LOG(LogHttp, Verbose, TEXT("CONNECTION_CLOSED: %p"), dwContext);
 		break;
 	case INTERNET_STATUS_HANDLE_CLOSING:
-		UE_LOG(LogHttp, VeryVerbose, TEXT("HANDLE_CLOSING: %p"), dwContext);
+		UE_LOG(LogHttp, Verbose, TEXT("HANDLE_CLOSING: %p"), dwContext);
 		break;
 	case INTERNET_STATUS_HANDLE_CREATED:
-		UE_LOG(LogHttp, VeryVerbose, TEXT("HANDLE_CREATED: %p"), dwContext);
+		UE_LOG(LogHttp, Verbose, TEXT("HANDLE_CREATED: %p"), dwContext);
 		break;
 	case INTERNET_STATUS_INTERMEDIATE_RESPONSE:
-		UE_LOG(LogHttp, VeryVerbose, TEXT("INTERMEDIATE_RESPONSE: %p"), dwContext);
+		UE_LOG(LogHttp, Verbose, TEXT("INTERMEDIATE_RESPONSE: %p"), dwContext);
 		break;
 	case INTERNET_STATUS_NAME_RESOLVED:
-		UE_LOG(LogHttp, VeryVerbose, TEXT("NAME_RESOLVED: %p"), dwContext);
+		UE_LOG(LogHttp, Verbose, TEXT("NAME_RESOLVED: %p"), dwContext);
 		break;
 	case INTERNET_STATUS_RECEIVING_RESPONSE:
-		UE_LOG(LogHttp, VeryVerbose, TEXT("RECEIVING_RESPONSE: %p"), dwContext);
+		UE_LOG(LogHttp, Verbose, TEXT("RECEIVING_RESPONSE: %p"), dwContext);
 		break;
 	case INTERNET_STATUS_RESPONSE_RECEIVED:
-		UE_LOG(LogHttp, VeryVerbose, TEXT("RESPONSE_RECEIVED (%d bytes): %p"), *(uint32*)lpvStatusInformation, dwContext);		
+		UE_LOG(LogHttp, Verbose, TEXT("RESPONSE_RECEIVED (%d bytes): %p"), *(uint32*)lpvStatusInformation, dwContext);		
 		break;
 	case INTERNET_STATUS_REDIRECT:
-		UE_LOG(LogHttp, VeryVerbose, TEXT("STATUS_REDIRECT: %p"), dwContext);
+		UE_LOG(LogHttp, Verbose, TEXT("STATUS_REDIRECT: %p"), dwContext);
 		break;
 	case INTERNET_STATUS_REQUEST_COMPLETE:
-		UE_LOG(LogHttp, VeryVerbose, TEXT("REQUEST_COMPLETE: %p"), dwContext);
+		UE_LOG(LogHttp, Verbose, TEXT("REQUEST_COMPLETE: %p"), dwContext);
 
 		if (lpvStatusInformation != NULL)
 		{
@@ -276,36 +271,36 @@ void CALLBACK InternetStatusCallbackWinInet(
 
 		break;
 	case INTERNET_STATUS_REQUEST_SENT:
-		UE_LOG(LogHttp, VeryVerbose, TEXT("REQUEST_SENT: %p"), dwContext);
+		UE_LOG(LogHttp, Verbose, TEXT("REQUEST_SENT: %p"), dwContext);
 		break;
 	case INTERNET_STATUS_RESOLVING_NAME:
-		UE_LOG(LogHttp, VeryVerbose, TEXT("RESOLVING_NAME: %p"), dwContext);
+		UE_LOG(LogHttp, Verbose, TEXT("RESOLVING_NAME: %p"), dwContext);
 		break;
 	case INTERNET_STATUS_SENDING_REQUEST:
-		UE_LOG(LogHttp, VeryVerbose, TEXT("SENDING_REQUEST: %p"), dwContext);
+		UE_LOG(LogHttp, Verbose, TEXT("SENDING_REQUEST: %p"), dwContext);
 		break;
 	case INTERNET_STATUS_STATE_CHANGE:
-		UE_LOG(LogHttp, VeryVerbose, TEXT("STATE_CHANGE: %p"), dwContext);
+		UE_LOG(LogHttp, Verbose, TEXT("STATE_CHANGE: %p"), dwContext);
 		break;
 	case INTERNET_STATUS_COOKIE_SENT:
-		UE_LOG(LogHttp, VeryVerbose, TEXT("COOKIE_SENT: %p"), dwContext);
+		UE_LOG(LogHttp, Verbose, TEXT("COOKIE_SENT: %p"), dwContext);
 		break;
 	case INTERNET_STATUS_COOKIE_RECEIVED:
-		UE_LOG(LogHttp, VeryVerbose, TEXT("COOKIE_RECEIVED: %p"), dwContext);
+		UE_LOG(LogHttp, Verbose, TEXT("COOKIE_RECEIVED: %p"), dwContext);
 		break;
 	case INTERNET_STATUS_PRIVACY_IMPACTED:
-		UE_LOG(LogHttp, VeryVerbose, TEXT("PRIVACY_IMPACTED: %p"), dwContext);
+		UE_LOG(LogHttp, Verbose, TEXT("PRIVACY_IMPACTED: %p"), dwContext);
 		break;
 	case INTERNET_STATUS_P3P_HEADER:
-		UE_LOG(LogHttp, VeryVerbose, TEXT("P3P_HEADER: %p"), dwContext);
+		UE_LOG(LogHttp, Verbose, TEXT("P3P_HEADER: %p"), dwContext);
 		break;
 	case INTERNET_STATUS_P3P_POLICYREF:
-		UE_LOG(LogHttp, VeryVerbose, TEXT("P3P_POLICYREF: %p"), dwContext);
+		UE_LOG(LogHttp, Verbose, TEXT("P3P_POLICYREF: %p"), dwContext);
 		break;
 	case INTERNET_STATUS_COOKIE_HISTORY:
 		{
 			const InternetCookieHistory* CookieHistory = (const InternetCookieHistory*)lpvStatusInformation;
-			UE_LOG(LogHttp, VeryVerbose, TEXT("COOKIE_HISTORY: %p. Accepted: %u. Leashed: %u. Downgraded: %u. Rejected: %u.")
+			UE_LOG(LogHttp, Verbose, TEXT("COOKIE_HISTORY: %p. Accepted: %u. Leashed: %u. Downgraded: %u. Rejected: %u.")
 				, dwContext
 				, CookieHistory->fAccepted
 				, CookieHistory->fLeashed
@@ -314,7 +309,7 @@ void CALLBACK InternetStatusCallbackWinInet(
 		}
 		break;
 	default:
-		UE_LOG(LogHttp, VeryVerbose, TEXT("Unknown Status: %u. %p"), (uint32)dwInternetStatus, dwContext);
+		UE_LOG(LogHttp, Verbose, TEXT("Unknown Status: %u. %p"), (uint32)dwInternetStatus, dwContext);
 		break;
 	}
 }
@@ -327,7 +322,6 @@ FHttpRequestWinInet::FHttpRequestWinInet()
 ,	RequestHandle(NULL)
 ,	ElapsedTimeSinceLastServerResponse(0)
 ,	ProgressBytesSent(0)
-,	StartRequestTime(0)
 {
 
 }
@@ -453,8 +447,6 @@ bool FHttpRequestWinInet::ProcessRequest()
 		Response = MakeShareable(new FHttpResponseWinInet(*this));
 		// Add to global list while being processed so that the ref counted request does not get deleted
 		FHttpModule::Get().GetHttpManager().AddRequest(SharedThis(this));
-		// keep track of time when request was started
-		StartRequestTime = FPlatformTime::Seconds();
 		// Try to start the connection and send the Http request
 		bStarted = StartRequest();
 	}
@@ -477,12 +469,9 @@ bool FHttpRequestWinInet::StartRequest()
 	CleanupRequest();
 
 	UE_LOG(LogHttp, Log, TEXT("Start request. %p %s url=%s"), this, *GetVerb(), *GetURL());
-	if (UE_LOG_ACTIVE(LogHttp, Verbose))
+	for (TMap<FString, FString>::TConstIterator It(RequestHeaders); It; ++It)
 	{
-		for (TMap<FString, FString>::TConstIterator It(RequestHeaders); It; ++It)
-		{
-			UE_LOG(LogHttp, Verbose, TEXT("%p Header %s : %s"), this, *It.Key(), *It.Value());
-		}
+		UE_LOG(LogHttp, Log, TEXT("%p Header %s : %s"), this, *It.Key(), *It.Value());
 	}
 
 	if (FWinInetConnection::Get().IsConnectionValid())
@@ -600,24 +589,9 @@ void FHttpRequestWinInet::FinishedRequest()
 	// Remove from global list since processing is now complete
 	FHttpModule::Get().GetHttpManager().RemoveRequest(Request);
 
-	double ElapsedTime = FPlatformTime::Seconds() - StartRequestTime;
 	if (Response.IsValid() &&
 		Response->bResponseSucceeded)
 	{
-		UE_LOG(LogHttp, Log, TEXT("Finished request %p. response=%d %s url=%s elapsed=%.3f DownloadSize=%d"), 
-			this, Response->GetResponseCode(), *GetVerb(), *GetURL(), ElapsedTime, Response->GetContentLength());
-
-		// log info about cloud front to identify failed downloads
-		if (UE_LOG_ACTIVE(LogHttp, Verbose))
-		{
-			TArray<FString> AllHeaders = Response->GetAllHeaders();
-			for (TArray<FString>::TConstIterator It(AllHeaders); It; ++It)
-			{
-				const FString& HeaderStr = *It;
-				UE_LOG(LogHttp, Verbose, TEXT("%p Header %s"), this, *HeaderStr);
-			}
-		}
-
 		// Mark last request attempt as completed successfully
 		CompletionStatus = EHttpRequestStatus::Succeeded;
 		// Call delegate with valid request/response objects
@@ -625,9 +599,6 @@ void FHttpRequestWinInet::FinishedRequest()
 	}
 	else
 	{
-		UE_LOG(LogHttp, Log, TEXT("Finished request %p. no response %s url=%s elapsed=%.3f"), 
-			this, *GetVerb(), *GetURL(), ElapsedTime);
-
 		// Mark last request attempt as completed but failed
 		CompletionStatus = EHttpRequestStatus::Failed;
 		// No response since connection failed
@@ -838,28 +809,19 @@ void FHttpResponseWinInet::ProcessResponse()
 	TotalBytesRead += AsyncBytesRead;
 	// We might be calling back into this from another asynchronous read, so continue where we left off.
 	// if there is no content length, we're probably receiving chunked data.
-	ContentLength = QueryContentLength();
+	int32 CurContentLength = QueryContentLength();
 	// Size of the buffer to read when calling InternetReadFile. Payload grows by this amount as necessary
-	const int32 MAX_READ_BUFFER_SIZE = 256 * 1024;
-	// Set buffer size based on content length or hard code if chunked response
-	int32 BufferSize = 0;
+	const int32 MAX_READ_BUFFER_SIZE = 16*1024;
+	// For chunked responses, add data using a fixed size buffer at a time.
+	int32 BufferSize = TotalBytesRead + MAX_READ_BUFFER_SIZE;
 	// For non-chunked responses, allocate one extra uint8 to check if we are sent extra content
-	if (ContentLength > 0)
+	if (ContentLength > 0 && 
+		TotalBytesRead == 0)
 	{
-		if (TotalBytesRead == 0)
-		{
-			BufferSize = ContentLength + 1;
-			// Size read buffer
-			ResponsePayload.SetNum(BufferSize);
-		}
+		BufferSize = ContentLength + 1;
 	}
-	else
-	{
-		// For chunked responses, add data using a fixed size buffer at a time.
-		BufferSize = TotalBytesRead + MAX_READ_BUFFER_SIZE;
-		// Size read buffer
-		ResponsePayload.SetNum(BufferSize);
-	}
+	// Size read buffer
+	ResponsePayload.SetNum(BufferSize);
 
 	bool bFailed = false;
 	int32 LoopCount = 0;
@@ -905,7 +867,7 @@ void FHttpResponseWinInet::ProcessResponse()
 			{
 				if (ContentLength > 0)
 				{
-					UE_LOG(LogHttp, Log, TEXT("Response payload (%d bytes read so far) is larger than the content-length (%d). Resizing buffer to accommodate. %p"), 
+					UE_LOG(LogHttp, VeryVerbose, TEXT("Response payload (%d bytes read so far) is larger than the content-length (%d). Resizing buffer to accommodate. %p"), 
 						TotalBytesRead, ContentLength, &Request);
 				}
 				ResponsePayload.AddZeroed(MAX_READ_BUFFER_SIZE);

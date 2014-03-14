@@ -384,7 +384,6 @@ void FLauncherWorker::CreateAndExecuteTasks( const ILauncherProfileRef& InProfil
 
 				TSharedPtr<FLauncherTask> PerDeviceTask;
 
-				FString LaunchCommandLine = InProfile->GetLaunchMode() != ELauncherProfileLaunchModes::DoNotLaunch ? InProfile->GetDefaultLaunchRole()->GetCommandLine() : TEXT("");
 				// ... start a per-platform file server, if necessary...
 				if (InProfile->GetDeploymentMode() == ELauncherProfileDeploymentModes::FileServer)
 				{
@@ -429,7 +428,7 @@ void FLauncherWorker::CreateAndExecuteTasks( const ILauncherProfileRef& InProfil
 					}
 					else
 					{
-						Command = MakeShareable(new FLauncherDeployGameToDeviceCommand(DeviceProxy, *TargetPlatform, CookCommand, LaunchCommandLine));
+						Command = MakeShareable(new FLauncherDeployGameToDeviceCommand(DeviceProxy, *TargetPlatform, CookCommand));
 					}
 					TSharedPtr<FLauncherTask> DeployTask = MakeShareable(new FLauncherUATTask(Command, *TargetPlatform, Command->GetName(), ReadPipe, WritePipe));
 					DeployTask->OnStarted().AddRaw(this, &FLauncherWorker::OnTaskStarted);
@@ -455,7 +454,7 @@ void FLauncherWorker::CreateAndExecuteTasks( const ILauncherProfileRef& InProfil
 					}
 					else
 					{
-						Command = MakeShareable(new FLauncherDeployGamePackageToDeviceCommand(DeviceProxy, *TargetPlatform, CookCommand, LaunchCommandLine));
+						Command = MakeShareable(new FLauncherDeployGamePackageToDeviceCommand(DeviceProxy, *TargetPlatform, CookCommand));
 					}
 					TSharedPtr<FLauncherTask> DeployTask = MakeShareable(new FLauncherUATTask(Command, *TargetPlatform, Command->GetName(), ReadPipe, WritePipe));
 					DeployTask->OnStarted().AddRaw(this, &FLauncherWorker::OnTaskStarted);
@@ -474,7 +473,7 @@ void FLauncherWorker::CreateAndExecuteTasks( const ILauncherProfileRef& InProfil
 				}
 				else if (TargetPlatform->PlatformName() == TEXT("XboxOne") || TargetPlatform->PlatformName() == TEXT("IOS") || TargetPlatform->PlatformName().StartsWith(TEXT("Android")))
 				{
-					TSharedPtr<FLauncherUATCommand> Command = MakeShareable(new FLauncherDeployGameToDeviceCommand(DeviceProxy, *TargetPlatform, CookCommand, LaunchCommandLine));
+					TSharedPtr<FLauncherUATCommand> Command = MakeShareable(new FLauncherDeployGameToDeviceCommand(DeviceProxy, *TargetPlatform, CookCommand));
 					TSharedPtr<FLauncherTask> DeployTask = MakeShareable(new FLauncherUATTask(Command, *TargetPlatform, Command->GetName(), ReadPipe, WritePipe));
 					DeployTask->OnStarted().AddRaw(this, &FLauncherWorker::OnTaskStarted);
 					DeployTask->OnCompleted().AddRaw(this, &FLauncherWorker::OnTaskCompleted);

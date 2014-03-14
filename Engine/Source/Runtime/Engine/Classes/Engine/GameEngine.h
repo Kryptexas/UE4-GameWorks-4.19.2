@@ -12,6 +12,10 @@ class ENGINE_API UGameEngine : public UEngine
 {
 	GENERATED_UCLASS_BODY()
 
+	/** The name of the class to spawn as the temporary pending level player controller */
+	UPROPERTY(config)
+	FString PendingLevelPlayerControllerClassName;
+
 	/** check to see if we need to start a movie capture
 	 * (used on the first tick when we want to record a matinee)
 	 */

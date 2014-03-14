@@ -460,20 +460,13 @@ FSlateApplication::FSlateApplication()
 	, bIsExternalUIOpened( false )
 	, SlateTextField( NULL )
 	, bIsFakingTouch(FParse::Param(FCommandLine::Get(), TEXT("simmobile")) || FParse::Param(FCommandLine::Get(), TEXT("faketouches")))
-	, bIsGameFakingTouch( false )
 	, bIsFakingTouched( false )
-	, bTouchFallbackToMouse( true )
 	, bMenuAnimationsEnabled( true )
 	, AppIcon( FCoreStyle::Get().GetBrush("DefaultAppIcon") )
 {
 #if WITH_UNREAL_DEVELOPER_TOOLS
 	FModuleManager::Get().LoadModule(TEXT("Settings"));
-#endif	
-
-	if (GConfig)
-	{	
-		GConfig->GetBool(TEXT("MobileSlateUI"),TEXT("bTouchFallbackToMouse"),bTouchFallbackToMouse,GEngineIni);
-	}
+#endif
 
 	// causes InputCore to initialize, even if statically linked
 	FInputCoreModule& InputCore = FModuleManager::LoadModuleChecked<FInputCoreModule>(TEXT("InputCore"));
@@ -537,7 +530,6 @@ void FSlateApplication::RegisterWidgetReflectorTabSpawner( const TSharedRef< FWo
 {
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner( "WidgetReflector", FOnSpawnTab::CreateRaw(this, &FSlateApplication::MakeWidgetReflectorTab) )
 		.SetDisplayName(NSLOCTEXT("Slate", "WidgetReflectorTitle", "Widget Reflector"))
-		.SetTooltipText(NSLOCTEXT("Slate", "WidgetReflectorTooltipText", "Open the Widget Reflector tab."))
 		.SetGroup( WorkspaceGroup )
 		.SetIcon(FSlateIcon(FCoreStyle::Get().GetStyleSetName(), "WidgetReflector.TabIcon"));
 }
@@ -547,9 +539,9 @@ void FSlateApplication::UnregisterWidgetReflectorTabSpawner()
 	FGlobalTabmanager::Get()->UnregisterNomadTabSpawner( "WidgetReflector" );
 }
 
-void FSlateApplication::PlaySound( const FSlateSound& SoundToPlay, int32 UserIndex ) const
+void FSlateApplication::PlaySound( const FSlateSound& SoundToPlay ) const
 {
-	SlateSoundDevice->PlaySound(SoundToPlay, UserIndex);
+	SlateSoundDevice->PlaySound(SoundToPlay);
 }
 
 float FSlateApplication::GetSoundDuration(const FSlateSound& Sound) const
@@ -2611,11 +2603,6 @@ TSharedPtr<FDragDropOperation> FSlateApplication::GetDragDroppingContent() const
 	return DragDropContent;
 }
 
-void FSlateApplication::EndDragDrop()
-{
-	DragDropContent.Reset();
-}
-
 void FSlateApplication::EnterDebuggingMode()
 {
 	bRequestLeaveDebugMode = false;
@@ -2940,28 +2927,14 @@ FSlateRect FSlateApplication::GetPreferredWorkArea() const
 		{
 			return WorkArea;
 		}
-
-		// If we can't find a window where the cursor is at, try finding a main window.
-		TSharedPtr<SWindow> ActiveTop = GetActiveTopLevelWindow();
-		if ( ActiveTop.IsValid() )
+		else
 		{
-			// Use the current top level windows rect
-			return GetWorkArea( ActiveTop->GetRectInScreen() );
+			// no windows on work area - default to primary display
+			FDisplayMetrics DisplayMetrics;
+			GetDisplayMetrics( DisplayMetrics );
+			const FPlatformRect& DisplayRect = DisplayMetrics.PrimaryDisplayWorkAreaRect;
+			return FSlateRect( (float)DisplayRect.Left, (float)DisplayRect.Top, (float)DisplayRect.Right, (float)DisplayRect.Bottom );
 		}
-		
-		// If we can't find a top level window check for an active modal window
-		TSharedPtr<SWindow> ActiveModal = GetActiveModalWindow();
-		if ( ActiveModal.IsValid() )
-		{
-			// Use the current active modal windows rect
-			return GetWorkArea( ActiveModal->GetRectInScreen() );
-		}
-
-		// no windows on work area - default to primary display
-		FDisplayMetrics DisplayMetrics;
-		GetDisplayMetrics( DisplayMetrics );
-		const FPlatformRect& DisplayRect = DisplayMetrics.PrimaryDisplayWorkAreaRect;
-		return FSlateRect( (float)DisplayRect.Left, (float)DisplayRect.Top, (float)DisplayRect.Right, (float)DisplayRect.Bottom );
 	}
 }
 
@@ -3254,25 +3227,10 @@ FKey TranslateMouseButtonToKey( const EMouseButtons::Type Button )
 	return Key;
 }
 
-void FSlateApplication::SetGameIsFakingTouchEvents(const bool bIsFaking)
-{
-	if (bIsFakingTouched && !bIsFaking && bIsGameFakingTouch && !bIsFakingTouch)
-	{
-		OnTouchEnded(PlatformApplication->Cursor->GetPosition(), 0, 0);
-	}
-	bIsGameFakingTouch = bIsFaking;
-}
-
-bool FSlateApplication::IsFakingTouchEvents() const
-{
-	return bIsFakingTouch || bIsGameFakingTouch;
-}
-
-
 bool FSlateApplication::OnMouseDown( const TSharedPtr< FGenericWindow >& PlatformWindow, const EMouseButtons::Type Button )
 {
 	// convert to touch event if we are faking it	
-	if (bIsFakingTouch || bIsGameFakingTouch)
+	if (bIsFakingTouch)
 	{
 		bIsFakingTouched = true;
 		return OnTouchStarted( PlatformWindow, PlatformApplication->Cursor->GetPosition(), 0, 0 );
@@ -3325,7 +3283,7 @@ bool FSlateApplication::ProcessMouseButtonDownMessage( const TSharedPtr< FGeneri
 				{
 					Reply = MouseCaptorWidget.Widget->OnTouchStarted( MouseCaptorWidget.Geometry, MouseEvent ).SetHandler( MouseCaptorWidget.Widget );
 				}
-				if (!MouseEvent.IsTouchEvent() || (!Reply.IsEventHandled() && bTouchFallbackToMouse))
+				if (!Reply.IsEventHandled())
 				{
 					Reply = MouseCaptorWidget.Widget->OnMouseButtonDown( MouseCaptorWidget.Geometry, MouseEvent ).SetHandler( MouseCaptorWidget.Widget );
 				}
@@ -3366,7 +3324,7 @@ bool FSlateApplication::ProcessMouseButtonDownMessage( const TSharedPtr< FGeneri
 					{
 						Reply = CurWidget.Widget->OnTouchStarted( CurWidget.Geometry, MouseEvent ).SetHandler( CurWidget.Widget );
 					}
-					if (!MouseEvent.IsTouchEvent() || (!Reply.IsEventHandled() && bTouchFallbackToMouse))
+					if (!Reply.IsEventHandled())
 					{
 						Reply = CurWidget.Widget->OnMouseButtonDown( CurWidget.Geometry, MouseEvent ).SetHandler( CurWidget.Widget );
 					}
@@ -3401,7 +3359,7 @@ bool FSlateApplication::ProcessMouseButtonDownMessage( const TSharedPtr< FGeneri
 
 		// See if expensive tasks should be throttled.  By default on mouse down expensive tasks are throttled
 		// to ensure Slate responsiveness in low FPS situations
-		if (Reply.IsEventHandled() && !bInGame && !MouseEvent.IsTouchEvent())
+		if (Reply.IsEventHandled() && !bInGame)
 		{
 			// Enter responsive mode if throttling should occur and its not already happening
 			if( Reply.ShouldThrottle() && !MouseButtonDownResponsivnessThrottle.IsValid() )
@@ -3423,12 +3381,6 @@ bool FSlateApplication::ProcessMouseButtonDownMessage( const TSharedPtr< FGeneri
 
 bool FSlateApplication::OnMouseDoubleClick( const TSharedPtr< FGenericWindow >& PlatformWindow, const EMouseButtons::Type Button )
 {
-	if (bIsFakingTouch || bIsGameFakingTouch)
-	{
-		bIsFakingTouched = true;
-		return OnTouchStarted(PlatformWindow, PlatformApplication->Cursor->GetPosition(), 0, 0);
-	}
-
 	FKey Key = TranslateMouseButtonToKey( Button );
 
 	FPointerEvent MouseEvent(
@@ -3478,7 +3430,7 @@ bool FSlateApplication::ProcessMouseButtonDoubleClickMessage( const TSharedPtr< 
 bool FSlateApplication::OnMouseUp( const EMouseButtons::Type Button )
 {
 	// convert to touch event if we are faking it	
-	if (bIsFakingTouch || bIsGameFakingTouch)
+	if (bIsFakingTouch)
 	{
 		bIsFakingTouched = false;
 		return OnTouchEnded(PlatformApplication->Cursor->GetPosition(), 0, 0);
@@ -3525,7 +3477,7 @@ bool FSlateApplication::ProcessMouseButtonUpMessage( FPointerEvent& MouseEvent )
 			{
 				Reply = MouseCaptorWidget.Widget->OnTouchEnded( MouseCaptorWidget.Geometry, MouseEvent ).SetHandler( MouseCaptorWidget.Widget );
 			}
-			if (!MouseEvent.IsTouchEvent() || (!Reply.IsEventHandled() && bTouchFallbackToMouse))
+			if (!Reply.IsEventHandled())
 			{
 				Reply = MouseCaptorWidget.Widget->OnMouseButtonUp( MouseCaptorWidget.Geometry, MouseEvent ).SetHandler( MouseCaptorWidget.Widget );
 			}
@@ -3557,7 +3509,7 @@ bool FSlateApplication::ProcessMouseButtonUpMessage( FPointerEvent& MouseEvent )
 			{
 				Reply = CurWidget.Widget->OnTouchEnded( CurWidget.Geometry, MouseEvent ).SetHandler( CurWidget.Widget );
 			}
-			if (!MouseEvent.IsTouchEvent() || (!Reply.IsEventHandled() && bTouchFallbackToMouse))
+			if (!Reply.IsEventHandled())
 			{
 				Reply = (bIsDragDropping)
 					? CurWidget.Widget->OnDrop( CurWidget.Geometry, DragDropEvent ).SetHandler( CurWidget.Widget )
@@ -3659,12 +3611,12 @@ bool FSlateApplication::ProcessMouseWheelOrGestureMessage( FPointerEvent& InWhee
 bool FSlateApplication::OnMouseMove()
 {
 	// convert to touch event if we are faking it	
-	if (bIsFakingTouched)
+	if (bIsFakingTouch)
 	{
-		return OnTouchMoved(PlatformApplication->Cursor->GetPosition(), 0, 0);
-	}
-	else if (!bIsGameFakingTouch && bIsFakingTouch)
-	{
+		if (bIsFakingTouched)
+		{
+			return OnTouchMoved(PlatformApplication->Cursor->GetPosition(), 0, 0);
+		}
 		return false;
 	}
 
@@ -3834,7 +3786,7 @@ bool FSlateApplication::ProcessMouseMoveMessage( FPointerEvent& MouseEvent )
 		{
 			Reply = MouseCaptorWidget.Widget->OnTouchMoved( MouseCaptorWidget.Geometry, MouseEvent ).SetHandler( MouseCaptorWidget.Widget );
 		}
-		if (!MouseEvent.IsTouchEvent() || (!Reply.IsEventHandled() && bTouchFallbackToMouse))
+		if (!Reply.IsEventHandled())
 		{
 			Reply = MouseCaptorWidget.Widget->OnMouseMove( MouseCaptorWidget.Geometry, MouseEvent ).SetHandler( MouseCaptorWidget.Widget );
 		}

@@ -14,7 +14,7 @@ UBTTask_RunEQSQuery::UBTTask_RunEQSQuery(const class FPostConstructInitializePro
 	}
 }
 
-EBTNodeResult::Type UBTTask_RunEQSQuery::ExecuteTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UBTTask_RunEQSQuery::ExecuteTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
 {
 	AActor* QueryOwner = OwnerComp->GetOwner();
 	if (AController* ControllerOwner = Cast<AController>(QueryOwner))
@@ -38,7 +38,7 @@ EBTNodeResult::Type UBTTask_RunEQSQuery::ExecuteTask(class UBehaviorTreeComponen
 	return EBTNodeResult::Failed;
 }
 
-EBTNodeResult::Type UBTTask_RunEQSQuery::AbortTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UBTTask_RunEQSQuery::AbortTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
 {
 	UWorld* MyWorld = OwnerComp->GetWorld();
 	UEnvQueryManager* QueryManager = MyWorld->GetEnvironmentQueryManager();

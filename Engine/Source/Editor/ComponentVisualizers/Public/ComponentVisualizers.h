@@ -26,12 +26,4 @@ public:
 	{
 		return true;
 	}
-
-private:
-
-	/** Register a visualizer for a particular componen class */
-	void RegisterComponentVisualizer(FName ComponentClassName, TSharedPtr<FComponentVisualizer> Visualizer);
-
-	/** Array of component class names we have registered, so we know what to unregister aferwards */
-	TArray<FName> RegisteredComponentClassNames;
 };

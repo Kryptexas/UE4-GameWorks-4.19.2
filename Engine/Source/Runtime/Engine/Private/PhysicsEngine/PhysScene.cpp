@@ -22,7 +22,7 @@ FORCEINLINE EPhysicsSceneType SceneType(const FBodyInstance * BodyInstance)
 #if WITH_PHYSX
 	//This is a helper function for dynamic actors - static actors are in both scenes
 	check(BodyInstance->GetPxRigidDynamic());
-	return BodyInstance->UseAsyncScene() ? PST_Async : PST_Sync;
+	return BodyInstance->bUseAsyncScene ? PST_Async : PST_Sync;
 #endif
 
 	return PST_Sync;
@@ -93,7 +93,8 @@ FPhysScene::FPhysScene()
 	bSubstepping = PhysSetting->bSubstepping;
 #endif
 
-	bAsyncSceneEnabled = PhysSetting->bEnableAsyncScene;
+	static auto CVar_AsyncSceneEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("p.EnableAsyncScene"));
+	bAsyncSceneEnabled = CVar_AsyncSceneEnabled->GetValueOnGameThread() == 1;
 	NumPhysScenes = bAsyncSceneEnabled ? PST_MAX : PST_Async;
 
 
@@ -111,11 +112,6 @@ FPhysScene::FPhysScene()
 
 		// gets from console variable, and clamp to [0, 1] - 1 should be fixed time as 30 fps
 		FrameTimeSmoothingFactor[SceneType] = FMath::Clamp<float>(FrameTimeSmoothingFactor[SceneType], 0.f, 1.f);
-	}
-
-	if (!bAsyncSceneEnabled)
-	{
-		PhysXSceneIndex[PST_Async] = 0;
 	}
 
 	// Make sure we use the sync scene for apex world support of destructibles in the async scene
@@ -265,14 +261,6 @@ void FPhysScene::TermBody(FBodyInstance * BodyInstance)
 
 #if WITH_SUBSTEPPING
 
-#if WITH_APEX
-void FPhysScene::DeferredDestructibleDamageNotify(const NxApexDamageEventReportData& damageEvent)
-{
-	//TODO: waiting for support on this from NVIDIA
-	//DestructibleDamageEventQueue.Add(damageEvent);
-}
-#endif
-
 bool FPhysScene::SubstepSimulation(uint32 SceneType, FGraphEventRef &InOutCompletionEvent)
 {
 	float UseDelta = UseSyncTime(SceneType)? SyncDeltaSeconds : DeltaSeconds;
@@ -295,50 +283,6 @@ bool FPhysScene::SubstepSimulation(uint32 SceneType, FGraphEventRef &InOutComple
 }
 
 #endif //#if WITH_SUBSTEPPING
-
-/** Adds to queue of skelmesh we want to add to collision disable table */
-void FPhysScene::DeferredAddCollisionDisableTable(uint32 SkelMeshCompID, TMap<struct FRigidBodyIndexPair, bool> * CollisionDisableTable)
-{
-	check(IsInGameThread());
-
-	FPendingCollisionDisableTable PendingCollisionDisableTable;
-	PendingCollisionDisableTable.SkelMeshCompID = SkelMeshCompID;
-	PendingCollisionDisableTable.CollisionDisableTable = CollisionDisableTable;
-
-	DeferredCollisionDisableTableQueue.Add(PendingCollisionDisableTable);
-}
-
-/** Adds to queue of skelmesh we want to remove from collision disable table */
-void FPhysScene::DeferredRemoveCollisionDisableTable(uint32 SkelMeshCompID)
-{
-	check(IsInGameThread());
-
-	FPendingCollisionDisableTable PendingDisableCollisionTable;
-	PendingDisableCollisionTable.SkelMeshCompID = SkelMeshCompID;
-	PendingDisableCollisionTable.CollisionDisableTable = NULL;
-
-	DeferredCollisionDisableTableQueue.Add(PendingDisableCollisionTable);
-}
-
-void FPhysScene::FlushDeferredCollisionDisableTableQueue()
-{
-	check(IsInGameThread());
-	for (int32 i = 0; i < DeferredCollisionDisableTableQueue.Num(); ++i)
-	{
-		FPendingCollisionDisableTable & PendingCollisionDisableTable = DeferredCollisionDisableTableQueue[i];
-		
-		if (PendingCollisionDisableTable.CollisionDisableTable)
-		{
-			CollisionDisableTableLookup.Add(PendingCollisionDisableTable.SkelMeshCompID, PendingCollisionDisableTable.CollisionDisableTable);
-		}
-		else
-		{
-			CollisionDisableTableLookup.Remove(PendingCollisionDisableTable.SkelMeshCompID);
-		}
-	}
-
-	DeferredCollisionDisableTableQueue.Empty();
-}
 
 /** Exposes ticking of physics-engine scene outside Engine. */
 void FPhysScene::TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletionEvent)
@@ -544,20 +488,6 @@ void FPhysScene::SyncComponentsToBodies(uint32 SceneType)
 	for(PxU32 TransformIdx=0; TransformIdx<NumTransforms; TransformIdx++)
 	{
 		const PxActiveTransform& PActiveTransform = PActiveTransforms[TransformIdx];
-		PxRigidActor* RigidActor = PActiveTransform.actor->isRigidActor();
-
-#if WITH_APEX
-		//Special code for destructible chunk
-		if (const FDestructibleChunkInfo * DestructibleChunkInfo = FPhysxUserData::Get<FDestructibleChunkInfo>(RigidActor->userData))
-		{
-			if (DestructibleChunkInfo->OwningComponent.IsValid())
-			{
-				const physx::PxTransform & PTransform = PActiveTransform.actor2World;
-				DestructibleChunkInfo->OwningComponent->SetChunkWorldRT(DestructibleChunkInfo->ChunkIndex, P2UQuat(PTransform.q), P2UVector(PTransform.p));
-			}
-		}
-#endif
-
 		FBodyInstance* BodyInst = FPhysxUserData::Get<FBodyInstance>(PActiveTransform.userData);
 		if(	BodyInst != NULL && 
 			BodyInst->InstanceBodyIndex == INDEX_NONE && 
@@ -591,57 +521,36 @@ void FPhysScene::SyncComponentsToBodies(uint32 SceneType)
 #endif
 }
 
-void FPhysScene::DispatchPhysNotifications()
+void FPhysScene::DispatchPhysCollisionNotifies()
 {
 	SCOPE_CYCLE_COUNTER(STAT_PhysicsEventTime);
 
-	//Collision notification
+	// Let the game-specific PhysicsCollisionHandler process any physics collisions that took place
+	if(OwningWorld != NULL && OwningWorld->PhysicsCollisionHandler != NULL)
 	{
-		// Let the game-specific PhysicsCollisionHandler process any physics collisions that took place
-		if (OwningWorld != NULL && OwningWorld->PhysicsCollisionHandler != NULL)
-		{
-			OwningWorld->PhysicsCollisionHandler->HandlePhysicsCollisions(PendingCollisionNotifies);
-		}
+		OwningWorld->PhysicsCollisionHandler->HandlePhysicsCollisions(PendingCollisionNotifies);
+	}
 
-		// Fire any collision notifies in the queue.
-		for (int32 i = 0; i<PendingCollisionNotifies.Num(); i++)
+	// Fire any collision notifies in the queue.
+	for(int32 i=0; i<PendingCollisionNotifies.Num(); i++)
+	{
+		FCollisionNotifyInfo& NotifyInfo = PendingCollisionNotifies[i];
+		if(NotifyInfo.RigidCollisionData.ContactInfos.Num() > 0)
 		{
-			FCollisionNotifyInfo& NotifyInfo = PendingCollisionNotifies[i];
-			if (NotifyInfo.RigidCollisionData.ContactInfos.Num() > 0)
+			if(NotifyInfo.bCallEvent0 && NotifyInfo.IsValidForNotify())
 			{
-				if (NotifyInfo.bCallEvent0 && NotifyInfo.IsValidForNotify())
-				{
-					NotifyInfo.Info0.Actor->DispatchPhysicsCollisionHit(NotifyInfo.Info0, NotifyInfo.Info1, NotifyInfo.RigidCollisionData);
-				}
+				NotifyInfo.Info0.Actor->DispatchPhysicsCollisionHit(NotifyInfo.Info0, NotifyInfo.Info1, NotifyInfo.RigidCollisionData);
+			}
 
-				// Need to check IsValidForNotify again in case first call broke something.
-				if (NotifyInfo.bCallEvent1 && NotifyInfo.IsValidForNotify())
-				{
-					NotifyInfo.RigidCollisionData.SwapContactOrders();
-					NotifyInfo.Info1.Actor->DispatchPhysicsCollisionHit(NotifyInfo.Info1, NotifyInfo.Info0, NotifyInfo.RigidCollisionData);
-				}
+			// Need to check IsValidForNotify again in case first call broke something.
+			if(NotifyInfo.bCallEvent1 && NotifyInfo.IsValidForNotify())
+			{
+				NotifyInfo.RigidCollisionData.SwapContactOrders();
+				NotifyInfo.Info1.Actor->DispatchPhysicsCollisionHit(NotifyInfo.Info1, NotifyInfo.Info0, NotifyInfo.RigidCollisionData);
 			}
 		}
-		PendingCollisionNotifies.Empty();
 	}
-	
-#if WITH_SUBSTEPPING
-#if WITH_APEX
-	//TODO: Queue is always empty for now - waiting for support from NVIDIA
-	//Destructible notification
-	{
-		for (int32 i = 0; i < DestructibleDamageEventQueue.Num(); ++i)
-		{
-			const NxApexDamageEventReportData & damageEvent = DestructibleDamageEventQueue[i];
-			UDestructibleComponent* DestructibleComponent = Cast<UDestructibleComponent>(FPhysxUserData::Get<UPrimitiveComponent>(damageEvent.destructible->userData));
-			DestructibleComponent->OnDamageEvent(damageEvent);
-		}
-
-		DestructibleDamageEventQueue.Empty();
-	}
-#endif
-#endif
-
+	PendingCollisionNotifies.Empty();
 }
 
 void FPhysScene::SetUpForFrame(const FVector* NewGrav, float InDeltaSeconds, float InMaxPhysicsDeltaTime)
@@ -676,9 +585,6 @@ void FPhysScene::SetUpForFrame(const FVector* NewGrav, float InDeltaSeconds, flo
 void FPhysScene::StartFrame()
 {
 	FGraphEventArray FinishPrerequisites;
-
-	//Update the collision disable table before ticking
-	FlushDeferredCollisionDisableTableQueue();
 
 	// Run the sync scene
 	 TickPhysScene(PST_Sync, PhysicsSubsceneCompletion[PST_Sync]);
@@ -738,7 +644,7 @@ void FPhysScene::EndFrame(ULineBatchComponent* InLineBatcher)
 	SyncComponentsToBodies(PST_Sync);
 
 	// Perform any collision notification events
-	DispatchPhysNotifications();
+	DispatchPhysCollisionNotifies();
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	// Handle debug rendering
@@ -917,18 +823,8 @@ void FPhysScene::InitPhysScene(uint32 SceneType)
 	// Include scene descriptor in loop, so that we might vary it with scene type
 	PxSceneDesc PSceneDesc(GPhysXSDK->getTolerancesScale());
 	PSceneDesc.cpuDispatcher = CPUDispatcher;
-	
-	FPhysSceneShaderInfo PhysSceneShaderInfo;
-	PhysSceneShaderInfo.PhysScene = this;
-	PSceneDesc.filterShaderData = &PhysSceneShaderInfo;
-	PSceneDesc.filterShaderDataSize = sizeof(PhysSceneShaderInfo);
-
 	PSceneDesc.filterShader = PhysXSimFilterShader;
 	PSceneDesc.simulationEventCallback = SimEventCallback;
-
-	//LOC_MOD enable kinematic vs kinematic for APEX destructibles. This is for the kinematic cube moving horizontally in QA-Destructible map to collide with the destructible.
-	// Was this flag turned off in UE4? Do we want to turn it on for both sync and async scenes?
-	PSceneDesc.flags |= PxSceneFlag::eENABLE_KINEMATIC_PAIRS;
 
 	// Set bounce threshold
 	static const auto CVarBounceThresholdVelocity = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("p.BounceThresholdVelocity"));

@@ -58,9 +58,6 @@ public:
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnAssetLoaded, UObject*);
 	#endif	//WITH_EDITOR
 
-	// delegate type for prompting the pak system to mount a new pak
-	DECLARE_DELEGATE_RetVal_OneParam(bool, FOnMountPak, const FString& );
-
 	// Callback for PER_MODULE_BOILERPLATE macro's GSerialNumberBlocksForDebugVisualizers
 	DECLARE_DELEGATE_RetVal(int32***, FGetSerialNumberBlocksForDebugVisualizersDelegate);
 
@@ -82,17 +79,13 @@ public:
 	// Callback for handling an error
 	DECLARE_MULTICAST_DELEGATE(FOnHandleSystemError);
 
-	// Callback for handling user login/logout.  first int is UserID, second int is UserIndex
-	DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnUserLoginChangedEvent, bool, int32, int32);
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnUserLoginChangedEvent, bool, int32);	
 
 	// get a hotfix delegate
 	static FHotFixDelegate& GetHotfixDelegate(EHotfixDelegates::Type HotFix);
 
 	// Callback when a user logs in/out of the platform.
 	static FOnUserLoginChangedEvent OnUserLoginChangedEvent;
-
-	// Callback for mounting a new pak file.
-	static FOnMountPak OnMountPak;
 
 	// Callback when an ensure has occurred
 	static FOnHandleSystemEnsure OnHandleSystemEnsure;
@@ -209,9 +202,6 @@ public:
 	// There is no guarantee that this will ever be called on a mobile device,
 	// save state when ApplicationWillEnterBackgroundDelegate is called instead.
 	static FApplicationLifetimeDelegate ApplicationWillTerminateDelegate;
-
-	/** Sent after stats are enabled */
-	static FSimpleMulticastDelegate StatsEnabled;
 
 private:
 	// Callbacks for hotfixes

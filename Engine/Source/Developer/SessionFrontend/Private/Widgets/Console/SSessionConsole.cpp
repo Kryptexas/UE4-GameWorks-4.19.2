@@ -175,12 +175,12 @@ void SSessionConsole::BindCommands( )
 		FCanExecuteAction::CreateSP(this, &SSessionConsole::HandleClearActionCanExecute));
 
 	UICommandList->MapAction(
-		Commands.SessionCopy,
+		Commands.Copy,
 		FExecuteAction::CreateSP(this, &SSessionConsole::HandleCopyActionExecute),
 		FCanExecuteAction::CreateSP(this, &SSessionConsole::HandleCopyActionCanExecute));
 
 	UICommandList->MapAction(
-		Commands.SessionSave,
+		Commands.Save,
 		FExecuteAction::CreateSP(this, &SSessionConsole::HandleSaveActionExecute),
 		FCanExecuteAction::CreateSP(this, &SSessionConsole::HandleSaveActionCanExecute));
 }
@@ -272,11 +272,8 @@ void SSessionConsole::SaveLog( )
 	{
 		TArray<FString> Filenames;
 
-		TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(AsShared());
-		void* ParentWindowHandle = (ParentWindow.IsValid() && ParentWindow->GetNativeWindow().IsValid()) ? ParentWindow->GetNativeWindow()->GetOSWindowHandle() : nullptr;
-
 		if (DesktopPlatform->SaveFileDialog(
-			ParentWindowHandle,
+			NULL,
 			LOCTEXT("SaveLogDialogTitle", "Save Log As...").ToString(),
 			LastLogFileSaveDirectory,
 			TEXT("Session.log"),

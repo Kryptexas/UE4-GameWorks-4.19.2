@@ -15,7 +15,7 @@ UTextureEditorSettings::UTextureEditorSettings( const class FPostConstructInitia
 	, CheckerColorOne(FColor(128, 128, 128))
 	, CheckerColorTwo(FColor(64, 64, 64))
 	, CheckerSize(32)
-	, FitToViewport(true)
+	, FillViewport(true)
 	, TextureBorderColor(FColor::White)
 	, TextureBorderEnabled(true)
 { }

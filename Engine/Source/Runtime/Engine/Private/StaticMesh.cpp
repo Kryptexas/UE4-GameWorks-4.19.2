@@ -901,18 +901,7 @@ FArchive& operator<<(FArchive& Ar, FMeshBuildSettings& BuildSettings)
 	Ar << BuildSettings.bRecomputeTangents;
 	Ar << BuildSettings.bRemoveDegenerates;
 	Ar << BuildSettings.bUseFullPrecisionUVs;
-
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_BUILD_SCALE_VECTOR)
-	{
-		float BuildScale(1.0f);
-		Ar << BuildScale;
-		BuildSettings.BuildScale3D = FVector( BuildScale );
-	}
-	else
-	{
-		Ar << BuildSettings.BuildScale3D;
-	}
-	
+	Ar << BuildSettings.BuildScale;
 	return Ar;
 }
 
@@ -920,7 +909,7 @@ FArchive& operator<<(FArchive& Ar, FMeshBuildSettings& BuildSettings)
 // differences, etc.) replace the version GUID below with a new one.
 // In case of merge conflicts with DDC versions, you MUST generate a new GUID
 // and set this new GUID as the version.
-#define STATICMESH_DERIVEDDATA_VER TEXT("9E3F518AAD424921BA8F9A1C5966F0B9")
+#define STATICMESH_DERIVEDDATA_VER TEXT("34081786561B425A9523C94540EA599D")
 
 static const FString& GetStaticMeshDerivedDataVersion()
 {
@@ -1720,17 +1709,6 @@ void UStaticMesh::PostLoad()
 	Super::PostLoad();
 
 #if WITH_EDITORONLY_DATA
-	// Needs to happen before 'CacheDerivedData'
-	if ( GetLinkerUE4Version() < VER_UE4_BUILD_SCALE_VECTOR )
-	{
-		int32 NumLODs = SourceModels.Num();
-		for (int32 LODIndex = 0; LODIndex < NumLODs; ++LODIndex)
-		{
-			FStaticMeshSourceModel& SrcModel = SourceModels[LODIndex];
-			SrcModel.BuildSettings.BuildScale3D = FVector( SrcModel.BuildSettings.BuildScale_DEPRECATED );
-		}
-	}
-
 	CacheDerivedData();
 
 	if(RenderData && GStaticMeshesThatNeedMaterialFixup.Get(this))
@@ -2084,11 +2062,11 @@ void UStaticMesh::CheckLightMapUVs( UStaticMesh* InStaticMesh, TArray< FString >
 		{
 			struct
 			{
-				bool SameSide( const FVector& P1, const FVector& P2, const FVector& InA, const FVector& InB, const float InEpsilon )
+				bool SameSide( const FVector& P1, const FVector& P2, const FVector& A, const FVector& B, const float Epsilon )
 				{
-					const FVector Cross1((InB - InA) ^ (P1 - InA));
-					const FVector Cross2((InB - InA) ^ (P2 - InA));
-					return (Cross1 | Cross2) >= -InEpsilon;
+					const FVector Cross1( ( B - A ) ^ ( P1 - A ) );
+					const FVector Cross2( ( B - A ) ^ ( P2 - A ) );
+					return ( Cross1 | Cross2 ) >= -Epsilon;
 				}
 			} Local;
 
@@ -2178,7 +2156,7 @@ void UStaticMesh::CheckLightMapUVs( UStaticMesh* InStaticMesh, TArray< FString >
 		 * @param	OutOfBoundsTriangleCountOUT Filled with the number of triangles whose UVs are out of 0..1 range.
 		 * @return	UVCheckResult UVCheck_Missing: light map UV channel does not exist in the data. UVCheck_Bad: one or more triangles break UV mapping rules. UVCheck_NoTriangle: The specified mesh has no triangles. UVCheck_OK: no problems were found.
 		 */
-		UVCheckResult CheckLODLightMapUVs( const FStaticMeshLODResources& MeshLOD, const int32 InLightMapCoordinateIndex, int32& OverlappingLightMapUVTriangleCountOUT, int32& OutOfBoundsTriangleCountOUT)
+		UVCheckResult CheckLODLightMapUVs( const FStaticMeshLODResources& MeshLOD, const int32 LightMapCoordinateIndex, int32& OverlappingLightMapUVTriangleCountOUT, int32& OutOfBoundsTriangleCountOUT)
 		{
 			const int32 TriangleCount = MeshLOD.GetNumTriangles();
 			if(TriangleCount==0)
@@ -2191,7 +2169,7 @@ void UStaticMesh::CheckLightMapUVs( UStaticMesh* InStaticMesh, TArray< FString >
 			TArray< int32 > TriangleOverlapCounts;
 			TriangleOverlapCounts.AddZeroed( TriangleCount );
 
-			if (InLightMapCoordinateIndex >= MeshLOD.GetNumTexCoords())
+			if( LightMapCoordinateIndex >= MeshLOD.GetNumTexCoords()) 
 			{
 				return UVCheck_Missing;
 			}
@@ -2199,7 +2177,7 @@ void UStaticMesh::CheckLightMapUVs( UStaticMesh* InStaticMesh, TArray< FString >
 			for(int32 CurTri = 0; CurTri<TriangleCount;CurTri++)
 			{
 				FVector2D CurTriangleUVs[3];
-				GetTriangleUVs(MeshLOD, CurTri, InLightMapCoordinateIndex, CurTriangleUVs);
+				GetTriangleUVs(MeshLOD, CurTri, LightMapCoordinateIndex, CurTriangleUVs);
 				FVector2D CurTriangleUVCentroid = ( CurTriangleUVs[0] + CurTriangleUVs[1] + CurTriangleUVs[2] ) / 3.0f;
 		
 				if( AreUVsOutOfRange(CurTriangleUVs) )
@@ -2219,7 +2197,7 @@ void UStaticMesh::CheckLightMapUVs( UStaticMesh* InStaticMesh, TArray< FString >
 					}
 
 					FVector2D OtherTriangleUVs[3];
-					GetTriangleUVs(MeshLOD, OtherTri, InLightMapCoordinateIndex, OtherTriangleUVs);
+					GetTriangleUVs(MeshLOD, OtherTri, LightMapCoordinateIndex, OtherTriangleUVs);
 					FVector2D OtherTriangleUVCentroid = ( OtherTriangleUVs[0] + OtherTriangleUVs[1] + OtherTriangleUVs[2] ) / 3.0f;
 
 					bool result1 = IsPointInTriangle(CurTriangleUVCentroid, OtherTriangleUVs );

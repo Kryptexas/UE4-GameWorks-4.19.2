@@ -439,7 +439,7 @@ class UAnimSequence : public UAnimSequenceBase
 	class AnimEncoding* ScaleCodec;
 
 	/** Additive animation type **/
-	UPROPERTY(EditAnywhere, Category=AdditiveSettings, AssetRegistrySearchable)
+	UPROPERTY(EditAnywhere, Category=AdditiveSettings)
 	TEnumAsByte<enum EAdditiveAnimationType> AdditiveAnimType;
 
 	/* Additive refrerence pose type. Refer above enum type */

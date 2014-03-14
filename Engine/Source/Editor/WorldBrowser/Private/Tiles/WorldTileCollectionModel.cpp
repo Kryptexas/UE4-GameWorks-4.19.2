@@ -66,6 +66,13 @@ void FWorldTileCollectionModel::Tick( float DeltaTime )
 	{
 		return;
 	}
+		
+	if (PendingVisibilityTiles.Num())
+	{
+		GetWorld()->FlushLevelStreaming();
+		PendingVisibilityTiles.Empty();
+		RequestUpdateAllLevels();
+	}
 
 	FLevelCollectionModel::Tick(DeltaTime);
 }
@@ -170,53 +177,25 @@ void FWorldTileCollectionModel::TranslateLevels(const FLevelModelList& InLevels,
 
 TSharedPtr<FLevelDragDropOp> FWorldTileCollectionModel::CreateDragDropOp() const
 {
-	TArray<TWeakObjectPtr<ULevel>>			LevelsToDrag;
-	TArray<TWeakObjectPtr<ULevelStreaming>> StreamingLevelsToDrag;
+	TArray<TWeakObjectPtr<ULevel>> LevelsToDrag;
 
-	if (!IsReadOnly())
+	for (auto It = SelectedLevelsList.CreateConstIterator(); It; ++It)
 	{
-		for (TSharedPtr<FLevelModel> LevelModel : SelectedLevelsList)
+		ULevel* Level = (*It)->GetLevelObject();
+		if (Level)
 		{
-			ULevel* Level = LevelModel->GetLevelObject();
-			if (Level)
-			{
-				LevelsToDrag.Add(Level);
-			}
-
-			TSharedPtr<FWorldTileModel> Tile = StaticCastSharedPtr<FWorldTileModel>(LevelModel);
-			if (Tile->IsLoaded())
-			{
-				StreamingLevelsToDrag.Add(Tile->GetAssosiatedStreamingLevel());
-			}
-			else
-			{
-				//
-				int32 TileStreamingIdx = GetWorld()->WorldComposition->TilesStreaming.FindMatch(
-					ULevelStreaming::FPackageNameMatcher(LevelModel->GetLongPackageName())
-					);
-
-				if (GetWorld()->WorldComposition->TilesStreaming.IsValidIndex(TileStreamingIdx))
-				{
-					StreamingLevelsToDrag.Add(GetWorld()->WorldComposition->TilesStreaming[TileStreamingIdx]);
-				}
-			}
+			LevelsToDrag.Add(Level);
 		}
 	}
 
 	if (LevelsToDrag.Num())
 	{
-		TSharedPtr<FLevelDragDropOp> Op = FLevelDragDropOp::New(LevelsToDrag);
-		Op->StreamingLevelsToDrop = StreamingLevelsToDrag;
-		return Op;
+		return FLevelDragDropOp::New(LevelsToDrag);
 	}
-
-	if (StreamingLevelsToDrag.Num())
+	else
 	{
-		TSharedPtr<FLevelDragDropOp> Op = FLevelDragDropOp::New(StreamingLevelsToDrag);
-		return Op;
+		return FLevelCollectionModel::CreateDragDropOp();
 	}
-		
-	return FLevelCollectionModel::CreateDragDropOp();
 }
 
 bool FWorldTileCollectionModel::PassesAllFilters(TSharedPtr<FLevelModel> Item) const
@@ -244,16 +223,16 @@ void FWorldTileCollectionModel::BuildGridMenu(FMenuBuilder& MenuBuilder) const
 		
 	MenuBuilder.BeginSection("WorldGridTemLoadUnload");
 	{
-		MenuBuilder.AddMenuEntry(Commands.World_LoadLevel);
-		MenuBuilder.AddMenuEntry(Commands.World_UnloadLevel);
-		MenuBuilder.AddMenuEntry(Commands.World_SaveSelectedLevels);
+		MenuBuilder.AddMenuEntry(Commands.LoadLevel);
+		MenuBuilder.AddMenuEntry(Commands.UnloadLevel);
+		MenuBuilder.AddMenuEntry(Commands.SaveSelectedLevels);
 	}
 	MenuBuilder.EndSection();
 
 	MenuBuilder.BeginSection("WorldGridItemActors");
 	{
-		MenuBuilder.AddMenuEntry(Commands.AddsActors);
-		MenuBuilder.AddMenuEntry(Commands.RemovesActors);
+		MenuBuilder.AddMenuEntry(Commands.SelectActors);
+		MenuBuilder.AddMenuEntry(Commands.DeselectActors);
 		MenuBuilder.AddMenuEntry(Commands.ResetLevelOrigin);
 	}
 	MenuBuilder.EndSection();
@@ -289,7 +268,7 @@ void FWorldTileCollectionModel::BuildGridMenu(FMenuBuilder& MenuBuilder) const
 	{
 		MenuBuilder.BeginSection("WorldGridItemMergeLevels");
 		{
-			MenuBuilder.AddMenuEntry(Commands.World_MergeSelectedLevels);
+			MenuBuilder.AddMenuEntry(Commands.MergeSelectedLevels);
 		}
 		MenuBuilder.EndSection();
 	}
@@ -315,7 +294,7 @@ void FWorldTileCollectionModel::BuildHierarchyMenu(FMenuBuilder& MenuBuilder) co
 	{
 		MenuBuilder.BeginSection("Level", FText::FromName(SelectedLevelsList[0]->GetLongPackageName()));
 		{
-			MenuBuilder.AddMenuEntry( Commands.World_MakeLevelCurrent );
+			MenuBuilder.AddMenuEntry( Commands.MakeLevelCurrent );
 			MenuBuilder.AddMenuEntry( Commands.MoveActorsToSelected );
 		}
 		MenuBuilder.EndSection();
@@ -325,8 +304,8 @@ void FWorldTileCollectionModel::BuildHierarchyMenu(FMenuBuilder& MenuBuilder) co
 	{
 		MenuBuilder.BeginSection("Menu_LoadUnload");
 		{
-			MenuBuilder.AddMenuEntry(Commands.World_LoadLevel);
-			MenuBuilder.AddMenuEntry(Commands.World_UnloadLevel);
+			MenuBuilder.AddMenuEntry(Commands.LoadLevel);
+			MenuBuilder.AddMenuEntry(Commands.UnloadLevel);
 		}
 		MenuBuilder.EndSection();
 	}
@@ -392,7 +371,7 @@ void FWorldTileCollectionModel::CustomizeFileMainMenu(FMenuBuilder& InMenuBuilde
 		
 	InMenuBuilder.BeginSection("LevelsAddLevel");
 	{
-		InMenuBuilder.AddMenuEntry( Commands.World_CreateEmptyLevel );
+		InMenuBuilder.AddMenuEntry( Commands.CreateEmptyLevel );
 	}
 	InMenuBuilder.EndSection();
 }
@@ -400,7 +379,7 @@ void FWorldTileCollectionModel::CustomizeFileMainMenu(FMenuBuilder& InMenuBuilde
 FVector FWorldTileCollectionModel::GetObserverPosition() const
 {
 	UWorld*	SimulationWorld = GetSimulationWorld();
-	if (SimulationWorld && SimulationWorld->WorldComposition)
+	if (SimulationWorld)
 	{
 		return SimulationWorld->WorldComposition->LastViewLocation;
 	}
@@ -418,7 +397,7 @@ static double Area(FVector2D InRect)
 bool FWorldTileCollectionModel::CompareLevelsZOrder(TSharedPtr<FLevelModel> InA, TSharedPtr<FLevelModel> InB) const
 {
 	TSharedPtr<FWorldTileModel> A = StaticCastSharedPtr<FWorldTileModel>(InA);
-	TSharedPtr<FWorldTileModel> B = StaticCastSharedPtr<FWorldTileModel>(InB);
+	TSharedPtr<FWorldTileModel> B = StaticCastSharedPtr<FWorldTileModel>(InA);
 
 	if (A->TileDetails->ZOrder == B->TileDetails->ZOrder)
 	{
@@ -484,6 +463,14 @@ static void InvalidateLightingCache(const FLevelModelList& ModelList)
 	}
 }
 
+void FWorldTileCollectionModel::OnLevelLoadedFromDisk(TSharedPtr<FWorldTileModel> InLevel)
+{
+	PendingVisibilityTiles.Add(InLevel);
+
+	// TODO: Remove this workaround for black level thumbnails
+	InvalidateLightingCache(AllLevelsList);
+}
+
 bool FWorldTileCollectionModel::HasWorldRoot() const
 {
 	return CurrentWorld->WorldComposition != NULL;
@@ -497,7 +484,7 @@ void FWorldTileCollectionModel::BindCommands()
 	FUICommandList& ActionList = *CommandList;
 
 	//
-	ActionList.MapAction(Commands.World_CreateEmptyLevel,
+	ActionList.MapAction(Commands.CreateEmptyLevel,
 		FExecuteAction::CreateSP(this, &FWorldTileCollectionModel::CreateEmptyLevel_Executed));
 
 	ActionList.MapAction(Commands.ClearParentLink,
@@ -699,13 +686,27 @@ void FWorldTileCollectionModel::UpdateStreamingPreview(FVector2D InLocation, boo
 			PreviewVisibleTiles.Empty();
 			
 			// Add levels which is visible due to distance based streaming
-			TArray<FDistanceVisibleLevel> DistanceVisibleLevels;
-			TArray<FDistanceVisibleLevel> DistanceHiddenLevels;
-			GetWorld()->WorldComposition->GetDistanceVisibleLevels(PreviewLocation, DistanceVisibleLevels, DistanceHiddenLevels);
-
-			for (const auto& VisibleLevel : DistanceVisibleLevels)
+			TArray<FDistanceVisibleLevel> VisibleStreamingLevels;
+			GetWorld()->WorldComposition->GetVisibleLevels(PreviewLocation, VisibleStreamingLevels);
+	
+			for (auto VisIt = VisibleStreamingLevels.CreateConstIterator(); VisIt; ++VisIt)
 			{
-				PreviewVisibleTiles.Add(VisibleLevel.StreamingLevel->PackageName);
+				TSharedPtr<FLevelModel> LevelModel = FindLevelModel((*VisIt).StreamingLevel->PackageName);
+				if (LevelModel.IsValid())
+				{
+					PreviewVisibleTiles.Add((*VisIt).StreamingLevel->PackageName);
+					//Add levels which are potentially visible due to level own streaming settings
+					ULevel* Level = LevelModel->GetLevelObject();
+					if (Level)
+					{
+						const auto& StreamingLevels = CastChecked<UWorld>(Level->GetOuter())->StreamingLevels;
+						
+						for (auto It = StreamingLevels.CreateConstIterator(); It; ++It)
+						{
+							PreviewVisibleTiles.Add((*It)->PackageName);
+						}
+					}
+				}
 			}
 		}
 	}
@@ -755,6 +756,21 @@ void FWorldTileCollectionModel::UnshelveLevels(const FWorldTileModelList& InLeve
 	{
 		(*It)->Unshelve();
 	}
+}
+
+void FWorldTileCollectionModel::ToggleAlwaysLoaded(const FLevelModelList& InLevels)
+{
+	if (IsReadOnly())
+	{
+		return;
+	}
+	
+	for (auto It = InLevels.CreateConstIterator(); It; ++It)
+	{
+		(*It)->SetAlwaysLoaded(!(*It)->IsAlwaysLoaded());
+	}
+
+	RequestUpdateAllLevels();
 }
 
 TSharedPtr<FLevelModel> FWorldTileCollectionModel::CreateNewEmptyLevel()
@@ -1179,6 +1195,7 @@ void FWorldTileCollectionModel::AddLandscapeProxy_Executed(FWorldTileCollectionM
 	{
 		// Load it 
 		NewLevelModel->LoadLevel();
+		FlushAsyncLoading();
 				
 		// Set new level as current
 		UWorld* TargetWorld = CastChecked<UWorld>(NewLevelModel->GetLevelObject()->GetOuter());
@@ -1196,7 +1213,7 @@ void FWorldTileCollectionModel::AddLandscapeProxy_Executed(FWorldTileCollectionM
 		LandscapeProxy->GetSharedProperties(SourceLandscape);
 		
 		// Determine proxy import parameters from source landscape
-		FBox SourceLandscapeBounds = SourceLandscape->GetComponentsBoundingBox(true);
+		FBox SourceLandscapeBounds = LandscapeTileModel->TileDetails->Bounds;
 		FVector SourceLandscapeScale = SourceLandscape->GetRootComponent()->GetComponentToWorld().GetScale3D();
 		FIntRect SourceLandscapeRect = SourceLandscape->GetBoundingRect();
 		FIntPoint SourceLandscapeSize = SourceLandscapeRect.Size();
@@ -1253,7 +1270,8 @@ void FWorldTileCollectionModel::AddLandscapeProxy_Executed(FWorldTileCollectionM
 
 		// Add source level position
 		FIntPoint IntOffset = FIntPoint(ProxyOffset.X, ProxyOffset.Y) + LandscapeTileModel->GetAbsoluteLevelPosition();
-				
+		
+		
 		// Move level with landscape proxy to desired position
 		FLevelModelList LevelsToMove; LevelsToMove.Add(NewLevelModel);
 		TranslateLevels(LevelsToMove, IntOffset);
@@ -1318,6 +1336,11 @@ void FWorldTileCollectionModel::ResetLevelOrigin_Executed()
 	}
 
 	RequestUpdateAllLevels();
+}
+
+void FWorldTileCollectionModel::ToggleAlwaysLoaded_Executed()
+{
+	ToggleAlwaysLoaded(SelectedLevelsList);
 }
 
 void FWorldTileCollectionModel::OnPreSaveWorld(uint32 SaveFlags, UWorld* World)

@@ -48,7 +48,6 @@ AAtmosphericFog::AAtmosphericFog(const class FPostConstructInitializeProperties&
 		ArrowComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Fog;
 		ArrowComponent->AttachParent = AtmosphericFogComponent;
 		ArrowComponent->bLightAttachment = true;
-		ArrowComponent->bIsScreenSizeScaled = true;
 	}
 #endif // WITH_EDITORONLY_DATA
 

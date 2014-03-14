@@ -18,7 +18,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogPlayerController, Log, All);
 
 const float RetryClientRestartThrottleTime = 0.5f;
 const float RetryServerAcknowledgeThrottleTime = 0.25f;
-const float RetryServerCheckSpectatorThrottleTime = 0.25f;
+const float RetryServerCheckSpectatorThrottleTime = 0.025f;
 
 //////////////////////////////////////////////////////////////////////////
 // APlayerController
@@ -380,8 +380,6 @@ bool APlayerController::ServerNotifyLoadedWorld_Validate(FName WorldPackageName)
 
 void APlayerController::ServerNotifyLoadedWorld_Implementation(FName WorldPackageName)
 {
-	UE_LOG(LogPlayerController, Log, TEXT("APlayerController::ServerNotifyLoadedWorld_Implementation: Client loaded %s"), *WorldPackageName.ToString());
-
 	UWorld* CurWorld = GetWorld();
 
 	// Only valid for calling, for PC's that have seamlessly traveled
@@ -915,17 +913,6 @@ void APlayerController::CreateTouchInterface()
 				DefaultTouchInterface->Activate(VirtualJoystick);
 			}
 		}
-	}
-}
-
-void APlayerController::CleanupGameViewport()
-{
-	ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player);
-
-	if (LocalPlayer && LocalPlayer->ViewportClient && VirtualJoystick.IsValid())
-	{
-		LocalPlayer->ViewportClient->RemoveViewportWidgetContent(VirtualJoystick.ToSharedRef());
-		VirtualJoystick = NULL;
 	}
 }
 
@@ -1491,12 +1478,7 @@ void APlayerController::Pause()
 
 bool APlayerController::ServerPause_Validate()
 {
-#if UE_BUILD_SHIPPING
-	// Don't let clients remotely pause the game in shipping builds.
-	return IsLocalController();
-#else
 	return true;
-#endif
 }
 
 void APlayerController::ServerPause_Implementation()
@@ -1874,7 +1856,7 @@ void APlayerController::PlayerTick( float DeltaTime )
 	ProcessForceFeedback(DeltaTime, DeltaTime == 0.f);
 
 
-	if ((Player != NULL) && (Player->PlayerController == this))
+	if (Player != NULL)
 	{
 		// Validate current state
 		bool bUpdateRotation = false;
@@ -2793,30 +2775,15 @@ void APlayerController::ToggleSpeaking(bool bSpeaking)
 	}
 }
 
-void APlayerController::ClientVoiceHandshakeComplete_Implementation()
-{
-	MuteList.bHasVoiceHandshakeCompleted = true;
-}
-
-void APlayerController::GameplayMutePlayer(const FUniqueNetIdRepl& PlayerNetId)
-{
-	if (PlayerNetId.IsValid())
-	{
-		MuteList.GameplayMutePlayer(this, PlayerNetId);
-	}
-}
-
-void APlayerController::GameplayUnmutePlayer(const FUniqueNetIdRepl& PlayerNetId)
-{
-	if (PlayerNetId.IsValid())
-	{
-		MuteList.GameplayUnmutePlayer(this, PlayerNetId);
-	}
-}
-
+/**
+ * Tell the server to mute a player for this controller
+ *
+ * @param PlayerId player id to mute
+ */
 void APlayerController::ServerMutePlayer_Implementation(FUniqueNetIdRepl PlayerId)
 {
-	MuteList.ServerMutePlayer(this, PlayerId);
+MuteList.ServerMutePlayer(this, PlayerId);
+
 }
 
 bool APlayerController::ServerMutePlayer_Validate(FUniqueNetIdRepl PlayerId)
@@ -2829,6 +2796,11 @@ bool APlayerController::ServerMutePlayer_Validate(FUniqueNetIdRepl PlayerId)
 	return true;
 }
 
+/**
+ * Tell the server to unmute a player for this controller
+ *
+ * @param PlayerId player id to unmute
+ */
 void APlayerController::ServerUnmutePlayer_Implementation(FUniqueNetIdRepl PlayerId)
 {
 	MuteList.ServerUnmutePlayer(this, PlayerId);
@@ -2844,16 +2816,33 @@ bool APlayerController::ServerUnmutePlayer_Validate(FUniqueNetIdRepl PlayerId)
 	return true;
 }
 
+/**
+ * Tell the client to mute a player for this controller
+ *
+ * @param PlayerId player id to mute
+ */
 void APlayerController::ClientMutePlayer_Implementation(FUniqueNetIdRepl PlayerId)
 {
-	MuteList.ClientMutePlayer(this, PlayerId);
+MuteList.ClientMutePlayer(this, PlayerId);
 }
 
+/**
+ * Tell the client to unmute a player for this controller
+ *
+ * @param PlayerId player id to unmute
+ */
 void APlayerController::ClientUnmutePlayer_Implementation(FUniqueNetIdRepl PlayerId)
 {
-	MuteList.ClientUnmutePlayer(this, PlayerId);
+MuteList.ClientUnmutePlayer(this, PlayerId);
 }
 
+/**
+ * Is the specified player muted by this controlling player
+ *
+ * @param PlayerId potentially muted player
+ *
+ * @return true if player is muted, false otherwise
+ */
 bool APlayerController::IsPlayerMuted(const FUniqueNetId& PlayerId)
 {
 	return MuteList.IsPlayerMuted(PlayerId);
@@ -2869,9 +2858,9 @@ void APlayerController::NotifyDirectorControl(bool bNowControlling, AMatineeActo
 	}
 }
 
-void APlayerController::ClientWasKicked_Implementation(const FText& KickReason)
-{
-}
+
+void APlayerController::ClientWasKicked_Implementation() {}
+
 
 void APlayerController::ConsoleKey(FKey Key)
 {
@@ -3308,7 +3297,7 @@ void APlayerController::SetPlayer( UPlayer* InPlayer )
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (!IsPendingKill() && DebuggingController == NULL && GetNetMode() != NM_DedicatedServer)
 	{
-		DebuggingController = ConstructObject<UGameplayDebuggingControllerComponent>(UGameplayDebuggingControllerComponent::StaticClass(), this);
+		DebuggingController = ConstructObject<UGameplayDebuggingController>(UGameplayDebuggingController::StaticClass(), this);
 		DebuggingController->RegisterComponent();
 		DebuggingController->InitializeComponent();
 	}

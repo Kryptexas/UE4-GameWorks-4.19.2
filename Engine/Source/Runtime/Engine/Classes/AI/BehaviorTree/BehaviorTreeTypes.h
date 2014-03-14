@@ -133,17 +133,6 @@ namespace EBTDescriptionVerbosity
 	};
 }
 
-/** @TODO might wanna move this to a dedicated header */
-namespace FBlackboard
-{
-	const FName KeySelf = TEXT("SelfActor");
-
-	/** @todo FBlackboard::FKey needs to be used instead of uint8 for keys */
-	typedef uint8 FKey;
-
-	const FKey InvalidKey = FKey(-1);
-}
-
 /** debugger data about subtree instance */
 struct FBehaviorTreeDebuggerInstance
 {
@@ -199,27 +188,12 @@ struct FBehaviorTreeExecutionStep
 	int32 StepIndex;
 };
 
-/** identifier of subtree instance */
-struct FBehaviorTreeInstanceId
+/** data required for instance of single subtree */
+struct FBehaviorTreeInstance
 {
 	/** behavior tree asset */
 	class UBehaviorTree* TreeAsset;
 
-	/** execution index path from root */
-	TArray<uint16> Path;
-
-	/** index of first node instance (BehaviorTreeComponent.NodeInstances) */
-	int32 FirstNodeInstance;
-
-	bool operator==(const FBehaviorTreeInstanceId& Other) const
-	{
-		return (TreeAsset == Other.TreeAsset) && (Path == Other.Path);
-	}
-};
-
-/** data required for instance of single subtree */
-struct FBehaviorTreeInstance
-{
 	/** root node in template */
 	class UBTCompositeNode* RootNode;
 
@@ -234,9 +208,6 @@ struct FBehaviorTreeInstance
 
 	/** memory: instance */
 	TArray<uint8> InstanceMemory;
-
-	/** index of identifier (BehaviorTreeComponent.KnownInstances) */
-	uint8 InstanceIdIndex;
 
 	/** active node type */
 	TEnumAsByte<EBTActiveNode::Type> ActiveNodeType;
@@ -259,11 +230,7 @@ struct FBehaviorTreeInstance
 	FORCEINLINE void DecMemoryStats() {}
 #endif // STATS
 
-	/** initialize memory and create node instances */
-	void Initialize(class UBehaviorTreeComponent* OwnerComp, UBTCompositeNode* Node, int32& InstancedIndex);
-
-	/** cleanup node instances */
-	void Cleanup(class UBehaviorTreeComponent* OwnerComp);
+	void InitializeMemory(class UBehaviorTreeComponent* OwnerComp, UBTCompositeNode* Node);
 };
 
 struct FBTNodeIndex
@@ -344,9 +311,6 @@ struct ENGINE_API FBlackboardKeySelector
 {
 	GENERATED_USTRUCT_BODY()
 
-	FBlackboardKeySelector() : SelectedKeyID(FBlackboard::InvalidKey)
-	{}
-
 	/** array of allowed types with additional properties (e.g. ubject's base class) 
 	  * EditDefaults is required for FBlackboardSelectorDetails::CacheBlackboardData() */
 	UPROPERTY(transient, EditDefaultsOnly, Category=Blackboard)
@@ -356,28 +320,19 @@ struct ENGINE_API FBlackboardKeySelector
 	UPROPERTY(EditInstanceOnly, Category=Blackboard)
 	FName SelectedKeyName;
 
-	/** class of selected key  */
-	UPROPERTY(transient, EditInstanceOnly, Category=Blackboard)
-	TSubclassOf<class UBlackboardKeyType> SelectedKeyType;
-
-protected:
 	/** ID of selected key */
 	UPROPERTY(transient, EditInstanceOnly, Category=Blackboard)
 	uint8 SelectedKeyID;
 
-	UPROPERTY(transient, EditDefaultsOnly, Category=Blackboard)
-	uint32 bNoneIsAllowedValue:1;
+	/** class of selected key  */
+	UPROPERTY(transient, EditInstanceOnly, Category=Blackboard)
+	TSubclassOf<class UBlackboardKeyType> SelectedKeyType;
 
-public:
 	/** cache ID and class of selected key */
 	void CacheSelectedKey(class UBlackboardData* BlackboardAsset);
 
 	/** find initial selection */
 	void InitSelectedKey(class UBlackboardData* BlackboardAsset);
-
-	void AllowNoneAsValue(bool bNewVal ) { bNoneIsAllowedValue = bNewVal; }
-
-	FORCEINLINE uint8 GetSelectedKeyID() const { return SelectedKeyID; }
 
 	/** helper functions for setting basic filters */
 	void AddObjectFilter(UObject* Owner, TSubclassOf<UObject> AllowedClass);
@@ -390,10 +345,6 @@ public:
 	void AddVectorFilter(UObject* Owner);
 	void AddStringFilter(UObject* Owner);
 	void AddNameFilter(UObject* Owner);
-
-	FORCEINLINE bool IsNone() const { return bNoneIsAllowedValue && SelectedKeyID == FBlackboard::InvalidKey; }
-
-	friend class FBlackboardDecoratorDetails;
 };
 
 UCLASS(Abstract)

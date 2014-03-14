@@ -17,7 +17,7 @@ UBTDecorator_DoesPathExist::UBTDecorator_DoesPathExist(const class FPostConstruc
 	bAllowAbortChildNodes = false;
 	FlowAbortMode = EBTFlowAbortMode::None;
 
-	BlackboardKeyA.SelectedKeyName = FBlackboard::KeySelf;
+	bUseSelf = true;
 	PathQueryType = EPathExistanceQueryType::HierarchicalQuery;
 }
 
@@ -25,50 +25,61 @@ void UBTDecorator_DoesPathExist::InitializeFromAsset(class UBehaviorTree* Asset)
 {
 	Super::InitializeFromAsset(Asset);
 
-	if (bUseSelf)
-	{
-		BlackboardKeyA.SelectedKeyName = FBlackboard::KeySelf;
-		bUseSelf = false;
-	}
-
 	UBlackboardData* BBAsset = GetBlackboardAsset();
-	BlackboardKeyA.CacheSelectedKey(BBAsset);
+	if (bUseSelf == false)
+	{
+		BlackboardKeyA.CacheSelectedKey(BBAsset);
+	}
 	BlackboardKeyB.CacheSelectedKey(BBAsset);
 }
 
 bool UBTDecorator_DoesPathExist::CalculateRawConditionValue(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const 
 {
-	const UBlackboardComponent* BlackboardComp = OwnerComp->GetBlackboardComponent();
-	if (BlackboardComp == NULL)
-	{
-		return false;
-	}
-
 	FVector PointA = FVector::ZeroVector;
-	FVector PointB = FVector::ZeroVector;	
-	const bool bHasPointA = BlackboardComp->GetLocationFromEntry(BlackboardKeyA.GetSelectedKeyID(), PointA);
-	const bool bHasPointB = BlackboardComp->GetLocationFromEntry(BlackboardKeyB.GetSelectedKeyID(), PointB);
-	
+	FVector PointB = FVector::ZeroVector;
+	bool bHasPointA = false;
+	bool bHasPointB = false;
 	bool bHasPath = false;
 
-	const UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(OwnerComp->GetWorld());
+	const UBlackboardComponent* BlackboardComp = OwnerComp->GetBlackboardComponent();
+
+	if (bUseSelf)
+	{
+		const AController* ControllerOwner = Cast<AController>(OwnerComp->GetOwner());
+		const AActor* ActorOwner = ControllerOwner ? ControllerOwner->GetPawn() : OwnerComp->GetOwner();
+		if (ActorOwner)
+		{
+			PointA = ActorOwner->GetActorLocation();
+			bHasPointA = true;
+		}
+	}
+	else if (BlackboardComp && BlackboardComp->GetLocationFromEntry(BlackboardKeyA.SelectedKeyID, PointA))
+	{
+		bHasPointA = true;
+	}
+
+	if (BlackboardComp && BlackboardComp->GetLocationFromEntry(BlackboardKeyB.SelectedKeyID, PointB))
+	{
+		bHasPointB = true;
+	}
+
+	const UNavigationSystem* NavSys = OwnerComp->GetWorld()->GetNavigationSystem();
 	if (NavSys && bHasPointA && bHasPointB)
 	{
 		const AAIController* AIOwner = Cast<AAIController>(OwnerComp->GetOwner());
 		const ANavigationData* NavData = AIOwner && AIOwner->NavComponent ? AIOwner->NavComponent->GetNavData() : NULL;
-		TSharedPtr<const FNavigationQueryFilter> QueryFilter = UNavigationQueryFilter::GetQueryFilter(NavData, FilterClass);
 
 		if (PathQueryType == EPathExistanceQueryType::NavmeshRaycast2D)
 		{
 #if WITH_RECAST
 			const ARecastNavMesh* RecastNavMesh = Cast<const ARecastNavMesh>(NavData);
-			bHasPath = RecastNavMesh && RecastNavMesh->IsSegmentOnNavmesh(PointA, PointB, QueryFilter);
+			bHasPath = RecastNavMesh && RecastNavMesh->IsSegmentOnNavmesh(PointA, PointB);
 #endif
 		}
 		else
 		{		
 			EPathFindingMode::Type TestMode = (PathQueryType == EPathExistanceQueryType::HierarchicalQuery) ? EPathFindingMode::Hierarchical : EPathFindingMode::Regular;
-			bHasPath = NavSys->TestPathSync(FPathFindingQuery(NavData, PointA, PointB, QueryFilter), TestMode);
+			bHasPath = NavSys->TestPathSync(FPathFindingQuery(NavData, PointA, PointB), TestMode);
 		}
 	}
 
@@ -82,7 +93,7 @@ FString UBTDecorator_DoesPathExist::GetStaticDescription() const
 
 	return FString::Printf(TEXT("%s: Find path from %s to %s (mode:%s)"),
 		*Super::GetStaticDescription(),
-		*BlackboardKeyA.SelectedKeyName.ToString(),
+		bUseSelf ? TEXT("Self") : *BlackboardKeyA.SelectedKeyName.ToString(),
 		*BlackboardKeyB.SelectedKeyName.ToString(),
 		*PathTypeEnum->GetEnumName(PathQueryType));
 }

@@ -13,6 +13,7 @@ public class DetailCustomizations : ModuleRules
 				"Core",
 				"CoreUObject",
 				"Engine",
+				"EngineSettings",
                 "InputCore",
 				"Slate",
                 "EditorStyle",
@@ -25,13 +26,11 @@ public class DetailCustomizations : ModuleRules
 				"AnimGraph",
                 "PropertyEditor",
                 "LevelEditor",
+                "Cascade",
 				"DesktopPlatform",
+				"BspMode",
 				"ClassViewer",
-				"TargetPlatform",
-				"ExternalImagePicker",
-				"GameProjectGeneration",
-				"MoviePlayer",
-				"SourceControl"
+				"GeometryMode"
 			}
 			);
 

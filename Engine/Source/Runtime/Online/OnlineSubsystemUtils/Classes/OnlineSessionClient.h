@@ -16,7 +16,7 @@ class ONLINESUBSYSTEMUTILS_API UOnlineSessionClient : public UOnlineSession
 protected:
 
 	/** Reference to the online sessions interface */
-	IOnlineSessionPtr SessionInt;
+	IOnlineSessionPtr Sessions;
 
 	/** Delegate when an invite has been accepted from an external source */
 	FOnSessionInviteAcceptedDelegate OnSessionInviteAcceptedDelegate;

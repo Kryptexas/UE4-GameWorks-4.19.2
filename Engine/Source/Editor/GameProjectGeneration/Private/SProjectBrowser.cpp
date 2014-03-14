@@ -409,7 +409,7 @@ void SProjectBrowser::FindProjects(bool bAllowProjectCreate)
 	for (auto RecentIt = GEditor->GetGameAgnosticSettings().RecentlyOpenedProjectFiles.CreateConstIterator(); RecentIt; ++RecentIt)
 	{
 		const FString File = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(**RecentIt);
-		DiscoveredProjectFilesToCategory.Add(File, MyProjectsCategoryName);
+	DiscoveredProjectFilesToCategory.Add(File, MyProjectsCategoryName);
 	}
 
 	// Form a list of folders that may contain project files and their category names.
@@ -460,7 +460,7 @@ void SProjectBrowser::FindProjects(bool bAllowProjectCreate)
 			{
 				const FString PotentiallyRelativeFile = FolderName / (*ProjectFilenameIt);
 				const FString AbsoluteFile = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*PotentiallyRelativeFile);
-				DiscoveredProjectFilesToCategory.Add(AbsoluteFile, Category);
+			DiscoveredProjectFilesToCategory.Add(AbsoluteFile, Category);
 			}
 		}
 	}
@@ -477,8 +477,10 @@ void SProjectBrowser::FindProjects(bool bAllowProjectCreate)
 			if ( IProjectManager::Get().QueryStatusForProject(ProjectFilename, ProjectStatus) )
 			{
 				// @todo localized project name
-				const FText ProjectName = FText::FromString(ProjectStatus.Name);
-				const FText ProjectDescription = FText::FromString(ProjectStatus.Description);
+				const FText ProjectName = FText::FromString(FPaths::GetBaseFilename(ProjectFilename));
+
+				// @todo project description
+				FText ProjectDescription = FText();
 
 				TSharedPtr<FSlateDynamicImageBrush> DynamicBrush;
 				const FString ThumbnailPNGFile = FPaths::GetBaseFilename(ProjectFilename, false) + TEXT(".png");
@@ -514,10 +516,14 @@ void SProjectBrowser::FindProjects(bool bAllowProjectCreate)
 					{
 						ProjectCategory = ShowcasesCategoryName;
 					}
+					else
+					{
+						ProjectCategory = FText::FromString(ProjectStatus.Category);
+					}
 				}
 				else
 				{
-					ProjectCategory = (ProjectStatus.Category.IsEmpty()) ? DetectedCategory : FText::FromString(ProjectStatus.Category);
+					ProjectCategory = DetectedCategory;
 				}
 
 				if ( ProjectCategory.IsEmpty() )

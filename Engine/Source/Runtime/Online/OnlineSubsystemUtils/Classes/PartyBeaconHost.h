@@ -156,13 +156,6 @@ DECLARE_DELEGATE_OneParam(FOnCancelationReceived, const class FUniqueNetId&);
 DECLARE_DELEGATE_RetVal_OneParam(bool, FOnValidatePlayers, const TArray<FPlayerReservation>&);
 
 /**
- * Delegate fired when a the beacon host detects a duplicate reservation
- *
- * @param PartyReservation reservation that is found to be duplicated
- */
-DECLARE_DELEGATE_OneParam(FOnDuplicateReservation, const FPartyReservation&);
-
-/**
  * Delegate fired when a the beacon host detects that all reservations are full
  */
 DECLARE_DELEGATE(FOnReservationsFull);
@@ -194,18 +187,7 @@ class ONLINESUBSYSTEMUTILS_API APartyBeaconHost : public AOnlineBeaconHost
 	 *
 	 * @return true if successful created, false otherwise
 	 */
-	virtual bool InitHostBeacon(int32 InTeamCount, int32 InTeamSize, int32 InMaxReservations, FName InSessionName, int32 InForceTeamNum = 0);
-
-	/** 
-	 * Reconfigures the beacon for a different team/player count configuration
-	 * Allows dedicated server to change beacon parameters after a playlist configuration has been made
-	 * Does no real checking against current reservations because we assume the UI wouldn't let 
-	 * this party start a gametype if they were too big to fit on a team together
-	 * @param InNumTeams the number of teams that are expected to join
-	 * @param InNumPlayersPerTeam the number of players that are allowed to be on each team
-	 * @param InNumReservations the total number of players to allow to join (if different than team * players)
-	 */
-	virtual bool ReconfigureTeamAndPlayerCount(int32 InNumTeams, int32 InNumPlayersPerTeam, int32 InNumReservations);
+	virtual bool InitHostBeacon(int32 InTeamCount, int32 InTeamSize, int32 InMaxReservations, FName InSessionName);
 
 	/**
 	 * Notify the beacon of a player logout
@@ -220,31 +202,6 @@ class ONLINESUBSYSTEMUTILS_API APartyBeaconHost : public AOnlineBeaconHost
 	 * @return number of consumed reservations
 	 */
 	virtual int32 GetReservationCount() const { return Reservations.Num(); }
-
-	/**
-	 * Get the number of players on a team across all existing reservations
-	 *
-	 * @param TeamIdx team to query
-	 *
-	 * @return number of players on the given team
-	 */
-	int32 GetNumPlayersOnTeam(int32 TeamIdx) const;
-
-	/**
-	 * Finds the current team assignment of the given player net id.
-	 * Looks at the reservation entries to find the player.
-	 *
-	 * @param PlayerId net id of player to find
-	 * @return index of team assignment for the given player, INDEX_NONE if not found
-	 */
-	int32 GetTeamForCurrentPlayer(const FUniqueNetId& PlayerId);
-
-	/**
-	 * Get the number of teams.
-	 *
-	 * @return The number of teams.
-	 */
-	int32 GetNumTeams() const { return NumTeams; }
 
 	/**
 	 * Does a given player id have an existing reservation
@@ -288,7 +245,7 @@ class ONLINESUBSYSTEMUTILS_API APartyBeaconHost : public AOnlineBeaconHost
 	 * @param Client client beacon making the request
 	 * @param ReservationRequest payload of request
 	 */
-	virtual void ProcessReservationRequest(class APartyBeaconClient* Client, const FString& SessionId, const FPartyReservation& ReservationRequest);
+	virtual void ProcessReservationRequest(class APartyBeaconClient* Client, const FPartyReservation& ReservationRequest);
 
 	/**
 	 * Handle a reservation cancelation request received from an incoming client
@@ -322,11 +279,6 @@ class ONLINESUBSYSTEMUTILS_API APartyBeaconHost : public AOnlineBeaconHost
 	FOnCancelationReceived& OnCancelationReceived() { return CancelationReceived; }
 
 	/**
-	 * Delegate fired when a the beacon detects a duplicate reservation
-	 */
-	FOnDuplicateReservation& OnDuplicateReservation() { return DuplicateReservation; }
-
-	/**
 	 * Delegate called when the beacon gets any request, allowing the owner to validate players at a higher level (bans,etc)
 	 */
 	FOnValidatePlayers& OnValidatePlayers() { return ValidatePlayers; }
@@ -353,12 +305,6 @@ protected:
 	/** Number of players on each team for balancing */
 	UPROPERTY(Transient)
 	int32 NumPlayersPerTeam;
-	/** Team that the host has been assigned to */
-	UPROPERTY(Transient)
-	int32 ReservedHostTeamNum;
-	/** Team that everyone is forced to in single team games */
-	UPROPERTY(Transient)
-	int32 ForceTeamNum;
 
 	/** Delegate fired when the beacon indicates all reservations are taken */
 	FOnReservationsFull ReservationsFull;
@@ -366,8 +312,6 @@ protected:
 	FOnReservationChanged ReservationChanged;
 	/** Delegate fired when the beacon indicates a reservation cancelation */
 	FOnCancelationReceived CancelationReceived;
-	/** Delegate fired when the beacon detects a duplicate reservation */
-	FOnDuplicateReservation DuplicateReservation;
 	/** Delegate fired when asking the beacon owner if this reservation is legit */
 	FOnValidatePlayers ValidatePlayers;
 
@@ -400,36 +344,4 @@ protected:
 	 * @return index of reservation, INDEX_NONE otherwise
 	 */
 	int32 GetExistingReservation(const FUniqueNetIdRepl& PartyLeader);
-
-	/**
-	 * Initializes the team array so that random choices can be made from it
-	 * Also initializes the host's team number (random from range)
-	 */
-	void InitTeamArray();
-
-	/** 
-	 * Determine if there are any teams that can fit the current party request.
-	 * 
-	 * @param PartySize number of players in the party making a reservation request
-	 * @return true if there are teams available, false otherwise 
-	 */
-	bool AreTeamsAvailable(int32 PartySize) const;
-
-	/**
-	 * Determine the team number for the given party reservation request.
-	 * Uses the list of current reservations to determine what teams have open slots.
-	 *
-	 * @param PartyRequest the party reservation request received from the client beacon
-	 * @return index of the team to assign to all members of this party
-	 */
-	int32 GetTeamAssignment(const FPartyReservation& Party);
-
-	/**
-	 * Does the session match the one associated with this beacon
-	 *
-	 * @param SessionId session to compare
-	 *
-	 * @return true if the session matches, false otherwise
-	 */
-	bool DoesSessionMatch(const FString& SessionId) const;
 };

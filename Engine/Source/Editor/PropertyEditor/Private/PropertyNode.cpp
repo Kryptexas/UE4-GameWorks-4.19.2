@@ -2044,6 +2044,26 @@ TSharedRef<FEditPropertyChain> FPropertyNode::BuildPropertyChain( UProperty* InP
  */
 bool FPropertyNode::IsFilterAcceptable(const TArray<FString>& InAcceptableNames, const TArray<FString>& InFilterStrings)
 {
+	//@todo Slate Property Window
+	/*check(TopPropertyWindow);
+	if (TopPropertyWindow->HasFlags(EPropertyWindowFlags::ShowOnlyModifiedItems))
+	{
+		bool Differs = GetDiffersFromDefault();
+		if (!Differs)
+		{
+			return false;		//reject things that do not differ
+		}
+	}
+	if (TopPropertyWindow->HasFlags(EPropertyWindowFlags::ShowOnlyDifferingItems) && TopPropertyWindow->GetNumObjects() > 1)
+	{
+		TArray<uint8*> Addresses;
+		bool bAllSame = GetReadAddress( this, HasNodeFlags(EPropertyNodeFlags::SingleSelectOnly), Addresses);
+		bool bHasValidDifferableData = (Addresses.Num() > 0);  //only true for item property nodes
+		if (bAllSame || !bHasValidDifferableData)
+		{
+			return false;		//reject things that do not differ
+		}
+	}*/
 	bool bCompleteMatchFound = true;
 	if (InFilterStrings.Num())
 	{

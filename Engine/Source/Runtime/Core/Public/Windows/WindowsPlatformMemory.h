@@ -41,25 +41,6 @@ struct CORE_API FWindowsPlatformMemory : public FGenericPlatformMemory
 		MCR_MAX
 	};
 
-	/**
-	 * Windows representation of a shared memory region
-	 */
-	struct FWindowsSharedMemoryRegion : public FSharedMemoryRegion
-	{
-		/** Returns the handle to file mapping object. */
-		HANDLE GetMapping() const { return Mapping; }
-
-		FWindowsSharedMemoryRegion(const FString & InName, uint32 InAccessMode, void * InAddress, SIZE_T InSize, HANDLE InMapping)
-			:	FSharedMemoryRegion(InName, InAccessMode, InAddress, InSize)
-			,	Mapping(InMapping)
-		{}
-
-	protected:
-
-		/** Handle of a file mapping object */
-		HANDLE				Mapping;
-	};
-
 	// Begin FGenericPlatformMemory interface
 	static void Init();
 	static class FMalloc* BaseAllocator();
@@ -67,9 +48,10 @@ struct CORE_API FWindowsPlatformMemory : public FGenericPlatformMemory
 	static const FPlatformMemoryConstants& GetConstants();
 	static void* BinnedAllocFromOS( SIZE_T Size );
 	static void BinnedFreeToOS( void* Ptr );
-	static FSharedMemoryRegion * MapNamedSharedMemoryRegion(const FString & InName, bool bCreate, uint32 AccessMode, SIZE_T Size);
-	static bool UnmapNamedSharedMemoryRegion(FSharedMemoryRegion * MemoryRegion);
 	// End FGenericPlatformMemory interface
 };
 
 typedef FWindowsPlatformMemory FPlatformMemory;
+
+
+

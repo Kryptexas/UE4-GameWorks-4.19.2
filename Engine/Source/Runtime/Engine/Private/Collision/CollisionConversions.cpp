@@ -8,7 +8,7 @@
 #include "CollisionDebugDrawing.h"
 
 // Forward declare, I don't want to move the entire function right now or we lose change history.
-static bool ConvertOverlappedShapeToImpactHit(const PxLocationHit& PHit, const FVector& StartLoc, const FVector& EndLoc, FHitResult& OutResult, const PxGeometry& Geom, const PxTransform& QueryTM, const PxFilterData& QueryFilter, bool bReturnPhysMat);
+static bool ConvertOverlappedShapeToImpactHit(const PxShape* PShape,  const PxRigidActor* PActor, const FVector& StartLoc, const FVector& EndLoc, FHitResult& OutResult, const PxGeometry& Geom, const PxTransform& QueryTM, const PxFilterData& QueryFilter, bool bReturnPhysMat, uint32 FaceIdx);
 
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -152,8 +152,6 @@ static void TransformNormalToShapeSpace(const PxMeshScale& meshScale, const PxVe
 /** Util to find the normal of the face that we hit */
 static bool FindGeomOpposingNormal(const PxLocationHit& PHit, FVector& OutNormal, FVector& OutPointOnGeom)
 {
-	OutPointOnGeom = (PHit.flags & PxHitFlag::ePOSITION) ? P2UVector(PHit.position) : FVector::ZeroVector;
-
 	PxTriangleMeshGeometry PTriMeshGeom;
 	PxConvexMeshGeometry PConvexMeshGeom;
 	if(	PHit.shape->getTriangleMeshGeometry(PTriMeshGeom) && 
@@ -332,7 +330,7 @@ void ConvertQueryImpactHit(const PxLocationHit& PHit, FHitResult& OutResult, flo
 {
 	if (Geom != NULL && PHit.hadInitialOverlap())
 	{
-		ConvertOverlappedShapeToImpactHit(PHit, StartLoc, EndLoc, OutResult, *Geom, QueryTM, QueryFilter, bReturnPhysMat);
+		ConvertOverlappedShapeToImpactHit(PHit.shape, PHit.actor, StartLoc, EndLoc, OutResult, *Geom, QueryTM, QueryFilter, bReturnPhysMat, PHit.faceIndex);
 		return;
 	}
 
@@ -374,8 +372,7 @@ void ConvertQueryImpactHit(const PxLocationHit& PHit, FHitResult& OutResult, flo
 		const PxCapsuleGeometry* Capsule = static_cast<const PxCapsuleGeometry*>(Geom);
 		
 		// Compute better ImpactNormal. This is the same as Normal except when we hit convex/trimesh, and then its the most opposing normal of the geom at point of impact.
-		FVector PointOnGeom;
-		check(PHit.flags & PxHitFlag::ePOSITION);
+		FVector PointOnGeom(P2UVector(PHit.position));
 		if (FindGeomOpposingNormal(PHit, OutResult.ImpactNormal, PointOnGeom))
 		{
 			ConvertConvexNormalToCapsuleNormal(Capsule->halfHeight, Capsule->radius, OutResult, &PointOnGeom);
@@ -391,8 +388,7 @@ void ConvertQueryImpactHit(const PxLocationHit& PHit, FHitResult& OutResult, flo
 		const PxSphereGeometry* Sphere = static_cast<const PxSphereGeometry*>(Geom);
 
 		// Compute better ImpactNormal. This is the same as Normal except when we hit convex/trimesh, and then its the most opposing normal of the geom at point of impact.
-		FVector PointOnGeom;
-		check(PHit.flags & PxHitFlag::ePOSITION);
+		FVector PointOnGeom(P2UVector(PHit.position));
 		if (FindGeomOpposingNormal(PHit, OutResult.ImpactNormal, PointOnGeom))
 		{
 			const FPlane GeomPlane(PointOnGeom, OutResult.ImpactNormal);
@@ -501,14 +497,10 @@ bool AddSweepResults(int32 NumHits, PxSweepHit* Hits, float CheckLength, const P
 #define DRAW_OVERLAPPING_TRIS 0
 
 /** Util to convert an overlapped shape into a sweep hit result, returns whether it was a blocking hit. */
-static bool ConvertOverlappedShapeToImpactHit(const PxLocationHit& PHit, const FVector& StartLoc, const FVector& EndLoc, FHitResult& OutResult, const PxGeometry& Geom, const PxTransform& QueryTM, const PxFilterData& QueryFilter, bool bReturnPhysMat)
+static bool ConvertOverlappedShapeToImpactHit(const PxShape* PShape,  const PxRigidActor* PActor, const FVector& StartLoc, const FVector& EndLoc, FHitResult& OutResult, const PxGeometry& Geom, const PxTransform& QueryTM, const PxFilterData& QueryFilter, bool bReturnPhysMat, uint32 FaceIdx)
 {
 	OutResult.TraceStart = StartLoc;
 	OutResult.TraceEnd = EndLoc;
-
-	const PxShape* PShape = PHit.shape;
-	const PxRigidActor* PActor = PHit.actor;
-	const uint32 FaceIdx = PHit.faceIndex;
 
 	SetHitResultFromShapeAndFaceIndex(PShape, PActor, FaceIdx, OutResult, bReturnPhysMat);
 
@@ -525,90 +517,77 @@ static bool ConvertOverlappedShapeToImpactHit(const PxLocationHit& PHit, const F
 	OutResult.Location = P2UVector(QueryTM.p);
 	OutResult.ImpactPoint = OutResult.Location; // @todo not really sure of a better thing to do here...
 
-	// Now find the normal that most opposed the movement (closest to point of penetration)
 	const PxTransform PShapeWorldPose = PxShapeExt::getGlobalPose(*PShape, *PActor); 
+
 
 	PxTriangleMeshGeometry PTriMeshGeom;
 	if(PShape->getTriangleMeshGeometry(PTriMeshGeom))
 	{
 		PxU32 HitTris[64];
 		bool bOverflow = false;
-		const int32 NumTrisHit = PxMeshQuery::findOverlapTriangleMesh(Geom, QueryTM, PTriMeshGeom, PShapeWorldPose, HitTris, 64, 0, bOverflow);
-		if (NumTrisHit > 0)
+		int32 NumTrisHit = PxMeshQuery::findOverlapTriangleMesh(Geom, QueryTM, PTriMeshGeom, PShapeWorldPose, HitTris, 64, 0, bOverflow);
+
+#if DRAW_OVERLAPPING_TRIS
+		TArray<FOverlapResult> Overlaps;
+		DrawGeomOverlaps(World, Geom, QueryTM, Overlaps);
+
+		TArray<FBatchedLine> Lines;
+		const FLinearColor LineColor = FLinearColor(1.f,0.7f,0.7f);
+		const FLinearColor NormalColor = FLinearColor(1.f,1.f,1.f);
+		const float Lifetime = 5.f;
+#endif // DRAW_OVERLAPPING_TRIS
+
+		// Track the best triangle plane distance
+		float BestPlaneDist = -BIG_NUMBER;
+		FVector BestPlaneNormal(0,0,1);
+		FVector BestPointOnPlane(0,0,0);
+		// Iterate over triangles
+		for(int32 TriIdx = 0; TriIdx<NumTrisHit; TriIdx++)
 		{
-			#if DRAW_OVERLAPPING_TRIS
-			TArray<FOverlapResult> Overlaps;
-			DrawGeomOverlaps(World, Geom, QueryTM, Overlaps);
+			PxTriangle Tri;
+			PxMeshQuery::getTriangle(PTriMeshGeom, PShapeWorldPose, HitTris[TriIdx], Tri);
 
-			TArray<FBatchedLine> Lines;
-			const FLinearColor LineColor = FLinearColor(1.f,0.7f,0.7f);
-			const FLinearColor NormalColor = FLinearColor(1.f,1.f,1.f);
-			const float Lifetime = 5.f;
-			#endif // DRAW_OVERLAPPING_TRIS
+			const FVector A = P2UVector(Tri.verts[0]);
+			const FVector B = P2UVector(Tri.verts[1]);
+			const FVector C = P2UVector(Tri.verts[2]);
 
-			// Track the best triangle plane distance
-			float BestPlaneDist = -BIG_NUMBER;
-			FVector BestPlaneNormal(0,0,1);
-			FVector BestPointOnPlane(0,0,0);
-			// Iterate over triangles
-			for(int32 TriIdx = 0; TriIdx<NumTrisHit; TriIdx++)
+			FVector TriNormal = ((B-A) ^ (C-A));
+
+			// Use a more accurate normalization that avoids InvSqrtEst
+			const float TriNormalSize = TriNormal.Size();
+			TriNormal = (TriNormalSize >= KINDA_SMALL_NUMBER ? TriNormal/TriNormalSize : FVector::ZeroVector);
+
+			const FPlane TriPlane(A, TriNormal);
+
+			const FVector QueryCenter = P2UVector(QueryTM.p);
+			const float DistToPlane = TriPlane.PlaneDot(QueryCenter);
+
+			if(DistToPlane > BestPlaneDist)
 			{
-				PxTriangle Tri;
-				PxMeshQuery::getTriangle(PTriMeshGeom, PShapeWorldPose, HitTris[TriIdx], Tri);
-
-				const FVector A = P2UVector(Tri.verts[0]);
-				const FVector B = P2UVector(Tri.verts[1]);
-				const FVector C = P2UVector(Tri.verts[2]);
-
-				FVector TriNormal = ((B-A) ^ (C-A));
-
-				// Use a more accurate normalization that avoids InvSqrtEst
-				const float TriNormalSize = TriNormal.Size();
-				TriNormal = (TriNormalSize >= KINDA_SMALL_NUMBER ? TriNormal/TriNormalSize : FVector::ZeroVector);
-
-				const FPlane TriPlane(A, TriNormal);
-
-				const FVector QueryCenter = P2UVector(QueryTM.p);
-				const float DistToPlane = TriPlane.PlaneDot(QueryCenter);
-
-				if(DistToPlane > BestPlaneDist)
-				{
-					BestPlaneDist = DistToPlane;
-					BestPlaneNormal = TriNormal;
-					BestPointOnPlane = A;
-				}
-
-				#if DRAW_OVERLAPPING_TRIS
-				Lines.Add(FBatchedLine(A, B, LineColor, Lifetime, 0.1f, SDPG_Foreground));
-				Lines.Add(FBatchedLine(B, C, LineColor, Lifetime, 0.1f, SDPG_Foreground));
-				Lines.Add(FBatchedLine(C, A, LineColor, Lifetime, 0.1f, SDPG_Foreground));
-				Lines.Add(FBatchedLine(A, A+(50.f*TriNormal), NormalColor, Lifetime, 0.1f, SDPG_Foreground));
-				#endif // DRAW_OVERLAPPING_TRIS
+				BestPlaneDist = DistToPlane;
+				BestPlaneNormal = TriNormal;
+				BestPointOnPlane = A;
 			}
 
-			#if DRAW_OVERLAPPING_TRIS
-			if ( World->PersistentLineBatcher )
-			{
-				World->PersistentLineBatcher->DrawLines(Lines);
-			}
-			#endif // DRAW_OVERLAPPING_TRIS
-
-			OutResult.ImpactNormal = BestPlaneNormal;
+#if DRAW_OVERLAPPING_TRIS
+			Lines.Add(FBatchedLine(A, B, LineColor, Lifetime, 0.1f, SDPG_Foreground));
+			Lines.Add(FBatchedLine(B, C, LineColor, Lifetime, 0.1f, SDPG_Foreground));
+			Lines.Add(FBatchedLine(C, A, LineColor, Lifetime, 0.1f, SDPG_Foreground));
+			Lines.Add(FBatchedLine(A, A+(50.f*TriNormal), NormalColor, Lifetime, 0.1f, SDPG_Foreground));
+#endif // DRAW_OVERLAPPING_TRIS
 		}
-		else
+
+#if DRAW_OVERLAPPING_TRIS
+		if ( World->PersistentLineBatcher )
 		{
-			// PxMeshQuery::findOverlapTriangleMesh failed, but we might have a valid face index at impact, so use that to grab the normal from that face.
-			FVector PointOnGeom;
-			if (!FindGeomOpposingNormal(PHit, OutResult.ImpactNormal, PointOnGeom))
-			{
-				// That failed (invalid face index). This really shouldn't happen.
-				OutResult.ImpactNormal = (PHit.flags & PxHitFlag::eNORMAL) ? P2UVector(PHit.normal) : FVector(0.f, 0.f, 1.f);
-			}
+			World->PersistentLineBatcher->DrawLines(Lines);
 		}
+#endif // DRAW_OVERLAPPING_TRIS
+
+		OutResult.ImpactNormal = BestPlaneNormal;
 	}
 	else
 	{
-		// Non tri-mesh
 		// use vector center of shape to query as good direction to move in
 		PxGeometry& PGeom = PShape->getGeometry().any();
 		PxVec3 PClosestPoint;
@@ -633,7 +612,7 @@ static bool ConvertOverlappedShapeToImpactHit(const PxLocationHit& PHit, const F
 	{
 		const FVector MtdNormal = P2UVector(PxMtdNormal);
 		OutResult.Normal = MtdNormal;
-		OutResult.PenetrationDepth = FMath::Abs(PxMtdDepth) + KINDA_SMALL_NUMBER;
+		OutResult.PenetrationDepth = FMath::Abs(PxMtdDepth) + KINDA_SMALL_NUMBER; // TODO: why are we getting negative values here from mtd sometimes?
 	}
 	else
 	{

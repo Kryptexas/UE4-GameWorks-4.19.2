@@ -129,9 +129,6 @@ private:
 	/** @return Visibility for the FOV menu in the level viewport tool bar */
 	EVisibility GetFOVMenuVisibility() const;
 
-	bool IsLandscapeLODSettingChecked(int32 Value) const;
-	void OnLandscapeLODChanged(int32 NewValue);
-
 private:
 	/**
 	 * Generates the toolbar show layers menu content 

@@ -40,7 +40,7 @@ public:
 	TSharedPtr<FUICommandInfo> ToggleBounds_SetFixedBounds;
 	TSharedPtr<FUICommandInfo> TogglePostProcess;
 	TSharedPtr<FUICommandInfo> ToggleGrid;
-	TSharedPtr<FUICommandInfo> CascadePlay;
+	TSharedPtr<FUICommandInfo> Play;
 	TSharedPtr<FUICommandInfo> AnimSpeed_100;
 	TSharedPtr<FUICommandInfo> AnimSpeed_50;
 	TSharedPtr<FUICommandInfo> AnimSpeed_25;

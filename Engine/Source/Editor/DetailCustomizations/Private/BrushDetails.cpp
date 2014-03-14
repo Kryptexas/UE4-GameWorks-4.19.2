@@ -8,6 +8,7 @@
 #include "ClassViewerModule.h"
 #include "ClassViewerFilter.h"
 #include "AssetSelection.h"
+#include "GeometryEdMode.h"
 #include "ClassIconFinder.h"
 
 #define LOCTEXT_NAMESPACE "BrushDetails"
@@ -84,14 +85,14 @@ void FBrushDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 			return FReply::Handled();
 		}
 
-		static TSharedRef<SWidget> GenerateBuildMenuContent(TSharedRef<IPropertyHandle> BrushBuilderHandle, IDetailLayoutBuilder* InDetailLayout)
+		static TSharedRef<SWidget> GenerateBuildMenuContent(TSharedRef<IPropertyHandle> BrushBuilderHandle, IDetailLayoutBuilder* DetailLayout)
 		{
 			class FBrushFilter : public IClassViewerFilter
 			{
 			public:
 				virtual bool IsClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const UClass* InClass, TSharedRef< class FClassViewerFilterFuncs > InFilterFuncs )
 				{
-					return !InClass->HasAnyClassFlags(CLASS_NotPlaceable) && !InClass->HasAnyClassFlags(CLASS_Abstract) && InClass->IsChildOf(UBrushBuilder::StaticClass());
+					return !InClass->HasAnyClassFlags(CLASS_Abstract) && InClass->IsChildOf(UBrushBuilder::StaticClass());
 				}
 
 				virtual bool IsUnloadedClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const TSharedRef< const class IUnloadedBlueprintData > InUnloadedClassData, TSharedRef< class FClassViewerFilterFuncs > InFilterFuncs)
@@ -104,10 +105,10 @@ void FBrushDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 			Options.ClassFilter = MakeShareable(new FBrushFilter);
 			Options.Mode = EClassViewerMode::ClassPicker;
 			Options.DisplayMode = EClassViewerDisplayMode::ListView;
-			return FModuleManager::LoadModuleChecked<FClassViewerModule>("ClassViewer").CreateClassViewer(Options, FOnClassPicked::CreateStatic(&Local::OnClassPicked, BrushBuilderHandle, InDetailLayout));
+			return FModuleManager::LoadModuleChecked<FClassViewerModule>("ClassViewer").CreateClassViewer(Options, FOnClassPicked::CreateStatic(&Local::OnClassPicked, BrushBuilderHandle, DetailLayout));
 		}
 
-		static void OnClassPicked(UClass* InChosenClass, TSharedRef<IPropertyHandle> BrushBuilderHandle, IDetailLayoutBuilder* InDetailLayout)
+		static void OnClassPicked(UClass* InChosenClass, TSharedRef<IPropertyHandle> BrushBuilderHandle, IDetailLayoutBuilder* DetailLayout)
 		{
 			TArray<UObject*> OuterObjects;
 			BrushBuilderHandle->GetOuterObjects(OuterObjects);
@@ -142,7 +143,7 @@ void FBrushDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 
 			FSlateApplication::Get().DismissAllMenus();
 
-			InDetailLayout->ForceRefreshDetails();
+			DetailLayout->ForceRefreshDetails();
 		}
 
 		static FText GetBuilderText(TSharedRef<IPropertyHandle> BrushBuilderHandle)
@@ -163,7 +164,7 @@ void FBrushDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 				}
 			}
 
-			return LOCTEXT("None", "None");
+			return LOCTEXT("BspModeBuild", "Build");
 		}
 	};
 
@@ -174,10 +175,6 @@ void FBrushDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 	if(BrushBuilderObject == nullptr)
 	{
 		DetailLayout.HideProperty("BrushBuilder");
-	}
-	else
-	{
-		BrushBuilderObject->SetFlags( RF_Transactional );
 	}
 
 	IDetailCategoryBuilder& BrushBuilderCategory = DetailLayout.EditCategory( "BrushSettings", TEXT(""), ECategoryPriority::Important );

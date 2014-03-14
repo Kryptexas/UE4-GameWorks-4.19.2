@@ -165,35 +165,17 @@ public:
 			
 			bool Published = (NumRecipients == 0);
 
-			FFormatNamedArguments Args;
-			Args.Add(TEXT("NumRecipients"), NumRecipients);
-
-			FText ToolTipText;
-			FName BrushImageName;
-
-			if (Forwarded)
-			{
-				ToolTipText = FText::Format(LOCTEXT("ForwaredMessageTooltip", "Forwarded Message ({NumRecipients} recipients)"), Args);
-				BrushImageName = "ForwardedMessage";
-			}
-			else if (Published)
-			{
-				ToolTipText = LOCTEXT("PublishedMessageTooltip", "Published Message");
-				BrushImageName = "PublishedMessage";
-			}
-			else
-			{
-				ToolTipText = FText::Format(LOCTEXT("ForwaredMessageTooltip", "Sent Message ({NumRecipients} recipients)"), Args);
-				BrushImageName = "SentMessage";
-			}
-
 			return SNew(SBox)
 				.HAlign(HAlign_Center)
 				.VAlign(VAlign_Center)
 				[
 					SNew(SImage)
-					.Image(Style->GetBrush(BrushImageName))
-					.ToolTipText(ToolTipText)
+						.Image(Style->GetBrush(Forwarded ? "ForwardedMessage" : Published ? "PublishedMessage" : "SentMessage"))
+						.ToolTipText(Forwarded
+							? FString::Printf(*LOCTEXT("ForwaredMessageTooltip", "Forwarded Message (%i recipients)").ToString(), NumRecipients)
+							: Published
+								? LOCTEXT("PublishedMessageTooltip", "Published Message").ToString()
+								: FString::Printf(*LOCTEXT("SentMessageTooltip", "Sent Message (%i recipients)").ToString(), NumRecipients))
 				];
 		}
 		else if (ColumnName == "TimeSent")
@@ -205,7 +187,7 @@ public:
 					SNew(STextBlock)
 						.ColorAndOpacity(this, &SMessagingHistoryTableRow::HandleTextColorAndOpacity)
 						.HighlightText(HighlightText)
-						.Text(FText::AsNumber(MessageInfo->TimeSent - GStartTime))
+						.Text(FString::Printf(TEXT("%.5f"), MessageInfo->TimeSent - GStartTime))
 				];
 		}
 
@@ -226,33 +208,29 @@ protected:
 	 *
 	 * @todo gmp: refactor this into FText::AsTimespan or something like that
 	 */
-	FText TimespanToReadableText( double Seconds ) const
+	FString TimespanToReadableString( double Seconds ) const
 	{
 		if (Seconds < 0.0)
 		{
-			return LOCTEXT("Zero Length Timespan", "-");
+			return TEXT("-");
 		}
-
-		FNumberFormattingOptions Options;
-		Options.MinimumFractionalDigits = 1;
-		Options.MaximumFractionalDigits = 1;
 
 		if (Seconds < 0.0001)
 		{
-			return FText::Format(LOCTEXT("Seconds < 0.0001 Length Timespan", "{0} us"), FText::AsNumber(Seconds * 1000000, &Options));
+			return FString::Printf(TEXT("%.1f us"), Seconds * 1000000);
 		}
 
 		if (Seconds < 0.1)
 		{
-			return FText::Format(LOCTEXT("Seconds < 0.1 Length Timespan", "{0} ms"), FText::AsNumber(Seconds * 1000, &Options));
+			return FString::Printf(TEXT("%.1f ms"), Seconds * 1000);
 		}
 
 		if (Seconds < 60.0)
 		{
-			return FText::Format(LOCTEXT("Seconds < 60.0 Length Timespan", "{0} s"), FText::AsNumber(Seconds, &Options));
+			return FString::Printf(TEXT("%.1f s"), Seconds);
 		}
 		
-		return LOCTEXT("> 1 minute Length Timespan", "> 1 min");
+		return TEXT("> 1 min");
 	}
 
 private:
@@ -279,9 +257,9 @@ private:
 	}
 
 	// Callback for getting the text of the DispatchLatency column.
-	FText HandleDispatchLatencyText( ) const
+	FString HandleDispatchLatencyText( ) const
 	{
-		return TimespanToReadableText(MaxDispatchLatency);
+		return TimespanToReadableString(MaxDispatchLatency);
 	}
 
 	const FSlateBrush* HandleFlagImage( ) const
@@ -295,9 +273,9 @@ private:
 	}
 
 	// Callback for getting the text of the HandlingTime column.
-	FText HandleHandlingTimeText( ) const
+	FString HandleHandlingTimeText( ) const
 	{
-		return TimespanToReadableText(MaxHandlingTime);
+		return TimespanToReadableString(MaxHandlingTime);
 	}
 
 	// Callback for getting the text color of the RouteLatency column.
@@ -324,18 +302,18 @@ private:
 	}
 
 	// Callback for getting the text of the RouteLatency column.
-	FText HandleRouteLatencyText( ) const
+	FString HandleRouteLatencyText( ) const
 	{
 		if (MessageInfo->TimeRouted > 0.0)
 		{
-			return TimespanToReadableText(MessageInfo->TimeRouted - MessageInfo->TimeSent);
+			return TimespanToReadableString(MessageInfo->TimeRouted - MessageInfo->TimeSent);
 		}
 		
-		return FText::GetEmpty();
+		return TEXT("");
 	}
 
 	// Callback for getting the text of the Scope column.
-	FText HandleScopeText( ) const
+	FString HandleScopeText( ) const
 	{
 		if (MessageInfo->Context.IsValid() && MessageInfo->Context->IsForwarded() || (MessageInfo->Context->GetRecipients().Num() == 0))
 		{
@@ -344,27 +322,27 @@ private:
 			switch (Scope)
 			{
 			case EMessageScope::Thread:
-				return LOCTEXT("ScopeThread", "Thread");
+				return LOCTEXT("ScopeThread", "Thread").ToString();
 				break;
 
 			case EMessageScope::Process:
-				return LOCTEXT("ScopeProcess", "Process");
+				return LOCTEXT("ScopeProcess", "Process").ToString();
 				break;
 
 			case EMessageScope::Network:
-				return LOCTEXT("ScopeNetwork", "Network");
+				return LOCTEXT("ScopeNetwork", "Network").ToString();
 				break;
 
 			case EMessageScope::All:
-				return LOCTEXT("ScopeAll", "All");
+				return LOCTEXT("ScopeAll", "All").ToString();
 				break;
 
 			default:
-				return LOCTEXT("ScopeUnknown", "Unknown");
+				return LOCTEXT("ScopeUnknown", "Unknown").ToString();
 			}
 		}
 
-		return LOCTEXT("NoScope", "-");
+		return TEXT("-");
 	}
 
 	// Callback for getting the text color of various columns.

@@ -89,7 +89,7 @@ public:
 	virtual const FName& GetName() const = 0;
 
 	/** Get the source control status as plain, human-readable text */
-	virtual FText GetStatusText() const = 0;
+	virtual FString GetStatusText() const = 0;
 
 	/** Quick check if source control is enabled */
 	virtual bool IsEnabled() const = 0;

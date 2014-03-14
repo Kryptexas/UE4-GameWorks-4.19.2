@@ -222,10 +222,8 @@ SHOWFLAG_ALWAYS_ACCESSIBLE(LightShafts, SFG_LightingFeatures, LOCTEXT("LightShaf
 SHOWFLAG_ALWAYS_ACCESSIBLE(PostProcessMaterial, SFG_PostProcess, LOCTEXT("PostProcessMaterialSF", "Post Process Material"))
 /** Render Atmospheric scattering */
 SHOWFLAG_ALWAYS_ACCESSIBLE(Atmosphere, SFG_Normal, LOCTEXT("AtmosphereSF", "Atmosphere"))
-/** Render safe frames bars*/
-SHOWFLAG_ALWAYS_ACCESSIBLE(CameraAspectRatioBars, SFG_Advanced, LOCTEXT("CameraAspectRatioBarsSF", "Camera Aspect Ratio Bars"))
 /** Render safe frames */
-SHOWFLAG_ALWAYS_ACCESSIBLE(CameraSafeFrames, SFG_Advanced, LOCTEXT("CameraSafeFramesSF", "Camera Safe Frames"))
+SHOWFLAG_ALWAYS_ACCESSIBLE(SafeFrames, SFG_Advanced, LOCTEXT("SafeFramesSF", "Safe Frames"))
 /** Render TextRenderComponents (3D text) */
 SHOWFLAG_ALWAYS_ACCESSIBLE(TextRender, SFG_Advanced, LOCTEXT("TextRenderSF", "Render (3D) Text"))
 /** Any rendering/buffer clearing  (good for benchmarking) */
@@ -234,8 +232,6 @@ SHOWFLAG_ALWAYS_ACCESSIBLE(Rendering, SFG_Hidden, LOCTEXT("RenderingSF", "Any Re
 SHOWFLAG_ALWAYS_ACCESSIBLE(HighResScreenshotMask, SFG_Advanced, LOCTEXT("HighResScreenshotMaskSF", "High Res Screenshot Mask"))
 /** Distortion of output for HMD devices */
 SHOWFLAG_ALWAYS_ACCESSIBLE(HMDDistortion, SFG_PostProcess, LOCTEXT("HMDDistortionSF", "HMD Distortion"))
-/** Whether to render in stereoscopic 3d */
-SHOWFLAG_ALWAYS_ACCESSIBLE(StereoRendering, SFG_Hidden, LOCTEXT("StereoRenderingSF", "Stereoscopic Rendering"))
 /** Show objects even if they should be distance culled */
 SHOWFLAG_ALWAYS_ACCESSIBLE(DistanceCulledPrimitives, SFG_Hidden, LOCTEXT("DistanceCulledPrimitivesSF", "Distance Culled Primitives"))
 /** To visualize the culling in Tile Based Deferred Lighting, later for non tiled as well */

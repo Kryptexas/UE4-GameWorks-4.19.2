@@ -1143,7 +1143,7 @@ FReply SCurveEditor::OnMouseWheel( const FGeometry& MyGeometry, const FPointerEv
 
 FReply SCurveEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
 {
-	if ( IsEditingEnabled() && InKeyboardEvent.GetKey() == EKeys::Platform_Delete )
+	if(IsEditingEnabled() && InKeyboardEvent.GetKey() == EKeys::Delete)
 	{
 		DeleteSelectedKeys();
 		return FReply::Handled();

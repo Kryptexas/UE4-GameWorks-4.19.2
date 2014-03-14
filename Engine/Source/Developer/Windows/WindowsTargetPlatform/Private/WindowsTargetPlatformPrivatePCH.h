@@ -26,6 +26,14 @@
 	#include <TlHelp32.h>
 #include "HideWindowsPlatformTypes.h"
 
+#if WITH_EDITOR
+	#include "AssetSelection.h"
+	#include "EditorStyle.h"
+	#include "PropertyEditing.h"	
+	#include "SExternalImageReference.h"	
+#endif
+
+
 /* Private includes
  *****************************************************************************/
 
@@ -33,3 +41,6 @@
 #include "LocalPcTargetDevice.h"
 #include "GenericWindowsTargetPlatform.h"
 
+#if WITH_EDITOR
+	#include "WindowsTargetSettingsDetails.h"
+#endif

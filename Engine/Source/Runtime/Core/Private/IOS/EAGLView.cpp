@@ -265,8 +265,8 @@ void GetInputStack(/*TArray<FPointerEvent>& TouchEvents*/)
 		TouchInput TouchMessage;
 		TouchMessage.Handle = TouchIndex;
 		TouchMessage.Type = Type;
-		TouchMessage.Position = FVector2D(FMath::Min<float>(self.frame.size.width - 1, Loc.x), FMath::Min<float>(self.frame.size.height - 1, Loc.y)) * Scale;
-		TouchMessage.LastPosition = FVector2D(FMath::Min<float>(self.frame.size.width - 1, PrevLoc.x), FMath::Min<float>(self.frame.size.height - 1, PrevLoc.y)) * Scale;
+		TouchMessage.Position = FVector2D(MIN(self.frame.size.width - 1, Loc.x), MIN(self.frame.size.height - 1, Loc.y)) * Scale;
+		TouchMessage.LastPosition = FVector2D(MIN(self.frame.size.width - 1, PrevLoc.x), MIN(self.frame.size.height - 1, PrevLoc.y)) * Scale;
 		TouchesArray.Add(TouchMessage);
 
 		// clear out the touch when it ends

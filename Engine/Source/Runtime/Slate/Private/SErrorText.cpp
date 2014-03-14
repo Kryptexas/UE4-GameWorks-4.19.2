@@ -37,6 +37,7 @@ void SErrorText::SetError( const FString& InErrorText )
 		ExpandAnimation.Play();
 	}
 
+	TextBlock->SetToolTipText( InErrorText );
 	TextBlock->SetText( InErrorText );
 }
 

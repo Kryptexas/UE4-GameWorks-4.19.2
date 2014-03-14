@@ -171,6 +171,7 @@ AEmitter::AEmitter(const class FPostConstructInitializeProperties& PCIP)
 		SpriteComponent->Sprite = ConstructorStatics.SpriteTextureObject.Get();
 		SpriteComponent->bHiddenInGame = true;
 		SpriteComponent->bIsScreenSizeScaled = true;
+		SpriteComponent->ScreenSize = 0.0025f;
 		SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Effects;
 		SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Effects;
 		SpriteComponent->AttachParent = ParticleSystemComponent;
@@ -186,7 +187,6 @@ AEmitter::AEmitter(const class FPostConstructInitializeProperties& PCIP)
 		ArrowComponent->AlwaysLoadOnClient = false;
 		ArrowComponent->AlwaysLoadOnServer = false;
 		ArrowComponent->bTreatAsASprite = true;
-		ArrowComponent->bIsScreenSizeScaled = true;
 		ArrowComponent->SpriteInfo.Category = ConstructorStatics.ID_Effects;
 		ArrowComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Effects;
 		ArrowComponent->AttachParent = ParticleSystemComponent;
@@ -2486,6 +2486,13 @@ bool UParticleSystem::ToggleSoloing(class UParticleEmitter* InEmitter)
 
 bool UParticleSystem::TurnOffSoloing()
 {
+	// @todo: ChrisW - This is a temporary fix to
+	// stop a crash when closing the Cascade editor.
+	if (Emitters.Num() != SoloTracking.Num())
+	{
+		SetupSoloing();
+	}
+
 	for (int32 EmitterIdx = 0; EmitterIdx < Emitters.Num(); EmitterIdx++)
 	{
 		UParticleEmitter* Emitter = Emitters[EmitterIdx];
@@ -3436,10 +3443,10 @@ UMaterialInterface* UParticleSystemComponent::GetMaterial(int32 ElementIndex) co
 		UParticleEmitter* Emitter = Template->Emitters[ElementIndex];
 		if (Emitter && Emitter->LODLevels.Num() > 0)
 		{
-			UParticleLODLevel* EmitterLODLevel = Emitter->LODLevels[0];
-			if (EmitterLODLevel && EmitterLODLevel->RequiredModule)
+			UParticleLODLevel* LODLevel = Emitter->LODLevels[0];
+			if (LODLevel && LODLevel->RequiredModule)
 			{
-				return EmitterLODLevel->RequiredModule->Material;
+				return LODLevel->RequiredModule->Material;
 			}
 		}
 	}
@@ -3884,8 +3891,8 @@ void UParticleSystemComponent::ComputeTickComponent_Concurrent()
 		{
 			check(Instance->SpriteTemplate->LODLevels.Num() > 0);
 
-			UParticleLODLevel* SpriteLODLevel = Instance->SpriteTemplate->GetCurrentLODLevel(Instance);
-			if (SpriteLODLevel && SpriteLODLevel->bEnabled)
+			UParticleLODLevel* LODLevel = Instance->SpriteTemplate->GetCurrentLODLevel(Instance);
+			if (LODLevel && LODLevel->bEnabled)
 			{
 				Instance->Tick(DeltaTimeTick, bSuppressSpawning);
 
@@ -3927,8 +3934,8 @@ void UParticleSystemComponent::FinalizeTickComponent()
 
 			if (Instance && Instance->SpriteTemplate)
 			{
-				UParticleLODLevel* SpriteLODLevel = Instance->SpriteTemplate->GetCurrentLODLevel(Instance);
-				if (SpriteLODLevel && SpriteLODLevel->bEnabled)
+				UParticleLODLevel* LODLevel = Instance->SpriteTemplate->GetCurrentLODLevel(Instance);
+				if (LODLevel && LODLevel->bEnabled)
 				{
 					Instance->ProcessParticleEvents(DeltaTimeTick, bSuppressSpawning);
 				}
@@ -3992,8 +3999,8 @@ void UParticleSystemComponent::FinalizeTickComponent()
 				FParticleEmitterInstance* Instance = EmitterInstances[i];
 				if (Instance && Instance->SpriteTemplate)
 				{
-					UParticleLODLevel* SpriteLODLevel = Instance->SpriteTemplate->GetCurrentLODLevel(Instance);
-					if (SpriteLODLevel && SpriteLODLevel->bEnabled)
+					UParticleLODLevel* LODLevel = Instance->SpriteTemplate->GetCurrentLODLevel(Instance);
+					if (LODLevel && LODLevel->bEnabled)
 					{
 						BoundingBox += Instance->GetBoundingBox();
 					}
@@ -4896,7 +4903,7 @@ void UParticleSystemComponent::CacheViewRelevanceFlags(UParticleSystem* Template
 
 			for (int32 LODIndex = 0; LODIndex < Emitter->LODLevels.Num(); LODIndex++)
 			{
-				UParticleLODLevel* EmitterLODLevel = Emitter->LODLevels[LODIndex];
+				UParticleLODLevel* LODLevel = Emitter->LODLevels[LODIndex];
 
 				// Prime the array
 				// This code assumes that the particle system emitters all have the same number of LODLevels. 
@@ -4905,11 +4912,11 @@ void UParticleSystemComponent::CacheViewRelevanceFlags(UParticleSystem* Template
 					CachedViewRelevanceFlags.AddZeroed(1);
 				}
 				FMaterialRelevance& LODViewRel = CachedViewRelevanceFlags[LODIndex];
-				check(EmitterLODLevel->RequiredModule);
+				check(LODLevel->RequiredModule);
 
-				if (EmitterLODLevel->bEnabled == true)
+				if (LODLevel->bEnabled == true)
 				{
-					EmitterInst->GatherMaterialRelevance(&LODViewRel, EmitterLODLevel);
+					EmitterInst->GatherMaterialRelevance( &LODViewRel, LODLevel );						
 				}
 			}
 		}

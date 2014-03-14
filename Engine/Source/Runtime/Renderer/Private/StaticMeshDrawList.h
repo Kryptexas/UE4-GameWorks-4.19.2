@@ -111,10 +111,10 @@ private:
 	 */
 	struct FElementCompact
 	{
-		int32 MeshId;
+		FRelativeBitReference VisibilityBitReference;
 		FElementCompact() {}
-		FElementCompact(int32 InMeshId)
-		: MeshId(InMeshId)
+		FElementCompact(int32 MeshId)
+		: VisibilityBitReference(MeshId)
 		{}
 	};
 

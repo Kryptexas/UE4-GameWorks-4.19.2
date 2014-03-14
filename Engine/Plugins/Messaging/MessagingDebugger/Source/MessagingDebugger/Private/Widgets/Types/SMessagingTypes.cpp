@@ -46,7 +46,7 @@ void SMessagingTypes::Construct( const FArguments& InArgs, const FMessagingDebug
 			.AutoHeight()
 			[
 				SNew(SExpandableArea)
-					.AreaTitle(LOCTEXT("TypeFilterAreaTitle", "Message Type Filter"))
+					.AreaTitle(LOCTEXT("TypeFilterAreaTitle", "Message Type Filter").ToString())
 					.InitiallyCollapsed(true)
 					.Padding(8.0f)
 					.BodyContent()
@@ -83,11 +83,11 @@ void SMessagingTypes::Construct( const FArguments& InArgs, const FMessagingDebug
 									[
 										SNew(SImage)
 											.Image(Style->GetBrush("Break"))
-											.ToolTipText(LOCTEXT("TypeListBreakpointsColumnTooltip", "Breakpoints"))
+											.ToolTipText(LOCTEXT("TypeListBreakpointsColumnTooltip", "Breakpoints").ToString())
 									]
 
 								+ SHeaderRow::Column("Name")
-									.DefaultLabel(LOCTEXT("TypeListNameColumnHeader", "Name"))
+									.DefaultLabel(LOCTEXT("TypeListNameColumnHeader", "Name").ToString())
 									.FillWidth(0.9f)
 
 								+ SHeaderRow::Column("Messages")
@@ -99,7 +99,7 @@ void SMessagingTypes::Construct( const FArguments& InArgs, const FMessagingDebug
 									[
 										SNew(SImage)
 											.Image(Style->GetBrush("SentMessage"))
-											.ToolTipText(LOCTEXT("TypeListMessagesColumnTooltip", "Number of messages per message type"))
+											.ToolTipText(LOCTEXT("TypeListMessagesColumnTooltip", "Number of messages per message type").ToString())
 									]
 
 								+ SHeaderRow::Column("Visibility")
@@ -111,7 +111,7 @@ void SMessagingTypes::Construct( const FArguments& InArgs, const FMessagingDebug
 									[
 										SNew(SImage)
 											.Image(Style->GetBrush("Visibility"))
-											.ToolTipText(LOCTEXT("TypeListVisibilityColumnTooltip", "Visibility"))
+											.ToolTipText(LOCTEXT("TypeListVisibilityColumnTooltip", "Visibility").ToString())
 									]
 							)
 					]

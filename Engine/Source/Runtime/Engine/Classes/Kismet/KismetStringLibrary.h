@@ -236,14 +236,4 @@ class UKismetStringLibrary : public UBlueprintFunctionLibrary
 	 */
 	UFUNCTION(BlueprintPure, meta=(Index="0"), Category="Utilities|String")
 	static int32 GetCharacterAsNumber(const FString& SourceString, int32 Index);
-
-	/** 
-	 * Gets an array of strings from a source string divided up by a separator and empty strings can optionally be culled.
-	 * @param SourceString - The string to chop up
-	 * @param Delimiter - The string to delimit on
-	 * @param CullEmptyStrings = true - Cull (true) empty strings or add them to the array (false)
-	 * @return The array of string that have been separated
-	 */
-	UFUNCTION(BlueprintPure, meta=(Delimiter=" "), Category="Utilities|String")
-	static TArray<FString> ParseIntoArray(const FString& SourceString, const FString& Delimiter, const bool CullEmptyStrings = true);
 };

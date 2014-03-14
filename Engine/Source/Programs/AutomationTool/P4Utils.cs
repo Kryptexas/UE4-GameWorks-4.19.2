@@ -616,17 +616,6 @@ namespace AutomationTool
 			LogP4("reconcile " + String.Format("-c {0} -ead -f ", CL) + CommandLine);
 		}
 
-        /// <summary>
-        /// Invokes p4 reconcile command.
-        /// </summary>
-        /// <param name="CL">Changelist to check the files out.</param>
-        /// <param name="CommandLine">Commandline for the command.</param>
-        public static void ReconcilePreview(string CommandLine)
-        {
-            CheckP4Enabled();
-            LogP4("reconcile " + String.Format("-ead -n ") + CommandLine);
-        }
-
 		/// <summary>
 		/// Invokes p4 reconcile command.
 		/// Ignores files that were removed.
@@ -736,62 +725,56 @@ namespace AutomationTool
 					bool DidSomething = false;
 					string HashStr1 = " - must resolve";
 					string HashStr2 = " - already locked by";
-                    string HashStr3 = " - add of added file";
-                    if (CmdOutput.IndexOf(HashStr1) > 0 || CmdOutput.IndexOf(HashStr2) > 0 || CmdOutput.IndexOf(HashStr3) > 0)
-                    {
-                        string Work = CmdOutput;
-                        while (Work.Length > 0)
-                        {
-                            string SlashSlashStr = "//";
-                            int SlashSlash = Work.IndexOf(SlashSlashStr);
-                            if (SlashSlash < 0)
-                            {
-                                break;
-                            }
-                            Work = Work.Substring(SlashSlash);
-                            int Hash1 = Work.IndexOf(HashStr1);
-                            int Hash2 = Work.IndexOf(HashStr2);
-                            int Hash3 = Work.IndexOf(HashStr3);
-                            int Hash;
-                            string HashStr;
-                            if (Hash1 >= 0 && (Hash1 < Hash2 || Hash2 < 0))
-                            {
-                                Hash = Hash1;
-                                HashStr = HashStr1;
-                            }
-                            else
-                            {
-                                Hash = Hash2;
-                                HashStr = HashStr2;
-                            }
-                            if (Hash3 >= 0 && (Hash3 < Hash || Hash < 0))
-                            {
-                                Hash = Hash3;
-                                HashStr = HashStr3;
-                            }
-                            if (Hash < 0)
-                            {
-                                break;
-                            }
-                            string File = Work.Substring(0, Hash).Trim();
-                            if (File.IndexOf(SlashSlashStr) != File.LastIndexOf(SlashSlashStr))
-                            {
-                                // this is some other line about the same line, we ignore it, removing the first // so we advance
-                                Work = Work.Substring(SlashSlashStr.Length);
-                            }
-                            else
-                            {
-                                Work = Work.Substring(Hash);
+					if (CmdOutput.IndexOf(HashStr1) > 0 || CmdOutput.IndexOf(HashStr2) > 0)
+					{
+						string Work = CmdOutput;
+						while (Work.Length > 0)
+						{
+							string SlashSlashStr = "//";
+							int SlashSlash = Work.IndexOf(SlashSlashStr);
+							if (SlashSlash < 0)
+							{
+								break;
+							}
+							Work = Work.Substring(SlashSlash);
+							int Hash1 = Work.IndexOf(HashStr1);
+							int Hash2 = Work.IndexOf(HashStr2);
+							int Hash;
+							string HashStr;
+							if (Hash1 >= 0 && (Hash1 < Hash2 || Hash2 < 0))
+							{
+								Hash = Hash1;
+								HashStr = HashStr1;
+							}
+							else
+							{
+								Hash = Hash2;
+								HashStr = HashStr2;
+							}
+							if (Hash < 0)
+							{
+								break;
+							}
+							string File = Work.Substring(0, Hash).Trim();
+							if (File.IndexOf(SlashSlashStr) != File.LastIndexOf(SlashSlashStr))
+							{
+								// this is some other line about the same line, we ignore it, removing the first // so we advance
+								Work = Work.Substring(SlashSlashStr.Length);
+							}
+							else
+							{
+								Work = Work.Substring(Hash);
 
-                                Log(TraceEventType.Information, "Brutal 'resolve' on {0} to force submit.\n", File);
+								Log(TraceEventType.Information, "Brutal 'resolve' on {0} to force submit.\n", File);
 
-                                Revert(CL, "-k " + File);  // revert the file without overwriting the local one
-                                Sync("-f -k " + File + "#head", false); // sync the file without overwriting local one
-                                ReconcileNoDeletes(CL, File);  // re-check out, if it changed, or add
-                                DidSomething = true;
-                            }
-                        }
-                    }
+								Revert(CL, "-k " + File);  // revert the file without overwriting the local one
+								Sync("-f -k " + File + "#head", false); // sync the file without overwriting local one
+								ReconcileNoDeletes(CL, File);  // re-check out, if it changed, or add
+								DidSomething = true;
+							}
+						}
+
+					}
 					if (!DidSomething)
 					{
 						Log(TraceEventType.Information, "Change {0} failed to submit for reasons we do not recognize.\n{1}\nWaiting and retrying.", CL, CmdOutput);
@@ -1040,6 +1023,7 @@ namespace AutomationTool
 							string File = CmdOutput.Substring(0, Hash).Trim();
 							CmdOutput = CmdOutput.Substring(Hash);
 
+							Log(TraceEventType.Error, "TEst {0}", File);
 							Result.Add(File);
 						}
 					}

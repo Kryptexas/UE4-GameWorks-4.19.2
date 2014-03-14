@@ -4,6 +4,7 @@
 
 UEnvQueryContext_Querier::UEnvQueryContext_Querier(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
+	ProvideDelegate.BindUObject(this, &UEnvQueryContext_Querier::ProvideContext); 
 }
 
 void UEnvQueryContext_Querier::ProvideContext(struct FEnvQueryInstance& QueryInstance, struct FEnvQueryContextData& ContextData) const

@@ -51,26 +51,12 @@ struct FCreateWidgetForActionData
 	}
 };
 
-struct FCustomExpanderData
-{
-	/** The menu row associated with the widget being customized */
-	TSharedPtr<ITableRow> TableRow;
-
-	/** The action associated with the menu row being customized */
-	TSharedPtr<FEdGraphSchemaAction> RowAction;
-
-	/** The widget container that the custom expander will belong to */
-	TSharedPtr<SPanel> WidgetContainer;
-};
-
 /** Class that displays a list of graph actions and them to be searched and selected */
 class GRAPHEDITOR_API SGraphActionMenu : public SCompoundWidget, public FGCObject
 {
 public:
 	/** Delegate that can be used to create a widget for a particular action */
 	DECLARE_DELEGATE_RetVal_OneParam( TSharedRef<SWidget>, FOnCreateWidgetForAction, FCreateWidgetForActionData* const );
-	/** Delegate that can be used to create a custom "expander" widget for a particular row */
-	DECLARE_DELEGATE_RetVal_OneParam( TSharedRef<SExpanderArrow>, FOnCreateCustomRowExpander, FCustomExpanderData const& );
 	/** Delegate executed when an action is selected */
 	DECLARE_DELEGATE_OneParam( FOnActionSelected, const TArray< TSharedPtr<FEdGraphSchemaAction> >& );
 	/** Delegate executed when an action is double clicked */
@@ -85,7 +71,7 @@ public:
 	DECLARE_DELEGATE_ThreeParams( FOnCategoryTextCommitted, const FText&, ETextCommit::Type, TWeakPtr< FGraphActionNode >);
 	/** Delegate executed to check if the selected action is valid for renaming */
 	DECLARE_DELEGATE_RetVal_OneParam( bool, FCanRenameSelectedAction, TWeakPtr< FGraphActionNode > );
-	/** Delegate to get the name of a section if the widget is a section separator. */
+	/** Delegate to get the name of a section if the widget is a section seperator. */
 	DECLARE_DELEGATE_RetVal_OneParam( FText, FGetSectionTitle, int32 );
 	/** Delegate to get the filter text */
 	DECLARE_DELEGATE_RetVal( FText, FGetFilterText);
@@ -102,7 +88,7 @@ public:
 		SLATE_EVENT( FOnCategoryDragged, OnCategoryDragged )
 		SLATE_EVENT( FOnContextMenuOpening, OnContextMenuOpening )
 		SLATE_EVENT( FOnCreateWidgetForAction, OnCreateWidgetForAction )
-		SLATE_EVENT( FOnCreateCustomRowExpander, OnCreateCustomRowExpander )
+		SLATE_EVENT( FOnCreateWidgetForAction, OnCreateHoverOverlayWidget )
 		SLATE_EVENT( FOnCollectAllActions, OnCollectAllActions )
 		SLATE_EVENT( FOnCategoryTextCommitted, OnCategoryTextCommitted )
 		SLATE_EVENT( FCanRenameSelectedAction, OnCanRenameSelectedAction )
@@ -157,12 +143,12 @@ protected:
 	FOnActionDoubleClicked OnActionDoubleClicked;
 	/** Delegate to call when an action is dragged. */
 	FOnActionDragged OnActionDragged;
-	/** Delegate to call when a category is dragged. */
+	/** Delegate to call when a cateogyr is dragged. */
 	FOnCategoryDragged OnCategoryDragged;
 	/** Delegate to call to create widget for an action */
 	FOnCreateWidgetForAction OnCreateWidgetForAction;
-	/** Delegate to call for creating a custom "expander" widget for indenting a menu row with */
-	FOnCreateCustomRowExpander OnCreateCustomRowExpander;
+	/** Delegate to call to create widget for a  */
+	FOnCreateWidgetForAction OnCreateHoverOverlayWidget;
 	/** Delegate to call to collect all actions */
 	FOnCollectAllActions OnCollectAllActions;
 	/** Delegate to call to handle any post-category rename events */

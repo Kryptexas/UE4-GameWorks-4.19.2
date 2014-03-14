@@ -48,7 +48,4 @@ public:
 	 * Tick the property column each frame
 	 */
 	virtual void Tick() = 0;
-
-	DECLARE_EVENT_OneParam( IPropertyTableColumn, FFrozenStateChanged, const TSharedRef< IPropertyTableColumn >& );
-	virtual FFrozenStateChanged* OnFrozenStateChanged() = 0;
 };

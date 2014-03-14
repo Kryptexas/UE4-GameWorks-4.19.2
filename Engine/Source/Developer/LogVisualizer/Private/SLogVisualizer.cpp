@@ -317,12 +317,12 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 								.Padding(1)
 								.BorderImage( FEditorStyle::GetBrush( "ToolBar.Background" ) )
 								[
-									SAssignNew(StatusItemsView, STreeView<TSharedPtr<FLogStatusItem> >)
-									.ItemHeight(40.0f)
-									.TreeItemsSource(&StatusItems)
-									.OnGenerateRow(this, &SLogVisualizer::HandleGenerateLogStatus)
-									.OnGetChildren(this, &SLogVisualizer::OnLogStatusGetChildren)
-									.SelectionMode(ESelectionMode::None)
+									SNew(SScrollBox)
+									+SScrollBox::Slot()
+									[
+										SAssignNew(StatusTextBlock, STextBlock)
+										.Text(this, &SLogVisualizer::GetLogEntryStatusText)
+									]
 								]
 							]
 							+SSplitter::Slot()
@@ -379,8 +379,6 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 	}
 
 	DoFullUpdate();
-	
-	LastBrowsePath = FPaths::GameLogDir();
 
 	DrawingOnCanvasDelegate = FDebugDrawDelegate::CreateSP(this, &SLogVisualizer::DrawOnCanvas);
 	UDebugDrawService::Register(TEXT("VisLog"), DrawingOnCanvasDelegate);
@@ -776,104 +774,10 @@ FLinearColor SLogVisualizer::GetColorForUsedCategory(int32 Index) const
 	}
 }
 
-TSharedRef<ITableRow> SLogVisualizer::HandleGenerateLogStatus(TSharedPtr<FLogStatusItem> InItem, const TSharedRef<STableViewBase>& OwnerTable)
-{
-	if (InItem->Children.Num() > 0)
-	{
-		return SNew(STableRow<TSharedPtr<FLogStatusItem> >, OwnerTable)
-			[
-				SNew(STextBlock).Text(InItem->ItemText)
-			];
-	}
-
-	FString TooltipText = FString::Printf(TEXT("%s: %s"), *InItem->ItemText, *InItem->ValueText);
-	return SNew(STableRow<TSharedPtr<FLogStatusItem> >, OwnerTable)
-		[
-			SNew(SBorder)
-			.BorderImage( FEditorStyle::GetBrush("NoBorder") )
-			.ToolTipText(TooltipText)
-			[
-				SNew(SHorizontalBox)
-				+SHorizontalBox::Slot()
-				.AutoWidth()
-				[
-					SNew(STextBlock).Text(InItem->ItemText).ColorAndOpacity(FColorList::Aquamarine)
-				]
-				+SHorizontalBox::Slot()
-				.Padding(4.0f, 0, 0, 0)
-				.AutoWidth()
-				[
-					SNew(STextBlock).Text(InItem->ValueText)
-				]
-			]
-		];
-}
-
-void SLogVisualizer::OnLogStatusGetChildren(TSharedPtr<FLogStatusItem> InItem, TArray< TSharedPtr<FLogStatusItem> >& OutItems)
-{
-	OutItems = InItem->Children;
-}
-
-void SLogVisualizer::UpdateStatusItems(const FVisLogEntry* LogEntry)
-{
-	TArray<FString> ExpandedCategories;
-	for (int32 i = 0; i < StatusItems.Num(); i++)
-	{
-		const bool bIsExpanded = StatusItemsView->IsItemExpanded(StatusItems[i]);
-		if (bIsExpanded)
-		{
-			ExpandedCategories.Add(StatusItems[i]->ItemText);
-		}
-	}
-
-	StatusItems.Empty();
-
-	if (LogEntry)
-	{
-		FString TimestampDesc = FString::Printf(TEXT("%.2fs"), LogEntry->TimeStamp);
-		StatusItems.Add(MakeShareable(new FLogStatusItem(LOCTEXT("VisLogTimestamp","Time").ToString(), TimestampDesc)));
-
-		for (int32 iCategory = 0; iCategory < LogEntry->Status.Num(); iCategory++)
-		{
-			if (LogEntry->Status[iCategory].Data.Num() <= 0)
-			{
-				continue;
-			}
-
-			TSharedRef<FLogStatusItem> StatusItem = MakeShareable(new FLogStatusItem(LogEntry->Status[iCategory].Category));
-			for (int32 iLine = 0; iLine < LogEntry->Status[iCategory].Data.Num(); iLine++)
-			{
-				FString KeyDesc, ValueDesc;
-				const bool bHasValue = LogEntry->Status[iCategory].GetDesc(iLine, KeyDesc, ValueDesc);
-				if (bHasValue)
-				{
-					StatusItem->Children.Add(MakeShareable(new FLogStatusItem(KeyDesc, ValueDesc)));
-				}
-			}
-
-			StatusItems.Add(StatusItem);
-		}
-	}
-
-	StatusItemsView->RequestTreeRefresh();
-
-	for (int32 iItem = 0; iItem < StatusItems.Num(); iItem++)
-	{
-		for (int32 i = 0; i < ExpandedCategories.Num(); i++)
-		{
-			if (StatusItems[iItem]->ItemText == ExpandedCategories[i])
-			{
-				StatusItemsView->SetItemExpansion(StatusItems[iItem], true);
-				break;
-			}
-		}
-	}
-}
-
 void SLogVisualizer::ShowEntry(const FVisLogEntry* LogEntry)
 {
-	UpdateStatusItems(LogEntry);
 	LogEntryLines.Reset();
+	StatusTextBlock->SetText(FString::Printf(TEXT("Time: %.2f\n%s"), LogEntry->TimeStamp, *LogEntry->StatusString));
 	
 	const FVisLogEntry::FLogLine* LogLine = LogEntry->LogLines.GetTypedData();
 	for (int LineIndex = 0; LineIndex < LogEntry->LogLines.Num(); ++LineIndex, ++LogLine)
@@ -887,6 +791,8 @@ void SLogVisualizer::ShowEntry(const FVisLogEntry* LogEntry)
 
 		if (bShowLine)
 		{
+			
+
 			FLogEntryItem EntryItem;
 			EntryItem.Category = LogLine->Category.ToString();
 
@@ -1215,7 +1121,7 @@ const FSlateBrush* SLogVisualizer::GetRecordButtonBrush() const
 
 FString SLogVisualizer::GetStatusText() const
 {
-	return TEXT("");
+	return TEXT("TODO put status here");
 }
 
 ESlateCheckBoxState::Type SLogVisualizer::GetPauseState() const

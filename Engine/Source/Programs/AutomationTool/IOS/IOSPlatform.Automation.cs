@@ -581,10 +581,6 @@ public class IOSPlatform : Platform
     {
         return "Peter.Sauerbrei[epic] Michael.Trepka[epic]";
     }
-    public override List<string> GetDebugFileExtentions()
-    {
-        return new List<string> { ".dsym" };
-    }
 
 	public override ProcessResult RunClient(ERunOptions ClientRunFlags, string ClientApp, string ClientCmdLine, ProjectParams Params)
 	{

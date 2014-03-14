@@ -33,13 +33,13 @@ bool FEnvQueryInstance::PrepareContext(UClass* ContextClass, FEnvQueryContextDat
 		if (CachedData == NULL)
 		{
 			UEnvQueryContext* ContextOb = ContextClass->GetDefaultObject<UEnvQueryContext>();
-			ContextOb->ProvideContext(*this, ContextData);
+			ContextOb->ProvideDelegate.ExecuteIfBound(*this, ContextData);
 
-			DEC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, GetContextAllocatedSize());
+			DEC_MEMORY_STAT_BY(STAT_AI_EnvQuery_InstanceMemory, GetContextAllocatedSize());
 
 			ContextCache.Add(ContextClass, ContextData);
 
-			INC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, GetContextAllocatedSize());
+			INC_MEMORY_STAT_BY(STAT_AI_EnvQuery_InstanceMemory, GetContextAllocatedSize());
 		}
 		else
 		{
@@ -49,11 +49,10 @@ bool FEnvQueryInstance::PrepareContext(UClass* ContextClass, FEnvQueryContextDat
 
 	if (ContextData.NumValues == 0)
 	{
-		UE_LOG(LogEQS, Log, TEXT("Query [%s] is missing values for context [%s], skipping test %d:%d [%s]"),
+		UE_LOG(LogEQS, Warning, TEXT("Query [%s] is missing values for context [%s], skipping test %d:%d [%s]"),
 			*QueryName, *UEnvQueryTypes::GetShortTypeName(ContextClass),
 			OptionIndex, CurrentTest,
-			CurrentTest >=0 ? *UEnvQueryTypes::GetShortTypeName(Options[OptionIndex].TestDelegates[CurrentTest].GetUObject()) : TEXT("Generator")
-			);
+			*UEnvQueryTypes::GetShortTypeName(Options[OptionIndex].TestDelegates[CurrentTest].GetUObject()));
 
 		return false;
 	}
@@ -71,9 +70,9 @@ bool FEnvQueryInstance::PrepareContext(UClass* Context, TArray<FEnvQuerySpatialD
 	FEnvQueryContextData ContextData;
 	const bool bSuccess = PrepareContext(Context, ContextData);
 
-	if (bSuccess && ContextData.ValueType && ContextData.ValueType->IsChildOf(UEnvQueryItemType_VectorBase::StaticClass()))
+	if (bSuccess && ContextData.ValueType && ContextData.ValueType->IsChildOf(UEnvQueryItemType_LocationBase::StaticClass()))
 	{
-		UEnvQueryItemType_VectorBase* DefTypeOb = (UEnvQueryItemType_VectorBase*)ContextData.ValueType->GetDefaultObject();
+		UEnvQueryItemType_LocationBase* DefTypeOb = (UEnvQueryItemType_LocationBase*)ContextData.ValueType->GetDefaultObject();
 		const uint16 DefTypeValueSize = DefTypeOb->GetValueSize();
 		uint8* RawData = ContextData.RawData.GetTypedData();
 
@@ -99,9 +98,9 @@ bool FEnvQueryInstance::PrepareContext(UClass* Context, TArray<FVector>& Data)
 	FEnvQueryContextData ContextData;
 	const bool bSuccess = PrepareContext(Context, ContextData);
 
-	if (bSuccess && ContextData.ValueType && ContextData.ValueType->IsChildOf(UEnvQueryItemType_VectorBase::StaticClass()))
+	if (bSuccess && ContextData.ValueType && ContextData.ValueType->IsChildOf(UEnvQueryItemType_LocationBase::StaticClass()))
 	{
-		UEnvQueryItemType_VectorBase* DefTypeOb = (UEnvQueryItemType_VectorBase*)ContextData.ValueType->GetDefaultObject();
+		UEnvQueryItemType_LocationBase* DefTypeOb = (UEnvQueryItemType_LocationBase*)ContextData.ValueType->GetDefaultObject();
 		const uint16 DefTypeValueSize = DefTypeOb->GetValueSize();
 		uint8* RawData = (uint8*)ContextData.RawData.GetTypedData();
 
@@ -126,9 +125,9 @@ bool FEnvQueryInstance::PrepareContext(UClass* Context, TArray<FRotator>& Data)
 	FEnvQueryContextData ContextData;
 	const bool bSuccess = PrepareContext(Context, ContextData);
 
-	if (bSuccess && ContextData.ValueType && ContextData.ValueType->IsChildOf(UEnvQueryItemType_VectorBase::StaticClass()))
+	if (bSuccess && ContextData.ValueType && ContextData.ValueType->IsChildOf(UEnvQueryItemType_LocationBase::StaticClass()))
 	{
-		UEnvQueryItemType_VectorBase* DefTypeOb = (UEnvQueryItemType_VectorBase*)ContextData.ValueType->GetDefaultObject();
+		UEnvQueryItemType_LocationBase* DefTypeOb = (UEnvQueryItemType_LocationBase*)ContextData.ValueType->GetDefaultObject();
 		const uint16 DefTypeValueSize = DefTypeOb->GetValueSize();
 		uint8* RawData = ContextData.RawData.GetTypedData();
 
@@ -179,15 +178,15 @@ void FEnvQueryInstance::ExecuteOneStep(double InTimeLimit)
 	}
 
 	FEnvQueryOptionInstance& OptionItem = Options[OptionIndex];
-	CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_AI_EQS_GeneratorTime, CurrentTest < 0);
-	CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_AI_EQS_TestTime, CurrentTest >= 0);
+	CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_AI_EnvQuery_GeneratorTime, CurrentTest < 0);
+	CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_AI_EnvQuery_TestTime, CurrentTest >= 0);
 
 	bool bStepDone = true;
 	TimeLimit = InTimeLimit;
 
 	if (CurrentTest < 0)
 	{
-		DEC_DWORD_STAT_BY(STAT_AI_EQS_NumItems, Items.Num());
+		DEC_DWORD_STAT_BY(STAT_AI_EnvQuery_NumItems, Items.Num());
 
 		RawData.Reset();
 		Items.Reset();
@@ -256,15 +255,15 @@ void FEnvQueryInstance::Log(const FString Msg) const
 {
 	UE_LOG(LogEQS, Warning, TEXT("%s"), *Msg);
 }
-#endif // !NO_LOGGING
+#endif
 
 void FEnvQueryInstance::ReserveItemData(int32 NumAdditionalItems)
 {
-	DEC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, RawData.GetAllocatedSize());
+	DEC_MEMORY_STAT_BY(STAT_AI_EnvQuery_InstanceMemory, RawData.GetAllocatedSize());
 
 	RawData.Reserve((RawData.Num() + NumAdditionalItems) * ValueSize);
 
-	INC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, RawData.GetAllocatedSize());
+	INC_MEMORY_STAT_BY(STAT_AI_EnvQuery_InstanceMemory, RawData.GetAllocatedSize());
 }
 
 void FEnvQueryInstance::ItemIterator::StoreTestResult()
@@ -382,13 +381,13 @@ void FEnvQueryInstance::PickSingleItem(int32 ItemIndex)
 	BestItem.Score = 1.0f;
 	BestItem.DataOffset = Items[ItemIndex].DataOffset;
 
-	DEC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, Items.GetAllocatedSize());
+	DEC_MEMORY_STAT_BY(STAT_AI_EnvQuery_InstanceMemory, Items.GetAllocatedSize());
 
 	Items.Empty(1);
 	Items.Add(BestItem);
 	NumValidItems = 1;
 
-	INC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, Items.GetAllocatedSize());
+	INC_MEMORY_STAT_BY(STAT_AI_EnvQuery_InstanceMemory, Items.GetAllocatedSize());
 }
 
 void FEnvQueryInstance::FinalizeQuery()
@@ -408,12 +407,12 @@ void FEnvQueryInstance::FinalizeQuery()
 		{
 			SortScores();
 
-			DEC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, Items.GetAllocatedSize());
+			DEC_MEMORY_STAT_BY(STAT_AI_EnvQuery_InstanceMemory, Items.GetAllocatedSize());
 
 			// remove failed ones from Items
 			Items.SetNum(NumValidItems);
 
-			INC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, Items.GetAllocatedSize());
+			INC_MEMORY_STAT_BY(STAT_AI_EnvQuery_InstanceMemory, Items.GetAllocatedSize());
 
 			// normalizing after scoring and reducing number of elements to not 
 			// do anything for discarded items
@@ -435,8 +434,8 @@ void FEnvQueryInstance::FinalizeGeneration()
 	FEnvQueryOptionInstance& OptionInstance = Options[OptionIndex];
 	const int32 NumTests = OptionInstance.TestDelegates.Num();
 
-	DEC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, ItemDetails.GetAllocatedSize());
-	INC_DWORD_STAT_BY(STAT_AI_EQS_NumItems, Items.Num());
+	DEC_MEMORY_STAT_BY(STAT_AI_EnvQuery_InstanceMemory, ItemDetails.GetAllocatedSize());
+	INC_DWORD_STAT_BY(STAT_AI_EnvQuery_NumItems, Items.Num());
 
 	NumValidItems = Items.Num();
 	ItemDetails.Reset();
@@ -452,10 +451,10 @@ void FEnvQueryInstance::FinalizeGeneration()
 		}
 	}
 
-	INC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, ItemDetails.GetAllocatedSize());
+	INC_MEMORY_STAT_BY(STAT_AI_EnvQuery_InstanceMemory, ItemDetails.GetAllocatedSize());
 
-	ItemTypeVectorCDO = (ItemType && ItemType->IsChildOf(UEnvQueryItemType_VectorBase::StaticClass())) ?
-		(UEnvQueryItemType_VectorBase*)ItemType->GetDefaultObject() :	NULL;
+	ItemTypeLocationCDO = (ItemType && ItemType->IsChildOf(UEnvQueryItemType_LocationBase::StaticClass())) ?
+		(UEnvQueryItemType_LocationBase*)ItemType->GetDefaultObject() :	NULL;
 
 	ItemTypeActorCDO = (ItemType && ItemType->IsChildOf(UEnvQueryItemType_ActorBase::StaticClass())) ?
 		(UEnvQueryItemType_ActorBase*)ItemType->GetDefaultObject() : NULL;
@@ -573,9 +572,9 @@ FBox FEnvQueryInstance::GetBoundingBox() const
 
 	FBox BBox(0);
 
-	if (ItemType->IsChildOf(UEnvQueryItemType_VectorBase::StaticClass()))
+	if (ItemType->IsChildOf(UEnvQueryItemType_LocationBase::StaticClass()))
 	{
-		UEnvQueryItemType_VectorBase* DefTypeOb = (UEnvQueryItemType_VectorBase*)ItemType->GetDefaultObject();
+		UEnvQueryItemType_LocationBase* DefTypeOb = (UEnvQueryItemType_LocationBase*)ItemType->GetDefaultObject();
 
 		for (int32 Index = 0; Index < Items.Num(); ++Index)
 		{		

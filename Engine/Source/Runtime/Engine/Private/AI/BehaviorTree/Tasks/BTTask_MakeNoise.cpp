@@ -11,7 +11,7 @@ UBTTask_MakeNoise::UBTTask_MakeNoise(const class FPostConstructInitializePropert
 	NodeName = "MakeNoise";
 }
 
-EBTNodeResult::Type UBTTask_MakeNoise::ExecuteTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UBTTask_MakeNoise::ExecuteTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
 {
 	const AAIController* MyController = OwnerComp ? Cast<AAIController>(OwnerComp->GetOwner()) : NULL;
 	APawn* MyPawn = MyController ? MyController->GetPawn() : NULL;

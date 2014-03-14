@@ -26,7 +26,7 @@ public:
 	virtual void GetExcerpts( /*OUT*/ TArray< FExcerpt >& Excerpts ) = 0;
 	virtual bool GetExcerptContent( FExcerpt& Excerpt ) = 0;
 
-	virtual FText GetTitle() = 0;
+	virtual FString GetTitle() = 0;
 
 	virtual void Reload() = 0;
 };

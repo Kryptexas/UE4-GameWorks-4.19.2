@@ -794,9 +794,9 @@ void FPhAT::ExtendToolbar()
 	
 			ToolbarBuilder.BeginSection("PhATTransform");
 			{
-				ToolbarBuilder.AddToolBarButton(Commands.PhATTranslationMode);
-				ToolbarBuilder.AddToolBarButton(Commands.PhATRotationMode);
-				ToolbarBuilder.AddToolBarButton(Commands.PhATScaleMode);
+				ToolbarBuilder.AddToolBarButton(Commands.TranslationMode);
+				ToolbarBuilder.AddToolBarButton(Commands.RotationMode);
+				ToolbarBuilder.AddToolBarButton(Commands.ScaleMode);
 			}
 			ToolbarBuilder.EndSection();
 
@@ -893,7 +893,7 @@ void FPhAT::ExtendMenu()
 		{
 			const FPhATCommands& Commands = FPhATCommands::Get();
 			MenuBarBuilder.BeginSection("Selection", LOCTEXT("PhatEditSelection", "Selection"));
-			MenuBarBuilder.AddMenuEntry(Commands.SelectAllObjects);
+			MenuBarBuilder.AddMenuEntry(Commands.SelectAll);
 			MenuBarBuilder.EndSection();
 		}
 
@@ -976,19 +976,19 @@ void FPhAT::BindCommands()
 		FIsActionChecked::CreateSP(this, &FPhAT::IsMovementSpace, (int32)COORD_World));
 
 	ToolkitCommands->MapAction(
-		Commands.PhATTranslationMode,
+		Commands.TranslationMode,
 		FExecuteAction::CreateSP(this, &FPhAT::OnTransformMode, (int32)FWidget::WM_Translate),
 		FCanExecuteAction::CreateSP(this, &FPhAT::IsNotSimulation),
 		FIsActionChecked::CreateSP(this, &FPhAT::IsTransformMode, (int32)FWidget::WM_Translate));
 
 	ToolkitCommands->MapAction(
-		Commands.PhATRotationMode,
+		Commands.RotationMode,
 		FExecuteAction::CreateSP(this, &FPhAT::OnTransformMode, (int32)FWidget::WM_Rotate),
 		FCanExecuteAction::CreateSP(this, &FPhAT::IsNotSimulation),
 		FIsActionChecked::CreateSP(this, &FPhAT::IsTransformMode, (int32)FWidget::WM_Rotate));
 
 	ToolkitCommands->MapAction(
-		Commands.PhATScaleMode,
+		Commands.ScaleMode,
 		FExecuteAction::CreateSP(this, &FPhAT::OnTransformMode, (int32)FWidget::WM_Scale),
 		FCanExecuteAction::CreateSP(this, &FPhAT::IsNotSimulation),
 		FIsActionChecked::CreateSP(this, &FPhAT::IsTransformMode, (int32)FWidget::WM_Scale));
@@ -1266,7 +1266,7 @@ void FPhAT::BindCommands()
 		FCanExecuteAction::CreateSP(this, &FPhAT::IsNotSimulation));
 
 	ToolkitCommands->MapAction(
-		Commands.DeleteSelected,
+		Commands.DeleteSelection,
 		FExecuteAction::CreateSP(this, &FPhAT::OnDeleteSelection),
 		FCanExecuteAction::CreateSP(this, &FPhAT::IsNotSimulation));
 
@@ -1306,7 +1306,7 @@ void FPhAT::BindCommands()
 		FCanExecuteAction::CreateSP(this, &FPhAT::IsNotSimulation));
 
 	ToolkitCommands->MapAction(
-		Commands.SelectAllObjects,
+		Commands.SelectAll,
 		FExecuteAction::CreateSP(this, &FPhAT::OnSelectAll));
 
 	ToolkitCommands->MapAction(
@@ -2777,7 +2777,7 @@ void FPhAT::OnDeleteAllBodiesBelow()
 
 	if(BodySetups.Num())
 	{
-		const FScopedTransaction Transaction( LOCTEXT( "DeleteBodiesBelow", "Delete Bodies Below" ) );
+		const FScopedTransaction Transaction( LOCTEXT( "DeleteBodies", "Delete Bodies Below" ) );
 
 		// Now remove each one
 		for (int32 i = 0; i <BodySetups.Num(); ++i)

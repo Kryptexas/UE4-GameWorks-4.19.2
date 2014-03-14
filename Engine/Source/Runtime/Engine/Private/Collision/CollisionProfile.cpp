@@ -177,7 +177,8 @@ void UCollisionProfile::AddProfileRedirect(FName OldName, FName NewName)
 {
 	if(OldName != NewName)
 	{
-		ProfileRedirectsMap.FindOrAdd(OldName) = NewName;
+		FName & Value = ProfileRedirectsMap.FindOrAdd(OldName);
+		Value = NewName;
 
 		ProfileRedirects.Empty();
 

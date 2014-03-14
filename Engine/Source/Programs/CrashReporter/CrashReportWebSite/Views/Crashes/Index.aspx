@@ -109,7 +109,7 @@ Crash Reports
 		<span style="margin-left: 10px; font-weight:bold;">Filter by Date</span>
 		<span>From: <input id="dateFromVisible" type="text" class="date" AUTOCOMPLETE=OFF /></span>
 		<input id="dateFrom" name="dateFrom" type="hidden" value="<%=Model.DateFrom %>" AUTOCOMPLETE=OFF />
-		<span>To: <input id="dateToVisible" type="text" class="date" AUTOCOMPLETE=OFF /></span>
+		<span>From: <input id="dateToVisible" type="text" class="date" AUTOCOMPLETE=OFF /></span>
 		<input id="dateTo" name="dateTo" type="hidden" value="<%=Model.DateTo %>" AUTOCOMPLETE=OFF />
 
 		<span style="margin-left: 10px; font-weight:bold;">Filter Branch:</span>

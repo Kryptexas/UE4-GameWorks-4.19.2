@@ -2,23 +2,8 @@
 
 #include "EnginePrivate.h"
 
-UBlackboardData::FKeyUpdate UBlackboardData::OnUpdateKeys;
-
-static void UpdatePersistentKeys(class UBlackboardData* Asset)
-{
-	UBlackboardKeyType_Object* SelfKeyType = Asset->UpdatePersistentKey<UBlackboardKeyType_Object>(FBlackboard::KeySelf);
-	if (SelfKeyType)
-	{
-		SelfKeyType->BaseClass = AActor::StaticClass();
-	}
-}
-
 UBlackboardData::UBlackboardData(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
-	if (HasAnyFlags(RF_ClassDefaultObject))
-	{
-		OnUpdateKeys.AddStatic(&UpdatePersistentKeys);
-	}
 }
 
 uint8 UBlackboardData::GetKeyID(const FName& KeyName) const
@@ -156,8 +141,36 @@ void UBlackboardData::UpdateParentKeys()
 			}
 		}
 	}
+
+	UpdatePersistentKeys();
 #endif // WITH_EDITORONLY_DATA
 
 	FirstKeyID = Parent ? Parent->GetNumKeys() : 0;
-	OnUpdateKeys.Broadcast(this);
+}
+
+void UBlackboardData::UpdatePersistentKeys()
+{
+	// first, naive implementation. If we wanted to have more persistent keys write a proper implementation
+	static const FName& SelfKeyName = TEXT("SelfActor");
+
+	const uint8 KeyID = InternalGetKeyID(SelfKeyName, DontCheckParentKeys);
+	
+	if (KeyID == InvalidKeyID && Parent == NULL)
+	{
+		FBlackboardEntry Entry;
+		Entry.EntryName = SelfKeyName;
+
+		UBlackboardKeyType_Object* KeyType = ConstructObject<UBlackboardKeyType_Object>(UBlackboardKeyType_Object::StaticClass(), this);
+		KeyType->BaseClass = AActor::StaticClass();
+		Entry.KeyType = KeyType;		
+
+		Keys.Add(Entry);
+		MarkPackageDirty();
+	}
+	else if (KeyID != InvalidKeyID && Parent != NULL)
+	{
+		const int32 KeyIndex = KeyID - FirstKeyID;
+		Keys.RemoveAt(KeyIndex);
+		MarkPackageDirty();
+	}
 }

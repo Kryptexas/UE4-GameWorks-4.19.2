@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-	PhysicsSettings.h: Declares the PhysicsSettings class.
+	HudSettings.h: Declares the UHudSettings class.
 =============================================================================*/
 
 #pragma once
@@ -32,15 +32,6 @@ UCLASS(config=Engine)
 class ENGINE_API UPhysicsSettings: public UObject
 {
 	GENERATED_UCLASS_BODY()
-
-	/**Default gravity. */
-	UPROPERTY(config, EditAnywhere, Category = Constants)
-	float DefaultGravityZ;
-
-	/**Enables the use of an async scene */
-	UPROPERTY(config, EditAnywhere, AdvancedDisplay, Category=Simulation)
-	bool bEnableAsyncScene;
-
 
 	/**Max Physics Delta Time to be clamped. */
 	UPROPERTY(config, EditAnywhere, meta=(ClampMin="0.0013", UIMin = "0.0013", ClampMax="1.0", UIMax="1.0"), Category=Framerate)

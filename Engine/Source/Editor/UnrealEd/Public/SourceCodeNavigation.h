@@ -58,7 +58,7 @@ public:
 	 * @param	FunctionModuleName	The module to search for this function's symbols (e.g. "GameName-Win64-Debug")
 	 * @param	bIgnoreLineNumber	True if we should just open the file and not go to a specific line number
 	 */
-	UNREALED_API static void NavigateToFunctionSourceAsync( const FString& FunctionSymbolName, const FString& FunctionModuleName, const bool bIgnoreLineNumber );
+	static void NavigateToFunctionSourceAsync( const FString& FunctionSymbolName, const FString& FunctionModuleName, const bool bIgnoreLineNumber );
 
 	/** Gather modes for GatherFunctionsForActors() */
 	struct EGatherMode
@@ -80,13 +80,13 @@ public:
 	 * @param	GatherMode		Whether to gather all classes and functions, or only classes
 	 * @param	Classes	(Out)	Sorted list of function symbols organized by class for actor classes
 	 */
-	UNREALED_API static void GatherFunctionsForActors( TArray< AActor* >& Actors, const EGatherMode::Type GatherMode, TArray< FEditCodeMenuClass >& Classes );
+	static void GatherFunctionsForActors( TArray< AActor* >& Actors, const EGatherMode::Type GatherMode, TArray< FEditCodeMenuClass >& Classes );
 
 	/** Delegate that's triggered when any symbol query has completed */
 	DECLARE_MULTICAST_DELEGATE( FOnSymbolQueryFinished );
 
 	/** Call this to access the multi-cast delegate that you can register a callback with */
-	UNREALED_API static FOnSymbolQueryFinished& AccessOnSymbolQueryFinished();
+	static FOnSymbolQueryFinished& AccessOnSymbolQueryFinished();
 
 	/** Returns the name of the suggested IDE, based on platform */
 	UNREALED_API static FText GetSuggestedSourceCodeIDE(bool bShortIDEName = false);

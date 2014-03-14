@@ -8,13 +8,13 @@
 
 DEFINE_LOG_CATEGORY(LogEQS);
 
-DEFINE_STAT(STAT_AI_EQS_Tick);
-DEFINE_STAT(STAT_AI_EQS_LoadTime);
-DEFINE_STAT(STAT_AI_EQS_GeneratorTime);
-DEFINE_STAT(STAT_AI_EQS_TestTime);
-DEFINE_STAT(STAT_AI_EQS_NumInstances);
-DEFINE_STAT(STAT_AI_EQS_NumItems);
-DEFINE_STAT(STAT_AI_EQS_InstanceMemory);
+DEFINE_STAT(STAT_AI_EnvQuery_Tick);
+DEFINE_STAT(STAT_AI_EnvQuery_LoadTime);
+DEFINE_STAT(STAT_AI_EnvQuery_GeneratorTime);
+DEFINE_STAT(STAT_AI_EnvQuery_TestTime);
+DEFINE_STAT(STAT_AI_EnvQuery_NumInstances);
+DEFINE_STAT(STAT_AI_EnvQuery_NumItems);
+DEFINE_STAT(STAT_AI_EnvQuery_InstanceMemory);
 
 //////////////////////////////////////////////////////////////////////////
 // FEnvQueryRequest
@@ -169,12 +169,12 @@ TSharedPtr<struct FEnvQueryInstance> UEnvQueryManager::PrepareQueryInstance(cons
 	QueryInstance->World = Cast<UWorld>(GetOuter());
 	QueryInstance->Owner = Request.Owner;
 
-	DEC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, QueryInstance->NamedParams.GetAllocatedSize());
+	DEC_MEMORY_STAT_BY(STAT_AI_EnvQuery_InstanceMemory, QueryInstance->NamedParams.GetAllocatedSize());
 
 	// @TODO: interface for providing default named params (like custom ranges in AI)
 	QueryInstance->NamedParams = Request.NamedParams;
 
-	INC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, QueryInstance->NamedParams.GetAllocatedSize());
+	INC_MEMORY_STAT_BY(STAT_AI_EnvQuery_InstanceMemory, QueryInstance->NamedParams.GetAllocatedSize());
 
 	QueryInstance->QueryID = NextQueryID++;
 
@@ -202,8 +202,8 @@ bool UEnvQueryManager::AbortQuery(int32 RequestID)
 
 void UEnvQueryManager::Tick(float DeltaTime)
 {
-	SCOPE_CYCLE_COUNTER(STAT_AI_EQS_Tick);
-	SET_DWORD_STAT(STAT_AI_EQS_NumInstances, RunningQueries.Num());
+	SCOPE_CYCLE_COUNTER(STAT_AI_EnvQuery_Tick);
+	SET_DWORD_STAT(STAT_AI_EnvQuery_NumInstances, RunningQueries.Num());
 	// @TODO: threads?
 
 	const double StartTime = FPlatformTime::Seconds();
@@ -325,29 +325,6 @@ namespace EnvQueryTestSort
 	};
 }
 
-UEnvQuery* UEnvQueryManager::FindQueryTemplate(const FString& QueryName) const
-{
-	for (int32 InstanceIndex = 0; InstanceIndex < InstanceCache.Num(); InstanceIndex++)
-	{
-		const UEnvQuery* QueryTemplate = InstanceCache[InstanceIndex].Template.Get();
-
-		if (QueryTemplate != NULL && QueryTemplate->GetName() == QueryName)
-		{
-			return const_cast<UEnvQuery*>(QueryTemplate);
-		}
-	}
-
-	for (FObjectIterator It(UEnvQuery::StaticClass()); It; ++It)
-	{
-		if (It->GetName() == QueryName)
-		{
-			return Cast<UEnvQuery>(*It);
-		}
-	}
-
-	return NULL;
-}
-
 TSharedPtr<FEnvQueryInstance> UEnvQueryManager::CreateQueryInstance(class UEnvQuery* Template, EEnvQueryRunMode::Type RunMode)
 {
 	if (Template == NULL)
@@ -357,12 +334,12 @@ TSharedPtr<FEnvQueryInstance> UEnvQueryManager::CreateQueryInstance(class UEnvQu
 
 	// try to find entry in cache
 	FEnvQueryInstance* InstanceTemplate = NULL;
-	for (int32 InstanceIndex = 0; InstanceIndex < InstanceCache.Num(); InstanceIndex++)
+	for (int32 i = 0; i < InstanceCache.Num(); i++)
 	{
-		if (InstanceCache[InstanceIndex].Template == Template &&
-			InstanceCache[InstanceIndex].Instance.Mode == RunMode)
+		if (InstanceCache[i].Template == Template &&
+			InstanceCache[i].Instance.Mode == RunMode)
 		{
-			InstanceTemplate = &InstanceCache[InstanceIndex].Instance;
+			InstanceTemplate = &InstanceCache[i].Instance;
 			break;
 		}
 	}
@@ -370,7 +347,7 @@ TSharedPtr<FEnvQueryInstance> UEnvQueryManager::CreateQueryInstance(class UEnvQu
 	// and create one if can't be found
 	if (InstanceTemplate == NULL)
 	{
-		SCOPE_CYCLE_COUNTER(STAT_AI_EQS_LoadTime);
+		SCOPE_CYCLE_COUNTER(STAT_AI_EnvQuery_LoadTime);
 		
 		{
 			// memory stat tracking: temporary variable will exist only inside this section
@@ -465,11 +442,11 @@ void UEnvQueryManager::CreateOptionInstance(class UEnvQueryOption* OptionTemplat
 		}
 	}
 
-	DEC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, Instance.Options.GetAllocatedSize());
+	DEC_MEMORY_STAT_BY(STAT_AI_EnvQuery_InstanceMemory, Instance.Options.GetAllocatedSize());
 
 	const int32 AddedIdx = Instance.Options.Add(OptionInstance);
 
-	INC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, Instance.Options.GetAllocatedSize() + Instance.Options[AddedIdx].GetAllocatedSize());
+	INC_MEMORY_STAT_BY(STAT_AI_EnvQuery_InstanceMemory, Instance.Options.GetAllocatedSize() + Instance.Options[AddedIdx].GetAllocatedSize());
 }
 
 //----------------------------------------------------------------------//
@@ -484,11 +461,6 @@ void FEQSDebugger::StoreQuery(TSharedPtr<FEnvQueryInstance>& Query)
 }
 
 TSharedPtr<FEnvQueryInstance> FEQSDebugger::GetQueryForOwner(const UObject* Owner)
-{
-	return StoredQueries.FindRef(Owner);
-}
-
-const TSharedPtr<FEnvQueryInstance> FEQSDebugger::GetQueryForOwner(const UObject* Owner) const
 {
 	return StoredQueries.FindRef(Owner);
 }

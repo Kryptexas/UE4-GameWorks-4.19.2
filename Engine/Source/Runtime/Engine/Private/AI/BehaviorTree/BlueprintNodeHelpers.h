@@ -11,7 +11,9 @@ namespace BlueprintNodeHelpers
 	void CollectBlackboardSelectors(const UObject* Ob, const UClass* StopAtClass, TArray<FName>& KeyNames);
 
 	FString DescribeProperty(const UObject* Ob, const UProperty* Prop);
-	void DescribeRuntimeValues(const UObject* Ob, const TArray<UProperty*>& PropertyData, TArray<FString>& RuntimeValues);
+	void DescribeRuntimeValues(const UObject* Ob, const UClass* StopAtClass,
+		const TArray<UProperty*>& PropertyData, uint8* ContextMemory,
+		EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& RuntimeValues);
 
 	void CopyPropertiesToContext(const TArray<UProperty*>& PropertyData, uint8* ObjectMemory, uint8* ContextMemory);
 	void CopyPropertiesFromContext(const TArray<UProperty*>& PropertyData, uint8* ObjectMemory, uint8* ContextMemory);

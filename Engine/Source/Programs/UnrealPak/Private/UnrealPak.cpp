@@ -35,13 +35,6 @@ struct FPakInputPair
 	}
 };
 
-struct FPakEntryOrder
-{
-	FPakEntryOrder() : Order(MAX_uint64) {}
-	FString Filename;
-	uint64  Order;
-};
-
 FString GetLongestPath(TArray<FPakInputPair>& FilesToAdd)
 {
 	FString LongestPath;
@@ -132,48 +125,6 @@ bool CopyFileToPak(FArchive& InPak, const FString& InMountPoint, const FPakInput
 	return bFileExists;
 }
 
-void ProcessOrderFile(int32 ArgC, ANSICHAR* ArgV[], TMap<FString, uint64>& OrderMap)
-{
-	// List of all items to add to pak file
-	FString ResponseFile;
-	if (FParse::Value(FCommandLine::Get(), TEXT("-order="), ResponseFile))
-	{
-		FString Text;
-		UE_LOG(LogPakFile, Display, TEXT("Loading pak order file %s..."), *ResponseFile);
-		if (FFileHelper::LoadFileToString(Text, *ResponseFile))
-		{
-			// Read all lines
-			TArray<FString> Lines;
-			Text.ParseIntoArray(&Lines, TEXT("\n"), true);
-			for (int32 EntryIndex = 0; EntryIndex < Lines.Num(); EntryIndex++)
-			{
-				Lines[EntryIndex].ReplaceInline(TEXT("\r"), TEXT(""));
-				Lines[EntryIndex].ReplaceInline(TEXT("\n"), TEXT(""));
-				int32 OpenOrderNumber = EntryIndex;
-				if (Lines[EntryIndex].FindLastChar('"', OpenOrderNumber))
-				{
-					FString ReadNum = Lines[EntryIndex].RightChop(OpenOrderNumber+1);
-					Lines[EntryIndex] = Lines[EntryIndex].Left(OpenOrderNumber+1);
-					ReadNum.Trim();
-					if (ReadNum.IsNumeric())
-					{
-						OpenOrderNumber = FCString::Atoi(*ReadNum);
-					}
-				}
-				Lines[EntryIndex] = Lines[EntryIndex].TrimQuotes();
-				FString Path=FString::Printf(TEXT("%s"), *Lines[EntryIndex]);
-				FPaths::NormalizeFilename(Path);
-				OrderMap.Add(Path, OpenOrderNumber);
-			}
-			UE_LOG(LogPakFile, Display, TEXT("Finished loading pak order file %s."), *ResponseFile);
-		}
-		else 
-		{
-			UE_LOG(LogPakFile, Display, TEXT("Unable to load pak order file %s."), *ResponseFile);
-		}
-	}
-}
-
 void ProcessCommandLine(int32 ArgC, ANSICHAR* ArgV[], TArray<FPakInputPair>& Entries)
 {
 	// List of all items to add to pak file
@@ -220,7 +171,6 @@ void ProcessCommandLine(int32 ArgC, ANSICHAR* ArgV[], TArray<FPakInputPair>& Ent
 				}
 				FPaths::NormalizeFilename(Input.Dest);
 				FPakFile::MakeDirectoryFromPath(Input.Dest);
-				UE_LOG(LogPakFile, Display, TEXT("Added file Source: %s Dest: %s"), *Input.Source, *Input.Dest);
 				Entries.Add(Input);
 			}			
 		}
@@ -266,7 +216,7 @@ void ProcessCommandLine(int32 ArgC, ANSICHAR* ArgV[], TArray<FPakInputPair>& Ent
 	UE_LOG(LogPakFile, Display, TEXT("Added %d entries to add to pak file."), Entries.Num());
 }
 
-void CollectFilesToAdd(TArray<FPakInputPair>& OutFilesToAdd, const TArray<FPakInputPair>& InEntries, const TMap<FString, uint64>& OrderMap)
+void CollectFilesToAdd(TArray<FPakInputPair>& OutFilesToAdd, const TArray<FPakInputPair>& InEntries)
 {
 	UE_LOG(LogPakFile, Display, TEXT("Collecting files to add to pak file..."));
 	const double StartTime = FPlatformTime::Seconds();
@@ -318,23 +268,12 @@ void CollectFilesToAdd(TArray<FPakInputPair>& OutFilesToAdd, const TArray<FPakIn
 	// Sort alphabetically
 	struct FInputPairSort
 	{
-		const TMap<FString, uint64>& OrderMap;
-
-		FInputPairSort(const TMap<FString, uint64>& InOrderMap) : OrderMap(InOrderMap) {}
-		
 		FORCEINLINE bool operator()(const FPakInputPair& A, const FPakInputPair& B) const
 		{
-			uint64 AOrder = MAX_uint64;
-			uint64 BOrder = MAX_uint64;
-			const uint64* FoundOrder;
-			FoundOrder = OrderMap.Find(A.Dest);
-			if (FoundOrder) AOrder = *FoundOrder;
-			FoundOrder = OrderMap.Find(B.Dest);
-			if (FoundOrder) BOrder = *FoundOrder;
-			return AOrder == BOrder ? A.Dest < B.Dest : AOrder < BOrder;
+			return A.Dest < B.Dest;
 		}
 	};
-	OutFilesToAdd.Sort(FInputPairSort(OrderMap));
+	OutFilesToAdd.Sort(FInputPairSort());
 	UE_LOG(LogPakFile, Display, TEXT("Collected %d files in %.2lfs."), OutFilesToAdd.Num(), FPlatformTime::Seconds() - StartTime);
 }
 
@@ -646,8 +585,6 @@ int32 main(int32 ArgC, ANSICHAR* ArgV[])
 			// List of all items to add to pak file
 			TArray<FPakInputPair> Entries;
 			ProcessCommandLine(ArgC, ArgV, Entries);
-			TMap<FString, uint64> OrderMap;
-			ProcessOrderFile(ArgC, ArgV, OrderMap);
 
 			if (Entries.Num() == 0)
 			{
@@ -658,7 +595,7 @@ int32 main(int32 ArgC, ANSICHAR* ArgV[])
 			{
 				// Start collecting files
 				TArray<FPakInputPair> FilesToAdd;
-				CollectFilesToAdd(FilesToAdd, Entries, OrderMap);
+				CollectFilesToAdd(FilesToAdd, Entries);
 
 				Result = CreatePakFile(*PakFilename, FilesToAdd) ? 0 : 1;
 			}

@@ -9,7 +9,7 @@ UBTTask_PlaySound::UBTTask_PlaySound(const class FPostConstructInitializePropert
 	NodeName = "PlaySound";
 }
 
-EBTNodeResult::Type UBTTask_PlaySound::ExecuteTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UBTTask_PlaySound::ExecuteTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
 {
 	const AAIController* MyController = OwnerComp ? Cast<AAIController>(OwnerComp->GetOwner()) : NULL;
 

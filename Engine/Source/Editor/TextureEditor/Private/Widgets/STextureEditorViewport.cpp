@@ -50,12 +50,8 @@ void STextureEditorViewport::Construct( const FArguments& InArgs, const TSharedR
 
 		ZoomMenuBuilder.AddMenuSeparator();
 
-		FUIAction ZoomFitAction(
-			FExecuteAction::CreateSP(this, &STextureEditorViewport::HandleZoomMenuFitClicked), 
-			FCanExecuteAction(), 
-			FIsActionChecked::CreateSP(this, &STextureEditorViewport::IsZoomMenuFitChecked)
-			);
-		ZoomMenuBuilder.AddMenuEntry(LOCTEXT("ZoomFitAction", "Scale To Fit"), LOCTEXT("ZoomFillActionHint", "Scale the texture to fit the viewport."), FSlateIcon(), ZoomFitAction, NAME_None, EUserInterfaceActionType::ToggleButton);
+		FUIAction ZoomFillAction(FExecuteAction::CreateSP(this, &STextureEditorViewport::HandleZoomMenuEntryClicked, 0.0));
+		ZoomMenuBuilder.AddMenuEntry(LOCTEXT("ZoomFillAction", "Fill"), LOCTEXT("ZoomFillActionHint", "Scale the texture to fill the viewport."), FSlateIcon(), ZoomFillAction);
 	}
 
 	FString TextureName;
@@ -364,23 +360,13 @@ void STextureEditorViewport::HandleZoomMenuEntryClicked( double ZoomValue )
 }
 
 
-void STextureEditorViewport::HandleZoomMenuFitClicked()
-{
-	ToolkitPtr.Pin()->ToggleFitToViewport();
-}
-
-
-bool STextureEditorViewport::IsZoomMenuFitChecked() const
-{
-	return ToolkitPtr.Pin()->GetFitToViewport();
-}
-
 FText STextureEditorViewport::HandleZoomPercentageText( ) const
 {
-	const bool bFitToViewport = ToolkitPtr.Pin()->GetFitToViewport();
-	if(bFitToViewport)
+	float Zoom = ToolkitPtr.Pin()->GetZoom();
+
+	if (Zoom == 0.0)
 	{
-		return LOCTEXT("ZoomFitText", "Fit");
+		return LOCTEXT("ZoomFillText", "Fill");
 	}
 
 	return FText::AsPercent(ToolkitPtr.Pin()->GetZoom());

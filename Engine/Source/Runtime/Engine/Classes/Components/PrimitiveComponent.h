@@ -614,11 +614,10 @@ public:
 	 *  @param  World			World to use for overlap test
 	 *  @param  Pos             Location to place the component's geometry at to test against the world
 	 *  @param  Rot             Rotation to place components' geometry at to test against the world
-	 *  @param  TestChannel		The 'channel' that this ray is in, used to determine which components to hit
 	 *	@param	ObjectQueryParams	List of object types it's looking for. When this enters, we do object query with component shape
 	 *  @return TRUE if OutOverlaps contains any blocking results
 	 */
-	virtual bool ComponentOverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const class UWorld* World, const FVector& Pos, const FRotator& Rot, ECollisionChannel TestChannel, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams = FCollisionObjectQueryParams::DefaultObjectQueryParam) const;
+	virtual bool ComponentOverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const class UWorld* World, const FVector& Pos, const FRotator& Rot, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams=FCollisionObjectQueryParams::DefaultObjectQueryParam) const;
 
 	/** Called when a component is touched */
 	UPROPERTY(BlueprintAssignable, Category="Collision")
@@ -916,8 +915,6 @@ public:
 
 	/** @return true if this should create physics state */
 	virtual bool ShouldCreatePhysicsState() const OVERRIDE;
-
-	virtual bool HasValidPhysicsState() const OVERRIDE;
 
 	/** @return true if the owner is selected and this component is selectable */
 	virtual bool ShouldRenderSelected() const;

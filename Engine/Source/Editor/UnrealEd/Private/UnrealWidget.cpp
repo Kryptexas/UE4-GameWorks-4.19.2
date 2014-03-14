@@ -33,7 +33,7 @@ FWidget::FWidget()
 	ScreenSpaceColor  = FColor(196, 196, 196);
 	CurrentColor = FColor(255,255,0);
 
-	UMaterial* AxisMaterialBase = GEngine->ArrowMaterial;
+	UMaterial* AxisMaterialBase = (UMaterial*)StaticLoadObject( UMaterial::StaticClass(),NULL,TEXT("/Engine/EditorMaterials/GizmoMaterial.GizmoMaterial") );
 
 	AxisMaterialX = UMaterialInstanceDynamic::Create( AxisMaterialBase, NULL );
 	AxisMaterialX->SetVectorParameterValue( "GizmoColor", AxisColorX );

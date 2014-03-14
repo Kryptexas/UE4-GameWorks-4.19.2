@@ -184,10 +184,6 @@ class UEditorUserSettings : public UObject
 	UPROPERTY()
 	FLinearColor ExecSequenceNodeTitleColor;
 
-	/** Result node title color */
-	UPROPERTY()
-	FLinearColor ResultNodeTitleColor;
-
 	UPROPERTY()
 	FLinearColor TraceAttackColor;
 

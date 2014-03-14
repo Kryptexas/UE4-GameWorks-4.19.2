@@ -4,6 +4,7 @@
 #include "SBspPalette.h"
 #include "BspModeModule.h"
 #include "SScrollBorder.h"
+#include "BspModeActions.h"
 #include "Editor/UnrealEd/Public/DragAndDrop/BrushBuilderDragDropOp.h"
 
 #define LOCTEXT_NAMESPACE "BspPalette"
@@ -101,7 +102,7 @@ void SBspPalette::Construct( const FArguments& InArgs )
 			[
 				SNew(SCheckBox)
 				.Style(FEditorStyle::Get(), "Toolbar.RadioButton")
-				.ToolTipText(LOCTEXT("BspModeSubtractiveTooltip", "Place brushes in subtractive mode."))
+				.ToolTipText(LOCTEXT("BspModeAdditiveTooltip", "Place brushes in subtractive mode."))
 				.OnCheckStateChanged(this, &SBspPalette::OnSubtractiveModeButtonClicked)
 				.IsChecked(this, &SBspPalette::IsSubtractiveModeChecked)
 				.ForegroundColor(FCoreStyle::Get().GetSlateColor("Foreground"))

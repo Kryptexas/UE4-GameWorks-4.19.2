@@ -688,11 +688,12 @@ void FMatineeViewportClient::DrawTimeline(FViewport* Viewport, FCanvas* Canvas)
 		// frames
 
 		// Timecode string
-		SnapPosString = InterpEd->MakeTimecodeString(InterpEd->MatineeActor->InterpPosition);
-		StringSize(Font, XL, YL, *SnapPosString);
-		TextItem.SetColor(FLinearColor::Yellow);
-		TextItem.Text = FText::FromString(SnapPosString);
-		Canvas->DrawItem(TextItem, HeadTitleMargin, ViewY - YL - int32(1.7 * YL) - HeadTitleMargin);
+		SnapPosString = InterpEd->MakeTimecodeString( InterpEd->MatineeActor->InterpPosition );
+		const int32 StringXPos = HeadTitleMargin + 116;
+		StringSize( Font, XL, YL, *SnapPosString );
+		TextItem.SetColor( FLinearColor::Yellow );
+		TextItem.Text = FText::FromString( SnapPosString );
+		Canvas->DrawItem( TextItem, StringXPos, ViewY - YL - int32(2.5 * YL) - HeadTitleMargin );
 
 		// Frame counts
 		SnapPosString = FString::Printf( TEXT("%3.1f / %3.1f %s"), (1.0 / InterpEd->SnapAmount) * InterpEd->MatineeActor->InterpPosition, (1.0 / InterpEd->SnapAmount) * InterpEd->IData->InterpLength, *NSLOCTEXT("UnrealEd", "InterpEd_TimelineInfo_Frames", "frames").ToString() );
@@ -721,10 +722,10 @@ void FMatineeViewportClient::DrawTimeline(FViewport* Viewport, FCanvas* Canvas)
 		FString KeyTitle = FString::Printf( TEXT("%s%d"), ( rSelKey.Track ? *rSelKey.Track->TrackTitle : TEXT( "?" ) ), rSelKey.KeyIndex );
 		FString AdjustString = FText::Format( NSLOCTEXT("UnrealEd", "Key_F", "KEY {0}"), FText::FromString(KeyTitle) ).ToString();
 
-		FLinkedObjDrawUtils::DrawNGon(Canvas, FIntPoint(HeadTitleMargin + 5, ViewY - 1.1 * YL - 2 * HeadTitleMargin), FColor(255, 0, 0), 12, 5);
+		FLinkedObjDrawUtils::DrawNGon(Canvas, FIntPoint(HeadTitleMargin + 5, ViewY - 1.5*YL - 2*HeadTitleMargin), FColor(255,0,0), 12, 5);
 		TextItem.SetColor( FLinearColor::Red );
 		TextItem.Text = FText::FromString( AdjustString );
-		Canvas->DrawItem(TextItem, 2 * HeadTitleMargin + 10, (int32)( ViewY - 1.6 * YL - 2 * HeadTitleMargin ));
+		Canvas->DrawItem( TextItem, 2*HeadTitleMargin + 10, ViewY - 2*YL - 2*HeadTitleMargin );		
 	}
 	else if(InterpEd->Opt->bAdjustingGroupKeyframes)
 	{
@@ -762,10 +763,10 @@ void FMatineeViewportClient::DrawTimeline(FViewport* Viewport, FCanvas* Canvas)
 			AdjustString += TEXT( "] " );
 		}
 
-		FLinkedObjDrawUtils::DrawNGon(Canvas, FIntPoint(HeadTitleMargin + 5, ViewY - 1.1*YL - 2 * HeadTitleMargin), FColor(255, 0, 0), 12, 5);
+		FLinkedObjDrawUtils::DrawNGon(Canvas, FIntPoint(HeadTitleMargin + 5, ViewY - 1.5*YL - 2*HeadTitleMargin), FColor(255,0,0), 12, 5);
 		TextItem.SetColor( FLinearColor::Red );
 		TextItem.Text = FText::FromString( AdjustString );
-		Canvas->DrawItem(TextItem, 2 * HeadTitleMargin + 10, (int32)(ViewY - 1.6*YL - 2 * HeadTitleMargin));
+		Canvas->DrawItem( TextItem, 2*HeadTitleMargin + 10, ViewY - 2*YL - 2*HeadTitleMargin );		
 	}
 
 	///////// DRAW SELECTED KEY RANGE
@@ -1039,7 +1040,10 @@ int32 FMatineeViewportClient::ComputeGroupListContentHeight() const
 int32 FMatineeViewportClient::ComputeGroupListBoxHeight( const int32 ViewportHeight ) const
 {
 	int32 HeightOfExtras = 0;
-
+	if( bWantFilterTabs )
+	{
+		HeightOfExtras += TabRowHeight;
+	}
 	if( bWantTimeline )
 	{
 		HeightOfExtras += TotalBarHeight;	// TimelineHeight + NavHeight
@@ -1131,10 +1135,10 @@ void FMatineeViewportClient::DrawSubTrackGroup( FCanvas* Canvas, UInterpTrack* T
 	StringSize(GEditor->GetSmallFont(), XL, YL, *Text);
 
 	// If too long to fit in label - truncate. TODO: Actually truncate by necessary amount!
-	if(XL > InterpEd->LabelWidth - TrackTitleIndentPixels - 2)
-	{
-		Text = FString::Printf( TEXT("...%s"), *(Text.Right(13)) );
-		StringSize(LabelFont, XL, YL, *Text);
+ 	if(XL > InterpEd->LabelWidth - TrackTitleIndentPixels - 2)
+ 	{
+ 		Text = FString::Printf( TEXT("...%s"), *(Text.Right(13)) );
+ 		StringSize(LabelFont, XL, YL, *Text);
 	}
 
 	// Ghost out disabled groups
@@ -1400,10 +1404,10 @@ int32 FMatineeViewportClient::DrawTrack( FCanvas* Canvas, UInterpTrack* Track, U
 		if( bIsTrackWithinScrollArea && GroupDrawInfos.Num() > 0 )
 		{
 			// Draw keys on the parent track which correspond to all keyframes in subtracks
-			const FVector2D TickSize(3.0f, GroupHeadHeight * 0.5f);
-			FVector2D TrackPos(InterpEd->LabelWidth - InterpEd->ViewStartTime * InterpEd->PixelsPerSec, LabelDrawParams.YOffset );
+ 			const FVector2D TickSize(3.0f, GroupHeadHeight * 0.5f);
+ 			FVector2D TrackPos(InterpEd->LabelWidth - InterpEd->ViewStartTime * InterpEd->PixelsPerSec, LabelDrawParams.YOffset );
 			Canvas->PushAbsoluteTransform(FTranslationMatrix(FVector(TrackPos.X,TrackPos.Y,0)));
-		
+ 		
 			for( int32 GroupIndex = 0; GroupIndex < Track->SubTrackGroups.Num(); ++GroupIndex )
 			{
 				FSubTrackGroup& SubGroup = Track->SubTrackGroups[ GroupIndex ];
@@ -1782,41 +1786,41 @@ void FMatineeViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 
 	LabelDrawParams.ViewX = ViewX;
 	LabelDrawParams.ViewY = ViewY;
-	
+
 	// Get textures for cam-locked icon.
-	LabelDrawParams.CamLockedIcon = CamLockedIcon;
+	LabelDrawParams.CamLockedIcon = (UTexture2D*)StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_View_On.MAT_Groups_View_On"), NULL, LOAD_None, NULL );	
 	check(LabelDrawParams.CamLockedIcon);
 
-	LabelDrawParams.CamUnlockedIcon = CamUnlockedIcon;
+	LabelDrawParams.CamUnlockedIcon = (UTexture2D*)StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_View_Off.MAT_Groups_View_Off"), NULL, LOAD_None, NULL );	
 	check(LabelDrawParams.CamUnlockedIcon);
 
 	// Get textures for Event direction buttons.
-	LabelDrawParams.ForwardEventOnTex = ForwardEventOnTex;
+	LabelDrawParams.ForwardEventOnTex = (UTexture2D*)StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Right_On.MAT_Groups_Right_On"), NULL, LOAD_None, NULL );
 	check(LabelDrawParams.ForwardEventOnTex);
 
-	LabelDrawParams.ForwardEventOffTex = ForwardEventOffTex;
+	LabelDrawParams.ForwardEventOffTex = (UTexture2D*)StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Right_Off.MAT_Groups_Right_Off"), NULL, LOAD_None, NULL );
 	check(LabelDrawParams.ForwardEventOffTex);
 
-	LabelDrawParams.BackwardEventOnTex = BackwardEventOnTex;
+	LabelDrawParams.BackwardEventOnTex = (UTexture2D*)StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Left_On.MAT_Groups_Left_On"), NULL, LOAD_None, NULL );
 	check(LabelDrawParams.BackwardEventOnTex);
 
-	LabelDrawParams.BackwardEventOffTex = BackwardEventOffTex;
+	LabelDrawParams.BackwardEventOffTex = (UTexture2D*)StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Left_Off.MAT_Groups_Left_Off"), NULL, LOAD_None, NULL );
 	check(LabelDrawParams.BackwardEventOffTex);
 
-	LabelDrawParams.DisableTrackTex = DisableTrackTex;
+	LabelDrawParams.DisableTrackTex = (UTexture2D*)StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/Cascade/CASC_ModuleEnable.CASC_ModuleEnable"), NULL, LOAD_None, NULL );
 	check(LabelDrawParams.DisableTrackTex);
 
 
 	// Get textures for sending to curve editor
-	LabelDrawParams.GraphOnTex = GraphOnTex;
+	LabelDrawParams.GraphOnTex = (UTexture2D*)StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Graph_On.MAT_Groups_Graph_On"), NULL, LOAD_None, NULL );
 	check(LabelDrawParams.GraphOnTex);
 
-	LabelDrawParams.GraphOffTex = GraphOffTex;
+	LabelDrawParams.GraphOffTex = (UTexture2D*)StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Graph_Off.MAT_Groups_Graph_Off"), NULL, LOAD_None, NULL );
 	check(LabelDrawParams.GraphOffTex);
 
 	
 	// Get textures for toggle trajectories
-	LabelDrawParams.TrajectoryOnTex = TrajectoryOnTex;
+	LabelDrawParams.TrajectoryOnTex = (UTexture2D*)StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Graph_On.MAT_Groups_Graph_On"), NULL, LOAD_None, NULL );
 	check( LabelDrawParams.TrajectoryOnTex != NULL );
 
 	// Check to see if we have a director group.  If so, we'll want to draw it on top of the other items!
@@ -1825,6 +1829,10 @@ void FMatineeViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 
 	// Compute vertical start offset
 	int32 StartYOffset = ThumbPos_Vert;
+	if( bWantFilterTabs )
+	{
+		StartYOffset += TabRowHeight;
+	}
 	int32 YOffset = StartYOffset;
 
 	
@@ -2195,6 +2203,12 @@ void FMatineeViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 		BoxItem.Draw( Canvas );
 	}
 
+	if( bWantFilterTabs )
+	{
+		// Draw filter tabs
+		DrawTabs(Viewport, Canvas);
+	}
+
 	Canvas->PopTransform();
 }
 
@@ -2265,7 +2279,7 @@ void FMatineeViewportClient::DrawSubTrackGroupKeys( FCanvas* Canvas, UInterpTrac
 				}
 				Canvas->DrawTile( KeyPos.X, KeyPos.Y, KeySize.X, KeySize.Y, 0.f, 0.f, 1.f, 1.f, KeyColor );
 			}
-			
+ 			
 			if( Canvas->IsHitTesting() )
 			{
 				Canvas->SetHitProxy( NULL );
@@ -2297,6 +2311,75 @@ void FMatineeViewportClient::DrawCollapsedTrackKeys( FCanvas* Canvas, UInterpTra
 		DrawCollapsedTrackKeys( Canvas, Track->SubTracks[ SubTrackIndex ], TrackPos, TickSize );
 	}
 }
+/**
+ * Draws filter tabs for the matinee editor.
+ */
+void FMatineeViewportClient::DrawTabs(FViewport* Viewport,FCanvas* Canvas)
+{
+	// Draw tab background
+	Canvas->DrawTile( 0,0, Viewport->GetSizeXY().X, TabRowHeight, 0,0,1,1, FColor(64,64,64));
+	
+	// Draw all tabs
+	int32 TabOffset = TabSpacing;
+
+	// Draw static filters first
+	for(int32 TabIdx=0; TabIdx<InterpEd->IData->DefaultFilters.Num(); TabIdx++)
+	{
+		UInterpFilter* Filter = InterpEd->IData->DefaultFilters[TabIdx];
+		FVector2D TabSize = DrawTab(Viewport, Canvas, TabOffset, Filter);
+		TabOffset += TabSize.X + TabSpacing;
+	}
+
+	// Draw user custom filters last.
+	for(int32 TabIdx=0; TabIdx<InterpEd->IData->InterpFilters.Num(); TabIdx++)
+	{
+		UInterpFilter* Filter = InterpEd->IData->InterpFilters[TabIdx];
+		FVector2D TabSize = DrawTab(Viewport, Canvas, TabOffset, Filter);
+		TabOffset += TabSize.X + TabSpacing;
+	}
+}
+
+/**
+ * Draws a filter tab for matinee.
+ *
+ * @return Size of the tab that was drawn.
+ */
+FVector2D FMatineeViewportClient::DrawTab(FViewport* Viewport, FCanvas* Canvas, int32 &TabOffset, UInterpFilter* Filter)
+{
+	FColor TabColor = (Filter == InterpEd->IData->SelectedFilter) ? TabColorSelected : TabColorNormal;
+	FVector2D TabPosition(TabOffset,TabSpacing);
+	FVector2D TabSize(0,16);
+
+	FIntPoint TabCaptionSize;
+	StringSize(GEditor->GetSmallFont(), TabCaptionSize.X, TabCaptionSize.Y, *Filter->Caption);
+	TabSize.X = TabCaptionSize.X + 2 + TabPadding*2;
+	TabSize.Y = TabCaptionSize.Y + 2 + TabPadding*2;
+
+	Canvas->PushRelativeTransform(FTranslationMatrix(FVector(TabPosition.X, TabPosition.Y,0)));
+	{
+		Canvas->SetHitProxy(new HMatineeTab(Filter));
+		{
+			FCanvasTileItem TileItem( FVector2D::ZeroVector, FVector2D(TabSize.X, TabSize.Y), TabColor );
+			TileItem.BlendMode = SE_BLEND_Translucent;
+			TileItem.Draw( Canvas );
+			FCanvasLineItem LineItem;									
+			LineItem.SetColor( FLinearColor::Gray );
+			LineItem.Draw( Canvas, FVector2D(0, 0), FVector2D(0, TabSize.Y) );					// Left
+			LineItem.Draw( Canvas, FVector2D(0, 0), FVector2D(TabSize.X, 0) );					// Top
+			LineItem.SetColor( FLinearColor::Black );
+			LineItem.Draw( Canvas, FVector2D(TabSize.X, 0), FVector2D(TabSize.X, TabSize.Y) );	// Right	
+			LineItem.Draw( Canvas, FVector2D(0, TabSize.Y), FVector2D(TabSize.X, TabSize.Y) );	// Bottom
+			FCanvasTextItem TextItem( FVector2D(TabPadding, TabPadding), FText::FromString(Filter->Caption), GEditor->GetSmallFont(), FLinearColor::Black );			
+			Canvas->DrawItem( TextItem );
+		}
+		Canvas->SetHitProxy(NULL);
+	}
+	Canvas->PopTransform();
+
+	return TabSize;
+}
+
+
 
 /**
  * Selects a color for the specified group (bound to the given group actor)

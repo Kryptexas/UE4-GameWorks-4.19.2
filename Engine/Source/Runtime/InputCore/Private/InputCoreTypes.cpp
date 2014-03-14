@@ -138,13 +138,6 @@ const FKey EKeys::Backslash("Backslash");
 const FKey EKeys::RightBracket("RightBracket");
 const FKey EKeys::Quote("Quote");
 
-// Setup platform specific keys
-#if PLATFORM_MAC
-const FKey EKeys::Platform_Delete = EKeys::BackSpace;
-#else
-const FKey EKeys::Platform_Delete = EKeys::Delete;
-#endif
-
 const FKey EKeys::Gamepad_LeftX("Gamepad_LeftX");
 const FKey EKeys::Gamepad_LeftY("Gamepad_LeftY");
 const FKey EKeys::Gamepad_RightX("Gamepad_RightX");
@@ -235,7 +228,7 @@ void EKeys::Initialize()
 	AddKey(FKeyDetails(EKeys::MiddleMouseButton, LOCTEXT("MiddleMouseButton", "Middle Mouse Button"), FKeyDetails::MouseButton));
 	AddKey(FKeyDetails(EKeys::ThumbMouseButton, LOCTEXT("ThumbMouseButton", "Thumb Mouse Button"), FKeyDetails::MouseButton));
 	AddKey(FKeyDetails(EKeys::ThumbMouseButton2, LOCTEXT("ThumbMouseButton2", "Thumb Mouse Button 2"), FKeyDetails::MouseButton));
-	
+    
 	AddKey(FKeyDetails(EKeys::Tab, LOCTEXT("Tab", "Tab")));
 	AddKey(FKeyDetails(EKeys::Enter, LOCTEXT("Enter", "Enter")));
 	AddKey(FKeyDetails(EKeys::Pause, LOCTEXT("Pause", "Pause")));
@@ -254,13 +247,14 @@ void EKeys::Initialize()
 	AddKey(FKeyDetails(EKeys::Down, LOCTEXT("Down", "Down")));
 
 	AddKey(FKeyDetails(EKeys::Insert, LOCTEXT("Insert", "Insert")));
-	
+    
+    //@todo ndarnell mac hack backspace is called delete, delete is called forward delete
 #if PLATFORM_MAC
-	AddKey(FKeyDetails(EKeys::BackSpace, LOCTEXT("Delete", "Delete")));
-	AddKey(FKeyDetails(EKeys::Delete, LOCTEXT("ForwardDelete", "Fn+Delete")));
+    AddKey(FKeyDetails(EKeys::BackSpace, LOCTEXT("Delete", "Delete")));
+    AddKey(FKeyDetails(EKeys::Delete, LOCTEXT("ForwardDelete", "Fn+Delete")));
 #else
-	AddKey(FKeyDetails(EKeys::BackSpace, LOCTEXT("BackSpace", "Backspace")));
-	AddKey(FKeyDetails(EKeys::Delete, LOCTEXT("Delete", "Delete")));
+    AddKey(FKeyDetails(EKeys::BackSpace, LOCTEXT("BackSpace", "Backspace")));
+    AddKey(FKeyDetails(EKeys::Delete, LOCTEXT("Delete", "Delete")));
 #endif
 
 	AddKey(FKeyDetails(EKeys::Zero, FText::FromString("0")));
@@ -355,7 +349,6 @@ void EKeys::Initialize()
 	AddKey(FKeyDetails(EKeys::RightBracket, LOCTEXT("RightBracket", "]")));
 	AddKey(FKeyDetails(EKeys::Quote, LOCTEXT("Quote", "'")));
 
-	// Setup Gamepad keys
 	AddKey(FKeyDetails(EKeys::Gamepad_LeftX, LOCTEXT("Gamepad_LeftX", "Gamepad Left X"), FKeyDetails::GamepadKey | FKeyDetails::Axis));
 	AddKey(FKeyDetails(EKeys::Gamepad_LeftY, LOCTEXT("Gamepad_LeftY", "Gamepad Left Y"), FKeyDetails::GamepadKey | FKeyDetails::Axis));
 	AddKey(FKeyDetails(EKeys::Gamepad_RightX, LOCTEXT("Gamepad_RightX", "Gamepad Right X"), FKeyDetails::GamepadKey | FKeyDetails::Axis));
@@ -458,27 +451,27 @@ FText EKeys::GetGamepadDisplayName(const FKey Key)
 	case EConsoleForGamepadLabels::PS4:
 		if (Key == EKeys::Gamepad_FaceButton_Bottom)
 		{
-			return LOCTEXT("PS4_Gamepad_FaceButton_Bottom", "Gamepad X");
+			return LOCTEXT("XBoxOne_Gamepad_FaceButton_Bottom", "Gamepad X");
 		}
 		else if (Key == EKeys::Gamepad_FaceButton_Right)
 		{
-			return LOCTEXT("PS4_Gamepad_FaceButton_Right", "Gamepad Circle");
+			return LOCTEXT("XBoxOne_Gamepad_FaceButton_Right", "Gamepad Circle");
 		}
 		else if (Key == EKeys::Gamepad_FaceButton_Left)
 		{
-			return LOCTEXT("PS4_Gamepad_FaceButton_Left", "Gamepad Square");
+			return LOCTEXT("XBoxOne_Gamepad_FaceButton_Left", "Gamepad Square");
 		}
 		else if (Key == EKeys::Gamepad_FaceButton_Top)
 		{
-			return LOCTEXT("PS4_Gamepad_FaceButton_Top", "Gamepad Triangle");
+			return LOCTEXT("XBoxOne_Gamepad_FaceButton_Top", "Gamepad Triangle");
 		}
 		else if (Key == EKeys::Gamepad_Special_Left)
 		{
-			return LOCTEXT("PS4_Gamepad_Special_Left", "Gamepad Touchpad Button");
+			return LOCTEXT("XBoxOne_Gamepad_Special_Left", "Gamepad Touchpad Button");
 		}
 		else if (Key == EKeys::Gamepad_Special_Right)
 		{
-			return LOCTEXT("PS4_Gamepad_Special_Right", "Gamepad Options");
+			return LOCTEXT("XBoxOne_Gamepad_Special_Right", "Gamepad Options");
 		}
 		break;
 

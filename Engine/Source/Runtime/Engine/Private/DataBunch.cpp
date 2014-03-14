@@ -66,8 +66,6 @@ FInBunch::FInBunch( FInBunch &InBunch, bool CopyBuffer )
 	FMemory::Memcpy(&PacketId,&InBunch.PacketId,sizeof(FInBunch) - sizeof(FNetBitReader));
 
 	PackageMap = InBunch.PackageMap;
-	
-	ArMaxSerializeSize = MAX_STRING_SERIALIZE_SIZE;
 
 	if (CopyBuffer)
 		FBitReader::operator=(InBunch);

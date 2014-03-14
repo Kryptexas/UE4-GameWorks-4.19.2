@@ -1614,7 +1614,7 @@ TSharedPtr<SWidget> SEventGraph::EventGraph_GetMenuContent() const
 		}
 		else if( NumSelectedEvents == 1 )
 		{
-			FilteringDesc = FText::Format( LOCTEXT("ContextMenu_Filtering_DescFmt","Filter events to '{0}' based on '{1}'"), PropertyValue, PropertyName );	
+			FilteringDesc = FText::Format( LOCTEXT("ContextMenu_Filtering_DescFmt","Filter events to '{0}' based on '{0}'"), PropertyValue, PropertyName );	
 		}
 		else
 		{
@@ -2950,7 +2950,7 @@ FText SEventGraph::HistoryForward_GetToolTipText() const
 	// TODO: Add a nicer custom tooltip.
 	if( HistoryForward_IsEnabled() )
 	{
-		return FText::Format( LOCTEXT("HistoryForward_Tooltip", "Forward to {0}"), FText::FromString( EventGraphStatesHistory[CurrentStateIndex+1]->GetFullDescription() ) );
+		return FText::Format( LOCTEXT("HistoryForward_Tooltip", "Forward to %s"), FText::FromString( EventGraphStatesHistory[CurrentStateIndex+1]->GetFullDescription() ) );
 	}
 
 	return FText::GetEmpty();

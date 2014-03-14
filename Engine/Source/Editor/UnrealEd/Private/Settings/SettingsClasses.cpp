@@ -147,10 +147,6 @@ ULevelEditorViewportSettings::ULevelEditorViewportSettings( const class FPostCon
 	: Super(PCIP)
 {
 	bLevelStreamingVolumePrevis = false;
-	BillboardScale = 1.0f;
-
-	// Set a default preview mesh
-	PreviewMeshes.Add(FStringAssetReference("/Engine/EditorMeshes/ColorCalibrator/SM_ColorCalibrator.SM_ColorCalibrator"));
 }
 
 
@@ -207,11 +203,6 @@ void ULevelEditorViewportSettings::PostEditChangeProperty( struct FPropertyChang
 		const float BSPSnapSize = bUsePowerOf2SnapSize ? 128.0f : 100.0f;
 		UModel::SetGlobalBSPTexelScale( BSPSnapSize );
 	}
-	else if( Name == FName(TEXT("BillboardScale")))
-	{
-		UBillboardComponent::SetEditorScale(BillboardScale);
-		UArrowComponent::SetEditorScale(BillboardScale);
-	}
 	if (!FUnrealEdMisc::Get().IsDeletePreferences())
 	{
 		SaveConfig();
@@ -219,6 +210,7 @@ void ULevelEditorViewportSettings::PostEditChangeProperty( struct FPropertyChang
 
 	SettingChangedEvent.Broadcast(Name);
 }
+
 
 /* UProjectPackagingSettings interface
  *****************************************************************************/

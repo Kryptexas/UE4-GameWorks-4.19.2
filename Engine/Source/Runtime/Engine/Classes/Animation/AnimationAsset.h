@@ -589,7 +589,7 @@ class UAnimationAsset : public UObject
 
 private:
 	/** Pointer to the Skeleton this asset can be played on .	*/
-	UPROPERTY(AssetRegistrySearchable, Category=Animation, VisibleAnywhere)
+	UPROPERTY(AssetRegistrySearchable, Category=Animation, VisibleAnywhere, AssetRegistrySearchable)
 	class USkeleton* Skeleton;
 
 	/** Skeleton guid. If changes, you need to remap info*/

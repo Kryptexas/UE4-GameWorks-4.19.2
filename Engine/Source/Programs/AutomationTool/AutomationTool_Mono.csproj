@@ -106,7 +106,6 @@
     <Compile Include="BuildUtils.cs" />
     <Compile Include="CommandletUtils.cs" />
     <Compile Include="DeploymentContext.cs" />
-    <Compile Include="Distiller.cs" />
     <Compile Include="HelpUtils.cs" />
     <Compile Include="HostPlatform.cs" />
     <Compile Include="LocalBuildEnvironment.cs" />

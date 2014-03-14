@@ -30,6 +30,11 @@ namespace ENavigationQueryResult
 
 DECLARE_LOG_CATEGORY_EXTERN(LogNavigation, Warning, All);
 
+/** 
+ * 
+ */
+DECLARE_DELEGATE_RetVal_OneParam(class ANavigationData*, FCreateNavigationDataInstanceDelegate, class UNavigationSystem*);
+
 /** delegate to let interested parties know that new nav area class has been registered */
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnNavAreaChanged, const class UClass* /*AreaClass*/);
 
@@ -345,14 +350,6 @@ struct ENGINE_API FNavDataConfig : public FNavAgentProperties
 	}	
 };
 
-namespace NavigationSystem
-{
-	/** 
-	 * Used to construct an ANavigationData instance for specified navigation data agent 
-	 */
-	typedef class ANavigationData* (*FNavigationDataInstanceCreator)(class UWorld*, const FNavDataConfig&);
-}
-
 class INavigationQueryFilterInterface
 {
 public:
@@ -362,16 +359,11 @@ public:
 
 	virtual void SetAreaCost(uint8 AreaType, float Cost) = 0;
 	virtual void SetFixedAreaEnteringCost(uint8 AreaType, float Cost) = 0;
-	virtual void SetExcludedArea(uint8 AreaType) = 0;
 	virtual void SetAllAreaCosts(const float* CostArray, const int32 Count) = 0;
 	virtual void GetAllAreaCosts(float* CostArray, float* FixedCostArray, const int32 Count) const = 0;
 	virtual void SetBacktrackingEnabled(const bool bBacktracking) = 0;
 	virtual bool IsBacktrackingEnabled() const = 0;
 	virtual bool IsEqual(const INavigationQueryFilterInterface* Other) const = 0;
-	virtual void SetIncludeFlags(uint16 Flags) = 0;
-	virtual uint16 GetIncludeFlags() const = 0;
-	virtual void SetExcludeFlags(uint16 Flags) = 0;
-	virtual uint16 GetExcludeFlags() const = 0;
 
 	virtual class INavigationQueryFilterInterface* CreateCopy() const = 0;
 };
@@ -385,46 +377,20 @@ private:
 	FNavigationQueryFilter(const TSharedPtr<FNavigationQueryFilter> Source);
 	FNavigationQueryFilter& operator=(const FNavigationQueryFilter& Source);
 public:
-
-	/** set travel cost for area */
 	void SetAreaCost(uint8 AreaType, float Cost);
 
-	/** set entering cost for area */
 	void SetFixedAreaEnteringCost(uint8 AreaType, float Cost);
-
-	/** mark area as excluded from path finding */
-	void SetExcludedArea(uint8 AreaType);
-
-	/** set travel cost for all areas */
+	
 	void SetAllAreaCosts(const TArray<float>& CostArray);
+
 	void SetAllAreaCosts(const float* CostArray, const int32 Count);
 
-	/** get travel & entering costs for all areas */
 	void GetAllAreaCosts(float* CostArray, float* FixedCostArray, const int32 Count) const;
 
-	/** set required flags of navigation nodes */
-	void SetIncludeFlags(uint16 Flags);
-
-	/** get required flags of navigation nodes */
-	uint16 GetIncludeFlags() const;
-
-	/** set forbidden flags of navigation nodes */
-	void SetExcludeFlags(uint16 Flags);
-
-	/** get forbidden flags of navigation nodes */
-	uint16 GetExcludeFlags() const;
-
-	/** set node limit for A* loop */
 	void SetMaxSearchNodes(const uint32 MaxNodes) { MaxSearchNodes = MaxNodes; }
-
-	/** get node limit for A* loop */
 	FORCEINLINE uint32 GetMaxSearchNodes() const { return MaxSearchNodes; }
 
-	/** mark filter as backtracking - parse directional links in opposite direction
-	 *  (find path from End to Start, but all links works like on path from Start to End) */
 	void SetBacktrackingEnabled(const bool bBacktracking) {	QueryFilterImpl->SetBacktrackingEnabled(bBacktracking);	}
-	
-	/** get backtracking status */
 	bool IsBacktrackingEnabled() const { return QueryFilterImpl->IsBacktrackingEnabled(); }
 
 	template<typename FilterType>
@@ -463,8 +429,8 @@ protected:
 struct ENGINE_API FPathFindingQuery
 {
 	TWeakObjectPtr<const class ANavigationData> NavData;
-	FVector StartLocation;
-	FVector EndLocation;
+	const FVector StartLocation;
+	const FVector EndLocation;
 	TSharedPtr<const FNavigationQueryFilter> QueryFilter;
 	
 	FPathFindingQuery()
@@ -505,7 +471,7 @@ protected:
 
 struct FNavigationSystemExec: public FSelfRegisteringExec
 {
-	FNavigationSystemExec()
+	FNavigationSystemExec(class UNavigationSystem* InOwner)
 	{
 	}
 
@@ -574,15 +540,6 @@ class ENGINE_API UNavigationSystem : public UBlueprintFunctionLibrary
  	UPROPERTY(/*BlueprintAssignable, */Transient)
 	FOnNavDataRegistered OnNavDataRegisteredEvent;
 
-private:
-	// required navigation data 
-	UPROPERTY(config)
-	TArray<FStringClassReference> RequiredNavigationDataClassNames;
-
-	/** set to true when navigation processing was blocked due to missing nav bounds */
-	uint32 bNavDataRemovedDueToMissingNavBounds:1;
-
-public:
 	//----------------------------------------------------------------------//
 	// Kismet functions
 	//----------------------------------------------------------------------//
@@ -782,7 +739,10 @@ public:
 
 	/** registers NavArea classes awaiting registration in PendingNavAreaRegistration */
 	void ProcessNavAreaPendingRegistration();
-	
+
+	// @todo document
+	static void RegisterNavigationDataClass(const FCreateNavigationDataInstanceDelegate& ResultDelegate);
+
 	/** @return pointer to ANavigationData instance of given ID, or NULL if it was not found. Note it looks only through registered navigation data */
 	class ANavigationData* GetNavDataWithID(const uint16 NavDataID) const;
 
@@ -844,19 +804,6 @@ public:
 	int32 GetSupportedAgentIndex(const FNavAgentProperties& NavAgent) const;
 
 	//----------------------------------------------------------------------//
-	// Filters
-	//----------------------------------------------------------------------//
-	
-	/** prepare descriptions of navigation flags in UNavigationQueryFilter class: using enum */
-	void DescribeFilterFlags(class UEnum* FlagsEnum) const;
-
-	/** prepare descriptions of navigation flags in UNavigationQueryFilter class: using array */
-	void DescribeFilterFlags(const TArray<FString>& FlagsDesc) const;
-
-	/** removes cached filters from currently registered navigation data */
-	void ResetCachedFilter(TSubclassOf<UNavigationQueryFilter> FilterClass);
-
-	//----------------------------------------------------------------------//
 	// building
 	//----------------------------------------------------------------------//
 #if WITH_NAVIGATION_GENERATOR
@@ -882,9 +829,6 @@ public:
 	bool IsNavigationBuildInProgress(bool bCheckDirtyToo = true);
 #endif // WITH_NAVIGATION_GENERATOR
 
-	/** Sets up SuportedAgents and NavigationDataCreators. Override it to add additional setup, but make sure to call Super implementation */
-	virtual void DoInitialSetup();
-
 	/** Called upon UWorld destruction to release what needs to be released */
 	void CleanUp();
 
@@ -898,7 +842,7 @@ public:
 
 #if WITH_EDITOR
 	/** allow editor to toggle whether seamless navigation building is enabled */
-	static void SetNavigationAutoUpdateEnabled(bool bNewEnable, UNavigationSystem* InNavigationsystem);
+	static void SetNavigationAutoUpdateEnabled(bool bNewEnable,UNavigationSystem* InNavigationsystem);
 
 	/** check whether seamless navigation building is enabled*/
 	FORCEINLINE static bool GetIsNavigationAutoUpdateEnabled() { return bNavigationAutoUpdateEnabled; }
@@ -919,9 +863,6 @@ public:
 
 	static UNavigationSystem* GetCurrent(class UWorld* World);
 	static UNavigationSystem* GetCurrent(class UObject* WorldContextObject);
-
-	/** try to create and setup navigation system */
-	static void InitializeForWorld(class UWorld* World, NavigationSystem::EMode Mode);
 
 	// Fetch the array of all nav-agent properties.
 	void GetNavAgentPropertiesArray(TArray<FNavAgentProperties>& OutNavAgentProperties) const;
@@ -975,20 +916,14 @@ protected:
 	/** cached navigable world bounding box*/
 	mutable FBox NavigableWorldBounds;
 
-	/** indicates which of multiple navigation data instances to draw*/
 	int32 CurrentlyDrawnNavDataIndex;
 
 	/** temporary cumulative time to calculate when we need to update dirty areas */
 	float DirtyAreasUpdateTime;
 
-#if !UE_BUILD_SHIPPING
-	/** self-registering exec command to handle nav sys console commands */
-	static FNavigationSystemExec ExecHandler;
-#endif // !UE_BUILD_SHIPPING
-
 	/** collection of delegates to create all available navigation data types */
-	static TArray<TSubclassOf<class ANavigationData> > NavDataClasses;
-	
+	static TArray<FCreateNavigationDataInstanceDelegate>* NavigationDataCreators;
+
 	/** whether seamless navigation building is enabled */
 	static bool bNavigationAutoUpdateEnabled;
 
@@ -999,7 +934,7 @@ protected:
 
 	static FOnNavAreaChanged NavAreaAddedObservers;
 	static FOnNavAreaChanged NavAreaRemovedObservers;
-
+	 
 	/** delegate handler for PostLoadMap event */
 	void OnPostLoadMap();
 	/** delegate handler for ActorMoved events */
@@ -1040,20 +975,15 @@ protected:
 
 	/** registers or unregisters all generators from rebuilding callbacks */
 	void EnableAllGenerators(bool bEnable, bool bForce = false);
-
+ 
 private:
 	// @todo document
 	void NavigationBuildingLock();
 	// @todo document
 	void NavigationBuildingUnlock(bool bForce = false);
 
-	void SpawnMissingNavigationData();
-
-	/** constructs a navigation data instance of specified NavDataClass, in passed World
-	 *	for supplied NavConfig */
-	virtual ANavigationData* CreateNavigationDataInstance(TSubclassOf<class ANavigationData> NavDataClass, UWorld* World, const FNavDataConfig& NavConfig);
-
 	/** Triggers navigation building on all eligible navigation data. */
+	void SpawnNavigationData();
 	void RebuildAll();
 		 
 	/** Handler for FWorldDelegates::LevelAddedToWorld event */
@@ -1074,3 +1004,18 @@ private:
 	void PerformAsyncQueries(TArray<FAsyncPathFindingQuery> PathFindingQueries);
 };
 
+struct FNavigationTypeCreator
+{
+	FCreateNavigationDataInstanceDelegate CreatorDelegate;
+
+	FNavigationTypeCreator(const FCreateNavigationDataInstanceDelegate& InCreatorDelegate)
+	: CreatorDelegate(InCreatorDelegate)
+	{
+		UNavigationSystem::RegisterNavigationDataClass(CreatorDelegate);
+	}
+
+	class ANavigationData* Create(class UNavigationSystem* NavSys)
+	{
+		return CreatorDelegate.IsBound() ? CreatorDelegate.Execute(NavSys) : NULL;
+	}
+};

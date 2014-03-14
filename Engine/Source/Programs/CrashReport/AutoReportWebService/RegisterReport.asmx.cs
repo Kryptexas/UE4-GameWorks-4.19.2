@@ -125,7 +125,6 @@ namespace AutoReportWebService
 
 					DataContext.Crashes.InsertOnSubmit(NewCrash);
 					DataContext.SubmitChanges();
-					DataContext.BuildPattern(NewCrash);
 				}
 
 				newID = NewCrash.Id;

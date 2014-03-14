@@ -250,8 +250,8 @@ public class BuildCookRun : BuildCommand
 
 	private void MakeForeignSample()
 	{
-		string Sample = "BlankProject";
-		var DestSample = ParseParamValue("DestSample", "CopiedBlankProject");
+		string Sample = "TappyChicken";
+		var DestSample = ParseParamValue("DestSample", "CopiedTappyChicken");
 		var Src = CombinePaths(CmdEnv.LocalRoot, "Samples", "SampleGames", Sample);
 		if (!DirectoryExists(Src))
 		{
@@ -311,7 +311,7 @@ public class BuildCookRun : BuildCommand
 				var bForeignCode = ParseParam("foreigncode");
 				if (bForeign)
 				{
-					var DestSample = ParseParamValue("DestSample", "CopiedHoverShip");
+					var DestSample = ParseParamValue("DestSample", "CopiedTappyChicken");
                     var Dest = ParseParamValue("ForeignDest", CombinePaths(@"C:\testue4\foreign\", DestSample + "_ _Dir"));
 					ProjectFullPath = CombinePaths(Dest, DestSample + ".uproject");
 				}
@@ -323,7 +323,7 @@ public class BuildCookRun : BuildCommand
 				}
 				else
 				{
-					var ProjectName = ParseParamValue("project", CombinePaths("Samples", "SampleGames", "HoverShip", "HoverShip.uproject"));
+					var ProjectName = ParseParamValue("project", CombinePaths("Samples", "SampleGames", "TappyChicken", "TappyChicken.uproject"));
 					ProjectName = ProjectName.Trim (new char[]{ '\"' });
                     if (ProjectName.IndexOfAny(new char[] { '\\', '/' }) < 0)
                     {

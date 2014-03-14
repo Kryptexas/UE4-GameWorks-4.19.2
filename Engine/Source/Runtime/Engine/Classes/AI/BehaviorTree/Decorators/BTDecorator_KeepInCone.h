@@ -20,19 +20,17 @@ class ENGINE_API UBTDecorator_KeepInCone : public UBTDecorator
 	float ConeHalfAngle;
 	
 	/** blackboard key selector */
-	UPROPERTY(EditAnywhere, Category=Blackboard)
+	UPROPERTY(EditAnywhere, Category=Blackboard, meta=(EditCondition="!bUseSelfAsOrigin"))
 	struct FBlackboardKeySelector ConeOrigin;
 
 	/** blackboard key selector */
-	UPROPERTY(EditAnywhere, Category=Blackboard)
+	UPROPERTY(EditAnywhere, Category=Blackboard, meta=(EditCondition="!bUseSelfAsObserved"))
 	struct FBlackboardKeySelector Observed;
 
-	// deprecated, set value of ConeOrigin on initialization
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=Blackboard)
 	uint32 bUseSelfAsOrigin:1;
 
-	// deprecated, set value of Observed on initialization
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=Blackboard)
 	uint32 bUseSelfAsObserved:1;
 	
 	float ConeHalfAngleDot;
@@ -44,8 +42,8 @@ class ENGINE_API UBTDecorator_KeepInCone : public UBTDecorator
 
 protected:
 
-	virtual void OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) OVERRIDE;
-	virtual void TickNode(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) OVERRIDE;
+	virtual void OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const OVERRIDE;
+	virtual void TickNode(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) const OVERRIDE;
 
 	bool CalculateCurrentDirection(const UBehaviorTreeComponent* OwnerComp, FVector& Direction) const;
 };

@@ -91,13 +91,6 @@ protected:
 			TWeakObjectPtr<UObject>(GetMutableDefault<UEngine>())
 		);
 
-		// Audio settings
-		SettingsModule.RegisterSettings("Project", "Engine", "Audio",
-			LOCTEXT("EngineAudioSettingsName", "Audio"),
-			LOCTEXT("ProjectAudioSettingsDescription", "Audio settings."),
-			TWeakObjectPtr<UObject>(GetMutableDefault<UAudioSettings>())
-			);
-
 		// packaging settings
 		SettingsModule.RegisterSettings("Project", "Engine", "Collision",
 			LOCTEXT("ProjectCollisionSettingsName", "Collision"),
@@ -112,7 +105,7 @@ protected:
 			TWeakObjectPtr<UObject>(GetMutableDefault<UConsole>())
 		);
 
-		// Input settings
+		// Input bindings
 		SettingsModule.RegisterSettings("Project", "Engine", "Input",
 			LOCTEXT("EngineInputSettingsName", "Input"),
 			LOCTEXT("ProjectInputSettingsDescription", "Input settings, including default input action and axis bindings."),
@@ -182,16 +175,8 @@ protected:
 			TWeakObjectPtr<UObject>(GetMutableDefault<UProjectPackagingSettings>())
 		);
 
-		// movie settings
-		SettingsModule.RegisterSettings("Project", "Game", "Movies",
-			LOCTEXT("MovieSettingsName", "Movies"),
-			LOCTEXT("MovieSettingsDescription", "Movie player settings"),
-			TWeakObjectPtr<UObject>(GetMutableDefault<UMoviePlayerSettings>())
-		);
-
 		// update the visible packaging enum values
 		UProjectPackagingSettings::UpdateBuildConfigurationVisibility();
-
 /*
 		// game session
 		SettingsModule.RegisterSettings("Project", "Game", "GameSession",
@@ -233,7 +218,6 @@ protected:
 			SettingsModule->UnregisterSettings("Project", "Game", "General");
 			SettingsModule->UnregisterSettings("Project", "Game", "Maps");
 			SettingsModule->UnregisterSettings("Project", "Game", "Packaging");
-			SettingsModule->UnregisterSettings("Project", "Game", "Movies");
 //			SettingsModule->UnregisterSettings("Project", "Game", "GameSession");
 //			SettingsModule->UnregisterSettings("Project", "Game", "HUD");
 		}

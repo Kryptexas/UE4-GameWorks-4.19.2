@@ -49,7 +49,7 @@ void FDocumentationPage::GetExcerpts( /*OUT*/ TArray< FExcerpt >& Excerpts )
 	}
 }
 
-FText FDocumentationPage::GetTitle()
+FString FDocumentationPage::GetTitle()
 {
 	return StoredMetadata.Title;
 }

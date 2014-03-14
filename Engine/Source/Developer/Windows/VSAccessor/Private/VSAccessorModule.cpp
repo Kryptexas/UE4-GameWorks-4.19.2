@@ -194,37 +194,11 @@ bool AccessVisualStudio(CComPtr<EnvDTE::_DTE>& OutDTE, const FString& InSolution
 
 bool FVSAccessorModule::OpenVisualStudioSolution()
 {
-	// Initialize the com library, if not already by this thread
-	if (!FWindowsPlatformMisc::CoInitialize())
+	// Automatically fail if there's already an attempt in progress
+	if ( !IsVSLaunchInProgress() )
 	{
-		UE_LOG(LogVSAccessor, Error, TEXT( "ERROR - Could not initialize COM library!" ));
-		return false;
+		return RunVisualStudioAndOpenSolution();
 	}
-
-	CComPtr<EnvDTE::_DTE> DTE;
-	if (AccessVisualStudio(DTE, SolutionPath, Locations))
-	{
-		// Set Focus on Visual Studio
-		CComPtr<EnvDTE::Window> MainWindow;
-		if (SUCCEEDED(DTE->get_MainWindow(&MainWindow)) &&
-			SUCCEEDED(MainWindow->Activate()))
-		{
-			return true;
-		}
-		else
-		{
-			UE_LOG(LogVSAccessor, Warning, TEXT("Couldn't set focus on Visual Studio."));
-		}
-	}
-	else
-	{
-		// Automatically fail if there's already an attempt in progress
-		if (!IsVSLaunchInProgress())
-		{
-			return RunVisualStudioAndOpenSolution();
-		}
-	}
-
 	return false;
 }
 

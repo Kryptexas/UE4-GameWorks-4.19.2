@@ -29,11 +29,6 @@ public:
 
 	void PostSerialize(const FArchive& Ar);
 
-	class UBlueprint* GetBlueprint() const
-	{
-		return GraphBlueprint;
-	}
-
 #if WITH_EDITORONLY_DATA
 	void SetGraph(UEdGraph* InGraph);
 	UEdGraph* GetGraph() const;

@@ -15,13 +15,13 @@ public:
 	virtual bool PlatformHasNativeUI() = 0;
 
 	/** Return true if the named savegame exists (probably not useful with NativeUI */
-	virtual bool DoesSaveGameExist(const TCHAR* Name, const int32 UserIndex) = 0;
+	virtual bool DoesSaveGameExist(const TCHAR* Name) = 0;
 
 	/** Saves the game, blocking until complete. Platform may use FGameDelegates to get more information from the game */
-	virtual bool SaveGame(bool bAttemptToUseUI, const TCHAR* Name, const int32 UserIndex, const TArray<uint8>& Data) = 0;
+	virtual bool SaveGame(bool bAttemptToUseUI, const TCHAR* Name, const TArray<uint8>& Data) = 0;
 
 	/** Loads the game, blocking until complete */
-	virtual bool LoadGame(bool bAttemptToUseUI, const TCHAR* Name, const int32 UserIndex, TArray<uint8>& Data) = 0;
+	virtual bool LoadGame(bool bAttemptToUseUI, const TCHAR* Name, TArray<uint8>& Data) = 0;
 };
 
 
@@ -35,17 +35,17 @@ public:
 		return false;
 	}
 
-	virtual bool DoesSaveGameExist(const TCHAR* Name, const int32 UserIndex) OVERRIDE
+	virtual bool DoesSaveGameExist(const TCHAR* Name) OVERRIDE
 	{
 		return IFileManager::Get().FileSize(*GetSaveGamePath(Name)) >= 0;
 	}
 
-	virtual bool SaveGame(bool bAttemptToUseUI, const TCHAR* Name, const int32 UserIndex, const TArray<uint8>& Data) OVERRIDE
+	virtual bool SaveGame(bool bAttemptToUseUI, const TCHAR* Name, const TArray<uint8>& Data) OVERRIDE
 	{
 		return FFileHelper::SaveArrayToFile(Data, *GetSaveGamePath(Name));
 	}
 
-	virtual bool LoadGame(bool bAttemptToUseUI, const TCHAR* Name, const int32 UserIndex, TArray<uint8>& Data) OVERRIDE
+	virtual bool LoadGame(bool bAttemptToUseUI, const TCHAR* Name, TArray<uint8>& Data) OVERRIDE
 	{
 		return FFileHelper::LoadFileToArray(Data, *GetSaveGamePath(Name));
 	}

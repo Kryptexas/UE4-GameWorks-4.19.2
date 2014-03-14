@@ -220,7 +220,6 @@ TSharedRef<SDockTab> FEnvironmentQueryEditor::SpawnTab_UpdateGraph( const FSpawn
 	// Conversion should be removed are a while
 	UEnvironmentQueryGraph* QueryGraph = Cast<UEnvironmentQueryGraph>(Query->EdGraph);
 	QueryGraph->UpdateVersion();
-	QueryGraph->CalculateAllWeights();
 
 	TSharedRef<SGraphEditor> UpdateGraphEditor = CreateGraphEditorWidget(Query->EdGraph);
 	UpdateGraphEdPtr = UpdateGraphEditor; // Keep pointer to editor

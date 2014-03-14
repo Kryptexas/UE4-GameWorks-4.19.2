@@ -111,7 +111,8 @@ public:
 
 	/** Constructor */
 	FMeshPaintSettings()
-		: BrushFalloffAmount( 1.0f ),
+		: BrushRadius( 32.0f ),
+		  BrushFalloffAmount( 1.0f ),
 		  BrushStrength( 0.2f ),
 		  bEnableFlow( true ),
 		  FlowAmount( 1.0f ),
@@ -136,6 +137,9 @@ public:
 
 
 public:
+
+	/** Radius of the brush (world space units) */
+	float BrushRadius;
 
 	/** Amount of falloff to apply (0.0 - 1.0) */
 	float BrushFalloffAmount;
@@ -434,12 +438,6 @@ public:
 
 	/** Returns information about the currently selected mesh */
 	bool GetSelectedMeshInfo( int32& OutTotalBaseVertexColorBytes, int32& OutTotalInstanceVertexColorBytes, bool& bOutHasInstanceMaterialAndTexture ) const;
-
-	/** Sets the default brush radius size */
-	void SetBrushRadiiDefault( float InBrushRadius );
-
-	/** Returns the default brush radius size */
-	float GetBrushRadiiDefault() const;
 
 	/** Returns the min and max brush radius sizes specified in the user config */
 	void GetBrushRadiiSliderLimits( float& OutMinBrushSliderRadius, float& OutMaxBrushSliderRadius ) const;

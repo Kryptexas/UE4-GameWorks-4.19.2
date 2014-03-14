@@ -26,18 +26,17 @@ FMeshDrawingPolicy::FMeshDrawingPolicy(
 	VertexFactory(InVertexFactory),
 	MaterialRenderProxy(InMaterialRenderProxy),
 	MaterialResource(&InMaterialResource),
+	bIsTwoSidedMaterial(InMaterialResource.IsTwoSided() || bInTwoSidedOverride),
 	bIsWireframeMaterial(InMaterialResource.IsWireframe()),
+	bNeedsBackfacePass(
+		   !bInTwoSidedOverride
+		&& InMaterialResource.IsTwoSided()
+		//@todo - hook up bTwoSidedSeparatePass here if we re-add it
+		&& false
+		),
 	//convert from signed bool to unsigned uint32
 	bOverrideWithShaderComplexity(bInOverrideWithShaderComplexity != false)
 {
-	// using this saves a virtual function call
-	bool bMaterialResourceIsTwoSided = InMaterialResource.IsTwoSided();
-
-	bIsTwoSidedMaterial = bMaterialResourceIsTwoSided || bInTwoSidedOverride;
-
-	bNeedsBackfacePass = !bInTwoSidedOverride && bMaterialResourceIsTwoSided
-		//@todo - hook up bTwoSidedSeparatePass here if we re-add it
-		&& false;
 }
 
 void FMeshDrawingPolicy::SetMeshRenderState(

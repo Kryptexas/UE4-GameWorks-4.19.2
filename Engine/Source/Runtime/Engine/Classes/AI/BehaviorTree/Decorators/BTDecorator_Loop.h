@@ -27,5 +27,5 @@ class ENGINE_API UBTDecorator_Loop : public UBTDecorator
 
 protected:
 
-	virtual void OnNodeActivation(struct FBehaviorTreeSearchData& SearchData) OVERRIDE;
+	virtual void OnNodeActivation(struct FBehaviorTreeSearchData& SearchData) const OVERRIDE;
 };

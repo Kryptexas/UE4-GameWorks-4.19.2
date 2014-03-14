@@ -14,20 +14,20 @@
 
 static TAutoConsoleVariable<int32> CVarSSRQuality(
 	TEXT("r.SSR.Quality"),
-	3,
+	2,
 	TEXT("Whether to use screen space reflections and at what quality setting.\n")
 	TEXT("(limits the setting in the post process settings which has a different scale)\n")
 	TEXT("(costs performance, adds more visual realism but the technique has limits)\n")
 	TEXT(" 0: off (default)\n")
 	TEXT(" 1: low (no glossy)\n")
-	TEXT(" 2: medium (no glossy)\n")
-	TEXT(" 3: high (glossy/using roughness, few samples)\n")
-	TEXT(" 4: very high (likely too slow for real-time)\n"),
+	TEXT(" 2: high (glossy/using roughness, few samples)\n")
+	TEXT(" 3: very high (likely too slow for real-time)\n")
+	TEXT(" 4: reference (too slow for real-time)"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<int32> CVarSSRTemporal(
 	TEXT("r.SSR.Temporal"),
-	0,
+	1,
 	TEXT("Defines if we use the temporal smoothing for the screen space reflection\n")
 	TEXT(" 0 is off (for debugging), 1 is on (default)"),
 	ECVF_RenderThreadSafe);
@@ -113,17 +113,18 @@ public:
 
 		{
 			float MaxRoughness = FMath::Clamp(Context.View.FinalPostProcessSettings.ScreenSpaceReflectionMaxRoughness, 0.01f, 1.0f);
+			float RoughnessScale = FMath::Clamp(Context.View.FinalPostProcessSettings.ScreenSpaceReflectionRoughnessScale, 0.01f, 1.0f);
 
-			// f(x) = x * Scale + Bias
+			// f(x) = x * Mul + Add
 			// f(MaxRoughness) = 0
-			// f(MaxRoughness/2) = 1
-
-			float RoughnessMaskScale = -2.0f / MaxRoughness;
+			// f(0) = 1
+			// -> Add = 1
+			float RoughnessMaskMul = -1 / MaxRoughness;
 
 			FLinearColor Value(
 				FMath::Clamp(Context.View.FinalPostProcessSettings.ScreenSpaceReflectionIntensity * 0.01f, 0.0f, 1.0f), 
-				RoughnessMaskScale,
-				0, 
+				RoughnessMaskMul,
+				RoughnessScale, 
 				0);
 
 			SetShaderValue(ShaderRHI, SSRParams, Value);
@@ -195,6 +196,12 @@ void FRCPassPostProcessScreenSpaceReflections::Process(FRenderingCompositePassCo
 	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
 	int SSRQuality = ComputeSSRQuality(View.FinalPostProcessSettings.ScreenSpaceReflectionQuality);
+	
+	if(SSRQuality > 1 && View.FinalPostProcessSettings.ScreenSpaceReflectionRoughnessScale <= 0.01f)
+	{
+		// no glossy SSR needed
+		SSRQuality = 1;
+	}
 
 	SSRQuality = FMath::Clamp(SSRQuality, 1, 4);
 

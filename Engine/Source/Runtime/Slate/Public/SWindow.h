@@ -864,12 +864,10 @@ public:
 	, WidthOverride_Attribute()
 	, HeightOverride_Attribute()
 	, Scale_Attribute(1.0f)
-	, Clamp_Attribute(false)
-	, ClampBuffer_Attribute(FVector2D::ZeroVector)
 	, Widget(SNullWidget::NullWidget)
 	{}
 
-	/** Support for using brackets in slate declarative syntax */
+	/** Support for using brackets in slate delcarative syntax */
 	FPopupLayerSlot& operator[]( TSharedRef<SWidget> InWidget )
 	{
 		Widget = InWidget;
@@ -904,20 +902,6 @@ public:
 		return *this;
 	}
 
-	/** Should this slot be kept within the parent window */
-	FPopupLayerSlot& ClampToWindow( const TAttribute<bool>& InClamp_Attribute)
-	{
-		Clamp_Attribute = InClamp_Attribute;
-		return *this;
-	}
-
-	/** If this slot is kept within the parent window, how far from the edges should we clamp it */
-	FPopupLayerSlot& ClampBuffer( const TAttribute<FVector2D>& InClampBuffer_Attribute )
-	{
-		ClampBuffer_Attribute = InClampBuffer_Attribute;
-		return *this;
-	}
-
 	/** @return the widget present in this slot */
 	const TSharedRef<SWidget>& GetWidget()
 	{
@@ -934,8 +918,6 @@ private:
 	TAttribute<float> WidthOverride_Attribute;
 	TAttribute<float> HeightOverride_Attribute;
 	TAttribute<float> Scale_Attribute;
-	TAttribute<bool> Clamp_Attribute;
-	TAttribute<FVector2D> ClampBuffer_Attribute;
 	TSharedRef<SWidget> Widget;
 };
 

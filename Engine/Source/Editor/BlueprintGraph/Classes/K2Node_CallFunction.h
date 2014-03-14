@@ -48,6 +48,7 @@ private:
 
 public:
 
+#if WITH_EDITOR
 	// UObject interface
 	virtual void PostDuplicate(bool bDuplicateForPIE) OVERRIDE;
 	virtual void Serialize(FArchive& Ar) OVERRIDE;
@@ -72,7 +73,7 @@ public:
 	// UK2Node interface
 	virtual void ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins) OVERRIDE;
 	virtual bool IsNodePure() const OVERRIDE { return bIsPureFunc; }
-	virtual bool HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput) const OVERRIDE;
+	virtual bool HasExternalBlueprintDependencies() const OVERRIDE;
 	virtual void PostReconstructNode() OVERRIDE;
 	virtual bool ShouldDrawCompact() const OVERRIDE;
 	virtual bool ShouldDrawAsBead() const OVERRIDE;
@@ -167,5 +168,7 @@ private:
 protected:
 	/** Helper function to ensure function is called in our context */
 	virtual void EnsureFunctionIsInBlueprint();
+
+#endif
 };
 

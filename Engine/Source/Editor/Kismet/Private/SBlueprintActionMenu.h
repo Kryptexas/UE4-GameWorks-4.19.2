@@ -5,9 +5,7 @@
 
 class SGraphActionMenu;
 
-/*******************************************************************************
-* SBlueprintActionMenu
-*******************************************************************************/
+/////////////////////////////////////////////////////////////////////////////////////////////////
 
 class SBlueprintActionMenu : public SBorder
 {
@@ -67,37 +65,3 @@ private:
 	bool bActionExecuted;
 };
 
-/*******************************************************************************
-* SBlueprintActionMenuExpander
-*******************************************************************************/
-
-class SBlueprintActionMenuExpander : public SExpanderArrow
-{
-	SLATE_BEGIN_ARGS( SBlueprintActionMenuExpander ) {}
-		SLATE_ATTRIBUTE(float, IndentAmount)
-	SLATE_END_ARGS()
-
-public:
-	/**
-	 * Constructs a standard SExpanderArrow widget if the associated menu item 
-	 * is a category or separator, otherwise, for action items, it constructs
-	 * a favoriting toggle (plus indent) in front of the action entry.
-	 * 
-	 * @param  InArgs			A set of slate arguments for this widget type (defined above).
-	 * @param  ActionMenuData	A set of useful data for detailing the specific action menu row this is for.
-	 */
-	void Construct(const FArguments& InArgs, const FCustomExpanderData& ActionMenuData);
-
-private:
-	/**
-	 * Action menu expanders are also responsible for properly indenting the 
-	 * menu entries, so this returns the proper margin padding for the menu row
-	 * (based off its indent level).
-	 * 
-	 * @return Padding to construct around this widget (so the menu entry is properly indented).
-	 */
-	FMargin GetCustomIndentPadding() const;
-
-	/** The action associated with the menu row this belongs to */
-	TWeakPtr<FEdGraphSchemaAction> ActionPtr;
-};

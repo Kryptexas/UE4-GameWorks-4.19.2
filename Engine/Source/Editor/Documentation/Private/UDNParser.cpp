@@ -1076,9 +1076,9 @@ bool FUDNParser::ParseSymbols(const FString& Link, const TArray<FString>& Conten
 			switch (Line.ContentType)
 			{
 			case FUDNLine::MetadataAvailability: OutMetadata.Availability = Line.AdditionalContent[0]; break;
-			case FUDNLine::MetadataTitle: OutMetadata.Title = FText::FromString(Line.AdditionalContent[0]); break;
-			case FUDNLine::MetadataCrumbs: OutMetadata.Crumbs = FText::FromString(Line.AdditionalContent[0]); break;
-			case FUDNLine::MetadataDescription: OutMetadata.Description = FText::FromString(Line.AdditionalContent[0]); break;
+			case FUDNLine::MetadataTitle: OutMetadata.Title = Line.AdditionalContent[0]; break;
+			case FUDNLine::MetadataCrumbs: OutMetadata.Crumbs = Line.AdditionalContent[0]; break;
+			case FUDNLine::MetadataDescription: OutMetadata.Description = Line.AdditionalContent[0]; break;
 			}
 		}
 		else

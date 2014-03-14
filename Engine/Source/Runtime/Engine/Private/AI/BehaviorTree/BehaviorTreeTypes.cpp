@@ -5,7 +5,7 @@
 //----------------------------------------------------------------------//
 // FBehaviorTreeInstance
 //----------------------------------------------------------------------//
-void FBehaviorTreeInstance::Initialize(class UBehaviorTreeComponent* OwnerComp, UBTCompositeNode* Node, int32& InstancedIndex)
+void FBehaviorTreeInstance::InitializeMemory(class UBehaviorTreeComponent* OwnerComp, UBTCompositeNode* Node)
 {
 	if (Node == NULL)
 	{
@@ -14,10 +14,10 @@ void FBehaviorTreeInstance::Initialize(class UBehaviorTreeComponent* OwnerComp, 
 
 	for (int32 i = 0; i < Node->Services.Num(); i++)
 	{
-		Node->Services[i]->InitializeForInstance(OwnerComp, Node->Services[i]->GetNodeMemory<uint8>(*this), InstancedIndex);
+		Node->Services[i]->InitializeMemory(OwnerComp, Node->Services[i]->GetNodeMemory<uint8>(*this));
 	}
 
-	Node->InitializeForInstance(OwnerComp, Node->GetNodeMemory<uint8>(*this), InstancedIndex);
+	Node->InitializeMemory(OwnerComp, Node->GetNodeMemory<uint8>(*this));
 
 	for (int32 iChild = 0; iChild < Node->Children.Num(); iChild++)
 	{
@@ -25,31 +25,17 @@ void FBehaviorTreeInstance::Initialize(class UBehaviorTreeComponent* OwnerComp, 
 
 		for (int32 i = 0; i < ChildInfo.Decorators.Num(); i++)
 		{
-			ChildInfo.Decorators[i]->InitializeForInstance(OwnerComp, ChildInfo.Decorators[i]->GetNodeMemory<uint8>(*this), InstancedIndex);
+			ChildInfo.Decorators[i]->InitializeMemory(OwnerComp, ChildInfo.Decorators[i]->GetNodeMemory<uint8>(*this));
 		}
 
 		if (ChildInfo.ChildComposite)
 		{
-			Initialize(OwnerComp, ChildInfo.ChildComposite, InstancedIndex);
+			InitializeMemory(OwnerComp, ChildInfo.ChildComposite);
 		}
 		else if (ChildInfo.ChildTask)
 		{
-			ChildInfo.ChildTask->InitializeForInstance(OwnerComp, ChildInfo.ChildTask->GetNodeMemory<uint8>(*this), InstancedIndex);
+			ChildInfo.ChildTask->InitializeMemory(OwnerComp, ChildInfo.ChildTask->GetNodeMemory<uint8>(*this));
 		}
-	}
-}
-
-void FBehaviorTreeInstance::Cleanup(class UBehaviorTreeComponent* OwnerComp)
-{
-	const FBehaviorTreeInstanceId& Info = OwnerComp->KnownInstances[InstanceIdIndex];
-	const int32 FirstNodeIdx = Info.FirstNodeInstance;
-	const int32 LastNodeIdx = OwnerComp->KnownInstances.IsValidIndex(InstanceIdIndex + 1) ? 
-		OwnerComp->KnownInstances[InstanceIdIndex + 1].FirstNodeInstance : 
-		OwnerComp->NodeInstances.Num();
-
-	for (int32 i = FirstNodeIdx; i < LastNodeIdx; i++)
-	{
-		OwnerComp->NodeInstances[i]->OnInstanceDestroyed(OwnerComp);
 	}
 }
 
@@ -102,7 +88,7 @@ void FBehaviorTreeSearchData::AddUniqueUpdate(const FBehaviorTreeSearchUpdate& U
 //----------------------------------------------------------------------//
 void FBlackboardKeySelector::CacheSelectedKey(class UBlackboardData* BlackboardAsset)
 {
-	if (BlackboardAsset && !(bNoneIsAllowedValue && SelectedKeyID == FBlackboard::InvalidKey))
+	if (BlackboardAsset)
 	{
 		if (SelectedKeyName == NAME_None)
 		{

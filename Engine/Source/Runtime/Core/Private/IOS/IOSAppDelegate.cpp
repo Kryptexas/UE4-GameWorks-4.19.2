@@ -361,7 +361,7 @@ void InstallSignalHandlers()
 
 	NSString* EncdodedURLString = [url absoluteString];
 	NSString* URLString = [EncdodedURLString stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
-	FString CommandLineParameters(URLString);
+	FString CommandLineParameters(ANSI_TO_TCHAR([URLString cStringUsingEncoding: NSASCIIStringEncoding]));
 
 	// Strip the "URL" part of the URL before treating this like args. It comes in looking like so:
 	// "MyGame://arg1 arg2 arg3 ..."

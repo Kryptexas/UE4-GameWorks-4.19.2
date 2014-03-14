@@ -232,8 +232,7 @@ void UGameEngine::ConditionallyOverrideSettings( int32& ResolutionX, int32& Reso
 		}
 	}
 
-	// Check the platform to see if we should override the user settings.
-	if (FPlatformProperties::HasFixedResolution())
+#if PLATFORM_ANDROID || PLATFORM_IOS
 	{
 		// Always use the device's actual resolution that has been setup earlier
 		FDisplayMetrics DisplayMetrics;
@@ -244,7 +243,7 @@ void UGameEngine::ConditionallyOverrideSettings( int32& ResolutionX, int32& Reso
 		ResolutionY = DisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom - DisplayMetrics.PrimaryDisplayWorkAreaRect.Top;
 		FSystemResolution::RequestResolutionChange(ResolutionX, ResolutionY, true);
 	}
-
+#endif
 
 	if (FParse::Param(FCommandLine::Get(),TEXT("Portrait")))
 	{
@@ -1070,7 +1069,7 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 		}
 
 		// Start the movie capture if needed
-		if (bCheckForMovieCapture && GEngine->bStartWithMatineeCapture && GEngine->MatineeCaptureType == EMatineeCaptureType::AVI && GameViewport->Viewport->GetSizeXY() != FIntPoint::ZeroValue )
+		if (bCheckForMovieCapture && GEngine->bStartWithMatineeCapture && GEngine->MatineeCaptureType == 0 && GameViewport->Viewport->GetSizeXY() != FIntPoint::ZeroValue )
 		{
 			if (AVIWriter)
 			{

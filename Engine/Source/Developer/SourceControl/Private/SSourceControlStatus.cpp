@@ -34,11 +34,11 @@ void SSourceControlStatus::Construct(const FArguments& InArgs)
 	];
 }
 
-FText SSourceControlStatus::GetSourceControlProviderStatusText() const 
+FString SSourceControlStatus::GetSourceControlProviderStatusText() const 
 { 
 	if(QueryState == EQueryState::Querying)
 	{
-		return LOCTEXT("SourceControlUnknown", "Source control status is unknown");
+		return LOCTEXT("SourceControlUnknown", "Source control status is unknown").ToString();
 	}
 	else
 	{

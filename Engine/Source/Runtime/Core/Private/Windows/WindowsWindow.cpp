@@ -7,7 +7,6 @@
 #if WINVER > 0x502	// Windows Vista or better required for DWM
 #include "AllowWindowsPlatformTypes.h"
 #include "Dwmapi.h"
-#include <ShlObj.h>
 #include "HideWindowsPlatformTypes.h"
 #endif
 
@@ -142,10 +141,10 @@ void FWindowsWindow::Initialize( FWindowsApplication* const Application, const T
 	if( !Definition->HasOSWindowBorder )
 	{
 		const DWMNCRENDERINGPOLICY RenderingPolicy = DWMNCRP_DISABLED;
-		verify(SUCCEEDED(DwmSetWindowAttribute(HWnd, DWMWA_NCRENDERING_POLICY, &RenderingPolicy, sizeof(RenderingPolicy))));
+		check(SUCCEEDED(DwmSetWindowAttribute(HWnd, DWMWA_NCRENDERING_POLICY, &RenderingPolicy, sizeof(RenderingPolicy))));
 
 		const BOOL bEnableNCPaint = false;
-		verify(SUCCEEDED(DwmSetWindowAttribute(HWnd, DWMWA_ALLOW_NCPAINT, &bEnableNCPaint, sizeof(bEnableNCPaint))));
+		check(SUCCEEDED(DwmSetWindowAttribute(HWnd, DWMWA_ALLOW_NCPAINT, &bEnableNCPaint, sizeof(bEnableNCPaint))));
 	}
 #endif	// WINVER
 
@@ -166,7 +165,7 @@ void FWindowsWindow::Initialize( FWindowsApplication* const Application, const T
 			WindowStyle |= WS_THICKFRAME;
 		}
 
-		verify(SetWindowLong(HWnd, GWL_STYLE, WindowStyle));
+		check(SetWindowLong(HWnd, GWL_STYLE, WindowStyle));
 
 		AdjustWindowRegion( ClientWidth, ClientHeight );
 	}
@@ -187,9 +186,6 @@ FWindowsWindow::FWindowsWindow()
 {
 	FMemory::MemZero(PreFullscreenWindowPlacement);
 	PreFullscreenWindowPlacement.length = sizeof(WINDOWPLACEMENT);
-
-	FMemory::MemZero(PreParentMinimizedWindowPlacement);
-	PreParentMinimizedWindowPlacement.length = sizeof(WINDOWPLACEMENT);
 }
 
 HWND FWindowsWindow::GetHWnd() const
@@ -239,7 +235,7 @@ void FWindowsWindow::AdjustWindowRegion( int32 Width, int32 Height )
 
 	// NOTE: We explicitly don't delete the Region object, because the OS deletes the handle when it no longer needed after
 	// a call to SetWindowRgn.
-	verify( SetWindowRgn( HWnd, Region, false ) );
+	check( SetWindowRgn( HWnd, Region, false ) );
 }
 
 void FWindowsWindow::ReshapeWindow( int32 NewX, int32 NewY, int32 NewWidth, int32 NewHeight )
@@ -562,20 +558,6 @@ void FWindowsWindow::AdjustCachedSize( FVector2D& Size ) const
 	}
 }
 
-void FWindowsWindow::OnParentWindowMinimized()
-{
-	// This function is called from SW_PARENTCLOSING, because there's a bug in Win32 that causes the equivalent SW_PARENTOPENING
-	// message to restore in an incorrect state (eg, it will lose the maximized status of the window)
-	// To work around this, we cache our window placement here so that we can restore it later (see OnParentWindowRestored)
-	::GetWindowPlacement(HWnd, &PreParentMinimizedWindowPlacement);
-}
-
-void FWindowsWindow::OnParentWindowRestored()
-{
-	// This function is called from SW_PARENTOPENING so that we can restore the window placement that was cached in OnParentWindowMinimized
-	::SetWindowPlacement(HWnd, &PreParentMinimizedWindowPlacement);
-}
-
 /** Sets focus on the native window */
 void FWindowsWindow::SetWindowFocus()
 {
@@ -672,113 +654,15 @@ ULONG STDCALL FWindowsWindow::Release( void )
 	return OLEReferenceCount;
 }
 
-FDragDropOLEData DecipherOLEData(IDataObject* DataObjectPointer)
-{
-	FDragDropOLEData OLEData;
-
-	// Utility to ensure resource release
-	struct FOLEResourceGuard
-	{
-		STGMEDIUM& StorageMedium;
-		LPVOID DataPointer;
-
-		FOLEResourceGuard(STGMEDIUM& InStorage)
-			: StorageMedium(InStorage)
-			, DataPointer(GlobalLock(InStorage.hGlobal))
-		{
-		}
-
-		~FOLEResourceGuard()
-		{
-			GlobalUnlock(StorageMedium.hGlobal);
-			ReleaseStgMedium(&StorageMedium);
-		}
-	};
-
-	// Attempt to get plain text or unicode text from the data being dragged in
-
-	FORMATETC FormatEtc_Ansii = { CF_TEXT, 0, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
-	const bool bHaveAnsiText = (DataObjectPointer->QueryGetData(&FormatEtc_Ansii) == S_OK)
-		? true
-		: false;
-
-	FORMATETC FormatEtc_UNICODE = { CF_UNICODETEXT, 0, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
-	const bool bHaveUnicodeText = (DataObjectPointer->QueryGetData(&FormatEtc_UNICODE) == S_OK)
-		? true
-		: false;
-
-	FORMATETC FormatEtc_File = { CF_HDROP, 0, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
-	const bool bHaveFiles = (DataObjectPointer->QueryGetData(&FormatEtc_File) == S_OK)
-		? true
-		: false;
-
-	STGMEDIUM StorageMedium;
-
-	if (bHaveUnicodeText && S_OK == DataObjectPointer->GetData(&FormatEtc_UNICODE, &StorageMedium))
-	{
-		FOLEResourceGuard ResourceGuard(StorageMedium);
-		OLEData.Type = FDragDropOLEData::Text;
-		OLEData.OperationText = static_cast<TCHAR*>(ResourceGuard.DataPointer);
-	}
-	else if (bHaveAnsiText && S_OK == DataObjectPointer->GetData(&FormatEtc_Ansii, &StorageMedium))
-	{
-		FOLEResourceGuard ResourceGuard(StorageMedium);
-		OLEData.Type = FDragDropOLEData::Text;
-		OLEData.OperationText = static_cast<ANSICHAR*>(ResourceGuard.DataPointer);
-	}
-	else if (bHaveFiles && S_OK == DataObjectPointer->GetData(&FormatEtc_File, &StorageMedium))
-	{
-		OLEData.Type = FDragDropOLEData::Files;
-
-		FOLEResourceGuard ResourceGuard(StorageMedium);
-		const DROPFILES* DropFiles = static_cast<DROPFILES*>(ResourceGuard.DataPointer);
-
-		// pFiles is the offset to the beginning of the file list, in bytes
-		LPVOID FileListStart = (BYTE*)ResourceGuard.DataPointer + DropFiles->pFiles;
-
-		if (DropFiles->fWide)
-		{
-			// Unicode filenames
-			// The file list is NULL delimited with an extra NULL character at the end.
-			TCHAR* Pos = static_cast<TCHAR*>(FileListStart);
-			while (Pos[0] != 0)
-			{
-				const FString ListElement = FString(Pos);
-				OLEData.OperationFilenames.Add(ListElement);
-				Pos += ListElement.Len() + 1;
-			}
-		}
-		else
-		{
-			// Ansi filenames
-			// The file list is NULL delimited with an extra NULL character at the end.
-			ANSICHAR* Pos = static_cast<ANSICHAR*>(FileListStart);
-			while (Pos[0] != 0)
-			{
-				const FString ListElement = FString(Pos);
-				OLEData.OperationFilenames.Add(ListElement);
-				Pos += ListElement.Len() + 1;
-			}
-		}
-	}
-
-	return OLEData;
-}
-
 HRESULT STDCALL FWindowsWindow::DragEnter( __RPC__in_opt IDataObject *DataObjectPointer, ::DWORD KeyState, POINTL CursorPosition, __RPC__inout ::DWORD *CursorEffect )
 {
-	// Decipher the OLE data
-	const FDragDropOLEData& OLEData = DecipherOLEData(DataObjectPointer);
-
 	if (IsInGameThread())
 	{
-		return OwningApplication->OnOLEDragEnter(HWnd, OLEData, KeyState, CursorPosition, CursorEffect);
+		return OwningApplication->OnOLEDragEnter(HWnd, DataObjectPointer, KeyState, CursorPosition, CursorEffect);
 	}
 	else
 	{
-		// The occurred in a non-game thread. We must synchronize to the main thread as Slate is not designed to be multi-threaded.
-		// Note that doing this means that we cannot determine the CursorEffect, but this is unfixable at the moment so we will just leave it alone.
-		OwningApplication->DeferDragDropOperation( FDeferredWindowsDragDropOperation::MakeDragEnter(HWnd, OLEData, KeyState, CursorPosition) );
+		UE_LOG(LogWindowsDesktop, Log, TEXT("DragEnter invoked from another thread"));
 		return 0;
 	}
 }
@@ -791,9 +675,7 @@ HRESULT STDCALL FWindowsWindow::DragOver( ::DWORD KeyState, POINTL CursorPositio
 	}
 	else
 	{
-		// The occurred in a non-game thread. We must synchronize to the main thread as Slate is not designed to be multi-threaded.
-		// Note that doing this means that we cannot determine the CursorEffect, but this is unfixable at the moment so we will just leave it alone.
-		OwningApplication->DeferDragDropOperation(FDeferredWindowsDragDropOperation::MakeDragOver(HWnd, KeyState, CursorPosition));
+		UE_LOG(LogWindowsDesktop, Log, TEXT("DragOver invoked from another thread"));
 		return 0;
 	}
 }
@@ -806,26 +688,20 @@ HRESULT STDCALL FWindowsWindow::DragLeave( void )
 	}
 	else
 	{
-		// The occurred in a non-game thread. We must synchronize to the main thread as Slate is not designed to be multi-threaded.
-		OwningApplication->DeferDragDropOperation(FDeferredWindowsDragDropOperation::MakeDragLeave(HWnd));
+		UE_LOG(LogWindowsDesktop, Log, TEXT("DragLeave invoked from another thread"));
 		return 0;
 	}
 }
 
 HRESULT STDCALL FWindowsWindow::Drop( __RPC__in_opt IDataObject *DataObjectPointer, ::DWORD KeyState, POINTL CursorPosition, __RPC__inout ::DWORD *CursorEffect )
 {
-	// Decipher the OLE data
-	const FDragDropOLEData& OLEData = DecipherOLEData(DataObjectPointer);
-
 	if (IsInGameThread())
 	{
-		return OwningApplication->OnOLEDrop(HWnd, OLEData, KeyState, CursorPosition, CursorEffect);
+		return OwningApplication->OnOLEDrop(HWnd, DataObjectPointer, KeyState, CursorPosition, CursorEffect);
 	}
 	else
 	{
-		// The occurred in a non-game thread. We must synchronize to the main thread as Slate is not designed to be multi-threaded.
-		// Note that doing this means that we cannot determine the CursorEffect, but this is unfixable at the moment so we will just leave it alone.
-		OwningApplication->DeferDragDropOperation(FDeferredWindowsDragDropOperation::MakeDrop(HWnd, OLEData, KeyState, CursorPosition));
+		UE_LOG(LogWindowsDesktop, Log, TEXT("OLE Drop invoked from another thread"));
 		return 0;
 	}
 }

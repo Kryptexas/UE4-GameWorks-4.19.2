@@ -624,41 +624,17 @@ void FPlacementMode::AddToRecentlyPlaced( const TArray< UObject* >& PlacedObject
 		FactoryPath = FactoryUsed->GetPathName();
 	}
 
-	TArray< UObject* > FilteredPlacedObjects;
-	for ( UObject* PlacedObject : PlacedObjects )
-	{
-		// Don't include null placed objects that just have factories.
-		if ( PlacedObject == NULL )
-		{
-			continue;
-		}
-
-		// Don't add brush builders to the recently placed.
-		if ( PlacedObject->IsA(UBrushBuilder::StaticClass()) )
-		{
-			continue;
-		}
-
-		FilteredPlacedObjects.Add(PlacedObject);
-	}
-
-	// Don't change the recently placed if nothing passed the filter.
-	if ( FilteredPlacedObjects.Num() == 0 )
-	{
-		return;
-	}
-
 	bool Changed = false;
-	for ( int Index = 0; Index < FilteredPlacedObjects.Num(); Index++ )
+	for (int Index = 0; Index < PlacedObjects.Num(); Index++)
 	{
-		Changed |= RecentlyPlaced.Remove(FActorPlacementInfo(FilteredPlacedObjects[Index]->GetPathName(), FactoryPath)) > 0;
+		Changed |= RecentlyPlaced.Remove( FActorPlacementInfo( PlacedObjects[Index]->GetPathName(), FactoryPath ) ) > 0;
 	}
 
-	for ( int Index = 0; Index < FilteredPlacedObjects.Num(); Index++ )
+	for (int Index = 0; Index < PlacedObjects.Num(); Index++)
 	{
-		if ( FilteredPlacedObjects[Index] != NULL )
+		if ( PlacedObjects[Index] != NULL )
 		{
-			RecentlyPlaced.Insert(FActorPlacementInfo(FilteredPlacedObjects[Index]->GetPathName(), FactoryPath), 0);
+			RecentlyPlaced.Insert( FActorPlacementInfo( PlacedObjects[Index]->GetPathName(), FactoryPath ), 0 );
 			Changed = true;
 		}
 	}

@@ -451,7 +451,7 @@ static bool SaveWorld(UWorld* World,
 
 	if ( !bValidWorldName )
 	{
-		FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "Error_LevelNameExists", "A level with that name already exists. Please choose another name.") );
+		FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "Error_PackageNameExists", "A package with that name already exists. Please choose another name.") );
 	}
 	else if( IFileManager::Get().IsReadOnly(*FinalFilename) )
 	{
@@ -1065,16 +1065,46 @@ bool FEditorFileUtils::PromptToCheckoutPackages(bool bCheckDirty, const TArray<U
 
 						// Get the fully qualified filename.
 						const FString FullFilename = FPaths::ConvertRelativePathToFull(Filename);
-
-						// Knock off the read only flag from the current file attributes
-						if (FPlatformFileManager::Get().GetPlatformFile().SetReadOnly(*Filename, false))
+						// Get the current file attributes and knock off the read only flag
+#if PLATFORM_MAC
+						bool Success = false;
+						struct stat FileStat;
+						if( stat( TCHAR_TO_ANSI(*Filename), &FileStat ) == 0 )
 						{
+							if( FileStat.st_mode & S_IWUSR )
+							{
+								Success = true;	// already writable
+							}
+							else
+							{
+								mode_t MaskedMode = FileStat.st_mode & (S_IRWXU|S_ISUID|S_ISGID|S_ISVTX);
+								MaskedMode |= S_IWUSR;
+								if( chmod( TCHAR_TO_ANSI(*Filename), MaskedMode ) == 0 )
+								{
+									// Successfully made writable
+									Success = true;
+
+									if ( OutPackagesCheckedOutOrMadeWritable )
+									{
+										OutPackagesCheckedOutOrMadeWritable->Add(PackageToMakeWritable);
+									}
+								}
+							}
+						}
+
+						if( !Success )
+#else
+						uint32 FileAttributes = GetFileAttributesW( *Filename );
+						if( SetFileAttributesW( *Filename, FileAttributes & ~FILE_ATTRIBUTE_READONLY) != 0)
+						{
+							// Successfully made writable
 							if ( OutPackagesCheckedOutOrMadeWritable )
 							{
 								OutPackagesCheckedOutOrMadeWritable->Add(PackageToMakeWritable);
 							}
 						}
 						else
+#endif
 						{
 							bPackageFailedWritable = true;
 							PkgsWhichFailedWritable += FString::Printf( TEXT("\n%s"), *PackageToMakeWritable->GetName() );
@@ -1435,7 +1465,7 @@ bool FEditorFileUtils::IsValidMapFilename(const FString& MapFilename, FText& Out
 {
 	if( FPaths::GetExtension(MapFilename, true) != FPackageName::GetMapPackageExtension() )
 	{
-		OutErrorMessage = FText::Format( NSLOCTEXT("IsValidMapFilename", "FileIsNotAMap", "Filename does not have a {0} extension."), FText::FromString(FPackageName::GetMapPackageExtension()) );
+		OutErrorMessage = FText::Format( NSLOCTEXT("IsValidMapFilename", "FileIsNotAMap", "Filename does not have a %s extension."), FText::FromString(FPackageName::GetMapPackageExtension()) );
 		return false;
 	}
 
@@ -1950,19 +1980,24 @@ static int32 InternalSavePackage( UPackage* PackageToSave, bool& bOutPackageLoca
 		// Make a list of file types
 		// We have to ask for save as.
 		FString FileTypes;
-		FText SavePackageText;
 
 		if( bIsMapPackage )
 		{
 			FileTypes = FEditorFileUtils::GetFilterString(FI_Save);
-			FinalPackageFilename = FString::Printf( TEXT("Untitled%s"), *FPackageName::GetMapPackageExtension() );
-			SavePackageText = NSLOCTEXT("UnrealEd", "SaveMap", "Save Map");
 		}
 		else
 		{
 			FileTypes = FString::Printf( TEXT("(*%s)|*%s"), *FPackageName::GetAssetPackageExtension(), *FPackageName::GetAssetPackageExtension() );
+		}
+		const FString Directory = *GetDefaultDirectory();
+
+		if (bIsMapPackage)
+		{
+			FinalPackageFilename = FString::Printf( TEXT("Untitled%s"), *FPackageName::GetMapPackageExtension() );
+		}
+		else
+		{
 			FinalPackageFilename = FString::Printf( TEXT("%s%s"), *PackageToSave->GetName(), *FPackageName::GetAssetPackageExtension() );
-			SavePackageText = NSLOCTEXT("UnrealEd", "SaveAsset", "Save Asset");
 		}
 
 		// The number of times the user pressed cancel
@@ -1974,12 +2009,11 @@ static int32 InternalSavePackage( UPackage* PackageToSave, bool& bOutPackageLoca
 		// if the user hit cancel on the Save dialog, ask again what the user wants to do, 
 		// we shouldn't assume they want to skip the file
 		// This loop continues indefinitely if the user does not supply a valid filename.  They must supply a valid filename or press cancel
-		const FString Directory = *GetDefaultDirectory();
 		while( NumSkips < NumSkipsBeforeAbort )
 		{
 			FString DefaultLocation = Directory;
 
-			if( FileDialogHelpers::SaveFile( SavePackageText.ToString(), FileTypes, DefaultLocation, FinalPackageFilename, FinalPackageFilename) )
+			if( FileDialogHelpers::SaveFile( NSLOCTEXT("UnrealEd", "SavePackage", "Save Package").ToString(), FileTypes, DefaultLocation, FinalPackageFilename, FinalPackageFilename) )
 			{
 				// If the supplied file name is missing an extension then give it the default package
 				// file extension.
@@ -2226,7 +2260,7 @@ bool FEditorFileUtils::SaveDirtyPackages(const bool bPromptUserToSave, const boo
 		else
 		{
 			FSaveErrorOutputDevice SaveErrors;
-			GWarn->BeginSlowTask( NSLOCTEXT("UnrealEd", "SavingPackagesE", "Saving packages..."), true );
+			GWarn->BeginSlowTask( NSLOCTEXT("UnrealEd", "SavingPackage", "Saving package"), true );
 
 			// Packages that failed to save
 			TArray< UPackage* > FailedPackages;
@@ -2251,15 +2285,6 @@ bool FEditorFileUtils::SaveDirtyPackages(const bool bPromptUserToSave, const boo
 							// Packages must be fully loaded to save
 							CurPackage->FullyLoad();
 						}
-
-						const UWorld* const AssociatedWorld = UWorld::FindWorldInPackage(CurPackage);
-						const bool bIsMapPackage = AssociatedWorld != nullptr;
-
-						const FText SavingPackageText = (bIsMapPackage) 
-							? FText::Format(NSLOCTEXT("UnrealEd", "SavingMapf", "Saving map {0}"), FText::FromString(CurPackage->GetName()))
-							: FText::Format(NSLOCTEXT("UnrealEd", "SavingAssetf", "Saving asset {0}"), FText::FromString(CurPackage->GetName()));
-
-						GWarn->StatusForceUpdate( PkgIter.GetIndex(), PackagesToSave.Num(), SavingPackageText );
 
 						// Save the package
 						bool bPackageLocallyWritable;
@@ -2499,7 +2524,7 @@ FEditorFileUtils::EPromptReturnCode FEditorFileUtils::PromptForCheckoutAndSave( 
 
 			const FScopedBusyCursor BusyCursor;
 			FSaveErrorOutputDevice SaveErrors;
-			GWarn->BeginSlowTask( NSLOCTEXT("UnrealEd", "SavingPackagesE", "Saving packages..."), true );
+			GWarn->BeginSlowTask( NSLOCTEXT("UnrealEd", "SavingPackage", "Saving package"), true );
 			for( TArray<UPackage*>::TConstIterator PackageIter( FinalSaveList ); PackageIter; ++PackageIter )
 			{
 				UPackage* Package = *PackageIter;
@@ -2510,14 +2535,7 @@ FEditorFileUtils::EPromptReturnCode FEditorFileUtils::PromptForCheckoutAndSave( 
 					Package->FullyLoad();
 				}
 
-				const UWorld* const AssociatedWorld = UWorld::FindWorldInPackage(Package);
-				const bool bIsMapPackage = AssociatedWorld != nullptr;
-
-				const FText SavingPackageText = (bIsMapPackage) 
-					? FText::Format(NSLOCTEXT("UnrealEd", "SavingMapf", "Saving map {0}"), FText::FromString(Package->GetName()))
-					: FText::Format(NSLOCTEXT("UnrealEd", "SavingAssetf", "Saving asset {0}"), FText::FromString(Package->GetName()));
-
-				GWarn->StatusForceUpdate( PackageIter.GetIndex(), FinalSaveList.Num(), SavingPackageText );
+				GWarn->StatusForceUpdate( PackageIter.GetIndex(), FinalSaveList.Num(), FText::Format(NSLOCTEXT("UnrealEd", "SavingPackagef", "Saving package {0}"), FText::FromString(Package->GetName())) );
 				
 				// Save the package
 				bool bPackageLocallyWritable;
@@ -2783,12 +2801,6 @@ void FEditorFileUtils::FindAllSubmittablePackageFiles(TMap<FString, FSourceContr
 
 bool FEditorFileUtils::IsMapPackageAsset(const FString& ObjectPath)
 {
-	FString MapFilePath;
-	return FEditorFileUtils::IsMapPackageAsset(ObjectPath, MapFilePath);
-}
-
-bool FEditorFileUtils::IsMapPackageAsset(const FString& ObjectPath, FString& MapFilePath)
-{
 	const FString PackageName = ExtractPackageName(ObjectPath);
 	if ( PackageName.Len() > 0 )
 	{
@@ -2798,7 +2810,6 @@ bool FEditorFileUtils::IsMapPackageAsset(const FString& ObjectPath, FString& Map
 			const FString FileExtension = FPaths::GetExtension(PackagePath, true);
 			if ( FileExtension == FPackageName::GetMapPackageExtension() )
 			{
-				MapFilePath = PackagePath;
 				return true;
 			}
 		}

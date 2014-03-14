@@ -40,11 +40,6 @@ class FAndroid_ATCTargetPlatform
 		}
 		return false;
 	}
-
-	virtual bool SupportedByExtensionsString( const FString& ExtensionsString, const int GLESVersion ) const OVERRIDE
-	{
-		return (ExtensionsString.Contains(TEXT("GL_ATI_texture_compression_atitc")) || ExtensionsString.Contains(TEXT("GL_AMD_compressed_ATC_texture")));
-	}
 };
 
 

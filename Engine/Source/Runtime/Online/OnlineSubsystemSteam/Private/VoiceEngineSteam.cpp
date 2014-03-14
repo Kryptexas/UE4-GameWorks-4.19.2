@@ -47,7 +47,7 @@ void FVoiceEngineSteam::VoiceCaptureUpdate() const
 		// If no data is available, we have finished capture the last (post-StopRecording) half-second of voice data
 		if (RecordingState == k_EVoiceResultNotRecording)
 		{
-			UE_LOG(LogVoiceEncode, Log, TEXT("Internal voice capture complete."));
+			UE_LOG(LogVoice, Log, TEXT("Internal voice capture complete."));
 
 			bPendingFinalCapture = false;
 
@@ -67,7 +67,7 @@ void FVoiceEngineSteam::VoiceCaptureUpdate() const
 
 void FVoiceEngineSteam::StartRecording() const
 {
-	UE_LOG(LogVoiceEncode, VeryVerbose, TEXT("VOIP StartRecording"));
+	UE_LOG(LogVoice, VeryVerbose, TEXT("VOIP StartRecording"));
 	if (SteamUserPtr)
 	{
 		SteamUserPtr->StartVoiceRecording();
@@ -77,7 +77,7 @@ void FVoiceEngineSteam::StartRecording() const
 
 void FVoiceEngineSteam::StopRecording() const
 {
-	UE_LOG(LogVoiceEncode, VeryVerbose, TEXT("VOIP StopRecording"));
+	UE_LOG(LogVoice, VeryVerbose, TEXT("VOIP StopRecording"));
 	if (SteamUserPtr)
 	{
 		SteamUserPtr->StopVoiceRecording();
@@ -86,7 +86,7 @@ void FVoiceEngineSteam::StopRecording() const
 
 void FVoiceEngineSteam::StoppedRecording() const
 {
-	UE_LOG(LogVoiceEncode, VeryVerbose, TEXT("VOIP StoppedRecording"));
+	UE_LOG(LogVoice, VeryVerbose, TEXT("VOIP StoppedRecording"));
 	if (SteamFriendsPtr)
 	{
 		SteamFriendsPtr->SetInGameVoiceSpeaking(SteamUserPtr->GetSteamID(), false);
@@ -118,13 +118,13 @@ bool FVoiceEngineSteam::Init(int32 MaxLocalTalkers, int32 MaxRemoteTalkers)
 				}
 				else
 				{
-					UE_LOG(LogVoiceEncode, Warning, TEXT("Steamworks voice initialization failed!"));
+					UE_LOG(LogVoice, Warning, TEXT("Steamworks voice initialization failed!"));
 				}
 			}
 		}
 		else
 		{
-			UE_LOG(LogVoiceEncode, Warning, TEXT("Voice interface disabled by config"));
+			UE_LOG(LogVoice, Warning, TEXT("Voice interface disabled by config"));
 		}
 	}
 
@@ -153,7 +153,7 @@ uint32 FVoiceEngineSteam::StartLocalVoiceProcessing(uint32 LocalUserNum)
 	}
 	else
 	{
-		UE_LOG(LogVoiceEncode, Error, TEXT("StartLocalVoiceProcessing(): Device is currently owned by another user"));
+		UE_LOG(LogVoice, Error, TEXT("StartLocalVoiceProcessing(): Device is currently owned by another user"));
 	}
 
 	return Return;
@@ -180,7 +180,7 @@ uint32 FVoiceEngineSteam::StopLocalVoiceProcessing(uint32 LocalUserNum)
 	}
 	else
 	{
-		UE_LOG(LogVoiceEncode, Error, TEXT("StopLocalVoiceProcessing: Ignoring stop request for non-owning user"));
+		UE_LOG(LogVoice, Error, TEXT("StopLocalVoiceProcessing: Ignoring stop request for non-owning user"));
 	}
 
 	return Return;
@@ -218,14 +218,14 @@ uint32 FVoiceEngineSteam::ReadLocalVoiceData(uint32 LocalUserNum, uint8* Data, u
 		EVoiceResult VoiceResult = SteamUserPtr->GetAvailableVoice(&CompressedBytes, NULL, 0);
 		if (VoiceResult != k_EVoiceResultOK && VoiceResult != k_EVoiceResultNoData)
 		{
-			UE_LOG(LogVoiceEncode, Warning, TEXT("ReadLocalVoiceData: GetAvailableVoice failure: VoiceResult: %s"), *SteamVoiceResult(VoiceResult));
+			UE_LOG(LogVoice, Warning, TEXT("ReadLocalVoiceData: GetAvailableVoice failure: VoiceResult: %s"), *SteamVoiceResult(VoiceResult));
 			return E_FAIL;
 		}
 
 		// This shouldn't happen, but just in case.
 		if (CompressedBytes == 0)
 		{
-			UE_LOG(LogVoiceEncode, VeryVerbose, TEXT("ReadLocalVoiceData: No Data: VoiceResult: %s"), *SteamVoiceResult(VoiceResult));
+			UE_LOG(LogVoice, VeryVerbose, TEXT("ReadLocalVoiceData: No Data: VoiceResult: %s"), *SteamVoiceResult(VoiceResult));
 			*Size = 0;
 			return S_OK;
 		}
@@ -241,10 +241,10 @@ uint32 FVoiceEngineSteam::ReadLocalVoiceData(uint32 LocalUserNum, uint8* Data, u
 		double TimeSinceLastCall = LastGetVoiceCallTime > 0 ? (CurTime - LastGetVoiceCallTime) : 0.0;
 		LastGetVoiceCallTime = CurTime;
 
-		UE_LOG(LogVoiceEncode, Log, TEXT("ReadLocalVoiceData: GetVoice: Result: %s, Available: %i, LastCall: %0.3f"), *SteamVoiceResult(VoiceResult), AvailableWritten, TimeSinceLastCall);
+		UE_LOG(LogVoice, Log, TEXT("ReadLocalVoiceData: GetVoice: Result: %s, Available: %i, LastCall: %0.3f"), *SteamVoiceResult(VoiceResult), AvailableWritten, TimeSinceLastCall);
 		if (VoiceResult != k_EVoiceResultOK)
 		{
-			UE_LOG(LogVoiceEncode, Warning, TEXT("ReadLocalVoiceData: GetVoice failure: VoiceResult: %s"), *SteamVoiceResult(VoiceResult));
+			UE_LOG(LogVoice, Warning, TEXT("ReadLocalVoiceData: GetVoice failure: VoiceResult: %s"), *SteamVoiceResult(VoiceResult));
 			*Size = 0;
 			CompressedVoiceBuffer.Empty(MAX_COMPRESSED_VOICE_BUFFER_SIZE);
 			return E_FAIL;
@@ -255,7 +255,7 @@ uint32 FVoiceEngineSteam::ReadLocalVoiceData(uint32 LocalUserNum, uint8* Data, u
 			*Size = FMath::Min<int32>(*Size, AvailableWritten);
 			FMemory::Memcpy(Data, CompressedVoiceBuffer.GetData(), *Size);
 
-			UE_LOG(LogVoiceEncode, VeryVerbose, TEXT("ReadLocalVoiceData: Size: %d"), *Size);
+			UE_LOG(LogVoice, VeryVerbose, TEXT("ReadLocalVoiceData: Size: %d"), *Size);
 			return S_OK;
 		}
 		else
@@ -269,7 +269,7 @@ uint32 FVoiceEngineSteam::ReadLocalVoiceData(uint32 LocalUserNum, uint8* Data, u
 
 uint32 FVoiceEngineSteam::SubmitRemoteVoiceData(const FUniqueNetId& RemoteTalkerId, uint8* Data, uint32* Size) 
 {
-	UE_LOG(LogVoiceDecode, VeryVerbose, TEXT("SubmitRemoteVoiceData(%s) Size: %d received!"), *RemoteTalkerId.ToDebugString(), *Size);
+	UE_LOG(LogVoice, VeryVerbose, TEXT("SubmitRemoteVoiceData(%s) Size: %d received!"), *RemoteTalkerId.ToDebugString(), *Size);
 
 	const FUniqueNetIdSteam& SteamId = (const FUniqueNetIdSteam&)RemoteTalkerId;
 	FRemoteTalkerDataSteam* QueuedData = RemoteTalkerBuffers.Find(SteamId);
@@ -279,8 +279,6 @@ uint32 FVoiceEngineSteam::SubmitRemoteVoiceData(const FUniqueNetId& RemoteTalker
 		RemoteTalkerBuffers.Add(SteamId, FRemoteTalkerDataSteam());
 		QueuedData = RemoteTalkerBuffers.Find(SteamId);
 	}
-
-	check(QueuedData);
 
 	// new voice packet.
 	QueuedData->LastSeen = FPlatformTime::Seconds();
@@ -294,7 +292,7 @@ uint32 FVoiceEngineSteam::SubmitRemoteVoiceData(const FUniqueNetId& RemoteTalker
 
 	if (VoiceResult != k_EVoiceResultOK)
 	{
-		UE_LOG(LogVoiceDecode, Warning, TEXT("SubmitRemoteVoiceData: DecompressVoice failure: VoiceResult: %s"), *SteamVoiceResult(VoiceResult));
+		UE_LOG(LogVoice, Warning, TEXT("SubmitRemoteVoiceData: DecompressVoice failure: VoiceResult: %s"), *SteamVoiceResult(VoiceResult));
 		*Size = 0;
 		return E_FAIL;
 	}
@@ -316,11 +314,8 @@ uint32 FVoiceEngineSteam::SubmitRemoteVoiceData(const FUniqueNetId& RemoteTalker
 		}
 
 		QueuedData->AudioComponent = CreateVoiceAudioComponent(SteamUserPtr->GetVoiceOptimalSampleRate());
-		if (QueuedData->AudioComponent)
-		{
-			QueuedData->AudioComponent->OnAudioFinishedNative.Add(FOnAudioFinishedNative::FDelegate::CreateRaw(this, &FVoiceEngineSteam::OnAudioFinished));
-			QueuedData->AudioComponent->Play();
-		}
+		QueuedData->AudioComponent->OnAudioFinishedNative.Add(FOnAudioFinishedNative::FDelegate::CreateRaw(this, &FVoiceEngineSteam::OnAudioFinished));
+		QueuedData->AudioComponent->Play();
 	}
 
 	if (QueuedData->AudioComponent != NULL)
@@ -328,7 +323,7 @@ uint32 FVoiceEngineSteam::SubmitRemoteVoiceData(const FUniqueNetId& RemoteTalker
 		USoundWaveStreaming* SoundStreaming = CastChecked<USoundWaveStreaming>(QueuedData->AudioComponent->Sound);
 		if (!bAudioComponentCreated && SoundStreaming->GetAvailableAudioByteCount() == 0)
 		{
-			UE_LOG(LogVoiceDecode, Log, TEXT("VOIP audio component was starved!"));
+			UE_LOG(LogVoice, Log, TEXT("VOIP audio component was starved!"));
 		}
 		SoundStreaming->QueueAudio(DecompressedVoiceBuffer.GetData(), BytesWritten);
 	}
@@ -362,7 +357,7 @@ void FVoiceEngineSteam::Tick(float DeltaTime)
 {
 	// Check available voice one a frame, this value changes after calling GetVoice()
 	AvailableVoiceResult = SteamUserPtr->GetAvailableVoice(&CompressedBytesAvailable, NULL, 0);
-	//UE_LOG(LogVoiceEncode, Log, TEXT("TickResult: %s"), *SteamVoiceResult(AvailableVoiceResult));
+	//UE_LOG(LogVoice, Log, TEXT("TickResult: %s"), *SteamVoiceResult(AvailableVoiceResult));
 	TickTalkers(DeltaTime);
 }
 
@@ -373,12 +368,12 @@ void FVoiceEngineSteam::OnAudioFinished(UAudioComponent* AC)
 		FRemoteTalkerDataSteam& RemoteData = It.Value();
 		if (RemoteData.AudioComponent->IsPendingKill() || AC == RemoteData.AudioComponent)
 		{
-			UE_LOG(LogVoiceDecode, Log, TEXT("Removing VOIP AudioComponent for SteamId: %s"), *It.Key().ToDebugString());
+			UE_LOG(LogVoice, Log, TEXT("Removing VOIP AudioComponent for SteamId: %s"), *It.Key().ToDebugString());
 			RemoteData.AudioComponent = NULL;
 			break;
 		}
 	}
-	UE_LOG(LogVoiceDecode, Verbose, TEXT("Audio Finished"));
+	UE_LOG(LogVoice, Verbose, TEXT("Audio Finished"));
 }
 
 FString FVoiceEngineSteam::GetVoiceDebugState() const 

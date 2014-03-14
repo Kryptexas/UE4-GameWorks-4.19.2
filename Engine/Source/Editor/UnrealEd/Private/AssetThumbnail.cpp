@@ -300,8 +300,23 @@ private:
 	const FSlateBrush* GetBackgroundBrush() const
 	{
 		const FAssetData& AssetData = AssetThumbnail->GetAssetData();
+
+		UClass* Class = FindObject<UClass>(ANY_PACKAGE, *AssetData.AssetClass.ToString());
+
+		if ( Class != nullptr && !ShowClassBackground )
+		{
+			//return nullptr;
+		}
+		
+		FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
+		TWeakPtr<IAssetTypeActions> AssetTypeActions;
+		if ( Class != NULL )
+		{
+			AssetTypeActions = AssetToolsModule.Get().GetAssetTypeActionsForClass(Class);
+		}
+
 		FName Substyle;
-		if ( AssetData.AssetClass == UClass::StaticClass()->GetFName() )
+		if ( Class == UClass::StaticClass() )
 		{
 			Substyle = FName(".ClassBackground");
 		}

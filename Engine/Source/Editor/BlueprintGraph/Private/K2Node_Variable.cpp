@@ -391,16 +391,11 @@ FName UK2Node_Variable::GetCornerIcon() const
 	return Super::GetCornerIcon();
 }
 
-bool UK2Node_Variable::HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput) const
+bool UK2Node_Variable::HasExternalBlueprintDependencies() const
 {
 	UClass* SourceClass = GetVariableSourceClass();
 	UBlueprint* SourceBlueprint = GetBlueprint();
-	const bool bResult = (SourceClass && (SourceClass->ClassGeneratedBy != NULL) && (SourceClass->ClassGeneratedBy != SourceBlueprint));
-	if (bResult && OptionalOutput)
-	{
-		OptionalOutput->Add(SourceClass);
-	}
-	return bResult;
+	return (SourceClass && (SourceClass->ClassGeneratedBy != NULL) && (SourceClass->ClassGeneratedBy != SourceBlueprint));
 }
 
 FString UK2Node_Variable::GetDocumentationLink() const

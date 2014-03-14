@@ -856,9 +856,6 @@ float FFbxImporter::ImportMatineeActor(FbxNode* Node, UInterpGroupInst* MatineeG
 					CurveKey.OutVal = CurrentOutVal;
 				}
 
-				// we don't support different interpolation modes for position & rotation sub-tracks, so unify them here
-				ConsolidateMovementTrackInterpModes(MovementTrack);
-
 				// Recalculate the tangents using the new data
 				MovementTrack->EulerTrack.AutoSetTangents();
 			}
@@ -867,9 +864,6 @@ float FFbxImporter::ImportMatineeActor(FbxNode* Node, UInterpGroupInst* MatineeG
 				ImportMatineeAnimated(TransCurves[3], MovementTrack->EulerTrack, 0, false, RealCurves[0], DefaultRot[0]);
 				ImportMatineeAnimated(TransCurves[4], MovementTrack->EulerTrack, 1, true, RealCurves[0], DefaultRot[1]);
 				ImportMatineeAnimated(TransCurves[5], MovementTrack->EulerTrack, 2, true, RealCurves[0], DefaultRot[2]);
-
-				// we don't support different interpolation modes for position & rotation sub-tracks, so unify them here
-				ConsolidateMovementTrackInterpModes(MovementTrack);
 			}
 
 			// Generate empty look-up keys.
@@ -895,14 +889,6 @@ float FFbxImporter::ImportMatineeActor(FbxNode* Node, UInterpGroupInst* MatineeG
 	return TimeLength;
 }
 
-void FFbxImporter::ConsolidateMovementTrackInterpModes(UInterpTrackMove* MovementTrack)
-{
-	check(MovementTrack->EulerTrack.Points.Num() == MovementTrack->PosTrack.Points.Num());
-	for(int32 KeyIndex = 0; KeyIndex < MovementTrack->PosTrack.Points.Num(); KeyIndex++)
-	{
-		MovementTrack->EulerTrack.Points[KeyIndex].InterpMode = MovementTrack->PosTrack.Points[KeyIndex].InterpMode;
-	}
-}
 
 EInterpCurveMode FFbxImporter::GetUnrealInterpMode(FbxAnimCurveKey FbxKey)
 {

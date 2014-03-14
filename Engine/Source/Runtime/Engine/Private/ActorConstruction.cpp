@@ -131,9 +131,6 @@ void AActor::RerunConstructionScripts()
 #endif
 	if(bAllowReconstruction)
 	{
-		// Set global flag to let system know we are reconstructing blueprint instances
-		TGuardValue<bool> GuardTemplateNameFlag(GIsReconstructingBlueprintInstances, true);
-
 		// Temporarily suspend the undo buffer; we don't need to record reconstructed component objects into the current transaction
 		ITransaction* CurrentTransaction = GUndo;
 		GUndo = NULL;

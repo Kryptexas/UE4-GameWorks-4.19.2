@@ -25,6 +25,9 @@ class ONLINESUBSYSTEMSTEAM_API FOnlineSubsystemSteam :
 {
 protected:
 
+	/** Single instantiation of the STEAM interface */
+	static FOnlineSubsystemSteam* SteamSingleton;
+
 	/** Has the STEAM client APIs been initialized */
 	bool bSteamworksClientInitialized;
 
@@ -79,9 +82,7 @@ protected:
 	/** Online async task thread */
 	class FRunnableThread* OnlineAsyncTaskThread;
 
-PACKAGE_SCOPE:
-
-	/** Only the factory makes instances */
+	/** Private constructor as this is a singleton */
 	FOnlineSubsystemSteam() : 
 		bSteamworksClientInitialized(false),
 		bSteamworksGameServerInitialized(false),
@@ -101,8 +102,21 @@ PACKAGE_SCOPE:
 		OnlineAsyncTaskThread(NULL)
 	{}
 
+PACKAGE_SCOPE:
+
 	/** Critical sections for thread safe operation of the cloud files */
 	FCriticalSection UserCloudDataLock;
+
+	/** 
+	 * Singleton interface for the STEAM subsystem 
+	 * @return the only instance of the STEAM subsystem
+	 */
+	static FOnlineSubsystemSteam* Create();
+
+	/** 
+	 * Destroy the singleton STEAM subsystem
+	 */
+	static void Destroy();
 
 	/**
 	 * Is Steam available for use
@@ -215,7 +229,7 @@ public:
 	virtual IOnlinePresencePtr GetPresenceInterface() const OVERRIDE;
 	virtual bool Init() OVERRIDE;
 	virtual bool Shutdown() OVERRIDE;
-	virtual bool Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) OVERRIDE;
+	virtual bool Exec(const TCHAR* Cmd, FOutputDevice& Ar) OVERRIDE;
 	FString GetAppId() const OVERRIDE;
 
 	// FTickerObjectBase

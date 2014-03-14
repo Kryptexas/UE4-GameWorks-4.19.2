@@ -5,13 +5,13 @@
 
 void FAnimViewportShowCommands::RegisterCommands()
 {
-	UI_COMMAND( ToggleGrid, "Grid", "Display Grid", EUserInterfaceActionType::ToggleButton, FInputGesture() );
-	UI_COMMAND( HighlightOrigin, "Highlight Origin", "Highlight the origin lines on the grid", EUserInterfaceActionType::ToggleButton, FInputGesture() );
+	UI_COMMAND(ShowGrid, "Show Grid", "Display Grid", EUserInterfaceActionType::ToggleButton, FInputGesture());
+	UI_COMMAND(HighlightOrigin, "Highlight Origin", "Highlight the origin lines on the grid", EUserInterfaceActionType::ToggleButton, FInputGesture());
 
-	UI_COMMAND( ToggleFloor, "Floor", "Display Floor", EUserInterfaceActionType::ToggleButton, FInputGesture() );
-	UI_COMMAND( ToggleSky, "Sky", "Display Sky", EUserInterfaceActionType::ToggleButton, FInputGesture() );
+	UI_COMMAND(ShowFloor, "Show Floor", "Display Floor", EUserInterfaceActionType::ToggleButton, FInputGesture());
+	UI_COMMAND(ShowSky, "Show Sky", "Display Sky", EUserInterfaceActionType::ToggleButton, FInputGesture());
 
-	UI_COMMAND( MuteAudio, "Mute Audio", "Mutes audio from the preview", EUserInterfaceActionType::ToggleButton, FInputGesture() );
+	UI_COMMAND(MuteAudio, "Mute Audio", "Mutes audio from the preview", EUserInterfaceActionType::ToggleButton, FInputGesture());
 
 
 	UI_COMMAND( ShowReferencePose, "Reference Pose", "Show reference pose on preview mesh", EUserInterfaceActionType::ToggleButton, FInputGesture() );

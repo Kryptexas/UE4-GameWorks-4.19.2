@@ -23,14 +23,14 @@ UDestructibleComponent::UDestructibleComponent(const class FPostConstructInitial
 	bHasCustomNavigableGeometry = EHasCustomNavigableGeometry::EvenIfNotCollidable;
 
 	BodyInstance.bEnableCollision_DEPRECATED = true;
+	BodyInstance.bUseAsyncScene = true;
+
 	static FName CollisionProfileName(TEXT("Destructible"));
 	SetCollisionProfileName(CollisionProfileName);
 
 	bAlwaysCreatePhysicsState = true;
 	bIsActive = true;
 	bMultiBodyOverlap = true;
-
-	LargeChunkThreshold = 25.f;
 }
 
 void UDestructibleComponent::Serialize(FArchive& Ar)
@@ -223,17 +223,15 @@ void UDestructibleComponent::CreatePhysicsState()
 		// Only enable a collision response if collision is enabled
 		CollResponse = GetCollisionResponseToChannels();
 
-		LargeChunkCollisionResponse.SetCollisionResponseContainer(CollResponse);
-		SmallChunkCollisionResponse.SetCollisionResponseContainer(CollResponse);
-		SmallChunkCollisionResponse.SetResponse(ECC_Pawn, ECR_Overlap);
+		ChunkCollisionResponse.SetCollisionResponseContainer(CollResponse);
+		ChunkCollisionResponse.SetResponse(ECC_Pawn, ECR_Overlap);
 	}
 	else
 	{
 		// now since by default it will all block, if collision is disabled, we need to set to ignore
 		MoveChannel = ECC_WorldStatic;
 		CollResponse.SetAllChannels(ECR_Ignore);
-		LargeChunkCollisionResponse.SetAllChannels(ECR_Ignore);
-		SmallChunkCollisionResponse.SetAllChannels(ECR_Ignore);
+		ChunkCollisionResponse.SetAllChannels(ECR_Ignore);
 	}
 
 	// Passing AssetInstanceID = 0 so we'll have self-collision
@@ -659,7 +657,17 @@ void UDestructibleComponent::RefreshBoneTransforms()
 			}
 		}
 
-
+		// Update poses for visible chunks
+		const physx::PxU16* VisibleChunks = ApexDestructibleActor->getVisibleChunks();
+		physx::PxU16 VisibleChunkCount = ApexDestructibleActor->getNumVisibleChunks();
+		while (VisibleChunkCount--)
+		{
+			const physx::PxU16 ChunkIndex = *VisibleChunks++;
+			// BRGTODO : Make a direct method to access the Px objects' quats
+			const physx::PxMat44 ChunkPoseRT = ApexDestructibleActor->getChunkPose(ChunkIndex);	// Unscaled
+			const physx::PxTransform Transform(ChunkPoseRT);
+			SetChunkWorldRT(ChunkIndex, P2UQuat(Transform.q), P2UVector(Transform.p));
+		}
 
 		// Send bones to render thread at end of frame
 		MarkRenderDynamicDataDirty();
@@ -749,12 +757,6 @@ void UDestructibleComponent::SetChunkVisible( int32 ChunkIndex, bool bVisible )
 
 		if (PActor != NULL)
 		{
-			//When we unhide a chunk, it might be the first time - in this case we need to update the transforms (only active transforms get updated after this)
-			//TODO: We can probably move this code somewhere so that it's only done the first time a chunk is created in case chunks are hidden unhidden again and again? (Not sure if this ever happens)
-			const physx::PxMat44 ChunkPoseRT = ApexDestructibleActor->getChunkPose(ChunkIndex);	// Unscaled
-			const physx::PxTransform Transform(ChunkPoseRT);
-			SetChunkWorldRT(ChunkIndex, P2UQuat(Transform.q), P2UVector(Transform.p));
-
 			// If actor has already a chunk info and userdata, we just make sure it is valid and update the 
 			// physx actor if needed. We do NOT do this for FormExtended structures, as in this case, the shapes/actors
 			// are moved to the 1st structure object internally by APEX.
@@ -796,7 +798,7 @@ void UDestructibleComponent::SetChunkVisible( int32 ChunkIndex, bool bVisible )
 				// Set collision response to non-root chunks
 				if (GetDestructibleMesh()->ApexDestructibleAsset->getChunkParentIndex(ChunkIndex) >= 0)
 				{
-					SetCollisionResponseForActor(PActor, ChunkIndex);
+					SetCollisionResponseForActor(ChunkCollisionResponse, PActor, ChunkIndex);
 				}
 			}
 		}
@@ -1122,19 +1124,7 @@ bool UDestructibleComponent::IsAnySimulatingPhysics() const
 }
 
 #if WITH_PHYSX
-
-bool UDestructibleComponent::IsChunkLarge(int32 ChunkIdx) const
-{
-#if WITH_APEX
-	check(ApexDestructibleActor);
-	physx::PxBounds3 Bounds = ApexDestructibleActor->getChunkBounds(ChunkIdx);
-	return Bounds.getExtents().maxElement() > LargeChunkThreshold;
-#else
-	return true;
-#endif // WITH_APEX
-}
-
-void UDestructibleComponent::SetCollisionResponseForActor(PxRigidDynamic* Actor, int32 ChunkIdx)
+void UDestructibleComponent::SetCollisionResponseForActor(const FCollisionResponse& ColResponse, PxRigidDynamic* Actor, int32 ChunkIdx)
 {
 	// Get collision channel and response
 	PxFilterData PQueryFilterData, PSimFilterData;
@@ -1142,10 +1132,7 @@ void UDestructibleComponent::SetCollisionResponseForActor(PxRigidDynamic* Actor,
 	if(IsCollisionEnabled())
 	{
 		AActor* Owner = GetOwner();
-		bool bLargeChunk = IsChunkLarge(ChunkIdx);
-		const FCollisionResponse & ColResponse = bLargeChunk ? LargeChunkCollisionResponse : SmallChunkCollisionResponse;
-		CreateShapeFilterData(MoveChannel, (Owner ? Owner->GetUniqueID() : 0), ColResponse.GetResponseContainer(), 0, ChunkIdxToBoneIdx(ChunkIdx), PQueryFilterData, PSimFilterData, BodyInstance.bUseCCD, BodyInstance.bNotifyRigidBodyCollision, false);
-		
+		CreateShapeFilterData(MoveChannel, (Owner ? Owner->GetUniqueID() : 0), ColResponse.GetResponseContainer(), 0, ChunkIdxToBoneIdx(ChunkIdx), PQueryFilterData, PSimFilterData, BodyInstance.bUseCCD, BodyInstance.bNotifyRigidBodyCollision, false);		
 		PQueryFilterData.word3 |= EPDF_SimpleCollision | EPDF_ComplexCollision;
 
 		SCOPED_SCENE_WRITE_LOCK(Actor->getScene());

@@ -55,13 +55,14 @@ struct FNavMeshSceneProxyData : public TSharedFromThis<FNavMeshSceneProxyData, E
 		PathCollidingGeomVerts.Reset();
 		MeshBuilders.Reset();
 		DebugLabels.Reset();
-		Bounds.Init();
 
 		bNeedsNewData = true;
 		bDataGathered = false;
 		bSkipDistanceCheck = false;
 		bDrawClusters = false;
 		bEnableDrawing = false;
+		bShowOnlyDefaultAgent = false;
+		bSupportsDefaultAgent = false;
 		bDrawPathCollidingGeometry = false;
 	}
 
@@ -84,7 +85,7 @@ struct FNavMeshSceneProxyData : public TSharedFromThis<FNavMeshSceneProxyData, E
 		TArray<int32> Indices;
 		FColor ClusterColor;
 	};
-	TArray<FDebugMeshData> MeshBuilders;
+	TArray<FDebugMeshData>	MeshBuilders;
 
 	struct FDebugText
 	{
@@ -94,7 +95,6 @@ struct FNavMeshSceneProxyData : public TSharedFromThis<FNavMeshSceneProxyData, E
 		{}
 	};
 	TArray<FDebugText> DebugLabels;
-	FBox Bounds;
 
 	FVector NavMeshDrawOffset;
 	FCriticalSection CriticalSection;
@@ -102,6 +102,8 @@ struct FNavMeshSceneProxyData : public TSharedFromThis<FNavMeshSceneProxyData, E
 	uint32 bSkipDistanceCheck : 1;
 	uint32 bDrawClusters : 1;
 	uint32 bEnableDrawing:1;
+	uint32 bShowOnlyDefaultAgent:1;
+	uint32 bSupportsDefaultAgent:1;
 	uint32 bDrawPathCollidingGeometry:1;
 	uint32 bNeedsNewData:1;
 #endif // WITH_RECAST
@@ -208,7 +210,7 @@ public:
 			return;
 		}
 
-		if (ProxyData.IsValid() == false || !ProxyData->bEnableDrawing)
+		if (ProxyData.IsValid() == false || !ProxyData->bEnableDrawing || (ProxyData->bShowOnlyDefaultAgent && !ProxyData->bSupportsDefaultAgent))
 		{
 			return;
 		}

@@ -76,7 +76,10 @@ struct ENGINE_API FNavMeshPath : public FNavigationPath
 	virtual void DebugDraw(const ANavigationData* NavData, FColor PathColor, UCanvas* Canvas, bool bPersistent, const uint32 NextPathPointIndex = 0) const OVERRIDE;
 	
 	bool ContainsWithSameEnd(const FNavMeshPath* Other) const;
-	
+
+	/** A helper function in one of special-case-algorithms. Pops last edge in PathCorridorEdges */
+	void PopCorridorEdge();
+
 	void OffsetFromCorners(float Distance);
 
 	/** get cost of path, starting from next poly in corridor */
@@ -573,13 +576,13 @@ public:
 	//////////////////////////////////////////////////////////////////////////
 
 #if WITH_RECAST
-private:
+public:
 	//----------------------------------------------------------------------//
 	// Life cycle & serialization
 	//----------------------------------------------------------------------//
 	/** scans the world and creates appropriate RecastNavMesh instances */
 	static ANavigationData* CreateNavigationInstances(UNavigationSystem* NavSys);
-public:
+
 	/** Dtor */
 	virtual ~ARecastNavMesh();
 
@@ -639,12 +642,6 @@ public:
 
 	/** Retrieves XY coordinates of tile specified by index */
 	void GetNavMeshTileXY(int32 TileIndex, int32& OutX, int32& OutY, int32& Layer) const;
-
-	/** Retrieves XY coordinates of tile specified by position */
-	void GetNavMeshTileXY(const FVector& Point, int32& OutX, int32& OutY) const;
-
-	/** Retrieves all tile indices at matching XY coordinates */
-	void GetNavMeshTilesAt(int32 TileX, int32 TileY, TArray<int32>& Indices) const;
 
 	/** Retrieves number of tiles in this navmesh */
 	int32 GetNavMeshTilesCount() const;
@@ -778,10 +775,6 @@ public:
 	static bool TestPath(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query);
 	static bool TestHierarchicalPath(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query);
 	static bool NavMeshRaycast(const ANavigationData* Self, const FVector& RayStart, const FVector& RayEnd, FVector& HitLocation, TSharedPtr<const FNavigationQueryFilter> QueryFilter);
-
-	/** finds a Filter-passing navmesh location closest to specified StartLoc
-	 *	@return true if adjusting was required, false otherwise */
-	bool AdjustLocationWithFilter(const FVector& StartLoc, FVector& OutAdjustedLocation, const FNavigationQueryFilter& Filter) const;
 	
 	/** @return true is specified segment is fully on navmesh (respecting the optional filter) */
 	bool IsSegmentOnNavmesh(const FVector& SegmentStart, const FVector& SegmentEnd, TSharedPtr<const FNavigationQueryFilter> Filter = NULL) const;
@@ -790,7 +783,7 @@ public:
 	int32 DebugPathfinding(const FPathFindingQuery& Query, TArray<FRecastDebugPathfindingStep>& Steps);
 
 	/** Checks whether this instance of navmesh supports given Agent type */
-	virtual bool DoesSupportAgent(const FNavAgentProperties& AgentProps) const OVERRIDE;
+	bool IsGeneratedFor(const FNavAgentProperties& AgentProps) const;
 
 	static const class FRecastQueryFilter* GetNamedFilter(ERecastNamedFilter::Type FilterType);
 	FORCEINLINE static FNavPolyFlags GetNavLinkFlag() { return NavLinkFlag; }
@@ -823,7 +816,6 @@ private:
 	friend class FRecastNavMeshGenerator;
 	// retrieves RecastNavMeshImpl
 	FPImplRecastNavMesh* GetRecastNavMeshImpl() { return RecastNavMeshImpl; }
-	const FPImplRecastNavMesh* GetRecastNavMeshImpl() const { return RecastNavMeshImpl; }
 	// destroys FPImplRecastNavMesh instance if it has been created 
 	void DestroyRecastPImpl();
 	// @todo docuement
@@ -844,7 +836,6 @@ private:
 	 * This is a pimpl-style arrangement used to tightly hide the Recast internals from the rest of the engine.
 	 * Using this class should *not* require the inclusion of the private RecastNavMesh.h
 	 *	@NOTE: if we switch over to C++11 this should be unique_ptr
-	 *	@TODO since it's no secret we're using recast there's no point in having separate implementation class. FPImplRecastNavMesh should be merged into ARecastNavMesh
 	 */
 	class FPImplRecastNavMesh* RecastNavMeshImpl;
 
@@ -866,8 +857,11 @@ private:
 
 #endif // RECAST_ASYNC_REBUILDING
 
+public:
+	static FNavigationTypeCreator Creator;
 private:
 	static const FRecastQueryFilter* NamedFilters[ERecastNamedFilter::NamedFiltersCount];
 
 #endif // WITH_RECAST
+
 };

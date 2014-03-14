@@ -34,7 +34,7 @@ public:
 	virtual void RegisterCommands( ) OVERRIDE
 	{
 		UI_COMMAND(QuickLaunch, "Quick Launch", "Builds, cooks, and launches a build.", EUserInterfaceActionType::ToggleButton, FInputGesture(EModifierKey::Control, EKeys::L));
-		UI_COMMAND(CreateBuild, "Build", "Creates a build.", EUserInterfaceActionType::ToggleButton, FInputGesture(EModifierKey::Control, EKeys::B));
+		UI_COMMAND(Build, "Build", "Creates a build.", EUserInterfaceActionType::ToggleButton, FInputGesture(EModifierKey::Control, EKeys::B));
 		UI_COMMAND(DeployBuild, "Deploy Build", "Deploys a pre-made build.", EUserInterfaceActionType::ToggleButton, FInputGesture(EModifierKey::Control, EKeys::D));
 		UI_COMMAND(AdvancedBuild, "Advanced...", "Advanced launcher.", EUserInterfaceActionType::ToggleButton, FInputGesture(EModifierKey::Control, EKeys::A));
 	}
@@ -47,7 +47,7 @@ public:
 	/**
 	 * Toggles the data capture for all session instances. Global and custom command.
 	 */
-	TSharedPtr< FUICommandInfo > CreateBuild;
+	TSharedPtr< FUICommandInfo > Build;
 
 	/**
 	 * Toggles the data preview for all session instances. Global and custom command.

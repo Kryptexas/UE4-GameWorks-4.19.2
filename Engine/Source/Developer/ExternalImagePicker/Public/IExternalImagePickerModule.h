@@ -11,12 +11,6 @@
 DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnExternalImagePicked, const FString& /** InChosenImage */, const FString& /** InTargetImage */);
 
 /**
- * Delegate fired to get the path to start picking from.
- * @return the path the picker will use to start from
- */
-DECLARE_DELEGATE_RetVal(FString, FOnGetPickerPath);
-
-/**
  * Used for configuring the external image picker
  */
 struct FExternalImagePickerConfiguration
@@ -27,14 +21,11 @@ struct FExternalImagePickerConfiguration
 	{
 	}
 
-	/** The image on disk that the external image is stored as. */
+	/** The image on disk that the splash screen is stored as. */
 	FString TargetImagePath;
 
 	/** The image on disk that we will use if the target does not exist. */
 	FString DefaultImagePath;
-
-	/** The path the picker will use to start from */
-	FOnGetPickerPath OnGetPickerPath;
 
 	/** Delegate fired when picking a new image. */
 	FOnExternalImagePicked OnExternalImagePicked;
@@ -47,9 +38,6 @@ struct FExternalImagePickerConfiguration
 
 	/** Does the image need to be a specific size? */
 	bool bRequiresSpecificSize;
-
-	/** A property handle to use if required */
-	TSharedPtr<class IPropertyHandle> PropertyHandle;
 };
 
 /**

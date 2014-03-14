@@ -58,14 +58,14 @@ bool FOnlineFriendsIOS::ReadFriendsList(int32 LocalUserNum, const FString& ListN
 		bSuccessfullyBeganReadFriends = true;
 		dispatch_async(dispatch_get_main_queue(), ^
 		{
-		// Get the friends list for the local player from the server
-		[[GKLocalPlayer localPlayer] loadFriendsWithCompletionHandler:
-			^(NSArray* Friends, NSError* Error) 
-			{
-				if( Error )
+			// Get the friends list for the local player from the server
+			[[GKLocalPlayer localPlayer] loadFriendsWithCompletionHandler:
+				^(NSArray* Friends, NSError* Error) 
 				{
-					FString ErrorStr(FString::Printf(TEXT("FOnlineFriendsIOS::ReadFriendsList() - Failed to read friends list with error: [%i]"), [Error code]));
-					UE_LOG(LogOnline, Verbose, TEXT("%s"), *ErrorStr);
+					if( Error )
+					{
+						FString ErrorStr(FString::Printf(TEXT("FOnlineFriendsIOS::ReadFriendsList() - Failed to read friends list with error: [%i]"), [Error code]));
+						UE_LOG(LogOnline, Verbose, TEXT("%s"), *ErrorStr);
 
 						// Report back to the game thread whether this succeeded.
 						[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void)
@@ -73,41 +73,41 @@ bool FOnlineFriendsIOS::ReadFriendsList(int32 LocalUserNum, const FString& ListN
 							TriggerOnReadFriendsListCompleteDelegates(0, false, ListName, ErrorStr);
 							return true;
 						}];
-				}
-				else
-				{
-					[GKPlayer loadPlayersForIdentifiers:Friends withCompletionHandler:
-						^(NSArray* Players, NSError* Error2)
-						{
+					}
+					else
+					{
+						[GKPlayer loadPlayersForIdentifiers:Friends withCompletionHandler:
+							^(NSArray* Players, NSError* Error2)
+							{
 								FString ErrorStr;
 								bool bWasSuccessful = false;
-							if( Error2 )
-							{
-									ErrorStr = FString::Printf(TEXT("FOnlineFriendsIOS::ReadFriendsList() - Failed to loadPlayersForIdentifiers with error: [%i]"), [Error2 code]);
-							}
-							else
-							{
-								// Clear our previosly cached friends before we repopulate the cache.
-								CachedFriends.Empty();
-								for( int32 FriendIdx = 0; FriendIdx < [Players count]; FriendIdx++ )
+								if( Error2 )
 								{
-									GKPlayer* Friend = Players[ FriendIdx ];
-
-									// Add new friend entry to list
-									TSharedRef<FOnlineFriendIOS> FriendEntry(
-										new FOnlineFriendIOS(*FString(Friend.playerID))
-										);
-									FriendEntry->AccountData.Add(
-										TEXT("nickname"), *FString(Friend.alias)
-										);
-									CachedFriends.Add(FriendEntry);
-
-									UE_LOG(LogOnline, Verbose, TEXT("GCFriend - Id:%s Alias:%s"), *FString(Friend.playerID), 
-										*FriendEntry->GetDisplayName() );
+									ErrorStr = FString::Printf(TEXT("FOnlineFriendsIOS::ReadFriendsList() - Failed to loadPlayersForIdentifiers with error: [%i]"), [Error2 code]);
 								}
+								else
+								{
+									// Clear our previosly cached friends before we repopulate the cache.
+									CachedFriends.Empty();
+									for( int32 FriendIdx = 0; FriendIdx < [Players count]; FriendIdx++ )
+									{
+										GKPlayer* Friend = Players[ FriendIdx ];
+
+										// Add new friend entry to list
+										TSharedRef<FOnlineFriendIOS> FriendEntry(
+											new FOnlineFriendIOS(ANSI_TO_TCHAR([Friend.playerID cStringUsingEncoding:NSASCIIStringEncoding]))
+											);
+										FriendEntry->AccountData.Add(
+											TEXT("nickname"), ANSI_TO_TCHAR([Friend.alias cStringUsingEncoding:NSASCIIStringEncoding])
+											);
+										CachedFriends.Add(FriendEntry);
+
+										UE_LOG(LogOnline, Verbose, TEXT("GCFriend - Id:%s Alias:%s"), ANSI_TO_TCHAR([Friend.playerID cStringUsingEncoding:NSASCIIStringEncoding]), 
+											*FriendEntry->GetDisplayName() );
+									}
 
 									bWasSuccessful = true;
-							}
+								}
 								
 								// Report back to the game thread whether this succeeded.
 								[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void)
@@ -115,11 +115,11 @@ bool FOnlineFriendsIOS::ReadFriendsList(int32 LocalUserNum, const FString& ListN
 									TriggerOnReadFriendsListCompleteDelegates(0, bWasSuccessful, ListName, ErrorStr);
 									return true;
 								}];
-						}
-					];
+							}
+						];
+					}
 				}
-			}
-		];
+			];
 		});
 	}
 	else

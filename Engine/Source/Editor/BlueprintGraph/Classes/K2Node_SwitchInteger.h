@@ -14,6 +14,7 @@ class UK2Node_SwitchInteger : public UK2Node_Switch
 	UPROPERTY(EditAnywhere, Category=PinOptions, meta=(NoSpinbox=true))
 	int32 StartIndex;
 
+#if WITH_EDITOR
 	// UObject interface
 	void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
 	// End of UObject interface
@@ -35,4 +36,5 @@ protected:
 	virtual void CreateCasePins() OVERRIDE;
 	virtual void CreateSelectionPin() OVERRIDE;
 	virtual void RemovePin(UEdGraphPin* TargetPin) OVERRIDE;
+#endif 
 };

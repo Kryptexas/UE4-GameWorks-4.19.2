@@ -119,7 +119,7 @@ FString AGameSession::ApproveLogin(const FString& Options)
 
 	if (AtCapacity(SpectatorOnly == 1))
 	{
-		return NSLOCTEXT("NetworkErrors", "ServerAtCapacity", "Server full.").ToString();
+		return TEXT("Engine.GameMessage.MaxedOutMessage");
 	}
 
 	int32 SplitscreenCount = 0;
@@ -127,7 +127,7 @@ FString AGameSession::ApproveLogin(const FString& Options)
 
 	if (SplitscreenCount > MaxSplitscreensPerConnection)
 	{
-		return FText::Format(NSLOCTEXT("NetworkErrors", "ServerAtCapacitySS", "A maximum of '{0}' splitscreen players are allowed"), FText::AsNumber(MaxSplitscreensPerConnection)).ToString();
+		return FString::Printf(TEXT("A maximum of '%i' splitscreen players are allowed"), MaxSplitscreensPerConnection);
 	}
 
 	return TEXT("");
@@ -208,23 +208,20 @@ void AGameSession::NotifyLogout(APlayerController* PC)
 	UnregisterPlayer(PC);
 }
 
-bool AGameSession::KickPlayer(APlayerController* C, const FText& KickReason)
+bool AGameSession::KickPlayer(APlayerController* C, const FString& KickReason)
 {
 	// Do not kick logged admins
-	if (C != NULL && Cast<UNetConnection>(C->Player) != NULL)
+	if (C != NULL && Cast<UNetConnection>(C->Player)!=NULL )
 	{
 		if (C->GetPawn() != NULL)
 		{
 			C->GetPawn()->Destroy();
 		}
-
-		C->ClientWasKicked(KickReason);
-
+		C->ClientWasKicked();
 		if (C != NULL)
 		{
 			C->Destroy();
 		}
-
 		return true;
 	}
 	return false;
@@ -271,10 +268,10 @@ void AGameSession::DumpSessionState()
 	IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get();
 	if (OnlineSub)
 	{
-		IOnlineSessionPtr SessionInt = OnlineSub->GetSessionInterface();
-		if (SessionInt.IsValid())
+		IOnlineSessionPtr Sessions = OnlineSub->GetSessionInterface();
+		if (Sessions.IsValid())
 		{
-			SessionInt->DumpSessionState();
+			Sessions->DumpSessionState();
 		}
 	}
 }
@@ -295,17 +292,17 @@ void AGameSession::UpdateSessionJoinability(FName InSessionName, bool bPublicSea
 		IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get();
 		if (OnlineSub)
 		{
-			IOnlineSessionPtr SessionInt = OnlineSub->GetSessionInterface();
-			if (SessionInt.IsValid())
+			IOnlineSessionPtr Sessions = OnlineSub->GetSessionInterface();
+			if (Sessions.IsValid())
 			{
-				FOnlineSessionSettings* GameSettings = SessionInt->GetSessionSettings(InSessionName);
+				FOnlineSessionSettings* GameSettings = Sessions->GetSessionSettings(InSessionName);
 				if (GameSettings != NULL)
 				{
 					GameSettings->bAllowInvites = bAllowInvites;
 					GameSettings->bAllowJoinInProgress = bPublicSearchable;
 					GameSettings->bAllowJoinViaPresence = bJoinViaPresence && !bJoinViaPresenceFriendsOnly;
 					GameSettings->bAllowJoinViaPresenceFriendsOnly = bJoinViaPresenceFriendsOnly;
-					SessionInt->UpdateSession(InSessionName, *GameSettings, true);
+					Sessions->UpdateSession(InSessionName, *GameSettings, true);
 				}
 			}
 		}

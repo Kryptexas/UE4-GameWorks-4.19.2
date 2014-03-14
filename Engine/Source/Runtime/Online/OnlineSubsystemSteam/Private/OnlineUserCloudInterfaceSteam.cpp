@@ -23,7 +23,7 @@ void FOnlineAsyncTaskSteamEnumerateUserFiles::Tick()
 		{
 			//SteamSubsystem->GetUserCloudInterface()->DumpCloudState(UserId);
 
-			FScopeLock ScopeLock(&Subsystem->UserCloudDataLock);
+			FScopeLock(&Subsystem->UserCloudDataLock);
 
 			// Get or create the user metadata entry and empty it
 			FSteamUserCloudData* UserMetadata = Subsystem->GetUserCloudEntry(UserId);
@@ -82,7 +82,7 @@ void FOnlineAsyncTaskSteamReadUserFile::Tick()
 			const int32 FileSize = SteamRemoteStorage()->GetFileSize(TCHAR_TO_UTF8(*FileName));
 			if (FileSize >= 0 && FileSize <= k_unMaxCloudFileChunkSize)
 			{
-				FScopeLock ScopeLock(&Subsystem->UserCloudDataLock);
+				FScopeLock(&Subsystem->UserCloudDataLock);
 				// Create or get the current entry for this file
 				FSteamUserCloudData* UserCloud = Subsystem->GetUserCloudEntry(UserId);
 				if (UserCloud)
@@ -119,7 +119,7 @@ void FOnlineAsyncTaskSteamReadUserFile::Tick()
 	}
 
 	{
-		FScopeLock ScopeLock(&Subsystem->UserCloudDataLock);
+		FScopeLock(&Subsystem->UserCloudDataLock);
 		FSteamUserCloudData* UserCloud = Subsystem->GetUserCloudEntry(UserId);
 		if (UserCloud)
 		{
@@ -155,7 +155,7 @@ bool FOnlineAsyncTaskSteamWriteUserFile::WriteUserFile(const FUniqueNetId& UserI
 				{
 					if (SteamRemoteStorage()->FileWrite(TCHAR_TO_UTF8(*FileToWrite), Contents.GetData(), Contents.Num()))
 					{
-						FScopeLock ScopeLock(&Subsystem->UserCloudDataLock);
+						FScopeLock(&Subsystem->UserCloudDataLock);
 						FSteamUserCloudData* UserCloud = Subsystem->GetUserCloudEntry(UserId);
 						if (UserCloud)
 						{
@@ -196,7 +196,7 @@ bool FOnlineAsyncTaskSteamWriteUserFile::WriteUserFile(const FUniqueNetId& UserI
 	}
 
 	{
-		FScopeLock ScopeLock(&Subsystem->UserCloudDataLock);
+		FScopeLock(&Subsystem->UserCloudDataLock);
 		FSteamUserCloudData* UserCloud = Subsystem->GetUserCloudEntry(UserId);
 		if (UserCloud)
 		{

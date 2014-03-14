@@ -72,14 +72,12 @@ void TStaticMeshDrawList<DrawingPolicyType>::DrawElement(
 		bDrawnShared = true;
 	}
 	
-	uint32 BackFaceEnd = DrawingPolicyLink->DrawingPolicy.NeedsBackfacePass() ? 2 : 1;
-
 	int32 BatchElementIndex = 0;
 	do
 	{
 		if(BatchElementMask & 1)
 		{
-			for (uint32 BackFace = 0; BackFace < BackFaceEnd; ++BackFace)
+			for (int32 bBackFace = 0; bBackFace < (DrawingPolicyLink->DrawingPolicy.NeedsBackfacePass() ? 2 : 1); bBackFace++)
 			{
 				INC_DWORD_STAT(STAT_StaticDrawListMeshDrawCalls);
 
@@ -88,7 +86,7 @@ void TStaticMeshDrawList<DrawingPolicyType>::DrawElement(
 					Element.Mesh->PrimitiveSceneInfo->Proxy,
 					*Element.Mesh,
 					BatchElementIndex,
-					!!BackFace,
+					!!bBackFace,
 					Element.PolicyData
 					);
 				DrawingPolicyLink->DrawingPolicy.DrawMesh(*Element.Mesh,BatchElementIndex);
@@ -208,11 +206,11 @@ bool TStaticMeshDrawList<DrawingPolicyType>::DrawVisible(
 		bool bDrawnShared = false;
 		FPlatformMisc::Prefetch(DrawingPolicyLink->CompactElements.GetTypedData());
 		const int32 NumElements = DrawingPolicyLink->Elements.Num();
-		FPlatformMisc::Prefetch(&DrawingPolicyLink->CompactElements.GetTypedData()->MeshId);
+		FPlatformMisc::Prefetch(&DrawingPolicyLink->CompactElements.GetTypedData()->VisibilityBitReference);
 		const FElementCompact* CompactElementPtr = DrawingPolicyLink->CompactElements.GetTypedData();
 		for(int32 ElementIndex = 0; ElementIndex < NumElements; ElementIndex++, CompactElementPtr++)
 		{
-			if(StaticMeshVisibilityMap.AccessCorrespondingBit(FRelativeBitReference(CompactElementPtr->MeshId)))
+			if(StaticMeshVisibilityMap.AccessCorrespondingBit(CompactElementPtr->VisibilityBitReference))
 			{
 				const FElement& Element = DrawingPolicyLink->Elements[ElementIndex];
 				INC_DWORD_STAT_BY(STAT_StaticMeshTriangles,Element.Mesh->GetNumPrimitives());
@@ -240,11 +238,11 @@ bool TStaticMeshDrawList<DrawingPolicyType>::DrawVisible(
 		bool bDrawnShared = false;
 		FPlatformMisc::Prefetch(DrawingPolicyLink->CompactElements.GetTypedData());
 		const int32 NumElements = DrawingPolicyLink->Elements.Num();
-		FPlatformMisc::Prefetch(&DrawingPolicyLink->CompactElements.GetTypedData()->MeshId);
+		FPlatformMisc::Prefetch(&DrawingPolicyLink->CompactElements.GetTypedData()->VisibilityBitReference);
 		const FElementCompact* CompactElementPtr = DrawingPolicyLink->CompactElements.GetTypedData();
 		for(int32 ElementIndex = 0; ElementIndex < NumElements; ElementIndex++, CompactElementPtr++)
 		{
-			if(StaticMeshVisibilityMap.AccessCorrespondingBit(FRelativeBitReference(CompactElementPtr->MeshId)))
+			if(StaticMeshVisibilityMap.AccessCorrespondingBit(CompactElementPtr->VisibilityBitReference))
 			{
 				const FElement& Element = DrawingPolicyLink->Elements[ElementIndex];
 				INC_DWORD_STAT_BY(STAT_StaticMeshTriangles,Element.Mesh->GetNumPrimitives());
@@ -277,11 +275,11 @@ int32 TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleFrontToBack(
 		FVector DrawingPolicyCenter = DrawingPolicyLink->CachedBoundingSphere.Center;
 		FPlatformMisc::Prefetch(DrawingPolicyLink->CompactElements.GetTypedData());
 		const int32 NumElements = DrawingPolicyLink->Elements.Num();
-		FPlatformMisc::Prefetch(&DrawingPolicyLink->CompactElements.GetTypedData()->MeshId);
+		FPlatformMisc::Prefetch(&DrawingPolicyLink->CompactElements.GetTypedData()->VisibilityBitReference);
 		const FElementCompact* CompactElementPtr = DrawingPolicyLink->CompactElements.GetTypedData();
 		for(int32 ElementIndex = 0; ElementIndex < NumElements; ElementIndex++, CompactElementPtr++)
 		{
-			if(StaticMeshVisibilityMap.AccessCorrespondingBit(FRelativeBitReference(CompactElementPtr->MeshId)))
+			if(StaticMeshVisibilityMap.AccessCorrespondingBit(CompactElementPtr->VisibilityBitReference))
 			{
 				const FElement& Element = DrawingPolicyLink->Elements[ElementIndex];
 				const FBoxSphereBounds& Bounds = Element.Bounds;

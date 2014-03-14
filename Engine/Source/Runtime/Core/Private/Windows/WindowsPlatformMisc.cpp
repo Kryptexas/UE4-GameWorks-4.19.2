@@ -1770,19 +1770,6 @@ FString FWindowsPlatformMisc::GetCPUVendor()
 	return Vendor;
 }
 
-uint32 FWindowsPlatformMisc::GetCPUInfo()
-{
-	uint32 Info = 0;
-	if (HasCPUIDInstruction())
-	{
-		int Args[4];
-		__cpuid(Args, 1);
-
-		Info = Args[0];
-	}
-	return Info;
-}
-
 bool FWindowsPlatformMisc::GetRegistryString(const FString& InRegistryKey, const FString& InValueName, bool bPerUserSetting, FString& OutValue)
 {
 	FString RegistryValue;
@@ -1871,9 +1858,4 @@ int32 FWindowsPlatformMisc::GetCacheLineSize()
 		check(Result && !(Result & (Result - 1))); // assumed to be a power of two
 	}
 	return Result;
-}
-
-const TCHAR* FWindowsPlatformMisc::GetDefaultPathSeparator()
-{
-	return TEXT( "\\" );
 }

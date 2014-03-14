@@ -33,8 +33,8 @@ public:
 	virtual void RegisterCommands( ) OVERRIDE
 	{
 		UI_COMMAND(Clear, "Clear Log", "Clear the log window", EUserInterfaceActionType::Button, FInputGesture());
-		UI_COMMAND(SessionCopy, "Copy", "Copy the selected log messages to the clipboard", EUserInterfaceActionType::Button, FInputGesture());
-		UI_COMMAND(SessionSave, "Save Log...", "Save the entire log to a file", EUserInterfaceActionType::ToggleButton, FInputGesture());
+		UI_COMMAND(Copy, "Copy", "Copy the selected log messages to the clipboard", EUserInterfaceActionType::Button, FInputGesture());
+		UI_COMMAND(Save, "Save Log...", "Save the entire log to a file", EUserInterfaceActionType::ToggleButton, FInputGesture());
 	}
 
 	// End TCommands interface
@@ -42,6 +42,6 @@ public:
 public:
 
 	TSharedPtr<FUICommandInfo> Clear;
-	TSharedPtr<FUICommandInfo> SessionCopy;
-	TSharedPtr<FUICommandInfo> SessionSave;
+	TSharedPtr<FUICommandInfo> Copy;
+	TSharedPtr<FUICommandInfo> Save;
 };

@@ -36,15 +36,7 @@ USkeletalMeshComponent::USkeletalMeshComponent(const class FPostConstructInitial
 	LineCheckBoundsScale = FVector(1.0f, 1.0f, 1.0f);
 #if WITH_APEX_CLOTHING
 	ClothMaxDistanceScale = 1.0f;
-	ClothTeleportMode = FClothingActor::Continuous;
-	PrevRootBoneMatrix = GetBoneMatrix(0); // save the root bone transform
-	bResetAfterTeleport = true;
-	TeleportDistanceThreshold = 300.0f;
-	TeleportRotationThreshold = 0.0f;// angles in degree, disabled by default
-	// pre-compute cloth teleport thresholds for performance
-	ClothTeleportCosineThresholdInRad = FMath::Cos(FMath::DegreesToRadians(TeleportRotationThreshold));
-	ClothTeleportDistThresholdSquared = TeleportDistanceThreshold * TeleportDistanceThreshold;
-	bNeedTeleportAndResetOnceMore = false;
+
 #if WITH_CLOTH_COLLISION_DETECTION
 	ClothingCollisionRevision = 0;
 #endif// #if WITH_CLOTH_COLLISION_DETECTION
@@ -492,11 +484,7 @@ void USkeletalMeshComponent::TickComponent(float DeltaTime, enum ELevelTick Tick
 	// Update bOldForceRefPose
 	bOldForceRefPose = bForceRefpose;
 
-	// if skeletal mesh has clothing assets, call TickClothing
-	if(SkeletalMesh && SkeletalMesh->ClothingAssets.Num() > 0)
-	{
-		TickClothing(DeltaTime + SkippedTickDeltaTime);
-	}
+	TickClothing();
 }
 
 
@@ -807,11 +795,11 @@ void USkeletalMeshComponent::EvaluateAnimation(/*FTransform & ExtractedRootMotio
 
 void USkeletalMeshComponent::UpdateSlaveComponent()
 {
-	check (MasterPoseComponent.IsValid());
+	check (MasterPoseComponent);
 
-	if(MasterPoseComponent->IsA(USkeletalMeshComponent::StaticClass()))
+	if (MasterPoseComponent->IsA(USkeletalMeshComponent::StaticClass()))
 	{
-		USkeletalMeshComponent* MasterSMC= CastChecked<USkeletalMeshComponent>(MasterPoseComponent.Get());
+		USkeletalMeshComponent* MasterSMC= CastChecked<USkeletalMeshComponent>(MasterPoseComponent);
 
 		if ( MasterSMC->AnimScriptInstance )
 		{
@@ -996,11 +984,11 @@ FBoxSphereBounds USkeletalMeshComponent::CalcBounds(const FTransform & LocalToWo
 
 	// if to use MasterPoseComponent's fixed skel bounds, 
 	// send MasterPoseComponent's Root Bone Translation
-	if(MasterPoseComponent.IsValid() && MasterPoseComponent->SkeletalMesh &&
+	if( MasterPoseComponent && MasterPoseComponent->SkeletalMesh && 
 		MasterPoseComponent->bComponentUseFixedSkelBounds &&
 		MasterPoseComponent->IsA((USkeletalMeshComponent::StaticClass())))
 	{
-		USkeletalMeshComponent* BaseComponent = CastChecked<USkeletalMeshComponent>(MasterPoseComponent.Get());
+		USkeletalMeshComponent* BaseComponent = CastChecked<USkeletalMeshComponent>(MasterPoseComponent);
 		RootBoneOffset = BaseComponent->RootBoneTranslation; // Adjust bounds by root bone translation
 	}
 	else

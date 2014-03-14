@@ -15,7 +15,7 @@ UAnimGraphNode_TransitionResult::UAnimGraphNode_TransitionResult(const FPostCons
 
 FLinearColor UAnimGraphNode_TransitionResult::GetNodeTitleColor() const
 {
-	return GEditor->AccessEditorUserSettings().ResultNodeTitleColor;
+	return FLinearColor(1.0f, 0.65f, 0.4f);
 }
 
 FString UAnimGraphNode_TransitionResult::GetTooltip() const

@@ -119,8 +119,18 @@ void UWorld::Serialize( FArchive& Ar )
 	}
 
 	Ar << ExtraReferencedObjects;
-	Ar << StreamingLevels;
-		
+
+	// Do not save streaming levels of a persistent world in a world composition
+	if (Ar.IsSaving() && WorldComposition)
+	{
+		TArray<ULevelStreaming*> EmptyStreaming;
+		Ar << EmptyStreaming;
+	}
+	else
+	{
+		Ar << StreamingLevels;
+	}
+	
 	if (Ar.UE4Ver() < VER_UE4_REMOVE_CLIENTDESTROYEDACTORCONTENT)
 	{
 		TArray<class UObject*>	TempClientDestroyedActorContent;
@@ -199,25 +209,6 @@ void UWorld::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collecto
 	Super::AddReferencedObjects( This, Collector );
 }
 
-void UWorld::PostDuplicate(bool bDuplicateForPIE)
-{
-	if (bDuplicateForPIE)
-	{
-		if (WorldComposition)
-		{
-			// Remove streaming levels created by World Browser, to avoid duplication with streaming levels from world composition
-			auto Predicate = [](ULevelStreaming* StreamingLevel)
-			{
-				return (!StreamingLevel || StreamingLevel->HasAnyFlags(RF_Transient));
-			};
-			StreamingLevels.RemoveAll(Predicate);
-
-			// Add streaming levels managed by world composition
-			StreamingLevels.Append(WorldComposition->TilesStreaming);
-		}
-	}
-}
-
 void UWorld::FinishDestroy()
 {
 	// Avoid cleanup if the world hasn't been initialized, e.g., the default object or a world object that got loaded
@@ -282,6 +273,23 @@ void UWorld::PostLoad()
 	Super::PostLoad();
 	CurrentLevel = PersistentLevel;
 
+	// let's setup navigation system for presistent level (world) only
+	const UWorld* MyOwningWorld = ULevel::StreamedLevelsOwningWorld.FindRef(GetOutermost()->GetFName());
+	if (MyOwningWorld == NULL	)
+	{
+		UNavigationSystem* NewNavSys = UNavigationSystem::CreateNavigationSystem(this);
+		if (NewNavSys != NULL)
+		{
+#if WITH_EDITOR
+			if (!UNavigationSystem::GetIsNavigationAutoUpdateEnabled() && !IsPlayInEditor())
+			{
+				UNavigationSystem::SetNavigationAutoUpdateEnabled(false, NewNavSys);
+			}
+#endif
+			SetNavigationSystem(NewNavSys);
+		}
+	}
+
 	// copy StreamingLevels from WorldSettings to this if exists
 	AWorldSettings * WorldSettings = GetWorldSettings(false, false);
 	if ( WorldSettings && WorldSettings->StreamingLevels_DEPRECATED.Num() > 0 )
@@ -296,13 +304,6 @@ void UWorld::PostLoad()
 	// Iterate over each LevelStreaming object
 	for( int32 LevelIndex=StreamingLevels.Num()-1; LevelIndex>=0; LevelIndex-- )
 	{
-		//Remove null entries
-		if (StreamingLevels[LevelIndex] == nullptr)
-		{
-			StreamingLevels.RemoveAt(LevelIndex);
-			continue;
-		}
-		
 		// See if its an 'always loaded' one
 		ULevelStreamingAlwaysLoaded* AlwaysLoadedLevel = Cast<ULevelStreamingAlwaysLoaded>( StreamingLevels[LevelIndex] );
 		if(AlwaysLoadedLevel)
@@ -461,8 +462,9 @@ UWorld* UWorld::GetWorld() const
 void UWorld::SetupParameterCollectionInstances()
 {
 	// Create an instance for each parameter collection in memory
-	for (auto* CurrentCollection : TObjectRange<UMaterialParameterCollection>())
+	for (TObjectIterator<UMaterialParameterCollection> It; It; ++It)
 	{
+		UMaterialParameterCollection* CurrentCollection = *It;
 		AddParameterCollectionInstance(CurrentCollection, false);
 	}
 
@@ -553,6 +555,12 @@ void UWorld::InitWorld(const InitializationValues IVS)
 
 	if (IVS.bInitializeScenes)
 	{
+		// Allocate the world's hash, navigation octree and scene.
+		if (IVS.bCreateNavigation && NavigationSystem == NULL)
+		{
+			SetNavigationSystem(UNavigationSystem::CreateNavigationSystem(this));
+		}
+
 		if (IVS.bCreatePhysicsScene)
 		{
 			// Create the physics scene
@@ -577,11 +585,6 @@ void UWorld::InitWorld(const InitializationValues IVS)
 	}
 
 	// Prepare AI systems
-	if (IVS.bCreateNavigation)
-	{
-		UNavigationSystem::CreateNavigationSystem(this);
-	}
-
 	if (GEngine->BehaviorTreeManagerClass != NULL)
 	{
 		BehaviorTreeManager = NewObject<UBehaviorTreeManager>(this, GEngine->BehaviorTreeManagerClass);
@@ -773,6 +776,43 @@ void UWorld::InitWorld(const InitializationValues IVS)
 	PersistentLevel->PrecomputedVolumeDistanceField.UpdateScene(Scene);
 	PersistentLevel->InitializeRenderingResources();
 
+	if (GEngine->bStartWithMatineeCapture)
+	{
+		TArray<FString> VisibleLevels;
+		GEngine->VisibleLevelsForMatineeCapture.ParseIntoArray(&VisibleLevels, TEXT("|"), true);
+		for( int32 LevelIndex=0; LevelIndex<StreamingLevels.Num(); LevelIndex++ )
+		{
+			ULevelStreaming* StreamingLevel	= StreamingLevels[LevelIndex];
+			if (StreamingLevel)
+			{	
+				for (int32 VisibleLevelIndex = 0; VisibleLevelIndex < VisibleLevels.Num(); ++VisibleLevelIndex)
+				{
+					FString LevelName = VisibleLevels[VisibleLevelIndex];
+					FString FullPackageName = StreamingLevel->PackageName.ToString();
+					FString ShortFullPackageName = FPackageName::GetLongPackageAssetName(FullPackageName);
+					// Check for Play on PC.  That prefix is a bit special as it's only 5 characters. (All others are 6)
+					if( ShortFullPackageName.StartsWith( FString( PLAYWORLD_CONSOLE_BASE_PACKAGE_PREFIX ) + TEXT( "PC") ) )
+					{
+						ShortFullPackageName = ShortFullPackageName.Right(ShortFullPackageName.Len() - 5);
+					}
+					else if( ShortFullPackageName.StartsWith( PLAYWORLD_CONSOLE_BASE_PACKAGE_PREFIX ) )
+					{
+						// This is a Play on Console map package prefix. (6 characters)
+						ShortFullPackageName = ShortFullPackageName.Right(ShortFullPackageName.Len() - 6);
+					}
+					FString ShortLevelName = FPackageName::GetShortName( LevelName );
+		
+					if (ShortLevelName == ShortFullPackageName)
+					{
+						StreamingLevel->bShouldBeLoaded		= true;
+						StreamingLevel->bShouldBeVisible	= true;
+						break;
+					}
+				}
+			}
+		}
+	}
+
 	BroadcastLevelsChanged();
 }
 
@@ -866,7 +906,7 @@ UWorld* UWorld::CreateWorld( const EWorldType::Type InWorldType, bool bInformEng
 	// Create new UWorld, ULevel and UModel.
 	UWorld* NewWorld = new( WorldPackage				, TEXT("NewWorld")			) UWorld(FPostConstructInitializeProperties(),FURL(NULL));
 	NewWorld->WorldType = InWorldType;
-	NewWorld->InitializeNewWorld(UWorld::InitializationValues().ShouldSimulatePhysics(false).EnableTraceCollision(true).CreateNavigation(InWorldType == EWorldType::Editor));
+	NewWorld->InitializeNewWorld(UWorld::InitializationValues().ShouldSimulatePhysics(false).EnableTraceCollision(true));
 
 	// Clear the dirty flag set during SpawnActor and UpdateLevelComponents
 	WorldPackage->SetDirtyFlag(false);
@@ -1567,7 +1607,7 @@ void UWorld::RemoveFromWorld( ULevel* Level )
 	check(!Level->IsPendingKill());
 	check(!Level->HasAnyFlags(RF_Unreachable));
 
-	if (CurrentLevelPendingVisibility == NULL && Level->bIsVisible)
+	if( CurrentLevelPendingVisibility == NULL )
 	{
 		// Keep track of timing.
 		double StartTime = FPlatformTime::Seconds();	
@@ -1631,14 +1671,6 @@ void UWorld::RemoveFromWorld( ULevel* Level )
 			WorldComposition->OnLevelRemovedFromWorld(Level);
 		}
 
-		// Clear inner level streaming references
-		UWorld* LevelWorld = Cast<UWorld>(Level->GetOuter());
-		for (ULevelStreaming* StreamingLevel : LevelWorld->StreamingLevels)
-		{
-			StreamingLevel->ClearLoadedLevel();
-			StreamingLevel->SetPendingUnloadLevel(NULL);
-		}
-		
 		// Make sure level always has OwningWorld in the editor
 		if ( IsGameWorld() )
 		{
@@ -1813,9 +1845,10 @@ int32 FLevelStreamingGCHelper::GetNumLevelsPendingPurge()
 
 FString UWorld::ConvertToPIEPackageName(const FString& PackageName, int32 PIEInstanceID)
 {
+	const FString Prefix = PLAYWORLD_PACKAGE_PREFIX;
 	const FString PackageAssetName = FPackageName::GetLongPackageAssetName(PackageName);
 	
-	if (PackageAssetName.StartsWith(PLAYWORLD_PACKAGE_PREFIX))
+	if (PackageAssetName.StartsWith(Prefix))
 	{
 		return PackageName;
 	}
@@ -1823,15 +1856,8 @@ FString UWorld::ConvertToPIEPackageName(const FString& PackageName, int32 PIEIns
 	{
 		check(PIEInstanceID != -1);
 		const FString PackageAssetPath = FPackageName::GetLongPackagePath(PackageName);
-		const FString PackagePIEPrefix = BuildPIEPackagePrefix(PIEInstanceID);
-		return FString::Printf(TEXT("%s/%s%s"), *PackageAssetPath, *PackagePIEPrefix, *PackageAssetName );
+		return FString::Printf(TEXT("%s/%s_%d_%s"), *PackageAssetPath, *Prefix, PIEInstanceID, *PackageAssetName );
 	}
-}
-
-FString UWorld::BuildPIEPackagePrefix(int PIEInstanceID)
-{
-	check(PIEInstanceID != -1);
-	return FString::Printf(TEXT("%s_%d_"), PLAYWORLD_PACKAGE_PREFIX, PIEInstanceID);
 }
 
 UWorld* UWorld::DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningWorld)
@@ -1859,8 +1885,7 @@ UWorld* UWorld::DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningW
 
 	ULevel::StreamedLevelsOwningWorld.Add(PIELevelPackage->GetFName(), OwningWorld);
 	UWorld* PIELevelWorld = CastChecked<UWorld>(StaticDuplicateObject(EditorLevelWorld, PIELevelPackage, *EditorLevelWorld->GetName(), RF_AllFlags, NULL, SDO_DuplicateForPie));
-	
-	PIELevelWorld->StreamingLevelsPrefix = BuildPIEPackagePrefix(WorldContext.PIEInstance);
+
 	{
 		ULevel* EditorLevel = EditorLevelWorld->PersistentLevel;
 		ULevel* PIELevel = PIELevelWorld->PersistentLevel;
@@ -1978,7 +2003,7 @@ void UWorld::UpdateLevelStreamingInner( UWorld* PersistentWorld, FSceneViewFamil
 		// See whether level is already loaded
 		if (bShouldBeLoaded)
 		{
-			const bool bBlockOnLoad = (!IsGameWorld() || !GEngine->bUseBackgroundLevelStreaming || bShouldBlockOnLoad);
+			const bool bBlockOnLoad = (!IsGameWorld() || !GEngine->bUseBackgroundLevelStreaming);
 			// Try to obtain level
 			StreamingLevel->RequestLevel(PersistentWorld, bAllowLevelLoadRequests, bBlockOnLoad);
 		}
@@ -2075,11 +2100,11 @@ void UWorld::UpdateLevelStreaming( FSceneViewFamily* ViewFamily )
 	{
 		// Make a copy of the current levels list 
 		// because levels count can be changed in the loop below
-		TArray<ULevel*> VisibleLevels = Levels;
-		for (int32 LevelIndex = 0; LevelIndex < VisibleLevels.Num(); ++LevelIndex)
+		TArray<ULevel*> VisibileLevels = Levels;
+		for (int32 LevelIndex = 0; LevelIndex < VisibileLevels.Num(); ++LevelIndex)
 		{
 			// Update streaming objects in all visible worlds including Persistent world
-			UWorld* InnerWorld = Cast<UWorld>(VisibleLevels[LevelIndex]->GetOuter());
+			UWorld* InnerWorld = Cast<UWorld>(VisibileLevels[LevelIndex]->GetOuter());
 			InnerWorld->UpdateLevelStreamingInner(this, ViewFamily);
 		}
 	}
@@ -2091,11 +2116,10 @@ void UWorld::UpdateLevelStreaming( FSceneViewFamily* ViewFamily )
 		// Block till all async requests are finished.
 		FlushAsyncLoading( NAME_None );
 	}
-	
-	TArray<ULevel*> VisibleLevels = Levels;
-	for (int LevelIndex = 1; LevelIndex < VisibleLevels.Num(); ++LevelIndex)
+		
+	for (int LevelIndex = Levels.Num()-1; LevelIndex >= 1; LevelIndex--)
 	{
-		ULevel* Level = VisibleLevels[LevelIndex];
+		ULevel* Level = Levels[LevelIndex];
 		
 		// Hide level if we have request to hide it and no request to keep it visible
 		if (Level->bIsVisible &&
@@ -2156,8 +2180,6 @@ void UWorld::EvaluateWorldOriginLocation(const FSceneViewFamily& ViewFamily)
 void UWorld::FlushLevelStreaming( FSceneViewFamily* ViewFamily, bool bOnlyFlushVisibility, FName ExcludeType)
 {
 	AWorldSettings* WorldSettings = GetWorldSettings();
-
-	TGuardValue<bool> FlushingLevelStreaming(bFlushingLevelStreaming, true);
 
 	// Allow queuing multiple load requests if we're performing a full flush and disallow if we're just
 	// flushing level visibility.
@@ -2863,7 +2885,6 @@ void UWorld::SetPhysicsScene(FPhysScene* InScene)
 	if(PhysicsScene != NULL)
 	{
 		PhysicsScene->OwningWorld = NULL;
-		delete PhysicsScene;
 	}
 
 	// Assign pointer
@@ -2947,8 +2968,8 @@ float UWorld::GetGravityZ() const
 
 float UWorld::GetDefaultGravityZ() const
 {
-	UPhysicsSettings * PhysSetting = UPhysicsSettings::Get();
-	return (PhysSetting != NULL) ? PhysSetting->DefaultGravityZ : 0.f;
+	AWorldSettings* WorldSettings = GetWorldSettings();
+	return (WorldSettings != NULL) ? WorldSettings->DefaultGravityZ : 0.f;
 }
 
 /** This is our global function for retrieving the current MapName **/
@@ -3409,12 +3430,7 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 						else if (!Connection->PlayerController->HasClientLoadedCurrentWorld())
 						{
 							// tell the client to go to our current map
-							FString NewLevelName = GetOutermost()->GetName();
-							UE_LOG(LogNet, Log, TEXT("Client joined but was sent to another level. Asking client to travel to: '%s'"), *NewLevelName);
-							LevelName = NewLevelName;
-
-							// Incrementing SeamlessTravelCount so that the following ServerNotifyLoadedWorld RPC will be able to call HandleSeamlessTravelPlayer
-							Connection->PlayerController->SeamlessTravelCount++;
+							//LevelName = FString(GWorld->GetOutermost()->GetName());
 						}
 						if (LevelName != TEXT(""))
 						{
@@ -3589,6 +3605,11 @@ bool UWorld::Listen( FURL& InURL )
 		NetDriver->MaxClientRate = NetDriver->MaxInternetClientRate;
 	}
 
+	// Create the Navigation system if required
+	if (GetNavigationSystem() == NULL)
+	{
+		SetNavigationSystem(UNavigationSystem::CreateNavigationSystem(this)); 
+	}
 	NextSwitchCountdown = NetDriver->ServerTravelPause;
 	return true;
 }
@@ -3713,7 +3734,19 @@ bool UWorld::SetNewWorldOrigin(const FIntPoint& InNewOrigin)
 		// Only visible levels need to be shifted
 		if (LevelToShift->bIsVisible)
 		{
-			LevelToShift->ApplyWorldOffset(Offset, true);
+			// We don't want to shift always loaded levels, because world scrolling mechanic does not work for them
+			bool bIsAlwaysLoaded = (LevelToShift != PersistentLevel && 
+									WorldComposition != NULL && 
+									WorldComposition->IsLevelAlwaysLoaded(LevelToShift));
+					
+			if (!bIsAlwaysLoaded)
+			{
+				LevelToShift->ApplyWorldOffset(Offset, true);
+			}
+			else
+			{
+				LevelToShift->ApplyWorldOffset(FVector::ZeroVector, true);
+			}
 		}
 	}
 			
@@ -3937,7 +3970,6 @@ void FSeamlessTravelHandler::StartLoadingDestination()
 {
 	if (bTransitionInProgress && bSwitchedToDefaultMap)
 	{
-		UE_LOG(LogWorld, Log, TEXT("StartLoadingDestination to: %s"), *PendingTravelURL.Map);
 		if (GUseSeekFreeLoading)
 		{
 			// load gametype specific resources
@@ -4270,7 +4302,6 @@ UWorld* FSeamlessTravelHandler::Tick()
 			// send loading complete notifications for all local players
 			for (FLocalPlayerIterator It(GEngine, LoadedWorld); It; ++It)
 			{
-				UE_LOG(LogWorld, Log, TEXT("Sending NotifyLoadedWorld for LP: %s PC: %s"), *It->GetName(), It->PlayerController ? *It->PlayerController->GetName() : TEXT("NoPC"));
 				if (It->PlayerController != NULL)
 				{
 					It->PlayerController->NotifyLoadedWorld(LoadedWorld->GetOutermost()->GetFName(), bSwitchedToDefaultMap);
@@ -4297,7 +4328,10 @@ UWorld* FSeamlessTravelHandler::Tick()
 				AGameMode* const GameMode = LoadedWorld->GetAuthGameMode();
 				if (GameMode)
 				{
-					UNavigationSystem::InitializeForWorld(LoadedWorld, NavigationSystem::GameMode);
+					if (LoadedWorld->GetNavigationSystem() != NULL)
+					{
+						LoadedWorld->GetNavigationSystem()->OnWorldInitDone(NavigationSystem::GameMode);
+					}
 
 					// inform the new GameMode so it can handle players that persisted
 					GameMode->PostSeamlessTravel();

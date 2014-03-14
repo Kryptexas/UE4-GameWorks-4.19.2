@@ -15,9 +15,12 @@ void FMatineeCommands::RegisterCommands()
 	UI_COMMAND(Stop, "Stop", "Stop", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::None, EKeys::K));
 	UI_COMMAND(PlayReverse, "Reverse", "Play in Reverse | Plays the Matinee sequence backwards, starting from the time cursor's position", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::None, EKeys::J));
 
-	UI_COMMAND(PlayPause, "Play/Pause", "Toggle Play/Pause", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::None, EKeys::P));
+	UI_COMMAND(PlayPause, "Pause", "Toggle Play/Pause", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::None, EKeys::P));
 
 	UI_COMMAND(CreateCameraActor, "Camera", "Create Camera Actor at Current Camera Location", EUserInterfaceActionType::Button, FInputGesture());
+
+	UI_COMMAND(MatineeUndo, "Undo", "Undo", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::Control, EKeys::Z));
+	UI_COMMAND(MatineeRedo, "Redo", "Redo", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::Control, EKeys::Y));
 
 	UI_COMMAND(ToggleSnap, "Snap", "Toggle Snap", EUserInterfaceActionType::ToggleButton, FInputGesture(EModifierKey::None, EKeys::S));
 	UI_COMMAND(ToggleSnapTimeToFrames, "Time to Frames", "Snap Time to Frames | Snaps the timeline cursor to the frame rate specified in the Snap Size setting", EUserInterfaceActionType::ToggleButton, FInputGesture());
@@ -110,8 +113,7 @@ void FMatineeCommands::RegisterCommands()
 	UI_COMMAND(NewLightingGroup, "Add New Lighting Group", "Adds new Lighting Group", EUserInterfaceActionType::Button, FInputGesture());
 	UI_COMMAND(NewDirectorGroup, "Add New Director Group", "Adds new Director Group", EUserInterfaceActionType::Button, FInputGesture());
 
-	UI_COMMAND(ToggleCurveEditor, "Curves", "Toggles curve editor", EUserInterfaceActionType::ToggleButton, FInputGesture());
-	UI_COMMAND(ToggleDirectorTimeline, "Director Timeline","Toggles director timeline", EUserInterfaceActionType::ToggleButton, FInputGesture());
+	UI_COMMAND(ToggleDirectorTimeline, "Show Timeline","Toggles director timeline", EUserInterfaceActionType::ToggleButton, FInputGesture());
 
 	//Key
 	UI_COMMAND(KeyModeCurveAuto, "Curve (Auto)","Sets mode to Curve (Auto)", EUserInterfaceActionType::Button, FInputGesture());
@@ -180,6 +182,6 @@ void FMatineeCommands::RegisterCommands()
 	UI_COMMAND(ChangeKeyInterpModeBreak,"Change Key Interp Mode Break","",EUserInterfaceActionType::Button,FInputGesture(EModifierKey::None, EKeys::Three));
 	UI_COMMAND(ChangeKeyInterpModeLinear,"Change Key Interp Mode Linear","",EUserInterfaceActionType::Button,FInputGesture(EModifierKey::None, EKeys::Four));
 	UI_COMMAND(ChangeKeyInterpModeConstant,"Change Key Interp Mode Constant","",EUserInterfaceActionType::Button,FInputGesture(EModifierKey::None, EKeys::Five));
-	UI_COMMAND(DeleteSelection, "Delete Selection", "", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::None, EKeys::Platform_Delete));
+	UI_COMMAND(DeleteSelection,"Delete Selection","",EUserInterfaceActionType::Button,FInputGesture(EModifierKey::None, EKeys::Delete));
 }
 PRAGMA_ENABLE_OPTIMIZATION

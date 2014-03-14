@@ -124,8 +124,6 @@ void SAssetView::Construct( const FArguments& InArgs )
 
 	bCanShowDevelopersFolder = InArgs._CanShowDevelopersFolder;
 
-	bPreloadAssetsForContextMenu = InArgs._PreloadAssetsForContextMenu;
-
 	SelectionMode = InArgs._SelectionMode;
 
 	bPendingUpdateThumbnails = false;
@@ -1032,7 +1030,7 @@ void SAssetView::OnDragLeave( const FDragDropEvent& DragDropEvent )
 	if( DragDrop::IsTypeMatch<FAssetDragDropOp>( DragDropEvent.GetOperation() ) )
 	{
 		TSharedPtr< FAssetDragDropOp > DragAssetOp = StaticCastSharedPtr< FAssetDragDropOp >( DragDropEvent.GetOperation() );	
-		DragAssetOp->ResetToDefaultToolTip();
+		DragAssetOp->ClearTooltip();
 	}
 }
 
@@ -1073,7 +1071,7 @@ FReply SAssetView::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent
 
 				if ( IsValidDrop )
 				{
-					DragAssetOp->SetToolTip( NSLOCTEXT( "AssetView", "OnDragOverCollection", "Add to Collection" ).ToString(), FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK"))) ;
+					DragAssetOp->SetTooltip( NSLOCTEXT( "AssetView", "OnDragOverCollection", "Add to Collection" ).ToString(), FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK")) );
 				}
 			}
 
@@ -2953,34 +2951,29 @@ bool SAssetView::CanOpenContextMenu() const
 		ObjectPaths.Add( AssetIt->ObjectPath.ToString() );
 	}
 
-	bool bLoadSuccessful = true;
-	bool bShouldPromptToLoadAssets = false;
+	// Should the user be asked to load unloaded assets
+	TArray<FString> UnloadedObjects;
+	const bool bShouldPromptToLoadAssets = ContentBrowserUtils::ShouldPromptToLoadAssets(ObjectPaths, UnloadedObjects);
 
-	if ( bPreloadAssetsForContextMenu )
+	bool bShouldLoadAssets = false;
+	if(bShouldPromptToLoadAssets)
 	{
-		// Should the user be asked to load unloaded assets
-		TArray<FString> UnloadedObjects;
-		bShouldPromptToLoadAssets = ContentBrowserUtils::ShouldPromptToLoadAssets(ObjectPaths, UnloadedObjects);
+		// The user should be prompted to loaded assets
+		bShouldLoadAssets = ContentBrowserUtils::PromptToLoadAssets(UnloadedObjects);
+	}
+	else
+	{
+		// The user should not be prompted to load assets but assets should still be loaded
+		bShouldLoadAssets = true;
+	}
 
-		bool bShouldLoadAssets = false;
-		if ( bShouldPromptToLoadAssets )
-		{
-			// The user should be prompted to loaded assets
-			bShouldLoadAssets = ContentBrowserUtils::PromptToLoadAssets(UnloadedObjects);
-		}
-		else
-		{
-			// The user should not be prompted to load assets but assets should still be loaded
-			bShouldLoadAssets = true;
-		}
-
-		if ( bShouldLoadAssets )
-		{
-			// Load assets that are unloaded
-			TArray<UObject*> LoadedObjects;
-			const bool bAllowedToPrompt = false;
-			bLoadSuccessful = ContentBrowserUtils::LoadAssetsIfNeeded(ObjectPaths, LoadedObjects, bAllowedToPrompt);
-		}
+	bool bLoadSuccessful = true;
+	if(bShouldLoadAssets)
+	{
+		// Load assets that are unloaded
+		TArray<UObject*> LoadedObjects;
+		const bool bAllowedToPrompt = false;
+		bLoadSuccessful = ContentBrowserUtils::LoadAssetsIfNeeded(ObjectPaths, LoadedObjects, bAllowedToPrompt);
 	}
 
 	// Do not show the context menu if we prompted the user to load assets or if the load failed

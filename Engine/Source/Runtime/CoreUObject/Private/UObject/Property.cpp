@@ -682,10 +682,6 @@ int32 UProperty::SetupOffset()
 	return Offset_Internal + GetSize();
 }
 
-bool UProperty::SameType(const UProperty* Other) const
-{
-	return Other && (this->GetClass() == Other->GetClass());
-}
 
 /**
  * Attempts to read an array index (xxx) sequence.  Handles const/enum replacements, etc.

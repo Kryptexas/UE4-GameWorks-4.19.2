@@ -35,8 +35,6 @@ public:
 	SLATE_BEGIN_ARGS(SAnimationEditorViewport) {}
 	SLATE_END_ARGS()
 
-	~SAnimationEditorViewport();
-
 	void Construct(const FArguments& InArgs, TSharedPtr<class FPersona> InPersona, TSharedPtr<class SAnimationEditorViewportTabBody> InTabBody);
 
 protected:
@@ -44,9 +42,6 @@ protected:
 	virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() OVERRIDE;
 	virtual TSharedPtr<SWidget> MakeViewportToolbar() OVERRIDE;
 	// End of SEditorViewport interface
-
-	/**  Handle undo/redo by refreshing the viewport */
-	void OnUndoRedo();
 
 protected:
 	// Viewport client

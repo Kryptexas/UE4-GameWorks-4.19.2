@@ -45,7 +45,7 @@ public:
 	-----------------------------------------------------------------------------*/
 
 	/** Saves all collected data to file or files. */
-	TSharedPtr< FUICommandInfo > ProfilerManager_Save;
+	TSharedPtr< FUICommandInfo > Save;
 
 	/** Stats Profiler */
 	TSharedPtr< FUICommandInfo > StatsProfiler;

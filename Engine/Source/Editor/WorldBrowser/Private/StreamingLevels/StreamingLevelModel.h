@@ -1,6 +1,30 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+namespace ELevelsAction
+{
+	enum Type
+	{
+		/**	The specified ChangedLevel is a newly created ULevel, if ChangedLevel is invalid then multiple Levels were added */	
+		Add,
+
+		/**	
+		 *	The specified ChangedLevel was just modified, if ChangedLevel is invalid then multiple Levels were modified. 
+		 *  ChangedProperty specifies what field on the ULevel was changed, if NAME_None then multiple fields were changed 
+		 */
+		Modify,
+
+		/**	A ULevel was deleted */
+		Delete,
+
+		/**	The specified ChangedLevel was just renamed */
+		Rename,
+
+		/**	A large amount of changes have occurred to a number of Levels. A full rebind will be required. */
+		Reset,
+	};
+}
+
 class FStreamingLevelCollectionModel;
 
 /**

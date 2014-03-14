@@ -27,7 +27,7 @@ void SAutomationExportMenu::Construct( const FArguments& InArgs, const TSharedRe
 			.ButtonContent()
 			[
 				SNew( STextBlock )
-				.Text( LOCTEXT("ExportButtonText", "Export") )
+				.Text( LOCTEXT("ExportButtonText", "Export").ToString() )
 			]
 			.ContentPadding( FMargin( 6.f, 2.f ) )
 				.MenuContent()
@@ -47,7 +47,7 @@ bool SAutomationExportMenu::AreReportsGenerated() const
 }
 
 
-void SAutomationExportMenu::BuildMenuItems( const FText& InName, EFileExportType::Type InType )
+void SAutomationExportMenu::BuildMenuItems( const FString InName, EFileExportType::Type InType )
 {
 	MenuHolderBox->AddSlot()
 	.AutoHeight()
@@ -73,11 +73,11 @@ void SAutomationExportMenu::CreateMenu()
 	MenuHolderBox->ClearChildren();
 
 	// Create new menu items
-	BuildMenuItems( LOCTEXT("ExportAllCheckbox", "Export All"), EFileExportType::FET_All );
-	BuildMenuItems( LOCTEXT("ExportStatusCheckBox", "Export Status"), EFileExportType::FET_Status );
-	BuildMenuItems( LOCTEXT("ExportErrorsCheckBox", "Export Errors"), EFileExportType::FET_Errors );
-	BuildMenuItems( LOCTEXT("ExportWarningsCheckBox", "Export Warning"), EFileExportType::FET_Warnings );
-	BuildMenuItems( LOCTEXT("ExportLogsCheckBox", "Export Logs"), EFileExportType::FET_Logs );
+	BuildMenuItems( LOCTEXT("ExportAllCheckbox", "Export All").ToString(), EFileExportType::FET_All );
+	BuildMenuItems( LOCTEXT("ExportStatusCheckBox", "Export Status").ToString(), EFileExportType::FET_Status );
+	BuildMenuItems( LOCTEXT("ExportErrorsCheckBox", "Export Errors").ToString(), EFileExportType::FET_Errors );
+	BuildMenuItems( LOCTEXT("ExportWarningsCheckBox", "Export Warning").ToString(), EFileExportType::FET_Warnings );
+	BuildMenuItems( LOCTEXT("ExportLogsCheckBox", "Export Logs").ToString(), EFileExportType::FET_Logs );
 
 	// Add the export button
 	MenuHolderBox->AddSlot()
@@ -87,30 +87,30 @@ void SAutomationExportMenu::CreateMenu()
 		.OnClicked( this, &SAutomationExportMenu::HandleExportDataClicked )
 		.IsEnabled( this, &SAutomationExportMenu::IsExportReady )
 		.ToolTipText( this, &SAutomationExportMenu::GetExportButtonTooltip )
-		.Text( LOCTEXT("ExportDataButton", "Export Data") )
+		.Text( LOCTEXT("ExportDataButton", "Export Data").ToString() )
 	];
 }
 
 
-FText SAutomationExportMenu::GetExportButtonTooltip() const
+FString SAutomationExportMenu::GetExportButtonTooltip() const
 {
 	// Export button tooltip
 	if ( ExportButton->IsEnabled() )
 	{
-		return LOCTEXT("ExportButtonEnabledText", "Export Data");
+		return LOCTEXT("ExportButtonEnabledText", "Export Data").ToString();
 	}
-	return LOCTEXT("ExportButtonFailedText", "No reports pass the export filter");
+	return LOCTEXT("ExportButtonFailedText", "No reports pass the export filter").ToString();
 }
 
 
-FText SAutomationExportMenu::GetExportComboButtonTooltip() const
+FString SAutomationExportMenu::GetExportComboButtonTooltip() const
 {
 	// Export combo too tip
 	if ( ExportMenuComboButton->IsEnabled() )
 	{
-		return LOCTEXT("ExportComboButtonEnabledText", "Export Data");
+		return LOCTEXT("ExportComboButtonEnabledText", "Export Data").ToString();
 	}
-	return LOCTEXT("ExportComboButtonFailedText", "Please generate the reports");
+	return LOCTEXT("ExportComboButtonFailedText", "Please generate the reports").ToString();
 }
 
 

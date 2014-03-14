@@ -141,11 +141,11 @@ void FAssetEditorToolkit::InitAssetEditor( const EToolkitMode::Type Mode, const 
 		FExecuteAction::CreateSP( this, &FAssetEditorToolkit::FindInContentBrowser_Execute ) );
 
 	ToolkitCommands->MapAction(
-		FGlobalEditorCommonCommands::Get().OpenDocumentation,
+		FGlobalEditorCommonCommands::Get().BrowseDocumentation,
 		FExecuteAction::CreateSP( this, &FAssetEditorToolkit::BrowseDocumentation_Execute ) );
 
 	ToolkitCommands->MapAction(
-		FAssetEditorCommonCommands::Get().ReimportAsset,
+		FAssetEditorCommonCommands::Get().Reimport,
 		FExecuteAction::CreateSP( this, &FAssetEditorToolkit::Reimport_Execute ) );
 
 	FGlobalEditorCommonCommands::MapActions(ToolkitCommands);
@@ -617,7 +617,7 @@ void FAssetEditorToolkit::FillDefaultHelpMenuCommands( FMenuBuilder& MenuBuilder
 	Args.Add(TEXT("Editor"), GetBaseToolkitName());
 	const FText ToolTip = FText::Format(LOCTEXT("BrowseDocumentationTooltip", "Browse {Editor} documentation..."), Args);
 
-	MenuBuilder.AddMenuEntry(FGlobalEditorCommonCommands::Get().OpenDocumentation, NAME_None, ToolTip);
+	MenuBuilder.AddMenuEntry(FGlobalEditorCommonCommands::Get().BrowseDocumentation, NAME_None, ToolTip);
 }
 
 void FAssetEditorToolkit::GenerateToolbar()

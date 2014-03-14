@@ -37,9 +37,8 @@ class SIntroTutorials : public SCompoundWidget
 	 */
 	void ChangePage(const FString& Path);
 
-	FText GetCurrentTutorialName() const;
-	FString GetCurrentExcerptIdentifierName() const;
-	FText GetCurrentExcerptTitle() const;
+	FString GetCurrentTutorialName() const;
+	FString GetCurrentExcerptTitle() const;
 	int32 GetCurrentExcerptIndex() const;
 	FString GetCurrentPagePath() const;
 	float GetCurrentPageElapsedTime() const;
@@ -73,7 +72,7 @@ private:
 	EVisibility GetNextButtonVisibility() const;
 	FText GetNextButtonText() const;
 	FText GetBackButtonText() const;
-	FText GetTimeRemaining() const;
+	FString GetTimeRemaining() const;
 	FReply OnHomeClicked();
 	FReply OnPreviousClicked();
 	bool OnPreviousIsEnabled() const;
@@ -82,7 +81,7 @@ private:
 	EVisibility GetContentVisibility() const;
 	EVisibility GetHomeContentVisibility() const;
 	TOptional<float> GetProgress() const;
-	FText GetProgressText() const;
+	FString GetProgressString() const;
 	const FSlateBrush* GetContentAreaBackground() const;
 
 	bool IsLastPage() const;

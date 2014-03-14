@@ -140,7 +140,7 @@ class ENGINE_API USkinnedMeshComponent : public UMeshComponent
 	 *	use the SpaceBases array in the MasterPoseComponent. This is used when constructing a character using multiple skeletal meshes sharing the same
 	 *	skeleton within the same Actor.
 	 */
-	TWeakObjectPtr< class USkinnedMeshComponent > MasterPoseComponent;
+	class USkinnedMeshComponent* MasterPoseComponent;
 
 protected:
 	/** 
@@ -580,12 +580,10 @@ private:
 	/** Update Rate Optimization ticking. */
 	void TickUpdateRate();
 
-protected:
 	/** Accumulated DeltaTime skipped by Update Rate Optimization. */
 	UPROPERTY(Transient)
 	float SkippedTickDeltaTime;
-	/** check whether animated or not */
-	bool bPoseTicked;
+
 public:
 	/**
 	 * Set MasterPoseComponent for this component

@@ -526,7 +526,7 @@ void SGraphPin::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& 
 				FString TooltipText;
 				Node->GetSchema()->GetAssetsPinHoverMessage(AssetOp->AssetData, GraphPinObj, TooltipText, bOkIcon);
 				const FSlateBrush* TooltipIcon = bOkIcon ? FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK")) : FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));;
-				AssetOp->SetToolTip(TooltipText, TooltipIcon);
+				AssetOp->SetTooltip(TooltipText, TooltipIcon);
 			}
 		}
 	}
@@ -546,7 +546,7 @@ void SGraphPin::OnDragLeave( const FDragDropEvent& DragDropEvent )
 	else if( DragDrop::IsTypeMatch<FAssetDragDropOp>(DragDropEvent.GetOperation()) )
 	{
 		TSharedPtr<FAssetDragDropOp> AssetOp = StaticCastSharedPtr<FAssetDragDropOp>(DragDropEvent.GetOperation());
-		AssetOp->ResetToDefaultToolTip();
+		AssetOp->ClearTooltip();
 	}
 }
 

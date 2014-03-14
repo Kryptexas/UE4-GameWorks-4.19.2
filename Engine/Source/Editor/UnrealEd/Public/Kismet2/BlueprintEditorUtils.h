@@ -50,20 +50,10 @@ public:
 	 */
 	static void PreloadConstructionScript(UBlueprint* Blueprint);
 
-	/** 
-	 * Helper function to patch the new CDO into the linker where the old one existed 
-	 */
-	static void PatchNewCDOIntoLinker(UObject* CDO, ULinkerLoad* Linker, int32 ExportIndex, TArray<UObject*>& ObjLoaded);
-
 	/**
 	 * Regenerates the class at class load time, and refreshes the blueprint
 	 */
 	static UClass* RegenerateBlueprintClass(UBlueprint* Blueprint, UClass* ClassToRegenerate, UObject* PreviousCDO, TArray<UObject*>& ObjLoaded);
-
-	/**
-	 * Input delegate pin's PinSubCategoryObject may be obsolete. But MCDelegate node has reference to actual function's signature.
-	 */
-	static void RefreshInputDelegatePins(UBlueprint* Blueprint);
 
 	/**
 	 * Copies the default properties of all parent blueprint classes in the chain to the specified blueprint's skeleton CDO

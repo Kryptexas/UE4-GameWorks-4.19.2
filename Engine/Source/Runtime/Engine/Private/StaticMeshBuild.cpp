@@ -94,7 +94,7 @@ void UStaticMesh::Build(bool bSilent)
 	if( SourceModels.Num() )
 	{
 		// Rescale simple collision if the user changed the mesh build scale
-		BodySetup->RescaleSimpleCollision( SourceModels[0].BuildSettings.BuildScale3D );
+		BodySetup->RescaleSimpleCollision( SourceModels[0].BuildSettings.BuildScale );
 	}
 
 	// Invalidate physics data if this has changed.

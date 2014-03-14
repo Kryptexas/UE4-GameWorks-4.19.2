@@ -1872,7 +1872,8 @@ struct CompressAnimationsFunctor
 					if( bCandidate )
 					{
 						++AnalyzeCompressionCandidates;
-						UE_LOG(LogPackageUtilities, Warning, TEXT("[%i] Animation could be recompressed: %s (%s), Trans96Savings: %i, Rot96Savings: %i, Scale96Savings: %i, Trans48Savings: %i, Rot48Savings: %i, Scale48Savings: %i, RotationOnlySavings: %i, RotationOnlyManyKeys: %i (bytes)"), 
+						UE_LOG(LogPackageUtilities, Warning, TEXT("[%i] Animation could be recompressed: %s (%s), Trans96Savings: %i, Rot96Savings: %i, Scale96Savings: %i, Trans48Savings: %i, Rot48Savings: %i, Scale48Savings: %i, \
+																  RotationOnlySavings: %i, RotationOnlyManyKeys: %i (bytes)"), 
 							AnalyzeCompressionCandidates, *AnimSeq->GetName(), *AnimSeq->GetFullName(), Trans96Savings, Rot96Savings, Scale96Savings, Trans48Savings, Rot48Savings, Scale48Savings, RotationOnlySavings, RotationOnlyManyKeys);
 						UE_LOG(LogPackageUtilities, Warning, TEXT("Translation Track Count, Num96TransTracks: %i, Num48TransTracks: %i, Num32TransTracks: %i, UnknownTransTrack: %i"), 
 							Num96TransTracks, Num48TransTracks, Num32TransTracks, UnknownTransTrack);
@@ -2444,7 +2445,7 @@ int32 UReplaceActorCommandlet::Main(const FString& Params)
 				}
 
 				// collect garbage to delete replaced actors and any objects only referenced by them (components, etc)
-				World->PerformGarbageCollectionAndCleanupActors();
+				World->PerformGarbageCollection();
 
 				// save the world
 				if( ( Package->IsDirty() == true ) && ( bIsDirty == true ) )

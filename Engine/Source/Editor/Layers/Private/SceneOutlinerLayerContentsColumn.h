@@ -25,7 +25,7 @@ public:
 
 	virtual SHeaderRow::FColumn::FArguments ConstructHeaderRowColumn() OVERRIDE;
 
-	virtual const TSharedRef< SWidget > ConstructRowWidget( const TSharedRef<SceneOutliner::TOutlinerTreeItem> TreeItem ) OVERRIDE;
+	virtual const TSharedRef< SWidget > ConstructRowWidget( const TWeakObjectPtr< AActor >&  InActor ) OVERRIDE;
 
 	virtual bool ProvidesSearchStrings();
 

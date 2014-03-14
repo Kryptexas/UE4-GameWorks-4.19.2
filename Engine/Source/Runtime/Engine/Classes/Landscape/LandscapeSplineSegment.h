@@ -73,7 +73,6 @@ struct FLandscapeSplineSegmentConnection
 	}
 };
 
-// Deprecated
 UENUM()
 enum LandscapeSplineMeshOrientation
 {
@@ -164,10 +163,6 @@ class ULandscapeSplineSegment : public UObject
 	/** Random seed used for choosing which spline meshes to use. */
 	UPROPERTY(EditAnywhere, Category=LandscapeSplineMeshes)
 	int32 RandomSeed;
-
-	/**  Max draw distance for all the mesh pieces used in this spline */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = LandscapeSplineMeshes, meta = (DisplayName = "Max Draw Distance"))
-	float LDMaxDrawDistance;
 
 	/** If the spline is above the terrain, whether to raise the terrain up to the level of the spline when applying it to the landscape. */
 	UPROPERTY(EditAnywhere, Category=LandscapeSplineSegment)

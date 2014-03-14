@@ -397,7 +397,7 @@ class UTransactor : public UObject
 	/**
 	 * Cancels the current transaction, no longer capture actions to be placed in the undo buffer.
 	 *
-	 * @param	StartIndex	the value of ActiveIndex when the transaction to be canceled was began. 
+	 * @param	StartIndex	the value of ActiveIndex when the transaction to be cancelled was began. 
 	 */
 	virtual void Cancel( int32 StartIndex = 0 ) PURE_VIRTUAL(UTransactor::Cancel,);
 
@@ -431,22 +431,6 @@ class UTransactor : public UObject
 	virtual bool CanRedo( FText* Text=NULL ) PURE_VIRTUAL(UTransactor::CanRedo,return false;);
 
 	/**
-	 * Gets the current length of the transaction queue.
-	 *
-	 * @return Queue length.
-	 */
-	virtual int32 GetQueueLength( ) const PURE_VIRTUAL(UTransactor::GetQueueLength,return 0;);
-
-	/**
-	 * Gets the transaction at the specified queue index.
-	 *
-	 * @param QueueIndex - The index of the transaction in the queue.
-	 *
-	 * @return A read-only pointer to the transaction, or NULL if it does not exist.
-	 */
-	virtual const FTransaction* GetTransaction( int32 QueueIndex ) const PURE_VIRTUAL(UTransactor::GetQueueEntry,return NULL;);
-
-	/**
 	 * Returns the description of the undo action that will be performed next.
 	 * This is the text that is shown next to the "Undo" item in the menu.
 	 * 
@@ -455,20 +439,6 @@ class UTransactor : public UObject
 	 * @return	text describing the next undo transaction
 	 */
 	virtual FUndoSessionContext GetUndoContext ( bool bCheckWhetherUndoPossible = true ) PURE_VIRTUAL(UTransactor::GetUndoDesc,return FUndoSessionContext(););
-
-	/**
-	 * Determines the amount of data currently stored by the transaction buffer.
-	 *
-	 * @return	number of bytes stored in the undo buffer
-	 */
-	virtual SIZE_T GetUndoSize() const PURE_VIRTUAL(UTransactor::GetUndoSize,return 0;);
-
-	/**
-	 * Gets the number of transactions that were undone and can be redone.
-	 *
-	 * @return Undo count.
-	 */
-	virtual int32 GetUndoCount( ) const PURE_VIRTUAL(UTransactor::GetUndoCount,return 0;);
 
 	/**
 	 * Returns the description of the redo action that will be performed next.

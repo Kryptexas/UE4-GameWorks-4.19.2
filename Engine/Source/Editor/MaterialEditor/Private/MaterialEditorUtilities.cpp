@@ -602,86 +602,23 @@ TSharedPtr<class IMaterialEditor> FMaterialEditorUtilities::GetIMaterialEditorFo
 
 void FMaterialEditorUtilities::AddMaterialExpressionCategory(FGraphActionMenuBuilder& ActionMenuBuilder, FString CategoryName, TArray<struct FMaterialExpression>* MaterialExpressions, bool bMaterialFunction)
 {
-	// Get type of dragged pin
-	uint32 FromPinType = 0;
-	if (ActionMenuBuilder.FromPin)
-	{
-		FromPinType = UMaterialGraphSchema::GetMaterialValueType(ActionMenuBuilder.FromPin);
-	}
-
 	for (int32 Index = 0; Index < MaterialExpressions->Num(); ++Index)
 	{
 		const FMaterialExpression& MaterialExpression = (*MaterialExpressions)[Index];
 		if (IsAllowedExpressionType(MaterialExpression.MaterialClass, bMaterialFunction))
 		{
-			if (!ActionMenuBuilder.FromPin || HasCompatibleConnection(MaterialExpression.MaterialClass, FromPinType, ActionMenuBuilder.FromPin->Direction, bMaterialFunction))
-			{
-				FFormatNamedArguments Arguments;
-				Arguments.Add(TEXT("Name"), FText::FromString( *MaterialExpression.Name ));
-				const FText ToolTip = FText::Format( LOCTEXT( "NewMaterialExpressionTooltip", "Adds a {Name} node here" ), Arguments );
-				TSharedPtr<FMaterialGraphSchemaAction_NewNode> NewNodeAction(new FMaterialGraphSchemaAction_NewNode(
-					CategoryName,
-					MaterialExpression.Name,
-					ToolTip.ToString(), 0));
-				ActionMenuBuilder.AddAction(NewNodeAction);
-				NewNodeAction->MaterialExpressionClass = MaterialExpression.MaterialClass;
-				NewNodeAction->Keywords = CastChecked<UMaterialExpression>(MaterialExpression.MaterialClass->GetDefaultObject())->GetKeywords();
-			}
+			FFormatNamedArguments Arguments;
+			Arguments.Add(TEXT("Name"), FText::FromString( *MaterialExpression.Name ));
+			const FText ToolTip = FText::Format( LOCTEXT( "NewMaterialExpressionTooltip", "Adds a {Name} node here" ), Arguments );
+			TSharedPtr<FMaterialGraphSchemaAction_NewNode> NewNodeAction(new FMaterialGraphSchemaAction_NewNode(
+				CategoryName,
+				MaterialExpression.Name,
+				ToolTip.ToString(), 0));
+			ActionMenuBuilder.AddAction(NewNodeAction);
+			NewNodeAction->MaterialExpressionClass = MaterialExpression.MaterialClass;
+			NewNodeAction->Keywords = CastChecked<UMaterialExpression>(MaterialExpression.MaterialClass->GetDefaultObject())->GetKeywords();
 		}
 	}
-}
-
-bool FMaterialEditorUtilities::HasCompatibleConnection(UClass* ExpressionClass, uint32 TestType, EEdGraphPinDirection TestDirection, bool bMaterialFunction)
-{
-	if (TestType != 0)
-	{
-		UMaterialExpression* DefaultExpression = CastChecked<UMaterialExpression>(ExpressionClass->GetDefaultObject());
-		if (TestDirection == EGPD_Output)
-		{
-			int32 NumInputs = DefaultExpression->GetInputs().Num();
-			for (int32 Index = 0; Index < NumInputs; ++Index)
-			{
-				uint32 InputType = DefaultExpression->GetInputType(Index);
-				if (CanConnectMaterialValueTypes(InputType, TestType))
-				{
-					return true;
-				}
-			}
-		}
-		else
-		{
-			int32 NumOutputs = DefaultExpression->GetOutputs().Num();
-			for (int32 Index = 0; Index < NumOutputs; ++Index)
-			{
-				uint32 OutputType = DefaultExpression->GetOutputType(Index);
-				if (CanConnectMaterialValueTypes(TestType, OutputType))
-				{
-					return true;
-				}
-			}
-		}
-		
-		if (bMaterialFunction)
-		{
-			// Specific test as Default object won't have texture input
-			if (ExpressionClass == UMaterialExpressionTextureSample::StaticClass() && TestType & MCT_Texture && TestDirection == EGPD_Output)
-			{
-				return true;
-			}
-			// Always allow creation of new inputs as they can take any type
-			else if (ExpressionClass == UMaterialExpressionFunctionInput::StaticClass())
-			{
-				return true;
-			}
-			// Allow creation of outputs for floats and material attributes
-			else if (ExpressionClass == UMaterialExpressionFunctionOutput::StaticClass() && TestType & (MCT_Float|MCT_MaterialAttributes))
-			{
-				return true;
-			}
-		}
-	}
-
-	return false;
 }
 
 #undef LOCTEXT_NAMESPACE

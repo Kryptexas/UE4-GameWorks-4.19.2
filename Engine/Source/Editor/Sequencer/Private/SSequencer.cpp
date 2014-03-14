@@ -196,7 +196,7 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class ISequenc
 						.OnCheckStateChanged( this, &SSequencer::OnAutoKeyChecked )
 						[
 							SNew( STextBlock )
-							.Text( LOCTEXT("ToggleAutoKey", "Auto Key") )
+							.Text( LOCTEXT("ToggleAutoKey", "Auto Key").ToString() )
 						]
 					]
 					+SHorizontalBox::Slot()
@@ -210,7 +210,7 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class ISequenc
 						.OnCheckStateChanged( this, &SSequencer::OnCleanViewChecked )
 						[
 							SNew( STextBlock )
-							.Text( LOCTEXT("ToggleCleanView", "Clean View") )
+							.Text( LOCTEXT("ToggleCleanView", "Clean View").ToString() )
 						]
 					]
 				]
@@ -308,7 +308,7 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class ISequenc
 		]
 	];
 
-	BreadcrumbTrail->PushCrumb(TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateSP(this, &SSequencer::GetRootMovieSceneName)), FSequencerBreadcrumb( Sequencer.Pin()->GetRootMovieSceneInstance() ));
+	BreadcrumbTrail->PushCrumb(TAttribute<FString>::Create(TAttribute<FString>::FGetter::CreateSP(this, &SSequencer::GetRootMovieSceneName)), FSequencerBreadcrumb( Sequencer.Pin()->GetRootMovieSceneInstance() ));
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
@@ -345,21 +345,17 @@ void SSequencer::UpdateBreadcrumbs(const TArray< TWeakObjectPtr<class UMovieScen
 	if( BreadcrumbTrail->PeekCrumb().BreadcrumbType == FSequencerBreadcrumb::MovieSceneType && BreadcrumbTrail->PeekCrumb().MovieSceneInstance.Pin() != FocusedMovieSceneInstance )
 	{
 		// The current breadcrumb is not a moviescene so we need to make a new breadcrumb in order return to the parent moviescene later
-		BreadcrumbTrail->PushCrumb( FText::FromString(FocusedMovieSceneInstance->GetMovieScene()->GetName()), FSequencerBreadcrumb( FocusedMovieSceneInstance ) );
+		BreadcrumbTrail->PushCrumb( FocusedMovieSceneInstance->GetMovieScene()->GetName(), FSequencerBreadcrumb( FocusedMovieSceneInstance ) );
 	}
 
 	if (Sequencer.Pin()->IsShotFilteringOn())
 	{
-		TAttribute<FText> CrumbString;
+		TAttribute<FString> CrumbString;
 		if (FilteringShots.Num() == 1)
 		{
-			CrumbString = TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateSP(this, &SSequencer::GetShotSectionTitle, FilteringShots[0].Get()));
+			CrumbString = TAttribute<FString>::Create(TAttribute<FString>::FGetter::CreateSP(this, &SSequencer::GetShotSectionTitle, FilteringShots[0].Get()));
 		}
-		else 
-		{
-			CrumbString = LOCTEXT("MultipleShots", "Multiple Shots");
-		}
-
+		else {CrumbString = TEXT("Multiple Shots");}
 		BreadcrumbTrail->PushCrumb(CrumbString, FSequencerBreadcrumb());
 	}
 
@@ -721,14 +717,14 @@ void SSequencer::OnCrumbClicked(const FSequencerBreadcrumb& Item)
 	}
 }
 
-FText SSequencer::GetRootMovieSceneName() const
+FString SSequencer::GetRootMovieSceneName() const
 {
-	return FText::FromString(Sequencer.Pin()->GetRootMovieScene()->GetName());
+	return Sequencer.Pin()->GetRootMovieScene()->GetName();
 }
 
-FText SSequencer::GetShotSectionTitle(UMovieSceneSection* ShotSection) const
+FString SSequencer::GetShotSectionTitle(UMovieSceneSection* ShotSection) const
 {
-	return Cast<UMovieSceneShotSection>(ShotSection)->GetTitle();
+	return Cast<UMovieSceneShotSection>(ShotSection)->GetTitle().ToString();
 }
 
 void SSequencer::DeleteSelectedNodes()

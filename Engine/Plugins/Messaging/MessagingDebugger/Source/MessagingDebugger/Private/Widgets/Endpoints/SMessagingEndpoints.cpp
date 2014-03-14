@@ -41,7 +41,7 @@ void SMessagingEndpoints::Construct( const FArguments& InArgs, const FMessagingD
 			.AutoHeight()
 			[
 				SNew(SExpandableArea)
-					.AreaTitle(LOCTEXT("EndpointFilterAreaTitle", "Endpoint Filter"))
+					.AreaTitle(LOCTEXT("EndpointFilterAreaTitle", "Endpoint Filter").ToString())
 					.InitiallyCollapsed(true)
 					.Padding(8.0f)
 					.BodyContent()
@@ -78,11 +78,11 @@ void SMessagingEndpoints::Construct( const FArguments& InArgs, const FMessagingD
 									[
 										SNew(SImage)
 											.Image(InStyle->GetBrush("Break"))
-											.ToolTipText(LOCTEXT("EndpointListBreakpointsColumnTooltip", "Breakpoints"))
+											.ToolTipText(LOCTEXT("EndpointListBreakpointsColumnTooltip", "Breakpoints").ToString())
 									]
 
 								+ SHeaderRow::Column("Name")
-									.DefaultLabel(LOCTEXT("EndpointListNameColumnHeader", "Name"))
+									.DefaultLabel(LOCTEXT("EndpointListNameColumnHeader", "Name").ToString())
 									.FillWidth(0.9f)
 
 								+ SHeaderRow::Column("Messages")
@@ -94,7 +94,7 @@ void SMessagingEndpoints::Construct( const FArguments& InArgs, const FMessagingD
 									[
 										SNew(SImage)
 											.Image(Style->GetBrush("SentMessage"))
-											.ToolTipText(LOCTEXT("TypeListMessagesColumnTooltip", "Number of sent and received messages"))
+											.ToolTipText(LOCTEXT("TypeListMessagesColumnTooltip", "Number of sent and received messages").ToString())
 									]
 
 								+ SHeaderRow::Column("Visibility")
@@ -106,7 +106,7 @@ void SMessagingEndpoints::Construct( const FArguments& InArgs, const FMessagingD
 									[
 										SNew(SImage)
 											.Image(InStyle->GetBrush("Visibility"))
-											.ToolTipText(LOCTEXT("EndpointListVisibilityColumnTooltip", "Visibility"))
+											.ToolTipText(LOCTEXT("EndpointListVisibilityColumnTooltip", "Visibility").ToString())
 									]
 							)
 					]

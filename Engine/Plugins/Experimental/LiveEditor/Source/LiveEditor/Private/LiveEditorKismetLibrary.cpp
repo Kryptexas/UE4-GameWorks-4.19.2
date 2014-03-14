@@ -5,7 +5,7 @@
 namespace nLiveEditorKismetLibrary
 {
 	template<typename T>
-	static T CalculateNewValue( T CurValue, TEnumAsByte<ELiveEditControllerType::Type> ControlType, float Delta, int32 MidiValue, bool bShouldClamp, float ClampMin, float ClampMax )
+	static T CalculateNewValue( T CurValue, float Delta, bool bShouldClamp, float ClampMin, float ClampMax )
 	{
 		if ( bShouldClamp )
 		{
@@ -15,29 +15,7 @@ namespace nLiveEditorKismetLibrary
 			}
 			else
 			{
-				//LERP fixed range controller towards correct value
-				//	If the user is switching between tuning multiple objects, the start position of fixed range controller hardware
-				//	will almost certainly be in the wrong physical location to represent the property's current value
-				//	we want to make sure that moving the controller is always changing the value, so we want to walk it
-				//	slowly towards the correct value as the user moves the physical controller
-				if ( ControlType == ELiveEditControllerType::ControlChangeFixed )
-				{
-					float CurValueFloat = (float)CurValue;
-					float CorrectPosition = (CurValueFloat-ClampMin) / (ClampMax-ClampMin);
-
-					float HardwarePosition = ((float)MidiValue)/127.0f;
-
-					const float Threshold = 0.05f;
-					if ( FMath::Abs(HardwarePosition - CorrectPosition) > Threshold )
-					{
-						int32 HardwareTicksRemaining = (Delta > 0)? 127-MidiValue : MidiValue-0;
-						float ValueRangeRemaining = (Delta > 0)? (T)ClampMax-CurValue : CurValue-(T)ClampMin;
-						float Sign = (Delta > 0)? 1.0f : -1.0f;
-						Delta = Sign * (ValueRangeRemaining / (float)HardwareTicksRemaining);
-					}
-				}
-
-				T NewValue = CurValue+(T)Delta;
+				T NewValue = CurValue+(T)FMath::Round(Delta);
 				NewValue = FMath::Clamp<T>( NewValue, (T)ClampMin, (T)ClampMax );
 				return NewValue;
 			}
@@ -91,7 +69,7 @@ namespace nLiveEditorKismetLibrary
 
 		return NULL;
 	}
-	static void ModifyPropertyValue( UObject *Target, const FString &PropertyName, TEnumAsByte<ELiveEditControllerType::Type> ControlType, float Delta, int32 MidiValue, bool bShouldClamp, float ClampMin, float ClampMax )
+	static void ModifyPropertyValue( UObject *Target, const FString &PropertyName, TEnumAsByte<ELiveEditControllerType::Type> ControlType, float Delta, bool bShouldClamp, float ClampMin, float ClampMax )
 	{
 		if ( Target == NULL )
 			return;
@@ -136,9 +114,6 @@ namespace nLiveEditorKismetLibrary
 
 		if ( bShouldClamp && ControlType == ELiveEditControllerType::ControlChangeFixed )
 		{
-			//if we are clamped and it's a fixed range controller, make sure that the Delta can cover the full span of the clamped range
-			//this overrides DeltaMult on the LiveEditObject Action in the case where DeltaMult is too small to cover the clamped range
-			//with the meager fidelity of Midi (127 ticks per controller)
 			float EvenDelta = (ClampMax - ClampMin)/127.0f;
 			if ( EvenDelta > FMath::Abs(Delta) )
 			{
@@ -151,70 +126,70 @@ namespace nLiveEditorKismetLibrary
 		{
 			UByteProperty *NumericProp = CastChecked<UByteProperty>(Prop);
 			uint8 CurValue = NumericProp->GetPropertyValue_InContainer(ContainerPtr);
-			uint8 NewValue = CalculateNewValue<uint8>( CurValue, ControlType, Delta, MidiValue, bShouldClamp, ClampMin, ClampMax );
+			uint8 NewValue = CalculateNewValue<uint8>( CurValue, Delta, bShouldClamp, ClampMin, ClampMax );
 			NumericProp->SetPropertyValue_InContainer(ContainerPtr, NewValue);
 		}
 		else if ( Prop->IsA( UInt8Property::StaticClass() ) )
 		{
 			UInt8Property *NumericProp = CastChecked<UInt8Property>(Prop);
 			uint8 CurValue = NumericProp->GetPropertyValue_InContainer(ContainerPtr);
-			uint8 NewValue = CalculateNewValue<uint8>( CurValue, ControlType, Delta, MidiValue, bShouldClamp, ClampMin, ClampMax );
+			uint8 NewValue = CalculateNewValue<uint8>( CurValue, Delta, bShouldClamp, ClampMin, ClampMax );
 			NumericProp->SetPropertyValue_InContainer(ContainerPtr, NewValue);
 		}
 		else if ( Prop->IsA( UInt16Property::StaticClass() ) )
 		{
 			UInt16Property *NumericProp = CastChecked<UInt16Property>(Prop);
 			int16 CurValue = NumericProp->GetPropertyValue_InContainer(ContainerPtr);
-			int16 NewValue = CalculateNewValue<int16>( CurValue, ControlType, Delta, MidiValue, bShouldClamp, ClampMin, ClampMax );
+			int16 NewValue = CalculateNewValue<int16>( CurValue, Delta, bShouldClamp, ClampMin, ClampMax );
 			NumericProp->SetPropertyValue_InContainer(ContainerPtr, NewValue);
 		}
 		else if ( Prop->IsA( UIntProperty::StaticClass() ) )
 		{
 			UIntProperty *NumericProp = CastChecked<UIntProperty>(Prop);
 			int32 CurValue = NumericProp->GetPropertyValue_InContainer(ContainerPtr);
-			int32 NewValue = CalculateNewValue<int32>( CurValue, ControlType, Delta, MidiValue, bShouldClamp, ClampMin, ClampMax );
+			int32 NewValue = CalculateNewValue<int32>( CurValue, Delta, bShouldClamp, ClampMin, ClampMax );
 			NumericProp->SetPropertyValue_InContainer(ContainerPtr, NewValue);
 		}
 		else if ( Prop->IsA( UInt64Property::StaticClass() ) )
 		{
 			UInt64Property *NumericProp = CastChecked<UInt64Property>(Prop);
 			int64 CurValue = NumericProp->GetPropertyValue_InContainer(ContainerPtr);
-			int64 NewValue = CalculateNewValue<int64>( CurValue, ControlType, Delta, MidiValue, bShouldClamp, ClampMin, ClampMax );
+			int64 NewValue = CalculateNewValue<int64>( CurValue, Delta, bShouldClamp, ClampMin, ClampMax );
 			NumericProp->SetPropertyValue_InContainer(ContainerPtr, NewValue);
 		}
 		else if ( Prop->IsA( UUInt16Property::StaticClass() ) )
 		{
 			UUInt16Property *NumericProp = CastChecked<UUInt16Property>(Prop);
 			uint16 CurValue = NumericProp->GetPropertyValue_InContainer(ContainerPtr);
-			uint16 NewValue = CalculateNewValue<uint16>( CurValue, ControlType, Delta, MidiValue, bShouldClamp, ClampMin, ClampMax );
+			uint16 NewValue = CalculateNewValue<uint16>( CurValue, Delta, bShouldClamp, ClampMin, ClampMax );
 			NumericProp->SetPropertyValue_InContainer(ContainerPtr, NewValue);
 		}
 		else if ( Prop->IsA( UUInt32Property::StaticClass() ) )
 		{
 			UUInt32Property *NumericProp = CastChecked<UUInt32Property>(Prop);
 			uint32 CurValue = NumericProp->GetPropertyValue_InContainer(ContainerPtr);
-			uint32 NewValue = CalculateNewValue<uint32>( CurValue, ControlType, Delta, MidiValue, bShouldClamp, ClampMin, ClampMax );
+			uint32 NewValue = CalculateNewValue<uint32>( CurValue, Delta, bShouldClamp, ClampMin, ClampMax );
 			NumericProp->SetPropertyValue_InContainer(ContainerPtr, NewValue);
 		}
 		else if ( Prop->IsA( UInt64Property::StaticClass() ) )
 		{
 			UInt64Property *NumericProp = CastChecked<UInt64Property>(Prop);
 			uint64 CurValue = NumericProp->GetPropertyValue_InContainer(ContainerPtr);
-			uint64 NewValue = CalculateNewValue<uint64>( CurValue, ControlType, Delta, MidiValue, bShouldClamp, ClampMin, ClampMax );
+			uint64 NewValue = CalculateNewValue<uint64>( CurValue, Delta, bShouldClamp, ClampMin, ClampMax );
 			NumericProp->SetPropertyValue_InContainer(ContainerPtr, NewValue);
 		}
 		else if ( Prop->IsA( UFloatProperty::StaticClass() ) )
 		{
 			UFloatProperty *NumericProp = CastChecked<UFloatProperty>(Prop);
 			float CurValue = NumericProp->GetPropertyValue_InContainer(ContainerPtr);
-			float NewValue = CalculateNewValue<float>( CurValue, ControlType, Delta, MidiValue, bShouldClamp, ClampMin, ClampMax );
+			float NewValue = CalculateNewValue<float>( CurValue, Delta, bShouldClamp, ClampMin, ClampMax );
 			NumericProp->SetPropertyValue_InContainer(ContainerPtr, NewValue);
 		}
 		else if ( Prop->IsA( UDoubleProperty::StaticClass() ) )
 		{
 			UDoubleProperty *NumericProp = CastChecked<UDoubleProperty>(Prop);
 			double CurValue = NumericProp->GetPropertyValue_InContainer(ContainerPtr);
-			double NewValue = CalculateNewValue<double>( CurValue, ControlType, Delta, MidiValue, bShouldClamp, ClampMin, ClampMax );
+			double NewValue = CalculateNewValue<double>( CurValue, Delta, bShouldClamp, ClampMin, ClampMax );
 			NumericProp->SetPropertyValue_InContainer(ContainerPtr, NewValue);
 		}
 	}
@@ -429,7 +404,7 @@ UObject *ULiveEditorKismetLibrary::GetBlueprintClassDefaultObject( UBlueprint *B
 	return Blueprint->GeneratedClass->ClassDefaultObject;
 }
 
-void ULiveEditorKismetLibrary::ModifyPropertyByName( UObject *Target, const FString &PropertyName, TEnumAsByte<ELiveEditControllerType::Type> ControlType, float Delta, int32 MidiValue, bool bShouldClamp, float ClampMin, float ClampMax )
+void ULiveEditorKismetLibrary::ModifyPropertyByName( UObject *Target, const FString &PropertyName, TEnumAsByte<ELiveEditControllerType::Type> ControlType, float Delta, bool bShouldClamp, float ClampMin, float ClampMax )
 {
-	nLiveEditorKismetLibrary::ModifyPropertyValue( Target, PropertyName, ControlType, Delta, MidiValue, bShouldClamp, ClampMin, ClampMax );
+	nLiveEditorKismetLibrary::ModifyPropertyValue( Target, PropertyName, ControlType, Delta, bShouldClamp, ClampMin, ClampMax );
 }

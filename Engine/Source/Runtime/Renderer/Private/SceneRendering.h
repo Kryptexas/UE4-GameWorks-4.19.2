@@ -224,17 +224,14 @@ public:
 
 private:
 
-	struct FOcclusionBatch
-	{
-		FRenderQueryRHIRef Query;
-		FGlobalDynamicVertexBuffer::FAllocation VertexAllocation;
-	};
-
 	/** The pending batches. */
-	TArray<FOcclusionBatch,SceneRenderingAllocator> BatchOcclusionQueries;
+	TArray<FRenderQueryRHIRef,SceneRenderingAllocator> BatchOcclusionQueries;
+
+	/** The pending primitives. */
+	TArray<FOcclusionPrimitive,SceneRenderingAllocator> Primitives;
 
 	/** The batch new primitives are being added to. */
-	FOcclusionBatch* CurrentBatchOcclusionQuery;
+	FRenderQueryRHIParamRef CurrentBatchOcclusionQuery;
 
 	/** The maximum number of primitives in a batch. */
 	const uint32 MaxBatchedPrimitives;

@@ -18,7 +18,6 @@
 #include "SnappingUtils.h"
 #include "PackageAutoSaver.h"
 #include "BSPOps.h"
-#include "ComponentVisualizer.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogUnrealEdEngine, Log, All);
@@ -88,9 +87,9 @@ void UUnrealEdEngine::Init(IEngineLoop* InEngineLoop)
 	{
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 
-		PropertyModule.RegisterCustomPropertyLayout("EditorLoadingSavingSettings", FOnGetDetailCustomizationInstance::CreateStatic(&FEditorLoadingSavingSettingsCustomization::MakeInstance));
-		PropertyModule.RegisterCustomPropertyLayout("GameMapsSettings", FOnGetDetailCustomizationInstance::CreateStatic(&FGameMapsSettingsCustomization::MakeInstance));
-		PropertyModule.RegisterCustomPropertyLayout("LevelEditorPlaySettings", FOnGetDetailCustomizationInstance::CreateStatic(&FLevelEditorPlaySettingsCustomization::MakeInstance));
+		PropertyModule.RegisterCustomPropertyLayout(UEditorLoadingSavingSettings::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic(&FEditorLoadingSavingSettingsCustomization::MakeInstance));
+		PropertyModule.RegisterCustomPropertyLayout(UGameMapsSettings::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic(&FGameMapsSettingsCustomization::MakeInstance));
+		PropertyModule.RegisterCustomPropertyLayout(ULevelEditorPlaySettings::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic(&FLevelEditorPlaySettingsCustomization::MakeInstance));
 	}
 }
 
@@ -125,23 +124,23 @@ void UUnrealEdEngine::MakeSortedSpriteInfo(TArray<FSpriteCategoryInfo>& OutSorte
 	// Iterate over all classes searching for those which derive from AActor and are neither deprecated nor abstract.
 	// It would be nice to only check placeable classes here, but we cannot do that as some non-placeable classes
 	// still end up in the editor (with sprites) procedurally, such as prefab instances and landscape actors.
-	for ( auto* Class : TObjectRange<UClass>() )
+	for ( TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt )
 	{
-		if ( Class->IsChildOf( AActor::StaticClass() )
-		&& !( Class->HasAnyClassFlags(CLASS_Abstract | CLASS_Deprecated) ) )
+		if ( ClassIt->IsChildOf( AActor::StaticClass() )
+		&& !( ClassIt->HasAnyClassFlags(CLASS_Abstract | CLASS_Deprecated) ) )
 		{
 			// Check if the class default actor has billboard components or arrow components that should be treated as
 			// sprites, and if so, add their categories to the array
-			const AActor* CurDefaultClassActor = Class->GetDefaultObject<AActor>();
+			const AActor* CurDefaultClassActor = ClassIt->GetDefaultObject<AActor>();
 			if ( CurDefaultClassActor )
 			{
 				TArray<UActorComponent*> Components;
 				CurDefaultClassActor->GetComponents(Components);
 
-				for ( auto* Comp : Components )
+				for ( TArray<UActorComponent*>::TConstIterator CompIter( Components ); CompIter; ++CompIter )
 				{
-					const UBillboardComponent* CurSpriteComponent = Cast<UBillboardComponent>( Comp );
-					const UArrowComponent* CurArrowComponent = (CurSpriteComponent ? NULL : Cast<UArrowComponent>( Comp ));
+					const UBillboardComponent* CurSpriteComponent = Cast<UBillboardComponent>( *CompIter );
+					const UArrowComponent* CurArrowComponent = (CurSpriteComponent ? NULL : Cast<UArrowComponent>( *CompIter ));
 					if ( CurSpriteComponent )
 					{
 						Local::AddSortedSpriteInfo( OutSortedSpriteInfo, CurSpriteComponent->SpriteInfo );
@@ -514,26 +513,10 @@ FString FClassPickerDefaults::GetName() const
 		LocNames.Add( TEXT("GameModeName"), LOCTEXT("GameModeName", "Game Mode") );
 	}
 
-	if ( LocTextNameID.IsEmpty() )
-	{
-		UClass* ItemClass = LoadClass<UObject>(NULL, *ClassName, NULL, LOAD_None, NULL);
-		check( ItemClass );
-		return EngineUtils::SanitizeDisplayName(ItemClass->GetName(), false);
-	}
-	
-	const FText* PreExistingName = LocNames.Find( LocTextNameID );
-	if ( PreExistingName )
-	{
-		return PreExistingName->ToString();
-	}
-
-	FText OutName;
-	if ( FText::FindText(TEXT(LOCTEXT_NAMESPACE), LocTextNameID, OutName) )
-	{
-		return OutName.ToString();
-	}
-		
-	return LocTextNameID;
+	check( LocTextNameID.Len() > 0 );
+	const FText* OutName = LocNames.Find( LocTextNameID );
+	check( OutName );
+	return OutName->ToString();
 }
 
 
@@ -550,24 +533,10 @@ FString FClassPickerDefaults::GetDescription() const
 		LocDescs.Add( TEXT("GameModeDesc"), LOCTEXT("GameModeDesc", "Game Mode defines the game being played, its rules, scoring, and other facets of the game type.") );
 	}
 
-	if ( LocTextDescriptionID.IsEmpty() )
-	{
-		return LOCTEXT("NoClassPickerDesc", "No Description.").ToString();
-	}
-
-	const FText* PreExistingDesc = LocDescs.Find( LocTextDescriptionID );
-	if ( PreExistingDesc )
-	{
-		return PreExistingDesc->ToString();
-	}
-
-	FText OutDesc;
-	if ( FText::FindText(TEXT(LOCTEXT_NAMESPACE), LocTextDescriptionID, OutDesc) )
-	{
-		return OutDesc.ToString();
-	}
-		
-	return LocTextDescriptionID;
+	check( LocTextDescriptionID.Len() > 0 );
+	const FText* OutDesc = LocDescs.Find( LocTextDescriptionID );
+	check( OutDesc );
+	return OutDesc->ToString();
 }
 
 #undef LOCTEXT_NAMESPACE
@@ -808,11 +777,11 @@ void UUnrealEdEngine::OpenTextureStatsWindow()
 void UUnrealEdEngine::GetSortedVolumeClasses( TArray< UClass* >* VolumeClasses )
 {
 	// Add all of the volume classes to the passed in array and then sort it
-	for( auto* Class : TObjectRange<UClass>() )
+	for( TObjectIterator<UClass> It ; It ; ++It )
 	{
-		if (Class->IsChildOf(AVolume::StaticClass()) && !Class->HasAnyClassFlags(CLASS_Deprecated | CLASS_Abstract | CLASS_NotPlaceable))
+		if( It->IsChildOf(AVolume::StaticClass()) && !It->HasAnyClassFlags(CLASS_Deprecated | CLASS_Abstract | CLASS_NotPlaceable) )
 		{
-			VolumeClasses->AddUnique( Class );
+			VolumeClasses->AddUnique( *It );
 		}
 	}
 
@@ -983,18 +952,18 @@ void UUnrealEdEngine::UpdateVolumeActorVisibility( const UClass* InVolumeActorCl
 }
 
 
-void UUnrealEdEngine::RegisterComponentVisualizer(FName ComponentClassName, TSharedPtr<FComponentVisualizer> Visualizer)
+void UUnrealEdEngine::RegisterComponentVisualizer(const UClass* ComponentClass, FOnDrawComponentVisualizer Visualizer)
 {
-	if( ComponentClassName != NAME_Name )
+	if( ComponentClass != NULL && ComponentClass->IsChildOf(UActorComponent::StaticClass()) )
 	{
-		ComponentVisualizerMap.Add(ComponentClassName, Visualizer);		
+		ComponentVisualizerMap.Add(ComponentClass, Visualizer);		
 	}
 }
 
 
-void UUnrealEdEngine::UnregisterComponentVisualizer(FName ComponentClassName)
+void UUnrealEdEngine::UnregisterComponentVisualizer(const UClass* ComponentClass)
 {
-	ComponentVisualizerMap.Remove(ComponentClassName);
+	ComponentVisualizerMap.Remove(ComponentClass);
 }
 
 
@@ -1016,10 +985,10 @@ void UUnrealEdEngine::DrawComponentVisualizers(const FSceneView* View, FPrimitiv
 				if(Comp->IsRegistered())
 				{
 					// Try and find a visualizer
-					TSharedPtr<FComponentVisualizer>* VisualizerPtr = ComponentVisualizerMap.Find(Comp->GetClass()->GetFName());
-					if(VisualizerPtr != NULL && (*VisualizerPtr).IsValid())
+					FOnDrawComponentVisualizer* VisualizerPtr = ComponentVisualizerMap.Find(Comp->GetClass());
+					if(VisualizerPtr != NULL && (*VisualizerPtr).IsBound())
 					{
-						(*VisualizerPtr)->DrawVisualization(Comp, View, PDI);
+						(*VisualizerPtr).Execute(Comp, View, PDI);
 					}
 				}
 			}

@@ -36,7 +36,6 @@ ANote::ANote(const class FPostConstructInitializeProperties& PCIP)
 		ArrowComponent->SpriteInfo.Category = ConstructorStatics.ID_Notes;
 		ArrowComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Notes;
 		ArrowComponent->Mobility = EComponentMobility::Static;
-		ArrowComponent->bIsScreenSizeScaled = true;
 	}
 
 	SpriteComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));

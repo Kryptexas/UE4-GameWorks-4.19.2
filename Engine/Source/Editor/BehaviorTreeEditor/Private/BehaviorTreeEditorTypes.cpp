@@ -131,29 +131,6 @@ void FClassBrowseHelper::GatherClasses(const UClass* BaseClass, TArray<FClassDat
 	}
 }
 
-FString FClassBrowseHelper::GetDeprecationMessage(const UClass* Class)
-{
-	static FName MetaDeprecated = TEXT("DeprecatedNode");
-	static FName MetaDeprecatedMessage = TEXT("DeprecationMessage");
-	FString DefDeprecatedMessage("Please remove it!");
-	FString DeprecatedPrefix("DEPRECATED");
-	FString DeprecatedMessage;
-
-	if (Class && Class->HasAnyClassFlags(CLASS_Native) && Class->HasMetaData(MetaDeprecated))
-	{
-		DeprecatedMessage = DeprecatedPrefix + TEXT(": ");
-		DeprecatedMessage += Class->HasMetaData(MetaDeprecatedMessage) ? Class->GetMetaData(MetaDeprecatedMessage) : DefDeprecatedMessage;
-	}
-
-	return DeprecatedMessage;
-}
-
-bool FClassBrowseHelper::IsHidingParentClass(UClass* Class)
-{
-	static FName MetaHideParent = TEXT("HideParentNode");
-	return Class && Class->HasAnyClassFlags(CLASS_Native) && Class->HasMetaData(MetaHideParent);
-}
-
 void FClassBrowseHelper::OnAssetAdded(const class FAssetData& AssetData)
 {
 	TSharedPtr<FClassDataNode> Node = CreateClassDataNode(AssetData);
@@ -246,7 +223,7 @@ void FClassBrowseHelper::FindAllSubClasses(TSharedPtr<FClassDataNode> Node, TArr
 {
 	if (Node.IsValid())
 	{
-		if (!Node->Data.IsAbstract() && !Node->Data.IsDeprecated() && !Node->Data.bIsHidden)
+		if (!Node->Data.IsAbstract())
 		{
 			AvailableClasses.Add(Node->Data);
 		}
@@ -279,7 +256,6 @@ void FClassBrowseHelper::BuildClassGraph()
 	UClass* RootNodeClass = UBTNode::StaticClass();
 
 	TArray<TSharedPtr<FClassDataNode> > NodeList;
-	TArray<UClass*> HideParentList;
 	RootNode.Reset();
 
 	// gather all native classes
@@ -291,15 +267,7 @@ void FClassBrowseHelper::BuildClassGraph()
 			TSharedPtr<FClassDataNode> NewNode = MakeShareable(new FClassDataNode);
 			NewNode->ParentClassName = TestClass->GetSuperClass()->GetName();
 			
-			FString DeprecatedMessage = GetDeprecationMessage(TestClass);
-			FClassData NewData(TestClass, DeprecatedMessage);
-			
-			NewData.bHideParent = IsHidingParentClass(TestClass);
-			if (NewData.bHideParent)
-			{
-				HideParentList.Add(TestClass->GetSuperClass());
-			}
-
+			FClassData NewData(TestClass);
 			NewNode->Data = NewData;
 
 			if (TestClass == RootNodeClass)
@@ -308,16 +276,6 @@ void FClassBrowseHelper::BuildClassGraph()
 			}
 
 			NodeList.Add(NewNode);
-		}
-	}
-
-	// find all hidden parent classes
-	for (int32 i = 0; i < NodeList.Num(); i++)
-	{
-		TSharedPtr<FClassDataNode> TestNode = NodeList[i];
-		if (HideParentList.Contains(TestNode->Data.GetClass()))
-		{
-			TestNode->Data.bIsHidden = true;
 		}
 	}
 

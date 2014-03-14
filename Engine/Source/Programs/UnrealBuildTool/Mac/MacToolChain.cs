@@ -763,9 +763,9 @@ namespace UnrealBuildTool
 					{
 						EngineAndGameLibrariesString += " \"" + Library + "\"";
 					}
-					string FixDylibLine = string.Format("TIMESTAMP=`stat -n -f \"%Sm\" -t \"%Y%m%d%H%M.%S\" \"{0}\"`; ", RemoteOutputFile.AbsolutePath);
+					string FixDylibLine = string.Format("TIMESTAMP=`stat -n -f \"%Sm\" -t \"%Y%m%d%H%M.%S\" \"{0}\"`; ", OutputFile.AbsolutePath);
 					FixDylibLine += LinkCommand.Replace("-undefined dynamic_lookup", EngineAndGameLibrariesString).Replace("$", "\\$");
-					FixDylibLine += string.Format("; touch -t $TIMESTAMP \"{0}\"; if [[ $? -ne 0 ]]; then exit 1; fi", RemoteOutputFile.AbsolutePath);
+					FixDylibLine += string.Format("; touch -t $TIMESTAMP \"{0}\"; if [[ $? -ne 0 ]]; then exit 1; fi", OutputFile.AbsolutePath);
 					AppendMacLine(FixDylibDepsScript, FixDylibLine);
 				}
 
@@ -900,13 +900,6 @@ namespace UnrealBuildTool
 				}
 			}
 
-			// For Mac, generate the dSYM file if the config file is set to do so
-			if (BuildConfiguration.bGeneratedSYMFile == true)
-			{
-				Log.TraceInformation("Generating the dSYM file - this will add some time to your build...");
-				RemoteOutputFile = GenerateDebugInfo(RemoteOutputFile);
-			}
-
 			return RemoteOutputFile;
 		}
 
@@ -950,43 +943,6 @@ namespace UnrealBuildTool
 			LinkAction.ProducedItems.Add(RemoteOutputFile);
 
 			return RemoteOutputFile;
-		}
-
-		/**
-		 * Generates debug info for a given executable
-		 * 
-		 * @param MachOBinary FileItem describing the executable or dylib to generate debug info for
-		 */
-		public FileItem GenerateDebugInfo(FileItem MachOBinary)
-		{
-			// Make a file item for the source and destination files
-			string AdditionalExtension = Path.GetExtension(MachOBinary.AbsolutePath) == ".dylib" ? "" : ".app";
-			string FullDestPathRoot = MachOBinary.AbsolutePath + AdditionalExtension + ".dSYM";
-			string FullDestPath = FullDestPathRoot;
-			FileItem OutputFile = FileItem.GetItemByPath(FullDestPath);
-			FileItem DestFile = LocalToRemoteFileItem(OutputFile, false);
-
-			// Make the compile action
-			Action GenDebugAction = new Action(ActionType.Link);
-			if (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
-			{
-				GenDebugAction.ActionHandler = new Action.BlockingActionHandler(RPCUtilHelper.RPCActionHandler);
-			}
-			GenDebugAction.WorkingDirectory = Path.GetFullPath(".");
-			GenDebugAction.CommandPath = "sh";
-
-			// note that the source and dest are switched from a copy command
-			GenDebugAction.CommandArguments = string.Format("-c '{0}usr/bin/xcrun dsymutil {1} -o {2}; cd {2}/..; zip -r -y -1 {3}.dSYM.zip {3}.dSYM'",
-				DeveloperDir,
-				MachOBinary.AbsolutePath,
-				FullDestPathRoot,
-				Path.GetFileName(MachOBinary.AbsolutePath)+AdditionalExtension);
-			GenDebugAction.PrerequisiteItems.Add(MachOBinary);
-			GenDebugAction.ProducedItems.Add(DestFile);
-			GenDebugAction.StatusDescription = GenDebugAction.CommandArguments;
-			GenDebugAction.bCanExecuteRemotely = false;
-
-			return DestFile;
 		}
 
 		/**

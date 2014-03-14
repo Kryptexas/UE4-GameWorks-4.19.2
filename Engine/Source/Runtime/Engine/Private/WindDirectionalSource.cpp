@@ -33,8 +33,6 @@ AWindDirectionalSource::AWindDirectionalSource(const class FPostConstructInitial
 		ArrowComponent->SpriteInfo.Category = ConstructorStatics.ID_Wind;
 		ArrowComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Wind;
 		ArrowComponent->AttachParent = Component;
-		ArrowComponent->bIsScreenSizeScaled = true;
-		ArrowComponent->bUseInEditorScaling = true;
 	}
 
 	if (SpriteComponent)

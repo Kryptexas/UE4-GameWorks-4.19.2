@@ -272,11 +272,11 @@ void UWheeledVehicleMovementComponent4W::UpdateEngineSetup(const FVehicleEngineD
 #if WITH_PHYSX
 	if (PVehicleDrive)
 	{
-		PxVehicleEngineData EngineData;
-		GetVehicleEngineSetup(NewEngineSetup, EngineData);
+		PxVehicleEngineData EngineSetup;
+		GetVehicleEngineSetup(NewEngineSetup, EngineSetup);
 
 		PxVehicleDrive4W* PVehicleDrive4W = (PxVehicleDrive4W*)PVehicleDrive;
-		PVehicleDrive4W->mDriveSimData.setEngineData(EngineData);
+		PVehicleDrive4W->mDriveSimData.setEngineData(EngineSetup);
 	}
 #endif
 }
@@ -286,11 +286,11 @@ void UWheeledVehicleMovementComponent4W::UpdateDifferentialSetup(const FVehicleD
 #if WITH_PHYSX
 	if (PVehicleDrive)
 	{
-		PxVehicleDifferential4WData DifferentialData;
-		GetVehicleDifferential4WSetup(NewDifferentialSetup, DifferentialData);
+		PxVehicleDifferential4WData DifferentialSetup;
+		GetVehicleDifferential4WSetup(NewDifferentialSetup, DifferentialSetup);
 
 		PxVehicleDrive4W* PVehicleDrive4W = (PxVehicleDrive4W*)PVehicleDrive;
-		PVehicleDrive4W->mDriveSimData.setDiffData(DifferentialData);
+		PVehicleDrive4W->mDriveSimData.setDiffData(DifferentialSetup);
 	}
 #endif
 }
@@ -300,11 +300,11 @@ void UWheeledVehicleMovementComponent4W::UpdateGearSetup(const FVehicleGearData&
 #if WITH_PHYSX
 	if (PVehicleDrive)
 	{
-		PxVehicleGearsData GearData;
-		GetVehicleGearSetup(NewGearSetup, GearData);
+		PxVehicleGearsData GearSetup;
+		GetVehicleGearSetup(NewGearSetup, GearSetup);
 
 		PxVehicleDrive4W* PVehicleDrive4W = (PxVehicleDrive4W*)PVehicleDrive;
-		PVehicleDrive4W->mDriveSimData.setGearsData(GearData);
+		PVehicleDrive4W->mDriveSimData.setGearsData(GearSetup);
 	}
 #endif
 }
@@ -314,11 +314,11 @@ void UWheeledVehicleMovementComponent4W::UpdateAutoBoxSetup(const FVehicleAutoBo
 #if WITH_PHYSX
 	if (PVehicleDrive)
 	{
-		PxVehicleAutoBoxData AutoBoxData;
-		GetVehicleAutoBoxSetup(NewAutoBoxSetup, AutoBoxData);
+		PxVehicleAutoBoxData AutoBoxSetup;
+		GetVehicleAutoBoxSetup(NewAutoBoxSetup, AutoBoxSetup);
 
 		PxVehicleDrive4W* PVehicleDrive4W = (PxVehicleDrive4W*)PVehicleDrive;
-		PVehicleDrive4W->mDriveSimData.setAutoBoxData(AutoBoxData);
+		PVehicleDrive4W->mDriveSimData.setAutoBoxData(AutoBoxSetup);
 	}
 #endif
 }

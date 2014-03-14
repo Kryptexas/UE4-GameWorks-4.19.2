@@ -282,11 +282,6 @@ public:
 	class TIterator
 	{
 	public:
-		enum EEndTagType
-		{
-			EndTag
-		};
-
 		/**
 		 * Constructor
 		 *
@@ -303,19 +298,6 @@ public:
 			}
 			Advance();
 		}
-
-		/**
-		 * Constructor
-		 *
-		 * @param	InArray				the array to iterate on
-		 * @param	bOnlyGCedObjects	if true, skip all of the permanent objects
-		 */
-		TIterator( EEndTagType, const TIterator& InIter ) :	
-			Array (InIter.Array),
-			Index(Array.ObjObjects.Num())
-		{
-		}
-
 		/**
 		 * Iterator advance
 		 */
@@ -324,8 +306,7 @@ public:
 			Advance();
 		}
 
-		friend bool operator==(const TIterator& Lhs, const TIterator& Rhs) { return Lhs.Index == Rhs.Index; }
-		friend bool operator!=(const TIterator& Lhs, const TIterator& Rhs) { return Lhs.Index != Rhs.Index; }
+		SAFE_BOOL_OPERATORS(TIterator)
 
 		/** Conversion to "bool" returning true if the iterator is valid. */
 		FORCEINLINE_EXPLICIT_OPERATOR_BOOL() const

@@ -1579,15 +1579,14 @@ static float GetComparisonThreshold(FMeshBuildSettings const& BuildSettings)
 	Static mesh building.
 ------------------------------------------------------------------------------*/
 
-static FStaticMeshBuildVertex BuildStaticMeshVertex(FRawMesh const& RawMesh, int32 WedgeIndex, FVector BuildScale)
+static FStaticMeshBuildVertex BuildStaticMeshVertex(FRawMesh const& RawMesh, int32 WedgeIndex, float BuildScale)
 {
 	FStaticMeshBuildVertex Vertex;
 	Vertex.Position = GetPositionForWedge(RawMesh, WedgeIndex) * BuildScale;
 
-	const FMatrix ScaleMatrix = FScaleMatrix( BuildScale ).Inverse().GetTransposed();	
-	Vertex.TangentX = ScaleMatrix.TransformVector(RawMesh.WedgeTangentX[WedgeIndex]).SafeNormal();
-	Vertex.TangentY = ScaleMatrix.TransformVector(RawMesh.WedgeTangentY[WedgeIndex]).SafeNormal();
-	Vertex.TangentZ = ScaleMatrix.TransformVector(RawMesh.WedgeTangentZ[WedgeIndex]).SafeNormal();
+	Vertex.TangentX = RawMesh.WedgeTangentX[WedgeIndex];
+	Vertex.TangentY = RawMesh.WedgeTangentY[WedgeIndex];
+	Vertex.TangentZ = RawMesh.WedgeTangentZ[WedgeIndex];
 
 	if (RawMesh.WedgeColors.IsValidIndex(WedgeIndex))
 	{
@@ -1647,7 +1646,7 @@ static void BuildStaticMeshVertexAndIndexBuffers(
 	const FRawMesh& RawMesh,
 	const TMultiMap<int32,int32>& OverlappingCorners,
 	float ComparisonThreshold,
-	FVector BuildScale
+	float BuildScale
 	)
 {
 	TMap<int32,int32> FinalVerts;
@@ -1979,7 +1978,7 @@ bool FMeshUtilities::BuildStaticMesh(
 			TArray<int32> TempWedgeMap;
 			TArray<int32>& WedgeMap = (LODIndex == 0 && SourceModels[0].ReductionSettings.PercentTriangles >= 1.0f) ? OutRenderData.WedgeMap : TempWedgeMap;
 			float ComparisonThreshold = GetComparisonThreshold(LODBuildSettings[LODIndex]);
-			BuildStaticMeshVertexAndIndexBuffers(Vertices, PerSectionIndices, WedgeMap, RawMesh, LODOverlappingCorners[LODIndex], ComparisonThreshold, LODBuildSettings[LODIndex].BuildScale3D );
+			BuildStaticMeshVertexAndIndexBuffers(Vertices, PerSectionIndices, WedgeMap, RawMesh, LODOverlappingCorners[LODIndex], ComparisonThreshold, LODBuildSettings[LODIndex].BuildScale );
 			check(WedgeMap.Num() == RawMesh.WedgeIndices.Num());
 			CacheOptimizeVertexAndIndexBuffer(Vertices, PerSectionIndices, WedgeMap);
 			check(WedgeMap.Num() == RawMesh.WedgeIndices.Num());

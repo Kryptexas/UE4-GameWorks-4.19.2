@@ -19,10 +19,10 @@ public:
 	SLATE_BEGIN_ARGS( STutorialStageTicker ) {}
 
 	/** The current excerpt to display */
-	SLATE_ATTRIBUTE( FText, CurrentExcerpt )
+	SLATE_ATTRIBUTE( FString, CurrentExcerpt )
 
 	/** The progress string for the current excerpt (e.g. 4/16) */
-	SLATE_ATTRIBUTE( FText, CurrentProgressText )
+	SLATE_ATTRIBUTE( FString, CurrentProgressString )
 
 	SLATE_END_ARGS()
 
@@ -198,7 +198,7 @@ void SIntroTutorials::Construct( const FArguments& Args )
 					[
 						SNew(STutorialStageTicker)
 						.CurrentExcerpt(this, &SIntroTutorials::GetCurrentExcerptTitle)
-						.CurrentProgressText(this, &SIntroTutorials::GetProgressText)
+						.CurrentProgressString(this, &SIntroTutorials::GetProgressString)
 					]
 					+SVerticalBox::Slot()
 					.AutoHeight()
@@ -233,7 +233,7 @@ void SIntroTutorials::Construct( const FArguments& Args )
 						.FillWidth(1.0f)
 						[
 							SNew(STutorialNavigationButton)
-							.ToolTipText(LOCTEXT("PreviousButtonTooltip", "Go back to the previous tutorial page."))
+							.ToolTipText(LOCTEXT("PreviousButtonTooltip", "Go back to the previous tutorial page.").ToString())
 							.OnClicked(this, &SIntroTutorials::OnPreviousClicked)
 							.IsEnabled(this, &SIntroTutorials::OnPreviousIsEnabled)
 							.ImageName("Tutorials.Back")
@@ -246,7 +246,7 @@ void SIntroTutorials::Construct( const FArguments& Args )
 						.FillWidth(1.0f)
 						[
 							SNew(STutorialNavigationButton)
-							.ToolTipText(LOCTEXT("HomeButtonTooltip", "Go back to the tutorial index."))
+							.ToolTipText(LOCTEXT("HomeButtonTooltip", "Go back to the tutorial index.").ToString())
 							.OnClicked(this, &SIntroTutorials::OnHomeClicked)
 							.ImageName("Tutorials.Home")
 							.ImageOnLeft(true)
@@ -257,7 +257,7 @@ void SIntroTutorials::Construct( const FArguments& Args )
 						.FillWidth(1.0f)
 						[
 							SNew(STutorialNavigationButton)
-							.ToolTipText(LOCTEXT("NextButtonTooltip", "Go to the next tutorial page."))
+							.ToolTipText(LOCTEXT("NextButtonTooltip", "Go to the next tutorial page.").ToString())
 							.OnClicked(this, &SIntroTutorials::OnNextClicked)
 							.IsEnabled(this, &SIntroTutorials::OnNextIsEnabled)
 							.ImageName("Tutorials.Next")
@@ -322,16 +322,12 @@ void SIntroTutorials::ChangePage(const FString& Path)
 			// Set window title to current tutorial name
 			if (ParentWindowPtr.IsValid())
 			{
-				ParentWindowPtr.Pin()->SetTitle(GetCurrentTutorialName());
+				ParentWindowPtr.Pin()->SetTitle(FText::FromString(GetCurrentTutorialName()));
 			}
 		}
 		else
 		{
-			FFormatNamedArguments Args;
-			Args.Add(TEXT("PathToDocumentation"), FText::FromString(Path));
-			const FText Message = FText::Format(LOCTEXT("PageOpenFailMessage", "Unable to access tutorial page \"{PathToDocumentation}\"."), Args);
-
-			FNotificationInfo Info(Message);
+			FNotificationInfo Info(FText::Format(LOCTEXT("PageOpenFailMessage", "Unable to access tutorial page \"{0}\"."), FText::FromString(Path)));
 			Info.ExpireDuration = 3.0f;
 			Info.bUseLargeFont = false;
 			TSharedPtr<SNotificationItem> Notification = FSlateNotificationManager::Get().AddNotification(Info);
@@ -544,12 +540,12 @@ EVisibility SIntroTutorials::GetNavigationVisibility() const
 	return (IsHomeStyle() && (Excerpts.Num() == 1)) ? EVisibility::Collapsed : EVisibility::Visible;
 }
 
-FText SIntroTutorials::GetCurrentTutorialName() const
+FString SIntroTutorials::GetCurrentTutorialName() const
 {
 	return CurrentPage->GetTitle();
 }
 
-FText SIntroTutorials::GetTimeRemaining() const
+FString SIntroTutorials::GetTimeRemaining() const
 {
 	if (Excerpts.Num() > 0)
 	{
@@ -557,11 +553,11 @@ FText SIntroTutorials::GetTimeRemaining() const
 		const FString* VariableValue = Excerpts[CurrentExcerptIndex].Variables.Find(VariableName);
 		if(VariableValue != NULL)
 		{
-			return FText::FromString(*VariableValue);
+			return *VariableValue;
 		}
 	}
 
-	return FText::GetEmpty();
+	return FString();
 }
 
 EVisibility SIntroTutorials::GetContentVisibility() const
@@ -631,17 +627,7 @@ bool SIntroTutorials::OnNextIsEnabled() const
 	return Excerpts.IsValidIndex(CurrentExcerptIndex) && InteractiveTutorials->CanManuallyAdvanceExcerpt(Excerpts[CurrentExcerptIndex].Name);
 }
 
-FString SIntroTutorials::GetCurrentExcerptIdentifierName() const
-{
-	if (Excerpts.IsValidIndex(CurrentExcerptIndex))
-	{
-		Excerpts[CurrentExcerptIndex].Name;
-	}
-
-	return FString();
-}
-
-FText SIntroTutorials::GetCurrentExcerptTitle() const
+FString SIntroTutorials::GetCurrentExcerptTitle() const
 {
 	if (Excerpts.IsValidIndex(CurrentExcerptIndex))
 	{
@@ -650,7 +636,7 @@ FText SIntroTutorials::GetCurrentExcerptTitle() const
 		const FString* VariableValue = Excerpts[CurrentExcerptIndex].Variables.Find(VariableName);
 		if(VariableValue != NULL)
 		{
-			return FText::FromString(*VariableValue);
+			return *VariableValue;
 		}
 
 		// Then try 'StageTitle<StageNum>'
@@ -658,21 +644,16 @@ FText SIntroTutorials::GetCurrentExcerptTitle() const
 		VariableValue = Excerpts[CurrentExcerptIndex].Variables.Find(VariableName);
 		if(VariableValue != NULL)
 		{
-			return FText::FromString(*VariableValue);
+			return *VariableValue;
 		}
 	}
 
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("CurrentPageNumber"), CurrentExcerptIndex + 1);
-	return FText::Format(LOCTEXT("GenericStageTitle", "Step {CurrentPageNumber}"), Args);
+	return FText::Format(LOCTEXT("GenericStageTitle", "Step {0}"), FText::AsNumber(CurrentExcerptIndex + 1)).ToString();
 }
 
-FText SIntroTutorials::GetProgressText() const
+FString SIntroTutorials::GetProgressString() const
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("CurrentPageNumber"), CurrentExcerptIndex + 1);
-	Args.Add(TEXT("TotalPages"), Excerpts.Num());
-	return FText::Format(LOCTEXT("TutorialProgress", "{CurrentPageNumber}/{TotalPages}"), Args);
+	return FString::Printf(TEXT("%i/%i"), (CurrentExcerptIndex + 1), Excerpts.Num());
 }
 
 TOptional<float> SIntroTutorials::GetProgress() const

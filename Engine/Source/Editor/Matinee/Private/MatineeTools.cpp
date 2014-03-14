@@ -696,8 +696,9 @@ void FMatinee::SelectTrack( UInterpGroup* OwningGroup, UInterpTrack* TrackToSele
 	// Update the preview camera now the track has been selected
 	UpdatePreviewCamera( TrackToSelect );
 
-	// Update the actor selection based on the new track selection
-	UpdateActorSelection();
+	// If this track has an Actor, select it (if not already).
+	const bool bDeselectActors = false;
+	SelectGroupActor( OwningGroup, bDeselectActors );
 
 	// Update the property window to reflect the properties of the selected track.
 	UpdatePropertyWindow();
@@ -735,10 +736,13 @@ void FMatinee::SelectGroup( UInterpGroup* GroupToSelect, bool bDeselectPreviousG
 	// Update the preview camera now the group has been selected
 	UpdatePreviewCamera( GroupToSelect );
 
+	// Also select the actor associated to the selected interp group.
 	if (bSelectGroupActors)
 	{
-		// Update the actor selection based on the new group selection
-		UpdateActorSelection();
+		// Make sure there are no selected actors because selecting 
+		// groups in Matinee will select the associated actor.
+		const bool bDeselectActors = true;
+		SelectGroupActor(GroupToSelect, bDeselectActors);
 	}
 
 	// Update the property window according to the new selection.
@@ -759,6 +763,9 @@ void FMatinee::DeselectTrack( UInterpGroup* OwningGroup, UInterpTrack* TrackToDe
 {
 	check( OwningGroup && TrackToDeselect );
 
+	const bool bAllTracksFromSameGroup = AreAllSelectedTracksFromGroup(OwningGroup);
+	const bool bHasMultipleTracksSelected = (GetSelectedTrackCount() > 1);
+
 	TrackToDeselect->SetSelected( false );
 
 	// Update the preview camera now the track has been deselected
@@ -772,12 +779,29 @@ void FMatinee::DeselectTrack( UInterpGroup* OwningGroup, UInterpTrack* TrackToDe
 		IData->CurveEdSetup->ChangeCurveColor( TrackToDeselect, OwningGroup->GroupColor );
 		CurveEd->RefreshViewport();
 
-		// Update the actor selection based on the new track selection
-		UpdateActorSelection();
+		// Deselect an associated actor.
+		if( bHasMultipleTracksSelected )
+		{
+			// Deselect only the specific associated actor if there 
+			// are multiple tracks selected over multiple groups.
+			if( !bAllTracksFromSameGroup )
+			{
+				DeselectGroupActor(OwningGroup);
+			}
+
+			// If there are multiple tracks selected from the same 
+			// group, then we don't want to deselect an actor. 
+		}
+		// Otherwise, there is only one track selected, so deselect that. 
+		else
+		{
+			GUnrealEd->SelectNone( true, true );
+		}
 
 		// Update the property window to reflect the properties of the selected track.
 		UpdatePropertyWindow();
 	}
+
 
 	// Clear any keys related to this track.
 	ClearKeySelectionForTrack( OwningGroup, TrackToDeselect, false );
@@ -811,8 +835,13 @@ void FMatinee::DeselectAllTracks( bool bUpdateVisuals /*= true*/ )
 		// Update the curve editor to reflect the curve color change
 		CurveEd->RefreshViewport();
 
-		// Update the actor selection based on the new track selection
-		UpdateActorSelection();
+		// Make sure there are no selected actors because selecting 
+		// tracks in Matinee will select the associated actor.
+		const bool bIsSelectedActorInSelectedGroup = IsSelectedActorInSelectedGroup();
+		if( bIsSelectedActorInSelectedGroup )
+		{
+			GUnrealEd->SelectNone( true, true );
+		}
 
 		// Make sure there is nothing selected in the property 
 		// window or in the level editing viewports.
@@ -836,13 +865,13 @@ void FMatinee::DeselectGroup( UInterpGroup* GroupToDeselect, bool bUpdateVisuals
 	// Update the preview camera now the group has been deselected
 	UpdatePreviewCamera( GroupToDeselect );
 
+	// Deselect the actor associated to this interp group as well.
+	DeselectGroupActor(GroupToDeselect);
+
 	// The client code has the option of opting out of updating the 
 	// visual components that are affected by selecting groups. 
 	if( bUpdateVisuals )
 	{
-		// Update the actor selection based on the new group selection
-		UpdateActorSelection();
-
 		// Make sure there is nothing selected in the property window
 		UpdatePropertyWindow();
 
@@ -871,15 +900,41 @@ void FMatinee::DeselectAllGroups( bool bUpdateVisuals /*= true*/ )
 	// visual components that are affected by selecting groups. 
 	if( bUpdateVisuals )
 	{
-		// Update the actor selection based on the new group selection
-		UpdateActorSelection();
-
 		// Update the property window to reflect the group deselection
 		UpdatePropertyWindow();
 
 		// Request an update of the track windows
 		InvalidateTrackWindowViewports();
 	}
+}
+
+bool FMatinee::IsSelectedActorInSelectedGroup()
+{
+	// Gather all of the selected groups and iterate through them
+	for( FSelectedGroupIterator GroupIt(GetSelectedGroupIterator()); GroupIt; ++GroupIt )
+	{
+		// Then go through each of the selected actors for each of the groups
+		for( FSelectionIterator It( GEditor->GetSelectedActorIterator() ) ; It ; ++It )
+		{
+			AActor* Actor = static_cast<AActor*>( *It );
+			checkSlow( Actor->IsA(AActor::StaticClass()) );
+
+			// find out if the actor is in ANY group
+			const UInterpGroupInst* GroupInstance = MatineeActor->FindGroupInst(Actor);
+
+			// see if the actor is in a group and if it is whether it's this group
+			if(GroupInstance && GroupInstance->Group == (*GroupIt))
+			{
+				check(GroupInstance->Group);
+				return true;
+			}
+			else
+			{
+				continue;
+			}
+		}
+	}
+	return false;
 }
 
 /**
@@ -893,39 +948,20 @@ void FMatinee::DeselectAll( bool bUpdateVisuals /*= true*/ )
 	// So, we need to check which one it is. 
 	if( HasAGroupSelected() )
 	{
+		const bool bIsSelectedActorInSelectedGroup = IsSelectedActorInSelectedGroup();
+
 		DeselectAllGroups(bUpdateVisuals);
+		if (bUpdateVisuals && bIsSelectedActorInSelectedGroup)
+		{
+			// Make sure there are no selected actors because selecting 
+			// groups in Matinee will select the associated actor.
+			GUnrealEd->SelectNone( true, true );
+		}
 	}
 	else if( HasATrackSelected() )
 	{
 		DeselectAllTracks(bUpdateVisuals);
 	}
-}
-
-void FMatinee::UpdateActorSelection() const
-{
-	// Ignore this selection notification if desired.
-	if ( AMatineeActor::IgnoreActorSelection() )
-	{
-		return;
-	}
-
-	AMatineeActor::PushIgnoreActorSelection();
-
-	GUnrealEd->SelectNone( true, true );
-
-	// Loop through the instances rather than the groups themselves so that we select all the actors associated with a selected group
-	for( auto GroupInstIt = MatineeActor->GroupInst.CreateConstIterator(); GroupInstIt; ++GroupInstIt )
-	{
-		UInterpGroupInst* const GroupInst = *GroupInstIt;
-		UInterpGroup* const CurrentGroup = GroupInst->Group;
-		if( CurrentGroup->IsSelected() || CurrentGroup->HasSelectedTracks() )
-		{
-			const bool bDeselectActors = false;
-			CurrentGroup->SelectGroupActor( GroupInst, bDeselectActors );
-		}
-	}
-
-	AMatineeActor::PopIgnoreActorSelection();
 }
 
 void FMatinee::ClearKeySelection()
@@ -1122,6 +1158,7 @@ void FMatinee::DeleteSelection (void)
 	}
 }
 
+
 void FMatinee::DeleteSelectedKeys(bool bDoTransaction)
 {
 	if(bDoTransaction)
@@ -1241,9 +1278,10 @@ void FMatinee::ViewFitSequence()
 	ViewStartTime = 0.f;
 	ViewEndTime = IData->InterpLength;
 
-	CurveEd->FitViewVertically();
 	SyncCurveEdView();
 }
+
+
 
 /** Adjust the view so the selected keys fit into the viewport. */
 void FMatinee::ViewFitToSelected()
@@ -1275,10 +1313,11 @@ void FMatinee::ViewFitToSelected()
 		ViewStartTime = NewStartTime;
 		ViewEndTime = NewEndTime;
 
-		CurveEd->FitViewVertically();
 		SyncCurveEdView();
 	}
 }
+
+
 
 /** Adjust the view so the looped section fits into the viewport. */
 void FMatinee::ViewFitLoop()
@@ -1305,7 +1344,6 @@ void FMatinee::ViewFitLoopSequence()
 	ViewStartTime = IData->EdSectionStart;
 	ViewEndTime = IData->EdSectionEnd;
 
-	CurveEd->FitViewVertically();
 	SyncCurveEdView();
 }
 
@@ -1334,7 +1372,6 @@ void FMatinee::ViewEndOfTrack()
 	ViewStartTime = NewEndTime - (ViewEndTime - ViewStartTime);
 	ViewEndTime = NewEndTime;
 
-	CurveEd->FitViewVertically();
 	SyncCurveEdView();
 }
 
@@ -1344,7 +1381,6 @@ void FMatinee::ViewFit(float StartTime, float EndTime)
 	ViewStartTime = StartTime;
 	ViewEndTime = EndTime;
 
-	CurveEd->FitViewVertically();
 	SyncCurveEdView();
 }
 
@@ -1951,7 +1987,7 @@ void FMatinee::MoveInitialPosition(const FVector& Delta, const FRotator& DeltaRo
 	FTranslationMatrix TransMatrix(Delta);
 
 	// Iterate only through selected movement tracks because those are the only relevant tracks. 
-	for( TTrackClassTypeIterator<UInterpTrackMove> MoveTrackIter(GetSelectedTrackIterator<UInterpTrackMove>()); MoveTrackIter; ++MoveTrackIter  )
+ 	for( TTrackClassTypeIterator<UInterpTrackMove> MoveTrackIter(GetSelectedTrackIterator<UInterpTrackMove>()); MoveTrackIter; ++MoveTrackIter  )
 	{
 		// To move the initial position, we have to track down the interp 
 		// track instance corresponding to the selected movement track. 
@@ -3021,6 +3057,26 @@ void FMatinee::DisableTracksOfClass(UInterpGroup* Group, UClass* TrackClass)
 	}
 }
 
+void FMatinee::SelectGroupActor( UInterpGroup* AssociatedGroup, bool bDeselectActors )
+{
+	UInterpGroupInst* GroupInstance = MatineeActor->FindFirstGroupInst(AssociatedGroup);
+
+	if( GroupInstance != NULL )
+	{
+		AssociatedGroup->SelectGroupActor( GroupInstance, bDeselectActors );
+	}
+}
+
+void FMatinee::DeselectGroupActor( UInterpGroup* AssociatedGroup )
+{
+	UInterpGroupInst* GroupInstance = MatineeActor->FindFirstGroupInst(AssociatedGroup);
+
+	if( GroupInstance != NULL )
+	{
+		AssociatedGroup->DeselectGroupActor( GroupInstance );
+	}
+}
+
 void FMatinee::UpdatePreviewCamera( UInterpGroup* AssociatedGroup ) const
 {
 	UInterpGroupDirector* DirGroup = Cast<UInterpGroupDirector>(AssociatedGroup);
@@ -3168,6 +3224,12 @@ void FMatinee::DuplicateGroup(UInterpGroup* GroupToDuplicate)
 		SelectGroup(NewGroup);
 	}
 	InterpEdTrans->EndSpecial();
+
+	// Invoke the director track window if needed
+	if (bDirGroup)
+	{
+		UpdateDirectorTrackWindowVisibility();
+	}
 
 	// A new group may have been added (via duplication), so we'll need to update our scroll bar
 	UpdateTrackWindowScrollBars();
@@ -3577,7 +3639,6 @@ void FMatinee::LockCamToGroup(class UInterpGroup* InGroup, const bool bResetView
 					LevelVC->ViewFOV = LevelVC->FOVAngle;
 					LevelVC->bEnableFading = false;
 					LevelVC->bEnableColorScaling = false;
-					LevelVC->SetMatineeActorLock(nullptr);
 				}
 			}
 		}
@@ -3729,8 +3790,6 @@ void FMatinee::UpdateLevelViewport(AActor* InActor, FLevelEditorViewportClient* 
 	// If viewing through a camera - PP settings of camera.
 	InViewportClient->SetPostprocessCameraActor(Cam);
 
-	InViewportClient->SetMatineeActorLock(InActor);
-
 	// If viewing through a camera - enforce aspect ratio.
 	if(Cam)
 	{
@@ -3861,8 +3920,8 @@ void FMatinee::ActorModified( bool bUpdateViewportTransform )
 				break;
 			}
 		}
-		
-	// If so, update the selected keyframe on the selected track to reflect its new position.
+        
+    // If so, update the selected keyframe on the selected track to reflect its new position.
 		if(bTrackActorModified)
 		{
 			InterpEdTrans->BeginSpecial( NSLOCTEXT("UnrealEd", "UpdateKeyframe", "Update Key Frame") );
@@ -3896,10 +3955,10 @@ void FMatinee::ActorModified( bool bUpdateViewportTransform )
 	UpdateCameraToGroup( true, bUpdateViewportTransform );
 }
 
-void FMatinee::ActorSelectionChange( const bool bClearSelectionIfInvalid /*= true*/ )
+void FMatinee::ActorSelectionChange()
 {
 	// Ignore this selection notification if desired.
-	if(AMatineeActor::IgnoreActorSelection())
+	if(AMatineeActor::bIgnoreActorSelection)
 	{
 		return;
 	}
@@ -3971,8 +4030,7 @@ void FMatinee::ActorSelectionChange( const bool bClearSelectionIfInvalid /*= tru
 
 			for( TArray<UInterpGroup*>::TIterator GroupIter(ActorGroups); GroupIter; ++GroupIter )
 			{
-				// We're updating the selection to match the selected actors; don't select the actors in this group
-				SelectGroup(*GroupIter, false, false);
+				SelectGroup(*GroupIter, false);
 
 				ScrollToGroup( *GroupIter );
 			}
@@ -3980,11 +4038,9 @@ void FMatinee::ActorSelectionChange( const bool bClearSelectionIfInvalid /*= tru
 	}
 	// If there are no interp groups associated to the selected 
 	// actors, then clear out any existing Matinee selections.
-	else if( bClearSelectionIfInvalid )
+	else
 	{
-		AMatineeActor::PushIgnoreActorSelection();
 		DeselectAll();
-		AMatineeActor::PopIgnoreActorSelection();
 	}
 }
 
@@ -3992,6 +4048,8 @@ bool FMatinee::ProcessKeyPress(FKey Key, bool bCtrlDown, bool bAltDown)
 {
 	return false;
 }
+
+
 
 /**
  * Zooms the curve editor and track editor in or out by the specified amount
@@ -4026,7 +4084,7 @@ void FMatinee::ZoomView( float ZoomAmount, bool bZoomToTimeCursorPos )
 			int32 ViewportClientAreaX = ClientMousePos.X;
 			int32 MouseXOverTimeline = ClientMousePos.X - LabelWidth;
 
-			if( MouseXOverTimeline >= 0 && MouseXOverTimeline < TrackViewSizeX )
+  			if( MouseXOverTimeline >= 0 && MouseXOverTimeline < TrackViewSizeX )
 			{
 				// zoom into the mouse cursor's position over the view
 				const float CursorPosInTime = ViewStartTime + ( MouseXOverTimeline / PixelsPerSec );

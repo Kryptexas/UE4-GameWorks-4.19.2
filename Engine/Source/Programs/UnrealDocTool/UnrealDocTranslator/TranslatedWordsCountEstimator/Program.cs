@@ -14,9 +14,7 @@ namespace TranslatedWordsCountEstimator
     class Program
     {
         private static readonly Regex ChangelistNumberPattern = new Regex(@"^INTSourceChangelist\:(?<number>\d+)\n", RegexOptions.Multiline | RegexOptions.Compiled);
-
-        private const string DefaultDepotPath = "//depot/UE4";
-        private const string DefaultDocumentationPath = "/Engine/Documentation/Source/....udn";
+        private const string DefaultDocumentationDepotPath = "//depot/UE4/Engine/Documentation/Source/....udn";
 
         private enum P4Setting
         {
@@ -64,27 +62,13 @@ namespace TranslatedWordsCountEstimator
 
                 var currentDate = DateTime.Now;
 
-                // detect depot based on EXE path
-                string DepotPath = DefaultDepotPath;
-                IList<FileMetaData> ExeMetaData = p4Repository.GetFileMetaData(new Options(), new FileSpec(null, new ClientPath(System.Reflection.Assembly.GetExecutingAssembly().GetModules()[0].FullyQualifiedName), null, null));
-                if( ExeMetaData.Count > 0 ) 
-                {
-                    string Path = ExeMetaData[0].DepotPath.ToString();
-                    int i = Path.IndexOf("/Engine/Binaries");
-                    if (i != -1)
-                    {
-                        DepotPath = Path.Substring(0, i);
-                    }
-                }
-
-                string DocumentationDepotPath = DepotPath + DefaultDocumentationPath;
                 var filesSpec = new List<FileSpec> {
                                         new FileSpec(
-                                            new DepotPath(DocumentationDepotPath),
+                                            new DepotPath(DefaultDocumentationDepotPath),
                                             new ChangelistIdVersion(latestChangelist.Id))
                                     };
 
-                Console.Out.Write("Synchronizing " + DocumentationDepotPath);
+                Console.Out.Write("Synchronizing //depot/UE4/Engine/Documentation/Source/ workspace ");
                 p4Connection.Client.SyncFiles(filesSpec, null);
                 Console.Out.WriteLine("[done]");
 
@@ -147,7 +131,7 @@ namespace TranslatedWordsCountEstimator
                             if (intFile.HeadTime > locFile.HeadTime)
                             {
                                 diffs = p4Repository.GetDepotFileDiffs(
-                                    string.Format("{0}@{1}", intFile.DepotPath.Path, locFile.HeadTime.ToString("yyyy\\/MM\\/dd\\:HH\\:mm\\:ss")),
+                                    string.Format("{0}@{1}", intFile.DepotPath.Path, locFile.HeadTime.ToString("yyyy/MM/dd:HH:mm:ss")),
                                     new FileSpec(intFile.DepotPath as PathSpec, VersionSpec.Head).ToString(),
                                     new Options() { { "-d", "" }, { "-u", "" } });
                             }

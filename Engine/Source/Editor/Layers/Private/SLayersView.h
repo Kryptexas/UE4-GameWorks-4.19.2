@@ -157,7 +157,7 @@ protected:
 		}
 
 		TSharedPtr< FActorDragDropGraphEdOp > DragActorOp = StaticCastSharedPtr< FActorDragDropGraphEdOp >( DragDropEvent.GetOperation() );	
-		DragActorOp->ResetToDefaultToolTip();
+		DragActorOp->SetToolTip( FActorDragDropGraphEdOp::ToolTip_Default );
 	}
 
 	/**

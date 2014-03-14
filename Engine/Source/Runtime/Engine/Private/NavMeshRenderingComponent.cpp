@@ -95,12 +95,13 @@ void UNavMeshRenderingComponent::GatherData(struct FNavMeshSceneProxyData* Curre
 #if WITH_RECAST
 	const ARecastNavMesh* NavMesh = Cast<ARecastNavMesh>(GetOwner());
 
-	CurrentData->Reset();
-	CurrentData->bEnableDrawing = NavMesh->bEnableDrawing;
-
-	if (CurrentData && NavMesh && NavMesh->bEnableDrawing)
+	if (CurrentData && NavMesh && NavMesh->bEnableDrawing && (!NavMesh->bShowOnlyDefaultAgent || NavMesh->IsSupportingDefaultAgent()))
 	{
 		FHitProxyId HitProxyId = FHitProxyId();
+		CurrentData->Reset();
+		CurrentData->bEnableDrawing = NavMesh->bEnableDrawing;
+		CurrentData->bShowOnlyDefaultAgent = NavMesh->bShowOnlyDefaultAgent;
+		CurrentData->bSupportsDefaultAgent = NavMesh->IsSupportingDefaultAgent();
 		CurrentData->bDrawPathCollidingGeometry = NavMesh->bDrawPathCollidingGeometry;
 
 		CurrentData->NavMeshDrawOffset.Z = NavMesh->DrawOffset;

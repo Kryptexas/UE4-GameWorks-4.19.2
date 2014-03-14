@@ -361,7 +361,6 @@ ALandscapeGizmoActor::ALandscapeGizmoActor(const class FPostConstructInitializeP
 		SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Misc;
 		SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Misc;
 #endif // WITH_EDITORONLY_DATA
-		SpriteComponent->bIsScreenSizeScaled = true;
 	}
 #endif
 

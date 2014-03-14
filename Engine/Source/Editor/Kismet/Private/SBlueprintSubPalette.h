@@ -14,12 +14,10 @@ public:
 	SLATE_BEGIN_ARGS( SBlueprintSubPalette )
 		: _Title()
 		, _Icon(FCoreStyle::Get().GetDefaultBrush())
-		, _ShowFavoriteToggles(false)
 		{}
 
 		SLATE_TEXT_ATTRIBUTE(Title)
 		SLATE_ATTRIBUTE(FSlateBrush const*, Icon)
-		SLATE_ATTRIBUTE(bool, ShowFavoriteToggles)
 	SLATE_END_ARGS()
 
 	/** Unsubscribes this from events before it is destroyed */

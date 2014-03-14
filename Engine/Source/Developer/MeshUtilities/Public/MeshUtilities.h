@@ -37,11 +37,6 @@ public:
 	 * Returns a unique string identifying both the reduction plugin itself and the version of the plugin.
 	 */
 	virtual const FString& GetVersionString() const = 0;
-
-	/**
-	 *	Returns true if mesh reduction is supported
-	 */
-	virtual bool IsSupported() const = 0;
 };
 
 //

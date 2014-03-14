@@ -24,7 +24,7 @@ namespace AutomationTool
             public TempStorageFileInfo(string Filename, string RelativeFile)
             {
                 FileInfo Info = new FileInfo(Filename);
-                Name = RelativeFile.Replace("\\", "/"); 
+                Name = RelativeFile;
                 Timestamp = Info.LastWriteTimeUtc;
                 Size = Info.Length;
             }
@@ -40,23 +40,16 @@ namespace AutomationTool
                 else
                 {
                     // this is a bit of a hack, but UAT itself creates these, so we need to allow them to be 
-                    bool bOkToBeDifferent = Name.Contains("Engine/Binaries/DotNET/");
-                    // this is a problem with mac compiles
-                    bOkToBeDifferent = bOkToBeDifferent || Name.EndsWith("MacOS/libtbb.dylib");
-                    bOkToBeDifferent = bOkToBeDifferent || Name.EndsWith("MacOS/libtbbmalloc.dylib");
-                    bOkToBeDifferent = bOkToBeDifferent || Name.EndsWith("MacOS/libfreetype.dylib");
-                    bOkToBeDifferent = bOkToBeDifferent || Name.EndsWith("MacOS/libogg.dylib");
-                    bOkToBeDifferent = bOkToBeDifferent || Name.EndsWith("MacOS/libvorbis.dylib");
-                    bOkToBeDifferent = bOkToBeDifferent || Name.EndsWith("Contents/MacOS/UE4Editor");
+                    bool bOkToBeDifferent = Name.Contains(@"Engine\Binaries\DotNET\");
 
                     if (!((Timestamp - Other.Timestamp).TotalSeconds < 1 && (Timestamp - Other.Timestamp).TotalSeconds > -1))
                     {
-                        CommandUtils.Log(bOkToBeDifferent ? System.Diagnostics.TraceEventType.Warning : System.Diagnostics.TraceEventType.Error, "File date mismatch {0} {1} {2} {3}", Name, Timestamp.ToString(), Other.Name, Other.Timestamp.ToString());
+                        CommandUtils.Log(bOkToBeDifferent ? System.Diagnostics.TraceEventType.Information : System.Diagnostics.TraceEventType.Error, "File date mismatch {0} {1} {2} {3}", Name, Timestamp.ToString(), Other.Name, Other.Timestamp.ToString());
                         bOk = bOkToBeDifferent;
                     }
                     if (!(Size == Other.Size))
                     {
-                        CommandUtils.Log(bOkToBeDifferent ? System.Diagnostics.TraceEventType.Warning : System.Diagnostics.TraceEventType.Error, "File size mismatch {0} {1} {2} {3}", Name, Size, Other.Name, Other.Size);
+                        CommandUtils.Log(bOkToBeDifferent ? System.Diagnostics.TraceEventType.Information : System.Diagnostics.TraceEventType.Error, "File size mismatch {0} {1} {2} {3}", Name, Size, Other.Name, Other.Size);
                         bOk = bOkToBeDifferent;
                     }
                 }
@@ -105,7 +98,7 @@ namespace AutomationTool
                     {
                         throw new AutomationException("Could not add directory {0} to manifest because it does not start with the base folder {1}", DirectoryName, BaseFolder);
                     }
-                    var RelativeDir = DirectoryName.Substring(BaseFolder.Length).Replace("\\", "/");
+                    var RelativeDir = DirectoryName.Substring(BaseFolder.Length);
                     if (Directories.TryGetValue(RelativeDir, out ManifestDirectory) == false)
                     {
                         ManifestDirectory = new List<TempStorageFileInfo>();
@@ -215,7 +208,7 @@ namespace AutomationTool
                 {
                     foreach (var SyncedFile in Directory)
                     {
-                        if (SyncedFile.Name.Equals(RelativeFile.Replace("\\", "/"), StringComparison.InvariantCultureIgnoreCase))
+                        if (SyncedFile.Name.Equals(RelativeFile, StringComparison.InvariantCultureIgnoreCase))
                         {
                             return SyncedFile;
                         }
@@ -481,16 +474,7 @@ namespace AutomationTool
         
         public static string RootSharedTempStorageDirectory()
         {
-            string StorageDirectory = "";
-            if(UnrealBuildTool.Utils.IsRunningOnMono)
-            {
-                StorageDirectory = "/Volumes/Builds";
-            }
-            else
-            {
-                StorageDirectory = CombinePaths("P:", "Builds");
-            }
-            return StorageDirectory;
+            return CombinePaths("P:", "Builds");
         }
         public static string SharedTempStorageDirectory()
         {
@@ -765,16 +749,10 @@ namespace AutomationTool
                     DeleteFile(DestFile);
                 }
                 CopyFile(Filename, DestFile, true);
-
                 if (!FileExists_NoExceptions(true, DestFile))
                 {
                     throw new AutomationException("Could not copy {0} to {1}", Filename, DestFile);
                 }
-                if (UnrealBuildTool.Utils.IsRunningOnMono && IsProbablyAMacOrIOSExe(DestFile))
-                {
-                    SetExecutableBit(DestFile);
-                }
-
                 FileInfo Info = new FileInfo(DestFile);
                 DestFiles.Add(Info.FullName);
             }

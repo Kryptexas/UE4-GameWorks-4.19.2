@@ -137,12 +137,6 @@ struct FTabSpawnerEntry : public FWorkspaceItem
 		return *this;
 	}
 
-	FTabSpawnerEntry& SetTooltipText( const FText& InTooltipText )
-	{
-		TooltipText = InTooltipText;
-		return *this;
-	}
-
 	FTabSpawnerEntry& SetGroup( const TSharedRef<FWorkspaceItem>& InGroup )
 	{
 		InGroup->AddItem(SharedThis(this));

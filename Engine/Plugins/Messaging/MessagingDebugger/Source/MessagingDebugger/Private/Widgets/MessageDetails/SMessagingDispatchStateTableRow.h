@@ -57,7 +57,7 @@ public:
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-					.Text(TimespanToReadableText(DispatchState->DispatchLatency))
+						.Text(TimespanToReadableString(DispatchState->DispatchLatency))
 				];
 		}
 		else if (ColumnName == "HandleTime")
@@ -78,7 +78,7 @@ public:
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-						.Text(FText::FromName(DispatchState->EndpointInfo->Name))
+						.Text(DispatchState->EndpointInfo->Name.ToString())
 				];
 		}
 		else if (ColumnName == "Type")
@@ -133,50 +133,46 @@ protected:
 	 *
 	 * @param Seconds - The time span to convert.
 	 *
-	 * @return The text representation.
+	 * @return The string representation.
 	 *
 	 * @todo gmp: refactor this into FText::AsTimespan or something like that
 	 */
-	FText TimespanToReadableText( double Seconds ) const
+	FString TimespanToReadableString( double Seconds ) const
 	{
 		if (Seconds < 0.0)
 		{
-			return LOCTEXT("Zero Length Timespan", "-");
+			return TEXT("-");
 		}
-
-		FNumberFormattingOptions Options;
-		Options.MinimumFractionalDigits = 1;
-		Options.MaximumFractionalDigits = 1;
 
 		if (Seconds < 0.0001)
 		{
-			return FText::Format(LOCTEXT("Seconds < 0.0001 Length Timespan", "{0} us"), FText::AsNumber(Seconds * 1000000, &Options));
+			return FString::Printf(TEXT("%.1f us"), Seconds * 1000000);
 		}
 
 		if (Seconds < 0.1)
 		{
-			return FText::Format(LOCTEXT("Seconds < 0.1 Length Timespan", "{0} ms"), FText::AsNumber(Seconds * 1000, &Options));
+			return FString::Printf(TEXT("%.1f ms"), Seconds * 1000);
 		}
 
 		if (Seconds < 60.0)
 		{
-			return FText::Format(LOCTEXT("Seconds < 60.0 Length Timespan", "{0} s"), FText::AsNumber(Seconds, &Options));
+			return FString::Printf(TEXT("%.1f s"), Seconds);
 		}
-
-		return LOCTEXT("> 1 minute Length Timespan", "> 1 min");
+		
+		return TEXT("> 1 min");
 	}
 
 private:
 
 	// Callback for getting the handling time text.
-	FText HandleHandlingTimeText( ) const
+	FString HandleHandlingTimeText( ) const
 	{
 		if (DispatchState->TimeHandled > 0.0)
 		{
-			return TimespanToReadableText(DispatchState->TimeHandled - DispatchState->TimeDispatched);
+			return TimespanToReadableString(DispatchState->TimeHandled - DispatchState->TimeDispatched);
 		}
 
-		return LOCTEXT("NotHandledYetText", "Not handled yet");
+		return LOCTEXT("NotHandledYetText", "Not handled yet").ToString();
 	}
 
 	// Callback for getting the color of a time span text.
@@ -207,19 +203,19 @@ private:
 	}
 
 	// Callback for getting the dispatch type tool tip text.
-	FText HandleTypeTooltip( ) const
+	FString HandleTypeTooltip( ) const
 	{
 		if (DispatchState->DispatchType == EMessageTracerDispatchTypes::Direct)
 		{
-			return LOCTEXT("DispatchDirectTooltip", "Dispatched directly (synchronously)");
+			return LOCTEXT("DispatchDirectTooltip", "Dispatched directly (synchronously)").ToString();
 		}
 
 		if (DispatchState->DispatchType == EMessageTracerDispatchTypes::TaskGraph)
 		{
-			return LOCTEXT("DispatchTaskGraphTooltip", "Dispatched with Task Graph (asynchronously)");
+			return LOCTEXT("DispatchTaskGraphTooltip", "Dispatched with Task Graph (asynchronously)").ToString();
 		}
 
-		return LOCTEXT("DispatchPendingTooltip", "Dispatched pending");
+		return LOCTEXT("DispatchPendingTooltip", "Dispatched pending").ToString();
 	}
 
 private:

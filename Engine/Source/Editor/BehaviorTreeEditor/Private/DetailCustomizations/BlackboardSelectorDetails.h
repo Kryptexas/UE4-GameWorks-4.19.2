@@ -33,8 +33,6 @@ private:
 	/** cached names of keys */	
 	TArray<FName> KeyValues;
 
-	bool bNoneIsAllowedValue;
-
 	/** cached blackboard asset */
 	TWeakObjectPtr<class UBlackboardData> CachedBlackboardAsset;
 };

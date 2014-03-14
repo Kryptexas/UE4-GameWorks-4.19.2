@@ -266,16 +266,6 @@ public:
 
 				bWasHandled = true;
 			}
-			else if ( InKeyboardEvent.GetKey() == EKeys::Enter )
-			{
-				// Set the selected item
-				if ( this->Private_GetNumSelectedItems() > 0 )
-				{
-					this->Private_SignalSelectionChanged(ESelectInfo::OnKeyPress);
-				}
-
-				bWasHandled = true;
-			}
 
 			if( TListTypeTraits<ItemType>::IsPtrValid(ItemNavigatedTo) )
 			{
@@ -1081,7 +1071,8 @@ protected:
 	{
 		if ( TListTypeTraits<ItemType>::IsPtrValid(ItemToScrollIntoView) && ItemsSource != NULL )
 		{
-			const int32 IndexOfItem = ItemsSource->Find( TListTypeTraits<ItemType>::NullableItemTypeConvertToItemType( ItemToScrollIntoView ) );
+			int32 IndexOfItem = ItemsSource->Find( TListTypeTraits<ItemType>::NullableItemTypeConvertToItemType( ItemToScrollIntoView ) );
+
 			if (IndexOfItem != INDEX_NONE)
 			{
 				double NumLiveWidgets = GetNumLiveWidgets();
@@ -1092,17 +1083,12 @@ protected:
 				}
 
 				// Only scroll the item into view if it's not already in the visible range
-				const double IndexPlusOne = IndexOfItem+1;
-				if (IndexOfItem < ScrollOffset || IndexPlusOne > (ScrollOffset + NumLiveWidgets))
+				if (IndexOfItem < ScrollOffset || IndexOfItem > ScrollOffset + NumLiveWidgets)
 				{
 					// Scroll the top of the listview to the item in question
 					ScrollOffset = IndexOfItem;
 					// Center the list view on the item in question.
-					ScrollOffset -= (NumLiveWidgets / 2);
-					//we also don't want the widget being chopped off if it is at the end of the list
-					const double MoveBackBy = FMath::Clamp<double>(IndexPlusOne - (ScrollOffset + NumLiveWidgets), 0, FLT_MAX);
-					//Move to the correct center spot
-					ScrollOffset += MoveBackBy;
+					ScrollOffset -= NumLiveWidgets / 2;
 				}
 
 				RequestListRefresh();

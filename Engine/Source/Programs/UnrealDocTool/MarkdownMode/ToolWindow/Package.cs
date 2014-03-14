@@ -721,7 +721,7 @@ namespace MarkdownMode
 
         void AddSolutionExplorerCommand(IMenuCommandService mcs, OleMenuCommand command, UDNDocRunningTableMonitor rdtm)
         {
-            command.BeforeQueryStatus += (sender, args) =>
+            command.BeforeQueryStatus += new EventHandler((sender, args) =>
             {
                 var cmd = sender as OleMenuCommand;
                 if (cmd != null)
@@ -742,7 +742,7 @@ namespace MarkdownMode
                         }
                     }
                 }
-            };
+            });
             mcs.AddCommand(command);
         }
 

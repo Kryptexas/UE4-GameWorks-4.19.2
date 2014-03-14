@@ -18,7 +18,7 @@ public:
 	 * @param	InObjects			Objects to attempt to add to the panel
 	 *
 	 */
-	UNREALED_API static void AddConsolidationObjects( const TArray<UObject*>& InObjects, UObject* SelectedItem = nullptr );
+	UNREALED_API static void AddConsolidationObjects( const TArray<UObject*>& InObjects );
 
 	/**
 	 * Determine the compatibility of the passed in objects with the objects already present in the consolidation panel

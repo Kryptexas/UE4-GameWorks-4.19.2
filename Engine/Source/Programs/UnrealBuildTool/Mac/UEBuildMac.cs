@@ -75,7 +75,7 @@ namespace UnrealBuildTool
 		 */
 		public override string GetDebugInfoExtension( UEBuildBinaryType InBinaryType )
 		{
-			return BuildConfiguration.bGeneratedSYMFile ? ".dsym" : "";
+			return "";
 		}
 
 		public override void ModifyNewlyLoadedModule(UEBuildModule InModule, TargetInfo Target)

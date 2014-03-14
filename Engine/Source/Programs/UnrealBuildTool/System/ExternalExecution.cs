@@ -306,8 +306,10 @@ namespace UnrealBuildTool
 		}
 
 		/** Run an external exe (and capture the output), given the exe path and the commandline. */
-		public static int RunExternalExecutable(string ExePath, string Commandline)
+		public static bool RunExternalExecutable(string ExePath, string Commandline)
 		{
+			bool bSuccess = false;
+
 			var ExeInfo = new ProcessStartInfo(ExePath, Commandline);
 			ExeInfo.UseShellExecute = false;
 			ExeInfo.RedirectStandardOutput = true;
@@ -317,8 +319,9 @@ namespace UnrealBuildTool
 				GameProcess.OutputDataReceived += PrintProcessOutputAsync;
 				GameProcess.WaitForExit();
 
-				return GameProcess.ExitCode;
+				bSuccess = (GameProcess.ExitCode == 0);
 			}
+			return bSuccess;
 		}
 
 		/** Simple function to pipe output asynchronously */
@@ -340,6 +343,8 @@ namespace UnrealBuildTool
 		 */
 		public static bool ExecuteHeaderToolIfNecessary( UEBuildTarget Target, List<UHTModuleInfo> UObjectModules, string ModuleInfoFileName )
 		{
+			bool bSuccess = true;
+
 			// We never want to try to execute the header tool when we're already trying to build it!
 			var bIsBuildingUHT = Target.GetTargetName().Equals( "UnrealHeaderTool", StringComparison.InvariantCultureIgnoreCase );
 			var BuildPlatform = UEBuildPlatform.GetBuildPlatform(Target.Platform);
@@ -382,10 +387,11 @@ namespace UnrealBuildTool
 						UBTArguments.Append(" -noxge");
 					}
 
-					if ( RunExternalExecutable( UnrealBuildTool.GetUBTPath(), UBTArguments.ToString() ) != 0 )
-						return false;
+					bSuccess = RunExternalExecutable( UnrealBuildTool.GetUBTPath(), UBTArguments.ToString() );
 				}
 
+				if( bSuccess )
+				{
 					var ActualTargetName = String.IsNullOrEmpty( Target.GetTargetName() ) ? "UE4" : Target.GetTargetName();
 					Log.TraceInformation( "Parsing headers for {0}", ActualTargetName );
 
@@ -412,16 +418,15 @@ namespace UnrealBuildTool
 
 					Stopwatch s = new Stopwatch();
 					s.Start();
-				int ErrorCode = RunExternalExecutable(ExternalExecution.GetHeaderToolPath(), CmdLine);
+					bSuccess = RunExternalExecutable(ExternalExecution.GetHeaderToolPath(), CmdLine);
 					s.Stop();
 					
-				if (ErrorCode != 0)
+					if (bSuccess)
+					{
+						//if( BuildConfiguration.bPrintDebugInfo )
 						{
-					Log.TraceInformation( "Error: Failed to generate code for {0} - error code: {1}", ActualTargetName, ErrorCode );
-					return false;
-				}
-
 							Log.TraceInformation( "Code generation finished for {0} and took {1}", ActualTargetName, (double)s.ElapsedMilliseconds/1000.0 );
+						}
 
 						// Now that UHT has successfully finished generating code, we need to update all cached FileItems in case their last write time has changed.
 						// Otherwise UBT might not detect changes UHT made.
@@ -432,22 +437,31 @@ namespace UnrealBuildTool
 					}
 					else
 					{
+						Log.TraceInformation( "Error: Failed to generate code for {0}", ActualTargetName );
+					}
+				}
+				else
+				{
+					bSuccess = false;
+				}
+			}
+			else
+			{
 				Log.TraceVerbose( "Generated code is up to date." );
 			}
 
-			// There will never be generated code if we're building UHT, so this should never be called.
-			if (!bIsBuildingUHT)
+			if (bSuccess)
 			{
 				// Allow generated code to be sync'd to remote machines if needed. This needs to be done even if UHT did not run because
 				// generated headers include other generated headers using absolute paths which in case of building remotely are already
 				// the remote machine absolute paths. Because of that parsing headers will not result in finding all includes properly.
 				ToolChain.PostCodeGeneration(Target, Manifest);
-			}
-
 				// touch the directories
 				UpdateDirectoryTimestamps(Target, UObjectModules);
+			}
 
-			return true;
+			return bSuccess;
 		}
+
 	}
 }

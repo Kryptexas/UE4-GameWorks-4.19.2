@@ -2898,9 +2898,6 @@ public:
     TArray<class ISceneViewExtension*> ViewExtensions;
 
 #if WITH_EDITOR
-	// Override the LOD of landscape in this viewport
-	int8 LandscapeLODOverride;
-
 	/** Indicates whether, of not, the base attachment volume should be drawn. */
 	bool bDrawBaseInfo;
 #endif

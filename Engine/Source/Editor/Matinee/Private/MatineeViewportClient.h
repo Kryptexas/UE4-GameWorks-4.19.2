@@ -19,6 +19,7 @@ public:
 	void DrawTimeline(FViewport* Viewport,FCanvas* Canvas);
 	void DrawMarkers(FViewport* Viewport,FCanvas* Canvas);
 	void DrawGrid(FViewport* Viewport,FCanvas* Canvas, bool bDrawTimeline);
+	void DrawTabs(FViewport* Viewport,FCanvas* Canvas);
 	/** 
 	 * Draws a track in the interp editor
 	 * @param Canvas		Canvas to draw on
@@ -60,7 +61,9 @@ public:
 	 * @params LabelDrawParams	Params for drawing the track label
 	 */
 	void DrawTrackLabel( FCanvas* Canvas, UInterpTrack* Track, UInterpGroup* Group, const FInterpTrackDrawParams& TrackDrawParams, const FInterpTrackLabelDrawParams& LabelDrawParams );
-	
+
+	FVector2D DrawTab(FViewport* Viewport, FCanvas* Canvas, int32 &TabOffset, UInterpFilter* Filter);
+
 	/** 
 	 * Draws collapsed keyframes when a group is collapsed
 	 * @param Canvas		Canvas to draw on
@@ -147,6 +150,9 @@ public:
 	/** True if this window is the 'director tracks' window and should only draw director track groups */
 	bool bIsDirectorTrackWindow;
 
+	/** True if we want filter tabs to be rendered and interactive for this window */
+	bool bWantFilterTabs;
+
 	/** True if we want the animation timeline bar to be rendered and interactive for this window */
 	bool bWantTimeline;
 
@@ -182,19 +188,6 @@ public:
 	
 	/** The font to use for drawing labels. */
 	UFont*	LabelFont;
-
-private:
-	
-	UTexture2D* CamLockedIcon;
-	UTexture2D* CamUnlockedIcon;
-	UTexture2D* ForwardEventOnTex;
-	UTexture2D* ForwardEventOffTex;
-	UTexture2D* BackwardEventOnTex;
-	UTexture2D* BackwardEventOffTex;
-	UTexture2D* DisableTrackTex;
-	UTexture2D* GraphOnTex;
-	UTexture2D* GraphOffTex;
-	UTexture2D* TrajectoryOnTex;
 };
 
 /*-----------------------------------------------------------------------------

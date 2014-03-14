@@ -23,17 +23,13 @@
 #include "Editor/UnrealEd/Public/AssetNotifications.h"
 
 #include "Animation/PreviewAssetAttachComponent.h"
-#include "AnimPreviewInstance.h"
 
 #include "Factories.h"
-#include "Developer/MeshUtilities/Public/MeshUtilities.h"
 
 #define LOCTEXT_NAMESPACE "SSkeletonTree"
 
-static const FName	ColumnID_BoneLabel( "BoneName" );
-static const FName	ColumnID_RetargetingLabel( "TranslationRetargeting" );
-// see if mesh reduction is supported
-static bool	bMeshReductionSupported = false;
+static const FName ColumnID_BoneLabel( "BoneName" );
+static const FName ColumnID_RetargetingLabel( "TranslationRetargeting" );
 
 DECLARE_DELEGATE_RetVal_TwoParams(FReply, FOnDraggingBoneItem, const FGeometry&, const FPointerEvent&);
 
@@ -761,15 +757,6 @@ const FString SSkeletonTree::SocketCopyPasteHeader = TEXT( "SocketCopyPasteBuffe
 
 void SSkeletonTree::Construct(const FArguments& InArgs)
 {
-	static bool bMeshReductionSupportedInitialized = false;
-	if ( !bMeshReductionSupportedInitialized )
-	{
-		IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
-		IMeshReduction* MeshReduction = MeshUtilities.GetMeshReductionInterface();
-		bMeshReductionSupported = MeshReduction && MeshReduction->IsSupported();
-		bMeshReductionSupportedInitialized = true;
-	}
-
 	BoneFilter = EBoneFilter::All;
 	SocketFilter = ESocketFilter::Active;
 
@@ -977,11 +964,11 @@ void SSkeletonTree::BindCommands()
 
 	CommandList.MapAction(
 		MenuActions.RemoveSocketCustomization,
-		FExecuteAction::CreateSP( this, &SSkeletonTree::OnDeleteSelectedRows ) ); // Removing customization just deletes the mesh socket
+		FExecuteAction::CreateSP( this, &SSkeletonTree::OnDeleteSocket ) ); // Removing customization just deletes the mesh socket
 
 	CommandList.MapAction(
 		MenuActions.PromoteSocketToSkeleton,
-		FExecuteAction::CreateSP( this, &SSkeletonTree::OnPromoteSocket ) ); // Adding customization just deletes the mesh socket
+		FExecuteAction::CreateSP( this, &SSkeletonTree::OnPromoteSocket ) ); // Removing customization just deletes the mesh socket
 
 	CommandList.MapAction(
 		MenuActions.DeleteSelectedRows,
@@ -990,10 +977,6 @@ void SSkeletonTree::BindCommands()
 	CommandList.MapAction(
 		MenuActions.CopyBoneNames,
 		FExecuteAction::CreateSP( this, &SSkeletonTree::OnCopyBoneNames ) );
-
-	CommandList.MapAction(
-		MenuActions.ResetBoneTransforms,
-		FExecuteAction::CreateSP( this, &SSkeletonTree::OnResetBoneTransforms ) );
 
 	CommandList.MapAction(
 		MenuActions.CopySockets,
@@ -1212,146 +1195,111 @@ void SSkeletonTree::AddSocketsFromData(
 	}
 }
 
-class FBoneTreeSelection
-{
-public:
-	TArray<TSharedPtr<FDisplayedTreeRowInfo>> SelectedItems;
-
-	TArray<TSharedPtr<FDisplayedMeshBoneInfo>> SelectedBones;
-	TArray<TSharedPtr<FDisplayedSocketInfo>> SelectedSockets;
-	TArray<TSharedPtr<FDisplayedAttachedAssetInfo>> SelectedAssets;
-
-	FBoneTreeSelection(TArray<TSharedPtr<FDisplayedTreeRowInfo>> InSelectedItems) : SelectedItems(InSelectedItems)
-	{
-		for ( auto ItemIt = SelectedItems.CreateConstIterator(); ItemIt; ++ItemIt )
-		{
-			FDisplayedTreeRowInfoPtr Item = *(ItemIt);
-
-			switch(Item->GetType())
-			{
-				case ESkeletonTreeRowType::Bone:
-				{
-					SelectedBones.Add( StaticCastSharedPtr< FDisplayedMeshBoneInfo >(Item) );
-					break;
-				}
-				case ESkeletonTreeRowType::Socket:
-				{
-					SelectedSockets.Add( StaticCastSharedPtr< FDisplayedSocketInfo >(Item) );
-					break;
-				}
-				case ESkeletonTreeRowType::AttachedAsset:
-				{
-					SelectedAssets.Add( StaticCastSharedPtr< FDisplayedAttachedAssetInfo >(Item) );
-					break;
-				}
-				default:
-				{
-					check(false); // Unknown row type!
-				}
-			}
-		}
-	}
-
-	bool IsMultipleItemsSelected() const
-	{
-		return SelectedItems.Num() > 1;
-	}
-
-	bool IsSingleItemSelected() const
-	{
-		return SelectedItems.Num() == 1;
-	}
-
-	bool IsSingleOfTypeSelected(ESkeletonTreeRowType::Type ItemType) const
-	{
-		if(IsSingleItemSelected())
-		{
-			switch (ItemType)
-			{
-				case ESkeletonTreeRowType::Bone:
-				{
-					return SelectedBones.Num() == 1;
-				}
-				case ESkeletonTreeRowType::Socket:
-				{
-					return SelectedSockets.Num() == 1;
-				}
-				case ESkeletonTreeRowType::AttachedAsset:
-				{
-					return SelectedAssets.Num() == 1;
-				}
-				default:
-				{
-					check(false); // Unknown type
-				}
-			}
-		}
-		return false;
-	}
-
-	TSharedPtr<FDisplayedTreeRowInfo> GetSingleSelectedItem()
-	{
-		check(IsSingleItemSelected());
-		return SelectedItems[0];
-	}
-
-	bool HasSelectedOfType(ESkeletonTreeRowType::Type ItemType) const
-	{
-		switch (ItemType)
-		{
-			case ESkeletonTreeRowType::Bone:
-			{
-				return SelectedBones.Num() > 0;
-			}
-			case ESkeletonTreeRowType::Socket:
-			{
-				return SelectedSockets.Num() > 0;
-			}
-			case ESkeletonTreeRowType::AttachedAsset:
-			{
-				return SelectedAssets.Num() > 0;
-			}
-			default:
-			{
-				check(false); // Unknown type
-			}
-		}
-		return false;
-	}
-};
-
 TSharedPtr< SWidget > SSkeletonTree::CreateContextMenu()
 {
 	const FSkeletonTreeCommands& Actions = FSkeletonTreeCommands::Get();
 
-	FBoneTreeSelection BoneTreeSelection(SkeletonTreeView->GetSelectedItems());
+	TArray<TSharedPtr<FDisplayedTreeRowInfo>> SelectedItems = SkeletonTreeView->GetSelectedItems();
+
+	const bool bSingleItemSelected = SelectedItems.Num() == 1;
+
+	bool bSingleAssetSelected = false;
 
 	const bool CloseAfterSelection = true;
 	FMenuBuilder MenuBuilder( CloseAfterSelection, UICommandList );
 	{
-		if(BoneTreeSelection.HasSelectedOfType(ESkeletonTreeRowType::AttachedAsset) || BoneTreeSelection.HasSelectedOfType(ESkeletonTreeRowType::Socket))
+		if ( bSingleItemSelected )
+		{
+			switch(SelectedItems[0]->GetType())
+			{
+			case ESkeletonTreeRowType::Bone:
+			{
+				MenuBuilder.BeginSection("SkeletonTreeBonesAction", LOCTEXT( "BoneSocketActions", "Socket Actions" ) );
+				MenuBuilder.AddMenuEntry( Actions.AddSocket );
+				MenuBuilder.AddMenuEntry( Actions.PasteSockets );
+				MenuBuilder.EndSection();
+
+				MenuBuilder.BeginSection("SkeletonTreeBonesAction", LOCTEXT( "BoneActions", "Selected Bone Actions" ) );
+				MenuBuilder.AddMenuEntry( Actions.CopyBoneNames );
+				MenuBuilder.EndSection();
+
+				break;
+			}
+			case ESkeletonTreeRowType::Socket:
+			{
+				MenuBuilder.BeginSection("SkeletonTreeSocketAction", LOCTEXT( "SocketActions", "Selected Socket Actions" ) );
+
+				MenuBuilder.AddMenuEntry( FGenericCommands::Get().Rename, NAME_None, LOCTEXT("RenameSocket_Label", "Rename Socket"), LOCTEXT("RenameSocket_Tooltip", "Rename this socket") );
+
+				FDisplayedSocketInfo* DisplayedSocketInfo = static_cast< FDisplayedSocketInfo* >( SelectedItems[0].Get() );
+
+				if ( DisplayedSocketInfo->IsSocketCustomized() && DisplayedSocketInfo->GetParentType() == ESocketParentType::Mesh )
+				{
+					MenuBuilder.AddMenuEntry( Actions.RemoveSocketCustomization );
+				}
+				else
+				{
+					MenuBuilder.AddMenuEntry( Actions.DeleteSelectedRows );
+				}
+
+				USkeletalMeshSocket* SelectedSocket = static_cast< USkeletalMeshSocket* >( DisplayedSocketInfo->GetData() );
+				USkeletalMesh* Mesh = PersonaPtr.Pin()->GetMesh();
+
+				// If the socket is on the skeleton, we have a valid mesh
+				// and there isn't one of the same name on the mesh, we can customize it
+				if ( Mesh && !DisplayedSocketInfo->IsSocketCustomized() )
+				{
+					if ( DisplayedSocketInfo->GetParentType() == ESocketParentType::Skeleton )
+					{
+						MenuBuilder.AddMenuEntry( Actions.CustomizeSocket );
+					}
+					else if ( DisplayedSocketInfo->GetParentType() == ESocketParentType::Mesh )
+					{
+						// If a socket is on the mesh only, then offer to promote it to the skeleton
+						MenuBuilder.AddMenuEntry( Actions.PromoteSocketToSkeleton );
+					}
+				}
+
+				MenuBuilder.AddMenuEntry( Actions.CopySockets );
+
+				MenuBuilder.EndSection();
+
+				break;
+			}
+			case ESkeletonTreeRowType::AttachedAsset:
+			{
+				bSingleAssetSelected = true;
+				FDisplayedAttachedAssetInfo* AssetItem = static_cast<FDisplayedAttachedAssetInfo*>( SelectedItems[0].Get() );
+				
+				MenuBuilder.BeginSection("SkeletonTreeAssetAction", LOCTEXT( "AssetActions", "Selected Asset Actions" ) );
+				MenuBuilder.AddMenuEntry( Actions.DeleteSelectedRows );
+				MenuBuilder.EndSection();
+
+				break;
+				}
+			}
+		}
+		else if ( SelectedItems.Num() > 1 )
 		{
 			MenuBuilder.BeginSection("SkeletonTreeSelectedItemsActions", LOCTEXT( "SelectedActions", "Selected Item Actions" ) );
 			MenuBuilder.AddMenuEntry( Actions.DeleteSelectedRows );
 			MenuBuilder.EndSection();
-		}
 
-		if(BoneTreeSelection.HasSelectedOfType(ESkeletonTreeRowType::Bone))
-		{
-			MenuBuilder.BeginSection("SkeletonTreeBonesAction", LOCTEXT( "BoneActions", "Selected Bone Actions" ) );
+			MenuBuilder.BeginSection("SkeletonTreeBonesActions", LOCTEXT( "BoneActions", "Selected Bone Actions" ) );
 			MenuBuilder.AddMenuEntry( Actions.CopyBoneNames );
-			MenuBuilder.AddMenuEntry( Actions.ResetBoneTransforms );
-
-			if(BoneTreeSelection.IsSingleOfTypeSelected(ESkeletonTreeRowType::Bone))
-			{
-				MenuBuilder.AddMenuEntry( Actions.AddSocket );
-				MenuBuilder.AddMenuEntry( Actions.PasteSockets );
-			}
-
 			MenuBuilder.EndSection();
 
-			MenuBuilder.BeginSection("SkeletonTreeBoneTranslationRetargeting", LOCTEXT( "BoneTranslationRetargetingHeader", "Bone Translation Retargeting" ) );
-			{
+			MenuBuilder.BeginSection("SkeletonTreeSocketsActions", LOCTEXT( "SocketActions", "Selected Socket Actions" ) );
+			MenuBuilder.AddMenuEntry( Actions.CopySockets );
+			MenuBuilder.EndSection();
+		}
+	}
+	MenuBuilder.EndSection(); //SkeletonTreeBonesAction
+
+	if( !bSingleAssetSelected )
+	{
+		MenuBuilder.BeginSection("SkeletonTreeBoneTranslationRetargeting", LOCTEXT( "BoneTranslationRetargetingHeader", "Bone Translation Retargeting" ) );
+		{
 				FUIAction RecursiveRetargetingSkeletonAction = FUIAction( FExecuteAction::CreateSP( this, &SSkeletonTree::SetBoneTranslationRetargetingModeRecursive, EBoneTranslationRetargetingMode::Skeleton));
 				FUIAction RecursiveRetargetingAnimationAction = FUIAction( FExecuteAction::CreateSP( this, &SSkeletonTree::SetBoneTranslationRetargetingModeRecursive, EBoneTranslationRetargetingMode::Animation));
 				FUIAction RecursiveRetargetingAnimationScaledAction = FUIAction( FExecuteAction::CreateSP( this, &SSkeletonTree::SetBoneTranslationRetargetingModeRecursive, EBoneTranslationRetargetingMode::AnimationScaled));
@@ -1376,12 +1324,31 @@ TSharedPtr< SWidget > SSkeletonTree::CreateContextMenu()
 					, FSlateIcon()
 					, RecursiveRetargetingAnimationScaledAction
 					);
-			}
-			MenuBuilder.EndSection();
+		}
+		MenuBuilder.EndSection();
 
-			if (bMeshReductionSupported)
+#if WITH_SIMPLYGON
+		MenuBuilder.BeginSection("SkeletonTreeBoneReductionForLOD", LOCTEXT( "BoneReductionHeader", "LOD Bone Reduction" ) );
+		{
+			// make sure we have bone selected
+			if (SelectedItems.Num() > 0)
 			{
-				MenuBuilder.BeginSection("SkeletonTreeBoneReductionForLOD", LOCTEXT( "BoneReductionHeader", "LOD Bone Reduction" ) );
+				bool bDisplayLODBoneReductionMenu = false;
+
+				TArray<TSharedPtr<FDisplayedTreeRowInfo> > SelectedItems = SkeletonTreeView->GetSelectedItems();
+
+				for ( auto ItemIt = SelectedItems.CreateConstIterator(); ItemIt; ++ItemIt )
+				{
+					FDisplayedTreeRowInfoPtr Item = *(ItemIt);
+
+					// The is only a valid operation on bones, not sockets
+					if ( Item->GetType() == ESkeletonTreeRowType::Bone )
+					{
+						bDisplayLODBoneReductionMenu = true;
+					}
+				}
+
+				if (bDisplayLODBoneReductionMenu)
 				{
 					MenuBuilder.AddSubMenu(
 						LOCTEXT( "SkeletonTreeBoneReductionForLOD_RemoveBonesFromLOD", "Remove Selected Bone from..." ),
@@ -1395,242 +1362,213 @@ TSharedPtr< SWidget > SSkeletonTree::CreateContextMenu()
 						FNewMenuDelegate::CreateStatic(&SSkeletonTree::CreateMenuForBoneReduction, this, TargetSkeleton, true)
 						);
 				}
-				MenuBuilder.EndSection();
 			}
 		}
+		MenuBuilder.EndSection();
+#endif // WITH_SIMPLYGON
+	}
 
-		if(BoneTreeSelection.HasSelectedOfType(ESkeletonTreeRowType::Socket))
-		{
-			MenuBuilder.BeginSection("SkeletonTreeSocketsActions", LOCTEXT( "SocketActions", "Selected Socket Actions" ) );
+	USkeletalMesh* SkeletalMesh = NULL;
 
-			MenuBuilder.AddMenuEntry( Actions.CopySockets );
+	if ( PersonaPtr.IsValid() )
+	{
+		SkeletalMesh = PersonaPtr.Pin()->GetMesh();
+	}
 
-			if(BoneTreeSelection.IsSingleOfTypeSelected(ESkeletonTreeRowType::Socket))
-			{
-				MenuBuilder.AddMenuEntry( FGenericCommands::Get().Rename, NAME_None, LOCTEXT("RenameSocket_Label", "Rename Socket"), LOCTEXT("RenameSocket_Tooltip", "Rename this socket") );
+	MenuBuilder.BeginSection("SkeletonTreeAttachedAssets", LOCTEXT( "AttachedAssetsActionsHeader", "Attached Assets Actions" ) );
+	
+	if ( bSingleItemSelected )
+	{
+		MenuBuilder.AddSubMenu(	LOCTEXT( "AttachNewAsset", "Add Preview Asset" ),
+								LOCTEXT ( "AttachNewAsset_ToolTip", "Attaches an asset to this part of the skeleton. Assets can also be dragged onto the skeleton from a content browser to attach" ),
+								FNewMenuDelegate::CreateSP( this, &SSkeletonTree::FillAttachAssetSubmenu, SelectedItems[0] ) );
+	}
 
-				FDisplayedSocketInfo* DisplayedSocketInfo = static_cast< FDisplayedSocketInfo* >( BoneTreeSelection.GetSingleSelectedItem().Get() );
+	FUIAction RemoveAllAttachedAssets = FUIAction(	FExecuteAction::CreateSP( this, &SSkeletonTree::OnRemoveAllAssets ),
+													FCanExecuteAction::CreateSP( this, &SSkeletonTree::CanRemoveAllAssets ));
 
-				if ( DisplayedSocketInfo->IsSocketCustomized() && DisplayedSocketInfo->GetParentType() == ESocketParentType::Mesh )
-				{
-					MenuBuilder.AddMenuEntry( Actions.RemoveSocketCustomization );
-				}
-
-				USkeletalMeshSocket* SelectedSocket = static_cast< USkeletalMeshSocket* >( DisplayedSocketInfo->GetData() );
-				USkeletalMesh* Mesh = PersonaPtr.Pin()->GetMesh();
-
-				// If the socket is on the skeleton, we have a valid mesh
-				// and there isn't one of the same name on the mesh, we can customize it
-				if ( Mesh && !DisplayedSocketInfo->IsSocketCustomized() )
-				{
-					if ( DisplayedSocketInfo->GetParentType() == ESocketParentType::Skeleton )
-					{
-						MenuBuilder.AddMenuEntry( Actions.CustomizeSocket );
-					}
-					else if ( DisplayedSocketInfo->GetParentType() == ESocketParentType::Mesh )
-					{
-						// If a socket is on the mesh only, then offer to promote it to the skeleton
-						MenuBuilder.AddMenuEntry( Actions.PromoteSocketToSkeleton );
-					}
-				}
-			}
-
-			MenuBuilder.EndSection();
-		}
-
-		MenuBuilder.BeginSection("SkeletonTreeAttachedAssets", LOCTEXT( "AttachedAssetsActionsHeader", "Attached Assets Actions" ) );
-
-		if ( BoneTreeSelection.IsSingleItemSelected() )
-		{
-			MenuBuilder.AddSubMenu(	LOCTEXT( "AttachNewAsset", "Add Preview Asset" ),
-				LOCTEXT ( "AttachNewAsset_ToolTip", "Attaches an asset to this part of the skeleton. Assets can also be dragged onto the skeleton from a content browser to attach" ),
-				FNewMenuDelegate::CreateSP( this, &SSkeletonTree::FillAttachAssetSubmenu, BoneTreeSelection.GetSingleSelectedItem() ) );
-		}
-
-		FUIAction RemoveAllAttachedAssets = FUIAction(	FExecuteAction::CreateSP( this, &SSkeletonTree::OnRemoveAllAssets ),
-			FCanExecuteAction::CreateSP( this, &SSkeletonTree::CanRemoveAllAssets ));
-
-		MenuBuilder.AddMenuEntry( LOCTEXT( "RemoveAllAttachedAssets", "Remove All Attached Assets" ),
+	MenuBuilder.AddMenuEntry( LOCTEXT( "RemoveAllAttachedAssets", "Remove All Attached Assets" ),
 			LOCTEXT ( "RemoveAllAttachedAssets_ToolTip", "Removes all the attached assets from the skeleton and mesh." ),
 			FSlateIcon(), RemoveAllAttachedAssets );
 
-		MenuBuilder.EndSection();
-	}
+	MenuBuilder.EndSection();
 
 	return MenuBuilder.MakeWidget();
 }
 
+#if WITH_SIMPLYGON
 void SSkeletonTree::CreateMenuForBoneReduction(FMenuBuilder& MenuBuilder, SSkeletonTree * Widget, USkeleton * Skeleton, bool bAdd)
 {
-	if (bMeshReductionSupported)
+	int32 LODSettingIndex=0;
+	for (; LODSettingIndex<Skeleton->BoneReductionSettingsForLODs.Num(); ++LODSettingIndex)
 	{
-		int32 LODSettingIndex=0;
-		for(; LODSettingIndex<Skeleton->BoneReductionSettingsForLODs.Num(); ++LODSettingIndex)
+		if ( Skeleton->BoneReductionSettingsForLODs[LODSettingIndex].BonesToRemove.Num() > 0 )
 		{
-			if(Skeleton->BoneReductionSettingsForLODs[LODSettingIndex].BonesToRemove.Num() > 0)
+			if (bAdd)
 			{
-				if(bAdd)
-				{
-					FUIAction AddBonesToLOD1Action = FUIAction(FExecuteAction::CreateSP(Widget, &SSkeletonTree::AddToLOD, LODSettingIndex+1));
-					MenuBuilder.AddMenuEntry
-						(FText::FromString(FString::Printf(TEXT("LOD %d"), LODSettingIndex+1))
-						, FText::FromString(FString::Printf(TEXT("LOD %d"), LODSettingIndex+1))
-						, FSlateIcon()
-						, AddBonesToLOD1Action
-						);
+				FUIAction AddBonesToLOD1Action = FUIAction( FExecuteAction::CreateSP( Widget, &SSkeletonTree::AddToLOD, LODSettingIndex+1));
+				MenuBuilder.AddMenuEntry
+					( FText::FromString(FString::Printf(TEXT("LOD %d"), LODSettingIndex+1))
+					, FText::FromString(FString::Printf(TEXT("LOD %d"), LODSettingIndex+1))
+					, FSlateIcon()
+					, AddBonesToLOD1Action
+					);		
 
-				}
-				else
-				{
-					FUIAction RemoveBonesFromLOD1Action = FUIAction(FExecuteAction::CreateSP(Widget, &SSkeletonTree::RemoveFromLOD, LODSettingIndex+1));
-					MenuBuilder.AddMenuEntry
-						(FText::FromString(FString::Printf(TEXT("LOD %d"), LODSettingIndex+1))
-						, FText::FromString(FString::Printf(TEXT("LOD %d"), LODSettingIndex+1))
-						, FSlateIcon()
-						, RemoveBonesFromLOD1Action
-						);
-				}
+			}
+			else
+			{
+				FUIAction RemoveBonesFromLOD1Action = FUIAction( FExecuteAction::CreateSP( Widget, &SSkeletonTree::RemoveFromLOD, LODSettingIndex+1));
+				MenuBuilder.AddMenuEntry
+					( FText::FromString(FString::Printf(TEXT("LOD %d"), LODSettingIndex+1))
+					, FText::FromString(FString::Printf(TEXT("LOD %d"), LODSettingIndex+1))
+					, FSlateIcon()
+					, RemoveBonesFromLOD1Action
+					);
 			}
 		}
+	}
 
-		if(!bAdd)
-		{
-			FUIAction RemoveBonesFromLOD1Action = FUIAction(FExecuteAction::CreateSP(Widget, &SSkeletonTree::RemoveFromLOD, LODSettingIndex+1));
-			MenuBuilder.AddMenuEntry
-				(FText::FromString(FString::Printf(TEXT("LOD %d"), LODSettingIndex+1))
-				, FText::FromString(FString::Printf(TEXT("LOD %d"), LODSettingIndex+1))
-				, FSlateIcon()
-				, RemoveBonesFromLOD1Action
-				);
-		}
+	if (!bAdd)
+	{
+		FUIAction RemoveBonesFromLOD1Action = FUIAction( FExecuteAction::CreateSP( Widget, &SSkeletonTree::RemoveFromLOD, LODSettingIndex+1));
+		MenuBuilder.AddMenuEntry
+			( FText::FromString(FString::Printf(TEXT("LOD %d"), LODSettingIndex+1))
+			, FText::FromString(FString::Printf(TEXT("LOD %d"), LODSettingIndex+1))
+			, FSlateIcon()
+			, RemoveBonesFromLOD1Action
+			);
 	}
 }
+#endif // #if WITH_SIMPLYGON
 
 void SSkeletonTree::SetBoneTranslationRetargetingModeRecursive(EBoneTranslationRetargetingMode::Type NewRetargetingMode)
 {
 	const FScopedTransaction Transaction( LOCTEXT( "SetBoneTranslationRetargetingModeRecursive", "Set Bone Translation Retargeting Mode Recursive" ) );
 	TargetSkeleton->Modify();
 
-	FBoneTreeSelection TreeSelection(SkeletonTreeView->GetSelectedItems());
+	TArray<TSharedPtr<FDisplayedTreeRowInfo> > SelectedItems = SkeletonTreeView->GetSelectedItems();
 
-	for ( auto ItemIt = TreeSelection.SelectedBones.CreateConstIterator(); ItemIt; ++ItemIt )
+	for ( auto ItemIt = SelectedItems.CreateConstIterator(); ItemIt; ++ItemIt )
 	{
-		FName BoneName = *static_cast<FName*>( (*ItemIt)->GetData() );
-		int32 BoneIndex = TargetSkeleton->GetReferenceSkeleton().FindBoneIndex( BoneName );
-		TargetSkeleton->SetBoneTranslationRetargetingMode(BoneIndex, NewRetargetingMode, true);
+		FDisplayedTreeRowInfoPtr Item = *(ItemIt);
+
+		// The is only a valid operation on bones, not sockets
+		if ( Item->GetType() == ESkeletonTreeRowType::Bone )
+		{
+			FName BoneName = *static_cast<FName*>( Item->GetData() );
+
+			int32 BoneIndex = TargetSkeleton->GetReferenceSkeleton().FindBoneIndex( BoneName );
+			TargetSkeleton->SetBoneTranslationRetargetingMode(BoneIndex, NewRetargetingMode, true);
+		}
 	}
 	FAssetNotifications::SkeletonNeedsToBeSaved(TargetSkeleton);
+
+	// Rebuild our display tree from the actual skeleton to maintain consistency
+	CreateFromSkeleton(TargetSkeleton->GetBoneTree());
 }
 
+#if WITH_SIMPLYGON
 void SSkeletonTree::RemoveFromLOD(int32 LODIndex)
 {
-	if (bMeshReductionSupported)
+	const FScopedTransaction Transaction( LOCTEXT( "RemoveBoneFromLOD", "Remove Selected Bones from LOD" ) );
+	TargetSkeleton->Modify();
+
+	TArray<TSharedPtr<FDisplayedTreeRowInfo> > SelectedItems = SkeletonTreeView->GetSelectedItems();
+
+	if ( SelectedItems.Num() > 0 )
 	{
-		const FScopedTransaction Transaction(LOCTEXT("RemoveBoneFromLOD", "Remove Selected Bones from LOD"));
-		TargetSkeleton->Modify();
-
-		FBoneTreeSelection TreeSelection(SkeletonTreeView->GetSelectedItems());
-
-		for ( auto ItemIt = TreeSelection.SelectedBones.CreateConstIterator(); ItemIt; ++ItemIt )
+		for ( auto ItemIt = SelectedItems.CreateConstIterator(); ItemIt; ++ItemIt )
 		{
-			FName BoneName = *static_cast<FName*>( (*ItemIt)->GetData() );
-			int32 BoneIndex = TargetSkeleton->GetReferenceSkeleton().FindBoneIndex( BoneName );
-			TargetSkeleton->RemoveBoneFromLOD(LODIndex, BoneIndex);
-		}
+			FDisplayedTreeRowInfoPtr Item = *(ItemIt);
 
-		FAssetNotifications::SkeletonNeedsToBeSaved(TargetSkeleton);
+			// The is only a valid operation on bones, not sockets
+			if ( Item->GetType() == ESkeletonTreeRowType::Bone )
+			{
+				FName BoneName = *static_cast<FName*>( Item->GetData() );
+				int32 BoneIndex = TargetSkeleton->GetReferenceSkeleton().FindBoneIndex( BoneName );
+				TargetSkeleton->RemoveBoneFromLOD(LODIndex, BoneIndex);
+			}
+		}
 	}
+
+	FAssetNotifications::SkeletonNeedsToBeSaved(TargetSkeleton);
 }
 
 void SSkeletonTree::AddToLOD(int32 LODIndex)
 {
-	if (bMeshReductionSupported)
+	const FScopedTransaction Transaction( LOCTEXT( "AddBoneToLOD", "Add Selected Bones to LOD" ) );
+	TargetSkeleton->Modify();
+
+	TArray<TSharedPtr<FDisplayedTreeRowInfo> > SelectedItems = SkeletonTreeView->GetSelectedItems();
+
+	if ( SelectedItems.Num() > 0 )
 	{
-		const FScopedTransaction Transaction(LOCTEXT("AddBoneToLOD", "Add Selected Bones to LOD"));
-		TargetSkeleton->Modify();
-
-		FBoneTreeSelection TreeSelection(SkeletonTreeView->GetSelectedItems());
-
-		for ( auto ItemIt = TreeSelection.SelectedBones.CreateConstIterator(); ItemIt; ++ItemIt )
+		for ( auto ItemIt = SelectedItems.CreateConstIterator(); ItemIt; ++ItemIt )
 		{
-			FName BoneName = *static_cast<FName*>( (*ItemIt)->GetData() );
-			int32 BoneIndex = TargetSkeleton->GetReferenceSkeleton().FindBoneIndex( BoneName );
-			TargetSkeleton->AddBoneToLOD(LODIndex, BoneIndex);
-		}
+			FDisplayedTreeRowInfoPtr Item = *(ItemIt);
 
-		FAssetNotifications::SkeletonNeedsToBeSaved(TargetSkeleton);
+			// The is only a valid operation on bones, not sockets
+			if ( Item->GetType() == ESkeletonTreeRowType::Bone )
+			{
+				FName BoneName = *static_cast<FName*>( Item->GetData() );
+				int32 BoneIndex = TargetSkeleton->GetReferenceSkeleton().FindBoneIndex( BoneName );
+				TargetSkeleton->AddBoneToLOD(LODIndex, BoneIndex);
+			}
+		}
 	}
+
+	FAssetNotifications::SkeletonNeedsToBeSaved(TargetSkeleton);
 }
+#endif // WITH_SIMPLYGON
 
 void SSkeletonTree::OnCopyBoneNames()
 {
-	FBoneTreeSelection TreeSelection(SkeletonTreeView->GetSelectedItems());
+	FString BoneNames;
+	TArray<TSharedPtr<FDisplayedTreeRowInfo>> SelectedItems = SkeletonTreeView->GetSelectedItems();
 
-	if( TreeSelection.SelectedBones.Num() > 0 )
+	if( SelectedItems.Num() > 0 )
 	{
-		FString BoneNames;
-		for( auto ItemIt = TreeSelection.SelectedBones.CreateConstIterator(); ItemIt; ++ItemIt )
+		for( auto ItemIt = SelectedItems.CreateConstIterator(); ItemIt; ++ItemIt )
 		{
-			FName * BoneName = static_cast<FName*>( (*ItemIt)->GetData() );
+			FDisplayedTreeRowInfoPtr Item = *(ItemIt);
 
-			BoneNames += BoneName->ToString();
-			BoneNames += "\r\n";
+			// The test is to avoid copying socket names if they are selected
+			if ( Item->GetType() == ESkeletonTreeRowType::Bone )
+			{
+				FName * BoneName = static_cast<FName*>( Item->GetData() );
+			
+				BoneNames += BoneName->ToString();
+				BoneNames += "\r\n";
+			}
 		}
 		FPlatformMisc::ClipboardCopy( *BoneNames );
 	}
 }
 
-void SSkeletonTree::OnResetBoneTransforms()
-{
-	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->GetPreviewMeshComponent();
-	check(PreviewComponent);
-	UAnimPreviewInstance* PreviewInstance = PreviewComponent->PreviewInstance;
-	check(PreviewInstance);
-
-	FBoneTreeSelection TreeSelection(SkeletonTreeView->GetSelectedItems());
-
-	if( TreeSelection.SelectedBones.Num() > 0 )
-	{
-		bool bModified = false;
-		GEditor->BeginTransaction( LOCTEXT("SkeletonTree_ResetBoneTransforms", "Reset Bone Transforms" ) );
-
-		for( auto ItemIt = TreeSelection.SelectedBones.CreateConstIterator(); ItemIt; ++ItemIt )
-		{
-			const FName* BoneName = static_cast<FName*>( (*ItemIt)->GetData() );
-			check(BoneName);
-			const FAnimNode_ModifyBone* ModifiedBone = PreviewInstance->FindModifiedBone(*BoneName);
-			if(ModifiedBone != nullptr)
-			{
-				if(!bModified)
-				{
-					PreviewInstance->SetFlags( RF_Transactional );	
-					PreviewInstance->Modify();
-					bModified = true;
-				}
-
-				PreviewInstance->RemoveBoneModification(*BoneName);
-			}
-		}
-
-		GEditor->EndTransaction();
-	}
-}
-
 void SSkeletonTree::OnCopySockets() const
 {
-	FBoneTreeSelection TreeSelection(SkeletonTreeView->GetSelectedItems());
+	TArray<TSharedPtr<FDisplayedTreeRowInfo>> SelectedItems = SkeletonTreeView->GetSelectedItems();
 
-	int32 NumSocketsToCopy = TreeSelection.SelectedSockets.Num();
-	if ( NumSocketsToCopy > 0 )
+	if ( SelectedItems.Num() )
 	{
+		int32 NumSocketsToCopy = 0;
 		FString SocketsDataString;
 
-		for ( auto ItemIt = TreeSelection.SelectedSockets.CreateConstIterator(); ItemIt; ++ItemIt )
+		for ( auto ItemIt = SelectedItems.CreateConstIterator(); ItemIt; ++ItemIt )
 		{
-			FDisplayedSocketInfo* DisplayedSocketInfo = (*ItemIt).Get();
-			USkeletalMeshSocket* Socket = static_cast<USkeletalMeshSocket*>( DisplayedSocketInfo->GetData() );
+			FDisplayedTreeRowInfoPtr Item = *(ItemIt);
 
-			SocketsDataString += SerializeSocketToString( Socket, DisplayedSocketInfo );
+			// The test is to avoid copying socket names if they are selected
+			if ( Item->GetType() == ESkeletonTreeRowType::Socket )
+			{
+				++NumSocketsToCopy;
+
+				USkeletalMeshSocket* Socket = static_cast<USkeletalMeshSocket*>( Item->GetData() );
+
+				FDisplayedSocketInfo* DisplayedSocketInfo = static_cast< FDisplayedSocketInfo* >( Item.Get() );
+
+				SocketsDataString += SerializeSocketToString( Socket, DisplayedSocketInfo );
+			}
 		}
 
 		FString CopyString = FString::Printf( TEXT("%s\nNumSockets=%d\n%s"), *SocketCopyPasteHeader, NumSocketsToCopy, *SocketsDataString );
@@ -1655,135 +1593,147 @@ FString SSkeletonTree::SerializeSocketToString( USkeletalMeshSocket* Socket, con
 
 void SSkeletonTree::OnPasteSockets()
 {
-	FBoneTreeSelection TreeSelection(SkeletonTreeView->GetSelectedItems());
+ 	TArray<TSharedPtr<FDisplayedTreeRowInfo>> SelectedItems = SkeletonTreeView->GetSelectedItems();
+ 
+ 	// Pasting sockets should only work if there is just one bone selected
+ 	if ( SelectedItems.Num() == 1 )
+ 	{
+ 		FDisplayedTreeRowInfoPtr Item = SelectedItems[0];
+ 
+ 		if ( Item->GetType() == ESkeletonTreeRowType::Bone )
+ 		{
+			FString PasteString;
+			FPlatformMisc::ClipboardPaste( PasteString );
+			const TCHAR* PastePtr = *PasteString;
 
-	// Pasting sockets should only work if there is just one bone selected
-	if ( TreeSelection.IsSingleOfTypeSelected(ESkeletonTreeRowType::Bone) )
-	{
-		FName DestBoneName = *static_cast<FName*>( TreeSelection.GetSingleSelectedItem()->GetData() );
-
-		FString PasteString;
-		FPlatformMisc::ClipboardPaste( PasteString );
-		const TCHAR* PastePtr = *PasteString;
-
-		FString PasteLine;
-		FParse::Line( &PastePtr, PasteLine );
-
-		if ( PasteLine == SocketCopyPasteHeader )
-		{
-			const FScopedTransaction Transaction( LOCTEXT( "PasteSockets", "Paste sockets" ) );
-
-			int32 NumSocketsToPaste;
-			FParse::Line( &PastePtr, PasteLine );	// Need this to advance PastePtr, for multiple sockets
-			FParse::Value( *PasteLine, TEXT( "NumSockets=" ), NumSocketsToPaste );
+			FString PasteLine;
 			FParse::Line( &PastePtr, PasteLine );
 
-			for ( int32 i = 0; i < NumSocketsToPaste; ++i )
-			{					
-				bool bIsOnSkeleton;
-				FParse::Bool( *PasteLine, TEXT( "IsOnSkeleton=" ), bIsOnSkeleton );
+			if ( PasteLine == SocketCopyPasteHeader )
+			{
+ 				const FScopedTransaction Transaction( LOCTEXT( "PasteSockets", "Paste sockets" ) );
 
-				USkeletalMeshSocket* NewSocket;
-				FSocketTextObjectFactory TextObjectFactory( &NewSocket );
+				int32 NumSocketsToPaste;
+				FParse::Line( &PastePtr, PasteLine );	// Need this to advance PastePtr, for multiple sockets
+				FParse::Value( *PasteLine, TEXT( "NumSockets=" ), NumSocketsToPaste );
+				FParse::Line( &PastePtr, PasteLine );
 
-				if ( bIsOnSkeleton )
-				{
-					TargetSkeleton->Modify();
+ 				for ( int32 i = 0; i < NumSocketsToPaste; ++i )
+ 				{					
+					bool bIsOnSkeleton;
+					FParse::Bool( *PasteLine, TEXT( "IsOnSkeleton=" ), bIsOnSkeleton );
 
-					TextObjectFactory.ProcessBuffer( TargetSkeleton, RF_Transactional, PastePtr );
-					check(NewSocket);
-				}
-				else
-				{
-					USkeletalMesh* Mesh = PersonaPtr.Pin()->GetMesh();
+					USkeletalMeshSocket* NewSocket;
+					FSocketTextObjectFactory TextObjectFactory( &NewSocket );
 
-					Mesh->Modify();
+ 					if ( bIsOnSkeleton )
+ 					{
+ 						TargetSkeleton->Modify();
+ 
+ 						TextObjectFactory.ProcessBuffer( TargetSkeleton, RF_Transactional, PastePtr );
+ 						check(NewSocket);
+ 					}
+ 					else
+					{
+ 						USkeletalMesh* Mesh = PersonaPtr.Pin()->GetMesh();
+ 
+ 						Mesh->Modify();
+ 
+ 						TextObjectFactory.ProcessBuffer( Mesh, RF_Transactional, PastePtr );
+						check(NewSocket);
+ 					}
+ 
+					// Override the bone name to the one we pasted to
+					NewSocket->BoneName = *static_cast<FName*>( SelectedItems[0]->GetData() );
 
-					TextObjectFactory.ProcessBuffer( Mesh, RF_Transactional, PastePtr );
-					check(NewSocket);
-				}
+					// Check the socket name is unique
+					NewSocket->SocketName = PersonaPtr.Pin()->GenerateUniqueSocketName( NewSocket->SocketName );
+ 
+					// Skip ahead in the stream to the next socket (if there is one)
+					PastePtr = FCString::Strstr( PastePtr, TEXT( "IsOnSkeleton=" ) );
 
-				// Override the bone name to the one we pasted to
-				NewSocket->BoneName = DestBoneName;
-
-				// Check the socket name is unique
-				NewSocket->SocketName = PersonaPtr.Pin()->GenerateUniqueSocketName( NewSocket->SocketName );
-
-				// Skip ahead in the stream to the next socket (if there is one)
-				PastePtr = FCString::Strstr( PastePtr, TEXT( "IsOnSkeleton=" ) );
-
-				if ( bIsOnSkeleton )
-				{
-					TargetSkeleton->Sockets.Add( NewSocket );
-				}
-				else
-				{
-					USkeletalMesh* Mesh = PersonaPtr.Pin()->GetMesh();
-					Mesh->GetMeshOnlySocketList().Add( NewSocket );
-				}
-			}
+					if ( bIsOnSkeleton )
+					{
+						TargetSkeleton->Sockets.Add( NewSocket );
+					}
+					else
+					{
+						USkeletalMesh* Mesh = PersonaPtr.Pin()->GetMesh();
+						Mesh->GetMeshOnlySocketList().Add( NewSocket );
+ 					}
+ 				}
+ 			}
 		}
-		CreateFromSkeleton( TargetSkeleton->GetBoneTree() );
 	}
+
+	CreateFromSkeleton( TargetSkeleton->GetBoneTree() );
 }
 
 void SSkeletonTree::OnAddSocket()
 {
 	// This adds a socket to the currently selected bone in the SKELETON, not the MESH.
-	FBoneTreeSelection TreeSelection(SkeletonTreeView->GetSelectedItems());
 
-	// Can only add a socket to one bone
-	if(TreeSelection.IsSingleOfTypeSelected(ESkeletonTreeRowType::Bone))
-	{
-		USkeletalMeshSocket* NewSocket;
+	TArray<TSharedPtr<FDisplayedTreeRowInfo>> SelectedItems = SkeletonTreeView->GetSelectedItems();
 
-		const FScopedTransaction Transaction( LOCTEXT( "AddSocket", "Add Socket to Skeleton" ) );
-		TargetSkeleton->Modify();
+	// Can only add a socket to one bone (context menu should CreateContextMenu() against this firing!)
+	check( SelectedItems.Num() == 1 );
 
-		NewSocket = ConstructObject<USkeletalMeshSocket>( USkeletalMeshSocket::StaticClass(), TargetSkeleton );
-		check(NewSocket);
+	USkeletalMeshSocket* NewSocket;
 
-		NewSocket->BoneName = *static_cast<FName*>( TreeSelection.GetSingleSelectedItem()->GetData() );
-		NewSocket->SocketName = PersonaPtr.Pin()->GenerateUniqueSocketName( *LOCTEXT( "NewSocketDefaultName", "NewSocket" ).ToString() );
+	const FScopedTransaction Transaction( LOCTEXT( "AddSocket", "Add Socket to Skeleton" ) );
+	TargetSkeleton->Modify();
 
-		TargetSkeleton->Sockets.Add( NewSocket );
+	NewSocket = ConstructObject<USkeletalMeshSocket>( USkeletalMeshSocket::StaticClass(), TargetSkeleton );
+	check(NewSocket);
 
-		CreateFromSkeleton( TargetSkeleton->GetBoneTree(), NewSocket );
-	}
+	NewSocket->BoneName = *static_cast<FName*>( SelectedItems[0]->GetData() );
+	NewSocket->SocketName = PersonaPtr.Pin()->GenerateUniqueSocketName( *LOCTEXT( "NewSocketDefaultName", "NewSocket" ).ToString() );
+
+	TargetSkeleton->Sockets.Add( NewSocket );
+
+	CreateFromSkeleton( TargetSkeleton->GetBoneTree(), NewSocket );
 }
 
 void SSkeletonTree::OnCustomizeSocket()
 {
 	// This should only be called on a skeleton socket, it copies the 
 	// socket to the mesh so the user can edit it separately
-	FBoneTreeSelection TreeSelection(SkeletonTreeView->GetSelectedItems());
 
-	if(TreeSelection.IsSingleOfTypeSelected(ESkeletonTreeRowType::Socket))
+	TArray<TSharedPtr<FDisplayedTreeRowInfo>> SelectedItems = SkeletonTreeView->GetSelectedItems();
+
+	// It's possible that the socket selected when the user right clicked no longer exists (Ctrl-Z undo after creation).
+	// In this case, just return
+	if ( !SelectedItems.Num() )
 	{
-		USkeletalMeshSocket* SocketToCustomize = static_cast<USkeletalMeshSocket*>( TreeSelection.GetSingleSelectedItem()->GetData() );
+		return;
+	}
 
-		if ( PersonaPtr.IsValid() )
+	// Can only customize one socket (CreateContextMenu() should prevent this firing!)
+	check( SelectedItems[0]->GetType() == ESkeletonTreeRowType::Socket );
+
+	USkeletalMeshSocket* SocketToCustomize = static_cast<USkeletalMeshSocket*>( SelectedItems[0]->GetData() );
+
+	if ( PersonaPtr.IsValid() )
+	{
+		USkeletalMesh* Mesh = PersonaPtr.Pin()->GetMesh();
+
+		if ( Mesh )
 		{
-			USkeletalMesh* Mesh = PersonaPtr.Pin()->GetMesh();
+			const FScopedTransaction Transaction( LOCTEXT( "CustomizeSocket", "Customize Socket" ) );
+			Mesh->Modify();
 
-			if ( Mesh )
-			{
-				const FScopedTransaction Transaction( LOCTEXT( "CustomizeSocket", "Customize Socket" ) );
-				Mesh->Modify();
+			USkeletalMeshSocket* NewSocket = ConstructObject<USkeletalMeshSocket>( USkeletalMeshSocket::StaticClass(), Mesh );
+			check(NewSocket);
 
-				USkeletalMeshSocket* NewSocket = ConstructObject<USkeletalMeshSocket>( USkeletalMeshSocket::StaticClass(), Mesh );
-				check(NewSocket);
+			NewSocket->BoneName = SocketToCustomize->BoneName;
+			NewSocket->SocketName = SocketToCustomize->SocketName;
+			NewSocket->RelativeLocation = SocketToCustomize->RelativeLocation;
+			NewSocket->RelativeRotation = SocketToCustomize->RelativeRotation;
+			NewSocket->RelativeScale = SocketToCustomize->RelativeScale;
 
-				NewSocket->BoneName = SocketToCustomize->BoneName;
-				NewSocket->SocketName = SocketToCustomize->SocketName;
-				NewSocket->RelativeLocation = SocketToCustomize->RelativeLocation;
-				NewSocket->RelativeRotation = SocketToCustomize->RelativeRotation;
-				NewSocket->RelativeScale = SocketToCustomize->RelativeScale;
+			Mesh->GetMeshOnlySocketList().Add( NewSocket );
 
-				Mesh->GetMeshOnlySocketList().Add( NewSocket );
-
-				CreateFromSkeleton( TargetSkeleton->GetBoneTree() );
-			}
+			CreateFromSkeleton( TargetSkeleton->GetBoneTree() );
 		}
 	}
 }
@@ -1792,29 +1742,58 @@ void SSkeletonTree::OnPromoteSocket()
 {
 	// This should only be called on a mesh socket, it copies the 
 	// socket to the skeleton so all meshes can use it
-	FBoneTreeSelection TreeSelection(SkeletonTreeView->GetSelectedItems());
+
+	TArray<TSharedPtr<FDisplayedTreeRowInfo>> SelectedItems = SkeletonTreeView->GetSelectedItems();
+
+	// It's possible that the socket selected when the user right clicked no longer exists (Ctrl-Z undo after creation).
+	// In this case, just return
+	if ( !SelectedItems.Num() )
+	{
+		return;
+	}
 
 	// Can only customize one socket (CreateContextMenu() should prevent this firing!)
-	if(TreeSelection.IsSingleOfTypeSelected(ESkeletonTreeRowType::Socket))
+	check( SelectedItems[0]->GetType() == ESkeletonTreeRowType::Socket );
+
+	USkeletalMeshSocket* SocketToCustomize = static_cast<USkeletalMeshSocket*>( SelectedItems[0]->GetData() );
+
+	const FScopedTransaction Transaction( LOCTEXT( "PromoteSocket", "Promote Socket" ) );
+	TargetSkeleton->Modify();
+
+	USkeletalMeshSocket* NewSocket = ConstructObject<USkeletalMeshSocket>( USkeletalMeshSocket::StaticClass(), TargetSkeleton );
+	check(NewSocket);
+
+	NewSocket->BoneName = SocketToCustomize->BoneName;
+	NewSocket->SocketName = SocketToCustomize->SocketName;
+	NewSocket->RelativeLocation = SocketToCustomize->RelativeLocation;
+	NewSocket->RelativeRotation = SocketToCustomize->RelativeRotation;
+	NewSocket->RelativeScale = SocketToCustomize->RelativeScale;
+
+	TargetSkeleton->Sockets.Add( NewSocket );
+
+	CreateFromSkeleton( TargetSkeleton->GetBoneTree() );
+}
+
+void SSkeletonTree::OnDeleteSocket()
+{
+	TArray<TSharedPtr<FDisplayedTreeRowInfo>> SelectedItems = SkeletonTreeView->GetSelectedItems();
+
+	// It's possible that the socket selected when the user right clicked no longer exists (Ctrl-Z undo after creation).
+	// In this case, just return
+	if ( !SelectedItems.Num() )
 	{
-		USkeletalMeshSocket* SocketToCustomize = static_cast<USkeletalMeshSocket*>( TreeSelection.GetSingleSelectedItem()->GetData() );
-
-		const FScopedTransaction Transaction( LOCTEXT( "PromoteSocket", "Promote Socket" ) );
-		TargetSkeleton->Modify();
-
-		USkeletalMeshSocket* NewSocket = ConstructObject<USkeletalMeshSocket>( USkeletalMeshSocket::StaticClass(), TargetSkeleton );
-		check(NewSocket);
-
-		NewSocket->BoneName = SocketToCustomize->BoneName;
-		NewSocket->SocketName = SocketToCustomize->SocketName;
-		NewSocket->RelativeLocation = SocketToCustomize->RelativeLocation;
-		NewSocket->RelativeRotation = SocketToCustomize->RelativeRotation;
-		NewSocket->RelativeScale = SocketToCustomize->RelativeScale;
-
-		TargetSkeleton->Sockets.Add( NewSocket );
-
-		CreateFromSkeleton( TargetSkeleton->GetBoneTree() );
+		return;
 	}
+
+	// Can only delete one socket (context menu should CreateContextMenu() against this firing!)
+	check( SelectedItems[0]->GetType() == ESkeletonTreeRowType::Socket );
+
+	DeleteSingleSocket( static_cast<FDisplayedSocketInfo*>( SelectedItems[0].Get() ) );
+
+	CreateFromSkeleton( TargetSkeleton->GetBoneTree() );
+
+	// Reset the sockets of interest in the Preview Mesh so we don't leave a null pointer dangling
+	PersonaPtr.Pin()->ClearSelectedSocket();
 }
 
 void SSkeletonTree::FillAttachAssetSubmenu(FMenuBuilder& MenuBuilder, const FDisplayedTreeRowInfoPtr TargetItem)
@@ -1897,19 +1876,26 @@ void SSkeletonTree::DeleteAttachedObjects( FPreviewAssetAttachContainer& Attache
 
 bool SSkeletonTree::CanRenameSelected() const
 {
-	FBoneTreeSelection TreeSelection(SkeletonTreeView->GetSelectedItems());
-	return TreeSelection.IsSingleOfTypeSelected(ESkeletonTreeRowType::Socket);
+	TArray<TSharedPtr<FDisplayedTreeRowInfo>> SelectedItems = SkeletonTreeView->GetSelectedItems();
+	return SelectedItems.Num() == 1 && SelectedItems[0]->GetType() == ESkeletonTreeRowType::Socket;
 }
 
 void SSkeletonTree::OnRenameSocket()
 {
-	FBoneTreeSelection TreeSelection(SkeletonTreeView->GetSelectedItems());
+	TArray<TSharedPtr<FDisplayedTreeRowInfo>> SelectedItems = SkeletonTreeView->GetSelectedItems();
 
-	if(TreeSelection.IsSingleOfTypeSelected(ESkeletonTreeRowType::Socket))
+	// It's possible that the socket selected when the user right clicked no longer exists (Ctrl-Z undo after creation).
+	// In this case, just return
+	if ( !SelectedItems.Num() )
 	{
-		SkeletonTreeView->RequestScrollIntoView(TreeSelection.GetSingleSelectedItem());
-		DeferredRenameRequest = TreeSelection.GetSingleSelectedItem();
+		return;
 	}
+
+	// Can only rename sockets, and we should have only 1 selected item (context menu should CreateContextMenu() against this firing!)
+	check( SelectedItems[0]->GetType() == ESkeletonTreeRowType::Socket );
+
+	SkeletonTreeView->RequestScrollIntoView(SelectedItems[0]);
+	DeferredRenameRequest = SelectedItems[0];
 }
 
 void SSkeletonTree::OnSelectionChanged(TSharedPtr<FDisplayedTreeRowInfo> Selection, ESelectInfo::Type SelectInfo)
@@ -1917,13 +1903,13 @@ void SSkeletonTree::OnSelectionChanged(TSharedPtr<FDisplayedTreeRowInfo> Selecti
 	if( Selection.IsValid() )
 	{
 		//Get all the selected items
-		FBoneTreeSelection TreeSelection(SkeletonTreeView->GetSelectedItems());
+		TArray<TSharedPtr<FDisplayedTreeRowInfo>> SelectedItems = SkeletonTreeView->GetSelectedItems();
 
 		UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->GetPreviewMeshComponent();
-		if( TreeSelection.SelectedItems.Num() > 0 && PreviewComponent )
+		if( SelectedItems.Num() > 0 && PreviewComponent )
 		{
 			// pick the first settable bone from the selection
-			for ( auto ItemIt = TreeSelection.SelectedItems.CreateConstIterator(); ItemIt; ++ItemIt )
+			for ( auto ItemIt = SelectedItems.CreateConstIterator(); ItemIt; ++ItemIt )
 			{
 				FDisplayedTreeRowInfoPtr Item = *(ItemIt);
 
@@ -2189,8 +2175,23 @@ void SSkeletonTree::SetPreviewComponentSocketFilter() const
 
 	if ( PreviewComponent )
 	{
-		PreviewComponent->bMeshSocketsVisible = bAllOrActive || SocketFilter == ESocketFilter::Mesh;
-		PreviewComponent->bSkeletonSocketsVisible = bAllOrActive || SocketFilter == ESocketFilter::Skeleton;
+		if ( bAllOrActive || SocketFilter == ESocketFilter::Mesh )
+		{
+			PreviewComponent->bMeshSocketsVisible = true;
+		}
+		else
+		{
+			PreviewComponent->bMeshSocketsVisible = false;
+		}
+
+		if ( bAllOrActive || SocketFilter == ESocketFilter::Skeleton )
+		{
+			PreviewComponent->bSkeletonSocketsVisible = true;
+		}
+		else
+		{
+			PreviewComponent->bSkeletonSocketsVisible = false;
+		}
 	}
 }
 
@@ -2328,6 +2329,9 @@ void SSkeletonTree::RenameSocketAttachments(FName& OldSocketName, FName& NewSock
 			}
 		}
 	}
+
+	// Update UI
+	CreateFromSkeleton( TargetSkeleton->GetBoneTree() );
 }
 
 bool SSkeletonTree::IsAddingSocketsAllowed() const
@@ -2354,94 +2358,96 @@ FReply SSkeletonTree::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEve
 
 void SSkeletonTree::OnDeleteSelectedRows()
 {
-	FBoneTreeSelection TreeSelection(SkeletonTreeView->GetSelectedItems());
+	TArray<TSharedPtr<FDisplayedTreeRowInfo>> SelectedItems = SkeletonTreeView->GetSelectedItems();
 
-	if(TreeSelection.HasSelectedOfType(ESkeletonTreeRowType::AttachedAsset) || TreeSelection.HasSelectedOfType(ESkeletonTreeRowType::Socket))
+	FScopedTransaction Transaction( LOCTEXT( "SkeletonTreeDeleteSelected", "Delete selected sockets/meshes from skeleton tree" ) );
+
+	for ( auto ItemIt = SelectedItems.CreateConstIterator(); ItemIt; ++ItemIt )
 	{
-		FScopedTransaction Transaction( LOCTEXT( "SkeletonTreeDeleteSelected", "Delete selected sockets/meshes/bones from skeleton tree" ) );
+		const FDisplayedTreeRowInfoPtr Item = *(ItemIt);
 
-		DeleteAttachedAssets( TreeSelection.SelectedAssets );
-		DeleteSockets( TreeSelection.SelectedSockets );
-
-		CreateFromSkeleton( TargetSkeleton->GetBoneTree() );
+		if ( Item->GetType() == ESkeletonTreeRowType::Socket )
+		{
+			DeleteSingleSocket( static_cast<FDisplayedSocketInfo*>( Item.Get() ) );
+		}
+		else if ( Item->GetType() == ESkeletonTreeRowType::AttachedAsset )
+		{
+			DeleteSingleAttachedAsset( static_cast<FDisplayedAttachedAssetInfo*>( Item.Get() ) );
+		}
 	}
+
+	CreateFromSkeleton( TargetSkeleton->GetBoneTree() );
 }
 
-void SSkeletonTree::DeleteAttachedAssets( TArray<TSharedPtr<FDisplayedAttachedAssetInfo>> InDisplayedAttachedAssetInfos )
+void SSkeletonTree::DeleteSingleAttachedAsset( FDisplayedAttachedAssetInfo* InDisplayedAttachedAssetInfo )
 {
 	TargetSkeleton->Modify();
 
-	for(auto Iter = InDisplayedAttachedAssetInfos.CreateIterator(); Iter; ++Iter)
+	UObject* Asset = InDisplayedAttachedAssetInfo->GetAsset();
+	const FName& AttachedTo = InDisplayedAttachedAssetInfo->GetParentName();
+
+	TargetSkeleton->PreviewAttachedAssetContainer.RemoveAttachedObject(Asset, AttachedTo);
+
+	if ( PersonaPtr.IsValid() )
 	{
-		TSharedPtr<FDisplayedAttachedAssetInfo> AttachedAssetInfo = (*Iter);
+		USkeletalMesh* Mesh = PersonaPtr.Pin()->GetMesh();
 
-		UObject* Asset = AttachedAssetInfo->GetAsset();
-		const FName& AttachedTo = AttachedAssetInfo->GetParentName();
+		Mesh->Modify();
 
-		TargetSkeleton->PreviewAttachedAssetContainer.RemoveAttachedObject(Asset, AttachedTo);
+		Mesh->PreviewAttachedAssetContainer.RemoveAttachedObject(Asset, AttachedTo);
 
-		if ( PersonaPtr.IsValid() )
-		{
-			if(USkeletalMesh* Mesh = PersonaPtr.Pin()->GetMesh())
-			{
-				Mesh->Modify();
-
-				Mesh->PreviewAttachedAssetContainer.RemoveAttachedObject(Asset, AttachedTo);
-
-				PersonaPtr.Pin()->RemoveAttachedObjectFromPreviewComponent(Asset, AttachedTo);
-			}
-		}
+		PersonaPtr.Pin()->RemoveAttachedObjectFromPreviewComponent(Asset, AttachedTo);
 	}
 }
 
-void SSkeletonTree::DeleteSockets( TArray<TSharedPtr<FDisplayedSocketInfo>> InDisplayedSocketInfos )
+void SSkeletonTree::DeleteSingleSocket( FDisplayedSocketInfo* InDisplayedSocketInfo )
 {
-	USkeletalMesh* Mesh = NULL;
 	if ( PersonaPtr.IsValid() )
 	{
-		// Reset the sockets of interest in the Preview Mesh so we don't leave a null pointer dangling
-		PersonaPtr.Pin()->ClearSelectedSocket();
-
 		PersonaPtr.Pin()->DeselectAll();
-		Mesh = PersonaPtr.Pin()->GetMesh();
 	}
 
-	for(auto Iter = InDisplayedSocketInfos.CreateIterator(); Iter; ++Iter)
+	USkeletalMeshSocket* SocketToDelete = static_cast<USkeletalMeshSocket*>( InDisplayedSocketInfo->GetData() );
+
+	if ( InDisplayedSocketInfo->GetParentType() == ESocketParentType::Skeleton )
 	{
-		TSharedPtr<FDisplayedSocketInfo> DisplayedSocketInfo = (*Iter);
-		USkeletalMeshSocket* SocketToDelete = static_cast<USkeletalMeshSocket*>( DisplayedSocketInfo->GetData() );
+		const FScopedTransaction Transaction( LOCTEXT( "DeleteSocket", "Delete Socket" ) );
+		TargetSkeleton->Modify();
 
-		FName SocketName = SocketToDelete->SocketName;
-
-		if ( DisplayedSocketInfo->GetParentType() == ESocketParentType::Skeleton )
+		TargetSkeleton->Sockets.Remove( SocketToDelete );
+	}
+	else
+	{
+		if ( PersonaPtr.IsValid() )
 		{
-			TargetSkeleton->Modify();
+			USkeletalMesh* Mesh = PersonaPtr.Pin()->GetMesh();
 
-			TargetSkeleton->Sockets.Remove( SocketToDelete );
-		}
-		else
-		{
 			if ( Mesh )
 			{
-				UObject* Object = Mesh->PreviewAttachedAssetContainer.GetAttachedObjectByAttachName( DisplayedSocketInfo->GetRowItemName() );
+				const FScopedTransaction Transaction( LOCTEXT( "DeleteSocket", "Delete Socket" ) );
+				Mesh->Modify();
+
+				UObject* Object = Mesh->PreviewAttachedAssetContainer.GetAttachedObjectByAttachName( InDisplayedSocketInfo->GetRowItemName() );
 				if(Object)
 				{
 					Mesh->Modify();
-					Mesh->PreviewAttachedAssetContainer.RemoveAttachedObject( Object, SocketName );
-					PersonaPtr.Pin()->RemoveAttachedObjectFromPreviewComponent( Object, SocketName );
+					Mesh->PreviewAttachedAssetContainer.RemoveAttachedObject( Object, SocketToDelete->SocketName );
+					PersonaPtr.Pin()->RemoveAttachedObjectFromPreviewComponent( Object, SocketToDelete->SocketName );
 				}
 
 				Mesh->GetMeshOnlySocketList().Remove( SocketToDelete );
 			}
 		}
+	}
 
-		// Remove attached assets
-		while(UObject* Object = TargetSkeleton->PreviewAttachedAssetContainer.GetAttachedObjectByAttachName( SocketName ))
-		{
-			TargetSkeleton->Modify();
-			TargetSkeleton->PreviewAttachedAssetContainer.RemoveAttachedObject(Object, SocketName);
-			PersonaPtr.Pin()->RemoveAttachedObjectFromPreviewComponent(Object, SocketName);
-		}
+	FName SocketName = InDisplayedSocketInfo->GetRowItemName();
+	UObject* Object = TargetSkeleton->PreviewAttachedAssetContainer.GetAttachedObjectByAttachName( SocketName );
+
+	if(Object)
+	{
+		TargetSkeleton->Modify();
+		TargetSkeleton->PreviewAttachedAssetContainer.RemoveAttachedObject(Object, SocketName);
+		PersonaPtr.Pin()->RemoveAttachedObjectFromPreviewComponent(Object, SocketName);
 	}
 }
 

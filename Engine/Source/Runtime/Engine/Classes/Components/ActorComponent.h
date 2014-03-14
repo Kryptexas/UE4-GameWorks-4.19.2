@@ -220,12 +220,8 @@ protected:
 	/** Used to shut down and physics engine structure for this component */
 	virtual void DestroyPhysicsState();
 
-	/** Return true if CreatePhysicsState() should be called.
-	    Ideally CreatePhysicsState() should always succeed if this returns true, but this isn't currently the case */
 	virtual bool ShouldCreatePhysicsState() const {return false;}
 
-	/** Used to check that DestroyPhysicsState() is working correctly */
-	virtual bool HasValidPhysicsState() const { return false; }
 
 	/**
 	 * Virtual call chain to register all tick functions
@@ -415,7 +411,7 @@ public:
 	virtual bool NeedsLoadForClient() const OVERRIDE;
 	virtual bool NeedsLoadForServer() const OVERRIDE;
 	virtual int32 GetFunctionCallspace( UFunction* Function, void* Parameters, FFrame* Stack ) OVERRIDE;
-	virtual bool CallRemoteFunction( UFunction* Function, void* Parameters, FOutParmRec* OutParms, FFrame* Stack ) OVERRIDE;
+	virtual bool CallRemoteFunction( UFunction* Function, void* Parameters, FFrame* Stack ) OVERRIDE;
 	virtual void PostInitProperties() OVERRIDE;
 #if WITH_EDITOR
 	virtual void PreEditChange(UProperty* PropertyThatWillChange) OVERRIDE;

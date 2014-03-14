@@ -26,9 +26,9 @@ public:
 	TSharedPtr<FUICommandInfo> EditingMode_Constraint;
 	TSharedPtr<FUICommandInfo> MovementSpace_Local;
 	TSharedPtr<FUICommandInfo> MovementSpace_World;
-	TSharedPtr<FUICommandInfo> PhATTranslationMode;
-	TSharedPtr<FUICommandInfo> PhATRotationMode;
-	TSharedPtr<FUICommandInfo> PhATScaleMode;
+	TSharedPtr<FUICommandInfo> TranslationMode;
+	TSharedPtr<FUICommandInfo> RotationMode;
+	TSharedPtr<FUICommandInfo> ScaleMode;
 	TSharedPtr<FUICommandInfo> Snap;
 	TSharedPtr<FUICommandInfo> CopyProperties;
 	TSharedPtr<FUICommandInfo> PasteProperties;
@@ -80,13 +80,13 @@ public:
 	TSharedPtr<FUICommandInfo> ToggleMotor;
 	TSharedPtr<FUICommandInfo> EnableMotorsBelow;
 	TSharedPtr<FUICommandInfo> DisableMotorsBelow;
-	TSharedPtr<FUICommandInfo> SelectAllObjects;
+	TSharedPtr<FUICommandInfo> SelectAll;
 	TSharedPtr<FUICommandInfo> HierarchyFilterAll;
 	TSharedPtr<FUICommandInfo> HierarchyFilterBodies;
 
 	/** Hotkey only commands */
 	TSharedPtr<FUICommandInfo> SelectionLock;
-	TSharedPtr<FUICommandInfo> DeleteSelected;
+	TSharedPtr<FUICommandInfo> DeleteSelection;
 	TSharedPtr<FUICommandInfo> CycleConstraintOrientation;
 	TSharedPtr<FUICommandInfo> CycleConstraintActive;
 	TSharedPtr<FUICommandInfo> ToggleSwing1;

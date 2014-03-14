@@ -465,7 +465,6 @@ namespace AutomationTool
 				try
 				{
 					ProcToKill.Kill();
-					ProcToKill.WaitForExit(60000);
 					ProcToKill.Close();
 				}
 				catch (Exception Ex)
@@ -662,7 +661,7 @@ namespace AutomationTool
                     break;
                 }
 				Index++;
-				if (Index == 1000)
+				if (Index == 200)
 				{
 					throw new AutomationException("Couldn't seem to create a log subdir {0}", LogSubdir);
 				}

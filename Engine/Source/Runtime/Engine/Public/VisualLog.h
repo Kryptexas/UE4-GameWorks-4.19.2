@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-#define LOG_TO_UELOG_AS_WELL 0
+#define LOG_TO_UELOG_AS_WELL 1
 
 // helpful text macros
 #define TEXT_NULL TEXT("NULL")
@@ -26,46 +26,18 @@ struct ENGINE_API FVisLogEntry
 	float TimeStamp;
 #if ENABLE_VISUAL_LOG
 	FVector Location;
-	
 	struct FLogLine
 	{
-		FString Line;
 		FName Category;
-		TEnumAsByte<ELogVerbosity::Type> Verbosity;
+		FString Line;
+		ELogVerbosity::Type Verbosity;
 
-		FLogLine(const FName& InCategory, ELogVerbosity::Type InVerbosity, const FString& InLine)
-			: Line(InLine), Category(InCategory), Verbosity(InVerbosity)
+		FLogLine(const FName& InCategory, const FString& InLine, ELogVerbosity::Type InVerbosity)
+			: Category(InCategory), Line(InLine), Verbosity(InVerbosity)
 		{}
 	};
 	TArray<FLogLine> LogLines;
-	
-	struct FStatusCategory
-	{
-		TArray<FString> Data;
-		FString Category;
-
-		FORCEINLINE void Add(const FString& Key, const FString& Value)
-		{
-			Data.Add(FString(Key).AppendChar(TEXT('|')) + Value);
-		}
-
-		FORCEINLINE bool GetDesc(int32 Index, FString& Key, FString& Value) const
-		{
-			if (Data.IsValidIndex(Index))
-			{
-				int32 SplitIdx = INDEX_NONE;
-				if (Data[Index].FindChar(TEXT('|'), SplitIdx))
-				{
-					Key = Data[Index].Left(SplitIdx);
-					Value = Data[Index].Mid(SplitIdx + 1);
-					return true;
-				}
-			}
-
-			return false;
-		}
-	};
-	TArray<FStatusCategory> Status;
+	FString StatusString;
 
 	struct FElementToDraw
 	{
@@ -148,20 +120,6 @@ struct ENGINE_API FVisLogEntry
 	void AddElement(const FVector& Start, const FVector& End, const FColor& Color = FColor::White, const FString& Description = TEXT(""), uint16 Thickness = 0);
 	// box
 	void AddElement(const FBox& Box, const FColor& Color = FColor::White, const FString& Description = TEXT(""), uint16 Thickness = 0);
-
-	// find index of status category
-	FORCEINLINE int32 FindStatusIndex(const FString& CategoryName)
-	{
-		for (int32 TestCategoryIndex = 0; TestCategoryIndex < Status.Num(); TestCategoryIndex++)
-		{
-			if (Status[TestCategoryIndex].Category == CategoryName)
-			{
-				return TestCategoryIndex;
-			}
-		}
-
-		return INDEX_NONE;
-	}
 #endif // ENABLE_VISUAL_LOG
 };
 
@@ -180,11 +138,11 @@ struct ENGINE_API FVisLogEntry
 { \
 	SCOPE_CYCLE_COUNTER(STAT_VisualLog); \
 	checkAtCompileTime((ELogVerbosity::Verbosity & ELogVerbosity::VerbosityMask) < ELogVerbosity::NumVerbosity && ELogVerbosity::Verbosity > 0, Verbosity_must_be_constant_and_in_range); \
-	FVisualLog::Get()->LogLine(Actor, CategoryName.GetCategoryName(), ELogVerbosity::Verbosity, FString::Printf(Format, ##__VA_ARGS__)); \
 	if (UE_LOG_CHECK_COMPILEDIN_VERBOSITY(CategoryName, Verbosity)) \
 	{ \
 		if (!CategoryName.IsSuppressed(ELogVerbosity::Verbosity) && (Actor) != NULL) \
 		{ \
+			FVisualLog::Get()->LogLine(Actor, CategoryName.GetCategoryName(), ELogVerbosity::Verbosity, FString::Printf(Format, ##__VA_ARGS__)); \
 			TO_TEXT_LOG(CategoryName, Verbosity, Format, ##__VA_ARGS__); \
 		} \
 	} \
@@ -194,11 +152,11 @@ struct ENGINE_API FVisLogEntry
 { \
 	SCOPE_CYCLE_COUNTER(STAT_VisualLog); \
 	checkAtCompileTime((ELogVerbosity::Verbosity & ELogVerbosity::VerbosityMask) < ELogVerbosity::NumVerbosity && ELogVerbosity::Verbosity > 0, Verbosity_must_be_constant_and_in_range); \
-	FVisualLog::Get()->LogLine(Actor, CategoryName.GetCategoryName(), ELogVerbosity::Verbosity, FString::Printf(Format, ##__VA_ARGS__)); \
 	if (UE_LOG_CHECK_COMPILEDIN_VERBOSITY(CategoryName, Verbosity)) \
 	{ \
 		if (!CategoryName.IsSuppressed(ELogVerbosity::Verbosity) && (Actor) != NULL && (Condition)) \
 		{ \
+			FVisualLog::Get()->LogLine(Actor, CategoryName.GetCategoryName(), ELogVerbosity::Verbosity, FString::Printf(Format, ##__VA_ARGS__)); \
 			TO_TEXT_LOG(CategoryName, Verbosity, Format, ##__VA_ARGS__); \
 		} \
 	} \

@@ -94,7 +94,7 @@ void SAssetTreeItem::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEv
 
 			if (bCanDrop)
 			{
-				DragDropOp->SetToolTip( LOCTEXT( "OnDragAssetsOverFolder", "Move or Copy Asset(s)" ).ToString(), FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK")) );
+				DragDropOp->SetTooltip( LOCTEXT( "OnDragAssetsOverFolder", "Move or Copy Asset(s)" ).ToString(), FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK")) );
 				bDraggedOver = true;
 			}
 		}
@@ -132,7 +132,7 @@ void SAssetTreeItem::OnDragLeave( const FDragDropEvent& DragDropEvent )
 	if ( DragDrop::IsTypeMatch<FAssetDragDropOp>(DragDropEvent.GetOperation()) )
 	{
 		TSharedPtr<FAssetDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>( DragDropEvent.GetOperation() );
-		DragDropOp->ResetToDefaultToolTip();
+		DragDropOp->ClearTooltip();
 	}
 	bDraggedOver = false;
 }

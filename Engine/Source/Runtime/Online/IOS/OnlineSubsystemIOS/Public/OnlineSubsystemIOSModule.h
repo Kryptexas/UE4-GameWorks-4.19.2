@@ -4,6 +4,7 @@
 
 #include "Core.h"
 #include "ModuleInterface.h"
+#include "OnlineSubsystemIOSPackage.h"
 
 /**
  * Online subsystem module class (GameCenter Implementation)
@@ -13,20 +14,11 @@ class FOnlineSubsystemIOSModule : public IModuleInterface
 {
 private:
 
-	/** Class responsible for creating instance(s) of the subsystem */
-	class FOnlineFactoryIOS* IOSFactory;
-
-public:
-
-	FOnlineSubsystemIOSModule() :
-		IOSFactory(NULL)
-	{
-	}
-
 	virtual ~FOnlineSubsystemIOSModule(){}
 
 	// Begin IModuleInterface interface
 	virtual void StartupModule() OVERRIDE;
+
 	virtual void ShutdownModule() OVERRIDE;
 
 	virtual bool SupportsDynamicReloading() OVERRIDE
@@ -41,4 +33,5 @@ public:
 	// End IModuleInterface interface
 };
 
+typedef TSharedPtr<FOnlineSubsystemIOSModule, ESPMode::ThreadSafe> FOnlineSubsystemIOSModulePtr;
 

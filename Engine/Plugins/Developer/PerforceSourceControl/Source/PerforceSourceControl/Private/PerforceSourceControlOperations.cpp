@@ -21,9 +21,9 @@ struct FRemoveRedundantErrors
 	{
 	}
 
-	bool operator()(const FText& Text) const
+	bool operator()(const FString& String) const
 	{
-		if(Text.ToString().Contains(Filter))
+		if(String.Contains(Filter))
 		{
 			return true;
 		}
@@ -46,7 +46,7 @@ static void RemoveRedundantErrors(FPerforceSourceControlCommand& InCommand, cons
 	{
 		// Perforce reports files that are already synced as errors, so copy any errors
 		// we get to the info list in this case
-		if(Iter->ToString().Contains(InFilter))
+		if(Iter->Contains(InFilter))
 		{
 			InCommand.InfoMessages.Add(*Iter);
 			bFoundRedundantError = true;
@@ -63,7 +63,7 @@ static void RemoveRedundantErrors(FPerforceSourceControlCommand& InCommand, cons
 }
 
 /** Simple parsing of a record set into strings, one string per record */
-static void ParseRecordSet(const FP4RecordSet& InRecords, TArray<FText>& OutResults)
+static void ParseRecordSet(const FP4RecordSet& InRecords, TArray<FString>& OutResults)
 {
 	const FString Delimiter = FString(TEXT(" "));
 
@@ -72,7 +72,7 @@ static void ParseRecordSet(const FP4RecordSet& InRecords, TArray<FText>& OutResu
 		const FP4Record& ClientRecord = InRecords[RecordIndex];
 		for(FP4Record::TConstIterator It = ClientRecord.CreateConstIterator(); It; ++It)
 		{
-			OutResults.Add(FText::FromString(It.Key() + Delimiter + It.Value()));
+			OutResults.Add(It.Key() + Delimiter + It.Value());
 		}
 	}
 }
@@ -160,7 +160,7 @@ bool FPerforceConnectWorker::Execute(FPerforceSourceControlCommand& InCommand)
 		InCommand.bCommandSuccessful &= InCommand.ErrorMessages.Num() == 0 && Records.Num() > 0 && Records[0].Contains(TEXT("Update"));
 		if (!InCommand.bCommandSuccessful && InCommand.ErrorMessages.Num() == 0)
 		{
-			InCommand.ErrorMessages.Add(LOCTEXT("InvalidWorkspace", "Invalid workspace."));
+			InCommand.ErrorMessages.Add(TEXT("Invalid workspace."));
 		}
 
 		if(InCommand.bCommandSuccessful)
@@ -435,7 +435,7 @@ bool FPerforceSyncWorker::UpdateStates() const
 	return UpdateCachedStates(OutResults);
 }
 
-static void ParseUpdateStatusResults(const FP4RecordSet& InRecords, const TArray<FText>& ErrorMessages, TArray<FPerforceSourceControlState>& OutStates)
+static void ParseUpdateStatusResults(const FP4RecordSet& InRecords, const TArray<FString>& ErrorMessages, TArray<FPerforceSourceControlState>& OutStates)
 {
 	// Iterate over each record found as a result of the command, parsing it for relevant information
 	for (int32 Index = 0; Index < InRecords.Num(); ++Index)
@@ -516,14 +516,12 @@ static void ParseUpdateStatusResults(const FP4RecordSet& InRecords, const TArray
 	// also see if we can glean anything from the error messages
 	for (int32 Index = 0; Index < ErrorMessages.Num(); ++Index)
 	{
-		const FText& Error = ErrorMessages[Index];
-
-		//@todo P4 could be returning localized error messages
-		int32 TruncatePos = Error.ToString().Find(TEXT(" - no such file(s).\n"), ESearchCase::IgnoreCase, ESearchDir::FromStart);
+		const FString& Error = ErrorMessages[Index];
+		int32 TruncatePos = Error.Find(TEXT(" - no such file(s).\n"), ESearchCase::IgnoreCase, ESearchDir::FromStart);
 		if(TruncatePos != INDEX_NONE)
 		{
 			// found an error about a file that is not in the depot
-			FString FullPath(Error.ToString().Left(TruncatePos));
+			FString FullPath(Error.Left(TruncatePos));
 			FPaths::NormalizeFilename(FullPath);
 			OutStates.Add(FPerforceSourceControlState(FullPath));
 			FPerforceSourceControlState& State = OutStates.Last();

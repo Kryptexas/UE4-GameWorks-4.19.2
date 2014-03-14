@@ -26,7 +26,7 @@ namespace EOnlineNotificationResult
  *
  * You'll need to include JsonUtilities.h to use it
  */
-#define READ_NOTIFICATION_JSON(Struct, Notification) FJsonObjectConverter::JsonObjectToUStruct(Notification.Payload->AsObject().ToSharedRef(), Struct.StaticStruct(), &Struct, 0, 0)
+#define READ_NOTIFICATION_JSON(Struct, Notification) FJsonObjectConverter::JsonObjectStringToUStruct(Notification.PayloadStr, Struct.StaticStruct(), &Struct, 0, 0)
 
 /**
  * Delegate type for handling a notification

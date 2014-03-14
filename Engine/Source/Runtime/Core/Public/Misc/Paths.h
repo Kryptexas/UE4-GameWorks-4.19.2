@@ -312,9 +312,6 @@ public:
 	 */
 	static void MakeStandardFilename(FString& InPath);
 
-	/** Takes an "Unreal" pathname and converts it to a platform filename. */
-	static void MakePlatformFilename(FString& InPath);
-
 	/** 
 	 * Assuming both paths (or filenames) are relative to the base dir, find the relative path to the InPath 
 	 *

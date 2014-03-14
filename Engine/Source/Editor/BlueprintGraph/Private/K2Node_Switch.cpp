@@ -143,7 +143,9 @@ UK2Node_Switch::UK2Node_Switch(const class FPostConstructInitializeProperties& P
 {
 
 	bHasDefaultPin = true;
+#if WITH_EDITOR
 	bHasDefaultPinValueChanged = false;
+#endif
 }
 
 void UK2Node_Switch::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
@@ -211,6 +213,7 @@ void UK2Node_Switch::AllocateDefaultPins()
 
 UK2Node::ERedirectType UK2Node_Switch::DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex) const
 {
+#if WITH_EDITOR
 	// If the default pin setting has changed, return a match for the "execute" input pin (which will have swapped slots), so that we don't have to break any links to it
 	if(bHasDefaultPinValueChanged && ((OldPinIndex == 0) || (NewPinIndex == 0)))
 	{
@@ -220,7 +223,9 @@ UK2Node::ERedirectType UK2Node_Switch::DoPinsMatchForReconstruction(const UEdGra
 			return ERedirectType_Name;
 		}
 	}
-	else if (FCString::Strcmp(*(NewPin->PinName), *(OldPin->PinName)) == 0)
+	else
+#endif
+	if (FCString::Strcmp(*(NewPin->PinName), *(OldPin->PinName)) == 0)
 	{
 		// Compare the names, case-sensitively
 		return ERedirectType_Name;

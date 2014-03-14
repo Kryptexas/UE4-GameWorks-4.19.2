@@ -9,7 +9,7 @@ struct FAssetToRemapSkeleton
 {
 	FName					PackageName;
 	TWeakObjectPtr<UObject> Asset;
-	FText					FailureReason;
+	FString					FailureReason;
 	bool					bRemapFailed;
 
 	FAssetToRemapSkeleton(FName InPackageName)
@@ -18,7 +18,7 @@ struct FAssetToRemapSkeleton
 	{}
 
 	// report it failed
-	void ReportFailed(const FText& InReason)
+	void ReportFailed(FString InReason)
 	{
 		FailureReason = InReason;
 		bRemapFailed = true;

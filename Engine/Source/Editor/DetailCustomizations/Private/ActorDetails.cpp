@@ -12,6 +12,7 @@
 #include "Editor/UnrealEd/Public/Kismet2/KismetDebugUtilities.h"
 #include "ClassIconFinder.h"
 #include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
+#include "SCodeView.h"
 #include "BlueprintGraphDefinitions.h"
 #include "ActorMaterialCategory.h"
 #include "IContentBrowserSingleton.h"
@@ -24,8 +25,6 @@
 #include "ComponentsTree.h"
 #include "IPropertyUtilities.h"
 #include "IDocumentation.h"
-
-#include "ActorDetailsDelegates.h"
 
 #define LOCTEXT_NAMESPACE "ActorDetails"
 
@@ -107,7 +106,10 @@ void FActorDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 			AddBlueprintCategory(DetailLayout, UniqueBlueprints);
 		}
 
-		OnExtendActorDetails.Broadcast(DetailLayout, FGetSelectedActors::CreateSP(this, &FActorDetails::GetSelectedActors));
+		if( GetDefault<UEditorExperimentalSettings>()->bCodeView )
+		{
+			AddCodeViewCategory( DetailLayout );
+		}
 
 		if (!HideCategories.Contains(TEXT("Layers")))
 		{
@@ -520,6 +522,33 @@ void FActorDetails::AddBlueprintCategory( IDetailLayoutBuilder& DetailBuilder, c
 		{
 			AddSingleBlueprintRow( BlueprintCategory, NULL, SelectedActors[0].Get() );
 		}
+	}
+}
+
+void FActorDetails::AddCodeViewCategory( IDetailLayoutBuilder& DetailBuilder )
+{
+	if (FModuleManager::Get().IsSolutionFilePresent())
+	{
+		TSharedRef< CodeView::SCodeView > CodeViewWidget =
+			SNew( CodeView::SCodeView )
+			.GetSelectedActors( this, &FActorDetails::GetSelectedActors );
+
+		// Only start out expanded if we're already in "ready to populate" mode.  This is because we don't want
+		// to immediately start digesting symbols as soon as the widget is visible.  Instead, when the user
+		// expands the section, we'll start loading symbols.  However, this state is remembered even after
+		// the widget is destroyed.
+		const bool bShouldInitiallyExpand = CodeViewWidget->IsReadyToPopulate();
+
+		DetailBuilder.EditCategory( "CodeView", NSLOCTEXT("ActorDetails", "CodeViewSection", "Code View").ToString(), ECategoryPriority::Uncommon )
+		.InitiallyCollapsed( !bShouldInitiallyExpand )
+		// The expansion state should not be restored
+		.RestoreExpansionState( false )
+		.OnExpansionChanged( FOnBooleanValueChanged::CreateSP( CodeViewWidget, &CodeView::SCodeView::OnDetailSectionExpansionChanged ) )
+		.AddCustomRow( NSLOCTEXT("ActorDetails", "CodeViewSection", "Code View").ToString() )
+		[
+			// @todo editcode1: Width of item is too big for detail view?!
+			CodeViewWidget
+		];
 	}
 }
 

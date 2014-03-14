@@ -13,7 +13,7 @@ class FAnimBlueprintCompiler : public FKismetCompilerContext
 protected:
 	typedef FKismetCompilerContext Super;
 public:
-	FAnimBlueprintCompiler(UAnimBlueprint* SourceSketch, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompileOptions, TArray<UObject*>* InObjLoaded);
+	FAnimBlueprintCompiler(UAnimBlueprint* SourceSketch, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompileOptions);
 	virtual ~FAnimBlueprintCompiler();
 protected:
 	// Implementation of FKismetCompilerContext interface

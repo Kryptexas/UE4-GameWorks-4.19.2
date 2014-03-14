@@ -23,16 +23,11 @@ public:
 
 	virtual void SetAreaCost(uint8 AreaType, float Cost) OVERRIDE;
 	virtual void SetFixedAreaEnteringCost(uint8 AreaType, float Cost) OVERRIDE;
-	virtual void SetExcludedArea(uint8 AreaType) OVERRIDE;
 	virtual void SetAllAreaCosts(const float* CostArray, const int32 Count) OVERRIDE;
 	virtual void GetAllAreaCosts(float* CostArray, float* FixedCostArray, const int32 Count) const OVERRIDE;
 	virtual void SetBacktrackingEnabled(const bool bBacktracking) OVERRIDE;
 	virtual bool IsBacktrackingEnabled() const OVERRIDE;
 	virtual bool IsEqual(const INavigationQueryFilterInterface* Other) const OVERRIDE;
-	virtual void SetIncludeFlags(uint16 Flags) OVERRIDE;
-	virtual uint16 GetIncludeFlags() const OVERRIDE;
-	virtual void SetExcludeFlags(uint16 Flags) OVERRIDE;
-	virtual uint16 GetExcludeFlags() const OVERRIDE;
 
 	virtual class INavigationQueryFilterInterface* CreateCopy() const OVERRIDE { return new FRecastQueryFilter(*this); }
 
@@ -78,12 +73,6 @@ public:
 
 	/** Retrieves XY and layer coordinates of tile specified by index */
 	void GetNavMeshTileXY(int32 TileIndex, int32& OutX, int32& OutY, int32& OutLayer) const;
-
-	/** Retrieves XY coordinates of tile specified by position */
-	void GetNavMeshTileXY(const FVector& Point, int32& OutX, int32& OutY) const;
-
-	/** Retrieves all tile indices at matching XY coordinates */
-	void GetNavMeshTilesAt(int32 TileX, int32 TileY, TArray<int32>& Indices) const;
 
 	/** Retrieves number of tiles in this navmesh */
 	FORCEINLINE int32 GetNavMeshTilesCount() const { return DetourNavMesh->getMaxTiles(); }
@@ -188,10 +177,7 @@ public:
 	/** Called on world origin changes */
 	void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift);
 
-	/** calculated cost of given segment if traversed on specified poly. Function measures distance between specified points
-	 *	and returns cost of traversing this distance on given poly.
-	 *	@note no check if segment is on poly is performed. */
-	float CalcSegmentCostOnPoly(NavNodeRef PolyID, const dtQueryFilter* Filter, const FVector& StartLoc, const FVector& EndLoc) const;
+private:
 
 	class ARecastNavMesh* NavMeshOwner;
 
@@ -235,9 +221,6 @@ public:
 		NavNodeRef* PathCorridor, float* PathCosts, int32 PathCorridorSize) const;
 
 	void GetDebugPolyEdges(const struct dtMeshTile* Tile, bool bInternalEdges, bool bNavMeshEdges, TArray<FVector>& InternalEdgeVerts, TArray<FVector>& NavMeshEdgeVerts) const;
-
-	/** workhorse function finding portal edges between corridor polys */
-	void GetEdgesForPathCorridorImpl(TArray<NavNodeRef>* PathCorridor, TArray<FNavigationPortalEdge>* PathCorridorEdges, const dtNavMeshQuery& NavQuery) const;
 };
 
 #endif	// WITH_RECAST

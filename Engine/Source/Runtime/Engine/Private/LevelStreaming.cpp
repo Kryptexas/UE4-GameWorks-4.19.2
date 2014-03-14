@@ -43,37 +43,116 @@ FString FStreamLevelAction::GetDescription() const
 */
 ULevelStreaming* FStreamLevelAction::FindAndCacheLevelStreamingObject( const FName LevelName, UWorld* InWorld )
 {
+	ULevelStreaming* LevelStreamingObject = NULL;
+
 	// Search for the level object by name.
-	if( LevelName != NAME_None )
+	if( !LevelStreamingObject && LevelName != NAME_None )
 	{
-		const FString SearchShortName = MakeSafeShortLevelName( LevelName, InWorld );
+		const FString SearchName = MakeSafeLevelName( LevelName, InWorld );
 
 		// Iterate over all streaming level objects in world info to find one with matching name.
-		for( int32 LevelIndex=0; LevelIndex < InWorld->StreamingLevels.Num(); LevelIndex++ )
+		for (ULevelStreaming* CurrentStreamingObject : InWorld->StreamingLevels)
 		{
-			ULevelStreaming* LevelStreamingObject = InWorld->StreamingLevels[LevelIndex];
-			if( LevelStreamingObject
-				&& FPackageName::GetShortName(LevelStreamingObject->PackageName) == SearchShortName)
+			if (CurrentStreamingObject != nullptr)
 			{
-				// If we have an exact match go ahead and return it
-				return LevelStreamingObject;
+				FString EffectivePackageName = CurrentStreamingObject->PackageName.ToString();
+
+				// Look for an override package name
+				if (CurrentStreamingObject->PackageNameToLoad != NAME_None)
+				{
+					const FString OverridePackageName = CurrentStreamingObject->PackageNameToLoad.ToString();
+
+					if (OverridePackageName.EndsWith(SearchName))
+					{
+						EffectivePackageName = OverridePackageName;
+					}
+				}
+
+				if (EffectivePackageName.EndsWith(SearchName))
+				{
+					// If we have an exact match go ahead and return it
+					if (EffectivePackageName.Len() == SearchName.Len())
+					{
+						return CurrentStreamingObject;
+					}
+
+					// if it is a partial match we will finish iterating and report a warning if there is any ambiguity
+					if (LevelStreamingObject != nullptr)
+					{
+						UE_LOG(LogStreaming, Warning, TEXT("Ambiguous LevelName provided. Could match %s or %s. %s chosen."),
+							*LevelStreamingObject->PackageName.ToString(), *EffectivePackageName, *LevelStreamingObject->PackageName.ToString());
+					}
+					else
+					{
+						LevelStreamingObject = CurrentStreamingObject;
+					}
+				}
 			}
 		}
 	}
-
-	return NULL;
+	return LevelStreamingObject;
 }
 
 /**
- * Given a level name, returns a shoftlevel name that will work with Play on Editor or Play on Console
+ * Given a level name, returns a level name that will work with Play on Editor or Play on Console
  *
  * @param	InLevelName		Raw level name (no UEDPIE or UED<console> prefix)
  * @param	InWorld			World in which to check for other instances of the name
  */
-FString FStreamLevelAction::MakeSafeShortLevelName( const FName& InLevelName, UWorld* InWorld )
+FString FStreamLevelAction::MakeSafeLevelName( const FName& InLevelName, UWorld* InWorld )
 {
 	// Special case for PIE, the PackageName gets mangled.
-	return InWorld->StreamingLevelsPrefix + FPackageName::GetShortName(InLevelName);
+	FString SafeLevelName = InLevelName.ToString();
+
+	FWorldContext &Context = GEngine->WorldContextFromWorld(InWorld);
+	GPlayInEditorID = Context.PIEInstance;
+
+	if( InWorld->IsPlayInEditor() )
+	{
+		if (!SafeLevelName.Contains(TEXT("/"), ESearchCase::CaseSensitive, ESearchDir::FromEnd) )
+		{
+			SafeLevelName = FString::Printf(TEXT("%s_%d_%s"), PLAYWORLD_PACKAGE_PREFIX, GPlayInEditorID, *FPackageName::GetLongPackageAssetName(SafeLevelName));
+		}
+		else
+		{
+			SafeLevelName = FString::Printf(TEXT("%s/%s_%d_%s"), *FPackageName::GetLongPackagePath(SafeLevelName), PLAYWORLD_PACKAGE_PREFIX, GPlayInEditorID, *FPackageName::GetLongPackageAssetName(SafeLevelName));
+		}
+	}
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) || (UE_BUILD_SHIPPING && WITH_EDITOR)
+	else if( !GIsEditor && ensure( !GIsRoutingPostLoad ) )		// Can't call GetOutermost during loading as Package outer isn't set at that time
+	{
+		// Are we running a "play on console" map package?
+		const FString WorldPackageFilename( FPaths::GetBaseFilename( InWorld->GetOutermost()->GetName() ) );
+
+		// Check for Play on PC.  That prefix is a bit special as it's only 5 characters. (All others are 6)
+		FString PlayOnConsolePrefix;
+		if( WorldPackageFilename.StartsWith( FString( PLAYWORLD_CONSOLE_BASE_PACKAGE_PREFIX ) + TEXT( "PC") ) )
+		{
+			PlayOnConsolePrefix = WorldPackageFilename.Left( 5 );
+		}
+		else if( WorldPackageFilename.StartsWith( PLAYWORLD_CONSOLE_BASE_PACKAGE_PREFIX ) )
+		{
+			// This is a Play on Console map package prefix. (6 characters)
+			PlayOnConsolePrefix = WorldPackageFilename.Left( 6 );
+		}
+
+		if (PlayOnConsolePrefix.Len())
+		{
+			if (!SafeLevelName.Contains(TEXT("/"), ESearchCase::CaseSensitive, ESearchDir::FromEnd) )
+			{
+				SafeLevelName = FString::Printf(TEXT("%s%s"), *PlayOnConsolePrefix, *FPackageName::GetLongPackageAssetName(SafeLevelName));
+			}
+			else
+			{
+				const FString SaveDirRoot = FPaths::Combine(*FPaths::GameSavedDir(), *GEngine->PlayOnConsoleSaveDir);
+
+				SafeLevelName = FString::Printf(TEXT("%s/%s/%s%s"), *FPackageName::FilenameToLongPackageName( SaveDirRoot ), *FPackageName::GetLongPackagePath(SafeLevelName), *PlayOnConsolePrefix, *FPackageName::GetLongPackageAssetName(SafeLevelName));
+			}
+		}
+	}
+#endif
+
+	return SafeLevelName;
 }
 /**
 * Handles "Activated" for single ULevelStreaming object.
@@ -222,6 +301,14 @@ UWorld* ULevelStreaming::GetWorld() const
 	}
 }
 
+void ULevelStreaming::BeginDestroy()
+{
+	Super::BeginDestroy();
+	check(PendingUnloadLevel == NULL);
+	ClearLoadedLevel();
+	SetPendingUnloadLevel(NULL);
+}
+
 void ULevelStreaming::Serialize( FArchive& Ar )
 {
 	Super::Serialize(Ar);
@@ -350,41 +437,69 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 		}
 	}
 
+	const bool bPIESession = PersistentWorld->IsPlayInEditor();
 	int32 PIEInstanceID = INDEX_NONE;
 
 	// copy streaming level on demand if we are in PIE
 	// (the world is already loaded for the editor, just find it and copy it)
-	if ( PersistentWorld->IsPlayInEditor() )
+	if( bPIESession )
 	{
 #if WITH_EDITOR
 		PIEInstanceID = PersistentWorld->GetOutermost()->PIEInstanceID;
 #endif
 		const FString PrefixedLevelName = DesiredPackageName.ToString();
-		const FString ShortPrefixedLevelName = FPackageName::GetLongPackageAssetName(PrefixedLevelName);
-		const FString LevelPath = FPackageName::GetLongPackagePath(PrefixedLevelName);
-		// Rebuild the original NonPrefixedLevelName so we can find and duplicate it
-		const FString NonPrefixedLevelName = LevelPath + "/" + ShortPrefixedLevelName.RightChop(PersistentWorld->StreamingLevelsPrefix.Len());
-					
-		// Do the duplication
-		UWorld* PIELevelWorld = UWorld::DuplicateWorldForPIE(NonPrefixedLevelName, PersistentWorld);
-		if (PIELevelWorld)
-		{
-			PIELevelWorld->PersistentLevel->bAlreadyMovedActors = true; // As we have duplicated the world, the actors will already have been transformed
-			check(PendingUnloadLevel == NULL);
-			SetLoadedLevel(PIELevelWorld->PersistentLevel);
 
-			// Broadcast level loaded event to blueprints
-			OnLevelLoaded.Broadcast();
-
-			return true;
-		}
-		else if (PersistentWorld->WorldComposition == NULL) // In world composition streaming levels are not loaded by default
+		// Make sure we are in a 'normal' PIE, eg /Game/Maps/UEDPIE_MapName.
+		// If we saved to a temp file and loaded that, then we don't need to do any of this (just load the world like normal)
+		if (PrefixedLevelName.Contains(PLAYWORLD_PACKAGE_PREFIX))
 		{
-			UE_LOG(LogLevelStreaming, Warning, TEXT("Unable to duplicate PIE World: '%s'"), *NonPrefixedLevelName);
-			for (TObjectIterator<UWorld> It; It; ++It)
+			const FString ShortPrefixedLevelName = FPackageName::GetLongPackageAssetName(PrefixedLevelName);
+			const FString LevelPath = FPackageName::GetLongPackagePath(PrefixedLevelName);
+
+
+			// The PIE world will be in the form of /Game/Maps/UEDPIE_X_MapName. Eat the UEDPIE_X_ part.
+			// (note this assumes only 1 digit for X!)
+			int32 found=0;
+			int32 idx = 0;
+			for(idx = 0; idx < ShortPrefixedLevelName.Len(); ++idx)
 			{
-				UWorld *W = *It;
-				UE_LOG(LogLevelStreaming, Warning, TEXT("    Loaded World: %s"), *W->GetPathName() );
+				if (ShortPrefixedLevelName[idx] == TCHAR('_'))
+				{
+					if (++found == 2)
+					{
+						++idx;
+						break;
+
+					}
+				}
+			}
+			check(found == 2);
+
+			// Rebuild the original NonPrefixedLevelName so we can find and duplicate it
+			const FString ShortNonPrefixedLevelName = ShortPrefixedLevelName.Right(ShortPrefixedLevelName.Len() - idx);
+			const FString NonPrefixedLevelName = LevelPath + "/" + ShortNonPrefixedLevelName;
+					
+			// Do the duplication
+			UWorld* PIELevelWorld = UWorld::DuplicateWorldForPIE(NonPrefixedLevelName, PersistentWorld);
+			if (PIELevelWorld)
+			{
+				PIELevelWorld->PersistentLevel->bAlreadyMovedActors = true; // As we have duplicated the world, the actors will already have been transformed
+				check(PendingUnloadLevel == NULL);
+				SetLoadedLevel(PIELevelWorld->PersistentLevel);
+
+				// Broadcast level loaded event to blueprints
+				OnLevelLoaded.Broadcast();
+
+				return true;
+			}
+			else if (PersistentWorld->WorldComposition == NULL) // In world composition streaming levels are not loaded by default
+			{
+				UE_LOG(LogLevelStreaming, Warning, TEXT("Unable to duplicate PIE World: '%s'"), *NonPrefixedLevelName);
+				for (TObjectIterator<UWorld> It; It; ++It)
+				{
+					UWorld *W = *It;
+					UE_LOG(LogLevelStreaming, Warning, TEXT("    Loaded World: %s"), *W->GetPathName() );
+				}
 			}
 		}
 	}
@@ -593,7 +708,7 @@ bool ULevelStreaming::ShouldBeVisible( const FVector& ViewLocation )
 	if( GetWorld()->IsGameWorld() )
 	{
 		// Game and play in editor viewport codepath.
-		return bShouldBeVisible && ShouldBeLoaded( ViewLocation );
+		return ShouldBeLoaded( ViewLocation );
 	}
 	else
 	{
@@ -748,7 +863,6 @@ bool ULevelStreamingKismet::ShouldBeLoaded( const FVector& ViewLocation )
 ULevelStreamingAlwaysLoaded::ULevelStreamingAlwaysLoaded(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	bShouldBeVisible = true;
 }
 
 bool ULevelStreamingAlwaysLoaded::ShouldBeLoaded( const FVector& ViewLocation )

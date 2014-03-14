@@ -8,16 +8,6 @@
 #include "LevelUtils.h"
 #include "EngineDecalClasses.h"
 
-#if WITH_EDITOR
-namespace DecalEditorConstants
-{
-	/** Scale factor to apply to get nice scaling behaviour in-editor when using percentage-based scaling */
-	static const float PercentageScalingMultiplier = 5.0f;
-
-	/** Scale factor to apply to get nice scaling behaviour in-editor when using additive-based scaling */
-	static const float AdditiveScalingMultiplier = 50.0f;
-}
-#endif
 
 ADecalActor::ADecalActor(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -55,7 +45,6 @@ ADecalActor::ADecalActor(const class FPostConstructInitializeProperties& PCIP)
 		ArrowComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Decals;
 		ArrowComponent->AttachParent = Decal;
 		ArrowComponent->bAbsoluteScale = true;
-		ArrowComponent->bIsScreenSizeScaled = true;
 	}
 #endif // WITH_EDITORONLY_DATA
 
@@ -75,6 +64,7 @@ ADecalActor::ADecalActor(const class FPostConstructInitializeProperties& PCIP)
 		SpriteComponent->Sprite = ConstructorStatics.DecalTexture.Get();
 		SpriteComponent->AttachParent = Decal;
 		SpriteComponent->bIsScreenSizeScaled = true;
+		SpriteComponent->ScreenSize = 0.0025f;
 		SpriteComponent->bAbsoluteScale = true;
 		SpriteComponent->bReceivesDecals = false;
 	}
@@ -103,14 +93,6 @@ void ADecalActor::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedE
 		Decal->RecreateRenderState_Concurrent();
 	}
 }
-
-void ADecalActor::EditorApplyScale(const FVector& DeltaScale, const FVector* PivotLocation, bool bAltDown, bool bShiftDown, bool bCtrlDown)
-{
-	const FVector ModifiedScale = DeltaScale * ( AActor::bUsePercentageBasedScaling ? DecalEditorConstants::PercentageScalingMultiplier : DecalEditorConstants::AdditiveScalingMultiplier );
-
-	Super::EditorApplyScale(ModifiedScale, PivotLocation, bAltDown, bShiftDown, bCtrlDown);
-}
-
 #endif // WITH_EDITOR
 
 FDeferredDecalProxy::FDeferredDecalProxy(const UDecalComponent* InComponent)

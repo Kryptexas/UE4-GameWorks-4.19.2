@@ -9,6 +9,7 @@ class UK2Node_MakeStruct : public UK2Node_StructMemberSet
 {
 	GENERATED_UCLASS_BODY()
 
+#if WITH_EDITOR
 	BLUEPRINTGRAPH_API static bool CanBeMade(const UScriptStruct* Struct);
 	static bool CanBeExposed(const UProperty* Property);
 
@@ -27,4 +28,5 @@ class UK2Node_MakeStruct : public UK2Node_StructMemberSet
 	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const OVERRIDE;
 	virtual ERedirectType DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex)  const OVERRIDE;
 	// End K2Node interface
+#endif
 };

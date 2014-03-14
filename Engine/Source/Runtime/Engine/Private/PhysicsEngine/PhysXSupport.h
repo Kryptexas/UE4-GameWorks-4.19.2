@@ -205,6 +205,9 @@ extern TArray<PxHeightField*>	GPhysXPendingKillHeightfield;
 /** Array of PxMaterial objects which are awaiting cleaning up. */
 extern TArray<PxMaterial*>		GPhysXPendingKillMaterial;
 
+/** Map from SkeletalMeshComponent UniqueID to a pointer to the collision disable table inside its PhysicsAsset */
+extern TMap< uint32, TMap<struct FRigidBodyIndexPair,bool>* >		GCollisionDisableTableLookup;
+
 /** Utility class to keep track of shared physics data */
 class FPhysxSharedData
 {
@@ -496,12 +499,12 @@ public:
 	{
 		return NULL;
 	}
-	
+	/*
 	virtual NxUserRenderSurfaceBuffer*  createSurfaceBuffer(const NxUserRenderSurfaceBufferDesc& desc)   OVERRIDE
 	{
 		return NULL;
 	}
-	
+	*/
 	virtual NxUserRenderResource*		createResource(const NxUserRenderResourceDesc&) OVERRIDE
 	{
 		return NULL;
@@ -511,7 +514,7 @@ public:
 	virtual void						releaseBoneBuffer(NxUserRenderBoneBuffer&) OVERRIDE {}
 	virtual void						releaseInstanceBuffer(NxUserRenderInstanceBuffer&) OVERRIDE {}
 	virtual void						releaseSpriteBuffer(NxUserRenderSpriteBuffer&) OVERRIDE {}
-	virtual void                        releaseSurfaceBuffer(NxUserRenderSurfaceBuffer& buffer) OVERRIDE{}
+	//virtual void                        releaseSurfaceBuffer(NxUserRenderSurfaceBuffer& buffer) OVERRIDE{}
 	virtual void						releaseResource(NxUserRenderResource&) OVERRIDE {}
 
 	virtual physx::PxU32				getMaxBonesForMaterial(void*) OVERRIDE

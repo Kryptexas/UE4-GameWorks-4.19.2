@@ -228,11 +228,11 @@ public:
 
 	~FGatherTextSCC();
 
-	bool CheckOutFile(const FString& InFile, FText& OutError);
-	bool CheckinFiles( const FText& InChangeDescription, FText& OutError );
-	bool CleanUp( FText& OutError );
-	bool RevertFile(const FString& InFile, FText& OutError);
-	bool IsReady(FText& OutError);
+	bool CheckOutFile( const FString& InFile, FString& OutError );
+	bool CheckinFiles( const FString& InChangeDescription, FString& OutError );
+	bool CleanUp( FString& OutError );
+	bool RevertFile( const FString& InFile, FString& OutError );
+	bool IsReady( FString& OutError );
 
 private:
 	TArray<FString> CheckedOutFiles;

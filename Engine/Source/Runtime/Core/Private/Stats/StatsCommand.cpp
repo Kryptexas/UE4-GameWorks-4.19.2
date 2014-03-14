@@ -574,7 +574,6 @@ struct FHUDGroupManager
 			bEnabled = true;
 			Stats.NewFrameDelegate.AddRaw( this, &FHUDGroupManager::NewFrame );
 			StatsMasterEnableAdd();
-			FCoreDelegates::StatsEnabled.Broadcast();
 		}
 		else if( !EnabledGroups.Num() && bEnabled )
 		{

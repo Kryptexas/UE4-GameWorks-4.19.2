@@ -160,10 +160,9 @@ FText::FText( FString InSourceString )
 	DisplayString( SourceString.ToSharedRef() ) ,
 	Flags(0)
 {
-	if (GIsEditor)
-	{
-		Key = MakeShareable( new FString(FGuid::NewGuid().ToString()) );
-	}
+#if WITH_EDITOR
+	Key = MakeShareable( new FString(FGuid::NewGuid().ToString()) );
+#endif
 }
 
 FText::FText( FString InSourceString, FString InNamespace, FString InKey, int32 InFlags )
@@ -182,17 +181,16 @@ FText FText::TrimPreceding( const FText& InText )
 
 	FText NewText = FText( MoveTemp( TrimmedString ) );
 
-	if (!GIsEditor)
+#if !WITH_EDITOR
+	if( (InText.Flags & (1 << ETextFlag::CultureInvariant)) != 0 )
 	{
-		if( (InText.Flags & (1 << ETextFlag::CultureInvariant)) != 0 )
-		{
-			NewText.Flags = NewText.Flags | ETextFlag::Transient;
-		}
-		else
-		{
-			NewText.Flags = NewText.Flags | ETextFlag::CultureInvariant;
-		}
+		NewText.Flags = NewText.Flags | ETextFlag::Transient;
 	}
+	else
+	{
+		NewText.Flags = NewText.Flags | ETextFlag::CultureInvariant;
+	}
+#endif
 
 	return NewText;
 }
@@ -204,17 +202,16 @@ FText FText::TrimTrailing( const FText& InText )
 
 	FText NewText = FText( MoveTemp ( TrimmedString ) );
 
-	if (!GIsEditor)
+#if !WITH_EDITOR
+	if( (InText.Flags & (1 << ETextFlag::CultureInvariant)) != 0 )
 	{
-		if( (InText.Flags & (1 << ETextFlag::CultureInvariant)) != 0 )
-		{
-			NewText.Flags = NewText.Flags & ETextFlag::Transient;
-		}
-		else
-		{
-			NewText.Flags = NewText.Flags & ETextFlag::CultureInvariant;
-		}
+		NewText.Flags = NewText.Flags & ETextFlag::Transient;
 	}
+	else
+	{
+		NewText.Flags = NewText.Flags & ETextFlag::CultureInvariant;
+	}
+#endif
 
 	return NewText;
 }
@@ -226,17 +223,16 @@ FText FText::TrimPrecedingAndTrailing( const FText& InText )
 
 	FText NewText = FText( MoveTemp( TrimmedString ) );
 
-	if (!GIsEditor)
+#if !WITH_EDITOR
+	if( (InText.Flags & (1 << ETextFlag::CultureInvariant)) != 0 )
 	{
-		if( (InText.Flags & (1 << ETextFlag::CultureInvariant)) != 0 )
-		{
-			NewText.Flags = NewText.Flags | ETextFlag::Transient;
-		}
-		else
-		{
-			NewText.Flags = NewText.Flags | ETextFlag::CultureInvariant;
-		}
+		NewText.Flags = NewText.Flags | ETextFlag::Transient;
 	}
+	else
+	{
+		NewText.Flags = NewText.Flags | ETextFlag::CultureInvariant;
+	}
+#endif
 
 	return NewText;
 }
@@ -279,9 +275,6 @@ FText FText::Format(const FText& Fmt,const FText& v1,const FText& v2,const FText
 * Generate an FText that represents the passed number in the passed culture
 */
 
-// on some platforms (PS4) int64_t is a typedef of long.  However, UE4 typedefs int64 as long long.  Since these are distinct types, and ICU only has a constructor for int64_t, casting to int64 causes a compile error from ambiguous function call, 
-// so cast to int64_t's where appropriate here to avoid problems.
-
 #define DEF_ASNUMBER_CAST(T1, T2) FText FText::AsNumber(T1 Val, const FNumberFormattingOptions* const Options, const TSharedPtr<FCulture>& TargetCulture) { return FText::AsNumberTemplate<T1, T2>(Val, Options, TargetCulture); }
 #define DEF_ASNUMBER(T) DEF_ASNUMBER_CAST(T, T)
 DEF_ASNUMBER(float)
@@ -289,11 +282,11 @@ DEF_ASNUMBER(double)
 DEF_ASNUMBER(int8)
 DEF_ASNUMBER(int16)
 DEF_ASNUMBER(int32)
-DEF_ASNUMBER_CAST(int64, int64_t)
+DEF_ASNUMBER(int64)
 DEF_ASNUMBER(uint8)
 DEF_ASNUMBER(uint16)
-DEF_ASNUMBER_CAST(uint32, int64_t)
-DEF_ASNUMBER_CAST(uint64, int64_t)
+DEF_ASNUMBER_CAST(uint32, int64)
+DEF_ASNUMBER_CAST(uint64, int64)
 #undef DEF_ASNUMBER
 
 /**
@@ -307,11 +300,11 @@ DEF_ASCURRENCY(float)
 	DEF_ASCURRENCY(int8)
 	DEF_ASCURRENCY(int16)
 	DEF_ASCURRENCY(int32)
-	DEF_ASCURRENCY_CAST(int64, int64_t)
+	DEF_ASCURRENCY(int64)
 	DEF_ASCURRENCY(uint8)
 	DEF_ASCURRENCY(uint16)
-	DEF_ASCURRENCY_CAST(uint32, int64_t)
-	DEF_ASCURRENCY_CAST(uint64, int64_t)
+	DEF_ASCURRENCY_CAST(uint32, int64)
+	DEF_ASCURRENCY_CAST(uint64, int64)
 #undef DEF_ASCURRENCY
 
 /**
@@ -439,20 +432,18 @@ FText FText::ChangeKey( FString Namespace, FString Key, const FText& Text )
 FText FText::CreateNumericalText(FString InSourceString)
 {
 	FText NewText = FText( MoveTemp( InSourceString ) );
-	if (!GIsEditor)
-	{
-		NewText.Flags |= ETextFlag::Transient;
-	}
+#if !WITH_EDITOR
+	NewText.Flags |= ETextFlag::Transient;
+#endif
 	return NewText;
 }
 
 FText FText::CreateChronologicalText(FString InSourceString)
 {
 	FText NewText = FText( MoveTemp( InSourceString ) );
-	if (!GIsEditor)
-	{
-		NewText.Flags |= ETextFlag::Transient;
-	}
+#if !WITH_EDITOR
+	NewText.Flags |= ETextFlag::Transient;
+#endif
 	return NewText;
 }
 
@@ -460,10 +451,9 @@ FText FText::FromName( const FName& Val)
 {
 	FText NewText = FText( Val.ToString() );
 
-	if (!GIsEditor)
-	{
-		NewText.Flags |= ETextFlag::CultureInvariant;
-	}
+#if !WITH_EDITOR
+	NewText.Flags |= ETextFlag::CultureInvariant;
+#endif
 
 	return NewText; 
 }
@@ -472,10 +462,9 @@ FText FText::FromString( FString String )
 {
 	FText NewText = FText( MoveTemp(String) );
 
-	if (!GIsEditor)
-	{
-		NewText.Flags |= ETextFlag::CultureInvariant;
-	}
+#if !WITH_EDITOR
+	NewText.Flags |= ETextFlag::CultureInvariant;
+#endif
 
 	return NewText;
 }

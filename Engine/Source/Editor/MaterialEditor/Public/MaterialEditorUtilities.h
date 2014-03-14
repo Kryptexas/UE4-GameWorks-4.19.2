@@ -181,25 +181,7 @@ private:
 	/** Get IMaterialEditor for given object, if it exists */
 	static TSharedPtr<class IMaterialEditor> GetIMaterialEditorForObject(const UObject* ObjectToFocusOn);
 
-	/**
-	 * Adds a category of Material Expressions to an action builder
-	 *
-	 * @param	ActionMenuBuilder	The builder to add to.
-	 * @param	CategoryName		The name of the category.
-	 * @param	MaterialExpressions	List of Material Expressions in the category.
-	 * @param	bMaterialFunction	Whether we are building for a material function.
-	 */
 	static void AddMaterialExpressionCategory(FGraphActionMenuBuilder& ActionMenuBuilder, FString CategoryName, TArray<struct FMaterialExpression>* MaterialExpressions, bool bMaterialFunction);
-
-	/**
-	 * Checks whether a Material Expression class has any connections that are compatible with a type/direction
-	 *
-	 * @param	ExpressionClass		Class of Expression we are testing against.
-	 * @param	TestType			Material Value Type we are testing.
-	 * @param	TestDirection		Pin Direction we are testing.
-	 * @param	bMaterialFunction	Whether we are testing for a material function.
-	*/
-	static bool HasCompatibleConnection(UClass* ExpressionClass, uint32 TestType, EEdGraphPinDirection TestDirection, bool bMaterialFunction);
 
 	/** Constructor */
 	FMaterialEditorUtilities() {}

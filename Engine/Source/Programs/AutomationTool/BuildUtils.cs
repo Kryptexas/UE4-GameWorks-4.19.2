@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using System.IO;
 
 namespace AutomationTool
 {
@@ -79,32 +78,6 @@ namespace AutomationTool
 			string CmdLine = String.Format(@"/verbosity:normal /target:Rebuild /property:Configuration={0} /property:Platform=AnyCPU", BuildConfig);
 			MsBuild(Env, ProjectFile, CmdLine, LogName);
 		}
-
-        /// <summary>
-        /// Sets an executable bit for a Unix file.
-        /// <param name="Filename">Filename</param>
-        /// </summary>
-        public static void SetExecutableBit(string Filename)
-        {
-            var Result = CommandUtils.Run("sh", string.Format("-c 'chmod +x \"{0}\"'", Filename));
-            if (Result.ExitCode != 0)
-            {
-                throw new AutomationException(String.Format("Failed to chmod \"{0}\"", Filename));
-            }
-        }
-
-        /// <summary>
-        /// returns true if this is a mac executable using some awful conventions
-        /// <param name="Filename">Filename</param>
-        /// </summary>
-        public static bool IsProbablyAMacOrIOSExe(string Filename)
-        {
-            return
-                (
-                    CommandUtils.CombinePaths(Filename).ToLower().Contains(CommandUtils.CombinePaths("Binaries", "Mac").ToLower()) ||
-                    CommandUtils.CombinePaths(Filename).ToLower().Contains(CommandUtils.CombinePaths("Binaries", "IOS").ToLower())
-                ) && (Path.GetExtension(Filename) == "" || Path.GetExtension(Filename) == ".");
-        }
 	}
 
 }

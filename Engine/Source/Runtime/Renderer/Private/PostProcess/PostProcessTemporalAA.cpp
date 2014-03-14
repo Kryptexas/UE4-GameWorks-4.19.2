@@ -274,8 +274,6 @@ IMPLEMENT_TEMPORALAA_PIXELSHADER_TYPE(1, 0, TEXT("MainTemporalAAPS"));
 IMPLEMENT_TEMPORALAA_PIXELSHADER_TYPE(1, 1, TEXT("MainTemporalAAPS"));
 IMPLEMENT_TEMPORALAA_PIXELSHADER_TYPE(2, 0, TEXT("SSRTemporalAAPS"));
 IMPLEMENT_TEMPORALAA_PIXELSHADER_TYPE(3, 0, TEXT("LightShaftTemporalAAPS"));
-IMPLEMENT_TEMPORALAA_PIXELSHADER_TYPE(4, 0, TEXT("MainFastTemporalAAPS"));
-IMPLEMENT_TEMPORALAA_PIXELSHADER_TYPE(4, 1, TEXT("MainFastTemporalAAPS"));
 
 void FRCPassPostProcessSSRTemporalAA::Process(FRenderingCompositePassContext& Context)
 {
@@ -538,40 +536,25 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 
 	Context.SetViewportAndCallRHI(SrcRect);
 
-
-	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.PostProcessAAQuality")); 
-	uint32 Quality = FMath::Clamp(CVar->GetValueOnRenderThread(), 1, 6);
-	bool bUseFast = Quality == 3;
-
+	// set the state
+	RHISetBlendState(TStaticBlendState<>::GetRHI());
+	RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
+	//RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+	
 	{	// Normal temporal feedback
 		// Draw to pixels where stencil == 0
 		RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always,true,CF_Equal,SO_Keep,SO_Keep,SO_Keep>::GetRHI(), 0);
+		
+		TShaderMapRef< FPostProcessTonemapVS >			VertexShader( GetGlobalShaderMap() );
+		TShaderMapRef< FPostProcessTemporalAAPS<1,0> >	PixelShader( GetGlobalShaderMap() );
 
-		if(bUseFast)
-		{
-			TShaderMapRef< FPostProcessTonemapVS >			VertexShader( GetGlobalShaderMap() );
-			TShaderMapRef< FPostProcessTemporalAAPS<4,0> >	PixelShader( GetGlobalShaderMap() );
+		static FGlobalBoundShaderState BoundShaderState;
 
-			static FGlobalBoundShaderState BoundShaderState;
-
-			SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
-
-			VertexShader->SetVS(Context);
-			PixelShader->SetParameters(Context);
-		}
-		else
-		{
-			TShaderMapRef< FPostProcessTonemapVS >			VertexShader( GetGlobalShaderMap() );
-			TShaderMapRef< FPostProcessTemporalAAPS<1,0> >	PixelShader( GetGlobalShaderMap() );
-
-			static FGlobalBoundShaderState BoundShaderState;
-
-			SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
-
-			VertexShader->SetVS(Context);
-			PixelShader->SetParameters(Context);
-		}
-	
+		SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+		
+		VertexShader->SetVS(Context);
+		PixelShader->SetParameters(Context);
+		
 		// Draw a quad mapping scene color to the view's render target
 		DrawRectangle(
 			0, 0,
@@ -587,31 +570,16 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 		// Draw to pixels where stencil != 0
 		RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always,true,CF_NotEqual,SO_Keep,SO_Keep,SO_Keep>::GetRHI(), 0);
 
-		if(bUseFast)
-		{
-			TShaderMapRef< FPostProcessTonemapVS >			VertexShader( GetGlobalShaderMap() );
-			TShaderMapRef< FPostProcessTemporalAAPS<4,1> >	PixelShader( GetGlobalShaderMap() );
+		TShaderMapRef< FPostProcessTonemapVS >			VertexShader( GetGlobalShaderMap() );
+		TShaderMapRef< FPostProcessTemporalAAPS<1,1> >	PixelShader( GetGlobalShaderMap() );
 
-			static FGlobalBoundShaderState BoundShaderState;
+		static FGlobalBoundShaderState BoundShaderState;
 
-			SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
-
-			VertexShader->SetVS(Context);
-			PixelShader->SetParameters(Context);
-		}
-		else
-		{
-			TShaderMapRef< FPostProcessTonemapVS >			VertexShader( GetGlobalShaderMap() );
-			TShaderMapRef< FPostProcessTemporalAAPS<1,1> >	PixelShader( GetGlobalShaderMap() );
-
-			static FGlobalBoundShaderState BoundShaderState;
-
-			SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
-
-			VertexShader->SetVS(Context);
-			PixelShader->SetParameters(Context);
-		}
-
+		SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+		
+		VertexShader->SetVS(Context);
+		PixelShader->SetParameters(Context);
+		
 		// Draw a quad mapping scene color to the view's render target
 		DrawRectangle(
 			0, 0,

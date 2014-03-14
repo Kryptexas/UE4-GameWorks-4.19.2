@@ -37,13 +37,8 @@ protected:
 	virtual void StopLogic(const FString& Reason) OVERRIDE;
 	virtual void PauseLogic(const FString& Reason) OVERRIDE;
 	virtual void ResumeLogic(const FString& Reason) OVERRIDE;
-
-	/** indicates instance has been initialized to work with specific BT asset */
-	bool TreeHasBeenStarted() const;
-
 public:
 	virtual bool IsRunning() const OVERRIDE;
-	virtual bool IsPaused() const OVERRIDE;
 	// End UBrainComponent overrides
 
 	/** starts execution from root */
@@ -81,7 +76,7 @@ public:
 	void RegisterParallelTask(const class UBTTaskNode* TaskNode);
 
 	/** remove parallel task */
-	void UnregisterParallelTask(const class UBTTaskNode* TaskNode, uint16 InstanceIdx);
+	void UnregisterParallelTask(const class UBTTaskNode* TaskNode);
 
 	/** unregister all aux nodes less important than given index */
 	void UnregisterAuxNodesUpTo(const struct FBTNodeIndex& Index);
@@ -94,14 +89,11 @@ public:
 	/** process execution flow */
 	void ProcessExecutionRequest();
 
-	/** schedule execution flow update in next tick */
+	/** schedule execution flow udpate in next tick */
 	void ScheduleExecutionUpdate();
 
 	/** tries to find behavior tree instance in context */
 	int32 FindInstanceContainingNode(const class UBTNode* Node) const;
-
-	/** tries to find template node for given instanced node */
-	class UBTNode* FindTemplateNode(const class UBTNode* Node) const;
 
 	/** @return current tree */
 	class UBehaviorTree* GetCurrentTree() const;
@@ -134,8 +126,6 @@ public:
 	EBTTaskStatus::Type GetTaskStatus(const class UBTTaskNode* TaskNode) const;
 
 	virtual FString GetDebugInfoString() const OVERRIDE;
-	virtual FString DescribeActiveTasks() const;
-	virtual FString DescribeActiveTrees() const;
 
 #if ENABLE_VISUAL_LOG
 	virtual void DescribeSelfToVisLog(struct FVisLogEntry* Snapshot) const OVERRIDE;
@@ -144,18 +134,11 @@ public:
 protected:
 
 	/** blackboard component */
-	UPROPERTY(transient)
+	UPROPERTY()
 	class UBlackboardComponent* BlackboardComp;
 
 	/** stack of behavior tree instances */
 	TArray<struct FBehaviorTreeInstance> InstanceStack;
-
-	/** list of known subtree instances */
-	TArray<struct FBehaviorTreeInstanceId> KnownInstances;
-
-	/** instanced nodes */
-	UPROPERTY(transient)
-	TArray<class UBTNode*> NodeInstances;
 
 	/** search data being currently used */
 	struct FBehaviorTreeSearchData SearchData;
@@ -183,8 +166,8 @@ protected:
 	/** loops tree execution */
 	uint8 bLoopExecution : 1;
 
-	/** set when execution is waiting for tasks to abort (current or parallel's main) */
-	uint8 bWaitingForAbortingTasks : 1;
+	/** set when execution is waiting for parallel main tasks to abort */
+	uint8 bWaitingForParallelTasks : 1;
 
 	/** set when execution update is scheduled for next tick */
 	uint8 bRequestedFlowUpdate : 1;
@@ -197,9 +180,6 @@ protected:
 
 	/** push behavior tree instance on execution stack */
 	bool PushInstance(class UBehaviorTree* TreeAsset);
-
-	/** add unique Id of newly created subtree to KnownInstances list and return its index */
-	uint8 UpdateInstanceId(class UBehaviorTree* TreeAsset);
 
 	/** find next task to execute */
 	UBTTaskNode* FindNextTask(class UBTCompositeNode* ParentNode, uint16 ParentInstanceIdx, EBTNodeResult::Type LastResult);
@@ -220,10 +200,7 @@ protected:
 	void ExecuteTask(class UBTTaskNode* TaskNode);
 
 	/** deactivate all nodes up to requested one */
-	bool DeactivateUpTo(class UBTCompositeNode* Node, uint16 NodeInstanceIdx, EBTNodeResult::Type& NodeResult);
-
-	/** update state of aborting tasks */
-	void UpdateAbortingTasks();
+	bool DeactivateUpTo(class UBTCompositeNode* Node, EBTNodeResult::Type& NodeResult);
 
 	/** make a snapshot for debugger */
 	void StoreDebuggerExecutionStep(EBTExecutionSnap::Type SnapType);
@@ -253,7 +230,6 @@ protected:
 	friend class UBTTaskNode;
 	friend class UBTTask_RunBehavior;
 	friend class FBehaviorTreeDebugger;
-	friend struct FBehaviorTreeInstance;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -261,12 +237,12 @@ protected:
 
 FORCEINLINE class UBehaviorTree* UBehaviorTreeComponent::GetCurrentTree() const
 {
-	return InstanceStack.Num() ? KnownInstances[InstanceStack[ActiveInstanceIdx].InstanceIdIndex].TreeAsset : NULL;
+	return InstanceStack.Num() ? InstanceStack[ActiveInstanceIdx].TreeAsset : NULL;
 }
 
 FORCEINLINE class UBehaviorTree* UBehaviorTreeComponent::GetRootTree() const
 {
-	return InstanceStack.Num() ? KnownInstances[InstanceStack[0].InstanceIdIndex].TreeAsset : NULL;
+	return InstanceStack.Num() ? InstanceStack[0].TreeAsset : NULL;
 }
 
 FORCEINLINE class UBlackboardComponent* UBehaviorTreeComponent::GetBlackboardComponent()

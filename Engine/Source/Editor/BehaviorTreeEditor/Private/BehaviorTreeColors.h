@@ -7,12 +7,10 @@ namespace BehaviorTreeColors
 	namespace NodeBody
 	{
 		const FLinearColor Task(0.24f, 0.055f, 0.715f);
-		const FLinearColor TaskSpecial(0.1f, 0.05f, 0.2f);
 		const FLinearColor Decorator(0.0f, 0.07f, 0.4f);	
 		const FLinearColor Composite(0.1f, 0.1f, 0.1f);
 		const FLinearColor Service(0.0f, 0.4f, 0.22f);
 		const FLinearColor Default(0.15f, 0.15f, 0.15f);
-		const FLinearColor Deprecated(1.0f, 0.0f, 0.0f);
 	}
 
 	namespace NodeBorder

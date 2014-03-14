@@ -25,7 +25,7 @@ public:
 
 	virtual FString GetName() const OVERRIDE
 	{
-		return FString::Printf(*NSLOCTEXT("FLauncherTask", "LauncherTaskGame", "Launching Game").ToString());
+		return FString::Printf(*NSLOCTEXT("FLauncherTask", "LauncherTaskName", "Launching Game").ToString());
 	}
 
 	virtual FString GetDesc() const OVERRIDE
@@ -114,7 +114,7 @@ public:
 
 	virtual FString GetName() const OVERRIDE
 	{
-		return FString::Printf(*NSLOCTEXT("FLauncherTask", "LauncherTaskServer", "Launching Server").ToString());
+		return FString::Printf(*NSLOCTEXT("FLauncherTask", "LauncherTaskName", "Launching Server").ToString());
 	}
 
 	virtual FString GetDesc() const OVERRIDE

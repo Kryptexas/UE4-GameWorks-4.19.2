@@ -274,7 +274,7 @@ TSharedRef<SDockTab> FSequencer::SpawnTab_SequencerMain(const FSpawnTabArgs& Arg
 
 	return SNew(SDockTab)
 		.Icon( FEditorStyle::GetBrush("Sequencer.Tabs.SequencerMain") )
-		.Label( LOCTEXT("SequencerMainTitle", "Sequencer") )
+		.Label( LOCTEXT("SequencerMainTitle", "Main") )
 		.TabColorScale( GetTabColorScale() )
 		[
 			SequencerWidget.ToSharedRef()

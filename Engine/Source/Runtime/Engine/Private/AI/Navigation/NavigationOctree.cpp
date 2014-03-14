@@ -135,7 +135,7 @@ void FNavigationOctree::RemoveNode(const FOctreeElementId* Id)
 bool FNavigationRelevantData::IsMatchingFilter(const FNavigationOctreeFilter& Filter) const
 {
 	return (Filter.bIncludeGeometry && HasGeometry()) ||
-		(Filter.bIncludeOffmeshLinks && (Modifiers.HasPotentialLinks() || Modifiers.HasLinks())) ||
+		(Filter.bIncludeOffmeshLinks && Modifiers.HasLinks()) ||
 		(Filter.bIncludeAreas && Modifiers.HasAreas()) ||
 		(Filter.bIncludeMetaAreas && Modifiers.HasMetaAreas());
 }

@@ -2,7 +2,6 @@
 #pragma once
 
 #include "Slate.h"
-#include "Slate/SceneViewport.h"
 #include "HighResScreenshot.h"
 
 class SHighResScreenshotDialog : public SCompoundWidget
@@ -25,6 +24,11 @@ public:
 		Window = InWindow;
 	}
 
+	void SetWorld( UWorld* InWorld )
+	{
+		World = InWorld;
+	}
+
 	void SetCaptureRegionWidget(TSharedPtr<class SCaptureRegionWidget> InCaptureRegionWidget)
 	{
 		CaptureRegionWidget = InCaptureRegionWidget;
@@ -33,11 +37,7 @@ public:
 	void SetCaptureRegion(const FIntRect& InCaptureRegion)
 	{
 		Config.UnscaledCaptureRegion = InCaptureRegion;
-		auto ConfigViewport = Config.TargetViewport.Pin();
-		if (ConfigViewport.IsValid())
-		{
-			ConfigViewport->Invalidate();
-		}
+		Config.TargetViewport->Invalidate();
 	}
 
 	FHighResScreenshotConfig& GetConfig()
@@ -50,7 +50,10 @@ public:
 		return CaptureRegionWidget;
 	}
 
-	static TWeakPtr<class SWindow> OpenDialog(const TSharedPtr<FSceneViewport>& InViewport, TSharedPtr<SCaptureRegionWidget> InCaptureRegionWidget = TSharedPtr<class SCaptureRegionWidget>());
+	static TWeakPtr<class SWindow> OpenDialog(UWorld* InWorld, FViewport* InViewport, TSharedPtr<SCaptureRegionWidget> InCaptureRegionWidget = TSharedPtr<class SCaptureRegionWidget>());
+	static bool IsOpen();
+
+	static TWeakPtr<SHighResScreenshotDialog> GetCurrentDialog();
 
 private:
 
@@ -76,12 +79,8 @@ private:
 	void OnMaskEnabledChanged( ESlateCheckBoxState::Type NewValue )
 	{
 		Config.bMaskEnabled = (NewValue == ESlateCheckBoxState::Checked);
-		auto ConfigViewport = Config.TargetViewport.Pin();
-		if (ConfigViewport.IsValid())
-		{
-			ConfigViewport->GetClient()->GetEngineShowFlags()->HighResScreenshotMask = Config.bMaskEnabled;
-			ConfigViewport->Invalidate();
-		}
+		Config.TargetViewport->GetClient()->GetEngineShowFlags()->HighResScreenshotMask = Config.bMaskEnabled;
+		Config.TargetViewport->Invalidate();
 	}
 
 	void OnBufferVisualizationDumpEnabledChanged( ESlateCheckBoxState::Type NewValue )
@@ -97,11 +96,6 @@ private:
 	EVisibility GetCaptureRegionControlsVisibility() const
 	{
 		return bCaptureRegionControlsVisible ? EVisibility::Visible : EVisibility::Hidden;
-	}
-
-	void SetCaptureRegionControlsVisibility(bool bVisible)
-	{
-		bCaptureRegionControlsVisible = bVisible;
 	}
 
 	TOptional<float> GetResolutionMultiplier() const
@@ -131,12 +125,11 @@ private:
 	
 	static void WindowClosedHandler(const TSharedRef<SWindow>& InWindow);
 
-	static void ResetViewport();
-
 	TSharedPtr<SWindow> Window;
 	TSharedPtr<class SCaptureRegionWidget> CaptureRegionWidget;
 	TSharedPtr<SButton> CaptureRegionButton;
 	TSharedPtr<SHorizontalBox> RegionCaptureActiveControlRoot;
+	UWorld* World;
 	FHighResScreenshotConfig& Config;
 	bool bCaptureRegionControlsVisible;
 

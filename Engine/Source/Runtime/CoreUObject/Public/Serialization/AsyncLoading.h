@@ -25,6 +25,8 @@ struct FAsyncPackage : public FGCObject
 	, LoadImportIndex			( 0						)
 	,	ImportIndex					( 0						)
 	,	ExportIndex					( 0						)
+	,	PreLoadIndex				( 0						)
+	,	PostLoadIndex				( 0						)
 	,	TimeLimit					( FLT_MAX				)
 	,	bUseTimeLimit				( false					)
 	,	bTimeLimitExceeded			( false					)
@@ -169,9 +171,9 @@ private:
 	/** Current index into linkers export table used to spread creation over several frames				*/
 	int32							ExportIndex;
 	/** Current index into GObjLoaded array used to spread routing PreLoad over several frames			*/
-	static int32					PreLoadIndex;
+	int32							PreLoadIndex;
 	/** Current index into GObjLoaded array used to spread routing PostLoad over several frames			*/
-	static int32					PostLoadIndex;
+	int32							PostLoadIndex;
 	/** Currently used time limit for this tick.														*/
 	float						TimeLimit;
 	/** Whether we are using a time limit for this tick.												*/

@@ -6,7 +6,6 @@
 
 class SFilter;
 class FFrontendFilter;
-class FFrontendFilterCategory;
 
 /**
  * A list of filters currently applied to an asset view.
@@ -30,12 +29,6 @@ public:
 		/** The filter collection used to further filter down assets returned from the backend */
 		SLATE_ARGUMENT( TSharedPtr<AssetFilterCollectionType>, FrontendFilters)
 
-		/** An array of classes to filter the menu by */
-		SLATE_ARGUMENT( TArray<UClass*>, InitialClassFilters)
-
-		/** Custom front end filters to be displayed */
-		SLATE_ARGUMENT( TArray< TSharedRef<FFrontendFilter> >, ExtraFrontendFilters )
-
 	SLATE_END_ARGS()
 
 	/** Constructs this widget with InArgs */
@@ -48,7 +41,7 @@ public:
 	FARFilter GetCombinedBackendFilter() const;
 	
 	/** Handler for when the floating add filter button was clicked */
-	TSharedRef<SWidget> ExternalMakeAddFilterMenu(EAssetTypeCategories::Type MenuExpansion = EAssetTypeCategories::Basic);
+	TSharedRef<SWidget> ExternalMakeAddFilterMenu();
 
 	/** Disables any applied filters */
 	void DisableAllFilters();
@@ -91,10 +84,10 @@ private:
 	void CreateFiltersMenuCategory(FMenuBuilder& MenuBuilder, const TArray<TWeakPtr<IAssetTypeActions>> AssetTypeActionsList) const;
 
 	/** Handler for when the add filter menu is populated by a non-category */
-	void CreateOtherFiltersMenuCategory(FMenuBuilder& MenuBuilder, TSharedPtr<FFrontendFilterCategory> MenuCategory) const;
+	void CreateOtherFiltersMenuCategory(FMenuBuilder& MenuBuilder) const;
 
 	/** Handler for when the add filter button was clicked */
-	TSharedRef<SWidget> MakeAddFilterMenu(EAssetTypeCategories::Type MenuExpansion = EAssetTypeCategories::Basic);
+	TSharedRef<SWidget> MakeAddFilterMenu();
 
 	/** Handler for when filter by type is selected */
 	void FilterByTypeClicked(TWeakPtr<IAssetTypeActions> AssetTypeActions);
@@ -113,8 +106,8 @@ private:
 
 	void FrontendFilterClicked(TSharedRef<FFrontendFilter> FrontendFilter);
 	bool IsFrontendFilterInUse(TSharedRef<FFrontendFilter> FrontendFilter) const;
-	void FrontendFilterCategoryClicked(TSharedPtr<FFrontendFilterCategory> MenuCategory);
-	bool IsFrontendFilterCategoryInUse(TSharedPtr<FFrontendFilterCategory> MenuCategory) const;
+	void FrontendFilterCategoryClicked();
+	bool IsFrontendFilterCategoryInUse() const;
 
 	/** Called when reset filters option is pressed */
 	void OnResetFilters();
@@ -131,12 +124,6 @@ private:
 
 	/** All possible frontend filter objects */
 	TArray< TSharedRef<FFrontendFilter> > AllFrontendFilters;
-
-	/** All frontend filter categories (for menu construction) */
-	TArray< TSharedPtr<FFrontendFilterCategory> > AllFrontendFilterCategories;
-
-	/** List of classes that our filters must match */
-	TArray<UClass*> InitialClassFilters;
 
 	/** Delegate for getting the context menu. */
 	FOnGetContextMenu OnGetContextMenu;

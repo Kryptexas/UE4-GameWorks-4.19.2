@@ -12,6 +12,6 @@ class UBTTask_PlaySound : public UBTTaskNode
 	UPROPERTY(Category=Node, EditAnywhere)
 	class USoundCue* SoundToPlay;
 
-	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) OVERRIDE;
+	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const OVERRIDE;
 	virtual FString GetStaticDescription() const OVERRIDE;
 };

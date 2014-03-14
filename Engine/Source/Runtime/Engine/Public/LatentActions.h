@@ -66,7 +66,7 @@ public:
 };
 
 // A pending latent action
-class ENGINE_API FPendingLatentAction
+class FPendingLatentAction
 {
 public:
 	FPendingLatentAction()

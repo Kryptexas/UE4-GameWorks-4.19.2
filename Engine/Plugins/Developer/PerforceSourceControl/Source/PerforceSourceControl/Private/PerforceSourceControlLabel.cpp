@@ -51,7 +51,7 @@ bool FPerforceSourceControlLabel::GetFileRevisions( const TArray<FString>& InFil
 		FPerforceConnection& Connection = ScopedConnection.GetConnection();
 		FP4RecordSet Records;
 		TArray<FString> Parameters;
-		TArray<FText> ErrorMessages;
+		TArray<FString> ErrorMessages;
 		for(auto Iter(InFiles.CreateConstIterator()); Iter; Iter++)
 		{
 			Parameters.Add(*Iter + TEXT("@") + Name);
@@ -67,7 +67,7 @@ bool FPerforceSourceControlLabel::GetFileRevisions( const TArray<FString>& InFil
 			// output errors if any
 			for (int32 ErrorIndex = 0; ErrorIndex < ErrorMessages.Num(); ++ErrorIndex)
 			{
-				FMessageLog("SourceControl").Error(ErrorMessages[ErrorIndex]);
+				FMessageLog("SourceControl").Error(FText::FromString(ErrorMessages[ErrorIndex]));
 			}
 		}
 	}
@@ -87,7 +87,7 @@ bool FPerforceSourceControlLabel::Sync( const FString& InFilename ) const
 		FPerforceConnection& Connection = ScopedConnection.GetConnection();
 		FP4RecordSet Records;
 		TArray<FString> Parameters;
-		TArray<FText> ErrorMessages;
+		TArray<FString> ErrorMessages;
 		Parameters.Add(InFilename + TEXT("@") + Name);
 		bool bConnectionDropped = false;
 		bCommandOK = Connection.RunCommand(TEXT("sync"), Parameters, Records, ErrorMessages, FOnIsCancelled(), bConnectionDropped);
@@ -96,7 +96,7 @@ bool FPerforceSourceControlLabel::Sync( const FString& InFilename ) const
 			// output errors if any
 			for (int32 ErrorIndex = 0; ErrorIndex < ErrorMessages.Num(); ++ErrorIndex)
 			{
-				FMessageLog("SourceControl").Error(ErrorMessages[ErrorIndex]);
+				FMessageLog("SourceControl").Error(FText::FromString(ErrorMessages[ErrorIndex]));
 			}
 		}
 	}

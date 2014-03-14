@@ -3,11 +3,25 @@
 #pragma once
 #include "K2Node_FormatText.generated.h"
 
+USTRUCT()
+struct FFormatTextArgument
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditInstanceOnly, Category=ArgumentValue)
+	FText ArgumentName;
+
+	UPROPERTY(EditInstanceOnly, Category=ArgumentValue)
+	FText TextValue;
+};
+
 UCLASS(MinimalAPI)
 class UK2Node_FormatText : public UK2Node
 {
 	GENERATED_UCLASS_BODY()
 
+
+#if WITH_EDITOR
 	// UObject interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
 	// End of UObject interface
@@ -15,6 +29,7 @@ class UK2Node_FormatText : public UK2Node
 	// Begin UEdGraphNode interface.
 	virtual void AllocateDefaultPins() OVERRIDE;
 	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual void FindDiffs(class UEdGraphNode* OtherNode, struct FDiffResults& Results )  OVERRIDE;
 	virtual bool ShouldShowNodeProperties() const OVERRIDE { return true; }
 	virtual void PinConnectionListChanged(UEdGraphPin* Pin) OVERRIDE;
 	virtual void PinDefaultValueChanged(UEdGraphPin* Pin) OVERRIDE;
@@ -69,6 +84,10 @@ public:
 	 */
 	BLUEPRINTGRAPH_API UEdGraphPin* FindArgumentPin(const FText& InPinName) const;
 
+	/* Spawned during ExpandNode, does the FText::Format work */
+	UFUNCTION(BlueprintPure, meta=(BlueprintInternalUseOnly = "true"))
+	static FText Format(FText InPattern, TArray<FFormatTextArgument> InArgs);
+
 private:
 	/** Returns a unique pin name to use for a pin */
 	FText GetUniquePinName();
@@ -83,5 +102,6 @@ private:
 
 	/** Tooltip text for this node. */
 	FString NodeTooltip;
+#endif
 };
 

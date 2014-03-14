@@ -102,29 +102,13 @@ void UGameplayTagsK2Node_LiteralGameplayTag::ExpandNode(class FKismetCompilerCon
 				MakeIndex++;
 				MakeArrayNode->AddInputPin();
 			}
-			if( Remainder.IsEmpty() )
-			{
-				Remainder = TagString;
-			}
 			if( !Remainder.IsEmpty() )
 			{
 				ArrayInputPin = MakeArrayNode->FindPin( FString::Printf( TEXT("[%d]"), MakeIndex ) );
 				ArrayInputPin->PinType.PinCategory = TEXT("name");
 				Remainder.Split( "=", NULL, &Remainder );
 				ArrayInputPin->DefaultValue = Remainder;
-
-				MakeArrayNode->PostReconstructNode();
 			}
-			else
-			{
-				MakeArrayNode->RemoveInputPin(MakeArrayNode->FindPin(TEXT("[0]")));
-				MakeArrayNode->PostReconstructNode();
-			}
-		}
-		else
-		{
-			MakeArrayNode->RemoveInputPin(MakeArrayNode->FindPin(TEXT("[0]")));
-			MakeArrayNode->PostReconstructNode();
 		}
 
 		// Move the Output of the MakeArray to the Output of our node

@@ -52,7 +52,7 @@ namespace Lightmass
 	static const FGuid LM_MESHAREALIGHTDATA_VERSION		= FGuid(0x7b05d71b, 0x81484a07, 0xa15e44ba, 0x76f4634f);
 	static const FGuid LM_DEBUGOUTPUT_VERSION			= FGuid(0xfa520216, 0xd5aa49eb, 0xa9bbc1f5, 0x8ab715fc);
 	static const FGuid LM_SCENE_VERSION					= FGuid(0x8ad6acb1, 0xe15e4fec, 0x93c72936, 0xf2b67090);
-	static const FGuid LM_STATICMESH_VERSION			= FGuid(0x9b3b1bc6, 0x9270497a, 0xa07521fe, 0xc7045e91);
+	static const FGuid LM_STATICMESH_VERSION			= FGuid(0xAADC866E, 0x76FE4898, 0x805C2EE1, 0x7772C583);
 	static const FGuid LM_MATERIAL_VERSION				= FGuid(0xa6630d72, 0x33bf47b3, 0xbbcf76bb, 0x4350a2b5);
 
 

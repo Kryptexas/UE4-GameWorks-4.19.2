@@ -18,7 +18,7 @@ public:
 	FCreateMovieOptions()
 	:	CloseEditor(false),
 	    CaptureResolutionIndex(0),
-		CaptureTypeIndex(EMatineeCaptureType::AVI),
+		CaptureTypeIndex(0),
 		CaptureResolutionFPS(30),
 		Compress(false),
 		CinematicMode(true),
@@ -101,17 +101,29 @@ public:
 	/* CreateMovieOptions used to get options saved in the config files */
 	FCreateMovieOptions Options;
 
-	/** Array of strings to display for the screenshot capture type */
-	TArray< TSharedPtr<FString> > CaptureFormats;
+	/** ScreenCapture Redio button functionality */
+	struct ECaptureType
+	{
+		enum Type
+		{
+			CT_AVI,
+			CT_ScreenShots
+		};
+	};
+	ECaptureType::Type CaptureType;
 
-	/** Current capture type */
-	EMatineeCaptureType::Type CaptureType;
+	void OnCaptureTypeChecked(ESlateCheckBoxState::Type InCheckboxState, ECaptureType::Type InCaptureType) 
+	{ 
+		if (InCheckboxState == ESlateCheckBoxState::Checked)
+		{
+			CaptureType = InCaptureType; 
+		}
+	}
+	ESlateCheckBoxState::Type IsCaptureTypeSelected(ECaptureType::Type InCaptureType) const {return (CaptureType == InCaptureType ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked);}
 
 	TArray< TSharedPtr<FString> > CaptureResolutionList;
 
 	void OnCaptureResolutionSettingChanged( TSharedPtr<FString> ChosenString, ESelectInfo::Type );
-
-	void OnCaptureTypeSettingChanged(  TSharedPtr<FString> ChosenString, ESelectInfo::Type );
 
 	EVisibility OnGetCustomResolutionVisibility() const;
 
@@ -182,11 +194,26 @@ FReply SMatineeRecordMovie::OnOK()
 {
 	bool bProceedWithBuild = true;
 
+	FString levelNames;
+	UWorld* World = GWorld;
+	if (World)
+	{
+		for( int32 LevelIndex=0; LevelIndex<World->GetLevels().Num(); LevelIndex++ )
+		{
+			ULevel* Level	= World->GetLevels()[LevelIndex];
+			if (Level && Level->bIsVisible)
+			{
+				levelNames += Level->GetOutermost()->GetName() + "|";
+			}
+		}
+	}
+	
 	Options.CloseEditor = bCloseEditor;
 	Options.CaptureResolutionFPS = FCString::Atof(*FPSEntry.ToString());
 	Options.CaptureResolutionIndex = CaptureResolutionList.Find(CaptureResolutionSetting);
 
-	Options.CaptureTypeIndex = (int32)CaptureType;
+	Options.CaptureTypeIndex = CaptureType == ECaptureType::CT_AVI ? 0 : 1;
+
 	Options.CinematicMode = bCinematicMode;
 	Options.DisableMovement = bDisableMovement;
 	Options.DisableTurning = bDisableTurning;
@@ -216,6 +243,7 @@ FReply SMatineeRecordMovie::OnOK()
 		// Store the options for the capture of the Matinee
 		GEngine->MatineeCaptureName = Mode->InterpEd->GetMatineeActor()->GetName();
 		GEngine->MatineePackageCaptureName = FPackageName::GetShortName(Mode->InterpEd->GetMatineeActor()->GetOutermost()->GetName());
+		GEngine->VisibleLevelsForMatineeCapture = levelNames;
 
 		GUnrealEd->bNoTextureStreaming = Options.DisableTextureStreaming;
 		GUnrealEd->MatineeCaptureFPS = Options.CaptureResolutionFPS;
@@ -224,7 +252,7 @@ FReply SMatineeRecordMovie::OnOK()
 		GUnrealEd->MatineeCaptureResolutionX = CaptureWidth;
 		GUnrealEd->MatineeCaptureResolutionY = CaptureHeight;
 
-		GUnrealEd->MatineeCaptureType = (EMatineeCaptureType::Type)Options.CaptureTypeIndex;
+		GUnrealEd->MatineeCaptureType = Options.CaptureTypeIndex;
 		Mode->InterpEd->StartRecordingMovie();
 		
 		//if Options.CloseEditor == true, Editor will request a close action in UEditorEngine::PlayForMovieCapture
@@ -260,17 +288,6 @@ void SMatineeRecordMovie::InitializeOptions()
 
 	GConfig->GetString( TEXT("MatineeCreateMovieOptions"), TEXT("CustomRes"), Options.CustomRes, GEditorUserSettingsIni );
 
-	// setup format strings
-	CaptureFormats.Empty();
-	UEnum* FormatEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EMatineeCaptureType"), true);
-	for(int32 EnumMember = 0; EnumMember < FormatEnum->NumEnums() - 1; EnumMember++)
-	{
-		CaptureFormats.Add(MakeShareable(new FString(FormatEnum->GetEnumString(EnumMember))));
-	}	
-
-	Options.CaptureTypeIndex = FMath::Clamp<int32>(Options.CaptureTypeIndex, 0, FormatEnum->NumEnums() - 1);
-
-	// set up resolution strings
 	CaptureResolutionList.Add( MakeShareable( new FString(TEXT("320 x 240"))));
 	CaptureResolutionList.Add( MakeShareable( new FString(TEXT("640 x 480"))));
 	CaptureResolutionList.Add( MakeShareable( new FString(TEXT("1280 x 720"))));
@@ -292,7 +309,7 @@ void SMatineeRecordMovie::InitializeOptions()
 	FString FPSString = FString::Printf(TEXT("%d"), Options.CaptureResolutionFPS);
 	FPSEntry = FText::FromString(FPSString);
 
-	CaptureType = (EMatineeCaptureType::Type)Options.CaptureTypeIndex;
+	CaptureType = (Options.CaptureTypeIndex == 0) ? ECaptureType::CT_AVI : ECaptureType::CT_ScreenShots;
 
 	bCinematicMode = Options.CinematicMode;
 	bDisableMovement = Options.DisableMovement;
@@ -336,16 +353,43 @@ void SMatineeRecordMovie::Construct(const FArguments& InArgs, TWeakPtr<SWindow> 
 		.Padding(5,5,5,0)
 		[
 			SNew(STextBlock)
-			.Text(NSLOCTEXT("UnrealEd", "CO_CaptureType", "Capture Type"))
+			.Text(NSLOCTEXT("UnrealEd", "CO_CaptureType", "CaptureType"))
 		]
 		+SVerticalBox::Slot()
 		.AutoHeight()
 		.Padding(5)
 		[
-			SNew(STextComboBox)
-			.OptionsSource(&CaptureFormats)
-			.InitiallySelectedItem(CaptureFormats[CaptureType])
-			.OnSelectionChanged(this, &SMatineeRecordMovie::OnCaptureTypeSettingChanged)
+			SNew(SBorder)
+			.Content()
+			[
+				SNew(SVerticalBox)
+				+SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(5)
+				[
+					SNew(SCheckBox)
+					.Style(FEditorStyle::Get(), "RadioButton")
+					.IsChecked(this, &SMatineeRecordMovie::IsCaptureTypeSelected, ECaptureType::CT_AVI)
+					.OnCheckStateChanged(this, &SMatineeRecordMovie::OnCaptureTypeChecked, ECaptureType::CT_AVI)
+					[
+						SNew(STextBlock)
+						.Text(NSLOCTEXT("UnrealEd", "CO_AVI", "AVI"))
+					]
+				]
+				+SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(5)
+				[
+					SNew(SCheckBox)
+					.Style(FEditorStyle::Get(), "RadioButton")
+					.IsChecked(this, &SMatineeRecordMovie::IsCaptureTypeSelected, ECaptureType::CT_ScreenShots)
+					.OnCheckStateChanged(this, &SMatineeRecordMovie::OnCaptureTypeChecked, ECaptureType::CT_ScreenShots)
+					[
+						SNew(STextBlock)
+						.Text(NSLOCTEXT("UnrealEd", "CO_ScreenShots", "Screen Shots"))
+					]
+				]
+			]
 		]
 		+SVerticalBox::Slot()
 		.AutoHeight()
@@ -591,19 +635,6 @@ void SMatineeRecordMovie::OnCaptureResolutionSettingChanged( TSharedPtr<FString>
 	{	
 		bUsingCustomResolution = false;
 		ParseResolutionString( *ChosenString, CaptureWidth, CaptureHeight );
-	}
-}
-
-void SMatineeRecordMovie::OnCaptureTypeSettingChanged(  TSharedPtr<FString> ChosenString, ESelectInfo::Type )
-{
-	UEnum* FormatEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EMatineeCaptureType"), true);
-	for(int32 EnumMember = 0; EnumMember < FormatEnum->NumEnums() - 1; EnumMember++)
-	{
-		if(*ChosenString.Get() == FormatEnum->GetEnumString(EnumMember))
-		{
-			CaptureType = (EMatineeCaptureType::Type)EnumMember;
-			break;
-		}
 	}
 }
 

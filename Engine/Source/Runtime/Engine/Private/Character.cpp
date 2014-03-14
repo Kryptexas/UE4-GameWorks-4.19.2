@@ -38,6 +38,7 @@ ACharacter::ACharacter(const class FPostConstructInitializeProperties& PCIP)
 	bUseControllerRotationYaw = true;
 
 	bSimulateGravity = true;
+	bUseAvoidancePathing = false;
 
 	CapsuleComponent = PCIP.CreateDefaultSubobject<UCapsuleComponent>(this, ACharacter::CapsuleComponentName);
 	CapsuleComponent->InitCapsuleSize(34.0f, 88.0f);
@@ -48,7 +49,7 @@ ACharacter::ACharacter(const class FPostConstructInitializeProperties& PCIP)
 
 	CapsuleComponent->CanBeCharacterBase = ECB_No;
 	CapsuleComponent->bShouldUpdatePhysicsVolume = true;
-	CapsuleComponent->bCheckAsyncSceneOnMove = false;	
+	CapsuleComponent->bCheckAsyncSceneOnMove = true;	
 	RootComponent = CapsuleComponent;
 
 #if WITH_EDITORONLY_DATA
@@ -60,7 +61,6 @@ ACharacter::ACharacter(const class FPostConstructInitializeProperties& PCIP)
 		ArrowComponent->SpriteInfo.Category = ConstructorStatics.ID_Characters;
 		ArrowComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Characters;
 		ArrowComponent->AttachParent = CapsuleComponent;
-		ArrowComponent->bIsScreenSizeScaled = true;
 	}
 #endif // WITH_EDITORONLY_DATA
 
@@ -111,9 +111,15 @@ void ACharacter::PostInitializeComponents()
 			BaseTranslationOffset = Mesh->RelativeLocation;
 		}
 
-		if (CharacterMovement.IsValid() && CapsuleComponent.IsValid())
+		if (CharacterMovement.IsValid())
 		{
-			CharacterMovement->UpdateNavAgent(CapsuleComponent);
+			if (CapsuleComponent.IsValid())
+			{
+				check(CharacterMovement->GetNavAgentProperties() != NULL);
+				FNavAgentProperties* NavAgent = CharacterMovement->GetNavAgentProperties();
+				NavAgent->AgentRadius = CapsuleComponent->GetScaledCapsuleRadius();
+				NavAgent->AgentHeight = CapsuleComponent->GetScaledCapsuleHalfHeight() * 2.f;
+			}
 		}
 	}
 }
@@ -317,10 +323,10 @@ void ACharacter::ApplyDamageMomentum(float DamageTaken, FDamageEvent const& Dama
 void ACharacter::TeleportSucceeded(bool bIsATest)
 {
 	//move based pawns and remove base unless this teleport was done as a test
-	if (!bIsATest && CharacterMovement)
+	if (!bIsATest  && CharacterMovement)
 	{
 		CharacterMovement->bJustTeleported = true;
-		CharacterMovement->UpdateMovementModeFromAdjustment();
+		SetBase(NULL);
 	}
 
 	Super::TeleportSucceeded(bIsATest);
@@ -350,37 +356,6 @@ bool ACharacter::IsBasedOn( const AActor* Other ) const
 }
 
 
-// Helper to set up tick dependencies on a movement base
-namespace MovementBaseUtility
-{
-	void AddTickDependency(FTickFunction& BasedObjectTick, class UPrimitiveComponent* NewBase)
-	{
-		if (NewBase && MovementBaseUtility::UseRelativePosition(NewBase))
-		{
-			BasedObjectTick.AddPrerequisite(NewBase, NewBase->PrimaryComponentTick);
-			AActor* NewBaseOwner = NewBase->GetOwner();
-			if (NewBaseOwner)
-			{
-				BasedObjectTick.AddPrerequisite(NewBaseOwner, NewBaseOwner->PrimaryActorTick);
-			}
-		}
-	}
-
-	void RemoveTickDependency(FTickFunction& BasedObjectTick, class UPrimitiveComponent* OldBase)
-	{
-		if (OldBase && MovementBaseUtility::UseRelativePosition(OldBase))
-		{
-			BasedObjectTick.RemovePrerequisite(OldBase, OldBase->PrimaryComponentTick);
-			AActor* OldBaseOwner = OldBase->GetOwner();
-			if (OldBaseOwner)
-			{
-				BasedObjectTick.RemovePrerequisite(OldBaseOwner, OldBaseOwner->PrimaryActorTick);
-			}
-		}
-	}
-}
-
-
 /**	Change the Pawn's base. */
 void ACharacter::SetBase( UPrimitiveComponent* NewBaseComponent, bool bNotifyPawn )
 {
@@ -398,7 +373,6 @@ void ACharacter::SetBase( UPrimitiveComponent* NewBaseComponent, bool bNotifyPaw
 		}
 
 		// Set base.
-		UPrimitiveComponent* OldBase = MovementBase;
 		MovementBase = NewBaseComponent;
 
 		if (Role == ROLE_Authority)
@@ -416,19 +390,11 @@ void ACharacter::SetBase( UPrimitiveComponent* NewBaseComponent, bool bNotifyPaw
 		// Update relative location/rotation
 		if ( Role == ROLE_Authority || Role == ROLE_AutonomousProxy )
 		{
-			UE_LOG(LogCharacter, Verbose, TEXT("Setting base on %s for '%s' to '%s'"), Role == ROLE_Authority ? TEXT("Server") : TEXT("AutoProxy"), *GetName(), *GetFullNameSafe(NewBaseComponent));
-			RelativeMovement.MovementBase = NewBaseComponent;
-			RelativeMovement.bServerHasBaseComponent = (NewBaseComponent != NULL); // Flag whether the server had a non-null base.
-
 			if (MovementBaseUtility::UseRelativePosition(MovementBase))
 			{
 				RelativeMovement.Location = GetActorLocation() - MovementBase->GetComponentLocation();
 				RelativeMovement.Rotation = (FRotationMatrix(GetActorRotation()) * FRotationMatrix(MovementBase->GetComponentRotation()).GetTransposed()).Rotator();
 			}
-		}
-		else
-		{
-			UE_LOG(LogCharacter, Verbose, TEXT("Setting base on CLIENT for '%s' to '%s'"), *GetName(), *GetFullNameSafe(NewBaseComponent));
 		}
 
 		// Notify this actor of his new floor.
@@ -437,22 +403,11 @@ void ACharacter::SetBase( UPrimitiveComponent* NewBaseComponent, bool bNotifyPaw
 			BaseChange();
 		}
 
-		if (CharacterMovement)
+		if (MovementBase && CharacterMovement)
 		{
-			MovementBaseUtility::RemoveTickDependency(CharacterMovement->PrimaryComponentTick, OldBase);
-			MovementBaseUtility::AddTickDependency(CharacterMovement->PrimaryComponentTick, MovementBase);
-
-			if (MovementBase)
-			{
-				// Update OldBaseLocation/Rotation as those were referring to a different base
-				CharacterMovement->OldBaseLocation = MovementBase->GetComponentLocation();
-				CharacterMovement->OldBaseRotation = MovementBase->GetComponentRotation();
-			}
-			else
-			{
-				// Base is NULL, invalidate floor.
-				CharacterMovement->CurrentFloor.Clear();
-			}
+			// Update OldBaseLocation/Rotation as those were referring to a different base
+			CharacterMovement->OldBaseLocation = MovementBase->GetComponentLocation();
+			CharacterMovement->OldBaseRotation = MovementBase->GetComponentRotation();
 		}
 	}
 }
@@ -660,9 +615,7 @@ void ACharacter::DisplayDebug(UCanvas* Canvas, const TArray<FName>& DebugDisplay
 
 void ACharacter::LaunchCharacter(FVector LaunchVelocity, bool bXYOverride, bool bZOverride)
 {
-	UE_LOG(LogCharacter, Verbose, TEXT("ACharacter::LaunchCharacter '%s' (%f,%f,%f)"), *GetName(), LaunchVelocity.X, LaunchVelocity.Y, LaunchVelocity.Z);
-
-	if (CharacterMovement)
+	if (CharacterMovement && ((Role == ROLE_Authority) || IsLocallyControlled()))
 	{
 		FVector FinalVel = LaunchVelocity;
 		if (MovementBaseUtility::IsDynamicBase(MovementBase))
@@ -724,29 +677,29 @@ void ACharacter::ClearJumpInput()
 	bPressedJump = false;
 }
 
-bool ACharacter::ServerMove_Validate(float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 MoveFlags, uint8 ClientRoll, uint32 View, class UPrimitiveComponent* ClientMovementBase)
+bool ACharacter::ServerMove_Validate(float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 MoveFlags, uint8 ClientRoll, uint32 View)
 {
 	return true;
 }
 
-void ACharacter::ServerMove_Implementation(float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 MoveFlags, uint8 ClientRoll, uint32 View, class UPrimitiveComponent* ClientMovementBase)
+void ACharacter::ServerMove_Implementation(float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 MoveFlags, uint8 ClientRoll, uint32 View)
 {
 	if (CharacterMovement)
 	{
-		CharacterMovement->ServerMove_Implementation(TimeStamp, InAccel, ClientLoc, MoveFlags, ClientRoll, View, ClientMovementBase);
+		CharacterMovement->ServerMove_Implementation(TimeStamp, InAccel, ClientLoc, MoveFlags, ClientRoll, View);
 	}
 }
 
-bool ACharacter::ServerMoveDual_Validate(float TimeStamp0, FVector_NetQuantize100 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, class UPrimitiveComponent* ClientMovementBase)
+bool ACharacter::ServerMoveDual_Validate(float TimeStamp0, FVector_NetQuantize100 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View)
 {
 	return true;
 }
 
-void ACharacter::ServerMoveDual_Implementation(float TimeStamp0, FVector_NetQuantize100 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, class UPrimitiveComponent* ClientMovementBase)
+void ACharacter::ServerMoveDual_Implementation(float TimeStamp0, FVector_NetQuantize100 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View)
 {
 	if (CharacterMovement)
 	{
-		CharacterMovement->ServerMoveDual_Implementation(TimeStamp0, InAccel0, PendingFlags, View0, TimeStamp, InAccel, ClientLoc, NewFlags, ClientRoll, View, ClientMovementBase);
+		CharacterMovement->ServerMoveDual_Implementation(TimeStamp0, InAccel0, PendingFlags, View0, TimeStamp, InAccel, ClientLoc, NewFlags, ClientRoll, View);
 	}
 }
 
@@ -814,7 +767,7 @@ void ACharacter::PostNetReceive()
 	Super::PostNetReceive();
 
 	// Skip base updates while playing root motion, it is handled inside of OnRep_RootMotion
-	if( !IsPlayingRootMotion() && Role == ROLE_SimulatedProxy)
+	if( !IsPlayingRootMotion() )
 	{
 		PostNetReceiveBase();
 	}
@@ -822,11 +775,6 @@ void ACharacter::PostNetReceive()
 
 void ACharacter::PostNetReceiveBase()
 {	
-	if (Role != ROLE_SimulatedProxy)
-	{
-		return;
-	}
-
 	const bool bBaseChanged = (RelativeMovement.MovementBase != MovementBase);
 	if (bBaseChanged)
 	{
@@ -840,9 +788,6 @@ void ACharacter::PostNetReceiveBase()
 			const FVector OldLocation = GetActorLocation();
 			const FRotator NewRotation = (FRotationMatrix(RelativeMovement.Rotation) * FRotationMatrix(MovementBase->GetComponentRotation())).Rotator();
 			SetActorLocationAndRotation( MovementBase->GetComponentLocation() + RelativeMovement.Location, NewRotation, false);
-			
-			// When position or base changes, movement mode will need to be updated. This assumes rotation changes don't affect that.
-			CharacterMovement->bJustTeleported |= (bBaseChanged || GetActorLocation() != OldLocation);
 
 			INetworkPredictionInterface* PredictionInterface = InterfaceCast<INetworkPredictionInterface>(GetMovementComponent());
 			if (PredictionInterface)
@@ -850,6 +795,11 @@ void ACharacter::PostNetReceiveBase()
 				PredictionInterface->SmoothCorrection(OldLocation);
 			}
 		}
+	}
+
+	if ( CharacterMovement )
+	{
+		CharacterMovement->bJustTeleported = false;
 	}
 }
 
@@ -1024,6 +974,11 @@ bool ACharacter::RestoreReplicatedMove(const FSimulatedRootMotionReplicatedMove 
 		SetBase( ServerBase );
 	}
 
+	// fixme laurent is this needed?
+	if( CharacterMovement )
+	{
+		CharacterMovement->bJustTeleported = false;
+	}
 	return true;
 }
 
@@ -1039,12 +994,13 @@ void ACharacter::UpdateSimulatedPosition(const FVector & NewLocation, const FRot
 		}
 		else
 		{
+			// Correction to make sure pawn doesn't penetrate floor after replication rounding
+			FinalLocation.Z += 0.01f;
 			bSimGravityDisabled = false;
 		}
 		
 		// Don't use TeleportTo(), that clears our base.
 		SetActorLocationAndRotation(FinalLocation, NewRotation, false);
-		CharacterMovement->bJustTeleported = true;
 	}
 	else if( NewRotation != GetActorRotation() )
 	{
@@ -1057,7 +1013,8 @@ void ACharacter::PostNetReceiveLocation()
 	if( Role == ROLE_SimulatedProxy )
 	{
 		// Don't change position if using relative position (it should be the same anyway)
-		if (!RelativeMovement.HasRelativePosition())
+		// TODO: actually we can't do this until SimulateMovement() actually calls UpdateBasedMovement().
+		//if (!RelativeMovement.HasRelativePosition())
 		{
 			const FVector OldLocation = GetActorLocation();
 			UpdateSimulatedPosition(ReplicatedMovement.Location, ReplicatedMovement.Rotation);
@@ -1104,7 +1061,7 @@ void ACharacter::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLi
 	DOREPLIFETIME_CONDITION( ACharacter, RepRootMotion,		COND_SimulatedOnly );
 	DOREPLIFETIME_CONDITION( ACharacter, RelativeMovement,	COND_SimulatedOnly );
 
-	DOREPLIFETIME( ACharacter, bIsCrouched ); // TODO: used to be !bNetOwner, now it's going to everyone (see change @revision #94)
+	DOREPLIFETIME( ACharacter, bIsCrouched );
 	DOREPLIFETIME( ACharacter, bSimulateGravity );
 }
 

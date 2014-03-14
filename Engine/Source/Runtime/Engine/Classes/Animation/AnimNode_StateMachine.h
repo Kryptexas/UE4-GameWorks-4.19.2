@@ -10,7 +10,7 @@ struct FAnimNode_TransitionPoseEvaluator;
 struct FAnimNode_StateMachine;
 
 // Information about an active transition on the transition stack
-USTRUCT()
+USTRUCT(Transient)
 struct FAnimationActiveTransitionEntry
 {
 	GENERATED_USTRUCT_BODY()
@@ -75,7 +75,7 @@ protected:
 	float CalculateAlpha(float InFraction) const;
 };
 
-USTRUCT()
+USTRUCT(Transient)
 struct FAnimationPotentialTransition
 {
 	GENERATED_USTRUCT_BODY()

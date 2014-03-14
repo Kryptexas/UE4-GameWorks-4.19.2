@@ -3,7 +3,6 @@
 #pragma once
 
 #include "OnlineSubsystem.h"
-#include "OnlineSubsystemFacebookPackage.h"
 
 /** Forward declarations of all interface classes */
 typedef TSharedPtr<class FOnlineIdentityFacebook, ESPMode::ThreadSafe> FOnlineIdentityFacebookPtr;
@@ -42,7 +41,7 @@ public:
 	virtual bool Init() OVERRIDE;
 	virtual bool Shutdown() OVERRIDE;
 	virtual FString GetAppId() const OVERRIDE;
-	virtual bool Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) OVERRIDE;
+	virtual bool Exec(const TCHAR* Cmd, FOutputDevice& Ar) OVERRIDE;
 
 	// FTickerBaseObject
 
@@ -55,18 +54,33 @@ public:
 	 */
 	virtual ~FOnlineSubsystemFacebook();
 
+	/** 
+	 * Create the singleton instance
+	 *
+	 * @return the only instance of this subsystem
+	 */
+	static FOnlineSubsystemFacebook* Create();
+
+	/** 
+	 * Destroy the singleton for this subsystem
+	 */
+	static void Destroy();
+
 	/**
 	 * Is Facebook available for use
 	 * @return true if Facebook functionality is available, false otherwise
 	 */
 	bool IsEnabled();
 
-PACKAGE_SCOPE:
+private:
 
-	/** Only the factory makes instances */
+	/** 
+	 * Private constructor as this is a singleton 
+	 */
 	FOnlineSubsystemFacebook();
 
-private:
+	/** Single instantiation of the interface */
+	static FOnlineSubsystemFacebook* FacebookSingleton;
 
 	/** facebook implementation of identity interface */
 	FOnlineIdentityFacebookPtr FacebookIdentity;

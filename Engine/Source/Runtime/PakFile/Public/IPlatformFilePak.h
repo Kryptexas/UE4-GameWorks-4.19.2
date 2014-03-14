@@ -95,8 +95,6 @@ struct FPakEntry
 	int32 CompressionMethod;
 	/** File SHA1 value. */
 	uint8 Hash[20];
-	/** Flag is set to true when FileHeader has been checked against PakHeader. It is not serialized */
-	mutable bool  Verified;
 
 	/**
 	 * Constructor.
@@ -106,7 +104,6 @@ struct FPakEntry
 		, Size(0)
 		, UncompressedSize(0)
 		, CompressionMethod(0)
-		, Verified(false)
 	{
 		FMemory::Memset(Hash, 0, sizeof(Hash));
 	}
@@ -172,14 +169,6 @@ struct FPakEntry
 		}
 		Ar.Serialize(Hash, sizeof(Hash));
 	}
-
-	/**
-	* Verifies two entries match to check for corruption.
-	*
-	* @param FileEntryA Entry 1.
-	* @param FileEntryB Entry 2.
-	*/
-	static bool VerifyPakEntriesMatch(const FPakEntry& FileEntryA, const FPakEntry& FileEntryB);
 };
 
 /** Pak directory type. */
@@ -528,8 +517,6 @@ public:
  */
 class PAKFILE_API FPakFileHandle : public IFileHandle
 {	
-	/** Pak file that own this file data */
-	const FPakFile& PakFile;
 	/** Pak file entry for this file. */
 	const FPakEntry& PakEntry;
 	/** Pak file archive to read the data from. */
@@ -550,9 +537,8 @@ public:
 	 * @param InPakEntry Entry in the pak file.
 	 * @param InPakFile Pak file.
 	 */
-	FPakFileHandle(const FPakFile& InPakFile, const FPakEntry& InPakEntry, FArchive* InPakReader, bool bIsSharedReader)
-		: PakFile(InPakFile)
-		, PakEntry(InPakEntry)
+	FPakFileHandle(const FPakFile& PakFile, const FPakEntry& InPakEntry, FArchive* InPakReader, bool bIsSharedReader)
+		: PakEntry(InPakEntry)
 		, PakReader(InPakReader)
 		, bSharedReader(bIsSharedReader)
 		, ReadPos(0)
@@ -591,23 +577,6 @@ public:
 	}
 	virtual bool Read(uint8* Destination, int64 BytesToRead) OVERRIDE
 	{
-		// Check that the file header is OK
-		if (!PakEntry.Verified)
-		{
-			FPakEntry FileHeader;
-			PakReader->Seek(PakEntry.Offset);
-			FileHeader.Serialize(*PakReader, PakFile.GetInfo().Version);
-			if (FPakEntry::VerifyPakEntriesMatch(PakEntry, FileHeader))
-			{
-				PakEntry.Verified = true;
-			}
-			else
-			{
-				//Header is corrupt, fail the read
-				return false;
-			}
-		}
-		//
 		PakReader->Seek(OffsetToFile + ReadPos);
 		if (PakEntry.Size >= (ReadPos + BytesToRead))
 		{
@@ -704,9 +673,14 @@ class PAKFILE_API FPakPlatformFile : public IPlatformFile
 	IFileHandle* CreatePakFileHandle(const TCHAR* Filename, FPakFile* PakFile, const FPakEntry* FileEntry);
 
 	/**
-	 * Handler for device delegate to prompt us to load a new pak.	 
-	 */
-	bool HandleMountPakDelegate(const FString& PakFilePath);
+	* Verifies index entry with file header to check for corruption.
+	*
+	* @param Filename Filename
+	* @param PakFile pak where the file is located
+	* @param FileEntry Entry from the index.
+	* @param FileHeader Header.
+	*/
+	bool VerifyHeaderAndPakEntry(const FPakEntry& FileEntry, const FPakEntry& FileHeader) const;
 
 	/**
 	 * Finds all pak files in the given directory.
@@ -771,7 +745,7 @@ public:
 	 * @param InPakFilename Pak filename.
 	 * @param InPath Path to mount the pak at.
 	 */
-	bool Mount(const TCHAR* InPakFilename, const TCHAR* InPath = NULL);
+	void Mount(const TCHAR* InPakFilename, const TCHAR* InPath = NULL);
 
 	/**
 	 * Finds a file in the specified pak files.

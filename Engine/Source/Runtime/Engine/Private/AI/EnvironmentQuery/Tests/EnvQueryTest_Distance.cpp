@@ -26,7 +26,7 @@ UEnvQueryTest_Distance::UEnvQueryTest_Distance(const class FPostConstructInitial
 
 	DistanceTo = UEnvQueryContext_Querier::StaticClass();
 	Cost = EEnvTestCost::Low;
-	ValidItemType = UEnvQueryItemType_VectorBase::StaticClass();
+	ValidItemType = UEnvQueryItemType_LocationBase::StaticClass();
 }
 
 void UEnvQueryTest_Distance::RunTest(struct FEnvQueryInstance& QueryInstance)

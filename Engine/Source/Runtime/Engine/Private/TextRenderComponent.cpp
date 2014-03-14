@@ -26,6 +26,7 @@ ATextRenderActor::ATextRenderActor(const class FPostConstructInitializePropertie
 		SpriteComponent->Sprite = ConstructorStatics.TextRenderTexture.Get();
 		SpriteComponent->AttachParent = TextRender;
 		SpriteComponent->bIsScreenSizeScaled = true;
+		SpriteComponent->ScreenSize = 0.0025f;
 		SpriteComponent->bAbsoluteScale = true;
 		SpriteComponent->bReceivesDecals = false;
 	}

@@ -495,12 +495,6 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_DISABLED_SCRIPT_LIMIT_BYTECODE,
 	// Made remote role private, exposed bReplicates
 	VER_UE4_PRIVATE_REMOTE_ROLE,
-	// Fix up old foliage components to have static mobility
-	VER_UE4_FOLIAGE_MOBILITY,
-	// Change BuildScale from a float to a vector
-	VER_UE4_BUILD_SCALE_VECTOR,
-	// After implementing foliage collision, need to disable collision on old foliage instances
-	VER_UE4_FOLIAGE_COLLISION,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

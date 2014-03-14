@@ -18,7 +18,7 @@ protected:
 	// UResavePackagesCommandlet interface
 	virtual int32 InitializeResaveParameters(const TArray<FString>& Tokens, const TArray<FString>& Switches, TArray<FString>& MapPathNames) OVERRIDE;
 	virtual void PerformAdditionalOperations(class UObject* Object, bool& bSavePackage) OVERRIDE;
-	virtual FText GetChangelistDescription() const OVERRIDE;
+	virtual FString GetChangelistDescription() const OVERRIDE;
 	// End of UResavePackagesCommandlet interface
 
 	void CompileOneBlueprint(UBlueprint* Blueprint);

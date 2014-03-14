@@ -27,7 +27,7 @@ public:
 			.ForegroundColor( this, &SSurveyNotification::GetInvertedForegroundIfHovered )
 			.ContentPadding( 0 )
 			.OnClicked( this, &SSurveyNotification::HandleClicked )
-			.ToolTipText( LOCTEXT( "SurveyNotificationToolTip", "Help Epic improve UE4 by taking a minute to fill out this survey!" ) )
+			.ToolTipText( LOCTEXT( "SurveyNotificationToolTip", "Help Epic improve UE4 by taking a minute to fill out this survey!" ).ToString() )
 			[
 				SNew( SImage )
 				.Image( FEditorStyle::GetBrush( "Icons.Download" ) )

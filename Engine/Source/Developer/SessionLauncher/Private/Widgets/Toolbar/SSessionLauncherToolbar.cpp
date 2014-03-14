@@ -36,7 +36,7 @@ void SSessionLauncherToolbar::CreateCommands( )
 	const FSessionLauncherCommands& Commands = FSessionLauncherCommands::Get();
 
 	// Build command
-	CommandList->MapAction(Commands.CreateBuild,
+	CommandList->MapAction(Commands.Build,
 		FExecuteAction::CreateRaw(this, &SSessionLauncherToolbar::HandleBuildActionExecute),
 		FCanExecuteAction::CreateRaw(this, &SSessionLauncherToolbar::HandleActionCanExecute),
 		FIsActionChecked::CreateRaw(this, &SSessionLauncherToolbar::HandleBuildActionIsChecked)
@@ -75,7 +75,7 @@ TSharedRef<SWidget> SSessionLauncherToolbar::MakeToolbar( const TSharedRef<FUICo
 	ToolBarBuilder.BeginSection("Tasks");
 	{
 		ToolBarBuilder.AddToolBarButton(FSessionLauncherCommands::Get().QuickLaunch);
-		ToolBarBuilder.AddToolBarButton(FSessionLauncherCommands::Get().CreateBuild);
+		ToolBarBuilder.AddToolBarButton(FSessionLauncherCommands::Get().Build);
 		ToolBarBuilder.AddToolBarButton(FSessionLauncherCommands::Get().DeployBuild);
 		ToolBarBuilder.AddToolBarButton(FSessionLauncherCommands::Get().AdvancedBuild);
 	}

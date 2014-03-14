@@ -185,8 +185,6 @@ protected:
 
 struct ENGINE_API FCompositeNavModifier : public FNavigationModifier
 {
-	FCompositeNavModifier() : bHasPotentialLinks(false) {}
-
 	void Reset();
 	void Empty();
 
@@ -205,10 +203,7 @@ struct ENGINE_API FCompositeNavModifier : public FNavigationModifier
 	FORCEINLINE const TArray<FCustomLinkNavModifier>& GetCustomLinks() const { return CustomLinks; }
 	
 	FORCEINLINE bool HasLinks() const { return (SimpleLinks.Num() > 0) || (CustomLinks.Num() > 0); }
-	FORCEINLINE bool HasPotentialLinks() const { return bHasPotentialLinks; }
 	FORCEINLINE bool HasAreas() const { return Areas.Num() > 0; }
-
-	void MarkPotentialLinks() { bHasPotentialLinks = true; }
 
 	/** returns a copy of Modifier */
 	FCompositeNavModifier GetInstantiatedMetaModifier(const struct FNavAgentProperties* NavAgent, TWeakObjectPtr<UObject> WeakOwnerPtr) const;
@@ -218,5 +213,4 @@ private:
 	TArray<FAreaNavModifier> Areas;
 	TArray<FSimpleLinkNavModifier> SimpleLinks;
 	TArray<FCustomLinkNavModifier> CustomLinks;
-	bool bHasPotentialLinks;
 };

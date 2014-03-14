@@ -3,7 +3,7 @@
 #pragma once
 #include "LiveEditorBroadcaster.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams( FLiveEditorEventMIDIMultiCast, int32, Delta, int32, MidiValue, ELiveEditControllerType::Type, ControlType );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FLiveEditorEventMIDIMultiCast, int32, RawDeltaMIDI, ELiveEditControllerType::Type, ControlType );
 
 UCLASS(DependsOn=ULiveEditorTypes,MinimalAPI)
 class ULiveEditorBroadcaster : public UObject

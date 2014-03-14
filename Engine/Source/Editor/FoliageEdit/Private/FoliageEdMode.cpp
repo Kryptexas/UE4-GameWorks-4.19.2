@@ -1789,7 +1789,7 @@ bool FEdModeFoliage::InputKey( FLevelEditorViewportClient* ViewportClient, FView
 	{
 		if( Event == IE_Pressed )
 		{
-			if ( Key == EKeys::Platform_Delete )
+			if( Key == EKeys::Delete )
 			{
 				GEditor->BeginTransaction( NSLOCTEXT("UnrealEd", "FoliageMode_EditTransaction", "Foliage Editing") );
 				AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActor(GetWorld());

@@ -23,7 +23,7 @@ struct CORE_API FWindowsPlatformStackWalkExt : public FGenericPlatformStackWalk
 	static void GetSystemInfo( FCrashInfo* CrashInfo );
 	static void GetThreadInfo( FCrashInfo* CrashInfo );
 	static void GetExceptionInfo( FCrashInfo* CrashInfo );
-	static bool GetCallstacks( FCrashInfo* CrashInfo );
+	static void GetCallstacks( FCrashInfo* CrashInfo );
 
 	static bool IsOffsetWithinModules( FCrashInfo* CrashInfo, uint64 Offset );
 	static FString ExtractRelativePath( const TCHAR* BaseName, TCHAR* FullName );

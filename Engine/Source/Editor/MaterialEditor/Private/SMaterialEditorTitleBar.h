@@ -9,11 +9,8 @@ class SMaterialEditorTitleBar : public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS( SMaterialEditorTitleBar )
-		: _TitleText()
-		, _MaterialInfoList(NULL)
+		: _MaterialInfoList(NULL)
 	{}
-
-		SLATE_TEXT_ATTRIBUTE( TitleText )
 
 		SLATE_ARGUMENT( const TArray<TSharedPtr<FMaterialInfo>>*, MaterialInfoList )
 	SLATE_END_ARGS()

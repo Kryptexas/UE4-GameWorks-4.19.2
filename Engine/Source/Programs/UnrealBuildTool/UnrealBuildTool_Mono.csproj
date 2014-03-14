@@ -167,7 +167,6 @@
     <Compile Include="Mac\MacProjectGenerator.cs" />
     <Compile Include="Configuration\EngineConfiguration.cs" />
     <Compile Include="IOS\UEDeployIOS.cs" />
-    <Compile Include="System\ModuleProcessingException.cs" />
     <Compile Include="System\VCSolutionOptions.cs" />
   </ItemGroup>
   <ItemGroup>

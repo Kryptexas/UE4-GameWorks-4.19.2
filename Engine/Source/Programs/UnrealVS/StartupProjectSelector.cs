@@ -58,39 +58,10 @@ namespace UnrealVS
 
 			// Register for events that we care about
 			UnrealVSPackage.Instance.OnStartupProjectChanged += OnStartupProjectChanged;
-			UnrealVSPackage.Instance.OnSolutionOpened +=
-				delegate
-				{
-					Logging.WriteLine("Opened solution " + UnrealVSPackage.Instance.DTE.Solution.FullName);
-					_bIsSolutionOpened = true;
-					UpdateStartupProjectList(Utils.GetAllProjectsFromDTE());
-				};
-			UnrealVSPackage.Instance.OnSolutionClosing +=
-				delegate
-				{
-					Logging.WriteLine("Closing solution");
-					_bIsSolutionOpened = false;
-					_CachedStartupProjects.Clear();
-				};
-			UnrealVSPackage.Instance.OnProjectOpened +=
-				delegate(Project OpenedProject)
-				{		
-					if (_bIsSolutionOpened)
-					{
-						Logging.WriteLine("Opened project node " + OpenedProject.Name);
-						UpdateStartupProjectList(OpenedProject);
-					}
-					else
-					{
-						Logging.WriteLine("Opened project node " + OpenedProject.Name + " with the solution CLOSED");
-					}
-				};
-			UnrealVSPackage.Instance.OnProjectClosed +=
-				delegate(Project ClosedProject)
-				{
-					Logging.WriteLine("Closed project node " + ClosedProject.Name);
-					RemoveFromStartupProjectList(ClosedProject);
-				};
+			UnrealVSPackage.Instance.OnSolutionOpened += delegate { _bIsSolutionOpened = true; UpdateStartupProjectList(Utils.GetAllProjectsFromDTE()); };
+			UnrealVSPackage.Instance.OnSolutionClosing += delegate { _bIsSolutionOpened = false; _CachedStartupProjects.Clear(); };
+			UnrealVSPackage.Instance.OnProjectOpened += delegate(Project OpenedProject) { if (_bIsSolutionOpened) UpdateStartupProjectList(OpenedProject); };
+			UnrealVSPackage.Instance.OnProjectClosed += RemoveFromStartupProjectList;
 			UnrealVSPackage.Instance.OptionsPage.OnOptionsChanged += OnOptionsChanged;
 
 			UpdateStartupProjectList(Utils.GetAllProjectsFromDTE());
@@ -162,14 +133,7 @@ namespace UnrealVS
 			}
 
 			// Always filter out non-executable projects
-			if (!Utils.IsProjectExecutable(Project))
-			{
-				Logging.WriteLine("StartupProjectSelector: Not listing project " + Project.Name + " because it is not executable");
-				return false;
-			}
-
-			Logging.WriteLine("StartupProjectSelector: Listing project " + Project.Name);
-			return true;
+			return Utils.IsProjectExecutable(Project);
 		}
 
 		/// Remove projects from the list CachedStartupProjectNames whenever one unloads

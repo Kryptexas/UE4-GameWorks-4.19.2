@@ -150,6 +150,7 @@ void ABrush::PostLoad()
 {
 	Super::PostLoad();
 
+
 	if( GetLinkerUE4Version() < VER_UE4_FIX_BSP_BRUSH_TYPE && BrushType == Brush_Default )
 	{
 		ECsgOper Oper = CsgOper_DEPRECATED;
@@ -162,13 +163,7 @@ void ABrush::PostLoad()
 			BrushType = Brush_Subtract;
 		}
 	}
-
 #if WITH_EDITOR
-	if (BrushBuilder && BrushBuilder->GetOuter() != this)
-	{
-		BrushBuilder = DuplicateObject<UBrushBuilder>(BrushBuilder, this);
-	}
-
 	// Assign the default material to brush polys with NULL material references.
 	if ( Brush && Brush->Polys )
 	{

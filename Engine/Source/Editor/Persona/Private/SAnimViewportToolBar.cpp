@@ -517,7 +517,7 @@ TSharedRef<SWidget> SAnimViewportToolBar::GenerateShowMenu() const
 
 		ShowMenuBuilder.AddSubMenu(
 			LOCTEXT("AnimViewportAdvancedSubMenu", "Advanced"),
-			LOCTEXT("AnimViewportAdvancedSubMenuToolTip", "Advanced options"),
+			LOCTEXT("AnimViewportAdvancedSubMenu", "Advanced options"),
 			FNewMenuDelegate::CreateRaw( this, &SAnimViewportToolBar::FillShowAdvancedMenu ) );
 	}
 
@@ -531,8 +531,8 @@ void SAnimViewportToolBar::FillShowSceneMenu(FMenuBuilder& MenuBuilder) const
 
 	MenuBuilder.BeginSection("AnimViewportAccessory", LOCTEXT("Viewport_AccessoryLabel", "Accessory"));
 	{
-		MenuBuilder.AddMenuEntry(Actions.ToggleFloor);
-		MenuBuilder.AddMenuEntry(Actions.ToggleSky);
+		MenuBuilder.AddMenuEntry(Actions.ShowFloor);
+		MenuBuilder.AddMenuEntry(Actions.ShowSky);
 	}
 	MenuBuilder.EndSection();
 
@@ -550,7 +550,7 @@ void SAnimViewportToolBar::FillShowSceneMenu(FMenuBuilder& MenuBuilder) const
 
 	MenuBuilder.BeginSection("AnimViewportGrid", LOCTEXT("Viewport_GridLabel", "Grid"));
 	{
-		MenuBuilder.AddMenuEntry(Actions.ToggleGrid);
+		MenuBuilder.AddMenuEntry(Actions.ShowGrid);
 		MenuBuilder.AddMenuEntry(Actions.HighlightOrigin);
 	}
 	MenuBuilder.EndSection();
@@ -570,7 +570,7 @@ void SAnimViewportToolBar::FillShowAdvancedMenu(FMenuBuilder& MenuBuilder) const
 	// Draw UVs
 	MenuBuilder.BeginSection("UVVisualization", LOCTEXT("UVVisualization_Label", "UV Visualization"));
 	{
-		MenuBuilder.AddMenuEntry(FAnimViewportMenuCommands::Get().AnimSetDrawUVs);
+		MenuBuilder.AddMenuEntry(FAnimViewportMenuCommands::Get().SetDrawUVs);
 		MenuBuilder.AddWidget(Viewport.Pin()->UVChannelCombo.ToSharedRef(), FText());
 	}
 	MenuBuilder.EndSection();

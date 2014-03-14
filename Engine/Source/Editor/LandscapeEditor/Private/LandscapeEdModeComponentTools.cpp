@@ -1033,7 +1033,7 @@ public:
 			// Remove Selection
 			LandscapeInfo->ClearSelectedRegion(true);
 			//EdMode->SetMaskEnable(Landscape->SelectedRegion.Num());
-			GEngine->BroadcastLevelActorListChanged();
+			GEngine->BroadcastLevelActorsChanged();
 		}
 	}
 
@@ -1353,7 +1353,7 @@ public:
 
 			Gizmo->ExportToClipboard();
 
-			GEngine->BroadcastLevelActorListChanged();
+			GEngine->BroadcastLevelActorsChanged();
 		}
 	}
 
@@ -1650,7 +1650,7 @@ public:
 				Cache.Flush();
 			}
 
-			GEngine->BroadcastLevelActorListChanged();
+			GEngine->BroadcastLevelActorsChanged();
 		}
 	}
 

@@ -30,7 +30,7 @@ private:
 	 * Delegate used to set the tooltip text of the source control status icon.
 	 * @return Source control status text
 	 */
-	FText GetSourceControlProviderStatusText() const;
+	FString GetSourceControlProviderStatusText() const;
 
 	/**
 	 * Delegate used to set the image brush for the source control status icon.

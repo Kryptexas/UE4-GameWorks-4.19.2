@@ -329,7 +329,7 @@ public:
 	virtual bool	KeyState(FKey Key) const { return false; }
 	virtual int32	GetMouseX() const { return 0; }
 	virtual int32	GetMouseY() const { return 0; }
-	virtual void	GetMousePos( FIntPoint& MousePosition, const bool bLocalPosition = true) { MousePosition = FIntPoint(0, 0); }
+	virtual void	GetMousePos( FIntPoint& MousePosition ) { MousePosition = FIntPoint(0, 0); }
 	virtual void	SetMouse(int32 x, int32 y) { }
 	virtual void	ProcessInput( float DeltaTime ) { }
 	virtual void InvalidateDisplay() { }
@@ -375,8 +375,7 @@ bool FViewport::TakeHighResScreenShot()
 		FNotificationInfo Info(Message);
 		Info.bFireAndForget = true;
 		Info.ExpireDuration = 5.0f;
-		Info.bUseSuccessFailIcons = false;
-		Info.bUseLargeFont = false;
+		Info.Image = FCoreStyle::Get().GetBrush(TEXT("Icons.Error"));
 		FSlateNotificationManager::Get().AddNotification(Info); 
 
 		UE_LOG(LogClient, Warning, TEXT("The specified multiplier for high resolution screenshot is too large for your system! Please try again with a smaller value."));
@@ -398,10 +397,6 @@ bool FViewport::TakeHighResScreenShot()
 
 void FViewport::HighResScreenshot()
 {
-	// We need to cache this as FScreenshotRequest is a global and the filename is
-	// cleared out before we use it below
-	const FString CachedScreenshotName = FScreenshotRequest::GetFilename();
-
 	FIntPoint RestoreSize(SizeX, SizeY);
 
 	FDummyViewport* DummyViewport = new FDummyViewport(ViewportClient);
@@ -449,20 +444,11 @@ void FViewport::HighResScreenshot()
 
 	// Notification of a successful screenshot
 	{
-		auto Message = NSLOCTEXT("UnrealClient", "HighResScreenshotSavedAs", "High resolution screenshot saved as");
+		auto Message = NSLOCTEXT("UnrealClient", "HighResScreenshotSuccess", "High resolution screenshot taken successfully!");
 		FNotificationInfo Info(Message);
 		Info.bFireAndForget = true;
 		Info.ExpireDuration = 5.0f;
-		Info.bUseSuccessFailIcons = false;
-		Info.bUseLargeFont = false;
-		
-		const FString HyperLinkText = FPaths::ConvertRelativePathToFull(CachedScreenshotName);
-		Info.Hyperlink = FSimpleDelegate::CreateStatic([](FString SourceFilePath) 
-		{
-			FPlatformProcess::ExploreFolder(*(FPaths::GetPath(SourceFilePath)));
-		}, HyperLinkText);
-		Info.HyperlinkText = FText::FromString(HyperLinkText);
-		
+		Info.Image = FCoreStyle::Get().GetBrush(TEXT("Icons.Info"));
 		FSlateNotificationManager::Get().AddNotification(Info); 
 	}
 }

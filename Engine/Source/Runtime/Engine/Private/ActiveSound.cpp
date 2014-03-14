@@ -30,7 +30,6 @@ FActiveSound::FActiveSound()
 #if !NO_LOGGING
 	, bWarnedAboutOrphanedLooping(false)
 #endif
-	, UserIndex(0)
 	, PlaybackTime(0.f)
 	, RequestedStartTime(0.f)
 	, CurrentAdjustVolumeMultiplier(1.f)

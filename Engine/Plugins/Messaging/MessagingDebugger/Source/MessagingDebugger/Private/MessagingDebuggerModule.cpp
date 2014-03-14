@@ -35,7 +35,6 @@ public:
 
 		FGlobalTabmanager::Get()->RegisterTabSpawner(MessagingDebuggerTabName, FOnSpawnTab::CreateRaw(this, &FMessagingDebuggerModule::SpawnMessagingDebuggerTab))
 			.SetDisplayName(NSLOCTEXT("FMessagingDebuggerModule", "DebuggerTabTitle", "Messaging Debugger"))
-			.SetTooltipText(NSLOCTEXT("FMessagingDebuggerModule", "DebuggerTooltipText", "Open the Messaging Debugger tab."))
 			.SetIcon(FSlateIcon(Style->GetStyleSetName(), "MessagingDebuggerTabIcon"));
 	}
 

@@ -271,7 +271,7 @@ FText FListItemGraphToDiff::GetToolTip()
 void FListItemGraphToDiff::BuildDiffSourceArray()
 {
 	TArray<FDiffSingleResult> FoundDiffs;
-	FGraphDiffControl::DiffGraphs(GraphNew, GraphOld, FoundDiffs);
+	FGraphDiffControl::DiffGraphs(GraphOld, GraphNew, FoundDiffs);
 
 	DiffListSource.Empty();
 	for (auto DiffIt(FoundDiffs.CreateIterator()); DiffIt; ++DiffIt)

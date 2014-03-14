@@ -53,7 +53,7 @@ public:
 	virtual bool Init() OVERRIDE;
 	virtual bool Shutdown() OVERRIDE;
 	virtual FString GetAppId() const OVERRIDE;
-	virtual bool Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) OVERRIDE;
+	virtual bool Exec(const TCHAR* Cmd, FOutputDevice& Ar) OVERRIDE;
 
 	// FTickerObjectBase
 	
@@ -61,25 +61,27 @@ public:
 
 	// FOnlineSubsystemNull
 
+	/** 
+	 * Singleton interface for the Null subsystem 
+	 * @return the only instance of the Null subsystem
+	 */
+	static FOnlineSubsystemNull* Create();
+
+	/** 
+	 * Destroy the singleton Null subsystem
+	 */
+	static void Destroy();
+
 	/**
 	 * Is the Null API available for use
 	 * @return true if Null functionality is available, false otherwise
 	 */
 	bool IsEnabled();
 
-PACKAGE_SCOPE:
-
-	/** Only the factory makes instances */
-	FOnlineSubsystemNull()
-		: SessionInterface(NULL)
-		, LeaderboardsInterface(NULL)
-		, IdentityInterface(NULL)
-		, AchievementsInterface(NULL)
-		, OnlineAsyncTaskThreadRunnable(NULL)
-		, OnlineAsyncTaskThread(NULL)
-	{}
-
 private:
+
+	/** Single instantiation of the Null interface */
+	static FOnlineSubsystemNull* NullSingleton;
 
 	/** Interface to the session services */
 	FOnlineSessionNullPtr SessionInterface;
@@ -98,6 +100,17 @@ private:
 
 	/** Online async task thread */
 	class FRunnableThread* OnlineAsyncTaskThread;
+
+	/** Private constructor as this is a singleton */
+	FOnlineSubsystemNull()
+	: SessionInterface(NULL)
+	, LeaderboardsInterface(NULL)
+	, IdentityInterface(NULL)
+	, AchievementsInterface(NULL)
+	, OnlineAsyncTaskThreadRunnable(NULL)
+	, OnlineAsyncTaskThread(NULL)
+	{}
+
 };
 
 typedef TSharedPtr<FOnlineSubsystemNull, ESPMode::ThreadSafe> FOnlineSubsystemNullPtr;

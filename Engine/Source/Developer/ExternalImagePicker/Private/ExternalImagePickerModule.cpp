@@ -16,9 +16,8 @@ public:
 			.TargetImagePath(InConfiguration.TargetImagePath)
 			.DefaultImagePath(InConfiguration.DefaultImagePath)
 			.OnExternalImagePicked(InConfiguration.OnExternalImagePicked)
-			.OnGetPickerPath(InConfiguration.OnGetPickerPath)
 			.MaxDisplayedImageDimensions(InConfiguration.MaxDisplayedImageDimensions)
-			.RequiresSpecificSize(InConfiguration.bRequiresSpecificSize)
+			.bRequiresSpecificSize(InConfiguration.bRequiresSpecificSize)
 			.RequiredImageDimensions(InConfiguration.RequiredImageDimensions);
 	}
 };

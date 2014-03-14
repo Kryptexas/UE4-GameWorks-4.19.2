@@ -21,7 +21,7 @@ int32 UUpdateGameProjectCommandlet::Main( const FString& InParams )
 	UCommandlet::ParseCommandLine(*InParams, Tokens, Switches);
 
 	FString Category;
-	FText ChangelistDescription = NSLOCTEXT("UpdateGameProjectCmdlet", "ChangelistDescription", "Updated game project");
+	FString ChangelistDescription = TEXT("Updated game project");
 	bool bAutoCheckout = false;
 	bool bAutoSubmit = false;
 	bool bSignSampleProject = false;
@@ -49,7 +49,7 @@ int32 UUpdateGameProjectCommandlet::Main( const FString& InParams )
 		}
 		else if ( Switch.StartsWith(ChangelistDescriptionSwitch) )
 		{
-			ChangelistDescription = FText::FromString( Switch.Mid( ChangelistDescriptionSwitch.Len() ) );
+			ChangelistDescription = Switch.Mid( ChangelistDescriptionSwitch.Len() );
 		}
 	}
 

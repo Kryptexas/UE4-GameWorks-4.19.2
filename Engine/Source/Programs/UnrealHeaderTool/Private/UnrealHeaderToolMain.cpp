@@ -78,7 +78,7 @@ int32 main( int32 ArgC, char* ArgV[] )
 
 	if (GWarn->Errors.Num() > 0 || GWarn->Warnings.Num() > 0)
 	{
-		ErrorLevel = 2;
+		ErrorLevel = 1;
 	}
 
 	FEngineLoop::AppPreExit();

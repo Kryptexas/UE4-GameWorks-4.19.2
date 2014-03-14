@@ -451,10 +451,6 @@ protected:
 	/** Dynamic vertex and index buffers. */
 	TRefCountPtr<FD3D11DynamicBuffer> DynamicVB;
 	TRefCountPtr<FD3D11DynamicBuffer> DynamicIB;
-#if PLATFORM_XBOXONE
-	// New circular buffer system for faster constant uploads.  Avoids CopyResource and speeds things up considerably
-	FD3D11ConstantsRingBuffer DynamicCB;
-#endif
 	// State for begin/end draw primitive UP interface.
 	uint32 PendingNumVertices;
 	uint32 PendingVertexDataStride;

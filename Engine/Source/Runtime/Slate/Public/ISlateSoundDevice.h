@@ -7,7 +7,7 @@ class SLATE_API ISlateSoundDevice
 {
 public:
 	/** Play the sound resource within the given Slate sound object */
-	virtual void PlaySound(const FSlateSound& Sound, int32 UserIndex = 0) const = 0;
+	virtual void PlaySound(const FSlateSound& Sound) const = 0;
 
 	/** @return The duration of the given sound resource */
 	virtual float GetSoundDuration(const FSlateSound& Sound) const = 0;
@@ -20,7 +20,7 @@ public:
 class SLATE_API FNullSlateSoundDevice : public ISlateSoundDevice
 {
 public:
-	virtual void PlaySound(const FSlateSound&, int32) const OVERRIDE
+	virtual void PlaySound(const FSlateSound&) const OVERRIDE
 	{
 	}
 

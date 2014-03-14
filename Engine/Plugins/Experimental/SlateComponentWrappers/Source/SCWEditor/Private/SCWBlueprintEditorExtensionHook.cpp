@@ -70,7 +70,7 @@ void SSlateBlueprintPreview::Tick(const FGeometry& AllottedGeometry, const doubl
 			.VAlign(VAlign_Center)
 			[
 				SNew(STextBlock)
-				.Text(LOCTEXT("NoWrappedWidget", "No actor; Open the viewport and tab back"))
+				.Text(LOCTEXT("NoWrappedWidget", "No actor; Open the viewport and tab back").ToString())
 			]
 		];
 	}

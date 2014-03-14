@@ -48,7 +48,7 @@ TSharedRef< FSlateStyleSet > FCrashReportClientStyle::Create()
 
 	// Set the client app styles
 	Style.Set(TEXT("Code"), FTextBlockStyle(DefaultText)
-		.SetFont(TTF_FONT("Fonts/Roboto-Regular", 8))
+		.SetFont(TTF_FONT("Fonts/DroidSansMono", 8))
 		.SetColorAndOpacity(FSlateColor(FLinearColor::White * 0.8f))
 	);
 

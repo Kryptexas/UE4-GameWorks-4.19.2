@@ -98,7 +98,7 @@ FColor UInterpTrack::GetKeyframeColor(int32 KeyIndex) const
 
 UTexture2D* UInterpTrack::GetTrackIcon() const
 {
-	return TrackIcon;
+	return (UTexture2D*)StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Float.MAT_Groups_Float"), NULL, LOAD_None, NULL );
 }
 
 /*-----------------------------------------------------------------------------
@@ -527,7 +527,7 @@ void UInterpTrackMove::Render3DTrack(UInterpTrackInst* TrInst,
 
 UTexture2D* UInterpTrackMove::GetTrackIcon() const
 {
-	return TrackIcon;
+	return (UTexture2D*)StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Move.MAT_Groups_Move"), NULL, LOAD_None, NULL );
 }
 
 /*-----------------------------------------------------------------------------
@@ -561,7 +561,7 @@ FColor UInterpTrackFloatBase::GetKeyframeColor(int32 KeyIndex) const
 
 UTexture2D* UInterpTrackFloatProp::GetTrackIcon() const
 {
-	return TrackIcon;
+	return (UTexture2D*)StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Float.MAT_Groups_Float"), NULL, LOAD_None, NULL );
 }
 
 /*-----------------------------------------------------------------------------
@@ -570,17 +570,16 @@ UTexture2D* UInterpTrackFloatProp::GetTrackIcon() const
 
 UTexture2D* UInterpTrackBoolProp::GetTrackIcon() const
 {
-	return TrackIcon;
+	return (UTexture2D*)StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Float.MAT_Groups_Float"), NULL, LOAD_None, NULL );
 }
 
 
 /*-----------------------------------------------------------------------------
 	UInterpTrackToggle
 -----------------------------------------------------------------------------*/
-
 UTexture2D* UInterpTrackToggle::GetTrackIcon() const
 {
-	return TrackIcon;
+	return (UTexture2D*)StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MAT_Groups_Toggle.MAT_Groups_Toggle"), NULL, LOAD_None, NULL );
 }
 
 void UInterpTrackToggle::DrawTrack( FCanvas* Canvas, UInterpGroup* Group, const FInterpTrackDrawParams& Params )
@@ -775,7 +774,7 @@ FColor UInterpTrackLinearColorBase::GetKeyframeColor(int32 KeyIndex) const
 
 UTexture2D* UInterpTrackVectorProp::GetTrackIcon() const
 {
-	return TrackIcon;
+	return (UTexture2D*)StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Vector.MAT_Groups_Vector"), NULL, LOAD_None, NULL );
 }
 
 /*-----------------------------------------------------------------------------
@@ -784,7 +783,7 @@ UTexture2D* UInterpTrackVectorProp::GetTrackIcon() const
 
 UTexture2D* UInterpTrackColorProp::GetTrackIcon() const
 {
-	return TrackIcon;
+	return (UTexture2D*)StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_ColorTrack.MAT_ColorTrack"), NULL, LOAD_None, NULL );
 }
 
 
@@ -794,7 +793,7 @@ UTexture2D* UInterpTrackColorProp::GetTrackIcon() const
 
 UTexture2D* UInterpTrackLinearColorProp::GetTrackIcon() const
 {
-	return TrackIcon;
+	return (UTexture2D*)StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_ColorTrack.MAT_ColorTrack"), NULL, LOAD_None, NULL );
 }
 
 
@@ -835,7 +834,7 @@ void UInterpTrackEvent::DrawTrack( FCanvas* Canvas, UInterpGroup* Group, const F
 
 UTexture2D* UInterpTrackEvent::GetTrackIcon() const
 {
-	return TrackIcon;
+	return (UTexture2D*)StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Event.MAT_Groups_Event"), NULL, LOAD_None, NULL );
 }
 
 /*-----------------------------------------------------------------------------
@@ -919,12 +918,13 @@ void UInterpTrackDirector::DrawTrack( FCanvas* Canvas, UInterpGroup* Group, cons
 
 UTexture2D* UInterpTrackDirector::GetTrackIcon() const
 {
-	return TrackIcon; 
+	return (UTexture2D*)StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Director.MAT_Groups_Director"), NULL, LOAD_None, NULL );
 }
 
 /*-----------------------------------------------------------------------------
 	UInterpTrackAnimControl
 -----------------------------------------------------------------------------*/
+
 
 void UInterpTrackAnimControl::BeginDrag(FInterpEdInputData &InputData)
 {
@@ -1308,7 +1308,7 @@ void UInterpTrackAnimControl::DrawTrack( FCanvas* Canvas, UInterpGroup* Group, c
 
 UTexture2D* UInterpTrackAnimControl::GetTrackIcon() const
 {
-	return TrackIcon;
+	return (UTexture2D*)StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Anim.MAT_Groups_Anim"), NULL, LOAD_None, NULL );
 }
 
 /*-----------------------------------------------------------------------------
@@ -1428,7 +1428,7 @@ void UInterpTrackSound::DrawTrack( FCanvas* Canvas, UInterpGroup* Group, const F
 
 UTexture2D* UInterpTrackSound::GetTrackIcon() const
 {
-	return TrackIcon;
+	return (UTexture2D*)StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Sound.MAT_Groups_Sound"), NULL, LOAD_None, NULL );
 }
 
 /*-----------------------------------------------------------------------------
@@ -1437,7 +1437,7 @@ UTexture2D* UInterpTrackSound::GetTrackIcon() const
 
 UTexture2D* UInterpTrackFade::GetTrackIcon() const
 {
-	return TrackIcon;
+	return (UTexture2D*)StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Fade.MAT_Groups_Fade"), NULL, LOAD_None, NULL );
 }
 
 
@@ -1447,7 +1447,7 @@ UTexture2D* UInterpTrackFade::GetTrackIcon() const
 
 UTexture2D* UInterpTrackSlomo::GetTrackIcon() const
 {
-	return TrackIcon;
+	return (UTexture2D*)StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Slomo.MAT_Groups_Slomo"), NULL, LOAD_None, NULL );
 }
 
 /*-----------------------------------------------------------------------------
@@ -1456,7 +1456,7 @@ UTexture2D* UInterpTrackSlomo::GetTrackIcon() const
 
 UTexture2D* UInterpTrackColorScale::GetTrackIcon() const
 {
-	return TrackIcon;
+	return (UTexture2D*)StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Fade.MAT_Groups_Fade"), NULL, LOAD_None, NULL );
 }
 
 
@@ -1466,7 +1466,7 @@ UTexture2D* UInterpTrackColorScale::GetTrackIcon() const
 
 UTexture2D* UInterpTrackAudioMaster::GetTrackIcon() const
 {
-	return TrackIcon;
+	return (UTexture2D*)StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_AudioMaster.MAT_Groups_AudioMaster"), NULL, LOAD_None, NULL );
 }
 
 
@@ -1476,7 +1476,7 @@ UTexture2D* UInterpTrackAudioMaster::GetTrackIcon() const
 -----------------------------------------------------------------------------*/
 UTexture2D* UInterpTrackVisibility::GetTrackIcon() const
 {
-	return TrackIcon;
+	return (UTexture2D*)StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MAT_Groups_Visibility.MAT_Groups_Visibility"), NULL, LOAD_None, NULL );
 }
 
 void UInterpTrackVisibility::DrawTrack( FCanvas* Canvas, UInterpGroup* Group, const FInterpTrackDrawParams& Params )

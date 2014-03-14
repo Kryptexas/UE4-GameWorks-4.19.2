@@ -140,16 +140,15 @@ public:
 
 		TSharedRef<SWidget> MenuContent = 
 			SNew(SVerticalBox)
-
-			+ SVerticalBox::Slot()
+			+SVerticalBox::Slot()
 			.AutoHeight()
 			.MaxHeight(InArgs._MaxListHeight)
 			[
 				SAssignNew( this->ComboListView, SComboListType )
-				.ListItemsSource( InArgs._OptionsSource )
-				.OnGenerateRow( this, &SComboBox< OptionType >::GenerateMenuItemRow )
-				.OnSelectionChanged( this, &SComboBox< OptionType >::OnSelectionChanged_Internal )
-				.SelectionMode( ESelectionMode::Single )
+				. ListItemsSource( InArgs._OptionsSource )
+				. OnGenerateRow( this, &SComboBox< OptionType >::GenerateMenuItemRow )
+				. OnSelectionChanged( this, &SComboBox< OptionType >::OnSelectionChanged_Internal )
+				. SelectionMode( ESelectionMode::Single )
 			];
 
 		// Set up content

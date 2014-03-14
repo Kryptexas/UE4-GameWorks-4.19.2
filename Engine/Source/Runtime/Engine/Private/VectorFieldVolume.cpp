@@ -30,6 +30,7 @@ AVectorFieldVolume::AVectorFieldVolume(const class FPostConstructInitializePrope
 	{
 		SpriteComponent->Sprite = ConstructorStatics.EffectsTextureObject.Get();
 		SpriteComponent->bIsScreenSizeScaled = true;
+		SpriteComponent->ScreenSize = 0.0025f;
 		SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Effects;
 		SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Effects;
 		SpriteComponent->bAbsoluteScale = true;

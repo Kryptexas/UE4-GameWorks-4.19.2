@@ -5841,37 +5841,11 @@ UMaterial* UMaterialFunction::GetPreviewMaterial()
 	}
 	return PreviewMaterial;
 }
-
-void UMaterialFunction::UpdateInputOutputTypes()
-{
-	CombinedInputTypes = 0;
-	CombinedOutputTypes = 0;
-
-	for (int32 ExpressionIndex = 0; ExpressionIndex < FunctionExpressions.Num(); ExpressionIndex++)
-	{
-		UMaterialExpression* CurrentExpression = FunctionExpressions[ExpressionIndex];
-		UMaterialExpressionFunctionOutput* OutputExpression = Cast<UMaterialExpressionFunctionOutput>(CurrentExpression);
-		UMaterialExpressionFunctionInput* InputExpression = Cast<UMaterialExpressionFunctionInput>(CurrentExpression);
-
-		if (InputExpression)
-		{
-			CombinedInputTypes |= InputExpression->GetInputType(0);
-		}
-		else if (OutputExpression)
-		{
-			CombinedOutputTypes |= OutputExpression->GetOutputType(0);
-		}
-	}
-}
 #endif
 
 #if WITH_EDITOR
 void UMaterialFunction::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-#if WITH_EDITORONLY_DATA
-	UpdateInputOutputTypes();
-#endif
-
 	//@todo - recreate guid only when needed, not when a comment changes
 	StateId = FGuid::NewGuid();
 
@@ -5897,12 +5871,6 @@ void UMaterialFunction::PostLoad()
 		}
 	}
 
-#if WITH_EDITORONLY_DATA
-	if (CombinedOutputTypes == 0)
-	{
-		UpdateInputOutputTypes();
-	}
-#endif
 #if WITH_EDITOR
 	if (GIsEditor)
 	{
@@ -5913,23 +5881,6 @@ void UMaterialFunction::PostLoad()
 			// Warning: any content taking this path will recompile every load until saved!
 			// Which means removing an expression class will cause the need for a resave of all materials affected
 			StateId = FGuid::NewGuid();
-		}
-	}
-#endif
-}
-
-void UMaterialFunction::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
-{
-	Super::GetAssetRegistryTags(OutTags);
-
-#if WITH_EDITORONLY_DATA
-	for (FAssetRegistryTag& AssetTag : OutTags)
-	{
-		// Hide the combined input/output types as they are only needed in code
-		if (AssetTag.Name == GET_MEMBER_NAME_CHECKED(UMaterialFunction, CombinedInputTypes)
-		|| AssetTag.Name == GET_MEMBER_NAME_CHECKED(UMaterialFunction, CombinedOutputTypes))
-		{
-			AssetTag.Type = UObject::FAssetRegistryTag::TT_Hidden;
 		}
 	}
 #endif
@@ -8914,7 +8865,6 @@ UMaterialExpressionParticleMotionBlurFade::UMaterialExpressionParticleMotionBlur
 
 	MenuCategories.Add(ConstructorStatics.NAME_Particles);
 	MenuCategories.Add(ConstructorStatics.NAME_Constants);
-	bShaderInputData = true;
 }
 
 int32 UMaterialExpressionParticleMotionBlurFade::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)

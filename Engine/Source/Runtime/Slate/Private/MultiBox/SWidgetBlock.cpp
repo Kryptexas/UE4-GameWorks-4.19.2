@@ -74,7 +74,7 @@ void SWidgetBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet, const FNam
 			.VAlign( VAlign_Center )
 			[
 				SNew( STextBlock )
-				.TextStyle( StyleSet, ISlateStyle::Join( StyleName, ".Label" ) )
+				.Font( StyleSet->GetFontStyle( StyleName, ".Label.Font" ) )
 				.Text( WidgetBlock->Label )
 			]
 		]

@@ -189,7 +189,6 @@ FEditorViewportClient::FEditorViewportClient(FPreviewScene* InPreviewScene)
 	, bDrawAxes(true)
 	, bForceAudioRealtime(false)
 	, bSetListenerPosition(false)
-	, LandscapeLODOverride(-1)
 	, Widget(new FWidget)
 	, MouseDeltaTracker(new FMouseDeltaTracker)
 	, RecordingInterpEd(NULL)
@@ -211,6 +210,9 @@ FEditorViewportClient::FEditorViewportClient(FPreviewScene* InPreviewScene)
 	, bShowStats(false)
 	, PreviewScene(InPreviewScene)
 	, bCameraLock(false)
+	, bEnableSafeFrameOverride(false)
+	, bShowAspectRatioBarsOverride(false)
+	, bShowSafeFrameBoxOverride(false)
 {
 
 	ViewState.Allocate();
@@ -678,6 +680,9 @@ void FEditorViewportClient::LostFocus(FViewport* InViewport)
 void FEditorViewportClient::Tick(float DeltaTime)
 {
 	ConditionalCheckHoveredHitProxy();
+
+	// Update show flags
+	UpdateLightingShowFlags();
 
 	const bool bIsAnimating = ViewTransform.UpdateTransition();
 
@@ -1178,7 +1183,7 @@ void FEditorViewportClient::UpdateCameraMovement( float DeltaTime )
  * Forcibly disables lighting show flags if there are no lights in the scene, or restores lighting show
  * flags if lights are added to the scene.
  */
-void FEditorViewportClient::UpdateLightingShowFlags( FEngineShowFlags& InOutShowFlags )
+void FEditorViewportClient::UpdateLightingShowFlags()
 {
 	bool bViewportNeedsRefresh = false;
 
@@ -1193,11 +1198,11 @@ void FEditorViewportClient::UpdateLightingShowFlags( FEngineShowFlags& InOutShow
 			{
 				// Is unlit mode currently enabled?  We'll make sure that all of the regular unlit view
 				// mode show flags are set (not just EngineShowFlags.Lighting), so we don't disrupt other view modes
-				if (!InOutShowFlags.Lighting)
+				if (GetViewMode() == VMI_Unlit)
 				{
 					// We have lights in the scene now so go ahead and turn lighting back on
 					// designer can see what they're interacting with!
-					InOutShowFlags.Lighting = true;
+					SetViewMode(VMI_Lit);
 				}
 
 				// No longer forcing lighting to be off
@@ -1206,11 +1211,11 @@ void FEditorViewportClient::UpdateLightingShowFlags( FEngineShowFlags& InOutShow
 			else
 			{
 				// Is lighting currently enabled?
-				if (InOutShowFlags.Lighting)
+				if (GetViewMode() != VMI_Unlit)
 				{
 					// No lights in the scene, so make sure that lighting is turned off so the level
 					// designer can see what they're interacting with!
-					InOutShowFlags.Lighting = false;
+					SetViewMode(VMI_Unlit);
 
 				}
 			}
@@ -1218,22 +1223,50 @@ void FEditorViewportClient::UpdateLightingShowFlags( FEngineShowFlags& InOutShow
 	}
 }
 
+bool FEditorViewportClient::GetActiveSafeFrame(float& OutAspectRatio) const
+{
+	ACameraActor* SelectedCamera = NULL;
+
+	if ( ( EngineShowFlags.SafeFrames || bEnableSafeFrameOverride ) && !IsOrtho() )
+	{
+		for (FSelectionIterator It(GEditor->GetSelectedActorIterator()) ; It ; ++It)
+		{
+			ACameraActor* Camera = Cast<ACameraActor>(*It);
+			if (Camera != NULL && Camera->CameraComponent->bConstrainAspectRatio)
+			{
+				if (SelectedCamera != NULL)
+				{
+					// multiple cameras selected
+					return false;
+				}
+				SelectedCamera = Camera;
+				OutAspectRatio = Camera->CameraComponent->AspectRatio;
+			}
+		}
+	}
+
+	return SelectedCamera != NULL;
+}
+
 void FEditorViewportClient::DrawSafeFrames(FViewport& InViewport, FSceneView& View, FCanvas& Canvas)
 {
-	if (EngineShowFlags.CameraAspectRatioBars || EngineShowFlags.CameraSafeFrames)
+	float FixedAspectRatio;
+	if (GetActiveSafeFrame(FixedAspectRatio))
 	{
-		float FixedAspectRatio;
-		if (GetActiveSafeFrame(FixedAspectRatio))
+		// Get the size of the viewport
+		const int32 SizeX = InViewport.GetSizeXY().X;
+		const int32 SizeY = InViewport.GetSizeXY().Y;
+		float ActualAspectRatio = (float)SizeX / (float)SizeY;
+
+		float SafeWidth = SizeX;
+		float SafeHeight = SizeY;
+		FSlateRect SafeRect(0.0f, 0.0f, SizeX, SizeY);
+
+		const bool bShouldDisplayAspectRatio = (!bEnableSafeFrameOverride || bShowAspectRatioBarsOverride);
+		const bool bShouldDisplaySafeFrameBox = (!bEnableSafeFrameOverride || bShowSafeFrameBoxOverride);
+
+		if( bShouldDisplayAspectRatio )
 		{
-			// Get the size of the viewport
-			const int32 SizeX = InViewport.GetSizeXY().X;
-			const int32 SizeY = InViewport.GetSizeXY().Y;
-			float ActualAspectRatio = (float)SizeX / (float)SizeY;
-
-			float SafeWidth = SizeX;
-			float SafeHeight = SizeY;
-			FSlateRect SafeRect(0.0f, 0.0f, SizeX, SizeY);
-
 			if (FixedAspectRatio < ActualAspectRatio )
 			{
 				// vertical bars required on left and right
@@ -1244,16 +1277,13 @@ void FEditorViewportClient::DrawSafeFrames(FViewport& InViewport, FSceneView& Vi
 				float X2 = CentreX + CorrectedHalfWidth;
 				SafeRect = FSlateRect(X1, 0.0f, X2, SizeY);
 
-				if (EngineShowFlags.CameraAspectRatioBars)
-				{
-					FCanvasLineItem LineItem;
-					LineItem.SetColor( FLinearColor(0.0f, 0.0f, 0.0f, 0.75f) );
-					DrawSafeFrameQuad(Canvas, FVector2D(0.0f, 0.0f), FVector2D(X1, SizeY));
-					LineItem.Draw( &Canvas, FVector2D(X1, 0.0f), FVector2D(X1, SizeY) );
+				FCanvasLineItem LineItem;
+				LineItem.SetColor( FLinearColor(0.0f, 0.0f, 0.0f, 0.75f) );
+				DrawSafeFrameQuad(Canvas, FVector2D(0.0f, 0.0f), FVector2D(X1, SizeY));
+				LineItem.Draw( &Canvas, FVector2D(X1, 0.0f), FVector2D(X1, SizeY) );
 
-					DrawSafeFrameQuad(Canvas, FVector2D(X2, 0.0f), FVector2D(SizeX, SizeY));
-					LineItem.Draw( &Canvas, FVector2D(X2, 0.0f), FVector2D(X2, SizeY) );
-				}
+				DrawSafeFrameQuad(Canvas, FVector2D(X2, 0.0f), FVector2D(SizeX, SizeY));
+				LineItem.Draw( &Canvas, FVector2D(X2, 0.0f), FVector2D(X2, SizeY) );
 			}
 			else
 			{
@@ -1265,26 +1295,23 @@ void FEditorViewportClient::DrawSafeFrames(FViewport& InViewport, FSceneView& Vi
 				float Y2 = CentreY + CorrectedHalfHeight;
 				SafeRect = FSlateRect(0.0f, Y1, SizeX, Y2);
 
-				if (EngineShowFlags.CameraAspectRatioBars)
-				{
-					FCanvasLineItem LineItem;
-					LineItem.SetColor( FLinearColor(0.0f, 0.0f, 0.0f, 0.75f) );
-					DrawSafeFrameQuad(Canvas, FVector2D(0.0f, 0.0f), FVector2D(SizeX, Y1));
-					LineItem.Draw( &Canvas, FVector2D(0.0f, Y1), FVector2D(SizeX, Y1) );
-					DrawSafeFrameQuad(Canvas, FVector2D(0.0f, Y2), FVector2D(SizeX, SizeY));
-					LineItem.Draw( &Canvas, FVector2D(0.0f, Y2), FVector2D(SizeX, Y2) );
-				}
+				FCanvasLineItem LineItem;
+				LineItem.SetColor( FLinearColor(0.0f, 0.0f, 0.0f, 0.75f) );
+				DrawSafeFrameQuad(Canvas, FVector2D(0.0f, 0.0f), FVector2D(SizeX, Y1));
+				LineItem.Draw( &Canvas, FVector2D(0.0f, Y1), FVector2D(SizeX, Y1) );
+				DrawSafeFrameQuad(Canvas, FVector2D(0.0f, Y2), FVector2D(SizeX, SizeY));
+				LineItem.Draw( &Canvas, FVector2D(0.0f, Y2), FVector2D(SizeX, Y2) );
 			}
+		}
 
-			if( EngineShowFlags.CameraSafeFrames )
-			{
-				// Draw a frame inside the safe rect padded inwards by a given percentage
-				const float SafePadding = 0.075f;
-				FSlateRect InnerRect = SafeRect.InsetBy(FMargin(0.5f * SafePadding * SafeRect.GetSize().Size()));
-				FCanvasBoxItem BoxItem( FVector2D(InnerRect.Left, InnerRect.Top), InnerRect.GetSize() );
-				BoxItem.SetColor( FLinearColor(0.0f, 0.0f, 0.0f, 0.5f) );
-				Canvas.DrawItem( BoxItem );
-			}
+		if( bShouldDisplaySafeFrameBox )
+		{
+			// Draw a frame inside the safe rect padded inwards by a given percentage
+			const float SafePadding = 0.075f;
+			FSlateRect InnerRect = SafeRect.InsetBy(FMargin(0.5f * SafePadding * SafeRect.GetSize().Size()));
+			FCanvasBoxItem BoxItem( FVector2D(InnerRect.Left, InnerRect.Top), InnerRect.GetSize() );
+			BoxItem.SetColor( FLinearColor(0.0f, 0.0f, 0.0f, 0.5f) );
+			Canvas.DrawItem( BoxItem );
 		}
 	}
 }
@@ -2367,11 +2394,7 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 	EngineShowFlagOverride(ESFIM_Editor, GetViewMode(), ViewFamily.EngineShowFlags, CurrentBufferVisualizationMode);
 	EngineShowFlagOrthographicOverride(IsPerspective(), ViewFamily.EngineShowFlags);
 
-	UpdateLightingShowFlags( ViewFamily.EngineShowFlags );
-
 	ViewFamily.ExposureSettings = ExposureSettings;
-
-	ViewFamily.LandscapeLODOverride = LandscapeLODOverride;
 
 	FSceneView* View = CalcSceneView( &ViewFamily );
 
@@ -2387,7 +2410,10 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 
 	DrawCanvas( *Viewport, *View, *Canvas );
 
-	DrawSafeFrames(*Viewport, *View, *Canvas);
+	if (EngineShowFlags.SafeFrames || bEnableSafeFrameOverride )
+	{
+		DrawSafeFrames(*Viewport, *View, *Canvas);
+	}
 
 	// Remove temporary debug lines.
 	// Possibly a hack. Lines may get added without the scene being rendered etc.
@@ -2935,7 +2961,7 @@ bool FEditorViewportClient::ShouldPanCamera() const
 	
 	const bool bLeftMouseButtonDown = Viewport->KeyState( EKeys::LeftMouseButton );
 	const bool bRightMouseButtonDown = Viewport->KeyState( EKeys::RightMouseButton );
-	const bool bIsMarqueeSelect = IsOrtho() && bLeftMouseButtonDown;
+	const bool bIsMarqueeSelect = false;
 
 	const bool bOrthoRotateObjectMode = IsOrtho() && IsCtrlPressed() && bRightMouseButtonDown && !bLeftMouseButtonDown;
 	// Pan the camera if not marquee selecting or the left and right mouse buttons are down
@@ -3391,6 +3417,15 @@ FCachedJoystickState* FEditorViewportClient::GetJoystickState(const uint32 InCon
 	return CurrentState;
 }
 
+
+void FEditorViewportClient::OverrideSafeFrameDisplay( bool bEnableOverrides, bool bShowAspectRatioBars, bool bShowSafeFrameBox )
+{
+	bEnableSafeFrameOverride = bEnableOverrides;
+	bShowAspectRatioBarsOverride = bShowAspectRatioBars;
+	bShowSafeFrameBoxOverride = bShowSafeFrameBox;
+	Invalidate(false,false);
+}
+
 void FEditorViewportClient::SetCameraLock()
 {
 	EnableCameraLock(!bCameraLock);
@@ -3452,7 +3487,6 @@ void FEditorViewportClient::SetViewMode(EViewModeIndex InViewModeIndex)
 	{
 		PerspViewModeIndex = InViewModeIndex;
 		ApplyViewMode(PerspViewModeIndex, true, EngineShowFlags);
-		bForcingUnlitForNewMap = false;
 	}
 	else
 	{

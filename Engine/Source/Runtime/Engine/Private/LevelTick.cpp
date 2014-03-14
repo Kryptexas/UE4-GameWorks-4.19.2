@@ -1293,11 +1293,10 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 	{
 		// NOTE: This will block until all current Async I/O requests have been completed before doing the GC.
 		CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS, true );
-		CleanupActors();
 		FullPurgeTriggered = false;
-		TimeSinceLastPendingKillPurge = 0.0f;
 	}
-	else if( HasBegunPlay() )
+
+	if( HasBegunPlay() )
 	{
 		TimeSinceLastPendingKillPurge += DeltaSeconds;
 
@@ -1316,7 +1315,7 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 		&&	(TimeSinceLastPendingKillPurge > TimeBetweenPurgingPendingKillObjects) && TimeBetweenPurgingPendingKillObjects > 0 )
 		{
 			SCOPE_CYCLE_COUNTER(STAT_GCMarkTime);
-			PerformGarbageCollectionAndCleanupActors();
+			PerformGarbageCollection();
 		}
 		else
 		{
@@ -1391,7 +1390,7 @@ void UWorld::DelayGarbageCollection()
 /**
  *  Interface to allow WorldSettings to request immediate garbage collection
  */
-void UWorld::PerformGarbageCollectionAndCleanupActors()
+void UWorld::PerformGarbageCollection()
 {
 	// We don't collect garbage while there are outstanding async load requests as we would need
 	// to block on loading the remaining data.
@@ -1400,42 +1399,36 @@ void UWorld::PerformGarbageCollectionAndCleanupActors()
 		// Perform housekeeping.
 		CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS, false );
 
-		CleanupActors();
-
-		// Reset counter.
-		TimeSinceLastPendingKillPurge = 0;
-	}
-}
-
-
-void UWorld::CleanupActors()
-{
-	// Remove NULL entries from actor list. Only does so for dynamic actors to avoid resorting; in theory static 
-	// actors shouldn't be deleted during gameplay.
-	for( int32 LevelIndex=0; LevelIndex<Levels.Num(); LevelIndex++ )
-	{
-		ULevel* Level = Levels[LevelIndex];
-		// Don't compact actors array for levels that are currently in the process of being made visible as the
-		// code that spreads this work across several frames relies on the actor count not changing as it keeps
-		// an index into the array.
-		if( CurrentLevelPendingVisibility != Level )
+		// Remove NULL entries from actor list. Only does so for dynamic actors to avoid resorting; in theory static 
+		// actors shouldn't be deleted during gameplay.
+		for( int32 LevelIndex=0; LevelIndex<Levels.Num(); LevelIndex++ )
 		{
-			// Actor 0 (world info) and 1 (default brush) are special and should never be removed from the actor array even if NULL
-			int32 FirstDynamicIndex = 2;
-			// Remove NULL entries from array, we're iterating backwards to avoid unnecessary memcpys during removal.
-			for( int32 ActorIndex=Level->Actors.Num()-1; ActorIndex>=FirstDynamicIndex; ActorIndex-- )
+			ULevel* Level = Levels[LevelIndex];
+			// Don't compact actors array for levels that are currently in the process of being made visible as the
+			// code that spreads this work across several frames relies on the actor count not changing as it keeps
+			// an index into the array.
+			if( CurrentLevelPendingVisibility != Level )
 			{
-				if( Level->Actors[ActorIndex] == NULL )
+				// Actor 0 (world info) and 1 (default brush) are special and should never be removed from the actor array even if NULL
+				int32 FirstDynamicIndex = 2;
+				// Remove NULL entries from array, we're iterating backwards to avoid unnecessary memcpys during removal.
+				for( int32 ActorIndex=Level->Actors.Num()-1; ActorIndex>=FirstDynamicIndex; ActorIndex-- )
 				{
-					Level->Actors.RemoveAt( ActorIndex );
-					// If the index of the actor to be removed is <= the iFirstNetRelevantActor we must also decrement that value
-					if (ActorIndex <= Level->iFirstNetRelevantActor )
+					if( Level->Actors[ActorIndex] == NULL )
 					{
-						Level->iFirstNetRelevantActor--;
+						Level->Actors.RemoveAt( ActorIndex );
+						// If the index of the actor to be removed is <= the iFirstNetRelevantActor we must also decrement that value
+						if (ActorIndex <= Level->iFirstNetRelevantActor )
+						{
+							Level->iFirstNetRelevantActor--;
+						}
 					}
 				}
 			}
 		}
+
+		// Reset counter.
+		TimeSinceLastPendingKillPurge = 0;
 	}
 }
 

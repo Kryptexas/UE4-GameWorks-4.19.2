@@ -42,7 +42,7 @@ namespace FObjectEditorUtils
 			if( !bResult && InFunction->HasMetaData( FunctionCategory ) )
 			{
 				const FString& ClassCategory = InFunction->GetMetaData(FunctionCategory);				
-				bResult = Class->IsCategoryHidden( ClassCategory );
+				bResult = Class->IsCategoryHidden( *ClassCategory );
 			}
 		}
 		return bResult;
@@ -53,7 +53,7 @@ namespace FObjectEditorUtils
 		bool bResult = false;
 		if( InVariable && Class )
 		{
-			bResult = Class->IsCategoryHidden( GetCategory(InVariable) );
+			bResult = Class->IsCategoryHidden( *GetCategory(InVariable) );
 		}
 		return bResult;
 	}

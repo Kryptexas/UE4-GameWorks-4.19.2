@@ -1585,8 +1585,10 @@ void FScene::Release()
 
 	if (!bTriggeredOnce)
 	{
-		for (auto* ActorComponent : TObjectRange<UActorComponent>())
+		for( TObjectIterator<UActorComponent> It; It; ++It )
 		{
+			UActorComponent* ActorComponent = *It;
+
 			if ( !ensureMsg(!ActorComponent->IsRegistered() || ActorComponent->GetScene() != this, 
 					*FString::Printf(TEXT("Component Name: %s World Name: %s Component Mesh: %s"), 
 										*ActorComponent->GetFullName(), 
@@ -2276,7 +2278,10 @@ void FMotionBlurInfoData::UpdateMotionBlurCache()
 {
 	check(IsInRenderingThread());
 
-	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+	bool bPaused = GRenderingRealtimeClock.GetGamePaused();
+
+	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM4 &&
+		!bPaused)
 	{
 		if(bShouldClearMotionBlurInfo)
 		{

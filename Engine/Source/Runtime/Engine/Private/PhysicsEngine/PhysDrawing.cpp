@@ -477,44 +477,35 @@ void FKAggregateGeom::DrawAggGeom(FPrimitiveDrawInterface* PDI, const FTransform
 					ConvexElems[i].AddCachedSolidConvexGeom(RenderInfo->VertexBuffer->Vertices, RenderInfo->IndexBuffer->Indices, FColor(255,255,255));
 				}
 
-				// Only continue if we actuall got some valid geometry
-				// Will crash if we try to init buffers with no data
-				if(RenderInfo->HasValidGeometry())
-				{
-					RenderInfo->VertexBuffer->InitResource();
-					RenderInfo->IndexBuffer->InitResource();
-
-					RenderInfo->CollisionVertexFactory = new FConvexCollisionVertexFactory(RenderInfo->VertexBuffer);
-					RenderInfo->CollisionVertexFactory->InitResource();
-				}
+				RenderInfo->VertexBuffer->InitResource();
+				RenderInfo->IndexBuffer->InitResource();
+                
+				RenderInfo->CollisionVertexFactory = new FConvexCollisionVertexFactory(RenderInfo->VertexBuffer);
+				RenderInfo->CollisionVertexFactory->InitResource();
 			}
 
-			// If we have geometry to draw, do so
-			if(RenderInfo->HasValidGeometry())
-			{
-				// Calculate transform
-				FTransform LocalToWorld = FTransform( FQuat::Identity, FVector::ZeroVector, Scale3D ) * ParentTM;
+			// Calculate transform
+			FTransform LocalToWorld = FTransform( FQuat::Identity, FVector::ZeroVector, Scale3D ) * ParentTM;
 
-				// Draw the mesh.
-				FMeshBatch Mesh;
-				FMeshBatchElement& BatchElement = Mesh.Elements[0];
-				BatchElement.IndexBuffer = RenderInfo->IndexBuffer;
-				Mesh.VertexFactory = RenderInfo->CollisionVertexFactory;
-				Mesh.MaterialRenderProxy = MatInst;
-				FBoxSphereBounds WorldBounds, LocalBounds;
-				CalcBoxSphereBounds(WorldBounds, LocalToWorld);
-				CalcBoxSphereBounds(LocalBounds, FTransform::Identity);
-				BatchElement.PrimitiveUniformBuffer = CreatePrimitiveUniformBufferImmediate(LocalToWorld.ToMatrixWithScale(), WorldBounds, LocalBounds, true);
-				// previous l2w not used so treat as static
-				BatchElement.FirstIndex = 0;
-				BatchElement.NumPrimitives = RenderInfo->IndexBuffer->Indices.Num() / 3;
-				BatchElement.MinVertexIndex = 0;
-				BatchElement.MaxVertexIndex = RenderInfo->VertexBuffer->Vertices.Num() - 1;
-				Mesh.ReverseCulling = LocalToWorld.GetDeterminant() < 0.0f ? true : false;
-				Mesh.Type = PT_TriangleList;
-				Mesh.DepthPriorityGroup = SDPG_World;
-				PDI->DrawMesh(Mesh);
-			}
+			// Draw the mesh.
+			FMeshBatch Mesh;
+			FMeshBatchElement& BatchElement = Mesh.Elements[0];
+			BatchElement.IndexBuffer = RenderInfo->IndexBuffer;
+			Mesh.VertexFactory = RenderInfo->CollisionVertexFactory;
+			Mesh.MaterialRenderProxy = MatInst;
+			FBoxSphereBounds WorldBounds, LocalBounds;
+			CalcBoxSphereBounds(WorldBounds, LocalToWorld);
+			CalcBoxSphereBounds(LocalBounds, FTransform::Identity);
+			BatchElement.PrimitiveUniformBuffer = CreatePrimitiveUniformBufferImmediate(LocalToWorld.ToMatrixWithScale(), WorldBounds, LocalBounds, true);
+			// previous l2w not used so treat as static
+			BatchElement.FirstIndex = 0;
+			BatchElement.NumPrimitives = RenderInfo->IndexBuffer->Indices.Num() / 3;
+			BatchElement.MinVertexIndex = 0;
+			BatchElement.MaxVertexIndex = RenderInfo->VertexBuffer->Vertices.Num() - 1;
+			Mesh.ReverseCulling = LocalToWorld.GetDeterminant() < 0.0f ? true : false;
+			Mesh.Type = PT_TriangleList;
+			Mesh.DepthPriorityGroup = SDPG_World;
+			PDI->DrawMesh(Mesh);
 		}
 		else
 		{
@@ -536,16 +527,12 @@ void FKAggregateGeom::FreeRenderInfo()
 		// Should always have these if RenderInfo exists
 		check(RenderInfo->VertexBuffer);
 		check(RenderInfo->IndexBuffer);
+		check(RenderInfo->CollisionVertexFactory);
 
 		// Fire off commands to free these resources
 		BeginReleaseResource(RenderInfo->VertexBuffer);
 		BeginReleaseResource(RenderInfo->IndexBuffer);
-
-		// May not exist if no geometry was available
-		if(RenderInfo->CollisionVertexFactory != NULL)
-		{
-			BeginReleaseResource(RenderInfo->CollisionVertexFactory);
-		}
+		BeginReleaseResource(RenderInfo->CollisionVertexFactory);
 
 		// Wait until those commands have been processed
 		FRenderCommandFence Fence;
@@ -555,12 +542,7 @@ void FKAggregateGeom::FreeRenderInfo()
 		// Release memory.
 		delete RenderInfo->VertexBuffer;
 		delete RenderInfo->IndexBuffer;
-
-		if (RenderInfo->CollisionVertexFactory != NULL)
-		{
-			delete RenderInfo->CollisionVertexFactory;
-		}
-
+		delete RenderInfo->CollisionVertexFactory;
 		delete RenderInfo;
 		RenderInfo = NULL;
 	}

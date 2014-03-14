@@ -134,6 +134,12 @@ static inline USelection*& PrivateGetSelectedActors()
 	return SSelectedActors;
 };
 
+static inline USelection*& PrivateGetSelectedComponents()
+{
+	static USelection* SSelectedComponents = NULL;
+	return SSelectedComponents;
+};
+
 static inline USelection*& PrivateGetSelectedObjects()
 {
 	static USelection* SSelectedObjects = NULL;
@@ -144,6 +150,9 @@ static void PrivateInitSelectedSets()
 {
 	PrivateGetSelectedActors() = new( GetTransientPackage(), TEXT("SelectedActors"), RF_Transactional ) USelection(FPostConstructInitializeProperties());
 	PrivateGetSelectedActors()->AddToRoot();
+
+	PrivateGetSelectedComponents() = new( GetTransientPackage(), TEXT("SelectedComponents"), RF_Transactional ) USelection(FPostConstructInitializeProperties());
+	PrivateGetSelectedComponents()->AddToRoot();
 
 	PrivateGetSelectedObjects() = new( GetTransientPackage(), TEXT("SelectedObjects"), RF_Transactional ) USelection(FPostConstructInitializeProperties());
 	PrivateGetSelectedObjects()->AddToRoot();
@@ -243,6 +252,28 @@ bool UEditorEngine::IsWorldSettingsSelected()
 FSelectionIterator UEditorEngine::GetSelectedActorIterator() const
 {
 	return FSelectionIterator( *GetSelectedActors() );
+};
+
+
+int32 UEditorEngine::GetSelectedComponentCount() const
+{
+	int32 NumSelectedActors = 0;
+	for(FSelectionIterator It(GetSelectedComponentIterator()); It; ++It)
+	{
+		++NumSelectedActors;
+	}
+
+	return NumSelectedActors;
+}
+
+USelection* UEditorEngine::GetSelectedComponents() const
+{
+	return PrivateGetSelectedComponents();
+}
+
+FSelectionIterator UEditorEngine::GetSelectedComponentIterator() const
+{
+	return FSelectionIterator( *GetSelectedComponents() );
 };
 
 USelection* UEditorEngine::GetSelectedObjects() const
@@ -530,7 +561,6 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 		FModuleManager::Get().LoadModule(TEXT("XmlParser"));
 		FModuleManager::Get().LoadModule(TEXT("UserFeedback"));
 		FModuleManager::Get().LoadModule(TEXT("GameplayTagsEditor"));
-		FModuleManager::Get().LoadModule(TEXT("UndoHistory"));
 
 		if( FParse::Param( FCommandLine::Get(),TEXT( "PListEditor" ) ) )
 		{
@@ -557,12 +587,6 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 			FModuleManager::Get().LoadModule(TEXT("EnvironmentQueryEditor"));
 		}
 
-		bool bSkillSystemEditorEnabled = false;
-		GConfig->GetBool(TEXT("SkillSystemEd"), TEXT("SKillSystemEditorEnabled"), bSkillSystemEditorEnabled, GEngineIni);
-		if (bSkillSystemEditorEnabled)
-		{
-			FModuleManager::Get().LoadModule(TEXT("SkillSystemEditor"));
-		}
 	}
 
 	float BSPTexelScale = 100.0f;
@@ -3951,7 +3975,6 @@ bool UEditorEngine::DetachSelectedActors()
 			OldParentActor->Modify();
 			RootComp->DetachFromParent(true);
 			bDetachOccurred = true;
-			Actor->SetFolderPath(OldParentActor->GetFolderPath());
 		}
 	}
 	return bDetachOccurred;
@@ -4007,6 +4030,18 @@ bool UEditorEngine::CanParentActors( const AActor* ParentActor, const AActor* Ch
 			Arguments.Add(TEXT("StaticActor"), FText::FromString(ChildActor->GetActorLabel()));
 			Arguments.Add(TEXT("DynamicActor"), FText::FromString(ParentActor->GetActorLabel()));
 			*ReasonText = FText::Format( NSLOCTEXT("ActorAttachmentError", "StaticDynamic_ActorAttachmentError", "Cannot attach static actor {StaticActor} to dynamic actor {DynamicActor}."), Arguments);
+		}
+		return false;
+	}
+
+	if (ChildRoot->IsSimulatingPhysics())
+	{
+		if (ReasonText)
+		{
+			FFormatNamedArguments Arguments;
+			Arguments.Add(TEXT("ParentActor"), FText::FromString(ParentActor->GetActorLabel()));
+			Arguments.Add(TEXT("ChildActor"), FText::FromString(ChildActor->GetActorLabel()));
+			*ReasonText = FText::Format( NSLOCTEXT("ActorAttachmentError", "SimulatingPhysics_ActorAttachmentError", "{ParentActor} will not allow {ChildActor} to be attached as a child because child is physics simulated."), Arguments);
 		}
 		return false;
 	}
@@ -4681,6 +4716,9 @@ AActor* UEditorEngine::UseActorFactory( UActorFactory* Factory, const FAssetData
 				{
 					Actor->MarkPackageDirty();
 					ULevel::LevelDirtiedEvent.Broadcast();
+
+					// Send notification about a new actor being created
+					GEngine->BroadcastLevelActorsChanged();
 				}
 			}
 			else
@@ -5024,6 +5062,9 @@ void UEditorEngine::ReplaceSelectedActors(UActorFactory* Factory, const FAssetDa
 	RedrawLevelEditingViewports();
 
 	ULevel::LevelDirtiedEvent.Broadcast();
+
+	// Send notification about actors that may have changed
+	GEngine->BroadcastLevelActorsChanged();
 }
 
 
@@ -5283,6 +5324,9 @@ void UEditorEngine::ConvertLightActors( UClass* ConvertToClass )
 		GEditor->RedrawLevelEditingViewports();
 
 		ULevel::LevelDirtiedEvent.Broadcast();
+
+		// Send notification about actors that may have changed
+		GEngine->BroadcastLevelActorsChanged();
 
 		CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
 	}
@@ -5727,9 +5771,10 @@ void UEditorEngine::DoConvertActors( const TArray<AActor*>& ActorsToConvert, UCl
 						{
 							const bool bIsTransient = !!(Property->PropertyFlags & CPF_Transient);
 							const bool bIsComponentProp = !!(Property->PropertyFlags & (CPF_InstancedReference | CPF_ContainsInstancedReference));
+							const bool bIsReadonly = !!(Property->PropertyFlags & CPF_BlueprintReadOnly);
 							const bool bIsIdentical = Property->Identical_InContainer(ActorToConvert, ClassToReplace->GetDefaultObject());
 
-							if ( !bIsTransient && !bIsIdentical && !bIsComponentProp && Property->GetName() != TEXT("Tag") )
+							if ( !bIsTransient && !bIsIdentical && !bIsComponentProp && !bIsReadonly && Property->GetName() != TEXT("Tag") )
 							{
 								// Copy only if not native, not transient, not identical, and not a component.
 								// Copying components directly here is a bad idea because the next garbage collection will delete the component since we are deleting its outer.  
@@ -5793,7 +5838,10 @@ void UEditorEngine::DoConvertActors( const TArray<AActor*>& ActorsToConvert, UCl
 		GEditor->RedrawLevelEditingViewports();
 
 		ULevel::LevelDirtiedEvent.Broadcast();
-		
+
+		// Send notification about actors that may have changed
+		GEngine->BroadcastLevelActorsChanged();
+
 		// Clean up
 		CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
 	}
@@ -5959,6 +6007,9 @@ AActor* UEditorEngine::AddActor(ULevel* InLevel, UClass* Class, const FVector& L
 	{
 		Actor->MarkPackageDirty();
 		ULevel::LevelDirtiedEvent.Broadcast();
+
+		// Send notification about a new actor being created
+		GEngine->BroadcastLevelActorsChanged();
 	}
 
 	NoteSelectionChange();
@@ -6032,6 +6083,8 @@ TArray<AActor*> UEditorEngine::AddExportTextActors(const FString& ExportText, bo
 
 				// Send notification about a new actor being created
 				ULevel::LevelDirtiedEvent.Broadcast();
+
+				GEngine->BroadcastLevelActorsChanged();
 				GEditor->NoteSelectionChange();
 			}
 		}
@@ -6181,13 +6234,7 @@ void UEditorEngine::UpdatePreviewMesh()
 
 void UEditorEngine::CyclePreviewMesh()
 {
-	const ULevelEditorViewportSettings& ViewportSettings = *GetDefault<ULevelEditorViewportSettings>();
-	if( !ViewportSettings.PreviewMeshes.Num() )
-	{
-		return;
-	}
-
-	const int32 StartingPreviewMeshIndex = FMath::Min(GUnrealEd->PreviewMeshIndex, ViewportSettings.PreviewMeshes.Num() - 1);
+	const int32 StartingPreviewMeshIndex = GUnrealEd->PreviewMeshIndex;
 	int32 CurrentPreviewMeshIndex = StartingPreviewMeshIndex;
 	bool bPreviewMeshFound = false;
 
@@ -6197,7 +6244,7 @@ void UEditorEngine::CyclePreviewMesh()
 		CurrentPreviewMeshIndex++;
 
 		// If we reached the max index, start at index zero.
-		if( CurrentPreviewMeshIndex == ViewportSettings.PreviewMeshes.Num() )
+		if( CurrentPreviewMeshIndex == PreviewMeshNames.Num() )
 		{
 			CurrentPreviewMeshIndex = 0;
 		}
@@ -6209,6 +6256,7 @@ void UEditorEngine::CyclePreviewMesh()
 		{
 			// Save off the index so we can reference it later when toggling the preview mesh mode. 
 			GUnrealEd->PreviewMeshIndex = CurrentPreviewMeshIndex;
+			bPreviewMeshFound = true;
 		}
 
 		// Keep doing this until we found another valid mesh, or we cycled through all possible preview meshes. 
@@ -6219,6 +6267,13 @@ bool UEditorEngine::LoadPreviewMesh( int32 Index )
 {
 	bool bMeshLoaded = false;
 
+	// If there are no mesh names loaded, the preview mesh 
+	// names may not have been loaded yet. Try to load them. 
+	if( PreviewMeshNames.Num() == 0 )
+	{
+		GConfig->GetSingleLineArray(TEXT("EditorPreviewMesh"), TEXT("PreviewMeshNames"), PreviewMeshNames, GEditorUserSettingsIni);
+	}
+
 	// Don't register the preview mesh into the PIE world!
 	if(GWorld->IsPlayInEditor())
 	{
@@ -6226,10 +6281,9 @@ bool UEditorEngine::LoadPreviewMesh( int32 Index )
 		return false;
 	}
 
-	const ULevelEditorViewportSettings& ViewportSettings = *GetDefault<ULevelEditorViewportSettings>();
-	if( ViewportSettings.PreviewMeshes.IsValidIndex(Index) )
+	if( PreviewMeshNames.IsValidIndex(Index) )
 	{
-		const FStringAssetReference& MeshName = ViewportSettings.PreviewMeshes[Index];
+		const FString MeshName = PreviewMeshNames[Index];
 
 		// If we don't have a preview mesh component in the world yet, create one. 
 		if( !PreviewMeshComp )
@@ -6242,7 +6296,7 @@ bool UEditorEngine::LoadPreviewMesh( int32 Index )
 		}
 
 		// Load the new mesh, if not already loaded. 
-		UStaticMesh* PreviewMesh = LoadObject<UStaticMesh>( NULL, *MeshName.AssetLongPathname, NULL, LOAD_None, NULL );
+		UStaticMesh* PreviewMesh = LoadObject<UStaticMesh>( NULL, *MeshName, NULL, LOAD_None, NULL );
 
 		// Swap out the meshes if we loaded or found the given static mesh. 
 		if( PreviewMesh )
@@ -6252,7 +6306,7 @@ bool UEditorEngine::LoadPreviewMesh( int32 Index )
 		}
 		else
 		{
-			UE_LOG(LogEditorViewport, Warning, TEXT("Couldn't load the PreviewMeshNames for the player at index, %d, with the name, %s."), Index, *MeshName.AssetLongPathname );
+			UE_LOG(LogEditorViewport, Warning, TEXT("Couldn't load the PreviewMeshNames for the player at index, %d, with the name, %s."), Index, *MeshName );
 		}
 	}
 	else

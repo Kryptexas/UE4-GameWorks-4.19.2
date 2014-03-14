@@ -445,12 +445,9 @@ class UBodySetup : public UObject
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Physics)
 	struct FWalkableSlopeOverride WalkableSlopeOverride;
 
+	/** BuildScale for this body setup (static mesh settings define this value) */
 	UPROPERTY()
-	float BuildScale_DEPRECATED;
-
-	/** Build scale for this body setup (static mesh settings define this value) */
-	UPROPERTY()
-	FVector BuildScale3D;
+	float BuildScale;
 public:
 	/** GUID used to uniquely identify this setup so it can be found in the DDC */
 	FGuid						BodySetupGuid;
@@ -509,9 +506,9 @@ public:
 	/** 
 	 * Rescales simple collision geometry.  Note you must recreate physics meshes after this 
 	 *
-	 * @param BuildScale	The scale to apply to the geometry
+	 * @param UniformScale	The uniform scale to apply to the geometry
 	 */
-	ENGINE_API void			RescaleSimpleCollision( FVector BuildScale );
+	ENGINE_API void			RescaleSimpleCollision( float UniformScale );
 
 	/** Invalidate physics data */
 	ENGINE_API void			InvalidatePhysicsData();	

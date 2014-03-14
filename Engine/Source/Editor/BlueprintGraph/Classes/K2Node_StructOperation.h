@@ -13,6 +13,7 @@ class UK2Node_StructOperation : public UK2Node_Variable
 	UPROPERTY()
 	UScriptStruct* StructType;
 
+#if WITH_EDITOR
 	// Begin UEdGraphNode interface
 	//virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
 	// End UEdGraphNode interface
@@ -35,5 +36,7 @@ protected:
 		}
 		// End of FOptionalPinsUpdater interfac
 	};
+
+#endif
 };
 

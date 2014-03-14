@@ -549,10 +549,6 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "LinearColor * (LinearColor)", CompactNodeTitle = "*"), Category="Math|Color")
 	static FLinearColor Multiply_LinearColorLinearColor(FLinearColor A, FLinearColor B);
 
-	/* Element-wise multiplication of a linear color by a float (F*R, F*G, F*B, F*A) */
-	UFUNCTION(BlueprintPure, meta=(FriendlyName = "LinearColor * Float", CompactNodeTitle = "*", Keywords = "* multiply"), Category="Math|Color")
-	static FLinearColor Multiply_LinearColorFloat(FLinearColor A, float B);
-
 	// -- Begin K2 utilities
 
 	/** Converts a byte to a float */

@@ -98,11 +98,6 @@ void UDelegateProperty::Serialize( FArchive& Ar )
 	Ar << SignatureFunction;
 }
 
-bool UDelegateProperty::SameType(const UProperty* Other) const
-{
-	return Super::SameType(Other) && (SignatureFunction == ((UDelegateProperty*)Other)->SignatureFunction);
-}
-
 IMPLEMENT_CORE_INTRINSIC_CLASS(UDelegateProperty, UProperty,
 	{
 		Class->EmitObjectReference( STRUCT_OFFSET( UDelegateProperty, SignatureFunction ) );

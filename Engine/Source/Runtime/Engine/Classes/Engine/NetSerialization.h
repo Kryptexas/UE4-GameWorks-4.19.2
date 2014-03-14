@@ -77,7 +77,7 @@ struct TStructOpsTypeTraits< FExampleStruct > : public TStructOpsTypeTraitsBase
  *	Fast TArray Replication is a custom implementation of NetDeltaSerialize that is suitable for TArrays of UStructs. It offers performance
  *	improvements for large data sets, it serializes removals from anywhere in the array optimally, and allows events to be called on clients
  *	for adds and removals. The downside is that you will need to have game code mark items in the array as dirty, and well as the *order* of the list
- *	is not guaranteed to be identical between client and server in all cases.
+ *	is not garuanteed to be identical between client and server in all cases.
  *
  *	Using FTR is more complicated, but this is the code you need:
  *
@@ -98,16 +98,10 @@ struct FExampleItemEntry : public FFastArraySerializerItem
 	float		ExampleFloatProperty;
 
 
-	/** 
-	 * Optional functions you can implement for client side notification of changes to items; 
-	 * Parameter type can match the type passed as the 2nd template parameter in associated call to FastArrayDeltaSerialize
-	 * 
-	 * NOTE: It is not safe to modify the contents of the array serializer within these functions, nor to rely on the contents of the array 
-	 * being entirely up-to-date as these functions are called on items individually as they are updated, and so may be called in the middle of a mass update.
-	 */
-	void PreReplicatedRemove(const struct FExampleArray& InArraySerializer);
-	void PostReplicatedAdd(const struct FExampleArray& InArraySerializer);
-	void PostReplicatedChange(const struct FExampleArray& InArraySerializer);
+	/** Optional functions you can implement for client side notification of changes to items */
+	void PreReplicatedRemove();
+	void PostReplicatedAdd();
+	void PostReplicatedChange();
 };
 
 /** Step 2: You MUST wrap your TArray in another struct that inherits from FFastArraySerializer */
@@ -122,7 +116,7 @@ struct FExampleArray: public FFastArraySerializer
 	/** Step 4: Copy this, replace example with your names */
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo & DeltaParms)
 	{
-	   return FFastArraySerializer::FastArrayDeltaSerialize<FExampleItemEntry, FExampleArray>( Items, DeltaParms );
+	   return FastArrayDeltaSerialize<FExampleItemEntry>( Items, DeltaParms );
 	}
 };
 
@@ -146,9 +140,9 @@ struct TStructOpsTypeTraits< FExampleArray > : public TStructOpsTypeTraitsBase
  *		-In your classes GetLifetimeReplicatedProps, use DOREPLIFETIME(YourClass, YourArrayStructPropertyName);
  *
  *		You can override the following virtual functions in your structure (step 1) to get notifies before add/deletes/removes:
- *			-void PreReplicatedRemove(const FFastArraySerializer& Serializer)
- *			-void PostReplicatedAdd(const FFastArraySerializer& Serializer)
- *			-void PostReplicatedChange(const FFastArraySerializer& Serializer)
+ *			-void PreReplicatedRemove()
+ *			-void PostReplicatedAdd()
+ *			-void PostReplicatedChange()
  *
  *		Thats it!
  */ 
@@ -162,7 +156,7 @@ struct TStructOpsTypeTraits< FExampleArray > : public TStructOpsTypeTraitsBase
  *
  *		Everything originates in UNetDriver::ServerReplicateActors.
  *		Actors are chosen to replicate, create actor channels, and UActorChannel::ReplicateActor is called.
- *		ReplicateActor is ultimately responsible for deciding what properties have changed, and constructing a FOutBUnch to send to clients.
+ *		ReplicateActor is ultmately responsible for deciding what properties have changed, and constructing a FOutBUnch to send to clients.
  *
  *	The UActorChannel has 2 ways to decide what properties need to be sent.
  *		The traditional way, which is a flat TArray<uint8> buffer: UActorChannel::Recent. This represents a flat block of the actor properties.
@@ -305,26 +299,21 @@ struct FFastArraySerializerItem
 	/**
 	 * Called right before deleting element during replication.
 	 * 
-	 * @param InArraySerializer	Array serializer that owns the item and has triggered the replication call
-	 * 
 	 * NOTE: intentionally not virtual; invoked via templated code, @see FExampleItemEntry
 	 */
-	FORCEINLINE void PreReplicatedRemove(const struct FFastArraySerializer& InArraySerializer) { }
+	FORCEINLINE void PreReplicatedRemove() { }
 	/**
 	 * Called after adding and serializing a new element
 	 *
-	 * @param InArraySerializer	Array serializer that owns the item and has triggered the replication call
-	 * 
 	 * NOTE: intentionally not virtual; invoked via templated code, @see FExampleItemEntry
 	 */
-	FORCEINLINE void PostReplicatedAdd(const struct FFastArraySerializer& InArraySerializer) { }
+	FORCEINLINE void PostReplicatedAdd() { }
 	/**
 	 * Called after updating an existing element with new data
 	 *
-	 * @param InArraySerializer	Array serializer that owns the item and has triggered the replication call
 	 * NOTE: intentionally not virtual; invoked via templated code, @see FExampleItemEntry
 	 */
-	FORCEINLINE void PostReplicatedChange(const struct FFastArraySerializer& InArraySerializer) { }
+	FORCEINLINE void PostReplicatedChange() { }
 };
 
 /** Base struct for wrapping the array used in Fast TArray Replication */
@@ -360,14 +349,14 @@ struct FFastArraySerializer
 			ArrayReplicationKey++;
 	}
 
-	template< typename Type, typename SerializerType >
-	static bool FastArrayDeltaSerialize( TArray<Type> &Items, FNetDeltaSerializeInfo& Parms, SerializerType& ArraySerializer );
+	template< typename Type >
+	bool FastArrayDeltaSerialize( TArray<Type> &Items, FNetDeltaSerializeInfo& Parms );
 };
 
 
 /** The function that implements Fast TArray Replication  */
-template< typename Type, typename SerializerType >
-bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDeltaSerializeInfo& Parms, SerializerType& ArraySerializer )
+template< typename Type >
+bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDeltaSerializeInfo& Parms )
 {
 	UStruct* InnerStruct = Type::StaticStruct();
 
@@ -384,13 +373,13 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 		check(Parms.NewState);
 		*Parms.NewState = TSharedPtr<INetDeltaBaseState>( NewState );
 		TMap<int32, int32> & NewMap = NewState->IDToCLMap;
-		NewState->ArrayReplicationKey = ArraySerializer.ArrayReplicationKey;
+		NewState->ArrayReplicationKey = ArrayReplicationKey;
 
 		// Get the old map if its there
 		TMap<int32, int32> * OldMap = Parms.OldState ? &((FNetFastTArrayBaseState*)Parms.OldState)->IDToCLMap : NULL;
 
 		// See if the array changed at all. If the ArrayReplicationKey matches we can skip checking individual items
-		if (Parms.OldState && (ArraySerializer.ArrayReplicationKey == ((FNetFastTArrayBaseState*)Parms.OldState)->ArrayReplicationKey))
+		if (Parms.OldState && (ArrayReplicationKey == ((FNetFastTArrayBaseState*)Parms.OldState)->ArrayReplicationKey))
 		{
 			// Double check the old/new maps are the same size.
 			ensure(OldMap->Num() == Items.Num());
@@ -419,7 +408,7 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 			UE_LOG(LogNetSerialization, Log, TEXT("    Array[%d] - ID %d. CL %d."), i, Items[i].ReplicationID, Items[i].ReplicationKey);
 			if (Items[i].ReplicationID == INDEX_NONE)
 			{
-				ArraySerializer.MarkItemDirty(Items[i]);
+				MarkItemDirty(Items[i]);
 			}
 			NewMap.Add( Items[i].ReplicationID, Items[i].ReplicationKey );
 
@@ -532,15 +521,15 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 		//---------------
 		// Build ItemMap if necessary. This maps ReplicationID to our local index into the Items array.
 		//---------------
-		if (ArraySerializer.ItemMap.Num() != Items.Num())
+		if (ItemMap.Num() != Items.Num())
 		{
 			SCOPE_CYCLE_COUNTER(STAT_NetSerializeFast_Array);
-			UE_LOG(LogNetSerialization, Verbose, TEXT("Recreating Items map. Items.Num: %d Map.Num: %d"), Items.Num(), ArraySerializer.ItemMap.Num() );
+			UE_LOG(LogNetSerialization, Verbose, TEXT("Recreating Items map. Items.Num: %d Map.Num: %d"), Items.Num(), ItemMap.Num() );
 
-			ArraySerializer.ItemMap.Empty();
+			ItemMap.Empty();
 			for (int32 i=0; i < Items.Num(); ++i)
 			{
-				ArraySerializer.ItemMap.Add( Items[i].ReplicationID, i );
+				ItemMap.Add( Items[i].ReplicationID, i );
 			}
 		}
 		
@@ -580,7 +569,7 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 			int32 ElementID;
 			Ar << ElementID;
 
-			int32 * ElementIndexPtr = ArraySerializer.ItemMap.Find(ElementID);
+			int32 * ElementIndexPtr = ItemMap.Find(ElementID);
 			int32	ElementIndex = 0;
 			Type *	ThisElement = NULL;
 
@@ -594,7 +583,7 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 				ThisElement->ReplicationID = ElementID;
 
 				ElementIndex = Items.Num()-1;
-				ArraySerializer.ItemMap.Add(ElementID, ElementIndex);
+				ItemMap.Add(ElementID, ElementIndex);
 
 				NewElement = true;
 			}
@@ -616,11 +605,11 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 
 			if (NewElement)
 			{
-				ThisElement->PostReplicatedAdd(ArraySerializer);
+				ThisElement->PostReplicatedAdd();
 			} 
 			else
 			{
-				ThisElement->PostReplicatedChange(ArraySerializer);
+				ThisElement->PostReplicatedChange();
 			}
 
 		}
@@ -636,7 +625,7 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 				int32 ElementID;
 				Ar << ElementID;
 
-				int32* ElementIndexPtr = ArraySerializer.ItemMap.Find(ElementID);
+				int32* ElementIndexPtr = ItemMap.Find(ElementID);
 				if (ElementIndexPtr)
 				{
 					DeleteIndices.Add(*ElementIndexPtr);
@@ -653,7 +642,7 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 				int32 DeleteIndex = DeleteIndices[i];
 				if (Items.IsValidIndex(DeleteIndex))
 				{
-					Items[DeleteIndex].PreReplicatedRemove(ArraySerializer);
+					Items[DeleteIndex].PreReplicatedRemove();
 					Items.RemoveAt(DeleteIndex);
 
 					UE_LOG(LogNetSerialization, Log, TEXT("   Deleting: %d"), DeleteIndex);
@@ -661,7 +650,7 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 			}
 			
 			// Clear the map now that the indices are all shifted around. This kind of sucks, we could use slightly better data structures here I think.
-			ArraySerializer.ItemMap.Empty();
+			ItemMap.Empty();
 		}
 	}
 
@@ -684,11 +673,11 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
  *		Serialized value is scaled based on num bits and max value. Precision is determined by MaxValue and NumBits
  *		(if 2^NumBits is > MaxValue, you will have room for extra precision).
  *
- *		This format is good for things like normals, where the magnitudes are often similar. For example normal values may often
+ *		This format is good for things like normals, where the magnitudes are often similiar. For example normal values may often
  *		be in the 0.1f - 1.f range. In a packed format, the overhead in serializing num of bits per component would outweigh savings from
- *		serializing very small ( < 0.1f ) values.
+ *		serializiing very small ( < 0.1f ) values.
  *
- *		It is also good for performance critical sections since you can guarantee byte alignment if that is important.
+ *		It is also good for performance critical sections since you can garuntee byte alignment if that is important.
  *	
  *
  *
@@ -781,7 +770,7 @@ bool ReadPackedVector(FVector &Value, FArchive& Ar)
 
 // ScaleFactor is multiplied before send and divided by post receive. A higher ScaleFactor means more precision.
 // MaxBitsPerComponent is the maximum number of bits to use per component. This is only a maximum. A header is
-// written (size = Log2 (MaxBitsPerComponent)) to indicate how many bits are actually used. 
+// writter (size = Log2 (MaxBitsPerComponent)) to indicate how many bits are actually used. 
 
 template<uint32 ScaleFactor, int32 MaxBitsPerComponent>
 bool SerializePackedVector(FVector &Vector, FArchive& Ar)

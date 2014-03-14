@@ -176,6 +176,8 @@ TSharedRef< SWidget>  SMenuEntryBlock::BuildMenuBarWidget( const FMenuEntryBuild
 	const ISlateStyle* const StyleSet = InBuildParams.StyleSet;
 	const FName& StyleName = InBuildParams.StyleName;
 
+	FSlateFontInfo MenuEntryFont = StyleSet->GetFontStyle( StyleName, ".Label.Font" );
+
 	/* Style for menu bar button with sub menu opened */
 	MenuBarButtonBorderSubmenuOpen = StyleSet->GetBrush(StyleName, ".Button.SubMenuOpen");
 	/* Style for menu bar button with no sub menu opened */
@@ -222,7 +224,7 @@ TSharedRef< SWidget>  SMenuEntryBlock::BuildMenuBarWidget( const FMenuEntryBuild
 
 				[
 					SNew( STextBlock )
-					.TextStyle( StyleSet, ISlateStyle::Join( StyleName, ".Label" ) )
+					.Font( MenuEntryFont )
 					.Text( Label )
 				]
 
@@ -283,6 +285,9 @@ TSharedRef< SWidget > SMenuEntryBlock::BuildMenuEntryWidget( const FMenuEntryBui
 
 	const ISlateStyle* const StyleSet = InBuildParams.StyleSet;
 	const FName& StyleName = InBuildParams.StyleName;
+
+	FSlateFontInfo MenuEntryFont = StyleSet->GetFontStyle( StyleName, ".Label.Font" );
+	FSlateFontInfo MenuEntryBindingFont = StyleSet->GetFontStyle( StyleName, ".Keybinding.Font" );
 
 	// Grab the friendly text name for this action's input binding
 	FText InputBindingText = UICommand.IsValid() ? UICommand->GetInputText() : FText::GetEmpty();
@@ -383,7 +388,7 @@ TSharedRef< SWidget > SMenuEntryBlock::BuildMenuEntryWidget( const FMenuEntryBui
 		.VAlign( VAlign_Center )
 		[
 			SNew( STextBlock )
-			.TextStyle( StyleSet, ISlateStyle::Join( StyleName, ".Label" ) )
+			.Font( MenuEntryFont )
 			.Text( Label )
 		]
 		+ SHorizontalBox::Slot()
@@ -396,7 +401,7 @@ TSharedRef< SWidget > SMenuEntryBlock::BuildMenuEntryWidget( const FMenuEntryBui
 			.Padding(FMargin(16,0,4,0))
 			[
 				SNew( STextBlock )
-				.TextStyle( StyleSet, ISlateStyle::Join( StyleName, ".Keybinding" ) )
+				.Font( MenuEntryBindingFont )
 				.ColorAndOpacity( FSlateColor::UseSubduedForeground() )
 				.Text( InputBindingText )
 			]
@@ -537,6 +542,8 @@ TSharedRef< SWidget> SMenuEntryBlock::BuildSubMenuWidget( const FMenuEntryBuildP
 	const ISlateStyle* const StyleSet = InBuildParams.StyleSet;
 	const FName& StyleName = InBuildParams.StyleName;
 
+	FSlateFontInfo MenuEntryFont = StyleSet->GetFontStyle( StyleName, ".Label.Font" );
+
 	// Allow menu item buttons to be triggered on mouse-up events if the menu is configured to be
 	// dismissed automatically after clicking.  This preserves the behavior people expect for context
 	// menus and pull-down menus
@@ -633,7 +640,7 @@ TSharedRef< SWidget> SMenuEntryBlock::BuildSubMenuWidget( const FMenuEntryBuildP
 		.VAlign( VAlign_Center )
 		[
 			SNew( STextBlock )
-			.TextStyle( StyleSet, ISlateStyle::Join( StyleName, ".Label" ) )
+			.Font( MenuEntryFont )
 			.Text( Label )
 		];
 	}

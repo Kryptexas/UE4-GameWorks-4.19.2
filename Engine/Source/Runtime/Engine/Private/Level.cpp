@@ -1858,12 +1858,24 @@ void ULevel::IncStreamingLevelRefs()
 void ULevel::DecStreamingLevelRefs()
 {
 	NumStreamingLevelRefs--;
+	
+	// Add level to unload list in case:
+	// 1. there are no any streaming objects referencing this level
+	// 2. level is not in world visible level list
+	// 3. level is not in the process to became part of world visible levels list
+	if (NumStreamingLevelRefs <= 0 && 
+		bIsVisible == false &&
+		HasVisibilityRequestPending() == false)
+	{
+		FLevelStreamingGCHelper::RequestUnload(this);
+	}
 }
 
 int32 ULevel::GetStreamingLevelRefs() const
 {
 	return NumStreamingLevelRefs;
 }
+
 
 void ULevel::AddAssetUserData(UAssetUserData* InUserData)
 {

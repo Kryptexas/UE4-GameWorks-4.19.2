@@ -20,11 +20,6 @@ public class MacPlatform : Platform
         return bDedicatedServer ? ServerCookPlatform : ClientCookPlatform;
     }
 
-    public override string GetEditorCookPlatform()
-    {
-        return "Mac";
-    }
-
 	public override void GetFilesToDeployOrStage(ProjectParams Params, DeploymentContext SC)
 	{
 		List<string> Exes = GetExecutableNames(SC);
@@ -62,17 +57,5 @@ public class MacPlatform : Platform
     public override string GUBP_GetPlatformFailureEMails(string Branch)
     {
         return "Michael.Trepka[epic]";
-    }
-    public override List<string> GetDebugFileExtentions()
-    {
-        return new List<string> {".dsym"};
-    }
-    public override bool CanHostPlatform(UnrealTargetPlatform Platform)
-    {
-        if (Platform == UnrealTargetPlatform.IOS || Platform == UnrealTargetPlatform.Mac)
-        {
-            return true;
-        }
-        return false;
     }
 }

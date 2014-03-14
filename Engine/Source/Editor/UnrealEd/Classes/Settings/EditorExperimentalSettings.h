@@ -45,6 +45,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(DisplayName="Actor Merging"))
 	bool bActorMerging;
 
+	/** Enables 'Code View' in the actor Details panel, which enables browsing of C++ classes and functions, then navigating to code by double-clicking.  This requires full debug symbols in order to work. */
+	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(DisplayName="Code View"))
+	bool bCodeView;
+
 	UPROPERTY(EditAnywhere, config, Category=UserInterface, meta=(DisplayName="Console for Gamepad Labels"))
 	TEnumAsByte<EConsoleForGamepadLabels::Type> ConsoleForGamepadLabels;
 

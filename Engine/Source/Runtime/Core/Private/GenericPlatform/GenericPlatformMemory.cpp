@@ -92,23 +92,3 @@ void FGenericPlatformMemory::Memswap( void* Ptr1, void* Ptr2, SIZE_T Size )
 	FPlatformMemory::Memcpy( Ptr1, Ptr2, Size );
 	FPlatformMemory::Memcpy( Ptr2, Temp, Size );
 }
-
-FGenericPlatformMemory::FSharedMemoryRegion::FSharedMemoryRegion(const FString & InName, uint32 InAccessMode, void * InAddress, SIZE_T InSize)
-	:	AccessMode(InAccessMode)
-	,	Address(InAddress)
-	,	Size(InSize)
-{
-	FCString::Strcpy(Name, sizeof(Name) - 1, *InName);
-}
-
-FGenericPlatformMemory::FSharedMemoryRegion * FGenericPlatformMemory::MapNamedSharedMemoryRegion(const FString & Name, bool bCreate, uint32 AccessMode, SIZE_T Size)
-{
-	UE_LOG(LogHAL, Error, TEXT("FGenericPlatformMemory::MapNamedSharedMemoryRegion not implemented on this platform"));
-	return NULL;
-}
-
-bool FGenericPlatformMemory::UnmapNamedSharedMemoryRegion(FSharedMemoryRegion * MemoryRegion)
-{
-	UE_LOG(LogHAL, Error, TEXT("FGenericPlatformMemory::UnmapNamedSharedMemoryRegion not implemented on this platform"));
-	return false;
-}

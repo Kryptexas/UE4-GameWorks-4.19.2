@@ -212,10 +212,10 @@ FVector UProjectileMovementComponent::LimitVelocity(FVector NewVelocity) const
 
 FVector UProjectileMovementComponent::ComputeMoveDelta(const FVector& InVelocity, float DeltaTime, bool bApplyGravity) const
 {
-	// p = p0 + v*t
+	// x = x0 + v*t
 	FVector Delta = InVelocity * DeltaTime;
 
-	// z = z0 + v*t (above) + 1/2*a*t^2
+	// y = y0 + v*t + 1/2*a*t^2
 	if (bApplyGravity)
 	{
 		Delta.Z += 0.5f * GetEffectiveGravityZ() * FMath::Square(DeltaTime);
@@ -286,18 +286,15 @@ void UProjectileMovementComponent::HandleImpact(const FHitResult& Hit, float Tim
 
 	if (bShouldBounce)
 	{
-		const FVector OldVelocity = Velocity;
 		Velocity = ComputeBounceResult(Hit, TimeSlice, MoveDelta);
 
-		// Trigger bounce events
-		OnProjectileBounce.Broadcast(Hit, OldVelocity);
-
-		// Event may modify velocity or threshold, so check velocity threshold now.
-		Velocity = LimitVelocity(Velocity);
 		if (Velocity.SizeSquared() < FMath::Square(BounceVelocityStopSimulatingThreshold))
 		{
 			bStopSimulating = true;
 		}
+
+		// Trigger bounce events
+		OnProjectileBounce.Broadcast(Hit);
 	}
 	else
 	{

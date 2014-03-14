@@ -20,7 +20,7 @@ class ONLINESUBSYSTEMUTILS_API FOnlineVoiceImpl : public IOnlineVoice
 	/** Reference to the profile interface */
 	class IOnlineIdentity* IdentityInt;
 	/** Reference to the voice engine for acquiring voice data */
-	IVoiceEnginePtr VoiceEngine;
+	class IVoiceEngine* VoiceEngine;
 
 	/** Maximum permitted local talkers */
 	int32 MaxLocalTalkers;
@@ -31,9 +31,7 @@ class ONLINESUBSYSTEMUTILS_API FOnlineVoiceImpl : public IOnlineVoice
 	TArray<FLocalTalker> LocalTalkers;
 	/** State of all possible remote talkers */
 	TArray<FRemoteTalker> RemoteTalkers;
-	/** Remote players locally muted explicitly */
-	TArray<FUniqueNetIdString> SystemMuteList;
-	/** All remote players locally muted */
+	/** Remote players locally muted */
 	TArray<FUniqueNetIdString> MuteList;
 
 	/** Time to wait for new data before triggering "not talking" */
@@ -50,11 +48,6 @@ class ONLINESUBSYSTEMUTILS_API FOnlineVoiceImpl : public IOnlineVoice
 	 * @return pointer to the remote talker or NULL if not found
 	 */
 	struct FRemoteTalker* FindRemoteTalker(const FUniqueNetId& UniqueId);
-
-	/**
-	 * Is a given id presently muted (either by system mute or game server)
-	 */
-	bool IsLocallyMuted(const FUniqueNetId& UniqueId) const;
 
 PACKAGE_SCOPE:
 
@@ -103,7 +96,7 @@ public:
 	FOnlineVoiceImpl(class IOnlineSubsystem* InOnlineSubsystem);
 
 	/** Virtual destructor to force proper child cleanup */
-	virtual ~FOnlineVoiceImpl();
+	virtual ~FOnlineVoiceImpl() {}
 
 	// IOnlineVoice
 	virtual void StartNetworkedVoice(uint8 LocalUserNum) OVERRIDE;

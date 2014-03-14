@@ -569,7 +569,7 @@ public:
 
 	virtual const TCHAR * GetDescriptiveName() OVERRIDE
 	{ 
-		FScopeLock ScopeLock( &CriticalSection );
+		FScopeLock ScopeLock( &SynchronizationObject );
 		check(UsedMalloc);
 		return UsedMalloc->GetDescriptiveName(); 
 	}

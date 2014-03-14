@@ -24,6 +24,7 @@ void SSessionConsoleCommandBar::Construct( const FArguments& InArgs )
 
 		+ SHorizontalBox::Slot()
 			.FillWidth(1.0f)
+			.Padding(0.0f, 0.0f, 4.0f, 0.0f)
 			[
 				// command input
 				SAssignNew(InputTextBox, SSuggestionTextBox)
@@ -36,7 +37,7 @@ void SSessionConsoleCommandBar::Construct( const FArguments& InArgs )
 
 		+ SHorizontalBox::Slot()
 			.AutoWidth()
-			.Padding(4.0f, 0.0f, 0.0f, 0.0f)
+			.Padding(FMargin(0.0f, 0.0f, 0.0f, 0.0f))
 			[
 				// send button
 				SAssignNew(SendButton, SButton)
@@ -52,7 +53,6 @@ void SSessionConsoleCommandBar::Construct( const FArguments& InArgs )
 
 		+ SHorizontalBox::Slot()
 			.AutoWidth()
-			.Padding(4.0f, 0.0f, 0.0f, 0.0f)
 			[
 				// send button
 				SAssignNew(PromoteToShortcutButton, SButton)

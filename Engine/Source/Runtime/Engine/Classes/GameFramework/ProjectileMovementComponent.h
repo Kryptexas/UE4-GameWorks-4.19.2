@@ -13,7 +13,7 @@ class ENGINE_API UProjectileMovementComponent : public UMovementComponent
 {
 	GENERATED_UCLASS_BODY()
 
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FOnProjectileBounceDelegate, const FHitResult&, ImpactResult, const FVector&, ImpactVelocity );
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnProjectileBounceDelegate, const FHitResult&, ImpactResult );
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnProjectileStopDelegate, const FHitResult&, ImpactResult );
 
 	/** Initial speed of projectile. If greater than zero, this will override the initial Velocity value and instead treat Velocity as a direction. */

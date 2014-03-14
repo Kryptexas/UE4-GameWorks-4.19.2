@@ -157,7 +157,7 @@
 				<%=Model.Crash.GetTimeOfCrash()[1] %>
 
 			<dt>User</dt>
-				<dd><%=Html.DisplayFor(m => Model.Crash.User.UserName) %></dd>
+				<dd><%=Html.DisplayFor(m => Model.Crash.UserName) %></dd>
 
 			<dt>User Group</dt>
 				<dd><%=Html.DisplayFor(m => Model.Crash.UserGroupName) %></dd>

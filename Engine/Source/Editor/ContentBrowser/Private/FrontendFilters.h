@@ -2,15 +2,56 @@
 
 #pragma once
 
-#include "FrontendFilterBase.h"
-
 #define LOCTEXT_NAMESPACE "ContentBrowser"
+
+
+typedef const FAssetData& AssetFilterType;
+typedef TFilterCollection<AssetFilterType> AssetFilterCollectionType;
+
+
+class FFrontendFilter : public IFilter<AssetFilterType>
+{
+public:
+	/** Returns the system name for this filter */
+	virtual FString GetName() const = 0;
+
+	/** Returns the human readable name for this filter */
+	virtual FText GetDisplayName() const = 0;
+
+	/** Returns the tooltip for this filter, shown in the filters menu */
+	virtual FText GetToolTipText() const = 0;
+
+	/** Returns the color this filter button will be when displayed as a button */
+	virtual FLinearColor GetColor() const { return FLinearColor(0.6f, 0.6f, 0.6f, 1); }
+
+	/** Returns the name of the icon to use in menu entries */
+	virtual FName GetIconName() const { return NAME_None; }
+
+	/** Returns true if the filter should be in the list when disabled and not in the list when enabled */
+	virtual bool IsInverseFilter() const { return false; }
+
+	/** Invoke to set the ARFilter that is currently used to filter assets in the asset view */
+	virtual void SetCurrentFilter(const FARFilter& InBaseFilter) { }
+
+	/** Notification that the filter became active or inactive */
+	virtual void ActiveStateChanged(bool bActive) { }
+
+	// IFilter implementation
+	DECLARE_DERIVED_EVENT( FFrontendFilter, IFilter<AssetFilterType>::FChangedEvent, FChangedEvent );
+	virtual FChangedEvent& OnChanged() OVERRIDE { return ChangedEvent; }
+
+protected:
+	void BroadcastChangedEvent() const { ChangedEvent.Broadcast(); }
+
+private:
+	FChangedEvent ChangedEvent;
+};
 
 /** A filter that displays only checked out assets */
 class FFrontendFilter_CheckedOut : public FFrontendFilter
 {
 public:
-	FFrontendFilter_CheckedOut(TSharedPtr<FFrontendFilterCategory> InCategory);
+	FFrontendFilter_CheckedOut();
 
 	// FFrontendFilter implementation
 	virtual FString GetName() const OVERRIDE { return TEXT("CheckedOut"); }
@@ -34,8 +75,6 @@ private:
 class FFrontendFilter_Modified : public FFrontendFilter
 {
 public:
-	FFrontendFilter_Modified(TSharedPtr<FFrontendFilterCategory> InCategory) : FFrontendFilter(InCategory) {}
-
 	// FFrontendFilter implementation
 	virtual FString GetName() const OVERRIDE { return TEXT("Modified"); }
 	virtual FText GetDisplayName() const OVERRIDE { return LOCTEXT("FrontendFilter_Modified", "Modified"); }
@@ -49,7 +88,6 @@ public:
 class FFrontendFilter_ReplicatedBlueprint : public FFrontendFilter
 {
 public:
-	FFrontendFilter_ReplicatedBlueprint(TSharedPtr<FFrontendFilterCategory> InCategory) : FFrontendFilter(InCategory) {}
 
 	// FFrontendFilter implementation
 	virtual FString GetName() const OVERRIDE { return TEXT("ReplicatedBlueprint"); }
@@ -65,7 +103,7 @@ class FFrontendFilter_ShowOtherDevelopers : public FFrontendFilter
 {
 public:
 	/** Constructor */
-	FFrontendFilter_ShowOtherDevelopers(TSharedPtr<FFrontendFilterCategory> InCategory);
+	FFrontendFilter_ShowOtherDevelopers();
 
 	// FFrontendFilter implementation
 	virtual FString GetName() const OVERRIDE { return TEXT("ShowOtherDevelopers"); }
@@ -88,7 +126,7 @@ class FFrontendFilter_ShowRedirectors : public FFrontendFilter
 {
 public:
 	/** Constructor */
-	FFrontendFilter_ShowRedirectors(TSharedPtr<FFrontendFilterCategory> InCategory);
+	FFrontendFilter_ShowRedirectors();
 
 	// FFrontendFilter implementation
 	virtual FString GetName() const OVERRIDE { return TEXT("ShowRedirectors"); }
@@ -110,7 +148,7 @@ class FFrontendFilter_InUseByLoadedLevels : public FFrontendFilter
 {
 public:
 	/** Constructor/Destructor */
-	FFrontendFilter_InUseByLoadedLevels(TSharedPtr<FFrontendFilterCategory> InCategory);
+	FFrontendFilter_InUseByLoadedLevels();
 	~FFrontendFilter_InUseByLoadedLevels();
 
 	// FFrontendFilter implementation
@@ -128,4 +166,6 @@ public:
 private:
 	bool bIsCurrentlyActive;
 };
+
+
 #undef LOCTEXT_NAMESPACE

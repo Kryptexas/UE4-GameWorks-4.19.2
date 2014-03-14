@@ -196,7 +196,6 @@ void UBlueprint::Serialize(FArchive& Ar)
 
 		FBlueprintEditorUtils::PreloadMembers(this);
 		FBlueprintEditorUtils::PreloadConstructionScript(this);
-		FBlueprintEditorUtils::RefreshInputDelegatePins(this);
 		FKismetEditorUtilities::GenerateBlueprintSkeleton(this);
 
 		bIsRegeneratingOnLoad = bWasRegen;
@@ -331,7 +330,7 @@ void UBlueprint::PostLoad()
 	}
 
 	// Make sure we have an SCS and ensure it's transactional
-	if( FBlueprintEditorUtils::SupportsConstructionScript(this) )
+	if( ParentClass && ParentClass->IsChildOf(AActor::StaticClass()) )
 	{
 		if(SimpleConstructionScript == NULL)
 		{

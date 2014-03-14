@@ -69,6 +69,7 @@ public:
 	MeshPaintRendering::FMeshPaintDilateShaderParameters ShaderParams;
 };
 
+
 /** Constructor */
 FEdModeMeshPaint::FEdModeMeshPaint() 
 	: FEdMode(),
@@ -393,25 +394,30 @@ bool FEdModeMeshPaint::InputKey( FLevelEditorViewportClient* InViewportClient, F
 	// Change Brush Size - We want to stay consistent with other brush utilities.  Here we model after landscape mode.
 	if ((InEvent == IE_Pressed || InEvent == IE_Repeat) && (InKey == EKeys::LeftBracket || InKey == EKeys::RightBracket) )
 	{
-		const float BrushRadius = GetBrushRadiiDefault();
-
+		float Radius = FMeshPaintSettings::Get().BrushRadius;
+		float MinBrushRadius, MaxBrushRadius;
+		GetBrushRadiiLimits(MinBrushRadius, MaxBrushRadius);
 		float Diff = 0.05f; 
+
 		if (InKey == EKeys::LeftBracket)
 		{
 			Diff = -Diff;
 		}
 
-		float NewValue = BrushRadius*(1.f+Diff);
+		float NewValue = Radius*(1.f+Diff);
+
 		if (InKey == EKeys::LeftBracket)
 		{
-			NewValue = FMath::Min(NewValue, BrushRadius - 1.f);
+			NewValue = FMath::Min(NewValue, Radius - 1.f);
 		}
 		else
 		{
-			NewValue = FMath::Max(NewValue, BrushRadius + 1.f);
+			NewValue = FMath::Max(NewValue, Radius + 1.f);
 		}
 
-		SetBrushRadiiDefault( NewValue );
+		NewValue = (int32)FMath::Clamp(NewValue, MinBrushRadius, MaxBrushRadius);
+
+		FMeshPaintSettings::Get().BrushRadius = NewValue;
 
 		bHandled = true;
 	}
@@ -465,46 +471,26 @@ bool FEdModeMeshPaint::InputKey( FLevelEditorViewportClient* InViewportClient, F
 		else if( !bIsPainting && bUserWantsPaint )
 		{
 			// Re-initialize new tracking only if a new button was pressed, otherwise we continue the previous one.
-			// First, see if the item we're clicking on is different to the currently selected one.
-			const int32 HitX = InViewport->GetMouseX();
-			const int32 HitY = InViewport->GetMouseY();
-			const HHitProxy* HitProxy = InViewport->GetHitProxy(HitX, HitY);
+			bHandled = true;
+			StartPainting();
 
-			if (HitProxy && HitProxy->IsA(HActor::StaticGetType()))
+			// Go ahead and paint immediately
 			{
-				const AActor* ClickedActor = (static_cast<const HActor*>(HitProxy))->Actor;
-				USelection& SelectedActors = *GEditor->GetSelectedActors();
-				if (SelectedActors.IsSelected(ClickedActor))
-				{
-					// Clicked actor is currently selected, start painting.
-					bHandled = true;
-					StartPainting();
+				// Compute a world space ray from the screen space mouse coordinates
+				FSceneViewFamilyContext ViewFamily( FSceneViewFamily::ConstructionValues( 
+					InViewportClient->Viewport, 
+					InViewportClient->GetScene(),
+					InViewportClient->EngineShowFlags )
+					.SetRealtimeUpdate( InViewportClient->IsRealtime() ));
 
-					// Go ahead and paint immediately
-					{
-						// Compute a world space ray from the screen space mouse coordinates
-						FSceneViewFamilyContext ViewFamily( FSceneViewFamily::ConstructionValues( 
-							InViewportClient->Viewport, 
-							InViewportClient->GetScene(),
-							InViewportClient->EngineShowFlags )
-							.SetRealtimeUpdate( InViewportClient->IsRealtime() ));
+				FSceneView* View = InViewportClient->CalcSceneView( &ViewFamily );
+				FViewportCursorLocation MouseViewportRay( View, (FLevelEditorViewportClient*)InViewport->GetClient(), InViewport->GetMouseX(), InViewport->GetMouseY() );
 
-						FSceneView* View = InViewportClient->CalcSceneView( &ViewFamily );
-						FViewportCursorLocation MouseViewportRay( View, (FLevelEditorViewportClient*)InViewport->GetClient(), InViewport->GetMouseX(), InViewport->GetMouseY() );
-
-						// Paint!
-						const bool bVisualCueOnly = false;
-						const EMeshPaintAction::Type PaintAction = GetPaintAction(InViewport);
-						const float StrengthScale = 1.0f;
-						DoPaint( View->ViewMatrices.ViewOrigin, MouseViewportRay.GetOrigin(), MouseViewportRay.GetDirection(), NULL, PaintAction, bVisualCueOnly, StrengthScale, bAnyPaintAbleActorsUnderCursor );
-					}
-				}
-				else
-				{
-					// Otherwise we have clicked on a new actor, not necessarily one which is paintable, but certainly one which is selectable.
-					// Pass the click up to the editor viewport client.
-					bHandled = false;
-				}
+				// Paint!
+				const bool bVisualCueOnly = false;
+				const EMeshPaintAction::Type PaintAction = GetPaintAction(InViewport);
+				const float StrengthScale = 1.0f;
+				DoPaint( View->ViewMatrices.ViewOrigin, MouseViewportRay.GetOrigin(), MouseViewportRay.GetDirection(), NULL, PaintAction, bVisualCueOnly, StrengthScale, bAnyPaintAbleActorsUnderCursor );
 			}
 		}
 
@@ -944,7 +930,7 @@ void FEdModeMeshPaint::DoPaint( const FVector& InCameraOrigin,
 								const float InStrengthScale,
 								OUT bool& bAnyPaintAbleActorsUnderCursor)
 {
-	const float BrushRadius = GetBrushRadiiDefault();
+	const float BrushRadius = FMeshPaintSettings::Get().BrushRadius;
 
 	// Fire out a ray to see if there is a *selected* static mesh under the mouse cursor.
 	// NOTE: We can't use a GWorld line check for this as that would ignore actors that have collision disabled
@@ -1152,7 +1138,7 @@ void FEdModeMeshPaint::DoPaint( const FVector& InCameraOrigin,
 		FStaticMeshLODResources& LODModel = StaticMeshComponent->StaticMesh->RenderData->LODResources[ PaintingMeshLODIndex ];
 		
 		// Brush properties
-		const float BrushDepth = BrushRadius;	// NOTE: Actually half of the total depth (like a radius)
+		const float BrushDepth = FMeshPaintSettings::Get().BrushRadius;	// NOTE: Actually half of the total depth (like a radius)
 		const float BrushFalloffAmount = FMeshPaintSettings::Get().BrushFalloffAmount;
 		const FLinearColor BrushColor = ((InPaintAction == EMeshPaintAction::Paint) || (InPaintAction == EMeshPaintAction::Fill))? FMeshPaintSettings::Get().PaintColor : FMeshPaintSettings::Get().EraseColor;
 
@@ -4114,26 +4100,6 @@ bool FEdModeMeshPaint::GetSelectedMeshInfo( int32& OutTotalBaseVertexColorBytes,
 	return ( NumValidMeshes > 0 );
 }
 
-void FEdModeMeshPaint::SetBrushRadiiDefault( float InBrushRadius )
-{
-	float MinBrushRadius, MaxBrushRadius;
-	GetBrushRadiiLimits(MinBrushRadius, MaxBrushRadius);	
-
-	InBrushRadius = (float)FMath::Clamp(InBrushRadius, MinBrushRadius, MaxBrushRadius);
-	GConfig->SetFloat( TEXT("MeshPaintEdit"), TEXT("DefaultBrushRadius"), InBrushRadius, GEditorUserSettingsIni );
-}
-
-float FEdModeMeshPaint::GetBrushRadiiDefault() const
-{
-	float MinBrushRadius, MaxBrushRadius;
-	GetBrushRadiiLimits(MinBrushRadius, MaxBrushRadius);
-
-	float BrushRadius = 128.f;
-	GConfig->GetFloat( TEXT("MeshPaintEdit"), TEXT("DefaultBrushRadius"), BrushRadius, GEditorUserSettingsIni );
-	BrushRadius = (float)FMath::Clamp(BrushRadius, MinBrushRadius, MaxBrushRadius);
-	return BrushRadius;
-}
-
 void FEdModeMeshPaint::GetBrushRadiiSliderLimits( float& OutMinBrushSliderRadius, float& OutMaxBrushSliderRadius ) const
 {
 	float MinBrushRadius, MaxBrushRadius;
@@ -4141,11 +4107,11 @@ void FEdModeMeshPaint::GetBrushRadiiSliderLimits( float& OutMinBrushSliderRadius
 
 	OutMinBrushSliderRadius = 1.f;
 	GConfig->GetFloat( TEXT("UnrealEd.MeshPaint"), TEXT("MinBrushRadius"), OutMinBrushSliderRadius, GEditorIni );
-	OutMinBrushSliderRadius = (float)FMath::Clamp(OutMinBrushSliderRadius, MinBrushRadius, MaxBrushRadius);
+	OutMinBrushSliderRadius = (int32)FMath::Clamp(OutMinBrushSliderRadius, MinBrushRadius, MaxBrushRadius);
 
-	OutMaxBrushSliderRadius = 256.f;
+	OutMaxBrushSliderRadius = 128.f;
 	GConfig->GetFloat( TEXT("UnrealEd.MeshPaint"), TEXT("MaxBrushRadius"), OutMaxBrushSliderRadius, GEditorIni );
-	OutMaxBrushSliderRadius = (float)FMath::Clamp(OutMaxBrushSliderRadius, MinBrushRadius, MaxBrushRadius);
+	OutMaxBrushSliderRadius = (int32)FMath::Clamp(OutMaxBrushSliderRadius, MinBrushRadius, MaxBrushRadius);
 
 	if ( OutMaxBrushSliderRadius < OutMinBrushSliderRadius )
 	{

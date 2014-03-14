@@ -12,7 +12,7 @@ FToolBarButtonBlock::FToolBarButtonBlock( const TSharedPtr< const FUICommandInfo
 	, IconOverride( InIconOverride )
 	, LabelVisibility()
 	, UserInterfaceActionType(EUserInterfaceActionType::Button)
-	, bIsFocusable(false)
+	, bIsFocusable(true)
 	, bForceSmallIcons(false)
 {
 }
@@ -24,7 +24,7 @@ FToolBarButtonBlock::FToolBarButtonBlock( const TAttribute<FText>& InLabel, cons
 	, IconOverride( InIcon )
 	, LabelVisibility()
 	, UserInterfaceActionType(InUserInterfaceActionType)
-	, bIsFocusable(false)
+	, bIsFocusable(true)
 	, bForceSmallIcons(false)
 {
 }
@@ -101,7 +101,7 @@ void SToolBarButtonBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet, con
 				FFormatNamedArguments Args;
 				Args.Add( TEXT("ToolTipDescription"), ToolTip.Get() );
 				Args.Add( TEXT("Keybinding"), CommandPtr->GetInputText() );
-				return FText::Format( NSLOCTEXT("ToolBar", "ToolTip + Keybinding", "{ToolTipDescription} ({Keybinding})"), Args );
+				return FText::Format( NSLOCTEXT("ToolBar", "ToolTip + Keybinding", "{ToolTipDescription} {Keybinding}"), Args );
 			}
 			else
 			{
@@ -180,7 +180,7 @@ void SToolBarButtonBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet, con
 				SNew( STextBlock )
 					.Visibility( LabelVisibility )
 					.Text( ActualLabel )
-					.TextStyle( StyleSet, ISlateStyle::Join( StyleName, ".Label" ) )	// Smaller font for tool tip labels
+					.Font( StyleSet->GetFontStyle( StyleName, ".Label.Font" ) )	// Smaller font for tool tip labels
 					.ShadowOffset( FVector2D::UnitVector )
 			]
 		];

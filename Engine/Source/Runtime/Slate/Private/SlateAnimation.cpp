@@ -96,10 +96,6 @@ float FCurveHandle::ApplyEasing( float Time, ECurveEaseFunction::Type EaseFuncti
 	return CurveValue;
 }
 
-bool FCurveHandle::IsInitialized() const
-{
-	return (OwnerSequence != NULL);
-}
 
 float FCurveHandle::GetLerp() const
 {

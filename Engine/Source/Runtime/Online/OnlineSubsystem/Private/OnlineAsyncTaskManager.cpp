@@ -3,6 +3,11 @@
 #include "OnlineSubsystemPrivatePCH.h"
 #include "OnlineAsyncTaskManager.h"
 
+
+uint32 FOnlineAsyncItem::OnlineThreadId = 0;
+uint32 FOnlineAsyncItem::GameThreadId = 0;
+
+/** Set to zero so that Run() can prevent a second invocation */
 int32 FOnlineAsyncTaskManager::InvocationCount = 0;
 
 /** The default value for the polling interval when not set by config */
@@ -11,30 +16,43 @@ int32 FOnlineAsyncTaskManager::InvocationCount = 0;
 FOnlineAsyncTaskManager::FOnlineAsyncTaskManager() :
 	WorkEvent(NULL),
 	PollingInterval(POLLING_INTERVAL_MS),
-	bRequestingExit(0),
-	OnlineThreadId(0)
+	bRequestingExit(0)
 {
 }
 
+/**
+ * Init the online async task manager. Creates the event used to wake up the
+ * thread when there is work to be done
+ *
+ * @return True if initialization was successful, false otherwise
+ */
 bool FOnlineAsyncTaskManager::Init(void)
 {
 	WorkEvent = FPlatformProcess::CreateSynchEvent();
 	int32 PollingConfig = POLLING_INTERVAL_MS;
 	// Read the polling interval to use from the INI file
-	if (GConfig->GetInt(TEXT("OnlineSubsystem"), TEXT("PollingIntervalInMs"), PollingConfig, GEngineIni))
+	if (GConfig->GetInt(TEXT("OnlineSubsystem"),TEXT("PollingIntervalInMs"),PollingConfig,GEngineIni))
 	{
 		PollingInterval = (uint32)PollingConfig;
 	}
 
+	FPlatformAtomics::InterlockedExchange((volatile int32*)&FOnlineAsyncItem::GameThreadId, GGameThreadId);
 	return WorkEvent != NULL;
 }
 
+/**
+ * This is where all per object thread work is done. This is only called
+ * if the initialization was successful.
+ *
+ * @return The exit code of the runnable object
+ */
 uint32 FOnlineAsyncTaskManager::Run(void)
 {
+	check(InvocationCount == 0);
 	InvocationCount++;
 	// This should not be set yet
-	check(OnlineThreadId == 0);
-	FPlatformAtomics::InterlockedExchange((volatile int32*)&OnlineThreadId, FPlatformTLS::GetCurrentThreadId());
+	check(FOnlineAsyncItem::OnlineThreadId == 0);
+	FPlatformAtomics::InterlockedExchange((volatile int32*)&FOnlineAsyncItem::OnlineThreadId, FPlatformTLS::GetCurrentThreadId());
 
 	do 
 	{
@@ -109,21 +127,11 @@ uint32 FOnlineAsyncTaskManager::Run(void)
 	
 					if (Task->IsDone())
 					{
-						if (Task->WasSuccessful())
-						{
-							UE_LOG(LogOnline, Log, TEXT("Async task '%s' completed in %f seconds with %d"),
-								*Task->ToString(),
-								Task->GetElapsedTime(),
-								Task->WasSuccessful());
-						}
-						else
-						{
-							UE_LOG(LogOnline, Warning, TEXT("Async task '%s' completed in %f seconds with %d"),
-								*Task->ToString(),
-								Task->GetElapsedTime(),
-								Task->WasSuccessful());
-						}
-						
+						UE_LOG(LogOnline, Log, TEXT("Async task '%s' completed in %f seconds with %d"),
+							*Task->ToString(),
+							Task->GetElapsedTime(),
+							Task->WasSuccessful());
+
 						// Task is done, remove from the incoming queue and add to the outgoing queue
 						PopFromInQueue();
 						AddToOutQueue(Task);
@@ -142,36 +150,54 @@ uint32 FOnlineAsyncTaskManager::Run(void)
 	return 0;
 }
 
+/**
+* This is called if a thread is requested to terminate early
+*/
 void FOnlineAsyncTaskManager::Stop(void)
 {
 	FPlatformAtomics::InterlockedExchange(&bRequestingExit, 1);
 	WorkEvent->Trigger();
 }
 
+/**
+* Called in the context of the aggregating thread to perform any cleanup.
+*/
 void FOnlineAsyncTaskManager::Exit(void)
 {
-	OnlineThreadId = 0;
-	InvocationCount--;
+	FOnlineAsyncItem::GameThreadId = 0;
+	FOnlineAsyncItem::OnlineThreadId = 0;
+	InvocationCount = 0;
 }
 
+/**
+* Add online async tasks that need processing onto the incoming queue
+* @param NewTask - some request of the online services
+*/
 void FOnlineAsyncTaskManager::AddToInQueue(FOnlineAsyncTask* NewTask)
 {
 	// assert if not game thread	
-	check(IsInGameThread());
+	check(FPlatformTLS::GetCurrentThreadId() == FOnlineAsyncItem::GameThreadId);
 	FScopeLock Lock(&InQueueLock);
 	InQueue.Add(NewTask);
 	WorkEvent->Trigger();
 }
 
+/**
+*	Remove the current async task from the queue
+*/
 void FOnlineAsyncTaskManager::PopFromInQueue()
 {
 	// assert if not game thread
-	check(FPlatformTLS::GetCurrentThreadId() == OnlineThreadId);
+	check(FPlatformTLS::GetCurrentThreadId() == FOnlineAsyncItem::OnlineThreadId);
 
 	FScopeLock Lock(&InQueueLock);
 	InQueue.RemoveAt(0);
 }
 
+/**
+* Add completed online async tasks that need processing onto the queue
+* @param CompletedItem - some finished request of the online services
+*/
 void FOnlineAsyncTaskManager::AddToOutQueue(FOnlineAsyncItem* CompletedItem)
 {
 	FScopeLock Lock(&OutQueueLock);
@@ -192,10 +218,15 @@ void FOnlineAsyncTaskManager::RemoveFromParallelTasks(FOnlineAsyncTask* OldTask)
 	ParallelTasks.Remove( OldTask );
 }
 
+/**
+*	** CALL ONLY FROM GAME THREAD **
+* Give the completed async tasks a chance to marshal their data back onto the game thread
+* Calling delegates where appropriate
+*/
 void FOnlineAsyncTaskManager::GameTick()
 {
 	// assert if not game thread
-	check(IsInGameThread());
+	check(FPlatformTLS::GetCurrentThreadId() == FOnlineAsyncItem::GameThreadId);
 
 	FOnlineAsyncItem* Item = NULL;
 	int32 CurrentQueueSize = 0;

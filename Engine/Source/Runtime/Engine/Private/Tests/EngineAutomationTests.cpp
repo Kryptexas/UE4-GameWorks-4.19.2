@@ -196,20 +196,20 @@ bool FSaveGameTest::RunTest(const FString& Parameters)
 	ISaveGameSystem* Save = IPlatformFeaturesModule::Get().GetSaveGameSystem();
 
 	// write it out
-	if (Save->SaveGame(false, SaveName, 0, Blob) == false)
+	if (Save->SaveGame(false, SaveName, Blob) == false)
 	{
 		return false;
 	}
 
 	// make sure it was written
-	if (Save->DoesSaveGameExist(SaveName, 0) == false)
+	if (Save->DoesSaveGameExist(SaveName) == false)
 	{
 		return false;
 	}
 
 	// read it back in
 	Blob.Empty();
-	if (Save->LoadGame(false, SaveName, 0, Blob) == false)
+	if (Save->LoadGame(false, SaveName, Blob) == false)
 	{
 		return false;
 	}

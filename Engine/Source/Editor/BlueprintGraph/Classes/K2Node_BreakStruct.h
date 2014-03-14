@@ -9,6 +9,7 @@ class UK2Node_BreakStruct : public UK2Node_StructMemberGet
 {
 	GENERATED_UCLASS_BODY()
 
+#if WITH_EDITOR
 	static bool CanBeBroken(const UScriptStruct* Struct);
 
 	// Begin UEdGraphNode interface
@@ -26,5 +27,7 @@ class UK2Node_BreakStruct : public UK2Node_StructMemberGet
 	virtual ERedirectType DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex) const OVERRIDE;
 	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const OVERRIDE;
 	// End K2Node interface
+
+#endif //WITH_EDITOR
 };
 

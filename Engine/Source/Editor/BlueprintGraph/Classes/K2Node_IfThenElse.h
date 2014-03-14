@@ -9,6 +9,8 @@ class UK2Node_IfThenElse : public UK2Node
 {
 	GENERATED_UCLASS_BODY()
 
+
+#if WITH_EDITOR
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() OVERRIDE;
 	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
@@ -28,5 +30,6 @@ class UK2Node_IfThenElse : public UK2Node
 	BLUEPRINTGRAPH_API UEdGraphPin* GetElsePin() const;
 	/** Get the condition pin */
 	BLUEPRINTGRAPH_API UEdGraphPin* GetConditionPin() const;
+#endif 
 };
 

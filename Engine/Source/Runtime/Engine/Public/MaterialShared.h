@@ -1463,13 +1463,11 @@ public:
 
 	const FMaterialRenderProxy* const Parent;
 	const FLinearColor Color;
-	FName ColorParamName;
 
 	/** Initialization constructor. */
-	FColoredMaterialRenderProxy(const FMaterialRenderProxy* InParent,const FLinearColor& InColor, FName InColorParamName = NAME_Color):
+	FColoredMaterialRenderProxy(const FMaterialRenderProxy* InParent,const FLinearColor& InColor):
 		Parent(InParent),
-		Color(InColor),
-		ColorParamName(InColorParamName)
+		Color(InColor)
 	{}
 
 	// FMaterialRenderProxy interface.

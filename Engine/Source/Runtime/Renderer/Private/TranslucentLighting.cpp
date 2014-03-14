@@ -245,7 +245,7 @@ public:
 	FTranslucencyShadowDepthPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
 		FMeshMaterialShader(Initializer)
 	{
-		TranslInvMaxSubjectDepth.Bind(Initializer.ParameterMap,TEXT("TranslInvMaxSubjectDepth"));
+		InvMaxSubjectDepth.Bind(Initializer.ParameterMap,TEXT("InvMaxSubjectDepth"));
 		TranslucentShadowStartOffset.Bind(Initializer.ParameterMap,TEXT("TranslucentShadowStartOffset"));
 		TranslucencyProjectionParameters.Bind(Initializer.ParameterMap);
 	}
@@ -258,18 +258,16 @@ public:
 		const FProjectedShadowInfo* ShadowInfo
 		)
 	{
-		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
-
 		//@todo - scene depth can be bound by the material for use in depth fades
 		// This is incorrect when rendering a shadowmap as it's not from the camera's POV
 		// Set the scene depth texture to something safe when rendering shadow depths
-		FMeshMaterialShader::SetParameters(ShaderRHI,MaterialRenderProxy,*MaterialRenderProxy->GetMaterial(GRHIFeatureLevel),View,ESceneRenderTargetsMode::NonSceneAlignedPass);
+		FMeshMaterialShader::SetParameters(GetPixelShader(),MaterialRenderProxy,*MaterialRenderProxy->GetMaterial(GRHIFeatureLevel),View,ESceneRenderTargetsMode::NonSceneAlignedPass);
 
-		SetShaderValue(ShaderRHI, TranslInvMaxSubjectDepth, ShadowInfo->InvMaxSubjectDepth);
+		SetShaderValue(GetPixelShader(),InvMaxSubjectDepth,1.0f / ShadowInfo->MaxSubjectDepth);
 
 		const float LocalToWorldScale = ShadowInfo->ParentSceneInfo->Proxy->GetLocalToWorld().GetScaleVector().GetMax();
 		const float TranslucentShadowStartOffsetValue = MaterialRenderProxy->GetMaterial(GRHIFeatureLevel)->GetTranslucentShadowStartOffset() * LocalToWorldScale;
-		SetShaderValue(ShaderRHI,TranslucentShadowStartOffset, TranslucentShadowStartOffsetValue / (ShadowInfo->MaxSubjectZ - ShadowInfo->MinSubjectZ));
+		SetShaderValue(GetPixelShader(),TranslucentShadowStartOffset, TranslucentShadowStartOffsetValue / (ShadowInfo->MaxSubjectZ - ShadowInfo->MinSubjectZ));
 		TranslucencyProjectionParameters.Set(this);
 	}
 
@@ -281,14 +279,14 @@ public:
 	virtual bool Serialize(FArchive& Ar)
 	{
 		bool bShaderHasOutdatedParameters = FMeshMaterialShader::Serialize(Ar);
-		Ar << TranslInvMaxSubjectDepth;
+		Ar << InvMaxSubjectDepth;
 		Ar << TranslucentShadowStartOffset;
 		Ar << TranslucencyProjectionParameters;
 		return bShaderHasOutdatedParameters;
 	}
 
 private:
-	FShaderParameter TranslInvMaxSubjectDepth;
+	FShaderParameter InvMaxSubjectDepth;
 	FShaderParameter TranslucentShadowStartOffset;
 	FTranslucencyShadowProjectionShaderParameters TranslucencyProjectionParameters;
 };
@@ -632,20 +630,18 @@ public:
 
 	void SetParameters(const FViewInfo& View, int32 VolumeCascadeIndex)
 	{
-		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
+		FGlobalShader::SetParameters(GetPixelShader(), View);
 
-		FGlobalShader::SetParameters(ShaderRHI, View);
-
-		SetShaderValue(ShaderRHI, TexelSize, 1.0f / GTranslucencyLightingVolumeDim);
+		SetShaderValue(GetPixelShader(), TexelSize, 1.0f / GTranslucencyLightingVolumeDim);
 		SetTextureParameter(
-			ShaderRHI, 
+			GetPixelShader(), 
 			TranslucencyLightingVolumeAmbient, 
 			TranslucencyLightingVolumeAmbientSampler, 
 			TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
 			GSceneRenderTargets.TranslucencyLightingVolumeAmbient[VolumeCascadeIndex]->GetRenderTargetItem().ShaderResourceTexture);
 
 		SetTextureParameter(
-			ShaderRHI, 
+			GetPixelShader(), 
 			TranslucencyLightingVolumeDirectional, 
 			TranslucencyLightingVolumeDirectionalSampler, 
 			TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 

@@ -615,7 +615,7 @@ void FBehaviorTreeDebugger::FindLockedDebugActor(UWorld* World)
 	APlayerController* LocalPC = GEngine->GetFirstLocalPlayerController(World);
 	if (LocalPC && LocalPC->GetHUD() && LocalPC->GetPawnOrSpectator())
 	{
-		UGameplayDebuggingControllerComponent* DebuggingController = LocalPC->FindComponentByClass<UGameplayDebuggingControllerComponent>();
+		UGameplayDebuggingController* DebuggingController = LocalPC->FindComponentByClass<UGameplayDebuggingController>();
 		const APawn* LockedPawn = DebuggingController != NULL ? DebuggingController->GetCurrentDebugTarget() : NULL;
 		UBehaviorTreeComponent* TestInstance = FindInstanceInActor((APawn*)LockedPawn);
 		if (TestInstance)

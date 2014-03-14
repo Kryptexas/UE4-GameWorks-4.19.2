@@ -30,12 +30,6 @@ private:
 	/** Called by the editable text control when the user commits a text change */
 	void OnSearchBoxCommitted(const FText& InSearchText, ETextCommit::Type CommitInfo);
 
-	/** Called to create the menu for the filter button */
-	TSharedRef<SWidget> MakeAddFilterMenu();
-
-	/** Called when the user changes filters */
-	void OnFilterChanged();
-
 	/** Handler for when the "None" button is clicked */
 	FReply OnNoneButtonClicked();
 
@@ -70,9 +64,6 @@ private:
 	/** The search box */
 	TSharedPtr<SAssetSearchBox> SearchBoxPtr;
 
-	/** The filter list */
-	TSharedPtr<SFilterList> FilterListPtr;
-
 	/** Called to when an asset is selected or the none button is pressed */
 	FOnAssetSelected OnAssetSelected;
 
@@ -95,9 +86,4 @@ private:
 	TSharedPtr< AssetFilterCollectionType > FilterCollection;
 	TSharedPtr< TTextFilter< AssetFilterType > > TextFilter;
 	TSharedPtr< FOtherDevelopersAssetFilter > OtherDevelopersFilter;
-
-	EAssetTypeCategories::Type DefaultFilterMenuExpansion;
-
-	/** Initial filter we were created with, needed reset asset view after we have custom filtered */
-	FARFilter InitialBackendFilter;
 };

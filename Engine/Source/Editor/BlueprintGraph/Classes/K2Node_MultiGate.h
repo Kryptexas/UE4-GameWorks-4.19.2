@@ -12,6 +12,7 @@ class UK2Node_MultiGate : public UK2Node_ExecutionSequence
 	UPROPERTY(transient)
 	class UK2Node_TemporaryVariable* DataNode;
 
+#if WITH_EDITOR
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() OVERRIDE;
 	virtual FString GetTooltip() const OVERRIDE;
@@ -52,5 +53,6 @@ class UK2Node_MultiGate : public UK2Node_ExecutionSequence
 private:
 	// Returns the exec output pin name for a given 0-based index
  	virtual FString GetPinNameGivenIndex(int32 Index) const OVERRIDE;
+#endif 
 };
 

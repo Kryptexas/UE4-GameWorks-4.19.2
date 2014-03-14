@@ -207,7 +207,7 @@ public:
 	TSharedPtr<FSlateRenderer> GetRenderer() const { return Renderer; }
 
 	/** Play SoundToPlay. Interrupt previous sound if one is playing. */
-	void PlaySound( const FSlateSound& SoundToPlay, int32 UserIndex = 0 ) const;
+	void PlaySound( const FSlateSound& SoundToPlay ) const;
 
 	/** @return The duration of the given sound resource */
 	float GetSoundDuration(const FSlateSound& Sound) const;
@@ -576,16 +576,11 @@ public:
 
 	virtual void GetInitialDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const { PlatformApplication->GetInitialDisplayMetrics( OutDisplayMetrics ); }
 
-	virtual const TSharedPtr<GenericApplication> GetPlatformApplication ( ) const { return PlatformApplication; }
-
 	/** Are we drag-dropping right now? */
 	bool IsDragDropping() const;
 
 	/** Get the current drag-dropping content */
 	TSharedPtr<class FDragDropOperation> GetDragDroppingContent() const;
-
-	/** End any in flight drag and drops */
-	void EndDragDrop();
 
 	/**
 	 * Returns the attribute that can be used by widgets to check if the application is in normal execution mode
@@ -1021,9 +1016,10 @@ public:
 	void SetSlateUILogger(TSharedPtr<class IEventLogger> InEventLogger = TSharedPtr<class IEventLogger>());
 
 	/** @return true if mouse events are being turned into touch events, and touch UI should be forced on */
-	bool IsFakingTouchEvents() const;
-
-	void SetGameIsFakingTouchEvents(const bool bIsFaking);
+	bool IsFakingTouchEvents()
+	{
+		return bIsFakingTouch;
+	}
 
 	/** Sets the handler for otherwise unhandled key down events. This is used by the editor to provide a global action list, if the key was not consumed by any widget. */
 	void SetUnhandledKeyDownEventHandler( const FOnKeyboardEvent& NewHandler );
@@ -1379,11 +1375,8 @@ private:
 	 */
 	IPlatformTextField* SlateTextField;
 
-	/** For desktop platforms that want to test touch style input, pass -faketouches or -simmobile on the commandline to set this */
+	/**For desktop platforms that want to test touch style input, pass -faketouches or -simmobile on the commandline to set this */
 	bool bIsFakingTouch;
-
-	/** For games that want to allow mouse to imitate touch */
-	bool bIsGameFakingTouch;
 
 	/**For desktop platforms that the touch move event be called when this variable is true */
 	bool bIsFakingTouched;
@@ -1391,8 +1384,6 @@ private:
 	/** Delegate for when a key down event occurred but was not handled in any other way by ProcessKeyDownMessage */
 	FOnKeyboardEvent UnhandledKeyDownEventHandler;
 
-	/** controls whether unhandled touch events fall back to sending mouse events */
-	bool bTouchFallbackToMouse;
 
 	/**
 	 * Slate look and feel

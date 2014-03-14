@@ -14,6 +14,7 @@
 /*-----------------------------------------------------------------------------
    SMeshProxyDialog
 -----------------------------------------------------------------------------*/
+#if WITH_SIMPLYGON
 class SMeshProxyDialog : public IMeshProxyDialog, public SCompoundWidget
 {
 public:
@@ -754,5 +755,7 @@ FReply SMeshProxyDialog::OnSelectPackageNameClicked()
 
 	return FReply::Handled();
 }
+
+#endif
 
 #undef LOCTEXT_NAMESPACE

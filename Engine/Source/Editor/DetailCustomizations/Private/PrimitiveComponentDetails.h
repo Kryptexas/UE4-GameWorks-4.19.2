@@ -16,8 +16,6 @@ private:
 	
 	/** Returns whether to enable editing the 'Simulate Physics' checkbox based on the selected objects physics geometry */
 	bool IsSimulatePhysicsEditable() const;
-	/** Returns whether to enable editing the 'Use Async Scene' checkbox based on the selected objects' mobility and if the project uses an AsyncScene */
-	bool IsUseAsyncEditable() const;
 
 	FText OnGetBodyMass() const;
 	bool IsBodyMassReadOnly() const { return true; }

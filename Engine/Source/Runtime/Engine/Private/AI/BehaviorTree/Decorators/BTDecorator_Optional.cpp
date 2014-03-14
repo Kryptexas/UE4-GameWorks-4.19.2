@@ -12,7 +12,7 @@ UBTDecorator_Optional::UBTDecorator_Optional(const class FPostConstructInitializ
 	bAllowAbortChildNodes = false;
 }
 
-void UBTDecorator_Optional::OnNodeProcessed(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type& NodeResult)
+void UBTDecorator_Optional::OnNodeProcessed(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type& NodeResult) const
 {
 	NodeResult = EBTNodeResult::Optional;
 }

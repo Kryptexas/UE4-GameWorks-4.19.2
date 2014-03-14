@@ -42,9 +42,6 @@ class UBillboardComponent : public UPrimitiveComponent
 	UPROPERTY()
 	struct FSpriteCategoryInfo SpriteInfo;
 
-	/** Whether to use in-editor arrow scaling (i.e. to be affected by the global arrow scale) */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Sprite)
-	bool bUseInEditorScaling;
 #endif // WITH_EDITORONLY_DATA
 	/** Change the sprite texture used by this component */
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|Sprite")
@@ -63,14 +60,6 @@ class UBillboardComponent : public UPrimitiveComponent
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() OVERRIDE;
 	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const OVERRIDE;
 	// End UPrimitiveComponent Interface
-
-#if WITH_EDITORONLY_DATA
-	/** Set the scale that we use when rendering in-editor */
-	ENGINE_API static void SetEditorScale(float InEditorScale);
-
-	/** The scale we use when rendering in-editor */
-	static float EditorScale;
-#endif
 };
 
 

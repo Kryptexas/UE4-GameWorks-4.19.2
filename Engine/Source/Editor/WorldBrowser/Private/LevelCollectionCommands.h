@@ -30,18 +30,18 @@ public:
 		UI_COMMAND( RemoveInvalidReference, "Remove Selected Level", "Removes the reference to the missing level from the map", EUserInterfaceActionType::Button, FInputGesture() );
 		
 		//levels
-		UI_COMMAND( World_MakeLevelCurrent, "Make Current", "Make this Level the Current Level", EUserInterfaceActionType::Button, FInputGesture( EKeys::Enter ) );
-		UI_COMMAND( World_LoadLevel, "Load", "Load selected level into world", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND(World_UnloadLevel, "Unload", "Unload selected level from world", EUserInterfaceActionType::Button, FInputGesture(EKeys::Platform_Delete));
-		UI_COMMAND( World_SaveSelectedLevels, "Save", "Saves selected levels", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( World_SaveSelectedLevelAs, "Save As...", "Save the selected level as...", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( World_MigrateSelectedLevels, "Migrate...", "Copies the selected levels and all their dependencies to a different game", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( World_MergeSelectedLevels, "Merge...", "Merges the selected levels into a new level, removing the original levels from the persistent", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( World_CreateEmptyLevel, "Create New...", "Creates a new empty Level", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( World_AddExistingLevel, "Add Existing...", "Adds an existing level", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( World_AddSelectedActorsToNewLevel, "Create New with Selected Actors...", "Adds the actors currently selected in the active viewport to a new Level", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( World_RemoveSelectedLevels, "Remove Selected", "Removes selected levels from the disk", EUserInterfaceActionType::Button, FInputGesture() );
-
+		UI_COMMAND( MakeLevelCurrent, "Make Current", "Make this Level the Current Level", EUserInterfaceActionType::Button, FInputGesture( EKeys::Enter ) );
+		UI_COMMAND( LoadLevel, "Load", "Load selected level into world", EUserInterfaceActionType::Button, FInputGesture() );
+		UI_COMMAND( UnloadLevel, "Unload", "Unload selected level from world", EUserInterfaceActionType::Button, FInputGesture(EKeys::Delete) );
+		UI_COMMAND( SaveSelectedLevels, "Save", "Saves selected levels", EUserInterfaceActionType::Button, FInputGesture() );
+		UI_COMMAND( SaveSelectedLevelAs, "Save As...", "Save the selected level as...", EUserInterfaceActionType::Button, FInputGesture() );
+		UI_COMMAND( MigrateSelectedLevels, "Migrate...", "Copies the selected levels and all their dependencies to a different game", EUserInterfaceActionType::Button, FInputGesture() );
+		UI_COMMAND( MergeSelectedLevels, "Merge...", "Merges the selected levels into a new level, removing the original levels from the persistent", EUserInterfaceActionType::Button, FInputGesture() );
+		UI_COMMAND( CreateEmptyLevel, "Create New...", "Creates a new empty Level", EUserInterfaceActionType::Button, FInputGesture() );
+		UI_COMMAND( AddExistingLevel, "Add Existing...", "Adds an existing level", EUserInterfaceActionType::Button, FInputGesture() );
+		UI_COMMAND( AddSelectedActorsToNewLevel, "Create New with Selected Actors...", "Adds the actors currently selected in the active viewport to a new Level", EUserInterfaceActionType::Button, FInputGesture() );
+		
+		UI_COMMAND( RemoveSelectedLevels, "Remove Selected", "Removes selected levels from the disk", EUserInterfaceActionType::Button, FInputGesture() );
 		UI_COMMAND( MoveWorldOrigin, "Move World Origin to Level Position", "Moves world origin to level position", EUserInterfaceActionType::Button, FInputGesture() );
 		UI_COMMAND( ResetWorldOrigin, "Reset World Origin", "Moves world origin to zero", EUserInterfaceActionType::Button, FInputGesture() );
 		UI_COMMAND( ResetLevelOrigin, "Reset Level Position", "Moves level to zero", EUserInterfaceActionType::Button, FInputGesture() );
@@ -49,7 +49,7 @@ public:
 		//level selection
 		UI_COMMAND( SelectAllLevels, "Select All Levels", "Selects all levels", EUserInterfaceActionType::Button, FInputGesture() );
 		UI_COMMAND( DeselectAllLevels, "De-select All Levels", "De-selects all levels", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( InvertLevelSelection, "Invert Level Selection", "Inverts level selection", EUserInterfaceActionType::Button, FInputGesture() );
+		UI_COMMAND( InvertSelection, "Invert Level Selection", "Inverts level selection", EUserInterfaceActionType::Button, FInputGesture() );
 
 		// Source Control
 		UI_COMMAND( SCCCheckOut, "Check Out", "Checks out the selected asset from source control.", EUserInterfaceActionType::Button, FInputGesture() );
@@ -72,25 +72,25 @@ public:
 		UI_COMMAND( AssignLevelToLayer, "Assign to layer", "Assign selected levels to current layer", EUserInterfaceActionType::Button, FInputGesture() );
 
 		//actors
-		UI_COMMAND( AddsActors, "Select Actors", "Adds the Actors in the selected Levels from the viewport's existing selection", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( RemovesActors, "Deselect Actors", "Removes the Actors in the selected Levels from the viewport's existing selection", EUserInterfaceActionType::Button, FInputGesture() );
+		UI_COMMAND( SelectActors, "Select Actors", "Adds the Actors in the selected Levels from the viewport's existing selection", EUserInterfaceActionType::Button, FInputGesture() );
+		UI_COMMAND( DeselectActors, "Deselect Actors", "Removes the Actors in the selected Levels from the viewport's existing selection", EUserInterfaceActionType::Button, FInputGesture() );
 		UI_COMMAND( MoveActorsToSelected, "Move Selected Actors to Level", "Moves the selected actors to this level", EUserInterfaceActionType::Button, FInputGesture() );
 		UI_COMMAND( SelectStreamingVolumes, "Select Streaming Volumes", "Selects the streaming volumes associated with the selected levels", EUserInterfaceActionType::Button, FInputGesture() );
 
 		//visibility
-		UI_COMMAND( World_ShowSelectedLevels, "Show Selected", "Toggles selected levels to a visible state in the viewports", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( World_HideSelectedLevels, "Hide Selected", "Toggles selected levels to an invisible state in the viewports", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( World_ShowOnlySelectedLevels, "Show Only Selected", "Toggles the selected levels to a visible state; toggles all other levels to an invisible state", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( World_ShowAllLevels, "Show All", "Toggles all levels to a visible state in the viewports", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( World_HideAllLevels, "Hide All", "Hides all levels to an invisible state in the viewports", EUserInterfaceActionType::Button, FInputGesture() );
+		UI_COMMAND( ShowSelectedLevels, "Show Selected", "Toggles selected levels to a visible state in the viewports", EUserInterfaceActionType::Button, FInputGesture() );
+		UI_COMMAND( HideSelectedLevels, "Hide Selected", "Toggles selected levels to an invisible state in the viewports", EUserInterfaceActionType::Button, FInputGesture() );
+		UI_COMMAND( ShowOnlySelectedLevels, "Show Only Selected", "Toggles the selected levels to a visible state; toggles all other levels to an invisible state", EUserInterfaceActionType::Button, FInputGesture() );
+		UI_COMMAND( ShowAllLevels, "Show All", "Toggles all levels to a visible state in the viewports", EUserInterfaceActionType::Button, FInputGesture() );
+		UI_COMMAND( HideAllLevels, "Hide All", "Hides all levels to an invisible state in the viewports", EUserInterfaceActionType::Button, FInputGesture() );
 
 		//lock
-		UI_COMMAND( World_LockSelectedLevels, "Lock Selected", "Locks selected levels", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( World_UnockSelectedLevels, "Unlock Selected", "Unlocks selected levels", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( World_LockAllLevels, "Lock All", "Locks all levels", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( World_UnockAllLevels, "Unlock All", "Unlocks all levels", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( World_LockReadOnlyLevels, "Lock Read-Only Levels", "Locks all read-only levels", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( World_UnlockReadOnlyLevels, "Unlock Read-Only Levels", "Unlocks all read-only levels", EUserInterfaceActionType::Button, FInputGesture() );
+		UI_COMMAND( LockSelectedLevels, "Lock Selected", "Locks selected levels", EUserInterfaceActionType::Button, FInputGesture() );
+		UI_COMMAND( UnockSelectedLevels, "Unlock Selected", "Unlocks selected levels", EUserInterfaceActionType::Button, FInputGesture() );
+		UI_COMMAND( LockAllLevels, "Lock All", "Locks all levels", EUserInterfaceActionType::Button, FInputGesture() );
+		UI_COMMAND( UnockAllLevels, "Unlock All", "Unlocks all levels", EUserInterfaceActionType::Button, FInputGesture() );
+		UI_COMMAND( LockReadOnlyLevels, "Lock Read-Only Levels", "Locks all read-only levels", EUserInterfaceActionType::Button, FInputGesture() );
+		UI_COMMAND( UnlockReadOnlyLevels, "Unlock Read-Only Levels", "Unlocks all read-only levels", EUserInterfaceActionType::Button, FInputGesture() );
 		
 		//view
 		UI_COMMAND( FitToSelection, "Fit to Selection", "Fits view to selected levels", EUserInterfaceActionType::Button, FInputGesture(EKeys::Home) );
@@ -115,47 +115,32 @@ public:
 	/** refreshes all world cached data */
 	TSharedPtr< FUICommandInfo > RefreshBrowser;
 
-
 	/** Replaces selected invalid level with an already existing one, prompts for path */
 	TSharedPtr< FUICommandInfo > FixUpInvalidReference;
 
 	/** Removes the ULevelStreaming reference to the selected invalid levels */
 	TSharedPtr< FUICommandInfo > RemoveInvalidReference;
 	
-
 	/** makes the selected level the current level */
-	TSharedPtr< FUICommandInfo > World_MakeLevelCurrent;
+	TSharedPtr< FUICommandInfo > MakeLevelCurrent;
 
-	/** Load level to the world */
-	TSharedPtr< FUICommandInfo > World_LoadLevel;
-
-	/** Unload level from the world */
-	TSharedPtr< FUICommandInfo > World_UnloadLevel;
+	/** Moves the selected actors to the selected level */
+	TSharedPtr< FUICommandInfo > MoveActorsToSelected;
 
 	/** Save selected levels; prompts for checkout if necessary */
-	TSharedPtr< FUICommandInfo > World_SaveSelectedLevels;
-
+	TSharedPtr< FUICommandInfo > SaveSelectedLevels;
+	
 	/** Save selected level under new name; prompts for checkout if necessary */
-	TSharedPtr< FUICommandInfo > World_SaveSelectedLevelAs;
+	TSharedPtr< FUICommandInfo > SaveSelectedLevelAs;
 
 	/** Migrate selected levels; copies levels and all their dependencies to another game */
-	TSharedPtr< FUICommandInfo > World_MigrateSelectedLevels;
-
-	/** Merges the selected levels into a new level; prompts for save path; removes the levels that were merged */
-	TSharedPtr< FUICommandInfo > World_MergeSelectedLevels;
+	TSharedPtr< FUICommandInfo > MigrateSelectedLevels;
 
 	/** Creates a new empty level; prompts for save path */
-	TSharedPtr< FUICommandInfo > World_CreateEmptyLevel;
+	TSharedPtr< FUICommandInfo > CreateEmptyLevel;
 
-	/** Adds an existing streaming level to the persistent; prompts for path */
-	TSharedPtr< FUICommandInfo > World_AddExistingLevel;
-
-	/** Creates a new empty level and moves the selected actors to it; prompts for save path */
-	TSharedPtr< FUICommandInfo > World_AddSelectedActorsToNewLevel;
-
-	/** Removes the selected levels from the disk */
-	TSharedPtr< FUICommandInfo > World_RemoveSelectedLevels;
-
+	/** Assign selected levels to current layer */
+	TSharedPtr< FUICommandInfo > AssignLevelToLayer;
 	
 	/** Move world origin to selected level */
 	TSharedPtr< FUICommandInfo > MoveWorldOrigin;
@@ -166,6 +151,24 @@ public:
 	/** Move level origin to zero (reset) */
 	TSharedPtr< FUICommandInfo > ResetLevelOrigin;
 
+	/** Load level to the world */
+	TSharedPtr< FUICommandInfo > LoadLevel;
+
+	/** Unload level from the world */
+	TSharedPtr< FUICommandInfo > UnloadLevel;
+
+	/** Removes the selected levels from the disk */
+	TSharedPtr< FUICommandInfo > RemoveSelectedLevels;
+
+	/** Merges the selected levels into a new level; prompts for save path; removes the levels that were merged */
+	TSharedPtr< FUICommandInfo > MergeSelectedLevels;
+
+	/** Adds an existing streaming level to the persistent; prompts for path */
+	TSharedPtr< FUICommandInfo > AddExistingLevel;
+
+	/** Creates a new empty level and moves the selected actors to it; prompts for save path */
+	TSharedPtr< FUICommandInfo > AddSelectedActorsToNewLevel;
+
 	
 	/** Selects all levels within the level browser */
 	TSharedPtr< FUICommandInfo > SelectAllLevels;
@@ -174,8 +177,20 @@ public:
 	TSharedPtr< FUICommandInfo > DeselectAllLevels;
 
 	/** Inverts the level selection within the level browser */
-	TSharedPtr< FUICommandInfo > InvertLevelSelection;
+	TSharedPtr< FUICommandInfo > InvertSelection;
 
+
+	/** Sets the streaming method for new or added levels to Blueprint streaming */
+	TSharedPtr< FUICommandInfo > SetAddStreamingMethod_Blueprint;
+
+	/** Sets the streaming method for new or added levels to be always loaded */
+	TSharedPtr< FUICommandInfo > SetAddStreamingMethod_AlwaysLoaded;
+
+	/** Changes the streaming method for the selected levels to Blueprint streaming */
+	TSharedPtr< FUICommandInfo > SetStreamingMethod_Blueprint;
+
+	/** Changes the streaming method for the selected levels to be always loaded */
+	TSharedPtr< FUICommandInfo > SetStreamingMethod_AlwaysLoaded;
 
 	/** Check-Out selected levels from the SCC */
 	TSharedPtr< FUICommandInfo > SCCCheckOut;
@@ -199,70 +214,49 @@ public:
 	TSharedPtr< FUICommandInfo > SCCConnect;
 
 
-	/** Sets the streaming method for new or added levels to Blueprint streaming */
-	TSharedPtr< FUICommandInfo > SetAddStreamingMethod_Blueprint;
-
-	/** Sets the streaming method for new or added levels to be always loaded */
-	TSharedPtr< FUICommandInfo > SetAddStreamingMethod_AlwaysLoaded;
-
-
-	/** Changes the streaming method for the selected levels to Blueprint streaming */
-	TSharedPtr< FUICommandInfo > SetStreamingMethod_Blueprint;
-
-	/** Changes the streaming method for the selected levels to be always loaded */
-	TSharedPtr< FUICommandInfo > SetStreamingMethod_AlwaysLoaded;
-
-
-	/** Assign selected levels to current layer */
-	TSharedPtr< FUICommandInfo > AssignLevelToLayer;
-
-
 	/** Selects the actors in the selected Levels */
-	TSharedPtr< FUICommandInfo > AddsActors;
+	TSharedPtr< FUICommandInfo > SelectActors;
 
 	/** Deselects the actors in the selected Levels */
-	TSharedPtr< FUICommandInfo > RemovesActors;
+	TSharedPtr< FUICommandInfo > DeselectActors;
 	
-	/** Moves the selected actors to the selected level */
-	TSharedPtr< FUICommandInfo > MoveActorsToSelected;
-
 	/** Selects the streaming volumes associated with the selected levels */
 	TSharedPtr< FUICommandInfo > SelectStreamingVolumes;
 	
 	
 	/** Makes selected Levels visible */
-	TSharedPtr< FUICommandInfo > World_ShowSelectedLevels;
+	TSharedPtr< FUICommandInfo > ShowSelectedLevels;
 
 	/** Makes selected Levels invisible */
-	TSharedPtr< FUICommandInfo > World_HideSelectedLevels;
+	TSharedPtr< FUICommandInfo > HideSelectedLevels;
 
 	/** Makes selected Levels visible; makes all others invisible */
-	TSharedPtr< FUICommandInfo > World_ShowOnlySelectedLevels;
+	TSharedPtr< FUICommandInfo > ShowOnlySelectedLevels;
 
 	/** Makes all Levels visible */
-	TSharedPtr< FUICommandInfo > World_ShowAllLevels;
+	TSharedPtr< FUICommandInfo > ShowAllLevels;
 
 	/** Makes all Levels invisible */
-	TSharedPtr< FUICommandInfo > World_HideAllLevels;
+	TSharedPtr< FUICommandInfo > HideAllLevels;
 	
 	
 	/** Locks selected levels */
-	TSharedPtr< FUICommandInfo > World_LockSelectedLevels;
+	TSharedPtr< FUICommandInfo > LockSelectedLevels;
 
 	/** Unlocks selected levels */
-	TSharedPtr< FUICommandInfo > World_UnockSelectedLevels;
+	TSharedPtr< FUICommandInfo > UnockSelectedLevels;
 
 	/** Locks all levels */
-	TSharedPtr< FUICommandInfo > World_LockAllLevels;
+	TSharedPtr< FUICommandInfo > LockAllLevels;
 
 	/** Unlocks selected levels */
-	TSharedPtr< FUICommandInfo > World_UnockAllLevels;
+	TSharedPtr< FUICommandInfo > UnockAllLevels;
 
 	/** Locks all read-only levels */
-	TSharedPtr< FUICommandInfo > World_LockReadOnlyLevels;
+	TSharedPtr< FUICommandInfo > LockReadOnlyLevels;
 
 	/** Unlocks all read-only levels */
-	TSharedPtr< FUICommandInfo > World_UnlockReadOnlyLevels;
+	TSharedPtr< FUICommandInfo > UnlockReadOnlyLevels;
 
 
 	/** Fits view to selected levels */
@@ -271,17 +265,14 @@ public:
 	/** Expand all descendants in selected tree items */
 	TSharedPtr< FUICommandInfo > ExpandSelectedItems;
 
-
 	/** Clear link to parents for selected levels */
 	TSharedPtr< FUICommandInfo > ClearParentLink;
 	
-
 	// Move levels 
 	TSharedPtr< FUICommandInfo > MoveLevelLeft;
 	TSharedPtr< FUICommandInfo > MoveLevelRight;
 	TSharedPtr< FUICommandInfo > MoveLevelUp;
 	TSharedPtr< FUICommandInfo > MoveLevelDown;
-
 
 	// Landscape operations
 	TSharedPtr< FUICommandInfo > AddLandscapeLevelXNegative;

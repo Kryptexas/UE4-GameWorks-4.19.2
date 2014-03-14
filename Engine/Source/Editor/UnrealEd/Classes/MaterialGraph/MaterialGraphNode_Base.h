@@ -31,15 +31,6 @@ class UMaterialGraphNode_Base : public UEdGraphNode
 	/** Get the Material value type of an input pin */
 	virtual uint32 GetInputType(const UEdGraphPin* InputPin) const {return MCT_Unknown;}
 
-	/**
-	 * Handles inserting the node between the FromPin and what the FromPin was original connected to
-	 *
-	 * @param FromPin			The pin this node is being spawned from
-	 * @param NewLinkPin		The new pin the FromPin will connect to
-	 * @param OutNodeList		Any nodes that are modified will get added to this list for notification purposes
-	 */
-	void InsertNewNode(UEdGraphPin* FromPin, UEdGraphPin* NewLinkPin, TSet<UEdGraphNode*>& OutNodeList);
-
 	// Begin UEdGraphNode interface.
 	virtual void AllocateDefaultPins() OVERRIDE;
 	virtual void ReconstructNode() OVERRIDE;

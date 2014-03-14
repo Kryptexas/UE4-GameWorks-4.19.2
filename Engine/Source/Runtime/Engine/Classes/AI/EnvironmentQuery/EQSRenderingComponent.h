@@ -42,12 +42,11 @@ private:
 };
 
 UCLASS(HeaderGroup=Component, hidecategories=Object)
-class ENGINE_API UEQSRenderingComponent : public UPrimitiveComponent
+class UEQSRenderingComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()
 
 	FString DrawFlagName;
-	bool bDrawOnlyWhenSelected;
 
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() OVERRIDE;
 	virtual FBoxSphereBounds CalcBounds(const FTransform &LocalToWorld) const OVERRIDE;

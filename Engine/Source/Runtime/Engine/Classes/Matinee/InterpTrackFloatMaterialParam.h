@@ -3,7 +3,7 @@
 #pragma once
 #include "InterpTrackFloatMaterialParam.generated.h"
 
-UCLASS(HeaderGroup=Interpolation, meta=( DisplayName = "Float Material Parameter Track" ) )
+UCLASS(HeaderGroup=Interpolation, meta=( DisplayName = "Float UMaterial Param Track" ) )
 class UInterpTrackFloatMaterialParam : public UInterpTrackFloatBase
 {
 	GENERATED_UCLASS_BODY()

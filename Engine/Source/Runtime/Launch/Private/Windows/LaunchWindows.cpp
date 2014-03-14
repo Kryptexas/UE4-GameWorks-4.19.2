@@ -174,12 +174,6 @@ int32 WINAPI WinMain( HINSTANCE hInInstance, HINSTANCE hPrevInstance, char*, int
 		GUseCrashReportClient = false;
 	}
 
-	// @todo For now, crash report client is disabled for build targets that require cooked data since the resources necessary to launch crashreportclient are no available in stripped builds
-	if ( FPlatformProperties::RequiresCookedData() )
-	{
-		GUseCrashReportClient = false;
-	}
-
 #if UE_BUILD_DEBUG
 	if( true && !GAlwaysReportCrash )
 #else

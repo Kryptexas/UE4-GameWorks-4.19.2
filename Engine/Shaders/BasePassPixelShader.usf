@@ -43,10 +43,9 @@ float4 IndirectLightingSHCoefficients[3];
 
 #define EDITOR_ALPHA2COVERAGE (EDITOR_PRIMITIVE_MATERIAL && FEATURE_LEVEL >= FEATURE_LEVEL_SM5 && !COMPILER_GLSL)
 
-// for now we only use it on EDITOR_PRIMITIVE_MATERIAL (LevelGrid bias can be much lower) but later we might want to use it for all materials
-// On consoles we don't need the editor rendering features
-#if EDITOR_PRIMITIVE_MATERIAL && FEATURE_LEVEL >= FEATURE_LEVEL_SM5 && !PS4_PROFILE && !XBOXONE_PROFILE
-	// not available on mobile, if not available we have to reconstruct it from the world position interpolator which is much worse quality (noticable for depth bias)
+// for now we only use it on EDITOR_PRIMITIVE_MATERIAL (LevelGrid bias can be much lower) but later we might want to use it for all material
+#if EDITOR_PRIMITIVE_MATERIAL && FEATURE_LEVEL >= FEATURE_LEVEL_SM5
+	// not available on mobile, if not available we have to reconstruct it from the wolr dposition interpolator which is much worse quality (noticable for depth bias)
 	#define HIGHQUALITY_PS_POSITION 1
 #endif
 
@@ -526,7 +525,7 @@ void Main(
 	Roughness = 1;
 #endif
 
-#if USE_DBUFFER && !(MATERIALBLENDING_TRANSLUCENT || MATERIALBLENDING_ADDITIVE || MATERIALBLENDING_MODULATE)
+#if USE_DBUFFER
 	// apply decals from the DBuffer
 	BRANCH if(Primitive.DecalReceiverMask > 0)
 	{

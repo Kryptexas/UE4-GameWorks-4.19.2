@@ -180,7 +180,7 @@ public:
 
 	inline FString GetDestinationMapName()
 	{
-		return (IsInTransition() ? PendingTravelURL.Map : TEXT(""));
+		return (IsInTransition() ? FPaths::GetBaseFilename(PendingTravelURL.Map) : TEXT(""));
 	}
 
 	/** cancels transition in progress */
@@ -287,7 +287,7 @@ struct ENGINE_API FLevelViewportInfo
 /** 
 * Tick function that starts the physics tick
 **/
-USTRUCT()
+USTRUCT(transient)
 struct FStartPhysicsTickFunction : public FTickFunction
 {
 	GENERATED_USTRUCT_BODY()
@@ -310,7 +310,7 @@ struct FStartPhysicsTickFunction : public FTickFunction
 /** 
 * Tick function that ends the physics tick
 **/
-USTRUCT()
+USTRUCT(transient)
 struct FEndPhysicsTickFunction : public FTickFunction
 {
 	GENERATED_USTRUCT_BODY()
@@ -445,10 +445,6 @@ class ENGINE_API UWorld : public UObject, public FNetworkNotify
 	UPROPERTY(Transient)
 	TArray<class ULevelStreaming*>				StreamingLevels;
 
-	/** Prefix we used to rename streaming levels, non empty in PIE and standalone preview */
-	UPROPERTY()
-	FString										StreamingLevelsPrefix;
-	
 	/** Pointer to the current level in the queue to be made visible, NULL if none are pending.									*/
 	UPROPERTY(Transient)
 	class ULevel*								CurrentLevelPendingVisibility;
@@ -778,9 +774,6 @@ public:
 	 *  LOD changes affects all streaming levels referring the same level package
 	 */
 	TMap<FName, int32>		StreamingLevelsLOD;
-
-	/** Whether we currently flushing level streaming state */ 
-	bool bFlushingLevelStreaming;
 
 public:
 	/** The type of travel to perform next when doing a server travel */
@@ -1528,7 +1521,6 @@ public:
 	virtual void PostSaveRoot( bool bCleanupIsRequired ) OVERRIDE;
 	virtual UWorld* GetWorld() const OVERRIDE;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-	virtual void PostDuplicate(bool bDuplicateForPIE) OVERRIDE;
 
 	// End UObject Interface
 	
@@ -1632,7 +1624,7 @@ public:
 	void UpdateWorldStreamingState(const FSceneViewFamily& ViewFamily);
 	
 	/**
-	 * Flushes level streaming in blocking fashion and returns when all levels are loaded/ visible/ hidden
+	 * Flushs level streaming in blocking fashion and returns when all levels are loaded/ visible/ hidden
 	 * so further calls to UpdateLevelStreaming won't do any work unless state changes. Basically blocks
 	 * on all async operation like updating components.
 	 *
@@ -1684,7 +1676,7 @@ public:
 			, bAllowAudioPlayback(true)
 			, bRequiresHitProxies(true)
 			, bCreatePhysicsScene(true)
-			, bCreateNavigation(false)
+			, bCreateNavigation(true)
 			, bShouldSimulatePhysics(true)
 			, bEnableTraceCollision(false)
 			, bTransactional(true)
@@ -1737,22 +1729,12 @@ public:
 	/**
 	 *  Interface to allow WorldSettings to request immediate garbage collection
 	 */
-	void PerformGarbageCollectionAndCleanupActors();
+	void PerformGarbageCollection();
 
 	/**
 	 *  Requests a one frame delay of Garbage Collection
 	 */
 	void DelayGarbageCollection();
-
-protected:
-
-	/**
-	 *	Remove NULL entries from actor list. Only does so for dynamic actors to avoid resorting. 
-	 *	In theory static actors shouldn't be deleted during gameplay.
-	 */
-	void CleanupActors();	
-
-public:
 
 	/** Get the event that broadcasts TickDispatch */
 	FOnNetTickEvent& OnTickDispatch() { return TickDispatchEvent; }
@@ -1795,6 +1777,9 @@ public:
 
 	/** @todo document */
 	void TickNetClient( float DeltaSeconds );
+
+	/** @todo document */
+	void TickNetServer( float DeltaSeconds );	
 
 	/**
 	 * Issues level streaming load/unload requests based on whether
@@ -2306,7 +2291,6 @@ public:
 
 public:
 	static FString ConvertToPIEPackageName(const FString& PackageName, int32 PIEInstanceID);
-	static FString BuildPIEPackagePrefix(int32 PIEInstanceID);
 	static UWorld* DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningWorld);
 	static FString RemovePIEPrefix(const FString &Source);
 	static UWorld* FindWorldInPackage(UPackage* Package);

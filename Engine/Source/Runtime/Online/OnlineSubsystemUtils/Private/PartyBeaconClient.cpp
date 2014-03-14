@@ -25,9 +25,8 @@ void APartyBeaconClient::RequestReservation(const FOnlineSessionSearchResult& De
 			if (SessionInt->GetResolvedConnectString(DesiredHost, BeaconPort, ConnectInfo))
 			{
 				FURL ConnectURL(NULL, *ConnectInfo, TRAVEL_Absolute);
-				if (InitClient(ConnectURL) && DesiredHost.Session.SessionInfo.IsValid())
+				if (InitClient(ConnectURL))
 				{
-					DestSessionId = DesiredHost.Session.SessionInfo->GetSessionId().ToString();
 					PendingReservation.PartyLeader = RequestingPartyLeader;
 					PendingReservation.PartyMembers = PartyMembers;
 					bPendingReservationSent = false;
@@ -73,7 +72,7 @@ void APartyBeaconClient::OnConnected()
 	if (!bCancelReservation)
 	{
 		UE_LOG(LogBeacon, Verbose, TEXT("Party beacon connection established, sending join reservation request."));
-		ServerReservationRequest(DestSessionId, PendingReservation);
+		ServerReservationRequest(PendingReservation);
 		bPendingReservationSent = true;
 	}
 	else
@@ -90,18 +89,18 @@ void APartyBeaconClient::OnFailure()
 	Super::OnFailure();
 }
 
-bool APartyBeaconClient::ServerReservationRequest_Validate(const FString& SessionId, FPartyReservation Reservation)
+bool APartyBeaconClient::ServerReservationRequest_Validate(FPartyReservation Reservation)
 {
-	return !SessionId.IsEmpty() && Reservation.PartyLeader.IsValid() && Reservation.PartyMembers.Num() > 0;
+	return true;
 }
 
-void APartyBeaconClient::ServerReservationRequest_Implementation(const FString& SessionId, FPartyReservation Reservation)
+void APartyBeaconClient::ServerReservationRequest_Implementation(FPartyReservation Reservation)
 {
 	APartyBeaconHost* BeaconHost = Cast<APartyBeaconHost>(GetBeaconOwner());
 	if (BeaconHost)
 	{
 		PendingReservation = Reservation;
-		BeaconHost->ProcessReservationRequest(this, SessionId, Reservation);
+		BeaconHost->ProcessReservationRequest(this, Reservation);
 	}
 }
 

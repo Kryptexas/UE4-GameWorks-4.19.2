@@ -16,13 +16,13 @@ UBTDecorator_TimeLimit::UBTDecorator_TimeLimit(const class FPostConstructInitial
 	FlowAbortMode = EBTFlowAbortMode::Self;
 }
 
-void UBTDecorator_TimeLimit::OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+void UBTDecorator_TimeLimit::OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
 {
-	FBTAuxiliaryMemory* DecoratorMemory = GetSpecialNodeMemory<FBTAuxiliaryMemory>(NodeMemory);
+	FBTAuxiliaryMemory* DecoratorMemory = GetAuxNodeMemory(NodeMemory);
 	DecoratorMemory->NextTickRemainingTime = TimeLimit;
 }
 
-void UBTDecorator_TimeLimit::TickNode(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds)
+void UBTDecorator_TimeLimit::TickNode(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) const
 {
 	OwnerComp->RequestExecution(this);
 }
@@ -38,7 +38,7 @@ void UBTDecorator_TimeLimit::DescribeRuntimeValues(const class UBehaviorTreeComp
 {
 	Super::DescribeRuntimeValues(OwnerComp, NodeMemory, Verbosity, Values);
 
-	FBTAuxiliaryMemory* DecoratorMemory = GetSpecialNodeMemory<FBTAuxiliaryMemory>(NodeMemory);
+	FBTAuxiliaryMemory* DecoratorMemory = GetAuxNodeMemory(NodeMemory);
 	if (OwnerComp && OwnerComp->GetWorld())
 	{
 		const float TimeLeft = DecoratorMemory->NextTickRemainingTime > 0 ? DecoratorMemory->NextTickRemainingTime : 0;

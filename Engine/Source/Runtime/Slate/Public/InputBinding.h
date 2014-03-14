@@ -76,7 +76,7 @@ struct SLATE_API FInputGesture
 	}
 
 	/**
-	 * Sets this gesture to a new key and modifier state based on the provided template
+ 	 * Sets this gesture to a new key and modifier state based on the provided template
 	 * Should not be called directly.  Only used by the keybinding editor to set user defined keys
 	 */
 	void Set( FInputGesture InTemplate )
@@ -165,7 +165,7 @@ struct FUIAction
 	/**
 	 * Constructor that takes delegates to initialize the action with
 	 *
-	 * @param	ExecuteAction		The delegate to call when the action should be executed
+     * @param	ExecuteAction		The delegate to call when the action should be executed
 	 */
 	FUIAction( FExecuteAction InitExecuteAction )
 		: ExecuteAction( InitExecuteAction ),
@@ -179,8 +179,8 @@ struct FUIAction
 	/**
 	 * Constructor that takes delegates to initialize the action with
 	 *
-	 * @param	ExecuteAction		The delegate to call when the action should be executed
-	 * @param	CanExecuteAction	The delegate to call to see if the action can be executed
+     * @param	ExecuteAction		The delegate to call when the action should be executed
+     * @param	CanExecuteAction	The delegate to call to see if the action can be executed
 	 */
 	FUIAction( FExecuteAction InitExecuteAction, FCanExecuteAction InitCanExecuteAction )
 		: ExecuteAction( InitExecuteAction ),
@@ -193,9 +193,9 @@ struct FUIAction
 	/**
 	 * Constructor that takes delegates to initialize the action with
 	 *
-	 * @param	ExecuteAction		The delegate to call when the action should be executed
-	 * @param	CanExecuteAction	The delegate to call to see if the action can be executed
-	 * @param	IsCheckedDelegate	The delegate to call to see if the action should appear checked when visualized
+     * @param	ExecuteAction		The delegate to call when the action should be executed
+     * @param	CanExecuteAction	The delegate to call to see if the action can be executed
+     * @param	IsCheckedDelegate	The delegate to call to see if the action should appear checked when visualized
 	 */
 	FUIAction( FExecuteAction InitExecuteAction, FCanExecuteAction InitCanExecuteAction, FIsActionChecked InitIsCheckedDelegate )
 		: ExecuteAction( InitExecuteAction ),
@@ -208,9 +208,9 @@ struct FUIAction
 	/**
 	 * Constructor that takes delegates to initialize the action with
 	 *
-	 * @param	ExecuteAction			The delegate to call when the action should be executed
-	 * @param	CanExecuteAction		The delegate to call to see if the action can be executed
-	 * @param	IsCheckedDelegate		The delegate to call to see if the action should appear checked when visualized
+     * @param	ExecuteAction			The delegate to call when the action should be executed
+     * @param	CanExecuteAction		The delegate to call to see if the action can be executed
+     * @param	IsCheckedDelegate		The delegate to call to see if the action should appear checked when visualized
 	 * @param	IsActionVisibleDelegate	The delegate to call to see if the action should be visible
 	 */
 	FUIAction( FExecuteAction InitExecuteAction, FCanExecuteAction InitCanExecuteAction, FIsActionChecked InitIsCheckedDelegate, FIsActionButtonVisible InitIsActionVisibleDelegate )
@@ -378,7 +378,7 @@ public:
 	FName GetStyleSetName() const { return StyleSetName; }
 
 	/**
-	 * @return The localized description of this context
+ 	 * @return The localized description of this context
 	 */
 	const FText& GetContextDesc() const { return ContextDesc; }
 
@@ -586,13 +586,13 @@ public:
 
 
 	/**
-	 * Returns a command info that is has the same active gesture as the provided gesture and is in the same binding context or parent context
-	 *
-	 * @param	InBindingContext		The context in which the command is valid
-	 * @param	InGesture				The gesture to match against commands
+     * Returns a command info that is has the same active gesture as the provided gesture and is in the same binding context or parent context
+     *
+     * @param	InBindingContext		The context in which the command is valid
+     * @param	InGesture				The gesture to match against commands
 	 * @param	bCheckDefault			Whether or not to check the default gesture.  Will check the active gesture if false
-	 * @return	A pointer to the command info which has the InGesture as its active gesture or null if one cannot be found
-	 */
+     * @return	A pointer to the command info which has the InGesture as its active gesture or null if one cannot be found
+     */
 	const TSharedPtr<FUICommandInfo> GetCommandInfoFromInputGesture( const FName InBindingContext, const FInputGesture& InGesture, bool bCheckDefault ) const;
 
 	/** 
@@ -620,14 +620,14 @@ public:
 	 */
 	virtual void NotifyActiveGestureChanged( const FUICommandInfo& CommandInfo );
 	
-	/**
-	 * Saves the user defined gestures to a json file
-	 */
+    /**
+     * Saves the user defined gestures to a json file
+     */
 	void SaveInputBindings();
 
-	/**
-	 * Removes any user defined gestures
-	 */
+    /**
+     * Removes any user defined gestures
+     */
 	void RemoveUserDefinedGestures();
 
 	/**
@@ -653,11 +653,11 @@ public:
 private:
 	FInputBindingManager();
 	/**
-		 * Gets the user defined gesture (if any) from the provided command name
-		 * 
-		 * @param InBindingContext	The context in which the command is active
-		 * @param InCommandName		The name of the command to get the gesture from
-		 */
+     	 * Gets the user defined gesture (if any) from the provided command name
+     	 * 
+         * @param InBindingContext	The context in which the command is active
+         * @param InCommandName		The name of the command to get the gesture from
+         */
 	bool GetUserDefinedGesture( const FName InBindingContext, const FName InCommandName, FInputGesture& OutUserDefinedGesture );
 
 	/**
@@ -706,49 +706,49 @@ public:
 	DECLARE_DELEGATE_RetVal_OneParam(bool, FCanProduceActionForCommand, const TSharedRef<const FUICommandInfo>& /*Command*/);
 
 	/**
-	 * Maps a command info to a series of delegates that are executed by a multibox or mouse/keyboard input
-	 *
-	 * @param InUICommandInfo	The command info to map
-	 * @param ExecuteAction		The delegate to call when the command should be executed
-	 */
+     * Maps a command info to a series of delegates that are executed by a multibox or mouse/keyboard input
+     *
+     * @param InUICommandInfo	The command info to map
+     * @param ExecuteAction		The delegate to call when the command should be executed
+     */
 	void MapAction( const TSharedPtr< const FUICommandInfo > InUICommandInfo, FExecuteAction ExecuteAction );
 
 	/**
-	 * Maps a command info to a series of delegates that are executed by a multibox or mouse/keyboard input
-	 *
-	 * @param InUICommandInfo	The command info to map
-	 * @param ExecuteAction		The delegate to call when the command should be executed
-	 * @param CanExecuteAction	The delegate to call to see if the command can be executed
-	 */
+     * Maps a command info to a series of delegates that are executed by a multibox or mouse/keyboard input
+     *
+     * @param InUICommandInfo	The command info to map
+     * @param ExecuteAction		The delegate to call when the command should be executed
+     * @param CanExecuteAction	The delegate to call to see if the command can be executed
+     */
 	void MapAction( const TSharedPtr< const FUICommandInfo > InUICommandInfo, FExecuteAction ExecuteAction, FCanExecuteAction CanExecuteAction );
 
 	/**
-	 * Maps a command info to a series of delegates that are executed by a multibox or mouse/keyboard input
-	 *
-	 * @param InUICommandInfo	The command info to map
-	 * @param ExecuteAction		The delegate to call when the command should be executed
-	 * @param CanExecuteAction	The delegate to call to see if the command can be executed
-	 * @param IsCheckedDelegate	The delegate to call to see if the command should appear checked when visualized in a multibox
-	 */
+     * Maps a command info to a series of delegates that are executed by a multibox or mouse/keyboard input
+     *
+     * @param InUICommandInfo	The command info to map
+     * @param ExecuteAction		The delegate to call when the command should be executed
+     * @param CanExecuteAction	The delegate to call to see if the command can be executed
+     * @param IsCheckedDelegate	The delegate to call to see if the command should appear checked when visualized in a multibox
+     */
 	void MapAction( const TSharedPtr< const FUICommandInfo > InUICommandInfo, FExecuteAction ExecuteAction, FCanExecuteAction CanExecuteAction, FIsActionChecked IsCheckedDelegate );
 
 	/**
-	 * Maps a command info to a series of delegates that are executed by a multibox or mouse/keyboard input
-	 *
-	 * @param InUICommandInfo	The command info to map
-	 * @param ExecuteAction		The delegate to call when the command should be executed
-	 * @param CanExecuteAction	The delegate to call to see if the command can be executed
-	 * @param IsCheckedDelegate	The delegate to call to see if the command should appear checked when visualized in a multibox
+     * Maps a command info to a series of delegates that are executed by a multibox or mouse/keyboard input
+     *
+     * @param InUICommandInfo	The command info to map
+     * @param ExecuteAction		The delegate to call when the command should be executed
+     * @param CanExecuteAction	The delegate to call to see if the command can be executed
+     * @param IsCheckedDelegate	The delegate to call to see if the command should appear checked when visualized in a multibox
 	 * @param IsVisibleDelegate	The delegate to call to see if the command should appear or be hidden when visualized in a multibox
-	 */
+     */
 	void MapAction( const TSharedPtr< const FUICommandInfo > InUICommandInfo, FExecuteAction ExecuteAction, FCanExecuteAction CanExecuteAction, FIsActionChecked IsCheckedDelegate, FIsActionButtonVisible IsVisibleDelegate );
 
 	/**
-	 * Maps a command info to a series of delegates that are executed by a multibox or mouse/keyboard input
-	 *
-	 * @param InUICommandInfo	The command info to map
-	 * @param InUIAction		Action to map to this command
-	 */
+     * Maps a command info to a series of delegates that are executed by a multibox or mouse/keyboard input
+     *
+     * @param InUICommandInfo	The command info to map
+     * @param InUIAction		Action to map to this command
+     */
 	void MapAction( const TSharedPtr< const FUICommandInfo > InUICommandInfo, const FUIAction& InUIAction );
 
 	/**
@@ -757,18 +757,18 @@ public:
 	void Append( const TSharedRef<FUICommandList>& InCommandsToAppend );
 
 	/**
-	 * Executes the action associated with the provided command info
-	 * Note: It is assumed at this point that CanExecuteAction was already checked
-	 *
-	 * @param InUICommandInfo	The command info execute
-	 */
+     * Executes the action associated with the provided command info
+     * Note: It is assumed at this point that CanExecuteAction was already checked
+     *
+     * @param InUICommandInfo	The command info execute
+     */
 	bool ExecuteAction( const TSharedRef< const FUICommandInfo > InUICommandInfo ) const;
 
 	/**
-	 * Calls the CanExecuteAction associated with the provided command info to see if ExecuteAction can be called
-	 *
-	 * @param InUICommandInfo	The command info execute
-	 */
+     * Calls the CanExecuteAction associated with the provided command info to see if ExecuteAction can be called
+     *
+     * @param InUICommandInfo	The command info execute
+     */
 	bool CanExecuteAction( const TSharedRef< const FUICommandInfo > InUICommandInfo ) const;
 
 	/**
@@ -780,17 +780,17 @@ public:
 	bool TryExecuteAction( const TSharedRef< const FUICommandInfo > InUICommandInfo ) const;
 
 	/**
-	 * Calls the IsVisible delegate associated with the provided command info to see if the command should be visible in a toolbar
-	 *
-	 * @param InUICommandInfo	The command info execute
-	 */
+     * Calls the IsVisible delegate associated with the provided command info to see if the command should be visible in a toolbar
+     *
+     * @param InUICommandInfo	The command info execute
+     */
 	EVisibility GetVisibility( const TSharedRef< const FUICommandInfo > InUICommandInfo ) const;
 
 	/**
-	 * Calls the IsChecked delegate to see if the visualization of this command in a multibox should appear checked
-	 *
-	 * @param InUICommandInfo	The command info execute
-	 */
+     * Calls the IsChecked delegate to see if the visualization of this command in a multibox should appear checked
+     *
+     * @param InUICommandInfo	The command info execute
+     */
 	bool IsChecked( const TSharedRef< const FUICommandInfo > InUICommandInfo ) const;
 
 	/**

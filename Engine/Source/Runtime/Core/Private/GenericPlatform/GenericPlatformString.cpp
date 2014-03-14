@@ -8,9 +8,9 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogGenericPlatformString, Log, All);
 
-template <> const TCHAR* FGenericPlatformString::GetEncodingTypeName<ANSICHAR>() { return TEXT("ANSICHAR"); }
-template <> const TCHAR* FGenericPlatformString::GetEncodingTypeName<WIDECHAR>() { return TEXT("WIDECHAR"); }
-template <> const TCHAR* FGenericPlatformString::GetEncodingTypeName<UCS2CHAR>() { return TEXT("UCS2CHAR"); }
+template <> const TCHAR* FGenericPlatformString::GetEncodingName<ANSICHAR>() { return TEXT("ANSICHAR"); }
+template <> const TCHAR* FGenericPlatformString::GetEncodingName<WIDECHAR>() { return TEXT("WIDECHAR"); }
+template <> const TCHAR* FGenericPlatformString::GetEncodingName<UCS2CHAR>() { return TEXT("UCS2CHAR"); }
 
 void* FGenericPlatformString::Memcpy(void* Dest, const void* Src, SIZE_T Count)
 {
@@ -46,7 +46,7 @@ void FGenericPlatformString::LogBogusChars(const SourceEncoding* Src, int32 SrcS
 			{
 				if (bFoundBogusChars)
 				{
-					TrimStringAndLogBogusCharsError(SrcStr, GetEncodingTypeName<SourceEncoding>(), GetEncodingTypeName<DestEncoding>());
+					TrimStringAndLogBogusCharsError(SrcStr, GetEncodingName<SourceEncoding>(), GetEncodingName<DestEncoding>());
 					bFoundBogusChars = false;
 				}
 				SrcStr.Empty();
@@ -64,7 +64,7 @@ void FGenericPlatformString::LogBogusChars(const SourceEncoding* Src, int32 SrcS
 
 	if (bFoundBogusChars)
 	{
-		TrimStringAndLogBogusCharsError(SrcStr, GetEncodingTypeName<SourceEncoding>(), GetEncodingTypeName<DestEncoding>());
+		TrimStringAndLogBogusCharsError(SrcStr, GetEncodingName<SourceEncoding>(), GetEncodingName<DestEncoding>());
 	}
 }
 

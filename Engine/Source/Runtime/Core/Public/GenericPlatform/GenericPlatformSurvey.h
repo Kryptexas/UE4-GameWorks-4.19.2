@@ -145,8 +145,6 @@ struct FHardwareSurveyResults
 	uint32 CPUCount;
 	float CPUClockGHz;
 	TCHAR CPUBrand[MaxStringLength];
-	TCHAR CPUNameString[MaxStringLength];
-	uint32 CPUInfo;
 
 	uint32 DisplayCount;
 	FHardwareDisplay Displays[MaxDisplayCount];

@@ -59,4 +59,6 @@ class ANavigationGraph : public ANavigationData
 	virtual class FNavDataGenerator* ConstructGenerator(const FNavAgentProperties& AgentProps) OVERRIDE;
 #endif // WITH_NAVIGATION_GENERATOR
 	static ANavigationData* CreateNavigationInstances(class UNavigationSystem* NavSys);
+public:
+	static FNavigationTypeCreator Creator;
 };

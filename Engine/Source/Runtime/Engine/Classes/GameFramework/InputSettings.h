@@ -13,10 +13,6 @@ class ENGINE_API UInputSettings : public UObject
 	UPROPERTY(config, EditAnywhere, EditFixedSize, Category="Bindings", meta=(ToolTip="List of Axis Properties"), AdvancedDisplay)
 	TArray<struct FInputAxisConfigEntry> AxisConfig;
 
-	// Allow mouse to be used for touch
-	UPROPERTY(config, EditAnywhere, Category="MouseProperties")
-	uint32 bUseMouseForTouch:1;
-
 	// Mouse smoothing control
 	UPROPERTY(config, EditAnywhere, Category="MouseProperties", AdvancedDisplay)
 	uint32 bEnableMouseSmoothing:1;    /** if true, mouse smoothing is enabled */

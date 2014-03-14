@@ -6,10 +6,38 @@
 
 namespace SceneOutliner
 {
+	struct TOutlinerTreeItem
+	{
+		/** The actor this tree item is associated with. */
+		TWeakObjectPtr<AActor> Actor;
+
+		/** true if this item has been filtered out. */
+		bool bIsFilteredOut;
+
+		/** true if this item exists in both the current world and PIE. */
+		bool bExistsInCurrentWorldAndPIE;
+
+		/** True if this item will enter inline renaming on the next scroll into view */
+		bool bRenameWhenScrolledIntoView;
+
+		/** Delegate for hooking up an inline editable text block to be notified that a rename is requested. */
+		DECLARE_DELEGATE( FOnRenameRequest );
+
+		/** Broadcasts whenever a rename is requested */
+		FOnRenameRequest RenameRequestEvent;
+
+		TOutlinerTreeItem()
+			: bIsFilteredOut(false)
+			, bExistsInCurrentWorldAndPIE(false)
+			, bRenameWhenScrolledIntoView(false)
+		{
+
+		}
+	};
+
 	class SSceneOutliner;
 
 	typedef TSharedPtr<TOutlinerTreeItem> FOutlinerTreeItemPtr;
-	typedef TSharedRef<TOutlinerTreeItem> FOutlinerTreeItemRef;
 
 	/** IDs for list columns */
 	static const FName ColumnID_ActorLabel( "Actor" );
@@ -17,22 +45,7 @@ namespace SceneOutliner
 	class SOutlinerTreeView : public STreeView< FOutlinerTreeItemPtr >
 	{
 	public:
-		
-		/** Construct this widget */
-		void Construct(const FArguments& InArgs, TSharedRef<SSceneOutliner> Owner);
-
 		void FlashHighlightOnItem( FOutlinerTreeItemPtr FlashHighlightOnItem );
-
-	protected:
-
-		virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
-
-		virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) OVERRIDE;
-
-		virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
-
-		/** Weak reference to the outliner widget that owns this list */
-		TWeakPtr<SSceneOutliner> SceneOutlinerWeak;
 	};
 
 	/** Widget that represents a row in the outliner's tree control.  Generates widgets for each column on demand. */
@@ -64,22 +77,19 @@ namespace SceneOutliner
 
 	protected:
 
-		virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) OVERRIDE;
+		FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
 
 		FReply HandleDragDetected( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
-		
+
 		void PerformDetachment(TWeakObjectPtr<AActor> ParentActorPtr );
 
 		void PerformAttachment(FName SocketName, TWeakObjectPtr<AActor> ParentActorPtr, const TArray< TWeakObjectPtr<AActor> > ChildrenPtrs);
 
-		virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
+		void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent );
 
-		virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE
-		{
-			return FReply::Handled();
-		}
+		void OnDragLeave( const FDragDropEvent& DragDropEvent );
 
-		virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
+		FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent );
 
 
 	private:
@@ -92,5 +102,8 @@ namespace SceneOutliner
 
 		/** The item associated with this row of data */
 		FOutlinerTreeItemPtr Item;
+
+		/** State to restore to the active drag drop item when it leaves this widget */
+		FActorDragDropGraphEdOp::ToolTipTextType DragDropTooltipToRestore;
 	};
 }		// namespace SceneOutliner

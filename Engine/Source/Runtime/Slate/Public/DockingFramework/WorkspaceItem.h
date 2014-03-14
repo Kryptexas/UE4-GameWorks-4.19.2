@@ -33,21 +33,9 @@ public:
 		return MakeShareable( new FWorkspaceItem( DisplayName, Icon, bSortChildren ) );
 	}
 
-	static TSharedRef<FWorkspaceItem> NewGroup( const FText& DisplayName, const FText& TooltipText, const FSlateIcon& Icon = FSlateIcon(), const bool bSortChildren = false )
-	{
-		return MakeShareable( new FWorkspaceItem( DisplayName, TooltipText, Icon, bSortChildren ) );
-	}
-
 	TSharedRef<FWorkspaceItem> AddGroup( const FText& InDisplayName, const FSlateIcon& InIcon = FSlateIcon(), const bool InSortChildren = false )
 	{
 		TSharedRef<FWorkspaceItem> NewItem = FWorkspaceItem::NewGroup(InDisplayName, InIcon, InSortChildren);
-		AddItem( NewItem );
-		return NewItem;
-	}
-
-	TSharedRef<FWorkspaceItem> AddGroup( const FText& InDisplayName, const FText& InTooltipText, const FSlateIcon& InIcon = FSlateIcon(), const bool InSortChildren = false )
-	{
-		TSharedRef<FWorkspaceItem> NewItem = FWorkspaceItem::NewGroup(InDisplayName, InTooltipText, InIcon, InSortChildren);
 		AddItem( NewItem );
 		return NewItem;
 	}
@@ -57,11 +45,6 @@ public:
 		return DisplayName;
 	}
 	
-	const FText& GetTooltipText() const
-	{
-		return TooltipText;
-	}
-
 	const FSlateIcon& GetIcon() const
 	{
 		return Icon;
@@ -148,17 +131,8 @@ protected:
 	{
 	}
 
-	FWorkspaceItem( const FText& InDisplayName, const FText& InTooltipText, const FSlateIcon& InIcon, const bool bInSortChildren )
-		: Icon(InIcon)
-		, DisplayName(InDisplayName)
-		, TooltipText(InTooltipText)
-		, bSortChildren(bInSortChildren)
-	{
-	}
-
 	FSlateIcon Icon;
 	FText DisplayName;
-	FText TooltipText;
 	bool bSortChildren;
 
 	TArray< TSharedRef<FWorkspaceItem> > ChildItems;

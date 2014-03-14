@@ -14,13 +14,8 @@ public:
 	virtual void GetActions( const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder ) OVERRIDE;
 	virtual void OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<class IToolkitHost> EditWithinLevelEditor = TSharedPtr<IToolkitHost>() ) OVERRIDE;
 	virtual uint32 GetCategories() OVERRIDE { return EAssetTypeCategories::Misc; }
-	virtual void PerformAssetDiff(UObject* Asset1, UObject* Asset2, const struct FRevisionInfo& OldRevision, const struct FRevisionInfo& NewRevision) const OVERRIDE;
 
 private:
-
-	/* Called to open the Behavior Tree defaults view, this opens whatever text dif tool the user has */
-	void OpenInDefaults( class UBehaviorTree* OldBehaviorTree, class UBehaviorTree* NewBehaviorTree ) const;
-
 	/** Handler for when Edit is selected */
 	void ExecuteEdit(TArray<TWeakObjectPtr<class UBehaviorTree>> Objects);
 };

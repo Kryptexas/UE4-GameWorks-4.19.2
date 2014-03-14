@@ -47,11 +47,6 @@ public:
 	}
 
 	// End FAndroidTargetPlatform overrides
-
-	virtual bool SupportedByExtensionsString( const FString& ExtensionsString, const int GLESVersion ) const OVERRIDE
-	{
-		return GLESVersion >= 0x30000;
-	}
 };
 
 

@@ -12,6 +12,7 @@ class UK2Node_SwitchName : public UK2Node_Switch
 	UPROPERTY(EditAnywhere, Category=PinOptions)
 	TArray<FName> PinNames;
 
+#if WITH_EDITOR
 	// UObject interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
 	// End of UObject interface
@@ -34,4 +35,5 @@ protected:
 	virtual void CreateSelectionPin() OVERRIDE;
 	virtual void CreateCasePins() OVERRIDE;
 	virtual void RemovePin(UEdGraphPin* TargetPin) OVERRIDE;
+#endif 
 };

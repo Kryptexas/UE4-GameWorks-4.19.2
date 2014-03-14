@@ -33,7 +33,7 @@ void FDirectoryPathStructCustomization::CustomizeStructHeader( TSharedRef<IPrope
 			.Padding(FMargin(4.0f, 0.0f, 0.0f, 0.0f))
 			.VAlign(VAlign_Center)
 			[
-				SAssignNew(BrowseButton, SButton)
+				SNew(SButton)
 				.ButtonStyle( FEditorStyle::Get(), "HoverHintOnly" )
 				.ToolTipText( LOCTEXT( "FolderButtonToolTipText", "Choose a directory from this computer").ToString() )
 				.OnClicked( FOnClicked::CreateSP(this, &FDirectoryPathStructCustomization::OnPickDirectory, PathProperty.ToSharedRef()) )
@@ -64,10 +64,7 @@ FReply FDirectoryPathStructCustomization::OnPickDirectory(TSharedRef<IPropertyHa
 	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 	if ( DesktopPlatform )
 	{
-		TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(BrowseButton.ToSharedRef());
-		void* ParentWindowHandle = (ParentWindow.IsValid() && ParentWindow->GetNativeWindow().IsValid()) ? ParentWindow->GetNativeWindow()->GetOSWindowHandle() : nullptr;
-
-		if(DesktopPlatform->OpenDirectoryDialog(ParentWindowHandle, LOCTEXT( "FolderDialogTitle", "Choose a directory").ToString(), FEditorDirectories::Get().GetLastDirectory(ELastDirectory::GENERIC_IMPORT), Directory))
+		if(DesktopPlatform->OpenDirectoryDialog(NULL, LOCTEXT( "FolderDialogTitle", "Choose a directory").ToString(), FEditorDirectories::Get().GetLastDirectory(ELastDirectory::GENERIC_IMPORT), Directory))
 		{
 			PropertyHandle->SetValue(Directory);
 			FEditorDirectories::Get().SetLastDirectory(ELastDirectory::GENERIC_IMPORT, Directory);

@@ -13,6 +13,8 @@ class UK2Node_MatineeController : public UK2Node
 	UPROPERTY(EditAnywhere, Category=K2Node_MatineeController)
 	class AMatineeActor* MatineeActor;
 
+
+#if WITH_EDITOR
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() OVERRIDE;
 	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
@@ -29,5 +31,7 @@ class UK2Node_MatineeController : public UK2Node
 
 	/** Gets the "finished playing matinee sequence" pin */
 	UEdGraphPin* GetFinishedPin() const;
+
+#endif
 };
 

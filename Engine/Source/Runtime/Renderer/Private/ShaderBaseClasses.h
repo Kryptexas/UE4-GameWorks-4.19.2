@@ -200,18 +200,13 @@ public:
 		// Set the material uniform buffer.
 		SetUniformBufferParameter(ShaderRHI,MaterialUniformBuffer,UniformExpressionCache->UniformBuffer);
 
+		check(ParameterCollectionUniformBuffers.Num() >= UniformExpressionCache->ParameterCollections.Num());
+
+		// Find each referenced parameter collection's uniform buffer in the scene and set the parameter
+		for (int32 CollectionIndex = 0; CollectionIndex < UniformExpressionCache->ParameterCollections.Num(); CollectionIndex++)
 		{
-			const TArray<FGuid>& ParameterCollections = UniformExpressionCache->ParameterCollections;
-			const int32 ParameterCollectionsNum = ParameterCollections.Num();
-
-			check(ParameterCollectionUniformBuffers.Num() >= ParameterCollectionsNum);
-
-			// Find each referenced parameter collection's uniform buffer in the scene and set the parameter
-			for (int32 CollectionIndex = 0; CollectionIndex < ParameterCollectionsNum; CollectionIndex++)
-			{
-				FUniformBufferRHIParamRef UniformBuffer = GetParameterCollectionBuffer(ParameterCollections[CollectionIndex], View.Family->Scene);
-				SetUniformBufferParameter(ShaderRHI,ParameterCollectionUniformBuffers[CollectionIndex],UniformBuffer);
-			}
+			FUniformBufferRHIParamRef UniformBuffer = GetParameterCollectionBuffer(UniformExpressionCache->ParameterCollections[CollectionIndex], View.Family->Scene);
+			SetUniformBufferParameter(ShaderRHI,ParameterCollectionUniformBuffers[CollectionIndex],UniformBuffer);
 		}
 
 		// Set 2D texture uniform expressions.

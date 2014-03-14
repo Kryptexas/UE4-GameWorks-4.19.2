@@ -64,9 +64,9 @@ public:
 	{
 		FMeshMaterialShader::SetParameters(GetVertexShader(),MaterialRenderProxy,InMaterialResource,View,TextureMode);
 
+		HeightFogParameters.Set(GetVertexShader(), &View, bAllowGlobalFog);
 		if (bAllowGlobalFog)
 		{
-			HeightFogParameters.Set(GetVertexShader(), &View);
 			AtmosphericFogTextureParameters.Set(GetVertexShader(), View);
 		}
 	}
@@ -298,7 +298,6 @@ public:
 				TranslucentLightingParameters.Set(this);
 			}
 
-#if WITH_EDITOR
 			if( MaterialResource.IsUsedWithEditorCompositing() )
 			{
 				// Compute parameters for converting from screen space to pixel 
@@ -328,7 +327,6 @@ public:
 				SetShaderValue(ShaderRHI, EditorCompositeDepthTestParameter, bEnableEditorPrimitveDepthTest );
 				SetShaderValue(ShaderRHI, MSAASampleCount, GSceneRenderTargets.EditorPrimitivesColor ? GSceneRenderTargets.EditorPrimitivesColor->GetDesc().NumSamples : 0 );
 			}
-#endif
 		}
 	}
 

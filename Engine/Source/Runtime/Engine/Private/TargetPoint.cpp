@@ -35,7 +35,6 @@ ATargetPoint::ATargetPoint(const class FPostConstructInitializeProperties& PCIP)
 		SpriteComponent->RelativeScale3D = FVector(0.35f, 0.35f, 0.35f);
 		SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_TargetPoint;
 		SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_TargetPoint;
-		SpriteComponent->bIsScreenSizeScaled = true;
 
 		SpriteComponent->AttachParent = SceneComponent;
 	}
@@ -50,7 +49,6 @@ ATargetPoint::ATargetPoint(const class FPostConstructInitializeProperties& PCIP)
 		ArrowComponent->SpriteInfo.Category = ConstructorStatics.ID_TargetPoint;
 		ArrowComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_TargetPoint;
 		ArrowComponent->AttachParent = SpriteComponent;
-		ArrowComponent->bIsScreenSizeScaled = true;
 	}
 #endif // WITH_EDITORONLY_DATA
 

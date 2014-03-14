@@ -406,14 +406,14 @@ bool FTextTest::RunTest (const FString& Parameters)
 	//**********************************
 	TestText = FText::FromString( TEXT("Test String") );
 
-	if ( GIsEditor && TestText.IsCultureInvariant() )
+	if ( WITH_EDITOR && TestText.IsCultureInvariant() )
 	{
-		AddError( TEXT("FromString should not produce a Culture Invariant Text when called inside the editor") );
+		AddError( TEXT("FromString should not produce a Culture Invariant Text when called with WITH_EDITOR defined") );
 	}
 	
-	if ( !GIsEditor && !TestText.IsCultureInvariant() )
+	if ( !WITH_EDITOR && !TestText.IsCultureInvariant() )
 	{
-		AddError( TEXT("FromString should produce a Culture Invariant Text when called outside the editor") );
+		AddError( TEXT("FromString should produce a Culture Invariant Text when called with WITH_EDITOR not defined") );
 	}
 
 	if ( TestText.IsTransient() )

@@ -362,8 +362,11 @@ void SafeLoadError( UObject* Outer, uint32 LoadFlags, const TCHAR* Error, const 
 	}
 	else
 	{
-		// Don't warn here if either quiet or no warn are set
-		if( (LoadFlags & LOAD_Quiet) == 0 && (LoadFlags & LOAD_NoWarn) == 0)
+		if( (LoadFlags & LOAD_Quiet) == 0 )
+		{ 
+			UE_LOG(LogUObjectGlobals, Warning, TEXT("%s"), TempStr ); 
+		}
+		if( (LoadFlags & LOAD_NoWarn) == 0 && (LoadFlags&LOAD_Quiet) != 0 )
 		{ 
 			UE_LOG(LogUObjectGlobals, Warning, TEXT("%s"), TempStr ); 
 		}
@@ -438,7 +441,7 @@ UPackage* CreatePackage( UObject* InOuter, const TCHAR* PackageName )
 			FName NewPackageName(*InName, FNAME_Add, true);
 			if (FPackageName::IsShortPackageName(NewPackageName))
 			{
-				UE_LOG(LogUObjectGlobals, Warning, TEXT("Attempted to create a package with a short package name: %s Outer: %s"), PackageName, InOuter ? *InOuter->GetFullName() : TEXT("NullOuter"));
+				UE_LOG(LogUObjectGlobals, Warning, TEXT("%s"), TEXT("Attempted to create a package with a short package name.") );
 			}
 			else
 			{
@@ -1746,19 +1749,15 @@ UObject* StaticAllocateObject
 			// Check that the object hasn't been destroyed yet.
 			if(!Obj->HasAnyFlags(RF_FinishDestroyed))
 			{
-				// Get the name before we start the destroy, as destroy renames it
-				FString OldName = Obj->GetFullName();
-
 				// Begin the asynchronous object cleanup.
 				Obj->ConditionalBeginDestroy();
 
 				// Wait for the object's asynchronous cleanup to finish.
 				while (!Obj->IsReadyForFinishDestroy()) 
 				{
-					// If we're not in the editor, and aren't doing something specifically destructive like reconstructing blueprints, this is fatal
-					if (!GIsEditor && FApp::IsGame() && !GIsReconstructingBlueprintInstances)
+					if (!GIsEditor && FApp::IsGame())
 					{
-						UE_LOG(LogUObjectGlobals, Fatal, TEXT("Gamethread hitch waiting for resource cleanup on a UObject (%s) overwrite. Fix the higher level code so that this does not happen."), *OldName );
+						UE_LOG(LogUObjectGlobals, Fatal, TEXT("Gamethread hitch waiting for resource cleanup on a UObject (%s) overwrite. Fix the higher level code so that this does not happen."), *Obj->GetFullName() );
 					}
 					FPlatformProcess::Sleep(0);
 				}

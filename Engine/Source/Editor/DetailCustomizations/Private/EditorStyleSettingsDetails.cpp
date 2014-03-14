@@ -113,9 +113,7 @@ void FEditorStyleSettingsDetails::CustomizeDetails( IDetailLayoutBuilder& Detail
 	// Take a note of the culture we start out with
 	OriginalCulture = FInternationalization::GetCurrentCulture();
 	FString SavedCultureName;
-	if ( GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), SavedCultureName, GEditorGameAgnosticIni ) || 
-		GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), SavedCultureName, GEngineIni ) 
-		)
+	if ( GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), SavedCultureName, GEngineIni ) )
 	{
 		// If we have another language pended restart, change our original choice to that
 		TSharedPtr<FCulture> SavedCulture = FInternationalization::GetCulture( SavedCultureName );
@@ -131,7 +129,7 @@ void FEditorStyleSettingsDetails::CustomizeDetails( IDetailLayoutBuilder& Detail
 
 	IDetailCategoryBuilder& CategoryBuilder = DetailBuilder.EditCategory("Internationalization");
 
-	const FText LanguageToolTipText = LOCTEXT("EditorLanguageTooltip", "Change the Editor language (requires restart to take effect)");
+	const FText LanguageToolTipText = LOCTEXT("EditorLanguageTooltip", "Change the Editor language (requires restart to take affect)");
 
 	CategoryBuilder.AddCustomRow("Language")
 	.NameContent()
@@ -164,7 +162,7 @@ void FEditorStyleSettingsDetails::CustomizeDetails( IDetailLayoutBuilder& Detail
 		]
 	];
 
-	const FText RegionToolTipText = LOCTEXT("EditorRegionTooltip", "Change the Editor region (requires restart to take effect)");
+	const FText RegionToolTipText = LOCTEXT("EditorRegionTooltip", "Change the Editor region (requires restart to take affect)");
 
 	CategoryBuilder.AddCustomRow("Region")
 	.NameContent()
@@ -406,7 +404,7 @@ void FEditorStyleSettingsDetails::HandleShutdownPostPackagesSaved()
 {
 	if ( SelectedCulture.IsValid() )
 	{
-		GConfig->SetString( TEXT("Internationalization"), TEXT("Culture"), *SelectedCulture->GetName(), GEditorGameAgnosticIni );
+		GConfig->SetString( TEXT("Internationalization"), TEXT("Culture"), *SelectedCulture->GetName(), GEngineIni );
 	}
 }
 

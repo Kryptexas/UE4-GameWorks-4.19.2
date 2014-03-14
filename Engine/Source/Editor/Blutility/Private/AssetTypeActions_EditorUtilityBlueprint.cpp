@@ -61,8 +61,8 @@ void FAssetTypeActions_EditorUtilityBlueprint::GetActions(const TArray<UObject*>
 	*/
 
 	MenuBuilder.AddMenuEntry(
-		LOCTEXT("Blutility_Edit", "Edit Blueprint"),
-		LOCTEXT("Blutility_EditTooltip", "Opens the selected blueprints in the full blueprint editor."),
+		LOCTEXT("Blueprint_Edit", "Edit Blueprint"),
+		LOCTEXT("Blueprint_EditTooltip", "Opens the selected blueprints in the full blueprint editor."),
 		FSlateIcon(),
 		FUIAction(
 			FExecuteAction::CreateSP( this, &FAssetTypeActions_EditorUtilityBlueprint::ExecuteEdit, Blueprints ),
@@ -71,8 +71,8 @@ void FAssetTypeActions_EditorUtilityBlueprint::GetActions(const TArray<UObject*>
 		);
 
 	MenuBuilder.AddMenuEntry(
-		LOCTEXT("Blutility_EditDefaults", "Edit Defaults"),
-		LOCTEXT("Blutility_EditDefaultsTooltip", "Edits the default properties for the selected blueprints."),
+		LOCTEXT("Blueprint_EditDefaults", "Edit Defaults"),
+		LOCTEXT("Blueprint_EditDefaultsTooltip", "Edits the default properties for the selected blueprints."),
 		FSlateIcon(),
 		FUIAction(
 			FExecuteAction::CreateSP( this, &FAssetTypeActions_EditorUtilityBlueprint::ExecuteEditDefaults, Blueprints ),
@@ -83,8 +83,8 @@ void FAssetTypeActions_EditorUtilityBlueprint::GetActions(const TArray<UObject*>
 	if (Blueprints.Num() == 1)
 	{
 		MenuBuilder.AddMenuEntry(
-			LOCTEXT("Blutility_NewDerivedBlueprint", "Create Blueprint based on this"),
-			LOCTEXT("Blutility_NewDerivedBlueprintTooltip", "Creates a blueprint based on the selected blueprint."),
+			LOCTEXT("Blueprint_NewDerivedBlueprint", "Create Blueprint based on this"),
+			LOCTEXT("Blueprint_NewDerivedBlueprintTooltip", "Creates a blueprint based on the selected blueprint."),
 			FSlateIcon(),
 			FUIAction(
 				FExecuteAction::CreateSP( this, &FAssetTypeActions_EditorUtilityBlueprint::ExecuteNewDerivedBlueprint, Blueprints[0] ),

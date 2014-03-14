@@ -173,16 +173,14 @@ void UKismetArrayLibrary::GenericArray_Get(void* TargetArray, const UArrayProper
 	if( TargetArray )
 	{
 		FScriptArrayHelper ArrayHelper(ArrayProp, TargetArray);
-
-		UProperty* InnerProp = ArrayProp->Inner;
 		if( ArrayHelper.IsValidIndex(Index) )
 		{
+			UProperty* InnerProp = ArrayProp->Inner;
 			InnerProp->CopyCompleteValueFromScriptVM(&Item, ArrayHelper.GetRawPtr(Index));	
 		}
 		else
 		{
 			UE_LOG(LogArray, Warning, TEXT("Attempted to get an item from array %s out of bounds [%d/%d]!"), *ArrayProp->GetName(), Index, GetLastIndex(ArrayHelper));
-			InnerProp->InitializeValue(&Item);
 		}
 	}
 }

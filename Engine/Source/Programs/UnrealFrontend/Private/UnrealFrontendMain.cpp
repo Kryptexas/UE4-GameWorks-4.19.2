@@ -17,7 +17,6 @@
 
 IMPLEMENT_APPLICATION(UnrealFrontend, "UnrealFrontend");
 
-#define IDEAL_FRAMERATE 60;
 
 namespace WorkspaceMenu
 {
@@ -392,8 +391,7 @@ void RunUI()
 
 	// enter main loop
 	double DeltaTime = 0.0;
-	double LastTime = FPlatformTime::Seconds();
-	const float IdealFrameTime = 1.0f / IDEAL_FRAMERATE;
+	double LastTime = FPlatformTime::Seconds() - 0.0001;
 	static int32 MasterDisableChangeTagStartFrame = -1;
 
 	while (!GIsRequestingExit)
@@ -408,8 +406,7 @@ void RunUI()
 		FTicker::GetCoreTicker().Tick(DeltaTime);
 		AutomationControllerModule.Tick();
 
-		// throttle frame rate
-		FPlatformProcess::Sleep(FMath::Max<float>(0.0f, IdealFrameTime - (FPlatformTime::Seconds() - LastTime)));
+		FPlatformProcess::Sleep(0.0f);
 
 		double CurrentTime = FPlatformTime::Seconds();
 		DeltaTime =  CurrentTime - LastTime;

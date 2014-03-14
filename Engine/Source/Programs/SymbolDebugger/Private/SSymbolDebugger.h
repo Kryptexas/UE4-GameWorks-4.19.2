@@ -82,7 +82,7 @@ public:
 	DECLARE_DELEGATE_RetVal(FString, FSymbolDebuggerGetMethodText)
 	DECLARE_DELEGATE_RetVal_OneParam(bool, FSymbolDebuggerSetMethodText, const FString&);
 
-	DECLARE_DELEGATE_RetVal_OneParam(bool, FSymbolDebuggerOnFileOpen, TSharedRef<SWidget>);
+	DECLARE_DELEGATE_RetVal(bool, FSymbolDebuggerOnFileOpen);
 
 	DECLARE_DELEGATE_RetVal_OneParam(FString, FSymbolDebuggerGetTextField, ESymbolDebuggerTextFields);
 	DECLARE_DELEGATE_RetVal_TwoParams(bool, FSymbolDebuggerSetTextField, ESymbolDebuggerTextFields, const FString&);

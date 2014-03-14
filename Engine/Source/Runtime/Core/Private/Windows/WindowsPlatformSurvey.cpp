@@ -228,19 +228,6 @@ void FWindowsPlatformSurvey::TickSurveyHardware( FHardwareSurveyResults& OutResu
 		WriteFStringToResults(OutResults.LastSurveyErrorDetail, TEXT(""));
 	}	
 
-	// Get processor string
-	FString ProcessorString;
-	if (GetLineFollowing(TEXT("Processor: "), DxdiagLines, ProcessorString))
-	{
-		WriteFStringToResults(OutResults.CPUNameString, ProcessorString);
-	}
-	else
-	{
-		OutResults.ErrorCount++;
-		WriteFStringToResults(OutResults.LastSurveyError, TEXT("Dxdiag: can't find line beginning \"Processor:\""));
-		WriteFStringToResults(OutResults.LastSurveyErrorDetail, TEXT(""));
-	}	
-
 	// Identify "Display Devices" section
 	OutResults.DisplayCount = 0;
 	TArray<FString> DisplaySectionLines;
@@ -434,9 +421,6 @@ void FWindowsPlatformSurvey::TickSurveyHardware( FHardwareSurveyResults& OutResu
 		WriteFStringToResults(OutResults.LastSurveyError, TEXT("FWindowsPlatformSurvey::TickSurveyHardware() failed to get processor brand from FWindowsPlatformMisc::GetCPUVendor()"));
 		WriteFStringToResults(OutResults.LastSurveyErrorDetail, TEXT(""));
 	}
-
-	// Get CPU info
-	OutResults.CPUInfo = FWindowsPlatformMisc::GetCPUInfo();
 
 	// get HDD details
 	OutResults.HardDriveGB = -1;

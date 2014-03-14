@@ -18,6 +18,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogD3D11ShaderCompiler, Log, All);
 
 #include "AllowWindowsPlatformTypes.h"
 	#include <D3D11.h>
+	#include <D3DX11.h>
 	#include <D3Dcompiler.h>
 	#include <d3d11Shader.h>
 #include "HideWindowsPlatformTypes.h"

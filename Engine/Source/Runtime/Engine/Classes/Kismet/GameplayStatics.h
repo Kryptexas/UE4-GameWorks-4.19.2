@@ -95,7 +95,7 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	
 	/** Returns level streaming object with specified level package name */
 	UFUNCTION(BlueprintPure, meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject"), Category="Game")
-	static class ULevelStreaming* GetStreamingLevel(UObject* WorldContextObject, FName PackageName);
+	static class ULevelStreamingKismet* GetStreamingLevel(UObject* WorldContextObject, FName PackageName);
 	
 	/**
 	 * Travel to another level
@@ -395,28 +395,25 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 *	Save the contents of the SaveGameObject to a slot.
 	 *	@param SaveGameObject	Object that contains data about the save game that we want to write out
 	 *	@param SlotName			Name of save game slot to save to.
-	 *  @param UserIndex		For some platforms, master user index to identify the user doing the saving.
 	 *	@return					Whether we successfully saved this information
 	 */
 	UFUNCTION(BlueprintCallable, Category="Game")
-	static bool SaveGameToSlot(USaveGame* SaveGameObject, const FString& SlotName, const int32 UserIndex);
+	static bool SaveGameToSlot(USaveGame* SaveGameObject, const FString& SlotName);
 
 	/**
 	 *	See if a save game exists with the specified name.
 	 *	@param SlotName			Name of save game slot.
-	 *  @param UserIndex		For some platforms, master user index to identify the user doing the saving.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Game")
-	static bool DoesSaveGameExist(const FString& SlotName, const int32 UserIndex);
+	static bool DoesSaveGameExist(const FString& SlotName);
 
 	/** 
 	 *	Save the contents of the SaveGameObject to a slot.
 	 *	@param SlotName			Name of save game slot to save to.
-	 *  @param UserIndex		For some platforms, master user index to identify the user doing the saving.
 	 *	@return SaveGameObject	Object containing loaded game state (NULL if load fails)
 	 */
 	UFUNCTION(BlueprintCallable, Category="Game")
-	static USaveGame* LoadGameFromSlot(const FString& SlotName, const int32 UserIndex);
+	static USaveGame* LoadGameFromSlot(const FString& SlotName);
 
 	/** Returns the frame delta time in seconds adjusted by e.g. time dilation. */
 	UFUNCTION(BlueprintPure, Category = "Utilities|Time", meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject"))

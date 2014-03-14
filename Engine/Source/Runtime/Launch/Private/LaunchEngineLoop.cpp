@@ -273,14 +273,7 @@ bool LaunchCheckForFileOverride(const TCHAR* CmdLine, bool& OutFileOverrideFound
 
 	// Try to create pak file wrapper
 	{
-		IPlatformFile* PlatformFile = nullptr;
-		PlatformFile = ConditionallyCreateFileWrapper(TEXT("PakFile"), CurrentPlatformFile, CmdLine);
-		if (PlatformFile)
-		{
-			CurrentPlatformFile = PlatformFile;
-			FPlatformFileManager::Get().SetPlatformFile(*CurrentPlatformFile);
-		}
-		PlatformFile = ConditionallyCreateFileWrapper(TEXT("CachedReadFile"), CurrentPlatformFile, CmdLine);
+		IPlatformFile* PlatformFile = ConditionallyCreateFileWrapper(TEXT("PakFile"), CurrentPlatformFile, CmdLine);
 		if (PlatformFile)
 		{
 			CurrentPlatformFile = PlatformFile;
@@ -364,18 +357,8 @@ bool LaunchCheckForFileOverride(const TCHAR* CmdLine, bool& OutFileOverrideFound
 			FPlatformFileManager::Get().SetPlatformFile(*CurrentPlatformFile);
 		}
 	}
-	// Try and create file timings stats wrapper
 	{
 		IPlatformFile* PlatformFile = ConditionallyCreateFileWrapper(TEXT("FileReadStats"), CurrentPlatformFile, CmdLine);
-		if (PlatformFile)
-		{
-			CurrentPlatformFile = PlatformFile;
-			FPlatformFileManager::Get().SetPlatformFile(*CurrentPlatformFile);
-		}
-	}
-	// Try and create file open log wrapper (lists the order files are first opened)
-	{
-		IPlatformFile* PlatformFile = ConditionallyCreateFileWrapper(TEXT("FileOpenLog"), CurrentPlatformFile, CmdLine);
 		if (PlatformFile)
 		{
 			CurrentPlatformFile = PlatformFile;
@@ -621,38 +604,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	TCHAR* CommandLineCopy			= new TCHAR[ CommandLineSize ];
 	FCString::Strcpy( CommandLineCopy, CommandLineSize, CmdLine );
 	const TCHAR* ParsedCmdLine	= CommandLineCopy;
-
 	FString Token				= FParse::Token( ParsedCmdLine, 0);
-
-#if	UE_EDITOR
-	TArray<FString> Tokens;
-	TArray<FString> Switches;
-	UCommandlet::ParseCommandLine(CommandLineCopy, Tokens, Switches);
-
-	bool bHasCommandletToken = false;
-
-	for( int32 TokenIndex = 0; TokenIndex < Tokens.Num(); ++TokenIndex )
-	{
-		if( Tokens[TokenIndex].EndsWith(TEXT("Commandlet")) )
-		{
-			bHasCommandletToken = true;
-			Token = Tokens[TokenIndex];
-			break;
-		}
-	}
-
-	for( int32 SwitchIndex = 0; SwitchIndex < Switches.Num() && !bHasCommandletToken; ++SwitchIndex )
-	{
-		if( Switches[SwitchIndex].StartsWith(TEXT("RUN=")) )
-		{
-			bHasCommandletToken = true;
-			Token = Switches[SwitchIndex];
-			break;
-		}
-	}
-
-#endif // UE_EDITOR
-
 
 	// trim any whitespace at edges of string - this can happen if the token was quoted with leading or trailing whitespace
 	// VC++ tends to do this in its "external tools" config
@@ -700,7 +652,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	// we need it for something later. So, just move it to the end for now...
 	const bool bFirstTokenIsGame = (Token == TEXT("-GAME"));
 	const bool bFirstTokenIsServer = (Token == TEXT("-SERVER"));
-	const bool bFirstTokenIsModeOverride = bFirstTokenIsGame || bFirstTokenIsServer || bHasCommandletToken;
+	const bool bFirstTokenIsCommandlet = Token.StartsWith(TEXT("-RUN=")) || Token.EndsWith(TEXT("Commandlet"));
+	const bool bFirstTokenIsModeOverride = bFirstTokenIsGame || bFirstTokenIsServer || bFirstTokenIsCommandlet;
 	const TCHAR* CommandletCommandLine = NULL;
 	if (bFirstTokenIsModeOverride)
 	{
@@ -713,14 +666,14 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			RemainingCommandline += FString::Printf(TEXT(" %s"), *Token);
 			FCommandLine::Set(*RemainingCommandline); 
 		}
-		if (bHasCommandletToken)
+		if (bFirstTokenIsCommandlet)
 		{
 #if STATS
 			FThreadStats::MasterDisableForever();
 #endif
-			if (Token.StartsWith(TEXT("run=")))
+			if (Token.StartsWith(TEXT("-run=")))
 			{
-				Token = Token.RightChop(4);
+				Token = Token.RightChop(5);
 				if (!Token.EndsWith(TEXT("Commandlet")))
 				{
 					Token += TEXT("Commandlet");
@@ -769,7 +722,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	{
 		if (!bIsNotEditor)
 		{
-			bool bHasNonEditorToken = (CheckToken == TEXT("-GAME")) || (CheckToken == TEXT("-SERVER")) || (CheckToken.StartsWith(TEXT("RUN="))) || CheckToken.EndsWith(TEXT("Commandlet"));
+			bool bHasNonEditorToken = (CheckToken == TEXT("-GAME")) || (CheckToken == TEXT("-SERVER")) || (CheckToken.StartsWith(TEXT("-RUN="))) || CheckToken.EndsWith(TEXT("Commandlet"));
 			if (bHasNonEditorToken)
 			{
 				bIsNotEditor = true;
@@ -823,7 +776,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 #if WITH_EDITOR
 	// If we're running as an game but don't have a project, inform the user and exit.
-	if (bHasEditorToken == false && bHasCommandletToken == false)
+	if (bHasEditorToken == false && bFirstTokenIsCommandlet == false)
 	{
 		if ( !FPaths::IsProjectFilePathSet() )
 		{
@@ -952,9 +905,9 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		bool bDefinitelyCommandlet = (bTokenDoesNotHaveDash && Token.EndsWith(TEXT("Commandlet")));
 		if (!bTokenDoesNotHaveDash)
 		{
-			if (Token.StartsWith(TEXT("run=")))
+			if (Token.StartsWith(TEXT("-run=")))
 			{
-				Token = Token.RightChop(4);
+				Token = Token.RightChop(5);
 				bDefinitelyCommandlet = true;
 				if (!Token.EndsWith(TEXT("Commandlet")))
 				{
@@ -1044,7 +997,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		FPlatformMisc::RequestExit(false);
 		return 1;
 #endif //WITH_EDITOR
-	}
+ 	}
 
 	// If we're not in the editor stop collecting the backlog now that we know
 	if (!GIsEditor)
@@ -1763,7 +1716,21 @@ int32 FEngineLoop::Init()
 
 	GIsRunning = true;
 
-	if (!GIsEditor)
+	// let the game script code run any special code for initial boot-up (this is a one time call ever)
+	for (TObjectIterator<UWorld> ObjIt;  ObjIt; ++ObjIt)
+	{
+		UWorld* const EachWorld = CastChecked<UWorld>(*ObjIt);
+		if (EachWorld)
+		{
+			AGameMode* const GameMode = EachWorld->GetAuthGameMode();
+			if (GameMode)
+			{
+				GameMode->OnEngineHasLoaded();
+			}
+		}
+	}
+
+	if( !GIsEditor)
 	{
 		// hide a couple frames worth of rendering
 		FViewport::SetGameRenderingEnabled(true, 3);
@@ -2125,6 +2092,31 @@ void FEngineLoop::OnSuspending(_In_ Platform::Object^ Sender, _In_ Windows::Appl
 	SuspendingEvent->Complete();
 }
 
+void FEngineLoop::OnResourceAvailabilityChanged( _In_ Platform::Object^ Sender, _In_ Platform::Object^ Args )
+{
+	// @TODO Implement as required? May be game specific
+// 	// Check to see what has changed
+// 	switch ( CoreApplication::ResourceAvailability )
+// 	{
+// 		case CoreApplication::ResourceAvailability::Constrained:
+// 		{
+// 		}
+// 		break;
+// 
+// 		case CoreApplication::ResourceAvailability::Full:
+// 		{
+// 		}
+// 		break;
+// 
+// 		default:
+// 		{
+// 			// Unknown State
+// 			check(0);
+// 		}
+// 		break;
+//	}
+}
+
 #endif // PLATFORM_XBOXONE
 
 #endif // WITH_ENGINE
@@ -2143,7 +2135,7 @@ void FEngineLoop::AppInit( )
 	FInternationalization::Initialize();
 
 	// Avoiding potential exploits by not exposing command line overrides in the shipping games.
-#if !UE_BUILD_SHIPPING && WITH_EDITORONLY_DATA
+#if !UE_BUILD_SHIPPING && !WITH_EDITORONLY_DATA
 	// 8192 is the maximum length of the command line on Windows XP.
 	TCHAR CmdLineEnv[8192];
 
@@ -2239,17 +2231,9 @@ void FEngineLoop::AppInit( )
 		{
 			//UE_LOG(LogInit, Log, TEXT("Overriding culture %s w/ command-line option".), *CultureName);
 		}
+		// Use culture specified in engine configuration.
 		else
 #endif // !UE_BUILD_SHIPPING
-#if WITH_EDITOR
-		// See if we've been provided a culture override in the editor
-		if(GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), CultureName, GEditorGameAgnosticIni ))
-		{
-			//UE_LOG(LogInit, Log, TEXT("Overriding culture %s w/ editor configuration."), *CultureName);
-		}
-		else
-#endif // WITH_EDITOR
-		// Use culture specified in engine configuration.
 		if(GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), CultureName, GEngineIni ))
 		{
 			//UE_LOG(LogInit, Log, TEXT("Overriding culture %s w/ engine configuration."), *CultureName);

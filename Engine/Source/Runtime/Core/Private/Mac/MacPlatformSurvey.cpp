@@ -217,23 +217,6 @@ void FMacPlatformSurvey::TickSurveyHardware( FHardwareSurveyResults& OutResults 
 		WriteFStringToResults(OutResults.LastSurveyErrorDetail, TEXT(""));
 	}
 
-	// Get CPU name
-	ANSICHAR TempANSICHARBuffer[FHardwareSurveyResults::MaxStringLength];
-	Size = sizeof(TempANSICHARBuffer);
-	if (sysctlbyname("machdep.cpu.brand_string", TempANSICHARBuffer, &Size, NULL, 0) == 0)
-	{
-		WriteFStringToResults(OutResults.CPUNameString, FString(StringCast<TCHAR>(&TempANSICHARBuffer[0]).Get()));
-	}
-	else
-	{
-		OutResults.ErrorCount++;
-		WriteFStringToResults(OutResults.LastSurveyError, TEXT("FMacPlatformSurvey::TickSurveyHardware() failed to get processor name from sysctlbyname()"));
-		WriteFStringToResults(OutResults.LastSurveyErrorDetail, TEXT(""));
-	}
-
-	// Get CPU info
-	OutResults.CPUInfo = FMacPlatformMisc::GetCPUInfo();
-
 	// Get HDD details
 	OutResults.HardDriveGB = -1;
 	NSDictionary *HDDAttributes = [[NSFileManager defaultManager] attributesOfFileSystemForPath: @"/" error: nil];

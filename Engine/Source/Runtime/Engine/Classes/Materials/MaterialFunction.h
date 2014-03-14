@@ -60,7 +60,6 @@ public:
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
 #endif // WITH_EDITOR
 	virtual void PostLoad() OVERRIDE;
-	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const OVERRIDE;
 	// End UObject interface.
 
 	/** Recursively update all function call expressions in this function, or in nested functions. */
@@ -82,14 +81,6 @@ public:
 
 #if WITH_EDITORONLY_DATA
 	ENGINE_API UMaterial* GetPreviewMaterial();
-
-	void UpdateInputOutputTypes();
-
-	UPROPERTY(AssetRegistrySearchable)
-	uint32 CombinedInputTypes;
-
-	UPROPERTY(AssetRegistrySearchable)
-	uint32 CombinedOutputTypes;
 
 	/** Information for thumbnail rendering */
 	UPROPERTY()

@@ -64,9 +64,6 @@ protected:
 	UScriptStruct* TransformStruct;
 	UScriptStruct* LinearColorStruct;
 
-	// If set, this is a list of all the objects that are currently loading
-	TArray<UObject*>* ObjLoaded;
-
 public:
 	UBlueprint* Blueprint;
 	UBlueprintGeneratedClass* NewClass;
@@ -87,7 +84,7 @@ public:
 	FBacktrackMap FinalNodeBackToMacroSourceMap;
 	TMultiMap<TWeakObjectPtr<UEdGraphNode>, TWeakObjectPtr<UEdGraphNode>> MacroSourceToMacroInstanceNodeMap;
 public:
-	FKismetCompilerContext(UBlueprint* SourceSketch, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompilerOptions, TArray<UObject*>* InObjLoaded);
+	FKismetCompilerContext(UBlueprint* SourceSketch, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompilerOptions);
 	virtual ~FKismetCompilerContext();
 
 	/** Compile a blueprint into a class and a set of functions */

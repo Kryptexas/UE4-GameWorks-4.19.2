@@ -170,14 +170,14 @@ TSharedRef<ITableRow> SClassPickerDialog::GenerateListRow(TSharedPtr<FClassPicke
 					+SHorizontalBox::Slot()
 					.HAlign(HAlign_Center)
 					.VAlign(VAlign_Center)
-					.FillWidth(0.12f)
+					.FillWidth(0.2f)
 					[
 						SNew(SImage)
 						.Image(FEditorStyle::GetBrush(Obj->Image))
 					]
 					+SHorizontalBox::Slot()
 					.VAlign(VAlign_Center)
-					.Padding(4.0f, 0.0f)
+					.Padding(10.0f, 0.0f)
 					.FillWidth(0.8f)
 					[
 						SNew(STextBlock)

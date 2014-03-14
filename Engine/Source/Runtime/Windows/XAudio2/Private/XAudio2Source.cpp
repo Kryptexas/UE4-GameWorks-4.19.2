@@ -900,7 +900,7 @@ void FXAudio2SoundSource::Update( void )
 	{
 		float FilterConstant = 2.0f * FMath::Sin( PI * 6000.0f * HighFrequencyGain / 48000.0f );
 		LPFParameters.Frequency = FilterConstant;
-		LPFParameters.OneOverQ = AudioDevice->GetLowPassFilterResonance();
+		LPFParameters.OneOverQ = AudioDevice->LowPassFilterResonance;
 	}
 
 	AudioDevice->ValidateAPICall( TEXT( "SetFilterParameters" ), 

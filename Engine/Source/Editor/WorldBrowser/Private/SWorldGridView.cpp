@@ -28,9 +28,9 @@ struct FWorldZoomLevelsContainer
 		return GetDefaultZoomLevel();
 	}
 
-	FText GetZoomText(int32 InZoomLevel) const OVERRIDE
+	FString GetZoomPrettyString(int32 InZoomLevel) const OVERRIDE
 	{
-		return FText::AsNumber(GetZoomAmount(InZoomLevel));
+		return FString::Printf(TEXT("%.5f"), GetZoomAmount(InZoomLevel));
 	}
 
 	int32	GetNumZoomLevels() const OVERRIDE

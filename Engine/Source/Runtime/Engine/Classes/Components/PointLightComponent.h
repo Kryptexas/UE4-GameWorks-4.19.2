@@ -19,7 +19,7 @@ class ENGINE_API UPointLightComponent : public ULightComponent
 	 * Bounds the light's visible influence.  
 	 * This clamping of the light's influence is not physically correct but very important for performance, larger lights cost more.
 	 */
-	UPROPERTY(interp, BlueprintReadOnly, Category=Light, meta=(UIMin = "8.0", UIMax = "16384.0", SliderExponent = "5.0"))
+	UPROPERTY(interp, BlueprintReadOnly, Category=Light, meta=(UIMin = "8.0", UIMax = "16384.0"))
 	float AttenuationRadius;
 
 	/** 

@@ -71,11 +71,10 @@ struct FEnvQueryInstanceCache
 };
 
 #if WITH_EDITOR
-struct ENGINE_API FEQSDebugger
+struct FEQSDebugger
 {
 	void StoreQuery(TSharedPtr<FEnvQueryInstance>& Query);
 	TSharedPtr<FEnvQueryInstance> GetQueryForOwner(const UObject* Owner);
-	const TSharedPtr<FEnvQueryInstance> GetQueryForOwner(const UObject* Owner) const;
 
 protected:
 	// maps owner to performed queries
@@ -105,10 +104,6 @@ class ENGINE_API UEnvQueryManager : public UObject, public FTickableGameObject
 
 	/** Creates a query instance configured for execution */
 	TSharedPtr<struct FEnvQueryInstance> PrepareQueryInstance(const struct FEnvQueryRequest& Request, EEnvQueryRunMode::Type RunMode);
-
-	/** finds UEnvQuery matching QueryName by first looking at instantiated queries (from InstanceCache)
-	 *	falling back to looking up all UEnvQuery and testing their name */
-	UEnvQuery* FindQueryTemplate(const FString& QueryName) const;
 
 	/** execute query */
 	bool AbortQuery(int32 RequestID);

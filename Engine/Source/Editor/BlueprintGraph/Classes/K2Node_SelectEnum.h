@@ -9,6 +9,7 @@ class UDEPRECATED_K2Node_SelectEnum : public UK2Node_Select
 {
 	GENERATED_UCLASS_BODY()
 
+#if WITH_EDITOR
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() OVERRIDE;
 	virtual FString GetTooltip() const OVERRIDE;
@@ -27,5 +28,6 @@ class UDEPRECATED_K2Node_SelectEnum : public UK2Node_Select
 
 	// Bind the option to a named enum 
 	BLUEPRINTGRAPH_API void SetEnum(UEnum* InEnum) OVERRIDE;
+#endif
 };
 

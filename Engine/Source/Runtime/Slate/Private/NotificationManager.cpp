@@ -9,57 +9,8 @@ namespace NotificationManagerConstants
 	const FVector2D NotificationOffset( 15.0f, 15.0f );
 }
 
-FSlateNotificationManager::FRegionalNotificationList::FRegionalNotificationList(const FSlateRect& InRectangle)
-	: Region(InRectangle)
-{
-
-}
-
-void FSlateNotificationManager::FRegionalNotificationList::RemoveDeadNotifications()
-{
-	// Iterate backwards and remove anything that has finished
-	for (int32 ListIndex = Notifications.Num() - 1; ListIndex >= 0; --ListIndex)
-	{
-		if (Notifications[ListIndex]->bDone)
-		{
-			TSharedPtr<SWindow> PinnedWindow = Notifications[ListIndex]->ParentWindowPtr.Pin();
-			if( PinnedWindow.IsValid() )
-			{
-				PinnedWindow->RequestDestroyWindow();
-			}
-
-			Notifications.RemoveAt(ListIndex);
-		}
-	}
-}
-
-void FSlateNotificationManager::FRegionalNotificationList::Arrange()
-{
-	FVector2D AnchorPoint(
-		Region.Right - NotificationManagerConstants::NotificationOffset.X,
-		Region.Bottom - NotificationManagerConstants::NotificationOffset.Y );
-
-	for (int32 ListIndex = Notifications.Num() - 1; ListIndex >= 0; --ListIndex)
-	{
-		TSharedPtr<SWindow> PinnedWindow = Notifications[ListIndex]->ParentWindowPtr.Pin();
-		if( PinnedWindow.IsValid() )
-		{
-			const FVector2D DesiredSize = PinnedWindow->GetDesiredSize();
-			const FVector2D NewPosition( AnchorPoint.X - DesiredSize.X, AnchorPoint.Y - DesiredSize.Y );
-			if( NewPosition != PinnedWindow->GetPositionInScreen() && DesiredSize != PinnedWindow->GetSizeInScreen() )
-			{
-				PinnedWindow->ReshapeWindow( NewPosition, DesiredSize );
-			}
-			else if( NewPosition != PinnedWindow->GetPositionInScreen() )
-			{
-				PinnedWindow->MoveWindowTo( NewPosition );
-			}
-			AnchorPoint.Y -= DesiredSize.Y;
-		}
-	}
-}
-
-FSlateNotificationManager::FSlateNotificationManager()
+FSlateNotificationManager::FSlateNotificationManager() :
+	AnchorReferenceRect( 0.0f, 0.0f, 0.0f, 0.0f )
 {
 }
 
@@ -83,47 +34,15 @@ void FSlateNotificationManager::SetRootWindow( const TSharedRef<SWindow> InRootW
 	RootWindowPtr = InRootWindow;
 }
 
-
-
-TSharedRef<SNotificationList> FSlateNotificationManager::CreateStackForArea(const FSlateRect& InRectangle)
+void FSlateNotificationManager::RecalculateAnchorRect( const bool bForce )
 {
-	TSharedRef<SNotificationList> NotificationList = SNew(SNotificationList);
-	TSharedRef<SWindow> NotificationWindow = SWindow::MakeNotificationWindow();
-	NotificationWindow->SetContent(NotificationList);
-	NotificationList->ParentWindowPtr = NotificationWindow;
-
-	if( RootWindowPtr.IsValid() )
+	// Do we need to switch the anchor point because the focus has switched to another
+	// desktop area?
+	// Only switch if there are no items at the moment (or we are forced)
+	if( NotificationLists.Num() == 0 || bForce )
 	{
-		FSlateApplication::Get().AddWindowAsNativeChild( NotificationWindow, RootWindowPtr.Pin().ToSharedRef() );
+		AnchorReferenceRect = FSlateApplication::Get().GetPreferredWorkArea();
 	}
-	else
-	{
-		FSlateApplication::Get().AddWindow( NotificationWindow );
-	}
-
-	if( !FSlateApplication::Get().GetActiveModalWindow().IsValid() )
-	{
-		NotificationWindow->BringToFront();
-	}
-
-	bool bFound = false;
-	for (FRegionalNotificationList& List : RegionalLists)
-	{
-		if (FSlateRect::IsRectangleContained(List.Region, InRectangle))
-		{
-			List.Notifications.Add(NotificationList);
-			bFound = true;
-		}
-	}
-
-	if (!bFound)
-	{
-		FRegionalNotificationList NewList(FSlateApplication::Get().GetWorkArea(InRectangle));
-		NewList.Notifications.Add(NotificationList);
-		RegionalLists.Add(NewList);
-	}
-
-	return NotificationList;
 }
 
 TSharedPtr<SNotificationItem> FSlateNotificationManager::AddNotification(const FNotificationInfo& Info)
@@ -133,11 +52,39 @@ TSharedPtr<SNotificationItem> FSlateNotificationManager::AddNotification(const F
 	// Early calls of this function can happen before Slate is initialized.
 	if( FSlateApplication::IsInitialized() )
 	{
-		const FSlateRect PreferredWorkArea = FSlateApplication::Get().GetPreferredWorkArea();
+		RecalculateAnchorRect( false );
 
-		TSharedRef<SNotificationList> List = CreateStackForArea(PreferredWorkArea);
+		// create the list & notification
+		TSharedRef<SNotificationList> NotificationList = SNew(SNotificationList);
+		TSharedPtr<SNotificationItem> NewItem = NotificationList->AddNotification(Info);
 
-		return List->AddNotification(Info);
+		TSharedRef<SWindow> NotificationWindow = SWindow::MakeNotificationWindow();
+		NotificationWindow->SetContent( 
+			SNew(SVerticalBox)
+			+SVerticalBox::Slot()
+			[
+				NotificationList
+			]
+		);
+
+		NotificationList->ParentWindowPtr = NotificationWindow;
+		NotificationLists.Add( NotificationList );
+
+		if( RootWindowPtr.IsValid() )
+		{
+			FSlateApplication::Get().AddWindowAsNativeChild( NotificationWindow, RootWindowPtr.Pin().ToSharedRef() );
+		}
+		else
+		{
+			FSlateApplication::Get().AddWindow( NotificationWindow );
+		}
+
+		if( !FSlateApplication::Get().GetActiveModalWindow().IsValid() )
+		{
+			NotificationWindow->BringToFront();
+		}
+
+		return NewItem;
 	}
 
 	return NULL;
@@ -150,29 +97,19 @@ void FSlateNotificationManager::QueueNotification(FNotificationInfo* Info)
 
 void FSlateNotificationManager::GetWindows(TArray< TSharedRef<SWindow> >& OutWindows) const
 {
-	for (const FRegionalNotificationList& RegionList : RegionalLists)
+	for( auto Iter(NotificationLists.CreateConstIterator()); Iter; Iter++ )
 	{
-		for (const auto& NotificationList : RegionList.Notifications)
+		TSharedPtr<SNotificationList> NotificationList = *Iter;
+		TSharedPtr<SWindow> PinnedWindow = NotificationList->ParentWindowPtr.Pin();
+		if( PinnedWindow.IsValid() )
 		{
-			TSharedPtr<SWindow> PinnedWindow = NotificationList->ParentWindowPtr.Pin();
-			if( PinnedWindow.IsValid() )
-			{
-				OutWindows.Add(PinnedWindow.ToSharedRef());
-			}
+			OutWindows.Add(PinnedWindow.ToSharedRef());
 		}
 	}
 }
 
 void FSlateNotificationManager::Tick()
 {
-	// Ensure that the region rectangles still match the screen work areas.
-	// This is necessary if the desktop configuration has changed
-	for (auto& RegionList : RegionalLists)
-	{
-		RegionList.Region = FSlateApplication::Get().GetWorkArea(RegionList.Region);
-	}
-
-
 	while (auto* Notification = PendingNotifications.Pop())
 	{
 		AddNotification(*Notification);
@@ -182,21 +119,59 @@ void FSlateNotificationManager::Tick()
 	// Check notifications to see if any have timed out & need to be removed.
 	// We need to do this here as we cant remove their windows in the normal
 	// window-tick callstack (as the SlateWindows array gets corrupted)
-	
-	// We don't need to worry about duplicates here as there is always a unique list per-region
-	for (int32 RegionIndex = RegionalLists.Num() - 1; RegionIndex >= 0; --RegionIndex)
+	int32 RemovedCount = 0;
+	do 
 	{
-		RegionalLists[RegionIndex].RemoveDeadNotifications();
-
-		if (RegionalLists[RegionIndex].Notifications.Num() == 0)
+		RemovedCount = 0;
+		for( TArray< TSharedPtr<SNotificationList> >::TIterator Iter = NotificationLists.CreateIterator(); Iter; Iter++ )
 		{
-			// It's empty, so remove it
-			RegionalLists.RemoveAt(RegionIndex);
+			TSharedPtr<SNotificationList> NotificationList = *Iter;
+			if( NotificationList->bDone )
+			{
+				RemovedCount = NotificationLists.Remove(NotificationList);
+				TSharedPtr<SWindow> PinnedWindow = NotificationList->ParentWindowPtr.Pin();
+				if( PinnedWindow.IsValid() )
+				{
+					PinnedWindow->RequestDestroyWindow();
+				}
+				break;
+			}
 		}
-		else
+	} while(RemovedCount > 0);
+
+	ArrangeNotifications();
+}
+
+void FSlateNotificationManager::ArrangeNotifications()
+{
+	// We may need to reacquire the anchor rect here in case the desktop is resized
+	// while a notification is displayed
+	const FSlateRect AnchorRect = FSlateApplication::Get().GetWorkArea( AnchorReferenceRect );
+	if( AnchorReferenceRect != AnchorRect )
+	{
+		RecalculateAnchorRect( true );
+	}
+
+	// stack items so the newest is at the bottom of the pile
+	const FVector2D InitialPoint( AnchorReferenceRect.Right - NotificationManagerConstants::NotificationOffset.X, AnchorReferenceRect.Bottom - NotificationManagerConstants::NotificationOffset.Y );
+	FVector2D CurrentPoint = InitialPoint;
+	for(int32 Index = NotificationLists.Num() - 1; Index >= 0; --Index )
+	{
+		TSharedPtr<SNotificationList> NotificationList = NotificationLists[Index];
+		TSharedPtr<SWindow> PinnedWindow = NotificationList->ParentWindowPtr.Pin();
+		if( PinnedWindow.IsValid() )
 		{
-			// Arrange the notifications in the list
-			RegionalLists[RegionIndex].Arrange();
+			FVector2D DesiredSize = PinnedWindow->GetDesiredSize();
+			CurrentPoint.Y -= DesiredSize.Y;
+			FVector2D NewPosition( InitialPoint.X - DesiredSize.X, CurrentPoint.Y );
+			if( NewPosition != PinnedWindow->GetPositionInScreen() && DesiredSize != PinnedWindow->GetSizeInScreen() )
+			{
+				PinnedWindow->ReshapeWindow( NewPosition, DesiredSize );
+			}
+			else if( NewPosition != PinnedWindow->GetPositionInScreen() )
+			{
+				PinnedWindow->MoveWindowTo( NewPosition );
+			}
 		}
 	}
 }
@@ -204,31 +179,27 @@ void FSlateNotificationManager::Tick()
 void FSlateNotificationManager::ForceNotificationsInFront( const TSharedRef<SWindow> InWindow )
 {
 	// check to see if this is a re-entrant call from one of our windows
-	for (const auto& RegionList : RegionalLists)
+	for( TArray< TSharedPtr<SNotificationList> >::TIterator Iter = NotificationLists.CreateIterator(); Iter; Iter++ )
 	{
-		for (auto& Notification : RegionList.Notifications)
+		TSharedPtr<SNotificationList> NotificationList = *Iter;
+		TSharedPtr<SWindow> PinnedWindow = NotificationList->ParentWindowPtr.Pin();
+		if( PinnedWindow.IsValid() )
 		{
-			TSharedPtr<SWindow> PinnedWindow = Notification->ParentWindowPtr.Pin();
-			if( PinnedWindow.IsValid() )
+			if( InWindow == PinnedWindow )
 			{
-				if( InWindow == PinnedWindow )
-				{
-					return;
-				}
+				return;
 			}
 		}
 	}
 
 	// now bring all of our windows back to the front
-	for (const auto& RegionList : RegionalLists)
+	for( TArray< TSharedPtr<SNotificationList> >::TIterator Iter = NotificationLists.CreateIterator(); Iter; Iter++ )
 	{
-		for (auto& Notification : RegionList.Notifications)
+		TSharedPtr<SNotificationList> NotificationList = *Iter;
+		TSharedPtr<SWindow> PinnedWindow = NotificationList->ParentWindowPtr.Pin();
+		if( PinnedWindow.IsValid() && !FSlateApplication::Get().GetActiveModalWindow().IsValid() )
 		{
-			TSharedPtr<SWindow> PinnedWindow = Notification->ParentWindowPtr.Pin();
-			if( PinnedWindow.IsValid() && !FSlateApplication::Get().GetActiveModalWindow().IsValid() )
-			{
-				PinnedWindow->BringToFront();
-			}
+			PinnedWindow->BringToFront();
 		}
 	}
 }

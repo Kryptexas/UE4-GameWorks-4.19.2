@@ -131,7 +131,7 @@ FORCEINLINE void RelocateItems(void* Dest, const ElementType* Source, int32 Coun
 	 * However, it is not yet possible to automatically infer this at compile time, so we can't enable
 	 * different (i.e. safer) implementations anyway. */
 
-	FMemory::Memmove(Dest, Source, sizeof(ElementType) * Count);
+	FMemory::Memcpy(Dest, Source, sizeof(ElementType) * Count);
 }
 
 #if PLATFORM_COMPILER_HAS_RVALUE_REFERENCES

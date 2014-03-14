@@ -2144,7 +2144,7 @@ void FCascade::BindCommands()
 		FIsActionChecked::CreateSP(this, &FCascade::IsToggleGridChecked));
 
 	ToolkitCommands->MapAction(
-		Commands.CascadePlay,
+		Commands.Play,
 		FExecuteAction::CreateSP(this, &FCascade::OnPlay),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &FCascade::IsPlayChecked));

@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-	InputSettings.cpp: Project configurable input settings
+	PlayerInput.cpp: Unreal input system.
 =============================================================================*/
 
 #include "EnginePrivate.h"
@@ -13,18 +13,15 @@ UInputSettings::UInputSettings(const class FPostConstructInitializeProperties& P
 }
 
 #if WITH_EDITOR
-void UInputSettings::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent)
+void UInputSettings::PostEditChangeChainProperty(struct FPropertyChangedChainEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeChainProperty(PropertyChangedEvent);
 
 	const FName MemberPropertyName = PropertyChangedEvent.PropertyChain.GetActiveMemberNode()->GetValue()->GetFName();
 
-	if (MemberPropertyName == "ActionMappings" || MemberPropertyName == "AxisMappings" || MemberPropertyName == "AxisConfig")
+	for (TObjectIterator<UPlayerInput> It; It; ++It)
 	{
-		for (TObjectIterator<UPlayerInput> It; It; ++It)
-		{
-			It->ForceRebuildingKeyMaps(true);
-		}
+		It->ForceRebuildingKeyMaps(true);
 	}
 }
 

@@ -2682,7 +2682,6 @@ void ULinkerLoad::Preload( UObject* Object )
 						UObject* PrevSerializedObject = GSerializedObject;
 						GSerializedObject = Object;
 						Object->Serialize( *this );
-						Object->SetFlags(RF_LoadCompleted);
 						GSerializedObject = PrevSerializedObject;
 					}
 				}

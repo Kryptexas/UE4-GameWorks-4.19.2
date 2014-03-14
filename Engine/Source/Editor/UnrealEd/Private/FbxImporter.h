@@ -931,13 +931,6 @@ protected:
 	 * Check if FBX node has transform animation (translation and rotation, not check scale animation)
 	 */
 	bool IsNodeAnimated(FbxNode* FbxNode, FbxAnimLayer* AnimLayer = NULL);
-
-	/** 
-	 * As movement tracks in Unreal cannot have differing interpolation modes for position & rotation,
-	 * we consolidate the two modes here.
-	 */
-	void ConsolidateMovementTrackInterpModes(UInterpTrackMove* MovementTrack);
-
 	/**
 	 * Get Unreal Interpolation mode from FBX interpolation mode
 	 */

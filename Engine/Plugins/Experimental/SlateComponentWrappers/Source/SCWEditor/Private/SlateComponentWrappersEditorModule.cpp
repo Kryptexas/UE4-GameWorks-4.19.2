@@ -37,8 +37,8 @@ public:
 // 		// Register the details customizations
 // 		{
 // 			FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
-// 			PropertyModule.RegisterCustomPropertyLayout("PaperTileMapRenderComponent", FOnGetDetailCustomizationInstance::CreateStatic(&FPaperTileMapDetailsCustomization::MakeInstance));
-// 			PropertyModule.RegisterCustomPropertyLayout("PaperSprite", FOnGetDetailCustomizationInstance::CreateStatic(&FSpriteDetailsCustomization::MakeInstance));
+// 			PropertyModule.RegisterCustomPropertyLayout(UPaperTileMapRenderComponent::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic(&FPaperTileMapDetailsCustomization::MakeInstance));
+// 			PropertyModule.RegisterCustomPropertyLayout(UPaperSprite::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic(&FSpriteDetailsCustomization::MakeInstance));
 // 
 // 			//@TODO: Struct registration should happen using ::StaticStruct, not by string!!!
 // 			//PropertyModule.RegisterStructPropertyLayout( "SpritePolygonCollection", FOnGetStructCustomizationInstance::CreateStatic( &FSpritePolygonCollectionCustomization::MakeInstance ) );

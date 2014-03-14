@@ -394,8 +394,7 @@ void AActor::AddControllingMatineeActor( AMatineeActor& InMatineeActor )
 		RootComponent->PrimaryComponentTick.AddPrerequisite(&InMatineeActor, InMatineeActor.PrimaryActorTick);
 	}
 
-	PrimaryActorTick.AddPrerequisite(&InMatineeActor, InMatineeActor.PrimaryActorTick);
-	ControllingMatineeActors.AddUnique(&InMatineeActor);
+	ControllingMatineeActors.Add(&InMatineeActor);
 }
 
 void AActor::RemoveControllingMatineeActor( AMatineeActor& InMatineeActor )
@@ -405,8 +404,7 @@ void AActor::RemoveControllingMatineeActor( AMatineeActor& InMatineeActor )
 		RootComponent->PrimaryComponentTick.RemovePrerequisite(&InMatineeActor, InMatineeActor.PrimaryActorTick);
 	}
 
-	PrimaryActorTick.RemovePrerequisite(&InMatineeActor, InMatineeActor.PrimaryActorTick);
-	ControllingMatineeActors.RemoveSwap(&InMatineeActor);
+	ControllingMatineeActors.Remove(&InMatineeActor);
 }
 
 void AActor::BeginDestroy()
@@ -1284,10 +1282,9 @@ ULevel* AActor::GetLevel() const
 bool AActor::IsInPersistentLevel(bool bIncludeLevelStreamingPersistent) const
 {
 	ULevel* MyLevel = GetLevel();
-	UWorld* World = GetWorld();
-	return ( (MyLevel == World->PersistentLevel) || ( bIncludeLevelStreamingPersistent && World->StreamingLevels.Num() > 0 &&
-														Cast<ULevelStreamingPersistent>(World->StreamingLevels[0]) != NULL &&
-														World->StreamingLevels[0]->GetLoadedLevel() == MyLevel ) );
+	return ( (MyLevel == GetWorld()->PersistentLevel) || ( bIncludeLevelStreamingPersistent && GetWorld()->StreamingLevels.Num() > 0 &&
+														Cast<ULevelStreamingPersistent>(GetWorld()->StreamingLevels[0]) != NULL &&
+														GetWorld()->StreamingLevels[0]->GetLoadedLevel() == MyLevel ) );
 }
 
 
@@ -2276,15 +2273,6 @@ bool AActor::SetActorLocationAndRotation(const FVector& NewLocation, FRotator Ne
 	return false;
 }
 
-void AActor::SetActorScale3D(const FVector& NewScale3D)
-{
-	if (RootComponent)
-	{
-		RootComponent->SetWorldScale3D(NewScale3D);
-	}
-}
-
-
 bool AActor::SetActorTransform(const FTransform& NewTransform, bool bSweep)
 {
 	// we have seen this gets NAN from kismet, and would like to see if this
@@ -2676,12 +2664,12 @@ int32 AActor::GetFunctionCallspace( UFunction* Function, void* Parameters, FFram
 	return FunctionCallspace::Remote;
 }
 
-bool AActor::CallRemoteFunction( UFunction* Function, void* Parameters, FOutParmRec* OutParms, FFrame* Stack )
+bool AActor::CallRemoteFunction( UFunction* Function, void* Parameters, FFrame* Stack )
 {
 	UNetDriver* NetDriver = GetNetDriver();
 	if (NetDriver)
 	{
-		NetDriver->ProcessRemoteFunction(this, Function, Parameters, OutParms, Stack, NULL);
+		NetDriver->ProcessRemoteFunction(this, Function, Parameters, Stack, NULL);
 		return true;
 	}
 
@@ -3001,13 +2989,6 @@ float AActor::ActorGetDistanceToCollision(const FVector& Point, ECollisionChanne
 		{
 			FVector ClosestPoint;
 			const float Distance = Primitive->GetDistanceToCollision(Point, ClosestPoint);
-
-			if (Distance < 0.f)
-			{
-				// Invalid result, impossible to be better than ClosestPointDistance
-				continue;
-			}
-
 			if( (ClosestPointDistance < 0.f) || (Distance < ClosestPointDistance) )
 			{
 				ClosestPointDistance = Distance;

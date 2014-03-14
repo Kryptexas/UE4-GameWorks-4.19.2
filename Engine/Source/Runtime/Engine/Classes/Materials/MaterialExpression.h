@@ -92,9 +92,6 @@ class UMaterialExpression : public UObject
 	/** Expression's Graph representation */
 	class UEdGraphNode*	GraphNode;
 
-	/** Text of last error for this expression */
-	FString LastErrorText;
-
 #endif // WITH_EDITORONLY_DATA
 	/** Set to true by RecursiveUpdateRealtimePreview() if the expression's preview needs to be updated in realtime in the material editor. */
 	UPROPERTY()

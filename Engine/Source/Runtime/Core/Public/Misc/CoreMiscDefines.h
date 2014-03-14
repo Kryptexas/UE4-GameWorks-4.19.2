@@ -19,7 +19,7 @@
 #endif
 
 /** This controls if metadata for compiled in classes is unpacked and setup at boot time. Meta data is not normally used except by the editor. **/
-#define WITH_METADATA (WITH_EDITORONLY_DATA && WITH_EDITOR)
+#define WITH_METADATA WITH_EDITORONLY_DATA
 
 // Set up optimization control macros, now that we have both the build settings and the platform macros
 #define PRAGMA_DISABLE_OPTIMIZATION		PRAGMA_DISABLE_OPTIMIZATION_ACTUAL

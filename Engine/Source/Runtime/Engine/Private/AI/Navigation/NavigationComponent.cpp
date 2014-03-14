@@ -660,9 +660,9 @@ void UNavigationComponent::ResetTransientData()
 
 void UNavigationComponent::NotifyPathUpdate()
 {
-	UE_VLOG(GetOwner(), LogNavigation, Log, TEXT("NotifyPathUpdate points:%d valid:%s")
-		, Path.IsValid() ? Path->PathPoints.Num() : 0
-		, Path.IsValid() ? (Path->IsValid() ? TEXT("yes") : TEXT("no")) : TEXT("missing!"));
+	UE_VLOG(GetOwner(), LogNavigation, Log, TEXT("NotifyPathUpdate points:%d valid:%s"),
+		Path.IsValid() ? Path->PathPoints.Num() : 0,
+		Path.IsValid() ? (Path->IsValid() ? TEXT("yes") : TEXT("no")) : TEXT("missing!"));
 
 	if (MyPathObserver != NULL)
 	{
@@ -674,15 +674,11 @@ void UNavigationComponent::NotifyPathUpdate()
 		PathFollowComp->UpdateMove(Path);
 	}
 
-	if (!Path.IsValid())
-	{
-		ResetTransientData();
-	}
-	else if (!Path->IsValid())
-	{
-		UE_VLOG(GetOwner(), LogNavigation, Warning
-			, TEXT("NotifyPathUpdate fetched invalid NavPath!  NavPath has %d points, is%sready, and is%sup-to-date")
-			, Path->PathPoints.Num(), Path->IsReady() ? TEXT(" ") : TEXT(" NOT "), Path->IsUpToDate() ? TEXT(" ") : TEXT(" NOT ")	);
+	if (!Path.IsValid() || !Path->IsValid())
+	{	// If pointer is valid, nav-path is not.  Print information so we'll know exactly what went wrong when we hit the check below.
+		UE_CVLOG(Path.IsValid(), GetOwner(), LogNavigation, Warning,
+		TEXT("NotifyPathUpdate fetched invalid NavPath!  NavPath has %d points, is%sready, and is%sup-to-date"),
+		Path->PathPoints.Num(), Path->IsReady() ? TEXT(" ") : TEXT(" NOT "), Path->IsUpToDate() ? TEXT(" ") : TEXT(" NOT ")	);
 
 		ResetTransientData();
 	}

@@ -71,11 +71,6 @@ struct FLinuxPlatformProperties
 		return true;
 	}
 
-	static FORCEINLINE bool HasFixedResolution()
-	{
-		return false;
-	}
-
 	static FORCEINLINE bool SupportsWindowedMode()
 	{
 		return false;	// FIXME: this is a hack to work around logic in FApp::Init(), where debug output device is not added otherwise

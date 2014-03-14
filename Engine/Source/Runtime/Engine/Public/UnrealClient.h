@@ -195,7 +195,7 @@ public:
 	virtual bool KeyState(FKey Key) const = 0;
 	virtual int32 GetMouseX() const = 0;
 	virtual int32 GetMouseY() const = 0;
-	virtual void GetMousePos(FIntPoint& MousePosition, const bool bLocalPosition = true) = 0;
+	virtual void GetMousePos( FIntPoint& MousePosition ) = 0;
 	virtual float GetTabletPressure() { return 0.f; }
 	virtual bool IsPenActive() { return false; }
 	virtual void SetMouse(int32 x, int32 y) = 0;

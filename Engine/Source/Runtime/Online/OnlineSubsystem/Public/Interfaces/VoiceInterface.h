@@ -198,8 +198,6 @@ public:
 	virtual FString GetVoiceDebugState() const = 0;
 };
 
-typedef TSharedPtr<IVoiceEngine, ESPMode::ThreadSafe> IVoiceEnginePtr;
-
 /**
  * This interface is an abstract mechanism for managing voice data. 
  * Each platform implements a specific version of this interface. 

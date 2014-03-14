@@ -489,16 +489,12 @@ public:
 	/** The effective view matrix of the shadow, used as an override to the main view's view matrix when rendering the shadow depth pass. */
 	FMatrix ShadowViewMatrix;
 
-	/** 
-	 * Matrix used for rendering the shadow depth buffer.  
-	 * Note that this does not necessarily contain all of the shadow casters with CSM, since the vertex shader flattens them onto the near plane of the projection.
-	 */
 	FMatrix SubjectAndReceiverMatrix;
 	FMatrix ReceiverMatrix;
 
 	FMatrix InvReceiverMatrix;
 
-	float InvMaxSubjectDepth;
+	float MaxSubjectDepth;
 
 	/** 
 	 * Subject depth extents, in world space units. 
@@ -507,8 +503,7 @@ public:
 	float MaxSubjectZ;
 	float MinSubjectZ;
 
-	/** Frustum containing all potential shadow casters. */
-	FConvexVolume CasterFrustum;
+	FConvexVolume SubjectAndReceiverFrustum;
 	FConvexVolume ReceiverFrustum;
 
 	float MinPreSubjectZ;
@@ -639,7 +634,7 @@ public:
 		uint32 InResolutionY
 		);
 
-	float GetShaderDepthBias() const { return ShaderDepthBias; }
+	float GetShaderDepthBias() const { check(ShaderDepthBias >= 0); return ShaderDepthBias; }
 
 	/**
 	 * Renders the shadow subject depth.
@@ -736,7 +731,8 @@ public:
 	void Bind(const FShaderParameterMap& ParameterMap)
 	{
 		ProjectionMatrix.Bind(ParameterMap,TEXT("ProjectionMatrix"));
-		ShadowParams.Bind(ParameterMap,TEXT("ShadowParams"));
+		InvMaxSubjectDepth.Bind(ParameterMap,TEXT("InvMaxSubjectDepth"));
+		DepthBias.Bind(ParameterMap,TEXT("DepthBias"));
 		ClampToNearPlane.Bind(ParameterMap,TEXT("bClampToNearPlane"));
 	}
 
@@ -749,7 +745,8 @@ public:
 			FTranslationMatrix(ShadowInfo->PreShadowTranslation - View.ViewMatrices.PreViewTranslation) * ShadowInfo->SubjectAndReceiverMatrix
 			);
 
-		SetShaderValue(ShaderRHI, ShadowParams, FVector2D(ShadowInfo->GetShaderDepthBias(), ShadowInfo->InvMaxSubjectDepth));
+		SetShaderValue(ShaderRHI, InvMaxSubjectDepth, 1.0f / ShadowInfo->MaxSubjectDepth);
+		SetShaderValue(ShaderRHI, DepthBias, ShadowInfo->GetShaderDepthBias());
 		// Only clamp vertices to the near plane when rendering whole scene directional light shadow depths or preshadows from directional lights
 		const bool bClampToNearPlaneValue = ShadowInfo->IsWholeSceneDirectionalShadow() || (ShadowInfo->bPreShadow && ShadowInfo->bDirectionalLight);
 		SetShaderValue(ShaderRHI,ClampToNearPlane,bClampToNearPlaneValue ? 1.0f : 0.0f);
@@ -771,14 +768,16 @@ public:
 	friend FArchive& operator<<(FArchive& Ar,FShadowDepthShaderParameters& P)
 	{
 		Ar << P.ProjectionMatrix;
-		Ar << P.ShadowParams;
+		Ar << P.InvMaxSubjectDepth;
+		Ar << P.DepthBias;
 		Ar << P.ClampToNearPlane;
 		return Ar;
 	}
 
 private:
 	FShaderParameter ProjectionMatrix;
-	FShaderParameter ShadowParams;
+	FShaderParameter InvMaxSubjectDepth;
+	FShaderParameter DepthBias;
 	FShaderParameter ClampToNearPlane;
 };
 

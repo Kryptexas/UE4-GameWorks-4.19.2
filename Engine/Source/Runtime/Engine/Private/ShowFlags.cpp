@@ -177,9 +177,9 @@ int32 FEngineShowFlags::FindIndexByName(const TCHAR* Name, const TCHAR *CommaSep
 		// iterate through CommaSeparatedNames and test 'Name' equals one of them.
 		struct FIterSink
 		{
-			FIterSink(const TCHAR* InName)
+			FIterSink(const TCHAR* Name)
 			{
-				SearchName = InName;
+				SearchName = Name;
 				Ret = INDEX_NONE;
 			}
 

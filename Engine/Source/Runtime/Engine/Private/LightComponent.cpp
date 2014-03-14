@@ -106,7 +106,7 @@ void ULightComponentBase::OnRegister()
 #if WITH_EDITOR
 	if (SpriteComponent == NULL && GetOwner() && !GetWorld()->IsGameWorld())
 	{
-		SpriteComponent = ConstructObject<UBillboardComponent>(UBillboardComponent::StaticClass(), GetOwner(), NAME_None, RF_Transactional | RF_TextExportTransient);
+		SpriteComponent = ConstructObject<UBillboardComponent>(UBillboardComponent::StaticClass(), GetOwner(), NAME_None, RF_Transactional);
 
 		SpriteComponent->AttachTo(this);
 		SpriteComponent->AlwaysLoadOnClient = false;
@@ -114,7 +114,6 @@ void ULightComponentBase::OnRegister()
 		SpriteComponent->SpriteInfo.Category = TEXT("Lighting");
 		SpriteComponent->SpriteInfo.DisplayName = NSLOCTEXT("SpriteCategory", "Lighting", "Lighting");
 		SpriteComponent->bCreatedByConstructionScript = bCreatedByConstructionScript;
-		SpriteComponent->bIsScreenSizeScaled = true;
 
 		SpriteComponent->RegisterComponent();
 

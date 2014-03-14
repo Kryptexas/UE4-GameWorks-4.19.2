@@ -163,17 +163,6 @@ protected:
 	void AddTextureFormatIfSupports( FName Format, TArray<FName>& OutFormats ) const;
 
 	/**
-	 * Return true if this device has a supported set of extensions for this platform.
-	 *
-	 * @param Extensions - The GL extensions string.
-	 * @param GLESVersion - The GLES version reported by this device.
-	 */
-	virtual bool SupportedByExtensionsString( const FString& ExtensionsString, const int GLESVersion ) const
-	{
-		return true;
-	}
-
-	/**
 	 * Executes an SDK command with the specified command line.
 	 *
 	 * @param Params - The command line parameters.

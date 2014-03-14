@@ -17,23 +17,12 @@ struct FPlayerMuteList
 
 public:
 
-	FPlayerMuteList() :
-		bHasVoiceHandshakeCompleted(false),
-		VoiceChannelIdx(0)
-	{
-	}
-
 	/** List of player id's muted explicitly by the player */
 	TArray< TSharedRef<class FUniqueNetId> > VoiceMuteList;
 	/** List of player id's muted for gameplay reasons (teams, spectators, etc) */
 	TArray< TSharedRef<class FUniqueNetId> > GameplayVoiceMuteList;
 	/** Combined list of the above for efficient processing of voice packets */
 	TArray< TSharedRef<class FUniqueNetId> > VoicePacketFilter;
-	/** Has server and client handshake completed */
-	UPROPERTY()
-	bool bHasVoiceHandshakeCompleted;
-	UPROPERTY()
-	int32 VoiceChannelIdx;
 
 public:
 
@@ -70,22 +59,6 @@ public:
 	void ClientUnmutePlayer(class APlayerController* OwningPC, const FUniqueNetIdRepl& UnmuteId);
 
 	/**
-	 * Server muting based on gameplay rules
-	 *
-	 * @param OwningPC player controller that would like to mute another player
-	 * @param MuteId player id that should be muted
-	 */
-	void GameplayMutePlayer(class APlayerController* OwningPC, const FUniqueNetIdRepl& MuteId);
-
-	/**
-	 * Server unmuting based on gameplay rules
-	 *
-	 * @param OwningPC player controller that would like to unmute another player
-	 * @param UnmuteId player id that should be unmuted
-	 */
-	void GameplayUnmutePlayer(class APlayerController* OwningPC, const FUniqueNetIdRepl& UnmuteId);
-
-	/**
 	 * Is a given player currently muted
 	 * 
 	 * @param PlayerId player to query mute state
@@ -94,6 +67,3 @@ public:
 	 */
 	bool IsPlayerMuted(const class FUniqueNetId& PlayerId);
 };
-
-/** Dump out information about all player controller mute state */
-ENGINE_API FString DumpMutelistState(UWorld* World);

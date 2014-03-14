@@ -666,7 +666,7 @@ void FTabManager::PopulateTabSpawnerMenu_Helper( FMenuBuilder& PopulateMe, FPopu
 				{
 					PopulateMe.AddSubMenu(
 						ChildItem->GetDisplayName(),
-						ChildItem->GetTooltipText(),
+						FText::GetEmpty(),
 						FNewMenuDelegate::CreateRaw( this, &FTabManager::PopulateTabSpawnerMenu_Helper, Payload ),
 						false,
 						ChildItem->GetIcon()
@@ -687,7 +687,7 @@ void FTabManager::MakeSpawnerMenuEntry( FMenuBuilder &PopulateMe, const TSharedP
 	{
 		PopulateMe.AddMenuEntry(
 			SpawnerNode->GetDisplayName().IsEmpty() ? FText::FromName( SpawnerNode->TabType ) : SpawnerNode->GetDisplayName(),
-			SpawnerNode->GetTooltipText(),
+			FText::GetEmpty(),
 			SpawnerNode->GetIcon(),
 			FUIAction(
 			FExecuteAction::CreateSP(SharedThis(this), &FTabManager::InvokeTabForMenu, SpawnerNode->TabType),
@@ -781,7 +781,7 @@ TSharedRef<SDockTab> FTabManager::InvokeTab( const FTabId& TabId )
 {
 	TSharedRef<SDockTab> NewTab = InvokeTab_Internal( TabId );
 	TSharedPtr<SWindow> ParentWindowPtr = NewTab->GetParentWindow();
-	if ((NewTab->GetTabRole() == ETabRole::MajorTab || NewTab->GetTabRole() == ETabRole::NomadTab) && ParentWindowPtr.IsValid() && ParentWindowPtr != FGlobalTabmanager::Get()->GetRootWindow())
+	if (ParentWindowPtr.IsValid() && ParentWindowPtr != FGlobalTabmanager::Get()->GetRootWindow())
 	{
 		ParentWindowPtr->SetTitle( NewTab->GetTabLabel() );
 	}
@@ -978,7 +978,7 @@ TSharedRef<SDockingNode> FTabManager::RestoreArea_Helper( const TSharedRef<FLayo
 		{
 			WidgetToActivate->ActivateInParent(ETabActivationCause::SetDirectly);
 
-			if ((WidgetToActivate->GetTabRole() == ETabRole::MajorTab || WidgetToActivate->GetTabRole() == ETabRole::NomadTab) && ParentWindow.IsValid() && ParentWindow != FGlobalTabmanager::Get()->GetRootWindow())
+			if (ParentWindow.IsValid() && ParentWindow != FGlobalTabmanager::Get()->GetRootWindow())
 			{
 				ParentWindow->SetTitle(WidgetToActivate->GetTabLabel());
 			}
@@ -1004,7 +1004,7 @@ TSharedRef<SDockingNode> FTabManager::RestoreArea_Helper( const TSharedRef<FLayo
 			const bool bAutoPlacement = (NodeAsArea->WindowPlacement == FArea::Placement_Automatic);
 			TSharedRef<SWindow> NewWindow = (bAutoPlacement)
 				? SNew(SWindow)
-					.AutoCenter( EAutoCenter::PreferredWorkArea )
+					.AutoCenter( EAutoCenter::PrimaryWorkArea )
 					.ClientSize( NodeAsArea->WindowSize )
 					.CreateTitleBar( false )
 					.IsInitiallyMaximized( NodeAsArea->bIsMaximized )

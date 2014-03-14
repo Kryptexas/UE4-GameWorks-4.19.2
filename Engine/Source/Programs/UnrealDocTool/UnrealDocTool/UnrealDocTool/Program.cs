@@ -478,7 +478,7 @@ namespace UnrealDocTool
                 foreach (var lang in folder.Languages)
                 {
                     var fileName = folder.Directory.GetFiles(string.Format("*.{0}.udn", lang)).First().FullName;
-                    var langLinks = config.LinksToAllLangs ? null : folder.Languages.ToArray();
+                    var langLinks = folder.Languages.Where(l => !l.Equals(lang)).ToArray();
 
                     LogConvertingFileInfo(log, fileName, "StartConversion");
 
@@ -530,8 +530,7 @@ namespace UnrealDocTool
 
             timer.Stop();
 
-            log.WriteToLog(Language.Message("SummaryStart"));
-            log.WriteToLog(Language.Message("ConvertedIn", (Convert.ToDouble(timer.ElapsedMilliseconds) / 1000).ToString()));
+            log.WriteToLog(Language.Message("SummaryStart", (Convert.ToDouble(timer.ElapsedMilliseconds) / 1000).ToString()));
             statistics.LogCounts();
             log.WriteToLog(Language.Message("SummaryEnd"));
         }

@@ -7,7 +7,6 @@
 #include "Editor/BehaviorTreeEditor/Public/IBehaviorTreeEditor.h"
 
 #include "AssetTypeActions_BehaviorTree.h"
-#include "SBehaviorTreeDiff.h"
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 
 void FAssetTypeActions_BehaviorTree::GetActions( const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder )
@@ -73,61 +72,5 @@ UClass* FAssetTypeActions_BehaviorTree::GetSupportedClass() const
 	return UBehaviorTree::StaticClass(); 
 }
 
-void FAssetTypeActions_BehaviorTree::PerformAssetDiff(UObject* OldAsset, UObject* NewAsset, const struct FRevisionInfo& OldRevision, const struct FRevisionInfo& NewRevision) const
-{
-	UBehaviorTree* OldBehaviorTree = Cast<UBehaviorTree>(OldAsset);
-	check(OldBehaviorTree != NULL);
-
-	UBehaviorTree* NewBehaviorTree = Cast<UBehaviorTree>(NewAsset);
-	check(NewBehaviorTree != NULL);
-
-	// sometimes we're comparing different revisions of one single asset (other 
-	// times we're comparing two completely separate assets altogether)
-	bool bIsSingleAsset = (NewBehaviorTree->GetName() == OldBehaviorTree->GetName());
-
-	FText WindowTitle = LOCTEXT("NamelessBehaviorTreeDiff", "Behavior Tree Diff");
-	// if we're diff'ing one asset against itself 
-	if (bIsSingleAsset)
-	{
-		// identify the assumed single asset in the window's title
-		WindowTitle = FText::Format(LOCTEXT("Behavior Tree Diff", "{0} - Behavior Tree Diff"), FText::FromString(NewBehaviorTree->GetName()));
-	}
-
-	const TSharedPtr<SWindow> Window = SNew(SWindow)
-		.Title(WindowTitle)
-		.ClientSize(FVector2D(1000,800));
-
-	Window->SetContent(SNew(SBehaviorTreeDiff)
-		.BehaviorTreeOld(OldBehaviorTree)
-		.BehaviorTreeNew(NewBehaviorTree)
-		.OldRevision(OldRevision)
-		.NewRevision(NewRevision)
-		.ShowAssetNames(!bIsSingleAsset)
-		.OpenInDefaults(const_cast<FAssetTypeActions_BehaviorTree*>(this), &FAssetTypeActions_BehaviorTree::OpenInDefaults) );
-
-	// Make this window a child of the modal window if we've been spawned while one is active.
-	TSharedPtr<SWindow> ActiveModal = FSlateApplication::Get().GetActiveModalWindow();
-	if ( ActiveModal.IsValid() )
-	{
-		FSlateApplication::Get().AddWindowAsNativeChild( Window.ToSharedRef(), ActiveModal.ToSharedRef() );
-	}
-	else
-	{
-		FSlateApplication::Get().AddWindow( Window.ToSharedRef() );
-	}
-}
-
-void FAssetTypeActions_BehaviorTree::OpenInDefaults( class UBehaviorTree* OldBehaviorTree, class UBehaviorTree* NewBehaviorTree ) const
-{
-	FString OldTextFilename = DumpAssetToTempFile(OldBehaviorTree);
-	FString NewTextFilename = DumpAssetToTempFile(NewBehaviorTree);
-
-	// Get diff program to use
-	FString DiffCommand = GetDefault<UEditorLoadingSavingSettings>()->TextDiffToolPath.FilePath;
-	// args are just 2 temp filenames
-	FString DiffArgs = FString::Printf(TEXT("%s %s"), *OldTextFilename, *NewTextFilename);
-
-	CreateDiffProcess(DiffCommand, DiffArgs);
-}
 
 #undef LOCTEXT_NAMESPACE

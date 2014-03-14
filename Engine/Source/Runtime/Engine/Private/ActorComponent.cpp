@@ -29,9 +29,9 @@ FGlobalComponentReregisterContext::FGlobalComponentReregisterContext()
 	FlushRenderingCommands();
 
 	// Detach all actor components.
-	for(auto* Component : TObjectRange<UActorComponent>())
+	for(TObjectIterator<UActorComponent> ComponentIt;ComponentIt;++ComponentIt)
 	{
-		new(ComponentContexts) FComponentReregisterContext(Component);
+		new(ComponentContexts) FComponentReregisterContext(*ComponentIt);		
 	}
 }
 
@@ -43,13 +43,14 @@ FGlobalComponentReregisterContext::FGlobalComponentReregisterContext(const TArra
 	FlushRenderingCommands();
 
 	// Detach only actor components that are not in the excluded list
-	for (auto* Component : TObjectRange<UActorComponent>())
+	for(TObjectIterator<UActorComponent> ComponentIt;ComponentIt;++ComponentIt)
 	{
 		bool bShouldReregister=true;
-		for (UClass* ExcludeClass : ExcludeComponents)
+		for( int32 Idx=0; Idx < ExcludeComponents.Num(); Idx++ )
 		{
+			UClass* ExcludeClass = ExcludeComponents[Idx];
 			if( ExcludeClass &&
-				Component->IsA(ExcludeClass) )
+				ComponentIt->IsA(ExcludeClass) )
 			{
 				bShouldReregister = false;
 				break;
@@ -57,7 +58,7 @@ FGlobalComponentReregisterContext::FGlobalComponentReregisterContext(const TArra
 		}
 		if( bShouldReregister )
 		{
-			new(ComponentContexts) FComponentReregisterContext(Component);		
+			new(ComponentContexts) FComponentReregisterContext(*ComponentIt);		
 		}
 	}
 }
@@ -70,10 +71,10 @@ FGlobalComponentReregisterContext::FGlobalComponentReregisterContext(const TArra
 	FlushRenderingCommands();
 
 	// Detach only actor components that are children of the actors list provided
-	for (auto* Component : TObjectRange<UActorComponent>())
+	for(TObjectIterator<UActorComponent> ComponentIt;ComponentIt;++ComponentIt)
 	{
 		bool bShouldReregister=false;
-		UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(Component);
+		UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(*ComponentIt);
 		if (PrimitiveComponent && PrimitiveComponent->ReplacementPrimitive.Get())
 		{
 			UPrimitiveComponent* ReplacementPrimitive = PrimitiveComponent->ReplacementPrimitive.Get();
@@ -85,7 +86,7 @@ FGlobalComponentReregisterContext::FGlobalComponentReregisterContext(const TArra
 		}
 		if( bShouldReregister )
 		{
-			new(ComponentContexts) FComponentReregisterContext(Component);		
+			new(ComponentContexts) FComponentReregisterContext(*ComponentIt);		
 		}
 	}
 }
@@ -301,7 +302,7 @@ int32 UActorComponent::GetFunctionCallspace( UFunction* Function, void* Paramete
 	return Owner->GetFunctionCallspace(Function, Parameters, Stack);
 }
 
-bool UActorComponent::CallRemoteFunction( UFunction* Function, void* Parameters, FOutParmRec* OutParms, FFrame* Stack )
+bool UActorComponent::CallRemoteFunction( UFunction* Function, void* Parameters, FFrame* Stack )
 {
 	AActor* Owner = GetOwner();
 	if (Owner == NULL)
@@ -312,7 +313,7 @@ bool UActorComponent::CallRemoteFunction( UFunction* Function, void* Parameters,
 	UNetDriver* NetDriver = Owner->GetNetDriver();
 	if (NetDriver)
 	{
-		NetDriver->ProcessRemoteFunction(Owner, Function, Parameters, OutParms, Stack, this);
+		NetDriver->ProcessRemoteFunction(Owner, Function, Parameters, Stack, this);
 		return true;
 	}
 
@@ -754,7 +755,6 @@ void UActorComponent::ExecuteUnregisterEvents()
 		check(bRegistered); // should not have physics state unless we are registered
 		DestroyPhysicsState();
 		checkf(!bPhysicsStateCreated, TEXT("Failed to route DestroyPhysicsState (%s)"), *GetFullName());
-		checkf(!HasValidPhysicsState(), TEXT("Failed to destroy physics state (%s)"), *GetFullName());
 	}
 
 	if(bRenderStateCreated)
@@ -805,7 +805,6 @@ void UActorComponent::RecreatePhysicsState()
 		check(IsRegistered()); // Should never have physics state unless registered
 		DestroyPhysicsState();
 		checkf(!bPhysicsStateCreated, TEXT("Failed to route DestroyPhysicsState (%s)"), *GetFullName());
-		checkf(!HasValidPhysicsState(), TEXT("Failed to destroy physics state (%s)"), *GetFullName());
 	}
 
 	if (IsRegistered() && World->GetPhysicsScene() && ShouldCreatePhysicsState())

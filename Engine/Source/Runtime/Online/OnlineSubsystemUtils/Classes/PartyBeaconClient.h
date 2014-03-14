@@ -83,8 +83,6 @@ protected:
 	/** Delegate for party host beacon connection failures */
 	FOnHostConnectionFailure HostConnectionFailure;
 
-	/** Session Id of the destination host */
-	FString DestSessionId;
 	/** Pending reservation that will be sent upon connection with the intended host */
 	FPartyReservation PendingReservation;
 
@@ -99,7 +97,7 @@ protected:
 	 * @param Reservation pending reservation request to make with server
 	 */
 	UFUNCTION(server, reliable, WithValidation)
-	virtual void ServerReservationRequest(const FString& SessionId, struct FPartyReservation Reservation);
+	virtual void ServerReservationRequest(struct FPartyReservation Reservation);
 
 	UFUNCTION(server, reliable, WithValidation)
 	virtual void ServerCancelReservationRequest(struct FUniqueNetIdRepl PartyLeader);

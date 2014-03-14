@@ -26,53 +26,12 @@ UEdGraphNode* FMaterialGraphSchemaAction_NewNode::PerformAction(class UEdGraph* 
 
 	if (NewExpression)
 	{
-		if (MaterialExpressionClass == UMaterialExpressionFunctionInput::StaticClass() && FromPin)
-		{
-			// Set this to be an input of the type we dragged from
-			SetFunctionInputType(CastChecked<UMaterialExpressionFunctionInput>(NewExpression), UMaterialGraphSchema::GetMaterialValueType(FromPin));
-		}
-
 		NewExpression->GraphNode->AutowireNewNode(FromPin);
 
 		return NewExpression->GraphNode;
 	}
 
 	return NULL;
-}
-
-void FMaterialGraphSchemaAction_NewNode::SetFunctionInputType(UMaterialExpressionFunctionInput* FunctionInput, uint32 MaterialValueType) const
-{
-	switch (MaterialValueType)
-	{
-	case MCT_Float:
-	case MCT_Float1:
-		FunctionInput->InputType = FunctionInput_Scalar;
-		break;
-	case MCT_Float2:
-		FunctionInput->InputType = FunctionInput_Vector2;
-		break;
-	case MCT_Float3:
-		FunctionInput->InputType = FunctionInput_Vector3;
-		break;
-	case MCT_Float4:
-		FunctionInput->InputType = FunctionInput_Vector4;
-		break;
-	case MCT_Texture:
-	case MCT_Texture2D:
-		FunctionInput->InputType = FunctionInput_Texture2D;
-		break;
-	case MCT_TextureCube:
-		FunctionInput->InputType = FunctionInput_TextureCube;
-		break;
-	case MCT_StaticBool:
-		FunctionInput->InputType = FunctionInput_StaticBool;
-		break;
-	case MCT_MaterialAttributes:
-		FunctionInput->InputType = FunctionInput_MaterialAttributes;
-		break;
-	default:
-		break;
-	}
 }
 
 ////////////////////////////////////////////////
@@ -92,7 +51,6 @@ UEdGraphNode* FMaterialGraphSchemaAction_NewFunctionCall::PerformAction(class UE
 		UMaterialGraph* MaterialGraph = CastChecked<UMaterialGraph>(ParentGraph);
 		if(FunctionNode->SetMaterialFunction(MaterialGraph->MaterialFunction, NULL, MaterialFunction))
 		{
-			FunctionNode->PostEditChange();
 			FMaterialEditorUtilities::UpdateSearchResults(ParentGraph);
 			FunctionNode->GraphNode->AutowireNewNode(FromPin);
 			return FunctionNode->GraphNode;
@@ -245,8 +203,10 @@ bool UMaterialGraphSchema::ConnectionCausesLoop(const UEdGraphPin* InputPin, con
 
 bool UMaterialGraphSchema::ArePinsCompatible(const UEdGraphPin* InputPin, const UEdGraphPin* OutputPin, FText& ResponseMessage) const
 {
-	uint32 InputType = GetMaterialValueType(InputPin);
-	uint32 OutputType = GetMaterialValueType(OutputPin);
+	UMaterialGraphNode_Base* InputNode = CastChecked<UMaterialGraphNode_Base>(InputPin->GetOwningNode());
+	UMaterialGraphNode* OutputNode = CastChecked<UMaterialGraphNode>(OutputPin->GetOwningNode());
+	uint32 InputType = InputNode->GetInputType(InputPin);
+	uint32 OutputType = OutputNode->GetOutputType(OutputPin);
 
 	bool bPinsCompatible = CanConnectMaterialValueTypes(InputType, OutputType);
 	if (!bPinsCompatible)
@@ -282,20 +242,6 @@ bool UMaterialGraphSchema::ArePinsCompatible(const UEdGraphPin* InputPin, const 
 	}
 
 	return bPinsCompatible;
-}
-
-uint32 UMaterialGraphSchema::GetMaterialValueType(const UEdGraphPin* MaterialPin)
-{
-	if (MaterialPin->Direction == EGPD_Output)
-	{
-		UMaterialGraphNode* OwningNode = CastChecked<UMaterialGraphNode>(MaterialPin->GetOwningNode());
-		return OwningNode->GetOutputType(MaterialPin);
-	}
-	else
-	{
-		UMaterialGraphNode_Base* OwningNode = CastChecked<UMaterialGraphNode_Base>(MaterialPin->GetOwningNode());
-		return OwningNode->GetInputType(MaterialPin);
-	}
 }
 
 void UMaterialGraphSchema::GetGraphContextActions(FGraphContextMenuBuilder& ContextMenuBuilder) const
@@ -410,9 +356,6 @@ void UMaterialGraphSchema::GetContextMenuActions(const UEdGraph* CurrentGraph, c
 
 const FPinConnectionResponse UMaterialGraphSchema::CanCreateConnection(const UEdGraphPin* A, const UEdGraphPin* B) const
 {
-	static const auto PreventInvalidMaterialConnections = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.PreventInvalidMaterialConnections"));
-	bool bPreventInvalidConnections = PreventInvalidMaterialConnections->GetValueOnGameThread() != 0;
-
 	// Make sure the pins are not on the same node
 	if (A->GetOwningNode() == B->GetOwningNode())
 	{
@@ -432,15 +375,16 @@ const FPinConnectionResponse UMaterialGraphSchema::CanCreateConnection(const UEd
 	FText ResponseMessage;
 	if (ConnectionCausesLoop(InputPin, OutputPin))
 	{
-		ResponseMessage = LOCTEXT("ConnectionLoop", "Connection could cause loop");
-		// TODO: re-enable this if loops are going to be removed completely
+		ResponseMessage = LOCTEXT("ConnectionLoop", "Connection would cause loop");
+		// TODO: re-enable this once we're sure any bugs are worked out of the loop checks
 		//return FPinConnectionResponse(CONNECT_RESPONSE_DISALLOW, LOCTEXT("ConnectionLoop", "Connection would cause loop").ToString());
 	}
 
 	// Check for incompatible pins and get description if they cannot connect
-	if (!ArePinsCompatible(InputPin, OutputPin, ResponseMessage) && bPreventInvalidConnections)
+	if (ResponseMessage.IsEmpty() && !ArePinsCompatible(InputPin, OutputPin, ResponseMessage))
 	{
-		return FPinConnectionResponse(CONNECT_RESPONSE_DISALLOW, ResponseMessage);
+		// TODO: re-enable this once we're sure any bugs are worked out of the compatibility checks
+		//return FPinConnectionResponse(CONNECT_RESPONSE_DISALLOW, ResponseMessage);
 	}
 
 	// Break existing connections on inputs only - multiple output connections are acceptable
@@ -606,7 +550,6 @@ void UMaterialGraphSchema::DroppedAssetsOnGraph(const TArray<class FAssetData>& 
 			{
 				if(FunctionNode->SetMaterialFunction(MaterialGraph->MaterialFunction, NULL, Func))
 				{
-					FunctionNode->PostEditChange();
 					FMaterialEditorUtilities::UpdateSearchResults(Graph);
 				}
 				else
@@ -662,13 +605,6 @@ TSharedPtr<FEdGraphSchemaAction> UMaterialGraphSchema::GetCreateCommentAction() 
 
 void UMaterialGraphSchema::GetMaterialFunctionActions(FGraphActionMenuBuilder& ActionMenuBuilder) const
 {
-	// Get type of dragged pin
-	uint32 FromPinType = 0;
-	if (ActionMenuBuilder.FromPin)
-	{
-		FromPinType = GetMaterialValueType(ActionMenuBuilder.FromPin);
-	}
-
 	// Load the asset registry module
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 
@@ -693,47 +629,44 @@ void UMaterialGraphSchema::GetMaterialFunctionActions(FGraphActionMenuBuilder& A
 				}
 			}
 
-			if (!ActionMenuBuilder.FromPin || HasCompatibleConnection(AssetData, FromPinType, ActionMenuBuilder.FromPin->Direction))
+			// Gather the relevant information from the asset data
+			const FString FunctionPathName = AssetData.ObjectPath.ToString();
+			const FString Description = AssetData.TagsAndValues.FindRef("Description");
+			TArray<FString> LibraryCategories;
 			{
-				// Gather the relevant information from the asset data
-				const FString FunctionPathName = AssetData.ObjectPath.ToString();
-				const FString Description = AssetData.TagsAndValues.FindRef("Description");
-				TArray<FString> LibraryCategories;
+				const FString LibraryCategoriesString = AssetData.TagsAndValues.FindRef("LibraryCategories");
+				if ( !LibraryCategoriesString.IsEmpty() )
 				{
-					const FString LibraryCategoriesString = AssetData.TagsAndValues.FindRef("LibraryCategories");
-					if ( !LibraryCategoriesString.IsEmpty() )
-					{
-						UArrayProperty* LibraryCategoriesProperty = FindFieldChecked<UArrayProperty>(UMaterialFunction::StaticClass(), TEXT("LibraryCategories"));
-						uint8* DestAddr = (uint8*)(&LibraryCategories);
-						LibraryCategoriesProperty->ImportText(*LibraryCategoriesString, DestAddr, PPF_None, NULL, GWarn);
-					}
-
-					if ( LibraryCategories.Num() == 0 )
-					{
-						LibraryCategories.Add( LOCTEXT("UncategorizedMaterialFunction", "Uncategorized").ToString() );
-					}
+					UArrayProperty* LibraryCategoriesProperty = FindFieldChecked<UArrayProperty>(UMaterialFunction::StaticClass(), TEXT("LibraryCategories"));
+					uint8* DestAddr = (uint8*)(&LibraryCategories);
+					LibraryCategoriesProperty->ImportText(*LibraryCategoriesString, DestAddr, PPF_None, NULL, GWarn);
 				}
 
-				// Extract the object name from the path
-				FString FunctionName = FunctionPathName;
-				int32 PeriodIndex = FunctionPathName.Find(TEXT("."), ESearchCase::CaseSensitive, ESearchDir::FromEnd);
-
-				if (PeriodIndex != INDEX_NONE)
+				if ( LibraryCategories.Num() == 0 )
 				{
-					FunctionName = FunctionPathName.Right(FunctionPathName.Len() - PeriodIndex - 1);
+					LibraryCategories.Add( LOCTEXT("UncategorizedMaterialFunction", "Uncategorized").ToString() );
 				}
+			}
 
-				// For each category the function should belong to...
-				for (int32 CategoryIndex = 0; CategoryIndex < LibraryCategories.Num(); CategoryIndex++)
-				{
-					const FString& CategoryName = LibraryCategories[CategoryIndex];
-					TSharedPtr<FMaterialGraphSchemaAction_NewFunctionCall> NewFunctionAction(new FMaterialGraphSchemaAction_NewFunctionCall(
-						CategoryName,
-						FunctionName,
-						Description, 0));
-					ActionMenuBuilder.AddAction(NewFunctionAction);
-					NewFunctionAction->FunctionPath = FunctionPathName;
-				}
+			// Extract the object name from the path
+			FString FunctionName = FunctionPathName;
+			int32 PeriodIndex = FunctionPathName.Find(TEXT("."), ESearchCase::CaseSensitive, ESearchDir::FromEnd);
+
+			if (PeriodIndex != INDEX_NONE)
+			{
+				FunctionName = FunctionPathName.Right(FunctionPathName.Len() - PeriodIndex - 1);
+			}
+
+			// For each category the function should belong to...
+			for (int32 CategoryIndex = 0; CategoryIndex < LibraryCategories.Num(); CategoryIndex++)
+			{
+				const FString& CategoryName = LibraryCategories[CategoryIndex];
+				TSharedPtr<FMaterialGraphSchemaAction_NewFunctionCall> NewFunctionAction(new FMaterialGraphSchemaAction_NewFunctionCall(
+					CategoryName,
+					FunctionName,
+					Description, 0));
+				ActionMenuBuilder.AddAction(NewFunctionAction);
+				NewFunctionAction->FunctionPath = FunctionPathName;
 			}
 		}
 	}
@@ -751,42 +684,6 @@ void UMaterialGraphSchema::GetCommentAction(FGraphActionMenuBuilder& ActionMenuB
 		TSharedPtr<FMaterialGraphSchemaAction_NewComment> NewAction(new FMaterialGraphSchemaAction_NewComment(TEXT(""), MenuDescription.ToString(), CommentToolTip.ToString(), 0));
 		ActionMenuBuilder.AddAction( NewAction );
 	}
-}
-
-bool UMaterialGraphSchema::HasCompatibleConnection(const FAssetData& FunctionAssetData, uint32 TestType, EEdGraphPinDirection TestDirection) const
-{
-	if (TestType != 0)
-	{
-		const FString* CombinedInputTagValue = FunctionAssetData.TagsAndValues.Find(GET_MEMBER_NAME_CHECKED(UMaterialFunction, CombinedInputTypes));
-		const FString* CombinedOutputTagValue = FunctionAssetData.TagsAndValues.Find(GET_MEMBER_NAME_CHECKED(UMaterialFunction, CombinedOutputTypes));
-		uint32 CombinedInputTypes = CombinedInputTagValue ? FCString::Atoi(**CombinedInputTagValue) : 0;
-		uint32 CombinedOutputTypes = CombinedOutputTagValue ? FCString::Atoi(**CombinedOutputTagValue) : 0;
-
-		if (CombinedOutputTypes == 0)
-		{
-			// Need to load function to build combined output types
-			UMaterialFunction* MaterialFunction = CastChecked<UMaterialFunction>(FunctionAssetData.GetAsset());
-			CombinedInputTypes = MaterialFunction->CombinedInputTypes;
-			CombinedOutputTypes = MaterialFunction->CombinedOutputTypes;
-		}
-
-		if (TestDirection == EGPD_Output)
-		{
-			if (CanConnectMaterialValueTypes(CombinedInputTypes, TestType))
-			{
-				return true;
-			}
-		}
-		else
-		{
-			if (CanConnectMaterialValueTypes(TestType, CombinedOutputTypes))
-			{
-				return true;
-			}
-		}
-	}
-
-	return false;
 }
 
 #undef LOCTEXT_NAMESPACE

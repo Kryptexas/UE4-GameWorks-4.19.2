@@ -280,7 +280,8 @@ void FBlueprintEditorUtils::PreloadConstructionScript(UBlueprint* Blueprint)
 	}
 }
 
-void FBlueprintEditorUtils::PatchNewCDOIntoLinker(UObject* CDO, ULinkerLoad* Linker, int32 ExportIndex, TArray<UObject*>& ObjLoaded)
+/** Helper function to patch the new CDO into the linker where the old one existed */
+void PatchNewCDOIntoLinker(UObject* CDO, ULinkerLoad* Linker, int32 ExportIndex, TArray<UObject*>& ObjLoaded)
 {
 	if( (CDO != NULL) && (Linker != NULL) && (ExportIndex != INDEX_NONE) )
 	{
@@ -454,199 +455,6 @@ private:
 
 //////////////////////////////////////////////////////////////////////////
 
-struct FRegenerationHelper
-{
-	static bool FrocedLoad(UObject* Obj)
-	{
-		auto Linker = Obj->GetLinker();
-		if (Linker && !Obj->HasAnyFlags(RF_LoadCompleted))
-		{
-			Obj->SetFlags(RF_NeedLoad);
-			Linker->Preload(Obj);
-			return true;
-		}
-		return false;
-	}
-
-	static void FrocedLoadMembers(UObject* InObject)
-	{
-		// Collect a list of all things this element owns
-		TArray<UObject*> MemberReferences;
-		FReferenceFinder ComponentCollector(MemberReferences, InObject, false, true, true, true);
-		ComponentCollector.FindReferences(InObject);
-
-		// Iterate over the list, and preload everything so it is valid for refreshing
-		for (TArray<UObject*>::TIterator it(MemberReferences); it; ++it)
-		{
-			UObject* CurrentObject = *it;
-			if (FrocedLoad(CurrentObject))
-			{
-				FrocedLoadMembers(CurrentObject);
-			}
-		}
-	}
-
-	static void PreloadAndLinkIfNecessary(UStruct* Struct)
-	{
-		bool bChanged = false;
-		if (Struct->HasAnyFlags(RF_NeedLoad))
-		{
-			if (auto Linker = Struct->GetLinker())
-			{
-				Linker->Preload(Struct);
-				bChanged = true;
-			}
-		}
-
-		const int32 OldPropertiesSize = Struct->GetPropertiesSize();
-		for (UField* Field = Struct->Children; Field; Field = Field->Next)
-		{
-			bChanged |= FrocedLoad(Field);
-		}
-
-		if (bChanged)
-		{
-			Struct->StaticLink(true);
-			ensure(Struct->IsA<UFunction>() || (OldPropertiesSize == Struct->GetPropertiesSize()) || !Struct->HasAnyFlags(RF_LoadCompleted));
-		}
-	}
-
-	static void ProcessHierarchy(UStruct* Struct, TSet<UStruct*>& Dependencies)
-	{
-		if (Struct)
-		{
-			bool bAlreadyProcessed = false;
-			Dependencies.Add(Struct, &bAlreadyProcessed);
-			if (!bAlreadyProcessed)
-			{
-				ProcessHierarchy(Struct->GetSuperStruct(), Dependencies);
-
-				const UBlueprint* BP = GetGeneratingBlueprint(Struct);
-				const bool bProcessBPGClass = BP && !BP->bHasBeenRegenerated;
-				const bool bProcessUserDefinedStruct = false; //TODO: Struct->IsA<UUserDefinedStruct>();
-				if (bProcessBPGClass || bProcessUserDefinedStruct)
-				{
-					PreloadAndLinkIfNecessary(Struct);
-				}
-			}
-		}
-	}
-
-	static UBlueprint* GetGeneratingBlueprint(const UObject* Obj)
-	{
-		const UBlueprintGeneratedClass* BPGC = NULL;
-		while (!BPGC && Obj)
-		{
-			BPGC = Cast<const UBlueprintGeneratedClass>(Obj);
-			Obj = Obj->GetOuter();
-		}
-
-		return UBlueprint::GetBlueprintFromClass(BPGC);
-	}
-
-	static void PreloadMacroSources(TSet<UBlueprint*>& MacroSources)
-	{
-		for (auto BP : MacroSources)
-		{
-			if (!BP->bHasBeenRegenerated)
-			{
-				if (BP->HasAnyFlags(RF_NeedLoad))
-				{
-					if (auto Linker = BP->GetLinker())
-					{
-						Linker->Preload(BP);
-					}
-				}
-				FrocedLoadMembers(BP);
-			}
-		}
-	}
-
-	static void LinkExternalDependencies(UBlueprint* Blueprint)
-	{
-		check(Blueprint);
-		const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-		TSet<UStruct*> Dependencies;
-		ProcessHierarchy(Blueprint->ParentClass, Dependencies);
-
-		TSet<UBlueprint*> MacroSources;
-		TArray<UEdGraph*> Graphs;
-		Blueprint->GetAllGraphs(Graphs);
-		for (auto Graph : Graphs)
-		{
-			if (!FBlueprintEditorUtils::IsGraphIntermediate(Graph))
-			{
-				const bool bIsDelegateSignatureGraph = FBlueprintEditorUtils::IsDelegateSignatureGraph(Graph);
-
-				TArray<UK2Node*> Nodes;
-				Graph->GetNodesOfClass(Nodes);
-				for (auto Node : Nodes)
-				{
-					TArray<UStruct*> LocalDependentStructures;
-					if (Node->HasExternalBlueprintDependencies(&LocalDependentStructures))
-					{
-						for (auto Struct : LocalDependentStructures)
-						{
-							ProcessHierarchy(Struct, Dependencies);
-						}
-
-						if (auto MacroNode = Cast<UK2Node_MacroInstance>(Node))
-						{
-							if (UBlueprint* MacroSource = MacroNode->GetSourceBlueprint())
-							{
-								MacroSources.Add(MacroSource);
-							}
-						}
-					}
-
-					LocalDependentStructures.Empty(LocalDependentStructures.Max());
-					//TODO: uncomment when UDStructures are ready
-					//Node->HasExternalUserDefinedStructDependencies(&LocalDependentStructures);
-					for (auto Struct : LocalDependentStructures)
-					{
-						ProcessHierarchy(Struct, Dependencies);
-					}
-
-					auto FunctionEntry = Cast<UK2Node_FunctionEntry>(Node);
-					if (FunctionEntry && !bIsDelegateSignatureGraph)
-					{
-						const FName FunctionName = (FunctionEntry->CustomGeneratedFunctionName != NAME_None) 
-							? FunctionEntry->CustomGeneratedFunctionName 
-							: FunctionEntry->SignatureName;
-						UFunction* ParentFunction = Blueprint->ParentClass ? Blueprint->ParentClass->FindFunctionByName(FunctionName) : NULL;
-						if (ParentFunction && (Schema->FN_UserConstructionScript != FunctionName))
-						{
-							ProcessHierarchy(ParentFunction, Dependencies);
-						}
-					}
-				}
-			}
-		}
-		PreloadMacroSources(MacroSources);
-	}
-};
-
-void FBlueprintEditorUtils::RefreshInputDelegatePins(UBlueprint* Blueprint)
-{
-	TArray<UEdGraph*> Graphs;
-	Blueprint->GetAllGraphs(Graphs);
-	for (auto Graph : Graphs)
-	{
-		if (!FBlueprintEditorUtils::IsGraphIntermediate(Graph))
-		{
-			TArray<UK2Node_BaseMCDelegate*> Nodes;
-			Graph->GetNodesOfClass(Nodes);
-			for (auto Node : Nodes)
-			{
-				if (auto DelegatePin = Node->GetDelegatePin())
-				{
-					DelegatePin->PinType.PinSubCategoryObject = Node->GetDelegateSignature();
-				}
-			}
-		}
-	}
-}
-
 UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, UClass* ClassToRegenerate, UObject* PreviousCDO, TArray<UObject*>& ObjLoaded)
 {
 	bool bRegenerated = false;
@@ -726,10 +534,6 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 		const bool bIsMacro = (Blueprint->BlueprintType == BPTYPE_MacroLibrary);
 		const bool bHasCode = !FBlueprintEditorUtils::IsDataOnlyBlueprint(Blueprint) && !bIsMacro;
 
-		// Make sure all used external classes/functions/structures/macros/etc are loaded and linked
-		FRegenerationHelper::LinkExternalDependencies(Blueprint);
-		FBlueprintEditorUtils::RefreshInputDelegatePins(Blueprint);
-
 		if( bHasCode )
 		{
 			// Make sure parent function calls are up to date
@@ -772,7 +576,6 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 			FKismetEditorUtilities::ConformBlueprintFlagsAndComponents(Blueprint);
 
 			// Flag data only blueprints as being up-to-date
-			Blueprint->Status = BS_UpToDate;
 		}
 		
 		// Patch the new CDOs to the old indices in the linker
@@ -867,7 +670,7 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 						}
 					}
 					NewCDO->CheckDefaultSubobjects();
-					// We purposefully do not call post load here, it happens later on in the normal flow
+					NewCDO->ConditionalPostLoad();
 				}
 			}
 

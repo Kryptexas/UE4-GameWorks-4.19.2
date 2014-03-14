@@ -814,7 +814,7 @@ FSlateIcon FBlueprintEditorToolbar::GetStatusImage() const
 	EBlueprintStatus Status = BlueprintObj->Status;
 
 	// For macro types, always show as up-to-date, since we don't compile them
-	if (BlueprintObj->BlueprintType == BPTYPE_MacroLibrary)
+	if ((BlueprintObj->BlueprintType == BPTYPE_MacroLibrary) || FBlueprintEditorUtils::IsDataOnlyBlueprint(BlueprintObj))
 	{
 		Status = BS_UpToDate;
 	}
@@ -840,7 +840,7 @@ FText FBlueprintEditorToolbar::GetStatusTooltip() const
 	EBlueprintStatus Status = BlueprintObj->Status;
 
 	// For macro types, always show as up-to-date, since we don't compile them
-	if (BlueprintObj->BlueprintType == BPTYPE_MacroLibrary)
+	if ((BlueprintObj->BlueprintType == BPTYPE_MacroLibrary) || FBlueprintEditorUtils::IsDataOnlyBlueprint(BlueprintObj))
 	{
 		Status = BS_UpToDate;
 	}

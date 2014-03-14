@@ -9,6 +9,7 @@ class UK2Node_SpawnActorFromClass : public UK2Node
 {
 	GENERATED_UCLASS_BODY()
 
+#if WITH_EDITOR
 	// Begin UEdGraphNode interface.
 	virtual void AllocateDefaultPins() OVERRIDE;
 	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
@@ -16,7 +17,7 @@ class UK2Node_SpawnActorFromClass : public UK2Node
 	virtual void PinDefaultValueChanged(UEdGraphPin* Pin) OVERRIDE;
 	virtual FString GetTooltip() const OVERRIDE;
 	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) OVERRIDE;
-	virtual bool HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput) const OVERRIDE;
+	virtual bool HasExternalBlueprintDependencies() const OVERRIDE;
 	virtual FName GetPaletteIcon(FLinearColor& OutColor) const OVERRIDE{ return TEXT("GraphEditor.SpawnActor_16x"); }
 	// End UEdGraphNode interface.
 
@@ -45,10 +46,10 @@ class UK2Node_SpawnActorFromClass : public UK2Node
 	/** Get the result output pin */
 	BLUEPRINTGRAPH_API UEdGraphPin* GetResultPin() const;
 
-	/** Get the class that we are going to spawn, if it's defined as default value */
+private:
+	/** Get the class that we are going to spawn */
 	BLUEPRINTGRAPH_API UClass* GetClassToSpawn(const TArray<UEdGraphPin*>* InPinsToSearch=NULL) const;
 
-private:
 	/**
 	 * Takes the specified "MutatablePin" and sets its 'PinToolTip' field (according
 	 * to the specified description)
@@ -60,4 +61,6 @@ private:
 
 	/** Tooltip text for this node. */
 	FString NodeTooltip;
+
+#endif
 };

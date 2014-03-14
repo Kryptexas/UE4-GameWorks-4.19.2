@@ -12,10 +12,10 @@ void SWorldDetailsView::Construct(const FArguments& InArgs)
 	WorldModel->SelectionChanged.AddSP(this, &SWorldDetailsView::OnSelectionChanged);
 	
 	FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+	// Create properties editor pane
+	FDetailsViewArgs Args;
+	Args.bObjectsUseNameArea = true;
 
-	FDetailsViewArgs Args(false, false, true, false, true);
-	Args.bShowActorLabel = false;
-	
 	DetailsView = PropertyModule.CreateDetailView(Args);
 	ChildSlot
 	[

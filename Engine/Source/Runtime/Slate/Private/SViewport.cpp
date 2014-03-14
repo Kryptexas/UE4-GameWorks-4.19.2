@@ -21,6 +21,7 @@ void SViewport::Construct(const FArguments& InArgs)
 	bEnableGammaCorrection = InArgs._EnableGammaCorrection;
 	bEnableBlending = InArgs._EnableBlending;
 	bIgnoreTextureAlpha = InArgs._IgnoreTextureAlpha;
+	CurrentlyThunkingMouseEventsAsTouchEvents = false;
 
 	this->ChildSlot
 	[
@@ -116,19 +117,73 @@ FCursorReply SViewport::OnCursorQuery( const FGeometry& MyGeometry, const FPoint
 	return ViewportInterface.IsValid() ? ViewportInterface.Pin()->OnCursorQuery( MyGeometry, CursorEvent ) : FCursorReply::Unhandled();
 }
 
+FPointerEvent SViewport::MouseEventToTouchEvent(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) const
+{
+	const FVector2D LocalPos = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
+	const FVector2D LastLocalPos = MyGeometry.AbsoluteToLocal(MouseEvent.GetLastScreenSpacePosition());
+
+	FPointerEvent TouchEvent(
+		MouseEvent.GetUserIndex(),
+		ETouchIndex::Touch1,
+		LocalPos,
+		LastLocalPos,
+		true);
+
+	return TouchEvent;
+}
+
 FReply SViewport::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
+	if (ShouldThunkMouseEventsAsTouchEvents())
+	{
+		if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
+		{
+			const FReply Reply = OnTouchStarted(MyGeometry, MouseEventToTouchEvent(MyGeometry, MouseEvent));
+
+			if (Reply.IsEventHandled())
+			{
+				return Reply;
+			}
+		}
+	}
+
 	return ViewportInterface.IsValid() ? ViewportInterface.Pin()->OnMouseButtonDown( MyGeometry, MouseEvent ) : FReply::Unhandled();
 }
 
 FReply SViewport::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
+	if (ShouldThunkMouseEventsAsTouchEvents())
+	{
+		if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
+		{
+			const FReply Reply = OnTouchEnded(MyGeometry, MouseEventToTouchEvent(MyGeometry, MouseEvent));
+
+			if (Reply.IsEventHandled())
+			{
+				return Reply;
+			}
+		}
+	}
+
 	return ViewportInterface.IsValid() ? ViewportInterface.Pin()->OnMouseButtonUp( MyGeometry, MouseEvent ) : FReply::Unhandled();
 }
 
 void SViewport::OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
 	SCompoundWidget::OnMouseEnter(MyGeometry, MouseEvent);
+
+	if (ShouldThunkMouseEventsAsTouchEvents())
+	{
+		if (MouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton))
+		{
+			const FReply Reply = OnTouchStarted(MyGeometry, MouseEventToTouchEvent(MyGeometry, MouseEvent));
+
+			if (Reply.IsEventHandled())
+			{
+				return;
+			}
+		}
+	}
 
 	if ( ViewportInterface.IsValid() )
 	{
@@ -140,6 +195,20 @@ void SViewport::OnMouseLeave( const FPointerEvent& MouseEvent )
 {
 	SCompoundWidget::OnMouseLeave(MouseEvent);
 
+	if (ShouldThunkMouseEventsAsTouchEvents())
+	{
+		if (MouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton))
+		{
+			FGeometry MyGeometry;//@TODO: TouchEmulation: Need to adjust the signature of everything to add this
+			const FReply Reply = OnTouchEnded(MyGeometry, MouseEventToTouchEvent(MyGeometry, MouseEvent));
+
+			if (Reply.IsEventHandled())
+			{
+				return;
+			}
+		}
+	}
+
 	if ( ViewportInterface.IsValid() )
 	{
 		ViewportInterface.Pin()->OnMouseLeave( MouseEvent );
@@ -148,6 +217,19 @@ void SViewport::OnMouseLeave( const FPointerEvent& MouseEvent )
 
 FReply SViewport::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
+	if (ShouldThunkMouseEventsAsTouchEvents())
+	{
+		if (MouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton))
+		{
+			const FReply Reply = OnTouchMoved(MyGeometry, MouseEventToTouchEvent(MyGeometry, MouseEvent));
+
+			if (Reply.IsEventHandled())
+			{
+				return Reply;
+			}
+		}
+	}
+
 	return ViewportInterface.IsValid() ? ViewportInterface.Pin()->OnMouseMove( MyGeometry, MouseEvent ) : FReply::Unhandled();
 }
 

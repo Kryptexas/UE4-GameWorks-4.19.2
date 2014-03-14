@@ -154,7 +154,6 @@ TSharedRef< ISlateStyle > FCoreStyle::Create( const FName& InStyleSetName )
 	FSlateBrush* GenericWhiteBox = new IMAGE_BRUSH( "Old/White", Icon16x16 );
 	{
 		Style->Set( "Checkerboard", new IMAGE_BRUSH( "Checkerboard", Icon16x16, FLinearColor::White, ESlateBrushTileType::Both) );
-		Style->Set( "SplineFilterTable", new IMAGE_BRUSH( "SplineFilterTable", FVector2D(32,1), FLinearColor::White, ESlateBrushTileType::Both, ESlateBrushImageType::Linear ) );
 
 		Style->Set( "GenericWhiteBox", GenericWhiteBox );
 
@@ -369,12 +368,13 @@ TSharedRef< ISlateStyle > FCoreStyle::Create( const FName& InStyleSetName )
 	}
 
 	// SEditableTextBox defaults...
-	const FEditableTextBoxStyle NormalEditableTextBoxStyle = FEditableTextBoxStyle()
-		.SetBackgroundImageNormal( BOX_BRUSH( "Common/TextBox", FMargin(4.0f/16.0f) ) )
-		.SetBackgroundImageHovered( BOX_BRUSH( "Common/TextBox_Hovered", FMargin(4.0f/16.0f) ) )
-		.SetBackgroundImageFocused( BOX_BRUSH( "Common/TextBox_Hovered", FMargin(4.0f/16.0f) ) )
-		.SetBackgroundImageReadOnly( BOX_BRUSH( "Common/TextBox_ReadOnly", FMargin(4.0f/16.0f) ) );
 	{
+		const FEditableTextBoxStyle NormalEditableTextBoxStyle = FEditableTextBoxStyle()
+			.SetBackgroundImageNormal( BOX_BRUSH( "Common/TextBox", FMargin(4.0f/16.0f) ) )
+			.SetBackgroundImageHovered( BOX_BRUSH( "Common/TextBox_Hovered", FMargin(4.0f/16.0f) ) )
+			.SetBackgroundImageFocused( BOX_BRUSH( "Common/TextBox_Hovered", FMargin(4.0f/16.0f) ) )
+			.SetBackgroundImageReadOnly( BOX_BRUSH( "Common/TextBox_ReadOnly", FMargin(4.0f/16.0f) ) );
+
 		Style->Set( "NormalEditableTextBox", NormalEditableTextBoxStyle );
 		// "NormalFont".
 	}
@@ -422,7 +422,7 @@ TSharedRef< ISlateStyle > FCoreStyle::Create( const FName& InStyleSetName )
 	{
 		Style->Set( "SuggestionTextBox.Background",	new BOX_BRUSH( "Old/Menu_Background", FMargin(8.0f/64.0f) ) );
 		Style->Set( "SuggestionTextBox.Text", FTextBlockStyle()
-			.SetFont( TTF_FONT( "Fonts/Roboto-Regular", 9 ) )
+			.SetFont( TTF_FONT( "Fonts/DroidSansMono", 9 ) )
 			.SetColorAndOpacity( FLinearColor(FColor(0xffaaaaaa)) )
 			);
 	}
@@ -613,7 +613,7 @@ TSharedRef< ISlateStyle > FCoreStyle::Create( const FName& InStyleSetName )
 			.SetSortDescendingImage( IMAGE_BRUSH( "Common/SortDownArrow", Icon8x4 ) )
 			.SetNormalBrush( BOX_BRUSH( "Common/ColumnHeader", 4.f/32.f ) )
 			.SetHoveredBrush( BOX_BRUSH( "Common/ColumnHeader_Hovered", 4.f/32.f ) )
-			.SetMenuDropdownImage( IMAGE_BRUSH( "Common/ColumnHeader_Arrow", Icon8x8 ) )
+			.SetMenuDropdownImage( IMAGE_BRUSH( "Common/ComboArrow", Icon8x8 ) )
 			.SetMenuDropdownNormalBorderBrush( BOX_BRUSH( "Common/ColumnHeaderMenuButton_Normal", 4.f/32.f ) )
 			.SetMenuDropdownHoveredBorderBrush( BOX_BRUSH( "Common/ColumnHeaderMenuButton_Hovered", 4.f/32.f ) );
 		Style->Set( "TableView.Header.Column", TableColumnHeaderStyle );
@@ -623,7 +623,7 @@ TSharedRef< ISlateStyle > FCoreStyle::Create( const FName& InStyleSetName )
 			.SetSortDescendingImage( IMAGE_BRUSH( "Common/SortDownArrow", Icon8x4 ) )
 			.SetNormalBrush( FSlateNoResource() )
 			.SetHoveredBrush( BOX_BRUSH( "Common/LastColumnHeader_Hovered", 4.f/32.f ) )
-			.SetMenuDropdownImage( IMAGE_BRUSH( "Common/ColumnHeader_Arrow", Icon8x8 ) )
+			.SetMenuDropdownImage( IMAGE_BRUSH( "Common/ComboArrow", Icon8x8 ) )
 			.SetMenuDropdownNormalBorderBrush( BOX_BRUSH( "Common/ColumnHeaderMenuButton_Normal", 4.f/32.f ) )
 			.SetMenuDropdownHoveredBorderBrush( BOX_BRUSH( "Common/ColumnHeaderMenuButton_Hovered", 4.f/32.f ) );
 
@@ -661,7 +661,7 @@ TSharedRef< ISlateStyle > FCoreStyle::Create( const FName& InStyleSetName )
 		Style->Set( "ToolBar.SToolBarComboButtonBlock.Padding", FMargin(4.0f));
 		Style->Set( "ToolBar.SToolBarButtonBlock.Padding", FMargin(4.0f));
 		Style->Set( "ToolBar.SToolBarCheckComboButtonBlock.Padding", FMargin(4.0f));
-		Style->Set( "ToolBar.SToolBarButtonBlock.CheckBox.Padding", FMargin(4.0f) );
+		Style->Set( "ToolBar.SToolBarButtonBlock.CheckBox.Padding", FMargin(0.0f) );
 		Style->Set( "ToolBar.SToolBarComboButtonBlock.ComboButton.Color", DefaultForeground );
 
 		Style->Set( "ToolBar.Block.IndentedPadding", FMargin( 18.0f, 2.0f, 4.0f, 4.0f ) );
@@ -671,7 +671,7 @@ TSharedRef< ISlateStyle > FCoreStyle::Create( const FName& InStyleSetName )
 		Style->Set( "ToolBar.Separator.Padding", FMargin( 0.5f ) );
 
 		Style->Set( "ToolBar.Label", FTextBlockStyle(NormalText) .SetFont( TTF_FONT( "Fonts/Roboto-Regular", 9 ) ) );
-		Style->Set( "ToolBar.EditableText", FEditableTextBoxStyle(NormalEditableTextBoxStyle) .SetFont( TTF_FONT( "Fonts/Roboto-Regular", 9 ) ) );
+		Style->Set( "ToolBar.EditableText", FTextBlockStyle(NormalText) .SetFont( TTF_FONT( "Fonts/Roboto-Regular", 9 ) ) );
 		Style->Set( "ToolBar.Keybinding", FTextBlockStyle(NormalText) .SetFont( TTF_FONT( "Fonts/Roboto-Regular", 8 ) ) );
 
 		Style->Set( "ToolBar.Heading", FTextBlockStyle(NormalText)
@@ -747,7 +747,7 @@ TSharedRef< ISlateStyle > FCoreStyle::Create( const FName& InStyleSetName )
 		Style->Set( "Menu.Separator.Padding", FMargin( 0.5f ) );
 
 		Style->Set( "Menu.Label", FTextBlockStyle(NormalText) .SetFont( TTF_FONT( "Fonts/Roboto-Regular", 9 ) ) );
-		Style->Set( "Menu.EditableText", FEditableTextBoxStyle(NormalEditableTextBoxStyle) .SetFont( TTF_FONT( "Fonts/Roboto-Regular", 9 ) ) );
+		Style->Set( "Menu.EditableText", FTextBlockStyle(NormalText) .SetFont( TTF_FONT( "Fonts/Roboto-Regular", 9 ) ) );
 		Style->Set( "Menu.Keybinding", FTextBlockStyle(NormalText) .SetFont( TTF_FONT( "Fonts/Roboto-Regular", 8 ) ) );
 
 		Style->Set( "Menu.Heading", FTextBlockStyle(NormalText)

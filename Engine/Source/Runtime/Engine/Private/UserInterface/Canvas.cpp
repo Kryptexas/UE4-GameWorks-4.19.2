@@ -969,13 +969,6 @@ UCanvas::UCanvas(const class FPostConstructInitializeProperties& PCIP)
 	HmdOrientation = FQuat::Identity;
 	ViewProjectionMatrix = FMatrix::Identity;
 
-	UnsafeSizeX = 0;
-	UnsafeSizeY = 0;
-	SafeZonePadX = 0;
-	SafeZonePadY = 0;
-	CachedDisplayWidth = 0;
-	CachedDisplayHeight = 0;
-
 	// only call once on construction.  Expensive on some platforms (occulus).
 	// Init gets called every frame.	
 	UpdateSafeZoneData();
@@ -988,21 +981,12 @@ void UCanvas::Init(int32 InSizeX, int32 InSizeY, FSceneView* InSceneView)
 	SizeY = InSizeY;
 	UnsafeSizeX = SizeX;
 	UnsafeSizeY = SizeY;
-	SceneView = InSceneView;		
-	
+	SceneView = InSceneView;
 	Update();	
 }
 
 void UCanvas::ApplySafeZoneTransform()
 {
-	// if there is no required safezone padding, then we can bail on the whole operation.
-	// this is also basically punting on a bug we have on PC where GetDisplayMetrics isn't the right thing
-	// to do, as it gives the monitor size, not the window size which we actually want.
-	if (SafeZonePadX == 0 && SafeZonePadY == 0)
-	{
-		return;
-	}
-
 	//The basic idea behind this type of safezone handling is that we shrink the canvas to only the safe size, then we apply a transform
 	//to place the canvas such that the all the safezone space is empty.  Another method that was attempted was to modify OrgXY and ClipXY,
 	//however given the usage of those members inside and OUTSIDE of the canvas system it was deemed not safe at this time.  For example, adding 100
@@ -1060,7 +1044,6 @@ void UCanvas::ApplySafeZoneTransform()
 	//adjust clip to be within new bounds by the same absolute amount.  we aren't trying to preserve ratios at the moment.
 	ClipX = SizeX - OrigClipOffsetX;
 	ClipY = SizeY - OrigClipOffsetY;
-	
 
 
 	Canvas->PushRelativeTransform(FTranslationMatrix(FVector(OrgXPad, OrgYPad, 0)));
@@ -1068,14 +1051,6 @@ void UCanvas::ApplySafeZoneTransform()
 
 void UCanvas::PopSafeZoneTransform()
 {
-	// if there is no required safezone padding, then we can bail on the whole operation.
-	// this is also basically punting on a bug we have on PC where GetDisplayMetrics isn't the right thing
-	// to do, as it gives the monitor size, not the window size which we actually want.
-	if (SafeZonePadX == 0 && SafeZonePadY == 0)
-	{
-		return;
-	}
-
 	Canvas->PopTransform();	
 
 	//put our size and clip back to what they were before applying the safezone.
@@ -1095,7 +1070,7 @@ void UCanvas::UpdateSafeZoneData()
 	{
 		FDisplayMetrics DisplayMetrics;
 		FSlateApplication::Get().GetDisplayMetrics(DisplayMetrics);
-	
+
 		SafeZonePadX = FMath::Ceil(DisplayMetrics.TitleSafePaddingSize.X);
 		SafeZonePadY = FMath::Ceil(DisplayMetrics.TitleSafePaddingSize.Y);
 

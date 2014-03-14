@@ -235,7 +235,7 @@ void UPhysicsConstraintComponent::OnRegister()
 #if WITH_EDITOR
 	if (SpriteComponent == NULL && GetOwner() && !GetWorld()->IsGameWorld() )
 	{
-		SpriteComponent = ConstructObject<UBillboardComponent>(UBillboardComponent::StaticClass(), GetOwner(), NAME_None, RF_Transactional | RF_TextExportTransient);
+		SpriteComponent = ConstructObject<UBillboardComponent>(UBillboardComponent::StaticClass(), GetOwner(), NAME_None, RF_Transactional);
 
 		UpdateSpriteTexture();
 		SpriteComponent->AttachTo(this);
@@ -244,7 +244,6 @@ void UPhysicsConstraintComponent::OnRegister()
 		SpriteComponent->SpriteInfo.Category = TEXT("Physics");
 		SpriteComponent->SpriteInfo.DisplayName = NSLOCTEXT( "SpriteCategory", "Physics", "Physics" );
 		SpriteComponent->bCreatedByConstructionScript = bCreatedByConstructionScript;
-		SpriteComponent->bIsScreenSizeScaled = true;
 
 		SpriteComponent->RegisterComponent();
 	}

@@ -52,5 +52,3 @@ IAssetRegistry& FAssetRegistryModule::Get() const
 	check(AssetRegistry);
 	return *AssetRegistry;
 }
-
-#undef LOCTEXT_NAMESPACE

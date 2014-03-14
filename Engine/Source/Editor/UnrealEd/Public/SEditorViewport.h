@@ -102,9 +102,6 @@ protected:
 	 * Called when the user wants to focus the viewport to the current selection
 	 */
 	virtual void OnFocusViewportToSelection(){}
-
-	/** Delegate handler for when stats are enabled in a viewport */
-	void HandleViewportStatsEnabled();
 protected:
 	TSharedPtr<SOverlay> ViewportOverlay;
 	/** Viewport that renders the scene provided by the viewport client */

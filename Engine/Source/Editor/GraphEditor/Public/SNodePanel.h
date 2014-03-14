@@ -214,7 +214,7 @@ struct FZoomLevelsContainer
 	 * 
 	 * @return associated friendly name
 	 */
-	virtual FText						GetZoomText(int32 InZoomLevel) const = 0;
+	virtual FString						GetZoomPrettyString(int32 InZoomLevel) const = 0;
 	
 	/** 
 	 * @return count of supported zoom levels
@@ -363,7 +363,7 @@ public:
 	/** @retun the zoom amount; e.g. a value of 0.25f results in quarter-sized nodes */
 	float GetZoomAmount() const;
 	/** @return Zoom level as a pretty string */
-	FText GetZoomText() const;
+	FString GetZoomString() const;
 	FSlateColor GetZoomTextColorAndOpacity() const;
 
 	/** @return the view offset in graph space */

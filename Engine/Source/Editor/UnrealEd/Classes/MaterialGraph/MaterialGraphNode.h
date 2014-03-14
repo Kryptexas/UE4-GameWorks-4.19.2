@@ -80,19 +80,4 @@ private:
 
 	/** Sets the Material Expression's parameter name */
 	void SetParameterName(const FString& NewName);
-
-	/** Should expression use the bool pin colour for its title */
-	static bool UsesBoolColour(UMaterialExpression* Expression);
-
-	/** Should expression use the float pin colour for its title */
-	static bool UsesFloatColour(UMaterialExpression* Expression);
-
-	/** Should expression use the vector pin colour for its title */
-	static bool UsesVectorColour(UMaterialExpression* Expression);
-
-	/** Should expression use the object pin colour for its title */
-	static bool UsesObjectColour(UMaterialExpression* Expression);
-
-	/** Should expression use the event node colour for its title */
-	static bool UsesEventColour(UMaterialExpression* Expression);
 };

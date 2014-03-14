@@ -9,6 +9,7 @@
 #include "ShaderParameters.h"
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FParticleSpriteUniformParameters,TEXT("SpriteVF"));
+IMPLEMENT_UNIFORM_BUFFER_STRUCT(FParticleSpriteViewUniformParameters,TEXT("SpriteView"));
 
 TGlobalResource<FNullDynamicParameterVertexBuffer> GNullDynamicParameterVertexBuffer;
 
@@ -37,6 +38,7 @@ public:
 		FParticleSpriteVertexFactory* SpriteVF = (FParticleSpriteVertexFactory*)VertexFactory;
 		FVertexShaderRHIParamRef VertexShaderRHI = Shader->GetVertexShader();
 		SetUniformBufferParameter( VertexShaderRHI, Shader->GetUniformBufferParameter<FParticleSpriteUniformParameters>(), SpriteVF->GetSpriteUniformBuffer() );
+		SetUniformBufferParameter( VertexShaderRHI, Shader->GetUniformBufferParameter<FParticleSpriteViewUniformParameters>(), SpriteVF->GetSpriteViewUniformBuffer() );
 	}
 };
 
@@ -49,6 +51,7 @@ public:
 		FParticleSpriteVertexFactory* SpriteVF = (FParticleSpriteVertexFactory*)VertexFactory;
 		FPixelShaderRHIParamRef PixelShaderRHI = Shader->GetPixelShader();
 		SetUniformBufferParameter( PixelShaderRHI, Shader->GetUniformBufferParameter<FParticleSpriteUniformParameters>(), SpriteVF->GetSpriteUniformBuffer() );
+		SetUniformBufferParameter( PixelShaderRHI, Shader->GetUniformBufferParameter<FParticleSpriteViewUniformParameters>(), SpriteVF->GetSpriteViewUniformBuffer() );
 	}
 };
 

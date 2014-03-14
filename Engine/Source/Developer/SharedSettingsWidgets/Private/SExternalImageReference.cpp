@@ -5,62 +5,107 @@
 
 #include "AssetSelection.h"
 #include "EditorStyle.h"
+#include "IExternalImagePickerModule.h"
 #include "ISourceControlModule.h"
 
 #define LOCTEXT_NAMESPACE "SExternalImageReference"
 
+/////////////////////////////////////////////////////
+// SExternalImageReference
+
+SExternalImageReference::SExternalImageReference()
+{
+}
 
 void SExternalImageReference::Construct(const FArguments& InArgs, const FString& InBaseFilename, const FString& InOverrideFilename)
 {
 	FileDescription = InArgs._FileDescription;
-	OnPreExternalImageCopy = InArgs._OnPreExternalImageCopy;
-	OnPostExternalImageCopy = InArgs._OnPostExternalImageCopy;
 
-	FExternalImagePickerConfiguration ImageReferenceConfig;
-	ImageReferenceConfig.TargetImagePath = InOverrideFilename;
-	ImageReferenceConfig.DefaultImagePath = InBaseFilename;
-	ImageReferenceConfig.OnExternalImagePicked = FOnExternalImagePicked::CreateSP(this, &SExternalImageReference::HandleExternalImagePicked);
-	ImageReferenceConfig.RequiredImageDimensions = InArgs._RequiredSize;
-	ImageReferenceConfig.bRequiresSpecificSize = InArgs._RequiredSize.X >= 0;
-	ImageReferenceConfig.MaxDisplayedImageDimensions = InArgs._MaxDisplaySize;
-	ImageReferenceConfig.OnGetPickerPath = InArgs._OnGetPickerPath;
+	FExternalImagePickerConfiguration GameSplashConfig;
+	GameSplashConfig.TargetImagePath = InOverrideFilename;
+	GameSplashConfig.DefaultImagePath = InBaseFilename;
+	GameSplashConfig.OnExternalImagePicked = FOnExternalImagePicked::CreateSP(this, &SExternalImageReference::HandleExternalImagePicked);
+	GameSplashConfig.RequiredImageDimensions = InArgs._RequiredSize;
+	GameSplashConfig.bRequiresSpecificSize = InArgs._RequiredSize.X >= 0;
+	GameSplashConfig.MaxDisplayedImageDimensions = InArgs._MaxDisplaySize;
 
 	ChildSlot
 	[
-		IExternalImagePickerModule::Get().MakeEditorWidget(ImageReferenceConfig)
+		IExternalImagePickerModule::Get().MakeEditorWidget(GameSplashConfig)
 	];
 }
 
 
 bool SExternalImageReference::HandleExternalImagePicked(const FString& InChosenImage, const FString& InTargetImage)
 {
-	if(OnPreExternalImageCopy.IsBound())
+	bool bSucceeded = true;
+
+	ISourceControlProvider& Provider = ISourceControlModule::Get().GetProvider();
+
+	// first check for source control check out
+	if (ISourceControlModule::Get().IsEnabled())
 	{
-		if(!OnPreExternalImageCopy.Execute(InChosenImage))
+		FSourceControlStatePtr SourceControlState = Provider.GetState(InTargetImage, EStateCacheUsage::ForceUpdate);
+		if (SourceControlState.IsValid())
 		{
-			return false;
+			if (SourceControlState->IsSourceControlled() && SourceControlState->CanCheckout())
+			{
+				ECommandResult::Type Result = Provider.Execute(ISourceControlOperation::Create<FCheckOut>(), InTargetImage);
+				bSucceeded = (Result == ECommandResult::Succeeded);
+				if (!bSucceeded)
+				{
+					FText NotificationErrorText = FText::Format(LOCTEXT("ExternalImageSourceControlCheckoutError", "Could not check out {0} file."), FileDescription);
+
+					FNotificationInfo Info(NotificationErrorText);
+					Info.ExpireDuration = 3.0f;
+
+					FSlateNotificationManager::Get().AddNotification(Info);
+				}
+			}
 		}
 	}
 
-	FText FailReason;
-	if(!SourceControlHelpers::CopyFileUnderSourceControl(InTargetImage, InChosenImage, LOCTEXT("ImageDescription", "image"), FailReason))
+	// now try and copy the file
+	if (bSucceeded)
 	{
-		FNotificationInfo Info(FailReason);
-		Info.ExpireDuration = 3.0f;
-		FSlateNotificationManager::Get().AddNotification(Info);
-		return false;
-	}
-	
-	if(OnPostExternalImageCopy.IsBound())
-	{
-		if(!OnPostExternalImageCopy.Execute(InChosenImage))
+		bSucceeded = (IFileManager::Get().Copy(*InTargetImage, *InChosenImage, true, true) == COPY_OK);
+		if (!bSucceeded)
 		{
-			return false;
+			FText NotificationErrorText = FText::Format(LOCTEXT("ExternalImageCopyError", "Could not overwrite {0} file."), FileDescription);
+
+			FNotificationInfo Info(NotificationErrorText);
+			Info.ExpireDuration = 3.0f;
+
+			FSlateNotificationManager::Get().AddNotification(Info);
 		}
 	}
 
-	return true;
+	// mark for add now if needed
+	if (bSucceeded && ISourceControlModule::Get().IsEnabled())
+	{
+		FSourceControlStatePtr SourceControlState = Provider.GetState(InTargetImage, EStateCacheUsage::Use);
+		if (SourceControlState.IsValid())
+		{
+			if (!SourceControlState->IsSourceControlled())
+			{
+				ECommandResult::Type Result = Provider.Execute(ISourceControlOperation::Create<FMarkForAdd>(), InTargetImage);
+				bSucceeded = (Result == ECommandResult::Succeeded);
+				if (!bSucceeded)
+				{
+					FText NotificationErrorText = FText::Format(LOCTEXT("SplashScreenSourceControlMarkForAddError", "Could not mark {0} file for add."), FileDescription);
+
+					FNotificationInfo Info(NotificationErrorText);
+					Info.ExpireDuration = 3.0f;
+
+					FSlateNotificationManager::Get().AddNotification(Info);
+				}
+			}
+		}
+	}
+
+	return bSucceeded;
 }
 
+/////////////////////////////////////////////////////
 
 #undef LOCTEXT_NAMESPACE

@@ -587,6 +587,7 @@ APlayerController* UWorld::SpawnPlayActor(UPlayer* Player, ENetRole RemoteRole, 
 
 	// Possess the newly-spawned player.
 	Actor->NetPlayerIndex = InNetPlayerIndex;
+	Actor->SetPlayer(Player);
 	//UE_LOG(LogSpawn, Log, TEXT("%s got player %s"), *Actor->GetName(), *Player->GetName());
 	Actor->Role = ROLE_Authority;
 	Actor->SetReplicates(RemoteRole != ROLE_None);
@@ -594,7 +595,6 @@ APlayerController* UWorld::SpawnPlayActor(UPlayer* Player, ENetRole RemoteRole, 
 	{
 		Actor->SetAutonomousProxy(true);
 	}
-	Actor->SetPlayer(Player);
 	GetAuthGameMode()->PostLogin(Actor);
 
 	return Actor;

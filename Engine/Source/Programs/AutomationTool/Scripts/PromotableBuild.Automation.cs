@@ -152,6 +152,7 @@ class PromotableBuild : BuildCommand
 					"VehicleGameEditor",
 					"ShadowEditor",
                     "SoulEditor",
+                    "StrategyVREditor",
 				};
 
 				var Win32Targets = new List<string> 
@@ -167,6 +168,7 @@ class PromotableBuild : BuildCommand
 					"VehicleGame",
 					"Shadow",
                     "Soul",
+                    "StrategyVR",
 				};
 
 				var Win32ShipTargets = new List<string> 
@@ -266,6 +268,12 @@ class PromotableBuild : BuildCommand
                         "SoulEditor",
                     };
 
+                    List<string> StrategyVR = new List<string>
+                    {
+                        "StrategyVR",
+                        "StrategyVREditor",
+                    };
+
 					List<string> Exclude = new List<string>(Excludes.Split('+'));
 
 					foreach (List<string> List in TargetLists)
@@ -290,6 +298,10 @@ class PromotableBuild : BuildCommand
 						{
 							RemoveTargetsFromList(Soul, List);
 						}
+                        if (Exclude.Contains("StrategyVR"))
+                        {
+                            RemoveTargetsFromList(StrategyVR, List);
+                        }
 					}
 				}
 

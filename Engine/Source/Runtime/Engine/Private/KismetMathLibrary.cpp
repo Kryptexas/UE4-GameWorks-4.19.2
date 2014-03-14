@@ -789,10 +789,6 @@ FLinearColor UKismetMathLibrary::Multiply_LinearColorLinearColor(FLinearColor A,
 	return A * B;
 }
 
-FLinearColor UKismetMathLibrary::Multiply_LinearColorFloat(FLinearColor A, float B)
-{
-	return A * B;
-}
 
 FVector UKismetMathLibrary::TransformLocation(const FTransform& T, FVector Location)
 {

@@ -566,22 +566,12 @@ bool UUnrealEdEngine::HandleUpdateLandscapeEditorDataCommand( const TCHAR* Str, 
 			ULandscapeInfo* LandscapeInfo = It.Value();
 			if (LandscapeInfo)
 			{
-				bool bHasPhysicalMaterial = false;
-				for (int32 i = 0; i < LandscapeInfo->Layers.Num(); ++i)
-				{
-					if (LandscapeInfo->Layers[i].LayerInfoObj && LandscapeInfo->Layers[i].LayerInfoObj->PhysMaterial)
-					{
-						bHasPhysicalMaterial = true;
-						break;
-					}
-				}
 				TSet<ALandscapeProxy*> SelectProxies;
 				for (auto LandscapeComponentIt = LandscapeInfo->XYtoComponentMap.CreateIterator(); LandscapeComponentIt; ++LandscapeComponentIt )
 				{
 					ULandscapeComponent* Comp = LandscapeComponentIt.Value();
 					if (Comp)
 					{
-						// Fix level inconsistency for landscape component and collision component
 						ULandscapeHeightfieldCollisionComponent* Collision = Comp->CollisionComponent.Get();
 						if (Collision && Comp->GetLandscapeProxy()->GetLevel() != Collision->GetLandscapeProxy()->GetLevel())
 						{
@@ -596,12 +586,6 @@ bool UUnrealEdEngine::HandleUpdateLandscapeEditorDataCommand( const TCHAR* Str, 
 							Collision->AttachTo( DestProxy->GetRootComponent(), NAME_None, EAttachLocation::KeepWorldPosition );
 							SelectProxies.Add(FromProxy);
 							SelectProxies.Add(DestProxy);
-						}
-
-						// Fix Dominant Layer Data
-						if (bHasPhysicalMaterial && Collision->DominantLayerData.GetBulkDataSize() == 0)
-						{
-							Comp->UpdateCollisionLayerData();
 						}
 					}
 				}
@@ -1036,27 +1020,8 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 	}
 	else if( FParse::Command(&Str, TEXT("ScaleMeshes") ) )
 	{
-		bool bScale = false;
-		bool bScaleVec = false;
-
-		// Was just a scale specified
 		float Scale=1.0f;
-		FVector BoxVec(Scale);
-		if(FParse::Value(Str, TEXT("Scale="), Scale))
-		{
-			bScale = true;
-		}
-		else
-		{
-			// or was a bounding box specified instead
-			FString BoxStr;	
-			if((FParse::Value( Str, TEXT("BBOX="), BoxStr, false) || FParse::Value( Str, TEXT("FFD="), BoxStr, false)) && GetFVECTOR( *BoxStr, BoxVec ))
-			{
-				bScaleVec = true;
-			}
-		}
-
-		if ( bScale || bScaleVec )
+		FParse::Value(Str, TEXT("Scale="), Scale);
 		{
 			USelection* SelectedObjects = GetSelectedObjects();
 			TArray<UStaticMesh*> SelectedMeshes;
@@ -1078,19 +1043,8 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 
 						FStaticMeshSourceModel& Model = Mesh->SourceModels[0];
 
-						if ( bScaleVec )
-						{
-							FBoxSphereBounds Bounds = Mesh->GetBounds();
-							const FVector ScaleVec = BoxVec / (Bounds.BoxExtent * 2.0f);	// x2 as artists wanted length not radius
-							Model.BuildSettings.BuildScale3D = ScaleVec;
-						}
-						else	// bScale
-						{
-							Model.BuildSettings.BuildScale3D = FVector( Scale, Scale, Scale );
-						}
-						
-						UE_LOG(LogUnrealEdSrv, Log, TEXT("Rescaling mesh '%s' with scale: %s"), *Mesh->GetName(), *Model.BuildSettings.BuildScale3D.ToString() );
-						
+						Model.BuildSettings.BuildScale = Scale;
+
 						Mesh->Build();
 					}
 				}
@@ -1098,102 +1052,6 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 			}
 		}
 	}
-	else if( FParse::Command(&Str, TEXT("ClearSourceFiles") ) )
-	{
-		struct Local
-		{
-			static bool RemoveSourcePath( UAssetImportData* Data, const TArray<FString>& SearchTerms )
-			{
-				const FString& SourceFilePath = Data->SourceFilePath;
-				if( !SourceFilePath.IsEmpty() )
-				{
-					for (const FString& Str : SearchTerms)
-					{
-						if (SourceFilePath.Contains(Str))
-						{
-							Data->Modify();
-							UE_LOG(LogUnrealEdSrv, Log, TEXT("Removing Path: %s"), *SourceFilePath);
-							Data->SourceFilePath.Empty();
-							Data->SourceFileTimestamp.Empty();
-							return true;
-						}
-					}
-				}
-
-				return false;
-			}
-		};
-
-		FString SearchTermStr;
-		if (FParse::Value(Str, TEXT("Find="), SearchTermStr, false))
-		{
-			TArray<FString> SearchTerms;
-			SearchTermStr.ParseIntoArray( &SearchTerms, TEXT(","), true );
-
-			TArray<UObject*> ModifiedObjects;
-			if( SearchTerms.Num() )
-			{
-				FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-
-				TArray<FAssetData> StaticMeshes;
-				TArray<FAssetData> SkeletalMeshes;
-				TArray<FAssetData> AnimSequences;
-				TArray<FAssetData> DestructibleMeshes;
-
-				GWarn->BeginSlowTask(NSLOCTEXT("UnrealEd", "ClearingSourceFiles", "Clearing Source Files"), true, true);
-				AssetRegistryModule.Get().GetAssetsByClass(UStaticMesh::StaticClass()->GetFName(), StaticMeshes);
-
-				AssetRegistryModule.Get().GetAssetsByClass(USkeletalMesh::StaticClass()->GetFName(), SkeletalMeshes);
-
-				AssetRegistryModule.Get().GetAssetsByClass(UAnimSequence::StaticClass()->GetFName(), AnimSequences);
-
-				AssetRegistryModule.Get().GetAssetsByClass(UDestructibleMesh::StaticClass()->GetFName(), DestructibleMeshes);
-
-				for (const FAssetData& StaticMesh : StaticMeshes)
-				{
-					UStaticMesh* Mesh = Cast<UStaticMesh>(StaticMesh.GetAsset());
-
-					if (Mesh && Mesh->AssetImportData && Local::RemoveSourcePath( Mesh->AssetImportData, SearchTerms ) )
-					{
-						ModifiedObjects.Add( Mesh );
-					}
-				}
-
-				for (const FAssetData& SkelMesh : SkeletalMeshes)
-				{
-					USkeletalMesh* Mesh = Cast<USkeletalMesh>(SkelMesh.GetAsset());
-
-					if (Mesh && Mesh->AssetImportData && Local::RemoveSourcePath(Mesh->AssetImportData, SearchTerms))
-					{
-						ModifiedObjects.Add(Mesh);
-					}
-				}
-
-				for (const FAssetData& AnimSequence : AnimSequences)
-				{
-					UAnimSequence* Sequence = Cast<UAnimSequence>(AnimSequence.GetAsset());
-
-					if (Sequence && Sequence->AssetImportData && Local::RemoveSourcePath( Sequence->AssetImportData, SearchTerms ) )
-					{
-						ModifiedObjects.Add(Sequence);
-					}
-				}
-
-				for (const FAssetData& DestMesh : DestructibleMeshes)
-				{
-					UDestructibleMesh* Mesh = Cast<UDestructibleMesh>(DestMesh.GetAsset());
-
-					if (Mesh && Mesh->AssetImportData && Local::RemoveSourcePath(Mesh->AssetImportData, SearchTerms))
-					{
-						ModifiedObjects.Add(Mesh);
-					}
-				}
-			}
-
-			GWarn->EndSlowTask();
-		}
-	}
-
 	else if( FParse::Command(&Str, TEXT("HighResShot") ) )
 	{
 		if (GetHighResScreenshotConfig().ParseConsoleCommand(Str, Ar))

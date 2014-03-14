@@ -110,11 +110,8 @@ public:
 	 */
 	virtual bool GetReferencers(FName PackageName, TArray<FName>& OutReferencers) const = 0;
 
-	/** Returns true if the specified ClassName's ancestors could be found. If so, OutAncestorClassNames is a list of all its ancestors */
+	/** Returns true if the specified ClassName is derived from ParentClassName */
 	virtual bool GetAncestorClassNames(FName ClassName, TArray<FName>& OutAncestorClassNames) const = 0;
-
-	/** Returns the names of all classes derived by the supplied class names, excluding any classes matching the excluded class names. */
-	virtual void GetDerivedClassNames(const TArray<FName>& ClassNames, const TSet<FName>& ExcludedClassNames, TSet<FName>& OutDerivedClassNames) const = 0;
 
 	/** Gets a list of all paths that are currently cached */
 	virtual void GetAllCachedPaths(TArray<FString>& OutPathList) const = 0;
@@ -157,8 +154,8 @@ public:
 	/** Attempts to remove the specified path to the set of cached paths. This will only succeed if there are no assets left in the specified path. */
 	virtual bool RemovePath(const FString& PathToRemove) = 0;
 
-	/** Scan the supplied paths right now and populate the asset registry. If bForceRescan is true, the paths will be scanned again, even if they were previously scanned */
-	virtual void ScanPathsSynchronous(const TArray<FString>& InPaths, bool bForceRescan = false) = 0;
+	/** Scan the supplied paths right now and populate the asset registry */
+	virtual void ScanPathsSynchronous(const TArray<FString>& InPaths) = 0;
 
 	/** Look for all assets on disk (can be async or synchronous) */
 	virtual void SearchAllAssets(bool bSynchronousSearch) = 0;

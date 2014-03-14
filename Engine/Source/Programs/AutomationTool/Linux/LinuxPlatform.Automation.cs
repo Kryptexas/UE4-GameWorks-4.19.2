@@ -194,11 +194,6 @@ public abstract class BaseLinuxPlatform : Platform
     {
         return "Dmitry.Rekman[epic]";
     }
-    public override List<string> GetDebugFileExtentions()
-    {
-        return new List<string> {  };
-    }
-
 }
 
 public class CentOSx64Platform : BaseLinuxPlatform

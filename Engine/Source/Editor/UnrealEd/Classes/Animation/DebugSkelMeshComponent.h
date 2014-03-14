@@ -4,7 +4,7 @@
 #pragma once
 #include "DebugSkelMeshComponent.generated.h"
 
-USTRUCT()
+USTRUCT(transient)
 struct FSelectedSocketInfo
 {
 	GENERATED_USTRUCT_BODY()

@@ -69,9 +69,6 @@ void Main(
 #endif
 
 #if PERSPECTIVE_CORRECT_DEPTH
-	float DepthBias = ShadowParams.x;
-	float InvMaxSubjectDepth = ShadowParams.y;
-
 	Inputs.ShadowDepth *= InvMaxSubjectDepth;
 	Inputs.ShadowDepth += DepthBias;
 

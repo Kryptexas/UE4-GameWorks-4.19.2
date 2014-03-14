@@ -5,7 +5,6 @@
 =============================================================================*/ 
 
 #include "EnginePrivate.h"
-#include "EngineUtils.h"
 #include "AssetRegistryModule.h"
 
 #define LOCTEXT_NAMESPACE "Skeleton"
@@ -15,20 +14,6 @@
 const FName USkeleton::AnimNotifyTag = FName(TEXT("AnimNotifyList"));
 const TCHAR USkeleton::AnimNotifyTagDeliminator = TEXT(';');
 #endif 
-
-FArchive& operator<<(FArchive& Ar, FReferencePose & P)
-{
-	Ar << P.PoseName;
-	Ar << P.ReferencePose;
-#if WITH_EDITORONLY_DATA
-	//TODO: we should use strip flags but we need to rev the serialization version
-	if (!Ar.IsCooking())
-	{
-		Ar << P.ReferenceMesh;
-	}
-#endif
-	return Ar;
-}
 
 USkeleton::USkeleton(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -43,7 +28,7 @@ void USkeleton::PostInitProperties()
 	// serialized back if this already has Guid
 	if (!IsTemplate())
 	{
-		RegenerateGuid();
+		Guid = FGuid::NewGuid();
 	}
 }
 
@@ -72,7 +57,10 @@ void USkeleton::PostDuplicate(bool bDuplicateForPIE)
 	if (!bDuplicateForPIE)
 	{
 		// regenerate Guid
-		RegenerateGuid();
+		Guid = FGuid::NewGuid();
+
+		// catch any case if guid isn't valid
+		check(Guid.IsValid());
 	}
 }
 
@@ -127,7 +115,7 @@ void USkeleton::Serialize( FArchive& Ar )
 
 	if (Ar.UE4Ver() < VER_UE4_SKELETON_GUID_SERIALIZATION)
 	{
-		RegenerateGuid();
+		Guid = FGuid::NewGuid();
 	}
 	else
 	{
@@ -394,8 +382,6 @@ bool USkeleton::RecreateBoneTree(USkeletalMesh* InSkelMesh)
 {
 	if( InSkelMesh )
 	{
-		// regenerate Guid
-		RegenerateGuid();	
 		BoneTree.Empty();
 		ReferenceSkeleton.Empty();
 		return MergeAllBonesToBoneTree(InSkelMesh);
@@ -688,7 +674,7 @@ void USkeleton::AddNewAnimationNotify(FName NewAnimNotifyName)
 	}
 }
 
-USkeletalMesh* USkeleton::GetPreviewMesh(bool bFindIfNotSet)
+USkeletalMesh* USkeleton::GetPreviewMesh()
 {
 	USkeletalMesh* PreviewMesh = PreviewSkeletalMesh.Get();
 	if(!PreviewMesh)
@@ -700,26 +686,7 @@ USkeletalMesh* USkeleton::GetPreviewMesh(bool bFindIfNotSet)
 		{
 			PreviewMesh = Cast<USkeletalMesh>(StaticLoadObject(USkeletalMesh::StaticClass(), NULL, *PreviewMeshStringRef.AssetLongPathname, NULL, LOAD_None, NULL));
 		}
-		// if not existing, and if bFindIfNotExisting is true, then try find one
-		else if (bFindIfNotSet)
-		{
-			FARFilter Filter;
-			Filter.ClassNames.Add(USkeletalMesh::StaticClass()->GetFName());
-
-			FString SkeletonString = FAssetData(this).GetExportTextName();
-			Filter.TagsAndValues.Add(GET_MEMBER_NAME_CHECKED(USkeletalMesh, Skeleton), SkeletonString);
-
-			TArray<FAssetData> AssetList;
-			FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-			AssetRegistryModule.Get().GetAssets(Filter, AssetList);
-
-			if(AssetList.Num() > 0)
-			{
-				SetPreviewMesh( Cast<USkeletalMesh>(AssetList[0].GetAsset()), false );
-			}			
-		}
 	}
-
 	return PreviewMesh;
 }
 
@@ -815,11 +782,5 @@ void USkeleton::AddBoneToLOD(int32 LODIndex, int32 BoneIndex)
 }
 
 #endif
-
-void USkeleton::RegenerateGuid()
-{
-	Guid = FGuid::NewGuid();
-	check(Guid.IsValid());
-}
 
 #undef LOCTEXT_NAMESPACE 

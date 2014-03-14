@@ -9,6 +9,7 @@ class UK2Node_VariableSetRef : public UK2Node
 {
 	GENERATED_UCLASS_BODY()
 
+#if WITH_EDITOR
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() OVERRIDE;
 	virtual void ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins) OVERRIDE;
@@ -20,6 +21,7 @@ class UK2Node_VariableSetRef : public UK2Node
 	virtual void NotifyPinConnectionListChanged(UEdGraphPin* Pin) OVERRIDE;
 	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const OVERRIDE;
 	// End UK2Node interface
+#endif
 
 	/** 
 	 * Changes the type of variable set by this node, based on the specified pin

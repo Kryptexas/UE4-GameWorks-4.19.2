@@ -468,7 +468,7 @@ bool UBlendSpaceBase::InterpolateWeightOfSampleData(float DeltaTime, const TArra
 		}
 	}
 
-	return (TotalFinalWeight > ZERO_ANIMWEIGHT_THRESH);
+	return (TotalFinalWeight > 0.f);
 }
 
 bool UBlendSpaceBase::UpdateParameter(int32 Index, const FBlendParameter & Parameter)
@@ -780,7 +780,7 @@ void UBlendSpaceBase::NormalizeSampleDataWeight(TArray<FBlendSampleData> & Sampl
 		// need to verify if valid sample index
 		if ( SampleData.IsValidIndex(SampleDataIndex) )
 		{
-			TotalSum += SampleDataList[I].GetWeight();
+			TotalSum += SampleDataList[I].TotalWeight;
 
 			if ( SampleDataList[I].PerBoneBlendData.Num() > 0 )
 			{

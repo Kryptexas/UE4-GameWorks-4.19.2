@@ -69,9 +69,6 @@ class ANavigationTestingActor : public AActor, public INavAgentInterface, public
 	UPROPERTY(EditAnywhere, Category=Debug)
 	uint32 bShowDiffWithPreviousStep : 1;
 
-	UPROPERTY(EditAnywhere, Category=Debug)
-	uint32 bShouldBeVisibleInGame : 1;
-
 	UPROPERTY(transient, VisibleAnywhere, BlueprintReadOnly, Category=PathfindingStatus)
 	uint32 bPathExist : 1;
 
@@ -98,7 +95,7 @@ class ANavigationTestingActor : public AActor, public INavAgentInterface, public
 	ANavigationTestingActor* ForcedOtherActor;
 
 	/** "None" will result in default filter being used */
-	UPROPERTY(EditAnywhere, Category=Pathfinding)
+	UPROPERTY(Category=Node, EditAnywhere)
 	TSubclassOf<class UNavigationQueryFilter> FilterClass;
 
 	UPROPERTY(transient, EditInstanceOnly, Category=Debug, meta=(ClampMin="-1", UIMin="-1"))

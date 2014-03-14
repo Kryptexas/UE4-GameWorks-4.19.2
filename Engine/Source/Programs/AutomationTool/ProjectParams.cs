@@ -243,7 +243,6 @@ namespace AutomationTool
             this.bUsesSteam = InParams.bUsesSteam;
 			this.bUsesSlate = InParams.bUsesSlate;
 			this.bUsesSlateEditorStyle = InParams.bUsesSlateEditorStyle;
-            this.bDebugBuildsActuallyUseDebugCRT = InParams.bDebugBuildsActuallyUseDebugCRT;
 			this.Archive = InParams.Archive;
 			this.ArchiveDirectoryParam = InParams.ArchiveDirectoryParam;
 			this.Distribution = InParams.Distribution;
@@ -500,7 +499,7 @@ namespace AutomationTool
 		/// <summary>
 		/// Shared: The current project is a foreign project, commandline: -foreign
 		/// </summary>
-		[Help("foreign", "Generate a foreign uproject from blankproject and use that")]
+		[Help("foreign", "Generate a foreign uproject from tappychicken and use that")]
 		public bool Foreign { private set; get; }
 
 		/// <summary>
@@ -819,15 +818,6 @@ namespace AutomationTool
 		/// </summary>
 		public bool bUsesSlateEditorStyle = false;
 
-        /// <summary>
-        // By default we use the Release C++ Runtime (CRT), even when compiling Debug builds.  This is because the Debug C++
-        // Runtime isn't very useful when debugging Unreal Engine projects, and linking against the Debug CRT libraries forces
-        // our third party library dependencies to also be compiled using the Debug CRT (and often perform more slowly.)  Often
-        // it can be inconvenient to require a separate copy of the debug versions of third party static libraries simply
-        // so that you can debug your program's code.
-        /// </summary>
-        public bool bDebugBuildsActuallyUseDebugCRT = false;
-
 		#endregion
 
 		#region Run
@@ -1004,7 +994,6 @@ namespace AutomationTool
 			bUsesSteam = Properties.bUsesSteam;
 			bUsesSlate = Properties.bUsesSlate;
 			bUsesSlateEditorStyle = Properties.bUsesSlateEditorStyle;
-            bDebugBuildsActuallyUseDebugCRT = Properties.bDebugBuildsActuallyUseDebugCRT;
 
 			bIsCodeBasedProject = Properties.bIsCodeBasedProject;			
 			DetectedTargets = Properties.Targets;
@@ -1106,7 +1095,6 @@ namespace AutomationTool
 					if (DetectedTargets.TryGetValue(ValidTarget, out TargetData))
 					{
 						GameTarget = TargetData.TargetName;
-                        bDebugBuildsActuallyUseDebugCRT = TargetData.Rules.bDebugBuildsActuallyUseDebugCRT;
 						bUsesSlate = TargetData.Rules.bUsesSlate;
 						bUsesSlateEditorStyle = TargetData.Rules.bUsesSlateEditorStyle;
 						bUsesSteam = TargetData.Rules.bUsesSteam;
@@ -1513,7 +1501,6 @@ namespace AutomationTool
 				CommandUtils.Log("Stage={0}", Stage);
 				CommandUtils.Log("bUsesSteam={0}", bUsesSteam);
 				CommandUtils.Log("bUsesSlate={0}", bUsesSlate);
-                CommandUtils.Log("bDebugBuildsActuallyUseDebugCRT={0}", bDebugBuildsActuallyUseDebugCRT);
 				CommandUtils.Log("Project Params **************");
 			}
 			bLogged = true;

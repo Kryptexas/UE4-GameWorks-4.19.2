@@ -35,12 +35,4 @@ public:
 	virtual void SetZoom( double ZoomValue ) = 0;
 	virtual void ZoomIn() = 0;
 	virtual void ZoomOut() = 0;
-	virtual bool GetFitToViewport() const = 0;
-	virtual void SetFitToViewport( const bool bFitToViewport ) = 0;
-	
-	void ToggleFitToViewport()
-	{
-		const bool bFitToViewport = GetFitToViewport();
-		SetFitToViewport(!bFitToViewport);
-	}
 };

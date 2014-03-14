@@ -584,13 +584,7 @@ void FPaths::MakeStandardFilename(FString& InPath)
 	FPaths::RemoveDuplicateSlashes(Standardized);
 
 	// make it relative to Engine\Binaries\Platform
-	InPath = Standardized.Replace(*RootDirectory, *FPaths::GetRelativePathToRoot());
-}
-
-void FPaths::MakePlatformFilename( FString& InPath )
-{
-	InPath.ReplaceInline( TEXT( "\\" ), FPlatformMisc::GetDefaultPathSeparator() );
-	InPath.ReplaceInline( TEXT( "/" ), FPlatformMisc::GetDefaultPathSeparator() );
+	InPath = Standardized.Replace(*RootDirectory, *FPaths::GetRelativePathToRoot());;
 }
 
 bool FPaths::MakePathRelativeTo( FString& InPath, const TCHAR* InRelativeTo )

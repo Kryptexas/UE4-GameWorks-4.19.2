@@ -270,9 +270,36 @@ bool FCurveEditorViewportClient::InputKey(FViewport* Viewport, int32 ControllerI
 			if(Event == IE_Pressed)
 			{
 				HHitProxy*	HitResult = Viewport->GetHitProxy(HitX,HitY);
-				if(HitResult && !ProcessNonGraphHit( HitResult ))
+				if(HitResult)
 				{
-					if(HitResult->IsA(HCurveEditorKeyProxy::StaticGetType()))
+					if(HitResult->IsA(HCurveEditorLabelProxy::StaticGetType()))
+					{
+						// Notify containing tool that a curve label was clicked on
+						if(SharedData->NotifyObject != NULL)
+						{
+							const int32 CurveIndex = ((HCurveEditorLabelProxy*)HitResult)->CurveIndex;
+
+							FCurveEdEntry& Entry = SharedData->EdSetup->Tabs[ SharedData->EdSetup->ActiveTab ].Curves[ CurveIndex  ];
+
+							SharedData->NotifyObject->OnCurveLabelClicked(Entry.CurveObject);
+						}
+					}
+					else if(HitResult->IsA(HCurveEditorHideCurveProxy::StaticGetType()))
+					{
+						int32 CurveIndex = ((HCurveEditorHideCurveProxy*)HitResult)->CurveIndex;
+
+						ToggleCurveHidden(CurveIndex);
+					}
+					else if (HitResult->IsA(HCurveEditorHideSubCurveProxy::StaticGetType()))
+					{
+						HCurveEditorHideSubCurveProxy* SubCurveProxy = (HCurveEditorHideSubCurveProxy*)HitResult;
+
+						int32	CurveIndex		= SubCurveProxy->CurveIndex;
+						int32	SubCurveIndex	= SubCurveProxy->SubCurveIndex;
+
+						ToggleSubCurveHidden(CurveIndex, SubCurveIndex);
+					}
+					else if(HitResult->IsA(HCurveEditorKeyProxy::StaticGetType()))
 					{
 						int32 CurveIndex = ((HCurveEditorKeyProxy*)HitResult)->CurveIndex;
 						int32 SubIndex = ((HCurveEditorKeyProxy*)HitResult)->SubIndex;
@@ -371,29 +398,29 @@ bool FCurveEditorViewportClient::InputKey(FViewport* Viewport, int32 ControllerI
 					}
 				}
 				else if(bCtrlDown && bAltDown)
-				{
-					BoxStartX = BoxEndX = HitX;
-					BoxStartY = BoxEndY = HitY;
+					{
+						BoxStartX = BoxEndX = HitX;
+						BoxStartY = BoxEndY = HitY;
 
-					bBoxSelecting = true;
-				}
+						bBoxSelecting = true;
+					}
 				else if (bCtrlDown)
 				{
 					BeginMoveSelectedKeys();
 					bBegunMoving = true;
 					MovementAxisLock = AxisLock_None;
 				}
-				else
-				{
-					bPanning = true;
-				}
+					else
+					{
+						bPanning = true;
+					}
 
 				DragStartMouseX = OldMouseX = HitX;
 				DragStartMouseY = OldMouseY = HitY;
 				bMouseDown = true;
 				DistanceDragged = 0;
 				Viewport->LockMouseToViewport(true);
-				Viewport->InvalidateHitProxy();
+				Viewport->Invalidate();
 			}
 			else if(Event == IE_Released)
 			{
@@ -465,17 +492,6 @@ bool FCurveEditorViewportClient::InputKey(FViewport* Viewport, int32 ControllerI
 				}
 			}
 		}
-		else if(SharedData->EdMode == FCurveEditorSharedData::CEM_Zoom)
-		{
-			if(Event == IE_Pressed)
-			{
-				HHitProxy*	HitResult = Viewport->GetHitProxy(HitX,HitY);
-				if(HitResult)
-				{
-					ProcessNonGraphHit( HitResult );
-				}
-			}
-		}
 
 		if(Event == IE_Released)
 		{
@@ -492,7 +508,7 @@ bool FCurveEditorViewportClient::InputKey(FViewport* Viewport, int32 ControllerI
 			bKeyAdded = false;
 
 			Viewport->LockMouseToViewport(false);
-			Viewport->InvalidateHitProxy();
+			Viewport->Invalidate();
 		}
 	}
 	else if(Key == EKeys::RightMouseButton)
@@ -526,13 +542,6 @@ bool FCurveEditorViewportClient::InputKey(FViewport* Viewport, int32 ControllerI
 
 						CurveEditorPtr.Pin()->OpenKeyMenu();
 					}
-				}
-				else if(HitResult->IsA(HCurveEditorLineProxy::StaticGetType()))
-				{
-					SharedData->RightClickCurveIndex = ((HCurveEditorLineProxy*)HitResult)->CurveIndex;
-					SharedData->RightClickCurveSubIndex = ((HCurveEditorLineProxy*)HitResult)->SubIndex;
-
-					CurveEditorPtr.Pin()->OpenCurveMenu();
 				}
 			}
 			else
@@ -589,7 +598,7 @@ bool FCurveEditorViewportClient::InputKey(FViewport* Viewport, int32 ControllerI
 	}
 	else if(Event == IE_Pressed)
 	{
-		if ( Key == EKeys::Platform_Delete )
+		if(Key == EKeys::Delete)
 		{
 			CurveEditorPtr.Pin()->OnDeleteKeys();
 			bHandled = true;
@@ -762,7 +771,7 @@ void FCurveEditorViewportClient::MouseMove(FViewport* Viewport, int32 X, int32 Y
 		SharedData->SetCurveView(SharedData->StartIn - ZoomDeltaIn, SharedData->EndIn + ZoomDeltaIn, SharedData->StartOut - ZoomDeltaOut, SharedData->EndOut + ZoomDeltaOut);
 	}
 
-	Viewport->InvalidateDisplay();
+	Viewport->Invalidate();
 }
 
 bool FCurveEditorViewportClient::InputAxis(FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime, int32 NumSamples, bool bGamepad)
@@ -835,42 +844,6 @@ float FCurveEditorViewportClient::GetViewportVerticalScrollBarRatio() const
 	}
 	
 	return WidgetHeight / SharedData->LabelContentBoxHeight;
-}
-
-bool FCurveEditorViewportClient::ProcessNonGraphHit(HHitProxy* HitResult)
-{
-	check(HitResult);
-	if(HitResult->IsA(HCurveEditorLabelProxy::StaticGetType()))
-	{
-		// Notify containing tool that a curve label was clicked on
-		if(SharedData->NotifyObject != NULL)
-		{
-			const int32 CurveIndex = ((HCurveEditorLabelProxy*)HitResult)->CurveIndex;
-
-			FCurveEdEntry& Entry = SharedData->EdSetup->Tabs[ SharedData->EdSetup->ActiveTab ].Curves[ CurveIndex  ];
-
-			SharedData->NotifyObject->OnCurveLabelClicked(Entry.CurveObject);
-		}
-		return true;
-	}
-	else if(HitResult->IsA(HCurveEditorHideCurveProxy::StaticGetType()))
-	{
-		int32 CurveIndex = ((HCurveEditorHideCurveProxy*)HitResult)->CurveIndex;
-
-		ToggleCurveHidden(CurveIndex);
-		return true;
-	}
-	else if (HitResult->IsA(HCurveEditorHideSubCurveProxy::StaticGetType()))
-	{
-		HCurveEditorHideSubCurveProxy* SubCurveProxy = (HCurveEditorHideSubCurveProxy*)HitResult;
-
-		int32	CurveIndex		= SubCurveProxy->CurveIndex;
-		int32	SubCurveIndex	= SubCurveProxy->SubCurveIndex;
-
-		ToggleSubCurveHidden(CurveIndex, SubCurveIndex);
-		return true;
-	}
-	return false;
 }
 
 void FCurveEditorViewportClient::UpdateScrollBars()

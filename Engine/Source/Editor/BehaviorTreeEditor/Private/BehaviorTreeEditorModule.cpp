@@ -51,8 +51,8 @@ void FBehaviorTreeEditorModule::StartupModule()
 	// Register the details customizer
 	FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 	PropertyModule.RegisterStructPropertyLayout( "BlackboardKeySelector", FOnGetStructCustomizationInstance::CreateStatic( &FBlackboardSelectorDetails::MakeInstance ) );
-	PropertyModule.RegisterCustomPropertyLayout( "BTDecorator_Blackboard", FOnGetDetailCustomizationInstance::CreateStatic( &FBlackboardDecoratorDetails::MakeInstance ) );
-	PropertyModule.RegisterCustomPropertyLayout( "BTDecorator", FOnGetDetailCustomizationInstance::CreateStatic( &FBehaviorDecoratorDetails::MakeInstance ) );
+	PropertyModule.RegisterCustomPropertyLayout( UBTDecorator_Blackboard::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FBlackboardDecoratorDetails::MakeInstance ) );
+	PropertyModule.RegisterCustomPropertyLayout( UBTDecorator::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic( &FBehaviorDecoratorDetails::MakeInstance ) );
 	PropertyModule.NotifyCustomizationModuleChanged();
 }
 
@@ -89,8 +89,8 @@ void FBehaviorTreeEditorModule::ShutdownModule()
 	{
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 		PropertyModule.UnregisterStructPropertyLayout( "BlackboardKeySelector" );
-		PropertyModule.UnregisterCustomPropertyLayout( "BTDecorator_Blackboard" );
-		PropertyModule.UnregisterCustomPropertyLayout( "BTDecorator" );
+		PropertyModule.UnregisterCustomPropertyLayout( UBTDecorator_Blackboard::StaticClass() );
+		PropertyModule.UnregisterCustomPropertyLayout( UBTDecorator::StaticClass() );
 		PropertyModule.NotifyCustomizationModuleChanged();
 	}
 }

@@ -104,7 +104,12 @@ class UWorldTileDetails : public UObject
 	// Tile sorting order
 	UPROPERTY(Category=Tile, EditAnywhere, meta=(ClampMin = "-1000", ClampMax = "1000", UIMin = "-1000", UIMax = "1000"))
 	int32							ZOrder;
-
+	
+	// Whether this tile should always loaded
+	// Always loaded tiles are not affected by world origin changes
+	UPROPERTY(Category=Tile, EditAnywhere)
+	bool							bAlwaysLoaded;
+	
 	// List of streaming levels for this tile 
 	UPROPERTY(Category=Tile, EditAnywhere)
 	TArray<FTileStreamingLevelDetails>	StreamingLevels;
@@ -139,6 +144,7 @@ class UWorldTileDetails : public UObject
 
 	FTilePropertyChanged			PositionChangedEvent;
 	FTilePropertyChanged			ParentPackageNameChangedEvent;
+	FTilePropertyChanged			AlwaysLoadedChangedEvent;
 	FTilePropertyChanged			StreamingLevelsChangedEvent;
 	FTilePropertyChanged			LODSettingsChangedEvent;
 	FTilePropertyChanged			ZOrderChangedEvent;

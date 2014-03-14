@@ -27,19 +27,6 @@ enum ERoundingMode
 };
 #endif
 
-/** Used for formatting text in Blueprints; a helper struct that helps funnel the data to FText::Format */
-USTRUCT()
-struct FFormatTextArgument
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(EditInstanceOnly, Category=ArgumentValue)
-	FText ArgumentName;
-
-	UPROPERTY(EditInstanceOnly, Category=ArgumentValue)
-	FText TextValue;
-};
-
 UCLASS(MinimalAPI)
 class UKismetTextLibrary : public UBlueprintFunctionLibrary
 {
@@ -129,8 +116,4 @@ class UKismetTextLibrary : public UBlueprintFunctionLibrary
 	/* Converts a passed in float to a text, formatted as a percent */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "AsPercent", AdvancedDisplay = "1"), Category="Utilities|Text")
 	static FText AsPercent_Float(float Value, TEnumAsByte<ERoundingMode> RoundingMode, bool bUseGrouping = true, int32 MinimumIntegralDigits = 1, int32 MaximumIntegralDigits = 324, int32 MinimumFractionalDigits = 0, int32 MaximumFractionalDigits = 3);
-
-	/* Used for formatting text using the FText::Format function and utilized by the UK2Node_FormatText */
-	UFUNCTION(BlueprintPure, meta=(BlueprintInternalUseOnly = "true"))
-	static FText Format(FText InPattern, TArray<FFormatTextArgument> InArgs);
 };

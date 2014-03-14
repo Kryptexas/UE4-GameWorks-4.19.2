@@ -26,17 +26,14 @@ const FSlateBrush* SGraphTitleBar::GetTypeGlyph() const
 	return FBlueprintEditor::GetGlyphForGraph(EdGraphObj, true);
 }
 
-FText SGraphTitleBar::GetTitleForOneCrumb(const UEdGraph* Graph)
+FString SGraphTitleBar::GetTitleForOneCrumb(const UEdGraph* Graph)
 {
 	const UEdGraphSchema* Schema = Graph->GetSchema();
 
 	FGraphDisplayInfo DisplayInfo;
 	Schema->GetGraphDisplayInformation(*Graph, /*out*/ DisplayInfo);
 
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("BreadcrumbDisplayName"), DisplayInfo.DisplayName);
-	Args.Add(TEXT("BreadcrumbNotes"), FText::FromString(DisplayInfo.GetNotesAsString()));
-	return FText::Format(LOCTEXT("BreadcrumbTitle", "{BreadcrumbDisplayName} {BreadcrumbNotes}"), Args);
+	return DisplayInfo.DisplayName.ToString() + TEXT(" ") + DisplayInfo.GetNotesAsString();
 }
 
 FString SGraphTitleBar::GetTitleExtra() const
@@ -199,7 +196,7 @@ void SGraphTitleBar::RebuildBreadcrumbTrail()
 	{
 		UEdGraph* Graph = Stack.Pop();
 		
-		auto Foo = TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateStatic<const UEdGraph*>(&SGraphTitleBar::GetTitleForOneCrumb, Graph));
+		auto Foo = TAttribute<FString>::Create(TAttribute<FString>::FGetter::CreateStatic<const UEdGraph*>(&SGraphTitleBar::GetTitleForOneCrumb, Graph));
 		BreadcrumbTrail->PushCrumb(Foo, Graph);
 	}
 }

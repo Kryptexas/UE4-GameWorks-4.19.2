@@ -40,7 +40,6 @@ UEditorUserSettings::UEditorUserSettings(const class FPostConstructInitializePro
 	FunctionTerminatorNodeTitleColor = FLinearColor(0.6f, 0.0f, 1.0f, 1.0f);
 	ExecBranchNodeTitleColor = FLinearColor(1.0f, 1.0f, 1.0f, 1.0f);
 	ExecSequenceNodeTitleColor= FLinearColor(0.8f, 0.4f, 0.4f, 1.0f);
-	ResultNodeTitleColor = FLinearColor(1.0f, 0.65f, 0.4f, 1.0f);
 
 	// Blueprint debugging visuals
 	TraceAttackColor = FLinearColor(1.0f, 0.05f, 0.0f, 1.0f);

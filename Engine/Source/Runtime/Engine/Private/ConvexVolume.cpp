@@ -180,7 +180,7 @@ static FORCEINLINE bool IntersectBoxWithPermutedPlanes(
 	// Since we are moving straight through get a pointer to the data
 	const FPlane* RESTRICT PermutedPlanePtr = (FPlane*)PermutedPlanes.GetData();
 	// Process four planes at a time until we have < 4 left
-	for ( int32 Count = 0, Num = PermutedPlanes.Num(); Count < Num; Count += 4 )
+	for ( int32 Count = 0; Count < PermutedPlanes.Num(); Count += 4 )
 	{
 		// Load 4 planes that are already all Xs, Ys, ...
 		VectorRegister PlanesX = VectorLoadAligned(PermutedPlanePtr);

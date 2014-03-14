@@ -9,6 +9,20 @@
 
 
 /**
+ * Delegate fired when achievements have been read from the server
+ */
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnAchievementsRead, const FUniqueNetId&, bool );
+typedef FOnAchievementsRead::FDelegate FOnAchievementsReadDelegate;
+
+
+/**
+ * Delegate fired when achievement descriptions have been read from the server
+ */
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnAchievementDescriptionsRead, const FUniqueNetId&, bool );
+typedef FOnAchievementDescriptionsRead::FDelegate FOnAchievementDescriptionsReadDelegate;
+
+
+/**
  * Delegate fired when achievements have been written to the server
  */
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnAchievementsWritten, const FUniqueNetId&, bool );
@@ -21,11 +35,6 @@ typedef FOnAchievementsWritten::FDelegate FOnAchievementsWrittenDelegate;
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnAchievementUnlocked, const FUniqueNetId&, const FString& );
 typedef FOnAchievementUnlocked::FDelegate FOnAchievementUnlockedDelegate;
 
-
-/**
- * Delegate fired when an achievement has been queried
- */
-DECLARE_DELEGATE_TwoParams(FOnQueryAchievementsCompleteDelegate, const FUniqueNetId&, const bool);	
 
 /**
 *	FOnlineAchievement - Interface class for accessing the common achievement information
@@ -108,7 +117,7 @@ public:
 	 *
 	 * @return Whether we have kicked off a read attempt
 	 */
-	virtual void QueryAchievements(const FUniqueNetId & PlayerId, const FOnQueryAchievementsCompleteDelegate & Delegate = FOnQueryAchievementsCompleteDelegate()) = 0;
+	virtual bool ReadAchievements( const FUniqueNetId& PlayerId ) = 0;
 
 	
 	/**
@@ -118,7 +127,7 @@ public:
 	 *
 	 * @return Whether we have kicked off a read attempt
 	 */
-	virtual void QueryAchievementDescriptions( const FUniqueNetId& PlayerId, const FOnQueryAchievementsCompleteDelegate & Delegate = FOnQueryAchievementsCompleteDelegate() ) = 0;
+	virtual bool ReadAchievementDescriptions( const FUniqueNetId& PlayerId ) = 0;
 
 	
 	/**
@@ -130,7 +139,7 @@ public:
 	 *
 	 * @return Whether achievements were obtained
 	 */
-	virtual EOnlineCachedResult::Type GetCachedAchievement( const FUniqueNetId& PlayerId, const FString& AchievementId, FOnlineAchievement& OutAchievement) = 0;
+	virtual bool GetAchievement( const FUniqueNetId& PlayerId, const FString& AchievementId, FOnlineAchievement& OutAchievement) = 0;
 	
 
 	/**
@@ -141,7 +150,7 @@ public:
 	 *
 	 * @return Whether achievements were obtained
 	 */
-	virtual EOnlineCachedResult::Type GetCachedAchievements(const FUniqueNetId& PlayerId, TArray<FOnlineAchievement>& OutAchievements) = 0;
+	virtual bool GetAchievements(const FUniqueNetId& PlayerId, TArray<FOnlineAchievement>& OutAchievements) = 0;
 	
 
 	/**
@@ -152,7 +161,7 @@ public:
 	 *
 	 * @return Whether achievements were obtained
 	 */
-	virtual EOnlineCachedResult::Type GetCachedAchievementDescription(const FString& AchievementId, FOnlineAchievementDesc& OutAchievementDesc) = 0;
+	virtual bool GetAchievementDescription(const FString& AchievementId, FOnlineAchievementDesc& OutAchievementDesc) = 0;
 
 #if !UE_BUILD_SHIPPING
 	/**
@@ -164,6 +173,18 @@ public:
 	 */
 	virtual bool ResetAchievements( const FUniqueNetId& PlayerId ) = 0;
 #endif // !UE_BUILD_SHIPPING
+
+	/**
+	 * Delegate fired when achievements are read from the server
+	 */
+	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnAchievementsRead, const FUniqueNetId&, bool);
+	
+
+	/**
+	 * Delegate fired when achievements description are read from the server
+	 */
+	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnAchievementDescriptionsRead, const FUniqueNetId&, bool);
+
 
 	/**
 	 * Delegate fired when achievements were written to the server

@@ -485,10 +485,10 @@ void FSlateRHIRenderer::DrawWindow_RenderThread( const FViewportInfo& ViewportIn
 	uint32 RenderThreadIdle = 0;	
 
 	FThreadIdleStats& RenderThread = FThreadIdleStats::Get();
-	GRenderThreadIdle[ERenderThreadIdleTypes::WaitingForAllOtherSleep] = RenderThread.Waits;
+	GRenderThreadIdle[ERenderThreadIdleTypes::WaitingForRenderCommands] = RenderThread.Waits;
 	RenderThread.Waits = 0;
 
-	SET_CYCLE_COUNTER(STAT_RenderingIdleTime_RenderThreadSleepTime, GRenderThreadIdle[0]);
+	SET_CYCLE_COUNTER(STAT_RenderingIdleTime_WaitingForRenderCommands, GRenderThreadIdle[0]);
 	SET_CYCLE_COUNTER(STAT_RenderingIdleTime_WaitingForGPUQuery, GRenderThreadIdle[1]);
 	SET_CYCLE_COUNTER(STAT_RenderingIdleTime_WaitingForGPUPresent, GRenderThreadIdle[2]);
 

@@ -80,22 +80,16 @@ void FMatinee::ExtendToolbar()
 			}
 			ToolbarBuilder.EndSection();
 
-			//ToolbarBuilder.BeginSection("History");
-			//{
-			//	ToolbarBuilder.AddToolBarButton(FMatineeCommands::Get().Undo);
-			//	ToolbarBuilder.AddToolBarButton(FMatineeCommands::Get().Redo);
-			//}
-			//ToolbarBuilder.EndSection();
+			ToolbarBuilder.BeginSection("History");
+			{
+				ToolbarBuilder.AddToolBarButton(FMatineeCommands::Get().MatineeUndo);
+				ToolbarBuilder.AddToolBarButton(FMatineeCommands::Get().MatineeRedo);
+			}
+			ToolbarBuilder.EndSection();
 
 			ToolbarBuilder.BeginSection("SnapSetting");
 			{
 				ToolbarBuilder.AddWidget(SnapSettingBox);
-			}
-			ToolbarBuilder.EndSection();
-
-			ToolbarBuilder.BeginSection("Curve");
-			{
-				ToolbarBuilder.AddToolBarButton(FMatineeCommands::Get().ToggleCurveEditor);
 			}
 			ToolbarBuilder.EndSection();
 	

@@ -184,8 +184,8 @@ void FPhysicsConstraintComponentDetails::CustomizeDetails( IDetailLayoutBuilder&
 			.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyVisible, EPropertyType::LinearLimit)));
 		LinearLimitCat.AddProperty(ConstraintInstance->GetChildHandle("LinearLimitDamping").ToSharedRef())
 			.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyVisible, EPropertyType::LinearLimit)));
-		LinearLimitCat.AddProperty(ConstraintInstance->GetChildHandle("bLinearBreakable").ToSharedRef());
-		LinearLimitCat.AddProperty(ConstraintInstance->GetChildHandle("LinearBreakThreshold").ToSharedRef());
+		//LinearLimitCat.AddProperty(ConstraintInstance->GetChildHandle("bLinearBreakable").ToSharedRef());
+		//LinearLimitCat.AddProperty(ConstraintInstance->GetChildHandle("LinearBreakThreshold").ToSharedRef());
 	}
 
 	// Angular Limits
@@ -289,8 +289,8 @@ void FPhysicsConstraintComponentDetails::CustomizeDetails( IDetailLayoutBuilder&
 		AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle("TwistLimitDamping").ToSharedRef())
 			.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyVisible, EPropertyType::AngularTwistLimit)));
 		
-		AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle("bAngularBreakable").ToSharedRef());
-		AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle("AngularBreakThreshold").ToSharedRef());
+		//AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle("bAngularBreakable").ToSharedRef());
+		//AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle("AngularBreakThreshold").ToSharedRef());
 	}
 
 	// Linear Drive

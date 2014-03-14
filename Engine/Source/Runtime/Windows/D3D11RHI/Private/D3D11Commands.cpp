@@ -473,102 +473,48 @@ void FD3D11DynamicRHI::RHISetShaderUniformBuffer(FVertexShaderRHIParamRef Vertex
 {
 	VALIDATE_BOUND_SHADER(VertexShader);
 	DYNAMIC_CAST_D3D11RESOURCE(UniformBuffer,Buffer);
-#if PLATFORM_XBOXONE
-	if (Buffer && Buffer->RingAllocation.IsValid())
-	{
-		StateCache.SetDynamicConstantBuffer<SF_Vertex>(BufferIndex, Buffer->RingAllocation);
-	}
-	else
-#endif
-	{
-		ID3D11Buffer* ConstantBuffer = Buffer ? Buffer->Resource : NULL;
-		StateCache.SetConstantBuffer<SF_Vertex>(ConstantBuffer, BufferIndex);
-	}
+	ID3D11Buffer* ConstantBuffer = Buffer ? Buffer->Resource : NULL;
+	StateCache.SetConstantBuffer<SF_Vertex>(ConstantBuffer, BufferIndex);
 }
 
 void FD3D11DynamicRHI::RHISetShaderUniformBuffer(FHullShaderRHIParamRef HullShader,uint32 BufferIndex,FUniformBufferRHIParamRef BufferRHI)
 {
 	VALIDATE_BOUND_SHADER(HullShader);
 	DYNAMIC_CAST_D3D11RESOURCE(UniformBuffer,Buffer);
-#if PLATFORM_XBOXONE
-	if (Buffer && Buffer->RingAllocation.IsValid())
-	{
-		StateCache.SetDynamicConstantBuffer<SF_Hull>(BufferIndex, Buffer->RingAllocation);
-	}
-	else
-#endif
-	{
-		ID3D11Buffer* ConstantBuffer = Buffer ? Buffer->Resource : NULL;
-		StateCache.SetConstantBuffer<SF_Hull>(ConstantBuffer, BufferIndex);
-	}
+	ID3D11Buffer* ConstantBuffer = Buffer ? Buffer->Resource : NULL;
+	StateCache.SetConstantBuffer<SF_Hull>(ConstantBuffer, BufferIndex);
 }
 
 void FD3D11DynamicRHI::RHISetShaderUniformBuffer(FDomainShaderRHIParamRef DomainShader,uint32 BufferIndex,FUniformBufferRHIParamRef BufferRHI)
 {
 	VALIDATE_BOUND_SHADER(DomainShader);
 	DYNAMIC_CAST_D3D11RESOURCE(UniformBuffer,Buffer);
-#if PLATFORM_XBOXONE
-	if (Buffer && Buffer->RingAllocation.IsValid())
-	{
-		StateCache.SetDynamicConstantBuffer<SF_Domain>(BufferIndex, Buffer->RingAllocation);
-	}
-	else
-#endif
-	{
-		ID3D11Buffer* ConstantBuffer = Buffer ? Buffer->Resource : NULL;
-		StateCache.SetConstantBuffer<SF_Domain>(ConstantBuffer, BufferIndex);
-	}
+	ID3D11Buffer* ConstantBuffer = Buffer ? Buffer->Resource : NULL;
+	StateCache.SetConstantBuffer<SF_Domain>(ConstantBuffer, BufferIndex);
 }
 
 void FD3D11DynamicRHI::RHISetShaderUniformBuffer(FGeometryShaderRHIParamRef GeometryShader,uint32 BufferIndex,FUniformBufferRHIParamRef BufferRHI)
 {
 	VALIDATE_BOUND_SHADER(GeometryShader);
 	DYNAMIC_CAST_D3D11RESOURCE(UniformBuffer,Buffer);
-#if PLATFORM_XBOXONE
-	if (Buffer && Buffer->RingAllocation.IsValid())
-	{
-		StateCache.SetDynamicConstantBuffer<SF_Geometry>(BufferIndex, Buffer->RingAllocation);
-	}
-	else
-#endif
-	{
-		ID3D11Buffer* ConstantBuffer = Buffer ? Buffer->Resource : NULL;
-		StateCache.SetConstantBuffer<SF_Geometry>(ConstantBuffer, BufferIndex);
-	}
+	ID3D11Buffer* ConstantBuffer = Buffer ? Buffer->Resource : NULL;
+	StateCache.SetConstantBuffer<SF_Geometry>(ConstantBuffer, BufferIndex);
 }
 
 void FD3D11DynamicRHI::RHISetShaderUniformBuffer(FPixelShaderRHIParamRef PixelShader,uint32 BufferIndex,FUniformBufferRHIParamRef BufferRHI)
 {
 	VALIDATE_BOUND_SHADER(PixelShader);
 	DYNAMIC_CAST_D3D11RESOURCE(UniformBuffer,Buffer);
-#if PLATFORM_XBOXONE
-	if (Buffer && Buffer->RingAllocation.IsValid())
-	{
-		StateCache.SetDynamicConstantBuffer<SF_Pixel>(BufferIndex, Buffer->RingAllocation);
-	}
-	else
-#endif
-	{
-		ID3D11Buffer* ConstantBuffer = Buffer ? Buffer->Resource : NULL;
-		StateCache.SetConstantBuffer<SF_Pixel>(ConstantBuffer, BufferIndex);
-	}
+	ID3D11Buffer* ConstantBuffer = Buffer ? Buffer->Resource : NULL;
+	StateCache.SetConstantBuffer<SF_Pixel>(ConstantBuffer, BufferIndex);
 }
 
 void FD3D11DynamicRHI::RHISetShaderUniformBuffer(FComputeShaderRHIParamRef ComputeShader,uint32 BufferIndex,FUniformBufferRHIParamRef BufferRHI)
 {
 	//VALIDATE_BOUND_SHADER(ComputeShader);
 	DYNAMIC_CAST_D3D11RESOURCE(UniformBuffer,Buffer);
-#if PLATFORM_XBOXONE
-	if (Buffer && Buffer->RingAllocation.IsValid())
-	{
-		StateCache.SetDynamicConstantBuffer<SF_Compute>(BufferIndex, Buffer->RingAllocation);
-	}
-	else
-#endif
-	{
-		ID3D11Buffer* ConstantBuffer = Buffer ? Buffer->Resource : NULL;
-		StateCache.SetConstantBuffer<SF_Compute>(ConstantBuffer, BufferIndex);
-	}
+	ID3D11Buffer* ConstantBuffer = Buffer ? Buffer->Resource : NULL;
+	StateCache.SetConstantBuffer<SF_Compute>(ConstantBuffer, BufferIndex);
 }
 
 void FD3D11DynamicRHI::RHISetShaderParameter(FHullShaderRHIParamRef HullShaderRHI,uint32 BufferIndex,uint32 BaseIndex,uint32 NumBytes,const void* NewValue)
@@ -1122,8 +1068,7 @@ void FD3D11DynamicRHI::RHIDrawIndexedPrimitive(FIndexBufferRHIParamRef IndexBuff
 	uint32 IndexCount = RHIGetVertexCountForPrimitiveCount(NumPrimitives,PrimitiveType);
 
 	// Verify that we are not trying to read outside the index buffer range
-	// test is an optimized version of: StartIndex + IndexCount <= IndexBuffer->GetSize() / IndexBuffer->GetStride() 
-	checkf((StartIndex + IndexCount) * IndexBuffer->GetStride() <= IndexBuffer->GetSize(), 		
+	checkf(StartIndex + IndexCount <= IndexBuffer->GetSize() / IndexBuffer->GetStride(), 
 		TEXT("Start %u, Count %u, Type %u, Buffer Size %u, Buffer stride %u"), StartIndex, IndexCount, PrimitiveType, IndexBuffer->GetSize(), IndexBuffer->GetStride());
 
 	StateCache.SetIndexBuffer(IndexBuffer->Resource, Format, 0);
@@ -1487,9 +1432,6 @@ void FD3D11DynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const F
 
 	if (UseDrawClear)
 	{
-		// So we can see when we are taking the slow path
-		SCOPED_DRAW_EVENT(DrawCallClear, DEC_SCENE_ITEMS);
-
 		if (CurrentDepthTexture)
 		{
 			// Clear all texture references to this depth buffer

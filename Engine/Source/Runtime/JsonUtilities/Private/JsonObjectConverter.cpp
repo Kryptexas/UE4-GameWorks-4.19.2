@@ -131,7 +131,7 @@ bool FJsonObjectConverter::UStructToJsonObjectString(const UStruct* StructDefini
 	return false;
 }
 
-bool FJsonObjectConverter::JsonValueToUProperty(const TSharedPtr<FJsonValue> JsonValue, UProperty* Property, void* OutValue, int64 CheckFlags, int64 SkipFlags)
+static bool JsonValueToUProperty(const TSharedPtr<FJsonValue> JsonValue, UProperty* Property, void* OutValue, int64 CheckFlags, int64 SkipFlags)
 {
 	if (!JsonValue.IsValid())
 	{
@@ -241,12 +241,7 @@ bool FJsonObjectConverter::JsonValueToUProperty(const TSharedPtr<FJsonValue> Jso
 	return true;
 }
 
-bool FJsonObjectConverter::JsonObjectToUStruct(const TSharedRef<FJsonObject>& JsonObject, const UStruct* StructDefinition, void* OutStruct, int64 CheckFlags, int64 SkipFlags)
-{
-	return JsonAttributesToUStruct(JsonObject->Values, StructDefinition, OutStruct, CheckFlags, SkipFlags);
-}
-
-bool FJsonObjectConverter::JsonAttributesToUStruct(const TMap< FString, TSharedPtr<FJsonValue> >& JsonAttributes, const UStruct* StructDefinition, void* OutStruct, int64 CheckFlags, int64 SkipFlags)
+bool FJsonObjectConverter::JsonObjectToUStruct(const TSharedRef<FJsonObject> JsonObject, const UStruct* StructDefinition, void* OutStruct, int64 CheckFlags, int64 SkipFlags)
 {
 	// iterate over the struct properties
 	for(TFieldIterator<UProperty> PropIt(StructDefinition); PropIt; ++PropIt)
@@ -266,7 +261,7 @@ bool FJsonObjectConverter::JsonAttributesToUStruct(const TMap< FString, TSharedP
 
 		// find a json value matching this property name
 		TSharedPtr<FJsonValue> JsonValue;
-		for (auto It = JsonAttributes.CreateConstIterator(); It; ++It)
+		for (auto It = JsonObject->Values.CreateConstIterator(); It; ++It)
 		{
 			// use case insensitive search sincd FName may change caseing strangely on us
 			if (PropertyName.Equals(It.Key(), ESearchCase::IgnoreCase))

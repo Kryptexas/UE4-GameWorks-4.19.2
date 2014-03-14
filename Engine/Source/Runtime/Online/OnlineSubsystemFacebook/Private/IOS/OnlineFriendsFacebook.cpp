@@ -209,10 +209,10 @@ void FOnlineFriendsFacebook::ReadFriendsUsingGraphPath(int32 LocalUserNum, const
 					}
 				}
 
-				[GraphPath appendString:[NSString stringWithFString:FieldsStr]];
+				[GraphPath appendString:[NSString stringWithCString:TCHAR_TO_ANSI(*FieldsStr) encoding:NSASCIIStringEncoding]];
 			}
 
-			UE_LOG(LogOnline, Verbose, TEXT("GraphPath=%s"), *FString(GraphPath));
+			UE_LOG(LogOnline, Verbose, TEXT("GraphPath=%s"), ANSI_TO_TCHAR([GraphPath cStringUsingEncoding:NSASCIIStringEncoding]));
 
 			[FBRequestConnection startWithGraphPath:GraphPath parameters:nil HTTPMethod:@"GET"
 				completionHandler:^(FBRequestConnection *connection, id result, NSError *error)
@@ -232,19 +232,19 @@ void FOnlineFriendsFacebook::ReadFriendsUsingGraphPath(int32 LocalUserNum, const
 						for( int32 FriendIdx = 0; FriendIdx < [friends count]; FriendIdx++ )
 						{	
 							NSDictionary<FBGraphUser>* user = friends[ FriendIdx ];		
-							const FString Id([user objectForKey : @"id"]);
+
 							// Add new friend entry to list
 							TSharedRef<FOnlineFriendFacebook> FriendEntry(
-								new FOnlineFriendFacebook(*Id)
+								new FOnlineFriendFacebook(ANSI_TO_TCHAR([[user objectForKey:@"id"] cStringUsingEncoding:NSASCIIStringEncoding]))
 								);
 							FriendEntry->AccountData.Add(
-								TEXT("id"), *Id
+								TEXT("id"), ANSI_TO_TCHAR([[user objectForKey:@"id"] cStringUsingEncoding:NSASCIIStringEncoding])
 								);
 							FriendEntry->AccountData.Add(
-								TEXT("name"), *FString([user objectForKey:@"name"])
+								TEXT("name"), ANSI_TO_TCHAR([[user objectForKey:@"name"] cStringUsingEncoding:NSASCIIStringEncoding])
 								);
 							FriendEntry->AccountData.Add(
-								TEXT("username"), *FString([user objectForKey:@"username"])
+								TEXT("username"), ANSI_TO_TCHAR([[user objectForKey:@"username"] cStringUsingEncoding:NSASCIIStringEncoding])
 								);
 							CachedFriends.Add(FriendEntry);
 

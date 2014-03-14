@@ -33,6 +33,7 @@ ANiagaraActor::ANiagaraActor(const class FPostConstructInitializeProperties& PCI
 		SpriteComponent->Sprite = ConstructorStatics.SpriteTextureObject.Get();
 		SpriteComponent->bHiddenInGame = true;
 		SpriteComponent->bIsScreenSizeScaled = true;
+		SpriteComponent->ScreenSize = 0.0025f;
 		SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Effects;
 		SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Effects;
 		SpriteComponent->AttachParent = NiagaraComponent;
@@ -49,7 +50,6 @@ ANiagaraActor::ANiagaraActor(const class FPostConstructInitializeProperties& PCI
 		ArrowComponent->SpriteInfo.Category = ConstructorStatics.ID_Effects;
 		ArrowComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Effects;
 		ArrowComponent->AttachParent = NiagaraComponent;
-		ArrowComponent->bIsScreenSizeScaled = true;
 	}
 #endif // WITH_EDITORONLY_DATA
 }

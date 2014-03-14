@@ -5,25 +5,16 @@
 
 void FStringClassReferenceCustomization::CustomizeStructHeader(TSharedRef<IPropertyHandle> InStructPropertyHandle, FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils)
 {
-	// If we are part of an array, we need to take our meta-data from the array property
-	const UProperty* MetaDataProperty = InStructPropertyHandle->GetProperty();
-	if(InStructPropertyHandle->GetIndexInArray() != INDEX_NONE)
-	{
-		TSharedPtr<IPropertyHandle> ParentPropertyHandle = InStructPropertyHandle->GetParentHandle();
-		check(ParentPropertyHandle.IsValid() && ParentPropertyHandle->AsArray().IsValid());
-		MetaDataProperty = ParentPropertyHandle->GetProperty();
-	}
-
 	StructPropertyHandle = InStructPropertyHandle;
 
 	ClassNamePropertyHandle = InStructPropertyHandle->GetChildHandle("ClassName");
 	check(ClassNamePropertyHandle.IsValid());
 
-	const FString& MetaClassName = MetaDataProperty->GetMetaData("MetaClass");
-	const FString& RequiredInterfaceName = MetaDataProperty->GetMetaData("RequiredInterface");
-	const bool bAllowAbstract = MetaDataProperty->GetBoolMetaData("AllowAbstract");
-	const bool bIsBlueprintBaseOnly = MetaDataProperty->GetBoolMetaData("IsBlueprintBaseOnly");
-	const bool bAllowNone = !(MetaDataProperty->PropertyFlags & CPF_NoClear);
+	const FString& MetaClassName = InStructPropertyHandle->GetProperty()->GetMetaData("MetaClass");
+	const FString& RequiredInterfaceName = InStructPropertyHandle->GetProperty()->GetMetaData("RequiredInterface");
+	const bool bAllowAbstract = InStructPropertyHandle->GetProperty()->GetBoolMetaData("AllowAbstract");
+	const bool bIsBlueprintBaseOnly = InStructPropertyHandle->GetProperty()->GetBoolMetaData("IsBlueprintBaseOnly");
+	const bool bAllowNone = !(InStructPropertyHandle->GetProperty()->PropertyFlags & CPF_NoClear);
 
 	check(!MetaClassName.IsEmpty());
 	const UClass* const MetaClass = StringToClass(MetaClassName);

@@ -9,8 +9,6 @@
 
 /** Turn on extra logging for codec */
 #define DEBUG_OPUS 0
-/** Turn on entropy data in packets */
-#define ADD_ENTROPY_TO_PACKET 0
 /** Use UE4 memory allocation or Opus */
 #define USE_UE4_MEM_ALLOC 1
 /** Maximum number of frames in a single Opus packet */
@@ -50,53 +48,19 @@ void DebugEncoderInfo(OpusEncoder* Encoder)
 	int32 Complexity = 0;
 	ErrCode = opus_encoder_ctl(Encoder, OPUS_GET_COMPLEXITY(&Complexity));
 
-	UE_LOG(LogVoiceEncode, Display, TEXT("Opus Encoder Details:\n Application: %d\n Bitrate: %d\n SampleRate: %d\n VBR: %d\n Complexity: %d"),
+	UE_LOG(LogVoice, Verbose, TEXT("Opus Encoder Details:\n Application: %d\n Bitrate: %d\n SampleRate: %d\n VBR: %d\n Complexity: %d"),
 		Application, BitRate, SampleRate, Vbr, Complexity);
 }
 
 /**
  * Output debug information regarding the state of a single Opus packet
  */
-void DebugFrameInfoInternal(const uint8* PacketData, uint32 PacketLength, uint32 SampleRate, bool bEncode)
+void DebugFrameInfo(const uint8* PacketData, uint32 PacketLength, uint32 SampleRate)
 {
 	int32 NumFrames = opus_packet_get_nb_frames(PacketData, PacketLength);
-	if (NumFrames == OPUS_BAD_ARG || NumFrames == OPUS_INVALID_PACKET)
-	{
-		UE_LOG(LogVoice, Warning, TEXT("opus_packet_get_nb_frames: Invalid voice packet data!"));
-	}
-
 	int32 NumSamples = opus_packet_get_nb_samples(PacketData, PacketLength, SampleRate);
-	if (NumSamples == OPUS_BAD_ARG || NumSamples == OPUS_INVALID_PACKET)
-	{
-		UE_LOG(LogVoice, Warning, TEXT("opus_packet_get_nb_samples: Invalid voice packet data!"));
-	}
-
 	int32 NumSamplesPerFrame = opus_packet_get_samples_per_frame(PacketData, SampleRate);
 	int32 Bandwidth = opus_packet_get_bandwidth(PacketData);
-
-	const TCHAR* BandwidthStr = NULL;
-	switch (Bandwidth)
-	{
-	case OPUS_BANDWIDTH_NARROWBAND: // Narrowband (4kHz bandpass)
-		BandwidthStr = TEXT("NB");
-		break;
-	case OPUS_BANDWIDTH_MEDIUMBAND: // Mediumband (6kHz bandpass)
-		BandwidthStr = TEXT("MB");
-		break;
-	case OPUS_BANDWIDTH_WIDEBAND: // Wideband (8kHz bandpass)
-		BandwidthStr = TEXT("WB");
-		break;
-	case OPUS_BANDWIDTH_SUPERWIDEBAND: // Superwideband (12kHz bandpass)
-		BandwidthStr = TEXT("SWB");
-		break;
-	case OPUS_BANDWIDTH_FULLBAND: // Fullband (20kHz bandpass)
-		BandwidthStr = TEXT("FB");
-		break;
-	case OPUS_INVALID_PACKET: 
-	default:
-		BandwidthStr = TEXT("Invalid");
-		break;
-	}
 
 	/*
 	 *	0
@@ -125,26 +89,8 @@ void DebugFrameInfoInternal(const uint8* PacketData, uint32 PacketLength, uint32
 	// 3: an arbitrary number of frames in the packet
 	int32 TOCMode = TOC & 0x3;
 
-	if (bEncode)
-	{
-		UE_LOG(LogVoiceEncode, Verbose, TEXT("PacketLength: %d NumFrames: %d NumSamples: %d Bandwidth: %s Encoding: %d Stereo: %d FrameDesc: %d"),
-			PacketLength, NumFrames, NumSamples, BandwidthStr, TOCEncoding, TOCStereo, TOCMode);
-	}
-	else
-	{
-		UE_LOG(LogVoiceDecode, Verbose, TEXT("PacketLength: %d NumFrames: %d NumSamples: %d Bandwidth: %s Encoding: %d Stereo: %d FrameDesc: %d"),
-			PacketLength, NumFrames, NumSamples, BandwidthStr, TOCEncoding, TOCStereo, TOCMode);
-	}
-}
-
-inline void DebugFrameEncodeInfo(const uint8* PacketData, uint32 PacketLength, uint32 SampleRate)
-{
-	DebugFrameInfoInternal(PacketData, PacketLength, SampleRate, true);
-}
-
-inline void DebugFrameDecodeInfo(const uint8* PacketData, uint32 PacketLength, uint32 SampleRate)
-{
-	DebugFrameInfoInternal(PacketData, PacketLength, SampleRate, false);
+	UE_LOG(LogVoice, Verbose, TEXT("PacketLength: %d NumFrames: %d NumSamples: %d Bandwidth: %d Encoding: %d Stereo: %d FrameDesc: %d"),
+			PacketLength, NumFrames, NumSamples, Bandwidth, TOCEncoding, TOCStereo, TOCMode);
 }
 
 FVoiceEncoderOpus::FVoiceEncoderOpus() :
@@ -152,8 +98,7 @@ FVoiceEncoderOpus::FVoiceEncoderOpus() :
 	NumChannels(0),
 	FrameSize(0),
 	Encoder(NULL),
-	LastEntropyIdx(0),
-	Generation(0)
+	LastEntropyIdx(0)
 {
 	FMemory::Memzero(Entropy, NUM_ENTROPY_VALUES * sizeof(uint32));
 }
@@ -165,7 +110,7 @@ FVoiceEncoderOpus::~FVoiceEncoderOpus()
 
 bool FVoiceEncoderOpus::Init(int32 InSampleRate, int32 InNumChannels)
 {
-	UE_LOG(LogVoiceEncode, Display, TEXT("EncoderVersion: %s"), ANSI_TO_TCHAR(opus_get_version_string()));
+	UE_LOG(LogVoice, Log, TEXT("EncoderVersion: %s"), ANSI_TO_TCHAR(opus_get_version_string()));
 
 	SampleRate = InSampleRate;
 	NumChannels = InNumChannels;
@@ -186,7 +131,7 @@ bool FVoiceEncoderOpus::Init(int32 InSampleRate, int32 InNumChannels)
 
 	if (EncError != OPUS_OK)
 	{
-		UE_LOG(LogVoiceEncode, Warning, TEXT("Failed to init Opus Encoder: %s"), ANSI_TO_TCHAR(opus_strerror(EncError)));
+		UE_LOG(LogVoice, Warning, TEXT("Failed to init Opus Encoder: %s"), ANSI_TO_TCHAR(opus_strerror(EncError)));
 		Destroy();
 	}
 
@@ -194,7 +139,7 @@ bool FVoiceEncoderOpus::Init(int32 InSampleRate, int32 InNumChannels)
 	int32 UseVbr = 1;
 	opus_encoder_ctl(Encoder, OPUS_SET_VBR(UseVbr));
 
-	// Turn off constrained VBR
+	// Turn of constrained VBR
 	int32 UseCVbr = 0;
 	opus_encoder_ctl(Encoder, OPUS_SET_VBR_CONSTRAINT(UseCVbr));
 
@@ -217,7 +162,6 @@ int32 FVoiceEncoderOpus::Encode(const uint8* RawPCMData, uint32 RawDataSize, uin
 	check(Encoder);
 	SCOPE_CYCLE_COUNTER(STAT_Voice_Encoding);
 
-	int32 HeaderSize = 0;
 	int32 BytesPerFrame = FrameSize * NumChannels * sizeof(opus_int16);
 	int32 MaxFramesEncoded = MAX_OPUS_UNCOMPRESSED_BUFFER_SIZE / BytesPerFrame;
 
@@ -226,31 +170,19 @@ int32 FVoiceEncoderOpus::Encode(const uint8* RawPCMData, uint32 RawDataSize, uin
 	int32 DataRemainder = RawDataSize % BytesPerFrame;
 	int32 RawDataStride = BytesPerFrame;
 
+	int32 AvailableBufferSize = OutCompressedDataSize;
+	int32 CompressedBufferOffset = 0;
+
 	// Store the number of frames to be encoded
 	check(NumFramesToEncode < MAX_uint8);
 	OutCompressedData[0] = NumFramesToEncode;
-	OutCompressedData[1] = Generation;
-	HeaderSize += 2 * sizeof(uint8);
 	
 	// Store the offset to each encoded frame
-	uint16* CompressedOffsets = (uint16*)(OutCompressedData + HeaderSize);
-	uint32 LengthOfCompressedOffsets = NumFramesToEncode * sizeof(uint16);
-	HeaderSize += LengthOfCompressedOffsets;
+	uint16* CompressedOffsets = (uint16*)(OutCompressedData + 1);
 
-	// Store the entropy to each encoded frame
-	uint32 LengthOfEntropyOffsets = 0;
-#if ADD_ENTROPY_TO_PACKET
-	uint32* EntropyOffsets = (uint32*)(OutCompressedData + HeaderSize);
-	LengthOfEntropyOffsets = NumFramesToEncode * sizeof(uint32);
-#endif
-	HeaderSize += LengthOfEntropyOffsets;
-
-	// Space available after overhead
-	int32 AvailableBufferSize = OutCompressedDataSize - HeaderSize;
-	
 	// Start of the actual compressed data
-	uint8* CompressedDataStart = OutCompressedData + HeaderSize;
-	int32 CompressedBufferOffset = 0;
+	uint8* CompressedDataStart = (OutCompressedData + 1) + (NumFramesToEncode * sizeof(uint16));
+ 
 	for (int32 i = 0; i < NumFramesToEncode; i++)
 	{
 		int32 CompressedLength = 0;
@@ -259,7 +191,7 @@ int32 FVoiceEncoderOpus::Encode(const uint8* RawPCMData, uint32 RawDataSize, uin
 		if (CompressedLength < 0)
 		{
 			const char* ErrorStr = opus_strerror(CompressedLength);
-			UE_LOG(LogVoiceEncode, Warning, TEXT("Failed to encode: [%d] %s"), CompressedLength, ANSI_TO_TCHAR(ErrorStr));
+			UE_LOG(LogVoice, Warning, TEXT("Failed to encode: [%d] %s"), CompressedLength, ANSI_TO_TCHAR(ErrorStr));
 
 			OutCompressedData[0] = 0;
 			OutCompressedDataSize = 0;
@@ -268,15 +200,10 @@ int32 FVoiceEncoderOpus::Encode(const uint8* RawPCMData, uint32 RawDataSize, uin
 		else if (CompressedLength != 1)
 		{
 			opus_encoder_ctl(Encoder, OPUS_GET_FINAL_RANGE(&Entropy[LastEntropyIdx]));
-
-#if ADD_ENTROPY_TO_PACKET
-			UE_LOG(LogVoiceEncode, VeryVerbose, TEXT("Entropy[%d]=%d"), i, Entropy[LastEntropyIdx]);
-			EntropyOffsets[i] = Entropy[LastEntropyIdx];
-#endif
 			LastEntropyIdx = (LastEntropyIdx + 1) % NUM_ENTROPY_VALUES;
 
 #if DEBUG_OPUS
-			DebugFrameEncodeInfo(CompressedDataStart + CompressedBufferOffset, CompressedLength, SampleRate);
+			DebugFrameInfo(OutCompressedData + CompressedBufferOffset, CompressedLength, SampleRate);
 #endif // DEBUG_OPUS
 
 			AvailableBufferSize -= CompressedLength;
@@ -287,16 +214,14 @@ int32 FVoiceEncoderOpus::Encode(const uint8* RawPCMData, uint32 RawDataSize, uin
 		}
 		else
 		{
-			UE_LOG(LogVoiceEncode, Warning, TEXT("Nothing to encode!"));
+			UE_LOG(LogVoice, Warning, TEXT("Nothing to encode!"));
 		}
 	}
 
 	// End of buffer
-	OutCompressedDataSize = HeaderSize + CompressedBufferOffset;
+	OutCompressedDataSize = CompressedBufferOffset;
 
-	UE_LOG(LogVoiceEncode, VeryVerbose, TEXT("OpusEncode[%d]: RawSize: %d CompressedSize: %d NumFramesEncoded: %d Remains: %d"), Generation, RawDataSize, OutCompressedDataSize, NumFramesToEncode, DataRemainder);
-
-	Generation = (Generation + 1) % MAX_uint8;
+	UE_LOG(LogVoice, VeryVerbose, TEXT("RawSize: %d CompressedSize: %d NumFramesEncoded: %d Waste: %d"), RawDataSize, OutCompressedDataSize, NumFramesToEncode, DataRemainder);
 	return DataRemainder;
 }
 
@@ -315,8 +240,7 @@ FVoiceDecoderOpus::FVoiceDecoderOpus() :
 	NumChannels(0),
 	FrameSize(0),
 	Decoder(NULL),
-	LastEntropyIdx(0),
-	LastGeneration(0)
+	LastEntropyIdx(0)
 {
 	FMemory::Memzero(Entropy, NUM_ENTROPY_VALUES * sizeof(uint32));
 }
@@ -328,7 +252,7 @@ FVoiceDecoderOpus::~FVoiceDecoderOpus()
 
 bool FVoiceDecoderOpus::Init(int32 InSampleRate, int32 InNumChannels)
 {
-	UE_LOG(LogVoiceDecode, Display, TEXT("DecoderVersion: %s"), ANSI_TO_TCHAR(opus_get_version_string()));
+	UE_LOG(LogVoice, Log, TEXT("DecoderVersion: %s"), ANSI_TO_TCHAR(opus_get_version_string()));
 
 	SampleRate = InSampleRate;
 	NumChannels = InNumChannels;
@@ -347,7 +271,7 @@ bool FVoiceDecoderOpus::Init(int32 InSampleRate, int32 InNumChannels)
 #endif
 	if (DecError != OPUS_OK)
 	{
-		UE_LOG(LogVoiceDecode, Warning, TEXT("Failed to init Opus Decoder: %s"), ANSI_TO_TCHAR(opus_strerror(DecError)));
+		UE_LOG(LogVoice, Warning, TEXT("Failed to init Opus Decoder: %s"), ANSI_TO_TCHAR(opus_strerror(DecError)));
 		Destroy();
 	}
 
@@ -368,36 +292,17 @@ void FVoiceDecoderOpus::Decode(const uint8* InCompressedData, uint32 CompressedD
 {
 	SCOPE_CYCLE_COUNTER(STAT_Voice_Decoding);
 
-	int32 HeaderSize = 0;
 	int32 BytesPerFrame = FrameSize * NumChannels * sizeof(opus_int16);
 	int32 MaxFramesEncoded = MAX_OPUS_UNCOMPRESSED_BUFFER_SIZE / BytesPerFrame;
 
 	int32 NumFramesToDecode = InCompressedData[0];
-	int32 PacketGeneration = InCompressedData[1];
-	HeaderSize += 2 * sizeof(uint8);
-
-	if (PacketGeneration != LastGeneration + 1)
-	{
-		UE_LOG(LogVoiceDecode, Verbose, TEXT("Packet generation skipped from %d to %d"), LastGeneration, PacketGeneration);
-	}
-
-	if (NumFramesToDecode > 0 && NumFramesToDecode <= MaxFramesEncoded)
+	if (NumFramesToDecode > 0 && NumFramesToDecode < MaxFramesEncoded)
 	{
 		// Start of compressed data offsets
-		const uint16* CompressedOffsets = (const uint16*)(InCompressedData + HeaderSize);
-		uint32 LengthOfCompressedOffsets = NumFramesToDecode * sizeof(uint16);
-		HeaderSize += LengthOfCompressedOffsets;
-
-		uint32 LengthOfEntropyOffsets = 0;
-#if ADD_ENTROPY_TO_PACKET
-		// Start of the entropy to each encoded frame
-		const uint32* EntropyOffsets = (uint32*)(InCompressedData + HeaderSize);
-		LengthOfEntropyOffsets = NumFramesToDecode * sizeof(uint32);
-		HeaderSize += LengthOfEntropyOffsets;
-#endif
+		const uint16* CompressedOffsets = (const uint16*)(InCompressedData + 1);
 
 		// Start of compressed data
-		const uint8* CompressedDataStart = (InCompressedData + HeaderSize);
+		const uint8* CompressedDataStart = (InCompressedData + 1) + (NumFramesToDecode * sizeof(uint16));
 		
 		int32 CompressedBufferOffset = 0;
 		int32 DecompressedBufferOffset = 0;
@@ -416,32 +321,25 @@ void FVoiceDecoderOpus::Decode(const uint8* InCompressedData, uint32 CompressedD
 					CompressedDataStart + CompressedBufferOffset, CompressedBufferSize, 
 					(opus_int16*)(OutRawPCMData + DecompressedBufferOffset), MAX_OPUS_FRAME_SIZE, 0);
 
-#if DEBUG_OPUS
-				DebugFrameDecodeInfo(CompressedDataStart + CompressedBufferOffset, CompressedBufferSize, SampleRate);
-#endif // DEBUG_OPUS
-
 				if (NumDecompressedSamples < 0)
 				{
+					OutRawDataSize = 0;
 					const char* ErrorStr = opus_strerror(NumDecompressedSamples);
-					UE_LOG(LogVoiceDecode, Warning, TEXT("Failed to decode: [%d] %s"), NumDecompressedSamples, ANSI_TO_TCHAR(ErrorStr));
-					break;
+					UE_LOG(LogVoice, Warning, TEXT("Failed to decode: [%d] %s"), NumDecompressedSamples, ANSI_TO_TCHAR(ErrorStr));
+					return;
 				}
 				else
 				{
+#if DEBUG_OPUS
 					if (NumDecompressedSamples != FrameSize)
 					{
-						UE_LOG(LogVoiceDecode, Warning, TEXT("Unexpected decode result NumSamplesDecoded %d != FrameSize %d"), NumDecompressedSamples, FrameSize);
+						UE_LOG(LogVoice, Warning, TEXT("Unexpected decode result NumSamplesDecoded %d != FrameSize %d"), NumDecompressedSamples, FrameSize);
 					}
 
+					DebugFrameInfo(InCompressedData, CompressedDataSize, SampleRate);
+#endif // DEBUG_OPUS
+					
 					opus_decoder_ctl(Decoder, OPUS_GET_FINAL_RANGE(&Entropy[LastEntropyIdx]));
-
-#if ADD_ENTROPY_TO_PACKET
-					if (Entropy[LastEntropyIdx] != EntropyOffsets[i])
-					{
-						UE_LOG(LogVoiceDecode, Verbose, TEXT("Decoder Entropy[%d/%d] = %d expected %d"), i, NumFramesToDecode-1, Entropy[LastEntropyIdx], EntropyOffsets[i]);
-					}
-#endif
-
 					LastEntropyIdx = (LastEntropyIdx + 1) % NUM_ENTROPY_VALUES;
 
 					DecompressedBufferOffset += NumDecompressedSamples * sizeof(opus_int16);
@@ -451,7 +349,7 @@ void FVoiceDecoderOpus::Decode(const uint8* InCompressedData, uint32 CompressedD
 			}
 			else
 			{
-				UE_LOG(LogVoiceDecode, Warning, TEXT("Decompression buffer too small to decode voice"));
+				UE_LOG(LogVoice, Warning, TEXT("Decompression buffer too small to decode voice"));
 				break;
 			}
 		}
@@ -460,12 +358,9 @@ void FVoiceDecoderOpus::Decode(const uint8* InCompressedData, uint32 CompressedD
 	}
 	else
 	{
-		UE_LOG(LogVoiceDecode, Warning, TEXT("Failed to decode: buffer corrupted"));
+		UE_LOG(LogVoice, Warning, TEXT("Failed to decode: buffer corrupted"));
 		OutRawDataSize = 0;
 	}
-
-	UE_LOG(LogVoiceDecode, VeryVerbose, TEXT("OpusDecode[%d]: RawSize: %d CompressedSize: %d NumFramesEncoded: %d "), PacketGeneration, OutRawDataSize, CompressedDataSize, NumFramesToDecode);
-	LastGeneration = PacketGeneration;
 }
 
 #endif // PLATFORM_SUPPORTS_VOICE_CAPTURE
