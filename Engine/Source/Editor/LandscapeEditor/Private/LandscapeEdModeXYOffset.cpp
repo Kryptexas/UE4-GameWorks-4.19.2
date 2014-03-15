@@ -88,35 +88,36 @@ public:
 		X2 += 1;
 		Y2 += 1;
 */
-
-		int32 ValidX1, ValidX2, ValidY1, ValidY2;
-		ValidX1 = ValidY1 = INT_MAX;
-		ValidX2 = ValidY2 = INT_MIN;
-		int32 ComponentIndexX1, ComponentIndexY1, ComponentIndexX2, ComponentIndexY2;
-		int32 ComponentSizeQuads = LandscapeInfo->ComponentSizeQuads;
-		ALandscape::CalcComponentIndicesOverlap(X1, Y1, X2, Y2, ComponentSizeQuads, ComponentIndexX1, ComponentIndexY1, ComponentIndexX2, ComponentIndexY2);
-
-		for( int32 ComponentIndexY=ComponentIndexY1;ComponentIndexY<=ComponentIndexY2;ComponentIndexY++ )
 		{
-			for( int32 ComponentIndexX=ComponentIndexX1;ComponentIndexX<=ComponentIndexX2;ComponentIndexX++ )
-			{		
-				ULandscapeComponent* Component = LandscapeInfo->XYtoComponentMap.FindRef(FIntPoint(ComponentIndexX,ComponentIndexY));
+			int32 ValidX1, ValidX2, ValidY1, ValidY2;
+			ValidX1 = ValidY1 = INT_MAX;
+			ValidX2 = ValidY2 = INT_MIN;
+			int32 ComponentIndexX1, ComponentIndexY1, ComponentIndexX2, ComponentIndexY2;
+			int32 ComponentSizeQuads = LandscapeInfo->ComponentSizeQuads;
+			ALandscape::CalcComponentIndicesOverlap(X1, Y1, X2, Y2, ComponentSizeQuads, ComponentIndexX1, ComponentIndexY1, ComponentIndexX2, ComponentIndexY2);
 
-				if (Component)
-				{
-					// Update valid region
-					ValidX1 = FMath::Min<int32>(Component->GetSectionBase().X, ValidX1);
-					ValidX2 = FMath::Max<int32>(Component->GetSectionBase().X+ComponentSizeQuads, ValidX2);
-					ValidY1 = FMath::Min<int32>(Component->GetSectionBase().Y, ValidY1);
-					ValidY2 = FMath::Max<int32>(Component->GetSectionBase().Y+ComponentSizeQuads, ValidY2);
+			for( int32 ComponentIndexY=ComponentIndexY1;ComponentIndexY<=ComponentIndexY2;ComponentIndexY++ )
+			{
+				for( int32 ComponentIndexX=ComponentIndexX1;ComponentIndexX<=ComponentIndexX2;ComponentIndexX++ )
+				{		
+					ULandscapeComponent* Component = LandscapeInfo->XYtoComponentMap.FindRef(FIntPoint(ComponentIndexX,ComponentIndexY));
+
+					if (Component)
+					{
+						// Update valid region
+						ValidX1 = FMath::Min<int32>(Component->GetSectionBase().X, ValidX1);
+						ValidX2 = FMath::Max<int32>(Component->GetSectionBase().X+ComponentSizeQuads, ValidX2);
+						ValidY1 = FMath::Min<int32>(Component->GetSectionBase().Y, ValidY1);
+						ValidY2 = FMath::Max<int32>(Component->GetSectionBase().Y+ComponentSizeQuads, ValidY2);
+					}
 				}
 			}
-		}
 
-		X1 = FMath::Max<int32>(X1, ValidX1);
-		X2 = FMath::Min<int32>(X2, ValidX2);
-		Y1 = FMath::Max<int32>(Y1, ValidY1);
-		Y2 = FMath::Min<int32>(Y2, ValidY2);
+			X1 = FMath::Max<int32>(X1, ValidX1);
+			X2 = FMath::Min<int32>(X2, ValidX2);
+			Y1 = FMath::Max<int32>(Y1, ValidY1);
+			Y2 = FMath::Min<int32>(Y2, ValidY2);
+		}
 
 		if (X1 > X2 || Y1 > Y2) // No valid region...
 		{

@@ -134,7 +134,6 @@ private:
 
 	// --------------------------------------------
 	
-	
 	UPROPERTY(ReplicatedUsing=OnRep_GameplayEffects)
 	FActiveGameplayEffectsContainer	ActiveGameplayEffects;
 
@@ -142,6 +141,9 @@ private:
 	void OnRep_GameplayEffects();
 
 	// ---------------------------------------------
+
+	UFUNCTION(NetMulticast, unreliable)
+	void NetMulticast_InvokeGameplayCueExecuted(const FGameplayEffectSpec Spec);
 
 	void InvokeGameplayCueExecute(const FGameplayEffectSpec &Spec);
 	void InvokeGameplayCueActivated(const FGameplayEffectSpec &Spec);

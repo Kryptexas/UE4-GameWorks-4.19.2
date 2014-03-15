@@ -305,10 +305,10 @@ bool GameProjectUtils::CopyStarterContent(const FString& DestProjectFolder, FTex
 			}
 			else
 			{
-				FFormatNamedArguments Args;
-				Args.Add(TEXT("SrcFilename"), FText::FromString(SrcFilename));
-				Args.Add(TEXT("DestFilename"), FText::FromString(DestFilename));
-				OutFailReason = FText::Format(LOCTEXT("FailedToCopyFile", "Failed to copy \"{SrcFilename}\" to \"{DestFilename}\"."), Args);
+				FFormatNamedArguments FailArgs;
+				FailArgs.Add(TEXT("SrcFilename"), FText::FromString(SrcFilename));
+				FailArgs.Add(TEXT("DestFilename"), FText::FromString(DestFilename));
+				OutFailReason = FText::Format(LOCTEXT("FailedToCopyFile", "Failed to copy \"{SrcFilename}\" to \"{DestFilename}\"."), FailArgs);
 				DeleteCreatedFiles(DestProjectFolder, CreatedFiles);
 				return false;
 			}
@@ -833,10 +833,10 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FString& NewProjectFile, 
 		}
 		else
 		{
-			FFormatNamedArguments Args;
-			Args.Add( TEXT("SrcFilename"), FText::FromString( SrcFilename ) );
-			Args.Add( TEXT("DestFilename"), FText::FromString( DestFilename ) );
-			OutFailReason = FText::Format( LOCTEXT("FailedToCopyFile", "Failed to copy \"{SrcFilename}\" to \"{DestFilename}\"."), Args );
+			FFormatNamedArguments FailArgs;
+			FailArgs.Add(TEXT("SrcFilename"), FText::FromString(SrcFilename));
+			FailArgs.Add(TEXT("DestFilename"), FText::FromString(DestFilename));
+			OutFailReason = FText::Format(LOCTEXT("FailedToCopyFile", "Failed to copy \"{SrcFilename}\" to \"{DestFilename}\"."), FailArgs);
 			DeleteCreatedFiles(DestFolder, CreatedFiles);
 			return false;
 		}
@@ -1673,11 +1673,11 @@ bool GameProjectUtils::GenerateGameResourceFile(const FString& NewResourceFolder
 
 	struct Local
 	{
-		static bool WriteFile(const FString& InDestFile, const FText& InFileDescription, FText& OutFailReason, FString* InFileContents, TArray<FString>* OutCreatedFiles)
+		static bool WriteFile(const FString& InDestFile, const FText& InFileDescription, FText& OutFailureReason, FString* InFileContents, TArray<FString>* OutCreatedFileList)
 		{
-			if (WriteOutputFile(InDestFile, *InFileContents, OutFailReason))
+			if (WriteOutputFile(InDestFile, *InFileContents, OutFailureReason))
 			{
-				OutCreatedFiles->Add(InDestFile);
+				OutCreatedFileList->Add(InDestFile);
 				return true;
 			}
 

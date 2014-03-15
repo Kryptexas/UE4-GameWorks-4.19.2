@@ -25,51 +25,78 @@ void FLinuxPlatformMemory::Init()
 
 class FMalloc* FLinuxPlatformMemory::BaseAllocator()
 {
-#if FORCE_ANSI_ALLOCATOR
-	return new FMallocAnsi();
-#elif PLATFORM_SUPPORTS_JEMALLOC
-
-	bool bUseJemalloc = false;
+	enum EAllocatorToUse
+	{
+		Ansi,
+		Jemalloc,
+		Binned
+	}
+	AllocatorToUse = FORCE_ANSI_ALLOCATOR ? EAllocatorToUse::Ansi : EAllocatorToUse::Binned;
 
 	// we get here before main due to global ctors, so need to do some hackery to get command line args
-	if (FILE* CmdLineFile = fopen("/proc/self/cmdline", "r"))
+	if (!FORCE_ANSI_ALLOCATOR)
 	{
-		char CmdLineBuffer[4096] = { 0 };
-		FPlatformMemory::Memzero(CmdLineBuffer, sizeof(CmdLineBuffer));
-		if (fgets(CmdLineBuffer, sizeof(CmdLineBuffer) - 2, CmdLineFile))	// -2 to guarantee that there are always two zeroes even if cmdline is too long
+		if (FILE* CmdLineFile = fopen("/proc/self/cmdline", "r"))
 		{
-			char * Arg = CmdLineBuffer;
-			while (*Arg != 0 || Arg - CmdLineBuffer >= sizeof(CmdLineBuffer))
+			char CmdLineBuffer[4096] = { 0 };
+			FPlatformMemory::Memzero(CmdLineBuffer, sizeof(CmdLineBuffer));
+			if (fgets(CmdLineBuffer, sizeof(CmdLineBuffer)-2, CmdLineFile))	// -2 to guarantee that there are always two zeroes even if cmdline is too long
 			{
-				if (FCStringAnsi::Stricmp(Arg, "-jemalloc") == 0)
+				char * Arg = CmdLineBuffer;
+				while (*Arg != 0 || Arg - CmdLineBuffer >= sizeof(CmdLineBuffer))
 				{
-					bUseJemalloc = true;
-					break;
-				}
+					if (FCStringAnsi::Stricmp(Arg, "-jemalloc") == 0)
+					{
+						AllocatorToUse = EAllocatorToUse::Jemalloc;
+						break;
+					}
 
-				// advance till zero
-				while(*Arg) 
-				{
-					++Arg;
+					if (FCStringAnsi::Stricmp(Arg, "-ansimalloc") == 0)
+					{
+						AllocatorToUse = EAllocatorToUse::Ansi;
+						break;
+					}
+
+					if (FCStringAnsi::Stricmp(Arg, "-binnedmalloc") == 0)
+					{
+						AllocatorToUse = EAllocatorToUse::Jemalloc;
+						break;
+					}
+
+					// advance till zero
+					while (*Arg)
+					{
+						++Arg;
+					}
+					++Arg;	// and skip the zero
 				}
-				++Arg;	// and skip the zero
 			}
+
+			fclose(CmdLineFile);
 		}
-
-		fclose(CmdLineFile);
 	}
 
-	printf( "Using %s.\n", bUseJemalloc ? "jemalloc" : "binned malloc" );
+	FMalloc * Allocator = NULL;
 
-	if (bUseJemalloc)
+	switch (AllocatorToUse)
 	{
-		return new FMallocJemalloc();
-	}
-	return new FMallocBinned(FPlatformMemory::GetConstants().PageSize & MAX_uint32, 0x100000000);
+		case Ansi:
+			Allocator = new FMallocAnsi();
+			break;
 
-#else
-	return new FMallocBinned(FPlatformMemory::GetConstants().PageSize & MAX_uint32, 0x100000000);
-#endif // PLATFORM_SUPPORTS_JEMALLOC
+		case Jemalloc:
+			Allocator = new FMallocJemalloc();
+			break;
+
+		default:	// intentional fall-through
+		case Binned:
+			Allocator = new FMallocBinned(FPlatformMemory::GetConstants().PageSize & MAX_uint32, 0x100000000);
+			break;
+	}
+
+	wprintf(TEXT("Using %ls.\n"), Allocator ? Allocator->GetDescriptiveName() : TEXT("NULL allocator! We will probably crash right away"));
+
+	return Allocator;
 }
 
 void* FLinuxPlatformMemory::BinnedAllocFromOS( SIZE_T Size )

@@ -588,7 +588,7 @@ void SOutputLog::Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const
 	{
 		MessageListView->RequestListRefresh();
 		// Don't scroll to the bottom automatically when the user is scrolling the view or has scrolled it away from the bottom.
-		if( OutputLogScrollBar->DistanceFromBottom() <= 1.f )
+		if( OutputLogScrollBar->DistanceFromBottom() <= 0.f )
 		{
 			MessageListView->RequestScrollIntoView(Messages.Last());
 		}

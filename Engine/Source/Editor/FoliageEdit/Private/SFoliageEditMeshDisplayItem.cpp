@@ -1809,7 +1809,6 @@ FReply SFoliageEditMeshDisplayItem::OnSaveRemoveSettings()
 
 		if (SettingDlg->ShowModal() != EAppReturnType::Cancel)
 		{
-			FEdModeFoliage* Mode = (FEdModeFoliage*)GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Foliage );
 			UInstancedFoliageSettings* NewSettings = NULL;
 
 			NewSettings = Mode->SaveSettingsObject(SettingDlg->GetFullAssetPath(), AssociatedStaticMesh);

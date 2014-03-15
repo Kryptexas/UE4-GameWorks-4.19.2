@@ -160,6 +160,8 @@ void FNetworkFileServerClientConnection::ConvertServerFilenameToClientFilename(F
 #endif
 }
 
+static FCriticalSection SocketCriticalSection;
+
 void FNetworkFileServerClientConnection::ProcessPayload( FArchive& Ar )
 {
 	// first part of the payload is always the command
@@ -180,100 +182,104 @@ void FNetworkFileServerClientConnection::ProcessPayload( FArchive& Ar )
 	// process the message!
 	bool bSendUnsolicitedFiles = false;
 
-	switch (Msg)
 	{
-	case NFS_Messages::OpenRead:
-		ProcessOpenFile(Ar, Out, false);
-		break;
+		FScopeLock SocketLock(&SocketCriticalSection);
 
-	case NFS_Messages::OpenWrite:
-		ProcessOpenFile(Ar, Out, true);
-		break;
+		switch (Msg)
+		{
+		case NFS_Messages::OpenRead:
+			ProcessOpenFile(Ar, Out, false);
+			break;
 
-	case NFS_Messages::Read:
-		ProcessReadFile(Ar, Out);
-		break;
+		case NFS_Messages::OpenWrite:
+			ProcessOpenFile(Ar, Out, true);
+			break;
 
-	case NFS_Messages::Write:
-		ProcessWriteFile(Ar, Out);
-		break;
+		case NFS_Messages::Read:
+			ProcessReadFile(Ar, Out);
+			break;
 
-	case NFS_Messages::Seek:
-		ProcessSeekFile(Ar, Out);
-		break;
+		case NFS_Messages::Write:
+			ProcessWriteFile(Ar, Out);
+			break;
 
-	case NFS_Messages::Close:
-		ProcessCloseFile(Ar, Out);
-		break;
+		case NFS_Messages::Seek:
+			ProcessSeekFile(Ar, Out);
+			break;
 
-	case NFS_Messages::MoveFile:
-		ProcessMoveFile(Ar, Out);
-		break;
+		case NFS_Messages::Close:
+			ProcessCloseFile(Ar, Out);
+			break;
 
-	case NFS_Messages::DeleteFile:
-		ProcessDeleteFile(Ar, Out);
-		break;
+		case NFS_Messages::MoveFile:
+			ProcessMoveFile(Ar, Out);
+			break;
 
-	case NFS_Messages::GetFileInfo:
-		ProcessGetFileInfo(Ar, Out);
-		break;
+		case NFS_Messages::DeleteFile:
+			ProcessDeleteFile(Ar, Out);
+			break;
 
-	case NFS_Messages::CopyFile:
-		ProcessCopyFile(Ar, Out);
-		break;
+		case NFS_Messages::GetFileInfo:
+			ProcessGetFileInfo(Ar, Out);
+			break;
 
-	case NFS_Messages::SetTimeStamp:
-		ProcessSetTimeStamp(Ar, Out);
-		break;
+		case NFS_Messages::CopyFile:
+			ProcessCopyFile(Ar, Out);
+			break;
 
-	case NFS_Messages::SetReadOnly:
-		ProcessSetReadOnly(Ar, Out);
-		break;
+		case NFS_Messages::SetTimeStamp:
+			ProcessSetTimeStamp(Ar, Out);
+			break;
 
-	case NFS_Messages::CreateDirectory:
-		ProcessCreateDirectory(Ar, Out);
-		break;
+		case NFS_Messages::SetReadOnly:
+			ProcessSetReadOnly(Ar, Out);
+			break;
 
-	case NFS_Messages::DeleteDirectory:
-		ProcessDeleteDirectory(Ar, Out);
-		break;
+		case NFS_Messages::CreateDirectory:
+			ProcessCreateDirectory(Ar, Out);
+			break;
 
-	case NFS_Messages::DeleteDirectoryRecursively:
-		ProcessDeleteDirectoryRecursively(Ar, Out);
-		break;
+		case NFS_Messages::DeleteDirectory:
+			ProcessDeleteDirectory(Ar, Out);
+			break;
 
-	case NFS_Messages::ToAbsolutePathForRead:
-		ProcessToAbsolutePathForRead(Ar, Out);
-		break;
+		case NFS_Messages::DeleteDirectoryRecursively:
+			ProcessDeleteDirectoryRecursively(Ar, Out);
+			break;
 
-	case NFS_Messages::ToAbsolutePathForWrite:
-		ProcessToAbsolutePathForWrite(Ar, Out);
-		break;
+		case NFS_Messages::ToAbsolutePathForRead:
+			ProcessToAbsolutePathForRead(Ar, Out);
+			break;
 
-	case NFS_Messages::ReportLocalFiles:
-		ProcessReportLocalFiles(Ar, Out);
-		break;
+		case NFS_Messages::ToAbsolutePathForWrite:
+			ProcessToAbsolutePathForWrite(Ar, Out);
+			break;
 
-	case NFS_Messages::GetFileList:
-		ProcessGetFileList(Ar, Out);
-		break;
+		case NFS_Messages::ReportLocalFiles:
+			ProcessReportLocalFiles(Ar, Out);
+			break;
 
-	case NFS_Messages::Heartbeat:
-		ProcessHeartbeat(Ar, Out);
-		break;
+		case NFS_Messages::GetFileList:
+			ProcessGetFileList(Ar, Out);
+			break;
 
-	case NFS_Messages::SyncFile:
-		ProcessSyncFile(Ar, Out);
-		bSendUnsolicitedFiles = true;
-		break;
+		case NFS_Messages::Heartbeat:
+			ProcessHeartbeat(Ar, Out);
+			break;
 
-	case NFS_Messages::RecompileShaders:
-		ProcessRecompileShaders(Ar, Out);
-		break;
+		case NFS_Messages::SyncFile:
+			ProcessSyncFile(Ar, Out);
+			bSendUnsolicitedFiles = true;
+			break;
 
-	default:
+		case NFS_Messages::RecompileShaders:
+			ProcessRecompileShaders(Ar, Out);
+			break;
 
-		UE_LOG(LogFileServer, Error, TEXT("Bad incomming message tag (%d)."), (int32)Msg);
+		default:
+
+			UE_LOG(LogFileServer, Error, TEXT("Bad incomming message tag (%d)."), (int32)Msg);
+		}
 	}
 
 	// send back a reply if the command wrote anything back out

@@ -971,6 +971,7 @@ protected:
 	
 	uint32 bNavigationBuildingLocked:1;
 	uint32 bInitialBuildingLockActive:1;
+	uint32 bInitialSetupHasBeenPerformed:1;
 
 	/** cached navigable world bounding box*/
 	mutable FBox NavigableWorldBounds;

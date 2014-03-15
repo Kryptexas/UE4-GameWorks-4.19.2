@@ -79,16 +79,16 @@ TSharedRef< SWidget > FSceneOutlinerActorInfoColumn::ConstructClassHyperlink( co
 		{
 			static void OnEditBlueprintClicked( TWeakObjectPtr<UBlueprint> InBlueprint, TWeakObjectPtr<AActor> InAsset )
 			{
-				if ( UBlueprint* Blueprint = InBlueprint.Get() )
+				if ( UBlueprint* GeneratedByBlueprint = InBlueprint.Get() )
 				{
 					// Set the object being debugged if given an actor reference (if we don't do this before we edit the object the editor wont know we are debugging something)
 					if ( UObject* Asset = InAsset.Get() )
 					{
-						check( Asset->GetClass()->ClassGeneratedBy == Blueprint );
-						Blueprint->SetObjectBeingDebugged( Asset );
+						check(Asset->GetClass()->ClassGeneratedBy == GeneratedByBlueprint);
+						GeneratedByBlueprint->SetObjectBeingDebugged(Asset);
 					}
 					// Open the blueprint
-					GEditor->EditObject( Blueprint );
+					GEditor->EditObject(GeneratedByBlueprint);
 				}
 			}
 		};
@@ -109,9 +109,9 @@ TSharedRef< SWidget > FSceneOutlinerActorInfoColumn::ConstructClassHyperlink( co
 		{
 			struct Local
 			{
-				static void OnEditCodeClicked( FString ClassHeaderPath )
+				static void OnEditCodeClicked( FString InClassHeaderPath )
 				{
-					FString AbsoluteHeaderPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead( *ClassHeaderPath );
+					FString AbsoluteHeaderPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*InClassHeaderPath);
 					FSourceCodeNavigation::OpenSourceFile( AbsoluteHeaderPath );
 				}
 			};

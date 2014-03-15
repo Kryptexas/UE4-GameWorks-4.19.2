@@ -1449,6 +1449,26 @@ struct ENGINE_API FOverlapResult
 	}
 };
 
+/** Structure containing information about minimum translation directon (MTD) */
+USTRUCT()
+struct ENGINE_API FMTDResult
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** Direction of the minimum translation required to fix penetration. */
+	UPROPERTY()
+	FVector Direction;
+
+	/** Distance required to move along the MTD. */
+	UPROPERTY()
+	float Distance;
+
+	FMTDResult()
+	{
+		FMemory::Memzero(this, sizeof(FMTDResult));
+	}
+};
+
 /** Struct used for passing information from Matinee to an Actor for blending animations during a sequence. */
 USTRUCT()
 struct FAnimSlotInfo

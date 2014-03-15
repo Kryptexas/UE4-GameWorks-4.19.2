@@ -535,13 +535,9 @@ void UMaterial::GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQuality
 				};
 				for(int32 TypeIndex = 0;TypeIndex < ARRAY_COUNT(ExpressionsByType);TypeIndex++)
 				{
-					const TArray<TRefCountPtr<FMaterialUniformExpressionTexture> >& Expressions = *ExpressionsByType[TypeIndex];
-
 					// Iterate over each of the material's texture expressions.
-					for(int32 ExpressionIndex = 0;ExpressionIndex < Expressions.Num();ExpressionIndex++)
+					for (FMaterialUniformExpressionTexture* Expression : *ExpressionsByType[TypeIndex])
 					{
-						FMaterialUniformExpressionTexture* Expression = Expressions[ExpressionIndex];
-
 						const bool bAllowOverride = false;
 						UTexture* Texture = NULL;
 						Expression->GetGameThreadTextureValue(this,*CurrentResource,Texture,bAllowOverride);
@@ -576,13 +572,9 @@ void UMaterial::OverrideTexture( const UTexture* InTextureToOverride, UTexture* 
 		};
 		for(int32 TypeIndex = 0;TypeIndex < ARRAY_COUNT(ExpressionsByType);TypeIndex++)
 		{
-			const TArray<TRefCountPtr<FMaterialUniformExpressionTexture> >& Expressions = *ExpressionsByType[TypeIndex];
-
 			// Iterate over each of the material's texture expressions.
-			for(int32 ExpressionIndex = 0;ExpressionIndex < Expressions.Num();ExpressionIndex++)
+			for (FMaterialUniformExpressionTexture* Expression : *ExpressionsByType[TypeIndex])
 			{
-				FMaterialUniformExpressionTexture* Expression = Expressions[ExpressionIndex];
-
 				// Evaluate the expression in terms of this material instance.
 				const bool bAllowOverride = false;
 				UTexture* Texture = NULL;

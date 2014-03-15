@@ -516,9 +516,9 @@ public:
 				// Change Weight maps...
 				{
 					FLandscapeEditDataInterface LandscapeEdit(LandscapeInfo);
-					for(TSet<ULandscapeComponent*>::TConstIterator It(TargetSelectedComponents);It;++It)
+					for (TSet<ULandscapeComponent*>::TConstIterator ComponentIt(TargetSelectedComponents); ComponentIt; ++ComponentIt)
 					{
-						ULandscapeComponent* Comp = *It;
+						ULandscapeComponent* Comp = *ComponentIt;
 						int32 TotalNeededChannels = Comp->WeightmapLayerAllocations.Num();
 						int32 CurrentLayer = 0;
 						TArray<UTexture2D*> NewWeightmapTextures;
@@ -538,9 +538,9 @@ public:
 
 								// see if we can find a suitable existing weightmap texture with sufficient channels
 								int32 BestDistanceSquared = MAX_int32;
-								for( TMap<UTexture2D*,struct FLandscapeWeightmapUsage>::TIterator It(LandscapeProxy->WeightmapUsageMap); It; ++It )
+								for (TMap<UTexture2D*, struct FLandscapeWeightmapUsage>::TIterator WeightmapIt(LandscapeProxy->WeightmapUsageMap); WeightmapIt; ++WeightmapIt)
 								{
-									FLandscapeWeightmapUsage* TryWeightmapUsage = &It.Value();
+									FLandscapeWeightmapUsage* TryWeightmapUsage = &WeightmapIt.Value();
 									if( TryWeightmapUsage->FreeChannelCount() >= TotalNeededChannels )
 									{
 										// See if this candidate is closer than any others we've found
@@ -551,7 +551,7 @@ public:
 												int32 TryDistanceSquared = (TryWeightmapUsage->ChannelUsage[ChanIdx]->GetSectionBase() - Comp->GetSectionBase()).SizeSquared();
 												if( TryDistanceSquared < BestDistanceSquared )
 												{
-													CurrentWeightmapTexture = It.Key();
+													CurrentWeightmapTexture = WeightmapIt.Key();
 													CurrentWeightmapUsage = TryWeightmapUsage;
 													BestDistanceSquared = TryDistanceSquared;
 												}
@@ -1246,29 +1246,29 @@ public:
 									}
 								}
 
-								FGizmoSelectData* Data = Gizmo->SelectedData.Find(ALandscape::MakeKey(X, Y));
-								if (Data)
+								FGizmoSelectData* GizmoData = Gizmo->SelectedData.Find(ALandscape::MakeKey(X, Y));
+								if (GizmoData)
 								{
 									if (bApplyToAll)
 									{
 										if (i < 0)
 										{
-											Data->HeightData = LerpedData.Data;
+											GizmoData->HeightData = LerpedData.Data;
 										}
 										else
 										{
-											Data->WeightDataMap.Add(LandscapeInfo->Layers[i].LayerInfoObj, LerpedData.Data);
+											GizmoData->WeightDataMap.Add(LandscapeInfo->Layers[i].LayerInfoObj, LerpedData.Data);
 										}
 									}
 									else
 									{
 										if (EdMode->CurrentToolTarget.TargetType == ELandscapeToolTargetType::Heightmap)
 										{
-											Data->HeightData = LerpedData.Data;
+											GizmoData->HeightData = LerpedData.Data;
 										}
 										else
 										{
-											Data->WeightDataMap.Add(EdMode->CurrentToolTarget.LayerInfo.Get(), LerpedData.Data);
+											GizmoData->WeightDataMap.Add(EdMode->CurrentToolTarget.LayerInfo.Get(), LerpedData.Data);
 										}
 									}
 								}

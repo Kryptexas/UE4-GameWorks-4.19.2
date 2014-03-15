@@ -54,9 +54,9 @@ bool FMoviePlayerSettingsDetails::HandlePathPicked(FString& InOutPath)
 			bSucceeded = SourceControlHelpers::CopyFileUnderSourceControl(DestPath, InOutPath, LOCTEXT("MovieFileDescription", "movie"), FailReason);
 			if(!bSucceeded)
 			{
-				FNotificationInfo Info(FailReason);
-				Info.ExpireDuration = 3.0f;
-				FSlateNotificationManager::Get().AddNotification(Info);
+				FNotificationInfo FailureInfo(FailReason);
+				FailureInfo.ExpireDuration = 3.0f;
+				FSlateNotificationManager::Get().AddNotification(FailureInfo);
 			}
 			// trim the path so we just have a partial path with no extension (the movie player expects this)
 			InOutPath = FPaths::GetBaseFilename(DestPath.RightChop(MoviesBaseDir.Len()));

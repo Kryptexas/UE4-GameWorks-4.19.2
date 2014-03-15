@@ -163,6 +163,7 @@
     <Compile Include="ProfileManager.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="QuickBuild.cs" />
     <Compile Include="Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>

@@ -266,6 +266,7 @@ UNavigationSystem::UNavigationSystem(const class FPostConstructInitializePropert
 	, NavOctree(NULL)
 	, bNavigationBuildingLocked(false)
 	, bInitialBuildingLockActive(false)
+	, bInitialSetupHasBeenPerformed(false)
 	, CurrentlyDrawnNavDataIndex(0)
 	, DirtyAreasUpdateTime(0)
 {
@@ -303,16 +304,9 @@ UNavigationSystem::~UNavigationSystem()
 
 void UNavigationSystem::DoInitialSetup()
 {
-	static bool bInitialSetupHasBeenPerformed = false;
-	if (bInitialSetupHasBeenPerformed == true)
+	if (bInitialSetupHasBeenPerformed)
 	{
 		return;
-	}
-
-	// make sure there's at leas one supported navigation agent size
-	if (SupportedAgents.Num() == 0)
-	{
-		SupportedAgents.Add(FNavDataConfig(NavigationSystem::FallbackAgentRadius, NavigationSystem::FallbackAgentHeight));
 	}
 
 	// gather navigation creators
@@ -347,6 +341,12 @@ void UNavigationSystem::PostInitProperties()
 
 	if (HasAnyFlags(RF_ClassDefaultObject) == false)
 	{
+		// make sure there's at leas one supported navigation agent size
+		if (SupportedAgents.Num() == 0)
+		{
+			SupportedAgents.Add(FNavDataConfig(NavigationSystem::FallbackAgentRadius, NavigationSystem::FallbackAgentHeight));
+		}
+
 		const bool bShouldStoreNavigableGeometry = bBuildNavigationAtRuntime || !GetWorld()->IsGameWorld();
 		NavOctree->SetNavigableGeometryStoringMode(bShouldStoreNavigableGeometry 
 			? FNavigationOctree::StoreNavGeometry

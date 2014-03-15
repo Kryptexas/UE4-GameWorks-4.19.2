@@ -150,7 +150,7 @@ void SDocumentationToolTip::ConstructSimpleTipContent()
 	}
 }
 
-void SDocumentationToolTip::CreateExcerpt( FString FileSource, FString ExcerptName )
+void SDocumentationToolTip::CreateExcerpt( FString FileSource, FString InExcerptName )
 {
 	bool NewFile = true;
 	if (FPaths::FileExists(FileSource))
@@ -178,7 +178,7 @@ void SDocumentationToolTip::CreateExcerpt( FString FileSource, FString ExcerptNa
 	FString NewExcerpt;
 	NewExcerpt += LINE_TERMINATOR;
 	NewExcerpt += "[EXCERPT:";
-	NewExcerpt += ExcerptName;
+	NewExcerpt += InExcerptName;
 	NewExcerpt += "]";
 	NewExcerpt += LINE_TERMINATOR;
 
@@ -186,7 +186,7 @@ void SDocumentationToolTip::CreateExcerpt( FString FileSource, FString ExcerptNa
 	NewExcerpt += LINE_TERMINATOR;
 
 	NewExcerpt += "[/EXCERPT:";
-	NewExcerpt += ExcerptName;
+	NewExcerpt += InExcerptName;
 	NewExcerpt += "]";
 	NewExcerpt += LINE_TERMINATOR;
 

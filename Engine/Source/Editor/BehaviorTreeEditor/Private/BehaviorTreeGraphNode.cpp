@@ -3,6 +3,7 @@
 #include "BehaviorTreeEditorPrivatePCH.h"
 #include "ScopedTransaction.h"
 #include "SGraphEditorActionMenu_BehaviorTree.h"
+#include "BlueprintNodeHelpers.h"
 
 #define LOCTEXT_NAMESPACE "BehaviorTreeGraphNode"
 
@@ -173,6 +174,60 @@ void UBehaviorTreeGraphNode::NodeConnectionListChanged()
 bool UBehaviorTreeGraphNode::CanCreateUnderSpecifiedSchema(const UEdGraphSchema* DesiredSchema) const
 {
 	return DesiredSchema->GetClass()->IsChildOf(UEdGraphSchema_BehaviorTree::StaticClass());
+}
+
+void UBehaviorTreeGraphNode::DiffProperties(UStruct* Struct, void* DataA, void* DataB, FDiffResults& Results, FDiffSingleResult& Diff)
+{
+	for (TFieldIterator<UProperty> PropertyIt(Struct, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
+	{
+		UProperty* Prop = *PropertyIt;
+ 		// skip properties we cant see
+		if (!Prop->HasAnyPropertyFlags(CPF_Edit|CPF_BlueprintVisible) ||
+			Prop->HasAnyPropertyFlags(CPF_Transient) ||
+			Prop->HasAnyPropertyFlags(CPF_DisableEditOnInstance) ||
+			Prop->IsA(UFunction::StaticClass()) ||
+			Prop->IsA(UDelegateProperty::StaticClass()) ||
+			Prop->IsA(UMulticastDelegateProperty::StaticClass()))
+		{
+			continue;
+		}
+		
+		FString ValueStringA = BlueprintNodeHelpers::DescribeProperty(Prop, Prop->ContainerPtrToValuePtr<uint8>(DataA));
+		FString ValueStringB  = BlueprintNodeHelpers::DescribeProperty(Prop, Prop->ContainerPtrToValuePtr<uint8>(DataB));
+
+		if ( ValueStringA != ValueStringB )
+		{
+			if(Results)
+			{
+				Diff.DisplayString = FString::Printf(*LOCTEXT("DIF_NodeProperty", "Property Changed: %s ").ToString(), *Prop->GetName());
+				Results.Add(Diff);
+			}
+		}
+	}
+}
+
+void UBehaviorTreeGraphNode::FindDiffs(UEdGraphNode* OtherNode, FDiffResults& Results)
+{
+	FDiffSingleResult Diff;
+	Diff.Diff = EDiffType::NODE_PROPERTY;
+	Diff.Node1 = this;
+	Diff.Node2 = OtherNode;
+	Diff.ToolTip =  FString::Printf(*LOCTEXT("DIF_NodePropertyToolTip", "A Property of the node has changed").ToString());
+	Diff.DisplayColor = FLinearColor(0.25f,0.71f,0.85f);
+	
+	UBehaviorTreeGraphNode* ThisBehaviorTreeNode = Cast<UBehaviorTreeGraphNode>(this);
+	UBehaviorTreeGraphNode* OtherBehaviorTreeNode = Cast<UBehaviorTreeGraphNode>(OtherNode);
+	if(ThisBehaviorTreeNode && OtherBehaviorTreeNode)
+	{
+		DiffProperties( ThisBehaviorTreeNode->GetClass(), ThisBehaviorTreeNode, OtherBehaviorTreeNode, Results, Diff );
+
+		UBTNode* ThisNodeInstance = Cast<UBTNode>(ThisBehaviorTreeNode->NodeInstance);
+	    UBTNode* OtherNodeInstance = Cast<UBTNode>(OtherBehaviorTreeNode->NodeInstance);
+	    if(ThisNodeInstance && OtherNodeInstance)
+	    {
+		    DiffProperties( ThisNodeInstance->GetClass(), ThisNodeInstance, OtherNodeInstance, Results, Diff );
+		}
+	}
 }
 
 void UBehaviorTreeGraphNode::AddSubNode(UBehaviorTreeGraphNode* NodeTemplate, class UEdGraph* ParentGraph)

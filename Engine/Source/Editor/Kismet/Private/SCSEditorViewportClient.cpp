@@ -838,7 +838,7 @@ void FSCSEditorViewportClient::EndTransaction()
 AActor* FSCSEditorViewportClient::GetPreviewActor() const
 {
 	// Note: The weak ptr can become stale if the actor is reinstanced due to a Blueprint change, etc. In that case we look to see if we can find the new instance in the preview world and then update the weak ptr.
-	if(PreviewActorPtr.IsStale())
+	if(PreviewActorPtr.IsStale(true))
 	{
 		UWorld* PreviewWorld = PreviewScene->GetWorld();
 		for(TActorIterator<AActor> It(PreviewWorld); It; ++It)

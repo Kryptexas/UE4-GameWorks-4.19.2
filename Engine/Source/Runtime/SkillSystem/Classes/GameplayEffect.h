@@ -1108,9 +1108,7 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo & DeltaParms)
 	{
-		// TEMP: return false into forntite integration happens for delta serialize change
-		return false;
-		// return FastArrayDeltaSerialize<FActiveGameplayEffect>(GameplayEffects, DeltaParms, *this);
+		return FastArrayDeltaSerialize<FActiveGameplayEffect>(GameplayEffects, DeltaParms, *this);
 	}
 
 private:
@@ -1122,6 +1120,8 @@ private:
 	// Fixme: at the least, these two maps should be combined and a new structure should be made.
 	// alternatively it may make sence to put the 'pre execute' delegate at the FAggregator level instead.
 	TMap<FGameplayAttribute, FOnGameplayAttributeEffectExecuted> PropertyExecutionCallbacks;
+
+	bool IsNetAuthority() const;
 };
 
 template<>

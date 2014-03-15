@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using VSLangProj;
 using System.IO;
+using EnvDTE80;
 
 namespace UnrealVS
 {
@@ -397,6 +398,114 @@ namespace UnrealVS
 				Exception AppEx = new ApplicationException("GetAllProjectsFromDTE() failed", ex);
 				Logging.WriteLine(AppEx.ToString());
 				throw AppEx;
+			}
+		}
+
+		public static void ExecuteProjectBuild(Project Project,
+												string SolutionConfig,
+												string SolutionPlatform,
+												BatchBuilderToolControl.BuildJob.BuildJobType BuildType,
+												Action ExecutingDelegate,
+												Action FailedToStartDelegate)
+		{
+			IVsHierarchy ProjHierarchy = Utils.ProjectToHierarchyObject(Project);
+
+			if (ProjHierarchy != null)
+			{
+				SolutionConfigurations SolutionConfigs =
+					UnrealVSPackage.Instance.DTE.Solution.SolutionBuild.SolutionConfigurations;
+
+				var MatchedSolutionConfig =
+					(from SolutionConfiguration2 Sc in SolutionConfigs select Sc).FirstOrDefault(
+						Sc =>
+						String.CompareOrdinal(Sc.Name, SolutionConfig) == 0 && String.CompareOrdinal(Sc.PlatformName, SolutionPlatform) == 0);
+
+				if (MatchedSolutionConfig != null)
+				{
+					SolutionContext ProjectSolutionCtxt = MatchedSolutionConfig.SolutionContexts.Item(Project.UniqueName);
+
+					if (ProjectSolutionCtxt != null)
+					{
+						IVsCfgProvider2 CfgProvider2 = Utils.HierarchyObjectToCfgProvider(ProjHierarchy);
+						if (CfgProvider2 != null)
+						{
+							IVsCfg Cfg;
+							CfgProvider2.GetCfgOfName(ProjectSolutionCtxt.ConfigurationName, ProjectSolutionCtxt.PlatformName, out Cfg);
+
+							if (Cfg != null)
+							{
+								if (ExecutingDelegate != null) ExecutingDelegate();
+
+								int JobResult = VSConstants.E_FAIL;
+
+								if (BuildType == BatchBuilderToolControl.BuildJob.BuildJobType.Build)
+								{
+									JobResult =
+										UnrealVSPackage.Instance.SolutionBuildManager.StartUpdateSpecificProjectConfigurations(
+											1,
+											new[] { ProjHierarchy },
+											new[] { Cfg },
+											null,
+											new uint[] { 0 },
+											null,
+											(uint)VSSOLNBUILDUPDATEFLAGS.SBF_OPERATION_BUILD,
+											0);
+								}
+								else if (BuildType == BatchBuilderToolControl.BuildJob.BuildJobType.Rebuild)
+								{
+									JobResult =
+										UnrealVSPackage.Instance.SolutionBuildManager.StartUpdateSpecificProjectConfigurations(
+											1,
+											new[] { ProjHierarchy },
+											new[] { Cfg },
+											new uint[] { 0 },
+											null,
+											null,
+											(uint)(VSSOLNBUILDUPDATEFLAGS.SBF_OPERATION_BUILD | VSSOLNBUILDUPDATEFLAGS.SBF_OPERATION_FORCE_UPDATE),
+											0);
+								}
+								else if (BuildType == BatchBuilderToolControl.BuildJob.BuildJobType.Clean)
+								{
+									JobResult =
+										UnrealVSPackage.Instance.SolutionBuildManager.StartUpdateSpecificProjectConfigurations(
+											1,
+											new[] { ProjHierarchy },
+											new[] { Cfg },
+											new uint[] { 0 },
+											null,
+											null,
+											(uint)VSSOLNBUILDUPDATEFLAGS.SBF_OPERATION_CLEAN,
+											0);
+								}
+
+								if (JobResult == VSConstants.S_OK)
+								{
+									// Job running - show output
+									PrepareOutputPane();
+								}
+								else
+								{
+									if (FailedToStartDelegate != null) FailedToStartDelegate();
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		private static void PrepareOutputPane()
+		{
+			UnrealVSPackage.Instance.DTE.ExecuteCommand("View.Output");
+
+			var Pane = UnrealVSPackage.Instance.GetOutputPane();
+			if (Pane != null)
+			{
+				// Clear and activate the output pane.
+				Pane.Clear();
+
+				// @todo: Activating doesn't seem to really bring the pane to front like we would expect it to.
+				Pane.Activate();
 			}
 		}
 

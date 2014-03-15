@@ -10,6 +10,7 @@
 #include <sched.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <syslog.h>
 
 // these are not actually system headers, but a TPS library (see ThirdParty/elftoolchain)
 #include <libelf.h>
@@ -120,6 +121,8 @@ void FLinuxMisc::PlatformInit()
 	// install a platform-specific signal handler
 	InstallChildExitedSignalHanlder();
 
+	openlog(NULL, LOG_PID, LOG_USER); // specifying NULL is not strictly POSIX compliant, so this is Linux-specific
+
 	UE_LOG(LogInit, Log, TEXT("Linux hardware info:"));
 	UE_LOG(LogInit, Log, TEXT(" - this process' id (pid) is %d, parent process' id (ppid) is %d"), static_cast< int32 >(getpid()), static_cast< int32 >(getppid()));
 	UE_LOG(LogInit, Log, TEXT(" - we are %srunning under debugger"), IsDebuggerPresent() ? TEXT("") : TEXT("not "));
@@ -131,7 +134,10 @@ void FLinuxMisc::PlatformInit()
 	UE_LOG(LogInit, Log, TEXT("Linux-specific commandline switches:"));
 	UE_LOG(LogInit, Log, TEXT(" -%s (currently %s): suppress parsing of DWARF debug info (callstacks will be generated faster, but won't have line numbers)"), 
 		TEXT(CMDARG_SUPPRESS_DWARF_PARSING), FParse::Param( FCommandLine::Get(), TEXT(CMDARG_SUPPRESS_DWARF_PARSING)) ? TEXT("ON") : TEXT("OFF"));
-	
+	UE_LOG(LogInit, Log, TEXT(" -ansimalloc - use malloc()/free() from libc (useful for tools like valgrind and electric fence)"));
+	UE_LOG(LogInit, Log, TEXT(" -jemalloc - use jemalloc for all memory allocation"));
+	UE_LOG(LogInit, Log, TEXT(" -binnedmalloc - use binned malloc  for all memory allocation"));
+
 	// [RCL] FIXME: this should be printed in specific modules, if at all
 	UE_LOG(LogInit, Log, TEXT(" -httpproxy=ADDRESS:PORT - redirects HTTP requests to a proxy (only supported if compiled with libcurl)"));
 	UE_LOG(LogInit, Log, TEXT(" -reuseconn - allow libcurl to reuse HTTP connections (only matters if compiled with libcurl)"));

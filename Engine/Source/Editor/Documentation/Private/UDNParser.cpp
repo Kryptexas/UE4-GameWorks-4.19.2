@@ -619,9 +619,9 @@ FUDNLine FUDNParser::ParseLineIntoUDNContent(int32 LineNumber, const FString& Li
 					if (LineConfig.CalculatedExpectedContentStrings() == Contents.Num())
 					{
 						OutputLine.ContentType = LineConfig.OutputLineType;
-						for (int32 i = 0; i < Contents.Num(); ++i)
+						for (const FString Content : Contents)
 						{
-							OutputLine.AdditionalContent.Add(Contents[i]);
+							OutputLine.AdditionalContent.Add(Content);
 						}
 						if (LineConfig.bAcceptTrailingSymbolDumpAsContent)
 						{

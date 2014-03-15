@@ -115,7 +115,7 @@ FLinearColor UK2Node_IfThenElse::GetNodeTitleColor() const
 
 FString UK2Node_IfThenElse::GetTooltip() const
 {
-	return *LOCTEXT("BrancStatement_Tooltip", "Branch Statement\nIf Condition is true, execution goes to Then, otherwise it goes to Else").ToString();
+	return *LOCTEXT("BrancStatement_Tooltip", "Branch Statement\nIf Condition is true, execution goes to True, otherwise it goes to False").ToString();
 }
 
 FString UK2Node_IfThenElse::GetKeywords() const

@@ -127,6 +127,56 @@ bool GameplayEffectsTest_InstantDamage(UWorld *World, FAutomationTestBase * Test
 	return true;
 }
 
+bool GameplayEffectsTest_InstantDamageRemap(UWorld *World, FAutomationTestBase * Test)
+{
+	// This is the same as GameplayEffectsTest_InstantDamage but modifies the Damage attribute and confirms it is remapped to -Health by USkillSystemTestAttributeSet::PostAttributeModify
+
+	const float StartHealth = 100.f;
+	const float DamageValue = 5.f;		// Note: Damage is positive, mapped to -Health in USkillSystemTestAttributeSet::PostAttributeModify
+
+	ASkillSystemTestPawn *SourceActor = World->SpawnActor<ASkillSystemTestPawn>();
+	ASkillSystemTestPawn *DestActor = World->SpawnActor<ASkillSystemTestPawn>();
+
+	UProperty *HealthProperty = FindFieldChecked<UProperty>(USkillSystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(USkillSystemTestAttributeSet, Health));
+	UProperty *DamageProperty = FindFieldChecked<UProperty>(USkillSystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(USkillSystemTestAttributeSet, Damage));
+
+	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
+	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+	SourceComponent->GetSet<USkillSystemTestAttributeSet>()->Health = StartHealth;
+	DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health = StartHealth;
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply InstantDamage"));
+
+		UGameplayEffect * BaseDmgEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("BaseDmgEffect"))));
+		BaseDmgEffect->Modifiers.SetNum(1);
+		BaseDmgEffect->Modifiers[0].Magnitude.SetValue(DamageValue);
+		BaseDmgEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(DamageProperty);
+		BaseDmgEffect->Modifiers[0].OwnedTags.AddTag(FName(TEXT("Damage.Basic")));
+		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
+
+		SourceComponent->ApplyGameplayEffectSpecToTarget(BaseDmgEffect, DestComponent, 1.f);
+
+		// Now we should have lost some health
+		{
+			float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
+			float ExpectedValue = StartHealth + -DamageValue;
+			Test->TestTrue(SKILL_TEST_TEXT("Damage Applied. Actual: %.2f == Exected: %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+		}
+
+		// Confirm the damage attribute itself was reset to 0 when it was applied to health
+		{
+			float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Damage;
+			float ExpectedValue = 0.f;
+			Test->TestTrue(SKILL_TEST_TEXT("Damage Applied. Actual: %.2f == Exected: %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+		}
+	}
+
+	return true;
+}
+
 bool GameplayEffectsTest_InstantDamage_Buffed(UWorld *World, FAutomationTestBase * Test)
 {
 	const float StartHealth = 100.f;
@@ -1740,7 +1790,9 @@ bool FGameplayEffectsTest::RunTest( const FString& Parameters )
 	World->BeginPlay(URL);
 	
 	GameplayEffectsTest_InstantDamage(World, this);
+	GameplayEffectsTest_InstantDamageRemap(World, this);
 	GameplayEffectsTest_InstantDamage_Buffed(World, this);
+
 	GameplayEffectsTest_TemporaryDamage(World, this);
 	GameplayEffectsTest_TemporaryDamageBuffed(World, this);
 	GameplayEffectsTest_TemporaryDamageTemporaryBuff(World, this);
@@ -1760,6 +1812,7 @@ bool FGameplayEffectsTest::RunTest( const FString& Parameters )
 	
 	GameplayEffectsTest_ShieldlExtension(World, this);
 	GameplayEffectsTest_ShieldlExtensionMultiple(World, this);
+	
 
 	World->DestroyWorld(false);
 	return true;

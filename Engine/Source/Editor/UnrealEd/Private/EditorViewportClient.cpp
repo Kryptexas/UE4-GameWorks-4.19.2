@@ -280,9 +280,9 @@ void FEditorViewportClient::RequestInvalidateHitProxy(FViewport* InViewport)
 	bNeedsInvalidateHitProxy = true;
 }
 
-float FEditorViewportClient::GetOrthoUnitsPerPixel(const FViewport* Viewport) const
+float FEditorViewportClient::GetOrthoUnitsPerPixel(const FViewport* InViewport) const
 {
-	const float SizeX = Viewport->GetSizeXY().X;
+	const float SizeX = InViewport->GetSizeXY().X;
 
 	// 15.0f was coming from the CAMERA_ZOOM_DIV marco, seems it was chosen arbitrarily
 	return (GetOrthoZoom() / (SizeX * 15.f)) * ComputeOrthoZoomFactor(SizeX);
@@ -2694,11 +2694,11 @@ bool FEditorViewportClient::InputGesture(FViewport* InViewport, EGestureEvent::T
 
 	const bool LeftMouseButtonDown = InViewport->KeyState(EKeys::LeftMouseButton);
 
-	const ELevelViewportType ViewportType = GetViewportType();
+	const ELevelViewportType LevelViewportType = GetViewportType();
 
 	const ULevelEditorViewportSettings* ViewportSettings = GetDefault<ULevelEditorViewportSettings>();
 
-	switch( ViewportType )
+	switch (LevelViewportType)
 	{
 	case LVT_OrthoXY:
 	case LVT_OrthoXZ:
@@ -2706,12 +2706,12 @@ bool FEditorViewportClient::InputGesture(FViewport* InViewport, EGestureEvent::T
 		{
 			if (GestureType == EGestureEvent::Scroll)
 			{
-				const float UnitsPerPixel = GetOrthoUnitsPerPixel(Viewport);
-				
-				// GestureDelta is in window pixel coords.  Adjust for ortho units.
-				FVector2D AdjustedGestureDelta = GestureDelta * UnitsPerPixel;
-		
-				switch( ViewportType )
+                const float UnitsPerPixel = GetOrthoUnitsPerPixel(Viewport);
+                
+                // GestureDelta is in window pixel coords.  Adjust for ortho units.
+                FVector2D AdjustedGestureDelta = GestureDelta * UnitsPerPixel;
+        
+				switch (LevelViewportType)
 				{
 					case LVT_OrthoXY:
 						CurrentGestureDragDelta += FVector(-AdjustedGestureDelta.X, -AdjustedGestureDelta.Y, 0);
@@ -2747,7 +2747,7 @@ bool FEditorViewportClient::InputGesture(FViewport* InViewport, EGestureEvent::T
 				else
 				{
 					// Change viewing angle
-
+					
 					CurrentGestureRotDelta.Yaw += AdjustGestureCameraRotation( GestureDelta.X, 20.0f, 35.0f ) * -0.35f;
 					CurrentGestureRotDelta.Pitch += AdjustGestureCameraRotation( GestureDelta.Y, 20.0f, 35.0f ) * 0.35f;
 				}

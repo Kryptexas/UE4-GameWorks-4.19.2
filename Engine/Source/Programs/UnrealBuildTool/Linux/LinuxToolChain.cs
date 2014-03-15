@@ -94,7 +94,7 @@ namespace UnrealBuildTool.Linux
             }
             else
             {
-                Result += " -O3";
+                Result += " -O2";
             }
 
             //Result += " -v";                            // for better error diagnosis

@@ -4069,6 +4069,11 @@ UWorld* FSeamlessTravelHandler::Tick()
 				GEngine->GetAudioDevice()->Flush( NULL );
 			}
 
+			if (CurrentWorld->GameState)
+			{
+				CurrentWorld->GameState->SeamlessTravelTransitionCheckpoint(!bSwitchedToDefaultMap);
+			}
+			
 			// mark actors we want to keep
 			FUObjectAnnotationSparseBool KeepAnnotation;
 

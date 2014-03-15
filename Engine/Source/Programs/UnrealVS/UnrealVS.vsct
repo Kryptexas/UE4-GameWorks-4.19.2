@@ -87,21 +87,114 @@
 				</Strings>
 			</Button>
 
-
 			<!-- BatchBuilder - normal button (available in UnrealVS tool bar, but not keybindable) -->
 			<Button guid="UnrealVSCmdSetGUID" id="BatchBuilderToolWindowId" priority="100" type="Button" >
-
 				<!-- Parent the button to our tool bar -->
 				<Parent guid="UnrealVSCmdSetGUID" id="MyToolbarGroupID" />
 				<Icon guid="BatchBuilderIconGUID" id="BatchBuilderIcon"/>
 				<CommandFlag>CommandWellOnly</CommandFlag>
 				<CommandFlag>Pict</CommandFlag>
-
 				<Strings>
 					<ButtonText>Batch Builder</ButtonText>
 					<CommandName>OpenBatchBuilderWindow</CommandName>
 				</Strings>
-			</Button> 
+			</Button>
+
+			<!-- Win64 - Quick build dynamic placeholder button -->
+			<Button guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildWin64DynamicStartCommandID" priority="0x0000" >
+				<Parent guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildWin64SubMenuGroupID" />
+				<CommandFlag>DynamicItemStart</CommandFlag>
+				<CommandFlag>DynamicVisibility</CommandFlag>
+				<CommandFlag>TextChanges</CommandFlag>
+				<!-- This text does not appear. -->
+				<Strings>
+					<ButtonText>DUMMY Win64</ButtonText>
+				</Strings>
+			</Button>
+
+			<!-- Win32 - Quick build dynamic placeholder button -->
+			<Button guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildWin32DynamicStartCommandID" priority="0x0000">
+				<Parent guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildWin32SubMenuGroupID" />
+				<CommandFlag>DynamicItemStart</CommandFlag>
+				<CommandFlag>DynamicVisibility</CommandFlag>
+				<CommandFlag>TextChanges</CommandFlag>
+				<!-- This text does not appear. -->
+				<Strings>
+					<ButtonText>DUMMY Win32</ButtonText>
+				</Strings>
+			</Button>
+
+			<!-- Mac - Quick build dynamic placeholder button -->
+			<Button guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildMacDynamicStartCommandID" priority="0x0000">
+				<Parent guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildMacSubMenuGroupID" />
+				<CommandFlag>DynamicItemStart</CommandFlag>
+				<CommandFlag>DynamicVisibility</CommandFlag>
+				<CommandFlag>TextChanges</CommandFlag>
+				<!-- This text does not appear. -->
+				<Strings>
+					<ButtonText>DUMMY Mac</ButtonText>
+				</Strings>
+			</Button>
+
+			<!-- XboxOne - Quick build dynamic placeholder button -->
+			<Button guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildXboxOneDynamicStartCommandID" priority="0x0000">
+				<Parent guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildXboxOneSubMenuGroupID" />
+				<CommandFlag>DynamicItemStart</CommandFlag>
+				<CommandFlag>DynamicVisibility</CommandFlag>
+				<CommandFlag>TextChanges</CommandFlag>
+				<!-- This text does not appear. -->
+				<Strings>
+					<ButtonText>DUMMY XboxOne</ButtonText>
+				</Strings>
+			</Button>
+
+			<!-- PS4 - Quick build dynamic placeholder button -->
+			<Button guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildPS4DynamicStartCommandID" priority="0x0000">
+				<Parent guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildPS4SubMenuGroupID" />
+				<CommandFlag>DynamicItemStart</CommandFlag>
+				<CommandFlag>DynamicVisibility</CommandFlag>
+				<CommandFlag>TextChanges</CommandFlag>
+				<!-- This text does not appear. -->
+				<Strings>
+					<ButtonText>DUMMY PS4</ButtonText>
+				</Strings>
+			</Button>
+
+			<!-- IOS - Quick build dynamic placeholder button -->
+			<Button guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildIOSDynamicStartCommandID" priority="0x0000">
+				<Parent guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildIOSSubMenuGroupID" />
+				<CommandFlag>DynamicItemStart</CommandFlag>
+				<CommandFlag>DynamicVisibility</CommandFlag>
+				<CommandFlag>TextChanges</CommandFlag>
+				<!-- This text does not appear. -->
+				<Strings>
+					<ButtonText>DUMMY IOS</ButtonText>
+				</Strings>
+			</Button>
+
+			<!-- Android - Quick build dynamic placeholder button -->
+			<Button guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildAndroidDynamicStartCommandID" priority="0x0000">
+				<Parent guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildAndroidSubMenuGroupID" />
+				<CommandFlag>DynamicItemStart</CommandFlag>
+				<CommandFlag>DynamicVisibility</CommandFlag>
+				<CommandFlag>TextChanges</CommandFlag>
+				<!-- This text does not appear. -->
+				<Strings>
+					<ButtonText>DUMMY Android</ButtonText>
+				</Strings>
+			</Button>
+
+			<!-- WinRT - Quick build dynamic placeholder button -->
+			<Button guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildWinRTDynamicStartCommandID" priority="0x0000">
+				<Parent guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildWinRTSubMenuGroupID" />
+				<CommandFlag>DynamicItemStart</CommandFlag>
+				<CommandFlag>DynamicVisibility</CommandFlag>
+				<CommandFlag>TextChanges</CommandFlag>
+				<!-- This text does not appear. -->
+				<Strings>
+					<ButtonText>DUMMY WinRT</ButtonText>
+				</Strings>
+			</Button>
 
 		</Buttons>
 	
@@ -137,10 +230,10 @@
 				<!-- Allow user to customize even though it's not in the menu -->
 				<CommandFlag>CommandWellOnly</CommandFlag>
 
-        <!-- Callback to the handler for every keystroke -->
-        <CommandFlag>FilterKeys</CommandFlag>
+				<!-- Callback to the handler for every keystroke -->
+				<CommandFlag>FilterKeys</CommandFlag>
 
-        <!-- Stretch to fill remaining space in tool bar (only one combo per tool bar can do this) -->
+				<!-- Stretch to fill remaining space in tool bar (only one combo per tool bar can do this) -->
 				<CommandFlag>StretchHorizontally</CommandFlag>
 
 				<Strings>
@@ -182,6 +275,77 @@
 					<CommandName>UnrealVS</CommandName>
 				</Strings>
 			</Menu>
+
+			<!-- UnrealVS Quickbuild submenu -->
+			<Menu guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildSubMenuID" priority="0x0101" type="Menu">
+				<Parent guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildGroupID" />
+				<Icon guid="BatchBuilderIconGUID" id="BatchBuilderIcon"/>
+				<CommandFlag>DynamicVisibility</CommandFlag>
+				<CommandFlag>DefaultInvisible</CommandFlag>
+				<CommandFlag>DontCache</CommandFlag>
+				<Strings>
+					<ButtonText>UnrealVS Quick Build</ButtonText>
+				</Strings>
+			</Menu>
+
+			<!-- UnrealVS Quickbuild platform submenus -->
+			<Menu guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildWin64SubMenuID" priority="0x0000" type="Menu">
+				<Parent guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildSubMenuGroupID" />
+				<CommandFlag>DynamicVisibility</CommandFlag>
+				<Strings>
+					<ButtonText>Win64</ButtonText>
+				</Strings>
+			</Menu>
+			<Menu guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildWin32SubMenuID" priority="0x0010" type="Menu">
+				<Parent guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildSubMenuGroupID" />
+				<CommandFlag>DynamicVisibility</CommandFlag>
+				<Strings>
+					<ButtonText>Win32</ButtonText>
+				</Strings>
+			</Menu>
+			<Menu guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildMacSubMenuID" priority="0x0020" type="Menu">
+				<Parent guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildSubMenuGroupID" />
+				<CommandFlag>DynamicVisibility</CommandFlag>
+				<Strings>
+					<ButtonText>Mac</ButtonText>
+				</Strings>
+			</Menu>
+			<Menu guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildXboxOneSubMenuID" priority="0x0030" type="Menu">
+				<Parent guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildSubMenuGroupID" />
+				<CommandFlag>DynamicVisibility</CommandFlag>
+				<Strings>
+					<ButtonText>XboxOne</ButtonText>
+				</Strings>
+			</Menu>
+			<Menu guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildPS4SubMenuID" priority="0x0040" type="Menu">
+				<Parent guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildSubMenuGroupID" />
+				<CommandFlag>DynamicVisibility</CommandFlag>
+				<Strings>
+					<ButtonText>PS4</ButtonText>
+				</Strings>
+			</Menu>
+			<Menu guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildIOSSubMenuID" priority="0x0050" type="Menu">
+				<Parent guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildSubMenuGroupID" />
+				<CommandFlag>DynamicVisibility</CommandFlag>
+				<Strings>
+					<ButtonText>IOS</ButtonText>
+				</Strings>
+			</Menu>
+			<Menu guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildAndroidSubMenuID" priority="0x0060" type="Menu">
+				<Parent guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildSubMenuGroupID" />
+				<CommandFlag>DynamicVisibility</CommandFlag>
+				<Strings>
+					<ButtonText>Android</ButtonText>
+				</Strings>
+			</Menu>
+			<Menu guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildWinRTSubMenuID" priority="0x0070" type="Menu">
+				<Parent guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildSubMenuGroupID" />
+				<CommandFlag>DynamicVisibility</CommandFlag>
+				<Strings>
+					<ButtonText>WinRT</ButtonText>
+				</Strings>
+			</Menu>
+      
 		</Menus>
 
 		<!-- In this section you can define new menu groups. A menu group is a container for 
@@ -200,6 +364,49 @@
 				<Parent guid="UnrealVSCmdSetGUID" id="MyToolbarID"/>
 			</Group>
 
+			<Group guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildGroupID" priority="0x0000">
+				<!-- Parent the menu group to the project node context menu -->
+				<Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_PROJNODE"/>
+			</Group>
+
+			<Group guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildSubMenuGroupID" priority="0x0000">
+				<Parent guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildSubMenuID"/>
+			</Group>
+
+			<!-- Quick build menu groups -->
+			<Group guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildWin64SubMenuGroupID" priority="0x0000">
+				<!-- Parent the menu group to the win64 quick build menu -->
+				<Parent guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildWin64SubMenuID"/>
+			</Group>
+			<Group guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildWin32SubMenuGroupID" priority="0x0000">
+				<!-- Parent the menu group to the win32 quick build menu -->
+				<Parent guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildWin32SubMenuID"/>
+			</Group>
+			<Group guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildMacSubMenuGroupID" priority="0x0000">
+				<!-- Parent the menu group to the Mac quick build menu -->
+				<Parent guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildMacSubMenuID"/>
+			</Group>
+			<Group guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildXboxOneSubMenuGroupID" priority="0x0000">
+				<!-- Parent the menu group to the XboxOne quick build menu -->
+				<Parent guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildXboxOneSubMenuID"/>
+			</Group>
+			<Group guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildPS4SubMenuGroupID" priority="0x0000">
+				<!-- Parent the menu group to the PS4 quick build menu -->
+				<Parent guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildPS4SubMenuID"/>
+			</Group>
+			<Group guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildIOSSubMenuGroupID" priority="0x0000">
+				<!-- Parent the menu group to the IOS quick build menu -->
+				<Parent guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildIOSSubMenuID"/>
+			</Group>
+			<Group guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildAndroidSubMenuGroupID" priority="0x0000">
+				<!-- Parent the menu group to the Android quick build menu -->
+				<Parent guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildAndroidSubMenuID"/>
+			</Group>
+			<Group guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildWinRTSubMenuGroupID" priority="0x0000">
+				<!-- Parent the menu group to the WinRT quick build menu -->
+				<Parent guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildWinRTSubMenuID"/>
+			</Group>
+      
 		</Groups>
 
 		<Bitmaps>
@@ -208,14 +415,14 @@
 		</Bitmaps>
 
 	</Commands>
-
+  
 
 	<!-- To define a binding, we have to specify the sequence of keys to press to activate the command (keystate).
 		 A key binding can use one or two key and optionlly up to two modifiers (Alt, Control or Shift keys); the
 		 keys are specified using the key1 and key2 attributes (key2 can be omitted) and the modifiers using the
 		 mod1 and mod2 attributes (both optional). -->
 	<!-- NOTE:  Editor="guidVSStd97"  is a special GUID that means the keybinding should be available in the regular Visual Studio editor -->
-<!--<KeyBindings>
+	<!--<KeyBindings>
 		<KeyBinding guid="UnrealVSCmdSetGUID" id="BuildStartupProjectButtonID" editor="guidVSStd97" key1="B" mod1="Control Alt Shift" />
 	</KeyBindings>-->
 
@@ -243,13 +450,53 @@
 
 			<IDSymbol name="GenerateProjectFilesButtonID" value="0x1100" />
 			<IDSymbol name="BatchBuilderToolWindowId" value="0x1300" />
+
+			<IDSymbol name="ProjectQuickBuildGroupID" value="0x1400" />
+			<IDSymbol name="ProjectQuickBuildSubMenuID" value="0x1410" />
+			<IDSymbol name="ProjectQuickBuildSubMenuGroupID" value="0x1420" />
+
+			<IDSymbol name="ProjectQuickBuildWin64SubMenuID" value="0x1500" />
+			<IDSymbol name="ProjectQuickBuildWin64SubMenuGroupID" value="0x1510" />
+			<IDSymbol name="ProjectQuickBuildWin64DynamicStartCommandID" value="0x1530" />
+
+			<IDSymbol name="ProjectQuickBuildWin32SubMenuID" value="0x1600" />
+			<IDSymbol name="ProjectQuickBuildWin32SubMenuGroupID" value="0x1610" />
+			<IDSymbol name="ProjectQuickBuildWin32DynamicStartCommandID" value="0x1630" />
+
+			<IDSymbol name="ProjectQuickBuildMacSubMenuID" value="0x1700" />
+			<IDSymbol name="ProjectQuickBuildMacSubMenuGroupID" value="0x1710" />
+			<IDSymbol name="ProjectQuickBuildMacDynamicStartCommandID" value="0x1730" />
+
+			<IDSymbol name="ProjectQuickBuildXboxOneSubMenuID" value="0x1800" />
+			<IDSymbol name="ProjectQuickBuildXboxOneSubMenuGroupID" value="0x1810" />
+			<IDSymbol name="ProjectQuickBuildXboxOneDynamicStartCommandID" value="0x1830" />
+
+			<IDSymbol name="ProjectQuickBuildPS4SubMenuID" value="0x1900" />
+			<IDSymbol name="ProjectQuickBuildPS4SubMenuGroupID" value="0x1910" />
+			<IDSymbol name="ProjectQuickBuildPS4DynamicStartCommandID" value="0x1930" />
+
+			<IDSymbol name="ProjectQuickBuildIOSSubMenuID" value="0x1A00" />
+			<IDSymbol name="ProjectQuickBuildIOSSubMenuGroupID" value="0x1A10" />
+			<IDSymbol name="ProjectQuickBuildIOSDynamicStartCommandID" value="0x1A30" />
+
+			<IDSymbol name="ProjectQuickBuildAndroidSubMenuID" value="0x1B00" />
+			<IDSymbol name="ProjectQuickBuildAndroidSubMenuGroupID" value="0x1B10" />
+			<IDSymbol name="ProjectQuickBuildAndroidDynamicStartCommandID" value="0x1B30" />
+
+			<IDSymbol name="ProjectQuickBuildWinRTSubMenuID" value="0x1C00" />
+			<IDSymbol name="ProjectQuickBuildWinRTSubMenuGroupID" value="0x1C10" />
+			<IDSymbol name="ProjectQuickBuildWinRTDynamicStartCommandID" value="0x1C30" />
+
 		</GuidSymbol>
+		
 		<GuidSymbol name="RefreshProjectsIconGUID" value="{8F4278B0-4C7D-4B67-9C27-AE415543EBE5}">
 			<IDSymbol name="RefreshProjectsIcon" value="1" />
 		</GuidSymbol>
+		
 		<GuidSymbol name="BatchBuilderIconGUID" value="{4EA0D612-B5D9-4D49-A41E-9031B0A37D12}">
 			<IDSymbol name="BatchBuilderIcon" value="1" />
 		</GuidSymbol>
+		
 	</Symbols>    
 
 </CommandTable>

@@ -79,12 +79,12 @@ TSharedRef<SWidget> SPhATPreviewViewportToolBar::GenerateModesMenu() const
 			{
 				static void BuildMovementModeMenu(FMenuBuilder& Menu)
 				{
-					const FPhATCommands& Actions = FPhATCommands::Get();
+					const FPhATCommands& Commands = FPhATCommands::Get();
 
 					Menu.BeginSection("PhATMovementMode", NSLOCTEXT("PhAT", "MovementModeHeader", "Movement Mode"));
 					{
-						Menu.AddMenuEntry(Actions.MovementSpace_Local);
-						Menu.AddMenuEntry(Actions.MovementSpace_World);
+						Menu.AddMenuEntry(Commands.MovementSpace_Local);
+						Menu.AddMenuEntry(Commands.MovementSpace_World);
 					}
 					Menu.EndSection();
 				}
@@ -103,39 +103,39 @@ TSharedRef<SWidget> SPhATPreviewViewportToolBar::GenerateModesMenu() const
 			{
 				static void BuildMeshRenderModeMenu(FMenuBuilder& Menu)
 				{
-					const FPhATCommands& Actions = FPhATCommands::Get();
+					const FPhATCommands& Commands = FPhATCommands::Get();
 
 					Menu.BeginSection("PhATRenderingMode", NSLOCTEXT("PhAT", "MeshRenderModeHeader", "Mesh Rendering Mode"));
 					{
-						Menu.AddMenuEntry(Actions.MeshRenderingMode_Solid);
-						Menu.AddMenuEntry(Actions.MeshRenderingMode_Wireframe);
-						Menu.AddMenuEntry(Actions.MeshRenderingMode_None);
+						Menu.AddMenuEntry(Commands.MeshRenderingMode_Solid);
+						Menu.AddMenuEntry(Commands.MeshRenderingMode_Wireframe);
+						Menu.AddMenuEntry(Commands.MeshRenderingMode_None);
 					}
 					Menu.EndSection();
 				}
 
 				static void BuildCollisionRenderModeMenu(FMenuBuilder& Menu)
 				{
-					const FPhATCommands& Actions = FPhATCommands::Get();
+					const FPhATCommands& Commands = FPhATCommands::Get();
 
 					Menu.BeginSection("PhATCollisionMode", NSLOCTEXT("PhAT", "CollisionRenderModeHeader", "Collision Rendering Mode"));
 					{
-						Menu.AddMenuEntry(Actions.CollisionRenderingMode_Solid);
-						Menu.AddMenuEntry(Actions.CollisionRenderingMode_Wireframe);
-						Menu.AddMenuEntry(Actions.CollisionRenderingMode_None);
+						Menu.AddMenuEntry(Commands.CollisionRenderingMode_Solid);
+						Menu.AddMenuEntry(Commands.CollisionRenderingMode_Wireframe);
+						Menu.AddMenuEntry(Commands.CollisionRenderingMode_None);
 					}
 					Menu.EndSection();
 				}
 
 				static void BuildConstraintRenderModeMenu(FMenuBuilder& Menu)
 				{
-					const FPhATCommands& Actions = FPhATCommands::Get();
+					const FPhATCommands& Commands = FPhATCommands::Get();
 
 					Menu.BeginSection("PhATConstraintMode", NSLOCTEXT("PhAT", "ConstraintRenderModeHeader", "Constraint Rendering Mode"));
 					{
-						Menu.AddMenuEntry(Actions.ConstraintRenderingMode_None);
-						Menu.AddMenuEntry(Actions.ConstraintRenderingMode_AllPositions);
-						Menu.AddMenuEntry(Actions.ConstraintRenderingMode_AllLimits);
+						Menu.AddMenuEntry(Commands.ConstraintRenderingMode_None);
+						Menu.AddMenuEntry(Commands.ConstraintRenderingMode_AllPositions);
+						Menu.AddMenuEntry(Commands.ConstraintRenderingMode_AllLimits);
 					}
 					Menu.EndSection();
 				}

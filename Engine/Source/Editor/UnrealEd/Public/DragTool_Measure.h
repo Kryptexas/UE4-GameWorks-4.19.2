@@ -13,13 +13,33 @@
 class FDragTool_Measure : public FDragTool
 {
 public:
-	FDragTool_Measure();
+	explicit FDragTool_Measure(FEditorViewportClient* InViewportClient);
 
+	/**
+	 * Starts a mouse drag behavior.  The start location is snapped to the editor constraints if bUseSnapping is true.
+	 *
+	 * @param	InViewportClient	The viewport client in which the drag event occurred.
+	 * @param	InStart				Where the mouse was when the drag started (world space).
+	 * @param	InStartScreen		Where the mouse was when the drag started (screen space).
+	 */
 	virtual void StartDrag(FEditorViewportClient* InViewportClient, const FVector& InStart, const FVector2D& InStartScreen) OVERRIDE;
-	virtual void AddDelta(const FVector& InDelta) OVERRIDE;;
-	virtual void Render3D(const FSceneView* View,FPrimitiveDrawInterface* PDI);
-	virtual void Render(const FSceneView* View,FCanvas* Canvas);
+
+	/* Updates the drag tool's end location with the specified delta.  The end location is
+	 * snapped to the editor constraints if bUseSnapping is true.
+	 *
+	 * @param	InDelta		A delta of mouse movement.
+	 */
+	virtual void AddDelta(const FVector& InDelta) OVERRIDE;
+
+	virtual void Render(const FSceneView* View,FCanvas* Canvas) OVERRIDE;
+
 private:
+	/**
+	 * Sets the End member explicitly from the current cursor position, overriding the calculation based on
+	 * the deltas passed to AddDelta.
+	 */
+	void SetEndWorldPositionFromCursor();
+
 	FEditorViewportClient* ViewportClient;
 };
 

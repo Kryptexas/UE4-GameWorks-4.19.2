@@ -5,9 +5,6 @@
 #include "NetworkMessage.h"
 #include "MultiChannelTcp.h"
 
-// we can't have multiple threads sending/receiving responses at the same time
-static FCriticalSection SocketCriticalSection;
-
 bool FSimpleAbstractSocket_FSocket::Receive(uint8 *Results, int32 Size) const
 {
 	int32 Offset = 0;
@@ -60,8 +57,6 @@ bool FSimpleAbstractSocket_FMultichannelTCPSocket::Send(const uint8 *Buffer, int
 
 bool FNFSMessageHeader::WrapAndSendPayload(const TArray<uint8>& Payload, const FSimpleAbstractSocket& Socket)
 {
-	FScopeLock SocketLock(&SocketCriticalSection);
-
 	// make a header for the payload
 	FNFSMessageHeader Header(Socket, Payload);
 
@@ -83,8 +78,6 @@ bool FNFSMessageHeader::WrapAndSendPayload(const TArray<uint8>& Payload, const F
 
 bool FNFSMessageHeader::ReceivePayload(FArrayReader& OutPayload, const FSimpleAbstractSocket& Socket)
 {
-	FScopeLock SocketLock(&SocketCriticalSection);
-
 	// make room to receive a header
 	TArray<uint8> HeaderBytes;
 	int32 Size = sizeof(FNFSMessageHeader);

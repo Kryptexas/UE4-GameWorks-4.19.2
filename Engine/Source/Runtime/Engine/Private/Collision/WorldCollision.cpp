@@ -29,6 +29,7 @@ DEFINE_STAT(STAT_Collision_GeomSweepMultiple);
 DEFINE_STAT(STAT_Collision_GeomOverlapAny);
 DEFINE_STAT(STAT_Collision_GeomOverlapSingle);
 DEFINE_STAT(STAT_Collision_GeomOverlapMultiple);
+DEFINE_STAT(STAT_Collision_GeomComputePenetration);
 
 /** default collision response container - to be used without reconstructing every time**/
 FCollisionResponseContainer FCollisionResponseContainer::DefaultResponseContainer(ECR_Block);

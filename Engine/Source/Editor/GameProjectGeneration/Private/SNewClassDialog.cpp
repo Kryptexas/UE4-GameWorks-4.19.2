@@ -451,10 +451,10 @@ TSharedRef<ITableRow> SNewClassDialog::MakeParentClassListViewWidget(TSharedPtr<
 
 FString SNewClassDialog::GetSelectedParentClassName() const
 {
-	const UClass* ParentClass = GetSelectedParentClass();
-	if ( ParentClass )
+	const UClass* SelectedParentClass = GetSelectedParentClass();
+	if (SelectedParentClass)
 	{
-		return ParentClass->GetName();
+		return SelectedParentClass->GetName();
 	}
 	else
 	{

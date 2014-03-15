@@ -708,112 +708,31 @@ bool UWorld::EncroachingBlockingGeometry(AActor* TestActor, FVector TestLocation
 
 		if ( ProposedAdjustment && Capsule )
 		{
-			// if encroaching, propose adjustment based on overlaps, treat PrimComp as box
+			// if encroaching, add up all the MTDs of overlapping shapes
 			float CapsuleRadius, CapsuleHalfHeight;
 			Capsule->GetScaledCapsuleSize(CapsuleRadius, CapsuleHalfHeight);
-			float XRadius = CapsuleRadius;
-			float YRadius = CapsuleRadius;
-			float ZHeight = CapsuleHalfHeight;
-			float ClosestXPos = XRadius;
-			float ClosestXNeg = -1.f*ClosestXPos;
-			float ClosestYPos = YRadius;
-			float ClosestYNeg = -1.f*ClosestYPos;
-			float ClosestZPos = ZHeight;
-			float ClosestZNeg = -1.f*ClosestZPos;
-			float ExtraZAdjust = 0.f;
-			for( int32 HitIdx = 0; HitIdx < Overlaps.Num(); HitIdx++ )
+			FCollisionShape CapsuleShape = FCollisionShape::MakeCapsule(CapsuleRadius, CapsuleHalfHeight);
+			FMTDResult MTDResult;
+
+			for (int32 HitIdx = 0; HitIdx < Overlaps.Num(); HitIdx++)
 			{
-				FCollisionShape CapsuleShape = FCollisionShape::MakeCapsule(CapsuleRadius, CapsuleHalfHeight);
-		
+				UPrimitiveComponent * OverlapComponent = Overlaps[HitIdx].Component.Get();
 				// first determine closest impact point along each axis
-				if ( Overlaps[HitIdx].Component.IsValid()  && (Overlaps[HitIdx].Component.Get()->GetCollisionResponseToChannel(BlockingChannel) == ECR_Block) )
+				if (OverlapComponent && OverlapComponent->GetCollisionResponseToChannel(BlockingChannel) == ECR_Block)
+
 				{
-					// @TODO - really want to use MTD rather than nearest overlap point once that is exposed
-// 					FVector OverlapPoint;
-// 					float OverlapDist = Overlaps[HitIdx].Component->GetDistanceToCollision(TestLocation, OverlapPoint);
-// 					FVector Offset = OverlapPoint - TestLocation;
-					FVector OverlapComponentLoc = Overlaps[HitIdx].Component->GetComponentToWorld().GetLocation();
-					FVector Offset;
-					FHitResult HitResult;
-					if (Overlaps[HitIdx].Component->SweepComponent(HitResult, TestLocation, OverlapComponentLoc, CapsuleShape, true))
+					bool bSuccess = OverlapComponent->ComputePenetration(MTDResult, CapsuleShape, TestLocation, FQuat::Identity);
+					if (bSuccess)
 					{
-						// we have blocking hit
-						Offset = HitResult.ImpactPoint - TestLocation;
+						*ProposedAdjustment += MTDResult.Direction * MTDResult.Distance;
 					}
 					else
 					{
-						// we didnt' hit anything, so offset = 0.f;? Seems it should not happen?
-						Offset = FVector::ZeroVector;
-					}
-					
-					//DrawDebugSphere(this, OverlapPoint, 20, 10, FLinearColor::White, true);
-					if ( Offset.X >= 0.f )
-					{
-						ClosestXPos = FMath::Min(Offset.X, ClosestXPos);
-					}
-					else
-					{
-						ClosestXNeg = FMath::Max(Offset.X, ClosestXNeg);
-					}
-
-					if ( Offset.Y >= 0.f )
-					{
-						ClosestYPos = FMath::Min(Offset.Y, ClosestYPos);
-					}
-					else
-					{
-						ClosestYNeg = FMath::Max(Offset.Y, ClosestYNeg);
-					}
-
-					if ( Offset.Z >= 0.f )
-					{
-						ClosestZPos = FMath::Min(Offset.Z, ClosestZPos);
-					}
-					else
-					{
-						ClosestZNeg = FMath::Max(Offset.Z, ClosestZNeg);
+						UE_LOG(LogPhysics, Log, TEXT("OverlapTest says we are overlapping, yet MTD says we're not. Something is wrong"));
 					}
 				}
 			}
 
-			if ( ClosestXPos >= XRadius )
-			{
-				ProposedAdjustment->X = -1.f*(XRadius+ClosestXNeg);
-			}
-			else if ( ClosestXNeg <= -1.f*XRadius )
-			{
-				ProposedAdjustment->X = XRadius - ClosestXPos;
-			}
-			else
-			{
-				// overlaps on both sides of X axis - assume overlaps are low, push adjustment up
-				ExtraZAdjust = FMath::Max(XRadius - ClosestXPos, XRadius+ClosestXNeg);
-			}
-
-			if ( ClosestYPos >= YRadius )
-			{
-				ProposedAdjustment->Y = -1.f*(YRadius+ClosestYNeg);
-			}
-			else if ( ClosestYNeg <= -1.f*YRadius )
-			{
-				ProposedAdjustment->Y = YRadius - ClosestYPos;
-			}
-			else
-			{
-				// overlaps on both sides of X axis - assume overlaps are low, push adjustment up
-				ExtraZAdjust = FMath::Max(YRadius - ClosestYPos, YRadius+ClosestYNeg);
-			}
-
-			if ( ClosestZPos >= ZHeight || (FMath::Abs(ClosestZPos) < KINDA_SMALL_NUMBER) )
-			{
-				ProposedAdjustment->Z = -1.f*(ZHeight+ClosestZNeg);
-			}
-			else if ( ClosestZNeg <= -1.f*ZHeight )
-			{
-				ProposedAdjustment->Z = ZHeight - ClosestZPos + ExtraZAdjust;
-			}
-
-			*ProposedAdjustment *= -1.f;
 		}
 	}
 	return bFoundBlockingHit;

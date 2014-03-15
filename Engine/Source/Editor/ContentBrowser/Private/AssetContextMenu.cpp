@@ -559,14 +559,30 @@ struct WorldReferenceGenerator : public FFindReferencedAssets
 	{
 		MarkAllObjects();
 
-		FReferencedAssets* Referencer = new(Referencers) FReferencedAssets(GWorld);
 		const int32 MaxRecursionDepth = 0;
 		const bool bIncludeClasses = true;
 		const bool bIncludeDefaults = false;
 		const bool bReverseReferenceGraph = true;
 
 		// Generate the reference graph for GWorld
-		FFindAssetsArchive(GWorld, Referencer->AssetList, &ReferenceGraph, MaxRecursionDepth, bIncludeClasses, bIncludeDefaults, bReverseReferenceGraph);
+		FReferencedAssets* WorldReferencer = new(Referencers) FReferencedAssets(GWorld);
+		FFindAssetsArchive(GWorld, WorldReferencer->AssetList, &ReferenceGraph, MaxRecursionDepth, bIncludeClasses, bIncludeDefaults, bReverseReferenceGraph);
+
+		// Also include all the streaming levels in the results
+		for( int32 LevelIndex = 0 ; LevelIndex < GWorld->StreamingLevels.Num() ; ++LevelIndex )
+		{
+			ULevelStreaming* StreamingLevel = GWorld->StreamingLevels[LevelIndex];
+			if( StreamingLevel != NULL )
+			{
+				ULevel* Level = StreamingLevel->GetLoadedLevel();
+				if( Level != NULL )
+				{
+					// Generate the reference graph for each streamed in level
+					FReferencedAssets* LevelReferencer = new(Referencers) FReferencedAssets(Level);			
+					FFindAssetsArchive(Level, LevelReferencer->AssetList, &ReferenceGraph, MaxRecursionDepth, bIncludeClasses, bIncludeDefaults, bReverseReferenceGraph);
+				}
+			}
+		}
 	}
 
 	void MarkAllObjects()

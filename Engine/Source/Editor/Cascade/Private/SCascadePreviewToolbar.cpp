@@ -61,8 +61,6 @@ TSharedRef<SWidget> SCascadePreviewViewportToolBar::GenerateViewMenu() const
 	{
 		static void BuildViewOptionsMenu(FMenuBuilder& Menu)
 		{
-			const FCascadeCommands& Actions = FCascadeCommands::Get();
-
 			Menu.BeginSection("CascadeViewOverlays", NSLOCTEXT("Cascade", "ViewOptionsHeader", "View Overlays"));
 			{
 				Menu.AddMenuEntry(FCascadeCommands::Get().View_ParticleCounts);
@@ -75,8 +73,6 @@ TSharedRef<SWidget> SCascadePreviewViewportToolBar::GenerateViewMenu() const
 
 		static void BuildViewModesMenu(FMenuBuilder& Menu)
 		{
-			const FCascadeCommands& Actions = FCascadeCommands::Get();
-
 			Menu.BeginSection("CascadeViewMode", NSLOCTEXT("Cascade", "ViewModeHeader", "View Mode"));
 			{
 				Menu.AddMenuEntry(FCascadeCommands::Get().ViewMode_Wireframe);
@@ -89,8 +85,6 @@ TSharedRef<SWidget> SCascadePreviewViewportToolBar::GenerateViewMenu() const
 
 		static void BuildDetailModesMenu(FMenuBuilder& Menu)
 		{
-			const FCascadeCommands& Actions = FCascadeCommands::Get();
-
 			Menu.BeginSection("CascadeDetailMode", NSLOCTEXT("Cascade", "DetailModeHeader", "Detail Mode"));
 			{
 				Menu.AddMenuEntry(FCascadeCommands::Get().DetailMode_Low);
@@ -151,8 +145,6 @@ TSharedRef<SWidget> SCascadePreviewViewportToolBar::GenerateTimeMenu() const
 	{
 		static void BuildAnimSpeedOptionsMenu(FMenuBuilder& Menu)
 		{
-			const FCascadeCommands& Actions = FCascadeCommands::Get();
-
 			Menu.BeginSection("CascadeAnimSpeed", NSLOCTEXT("Cascade", "AnimSpeedHeader", "AnimSpeed"));
 			{
 				Menu.AddMenuEntry(FCascadeCommands::Get().AnimSpeed_100);

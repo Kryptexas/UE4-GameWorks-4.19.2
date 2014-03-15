@@ -682,26 +682,26 @@ void UMaterialExpression::UpdateParameterGuid(bool bForceGeneration, bool bAllow
 	}
 }
 
-void UMaterialExpression::ConnectToPreviewMaterial(UMaterial* Material, int32 OutputIndex)
+void UMaterialExpression::ConnectToPreviewMaterial(UMaterial* InMaterial, int32 OutputIndex)
 {
-	if( Material && OutputIndex >=0 && OutputIndex < Outputs.Num() )
+	if (InMaterial && OutputIndex >= 0 && OutputIndex < Outputs.Num())
 	{
 		bool bUseMaterialAttributes = IsResultMaterialAttributes(0);
 
 		if( bUseMaterialAttributes )
 		{
-			Material->SetLightingModel(MLM_DefaultLit);
-			Material->bUseMaterialAttributes = true;
-			FExpressionInput* MaterialInput = Material->GetExpressionInputForProperty( MP_MaterialAttributes );
+			InMaterial->SetLightingModel(MLM_DefaultLit);
+			InMaterial->bUseMaterialAttributes = true;
+			FExpressionInput* MaterialInput = InMaterial->GetExpressionInputForProperty(MP_MaterialAttributes);
 			ConnectExpression( MaterialInput, OutputIndex );
 		}
 		else
 		{
-			Material->SetLightingModel(MLM_Unlit);
-			Material->bUseMaterialAttributes = false;
+			InMaterial->SetLightingModel(MLM_Unlit);
+			InMaterial->bUseMaterialAttributes = false;
 
 			// Connect the selected expression to the emissive node of the expression preview material.  The emissive material is not affected by light which is why its a good choice.
-			FExpressionInput* MaterialInput = Material->GetExpressionInputForProperty( MP_EmissiveColor );
+			FExpressionInput* MaterialInput = InMaterial->GetExpressionInputForProperty(MP_EmissiveColor);
 			ConnectExpression( MaterialInput, OutputIndex );
 		}
 	}

@@ -736,6 +736,7 @@ bool FLevelEditorViewportClient::AttemptApplyObjAsMaterialToSurface( UObject* Ob
 		const int32 DropX = Cursor.GetCursorPos().X;
 		const int32 DropY = Cursor.GetCursorPos().Y;
 
+		{
 		uint32 SurfaceIndex;
 		ModelHitProxy->ResolveSurface(View, DropX, DropY, SurfaceIndex);
 		if (SurfaceIndex != INDEX_NONE)
@@ -749,6 +750,7 @@ bool FLevelEditorViewportClient::AttemptApplyObjAsMaterialToSurface( UObject* Ob
 			{
 				bDropedOntoSelectedSurface = true;
 			}
+		}
 		}
 
 		if( bDropedOntoSelectedSurface )
@@ -2249,7 +2251,7 @@ TSharedPtr<FDragTool> FLevelEditorViewportClient::MakeDragTool( EDragTool::Type 
 		DragTool = MakeShareable( new FDragTool_ActorFrustumSelect() );
 		break;	
 	case EDragTool::Measure:
-		DragTool = MakeShareable( new FDragTool_Measure() );
+		DragTool = MakeShareable( new FDragTool_Measure(this) );
 		break;
 	};
 
@@ -3658,60 +3660,60 @@ void FLevelEditorViewportClient::CheckHoveredHitProxy( HHitProxy* HoveredHitProx
 
 		// If the cursor is visible over level viewports, then we'll check for new objects to be hovered over
 	if( bUseHoverFeedback && HoveredHitProxy )
-	{
+		{
 			// Set mouse hover cue for objects under the cursor
 		if( HoveredHitProxy->IsA( HActor::StaticGetType() ) )
-		{
+			{
 				// Hovered over an actor
 			HActor* ActorHitProxy = static_cast< HActor* >( HoveredHitProxy );
-			AActor* ActorUnderCursor = ActorHitProxy->Actor;
+				AActor* ActorUnderCursor = ActorHitProxy->Actor;
 
-			if( ActorUnderCursor != NULL  )
-			{
-				// Check to see if the actor under the cursor is part of a group.  If so, we will how a hover cue the whole group
-				AGroupActor* GroupActor = AGroupActor::GetRootForActor( ActorUnderCursor, true, false );
-
-				if( GroupActor && GEditor->bGroupingActive)
+				if( ActorUnderCursor != NULL  )
 				{
-					// Get all the actors in the group and add them to the list of objects to show a hover cue for.
-					TArray<AActor*> ActorsInGroup;
-					GroupActor->GetGroupActors( ActorsInGroup, true );
-					for( int32 ActorIndex = 0; ActorIndex < ActorsInGroup.Num(); ++ActorIndex )
+					// Check to see if the actor under the cursor is part of a group.  If so, we will how a hover cue the whole group
+					AGroupActor* GroupActor = AGroupActor::GetRootForActor( ActorUnderCursor, true, false );
+
+					if( GroupActor && GEditor->bGroupingActive)
 					{
-						NewHoveredObjects.Add( FViewportHoverTarget( ActorsInGroup[ActorIndex] ) );
+						// Get all the actors in the group and add them to the list of objects to show a hover cue for.
+						TArray<AActor*> ActorsInGroup;
+						GroupActor->GetGroupActors( ActorsInGroup, true );
+						for( int32 ActorIndex = 0; ActorIndex < ActorsInGroup.Num(); ++ActorIndex )
+						{
+							NewHoveredObjects.Add( FViewportHoverTarget( ActorsInGroup[ActorIndex] ) );
+						}
+					}
+					else
+					{
+						NewHoveredObjects.Add( FViewportHoverTarget( ActorUnderCursor ) );
 					}
 				}
-				else
-				{
-					NewHoveredObjects.Add( FViewportHoverTarget( ActorUnderCursor ) );
-				}
 			}
-		}
 		else if( HoveredHitProxy->IsA( HModel::StaticGetType() ) )
-		{
+			{
 				// Hovered over a model (BSP surface)
 			HModel* ModelHitProxy = static_cast< HModel* >( HoveredHitProxy );
-			UModel* ModelUnderCursor = ModelHitProxy->GetModel();
-			if (ModelUnderCursor != NULL)
-			{
-				FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
-					Viewport,
-					GetScene(),
-					EngineShowFlags)
-					.SetRealtimeUpdate(IsRealtime()));
-				FSceneView* SceneView = CalcSceneView(&ViewFamily);
-
-				uint32 SurfaceIndex = INDEX_NONE;
-				if (ModelHitProxy->ResolveSurface(SceneView, CachedMouseX, CachedMouseY, SurfaceIndex))
+				UModel* ModelUnderCursor = ModelHitProxy->GetModel();
+				if( ModelUnderCursor != NULL )
 				{
-					FBspSurf& Surf = ModelUnderCursor->Surfs[SurfaceIndex];
-					Surf.PolyFlags |= PF_Hovered;
+					FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
+						Viewport, 
+						GetScene(),
+						EngineShowFlags)
+						.SetRealtimeUpdate( IsRealtime() ));
+					FSceneView* SceneView = CalcSceneView( &ViewFamily );
 
-					NewHoveredObjects.Add(FViewportHoverTarget(ModelUnderCursor, SurfaceIndex));
+					uint32 SurfaceIndex = INDEX_NONE;
+					if( ModelHitProxy->ResolveSurface( SceneView, CachedMouseX, CachedMouseY, SurfaceIndex ) )
+					{
+						FBspSurf& Surf = ModelUnderCursor->Surfs[ SurfaceIndex ];
+						Surf.PolyFlags |= PF_Hovered;
+
+						NewHoveredObjects.Add( FViewportHoverTarget( ModelUnderCursor, SurfaceIndex ) );
+					}
 				}
 			}
 		}
-	}
 
 
 	// Check to see if there are any hovered objects that need to be updated

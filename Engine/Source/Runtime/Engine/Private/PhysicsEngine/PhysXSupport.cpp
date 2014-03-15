@@ -92,6 +92,31 @@ PxPlane U2PPlane(FPlane& Plane)
 	return PxPlane(Plane.X, Plane.Y, Plane.Z, -Plane.W);
 }
 
+UCollision2PGeom::UCollision2PGeom(const FCollisionShape & CollisionShape)
+{
+	switch (CollisionShape.ShapeType)
+	{
+		case ECollisionShape::Box:
+		{
+			new (Storage)PxBoxGeometry(U2PVector(CollisionShape.GetBox()));
+			break;
+		}
+		case ECollisionShape::Sphere:
+		{
+			new (Storage)PxSphereGeometry(CollisionShape.GetSphereRadius());
+			break;
+		}
+		case ECollisionShape::Capsule:
+		{
+			new (Storage)PxCapsuleGeometry(CollisionShape.GetCapsuleRadius(), CollisionShape.GetCapsuleAxisHalfLength());
+			break;
+		}
+		default:
+			// invalid point
+			ensure(false);
+	}
+}
+
 ///////////////////// PhysX to Unreal conversion /////////////////////
 
 FMatrix P2UMatrix(const PxMat44& PMat)
@@ -656,7 +681,7 @@ PxTriangleMesh* FPhysXFormatDataReader::ReadTriMesh( FBufferReader& Ar, uint8* I
 	return CookedMesh;
 }
 
-SIZE_T GetPhysxObjectSize(PxBase* Obj, PxCollection* SharedCollection)
+SIZE_T GetPhysxObjectSize(PxBase* Obj, const PxCollection* SharedCollection)
 {
 	PxSerializationRegistry* Sr = PxSerialization::createSerializationRegistry(*GPhysXSDK);
 	PxCollection* Collection = PxCreateCollection();
@@ -717,7 +742,7 @@ void FPhysxSharedData::Add( PxBase* Obj )
 {
 	if(Obj) 
 	{ 
-		SharedObjects->add(*Obj, (PxSerialObjectId)(SharedObjects->getNbObjects() + 1)); 
+		SharedObjects->add(*Obj); 
 	}
 }
 

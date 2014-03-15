@@ -102,9 +102,9 @@ public:
 		uint16 Thresh = UISettings->ErodeThresh;
 		int32 WeightMoveThresh = FMath::Min<int32>(FMath::Max<int32>(Thickness >> 2, Thresh), Thickness >> 1);
 
-		TArray<float> CenterWeight;
-		CenterWeight.Empty(LayerNum);
-		CenterWeight.AddUninitialized(LayerNum);
+		TArray<float> CenterWeights;
+		CenterWeights.Empty(LayerNum);
+		CenterWeights.AddUninitialized(LayerNum);
 		TArray<float> NeighborWeight;
 		NeighborWeight.Empty(NeighborNum*LayerNum);
 		NeighborWeight.AddUninitialized(NeighborNum*LayerNum);
@@ -203,13 +203,13 @@ public:
 								for (int32 LayerIdx = 0; LayerIdx < LayerNum; LayerIdx++)
 								{
 									float Weight = (float)(WeightDatas[Center*LayerNum + LayerIdx]) / 255.f;
-									CenterWeight[LayerIdx] = Weight*Thickness - Weight*WeightDiff*WeightTransfer;
-									TotalWeight += CenterWeight[LayerIdx];
+									CenterWeights[LayerIdx] = Weight*Thickness - Weight*WeightDiff*WeightTransfer;
+									TotalWeight += CenterWeights[LayerIdx];
 								}
 								// Need to normalize weight...
 								for (int32 LayerIdx = 0; LayerIdx < LayerNum; LayerIdx++)
 								{
-									WeightDatas[Center*LayerNum + LayerIdx] = (uint8)(255.f * CenterWeight[LayerIdx] / TotalWeight);
+									WeightDatas[Center*LayerNum + LayerIdx] = (uint8)(255.f * CenterWeights[LayerIdx] / TotalWeight);
 								}
 							}
 

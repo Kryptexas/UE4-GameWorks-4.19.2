@@ -1420,6 +1420,17 @@ public:
 	 *  @return true if PrimComp overlaps this component at the specified location/rotation
 	 */
 	virtual bool OverlapComponent(const FVector& Pos, const FQuat& Rot, const FCollisionShape& CollisionShape);
+
+	/**
+	 * Computes the minimum translation direction (MTD) when an overlap exists between the component and the given shape.
+	 * @param OutMTD			Outputs the MTD to move CollisionShape out of penetration
+	 * @param CollisionShape	Shape information for the geometry testing against
+	 * @param Pos				Location of collision shape
+	 * @param Rot				Rotation of collision shape
+	 * @return true if the computation succeeded - assumes that there is an overlap at the specified position/rotation
+	 */
+
+	virtual bool ComputePenetration(FMTDResult & OutMTD, const FCollisionShape & CollisionShape, const FVector & Pos, const FQuat & Rot);
 	
 	/**
 	 * Called from the Pawn's BaseChanged() event.

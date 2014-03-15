@@ -69,16 +69,16 @@ namespace SceneOutliner
 		};
 	}
 
-	void SSceneOutliner::Construct( const FArguments& InArgs, const FSceneOutlinerInitializationOptions& InitOptions )
+	void SSceneOutliner::Construct( const FArguments& InArgs, const FSceneOutlinerInitializationOptions& InInitOptions )
 	{
-		this->InitOptions = InitOptions;
+		InitOptions = InInitOptions;
 		OnContextMenuOpening = InArgs._MakeContextMenuWidgetDelegate;
 
 		OnActorPicked = InArgs._OnActorPickedDelegate;
 
-		if( InitOptions.OnSelectionChanged.IsBound() )
+		if (InInitOptions.OnSelectionChanged.IsBound())
 		{
-			SelectionChanged.Add( InitOptions.OnSelectionChanged );
+			SelectionChanged.Add(InInitOptions.OnSelectionChanged);
 		}
 
 		bFullRefresh = true;
@@ -88,7 +88,7 @@ namespace SceneOutliner
 		TotalActorCount = 0;
 		FilteredActorCount = 0;
 		SortOutlinerTimer = 0.0f;
-		bPendingFocusNextFrame = InitOptions.bFocusSearchBoxWhenOpened;
+		bPendingFocusNextFrame = InInitOptions.bFocusSearchBoxWhenOpened;
 
 		SortByColumn = ColumnID_ActorLabel;
 		SortMode = EColumnSortMode::Ascending;
@@ -113,9 +113,9 @@ namespace SceneOutliner
 
 		//Setup the FilterCollection
 		//We use the filter collection provide, otherwise we create our own
-		if( InitOptions.ActorFilters.IsValid() )
+		if (InInitOptions.ActorFilters.IsValid())
 		{
-			CustomFilters = InitOptions.ActorFilters;
+			CustomFilters = InInitOptions.ActorFilters;
 		}
 		else
 		{
@@ -126,16 +126,16 @@ namespace SceneOutliner
 		CustomFilters->OnChanged().AddSP( this, &SSceneOutliner::FullRefresh, false );
 
 		//Apply custom filters based on global preferences
-		if ( InitOptions.Mode == ESceneOutlinerMode::ActorBrowsing )
+		if (InInitOptions.Mode == ESceneOutlinerMode::ActorBrowsing)
 		{
 			ApplyShowOnlySelectedFilter( IsShowingOnlySelected() );
 			ApplyHideTemporaryActorsFilter( IsHidingTemporaryActors() );
 		}
 
 
-		if( InitOptions.CustomColumnFactory.IsBound() )
+		if (InInitOptions.CustomColumnFactory.IsBound())
 		{
-			CustomColumn = InitOptions.CustomColumnFactory.Execute( SharedThis( this ) );
+			CustomColumn = InInitOptions.CustomColumnFactory.Execute(SharedThis(this));
 		}
 		else
 		{
@@ -145,9 +145,9 @@ namespace SceneOutliner
 		TSharedRef< SHeaderRow > HeaderRowWidget =
 			SNew( SHeaderRow )
 				// Only show the list header if the user configured the outliner for that
-				.Visibility( InitOptions.bShowHeaderRow ? EVisibility::Visible : EVisibility::Collapsed );
+				.Visibility(InInitOptions.bShowHeaderRow ? EVisibility::Visible : EVisibility::Collapsed);
 
-		if (InitOptions.Mode == ESceneOutlinerMode::ActorBrowsing)
+		if (InInitOptions.Mode == ESceneOutlinerMode::ActorBrowsing)
 		{
 			// Set up the gutter if we're in actor browsing mode
 			Gutter = MakeShareable(new FSceneOutlinerGutter());
@@ -168,7 +168,7 @@ namespace SceneOutliner
 			.FillWidth( 5.0f )
 		);
 
-		if ( InitOptions.Mode == ESceneOutlinerMode::ActorBrowsing || InitOptions.CustomColumnFactory.IsBound() )
+		if (InInitOptions.Mode == ESceneOutlinerMode::ActorBrowsing || InInitOptions.CustomColumnFactory.IsBound())
 		{
 			// Customizable actor data column is only viable when browsing OR when it has been bound specifically
 
@@ -178,9 +178,9 @@ namespace SceneOutliner
 				.SortMode(this, &SSceneOutliner::GetColumnSortMode, CustomColumn->GetColumnID())
 				.OnSort(this, &SSceneOutliner::OnColumnSortModeChanged);
 
-			if (InitOptions.CustomColumnFixedWidth > 0.0f)
+			if (InInitOptions.CustomColumnFixedWidth > 0.0f)
 			{
-				CustomColumnHeaderRow.FixedWidth(InitOptions.CustomColumnFixedWidth);
+				CustomColumnHeaderRow.FixedWidth(InInitOptions.CustomColumnFixedWidth);
 			}
 			else
 			{
@@ -214,7 +214,7 @@ namespace SceneOutliner
 			.OnTextCommitted( this, &SSceneOutliner::OnFilterTextCommitted )
 		];
 
-		if (InitOptions.Mode == ESceneOutlinerMode::ActorBrowsing)
+		if (InInitOptions.Mode == ESceneOutlinerMode::ActorBrowsing)
 		{
 			Toolbar->AddSlot()
 				.VAlign(VAlign_Center)
@@ -286,7 +286,7 @@ namespace SceneOutliner
 			]
 		];
 
-		if ( InitOptions.Mode == ESceneOutlinerMode::ActorBrowsing )
+		if (InInitOptions.Mode == ESceneOutlinerMode::ActorBrowsing)
 		{
 			// Separator
 			VerticalBox->AddSlot()
@@ -355,7 +355,7 @@ namespace SceneOutliner
 
 
 		// We only synchronize selection when in actor browsing mode
-		if( InitOptions.Mode == ESceneOutlinerMode::ActorBrowsing )
+		if (InInitOptions.Mode == ESceneOutlinerMode::ActorBrowsing)
 		{
 			// Populate and register to find out when the level's selection changes
 			OnLevelSelectionChanged( NULL );
@@ -1136,7 +1136,6 @@ namespace SceneOutliner
 			}
 
 			// Darken items that aren't suitable targets for an active drag and drop actor attachment action
-			bool bDarkenItem = false;
 			if ( FSlateApplication::Get().IsDragDropping() )
 			{
 				TSharedPtr<FDragDropOperation> DragDropOp = FSlateApplication::Get().GetDragDroppingContent();
@@ -1905,10 +1904,10 @@ namespace SceneOutliner
 				const FOutlinerData SelectedItems = OutlinerTreeView->GetSelectedItems();
 				for( FOutlinerData::TConstIterator SelectedItemIt( SelectedItems ); SelectedItemIt; ++SelectedItemIt )
 				{
-					FOutlinerTreeItemPtr TreeItem = *SelectedItemIt;
-					if (TreeItem->Type == TOutlinerTreeItem::Actor)
+					FOutlinerTreeItemPtr SelectedTreeItem = *SelectedItemIt;
+					if (SelectedTreeItem->Type == TOutlinerTreeItem::Actor)
 					{
-						AActor* Actor = StaticCastSharedPtr<TOutlinerActorTreeItem>(TreeItem)->Actor.Get();
+						AActor* Actor = StaticCastSharedPtr<TOutlinerActorTreeItem>(SelectedTreeItem)->Actor.Get();
 						if( Actor != NULL )
 						{
 							ActorsToSelect.Add( Actor );
@@ -1916,7 +1915,7 @@ namespace SceneOutliner
 					}
 					else
 					{
-						FoldersToSelect.Add(TreeItem.ToSharedRef());
+						FoldersToSelect.Add(SelectedTreeItem.ToSharedRef());
 					}
 				}
 
@@ -1991,10 +1990,10 @@ namespace SceneOutliner
 				for( FSelectionIterator SelectionIt( *GEditor->GetSelectedActors() ); SelectionIt; ++SelectionIt )
 				{
 					AActor* Actor = CastChecked< AActor >( *SelectionIt );
-					auto* TreeItem = ActorToTreeItemMap.Find( Actor );
-					if( TreeItem )
+					auto* SelectedTreeItem = ActorToTreeItemMap.Find( Actor );
+					if (SelectedTreeItem)
 					{
-						OutlinerTreeView->SetItemSelection( *TreeItem, true );
+						OutlinerTreeView->SetItemSelection(*SelectedTreeItem, true);
 					}
 				}
 				for (auto FolderIt = FoldersToSelect.CreateConstIterator(); FolderIt; ++FolderIt)
@@ -2094,10 +2093,10 @@ namespace SceneOutliner
 			TArray< AActor* > SelectedActors;
 			for( FOutlinerData::TConstIterator SelectedItemIt( SelectedItems ); SelectedItemIt; ++SelectedItemIt )
 			{
-				FOutlinerTreeItemPtr TreeItem = *SelectedItemIt;
-				if (TreeItem->Type == TOutlinerTreeItem::Actor)
+				FOutlinerTreeItemPtr SelectedTreeItem = *SelectedItemIt;
+				if (SelectedTreeItem->Type == TOutlinerTreeItem::Actor)
 				{
-					AActor* Actor = StaticCastSharedPtr<TOutlinerActorTreeItem>(TreeItem)->Actor.Get();
+					AActor* Actor = StaticCastSharedPtr<TOutlinerActorTreeItem>(SelectedTreeItem)->Actor.Get();
 					if( Actor != NULL )
 					{
 						SelectedActors.Add( Actor );
@@ -2105,7 +2104,7 @@ namespace SceneOutliner
 				}
 				else
 				{
-					OutlinerTreeView->SetItemExpansion(TreeItem, !OutlinerTreeView->IsItemExpanded(TreeItem));
+					OutlinerTreeView->SetItemExpansion(SelectedTreeItem, !OutlinerTreeView->IsItemExpanded(SelectedTreeItem));
 				}
 				
 			}

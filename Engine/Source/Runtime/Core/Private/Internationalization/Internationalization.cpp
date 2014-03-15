@@ -15,7 +15,6 @@
 
 #if UE_ENABLE_ICU
 #include "ICUUtilities.h"
-#include "ICUData/icudt51l.h"
 #include <unicode/locid.h>
 #include <unicode/timezone.h>
 #include <unicode/uclean.h>
@@ -176,14 +175,6 @@ void FInternationalization::Initialize()
 	UErrorCode ICUStatus = U_ZERO_ERROR;
 	u_setMemoryFunctions(NULL, &(FICUOverrides::Malloc), &(FICUOverrides::Realloc), &(FICUOverrides::Free), &(ICUStatus));
 	u_init(&(ICUStatus));
-
-#if ICU_OVERRIDE_LINKED_DATA
-	const ICUDataOverride::ICUCommonDataOverride* OverrideData = ICUDataOverride::GetCommonDataOverride();
-	UErrorCode ErrorCode = U_ZERO_ERROR;
-	udata_setCommonData(OverrideData->bytes, &ErrorCode);
-	checkf(ErrorCode == U_ZERO_ERROR, TEXT("ICU init error: %i"),ErrorCode);
-#endif
-
 #endif
 
 	PopulateAllCultures();

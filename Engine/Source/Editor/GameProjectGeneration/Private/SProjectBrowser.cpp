@@ -221,10 +221,10 @@ void SProjectBrowser::Construct( const FArguments& InArgs )
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-void SProjectBrowser::ConstructCategory( const TSharedRef<SVerticalBox>& CategoriesBox, const TSharedRef<FProjectCategory>& Category ) const
+void SProjectBrowser::ConstructCategory( const TSharedRef<SVerticalBox>& InCategoriesBox, const TSharedRef<FProjectCategory>& Category ) const
 {
 	// Title
-	CategoriesBox->AddSlot()
+	InCategoriesBox->AddSlot()
 	.Padding(FMargin(5.f, 0.f))
 	.AutoHeight()
 	[
@@ -235,7 +235,7 @@ void SProjectBrowser::ConstructCategory( const TSharedRef<SVerticalBox>& Categor
 	];
 
 	// Separator
-	CategoriesBox->AddSlot()
+	InCategoriesBox->AddSlot()
 	.AutoHeight()
 	.Padding(5.0f, 2.0f, 5.0f, 8.0f)
 	[
@@ -244,7 +244,7 @@ void SProjectBrowser::ConstructCategory( const TSharedRef<SVerticalBox>& Categor
 	];
 
 	// Project tile view
-	CategoriesBox->AddSlot()
+	InCategoriesBox->AddSlot()
 	.AutoHeight()
 	.Padding(5.0f, 0.0f, 5.0f, 40.0f)
 	[
@@ -447,15 +447,15 @@ void SProjectBrowser::FindProjects(bool bAllowProjectCreate)
 	{
 		const FString Root = (*RootFolderIt).Folder;
 		const FText Category = (*RootFolderIt).Category;
-		const FString SearchString = Root / TEXT("*");
+		const FString RootSearchString = Root / TEXT("*");
 		TArray<FString> PotentialProjectFolders;
-		IFileManager::Get().FindFiles(PotentialProjectFolders, *SearchString, /*Files=*/false, /*Directories=*/true);
+		IFileManager::Get().FindFiles(PotentialProjectFolders, *RootSearchString, /*Files=*/false, /*Directories=*/true);
 		for (auto FolderIt = PotentialProjectFolders.CreateConstIterator(); FolderIt; ++FolderIt)
 		{
 			const FString FolderName = Root / (*FolderIt);
-			const FString SearchString = FolderName / TEXT("*.") + IProjectManager::GetProjectFileExtension();
+			const FString ProjectSearchString = FolderName / TEXT("*.") + IProjectManager::GetProjectFileExtension();
 			TArray<FString> FoundProjectFiles;
-			IFileManager::Get().FindFiles(FoundProjectFiles, *SearchString, /*Files=*/true, /*Directories=*/false);
+			IFileManager::Get().FindFiles(FoundProjectFiles, *ProjectSearchString, /*Files=*/true, /*Directories=*/false);
 			for (auto ProjectFilenameIt = FoundProjectFiles.CreateConstIterator(); ProjectFilenameIt; ++ProjectFilenameIt)
 			{
 				const FString PotentiallyRelativeFile = FolderName / (*ProjectFilenameIt);

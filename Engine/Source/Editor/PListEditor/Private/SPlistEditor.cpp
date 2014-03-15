@@ -1054,12 +1054,12 @@ bool SPListEditorPanel::PromptSave()
 					// Prompt overwriting existing file (only if a file extension was not originally provided since windows browser detects that case)
 					if(CheckFileExists(OutFilename))
 					{
-						FFormatNamedArguments Arguments;
-						Arguments.Add(TEXT("Filename"), FText::FromString( OutFilename ));
+						FFormatNamedArguments Args;
+						Args.Add(TEXT("Filename"), FText::FromString(OutFilename));
 						FText OverwriteMessageFormatting = LOCTEXT("PListCloseTabOverwriteTextFormatting", "Overwrite existing file {Filename}?");
-						FText DialogText = FText::Format( OverwriteMessageFormatting, Arguments );
+						FText OverwriteDialogText = FText::Format(OverwriteMessageFormatting, Args);
 
-						EAppReturnType::Type RetVal = OpenMsgDlgInt( EAppMsgType::YesNo, DialogText, LOCTEXT("PListWarningCaption", "Warning") );
+						EAppReturnType::Type RetVal = OpenMsgDlgInt(EAppMsgType::YesNo, OverwriteDialogText, LOCTEXT("PListWarningCaption", "Warning"));
 						if(RetVal != EAppReturnType::Yes)
 						{
 							// Said not to overwrite (or clicked x) so bail out

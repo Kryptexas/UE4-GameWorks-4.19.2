@@ -118,10 +118,10 @@ TSharedPtr< FQuestionBlock > FQuestionBlock::Create( const TSharedRef< class FEp
 						}
 						if( SubObject->HasTypedField< EJson::Array >( TEXT("branch_points") ) )
 						{
-							TArray< TSharedPtr< FJsonValue > > BranchPoints = SubObject->GetArrayField( TEXT("branch_points") );
-							for( int BranchIndex = 0; BranchIndex < BranchPoints.Num(); ++BranchIndex )
+							TArray< TSharedPtr< FJsonValue > > BranchPointsArray = SubObject->GetArrayField( TEXT("branch_points") );
+							for (int BranchIndex = 0; BranchIndex < BranchPointsArray.Num(); ++BranchIndex)
 							{
-								TSharedPtr<FJsonObject> BranchObject = BranchPoints[BranchIndex]->AsObject();
+								TSharedPtr<FJsonObject> BranchObject = BranchPointsArray[BranchIndex]->AsObject();
 
 								if( BranchObject.IsValid() )
 								{

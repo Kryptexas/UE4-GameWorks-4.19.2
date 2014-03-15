@@ -383,21 +383,6 @@ namespace UnrealVS
 			                                             new FrameworkPropertyMetadata(false));
 		}
 
-		private static void PrepareOutputPane()
-		{
-			UnrealVSPackage.Instance.DTE.ExecuteCommand("View.Output");
-
-			var Pane = UnrealVSPackage.Instance.GetOutputPane();
-			if (Pane != null)
-			{
-				// Clear and activate the output pane.
-				Pane.Clear();
-
-				// @todo: Activating doesn't seem to really bring the pane to front like we would expect it to.
-				Pane.Activate();
-			}
-		}
-
 		private static void DisplayBatchOutputText(string Text)
 		{
 			if (string.IsNullOrEmpty(Text)) return;
@@ -922,94 +907,25 @@ namespace UnrealVS
 
 				if (Project != null)
 				{
-					IVsHierarchy ProjHierarchy = Utils.ProjectToHierarchyObject(Project);
-
-					if (ProjHierarchy != null)
-					{
-						SolutionConfigurations SolutionConfigs =
-							UnrealVSPackage.Instance.DTE.Solution.SolutionBuild.SolutionConfigurations;
-
-						var SolutionConfig =
-							(from SolutionConfiguration2 Sc in SolutionConfigs select Sc).FirstOrDefault(
-								Sc =>
-								String.CompareOrdinal(Sc.Name, Job.Config) == 0 && String.CompareOrdinal(Sc.PlatformName, Job.Platform) == 0);
-
-						if (SolutionConfig != null)
+					Utils.ExecuteProjectBuild(
+						Project,
+						Job.Config,
+						Job.Platform,
+						Job.JobType,
+						delegate
 						{
-							SolutionContext ProjectSolutionCtxt = SolutionConfig.SolutionContexts.Item(Project.UniqueName);
-
-							if (ProjectSolutionCtxt != null)
-							{
-								IVsCfgProvider2 CfgProvider2 = Utils.HierarchyObjectToCfgProvider(ProjHierarchy);
-								if (CfgProvider2 != null)
-								{
-									IVsCfg Cfg;
-									CfgProvider2.GetCfgOfName(ProjectSolutionCtxt.ConfigurationName, ProjectSolutionCtxt.PlatformName, out Cfg);
-
-									if (Cfg != null)
-									{
-										_ActiveBuildJob = Job;
-										_ActiveBuildJob.JobStatus = BuildJob.BuildJobStatus.Executing;
-										_BuildJobStartTime = DateTime.Now;
-										int JobResult = VSConstants.E_FAIL;
-
-										if (Job.JobType == BuildJob.BuildJobType.Build)
-										{
-											JobResult =
-												UnrealVSPackage.Instance.SolutionBuildManager.StartUpdateSpecificProjectConfigurations(
-													1,
-													new[] {ProjHierarchy},
-													new[] {Cfg},
-													null,
-													new uint[] {0},
-													null,
-													(uint) VSSOLNBUILDUPDATEFLAGS.SBF_OPERATION_BUILD,
-													0);
-										}
-										else if (Job.JobType == BuildJob.BuildJobType.Rebuild)
-										{
-											JobResult =
-												UnrealVSPackage.Instance.SolutionBuildManager.StartUpdateSpecificProjectConfigurations(
-													1,
-													new[] {ProjHierarchy},
-													new[] {Cfg},
-													new uint[] {0},
-													null,
-													null,
-													(uint) (VSSOLNBUILDUPDATEFLAGS.SBF_OPERATION_BUILD | VSSOLNBUILDUPDATEFLAGS.SBF_OPERATION_FORCE_UPDATE),
-													0);
-										}
-										else if (Job.JobType == BuildJob.BuildJobType.Clean)
-										{
-											JobResult =
-												UnrealVSPackage.Instance.SolutionBuildManager.StartUpdateSpecificProjectConfigurations(
-													1,
-													new[] {ProjHierarchy},
-													new[] {Cfg},
-													new uint[] {0},
-													null,
-													null,
-													(uint) VSSOLNBUILDUPDATEFLAGS.SBF_OPERATION_CLEAN,
-													0);
-										}
-
-										if (JobResult == VSConstants.S_OK)
-										{
-											// Job running - show output
-											PrepareOutputPane();
-										}
-										else
-										{
-											// Job failed to start - clear active job
-											_ActiveBuildJob.JobStatus = BuildJob.BuildJobStatus.FailedToStart;
-											_ActiveBuildJob.OutputText = GetBuildJobOutputText(_ActiveBuildJob, _BuildJobStartTime);
-											_ActiveBuildJob = null;
-										}
-									}
-								}
-							}
-						}
-					}
+							// Job starting
+							_ActiveBuildJob = Job;
+							_ActiveBuildJob.JobStatus = BuildJob.BuildJobStatus.Executing;
+							_BuildJobStartTime = DateTime.Now;
+						},
+						delegate
+						{
+							// Job failed to start - clear active job
+							_ActiveBuildJob.JobStatus = BuildJob.BuildJobStatus.FailedToStart;
+							_ActiveBuildJob.OutputText = GetBuildJobOutputText(_ActiveBuildJob, _BuildJobStartTime);
+							_ActiveBuildJob = null;
+						});
 				}
 			}
 		}

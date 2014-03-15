@@ -2236,14 +2236,16 @@ void FEdModeMeshPaint::PaintTexture( const FMeshPaintParameters& InParams,
 		// Vertex color
 		FLinearColor Col0( CurTriangle.TriVertices[ 0 ].X, CurTriangle.TriVertices[ 0 ].Y, CurTriangle.TriVertices[ 0 ].Z );
 		FLinearColor Col1( CurTriangle.TriVertices[ 1 ].X, CurTriangle.TriVertices[ 1 ].Y, CurTriangle.TriVertices[ 1 ].Z );
-		FLinearColor Col2( CurTriangle.TriVertices[ 2 ].X, CurTriangle.TriVertices[ 2 ].Y, CurTriangle.TriVertices[ 2 ].Z );
+		FLinearColor Col2(CurTriangle.TriVertices[2].X, CurTriangle.TriVertices[2].Y, CurTriangle.TriVertices[2].Z);
 
 		// Brush Paint triangle
-		int32 V0 = BrushPaintBatchedElements->AddVertex(Vert0,CurTriangle.TriUVs[ 0 ],Col0,BrushPaintHitProxyId);
-		int32 V1 = BrushPaintBatchedElements->AddVertex(Vert1,CurTriangle.TriUVs[ 1 ],Col1,BrushPaintHitProxyId);
-		int32 V2 = BrushPaintBatchedElements->AddVertex(Vert2,CurTriangle.TriUVs[ 2 ],Col2,BrushPaintHitProxyId);
+		{
+			int32 V0 = BrushPaintBatchedElements->AddVertex(Vert0, CurTriangle.TriUVs[0], Col0, BrushPaintHitProxyId);
+			int32 V1 = BrushPaintBatchedElements->AddVertex(Vert1, CurTriangle.TriUVs[1], Col1, BrushPaintHitProxyId);
+			int32 V2 = BrushPaintBatchedElements->AddVertex(Vert2, CurTriangle.TriUVs[2], Col2, BrushPaintHitProxyId);
 
-		BrushPaintBatchedElements->AddTriangle(V0,V1,V2, MeshPaintBatchedElementParameters, SE_BLEND_Opaque);
+			BrushPaintBatchedElements->AddTriangle(V0, V1, V2, MeshPaintBatchedElementParameters, SE_BLEND_Opaque);
+		}
 
 		// Brush Mask triangle
 		if( bEnableSeamPainting )

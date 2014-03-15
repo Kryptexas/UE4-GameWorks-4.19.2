@@ -12,7 +12,7 @@
 class FDragTool_ActorBoxSelect : public FDragTool
 {
 public:
-	FDragTool_ActorBoxSelect( FLevelEditorViewportClient* InLevelViewportClient )
+	explicit FDragTool_ActorBoxSelect( FLevelEditorViewportClient* InLevelViewportClient )
 		: FDragTool()
 		, LevelViewportClient( InLevelViewportClient )
 	{}

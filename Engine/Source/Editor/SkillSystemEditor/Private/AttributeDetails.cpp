@@ -29,15 +29,15 @@ void FAttributePropertyDetails::CustomizeStructHeader( TSharedRef<IPropertyHandl
 	PropertyOptions.Add(MakeShareable(new FString("None")));
 
 	// Gather all UAttraibute classes
-	for (TObjectIterator<UClass> It; It; ++It)
+	for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
 	{
-		UClass *ItClass = *It;
-		if (ItClass->IsChildOf(UAttributeSet::StaticClass()) && !FKismetEditorUtilities::IsClassABlueprintSkeleton(ItClass))
+		UClass *Class = *ClassIt;
+		if (Class->IsChildOf(UAttributeSet::StaticClass()) && !FKismetEditorUtilities::IsClassABlueprintSkeleton(Class))
 		{
-			for( TFieldIterator<UProperty> It(ItClass, EFieldIteratorFlags::ExcludeSuper) ; It ; ++It )
+			for (TFieldIterator<UProperty> PropertyIt(Class, EFieldIteratorFlags::ExcludeSuper); PropertyIt; ++PropertyIt)
 			{
-				UProperty *Property = *It;
-				PropertyOptions.Add(MakeShareable(new FString(FString::Printf(TEXT("%s.%s"), *ItClass->GetName(), *Property->GetName()))));
+				UProperty *Property = *PropertyIt;
+				PropertyOptions.Add(MakeShareable(new FString(FString::Printf(TEXT("%s.%s"), *Class->GetName(), *Property->GetName()))));
 			}
 		}
 	}
@@ -480,7 +480,7 @@ void FFlexTableRowHandleDetails::CustomizeStructHeader( TSharedRef<class IProper
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-void FFlexTableRowHandleDetails::CustomizeStructChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
+void FFlexTableRowHandleDetails::CustomizeStructChildren( TSharedRef<class IPropertyHandle> InStructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
 {
 
 }
@@ -619,5 +619,4 @@ bool FFlexTableRowHandleDetails::IsEditable() const
 
 	return bValidTable;
 }
-
 #undef LOCTEXT_NAMESPACE

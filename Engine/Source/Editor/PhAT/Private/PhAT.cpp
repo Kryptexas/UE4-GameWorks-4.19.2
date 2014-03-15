@@ -38,21 +38,21 @@ namespace PhAT
 class FPhATTreeInfo
 {
 public:
-	FPhATTreeInfo(	FName Name, 
-					bool bBold,
-					int32 ParentBoneIdx = INDEX_NONE, 
-					int32 BoneOrConstraintIdx = INDEX_NONE, 
-					int32 BodyIdx = INDEX_NONE, 
-					int32 CollisionIdx = INDEX_NONE, 
-					EKCollisionPrimitiveType CollisionType = KPT_Unknown)
+	FPhATTreeInfo(	FName InName, 
+					bool bInBold,
+					int32 InParentBoneIdx = INDEX_NONE, 
+					int32 InBoneOrConstraintIdx = INDEX_NONE, 
+					int32 InBodyIdx = INDEX_NONE, 
+					int32 InCollisionIdx = INDEX_NONE, 
+					EKCollisionPrimitiveType InCollisionType = KPT_Unknown)
+		: Name(InName)
+		, bBold(bInBold)
+		, ParentBoneIdx(InParentBoneIdx)
+		, BoneOrConstraintIdx(InBoneOrConstraintIdx)
+		, BodyIdx(InBodyIdx)
+		, CollisionIdx(InCollisionIdx)
+		, CollisionType(InCollisionType)
 	{
-		this->Name = Name;
-		this->bBold = bBold;
-		this->ParentBoneIdx = ParentBoneIdx;
-		this->BoneOrConstraintIdx = BoneOrConstraintIdx;
-		this->BodyIdx = BodyIdx;
-		this->CollisionIdx = CollisionIdx;
-		this->CollisionType = CollisionType;
 	}
 
 	FName Name;
@@ -478,9 +478,9 @@ void FPhAT::RefreshHierachyTree()
 	{
 		TSharedPtr<FPhATSharedData> SharedData;
 
-		FCompareBoneIndex(TSharedPtr<FPhATSharedData> SharedData)
+		FCompareBoneIndex(TSharedPtr<FPhATSharedData> InSharedData)
+			: SharedData(InSharedData)
 		{
-			this->SharedData = SharedData;
 		}
 
 		FORCEINLINE bool operator()(const FTreeElemPtr &A, const FTreeElemPtr &B) const
@@ -1470,22 +1470,22 @@ void FPhAT::OnTreeSelectionChanged(FTreeElemPtr TreeElem, ESelectInfo::Type Sele
 	if(SelectedElems.Num() && SharedData->EditingMode == FPhATSharedData::PEM_BodyEdit)
 	{
 		SharedData->SetSelectedBody(NULL);	
-	}else if(SelectedElems.Num() && SharedData->EditingMode == FPhATSharedData::PEM_ConstraintEdit)
+	}
+	else if(SelectedElems.Num() && SharedData->EditingMode == FPhATSharedData::PEM_ConstraintEdit)
 	{
 		SharedData->SetSelectedConstraint(INDEX_NONE);
 	}
 
-	for(int32 i=0; i<SelectedElems.Num(); ++i)
+	for(FTreeElemPtr SelectedElem : SelectedElems)
 	{
-		TreeElem = SelectedElems[i];
-		int32 ObjIndex = (*TreeElem).BoneOrConstraintIdx;
+		int32 ObjIndex = (*SelectedElem).BoneOrConstraintIdx;
 		if (SharedData->EditingMode == FPhATSharedData::PEM_BodyEdit)
 		{
 			if (ObjIndex != INDEX_NONE)
 			{
 				for (int32 i = 0; i < SharedData->PhysicsAsset->BodySetup.Num(); ++i)
 				{
-					if (SharedData->PhysicsAsset->BodySetup[i]->BoneName == (*TreeElem).Name)
+					if (SharedData->PhysicsAsset->BodySetup[i]->BoneName == (*SelectedElem).Name)
 					{
 						FKAggregateGeom& AggGeom = SharedData->PhysicsAsset->BodySetup[i]->AggGeom;
 
@@ -1516,7 +1516,7 @@ void FPhAT::OnTreeSelectionChanged(FTreeElemPtr TreeElem, ESelectInfo::Type Sele
 			}
 			else
 			{
-				FPhATTreeInfo Info = *TreeElem;
+				FPhATTreeInfo Info = *SelectedElem;
 				if (Info.ParentBoneIdx != INDEX_NONE)
 				{
 					SharedData->HitBone(Info.BodyIdx, Info.CollisionType, Info.CollisionIdx, true, false);
@@ -1600,24 +1600,24 @@ TSharedPtr<SWidget> FPhAT::BuildMenuWidgetBody(bool bHierarchy /*= false*/)
 
 		struct FLocal
 		{
-			static void FillPhysicsTypeMenu(FMenuBuilder& MenuBuilder, bool bHierarchy)
+			static void FillPhysicsTypeMenu(FMenuBuilder& InMenuBuilder, bool bInHierarchy)
 			{
-				const FPhATCommands& Commands = FPhATCommands::Get();
+				const FPhATCommands& PhATCommands = FPhATCommands::Get();
 
-				MenuBuilder.BeginSection( "BodyPhysicsTypeActions", LOCTEXT( "BodyPhysicsTypeHeader", "Body Physics Type" ) );
-				MenuBuilder.AddMenuEntry( Commands.MakeBodyFixed );
-				MenuBuilder.AddMenuEntry( Commands.MakeBodyUnfixed );
-				MenuBuilder.AddMenuEntry( Commands.MakeBodyDefault );
-				MenuBuilder.EndSection();
-				MenuBuilder.EndSection();
+				InMenuBuilder.BeginSection("BodyPhysicsTypeActions", LOCTEXT("BodyPhysicsTypeHeader", "Body Physics Type"));
+				InMenuBuilder.AddMenuEntry(PhATCommands.MakeBodyFixed);
+				InMenuBuilder.AddMenuEntry(PhATCommands.MakeBodyUnfixed);
+				InMenuBuilder.AddMenuEntry(PhATCommands.MakeBodyDefault);
+				InMenuBuilder.EndSection();
+				InMenuBuilder.EndSection();
 
-				if(bHierarchy)
+				if (bInHierarchy)
 				{
-					MenuBuilder.BeginSection( "BodiesBelowPhysicsTypeActions", LOCTEXT( "BodiesBelowPhysicsTypeHeader", "Bodies Below Physics Type" ) );
-					MenuBuilder.AddMenuEntry( Commands.FixAllBodiesBelow );
-					MenuBuilder.AddMenuEntry( Commands.UnfixAllBodiesBelow );
-					MenuBuilder.AddMenuEntry( Commands.MakeAllBodiesBelowDefault );
-					MenuBuilder.EndSection();
+					InMenuBuilder.BeginSection("BodiesBelowPhysicsTypeActions", LOCTEXT("BodiesBelowPhysicsTypeHeader", "Bodies Below Physics Type"));
+					InMenuBuilder.AddMenuEntry(PhATCommands.FixAllBodiesBelow);
+					InMenuBuilder.AddMenuEntry(PhATCommands.UnfixAllBodiesBelow);
+					InMenuBuilder.AddMenuEntry(PhATCommands.MakeAllBodiesBelowDefault);
+					InMenuBuilder.EndSection();
 				}
 			}
 		};
@@ -2759,17 +2759,16 @@ void FPhAT::OnDeleteAllBodiesBelow()
 {
 	TArray<UBodySetup*> BodySetups;
 
-	for(int32 i=0; i<SharedData->SelectedBodies.Num(); ++i)
+	for (FPhATSharedData::FSelection SelectedBody : SharedData->SelectedBodies)
 	{
-		UBodySetup* BaseSetup = SharedData->PhysicsAsset->BodySetup[SharedData->SelectedBodies[i].Index];
+		UBodySetup* BaseSetup = SharedData->PhysicsAsset->BodySetup[SelectedBody.Index];
 		
 		// Build a list of BodySetups below this one
 		TArray<int32> BelowBodies;
 		SharedData->PhysicsAsset->GetBodyIndicesBelow(BelowBodies, BaseSetup->BoneName, SharedData->EditorSkelMesh);
 
-		for (int32 i = 0; i <BelowBodies.Num(); ++i)
+		for (const int32 BodyIndex : BelowBodies)
 		{
-			int32 BodyIndex = BelowBodies[i];
 			UBodySetup* BodySetup = SharedData->PhysicsAsset->BodySetup[BodyIndex];
 			BodySetups.Add(BodySetup);
 		}
@@ -2780,10 +2779,10 @@ void FPhAT::OnDeleteAllBodiesBelow()
 		const FScopedTransaction Transaction( LOCTEXT( "DeleteBodiesBelow", "Delete Bodies Below" ) );
 
 		// Now remove each one
-		for (int32 i = 0; i <BodySetups.Num(); ++i)
+		for (UBodySetup* BodySetup : BodySetups)
 		{
 			// Use PhAT function to delete action (so undo works etc)
-			int32 Index = SharedData->PhysicsAsset->FindBodyIndex(BodySetups[i]->BoneName);
+			int32 Index = SharedData->PhysicsAsset->FindBodyIndex(BodySetup->BoneName);
 			if(Index != INDEX_NONE)
 			{
 				SharedData->DeleteBody(Index, false);

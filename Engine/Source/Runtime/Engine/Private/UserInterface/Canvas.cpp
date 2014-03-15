@@ -1194,12 +1194,12 @@ void UCanvas::DrawTile( UTexture* Tex, float X, float Y, float Z, float XL, floa
 		// was written using 0..TexSize coordinates, not 0..1, so to make the 0..1 coords
 		// we divide by what the texture was when the script code was written
 		// TEXTURE_TODO: This info is no longer stored outside of the Editor. Needed?
-		float SizeX = Tex->GetSurfaceWidth();
-		float SizeY = Tex->GetSurfaceHeight();
+		float TexSurfaceWidth= Tex->GetSurfaceWidth();
+		float TexSurfaceHeight = Tex->GetSurfaceHeight();
 
 		FCanvasTileItem TileItem( FVector2D( X, Y ), Tex->Resource,  FVector2D( w, h ),  
-			FVector2D( U / SizeX, V / SizeY), 
-			FVector2D( U / SizeX + UL / SizeX * w / XL, V / SizeY + VL / SizeY * h/YL ), 
+			FVector2D(U / TexSurfaceWidth, V / TexSurfaceHeight),
+			FVector2D(U / TexSurfaceWidth + UL / TexSurfaceWidth * w / XL, V / TexSurfaceHeight + VL / TexSurfaceHeight * h / YL),
 			DrawColor );
 		TileItem.BlendMode = FCanvas::BlendToSimpleElementBlend( BlendMode );
 		Canvas->DrawItem( TileItem );	
@@ -1280,16 +1280,16 @@ int32 UCanvas::WrappedPrint(bool Draw, float X, float Y, int32& out_XL, int32& o
 		if (bCenterTextX || bCenterTextY)
 		{
 			// Center text about DrawX
-			int32 SizeX, SizeY;
-			StringSize(Font, SizeX, SizeY, *WrappedStrings[Idx].Value);
+			int32 StringSizeX, StringSizeY;
+			StringSize(Font, StringSizeX, StringSizeY, *WrappedStrings[Idx].Value);
 
 			if (bCenterTextX)
 			{
-				DrawX = OrgX + X - (SizeX / 2);
+				DrawX = OrgX + X - (StringSizeX / 2);
 			}
 			if (bCenterTextY)
 			{
-				DrawY = OrgY + Y - (SizeY / 2);
+				DrawY = OrgY + Y - (StringSizeY / 2);
 			}
 		}
 

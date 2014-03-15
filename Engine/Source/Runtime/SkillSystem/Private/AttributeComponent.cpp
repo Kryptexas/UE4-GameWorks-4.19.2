@@ -144,7 +144,7 @@ bool UAttributeComponent::AreGameplayEffectApplicationRequirementsSatisfied(cons
 
 bool UAttributeComponent::IsOwnerActorAuthoritative() const
 {
-	return false;
+	return !IsNetSimulating();
 }
 
 void UAttributeComponent::SetNumericAttribute(const FGameplayAttribute &Attribute, float NewFloatValue)
@@ -354,7 +354,8 @@ void UAttributeComponent::InvokeGameplayCueExecute(const FGameplayEffectSpec &Sp
 		return;
 	}
 	
-	float ExecuteLevel = Spec.ModifierLevel.Get()->GetLevel();
+	// FIXME: Replication of level not finished
+	float ExecuteLevel = Spec.ModifierLevel.Get()->IsValid() ? Spec.ModifierLevel.Get()->GetLevel() : 1.f;
 	for (FGameplayEffectCue CueInfo : Spec.Def->GameplayCues)
 	{
 		float NormalizedMagnitude = CueInfo.NormalizeLevel(ExecuteLevel);
@@ -371,12 +372,18 @@ void UAttributeComponent::InvokeGameplayCueActivated(const FGameplayEffectSpec &
 		return;
 	}
 
-	float ExecuteLevel = Spec.ModifierLevel.Get()->GetLevel();
+	// FIXME: Replication of level not finished
+	float ExecuteLevel = Spec.ModifierLevel.Get()->IsValid() ? Spec.ModifierLevel.Get()->GetLevel() : 1.f; 
 	for (FGameplayEffectCue CueInfo : Spec.Def->GameplayCues)
 	{
 		float NormalizedMagnitude = CueInfo.NormalizeLevel(ExecuteLevel);
 		GameplayCueInterface->GameplayCueActivated(CueInfo.GameplayCueTags, NormalizedMagnitude);
 	}
+}
+
+void UAttributeComponent::NetMulticast_InvokeGameplayCueExecuted_Implementation(const FGameplayEffectSpec Spec)
+{
+	InvokeGameplayCueExecute(Spec);
 }
 
 void UAttributeComponent::InvokeGameplayCueAdded(const FGameplayEffectSpec &Spec)
@@ -388,6 +395,7 @@ void UAttributeComponent::InvokeGameplayCueAdded(const FGameplayEffectSpec &Spec
 		return;
 	}
 
+	// FIXME: Replication of level not finished
 	float ExecuteLevel = Spec.ModifierLevel.Get()->IsValid() ? Spec.ModifierLevel.Get()->GetLevel() : 1.f;
 	for (FGameplayEffectCue CueInfo : Spec.Def->GameplayCues)
 	{
@@ -405,7 +413,8 @@ void UAttributeComponent::InvokeGameplayCueRemoved(const FGameplayEffectSpec &Sp
 		return;
 	}
 
-	float ExecuteLevel = Spec.ModifierLevel.Get()->GetLevel();
+	// FIXME: Replication of level not finished
+	float ExecuteLevel = Spec.ModifierLevel.Get()->IsValid() ? Spec.ModifierLevel.Get()->GetLevel() : 1.f;
 	for (FGameplayEffectCue CueInfo : Spec.Def->GameplayCues)
 	{
 		float NormalizedMagnitude = CueInfo.NormalizeLevel(ExecuteLevel);

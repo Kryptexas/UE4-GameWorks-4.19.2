@@ -667,8 +667,17 @@ void FActiveGameplayEffect::PreReplicatedRemove(const struct FActiveGameplayEffe
 
 void FActiveGameplayEffect::PostReplicatedAdd(const struct FActiveGameplayEffectsContainer &InArray)
 {
-	InArray.Owner->InvokeGameplayCueAdded(Spec);
+	static const float MAX_DELTA_TIME = 3.f;
 
+	InArray.Owner->InvokeGameplayCueAdded(Spec);
+	// Was this actually just activated, or are we just finding out about it due to relevancy/join in progress?
+	float WorldTimeSeconds = InArray.Owner->GetWorld()->GetTimeSeconds();
+	float DeltaTime = WorldTimeSeconds - StartTime;
+
+	if (WorldTimeSeconds > 0.f && FMath::Abs(DeltaTime) < MAX_DELTA_TIME)
+	{
+		InArray.Owner->InvokeGameplayCueActivated(Spec);
+	}
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -753,6 +762,14 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(const FGameplayEf
 	{
 		if (Mod.Info.ModifierType == EGameplayMod::Attribute)
 		{
+			UAttributeSet * AttributeSet = Owner->GetAttributeSubobject(Mod.Info.Attribute.GetAttributeSetClass());
+			if (AttributeSet == NULL)
+			{
+				// Our owner doesn't have this attribute, so we can't do anything
+				SKILL_LOG(Log, TEXT("%s does not have attribute %s. Skipping modifier"), *Owner->GetPathName(), *Mod.Info.Attribute.GetName());
+				continue;
+			}
+
 			// Todo: Tags/application checks here - make sure we can still apply
 			InvokeGameplayCueExecute = true;
 
@@ -764,7 +781,11 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(const FGameplayEf
 
 			FGameplayEffectModCallbackData ExecuteData(Spec, Mod, EvaluatedData, *Owner);
 						
+			/** This should apply 'gameplay effect specific' rules, such as life steal, shields, etc */
 			Mod.Aggregator.Get()->PreEvaluate(ExecuteData);
+
+			/** This should apply 'gamewide' rules. Such as clamping Health to MaxHealth or granting +3 health for every point of strength, etc */
+			AttributeSet->PreAttributeModify(ExecuteData);
 
 			// Do we have active GE's that are already modifying this?
 			FAggregatorRef *RefPtr = OngoingPropertyEffects.Find(Mod.Info.Attribute);
@@ -781,17 +802,18 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(const FGameplayEf
 
 				Aggregator.ExecuteMod(Mod.Info.ModifierOp, EvaluatedData);
 				
-				const FGameplayModifierEvaluatedData &EvaluatedData = Aggregator.Evaluate();
-				float NewPropertyValue = EvaluatedData.Magnitude;
+				const float NewPropertyValue = Aggregator.Evaluate().Magnitude;
 
 				SKILL_LOG(Log, TEXT("Property %s new value is: %.2f [was: %.2f]"), *Mod.Info.Attribute.GetName(), NewPropertyValue, CurrentValueOfProperty);
 				Owner->SetNumericAttribute(Mod.Info.Attribute, NewPropertyValue);
 			}
 
+			/** This should apply 'gameplay effect specific' rules, such as life steal, shields, etc */
 			Mod.Aggregator.Get()->PostEvaluate(ExecuteData);
 
-			// Let instigators know what they did
-			//Spec.OnExecute.Broadcast(Mod.Info.Attribute, EvaluatedData, Spec);
+			/** This should apply 'gamewide' rules. Such as clamping Health to MaxHealth or granting +3 health for every point of strength, etc */
+			AttributeSet->PostAttributeModify(ExecuteData);
+			
 		}
 		else if(Mod.Info.ModifierType == EGameplayMod::ActiveGE)
 		{
@@ -818,8 +840,10 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(const FGameplayEf
 
 	if (InvokeGameplayCueExecute)
 	{
+		// TODO: check replication policy. Right now we will replciate every execute via a multicast RPC
+
 		SKILL_LOG(Log, TEXT("Invoking Execute GameplayCue for %s"), *Spec.ToSimpleString() );
-		Owner->InvokeGameplayCueExecute(Spec);
+		Owner->NetMulticast_InvokeGameplayCueExecuted(Spec);
 	}
 
 }
@@ -956,8 +980,22 @@ void FActiveGameplayEffectsContainer::RegisterAttributeModifyCallback(FGameplayA
 	PropertyExecutionCallbacks.FindOrAdd(Attribute) = Delegate;
 }
 
+bool FActiveGameplayEffectsContainer::IsNetAuthority() const
+{
+	check(Owner);
+	return Owner->IsOwnerActorAuthoritative();
+}
+
 void FActiveGameplayEffectsContainer::TEMP_TickActiveEffects(float DeltaSeconds)
 {
+	if (!IsNetAuthority())
+	{
+		// For now - clients don't tick their GameplayEffects at all. 
+		// We eventually want them to tick to predicate gameplay cue events.
+		return;
+	}
+
+
 	float CurrentTime = Owner->GetWorld()->GetTimeSeconds();
 	for (int32 idx = 0; idx < GameplayEffects.Num(); ++idx)
 	{
@@ -979,6 +1017,7 @@ void FActiveGameplayEffectsContainer::TEMP_TickActiveEffects(float DeltaSeconds)
 		float Duration = Effect.GetDuration();
 		if (Duration > 0.f && Effect.StartTime + Effect.GetDuration() < CurrentTime)
 		{
+			MarkArrayDirty();
 			GameplayEffects.RemoveAtSwap(idx);
 			idx--;
 		}

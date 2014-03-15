@@ -2,6 +2,7 @@
 
 #pragma once
 #include "BehaviorTreeEditorTypes.h"
+#include "DiffResults.h"
 #include "BehaviorTreeGraphNode.generated.h"
 
 UCLASS()
@@ -24,20 +25,22 @@ class UBehaviorTreeGraphNode : public UEdGraphNode
 	UPROPERTY()
 	TArray<UBehaviorTreeGraphNode*> Services;
 
-	/** Get the BT graph that owns this node */
+	// Begin UEdGraphNode Interface
 	virtual class UBehaviorTreeGraph* GetBehaviorTreeGraph();
-
 	virtual void AllocateDefaultPins() OVERRIDE;
-
 	virtual void AutowireNewNode(UEdGraphPin* FromPin) OVERRIDE;
-
 	virtual void PostPlacedNewNode() OVERRIDE;
-	virtual void PostEditImport() OVERRIDE;
 	virtual void PrepareForCopying() OVERRIDE;
-	virtual void PostCopyNode();
-
-	/** Destroy the specified node */
 	virtual void DestroyNode() OVERRIDE;
+	virtual FString GetTooltip() const OVERRIDE;
+	virtual void NodeConnectionListChanged() OVERRIDE;
+	virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* DesiredSchema) const OVERRIDE;
+	virtual void FindDiffs(class UEdGraphNode* OtherNode, struct FDiffResults& Results) OVERRIDE;
+	// End UEdGraphNode Interface
+
+	// Begin UObject Interface
+	virtual void PostEditImport() OVERRIDE;
+	// End UObject
 
 	// @return the input pin for this state
 	virtual UEdGraphPin* GetInputPin(int32 InputIndex=0) const;
@@ -47,16 +50,22 @@ class UBehaviorTreeGraphNode : public UEdGraphNode
 	virtual UEdGraph* GetBoundGraph() const { return NULL; }
 
 	virtual FString	GetDescription() const;
-	virtual FString GetTooltip() const OVERRIDE;
-
-	virtual void NodeConnectionListChanged() OVERRIDE;
-
-	virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* DesiredSchema) const OVERRIDE;
-
 	/** check if node can accept breakpoints */
 	virtual bool CanPlaceBreakpoints() const { return false; }
+	virtual void PostCopyNode();
 
 	virtual bool IsSubNode() const { return false; }
+
+	/*
+	 * Finds the difference in Behavior Tree properties
+	 * 
+	 * @param Struct The struct of the class we are looking at
+	 * @param Data The raw data for the UObject we are comparing LHS
+	 * @param OtherData The raw data for the UObject we are comparing RHS
+	 * @param Results The Results where differences are stored
+	 * @param Diff The single result with default parameters setup
+	 */
+	void DiffProperties(UStruct* Struct, void* Data, void* OtherData, FDiffResults& Results, FDiffSingleResult& Diff);
 
 	void ClearDebuggerState();
 

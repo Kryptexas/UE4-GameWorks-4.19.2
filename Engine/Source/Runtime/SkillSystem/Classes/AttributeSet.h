@@ -44,10 +44,10 @@ struct SKILLSYSTEM_API FGameplayAttribute
 	bool operator==(const FGameplayAttribute& Other) const;
 	bool operator!=(const FGameplayAttribute& Other) const;
 
-	friend uint32 GetTypeHash( const FGameplayAttribute& Attribute )
+	friend uint32 GetTypeHash( const FGameplayAttribute& InAttribute )
 	{
 		// FIXME: Use ObjectID or something to get a better, less collision prone hash
-		return PointerHash(Attribute.Attribute);
+		return PointerHash(InAttribute.Attribute);
 	}
 
 	FString GetName() const
@@ -69,10 +69,11 @@ class SKILLSYSTEM_API UAttributeSet : public UObject
 
 public:
 
+	/** Called just before modifying the value of an attribute. AttributeSet can make additional modifications here. */
+	virtual void PreAttributeModify(struct FGameplayEffectModCallbackData &Data) { }
 	
-	// Temp just for automation tests
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="AttributeTest")
-	float	HealthTest;
+	/** Called just after modifying the value of an attribute. No more changes can be made */
+	virtual void PostAttributeModify(const struct FGameplayEffectModCallbackData &Data) { }
 
 	void InitFromMetaDataTable(const UDataTable* DataTable);
 

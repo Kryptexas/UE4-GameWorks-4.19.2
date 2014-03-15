@@ -107,6 +107,11 @@ namespace UnrealVS
 		[System.Diagnostics.CodeAnalysis.SuppressMessage( "Microsoft.Design", "CA1009" )]
 		public event OnBuildDoneDelegate OnBuildDone;
 
+		/// Called when the UIContext changes
+		public delegate void OnUIContextChangedDelegate(uint CmdUICookie, bool bActive);
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1009")]
+		public event OnUIContextChangedDelegate OnUIContextChanged;
+
 		/** Public Fields & Properties */
 
 		/// Returns singleton instance of UnrealVSPackage
@@ -130,6 +135,13 @@ namespace UnrealVS
 
 		/// Our startup project selector component
 		public StartupProjectSelector StartupProjectSelector { get; private set; }
+
+		/// Our quick build component
+		public QuickBuild QuickBuilder { get; private set; }
+
+		/// Visual Studio shell selection manager interface.  Used to receive notifications about
+		/// startup projects changes, among other things.
+		public IVsMonitorSelection SelectionManager { get; private set; }
 
 		/** Methods */
 
@@ -198,6 +210,9 @@ namespace UnrealVS
 			// Create Batch Builder tools
 			BatchBuilder = new BatchBuilder();
 
+			// Create the project menu quick builder
+			QuickBuilder = new QuickBuild();
+
 			// Create a "ticker" on a background thread that ticks the package on the UI thread
 			Ticker = new Thread(TickAsyncMain);
 			Ticker.Priority = ThreadPriority.Lowest;
@@ -242,6 +257,8 @@ namespace UnrealVS
 
 			CommandLineEditor = null;
 			StartupProjectSelector = null;
+			BatchBuilder = null;
+			QuickBuilder = null;
 
 			// No longer want solution events
 			if( SolutionEventsHandle != 0 )
@@ -530,6 +547,11 @@ namespace UnrealVS
 
 		int IVsSelectionEvents.OnCmdUIContextChanged( uint dwCmdUICookie, int fActive )
 		{
+			if (OnUIContextChanged != null)
+			{
+				OnUIContextChanged(dwCmdUICookie, fActive != 0);
+			}
+
 			return VSConstants.S_OK;
 		}
 
@@ -670,10 +692,6 @@ namespace UnrealVS
 		/** Private Fields & Properties */
 
 		private static UnrealVSPackage PrivateInstance = null;
-
-		/// Visual Studio shell selection manager interface.  Used to receive notifications about
-		/// startup projects changes, among other things.
-		private IVsMonitorSelection SelectionManager;
 
 		/// Handle that we used at shutdown to unregister for selection manager events
 		private UInt32 SelectionEventsHandle;

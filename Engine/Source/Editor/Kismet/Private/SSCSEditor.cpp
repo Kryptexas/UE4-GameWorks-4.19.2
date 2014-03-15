@@ -1154,11 +1154,18 @@ void SSCS_RowWidget::OnAttachToDropAction(FSCSEditorTreeNodePtrType DroppedNodeP
 	check(NodePtr.IsValid());
 	check(DroppedNodePtr.IsValid());
 
-	check(SCSEditor.IsValid());
-	check(SCSEditor.Pin()->SCS);
+	TSharedPtr<SSCSEditor> SCSEditorPtr = SCSEditor.Pin();
+	check(SCSEditorPtr.IsValid());
+
+	TSharedPtr<FBlueprintEditor> Kismet2Ptr = SCSEditorPtr->Kismet2Ptr.Pin();
+	check(Kismet2Ptr.IsValid());
+
+	AActor* PreviewActor = Kismet2Ptr->GetPreviewActor();
+	check(PreviewActor);
 
 	// Get the current Blueprint context
-	UBlueprint* Blueprint = SCSEditor.Pin()->SCS->GetBlueprint();
+	check(SCSEditorPtr->SCS);
+	UBlueprint* Blueprint = SCSEditorPtr->SCS->GetBlueprint();
 	check(Blueprint);
 
 	FScopedTransaction* TransactionContext = NULL;
@@ -1172,8 +1179,8 @@ void SSCS_RowWidget::OnAttachToDropAction(FSCSEditorTreeNodePtrType DroppedNodeP
 		UActorComponent* ComponentTemplate = DroppedNodePtr->GetComponentTemplate();
 		check(ComponentTemplate);
 
-		// Note: This will mark the Blueprint as structurally modified
-		UActorComponent* ClonedComponent = SCSEditor.Pin()->AddNewComponent(ComponentTemplate->GetClass(), NULL);
+		// Note: This will mark the Blueprint as structurally modified and create a transaction record
+		UActorComponent* ClonedComponent = SCSEditorPtr->AddNewComponent(ComponentTemplate->GetClass(), NULL);
 		check(ClonedComponent);
 
 		//Serialize object properties using write/read operations.
@@ -1181,7 +1188,7 @@ void SSCS_RowWidget::OnAttachToDropAction(FSCSEditorTreeNodePtrType DroppedNodeP
 		FObjectWriter Writer(ComponentTemplate, SavedProperties);
 		FObjectReader(ClonedComponent, SavedProperties);
 
-		DroppedNodePtr = SCSEditor.Pin()->GetNodeFromActorComponent(ClonedComponent);
+		DroppedNodePtr = SCSEditorPtr->GetNodeFromActorComponent(ClonedComponent);
 		check(DroppedNodePtr.IsValid());
 	}
 	else
@@ -1189,22 +1196,83 @@ void SSCS_RowWidget::OnAttachToDropAction(FSCSEditorTreeNodePtrType DroppedNodeP
 		TransactionContext = new FScopedTransaction( LOCTEXT("AttachComponent", "Attach Component") );
 	}
 
-	if(DroppedNodePtr->GetParent().IsValid()
+	// Get the associated component template if it is a scene component, so we can adjust the transform
+	USceneComponent* SceneComponentTemplate = Cast<USceneComponent>(DroppedNodePtr->GetComponentTemplate());
+
+	// Check for a valid parent node
+	FSCSEditorTreeNodePtrType ParentNodePtr = DroppedNodePtr->GetParent();
+	if(ParentNodePtr.IsValid()
 		&& DroppedNodePtr->GetBlueprint() == Blueprint)
 	{
-		// Remove the dropped node from its existing parent
-		DroppedNodePtr->GetParent()->RemoveChild(DroppedNodePtr);
+		// Detach the dropped node from its parent
+		ParentNodePtr->RemoveChild(DroppedNodePtr);
+
+		// If the associated component template is a scene component, maintain its preview world position
+		if(SceneComponentTemplate)
+		{
+			// Save current state
+			SceneComponentTemplate->Modify();
+
+			// Reset the attach socket name
+			SceneComponentTemplate->AttachSocketName = NAME_None;
+			USCS_Node* SCS_Node = DroppedNodePtr->GetSCSNode();
+			if(SCS_Node)
+			{
+				SCS_Node->Modify();
+				SCS_Node->AttachToName = NAME_None;
+			}
+
+			// Attempt to locate a matching instance of the component template in the preview scene
+			USceneComponent* PreviewSceneComponent = Cast<USceneComponent>(DroppedNodePtr->FindComponentInstanceInActor(PreviewActor, true));
+			if(PreviewSceneComponent)
+			{
+				// If we find a match, save off the world position
+				FTransform ComponentToWorld = PreviewSceneComponent->GetComponentToWorld();
+				SceneComponentTemplate->RelativeLocation = ComponentToWorld.GetTranslation();
+				SceneComponentTemplate->RelativeRotation = ComponentToWorld.Rotator();
+				SceneComponentTemplate->RelativeScale3D = ComponentToWorld.GetScale3D();
+			}
+		}
 	}
 	
+	// Attach the dropped node to the given node
 	NodePtr->AddChild(DroppedNodePtr);
+
+	// Attempt to locate a matching instance of the parent component template in the preview scene
+	USceneComponent* PreviewSceneParentComponent = Cast<USceneComponent>(NodePtr->FindComponentInstanceInActor(PreviewActor, true));
+	if(SceneComponentTemplate && PreviewSceneParentComponent)
+	{
+		// If we find a match, calculate its new position relative to the scene root component instance in the preview scene
+		FTransform ComponentToWorld(SceneComponentTemplate->RelativeRotation, SceneComponentTemplate->RelativeLocation, SceneComponentTemplate->RelativeScale3D);
+		FTransform ParentToWorld = PreviewSceneParentComponent->GetSocketTransform(SceneComponentTemplate->AttachSocketName);
+		FTransform RelativeTM = ComponentToWorld.GetRelativeTransform(ParentToWorld);
+
+		// Store new relative location value (if not set to absolute)
+		if(!SceneComponentTemplate->bAbsoluteLocation)
+		{
+			SceneComponentTemplate->RelativeLocation = RelativeTM.GetTranslation();
+		}
+
+		// Store new relative rotation value (if not set to absolute)
+		if(!SceneComponentTemplate->bAbsoluteRotation)
+		{
+			SceneComponentTemplate->RelativeRotation = RelativeTM.Rotator();
+		}
+
+		// Store new relative scale value (if not set to absolute)
+		if(!SceneComponentTemplate->bAbsoluteScale)
+		{
+			SceneComponentTemplate->RelativeScale3D = RelativeTM.GetScale3D();
+		}
+	}
 
 	if(TransactionContext)
 	{
 		delete TransactionContext;
 	}
 
-	check(SCSEditor.Pin()->SCSTreeWidget.IsValid());
-	SCSEditor.Pin()->SCSTreeWidget->SetItemExpansion(NodePtr, true);
+	check(SCSEditorPtr->SCSTreeWidget.IsValid());
+	SCSEditorPtr->SCSTreeWidget->SetItemExpansion(NodePtr, true);
 
 	PostDragDropAction(bRegenerateTreeNodes);
 }
@@ -1214,16 +1282,80 @@ void SSCS_RowWidget::OnDetachFromDropAction(FSCSEditorTreeNodePtrType DroppedNod
 	check(NodePtr.IsValid());
 	check(DroppedNodePtr.IsValid());
 
-	check(SCSEditor.IsValid());
-	check(SCSEditor.Pin()->SCS);
+	TSharedPtr<SSCSEditor> SCSEditorPtr = SCSEditor.Pin();
+	check(SCSEditorPtr.IsValid());
+
+	TSharedPtr<FBlueprintEditor> Kismet2Ptr = SCSEditorPtr->Kismet2Ptr.Pin();
+	check(Kismet2Ptr.IsValid());
+
+	AActor* PreviewActor = Kismet2Ptr->GetPreviewActor();
+	check(PreviewActor);
 
 	{
 		const FScopedTransaction Transaction( LOCTEXT("DetachComponent", "Detach Component") );
 
+		// Detach the node from its parent
 		NodePtr->RemoveChild(DroppedNodePtr);
 
-		check(SCSEditor.Pin()->SceneRootNodePtr.IsValid());
-		SCSEditor.Pin()->SceneRootNodePtr->AddChild(DroppedNodePtr);
+		// If the associated component template is a scene component, maintain its preview world position
+		USceneComponent* SceneComponentTemplate = Cast<USceneComponent>(DroppedNodePtr->GetComponentTemplate());
+		if(SceneComponentTemplate)
+		{
+			// Save current state
+			SceneComponentTemplate->Modify();
+
+			// Reset the attach socket name
+			SceneComponentTemplate->AttachSocketName = NAME_None;
+			USCS_Node* SCS_Node = DroppedNodePtr->GetSCSNode();
+			if(SCS_Node)
+			{
+				SCS_Node->Modify();
+				SCS_Node->AttachToName = NAME_None;
+			}
+
+			// Attempt to locate a matching instance of the component template in the preview scene
+			USceneComponent* PreviewSceneComponent = Cast<USceneComponent>(DroppedNodePtr->FindComponentInstanceInActor(PreviewActor, true));
+			if(PreviewSceneComponent)
+			{
+				// If we find a match, save off the world position
+				FTransform ComponentToWorld = PreviewSceneComponent->GetComponentToWorld();
+				SceneComponentTemplate->RelativeLocation = ComponentToWorld.GetTranslation();
+				SceneComponentTemplate->RelativeRotation = ComponentToWorld.Rotator();
+				SceneComponentTemplate->RelativeScale3D = ComponentToWorld.GetScale3D();
+			}
+		}
+
+		// Attach the dropped node to the current scene root node
+		check(SCSEditorPtr->SceneRootNodePtr.IsValid());
+		SCSEditorPtr->SceneRootNodePtr->AddChild(DroppedNodePtr);
+
+		// Attempt to locate a matching instance of the scene root component template in the preview scene
+		USceneComponent* PreviewSceneRootComponent = Cast<USceneComponent>(SCSEditorPtr->SceneRootNodePtr->FindComponentInstanceInActor(PreviewActor, true));
+		if(SceneComponentTemplate && PreviewSceneRootComponent)
+		{
+			// If we find a match, calculate its new position relative to the scene root component instance in the preview scene
+			FTransform ComponentToWorld(SceneComponentTemplate->RelativeRotation, SceneComponentTemplate->RelativeLocation, SceneComponentTemplate->RelativeScale3D);
+			FTransform ParentToWorld = PreviewSceneRootComponent->GetSocketTransform(SceneComponentTemplate->AttachSocketName);
+			FTransform RelativeTM = ComponentToWorld.GetRelativeTransform(ParentToWorld);
+
+			// Store new relative location value (if not set to absolute)
+			if(!SceneComponentTemplate->bAbsoluteLocation)
+			{
+				SceneComponentTemplate->RelativeLocation = RelativeTM.GetTranslation();
+			}
+
+			// Store new relative rotation value (if not set to absolute)
+			if(!SceneComponentTemplate->bAbsoluteRotation)
+			{
+				SceneComponentTemplate->RelativeRotation = RelativeTM.Rotator();
+			}
+
+			// Store new relative scale value (if not set to absolute)
+			if(!SceneComponentTemplate->bAbsoluteScale)
+			{
+				SceneComponentTemplate->RelativeScale3D = RelativeTM.GetScale3D();
+			}
+		}
 	}
 	
 	PostDragDropAction(false);
@@ -1231,10 +1363,11 @@ void SSCS_RowWidget::OnDetachFromDropAction(FSCSEditorTreeNodePtrType DroppedNod
 
 void SSCS_RowWidget::OnMakeNewRootDropAction(FSCSEditorTreeNodePtrType DroppedNodePtr)
 {
-	check(SCSEditor.IsValid());
+	TSharedPtr<SSCSEditor> SCSEditorPtr = SCSEditor.Pin();
+	check(SCSEditorPtr.IsValid());
 
 	// Get the current SCS context
-	USimpleConstructionScript* SCS = SCSEditor.Pin()->SCS;
+	USimpleConstructionScript* SCS = SCSEditorPtr->SCS;
 	check(SCS != NULL);
 
 	// Get the current Blueprint context
@@ -1242,7 +1375,7 @@ void SSCS_RowWidget::OnMakeNewRootDropAction(FSCSEditorTreeNodePtrType DroppedNo
 	check(Blueprint != NULL);
 
 	// Get the current scene root node
-	FSCSEditorTreeNodePtrType& SceneRootNodePtr = SCSEditor.Pin()->SceneRootNodePtr;
+	FSCSEditorTreeNodePtrType& SceneRootNodePtr = SCSEditorPtr->SceneRootNodePtr;
 
 	check(NodePtr.IsValid() && NodePtr == SceneRootNodePtr);
 	check(DroppedNodePtr.IsValid());
@@ -1258,8 +1391,8 @@ void SSCS_RowWidget::OnMakeNewRootDropAction(FSCSEditorTreeNodePtrType DroppedNo
 		UActorComponent* ComponentTemplate = DroppedNodePtr->GetComponentTemplate();
 		check(ComponentTemplate);
 
-		// Note: This will mark the Blueprint as structurally modified
-		UActorComponent* ClonedComponent = SCSEditor.Pin()->AddNewComponent(ComponentTemplate->GetClass(), NULL);
+		// Note: This will mark the Blueprint as structurally modified and create a transaction record
+		UActorComponent* ClonedComponent = SCSEditorPtr->AddNewComponent(ComponentTemplate->GetClass(), NULL);
 		check(ClonedComponent);
 
 		//Serialize object properties using write/read operations.
@@ -1267,7 +1400,7 @@ void SSCS_RowWidget::OnMakeNewRootDropAction(FSCSEditorTreeNodePtrType DroppedNo
 		FObjectWriter Writer(ComponentTemplate, SavedProperties);
 		FObjectReader(ClonedComponent, SavedProperties);
 
-		DroppedNodePtr = SCSEditor.Pin()->GetNodeFromActorComponent(ClonedComponent);
+		DroppedNodePtr = SCSEditorPtr->GetNodeFromActorComponent(ClonedComponent);
 		check(DroppedNodePtr.IsValid());
 	}
 	else
@@ -1280,6 +1413,28 @@ void SSCS_RowWidget::OnMakeNewRootDropAction(FSCSEditorTreeNodePtrType DroppedNo
 	{
 		// Remove the dropped node from its existing parent
 		DroppedNodePtr->GetParent()->RemoveChild(DroppedNodePtr);
+
+		// If the associated component template is a scene component, reset its transform since it will now become the root
+		USceneComponent* SceneComponentTemplate = Cast<USceneComponent>(DroppedNodePtr->GetComponentTemplate());
+		if(SceneComponentTemplate)
+		{
+			// Save current state
+			SceneComponentTemplate->Modify();
+
+			// Reset the attach socket name
+			SceneComponentTemplate->AttachSocketName = NAME_None;
+			USCS_Node* SCS_Node = DroppedNodePtr->GetSCSNode();
+			if(SCS_Node)
+			{
+				SCS_Node->Modify();
+				SCS_Node->AttachToName = NAME_None;
+			}
+
+			// Reset the relative transform
+			SceneComponentTemplate->SetRelativeLocation(FVector::ZeroVector);
+			SceneComponentTemplate->SetRelativeRotation(FRotator::ZeroRotator);
+			SceneComponentTemplate->SetRelativeScale3D(FVector(1.f));
+		}
 	}
 
 	if(!bWasDefaultSceneRoot)

@@ -223,9 +223,9 @@ void FLayerViewModel::AppendActorsOfSpecificType( TArray< TWeakObjectPtr< AActor
 
 	struct Local
 	{
-		static bool ActorIsOfClass( const TWeakObjectPtr< AActor >& Actor, const TWeakObjectPtr< UClass > Class )
+		static bool ActorIsOfClass( const TWeakObjectPtr< AActor >& Actor, const TWeakObjectPtr< UClass > InClass )
 		{
-			return Actor->GetClass() == Class.Get();
+			return Actor->GetClass() == InClass.Get();
 		}
 	};
 

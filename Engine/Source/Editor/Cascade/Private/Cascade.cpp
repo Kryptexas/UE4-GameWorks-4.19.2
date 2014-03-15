@@ -410,9 +410,9 @@ bool FCascade::GetIsSoloing() const
 	return bIsSoloing;
 }
 
-void FCascade::SetIsSoloing(bool bIsSoloing)
+void FCascade::SetIsSoloing(bool bInIsSoloing)
 {
-	this->bIsSoloing = bIsSoloing;
+	bIsSoloing = bInIsSoloing;
 }
 
 int32 FCascade::GetDetailMode() const
@@ -1124,7 +1124,6 @@ bool FCascade::InsertModule(UParticleModule* Module, UParticleEmitter* TargetEmi
 	if (Module->IsA(UParticleModuleParameterDynamic::StaticClass()))
 	{
 		// Make sure there isn't already an DynamicParameter module applied!
-		UParticleLODLevel* LODLevel = TargetEmitter->GetLODLevel(0);
 		for (int32 CheckMod = 0; CheckMod < LODLevel->Modules.Num(); CheckMod++)
 		{
 			UParticleModuleParameterDynamic* DynamicParamMod = Cast<UParticleModuleParameterDynamic>(LODLevel->Modules[CheckMod]);
@@ -3889,11 +3888,11 @@ void FCascade::OnRegenerateLowestLOD()
 	RegenerateLowestLOD(bDupeHighest);
 }
 
-void FCascade::OnDetailMode(EDetailMode DetailMode)
+void FCascade::OnDetailMode(EDetailMode InDetailMode)
 {
 	if (PreviewViewport.IsValid() && PreviewViewport->GetViewportClient().IsValid())
 	{
-		if (this->DetailMode == DetailMode)
+		if (DetailMode == InDetailMode)
 		{
 			return;
 		}
@@ -3903,19 +3902,19 @@ void FCascade::OnDetailMode(EDetailMode DetailMode)
 		{
 			if (It->Template == ParticleSystemComponent->Template)
 			{
-				It->EditorDetailMode = GEngine->bEnableEditorPSysRealtimeLOD ? GetCachedScalabilityCVars().DetailMode : DetailMode;
+				It->EditorDetailMode = GEngine->bEnableEditorPSysRealtimeLOD ? GetCachedScalabilityCVars().DetailMode : InDetailMode;
 			}
 		}
 
-		this->DetailMode = DetailMode;
+		DetailMode = InDetailMode;
 		
 		RestartParticleSystem();
 	}
 }
 
-bool FCascade::IsDetailModeChecked(EDetailMode DetailMode) const
+bool FCascade::IsDetailModeChecked(EDetailMode InDetailMode) const
 {
-	return this->DetailMode == DetailMode;
+	return DetailMode == InDetailMode;
 }
 
 void FCascade::OnJumpToLowestLOD()

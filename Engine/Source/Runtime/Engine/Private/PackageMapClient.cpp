@@ -754,12 +754,16 @@ bool UPackageMapClient::InternalLoadObjectPath( FArchive& Ar, UObject*& Object, 
 		UE_CLOG(!bSuppressLogs, LogNetPackageMap, Log, TEXT("Read Serialized Object %s as <%s,%s>"), Object ? *Object->GetPathName() : TEXT("NULL"), *NetGUID.ToString(), *PathName );
 	}
 
+#if 0
+	// This isn't safe to do, since we could delete objects that the client has in flight
+	// We'll need to find another way to sandbox the clients
 	if ( NetGUID.IsValid() && Object == NULL && IsNetGUIDAuthority() )
 	{
 		UE_LOG( LogNetPackageMap, Error, TEXT( "Unable to resolve static NetGUID <%s> from Path: %s"), *NetGUID.ToString(), *PathName );
 		Ar.SetError();
 		return false;
 	}
+#endif
 
 	return true;
 }

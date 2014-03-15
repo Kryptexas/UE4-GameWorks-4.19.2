@@ -67,6 +67,7 @@ ADefaultPawn::ADefaultPawn(const class FPostConstructInitializeProperties& PCIP)
 	bAddDefaultMovementBindings = true;
 
 	BaseTurnRate = 45.f;
+	BaseLookUpRate = 45.f;
 }
 
 void InitializeDefaultPawnInputBindings()
@@ -100,7 +101,7 @@ void InitializeDefaultPawnInputBindings()
 		UPlayerInput::AddEngineDefinedAxisMapping(FInputAxisKeyMapping("DefaultPawn_TurnRate", EKeys::Right, 1.f));
 		UPlayerInput::AddEngineDefinedAxisMapping(FInputAxisKeyMapping("DefaultPawn_Turn", EKeys::MouseX, 1.f));
 		
-		UPlayerInput::AddEngineDefinedAxisMapping(FInputAxisKeyMapping("DefaultPawn_LookUp", EKeys::Gamepad_RightY, 1.f));
+		UPlayerInput::AddEngineDefinedAxisMapping(FInputAxisKeyMapping("DefaultPawn_LookUpRate", EKeys::Gamepad_RightY, 1.f));
 		UPlayerInput::AddEngineDefinedAxisMapping(FInputAxisKeyMapping("DefaultPawn_LookUp", EKeys::MouseY, -1.f));
 	}
 }
@@ -119,6 +120,7 @@ void ADefaultPawn::SetupPlayerInputComponent(UInputComponent* InputComponent)
 		InputComponent->BindAxis("DefaultPawn_Turn", this, &ADefaultPawn::AddControllerYawInput);
 		InputComponent->BindAxis("DefaultPawn_TurnRate", this, &ADefaultPawn::TurnAtRate);
 		InputComponent->BindAxis("DefaultPawn_LookUp", this, &ADefaultPawn::AddControllerPitchInput);
+		InputComponent->BindAxis("DefautlPawn_LookUpRate", this, &ADefaultPawn::LookUpAtRate);
 	}
 }
 
@@ -165,6 +167,11 @@ void ADefaultPawn::TurnAtRate(float Rate)
 	AddControllerYawInput(Rate * BaseTurnRate * GetWorld()->GetDeltaSeconds());
 }
 
+void ADefaultPawn::LookUpAtRate(float Rate)
+{
+	// calculate delta for this frame from the rate information
+	AddControllerPitchInput(Rate * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
+}
 
 // @TODO: DEPRECATED, remove.
 void ADefaultPawn::LookUp(float Val)

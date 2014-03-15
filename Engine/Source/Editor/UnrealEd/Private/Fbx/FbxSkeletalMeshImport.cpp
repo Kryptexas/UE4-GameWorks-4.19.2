@@ -1309,11 +1309,11 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 				{
 					FPhysAssetCreateParams NewBodyData;
 					NewBodyData.Initialize();
-					FText ErrorMessage;
-					bool bSuccess = FPhysicsAssetUtils::CreateFromSkeletalMesh(NewPhysicsAsset, SkeletalMesh, NewBodyData, ErrorMessage);
+					FText CreationErrorMessage;
+					bool bSuccess = FPhysicsAssetUtils::CreateFromSkeletalMesh(NewPhysicsAsset, SkeletalMesh, NewBodyData, CreationErrorMessage);
 					if (!bSuccess)
 					{
-						AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, ErrorMessage));
+						AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, CreationErrorMessage));
 						// delete the asset since we could not have create physics asset
 						TArray<UObject*> ObjectsToDelete;
 						ObjectsToDelete.Add(NewPhysicsAsset);

@@ -22,4 +22,7 @@ class USkillSystemTestAttributeSet : public UAttributeSet
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AttributeTest")
 	float	LifeSteal;
+
+	virtual void PreAttributeModify(struct FGameplayEffectModCallbackData &Data) OVERRIDE;
+	virtual void PostAttributeModify(const struct FGameplayEffectModCallbackData &Data) OVERRIDE;
 };
