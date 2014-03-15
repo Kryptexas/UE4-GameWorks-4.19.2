@@ -535,7 +535,7 @@ namespace AutomationTool
 		{
 			App = ConvertSeparators(PathSeparator.Default, App);
 			HostPlatform.Current.SetupOptionsForRun(ref App, ref Options, ref CommandLine);
-			if (App == "ectool")
+            if (App == "ectool" || App == "zip")
 			{
 				Options &= ~ERunOptions.AppMustExist;
 			}

@@ -249,8 +249,6 @@ void FMacApplication::ProcessEvent( NSEvent* Event )
 		case NSRightMouseDragged:
 		case NSOtherMouseDragged:
 		{
-			bUsingTrackpad = [Event subtype] == NSTouchEventSubtype;
-
 			if( CurrentEventWindow.IsValid() && CurrentEventWindow->IsRegularWindow() )
 			{
 				bool IsMouseOverTitleBar = false;
@@ -336,8 +334,6 @@ void FMacApplication::ProcessEvent( NSEvent* Event )
 		case NSRightMouseDown:
 		case NSOtherMouseDown:
 		{
-			bUsingTrackpad = [Event subtype] == NSTouchEventSubtype;
-			
 			EMouseButtons::Type Button = [Event type] == NSLeftMouseDown ? EMouseButtons::Left : EMouseButtons::Right;
 			if ([Event type] == NSOtherMouseDown)
 			{
@@ -383,8 +379,6 @@ void FMacApplication::ProcessEvent( NSEvent* Event )
 		case NSRightMouseUp:
 		case NSOtherMouseUp:
 		{
-			bUsingTrackpad = [Event subtype] == NSTouchEventSubtype;
-			
 			EMouseButtons::Type Button = [Event type] == NSLeftMouseUp ? EMouseButtons::Left : EMouseButtons::Right;
 			if ([Event type] == NSOtherMouseUp)
 			{

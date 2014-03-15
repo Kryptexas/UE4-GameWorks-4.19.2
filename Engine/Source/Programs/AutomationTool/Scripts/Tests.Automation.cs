@@ -87,6 +87,26 @@ class TestRecursionAuto : BuildCommand
 	}
 }
 
+[Help("Makes a zip file in Rocket/QFE")]
+class TestMacZip : BuildCommand
+{
+    public override void ExecuteBuild()
+    {
+        Log("TestMacZip *********************");
+
+        if (UnrealBuildTool.Utils.IsRunningOnMono)
+        {
+			PushDir(CombinePaths(CmdEnv.LocalRoot, "Rocket/QFE"));
+            RunAndLog(CommandUtils.CmdEnv, "zip", "-r TestZip .");
+            PopDir();
+        }
+        else
+        {
+            throw new AutomationException("This probably only works on the mac.");
+        }
+    }
+}
+
 [Help("Tests the temp storage operations.")]
 class TestTempStorage : BuildCommand
 {
