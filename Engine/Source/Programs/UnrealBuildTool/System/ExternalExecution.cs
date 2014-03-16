@@ -402,6 +402,7 @@ namespace UnrealBuildTool
 					}
 
 					// Disable extensions when serializing to remove the $type fields
+					Directory.CreateDirectory(Path.GetDirectoryName(ModuleInfoFileName));
 					System.IO.File.WriteAllText(ModuleInfoFileName, fastJSON.JSON.Instance.ToJSON(Manifest, new fastJSON.JSONParameters{ UseExtensions = false }));
 
 					string CmdLine = (UnrealBuildTool.HasUProjectFile()) ? "\"" + UnrealBuildTool.GetUProjectFile() + "\"" : Target.GetTargetName();

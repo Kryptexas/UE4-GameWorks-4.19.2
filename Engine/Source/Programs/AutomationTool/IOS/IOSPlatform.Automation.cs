@@ -213,15 +213,15 @@ public class IOSPlatform : Platform
 	{
 		// first check for ue4.xcodeproj
 		bWasGenerated = false;
-		string XcodeProj = CombinePaths (CmdEnv.LocalRoot, "UE4.xcodeproj");
+		string XcodeProj = RawProjectPath.Replace(".uproject", ".xcodeproj");
 		Console.WriteLine ("Project: " + XcodeProj);
 		if (!Directory.Exists (XcodeProj))
 		{
-			// ue4.xcodeproj doesn't exist, so check for project.xcodeproj
-			XcodeProj = RawProjectPath.Replace (".uproject", ".xcodeproj");
+			// project.xcodeproj doesn't exist, so check for ue4.xcodeproj
+			XcodeProj = CombinePaths(CmdEnv.LocalRoot, "UE4.xcodeproj");
 			if (!Directory.Exists (XcodeProj))
 			{
-				// project.xcodeproj doesn't exist, so generate it
+				// ue4.xcodeproj doesn't exist, so generate temp project
 				string Arguments = "-project=\"" + RawProjectPath + "\"";
 				Arguments += " -game -nointellisense";
 				string Script = CombinePaths(CmdEnv.LocalRoot, "Engine/Build/BatchFiles/Mac/GenerateProjectFiles.sh");

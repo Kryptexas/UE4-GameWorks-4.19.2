@@ -428,6 +428,7 @@ bool FStaticLightingSystem::BeginLightmassProcess()
 		GAllowLightmapPadding = true;
 		FMemory::Memzero(&CustomImportanceBoundingBox, sizeof(FBox));
 		FMemory::Memzero(&LightingMeshBounds, sizeof(FBox));
+		FMemory::Memzero(&AutomaticImportanceVolumeBounds, sizeof(FBox));
 
 		GLightingBuildQuality = Options.QualityLevel;
 		switch(Options.QualityLevel)
@@ -1434,6 +1435,7 @@ void FStaticLightingSystem::AddBSPStaticLightingInfo(ULevel* Level, bool bBuildL
 
 				Meshes.Add(SurfaceStaticLighting);
 				LightingMeshBounds += SurfaceStaticLighting->BoundingBox;
+				UpdateAutomaticImportanceVolumeBounds( SurfaceStaticLighting->BoundingBox );
 
 				FStaticLightingMapping* CurrentMapping = SurfaceStaticLighting;
 				if (GLightmassDebugOptions.bSortMappings)
@@ -1581,6 +1583,7 @@ void FStaticLightingSystem::AddBSPStaticLightingInfo(ULevel* Level, TArray<FNode
 				FBSPSurfaceStaticLighting* SurfaceStaticLighting = new FBSPSurfaceStaticLighting(NodeGroup, Model, SomeModelComponent);
 				Meshes.Add(SurfaceStaticLighting);
 				LightingMeshBounds += SurfaceStaticLighting->BoundingBox;
+				UpdateAutomaticImportanceVolumeBounds( SurfaceStaticLighting->BoundingBox );
 
 				FStaticLightingMapping* CurrentMapping = SurfaceStaticLighting;
 				if (GLightmassDebugOptions.bSortMappings)
@@ -1636,6 +1639,7 @@ void FStaticLightingSystem::AddPrimitiveStaticLightingInfo(FStaticLightingPrimit
 		}
 		Meshes.Add(Mesh);
 		LightingMeshBounds += Mesh->BoundingBox;
+		UpdateAutomaticImportanceVolumeBounds( Mesh->BoundingBox );
 	}
 
 	// If lighting is being built for this component, add its mappings to the system.
@@ -1788,7 +1792,7 @@ void FStaticLightingSystem::GatherScene()
 		// expected lighting results, so it's important to have a volume to pass to Lightmass.
 		if (LightmassExporter->GetImportanceVolumes().Num() == 0)
 		{
-			FBox ReasonableSceneBounds = LightingMeshBounds;
+			FBox ReasonableSceneBounds = AutomaticImportanceVolumeBounds;
 			if (ReasonableSceneBounds.GetExtent().SizeSquared() > (MinimumImportanceVolumeExtentWithoutWarning * MinimumImportanceVolumeExtentWithoutWarning))
 			{
 				// Emit a serious warning to the user about performance.
@@ -2068,6 +2072,17 @@ void FStaticLightingSystem::UpdateLightingBuild()
 
 			CurrentBuildStage = FStaticLightingSystem::WaitingForImport;
 		}
+	}
+}
+
+void FStaticLightingSystem::UpdateAutomaticImportanceVolumeBounds( const FBox& MeshBounds )
+{
+	// Ignore very huge meshes for the purpose of computing an automatic importance volume.  They're probably skyboxes.
+	const float HugeMeshSize = 1000000.0f;	// 10,000m
+	const FVector MeshSize = MeshBounds.GetSize();
+	if( MeshSize.X < HugeMeshSize && MeshSize.Y < HugeMeshSize && MeshSize.Z < HugeMeshSize )
+	{
+		AutomaticImportanceVolumeBounds += MeshBounds;
 	}
 }
 

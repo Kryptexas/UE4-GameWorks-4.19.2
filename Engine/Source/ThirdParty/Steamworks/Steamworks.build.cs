@@ -31,7 +31,7 @@ public class Steamworks : ModuleRules
 			PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartyDirectory + "Steamworks/Steam" + SteamVersion + "/sdk/public");
 
 			string LibraryPath = UEBuildConfiguration.UEThirdPartyDirectory + "Steamworks/Steam" + SteamVersion + "/sdk/redistributable_bin/osx32/libsteam_api.dylib";
-			PublicAdditionalLibraries.Add(LibraryPath);
+			PublicDelayLoadDLLs.Add(LibraryPath);
 		}
 	}
 }

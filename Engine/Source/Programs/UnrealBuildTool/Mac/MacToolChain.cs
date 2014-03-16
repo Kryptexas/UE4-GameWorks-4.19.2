@@ -620,6 +620,17 @@ namespace UnrealBuildTool
 						LinkCommand += string.Format(" -l{0}", AdditionalLibrary);
 					}
 				}
+
+				foreach (string AdditionalLibrary in LinkEnvironment.Config.DelayLoadDLLs)
+				{
+					// Can't link dynamic libraries when creating a static one
+					if (bIsBuildingLibrary && (Path.GetExtension(AdditionalLibrary) == ".dylib" || AdditionalLibrary == "z"))
+					{
+						continue;
+					}
+
+					LinkCommand += string.Format(" -weak_library \"{0}\"", ConvertPath(Path.GetFullPath(AdditionalLibrary)));
+				}
 			}
 
 			// Add the input files to a response file, and pass the response file on the command-line.
