@@ -1662,7 +1662,7 @@ public class GUBP : BuildCommand
         }
         public static string StaticGetFullName(UnrealTargetPlatform InHostPlatform, BranchInfo.BranchUProject InGameProj, string InCookPlatform)
         {
-            return InGameProj.GameName + "_" + InCookPlatform + "_DDC" + StaticGetHostPlatformSuffix(InHostPlatform);
+            return InGameProj.GameName + "_" + InCookPlatform.Replace("+", "_") + "_DDC" + StaticGetHostPlatformSuffix(InHostPlatform);
         }
         public override string GetFullName()
         {
