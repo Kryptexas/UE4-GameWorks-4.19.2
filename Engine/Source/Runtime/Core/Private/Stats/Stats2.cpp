@@ -175,6 +175,8 @@ public:
 	FStatGroupEnableManager()
 		: PendingFNames(NULL)
 		, PendingCount(0)
+		, EnableForNewGroups(false)
+		, UseEnableForNewGroups(false)
 	{
 		check(IsInGameThread());
 	}

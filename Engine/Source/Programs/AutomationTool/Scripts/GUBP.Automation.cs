@@ -778,6 +778,11 @@ public class GUBP : BuildCommand
                 {
                     AddPseudodependency(GamePlatformMonolithicsNode.StaticGetFullName(InHostPlatform, bp.Branch.BaseEngineProject, InHostPlatform));
                 }
+                if (GUBP.bBuildRocket && InGameProj.GameName == bp.Branch.BaseEngineProject.GameName)
+                {
+                    AgentSharingGroup = "UE4_" + InTargetPlatform + "_Mono" + StaticGetHostPlatformSuffix(InHostPlatform);
+                    AddPseudodependency(RootEditorHeadersNode.StaticGetFullName(HostPlatform)); // maybe we should start these sooner, but that rather tangles the agent groups
+                }
             }
             if (InGameProj.Options(InHostPlatform).bTestWithShared)  /// compiling templates is only for testing purposes, and we will group them to avoid saturating the farm
             {
@@ -874,6 +879,110 @@ public class GUBP : BuildCommand
             return MergeSpaceStrings(base.FailureEMails(bp, Branch),
                GameProj.Properties.Targets[TargetRules.TargetType.Editor].Rules.GUBP_GetGameFailureEMails_EditorTypeOnly(Branch),
                Platform.Platforms[TargetPlatform].GUBP_GetPlatformFailureEMails(Branch));
+        }
+    }
+
+    public class RootEditorHeadersNode : HostPlatformNode
+    {
+        public RootEditorHeadersNode(UnrealTargetPlatform InHostPlatform)
+            : base(InHostPlatform)
+        {
+            AgentSharingGroup = "Editor" + StaticGetHostPlatformSuffix(HostPlatform);
+            AddDependency(RootEditorNode.StaticGetFullName(HostPlatform));
+        }
+        public static string StaticGetFullName(UnrealTargetPlatform InHostPlatform)
+        {
+            return "RootEditorHeaders" + StaticGetHostPlatformSuffix(InHostPlatform);
+        }
+        public override string GetFullName()
+        {
+            return StaticGetFullName(HostPlatform);
+        }
+        public override float Priority()
+        {
+            return 1000000.0f; // right after the root editor
+        }
+        public override void DoBuild(GUBP bp)
+        {
+            BuildProducts = new List<string>();
+
+            foreach (var FileToCopy in CommandUtils.FindFiles("*.h", true, CommandUtils.CombinePaths(CmdEnv.LocalRoot, @"Engine\Intermediate\Build\")))
+            {
+                AddBuildProduct(FileToCopy);
+            }
+            var EnginePluginsDirectory = Path.Combine(CommandUtils.CmdEnv.LocalRoot, "Engine/Plugins");
+            var EnginePlugins = new List<PluginInfo>();
+            Plugins.FindPluginsIn(EnginePluginsDirectory, PluginInfo.LoadedFromType.Engine, ref EnginePlugins);
+
+            foreach (var EnginePlugin in EnginePlugins)
+            {
+                foreach (var FileToCopy in CommandUtils.FindFiles("*", true, CommandUtils.CombinePaths(EnginePlugin.Directory, @"Intermediate\Build", HostPlatform.ToString(), "Inc")))
+                {
+                    AddBuildProduct(FileToCopy);
+                }
+            }
+            RemoveOveralppingBuildProducts();
+        }
+    }
+
+    public class GameMonolithicHeadersNode : HostPlatformNode
+    {
+        UnrealTargetPlatform TargetPlatform;
+
+        public GameMonolithicHeadersNode(GUBP bp, UnrealTargetPlatform InHostPlatform, UnrealTargetPlatform InTargetPlatform)
+            : base(InHostPlatform)
+        {
+            if (GUBP.bHackRunIOSCompilesOnMac)
+            {
+                throw new AutomationException("these rocket header node require real mac path.");
+            }
+            TargetPlatform = InTargetPlatform;
+            AgentSharingGroup = "UE4_" + InTargetPlatform + "_Mono" + StaticGetHostPlatformSuffix(InHostPlatform);
+            AddDependency(GamePlatformMonolithicsNode.StaticGetFullName(HostPlatform, bp.Branch.BaseEngineProject, TargetPlatform));
+            if (TargetPlatform == HostPlatform)
+            {
+                AddDependency(RootEditorHeadersNode.StaticGetFullName(HostPlatform)); // we can't tell the headers apart, so we need to remove dups
+            }
+        }
+        public static string StaticGetFullName(UnrealTargetPlatform InHostPlatform, UnrealTargetPlatform InTargetPlatform)
+        {
+            return "UE4_" + InTargetPlatform + "_MonolithicHeaders" + StaticGetHostPlatformSuffix(InHostPlatform);
+        }
+        public override string GetFullName()
+        {
+            return StaticGetFullName(HostPlatform, TargetPlatform);
+        }
+        public override float Priority()
+        {
+            return 1000000.0f; // right after the root editor
+        }
+        public override void DoBuild(GUBP bp)
+        {
+            BuildProducts = new List<string>();
+
+            // these may not be any new build products here, but we will check anyway
+            var EnginePluginsDirectory = Path.Combine(CommandUtils.CmdEnv.LocalRoot, "Engine/Plugins");
+            var EnginePlugins = new List<PluginInfo>();
+            Plugins.FindPluginsIn(EnginePluginsDirectory, PluginInfo.LoadedFromType.Engine, ref EnginePlugins);
+
+            foreach (var EnginePlugin in EnginePlugins)
+            {
+                var PlatformDir = TargetPlatform.ToString();
+                if (TargetPlatform == UnrealTargetPlatform.Android)
+                {
+                    PlatformDir = "Android-armv7";
+                }
+
+                foreach (var FileToCopy in CommandUtils.FindFiles("*", true, CommandUtils.CombinePaths(EnginePlugin.Directory, @"Intermediate\Build", PlatformDir, "Inc")))
+                {
+                    AddBuildProduct(FileToCopy);
+                }
+            }
+            RemoveOveralppingBuildProducts();
+            if (BuildProducts.Count == 0)
+            {
+                SaveRecordOfSuccessAndAddToBuildProducts(); // could be empty
+            }
         }
     }
 
@@ -2692,11 +2801,11 @@ public class GUBP : BuildCommand
             {
                 foreach (var Dep in GUBPNodes[NodeToDo].FullNamesOfDependencies)
                 {
-                    Log("           {0}", Dep);
+                    Log("            dep> {0}", Dep);
                 }
                 foreach (var Dep in GUBPNodes[NodeToDo].FullNamesOfPseudosependencies)
                 {
-                    Log("           {0} (pseudo)", Dep);
+                    Log("           pdep> {0}", Dep);
                 }
             }
             if (bShowECDependencies)
@@ -3073,6 +3182,10 @@ public class GUBP : BuildCommand
         {
             AddNode(new ToolsForCompileNode(HostPlatform));
             AddNode(new RootEditorNode(HostPlatform));
+            if (bBuildRocket)
+            {
+                AddNode(new RootEditorHeadersNode(HostPlatform));
+            }
             AddNode(new ToolsNode(HostPlatform));            
 			AddNode(new InternalToolsNode(HostPlatform));
             AddNode(new EditorAndToolsNode(HostPlatform));
@@ -3209,6 +3322,10 @@ public class GUBP : BuildCommand
                                 if (!GUBPNodes.ContainsKey(GamePlatformMonolithicsNode.StaticGetFullName(HostPlatform, Branch.BaseEngineProject, Plat)))
                                 {
                                     AddNode(new GamePlatformMonolithicsNode(this, HostPlatform, Branch.BaseEngineProject, Plat));
+                                    if (bBuildRocket)
+                                    {
+                                        AddNode(new GameMonolithicHeadersNode(this, HostPlatform, Plat));
+                                    }
                                 }
                             }
                         }
@@ -3582,7 +3699,15 @@ if (HostPlatform == UnrealTargetPlatform.Mac) continue; //temp hack till mac aut
             {
                 // rocket is the shared promotable plus some other stuff and nothing else
                 bRelatedToNode = true;
-                NodeSpec = SharedAggregatePromotableNode.StaticGetFullName() + "+" + "Rocket_Aggregate";
+                NodeSpec = "Rocket_Aggregate";
+                if (!ParseParam("RocketValidate"))
+                {
+                    NodeSpec = SharedAggregatePromotableNode.StaticGetFullName() + "+" + NodeSpec;
+                }
+                else
+                {
+                    NodeSpec = "Rocket_MakeBuild+" + NodeSpec;
+                }
             }
             if (!String.IsNullOrEmpty(NodeSpec))
             {

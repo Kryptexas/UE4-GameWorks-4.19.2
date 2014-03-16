@@ -121,11 +121,13 @@ int64 FLinuxPlatformFile::FileSize(const TCHAR* Filename)
 {
 	struct stat FileInfo;
 	FileInfo.st_size = -1;
-	stat(TCHAR_TO_UTF8(*NormalizeFilename(Filename)), &FileInfo);
-	// make sure to return -1 for directories
-	if (S_ISDIR(FileInfo.st_mode))
+	if (stat(TCHAR_TO_UTF8(*NormalizeFilename(Filename)), &FileInfo) != -1)
 	{
-		FileInfo.st_size = -1;
+		// make sure to return -1 for directories
+		if (S_ISDIR(FileInfo.st_mode))
+		{
+			FileInfo.st_size = -1;
+		}
 	}
 	return FileInfo.st_size;
 }

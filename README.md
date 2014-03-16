@@ -90,13 +90,13 @@ Visual Studio 2013 and Xcode 5.1 are the supported and recommended compilers to 
 
 Visual Studio 2012 is also supported, but you'll need to make a code change and download the **optional** dependencies 
 on the [releases page](https://github.com/EpicGames/UnrealEngine/releases/tag/4.0.1-release).  See the Unreal Engine 
-documentation for more details about using older versions of Visual Studio.
+[documentation](http://docs.unrealengine.com) for more details about using older versions of Visual Studio.
 
 You should probably always work with a versioned **release** branch.  The master branch contains unstable and possibly untested code,
 but it should be a great reference for new developments, or for spot merging bug fixes.  Use it at your own risk.  
 Full engine releases tend to lag behind latest development branch due to QA testing, but we wanted to make sure that 
 you have access to the very latest stuff we're doing.
 
-To build for platforms besides Windows and Mac, please see the Unreal Engine documentation.  Some platforms may require
+To build for platforms besides Windows and Mac, please see the Unreal Engine [documentation](http://docs.unrealengine.com).  Some platforms may require
 you to download the **optional** dependencies as well.
 
