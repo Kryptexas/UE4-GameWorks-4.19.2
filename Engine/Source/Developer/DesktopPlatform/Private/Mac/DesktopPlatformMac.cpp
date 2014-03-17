@@ -350,6 +350,16 @@ void OpenLauncherCommandLine( const FString& InCommandLine )
 
 bool FDesktopPlatformMac::OpenLauncher(bool Install, const FString& CommandLineParams )
 {
+	// If the launcher is already running, bring it to front
+	NSArray* RunningLaunchers = [NSRunningApplication runningApplicationsWithBundleIdentifier: @"com.epicgames.UnrealEngineLauncher"];
+	if ([RunningLaunchers count] > 0)
+	{
+		NSRunningApplication* Launcher = [RunningLaunchers objectAtIndex: 0];
+		[Launcher activateWithOptions: NSApplicationActivateAllWindows | NSApplicationActivateIgnoringOtherApps];
+		OpenLauncherCommandLine(CommandLineParams); // create a temp file that will tell running Launcher instance to switch to Marketplace tab
+		return true;
+	}
+
 	FString LaunchPath;
 
 	bool bWasLaunched = false;

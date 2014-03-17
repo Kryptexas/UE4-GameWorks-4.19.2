@@ -178,7 +178,17 @@ void EngineCrashHandler(const FGenericCrashContext & GenericContext)
 		FString Argument(Filename);
 		if (Argument.Contains(TEXT(" ")))
 		{
-			Argument = FString::Printf(TEXT("\"%s\""), *Argument);
+			if (Argument.Contains(TEXT("=")))
+			{
+				FString ArgName;
+				FString ArgValue;
+				Argument.Split( TEXT("="), &ArgName, &ArgValue );
+				Argument = FString::Printf( TEXT("%s=\"%s\""), *ArgName, *ArgValue );
+			}
+			else
+			{
+				Argument = FString::Printf(TEXT("\"%s\""), *Argument);
+			}
 		}
 		GSavedCommandLine += Argument;
 	}
@@ -229,7 +239,17 @@ int main(int argc, char *argv[])
 		FString Argument(ANSI_TO_TCHAR(argv[Option]));
 		if (Argument.Contains(TEXT(" ")))
 		{
-			Argument = FString::Printf(TEXT("\"%s\""), *Argument);
+			if (Argument.Contains(TEXT("=")))
+			{
+				FString ArgName;
+				FString ArgValue;
+				Argument.Split( TEXT("="), &ArgName, &ArgValue );
+				Argument = FString::Printf( TEXT("%s=\"%s\""), *ArgName, *ArgValue );
+			}
+			else
+			{
+				Argument = FString::Printf(TEXT("\"%s\""), *Argument);
+			}
 		}
 		GSavedCommandLine += Argument;
 	}
