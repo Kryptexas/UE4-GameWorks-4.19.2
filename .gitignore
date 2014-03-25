@@ -54,6 +54,47 @@
 # Ignore any saved local files
 /Engine/Saved/**
 
-# Ignore template projects
-/Templates/**
+# Ignore third party folders
+/Engine/Source/ThirdParty/ANGLE/**
+/Engine/Source/ThirdParty/DirectShow/**
+/Engine/Source/ThirdParty/elftoolchain/**
+/Engine/Source/ThirdParty/FaceBook/**
+/Engine/Source/ThirdParty/FBX/**
+/Engine/Source/ThirdParty/ForsythTriOO/**
+/Engine/Source/ThirdParty/FreeType2/**
+/Engine/Source/ThirdParty/HACD/**
+/Engine/Source/ThirdParty/hlslcc/**
+/Engine/Source/ThirdParty/ICU/**
+/Engine/Source/ThirdParty/IntelTBB/**
+/Engine/Source/ThirdParty/jemalloc/**
+/Engine/Source/ThirdParty/Kiss_FFT/**
+/Engine/Source/ThirdParty/libcurl/**
+/Engine/Source/ThirdParty/libJPG/**
+/Engine/Source/ThirdParty/libOpus/**
+/Engine/Source/ThirdParty/libPNG/**
+/Engine/Source/ThirdParty/Licenses/**
+/Engine/Source/ThirdParty/Mac/**
+/Engine/Source/ThirdParty/MCPP/**
+/Engine/Source/ThirdParty/nvtesslib/**
+/Engine/Source/ThirdParty/nvTextureTools/**
+/Engine/Source/ThirdParty/nvTriStrip/**
+/Engine/Source/ThirdParty/Oculus/**
+/Engine/Source/ThirdParty/Ogg/**
+/Engine/Source/ThirdParty/OpenAL/**
+/Engine/Source/ThirdParty/OpenGL/**
+/Engine/Source/ThirdParty/Perforce/**
+/Engine/Source/ThirdParty/PhysX/**
+/Engine/Source/ThirdParty/portmidi/**
+/Engine/Source/ThirdParty/Qualcomm/**
+/Engine/Source/ThirdParty/Recast/**
+/Engine/Source/ThirdParty/SDL/**
+/Engine/Source/ThirdParty/Vorbis/**
+/Engine/Source/ThirdParty/Windows/DirectX/**
+/Engine/Source/ThirdParty/zlib/**
 
+# Add back in all the build files for third party modules
+!/Engine/Source/ThirdParty/**/*.[Bb]uild.cs
+
+# Ignore sample and template projects
+/Samples/**
+/Templates/**
