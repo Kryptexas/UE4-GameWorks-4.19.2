@@ -16,7 +16,7 @@ Have fun!!  We can't wait to see what you create!!
 Source releases
 ---------------
 
-The latest version is [4.0.1](https://github.com/EpicGames/UnrealEngine/releases/tag/4.0.1-release).  Other 
+The latest version is [4.0.2](https://github.com/EpicGames/UnrealEngine/releases/tag/4.0.2-release).  Other 
 releases can be found [right here](https://github.com/EpicGames/UnrealEngine/releases).
 
 You can **download the source** in .zip format, but in order to *contribute to the community* you should
@@ -39,16 +39,16 @@ Here is the fun part!  This is a quick start guide to getting up and running wit
 running the editor yourself on Windows or Mac.  Oh, and you might want to watch our [short tutorial video](http://youtu.be/usjlNHPn-jo)
 first.  Okay, here we go!
 
-1. **Download the source** and unzip it to a folder, or [create a fork](https://github.com/EpicGames/UnrealEngine/tree/4.0.1-release)
+1. **Download the source** and unzip it to a folder, or [create a fork](https://github.com/EpicGames/UnrealEngine/tree/4.0.2-release)
    and **clone the repository**.  If you clone, don't forget to switch to the correct branch for this release!  (The 'master' branch 
    has unstable code, so you will want to make sure to choose a release branch.)
 
 1. You should now have an _UnrealEngine_ folder on your computer.  All of the source and dependencies will go into this folder.  The folder name might 
    have a branch suffix (such as _UnrealEngine-4.0_), but that's totally fine.
 
-1. Download the **required dependencies** files for the [latest release](https://github.com/EpicGames/UnrealEngine/releases/tag/4.0.1-release): 
-   [Required_1of2.zip](https://github.com/EpicGames/UnrealEngine/releases/download/4.0.1-release/Required_1of2.zip), 
-   [Required_2of2.zip](https://github.com/EpicGames/UnrealEngine/releases/download/4.0.1-release/Required_2of2.zip).
+1. Download the **required dependencies** files for the [latest release](https://github.com/EpicGames/UnrealEngine/releases/tag/4.0.2-release): 
+   [Required_1of2.zip](https://github.com/EpicGames/UnrealEngine/releases/download/4.0.2-release/Required_1of2.zip), 
+   [Required_2of2.zip](https://github.com/EpicGames/UnrealEngine/releases/download/4.0.2-release/Required_2of2.zip).
 
 1. Unzip the dependencies into the _UnrealEngine_ folder alongside the source.  Be careful to make sure the folders are merged together 
    correctly.  On Mac, we recommend **Option + dragging** the unzipped files into the _UnrealEngine_ folder, then selecting **Keep Newer** if prompted.
@@ -109,7 +109,7 @@ development currently works best from a PC.  Conversely, iOS programming require
 you to download _optional dependencies_ or install _platform development SDKs_ as well.
 
 Visual Studio 2012 is also supported, but you'll need to make a code change and download the _optional dependencies_
-on the [releases page](https://github.com/EpicGames/UnrealEngine/releases/tag/4.0.1-release).  See the Unreal Engine 
+on the [releases page](https://github.com/EpicGames/UnrealEngine/releases/tag/4.0.2-release).  See the Unreal Engine 
 [documentation](http://docs.unrealengine.com) for more details about using older versions of Visual Studio.
 
 Your private forks of the Unreal Engine code are associated with your GitHub account permissions.  Just remember
