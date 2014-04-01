@@ -236,11 +236,32 @@ void FMacPlatformMisc::PlatformPreInit()
 void FMacPlatformMisc::PlatformInit()
 {
 	// Increase the maximum number of simultaneously open files
-	struct rlimit Limit;
-	Limit.rlim_cur = OPEN_MAX;
-	Limit.rlim_max = RLIM_INFINITY;
-	int32 Result = setrlimit(RLIMIT_NOFILE, &Limit);
-	check(Result == 0);
+	uint32 MaxFilesPerProc = OPEN_MAX;
+	size_t UInt32Size = sizeof(uint32);
+	sysctlbyname("kern.maxfilesperproc", &MaxFilesPerProc, &UInt32Size, NULL, 0);
+
+	struct rlimit Limit = {MaxFilesPerProc, RLIM_INFINITY};
+	int32 Result = getrlimit(RLIMIT_NOFILE, &Limit);
+	if (Result == 0)
+	{
+		if(Limit.rlim_max != RLIM_INFINITY)
+		{
+			UE_LOG(LogInit, Warning, TEXT("Hard Max File Limit Too Small: %llu, should be RLIM_INFINITY, UE4 may be unstable."), Limit.rlim_max);
+		}
+		if(Limit.rlim_max == RLIM_INFINITY)
+		{
+			Limit.rlim_cur = MaxFilesPerProc;
+		}
+		else
+		{
+			Limit.rlim_cur = FMath::Min(Limit.rlim_max, (rlim_t)MaxFilesPerProc);
+		}
+	}
+	Result = setrlimit(RLIMIT_NOFILE, &Limit);
+	if (Result != 0)
+	{
+		UE_LOG(LogInit, Warning, TEXT("Failed to change open file limit, UE4 may be unstable."));
+	}
 
 	// Randomize.
     if( GIsBenchmarking )
@@ -1075,6 +1096,7 @@ static void DefaultCrashHandler(FMacCrashContext const& Context)
 	Context.ReportCrash();
 	if (GLog)
 	{
+		GLog->SetCurrentThreadAsMasterThread();
 		GLog->Flush();
 	}
 	if (GWarn)

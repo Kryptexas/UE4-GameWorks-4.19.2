@@ -43,7 +43,8 @@ namespace UnrealBuildTool
 				try
 				{
 					// Interrogate the Win32 registry
-					return RegistryKey.OpenBaseKey(RegistryHive.ClassesRoot, RegistryView.Registry32).OpenSubKey("VisualStudio.DTE") != null;
+                    string DTEKey = (Compiler == WindowsCompiler.VisualStudio2013) ? "VisualStudio.DTE.12.0" : "VisualStudio.DTE.11.0";
+                    return RegistryKey.OpenBaseKey(RegistryHive.ClassesRoot, RegistryView.Registry32).OpenSubKey(DTEKey) != null;
 				}
 				catch(Exception) 
 				{

@@ -151,29 +151,34 @@ bool ICrashDebugHelper::SyncModules( FCrashInfo* CrashInfo )
 		for (auto LabelIt = Labels.CreateConstIterator(); LabelIt; ++LabelIt)
 		{
 			TSharedRef<ISourceControlLabel> Label = *LabelIt;
-			UE_LOG(LogCrashDebugHelper, Log, TEXT(" Syncing modules with label '%s'."), *Label->GetName());
 
-			TArray<FString> FilesToSync;
-			for( int32 ModuleNameIndex = 0; ModuleNameIndex < CrashInfo->ModuleNames.Num(); ModuleNameIndex++ )
+			//@TODO: MAC: Excluding labels for Mac since we are only syncing windows binaries here...
+			if (Label->GetName().Contains(TEXT("Mac")))
 			{
-				FString DepotPath = FString::Printf( TEXT( "%s/%s" ), *DepotName, *CrashInfo->ModuleNames[ModuleNameIndex] );
+				UE_LOG(LogCrashDebugHelper, Log, TEXT(" Skipping Mac label '%s' when syncing modules."), *Label->GetName());
+			}
+			else
+			{
+				UE_LOG(LogCrashDebugHelper, Log, TEXT(" Syncing modules with label '%s'."), *Label->GetName());
 
+				TArray<FString> FilesToSync;
+				for( int32 ModuleNameIndex = 0; ModuleNameIndex < CrashInfo->ModuleNames.Num(); ModuleNameIndex++ )
 				{
-					if( Label->Sync(DepotPath) )
-					{
-						UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced binary '%s'."), *DepotPath );
-					}
+					FString DepotPath = FString::Printf( TEXT( "%s/%s" ), *DepotName, *CrashInfo->ModuleNames[ModuleNameIndex] );
 
-					FString PDBName = DepotPath.Replace( TEXT( ".dll" ), TEXT( ".pdb" ) ).Replace( TEXT( ".exe" ), TEXT( ".pdb" ) );
-					if( Label->Sync(PDBName) )
 					{
-						UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced symbol '%s'."), *PDBName );
-					}
+						if( Label->Sync(DepotPath) )
+						{
+							UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced binary '%s'."), *DepotPath );
+						}
 
-					//@TODO: ROCKETHACK: Adding additional Installed and Symbol paths - revisit when builds are made by the builder...
-					//@TODO: MAC: Excluding labels for Mac since we are only syncing windows binaries here...
-					if ( !Label->GetName().Contains(TEXT("Mac")) )
-					{
+						FString PDBName = DepotPath.Replace( TEXT( ".dll" ), TEXT( ".pdb" ) ).Replace( TEXT( ".exe" ), TEXT( ".pdb" ) );
+						if( Label->Sync(PDBName) )
+						{
+							UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced symbol '%s'."), *PDBName );
+						}
+
+						//@TODO: ROCKETHACK: Adding additional Installed and Symbol paths - revisit when builds are made by the builder...
 						DepotPath = FString::Printf( TEXT( "%s/Rocket/Installed/Windows/%s" ), *DepotName, *CrashInfo->ModuleNames[ModuleNameIndex] );
 						if( Label->Sync(DepotPath) )
 						{

@@ -320,7 +320,7 @@ namespace AutomationTool
 			RunUBT(CmdEnv, UBTExecutable: UBTExecutable, Project: ProjectName, Target: TargetName, Platform: TargetPlatform.ToString(), Config: Config, AdditionalArgs: AddArgs);
 
 			// allow the platform to perform any actions after building a target (seems almost like this should be done in UBT)
-			Platform.Platforms[TargetPlatform].PostBuildTarget(this, ProjectName, UprojectPath, Config);
+			Platform.Platforms[TargetPlatform].PostBuildTarget(this, string.IsNullOrEmpty(ProjectName) ? TargetName : ProjectName, UprojectPath, Config);
 
 			if (UseManifest)
 			{

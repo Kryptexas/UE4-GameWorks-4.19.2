@@ -134,7 +134,7 @@ namespace AutomationTool
 		{
 			// Figure out the build root
 			string KnownFilePathFromRoot = CommandEnvironment.KnownFileRelativeToRoot;
-			string KnownLocalPath = CommandUtils.CombinePaths(PathSeparator.Slash, LocalRootPath, KnownFilePathFromRoot);
+			string KnownLocalPath = CommandUtils.CombinePaths(PathSeparator.Slash, CommandUtils.MakePathSafeToUseWithCommandLine(LocalRootPath), KnownFilePathFromRoot);
 			ProcessResult P4Result = CommandUtils.P4(String.Format("files -m 1 {0}", KnownLocalPath), AllowSpew: false);
 
 			string KnownFileDepotMapping = P4Result.Output;

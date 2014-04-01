@@ -26,6 +26,7 @@ void EngineCrashHandler(const FGenericCrashContext & GenericContext)
 	Context.ReportCrash();
 	if (GLog)
 	{
+		GLog->SetCurrentThreadAsMasterThread();
 		GLog->Flush();
 	}
 	if (GWarn)

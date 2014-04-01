@@ -2680,6 +2680,10 @@ public class GUBP : BuildCommand
         {
             ActivePlatforms = new List<UnrealTargetPlatform>(CommandUtils.KnownTargetPlatforms);
         }
+        if (P4Enabled && CombinePaths(PathSeparator.Slash, P4Env.BuildRootP4, "/").ToLowerInvariant() == "//depot/ue4-releases/4.0/")
+        {
+            ActivePlatforms.Remove(UnrealTargetPlatform.XboxOne);
+        }
         foreach (var Plat in ActivePlatforms)
         {
             Log("Active Platform: {0}", Plat.ToString());

@@ -535,7 +535,7 @@ namespace AutomationTool
 		{
 			App = ConvertSeparators(PathSeparator.Default, App);
 			HostPlatform.Current.SetupOptionsForRun(ref App, ref Options, ref CommandLine);
-            if (App == "ectool" || App == "zip")
+			if (App == "ectool" || App == "zip" || App == "xcodebuild")
 			{
 				Options &= ~ERunOptions.AppMustExist;
 			}
