@@ -466,9 +466,9 @@ void FKismetCompilerContext::CreateClassVariablesFromBlueprint()
 			for (FBPVariableMetaDataEntry& Entry : Variable.MetaDataArray)
 			{
 				NewProperty->SetMetaData(Entry.DataKey, *Entry.DataValue);
-
 				if (Entry.DataKey == FBlueprintMetadata::MD_ExposeOnSpawn)
 				{
+					NewProperty->SetPropertyFlags(CPF_ExposeOnSpawn);
 					if (NewProperty->HasAnyPropertyFlags(CPF_DisableEditOnInstance))
 					{
 						MessageLog.Warning(*FString::Printf(*LOCTEXT("ExposeToSpawnButPrivateWarning", "Variable %s is marked as 'Expose on Spawn' but not marked as 'Editable'; please make it 'Editable'").ToString(), *NewProperty->GetName()));

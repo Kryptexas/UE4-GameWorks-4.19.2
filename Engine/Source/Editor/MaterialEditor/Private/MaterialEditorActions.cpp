@@ -4,7 +4,6 @@
 #include "MaterialEditor.h"
 #include "MaterialEditorActions.h"
 #include "SMaterialEditorViewport.h"
-#include "SMaterialEditorCanvas.h"
 
 
 void FMaterialEditorCommands::RegisterCommands()

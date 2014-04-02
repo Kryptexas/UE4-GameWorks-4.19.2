@@ -1,7 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemUtilsPrivatePCH.h"
-#include "Online.h"
 
 APartyBeaconHost::APartyBeaconHost(const FPostConstructInitializeProperties& PCIP) :
 	Super(PCIP),
@@ -14,7 +13,8 @@ APartyBeaconHost::APartyBeaconHost(const FPostConstructInitializeProperties& PCI
 
 void APartyBeaconHost::Tick(float DeltaTime)
 {
-	IOnlineSessionPtr SessionInt = Online::GetSessionInterface();
+	UWorld* World = GetWorld();
+	IOnlineSessionPtr SessionInt = Online::GetSessionInterface(World);
 	if (SessionInt.IsValid())
 	{
 		FNamedOnlineSession* Session = SessionInt->GetNamedSession(SessionName);
@@ -630,7 +630,9 @@ void APartyBeaconHost::RemovePartyReservation(const FUniqueNetIdRepl& PartyLeade
 
 bool APartyBeaconHost::DoesSessionMatch(const FString& SessionId) const
 {
-	IOnlineSessionPtr SessionInt = Online::GetSessionInterface();
+	UWorld* World = GetWorld();
+
+	IOnlineSessionPtr SessionInt = Online::GetSessionInterface(World);
 	FNamedOnlineSession* Session = SessionInt.IsValid() ? SessionInt->GetNamedSession(SessionName) : NULL;
 	if (Session && Session->SessionInfo.IsValid() && !SessionId.IsEmpty() && Session->SessionInfo->GetSessionId().ToString() == SessionId)
 	{

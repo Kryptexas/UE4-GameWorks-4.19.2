@@ -46,11 +46,11 @@ public class FBX : ModuleRules
 
 			if (bAllowDebugFBXLibraries && Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
 			{
-				PublicAdditionalLibraries.Add(LibDir + "libfbxsdk-2013.3-staticd.a");
+				PublicAdditionalLibraries.Add(LibDir + "libfbxsdk-2013.3d.dylib");
 			}
 			else
 			{
-				PublicAdditionalLibraries.Add(LibDir + "libfbxsdk-2013.3-static.a");
+				PublicAdditionalLibraries.Add(LibDir + "libfbxsdk-2013.3.dylib");
 			}
 		}
 	}

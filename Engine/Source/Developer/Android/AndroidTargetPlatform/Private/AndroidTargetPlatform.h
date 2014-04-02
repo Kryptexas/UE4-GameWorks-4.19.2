@@ -102,18 +102,15 @@ public:
 		return false;
 	}
 
-	virtual bool SupportsFeature( ETargetPlatformFeatures::Type Feature ) const OVERRIDE
-	{
-		if (Feature == ETargetPlatformFeatures::Packaging)
-		{
-			// not implemented yet
-			return true;
-		}
-
-		return TTargetPlatformBase< FAndroidPlatformProperties >::SupportsFeature(Feature);
-	}
-
 	virtual bool IsSdkInstalled(bool bProjectHasCode, FString& OutDocumentationPath) const OVERRIDE;
+
+	virtual bool SupportsFeature( ETargetPlatformFeatures::Type Feature ) const OVERRIDE;
+
+	virtual bool SupportsTextureFormat( FName Format ) const 
+	{
+		// By default we support all texture formats.
+		return true;
+	}
 
 #if WITH_ENGINE
 	virtual void GetReflectionCaptureFormats( TArray<FName>& OutFormats ) const OVERRIDE
@@ -131,12 +128,6 @@ public:
 
 	virtual FName GetWaveFormat( class USoundWave* Wave ) const OVERRIDE;
 #endif //WITH_ENGINE
-
-	virtual bool SupportsTextureFormat( FName Format ) const 
-	{
-		// By default we support all texture formats.
-		return true;
-	}
 
 	DECLARE_DERIVED_EVENT(FAndroidTargetPlatform, ITargetPlatform::FOnTargetDeviceDiscovered, FOnTargetDeviceDiscovered);
 	virtual FOnTargetDeviceDiscovered& OnDeviceDiscovered( ) OVERRIDE

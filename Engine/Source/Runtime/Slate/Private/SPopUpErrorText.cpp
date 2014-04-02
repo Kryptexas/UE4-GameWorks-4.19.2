@@ -6,7 +6,7 @@
 void SPopupErrorText::Construct( const FArguments& InArgs )
 {
 	SComboButton::Construct( SComboButton::FArguments()
-		.ButtonStyle( FCoreStyle::Get(), "NoBorder" )
+		.ComboButtonStyle( FCoreStyle::Get(), "MessageLogListingComboButton" )
 		.Method( InArgs._ShowInNewWindow ? SMenuAnchor::CreateNewWindow : SMenuAnchor::UseCurrentWindow )
 		.HasDownArrow(false)
 		.ContentPadding(0)
@@ -15,8 +15,6 @@ void SPopupErrorText::Construct( const FArguments& InArgs )
 			SAssignNew( HasErrorSymbol, SErrorText )
 			.ErrorText(NSLOCTEXT("UnrealEd", "Error", "!"))
 		]
-		.MenuBorderBrush(FCoreStyle::Get().GetBrush("NoBorder"))
-		.MenuBorderPadding(FMargin(0))
 		.MenuPlacement(MenuPlacement_BelowAnchor)
 		.MenuContent()
 		[

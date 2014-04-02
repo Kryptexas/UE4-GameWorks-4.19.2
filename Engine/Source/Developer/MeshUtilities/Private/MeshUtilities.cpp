@@ -5,7 +5,7 @@
 #include "Landscape/LandscapeRender.h"
 #include "MeshBuild.h"
 #include "TessellationRendering.h"
-#include "NVTriStrip.h"
+#include "NvTriStrip.h"
 #include "forsythtriangleorderoptimizer.h"
 #include "ThirdParty/nvtesslib/inc/nvtess.h"
 #include "SkeletalMeshTools.h"
@@ -1964,7 +1964,8 @@ bool FMeshUtilities::BuildStaticMesh(
 		{
 			MaxMaterialIndex = FMath::Max<int32>(RawMesh.FaceMaterialIndices[FaceIndex],MaxMaterialIndex);
 		}
-		MaxMaterialIndex = FMath::Min(MaxMaterialIndex, 64);
+		MaxMaterialIndex = FMath::Min(MaxMaterialIndex, MAX_MESH_MATERIAL_INDEX);
+
 		while (MaxMaterialIndex >= LODModel.Sections.Num())
 		{
 			FStaticMeshSection* Section = new(LODModel.Sections) FStaticMeshSection();

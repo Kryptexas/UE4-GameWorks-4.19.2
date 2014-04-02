@@ -25,6 +25,33 @@ namespace EDragTool
 	};
 }
 
+/**
+* Unreal level editor actions
+*/
+class UNREALED_API FViewportNavigationCommands : public TCommands<FViewportNavigationCommands>
+{
+
+public:
+	FViewportNavigationCommands();
+
+	/**
+	* Initialize commands
+	*/
+	virtual void RegisterCommands() OVERRIDE;
+
+
+	TSharedPtr< FUICommandInfo > Forward;
+	TSharedPtr< FUICommandInfo > Backward;
+	TSharedPtr< FUICommandInfo > Left;
+	TSharedPtr< FUICommandInfo > Right;
+
+	TSharedPtr< FUICommandInfo > Up;
+	TSharedPtr< FUICommandInfo > Down;
+
+	TSharedPtr< FUICommandInfo > FovZoomIn;
+	TSharedPtr< FUICommandInfo > FovZoomOut;
+};
+
 struct FInputEventState
 {
 public:
@@ -555,12 +582,6 @@ public:
 
 	virtual void UpdateLinkedOrthoViewports( bool bInvalidate = false ) {};
 
-
-	/**
-	 * Called when the perpsective viewport camera moves
-	 */
-	virtual void PerspectiveCameraMoved() {}
-
 	/**
 	 * @return true to lock the pitch of the viewport camera
 	 */
@@ -812,17 +833,47 @@ public:
 	/**
 	 * Aspect ratio bar display settings
 	 */
-	void SetShowAspectRatioBarDisplay(bool bEnable) { EngineShowFlags.CameraAspectRatioBars = bEnable ? 1 : 0; Invalidate(false,false); }
-	void SetShowSafeFrameBoxDisplay(bool bEnable) { EngineShowFlags.CameraSafeFrames = bEnable ? 1 : 0; Invalidate(false,false); }
-	bool IsShowingAspectRatioBarDisplay() const { return EngineShowFlags.CameraAspectRatioBars; }
-	bool IsShowingSafeFrameBoxDisplay() const { return EngineShowFlags.CameraSafeFrames; }
+	void SetShowAspectRatioBarDisplay(bool bEnable)
+	{
+		EngineShowFlags.CameraAspectRatioBars = bEnable ? 1 : 0;
+		Invalidate(false,false);
+	}
+
+	void SetShowSafeFrameBoxDisplay(bool bEnable)
+	{
+		EngineShowFlags.CameraSafeFrames = bEnable ? 1 : 0;
+		Invalidate(false,false);
+	}
+
+	bool IsShowingAspectRatioBarDisplay() const
+	{
+		return EngineShowFlags.CameraAspectRatioBars == 1;
+	}
+
+	bool IsShowingSafeFrameBoxDisplay() const
+	{
+		return EngineShowFlags.CameraSafeFrames == 1;
+	}
 
 	/** Get the near clipping plane for this viewport. */
 	float GetNearClipPlane() const;
 
+	/** Get the far clipping plane override for this viewport. */
+	float GetFarClipPlaneOverride() const;
+	
+	/** Override the far clipping plane. Set to a negative value to disable the override. */
+	void OverrideFarClipPlane(const float InFarPlane);
+
 protected:
 	/** Subclasses may override the near clipping plane. Set to a negative value to disable the override. */
 	void OverrideNearClipPlane(float InNearPlane);
+
+	/** Constant for how much the camera safe zone rectangle is inset when being displayed in the editor */
+	static float const SafePadding;
+	/**
+	 * Called when the perspective viewport camera moves
+	 */
+	virtual void PerspectiveCameraMoved() {}
 
 	/**
 	 * Used to store the required cursor visibility states and override cursor appearance
@@ -950,9 +1001,12 @@ protected:
 	/** Helper used by DrawSafeFrames to get the current safe frame aspect ratio. */
 	virtual bool GetActiveSafeFrame(float& OutAspectRatio) const { return false; }
 
+	/** Helper function to calculate the safe frame rectangle on the current viewport */
+	bool CalculateSafeFrameRect(FSlateRect& OutSafeFrameRect, FViewport* InViewport);
+
 private:
-	/** @return Whether or not the camera should be panned */
-	bool ShouldPanCamera() const;
+	/** @return Whether or not the camera should be panned or dollied */
+	bool ShouldPanOrDollyCamera() const;
 
 	void ConditionalCheckHoveredHitProxy();
 
@@ -1117,14 +1171,14 @@ protected:
 	/**
 	 * true if the user is dragging by a widget handle.
 	 */
-	bool					bDraggingByHandle;
+	bool bDraggingByHandle;
 
 	/** Cumulative camera drag and rotation deltas from trackpad gesture in current Tick */
 	FVector CurrentGestureDragDelta;
 	FRotator CurrentGestureRotDelta;
 	
 	/** If true, force this viewport to use real time audio regardless of other settings */
-	bool					bForceAudioRealtime;
+	bool bForceAudioRealtime;
 
 	/** if the viewport is currently realtime */
 	bool bIsRealtime;
@@ -1181,6 +1235,81 @@ private:
 	/** near plane adjustable for each editor view, if < 0 GNearClippingPlane should be used. */
 	float NearPlane;
 
+	/** If > 0, overrides the view's far clipping plane with a plane at the specified distance. */
+	float FarPlane;
+
 	/** If true, we are in Game View mode*/
 	bool bInGameViewMode;
+};
+
+class UNREALED_API FEditorViewportStats
+{
+public:
+	enum Category
+	{
+		CAT_PERSPECTIVE_KEYBOARD_WASD,
+		CAT_PERSPECTIVE_KEYBOARD_UP_DOWN,
+		CAT_PERSPECTIVE_KEYBOARD_FOV_ZOOM,
+		CAT_PERSPECTIVE_MOUSE_PAN,
+		CAT_PERSPECTIVE_MOUSE_DOLLY,
+		CAT_PERSPECTIVE_MOUSE_SCROLL,
+		CAT_PERSPECTIVE_MOUSE_ORBIT_ROTATION,
+		CAT_PERSPECTIVE_MOUSE_ORBIT_PAN,
+		CAT_PERSPECTIVE_MOUSE_ORBIT_ZOOM,
+		CAT_PERSPECTIVE_GESTURE_SCROLL,
+		CAT_PERSPECTIVE_GESTURE_MAGNIFY,
+
+		CAT_ORTHOGRAPHIC_KEYBOARD_WASD,
+		CAT_ORTHOGRAPHIC_KEYBOARD_UP_DOWN,
+		CAT_ORTHOGRAPHIC_KEYBOARD_FOV_ZOOM,
+		CAT_ORTHOGRAPHIC_MOUSE_PAN,
+		CAT_ORTHOGRAPHIC_MOUSE_ZOOM,
+		CAT_ORTHOGRAPHIC_MOUSE_SCROLL,
+		CAT_ORTHOGRAPHIC_MOUSE_ORBIT_ROTATION,
+		CAT_ORTHOGRAPHIC_MOUSE_ORBIT_PAN,
+		CAT_ORTHOGRAPHIC_MOUSE_ORBIT_ZOOM,
+		CAT_ORTHOGRAPHIC_GESTURE_SCROLL,
+		CAT_ORTHOGRAPHIC_GESTURE_MAGNIFY,
+
+		CAT_MAX
+	};
+
+	/**
+	 * Used commits a single usage record for whichever category is sent to it.
+	 */
+	static void Used(Category InCategory);
+
+	/**
+	 * Begins the frame for capturing using statements.  If nothing is logged between the begin and
+	 * end frame we reset the last using tracking variable in EndFrame.
+	 */
+	static void BeginFrame();
+
+	/**
+	 * Using commits a single usage record for whichever category is sent to it only if it's different
+	 * from the last category that was sent to Using.  This should be used to capture usage data for modes
+	 * where it's difficult to tell when they ended.
+	 */
+	static void Using(Category InCategory);
+
+	/**
+	 * Doesn't use anything, but ensures that the last using item is not reset.
+	 */
+	static void NoOpUsing();
+
+	/**
+	 * Use EndEndUsing to manually reset the Using state so that the next call to Using will commit a new record.
+	 * Useful when you know a transition has occurred like the mouse button has been released.
+	 */
+	static void EndFrame();
+
+	static void SendUsageData();
+
+private:
+	static void Initialize();
+
+	static bool bInitialized;
+	static bool bUsingCalledThisFrame;
+	static Category LastUsing;
+	static int32 DataPoints[CAT_MAX];
 };

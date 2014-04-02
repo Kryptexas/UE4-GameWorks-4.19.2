@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-#include "Online.h"
+#include "OnlineSubsystemUtils.h"
 
 static inline void AddIdToMuteList(TArray< TSharedRef<class FUniqueNetId> >& MuteList, const TSharedPtr<FUniqueNetId>& UniqueIdToAdd)
 {
@@ -100,7 +100,8 @@ void FPlayerMuteList::ClientMutePlayer(APlayerController* OwningPC, const FUniqu
 	ULocalPlayer* LP = Cast<ULocalPlayer>(OwningPC->Player);
 	if (LP != NULL)
 	{
-		IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface();
+		UWorld* World = OwningPC->GetWorld();
+		IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface(World);
 		if (VoiceInt.IsValid())
 		{
 			// Have the voice subsystem mute this player
@@ -120,7 +121,8 @@ void FPlayerMuteList::ClientUnmutePlayer(APlayerController* OwningPC, const FUni
 	ULocalPlayer* LP = Cast<ULocalPlayer>(OwningPC->Player);
 	if (LP != NULL)
 	{
-		IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface();
+		UWorld* World = OwningPC->GetWorld();
+		IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface(World);
 		if (VoiceInt.IsValid())
 		{
 			// Have the voice subsystem mute this player

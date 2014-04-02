@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "Char.h"
+
 /**
 * Microsoft specific implementation 
 **/
@@ -64,7 +66,16 @@ struct FMicrosoftPlatformString : public FGenericPlatformString
 
 	static FORCEINLINE int32 Stricmp( const WIDECHAR* String1, const WIDECHAR* String2 )
 	{
-		return _tcsicmp( String1, String2 );
+		// walk the strings, comparing them case insensitively
+		for (; *String1 || *String2; String1++, String2++)
+		{
+			WIDECHAR Char1 = TChar<WIDECHAR>::ToLower(*String1), Char2 = TChar<WIDECHAR>::ToLower(*String2);
+			if (Char1 != Char2)
+			{
+				return Char1 - Char2;
+			}
+		}
+		return 0;
 	}
 
 	static FORCEINLINE int32 Strnicmp( const WIDECHAR* String1, const WIDECHAR* String2, SIZE_T Count )

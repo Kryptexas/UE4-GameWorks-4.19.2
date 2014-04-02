@@ -189,9 +189,7 @@ void SToolBarButtonBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet, con
 	if(TutorialHighlightName != NAME_None)
 	{
 		TSharedRef<SWidget> Wrapper = 
-			SNew(STutorialWrapper)
-			.Name(TutorialHighlightName)
-			.Content()
+			SNew(STutorialWrapper, TutorialHighlightName)
 			[
 				ButtonContent
 			];

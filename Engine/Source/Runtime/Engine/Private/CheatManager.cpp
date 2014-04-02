@@ -4,7 +4,7 @@
 #include "EngineComponentClasses.h"
 #include "Slate.h"
 #include "AI/NavDataGenerator.h"
-#include "Online.h"
+#include "OnlineSubsystemUtils.h"
 
 #if WITH_EDITOR
 #include "UnrealEd.h"
@@ -855,10 +855,9 @@ void UCheatManager::SetNavDrawDistance(float DrawDistance)
 
 void UCheatManager::DumpOnlineSessionState()
 {
-	IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get();
-	if (OnlineSub)
+	IOnlineSessionPtr SessionInt = Online::GetSessionInterface(GetWorld());
+	if (SessionInt.IsValid())
 	{
-		IOnlineSessionPtr SessionInt = OnlineSub->GetSessionInterface();
 		SessionInt->DumpSessionState();
 	}
 }
@@ -872,7 +871,7 @@ void UCheatManager::DumpVoiceMutingState()
 	UE_LOG(LogCheatManager, Display, TEXT(""));
 
 	// Log the online view of the voice state
-	IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface();
+	IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface(GetWorld());
 	if (VoiceInt.IsValid())
 	{
 		UE_LOG(LogCheatManager, Display, TEXT("\n%s"), *VoiceInt->GetVoiceDebugState());

@@ -2,6 +2,7 @@
 
 
 #include "GraphEditorCommon.h"
+#include "ScopedTransaction.h"
 
 struct FZoomLevelEntry
 {
@@ -305,6 +306,8 @@ void SNodePanel::Construct()
 	OldViewOffset = ViewOffset;
 	OldZoomAmount = GetZoomAmount();
 	ZoomStartOffset = FVector2D::ZeroVector;
+
+	ScopedTransactionPtr.Reset();
 }
 
 FVector2D SNodePanel::ComputeEdgePanAmount(const FGeometry& MyGeometry, const FVector2D& TargetPosition)
@@ -586,6 +589,7 @@ FReply SNodePanel::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent&
 {
 	const bool bIsRightMouseButtonDown = MouseEvent.IsMouseButtonDown( EKeys::RightMouseButton );
 	const bool bIsLeftMouseButtonDown = MouseEvent.IsMouseButtonDown( EKeys::LeftMouseButton );
+	const FModifierKeysState ModifierKeysState = FSlateApplication::Get().GetModifierKeys();
 
 	PastePosition = PanelCoordToGraphCoord( MyGeometry.AbsoluteToLocal( MouseEvent.GetScreenSpacePosition() ) );
 
@@ -595,7 +599,8 @@ FReply SNodePanel::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent&
 		// Track how much the mouse moved since the mouse down.
 		TotalMouseDelta += CursorDelta.Size();
 
-		if (bIsLeftMouseButtonDown && bIsRightMouseButtonDown)
+		const bool bShouldZoom = (bIsLeftMouseButtonDown && bIsRightMouseButtonDown) || (bIsRightMouseButtonDown && ModifierKeysState.IsAltDown());
+		if (bShouldZoom)
 		{
 			FReply ReplyState = FReply::Handled();
 
@@ -683,6 +688,19 @@ FReply SNodePanel::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent&
 								}
 							}
 
+							// Create a new transaction record
+							if(!ScopedTransactionPtr.IsValid())
+							{
+								if(DefferedNodesToMove.Num() > 1)
+								{
+									ScopedTransactionPtr = MakeShareable(new FScopedTransaction(NSLOCTEXT("GraphEditor", "MoveNodesAction", "Move Nodes")));
+								}
+								else if(DefferedNodesToMove.Num() > 0)
+								{
+									ScopedTransactionPtr = MakeShareable(new FScopedTransaction(NSLOCTEXT("GraphEditor", "MoveNodeAction", "Move Node")));
+								}
+							}
+
 							// 2. Move selected nodes to new positions
 							for (int32 NodeIdx = 0; NodeIdx < DefferedNodesToMove.Num(); ++NodeIdx)
 							{
@@ -765,6 +783,8 @@ FReply SNodePanel::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerE
 		if (NodeUnderMousePtr.IsValid())
 		{
 			OnEndNodeInteraction(NodeUnderMousePtr.Pin().ToSharedRef());
+
+			ScopedTransactionPtr.Reset();
 		}
 				
 		if (OnHandleLeftMouseRelease(MyGeometry, MouseEvent))

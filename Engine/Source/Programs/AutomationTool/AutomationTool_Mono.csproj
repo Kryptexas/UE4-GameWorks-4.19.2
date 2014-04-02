@@ -113,6 +113,8 @@
     <Compile Include="LocalP4Environment.cs" />
     <Compile Include="Log.cs" />
     <Compile Include="MacHostPlatform.cs" />
+    <Compile Include="MCPPublic.cs" />
+    <Compile Include="P4Blame.cs" />
     <Compile Include="P4Environment.cs" />
     <Compile Include="P4Utils.cs" />
     <Compile Include="Platform.cs" />

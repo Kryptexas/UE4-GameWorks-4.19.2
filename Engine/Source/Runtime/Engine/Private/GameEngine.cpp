@@ -580,7 +580,16 @@ bool UGameEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	}
 	else if( FParse::Command( &Cmd,TEXT("EXIT")) || FParse::Command(&Cmd,TEXT("QUIT")))
 	{
-		return HandleExitCommand( Cmd, Ar );
+		if ( FPlatformProperties::SupportsQuit() )
+		{
+			return HandleExitCommand( Cmd, Ar );
+		}
+		else
+		{
+			// ignore command on xbox one and ps4 as it will cause a crash
+			// ttp:321126
+			return true;
+		}
 	}
 	else if( FParse::Command( &Cmd, TEXT("GETMAXTICKRATE") ) )
 	{
@@ -610,7 +619,7 @@ bool UGameEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 		// disallow set of actor properties if network game
 		if ((FParse::Command( &Cmd, TEXT("SET")) || FParse::Command( &Cmd, TEXT("SETNOPEC"))))
 		{
-			FWorldContext &Context = WorldContextFromWorld(InWorld);
+			FWorldContext &Context = GetWorldContextFromWorldChecked(InWorld);
 			if( Context.PendingNetGame != NULL || InWorld->GetNetMode() != NM_Standalone)
 			{
 				return true;
@@ -713,8 +722,7 @@ bool UGameEngine::HandleGetMaxTickRateCommand( const TCHAR* Cmd, FOutputDevice& 
 
 bool UGameEngine::HandleCancelCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
 {
-	FWorldContext &Context = WorldContextFromWorld(InWorld);
-	CancelPending(Context);
+	CancelPending(GetWorldContextFromWorldChecked(InWorld));
 	return true;
 }
 
@@ -1029,7 +1037,7 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	// Restore original GWorld*. This will go away one day.
 	if (OriginalGWorldContext != INDEX_NONE)
 	{
-		GWorld = WorldContextFromHandle(OriginalGWorldContext).World();
+		GWorld = GetWorldContextFromHandleChecked(OriginalGWorldContext).World();
 	}
 
 	// tell renderer about GWorld->IsPaused(), before rendering

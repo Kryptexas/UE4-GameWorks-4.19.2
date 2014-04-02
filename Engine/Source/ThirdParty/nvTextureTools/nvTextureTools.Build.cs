@@ -34,10 +34,10 @@ public class nvTextureTools : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Mac)
 		{
-			PublicAdditionalLibraries.Add(nvttPath + "lib/Mac/libnvcore.a");
-			PublicAdditionalLibraries.Add(nvttPath + "lib/Mac/libnvimage.a");
-			PublicAdditionalLibraries.Add(nvttPath + "lib/Mac/libnvmath.a");
-			PublicAdditionalLibraries.Add(nvttPath + "lib/Mac/libnvtt.a");
+			PublicAdditionalLibraries.Add(nvttPath + "lib/Mac/libnvcore.dylib");
+			PublicAdditionalLibraries.Add(nvttPath + "lib/Mac/libnvimage.dylib");
+			PublicAdditionalLibraries.Add(nvttPath + "lib/Mac/libnvmath.dylib");
+			PublicAdditionalLibraries.Add(nvttPath + "lib/Mac/libnvtt.dylib");
 			PublicAdditionalLibraries.Add(nvttPath + "lib/Mac/libsquish.a");
 		}
 	}

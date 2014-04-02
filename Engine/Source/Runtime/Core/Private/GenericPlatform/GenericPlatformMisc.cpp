@@ -427,22 +427,6 @@ void GenericPlatformMisc_GetProjectFilePathGameDir(FString& OutGameDir)
 	OutGameDir = FString::Printf(TEXT("%s/"), *BasePath);
 }
 
-void GenericPlatformMisc_GetAppUserGameDir(FString& OutGameDir)
-{
-	// Without a game name, use the application settings directory in rocket
-	FString AppSettingsDir = FPlatformProcess::ApplicationSettingsDir();
-	FPaths::NormalizeFilename(AppSettingsDir);
-	AppSettingsDir = FFileManagerGeneric::DefaultConvertToRelativePath(*AppSettingsDir);
-	if (AppSettingsDir.EndsWith(TEXT("/")) == false)
-	{
-		AppSettingsDir.AppendChar(TEXT('/'));
-	}
-
-	AppSettingsDir += TEXT("Engine/");
-
-	OutGameDir = AppSettingsDir;
-}
-
 const TCHAR* FGenericPlatformMisc::GameDir()
 {
 	static FString GameDir = TEXT("");
@@ -460,15 +444,15 @@ const TCHAR* FGenericPlatformMisc::GameDir()
 	if (GameDir.Len() == 0)
 	{
 		GameDir = OverrideGameDir;
-				}
+	}
 
 	if (GameDir.Len() == 0)
-				{
+	{
 		if (FPlatformProperties::IsProgram())
-			{
-				// monolithic, game-agnostic executables, the ini is in Engine/Config/Platform
-				GameDir = FString::Printf(TEXT("../../../Engine/Programs/%s/"), GGameName);
-			}
+		{
+			// monolithic, game-agnostic executables, the ini is in Engine/Config/Platform
+			GameDir = FString::Printf(TEXT("../../../Engine/Programs/%s/"), GGameName);
+		}
 		else
 		{
 			if (FPaths::IsProjectFilePathSet())
@@ -539,14 +523,12 @@ const TCHAR* FGenericPlatformMisc::GameDir()
 #endif
 				}
 			}
-			else if ( FRocketSupport::IsRocket() ) 
-			{
-				GenericPlatformMisc_GetAppUserGameDir(GameDir);
-			}
 			else
 			{
-				// Not a program, no project file, no game name, not rocket... use the engine dir
-				GameDir = FPaths::EngineDir();
+				// Get a writable engine directory
+				GameDir = FPaths::EngineUserDir();
+				FPaths::NormalizeFilename(GameDir);
+				GameDir = FFileManagerGeneric::DefaultConvertToRelativePath(*GameDir);
 			}
 		}
 	}

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "PrimitiveComponentDetails.h"
@@ -7,6 +7,7 @@
 #include "PhysicsEngine/BodySetup.h"
 #include "Components/DestructibleComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
+#include "IDocumentation.h"
 
 #define LOCTEXT_NAMESPACE "PrimitiveComponentDetails"
 
@@ -23,20 +24,20 @@ bool FPrimitiveComponentDetails::IsSimulatePhysicsEditable() const
 {
 	// Check whether to enable editing of bSimulatePhysics - this will happen if all objects are UPrimitiveComponents & have collision geometry.
 	bool bEnableSimulatePhysics = ObjectsCustomized.Num() > 0;
-	for (auto ObjectIt = ObjectsCustomized.CreateConstIterator(); ObjectIt; ++ObjectIt)
+	for ( TWeakObjectPtr<UObject> CustomizedObject : ObjectsCustomized )
 	{
-		if(ObjectIt->IsValid() && (*ObjectIt)->IsA(UPrimitiveComponent::StaticClass()))
+		if ( CustomizedObject.IsValid() && CustomizedObject->IsA(UPrimitiveComponent::StaticClass()) )
 		{
 			// Primitive components are the simplest - they have the physics data within them
-			TWeakObjectPtr<UPrimitiveComponent> PrimitiveComponent = CastChecked<UPrimitiveComponent>(ObjectIt->Get());
+			TWeakObjectPtr<UPrimitiveComponent> PrimitiveComponent = CastChecked<UPrimitiveComponent>(CustomizedObject.Get());
 			// Static mesh components can query the underlying mesh too
-			TWeakObjectPtr<UStaticMeshComponent> StaticMeshComponent = Cast<UStaticMeshComponent>(ObjectIt->Get());
+			TWeakObjectPtr<UStaticMeshComponent> StaticMeshComponent = Cast<UStaticMeshComponent>(CustomizedObject.Get());
 			// if skeletalmeshcomponent, you'll have to check physics asset to verify if it's eligible to have collision
 			TWeakObjectPtr<USkeletalMeshComponent> SkeletalMeshComponent = Cast<USkeletalMeshComponent>(PrimitiveComponent.Get());
 			// if destructiblemeshcomponent, we will allow it always
 			TWeakObjectPtr<UDestructibleComponent> DestructibleComponent = Cast<UDestructibleComponent>(PrimitiveComponent.Get());
 			// if shape component, we will check another body setup
-			TWeakObjectPtr<UShapeComponent> ShapeComponent = Cast<UShapeComponent>(ObjectIt->Get());
+			TWeakObjectPtr<UShapeComponent> ShapeComponent = Cast<UShapeComponent>(CustomizedObject.Get());
 			// if instancedstaticmeshcomponent, we will never allow it
 			TWeakObjectPtr<UInstancedStaticMeshComponent> InstancedSMComponent = Cast<UInstancedStaticMeshComponent>(PrimitiveComponent.Get());
 			
@@ -122,7 +123,7 @@ bool FPrimitiveComponentDetails::IsUseAsyncEditable() const
 void FPrimitiveComponentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 {
 	TSharedRef<IPropertyHandle> MobilityHandle = DetailBuilder.GetProperty("Mobility", USceneComponent::StaticClass());
-	MobilityHandle->SetToolTipText(LOCTEXT("PrimitiveMobilityTooltip", "Mobility for primitive components controls how they can be modified in game and therefore how they interact with lighting and physics.\n * A movable primitive component can be changed in game, but requires dynamic lighting and shadowing from lights which have a large performance cost.\n * A static primitive component can't be changed in game, but can have its lighting baked, which allows rendering to be very efficient.").ToString());
+	MobilityHandle->SetToolTipText(LOCTEXT("PrimitiveMobilityTooltip", "Mobility for primitive components controls how they can be modified in game and therefore how they interact with lighting and physics.\n● A movable primitive component can be changed in game, but requires dynamic lighting and shadowing from lights which have a large performance cost.\n● A static primitive component can't be changed in game, but can have its lighting baked, which allows rendering to be very efficient.").ToString());
 
 	if ( DetailBuilder.GetProperty("BodyInstance")->IsValidHandle() )
 	{
@@ -158,7 +159,7 @@ void FPrimitiveComponentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 					[
 						SNew(STextBlock)
 						.Text(NSLOCTEXT("MassInKG", "MassInKG_Name", "Mass in KG"))
-						.ToolTipText(NSLOCTEXT("MassInKG", "MassInKG_ToolTip", "Mass of the body in KG"))
+						.ToolTip(IDocumentation::Get()->CreateToolTip(LOCTEXT("MassInKG", "Mass of the body in KG"), NULL, TEXT("Shared/Physics"), TEXT("MassInKG")))
 						.Font(IDetailLayoutBuilder::GetDetailFont())
 					]
 					.ValueContent()

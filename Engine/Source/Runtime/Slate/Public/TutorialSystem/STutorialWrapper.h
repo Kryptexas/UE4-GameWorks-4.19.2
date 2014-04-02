@@ -10,7 +10,6 @@ class STutorialWrapper : public SBorder
 public:
 	SLATE_BEGIN_ARGS( STutorialWrapper )
 		: _Content()
-		, _Name()
 	{
 		_Visibility = EVisibility::SelfHitTestInvisible;
 	}
@@ -18,12 +17,9 @@ public:
 	/** Slot for the wrapped content (optional) */
 	SLATE_DEFAULT_SLOT( FArguments, Content )
 
-	/** The name of the widget */
-	SLATE_ARGUMENT( FName, Name )
-
 	SLATE_END_ARGS()
 
-	SLATE_API void Construct( const FArguments& InArgs );
+	SLATE_API void Construct(const FArguments& InArgs, const FName& Name);
 
 	/** Begin SWidget interface */
 	SLATE_API virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;

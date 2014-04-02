@@ -1389,7 +1389,7 @@ void UActorChannel::SetChannelActor( AActor* InActor )
 	check( !ReplicationMap.Contains( Actor ) );
 
 	// Create the actor replicator, and store a quick access pointer to it
-	ActorReplicator = &FindOrCreateReplicator( Actor );
+	ActorReplicator = &FindOrCreateReplicator( Actor ).Get();
 
 	// Remove from connection's dormancy lists
 	Connection->DormantActors.Remove( InActor );
@@ -1495,9 +1495,11 @@ void UActorChannel::ReceivedBunch( FInBunch& Bunch )
 			continue;
 		}
 		
-		FObjectReplicator & Replicator = FindOrCreateReplicator( RepObj );
+		TSharedRef< FObjectReplicator > & Replicator = FindOrCreateReplicator( RepObj );
 
-		if ( !Replicator.ReceivedBunch( Bunch, RepFlags ) )
+		bool bHasUnmapped = false;
+
+		if ( !Replicator.Get().ReceivedBunch( Bunch, RepFlags, bHasUnmapped ) )
 		{
 			UE_LOG( LogNet, Error, TEXT( "ReceivedBunch: Replicator.ReceivedBunch failed.  Closing connection.") );
 			Connection->Close();
@@ -1510,7 +1512,12 @@ void UActorChannel::ReceivedBunch( FInBunch& Bunch )
 		{
 			UE_LOG( LogNet, Log, TEXT( "ReceivedBunch: Actor was destroyed during Replicator.ReceivedBunch processing" ) );
 			break;
-		}	
+		}
+
+		if ( bHasUnmapped )
+		{
+			Connection->Driver->UnmappedReplicators.Add( Replicator );
+		}
 	}
 	
 	for (auto RepComp = ReplicationMap.CreateIterator(); RepComp; ++RepComp)
@@ -1600,7 +1607,15 @@ bool UActorChannel::ReplicateActor()
 
 	// Owned by connection's player?
 	UNetConnection* OwningConnection = Actor->GetNetConnection();
-	RepFlags.bNetOwner = (OwningConnection == Connection) ? true : false;
+	if (OwningConnection == Connection || (OwningConnection != NULL && OwningConnection->IsA(UChildConnection::StaticClass()) && ((UChildConnection*)OwningConnection)->Parent == Connection))
+	{
+		RepFlags.bNetOwner = true;
+	}
+	else
+	{
+		RepFlags.bNetOwner = false;
+	}
+
 
 	// ----------------------------------------------------------
 	// If initial, send init data.
@@ -1784,7 +1799,7 @@ void UActorChannel::Serialize(FArchive& Ar)
 
 void UActorChannel::QueueRemoteFunctionBunch( UObject * CallTarget, UFunction* Func, FOutBunch &Bunch )
 {
-	FindOrCreateReplicator(CallTarget).QueueRemoteFunctionBunch( Func, Bunch );
+	FindOrCreateReplicator(CallTarget).Get().QueueRemoteFunctionBunch( Func, Bunch );
 }
 
 void UActorChannel::BecomeDormant()
@@ -2002,7 +2017,7 @@ FObjectReplicator & UActorChannel::GetActorReplicationData()
 	return ReplicationMap.FindChecked(Actor).Get();
 }
 
-FObjectReplicator & UActorChannel::FindOrCreateReplicator( UObject * Obj )
+TSharedRef< FObjectReplicator > & UActorChannel::FindOrCreateReplicator( UObject * Obj )
 {
 	// First, try to find it on the channel replication map
 	TSharedRef<FObjectReplicator> * ReplicatorRefPtr = ReplicationMap.Find( Obj );
@@ -2032,7 +2047,7 @@ FObjectReplicator & UActorChannel::FindOrCreateReplicator( UObject * Obj )
 		ReplicatorRefPtr->Get().StartReplicating( this );
 	}
 
-	return ReplicatorRefPtr->Get();
+	return *ReplicatorRefPtr;
 }
 
 bool UActorChannel::ObjectHasReplicator(UObject *Obj)
@@ -2069,11 +2084,11 @@ bool UActorChannel::ReplicateSubobject(UObject *Obj, FOutBunch &Bunch, const FRe
 		// This bunch should be reliable and we should always return true
 		// even if the object properties did not diff from the CDO
 		// (this will ensure the content header chunk is sent which is all we care about
-		// to spawnt his on the client).
+		// to spawn this on the client).
 		Bunch.bReliable = true;
 		NewSubobject = true;
 	}
-	bool WroteSomething = FindOrCreateReplicator(Obj).ReplicateProperties(Bunch, RepFlags);
+	bool WroteSomething = FindOrCreateReplicator(Obj).Get().ReplicateProperties(Bunch, RepFlags);
 	if (NewSubobject && !WroteSomething)
 	{
 		BeginContentBlock( Obj, Bunch );

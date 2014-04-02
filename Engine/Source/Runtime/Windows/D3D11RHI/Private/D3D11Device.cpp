@@ -25,15 +25,9 @@ bool D3D11RHI_ShouldAllowAsyncResourceCreation()
 	return bAllowAsyncResourceCreation;
 }
 
-
-FD3D11DynamicRHIModule::FD3D11DynamicRHIModule()
-	: MaxSupportedFeatureLevel((D3D_FEATURE_LEVEL)0)
-{
-}
-
 IMPLEMENT_MODULE(FD3D11DynamicRHIModule, D3D11RHI);
 
-FD3D11DynamicRHI::FD3D11DynamicRHI(IDXGIFactory* InDXGIFactory,D3D_FEATURE_LEVEL InFeatureLevel):
+FD3D11DynamicRHI::FD3D11DynamicRHI(IDXGIFactory* InDXGIFactory,D3D_FEATURE_LEVEL InFeatureLevel, int32 InChosenAdapter) :
 	DXGIFactory(InDXGIFactory),
 	bDeviceRemoved(false),
 	FeatureLevel(InFeatureLevel),
@@ -50,9 +44,11 @@ FD3D11DynamicRHI::FD3D11DynamicRHI(IDXGIFactory* InDXGIFactory,D3D_FEATURE_LEVEL
 	NumUAVs(0),
 	CurrentDSVAccessType(DSAT_Writable),
 	bDiscardSharedConstants(false),
-	GPUProfilingData(this)
+	GPUProfilingData(this),
+	ChosenAdapter(InChosenAdapter)
 {
 	// This should be called once at the start 
+	check(ChosenAdapter >= 0);
 	check( IsInGameThread() );
 	check( !GIsThreadedRendering );
 
@@ -166,6 +162,7 @@ FD3D11DynamicRHI::FD3D11DynamicRHI(IDXGIFactory* InDXGIFactory,D3D_FEATURE_LEVEL
 
 	if (FeatureLevel >= D3D_FEATURE_LEVEL_11_0)
 	{
+		GSupportsSeparateRenderTargetBlendState = true;
 		GMaxTextureDimensions = D3D11_REQ_TEXTURE2D_U_OR_V_DIMENSION;
 		GMaxCubeTextureDimensions = D3D11_REQ_TEXTURECUBE_DIMENSION;
 		GMaxTextureArrayLayers = D3D11_REQ_TEXTURE2D_ARRAY_AXIS_DIMENSION;
@@ -220,17 +217,13 @@ void FD3D11DynamicRHI::RHIGetSupportedResolution( uint32 &Width, uint32 &Height 
 	BestMode.Width = 0;
 	BestMode.Height = 0;
 
-	// Enumerate all DXGI adapters
-	// TODO: Cap at 1 for default adapter
-	for(uint32 i = 0;i < 1;i++)
 	{
 		HRESULT hr = S_OK;
 		TRefCountPtr<IDXGIAdapter> Adapter;
-		hr = DXGIFactory->EnumAdapters(i,Adapter.GetInitReference());
+		hr = DXGIFactory->EnumAdapters(ChosenAdapter,Adapter.GetInitReference());
 		if( DXGI_ERROR_NOT_FOUND == hr )
 		{
-			hr = S_OK;
-			break;
+			return;
 		}
 		if( FAILED(hr) )
 		{

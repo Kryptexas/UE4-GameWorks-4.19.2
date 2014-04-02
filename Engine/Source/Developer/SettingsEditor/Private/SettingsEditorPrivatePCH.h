@@ -23,4 +23,6 @@
  *****************************************************************************/
 
 #include "SettingsEditorModel.h"
+
+#include "SSettingsEditorCheckoutNotice.h"
 #include "SSettingsEditor.h"

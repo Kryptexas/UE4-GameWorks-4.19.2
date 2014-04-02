@@ -17,8 +17,6 @@
 #include "ParticleHelper.h"
 #include "TickTaskManagerInterface.h"
 #include "FXSystem.h"
-#include "Online.h"
-#include "OnlineSubsystemTypes.h"
 #include "SoundDefinitions.h"
 #include "VisualLog.h"
 #include "LevelUtils.h"
@@ -1846,7 +1844,7 @@ UWorld* UWorld::DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningW
 	if( !EditorLevelWorld )
 		return NULL;
 
-	FWorldContext WorldContext = GEngine->WorldContextFromWorld(OwningWorld);
+	FWorldContext WorldContext = GEngine->GetWorldContextFromWorldChecked(OwningWorld);
 	GPlayInEditorID = WorldContext.PIEInstance;
 
 	FString PrefixedLevelName = ConvertToPIEPackageName(PackageName, WorldContext.PIEInstance);
@@ -3803,7 +3801,7 @@ void FSeamlessTravelHandler::SeamlessTravelLoadCallback(const FString& PackageNa
 
 bool FSeamlessTravelHandler::StartTravel(UWorld* InCurrentWorld, const FURL& InURL, const FGuid& InGuid)
 {
-	FWorldContext &Context = GEngine->WorldContextFromWorld(InCurrentWorld);
+	FWorldContext &Context = GEngine->GetWorldContextFromWorldChecked(InCurrentWorld);
 	WorldContextHandle = Context.ContextHandle;
 
 	if (!InURL.Valid)
@@ -3944,7 +3942,7 @@ void FSeamlessTravelHandler::StartLoadingDestination()
 			if (GEngine->bCookSeparateSharedMPGameContent)
 			{
 				UE_LOG(LogWorld, Log,  TEXT("LoadMap: %s: issuing load request for shared GameMode resources"), *PendingTravelURL.ToString());
-				LoadGametypeContent(GEngine->WorldContextFromHandle(WorldContextHandle), PendingTravelURL);
+				LoadGametypeContent(GEngine->GetWorldContextFromHandleChecked(WorldContextHandle), PendingTravelURL);
 			}
 
 			// Only load localized package if it exists as async package loading doesn't handle errors gracefully.
@@ -4189,7 +4187,7 @@ UWorld* FSeamlessTravelHandler::Tick()
 			LoadedWorld->AddToRoot();
 			
 			// Update the FWorldContext to point to the newly loaded world
-			FWorldContext &CurrentContext = GEngine->WorldContextFromWorld(CurrentWorld);
+			FWorldContext &CurrentContext = GEngine->GetWorldContextFromWorldChecked(CurrentWorld);
 			CurrentContext.SetCurrentWorld(LoadedWorld);
 
 			LoadedWorld->WorldType = CurrentContext.WorldType;

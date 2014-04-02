@@ -71,12 +71,12 @@ bool FOnlineSubsystemSteamModule::AreSteamDllsLoaded() const
 	bool bLoadedClientDll = true;
 	bool bLoadedServerDll = true;
 
-#if PLATFORM_WINDOWS
+#if PLATFORM_WINDOWS || PLATFORM_MAC
 	bLoadedClientDll = (SteamDLLHandle != NULL) ? true : false;
 #if PLATFORM_32BITS
 	bLoadedServerDll = IsRunningDedicatedServer() ? ((SteamServerDLLHandle != NULL) ? true : false) : true;
 #endif //PLATFORM_32BITS
-#endif //PLATFORM_WINDOWS
+#endif //PLATFORM_WINDOWS || PLATFORM_MAC
 
 	return bLoadedClientDll && bLoadedServerDll;
 }
@@ -106,12 +106,14 @@ void FOnlineSubsystemSteamModule::LoadSteamModules()
 		}
 		FPlatformProcess::PopDllDirectory(*RootSteamPath);
 	#endif	//PLATFORM_64BITS
+#elif PLATFORM_MAC
+	SteamDLLHandle = FPlatformProcess::GetDllHandle(TEXT("libsteam_api.dylib"));
 #endif	//PLATFORM_WINDOWS
 }
 
 void FOnlineSubsystemSteamModule::UnloadSteamModules()
 {
-#if PLATFORM_WINDOWS
+#if PLATFORM_WINDOWS || PLATFORM_MAC
 	if (SteamDLLHandle != NULL)
 	{
 		FPlatformProcess::FreeDllHandle(SteamDLLHandle);

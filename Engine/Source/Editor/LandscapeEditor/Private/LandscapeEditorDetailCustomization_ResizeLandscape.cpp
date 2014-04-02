@@ -46,7 +46,7 @@ void FLandscapeEditorDetailCustomization_ResizeLandscape::CustomizeDetails(IDeta
 
 	IDetailCategoryBuilder& ResizeLandscapeCategory = DetailBuilder.EditCategory("Change Component Size");
 
-	ResizeLandscapeCategory.AddCustomRow("Original Current")
+	ResizeLandscapeCategory.AddCustomRow("Original New")
 	//.NameContent()
 	//[
 	//]
@@ -297,9 +297,9 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 FText FLandscapeEditorDetailCustomization_ResizeLandscape::GetOriginalSectionSize()
 {
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
-	if (LandscapeEdMode != NULL && LandscapeEdMode->CurrentToolTarget.LandscapeInfo != NULL)
+	if (LandscapeEdMode != NULL)
 	{
-		return FText::Format(LOCTEXT("NxNQuads", "{0}x{0} Quads"), FText::AsNumber(LandscapeEdMode->CurrentToolTarget.LandscapeInfo->SubsectionSizeQuads));
+		return FText::Format(LOCTEXT("NxNQuads", "{0}x{0} Quads"), FText::AsNumber(LandscapeEdMode->UISettings->ResizeLandscape_Original_QuadsPerSection));
 	}
 
 	return FText::FromString("---");
@@ -339,9 +339,9 @@ FText FLandscapeEditorDetailCustomization_ResizeLandscape::GetSectionSize(TShare
 bool FLandscapeEditorDetailCustomization_ResizeLandscape::IsSectionSizeResetToDefaultVisible()
 {
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
-	if (LandscapeEdMode != NULL && LandscapeEdMode->CurrentToolTarget.LandscapeInfo != NULL)
+	if (LandscapeEdMode != NULL)
 	{
-		return LandscapeEdMode->UISettings->ResizeLandscape_QuadsPerSection != LandscapeEdMode->CurrentToolTarget.LandscapeInfo->SubsectionSizeQuads;
+		return LandscapeEdMode->UISettings->ResizeLandscape_QuadsPerSection != LandscapeEdMode->UISettings->ResizeLandscape_Original_QuadsPerSection;
 	}
 
 	return false;
@@ -350,18 +350,18 @@ bool FLandscapeEditorDetailCustomization_ResizeLandscape::IsSectionSizeResetToDe
 void FLandscapeEditorDetailCustomization_ResizeLandscape::OnSectionSizeResetToDefault()
 {
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
-	if (LandscapeEdMode != NULL && LandscapeEdMode->CurrentToolTarget.LandscapeInfo != NULL)
+	if (LandscapeEdMode != NULL)
 	{
-		LandscapeEdMode->UISettings->ResizeLandscape_QuadsPerSection = LandscapeEdMode->CurrentToolTarget.LandscapeInfo->SubsectionSizeQuads;
+		LandscapeEdMode->UISettings->ResizeLandscape_QuadsPerSection = LandscapeEdMode->UISettings->ResizeLandscape_Original_QuadsPerSection;
 	}
 }
 
 FText FLandscapeEditorDetailCustomization_ResizeLandscape::GetOriginalSectionsPerComponent()
 {
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
-	if (LandscapeEdMode != NULL && LandscapeEdMode->CurrentToolTarget.LandscapeInfo != NULL)
+	if (LandscapeEdMode != NULL)
 	{
-		int32 SectionsPerComponent = LandscapeEdMode->CurrentToolTarget.LandscapeInfo->ComponentNumSubsections;
+		int32 SectionsPerComponent = LandscapeEdMode->UISettings->ResizeLandscape_Original_SectionsPerComponent;
 
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("Width"), SectionsPerComponent);
@@ -412,9 +412,9 @@ FText FLandscapeEditorDetailCustomization_ResizeLandscape::GetSectionsPerCompone
 bool FLandscapeEditorDetailCustomization_ResizeLandscape::IsSectionsPerComponentResetToDefaultVisible()
 {
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
-	if (LandscapeEdMode != NULL && LandscapeEdMode->CurrentToolTarget.LandscapeInfo != NULL)
+	if (LandscapeEdMode != NULL)
 	{
-		return LandscapeEdMode->UISettings->ResizeLandscape_SectionsPerComponent != LandscapeEdMode->CurrentToolTarget.LandscapeInfo->ComponentNumSubsections;
+		return LandscapeEdMode->UISettings->ResizeLandscape_SectionsPerComponent != LandscapeEdMode->UISettings->ResizeLandscape_Original_SectionsPerComponent;
 	}
 
 	return false;
@@ -423,22 +423,20 @@ bool FLandscapeEditorDetailCustomization_ResizeLandscape::IsSectionsPerComponent
 void FLandscapeEditorDetailCustomization_ResizeLandscape::OnSectionsPerComponentResetToDefault()
 {
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
-	if (LandscapeEdMode != NULL && LandscapeEdMode->CurrentToolTarget.LandscapeInfo != NULL)
+	if (LandscapeEdMode != NULL)
 	{
-		LandscapeEdMode->UISettings->ResizeLandscape_SectionsPerComponent = LandscapeEdMode->CurrentToolTarget.LandscapeInfo->ComponentNumSubsections;
+		LandscapeEdMode->UISettings->ResizeLandscape_SectionsPerComponent = LandscapeEdMode->UISettings->ResizeLandscape_Original_SectionsPerComponent;
 	}
 }
 
 FText FLandscapeEditorDetailCustomization_ResizeLandscape::GetOriginalComponentCount()
 {
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
-	if (LandscapeEdMode != NULL && LandscapeEdMode->CurrentToolTarget.LandscapeInfo != NULL)
+	if (LandscapeEdMode != NULL)
 	{
-		const int32 ComponentSizeQuads = LandscapeEdMode->CurrentToolTarget.LandscapeInfo->SubsectionSizeQuads * LandscapeEdMode->CurrentToolTarget.LandscapeInfo->ComponentNumSubsections;
-
 		return FText::Format(LOCTEXT("NxN", "{0}\u00D7{1}"), 
-			FText::AsNumber(LandscapeEdMode->UISettings->ResizeLandscape_OriginalResolution.X / ComponentSizeQuads),
-			FText::AsNumber(LandscapeEdMode->UISettings->ResizeLandscape_OriginalResolution.Y / ComponentSizeQuads));
+			FText::AsNumber(LandscapeEdMode->UISettings->ResizeLandscape_Original_ComponentCount.X),
+			FText::AsNumber(LandscapeEdMode->UISettings->ResizeLandscape_Original_ComponentCount.Y));
 	}
 	return FText::FromString(TEXT("---"));
 }
@@ -455,9 +453,10 @@ FText FLandscapeEditorDetailCustomization_ResizeLandscape::GetOriginalLandscapeR
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
 	if (LandscapeEdMode != NULL)
 	{
-		return FText::Format(LOCTEXT("NxN", "{0}\u00D7{1}"), 
-			FText::AsNumber(LandscapeEdMode->UISettings->ResizeLandscape_OriginalResolution.X + 1),
-			FText::AsNumber(LandscapeEdMode->UISettings->ResizeLandscape_OriginalResolution.Y + 1));
+		const int32 Original_ComponentSizeQuads = LandscapeEdMode->UISettings->ResizeLandscape_Original_SectionsPerComponent * LandscapeEdMode->UISettings->ResizeLandscape_Original_QuadsPerSection;
+		return FText::Format(LOCTEXT("NxN", "{0}\u00D7{1}"),
+			FText::AsNumber(LandscapeEdMode->UISettings->ResizeLandscape_Original_ComponentCount.X * Original_ComponentSizeQuads + 1),
+			FText::AsNumber(LandscapeEdMode->UISettings->ResizeLandscape_Original_ComponentCount.Y * Original_ComponentSizeQuads + 1));
 	}
 
 	return FText::FromString(TEXT("---"));
@@ -480,10 +479,9 @@ FText FLandscapeEditorDetailCustomization_ResizeLandscape::GetLandscapeResolutio
 FText FLandscapeEditorDetailCustomization_ResizeLandscape::GetOriginalTotalComponentCount()
 {
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
-	if (LandscapeEdMode != NULL && LandscapeEdMode->CurrentToolTarget.LandscapeInfo != NULL)
+	if (LandscapeEdMode != NULL)
 	{
-		const int32 ComponentSizeQuads = LandscapeEdMode->CurrentToolTarget.LandscapeInfo->SubsectionSizeQuads * LandscapeEdMode->CurrentToolTarget.LandscapeInfo->ComponentNumSubsections;
-		return FText::AsNumber((LandscapeEdMode->UISettings->ResizeLandscape_OriginalResolution.X / ComponentSizeQuads) * (LandscapeEdMode->UISettings->ResizeLandscape_OriginalResolution.Y / ComponentSizeQuads));
+		return FText::AsNumber(LandscapeEdMode->UISettings->ResizeLandscape_Original_ComponentCount.X * LandscapeEdMode->UISettings->ResizeLandscape_Original_ComponentCount.Y);
 	}
 
 	return FText::FromString(TEXT("---"));
@@ -510,7 +508,8 @@ FReply FLandscapeEditorDetailCustomization_ResizeLandscape::OnApplyButtonClicked
 		const FIntPoint ComponentCount = LandscapeEdMode->UISettings->ResizeLandscape_ComponentCount;
 		const int32 SectionsPerComponent = LandscapeEdMode->UISettings->ResizeLandscape_SectionsPerComponent;
 		const int32 QuadsPerSection = LandscapeEdMode->UISettings->ResizeLandscape_QuadsPerSection;
-		LandscapeEdMode->ChangeComponentSetting(ComponentCount.X, ComponentCount.Y, SectionsPerComponent, QuadsPerSection);
+		const bool bResample = (LandscapeEdMode->UISettings->ResizeLandscape_ConvertMode == ELandscapeConvertMode::Resample);
+		LandscapeEdMode->ChangeComponentSetting(ComponentCount.X, ComponentCount.Y, SectionsPerComponent, QuadsPerSection, bResample);
 
 		LandscapeEdMode->UpdateLandscapeList();
 

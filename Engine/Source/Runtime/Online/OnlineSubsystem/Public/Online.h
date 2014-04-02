@@ -17,17 +17,15 @@
 
 /** Macro to handle the boilerplate of accessing the proper online subsystem and getting the requested interface */
 #define IMPLEMENT_GET_INTERFACE(InterfaceType) \
-static IOnline##InterfaceType##Ptr Get##InterfaceType##Interface(const FName SubsystemName = NAME_None) \
+	static IOnline##InterfaceType##Ptr Get##InterfaceType##Interface(const FName SubsystemName = NAME_None) \
 { \
 	IOnlineSubsystem* OSS = IOnlineSubsystem::Get(SubsystemName); \
 	return (OSS == NULL) ? NULL : OSS->Get##InterfaceType##Interface(); \
 }
 
-/** Engine helper class for accessing all the online features available in the online subsystem */
-class Online
+/** Helpers for accessing all the online features available in the online subsystem */
+namespace Online
 {
-public:
-
 	/** 
 	 * Shutdown all online services
 	 */
@@ -105,7 +103,7 @@ public:
 	IMPLEMENT_GET_INTERFACE(Identity);
 
 	/** 
-	 * Get the interface for accessing titlefile online services
+	 * Get the interface for accessing title file online services
 	 * @param SubsystemName - Name of the requested online service
 	 * @return Interface pointer for the appropriate service
 	 */
@@ -147,3 +145,4 @@ public:
 	IMPLEMENT_GET_INTERFACE(Presence);
 };
 
+#undef IMPLEMENT_GET_INTERFACE

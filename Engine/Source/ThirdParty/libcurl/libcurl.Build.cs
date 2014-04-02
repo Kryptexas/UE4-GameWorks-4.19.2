@@ -8,15 +8,29 @@ public class libcurl : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartyDirectory + "libcurl/include");
-
-        if (Target.Platform == UnrealTargetPlatform.Linux)
+		Definitions.Add("WITH_LIBCURL=1");
+		string LibCurlPath = UEBuildConfiguration.UEThirdPartyDirectory + "libcurl/";
+		if (Target.Platform == UnrealTargetPlatform.Linux)
         {
-            PublicLibraryPaths.Add(UEBuildConfiguration.UEThirdPartyDirectory + "libcurl/lib/Linux");
+			PublicIncludePaths.Add(LibCurlPath + "include");
+			PublicLibraryPaths.Add(LibCurlPath + "lib/Linux");
             PublicAdditionalLibraries.Add("curl");
             PublicAdditionalLibraries.Add("crypto");
             PublicAdditionalLibraries.Add("ssl");
             PublicAdditionalLibraries.Add("dl");
         }
+		else if (Target.Platform == UnrealTargetPlatform.Win32 ||
+				 Target.Platform == UnrealTargetPlatform.Win64)
+		{
+			PublicIncludePaths.Add(LibCurlPath + "include/Windows");
+
+			string LibCurlLibPath = LibCurlPath + "lib/";
+			LibCurlLibPath += (Target.Platform == UnrealTargetPlatform.Win64) ? "Win64/" : "Win32/";
+			LibCurlLibPath += "VS" + WindowsPlatform.GetVisualStudioCompilerVersionName();
+			PublicLibraryPaths.Add(LibCurlLibPath);
+
+			PublicAdditionalLibraries.Add("libcurl_a.lib");
+			Definitions.Add("CURL_STATICLIB=1");
+		}
 	}
 }

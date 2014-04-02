@@ -53,6 +53,7 @@ public:
 	void SetText(const TAttribute< FText >& InNewText);
 
 	// SWidget implementation
+	virtual FReply OnPreviewKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE;
 	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE;
 	virtual bool SupportsKeyboardFocus() const OVERRIDE;
 	virtual bool HasKeyboardFocus() const OVERRIDE;

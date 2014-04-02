@@ -110,7 +110,6 @@ namespace TranslatedWordsCountEstimator
                     var wordCount = totalWords;
 
                     Console.Out.Write("Calculating {0} language: ", lang, 0);
-                    var intFileId = 0;
 
                     foreach (var intFile in intFiles)
                     {
@@ -131,29 +130,45 @@ namespace TranslatedWordsCountEstimator
                         var match = ChangelistNumberPattern.Match(UDNFilesHelper.Get(locFile));
                         IList<DepotFileDiff> diffs = null;
 
+                        DateTime? diffDate = null;
+
                         if (match.Success)
                         {
                             var cl = int.Parse(match.Groups["number"].Value);
                             if (intFile.HeadChange > cl)
                             {
-                                diffs = p4Repository.GetDepotFileDiffs(
-                                    new FileSpec(intFile.DepotPath as PathSpec, new ChangelistIdVersion(cl)).ToString(),
-                                    new FileSpec(intFile.DepotPath as PathSpec, VersionSpec.Head).ToString(),
-                                    new Options() { { "-d", "" }, { "-u", "" } });
+                                diffDate = p4Repository.GetChangelist(cl).ModifiedDate;
                             }
                         }
                         else
                         {
                             if (intFile.HeadTime > locFile.HeadTime)
                             {
-                                diffs = p4Repository.GetDepotFileDiffs(
-                                    string.Format("{0}@{1}", intFile.DepotPath.Path, locFile.HeadTime.ToString("yyyy\\/MM\\/dd\\:HH\\:mm\\:ss")),
-                                    new FileSpec(intFile.DepotPath as PathSpec, VersionSpec.Head).ToString(),
-                                    new Options() { { "-d", "" }, { "-u", "" } });
+                                diffDate = locFile.HeadTime;
                             }
                         }
 
-                        if (diffs == null || diffs[0].Type == DiffType.Identical)
+                        if (!diffDate.HasValue)
+                        {
+                            continue;
+                        }
+
+                        diffs = p4Repository.GetDepotFileDiffs(
+                            string.Format("{0}@{1}", intFile.DepotPath.Path, diffDate.Value.ToString("yyyy\\/MM\\/dd\\:HH\\:mm\\:ss")),
+                            new FileSpec(intFile.DepotPath, new ChangelistIdVersion(latestChangelist.Id)).ToString(),
+                            new Options() { { "-d", "" }, { "-u", "" } });
+
+                        if (diffs != null && diffs[0] != null && string.IsNullOrEmpty(diffs[0].LeftFile.DepotPath.Path))
+                        {
+                            diffs = p4Repository.GetDepotFileDiffs(
+                                string.Format("{0}@{1}", TraceP4Location(p4Repository,
+                                    new FileSpec(intFile.DepotPath, new ChangelistIdVersion(latestChangelist.Id)), diffDate.Value),
+                                    diffDate.Value.ToString("yyyy\\/MM\\/dd\\:HH\\:mm\\:ss")),
+                                new FileSpec(intFile.DepotPath, new ChangelistIdVersion(latestChangelist.Id)).ToString(),
+                                new Options() { { "-d", "" }, { "-u", "" } });
+                        }
+
+                        if (diffs[0].Type == DiffType.Identical)
                         {
                             continue;
                         }
@@ -181,6 +196,22 @@ namespace TranslatedWordsCountEstimator
             {
                 Console.Error.WriteLine("Unrecognized error: {0}\nCall stack: {1}\n", e.Message, e.StackTrace);
             }
+        }
+
+        private static PathSpec TraceP4Location(Repository p4Repository, FileSpec originalFile, DateTime date)
+        {
+            var history = p4Repository.GetFileHistory(
+                new Options(), originalFile);
+
+            foreach (var historyFile in history)
+            {
+                if (historyFile.Date < date)
+                {
+                    return historyFile.DepotPath;
+                }
+            }
+
+            return null;
         }
 
         private static string GetP4Setting(string[] args, int argId, P4Setting settingType)

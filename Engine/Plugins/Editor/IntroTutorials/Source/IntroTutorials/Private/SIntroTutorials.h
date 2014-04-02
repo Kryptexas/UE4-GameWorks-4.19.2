@@ -57,8 +57,6 @@ private:
 
 	/** Play tutorial dialogue */
 	void PlayDialogue(UDialogueWave* InDialogueWave);
-	/** Play a sound specified by its path */
-	void PlaySound(const FString& WavePath);
 
 	/** Changes the page we are currently on, cleaning up appropriately */
 	void GotoPreviousPage();

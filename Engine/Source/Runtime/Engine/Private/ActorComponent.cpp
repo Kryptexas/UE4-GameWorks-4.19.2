@@ -1070,6 +1070,7 @@ bool UActorComponent::IsNetSimulating() const
 void UActorComponent::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const
 {
 	DOREPLIFETIME( UActorComponent, bIsActive );
+	DOREPLIFETIME( UActorComponent, bReplicates );
 }
 
 void UActorComponent::OnRep_IsActive()

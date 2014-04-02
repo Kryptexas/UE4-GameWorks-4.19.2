@@ -569,12 +569,12 @@ void FLevelCollectionModel::TranslateLevels(const FLevelModelList& InLevels, FVe
 {
 }
 
-FVector2D FLevelCollectionModel::SnapTranslationDelta(const FLevelModelList& InLevelList, FVector2D InAbsoluteDelta, float SnappingDistance)
+FVector2D FLevelCollectionModel::SnapTranslationDelta(const FLevelModelList& InLevelList, FVector2D InTranslationDelta, bool bBoundsSnapping, float InSnappingValue)
 {
-	return InAbsoluteDelta;
+	return InTranslationDelta;
 }
 
-void FLevelCollectionModel::UpdateTranslationDelta(const FLevelModelList& InLevelList, FVector2D InTranslationDelta, float InSnappingScale)
+void FLevelCollectionModel::UpdateTranslationDelta(const FLevelModelList& InLevelList, FVector2D InTranslationDelta, bool bBoundsSnapping, float InSnappingValue)
 {
 	FLevelModelList EditableLevels;
 	// Only editable levels could be moved
@@ -589,7 +589,7 @@ void FLevelCollectionModel::UpdateTranslationDelta(const FLevelModelList& InLeve
 	// Snap	translation delta
 	if (InTranslationDelta != FVector2D::ZeroVector)
 	{
-		InTranslationDelta = SnapTranslationDelta(EditableLevels, InTranslationDelta, InSnappingScale);
+		InTranslationDelta = SnapTranslationDelta(EditableLevels, InTranslationDelta, bBoundsSnapping, InSnappingValue);
 	}
 		
 	for (auto It = EditableLevels.CreateIterator(); It; ++It)

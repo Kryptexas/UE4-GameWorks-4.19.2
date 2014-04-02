@@ -750,6 +750,11 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 		);
 
 	ActionList.MapAction(
+		Commands.CreateNewOutlinerFolder,
+		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::CreateNewOutlinerFolder_Clicked )
+		);
+
+	ActionList.MapAction(
 		Commands.LockActorMovement,
 		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::LockActorMovement_Clicked ),
 		FCanExecuteAction(),

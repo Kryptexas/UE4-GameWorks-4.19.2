@@ -84,19 +84,6 @@
         <classShapeMoniker Id="66e20693-2188-41ba-b050-7d08c2691d12" />
       </nodes>
     </associationConnector>
-    <classShape Id="e2635343-4ff1-4da8-83c9-da2ee3744725" absoluteBounds="3.5, 1.25, 2, 1.5785953776041666">
-      <DataClassMoniker Name="/CrashReportDataContext/PIIMapping" />
-      <nestedChildShapes>
-        <elementListCompartment Id="c76fa9f5-c8c6-44dc-9886-33ce4f8aa35e" absoluteBounds="3.5150000000000006, 1.7100000000000009, 1.9700000000000002, 1.0185953776041665" name="DataPropertiesCompartment" titleTextColor="Black" itemTextColor="Black" />
-      </nestedChildShapes>
-    </classShape>
-    <associationConnector edgePoints="[(4.4375 : 3.875); (4.4375 : 2.82859537760417)]" fixedFrom="NotFixed" fixedTo="NotFixed">
-      <AssociationMoniker Name="/CrashReportDataContext/User/User_PIIMapping" />
-      <nodes>
-        <classShapeMoniker Id="01dddf4f-058f-43b4-b6c0-b90e7acfe0b9" />
-        <classShapeMoniker Id="e2635343-4ff1-4da8-83c9-da2ee3744725" />
-      </nodes>
-    </associationConnector>
     <associationConnector edgePoints="[(2.625 : 4.15949625651042); (3.375 : 4.15949625651042)]" fixedFrom="NotFixed" fixedTo="NotFixed">
       <AssociationMoniker Name="/CrashReportDataContext/UserGroup/UserGroup_User" />
       <nodes>

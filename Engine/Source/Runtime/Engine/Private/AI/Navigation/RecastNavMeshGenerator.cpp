@@ -264,6 +264,7 @@ struct FRecastGeometryExport : public FNavigableGeometryExport
 	virtual void ExportPxTriMesh16Bit(class physx::PxTriangleMesh const * const TriMesh, const FTransform& LocalToWorld) OVERRIDE;
 	virtual void ExportPxTriMesh32Bit(class physx::PxTriangleMesh const * const TriMesh, const FTransform& LocalToWorld) OVERRIDE;
 	virtual void ExportPxConvexMesh(class physx::PxConvexMesh const * const ConvexMesh, const FTransform& LocalToWorld) OVERRIDE;
+	virtual void ExportPxHeightField(physx::PxHeightField const * const HeightField, const FTransform& LocalToWorld) OVERRIDE;
 #endif // WITH_PHYSX
 	virtual void ExportCustomMesh(const FVector* InVertices, int32 NumVerts, const int32* InIndices, int32 NumIndices, const FTransform& LocalToWorld) OVERRIDE;
 	virtual void AddNavModifiers(const FCompositeNavModifier& Modifiers) OVERRIDE;
@@ -452,7 +453,7 @@ FORCEINLINE_DEBUGGABLE void ExportPxTriMesh(PxTriangleMesh const * const TriMesh
 	const TIndicesType* Indices = (TIndicesType*)TriMesh->getTriangles();;
 		
 	VertexBuffer.Reserve(VertexBuffer.Num() + NumTris*3);
-	IndexBuffer.Reserve(IndexBuffer.Num() + NumTris*3*2);
+	IndexBuffer.Reserve(IndexBuffer.Num() + NumTris*3);
 	const bool bFlipCullMode = (LocalToWorld.GetDeterminant() < 0.f);
 	const int32 IndexOrder[3] = { bFlipCullMode ? 0 : 2, 1, bFlipCullMode ? 2 : 0 };
 
@@ -493,7 +494,80 @@ FORCEINLINE_DEBUGGABLE void ExportPxTriMesh(PxTriangleMesh const * const TriMesh
 		VertOffset += 3;
 	}
 }
-#endif
+
+void ExportPxHeightField(PxHeightField const * const HeightField, const FTransform& LocalToWorld,
+											TNavStatArray<float>& VertexBuffer, TNavStatArray<int32>& IndexBuffer,
+											FBox& UnrealBounds)
+{
+	if (HeightField == NULL)
+	{
+		return;
+	}
+
+	const int32 NumRows = HeightField->getNbRows();
+	const int32 NumCols = HeightField->getNbColumns();
+	const int32 NumVtx	= NumRows*NumCols;
+
+	// Unfortunately we have to use PxHeightField::saveCells instead PxHeightField::getHeight here 
+	// because current PxHeightField interface does not provide an access to a triangle material index by HF 2D coordinates
+	// PxHeightField::getTriangleMaterialIndex uses some internal adressing which does not match HF 2D coordinates
+	TArray<PxHeightFieldSample> HFSamples;
+	HFSamples.SetNumUninitialized(NumVtx);
+	HeightField->saveCells(HFSamples.GetData(), HFSamples.Num()*HFSamples.GetTypeSize());
+	
+	//
+	int32 VertOffset = VertexBuffer.Num() / 3;
+	const int32 NumQuads = (NumRows-1)*(NumCols-1);
+	VertexBuffer.Reserve(VertexBuffer.Num() + NumVtx*3);
+	IndexBuffer.Reserve(IndexBuffer.Num() + NumQuads*6);
+
+	const bool bMirrored = (LocalToWorld.GetDeterminant() < 0.f);
+	
+	for (int32 Y = 0; Y < NumRows; Y++)
+	{
+		for (int32 X = 0; X < NumCols; X++)
+		{
+			int32 SampleIdx = (bMirrored ? X : (NumCols - X - 1))*NumCols + Y;
+	
+			const PxHeightFieldSample& Sample = HFSamples[SampleIdx];
+			const FVector UnrealCoords = LocalToWorld.TransformPosition(FVector(X, Y, Sample.height));
+			UnrealBounds += UnrealCoords;
+
+			VertexBuffer.Add(UnrealCoords.X);
+			VertexBuffer.Add(UnrealCoords.Y);
+			VertexBuffer.Add(UnrealCoords.Z);
+		}
+	}
+		
+	for (int32 Y = 0; Y < NumRows-1; Y++)
+	{
+		for (int32 X = 0; X < NumCols-1; X++)
+		{
+			int32 I00 = X+0 + (Y+0)*NumCols;
+			int32 I01 = X+0 + (Y+1)*NumCols;
+			int32 I10 = X+1 + (Y+0)*NumCols;
+			int32 I11 = X+1 + (Y+1)*NumCols;
+
+			if (bMirrored)
+			{
+				Swap(I01, I10);
+			}
+
+			int32 SampleIdx = (NumCols - X - 1)*NumCols + Y;
+			const PxHeightFieldSample& Sample = HFSamples[SampleIdx];
+			const bool HoleQuad = (Sample.materialIndex0 == PxHeightFieldMaterial::eHOLE);
+
+			IndexBuffer.Add(VertOffset + I00);
+			IndexBuffer.Add(VertOffset + (HoleQuad ? I00 : I11));
+			IndexBuffer.Add(VertOffset + (HoleQuad ? I00 : I10));
+			
+			IndexBuffer.Add(VertOffset + I00);
+			IndexBuffer.Add(VertOffset + (HoleQuad ? I00 : I01));
+			IndexBuffer.Add(VertOffset + (HoleQuad ? I00 : I11));
+		}
+	}
+}
+#endif //WITH_PHYSX
 
 void ExportCustomMesh(const FVector* InVertices, int32 NumVerts, const int32* InIndices, int32 NumIndices, const FTransform& LocalToWorld,
 					  TNavStatArray<float>& VertexBuffer, TNavStatArray<int32>& IndexBuffer, FBox& UnrealBounds)
@@ -974,6 +1048,11 @@ void FRecastGeometryExport::ExportPxTriMesh32Bit(physx::PxTriangleMesh const * c
 void FRecastGeometryExport::ExportPxConvexMesh(physx::PxConvexMesh const * const ConvexMesh, const FTransform& LocalToWorld)
 {
 	RecastGeometryExport::ExportPxConvexMesh(ConvexMesh, LocalToWorld, VertexBuffer, IndexBuffer, Data->Bounds);
+}
+
+void FRecastGeometryExport::ExportPxHeightField(physx::PxHeightField const * const HeightField, const FTransform& LocalToWorld)
+{
+	RecastGeometryExport::ExportPxHeightField(HeightField, LocalToWorld, VertexBuffer, IndexBuffer, Data->Bounds);
 }
 #endif // WITH_PHYSX
 
@@ -3559,7 +3638,7 @@ void FRecastNavMeshGenerator::OnNavigationBuildingUnlocked(bool bForce)
 	}
 }
 
-void FRecastNavMeshGenerator::TiggerGeneration()
+void FRecastNavMeshGenerator::TriggerGeneration()
 {
 	RequestGeneration();
 }
@@ -3582,7 +3661,7 @@ void FRecastNavMeshGenerator::UpdateBuilding()
 
 		// need to send it to main thread - uses some gamethread-only iterators
 		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-			FSimpleDelegateGraphTask::FDelegate::CreateThreadSafeSP(this, &FRecastNavMeshGenerator::TiggerGeneration)
+			FSimpleDelegateGraphTask::FDelegate::CreateThreadSafeSP(this, &FRecastNavMeshGenerator::TriggerGeneration)
 			, TEXT("Requesting navmesh regen from UpdateBuilding")
 			, NULL
 			, ENamedThreads::GameThread

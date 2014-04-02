@@ -126,12 +126,12 @@ namespace AutomationTool
             return false;
         }
 
-        public bool RejectFile(string FileToCopy)
+        public bool RejectFile(string FileToCopy, string Root = null)
         {
             bool Result = false;
             foreach (var RejectOn in RejectStrings)
             {
-                if (RejectFileOnSubstring(FileToCopy, RejectOn, SourceBaseDir))
+                if (RejectFileOnSubstring(FileToCopy, RejectOn, Root == null ? SourceBaseDir : Root))
                 {
                     Result = true;
                     break;
@@ -237,7 +237,7 @@ namespace AutomationTool
 
             foreach (var FileToCopy in Files)
             {
-                bool bOk = !Exclude.Contains(FileToCopy) && !RejectFile(FileToCopy);
+                bool bOk = !Exclude.Contains(FileToCopy) && !RejectFile(FileToCopy, PathOnly);
                 foreach (var Excl in Exclusions)
                 {
                     if (Excl.Contains("/") || Excl.Contains("\\"))
@@ -246,7 +246,7 @@ namespace AutomationTool
                         {
                             throw new AutomationException("Exclusion {0} is illegal, must either be a substring or a wildcard without a path", Excl);
                         }
-                        bOk = bOk && !RejectFileOnSubstring(FileToCopy, Excl);
+                        bOk = bOk && !RejectFileOnSubstring(FileToCopy, Excl, PathOnly);
                     }
                 }
                 if (bOk)

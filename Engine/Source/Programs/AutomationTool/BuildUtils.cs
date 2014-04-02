@@ -49,7 +49,7 @@ namespace AutomationTool
 			{
 				throw new AutomationException(String.Format("Unabled to build Solution {0}. Solution file not found.", SolutionFile));
 			}
-			if (Env.MsDevExe == null)
+			if (String.IsNullOrEmpty(Env.MsDevExe))
 			{
 				throw new AutomationException(String.Format("Unabled to build Solution {0}. devenv.com not found.", SolutionFile));
 			}

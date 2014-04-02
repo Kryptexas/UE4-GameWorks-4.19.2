@@ -15,7 +15,6 @@
 
 #define SCALAR_BRANCHLESS		0
 #define VECTORIZED_BRANCHLESS	0
-#define VECTORIZED_NO_MINS		0
 #define VECTORIZED_EARLY_OUT	1
 
 // .r:Intensity in 0..1 range .g:RoughnessMaskMul, b:unused, a:unused
@@ -89,6 +88,9 @@ float4 RayCast( float3 R, float Roughness, float SceneDepth, float3 PositionTran
 	// *2 to get less morie pattern in extreme cases, larger values make object appear not grounded in reflections
 	const float CompareTolerance = abs( RayStepScreen.z ) * Step * 2;
 
+	// avoid bugs with early returns inside of loops on certain platform compilers.
+	float4 Result = float4( 0, 0, 0, 1 );
+
 #if SCALAR_BRANCHLESS
 
 	float MinHitTime = 1;
@@ -124,7 +126,7 @@ float4 RayCast( float3 R, float Roughness, float SceneDepth, float3 PositionTran
 	HitUVz.xy = HitUVz.xy * float2( 2, -2 ) + float2( -1, 1 );
 	HitUVz.xy = HitUVz.xy * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
 #endif
-	return float4( HitUVz, MinHitTime );
+	Result = float4( HitUVz, MinHitTime );
 
 #elif VECTORIZED_BRANCHLESS
 
@@ -185,59 +187,14 @@ float4 RayCast( float3 R, float Roughness, float SceneDepth, float3 PositionTran
 	HitUVz.xy = HitUVz.xy = HitUVz.xy * float2( 2, -2 ) + float2( -1, 1 );
 	HitUVz.xy = HitUVz.xy * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
 #endif
-	return float4( HitUVz, MinHitTime );
-
-#elif VECTORIZED_NO_MINS
-
-	float LastDiff = 0;
-	float Level = 0;
-	float4 SampleTime = ( StepOffset + float4( 1, 2, 3, 4 ) ) / (NumSteps + 1);
-
-	LOOP
-	for( int i = 0; i < NumSteps; i += 4 )
-	{
-		// Vectorized to group fetches
-		float4 SampleUV0 = RayStartUVz.xyxy + RayStepUVz.xyxy * SampleTime.xxyy;
-		float4 SampleUV1 = RayStartUVz.xyxy + RayStepUVz.xyxy * SampleTime.zzww;
-		float4 SampleZ   = RayStartUVz.zzzz + RayStepUVz.zzzz * SampleTime;
-
-		// Use lower res for farther samples
-		float4 SampleDepth = SampleDepthTexture( PostprocessInput1, PostprocessInput1Sampler, Level, SampleUV0, SampleUV1 );
-
-		float4 DepthDiff1 = SampleZ - SampleDepth;
-		bool4 Hit = abs( DepthDiff1 + CompareTolerance ) < CompareTolerance;
-
-		UNROLL for( int j = 0; j < 4; j++ )
-		{
-			float DepthDiff = SampleZ[j] - SampleDepth[j];
-			bool Hit = abs( -DepthDiff - CompareTolerance ) < CompareTolerance;
-
-			BRANCH if( Hit )
-			{
-				// Find more accurate hit using line segment intersection
-				float TimeLerp = saturate( LastDiff / (LastDiff - DepthDiff) );
-				float HitTime = SampleTime[j] + (TimeLerp - 1) / (NumSteps + 1);
-				float3 HitUVz = RayStartUVz + RayStepUVz * HitTime;
-			#if USE_HZB
-				HitUVz.xy = HitUVz.xy * float2( 2, -2 ) + float2( -1, 1 );
-				HitUVz.xy = HitUVz.xy * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
-			#endif
-				return float4( HitUVz, HitTime );
-			}
-			
-			LastDiff = DepthDiff;
-		}
-
-		Level += Roughness * (16.0 / NumSteps);
-		SampleTime += 4.0 / (NumSteps + 1);
-	}
+	Result = float4( HitUVz, MinHitTime );
 
 #else // VECTORIZED_EARLY_OUT
 
 	float LastDiff = 0;
 	float Level = 0;
 
-	float4 SampleTime = ( StepOffset + float4( 1, 2, 3, 4 ) ) / (NumSteps + 1);
+	float4 SampleTime = ( StepOffset + float4( 1, 2, 3, 4 ) ) / (NumSteps + 1);	
 
 	LOOP
 	for( int i = 0; i < NumSteps; i += 4 )
@@ -270,7 +227,8 @@ float4 RayCast( float3 R, float Roughness, float SceneDepth, float3 PositionTran
 			HitUVz.xy = HitUVz.xy * float2( 2, -2 ) + float2( -1, 1 );
 			HitUVz.xy = HitUVz.xy * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
 #endif
-			return float4( HitUVz, MinHitTime );
+			Result = float4( HitUVz, MinHitTime );
+			break;
 		}
 
 		LastDiff = DepthDiff1.w;
@@ -281,7 +239,7 @@ float4 RayCast( float3 R, float Roughness, float SceneDepth, float3 PositionTran
 
 #endif
 
-	return float4( 0, 0, 0, 1 );
+	return Result;
 }
 
 float4 SampleScreenColor( float3 HitUVz, float HitTime )

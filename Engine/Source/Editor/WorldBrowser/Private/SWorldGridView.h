@@ -133,8 +133,8 @@ private:
 	// Is user interacting with a node now
 	bool									bHasNodeInteraction;
 
-	// Snapping distance in screen units
-	float									SnappingDistance;
+	// Snapping distance in screen units for a tile bounds
+	float									BoundsSnappingDistance;
 
 	//
 	// Mouse location in the world

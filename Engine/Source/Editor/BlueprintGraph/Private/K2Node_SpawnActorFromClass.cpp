@@ -85,7 +85,7 @@ void UK2Node_SpawnActorFromClass::CreatePinsForClass(UClass* InClass)
 		UProperty* Property = *PropertyIt;
 		UClass* PropertyClass = CastChecked<UClass>(Property->GetOuter());
 		const bool bIsDelegate = Property->IsA(UMulticastDelegateProperty::StaticClass());
-		const bool bIsExposedToSpawn = Property->HasMetaData(FBlueprintMetadata::MD_ExposeOnSpawn);
+		const bool bIsExposedToSpawn = UEdGraphSchema_K2::IsPropertyExposedOnSpawn(Property);
 
 		const bool bIsSettableExternally = !Property->HasAnyPropertyFlags(CPF_DisableEditOnInstance)
 			|| !Property->HasAnyPropertyFlags(CPF_BlueprintReadOnly);//@TODO: Remove this after old content is fixed up

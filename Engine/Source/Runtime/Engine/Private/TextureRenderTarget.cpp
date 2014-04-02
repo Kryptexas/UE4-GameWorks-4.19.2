@@ -15,9 +15,7 @@ UTextureRenderTarget::UTextureRenderTarget(const class FPostConstructInitializeP
 {
 	NeverStream = true;
 	SRGB = true;
-	LODGroup = TEXTUREGROUP_RenderTarget;
-	// TODO: remove me, incurs a memory cost and has little benefit.
-	bNeedsTwoCopies = true;
+	LODGroup = TEXTUREGROUP_RenderTarget;	
 
 #if WITH_EDITORONLY_DATA
 	CompressionNone = true;

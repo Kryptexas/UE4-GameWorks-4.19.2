@@ -71,15 +71,18 @@ bool FWordWrapper::ProcessLine()
 			--BreakIndex;
 		}
 
-		AddLine(StartIndex, BreakIndex);
+		if( StartIndex <= BreakIndex )
+		{
+			AddLine(StartIndex, BreakIndex);
+
+			bHasAddedLine = true;
+		}
 
 		//@todo Use ICU's whitespace functionality [12/5/2013 justin.sargent]
 		while (TChar<TCHAR>::IsWhitespace(String[NextStartIndex]))
 		{
 			++NextStartIndex;
 		}
-
-		bHasAddedLine = true;
 
 		if(WrappedLineData)
 		{

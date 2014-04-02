@@ -427,6 +427,8 @@ void UGameplayDebuggingComponent::SelectForDebugging(bool bNewStatus)
 		OnDebuggingTargetChangedDelegate.Broadcast(GetOwner(), bNewStatus);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+
+#if 0
 		// temp: avoidance debug
 		UAvoidanceManager* Avoidance = GetWorld()->GetAvoidanceManager();
 		AController* ControllerOwner = Cast<AController>(GetOwner());
@@ -436,6 +438,7 @@ void UGameplayDebuggingComponent::SelectForDebugging(bool bNewStatus)
 		{
 			Avoidance->AvoidanceDebugForUID(MovementComp->AvoidanceUID, bNewStatus);
 		}
+#endif
 
 #if WITH_EDITOR
 		if (bNewStatus == false)

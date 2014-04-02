@@ -58,6 +58,22 @@ enum ETickingGroup
 	/**
 	 * Any item that needs the async work to be done before being updated
 	 */
+
+	TG_PreCloth,
+	/**
+	  * Any item that needs to be updated after rigid body simulation is done, but before cloth is simulation is done
+	  */
+
+	TG_StartCloth,
+	/**
+	  * Any item that needs to run during cloth simulation
+	  */
+	
+	TG_EndCloth,
+	/**
+	* Any item that needs cloth to be done before being updated
+	*/
+
 	TG_PostPhysics,
 	/**
 	 * Any item that needs the update work to be done before being ticked

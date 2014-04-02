@@ -5,44 +5,47 @@
 AWindDirectionalSource::AWindDirectionalSource(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	// Structure to hold one-time initialization
-	struct FConstructorStatics
-	{
-		ConstructorHelpers::FObjectFinderOptional<UTexture2D> SpriteTexture;
-		FName ID_Wind;
-		FText NAME_Wind;
-		FConstructorStatics()
-			: SpriteTexture(TEXT("/Engine/EditorResources/S_WindDirectional"))
-			, ID_Wind(TEXT("Wind"))
-			, NAME_Wind(NSLOCTEXT( "SpriteCategory", "Wind", "Wind" ))
-		{
-		}
-	};
-	static FConstructorStatics ConstructorStatics;
-
-
 	Component = PCIP.CreateDefaultSubobject<UWindDirectionalSourceComponent>(this, TEXT("WindDirectionalSourceComponent0"));
 	RootComponent = Component;
 
 #if WITH_EDITORONLY_DATA
 	ArrowComponent = PCIP.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("ArrowComponent0"));
-	if (ArrowComponent)
-	{
-		ArrowComponent->ArrowColor = FColor(150, 200, 255);
-		ArrowComponent->bTreatAsASprite = true;
-		ArrowComponent->SpriteInfo.Category = ConstructorStatics.ID_Wind;
-		ArrowComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Wind;
-		ArrowComponent->AttachParent = Component;
-		ArrowComponent->bIsScreenSizeScaled = true;
-		ArrowComponent->bUseInEditorScaling = true;
-	}
 
-	if (SpriteComponent)
+	if (!IsRunningCommandlet())
 	{
-		SpriteComponent->Sprite = ConstructorStatics.SpriteTexture.Get();
-		SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Wind;
-		SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Wind;
-		SpriteComponent->AttachParent = Component;
+		// Structure to hold one-time initialization
+		struct FConstructorStatics
+		{
+			ConstructorHelpers::FObjectFinderOptional<UTexture2D> SpriteTexture;
+			FName ID_Wind;
+			FText NAME_Wind;
+			FConstructorStatics()
+				: SpriteTexture(TEXT("/Engine/EditorResources/S_WindDirectional"))
+				, ID_Wind(TEXT("Wind"))
+				, NAME_Wind(NSLOCTEXT("SpriteCategory", "Wind", "Wind"))
+			{
+			}
+		};
+		static FConstructorStatics ConstructorStatics;
+
+		if (ArrowComponent)
+		{
+			ArrowComponent->ArrowColor = FColor(150, 200, 255);
+			ArrowComponent->bTreatAsASprite = true;
+			ArrowComponent->SpriteInfo.Category = ConstructorStatics.ID_Wind;
+			ArrowComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Wind;
+			ArrowComponent->AttachParent = Component;
+			ArrowComponent->bIsScreenSizeScaled = true;
+			ArrowComponent->bUseInEditorScaling = true;
+		}
+
+		if (SpriteComponent)
+		{
+			SpriteComponent->Sprite = ConstructorStatics.SpriteTexture.Get();
+			SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Wind;
+			SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Wind;
+			SpriteComponent->AttachParent = Component;
+		}
 	}
 #endif // WITH_EDITORONLY_DATA
 }

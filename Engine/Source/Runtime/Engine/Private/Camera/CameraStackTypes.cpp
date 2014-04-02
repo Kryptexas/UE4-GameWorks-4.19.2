@@ -6,6 +6,18 @@
 //////////////////////////////////////////////////////////////////////////
 // FMinimalViewInfo
 
+bool FMinimalViewInfo::Equals(const FMinimalViewInfo& OtherInfo) const
+{
+	return 
+		(Location == OtherInfo.Location) &&
+		(Rotation == OtherInfo.Rotation) &&
+		(FOV == OtherInfo.FOV) &&
+		(OrthoWidth == OtherInfo.OrthoWidth) &&
+		(AspectRatio == OtherInfo.AspectRatio) &&
+		(bConstrainAspectRatio == OtherInfo.bConstrainAspectRatio) &&
+		(ProjectionMode == OtherInfo.ProjectionMode);
+}
+
 void FMinimalViewInfo::BlendViewInfo(FMinimalViewInfo& OtherInfo, float OtherWeight)
 {
 	Location = FMath::Lerp(Location, OtherInfo.Location, OtherWeight);
@@ -20,14 +32,26 @@ void FMinimalViewInfo::BlendViewInfo(FMinimalViewInfo& OtherInfo, float OtherWei
 	bConstrainAspectRatio |= OtherInfo.bConstrainAspectRatio;
 }
 
-bool FMinimalViewInfo::Equals(const FMinimalViewInfo& OtherInfo) const
+void FMinimalViewInfo::ApplyBlendWeight(const float & Weight)
 {
-	return 
-		(Location == OtherInfo.Location) &&
-		(Rotation == OtherInfo.Rotation) &&
-		(FOV == OtherInfo.FOV) &&
-		(OrthoWidth == OtherInfo.OrthoWidth) &&
-		(AspectRatio == OtherInfo.AspectRatio) &&
-		(bConstrainAspectRatio == OtherInfo.bConstrainAspectRatio) &&
-		(ProjectionMode == OtherInfo.ProjectionMode);
+	Location *= Weight;
+	Rotation.Normalize();
+	Rotation *= Weight;
+	FOV *= Weight;
+	OrthoWidth *= Weight;
+	AspectRatio *= Weight;
+}
+
+void FMinimalViewInfo::AddWeightedViewInfo(const FMinimalViewInfo & OtherView, const float & Weight)
+{
+	FMinimalViewInfo OtherViewWeighted = OtherView;
+	OtherViewWeighted.ApplyBlendWeight(Weight);
+
+	Location += OtherViewWeighted.Location;
+	Rotation += OtherViewWeighted.Rotation;
+	FOV += OtherViewWeighted.FOV;
+	OrthoWidth += OtherViewWeighted.OrthoWidth;
+	AspectRatio += OtherViewWeighted.AspectRatio;
+
+	bConstrainAspectRatio |= OtherViewWeighted.bConstrainAspectRatio;
 }

@@ -20,7 +20,7 @@ TWeakPtr< IToolkitHost > FAssetEditorToolkit::PreviousWorldCentricToolkitHostFor
 const FName FAssetEditorToolkit::ToolbarTabId( TEXT( "AssetEditorToolkit_Toolbar" ) );
 
 FAssetEditorToolkit::FAssetEditorToolkit()
-	: bIsToolbarFocusable(true)
+	: bIsToolbarFocusable(false)
 {
 }
 

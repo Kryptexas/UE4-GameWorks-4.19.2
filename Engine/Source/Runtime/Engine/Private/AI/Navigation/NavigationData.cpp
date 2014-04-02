@@ -6,7 +6,7 @@
 //----------------------------------------------------------------------//
 // FNavDataGenerator
 //----------------------------------------------------------------------//
-void FNavDataGenerator::TiggerGeneration()
+void FNavDataGenerator::TriggerGeneration()
 {
 }
 

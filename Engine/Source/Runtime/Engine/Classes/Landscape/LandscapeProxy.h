@@ -162,7 +162,7 @@ namespace ELandscapeLayerPaintingRestriction
 }
 
 UCLASS(HeaderGroup=Terrain, dependson=UEngineTypes, NotPlaceable, hidecategories=(Display, Attachment, Physics, Debug, Lighting, LOD), showcategories=(Rendering, "Utilities|Orientation"), MinimalAPI)
-class ALandscapeProxy : public AInfo
+class ALandscapeProxy : public AInfo, public INavRelevantActorInterface
 {
 	GENERATED_UCLASS_BODY()
 
@@ -324,6 +324,10 @@ public:
 	FGuid GetLandscapeGuid() const { return LandscapeGuid; }
 	virtual class ALandscape* GetLandscapeActor();
 
+	// Begin INavRelevantActorInterface Interface
+	virtual bool DoesSupplyPerComponentNavigationCollision() const OVERRIDE{ return true; }
+	// End INavRelevantActorInterface Interface
+
 	// Begin UObject interface.
 	virtual void Serialize(FArchive& Ar) OVERRIDE;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
@@ -382,7 +386,7 @@ public:
 
 	ENGINE_API void Import(FGuid Guid, int32 VertsX, int32 VertsY, 
 							int32 ComponentSizeQuads, int32 NumSubsections, int32 SubsectionSizeQuads, 
-							uint16* HeightData, const TCHAR* HeightmapFileName, 
+							const uint16* HeightData, const TCHAR* HeightmapFileName, 
 							TArray<FLandscapeImportLayerInfo> ImportLayerInfos, uint8* AlphaDataPointers[] );
 
 	/**

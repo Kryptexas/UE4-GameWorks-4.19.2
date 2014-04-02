@@ -801,6 +801,7 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 		{
 			int32 BoneIndex = PreviewSkelMeshComp->BonesOfInterest[0];
 			const FName BoneName = PreviewSkelMeshComp->SkeletalMesh->RefSkeleton.GetBoneName(BoneIndex);
+			FTransform ReferenceTransform = PreviewSkelMeshComp->SkeletalMesh->RefSkeleton.GetRefBonePose()[BoneIndex];
 			FTransform LocalTransform = PreviewSkelMeshComp->LocalAtoms[BoneIndex];
 			FTransform ComponentTransform = PreviewSkelMeshComp->SpaceBases[BoneIndex];
 
@@ -811,6 +812,10 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 			CurYOffset += YL + 2;
 			InfoString = FString::Printf(TEXT("Component :%s"), *ComponentTransform.ToString());
 			Canvas->DrawShadowedString( CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor );
+
+			CurYOffset += YL + 2;
+			InfoString = FString::Printf(TEXT("Reference :%s"), *ReferenceTransform.ToString());
+			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
 		}
 
 		CurYOffset += YL + 2;

@@ -106,6 +106,9 @@ namespace ELandscapeConvertMode
 
 		// Removes data from the edge of the landscape to get to a whole number of components
 		Clip = 1,
+
+		// Keeps the landscape the same size with the same number of components, resamples the heightmap/weightmaps to the new resolution
+		Resample = 2,
 	};
 }
 
@@ -379,7 +382,9 @@ class ULandscapeEditorObject : public UObject
 	UPROPERTY(Category="Change Component Size", EditAnywhere, meta=(DisplayName="Resize Mode", ShowForTools="ToolSet_ResizeLandscape"))
 	TEnumAsByte<ELandscapeConvertMode::Type> ResizeLandscape_ConvertMode;
 
-	FIntPoint ResizeLandscape_OriginalResolution; // In Quads
+	int32 ResizeLandscape_Original_QuadsPerSection;
+	int32 ResizeLandscape_Original_SectionsPerComponent;
+	FIntPoint ResizeLandscape_Original_ComponentCount;
 
 	// New Landscape "Tool"
 
@@ -515,21 +520,29 @@ class ULandscapeEditorObject : public UObject
 	void UpdateComponentCount()
 	{
 		const int32 ComponentSizeQuads = ResizeLandscape_QuadsPerSection * ResizeLandscape_SectionsPerComponent;
-		if (ResizeLandscape_ConvertMode == ELandscapeConvertMode::Expand)
+		const int32 Original_ComponentSizeQuads = ResizeLandscape_Original_QuadsPerSection * ResizeLandscape_Original_SectionsPerComponent;
+		const FIntPoint OriginalResolution = ResizeLandscape_Original_ComponentCount * Original_ComponentSizeQuads;
+		switch (ResizeLandscape_ConvertMode)
 		{
-			ResizeLandscape_ComponentCount.X = FMath::DivideAndRoundUp(ResizeLandscape_OriginalResolution.X, ComponentSizeQuads);
-			ResizeLandscape_ComponentCount.Y = FMath::DivideAndRoundUp(ResizeLandscape_OriginalResolution.Y, ComponentSizeQuads);
-		}
-		else // Clip
-		{
-			ResizeLandscape_ComponentCount.X = FMath::Max(1, ResizeLandscape_OriginalResolution.X / ComponentSizeQuads);
-			ResizeLandscape_ComponentCount.Y = FMath::Max(1, ResizeLandscape_OriginalResolution.Y / ComponentSizeQuads);
+		case ELandscapeConvertMode::Expand:
+			ResizeLandscape_ComponentCount.X = FMath::DivideAndRoundUp(OriginalResolution.X, ComponentSizeQuads);
+			ResizeLandscape_ComponentCount.Y = FMath::DivideAndRoundUp(OriginalResolution.Y, ComponentSizeQuads);
+			break;
+		case ELandscapeConvertMode::Clip:
+			ResizeLandscape_ComponentCount.X = FMath::Max(1, OriginalResolution.X / ComponentSizeQuads);
+			ResizeLandscape_ComponentCount.Y = FMath::Max(1, OriginalResolution.Y / ComponentSizeQuads);
+			break;
+		case ELandscapeConvertMode::Resample:
+			ResizeLandscape_ComponentCount = ResizeLandscape_Original_ComponentCount;
+			break;
+		default:
+			check(0);
 		}
 	}
 
 	void SetbSnapGizmo(bool InbSnapGizmo);
 
-	void SetParent( class FEdModeLandscape* LandscapeParent )
+	void SetParent(class FEdModeLandscape* LandscapeParent)
 	{
 		ParentMode = LandscapeParent;
 	}

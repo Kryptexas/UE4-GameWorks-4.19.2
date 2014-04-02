@@ -9,8 +9,8 @@
 #include "SceneFilterRendering.h"
 #include "PostProcessing.h"
 #include "ScreenSpaceReflections.h"
-#include "PostprocessTemporalAA.h"
-#include "PostprocessAmbientOcclusion.h"
+#include "PostProcessTemporalAA.h"
+#include "PostProcessAmbientOcclusion.h"
 
 static TAutoConsoleVariable<int32> CVarSSRQuality(
 	TEXT("r.SSR.Quality"),

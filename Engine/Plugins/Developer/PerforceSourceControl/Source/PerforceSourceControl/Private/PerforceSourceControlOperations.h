@@ -38,6 +38,9 @@ public:
 public:
 	/** Map of filenames to perforce state */
 	TMap<FString, EPerforceState::Type> OutResults;
+
+	/** Changelist we submitted */
+	int32 OutChangelistNumber;
 };
 
 class FPerforceMarkForAddWorker : public IPerforceSourceControlWorker

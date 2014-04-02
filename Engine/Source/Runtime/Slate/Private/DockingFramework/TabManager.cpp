@@ -6,7 +6,7 @@
 
 const FVector2D FTabManager::FallbackWindowSize( 1000, 600 );
 
-DEFINE_LOG_CATEGORY_STATIC(LogAnalytics, Log, All);
+DEFINE_LOG_CATEGORY_STATIC(LogTabManager, Display, All);
 
 #define LOCTEXT_NAMESPACE "TabManager"
 
@@ -812,7 +812,7 @@ TSharedRef<SDockTab> FTabManager::InvokeTab_Internal( const FTabId& TabId )
 
 	if ( !Spawner.IsValid() )
 	{
-		UE_LOG(LogAnalytics, Warning, TEXT("Cannot spawn tab because no spawner is registered for '%s'"), *(TabId.ToString()));
+		UE_LOG(LogTabManager, Warning, TEXT("Cannot spawn tab because no spawner is registered for '%s'"), *(TabId.ToString()));
 	}
 	else
 	{	
@@ -908,7 +908,7 @@ void FTabManager::InsertDocumentTab( FName PlaceholderId, ESearchPreference::Typ
 			TSharedPtr<SDockingTabStack> StackToSpawnIn = FindPotentiallyClosedTab( PlaceholderId );
 			if( StackToSpawnIn.IsValid() == false )
 			{
-				UE_LOG(LogAnalytics, Warning, TEXT("Unable to insert tab '%s'."), *(PlaceholderId.ToString()));
+				UE_LOG(LogTabManager, Warning, TEXT("Unable to insert tab '%s'."), *(PlaceholderId.ToString()));
 				LiveTab = InvokeTab_Internal( FTabId( PlaceholderId ) );
 				LiveTab->GetParent()->GetParentDockTabStack()->OpenTab( UnmanagedTab );
 			}

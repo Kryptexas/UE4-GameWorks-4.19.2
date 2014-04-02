@@ -487,8 +487,7 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 	float LodValue = floor(LODCalculated);
 	float MorphAlpha = frac(LODCalculated);
 
-
-	if (SectionLod < 1.f)
+	if (LodValues.x < 1.0f)
 	{
 		MorphAlpha = saturate((MorphAlpha - LodBias.x) * (LodValue+1) * 2.f);
 	}

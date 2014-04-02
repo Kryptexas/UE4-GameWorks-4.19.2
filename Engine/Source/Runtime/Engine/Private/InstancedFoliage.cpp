@@ -1004,24 +1004,57 @@ void AInstancedFoliageActor::MoveInstancesForComponentToCurrentLevel( class UAct
 
 void AInstancedFoliageActor::MoveInstancesToNewComponent( class UActorComponent* InOldComponent, class UActorComponent* InNewComponent )
 {
-	AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActor(InOldComponent->GetWorld());
-	
-	for( TMap<class UStaticMesh*, struct FFoliageMeshInfo>::TIterator MeshIt(FoliageMeshes); MeshIt; ++MeshIt )
+	AInstancedFoliageActor* NewIFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(InNewComponent->GetTypedOuter<ULevel>());
+	if (!NewIFA)
 	{
-		FFoliageMeshInfo& MeshInfo = MeshIt.Value();
+		NewIFA = InNewComponent->GetWorld()->SpawnActor<AInstancedFoliageActor>();
+	}
+	check(NewIFA);
+
+	for (TPair<UStaticMesh*, FFoliageMeshInfo>& Entry : FoliageMeshes)
+	{
+		FFoliageMeshInfo& MeshInfo = Entry.Value;
 
 		const FFoliageComponentHashInfo* ComponentHashInfo = MeshInfo.ComponentHash.Find(InOldComponent);
-		if( ComponentHashInfo )
+		if (ComponentHashInfo)
 		{
-			// Update the instances
-			for( auto InstanceIt = ComponentHashInfo->Instances.CreateConstIterator(); InstanceIt; ++InstanceIt )
+			// For same level can just remap the instances, otherwise we have to do a more complex move
+			if (NewIFA == this)
 			{
-				MeshInfo.Instances[*InstanceIt].Base = InNewComponent;
-			}
+				FFoliageComponentHashInfo NewComponentHashInfo = MoveTemp(*ComponentHashInfo);
+				NewComponentHashInfo.UpdateLocationFromActor(InNewComponent);
 
-			// Update the hash
-			MeshInfo.ComponentHash.Add(InNewComponent, *ComponentHashInfo);
-			MeshInfo.ComponentHash.Remove(InOldComponent);
+				// Update the instances
+				for (int32 InstanceIndex : NewComponentHashInfo.Instances)
+				{
+					MeshInfo.Instances[InstanceIndex].Base = InNewComponent;
+				}
+
+				// Update the hash
+				MeshInfo.ComponentHash.Add(InNewComponent, MoveTemp(NewComponentHashInfo));
+				MeshInfo.ComponentHash.Remove(InOldComponent);
+			}
+			else
+			{
+				FFoliageMeshInfo* NewMeshInfo = NewIFA->FoliageMeshes.Find(Entry.Key);
+				if (!NewMeshInfo)
+				{
+					NewMeshInfo = NewIFA->AddMesh(Entry.Key);
+				}
+
+				// Add the foliage to the new level
+				for (int32 InstanceIndex : ComponentHashInfo->Instances)
+				{
+					FFoliageInstance NewInstance = MeshInfo.Instances[InstanceIndex];
+					NewInstance.Base = InNewComponent;
+					NewInstance.ClusterIndex = INDEX_NONE;
+					NewMeshInfo->AddInstance(NewIFA, Entry.Key, NewInstance);
+				}
+
+				// Remove from old level
+				MeshInfo.RemoveInstances(this, ComponentHashInfo->Instances.Array());
+				check(!MeshInfo.ComponentHash.Contains(InOldComponent));
+			}
 		}
 	}
 }

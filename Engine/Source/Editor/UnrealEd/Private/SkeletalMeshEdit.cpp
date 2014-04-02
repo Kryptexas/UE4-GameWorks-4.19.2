@@ -570,7 +570,7 @@ int32 UnFbx::FFbxImporter::GetMaxSampleRate(TArray<FbxNode*>& SortedLinks, TArra
 					FbxTimeSpan TimeInterval(FBXSDK_TIME_INFINITE,FBXSDK_TIME_MINUS_INFINITE);
 					bool bValidTimeInterval = CurrentCurve->GetTimeInterval(TimeInterval);
 
-					if(KeyCount > 1 && bValidTimeInterval)
+ 					if(KeyCount > 1 && bValidTimeInterval)
 					{
 						double KeyAnimLength = TimeInterval.GetDuration().GetSecondDouble();
 						double KeyAnimStart = TimeInterval.GetStart().GetSecondDouble();
@@ -578,7 +578,8 @@ int32 UnFbx::FFbxImporter::GetMaxSampleRate(TArray<FbxNode*>& SortedLinks, TArra
 
 						if(KeyAnimLength != 0.0)
 						{
-							int32 NewRate = static_cast<int32>(KeyCount / KeyAnimLength);
+							// 30 fps animation has 31 keys because it includes index 0 key for 0.0 second
+							int32 NewRate = static_cast<int32>((KeyCount-1) / KeyAnimLength);
 							MaxStackResampleRate = FMath::Max(NewRate, MaxStackResampleRate);
 						}
 					}

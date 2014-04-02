@@ -3,6 +3,7 @@
 #pragma once
 
 #include "ModuleManager.h"
+#include "SkillSystemGlobals.h"
 
 
 /**
@@ -33,5 +34,7 @@ public:
 	{
 		return FModuleManager::Get().IsModuleLoaded( "SkillSystem" );
 	}
+
+	virtual USkillSystemGlobals& GetSkillSystemGlobals() = 0;
 };
 

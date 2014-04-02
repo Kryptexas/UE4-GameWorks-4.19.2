@@ -10,7 +10,7 @@
 #include "MaterialShader.h"
 #include "MeshMaterialShader.h"
 #include "AtmosphereRendering.h"
-#include "Postprocess/RenderingCompositionGraph.h"
+#include "PostProcess/RenderingCompositionGraph.h"
 #include "ParameterCollection.h"
 
 template<typename ParameterType> 

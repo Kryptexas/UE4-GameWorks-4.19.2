@@ -681,8 +681,8 @@ public:
 
 	virtual bool Serialize( FArchive& Ar ) OVERRIDE			{ return FLpvInjectShader_Base::Serialize( Ar ); }
 };
-IMPLEMENT_SHADER_TYPE(template<>,TLpvInject_PointLightCS<0>,TEXT("LpvDirectLightInject"),TEXT("CSPointLightInject_ListGenCS"),SF_Compute);
-IMPLEMENT_SHADER_TYPE(template<>,TLpvInject_PointLightCS<INJECT_SHADOWED>,TEXT("LpvDirectLightInject"),TEXT("CSPointLightInject_ListGenCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>,TLpvInject_PointLightCS<0>,TEXT("LPVDirectLightInject"),TEXT("CSPointLightInject_ListGenCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(template<>,TLpvInject_PointLightCS<INJECT_SHADOWED>,TEXT("LPVDirectLightInject"),TEXT("CSPointLightInject_ListGenCS"),SF_Compute);
 
 // ----------------------------------------------------------------------------
 // FLightPropagationVolume
@@ -801,7 +801,7 @@ void FLightPropagationVolume::InitSettings( const FSceneView& View )
 			LPV_GRIDRES,
 			LPV_GRIDRES,
 			PF_FloatRGBA,
-			0,
+			TexCreate_HideInVisualizeTexture,
 			TexCreate_ShaderResource | TexCreate_UAV, // | TexCreate_FastVRAM not yet supported
 			false,
 			1));

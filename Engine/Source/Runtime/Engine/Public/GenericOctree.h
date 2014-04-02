@@ -344,15 +344,6 @@ public:
 	FOctreeChildNodeRef GetContainingChild(const FBoxCenterAndExtent& BoundingBox) const;
 };
 
-/**
- * Default implementation for applying offset to octree node elements
- */
-template<typename Elements>
-void ElementsApplyOffset(const FVector& InOffset, Elements& InElements)
-{
-}
-
-
 /** An octree. */
 template<typename ElementType,typename OctreeSemantics>
 class TOctree
@@ -427,7 +418,11 @@ public:
 
 		void ApplyOffset(const FVector& InOffset)
 		{
-			ElementsApplyOffset(InOffset, Elements);
+			for (auto& Element : Elements)
+			{
+				OctreeSemantics::ApplyOffset(Element, InOffset);
+			}
+			
 			FOREACH_OCTREE_CHILD_NODE(ChildRef)
 			{
 				if (Children[ChildRef.Index])
@@ -728,7 +723,7 @@ public:
 
 	void ApplyOffset(const FVector& InOffset)
 	{
-		RootNodeContext.Bounds.Center+= InOffset;
+		RootNodeContext.Bounds.Center+= FVector4(InOffset, 0.f);
 		RootNode.ApplyOffset(InOffset);
 	}
 

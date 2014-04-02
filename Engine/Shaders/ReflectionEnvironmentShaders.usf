@@ -204,11 +204,6 @@ SamplerState ReflectionEnvironmentColorSampler;
 
 #if COMPUTEBRIGHTNESS_PIXELSHADER
 
-#if PS4_PROFILE
-#define SLOT0_32 1
-#include "PS4/PS4Pragmas.usf"
-#endif
-
 void ComputeBrightnessMain(
 	in float4 UVAndScreenPos : TEXCOORD0, 
 	out float4 OutColor : SV_Target0

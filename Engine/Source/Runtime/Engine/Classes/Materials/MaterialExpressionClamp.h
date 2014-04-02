@@ -21,27 +21,24 @@ class UMaterialExpressionClamp : public UMaterialExpression
 	UPROPERTY()
 	FExpressionInput Input;
 
-	UPROPERTY(meta=(RequiredInput = "false"))
+	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Defaults to 'MinDefault' if not specified"))
 	FExpressionInput Min;
 
-	UPROPERTY(meta=(RequiredInput = "false"))
+	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Defaults to 'MaxDefault' if not specified"))
 	FExpressionInput Max;
 
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionClamp)
 	TEnumAsByte<enum EClampMode> ClampMode;
 
-	UPROPERTY(EditAnywhere, Category=MaterialExpressionClamp)
+	UPROPERTY(EditAnywhere, Category=MaterialExpressionClamp, meta=(OverridingInputProperty = "Min"))
 	float MinDefault;
 
-	UPROPERTY(EditAnywhere, Category=MaterialExpressionClamp)
+	UPROPERTY(EditAnywhere, Category=MaterialExpressionClamp, meta=(OverridingInputProperty = "Max"))
 	float MaxDefault;
 
 
 	// Begin UObject Interface
 	virtual void Serialize( FArchive& Ar ) OVERRIDE;
-#if WITH_EDITOR
-	virtual bool CanEditChange( const UProperty* InProperty ) const OVERRIDE;
-#endif // WITH_EDITOR
 	// End UObject Interface
 
 	// Begin UMaterialExpression Interface

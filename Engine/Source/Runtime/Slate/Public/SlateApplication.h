@@ -139,9 +139,6 @@ public:
 	/** @return the global tab manager */
 	static TSharedRef<class FGlobalTabmanager> GetGlobalTabManager();
 
-	/** @return the global tab manager */
-	static class FDragDropReflector& GetDragDropReflector();
-
 	virtual ~FSlateApplication();
 
 	/**
@@ -735,6 +732,11 @@ protected:
 	void PrivateDrawWindows( TSharedPtr<SWindow> DrawOnlyThisWindow = NULL );
 
 	/**
+	 * Prepass step before drawing windows to compute geometry size and reshape autosized windows
+	 */
+	void DrawPrepass( TSharedPtr<SWindow> DrawOnlyThisWindow );
+
+	/**
 	 * Draws a window and its children
 	 */
 	void DrawWindowAndChildren( const TSharedRef<SWindow>& WindowToDraw, struct FDrawWindowArgs& DrawWindowArgs );
@@ -1117,9 +1119,6 @@ private:
 	static TSharedPtr< class GenericApplication > PlatformApplication;
 	
 	TSet<FKey> PressedMouseButtons;
-
-	/** Adds reflection for all drag and drop operations */
-	TSharedRef<class FDragDropReflector> MyDragDropReflector;
 
 	/** true when the slate app is active; i.e. the current foreground window is from our Slate app*/
 	bool bAppIsActive;

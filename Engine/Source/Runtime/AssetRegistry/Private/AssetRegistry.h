@@ -28,9 +28,9 @@ public:
 	virtual void GetAllCachedPaths(TArray<FString>& OutPathList) const OVERRIDE;
 	virtual void GetSubPaths(const FString& InBasePath, TArray<FString>& OutPathList, bool bInRecurse) const OVERRIDE;
 	virtual void RunAssetsThroughFilter (TArray<FAssetData>& AssetDataList, const FARFilter& Filter) const OVERRIDE;
-	virtual EAssetAvailability::Type GetAssetAvailability(const FAssetData& AssetData) const OVERRIDE;
-	virtual float GetAssetAvailabilityProgress(const FAssetData& AssetData) const OVERRIDE;
-	virtual EAssetAvailabilityProgressReportingType::Type GetAssetAvailabilityProgressType() const OVERRIDE;
+	virtual EAssetAvailability::Type GetAssetAvailability(const FAssetData& AssetData) const OVERRIDE;	
+	virtual float GetAssetAvailabilityProgress(const FAssetData& AssetData, EAssetAvailabilityProgressReportingType::Type ReportType) const OVERRIDE;
+	virtual bool GetAssetAvailabilityProgressTypeSupported(EAssetAvailabilityProgressReportingType::Type ReportType) const OVERRIDE;
 	virtual void PrioritizeAssetInstall(const FAssetData& AssetData) const OVERRIDE;
 	virtual bool AddPath(const FString& PathToAdd) OVERRIDE;
 	virtual bool RemovePath(const FString& PathToRemove) OVERRIDE;
@@ -146,7 +146,7 @@ private:
 
 	/** Returns the names of all subclasses of the class whose name is ClassName */
 	void GetSubClasses(const TArray<FName>& InClassNames, const TSet<FName>& ExcludedClassNames, TSet<FName>& SubClassNames) const;
-	void GetSubClasses_Recursive(FName InClassName, TSet<FName>& SubClassNames, const TMap<FName, TSet<FName>>& ReverseInheritanceMap, const TSet<FName>& ExcludedClassNames) const;
+	void GetSubClasses_Recursive(FName InClassName, TSet<FName>& SubClassNames, const TMap<FName, TSet<FName>>& ReverseInheritanceMap, const TSet<FName>& ExcludedClassNames) const;	
 
 private:
 	/** The map of ObjectPath names to asset data for assets saved to disk */

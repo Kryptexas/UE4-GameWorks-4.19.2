@@ -9,25 +9,25 @@ class UMaterialExpressionLinearInterpolate : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(meta=(RequiredInput = "false"))
+	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Defaults to 'ConstA' if not specified"))
 	FExpressionInput A;
 
-	UPROPERTY(meta=(RequiredInput = "false"))
+	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Defaults to 'ConstB' if not specified"))
 	FExpressionInput B;
 
-	UPROPERTY(meta=(RequiredInput = "false"))
+	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Defaults to 'ConstAlpha' if not specified"))
 	FExpressionInput Alpha;
 
 	/** only used if A is not hooked up */
-	UPROPERTY(EditAnywhere, Category=MaterialExpressionLinearInterpolate)
+	UPROPERTY(EditAnywhere, Category=MaterialExpressionLinearInterpolate, meta=(OverridingInputProperty = "A"))
 	float ConstA;
 
 	/** only used if B is not hooked up */
-	UPROPERTY(EditAnywhere, Category=MaterialExpressionLinearInterpolate)
+	UPROPERTY(EditAnywhere, Category=MaterialExpressionLinearInterpolate, meta=(OverridingInputProperty = "B"))
 	float ConstB;
 
 	/** only used if Alpha is not hooked up */
-	UPROPERTY(EditAnywhere, Category=MaterialExpressionLinearInterpolate)
+	UPROPERTY(EditAnywhere, Category=MaterialExpressionLinearInterpolate, meta=(OverridingInputProperty = "Alpha"))
 	float ConstAlpha;
 
 

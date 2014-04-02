@@ -57,6 +57,7 @@ void FVoicePacketImpl::Serialize(class FArchive& Ar)
 		FString SenderStr;
 		Ar << SenderStr;
 
+		// Don't need to distinguish OSS interfaces here with world because we just want the create function below
 		IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get();
 		IOnlineIdentityPtr IdentityInt = OnlineSub->GetIdentityInterface();
 		if (IdentityInt.IsValid())

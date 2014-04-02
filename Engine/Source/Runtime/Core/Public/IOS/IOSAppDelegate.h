@@ -13,6 +13,8 @@
 #import <iAd/ADBannerView.h>
 #endif
 
+#import <GameKit/GKLeaderboardViewController.h>
+
 @class EAGLView;
 @class IOSViewController;
 @class SlateOpenGLESViewController;
@@ -37,6 +39,7 @@ namespace FAppEntry
 #if UE_WITH_IAD
 	ADBannerViewDelegate,
 #endif
+	GKLeaderboardViewControllerDelegate,
 UITextFieldDelegate, AVAudioSessionDelegate>
 
 /** Window object */

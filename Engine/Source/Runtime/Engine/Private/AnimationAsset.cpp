@@ -141,21 +141,20 @@ void FBoneContainer::Initialize()
 	}
 
 	// Clear remapping table
-	RemappedArrays.Empty();
-	AssetToIndexMap.Empty();
+	SkeletonToPoseBoneIndexArray.Empty();
 
 	// Cache our mapping tables
-	// Here we create look up tables between our target asset and all of its compatible skeletons.
+	// Here we create look up tables between our target asset and its USkeleton's refpose.
 	// Most times our Target is a SkeletalMesh
 	if( AssetSkeletalMesh.IsValid() )
 	{
 		RemapFromSkelMesh(*AssetSkeletalMesh.Get(), *AssetSkeleton.Get());
 	}
 	// But we also support a Skeleton's RefPose.
-	else if( AssetSkeleton.IsValid() )
+	else
 	{
 		// Right now we only support a single Skeleton. Skeleton hierarchy coming soon!
-		RemapFromSkeleton(*AssetSkeleton.Get(), *AssetSkeleton.Get());
+		RemapFromSkeleton(*AssetSkeleton.Get());
 	}
 }
 
@@ -186,72 +185,37 @@ bool FBoneContainer::BoneIsChildOf(const int32& BoneIndex, const int32& ParentBo
 	return RefSkeleton->BoneIsChildOf(BoneIndex, ParentBoneIndex);
 }
 
-const FSkeletonRemappedBoneArray* FBoneContainer::GetRemappedArrayForSkeleton(USkeleton& TargetSkeleton) const
+void FBoneContainer::RemapFromSkelMesh(USkeletalMesh const & SourceSkeletalMesh, USkeleton & TargetSkeleton)
 {
-	// If we have already remapped our array for this asset, return it.
-	const int32* IndexPtr = AssetToIndexMap.Find(&TargetSkeleton);
-	if( IndexPtr )
-	{
-		return &(RemappedArrays[*IndexPtr]);
-	}
+	int32 const SkelMeshLinkupIndex = TargetSkeleton.GetMeshLinkupIndex(&SourceSkeletalMesh);
+	check(SkelMeshLinkupIndex != INDEX_NONE);
 
-	// We should never fail unless:
-	// 1) We haven't remapped all valid USkeletons. Fix this in FBoneContainer::Initialize()
-	// 2) We are attempting to play a non valid animation (using a USkeleton that is not compatible with our TargetAsset). This should never be allowed!
-	return NULL;
-}
-
-
-const FSkeletonRemappedBoneArray* FBoneContainer::RemapFromSkelMesh(const USkeletalMesh& SourceSkeletalMesh, USkeleton& TargetSkeleton)
-{
-	const int32 SkelMeshLinkupIndex = TargetSkeleton.GetMeshLinkupIndex(&SourceSkeletalMesh);
-	const FSkeletonToMeshLinkup& LinkupTable = TargetSkeleton.LinkupCache[SkelMeshLinkupIndex];
-
-	const int32 NewEntryIndex = RemappedArrays.Add( FSkeletonRemappedBoneArray() );
-	AssetToIndexMap.Add(&TargetSkeleton, NewEntryIndex);
+	FSkeletonToMeshLinkup const & LinkupTable = TargetSkeleton.LinkupCache[SkelMeshLinkupIndex];
 
 	// Map SkeletonBoneIndex to the SkeletalMesh Bone Index, taking into account the required bone index array.
-	TArray<int32>& Skel2PoseBoneIndex = RemappedArrays[NewEntryIndex].SkeletonToPoseBoneIndexArray;
-	Skel2PoseBoneIndex.Init(INDEX_NONE, LinkupTable.SkeletonToMeshTable.Num());
-	check(Skel2PoseBoneIndex.Num() > 0);
+	SkeletonToPoseBoneIndexArray.Init(INDEX_NONE, LinkupTable.SkeletonToMeshTable.Num());
 
 	for(int32 Index=0; Index<BoneIndicesArray.Num(); Index++)
 	{
-		const int32 PoseBoneIndex = BoneIndicesArray[Index];
+		int32 const & PoseBoneIndex = BoneIndicesArray[Index];
 		checkSlow( (PoseBoneIndex != INDEX_NONE) && (PoseBoneIndex < GetNumBones()) );
-		const int32 SkeletonIndex = LinkupTable.MeshToSkeletonTable[PoseBoneIndex];
+		int32 const & SkeletonIndex = LinkupTable.MeshToSkeletonTable[PoseBoneIndex];
 		if( SkeletonIndex != INDEX_NONE )
 		{
-			Skel2PoseBoneIndex[SkeletonIndex] = PoseBoneIndex;
+			SkeletonToPoseBoneIndexArray[SkeletonIndex] = PoseBoneIndex;
 		}
 	}
-
-	return &RemappedArrays[NewEntryIndex];
 }
 
-const FSkeletonRemappedBoneArray* FBoneContainer::RemapFromSkeleton(const USkeleton& SourceSkeleton, USkeleton& TargetSkeleton)
+void FBoneContainer::RemapFromSkeleton(USkeleton const & SourceSkeleton)
 {
-	// For now we only accept same Skeleton.
-	// Skeleton hierarchy coming soon!
-	check( &SourceSkeleton == &TargetSkeleton );
-
-	const int32 NewEntryIndex = RemappedArrays.Add( FSkeletonRemappedBoneArray() );
-	AssetToIndexMap.Add(&TargetSkeleton, NewEntryIndex);
-
 	// Map SkeletonBoneIndex to the SkeletalMesh Bone Index, taking into account the required bone index array.
-	TArray<int32>& Skel2PoseBoneIndex = RemappedArrays[NewEntryIndex].SkeletonToPoseBoneIndexArray;
-	Skel2PoseBoneIndex.Init(INDEX_NONE, SourceSkeleton.GetRefLocalPoses().Num());
+	SkeletonToPoseBoneIndexArray.Init(INDEX_NONE, SourceSkeleton.GetRefLocalPoses().Num());
 
 	for(int32 Index=0; Index<BoneIndicesArray.Num(); Index++)
 	{
-		const int32 PoseBoneIndex = BoneIndicesArray[Index];
-		const int32 SkeletonIndex = PoseBoneIndex;
-		if( SkeletonIndex != INDEX_NONE )
-		{
-			Skel2PoseBoneIndex[SkeletonIndex] = PoseBoneIndex;
-		}
+		int32 const & PoseBoneIndex = BoneIndicesArray[Index];
+		SkeletonToPoseBoneIndexArray[PoseBoneIndex] = PoseBoneIndex;
 	}
-
-	return &RemappedArrays[NewEntryIndex];
 }
 

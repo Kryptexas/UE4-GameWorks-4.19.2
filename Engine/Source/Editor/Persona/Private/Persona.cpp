@@ -1973,8 +1973,7 @@ bool FPersona::AttachObjectToPreviewComponent( UObject* Object, FName AttachTo, 
 		WorldSettings->SetFlags(RF_Transactional);
 		WorldSettings->Modify();
 
-		USceneComponent* SceneComponent = ConstructObject<USceneComponent>(ComponentClass, WorldSettings);
-		SceneComponent->SetFlags(RF_Transactional);
+		USceneComponent* SceneComponent = ConstructObject<USceneComponent>(ComponentClass, WorldSettings, NAME_None, RF_Transactional);
 
 		FComponentAssetBrokerage::AssignAssetToComponent(SceneComponent, Object);
 

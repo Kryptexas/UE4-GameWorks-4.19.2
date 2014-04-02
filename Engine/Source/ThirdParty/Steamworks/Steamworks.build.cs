@@ -10,13 +10,14 @@ public class Steamworks : ModuleRules
 		string SteamVersion = "v128";
 		Type = ModuleType.External;
 
-		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
+		PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartyDirectory + "Steamworks/Steam" + SteamVersion + "/sdk/public");
+
+		string LibraryPath = UEBuildConfiguration.UEThirdPartyDirectory + "Steamworks/Steam" + SteamVersion + "/sdk/redistributable_bin/";
+		string LibraryName = "steam_api";
+
+        if ((Target.Platform == UnrealTargetPlatform.Win64) ||
 			(Target.Platform == UnrealTargetPlatform.Win32))
 		{
-			PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartyDirectory + "Steamworks/Steam" + SteamVersion + "/sdk/public");
-
-			string LibraryPath = UEBuildConfiguration.UEThirdPartyDirectory + "Steamworks/Steam" + SteamVersion + "/sdk/redistributable_bin/";
-			string LibraryName = "steam_api";
 			if (Target.Platform == UnrealTargetPlatform.Win64)
 			{
 				LibraryPath += "win64";
@@ -28,10 +29,14 @@ public class Steamworks : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Mac)
 		{
-			PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartyDirectory + "Steamworks/Steam" + SteamVersion + "/sdk/public");
-
-			string LibraryPath = UEBuildConfiguration.UEThirdPartyDirectory + "Steamworks/Steam" + SteamVersion + "/sdk/redistributable_bin/osx32/libsteam_api.dylib";
-			PublicAdditionalLibraries.Add(LibraryPath);
+            LibraryPath += "osx32/libsteam_api.dylib";
+			PublicDelayLoadDLLs.Add(LibraryPath);
+		}
+		else if (Target.Platform == UnrealTargetPlatform.Linux)
+		{
+			LibraryPath += "linux64";
+			PublicLibraryPaths.Add(LibraryPath);
+			PublicAdditionalLibraries.Add(LibraryName);
 		}
 	}
 }

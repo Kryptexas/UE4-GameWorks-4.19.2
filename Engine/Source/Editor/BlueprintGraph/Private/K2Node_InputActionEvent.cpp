@@ -9,6 +9,7 @@ UK2Node_InputActionEvent::UK2Node_InputActionEvent(const class FPostConstructIni
 {
 	bConsumeInput = true;
 	bOverrideParentBinding = true;
+	bInternalEvent = true;
 }
 
 UClass* UK2Node_InputActionEvent::GetDynamicBindingClass() const

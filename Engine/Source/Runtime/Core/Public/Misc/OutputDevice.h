@@ -9,7 +9,7 @@
 class FText;
 
 // Globals.
-CORE_API extern class FOutputDeviceRedirectorBase*	GLog;
+#define GLog FOutputDeviceRedirector::Get()
 CORE_API extern class FOutputDevice*				GThrow;
 CORE_API extern class FOutputDeviceError*			GError;
 CORE_API extern class FFeedbackContext*				GWarn;
@@ -323,64 +323,6 @@ protected:
 	bool bSuppressEventTag;
 	/** Whether to output a line-terminator after each log call... */
 	bool bAutoEmitLineTerminator;
-};
-
-/**
- * Abstract base version of FOutputDeviceRedirector, needed due to order of dependencies.
- */
-class CORE_API FOutputDeviceRedirectorBase : public FOutputDevice
-{
-public:
-	/**
-	 * Adds an output device to the chain of redirections.	
-	 *
-	 * @param OutputDevice	output device to add
-	 */
-	virtual void AddOutputDevice( FOutputDevice* OutputDevice ) = 0;
-	/**
-	 * Removes an output device from the chain of redirections.	
-	 *
-	 * @param OutputDevice	output device to remove
-	 */
-	virtual void RemoveOutputDevice( FOutputDevice* OutputDevice ) = 0;
-	/**
-	 * Returns whether an output device is currently in the list of redirectors.
-	 *
-	 * @param	OutputDevice	output device to check the list against
-	 * @return	true if messages are currently redirected to the the passed in output device, false otherwise
-	 */
-	virtual bool IsRedirectingTo( FOutputDevice* OutputDevice ) = 0;
-
-	/** Flushes lines buffered by secondary threads. */
-	virtual void FlushThreadedLogs() = 0;
-
-	/**
-	 *	Flushes lines buffered by secondary threads.
-	 *	Only used if a background thread crashed and we needed to push the callstack into the log. 
-	 */
-	virtual void PanicFlushThreadedLogs() = 0;
-
-	/**
-	 * Serializes the current backlog to the specified output device.
-	 * @param OutputDevice	- Output device that will receive the current backlog
-	 */
-	virtual void SerializeBacklog( FOutputDevice* OutputDevice )
-	{
-	}
-
-	/**
-	 * Enables or disables the backlog.
-	 * @param bEnable	- Starts saving a backlog if true, disables and discards any backlog if false
-	 */
-	virtual void EnableBacklog( bool bEnable )
-	{
-	}
-
-	/**
-	 * Sets the current thread to be the master thread that prints directly
-	 * (isn't queued up)
-	 */
-	virtual void SetCurrentThreadAsMasterThread() = 0;
 };
 
 // Error device.

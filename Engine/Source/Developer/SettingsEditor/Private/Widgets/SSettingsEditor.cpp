@@ -1,152 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-// Implements the SSettingsEditor class.
+/*=============================================================================
+	SSettingsEditor.h: Implements the SSettingsEditor class.
+=============================================================================*/
 
 #include "SettingsEditorPrivatePCH.h"
 
 
 #define LOCTEXT_NAMESPACE "SSettingsEditor"
-
-
-class SSettingsFileCheckoutNotice : public SCompoundWidget
-{
-public:
-	SLATE_BEGIN_ARGS(SSettingsFileCheckoutNotice) { }
-		/** Called to determine if the associated file is unlocked */
-		SLATE_ATTRIBUTE(bool, Unlocked)
-	
-		/** Slot for this button's content (optional) */
-		SLATE_NAMED_SLOT(FArguments, LockedContent)
-
-	SLATE_END_ARGS()
-
-	void Construct(const FArguments& InArgs);
-
-private:
-	TAttribute<bool> bIsUnlocked;
-
-private:
-
-	// Callback for determining the visibility of the check-out button.
-	EVisibility HandleCheckOutButtonVisibility() const;
-
-	// Callback for getting the visibility of the 'Source control unavailable' text block.
-	FText HandleSccUnavailableTextBlockText() const;
-
-	// Callback for getting the widget index for the notice switcher.
-	int32 HandleNoticeSwitcherWidgetIndex() const
-	{
-		return bIsUnlocked.Get() ? 1 : 0;
-	}
-};
-
-EVisibility SSettingsFileCheckoutNotice::HandleCheckOutButtonVisibility() const
-{
-	if (ISourceControlModule::Get().IsEnabled() && ISourceControlModule::Get().GetProvider().IsAvailable())
-	{
-		return EVisibility::Visible;
-	}
-
-	return EVisibility::Collapsed;
-}
-
-FText SSettingsFileCheckoutNotice::HandleSccUnavailableTextBlockText() const
-{
-	if (!ISourceControlModule::Get().IsEnabled())
-	{
-		return LOCTEXT("SccDisabledNotice", "[Source control is disabled]");
-	}
-
-	if (!ISourceControlModule::Get().GetProvider().IsAvailable())
-	{
-		return LOCTEXT("SccUnavailableNotice", "[Source control server unavailable]");
-	}
-
-	return FText::GetEmpty();
-}
-
-
-void SSettingsFileCheckoutNotice::Construct(const FArguments& InArgs)
-{
-	bIsUnlocked = InArgs._Unlocked;
-
-	// default configuration notice
-	ChildSlot
-	[
-		SNew(SBorder)
-		.BorderBackgroundColor(FLinearColor::Yellow)
-		.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
-		.Padding(8.0f)
-		[
-			SNew(SWidgetSwitcher)
-			.WidgetIndex(this, &SSettingsFileCheckoutNotice::HandleNoticeSwitcherWidgetIndex)
-
-			// Locked slot
-			+ SWidgetSwitcher::Slot()
-			[
-				SNew(SHorizontalBox)
-
-				// Status icon
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.VAlign(VAlign_Center)
-				[
-					SNew(SImage)
-					.Image(FEditorStyle::GetBrush("GenericLock"))
-				]
-
-				// Notice
-				+ SHorizontalBox::Slot()
-				.FillWidth(1.0f)
-				.Padding(16.0f, 0.0f)
-				.VAlign(VAlign_Center)
-				[
-					SNew(STextBlock)
-					.Text(LOCTEXT("DefaultSettingsNotice_Source", "These settings are always saved in the default configuration file, which is currently under source control."))
-				]
-
-				// Call to action
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				[
-					InArgs._LockedContent.Widget
-				]
-
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				[
-					SNew(STextBlock)
-					.Text(this, &SSettingsFileCheckoutNotice::HandleSccUnavailableTextBlockText)
-				]
-			]
-
-			// Unlocked slot
-			+ SWidgetSwitcher::Slot()
-			[
-				SNew(SHorizontalBox)
-
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.VAlign(VAlign_Center)
-				[
-					SNew(SImage)
-					.Image(FEditorStyle::GetBrush("GenericUnlock"))
-				]
-
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding(16.0f, 0.0f)
-				.VAlign(VAlign_Center)
-				[
-					SNew(STextBlock)
-					.Text(LOCTEXT("DefaultSettingsNotice_Writable", "These settings are always saved in the default configuration file, which is currently writable."))
-				]
-			]
-		]
-	];
-}
-
-
 
 
 /* SSettingsEditor structors
@@ -184,11 +45,11 @@ void SSettingsEditor::Construct( const FArguments& InArgs, const ISettingsEditor
 	}
 
 	SettingsView = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor").CreateDetailView(DetailsViewArgs);
-	SettingsView->SetEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &SSettingsEditor::HandleSettingsViewEnabled)));
 	SettingsView->SetVisibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &SSettingsEditor::HandleSettingsViewVisibility)));
+	SettingsView->SetIsPropertyEditingEnabledDelegate(FIsPropertyEditingEnabled::CreateSP(this, &SSettingsEditor::HandleSettingsViewEnabled));
 
 	TSharedRef<SWidget> ConfigNoticeWidget =
-		SNew(SSettingsFileCheckoutNotice)
+		SNew(SSettingsEditorCheckoutNotice)
 		.Visibility(this, &SSettingsEditor::HandleDefaultConfigNoticeVisibility)
 		.Unlocked(this, &SSettingsEditor::IsDefaultConfigEditable)
 		.LockedContent()
@@ -216,20 +77,22 @@ void SSettingsEditor::Construct( const FArguments& InArgs, const ISettingsEditor
 						SNew(SScrollBox)
 
 						+ SScrollBox::Slot()
-						[
-							SNew(SHorizontalBox)
-							+ SHorizontalBox::Slot()
-							.AutoWidth()
 							[
-								SAssignNew(CategoriesBox, SVerticalBox)
+								SNew(SHorizontalBox)
+
+								+ SHorizontalBox::Slot()
+									.AutoWidth()
+									[
+										SAssignNew(CategoriesBox, SVerticalBox)
+									]
+
+								+ SHorizontalBox::Slot()
+									.AutoWidth()
+									[
+										SNew(SSpacer)
+											.Size(FVector2D(24.0f, 0.0f))
+									]
 							]
-							+ SHorizontalBox::Slot()
-							.AutoWidth()
-							[
-								SNew(SSpacer)
-								.Size(FVector2D(24.0f, 0.0f))
-							]
-						]
 					]
 
 				+ SHorizontalBox::Slot()

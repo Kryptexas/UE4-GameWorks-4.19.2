@@ -622,6 +622,11 @@ const TArray<UTexture*>& FMaterialResource::GetReferencedTextures() const
 	return Material->ExpressionTextureReferences;
 }
 
+bool FMaterialResource::GetAllowDevelopmentShaderCompile()const
+{
+	return Material->bAllowDevelopmentShaderCompile;
+}
+
 void FMaterial::ReleaseShaderMap()
 {
 	if (GameThreadShaderMap)
@@ -815,6 +820,11 @@ FString FMaterialResource::GetFriendlyName() const { return *GetNameSafe(Materia
 uint32 FMaterialResource::GetDecalBlendMode() const
 {
 	return Material->GetDecalBlendMode();
+}
+
+uint32 FMaterialResource::GetMaterialDecalResponse() const
+{
+	return Material->GetMaterialDecalResponse();
 }
 
 bool FMaterialResource::HasNormalConnected() const
@@ -1074,6 +1084,29 @@ void FMaterial::SetupMaterialEnvironment(
 		OutEnvironment.SetDefine(TEXT("MATERIALBLENDING_SOLID"),TEXT("1"));
 	}
 
+	{
+		EMaterialDecalResponse MaterialDecalResponse = (EMaterialDecalResponse)GetMaterialDecalResponse();
+
+		// bit 0:color/1:normal/2:roughness to enable/disable parts of the DBuffer decal effect
+		int32 MaterialDecalResponseMask = 0;
+
+		switch(MaterialDecalResponse)
+		{
+			case MDR_None:					MaterialDecalResponseMask = 0; break;
+			case MDR_ColorNormalRoughness:	MaterialDecalResponseMask = 1 + 2 + 4; break;
+			case MDR_Color:					MaterialDecalResponseMask = 1; break;
+			case MDR_ColorNormal:			MaterialDecalResponseMask = 1 + 2; break;
+			case MDR_ColorRoughness:		MaterialDecalResponseMask = 1 + 4; break;
+			case MDR_Normal:				MaterialDecalResponseMask = 2; break;
+			case MDR_NormalRoughness:		MaterialDecalResponseMask = 2 + 4; break;
+			case MDR_Roughness:				MaterialDecalResponseMask = 4; break;
+			default:
+				check(0);
+		}
+
+		OutEnvironment.SetDefine(TEXT("MATERIALDECALRESPONSEMASK"), MaterialDecalResponseMask);
+	}
+
 	OutEnvironment.SetDefine(TEXT("MATERIAL_TWOSIDED"), IsTwoSided() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("MATERIAL_TANGENTSPACENORMAL"), IsTangentSpaceNormal() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("GENERATE_SPHERICAL_PARTICLE_NORMALS"),ShouldGenerateSphericalParticleNormals() ? TEXT("1") : TEXT("0"));
@@ -1094,15 +1127,18 @@ void FMaterial::SetupMaterialEnvironment(
 	
 	};
 
-	switch(GetTranslucencyLightingMode())
+	if (IsTranslucentBlendMode(GetBlendMode()))
 	{
-	case TLM_VolumetricNonDirectional: OutEnvironment.SetDefine(TEXT("TRANSLUCENCY_LIGHTING_VOLUMETRIC_NONDIRECTIONAL"),TEXT("1")); break;
-	case TLM_VolumetricDirectional: OutEnvironment.SetDefine(TEXT("TRANSLUCENCY_LIGHTING_VOLUMETRIC_DIRECTIONAL"),TEXT("1")); break;
-	case TLM_Surface: OutEnvironment.SetDefine(TEXT("TRANSLUCENCY_LIGHTING_SURFACE"),TEXT("1")); break;
-	default: 
-		UE_LOG(LogMaterial, Warning, TEXT("Unknown lighting mode: %u"),(int32)GetTranslucencyLightingMode());
-		OutEnvironment.SetDefine(TEXT("TRANSLUCENCY_LIGHTING_VOLUMETRIC_NONDIRECTIONAL"),TEXT("1")); break;
-	};
+		switch(GetTranslucencyLightingMode())
+		{
+		case TLM_VolumetricNonDirectional: OutEnvironment.SetDefine(TEXT("TRANSLUCENCY_LIGHTING_VOLUMETRIC_NONDIRECTIONAL"),TEXT("1")); break;
+		case TLM_VolumetricDirectional: OutEnvironment.SetDefine(TEXT("TRANSLUCENCY_LIGHTING_VOLUMETRIC_DIRECTIONAL"),TEXT("1")); break;
+		case TLM_Surface: OutEnvironment.SetDefine(TEXT("TRANSLUCENCY_LIGHTING_SURFACE"),TEXT("1")); break;
+		default: 
+			UE_LOG(LogMaterial, Warning, TEXT("Unknown lighting mode: %u"),(int32)GetTranslucencyLightingMode());
+			OutEnvironment.SetDefine(TEXT("TRANSLUCENCY_LIGHTING_VOLUMETRIC_NONDIRECTIONAL"),TEXT("1")); break;
+		};
+	}
 
 	if( IsUsedWithEditorCompositing() )
 	{

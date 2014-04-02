@@ -981,15 +981,22 @@ void SNewProjectWizard::FindTemplateProjects()
 void SNewProjectWizard::SetDefaultProjectLocation( )
 {
 	FString DefaultProjectFilePath;
-	if ( GEditor->GetGameAgnosticSettings().CreatedProjectPaths.Num() <= 0 )
+	
+	// First, try and use the first previously used path that still exists
+	for ( const FString& CreatedProjectPath : GEditor->GetGameAgnosticSettings().CreatedProjectPaths )
+	{
+		if ( IFileManager::Get().DirectoryExists(*CreatedProjectPath) )
+		{
+			DefaultProjectFilePath = CreatedProjectPath;
+			break;
+		}
+	}
+
+	if ( DefaultProjectFilePath.IsEmpty() )
 	{
 		// No previously used path, decide a default path.
 		DefaultProjectFilePath = GameProjectUtils::GetDefaultProjectCreationPath();
 		IFileManager::Get().MakeDirectory(*DefaultProjectFilePath, true);
-	}
-	else
-	{
-		DefaultProjectFilePath = GEditor->GetGameAgnosticSettings().CreatedProjectPaths[0];
 	}
 
 	if ( !DefaultProjectFilePath.IsEmpty() && DefaultProjectFilePath.Right(1) == TEXT("/") )

@@ -195,11 +195,6 @@ const FSlateBrush* FSlateStyleSet::GetBrush(const FName PropertyName, const ANSI
 	const FName StyleName = Join(PropertyName, Specifier);
 	const FSlateBrush* Result = BrushResources.FindRef(StyleName);
 
-	if ( StyleName == "Matinee.Undo" || StyleName == "Matinee.AddKey" )
-	{
-		printf("WWW");
-	}
-
 	if ( Result == NULL )
 	{
 		TWeakPtr< FSlateDynamicImageBrush > WeakImageBrush = DynamicBrushes.FindRef(StyleName);
@@ -220,6 +215,25 @@ const FSlateBrush* FSlateStyleSet::GetBrush(const FName PropertyName, const ANSI
 #endif
 
 	return Result ? Result : GetDefaultBrush();
+}
+
+const FSlateBrush* FSlateStyleSet::GetOptionalBrush(const FName PropertyName, const ANSICHAR* Specifier, const FSlateBrush* const InDefaultBrush) const
+{
+	const FName StyleName = Join(PropertyName, Specifier);
+	const FSlateBrush* Result = BrushResources.FindRef(StyleName);
+
+	if ( Result == NULL )
+	{
+		TWeakPtr< FSlateDynamicImageBrush > WeakImageBrush = DynamicBrushes.FindRef(StyleName);
+		TSharedPtr< FSlateDynamicImageBrush > ImageBrush = WeakImageBrush.Pin();
+
+		if ( ImageBrush.IsValid() )
+		{
+			Result = ImageBrush.Get();
+		}
+	}
+
+	return Result ? Result : InDefaultBrush;
 }
 
 const TSharedPtr< FSlateDynamicImageBrush > FSlateStyleSet::GetDynamicImageBrush(const FName BrushTemplate, const FName TextureName, const ANSICHAR* Specifier)
@@ -266,33 +280,6 @@ const TSharedPtr< FSlateDynamicImageBrush > FSlateStyleSet::GetDynamicImageBrush
 FSlateBrush* FSlateStyleSet::GetDefaultBrush() const
 {
 	return DefaultBrush;
-}
-
-const FSlateBrush* FSlateStyleSet::GetOptionalBrush(const FName PropertyName, const ANSICHAR* Specifier) const
-{
-	const FName StyleName = Join(PropertyName, Specifier);
-	const FSlateBrush* Result = BrushResources.FindRef(StyleName);
-
-	if ( Result == NULL )
-	{
-		TWeakPtr< FSlateDynamicImageBrush > WeakImageBrush = DynamicBrushes.FindRef(StyleName);
-		TSharedPtr< FSlateDynamicImageBrush > ImageBrush = WeakImageBrush.Pin();
-
-		if ( ImageBrush.IsValid() )
-		{
-			Result = ImageBrush.Get();
-		}
-	}
-
-#if DO_GUARD_SLOW
-	if ( Result == NULL && !MissingResources.Contains(StyleName) )
-	{
-		MissingResources.Add(StyleName);
-		Log(ISlateStyle::Warning, FText::Format(NSLOCTEXT("SlateStyleSet", "UknownBrush", "Unable to find Brush '{0}'."), FText::FromName(StyleName)));
-	}
-#endif
-
-	return Result ? Result : FStyleDefaults::GetNoBrush();
 }
 
 const FSlateSound& FSlateStyleSet::GetSound(const FName PropertyName, const ANSICHAR* Specifier) const

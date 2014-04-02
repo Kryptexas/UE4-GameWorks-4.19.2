@@ -5,7 +5,7 @@
 class FAssetPathDragDropOp : public FDragDropOperation
 {
 public:
-	static FString GetTypeId() {static FString Type = TEXT("FAssetPathDragDropOp"); return Type;}
+	DRAG_DROP_OPERATOR_TYPE(FAssetPathDragDropOp, FDragDropOperation)
 
 	/** Data for the asset this item represents */
 	TArray<FString> PathNames;
@@ -13,7 +13,6 @@ public:
 	static TSharedRef<FAssetPathDragDropOp> New(const TArray<FString>& InPathNames)
 	{
 		TSharedRef<FAssetPathDragDropOp> Operation = MakeShareable(new FAssetPathDragDropOp);
-		FSlateApplication::GetDragDropReflector().RegisterOperation<FAssetPathDragDropOp>(Operation);
 		
 		Operation->MouseCursor = EMouseCursor::GrabHandClosed;
 		Operation->PathNames = InPathNames;

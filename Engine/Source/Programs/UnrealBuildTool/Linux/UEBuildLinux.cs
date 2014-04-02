@@ -15,9 +15,14 @@ namespace UnrealBuildTool.Linux
          */
         public override bool HasRequiredSDKsInstalled()
         {
+            if (ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Linux)
+            {
+                return true;
+            }
+
             string BaseLinuxPath = Environment.GetEnvironmentVariable("LINUX_ROOT");
 
-            // we don't have an ANDROID_ROOT specified
+            // we don't have an LINUX_ROOT specified
             if (String.IsNullOrEmpty(BaseLinuxPath))
                 return false;
 
@@ -238,6 +243,7 @@ namespace UnrealBuildTool.Linux
                         if (UEBuildConfiguration.bBuildDeveloperTools)
                         {
                             InModule.AddPlatformSpecificDynamicallyLoadedModule("LinuxTargetPlatform");
+                            InModule.AddPlatformSpecificDynamicallyLoadedModule("LinuxServerTargetPlatform");
                         }
                     }
                 }
@@ -246,6 +252,7 @@ namespace UnrealBuildTool.Linux
                 if (UEBuildConfiguration.bForceBuildTargetPlatforms)
                 {
                     InModule.AddPlatformSpecificDynamicallyLoadedModule("LinuxTargetPlatform");
+                    InModule.AddPlatformSpecificDynamicallyLoadedModule("LinuxServerTargetPlatform");
                 }
             }
         }
@@ -257,17 +264,14 @@ namespace UnrealBuildTool.Linux
          */
         public override void SetUpEnvironment(UEBuildTarget InBuildTarget)
         {
-            InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_OGGVORBIS=0");
-
             InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("UNICODE");
             InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("_UNICODE");
 
             InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_LINUX=1");
             InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("LINUX=1");
 
-            InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_DATABASE_SUPPORT=0");		//@todo android: valid?
+            InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_DATABASE_SUPPORT=0");		//@todo linux: valid?
             InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_EDITOR=0");
-            InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("USE_NULL_RHI=1");
 
             // link with Linux libraries.
             InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("pthread");

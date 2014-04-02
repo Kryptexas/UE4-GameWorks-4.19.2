@@ -12,7 +12,7 @@ class UAnimationConduitGraphSchema : public UEdGraphSchema_K2
 
 	// UEdGraphSchema interface
 	virtual void CreateDefaultNodesForGraph(UEdGraph& Graph) const OVERRIDE;
-	virtual bool CanDuplicateGraph() const OVERRIDE { return false; }
+	virtual bool CanDuplicateGraph(UEdGraph* InSourceGraph) const OVERRIDE { return false; }
 	virtual void GetGraphDisplayInformation(const UEdGraph& Graph, /*out*/ FGraphDisplayInfo& DisplayInfo) const OVERRIDE;
 	// End of UEdGraphSchema interface
 };

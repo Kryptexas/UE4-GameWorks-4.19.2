@@ -48,7 +48,8 @@ void UBlueprintGeneratedClass::PostLoad()
 	if (GetLinkerUE4Version() < VER_UE4_CLASS_NOTPLACEABLE_ADDED)
 	{
 		// Make sure the placeable flag is correct for all blueprints
-		if (CastChecked<UBlueprint>(ClassGeneratedBy)->BlueprintType != BPTYPE_MacroLibrary)
+		UBlueprint* Blueprint = Cast<UBlueprint>(ClassGeneratedBy);
+		if (ensure(Blueprint) && Blueprint->BlueprintType != BPTYPE_MacroLibrary)
 		{
 			ClassFlags &= ~CLASS_NotPlaceable;
 		}

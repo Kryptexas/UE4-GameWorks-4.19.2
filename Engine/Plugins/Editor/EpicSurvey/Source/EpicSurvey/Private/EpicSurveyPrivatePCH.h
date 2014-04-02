@@ -3,6 +3,6 @@
 #include "Engine.h"
 #include "UnrealEd.h"
 #include "Slate.h"
-#include "OnlineSubSystem.h"
+#include "OnlineSubsystem.h"
 #include "OnlineTitleFileInterface.h"
 

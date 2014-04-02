@@ -8,7 +8,7 @@ UENUM()
 enum EWASDType
 {
 	WASD_Always UMETA(DisplayName="Use WASD for Camera Controls"),
-	WASD_RMBOnly UMETA(DisplayName="Use WASD only when the Right Mouse Button is pressed"),
+	WASD_RMBOnly UMETA(DisplayName="Use WASD only when a Mouse Button is Pressed"),
 	WASD_Never UMETA(DisplayName="Never use WASD for Camera Controls"),
 	WASD_MAX,
 };
@@ -17,7 +17,7 @@ enum EWASDType
 UENUM()
 enum ERotationGridMode
 {
-	/** Using Divisions of 360 degress (e.g 360/2. 360/3, 360/4, ... ) */
+	/** Using Divisions of 360 degrees (e.g 360/2. 360/3, 360/4, ... ) */
 	GridMode_DivisionsOf360,
 
 	/** Uses the user defined grid values */
@@ -78,11 +78,13 @@ class UEditorUserSettings : public UObject
 	UPROPERTY(config)
 	int32 PropertyMatrix_NumberOfPasteOperationsBeforeWarning;
 
-	/**
-	 * Blueprint editor settings; These are not config/visible/editable unless we need to tweak them.  Make ones you want to adjust 'config, EditAnywhere, Category=Blueprint'
-	 */
-	UPROPERTY(config, EditAnywhere, Category=Blueprint)
+	/** The visual styling to use for graph editor pins (in Blueprints, materials, etc...) */
+	UPROPERTY(config, EditAnywhere, Category = Blueprint)
 	TEnumAsByte<EBlueprintPinStyleType> DataPinStyle;
+
+	/**
+	* Blueprint editor settings; These are not config/visible/editable unless we need to tweak them.  Make ones you want to adjust 'config, EditAnywhere, Category=Blueprint'
+	*/
 
 	/** The default color is used only for types not specifically defined below.  Generally if it's seen, it means another type needs to be defined so that the wire in question can have an appropriate color. */
 	UPROPERTY()

@@ -21,6 +21,13 @@ public:
 	 */
 	static FString EngineDir();
 
+	/**
+	* Returns the root directory for user-specific engine files. Always writable.
+	*
+	* @return root user directory
+	*/
+	static FString EngineUserDir();
+
 	/** 
 	 * Returns the content directory of the "core" engine that can be shared across
 	 * several games or across games & mods. 
@@ -73,6 +80,13 @@ public:
 	 * @return base directory
 	 */
 	static FString GameDir();
+
+	/**
+	* Returns the root directory for user-specific game files.
+	*
+	* @return game user directory
+	*/
+	static FString GameUserDir();
 
 	/**
 	 * Returns the content directory of the current game by looking at the global

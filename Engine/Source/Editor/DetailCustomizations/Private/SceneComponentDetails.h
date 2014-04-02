@@ -13,6 +13,14 @@ public:
 	
 private:
 	void MakeTransformDetails( IDetailLayoutBuilder& DetailBuilder );
+
+	FSlateColor GetMobilityTextColor(TWeakPtr<IPropertyHandle> MobilityHandle, EComponentMobility::Type InMobility) const;
+
+	ESlateCheckBoxState::Type IsMobilityActive(TWeakPtr<IPropertyHandle> MobilityHandle, EComponentMobility::Type InMobility) const;
+
+	void OnMobilityChanged(ESlateCheckBoxState::Type InCheckedState, TWeakPtr<IPropertyHandle> MobilityHandle, EComponentMobility::Type InMobility);
+
+	FText GetMobilityToolTip(TWeakPtr<IPropertyHandle> MobilityHandle) const;
 	
 	/**
 	 * When a scene component's Mobility is altered, we need to make sure the scene hierarchy is

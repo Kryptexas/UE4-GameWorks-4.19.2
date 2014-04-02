@@ -467,53 +467,63 @@ BOOL bIsBannerVisible = NO;
 */
 -(void)ShowAdBanner:(NSNumber*)bShowOnBottomOfScreen
 {
-	// close any existing ad
-	[self HideAdBanner];
+	bDrawOnBottom = [bShowOnBottomOfScreen boolValue];
 
-	// Show a new ad
-	self.BannerView = [[ADBannerView alloc] initWithAdType:ADAdTypeBanner];
-	[self.RootView addSubview : self.BannerView];
+	bool bNeedsToAddSubview = false;
+	if (self.BannerView == nil)
+	{
+		self.BannerView = [[ADBannerView alloc] initWithAdType:ADAdTypeBanner];
+		self.BannerView.delegate = self;
+		bNeedsToAddSubview = true;
+	}
+
+	CGRect BannerFrame = CGRectZero;
+	BannerFrame.size = [self.BannerView sizeThatFits : self.RootView.bounds.size];
+
+	if (bDrawOnBottom)
+	{
+		// move to off the bottom
+		BannerFrame.origin.y = self.RootView.bounds.size.height - BannerFrame.size.height;
+	}
+
+	self.BannerView.frame = BannerFrame;
+
+	// start out hidden, will fade in when ad loads
+	self.BannerView.hidden = YES;
+	self.BannerView.alpha = 0.0f;
+
+	if (bNeedsToAddSubview)
+	{
+		[self.RootView addSubview : self.BannerView];
+	}
+	else// if (self.BannerView.bannerLoaded)
+	{
+		[self bannerViewDidLoadAd : self.BannerView];
+	}
 }
 
 -(void)bannerViewDidLoadAd:(ADBannerView*)Banner
 {
-	if (!bIsBannerVisible)
-	{
-		// init a slide on animation
-		[UIView beginAnimations : @"animateAdBannerOn" context:NULL];
-		if (bDrawOnBottom)
-		{
-			Banner.frame = CGRectOffset(Banner.frame, 0, -Banner.frame.size.height);
-		}
-		else
-		{
-			Banner.frame = CGRectOffset(Banner.frame, 0, Banner.frame.size.height);
-		}
-
-		// slide on!
-		[UIView commitAnimations];
-		bIsBannerVisible = YES;
-	}
+	NSLog(@"Ad loaded!");
+    
+	if (self.BannerView.hidden)
+    {
+		self.BannerView.hidden = NO;
+		[UIView animateWithDuration:0.4f
+			animations:^
+			{
+				self.BannerView.alpha = 1.0f;
+			}
+		];
+    }
 }
 
 -(void)bannerView:(ADBannerView *)Banner didFailToReceiveAdWithError : (NSError *)Error
 {
+	NSLog(@"Ad failed to load: '%@'", Error);
+
 	// if we get an error, hide the banner 
-	if (bIsBannerVisible)
-	{
-		// init a slide off animation
-		[UIView beginAnimations : @"animateAdBannerOff" context:NULL];
-		if (bDrawOnBottom)
-		{
-			Banner.frame = CGRectOffset(Banner.frame, 0, Banner.frame.size.height);
-		}
-		else
-		{
-			Banner.frame = CGRectOffset(Banner.frame, 0, -Banner.frame.size.height);
-		}
-		[UIView commitAnimations];
-		bIsBannerVisible = NO;
-	}
+	[self HideAdBanner];
 }
 
 /**
@@ -559,15 +569,20 @@ BOOL bIsBannerVisible = NO;
 */
 -(void)HideAdBanner
 {
-	// make sure it's not open
-	[self CloseAd];
-
-	// must set delegate to nil before releasing the view
-	self.BannerView.delegate = nil;
-	[self.BannerView removeFromSuperview];
-	self.BannerView = nil;
-
-	bIsBannerVisible = NO;
+	// fade it out
+	if (!self.BannerView.hidden)
+    {
+		[UIView animateWithDuration:0.4f
+			animations:^
+			{
+				self.BannerView.alpha = 0.0f;
+			}
+			completion:^(BOOL finished) 
+			{
+				self.BannerView.hidden = YES;
+			}
+		];
+    }
 }
 
 /**
@@ -608,5 +623,81 @@ CORE_API void IOSCloseAd()
 }
 
 #endif
+
+/**
+ * Shows the given Game Center supplied controller on the screen
+ *
+ * @param Controller The Controller object to animate onto the screen
+ */
+-(void)ShowController:(UIViewController*)Controller
+{
+	// slide it onto the screen
+	[[IOSAppDelegate GetDelegate].IOSController presentViewController : Controller animated : YES completion : nil];
+	
+	// stop drawing the 3D world for faster UI speed
+	//FViewport::SetGameRenderingEnabled(false);
+}
+
+/**
+ * Hides the given Game Center supplied controller from the screen, optionally controller
+ * animation (sliding off)
+ *
+ * @param Controller The Controller object to animate off the screen
+ * @param bShouldAnimate YES to slide down, NO to hide immediately
+ */
+-(void)HideController:(UIViewController*)Controller Animated : (BOOL)bShouldAnimate
+{
+	// slide it off
+	[Controller dismissViewControllerAnimated : bShouldAnimate completion : nil];
+
+	// stop drawing the 3D world for faster UI speed
+	//FViewport::SetGameRenderingEnabled(true);
+}
+
+/**
+ * Hides the given Game Center supplied controller from the screen
+ *
+ * @param Controller The Controller object to animate off the screen
+ */
+-(void)HideController:(UIViewController*)Controller
+{
+	// call the other version with default animation of YES
+	[self HideController : Controller Animated : YES];
+}
+
+-(void)leaderboardViewControllerDidFinish:(GKLeaderboardViewController*)LeaderboardDisplay
+{
+	// close the view 
+	[self HideController : LeaderboardDisplay];
+}
+
+/**
+ * Show the leaderboard interface (call from iOS main thread)
+ */
+-(void)ShowLeaderboard:(NSString*)Category
+{
+	// create the leaderboard display object 
+	GKLeaderboardViewController* LeaderboardDisplay = [[[GKLeaderboardViewController alloc] init] autorelease];
+	LeaderboardDisplay.leaderboardDelegate = self;
+
+	// set which leaderboard to get 
+	LeaderboardDisplay.category = Category;
+
+	// show it 
+	[self ShowController : LeaderboardDisplay];
+}
+
+/**
+ * Show the leaderboard interface (call from game thread)
+ */
+CORE_API bool IOSShowLeaderboardUI(const FString& CategoryName)
+{
+	// route the function to iOS thread, passing the category string along as the object
+	NSString* CategoryToShow = [NSString stringWithFString:CategoryName];
+	[[IOSAppDelegate GetDelegate] performSelectorOnMainThread:@selector(ShowLeaderboard:) withObject:CategoryToShow waitUntilDone : NO];
+
+	return true;
+}
+
 
 @end

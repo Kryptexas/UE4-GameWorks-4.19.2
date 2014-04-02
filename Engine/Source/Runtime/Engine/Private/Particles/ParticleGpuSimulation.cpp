@@ -820,6 +820,7 @@ public:
 		OutEnvironment.SetDefine(TEXT("PARTICLE_SIMULATION_PIXELSHADER"), 1);
 		OutEnvironment.SetDefine(TEXT("MAX_VECTOR_FIELDS"), MAX_VECTOR_FIELDS);
 		OutEnvironment.SetDefine(TEXT("DEPTH_BUFFER_COLLISION"), (uint32)(bUseDepthBufferCollision ? 1 : 0));
+		OutEnvironment.SetRenderTargetOutputFormat(0, PF_A32B32G32R32F);
 	}
 
 	/** Default constructor. */
@@ -1024,6 +1025,7 @@ public:
 	{
 		FGlobalShader::ModifyCompilationEnvironment( Platform, OutEnvironment );
 		OutEnvironment.SetDefine( TEXT("PARTICLE_CLEAR_PIXELSHADER"), 1 );
+		OutEnvironment.SetRenderTargetOutputFormat(0, PF_A32B32G32R32F);
 	}
 
 	/** Default constructor. */
@@ -1378,6 +1380,12 @@ public:
 	static bool ShouldCache( EShaderPlatform Platform )
 	{
 		return SupportsGPUParticles(Platform);
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		OutEnvironment.SetRenderTargetOutputFormat(0, PF_A32B32G32R32F);
 	}
 
 	/** Default constructor. */

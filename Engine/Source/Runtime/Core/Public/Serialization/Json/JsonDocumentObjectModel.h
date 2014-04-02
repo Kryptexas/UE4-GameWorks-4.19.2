@@ -144,14 +144,14 @@ class CORE_API FJsonObject
 {
 public:
 	TMap< FString, TSharedPtr<FJsonValue> > Values;
-	
+
 	template<EJson::Type JsonType>
 	TSharedPtr<FJsonValue> GetField( const FString& FieldName ) const
 	{
 		const TSharedPtr<FJsonValue>* Field = Values.Find(FieldName);
 		if ( Field != NULL && Field->IsValid() )
 		{
-			if ( (*Field)->Type == JsonType )
+			if (JsonType == EJson::None || (*Field)->Type == JsonType)
 			{
 				return (*Field);
 			}
@@ -209,25 +209,25 @@ public:
 	/** Add a field named FieldName with Number as value */
 	void SetNumberField( const FString& FieldName, double Number );
 
-	/** Get the field named FieldName as a string. Ensures that the field is present and is of type Json string. */
+	/** Get the field named FieldName as a string. */
 	FString GetStringField(const FString& FieldName) const;
 
 	/** Add a field named FieldName with value of StringValue */
 	void SetStringField( const FString& FieldName, const FString& StringValue );
 
-	/** Get the field named FieldName as a boolean. Ensures that the field is present and is of type Json boolean. */
+	/** Get the field named FieldName as a boolean. */
 	bool GetBoolField(const FString& FieldName) const;
 
 	/** Set a boolean field named FieldName and value of InValue */
 	void SetBoolField( const FString& FieldName, bool InValue );
 
-	/** Get the field named FieldName as an array. Ensures that the field is present and is of type Json Array. */
+	/** Get the field named FieldName as an array. */
 	const TArray< TSharedPtr<FJsonValue> >& GetArrayField(const FString& FieldName) const;
 
 	/** Set an array field named FieldName and value of Array */
 	void SetArrayField( const FString& FieldName, const TArray< TSharedPtr<FJsonValue> >& Array );
 
-	/** Get the field named FieldName as a Json object. Ensures that the field is present and is a Json object*/
+	/** Get the field named FieldName as a Json object. */
 	const TSharedPtr<FJsonObject>& GetObjectField(const FString& FieldName) const;
 
 	/** Set an ObjectField named FieldName and value of JsonObject */

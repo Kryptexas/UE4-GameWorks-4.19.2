@@ -103,6 +103,7 @@ struct FKConvexElem
 
 		void SetTransform( const FTransform& InTransform )
 		{
+			ensure(InTransform.IsValid());
 			Transform = InTransform;
 		}
 
@@ -230,6 +231,7 @@ struct FKBoxElem
 
 	void SetTransform( const FTransform& InTransform )
 	{
+		ensure(InTransform.IsValid());
 		Orientation = InTransform.GetRotation();
 		Center = InTransform.GetLocation();
 	}
@@ -299,6 +301,7 @@ struct FKSphylElem
 
 	void SetTransform( const FTransform& InTransform )
 	{
+		ensure(InTransform.IsValid());
 		Orientation = InTransform.GetRotation();
 		Center = InTransform.GetLocation();
 	}
@@ -540,7 +543,11 @@ public:
 	/** 
 	 *   Add the shapes defined by this body setup to the supplied PxRigidBody. 
 	 */
+#if WITH_BODY_WELDING
+	void                    AddShapesToRigidActor(physx::PxRigidActor* PDestActor, FVector& Scale3D, const FTransform * RelativeTM = NULL);
+#else
 	void                    AddShapesToRigidActor(physx::PxRigidActor* PDestActor, FVector& Scale3D);
+#endif
 #endif // WITH_PHYSX
 
 };

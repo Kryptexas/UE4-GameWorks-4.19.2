@@ -10,6 +10,7 @@
 #include "AES.h"
 #include "SecureHash.h"
 #include "DefaultValueHelper.h"
+#include "EngineBuildSettings.h"
 
 DEFINE_LOG_CATEGORY(LogConfig);
 
@@ -174,6 +175,9 @@ void FConfigFile::CombineFromBuffer(const FString& Filename,const FString& Buffe
 
 	// Replace %GAMEDIR% with the game directory.
 	Text = Text.Replace( TEXT("%GAMEDIR%"), *FPaths::GameDir(), ESearchCase::CaseSensitive );
+
+	// Replace %ENGINEUSERDIR% with the user's engine directory.
+	Text = Text.Replace(TEXT("%ENGINEUSERDIR%"), *FPaths::EngineUserDir(), ESearchCase::CaseSensitive);
 
 	// Replace %APPSETTINGSDIR% with the game directory.
 	FString AppSettingsDir = FPlatformProcess::ApplicationSettingsDir();
@@ -379,6 +383,9 @@ void FConfigFile::ProcessInputFileContents(const FString& Filename, FString& Con
 
 	// Replace %GAMEDIR% with the game directory.
 	Text = Text.Replace( TEXT("%GAMEDIR%"), *FPaths::GameDir(), ESearchCase::CaseSensitive );
+
+	// Replace %ENGINEUSERDIR% with the user's engine directory.
+	Text = Text.Replace(TEXT("%ENGINEUSERDIR%"), *FPaths::EngineUserDir(), ESearchCase::CaseSensitive);
 
 	// Replace %APPSETTINGSDIR% with the game directory.
 	FString AppSettingsDir = FPlatformProcess::ApplicationSettingsDir();
@@ -1909,6 +1916,22 @@ bool FConfigCacheIni::GetVector
 	return false;
 }
 
+bool FConfigCacheIni::GetVector4
+(
+ const TCHAR*		Section,
+ const TCHAR*		Key,
+ FVector4&			Value,
+ const FString&	Filename
+)
+{
+	FString Text;
+	if(GetString(Section, Key, Text, Filename))
+	{
+		return Value.InitFromString(Text);
+	}
+	return false;
+}
+
 bool FConfigCacheIni::GetRotator
 (
  const TCHAR*		Section,
@@ -2455,11 +2478,14 @@ static FString GetSourceIniFilename(const TCHAR* BaseIniName, const TCHAR* Platf
 static void GetSourceIniHierarchyFilenames(const TCHAR* InBaseIniName, const TCHAR* InPlatformName, const TCHAR* InGameName, const TCHAR* EngineConfigDir, const TCHAR* SourceConfigDir, TArray<FIniFilename>& OutHierarchy, bool bRequireDefaultIni)
 {
 	const FString PlatformName(InPlatformName ? InPlatformName : ANSI_TO_TCHAR(FPlatformProperties::IniPlatformName()));
+	const FString BuildPurposeName(FEngineBuildSettings::IsInternalBuild() ? "Internal" : "External");
 
 	// Engine/Config/Base.ini (included in every ini type, required)
 	OutHierarchy.Add( FIniFilename(FString::Printf(TEXT("%sBase.ini"), EngineConfigDir), true) );
 	// Engine/Config/Base* ini
 	OutHierarchy.Add( FIniFilename(FString::Printf(TEXT("%sBase%s.ini"), EngineConfigDir, InBaseIniName), false) );
+	// Engine/Config/Base[Internal/External]* ini
+	OutHierarchy.Add( FIniFilename(FString::Printf(TEXT("%sBase%s%s.ini"), EngineConfigDir, *BuildPurposeName, InBaseIniName), false) );
 	// Game/Config/Default* ini
 	OutHierarchy.Add( FIniFilename(FString::Printf(TEXT("%sDefault%s.ini"), SourceConfigDir, InBaseIniName), bRequireDefaultIni) );
 	// Game/Config/DedicatedServer* ini

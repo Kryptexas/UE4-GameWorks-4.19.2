@@ -3,7 +3,6 @@
 
 #include "UnrealEd.h"
 #include "EditorLevelUtils.h"
-#include "LinkedObjEditor.h"
 #include "BusyCursor.h"
 #include "Database.h"
 #include "ISourceControlModule.h"

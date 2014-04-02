@@ -228,7 +228,7 @@ public class BuildCookRun : BuildCommand
 		int WorkingCL = -1;
 		if (P4Enabled && AllowSubmit)
 		{
-			WorkingCL = CreateChange(P4Env.Client, String.Format("{0} build from changelist {1}", Params.ShortProjectName, P4Env.Changelist));
+			WorkingCL = P4.CreateChange(P4Env.Client, String.Format("{0} build from changelist {1}", Params.ShortProjectName, P4Env.Changelist));
 		}
 
 		Project.Build(this, Params, WorkingCL);
@@ -244,7 +244,7 @@ public class BuildCookRun : BuildCommand
 		if (WorkingCL != -1)
 		{
 			int SubmittedCL;
-			Submit(WorkingCL, out SubmittedCL, true, true);
+			P4.Submit(WorkingCL, out SubmittedCL, true, true);
 		}
 	}
 

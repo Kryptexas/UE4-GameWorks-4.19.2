@@ -615,7 +615,7 @@ EVisibility SAssetViewItem::GetCheckedOutByOtherTextVisibility() const
 
 FString SAssetViewItem::GetCheckedOutByOtherText() const
 {
-	if(AssetItem.IsValid() && AssetItem->GetType() != EAssetItemType::Folder)
+	if ( AssetItem.IsValid() && AssetItem->GetType() != EAssetItemType::Folder && !GIsSavingPackage && !GIsGarbageCollecting )
 	{
 		const FAssetData& AssetData = StaticCastSharedPtr<FAssetViewAsset>(AssetItem)->Data;
 		ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();

@@ -52,6 +52,12 @@ protected:
 
 private:
 
+	// Callback for getting the text of the message overlay.
+	FText HandleMessageOverlayText( ) const;
+
+	// Callback for getting the visibility of the message overlay.
+	EVisibility HandleMessageOverlayVisibility( ) const;
+
 	// Callback for handling device service selection changes.
 	void HandleModelSelectedDeviceServiceChanged( );
 
@@ -70,9 +76,6 @@ private:
 	// Callback for getting the enabled state of the processes panel.
 	bool HandleProcessesBoxIsEnabled( ) const;
 
-	// Callback for getting the visibility of the 'Select a device' message.
-	EVisibility HandleSelectDeviceOverlayVisibility( ) const;
-
 	// Callback for getting the enabled state of the 'Terminate Process' button.
 	bool HandleTerminateProcessButtonIsEnabled( ) const;
 
@@ -80,7 +83,6 @@ private:
 	FReply HandleTerminateProcessButtonClicked( );
 
 private:
-
 
 	// Holds the time at which the process list was last refreshed.
 	FDateTime LastProcessListRefreshTime;

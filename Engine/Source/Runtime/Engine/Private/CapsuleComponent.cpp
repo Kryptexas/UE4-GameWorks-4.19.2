@@ -144,7 +144,6 @@ void UCapsuleComponent::UpdateBodySetup()
 {
 	if(ShapeBodySetup == NULL)
 	{
-		check(!IsTemplate());
 		ShapeBodySetup = ConstructObject<UBodySetup>(UBodySetup::StaticClass(), this);
 		ShapeBodySetup->CollisionTraceFlag = CTF_UseSimpleAsComplex;
 

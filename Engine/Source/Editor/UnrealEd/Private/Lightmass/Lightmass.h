@@ -74,11 +74,6 @@ public:
 		return ImportanceVolumes;
 	}
 
-	void SetCustomImportanceVolume(const FBox& InCustomImportanceBoundingBox)
-	{
-		CustomImportanceBoundingBox = InCustomImportanceBoundingBox;
-	}
-
 	void AddCharacterIndirectDetailVolume(const ALightmassCharacterIndirectDetailVolume* InDetailVolume)
 	{
 		CharacterIndirectDetailVolumes.Add(InDetailVolume->GetComponentsBoundingBox(true));
@@ -152,8 +147,6 @@ private:
 	bool						bSwarmConnectionIsValid;
 	FGuid						SceneGuid;
 	FString						ChannelName;
-
-	FBox						CustomImportanceBoundingBox;
 
 	TArray<FBox>				ImportanceVolumes;
 	TArray<FBox>				CharacterIndirectDetailVolumes;

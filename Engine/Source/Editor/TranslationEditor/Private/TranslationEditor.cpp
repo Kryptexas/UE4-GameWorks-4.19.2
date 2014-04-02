@@ -17,7 +17,6 @@
 
 #include "TranslationDataObject.h"
 
-#include "MainFrame.h"
 #include "DesktopPlatformModule.h"
 
 #include "IPropertyTableWidgetHandle.h"
@@ -183,8 +182,8 @@ FText FTranslationEditor::GetToolkitName() const
 	const bool bDirtyState = EditingObject->GetOutermost()->IsDirty();
 
 	FFormatNamedArguments Args;
-	Args.Add( TEXT("Language"), FText::FromName( TranslationTargetLanguage ) );
-	Args.Add( TEXT("ProjectName"), FText::FromName( ProjectName ) );
+	Args.Add( TEXT("Language"), FText::FromString( TranslationTargetLanguage ) );
+	Args.Add( TEXT("ProjectName"), FText::FromString( ProjectName ) );
 	Args.Add( TEXT("DirtyState"), bDirtyState ? FText::FromString( TEXT( "*" ) ) : FText::GetEmpty() );
 	Args.Add( TEXT("ToolkitName"), GetBaseToolkitName() );
 	return FText::Format( LOCTEXT("TranslationEditorAppLabel", "{Language}{DirtyState} - {ProjectName} - {ToolkitName}"), Args );
@@ -295,10 +294,16 @@ TSharedRef<SDockTab> FTranslationEditor::SpawnTab_Review( const FSpawnTabArgs& A
 	ReviewPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>( FTranslationUnit::StaticStruct(), "Translation"));
 	ReviewPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>( FTranslationUnit::StaticStruct(), "HasBeenReviewed"));
 
-	// Freeze columns, don't want user to remove them
 	TArray<TSharedRef<IPropertyTableColumn>> Columns = ReviewPropertyTable->GetColumns();
 	for (TSharedRef<IPropertyTableColumn> Column : Columns)
 	{
+		FString ColumnId = Column->GetId().ToString();
+		if (ColumnId == "HasBeenReviewed")
+		{
+			Column->SetWidth(120);
+			Column->SetSizeMode(EPropertyTableColumnSizeMode::Fixed);
+		}
+		// Freeze columns, don't want user to remove them
 		Column->SetFrozen(true);
 	}
 
@@ -628,7 +633,7 @@ bool FTranslationEditor::OpenFontPicker( const FString DefaultFile, FString& Out
 {
 	const FString FontFileDescription = LOCTEXT( "FontFileDescription", "Font File" ).ToString();
 	//TODO: support more than one filetype (right now only .ttfs are supported)
-	const FString FontFileExtension = FString::Printf(TEXT("*.%s"), *FPaths::GetExtension(SourceFont.FontName.ToString()));	
+	const FString FontFileExtension = TEXT("*.ttf;*.otf");
 	const FString FileTypes = FString::Printf( TEXT("%s (%s)|%s"), *FontFileDescription, *FontFileExtension, *FontFileExtension );
 
 	// Prompt the user for the filenames
@@ -639,11 +644,10 @@ bool FTranslationEditor::OpenFontPicker( const FString DefaultFile, FString& Out
 	{
 		void* ParentWindowWindowHandle = NULL;
 
-		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-		const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-		if ( MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid() )
+		const TSharedPtr<SWindow>& ParentWindow = FSlateApplication::Get().FindWidgetWindow(PreviewTextBlock);
+		if ( ParentWindow.IsValid() && ParentWindow->GetNativeWindow().IsValid() )
 		{
-			ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
+			ParentWindowWindowHandle = ParentWindow->GetNativeWindow()->GetOSWindowHandle();
 		}
 
 		bOpened = DesktopPlatform->OpenFileDialog(

@@ -419,21 +419,10 @@ void FSoundCueEditor::AddInput()
 
 		if (SelectedNode)
 		{
-			const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "SoundCueEditorAddInput", "Add Sound Cue Input") );
-			SelectedNode->Modify();
-
 			SelectedNode->AddInputPin();
-
-			SoundCue->CompileSoundNodesFromGraphNodes();
-
-			SoundCue->MarkPackageDirty();
-
 			break;
 		}
 	}
-
-	// Refresh the current graph, so the pins can be updated
-	SoundCueGraphEditor->NotifyGraphChanged();
 }
 
 bool FSoundCueEditor::CanAddInput() const
@@ -449,18 +438,8 @@ void FSoundCueEditor::DeleteInput()
 
 	if (SelectedNode && SelectedNode == SelectedPin->GetOwningNode())
 	{
-		const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "SoundCueEditorDeleteInput", "Delete Sound Cue Input") );
-		SelectedNode->Modify();
-
 		SelectedNode->RemoveInputPin(SelectedPin);
-
-		SoundCue->CompileSoundNodesFromGraphNodes();
-
-		SoundCue->MarkPackageDirty();
 	}
-
-	// Refresh the current graph, so the pins can be updated
-	SoundCueGraphEditor->NotifyGraphChanged();
 }
 
 bool FSoundCueEditor::CanDeleteInput() const

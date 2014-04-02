@@ -123,6 +123,9 @@ void SGraphNodeK2Base::UpdateCompactNode()
 	{
 		OutputPins[PinIndex]->SetShowLabel(false);
 	}
+
+	CreateInputSideAddButton(LeftNodeBox);
+	CreateOutputSideAddButton(RightNodeBox);
 }
 
 TSharedPtr<SToolTip> SGraphNodeK2Base::GetComplexTooltip()

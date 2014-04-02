@@ -9,7 +9,7 @@
 #include "Runtime/Analytics/AnalyticsMulticast/Public/AnalyticsMulticast.h"
 #include "Runtime/Analytics/Analytics/Public/Analytics.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogAnalytics, Log, All);
+DEFINE_LOG_CATEGORY_STATIC(LogAnalytics, Display, All);
 
 IMPLEMENT_MODULE( FAnalyticsMulticast, AnalyticsMulticast );
 

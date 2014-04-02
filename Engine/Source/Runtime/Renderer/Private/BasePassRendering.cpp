@@ -47,7 +47,30 @@ IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( FCachedVolumeIndirectLightingPolicy,
 IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( FCachedPointIndirectLightingPolicy, FCachedPointIndirectLightingPolicy );
 IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( FSimpleDynamicLightingPolicy, FSimpleDynamicLightingPolicy );
 
-void FTranslucentLightingParameters::Set(FShader* Shader)
+void FSkyLightReflectionParameters::GetSkyParametersFromScene(const FScene* Scene, bool bApplySkyLight, FTexture*& OutSkyLightTextureResource, float& OutApplySkyLightMask, float& OutSkyMipCount)
+{
+	OutSkyLightTextureResource = GBlackTextureCube;
+	OutApplySkyLightMask = 0;
+
+	if (Scene
+		&& Scene->SkyLight 
+		&& Scene->SkyLight->ProcessedTexture
+		&& bApplySkyLight)
+	{
+		OutSkyLightTextureResource = Scene->SkyLight->ProcessedTexture;
+		OutApplySkyLightMask = 1;
+	}
+
+	OutSkyMipCount = 1;
+
+	if (OutSkyLightTextureResource)
+	{
+		int32 CubemapWidth = OutSkyLightTextureResource->GetSizeX();
+		OutSkyMipCount = FMath::Log2(CubemapWidth) + 1.0f;
+	}
+}
+
+void FTranslucentLightingParameters::Set(FShader* Shader, const FSceneView* View)
 {
 	SetTextureParameter(
 		Shader->GetPixelShader(), 
@@ -55,7 +78,6 @@ void FTranslucentLightingParameters::Set(FShader* Shader)
 		TranslucencyLightingVolumeAmbientInnerSampler, 
 		TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
 		GSceneRenderTargets.GetTranslucencyVolumeAmbient(TVC_Inner)->GetRenderTargetItem().ShaderResourceTexture);
-
 
 	SetTextureParameter(
 		Shader->GetPixelShader(), 
@@ -77,10 +99,13 @@ void FTranslucentLightingParameters::Set(FShader* Shader)
 		TranslucencyLightingVolumeDirectionalOuterSampler, 
 		TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
 		GSceneRenderTargets.GetTranslucencyVolumeDirectional(TVC_Outer)->GetRenderTargetItem().ShaderResourceTexture);
+
+	SkyLightReflectionParameters.SetParameters(Shader->GetPixelShader(), (const FScene*)(View->Family->Scene), true);
 }
 
 void FTranslucentLightingParameters::SetMesh(FShader* Shader, const FPrimitiveSceneProxy* Proxy)
 {
+	// Note: GBlackCubeArrayTexture has an alpha of 0, which is needed to represent invalid data so the sky cubemap can still be applied
 	FTextureRHIParamRef CubeArrayTexture = GBlackCubeArrayTexture->TextureRHI;
 	int32 ArrayIndex = 0;
 	const FPrimitiveSceneInfo* PrimitiveSceneInfo = Proxy ? Proxy->GetPrimitiveSceneInfo() : NULL;
@@ -405,6 +430,7 @@ void FCachedVolumeIndirectLightingPolicy::SetMesh(
 		FVector AllocationScale(1, 1, 1);
 		FVector MinUV(0, 0, 0);
 		FVector MaxUV(1, 1, 1);
+		FVector4 SkyBentNormal(0, 0, 1, 1);
 
 		if (PrimitiveSceneProxy->GetPrimitiveSceneInfo()->IndirectLightingCacheAllocation
 			&& PrimitiveSceneProxy->GetPrimitiveSceneInfo()->IndirectLightingCacheAllocation->IsValid())
@@ -415,6 +441,7 @@ void FCachedVolumeIndirectLightingPolicy::SetMesh(
 			AllocationScale = LightingAllocation.Scale;
 			MinUV = LightingAllocation.MinUV;
 			MaxUV = LightingAllocation.MaxUV;
+			SkyBentNormal = LightingAllocation.CurrentSkyBentNormal;
 		}
 		
 		const FPixelShaderRHIParamRef PixelShaderRHI = PixelShader->GetPixelShader();
@@ -422,6 +449,7 @@ void FCachedVolumeIndirectLightingPolicy::SetMesh(
 		SetShaderValue(PixelShaderRHI, PixelShaderParameters->IndirectlightingCachePrimitiveScale, AllocationScale);
 		SetShaderValue(PixelShaderRHI, PixelShaderParameters->IndirectlightingCacheMinUV, MinUV);
 		SetShaderValue(PixelShaderRHI, PixelShaderParameters->IndirectlightingCacheMaxUV, MaxUV);
+		SetShaderValue(PixelShaderRHI, PixelShaderParameters->PointSkyBentNormal, SkyBentNormal);
 	}
 }
 
@@ -469,6 +497,11 @@ void FCachedPointIndirectLightingPolicy::SetMesh(
 
 			SetShaderValue(
 				PixelShader->GetPixelShader(), 
+				PixelShaderParameters->PointSkyBentNormal, 
+				LightingAllocation.CurrentSkyBentNormal);
+
+			SetShaderValue(
+				PixelShader->GetPixelShader(), 
 				PixelShaderParameters->DirectionalLightShadowing, 
 				LightingAllocation.CurrentDirectionalShadowing);
 		}
@@ -481,6 +514,11 @@ void FCachedPointIndirectLightingPolicy::SetMesh(
 				PixelShaderParameters->IndirectLightingSHCoefficients, 
 				&ZeroArray, 
 				ARRAY_COUNT(ZeroArray));
+
+			SetShaderValue(
+				PixelShader->GetPixelShader(), 
+				PixelShaderParameters->PointSkyBentNormal, 
+				FVector::ZeroVector);
 
 			SetShaderValue(
 				PixelShader->GetPixelShader(), 
@@ -515,6 +553,11 @@ void FSelfShadowedCachedPointIndirectLightingPolicy::SetMesh(
 				PixelShaderParameters->IndirectLightingSHCoefficients, 
 				&LightingAllocation.SingleSamplePacked, 
 				ARRAY_COUNT(LightingAllocation.SingleSamplePacked));
+
+			SetShaderValue(
+				PixelShader->GetPixelShader(), 
+				PixelShaderParameters->PointSkyBentNormal, 
+				LightingAllocation.CurrentSkyBentNormal);
 		}
 		else
 		{
@@ -525,6 +568,11 @@ void FSelfShadowedCachedPointIndirectLightingPolicy::SetMesh(
 				PixelShaderParameters->IndirectLightingSHCoefficients, 
 				&ZeroArray, 
 				ARRAY_COUNT(ZeroArray));
+
+			SetShaderValue(
+				PixelShader->GetPixelShader(), 
+				PixelShaderParameters->PointSkyBentNormal, 
+				FVector::ZeroVector);
 		}
 	}
 

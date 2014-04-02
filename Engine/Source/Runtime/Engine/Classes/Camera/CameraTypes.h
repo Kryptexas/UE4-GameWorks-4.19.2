@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Runtime/Engine/Classes/Engine/Scene.h"
 #include "CameraTypes.generated.h"
 
 //@TODO: Document
@@ -74,4 +75,10 @@ struct FMinimalViewInfo
 	// Blends view information
 	// Note: booleans are orred together, instead of blending
 	ENGINE_API void BlendViewInfo(FMinimalViewInfo& OtherInfo, float OtherWeight);
+
+	/** Applies weighting to this view, in order to be blended with another one. Equals to this *= Weight. */
+	ENGINE_API void ApplyBlendWeight(const float & Weight);
+
+	/** Combines this view with another one which will be weighted. Equals to this += OtherView * Weight. */
+	ENGINE_API void AddWeightedViewInfo(const FMinimalViewInfo & OtherView, const float & Weight);
 };

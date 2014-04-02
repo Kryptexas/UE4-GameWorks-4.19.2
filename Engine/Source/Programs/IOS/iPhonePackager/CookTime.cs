@@ -52,11 +52,16 @@ namespace iPhonePackager
 				Program.Log(String.Format("Loaded stub IPA from '{0}' ...", SourceIPAPath));
 			}
 
+			if (Program.GameName == "UE4Game")
+			{
+				WorkIPAPath = Config.RemapIPAPath(".ipa");
+			}
+
 			// Make sure there are no stale working copies around
 			FileOperations.DeleteFile(WorkIPAPath);
 
 			// Create a working copy of the IPA
-			File.Copy(SourceIPAPath, WorkIPAPath);
+			FileOperations.CopyRequiredFile(SourceIPAPath, WorkIPAPath);
 
 			// Open up the zip file
 			ZipFile Stub = ZipFile.Read(WorkIPAPath);
@@ -354,7 +359,7 @@ namespace iPhonePackager
 
 			TimeSpan ZipLength = DateTime.Now - StartTime;
 
-			FileInfo FinalZipInfo = new FileInfo(Config.GetIPAPath(".ipa"));
+			FileInfo FinalZipInfo = new FileInfo(Zip.Name);
 
 
 			Program.Log(String.Format("Finished repackaging into {2:0.00} MB IPA, written to '{0}' (took {1:0.00} s)",

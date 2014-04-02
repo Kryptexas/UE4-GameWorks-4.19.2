@@ -18,6 +18,7 @@ void SPinComboBox::Construct( const FArguments& InArgs )
 		SAssignNew( ComboButton, SComboButton )
 		.MenuWidth(200.0f)
 		.ContentPadding(3)
+		.MenuPlacement(MenuPlacement_BelowAnchor)
 		.ButtonContent()
 		[
 			SNew( STextBlock ).ToolTipText(NSLOCTEXT("PinComboBox", "ToolTip", "Select enum values from the list"))

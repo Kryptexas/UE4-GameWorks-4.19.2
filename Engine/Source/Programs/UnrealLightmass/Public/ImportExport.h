@@ -251,6 +251,8 @@ namespace Lightmass
 		/** SH coefficients used with low quality lightmaps. */
 		float LowQualityCoefficients[4][3];
 
+		FVector SkyBentNormal;
+
 		/** Shadow factor for the stationary directional light. */
 		float DirectionalLightShadowing;
 	};

@@ -75,7 +75,7 @@ struct FAndroidPlatformProperties
 
 	static FORCEINLINE bool SupportsDistanceFieldShadows()
 	{
-		return false;
+		return true;
 	}
 
 	static FORCEINLINE bool SupportsTextureStreaming()

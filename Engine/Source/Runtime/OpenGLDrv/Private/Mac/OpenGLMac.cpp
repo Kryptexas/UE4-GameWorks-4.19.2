@@ -3,10 +3,14 @@
 #include "OpenGLDrvPrivate.h"
 
 #include "MacWindow.h"
+#include "MacTextInputMethodSystem.h"
 
 /*------------------------------------------------------------------------------
 	OpenGL context management.
 ------------------------------------------------------------------------------*/
+
+#define UE_EMULATE_TIMESTAMP 0 // (WITH_EDITOR && !UE_BUILD_SHIPPING) @todo: Crashes on AMD on window close
+
 
 char const* const CompositedBlitVertexShader = "#version 150\n"
 "const int VertexCount = 6;\n"
@@ -63,7 +67,23 @@ static NSOpenGLContext* CreateContext( NSOpenGLContext* SharedContext )
 
 	if (!PixelFormat)
 	{
-		PixelFormat = [[NSOpenGLPixelFormat alloc] initWithAttributes: ContextCreationAttributes];
+		int32 DisplayMask = 0;
+		if (GConfig->GetInt(TEXT("OpenGL"), TEXT("OverrideDisplayMask"), DisplayMask, GEngineIni))
+		{
+			TArray<NSOpenGLPixelFormatAttribute> Attributes;
+			
+			Attributes.Append(ContextCreationAttributes, ARRAY_COUNT(ContextCreationAttributes) - 1);
+			Attributes.Add(kCGLPFAAllowOfflineRenderers);
+			Attributes.Add(kCGLPFADisplayMask);
+			Attributes.Add(DisplayMask);
+			Attributes.Add(0);
+			
+			PixelFormat = [[NSOpenGLPixelFormat alloc] initWithAttributes: Attributes.GetData()];
+		}
+		else
+		{
+			PixelFormat = [[NSOpenGLPixelFormat alloc] initWithAttributes: ContextCreationAttributes];
+		}
 		check(PixelFormat);
 	}
 
@@ -135,13 +155,37 @@ void DeleteQueriesForCurrentContext( NSOpenGLContext* Context );
 /**
  * Custom view class
  */
-@interface FCocoaOpenGLView : NSView
+@interface FCocoaOpenGLView : FSlateTextView
 {
 }
-
+@property (atomic) bool bNeedsUpdate;
 @end
 
 @implementation FCocoaOpenGLView
+
+@synthesize bNeedsUpdate;
+
+- (id)initWithFrame:(NSRect)frameRect
+{
+	self = [super initWithFrame:frameRect];
+	if (self != nil)
+	{
+		self.bNeedsUpdate = true;
+		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(_surfaceNeedsUpdate:) name:NSViewGlobalFrameDidChangeNotification object:self];
+	}
+	return self;
+}
+
+- (void)dealloc
+{
+	[[NSNotificationCenter defaultCenter] removeObserver:self name:NSViewGlobalFrameDidChangeNotification object:self];
+	[super dealloc];
+}
+
+- (void) _surfaceNeedsUpdate:(NSNotification*)notification
+{
+	self.bNeedsUpdate = true;;
+}
 
 - (void)drawRect:(NSRect)DirtyRect
 {
@@ -171,14 +215,13 @@ void DeleteQueriesForCurrentContext( NSOpenGLContext* Context );
  */
 - (void)mouseDown:(NSEvent*)Event
 {
+	// Swallowed by FSlateTextView
+	[super mouseDown:Event];
+	
 	FSlateCocoaWindow* SlateCocoaWindow = [[self window] isKindOfClass:[FSlateCocoaWindow class]] ? (FSlateCocoaWindow*)[self window] : nil;
 	if (SlateCocoaWindow)
 	{
 		[SlateCocoaWindow mouseDown:Event];
-	}
-	else
-	{
-		[super mouseDown:Event];
 	}
 }
 
@@ -210,14 +253,13 @@ void DeleteQueriesForCurrentContext( NSOpenGLContext* Context );
 
 - (void)mouseUp:(NSEvent*)Event
 {
+	// Swallowed by FSlateTextView
+	[super mouseUp:Event];
+	
 	FSlateCocoaWindow* SlateCocoaWindow = [[self window] isKindOfClass:[FSlateCocoaWindow class]] ? (FSlateCocoaWindow*)[self window] : nil;
 	if (SlateCocoaWindow)
 	{
 		[SlateCocoaWindow mouseUp:Event];
-	}
-	else
-	{
-		[super mouseUp:Event];
 	}
 }
 
@@ -249,6 +291,56 @@ void DeleteQueriesForCurrentContext( NSOpenGLContext* Context );
 
 @end
 
+#if UE_EMULATE_TIMESTAMP
+class FMacOpenGLTimer
+{
+public:
+	FMacOpenGLTimer(FPlatformOpenGLContext* InContext);
+	~FMacOpenGLTimer();
+	
+	void Begin(void);
+	void End(void);
+	uint64 GetResult(void);
+	int32 GetResultAvailable(void);
+	
+public:
+	TSharedPtr<FMacOpenGLTimer> Next;
+	
+private:
+	FPlatformOpenGLContext* Context;
+	uint32 Name;
+	uint64 Result;
+	uint32 Available;
+	bool Cached;
+	bool Running;
+};
+
+class FMacOpenGLQuery : public TSharedFromThis<FMacOpenGLQuery, ESPMode::Fast>
+{
+public:
+	FMacOpenGLQuery(FPlatformOpenGLContext* InContext);
+	~FMacOpenGLQuery();
+	
+	void Begin(GLenum InTarget);
+	void End();
+	uint64 GetResult(void);
+	int32 GetResultAvailable(void);
+	
+	uint32 Name;
+	GLenum Target;
+	
+private:
+	FPlatformOpenGLContext* Context;
+	uint64 Result;
+	uint32 Available;
+	bool Running;
+	bool Cached;
+	TSharedPtr<FMacOpenGLTimer> Start;
+	TSharedPtr<FMacOpenGLTimer> Finish;
+	TWeakPtr<FMacOpenGLQuery> LastTimer;
+};
+#endif
+
 /** Platform specific OpenGL context. */
 struct FPlatformOpenGLContext
 {
@@ -258,6 +350,15 @@ struct FPlatformOpenGLContext
 	GLuint				ViewportFramebuffer;
 	int32				SyncInterval;
 	GLuint				VertexArrayObject;	// one has to be generated and set for each context (OpenGL 3.2 Core requirements)
+	
+#if UE_EMULATE_TIMESTAMP
+	uint64 TimeElapsed;
+	TSharedPtr<FMacOpenGLTimer> FirstTimer;
+	TArray<TWeakPtr<FMacOpenGLTimer>> Timers;
+	TArray<TSharedPtr<FMacOpenGLQuery>> Queries;
+	TMap<GLenum, TSharedPtr<FMacOpenGLQuery>> RunningQueries;
+	TWeakPtr<FMacOpenGLQuery> LastTimer;
+#endif
 };
 
 struct OpenGLContextInfo
@@ -268,10 +369,11 @@ struct OpenGLContextInfo
 
 extern void OnQueryInvalidation( void );
 
+bool GIsRunningOnIntelCard = false; // @todo: remove once Apple fixes radr://16223045 Changes to the GL separate blend state aren't always respected on Intel cards
+
 struct FPlatformOpenGLDevice
 {
-	NSOpenGLContext*	SharedContext;
-	GLuint				SharedContextVAO;
+	FPlatformOpenGLContext	SharedContext;
 	GLuint				SharedContextCompositeVertexShader;
 	GLuint				SharedContextCompositeFragmentShader;
 	GLuint				SharedContextCompositeProgram;
@@ -280,9 +382,9 @@ struct FPlatformOpenGLDevice
 	GLuint				SharedContextCompositeTexture;
 	uint32              SharedContextCompositeTextureSizeX;
     uint32              SharedContextCompositeTextureSizeY;
+	
+	FPlatformOpenGLContext	RenderingContext;
 
-	NSOpenGLContext*	RenderingContext;
-	GLuint				RenderingContextVAO;
 
 	TArray<OpenGLContextInfo>	FreeOpenGLContexts;
 	int32						NumUsedContexts;
@@ -297,20 +399,39 @@ struct FPlatformOpenGLDevice
 
 		extern void InitDebugContext();
 		ContextUsageGuard = new FCriticalSection;
-		SharedContext = CreateContext(NULL);
-		RenderingContext = CreateContext(SharedContext);
-
-		[RenderingContext makeCurrentContext];
+		SharedContext.OpenGLContext = CreateContext(NULL);
+		RenderingContext.OpenGLContext = CreateContext(SharedContext.OpenGLContext);
+		
+		[RenderingContext.OpenGLContext makeCurrentContext];
 		InitDebugContext();
-		glGenVertexArrays(1,&RenderingContextVAO);
-		glBindVertexArray(RenderingContextVAO);
+		glGenVertexArrays(1,&RenderingContext.VertexArrayObject);
+		glBindVertexArray(RenderingContext.VertexArrayObject);
+		
+#if UE_EMULATE_TIMESTAMP
+		RenderingContext.TimeElapsed = 0;
+		intptr_t RenderPtr = (intptr_t)&RenderingContext;
+		CGLSetParameter((CGLContextObj)[RenderingContext.OpenGLContext CGLContextObj], kCGLCPClientStorage, (GLint*)&RenderPtr);
+		RenderingContext.FirstTimer = TSharedPtr<FMacOpenGLTimer>(new FMacOpenGLTimer(&RenderingContext));
+		RenderingContext.Timers.Add(RenderingContext.FirstTimer);
+		RenderingContext.FirstTimer->Begin();
+#endif
 		InitDefaultGLContextState();
+		
 		glFlush();
-
-		[SharedContext makeCurrentContext];
+		
+		[SharedContext.OpenGLContext makeCurrentContext];
 		InitDebugContext();
-		glGenVertexArrays(1,&SharedContextVAO);
-		glBindVertexArray(SharedContextVAO);
+		glGenVertexArrays(1,&SharedContext.VertexArrayObject);
+		glBindVertexArray(SharedContext.VertexArrayObject);
+		
+#if UE_EMULATE_TIMESTAMP
+		SharedContext.TimeElapsed = 0;
+		intptr_t SharedPtr = (intptr_t)&SharedContext;
+		CGLSetParameter((CGLContextObj)[SharedContext.OpenGLContext CGLContextObj], kCGLCPClientStorage, (GLint*)&SharedPtr);
+		SharedContext.FirstTimer = TSharedPtr<FMacOpenGLTimer>(new FMacOpenGLTimer(&SharedContext));
+		SharedContext.Timers.Add(SharedContext.FirstTimer);
+		SharedContext.FirstTimer->Begin();
+#endif
 		
 		SharedContextCompositeVertexShader = glCreateShader(GL_VERTEX_SHADER);
 		glShaderSource(SharedContextCompositeVertexShader, 1, &CompositedBlitVertexShader, NULL);
@@ -359,30 +480,52 @@ struct FPlatformOpenGLDevice
 		}
 
 		OnQueryInvalidation();
-
+		
 		{
-			FScopeContext Context(RenderingContext);
-			DeleteQueriesForCurrentContext(RenderingContext);
+			FScopeContext Context(RenderingContext.OpenGLContext);
+			DeleteQueriesForCurrentContext(RenderingContext.OpenGLContext);
 			glBindVertexArray(0);
-			glDeleteVertexArrays(1,&RenderingContextVAO);
+			glDeleteVertexArrays(1,&RenderingContext.VertexArrayObject);
+			
+#if UE_EMULATE_TIMESTAMP
+			RenderingContext.RunningQueries.Empty();
+			RenderingContext.Queries.Empty();
+			RenderingContext.FirstTimer.Reset();
+			RenderingContext.Timers.Empty();
+#endif
+			
+			// Unbind the platform context from the CGL context
+			intptr_t Val = 0;
+			CGLSetParameter((CGLContextObj)[RenderingContext.OpenGLContext CGLContextObj], kCGLCPClientStorage, (GLint*)&Val);
 		}
-
+		
 		{
-			FScopeContext Context(SharedContext);
-			DeleteQueriesForCurrentContext(SharedContext);
+			FScopeContext Context(SharedContext.OpenGLContext);
+			DeleteQueriesForCurrentContext(SharedContext.OpenGLContext);
 			glBindVertexArray(0);
-			glDeleteVertexArrays(1,&SharedContextVAO);
+			glDeleteVertexArrays(1,&SharedContext.VertexArrayObject);
 			
 			glDeleteProgram(SharedContextCompositeProgram);
 			glDeleteShader(SharedContextCompositeVertexShader);
 			glDeleteShader(SharedContextCompositeFragmentShader);
 			
 			glDeleteTextures(1, &SharedContextCompositeTexture);
+			
+#if UE_EMULATE_TIMESTAMP
+			SharedContext.RunningQueries.Empty();
+			SharedContext.Queries.Empty();
+			SharedContext.FirstTimer.Reset();
+			SharedContext.Timers.Empty();
+#endif
+			
+			// Unbind the platform context from the CGL context
+			intptr_t Val = 0;
+			CGLSetParameter((CGLContextObj)[SharedContext.OpenGLContext CGLContextObj], kCGLCPClientStorage, (GLint*)&Val);
 		}
-
-		[RenderingContext release];
-		[SharedContext release];
-
+		
+		[RenderingContext.OpenGLContext release];
+		[SharedContext.OpenGLContext release];
+		
 		delete ContextUsageGuard;
 	}
 };
@@ -422,7 +565,7 @@ FPlatformOpenGLContext* PlatformCreateOpenGLContext(FPlatformOpenGLDevice* Devic
 		}
 		else
 		{
-			Context->OpenGLContext = CreateContext(Device->SharedContext);
+			Context->OpenGLContext = CreateContext(Device->SharedContext.OpenGLContext);
 
 			{
 				FScopeContext ScopeContext(Context->OpenGLContext);
@@ -457,6 +600,25 @@ FPlatformOpenGLContext* PlatformCreateOpenGLContext(FPlatformOpenGLDevice* Devic
 	
 	// Attach the context to the view if needed
 	[Context->OpenGLContext setView: Context->OpenGLView];
+
+	FString VendorName( ANSI_TO_TCHAR((const ANSICHAR*)glGetString(GL_VENDOR)));
+	if (VendorName.Contains(TEXT("Intel ")))
+	{
+		GIsRunningOnIntelCard = true;
+	}
+	
+#if UE_EMULATE_TIMESTAMP
+	// Bind the platform context into the CGL context
+	Context->TimeElapsed = 0;
+	CGLSetParameter((CGLContextObj)[Context->OpenGLContext CGLContextObj], kCGLCPClientStorage, (GLint*)&Context);
+	
+	{
+		FScopeContext ScopeContext(Context->OpenGLContext);
+		Context->FirstTimer = TSharedPtr<FMacOpenGLTimer>(new FMacOpenGLTimer(Context));
+		Context->Timers.Add(Context->FirstTimer);
+		Context->FirstTimer->Begin();
+	}
+#endif
 	
 	return Context;
 }
@@ -466,7 +628,19 @@ void PlatformReleaseOpenGLContext(FPlatformOpenGLDevice* Device, FPlatformOpenGL
 	SCOPED_AUTORELEASE_POOL;
 
 	check(Context && Context->OpenGLView && Context->OpenGLContext);
-
+#if UE_EMULATE_TIMESTAMP
+	{
+		FScopeContext ScopeContext(Context->OpenGLContext);
+		Context->RunningQueries.Empty();
+		Context->Queries.Empty();
+		Context->FirstTimer.Reset();
+		Context->Timers.Empty();
+		
+		// Unbind the platform context from the CGL context
+		intptr_t Val = 0;
+		CGLSetParameter((CGLContextObj)[Context->OpenGLContext CGLContextObj], kCGLCPClientStorage, (GLint*)&Val);
+	}
+#endif
 	{
 		FScopeLock ScopeLock(Device->ContextUsageGuard);
 
@@ -522,6 +696,12 @@ void PlatformBlitToViewport( FPlatformOpenGLDevice* Device, FPlatformOpenGLConte
 				GL_COLOR_BUFFER_BIT,
 				GL_NEAREST
 				);
+			
+			if(Context->OpenGLView.bNeedsUpdate)
+			{
+				Context->OpenGLView.bNeedsUpdate = false;
+				[Context->OpenGLContext update];
+			}
 
 			if (bPresent)
 			{
@@ -675,7 +855,7 @@ void PlatformRenderingContextSetup(FPlatformOpenGLDevice* Device)
 	{
 		glFlush();
 	}
-	[Device->RenderingContext makeCurrentContext];
+	[Device->RenderingContext.OpenGLContext makeCurrentContext];
 }
 
 void PlatformSharedContextSetup(FPlatformOpenGLDevice* Device)
@@ -688,7 +868,7 @@ void PlatformSharedContextSetup(FPlatformOpenGLDevice* Device)
 	{
 		glFlush();
 	}
-	[Device->SharedContext makeCurrentContext];
+	[Device->SharedContext.OpenGLContext makeCurrentContext];
 }
 
 void PlatformNULLContextSetup()
@@ -707,11 +887,11 @@ EOpenGLCurrentContext PlatformOpenGLCurrentContext(FPlatformOpenGLDevice* Device
 
 	NSOpenGLContext* Context = [NSOpenGLContext currentContext];
 
-	if (Context == Device->RenderingContext)	// most common case
+	if (Context == Device->RenderingContext.OpenGLContext)	// most common case
 	{
 		return CONTEXT_Rendering;
 	}
-	else if (Context == Device->SharedContext)
+	else if (Context == Device->SharedContext.OpenGLContext)
 	{
 		return CONTEXT_Shared;
 	}
@@ -989,7 +1169,46 @@ void PlatformGetNewRenderQuery( GLuint* OutQuery, uint64* OutQueryContext )
 		check( Context );
 
 		GLuint NewQuery = 0;
-
+		
+#if UE_EMULATE_TIMESTAMP
+		CGLContextObj Current = CGLGetCurrentContext();
+		FPlatformOpenGLContext* PlatformContext = nullptr;
+		if(Current && (CGLGetParameter(Current, kCGLCPClientStorage, (GLint *)&PlatformContext) == kCGLNoError) && PlatformContext)
+		{
+			for( int32 Index = 0; Index < ReleasedQueries.Num(); ++Index )
+			{
+				if( ReleasedQueries[Index].Context == Context )
+				{
+					if(PlatformContext->Queries.Num() >= ReleasedQueries[Index].Query)
+					{
+						PlatformContext->Queries[ReleasedQueries[Index].Query - 1].Reset();
+					}
+					ReleasedQueries.RemoveAt(Index);
+					Index--;
+				}
+			}
+			
+			if(PlatformContext->Queries.Num() < UINT_MAX)
+			{
+				TSharedPtr<FMacOpenGLQuery> Query(new FMacOpenGLQuery(PlatformContext));
+				for(int32 Index = 0; Index < PlatformContext->Queries.Num(); ++Index)
+				{
+					if(!PlatformContext->Queries[Index].IsValid())
+					{
+						PlatformContext->Queries[Index] = Query;
+						NewQuery = Index + 1;
+						break;
+					}
+				}
+				
+				if(!NewQuery)
+				{
+					PlatformContext->Queries.Add(Query);
+					NewQuery = PlatformContext->Queries.Num();
+				}
+			}
+		}
+#else
 		// Check for possible query reuse
 		const int32 ArraySize = ReleasedQueries.Num();
 		for( int32 Index = 0; Index < ArraySize; ++Index )
@@ -1006,6 +1225,7 @@ void PlatformGetNewRenderQuery( GLuint* OutQuery, uint64* OutQueryContext )
 		{
 			glGenQueries( 1, &NewQuery );
 		}
+#endif
 
 		*OutQuery = NewQuery;
 		*OutQueryContext = (uint64)Context;
@@ -1019,7 +1239,19 @@ void PlatformReleaseRenderQuery( GLuint Query, uint64 QueryContext )
 	NSOpenGLContext* Context = [NSOpenGLContext currentContext];
 	if( (uint64)Context == QueryContext )
 	{
+#if UE_EMULATE_TIMESTAMP
+		CGLContextObj Current = CGLGetCurrentContext();
+		FPlatformOpenGLContext* PlatformContext = nullptr;
+		if(Current && (CGLGetParameter(Current, kCGLCPClientStorage, (GLint *)&PlatformContext) == kCGLNoError) && PlatformContext)
+		{
+			if(PlatformContext->Queries.Num() >= Query)
+			{
+				PlatformContext->Queries[Query - 1].Reset();
+			}
+		}
+#else
 		glDeleteQueries(1, &Query );
+#endif
 	}
 	else
 	{
@@ -1040,7 +1272,27 @@ void DeleteQueriesForCurrentContext( NSOpenGLContext* Context )
 	{
 		ReleasedQueriesGuard = new FCriticalSection;
 	}
-
+	
+#if UE_EMULATE_TIMESTAMP
+	CGLContextObj Current = (CGLContextObj)[Context CGLContextObj];
+	FPlatformOpenGLContext* PlatformContext = nullptr;
+	if(Current && (CGLGetParameter(Current, kCGLCPClientStorage, (GLint *)&PlatformContext) == kCGLNoError) && PlatformContext)
+	{
+		FScopeLock Lock(ReleasedQueriesGuard);
+		for( int32 Index = 0; Index < ReleasedQueries.Num(); ++Index )
+		{
+			if( ReleasedQueries[Index].Context == Context )
+			{
+				if(PlatformContext->Queries.Num() >= ReleasedQueries[Index].Query)
+				{
+					PlatformContext->Queries[ReleasedQueries[Index].Query - 1].Reset();
+				}
+				ReleasedQueries.RemoveAtSwap(Index);
+				--Index;
+			}
+		}
+	}
+#else
 	{
 		FScopeLock Lock(ReleasedQueriesGuard);
 		for( int32 Index = 0; Index < ReleasedQueries.Num(); ++Index )
@@ -1053,6 +1305,7 @@ void DeleteQueriesForCurrentContext( NSOpenGLContext* Context )
 			}
 		}
 	}
+#endif
 }
 
 bool PlatformContextIsCurrent( uint64 QueryContext )
@@ -1097,6 +1350,10 @@ void FMacOpenGL::ProcessExtensions(const FString& ExtensionsString)
 	ProcessQueryGLInt();
 	FOpenGL3::ProcessExtensions(ExtensionsString);
 	
+#if UE_EMULATE_TIMESTAMP
+	TimestampQueryBits = 64;
+#endif
+	
 	// Not all GPUs support the new 4.1 Core Profile required for GL_ARB_texture_storage
 	// Those that are stuck with 3.2 don't have this extension.
 	if(ExtensionsString.Contains(TEXT("GL_ARB_texture_storage")))
@@ -1134,4 +1391,406 @@ void FMacOpenGL::ProcessExtensions(const FString& ExtensionsString)
 		bSupportsTessellationShader = true;
 		glPatchParameteri = (PFNGLPATCHPARAMETERIPROC)dlsym(RTLD_SELF, "glPatchParameteri");
 	}
+}
+
+#if UE_EMULATE_TIMESTAMP
+FMacOpenGLTimer::FMacOpenGLTimer(FPlatformOpenGLContext* InContext)
+: Context(InContext)
+, Name(0)
+, Result(0)
+, Available(0)
+, Cached(false)
+, Running(false)
+{
+	check(Context);
+	glGenQueries(1, &Name);
+}
+
+FMacOpenGLTimer::~FMacOpenGLTimer()
+{
+	End();
+	Context->TimeElapsed += GetResult();
+	for(uint32 i = 0; i < Context->Timers.Num(); ++i)
+	{
+		if(!Context->Timers[i].IsValid())
+		{
+			Context->Timers.RemoveAt(i);
+			--i;
+		}
+	}
+	glDeleteQueries(1, &Name);
+	
+	while(Next.IsValid() && Next.IsUnique())
+	{
+		TSharedPtr<FMacOpenGLTimer> NewNext = Next->Next;
+		Next->Next.Reset();
+		Next = NewNext;
+	}
+}
+
+void FMacOpenGLTimer::Begin(void)
+{
+	if(!Running)
+	{
+		glBeginQuery(GL_TIME_ELAPSED, Name);
+		Running = true;
+	}
+}
+
+void FMacOpenGLTimer::End(void)
+{
+	if(Running)
+	{
+		Running = false;
+		glEndQuery(GL_TIME_ELAPSED);
+	}
+}
+
+uint64 FMacOpenGLTimer::GetResult(void)
+{
+	check(!Running);
+	if(!Cached)
+	{
+		while(!GetResultAvailable())
+		{
+			usleep(1000);
+		}
+		if(Available)
+		{
+			glGetQueryObjectui64v(Name, GL_QUERY_RESULT, &Result);
+			Cached = true;
+		}
+	}
+	return Result;
+}
+
+int32 FMacOpenGLTimer::GetResultAvailable(void)
+{
+	check(!Running);
+	if(!Available)
+	{
+		glGetQueryObjectuiv(Name, GL_QUERY_RESULT_AVAILABLE, &Available);
+	}
+	return Available;
+}
+
+FMacOpenGLQuery::FMacOpenGLQuery(FPlatformOpenGLContext* InContext)
+: Context(InContext)
+, Name(0)
+, Target(0)
+, Result(0)
+, Available(0)
+, Running(0)
+, Cached(false)
+{
+	check(Context);
+}
+
+FMacOpenGLQuery::~FMacOpenGLQuery()
+{
+	if(Running)
+	{
+		End();
+	}
+	if(Name)
+	{
+		glDeleteQueries(1, &Name);
+	}
+}
+
+void FMacOpenGLQuery::Begin(GLenum InTarget)
+{
+	if(Target == 0 || Target == InTarget)
+	{
+		Target = InTarget;
+		Result = 0;
+		Running = true;
+		Available = false;
+		Cached = false;
+		Start.Reset();
+		Finish.Reset();
+		if(Target == GL_TIMESTAMP)
+		{
+			for( auto It : Context->Queries )
+			{
+				if(It.IsValid() && It->Running == false && (It->Target == GL_TIMESTAMP || It->Target == GL_TIME_ELAPSED))
+				{
+					if(It->GetResultAvailable())
+					{
+						It->GetResult();
+					}
+					else
+					{
+						break;
+					}
+				}
+			}
+			
+			LastTimer = Context->LastTimer;
+			Context->LastTimer = AsShared();
+			while(Context->Timers.Num() > 0 && !Context->Timers[0].IsValid())
+			{
+				Context->Timers.RemoveAt(0);
+			}
+			Start = Context->Timers[0].Pin();
+			if(Start == Context->FirstTimer)
+			{
+				Context->FirstTimer.Reset();
+			}
+			Finish = Context->Timers.Last().Pin();
+			TSharedPtr<FMacOpenGLTimer> Current(new FMacOpenGLTimer(Context));
+			Finish->Next = Current;
+			Finish->End();
+			Current->Begin();
+			Context->Timers.Add(Current);
+			if(!Context->RunningQueries.FindOrAdd(GL_TIME_ELAPSED).IsValid())
+			{
+				Context->FirstTimer = Current;
+			}
+		}
+		else if(Target == GL_TIME_ELAPSED)
+		{
+			LastTimer = Context->LastTimer;
+			Context->LastTimer = AsShared();
+			TSharedPtr<FMacOpenGLTimer> Current = Context->Timers.Last().Pin();
+			Start = TSharedPtr<FMacOpenGLTimer>(new FMacOpenGLTimer(Context));
+			Current->Next = Start;
+			Current->End();
+			Start->Begin();
+			if(Current == Context->FirstTimer)
+			{
+				Context->FirstTimer.Reset();
+			}
+			Context->Timers.Add(Start);
+		}
+		else
+		{
+			if(!Name)
+			{
+				glGenQueries(1, &Name);
+			}
+			glBeginQuery(Target, Name);
+		}
+	}
+}
+
+void FMacOpenGLQuery::End()
+{
+	Running = false;
+	if(Target == GL_TIME_ELAPSED)
+	{
+		Finish = Context->Timers.Last().Pin();
+		TSharedPtr<FMacOpenGLTimer> Current(new FMacOpenGLTimer(Context));
+		Finish->Next = Current;
+		Finish->End();
+		Current->Begin();
+		Context->Timers.Add(Current);
+		Context->FirstTimer = Current;
+	}
+	else if(Target != GL_TIMESTAMP)
+	{
+		glEndQuery(Target);
+	}
+}
+
+uint64 FMacOpenGLQuery::GetResult(void)
+{
+	if(!Cached)
+	{
+		while(!GetResultAvailable())
+		{
+			usleep(1000);
+		}
+		if(Available)
+		{
+			if(Target == GL_TIMESTAMP || Target == GL_TIME_ELAPSED)
+			{
+				TWeakPtr<FMacOpenGLQuery> PreviousQuery = LastTimer;
+				while(PreviousQuery.IsValid())
+				{
+					TSharedPtr<FMacOpenGLQuery> Query = PreviousQuery.Pin();
+					PreviousQuery = Query->LastTimer;
+					
+					// Don't recurse - it may blow the stack!
+					Query->LastTimer.Reset();
+					
+					// But do prefetch the previous results.
+					Query->GetResult();
+				}
+				
+				Result = 0;
+				TSharedPtr<FMacOpenGLTimer> Current = Start;
+				do
+				{
+					Result += Current->GetResult();
+					if(Current != Finish)
+					{
+						Current = Current->Next;
+					}
+					else
+					{
+						Current.Reset();
+					}
+				} while(Current.IsValid());
+				
+				if(Target == GL_TIMESTAMP)
+				{
+					Result += Context->TimeElapsed;
+				}
+				
+				Start.Reset();
+				Finish.Reset();
+			}
+			else
+			{
+				glGetQueryObjectui64v(Name, GL_QUERY_RESULT, &Result);
+			}
+			Cached = true;
+		}
+	}
+	return Result;
+}
+
+int32 FMacOpenGLQuery::GetResultAvailable(void)
+{
+	if(!Available)
+	{
+		if(Target == GL_TIMESTAMP || Target == GL_TIME_ELAPSED)
+		{
+			Available = Finish->GetResultAvailable();
+		}
+		else
+		{
+			glGetQueryObjectuiv(Name, GL_QUERY_RESULT_AVAILABLE, &Available);
+		}
+	}
+	return Available;
+}
+
+bool IsQuery(FPlatformOpenGLContext* PlatformContext, GLuint QueryID)
+{
+	bool OK = PlatformContext && QueryID;
+	if(OK)
+	{
+		OK = PlatformContext->Queries.Num() >= QueryID && PlatformContext->Queries[QueryID-1].IsValid();
+	}
+	return OK;
+}
+
+TSharedPtr<FMacOpenGLQuery> GetQuery(FPlatformOpenGLContext* PlatformContext, GLuint QueryID)
+{
+	TSharedPtr<FMacOpenGLQuery> Query;
+	if(IsQuery(PlatformContext, QueryID))
+	{
+		Query = PlatformContext->Queries[QueryID-1];
+	}
+	return Query;
+}
+#endif
+
+void FMacOpenGL::MacQueryTimestampCounter(GLuint QueryID)
+{
+#if UE_EMULATE_TIMESTAMP
+	CGLContextObj Current = CGLGetCurrentContext();
+	FPlatformOpenGLContext* PlatformContext = nullptr;
+	if(Current && (CGLGetParameter(Current, kCGLCPClientStorage, (GLint *)&PlatformContext) == kCGLNoError) && PlatformContext)
+	{
+		TSharedPtr<FMacOpenGLQuery> Query = GetQuery(PlatformContext, QueryID);
+		if(Query.IsValid())
+		{
+			Query->Begin(GL_TIMESTAMP);
+			Query->End();
+		}
+	}
+#else
+	FOpenGL3::QueryTimestampCounter(QueryID);
+#endif
+}
+
+void FMacOpenGL::MacBeginQuery(GLenum QueryType, GLuint QueryId)
+{
+#if UE_EMULATE_TIMESTAMP
+	CGLContextObj Current = CGLGetCurrentContext();
+	FPlatformOpenGLContext* PlatformContext = nullptr;
+	if(Current && (CGLGetParameter(Current, kCGLCPClientStorage, (GLint *)&PlatformContext) == kCGLNoError) && PlatformContext)
+	{
+		TSharedPtr<FMacOpenGLQuery> Query = GetQuery(PlatformContext, QueryId);
+		if(Query.IsValid())
+		{
+			Query->Begin(QueryType);
+			PlatformContext->RunningQueries.Add(QueryType, Query);
+		}
+	}
+#else
+	FOpenGL3::BeginQuery(QueryType, QueryId);
+#endif
+}
+
+void FMacOpenGL::MacEndQuery(GLenum QueryType)
+{
+#if UE_EMULATE_TIMESTAMP
+	CGLContextObj Current = CGLGetCurrentContext();
+	FPlatformOpenGLContext* PlatformContext = nullptr;
+	if(Current && (CGLGetParameter(Current, kCGLCPClientStorage, (GLint *)&PlatformContext) == kCGLNoError) && PlatformContext)
+	{
+		TSharedPtr<FMacOpenGLQuery> Query = PlatformContext->RunningQueries.FindOrAdd(QueryType);
+		if(Query.IsValid())
+		{
+			Query->End();
+			PlatformContext->RunningQueries[QueryType].Reset();
+		}
+	}
+#else
+	FOpenGL3::EndQuery(QueryType);
+#endif
+}
+
+void FMacOpenGL::MacGetQueryObject(GLuint QueryId, EQueryMode QueryMode, uint64 *OutResult)
+{
+#if UE_EMULATE_TIMESTAMP
+	CGLContextObj Current = CGLGetCurrentContext();
+	FPlatformOpenGLContext* PlatformContext = nullptr;
+	if(Current && (CGLGetParameter(Current, kCGLCPClientStorage, (GLint *)&PlatformContext) == kCGLNoError) && PlatformContext)
+	{
+		TSharedPtr<FMacOpenGLQuery> Query = GetQuery(PlatformContext, QueryId);
+		if(Query.IsValid())
+		{
+			if(QueryMode == QM_Result)
+			{
+				*OutResult = Query->GetResult();
+			}
+			else
+			{
+				*OutResult = Query->GetResultAvailable();
+			}
+		}
+	}
+#else
+	FOpenGL3::GetQueryObject(QueryId, QueryMode, OutResult);
+#endif
+}
+
+void FMacOpenGL::MacGetQueryObject(GLuint QueryId, EQueryMode QueryMode, GLuint *OutResult)
+{
+#if UE_EMULATE_TIMESTAMP
+	CGLContextObj Current = CGLGetCurrentContext();
+	FPlatformOpenGLContext* PlatformContext = nullptr;
+	if(Current && (CGLGetParameter(Current, kCGLCPClientStorage, (GLint *)&PlatformContext) == kCGLNoError) && PlatformContext)
+	{
+		TSharedPtr<FMacOpenGLQuery> Query = GetQuery(PlatformContext, QueryId);
+		if(Query.IsValid())
+		{
+			if(QueryMode == QM_Result)
+			{
+				*OutResult = (GLuint)Query->GetResult();
+			}
+			else
+			{
+				*OutResult = (GLuint)Query->GetResultAvailable();
+			}
+		}
+	}
+#else
+	FOpenGL3::GetQueryObject(QueryId, QueryMode, OutResult);
+#endif
 }

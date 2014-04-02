@@ -23,7 +23,7 @@ class MegaXGE : BuildCommand
 			{
 				CmdLine += Arg.ToString() + " ";
 			}
-			WorkingCL = CreateChange(P4Env.Client, String.Format("MegaXGE build from changelist {0} - Params: {1}", P4Env.Changelist, CmdLine));
+			WorkingCL = P4.CreateChange(P4Env.Client, String.Format("MegaXGE build from changelist {0} - Params: {1}", P4Env.Changelist, CmdLine));
 		}
 
 		Log("************************* MegaXGE");
@@ -160,7 +160,7 @@ class MegaXGE : BuildCommand
 			UE4Build.AddBuildProductsToChangelist(WorkingCL, UE4Build.BuildProductFiles);
 
 			int SubmittedCL;
-			Submit(WorkingCL, out SubmittedCL, true, true);
+			P4.Submit(WorkingCL, out SubmittedCL, true, true);
 		}
 
 		PrintRunTime();

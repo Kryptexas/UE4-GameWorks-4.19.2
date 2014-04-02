@@ -502,6 +502,8 @@ public:
 	
 	ENGINE_API int32 DrawShadowedText( float StartX, float StartY, const FText& Text, class UFont* Font, const FLinearColor& Color, const FLinearColor& ShadowColor = FLinearColor::Black );
 
+	ENGINE_API void DrawNGon(const FVector2D& Center, const FColor& Color, int32 NumSides, float Radius);
+
 	/** 
 	* Contains all of the batched elements that need to be rendered at a certain depth sort key
 	*/

@@ -499,7 +499,14 @@ void FLandscapeEditToolRenderData::UpdateSelectionMaterial(int32 InSelectedType)
 			LandscapeEdit.ZeroTexture(DataTexture);
 		}
 	}
-	SelectedType = InSelectedType;
+
+	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+		UpdateSelectionMaterial,
+		FLandscapeEditToolRenderData*, LandscapeEditToolRenderData, this,
+		int32, InSelectedType, InSelectedType,
+		{
+			LandscapeEditToolRenderData->SelectedType = InSelectedType;
+		});
 }
 #endif
 
@@ -1226,10 +1233,13 @@ int32 FLandscapeComponentSceneProxy::CalcLODForSubsection(const class FSceneView
 	}
 }
 
-void FLandscapeComponentSceneProxy::CalcLODParamsForSubsection(const class FSceneView& View, const FVector2D& CameraLocalPos, int32 SubX, int32 SubY, float& OutfLOD, FVector4& OutNeighborLODs) const
+void FLandscapeComponentSceneProxy::CalcLODParamsForSubsection(const class FSceneView& View, const FVector2D& CameraLocalPos, int32 SubX, int32 SubY, float& OutfLOD, FVector4& OutNeighborLODs, float& OutDistLOD) const
 {
 	FVector2D ComponentPosition(0.5f * (float)SubsectionSizeQuads, 0.5f * (float)SubsectionSizeQuads);
 	FVector2D CurrentCameraLocalPos = CameraLocalPos - FVector2D(SubX * SubsectionSizeQuads,SubY * SubsectionSizeQuads);
+
+	float ComponentDistance = FVector2D(CurrentCameraLocalPos - ComponentPosition).Size() + DistDiff;
+	OutDistLOD = ComponentDistance / LODDistance;
 
 	int32 FirstLOD = FMath::Max<int32>(LODBias, 0);
 	int32 LastLOD = FMath::Min<int32>(MaxLOD, MaxLOD+LODBias);
@@ -1239,8 +1249,7 @@ void FLandscapeComponentSceneProxy::CalcLODParamsForSubsection(const class FScen
 	}
 	else
 	{
-		float ComponentDistance = FVector2D(CurrentCameraLocalPos - ComponentPosition).Size() + DistDiff;
-		OutfLOD = FMath::Clamp<float>(ComponentDistance / LODDistance, FirstLOD, LastLOD);
+		OutfLOD = FMath::Clamp<float>(OutDistLOD, FirstLOD, LastLOD);
 	}
 
 	for (int32 Idx = 0; Idx < LANDSCAPE_NEIGHBOR_NUM; ++Idx)
@@ -1825,6 +1834,7 @@ public:
 
 		FVector4 fCurrentLODs;
 		FVector4 CurrentNeighborLODs[4];
+		float DistLOD = 0.f;
 
 		if( BatchElementParams->SubX == -1 )
 		{
@@ -1833,14 +1843,14 @@ public:
 				for( int32 SubX = 0; SubX < SceneProxy->NumSubsections; SubX++ )
 				{
 					int32 SubIndex = SubX + 2 * SubY;
-					SceneProxy->CalcLODParamsForSubsection(View, CameraLocalPos, SubX, SubY, fCurrentLODs[SubIndex], CurrentNeighborLODs[SubIndex]);
+					SceneProxy->CalcLODParamsForSubsection(View, CameraLocalPos, SubX, SubY, fCurrentLODs[SubIndex], CurrentNeighborLODs[SubIndex], DistLOD);
 				}
 			}
 		}
 		else
 		{
 			int32 SubIndex = BatchElementParams->SubX + 2 * BatchElementParams->SubY;
-			SceneProxy->CalcLODParamsForSubsection(View, CameraLocalPos, BatchElementParams->SubX, BatchElementParams->SubY, fCurrentLODs[SubIndex], CurrentNeighborLODs[SubIndex]);
+			SceneProxy->CalcLODParamsForSubsection(View, CameraLocalPos, BatchElementParams->SubX, BatchElementParams->SubY, fCurrentLODs[SubIndex], CurrentNeighborLODs[SubIndex], DistLOD);
 		}
 
 		if( SectionLodsParameter.IsBound() )
@@ -1856,7 +1866,7 @@ public:
 		if( LodValuesParameter.IsBound() )
 		{
 			FVector4 LodValues(
-				0,
+				DistLOD,
 				// convert current LOD coordinates into highest LOD coordinates
 				(float)SceneProxy->SubsectionSizeQuads / (float)(((SceneProxy->SubsectionSizeVerts) >> BatchElementParams->CurrentLOD)-1),
 				(float)((SceneProxy->SubsectionSizeVerts >> BatchElementParams->CurrentLOD) - 1),
@@ -1928,6 +1938,7 @@ public:
 
 		FVector4 fCurrentLODs;
 		FVector4 CurrentNeighborLODs[4];
+		float DistLOD = 0.f;
 
 		if( BatchElementParams->SubX == -1 )
 		{
@@ -1936,14 +1947,14 @@ public:
 				for( int32 SubX = 0; SubX < SceneProxy->NumSubsections; SubX++ )
 				{
 					int32 SubIndex = SubX + 2 * SubY;
-					SceneProxy->CalcLODParamsForSubsection(View, CameraLocalPos, SubX, SubY, fCurrentLODs[SubIndex], CurrentNeighborLODs[SubIndex]);
+					SceneProxy->CalcLODParamsForSubsection(View, CameraLocalPos, SubX, SubY, fCurrentLODs[SubIndex], CurrentNeighborLODs[SubIndex], DistLOD);
 				}
 			}
 		}
 		else
 		{
 			int32 SubIndex = BatchElementParams->SubX + 2 * BatchElementParams->SubY;
-			SceneProxy->CalcLODParamsForSubsection(View, CameraLocalPos, BatchElementParams->SubX, BatchElementParams->SubY, fCurrentLODs[SubIndex], CurrentNeighborLODs[SubIndex]);
+			SceneProxy->CalcLODParamsForSubsection(View, CameraLocalPos, BatchElementParams->SubX, BatchElementParams->SubY, fCurrentLODs[SubIndex], CurrentNeighborLODs[SubIndex], DistLOD);
 		}
 
 		if( SectionLodsParameter.IsBound() )
@@ -1959,7 +1970,7 @@ public:
 		if( LodValuesParameter.IsBound() )
 		{
 			FVector4 LodValues(
-				0,
+				DistLOD,
 				// convert current LOD coordinates into highest LOD coordinates
 				(float)SceneProxy->SubsectionSizeQuads / (float)(((SceneProxy->SubsectionSizeVerts) >> BatchElementParams->CurrentLOD)-1),
 				(float)((SceneProxy->SubsectionSizeVerts >> BatchElementParams->CurrentLOD) - 1),

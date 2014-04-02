@@ -7,6 +7,8 @@ class FDockingDragOperation : public FDragDropOperation
 {
 public:
 
+	DRAG_DROP_OPERATOR_TYPE(FDockingDragOperation, FDragDropOperation)
+
 	/**
 	 * Represents a target for the user re-arranging some layout.
 	 * A user expresses their desire to re-arrange layout by placing a tab relative to some layout node.
@@ -43,8 +45,6 @@ public:
 		/** Relation to node where we will put the tab.qqq */
 		SDockingNode::RelativeDirection DockDirection;
 	};
-
-	static FString GetTypeId() {static FString Type = TEXT("FDockingDragOperation"); return Type;}
 
 	/**
 	 * Invoked when the drag and drop operation has ended.

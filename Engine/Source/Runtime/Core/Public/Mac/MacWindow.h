@@ -25,9 +25,14 @@
 	bool bZoomed;
 }
 
+@property (assign) bool bForwardEvents;
+
 /** Get the frame filled by a child OpenGL view, which may cover the window or fill the content view depending upon the window style.
  @return The NSRect for a child OpenGL view. */
 - (NSRect)openGLFrame;
+
+/** Get the view used for OpenGL rendering. @return The OpenGL view for rendering. */
+- (NSView*)openGLView;
 
 - (void)performDeferredOrderFront;
 
@@ -124,6 +129,8 @@ public:
 	void Initialize( class FMacApplication* const Application, const TSharedRef< FGenericWindowDefinition >& InDefinition, const TSharedPtr< FMacWindow >& InParent, const bool bShowImmediately );
 	
 	void OnDisplayReconfiguration(CGDirectDisplayID Display, CGDisplayChangeSummaryFlags Flags);
+	
+	bool OnIMKKeyDown(NSEvent* Event);
 
 public:
 

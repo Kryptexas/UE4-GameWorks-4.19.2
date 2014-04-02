@@ -385,8 +385,10 @@ void FIntroTutorials::OnAssetEditorOpened(UObject* Asset)
 
 			if (PropsToUse)
 			{
-				CurrentObjectClass = Asset->GetClass();
-				MaybeOpenWelcomeTutorial(PropsToUse->TutorialPath, PropsToUse->SeenOnceSettingName);
+				if(MaybeOpenWelcomeTutorial(PropsToUse->TutorialPath, PropsToUse->SeenOnceSettingName))
+				{
+					CurrentObjectClass = Asset->GetClass();
+				}
 			}
 		}
 	}
@@ -458,12 +460,12 @@ FWelcomeTutorialProperties const* FIntroTutorials::FindAssetEditorTutorialProper
 	return NULL;
 }
 
-void FIntroTutorials::MaybeOpenWelcomeTutorial(const FString& TutorialPath, const FString& ConfigSettingName)
+bool FIntroTutorials::MaybeOpenWelcomeTutorial(const FString& TutorialPath, const FString& ConfigSettingName)
 {
 	// don't open if viewing any tutorial other than the index
 	if (TutorialWidget.IsValid() && (TutorialWidget.Pin()->GetCurrentPagePath() != HomePath))
 	{
-		return;
+		return false;
 	}
 
 	bool bSeenWelcome = false;
@@ -478,13 +480,17 @@ void FIntroTutorials::MaybeOpenWelcomeTutorial(const FString& TutorialPath, cons
 
 			// Tell ini file that we've seen this now
 			GConfig->SetBool(*IntroTutorialConfigSection, *ConfigSettingName, true, GEditorGameAgnosticIni);
+
+			return true;
 		}
 	}
+
+	return false;
 }
 
-void FIntroTutorials::MaybeOpenWelcomeTutorial(const FWelcomeTutorialProperties& TutorialProperties)
+bool FIntroTutorials::MaybeOpenWelcomeTutorial(const FWelcomeTutorialProperties& TutorialProperties)
 {
-	MaybeOpenWelcomeTutorial(TutorialProperties.TutorialPath, TutorialProperties.SeenOnceSettingName);
+	return MaybeOpenWelcomeTutorial(TutorialProperties.TutorialPath, TutorialProperties.SeenOnceSettingName);
 }
 
 template< typename KeyType >

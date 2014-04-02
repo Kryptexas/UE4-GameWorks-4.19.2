@@ -647,7 +647,7 @@ public:
 	void ReimportData(const FLandscapeTargetListInfo& TargetInfo);
 	void ImportData(const FLandscapeTargetListInfo& TargetInfo, const FString& Filename);
 
-	ALandscape* ChangeComponentSetting(int32 NumComponentsX, int32 NumComponentsY, int32 InNumSubsections, int32 InSubsectionSizeQuads);
+	ALandscape* ChangeComponentSetting(int32 NumComponentsX, int32 NumComponentsY, int32 InNumSubsections, int32 InSubsectionSizeQuads, bool bResample);
 
 	TArray<FLandscapeToolMode> LandscapeToolModes;
 	TArray<FLandscapeToolSet> LandscapeToolSets;
@@ -669,8 +669,9 @@ private:
 namespace LandscapeEditorUtils
 {
 	template<typename T>
-	TArray<T> ExpandData(const TArray<T>& Data, int32 OldMinX, int32 OldMinY, int32 OldMaxX, int32 OldMaxY,
-	                                     int32 NewMinX, int32 NewMinY, int32 NewMaxX, int32 NewMaxY)
+	TArray<T> ExpandData(const TArray<T>& Data,
+	                     int32 OldMinX, int32 OldMinY, int32 OldMaxX, int32 OldMaxY,
+	                     int32 NewMinX, int32 NewMinY, int32 NewMaxX, int32 NewMaxY)
 	{
 		const int32 OldWidth = OldMaxX - OldMinX + 1;
 		const int32 OldHeight = OldMaxY - OldMinY + 1;
@@ -705,6 +706,36 @@ namespace LandscapeEditorUtils
 			for (int32 X = -OffsetX + OldWidth; X < NewWidth; ++X)
 			{
 				Result[Y * NewWidth + X] = PadRight;
+			}
+		}
+
+		return Result;
+	}
+
+	template<typename T>
+	TArray<T> ResampleData(const TArray<T>& Data, int32 OldWidth, int32 OldHeight, int32 NewWidth, int32 NewHeight)
+	{
+		TArray<T> Result;
+		Result.Empty(NewWidth * NewHeight);
+		Result.AddUninitialized(NewWidth * NewHeight);
+
+		const float XScale = (float)(OldWidth - 1) / (NewWidth - 1);
+		const float YScale = (float)(OldHeight - 1) / (NewHeight - 1);
+		for (int32 Y = 0; Y < NewHeight; ++Y)
+		{
+			for (int32 X = 0; X < NewWidth; ++X)
+			{
+				const float OldY = Y * YScale;
+				const float OldX = X * XScale;
+				const int32 X0 = FMath::Floor(OldX);
+				const int32 X1 = FMath::Min(FMath::Floor(OldX) + 1, OldWidth - 1);
+				const int32 Y0 = FMath::Floor(OldY);
+				const int32 Y1 = FMath::Min(FMath::Floor(OldY) + 1, OldHeight - 1);
+				const T& Original00 = Data[Y0 * OldWidth + X0];
+				const T& Original10 = Data[Y0 * OldWidth + X1];
+				const T& Original01 = Data[Y1 * OldWidth + X0];
+				const T& Original11 = Data[Y1 * OldWidth + X1];
+				Result[Y * NewWidth + X] = FMath::BiLerp(Original00, Original10, Original01, Original11, FMath::Fractional(OldX), FMath::Fractional(OldY));
 			}
 		}
 

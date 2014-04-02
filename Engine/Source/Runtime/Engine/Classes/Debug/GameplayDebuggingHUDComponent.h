@@ -35,7 +35,7 @@ protected:
 	virtual void DrawBehaviorTreeData(APlayerController* PC, class UGameplayDebuggingComponent *DebugComponent);
 	virtual void DrawEQSData(APlayerController* PC, class UGameplayDebuggingComponent *DebugComponent);
 	virtual void DrawPerception(APlayerController* PC, class UGameplayDebuggingComponent *DebugComponent);
-	virtual void DrawGameSpecyficView(APlayerController* PC, class UGameplayDebuggingComponent *DebugComponent) {}
+	virtual void DrawGameSpecificView(APlayerController* PC, class UGameplayDebuggingComponent *DebugComponent) {}
 	virtual void DrawNavMeshSnapshot(APlayerController* PC, class UGameplayDebuggingComponent *DebugComponent);
 
 	void PrintAllData();

@@ -29,7 +29,6 @@
       <Association Name="User_Buggs_User" Member="Buggs_Users" ThisKey="Id" OtherKey="UserNameId" Type="Buggs_User" />
       <Association Name="User_Crash" Member="CrashesFromUserId" Storage="_Crashes" ThisKey="Id" OtherKey="UserNameId" Type="Crash" />
       <Association Name="User_Crash1" Member="CrashesFromName" ThisKey="UserName" OtherKey="UserName" Type="Crash" />
-      <Association Name="User_PIIMapping" Member="PIIMappings" ThisKey="Id" OtherKey="UserNameId" Type="PIIMapping" />
       <Association Name="User_Buggs_User1" Member="Buggs_Users1" ThisKey="Id" OtherKey="UserNameId" Type="Buggs_User" />
       <Association Name="UserGroup_User" Member="UserGroup" ThisKey="UserGroupId" OtherKey="Id" Type="UserGroup" IsForeignKey="true" />
     </Type>
@@ -122,15 +121,6 @@
       <Column Name="Name" Type="System.String" DbType="VarChar(64)" CanBeNull="true" />
       <Association Name="UserGroup_User" Member="Users" ThisKey="Id" OtherKey="UserGroupId" Type="User" />
       <Association Name="UserGroup_Buggs_UserGroup" Member="Buggs_UserGroups" ThisKey="Id" OtherKey="UserGroupId" Type="Buggs_UserGroup" />
-    </Type>
-  </Table>
-  <Table Name="dbo.PIIMapping" Member="PIIMappings">
-    <Type Name="PIIMapping">
-      <Column Name="ID" Type="System.Int32" DbType="Int NOT NULL IDENTITY" IsPrimaryKey="true" IsDbGenerated="true" CanBeNull="false" />
-      <Column Name="UserNameId" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
-      <Column Name="MachineGUID" Type="System.String" DbType="VarChar(64) NOT NULL" CanBeNull="false" />
-      <Column Name="MachineName" Type="System.String" DbType="VarChar(64) NOT NULL" CanBeNull="false" />
-      <Association Name="User_PIIMapping" Member="User" ThisKey="UserNameId" OtherKey="Id" Type="User" IsForeignKey="true" />
     </Type>
   </Table>
 </Database>

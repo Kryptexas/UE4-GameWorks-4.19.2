@@ -167,7 +167,10 @@ public:
 	DECLARE_DELEGATE(FOnRenameRequested);
 
 	/** Requests a rename on the component */
-	void OnRequestRename();
+	void OnRequestRename(bool bTransactional);
+
+	/** Renames the component */
+	void OnCompleteRename(const FText& InNewName);
 
 	/** Sets up the delegate for renaming a component */
 	void SetRenameRequestedDelegate(FOnRenameRequested InRenameRequested) { RenameRequestedDelegate = InRenameRequested; }
@@ -180,6 +183,7 @@ private:
 	TArray<FSCSEditorTreeNodePtrType> Children;
 
 	/** Handles rename requests */
+	bool bNonTransactionalRename;
 	FOnRenameRequested RenameRequestedDelegate;
 };
 
@@ -238,11 +242,19 @@ private:
 	/** Builds a context menu popup for dropping a child node onto the scene root node */
 	TSharedPtr<SWidget> BuildSceneRootDropActionMenu(FSCSEditorTreeNodePtrType DroppedNodePtr);
 
-	/** Handler for attaching the given node to the existing scene root node */
-	void OnAttachToDropAction(FSCSEditorTreeNodePtrType DroppedNodePtr);
+	/** Handler for attaching a single node to this node */
+	void OnAttachToDropAction(FSCSEditorTreeNodePtrType DroppedNodePtr)
+	{
+		TArray<FSCSEditorTreeNodePtrType> DroppedNodePtrs;
+		DroppedNodePtrs.Add(DroppedNodePtr);
+		OnAttachToDropAction(DroppedNodePtrs);
+	}
 
-	/** Handler for detaching the given node from its current parent and reattaching it to the existing scene root node */
-	void OnDetachFromDropAction(FSCSEditorTreeNodePtrType DroppedNodePtr);
+	/** Handler for attaching one or more nodes to this node */
+	void OnAttachToDropAction(const TArray<FSCSEditorTreeNodePtrType>& DroppedNodePtrs);
+
+	/** Handler for detaching one or more nodes from the current parent and reattaching to the existing scene root node */
+	void OnDetachFromDropAction(const TArray<FSCSEditorTreeNodePtrType>& DroppedNodePtrs);
 
 	/** Handler for making the given node the new scene root node */
 	void OnMakeNewRootDropAction(FSCSEditorTreeNodePtrType DroppedNodePtr);
@@ -462,8 +474,11 @@ protected:
 	/** Called to display context menu when right clicking on the widget */
 	TSharedPtr< SWidget > CreateContextMenu();
 
-	/** Requests a rename on the selected component */
-	void OnRenameComponent();
+	/**
+	 * Requests a rename on the selected component
+	 * @param bTransactional Whether or not the rename should be transactional (i.e. undoable)
+	 */
+	void OnRenameComponent(bool bTransactional);
 
 	/** Checks to see if renaming is allowed on the selected component */
 	bool CanRenameComponent() const;
@@ -530,8 +545,11 @@ public:
 	/** Command list for handling actions in the SSCSEditor */
 	TSharedPtr< FUICommandList > CommandList;
 
-	/** Points to an item that is being requested to be renamed */
-	USCS_Node* DeferredRenameRequest;
+	/** Weak reference to an SCS node that has been requested to be renamed */
+	TWeakObjectPtr<USCS_Node> DeferredRenameRequest;
+
+	/** Whether or not the deferred rename request was flagged as transactional */
+	bool bIsDeferredRenameRequestTransactional;
 
 private:
 

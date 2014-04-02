@@ -147,51 +147,72 @@ bool ICrashDebugHelper::SyncModules( FCrashInfo* CrashInfo )
 	TArray< TSharedRef<ISourceControlLabel> > Labels = ISourceControlModule::Get().GetProvider().GetLabels( CrashInfo->LabelName );
 	if(Labels.Num() > 0)
 	{
-		TArray<FString> FilesToSync;
-		for( int32 ModuleNameIndex = 0; ModuleNameIndex < CrashInfo->ModuleNames.Num(); ModuleNameIndex++ )
+		// Sync every module from every label. If the same modules appear in every label, this will fail.
+		for (auto LabelIt = Labels.CreateConstIterator(); LabelIt; ++LabelIt)
 		{
-			FString DepotPath = FString::Printf( TEXT( "%s/%s" ), *DepotName, *CrashInfo->ModuleNames[ModuleNameIndex] );
+			TSharedRef<ISourceControlLabel> Label = *LabelIt;
 
+			//@TODO: MAC: Excluding labels for Mac since we are only syncing windows binaries here...
+			if (Label->GetName().Contains(TEXT("Mac")))
 			{
-				TSharedRef<ISourceControlLabel> Label = Labels[0];
-				if( Label->Sync(DepotPath) )
-				{
-					UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced binary '%s'."), *DepotPath );
-				}
+				UE_LOG(LogCrashDebugHelper, Log, TEXT(" Skipping Mac label '%s' when syncing modules."), *Label->GetName());
+			}
+			else
+			{
+				UE_LOG(LogCrashDebugHelper, Log, TEXT(" Syncing modules with label '%s'."), *Label->GetName());
 
-				FString PDBName = DepotPath.Replace( TEXT( ".dll" ), TEXT( ".pdb" ) ).Replace( TEXT( ".exe" ), TEXT( ".pdb" ) );
-				if( Label->Sync(PDBName) )
-				{
-					UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced symbol '%s'."), *PDBName );
+		        TArray<FString> FilesToSync;
+		        for( int32 ModuleNameIndex = 0; ModuleNameIndex < CrashInfo->ModuleNames.Num(); ModuleNameIndex++ )
+		        {
+			        FString DepotPath = FString::Printf( TEXT( "%s/%s" ), *DepotName, *CrashInfo->ModuleNames[ModuleNameIndex] );
+			        // Match all decorated versions of the module. We may need them if the file was renamed to remove the "-Platform-Configuration" decoration.
+			        DepotPath = DepotPath.Replace(TEXT(".dll"), TEXT("*.dll")).Replace(TEXT(".exe"), TEXT("*.exe"));
+        
+			        {
+				        TSharedRef<ISourceControlLabel> Label = Labels[0];
+				        if( Label->Sync(DepotPath) )
+				        {
+					        UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced binary '%s'."), *DepotPath );
+				        }
+        
+				        FString PDBName = DepotPath.Replace( TEXT( ".dll" ), TEXT( ".pdb" ) ).Replace( TEXT( ".exe" ), TEXT( ".pdb" ) );
+				        if( Label->Sync(PDBName) )
+				        {
+					        UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced symbol '%s'."), *PDBName );
+				        }
+        
+				        //@TODO: ROCKETHACK: Adding additional Installed and Symbol paths - revisit when builds are made by the builder...
+				        DepotPath = FString::Printf( TEXT( "%s/Rocket/Installed/Windows/%s" ), *DepotName, *CrashInfo->ModuleNames[ModuleNameIndex] );
+				        // Match all decorated versions of the module. We may need them if the file was renamed to remove the "-Platform-Configuration" decoration.
+				        DepotPath = DepotPath.Replace(TEXT(".dll"), TEXT("*.dll")).Replace(TEXT(".exe"), TEXT("*.exe"));
+				        if( Label->Sync(DepotPath) )
+				        {
+					        UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced binary '%s'."), *DepotPath );
+				        }
+        
+				        DepotPath = FString::Printf( TEXT( "%s/Rocket/Symbols/%s" ), *DepotName, *CrashInfo->ModuleNames[ModuleNameIndex] );
+				        PDBName = DepotPath.Replace( TEXT( ".dll" ), TEXT( "*.pdb" ) ).Replace( TEXT( ".exe" ), TEXT( "*.pdb" ) );
+				        if( Label->Sync(PDBName) )
+				        {
+					        UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced symbol '%s'."), *PDBName );
+				        }
+        
+				        DepotPath = FString::Printf( TEXT( "%s/Rocket/LauncherInstalled/Windows/Launcher/%s" ), *DepotName, *CrashInfo->ModuleNames[ModuleNameIndex] );
+				        // Match all decorated versions of the module. We may need them if the file was renamed to remove the "-Platform-Configuration" decoration.
+				        DepotPath = DepotPath.Replace(TEXT(".dll"), TEXT("*.dll")).Replace(TEXT(".exe"), TEXT("*.exe"));
+				        if( Label->Sync(DepotPath) )
+				        {
+					        UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced binary '%s'."), *DepotPath );
+				        }
+        
+				        DepotPath = FString::Printf( TEXT( "%s/Rocket/LauncherSymbols/Windows/Launcher/%s" ), *DepotName, *CrashInfo->ModuleNames[ModuleNameIndex] );
+				        PDBName = DepotPath.Replace( TEXT( ".dll" ), TEXT( "*.pdb" ) ).Replace( TEXT( ".exe" ), TEXT( "*.pdb" ) );
+				        if( Label->Sync(PDBName) )
+				        {
+					        UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced symbol '%s'."), *PDBName );
+				        }
+					}
 				}
-
-				//@TODO: ROCKETHACK: Adding additional Installed and Symbol paths - revisit when builds are made by the builder...
-				DepotPath = FString::Printf( TEXT( "%s/Rocket/Installed/Windows/%s" ), *DepotName, *CrashInfo->ModuleNames[ModuleNameIndex] );
-				if( Label->Sync(DepotPath) )
-				{
-					UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced binary '%s'."), *DepotPath );
-				}
-
-				DepotPath = FString::Printf( TEXT( "%s/Rocket/Symbols/%s" ), *DepotName, *CrashInfo->ModuleNames[ModuleNameIndex] );
-				PDBName = DepotPath.Replace( TEXT( ".dll" ), TEXT( ".pdb" ) ).Replace( TEXT( ".exe" ), TEXT( ".pdb" ) );
-				if( Label->Sync(PDBName) )
-				{
-					UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced symbol '%s'."), *PDBName );
-				}
-
-				DepotPath = FString::Printf( TEXT( "%s/Rocket/LauncherInstalled/Windows/Launcher/%s" ), *DepotName, *CrashInfo->ModuleNames[ModuleNameIndex] );
-				if( Label->Sync(DepotPath) )
-				{
-					UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced binary '%s'."), *DepotPath );
-				}
-
-				DepotPath = FString::Printf( TEXT( "%s/Rocket/LauncherSymbols/Windows/Launcher/%s" ), *DepotName, *CrashInfo->ModuleNames[ModuleNameIndex] );
-				PDBName = DepotPath.Replace( TEXT( ".dll" ), TEXT( ".pdb" ) ).Replace( TEXT( ".exe" ), TEXT( ".pdb" ) );
-				if( Label->Sync(PDBName) )
-				{
-					UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced symbol '%s'."), *PDBName );
-				}
-
 			}
 		}
 	}

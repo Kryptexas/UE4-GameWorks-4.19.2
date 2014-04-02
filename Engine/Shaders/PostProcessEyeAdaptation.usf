@@ -24,11 +24,6 @@ float ComputeEyeAdaptation(float OldExposure, float TargetExposure, float FrameT
 	return clamp(OldExposure + Diff * Factor, EyeAdaptationParams[0].z, EyeAdaptationParams[0].w);
 }
 
-#if PS4_PROFILE
-#define SLOT0_32323232 1
-#include "PS4/PS4Pragmas.usf"
-#endif
-
 void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float OutColor : SV_Target0)
 {
 	float2 UV = UVAndScreenPos.xy;

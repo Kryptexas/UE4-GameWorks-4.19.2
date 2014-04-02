@@ -899,7 +899,6 @@ void APlayerCameraManager::LimitViewYaw(FRotator& ViewRotation, float InViewYawM
 	ViewRotation.Yaw = FRotator::ClampAxis(ViewRotation.Yaw);
 }
 
-
 void APlayerCameraManager::DisplayDebug(class UCanvas* Canvas, const TArray<FName>& DebugDisplay, float& YL, float& YPos)
 {
 	Canvas->SetDrawColor(255,255,255);
@@ -909,20 +908,11 @@ void APlayerCameraManager::DisplayDebug(class UCanvas* Canvas, const TArray<FNam
 	YPos += YL;
 
 	//@TODO: Print out more information
-	Canvas->DrawText(RenderFont, FString::Printf(TEXT("   CamLoc:%s CamRot:%s FOV:%f"), *CameraCache.POV.Location.ToString(), *CameraCache.POV.Rotation.ToString(), CameraCache.POV.FOV), 4.0f, YPos );
+	Canvas->DrawText(RenderFont, FString::Printf(TEXT("   CamLoc:%s CamRot:%s FOV:%f"), *CameraCache.POV.Location.ToCompactString(), *CameraCache.POV.Rotation.ToCompactString(), CameraCache.POV.FOV), 4.0f, YPos );
 	YPos += YL;
 
-	Canvas->DrawText(RenderFont, FString::Printf(TEXT("   AspectRatio:%f"), CameraCache.POV.AspectRatio), 4.0f, YPos );
+	Canvas->DrawText(RenderFont, FString::Printf(TEXT("   AspectRatio: %1.3f"), CameraCache.POV.AspectRatio), 4.0f, YPos );
 	YPos += YL;
-
-	if (ViewTarget.Target != NULL)
-	{
-		FVector EyesLoc;
-		FRotator EyesRot;
-		ViewTarget.Target->GetActorEyesViewPoint(EyesLoc, EyesRot);
-		Canvas->DrawText(RenderFont, FString::Printf(TEXT("   EyesLoc:%s EyesRot:%s"), *EyesLoc.ToString(), *EyesRot.ToString()), 4.0f, YPos );
-		YPos += YL;
-	}
 }
 
 void APlayerCameraManager::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift)

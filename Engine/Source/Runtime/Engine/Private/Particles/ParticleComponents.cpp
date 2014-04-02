@@ -145,51 +145,55 @@ void Particle_ModifyVectorDistribution(UDistributionVector* pkDistribution, FVec
 AEmitter::AEmitter(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	// Structure to hold one-time initialization
-	struct FConstructorStatics
-	{
-		ConstructorHelpers::FObjectFinderOptional<UTexture2D> SpriteTextureObject;
-		FName ID_Effects;
-		FText NAME_Effects;
-		FConstructorStatics()
-			: SpriteTextureObject(TEXT("/Engine/EditorResources/S_Emitter"))
-			, ID_Effects(TEXT("Effects"))
-			, NAME_Effects(NSLOCTEXT( "SpriteCategory", "Effects", "Effects" ))
-		{
-		}
-	};
-	static FConstructorStatics ConstructorStatics;
-
 	ParticleSystemComponent = PCIP.CreateDefaultSubobject<UParticleSystemComponent>(this, TEXT("ParticleSystemComponent0"));
 	ParticleSystemComponent->SecondsBeforeInactive = 1;
 	RootComponent = ParticleSystemComponent;
 
 #if WITH_EDITORONLY_DATA
 	SpriteComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
-	if (SpriteComponent)
-	{
-		SpriteComponent->Sprite = ConstructorStatics.SpriteTextureObject.Get();
-		SpriteComponent->bHiddenInGame = true;
-		SpriteComponent->bIsScreenSizeScaled = true;
-		SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Effects;
-		SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Effects;
-		SpriteComponent->AttachParent = ParticleSystemComponent;
-		SpriteComponent->bReceivesDecals = false;
-	}
-
 	ArrowComponent = PCIP.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("ArrowComponent0"));
-	if (ArrowComponent)
-	{
-		ArrowComponent->ArrowColor = FColor(0, 255, 128);
 
-		ArrowComponent->ArrowSize = 1.5f;
-		ArrowComponent->AlwaysLoadOnClient = false;
-		ArrowComponent->AlwaysLoadOnServer = false;
-		ArrowComponent->bTreatAsASprite = true;
-		ArrowComponent->bIsScreenSizeScaled = true;
-		ArrowComponent->SpriteInfo.Category = ConstructorStatics.ID_Effects;
-		ArrowComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Effects;
-		ArrowComponent->AttachParent = ParticleSystemComponent;
+	if (!IsRunningCommandlet())
+	{
+		// Structure to hold one-time initialization
+		struct FConstructorStatics
+		{
+			ConstructorHelpers::FObjectFinderOptional<UTexture2D> SpriteTextureObject;
+			FName ID_Effects;
+			FText NAME_Effects;
+			FConstructorStatics()
+				: SpriteTextureObject(TEXT("/Engine/EditorResources/S_Emitter"))
+				, ID_Effects(TEXT("Effects"))
+				, NAME_Effects(NSLOCTEXT("SpriteCategory", "Effects", "Effects"))
+			{
+			}
+		};
+		static FConstructorStatics ConstructorStatics;
+
+		if (SpriteComponent)
+		{
+			SpriteComponent->Sprite = ConstructorStatics.SpriteTextureObject.Get();
+			SpriteComponent->bHiddenInGame = true;
+			SpriteComponent->bIsScreenSizeScaled = true;
+			SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Effects;
+			SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Effects;
+			SpriteComponent->AttachParent = ParticleSystemComponent;
+			SpriteComponent->bReceivesDecals = false;
+		}
+
+		if (ArrowComponent)
+		{
+			ArrowComponent->ArrowColor = FColor(0, 255, 128);
+
+			ArrowComponent->ArrowSize = 1.5f;
+			ArrowComponent->AlwaysLoadOnClient = false;
+			ArrowComponent->AlwaysLoadOnServer = false;
+			ArrowComponent->bTreatAsASprite = true;
+			ArrowComponent->bIsScreenSizeScaled = true;
+			ArrowComponent->SpriteInfo.Category = ConstructorStatics.ID_Effects;
+			ArrowComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Effects;
+			ArrowComponent->AttachParent = ParticleSystemComponent;
+		}
 	}
 #endif // WITH_EDITORONLY_DATA
 }
@@ -2290,6 +2294,12 @@ void UParticleSystem::UpdateColorModuleClampAlpha(UParticleModuleColorBase* Colo
 	}
 }
 
+void UParticleSystem::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
+{
+	OutTags.Add( FAssetRegistryTag("HasGPUEmitter", HasGPUEmitter() ? TEXT("True") : TEXT("False"), FAssetRegistryTag::TT_Alphabetical) );
+	Super::GetAssetRegistryTags(OutTags);
+}
+
 
 bool UParticleSystem::CalculateMaxActiveParticleCounts()
 {
@@ -2833,6 +2843,23 @@ void UParticleSystem::ComputeCanTickInAnyThread()
 	}
 }
 
+bool UParticleSystem::HasGPUEmitter() const
+{
+	for (int32 EmitterIndex = 0; EmitterIndex < Emitters.Num(); ++EmitterIndex)
+	{
+		// We can just check for the GPU type data at the highest LOD.
+		UParticleLODLevel* LODLevel = Emitters[EmitterIndex]->LODLevels[0];
+		if( LODLevel )
+		{
+			UParticleModule* TypeDataModule = LODLevel->TypeDataModule;
+			if( TypeDataModule && TypeDataModule->IsA(UParticleModuleTypeDataGpu::StaticClass()) )
+			{
+				return true;
+			}
+		}
+	}
+	return false;
+}
 
 UParticleSystemComponent::UParticleSystemComponent(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

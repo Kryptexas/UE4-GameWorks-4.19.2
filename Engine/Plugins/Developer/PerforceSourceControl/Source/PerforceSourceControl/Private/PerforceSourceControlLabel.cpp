@@ -44,8 +44,7 @@ bool FPerforceSourceControlLabel::GetFileRevisions( const TArray<FString>& InFil
 	bool bCommandOK = false;
 
 	FPerforceSourceControlModule& PerforceSourceControl = FModuleManager::LoadModuleChecked<FPerforceSourceControlModule>("PerforceSourceControl");
-	FPerforceSourceControlProvider& Provider = PerforceSourceControl.GetProvider();
-	FScopedPerforceConnection ScopedConnection(EConcurrency::Synchronous, Provider.GetPort(), Provider.GetUser(), Provider.GetClientSpec(), Provider.GetTicket());
+	FScopedPerforceConnection ScopedConnection(EConcurrency::Synchronous, PerforceSourceControl.AccessSettings().GetConnectionInfo());
 	if(ScopedConnection.IsValid())
 	{
 		FPerforceConnection& Connection = ScopedConnection.GetConnection();
@@ -80,8 +79,7 @@ bool FPerforceSourceControlLabel::Sync( const FString& InFilename ) const
 	bool bCommandOK = false;
 
 	FPerforceSourceControlModule& PerforceSourceControl = FModuleManager::LoadModuleChecked<FPerforceSourceControlModule>("PerforceSourceControl");
-	FPerforceSourceControlProvider& Provider = PerforceSourceControl.GetProvider();
-	FScopedPerforceConnection ScopedConnection(EConcurrency::Synchronous, Provider.GetPort(), Provider.GetUser(), Provider.GetClientSpec(), Provider.GetTicket());
+	FScopedPerforceConnection ScopedConnection(EConcurrency::Synchronous, PerforceSourceControl.AccessSettings().GetConnectionInfo());
 	if(ScopedConnection.IsValid())
 	{
 		FPerforceConnection& Connection = ScopedConnection.GetConnection();

@@ -29,7 +29,7 @@ void FSpriteEditorCommands::RegisterCommands()
 	UI_COMMAND(FocusOnSprite, "Focus on sprite", "Centers and zooms the view to focus on the current sprite.", EUserInterfaceActionType::Button, FInputGesture(EKeys::Home, EModifierKey::None));
 
 	// Geometry editing commands
-	UI_COMMAND(DeleteSelection, "Delete", "Delete the selection.", EUserInterfaceActionType::Button, FInputGesture(EKeys::Delete, EModifierKey::None));
+	UI_COMMAND(DeleteSelection, "Delete", "Delete the selection.", EUserInterfaceActionType::Button, FInputGesture(EKeys::Platform_Delete, EModifierKey::None));
 	UI_COMMAND(SplitEdge, "Split", "Split edge.", EUserInterfaceActionType::Button, FInputGesture(EKeys::Insert, EModifierKey::None));
 	UI_COMMAND(AddPolygon, "Add Polygon", "Adds a new polygon.", EUserInterfaceActionType::Button, FInputGesture());
 	UI_COMMAND(SnapAllVertices, "Snap to pixel grid", "Snaps all vertices to the pixel grid.", EUserInterfaceActionType::Button, FInputGesture());

@@ -8,7 +8,7 @@
 #include "Net/UnrealNetwork.h"
 #include "Net/NetworkProfiler.h"
 #include "NavigationPathBuilder.h"
-#include "Online.h"
+#include "OnlineSubsystemUtils.h"
 
 // Default net driver stats
 DEFINE_STAT(STAT_Ping);
@@ -291,6 +291,25 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 	{
 		DrawNetDriverDebug();
 	}
+
+	// Update properties that are unmapped, try to hook up the object pointers if they exist now
+	for ( auto It = UnmappedReplicators.CreateIterator(); It; ++It )
+	{
+		if ( !It->IsValid() )
+		{
+			// These are weak references, so if the object has been freed, we can stop checking
+			//UE_LOG( LogNet, Log, TEXT( "REMOVED unmapped replicator: Replicator was destroyed." ) );
+			It.RemoveCurrent();
+			continue;
+		}
+
+		if ( !It->Pin().Get()->UpdateUnmappedObjects() )
+		{
+			// If there are no more unmapped objects, we can also stop checking
+			It.RemoveCurrent();
+			//UE_LOG( LogNet, Log, TEXT( "REMOVED unmapped replicator: No unmapped properties. NumUnmappedReplicators: %i" ), UnmappedReplicators.Num() );
+		}
+	}
 }
 
 /**
@@ -332,21 +351,24 @@ void UNetDriver::ReplicateVoicePacket(TSharedPtr<FVoicePacket> VoicePacket, UNet
  */
 void UNetDriver::ProcessLocalServerPackets()
 {
-	IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface();
-	if (VoiceInt.IsValid())
+	if (World)
 	{
-		// Process all of the local packets
-		for (int32 Index = 0; Index < VoiceInt->GetNumLocalTalkers(); Index++)
+		IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface(World);
+		if (VoiceInt.IsValid())
 		{
-			// Returns a ref counted copy of the local voice data or NULL if nothing to send
-			TSharedPtr<FVoicePacket> LocalPacket = VoiceInt->GetLocalPacket(Index);
-			// Check for something to send for this local talker
-			if (LocalPacket.IsValid())
+			// Process all of the local packets
+			for (int32 Index = 0; Index < VoiceInt->GetNumLocalTalkers(); Index++)
 			{
-				// See if anyone wants this packet
-				ReplicateVoicePacket(LocalPacket, NULL);
+				// Returns a ref counted copy of the local voice data or NULL if nothing to send
+				TSharedPtr<FVoicePacket> LocalPacket = VoiceInt->GetLocalPacket(Index);
+				// Check for something to send for this local talker
+				if (LocalPacket.IsValid())
+				{
+					// See if anyone wants this packet
+					ReplicateVoicePacket(LocalPacket, NULL);
 
-				// once all local voice packets are processed then call ClearVoicePackets()
+					// once all local voice packets are processed then call ClearVoicePackets()
+				}
 			}
 		}
 	}
@@ -357,28 +379,31 @@ void UNetDriver::ProcessLocalServerPackets()
  */
 void UNetDriver::ProcessLocalClientPackets()
 {
-	IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface();
-	if (VoiceInt.IsValid())
+	if (World)
 	{
-		UVoiceChannel* VoiceChannel = ServerConnection->GetVoiceChannel();
-		if (VoiceChannel)
+		IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface(World);
+		if (VoiceInt.IsValid())
 		{
-			// Process all of the local packets
-			for (int32 Index = 0; Index < VoiceInt->GetNumLocalTalkers(); Index++)
+			UVoiceChannel* VoiceChannel = ServerConnection->GetVoiceChannel();
+			if (VoiceChannel)
 			{
-				// Returns a ref counted copy of the local voice data or NULL if nothing to send
-				TSharedPtr<FVoicePacket> LocalPacket = VoiceInt->GetLocalPacket(Index);
-				// Check for something to send for this local talker
-				if (LocalPacket.IsValid())
+				// Process all of the local packets
+				for (int32 Index = 0; Index < VoiceInt->GetNumLocalTalkers(); Index++)
 				{
-					// If there is a voice channel to the server, submit the packets
-					//if (ShouldSendVoicePacketsToServer())
+					// Returns a ref counted copy of the local voice data or NULL if nothing to send
+					TSharedPtr<FVoicePacket> LocalPacket = VoiceInt->GetLocalPacket(Index);
+					// Check for something to send for this local talker
+					if (LocalPacket.IsValid())
 					{
-						// Add the voice packet for network sending
-						VoiceChannel->AddVoicePacket(LocalPacket);
-					}
+						// If there is a voice channel to the server, submit the packets
+						//if (ShouldSendVoicePacketsToServer())
+						{
+							// Add the voice packet for network sending
+							VoiceChannel->AddVoicePacket(LocalPacket);
+						}
 
-					// once all local voice packets are processed then call ClearLocalVoicePackets()
+						// once all local voice packets are processed then call ClearLocalVoicePackets()
+					}
 				}
 			}
 		}
@@ -387,10 +412,13 @@ void UNetDriver::ProcessLocalClientPackets()
 
 void UNetDriver::PostTickFlush()
 {
-	IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface();
-	if (VoiceInt.IsValid())
+	if (World)
 	{
-		VoiceInt->ClearVoicePackets();
+		IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface(World);
+		if (VoiceInt.IsValid())
+		{
+			VoiceInt->ClearVoicePackets();
+		}
 	}
 }
 
@@ -421,7 +449,7 @@ ENetMode UNetDriver::GetNetMode() const
 #if WITH_EDITOR
 	if (IsServer() && World && World->WorldType == EWorldType::PIE)
 	{
-		if ( GEngine->WorldContextFromWorld(World).RunAsDedicated )
+		if ( GEngine->GetWorldContextFromWorldChecked(World).RunAsDedicated )
 		{
 			return NM_DedicatedServer;
 		}
@@ -2968,7 +2996,7 @@ static bool NetDriverExec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 			}
 			else
 			{
-				FWorldContext &Context = GEngine->WorldContextFromWorld(InWorld);
+				FWorldContext &Context = GEngine->GetWorldContextFromWorldChecked(InWorld);
 
 				Cmd -= FCString::Strlen(TokenStr);
 				for (int32 NetDriverIdx=0; NetDriverIdx < Context.ActiveNetDrivers.Num(); NetDriverIdx++)

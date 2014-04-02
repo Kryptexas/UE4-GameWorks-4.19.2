@@ -235,9 +235,28 @@ namespace UnrealVS
 		{
 			try
 			{
+				Logging.WriteLine("IsProjectExecutable: Attempting to determine if project " + Project.Name + " is executable");
+
+				var ConfigManager = Project.ConfigurationManager;
+				if (ConfigManager == null)
+				{
+					return false;
+				}
+
+				var ActiveProjectConfig = Project.ConfigurationManager.ActiveConfiguration;
+				if (ActiveProjectConfig != null)
+				{
+					Logging.WriteLine(
+						"IsProjectExecutable: ActiveProjectConfig=\"" + ActiveProjectConfig.ConfigurationName + "|" + ActiveProjectConfig.PlatformName + "\"");
+				}
+				else
+				{
+					Logging.WriteLine("IsProjectExecutable: Warning - ActiveProjectConfig is null!");
+				}
+
 				bool IsExecutable = false;
 
-				if (Project.Kind == GuidList.VCSharpProjectKindGuidString)
+				if (Project.Kind.Equals(GuidList.VCSharpProjectKindGuidString, StringComparison.OrdinalIgnoreCase))
 				{
 					// C# project
 
@@ -267,7 +286,7 @@ namespace UnrealVS
 						}
 					}
 				}
-				else if (Project.Kind == GuidList.VCProjectKindGuidString)
+				else if (Project.Kind.Equals(GuidList.VCProjectKindGuidString, StringComparison.OrdinalIgnoreCase))
 				{
 					// C++ project 
 
@@ -334,7 +353,7 @@ namespace UnrealVS
 												if (VCConfigMatch.NMakeToolOutput.Length != 0)
 												{
 													string Ext = Path.GetExtension(VCConfigMatch.NMakeToolOutput);
-													if (0 == string.Compare(Ext, ".exe", StringComparison.InvariantCultureIgnoreCase))
+													if (!IsLibraryFileExtension(Ext))
 													{
 														IsExecutable = true;
 													}
@@ -350,6 +369,7 @@ namespace UnrealVS
 				else
 				{
 					// @todo: support other project types
+					Logging.WriteLine("IsProjectExecutable: Unrecognised 'Kind' in project " + Project.Name + " guid=" + Project.Kind);
 				}
 
 				return IsExecutable;
@@ -360,6 +380,22 @@ namespace UnrealVS
 				Logging.WriteLine(AppEx.ToString());
 				throw AppEx;
 			}
+		}
+
+		/// <summary>
+		/// Helper to check the file ext of a binary against known library file exts.
+		/// FileExt should include the dot e.g. ".dll"
+		/// </summary>
+		public static bool IsLibraryFileExtension(string FileExt)
+		{
+			if (FileExt.Equals(".dll", StringComparison.InvariantCultureIgnoreCase)) return true;
+			if (FileExt.Equals(".lib", StringComparison.InvariantCultureIgnoreCase)) return true;
+			if (FileExt.Equals(".ocx", StringComparison.InvariantCultureIgnoreCase)) return true;
+			if (FileExt.Equals(".a", StringComparison.InvariantCultureIgnoreCase)) return true;
+			if (FileExt.Equals(".so", StringComparison.InvariantCultureIgnoreCase)) return true;
+			if (FileExt.Equals(".dylib", StringComparison.InvariantCultureIgnoreCase)) return true;
+
+			return false;
 		}
 
 		/// <summary>
@@ -492,6 +528,24 @@ namespace UnrealVS
 					}
 				}
 			}
+		}
+
+		public static bool IsGameProject(Project Project)
+		{
+			return Project.Name.EndsWith("Game", StringComparison.InvariantCultureIgnoreCase);
+		}
+
+		/// <summary>
+		/// Does the config build something that takes a .uproject on the command line?
+		/// </summary>
+		public static bool HasUProjectCommandLineArg(string Config)
+		{
+			return Config.EndsWith("Editor", StringComparison.InvariantCultureIgnoreCase);
+		}
+
+		public static string GetUProjectFileName(Project Project)
+		{
+			return Project.Name + (".uproject");
 		}
 
 		private static void PrepareOutputPane()

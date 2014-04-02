@@ -37,8 +37,6 @@ ACharacter::ACharacter(const class FPostConstructInitializeProperties& PCIP)
 	bUseControllerRotationRoll = false;
 	bUseControllerRotationYaw = true;
 
-	bSimulateGravity = true;
-
 	CapsuleComponent = PCIP.CreateDefaultSubobject<UCapsuleComponent>(this, ACharacter::CapsuleComponentName);
 	CapsuleComponent->InitCapsuleSize(34.0f, 88.0f);
 	CapsuleComponent->BodyInstance.bEnableCollision_DEPRECATED = true;
@@ -316,11 +314,9 @@ void ACharacter::ApplyDamageMomentum(float DamageTaken, FDamageEvent const& Dama
 
 void ACharacter::TeleportSucceeded(bool bIsATest)
 {
-	//move based pawns and remove base unless this teleport was done as a test
 	if (!bIsATest && CharacterMovement)
 	{
-		CharacterMovement->bJustTeleported = true;
-		CharacterMovement->UpdateMovementModeFromAdjustment();
+		CharacterMovement->OnTeleported();
 	}
 
 	Super::TeleportSucceeded(bIsATest);
@@ -401,18 +397,6 @@ void ACharacter::SetBase( UPrimitiveComponent* NewBaseComponent, bool bNotifyPaw
 		UPrimitiveComponent* OldBase = MovementBase;
 		MovementBase = NewBaseComponent;
 
-		if (Role == ROLE_Authority)
-		{
-			// Update replicated value
-			UE_LOG(LogCharacter, Verbose, TEXT("Setting base on server for '%s' to '%s'"), *GetName(), *GetFullNameSafe(NewBaseComponent));
-			RelativeMovement.MovementBase = NewBaseComponent;
-			RelativeMovement.bServerHasBaseComponent = (NewBaseComponent != NULL); // Flag whether the server had a non-null base.
-		}
-		else
-		{
-			UE_LOG(LogCharacter, Verbose, TEXT("Setting base on CLIENT for '%s' to '%s'"), *GetName(), *GetFullNameSafe(NewBaseComponent));
-		}
-
 		// Update relative location/rotation
 		if ( Role == ROLE_Authority || Role == ROLE_AutonomousProxy )
 		{
@@ -428,7 +412,7 @@ void ACharacter::SetBase( UPrimitiveComponent* NewBaseComponent, bool bNotifyPaw
 		}
 		else
 		{
-			UE_LOG(LogCharacter, Verbose, TEXT("Setting base on CLIENT for '%s' to '%s'"), *GetName(), *GetFullNameSafe(NewBaseComponent));
+			UE_LOG(LogCharacter, Verbose, TEXT("Setting base on Client for '%s' to '%s'"), *GetName(), *GetFullNameSafe(NewBaseComponent));
 		}
 
 		// Notify this actor of his new floor.
@@ -688,9 +672,9 @@ void ACharacter::LaunchCharacter(FVector LaunchVelocity, bool bXYOverride, bool 
 }
 
 
-void ACharacter::OnMovementModeChanged(EMovementMode PrevMovementMode)
+void ACharacter::OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PrevCustomMode)
 {
-	K2_OnMovementModeChanged(PrevMovementMode, CharacterMovement->MovementMode);
+	K2_OnMovementModeChanged(PrevMovementMode, CharacterMovement->MovementMode, PrevCustomMode, CharacterMovement->CustomMovementMode);
 }
 
 
@@ -724,29 +708,29 @@ void ACharacter::ClearJumpInput()
 	bPressedJump = false;
 }
 
-bool ACharacter::ServerMove_Validate(float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 MoveFlags, uint8 ClientRoll, uint32 View, class UPrimitiveComponent* ClientMovementBase)
+bool ACharacter::ServerMove_Validate(float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 MoveFlags, uint8 ClientRoll, uint32 View, class UPrimitiveComponent* ClientMovementBase, uint8 ClientMovementMode)
 {
 	return true;
 }
 
-void ACharacter::ServerMove_Implementation(float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 MoveFlags, uint8 ClientRoll, uint32 View, class UPrimitiveComponent* ClientMovementBase)
+void ACharacter::ServerMove_Implementation(float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 MoveFlags, uint8 ClientRoll, uint32 View, class UPrimitiveComponent* ClientMovementBase, uint8 ClientMovementMode)
 {
 	if (CharacterMovement)
 	{
-		CharacterMovement->ServerMove_Implementation(TimeStamp, InAccel, ClientLoc, MoveFlags, ClientRoll, View, ClientMovementBase);
+		CharacterMovement->ServerMove_Implementation(TimeStamp, InAccel, ClientLoc, MoveFlags, ClientRoll, View, ClientMovementBase, ClientMovementMode);
 	}
 }
 
-bool ACharacter::ServerMoveDual_Validate(float TimeStamp0, FVector_NetQuantize100 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, class UPrimitiveComponent* ClientMovementBase)
+bool ACharacter::ServerMoveDual_Validate(float TimeStamp0, FVector_NetQuantize100 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, class UPrimitiveComponent* ClientMovementBase, uint8 ClientMovementMode)
 {
 	return true;
 }
 
-void ACharacter::ServerMoveDual_Implementation(float TimeStamp0, FVector_NetQuantize100 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, class UPrimitiveComponent* ClientMovementBase)
+void ACharacter::ServerMoveDual_Implementation(float TimeStamp0, FVector_NetQuantize100 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, class UPrimitiveComponent* ClientMovementBase, uint8 ClientMovementMode)
 {
 	if (CharacterMovement)
 	{
-		CharacterMovement->ServerMoveDual_Implementation(TimeStamp0, InAccel0, PendingFlags, View0, TimeStamp, InAccel, ClientLoc, NewFlags, ClientRoll, View, ClientMovementBase);
+		CharacterMovement->ServerMoveDual_Implementation(TimeStamp0, InAccel0, PendingFlags, View0, TimeStamp, InAccel, ClientLoc, NewFlags, ClientRoll, View, ClientMovementBase, ClientMovementMode);
 	}
 }
 
@@ -771,27 +755,27 @@ void ACharacter::ClientAckGoodMove_Implementation(float TimeStamp)
 	}
 }
 
-void ACharacter::ClientAdjustPosition_Implementation(float TimeStamp, FVector NewLoc, FVector NewVel, class UPrimitiveComponent* NewBase, bool bHasBase, bool bBaseRelativePosition)
+void ACharacter::ClientAdjustPosition_Implementation(float TimeStamp, FVector NewLoc, FVector NewVel, class UPrimitiveComponent* NewBase, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode)
 {
 	if (CharacterMovement)
 	{
-		CharacterMovement->ClientAdjustPosition_Implementation(TimeStamp, NewLoc, NewVel, NewBase, bHasBase, bBaseRelativePosition);
+		CharacterMovement->ClientAdjustPosition_Implementation(TimeStamp, NewLoc, NewVel, NewBase, bHasBase, bBaseRelativePosition, ServerMovementMode);
 	}
 }
 
-void ACharacter::ClientVeryShortAdjustPosition_Implementation(float TimeStamp, FVector NewLoc, class UPrimitiveComponent* NewBase, bool bHasBase, bool bBaseRelativePosition)
+void ACharacter::ClientVeryShortAdjustPosition_Implementation(float TimeStamp, FVector NewLoc, class UPrimitiveComponent* NewBase, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode)
 {
 	if (CharacterMovement)
 	{
-		CharacterMovement->ClientVeryShortAdjustPosition_Implementation(TimeStamp, NewLoc, NewBase, bHasBase, bBaseRelativePosition);
+		CharacterMovement->ClientVeryShortAdjustPosition_Implementation(TimeStamp, NewLoc, NewBase, bHasBase, bBaseRelativePosition, ServerMovementMode);
 	}
 }
 
-void ACharacter::ClientAdjustRootMotionPosition_Implementation(float TimeStamp, float ServerMontageTrackPosition, FVector ServerLoc, FVector_NetQuantizeNormal ServerRotation, float ServerVelZ, class UPrimitiveComponent * ServerBase, bool bHasBase, bool bBaseRelativePosition)
+void ACharacter::ClientAdjustRootMotionPosition_Implementation(float TimeStamp, float ServerMontageTrackPosition, FVector ServerLoc, FVector_NetQuantizeNormal ServerRotation, float ServerVelZ, class UPrimitiveComponent * ServerBase, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode)
 {
 	if( CharacterMovement )
 	{
-		CharacterMovement->ClientAdjustRootMotionPosition_Implementation(TimeStamp, ServerMontageTrackPosition, ServerLoc, ServerRotation, ServerVelZ, ServerBase, bHasBase, bBaseRelativePosition);
+		CharacterMovement->ClientAdjustRootMotionPosition_Implementation(TimeStamp, ServerMontageTrackPosition, ServerLoc, ServerRotation, ServerVelZ, ServerBase, bHasBase, bBaseRelativePosition, ServerMovementMode);
 	}
 }
 
@@ -800,21 +784,29 @@ void ACharacter::ClientAdjustRootMotionPosition_Implementation(float TimeStamp, 
 //
 static FVector_NetQuantize100	SavedRelativeLocation;
 static FRotator					SavedRelativeRotation;
+static uint8					SavedMovementMode;
 
 void ACharacter::PreNetReceive()
 {
 	SavedRelativeLocation = RelativeMovement.Location;
 	SavedRelativeRotation = RelativeMovement.Rotation;
+	SavedMovementMode = ReplicatedMovementMode;
 
 	Super::PreNetReceive();
 }
 
 void ACharacter::PostNetReceive()
 {
+	if (Role == ROLE_SimulatedProxy)
+	{
+		CharacterMovement->bNetworkUpdateReceived = true;
+		CharacterMovement->bNetworkMovementModeChanged = (SavedMovementMode != ReplicatedMovementMode);
+	}
+
 	Super::PostNetReceive();
 
 	// Skip base updates while playing root motion, it is handled inside of OnRep_RootMotion
-	if( !IsPlayingRootMotion() && Role == ROLE_SimulatedProxy)
+	if (Role == ROLE_SimulatedProxy && !IsPlayingRootMotion())
 	{
 		PostNetReceiveBase();
 	}
@@ -1077,7 +1069,7 @@ void ACharacter::PreReplication( IRepChangedPropertyTracker & ChangedPropertyTra
 
 	const FAnimMontageInstance * RootMotionMontageInstance = GetRootMotionAnimMontageInstance();
 
-	if ( RootMotionMontageInstance && ( GetRemoteRole() == ROLE_SimulatedProxy ) )
+	if ( RootMotionMontageInstance )
 	{
 		// Is position stored in local space?
 		RepRootMotion.bRelativePosition = RelativeMovement.HasRelativePosition();
@@ -1095,6 +1087,8 @@ void ACharacter::PreReplication( IRepChangedPropertyTracker & ChangedPropertyTra
 
 		DOREPLIFETIME_ACTIVE_OVERRIDE( ACharacter, RepRootMotion, false );
 	}
+
+	ReplicatedMovementMode = CharacterMovement->PackNetworkMovementMode();
 }
 
 void ACharacter::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const
@@ -1103,9 +1097,9 @@ void ACharacter::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLi
 
 	DOREPLIFETIME_CONDITION( ACharacter, RepRootMotion,		COND_SimulatedOnly );
 	DOREPLIFETIME_CONDITION( ACharacter, RelativeMovement,	COND_SimulatedOnly );
+	DOREPLIFETIME_CONDITION( ACharacter, ReplicatedMovementMode, COND_SimulatedOnly );
 
 	DOREPLIFETIME( ACharacter, bIsCrouched ); // TODO: used to be !bNetOwner, now it's going to everyone (see change @revision #94)
-	DOREPLIFETIME( ACharacter, bSimulateGravity );
 }
 
 void ACharacter::UpdateFromCompressedFlags(uint8 Flags)

@@ -2,13 +2,12 @@
 
 #include "OnlineSubsystemUtilsPrivatePCH.h"
 #include "ModuleManager.h"
-#include "Online.h"
 #include "TestFriendsInterface.h"
 #include "OnlinePresenceInterface.h"
 
-void FTestFriendsInterface::Test(const TArray<FString>& Invites)
+void FTestFriendsInterface::Test(UWorld* InWorld, const TArray<FString>& Invites)
 {
-	OnlineSub = IOnlineSubsystem::Get(SubsystemName.Len() ? FName(*SubsystemName, FNAME_Find) : NAME_None);
+	OnlineSub = Online::GetSubsystem(InWorld, SubsystemName.Len() ? FName(*SubsystemName, FNAME_Find) : NAME_None);
 	if (OnlineSub != NULL &&
 		OnlineSub->GetIdentityInterface().IsValid() &&
 		OnlineSub->GetFriendsInterface().IsValid())

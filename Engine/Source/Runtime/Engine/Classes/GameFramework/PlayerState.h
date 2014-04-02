@@ -161,9 +161,9 @@ public:
 	virtual void SetPlayerName(const FString& S);
 
 	/** 
-     * Associate an online unique id with this player
-     * @param InUniqueId the unique id associated with this player
-     */
+	 * Associate an online unique id with this player
+	 * @param InUniqueId the unique id associated with this player
+	 */
 	virtual void SetUniqueId(const TSharedPtr<FUniqueNetId>& InUniqueId);
 
 	/** 

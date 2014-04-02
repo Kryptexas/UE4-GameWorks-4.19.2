@@ -62,6 +62,8 @@ public:
 
 	virtual EPropertyTableColumnSizeMode::Type GetSizeMode() const OVERRIDE { return EPropertyTableColumnSizeMode::Fill; }
 
+	virtual void SetSizeMode(EPropertyTableColumnSizeMode::Type InSizeMode) OVERRIDE {}
+
 	virtual float GetWidth() const OVERRIDE { return Width; } 
 
 	virtual void SetWidth( float InWidth ) OVERRIDE { Width = InWidth; }

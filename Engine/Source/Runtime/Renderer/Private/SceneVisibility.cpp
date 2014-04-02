@@ -424,9 +424,9 @@ static int32 OcclusionCull(const FScene* Scene, FViewInfo& View)
 				if (!PrimitiveOcclusionHistory)
 				{
 					// If the primitive doesn't have an occlusion history yet, create it.
-					PrimitiveOcclusionHistory = &ViewState->PrimitiveOcclusionHistorySet(
+					PrimitiveOcclusionHistory = &ViewState->PrimitiveOcclusionHistorySet[
 						ViewState->PrimitiveOcclusionHistorySet.Add(FPrimitiveOcclusionHistory(PrimitiveId))
-						);
+						];
 
 					// If the primitive hasn't been visible recently enough to have a history, treat it as unoccluded this frame so it will be rendered as an occluder and its true occlusion state can be determined.
 					// already set bIsOccluded = false;

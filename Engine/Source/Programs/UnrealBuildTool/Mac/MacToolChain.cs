@@ -23,10 +23,13 @@ namespace UnrealBuildTool
 		 ***********************************************************************
 
 		/** Which version of the Mac OS SDK to target at build time */
-		public static string MacOSSDKVersion = "10.8";
+		public static string MacOSSDKVersion = "10.9";
 
 		/** Which version of the Mac OS X to allow at run time */
-		public static string MacOSVersion = "10.8";
+		public static string MacOSVersion = "10.9";
+
+		/** Minimum version of Mac OS X to actually run on, running on earlier versions will display the system minimum version error dialog & exit. */
+		public static string MinMacOSVersion = "10.9.2";
 
 		/** Which developer directory to root from */
 		private static string DeveloperDir = "/Applications/Xcode.app/Contents/Developer/";
@@ -84,8 +87,8 @@ namespace UnrealBuildTool
 			Result += " -Wno-deprecated-writable-strings";
 			Result += " -Wno-unused-value";
 			Result += " -Wno-switch-enum";
-			Result += " -Wno-logical-op-parentheses";	// needed for external headers we shan't change
-			Result += " -Wno-null-arithmetic";			// needed for external headers we shan't change
+			Result += " -Wno-logical-op-parentheses";	// needed for external headers we can't change
+			Result += " -Wno-null-arithmetic";			// needed for external headers we can't change
 			Result += " -Wno-deprecated-declarations";	// needed for wxWidgets
 			Result += " -Wno-return-type-c-linkage";	// needed for PhysX
 			Result += " -Wno-ignored-attributes";		// needed for nvtesslib
@@ -611,7 +614,7 @@ namespace UnrealBuildTool
 							LinkAction.PrerequisiteItems.Add(EngineLibDependency);
 						}
 					}
-					else if (AdditionalLibrary.Contains(".Framework/Versions"))
+					else if (AdditionalLibrary.Contains(".framework/Versions"))
 					{
 						LinkCommand += string.Format(" " + AdditionalLibrary);
 					}
@@ -619,6 +622,17 @@ namespace UnrealBuildTool
 					{
 						LinkCommand += string.Format(" -l{0}", AdditionalLibrary);
 					}
+				}
+
+				foreach (string AdditionalLibrary in LinkEnvironment.Config.DelayLoadDLLs)
+				{
+					// Can't link dynamic libraries when creating a static one
+					if (bIsBuildingLibrary && (Path.GetExtension(AdditionalLibrary) == ".dylib" || AdditionalLibrary == "z"))
+					{
+						continue;
+					}
+
+					LinkCommand += string.Format(" -weak_library \"{0}\"", ConvertPath(Path.GetFullPath(AdditionalLibrary)));
 				}
 			}
 
@@ -851,7 +865,7 @@ namespace UnrealBuildTool
 					// Fix contents of Info.plist
 					AppendMacLine(CreateAppBundleScript, "sed -i \"\" \"s/\\${0}/{1}/g\" \"{1}.app/Contents/Info.plist\"", "{EXECUTABLE_NAME}", ExeName);
 					AppendMacLine(CreateAppBundleScript, "sed -i \"\" \"s/\\${0}/{1}/g\" \"{2}.app/Contents/Info.plist\"", "{APP_NAME}", GameName, ExeName);
-					AppendMacLine(CreateAppBundleScript, "sed -i \"\" \"s/\\${0}/{1}/g\" \"{2}.app/Contents/Info.plist\"", "{MACOSX_DEPLOYMENT_TARGET}", MacOSVersion, ExeName);
+					AppendMacLine(CreateAppBundleScript, "sed -i \"\" \"s/\\${0}/{1}/g\" \"{2}.app/Contents/Info.plist\"", "{MACOSX_DEPLOYMENT_TARGET}", MinMacOSVersion, ExeName);
 					AppendMacLine(CreateAppBundleScript, "sed -i \"\" \"s/\\${0}/{1}/g\" \"{2}.app/Contents/Info.plist\"", "{ICON_NAME}", IconName, ExeName);
 					AppendMacLine(CreateAppBundleScript, "sed -i \"\" \"s/\\${0}/{1}/g\" \"{2}.app/Contents/Info.plist\"", "{BUNDLE_VERSION}", BundleVersion, ExeName);
 
@@ -1064,14 +1078,19 @@ namespace UnrealBuildTool
 			}
 		}
 
+		static private string BundleContentsDirectory = "";
+
 		static public void AddAppBundleContentsToManifest(ref FileManifest Manifest, UEBuildBinary Binary)
 		{
-			if (Binary.Target.GlobalLinkEnvironment.Config.bIsBuildingConsoleApplication || Binary.Config.Type != UEBuildBinaryType.Executable)
+			if (Binary.Target.GlobalLinkEnvironment.Config.bIsBuildingConsoleApplication)
 			{
 				return;
 			}
 
-			string ContentsDirectory = Path.GetDirectoryName(Path.GetDirectoryName(Binary.Config.OutputFilePath)) + "/";
+			if (BundleContentsDirectory == "" && Binary.Config.Type == UEBuildBinaryType.Executable)
+			{
+				BundleContentsDirectory = Path.GetDirectoryName(Path.GetDirectoryName(Binary.Config.OutputFilePath)) + "/";
+			}
 
 			// We need to know what third party dylibs would be copied to the bundle
 			var Modules = Binary.GetAllDependencyModules(bIncludeDynamicallyLoaded: false, bForceCircular: false);
@@ -1086,26 +1105,33 @@ namespace UnrealBuildTool
 			foreach (string AdditionalLibrary in BinaryLinkEnvironment.Config.AdditionalLibraries)
 			{
 				string LibName = Path.GetFileName(AdditionalLibrary);
-					if (LibName.StartsWith("lib"))
+				if (LibName.StartsWith("lib"))
 				{
 					if (Path.GetExtension(AdditionalLibrary) == ".dylib")
 					{
-						Manifest.AddFileName(ContentsDirectory + "MacOS/" + LibName);
+						string Entry = BundleContentsDirectory + "MacOS/" + LibName;
+						if (!Manifest.FileManifestItems.Contains(Path.GetFullPath(Entry)))
+						{
+							Manifest.AddFileName(Entry);
+						}
 					}
 				}
 			}
 
-			// And we also need all the resources
-			Manifest.AddFileName(ContentsDirectory + "Info.plist");
-			Manifest.AddFileName(ContentsDirectory + "PkgInfo");
-			Manifest.AddFileName(ContentsDirectory + "Resources/UE4.icns");
-			Manifest.AddFileName(ContentsDirectory + "Resources/OpenXcodeAtFileAndLine.applescript");
-			Manifest.AddFileName(ContentsDirectory + "Resources/English.lproj/InfoPlist.strings");
-			Manifest.AddFileName(ContentsDirectory + "Resources/English.lproj/MainMenu.nib");
-			Manifest.AddFileName(ContentsDirectory + "Resources/RadioEffectUnit.component/Contents/MacOS/RadioEffectUnit");
-			Manifest.AddFileName(ContentsDirectory + "Resources/RadioEffectUnit.component/Contents/Resources/English.lproj/Localizable.strings");
-			Manifest.AddFileName(ContentsDirectory + "Resources/RadioEffectUnit.component/Contents/Resources/RadioEffectUnit.rsrc");
-			Manifest.AddFileName(ContentsDirectory + "Resources/RadioEffectUnit.component/Contents/Info.plist");
+			if (Binary.Config.Type == UEBuildBinaryType.Executable)
+			{
+				// And we also need all the resources
+				Manifest.AddFileName(BundleContentsDirectory + "Info.plist");
+				Manifest.AddFileName(BundleContentsDirectory + "PkgInfo");
+				Manifest.AddFileName(BundleContentsDirectory + "Resources/UE4.icns");
+				Manifest.AddFileName(BundleContentsDirectory + "Resources/OpenXcodeAtFileAndLine.applescript");
+				Manifest.AddFileName(BundleContentsDirectory + "Resources/English.lproj/InfoPlist.strings");
+				Manifest.AddFileName(BundleContentsDirectory + "Resources/English.lproj/MainMenu.nib");
+				Manifest.AddFileName(BundleContentsDirectory + "Resources/RadioEffectUnit.component/Contents/MacOS/RadioEffectUnit");
+				Manifest.AddFileName(BundleContentsDirectory + "Resources/RadioEffectUnit.component/Contents/Resources/English.lproj/Localizable.strings");
+				Manifest.AddFileName(BundleContentsDirectory + "Resources/RadioEffectUnit.component/Contents/Resources/RadioEffectUnit.rsrc");
+				Manifest.AddFileName(BundleContentsDirectory + "Resources/RadioEffectUnit.component/Contents/Info.plist");
+			}
 		}
 
 		// @todo Mac: Full implementation.

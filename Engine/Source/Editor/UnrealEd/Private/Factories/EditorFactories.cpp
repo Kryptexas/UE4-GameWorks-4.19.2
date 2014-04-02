@@ -270,7 +270,7 @@ ULevelFactory::ULevelFactory(const class FPostConstructInitializeProperties& PCI
 
 	bCreateNew = false;
 	bText = true;
-	bEditorImport = true;
+	bEditorImport = false;
 }
 
 UObject* ULevelFactory::FactoryCreateText
@@ -924,7 +924,7 @@ UPackageFactory::UPackageFactory(const class FPostConstructInitializeProperties&
 
 	bCreateNew = false;
 	bText = true;
-	bEditorImport = true;
+	bEditorImport = false;
 }
 
 UObject* UPackageFactory::FactoryCreateText( UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, const TCHAR* Type, const TCHAR*& Buffer, const TCHAR* BufferEnd, FFeedbackContext* Warn )
@@ -1530,10 +1530,9 @@ UReverbEffectFactory::UReverbEffectFactory(const class FPostConstructInitializeP
 {
 
 	SupportedClass = UReverbEffect::StaticClass();
-	Formats.Add(TEXT("t3d;ReverbEffect"));
 
 	bCreateNew = true;
-	bEditorImport = true;
+	bEditorImport = false;
 	bEditAfterNew = true;
 }
 
@@ -2299,10 +2298,9 @@ USoundCueFactoryNew::USoundCueFactoryNew(const class FPostConstructInitializePro
 {
 
 	SupportedClass = USoundCue::StaticClass();
-	Formats.Add(TEXT("t3d;SoundCue"));
 
 	bCreateNew = true;
-	bEditorImport = true;
+	bEditorImport = false;
 	bEditAfterNew = true;
 }
 
@@ -2331,10 +2329,9 @@ USoundMixFactory::USoundMixFactory(const class FPostConstructInitializePropertie
 {
 
 	SupportedClass = USoundMix::StaticClass();
-	Formats.Add(TEXT("t3d;SoundMix"));
 
 	bCreateNew = true;
-	bEditorImport = true;
+	bEditorImport = false;
 	bEditAfterNew = true;
 }
 
@@ -2354,10 +2351,8 @@ USoundClassFactory::USoundClassFactory(const class FPostConstructInitializePrope
 {
 
 	SupportedClass = USoundClass::StaticClass();
-	Formats.Add(TEXT("t3d;SoundClass"));
-
 	bCreateNew = true;
-	bEditorImport = true;
+	bEditorImport = false;
 	bEditAfterNew = true;
 }
 
@@ -2382,10 +2377,8 @@ USoundAttenuationFactory::USoundAttenuationFactory(const class FPostConstructIni
 {
 
 	SupportedClass = USoundAttenuation::StaticClass();
-	Formats.Add(TEXT("t3d;SoundAttenuation"));
-
 	bCreateNew = true;
-	bEditorImport = true;
+	bEditorImport = false;
 	bEditAfterNew = true;
 }
 
@@ -4142,7 +4135,7 @@ UObject* UTextureFactory::FactoryCreateBinary
 
 	TextureAddress						ExistingAddressX	= TA_Wrap;
 	TextureAddress						ExistingAddressY	= TA_Wrap;
-	TextureFilter						ExistingFilter		= TF_Linear;
+	TextureFilter						ExistingFilter		= TF_Default;
 	TextureGroup						ExistingLODGroup	= TEXTUREGROUP_World;
 	TextureCompressionSettings			ExistingCompressionSettings = TC_Default;
 	int32									ExistingLODBias		= 0;
@@ -7012,10 +7005,8 @@ UForceFeedbackEffectFactory::UForceFeedbackEffectFactory(const class FPostConstr
 {
 
 	SupportedClass = UForceFeedbackEffect::StaticClass();
-	Formats.Add(TEXT("t3d;ForceFeedbackEffect"));
-
 	bCreateNew = true;
-	bEditorImport = true;
+	bEditorImport = false;
 	bEditAfterNew = true;
 }
 
@@ -7032,10 +7023,9 @@ UTouchInterfaceFactory::UTouchInterfaceFactory(const class FPostConstructInitial
 {
 
 	SupportedClass = UTouchInterface::StaticClass();
-	Formats.Add(TEXT("t3d;TouchInterface"));
 
 	bCreateNew = true;
-	bEditorImport = true;
+	bEditorImport = false;
 	bEditAfterNew = true;
 }
 

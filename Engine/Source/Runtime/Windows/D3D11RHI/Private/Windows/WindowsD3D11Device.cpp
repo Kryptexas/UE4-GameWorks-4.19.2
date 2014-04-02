@@ -14,6 +14,17 @@
 extern bool D3D11RHI_ShouldCreateWithD3DDebug();
 extern bool D3D11RHI_ShouldAllowAsyncResourceCreation();
 
+static TAutoConsoleVariable<int32> CVarGraphicsAdapter(
+	TEXT("r.GraphicsAdapter"),
+	-1,
+	TEXT("User request to pick a specific graphics adapter (e.g. when using a integrated graphics card with a descrete one)\n")
+	TEXT("At the moment this only works on Direct3D 11.\n")
+	TEXT(" -2: Take the first one that fulfills the criteria\n")
+	TEXT(" -1: Favour non integrated because there are usually faster\n")
+	TEXT("  0: Adpater #0\n")
+	TEXT("  1: Adpater #1, ..."),
+	ECVF_RenderThreadSafe);
+
 /**
  * Console variables used by the D3D11 RHI device.
  */
@@ -156,62 +167,144 @@ static bool SafeTestD3D11CreateDevice(IDXGIAdapter* Adapter,D3D_FEATURE_LEVEL Ma
 
 bool FD3D11DynamicRHIModule::IsSupported()
 {
-	if (MaxSupportedFeatureLevel == 0)
+	// if not computed yet
+	if(!ChosenAdapter.IsValid())
 	{
-		// Try to create the DXGIFactory.  This will fail if we're not running Vista.
-		TRefCountPtr<IDXGIFactory> DXGIFactory;
-		SafeCreateDXGIFactory(DXGIFactory.GetInitReference());
-		if(!DXGIFactory)
-		{
-			return false;
-		}
-
-		// Enumerate the DXGIFactory's adapters.
-		uint32 AdapterIndex = 0;
-		TRefCountPtr<IDXGIAdapter> TempAdapter;
-		bool bHasD3D11Adapter = false;
-		D3D_FEATURE_LEVEL MaxAllowedFeatureLevel = GetAllowedD3DFeatureLevel();
-		while(DXGIFactory->EnumAdapters(AdapterIndex,TempAdapter.GetInitReference()) != DXGI_ERROR_NOT_FOUND)
-		{
-			// Check that if adapter supports D3D11.
-			if(TempAdapter)
-			{
-				D3D_FEATURE_LEVEL ActualFeatureLevel = (D3D_FEATURE_LEVEL)0;
-				if(SafeTestD3D11CreateDevice(TempAdapter,MaxAllowedFeatureLevel,&ActualFeatureLevel))
-				{
-					bHasD3D11Adapter = true;
-					// Log some information about the available D3D11 adapters.
-					DXGI_ADAPTER_DESC AdapterDesc;
-					VERIFYD3D11RESULT(TempAdapter->GetDesc(&AdapterDesc));
-
-					UE_LOG(LogD3D11RHI, Log,
-						TEXT("Found D3D11 adapter %u: %s (Feature Level %s)"),
-						AdapterIndex,
-						AdapterDesc.Description,
-						ActualFeatureLevel == D3D_FEATURE_LEVEL_11_0 ? TEXT("11_0") : TEXT("10_0")
-						);
-					UE_LOG(LogD3D11RHI, Log,
-						TEXT("Adapter has %uMB of dedicated video memory, %uMB of dedicated system memory, and %uMB of shared system memory"),
-						(uint32)(AdapterDesc.DedicatedVideoMemory / (1024*1024)),
-						(uint32)(AdapterDesc.DedicatedSystemMemory / (1024*1024)),
-						(uint32)(AdapterDesc.SharedSystemMemory / (1024*1024))
-						);
-
-					// We only ever create a device using the first adapter.
-					if (AdapterIndex == 0)
-					{
-						MaxSupportedFeatureLevel = ActualFeatureLevel;
-					}
-				}
-			}
-
-			AdapterIndex++;
-		};
+		FindAdapter();
 	}
 
-	// The hardware must support 11_0 or 10_0.
-	return MaxSupportedFeatureLevel == D3D_FEATURE_LEVEL_11_0
-		|| MaxSupportedFeatureLevel == D3D_FEATURE_LEVEL_10_0;
+	// The hardware must support at least 10.0 (usually 11_0, 10_0 or 10_1).
+	return ChosenAdapter.IsValid()
+		&& ChosenAdapter.MaxSupportedFeatureLevel != D3D_FEATURE_LEVEL_9_1
+		&& ChosenAdapter.MaxSupportedFeatureLevel != D3D_FEATURE_LEVEL_9_2
+		&& ChosenAdapter.MaxSupportedFeatureLevel != D3D_FEATURE_LEVEL_9_3;
+}
+
+
+const TCHAR* GetFeatureLevelString(D3D_FEATURE_LEVEL FeatureLevel)
+{
+	switch(FeatureLevel)
+	{
+		case D3D_FEATURE_LEVEL_9_1:		return TEXT("9_1");
+		case D3D_FEATURE_LEVEL_9_2:		return TEXT("9_2");
+		case D3D_FEATURE_LEVEL_9_3:		return TEXT("9_3");
+		case D3D_FEATURE_LEVEL_10_0:	return TEXT("10_0");
+		case D3D_FEATURE_LEVEL_10_1:	return TEXT("10_1");
+		case D3D_FEATURE_LEVEL_11_0:	return TEXT("11_0");
+	}
+	return TEXT("X_X");
+}
+
+void FD3D11DynamicRHIModule::FindAdapter()
+{
+	// Once we chosen one we don't need to do it again.
+	check(!ChosenAdapter.IsValid());
+
+	// Try to create the DXGIFactory.  This will fail if we're not running Vista.
+	TRefCountPtr<IDXGIFactory> DXGIFactory;
+	SafeCreateDXGIFactory(DXGIFactory.GetInitReference());
+	if(!DXGIFactory)
+	{
+		return;
+	}
+
+	bool bAllowPerfHUD = true;
+
+#if UE_BUILD_SHIPPING || UE_BUILD_TEST
+	bAllowPerfHUD = false;
+#endif
+
+	int32 CVarValue = CVarGraphicsAdapter.GetValueOnGameThread();
+
+	const bool bFavorNonIntegrated = CVarValue == -1;
+
+	TRefCountPtr<IDXGIAdapter> TempAdapter;
+	D3D_FEATURE_LEVEL MaxAllowedFeatureLevel = GetAllowedD3DFeatureLevel();
+
+	FD3D11Adapter FirstWithoutIntegratedAdapter;
+	FD3D11Adapter FirstAdapter;
+
+	// Enumerate the DXGIFactory's adapters.
+	for(uint32 AdapterIndex = 0; DXGIFactory->EnumAdapters(AdapterIndex,TempAdapter.GetInitReference()) != DXGI_ERROR_NOT_FOUND; ++AdapterIndex)
+	{
+		// Check that if adapter supports D3D11.
+		if(TempAdapter)
+		{
+			D3D_FEATURE_LEVEL ActualFeatureLevel = (D3D_FEATURE_LEVEL)0;
+			if(SafeTestD3D11CreateDevice(TempAdapter,MaxAllowedFeatureLevel,&ActualFeatureLevel))
+			{
+				// Log some information about the available D3D11 adapters.
+				DXGI_ADAPTER_DESC AdapterDesc;
+				VERIFYD3D11RESULT(TempAdapter->GetDesc(&AdapterDesc));
+
+				UE_LOG(LogD3D11RHI, Log,
+					TEXT("Found D3D11 adapter %u: %s (Feature Level %s)"),
+					AdapterIndex,
+					AdapterDesc.Description,
+					GetFeatureLevelString(ActualFeatureLevel)
+					);
+				UE_LOG(LogD3D11RHI, Log,
+					TEXT("Adapter has %uMB of dedicated video memory, %uMB of dedicated system memory, and %uMB of shared system memory"),
+					(uint32)(AdapterDesc.DedicatedVideoMemory / (1024*1024)),
+					(uint32)(AdapterDesc.DedicatedSystemMemory / (1024*1024)),
+					(uint32)(AdapterDesc.SharedSystemMemory / (1024*1024))
+					);
+
+				// We could refine this test but it only matters for systems with multiple graphic cards.
+				const bool bIsIntegrated = FCString::Stristr(AdapterDesc.Description,TEXT("Intel")) != 0;
+				// PerfHUD is for performance profiling
+				const bool bIsPerfHUD = !FCString::Stricmp(AdapterDesc.Description,TEXT("NVIDIA PerfHUD"));
+
+				FD3D11Adapter CurrentAdapter(AdapterIndex, ActualFeatureLevel);
+
+				if(bIsPerfHUD && !bAllowPerfHUD)
+				{
+					// we don't allow the PerfHUD adapter
+					continue;
+				}
+
+				if(CVarValue >= 0 && AdapterIndex != CVarValue)
+				{
+					// the user wants a specific adapter, not this one
+					continue;
+				}
+
+				if(!bIsIntegrated && !FirstWithoutIntegratedAdapter.IsValid())
+				{
+					FirstWithoutIntegratedAdapter = CurrentAdapter;
+				}
+
+				if(!FirstAdapter.IsValid())
+				{
+					FirstAdapter = CurrentAdapter;
+				}
+			}
+		}
+	}
+
+	if(bFavorNonIntegrated)
+	{
+		ChosenAdapter = FirstWithoutIntegratedAdapter;
+
+		// We assume Intel is integrated graphics (slower than discrete) and rather take a different
+		if(!ChosenAdapter.IsValid())
+		{
+			ChosenAdapter = FirstAdapter;
+		}
+	}
+	else
+	{
+		ChosenAdapter = FirstAdapter;
+	}
+
+	if(ChosenAdapter.IsValid())
+	{
+		UE_LOG(LogD3D11RHI, Log, TEXT("Chosen D3D11 Adapter Id = %u"), ChosenAdapter.AdapterIndex);
+	}
+	else
+	{
+		UE_LOG(LogD3D11RHI, Error, TEXT("Failed to choose a D3D11 Adapter."));
+	}
 }
 
 FDynamicRHI* FD3D11DynamicRHIModule::CreateRHI()
@@ -219,7 +312,7 @@ FDynamicRHI* FD3D11DynamicRHIModule::CreateRHI()
 	TRefCountPtr<IDXGIFactory> DXGIFactory;
 	SafeCreateDXGIFactory(DXGIFactory.GetInitReference());
 	check(DXGIFactory);
-	return new FD3D11DynamicRHI(DXGIFactory,MaxSupportedFeatureLevel);
+	return new FD3D11DynamicRHI(DXGIFactory,ChosenAdapter.MaxSupportedFeatureLevel,ChosenAdapter.AdapterIndex);
 }
 
 void FD3D11DynamicRHI::Init()
@@ -289,105 +382,105 @@ void FD3D11DynamicRHI::InitD3DDevice()
 			UE_LOG(LogD3D11RHI, Log, TEXT("InitD3DDevice: -D3DDebug = %s"), bWithD3DDebug ? TEXT("on") : TEXT("off"));
 		}
 
-		// Don't allow NV perf HUD for rocket builds.
-		bool bAllowPerfHUD = FRocketSupport::IsRocket() == false;
-
 		GTexturePoolSize = 0;
 
 		TRefCountPtr<IDXGIAdapter> EnumAdapter;
-		uint32 CurrentAdapter = 0;
-		while (DXGIFactory->EnumAdapters(CurrentAdapter,EnumAdapter.GetInitReference()) != DXGI_ERROR_NOT_FOUND)
+
+		if(DXGIFactory->EnumAdapters(ChosenAdapter,EnumAdapter.GetInitReference()) != DXGI_ERROR_NOT_FOUND)
 		{
 			if (EnumAdapter)// && EnumAdapter->CheckInterfaceSupport(__uuidof(ID3D11Device),NULL) == S_OK)
 			{
 				DXGI_ADAPTER_DESC AdapterDesc;
 				if (SUCCEEDED(EnumAdapter->GetDesc(&AdapterDesc)))
 				{
+					Adapter = EnumAdapter;
+
+					GRHIAdapterName = AdapterDesc.Description;
+					GRHIVendorId = AdapterDesc.VendorId;
+
+					extern int64 GDedicatedVideoMemory;
+					extern int64 GDedicatedSystemMemory;
+					extern int64 GSharedSystemMemory;
+					extern int64 GTotalGraphicsMemory;
+
+					// Issue: 32bit windows doesn't report 64bit value, we take what we get.
+					GDedicatedVideoMemory = int64(AdapterDesc.DedicatedVideoMemory);
+					GDedicatedSystemMemory = int64(AdapterDesc.DedicatedSystemMemory);
+					GSharedSystemMemory = int64(AdapterDesc.SharedSystemMemory);
+
+					// Total amount of system memory, clamped to 8 GB
+					int64 TotalPhysicalMemory = FMath::Min(int64(FPlatformMemory::GetConstants().TotalPhysicalGB), 8ll) * (1024ll * 1024ll * 1024ll);
+
+					// Consider 50% of the shared memory but max 25% of total system memory.
+					int64 ConsideredSharedSystemMemory = FMath::Min( GSharedSystemMemory / 2ll, TotalPhysicalMemory / 4ll );
+
+					GTotalGraphicsMemory = 0;
+					if ( IsRHIDeviceIntel() )
+					{
+						// It's all system memory.
+						GTotalGraphicsMemory = GDedicatedVideoMemory;
+						GTotalGraphicsMemory += GDedicatedSystemMemory;
+						GTotalGraphicsMemory += ConsideredSharedSystemMemory;
+					}
+					else if ( GDedicatedVideoMemory >= 200*1024*1024 )
+					{
+						// Use dedicated video memory, if it's more than 200 MB
+						GTotalGraphicsMemory = GDedicatedVideoMemory;
+					} else if ( GDedicatedSystemMemory >= 200*1024*1024 )
+					{
+						// Use dedicated system memory, if it's more than 200 MB
+						GTotalGraphicsMemory = GDedicatedSystemMemory;
+					} else if ( GSharedSystemMemory >= 400*1024*1024 )
+					{
+						// Use some shared system memory, if it's more than 400 MB
+						GTotalGraphicsMemory = ConsideredSharedSystemMemory;
+					}
+					else
+					{
+						// Otherwise consider 25% of total system memory for graphics.
+						GTotalGraphicsMemory = TotalPhysicalMemory / 4ll;
+					}
+
+					if ( sizeof(SIZE_T) < 8 )
+					{
+						// Clamp to 1 GB if we're less than 64-bit
+						GTotalGraphicsMemory = FMath::Min( GTotalGraphicsMemory, 1024ll * 1024ll * 1024ll );
+					}
+					else
+					{
+						// Clamp to 1.9 GB if we're 64-bit
+						GTotalGraphicsMemory = FMath::Min( GTotalGraphicsMemory, 1945ll * 1024ll * 1024ll );
+					}
+
+					if ( GPoolSizeVRAMPercentage > 0 )
+					{
+						float PoolSize = float(GPoolSizeVRAMPercentage) * 0.01f * float(GTotalGraphicsMemory);
+
+						// Truncate GTexturePoolSize to MB (but still counted in bytes)
+						GTexturePoolSize = int64(FGenericPlatformMath::TruncFloat(PoolSize / 1024.0f / 1024.0f)) * 1024 * 1024;
+
+						UE_LOG(LogRHI,Log,TEXT("Texture pool is %u MB (%d%% of %u MB)"),
+							GTexturePoolSize / 1024 / 1024,
+							GPoolSizeVRAMPercentage,
+							GTotalGraphicsMemory / 1024 / 1024);
+					}
+
 					const bool bIsPerfHUD = !FCString::Stricmp(AdapterDesc.Description,TEXT("NVIDIA PerfHUD"));
 
-					// Select the first adapter in normal circumstances or the PerfHUD one if it exists and we are allowed to use it.
-					const bool bUseAdapter = CurrentAdapter == 0 || (bAllowPerfHUD && bIsPerfHUD);
-					if (bUseAdapter)
-					{
-						Adapter = EnumAdapter;
-
-						GRHIAdapterName = AdapterDesc.Description;
-						GRHIVendorId = AdapterDesc.VendorId;
-
-						extern int64 GDedicatedVideoMemory;
-						extern int64 GDedicatedSystemMemory;
-						extern int64 GSharedSystemMemory;
-						extern int64 GTotalGraphicsMemory;
-
-						// Issue: 32bit windows doesn't report 64bit value, we take what we get.
-						GDedicatedVideoMemory = int64(AdapterDesc.DedicatedVideoMemory);
-						GDedicatedSystemMemory = int64(AdapterDesc.DedicatedSystemMemory);
-						GSharedSystemMemory = int64(AdapterDesc.SharedSystemMemory);
-
-						// Total amount of system memory, clamped to 8 GB
-						int64 TotalPhysicalMemory = FMath::Min(int64(FPlatformMemory::GetConstants().TotalPhysicalGB), 8ll) * (1024ll * 1024ll * 1024ll);
-
-						// Consider 50% of the shared memory but max 25% of total system memory.
-						int64 ConsideredSharedSystemMemory = FMath::Min( GSharedSystemMemory / 2ll, TotalPhysicalMemory / 4ll );
-
-						GTotalGraphicsMemory = 0;
-						if ( IsRHIDeviceIntel() )
-						{
-							// It's all system memory.
-							GTotalGraphicsMemory = GDedicatedVideoMemory;
-							GTotalGraphicsMemory += GDedicatedSystemMemory;
-							GTotalGraphicsMemory += ConsideredSharedSystemMemory;
-						}
-						else if ( GDedicatedVideoMemory >= 200*1024*1024 )
-						{
-							// Use dedicated video memory, if it's more than 200 MB
-							GTotalGraphicsMemory = GDedicatedVideoMemory;
-						} else if ( GDedicatedSystemMemory >= 200*1024*1024 )
-						{
-							// Use dedicated system memory, if it's more than 200 MB
-							GTotalGraphicsMemory = GDedicatedSystemMemory;
-						} else if ( GSharedSystemMemory >= 400*1024*1024 )
-						{
-							// Use some shared system memory, if it's more than 400 MB
-							GTotalGraphicsMemory = ConsideredSharedSystemMemory;
-						}
-						else
-						{
-							// Otherwise consider 25% of total system memory for graphics.
-							GTotalGraphicsMemory = TotalPhysicalMemory / 4ll;
-						}
-
-						if ( sizeof(SIZE_T) < 8 )
-						{
-							// Clamp to 1 GB if we're less than 64-bit
-							GTotalGraphicsMemory = FMath::Min( GTotalGraphicsMemory, 1024ll * 1024ll * 1024ll );
-						}
-						else
-						{
-							// Clamp to 1.9 GB if we're 64-bit
-							GTotalGraphicsMemory = FMath::Min( GTotalGraphicsMemory, 1945ll * 1024ll * 1024ll );
-						}
-
-						if ( GPoolSizeVRAMPercentage > 0 )
-						{
-							float PoolSize = float(GPoolSizeVRAMPercentage) * 0.01f * float(GTotalGraphicsMemory);
-
-							// Truncate GTexturePoolSize to MB (but still counted in bytes)
-							GTexturePoolSize = int64(FGenericPlatformMath::TruncFloat(PoolSize / 1024.0f / 1024.0f)) * 1024 * 1024;
-
-							UE_LOG(LogRHI,Log,TEXT("Texture pool is %u MB (%d%% of %u MB)"),
-								GTexturePoolSize / 1024 / 1024,
-								GPoolSizeVRAMPercentage,
-								GTotalGraphicsMemory / 1024 / 1024);
-						}
-					}
 					if(bIsPerfHUD)
 					{
 						DriverType =  D3D_DRIVER_TYPE_REFERENCE;
 					}
 				}
+				else
+				{
+					check(!"Internal error, GetDesc() failed but before it worked")
+				}
 			}
-			++CurrentAdapter;
+		}
+		else
+		{
+			check(!"Internal error, EnumAdapters() failed but before it worked")
 		}
 
 		D3D_FEATURE_LEVEL ActualFeatureLevel = (D3D_FEATURE_LEVEL)0;
@@ -568,11 +661,9 @@ bool FD3D11DynamicRHI::RHIGetAvailableResolutions(FScreenResolutionArray& Resolu
 		MaxAllowableRefreshRate = 10480;
 	}
 
-	// Check the default adapter only.
-	int32 CurrentAdapter = 0;
 	HRESULT hr = S_OK;
 	TRefCountPtr<IDXGIAdapter> Adapter;
-	hr = DXGIFactory->EnumAdapters(CurrentAdapter,Adapter.GetInitReference());
+	hr = DXGIFactory->EnumAdapters(ChosenAdapter,Adapter.GetInitReference());
 
 	if( DXGI_ERROR_NOT_FOUND == hr )
 		return false;

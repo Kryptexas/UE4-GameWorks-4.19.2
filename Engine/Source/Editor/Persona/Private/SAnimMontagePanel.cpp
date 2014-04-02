@@ -22,11 +22,11 @@ const float BranchingPointAlignmentMarkerWidth = 8.f;
 class FBranchingPointDragDropOp : public FTrackNodeDragDropOp
 {
 public:
+	DRAG_DROP_OPERATOR_TYPE(FBranchingPointDragDropOp, FTrackNodeDragDropOp)
 
 	static TSharedRef<FTrackNodeDragDropOp> New(TSharedRef<STrackNode> TrackNode, const FVector2D &CursorPosition, const FVector2D &ScreenPositionOfNode)
 	{
 		TSharedRef<FBranchingPointDragDropOp> Operation = MakeShareable(new FBranchingPointDragDropOp);
-		FSlateApplication::GetDragDropReflector().RegisterOperation<FBranchingPointDragDropOp>(Operation);
 		Operation->OriginalTrackNode = TrackNode;
 
 		Operation->Offset = ScreenPositionOfNode - CursorPosition;

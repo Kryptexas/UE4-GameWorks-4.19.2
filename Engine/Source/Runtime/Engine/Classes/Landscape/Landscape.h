@@ -18,7 +18,7 @@ enum ELandscapeSetupErrors
 };
 
 UCLASS(dependson=ULightComponent, HeaderGroup=Terrain, Placeable, hidecategories=LandscapeProxy, showcategories=(Display, Movement, Collision, Lighting, LOD, Input), MinimalAPI)
-class ALandscape : public ALandscapeProxy, public INavRelevantActorInterface
+class ALandscape : public ALandscapeProxy
 {
 	GENERATED_UCLASS_BODY()
 
@@ -36,10 +36,6 @@ class ALandscape : public ALandscapeProxy, public INavRelevantActorInterface
 #endif
 	// End AActor Interface
 
-	// Begin INavRelevantActorInterface Interface
-	virtual bool DoesSupplyPerComponentNavigationCollision() const OVERRIDE { return true; }
-	// End INavRelevantActorInterface Interface
-
 	// Begin ALandscapeProxy Interface
 	virtual ALandscape* GetLandscapeActor() OVERRIDE;
 #if WITH_EDITOR
@@ -48,8 +44,7 @@ class ALandscape : public ALandscapeProxy, public INavRelevantActorInterface
 	// End ALandscapeProxy Interface
 
 	ENGINE_API bool HasAllComponent(); // determine all component is in this actor
-
-
+	
 	// Include Components with overlapped vertices
 	ENGINE_API static void CalcComponentIndicesOverlap(const int32 X1, const int32 Y1, const int32 X2, const int32 Y2, const int32 ComponentSizeQuads, 
 		int32& ComponentIndexX1, int32& ComponentIndexY1, int32& ComponentIndexX2, int32& ComponentIndexY2);
@@ -60,7 +55,6 @@ class ALandscape : public ALandscapeProxy, public INavRelevantActorInterface
 
 	static void SplitHeightmap(ULandscapeComponent* Comp, bool bMoveToCurrentLevel = false);
 	
-
 	// Begin UObject interface.
 	virtual void PreSave() OVERRIDE;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;

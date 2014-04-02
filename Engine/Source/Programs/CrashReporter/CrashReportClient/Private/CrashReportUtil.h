@@ -19,7 +19,7 @@ public:
 	 */
 	~TOneShotTaskUsingDedicatedThread()
 	{
-		check(bIsDone);
+		CRASHREPORTCLIENT_CHECK(!!bIsDone);
 	}
 
 	TWorker& GetTask()

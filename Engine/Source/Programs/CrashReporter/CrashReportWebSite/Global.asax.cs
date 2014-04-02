@@ -50,13 +50,6 @@ namespace Tools.CrashReporter.CrashReportWebSite
                 new { controller = "Users", action = "Index", UserGroup = "General" }	// Parameter defaults
 			);
 
-			// Map Crashes/RegisterPII/User/Machine/Guid to the RegisterPII web function
-			Routes.MapRoute(
-				"Users",														// Route name
-				"Crashes/RegisterPII/{UserName}/{MachineName}/{MachineGUID}",	// URL with parameters
-				new { controller = "Crashes", action = "RegisterPII" }			// Parameter defaults
-			);
-
 			// Default mapping for all other requests
 			Routes.MapRoute(
                 "Default",														// Route name

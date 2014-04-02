@@ -26,7 +26,10 @@ UENUM()
 enum TextureFilter
 {
 	TF_Nearest UMETA(DisplayName="Nearest"),
-	TF_Linear UMETA(DisplayName="Linear"),
+	TF_Bilinear UMETA(DisplayName="Bi-linear"),
+	TF_Trilinear UMETA(DisplayName="Tri-linear"),
+	/** use setting from the LOD TextureGroup */
+	TF_Default UMETA(DisplayName="Default (from TextureGroup)"),
 	TF_MAX,
 };
 
@@ -353,7 +356,7 @@ public:
 	float AdjustBrightnessCurve;
 
 	/** Static texture "vibrance" adjustment (0 - 1) (HSV saturation algorithm adjustment.)  (Non-destructive; Requires texture source art to be available.)  */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Adjustments, meta=(DisplayName = "Vibrance"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Adjustments, meta=(DisplayName = "Vibrance", ClampMin = "0.0", ClampMax = "1.0"))
 	float AdjustVibrance;
 
 	/** Static texture saturation adjustment (scales HSV saturation.)  (Non-destructive; Requires texture source art to be available.)  */
@@ -365,7 +368,7 @@ public:
 	float AdjustRGBCurve;
 
 	/** Static texture hue adjustment (0 - 360) (offsets HSV hue by value in degrees.)  (Non-destructive; Requires texture source art to be available.)  */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Adjustments, meta=(DisplayName = "Hue"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Adjustments, meta=(DisplayName = "Hue", ClampMin = "0.0", ClampMax = "360.0"))
 	float AdjustHue;
 
 	/** Remaps the alpha to the specified min/max range, defines the new value of 0 (Non-destructive; Requires texture source art to be available.) */

@@ -87,9 +87,24 @@ private:
 };
 
 USTRUCT()
+struct SKILLSYSTEM_API FGlobalCurveDataOverride
+{
+	GENERATED_USTRUCT_BODY()
+
+	TArray<UCurveTable*>	Overrides;
+};
+
+USTRUCT()
 struct SKILLSYSTEM_API FScalableFloat
 {
 	GENERATED_USTRUCT_BODY()
+
+	FScalableFloat()
+		: Value(0.f)
+		, FinalCurve(NULL)
+	{
+
+	}
 
 public:
 
@@ -99,9 +114,20 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category=ScalableFloat)
 	FCurveTableRowHandle	Curve;
 
+	void FinalizeCurveData(const FGlobalCurveDataOverride *GlobalOverrides);
+
+	float GetValueAtLevel(float Level) const;
+
+	FScalableFloat MakeFinalizedCopy(const FGlobalCurveDataOverride *GlobalOverrides) const
+	{
+		FScalableFloat Copy(*this);
+		Copy.FinalizeCurveData(GlobalOverrides);
+		return Copy;
+	}
+
 	bool IsStatic() const
 	{
-		return (Curve.CurveTable == NULL);
+		return (Curve.RowName == NAME_None);
 	}
 
 	void SetValue(float NewValue)
@@ -109,14 +135,21 @@ public:
 		Value = NewValue;
 		Curve.CurveTable = NULL;
 		Curve.RowName = NAME_None;
+		FinalCurve = NULL;
 	}
 
-	void LockValueAtLevel(float Level)
+	void SetScalingValue(float InCoeffecient, FName InRowName, UCurveTable * InTable)
+	{
+		Value = InCoeffecient;
+		Curve.RowName = InRowName;
+		Curve.CurveTable = InTable;
+		FinalCurve = NULL;
+	}
+
+	void LockValueAtLevel(float Level, FGlobalCurveDataOverride *GlobalOverrides)
 	{
 		SetValue(GetValueAtLevel(Level));
 	}
-
-	float GetValueAtLevel(float Level) const;
 
 	float GetValueChecked() const
 	{
@@ -124,13 +157,11 @@ public:
 		return Value;
 	}
 
-	//void SetConstValue(
-
 	FString ToSimpleString() const
 	{
-		if (Curve.IsValid())
+		if (Curve.RowName != NAME_None)
 		{
-			return FString::Printf(TEXT("%.2f - %s@%s"), Value, *Curve.RowName.ToString(), *Curve.CurveTable->GetName());
+			return FString::Printf(TEXT("%.2f - %s@%s"), Value, *Curve.RowName.ToString(), Curve.CurveTable ? *Curve.CurveTable->GetName() : TEXT("None"));
 		}
 		return FString::Printf(TEXT("%.2f"), Value);
 	}
@@ -138,6 +169,10 @@ public:
 	/** Equality/Inequality operators */
 	bool operator==(const FScalableFloat& Other) const;
 	bool operator!=(const FScalableFloat& Other) const;
+
+private:
+
+	FRichCurve * FinalCurve;
 };
 
 

@@ -205,6 +205,30 @@ namespace iPhonePackager
 								return false;
 							}
 						}
+						else if (Arg == "-projectdir")
+						{
+							// make sure there's at least one more arg
+							if (Arguments.Length > ArgIndex + 1)
+							{
+								Config.ProjectRootDirectory = Arguments[++ArgIndex];
+							}
+							else
+							{
+								return false;
+							}
+						}
+						else if (Arg == "-device")
+						{
+							// make sure there's at least one more arg
+							if (Arguments.Length > ArgIndex + 1)
+							{
+								Config.DeviceId = Arguments[++ArgIndex];
+							}
+							else
+							{
+								return false;
+							}
+						}
 					}
 					else
 					{
@@ -403,6 +427,22 @@ namespace iPhonePackager
 			Application.Run(DisplayForm);
 		}
 
+		static void ListDevices()
+		{
+			var DeviceList = DeploymentHelper.Get().EnumerateConnectedDevices();
+
+			Console.WriteLine("-------------------------------------------------------");
+			Console.WriteLine("List of devices attached");
+
+			foreach (var DeviceInfo in DeviceList)
+			{
+				string UDID = DeviceInfo.UDID;
+				string DeviceName = DeviceInfo.DeviceName;
+
+				Console.WriteLine("{0} device:{1}", UDID, DeviceName);
+			}
+		}
+
 		/**
 		 * Main control loop
 		 */
@@ -430,9 +470,11 @@ namespace iPhonePackager
 					Log(" ... PackageApp GameName");
 					Log(" ... Deploy PathToIPA");
 					Log(" ... RepackageFromStage GameName");
+					Log(" ... Devices");
 					Log("");
 					Log("Configuration switches:");
 					Log("	 -stagedir <path>		  sets the directory to copy staged files from (defaults to none)");
+					Log("	 -projectdir <path>		  sets the root directory of the project");
 					Log("	 -compress=fast|best|none  packaging compression level (defaults to none)");
 					Log("	 -strip					strip symbols during packaging");
 					Log("	 -config				   game configuration (e.g., Shipping, Development, etc...)");
@@ -440,6 +482,7 @@ namespace iPhonePackager
 					Log("	 -createstub			   packaging stub IPA for later repackaging");
 					Log("	 -mac <MacName>			overrides the machine to use for any Mac operations");
 					Log("	 -arch <Architecture>	  sets the architecture to use (blank for default, -simulator for simulator builds)");
+					Log("	 -device <DeviceID>		sets the device to install the IPA on");
 					Log("");
 					Log("Commands: RPC, Clean");
 					Log("  StageMacFiles, GetIPA, Deploy, Install, Uninstall");
@@ -535,6 +578,10 @@ namespace iPhonePackager
 
 					case "gui":
 						RunInVisualMode(delegate { return ToolsHub.CreateShowingTools(); });
+						break;
+
+					case "devices":
+						ListDevices();
 						break;
 
 					default:

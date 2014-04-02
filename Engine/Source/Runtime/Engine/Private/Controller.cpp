@@ -10,9 +10,6 @@
 #include "NavigationPathBuilder.h"
 #include "EngineUserInterfaceClasses.h"
 #include "EngineInterpolationClasses.h"
-#include "Online.h"
-#include "OnlineSubsystemTypes.h"
-
 
 DEFINE_LOG_CATEGORY(LogPath);
 
@@ -396,8 +393,8 @@ void AController::CleanupPlayerState()
 
 void AController::InstigatedAnyDamage(float Damage, const class UDamageType* DamageType, class AActor* DamagedActor, class AActor* DamageCauser)
 {
- 	ReceiveInstigatedAnyDamage(Damage, DamageType, DamagedActor, DamageCauser);
- 	OnInstigatedAnyDamage.Broadcast(Damage, DamageType, DamagedActor, DamageCauser);
+	ReceiveInstigatedAnyDamage(Damage, DamageType, DamagedActor, DamageCauser);
+	OnInstigatedAnyDamage.Broadcast(Damage, DamageType, DamagedActor, DamageCauser);
 }
 
 void AController::InitPlayerState()

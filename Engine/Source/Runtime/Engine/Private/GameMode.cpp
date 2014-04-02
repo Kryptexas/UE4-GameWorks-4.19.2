@@ -6,7 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "EngineLevelScriptClasses.h"
-#include "Online.h"
+#include "OnlineSubsystemUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGameMode, Log, All);
 
@@ -122,19 +122,21 @@ void AGameMode::ForceClearUnpauseDelegates( AActor* PauseActor )
 
 void AGameMode::InitGame( const FString& MapName, const FString& Options, FString& ErrorMessage )
 {
+	UWorld* World = GetWorld();
+
 	// save Options for future use
 	OptionsString = Options;
 
 	UClass* const SessionClass = GetGameSessionClass();
 	FActorSpawnParameters SpawnInfo;
 	SpawnInfo.Instigator = Instigator;
-	GameSession = GetWorld()->SpawnActor<AGameSession>( SessionClass, SpawnInfo );
+	GameSession = World->SpawnActor<AGameSession>( SessionClass, SpawnInfo );
 	GameSession->InitOptions(Options);
 
 	if (GetNetMode() != NM_Standalone)
 	{
 		FOnlineSessionSettings* SessionSettings = NULL;
-		IOnlineSessionPtr SessionInt = Online::GetSessionInterface();
+		IOnlineSessionPtr SessionInt = Online::GetSessionInterface(World);
 		if (SessionInt.IsValid())
 		{
 			SessionSettings = SessionInt->GetSessionSettings(GameSessionName);
@@ -747,7 +749,7 @@ void AGameMode::ProcessServerTravel(const FString& URL, bool bAbsolute)
 
 	UE_LOG(LogGameMode, Log, TEXT("ProcessServerTravel: %s"), *URL);
 	UWorld* World = GetWorld(); 
-    check(World);
+	check(World);
 	World->NextURL = URL;
 	ENetMode NetMode = GetNetMode();
 
@@ -771,8 +773,6 @@ void AGameMode::GetSeamlessTravelActorList(bool bToEntry, TArray<AActor*>& Actor
 	// always keep PlayerStates, so that after we restart we can keep players on the same team, etc
 	for (int32 i = 0; i < World->GameState->PlayerArray.Num(); i++)
 	{
-		World->GameState->PlayerArray[i]->bFromPreviousLevel = true;
-		World->GameState->PlayerArray[i]->ForceNetUpdate();
 		ActorList.Add(World->GameState->PlayerArray[i]);
 	}
 
@@ -1125,9 +1125,9 @@ void AGameMode::ReplicateStreamingStatus(APlayerController* PC)
 
 		if (GetWorld()->StreamingLevels.Num() > 0)
 		{
-	 		// Tell the player controller the current streaming level status
-	 		for (int32 LevelIndex = 0; LevelIndex < GetWorld()->StreamingLevels.Num(); LevelIndex++)
-	 		{
+			// Tell the player controller the current streaming level status
+			for (int32 LevelIndex = 0; LevelIndex < GetWorld()->StreamingLevels.Num(); LevelIndex++)
+			{
 				// streamingServer
 				ULevelStreaming* TheLevel = GetWorld()->StreamingLevels[LevelIndex];
 
@@ -1143,15 +1143,15 @@ void AGameMode::ReplicateStreamingStatus(APlayerController* PC)
 						*GetNameSafe(LoadedLevel),
 						TheLevel->bHasLoadRequestPending);
 
-	 				PC->ClientUpdateLevelStreamingStatus(
-	 					TheLevel->PackageName,
-	 					TheLevel->bShouldBeLoaded,
-	 					TheLevel->bShouldBeVisible,
-	 					TheLevel->bShouldBlockOnLoad,
+					PC->ClientUpdateLevelStreamingStatus(
+						TheLevel->PackageName,
+						TheLevel->bShouldBeLoaded,
+						TheLevel->bShouldBeVisible,
+						TheLevel->bShouldBlockOnLoad,
 						TheLevel->GetLODIndex(GetWorld()));
-	 			}
+				}
 			}
-	 		PC->ClientFlushLevelStreaming();
+			PC->ClientFlushLevelStreaming();
 		}
 
 		// if we're preparing to load different levels using PrepareMapChange() inform the client about that now

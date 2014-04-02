@@ -13,7 +13,7 @@ class ADecalActor : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
-	/** @todo document */
+	/** The decal component for this decal actor */
 	UPROPERTY(Category=Decal, VisibleAnywhere, BlueprintReadOnly, meta=(ExposeFunctionCategories="Decal,Rendering|Components|Decal"))
 	TSubobjectPtr<class UDecalComponent> Decal;
 
@@ -21,15 +21,15 @@ class ADecalActor : public AActor
 	/* Reference to the editor only arrow visualization component */
 	UPROPERTY()
 	TSubobjectPtr<class UArrowComponent> ArrowComponent;
-#endif
-
-	/* Reference to the selected visualization box component */
-	UPROPERTY()
-	TSubobjectPtr<UBoxComponent> BoxComponent;
 
 	/* Reference to the billboard component */
 	UPROPERTY()
 	TSubobjectPtr<UBillboardComponent> SpriteComponent;
+
+	/* Reference to the selected visualization box component */
+	UPROPERTY()
+	TSubobjectPtr<UBoxComponent> BoxComponent;
+#endif
 
 	// BEGIN DEPRECATED (use component functions now in level script)
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|Decal", meta=(DeprecatedFunction))

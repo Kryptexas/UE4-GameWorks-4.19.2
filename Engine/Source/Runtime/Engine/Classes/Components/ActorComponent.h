@@ -156,7 +156,7 @@ protected:
 	uint32 bPhysicsStateCreated:1;
 
 	/** Is this component currently replicating? Should the network code consider it for replication? Owning Actor must be replicating first! */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=ComponentReplication,meta=(DisplayName = "Component Replicates"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Replicated, Category=ComponentReplication,meta=(DisplayName = "Component Replicates"))
 	uint32 bReplicates:1;
 
 	/** Is this component safe to ID over the network by name?  */

@@ -6,14 +6,25 @@
 
 
 #include "CorePrivate.h"
-#include "Stats2.h"
 
 template<> uint32 FThreadSingleton<FThreadIdleStats>::TlsSlot = 0;
 
-static struct FForceInitAtBootFThreadIdleStats : public TForceInitAtBoot<FThreadIdleStats>
-{} FForceInitAtBootFThreadIdleStats;
+struct FStats2Globals
+{
+	static void Get()
+	{
+		FThreadIdleStats::Get();
+#if	STATS
+		FStartupMessages::Get();
+		IStatGroupEnableManager::Get();
+#endif // STATS
+	}
+};
 
+static struct FForceInitAtBootFStats2 : public TForceInitAtBoot<FStats2Globals>
+{} FForceInitAtBootFStats2;
 
+DECLARE_FLOAT_COUNTER_STAT( TEXT( "Seconds Per Cycle" ), STAT_SecondsPerCycle, STATGROUP_Engine );
 
 /* Todo
 
@@ -43,8 +54,6 @@ stats2.h, stats2.cpp, statsrender2.cpp - get rid of the 2s.
 
 //@todo The rest is all horrid hacks to bridge the game between the old and the new system while we finish the new system
 
-//@todo can we just use TIndirectArray here?
-
 //@todo split header
 
 //@todo metadata probably needs a different queue, otherwise it would be possible to load a module, run code in a thread and have the events arrive before the meta data
@@ -71,46 +80,49 @@ check(InStatId != NAME_None);
 DEFINE_STAT(STAT_FrameTime);
 DEFINE_STAT(STAT_FPS);
 DEFINE_STAT(STAT_DrawStats);
-DEFINE_STAT(STAT_Root);
-
 
 DECLARE_DWORD_COUNTER_STAT(TEXT("Frame Packets Received"),STAT_StatFramePacketsRecv,STATGROUP_StatSystem);
 
-
 FName TStatId::TStatId_NAME_None;
 
-class FStartupMessages
+
+void FStartupMessages::AddThreadMetadata( const FName InThreadName, uint32 InThreadID )
 {
-public:
-	TArray<FStatMessage> DelayedMessages;
-	FCriticalSection CriticalSection;
-	static FStartupMessages& Get()
+	// Make unique name.
+	const FString ThreadName = FStatsUtils::BuildUniqueThreadName( InThreadName, InThreadID );
+
+	FStartupMessages::AddMetadata( FName(*ThreadName), *ThreadName, STAT_GROUP_TO_FStatGroup( STATGROUP_Threads )::GetGroupName(), STAT_GROUP_TO_FStatGroup( STATGROUP_Threads )::GetDescription(), true, EStatDataType::ST_int64, true );
+}
+
+
+void FStartupMessages::AddMetadata( FName InStatName, const TCHAR* InStatDesc, const char* InGroupName, const TCHAR* InGroupDesc, bool bCanBeDisabled, EStatDataType::Type InStatType, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion InMemoryRegion /*= FPlatformMemory::MCR_Invalid*/ )
+{
+	FScopeLock Lock( &CriticalSection );
+
+	new (DelayedMessages) FStatMessage( InGroupName, EStatDataType::ST_None, "Groups", InGroupDesc, false, false );
+	new (DelayedMessages) FStatMessage( InStatName, InStatType, InGroupName, InStatDesc, bCanBeDisabled, bCycleStat, InMemoryRegion );
+}
+
+
+FStartupMessages& FStartupMessages::Get()
+{
+	static FStartupMessages* Messages = NULL;
+	if( !Messages )
 	{
-		static FStartupMessages* Messages = NULL;
-		if (!Messages)
-		{
-			check(IsInGameThread());
-			Messages = new FStartupMessages;
-		}
-		return *Messages;
+		check( IsInGameThread() );
+		Messages = new FStartupMessages;
 	}
-};
+	return *Messages;
+}
 
-static struct FForceInitAtBootFStartupMessages : public TForceInitAtBoot<FStartupMessages>
-{} FForceInitAtBootFStartupMessages;
-
-void FThreadSafeStaticStatBase::DoSetup(const char* InStatName, const TCHAR* InStatDesc, const char* GroupName, const TCHAR* InGroupDesc, bool bDefaultEnable, bool bCanBeDisabled, EStatDataType::Type InStatType, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion InMemoryRegion) const
+void FThreadSafeStaticStatBase::DoSetup(const char* InStatName, const TCHAR* InStatDesc, const char* InGroupName, const TCHAR* InGroupDesc, bool bDefaultEnable, bool bCanBeDisabled, EStatDataType::Type InStatType, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion InMemoryRegion) const
 {
 	FName TempName(InStatName);
 
-	{
-		// send meta data, we don't use normal messages because the stats thread might not be running yet
-		FScopeLock Lock(&FStartupMessages::Get().CriticalSection);
-		new (FStartupMessages::Get().DelayedMessages) FStatMessage(GroupName, EStatDataType::ST_None, "Groups", InGroupDesc, false, false);
-		new (FStartupMessages::Get().DelayedMessages) FStatMessage(InStatName, InStatType, GroupName, InStatDesc, bCanBeDisabled, bCycleStat, InMemoryRegion);
-	}
+	// send meta data, we don't use normal messages because the stats thread might not be running yet
+	FStartupMessages::Get().AddMetadata( TempName, InStatDesc, InGroupName, InGroupDesc, bCanBeDisabled, InStatType, bCycleStat, InMemoryRegion );
 
-	FName const* LocalHighPerformanceEnable(IStatGroupEnableManager::Get().GetHighPerformanceEnableForStat(FName(InStatName), GroupName, bDefaultEnable, bCanBeDisabled, InStatType, InStatDesc, bCycleStat, InMemoryRegion).GetRawPointer());
+	FName const* LocalHighPerformanceEnable(IStatGroupEnableManager::Get().GetHighPerformanceEnableForStat(FName(InStatName), InGroupName, bDefaultEnable, bCanBeDisabled, InStatType, InStatDesc, bCycleStat, InMemoryRegion).GetRawPointer());
 	FName const* OldHighPerformanceEnable = (FName const*)FPlatformAtomics::InterlockedCompareExchangePointer((void**)&HighPerformanceEnable, (void*)LocalHighPerformanceEnable, NULL);
 	check(!OldHighPerformanceEnable || HighPerformanceEnable == OldHighPerformanceEnable); // we are assigned two different groups?
 }
@@ -426,13 +438,7 @@ IStatGroupEnableManager& IStatGroupEnableManager::Get()
 	return *Singleton;
 }
 
-static struct FForceInitAtBoot
-{
-	FForceInitAtBoot()
-	{
-		IStatGroupEnableManager::Get();
-	}
-} FForceInitAtBoot;
+
 
 
 uint32 FThreadStats::TlsSlot = 0;
@@ -566,6 +572,9 @@ public:
 		static double LastTime = -1.0;
 		if (bReadyToProcess && FPlatformTime::Seconds() - LastTime > .005) // we won't process more than every 5ms
 		{
+			// Update the seconds per cycle.
+			SET_FLOAT_STAT( STAT_SecondsPerCycle, FPlatformTime::GetSecondsPerCycle() ); 
+
 			SCOPE_CYCLE_COUNTER(STAT_StatsNewTick);
 			bReadyToProcess = false;
 			FStatPacketArray NowData; 
@@ -623,7 +632,7 @@ public:
 
 };
 
-// not using a delgate here to allow higher performance since we may end up sending a lot of small message arrays to the thread.
+// not using a delegate here to allow higher performance since we may end up sending a lot of small message arrays to the thread.
 class FStatMessagesTask
 {
 	FStatPacket* Packet;
@@ -688,7 +697,7 @@ FThreadStats::FThreadStats(FThreadStats const& Other)
 void FThreadStats::CheckEnable()
 {
 	bool bOldMasterEnable(bMasterEnable);
-	bool bNewMasterEnable(WillEverCollectData() && !IsRunningCommandlet() && IsThreadingReady() && (MasterEnableCounter.GetValue() || GProfilerAttached));
+	bool bNewMasterEnable( WillEverCollectData() && !IsRunningCommandlet() && IsThreadingReady() && (MasterEnableCounter.GetValue()) );
 	if (bMasterEnable != bNewMasterEnable)
 	{
 		MasterDisableChangeTagLockAdd();
@@ -697,13 +706,12 @@ void FThreadStats::CheckEnable()
 	}
 }
 
-enum 
-{
-	MAX_PRESIZE = 256 * 1024,
-};
 
 void FThreadStats::Flush(bool bHasBrokenCallstacks)
 {
+	const int32 PresizeMaxNumEntries = 10;
+	const int32 PresizeMaxSize = 256 * 1024;
+
 	if (bMasterDisableForever)
 	{
 		Packet.StatMessages.Empty();
@@ -711,17 +719,17 @@ void FThreadStats::Flush(bool bHasBrokenCallstacks)
 	}
 	if (!ScopeCount && Packet.StatMessages.Num())
 	{
-		if (Packet.StatMessagesPresize.Num() >= 10)
+		if( Packet.StatMessagesPresize.Num() >= PresizeMaxNumEntries )
 		{
 			Packet.StatMessagesPresize.RemoveAt(0);
 		}
-		if (Packet.StatMessages.Num() < MAX_PRESIZE)
+		if (Packet.StatMessages.Num() < PresizeMaxSize)
 		{
 			Packet.StatMessagesPresize.Add(Packet.StatMessages.Num());
 		}
 		else
 		{
-			UE_LOG(LogTemp, Log, TEXT("StatMessage Packet has more than 200,000 messages.  Ignoring for the presize history."));
+			UE_LOG( LogStats, Verbose, TEXT( "StatMessage Packet has more than %i messages.  Ignoring for the presize history." ), (int32)PresizeMaxSize );
 		}
 		FStatPacket* ToSend = new FStatPacket(Packet);
 		Exchange(ToSend->StatMessages, Packet.StatMessages);

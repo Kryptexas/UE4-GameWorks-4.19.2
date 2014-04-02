@@ -464,8 +464,13 @@ FReply SProfilerWindow::OnDragOver( const FGeometry& MyGeometry, const FDragDrop
 			const TArray<FString>& Files = DragDropOp->GetFiles();
 			if( Files.Num() == 1 )
 			{
-				const bool IsValidFile = FPaths::GetExtension( Files[0] ) == TEXT("ue4stats");// TODO: Move to core/stats2
-				if( IsValidFile )
+				const FString DraggedFileExtension = FPaths::GetExtension( Files[0], true );
+				if( DraggedFileExtension == FStatConstants::StatsFileExtension )
+				{
+					return FReply::Handled();
+
+				}
+				else if( DraggedFileExtension == FStatConstants::StatsFileRawExtension )
 				{
 					return FReply::Handled();
 				}
@@ -488,11 +493,17 @@ FReply SProfilerWindow::OnDrop( const FGeometry& MyGeometry, const FDragDropEven
 			const TArray<FString>& Files = DragDropOp->GetFiles();
 			if( Files.Num() == 1 )
 			{
-				const bool IsValidFile = FPaths::GetExtension( Files[0] ) == TEXT("ue4stats");
-				if( IsValidFile )
+				const FString DraggedFileExtension = FPaths::GetExtension( Files[0], true );
+				if( DraggedFileExtension == FStatConstants::StatsFileExtension )
 				{
 					// Enqueue load operation.
 					FProfilerManager::Get()->LoadProfilerCapture( Files[0] );
+					return FReply::Handled();
+				}
+				else if( DraggedFileExtension == FStatConstants::StatsFileRawExtension )
+				{
+					// Enqueue load operation.
+					FProfilerManager::Get()->LoadRawStatsFile( Files[0] );
 					return FReply::Handled();
 				}
 			}

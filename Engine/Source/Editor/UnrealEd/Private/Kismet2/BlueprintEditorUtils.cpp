@@ -179,6 +179,60 @@ static void PromoteInterfaceImplementationToOverride(FBPInterfaceDescription con
 	}
 }
 
+/**
+ * Looks through the specified blueprint for any references to the specified 
+ * variable, and renames them accordingly.
+ * 
+ * @param  Blueprint		The blueprint that you want to search through.
+ * @param  VariableClass	The class that owns the variable that we're renaming
+ * @param  OldVarName		The current name of the variable we want to replace
+ * @param  NewVarName		The name that we wish to change all references to
+ */
+static void RenameVariableReferences(UBlueprint* Blueprint, UClass* VariableClass, const FName& OldVarName, const FName& NewVarName)
+{
+	TArray<UEdGraph*> AllGraphs;
+	Blueprint->GetAllGraphs(AllGraphs);
+
+	// Update any graph nodes that reference the old variable name to instead reference the new name
+	for (TArray<UEdGraph*>::TConstIterator GraphIt(AllGraphs); GraphIt; ++GraphIt)
+	{
+		const UEdGraph* CurrentGraph = *GraphIt;
+
+		TArray<UK2Node_Variable*> GraphNodes;
+		CurrentGraph->GetNodesOfClass(GraphNodes);
+
+		for (TArray<UK2Node_Variable*>::TConstIterator NodeIt(GraphNodes); NodeIt; ++NodeIt)
+		{
+			UK2Node_Variable* CurrentNode = *NodeIt;
+
+			UClass* NodeRefClass = CurrentNode->VariableReference.GetMemberParentClass(Blueprint->GeneratedClass);
+			if (!NodeRefClass->IsChildOf(VariableClass))
+			{
+				continue;
+			}
+
+			if (OldVarName == CurrentNode->GetVarName())
+			{
+				CurrentNode->Modify();
+				if (CurrentNode->VariableReference.IsSelfContext())
+				{
+					CurrentNode->VariableReference.SetSelfMember(NewVarName);
+				}
+				else
+				{
+					CurrentNode->VariableReference.SetExternalMember(NewVarName, NodeRefClass);
+				}
+
+				if (UEdGraphPin* Pin = CurrentNode->FindPin(OldVarName.ToString()))
+				{
+					Pin->Modify();
+					Pin->PinName = NewVarName.ToString();
+				}
+			}
+		}
+	}
+}
+
 void FBlueprintEditorUtils::RefreshAllNodes(UBlueprint* Blueprint)
 {
 	TArray<UK2Node*> AllNodes;
@@ -238,6 +292,19 @@ void FBlueprintEditorUtils::RefreshExternalBlueprintDependencyNodes(UBlueprint* 
 			const UEdGraphSchema* Schema = Node->GetGraph()->GetSchema();
 			Schema->ReconstructNode(*Node, true);
 		}
+	}
+}
+
+void FBlueprintEditorUtils::RefreshGraphNodes(const UEdGraph* Graph)
+{
+	TArray<UK2Node*> AllNodes;
+	Graph->GetNodesOfClass(AllNodes);
+
+	for( auto NodeIt = AllNodes.CreateIterator(); NodeIt; ++NodeIt )
+	{
+		UK2Node* Node = *NodeIt;
+		const UEdGraphSchema* Schema = Node->GetGraph()->GetSchema();
+		Schema->ReconstructNode(*Node, true);
 	}
 }
 
@@ -350,7 +417,6 @@ struct FSaveActorFlagsHelper
 {
 	bool bOverride;
 	bool bCanEverTick;
-	bool bCanBeDamaged;
 	UClass * Class;
 
 	FSaveActorFlagsHelper(UClass * InClass) : Class(InClass)
@@ -362,7 +428,6 @@ struct FSaveActorFlagsHelper
 			if(CDActor)
 			{
 				bCanEverTick = CDActor->PrimaryActorTick.bCanEverTick;
-				bCanBeDamaged = CDActor->bCanBeDamaged;
 			}
 		}
 	}
@@ -375,7 +440,6 @@ struct FSaveActorFlagsHelper
 			if(CDActor)
 			{
 				CDActor->PrimaryActorTick.bCanEverTick = bCanEverTick;
-				CDActor->bCanBeDamaged = bCanBeDamaged;
 			}
 		}
 	}
@@ -1531,7 +1595,7 @@ void FBlueprintEditorUtils::RenameGraph(UEdGraph* Graph, const FString& NewNameS
 		Graph->Modify();
 		Graph->Rename(*NewNameStr, Graph->GetOuter(), (Blueprint->bIsRegeneratingOnLoad ? REN_ForceNoResetLoaders : 0) | REN_DontCreateRedirectors);
 
-		// Clean function entry node if it exists
+		// Clean function entry & result nodes if they exist
 		for (auto NodeIt = Graph->Nodes.CreateIterator(); NodeIt; ++NodeIt)
 		{
 			UEdGraphNode* Node = *NodeIt;
@@ -1541,13 +1605,19 @@ void FBlueprintEditorUtils::RenameGraph(UEdGraph* Graph, const FString& NewNameS
 				{
 					EntryNode->Modify();
 					EntryNode->SignatureName = NewName;
-					break;
 				}
 				else if (EntryNode->CustomGeneratedFunctionName == OldGraphName)
 				{
 					EntryNode->Modify();
 					EntryNode->CustomGeneratedFunctionName = NewName;
-					break;
+				}
+			}
+			else if(UK2Node_FunctionResult* ResultNode = Cast<UK2Node_FunctionResult>(Node))
+			{
+				if (ResultNode->SignatureName == OldGraphName)
+				{
+					ResultNode->Modify();
+					ResultNode->SignatureName = NewName;
 				}
 			}
 		}
@@ -2141,6 +2211,29 @@ void FBlueprintEditorUtils::GetSCSVariableNameList(const UBlueprint* Blueprint, 
 				if(VariableName != NAME_None)
 				{
 					VariableNames.AddUnique(VariableName);
+				}
+			}
+		}
+	}
+}
+
+void FBlueprintEditorUtils::GetImplementingBlueprintsFunctionNameList(const UBlueprint* Blueprint, TArray<FName>& FunctionNames)
+{
+	if(Blueprint != NULL && FBlueprintEditorUtils::IsInterfaceBlueprint(Blueprint))
+	{
+		for(TObjectIterator<UBlueprint> BlueprintIt; BlueprintIt; ++BlueprintIt)
+		{
+			const UBlueprint* ChildBlueprint = *BlueprintIt;
+			if(ChildBlueprint != NULL)
+			{
+				for (int32 InterfaceIndex = 0; InterfaceIndex < ChildBlueprint->ImplementedInterfaces.Num(); InterfaceIndex++)
+				{
+					const FBPInterfaceDescription& CurrentInterface = ChildBlueprint->ImplementedInterfaces[InterfaceIndex];
+					const UBlueprint* BlueprintInterfaceClass = UBlueprint::GetBlueprintFromClass(CurrentInterface.Interface);
+					if(BlueprintInterfaceClass != NULL && BlueprintInterfaceClass == Blueprint)
+					{
+						FBlueprintEditorUtils::GetAllGraphNames(ChildBlueprint, FunctionNames);
+					}
 				}
 			}
 		}
@@ -2888,66 +2981,22 @@ void FBlueprintEditorUtils::ReplaceVariableReferences(UBlueprint* Blueprint, con
 {
 	check((OldName != NAME_None) && (NewName != NAME_None));
 
-	TArray<UEdGraph*> AllGraphs;
-	Blueprint->GetAllGraphs(AllGraphs);
+	::RenameVariableReferences(Blueprint, Blueprint->GeneratedClass, OldName, NewName);
 
-	// Update any graph nodes that reference the old variable name to instead reference the new name
-	for (TArray<UEdGraph*>::TConstIterator GraphIt(AllGraphs); GraphIt; ++GraphIt)
+	TArray<UBlueprint*> Dependents;
+	GetDependentBlueprints(Blueprint, Dependents);
+
+	for (auto DependentIt = Dependents.CreateIterator(); DependentIt; ++DependentIt)
 	{
-		const UEdGraph* CurrentGraph = *GraphIt;
-
-		TArray<UK2Node_Variable*> GraphNodes;
-		CurrentGraph->GetNodesOfClass(GraphNodes);
-
-		for (TArray<UK2Node_Variable*>::TConstIterator NodeIt(GraphNodes); NodeIt; ++NodeIt)
-		{
-			UK2Node_Variable* CurrentNode = *NodeIt;
-			if (CurrentNode->VariableReference.IsSelfContext() && OldName == CurrentNode->GetVarName())
-			{
-				CurrentNode->Modify();
-				CurrentNode->VariableReference.SetSelfMember(NewName);
-
-				if (UEdGraphPin* Pin = CurrentNode->FindPin(OldName.ToString()))
-				{
-					Pin->Modify();
-					Pin->PinName = NewName.ToString();
-				}
-			}
-		}
+		UBlueprint* DependentBp = *DependentIt;
+		::RenameVariableReferences(DependentBp, Blueprint->GeneratedClass, OldName, NewName);
 	}
 }
 
 void FBlueprintEditorUtils::ReplaceVariableReferences(UBlueprint* Blueprint, const UProperty* OldVariable, const UProperty* NewVariable)
 {
 	check((OldVariable != NULL) && (NewVariable != NULL));
-
-	TArray<UEdGraph*> AllGraphs;
-	Blueprint->GetAllGraphs(AllGraphs);
-
-	// Update any graph nodes that reference the old variable name to instead reference the new name
-	for (TArray<UEdGraph*>::TConstIterator GraphIt(AllGraphs); GraphIt; ++GraphIt)
-	{
-		const UEdGraph* CurrentGraph = *GraphIt;
-
-		TArray<UK2Node_Variable*> GraphNodes;
-		CurrentGraph->GetNodesOfClass(GraphNodes);
-
-		for (TArray<UK2Node_Variable*>::TConstIterator NodeIt(GraphNodes); NodeIt; ++NodeIt)
-		{
-			UK2Node_Variable* CurrentNode = *NodeIt;
-			if (CurrentNode->VariableReference.IsSelfContext() && CurrentNode->GetVarName() == OldVariable->GetFName())
-			{
-				CurrentNode->Modify();
-				CurrentNode->VariableReference.SetSelfMember(NewVariable->GetFName());
-
-				if (UEdGraphPin* Pin = CurrentNode->FindPin(OldVariable->GetFName().ToString()))
-				{
-					Pin->Modify();
-					Pin->PinName = NewVariable->GetFName().ToString();
-				}
-			}
-		}
-	}
+	ReplaceVariableReferences(Blueprint, OldVariable->GetFName(), NewVariable->GetFName());
 }
 
 bool FBlueprintEditorUtils::IsVariableComponent(const FBPVariableDescription& Variable)
@@ -3197,6 +3246,31 @@ void FBlueprintEditorUtils::ExportPropertyToKismetDefaultValue(UEdGraphPin* Targ
 //////////////////////////////////////////////////////////////////////////
 // Interfaces
 
+FGuid FBlueprintEditorUtils::FindInterfaceFunctionGuid(const UFunction* Function, const UClass* InterfaceClass)
+{
+	// check if this is a blueprint - only blueprint interfaces can have Guids
+	check(Function);
+	check(InterfaceClass);
+	const UBlueprint* InterfaceBlueprint = Cast<UBlueprint>(InterfaceClass->ClassGeneratedBy);
+	if(InterfaceBlueprint != NULL)
+	{
+		// find the graph for this function
+		TArray<UEdGraph*> InterfaceGraphs;
+		InterfaceBlueprint->GetAllGraphs(InterfaceGraphs);
+
+		for (auto InterfaceGraphIt(InterfaceGraphs.CreateConstIterator()); InterfaceGraphIt; InterfaceGraphIt++)
+		{
+			const UEdGraph* InterfaceGraph = *InterfaceGraphIt;
+			if(InterfaceGraph != NULL && InterfaceGraph->GetFName() == Function->GetFName())
+			{
+				return InterfaceGraph->GraphGuid;
+			}
+		}
+	}
+
+	return FGuid();
+}
+
 // Add a new interface, and member function graphs to the blueprint
 bool FBlueprintEditorUtils::ImplementNewInterface(UBlueprint* Blueprint, const FName& InterfaceClassName)
 {
@@ -3249,6 +3323,8 @@ bool FBlueprintEditorUtils::ImplementNewInterface(UBlueprint* Blueprint, const F
 
 			UEdGraph* NewGraph = FBlueprintEditorUtils::CreateNewGraph(Blueprint, FunctionName, UEdGraph::StaticClass(), UEdGraphSchema_K2::StaticClass());
 			NewGraph->bAllowDeletion = false;
+			NewGraph->InterfaceGuid = FindInterfaceFunctionGuid(Function, InterfaceClass);
+
 			NewInterface.Graphs.Add(NewGraph);
 
 			FBlueprintEditorUtils::AddInterfaceGraph(Blueprint, NewGraph, InterfaceClass);
@@ -3318,6 +3394,7 @@ void FBlueprintEditorUtils::RemoveInterface(UBlueprint* Blueprint, const FName& 
 				CurrentGraph->bAllowDeletion = true;
 				CurrentGraph->bAllowRenaming = true;
 				CurrentGraph->bEditable = true;
+				CurrentGraph->InterfaceGuid.Invalidate();
 
 				// We need to flag the entry node to make sure that the compiled function is callable
 				Schema->AddExtraFunctionFlags(CurrentGraph, (FUNC_BlueprintCallable|FUNC_BlueprintEvent|FUNC_Public));
@@ -3597,6 +3674,159 @@ void FBlueprintEditorUtils::ConformImplementedEvents(UBlueprint* Blueprint)
 	}
 }
 
+/** Helper function for ConformImplementedInterfaces */
+static void ConformInterfaceByGUID(const UBlueprint* Blueprint, const FBPInterfaceDescription& CurrentInterfaceDesc)
+{
+	// Attempt to conform by GUID if we have a blueprint interface
+	// This just make sure that GUID-linked functions preserve their names
+	const UBlueprint* InterfaceBlueprint = CastChecked<UBlueprint>(CurrentInterfaceDesc.Interface->ClassGeneratedBy);
+
+	TArray<UEdGraph*> InterfaceGraphs;
+	InterfaceBlueprint->GetAllGraphs(InterfaceGraphs);
+
+	TArray<UEdGraph*> BlueprintGraphs;
+	Blueprint->GetAllGraphs(BlueprintGraphs);
+		
+	for (auto BlueprintGraphIt(BlueprintGraphs.CreateConstIterator()); BlueprintGraphIt; BlueprintGraphIt++)
+	{
+		UEdGraph* BlueprintGraph = *BlueprintGraphIt;
+		if(BlueprintGraph != NULL && BlueprintGraph->InterfaceGuid.IsValid())
+		{
+			// valid interface Guid found, so fixup name if it is different
+			for (auto InterfaceGraphIt(InterfaceGraphs.CreateConstIterator()); InterfaceGraphIt; InterfaceGraphIt++)
+			{
+				const UEdGraph* InterfaceGraph = *InterfaceGraphIt;
+				if(InterfaceGraph != NULL && InterfaceGraph->GraphGuid == BlueprintGraph->InterfaceGuid && InterfaceGraph->GetFName() != BlueprintGraph->GetFName())
+				{
+					FBlueprintEditorUtils::RenameGraph(BlueprintGraph, InterfaceGraph->GetFName().ToString());
+					FBlueprintEditorUtils::RefreshGraphNodes(BlueprintGraph);
+					break;
+				}
+			}
+		}
+	}
+}
+
+/** Helper function for ConformImplementedInterfaces */
+static void ConformInterfaceByName(UBlueprint* Blueprint, FBPInterfaceDescription& CurrentInterfaceDesc, int32 InterfaceIndex, TArray<UK2Node_Event*>& ImplementedEvents, const TArray<FName>& VariableNamesUsedInBlueprint)
+{
+	// Iterate over all the functions in the interface, and create graphs that are in the interface, but missing in the blueprint
+	if (CurrentInterfaceDesc.Interface)
+	{
+		// a interface could have since been added by the parent (or this blueprint could have been re-parented)
+		if (IsInterfaceImplementedByParent(CurrentInterfaceDesc, Blueprint))
+		{			
+			// have to remove the interface before we promote it (in case this method is reentrant)
+			FBPInterfaceDescription LocalInterfaceCopy = CurrentInterfaceDesc;
+			Blueprint->ImplementedInterfaces.RemoveAt(InterfaceIndex, 1);
+
+			// in this case, the interface needs to belong to the parent and not this
+			// blueprint (we would have been prevented from getting in this state if we
+			// had started with a parent that implemented this interface initially)
+			PromoteInterfaceImplementationToOverride(LocalInterfaceCopy, Blueprint);
+			return;
+		}
+
+		// check to make sure that there aren't any interface methods that we originally 
+		// implemented as events, but have since switched to functions 
+		for (UK2Node_Event* EventNode : ImplementedEvents)
+		{
+			// if this event belongs to something other than this interface
+			if (EventNode->EventSignatureClass != CurrentInterfaceDesc.Interface)
+			{
+				continue;
+			}
+
+			UFunction* InterfaceFunction = CurrentInterfaceDesc.Interface->FindFunctionByName(EventNode->EventSignatureName);
+			// if the function is still ok as an event, no need to try and fix it up
+			if (UEdGraphSchema_K2::FunctionCanBePlacedAsEvent(InterfaceFunction))
+			{
+				continue;
+			}
+
+			UEdGraph* EventGraph = EventNode->GetGraph();
+			// we've already implemented this interface function as an event (which we need to replace)
+			UK2Node_CustomEvent* CustomEventNode = Cast<UK2Node_CustomEvent>(EventGraph->GetSchema()->CreateSubstituteNode(EventNode, EventGraph, NULL));
+			check(CustomEventNode != NULL);			
+
+			// grab the function's name before we delete the node
+			FName const FunctionName = EventNode->EventSignatureName;
+			// destroy the old event node (this will also break all pin links and remove it from the graph)
+			EventNode->DestroyNode();
+
+			// have to rename so it doesn't conflict with the graph we're about to add
+			CustomEventNode->RenameCustomEventCloseToName();
+			EventGraph->Nodes.Add(CustomEventNode);
+
+			// warn the user that their old functionality won't work (it's now connected 
+			// to a custom node that isn't triggered anywhere)
+			FText WarningMessageText = LOCTEXT("InterfaceEventNodeReplaced_Warn", "'%s' was promoted from an event to a function - it has been replaced by a custom event, which won't trigger unless you call it manually.");
+			Blueprint->Message_Warn(FString::Printf(*WarningMessageText.ToString(), *FunctionName.ToString()));
+		}
+
+		// Cache off the graph names for this interface, for easier searching
+		TArray<FName> GraphNames;
+		for (int32 GraphIndex = 0; GraphIndex < CurrentInterfaceDesc.Graphs.Num(); GraphIndex++)
+		{
+			const UEdGraph* CurrentGraph = CurrentInterfaceDesc.Graphs[GraphIndex];
+			if( CurrentGraph )
+			{
+				GraphNames.AddUnique(CurrentGraph->GetFName());
+			}
+		}
+
+		// Iterate over all the functions in the interface, and create graphs that are in the interface, but missing in the blueprint
+		for (TFieldIterator<UFunction> FunctionIter(CurrentInterfaceDesc.Interface, EFieldIteratorFlags::IncludeSuper); FunctionIter; ++FunctionIter)
+		{
+			UFunction* Function = *FunctionIter;
+			const FName FunctionName = Function->GetFName();
+			if(!VariableNamesUsedInBlueprint.Contains(FunctionName))
+			{
+				if( UEdGraphSchema_K2::CanKismetOverrideFunction(Function) && !UEdGraphSchema_K2::FunctionCanBePlacedAsEvent(Function) && !GraphNames.Contains(FunctionName) )
+				{
+					// interface methods initially create EventGraph stubs, so we need
+					// to make sure we remove that entry so the new graph doesn't conflict (don't
+					// worry, these are regenerated towards the end of a compile)
+					for (UEdGraph* GraphStub : Blueprint->EventGraphs)
+					{
+						if (GraphStub->GetFName() == FunctionName)
+						{
+							FBlueprintEditorUtils::RemoveGraph(Blueprint, GraphStub, EGraphRemoveFlags::MarkTransient);
+						}
+					}
+
+					// Check to see if we already have implemented 
+					UEdGraph* NewGraph = FBlueprintEditorUtils::CreateNewGraph(Blueprint, FunctionName, UEdGraph::StaticClass(), UEdGraphSchema_K2::StaticClass());
+					NewGraph->bAllowDeletion = false;
+					NewGraph->InterfaceGuid = FBlueprintEditorUtils::FindInterfaceFunctionGuid(Function, CurrentInterfaceDesc.Interface);
+					CurrentInterfaceDesc.Graphs.Add(NewGraph);
+
+					FBlueprintEditorUtils::AddInterfaceGraph(Blueprint, NewGraph, CurrentInterfaceDesc.Interface);
+				}
+			}
+			else
+			{
+				Blueprint->Status = BS_Error;
+				const FString NewError = FString::Printf( *LOCTEXT("InterfaceNameCollision_Error", "Interface name collision in blueprint: %s, interface: %s, name: %s").ToString(), 
+					*Blueprint->GetFullName(), *CurrentInterfaceDesc.Interface->GetFullName(), *FunctionName.ToString());
+				Blueprint->Message_Error(NewError);
+			}
+		}
+
+		// Iterate over all the graphs in the blueprint interface, and remove ones that no longer have functions 
+		for (int32 GraphIndex = 0; GraphIndex < CurrentInterfaceDesc.Graphs.Num(); GraphIndex++)
+		{
+			// If we can't find the function associated with the graph, delete it
+			const UEdGraph* CurrentGraph = CurrentInterfaceDesc.Graphs[GraphIndex];
+			if (!CurrentGraph || !FindField<UFunction>(CurrentInterfaceDesc.Interface, CurrentGraph->GetFName()))
+			{
+				CurrentInterfaceDesc.Graphs.RemoveAt(GraphIndex, 1);
+				GraphIndex--;
+			}
+		}
+	}
+}
+
 // Makes sure that all graphs for all interfaces we implement exist, and add if not
 void FBlueprintEditorUtils::ConformImplementedInterfaces(UBlueprint* Blueprint)
 {
@@ -3634,116 +3864,14 @@ void FBlueprintEditorUtils::ConformImplementedInterfaces(UBlueprint* Blueprint)
 			continue;
 		}
 
-		// a interface could have since been added by the parent (or this blueprint could have been re-parented)
-		if (IsInterfaceImplementedByParent(CurrentInterface, Blueprint))
-		{			
-			// have to remove the interface before we promote it (in case this method is reentrant)
-			FBPInterfaceDescription LocalInterfaceCopy = CurrentInterface;
-			Blueprint->ImplementedInterfaces.RemoveAt(InterfaceIndex, 1);
-
-			// in this case, the interface needs to belong to the parent and not this
-			// blueprint (we would have been prevented from getting in this state if we
-			// had started with a parent that implemented this interface initially)
-			PromoteInterfaceImplementationToOverride(LocalInterfaceCopy, Blueprint);
-			continue;
-		}
-
-		// check to make sure that there aren't any interface methods that we originally 
-		// implemented as events, but have since switched to functions 
-		for (UK2Node_Event* EventNode : ImplementedEvents)
+		// conform functions linked by Guids first
+		if(CurrentInterface.Interface->ClassGeneratedBy != nullptr && CurrentInterface.Interface->ClassGeneratedBy->IsA(UBlueprint::StaticClass()))
 		{
-			// if this event belongs to something other than this interface
-			if (EventNode->EventSignatureClass != CurrentInterface.Interface)
-			{
-				continue;
-			}
-
-			UFunction* InterfaceFunction = CurrentInterface.Interface->FindFunctionByName(EventNode->EventSignatureName);
-			// if the function is still ok as an event, no need to try and fix it up
-			if (UEdGraphSchema_K2::FunctionCanBePlacedAsEvent(InterfaceFunction))
-			{
-				continue;
-			}
-
-			UEdGraph* EventGraph = EventNode->GetGraph();
-			// we've already implemented this interface function as an event (which we need to replace)
-			UK2Node_CustomEvent* CustomEventNode = Cast<UK2Node_CustomEvent>(EventGraph->GetSchema()->CreateSubstituteNode(EventNode, EventGraph, NULL));
-			check(CustomEventNode != NULL);			
-
-			// grab the function's name before we delete the node
-			FName const FunctionName = EventNode->EventSignatureName;
-			// destroy the old event node (this will also break all pin links and remove it from the graph)
-			EventNode->DestroyNode();
-
-			// have to rename so it doesn't conflict with the graph we're about to add
-			CustomEventNode->RenameCustomEventCloseToName();
-			EventGraph->Nodes.Add(CustomEventNode);
-
-			// warn the user that their old functionality won't work (it's now connected 
-			// to a custom node that isn't triggered anywhere)
-			FText WarningMessageText = LOCTEXT("InterfaceEventNodeReplaced_Warn", "'%s' was promoted from an event to a function - it has been replaced by a custom event, which won't trigger unless you call it manually.");
-			Blueprint->Message_Warn(FString::Printf(*WarningMessageText.ToString(), *FunctionName.ToString()));
+			ConformInterfaceByGUID(Blueprint, CurrentInterface);
 		}
 
-		// Cache off the graph names for this interface, for easier searching
-		TArray<FName> GraphNames;
-		for (int32 j = 0; j < CurrentInterface.Graphs.Num(); j++)
-		{
-			UEdGraph* CurrentGraph = CurrentInterface.Graphs[j];
-			if( CurrentGraph )
-			{
-				GraphNames.AddUnique(CurrentGraph->GetFName());
-			}
-		}
-
-		// Iterate over all the functions in the interface, and create graphs that are in the interface, but missing in the blueprint
-		for (TFieldIterator<UFunction> FunctionIter(CurrentInterface.Interface, EFieldIteratorFlags::IncludeSuper); FunctionIter; ++FunctionIter)
-		{
-			UFunction* Function = *FunctionIter;
-			const FName FunctionName = Function->GetFName();
-			if(!VariableNamesUsedInBlueprint.Contains(FunctionName))
-			{
-				if( UEdGraphSchema_K2::CanKismetOverrideFunction(Function) && !UEdGraphSchema_K2::FunctionCanBePlacedAsEvent(Function) && !GraphNames.Contains(FunctionName) )
-				{
-					// interface methods initially create EventGraph stubs, so we need
-					// to make sure we remove that entry so the new graph doesn't conflict (don't
-					// worry, these are regenerated towards the end of a compile)
-					for (UEdGraph* GraphStub : Blueprint->EventGraphs)
-					{
-						if (GraphStub->GetFName() == FunctionName)
-						{
-							FBlueprintEditorUtils::RemoveGraph(Blueprint, GraphStub, EGraphRemoveFlags::MarkTransient);
-						}
-					}
-
-					// Check to see if we already have implemented 
-					UEdGraph* NewGraph = FBlueprintEditorUtils::CreateNewGraph(Blueprint, FunctionName, UEdGraph::StaticClass(), UEdGraphSchema_K2::StaticClass());
-					NewGraph->bAllowDeletion = false;
-					CurrentInterface.Graphs.Add(NewGraph);
-
-					FBlueprintEditorUtils::AddInterfaceGraph(Blueprint, NewGraph, CurrentInterface.Interface);
-				}
-			}
-			else
-			{
-				Blueprint->Status = BS_Error;
-				const FString NewError = FString::Printf( *LOCTEXT("InterfaceNameCollision_Error", "Interface name collision in blueprint: %s, interface: %s, name: %s").ToString(), 
-					*Blueprint->GetFullName(), *CurrentInterface.Interface->GetFullName(), *FunctionName.ToString());
-				Blueprint->Message_Error(NewError);
-			}
-		}
-
-		// Iterate over all the graphs in the blueprint interface, and remove ones that no longer have functions 
-		for (int32 j = 0; j < CurrentInterface.Graphs.Num(); j++)
-		{
-			// If we can't find the function associated with the graph, delete it
-			UEdGraph* CurrentGraph = CurrentInterface.Graphs[j];
-			if (!CurrentGraph || !FindField<UFunction>(CurrentInterface.Interface, CurrentGraph->GetFName()))
-			{
-				CurrentInterface.Graphs.RemoveAt(j, 1);
-				j--;
-			}
-		}
+		// now try to conform by name/signature
+		ConformInterfaceByName(Blueprint, CurrentInterface, InterfaceIndex, ImplementedEvents, VariableNamesUsedInBlueprint);
 
 		// not going to remove this interface, so let's continue forward
 		++InterfaceIndex;
@@ -5100,9 +5228,35 @@ bool FBlueprintEditorUtils::IsPaletteActionReadOnly(TSharedPtr<FEdGraphSchemaAct
 	if(ActionIn->GetTypeId() == FEdGraphSchemaAction_K2Graph::StaticGetTypeId())
 	{
 		FEdGraphSchemaAction_K2Graph* GraphAction = (FEdGraphSchemaAction_K2Graph*)ActionIn.Get();
-		if ( (GraphAction->EdGraph != NULL) && !((GraphAction->EdGraph->bAllowDeletion || GraphAction->EdGraph->bAllowRenaming)) )
+		// No graph is evidence of an overridable function, don't let the user modify it
+		if(GraphAction->EdGraph == NULL)
 		{
 			bIsReadOnly = true;
+		}
+		else
+		{
+			// Graphs that cannot be deleted or re-named are read-only
+			if ( !(GraphAction->EdGraph->bAllowDeletion || GraphAction->EdGraph->bAllowRenaming) )
+			{
+				bIsReadOnly = true;
+			}
+			else
+			{
+				if(GraphAction->GraphType == EEdGraphSchemaAction_K2Graph::Function)
+				{
+					// Check if the function is an override
+					UFunction* OverrideFunc = FindField<UFunction>(BlueprintObj->ParentClass, GraphAction->FuncName);
+					if ( OverrideFunc != NULL )
+					{
+						bIsReadOnly = true;
+					}
+				}
+				else if(GraphAction->GraphType == EEdGraphSchemaAction_K2Graph::Interface)
+				{
+					// Interfaces cannot be renamed
+					bIsReadOnly = true;
+				}
+			}
 		}
 	}
 	else if(ActionIn->GetTypeId() == FEdGraphSchemaAction_K2Var::StaticGetTypeId())

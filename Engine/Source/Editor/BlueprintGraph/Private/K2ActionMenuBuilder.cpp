@@ -989,6 +989,58 @@ void FK2ActionMenuBuilder::GetContextAllowedNodeTypes(FBlueprintGraphActionListB
 }
 
 //------------------------------------------------------------------------------
+
+struct FClassDynamicCastHelper
+{
+	static bool CanCastToClass(const UClass* TestClass, const UEdGraphSchema_K2* K2Schema)
+	{
+		check(TestClass && K2Schema);
+		const bool bIsSkeletonClass = TestClass->HasAnyFlags(RF_Transient) && TestClass->HasAnyClassFlags(CLASS_CompiledFromBlueprint);
+		const bool bProperClass = TestClass->HasAnyFlags(RF_Public) && !TestClass->HasAnyClassFlags(CLASS_Deprecated | CLASS_NewerVersionExists);
+		const bool bAllowedByBPComms = K2Schema->bAllowBlueprintComms || !TestClass->ClassGeneratedBy;
+		return !bIsSkeletonClass && bProperClass && bAllowedByBPComms;
+	}
+
+	static void SpawnNode(UClass* TargetType, FBlueprintGraphActionListBuilder& ContextMenuBuilder)
+	{
+		static const FString CastCategory = K2ActionCategories::GenericFunctionCategory + "|" + K2ActionCategories::CastingCategory;
+		UK2Node_DynamicCast* CastNode = ContextMenuBuilder.CreateTemplateNode<UK2Node_ClassDynamicCast>();
+		CastNode->TargetType = TargetType;
+
+		TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, CastCategory, CastNode->GetNodeTitle(ENodeTitleType::ListView), TEXT("Dynamic cast to a specific type"), 0, CastNode->GetKeywords());
+		Action->NodeTemplate = CastNode;
+	}
+
+	static void GetClassDynamicCastNodes(FBlueprintGraphActionListBuilder& ContextMenuBuilder, const UEdGraphSchema_K2* K2Schema)
+	{
+		check(ContextMenuBuilder.FromPin && K2Schema);
+		const UEdGraphPin& FromPin = *ContextMenuBuilder.FromPin;
+		if ((FromPin.PinType.PinCategory == K2Schema->PC_Class))
+		{
+			UClass* PinClass = Cast<UClass>(FromPin.PinType.PinSubCategoryObject.Get());
+			if (FromPin.Direction == EGPD_Output)
+			{
+				for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
+				{
+					UClass* TestClass = *ClassIt;
+					const bool bCanCastFromPin = !PinClass || ((TestClass != PinClass) && TestClass->IsChildOf(PinClass));
+					if (bCanCastFromPin && CanCastToClass(TestClass, K2Schema))
+					{
+						SpawnNode(TestClass, ContextMenuBuilder);
+					}
+				}
+			}
+			else if (PinClass 
+				&& (FromPin.Direction == EGPD_Input) 
+				&& (UObject::StaticClass() != PinClass) 
+				&& CanCastToClass(PinClass, K2Schema))
+			{
+				SpawnNode(PinClass, ContextMenuBuilder);
+			}
+		}
+	}
+};
+
 void FK2ActionMenuBuilder::GetPinAllowedNodeTypes(FBlueprintGraphActionListBuilder& ContextMenuBuilder) const
 {
 	const UBlueprint* Blueprint = ContextMenuBuilder.Blueprint;
@@ -1246,6 +1298,8 @@ void FK2ActionMenuBuilder::GetPinAllowedNodeTypes(FBlueprintGraphActionListBuild
 				}
 			}
 		}
+
+		FClassDynamicCastHelper::GetClassDynamicCastNodes(ContextMenuBuilder, K2Schema);
 
 		if ((FromPin.Direction == EGPD_Input) && (FromPin.PinType.PinCategory == K2Schema->PC_Int))
 		{

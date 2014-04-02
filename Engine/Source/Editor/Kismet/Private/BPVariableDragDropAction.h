@@ -9,7 +9,7 @@
 class FKismetVariableDragDropAction : public FGraphEditorDragDropAction
 {
 public:
-	// GetTypeId is the parent: FGraphEditorDragDropAction
+	DRAG_DROP_OPERATOR_TYPE(FKismetVariableDragDropAction, FGraphEditorDragDropAction)
 
 	// FGraphEditorDragDropAction interface
 	virtual void HoverTargetChanged();
@@ -23,7 +23,6 @@ public:
 	static TSharedRef<FKismetVariableDragDropAction> New(FName InVariableName, UClass* InClass, FNodeCreationAnalytic AnalyticCallback)
 	{
 		TSharedRef<FKismetVariableDragDropAction> Operation = MakeShareable(new FKismetVariableDragDropAction);
-		FSlateApplication::GetDragDropReflector().RegisterOperation<FKismetVariableDragDropAction>(Operation);
 		Operation->VariableName = InVariableName;
 		Operation->VariableSourceClass = InClass;
 		Operation->AnalyticCallback = AnalyticCallback;

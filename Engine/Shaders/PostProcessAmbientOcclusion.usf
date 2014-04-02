@@ -48,16 +48,18 @@ float2 ScreenPosToUV(float2 ScreenPos, float4 InputSize)
 // needed to prevent AO seam near 16 bit float maximum, this feactor pushed the problem far out and it seems to not have a visual degradion nearby
 const static float Constant_Float16F_Scale =  4096.0f * 32.0f;
 
+// 0:4 samples, 1:9 samples (only really noticable with dither usage ??)
+//#define AO_UPSAMPLE_QUALITY 
+
 #if USE_AO_SETUP_AS_INPUT == 1
 	// lower resolution
 	#define AO_SAMPLE_QUALITY 2
+	#define AO_UPSAMPLE_QUALITY 1
 #else
 	// full resolution is expensive, do lower quality
 	#define AO_SAMPLE_QUALITY 1
+	#define AO_UPSAMPLE_QUALITY 0
 #endif
-
-// 0:4 samples, 1:9 samples (only really noticable with dither usage ??)
-#define AO_UPSAMPLE_QUALITY 1
 
 // 0: near the surface very large, softly fading out (6 points)
 // 1: more evenly spread (5 points - slightly faster, stronger effect, better with multiple levels?)
@@ -112,11 +114,6 @@ float ComputeDepthSimilarity(float DepthA, float DepthB, float TweakScale)
 {
 	return saturate(1 - abs(DepthA - DepthB) * TweakScale);
 }
-
-#if PS4_PROFILE
-#define SLOT_RESET 1
-#include "PS4/PS4Pragmas.usf"
-#endif
 
 // downsample the input of the ambient occlusion pass for better performance, can take input from setup or another downsample pass
 void MainSetupPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor0 : SV_Target0)
@@ -326,8 +323,10 @@ void MainPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Targe
 	//Add bias after fixup
 	ViewSpacePosition += ViewSpaceNormal * (AmbientOcclusionBias * SceneDepth) * ScaleFactor;
 
+	float ViewDepthAdd = 1.0f - ViewSpacePosition.z * InvAmbientOcclusionDistance;
+
 	float WeightAccumulator = 0.0001f;
-	float3 WeightedData = WeightAccumulator;
+	float WeightedData = WeightAccumulator;
 	
 #if AO_SAMPLE_QUALITY != 0
 	// no per pixel randomization
@@ -414,8 +413,8 @@ void MainPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Targe
 				// to avoid halos around objects
 				float Weight = 1;
 				
-				Weight *= saturate(1 + (SamplePosition0.z - ViewSpacePosition.z) * InvAmbientOcclusionDistance);
-				Weight *= saturate(1 + (SamplePosition1.z - ViewSpacePosition.z) * InvAmbientOcclusionDistance);
+				Weight *= saturate(SamplePosition0.z * InvAmbientOcclusionDistance + ViewDepthAdd);
+				Weight *= saturate(SamplePosition1.z * InvAmbientOcclusionDistance + ViewDepthAdd);
 
 				// what is outside of the screen should not contribute to the AO
 				Weight *= IsScreenPosInsideBounds(ScreenSpacePosLeft);
@@ -452,7 +451,7 @@ void MainPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Targe
 				{
 					float NormAngle = 1.0f - saturate(dot(DeltaRight, ViewSpaceNormal) / length(DeltaRight));
 
-					float Weight = saturate(1 + (SamplePosition1.z - ViewSpacePosition.z) * InvAmbientOcclusionDistance);
+					float Weight = saturate(SamplePosition1.z * InvAmbientOcclusionDistance + ViewDepthAdd);
 
 					Weight *= IsScreenPosInsideBounds(ScreenSpacePosRight);
 
@@ -471,8 +470,6 @@ void MainPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Targe
 	
 	OutColor.r = WeightedData.r;
 	OutColor.gb = float2(0, 0);
-
-	WeightedData.g = WeightAccumulator;
 
 	{
 		float4 Filtered = ComputeUpsampleContribution(SceneDepth, UV, WorldNormal);
@@ -494,6 +491,9 @@ void MainPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Targe
 	// user adjust AO
 	// abs() to prevent shader warning
 	OutColor.r = 1 - (1 - pow(abs(OutColor.r), AmbientOcclusionPower)) * AmbientOcclusionIntensity;
+
+	// we output in a single alpha channel
+	OutColor = OutColor.r;
 #endif
 }
 

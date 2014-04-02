@@ -134,7 +134,7 @@ namespace UnrealVS
 		private void OnBeforeQueryStatusDynamicItem(object sender, EventArgs args)
 		{
 			var MenuCommand = (QuickBuildMenuCommand)sender;
-			MenuCommand.Enabled = true;
+			MenuCommand.Enabled = QuickBuild.IsActive;
 			MenuCommand.Visible = true;
 
 			// Determine the index of the item in the menu
@@ -178,6 +178,9 @@ namespace UnrealVS
 		private static string[] SolutionConfigNames = new string[0];
 		private static string[] SolutionConfigPlatforms = new string[0];
 
+		/// Hide/shows the while Quick Build menu tree
+		private static bool bIsActive = false;
+
 		/// List of submenus and their details - must match the values in the vsct file
 		private readonly SubMenu[] SubMenus = new[]
 			{
@@ -195,24 +198,29 @@ namespace UnrealVS
 		private readonly OleMenuCommand QuickBuildCommand;
 
 		/// <summary>
-		/// These represent the items in the menu that lists the platforms.
+		/// These represent the items that can be added to the menu that lists the platforms.
 		/// Each one is a submenu containing items for each config.
 		/// </summary>
-		private readonly Dictionary<string, OleMenuCommand> PlaformMenus = new Dictionary<string, OleMenuCommand>();
+		private readonly Dictionary<string, OleMenuCommand> AllPlaformMenus = new Dictionary<string, OleMenuCommand>();
+
+		/// <summary>
+		/// These represent the items shown in the menu that lists the platforms.
+		/// It is a subset of AllPlaformMenus with only the loaded platforms.
+		/// Each one is a submenu containing items for each config.
+		/// </summary>
+		private readonly Dictionary<string, OleMenuCommand> ActivePlaformMenus = new Dictionary<string, OleMenuCommand>();
 
 		/// <summary>
 		/// These represent the items in plaform-specific menus.
 		/// </summary>
 		private readonly Dictionary<string, PlaformMenuContents> PlaformMenusContents = new Dictionary<string, PlaformMenuContents>();
 
-		/// Hide/shows the while Quick Build menu tree
-		private bool bIsActive = false;
-
 		/// VSConstants.UICONTEXT_SolutionBuilding translated into a cookie used to access UI ctxt state
 		private readonly uint SolutionBuildingUIContextCookie;
 
 		/** properties */
 
+		public static bool IsActive { get { return bIsActive; } }
 		public static string[] CachedSolutionConfigNames { get { return SolutionConfigNames; } }
 		public static string[] CachedSolutionConfigPlatforms { get { return SolutionConfigPlatforms; } }
 
@@ -222,14 +230,16 @@ namespace UnrealVS
 		{
 			// root menu
 			QuickBuildCommand = new OleMenuCommand(null, null, OnQuickBuildQuery, new CommandID(GuidList.UnrealVSCmdSet, ProjectQuickBuildMenuID));
+			QuickBuildCommand.BeforeQueryStatus += OnQuickBuildQuery;
 			UnrealVSPackage.Instance.MenuCommandService.AddCommand(QuickBuildCommand);
 
 			// platform sub-menus
 			foreach (var SubMenu in SubMenus)
 			{
 				var SubMenuCommand = new OleMenuCommand(null, new CommandID(GuidList.UnrealVSCmdSet, SubMenu.SubMenuId));
+				SubMenuCommand.BeforeQueryStatus += OnQuickBuildSubMenuQuery;
 				UnrealVSPackage.Instance.MenuCommandService.AddCommand(SubMenuCommand);
-				PlaformMenus.Add(SubMenu.Name, SubMenuCommand);
+				AllPlaformMenus.Add(SubMenu.Name, SubMenuCommand);
 				PlaformMenusContents.Add(SubMenu.Name, new PlaformMenuContents(SubMenu.Name, SubMenu.DynamicStartCommandId));
 			}
 
@@ -260,8 +270,16 @@ namespace UnrealVS
 		{
 			// Always cache the list of solution build configs when the project menu is opening
 			CacheBuildConfigs();
+		}
 
-			QuickBuildCommand.Visible = bIsActive;
+		/// <summary>
+		/// Before-query handler passed to the sub-menu item's OleMenuCommand and called to update the state of the item.
+		/// </summary>
+		private void OnQuickBuildSubMenuQuery(object sender, EventArgs e)
+		{
+			var SubMenuCommand = (OleMenuCommand)sender;
+			SubMenuCommand.Visible = ActivePlaformMenus.ContainsValue(SubMenuCommand);
+			SubMenuCommand.Enabled = bIsActive;
 		}
 
 		/// <summary>
@@ -272,10 +290,13 @@ namespace UnrealVS
 		{
 			CacheBuildConfigs();
 
+			ActivePlaformMenus.Clear();
 			foreach (var SubMenu in SubMenus)
 			{
-				bool bShow = SolutionConfigPlatforms.Any(Platform => string.Compare(Platform, SubMenu.Name, StringComparison.OrdinalIgnoreCase) == 0);
-				PlaformMenus[SubMenu.Name].Visible = bShow;
+				if (SolutionConfigPlatforms.Any(Platform => string.Compare(Platform, SubMenu.Name, StringComparison.InvariantCultureIgnoreCase) == 0))
+				{
+					ActivePlaformMenus.Add(SubMenu.Name, AllPlaformMenus[SubMenu.Name]);
+				}
 			}
 		}
 

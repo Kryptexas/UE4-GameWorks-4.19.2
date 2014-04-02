@@ -12,6 +12,12 @@
 static const int GUID_PACKET_NOT_ACKED	= -2;		
 static const int GUID_PACKET_ACKED		= -1;		
 
+/**
+ * Don't allow infinite recursion of InternalLoadObject - an attacker could
+ * send malicious packets that cause a stack overflow on the server.
+ */
+static const int INTERNAL_LOAD_OBJECT_RECURSION_LIMIT = 16;
+
 /*-----------------------------------------------------------------------------
 	UPackageMapClient implementation.
 -----------------------------------------------------------------------------*/
@@ -86,7 +92,7 @@ bool UPackageMapClient::SerializeObject( FArchive& Ar, UClass* Class, UObject*& 
 		// ----------------	
 		// Read NetGUID from stream and resolve object
 		// ----------------	
-		FNetworkGUID NetGUID = InternalLoadObject(Ar, Object);
+		FNetworkGUID NetGUID = InternalLoadObject(Ar, Object, 0);
 
 		// Write out NetGUID to caller if necessary
 		if (OutNetGUID)
@@ -110,6 +116,12 @@ bool UPackageMapClient::SerializeObject( FArchive& Ar, UClass* Class, UObject*& 
 		{
 			UE_LOG(LogNetPackageMap, Log, TEXT("Forged object: got %s, expecting %s"),*Object->GetFullName(),*Class->GetFullName());
 			Object = NULL;
+		}
+
+		if ( NetGUID.IsValid() && Object == NULL )
+		{
+			bLoadedUnmappedObject = true;
+			LastUnmappedNetGUID = NetGUID;
 		}
 
 		UE_CLOG(!bSuppressLogs, LogNetPackageMap, Log, TEXT("UPackageMapClient::SerializeObject Serialized Object %s as <%s>"), Object ? *Object->GetPathName() : TEXT("NULL"), *NetGUID.ToString() );
@@ -628,8 +640,15 @@ void UPackageMapClient::InternalWriteObjectPath( FArchive & Ar, FNetworkGUID Net
 //--------------------------------------------------------------------
 
 /** Loads a UObject from an FArchive stream. Reads object path if there, and tries to load object if its not already loaded */
-FNetworkGUID UPackageMapClient::InternalLoadObject( FArchive& Ar, UObject*& Object )
+FNetworkGUID UPackageMapClient::InternalLoadObject( FArchive& Ar, UObject*& Object, const int InternalLoadObjectRecursionCount )
 {
+	if(InternalLoadObjectRecursionCount > INTERNAL_LOAD_OBJECT_RECURSION_LIMIT) {
+		UE_LOG(LogNetPackageMap, Warning, TEXT("InternalLoadObject hit recursion limit."));
+		Ar.SetError(); 
+		Object = NULL;
+		return FNetworkGUID(); 
+	} 
+
 	// ----------------	
 	// Read the NetGUID
 	// ----------------	
@@ -680,7 +699,7 @@ FNetworkGUID UPackageMapClient::InternalLoadObject( FArchive& Ar, UObject*& Obje
 
 	if ( ReceivingFullPath )
 	{
-		InternalLoadObjectPath(Ar, Object, NetGUID);
+		InternalLoadObjectPath(Ar, Object, NetGUID, InternalLoadObjectRecursionCount);
 
 		if ( Ar.IsError() )
 		{
@@ -698,7 +717,7 @@ FNetworkGUID UPackageMapClient::InternalLoadObject( FArchive& Ar, UObject*& Obje
 }
 
 /** Actually does the dynamic loading */
-bool UPackageMapClient::InternalLoadObjectPath( FArchive& Ar, UObject*& Object, FNetworkGUID NetGUID )
+bool UPackageMapClient::InternalLoadObjectPath( FArchive& Ar, UObject*& Object, FNetworkGUID NetGUID, const int InternalLoadObjectRecursionCount )
 {
 	UObject* ObjOuter = NULL;
 
@@ -706,7 +725,7 @@ bool UPackageMapClient::InternalLoadObjectPath( FArchive& Ar, UObject*& Object, 
 
 	if ( SerializeOuter )
 	{
-		OuterGUID = InternalLoadObject( Ar, ObjOuter );
+		OuterGUID = InternalLoadObject( Ar, ObjOuter, InternalLoadObjectRecursionCount + 1 );
 	}
 
 	const bool OuterFailure = ( SerializeOuter && OuterGUID.IsValid() && ObjOuter == NULL );
@@ -941,7 +960,7 @@ void UPackageMapClient::ReceiveNetGUIDBunch( FInBunch &InBunch )
 	while( NumGUIDsRead < NumGUIDsInBunch )
 	{
 		UObject *Obj;
-		InternalLoadObject( InBunch, Obj );
+		InternalLoadObject( InBunch, Obj, 0 );
 		if ( InBunch.IsError() )
 		{
 			UE_LOG( LogNetPackageMap, Error, TEXT( "UPackageMapClient::ReceiveNetGUIDBunch: InBunch.IsError() after InternalLoadObject" ) );

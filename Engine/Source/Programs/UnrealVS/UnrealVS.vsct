@@ -206,10 +206,11 @@
 		<Combos>
 
 			<!-- Combo box for selecting a new startup project -->
+			<!-- Command list version of this combo - adds the command to the commands list for customization -->
 			<Combo guid="UnrealVSCmdSetGUID" id="StartupProjectComboID" priority="10" type="DropDownCombo" idCommandList="StartupProjectComboListID" defaultWidth="100">
 
 				<!-- Parent the button to the tool bar -->
-				<Parent guid="UnrealVSCmdSetGUID" id="MyToolbarGroupID" />
+				<Parent guid="UnrealVSCmdSetGUID" id="CommandsMenuGroupID" />
 
 				<!-- Allow user to customize even though it's not in the menu -->
 				<CommandFlag>CommandWellOnly</CommandFlag>
@@ -220,8 +221,44 @@
 				</Strings>
 			</Combo>
 
+			<!-- Combo box for selecting a new startup project -->
+			<!-- UnrealVS Toolbar version of this combo -->
+			<Combo guid="UnrealVSCmdSetGUID" id="StartupProjectComboID" priority="10" type="DropDownCombo" idCommandList="StartupProjectComboListID" defaultWidth="100">
+
+				<!-- Parent the button to the tool bar -->
+				<Parent guid="UnrealVSCmdSetGUID" id="MyToolbarGroupID" />
+
+				<!-- Allow user to customize even though it's not in the menu -->
+				<CommandFlag>CommandWellOnly</CommandFlag>
+				<CommandFlag>DefaultDisabled</CommandFlag>
+
+				<Strings>
+					<ButtonText>Startup Project</ButtonText>
+					<CommandName>Startup Project Selector</CommandName>
+				</Strings>
+			</Combo>
 
 			<!-- Combo box for selecting command-line arguments and typing in new command-line arguments -->
+			<!-- Command list version of this combo - adds the command to the commands list for customization -->
+			<Combo guid="UnrealVSCmdSetGUID" id="CommandLineComboID" priority="20" type="DynamicCombo" idCommandList="CommandLineComboListID" defaultWidth="200">
+
+				<!-- Parent the button to the tool bar -->
+				<Parent guid="UnrealVSCmdSetGUID" id="CommandsMenuGroupID" />
+
+				<!-- Allow user to customize even though it's not in the menu -->
+				<CommandFlag>CommandWellOnly</CommandFlag>
+
+				<!-- Callback to the handler for every keystroke -->
+				<CommandFlag>FilterKeys</CommandFlag>
+
+				<Strings>
+					<ButtonText>Command-line</ButtonText>
+					<CommandName>Command Line Editor</CommandName>
+				</Strings>
+			</Combo>			
+			
+			<!-- Combo box for selecting command-line arguments and typing in new command-line arguments -->
+			<!-- UnrealVS Toolbar version of this combo -->
 			<Combo guid="UnrealVSCmdSetGUID" id="CommandLineComboID" priority="20" type="DynamicCombo" idCommandList="CommandLineComboListID" defaultWidth="200">
 
 				<!-- Parent the button to the tool bar -->
@@ -229,7 +266,8 @@
 
 				<!-- Allow user to customize even though it's not in the menu -->
 				<CommandFlag>CommandWellOnly</CommandFlag>
-
+				<CommandFlag>DefaultDisabled</CommandFlag>
+				
 				<!-- Callback to the handler for every keystroke -->
 				<CommandFlag>FilterKeys</CommandFlag>
 
@@ -241,6 +279,7 @@
 					<CommandName>Command Line Editor</CommandName>
 				</Strings>
 			</Combo>
+			
 		</Combos>
 
 

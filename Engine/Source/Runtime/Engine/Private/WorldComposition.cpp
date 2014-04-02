@@ -147,6 +147,9 @@ struct FWorldTilesGatherer
 
 void UWorldComposition::Rescan()
 {
+	// Save tiles state, so we can restore it for dirty tiles after rescan is done
+	FTilesList SavedTileList = Tiles;
+		
 	Reset();	
 	
 	if (WorldRoot.IsEmpty())
@@ -206,6 +209,10 @@ void UWorldComposition::Rescan()
 
 		Tiles.Add(Tile);
 	}
+
+#if WITH_EDITOR
+	RestoreDirtyTilesInfo(SavedTileList);
+#endif// WITH_EDITOR
 	
 	// Create streaming levels for each Tile
 	PopulateStreamingLevels();
@@ -332,9 +339,34 @@ void UWorldComposition::OnTileInfoUpdated(const FName& InPackageName, const FWor
 	}
 }
 
-UWorldComposition::TilesList& UWorldComposition::GetTilesList()
+UWorldComposition::FTilesList& UWorldComposition::GetTilesList()
 {
 	return Tiles;
+}
+
+void UWorldComposition::RestoreDirtyTilesInfo(const FTilesList& TilesPrevState)
+{
+	if (!TilesPrevState.Num())
+	{
+		return;
+	}
+	
+	for (FWorldCompositionTile& Tile : Tiles)
+	{
+		UPackage* LevelPackage = Cast<UPackage>(StaticFindObjectFast(UPackage::StaticClass(), NULL, Tile.PackageName));
+		if (LevelPackage && LevelPackage->IsDirty())
+		{
+			auto* FoundTile = TilesPrevState.FindByPredicate([=](const FWorldCompositionTile& TilePrev)
+			{
+				return TilePrev.PackageName == Tile.PackageName;
+			});
+			
+			if (FoundTile)
+			{
+				Tile.Info = FoundTile->Info;
+			}
+		}
+	}
 }
 
 bool UWorldComposition::CollectTilesToCook(const FString& CmdLineMapEntry, TArray<FString>& FilesInPath)

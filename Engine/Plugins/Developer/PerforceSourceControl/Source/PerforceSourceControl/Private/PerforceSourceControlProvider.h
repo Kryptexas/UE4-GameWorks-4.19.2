@@ -48,21 +48,11 @@ public:
 	/**
 	 * Gets a list of client spec names from the source control provider
 	 *
-	 * @param	InServerName		Name of server
-	 * @param	InUserName			User name
+	 * @param	InConnectionInfo	Credentials for connection
 	 * @param	OutWorkspaceList	List of client spec name strings
 	 * @param	OutErrorMessages	List of any error messages that may have occurred
 	 */
-	void GetWorkspaceList(const FString& InServerName, const FString& InUserName, TArray<FString>& OutWorkspaceList, TArray<FText>& OutErrorMessages);
-
-	/** Get the P4 port we will use for connections */
-	const FString& GetPort() const;
-
-	/** Get the P4 user we will use for connections */
-	const FString& GetUser() const;
-
-	/** Get the P4 client spec we will use for connections */
-	const FString& GetClientSpec() const;
+	void GetWorkspaceList(const struct FPerforceConnectionInfo& InConnectionInfo, TArray<FString>& OutWorkspaceList, TArray<FText>& OutErrorMessages);
 
 	/** Get the P4 ticket we will use for connections */
 	const FString& GetTicket() const;

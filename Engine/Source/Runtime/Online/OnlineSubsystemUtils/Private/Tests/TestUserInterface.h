@@ -63,5 +63,5 @@ public:
 	 *
 	 * @param InUserIds list of user ids to query
 	 */
-	void Test(const TArray<FString>& InUserIds);
+	void Test(class UWorld* InWorld, const TArray<FString>& InUserIds);
  };

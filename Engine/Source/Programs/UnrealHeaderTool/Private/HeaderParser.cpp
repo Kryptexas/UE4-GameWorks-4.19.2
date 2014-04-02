@@ -652,7 +652,7 @@ UField* FHeaderParser::FindField
 	FName InName( InIdentifier, FNAME_Find, true );
 	if (InName != NAME_None)
 	{
-		for( Scope; Scope; Scope = Cast<UStruct>(Scope->GetOuter()) )
+		for( ; Scope; Scope = Cast<UStruct>(Scope->GetOuter()) )
 		{
 			for( TFieldIterator<UField> It(Scope); It; ++It )
 			{
@@ -1654,11 +1654,11 @@ UScriptStruct* FHeaderParser::CompileStructDeclaration(UClass* Scope)
 					{
 						FError::Throwf(TEXT("Unexpected end of struct definition %s"), *Struct->GetName());
 					}
-					else if ( ch=='{' || ch=='#' && (PeekIdentifier(TEXT("if")) || PeekIdentifier(TEXT("ifdef"))) )
+					else if ( ch=='{' || (ch=='#' && (PeekIdentifier(TEXT("if")) || PeekIdentifier(TEXT("ifdef")))) )
 					{
 						nest++;
 					}
-					else if ( ch=='}' || ch=='#' && PeekIdentifier(TEXT("endif")) )
+					else if ( ch=='}' || (ch=='#' && PeekIdentifier(TEXT("endif"))) )
 					{
 						nest--;
 					}
@@ -2740,6 +2740,23 @@ bool FHeaderParser::GetVarType
 		}
 	}
 
+	{
+		const FString* ExposeOnSpawnStr = MetaDataFromNewStyle.Find(TEXT("ExposeOnSpawn"));
+		const bool bExposeOnSpawn = (NULL != ExposeOnSpawnStr);
+		if (bExposeOnSpawn)
+		{
+			if ((CPF_DisableEditOnInstance | CPF_BlueprintReadOnly) & Flags)
+			{
+				UE_LOG(LogCompile, Warning, TEXT("Property cannot have 'DisableEditOnInstance' or 'BlueprintReadOnly' and 'ExposeOnSpawn' flags"));
+			}
+			if (0 == (CPF_BlueprintVisible & Flags))
+			{
+				UE_LOG(LogCompile, Warning, TEXT("Property cannot have 'ExposeOnSpawn' with 'BlueprintVisible' flag."));
+			}
+			Flags |= CPF_ExposeOnSpawn;
+		}
+	}
+
 	if (CurrentAccessSpecifier == ACCESS_Public || VariableCategory != EVariableCategory::Member)
 	{
 		ObjectFlags |= RF_Public;
@@ -3089,6 +3106,11 @@ bool FHeaderParser::GetVarType
 			if (VarType.Matches(TEXT("TSubclassOf")))
 			{
 				TempClass = UClass::StaticClass();
+			}
+			else if (VarType.Matches(TEXT("FScriptInterface")))
+			{
+				TempClass = UInterface::StaticClass();
+				bExpectStar = false;
 			}
 			else if (bIsAssetClassTemplate)
 			{
@@ -5200,37 +5222,11 @@ void FHeaderParser::CompileFunctionDeclaration()
 		bAutomaticallyFinal = false;
 	}
 
+	bool bSawVirtual = false;
+
 	if (MatchIdentifier(TEXT("virtual")))
 	{
-		// Remove the implicit FINAL, the user can still specifying an explicit FINAL at the end of the declaration
-		bAutomaticallyFinal = false;
-
-		// if this is a BlueprintNativeEvent or BlueprintImplementableEvent in an interface, make sure it's not "virtual"
-		if ( (Class->HasAnyClassFlags(CLASS_Interface)) && (FuncInfo.FunctionFlags & FUNC_BlueprintEvent) )
-		{
-			FError::Throwf(TEXT("BlueprintImplementableEvents in Interfaces must not be declared 'virtual'"));
-		}
-
-		// if this is a BlueprintNativeEvent, make sure it's not "virtual"
-		if ( (FuncInfo.FunctionFlags & FUNC_BlueprintEvent) && (FuncInfo.FunctionFlags & FUNC_Native) )
-		{
-			FError::Throwf(TEXT("BlueprintNativeEvent functions must be non-virtual."));
-		}
-
-//		@todo: we should consider making BIEs nonvirtual as well, where could simplify these checks to this...
-// 		if ( (FuncInfo.FunctionFlags & FUNC_BlueprintEvent) )
-// 		{
-// 			FError::Throwf(TEXT("Functions marked BlueprintImplementableEvent or BlueprintNativeEvent must not be declared 'virtual'"));
-// 		}
-
-	}
-	else
-	{
-		// if this is a function in an Interface, it must be marked 'virtual' unless it's an event
-		if (Class->HasAnyClassFlags(CLASS_Interface) && !(FuncInfo.FunctionFlags & FUNC_BlueprintEvent) )
-		{
-			FError::Throwf(TEXT("Interface functions that are not BlueprintImplementableEvents must be declared 'virtual'"));
-		}
+		bSawVirtual = true;
 	}
 
 	// If this function is blueprint callable or blueprint pure, require a category 
@@ -5248,7 +5244,7 @@ void FHeaderParser::CompileFunctionDeclaration()
 	}
 
 	// Verify interfaces with respect to their blueprint accessable functions
-	if(Class->HasAnyClassFlags(CLASS_Interface))
+	if (Class->HasAnyClassFlags(CLASS_Interface))
 	{
 		const bool bCanImplementInBlueprints = !Class->HasMetaData(TEXT("CannotImplementInterfaceInBlueprint"));  //FBlueprintMetadata::MD_CannotImplementInterfaceInBlueprint
 		if((FuncInfo.FunctionFlags & FUNC_BlueprintEvent) != 0)
@@ -5293,19 +5289,6 @@ void FHeaderParser::CompileFunctionDeclaration()
 		FError::Throwf(TEXT("Unknown access level"));
 	}
 
-	// Handle the initial implicit/explicit final
-	// A user can still specify an explicit FINAL after the parameter list as well.
-	if (bAutomaticallyFinal || FuncInfo.bSealedEvent)
-	{
-		FuncInfo.FunctionFlags |= FUNC_Final;
-		FuncInfo.FunctionExportFlags |= FUNCEXPORT_Final;
-
-		if (Class->HasAnyClassFlags(CLASS_Interface))
-		{
-			FError::Throwf(TEXT("Interface functions cannot be declared 'final'"));
-		}
-	}
-
 	// non-static functions in a const class must be const themselves
 	if (Class->HasAnyClassFlags(CLASS_Const))
 	{
@@ -5344,6 +5327,58 @@ void FHeaderParser::CompileFunctionDeclaration()
 			{
 				UngetToken(Token);
 			}
+		}
+	}
+
+	// Look for virtual again, in case there was an ENGINE_API token first
+	if (MatchIdentifier(TEXT("virtual")))
+	{
+		bSawVirtual = true;
+	}
+
+	// Process the virtualness
+	if (bSawVirtual)
+	{
+		// Remove the implicit FINAL, the user can still specifying an explicit FINAL at the end of the declaration
+		bAutomaticallyFinal = false;
+
+		// if this is a BlueprintNativeEvent or BlueprintImplementableEvent in an interface, make sure it's not "virtual"
+		if ((Class->HasAnyClassFlags(CLASS_Interface)) && (FuncInfo.FunctionFlags & FUNC_BlueprintEvent))
+		{
+			FError::Throwf(TEXT("BlueprintImplementableEvents in Interfaces must not be declared 'virtual'"));
+		}
+
+		// if this is a BlueprintNativeEvent, make sure it's not "virtual"
+		if ((FuncInfo.FunctionFlags & FUNC_BlueprintEvent) && (FuncInfo.FunctionFlags & FUNC_Native))
+		{
+			FError::Throwf(TEXT("BlueprintNativeEvent functions must be non-virtual."));
+		}
+
+		//		@todo: we should consider making BIEs nonvirtual as well, where could simplify these checks to this...
+		// 		if ( (FuncInfo.FunctionFlags & FUNC_BlueprintEvent) )
+		// 		{
+		// 			FError::Throwf(TEXT("Functions marked BlueprintImplementableEvent or BlueprintNativeEvent must not be declared 'virtual'"));
+		// 		}
+	}
+	else
+	{
+		// if this is a function in an Interface, it must be marked 'virtual' unless it's an event
+		if (Class->HasAnyClassFlags(CLASS_Interface) && !(FuncInfo.FunctionFlags & FUNC_BlueprintEvent))
+		{
+			FError::Throwf(TEXT("Interface functions that are not BlueprintImplementableEvents must be declared 'virtual'"));
+		}
+	}
+
+	// Handle the initial implicit/explicit final
+	// A user can still specify an explicit FINAL after the parameter list as well.
+	if (bAutomaticallyFinal || FuncInfo.bSealedEvent)
+	{
+		FuncInfo.FunctionFlags |= FUNC_Final;
+		FuncInfo.FunctionExportFlags |= FUNCEXPORT_Final;
+
+		if (Class->HasAnyClassFlags(CLASS_Interface))
+		{
+			FError::Throwf(TEXT("Interface functions cannot be declared 'final'"));
 		}
 	}
 

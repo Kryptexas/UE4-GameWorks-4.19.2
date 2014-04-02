@@ -582,7 +582,6 @@ namespace UnrealBuildTool
 		/// <param name="IncludeAllPlatforms">True if all platforms should be included</param>
 		protected virtual void ConfigureProjectFileGeneration( String[] Arguments, ref bool IncludeAllPlatforms )
 		{
-			string ExtraArgument = null;
 			foreach( var CurArgument in Arguments )
 			{
 				if( CurArgument.StartsWith( "-" ) )
@@ -683,14 +682,6 @@ namespace UnrealBuildTool
 						case "-ALLLANGUAGES":
 							bAllDocumentationLanguages = true;
 							break;
-					}
-				}
-				else
-				{
-					if ((CurArgument.EndsWith(".uproject", StringComparison.InvariantCultureIgnoreCase) == false) &&
-						(CurArgument.EndsWith(".uplugin", StringComparison.InvariantCultureIgnoreCase) == false))
-					{
-						ExtraArgument = CurArgument;
 					}
 				}
 			}
@@ -1141,7 +1132,7 @@ namespace UnrealBuildTool
 			DirectoryInfo ProjectFolderInfo = new DirectoryInfo( ProjectFolderName );
 			if( ProjectFolderInfo.Exists )
 			{
-				Folder.ChildProjects.Add( AddSimpleCSharpProject( "IOS/IPhonePackager" ) );
+				Folder.ChildProjects.Add( AddSimpleCSharpProject( "IOS/iPhonePackager" ) );
 				Folder.ChildProjects.Add( AddSimpleCSharpProject( "IOS/DeploymentInterface" ) );
 				Folder.ChildProjects.Add( AddSimpleCSharpProject( "IOS/DeploymentServer" ) );
 				Folder.ChildProjects.Add( AddSimpleCSharpProject( "IOS/MobileDeviceInterface" ) );
@@ -1947,8 +1938,18 @@ namespace UnrealBuildTool
 				try
 				{
 					Directory.CreateDirectory( Path.GetDirectoryName( FileName ) );
-					File.WriteAllText( FileName, NewFileContents, Encoding.UTF8 );
-					Log.TraceVerbose( "Saved {0}", Path.GetFileName( FileName ) );
+                    // When WriteAllText is passed Encoding.UTF8 it likes to write a BOM marker
+                    // at the start of the file (adding two bytes to the file length).  For most
+                    // files this is only mildly annoying but for Makefiles it can actually make
+                    // them un-useable.
+                    // TODO(sbc): See if we can just drop the Encoding.UTF8 argument on all
+                    // platforms.  In this case UTF8 encoding will still be used but without the
+                    // BOM, which is, AFAICT, desirable in almost all cases.
+                    if (ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Linux)
+                        File.WriteAllText(FileName, NewFileContents);
+                    else
+                        File.WriteAllText(FileName, NewFileContents, Encoding.UTF8);
+                    Log.TraceVerbose("Saved {0}", Path.GetFileName(FileName));
 				}
 				catch( Exception ex )
 				{

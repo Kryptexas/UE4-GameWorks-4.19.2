@@ -4,7 +4,7 @@
 
 #include "Engine.h"
 #include "Slate.h"
-#include "Spinlock.h"
+#include "SpinLock.h"
 #include "NullMoviePlayer.h"
 #include "DefaultGameMoviePlayer.h"
 

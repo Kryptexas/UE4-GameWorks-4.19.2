@@ -112,12 +112,12 @@ static bool OnlineExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 		// If the exec requested a specific subsystem, the grab that one for routing
 		if (SubName.Len())
 		{
-			OnlineSub = IOnlineSubsystem::Get(*SubName);
+			OnlineSub = Online::GetSubsystem(InWorld, *SubName);
 		}
 		// Otherwise use the default subsystem and route to that
 		else
 		{
-			OnlineSub = IOnlineSubsystem::Get();
+			OnlineSub = Online::GetSubsystem(InWorld);
 		}
 		if (OnlineSub != NULL)
 		{
@@ -135,7 +135,7 @@ static bool OnlineExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 							Invites.Add(FriendId);
 						}
 						// This class deletes itself once done
-						(new FTestFriendsInterface(SubName))->Test(Invites);
+						(new FTestFriendsInterface(SubName))->Test(InWorld, Invites);
 						bWasHandled = true;
 					}
 					// Spawn the object that will exercise all of the session methods as host
@@ -161,13 +161,13 @@ static bool OnlineExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 					else if (FParse::Command(&Cmd, TEXT("CLOUD")))
 					{
 						// This class deletes itself once done
-						(new FTestCloudInterface(SubName))->Test();
+						(new FTestCloudInterface(SubName))->Test(InWorld);
 						bWasHandled = true;
 					}
 					else if (FParse::Command(&Cmd, TEXT("LEADERBOARDS")))
 					{
 						// This class deletes itself once done
-						(new FTestLeaderboardInterface(SubName))->Test();
+						(new FTestLeaderboardInterface(SubName))->Test(InWorld);
 						bWasHandled = true;
 					}
 					else if (FParse::Command(&Cmd, TEXT("VOICE")))
@@ -179,7 +179,7 @@ static bool OnlineExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 					else if (FParse::Command(&Cmd, TEXT("TIME")))
 					{
 						// This class deletes itself once done
-						(new FTestTimeInterface(SubName))->Test();
+						(new FTestTimeInterface(SubName))->Test(InWorld);
 						bWasHandled = true;
 					}
 					else if (FParse::Command(&Cmd, TEXT("IDENTITY")))
@@ -189,13 +189,13 @@ static bool OnlineExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 						FString Type = FParse::Token(Cmd, false);
 
 						// This class deletes itself once done
-						(new FTestIdentityInterface(SubName))->Test( FOnlineAccountCredentials(Type, Id, Auth) );
+						(new FTestIdentityInterface(SubName))->Test(InWorld, FOnlineAccountCredentials(Type, Id, Auth));
 						bWasHandled = true;
 					}
 					else if (FParse::Command(&Cmd, TEXT("UNIQUEIDREPL")))
 					{
-						extern void TestUniqueIdRepl();
-						TestUniqueIdRepl();
+						extern void TestUniqueIdRepl(class UWorld* InWorld);
+						TestUniqueIdRepl(InWorld);
 						bWasHandled = true;
 					}
 					else if (FParse::Command(&Cmd, TEXT("KEYVALUEPAIR")))
@@ -207,19 +207,19 @@ static bool OnlineExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 					else if (FParse::Command(&Cmd, TEXT("TITLEFILE")))
 					{
 						// This class deletes itself once done
-						(new FTestTitleFileInterface(SubName))->Test();
+						(new FTestTitleFileInterface(SubName))->Test(InWorld);
 						bWasHandled = true;
 					}
 					else if (FParse::Command(&Cmd, TEXT("ENTITLEMENTS")))
 					{
 						// This class also deletes itself once done
-						(new FTestEntitlementsInterface(SubName))->Test();
+						(new FTestEntitlementsInterface(SubName))->Test(InWorld);
 						bWasHandled = true;
 					}
 					else if (FParse::Command(&Cmd, TEXT("ACHIEVEMENTS")))
 					{
 						// This class also deletes itself once done
-						(new FTestAchievementsInterface(SubName))->Test();
+						(new FTestAchievementsInterface(SubName))->Test(InWorld);
 						bWasHandled = true;
 					}
 					else if (FParse::Command(&Cmd, TEXT("SHARING")))
@@ -227,7 +227,7 @@ static bool OnlineExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 						bool bTestWithImage = FParse::Command(&Cmd, TEXT("IMG"));
 
 						// This class also deletes itself once done
-						(new FTestSharingInterface(SubName))->Test(bTestWithImage);
+						(new FTestSharingInterface(SubName))->Test(InWorld, bTestWithImage);
 						bWasHandled = true;
 					}
 					else if (FParse::Command(&Cmd, TEXT("USER")))
@@ -238,7 +238,7 @@ static bool OnlineExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 							UserIds.Add(Id);
 						}
 						// This class also deletes itself once done
-						(new FTestUserInterface(SubName))->Test(UserIds);
+						(new FTestUserInterface(SubName))->Test(InWorld, UserIds);
 						bWasHandled = true;
 					}
 					else if (FParse::Command(&Cmd, TEXT("MESSAGE")))
@@ -249,7 +249,7 @@ static bool OnlineExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 							RecipientIds.Add(UserId);
 						}
 						// This class also deletes itself once done
-						(new FTestMessageInterface(SubName))->Test(RecipientIds);
+						(new FTestMessageInterface(SubName))->Test(InWorld, RecipientIds);
 						bWasHandled = true;
 					}
 				}

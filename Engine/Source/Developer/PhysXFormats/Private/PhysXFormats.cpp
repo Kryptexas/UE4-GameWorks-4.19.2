@@ -146,6 +146,45 @@ public:
 		return false;
 #endif		// WITH_PHYSX
 	}
+
+	virtual bool CookHeightField(FName Format, FIntPoint HFSize, float Thickness, const void* Samples, uint32 SamplesStride, TArray<uint8>& OutBuffer) const OVERRIDE
+	{
+#if WITH_PHYSX
+		PxPlatform::Enum PhysXFormat = PxPlatform::ePC;
+		bool bIsPhysXFormatValid = GetPhysXFormat(Format, PhysXFormat);
+		check(bIsPhysXFormatValid);
+
+		PxHeightFieldDesc HFDesc;
+		HFDesc.format = PxHeightFieldFormat::eS16_TM;
+		HFDesc.nbColumns = HFSize.X;
+		HFDesc.nbRows = HFSize.Y;
+		HFDesc.samples.data = Samples;
+		HFDesc.samples.stride = SamplesStride;
+		HFDesc.flags = PxHeightFieldFlag::eNO_BOUNDARY_EDGES;
+		HFDesc.thickness = Thickness;
+
+		// Set up cooking
+		const PxCookingParams& Params = PhysXCooking->getParams();
+		PxCookingParams NewParams = Params;
+		NewParams.targetPlatform = PhysXFormat;
+		PhysXCooking->setParams(NewParams);
+
+		// Cook to a temp buffer
+		TArray<uint8> CookedBuffer;
+		FPhysXOutputStream Buffer(&CookedBuffer);
+
+		if (PhysXCooking->cookHeightField(HFDesc, Buffer) && CookedBuffer.Num() > 0)
+		{
+			// Append the cooked data into cooked buffer
+			OutBuffer.Append(CookedBuffer);
+			return true;
+		}
+		return false;
+#else
+		return false;
+#endif		// WITH_PHYSX
+	}
+
 };
 
 

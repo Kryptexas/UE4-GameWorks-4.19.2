@@ -468,8 +468,80 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 	{
 		TSharedRef< FWindowsWindow > CurrentNativeEventWindow = CurrentNativeEventWindowPtr.ToSharedRef();
 
+		static const TMap<uint32, FString> WindowsMessageStrings = []()
+		{
+			TMap<uint32, FString> Result;
+#define ADD_WINDOWS_MESSAGE_STRING(WMCode) Result.Add(WMCode, TEXT(#WMCode))
+			ADD_WINDOWS_MESSAGE_STRING(WM_INPUTLANGCHANGEREQUEST);
+			ADD_WINDOWS_MESSAGE_STRING(WM_INPUTLANGCHANGE);
+			ADD_WINDOWS_MESSAGE_STRING(WM_IME_SETCONTEXT);
+			ADD_WINDOWS_MESSAGE_STRING(WM_IME_NOTIFY);
+			ADD_WINDOWS_MESSAGE_STRING(WM_IME_REQUEST);
+			ADD_WINDOWS_MESSAGE_STRING(WM_IME_STARTCOMPOSITION);
+			ADD_WINDOWS_MESSAGE_STRING(WM_IME_COMPOSITION);
+			ADD_WINDOWS_MESSAGE_STRING(WM_IME_ENDCOMPOSITION);
+			ADD_WINDOWS_MESSAGE_STRING(WM_IME_CHAR);
+#undef ADD_WINDOWS_MESSAGE_STRING
+			return Result;
+		}();
+
+		static const TMap<uint32, FString> IMNStrings = []()
+		{
+			TMap<uint32, FString> Result;
+#define ADD_IMN_STRING(IMNCode) Result.Add(IMNCode, TEXT(#IMNCode))
+			ADD_IMN_STRING(IMN_CLOSESTATUSWINDOW);
+			ADD_IMN_STRING(IMN_OPENSTATUSWINDOW);
+			ADD_IMN_STRING(IMN_CHANGECANDIDATE);
+			ADD_IMN_STRING(IMN_CLOSECANDIDATE);
+			ADD_IMN_STRING(IMN_OPENCANDIDATE);
+			ADD_IMN_STRING(IMN_SETCONVERSIONMODE);
+			ADD_IMN_STRING(IMN_SETSENTENCEMODE);
+			ADD_IMN_STRING(IMN_SETOPENSTATUS);
+			ADD_IMN_STRING(IMN_SETCANDIDATEPOS);
+			ADD_IMN_STRING(IMN_SETCOMPOSITIONFONT);
+			ADD_IMN_STRING(IMN_SETCOMPOSITIONWINDOW);
+			ADD_IMN_STRING(IMN_SETSTATUSWINDOWPOS);
+			ADD_IMN_STRING(IMN_GUIDELINE);
+			ADD_IMN_STRING(IMN_PRIVATE);
+#undef ADD_IMN_STRING
+			return Result;
+		}();
+
+		static const TMap<uint32, FString> IMRStrings = []()
+		{
+			TMap<uint32, FString> Result;
+#define ADD_IMR_STRING(IMRCode) Result.Add(IMRCode, TEXT(#IMRCode))
+	ADD_IMR_STRING(IMR_CANDIDATEWINDOW);
+	ADD_IMR_STRING(IMR_COMPOSITIONFONT);
+	ADD_IMR_STRING(IMR_COMPOSITIONWINDOW);
+	ADD_IMR_STRING(IMR_CONFIRMRECONVERTSTRING);
+	ADD_IMR_STRING(IMR_DOCUMENTFEED);
+	ADD_IMR_STRING(IMR_QUERYCHARPOSITION);
+	ADD_IMR_STRING(IMR_RECONVERTSTRING);
+#undef ADD_IMR_STRING
+			return Result;
+		}();
+
 		switch(msg)
 		{
+		case WM_INPUTLANGCHANGEREQUEST:
+		case WM_INPUTLANGCHANGE:
+		case WM_IME_SETCONTEXT:
+		case WM_IME_STARTCOMPOSITION:
+		case WM_IME_COMPOSITION:
+		case WM_IME_ENDCOMPOSITION:
+		case WM_IME_CHAR:
+			UE_LOG(LogWindowsDesktop, Verbose, TEXT("%s"), *(WindowsMessageStrings[msg]));
+			DeferMessage( CurrentNativeEventWindowPtr, hwnd, msg, wParam, lParam );
+			return 0;
+		case WM_IME_NOTIFY:
+			UE_LOG(LogWindowsDesktop, Verbose, TEXT("WM_IME_NOTIFY - %s"), IMNStrings.Find(wParam) ? *(IMNStrings[wParam]) : nullptr);
+			DeferMessage( CurrentNativeEventWindowPtr, hwnd, msg, wParam, lParam );
+			return 0;
+		case WM_IME_REQUEST:
+			UE_LOG(LogWindowsDesktop, Verbose, TEXT("WM_IME_REQUEST - %s"), IMRStrings.Find(wParam) ? *(IMRStrings[wParam]) : nullptr);
+			DeferMessage( CurrentNativeEventWindowPtr, hwnd, msg, wParam, lParam );
+			return 0;
 			// Character
 		case WM_CHAR:
 			DeferMessage( CurrentNativeEventWindowPtr, hwnd, msg, wParam, lParam );
@@ -852,6 +924,20 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 
 		switch(msg)
 		{
+		case WM_INPUTLANGCHANGEREQUEST:
+		case WM_INPUTLANGCHANGE:
+		case WM_IME_SETCONTEXT:
+		case WM_IME_NOTIFY:
+		case WM_IME_REQUEST:
+		case WM_IME_STARTCOMPOSITION:
+		case WM_IME_COMPOSITION:
+		case WM_IME_ENDCOMPOSITION:
+		case WM_IME_CHAR:
+			{
+				TextInputMethodSystem->ProcessMessage(hwnd, msg, wParam, lParam);
+				return 0;
+			}
+			break;
 			// Character
 		case WM_CHAR:
 			{

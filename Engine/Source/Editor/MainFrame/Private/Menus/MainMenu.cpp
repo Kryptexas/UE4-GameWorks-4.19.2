@@ -186,7 +186,7 @@ void FMainMenu::FillWindowMenu( FMenuBuilder& MenuBuilder, const TSharedRef< FEx
 			FGlobalTabmanager::Get()->PopulateTabSpawnerMenu(MenuBuilder, "SessionLauncher");
 		}
 
-		if (FParse::Param(FCommandLine::Get(), TEXT("TranslationTools")))
+		if (GetDefault<UEditorExperimentalSettings>()->bEnableTranslationEditor)
 		{
 			MenuBuilder.AddSubMenu(
 				LOCTEXT("TranslationEditorSubMenuLabel", "TranslationEditor"),
@@ -199,6 +199,7 @@ void FMainMenu::FillWindowMenu( FMenuBuilder& MenuBuilder, const TSharedRef< FEx
 
 	MenuBuilder.BeginSection("WindowLayout", NSLOCTEXT("MainAppMenu", "LayoutManagementHeader", "Layout"));
 	{
+		MenuBuilder.AddMenuEntry(FMainFrameCommands::Get().ResetLayout);
 		MenuBuilder.AddMenuEntry(FMainFrameCommands::Get().SaveLayout);
 		MenuBuilder.AddMenuEntry(FMainFrameCommands::Get().ToggleFullscreen);
 	}

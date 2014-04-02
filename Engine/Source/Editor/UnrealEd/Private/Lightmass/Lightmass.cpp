@@ -398,8 +398,6 @@ FLightmassExporter::FLightmassExporter( UWorld* InWorld )
 		SceneGuid = FGuid::NewGuid();
 	}
 	ChannelName = Lightmass::CreateChannelName(SceneGuid, Lightmass::LM_SCENE_VERSION, Lightmass::LM_SCENE_EXTENSION);
-
-	FMemory::Memzero(&CustomImportanceBoundingBox, sizeof(FBox));
 }
 
 FLightmassExporter::~FLightmassExporter()
@@ -507,7 +505,6 @@ void FLightmassExporter::WriteToChannel( FLightmassStatistics& Stats, FGuid& Deb
 			Scene.Cookie = 'SCEN';
 			Scene.FormatVersion = FGuid( 0, 0, 0, 1 );
 			Scene.Guid = FGuid( 0, 0, 0, 1 );
-			Scene.SetCustomImportanceBoundingBox(CustomImportanceBoundingBox);
 
 			WriteSceneSettings(Scene);
 			WriteDebugInput(Scene.DebugInput, DebugMappingGuid);
@@ -678,7 +675,7 @@ void FLightmassExporter::WriteVisibilityData( int32 Channel )
 	int32 NumVisVolumes = 0;
 	for( TObjectIterator<APrecomputedVisibilityVolume> It; It; ++It )
 	{
-		if (World->ContainsActor(*It))
+		if (World->ContainsActor(*It) && !It->IsPendingKill())
 		{
 			NumVisVolumes++;
 		}
@@ -696,7 +693,7 @@ void FLightmassExporter::WriteVisibilityData( int32 Channel )
 	for( TObjectIterator<APrecomputedVisibilityVolume> It; It; ++It )
 	{
 		APrecomputedVisibilityVolume* Volume = *It;
-		if (World->ContainsActor(Volume))
+		if (World->ContainsActor(Volume) && !Volume->IsPendingKill())
 		{
 			FBox LMBox = Volume->GetComponentsBoundingBox(true);
 			Swarm.WriteChannel(Channel, &LMBox, sizeof(LMBox));
@@ -712,7 +709,7 @@ void FLightmassExporter::WriteVisibilityData( int32 Channel )
 	int32 NumOverrideVisVolumes = 0;
 	for( TObjectIterator<APrecomputedVisibilityOverrideVolume> It; It; ++It )
 	{
-		if (World->ContainsActor(*It))
+		if (World->ContainsActor(*It) && !It->IsPendingKill())
 		{
 			NumOverrideVisVolumes++;
 		}
@@ -722,7 +719,7 @@ void FLightmassExporter::WriteVisibilityData( int32 Channel )
 	for( TObjectIterator<APrecomputedVisibilityOverrideVolume> It; It; ++It )
 	{
 		APrecomputedVisibilityOverrideVolume* Volume = *It;
-		if (World->ContainsActor(Volume))
+		if (World->ContainsActor(Volume) && !Volume->IsPendingKill())
 		{
 			FBox LMBox = Volume->GetComponentsBoundingBox(true);
 			Swarm.WriteChannel(Channel, &LMBox, sizeof(LMBox));
@@ -811,7 +808,7 @@ void FLightmassExporter::WriteVisibilityData( int32 Channel )
 		for( TObjectIterator<ACameraActor> CameraIt; CameraIt; ++CameraIt )
 		{
 			ACameraActor* Camera = *CameraIt;
-			if (World->ContainsActor(Camera))
+			if (World->ContainsActor(Camera) && !Camera->IsPendingKill())
 			{
 				for( FActorIterator It(World); It; ++It )
 				{
@@ -2897,6 +2894,7 @@ void FLightmassProcessor::ImportVolumeSamples()
 							FVolumeLightingSample NewHighQualitySample;
 							NewHighQualitySample.Position = CurrentSample.PositionAndRadius;
 							NewHighQualitySample.Radius = CurrentSample.PositionAndRadius.W;
+							NewHighQualitySample.SetPackedSkyBentNormal(CurrentSample.SkyBentNormal); 
 
 							for (int32 CoefficientIndex = 0; CoefficientIndex < 4; CoefficientIndex++)
 							{
@@ -2909,6 +2907,7 @@ void FLightmassProcessor::ImportVolumeSamples()
 							NewLowQualitySample.Position = CurrentSample.PositionAndRadius;
 							NewLowQualitySample.Radius = CurrentSample.PositionAndRadius.W;
 							NewLowQualitySample.DirectionalLightShadowing = CurrentSample.DirectionalLightShadowing;
+							NewLowQualitySample.SetPackedSkyBentNormal(CurrentSample.SkyBentNormal); 
 
 							for (int32 CoefficientIndex = 0; CoefficientIndex < 4; CoefficientIndex++)
 							{

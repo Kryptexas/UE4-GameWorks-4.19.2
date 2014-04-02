@@ -694,8 +694,8 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 			// If this property is not the one we expect (e.g. skipped as it matches the default value), do the brute force search.
 			if( Property == NULL || Property->GetFName() != Tag.Name )
 			{
-				// No need to check redirects on platforms where everything is cooked.
-				if (!FPlatformProperties::RequiresCookedData())
+				// No need to check redirects on platforms where everything is cooked. Always check for save games
+				if (!FPlatformProperties::RequiresCookedData() || Ar.IsSaveGame())
 				{
 					// Look in the redirect table to see if we're searching for a different name
 					static bool bAlreadyInitialized_TaggedPropertyRedirectsMap = false;

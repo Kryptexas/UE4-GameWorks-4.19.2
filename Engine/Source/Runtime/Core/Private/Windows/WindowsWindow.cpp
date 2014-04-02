@@ -212,7 +212,13 @@ HRGN FWindowsWindow::MakeWindowRegionObject() const
 			if( Definition->CornerRadius > 0 )
 			{
 				// @todo mac: Corner radius not applied on Mac platform yet
-				Region = CreateRoundRectRgn( 0, 0, RegionWidth, RegionHeight, Definition->CornerRadius, Definition->CornerRadius );
+
+				// CreateRoundRectRgn gives you a duff region that's 1 pixel smaller than you ask for. CreateRectRgn behaves correctly.
+				// This can be verified by uncommenting the assert below
+				Region = CreateRoundRectRgn( 0, 0, RegionWidth+1, RegionHeight+1, Definition->CornerRadius, Definition->CornerRadius );
+
+				// Test that a point that should be in the region, is in the region
+				// check(!!PtInRegion(Region, RegionWidth-1, RegionHeight/2));
 			}
 			else
 			{

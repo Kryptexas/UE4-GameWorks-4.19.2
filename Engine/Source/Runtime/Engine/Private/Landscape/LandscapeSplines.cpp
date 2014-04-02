@@ -41,6 +41,7 @@ private:
 		TRefCountPtr<HHitProxy> HitProxy;
 		FVector Location;
 		TArray<FLandscapeSplineInterpPoint> Points;
+		float SpriteScale;
 		uint32 bSelected : 1;
 	};
 	TArray<FControlPointProxy> ControlPoints;
@@ -80,6 +81,7 @@ public:
 			ControlPointProxy.HitProxy = NULL;
 			ControlPointProxy.Location = ControlPoint->Location;
 			ControlPointProxy.Points = ControlPoint->GetPoints();
+			ControlPointProxy.SpriteScale = FMath::Clamp<float>(ControlPoint->Width != 0 ? ControlPoint->Width / 2 : ControlPoint->SideFalloff / 4, 10, 1000);
 			ControlPointProxy.bSelected = ControlPoint->IsSplineSelected();
 			ControlPoints.Add(ControlPointProxy);
 		}
@@ -162,7 +164,8 @@ public:
 		{
 			const FControlPointProxy& ControlPoint = ControlPoints[iControlPoint];
 
-			const FVector ControlPointLocation = LocalToWorld.TransformPosition(ControlPoint.Location);
+			const float ControlPointSpriteScale = LocalToWorld.GetScaleVector().X * ControlPoint.SpriteScale;
+			const FVector ControlPointLocation = LocalToWorld.TransformPosition(ControlPoint.Location) + FVector(0, 0, ControlPointSpriteScale * 0.75f);
 
 			// Draw Sprite
 
@@ -172,8 +175,8 @@ public:
 
 			PDI->DrawSprite(
 				ControlPointLocation,
-				ControlPointSprite->Resource->GetSizeX() * 2,
-				ControlPointSprite->Resource->GetSizeY() * 2,
+				ControlPointSpriteScale,
+				ControlPointSpriteScale,
 				ControlPointSprite->Resource,
 				ControlPointSpriteColor,
 				GetDepthPriorityGroup(View),
@@ -2299,6 +2302,25 @@ void USplineMeshComponent::Serialize(FArchive& Ar)
 		SplineParams.EndOffset.X = -SplineParams.EndOffset.Y;
 		SplineParams.EndOffset.Y = Temp;
 	}
+
+#if WITH_EDITOR
+	if (BodySetup != NULL)
+	{
+		BodySetup->SetFlags(RF_Transactional);
+	}
+#endif
+}
+
+bool USplineMeshComponent::Modify(bool bAlwaysMarkDirty)
+{
+	bool bSavedToTransactionBuffer = Super::Modify(bAlwaysMarkDirty);
+
+	if (BodySetup != NULL)
+	{
+		BodySetup->Modify(bAlwaysMarkDirty);
+	}
+
+	return bSavedToTransactionBuffer;
 }
 
 FPrimitiveSceneProxy* USplineMeshComponent::CreateSceneProxy()
@@ -2552,6 +2574,7 @@ void USplineMeshComponent::RecreateCollision()
 		if (BodySetup == NULL)
 		{
 			BodySetup = DuplicateObject<UBodySetup>(StaticMesh->BodySetup, this);
+			BodySetup->SetFlags(RF_Transactional);
 			BodySetup->InvalidatePhysicsData();
 		}
 		else

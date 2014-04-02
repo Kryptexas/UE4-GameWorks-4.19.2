@@ -427,13 +427,13 @@ void FAssetDataGatherer::SerializeCache(FArchive& Ar)
 		for (int32 AssetIndex = 0; AssetIndex < LocalNumAssets; ++AssetIndex)
 		{
 			// make a new asset data object
-			FDiskCachedAssetData* NewCachedAssetData = &DiskCachedAssetDataBuffer[AssetIndex];
+			FDiskCachedAssetData* NewCachedAssetDataPtr = &DiskCachedAssetDataBuffer[AssetIndex];
 
 			// load it
-			Ar << *NewCachedAssetData;
+			Ar << *NewCachedAssetDataPtr;
 
 			// hash it
-			DiskCachedAssetDataMap.Add(NewCachedAssetData->PackageName, NewCachedAssetData);
+			DiskCachedAssetDataMap.Add(NewCachedAssetDataPtr->PackageName, NewCachedAssetDataPtr);
 		}
 	}
 

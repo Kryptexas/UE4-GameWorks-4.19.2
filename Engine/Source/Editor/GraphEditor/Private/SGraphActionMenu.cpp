@@ -211,6 +211,9 @@ void SGraphActionMenu::Construct( const FArguments& InArgs, bool bIsReadOnly/* =
 		.FillHeight(1.f)
 		[
 			SNew(SScrollBorder, TreeView.ToSharedRef())
+			[
+				TreeView.ToSharedRef()
+			]
 		]
 	];
 
@@ -660,10 +663,10 @@ int32 SGraphActionMenu::GetActionFilteredWeight( const FGraphActionListBuilderBa
 		{
 			EachTerm = InFilterTerms[FilterIndex];
 			EachTermSanitized = InSanitizedFilterTerms[FilterIndex];
- 			if( SearchText.Contains( EachTerm ) )
- 			{
- 				TotalWeight += 2;
- 			}
+			if( SearchText.Contains( EachTerm ) )
+			{
+				TotalWeight += 2;
+			}
 			else if( SearchText.Contains( EachTermSanitized ) )
 			{
 				TotalWeight++;
@@ -909,7 +912,7 @@ TSharedRef<ITableRow> SGraphActionMenu::MakeWidget( TSharedPtr<FGraphActionNode>
 	TSharedPtr<SHorizontalBox> RowContainer;
 	TableRow->SetContent
 	( 
- 		SAssignNew(RowContainer, SHorizontalBox)
+		SAssignNew(RowContainer, SHorizontalBox)
 	);
 
 	TSharedPtr<SExpanderArrow> ExpanderWidget;

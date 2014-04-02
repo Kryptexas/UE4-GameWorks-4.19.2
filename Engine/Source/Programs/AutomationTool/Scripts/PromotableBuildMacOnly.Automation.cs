@@ -121,10 +121,10 @@ class PromotableBuildMacOnly : BuildCommand
 
 			// Check everything in!
 			int SubmittedCL;
-			Submit(WorkingCL, out SubmittedCL, true, true);
+			P4.Submit(WorkingCL, out SubmittedCL, true, true);
 
 			// Label it
-			MakeDownstreamLabel("PromotableMacOnly");
+			P4.MakeDownstreamLabel(P4Env, "PromotableMacOnly");
 		}
 
 	}
@@ -141,7 +141,7 @@ class PromotableBuildMacOnly : BuildCommand
 		int WorkingCL = -1;
 		if (P4Enabled)
 		{
-			WorkingCL = CreateChange(P4Env.Client, String.Format("PromotableMacOnly build built from changelist {0}", P4Env.Changelist));
+			WorkingCL = P4.CreateChange(P4Env.Client, String.Format("PromotableMacOnly build built from changelist {0}", P4Env.Changelist));
 			Log("Build from {0}    Working in {1}", P4Env.Changelist, WorkingCL);
 		}		
 

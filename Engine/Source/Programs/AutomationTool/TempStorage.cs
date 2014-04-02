@@ -49,6 +49,9 @@ namespace AutomationTool
                     bOkToBeDifferent = bOkToBeDifferent || Name.EndsWith("MacOS/libvorbis.dylib");
                     bOkToBeDifferent = bOkToBeDifferent || Name.EndsWith("Contents/MacOS/UE4Editor");
 
+                    //temp hack until the mac build products work correctly
+                    bOkToBeDifferent = bOkToBeDifferent || Name.Contains("Engine/Binaries/Mac/UE4Editor.app/Contents/MacOS/");
+
                     if (!((Timestamp - Other.Timestamp).TotalSeconds < 1 && (Timestamp - Other.Timestamp).TotalSeconds > -1))
                     {
                         CommandUtils.Log(bOkToBeDifferent ? System.Diagnostics.TraceEventType.Warning : System.Diagnostics.TraceEventType.Error, "File date mismatch {0} {1} {2} {3}", Name, Timestamp.ToString(), Other.Name, Other.Timestamp.ToString());
@@ -448,7 +451,8 @@ namespace AutomationTool
         static HashSet<string> TestedForClean = new HashSet<string>();
         static void CleanSharedTempStorage(string Directory)
         {
-            if (!IsBuildMachine || TestedForClean.Contains(Directory))
+            if (!IsBuildMachine || TestedForClean.Contains(Directory) ||
+                UnrealBuildTool.Utils.IsRunningOnMono)  // saw a hang on this, anyway it isn't necessary to clean with macs, they are slow anyway
             {
                 return;
             }
@@ -792,11 +796,8 @@ namespace AutomationTool
             var Files = new List<string>();
 
             var LocalFiles = LocalTempStorageManifestFilename(Env, StorageBlockName);
-            Log("Looking for local directories that match {0}", LocalFiles);
             var LocalParent = Path.GetDirectoryName(LocalFiles);
-            Log("  Looking in parent dir {0}", LocalParent);
             var WildCard = Path.GetFileName(LocalFiles);
-            Log("  WildCard {0}", WildCard);
 
             int IndexOfStar = WildCard.IndexOf("*");
             if (IndexOfStar < 0 || WildCard.LastIndexOf("*") != IndexOfStar)
@@ -805,9 +806,7 @@ namespace AutomationTool
             }
 
             string PreStarWildcard = WildCard.Substring(0, IndexOfStar);
-            Log("  PreStarWildcard {0}", PreStarWildcard);
             string PostStarWildcard = Path.GetFileNameWithoutExtension(WildCard.Substring(IndexOfStar + 1));
-            Log("  PostStarWildcard {0}", PostStarWildcard);
 
             if (!SharedOnly && DirectoryExists_NoExceptions(LocalParent))
             {
@@ -829,7 +828,6 @@ namespace AutomationTool
                     {
                         throw new AutomationException("Dir {0} didn't have any string to fit the star in the wildcard {1}", ThisFile, WildCard);
                     }
-                    Log("  Star Replacement {0}", StarReplacement);
                     if (!Files.Contains(StarReplacement))
                     {
                         Files.Add(StarReplacement);
@@ -840,12 +838,10 @@ namespace AutomationTool
             if (!LocalOnly)
             {
                 var SharedFiles = SharedTempStorageManifestFilename(Env, StorageBlockName, GameFolder);
-                Log("Looking for shared directories that match {0}", SharedFiles);
                 var SharedParent = Path.GetDirectoryName(Path.GetDirectoryName(SharedFiles));
 
                 if (DirectoryExists_NoExceptions(SharedParent))
                 {
-                    Log("  Looking in shared parent dir {0} with wildcard {1}", SharedParent, Path.GetFileNameWithoutExtension(SharedFiles));
                     string[] Dirs = null;
 
                     try
@@ -861,7 +857,6 @@ namespace AutomationTool
                     {
                         foreach (var ThisSubDir in Dirs)
                         {
-                            Log("  Found dir {0}", ThisSubDir);
                             int IndexOfWildcard = ThisSubDir.IndexOf(PreStarWildcard);
                             if (IndexOfWildcard < 0)
                             {

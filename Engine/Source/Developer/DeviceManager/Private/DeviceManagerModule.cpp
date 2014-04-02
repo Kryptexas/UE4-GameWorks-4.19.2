@@ -40,7 +40,6 @@ public:
 
 	// End IModuleInterface interface
 
-
 public:
 
 	// Begin IDeviceManagerModule interface
@@ -51,7 +50,6 @@ public:
 	}
 
 	// End IDeviceManagerModule interface
-
 
 private:
 
@@ -71,7 +69,6 @@ private:
 
 		return DockTab;
 	}
-
 
 private:
 

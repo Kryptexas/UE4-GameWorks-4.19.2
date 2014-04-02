@@ -265,7 +265,7 @@ void SBlueprintEditorSelectedDebugObjectWidget::GenerateDebugWorldNames(bool bRe
 			break;
 
 		case NM_Client:
-			FWorldContext &PieContext = GEngine->WorldContextFromWorld(TestWorld);
+			FWorldContext &PieContext = GEngine->GetWorldContextFromWorldChecked(TestWorld);
 			WorldName = FString::Printf(TEXT("%s %d"), *NSLOCTEXT("BlueprintEditor", "DebugWorldClient", "Client").ToString(), PieContext.PIEInstance - 1);
 			break;
 		};

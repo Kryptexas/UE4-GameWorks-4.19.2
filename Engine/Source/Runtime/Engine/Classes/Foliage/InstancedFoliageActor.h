@@ -41,8 +41,9 @@ public:
 	// Moves instances based on the specified component to the current streaming level
 	ENGINE_API void MoveInstancesForComponentToCurrentLevel( class UActorComponent* InComponent );
 
-	// Change all instances based on one component to a new component.
-	void MoveInstancesToNewComponent( class UActorComponent* InOldComponent, class UActorComponent* InNewComponent );
+	// Change all instances based on one component to a new component (possible in another level).
+	// The instances keep the same world locations
+	ENGINE_API void MoveInstancesToNewComponent(class UActorComponent* InOldComponent, class UActorComponent* InNewComponent);
 
 	// Move instances based on a component that has just been moved.
 	void MoveInstancesForMovedComponent( class UActorComponent* InComponent );

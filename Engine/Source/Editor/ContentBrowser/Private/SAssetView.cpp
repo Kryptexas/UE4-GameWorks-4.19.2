@@ -800,7 +800,8 @@ void SAssetView::Tick(const FGeometry& AllottedGeometry, const double InCurrentT
 		RefreshSourceItems();
 		RefreshFilteredItems();
 		RefreshFolders();
-		SortList();
+		// Don't sync to selection if we are just going to do it below
+		SortList(!PendingSyncAssets.Num());
 		bRefreshSourceItemsRequested = false;
 	}
 
@@ -1757,6 +1758,7 @@ void SAssetView::ProcessRecentlyAddedAssets()
 						{
 							FilteredAssetItems.Add(MakeShareable(new FAssetViewAsset(AssetItems[AddedAssetIdx])));
 							bPendingSortFilteredItems = true;
+							bRefreshSourceItemsRequested = true;
 
 							RefreshList();
 						}
@@ -2387,7 +2389,10 @@ void SAssetView::CreateCurrentView()
 
 TSharedRef<SWidget> SAssetView::CreateShadowOverlay( TSharedRef<STableViewBase> Table )
 {
-	return SNew(SScrollBorder, Table);
+	return SNew(SScrollBorder, Table)
+		[
+			Table
+		];
 }
 
 EAssetViewType::Type SAssetView::GetCurrentViewType() const

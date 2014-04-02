@@ -67,6 +67,8 @@ void UUnrealEdEngine::NoteActorMovement()
 			break;
 		}
 
+		TSet<AGroupActor*> GroupActors;
+
 		// Modify selected actors.
 		for ( FSelectionIterator It( GetSelectedActorIterator() ) ; It ; ++It )
 		{
@@ -74,6 +76,17 @@ void UUnrealEdEngine::NoteActorMovement()
 			checkSlow( Actor->IsA(AActor::StaticClass()) );
 
 			Actor->Modify();
+
+			if (GEditor->bGroupingActive)
+			{
+				// if this actor is in a group, add the GroupActor into a list to be modified shortly
+				AGroupActor* ActorLockedRootGroup = AGroupActor::GetRootForActor(Actor, true);
+				if (ActorLockedRootGroup != nullptr)
+				{
+					GroupActors.Add(ActorLockedRootGroup);
+				}
+			}
+
 			ABrush* Brush = Cast< ABrush >( Actor );
 			if ( Brush )
 			{
@@ -82,6 +95,12 @@ void UUnrealEdEngine::NoteActorMovement()
 					Brush->Brush->Polys->Element.ModifyAllItems();
 				}
 			}
+		}
+
+		// Modify unique group actors
+		for (auto* GroupActor : GroupActors)
+		{
+			GroupActor->Modify();
 		}
 	}
 }

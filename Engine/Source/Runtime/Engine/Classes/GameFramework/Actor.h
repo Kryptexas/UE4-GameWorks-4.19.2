@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Runtime/Engine/Classes/Engine/LatentActionManager.h"
+#include "Runtime/Engine/Classes/Camera/CameraTypes.h"
 #include "Actor.generated.h"
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogActor, Log, Warning);
@@ -178,7 +179,7 @@ public:
 	uint32 bNetStartup:1;
 
 	/** This actor is only relevant to its owner. If this flag is changed during play, all non-owner channels would need to be explicitly closed. */
-	UPROPERTY()
+	UPROPERTY(Category=Replication, EditDefaultsOnly, BlueprintReadOnly)
 	uint32 bOnlyRelevantToOwner:1;
 
 	/** Always relevant for network (overrides bOnlyRelevantToOwner). */
@@ -682,6 +683,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
 	float GetVerticalDistanceTo(AActor* OtherActor);
 
+	/** Returns the dot product from this Actor to OtherActor. Returns -2.0 on failure. Returns 0.0 for coincidental actors. */
+	UFUNCTION(BlueprintCallable, Category = "Utilities|Orientation")
+	float GetDotProductTo(AActor* OtherActor);
+
+	/** Returns the dot product from this Actor to OtherActor, ignoring Z. Returns -2.0 on failure. Returns 0.0 for coincidental actors. */
+	UFUNCTION(BlueprintCallable, Category = "Utilities|Orientation")
+	float GetHorizontalDotProductTo(AActor* OtherActor);
+
 	/** 
 	 *	Set the Actors transform to the specified one.
 	 *	@param bSweep		Should we sweep to the destination location. If true, will stop short of the target if blocked by something.
@@ -952,11 +961,11 @@ public:
 	virtual void ReceiveHit(class UPrimitiveComponent* MyComp, class AActor* Other, class UPrimitiveComponent* OtherComp, bool bSelfMoved, FVector HitLocation, FVector HitNormal, FVector NormalImpulse, const FHitResult& Hit);
 
 	/** Set the lifespan of this actor. When it expires the object will be destroyed. If requested lifespan is 0, the timer is cleared and the actor will not be destroyed. */
-	UFUNCTION(BlueprintCallable, Category="Utilities", meta=(Keywords = "delete"))
+	UFUNCTION(BlueprintCallable, Category="Utilities", meta=(Keywords = "delete destroy"))
 	virtual void SetLifeSpan( float InLifespan );
 
 	/** Get the remaining lifespan of this actor. If zero is returned the actor lives forever. */
-	UFUNCTION(BlueprintCallable, Category="Utilities", meta=(Keywords = "delete"))
+	UFUNCTION(BlueprintCallable, Category="Utilities", meta=(Keywords = "delete destroy"))
 	virtual float GetLifeSpan() const;
 
 	/**
@@ -1875,20 +1884,21 @@ public:
 	template<class T>
 	T* FindComponentByClass() const
 	{
-		return (T*) FindComponentByClass(T::StaticClass());
+		static_assert(CanConvertPointerFromTo<T, UActorComponent>::Result, "'T' template parameter to FindComponentByClass must be derived from ActorComponent");
+
+		return (T*)FindComponentByClass(T::StaticClass());
 	}
 
 	template<class T>
 	void GetComponents(TArray<T*>& OutComponents) const
 	{
-		// This dummy line is to prevent the function from being used for classes outside the ActorComponent hierarchy
-		UActorComponent* DummyAC = (T*)NULL; 
+		static_assert(CanConvertPointerFromTo<T, UActorComponent>::Result, "'T' template parameter to GetComponents must be derived from ActorComponent");
 
 		SCOPE_CYCLE_COUNTER(STAT_GetComponentsTime);
-		OutComponents.Empty();
-
 		TArray<UObject*> ChildObjects;
 		GetObjectsWithOuter(this, ChildObjects, false, RF_PendingKill);
+
+		OutComponents.Reset(ChildObjects.Num());
 
 		for (UObject* Child : ChildObjects)
 		{

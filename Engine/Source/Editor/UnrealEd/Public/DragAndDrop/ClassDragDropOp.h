@@ -4,7 +4,7 @@
 class FClassDragDropOp : public FDragDropOperation
 {
 public:
-	static FString GetTypeId() {static FString Type = TEXT("FClassDragDropOp"); return Type;}
+	DRAG_DROP_OPERATOR_TYPE(FClassDragDropOp, FDragDropOperation)
 
 	/** The classes to be dropped. */
 	TArray< TWeakObjectPtr<UClass> > ClassesToDrop;
@@ -13,10 +13,10 @@ public:
 	virtual TSharedPtr<SWidget> GetDefaultDecorator() const OVERRIDE
 	{
 		// Just use the first class for the cursor decorator.
-		const FSlateBrush* ClassIcon = FEditorStyle::GetBrush(*FString::Printf( TEXT( "ClassIcon.%s" ), *ClassesToDrop[0]->GetName() ) );
+		const FSlateBrush* ClassIcon = FEditorStyle::GetOptionalBrush(*FString::Printf( TEXT( "ClassIcon.%s" ), *ClassesToDrop[0]->GetName() ), nullptr, nullptr );
 
 		// If the class icon is the default brush, do not put it in the cursor decoration window.
-		if(ClassIcon != FEditorStyle::GetDefaultBrush())
+		if(ClassIcon)
 		{
 			return SNew(SBorder)
 				.BorderImage(FEditorStyle::GetBrush("Graph.ConnectorFeedback.Border"))
@@ -55,7 +55,6 @@ public:
 	static TSharedRef<FClassDragDropOp> New(TWeakObjectPtr<UClass> ClassToDrop)
 	{
 		TSharedRef<FClassDragDropOp> Operation = MakeShareable(new FClassDragDropOp);
-		FSlateApplication::GetDragDropReflector().RegisterOperation<FClassDragDropOp>(Operation);
 		Operation->ClassesToDrop.Add(ClassToDrop);
 		Operation->Construct();
 		return Operation;
@@ -77,7 +76,7 @@ struct FClassPackageData
 class FUnloadedClassDragDropOp : public FDragDropOperation
 {
 public:
-	static FString GetTypeId() {static FString Type = TEXT("FUnloadedClassDragDropOp"); return Type;}
+	DRAG_DROP_OPERATOR_TYPE(FUnloadedClassDragDropOp, FDragDropOperation)
 
 	/** The assets to be dropped. */
 	TSharedPtr< TArray< FClassPackageData > >	AssetsToDrop;
@@ -103,7 +102,6 @@ public:
 	static TSharedRef<FUnloadedClassDragDropOp> New(FClassPackageData AssetToDrop)
 	{
 		TSharedRef<FUnloadedClassDragDropOp> Operation = MakeShareable(new FUnloadedClassDragDropOp);
-		FSlateApplication::GetDragDropReflector().RegisterOperation<FUnloadedClassDragDropOp>(Operation);
 		Operation->AssetsToDrop = MakeShareable(new TArray<FClassPackageData>);
 		Operation->AssetsToDrop->Add(AssetToDrop);
 		Operation->Construct();

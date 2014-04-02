@@ -86,30 +86,33 @@ bool UFloatingPawnMovement::LimitWorldBounds()
 
 void UFloatingPawnMovement::ApplyControlInputToVelocity(float DeltaTime)
 {
-	const FVector ControlAcceleration = GetInputVector().SafeNormal();
+	const FVector ControlAcceleration = GetInputVector().ClampMaxSize(1.f);
+	float AnalogInputModifier = 0.f;
+	
 	if (ControlAcceleration.SizeSquared() > 0.f)
 	{
-		const float VelSize = Velocity.Size();
-		if (VelSize > 0.f)
+		// Apply change in velocity direction
+		AnalogInputModifier = ControlAcceleration.Size();
+		if (Velocity.SizeSquared() > 0.f)
 		{
-			Velocity -= (Velocity - ControlAcceleration * VelSize) * FMath::Min(DeltaTime * 8.f, 1.f);
+			Velocity -= (Velocity - ControlAcceleration * Velocity.Size()) * FMath::Min(DeltaTime * 8.f, 1.f);
 		}
-
-		Velocity += ControlAcceleration * Acceleration * DeltaTime;
 	}
 	else
 	{
-		// Dampen
-		float VelSize = Velocity.Size();
-		if (VelSize > 0.f)
+		// Dampen velocity magnitude based on deceleration.
+		if (Velocity.SizeSquared() > 0.f)
 		{
-			VelSize = FMath::Max(VelSize - Deceleration * DeltaTime, 0.f);
+			const float VelSize = FMath::Max(Velocity.Size() - Deceleration * DeltaTime, 0.f);
 			Velocity = Velocity.SafeNormal() * VelSize;
 		}
 	}
 
-	// Limit velocity magnitude
-	Velocity = Velocity.ClampMaxSize(GetMaxSpeed());
+	// Apply acceleration and clamp velocity magnitude.
+	const float MaxSpeed = GetModifiedMaxSpeed() * AnalogInputModifier;
+	const float NewMaxSpeed = (IsExceedingMaxSpeed(MaxSpeed)) ? Velocity.Size() : MaxSpeed;
+	Velocity += ControlAcceleration * Acceleration * DeltaTime;
+	Velocity = Velocity.ClampMaxSize(NewMaxSpeed);
 
 	ConsumeInputVector();
 }

@@ -37,7 +37,7 @@ public class IOSPlatform : Platform
 	protected bool GetCodeSignDesirability(ProjectParams Params)
 	{
 		//@TODO: Would like to make this true, as it's the common case for everyone else
-		bool bDefaultNeedsSign = false;
+		bool bDefaultNeedsSign = true;
 
 		bool bNeedsSign = false;
 		string EnvVar = InternalUtils.GetEnvironmentVariable(IOSEnvVarNames.CodeSignWhenStaging, bDefaultNeedsSign ? "1" : "0", /*bQuiet=*/ false);
@@ -127,6 +127,11 @@ public class IOSPlatform : Platform
 			string IPPArguments = "RepackageFromStage " + (Params.IsCodeBasedProject ? Params.RawProjectPath : "Engine");
 			IPPArguments += " -config " + TargetConfiguration.ToString();
 
+			if (TargetConfiguration == UnrealTargetConfiguration.Shipping)
+			{
+				IPPArguments += " -compress=best";
+			}
+
 			// Determine if we should sign
 			bool bNeedToSign = GetCodeSignDesirability(Params);
 
@@ -144,21 +149,14 @@ public class IOSPlatform : Platform
 
 			IPPArguments += (cookonthefly ? " -cookonthefly" : "");
 			IPPArguments += " -stagedir " + CombinePaths(Params.BaseStageDirectory, "IOS");
+			IPPArguments += " -projectdir " + Path.GetDirectoryName(Params.RawProjectPath);
 
-            // save a copy of the IPA
-            var CopyName = ProjectIPA.Replace("UE4Game", "UE4Game-Backup");
-            if (!Params.IsCodeBasedProject)
-            {
-                if (FileExists_NoExceptions(ProjectIPA))
-                {
-                    DeleteFile_NoExceptions(CopyName);
-                    CopyFile(ProjectIPA, CopyName);
-                }
-                else
-                {
-                    CopyName = "";
-                }
-            }
+			// rename the .ipa if not code based
+			if (!Params.IsCodeBasedProject)
+			{
+				ProjectIPA = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries\\IOS", Params.ShortProjectName + ".ipa");
+			}
+
             // delete the .ipa to make sure it was made
             DeleteFile(ProjectIPA);
 
@@ -168,18 +166,6 @@ public class IOSPlatform : Platform
 			if (!FileExists(ProjectIPA))
 			{
 				throw new AutomationException("PACKAGE FAILED - {0} was not created", ProjectIPA);
-			}
-
-			// rename the .ipa!
-			if (!Params.IsCodeBasedProject)
-			{
-				var NewIPAName = ProjectIPA.Replace("UE4Game", Params.ShortProjectName);
-				DeleteFile(NewIPAName);
-				RenameFile(ProjectIPA, NewIPAName);
-                if (CopyName != "")
-                {
-                    RenameFile(CopyName, ProjectIPA);
-                }
 			}
 
 			if (WorkingCL > 0)
@@ -213,15 +199,15 @@ public class IOSPlatform : Platform
 	{
 		// first check for ue4.xcodeproj
 		bWasGenerated = false;
-		string XcodeProj = CombinePaths (CmdEnv.LocalRoot, "UE4.xcodeproj");
+		string XcodeProj = RawProjectPath.Replace(".uproject", ".xcodeproj");
 		Console.WriteLine ("Project: " + XcodeProj);
 		if (!Directory.Exists (XcodeProj))
 		{
-			// ue4.xcodeproj doesn't exist, so check for project.xcodeproj
-			XcodeProj = RawProjectPath.Replace (".uproject", ".xcodeproj");
+			// project.xcodeproj doesn't exist, so check for ue4.xcodeproj
+			XcodeProj = CombinePaths(CmdEnv.LocalRoot, "UE4.xcodeproj");
 			if (!Directory.Exists (XcodeProj))
 			{
-				// project.xcodeproj doesn't exist, so generate it
+				// ue4.xcodeproj doesn't exist, so generate temp project
 				string Arguments = "-project=\"" + RawProjectPath + "\"";
 				Arguments += " -game -nointellisense";
 				string Script = CombinePaths(CmdEnv.LocalRoot, "Engine/Build/BatchFiles/Mac/GenerateProjectFiles.sh");
@@ -525,7 +511,7 @@ public class IOSPlatform : Platform
 			var ProjectIPA = MakeIPAFileName(TargetConfiguration, Params.ProjectGameExeFilename);
 			if (!Params.IsCodeBasedProject)
 			{
-				ProjectIPA = ProjectIPA.Replace("UE4Game", Params.ShortProjectName);
+				ProjectIPA = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries\\IOS", Params.ShortProjectName + ".ipa");
 			}
 
 			var StagedIPA = SC.StageDirectory + "\\" + Path.GetFileName(ProjectIPA);
@@ -543,7 +529,7 @@ public class IOSPlatform : Platform
 			var IPPExe = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/DotNET/IOS/IPhonePackager.exe");
 
 			// check for it in the stage directory
-			RunAndLog(CmdEnv, IPPExe, "Deploy " + Path.GetFullPath(StagedIPA));
+			RunAndLog(CmdEnv, IPPExe, "Deploy " + Path.GetFullPath(StagedIPA) + " -device " + Params.Device.Substring(4));
 		}
         PrintRunTime();
     }
@@ -594,6 +580,10 @@ public class IOSPlatform : Platform
 				Path.GetDirectoryName(Params.ProjectGameExeFilename), 
 				Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename));
 			string GameName = Path.GetFileNameWithoutExtension (ClientApp);
+			if (GameName.Contains ("-IOS-"))
+			{
+				GameName = GameName.Substring (0, GameName.IndexOf ("-IOS-"));
+			}
 			string GameApp = AppDirectory + "/" + GameName;
 			bool bWasGenerated = false;
 			string XcodeProj = EnsureXcodeProjectExists (Params.RawProjectPath, out bWasGenerated);
@@ -620,10 +610,10 @@ public class IOSPlatform : Platform
 
 	public override void PreBuildAgenda(UE4Build Build, UE4Build.BuildAgenda Agenda)
 	{
-		if (UnrealBuildTool.ExternalExecution.GetRuntimePlatform () != UnrealTargetPlatform.Mac)
+/*		if (UnrealBuildTool.ExternalExecution.GetRuntimePlatform () != UnrealTargetPlatform.Mac)
 		{
-			Agenda.DotNetProjects.Add (@"Engine\Source\Programs\IOS\IPhonePackager\IPhonePackager.csproj");
-		}
+			Agenda.DotNetProjects.Add (@"Engine\Source\Programs\IOS\iPhonePackager\iPhonePackager.csproj");
+		}*/
 	}
 
 	#endregion

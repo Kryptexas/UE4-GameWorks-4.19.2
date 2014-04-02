@@ -68,9 +68,9 @@ void SSessionLauncherToolbar::CreateCommands( )
 /* SSessionLauncherTaskSelector implementation
  *****************************************************************************/
 
-TSharedRef<SWidget> SSessionLauncherToolbar::MakeToolbar( const TSharedRef<FUICommandList>& CommandList )
+TSharedRef<SWidget> SSessionLauncherToolbar::MakeToolbar( const TSharedRef<FUICommandList>& InCommandList )
 {
-	FToolBarBuilder ToolBarBuilder(CommandList, FMultiBoxCustomization::None, TSharedPtr<FExtender>(), EOrientation::Orient_Vertical);
+	FToolBarBuilder ToolBarBuilder(InCommandList, FMultiBoxCustomization::None, TSharedPtr<FExtender>(), EOrientation::Orient_Vertical);
 
 	ToolBarBuilder.BeginSection("Tasks");
 	{

@@ -5,29 +5,29 @@
 AVectorFieldVolume::AVectorFieldVolume(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	// Structure to hold one-time initialization
-	struct FConstructorStatics
-	{
-		ConstructorHelpers::FObjectFinderOptional<UTexture2D> EffectsTextureObject;
-		FName ID_Effects;
-		FText NAME_Effects;
-		FConstructorStatics()
-			: EffectsTextureObject(TEXT("/Engine/EditorResources/S_VectorFieldVol"))
-			, ID_Effects(TEXT("Effects"))
-			, NAME_Effects(NSLOCTEXT( "SpriteCategory", "Effects", "Effects" ))
-		{
-		}
-	};
-	static FConstructorStatics ConstructorStatics;
-
-
 	VectorFieldComponent = PCIP.CreateDefaultSubobject<UVectorFieldComponent>(this, TEXT("VectorFieldComponent0"));
 	RootComponent = VectorFieldComponent;
 
-	SpriteComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
 #if WITH_EDITORONLY_DATA
-	if (SpriteComponent)
+	SpriteComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
+
+	if (!IsRunningCommandlet() && (SpriteComponent != nullptr))
 	{
+		// Structure to hold one-time initialization
+		struct FConstructorStatics
+		{
+			ConstructorHelpers::FObjectFinderOptional<UTexture2D> EffectsTextureObject;
+			FName ID_Effects;
+			FText NAME_Effects;
+			FConstructorStatics()
+				: EffectsTextureObject(TEXT("/Engine/EditorResources/S_VectorFieldVol"))
+				, ID_Effects(TEXT("Effects"))
+				, NAME_Effects(NSLOCTEXT("SpriteCategory", "Effects", "Effects"))
+			{
+			}
+		};
+		static FConstructorStatics ConstructorStatics;
+
 		SpriteComponent->Sprite = ConstructorStatics.EffectsTextureObject.Get();
 		SpriteComponent->bIsScreenSizeScaled = true;
 		SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Effects;

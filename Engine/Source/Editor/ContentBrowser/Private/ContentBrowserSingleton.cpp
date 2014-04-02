@@ -410,9 +410,7 @@ TSharedRef<SDockTab> FContentBrowserSingleton::SpawnContentBrowserTab( const FSp
 
 	// Add wrapper for tutorial highlighting
 	TSharedRef<STutorialWrapper> Wrapper = 
-		SNew(STutorialWrapper)
-		.Name(FName(TEXT("ContentBrowser")))
-		.Content()
+		SNew( STutorialWrapper, TEXT("ContentBrowser") )
 		[
 			NewBrowser
 		];

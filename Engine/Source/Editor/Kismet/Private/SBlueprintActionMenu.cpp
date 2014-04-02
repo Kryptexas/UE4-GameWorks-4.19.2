@@ -357,11 +357,11 @@ FText SBlueprintActionMenu::GetSearchContextDesc() const
 
 			if (OnePin->Direction == EGPD_Input)
 			{
-				return FText::Format(LOCTEXT("MenuPrompt_InputPin", "Actions providing a {0}"), FText::FromString(TypeString));
+				return FText::Format(LOCTEXT("MenuPrompt_InputPin", "Actions providing a(n) {0}"), FText::FromString(TypeString));
 			}
 			else
 			{
-				return FText::Format(LOCTEXT("MenuPrompt_OutputPin", "Actions taking a {0}"), FText::FromString(TypeString));
+				return FText::Format(LOCTEXT("MenuPrompt_OutputPin", "Actions taking a(n) {0}"), FText::FromString(TypeString));
 			}
 		}
 	}

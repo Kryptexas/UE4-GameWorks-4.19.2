@@ -1053,7 +1053,7 @@ void FOnlineAsyncTaskSteamFindServerBase::Tick()
 		}
 
 		// Cancel further rules queries
-		for (int32 PendingIdx=0; PendingIdx<PendingSearchResults.Num(); PendingIdx)
+		for (int32 PendingIdx=0; PendingIdx<PendingSearchResults.Num(); ++PendingIdx)
 		{
 			PendingSearchResults[PendingIdx].CancelQuery();
 		}

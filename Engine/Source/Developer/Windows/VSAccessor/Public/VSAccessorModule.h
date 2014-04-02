@@ -3,6 +3,8 @@
 
 #include "ModuleInterface.h"
 
+#define VSACCESSOR_HAS_DTE !WITH_VSEXPRESS
+
 /**
  * Delegate type notifying that VS has launched
  */
@@ -21,16 +23,10 @@ public:
 	/** Struct representing identifying information about Visual Studio versions */
 	struct VisualStudioLocation
 	{
+		FString ExecutablePath;
+#if VSACCESSOR_HAS_DTE
 		FString ROTMoniker;
-		FString RegistryKeyName;
-		FString ExecutableName;
-
-		VisualStudioLocation( const FString& InROTMoniker, const FString& InRegistryKeyName, const FString& InExecutableName )
-			: ROTMoniker(InROTMoniker)
-			, RegistryKeyName(InRegistryKeyName)
-			, ExecutableName(InExecutableName)
-		{
-		}
+#endif
 	};
 
 	virtual void StartupModule();
@@ -41,6 +37,9 @@ public:
 
 	/** Opens the module solution. */
 	virtual bool OpenVisualStudioSolution();
+
+	/** Opens multiple files in the correct running instance of Visual Studio. */
+	virtual bool OpenVisualStudioFiles(const TArray<FString>& FullPaths);
 
 	/** Opens a file in the correct running instance of Visual Studio at a line and optionally to a column. */
 	virtual bool OpenVisualStudioFileAtLine(const FString& FullPath, int32 LineNumber, int32 ColumnNumber = 0);
@@ -74,8 +73,27 @@ public:
 	 */
 	virtual FOpenFileFailed& OnOpenFileFailed() { return OpenFileFailed; }
 
-
 private:
+
+	struct FileOpenRequest
+	{
+		FString FullPath;
+		int32 LineNumber;
+		int32 ColumnNumber;
+
+		FileOpenRequest()
+			: LineNumber(0)
+			, ColumnNumber(0)
+		{
+		}
+
+		FileOpenRequest(const FString& FullPath, int32 LineNumber, int32 ColumnNumber)
+			: FullPath(FullPath)
+			, LineNumber(LineNumber)
+			, ColumnNumber(ColumnNumber)
+		{
+		}
+	};
 
 	// Begin Exec Interface
 	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) OVERRIDE;
@@ -86,6 +104,9 @@ private:
 
 	/** Opens a file in the correct running instance of Visual Studio at a line and optionally to a column. */
 	bool OpenVisualStudioFileAtLineInternal(const FString& FullPath, int32 LineNumber, int32 ColumnNumber = 0);
+
+	/** Opens multiple files in the correct running instance of Visual Studio. */
+	bool OpenVisualStudioFilesInternal(const TArray<FileOpenRequest>& Requests);
 		
 	/** An instance of VS it attempting to be opened */
 	void VSLaunchStarted();
@@ -104,6 +125,13 @@ private:
 	 */
 	bool IsVSLaunchInProgress() const { return( ( VSLaunchTime != 0.0) ? true : false ); }
 
+	/** 
+	 * Add a new version of Visual Studio to the supported locations array
+	 * 
+	 * @param	MajorVersion	The major version number of Visual Studio (eg, 11 for VS2012, 12 for VS2013)
+	 * @param	bAllowExpress	true to also add the express version of Visual Studio to the list of locations
+	 */
+	void AddVisualStudioVersion(const int MajorVersion, const bool bAllowExpress = true);
 
 private:
 

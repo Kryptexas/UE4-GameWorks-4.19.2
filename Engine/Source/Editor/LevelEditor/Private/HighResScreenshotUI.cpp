@@ -184,6 +184,20 @@ void SHighResScreenshotDialog::Construct( const FArguments& InArgs )
 							.Image(FEditorStyle::GetBrush("HighresScreenshot.FullViewportCaptureRegion"))
 						]
 					]
+					+ SHorizontalBox::Slot()
+					.HAlign(HAlign_Right)
+					.AutoWidth()
+					[
+						SNew(SButton)
+						.ToolTipText(NSLOCTEXT("HighResScreenshot", "ScreenshotCameraSafeAreaCaptureRegionTooltip", "Set the capture rectangle to the attached camera safe area (only enabled when the viewport is locked to a camera actor)"))
+						.Visibility(this, &SHighResScreenshotDialog::GetCaptureRegionControlsVisibility)
+						.OnClicked(this, &SHighResScreenshotDialog::OnSetCameraSafeAreaCaptureRegionClicked)
+						.IsEnabled(this, &SHighResScreenshotDialog::IsSetCameraSafeAreaCaptureRegionEnabled)
+						[
+							SNew(SImage)
+							.Image(FEditorStyle::GetBrush("HighresScreenshot.CameraSafeAreaCaptureRegion"))
+						]
+					]
 					+SHorizontalBox::Slot()
 						// for padding
 					+SHorizontalBox::Slot()
@@ -324,24 +338,27 @@ FReply SHighResScreenshotDialog::OnSelectCaptureRegionClicked()
 
 FReply SHighResScreenshotDialog::OnCaptureClicked()
 {
-	auto ConfigViewport = Config.TargetViewport.Pin();
-	if (ConfigViewport.IsValid())
+	if (!GIsHighResScreenshot)
 	{
-		GScreenshotResolutionX = ConfigViewport->GetSizeXY().X * Config.ResolutionMultiplier;
-		GScreenshotResolutionY = ConfigViewport->GetSizeXY().Y * Config.ResolutionMultiplier;
-		FIntRect ScaledCaptureRegion = Config.UnscaledCaptureRegion;
+		auto ConfigViewport = Config.TargetViewport.Pin();
+		if (ConfigViewport.IsValid())
+		{
+			GScreenshotResolutionX = ConfigViewport->GetSizeXY().X * Config.ResolutionMultiplier;
+			GScreenshotResolutionY = ConfigViewport->GetSizeXY().Y * Config.ResolutionMultiplier;
+			FIntRect ScaledCaptureRegion = Config.UnscaledCaptureRegion;
 
-		if (Config.UnscaledCaptureRegion.Width() == -1 || Config.UnscaledCaptureRegion.Height() == -1)
+		if (ScaledCaptureRegion.Width() == -1 || ScaledCaptureRegion.Height() == -1)
 		{
 			ScaledCaptureRegion = FIntRect(0, 0, ConfigViewport->GetSizeXY().X, ConfigViewport->GetSizeXY().Y);
 		}
 
-		ScaledCaptureRegion.Clip(FIntRect(FIntPoint::ZeroValue, ConfigViewport->GetSizeXY()));
-		ScaledCaptureRegion *= Config.ResolutionMultiplier;
-		Config.CaptureRegion = ScaledCaptureRegion;
+			ScaledCaptureRegion.Clip(FIntRect(FIntPoint::ZeroValue, ConfigViewport->GetSizeXY()));
+			ScaledCaptureRegion *= Config.ResolutionMultiplier;
+			Config.CaptureRegion = ScaledCaptureRegion;
 
-		// Trigger the screenshot on the owning viewport
-		ConfigViewport->TakeHighResScreenShot();
+			// Trigger the screenshot on the owning viewport
+			ConfigViewport->TakeHighResScreenShot();
+		}
 	}
 
 	return FReply::Handled();
@@ -390,3 +407,37 @@ FReply SHighResScreenshotDialog::OnSetFullViewportCaptureRegionClicked()
 	return FReply::Handled();
 }
 
+FReply SHighResScreenshotDialog::OnSetCameraSafeAreaCaptureRegionClicked()
+{
+	FIntRect NewCaptureRegion;
+
+	if (Config.TargetViewport.IsValid())
+	{
+		auto ConfigViewport = Config.TargetViewport.Pin();
+		if (ConfigViewport->GetClient()->OverrideHighResScreenshotCaptureRegion(NewCaptureRegion))
+		{
+			Config.UnscaledCaptureRegion = NewCaptureRegion;
+			ConfigViewport->Invalidate();
+		}
+	}
+
+	return FReply::Handled();
+}
+
+bool SHighResScreenshotDialog::IsSetCameraSafeAreaCaptureRegionEnabled() const
+{
+	if (Config.TargetViewport.IsValid())
+	{
+		FViewportClient* Client = Config.TargetViewport.Pin()->GetClient();
+		if (Client)
+		{
+			FIntRect Rect;
+			if (Client->OverrideHighResScreenshotCaptureRegion(Rect))
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}

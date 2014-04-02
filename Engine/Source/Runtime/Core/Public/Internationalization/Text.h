@@ -2,8 +2,6 @@
 #pragma once
 
 #include "SharedPointer.h"
-//#include "Stats.h"
-//#include "Stats2.h"
 
 #define ENABLE_TEXT_ERROR_CHECKING_RESULTS (UE_BUILD_DEBUG | UE_BUILD_DEVELOPMENT | UE_BUILD_TEST )
 
@@ -349,6 +347,106 @@ struct FFormatArgumentData
 {
 	FText ArgumentName;
 	FText ArgumentValue;
+};
+
+class CORE_API FTextBuilder
+{
+public:
+
+	FTextBuilder()
+	{
+
+	}
+
+	void Indent()
+	{
+		++IndentCount;
+	}
+
+	void Unindent()
+	{
+		--IndentCount;
+	}
+
+	void AppendLine()
+	{
+		if (!Report.IsEmpty())
+		{
+			Report += LINE_TERMINATOR;
+		}
+
+		for (int32 Index = 0; Index < IndentCount; Index++)
+		{
+			Report += TEXT("    ");
+		}
+	}
+
+	void AppendLine(const FText& Text)
+	{
+		AppendLine();
+		Report += Text.ToString();
+	}
+
+	void AppendLine(const FString& String)
+	{
+		AppendLine();
+		Report += String;
+	}
+
+	void AppendLine(const FName& Name)
+	{
+		AppendLine();
+		Report += Name.ToString();
+	}
+
+	void AppendLineFormat(const FText& Pattern, const FFormatNamedArguments& Arguments)
+	{
+		AppendLine(FText::Format(Pattern, Arguments));
+	}
+
+	void AppendLineFormat(const FText& Pattern, const FFormatOrderedArguments& Arguments)
+	{
+		AppendLine(FText::Format(Pattern, Arguments));
+	}
+
+	void AppendLineFormat(const FText& Pattern, const TArray< struct FFormatArgumentData > InArguments)
+	{
+		AppendLine(FText::Format(Pattern, InArguments));
+	}
+
+	void AppendLineFormat(const FText& Fmt, const FText& v1)
+	{
+		AppendLine(FText::Format(Fmt, v1));
+	}
+
+	void AppendLineFormat(const FText& Fmt, const FText& v1, const FText& v2)
+	{
+		AppendLine(FText::Format(Fmt, v1, v2));
+	}
+
+	void AppendLineFormat(const FText& Fmt, const FText& v1, const FText& v2, const FText& v3)
+	{
+		AppendLine(FText::Format(Fmt, v1, v2, v3));
+	}
+
+	void AppendLineFormat(const FText& Fmt, const FText& v1, const FText& v2, const FText& v3, const FText& v4)
+	{
+		AppendLine(FText::Format(Fmt, v1, v2, v3, v4));
+	}
+
+	void Clear()
+	{
+		Report.Empty();
+	}
+
+	FText ToText() const
+	{
+		return FText::FromString(Report);
+	}
+
+private:
+	FString Report;
+	int32 IndentCount;
 };
 
 Expose_TNameOf(FText)

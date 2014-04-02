@@ -7,6 +7,7 @@
  * Drag and Drop is inherently quite stateful.
  * Implementing a custom DragDropOperation allows for dedicated handling of
  * a drag drop operation which keeps a decorator window (optionally)
+ * Implement derived types with DRAG_DROP_OPERATOR_TYPE (see below)
  */
 class SLATE_API FDragDropOperation
 {
@@ -16,6 +17,11 @@ public:
 	}
 
 	virtual ~FDragDropOperation();
+
+	virtual bool IsOfType(const FString& Type)
+	{
+		return false;
+	}
 
 	/**
 	 * Invoked when the drag and drop operation has ended.
@@ -129,6 +135,30 @@ DECLARE_DELEGATE_OneParam( FOnDragDropUpdate,
 
 
 /**
+ * All drag drop operations that require type checking must include this macro.
+ * Example Usage:
+ *	class FMyDragDropOp : public FDragDropOperation
+ *	{
+ *	public:
+ *		DRAG_DROP_OPERATOR_TYPE(FMyDragDropOp, FDragDropOperation)
+ *		...
+ *	};
+ */
+
+#define DRAG_DROP_OPERATOR_TYPE(TYPE, BASE) \
+	static const FString& GetTypeId() { static FString Type = TEXT(#TYPE); return Type; } \
+	virtual bool IsOfType(const FString& Type) OVERRIDE { return GetTypeId() == Type || BASE::IsOfType(Type); }
+
+namespace DragDrop
+{
+	/** See if this dragdrop operation matches another dragdrop operation */
+	template <typename OperatorType>
+	bool IsTypeMatch(const TSharedPtr<FDragDropOperation> Operation);
+}
+
+
+
+/**
  * An external drag and drop operation that originates outside of slate.
  * E.g. an OLE drag and drop.
  */
@@ -141,7 +171,7 @@ private:
 	virtual bool IsExternalOperation() const OVERRIDE { return true; }
 
 public:
-	static FString GetTypeId() {static FString Type = TEXT("FExternalDragOperation"); return Type;}
+	DRAG_DROP_OPERATOR_TYPE(FExternalDragOperation, FDragDropOperation)
 
 	/** Creates a new external text drag operation */
 	static TSharedRef<FExternalDragOperation> NewText( const FString& InText );
@@ -168,51 +198,3 @@ private:
 		DragFiles
 	} DragType;
 };
-
-
-
-/**
- * The Drag Drop Reflector handles reflection for all drag drop objects.
- * It could easily be expanded to handle reflection of any object.
- *
- * To make a drag drop operation reflective, you will need this line in your class:
- * static FString GetTypeId() {static FString Type = TEXT("..."); return Type;}
- *
- * You will also need to Register the class during it's construction
- * However, FDecoratedDragDrop already handles the second part for you if you use it
- */
-class SLATE_API FDragDropReflector
-{
-public:
-	typedef TMap<TWeakPtr<FDragDropOperation>, FString> FOperationMap;
-
-	/** Registers a class instance with the class type's TypeId */
-	template <typename Operation>
-	void RegisterOperation(TWeakPtr<FDragDropOperation> Op)
-	{
-		CleanupPointerMap(RegisteredOperations);
-
-		RegisteredOperations.Add(Op, Operation::GetTypeId());
-	}
-
-	/** Checks to see if two reflective classes have the same class type */
-	template <typename Operation>
-	bool CheckEquivalence(TWeakPtr<FDragDropOperation> Op)
-	{
-		FString* RegisteredOperation = RegisteredOperations.Find(Op);
-		return RegisteredOperation && Operation::GetTypeId() == *RegisteredOperation;
-	}
-
-private:
-	/** A map of pointers to all registered classes to their TypeIds */
-	FOperationMap RegisteredOperations;
-};
-
-
-
-namespace DragDrop
-{
-	/** See if this dragdrop operation matches another dragdrop operation */
-	template <typename OperatorType>
-	bool IsTypeMatch(const TSharedPtr<FDragDropOperation> Operation);
-}

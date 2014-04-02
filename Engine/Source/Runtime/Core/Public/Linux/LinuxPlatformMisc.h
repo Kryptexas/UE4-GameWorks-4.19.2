@@ -88,6 +88,7 @@ struct CORE_API FLinuxMisc : public FGenericPlatformMisc
 	static void PlatformInit();
 	static void SetGracefulTerminationHandler();
 	static void SetCrashHandler(void (* CrashHandler)(const FGenericCrashContext & Context));
+	static class GenericApplication* CreateApplication();
 #if !UE_BUILD_SHIPPING
 	static bool IsDebuggerPresent();
 	FORCEINLINE static void DebugBreak()
@@ -98,6 +99,11 @@ struct CORE_API FLinuxMisc : public FGenericPlatformMisc
 		}
 	}
 #endif // !UE_BUILD_SHIPPING
+
+	static void PumpMessages(bool bFromMainLoop);
+	static uint32 GetKeyMap( uint16* KeyCodes, FString* KeyNames, uint32 MaxMappings );
+	static uint32 GetCharKeyMap(uint16* KeyCodes, FString* KeyNames, uint32 MaxMappings);
+	static bool ControlScreensaver(EScreenSaverAction Action);
 
 	static const TCHAR* RootDir();
 	static void NormalizePath(FString& InPath);

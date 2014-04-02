@@ -420,6 +420,8 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxMesh* Mesh, UStaticMesh
 	int32 WedgeOffset = RawMesh.WedgeIndices.Num();
 	int32 TriangleOffset = RawMesh.FaceMaterialIndices.Num();
 
+	int32 MaxMaterialIndex = 0;
+
 	// Reserve space for attributes.
 	RawMesh.FaceMaterialIndices.AddZeroed(TriangleCount);
 	RawMesh.FaceSmoothingMasks.AddZeroed(TriangleCount);
@@ -650,7 +652,21 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxMesh* Mesh, UStaticMesh
 			AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, LOCTEXT("Error_MaterialIndexInconsistency", "Face material index inconsistency - forcing to 0")));
 			MaterialIndex = 0;
 		}
-		RawMesh.FaceMaterialIndices[DestTriangleIndex] = MaterialIndex;
+		MaxMaterialIndex = FMath::Max( MaxMaterialIndex, MaterialIndex );
+
+		RawMesh.FaceMaterialIndices[DestTriangleIndex] = FMath::Min( MaterialIndex, MAX_MESH_MATERIAL_INDEX );
+	}
+
+	if( MaxMaterialIndex > MAX_MESH_MATERIAL_INDEX )
+	{
+		AddTokenizedErrorMessage( 
+			FTokenizedMessage::Create(
+				EMessageSeverity::Warning, 
+				FText::Format( LOCTEXT("Error_TooManyMaterials", "Mesh '{0}' has too many({2}) materials. Clamping materials to {1}."), 
+				FText::FromString(Mesh->GetName()),
+				FText::AsNumber(MAX_MESH_MATERIAL_INDEX),
+				FText::AsNumber(MaxMaterialIndex+1)
+				) ) );
 	}
 
 	// Store the new raw mesh.
@@ -913,6 +929,12 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 		}
 	}
 	FStaticMeshSourceModel& SrcModel = StaticMesh->SourceModels[LODIndex];
+	if( InStaticMesh != NULL && LODIndex > 0 && !SrcModel.RawMeshBulkData->IsEmpty() )
+	{
+		// clear out the old mesh data
+		FRawMesh RawMesh;
+		SrcModel.RawMeshBulkData->SaveRawMesh( RawMesh );
+	}
 	
 	// make sure it has a new lighting guid
 	StaticMesh->LightingGuid = FGuid::NewGuid();

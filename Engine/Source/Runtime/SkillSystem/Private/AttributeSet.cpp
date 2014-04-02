@@ -78,16 +78,7 @@ void UAttributeSet::ClampFromMetaDataTable(const UDataTable *DataTable)
 
 void UAttributeSet::PrintDebug()
 {
-	// Replace this with generic printing function
-	/*
-	UE_LOG(LogActorComponent, Warning, TEXT("%s"), *GetName());
-	UE_LOG(LogActorComponent, Warning, TEXT(" MyFloatPropertyA: %.2f"), MyFloatPropertyA);
-	UE_LOG(LogActorComponent, Warning, TEXT(" MyFloatPropertyB: %.2f"), MyFloatPropertyB);
-	UE_LOG(LogActorComponent, Warning, TEXT(" MyFloatPropertyC: %.2f"), MyFloatPropertyC);
-	UE_LOG(LogActorComponent, Warning, TEXT(" MyStringProperty: %s"), *MyStringProperty);
-	UE_LOG(LogActorComponent, Warning, TEXT(" MyIntProperty: %d"), MyIntProperty);
-	UE_LOG(LogActorComponent, Warning, TEXT(" "));
-	*/
+	
 }
 
 void UAttributeSet::OnAttributeChange(UProperty *Property)
@@ -176,12 +167,58 @@ void FAttributeModifierTest::ApplyModifier(UAttributeSet *Object)
 	Object->PrintDebug();
 }
 
-float FScalableFloat::GetValueAtLevel(float Level) const
+void FScalableFloat::FinalizeCurveData(const FGlobalCurveDataOverride *GlobalOverrides)
 {
-	float CurveEval = Curve.CurveTable ?  Curve.Eval(Level) : 1.f;
-	return Value * CurveEval;
+	static const FString ContextString = TEXT("FScalableFloat::FinalizeCurveData");
+
+	// We are a static value, so do nothing.
+	if (Curve.RowName == NAME_None)
+	{
+		return;
+	}
+
+	// Tied to an explicit table, so bind now.
+	if (Curve.CurveTable != NULL)
+	{
+		FinalCurve = Curve.GetCurve(ContextString);
+		return;
+	}
+
+	// We have overrides
+	if (GlobalOverrides)
+	{
+		for (UCurveTable* OverrideTable : GlobalOverrides->Overrides)
+		{
+			FinalCurve = OverrideTable->FindCurve(Curve.RowName, ContextString, false);
+			if (FinalCurve)
+			{
+				return;
+			}
+		}
+	}
+
+	// Look at global defaults
+	const UCurveTable * GlobalTable = ISkillSystemModule::Get().GetSkillSystemGlobals().GetGlobalCurveTable();
+	if (GlobalTable)
+	{
+		FinalCurve = GlobalTable->FindCurve(Curve.RowName, ContextString, false);
+	}
+
+	if (!FinalCurve)
+	{
+		SKILL_LOG(Warning, TEXT("Unable to find RowName: %s for FScalableFloat."), *Curve.RowName.ToString());
+	}
 }
 
+float FScalableFloat::GetValueAtLevel(float Level) const
+{
+	if (FinalCurve)
+	{
+		return Value * FinalCurve->Eval(Level);
+	}
+
+	return Value;
+}
 
 bool FGameplayAttribute::operator==(const FGameplayAttribute& Other) const
 {

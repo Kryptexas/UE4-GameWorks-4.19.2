@@ -183,15 +183,15 @@ public class BuildDocumentation : BuildCommand
 	{
 		if (P4Enabled)
 		{
-			int Changelist = CreateChange(P4Env.Client, String.Format("{0} from CL#{1}", Description, P4Env.Changelist));
-			Reconcile(Changelist, CombinePaths(PathSeparator.Slash, P4Env.ClientRoot, DepotPath));
+			int Changelist = P4.CreateChange(P4Env.Client, String.Format("{0} from CL#{1}", Description, P4Env.Changelist));
+			P4.Reconcile(Changelist, CombinePaths(PathSeparator.Slash, P4Env.ClientRoot, DepotPath));
 
-			if (!TryDeleteEmptyChange(Changelist))
+			if (!P4.TryDeleteEmptyChange(Changelist))
 			{
 				if (!GlobalCommandLine.NoSubmit)
 				{
 					int SubmittedChangelist;
-					Submit(Changelist, out SubmittedChangelist, true, true);
+					P4.Submit(Changelist, out SubmittedChangelist, true, true);
 				}
 			}
 		}

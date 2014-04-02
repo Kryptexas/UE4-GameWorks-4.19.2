@@ -43,6 +43,7 @@ class UK2Node_Timeline : public UK2Node
 	virtual FString GetTooltip() const OVERRIDE;
 	virtual FString GetDocumentationExcerptName() const OVERRIDE;
 	virtual FName GetPaletteIcon(FLinearColor& OutColor) const OVERRIDE{ return TEXT("GraphEditor.Timeline_16x"); }
+	virtual bool ShouldShowNodeProperties() const OVERRIDE { return true; }
 	// End UEdGraphNode interface.
 
 	// Begin UK2Node interface.

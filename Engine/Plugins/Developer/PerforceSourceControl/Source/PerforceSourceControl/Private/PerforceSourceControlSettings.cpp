@@ -3,6 +3,9 @@
 #include "PerforceSourceControlPrivatePCH.h"
 #include "PerforceSourceControlSettings.h"
 #include "SourceControlHelpers.h"
+#include "SPerforceSourceControlSettings.h"
+#include "PerforceSourceControlModule.h"
+#include "PerforceSourceControlProvider.h"
 
 namespace PerforceSettingsConstants
 {
@@ -13,56 +16,94 @@ static const FString SettingsSection = TEXT("PerforceSourceControl.PerforceSourc
 }
 
 
-const FString& FPerforceSourceControlSettings::GetHost() const
+const FString& FPerforceSourceControlSettings::GetPort() const
 {
 	FScopeLock ScopeLock(&CriticalSection);
-	return Host;
+	return ConnectionInfo.Port;
 }
 
-void FPerforceSourceControlSettings::SetHost(const FString& InString)
+void FPerforceSourceControlSettings::SetPort(const FString& InString)
 {
 	FScopeLock ScopeLock(&CriticalSection);
-	Host = InString;
+	ConnectionInfo.Port = InString;
 }
 
 const FString& FPerforceSourceControlSettings::GetUserName() const
 {
 	FScopeLock ScopeLock(&CriticalSection);
-	return UserName;
+	return ConnectionInfo.UserName;
 }
 
 void FPerforceSourceControlSettings::SetUserName(const FString& InString)
 {
 	FScopeLock ScopeLock(&CriticalSection);
-	UserName = InString;
+	ConnectionInfo.UserName = InString;
 }
 
 const FString& FPerforceSourceControlSettings::GetWorkspace() const
 {
 	FScopeLock ScopeLock(&CriticalSection);
-	return Workspace;
+	return ConnectionInfo.Workspace;
 }
 
 void FPerforceSourceControlSettings::SetWorkspace(const FString& InString)
 {
 	FScopeLock ScopeLock(&CriticalSection);
-	Workspace = InString;
+	ConnectionInfo.Workspace = InString;
+}
+
+const FString& FPerforceSourceControlSettings::GetHostOverride() const
+{
+	FScopeLock ScopeLock(&CriticalSection);
+	return ConnectionInfo.HostOverride;
+}
+
+void FPerforceSourceControlSettings::SetHostOverride(const FString& InString)
+{
+	FScopeLock ScopeLock(&CriticalSection);
+	ConnectionInfo.HostOverride = InString;
 }
 
 void FPerforceSourceControlSettings::LoadSettings()
 {
 	FScopeLock ScopeLock(&CriticalSection);
 	const FString& IniFile = SourceControlHelpers::GetSettingsIni();
-	GConfig->GetString(*PerforceSettingsConstants::SettingsSection, TEXT("Host"), Host, IniFile);
-	GConfig->GetString(*PerforceSettingsConstants::SettingsSection, TEXT("UserName"), UserName, IniFile);
-	GConfig->GetString(*PerforceSettingsConstants::SettingsSection, TEXT("Workspace"), Workspace, IniFile);
+
+	if(!GConfig->GetString(*PerforceSettingsConstants::SettingsSection, TEXT("Port"), ConnectionInfo.Port, IniFile))
+	{
+		// backwards compatibility - previously we mis-specified the Port as 'Host'
+		GConfig->GetString(*PerforceSettingsConstants::SettingsSection, TEXT("Host"), ConnectionInfo.Port, IniFile);
+	}
+	GConfig->GetString(*PerforceSettingsConstants::SettingsSection, TEXT("UserName"), ConnectionInfo.UserName, IniFile);
+	GConfig->GetString(*PerforceSettingsConstants::SettingsSection, TEXT("Workspace"), ConnectionInfo.Workspace, IniFile);
+	GConfig->GetString(*PerforceSettingsConstants::SettingsSection, TEXT("HostOverride"), ConnectionInfo.HostOverride, IniFile);
 }
 
 void FPerforceSourceControlSettings::SaveSettings() const
 {
 	FScopeLock ScopeLock(&CriticalSection);
 	const FString& IniFile = SourceControlHelpers::GetSettingsIni();
-	GConfig->SetString(*PerforceSettingsConstants::SettingsSection, TEXT("Host"), *Host, IniFile);
-	GConfig->SetString(*PerforceSettingsConstants::SettingsSection, TEXT("UserName"), *UserName, IniFile);
-	GConfig->SetString(*PerforceSettingsConstants::SettingsSection, TEXT("Workspace"), *Workspace, IniFile);
+	GConfig->SetString(*PerforceSettingsConstants::SettingsSection, TEXT("Port"), *ConnectionInfo.Port, IniFile);
+	GConfig->SetString(*PerforceSettingsConstants::SettingsSection, TEXT("UserName"), *ConnectionInfo.UserName, IniFile);
+	GConfig->SetString(*PerforceSettingsConstants::SettingsSection, TEXT("Workspace"), *ConnectionInfo.Workspace, IniFile);
+	GConfig->SetString(*PerforceSettingsConstants::SettingsSection, TEXT("HostOverride"), *ConnectionInfo.HostOverride, IniFile);
+}
+
+FPerforceConnectionInfo FPerforceSourceControlSettings::GetConnectionInfo() const
+{
+	check(IsInGameThread());
+	FPerforceConnectionInfo OutConnectionInfo = ConnectionInfo;
+	
+	// password needs to be gotten straight from the input UI, its not stored anywhere else
+	if(SPerforceSourceControlSettings::GetPassword().Len() > 0)
+	{
+		OutConnectionInfo.Password = SPerforceSourceControlSettings::GetPassword();
+	}
+
+	// Ticket is stored in the provider
+	FPerforceSourceControlModule& PerforceSourceControl = FModuleManager::GetModuleChecked<FPerforceSourceControlModule>( "PerforceSourceControl" );
+	FPerforceSourceControlProvider& Provider = PerforceSourceControl.GetProvider();
+	OutConnectionInfo.Ticket = Provider.GetTicket();
+
+	return OutConnectionInfo;
 }

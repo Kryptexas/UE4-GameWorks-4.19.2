@@ -384,9 +384,8 @@ bool ULevelExporterT3D::ExportText( const FExportObjectInnerContext* Context, UO
 	TextIndent += 3;
 
 	// loop through all of the actors just in this level
-	for( int32 iActor=0; iActor<Level->Actors.Num(); iActor++ )
+	for (AActor* Actor : Level->Actors)
 	{
-		AActor* Actor = Level->Actors[iActor];
 		// Don't export the default physics volume, as it doesn't have a UModel associated with it
 		// and thus will not import properly.
 		if ( Actor == DefaultPhysicsVolume )
@@ -432,17 +431,17 @@ bool ULevelExporterT3D::ExportText( const FExportObjectInnerContext* Context, UO
 	// information from poly to poly.
 	Ar.Logf( TEXT("%sBegin Surface\r\n"), FCString::Spc(TextIndent) );
 	TCHAR TempStr[256];
-	for( int32 i=0; i<World->GetModel()->Surfs.Num(); i++ )
+	const UModel* Model = World->GetModel();
+	for (const FBspSurf& Poly : Model->Surfs)
 	{
-		FBspSurf *Poly = &World->GetModel()->Surfs[i];
-		if( Poly->PolyFlags&PF_Selected )
+		if (Poly.PolyFlags & PF_Selected )
 		{
-			Ar.Logf( TEXT("%sTEXTURE=%s\r\n"), FCString::Spc(TextIndent+3), *Poly->Material->GetPathName() );
-			Ar.Logf( TEXT("%sBASE      %s\r\n"), FCString::Spc(TextIndent+3), SetFVECTOR(TempStr,&(World->GetModel()->Points[Poly->pBase])) );
-			Ar.Logf( TEXT("%sTEXTUREU  %s\r\n"), FCString::Spc(TextIndent+3), SetFVECTOR(TempStr,&(World->GetModel()->Vectors[Poly->vTextureU])) );
-			Ar.Logf( TEXT("%sTEXTUREV  %s\r\n"), FCString::Spc(TextIndent+3), SetFVECTOR(TempStr,&(World->GetModel()->Vectors[Poly->vTextureV])) );
-			Ar.Logf( TEXT("%sNORMAL    %s\r\n"), FCString::Spc(TextIndent+3), SetFVECTOR(TempStr,&(World->GetModel()->Vectors[Poly->vNormal])) );
-			Ar.Logf( TEXT("%sPOLYFLAGS=%d\r\n"), FCString::Spc(TextIndent+3), Poly->PolyFlags );
+			Ar.Logf(TEXT("%sTEXTURE=%s\r\n"),   FCString::Spc(TextIndent + 3), *Poly.Material->GetPathName());
+			Ar.Logf(TEXT("%sBASE      %s\r\n"), FCString::Spc(TextIndent + 3), SetFVECTOR(TempStr, &(Model->Points[Poly.pBase])));
+			Ar.Logf(TEXT("%sTEXTUREU  %s\r\n"), FCString::Spc(TextIndent + 3), SetFVECTOR(TempStr, &(Model->Vectors[Poly.vTextureU])));
+			Ar.Logf(TEXT("%sTEXTUREV  %s\r\n"), FCString::Spc(TextIndent + 3), SetFVECTOR(TempStr, &(Model->Vectors[Poly.vTextureV])));
+			Ar.Logf(TEXT("%sNORMAL    %s\r\n"), FCString::Spc(TextIndent + 3), SetFVECTOR(TempStr, &(Model->Vectors[Poly.vNormal])));
+			Ar.Logf(TEXT("%sPOLYFLAGS=%d\r\n"), FCString::Spc(TextIndent + 3), Poly.PolyFlags);
 			break;
 		}
 	}
@@ -454,38 +453,35 @@ bool ULevelExporterT3D::ExportText( const FExportObjectInnerContext* Context, UO
 	return 1;
 }
 
-void ULevelExporterT3D::ExportComponentExtra( const FExportObjectInnerContext* Context, const TArray<UObject*>& Components, FOutputDevice& Ar, uint32 PortFlags)
+void ULevelExporterT3D::ExportComponentExtra(const FExportObjectInnerContext* Context, const TArray<UActorComponent*>& Components, FOutputDevice& Ar, uint32 PortFlags)
 {
-	for ( int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++ )
+	for (UActorComponent* ActorComponent : Components)
 	{
-		UActorComponent* ActorComponent = Cast<UActorComponent>(Components[ComponentIndex]);
-		if( ActorComponent )
+		if (ActorComponent != NULL)
 		{
 			AActor* ActorOwner = ActorComponent->GetOwner();
-			if (ActorOwner != NULL) // might be NULL if referenced but not attached/in Components array
+			if (ActorOwner != NULL)
 			{
 				ULevel* ComponentLevel = Cast<ULevel>(ActorOwner->GetOuter());
 				AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(ComponentLevel);
-				if( IFA )
+				if (IFA)
 				{
-					TMap<class UStaticMesh*,TArray<const FFoliageInstancePlacementInfo*> > FoliageInstanceMap = IFA->GetInstancesForComponent(ActorComponent);
-					for( TMap<class UStaticMesh*,TArray<const FFoliageInstancePlacementInfo*> > ::TConstIterator It(FoliageInstanceMap); It; ++It )
+					TMap<class UStaticMesh*, TArray<const FFoliageInstancePlacementInfo*>> FoliageInstanceMap = IFA->GetInstancesForComponent(ActorComponent);
+					for (const TPair<class UStaticMesh*, TArray<const FFoliageInstancePlacementInfo*>>& MapEntry : FoliageInstanceMap)
 					{
-						Ar.Logf(TEXT("%sBegin Foliage StaticMesh=%s Component=%s%s"),FCString::Spc(TextIndent), *It.Key()->GetPathName(), *ActorComponent->GetName(), LINE_TERMINATOR);
-						const TArray<const FFoliageInstancePlacementInfo*>& FoliageInstances = It.Value();
-						for( int32 Idx=0;Idx<FoliageInstances.Num();Idx++ )
+						Ar.Logf(TEXT("%sBegin Foliage StaticMesh=%s Component=%s%s"), FCString::Spc(TextIndent), *MapEntry.Key->GetPathName(), *ActorComponent->GetName(), LINE_TERMINATOR);
+						for (const FFoliageInstancePlacementInfo* Inst : MapEntry.Value)
 						{
-							const FFoliageInstancePlacementInfo* Inst = FoliageInstances[Idx];
-							Ar.Logf(TEXT("%sLocation=%f,%f,%f Rotation=%f,%f,%f PreAlignRotation=%f,%f,%f DrawScale3D=%f,%f,%f Flags=%u%s"),FCString::Spc(TextIndent+3), 
-								Inst->Location.X, Inst->Location.Y, Inst->Location.Z, 
+							Ar.Logf(TEXT("%sLocation=%f,%f,%f Rotation=%f,%f,%f PreAlignRotation=%f,%f,%f DrawScale3D=%f,%f,%f Flags=%u%s"), FCString::Spc(TextIndent+3),
+								Inst->Location.X, Inst->Location.Y, Inst->Location.Z,
 								Inst->Rotation.Pitch, Inst->Rotation.Yaw, Inst->Rotation.Roll,
 								Inst->PreAlignRotation.Pitch, Inst->PreAlignRotation.Yaw, Inst->PreAlignRotation.Roll,
-								Inst->DrawScale3D.X, Inst->DrawScale3D.Y, Inst->DrawScale3D.Z, 
+								Inst->DrawScale3D.X, Inst->DrawScale3D.Y, Inst->DrawScale3D.Z,
 								Inst->Flags,
-								LINE_TERMINATOR);									
+								LINE_TERMINATOR);
 						}
 
-						Ar.Logf(TEXT("%sEnd Foliage%s"),FCString::Spc(TextIndent), LINE_TERMINATOR);
+						Ar.Logf(TEXT("%sEnd Foliage%s"), FCString::Spc(TextIndent), LINE_TERMINATOR);
 					}
 				}
 			}

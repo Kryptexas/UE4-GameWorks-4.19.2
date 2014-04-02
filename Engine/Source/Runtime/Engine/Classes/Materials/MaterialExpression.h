@@ -169,6 +169,7 @@ class UMaterialExpression : public UObject
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
 	virtual void PostEditImport() OVERRIDE;
+	virtual bool CanEditChange( const UProperty* InProperty ) const OVERRIDE;
 #endif // WITH_EDITOR
 
 	virtual bool Modify( bool bAlwaysMarkDirty=true ) OVERRIDE;

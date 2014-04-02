@@ -136,13 +136,15 @@ public:
 	 * Gets an ETA or percentage complete for an asset that is still in the process of being installed.
 	 *
 	 * @param FAssetData the asset to check for progress status
+	 * @param ReportType the type of report to query.
 	 */
-	virtual float GetAssetAvailabilityProgress(const FAssetData& AssetData) const = 0;
+	virtual float GetAssetAvailabilityProgress(const FAssetData& AssetData, EAssetAvailabilityProgressReportingType::Type ReportType) const = 0;
 
 	/**
-	 * Returns how asset availability progress is reported, either ETA or percentage complete.
+	 * @param ReportType The report type to query.
+	 * Returns if a given report type is supported on the current platform
 	 */
-	virtual EAssetAvailabilityProgressReportingType::Type GetAssetAvailabilityProgressType() const = 0;
+	virtual bool GetAssetAvailabilityProgressTypeSupported(EAssetAvailabilityProgressReportingType::Type ReportType) const = 0;	
 
 	/**
 	 * Hint the streaming installers to prioritize a specific asset for install.

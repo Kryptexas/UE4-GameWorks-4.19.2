@@ -386,8 +386,10 @@ float3x3 SkinTangents( FVertexFactoryInput Input, FVertexFactoryIntermediates In
 	float3 TangentX = TangentBias(Input.TangentX);
 	// normal
 	float4 TangentZ = TangentBias(Input.TangentZ);
-	// normal morph offset
-	float3 DeltaTangentZ = TangentBias(Input.DeltaTangentZ);	
+	// normal morph offset. 
+	// since normal delta can be in the range of (-2, 2), 
+	// we packed twice more with less precision, so scale back up by 2 
+	float3 DeltaTangentZ = TangentBias(Input.DeltaTangentZ)*2;
 
 	// calc new normal by offseting it with the delta
 	Tangents[1] = normalize( float3(TangentZ.x,TangentZ.y,TangentZ.z) + DeltaTangentZ );

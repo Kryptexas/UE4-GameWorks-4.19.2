@@ -916,7 +916,7 @@ struct FVector_NetQuantize : public FVector
 	{}
 
 	FORCEINLINE FVector_NetQuantize( float InX, float InY, float InZ )
-	: FVector(InX, InY, InX)
+	: FVector(InX, InY, InZ)
 	{}
 
 	FORCEINLINE FVector_NetQuantize(const FVector &InVec)

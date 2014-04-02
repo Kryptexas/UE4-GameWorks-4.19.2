@@ -37,6 +37,21 @@ public:
 		const FSceneOutlinerInitializationOptions& InitOptions,
 		const FOnContextMenuOpening& MakeContextMenuWidgetDelegate,
 		const FOnActorPicked& OnActorPickedDelegate ) const;
+
+	/**
+	 * Creates a scene outliner widget
+	 *
+	 * @param	InitOptions						Programmer-driven configuration for this widget instance
+	 * @param	MakeContentMenuWidgetDelegate	Optional delegate to execute to build a context menu when right clicking on actors
+	 * @param	OnItemPickedDelegate			Optional callback when an item is selected in 'picking' mode
+	 *
+	 * @return	New scene outliner widget
+	 */
+
+	virtual TSharedRef< class ISceneOutliner > CreateSceneOutliner(
+		const FSceneOutlinerInitializationOptions& InitOptions,
+		const FOnContextMenuOpening& MakeContextMenuWidgetDelegate,
+		const FOnSceneOutlinerItemPicked& OnItemPickedDelegate ) const;
 };
 
 

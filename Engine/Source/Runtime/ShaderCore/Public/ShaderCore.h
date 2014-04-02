@@ -233,6 +233,7 @@ struct FShaderCompilerEnvironment : public FRefCountedObject
 {
 	TMap<FString,FString> IncludeFileNameToContentsMap;
 	TArray<uint32> CompilerFlags;
+	TMap<uint32,uint8> RenderTargetOutputFormatsMap;
 
 	/** Default constructor. */
 	FShaderCompilerEnvironment() 
@@ -278,11 +279,16 @@ struct FShaderCompilerEnvironment : public FRefCountedObject
 	{
 		return Definitions.GetDefinitionMap();
 	}
+
+	void SetRenderTargetOutputFormat(uint32 RenderTargetIndex, EPixelFormat PixelFormat)
+	{
+		RenderTargetOutputFormatsMap.Add(RenderTargetIndex, PixelFormat);
+	}
 	
 	friend FArchive& operator<<(FArchive& Ar,FShaderCompilerEnvironment& Environment)
 	{
 		// Note: this serialize is used to pass between UE4 and the shader compile worker, recompile both when modifying
-		return Ar << Environment.IncludeFileNameToContentsMap << Environment.Definitions << Environment.CompilerFlags;
+		return Ar << Environment.IncludeFileNameToContentsMap << Environment.Definitions << Environment.CompilerFlags << Environment.RenderTargetOutputFormatsMap;
 	}
 
 	void Merge(const FShaderCompilerEnvironment& Other)
@@ -305,6 +311,7 @@ struct FShaderCompilerEnvironment : public FRefCountedObject
 
 		CompilerFlags.Append(Other.CompilerFlags);
 		Definitions.Merge(Other.Definitions);
+		RenderTargetOutputFormatsMap.Append(Other.RenderTargetOutputFormatsMap);
 	}
 
 private:

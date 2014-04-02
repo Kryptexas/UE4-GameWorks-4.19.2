@@ -115,7 +115,9 @@ bool GSupportsShaderFramebufferFetch = false;
 bool GHardwareHiddenSurfaceRemoval = false;
 bool GRHISupportsAsyncTextureCreation = false;
 bool GSupportsQuads = false;
+bool GSupportsVolumeTextureRendering = true;
 bool GSupportsGSRenderTargetLayerSwitchingToMips = true;
+bool GSupportsSeparateRenderTargetBlendState = false;
 float GPixelCenterOffset = 0;
 float GMinClipZ = 0.0f;
 float GProjectionSignY = 1.0f;
@@ -210,6 +212,7 @@ static FName NAME_PCD3D_SM5(TEXT("PCD3D_SM5"));
 static FName NAME_PCD3D_SM4(TEXT("PCD3D_SM4"));
 static FName NAME_PCD3D_ES2(TEXT("PCD3D_ES2"));
 static FName NAME_GLSL_150(TEXT("GLSL_150"));
+static FName NAME_GLSL_150_MAC(TEXT("GLSL_150_MAC"));
 static FName NAME_SF_PS4(TEXT("SF_PS4"));
 static FName NAME_SF_XBOXONE(TEXT("SF_XBOXONE"));
 static FName NAME_GLSL_430(TEXT("GLSL_430"));
@@ -229,7 +232,11 @@ FName LegacyShaderPlatformToShaderFormat(EShaderPlatform Platform)
 	case SP_PCD3D_ES2:
 		return NAME_PCD3D_ES2;
 	case SP_OPENGL_SM4:
+#if PLATFORM_MAC
+		return NAME_GLSL_150_MAC;
+#else
 		return NAME_GLSL_150;
+#endif
 	case SP_PS4:
 		return NAME_SF_PS4;
 	case SP_XBOXONE:
@@ -256,6 +263,7 @@ EShaderPlatform ShaderFormatToLegacyShaderPlatform(FName ShaderFormat)
 	if (ShaderFormat == NAME_PCD3D_SM4)			return SP_PCD3D_SM4;
 	if (ShaderFormat == NAME_PCD3D_ES2)			return SP_PCD3D_ES2;
 	if (ShaderFormat == NAME_GLSL_150)			return SP_OPENGL_SM4;
+	if (ShaderFormat == NAME_GLSL_150_MAC)		return SP_OPENGL_SM4;
 	if (ShaderFormat == NAME_SF_PS4)			return SP_PS4;
 	if (ShaderFormat == NAME_SF_XBOXONE)		return SP_XBOXONE;
 	if (ShaderFormat == NAME_GLSL_430)			return SP_OPENGL_SM5;

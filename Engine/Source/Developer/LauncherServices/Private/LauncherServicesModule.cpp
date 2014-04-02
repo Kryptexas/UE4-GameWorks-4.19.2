@@ -46,11 +46,24 @@ public:
 
 		return ProfileManagerSingleton.ToSharedRef();
 	}
+	
+	DECLARE_DERIVED_EVENT(FLauncherServicesModule, ILauncherServicesModule::FLauncherServicesSDKNotInstalled, FLauncherServicesSDKNotInstalled);
+	virtual FLauncherServicesSDKNotInstalled& OnLauncherServicesSDKNotInstalled( ) OVERRIDE
+	{
+		return LauncherServicesSDKNotInstalled;
+	}
+	void BroadcastLauncherServicesSDKNotInstalled(const FString& PlatformName, const FString& DocLink) OVERRIDE
+	{
+		return LauncherServicesSDKNotInstalled.Broadcast(PlatformName, DocLink);
+	}
 
 	// End ILauncherServicesModule interface
 
 
 private:
+	
+	/// Event to be called when the editor tried to use a platform, but it wasn't installed
+	FLauncherServicesSDKNotInstalled LauncherServicesSDKNotInstalled;
 
 	// Holds the launcher profile manager singleton
 	static ILauncherProfileManagerPtr ProfileManagerSingleton;

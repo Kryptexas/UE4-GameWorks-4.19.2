@@ -14,12 +14,13 @@
  *****************************************************************************/
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-void SDeviceBrowser::Construct( const FArguments& InArgs, const FDeviceManagerModelRef& InModel, const ITargetDeviceServiceManagerRef& InDeviceServiceManager )
+void SDeviceBrowser::Construct( const FArguments& InArgs, const FDeviceManagerModelRef& InModel, const ITargetDeviceServiceManagerRef& InDeviceServiceManager, const TSharedPtr<FUICommandList>& InUICommandList )
 {
 	DeviceServiceManager = InDeviceServiceManager;
 	Filter = MakeShareable(new FDeviceBrowserFilter());
 	Model = InModel;
 	NeedsServiceListRefresh = true;
+	UICommandList = InUICommandList;
 
 	ChildSlot
 	[
@@ -166,7 +167,7 @@ TSharedPtr<SWidget> SDeviceBrowser::HandleDeviceServiceListViewContextMenuOpenin
 
 	if (SelectedDeviceServices.Num() > 0)
 	{
-		return SNew(SDeviceBrowserContextMenu, SelectedDeviceServices[0]);
+		return SNew(SDeviceBrowserContextMenu, UICommandList);
 	}
 	
 	return NULL;

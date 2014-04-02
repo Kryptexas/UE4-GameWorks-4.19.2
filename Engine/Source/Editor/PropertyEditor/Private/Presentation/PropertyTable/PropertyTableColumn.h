@@ -31,7 +31,9 @@ public:
 
 	virtual bool CanSelectCells() const OVERRIDE { return !IsHidden(); }
 
-	virtual EPropertyTableColumnSizeMode::Type GetSizeMode() const OVERRIDE { return EPropertyTableColumnSizeMode::Fill; }
+	virtual EPropertyTableColumnSizeMode::Type GetSizeMode() const OVERRIDE { return SizeMode; }
+
+	virtual void SetSizeMode(EPropertyTableColumnSizeMode::Type InSizeMode) OVERRIDE{ SizeMode = InSizeMode; }
 
 	virtual float GetWidth() const OVERRIDE { return Width; } 
 
@@ -81,4 +83,6 @@ private:
 	FFrozenStateChanged FrozenStateChanged;
 
 	TSharedRef< class FPropertyPath > PartialPath;
+
+	EPropertyTableColumnSizeMode::Type SizeMode;
 };

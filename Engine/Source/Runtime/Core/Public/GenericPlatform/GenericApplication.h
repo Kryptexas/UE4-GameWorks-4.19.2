@@ -7,6 +7,7 @@ class FGenericWindow;
 class ICursor;
 class ITextInputMethodSystem;
 class IForceFeedbackSystem;
+class IAnalyticsProvider;
 
 namespace EPopUpOrientation
 {
@@ -283,6 +284,9 @@ public:
 
 	/** Function to return the current implementation of the Text Input Method System */
 	virtual ITextInputMethodSystem *GetTextInputMethodSystem() { return NULL; }
+    
+    /** Send any analytics captured by the application */
+    virtual void SendAnalytics(IAnalyticsProvider* Provider) { }
 
 public:
 

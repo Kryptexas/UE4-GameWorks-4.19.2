@@ -434,7 +434,7 @@ FString EngineUtils::SanitizeDisplayName( const FString& InDisplayName, const bo
 /** This will set the StreamingLevels TMap with the current Streaming Level Status and also set which level the player is in **/
 void GetLevelStreamingStatus( UWorld* World, TMap<FName,int32>& StreamingLevels, FString& LevelPlayerIsInName )
 {
-	FWorldContext &Context = GEngine->WorldContextFromWorld(World);
+	FWorldContext &Context = GEngine->GetWorldContextFromWorldChecked(World);
 
 	// Iterate over the world info's level streaming objects to find and see whether levels are loaded, visible or neither.
 	for( int32 LevelIndex=0; LevelIndex<World->StreamingLevels.Num(); LevelIndex++ )

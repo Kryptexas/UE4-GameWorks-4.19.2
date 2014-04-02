@@ -6,6 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "MessageLog.h"
+#include "Net/UnrealNetwork.h"
 
 #define LOCTEXT_NAMESPACE "SceneComponent"
 
@@ -21,6 +22,8 @@ USceneComponent::USceneComponent(const class FPostConstructInitializeProperties&
 	// default behavior is visible
 	bVisible = true;
 	bAutoActivate=false;
+	
+	NetUpdateTransform = false;
 }
 
 FTransform USceneComponent::CalcNewComponentToWorld(const FTransform& NewRelativeTransform) const
@@ -1400,6 +1403,76 @@ void USceneComponent::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift
 FBoxSphereBounds USceneComponent::GetPlacementExtent() const
 {
 	return CalcBounds( FTransform::Identity );
+}
+
+void USceneComponent::OnRep_Transform()
+{
+	NetUpdateTransform = true;
+}
+
+void USceneComponent::OnRep_Visibility(bool OldValue)
+{
+	bool ReppedValue = bVisible;
+	bVisible = OldValue;
+	SetVisibility(ReppedValue);
+}
+
+void USceneComponent::PreNetReceive()
+{
+	Super::PreNetReceive();
+
+	NetOldAttachSocketName = AttachSocketName;
+	NetOldAttachParent = AttachParent;
+}
+
+void USceneComponent::PostNetReceive()
+{
+	Super::PostNetReceive();
+
+	// If we have no attach parent, attach to parent's root component.
+	bool UpdateAttach = false;
+
+	UpdateAttach |= (NetOldAttachParent != AttachParent);
+	UpdateAttach |= (NetOldAttachSocketName != AttachSocketName);
+
+	if (AttachParent == NULL)
+	{
+		USceneComponent * ParentRoot = GetOwner()->GetRootComponent();
+		if (ParentRoot != this)
+		{
+			UpdateAttach = true;
+			AttachParent = ParentRoot;
+		}
+	}
+	
+	if (UpdateAttach)
+	{
+		Exchange(NetOldAttachParent, AttachParent);
+		Exchange(NetOldAttachSocketName, AttachSocketName);
+		
+		AttachTo(NetOldAttachParent, NetOldAttachSocketName);
+	}
+
+	if (NetUpdateTransform)
+	{
+		UpdateComponentToWorld(true);
+		NetUpdateTransform = false;
+	}
+}
+
+void USceneComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	
+	DOREPLIFETIME(USceneComponent, bAbsoluteLocation);
+	DOREPLIFETIME(USceneComponent, bAbsoluteRotation);
+	DOREPLIFETIME(USceneComponent, bAbsoluteScale);
+	DOREPLIFETIME(USceneComponent, bVisible);
+	DOREPLIFETIME(USceneComponent, AttachParent);
+	DOREPLIFETIME(USceneComponent, AttachSocketName);
+	DOREPLIFETIME(USceneComponent, RelativeLocation);
+	DOREPLIFETIME(USceneComponent, RelativeRotation);
+	DOREPLIFETIME(USceneComponent, RelativeScale3D);
 }
 
 #if WITH_EDITOR

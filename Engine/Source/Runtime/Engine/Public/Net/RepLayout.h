@@ -66,6 +66,27 @@ public:
 	bool				Resend;
 };
 
+class FUnmappedGuidMgrElement
+{
+public:
+	FUnmappedGuidMgrElement() : Array( NULL ) {}
+	FUnmappedGuidMgrElement( const FNetworkGUID & InGuid, const int32 InParentIndex, const int32 InCmdIndex ) : Guid( InGuid ), Array( NULL ), ParentIndex( InParentIndex ), CmdIndex( InCmdIndex ) {}
+	FUnmappedGuidMgrElement( class FUnmappedGuidMgr * InArray, const int32 InParentIndex, const int32 InCmdIndex ) : Array( InArray ), ParentIndex( InParentIndex ), CmdIndex( InCmdIndex ) {}
+
+	~FUnmappedGuidMgrElement();
+
+	FNetworkGUID				Guid;
+	class FUnmappedGuidMgr *	Array;
+	int32						ParentIndex;
+	int32						CmdIndex;
+};
+
+class FUnmappedGuidMgr
+{
+public:
+	TMap< int32, FUnmappedGuidMgrElement > Map;
+};
+
 /** FRepState
  *  Stores state used by the FRepLayout manager
 */
@@ -86,6 +107,8 @@ public:
 	~FRepState();
 
 	TArray< uint8 >				StaticBuffer;
+
+	FUnmappedGuidMgr			UnmappedGuids;
 
 	TSharedPtr< FRepLayout >	RepLayout;
 	
@@ -159,16 +182,18 @@ public:
 		CmdStart( 0 ), 
 		CmdEnd( 0 ), 
 		RoleSwapIndex( -1 ), 
+		Condition( COND_None ),
 		Flags( 0 )
 	{}
 
-	UProperty * Property;
-	int32		ArrayIndex;
-	uint16		CmdStart;
-	uint16		CmdEnd;
-	int32		RoleSwapIndex;
+	UProperty *			Property;
+	int32				ArrayIndex;
+	uint16				CmdStart;
+	uint16				CmdEnd;
+	int32				RoleSwapIndex;
+	ELifetimeCondition	Condition;
 
-	uint32		Flags;
+	uint32				Flags;
 };
 
 class FRepLayoutCmd
@@ -208,7 +233,8 @@ public:
 		CurrentHandle( 0 ), 
 		Bunch( InBunch ),
 		RepState( InRepState ),
-		bDoChecksum( bInDoChecksum )
+		bDoChecksum( bInDoChecksum ),
+		bHasUnmapped( false )
 	{}
 
 	uint32					WaitingHandle;
@@ -216,6 +242,7 @@ public:
 	FNetBitReader &			Bunch;
 	FRepState *				RepState;
 	bool					bDoChecksum;
+	bool					bHasUnmapped;
 };
 
 class FMergeDirtyListState
@@ -287,27 +314,20 @@ public:
 		bool &						bContentBlockWritten ) const;
 
 	void SendProperties( 
-		FRepState *	RESTRICT	RepState, 
-		const uint8 * RESTRICT	Data, 
-		UClass *				ObjectClass,
-		UActorChannel *			OwningChannel,
-		FOutBunch &				Writer, 
-		TArray< uint16 >	 &	Changed, 
-		int32 &					LastIndex, 
-		bool &					bContentBlockWritten ) const;
-
-	bool GenerateChangelist( FRepState * RepState, const uint8 * Data, TArray< FRepChangedParent > & OutChangedParents ) const;
-
-	void ValidateChangelist(
-		FRepState *							RepState, 
-		const uint8 * 						Data, 
-		UActorChannel *						OwningChannel,
-		FRepState *							OtherRepState,
-		const TArray< FRepChangedParent > &	OtherChangedParents ) const;
+		FRepState *	RESTRICT		RepState, 
+		const FReplicationFlags &	RepFlags,
+		const uint8 * RESTRICT		Data, 
+		UClass *					ObjectClass,
+		UActorChannel *				OwningChannel,
+		FOutBunch &					Writer, 
+		TArray< uint16 >	 &		Changed, 
+		int32 &						LastIndex, 
+		bool &						bContentBlockWritten ) const;
 
 	void InitFromObjectClass( UClass * InObjectClass );
 
-	bool ReceiveProperties( UClass * InObjectClass, FRepState * RESTRICT RepState, void * RESTRICT Data, FNetBitReader & InBunch, bool bDiscard ) const;
+	bool ReceiveProperties( UClass * InObjectClass, FRepState * RESTRICT RepState, void * RESTRICT Data, FNetBitReader & InBunch, bool bDiscard, bool & bOutHasUnmapped ) const;
+	bool UpdateUnmappedObjects( FRepState *	RepState, UPackageMap * PackageMap, void * RESTRICT Data ) const;
 
 	void CallRepNotifies( FRepState * RepState, UObject * Object ) const;
 	void PostReplicate( FRepState * RepState, FPacketIdRange & PacketRange, bool bReliable ) const;
@@ -378,28 +398,40 @@ private:
 		const TArray< uint16 > &			PropertyList ) const;
 
 	void SendProperties_DynamicArray_r( 
-		FRepState *	RESTRICT	RepState, 
-		FRepWriterState &		WriterState,
-		const int32				CmdIndex, 
-		const uint8 * RESTRICT	StoredData, 
-		const uint8 * RESTRICT	Data, 
-		TArray< uint16 > &		Unmapped,
-		uint16					Handle ) const;
+		FRepState *	RESTRICT		RepState, 
+		const FReplicationFlags &	RepFlags,
+		FRepWriterState &			WriterState,
+		const int32					CmdIndex, 
+		const uint8 * RESTRICT		StoredData, 
+		const uint8 * RESTRICT		Data, 
+		TArray< uint16 > &			Unmapped,
+		uint16						Handle ) const;
 
 	uint16 SendProperties_r( 
-		FRepState *	RESTRICT	RepState, 
-		FRepWriterState &		WriterState,
-		const int32				CmdStart, 
-		const int32				CmdEnd, 
-		const uint8 * RESTRICT	StoredData, 
-		const uint8 * RESTRICT	Data, 
-		TArray< uint16 > &		Unmapped,
-		uint16					Handle ) const;
+		FRepState *	RESTRICT		RepState, 
+		const FReplicationFlags &	RepFlags,
+		FRepWriterState &			WriterState,
+		const int32					CmdStart, 
+		const int32					CmdEnd, 
+		const uint8 * RESTRICT		StoredData, 
+		const uint8 * RESTRICT		Data, 
+		TArray< uint16 > &			Unmapped,
+		uint16						Handle ) const;
 
-	bool ReadProperty( FRepReaderState & ReaderState, const FRepLayoutCmd & Cmd, const int32 CurrentCmdIndex, uint8 * RESTRICT StoredData, uint8 * RESTRICT Data, const bool bDiscard ) const;
+	bool ReadProperty( 
+		FRepReaderState &		ReaderState, 
+		FUnmappedGuidMgr *		UnmappedGuids,
+		const int32				AbsOffset,
+		const FRepLayoutCmd &	Cmd, 
+		const int32				CurrentCmdIndex, 
+		uint8 * RESTRICT		StoredData, 
+		uint8 * RESTRICT		Data, 
+		const bool				bDiscard ) const;
 
 	bool ReceiveProperties_AnyArray_r( 
 		FRepReaderState &	ReaderState, 
+		FUnmappedGuidMgr *	UnmappedGuids,
+		const int32			AbsOffset,
 		const int32			ArrayNum, 
 		const int32			ElementSize, 
 		const int32			CmdIndex, 
@@ -409,6 +441,8 @@ private:
 
 	bool ReceiveProperties_DynamicArray_r( 
 		FRepReaderState &		ReaderState, 
+		FUnmappedGuidMgr *		UnmappedGuids,
+		const int32				AbsOffset,
 		const FRepLayoutCmd &	Cmd, 
 		const int32				CmdIndex, 
 		uint8 * RESTRICT		StoredData, 
@@ -417,11 +451,15 @@ private:
 
 	bool ReceiveProperties_r( 
 		FRepReaderState &	ReaderState, 
+		FUnmappedGuidMgr *	UnmappedGuids,
+		const int32			AbsOffset,
 		const int32			CmdStart, 
 		const int32			CmdEnd, 
 		uint8 * RESTRICT	StoredData, 
 		uint8 * RESTRICT	Data,
 		const bool			bDiscard ) const;
+
+	bool UpdateUnmappedObjects_r( FRepState * RepState, FUnmappedGuidMgr * UnmappedGuids, UPackageMap * PackageMap, uint8 * RESTRICT Data, const int32 MaxAbsOffset ) const;
 
 	void ValidateWithChecksum_DynamicArray_r( const FRepLayoutCmd & Cmd, const int32 CmdIndex, const uint8 * RESTRICT Data, FArchive & Ar, const bool bDiscard ) const;
 	void ValidateWithChecksum_r( const int32 CmdStart, const int32 CmdEnd, const uint8 * RESTRICT Data, FArchive & Ar, const bool bDiscard ) const;

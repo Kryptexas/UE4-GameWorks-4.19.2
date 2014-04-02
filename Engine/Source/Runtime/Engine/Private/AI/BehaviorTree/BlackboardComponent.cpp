@@ -84,6 +84,15 @@ void UBlackboardComponent::InitializeBlackboard(class UBlackboardData* NewAsset)
 			}
 
 			ValueMemory.AddZeroed(MemoryOffset);
+
+			// initialize memory
+			for (int32 i = 0; i < InitList.Num(); i++)
+			{
+				const FBlackboardEntry* KeyData = BlackboardAsset->GetKey(InitList[i].KeyID);
+				uint8* RawData = GetKeyRawData(InitList[i].KeyID);
+
+				KeyData->KeyType->Initialize(RawData);
+			}
 		}
 		else
 		{
@@ -634,6 +643,28 @@ void UBlackboardComponent::SetValueAsVector(uint8 KeyID, const FVector& VectorVa
 	if (RawData)
 	{
 		const bool bChanged = UBlackboardKeyType_Vector::SetValue(RawData, VectorValue);
+		if (bChanged)
+		{
+			NotifyObservers(KeyID);
+		}
+	}
+}
+
+void UBlackboardComponent::ClearValueAsVector(const FName& KeyName)
+{
+	const uint8 KeyID = GetKeyID(KeyName);
+	if (GetKeyType(KeyID) == UBlackboardKeyType_Vector::StaticClass())
+	{
+		ClearValueAsVector(KeyID);
+	}
+}
+
+void UBlackboardComponent::ClearValueAsVector(uint8 KeyID)
+{
+	uint8* RawData = GetKeyRawData(KeyID);
+	if (RawData)
+	{
+		const bool bChanged = UBlackboardKeyType_Vector::SetValue(RawData, FAISystem::InvalidLocation);
 		if (bChanged)
 		{
 			NotifyObservers(KeyID);

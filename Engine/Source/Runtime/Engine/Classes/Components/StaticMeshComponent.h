@@ -130,8 +130,11 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	UPROPERTY()
 	int32 PreviousLODLevel;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=StaticMesh)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=StaticMesh, ReplicatedUsing=OnRep_StaticMesh)
 	class UStaticMesh* StaticMesh;
+
+	UFUNCTION()
+	void OnRep_StaticMesh(class UStaticMesh *OldStaticMesh);
 
 	/** If true, WireframeColorOverride will be used. If false, color is determined based on mobility and physics simulation settings */
 	UPROPERTY(BlueprintReadOnly, Category=Rendering)

@@ -353,6 +353,31 @@ public:
 		return Filename;
 	}
 
+	static bool SortAndCopy(const FString &InputFilename, const FString &OutputFilename)
+	{
+		// Open the input and output files
+		FPakFileDerivedDataBackend InputPak(*InputFilename, false);
+		if (InputPak.bClosed) return false;
+
+		FPakFileDerivedDataBackend OutputPak(*OutputFilename, true);
+		if (OutputPak.bClosed) return false;
+
+		// Sort the key names
+		TArray<FString> KeyNames;
+		InputPak.CacheItems.GenerateKeyArray(KeyNames);
+		KeyNames.Sort();
+
+		// Copy all the DDC to the new cache
+		TArray<uint8> Buffer;
+		for (int KeyIndex = 0; KeyIndex < KeyNames.Num(); KeyIndex++)
+		{
+			Buffer.Reset();
+			InputPak.GetCachedData(*KeyNames[KeyIndex], Buffer);
+			OutputPak.PutCachedData(*KeyNames[KeyIndex], Buffer, false);
+		}
+		return true;
+	}
+
 private:
 
 	struct FCacheValue

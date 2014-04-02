@@ -188,8 +188,15 @@ UObject* UFbxFactory::FactoryCreateBinary
 	UnFbx::FFbxLoggerSetter Logger(FFbxImporter);
 
 	bool bShowImportDialog = bShowOption && !GIsAutomationTesting;
-	UnFbx::FBXImportOptions* ImportOptions = GetImportOptions(FFbxImporter, ImportUI, bShowImportDialog, InParent->GetPathName(), bOperationCanceled);
+	bool bImportAll = false;
+	UnFbx::FBXImportOptions* ImportOptions = GetImportOptions(FFbxImporter, ImportUI, bShowImportDialog, InParent->GetPathName(), bOperationCanceled, bImportAll);
 	bOutOperationCanceled = bOperationCanceled;
+	
+	if( bImportAll )
+	{
+		// If the user chose to import all, we don't show the dialog again and use the same settings for each object until importing another set of files
+		bShowOption = false;
+	}
 
 	// For multiple files, use the same settings
 	bDetectImportTypeOnImport = false;
@@ -306,10 +313,13 @@ UObject* UFbxFactory::FactoryCreateBinary
 				}
 				else if ( ImportUI->MeshTypeToImport == FBXIT_SkeletalMesh )// skeletal mesh
 				{
+					int32 TotalNumNodes = 0;
+
 					for (int32 i = 0; i < SkelMeshArray.Num(); i++)
 					{
 						TArray<FbxNode*> NodeArray = *SkelMeshArray[i];
 					
+						TotalNumNodes += NodeArray.Num();
 						// check if there is LODGroup for this skeletal mesh
 						int32 MaxLODLevel = 1;
 						for (int32 j = 0; j < NodeArray.Num(); j++)
@@ -412,6 +422,12 @@ UObject* UFbxFactory::FactoryCreateBinary
 					for (int32 i = 0; i < SkelMeshArray.Num(); i++)
 					{
 						delete SkelMeshArray[i];
+					}
+					
+					// if total nodes we found is 0, we didn't find anything. 
+					if (TotalNumNodes == 0)
+					{
+						FFbxImporter->AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, LOCTEXT("FailedToImport_NoMeshFoundOnRoot", "Could not find any valid mesh on the root hierarchy. If you have mesh in the sub hierarchy, please enable option of [Import Meshes In Bone Hierarchy] when import.")));
 					}
 				}
 				else if ( ImportUI->MeshTypeToImport == FBXIT_Animation )// animation
@@ -530,6 +546,7 @@ void UFbxFactory::CleanUp()
 {
 	UnFbx::FFbxImporter* FFbxImporter = UnFbx::FFbxImporter::GetInstance();
 	bDetectImportTypeOnImport = true;
+	bShowOption = true;
 	// load options
 	if (FFbxImporter)
 	{

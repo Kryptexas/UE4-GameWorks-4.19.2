@@ -146,4 +146,4 @@ class UOnlineReplStructs: public UObject
 };
 
 /** Test harness for Unique Id replication */
-ENGINE_API void TestUniqueIdRepl();
+ENGINE_API void TestUniqueIdRepl(class UWorld* InWorld);

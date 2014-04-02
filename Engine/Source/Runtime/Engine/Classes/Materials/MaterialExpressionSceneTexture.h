@@ -64,7 +64,7 @@ class UMaterialExpressionSceneTexture : public UMaterialExpression
 	GENERATED_UCLASS_BODY()
 
 	/** UV in 0..1 range */
-	UPROPERTY(meta=(RequiredInput = "false"))
+	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Ignored if not specified"))
 	FExpressionInput Coordinates;
 
 	/** Which scene texture (screen aligned texture) we want to make a lookup into */

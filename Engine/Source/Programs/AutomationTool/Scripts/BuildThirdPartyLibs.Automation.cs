@@ -87,7 +87,7 @@ class BuildThirdPartyLibs : BuildCommand
 		// if not specified, make one
 		if (WorkingCL == -1)
 		{
-			WorkingCL = CreateChange(P4Env.Client, String.Format("Third party libs built from changelist {0}", P4Env.Changelist));
+			WorkingCL = P4.CreateChange(P4Env.Client, String.Format("Third party libs built from changelist {0}", P4Env.Changelist));
 		}
 		Log("Build from {0}    Working in {1}", P4Env.Changelist, WorkingCL);
 
@@ -158,12 +158,12 @@ class BuildThirdPartyLibs : BuildCommand
 		PrintRunTime();			
 
 		// revert any unchanged files
-		RevertUnchanged(WorkingCL);
+		P4.RevertUnchanged(WorkingCL);
 
 		if (AllowSubmit)
 		{
 			int SubmittedCL;
-			Submit(WorkingCL, out SubmittedCL, true, true);
+			P4.Submit(WorkingCL, out SubmittedCL, true, true);
 			Log("Submitted changelist {0}", SubmittedCL);
 		}
 	}

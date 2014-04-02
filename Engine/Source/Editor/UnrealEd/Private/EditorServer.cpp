@@ -1035,7 +1035,7 @@ void UEditorEngine::HandleTransactorRedo( FUndoSessionContext SessionContext, bo
 	PostUndo(Succeeded);
 
 	BroadcastPostRedo(SessionContext.Context, SessionContext.PrimaryObject, Succeeded);
-	ShowUndoRedoNotification(FText::Format(NSLOCTEXT("UnrealEd", "UndoMessageFormat", "Undo: {0}"), SessionContext.Title), Succeeded);
+	ShowUndoRedoNotification(FText::Format(NSLOCTEXT("UnrealEd", "RedoMessageFormat", "Redo: {0}"), SessionContext.Title), Succeeded);
 }
 
 void UEditorEngine::HandleTransactorUndo( FUndoSessionContext SessionContext, bool Succeeded )
@@ -1044,7 +1044,7 @@ void UEditorEngine::HandleTransactorUndo( FUndoSessionContext SessionContext, bo
 	PostUndo(Succeeded);
 
 	BroadcastPostUndo(SessionContext.Context, SessionContext.PrimaryObject, Succeeded);
-	ShowUndoRedoNotification(FText::Format(NSLOCTEXT("UnrealEd", "RedoMessageFormat", "Redo: {0}"), SessionContext.Title), Succeeded);
+	ShowUndoRedoNotification(FText::Format(NSLOCTEXT("UnrealEd", "UndoMessageFormat", "Undo: {0}"), SessionContext.Title), Succeeded);
 }
 
 UTransactor* UEditorEngine::CreateTrans()
@@ -3945,7 +3945,7 @@ void UEditorEngine::MoveViewportCamerasToActor(const TArray<AActor*> &Actors, bo
 	TArray<UClass*> PrimitiveComponentTypesToIgnore;
 	PrimitiveComponentTypesToIgnore.Add( UShapeComponent::StaticClass() );
 	PrimitiveComponentTypesToIgnore.Add( UNavLinkRenderingComponent::StaticClass() );
-
+	PrimitiveComponentTypesToIgnore.Add( UDrawFrustumComponent::StaticClass() );
 
 	// Create a bounding volume of all of the selected actors.
 	FBox BoundingBox( 0 );
@@ -3983,8 +3983,22 @@ void UEditorEngine::MoveViewportCamerasToActor(const TArray<AActor*> &Actors, bo
 
 					if( PrimitiveComponent->IsRegistered() )
 					{
+						struct ComponentTypeMatcher
+						{
+							ComponentTypeMatcher( UPrimitiveComponent* InComponentToMatch )
+								: ComponentToMatch( InComponentToMatch )
+							{}
+
+							bool Matches( const UClass* ComponentClass ) const
+							{
+								return ComponentToMatch->IsA( ComponentClass );
+							}
+
+							UPrimitiveComponent* ComponentToMatch;
+						};
+
 						// Some components can have huge bounds but are not visible.  Ignore these components unless it is the only component on the actor 
-						const bool bIgnore = PrimitiveComponentTypesToIgnore.Contains( PrimitiveComponent->GetClass() ) && Components.Num() > 1;
+						const bool bIgnore = Components.Num() > 1 && PrimitiveComponentTypesToIgnore.FindMatch( ComponentTypeMatcher( PrimitiveComponent ) ) != INDEX_NONE;
 
 						if( !bIgnore )
 						{

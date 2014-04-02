@@ -31,6 +31,7 @@ private:
 	FDebugDrawDelegate DebugTextDrawingDelegate;
 	TArray<FEQSItemDebugData> DebugItems;
 	TArray<FEQSItemDebugData> FailedDebugItems;
+	// can be 0
 	AActor* ActorOwner;
 	const class IEQSQueryResultSourceInterface* QueryDataSource;
 	bool bUntestedItems;
@@ -39,6 +40,8 @@ private:
 	const FString ViewFlagName;
 
 	static const FVector ItemDrawRadius;
+
+	bool SafeIsActorSelected() const;
 };
 
 UCLASS(HeaderGroup=Component, hidecategories=Object)

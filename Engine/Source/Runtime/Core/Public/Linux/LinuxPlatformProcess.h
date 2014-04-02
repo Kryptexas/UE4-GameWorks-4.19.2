@@ -126,6 +126,9 @@ protected:
  */
 struct CORE_API FLinuxPlatformProcess : public FGenericPlatformProcess
 {
+	static void* GetDllHandle( const TCHAR* Filename );
+	static void FreeDllHandle( void* DllHandle );
+	static void* GetDllExport( void* DllHandle, const TCHAR* ProcName );
 	static const TCHAR* ComputerName();
 	static const TCHAR* BaseDir();
 	static bool SetProcessLimits(EProcessResource::Type Resource, uint64 Limit);

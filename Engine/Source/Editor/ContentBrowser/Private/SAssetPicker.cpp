@@ -73,8 +73,7 @@ void SAssetPicker::Construct( const FArguments& InArgs )
 			HorizontalBox->AddSlot()
 			.AutoWidth()
 			[
-				SNew( STutorialWrapper )
-				.Name( TEXT( "ContentBrowserFiltersCombo" ) )
+				SNew( STutorialWrapper, TEXT("ContentBrowserFiltersCombo") )
 				[
 					SNew( SComboButton )
 					.ComboButtonStyle( FEditorStyle::Get(), "ContentBrowser.Filters.Style" )
@@ -293,7 +292,7 @@ void SAssetPicker::OnSearchBoxCommitted(const FText& InSearchText, ETextCommit::
 	if (CommitInfo == ETextCommit::OnEnter)
 	{
 		TArray<FAssetData> SelectionSet = AssetViewPtr->GetSelectedAssets();
-		if ( SelectionSet.Num()==0 )
+		if ( SelectionSet.Num() == 0 )
 		{
 			AssetViewPtr->AdjustActiveSelection(1);
 			SelectionSet = AssetViewPtr->GetSelectedAssets();

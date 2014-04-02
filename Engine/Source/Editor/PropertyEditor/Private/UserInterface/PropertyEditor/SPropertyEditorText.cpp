@@ -21,6 +21,7 @@ void SPropertyEditorText::Construct( const FArguments& InArgs, const TSharedRef<
 		.ClearKeyboardFocusOnCommit(false)
 		.OnTextCommitted( this, &SPropertyEditorText::OnTextCommitted )
 		.SelectAllTextOnCommit( true )
+		.IsReadOnly(this, &SPropertyEditorText::IsReadOnly)
 	];
 
 	if( InPropertyEditor->PropertyIsA( UObjectPropertyBase::StaticClass() ) )
@@ -79,4 +80,9 @@ FReply SPropertyEditorText::OnKeyboardFocusReceived( const FGeometry& MyGeometry
 bool SPropertyEditorText::CanEdit() const
 {
 	return PropertyEditor.IsValid() ? !PropertyEditor->IsEditConst() : true;
+}
+
+bool SPropertyEditorText::IsReadOnly() const
+{
+	return !CanEdit();
 }

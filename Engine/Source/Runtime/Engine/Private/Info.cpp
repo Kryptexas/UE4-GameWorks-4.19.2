@@ -5,25 +5,25 @@
 AInfo::AInfo(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	// Structure to hold one-time initialization
-	struct FConstructorStatics
-	{
-		ConstructorHelpers::FObjectFinderOptional<UTexture2D> SpriteTexture;
-		FName ID_Info;
-		FText NAME_Info;
-		FConstructorStatics()
-			: SpriteTexture(TEXT("/Engine/EditorResources/S_Actor"))
-			, ID_Info(TEXT("Info"))
-			, NAME_Info(NSLOCTEXT( "SpriteCategory", "Info", "Info" ))
-		{
-		}
-	};
-	static FConstructorStatics ConstructorStatics;
-
 #if WITH_EDITORONLY_DATA
 	SpriteComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
-	if (SpriteComponent)
+	if (!IsRunningCommandlet() && (SpriteComponent != nullptr))
 	{
+		// Structure to hold one-time initialization
+		struct FConstructorStatics
+		{
+			ConstructorHelpers::FObjectFinderOptional<UTexture2D> SpriteTexture;
+			FName ID_Info;
+			FText NAME_Info;
+			FConstructorStatics()
+				: SpriteTexture(TEXT("/Engine/EditorResources/S_Actor"))
+				, ID_Info(TEXT("Info"))
+				, NAME_Info(NSLOCTEXT("SpriteCategory", "Info", "Info"))
+			{
+			}
+		};
+		static FConstructorStatics ConstructorStatics;
+
 		SpriteComponent->Sprite = ConstructorStatics.SpriteTexture.Get();
 		SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Info;
 		SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Info;

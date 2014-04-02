@@ -3,7 +3,7 @@
 #include "SocketsPrivatePCH.h"
 #include "Sockets.h"
 #include "NetworkMessage.h"
-#include "MultiChannelTcp.h"
+#include "MultichannelTCP.h"
 
 bool FSimpleAbstractSocket_FSocket::Receive(uint8 *Results, int32 Size) const
 {

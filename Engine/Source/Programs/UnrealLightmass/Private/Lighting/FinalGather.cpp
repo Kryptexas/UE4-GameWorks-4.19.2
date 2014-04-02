@@ -26,6 +26,7 @@ namespace Lightmass
 /** Calculates incident radiance for a given world space position. */
 void FStaticLightingSystem::CalculateVolumeSampleIncidentRadiance(
 	const TArray<FVector4>& UniformHemisphereSamples,
+	float MaxUnoccludedLength,
 	FVolumeLightingSample& LightingSample,
 	FLMRandomStream& RandomStream,
 	FStaticLightingMappingContext& MappingContext,
@@ -66,6 +67,7 @@ void FStaticLightingSystem::CalculateVolumeSampleIncidentRadiance(
 		0,
 		1,
 		UniformHemisphereSamples,
+		MaxUnoccludedLength,
 		ImportancePhotonDirections,
 		MappingContext,
 		RandomStream,
@@ -91,6 +93,7 @@ void FStaticLightingSystem::CalculateVolumeSampleIncidentRadiance(
 		0,
 		1,
 		UniformHemisphereSamples,
+		MaxUnoccludedLength,
 		ImportancePhotonDirections,
 		MappingContext,
 		RandomStream,
@@ -114,6 +117,9 @@ void FStaticLightingSystem::CalculateVolumeSampleIncidentRadiance(
 	}
 
 	LightingSample.DirectionalLightShadowing = FMath::Min(UpperToggleableDirectionalLightShadowing, LowerToggleableDirectionalLightShadowing);
+
+	// Only using the upper hemisphere sky bent normal
+	LightingSample.SkyBentNormal = UpperHemisphereSample.SkyOcclusion;
 }
 
 /** Evaluates the PDF that was used to generate samples for the non-importance sampled final gather for the given direction. */
@@ -517,7 +523,6 @@ FLinearColor FStaticLightingSystem::FinalGatherSample(
 		}
 
 		FinalGatherInfo.CombinedSkyUnoccludedDirections += WorldPathDirection;
-		FinalGatherInfo.NumSamplesSkyUnoccluded++;
 	}
 
 #if ALLOW_LIGHTMAP_SAMPLE_DEBUGGING
@@ -1238,6 +1243,7 @@ SampleType FStaticLightingSystem::IncomingRadianceUniform(
 	int32 ElementIndex,
 	int32 BounceNumber,
 	const TArray<FVector4>& UniformHemisphereSamples,
+	float MaxUnoccludedLength,
 	const TArray<FVector4>& ImportancePhotonDirections,
 	FStaticLightingMappingContext& MappingContext,
 	FLMRandomStream& RandomStream,
@@ -1267,6 +1273,7 @@ SampleType FStaticLightingSystem::IncomingRadianceUniform(
 	 
 	int32 NumBackfaceHits = 0;
 	float NumSamplesOccluded = 0;
+	FVector CombinedSkyUnoccludedDirection(0);
 
 	// Estimate the indirect part of the light transport equation using uniform sampled monte carlo integration
 	//@todo - use cosine sampling if possible to match the indirect integrand, the irradiance caching algorithm assumes uniform sampling
@@ -1417,6 +1424,8 @@ SampleType FStaticLightingSystem::IncomingRadianceUniform(
 				IncomingRadiance.AddIncomingRadiance(EnvironmentLighting, SampleWeight, TangentPathDirection, WorldPathDirection);
 			}
 			
+			CombinedSkyUnoccludedDirection += WorldPathDirection;
+
 			if (IrradianceCachingSettings.bUseIrradianceGradients)
 			{
 				GatherInfo.PreviousIncidentRadiances[SampleIndex] = EnvironmentLighting;
@@ -1449,6 +1458,10 @@ SampleType FStaticLightingSystem::IncomingRadianceUniform(
 	// As a result, OcclusionExponent just controls contrast and doesn't affect brightness.
 	const float NormalizationConstant = .5f * (AmbientOcclusionSettings.OcclusionExponent + 1);
 	IncomingRadiance.SetOcclusion(FMath::Clamp(NormalizationConstant * FMath::Pow(OcclusionFraction, AmbientOcclusionSettings.OcclusionExponent), 0.0f, 1.0f)); 
+
+	const FVector BentNormal = CombinedSkyUnoccludedDirection / (MaxUnoccludedLength * UniformHemisphereSamples.Num());
+	IncomingRadiance.SetSkyOcclusion(BentNormal);
+
 	return IncomingRadiance;
 }
 
@@ -1726,6 +1739,7 @@ FFinalGatherSample FStaticLightingSystem::CachePointIncomingRadiance(
 					ElementIndex, 
 					BounceNumber, 
 					CachedHemisphereSamples,
+					CachedSamplesMaxUnoccludedLength,
 					ImportancePhotonDirections, 
 					MappingContext, 
 					RandomStream, 

@@ -1514,6 +1514,7 @@ void FLevelOfDetailSettingsLayout::OnImportLOD(TSharedPtr<FString> NewValue, ESe
 		UStaticMesh* StaticMesh = StaticMeshEditor.GetStaticMesh();
 		check(StaticMesh);
 		FbxMeshUtils::ImportMeshLODDialog(StaticMesh,LODIndex);
+		StaticMesh->PostEditChange();
 		StaticMeshEditor.RefreshTool();
 	}
 

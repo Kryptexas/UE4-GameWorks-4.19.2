@@ -577,8 +577,10 @@ APlayerController* UWorld::SpawnPlayActor(UPlayer* Player, ENetRole RemoteRole, 
 		Options += InURL.Op[i];
 	}
 
+	AGameMode* GameMode = GetAuthGameMode();
+
 	// Give the GameMode a chance to accept the login
-	APlayerController* const Actor = GetAuthGameMode()->Login(*InURL.Portal, Options, UniqueId, Error);
+	APlayerController* const Actor = GameMode->Login(*InURL.Portal, Options, UniqueId, Error);
 	if (Actor == NULL)
 	{
 		UE_LOG(LogSpawn, Warning, TEXT("Login failed: %s"), *Error);
@@ -595,7 +597,7 @@ APlayerController* UWorld::SpawnPlayActor(UPlayer* Player, ENetRole RemoteRole, 
 		Actor->SetAutonomousProxy(true);
 	}
 	Actor->SetPlayer(Player);
-	GetAuthGameMode()->PostLogin(Actor);
+	GameMode->PostLogin(Actor);
 
 	return Actor;
 }

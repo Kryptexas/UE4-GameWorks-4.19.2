@@ -35,6 +35,9 @@ USkeletalMeshComponent::USkeletalMeshComponent(const class FPostConstructInitial
 	bGenerateOverlapEvents = false;
 	LineCheckBoundsScale = FVector(1.0f, 1.0f, 1.0f);
 #if WITH_APEX_CLOTHING
+	PreClothTickFunction.TickGroup = TG_PreCloth;
+	PreClothTickFunction.bCanEverTick = true;
+	PreClothTickFunction.bStartWithTickEnabled = true;
 	ClothMaxDistanceScale = 1.0f;
 	ClothTeleportMode = FClothingActor::Continuous;
 	PrevRootBoneMatrix = GetBoneMatrix(0); // save the root bone transform
@@ -60,6 +63,36 @@ USkeletalMeshComponent::USkeletalMeshComponent(const class FPostConstructInitial
 	PrimaryComponentTick.TickGroup = TG_ParallelAnimWork;
 	PrimaryComponentTick.bRunOnAnyThread = true;	
 #endif
+}
+
+
+void USkeletalMeshComponent::RegisterComponentTickFunctions(bool bRegister)
+{
+	Super::RegisterComponentTickFunctions(bRegister);
+
+#if WITH_APEX_CLOTHING
+
+	if (bRegister)
+	{
+		if (SetupActorComponentTickFunction(&PreClothTickFunction))
+		{
+			PreClothTickFunction.Target = this;
+			// Set a prereq for the pre cloth tick to happen after physics is finished
+			if (World != NULL)
+			{
+				PreClothTickFunction.AddPrerequisite(World, World->EndPhysicsTickFunction);
+			}
+		}
+	}
+	else
+	{
+		if (PreClothTickFunction.IsTickFunctionRegistered())
+		{
+			PreClothTickFunction.UnRegisterTickFunction();
+		}
+	}
+#endif
+
 }
 
 bool USkeletalMeshComponent::NeedToSpawnAnimScriptInstance(bool bForceInit) const
@@ -226,29 +259,7 @@ void USkeletalMeshComponent::PostPhysicsTick(FPrimitiveComponentPostPhysicsTickF
 {
 	Super::PostPhysicsTick(ThisTickFunction);
 
-	// if physics is disabled on dedicated server, no reason to be here. 
-	if ( !bEnablePhysicsOnDedicatedServer && IsRunningDedicatedServer() )
-	{
-		return;
-	}
-
-	if (IsRegistered() && IsSimulatingPhysics())
-	{
-		SyncComponentToRBPhysics();
-	}
-
-	// this used to not run if not rendered, but that causes issues such as bounds not updated
-	// causing it to not rendered, at the end, I think we should blend body positions
-	// for example if you're only simulating, this has to happen all the time
-	// whether looking at it or not, otherwise
-	// @todo better solution is to check if it has moved by changing SyncComponentToRBPhysics to return true if anything modified
-	// and run this if that is true or rendered
-	// that will at least reduce the chance of mismatch
-	// generally if you move your actor position, this has to happen to approximately match their bounds
-	if( Bodies.Num() > 0 && IsRegistered() )
-	{
-		BlendInPhysics();
-	}
+	
 }
 
 #if WITH_EDITOR
@@ -450,7 +461,7 @@ bool USkeletalMeshComponent::UpdateLODStatus()
 bool USkeletalMeshComponent::ShouldUpdateTransform(bool bLODHasChanged) const
 {
 	// If forcing RefPose we can skip updating the skeleton for perf, except if it's using MorphTargets.
-	const bool bSkipBecauseOfRefPose = bForceRefpose && bOldForceRefPose && (MorphTargetCurves.Num() == 0);
+	const bool bSkipBecauseOfRefPose = bForceRefpose && bOldForceRefPose && (MorphTargetCurves.Num() == 0) && ((AnimScriptInstance)? AnimScriptInstance->MorphTargetCurves.Num() == 0 : true);
 
 	// LOD changing should always trigger an update.
 	return (bLODHasChanged || (!bNoSkeletonUpdate && !bSkipBecauseOfRefPose && Super::ShouldUpdateTransform(bLODHasChanged)));
@@ -491,12 +502,6 @@ void USkeletalMeshComponent::TickComponent(float DeltaTime, enum ELevelTick Tick
 
 	// Update bOldForceRefPose
 	bOldForceRefPose = bForceRefpose;
-
-	// if skeletal mesh has clothing assets, call TickClothing
-	if(SkeletalMesh && SkeletalMesh->ClothingAssets.Num() > 0)
-	{
-		TickClothing(DeltaTime + SkippedTickDeltaTime);
-	}
 }
 
 
@@ -1588,7 +1593,7 @@ FTransform USkeletalMeshComponent::ConvertLocalRootMotionToWorld(const FTransfor
 }
 
 
-float USkeletalMeshComponent::CalculateMass() const 
+float USkeletalMeshComponent::CalculateMass()
 {
 	if (bUseSingleBodyPhysics)
 	{
@@ -1598,11 +1603,37 @@ float USkeletalMeshComponent::CalculateMass() const
 	{
 		float Mass = 0.0f;
 
-		for (int32 i=0; i < Bodies.Num(); ++i)
+		if (Bodies.Num())
 		{
-			if (Bodies[i]->BodySetup.IsValid())
+			for (int32 i = 0; i < Bodies.Num(); ++i)
 			{
-				Mass += Bodies[i]->BodySetup->CalculateMass(this);
+				if (Bodies[i]->BodySetup.IsValid())
+				{
+					Mass += Bodies[i]->BodySetup->CalculateMass(this);
+				}
+			}
+		}
+		else	//We want to calculate mass before we've initialized body instances - in this case use physics asset setup
+		{
+			TArray<class UBodySetup*> * BodySetups = NULL;
+			if (PhysicsAssetOverride)
+			{
+				BodySetups = &PhysicsAssetOverride->BodySetup;
+			}
+			else if (UPhysicsAsset * PhysicsAsset = GetPhysicsAsset())
+			{
+				BodySetups = &PhysicsAsset->BodySetup;
+			}
+
+			if (BodySetups)
+			{
+				for (int32 i = 0; i < BodySetups->Num(); ++i)
+				{
+					if ((*BodySetups)[i])
+					{
+						Mass += (*BodySetups)[i]->CalculateMass(this);
+					}
+				}
 			}
 		}
 

@@ -695,6 +695,14 @@ public:
 	 * @param InWorld	The world to restore
  	 */
 	virtual void ConditionalRestoreWorld( class UWorld* InWorld ) {}
+
+	/**
+	 * Allow viewport client to override the current capture region
+	 *
+	 * @param OutCaptureRegion    Ref to rectangle where we will write the overridden region
+	 * @return true if capture region has been overridden, false otherwise
+	 */
+	virtual bool OverrideHighResScreenshotCaptureRegion(FIntRect& OutCaptureRegion) { return false; }
 };
 
 /**

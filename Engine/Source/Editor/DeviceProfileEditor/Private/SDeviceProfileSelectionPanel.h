@@ -11,14 +11,14 @@
 #define LOCTEXT_NAMESPACE "DeviceProfileEditorSelectionPanel"
 
 
-/** Delegate that is executed when the user selects a device profile */
-DECLARE_DELEGATE_OneParam( FOnDeviceProfileSelectionChanged, TWeakObjectPtr< UDeviceProfile > );
-
 /** Delegate that is executed when a device profile is pinned */
-DECLARE_DELEGATE_OneParam( FOnDeviceProfilePinned, TWeakObjectPtr< UDeviceProfile > );
+DECLARE_DELEGATE_OneParam(FOnDeviceProfilePinned, const TWeakObjectPtr< UDeviceProfile >&);
 
 /** Delegate that is executed when a device profile is unpinned */
-DECLARE_DELEGATE_OneParam( FOnDeviceProfileUnpinned, TWeakObjectPtr< UDeviceProfile > );
+DECLARE_DELEGATE_OneParam(FOnDeviceProfileUnpinned, const TWeakObjectPtr< UDeviceProfile >&);
+
+/** Delegate that is executed when a device profile has been selected to view alone. */
+DECLARE_DELEGATE_OneParam( FOnDeviceProfileViewAlone, const TWeakObjectPtr< UDeviceProfile >& );
 
 
 /**
@@ -31,12 +31,13 @@ public:
 	SLATE_BEGIN_ARGS( SDeviceProfileSelectionPanel )
 		: _OnDeviceProfilePinned()
 		, _OnDeviceProfileUnpinned()
+		, _OnDeviceProfileViewAlone()
 		{}
 		SLATE_DEFAULT_SLOT( FArguments, Content )
 
-		SLATE_EVENT( FOnDeviceProfileSelectionChanged, OnDeviceProfileSelectionChanged )
 		SLATE_EVENT( FOnDeviceProfilePinned, OnDeviceProfilePinned )
 		SLATE_EVENT( FOnDeviceProfileUnpinned, OnDeviceProfileUnpinned )
+		SLATE_EVENT( FOnDeviceProfileViewAlone, OnDeviceProfileViewAlone )
 	SLATE_END_ARGS()
 
 
@@ -59,28 +60,6 @@ public:
 	TSharedRef<ITableRow> OnGenerateWidgetForDeviceProfile( TWeakObjectPtr<UDeviceProfile> InDeviceProfile, const TSharedRef< STableViewBase >& OwnerTable );
 
 
-public:
-
-	/**
-	* Handle the profile selection changed
-	*
-	* @param InDeviceProfile - The selected item
-	* @param SelectInfo - Provides context on how the selection changed
-	*/
-	void HandleProfileSelectionChanged( TWeakObjectPtr<UDeviceProfile> InDeviceProfile, ESelectInfo::Type SelectInfo );
-
-
-	/**
-	* Get the profile which is selected from the list of device profiles
-	*
-	* @return The profile currently selected in the list, if any
-	*/
-	TWeakObjectPtr< UDeviceProfile > GetSelectedProfile()
-	{
-		return SelectedProfile;
-	}
-
-
 protected:
 
 	/**
@@ -100,14 +79,14 @@ private:
 	// Hold the widget that contains the list view of device profiles
 	TSharedPtr< SVerticalBox > ListWidget;
 
-	// Delegate for handling profile selection changed.
-	FOnDeviceProfileSelectionChanged OnDeviceProfileSelectionChanged;
-
 	// Delegate for handling a profile being pinned to the grid
 	FOnDeviceProfilePinned OnDeviceProfilePinned;
 
 	// Delegate for handling a profile being unpinned from the grid
 	FOnDeviceProfileUnpinned OnDeviceProfileUnpinned;
+
+	// Delegate for handling a request to view the profile in it's own editor
+	FOnDeviceProfileViewAlone OnDeviceProfileViewAlone;
 
 	// The profile selected from the current list
 	TWeakObjectPtr< UDeviceProfile > SelectedProfile;

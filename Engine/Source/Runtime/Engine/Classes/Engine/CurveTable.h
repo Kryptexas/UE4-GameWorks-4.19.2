@@ -27,11 +27,11 @@ class UCurveTable : public UObject
 	// Begin UCurveTable interface
 
 	/** Function to find the row of a table given its name. */
-	FRichCurve* FindCurve(FName RowName, const FString& ContextString) const
+	FRichCurve* FindCurve(FName RowName, const FString& ContextString, bool WarnIfNotFound=true) const
 	{
 		if(RowName == NAME_None)
 		{
-			UE_LOG(LogCurveTable, Warning, TEXT("UCurveTable::FindRow : NAME_None is invalid row name for CurveTable '%s' (%s)."), *GetPathName(), *ContextString);
+			UE_CLOG(WarnIfNotFound, LogCurveTable, Warning, TEXT("UCurveTable::FindRow : NAME_None is invalid row name for CurveTable '%s' (%s)."), *GetPathName(), *ContextString);
 			return NULL;
 		}
 
@@ -39,7 +39,7 @@ class UCurveTable : public UObject
 
 		if(FoundCurve == NULL)
 		{
-			UE_LOG(LogCurveTable, Warning, TEXT("UCurveTable::FindRow : Row '%s' not found in CurveTable '%s' (%s)."), *RowName.ToString(), *GetPathName(), *ContextString);
+			UE_CLOG(WarnIfNotFound, LogCurveTable, Warning, TEXT("UCurveTable::FindRow : Row '%s' not found in CurveTable '%s' (%s)."), *RowName.ToString(), *GetPathName(), *ContextString);
 			return NULL;
 		}
 

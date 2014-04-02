@@ -22,7 +22,8 @@ public class GUBP : BuildCommand
     public bool bFake = false;
     public static bool bNoIOSOnPC = false;
     public static bool bBuildRocket = false;
-
+    public static string ECProject = null;
+    public static string ForceAllEmailsTo = null;
 
     public string RocketUBTArgs(bool bUseRocketInsteadOfBuildRocket = false)
     {
@@ -116,7 +117,7 @@ public class GUBP : BuildCommand
         {
             return false;
         }
-        public virtual int AgentMemoryRequirement()
+        public virtual int AgentMemoryRequirement(GUBP bp)
         {
             return 0;
         }
@@ -314,17 +315,25 @@ public class GUBP : BuildCommand
         {
             HostPlatform = InHostPlatform;
         }
-        public static string StaticGetHostPlatformSuffix(UnrealTargetPlatform InHostPlatform)
+        public static string StaticGetHostPlatformSuffix(UnrealTargetPlatform InHostPlatform, UnrealTargetPlatform InAgentPlatform = UnrealTargetPlatform.Unknown)
         {
             if (InHostPlatform == UnrealTargetPlatform.Mac)
             {
+                if (InAgentPlatform == UnrealTargetPlatform.Win64)
+                {
+                    return "_ForMac";
+                }
                 return "_OnMac";
             }
             return "";
         }
+        public virtual UnrealTargetPlatform GetAgentPlatform()
+        {
+            return HostPlatform;
+        }
         public override string ECProcedureInfix()
         {
-            if (HostPlatform == UnrealTargetPlatform.Mac)
+            if (GetAgentPlatform() == UnrealTargetPlatform.Mac)
             {
                 if (IsSticky())
                 {
@@ -336,7 +345,7 @@ public class GUBP : BuildCommand
         }
         public virtual string GetHostPlatformSuffix()
         {
-            return StaticGetHostPlatformSuffix(HostPlatform);
+            return StaticGetHostPlatformSuffix(HostPlatform, GetAgentPlatform());
         }
         public UnrealTargetPlatform GetAltHostPlatform()
         {
@@ -419,8 +428,12 @@ public class GUBP : BuildCommand
         {
             return true;
         }
-        public override int AgentMemoryRequirement()
+        public override int AgentMemoryRequirement(GUBP bp)
         {
+            if (bp.ParseParam("Launcher"))
+            {
+                return base.AgentMemoryRequirement(bp);
+            }
             return 32;
         }
         public override UE4Build.BuildAgenda GetAgenda(GUBP bp)
@@ -443,10 +456,10 @@ public class GUBP : BuildCommand
         {
             if (HostPlatform != UnrealTargetPlatform.Mac)
             {
-                UE4Build.AddUATFilesToBuildProducts();
-                UE4Build.AddUBTFilesToBuildProducts();
-            }
-        }
+            	UE4Build.AddUATFilesToBuildProducts();
+            	UE4Build.AddUBTFilesToBuildProducts();
+        	}
+    	}
     }
 
     public class RootEditorNode : CompileNode
@@ -496,7 +509,10 @@ public class GUBP : BuildCommand
         public ToolsNode(UnrealTargetPlatform InHostPlatform)
             : base(InHostPlatform)
         {
-            AddPseudodependency(RootEditorNode.StaticGetFullName(HostPlatform));
+            if (!GUBP.bBuildRocket) // more errors and more performance by just starting before the root editor is done
+            {
+                AddPseudodependency(RootEditorNode.StaticGetFullName(HostPlatform));
+            }
             AgentSharingGroup = "Tools" + StaticGetHostPlatformSuffix(HostPlatform);
         }
         public static string StaticGetFullName(UnrealTargetPlatform InHostPlatform)
@@ -534,6 +550,15 @@ public class GUBP : BuildCommand
 			        }
                     );
                 Agenda.SwarmProject = CombinePaths(@"Engine\Source\Programs\UnrealSwarm\UnrealSwarm.sln");
+                Agenda.IOSDotNetProjects.AddRange(
+                        new string[]
+                    {
+                        CombinePaths(@"Engine\Source\Programs\IOS\iPhonePackager\iPhonePackager.csproj"),
+                        CombinePaths(@"Engine\Source\Programs\IOS\DeploymentServer\DeploymentServer.csproj"),
+                        CombinePaths(@"Engine\Source\Programs\IOS\MobileDeviceInterface\MobileDeviceInterface.csproj"),
+                        CombinePaths(@"Engine\Source\Programs\IOS\DeploymentInterface\DeploymentInterface.csproj"),
+                    }
+                        );
             }
 
             string AddArgs = "-nobuilduht -skipactionhistory" + bp.RocketUBTArgs(); ;
@@ -561,7 +586,10 @@ public class GUBP : BuildCommand
         public InternalToolsNode(UnrealTargetPlatform InHostPlatform)
             : base(InHostPlatform)
         {
-            AddPseudodependency(RootEditorNode.StaticGetFullName(HostPlatform));
+            if (!GUBP.bBuildRocket) // more errors and more performance by just starting before the root editor is done
+            {
+                AddPseudodependency(RootEditorNode.StaticGetFullName(HostPlatform));
+            }
             AgentSharingGroup = "Tools" + StaticGetHostPlatformSuffix(HostPlatform);
         }
         public static string StaticGetFullName(UnrealTargetPlatform InHostPlatform)
@@ -574,7 +602,7 @@ public class GUBP : BuildCommand
         }
         public override float Priority()
         {
-            return base.Priority() - 1;
+            return base.Priority() - 2;
         }
         public override bool DeleteBuildProducts()
         {
@@ -611,14 +639,6 @@ public class GUBP : BuildCommand
 				        "CommonUnrealMarkdown",
 			        }
                     );
-                Agenda.IOSDotNetProjects.AddRange(
-                        new string[]
-                    {
-                        CombinePaths(@"Engine\Source\Programs\IOS\iPhonePackager\iPhonePackager.csproj"),
-                        CombinePaths(@"Engine\Source\Programs\IOS\MobileDeviceInterface\MobileDeviceInterface.csproj"),
-                        CombinePaths(@"Engine\Source\Programs\IOS\DeploymentInterface\DeploymentInterface.csproj"),
-                    }
-                        );
             }
             string AddArgs = "-nobuilduht -skipactionhistory" + bp.RocketUBTArgs(); ;
 
@@ -744,9 +764,11 @@ public class GUBP : BuildCommand
         {
             var Agenda = new UE4Build.BuildAgenda();
 
+            string Args = "-nobuilduht -skipactionhistory -skipnonhostplatforms -forceheadergeneration" + bp.RocketUBTArgs(true);
+
             Agenda.AddTargets(
                 new string[] { GameProj.Properties.Targets[TargetRules.TargetType.Editor].TargetName },
-                HostPlatform, UnrealTargetConfiguration.Development, GameProj.FilePath, InAddArgs: "-nobuilduht -skipactionhistory -skipnonhostplatforms" + bp.RocketUBTArgs(true));
+                HostPlatform, UnrealTargetConfiguration.Development, GameProj.FilePath, InAddArgs: Args);
 
             return Agenda;
         }
@@ -774,14 +796,15 @@ public class GUBP : BuildCommand
             }
             else
             {
-                if (TargetPlatform != InHostPlatform)
+                if (TargetPlatform != InHostPlatform
+                    && !GUBP.bBuildRocket) // more errors and more performance by just starting, for example, IOS without waiting for mac
                 {
                     AddPseudodependency(GamePlatformMonolithicsNode.StaticGetFullName(InHostPlatform, bp.Branch.BaseEngineProject, InHostPlatform));
                 }
                 if (GUBP.bBuildRocket && InGameProj.GameName == bp.Branch.BaseEngineProject.GameName)
                 {
                     AgentSharingGroup = "UE4_" + InTargetPlatform + "_Mono" + StaticGetHostPlatformSuffix(InHostPlatform);
-                    AddPseudodependency(RootEditorHeadersNode.StaticGetFullName(HostPlatform)); // maybe we should start these sooner, but that rather tangles the agent groups
+                    // lets just start this right away AddPseudodependency(RootEditorHeadersNode.StaticGetFullName(HostPlatform)); // maybe we should start these sooner, but that rather tangles the agent groups
                 }
             }
             if (InGameProj.Options(InHostPlatform).bTestWithShared)  /// compiling templates is only for testing purposes, and we will group them to avoid saturating the farm
@@ -906,7 +929,7 @@ public class GUBP : BuildCommand
         {
             BuildProducts = new List<string>();
 
-            foreach (var FileToCopy in CommandUtils.FindFiles("*.h", true, CommandUtils.CombinePaths(CmdEnv.LocalRoot, @"Engine\Intermediate\Build\")))
+            foreach (var FileToCopy in CommandUtils.FindFiles("*.h", true, CommandUtils.CombinePaths(CmdEnv.LocalRoot, @"Engine\Intermediate\Build\", HostPlatform.ToString())))
             {
                 AddBuildProduct(FileToCopy);
             }
@@ -932,17 +955,9 @@ public class GUBP : BuildCommand
         public GameMonolithicHeadersNode(GUBP bp, UnrealTargetPlatform InHostPlatform, UnrealTargetPlatform InTargetPlatform)
             : base(InHostPlatform)
         {
-            if (GUBP.bHackRunIOSCompilesOnMac)
-            {
-                throw new AutomationException("these rocket header node require real mac path.");
-            }
             TargetPlatform = InTargetPlatform;
             AgentSharingGroup = "UE4_" + InTargetPlatform + "_Mono" + StaticGetHostPlatformSuffix(InHostPlatform);
             AddDependency(GamePlatformMonolithicsNode.StaticGetFullName(HostPlatform, bp.Branch.BaseEngineProject, TargetPlatform));
-            if (TargetPlatform == HostPlatform)
-            {
-                AddDependency(RootEditorHeadersNode.StaticGetFullName(HostPlatform)); // we can't tell the headers apart, so we need to remove dups
-            }
         }
         public static string StaticGetFullName(UnrealTargetPlatform InHostPlatform, UnrealTargetPlatform InTargetPlatform)
         {
@@ -954,11 +969,29 @@ public class GUBP : BuildCommand
         }
         public override float Priority()
         {
-            return 1000000.0f; // right after the root editor
+            return 1000000.0f; // right after the game monolithics
         }
         public override void DoBuild(GUBP bp)
         {
+            if (GUBP.bHackRunIOSCompilesOnMac)
+            {
+                throw new AutomationException("these rocket header node require real mac path.");
+            }
             BuildProducts = new List<string>();
+
+            var PlatformDir = TargetPlatform.ToString();
+            if (TargetPlatform == UnrealTargetPlatform.Android)
+            {
+                PlatformDir = "Android-armv7";
+            }
+            if (TargetPlatform == HostPlatform)
+            {
+                PlatformDir = CommandUtils.CombinePaths(PlatformDir, "UE4Game"); // the other ones overlap with the editor, so we don't want them here
+            }
+            foreach (var FileToCopy in CommandUtils.FindFiles("*.h", true, CommandUtils.CombinePaths(CmdEnv.LocalRoot, @"Engine\Intermediate\Build\", PlatformDir)))
+            {
+                AddBuildProduct(FileToCopy);
+            }
 
             // these may not be any new build products here, but we will check anyway
             var EnginePluginsDirectory = Path.Combine(CommandUtils.CmdEnv.LocalRoot, "Engine/Plugins");
@@ -967,12 +1000,6 @@ public class GUBP : BuildCommand
 
             foreach (var EnginePlugin in EnginePlugins)
             {
-                var PlatformDir = TargetPlatform.ToString();
-                if (TargetPlatform == UnrealTargetPlatform.Android)
-                {
-                    PlatformDir = "Android-armv7";
-                }
-
                 foreach (var FileToCopy in CommandUtils.FindFiles("*", true, CommandUtils.CombinePaths(EnginePlugin.Directory, @"Intermediate\Build", PlatformDir, "Inc")))
                 {
                     AddBuildProduct(FileToCopy);
@@ -983,6 +1010,22 @@ public class GUBP : BuildCommand
             {
                 SaveRecordOfSuccessAndAddToBuildProducts(); // could be empty
             }
+        }
+    }
+
+    public class SuccessNode : GUBPNode
+    {
+        public SuccessNode()
+        {
+        }
+        public override void DoBuild(GUBP bp)
+        {
+            BuildProducts = new List<string>();
+            SaveRecordOfSuccessAndAddToBuildProducts();
+        }
+        public override bool SendSuccessEmail()
+        {
+            return true;
         }
     }
 
@@ -1164,10 +1207,10 @@ public class GUBP : BuildCommand
 
     public class WaitForUserInput : GUBPNode
     {
-        protected bool bSticky;
+        protected bool bTriggerWasTriggered;
         public WaitForUserInput()
         {
-            bSticky = false;
+            bTriggerWasTriggered = false;
         }
 
         public override void DoBuild(GUBP bp)
@@ -1181,21 +1224,49 @@ public class GUBP : BuildCommand
         }
         public override void SetAsExplicitTrigger()
         {
-            bSticky = true;
+            bTriggerWasTriggered = true;
         }
         public override bool IsSticky()
         {
-            return bSticky;
+            return bTriggerWasTriggered;
+        }
+        public virtual string GetTriggerStateName()
+        {
+            return "GenericTrigger";
+        }
+        public virtual string GetTriggerDescText()
+        {
+            return "GenericTrigger no description text available";
+        }
+        public virtual string GetTriggerActionText()
+        {
+            return "GenericTrigger no action text available";
+        }
+        public virtual bool TriggerRequiresRecursiveWorkflow()
+        {
+            return true;
         }
         public override string ECProcedure()
         {
-            if (bSticky)
+            if (bTriggerWasTriggered)
             {
                 return base.ECProcedure(); // after this user hits the trigger, we want to run this as an ordinary node
             }
-            return String.Format("GUBP_UAT_Trigger"); //here we set up to ask the user
+            if (GUBP.ECProject != "GUBP_V3" || TriggerRequiresRecursiveWorkflow())
+            {
+                return String.Format("GUBP_UAT_Trigger"); //here we run a recursive workflow to wait for the trigger
+            }
+            return String.Format("GUBP_Hardcoded_Trigger"); //here we advance the state in the hardcoded workflow so folks can approve
         }
-
+        public override string ECProcedureParams()
+        {
+            var Result = base.ECProcedureParams();
+            if (GUBP.ECProject == "GUBP_V3" && !bTriggerWasTriggered)
+            {
+                Result += String.Format(" --actualParameter TriggerState={0} --actualParameter ActionText=\"{1}\" --actualParameter DescText=\"{2}\"", GetTriggerStateName(), GetTriggerActionText(), GetTriggerDescText());
+            }
+            return Result;
+        }
     }
 
     public class WaitForPromotionUserInput : WaitForUserInput
@@ -1243,6 +1314,38 @@ public class GUBP : BuildCommand
         {
             return GameProj.GameName;
         }
+        public override string GetTriggerDescText()
+        {
+            if (bLabelPromoted)
+            {
+                return GameProj.GameName + " is ready for promotion.";
+            }
+            return GameProj.GameName + " is ready to make a promotable label and begin testing.";
+        }
+        public override string GetTriggerActionText()
+        {
+            if (bLabelPromoted)
+            {
+                return "Promote " + GameProj.GameName + ".";
+            }
+            return "Make a promotable label for " + GameProj.GameName + " and begin testing.";
+        }
+        public override string GetTriggerStateName()
+        {
+            if (GameProj.GameName.Equals("OrionGame", StringComparison.InvariantCultureIgnoreCase))
+            {
+                return GetFullName();
+            }
+            return base.GetTriggerStateName();
+        }
+        public override bool TriggerRequiresRecursiveWorkflow()
+        {
+            if (GameProj.GameName.Equals("OrionGame", StringComparison.InvariantCultureIgnoreCase))
+            {
+                return !bLabelPromoted; // the promotable starts the hardcoded chain
+            }
+            return base.TriggerRequiresRecursiveWorkflow();
+        }
         public override string FailureEMails(GUBP bp, string Branch)
         {
             return MergeSpaceStrings(base.FailureEMails(bp, Branch),
@@ -1257,7 +1360,22 @@ public class GUBP : BuildCommand
             : base("Shared", bInLabelPromoted)
         {
         }
-
+        public override string GetTriggerDescText()
+        {
+            if (bLabelPromoted)
+            {
+                return "The shared promotable is ready for promotion.";
+            }
+            return "The shared promotable is ready to make a promotable label.";
+        }
+        public override string GetTriggerActionText()
+        {
+            if (bLabelPromoted)
+            {
+                return "Promote the shared promotable.";
+            }
+            return "Make the shared promotable label.";
+        }
         public static string StaticGetFullName(bool bInLabelPromoted)
         {
             return WaitForPromotionUserInput.StaticGetFullName("Shared", bInLabelPromoted);
@@ -1288,16 +1406,7 @@ public class GUBP : BuildCommand
             {
                 //shared promotable has a shorter name
                 CompleteLabelPrefix = "Promotable";
-            }
-            // for now we give these labels funky names to prevent QA from looking at them unless working in the Releases branch
-            if(!P4Env.BuildRootP4.Contains("Releases"))
-            {
-                if(LabelPrefix == "OrionGame")
-                {
-                    CompleteLabelPrefix = "TEST-GUBP-" + CompleteLabelPrefix;
-                }
-                
-            }       
+            }                   
             if (GUBP.bBuildRocket)
             {
                 CompleteLabelPrefix = "Rocket-" + CompleteLabelPrefix;
@@ -1329,11 +1438,11 @@ public class GUBP : BuildCommand
 
                 if (bLabelPromoted)
                 {
-                    MakeDownstreamLabelFromLabel(LabelName(true), LabelName(false));
+					P4.MakeDownstreamLabelFromLabel(P4Env, LabelName(true), LabelName(false));
                 }
                 else
                 {
-                    int WorkingCL = CreateChange(P4Env.Client, String.Format("GUBP Node {0} built from changelist {1}", GetFullName(), bp.CL));
+					int WorkingCL = P4.CreateChange(P4Env.Client, String.Format("GUBP Node {0} built from changelist {1}", GetFullName(), bp.CL));
                     Log("Build from {0}    Working in {1}", bp.CL, WorkingCL);
 
                     var ProductsToSubmit = new List<String>();
@@ -1357,10 +1466,10 @@ public class GUBP : BuildCommand
 
                     // Check everything in!
                     int SubmittedCL;
-                    Submit(WorkingCL, out SubmittedCL, true, true);
+					P4.Submit(WorkingCL, out SubmittedCL, true, true);
 
                     // Label it       
-                    MakeDownstreamLabel(LabelName(false), null);
+					P4.MakeDownstreamLabel(P4Env, LabelName(false), null);
                 }
             }
             SaveRecordOfSuccessAndAddToBuildProducts();
@@ -1426,6 +1535,14 @@ public class GUBP : BuildCommand
         {
             // delay this until the root editor succeeds
             AddPseudodependency(GUBP.SharedLabelPromotableNode.StaticGetFullName(false));
+        }
+        public override string GetTriggerDescText()
+        {
+            return "The shared promotable is ready to begin automated testing.";
+        }
+        public override string GetTriggerActionText()
+        {
+            return "Begin automated testing on the shared promotable.";
         }
         public static string StaticGetFullName()
         {
@@ -1534,7 +1651,7 @@ public class GUBP : BuildCommand
         {
             return 10.0f;
         }
-        public override int AgentMemoryRequirement()
+        public override int AgentMemoryRequirement(GUBP bp)
         {
             return bIsMassive ? 32 : 0;
         }
@@ -1676,7 +1793,7 @@ public class GUBP : BuildCommand
         {
             return base.Priority() + 10.0f;
         }
-        public override int AgentMemoryRequirement()
+        public override int AgentMemoryRequirement(GUBP bp)
         {
             return bIsMassive ? 32 : 0;
         }
@@ -2612,9 +2729,9 @@ public class GUBP : BuildCommand
         return Emails;
     }
 
-    List<ChangeRecord> GetChanges(int LastOutputForChanges, int TopCL, int LastGreen)
+    List<P4Connection.ChangeRecord> GetChanges(int LastOutputForChanges, int TopCL, int LastGreen)
     {
-        var Result = new List<ChangeRecord>();
+        var Result = new List<P4Connection.ChangeRecord>();
         if (TopCL > LastGreen)
         {
             if (LastOutputForChanges > 1990000)
@@ -2623,8 +2740,8 @@ public class GUBP : BuildCommand
                     CombinePaths(PathSeparator.Slash, P4Env.BuildRootP4, "*", "Source", "..."), LastOutputForChanges + 1, TopCL,
                     CombinePaths(PathSeparator.Slash, P4Env.BuildRootP4, "*", "Build", "..."), LastOutputForChanges + 1, TopCL
                     );
-                List<ChangeRecord> ChangeRecords;
-                if (Changes(out ChangeRecords, Cmd, false, true))
+                List<P4Connection.ChangeRecord> ChangeRecords;
+				if (P4.Changes(out ChangeRecords, Cmd, false, true))
                 {
                     foreach (var Record in ChangeRecords)
                     {
@@ -2935,6 +3052,10 @@ public class GUBP : BuildCommand
         var Result = new List<int>();
         foreach (var ThisString in Strings)
         {
+            if (ThisString.Contains("-"))
+            {
+                continue;
+            }
             int ThisInt = int.Parse(ThisString);
             if (ThisInt < 1960000 || ThisInt > 3000000)
             {
@@ -2954,6 +3075,238 @@ public class GUBP : BuildCommand
         StoreToTempStorage(CmdEnv, NodeStoreName + Suffix, new List<string> { RecordOfSuccess }, !bSaveSharedTempStorage, GameNameIfAny);
     }
 
+    int CountZeros(int Num)
+    {
+        if (Num < 0)
+        {
+            throw new AutomationException("Bad CountZeros");
+        }
+        if (Num == 0)
+        {
+            return 31;
+        }
+        int Result = 0;
+        while ((Num & 1) == 0)
+        {
+            Result++;
+            Num >>= 1;
+        }
+        return Result;
+    }
+
+    List<string> TopologicalSort(HashSet<string> NodesToDo, string ExplicitTrigger, bool LocalOnly, bool SubSort = false)
+    {
+        var OrdereredToDo = new List<string>();
+
+        var SortedAgentGroupChains = new Dictionary<string, List<string>>();
+        if (!SubSort)
+        {
+            var AgentGroupChains = new Dictionary<string, List<string>>();
+            foreach (var NodeToDo in NodesToDo)
+            {
+                string MyAgentGroup = GUBPNodes[NodeToDo].AgentSharingGroup;
+                if (MyAgentGroup != "")
+                {
+                    if (!AgentGroupChains.ContainsKey(MyAgentGroup))
+                    {
+                        AgentGroupChains.Add(MyAgentGroup, new List<string> { NodeToDo });
+                    }
+                    else
+                    {
+                        AgentGroupChains[MyAgentGroup].Add(NodeToDo);
+                    }
+                }
+            }
+            foreach (var Chain in AgentGroupChains)
+            {
+                SortedAgentGroupChains.Add(Chain.Key, TopologicalSort(new HashSet<string>(Chain.Value), ExplicitTrigger, LocalOnly, true));
+            }
+            Log("***************Done with recursion");
+        }
+
+        // here we do a topological sort of the nodes, subject to a lexographical and priority sort
+        while (NodesToDo.Count > 0)
+        {
+            bool bProgressMade = false;
+            float BestPriority = -1E20f;
+            string BestNode = "";
+            bool BestPseudoReady = false;
+            var NonReadyAgentGroups = new HashSet<string>();
+            var NonPeudoReadyAgentGroups = new HashSet<string>();
+            var ExaminedAgentGroups = new HashSet<string>();
+            foreach (var NodeToDo in NodesToDo)
+            {
+                bool bReady = true;
+                bool bPseudoReady = true;
+                if (!SubSort && GUBPNodes[NodeToDo].AgentSharingGroup != "")
+                {
+                    if (ExaminedAgentGroups.Contains(GUBPNodes[NodeToDo].AgentSharingGroup))
+                    {
+                        bReady = !NonReadyAgentGroups.Contains(GUBPNodes[NodeToDo].AgentSharingGroup);
+                        bPseudoReady = !NonPeudoReadyAgentGroups.Contains(GUBPNodes[NodeToDo].AgentSharingGroup); //this might not be accurate if bReady==false
+                    }
+                    else
+                    {
+                        ExaminedAgentGroups.Add(GUBPNodes[NodeToDo].AgentSharingGroup);
+                        foreach (var ChainNode in SortedAgentGroupChains[GUBPNodes[NodeToDo].AgentSharingGroup])
+                        {
+                            foreach (var Dep in GUBPNodes[ChainNode].FullNamesOfDependencies)
+                            {
+                                if (!GUBPNodes.ContainsKey(Dep))
+                                {
+                                    throw new AutomationException("Dependency {0} node found.", Dep);
+                                }
+                                if (!SortedAgentGroupChains[GUBPNodes[NodeToDo].AgentSharingGroup].Contains(Dep) && NodesToDo.Contains(Dep))
+                                {
+                                    bReady = false;
+                                    break;
+                                }
+                            }
+                            if (!bReady)
+                            {
+                                NonReadyAgentGroups.Add(GUBPNodes[NodeToDo].AgentSharingGroup);
+                                break;
+                            }
+                            foreach (var Dep in GUBPNodes[ChainNode].FullNamesOfPseudosependencies)
+                            {
+                                if (!GUBPNodes.ContainsKey(Dep))
+                                {
+                                    throw new AutomationException("Pseudodependency {0} node found.", Dep);
+                                }
+                                if (!SortedAgentGroupChains[GUBPNodes[NodeToDo].AgentSharingGroup].Contains(Dep) && NodesToDo.Contains(Dep))
+                                {
+                                    bPseudoReady = false;
+                                    NonPeudoReadyAgentGroups.Add(GUBPNodes[NodeToDo].AgentSharingGroup);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    foreach (var Dep in GUBPNodes[NodeToDo].FullNamesOfDependencies)
+                    {
+                        if (!GUBPNodes.ContainsKey(Dep))
+                        {
+                            throw new AutomationException("Dependency {0} node found.", Dep);
+                        }
+                        if (NodesToDo.Contains(Dep))
+                        {
+                            bReady = false;
+                            break;
+                        }
+                    }
+                    foreach (var Dep in GUBPNodes[NodeToDo].FullNamesOfPseudosependencies)
+                    {
+                        if (!GUBPNodes.ContainsKey(Dep))
+                        {
+                            throw new AutomationException("Pseudodependency {0} node found.", Dep);
+                        }
+                        if (NodesToDo.Contains(Dep))
+                        {
+                            bPseudoReady = false;
+                            break;
+                        }
+                    }
+                }
+                var Priority = GUBPNodes[NodeToDo].Priority();
+
+                if (bReady && BestNode != "")
+                {
+                    if (String.Compare(GetControllingTriggerDotName(BestNode), GetControllingTriggerDotName(NodeToDo)) < 0) //sorted by controlling trigger
+                    {
+                        bReady = false;
+                    }
+                    else if (String.Compare(GetControllingTriggerDotName(BestNode), GetControllingTriggerDotName(NodeToDo)) == 0) //sorted by controlling trigger
+                    {
+                        if (GUBPNodes[BestNode].IsSticky() && !GUBPNodes[NodeToDo].IsSticky()) //sticky nodes first
+                        {
+                            bReady = false;
+                        }
+                        else if (GUBPNodes[BestNode].IsSticky() == GUBPNodes[NodeToDo].IsSticky())
+                        {
+                            if (BestPseudoReady && !bPseudoReady)
+                            {
+                                bReady = false;
+                            }
+                            else if (BestPseudoReady == bPseudoReady)
+                            {
+                                bool IamLateTrigger = GUBPNodes[NodeToDo].TriggerNode() && NodeToDo != ExplicitTrigger && !NodeIsAlreadyComplete(NodeToDo, LocalOnly);
+                                bool BestIsLateTrigger = GUBPNodes[BestNode].TriggerNode() && BestNode != ExplicitTrigger && !NodeIsAlreadyComplete(BestNode, LocalOnly);
+                                if (BestIsLateTrigger && !IamLateTrigger)
+                                {
+                                    bReady = false;
+                                }
+                                else if (BestIsLateTrigger == IamLateTrigger)
+                                {
+
+                                    if (Priority < BestPriority)
+                                    {
+                                        bReady = false;
+                                    }
+                                    else if (Priority == BestPriority)
+                                    {
+                                        if (BestNode.CompareTo(NodeToDo) < 0)
+                                        {
+                                            bReady = false;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if (bReady)
+                {
+                    BestPriority = Priority;
+                    BestNode = NodeToDo;
+                    BestPseudoReady = bPseudoReady;
+                    bProgressMade = true;
+                }
+            }
+            if (bProgressMade)
+            {
+                if (!SubSort && GUBPNodes[BestNode].AgentSharingGroup != "")
+                {
+                    foreach (var ChainNode in SortedAgentGroupChains[GUBPNodes[BestNode].AgentSharingGroup])
+                    {
+                        OrdereredToDo.Add(ChainNode);
+                        NodesToDo.Remove(ChainNode);
+                    }
+                }
+                else
+                {
+                    OrdereredToDo.Add(BestNode);
+                    NodesToDo.Remove(BestNode);
+                }
+            }
+
+            if (!bProgressMade && NodesToDo.Count > 0)
+            {
+                Log("Cycle in GUBP, could not resolve:");
+                foreach (var NodeToDo in NodesToDo)
+                {
+                    Log("  {0}", NodeToDo);
+                }
+                throw new AutomationException("Cycle in GUBP");
+            }
+        }
+        return OrdereredToDo;
+    }
+
+    string GetJobStepPath(string Dep)
+    {
+        if (GUBP.ECProject == "GUBP_V3" && GUBPNodes[Dep].AgentSharingGroup != "")
+        {
+            return "jobSteps[" + GUBPNodes[Dep].AgentSharingGroup + "]/jobSteps[" + Dep + "]";
+        }
+        return "jobSteps[" + Dep + "]";
+    }
+    string GetJobStep(string ParentPath, string Dep)
+    {
+        return ParentPath + "/" + GetJobStepPath(Dep);
+    }
 
 
     [Help("Runs one, several or all of the GUBP nodes")]
@@ -2989,10 +3342,17 @@ public class GUBP : BuildCommand
     [Help("ShowECProc", "Show EC proc names.")]
     [Help("BuildRocket", "Build in rocket mode.")]
     [Help("ShowECOnly", "Only show EC nodes.")]
+    [Help("ECProject", "From EC, the name of the project, used to get a version number.")]
+    [Help("CIS", "This is a CIS run, assign TimeIndex based on the history.")]
 
     public override void ExecuteBuild()
     {
         Log("************************* GUBP");
+        ECProject = ParseParamValue("ECProject");
+        if (ECProject == null)
+        {
+            ECProject = "GUBP_V2";
+        }
 
         HostPlatforms = new List<UnrealTargetPlatform>();
         if (!ParseParam("OnlyMac"))
@@ -3000,7 +3360,7 @@ public class GUBP : BuildCommand
             HostPlatforms.Add(UnrealTargetPlatform.Win64);
         }
 
-        if (ParseParam("WithMac") || HostPlatforms.Count == 0)
+        if (ParseParam("WithMac") || HostPlatforms.Count == 0 || ECProject == "GUBP_V3")
         {
             HostPlatforms.Add(UnrealTargetPlatform.Mac);
         }
@@ -3010,7 +3370,7 @@ public class GUBP : BuildCommand
         string StoreSuffix = ParseParamValue("StoreSuffix", "");
         if (bBuildRocket)
         {
-            StoreSuffix = StoreSuffix + "Rocket";
+            StoreSuffix = StoreSuffix + "-Rkt";
         }
         CL = ParseParamInt("CL", 0);
         bool bCleanLocalTempStorage = ParseParam("CleanLocal");
@@ -3042,7 +3402,7 @@ public class GUBP : BuildCommand
                     CL = P4Env.Changelist;
                 }
                 CLString = String.Format("{0}", CL);
-                StoreName = "GUBP-" + P4Env.BuildRootEscaped + "-CL-" + CLString;
+                StoreName = P4Env.BuildRootEscaped + "-" + CLString;
                 bSaveSharedTempStorage = CommandUtils.IsBuildMachine;
                 LocalOnly = false;
             }
@@ -3052,7 +3412,7 @@ public class GUBP : BuildCommand
                 bSaveSharedTempStorage = false;
             }
         }
-        StoreName = StoreName + "-" + StoreSuffix;
+        StoreName = StoreName + StoreSuffix;
         if (bFakeEC)
         {
             LocalOnly = true;
@@ -3071,6 +3431,117 @@ public class GUBP : BuildCommand
             LocalOnly = false;
         }
 
+        bool CommanderSetup = ParseParam("CommanderJobSetupOnly");
+        string ExplicitTrigger = "";
+        if (CommanderSetup)
+        {
+            ExplicitTrigger = ParseParamValue("TriggerNode");
+            if (ExplicitTrigger == null)
+            {
+                ExplicitTrigger = "";
+            }
+        }
+
+        if (ParseParam("CIS") && ExplicitTrigger == "" && CommanderSetup) // explicit triggers will already have a time index assigned
+        {
+            if (!P4Enabled)
+            {
+                throw new AutomationException("Can't have -CIS without P4 support");
+            }
+            var P4IndexFileP4 = CombinePaths(PathSeparator.Slash, CommandUtils.P4Env.BuildRootP4, "Engine", "Build", "CISCounter.txt");
+            var P4IndexFileLocal = CombinePaths(CmdEnv.LocalRoot, "Engine", "Build", "CISCounter.txt");
+            int Retry = 0;
+            bool bDone = false;
+            while (++Retry < 20 && !bDone)
+            {
+                int NowMinutes = (int)((DateTime.UtcNow - new DateTime(2014, 1, 1)).TotalMinutes);
+                if (NowMinutes < 3 * 30 * 24)
+                {
+                    throw new AutomationException("bad date calc");
+                }
+                if (!FileExists_NoExceptions(P4IndexFileLocal))
+                {
+                    Log("{0} doesn't exist, checking in a new one", P4IndexFileP4);
+                    WriteAllText(P4IndexFileLocal, "-1 0");
+                    int WorkingCL = -1;
+                    try
+                    {
+						WorkingCL = P4.CreateChange(P4Env.Client, "Adding new CIS Counter");
+						P4.Add(WorkingCL, P4IndexFileP4);
+                        int SubmittedCL;
+						P4.Submit(WorkingCL, out SubmittedCL);
+                    }
+                    catch (Exception)
+                    {
+                        Log("Add of CIS counter failed, assuming it now exists.");
+                        if (WorkingCL > 0)
+                        {
+							P4.DeleteChange(WorkingCL);
+                        }
+                    }
+                }
+				P4.Sync("-f " + P4IndexFileP4 + "#head");
+                var Data = ReadAllText(P4IndexFileLocal);
+                var Parts = Data.Split(" ".ToCharArray());
+                int Index = int.Parse(Parts[0]);
+                int Minutes = int.Parse(Parts[1]);
+
+                int DeltaMinutes = NowMinutes - Minutes;
+
+                const int TimeQuantum = 20;
+
+                int NewIndex = Index + 1;
+
+                if (DeltaMinutes > TimeQuantum * 2)
+                {
+                    if (DeltaMinutes > TimeQuantum * (1 << 8))
+                    {
+                        // it has been forever, lets just start over
+                        NewIndex = 0;
+                    }
+                    else
+                    {
+                        int WorkingIndex = NewIndex + 1;
+                        for (int WorkingDelta = DeltaMinutes - TimeQuantum; WorkingDelta > 0; WorkingDelta -= TimeQuantum, WorkingIndex++)
+                        {
+                            if (CountZeros(NewIndex) < CountZeros(WorkingIndex))
+                            {
+                                NewIndex = WorkingIndex;
+                            }
+                        }
+                    }
+                }
+                {
+                    var Line = String.Format("{0} {1}", NewIndex, NowMinutes);
+                    Log("Attempting to write {0} with {1}", P4IndexFileP4, Line);
+                    int WorkingCL = -1;
+                    try
+                    {
+						WorkingCL = P4.CreateChange(P4Env.Client, "Updating CIS Counter");
+						P4.Edit(WorkingCL, P4IndexFileP4);
+                        WriteAllText(P4IndexFileLocal, Line);
+                        int SubmittedCL;
+						P4.Submit(WorkingCL, out SubmittedCL);
+                        bDone = true;
+                        TimeIndex = NewIndex;
+                    }
+                    catch (Exception)
+                    {
+                        Log("Edit of CIS counter failed, assuming someone else checked in, retrying.");
+                        if (WorkingCL > 0)
+                        {
+							P4.DeleteChange(WorkingCL);
+                        }
+                        System.Threading.Thread.Sleep(30000);
+                    }
+                }
+            }
+            if (!bDone)
+            {
+                throw new AutomationException("Failed to update the CIS counter after 20 tries.");
+            }
+            Log("Setting TimeIndex to {0}", TimeIndex);
+        }
 
         Log("************************* CL:			                    {0}", CL); 
         Log("************************* P4Enabled:			            {0}", P4Enabled);
@@ -3662,7 +4133,6 @@ if (HostPlatform == UnrealTargetPlatform.Mac) continue; //temp hack till mac aut
             Log("  {0}", Node.Key); 
         }
 
-        bool CommanderSetup = ParseParam("CommanderJobSetupOnly");
         bool bOnlyNode = false;
         bool bRelatedToNode = false;
         {
@@ -3702,9 +4172,9 @@ if (HostPlatform == UnrealTargetPlatform.Mac) continue; //temp hack till mac aut
                 NodeSpec = "Rocket_Aggregate";
                 if (!ParseParam("RocketValidate"))
                 {
-                    NodeSpec = SharedAggregatePromotableNode.StaticGetFullName() + "+" + NodeSpec;
+                    //build a full promotable NodeSpec = SharedAggregatePromotableNode.StaticGetFullName() + "+" + NodeSpec;
                 }
-                else
+                else if (!bFake)
                 {
                     NodeSpec = "Rocket_MakeBuild+" + NodeSpec;
                 }
@@ -3881,15 +4351,17 @@ if (HostPlatform == UnrealTargetPlatform.Mac) continue; //temp hack till mac aut
                     Log("  Keeping {0}", NodeToDo);
                     NewNodesToDo.Add(NodeToDo);
                 }
+                else
+                {
+                    Log("  Rejecting {0}", NodeToDo);
+                }
             }
             NodesToDo = NewNodesToDo;
         }
 
-        string ExplicitTrigger = "";
         string FakeFail = ParseParamValue("FakeFail");
         if (CommanderSetup)
         {
-            ExplicitTrigger = ParseParamValue("TriggerNode");
             if (!String.IsNullOrEmpty(ExplicitTrigger))
             {
                 bool bFoundIt = false;
@@ -3912,7 +4384,6 @@ if (HostPlatform == UnrealTargetPlatform.Mac) continue; //temp hack till mac aut
             }
             else
             {
-                ExplicitTrigger = "";
                 if (bSkipTriggers)
                 {
                     foreach (var Node in GUBPNodes)
@@ -3974,121 +4445,7 @@ if (HostPlatform == UnrealTargetPlatform.Mac) continue; //temp hack till mac aut
             }
         }
 
-        var OrdereredToDo = new List<string>();
-
-        // here we do a topological sort of the nodes, subject to a lexographical and priority sort
-        while (NodesToDo.Count > 0)
-        {
-            bool bProgressMade = false;
-            float BestPriority = -1E20f;
-            string BestNode = "";
-            bool BestPseudoReady = false;
-            foreach (var NodeToDo in NodesToDo)
-            {
-                bool bReady = true;
-                foreach (var Dep in GUBPNodes[NodeToDo].FullNamesOfDependencies)
-                {
-                    if (!GUBPNodes.ContainsKey(Dep))
-                    {
-                        throw new AutomationException("Dependency {0} node found.", Dep);
-                    }
-                    if (NodesToDo.Contains(Dep))
-                    {
-                        bReady = false;
-                        break;
-                    }
-                }
-                bool bPseudoReady = true;
-                foreach (var Dep in GUBPNodes[NodeToDo].FullNamesOfPseudosependencies)
-                {
-                    if (!GUBPNodes.ContainsKey(Dep))
-                    {
-                        throw new AutomationException("Pseudodependency {0} node found.", Dep);
-                    }
-                    if (NodesToDo.Contains(Dep))
-                    {
-                        bPseudoReady = false;
-                        break;
-                    }
-                }
-                var Priority = GUBPNodes[NodeToDo].Priority();
-
-                if (bReady && BestNode != "")
-                {
-                    if (String.Compare(GetControllingTriggerDotName(BestNode), GetControllingTriggerDotName(NodeToDo)) < 0) //sorted by controlling trigger
-                    {
-                        bReady = false;
-                    }
-                    else if (String.Compare(GetControllingTriggerDotName(BestNode), GetControllingTriggerDotName(NodeToDo)) == 0) //sorted by controlling trigger
-                    {
-                        if (GUBPNodes[BestNode].IsSticky() && !GUBPNodes[NodeToDo].IsSticky()) //sticky nodes first
-                        {
-                            bReady = false;
-                        }
-                        else if (GUBPNodes[BestNode].IsSticky() == GUBPNodes[NodeToDo].IsSticky())
-                        {
-                            if (BestPseudoReady && !bPseudoReady)
-                            {
-                                bReady = false;
-                            }
-                            else if (BestPseudoReady == bPseudoReady)
-                            {
-                                if (String.Compare(GUBPNodes[BestNode].AgentSharingGroup, GUBPNodes[NodeToDo].AgentSharingGroup) > 0) //sorted by agent sharing group
-                                {
-                                    bReady = false;
-                                }
-                                else if (String.Compare(GUBPNodes[BestNode].AgentSharingGroup, GUBPNodes[NodeToDo].AgentSharingGroup) == 0) //sorted by agent sharing group
-                                {
-                                    bool IamLateTrigger = GUBPNodes[NodeToDo].TriggerNode() && NodeToDo != ExplicitTrigger && !NodeIsAlreadyComplete(NodeToDo, LocalOnly);
-                                    bool BestIsLateTrigger = GUBPNodes[BestNode].TriggerNode() && BestNode != ExplicitTrigger && !NodeIsAlreadyComplete(BestNode, LocalOnly);
-                                    if (BestIsLateTrigger && !IamLateTrigger)
-                                    {
-                                        bReady = false;
-                                    }
-                                    else if (BestIsLateTrigger == IamLateTrigger)
-                                    {
-
-                                        if (Priority < BestPriority)
-                                        {
-                                            bReady = false;
-                                        }
-                                        else if (Priority == BestPriority)
-                                        {
-                                            if (BestNode.CompareTo(NodeToDo) < 0)
-                                            {
-                                                bReady = false;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                if (bReady)
-                {
-                    BestPriority = Priority;
-                    BestNode = NodeToDo;
-                    BestPseudoReady = bPseudoReady;
-                    bProgressMade = true;
-                }
-            }
-            if (bProgressMade)
-            {
-                OrdereredToDo.Add(BestNode);
-                NodesToDo.Remove(BestNode);
-            }
-
-            if (!bProgressMade && NodesToDo.Count > 0)
-            {
-                Log("Cycle in GUBP, could not resolve:");
-                foreach (var NodeToDo in NodesToDo)
-                {
-                    Log("  {0}", NodeToDo);
-                }
-                throw new AutomationException("Cycle in GUBP");
-            }
-        }
+        var OrdereredToDo = TopologicalSort(NodesToDo, ExplicitTrigger, LocalOnly);
 
         // find all unfinished triggers, excepting the one we are triggering right now
         var UnfinishedTriggers = new List<string>();
@@ -4143,8 +4500,9 @@ if (HostPlatform == UnrealTargetPlatform.Mac) continue; //temp hack till mac aut
             {
                 throw new AutomationException("No nodes to do!");
             }
-            // we don't really need this yet, but it is left here for future use
             var ECProps = new List<string>();
+            ECProps.Add(String.Format("TimeIndex={0}", TimeIndex));
+
             var ECJobProps = new List<string>();
             if (ExplicitTrigger != "")
             {
@@ -4255,8 +4613,8 @@ if (HostPlatform == UnrealTargetPlatform.Mac) continue; //temp hack till mac aut
             {
                 if (GUBPNodes[NodeToDo].RunInEC() && !NodeIsAlreadyComplete(NodeToDo, LocalOnly)) // if something is already finished, we don't put it into EC  
                 {
+                    string EMails = "";
                     {
-                        string EMails = "";
                         string EmailOnly = ParseParamValue("EmailOnly");
                         if (bFake)
                         {
@@ -4266,8 +4624,12 @@ if (HostPlatform == UnrealTargetPlatform.Mac) continue; //temp hack till mac aut
                         {
                             EMails = EmailOnly;
                         }
-                        else
+                        else if (!String.IsNullOrEmpty(ForceAllEmailsTo))
                         {
+                            EMails = ForceAllEmailsTo;
+                        }
+                        else
+                        {                            
                             EMails = GetEMailListForNode(this, NodeToDo);
                         }
                         string AddEmails = ParseParamValue("AddEmails");
@@ -4287,7 +4649,7 @@ if (HostPlatform == UnrealTargetPlatform.Mac) continue; //temp hack till mac aut
                         ECProps.Add("SendSuccessEmail/" + NodeToDo + "=0");
                     }
                     ECProps.Add(string.Format("AgentRequirementString/{0}={1}", NodeToDo, GUBPNodes[NodeToDo].ECAgentString()));
-                    ECProps.Add(string.Format("RequiredMemory/{0}={1}", NodeToDo, GUBPNodes[NodeToDo].AgentMemoryRequirement()));
+                    ECProps.Add(string.Format("RequiredMemory/{0}={1}", NodeToDo, GUBPNodes[NodeToDo].AgentMemoryRequirement(this)));
                     ECProps.Add(string.Format("Timeouts/{0}={1}", NodeToDo, GUBPNodes[NodeToDo].TimeoutInMinutes()));
                     if (GUBPNodesHistory.ContainsKey(NodeToDo))
                     {
@@ -4297,7 +4659,7 @@ if (HostPlatform == UnrealTargetPlatform.Mac) continue; //temp hack till mac aut
                         ECProps.Add(string.Format("RedsSince/{0}={1}", NodeToDo, History.FailedString));
                         ECProps.Add(string.Format("InProgress/{0}={1}", NodeToDo, History.InProgressString));
 
-                        string EMails = "";
+                        string FailCauserEMails = "";
 
                         if (History.LastSucceeded > 0 && History.LastSucceeded < P4Env.Changelist)
                         {
@@ -4305,15 +4667,15 @@ if (HostPlatform == UnrealTargetPlatform.Mac) continue; //temp hack till mac aut
                             int NumChanges = 0;
                             foreach (var Record in ChangeRecords)
                             {
-                                EMails = GUBPNode.MergeSpaceStrings(EMails, Record.UserEmail);
+                                FailCauserEMails = GUBPNode.MergeSpaceStrings(FailCauserEMails, Record.UserEmail);
                                 if (++NumChanges > 50)
                                 {
-                                    EMails = "";
+                                    FailCauserEMails = "";
                                     break;
                                 }
                             }
                         }
-                        ECProps.Add(string.Format("FailCausers/{0}={1}", NodeToDo, EMails));
+                        ECProps.Add(string.Format("FailCausers/{0}={1}", NodeToDo, FailCauserEMails));
                     }
                     else
                     {
@@ -4340,87 +4702,108 @@ if (HostPlatform == UnrealTargetPlatform.Mac) continue; //temp hack till mac aut
                         Args = Args + " " + ProcedureParams;
                     }
 
+                    if ((Procedure == "GUBP_UAT_Trigger" || Procedure == "GUBP_Hardcoded_Trigger") && !String.IsNullOrEmpty(EMails) && GUBP.ECProject == "GUBP_V3")
+                    {
+                        Args = Args + " --actualParameter EmailsForTrigger=\"" + EMails + "\"";
+                    }
+
                     string PreCondition = "";
                     string RunCondition = "";
-
-                    var EcDeps = GetECDependencies(NodeToDo);
                     var UncompletedEcDeps = new List<string>();
-                    foreach (var Dep in EcDeps)
+
                     {
-                        if (GUBPNodes[Dep].RunInEC() && !NodeIsAlreadyComplete(Dep, LocalOnly) && OrdereredToDo.Contains(Dep)) // if something is already finished, we don't put it into EC
+                        var EcDeps = GetECDependencies(NodeToDo);
+                        foreach (var Dep in EcDeps)
                         {
-                            if (OrdereredToDo.IndexOf(Dep) > OrdereredToDo.IndexOf(NodeToDo))
+                            if (GUBPNodes[Dep].RunInEC() && !NodeIsAlreadyComplete(Dep, LocalOnly) && OrdereredToDo.Contains(Dep)) // if something is already finished, we don't put it into EC
                             {
-                                throw new AutomationException("Topological sort error, node {0} has a dependency of {1} which sorted after it.", NodeToDo, Dep);
+                                if (OrdereredToDo.IndexOf(Dep) > OrdereredToDo.IndexOf(NodeToDo))
+                                {
+                                    throw new AutomationException("Topological sort error, node {0} has a dependency of {1} which sorted after it.", NodeToDo, Dep);
+                                }
+                                UncompletedEcDeps.Add(Dep);
                             }
-                            UncompletedEcDeps.Add(Dep);
                         }
                     }
 
                     string MyAgentGroup = GUBPNodes[NodeToDo].AgentSharingGroup;
+                    bool bDoNestedJobstep = false;
+                    bool bDoFirstNestedJobstep = false;
+
+                    var PreConditionUncompletedEcDeps = UncompletedEcDeps;
+                    string NodeParentPath = ParentPath;
+                    if (MyAgentGroup != "")
+                    {
+                        bDoNestedJobstep = GUBP.ECProject == "GUBP_V3";
+                        NodeParentPath = ParentPath + "/jobSteps[" + MyAgentGroup + "]";
+
+                        PreConditionUncompletedEcDeps = new List<string>();
+
+                        var MyChain = AgentGroupChains[MyAgentGroup];
+                        int MyIndex = MyChain.IndexOf(NodeToDo);
+                        if (MyIndex > 0)
+                        {
+                            PreConditionUncompletedEcDeps.Add(MyChain[MyIndex - 1]);
+                        }
+                        else
+                        {
+                            bDoFirstNestedJobstep = bDoNestedJobstep;
+                            // to avoid idle agents (and also EC doesn't actually reserve our agent!), we promote all dependencies to the first one
+                            foreach (var Chain in MyChain)
+                            {
+                                var EcDeps = GetECDependencies(Chain);
+                                foreach (var Dep in EcDeps)
+                                {
+                                    if (GUBPNodes[Dep].RunInEC() && !NodeIsAlreadyComplete(Dep, LocalOnly) && OrdereredToDo.Contains(Dep)) // if something is already finished, we don't put it into EC
+                                    {
+                                        if (OrdereredToDo.IndexOf(Dep) > OrdereredToDo.IndexOf(Chain))
+                                        {
+                                            throw new AutomationException("Topological sort error, node {0} has a dependency of {1} which sorted after it.", Chain, Dep);
+                                        }
+                                        if (!MyChain.Contains(Dep) && !PreConditionUncompletedEcDeps.Contains(Dep))
+                                        {
+                                            PreConditionUncompletedEcDeps.Add(Dep);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (PreConditionUncompletedEcDeps.Count > 0)
+                    {
+                        PreCondition = "\"$[/javascript if(";
+                        // these run "parallel", but we add preconditions to serialize them
+                        int Index = 0;
+                        foreach (var Dep in PreConditionUncompletedEcDeps)
+                        {
+                            PreCondition = PreCondition + "getProperty('" + GetJobStep(ParentPath, Dep) + "/status') == 'completed'";
+                            Index++;
+                            if (Index != PreConditionUncompletedEcDeps.Count)
+                            {
+                                PreCondition = PreCondition + " && ";
+                            }
+                        }
+                        PreCondition = PreCondition + ") true;]\"";
+                    }
 
                     if (UncompletedEcDeps.Count > 0)
                     {
-                        //$[/javascript if(getProperty("$[/myWorkflow/ParentWorkflow]/GUBP_Game_$[/myWorkflow/GameName]_MonoPlatform1_Exists") != "1" || getProperty("$[/myWorkflow/ParentWorkflow]/$[$[/myWorkflow/ParentWorkflow]/GUBP_Game_$[/myWorkflow/GameName]_MonoPlatform1_Name]_EditorPlatform_Success") != "1") true; else false;]
+                        RunCondition = "\"$[/javascript if(";
+                        int Index = 0;
+                        foreach (var Dep in UncompletedEcDeps)
                         {
-                            PreCondition = "\"$[/javascript if(";
+                            RunCondition = RunCondition + "('$[" + GetJobStep(ParentPath, Dep) + "/outcome]' == 'success' || ";
+                            RunCondition = RunCondition + "'$[" + GetJobStep(ParentPath, Dep) + "/outcome]' == 'warning')";
 
-                            // these run "parallel", but we add preconditions to serialize them
-                            if (MyAgentGroup != "")
+                            Index++;
+                            if (Index != UncompletedEcDeps.Count)
                             {
-                                var MyChain = AgentGroupChains[MyAgentGroup];
-                                int MyIndex = MyChain.IndexOf(NodeToDo);
-                                if (MyIndex  > 0)
-                                {
-                                    PreCondition = PreCondition + "getProperty('" + ParentPath + "/jobSteps[" + MyChain[MyIndex - 1] + "]/status') == 'completed'";
-                                    if (UncompletedEcDeps.Count > 0)
-                                    {
-                                        PreCondition = PreCondition + " && ";
-                                    }
-                                }
-                                else
-                                {
-                                    // to avoid idle agents, we might want to promote dependencies to the first one
-                                }
+                                RunCondition = RunCondition + " && ";
                             }
-                            int Index = 0;
-                            foreach (var Dep in UncompletedEcDeps)
-                            {
-                                PreCondition = PreCondition + "getProperty('" + ParentPath + "/jobSteps[" + Dep + "]/status') == 'completed'";
-                                Index++;
-                                if (Index != UncompletedEcDeps.Count)
-                                {
-                                    PreCondition = PreCondition + " && ";
-                                }
-                            }
-                            PreCondition = PreCondition + ") true;]\"";
                         }
-                        {
-                            RunCondition = "\"$[/javascript if(";
-                            int Index = 0;
-                            foreach (var Dep in UncompletedEcDeps)
-                            {
-                                RunCondition = RunCondition + "('$[" + ParentPath + "/jobSteps[" + Dep + "]/outcome]' == 'success' || ";
-                                RunCondition = RunCondition + "'$[" + ParentPath + "/jobSteps[" + Dep + "]/outcome]' == 'warning')";
-
-                                Index++;
-                                if (Index != UncompletedEcDeps.Count)
-                                {
-                                    RunCondition = RunCondition + " && ";
-                                }
-                            }
-                            RunCondition = RunCondition + ") true; else false;]\"";
-                        }
+                        RunCondition = RunCondition + ") true; else false;]\"";
                     }
 
-                    if (!String.IsNullOrEmpty(PreCondition))
-                    {
-                        Args = Args + " --precondition " + PreCondition;
-                    }
-                    if (!String.IsNullOrEmpty(RunCondition))
-                    {
-                        Args = Args + " --condition " + RunCondition;
-                    }
 #if false
                     if (GUBPNodes[NodeToDo].TimeoutInMinutes() > 0)
                     {
@@ -4431,6 +4814,61 @@ if (HostPlatform == UnrealTargetPlatform.Mac) continue; //temp hack till mac aut
                     {
                         Args = Args + " --releaseMode release";
                     }
+                    if (bDoNestedJobstep)
+                    {
+                        if (bDoFirstNestedJobstep)
+                        {
+                            {
+                                string NestArgs = String.Format("createJobStep --parentPath {0} --jobStepName {1} --parallel 1",
+                                    ParentPath, MyAgentGroup);
+                                if (!String.IsNullOrEmpty(PreCondition))
+                                {
+                                    NestArgs = NestArgs + " --precondition " + PreCondition;
+                                }
+                                RunECTool(NestArgs);
+                            }
+                            {
+                                string NestArgs = String.Format("createJobStep --parentPath {0}/jobSteps[{1}] --jobStepName {2}_GetPool --subprocedure GUBP{3}_AgentShare_GetPool --parallel 1 --actualParameter AgentSharingGroup={4} --actualParameter NodeName={5}",
+                                    ParentPath, MyAgentGroup, MyAgentGroup, GUBPNodes[NodeToDo].ECProcedureInfix(), MyAgentGroup, NodeToDo);
+                                if (!String.IsNullOrEmpty(PreCondition))
+                                {
+                                    NestArgs = NestArgs + " --precondition " + PreCondition;
+                                }
+                                RunECTool(NestArgs);
+                            }
+                            {
+                                string NestArgs = String.Format("createJobStep --parentPath {0}/jobSteps[{1}] --jobStepName {2}_GetAgent --subprocedure GUBP{3}_AgentShare_GetAgent --parallel 1 --exclusiveMode call --resourceName {4} --actualParameter AgentSharingGroup={5} --actualParameter NodeName={6}",
+                                    ParentPath, MyAgentGroup, MyAgentGroup, GUBPNodes[NodeToDo].ECProcedureInfix(),
+                                    String.Format("$[/myJob/jobSteps[{0}]/ResourcePool]", MyAgentGroup),
+                                    MyAgentGroup, NodeToDo);
+                                {
+                                    NestArgs = NestArgs + " --precondition ";
+                                    NestArgs = NestArgs + "\"$[/javascript if(";
+                                    NestArgs = NestArgs + "getProperty('" + ParentPath + "/jobSteps[" + MyAgentGroup + "]/jobSteps[" + MyAgentGroup + "_GetPool]/status') == 'completed'";
+                                    NestArgs = NestArgs + ") true;]\"";
+                                }
+                                RunECTool(NestArgs);
+                            }
+                            {
+                                PreCondition = "\"$[/javascript if(";
+                                PreCondition = PreCondition + "getProperty('" + ParentPath + "/jobSteps[" + MyAgentGroup + "]/jobSteps[" + MyAgentGroup + "_GetAgent]/status') == 'completed'";
+                                PreCondition = PreCondition + ") true;]\"";
+                            }
+                        }
+                        Args = Args.Replace(String.Format("--parentPath {0} ", ParentPath), String.Format("--parentPath {0} ", NodeParentPath));
+                        Args = Args.Replace("UAT_Node_Parallel_AgentShare", "UAT_Node_Parallel_AgentShare3");
+                    }
+					ECProps.Add(string.Format("JobStepPath/{0}={1}", NodeToDo, GetJobStepPath(NodeToDo)));
+
+                    if (!String.IsNullOrEmpty(PreCondition))
+                    {
+                        Args = Args + " --precondition " + PreCondition;
+                    }
+                    if (!String.IsNullOrEmpty(RunCondition))
+                    {
+                        Args = Args + " --condition " + RunCondition;
+                    }
+
                     RunECTool(Args);
                     if (bFakeEC && 
                         !UnfinishedTriggers.Contains(NodeToDo) &&
@@ -4458,7 +4896,7 @@ if (HostPlatform == UnrealTargetPlatform.Mac) continue; //temp hack till mac aut
                         FakeECArgs.Add(Arg);
                     }
 
-                    if (MyAgentGroup != "")
+                    if (MyAgentGroup != "" && !bDoNestedJobstep)
                     {
                         var MyChain = AgentGroupChains[MyAgentGroup];
                         int MyIndex = MyChain.IndexOf(NodeToDo);

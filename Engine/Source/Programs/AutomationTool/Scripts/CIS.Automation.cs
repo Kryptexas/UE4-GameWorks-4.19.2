@@ -51,6 +51,7 @@ class CIS : BuildCommand
 					new string[]
                 {
                     @"Engine\Source\Programs\IOS\iPhonePackager\iPhonePackager.csproj",
+                    @"Engine\Source\Programs\IOS\DeploymentServer\DeploymentServer.csproj",
                     @"Engine\Source\Programs\IOS\MobileDeviceInterface\MobileDeviceInterface.csproj",
                     @"Engine\Source\Programs\IOS\DeploymentInterface\DeploymentInterface.csproj",
                 }
@@ -98,6 +99,7 @@ class CIS : BuildCommand
 			"VehicleGameEditor",
 			"ShadowEditor",
             "SoulEditor",
+            "UnrealEngineLauncher",
 		};
 
 		var Win32Targets = new List<string> 
@@ -120,6 +122,7 @@ class CIS : BuildCommand
             "FortniteEditor",
             "ShooterGameEditor",
             "ShooterGame",
+            "UnrealEngineLauncher",
         };
 
 		var PS4DevTargets = new List<string>
@@ -144,6 +147,7 @@ class CIS : BuildCommand
 		var LinuxTargets = new List<string>
         {
             "FortniteServer",
+            "ShooterGame",
         };
 
 		var WinRTDevTargets = new List<string>

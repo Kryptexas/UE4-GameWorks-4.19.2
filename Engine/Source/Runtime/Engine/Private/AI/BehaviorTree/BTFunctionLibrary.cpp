@@ -153,6 +153,15 @@ void UBTFunctionLibrary::SetBlackboardValueAsVector(UBTNode* NodeOwner, const st
 	}
 }
 
+void UBTFunctionLibrary::ClearBlackboardValueAsVector(UBTNode* NodeOwner, const struct FBlackboardKeySelector& Key)
+{
+	UBehaviorTreeComponent* BTComp = NodeOwner ? Cast<UBehaviorTreeComponent>(NodeOwner->GetOuter()) : NULL;
+	if (BTComp != NULL)
+	{
+		BTComp->GetBlackboardComponent()->ClearValueAsVector(Key.SelectedKeyName);
+	}
+}
+
 void UBTFunctionLibrary::StartUsingExternalEvent(UBTNode* NodeOwner, AActor* OwningActor)
 {
 	// deprecated, not removed yet

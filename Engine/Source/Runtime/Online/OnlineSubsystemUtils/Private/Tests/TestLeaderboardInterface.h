@@ -95,5 +95,5 @@
 	/**
 	 * Kicks off all of the testing process
 	 */
-	void Test();
+	void Test(class UWorld* InWorld);
  };

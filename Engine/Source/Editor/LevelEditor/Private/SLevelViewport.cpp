@@ -4,7 +4,7 @@
 #include "LevelEditor.h"
 #include "SLevelViewport.h"
 #include "SLevelViewportToolBar.h"
-#include "Editor/UnrealEd/Public/STransformViewportToolBar.h"
+#include "Editor/UnrealEd/Public/STransformViewportToolbar.h"
 #include "LevelViewportLayout.h"
 #include "LevelViewportTabContent.h"
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"

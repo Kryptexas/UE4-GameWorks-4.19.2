@@ -150,7 +150,7 @@ DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN( TEXT("Num Dynamic Textures"), STAT_SlateN
 #include "SMenuAnchor.h"
 #include "SErrorText.h"
 #include "SErrorHint.h"
-#include "SPopupErrorText.h"
+#include "SPopUpErrorText.h"
 #include "SSplitter.h"
 #include "TableView/TableViewTypeTraits.h"
 #include "TableView/SExpanderArrow.h"

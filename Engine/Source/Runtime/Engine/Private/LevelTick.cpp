@@ -1128,20 +1128,13 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 		RunTickGroup(TG_DuringPhysics, false); // No wait here, we should run until idle though. We don't care if all of the async ticks are done before we start running post-phys stuff
 		TickGroup = TG_EndPhysics; // set this here so the current tick group is correct during collision notifies, though I am not sure it matters. 'cause of the false up there^^^
 		RunTickGroup(TG_EndPhysics); 
+		RunTickGroup(TG_PreCloth);
+		RunTickGroup(TG_StartCloth);
+		RunTickGroup(TG_EndCloth);
 		RunTickGroup(TG_PostPhysics);
 	}
 	else if( bIsPaused )
 	{
-		//@todo phys_thread remove?
-		FPhysScene* PhysScene = GetPhysicsScene();
-		if (PhysScene)
-		{
-			SetupPhysicsTickFunctions(0.0f);
-			PhysScene->StartFrame();
-			PhysScene->WaitPhysScenes();
-			PhysScene->EndFrame(NULL);
-		}
-
 		FTickTaskManagerInterface::Get().RunPauseFrame(this, DeltaSeconds, LEVELTICK_PauseTick);
 	}
 	// Process any remaining latent actions

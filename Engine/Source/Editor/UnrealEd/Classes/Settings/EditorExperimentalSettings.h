@@ -25,6 +25,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(DisplayName="Behavior Tree Editor"))
 	bool bBehaviorTreeEditor;
 
+	/** Allows usage of the Translation Editor */
+	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Translation Editor"))
+	bool bEnableTranslationEditor;
+
 	/** The Blutility shelf holds editor utility Blueprints. Summon from the Workspace menu. */
 	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(DisplayName="Editor Utility Blueprints (Blutility)"))
 	bool bEnableEditorUtilityBlueprints;

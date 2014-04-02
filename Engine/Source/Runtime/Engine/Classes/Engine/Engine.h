@@ -1027,11 +1027,11 @@ public:
 	uint32 bSmoothFrameRate:1;
 
 	/** Maximum framerate to smooth. Code will try to not go over via waiting.										*/
-	UPROPERTY(config, EditAnywhere, Category=Framerate)
+	UPROPERTY(config, EditAnywhere, Category=Framerate, meta=(UIMin=0, ClampMin=0))
 	float MaxSmoothedFrameRate;
 
 	/** Minimum framerate smoothing will kick in.																	*/
-	UPROPERTY(config, EditAnywhere, Category=Framerate)
+	UPROPERTY(config, EditAnywhere, Category=Framerate, meta=(UIMin=0, ClampMin=0))
 	float MinSmoothedFrameRate;
 
 	/** 
@@ -1192,7 +1192,7 @@ public:
 	float DisplayGamma;
 
 	/** Minimum desired framerate setting */
-	UPROPERTY(config, EditAnywhere, Category=Framerate)
+	UPROPERTY(config, EditAnywhere, Category=Framerate, meta=(UIMin=0, ClampMin=0))
 	float MinDesiredFrameRate;
 
 private:
@@ -1937,7 +1937,7 @@ public:
 	 * @param	ControllerId	the game pad index of the player to search for
 	 * @return	The player that has the ControllerId specified, or NULL if no players have that ControllerId
 	 */
-	ULocalPlayer* GetLocalPlayerFromControllerId( const UGameViewportClient * InVewport, int32 ControllerId );
+	ULocalPlayer* GetLocalPlayerFromControllerId( const UGameViewportClient * InViewport, int32 ControllerId );
 	ULocalPlayer* GetLocalPlayerFromControllerId( UWorld * InWorld, int32 ControllerId );
 
 	void SwapControllerId(ULocalPlayer *NewPlayer, int32 CurrentControllerId, int32 NewControllerID);
@@ -2296,14 +2296,20 @@ public:
 
 	virtual bool WorldIsPIEInNewViewport(UWorld *InWorld);
 
-	FWorldContext& WorldContextFromWorld(UWorld * InWorld);
-	FWorldContext& WorldContextFromGameViewport(const UGameViewportClient *InViewport);
-	FWorldContext& WorldContextFromPendingNetGame(const UPendingNetGame *InPendingNetGame);	
-	FWorldContext& WorldContextFromPendingNetGameNetDriver(const UNetDriver *InPendingNetGame);	
+	FWorldContext* GetWorldContextFromWorld(UWorld * InWorld);
+	FWorldContext* GetWorldContextFromGameViewport(const UGameViewportClient *InViewport);
+	FWorldContext* GetWorldContextFromPendingNetGame(const UPendingNetGame *InPendingNetGame);	
+	FWorldContext* GetWorldContextFromPendingNetGameNetDriver(const UNetDriver *InPendingNetGame);	
+	FWorldContext* GetWorldContextFromHandle(const int32 WorldContextHandle);
+
+	FWorldContext& GetWorldContextFromWorldChecked(UWorld * InWorld);
+	FWorldContext& GetWorldContextFromGameViewportChecked(const UGameViewportClient *InViewport);
+	FWorldContext& GetWorldContextFromPendingNetGameChecked(const UPendingNetGame *InPendingNetGame);	
+	FWorldContext& GetWorldContextFromPendingNetGameNetDriverChecked(const UNetDriver *InPendingNetGame);	
+	FWorldContext& GetWorldContextFromHandleChecked(const int32 WorldContextHandle);
 
 	const TArray<FWorldContext>& GetWorldContexts() { return WorldList; }
 
-	FWorldContext& WorldContextFromHandle(int32 WorldContextHandle);
 
 	/** Verify any remaining World(s) are valid after ::LoadMap destroys a world */
 	virtual void VerifyLoadMapWorldCleanup();
@@ -2390,16 +2396,16 @@ public:
 
 	// Public interface for async map change functions
 
-	bool CommitMapChange(UWorld* InWorld) { return CommitMapChange(WorldContextFromWorld(InWorld)); }
-	bool IsReadyForMapChange(UWorld* InWorld) { return IsReadyForMapChange(WorldContextFromWorld(InWorld)); }
-	bool IsPreparingMapChange(UWorld* InWorld) { return IsPreparingMapChange(WorldContextFromWorld(InWorld)); }
-	bool PrepareMapChange(UWorld* InWorld, const TArray<FName>& LevelNames) { return PrepareMapChange(WorldContextFromWorld(InWorld), LevelNames); }
-	void ConditionalCommitMapChange(UWorld* InWorld) { return ConditionalCommitMapChange(WorldContextFromWorld(InWorld)); }
+	bool CommitMapChange(UWorld* InWorld) { return CommitMapChange(GetWorldContextFromWorldChecked(InWorld)); }
+	bool IsReadyForMapChange(UWorld* InWorld) { return IsReadyForMapChange(GetWorldContextFromWorldChecked(InWorld)); }
+	bool IsPreparingMapChange(UWorld* InWorld) { return IsPreparingMapChange(GetWorldContextFromWorldChecked(InWorld)); }
+	bool PrepareMapChange(UWorld* InWorld, const TArray<FName>& LevelNames) { return PrepareMapChange(GetWorldContextFromWorldChecked(InWorld), LevelNames); }
+	void ConditionalCommitMapChange(UWorld* InWorld) { return ConditionalCommitMapChange(GetWorldContextFromWorldChecked(InWorld)); }
 
-	FString GetMapChangeFailureDescription( UWorld *InWorld ) { return GetMapChangeFailureDescription(WorldContextFromWorld(InWorld)); }
+	FString GetMapChangeFailureDescription(UWorld *InWorld) { return GetMapChangeFailureDescription(GetWorldContextFromWorldChecked(InWorld)); }
 
 	/** Cancels pending map change.	 */
-	void CancelPendingMapChange(UWorld *InWorld) { return CancelPendingMapChange(WorldContextFromWorld(InWorld)); }
+	void CancelPendingMapChange(UWorld *InWorld) { return CancelPendingMapChange(GetWorldContextFromWorldChecked(InWorld)); }
 
 	void AddNewPendingStreamingLevel(UWorld *InWorld, FName PackageName, bool bNewShouldBeLoaded, bool bNewShouldBeVisible, int32 LODIndex);
 
@@ -2417,7 +2423,7 @@ public:
 	UGameUserSettings* GetGameUserSettings();
 
 	/** Delegate handler for screenshots */
-	void HandleScreenshotCaptured(int32 Width, int32 Height, const TArray<FColor>& Colors, const FString& Filename);
+	void HandleScreenshotCaptured(int32 Width, int32 Height, const TArray<FColor>& Colors);
 
 private:
 	void CreateGameUserSettings();

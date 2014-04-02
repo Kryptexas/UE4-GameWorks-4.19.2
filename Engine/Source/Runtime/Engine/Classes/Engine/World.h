@@ -330,6 +330,52 @@ struct FEndPhysicsTickFunction : public FTickFunction
 	virtual FString DiagnosticMessage();
 };
 
+/**
+* Tick function that starts the cloth tick
+**/
+USTRUCT()
+struct FStartClothSimulationFunction : public FTickFunction
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** World this tick function belongs to **/
+	class UWorld*	Target;
+
+	/**
+	* Abstract function actually execute the tick.
+	* @param DeltaTime - frame time to advance, in seconds
+	* @param TickType - kind of tick for this frame
+	* @param CurrentThread - thread we are executing on, useful to pass along as new tasks are created
+	* @param MyCompletionGraphEvent - completion event for this task. Useful for holding the completetion of this task until certain child tasks are complete.
+	**/
+	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) OVERRIDE;
+	/** Abstract function to describe this tick. Used to print messages about illegal cycles in the dependency graph **/
+	virtual FString DiagnosticMessage();
+};
+
+/**
+* Tick function that ends the cloth tick
+**/
+USTRUCT()
+struct FEndClothSimulationFunction : public FTickFunction
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** World this tick function belongs to **/
+	class UWorld*	Target;
+
+	/**
+	* Abstract function actually execute the tick.
+	* @param DeltaTime - frame time to advance, in seconds
+	* @param TickType - kind of tick for this frame
+	* @param CurrentThread - thread we are executing on, useful to pass along as new tasks are created
+	* @param MyCompletionGraphEvent - completion event for this task. Useful for holding the completetion of this task until certain child tasks are complete.
+	**/
+	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) OVERRIDE;
+	/** Abstract function to describe this tick. Used to print messages about illegal cycles in the dependency graph **/
+	virtual FString DiagnosticMessage();
+};
+
 struct ENGINE_API FActorSpawnParameters
 {
 	FActorSpawnParameters()
@@ -676,9 +722,14 @@ public:
 	/** Tick function for ending physics																						*/
 	FEndPhysicsTickFunction EndPhysicsTickFunction;
 
+	/** Tick function for starting cloth simulation																				*/
+	FStartClothSimulationFunction StartClothTickFunction;
+	/** Tick function for ending cloth simulation																				*/
+	FEndClothSimulationFunction EndClothTickFunction;
+
 	/** 
 	 * Indicates that during world ticking we are doing the final component update of dirty components 
-     * (after PostAsyncWork and effect physics scene has run. 
+	 * (after PostAsyncWork and effect physics scene has run. 
 	 */
 	bool										bPostTickComponentUpdate;
 
@@ -1506,6 +1557,7 @@ public:
 
 	/**
 	 * Returns whether the passed in actor is part of any of the loaded levels actors array.
+	 * Warning: Will return true for pending kill actors!
 	 *
 	 * @param	Actor	Actor to check whether it is contained by any level
 	 *	
@@ -1756,9 +1808,9 @@ public:
 
 	/** Get the event that broadcasts TickDispatch */
 	FOnNetTickEvent& OnTickDispatch() { return TickDispatchEvent; }
-    /** Get the event that broadcasts TickFlush */
+	/** Get the event that broadcasts TickFlush */
 	FOnNetTickEvent& OnTickFlush() { return TickFlushEvent; }
-    /** Get the event that broadcasts TickFlush */
+	/** Get the event that broadcasts TickFlush */
 	FOnTickFlushEvent& OnPostTickFlush() { return PostTickFlushEvent; }
 
 	/**
@@ -2047,6 +2099,9 @@ public:
 
 	/** Waits for the physics scene to be done processing */
 	void FinishPhysicsSim();
+
+	/** Begin cloth simulation */
+	void StartClothSim();
 
 	/** Spawns GameMode for the level. */
 	bool SetGameMode(const FURL& InURL);

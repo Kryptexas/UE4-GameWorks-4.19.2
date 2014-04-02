@@ -230,7 +230,7 @@ void USoundCueGraphSchema::TryConnectNodes(const TArray<USoundNode*>& OutputNode
 		{
 			if (Index >= InputNode->GraphNode->GetInputCount())
 			{
-				InputNode->GraphNode->AddInputPin();
+				InputNode->GraphNode->CreateInputPin();
 			}
 			TryCreateConnection( InputNode->GraphNode->GetInputPin(Index), OutputNodes[Index]->GraphNode->GetOutputPin() );
 		}

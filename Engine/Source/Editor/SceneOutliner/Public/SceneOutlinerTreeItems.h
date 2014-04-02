@@ -6,11 +6,7 @@
 namespace SceneOutliner
 {
 
-struct FSceneOutlinerFolder;
-struct TOutlinerFolderTreeItem;
-class SSceneOutliner;
-
-struct TOutlinerTreeItem : TSharedFromThis<TOutlinerTreeItem>
+struct SCENEOUTLINER_API TOutlinerTreeItem : TSharedFromThis<TOutlinerTreeItem>
 {
 	enum ItemType { Folder, Actor };
 	/* Flags structure */
@@ -26,8 +22,6 @@ struct TOutlinerTreeItem : TSharedFromThis<TOutlinerTreeItem>
 				bool RenameWhenInView : 1;
 				/* true if this item is filtered out */
 				bool IsFilteredOut : 1;
-				/* true if this item has moved (will be deleted when empty) */
-				bool HasMoved : 1;
 			};
 		};
 	};
@@ -58,7 +52,7 @@ struct TOutlinerTreeItem : TSharedFromThis<TOutlinerTreeItem>
 	virtual void SetIsVisible(bool bIsVisible) = 0;
 };
 
-struct TOutlinerActorTreeItem : TOutlinerTreeItem
+struct SCENEOUTLINER_API TOutlinerActorTreeItem : TOutlinerTreeItem
 {
 	/** The actor this tree item is associated with. */
 	TWeakObjectPtr<AActor> Actor;
@@ -80,7 +74,7 @@ struct TOutlinerActorTreeItem : TOutlinerTreeItem
 	virtual void SetIsVisible(bool bIsVisible) OVERRIDE;
 };
 
-struct TOutlinerFolderTreeItem : TOutlinerTreeItem
+struct SCENEOUTLINER_API TOutlinerFolderTreeItem : TOutlinerTreeItem
 {
 	/** The leaf name of this folder */
 	FName LeafName;
@@ -156,26 +150,25 @@ struct TOutlinerFolderTreeItem : TOutlinerTreeItem
 	{
 		return FName(*FPaths::GetPath(Path.ToString()));
 	}
-
-private:
-
-	/** Broadcast the necessary events to relocate all our children to our new path, recursively */
-	void RelocateChildren(FName NewPath);
 };
 
 /** Construct a new Drag and drop operation for a scene outliner */
 TSharedRef<FDecoratedDragDropOp> CreateDragDropOperation(TArray<TSharedPtr<TOutlinerTreeItem>>& InTreeItems);
 
 /* A drag/drop operation involving a mix of actors and (optionally) folders */
-struct FFolderActorDragDropOp : public FActorDragDropGraphEdOp
+struct SCENEOUTLINER_API FFolderActorDragDropOp : public FActorDragDropGraphEdOp
 {
+	DRAG_DROP_OPERATOR_TYPE(FFolderActorDragDropOp, FActorDragDropGraphEdOp)
+
 	/** Array of folders that we are dragging in addition to the actors */
 	TArray<TWeakPtr<TOutlinerFolderTreeItem>> Folders;
 };
 
 /** A drag/drop operation involving only folders */
-struct FFolderDragDropOp : public FDecoratedDragDropOp
+struct SCENEOUTLINER_API FFolderDragDropOp : public FDecoratedDragDropOp
 {
+	DRAG_DROP_OPERATOR_TYPE(FFolderDragDropOp, FDecoratedDragDropOp)
+
 	/** Array of folders that we are dragging */
 	TArray<TWeakPtr<TOutlinerFolderTreeItem>> Folders;
 };

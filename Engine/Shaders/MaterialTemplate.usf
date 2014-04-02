@@ -927,8 +927,9 @@ half3 GetMaterialNormal(FMaterialPixelParameters Parameters)
 	half3 RetNormal;
 
 	RetNormal = GetMaterialNormalRaw(Parameters);
-
-	#if !ES2_PROFILE && COMPILE_SHADERS_FOR_DEVELOPMENT == 1
+	
+	// todo: COMPILE_SHADERS_FOR_DEVELOPMENT is unfinished feature, using XBOXONE_PROFILE as workaround
+	#if COMPILE_SHADERS_FOR_DEVELOPMENT == 1 && !XBOXONE_PROFILE && !ES2_PROFILE
 	{
 		// this feature is only needed for development/editor - we can compile it out for a shipping build (see r.CompileShadersForDevelopment cvar help)
 		half3 OverrideNormal = View.NormalOverrideParameter.xyz;
@@ -994,16 +995,19 @@ half GetMaterialRoughness(FMaterialPixelParameters Parameters)
 	//
 	// Note that we also clamp to 1.0 to match the deferred renderer on PC where the roughness is 
 	// stored in an 8-bit value and thus automatically clamped at 1.0.
-	return clamp( GetMaterialRoughnessRaw(Parameters), 0.09, 1.0 );
+
+	// Increase value from 0.09 to 0.12 to fix missing specular lobe problem on device
+	return clamp( GetMaterialRoughnessRaw(Parameters), 0.12, 1.0 );
 #else
 	half Roughness = GetMaterialRoughnessRaw(Parameters);
-	
-#if COMPILE_SHADERS_FOR_DEVELOPMENT == 1
+
+	// todo: COMPILE_SHADERS_FOR_DEVELOPMENT is unfinished feature, using XBOXONE_PROFILE as workaround
+	#if COMPILE_SHADERS_FOR_DEVELOPMENT == 1 && !XBOXONE_PROFILE 
 	{
 		// this feature is only needed for development/editor - we can compile it out for a shipping build (see r.CompileShadersForDevelopment cvar help)
 		Roughness = Roughness * View.RoughnessOverrideParameter.y + View.RoughnessOverrideParameter.x;
 	}
-#endif
+	#endif
 	
 	return max(0.04f, Roughness);
 #endif

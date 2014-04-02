@@ -239,9 +239,14 @@ void MainPS(
 		// Apply "gamma" curve adjustment.
 		FilmColor.rgb = pow(FilmColor.rgb, InverseGamma.y);
 		
-		// Apply conversion to sRGB (this must be an exact sRGB conversion else darks are bad).
-		// Branching is faster than branchless on AMD on PC.
-		half3 TonemappedColor = LinearToSrgbBranching(FilmColor);
+		#if MAC
+			// Note, MacOSX native output is raw gamma 2.2 not sRGB!
+			half3 TonemappedColor = pow(FilmColor.rgb, 1.0/2.2);
+		#else
+			// Apply conversion to sRGB (this must be an exact sRGB conversion else darks are bad).
+			// Branching is faster than branchless on AMD on PC.
+			half3 TonemappedColor = LinearToSrgbBranching(FilmColor);
+		#endif
 
 		//TonemappedColor = rsqrt( ( 0.8 + 0.8 * LinearColor ) / LinearColor );		// 1 vmad, 3 rcp, 1 vmul, 3 rsqrt
 		//TonemappedColor = sqrt( 1 - exp( -LinearColor ) );						// 1 vmul, 3 exp2, 1 vadd, 3 sqrt
@@ -458,8 +463,13 @@ void MainPS_ES2(
 		#endif
 
 		half3 FilmColor = FilmPostProcess(LinearColor.rgb);
-		// Apply conversion to sRGB (this must be an exact sRGB conversion else darks are bad).
-		half3 TonemappedColor = LinearToSrgbBranchless(FilmColor);
+		#if IOS
+			// Note, iOS native output is raw gamma 2.2 not sRGB!
+			half3 TonemappedColor = pow(FilmColor.rgb, 1.0/2.2);
+		#else
+			// Apply conversion to sRGB (this must be an exact sRGB conversion else darks are bad).
+			half3 TonemappedColor = LinearToSrgbBranchless(FilmColor);
+		#endif
 
 		// Blend with custom LDR color, used for Fade track in Matinee.
 		// This is the 101% wrong way to do this,

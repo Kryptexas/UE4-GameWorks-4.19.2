@@ -6,13 +6,8 @@
 class FBoneDragDropOp : public FDragDropOperation, public TSharedFromThis<FBoneDragDropOp>
 {
 public:	
-
-	static FString GetTypeId() 
-	{
-		static FString Type = TEXT("FBoneDragDropOp"); 
-		return Type;
-	}
-
+	DRAG_DROP_OPERATOR_TYPE(FBoneDragDropOp, FDragDropOperation)
+	
 	USkeleton * TargetSkeleton;
 	FName BoneName;
 
@@ -62,7 +57,6 @@ public:
 		Operation->BoneName = InBoneName;
 		Operation->TargetSkeleton = Skeleton;
 		Operation->SetIcon( FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error")) );
-		FSlateApplication::GetDragDropReflector().RegisterOperation<FBoneDragDropOp>(Operation);
 		Operation->Construct();
 		return Operation;
 	}

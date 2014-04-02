@@ -179,15 +179,21 @@ public:
 	float MouseSensitivty;
 	
 	/**
-	 * Whether to use mouse position as direct widget position.
+	 * Whether or not to invert the direction of middle mouse panning in viewports
 	 */
 	UPROPERTY(EditAnywhere, config, Category=Controls)
+	bool bInvertMiddleMousePan;
+
+	/**
+	 * Whether to use mouse position as direct widget position.
+	 */
+	UPROPERTY(EditAnywhere, config, Category=Controls, AdvancedDisplay)
 	uint32 bUseAbsoluteTranslation:1;
 
 	/**
 	 * If enabled, the viewport will stream in levels automatically when the camera is moved.
 	 */
-	UPROPERTY(EditAnywhere, config, Category=Controls, meta=(DisplayName = "Stream in Levels Automatically when Camera is Moved"))
+	UPROPERTY(EditAnywhere, config, Category=Controls, meta=(DisplayName = "Stream in Levels Automatically when Camera is Moved"), aDvancedDisplay)
 	bool bLevelStreamingVolumePrevis;
 
 	/** When checked, orbit the camera by using the L or U keys when unchecked, Alt and Left Mouse Drag will orbit around the look at point */

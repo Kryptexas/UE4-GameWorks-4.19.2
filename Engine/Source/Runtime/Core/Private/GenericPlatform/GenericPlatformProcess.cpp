@@ -194,7 +194,7 @@ void FGenericPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params
 	UE_LOG(LogHAL, Fatal, TEXT("FGenericPlatformProcess::ExecProcess not implemented on this platform"));
 }
 
-void FGenericPlatformProcess::LaunchFileInDefaultExternalApplication( const TCHAR* FileName, const TCHAR* Parms )
+void FGenericPlatformProcess::LaunchFileInDefaultExternalApplication( const TCHAR* FileName, const TCHAR* Parms, ELaunchVerb::Type Verb )
 {
 	UE_LOG(LogHAL, Fatal, TEXT("FGenericPlatformProcess::LaunchFileInDefaultExternalApplication not implemented on this platform"));
 }
@@ -383,4 +383,21 @@ bool FGenericPlatformProcess::SupportsMultithreading()
 void FBinaryFileVersion::ToString(FString& OutString) const
 {
 	OutString = FString::Printf(TEXT("%d %d %d %d"), A, B, C, D);
+}
+
+FGenericPlatformProcess::FSemaphore::FSemaphore(const FString & InName)
+{
+	FCString::Strcpy(Name, sizeof(Name)-1, *InName);
+}
+
+FGenericPlatformProcess::FSemaphore * FGenericPlatformProcess::NewInterprocessSynchObject(const FString & Name, bool bCreate, uint32 MaxLocks)
+{
+	UE_LOG(LogHAL, Fatal, TEXT("FGenericPlatformProcess::NewInterprocessSynchObject not implemented on this platform"));
+	return NULL;
+}
+
+bool FGenericPlatformProcess::DeleteInterprocessSynchObject(FSemaphore * Object)
+{
+	UE_LOG(LogHAL, Fatal, TEXT("FGenericPlatformProcess::DeleteInterprocessSynchObject not implemented on this platform"));
+	return false;
 }

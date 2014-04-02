@@ -30,6 +30,11 @@ namespace ETargetDeviceFeatures
 		PowerOn,
 
 		/**
+		 * Snapshot of processes running on the device.
+		 */
+		ProcessSnapshot,
+
+		/**
 		 * The device can be rebooted remotely.
 		 */
 		Reboot

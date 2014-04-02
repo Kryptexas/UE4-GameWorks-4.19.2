@@ -742,9 +742,7 @@ void SMenuEntryBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet, const F
 	{
 		TSharedRef<SWidget> ChildWidget = ChildSlot.Widget;
 		ChildSlot.Widget = 
-			SNew(STutorialWrapper)
-			.Name(TutorialName)
-			.Content()
+			SNew( STutorialWrapper, TutorialName )
 			[
 				ChildWidget
 			];

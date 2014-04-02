@@ -62,18 +62,20 @@ public:
 	 **/
 	virtual EChunkLocation::Type GetChunkLocation( uint32 ChunkID ) = 0;
 
-	/**
-	 * Get the method of chunk install progress reporting.
-	 * @return				Enum specifying how progress is reported.
+	/** 
+	 * Check if a given reporting type is supported.
+	 * @param ReportType	Enum specifying how progress is reported.
+	 * @return				true if reporting type is supported on the current platform.
 	 **/
-	virtual EChunkProgressReportingType::Type GetProgressReportingType() = 0;
+	virtual bool GetProgressReportingTypeSupported(EChunkProgressReportingType::Type ReportType) = 0;		
 
 	/**
-	 * Get the current install progress of a chunk.
+	 * Get the current install progress of a chunk.  Let the user specify report type for platforms that support more than one.
 	 * @param ChunkID		The id of the chunk to check.
-	 * @return				A value whose meaning is dependent on the enum returned by GetProgressReportingType().
+	 * @param ReportType	The type of progress report you want.
+	 * @return				A value whose meaning is dependent on the ReportType param.
 	 **/
-	virtual float GetChunkProgress( uint32 ChunkID ) = 0;
+	virtual float GetChunkProgress( uint32 ChunkID, EChunkProgressReportingType::Type ReportType ) = 0;
 
 	/**
 	 * Inquire about the priority of chunk installation vs. game IO.
@@ -119,23 +121,34 @@ public:
 		return EChunkLocation::LocalFast;
 	}
 
-	/**
-	 * Get the method of chunk install progress reporting.
-	 * @return				Enum specifying how progress is reported.
+	/** 
+	 * Check if a given reporting type is supported.
+	 * @param ReportType	Enum specifying how progress is reported.
+	 * @return				true if reporting type is supported on the current platform.
 	 **/
-	virtual EChunkProgressReportingType::Type GetProgressReportingType() OVERRIDE
+	virtual bool GetProgressReportingTypeSupported(EChunkProgressReportingType::Type ReportType) OVERRIDE
 	{
-		return EChunkProgressReportingType::PercentageComplete;
+		if (ReportType == EChunkProgressReportingType::PercentageComplete)
+		{
+			return true;
+		}
+
+		return false;
 	}
 
 	/**
-	 * Get the current install progress of a chunk.
+	 * Get the current install progress of a chunk.  Let the user specify report type for platforms that support more than one.
 	 * @param ChunkID		The id of the chunk to check.
-	 * @return				A value whose meaning is dependent on the enum returned by GetProgressReportingType().
+	 * @param ReportType	The type of progress report you want.
+	 * @return				A value whose meaning is dependent on the ReportType param.
 	 **/
-	virtual float GetChunkProgress( uint32 ChunkID ) OVERRIDE
+	virtual float GetChunkProgress( uint32 ChunkID, EChunkProgressReportingType::Type ReportType ) OVERRIDE
 	{
-		return 100.0f;
+		if (ReportType == EChunkProgressReportingType::PercentageComplete)
+		{
+			return 100.0f;
+		}		
+		return 0.0f;
 	}
 
 	/**

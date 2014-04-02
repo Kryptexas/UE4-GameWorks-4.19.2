@@ -1,9 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemUtilsPrivatePCH.h"
-
 #include "OnlineSessionInterface.h"
-
 
 APartyBeaconClient::APartyBeaconClient(const class FPostConstructInitializeProperties& PCIP) :
 	Super(PCIP),
@@ -15,7 +13,7 @@ APartyBeaconClient::APartyBeaconClient(const class FPostConstructInitializePrope
 void APartyBeaconClient::RequestReservation(const FOnlineSessionSearchResult& DesiredHost, const FUniqueNetIdRepl& RequestingPartyLeader, const TArray<FPlayerReservation>& PartyMembers)
 {
 	bool bSuccess = false;
-	IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get();
+	IOnlineSubsystem* OnlineSub = Online::GetSubsystem(GetWorld());
 	if (OnlineSub)
 	{
 		IOnlineSessionPtr SessionInt = OnlineSub->GetSessionInterface();

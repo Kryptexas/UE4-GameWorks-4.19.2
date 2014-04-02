@@ -12,6 +12,7 @@
 /** Delegate used with the Scene Outliner in 'actor picking' mode.  You'll bind a delegate when the
     outliner widget is created, which will be fired off when an actor is selected in the list */
 DECLARE_DELEGATE_OneParam( FOnActorPicked, AActor* );
+DECLARE_DELEGATE_OneParam( FOnSceneOutlinerItemPicked, TSharedRef<SceneOutliner::TOutlinerTreeItem> );
 
 DECLARE_DELEGATE_RetVal_OneParam( TSharedRef< ISceneOutlinerColumn >, FCreateSceneOutlinerColumnDelegate, const TWeakPtr< ISceneOutliner >& );
 DECLARE_DELEGATE_OneParam( FCustomSceneOutlinerDeleteDelegate, const TArray< TWeakObjectPtr< AActor > >&  )
@@ -101,6 +102,8 @@ public:
 	/** If true, the search box will gain focus when the scene outliner is created */
 	bool bFocusSearchBoxWhenOpened;
 
+	/** True to only show folders in this outliner */
+	bool bOnlyShowFolders;
 public:
 
 	/** Constructor */
@@ -112,6 +115,7 @@ public:
 		, bShowSearchBox( true )
 		, CustomColumnFixedWidth( 0.0f )
 		, bFocusSearchBoxWhenOpened( false )
+		, bOnlyShowFolders(false)
 	{
 
 	}

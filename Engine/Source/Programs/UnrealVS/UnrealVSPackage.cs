@@ -23,7 +23,7 @@ namespace UnrealVS
 	[PackageRegistration( UseManagedResourcesOnly = true )]
 
 	// This attribute is used to register the informations needed to show the this package in the Help/About dialog of Visual Studio.
-	[InstalledProductRegistration( "#110", "#112", "1.0", IconResourceID = 400 )]
+	[InstalledProductRegistration("#110", "#112", VersionString, IconResourceID = 400)]
 
 	// Adds data for our interface elements defined in UnrealVS.vsct.  The name "Menus.ctmenu" here is arbitrary, but must
 	// match the ItemGroup inside the UnrealVS.csproj MSBuild file (hand-typed.)
@@ -39,7 +39,7 @@ namespace UnrealVS
 	[ProvideToolWindow(typeof(BatchBuilderToolWindow))]
 
 	// This attribute registers an options page for the package.
-	[ProvideOptionPage(typeof(UnrealVsOptions), "UnrealVS", "General", 101, 102, true)]
+	[ProvideOptionPage(typeof(UnrealVsOptions), ExtensionName, "General", 101, 102, true)]
 
 	/// <summary>
 	/// UnrealVSPackage implements Package abstract class.  This is the main class that is registered
@@ -54,9 +54,11 @@ namespace UnrealVS
 	{
 		/** Constants */
 
-		private const string OptionKeyPrefix = "UnrealVS";
-		private const string CommandLineOptionKey = OptionKeyPrefix + "CommandLineMRU";
-		private const string BatchBuildSetsOptionKey = OptionKeyPrefix + "BatchBuildSetsV002";
+		private const string VersionString = "v1.28";
+		private const string UnrealSolutionFileName = "UE4.sln";
+		private const string ExtensionName = "UnrealVS";
+		private const string CommandLineOptionKey = ExtensionName + "CommandLineMRU";
+		private const string BatchBuildSetsOptionKey = ExtensionName + "BatchBuildSetsV002";
 		private readonly TimeSpan TickPeriod = TimeSpan.FromSeconds(1.0);
 
 		/** Events */
@@ -143,6 +145,13 @@ namespace UnrealVS
 		/// startup projects changes, among other things.
 		public IVsMonitorSelection SelectionManager { get; private set; }
 
+		/// Variable keeps track of whether a supported Unreal solution is loaded
+		public bool IsUE4Loaded { get; private set; }
+
+		/// Variable keeps track of the loaded solution
+		private string _SolutionFilepath;
+		public string SolutionFilepath { get { return _SolutionFilepath; } }
+
 		/** Methods */
 
 		/// <summary>
@@ -159,8 +168,7 @@ namespace UnrealVS
 			// Setup singleton instance
 			PrivateInstance = this;
 
-			Logging.Initialize();
-			Logging.WriteLine(DateTime.Now.ToLongDateString() + " - " + DateTime.Now.ToLongTimeString());
+			Logging.Initialize(ExtensionName, VersionString);
 			Logging.WriteLine("Loading UnrealVS extension package...");
 		}
 
@@ -178,6 +186,7 @@ namespace UnrealVS
 			// Get access to Visual Studio's DTE object.  This object has various hooks into the Visual Studio
 			// shell that are useful for writing extensions.
 			DTE = (DTE)GetGlobalService( typeof( DTE ) );
+			Logging.WriteLine("DTE version " + DTE.Version);
 
 			// Get selection manager and register to receive events
 			SelectionManager =
@@ -186,6 +195,7 @@ namespace UnrealVS
 
 			// Get solution and register to receive events
 			SolutionManager = ServiceProvider.GlobalProvider.GetService( typeof( SVsSolution ) ) as IVsSolution2;
+			UpdateUnrealLoadedStatus();
 			SolutionManager.AdviseSolutionEvents( this, out SolutionEventsHandle );
 
 			// Grab the solution build manager.  We need this in order to change certain things about the Visual
@@ -226,10 +236,10 @@ namespace UnrealVS
 		{
 			try
 			{
-				while (true)
+				while (bCancelTicker == 0)
 				{
-					Thread.Sleep(TickPeriod);
 					ThreadHelper.Generic.Invoke(Tick);
+					Thread.Sleep(TickPeriod);
 				}
 			}
 			catch (ThreadAbortException)
@@ -239,18 +249,25 @@ namespace UnrealVS
 
 		private void Tick()
 		{
-			BatchBuilder.Tick();
+			if (bCancelTicker == 0)
+			{
+				BatchBuilder.Tick();
+			}
 		}
 
 		/// IDispose pattern lets us clean up our stuff!
 		protected override void Dispose( bool disposing )
 		{
-			base.Dispose( disposing );
-
 			// Shutdown the "ticker"
-			Ticker.Abort();
-			Ticker.Join();
+			Interlocked.Increment(ref bCancelTicker);
+			if (!Ticker.Join(TickPeriod + TickPeriod))
+			{
+				Ticker.Abort();
+				Ticker.Join();
+			}
 			Ticker = null;
+
+			base.Dispose(disposing);
 
 			// Clean up singleton instance
 			PrivateInstance = null;
@@ -285,7 +302,6 @@ namespace UnrealVS
 			SolutionBuildManager = null;
 
 			Logging.WriteLine("Closing UnrealVS extension");
-			Logging.WriteLine(DateTime.Now.ToLongDateString() + " - " + DateTime.Now.ToLongTimeString());
 			Logging.Close();
 		}
 
@@ -419,15 +435,25 @@ namespace UnrealVS
 		/// <param name="stream">The stream to load the option data from.</param>
 		protected override void OnLoadOptions(string key, Stream stream)
 		{
-			if (0 == string.Compare(key, CommandLineOptionKey))
+			try
 			{
-				Logging.WriteLine("Restoring CommandLineEditor options");
-				CommandLineEditor.LoadOptions(stream);
+				if (0 == string.Compare(key, CommandLineOptionKey))
+				{
+					Logging.WriteLine("Restoring CommandLineEditor options");
+					CommandLineEditor.LoadOptions(stream);
+				}
+				else if (0 == string.Compare(key, BatchBuildSetsOptionKey))
+				{
+					Logging.WriteLine("Restoring BatchBuilder options");
+					BatchBuilder.LoadOptions(stream);
+				}
 			}
-			else if (0 == string.Compare(key, BatchBuildSetsOptionKey))
+			catch (Exception Ex)
 			{
-				Logging.WriteLine("Restoring BatchBuilder options");
-				BatchBuilder.LoadOptions(stream);
+				// Couldn't load options
+				Exception AppEx = new ApplicationException("OnLoadOptions() failed with key " + key, Ex);
+				Logging.WriteLine(AppEx.ToString());
+				throw AppEx;
 			}
 		}
 
@@ -440,15 +466,25 @@ namespace UnrealVS
 		/// <param name="stream">The stream to save the option data to.</param>
 		protected override void OnSaveOptions(string key, Stream stream)
 		{
-			if (0 == string.Compare(key, CommandLineOptionKey))
+			try
 			{
-				Logging.WriteLine("Saving CommandLineEditor options");
-				CommandLineEditor.SaveOptions(stream);
+				if (0 == string.Compare(key, CommandLineOptionKey))
+				{
+					Logging.WriteLine("Saving CommandLineEditor options");
+					CommandLineEditor.SaveOptions(stream);
+				}
+				else if (0 == string.Compare(key, BatchBuildSetsOptionKey))
+				{
+					Logging.WriteLine("Saving BatchBuilder options");
+					BatchBuilder.SaveOptions(stream);
+				}
 			}
-			else if (0 == string.Compare(key, BatchBuildSetsOptionKey))
+			catch (Exception Ex)
 			{
-				Logging.WriteLine("Saving BatchBuilder options");
-				BatchBuilder.SaveOptions(stream);
+				// Couldn't save options
+				Exception AppEx = new ApplicationException("OnSaveOptions() failed with key " + key, Ex);
+				Logging.WriteLine(AppEx.ToString());
+				throw AppEx;
 			}
 		}
 
@@ -459,6 +495,8 @@ namespace UnrealVS
 
 		int IVsSolutionEvents.OnAfterCloseSolution( object pUnkReserved )
 		{
+			UpdateUnrealLoadedStatus();
+
 			if (OnSolutionClosed != null)
 			{
 				OnSolutionClosed();
@@ -488,6 +526,8 @@ namespace UnrealVS
 
 		int IVsSolutionEvents.OnAfterOpenSolution( object pUnkReserved, int fNewSolution )
 		{
+			UpdateUnrealLoadedStatus();
+
             if (OnSolutionOpened != null)
             {
                 OnSolutionOpened();
@@ -689,6 +729,13 @@ namespace UnrealVS
 			return VSConstants.S_OK;
 		}
 
+		private void UpdateUnrealLoadedStatus()
+		{
+			string SolutionDirectory, UserOptsFile;
+			SolutionManager.GetSolutionInfo(out SolutionDirectory, out _SolutionFilepath, out UserOptsFile);
+			IsUE4Loaded = (_SolutionFilepath != null && Path.GetFileName(_SolutionFilepath).Equals(UnrealSolutionFileName, StringComparison.InvariantCultureIgnoreCase));
+		}
+
 		/** Private Fields & Properties */
 
 		private static UnrealVSPackage PrivateInstance = null;
@@ -719,6 +766,9 @@ namespace UnrealVS
 
 		/// Ticker thread
 		private Thread Ticker;
+
+		/// Ticker thread cancel flag
+		private int bCancelTicker = 0;
 
 		/// Obtains the DTE2 interface for this instance of VS from the RunningObjectTable
 		private static DTE2 GetDTE2ForCurrentInstance(DTE DTE)

@@ -1780,34 +1780,37 @@ EWindowZone::Type SWindow::GetCurrentWindowZone(FVector2D LocalMousePosition)
 	{
 		int32 Row = 1;
 		int32 Col = 1;
-		if (LocalMousePosition.X < SWindowDefs::HitResultBorderSize.Left)
+		if (SizingRule == ESizingRule::UserSized)
 		{
-			Col = 0;
-		}
-		else if (LocalMousePosition.X >= Size.X - SWindowDefs::HitResultBorderSize.Right)
-		{
-			Col = 2;
-		}
-		if (LocalMousePosition.Y < SWindowDefs::HitResultBorderSize.Top)
-		{
-			Row = 0;
-		}
-		else if (LocalMousePosition.Y >= Size.Y - SWindowDefs::HitResultBorderSize.Bottom)
-		{
-			Row = 2;
-		}
+			if (LocalMousePosition.X < SWindowDefs::HitResultBorderSize.Left)
+			{
+				Col = 0;
+			}
+			else if (LocalMousePosition.X >= Size.X - SWindowDefs::HitResultBorderSize.Right)
+			{
+				Col = 2;
+			}
+			if (LocalMousePosition.Y < SWindowDefs::HitResultBorderSize.Top)
+			{
+				Row = 0;
+			}
+			else if (LocalMousePosition.Y >= Size.Y - SWindowDefs::HitResultBorderSize.Bottom)
+			{
+				Row = 2;
+			}
 
-		// The actual border is smaller than the hit result zones
-		// This grants larger corner areas to grab onto
-		bool bInBorder =	LocalMousePosition.X < SWindowDefs::WindowBorderSize.Left ||
-							LocalMousePosition.X >= Size.X - SWindowDefs::WindowBorderSize.Right ||
-							LocalMousePosition.Y < SWindowDefs::WindowBorderSize.Top ||
-							LocalMousePosition.Y >= Size.Y - SWindowDefs::WindowBorderSize.Bottom;
+			// The actual border is smaller than the hit result zones
+			// This grants larger corner areas to grab onto
+			bool bInBorder =	LocalMousePosition.X < SWindowDefs::WindowBorderSize.Left ||
+								LocalMousePosition.X >= Size.X - SWindowDefs::WindowBorderSize.Right ||
+								LocalMousePosition.Y < SWindowDefs::WindowBorderSize.Top ||
+								LocalMousePosition.Y >= Size.Y - SWindowDefs::WindowBorderSize.Bottom;
 
-		if (!bInBorder)
-		{
-			Row = 1;
-			Col = 1;
+			if (!bInBorder)
+			{
+				Row = 1;
+				Col = 1;
+			}
 		}
 
 		static const EWindowZone::Type TypeZones[3][3] = 

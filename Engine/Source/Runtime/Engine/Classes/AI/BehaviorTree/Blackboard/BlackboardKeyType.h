@@ -25,6 +25,9 @@ class ENGINE_API UBlackboardKeyType : public UObject
 	/** extract rotation from entry */
 	virtual bool GetRotation(const uint8* MemoryBlock, FRotator& Rotation) const;
 
+	/** initialize memory */
+	virtual void Initialize(uint8* MemoryBlock) const;
+
 	enum CompareResult
 	{
 		Less = -1,

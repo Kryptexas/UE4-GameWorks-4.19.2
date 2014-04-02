@@ -1786,6 +1786,9 @@ void FMatinee::OnContextGroupCreateTabTextCommitted(const FText& InText, ETextCo
 			Filter->GroupsToInclude.Append(SelectedGroups);
 
 			IData->InterpFilters.Add(Filter);
+
+			// Update the UI
+			GroupFilterContainer->SetContent(BuildGroupFilterToolbar());
 		}
 	}
 }
@@ -1952,6 +1955,9 @@ void FMatinee::OnContextDeleteGroupTab()
 		{
 			SetSelectedFilter(NULL);
 		}
+
+		// Update the UI
+		GroupFilterContainer->SetContent(BuildGroupFilterToolbar());
 	}
 }
 
@@ -5135,19 +5141,16 @@ void FMatinee::ExtendDefaultToolbarMenu()
 
 TSharedPtr<SWidget> FMatinee::CreateTabMenu()
 {
-	FMenuBuilder MenuBuilder( true, ToolkitCommands );
-
+	// only show a context menu for custom filters
 	UInterpFilter_Custom* Filter = Cast<UInterpFilter_Custom>(IData->SelectedFilter);
-	if(Filter != NULL)
+	if(Filter && IData->InterpFilters.Contains(Filter)) // make sure this isn't a default filter; if we add more entries this check only affects GroupDeleteTab
 	{
-		// make sure this isn't a default filter.
-		if(IData->InterpFilters.Contains(Filter))
-		{
-			MenuBuilder.AddMenuEntry(FMatineeCommands::Get().GroupDeleteTab);
-		}
+		FMenuBuilder MenuBuilder( true, ToolkitCommands );
+		MenuBuilder.AddMenuEntry(FMatineeCommands::Get().GroupDeleteTab);
+		return MenuBuilder.MakeWidget();
 	}
 
-	return MenuBuilder.MakeWidget();
+	return nullptr;
 }
 
 /*-----------------------------------------------------------------------------

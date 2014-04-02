@@ -79,7 +79,6 @@ class SKILLSYSTEM_API UAttributeComponent : public UActorComponent
 	bool IsGameplayEffectActive(FActiveGameplayEffectHandle InHandle) const;
 
 
-
 	// --------------------------------------------
 	// Possibly useful but not primary API functions:
 	// --------------------------------------------
@@ -105,10 +104,16 @@ class SKILLSYSTEM_API UAttributeComponent : public UActorComponent
 
 	void TEMP_TimerTest();
 	void TEMP_TimerTestCallback(int32 x);
-
 	
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) OVERRIDE;
-	
+
+	void PushGlobalCurveOveride(UCurveTable *OverrideTable)
+	{
+		if (OverrideTable)
+		{
+			GlobalCurveDataOverride.Overrides.Push(OverrideTable);
+		}
+	}
 
 private:
 
@@ -128,8 +133,15 @@ private:
 
 	bool IsOwnerActorAuthoritative() const;
 
-
 	void OnAttributeGameplayEffectSpecExected(const FGameplayAttribute &Attribute, const struct FGameplayEffectSpec &Spec, struct FGameplayModifierEvaluatedData &Data);
+
+	const FGlobalCurveDataOverride * GetCurveDataOverride() const
+	{
+		// only return data if we have overrides. NULL if we dont.
+		return (GlobalCurveDataOverride.Overrides.Num() > 0 ? &GlobalCurveDataOverride : NULL);
+	}
+
+	FGlobalCurveDataOverride	GlobalCurveDataOverride;
 	
 
 	// --------------------------------------------

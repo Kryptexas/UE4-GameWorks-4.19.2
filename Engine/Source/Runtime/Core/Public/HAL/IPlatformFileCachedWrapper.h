@@ -5,13 +5,13 @@
 class CORE_API FCachedFileHandle : public IFileHandle
 {
 public:
-	FCachedFileHandle(IFileHandle* InFileHandle, bool bReadable, bool bWritable)
+	FCachedFileHandle(IFileHandle* InFileHandle, bool bInReadable, bool bInWritable)
 		: FileHandle(InFileHandle)
 		, FilePos(0)
 		, TellPos(0)
 		, FileSize(InFileHandle->Size())
-		, bWritable(bWritable)
-		, bReadable(bReadable)
+		, bWritable(bInWritable)
+		, bReadable(bInReadable)
 		, CurrentCache(0)
 	{
 		FlushCache();

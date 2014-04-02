@@ -126,7 +126,6 @@ public:
 		int32 Millisecond;
 	};
 
-
 public:
 
 	/**
@@ -155,7 +154,6 @@ public:
 	 * @param Millisecond - The millisecond (optional).
 	 */
 	CORE_API FDateTime( int32 Year, int32 Month, int32 Day, int32 Hour = 0, int32 Minute = 0, int32 Second = 0, int32 Millisecond = 0 );
-
 
 public:
 
@@ -294,7 +292,6 @@ public:
 	{
 		return (Ticks <= Other.Ticks);
 	}
-
 
 public:
 
@@ -534,7 +531,6 @@ public:
 		return static_cast<int32>((Ticks - FDateTime(1970, 1, 1).Ticks) / ETimespan::TicksPerSecond);
 	}
 
-
 public:
 
 	/**
@@ -675,7 +671,6 @@ public:
 	 */
 	static CORE_API FDateTime UtcNow( );
 
-
 public:
 
 	/**
@@ -727,7 +722,6 @@ public:
 	 */
 	CORE_API bool ImportTextItem( const TCHAR*& Buffer, int32 PortFlags, class UObject* Parent, FOutputDevice* ErrorText );
 
-
 protected:
 
 	/**
@@ -739,7 +733,6 @@ protected:
 	 * Holds the cumulative days per month in a non-leap year.
 	 */
 	static const int32 DaysToMonth[];
-
 
 public:
 

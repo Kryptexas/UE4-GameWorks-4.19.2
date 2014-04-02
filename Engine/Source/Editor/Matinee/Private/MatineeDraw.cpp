@@ -10,7 +10,6 @@
 
 #include "Runtime/Engine/Public/Interpolation.h"
 #include "Runtime/Engine/Public/InterpolationHitProxy.h"
-#include "Runtime/Engine/Public/LinkedObjDrawUtils.h"
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
 
 static const int32 GroupHeadHeight = 24;
@@ -721,7 +720,7 @@ void FMatineeViewportClient::DrawTimeline(FViewport* Viewport, FCanvas* Canvas)
 		FString KeyTitle = FString::Printf( TEXT("%s%d"), ( rSelKey.Track ? *rSelKey.Track->TrackTitle : TEXT( "?" ) ), rSelKey.KeyIndex );
 		FString AdjustString = FText::Format( NSLOCTEXT("UnrealEd", "Key_F", "KEY {0}"), FText::FromString(KeyTitle) ).ToString();
 
-		FLinkedObjDrawUtils::DrawNGon(Canvas, FIntPoint(HeadTitleMargin + 5, ViewY - 1.1 * YL - 2 * HeadTitleMargin), FColor(255, 0, 0), 12, 5);
+		Canvas->DrawNGon(FIntPoint(HeadTitleMargin + 5, ViewY - 1.1 * YL - 2 * HeadTitleMargin), FColor(255, 0, 0), 12, 5);
 		TextItem.SetColor( FLinearColor::Red );
 		TextItem.Text = FText::FromString( AdjustString );
 		Canvas->DrawItem(TextItem, 2 * HeadTitleMargin + 10, (int32)( ViewY - 1.6 * YL - 2 * HeadTitleMargin ));
@@ -762,7 +761,7 @@ void FMatineeViewportClient::DrawTimeline(FViewport* Viewport, FCanvas* Canvas)
 			AdjustString += TEXT( "] " );
 		}
 
-		FLinkedObjDrawUtils::DrawNGon(Canvas, FIntPoint(HeadTitleMargin + 5, ViewY - 1.1*YL - 2 * HeadTitleMargin), FColor(255, 0, 0), 12, 5);
+		Canvas->DrawNGon(FIntPoint(HeadTitleMargin + 5, ViewY - 1.1*YL - 2 * HeadTitleMargin), FColor(255, 0, 0), 12, 5);
 		TextItem.SetColor( FLinearColor::Red );
 		TextItem.Text = FText::FromString( AdjustString );
 		Canvas->DrawItem(TextItem, 2 * HeadTitleMargin + 10, (int32)(ViewY - 1.6*YL - 2 * HeadTitleMargin));

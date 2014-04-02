@@ -37,6 +37,9 @@ public:
 	void SyncBrowserToAssets(const TArray<FAssetData>& AssetsToSync);
 
 private:
+	/** Expands any folders found in the files list, and returns a flattened list of destination paths and files.  Mirrors directory structure. */
+	void ExpandDirectories(const TArray<FString>& Files, const FString& DestinationPath, TArray<TPair<FString, FString>>& FilesAndDestinations) const;
+
 	/** Checks to see if a package is marked for delete then ask the user if he would like to check in the deleted file before he can continue. Returns true when it is safe to proceed. */
 	bool CheckForDeletedPackage(const UPackage* Package) const;
 

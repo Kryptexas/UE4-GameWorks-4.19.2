@@ -204,7 +204,7 @@ void FRichTextMarkupProcessing::HandleEscapeSequences(const FString& Input, TArr
 				{
 					FString EscapeSequenceRegexPatternString;
 
-					for(int32 i = 0; i < EscapeSequences.Num(); ++i)
+					for(const FString& EscapeSequence : EscapeSequences)
 					{
 						// Add alternation operator to regex.
 						if( !( EscapeSequenceRegexPatternString.IsEmpty() ) )
@@ -215,7 +215,7 @@ void FRichTextMarkupProcessing::HandleEscapeSequences(const FString& Input, TArr
 						// Add capture group for escape sequence.
 						EscapeSequenceRegexPatternString += TEXT("(");
 						EscapeSequenceRegexPatternString += TEXT("&");
-						EscapeSequenceRegexPatternString += EscapeSequences[i];
+						EscapeSequenceRegexPatternString += EscapeSequence;
 						EscapeSequenceRegexPatternString += TEXT(";");
 						EscapeSequenceRegexPatternString += TEXT(")");
 					}

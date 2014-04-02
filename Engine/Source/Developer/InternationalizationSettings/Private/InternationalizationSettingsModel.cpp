@@ -1,0 +1,46 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
+/*=============================================================================
+	Settings.cpp: Implements the constructors for the various settings classes.
+=============================================================================*/
+
+#include "InternationalizationSettingsModulePrivatePCH.h"
+
+/* UInternationalizationSettingsModel interface
+ *****************************************************************************/
+
+UInternationalizationSettingsModel::UInternationalizationSettingsModel( const class FPostConstructInitializeProperties& PCIP )
+	: Super(PCIP)
+{
+}
+
+void UInternationalizationSettingsModel::SaveDefaults()
+{
+	FString SavedCultureName;
+	GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), SavedCultureName, GEditorGameAgnosticIni );
+	GConfig->SetString( TEXT("Internationalization"), TEXT("Culture"), *SavedCultureName, GEngineIni );
+}
+
+void UInternationalizationSettingsModel::ResetToDefault()
+{
+	FString SavedCultureName;
+	GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), SavedCultureName, GEngineIni );
+	GConfig->SetString( TEXT("Internationalization"), TEXT("Culture"), *SavedCultureName, GEditorGameAgnosticIni );
+	SettingChangedEvent.Broadcast();
+}
+
+FString UInternationalizationSettingsModel::GetCultureName() const
+{
+	FString SavedCultureName;
+	if( !GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), SavedCultureName, GEditorGameAgnosticIni ) )
+	{
+		GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), SavedCultureName, GEngineIni );
+	}
+	return SavedCultureName;
+}
+
+void UInternationalizationSettingsModel::SetCultureName(const FString& CultureName)
+{
+	GConfig->SetString( TEXT("Internationalization"), TEXT("Culture"), *CultureName, GEditorGameAgnosticIni );
+	SettingChangedEvent.Broadcast();
+}

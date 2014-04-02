@@ -437,6 +437,7 @@ GLint FOpenGLBase::MaxDomainUniformComponents = -1;
 bool  FOpenGLBase::bSupportsASTC = false;
 bool  FOpenGLBase::bSupportsCopyImage = false;
 bool  FOpenGLBase::bSupportsSeamlessCubemap = false;
+bool  FOpenGLBase::bSupportsVolumeTextureRendering = false;
 
 void FOpenGLBase::ProcessQueryGLInt()
 {

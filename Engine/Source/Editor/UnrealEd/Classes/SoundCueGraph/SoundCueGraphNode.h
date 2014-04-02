@@ -17,12 +17,16 @@ class USoundCueGraphNode : public USoundCueGraphNode_Base
 	UNREALED_API void SetSoundNode(USoundNode* InSoundNode);
 	/** Fix up the node's owner after being copied */
 	UNREALED_API void PostCopyNode();
-	/** Add an input pin to this node */
+	/** Create a new input pin for this node */
+	UNREALED_API void CreateInputPin();
+	/** Add an input pin to this node and recompile the SoundCue */
 	UNREALED_API void AddInputPin();
-	/** Remove a specific input pin from this node */
+	/** Remove a specific input pin from this node and recompile the SoundCue */
 	UNREALED_API void RemoveInputPin(UEdGraphPin* InGraphPin);
 	/** Estimate the width of this Node from the length of its title */
 	UNREALED_API int32 EstimateNodeWidth() const;
+	/** Checks whether an input can be added to this node */
+	UNREALED_API bool CanAddInputPin() const;
 
 	// USoundCueGraphNode_Base interface
 	virtual void CreateInputPins() OVERRIDE;

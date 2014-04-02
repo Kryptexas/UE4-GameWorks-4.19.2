@@ -37,7 +37,7 @@ UTexture::UTexture(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	SRGB = true;
-	Filter = TF_Linear;
+	Filter = TF_Default;
 #if WITH_EDITORONLY_DATA
 	AdjustBrightness = 1.0f;
 	AdjustBrightnessCurve = 1.0f;
@@ -100,14 +100,22 @@ void UTexture::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEven
 
 	// Determine whether any property that requires recompression of the texture, or notification to Materials has changed.
 	bool RequiresNotifyMaterials = false;
+	bool DeferCompressionWasEnabled = false;
 
 	UProperty* PropertyThatChanged = PropertyChangedEvent.Property;
 	if( PropertyThatChanged )
 	{
-		FString PropertyName = *PropertyThatChanged->GetName();
-		if (FCString::Stricmp(*PropertyName, TEXT("CompressionSettings")) == 0)
+		static const FName CompressionSettingsName("CompressionSettings");
+		static const FName DeferCompressionName("DeferCompression");
+
+		const FName PropertyName = PropertyThatChanged->GetFName();
+		if (PropertyName == CompressionSettingsName)
 		{
 			RequiresNotifyMaterials = true;
+		}
+		else if (PropertyName == DeferCompressionName)
+		{
+			DeferCompressionWasEnabled = DeferCompression;
 		}
 
 		bool bPreventSRGB = (CompressionSettings == TC_Alpha || CompressionSettings == TC_Normalmap || CompressionSettings == TC_Masks || CompressionSettings == TC_HDR);		
@@ -119,7 +127,9 @@ void UTexture::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEven
 
 	NumCinematicMipLevels = FMath::Max<int32>( NumCinematicMipLevels, 0 );
 
-	if( (PropertyChangedEvent.ChangeType & EPropertyChangeType::Interactive) == 0 )
+	// Don't update the texture resource if we've turned "DeferCompression" on, as this 
+	// would cause it to immediately update as an uncompressed texture
+	if( !DeferCompressionWasEnabled && (PropertyChangedEvent.ChangeType & EPropertyChangeType::Interactive) == 0 )
 	{
 		// Update the texture resource. This will recache derived data if necessary
 		// which may involve recompressing the texture.
@@ -752,7 +762,7 @@ int32 FTextureLODSettings::GetNumStreamedMips( int32 InLODGroup ) const
  * Returns the filter state that should be used for the passed in texture, taking
  * into account other system settings.
  *
- * @param	Texture		Texture to retrieve filter state for
+ * @param	Texture		Texture to retrieve filter state for, must not be 0
  * @return	Filter sampler state for passed in texture
  */
 ESamplerFilter FTextureLODSettings::GetSamplerFilter( const UTexture* Texture ) const
@@ -760,11 +770,16 @@ ESamplerFilter FTextureLODSettings::GetSamplerFilter( const UTexture* Texture ) 
 	// Default to point filtering.
 	ESamplerFilter Filter = SF_Point;
 
-	// Only diverge from default for valid textures that don't use point filtering.
-	if( !Texture || Texture->Filter != TF_Nearest )
+	switch(Texture->Filter)
 	{
-		// Use LOD group value to find proper filter setting.
-		Filter = TextureLODGroups[Texture->LODGroup].Filter;
+		case TF_Nearest: Filter = SF_Point; break;
+		case TF_Bilinear: Filter = SF_Bilinear; break;
+		case TF_Trilinear: Filter = SF_Trilinear; break;
+
+		// TF_Default
+		default:
+			// Use LOD group value to find proper filter setting.
+			Filter = TextureLODGroups[Texture->LODGroup].Filter;
 	}
 
 	return Filter;

@@ -12,36 +12,43 @@ class SImportTypeButton : public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS( SImportTypeButton )
-	:	_ImportType(FBXIT_StaticMesh)
+	:	_DefaultImportType(FBXIT_StaticMesh)
 	,	_OnSelectionChanged()
 	{}
-		SLATE_ARGUMENT( EFBXImportType, ImportType )
+		SLATE_ARGUMENT( EFBXImportType, DefaultImportType )
 		SLATE_EVENT( FOnImportTypeChanged, OnSelectionChanged )
 	SLATE_END_ARGS()
 
 	void Construct( const FArguments& InArgs )
 	{
-		CurrentChoice = InArgs._ImportType;
+		CurrentChoice = InArgs._DefaultImportType;
 		OnSelectionChanged = InArgs._OnSelectionChanged;
 
 		this->ChildSlot
 		[
 			SNew(SVerticalBox)
-			+SVerticalBox::Slot()
-			.AutoHeight() 
+
+			+SVerticalBox::Slot().AutoHeight() .Padding(0, 2)
 			[
-				SNew(SHorizontalBox)
-				+SHorizontalBox::Slot() .FillWidth(1)
+				SNew(STextBlock)
+				.TextStyle(FEditorStyle::Get(), "FBXLargeFont")
+				.Text(LOCTEXT("FbxOptionWindow_SelectType", "Select Asset Type").ToString())
+			]
+
+			+SVerticalBox::Slot().AutoHeight()
+			[
+				SNew(SUniformGridPanel)
+				+ SUniformGridPanel::Slot(0, 0)
 				[
-					CreateRadioButton( LOCTEXT("ImportTypeButton_StaticMesh", "Static Mesh").ToString(), FBXIT_StaticMesh )
+					CreateRadioButton(LOCTEXT("ImportTypeButton_StaticMesh", "Static Mesh").ToString(), FBXIT_StaticMesh, LOCTEXT("FBXImportOption_StaticMesh", "Select StaticMesh if you'd like to import staticmesh."), FEditorStyle::GetBrush("FBXIcon.StaticMesh"), 0)
 				]
-				+SHorizontalBox::Slot() .FillWidth(1)
+				+ SUniformGridPanel::Slot(1, 0)
 				[
-					CreateRadioButton( LOCTEXT("ImportTypeButton_SkeletalMesh", "Skeletal Mesh").ToString(), FBXIT_SkeletalMesh )
+					CreateRadioButton(LOCTEXT("ImportTypeButton_SkeletalMesh", "Skeletal Mesh").ToString(), FBXIT_SkeletalMesh, LOCTEXT("FBXImportOption_SkeletalMesh", "Select SkeletalMesh if you'd like to import skeletalmesh."), FEditorStyle::GetBrush("FBXIcon.SkeletalMesh"), 1)
 				]
-				+SHorizontalBox::Slot() .FillWidth(1)
+				+ SUniformGridPanel::Slot(2, 0)
 				[
-					CreateRadioButton( LOCTEXT("ImportTypeButton_Animation", "Animation").ToString(), FBXIT_Animation )
+					CreateRadioButton(LOCTEXT("ImportTypeButton_Animation", "Animation").ToString(), FBXIT_Animation, LOCTEXT("FBXImportOption_Animation", "Select Animation if you'd like to import only animation."), FEditorStyle::GetBrush("FBXIcon.Animation"), 2)
 				]
 			]
 		];
@@ -49,15 +56,36 @@ public:
 
 private:
 
-	TSharedRef<SWidget> CreateRadioButton( const FString& RadioText, EFBXImportType RadioButtonChoice )
+	TSharedRef<SWidget> CreateRadioButton( const FString& RadioText, EFBXImportType RadioButtonChoice, const FText & ToolTipText, const FSlateBrush* Brush, int32 Position)
 	{
 		return
 			SNew(SCheckBox)
-			.Style(FEditorStyle::Get(), "RadioButton")
+			.Style(FEditorStyle::Get(), (Position == 0) ? "Property.ToggleButton.Start" : ((Position==1)? "Property.ToggleButton.Middle" : "Property.ToggleButton.End") )
 			.IsChecked( this, &SImportTypeButton::IsRadioChecked, RadioButtonChoice )
 			.OnCheckStateChanged( this, &SImportTypeButton::OnRadioChanged, RadioButtonChoice )
+			.ToolTipText(ToolTipText)
 			[
-				SNew(STextBlock).Text(RadioText)
+				SNew(SHorizontalBox)
+
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.VAlign(VAlign_Center)
+				.Padding(3, 2)
+				[
+					SNew(SImage)
+					.Image(Brush)
+				]
+
+				+ SHorizontalBox::Slot()
+				.FillWidth(1.0f)
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Center)
+				.Padding(6, 2)
+				[
+					SNew(STextBlock)
+					.Text(RadioText)
+					.ColorAndOpacity(FLinearColor(0.72f, 0.72f, 0.72f, 1.f))
+				]
 			];
 	}
 
@@ -110,15 +138,15 @@ public:
 		this->ChildSlot
 		[
 			SNew(SVerticalBox)
-			+SVerticalBox::Slot().AutoHeight() .Padding(3)
+			+SVerticalBox::Slot().AutoHeight() .Padding(1)
 			[
 				CreateRadioButton( LOCTEXT("AnimImportLengthOption_ExportTime", "Exported Time").ToString(), FBXALIT_ExportedTime )
 			]
-			+SVerticalBox::Slot().AutoHeight() .Padding(3)
+			+SVerticalBox::Slot().AutoHeight() .Padding(1)
 			[
 				CreateRadioButton( LOCTEXT("AnimImportLengthOption_AnimTime", "Animated Time").ToString(), FBXALIT_AnimatedKey )
 			]
-			+SVerticalBox::Slot().AutoHeight() .Padding(3)
+			+SVerticalBox::Slot().AutoHeight() .Padding(1)
 			[
 				SNew(SHorizontalBox)
 
@@ -234,7 +262,9 @@ void SFbxOptionWindow::Construct(const FArguments& InArgs)
 			SNew(SVerticalBox)
 
 			// first 3 radio box for staticmesh/skeletalmesh/animation		
-			+SVerticalBox::Slot().AutoHeight() .Padding(5)
+			+SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(5)
 			[
 				SNew(STextBlock)
 				.Font(FEditorStyle::GetFontStyle("CurveEd.InfoFont"))
@@ -242,46 +272,67 @@ void SFbxOptionWindow::Construct(const FArguments& InArgs)
 			]
 
 			// first 3 radio box for staticmesh/skeletalmesh/animation		
-			+SVerticalBox::Slot().AutoHeight() .Padding(5)
+			+SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(5)
 			[
 				SNew(SImportTypeButton)
-				.ImportType(ImportUI->MeshTypeToImport)
+				.DefaultImportType(ImportUI->MeshTypeToImport)
 				// Do not allow users to change the import type if it is forced to a specific type
 				.IsEnabled( !bReimport )
 				.OnSelectionChanged(this, &SFbxOptionWindow::SetImportType)
 			]
 
-			+SVerticalBox::Slot().AutoHeight() .Padding(5)
+			+SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(5)
 			[
 				SNew(SSeparator)
 			]
 
-			+SVerticalBox::Slot().AutoHeight() .Padding(5)
+			+SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(5)
 			.Expose(CustomBox)
 
-			+SVerticalBox::Slot().AutoHeight() .Padding(5)
+			+SVerticalBox::Slot()
+			.AutoHeight() 
+			.Padding(5)
 			[
 				SNew(SSeparator)
 			]
 
-			+SVerticalBox::Slot().AutoHeight() .Padding(5) .HAlign(HAlign_Center)
+			+SVerticalBox::Slot()
+			.AutoHeight()
+			.HAlign(HAlign_Right)
+			.Padding(2)
 			[
-				SNew(SHorizontalBox)
-
-				+SHorizontalBox::Slot() .FillWidth(1)
+				SNew(SUniformGridPanel)
+				.SlotPadding(2)
+				+SUniformGridPanel::Slot(0,0)
+				[
+					SNew(SButton)
+					.HAlign(HAlign_Center)
+					.Text(LOCTEXT("FbxOptionWindow_ImportAll", "Import All").ToString())
+					.ToolTipText( LOCTEXT("FbxOptionWindow_ImportAll_ToolTip", "Import all files with these same settings") )
+					.IsEnabled(this, &SFbxOptionWindow::CanImport)
+					.OnClicked( this, &SFbxOptionWindow::OnImportAll )
+				]
+				+SUniformGridPanel::Slot(1,0)
 				[
 					SAssignNew( ImportButton, SButton)
 					.HAlign(HAlign_Center)
 					.Text(LOCTEXT("FbxOptionWindow_Import", "Import").ToString())
 					.IsEnabled(this, &SFbxOptionWindow::CanImport)
-					.OnClicked_Raw( this, &SFbxOptionWindow::OnImport )
+					.OnClicked( this, &SFbxOptionWindow::OnImport )
 				]
-
-				+SHorizontalBox::Slot() .FillWidth(1)
+				+SUniformGridPanel::Slot(2,0)
 				[
-					SNew(SButton) .HAlign(HAlign_Center)
+					SNew(SButton) 
+					.HAlign(HAlign_Center)
 					.Text(LOCTEXT("FbxOptionWindow_Cancel", "Cancel").ToString())
-					.OnClicked_Raw( this, &SFbxOptionWindow::OnCancel )
+					.ToolTipText(LOCTEXT("FbxOptionWindow_Cancel_ToolTip", "Cancels importing this FBX file").ToString())
+					.OnClicked( this, &SFbxOptionWindow::OnCancel )
 				]
 			]
 		]
@@ -314,25 +365,34 @@ void SFbxOptionWindow::RefreshWindow()
 
 		VerticalBox->AddSlot()
 		.AutoHeight()
+		.Padding(0, 4)
 		[
-			SNew( SExpandableArea )
+			SNew(SExpandableArea)
 			.InitiallyCollapsed(true)
-			.AreaTitle( LOCTEXT("SFbxOptionWindow_StaticAdvanced", "Advanced").ToString() )
+			.HeaderContent()
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("SFbxOptionWindow_StaticAdvanced", "Advanced"))
+				.TextStyle(FEditorStyle::Get(), "FBXSmallFont")
+			]
 			.BodyContent()
 			[
 				SNew (SVerticalBox)
 
-				+SVerticalBox::Slot().AutoHeight()
+				+SVerticalBox::Slot()
+				.AutoHeight()
 				[
 					ConstructStaticMeshAdvanced()
 				]
 
-				+SVerticalBox::Slot().AutoHeight()
+				+SVerticalBox::Slot()
+				.AutoHeight()
 				[
 					ConstructMaterialOption()
 				]
 
-				+SVerticalBox::Slot().AutoHeight()
+				+SVerticalBox::Slot()
+				.AutoHeight()
 				[
 					ConstructMiscOption()
 				]
@@ -355,11 +415,17 @@ void SFbxOptionWindow::RefreshWindow()
 
 
 		VerticalBox->AddSlot()
+		.Padding(0, 4)
 		.AutoHeight()
 		[
-			SNew( SExpandableArea )
+			SNew(SExpandableArea)
 			.InitiallyCollapsed(true)
-			.AreaTitle( LOCTEXT("SFbxOptionWindow_SkeletalAdvanced", "Advanced").ToString() )
+			.HeaderContent()
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("SFbxOptionWindow_StaticAdvanced", "Advanced"))
+				.TextStyle( FEditorStyle::Get(), "FBXSmallFont" ) 
+			]
 			.BodyContent()
 			[
 				SNew (SVerticalBox)
@@ -390,24 +456,27 @@ void SFbxOptionWindow::RefreshWindow()
 		];
 
 		VerticalBox->AddSlot()
+		.Padding( 0.0f, 3.0f )
 		.AutoHeight()
 		[
-			SNew( SExpandableArea )
+			ConstructAnimationOption()
+		];
+
+		VerticalBox->AddSlot()
+		.Padding(0, 4)
+		.AutoHeight()
+		[
+			SNew(SExpandableArea)
 			.InitiallyCollapsed(true)
-			.AreaTitle( LOCTEXT("SFbxOptionWindow_DefaultAdvanced", "Advanced").ToString() )
+			.HeaderContent()
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("SFbxOptionWindow_StaticAdvanced", "Advanced"))
+				.TextStyle(FEditorStyle::Get(), "FBXSmallFont")
+			]
 			.BodyContent()
 			[
-				SNew (SVerticalBox)
-
-				+SVerticalBox::Slot().AutoHeight()
-				[
-					ConstructAnimationOption()
-				]
-
-				+SVerticalBox::Slot().AutoHeight()
-				[
-					ConstructMiscOption()
-				]
+				ConstructMiscOption()
 			]
 		];
 	}
@@ -417,26 +486,18 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructMiscOption()
 {
 	TSharedRef<SVerticalBox> NewBox = SNew(SVerticalBox);
 
-	NewBox->AddSlot().AutoHeight() .Padding(2)
+	NewBox->AddSlot().AutoHeight() .Padding(4)
 	[
 		SNew(STextBlock)
-		.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 12 ) )
+		.TextStyle( FEditorStyle::Get(), "FBXSmallFont" ) 
 		.Text( LOCTEXT("FbxOptionWindow_Misc", "Misc").ToString() )
-		.ShadowOffset(FVector2D(1, 1))
 	];
 
 	NewBox->AddSlot().AutoHeight() .Padding(2)
 	[
-		SNew(SHorizontalBox)
-
-		+SHorizontalBox::Slot().AutoWidth() .Padding(2)
-		[
-			SNew(SCheckBox)
-			.IsChecked(ImportUI->bOverrideFullName? true: false)
-			.OnCheckStateChanged(this, &SFbxOptionWindow::SetGeneral_OverrideFullName)
-		]
-
-		+SHorizontalBox::Slot().AutoWidth() .Padding(2)
+		SNew(SCheckBox)
+		.IsChecked(ImportUI->bOverrideFullName? true: false)
+		.OnCheckStateChanged(this, &SFbxOptionWindow::SetGeneral_OverrideFullName)
 		[
 			SNew(STextBlock)
 			.Text(LOCTEXT("FbxOptionWindow_NameOverride", "Override FullName").ToString())
@@ -525,21 +586,26 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructStaticMeshBasic()
 		ConstructNormalImportOptions()
 	];
 
-	NewBox->AddSlot().AutoHeight() .Padding(2)
+	return NewBox;
+}
+TSharedRef<SWidget> SFbxOptionWindow::ConstructStaticMeshAdvanced()
+{
+	TSharedRef<SVerticalBox> NewBox = SNew(SVerticalBox);
+
+	NewBox->AddSlot().AutoHeight() .Padding(4)
 	[
-		SNew(SHorizontalBox)
+		SNew(STextBlock)
+		.TextStyle( FEditorStyle::Get(), "FBXSmallFont" ) 
+		.Text( LOCTEXT("FbxOptionWindow_StaticMesh", "Mesh").ToString())
+	];
 
-		+SHorizontalBox::Slot().AutoWidth() 
-			.Padding(2)
-		[
-			SNew(SCheckBox)
-			.IsChecked(ImportUI->bCombineMeshes? true: false)
-			.OnCheckStateChanged(this, &SFbxOptionWindow::SetStaticMesh_CombineMeshes)
-		]
 
-		+SHorizontalBox::Slot()
-			.Padding(2)
-			.FillWidth(1.0f)
+	NewBox->AddSlot().AutoHeight().Padding(2)
+	[
+		SNew(SCheckBox)
+		.IsChecked(ImportUI->bCombineMeshes ? true : false)
+		.OnCheckStateChanged(this, &SFbxOptionWindow::SetStaticMesh_CombineMeshes)
+		.Content()
 		[
 			SNew(STextBlock)
 			.Text(LOCTEXT("FbxOptionWindow_CombineMeshes", "Combine Meshes").ToString())
@@ -547,32 +613,11 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructStaticMeshBasic()
 	];
 
 
-	return NewBox;
-}
-TSharedRef<SWidget> SFbxOptionWindow::ConstructStaticMeshAdvanced()
-{
-	TSharedRef<SVerticalBox> NewBox = SNew(SVerticalBox);
-
 	NewBox->AddSlot().AutoHeight() .Padding(2)
 	[
-		SNew(STextBlock)
-		.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 12 ) )
-		.Text( LOCTEXT("FbxOptionWindow_StaticMesh", "Mesh").ToString())
-		.ShadowOffset(FVector2D(1, 1))
-	];
-
-	NewBox->AddSlot().AutoHeight() .Padding(2)
-	[
-		SNew(SHorizontalBox)
-
-		+SHorizontalBox::Slot().AutoWidth() .Padding(2)
-		[
-			SNew(SCheckBox)
-			.IsChecked(ImportUI->StaticMeshImportData->bImportMeshLODs? true: false)
-			.OnCheckStateChanged(this, &SFbxOptionWindow::SetStaticMesh_ImportMeshLODs)
-		]
-
-		+SHorizontalBox::Slot().AutoWidth() .Padding(2)
+		SNew(SCheckBox)
+		.IsChecked(ImportUI->StaticMeshImportData->bImportMeshLODs? true: false)
+		.OnCheckStateChanged(this, &SFbxOptionWindow::SetStaticMesh_ImportMeshLODs)
 		[
 			SNew(STextBlock)
 			.Text(LOCTEXT("FbxOptionWindow_ImportMeshLODs", "Import Mesh LODs").ToString())
@@ -581,16 +626,9 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructStaticMeshAdvanced()
 
 	NewBox->AddSlot().AutoHeight() .Padding(2)
 	[
-		SNew(SHorizontalBox)
-
-		+SHorizontalBox::Slot().AutoWidth() .Padding(2)
-		[
-			SNew(SCheckBox)
-			.IsChecked(ImportUI->StaticMeshImportData->bReplaceVertexColors? true: false)
-			.OnCheckStateChanged(this, &SFbxOptionWindow::SetStaticMesh_ReplaceVertexColor)
-		]
-
-		+SHorizontalBox::Slot().AutoWidth() .Padding(2)
+		SNew(SCheckBox)
+		.IsChecked(ImportUI->StaticMeshImportData->bReplaceVertexColors? true: false)
+		.OnCheckStateChanged(this, &SFbxOptionWindow::SetStaticMesh_ReplaceVertexColor)
 		[
 			SNew(STextBlock)
 			.Text(LOCTEXT("FbxOptionWindow_ReplaceVertexColors", "Replace Vertex Colors").ToString())
@@ -599,16 +637,9 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructStaticMeshAdvanced()
 
 	NewBox->AddSlot().AutoHeight() .Padding(2)
 	[
-		SNew(SHorizontalBox)
-
-		+SHorizontalBox::Slot().AutoWidth() .Padding(2)
-		[
-			SNew(SCheckBox)
-			.IsChecked(ImportUI->StaticMeshImportData->bRemoveDegenerates? true: false)
-			.OnCheckStateChanged(this, &SFbxOptionWindow::SetStaticMesh_RemoveDegenerates)
-		]
-
-		+SHorizontalBox::Slot().AutoWidth() .Padding(2)
+		SNew(SCheckBox)
+		.IsChecked(ImportUI->StaticMeshImportData->bRemoveDegenerates? true: false)
+		.OnCheckStateChanged(this, &SFbxOptionWindow::SetStaticMesh_RemoveDegenerates)
 		[
 			SNew(STextBlock)
 			.Text(LOCTEXT("FbxOptionWindow_RemoveDegeneates", "Remove Degenerates").ToString())
@@ -617,16 +648,9 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructStaticMeshAdvanced()
 
 	NewBox->AddSlot().AutoHeight() .Padding(2)
 	[
-		SNew(SHorizontalBox)
-
-		+SHorizontalBox::Slot().AutoWidth() .Padding(2)
-		[
-			SNew(SCheckBox)
-			.IsChecked(ImportUI->StaticMeshImportData->bOneConvexHullPerUCX? true: false)
-			.OnCheckStateChanged(this, &SFbxOptionWindow::SetStaticMesh_OneConvexHullPerUCX)
-		]
-
-		+SHorizontalBox::Slot().AutoWidth() .Padding(2)
+		SNew(SCheckBox)
+		.IsChecked(ImportUI->StaticMeshImportData->bOneConvexHullPerUCX? true: false)
+		.OnCheckStateChanged(this, &SFbxOptionWindow::SetStaticMesh_OneConvexHullPerUCX)
 		[
 			SNew(STextBlock)
 			.Text(LOCTEXT("FbxOptionWindow_OneConvexHullPerUCX", "One Convex Hull Per UCX").ToString())
@@ -649,16 +673,9 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructSkeletalMeshBasic()
 
 	NewBox->AddSlot().AutoHeight() .Padding(2)
 	[
-		SNew(SHorizontalBox)
-
-		+SHorizontalBox::Slot().AutoWidth() .Padding(2)
-		[
-			SNew(SCheckBox)
-			.IsChecked(ImportUI->SkeletalMeshImportData->bImportMorphTargets? true: false)
-			.OnCheckStateChanged(this, &SFbxOptionWindow::SetSkeletalMesh_ImportMorphTargets)
-		]
-
-		+SHorizontalBox::Slot().AutoWidth() .Padding(2)
+		SNew(SCheckBox)
+		.IsChecked(ImportUI->SkeletalMeshImportData->bImportMorphTargets? true: false)
+		.OnCheckStateChanged(this, &SFbxOptionWindow::SetSkeletalMesh_ImportMorphTargets)
 		[
 			SNew(STextBlock)
 			.Text(LOCTEXT("FbxOptionWindow_ImportMorphTargets", "Import Morph Targets").ToString())
@@ -669,20 +686,20 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructSkeletalMeshBasic()
 	[
 		SNew(SHorizontalBox)
 
-		+SHorizontalBox::Slot().AutoWidth() .Padding(2)
+		+SHorizontalBox::Slot()
+		.AutoWidth()
 		[
 			SNew(SCheckBox)
 			.IsChecked(ImportUI->bImportAnimations? true: false)
 			.OnCheckStateChanged(this, &SFbxOptionWindow::SetSkeletalMesh_ImportAnimation)
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("FbxOptionWindow_ImportAnimation", "Import Animation").ToString())
+			]
 		]
-
-		+SHorizontalBox::Slot().AutoWidth() .Padding(2)
-		[
-			SNew(STextBlock)
-			.Text(LOCTEXT("FbxOptionWindow_ImportAnimation", "Import Animation").ToString())
-		]
-
-		+SHorizontalBox::Slot().AutoWidth(). Padding(2)
+		+SHorizontalBox::Slot()
+		.AutoWidth()
+		.Padding(2)
 		[
 			SNew(SEditableTextBox)
 			.IsReadOnly(false)
@@ -696,16 +713,9 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructSkeletalMeshBasic()
 
 	NewBox->AddSlot().AutoHeight() .Padding(2)
 	[
-		SNew(SHorizontalBox)
-
-		+SHorizontalBox::Slot().AutoWidth() .Padding(2)
-		[
-			SNew(SCheckBox)
-			.IsChecked(ImportUI->SkeletalMeshImportData->bUpdateSkeletonReferencePose? true: false)
-			.OnCheckStateChanged(this, &SFbxOptionWindow::SetSkeletalMesh_UpdateSkeletonRefPose)
-		]
-
-		+SHorizontalBox::Slot().AutoWidth() .Padding(2)
+		SNew(SCheckBox)
+		.IsChecked(ImportUI->SkeletalMeshImportData->bUpdateSkeletonReferencePose? true: false)
+		.OnCheckStateChanged(this, &SFbxOptionWindow::SetSkeletalMesh_UpdateSkeletonRefPose)
 		[
 			SNew(STextBlock)
 			.Text(LOCTEXT("FbxOptionWindow_UpdateSkeletonRefPose", "Update Skeleton Reference Pose").ToString())
@@ -720,26 +730,18 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructSkeletalMeshAdvanced()
 {
 	TSharedRef<SVerticalBox> NewBox = SNew(SVerticalBox);
 
-	NewBox->AddSlot().AutoHeight() .Padding(2)
+	NewBox->AddSlot().AutoHeight() .Padding(4)
 	[
 		SNew(STextBlock)
-		.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 12 ) )
+		.TextStyle( FEditorStyle::Get(), "FBXSmallFont" ) 
 		.Text(LOCTEXT("FbxOptionWindow_SkeletalMesh", "Mesh").ToString())
-		.ShadowOffset(FVector2D(1, 1))
 	];
 
 	NewBox->AddSlot().AutoHeight() .Padding(2)
 	[
-		SNew(SHorizontalBox)
-
-		+SHorizontalBox::Slot().AutoWidth() .Padding(2)
-		[
-			SNew(SCheckBox)
-			.IsChecked(ImportUI->SkeletalMeshImportData->bImportMeshLODs? true: false)
-			.OnCheckStateChanged(this, &SFbxOptionWindow::SetSkeletalMesh_ImportMeshLODs)
-		]
-
-		+SHorizontalBox::Slot().AutoWidth() .Padding(2)
+		SNew(SCheckBox)
+		.IsChecked(ImportUI->SkeletalMeshImportData->bImportMeshLODs? true: false)
+		.OnCheckStateChanged(this, &SFbxOptionWindow::SetSkeletalMesh_ImportMeshLODs)
 		[
 			SNew(STextBlock)
 			.Text(LOCTEXT("FbxOptionWindow_ImportSkeltalMeshLODs", "Import Mesh LODs").ToString())
@@ -748,16 +750,9 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructSkeletalMeshAdvanced()
 
 	NewBox->AddSlot().AutoHeight() .Padding(2)
 	[
-		SNew(SHorizontalBox)
-
-		+SHorizontalBox::Slot().AutoWidth() .Padding(2)
-		[
-			SNew(SCheckBox)
-			.IsChecked(ImportUI->bImportRigidMesh? true: false)
-			.OnCheckStateChanged(this, &SFbxOptionWindow::SetSkeletalMesh_ImportRigidMesh)
-		]
-
-		+SHorizontalBox::Slot().AutoWidth() .Padding(2)
+		SNew(SCheckBox)
+		.IsChecked(ImportUI->bImportRigidMesh? true: false)
+		.OnCheckStateChanged(this, &SFbxOptionWindow::SetSkeletalMesh_ImportRigidMesh)
 		[
 			SNew(STextBlock)
 			.Text(LOCTEXT("FbxOptionWindow_ImportRigidMesh", "Import Rigid Mesh").ToString())
@@ -766,53 +761,32 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructSkeletalMeshAdvanced()
 
 	NewBox->AddSlot().AutoHeight() .Padding(2)
 	[
-		SNew(SHorizontalBox)
-
-		+SHorizontalBox::Slot().AutoWidth() .Padding(2)
-		[
-			SNew(SCheckBox)
-			.IsChecked(ImportUI->SkeletalMeshImportData->bUseT0AsRefPose? true: false)
-			.OnCheckStateChanged(this, &SFbxOptionWindow::SetSkeletalMesh_UseT0AsRefPose)
-		]
-
-		+SHorizontalBox::Slot().AutoWidth() .Padding(2)
+		SNew(SCheckBox)
+		.IsChecked(ImportUI->SkeletalMeshImportData->bUseT0AsRefPose? true: false)
+		.OnCheckStateChanged(this, &SFbxOptionWindow::SetSkeletalMesh_UseT0AsRefPose)
 		[
 			SNew(STextBlock)
-			.Text(LOCTEXT("FbxOptionWindow_UseRefPose", "Use T0As Ref Pose").ToString())
+			.Text(LOCTEXT("FbxOptionWindow_UseRefPose", "Use T0 as Ref Pose").ToString())
 		]
 	];
 
 	NewBox->AddSlot().AutoHeight() .Padding(2)
 	[
-		SNew(SHorizontalBox)
-
-		+SHorizontalBox::Slot().AutoWidth() .Padding(2)
-		[
-			SNew(SCheckBox)
-			.IsChecked(ImportUI->SkeletalMeshImportData->bPreserveSmoothingGroups? true: false)
-			.OnCheckStateChanged(this, &SFbxOptionWindow::SetSkeletalMesh_ReserveSmoothingGroups)
-		]
-
-		+SHorizontalBox::Slot().AutoWidth() .Padding(2)
+		SNew(SCheckBox)
+		.IsChecked(ImportUI->SkeletalMeshImportData->bPreserveSmoothingGroups? true: false)
+		.OnCheckStateChanged(this, &SFbxOptionWindow::SetSkeletalMesh_ReserveSmoothingGroups)
 		[
 			SNew(STextBlock)
-			.Text(LOCTEXT("FbxOptionWindow_PreserveSmoothingGroup", "Preserve Smoothing Group").ToString())
+			.Text(LOCTEXT("FbxOptionWindow_PreserveSmoothingGroup", "Preserve Smoothing Groups").ToString())
 		]
 	];
 
 
 	NewBox->AddSlot().AutoHeight() .Padding(2)
 	[
-		SNew(SHorizontalBox)
-
-		+SHorizontalBox::Slot().AutoWidth() .Padding(2)
-		[
-			SNew(SCheckBox)
-			.IsChecked(ImportUI->SkeletalMeshImportData->bKeepOverlappingVertices? true: false)
-			.OnCheckStateChanged(this, &SFbxOptionWindow::SetSkeletalMesh_KeepOverlappingVertices)
-		]
-
-		+SHorizontalBox::Slot().AutoWidth() .Padding(2)
+		SNew(SCheckBox)
+		.IsChecked(ImportUI->SkeletalMeshImportData->bKeepOverlappingVertices? true: false)
+		.OnCheckStateChanged(this, &SFbxOptionWindow::SetSkeletalMesh_KeepOverlappingVertices)
 		[
 			SNew(STextBlock)
 			.Text(LOCTEXT("FbxOptionWindow_KeepOverlappingVertices", "Keep Overlapping Vertices").ToString())
@@ -820,46 +794,31 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructSkeletalMeshAdvanced()
 	];
 	NewBox->AddSlot().AutoHeight() .Padding(2)
 	[
-		SNew(SHorizontalBox)
-
-		+SHorizontalBox::Slot().AutoWidth() .Padding(2)
-		[
-			SNew(SCheckBox)
-			.IsChecked(ImportUI->SkeletalMeshImportData->bImportMeshesInBoneHierarchy? true: false)
-			.OnCheckStateChanged(this, &SFbxOptionWindow::SetSkeletalMesh_ImportMeshesInBoneHierarchy)
-		]
-
-		+SHorizontalBox::Slot().AutoWidth() .Padding(2)
+		SNew(SCheckBox)
+		.IsChecked(ImportUI->SkeletalMeshImportData->bImportMeshesInBoneHierarchy? true: false)
+		.OnCheckStateChanged(this, &SFbxOptionWindow::SetSkeletalMesh_ImportMeshesInBoneHierarchy)
 		[
 			SNew(STextBlock)
 			.Text(LOCTEXT("FbxOptionWindow_ImportMeshesInBoneHierarchy", "Import Meshes in Bone Hierarchy").ToString())
 		]
 	];
 
-	NewBox->AddSlot().AutoHeight() .Padding(2)
+	NewBox->AddSlot().AutoHeight() .Padding(4)
 	[
 		SNew(STextBlock)
-		.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 12 ) )
+		.TextStyle( FEditorStyle::Get(), "FBXSmallFont" ) 
 		.Text(LOCTEXT("FbxOptionWindow_PhysicsAsset", "Collision").ToString())
-		.ShadowOffset(FVector2D(1, 1))
 	];
 
 	NewBox->AddSlot().AutoHeight() .Padding(2)
 	[
-		SNew(SHorizontalBox)
-
-		+SHorizontalBox::Slot().AutoWidth() .Padding(2)
-		[
-			SNew(SCheckBox)
-			.IsChecked(ImportUI->bCreatePhysicsAsset? true: false)
-			.OnCheckStateChanged(this, &SFbxOptionWindow::SetSkeletalMesh_CreatePhysicsAsset)
-			.IsEnabled(!bReimport)
-		]
-
-		+SHorizontalBox::Slot().AutoWidth() .Padding(2)
+		SNew(SCheckBox)
+		.IsChecked(ImportUI->bCreatePhysicsAsset? true: false)
+		.OnCheckStateChanged(this, &SFbxOptionWindow::SetSkeletalMesh_CreatePhysicsAsset)
+		.IsEnabled(!bReimport)
 		[
 			SNew(STextBlock)
-			.Text(LOCTEXT("FbxOptionWindow_CreatePhysicsAsset", "Create PhysicsAsset").ToString())
+			.Text(LOCTEXT("FbxOptionWindow_CreatePhysicsAsset", "Create Physics Asset").ToString())
 		]
 	];
 
@@ -867,15 +826,15 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructSkeletalMeshAdvanced()
 	[
 		SNew (SVerticalBox)
 
-		+SVerticalBox::Slot() .Padding(2) 
+		+SVerticalBox::Slot() 
+		.Padding(2) 
 		[
 			SNew(STextBlock)
-			.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10 ) )
 			.Text( LOCTEXT("FbxOptionWindow_SelectPhysicsAsset", "Select PhysicsAsset").ToString() )
 			.IsEnabled(this, &SFbxOptionWindow::ShouldShowPhysicsAssetPicker)
 		]
-
-		+SVerticalBox::Slot() .Padding(2) 
+		+SVerticalBox::Slot()
+		.Padding(2) 
 		[
 			SAssignNew(PhysicsAssetPickerComboButton, SComboButton)
 			.ContentPadding(1.f)
@@ -899,26 +858,18 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructMaterialOption()
 {
 	TSharedRef<SVerticalBox> NewBox = SNew(SVerticalBox);
 
-	NewBox->AddSlot().AutoHeight() .Padding(2)
+	NewBox->AddSlot().AutoHeight() .Padding(4)
 	[
 		SNew(STextBlock)
-		.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 12 ) )
+		.TextStyle( FEditorStyle::Get(), "FBXSmallFont" ) 
 		.Text( LOCTEXT("FbxOptionWindow_Material", "Material").ToString() )
-		.ShadowOffset(FVector2D(1, 1))
 	];
 
 	NewBox->AddSlot().AutoHeight() .Padding(2)
 	[
-		SNew(SHorizontalBox)
-
-		+SHorizontalBox::Slot().AutoWidth() .Padding(2)
-		[
-			SNew(SCheckBox)
-			.IsChecked(ImportUI->bImportMaterials? true: false)
-			.OnCheckStateChanged(this, &SFbxOptionWindow::SetMaterial_ImportMaterials)
-		]
-
-		+SHorizontalBox::Slot().AutoWidth() .Padding(2)
+		SNew(SCheckBox)
+		.IsChecked(ImportUI->bImportMaterials? true: false)
+		.OnCheckStateChanged(this, &SFbxOptionWindow::SetMaterial_ImportMaterials)
 		[
 			SNew(STextBlock)
 			.Text(LOCTEXT("FbxOptionWindow_ImportMaterials", "Import Materials").ToString())
@@ -927,16 +878,9 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructMaterialOption()
 
 	NewBox->AddSlot().AutoHeight() .Padding(2)
 	[
-		SNew(SHorizontalBox)
-
-		+SHorizontalBox::Slot().AutoWidth() .Padding(2)
-		[
-			SNew(SCheckBox)
-			.IsChecked(ImportUI->bImportTextures? true: false)
-			.OnCheckStateChanged(this, &SFbxOptionWindow::SetMaterial_ImportTextures)
-		]
-
-		+SHorizontalBox::Slot().AutoWidth() .Padding(2)
+		SNew(SCheckBox)
+		.IsChecked(ImportUI->bImportTextures? true: false)
+		.OnCheckStateChanged(this, &SFbxOptionWindow::SetMaterial_ImportTextures)
 		[
 			SNew(STextBlock)
 			.Text(LOCTEXT("FbxOptionWindow_ImportTextures", "Import Textures").ToString())
@@ -945,16 +889,9 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructMaterialOption()
 
 	NewBox->AddSlot().AutoHeight() .Padding(2)
 	[
-		SNew(SHorizontalBox)
-
-		+SHorizontalBox::Slot().AutoWidth() .Padding(2)
-		[
-			SNew(SCheckBox)
-			.IsChecked(ImportUI->TextureImportData->bInvertNormalMaps? true: false)
-			.OnCheckStateChanged(this, &SFbxOptionWindow::SetMaterial_InvertNormalMaps)
-		]
-
-		+SHorizontalBox::Slot().AutoWidth() .Padding(2)
+		SNew(SCheckBox)
+		.IsChecked(ImportUI->TextureImportData->bInvertNormalMaps? true: false)
+		.OnCheckStateChanged(this, &SFbxOptionWindow::SetMaterial_InvertNormalMaps)
 		[
 			SNew(STextBlock)
 			.Text(LOCTEXT("FbxOptionWindow_InvertNormalMaps", "Invert Normal Maps").ToString())
@@ -968,26 +905,18 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructAnimationOption()
 {
 	TSharedRef<SVerticalBox> NewBox = SNew(SVerticalBox);
 
-	NewBox->AddSlot().AutoHeight() .Padding(2)
+// 	NewBox->AddSlot().AutoHeight() .Padding(4)
+// 	[
+// 		SNew(STextBlock)
+// 		.TextStyle( FEditorStyle::Get(), "FBXSmallFont" ) 
+// 		.Text( LOCTEXT("FbxOptionWindow_Animation", "Animation").ToString() )
+// 	];
+
+	NewBox->AddSlot().AutoHeight() .Padding(2, 4)
 	[
-		SNew(STextBlock)
-		.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 12 ) )
-		.Text( LOCTEXT("FbxOptionWindow_Animation", "Animation").ToString() )
-		.ShadowOffset(FVector2D(1, 1))
-	];
-
-	NewBox->AddSlot().AutoHeight() .Padding(2)
-	[
-		SNew(SHorizontalBox)
-
-		+SHorizontalBox::Slot().AutoWidth() .Padding(2)
-		[
-			SNew(SCheckBox)
-			.IsChecked(ImportUI->bUseDefaultSampleRate? true: false)
-			.OnCheckStateChanged(this, &SFbxOptionWindow::SetSkeletalMesh_UseDefaultSampleRate)
-		]
-
-		+SHorizontalBox::Slot().AutoWidth() .Padding(2)
+		SNew(SCheckBox)
+		.IsChecked(ImportUI->bUseDefaultSampleRate? true: false)
+		.OnCheckStateChanged(this, &SFbxOptionWindow::SetSkeletalMesh_UseDefaultSampleRate)
 		[
 			SNew(STextBlock)
 			.Text(LOCTEXT("FbxOptionWindow_UseDefaultSampleRate", "Use Default Sample Rate").ToString())
@@ -996,31 +925,23 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructAnimationOption()
 
 	NewBox->AddSlot().AutoHeight() .Padding(2)
 	[
-		SNew(SHorizontalBox)
-
-		+SHorizontalBox::Slot().AutoWidth() .Padding(2)
-		[
-			SNew(SCheckBox)
-			.IsChecked(ImportUI->bPreserveLocalTransform? true: false)
-			.OnCheckStateChanged(this, &SFbxOptionWindow::SetAnimation_ReserveLocalTransform)
-		]
-
-		+SHorizontalBox::Slot().AutoWidth() .Padding(2)
+		SNew(SCheckBox)
+		.IsChecked(ImportUI->bPreserveLocalTransform? true: false)
+		.OnCheckStateChanged(this, &SFbxOptionWindow::SetAnimation_ReserveLocalTransform)
 		[
 			SNew(STextBlock)
 			.Text(LOCTEXT("FbxOptionWindow_PreserveLocalTransform", "Preserve Local Transform").ToString())
 		]
 	];
 
-	NewBox->AddSlot().AutoHeight() .Padding(2)
+	NewBox->AddSlot().AutoHeight() .Padding(4)
 	[
 		SNew(STextBlock)
-		.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10 ) )
 		.Text( LOCTEXT("FbxOptionWindow_AnimationLength", "Animation Length").ToString() )
-		.ShadowOffset(FVector2D(1, 1))
+		.TextStyle( FEditorStyle::Get(), "FBXSmallFont" ) 
 	];
 
-	NewBox->AddSlot() .Padding(4)
+	NewBox->AddSlot() .Padding(1)
 	[
 		SNew(SAnimImportLengthOption)
 			.AnimationLengthOption(ImportUI->AnimSequenceImportData->AnimationLength)
@@ -1041,16 +962,14 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructSkeletonOptionForMesh()
 	[
 		SNew(SHorizontalBox)
 		+SHorizontalBox::Slot()
+		.AutoWidth()
 		[
 			SNew(STextBlock)
-			.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 16 ) )
-			.Text( LOCTEXT("FbxOptionWindow_SelectSkeletonForMesh", "Select Skeleton").ToString() )
-			.ShadowOffset(FVector2D(2, 2))
+			.TextStyle( FEditorStyle::Get(), "FBXMediumFont" ) 
+			.Text( LOCTEXT("FbxOptionWindow_SelectSkeletonForMesh", "Choose Skeleton") )
 		]
-
 		+SHorizontalBox::Slot()
 		.HAlign(HAlign_Left)
-		.VAlign(VAlign_Center)
 		[
 			IDocumentation::Get()->CreateAnchor(FString("Engine/Animation/Skeleton"))
 		]
@@ -1059,8 +978,7 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructSkeletonOptionForMesh()
 	NewBox->AddSlot().AutoHeight() .Padding(2)
 	[
 		SNew(STextBlock)
-		.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10 ) )
-		.Text( LOCTEXT("FbxOptionWindow_AutoCreateSkeleton", "If none is selected, it will create skeleton for this.").ToString() )
+		.Text( LOCTEXT("FbxOptionWindow_AutoCreateSkeleton", "If none is selected, a new skeleton will be created") )
 	];
 
 	NewBox->AddSlot().AutoHeight() .Padding(2)
@@ -1090,16 +1008,15 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructSkeletonOptionForAnim()
 	[
 		SNew(SHorizontalBox)
 		+SHorizontalBox::Slot()
+		.AutoWidth()
 		[
 			SNew(STextBlock)
-			.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 16 ) )
-			.Text( LOCTEXT("FbxOptionWindow_SelectSkeletonForAnim", "Select Skeleton").ToString() )
-			.ShadowOffset(FVector2D(2, 2))
+			.TextStyle( FEditorStyle::Get(), "FBXMediumFont" ) 
+			.Text( LOCTEXT("FbxOptionWindow_SelectSkeletonForAnim", "Choose Skeleton") )
 		]
 		
 		+SHorizontalBox::Slot()
 		.HAlign(HAlign_Left)
-		.VAlign(VAlign_Center)
 		[
 			IDocumentation::Get()->CreateAnchor(FString("Engine/Animation/Skeleton"))
 		]
@@ -1108,8 +1025,7 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructSkeletonOptionForAnim()
 	NewBox->AddSlot().AutoHeight() .Padding(2)
 	[
 		SNew(STextBlock)
-		.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10 ) )
-		.Text( LOCTEXT("FbxOptionWindow_NeedToSelectSkeletonForAnimation", "You need to select skeleton for the animation.").ToString() )
+		.Text( LOCTEXT("FbxOptionWindow_NeedToSelectSkeletonForAnimation", "You need to select skeleton for the animation.") )
 	];
 
 	NewBox->AddSlot().AutoHeight() .Padding(2)

@@ -65,9 +65,6 @@ namespace UnrealBuildTool
 		/** The Unreal project directory.  This should always be valid when compiling game projects.  Engine targets and program targets may not have a UProject set. */
 		static string UProjectPath = "";
 
-		/** The configuration to build rocket modules in */
-		static UnrealTargetConfiguration RocketConfiguration = UnrealTargetConfiguration.Development;
-
         /// <summary>
         /// Returns true if UnrealBuildTool should skip everything other than the host platform as far as finding other modules that need to be compiled.
         /// </summary>
@@ -163,6 +160,7 @@ namespace UnrealBuildTool
 			return (
 				(InPlatform == UnrealTargetPlatform.Win64) ||
 				(InPlatform == UnrealTargetPlatform.Win32) ||
+                (InPlatform == UnrealTargetPlatform.Linux) ||
 				(InPlatform == UnrealTargetPlatform.Mac)
 				);
 		}
@@ -304,7 +302,7 @@ namespace UnrealBuildTool
 			{
 				if(Utils.IsRunningOnMono)
 				{
-					if(InPlatform != UnrealTargetPlatform.Mac && InPlatform != UnrealTargetPlatform.IOS)
+                    if (InPlatform != UnrealTargetPlatform.Mac && InPlatform != UnrealTargetPlatform.IOS && InPlatform != UnrealTargetPlatform.Linux)
 					{
 						return false;
 					}
@@ -331,7 +329,7 @@ namespace UnrealBuildTool
 		{
 			if (Utils.IsRunningOnMono)
 			{
-				return InPlatform == UnrealTargetPlatform.Mac;
+                return InPlatform == UnrealTargetPlatform.Mac || InPlatform == UnrealTargetPlatform.Linux;
 			}
 			else
 			{
@@ -511,6 +509,8 @@ namespace UnrealBuildTool
 		{
 			InitLogging();
 
+			XmlConfigLoader.Init();
+
 			InitialEnvironment = Environment.GetEnvironmentVariables();
 			if (InitialEnvironment.Count < 1)
 			{
@@ -614,10 +614,9 @@ namespace UnrealBuildTool
 				try
 				{
 					string GameName = null;
-					string ConfigName = null;
-					string PlatformName = null;
 					var bGenerateVCProjectFiles = false;
 					var bGenerateXcodeProjectFiles = false;
+                    var bGenerateMakefiles = false;
 					var bValidPlatformsOnly = false;
 					var bSpecificModulesOnly = false;
 
@@ -629,8 +628,6 @@ namespace UnrealBuildTool
 					//@todo SAS: Add a true Debug mode!
 					if (RunningRocket())
 					{
-						RocketConfiguration = CheckConfiguration;
-						
 						// Only Development and Shipping are supported for engine modules
 						if( CheckConfiguration != UnrealTargetConfiguration.Development && CheckConfiguration != UnrealTargetConfiguration.Shipping )
 						{
@@ -667,6 +664,11 @@ namespace UnrealBuildTool
                                 throw new BuildException("Could not parse {0}", LowercaseArg);
                             }
                         }
+                        else if (LowercaseArg.StartsWith("-makefile"))
+                        {
+                            bGenerateMakefiles = true;
+                            ProjectFileGenerator.bGenerateProjectFiles = true;
+                        }
                         else if (LowercaseArg.StartsWith("-projectfile"))
 						{
 							bGenerateVCProjectFiles = true;
@@ -683,7 +685,7 @@ namespace UnrealBuildTool
 						}
 						else if (LowercaseArg == "development" || LowercaseArg == "debug" || LowercaseArg == "shipping" || LowercaseArg == "test" || LowercaseArg == "debuggame")
 						{
-							ConfigName = Arg;
+							//ConfigName = Arg;
 						}
 						else if (LowercaseArg == "-modulewithsuffix")
 						{
@@ -753,7 +755,7 @@ namespace UnrealBuildTool
 						else if (CheckPlatform.ToString().ToLowerInvariant() == LowercaseArg)
 						{
 							// It's the platform set...
-							PlatformName = Arg;
+							//PlatformName = Arg;
 						}
 						else
 						{
@@ -802,7 +804,9 @@ namespace UnrealBuildTool
 								? "GenerateXcodeProjectFiles" 
 								: bRunCopyrightVerification
 									? "RunCopyrightVerification"
-									: "Build",
+                                        : bGenerateMakefiles
+                                        ? "GenerateMakefiles"
+                                            : "Build",
 						"Platform", CheckPlatform.ToString(),
 						"Configuration", CheckConfiguration.ToString(),
 						"IsRocket", bRunningRocket.ToString(),
@@ -828,8 +832,8 @@ namespace UnrealBuildTool
 					{
 						JunkDeleter.DeleteJunk();
 					}
-	
-					if (bGenerateVCProjectFiles || bGenerateXcodeProjectFiles)
+
+                    if (bGenerateVCProjectFiles || bGenerateXcodeProjectFiles || bGenerateMakefiles)
 					{
 						bSuccess = true;
 						if (bGenerateVCProjectFiles)
@@ -840,6 +844,10 @@ namespace UnrealBuildTool
 						{
 							bSuccess &= GenerateProjectFiles(new XcodeProjectFileGenerator(), Arguments);
 						}
+                        if (bGenerateMakefiles)
+ 						{
+ 							bSuccess &= GenerateProjectFiles(new MakefileGenerator(), Arguments);
+ 						}
 					}
 					else if (bRunCopyrightVerification)
 					{
@@ -885,7 +893,6 @@ namespace UnrealBuildTool
 									BuildConfiguration.bFlushBuildDirOnRemoteMac = false;
 									UEBuildTarget CheckTarget = UEBuildTarget.CreateTarget(Arguments);
 									CheckTarget.SetupGlobalEnvironment();
-									string AppName = CheckTarget.AppName;
 									if ((CheckTarget.Rules.Type == TargetRules.TargetType.Game) || 
 										(CheckTarget.Rules.Type == TargetRules.TargetType.Server) || 
 										(CheckTarget.Rules.Type == TargetRules.TargetType.Client))
@@ -986,8 +993,6 @@ namespace UnrealBuildTool
 			UEBuildTarget.ParsePlatformAndConfiguration(Arguments, out ResetPlatform, out ResetConfiguration);
 			if (RunningRocket())
 			{
-				RocketConfiguration = ResetConfiguration;
-
 				// Only Development and Shipping are supported for engine modules
 				if( ResetConfiguration != UnrealTargetConfiguration.Development && ResetConfiguration != UnrealTargetConfiguration.Shipping )
 				{
@@ -1343,4 +1348,3 @@ namespace UnrealBuildTool
 		}
 	}
 }
-

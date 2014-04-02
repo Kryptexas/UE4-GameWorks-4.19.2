@@ -65,6 +65,8 @@ namespace DeploymentServer
         /// </summary>
         static DeployTimeReportingInterface ReportIF = new DummyDeployTimeReporter();
 
+		public string DeviceId { get; set; }
+
         public DeploymentImplementation()
         {
             // Setup the device type mapping
@@ -305,20 +307,25 @@ namespace DeploymentServer
                     ReportIF.Warning(String.Format("Device '{0}' is a {1} model, which does not support OpenGL ES2.0.  The installation is likely to fail.", DeviceName, GetPrettyDeviceType(DeviceType)));
                 }
 
-                ReportIF.Log(String.Format("Transferring IPA to device '{0}' ... ", DeviceName));
-                Device.CopyFileToPublicStaging(IPAPath);
+				if (String.IsNullOrEmpty(DeviceId) || Device.DeviceId == DeviceId)
+				{
+					ReportIF.Log(String.Format("Transferring IPA to device '{0}' ... ", DeviceName));
+					Device.CopyFileToPublicStaging(IPAPath);
 
-                // Request that the device install it
-                ReportIF.Log(String.Format("Installing IPA on device '{0}' ... ", DeviceName));
+					// Request that the device install it
+					ReportIF.Log(String.Format("Installing IPA on device '{0}' ... ", DeviceName));
 
-                // Upgrade will function as install if the app isn't already installed, and has the added benefit of killing a running
-                // app rather than failing if the user is still running the app to upgrade
-                //return ConnectedDevice.TryInstall(IPAPath);
-                bool bResult = Device.TryUpgrade(IPAPath);
+					// Upgrade will function as install if the app isn't already installed, and has the added benefit of killing a running
+					// app rather than failing if the user is still running the app to upgrade
+					//return ConnectedDevice.TryInstall(IPAPath);
+					bool bResult = Device.TryUpgrade(IPAPath);
 
-                ReportIF.Log("");
+					ReportIF.Log("");
 
-                return bResult;
+					return bResult;
+				}
+
+				return false;
             });
         }
 

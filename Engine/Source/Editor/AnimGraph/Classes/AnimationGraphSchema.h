@@ -46,7 +46,7 @@ class UAnimationGraphSchema : public UEdGraphSchema_K2
 	virtual void GetAssetsGraphHoverMessage(const TArray<FAssetData>& Assets, const UEdGraph* HoverGraph, FString& OutTooltipText, bool& OutOkIcon) const OVERRIDE;
 	virtual void GetContextMenuActions(const UEdGraph* CurrentGraph, const UEdGraphNode* InGraphNode, const UEdGraphPin* InGraphPin, FMenuBuilder* MenuBuilder, bool bIsDebugging) const OVERRIDE;
 	virtual FString GetPinDisplayName(const UEdGraphPin* Pin) const OVERRIDE;
-	virtual bool CanDuplicateGraph() const OVERRIDE {	return false; }
+	virtual bool CanDuplicateGraph(UEdGraph* InSourceGraph) const OVERRIDE {	return false; }
 	// End UEdGraphSchema interface.
 
 	// Begin UEdGraphSchema_K2 interface

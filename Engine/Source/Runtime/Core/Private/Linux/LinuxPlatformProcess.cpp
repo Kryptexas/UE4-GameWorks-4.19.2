@@ -12,6 +12,26 @@
 #include <sys/ioctl.h>	// ioctl
 #include <asm/ioctls.h>	// FIONREAD
 
+void* FLinuxPlatformProcess::GetDllHandle( const TCHAR* Filename )
+{
+	check( Filename );
+	void *Handle = dlopen( TCHAR_TO_ANSI(Filename), RTLD_LAZY | RTLD_LOCAL );
+	return Handle;
+}
+
+void FLinuxPlatformProcess::FreeDllHandle( void* DllHandle )
+{
+	check( DllHandle );
+	dlclose( DllHandle );
+}
+
+void* FLinuxPlatformProcess::GetDllExport( void* DllHandle, const TCHAR* ProcName )
+{
+	check(DllHandle);
+	check(ProcName);
+	return dlsym( DllHandle, TCHAR_TO_ANSI(ProcName) );
+}
+
 namespace PlatformProcessLimits
 {
 	enum

@@ -111,7 +111,6 @@ public:
 		Assign(Days, Hours, Minutes, Seconds, Milliseconds);
 	}
 
-
 public:
 
 	/**
@@ -271,7 +270,6 @@ public:
 	{
 		return (Ticks <= Other.Ticks);
 	}
-
 
 public:
 
@@ -450,7 +448,6 @@ public:
 	 */
 	CORE_API FString ToString( const TCHAR* Format ) const;
 
-
 public:
 
 	/**
@@ -581,7 +578,6 @@ public:
 		return FTimespan(0);
 	}
 
-
 public:
 
 	/**
@@ -608,7 +604,6 @@ public:
 		return GetTypeHash(Timespan.Ticks);
 	}
 
-
 protected:
 
 	/**
@@ -621,7 +616,6 @@ protected:
 	 * @param Milliseconds - The milliseconds component.
 	 */
 	void CORE_API Assign( int32 Days, int32 Hours, int32 Minutes, int32 Seconds, int32 Milliseconds );
-
 
 private:
 

@@ -56,6 +56,14 @@ namespace EControllerButtons
 		RightStickLeft,
 		RightStickRight,
 
+		// Steam Controller
+		Touch0,
+		Touch1,
+		Touch2,
+		Touch3,
+		BackLeft,
+		BackRight,
+
 		Invalid,
 	};
 }
@@ -129,7 +137,8 @@ namespace EGestureEvent
 		Scroll,
 		Magnify,
 		Swipe,
-		Rotate
+		Rotate,
+		Count
 	};
 }
 
@@ -208,11 +217,19 @@ public:
 	{
 		return false;
 	}
+    
+    virtual void OnBeginGesture()
+    {
+    }
 
 	virtual bool OnTouchGesture( EGestureEvent::Type GestureType, const FVector2D& Delta, float WheelDelta )
 	{
 		return false;
 	}
+    
+    virtual void OnEndGesture()
+    {
+    }
 
 	virtual bool OnTouchStarted( const TSharedPtr< FGenericWindow >& Window, const FVector2D& Location, int32 TouchIndex, int32 ControllerId )
 	{

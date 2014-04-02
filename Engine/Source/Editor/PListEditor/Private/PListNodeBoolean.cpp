@@ -2,7 +2,7 @@
 
 #include "UnrealEd.h"
 #include "PListNodeBoolean.h"
-#include "SPListEditor.h"
+#include "SPlistEditor.h"
 
 /** Validation check */
 bool FPListNodeBoolean::IsValid()

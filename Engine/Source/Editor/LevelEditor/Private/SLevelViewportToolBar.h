@@ -122,12 +122,20 @@ private:
 
 	/** Called by the FOV slider in the perspective viewport to get the FOV value */
 	float OnGetFOVValue() const;
+
 	/** Called when the FOV slider is adjusted in the perspective viewport */
 	void OnFOVValueChanged( float NewValue );
 
+	/**
+	 * @return The widget containing the far view plane slider.
+	 */
+	TSharedRef<SWidget> GenerateFarViewPlaneMenu() const;
 
-	/** @return Visibility for the FOV menu in the level viewport tool bar */
-	EVisibility GetFOVMenuVisibility() const;
+	/** Called by the far view plane slider in the perspective viewport to get the far view plane value */
+	float OnGetFarViewPlaneValue() const;
+
+	/** Called when the far view plane slider is adjusted in the perspective viewport */
+	void OnFarViewPlaneValueChanged( float NewValue );
 
 	bool IsLandscapeLODSettingChecked(int32 Value) const;
 	void OnLandscapeLODChanged(int32 NewValue);

@@ -33,9 +33,7 @@ void SGraphEditor::ConstructImplementation( const FArguments& InArgs )
 
 	this->ChildSlot
 	[
-		SNew(STutorialWrapper)
-		.Name(TEXT("GraphEditorPanel"))
-		.Content()
+		SNew( STutorialWrapper, TEXT("GraphEditorPanel") )
 		[
 			Implementation.ToSharedRef()
 		]

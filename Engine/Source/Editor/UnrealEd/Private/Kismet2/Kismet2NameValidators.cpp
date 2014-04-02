@@ -80,10 +80,10 @@ EValidatorResult INameValidatorInterface::FindValidString(FString& InOutName)
 //////////////////////////////////////////////////
 // FKismetNameValidator
 
- namespace BlueprintNameConstants
- {
+namespace BlueprintNameConstants
+{
 	 int32 NameMaxLength = 100;
- }
+}
 
 FKismetNameValidator::FKismetNameValidator(const class UBlueprint* Blueprint, FName InExistingName/* = NAME_None*/)
 {
@@ -93,6 +93,12 @@ FKismetNameValidator::FKismetNameValidator(const class UBlueprint* Blueprint, FN
 	FBlueprintEditorUtils::GetAllGraphNames(BlueprintObject, Names);
 	FBlueprintEditorUtils::GetSCSVariableNameList(Blueprint, Names);
 	FStructureEditorUtils::GetAllStructureNames(Blueprint, Names);
+	FBlueprintEditorUtils::GetImplementingBlueprintsFunctionNameList(Blueprint, Names);
+}
+
+int32 FKismetNameValidator::GetMaximumNameLength()
+{
+	return BlueprintNameConstants::NameMaxLength;
 }
 
 EValidatorResult FKismetNameValidator::IsValid(const FString& Name, bool /*bOriginal*/)

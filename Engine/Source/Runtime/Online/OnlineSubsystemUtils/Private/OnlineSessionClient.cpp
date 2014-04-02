@@ -47,9 +47,9 @@ int32 UOnlineSessionClient::GetControllerId()
 /**
  * Register all delegates needed to manage online sessions
  */
-void UOnlineSessionClient::RegisterOnlineDelegates()
+void UOnlineSessionClient::RegisterOnlineDelegates(UWorld* InWorld)
 {
-	IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get();
+	IOnlineSubsystem* OnlineSub = Online::GetSubsystem(InWorld);
 	if (OnlineSub)
 	{
 		SessionInt = OnlineSub->GetSessionInterface();
@@ -76,9 +76,9 @@ void UOnlineSessionClient::RegisterOnlineDelegates()
 /**
  * Tear down all delegates used to manage online sessions
  */
-void UOnlineSessionClient::ClearOnlineDelegates()
+void UOnlineSessionClient::ClearOnlineDelegates(UWorld* InWorld)
 {
-	IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get();
+	IOnlineSubsystem* OnlineSub = Online::GetSubsystem(InWorld);
 	if (OnlineSub)
 	{
 		IOnlineSessionPtr SessionInt = OnlineSub->GetSessionInterface();

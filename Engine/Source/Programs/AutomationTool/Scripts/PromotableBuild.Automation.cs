@@ -52,6 +52,7 @@ class PromotableBuild : BuildCommand
 					new string[]
                 {
                     @"Engine\Source\Programs\IOS\iPhonePackager\iPhonePackager.csproj",
+                    @"Engine\Source\Programs\IOS\DeploymentServer\DeploymentServer.csproj",
                     @"Engine\Source\Programs\IOS\MobileDeviceInterface\MobileDeviceInterface.csproj",
                     @"Engine\Source\Programs\IOS\DeploymentInterface\DeploymentInterface.csproj",
                 }
@@ -365,20 +366,20 @@ class PromotableBuild : BuildCommand
 
 			// Check everything in!
 			int SubmittedCL;
-			Submit(WorkingCL, out SubmittedCL, true, true);
+			P4.Submit(WorkingCL, out SubmittedCL, true, true);
 
 			// Label it            
 			if (String.IsNullOrEmpty(Config))
 			{
-				MakeDownstreamLabel("Promotable");
+				P4.MakeDownstreamLabel(P4Env, "Promotable");
 			}
 			else if (Config.ToLower() == "editors")
 			{
-				MakeDownstreamLabel("Promotable-Partial-" + Config);
+				P4.MakeDownstreamLabel(P4Env, "Promotable-Partial-" + Config);
 			}
 			else
 			{
-				MakeDownstreamLabel("Partial-Promotable-" + Config, UE4Build.BuildProductFiles);
+				P4.MakeDownstreamLabel(P4Env, "Partial-Promotable-" + Config, UE4Build.BuildProductFiles);
 			}
 		}
 	}
@@ -417,11 +418,11 @@ class PromotableBuild : BuildCommand
 			var Config = ParseParamValue("Config");
 			if (String.IsNullOrEmpty(Config))
 			{
-				WorkingCL = CreateChange(P4Env.Client, String.Format("Promotable build built from changelist {0}", P4Env.Changelist));
+				WorkingCL = P4.CreateChange(P4Env.Client, String.Format("Promotable build built from changelist {0}", P4Env.Changelist));
 			}
 			else
 			{
-				WorkingCL = CreateChange(P4Env.Client, String.Format("{0} Partial Promotable build built from changelist {1}", Config, P4Env.Changelist));
+				WorkingCL = P4.CreateChange(P4Env.Client, String.Format("{0} Partial Promotable build built from changelist {1}", Config, P4Env.Changelist));
 			}
 			Log("Build from {0}    Working in {1}", P4Env.Changelist, WorkingCL);
 		}
@@ -449,17 +450,17 @@ class AggregatePromotable : BuildCommand
 			//After syncing everything we'll create the proper 'Promotable' label.
 			string EditorLabel = P4Env.BuildRootP4 + @"/Promotable-Partial-Editors-CL-" + P4Env.Changelist;
 			Log("************ Syncing {0}", EditorLabel);
-			if (!LabelExistsAndHasFiles(EditorLabel))
+			if (!P4.LabelExistsAndHasFiles(EditorLabel))
 			{
 				throw new P4Exception("The label {0} does not exist, or does not have files.  Check to see if the upstream job failed.", EditorLabel);
 			}
-			Sync("@" + EditorLabel);
+			P4.Sync("@" + EditorLabel);
 			if (Configs.ToUpperInvariant() != "EDITORSONLY")
 			{
 				foreach (string Platform in ConfigList)
 				{
 					string PlatformLabel = P4Env.BuildRootP4 + @"/Partial-Promotable-" + Platform + "-CL-" + P4Env.Changelist;
-					if (!LabelExistsAndHasFiles(PlatformLabel))
+					if (!P4.LabelExistsAndHasFiles(PlatformLabel))
 					{
 						UpstreamFailed = true;
 					}
@@ -469,15 +470,15 @@ class AggregatePromotable : BuildCommand
 				if (UpstreamFailed)
 				{
 					Log("************ Upstream job failed.  Deleting Partial Labels");
-					if (LabelExistsAndHasFiles(EditorLabel))
+					if (P4.LabelExistsAndHasFiles(EditorLabel))
 					{
-						DeleteLabel(EditorLabel);
+						P4.DeleteLabel(EditorLabel);
 					}
 					foreach (string Label in PartialLabels)
 					{
-						if (LabelExistsAndHasFiles(Label))
+						if (P4.LabelExistsAndHasFiles(Label))
 						{
-							DeleteLabel(Label);
+							P4.DeleteLabel(Label);
 						}
 					}
 					throw new P4Exception("An upstream job has failed. We cannot sync all of the labels.");
@@ -487,20 +488,20 @@ class AggregatePromotable : BuildCommand
 					foreach (string Label in PartialLabels)
 					{
 						Log("************* Syncing {0}", Label);
-						Sync("@" + Label + ",@" + Label);
+						P4.Sync("@" + Label + ",@" + Label);
 					}
 				}
 			}
-			MakeDownstreamLabel("Promotable");
+			P4.MakeDownstreamLabel(P4Env, "Promotable");
 
 			//Clean up all the partial labels after the promotable is properly made
-			DeleteLabel(EditorLabel);
+			P4.DeleteLabel(EditorLabel);
 			if (Configs.ToUpperInvariant() != "EDITORSONLY")
 			{
 				foreach (string Platform in ConfigList)
 				{
 					string PlatformLabel = P4Env.BuildRootP4 + @"/Partial-Promotable-" + Platform + "-CL-" + P4Env.Changelist;
-					DeleteLabel(PlatformLabel);
+					P4.DeleteLabel(PlatformLabel);
 				}
 			}
 		}
@@ -525,7 +526,7 @@ class BuildUAT : BuildCommand
 		int WorkingCL = -1;
 		if (P4Enabled)
 		{
-			WorkingCL = CreateChange(P4Env.Client, String.Format("UATOnly build built from changelist {0}", P4Env.Changelist));
+			WorkingCL = P4.CreateChange(P4Env.Client, String.Format("UATOnly build built from changelist {0}", P4Env.Changelist));
 			Log("Build from {0}    Working in {1}", P4Env.Changelist, WorkingCL);
 		}
 
@@ -558,7 +559,7 @@ class BuildUAT : BuildCommand
 
 			// Check everything in!
 			int SubmittedCL;
-			Submit(WorkingCL, out SubmittedCL, true, true);
+			P4.Submit(WorkingCL, out SubmittedCL, true, true);
 
 			// Reset engine versions to 0 if required
 			if (ParseParam("ZeroVersions"))

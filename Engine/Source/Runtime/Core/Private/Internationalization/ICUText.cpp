@@ -172,8 +172,9 @@ private:
 	}
 
 public:
-	FSortPredicateImplementation(const ETextComparisonLevel::Type ComparisonLevel)
-		: ComparisonLevel(ComparisonLevel), ICUCollator( FInternationalization::GetCurrentCulture()->Implementation->GetCollator(ComparisonLevel) )
+	FSortPredicateImplementation(const ETextComparisonLevel::Type InComparisonLevel)
+		: ComparisonLevel(InComparisonLevel)
+		, ICUCollator(FInternationalization::GetCurrentCulture()->Implementation->GetCollator(InComparisonLevel))
 	{
 	}
 

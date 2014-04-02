@@ -6,10 +6,6 @@
 
 #include "Common.usf"
 
-#if PS4_PROFILE
-#pragma PSSL_target_output_format (default FMT_32_ABGR)
-#endif
-
 float4 ClearColor;
 
 float4 ClearVS(uint Id : SV_VertexID) : SV_POSITION

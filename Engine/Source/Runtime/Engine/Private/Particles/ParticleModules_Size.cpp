@@ -333,7 +333,7 @@ void UParticleModuleSizeMultiplyLife::SetToSensibleDefaults(UParticleEmitter* Ow
 UParticleModuleSizeScale::UParticleModuleSizeScale(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	bSpawnModule = false;
+	bSpawnModule = true;
 	bUpdateModule = true;
 	EnableX = true;
 	EnableY = true;
@@ -393,6 +393,13 @@ bool UParticleModuleSizeScale::IsValidForLODLevel(UParticleLODLevel* LODLevel, F
 }
 
 #endif // WITH_EDITOR
+
+void UParticleModuleSizeScale::Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase)
+{
+	SPAWN_INIT;
+	FVector ScaleFactor = SizeScale.GetValue(Particle.RelativeTime, Owner->Component);
+	Particle.Size = Particle.BaseSize * ScaleFactor;
+}
 
 void UParticleModuleSizeScale::Update(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime)
 {

@@ -29,7 +29,7 @@ typedef TSet<const class STrackNode*> STrackNodeSelectionSet;
 class FTrackNodeDragDropOp : public FDragDropOperation
 {
 public:
-	static FString GetTypeId() {static FString Type = TEXT("TrackNodeDragDropOp"); return Type;}
+	DRAG_DROP_OPERATOR_TYPE(FTrackNodeDragDropOp, FDragDropOperation)
 
 	virtual void OnDrop( bool bDropWasHandled, const FPointerEvent& MouseEvent ) OVERRIDE;
 

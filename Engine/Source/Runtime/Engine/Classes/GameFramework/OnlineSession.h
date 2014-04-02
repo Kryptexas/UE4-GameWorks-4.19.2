@@ -15,10 +15,10 @@ class ENGINE_API UOnlineSession : public UObject
 public:
 
 	/** Register all delegates needed to manage online sessions.  */
-	virtual void RegisterOnlineDelegates() {};
+	virtual void RegisterOnlineDelegates(class UWorld* InWorld) {};
 
 	/** Tear down all delegates used to manage online sessions.	 */
-	virtual void ClearOnlineDelegates() {};
+	virtual void ClearOnlineDelegates(class UWorld* InWorld) {};
 
 	/** Called to tear down any online sessions and return to main menu	 */
 	virtual void HandleDisconnect(UWorld *World, class UNetDriver *NetDriver);

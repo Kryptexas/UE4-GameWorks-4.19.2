@@ -102,8 +102,8 @@ private:
 	/** Events to call when SDK isn't installed */
 	void HandleSDKNotInstalled(const FString& PlatformName, const FString& DocLink);
 
-	void MaybeOpenWelcomeTutorial(const FWelcomeTutorialProperties& TutorialProperties);
-	void MaybeOpenWelcomeTutorial(const FString& TutorialPath, const FString& ConfigSettingName);
+	bool MaybeOpenWelcomeTutorial(const FWelcomeTutorialProperties& TutorialProperties);
+	bool MaybeOpenWelcomeTutorial(const FString& TutorialPath, const FString& ConfigSettingName);
 	void ResetWelcomeTutorials() const;
 
 	template< typename KeyType >

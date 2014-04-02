@@ -30,6 +30,7 @@ namespace EGameplayModOp
 		Override = 0		UMETA(DisplayName="Override"),
 		Additive			UMETA(DisplayName="Add"),
 		Multiplicitive		UMETA(DisplayName="Multiply"),
+		Division			UMETA(DisplayName="Divide"),
 		Callback			UMETA(DisplayName="Custom"),
 
 		// This must always be at the end
@@ -147,6 +148,10 @@ struct SKILLSYSTEM_API FGameplayModifierInfo
 	// The thing I modify requires these tags
 	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier)
 	FGameplayTagContainer RequiredTags;
+
+	// The thing I modify must not have any of these tags
+	UPROPERTY(EditDefaultsOnly, Category = GameplayModifier)
+	FGameplayTagContainer IgnoreTags;
 
 	// These tags I pass on to whatever I modify
 	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier)
@@ -296,7 +301,7 @@ public:
 	bool AreGameplayEffectTagRequirementsSatisfied(const UGameplayEffect *GameplayEffectToBeModified) const
 	{
 		bool HasRequired = GameplayEffectToBeModified->OwnedTagsContainer.HasAllTags(GameplayEffectRequiredTags);
-		bool HasIgnored = GameplayEffectToBeModified->OwnedTagsContainer.HasAllTags(GameplayEffectIgnoreTags);
+		bool HasIgnored = GameplayEffectToBeModified->OwnedTagsContainer.Num() > 0 && GameplayEffectToBeModified->OwnedTagsContainer.HasAnyTag(GameplayEffectIgnoreTags);
 
 		return HasRequired && !HasIgnored;
 	}
@@ -463,7 +468,11 @@ struct FGameplayEffectInstigatorContext
 
 	void GetOwnedGameplayTags(OUT TSet<FName> &OwnedTags)
 	{
-
+		IGameplayTagAssetInterface* TagInterface = InterfaceCast<IGameplayTagAssetInterface>(Instigator);
+		if (TagInterface)
+		{
+			TagInterface->GetOwnedGameplayTags(OwnedTags);
+		}
 	}
 
 	void AddInstigator(class AActor *InInstigator);
@@ -585,9 +594,9 @@ struct FGameplayModifierData
 		
 	}
 
-	FGameplayModifierData(const FGameplayModifierInfo &Info)
+	FGameplayModifierData(const FGameplayModifierInfo &Info, const FGlobalCurveDataOverride *CurveData)
 	{
-		Magnitude = Info.Magnitude;
+		Magnitude = Info.Magnitude.MakeFinalizedCopy(CurveData);
 		Tags = Info.OwnedTags;
 		if (Info.Callbacks.ExtensionClasses.Num() > 0)
 		{
@@ -887,9 +896,9 @@ private:
  */
 struct FModifierSpec
 {
-	FModifierSpec(const FGameplayModifierInfo &InInfo, TSharedPtr<FGameplayEffectLevelSpec> InLevel )
+	FModifierSpec(const FGameplayModifierInfo &InInfo, TSharedPtr<FGameplayEffectLevelSpec> InLevel, const FGlobalCurveDataOverride *CurveData)
 		: Info(InInfo)
-		, Aggregator(new FAggregator(FGameplayModifierData(InInfo), InLevel,  SKILL_AGG_DEBUG(TEXT("FModifierSpec: %s "), *InInfo.ToSimpleString() )))
+		, Aggregator(new FAggregator(FGameplayModifierData(InInfo, CurveData), InLevel,  SKILL_AGG_DEBUG(TEXT("FModifierSpec: %s "), *InInfo.ToSimpleString() )))
 	{
 	}
 
@@ -899,7 +908,10 @@ struct FModifierSpec
 	FAggregatorRef Aggregator;
 
 	bool CanModifyInContext(const FModifierQualifier &QualifierContext) const;
+	// returns true if this GameplayEffect can modify Other, false otherwise
 	bool CanModifyModifier(FModifierSpec &Other, const FModifierQualifier &QualifierContext) const;
+	// returns true if this GameplayEffect can modify Ref, false otherwise
+	bool CanModifyAggregator(FAggregatorRef Ref, const FModifierQualifier &QualifierContext) const;
 	
 	void ApplyModTo(FModifierSpec &Other, bool TakeSnapshot) const;
 	void ExecuteModOn(FModifierSpec &Other) const;
@@ -908,6 +920,14 @@ struct FModifierSpec
 	{
 		return Info.ToSimpleString();
 	}
+
+	// Can this GameplayEffect modify the input parameter, based on tags
+	// Returns true if it can modify the input parameter, false otherwise
+	bool AreTagRequirementsSatisfied(const FModifierSpec &ModifierToBeModified) const;
+
+	// Can this GameplayEffect modify the input parameter, based on tags
+	// Returns true if it can modify the input parameter, false otherwise
+	bool AreTagRequirementsSatisfied(const FAggregatorRef &AggregatorToBeModified) const;
 
 	void PrintAll() const;
 };
@@ -934,17 +954,17 @@ struct FGameplayEffectSpec
 		// If we initialize a GameplayEffectSpec with no level object passed in.
 	}
 
-	FGameplayEffectSpec( const UGameplayEffect * InDef, TSharedPtr<FGameplayEffectLevelSpec> InLevel )
+	FGameplayEffectSpec( UGameplayEffect * InDef, TSharedPtr<FGameplayEffectLevelSpec> InLevel, const FGlobalCurveDataOverride *CurveData )
 		: Def(InDef)
 		, ModifierLevel(InLevel)
-		, Duration(new FAggregator( InDef->Duration, InLevel, SKILL_AGG_DEBUG(TEXT("%s Duration"), *InDef->GetName())))
-		, Period(new FAggregator( InDef->Period, InLevel, SKILL_AGG_DEBUG(TEXT("%s Period"), *InDef->GetName())))
+		, Duration(new FAggregator(InDef->Duration.MakeFinalizedCopy(CurveData), InLevel, SKILL_AGG_DEBUG(TEXT("%s Duration"), *InDef->GetName())))
+		, Period(new FAggregator(InDef->Period.MakeFinalizedCopy(CurveData), InLevel, SKILL_AGG_DEBUG(TEXT("%s Period"), *InDef->GetName())))
 	{
-		InitModifiers();
+		InitModifiers(CurveData);
 	}
 	
 	UPROPERTY()
-	const UGameplayEffect * Def;
+	UGameplayEffect * Def;
 
 	// Replicated	
 	TSharedPtr< FGameplayEffectLevelSpec > ModifierLevel;
@@ -965,10 +985,12 @@ struct FGameplayEffectSpec
 
 	void MakeUnique();
 
-	void InitModifiers();
+	void InitModifiers(const FGlobalCurveDataOverride *CurveData);
 
 	int32 ApplyModifiersFrom(const FGameplayEffectSpec &InSpec, const FModifierQualifier &QualifierContext);
 	int32 ExecuteModifiersFrom(const FGameplayEffectSpec &InSpec, const FModifierQualifier &QualifierContext);
+
+	int32 ApplyModifiersToAggregators(const FModifierSpec &InMod, FAggregatorRef &MyMod, const FModifierQualifier &QualifierContext, bool ShouldSnapshot);
 
 	bool ShouldApplyAsSnapshot(const FModifierQualifier &QualifierContext) const;
 

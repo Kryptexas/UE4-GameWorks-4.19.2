@@ -293,6 +293,8 @@ public:
 	/** Creates if necessary, and returns a FRepLayout that maps to the passed in UStruct */
 	TSharedPtr<FRepLayout>		GetStructRepLayout( UStruct * Struct );
 
+	TSet< TWeakPtr< FObjectReplicator > > UnmappedReplicators;
+
 	/**
 	* Updates the standby cheat information and
 	 * causes the dialog to be shown/hidden as needed

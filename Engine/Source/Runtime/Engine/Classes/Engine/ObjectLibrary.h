@@ -100,6 +100,11 @@ public:
 		return AssetDataList.Num();
 	}
 
+	bool IsLibraryFullyLoaded() const
+	{
+		return bIsFullyLoaded;
+	}
+
 	/** Clears the current loaded objects and asset data */
 	virtual void ClearLoaded();
 

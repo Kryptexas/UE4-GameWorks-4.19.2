@@ -589,7 +589,7 @@ ENGINE_API bool UDestructibleMesh::BuildFromStaticMesh( UStaticMesh& StaticMesh 
 	}
 
 	SourceStaticMesh = &StaticMesh;
-	if ( !FDateTime::Parse(StaticMesh.AssetImportData->SourceFileTimestamp, SourceSMImportTimestamp) )
+	if ( StaticMesh.AssetImportData == NULL || !FDateTime::Parse(StaticMesh.AssetImportData->SourceFileTimestamp, SourceSMImportTimestamp) )
 	{
 		SourceSMImportTimestamp = FDateTime::MinValue();
 	}

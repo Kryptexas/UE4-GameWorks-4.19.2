@@ -4,6 +4,7 @@
 	AndroidTargetPlatform.inl: Implements the FAndroidTargetPlatform class.
 =============================================================================*/
 
+
 /* FAndroidTargetPlatform structors
  *****************************************************************************/
 
@@ -101,6 +102,7 @@ inline bool FAndroidTargetPlatform::IsRunningPlatform( ) const
 	return false; // This platform never runs the target platform framework
 }
 
+
 bool FAndroidTargetPlatform::IsSdkInstalled(bool bProjectHasCode, FString& OutDocumentationPath) const
 {
 	OutDocumentationPath = FString("Shared/Tutorials/SettingUpAndroidTutorial");
@@ -150,6 +152,18 @@ bool FAndroidTargetPlatform::IsSdkInstalled(bool bProjectHasCode, FString& OutDo
 
 	return true;
 }
+
+
+bool FAndroidTargetPlatform::SupportsFeature( ETargetPlatformFeatures::Type Feature ) const
+{
+	if (Feature == ETargetPlatformFeatures::Packaging)
+	{
+		return true;
+	}
+
+	return TTargetPlatformBase<FAndroidPlatformProperties>::SupportsFeature(Feature);
+}
+
 
 #if WITH_ENGINE
 

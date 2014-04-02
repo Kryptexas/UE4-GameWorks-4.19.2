@@ -227,7 +227,7 @@ class ENGINE_API UActorChannel : public UChannel
 
 protected:
 	
-	FObjectReplicator & FindOrCreateReplicator(UObject *Obj);
+	TSharedRef< FObjectReplicator > & FindOrCreateReplicator(UObject *Obj);
 	bool ObjectHasReplicator(UObject *Obj);	// returns whether we have already created a replicator for this object or not
 
 	virtual void CleanUp() OVERRIDE;

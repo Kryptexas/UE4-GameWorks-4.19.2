@@ -62,53 +62,25 @@ private:
 
 	bool IsEditable( ) const;
 
-	TSharedPtr<IPropertyHandle> ValueProperty;
-	TSharedPtr<IPropertyHandle> CurveTableHandleProperty;
-	TSharedPtr<IPropertyHandle> CurveTableProperty;
-	TSharedPtr<IPropertyHandle> RowNameProperty;
-};
+	TSharedRef<SWidget> GetListContent();
+	void OnSelectionChanged(TSharedPtr<FString> SelectedItem, ESelectInfo::Type SelectInfo);
+	FString GetRowNameComboBoxContentText() const;
+	TSharedRef<ITableRow> HandleRowNameComboBoxGenarateWidget(TSharedPtr<FString> InItem, const TSharedRef<STableViewBase>& OwnerTable);
+	void OnFilterTextChanged(const FText& InFilterText);
 
+	class UCurveTable * GetCurveTable();
 
-class FFlexTableRowHandleDetails : public IStructCustomization
-{
-public:
-	static TSharedRef<IStructCustomization> MakeInstance();
+	TSharedPtr<FString> InitWidgetContent();
 
-	bool IsEditable() const;
-
-private:
-
-	virtual void CustomizeStructHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils ) OVERRIDE;
-	virtual void CustomizeStructChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils ) OVERRIDE;
-	
-	TSharedPtr<IPropertyHandle> StructPropertyHandle;
-	TSharedPtr<IPropertyHandle> DataTablePropertyHandle;
-	
-	TSharedPtr<IPropertyHandle> BaseStringPropertyHandle;
-	TSharedPtr<IPropertyHandle> RowStringPropertyHandle;
-
-	TSharedPtr<IPropertyHandle> ParentArrayProperty;
-
-	FString LookForName;
-	
-
-	TArray<TSharedPtr<FString> > RowNames;
+	void OnCurveTableChanged();
 
 	TSharedPtr<SComboButton> RowNameComboButton;
 	TSharedPtr<SListView<TSharedPtr<FString> > > RowNameComboListView;
 	TSharedPtr<FString> CurrentSelectedItem;
+	TArray<TSharedPtr<FString> > RowNames;
 
-	TSharedRef<SWidget> GetListContent();
-	void OnCurveTableChanged();
-
-	void OnFilterTextChanged( const FText& InFilterText );
-
-	FString GetRowNameComboBoxContentText( ) const;
-
-	void OnSelectionChanged( TSharedPtr<FString> SelectedItem, ESelectInfo::Type SelectInfo );
-
-	TSharedRef<ITableRow> HandleRowNameComboBoxGenarateWidget( TSharedPtr<FString> InItem, const TSharedRef<STableViewBase>& OwnerTable );
-
-
-	void OnTest();
+	TSharedPtr<IPropertyHandle> ValueProperty;
+	TSharedPtr<IPropertyHandle> CurveTableHandleProperty;
+	TSharedPtr<IPropertyHandle> CurveTableProperty;
+	TSharedPtr<IPropertyHandle> RowNameProperty;
 };

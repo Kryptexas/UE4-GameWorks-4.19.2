@@ -124,10 +124,10 @@ void SDeviceProcesses::Construct( const FArguments& InArgs, const FDeviceManager
 				SNew(SBorder)
 					.BorderImage(FEditorStyle::GetBrush("NotificationList.ItemBackground"))
 					.Padding(8.0f)
-					.Visibility(this, &SDeviceProcesses::HandleSelectDeviceOverlayVisibility)
+					.Visibility(this, &SDeviceProcesses::HandleMessageOverlayVisibility)
 					[
 						SNew(STextBlock)
-							.Text(LOCTEXT("SelectSessionOverlayText", "Please select a device from the Device Browser").ToString())
+							.Text(this, &SDeviceProcesses::HandleMessageOverlayText)
 					]
 			]
 	];
@@ -238,6 +238,49 @@ void SDeviceProcesses::ReloadProcessList( bool FullyReload )
 /* SDeviceDetails callbacks
  *****************************************************************************/
 
+FText SDeviceProcesses::HandleMessageOverlayText( ) const
+{
+	ITargetDeviceServicePtr DeviceService = Model->GetSelectedDeviceService();
+
+	if (DeviceService.IsValid())
+	{
+		ITargetDevicePtr Device = DeviceService->GetDevice();
+
+		if (Device.IsValid() && Device->IsConnected())
+		{
+			if (Device->SupportsFeature(ETargetDeviceFeatures::ProcessSnapshot))
+			{
+				return FText::GetEmpty();
+			}
+
+			return LOCTEXT("ProcessSnapshotsUnsupportedOverlayText", "The selected device does not support process snapshots");
+		}
+
+		return LOCTEXT("DeviceUnavailableOverlayText", "The selected device is currently unavailable");
+	}
+
+	return LOCTEXT("SelectDeviceOverlayText", "Please select a device from the Device Browser");
+}
+
+
+EVisibility SDeviceProcesses::HandleMessageOverlayVisibility( ) const
+{
+	ITargetDeviceServicePtr DeviceService = Model->GetSelectedDeviceService();
+
+	if (DeviceService.IsValid())
+	{
+		ITargetDevicePtr Device = DeviceService->GetDevice();
+
+		if (Device.IsValid() && Device->IsConnected() && Device->SupportsFeature(ETargetDeviceFeatures::ProcessSnapshot))
+		{
+			return EVisibility::Hidden;
+		}
+	}
+
+	return EVisibility::Visible;
+}
+
+
 void SDeviceProcesses::HandleModelSelectedDeviceServiceChanged( )
 {
 	ReloadProcessList(true);
@@ -283,18 +326,14 @@ bool SDeviceProcesses::HandleProcessesBoxIsEnabled( ) const
 {
 	ITargetDeviceServicePtr DeviceService = Model->GetSelectedDeviceService();
 
-	return (DeviceService.IsValid() && DeviceService->CanStart());
-}
-
-
-EVisibility SDeviceProcesses::HandleSelectDeviceOverlayVisibility( ) const
-{
-	if (Model->GetSelectedDeviceService().IsValid())
+	if (DeviceService.IsValid())
 	{
-		return EVisibility::Hidden;
+		ITargetDevicePtr Device = DeviceService->GetDevice();
+
+		return (Device.IsValid() && Device->IsConnected() && Device->SupportsFeature(ETargetDeviceFeatures::ProcessSnapshot));
 	}
 
-	return EVisibility::Visible;
+	return false;
 }
 
 

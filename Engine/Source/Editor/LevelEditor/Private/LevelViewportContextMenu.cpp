@@ -28,6 +28,7 @@
 #include "LevelEditorCreateActorMenu.h"
 #include "SourceCodeNavigation.h"
 #include "Developer/MeshUtilities/Public/MeshUtilities.h"
+#include "SceneOutlinerTreeItems.h"
 
 #define LOCTEXT_NAMESPACE "LevelViewportContextMenu"
 
@@ -83,6 +84,13 @@ public:
 	 * @param MenuBuilder	The menu to add items to
 	 */
 	static void FillActorMenu( class FMenuBuilder& MenuBuilder );
+
+	/**
+	 * Fills in menu options for the actor folder menu
+	 *
+	 * @param MenuBuilder	The menu to add items to
+	 */
+	static void FillActorFoldersMenu( class FMenuBuilder& MenuBuilder );
 
 	/**
 	 * Fills in menu options for the snap menu
@@ -312,6 +320,14 @@ TSharedPtr< SWidget > FLevelViewportContextMenu::BuildMenuWidget( TWeakPtr< SLev
 				FNewMenuDelegate::CreateStatic( &FLevelViewportContextMenuImpl::FillActorMenu ) );
 		}
 		
+		if ( GEditor->GetSelectedActorCount() )
+		{
+			MenuBuilder.AddSubMenu( 
+				LOCTEXT( "MoveActorsToFolder", "Move To Folder" ), 
+				LOCTEXT( "MoveActorsToFolder_Tooltip", "Move selected actors to a folder" ),
+				FNewMenuDelegate::CreateStatic( &FLevelViewportContextMenuImpl::FillActorFoldersMenu ) );
+		}
+
 		// Add a heading for "Movement" if an actor is selected
 		if ( GEditor->GetSelectedActorIterator() )
 		{
@@ -847,6 +863,55 @@ void FLevelViewportContextMenuImpl::FillActorMenu( FMenuBuilder& MenuBuilder )
 	}
 
 	MenuBuilder.AddWidget(MiniSceneOutliner, FText::GetEmpty(), false);
+}
+
+void FLevelViewportContextMenuImpl::FillActorFoldersMenu( FMenuBuilder& MenuBuilder )
+{
+	FSceneOutlinerInitializationOptions InitOptions;
+	InitOptions.bShowHeaderRow = false;
+	InitOptions.bFocusSearchBoxWhenOpened = true;
+	InitOptions.bOnlyShowFolders = true;
+
+	// Actor selector to allow the user to choose a folder
+	FSceneOutlinerModule& SceneOutlinerModule = FModuleManager::LoadModuleChecked<FSceneOutlinerModule>( "SceneOutliner" );
+	TSharedRef< SWidget > MiniSceneOutliner =
+		SNew( SVerticalBox )
+		+SVerticalBox::Slot()
+		.MaxHeight(400.0f)
+		[
+			SceneOutlinerModule.CreateSceneOutliner(
+			InitOptions,
+			FOnContextMenuOpening(), //no context menu allowed here
+			FOnSceneOutlinerItemPicked::CreateStatic([](TSharedRef<SceneOutliner::TOutlinerTreeItem> Item){
+				if (Item->Type == SceneOutliner::TOutlinerTreeItem::Folder)
+				{
+					auto FolderItem = StaticCastSharedRef<SceneOutliner::TOutlinerFolderTreeItem>(Item);
+					FLevelEditorActionCallbacks::SetActorFolder(FolderItem->Path);
+				}
+			}))
+		];
+
+	// Create New...
+	{
+		FText ToolTipText;
+		switch (SelectionInfo.NumSelected)
+		{
+		case 0:		ToolTipText = LOCTEXT( "CreateNewFolder_ToolTip0",		"Create a new root folder" );							break;
+		case 1:		ToolTipText = LOCTEXT( "CreateNewFolder_ToolTip1",		"Create a new root folder with this actor in" );		break;
+		default:	ToolTipText = LOCTEXT( "CreateNewFolder_ToolTipMany",	"Create a new root folder with these actors in" );		break;
+		}
+
+		MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().CreateNewOutlinerFolder, NAME_None, LOCTEXT( "CreateNewFolder", "Create New" ),
+			ToolTipText, FSlateIcon(FEditorStyle::GetStyleSetName(), "SceneOutliner.NewFolderIcon"));
+	}
+
+	MenuBuilder.AddMenuEntry(LOCTEXT( "MoveToRoot", "Move To Root" ), LOCTEXT( "MoveToRoot_ToolTip", "Move to the root of the scene outliner" ),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "SceneOutliner.MoveToRoot"), FExecuteAction::CreateStatic([](){ FLevelEditorActionCallbacks::SetActorFolder(FName()); }));
+
+	// Existing folders
+	MenuBuilder.BeginSection(FName(), LOCTEXT("ExistingFolders", "Existing:"));
+	MenuBuilder.AddWidget(MiniSceneOutliner, FText::GetEmpty(), false);
+	MenuBuilder.EndSection();
 }
 
 void FLevelViewportContextMenuImpl::FillSnapAlignMenu( FMenuBuilder& MenuBuilder )

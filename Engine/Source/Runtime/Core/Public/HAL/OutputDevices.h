@@ -244,7 +244,7 @@ public:
 /**
  * Class used for output redirection to allow logs to show
  */
-class FOutputDeviceRedirector : public FOutputDeviceRedirectorBase
+class CORE_API FOutputDeviceRedirector : public FOutputDevice
 {
 private:
 
@@ -292,6 +292,11 @@ public:
 
 	/** Initialization constructor. */
 	FOutputDeviceRedirector();
+
+	/**
+	 * Get the GLog singleton
+	 */
+	static FOutputDeviceRedirector* Get();
 
 	/**
 	 * Adds an output device to the chain of redirections.	

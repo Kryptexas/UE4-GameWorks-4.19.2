@@ -145,20 +145,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 		}
 
 		/// <summary>
-		/// Map a machine Guid to a user and machine name.
-		/// </summary>
-		/// <param name="UserName">A user name - typically 'first.last'.</param>
-		/// <param name="MachineName">A machine name - e.g. Z2425</param>
-		/// <param name="MachineGUID">A Guid for the client machine retrieved from the registry.</param>
-		/// <returns>An empty result.</returns>
-		/// <remarks>After mapping the user to the Guid, all machine Guids in crashes that match are updated.</remarks>
-		public ActionResult RegisterPII( string UserName, string MachineName, string MachineGUID )
-		{
-			LocalCrashRepository.AddUserMapping( UserName, MachineName, MachineGUID );
-			return Content( "", "text/xml" );
-		}
-
-		/// <summary>
 		/// Add a crash passed in the payload as Xml to the database.
 		/// </summary>
 		/// <param name="id">Unused.</param>

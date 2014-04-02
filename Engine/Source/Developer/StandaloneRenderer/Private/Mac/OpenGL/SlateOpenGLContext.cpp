@@ -8,6 +8,7 @@
 #include "OpenGL/SlateOpenGLRenderer.h"
 
 #include "MacWindow.h"
+#include "MacTextInputMethodSystem.h"
 
 char const* const CompositedBlitVertexShader = "#version 120\n"
 "#extension GL_EXT_gpu_shader4 : require\n"
@@ -39,7 +40,7 @@ char const* const CompositedBlitFragmentShader = "#version 120\n"
 /**
  * Custom view class used to provide window OpenGL-enabled content view.
  */
-@interface FSlateCocoaView : NSView
+@interface FSlateCocoaView : FSlateTextView
 {
 	@private
 
@@ -128,14 +129,13 @@ char const* const CompositedBlitFragmentShader = "#version 120\n"
  */
 - (void)mouseDown:(NSEvent*)Event
 {
+	// Swallowed by FSlateTextView
+	[super mouseDown:Event];
+	
 	FSlateCocoaWindow* SlateCocoaWindow = [[self window] isKindOfClass:[FSlateCocoaWindow class]] ? (FSlateCocoaWindow*)[self window] : nil;
 	if (SlateCocoaWindow)
 	{
 		[SlateCocoaWindow mouseDown:Event];
-	}
-	else
-	{
-		[super mouseDown:Event];
 	}
 }
 
@@ -167,14 +167,13 @@ char const* const CompositedBlitFragmentShader = "#version 120\n"
 
 - (void)mouseUp:(NSEvent*)Event
 {
+	// Swallowed by FSlateTextView
+	[super mouseUp:Event];
+	
 	FSlateCocoaWindow* SlateCocoaWindow = [[self window] isKindOfClass:[FSlateCocoaWindow class]] ? (FSlateCocoaWindow*)[self window] : nil;
 	if (SlateCocoaWindow)
 	{
 		[SlateCocoaWindow mouseUp:Event];
-	}
-	else
-	{
-		[super mouseUp:Event];
 	}
 }
 

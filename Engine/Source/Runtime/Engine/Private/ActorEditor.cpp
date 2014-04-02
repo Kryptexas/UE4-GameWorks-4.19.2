@@ -491,6 +491,11 @@ const FName& AActor::GetFolderPath() const
 
 void AActor::SetFolderPath(const FName& NewFolderPath)
 {
+	if (NewFolderPath == FolderPath)
+	{
+		return;
+	}
+
 	Modify();
 
 	FName OldPath = FolderPath;

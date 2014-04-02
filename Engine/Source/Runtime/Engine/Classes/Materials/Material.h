@@ -83,6 +83,31 @@ enum EMaterialDomain
 	MD_MAX
 };
 
+
+/** Defines how the material reacts on DBuffer decals, later we can expose more variants between None and Default */
+UENUM()
+enum EMaterialDecalResponse
+{
+	/** Do not receive decals (Later we still can read the DBuffer channels to customize the effect, this frees up some interpolators). */
+	MDR_None UMETA(DisplayName="None"),
+
+	// Receive Decals, applies all DBuffer channels, assumes the decal is non metal and mask the subsurface scattering
+	MDR_ColorNormalRoughness UMETA(DisplayName="Color Normal Roughness"),
+	// Receive Decals, applies color DBuffer channels, assumes the decal is non metal and mask the subsurface scattering
+	MDR_Color UMETA(DisplayName="Color"),
+	// Receive Decals, applies all DBuffer channels, assumes the decal is non metal and mask the subsurface scattering
+	MDR_ColorNormal UMETA(DisplayName="Color Normal"),
+	// Receive Decals, applies all DBuffer channels, assumes the decal is non metal and mask the subsurface scattering
+	MDR_ColorRoughness UMETA(DisplayName="Color Roughness"),
+	// Receive Decals, applies all DBuffer channels, assumes the decal is non metal and mask the subsurface scattering
+	MDR_Normal UMETA(DisplayName="Normal"),
+	// Receive Decals, applies all DBuffer channels, assumes the decal is non metal and mask the subsurface scattering
+	MDR_NormalRoughness UMETA(DisplayName="Normal Roughness"),
+	// Receive Decals, applies all DBuffer channels, assumes the decal is non metal and mask the subsurface scattering
+	MDR_Roughness UMETA(DisplayName="Roughness"),
+	MDR_MAX
+};
+
 // Material input structs.
 //@warning: manually mirrored in MaterialShared.h
 #if !CPP      //noexport struct
@@ -294,6 +319,13 @@ class UMaterial : public UMaterialInterface
 	/** Defines how the GBuffer chanels are getting manipulated by a decal material pass. (only with MaterialDomain == MD_DeferredDecal) */
 	UPROPERTY(EditAnywhere, Category=Material)
 	TEnumAsByte<enum EDecalBlendMode> DecalBlendMode;
+
+	/** 
+	 * Defines how the material reacts on DBuffer decals (Affects look, performance and texture/sample usage).
+	 * Non DBuffer Decals can be disabled on the primitive (e.g. static mesh)
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Material, meta=(DisplayName = "Decal Response"), AssetRegistrySearchable)
+	TEnumAsByte<enum EMaterialDecalResponse> MaterialDecalResponse;
 
 private:
 	/** Determines how inputs are combined to create the material's final color. */
@@ -611,6 +643,14 @@ public:
 	UPROPERTY(EditAnywhere, Category=Translucency)
 	uint32 bUseTranslucencyVertexFog:1;
 
+	/** If true the compilation environment will be changed to remove the global COMPILE_SHADERS_FOR_DEVELOPMENT flag. */
+	UPROPERTY(transient, duplicatetransient)
+	uint32 bAllowDevelopmentShaderCompile:1;
+
+	/** true if this is one of the materials used in development overhead calculations in the material editor. */
+	UPROPERTY(transient, duplicatetransient)
+	uint32 bIsMaterialDevelopmentOverheadStatsMaterial:1;
+
 	/** true if we have printed a warning about material usage for a given usage flag. */
 	UPROPERTY(transient, duplicatetransient)
 	uint32 UsageFlagWarnings;
@@ -822,6 +862,9 @@ public:
 	/** Returns the material's decal blend mode, calculated from the DecalBlendMode property and what inputs are connected. */
 	uint32 GetDecalBlendMode() const { return DecalBlendMode; }
 
+	/** Returns the material's decal response mode */
+	uint32 GetMaterialDecalResponse() const { return MaterialDecalResponse; }
+
 	/**
 	 * Attempt to find a expression by its GUID.
 	 */
@@ -1028,7 +1071,7 @@ public:
 	*	@return	FExpressionInput*		A pointer to the expression input of the property specified, 
 	*									or NULL if an invalid property was requested.
 	*/
-	FExpressionInput* GetExpressionInputForProperty(EMaterialProperty InProperty);
+	ENGINE_API FExpressionInput* GetExpressionInputForProperty(EMaterialProperty InProperty);
 
 	/**
 	 *	Get all referenced expressions (returns the chains for all properties).

@@ -10,7 +10,7 @@ class UMaterialExpressionReflectionVectorWS : public UMaterialExpression
 	GENERATED_UCLASS_BODY()
 
 	/** Optional world normal to reflect the camera view vector about. If unconnected, pixel normal is used */
-	UPROPERTY(meta=(RequiredInput = "false"))
+	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Defaults to Reflection Vector if not specified"))
 	FExpressionInput CustomWorldNormal;
 
 	/** (true): The specified world normal will be normalized. (false): WorldNormal will just be used as is, faster but possible artifacts if normal length isn't 1 */

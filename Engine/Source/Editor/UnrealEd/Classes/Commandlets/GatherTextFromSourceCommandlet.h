@@ -28,9 +28,28 @@ private:
 		bool EndParsingCurrentLine;
 		bool WithinBlockComment;
 		bool WithinLineComment;
+		bool WithinStringLiteral;
+		bool WithinNamespaceDefine;
+		FString WithinStartingLine;
 
 		//Destination location of the parsed FLocTextEntrys
 		TSharedPtr< FManifestInfo > ManifestInfo;
+
+		FSourceFileParseContext()
+			: Filename()
+			, LineNumber(0)
+			, LineText()
+			, Namespace()
+			, ExcludedRegion(false)
+			, EndParsingCurrentLine(false)
+			, WithinBlockComment(false)
+			, WithinLineComment(false)
+			, WithinStringLiteral(false)
+			, WithinNamespaceDefine(false)
+			, WithinStartingLine()
+		{
+
+		}
 	};
 
 	class FParsableDescriptor
@@ -54,7 +73,6 @@ private:
 	protected:
 		static const FString DefineString;
 		static const FString UndefString;
-		static const FString LocNamespaceStringOld;
 		static const FString LocNamespaceString;
 		static const FString LocDefRegionString;
 		static const FString IniNamespaceString;

@@ -15,7 +15,7 @@
 // USE_VOLUME_LUT: needs to be the same for C++ and HLSL
 static bool UseVolumeTextureLUT() 
 {	
-	return GRHIFeatureLevel >= ERHIFeatureLevel::SM4;
+	return (GRHIFeatureLevel >= ERHIFeatureLevel::SM4 && GSupportsVolumeTextureRendering);
 }
 
 // including the neutral one at index 0

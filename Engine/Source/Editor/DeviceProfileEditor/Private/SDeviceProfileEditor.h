@@ -42,11 +42,12 @@ public:
 
 
 	/**
-	 * Handle the device being deselected.
-	 *
-	 * @param DeviceProfile - The deselected profile.
-	 */
-	void HandleDeviceProfileSelectionChanged( const TWeakObjectPtr< UDeviceProfile > DeviceProfile );
+	* Callback for spawning tabs.
+	*
+	* @param Args - The arguments used for the tab that is spawned
+	* @param InDeviceProfile - The device profile the single editor is displaying information for.
+	*/
+	TSharedRef<SDockTab> HandleTabManagerSpawnSingleProfileTab(const FSpawnTabArgs& Args, TWeakObjectPtr<UDeviceProfile> InDeviceProfile);
 
 
 public:
@@ -56,7 +57,7 @@ public:
 	 *
 	 * @param DeviceProfile - The selected profile.
 	 */
-	void HandleDeviceProfilePinned( const TWeakObjectPtr< UDeviceProfile > DeviceProfile );
+	void HandleDeviceProfilePinned( const TWeakObjectPtr< UDeviceProfile >& DeviceProfile );
 
 
 	/**
@@ -64,7 +65,15 @@ public:
 	 *
 	 * @param DeviceProfile - The deselected profile.
 	 */
-	void HandleDeviceProfileUnpinned( const TWeakObjectPtr< UDeviceProfile > DeviceProfile );
+	void HandleDeviceProfileUnpinned( const TWeakObjectPtr< UDeviceProfile >& DeviceProfile );
+
+
+	/**
+	* Handle the device being unpinned from the grid.
+	*
+	* @param DeviceProfile - The profile that is to be viewed alone.
+	*/
+	void HandleDeviceProfileViewAlone(const TWeakObjectPtr< UDeviceProfile >& DeviceProfile);
 
 
 	/**
@@ -102,22 +111,28 @@ private:
 private:
 
 	// Hold a reference to the device profile manager
-	TWeakObjectPtr< UDeviceProfileManager > DeviceProfileManager;
+	TWeakObjectPtr<UDeviceProfileManager> DeviceProfileManager;
 
 	// The collection of device profile ptrs for the selection process
-	TArray< UObject* > DeviceProfiles;
+	TArray<UObject*> DeviceProfiles;
 
 	// Holds the tab manager that manages the front-end's tabs.
-	TSharedPtr< FTabManager > TabManager;
-
-	// The widget which displays details of a selected profile
-	TSharedPtr< SDeviceProfileDetailsPanel > DetailsPanel;
+	TSharedPtr<FTabManager> TabManager;
 
 	// The widget which allows the user to select profiles
-	TSharedPtr< SDeviceProfileSelectionPanel > DeviceProfileSelectionPanel;
+	TSharedPtr<SDeviceProfileSelectionPanel> DeviceProfileSelectionPanel;
 
 	// Holds the property table
-	TSharedPtr< IPropertyTable > PropertyTable;
+	TSharedPtr<IPropertyTable> PropertyTable;
+
+	// The list of Single Profile Editor ID's which have already been spawned/registered
+	TArray<FName> RegisteredTabIds;
+
+	// Access to the "Window" menu to add our spawned tabs of single profile editors.
+	TSharedPtr<FWorkspaceItem> DeviceManagerMenuGroup;
+
+	// Holds the tab stack where single profiles and the device profile editor will be spawned to
+	TSharedPtr<FTabManager::FStack> EditorTabStack;
 };
 
 

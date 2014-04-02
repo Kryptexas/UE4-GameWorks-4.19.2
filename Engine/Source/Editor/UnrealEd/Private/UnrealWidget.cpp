@@ -197,7 +197,7 @@ void FWidget::Render( const FSceneView* View,FPrimitiveDrawInterface* PDI, FEdit
 /**
  * Draws an arrow head line for a specific axis.
  */
-void FWidget::Render_Axis( const FSceneView* View, FPrimitiveDrawInterface* PDI, EAxisList::Type InAxis, FMatrix& InMatrix, UMaterialInterface* InMaterial, const FLinearColor& InColor, FVector2D& OutAxisEnd, float InScale, bool bDrawWidget, bool bCubeHead )
+void FWidget::Render_Axis( const FSceneView* View, FPrimitiveDrawInterface* PDI, EAxisList::Type InAxis, FMatrix& InMatrix, UMaterialInterface* InMaterial, const FLinearColor& InColor, FVector2D& OutAxisEnd, const FVector& InScale, bool bDrawWidget, bool bCubeHead )
 {
 	FMatrix AxisRotation = FMatrix::Identity;
 	if( InAxis == EAxisList::Y )
@@ -211,7 +211,15 @@ void FWidget::Render_Axis( const FSceneView* View, FPrimitiveDrawInterface* PDI,
 
 	FMatrix ArrowToWorld = AxisRotation * InMatrix;
 
-	FScaleMatrix Scale(InScale);
+	// The scale that is passed in potentially leaves one component with a scale of 1, if that happens
+	// we need to extract the inform scale and use it to construct the scale that transforms the primitives
+	float UniformScale = InScale.GetMax() > 1.0f ? InScale.GetMax() : InScale.GetMin() < 1.0f ? InScale.GetMin() : 1.0f;
+	// After the primitives have been scaled and transformed, we apply this inverse scale that flattens the dimension
+	// that was scaled up to prevent it from intersecting with the near plane.  In perspective this won't have any effect,
+	// but in the ortho viewports it will prevent scaling in the direction of the camera and thus intersecting the near plane.
+	FVector FlattenScale = FVector(InScale.Component(0) == 1.0f ? 1.0f / UniformScale : 1.0f, InScale.Component(1) == 1.0f ? 1.0f / UniformScale : 1.0f, InScale.Component(2) == 1.0f ? 1.0f / UniformScale : 1.0f);
+
+	FScaleMatrix Scale(UniformScale);
 	ArrowToWorld = Scale * ArrowToWorld;
 
 	if( bDrawWidget )
@@ -227,36 +235,33 @@ void FWidget::Render_Axis( const FSceneView* View, FPrimitiveDrawInterface* PDI,
 		{
 			case EAxisList::X:
 			{
-				DrawCylinder( PDI, Scale * FRotationMatrix( FRotator(-90,0.f,0) ) * InMatrix, Offset, FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), CylinderRadius, HalfHeight, 16, InMaterial->GetRenderProxy(false), SDPG_Foreground );
+				DrawCylinder(PDI, ( Scale * FRotationMatrix(FRotator(-90, 0.f, 0)) * InMatrix ) * FScaleMatrix(FlattenScale), Offset, FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), CylinderRadius, HalfHeight, 16, InMaterial->GetRenderProxy(false), SDPG_Foreground);
 				break;
 			}
 			case EAxisList::Y:
 			{
-				DrawCylinder( PDI, Scale * FRotationMatrix( FRotator(0,0,90) ) * InMatrix, Offset, FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), CylinderRadius, HalfHeight, 16, InMaterial->GetRenderProxy(false), SDPG_Foreground );
+				DrawCylinder(PDI, (Scale * FRotationMatrix(FRotator(0, 0, 90)) * InMatrix)* FScaleMatrix(FlattenScale), Offset, FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), CylinderRadius, HalfHeight, 16, InMaterial->GetRenderProxy(false), SDPG_Foreground );
 				break;
 			}
 			case EAxisList::Z:
 			{
-				DrawCylinder( PDI, Scale * InMatrix, Offset, FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), CylinderRadius, HalfHeight, 16, InMaterial->GetRenderProxy(false), SDPG_Foreground );
+				DrawCylinder(PDI, ( Scale * InMatrix ) * FScaleMatrix(FlattenScale), Offset, FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), CylinderRadius, HalfHeight, 16, InMaterial->GetRenderProxy(false), SDPG_Foreground);
 				break;
 			}
 		}
-		//PDI->DrawLine( ArrowToWorld.TransformPosition(FVector(8,0,0)), ArrowToWorld.TransformPosition(FVector(48,0,0)), *InColor, SDPG_Foreground );
-
-		FDynamicMeshBuilder MeshBuilder;
 
 		if ( bCubeHead )
 		{
-			FVector RootPos(38,0,0);
+			FVector RootPos(38, 0, 0);
 
-			Render_Cube( PDI, FTranslationMatrix(RootPos)*ArrowToWorld, InMaterial, 4.0f );
+			Render_Cube(PDI, (FTranslationMatrix(RootPos) * ArrowToWorld) * FScaleMatrix(FlattenScale), InMaterial, FVector(4.0f));
 		}
 		else
 		{
-			FVector RootPos(47,0,0);
+			FVector RootPos(47, 0, 0);
 
-			float Angle = FMath::DegreesToRadians( PI*5 );
-			DrawCone( PDI, FScaleMatrix(-13)*FTranslationMatrix(RootPos)*ArrowToWorld, Angle, Angle, 32, false, FColor::White, InMaterial->GetRenderProxy( false ), SDPG_Foreground );
+			float Angle = FMath::DegreesToRadians( PI * 5 );
+			DrawCone(PDI, ( FScaleMatrix(-13) * FTranslationMatrix(RootPos) * ArrowToWorld ) * FScaleMatrix(FlattenScale), Angle, Angle, 32, false, FColor::White, InMaterial->GetRenderProxy(false), SDPG_Foreground);
 		}
 	
 		PDI->SetHitProxy( NULL );
@@ -268,9 +273,9 @@ void FWidget::Render_Axis( const FSceneView* View, FPrimitiveDrawInterface* PDI,
 	}
 }
 
-void FWidget::Render_Cube( FPrimitiveDrawInterface* PDI, const FMatrix& InMatrix, const UMaterialInterface* InMaterial, float InScale )
+void FWidget::Render_Cube( FPrimitiveDrawInterface* PDI, const FMatrix& InMatrix, const UMaterialInterface* InMaterial, const FVector& InScale )
 {
-	const FMatrix CubeToWorld = FScaleMatrix(FVector(InScale,InScale,InScale)) * InMatrix;
+	const FMatrix CubeToWorld = FScaleMatrix(InScale) * InMatrix;
 	DrawBox( PDI, CubeToWorld, FVector(1,1,1), InMaterial->GetRenderProxy( false ), SDPG_Foreground );
 }
 
@@ -350,19 +355,16 @@ void DrawCornerHelper( FPrimitiveDrawInterface* PDI, const FMatrix& LocalToWorld
 	MeshBuilder.Draw(PDI,LocalToWorld,MaterialRenderProxy,DepthPriorityGroup,0.f);
 }
 
-void DrawDualAxis( FPrimitiveDrawInterface* PDI,const FMatrix& BoxToWorld,const FVector& Length, float Thickness, const FMaterialRenderProxy* AxisMat,const FMaterialRenderProxy* Axis2Mat )
+void DrawDualAxis( FPrimitiveDrawInterface* PDI, const FMatrix& BoxToWorld,const FVector& Length, float Thickness, const FMaterialRenderProxy* AxisMat,const FMaterialRenderProxy* Axis2Mat )
 {
-	DrawCornerHelper( PDI, BoxToWorld, Length, Thickness, Axis2Mat, SDPG_Foreground );
-	DrawCornerHelper( PDI, FScaleMatrix(FVector(-1,1,1))*FRotationMatrix(FRotator(-90,0,0))*BoxToWorld, Length, Thickness, AxisMat, SDPG_Foreground );
-
+	DrawCornerHelper(PDI, BoxToWorld, Length, Thickness, Axis2Mat, SDPG_Foreground);
+	DrawCornerHelper(PDI, FScaleMatrix(FVector(-1, 1, 1)) * FRotationMatrix(FRotator(-90, 0, 0)) * BoxToWorld, Length, Thickness, AxisMat, SDPG_Foreground);
 }
 /**
  * Draws the translation widget.
  */
 void FWidget::Render_Translate( const FSceneView* View, FPrimitiveDrawInterface* PDI, FEditorViewportClient* ViewportClient, const FVector& InLocation, bool bDrawWidget )
 {
-	float Scale = View->WorldToScreen( InLocation ).W * ( 4.0f / View->ViewRect.Width() / View->ViewMatrices.ProjMatrix.M[0][0] );
-
 	// Figure out axis colors
 	const FLinearColor& XColor = ( CurrentAxis&EAxisList::X ? (FLinearColor)CurrentColor : AxisColorX );
 	const FLinearColor& YColor = ( CurrentAxis&EAxisList::Y ? (FLinearColor)CurrentColor : AxisColorY );
@@ -385,6 +387,26 @@ void FWidget::Render_Translate( const FSceneView* View, FPrimitiveDrawInterface*
 
 	const bool bDisabled = IsWidgetDisabled();
 
+	FVector Scale;
+	float UniformScale = View->WorldToScreen(InLocation).W * ( 4.0f / View->ViewRect.Width() / View->ViewMatrices.ProjMatrix.M[0][0] );
+
+	if ( bIsOrthoXY )
+	{
+		Scale = FVector(UniformScale, UniformScale, 1.0f);
+	}
+	else if ( bIsOrthoXZ )
+	{
+		Scale = FVector(UniformScale, 1.0f, UniformScale);
+	}
+	else if ( bIsOrthoYZ )
+	{
+		Scale = FVector(1.0f, UniformScale, UniformScale);
+	}
+	else
+	{
+		Scale = FVector(UniformScale, UniformScale, UniformScale);
+	}
+
 	// Draw the axis lines with arrow heads
 	if( DrawAxis&EAxisList::X && (bIsPerspective || bIsLocalSpace || !bIsOrthoYZ) )
 	{
@@ -404,17 +426,20 @@ void FWidget::Render_Translate( const FSceneView* View, FPrimitiveDrawInterface*
 		Render_Axis( View, PDI, EAxisList::Z, WidgetMatrix, ZMaterial, ZColor, ZAxisEnd, Scale, bDrawWidget );
 	}
 
-	
 	// Draw the grabbers
 	if( bDrawWidget )
 	{
-		FVector CornerPos = FVector(7,0,7)*Scale;
-		FVector AxisSize = FVector(12,1.2,12)*Scale;
-		float CornerLength = 1.2f*Scale;
+		FVector CornerPos = FVector(7, 0, 7) * UniformScale;
+		FVector AxisSize = FVector(12, 1.2, 12) * UniformScale;
+		float CornerLength = 1.2f * UniformScale;
+
+		// After the primitives have been scaled and transformed, we apply this inverse scale that flattens the dimension
+		// that was scaled up to prevent it from intersecting with the near plane.  In perspective this won't have any effect,
+		// but in the ortho viewports it will prevent scaling in the direction of the camera and thus intersecting the near plane.
+		FVector FlattenScale = FVector(Scale.Component(0) == 1.0f ? 1.0f / UniformScale : 1.0f, Scale.Component(1) == 1.0f ? 1.0f / UniformScale : 1.0f, Scale.Component(2) == 1.0f ? 1.0f / UniformScale : 1.0f);
 
 		if( bIsPerspective || bIsLocalSpace || View->ViewMatrices.ViewMatrix.M[2][1] == 0.f )
 		{
-
 			if( (DrawAxis&EAxisList::XY) == EAxisList::XY )							// Top
 			{
 				UMaterialInstanceDynamic* XMaterial = ( (CurrentAxis&EAxisList::XY) == EAxisList::XY ? CurrentAxisMaterial : AxisMaterialX );
@@ -422,10 +447,7 @@ void FWidget::Render_Translate( const FSceneView* View, FPrimitiveDrawInterface*
 
 				PDI->SetHitProxy( new HWidgetAxis(EAxisList::XY, bDisabled) );
 				{
-					DrawDualAxis( PDI, FTranslationMatrix( CornerPos )*FRotationMatrix( FRotator( 0, 0, 90 ) ) * WidgetMatrix, AxisSize, CornerLength, XMaterial->GetRenderProxy(false), YMaterial->GetRenderProxy(false) );
-
-					//PDI->DrawLine( WidgetMatrix.TransformPosition(FVector(16,0,0) * Scale), WidgetMatrix.TransformPosition(FVector(16,16,0) * Scale), XColor, SDPG_Foreground );
-					//PDI->DrawLine( WidgetMatrix.TransformPosition(FVector(16,16,0) * Scale), WidgetMatrix.TransformPosition(FVector(0,16,0) * Scale), YColor, SDPG_Foreground );
+					DrawDualAxis(PDI, ( FTranslationMatrix(CornerPos) * FRotationMatrix(FRotator(0, 0, 90)) * WidgetMatrix ) * FScaleMatrix(FlattenScale), AxisSize, CornerLength, XMaterial->GetRenderProxy(false), YMaterial->GetRenderProxy(false));
 				}
 				PDI->SetHitProxy( NULL );
 			}
@@ -440,11 +462,7 @@ void FWidget::Render_Translate( const FSceneView* View, FPrimitiveDrawInterface*
 
 				PDI->SetHitProxy( new HWidgetAxis(EAxisList::XZ, bDisabled) );
 				{
-
-					DrawDualAxis( PDI, FTranslationMatrix( CornerPos )*WidgetMatrix, AxisSize, CornerLength, XMaterial->GetRenderProxy(false), ZMaterial->GetRenderProxy(false) );
-
-					//PDI->DrawLine( WidgetMatrix.TransformPosition(FVector(16,0,0) * Scale), WidgetMatrix.TransformPosition(FVector(16,0,16) * Scale), XColor, SDPG_Foreground );
-					//PDI->DrawLine( WidgetMatrix.TransformPosition(FVector(16,0,16) * Scale), WidgetMatrix.TransformPosition(FVector(0,0,16) * Scale), ZColor, SDPG_Foreground );
+					DrawDualAxis(PDI, (FTranslationMatrix(CornerPos) * WidgetMatrix) * FScaleMatrix(FlattenScale), AxisSize, CornerLength, XMaterial->GetRenderProxy(false), ZMaterial->GetRenderProxy(false) );
 				}
 				PDI->SetHitProxy( NULL );
 			}
@@ -459,10 +477,7 @@ void FWidget::Render_Translate( const FSceneView* View, FPrimitiveDrawInterface*
 
 				PDI->SetHitProxy( new HWidgetAxis(EAxisList::YZ, bDisabled) );
 				{
-					DrawDualAxis( PDI, FTranslationMatrix( CornerPos ) *FRotationMatrix( FRotator( 0, 90, 0 ) ) * WidgetMatrix, AxisSize, CornerLength, YMaterial->GetRenderProxy(false), ZMaterial->GetRenderProxy( false ) );
-
-					//PDI->DrawLine( WidgetMatrix.TransformPosition(FVector(0,16,0) * Scale), WidgetMatrix.TransformPosition(FVector(0,16,16) * Scale), YColor, SDPG_Foreground );
-					//PDI->DrawLine( WidgetMatrix.TransformPosition(FVector(0,16,16) * Scale), WidgetMatrix.TransformPosition(FVector(0,0,16) * Scale), ZColor, SDPG_Foreground );
+					DrawDualAxis(PDI, (FTranslationMatrix(CornerPos) * FRotationMatrix(FRotator(0, 90, 0)) * WidgetMatrix) * FScaleMatrix(FlattenScale), AxisSize, CornerLength, YMaterial->GetRenderProxy(false), ZMaterial->GetRenderProxy(false) );
 				}
 				PDI->SetHitProxy( NULL );
 			}
@@ -478,11 +493,10 @@ void FWidget::Render_Translate( const FSceneView* View, FPrimitiveDrawInterface*
 		const FVector CameraZAxis = View->ViewMatrices.ViewMatrix.GetColumn(2);
 
 		UMaterialInstanceDynamic* XYZMaterial = ( CurrentAxis&EAxisList::Screen) ? CurrentAxisMaterial : OpaquePlaneMaterialXY;
-		DrawSphere( PDI, InLocation, FVector( 4.0f * Scale ), 10, 5, XYZMaterial->GetRenderProxy(false), SDPG_Foreground );
+		DrawSphere( PDI, InLocation, 4.0f * Scale, 10, 5, XYZMaterial->GetRenderProxy(false), SDPG_Foreground );
 
 		PDI->SetHitProxy( NULL );
 	}
-
 }
 
 /**
@@ -537,8 +551,6 @@ void FWidget::Render_Rotate( const FSceneView* View,FPrimitiveDrawInterface* PDI
  */
 void FWidget::Render_Scale( const FSceneView* View,FPrimitiveDrawInterface* PDI, FEditorViewportClient* ViewportClient, const FVector& InLocation, bool bDrawWidget )
 {
-	const float Scale = View->WorldToScreen( InLocation ).W * ( 4.0f / View->ViewRect.Width() / View->ViewMatrices.ProjMatrix.M[0][0] );
-
 	// Figure out axis colors
 	const FLinearColor& XColor = ( CurrentAxis&EAxisList::X ? (FLinearColor)CurrentColor : AxisColorX );
 	const FLinearColor& YColor = ( CurrentAxis&EAxisList::Y ? (FLinearColor)CurrentColor : AxisColorY );
@@ -562,6 +574,26 @@ void FWidget::Render_Scale( const FSceneView* View,FPrimitiveDrawInterface* PDI,
 	const bool bIsOrthoXY = !bIsPerspective && FMath::Abs(View->ViewMatrices.ViewMatrix.M[2][2]) > 0.0f;
 	const bool bIsOrthoXZ = !bIsPerspective && FMath::Abs(View->ViewMatrices.ViewMatrix.M[1][2]) > 0.0f;
 	const bool bIsOrthoYZ = !bIsPerspective && FMath::Abs(View->ViewMatrices.ViewMatrix.M[0][2]) > 0.0f;
+
+	FVector Scale;
+	const float UniformScale = View->WorldToScreen(InLocation).W * ( 4.0f / View->ViewRect.Width() / View->ViewMatrices.ProjMatrix.M[0][0] );
+
+	if ( bIsOrthoXY )
+	{
+		Scale = FVector(UniformScale, UniformScale, 1.0f);
+	}
+	else if ( bIsOrthoXZ )
+	{
+		Scale = FVector(UniformScale, 1.0f, UniformScale);
+	}
+	else if ( bIsOrthoYZ )
+	{
+		Scale = FVector(1.0f, UniformScale, UniformScale);
+	}
+	else
+	{
+		Scale = FVector(UniformScale, UniformScale, UniformScale);
+	}
 
 	// Draw the axis lines with cube heads	
 	if( !bIsOrthoYZ && DrawAxis&EAxisList::X )
@@ -633,8 +665,6 @@ void FWidget::Render_Scale( const FSceneView* View,FPrimitiveDrawInterface* PDI,
 
 void FWidget::Render_TranslateRotateZ( const FSceneView* View, FPrimitiveDrawInterface* PDI, FEditorViewportClient* ViewportClient, const FVector& InLocation, bool bDrawWidget )
 {
-	float Scale = View->WorldToScreen( InLocation ).W * ( 4.0f / View->ViewRect.Width() / View->ViewMatrices.ProjMatrix.M[0][0] );
-
 	// Figure out axis colors
 
 	FColor XYPlaneColor  = ( (CurrentAxis&EAxisList::XY) ==  EAxisList::XY) ? CurrentColor : PlaneColorXY;
@@ -653,12 +683,35 @@ void FWidget::Render_TranslateRotateZ( const FSceneView* View, FPrimitiveDrawInt
 	FMatrix AxisMatrix = CustomCoordSystem * FTranslationMatrix( InLocation );
 
 	bool bIsPerspective = ( View->ViewMatrices.ProjMatrix.M[3][3] < 1.0f );
+	const bool bIsOrthoXY = !bIsPerspective && FMath::Abs(View->ViewMatrices.ViewMatrix.M[2][2]) > 0.0f;
+	const bool bIsOrthoXZ = !bIsPerspective && FMath::Abs(View->ViewMatrices.ViewMatrix.M[1][2]) > 0.0f;
+	const bool bIsOrthoYZ = !bIsPerspective && FMath::Abs(View->ViewMatrices.ViewMatrix.M[0][2]) > 0.0f;
 
 	// For local space widgets, we always want to draw all three axis, since they may not be aligned with
 	// the orthographic projection anyway.
 	bool bIsLocalSpace = ( ViewportClient->GetWidgetCoordSystemSpace() == COORD_Local );
 
 	EAxisList::Type DrawAxis = GetAxisToDraw( ViewportClient->GetWidgetMode() );
+
+	FVector Scale;
+	float UniformScale = View->WorldToScreen(InLocation).W * ( 4.0f / View->ViewRect.Width() / View->ViewMatrices.ProjMatrix.M[0][0] );
+
+	if ( bIsOrthoXY )
+	{
+		Scale = FVector(UniformScale, UniformScale, 1.0f);
+	}
+	else if ( bIsOrthoXZ )
+	{
+		Scale = FVector(UniformScale, 1.0f, UniformScale);
+	}
+	else if ( bIsOrthoYZ )
+	{
+		Scale = FVector(1.0f, UniformScale, UniformScale);
+	}
+	else
+	{
+		Scale = FVector(UniformScale, UniformScale, UniformScale);
+	}
 
 	// Draw the grabbers
 	if( bDrawWidget )
@@ -686,10 +739,10 @@ void FWidget::Render_TranslateRotateZ( const FSceneView* View, FPrimitiveDrawInt
 		{
 			PDI->SetHitProxy( new HWidgetAxis(EAxisList::ZRotation, bDisabled) );
 			{
-				float ScaledRadius = TRANSLATE_ROTATE_AXIS_CIRCLE_RADIUS*Scale;
+				float ScaledRadius = TRANSLATE_ROTATE_AXIS_CIRCLE_RADIUS * UniformScale;
 				FVector XAxis = CustomCoordSystem.TransformPosition( FVector(1,0,0).RotateAngleAxis( (EditorModeTools ? EditorModeTools->TranslateRotateXAxisAngle : 0 ), FVector(0,0,1)) );
 				FVector YAxis = CustomCoordSystem.TransformPosition( FVector(0,1,0).RotateAngleAxis( (EditorModeTools ? EditorModeTools->TranslateRotateXAxisAngle : 0 ), FVector(0,0,1)) );
-				FVector BaseArrowPoint = InLocation + XAxis*ScaledRadius;
+				FVector BaseArrowPoint = InLocation + XAxis * ScaledRadius;
 				DrawFlatArrow(PDI, BaseArrowPoint, XAxis, YAxis, ZRotateColor, ScaledRadius, ScaledRadius*.5f, ZRotateMaterial->GetRenderProxy(false), SDPG_Foreground);
 			}
 			PDI->SetHitProxy( NULL );
@@ -702,9 +755,9 @@ void FWidget::Render_TranslateRotateZ( const FSceneView* View, FPrimitiveDrawInt
 			{
 				PDI->SetHitProxy( new HWidgetAxis(EAxisList::XY, bDisabled) );
 				{
-					DrawCircle( PDI, InLocation, CustomCoordSystem.TransformPosition( FVector(1,0,0) ), CustomCoordSystem.TransformPosition( FVector(0,1,0) ), XYPlaneColor, TRANSLATE_ROTATE_AXIS_CIRCLE_RADIUS*Scale, AXIS_CIRCLE_SIDES, SDPG_Foreground );
+					DrawCircle( PDI, InLocation, CustomCoordSystem.TransformPosition( FVector(1,0,0) ), CustomCoordSystem.TransformPosition( FVector(0,1,0) ), XYPlaneColor, TRANSLATE_ROTATE_AXIS_CIRCLE_RADIUS * UniformScale, AXIS_CIRCLE_SIDES, SDPG_Foreground );
 					XYPlaneColor.A = ((CurrentAxis&EAxisList::XY) == EAxisList::XY) ? 0x3f : 0x0f;	//make the disc transparent
-					DrawDisc  ( PDI, InLocation, CustomCoordSystem.TransformPosition( FVector(1,0,0) ), CustomCoordSystem.TransformPosition( FVector(0,1,0) ), XYPlaneColor, TRANSLATE_ROTATE_AXIS_CIRCLE_RADIUS*Scale, AXIS_CIRCLE_SIDES, TransparentPlaneMaterialXY->GetRenderProxy(false), SDPG_Foreground );
+					DrawDisc  ( PDI, InLocation, CustomCoordSystem.TransformPosition( FVector(1,0,0) ), CustomCoordSystem.TransformPosition( FVector(0,1,0) ), XYPlaneColor, TRANSLATE_ROTATE_AXIS_CIRCLE_RADIUS * UniformScale, AXIS_CIRCLE_SIDES, TransparentPlaneMaterialXY->GetRenderProxy(false), SDPG_Foreground );
 				}
 				PDI->SetHitProxy( NULL );
 			}
@@ -717,8 +770,8 @@ void FWidget::Render_TranslateRotateZ( const FSceneView* View, FPrimitiveDrawInt
  */
 void FWidget::ConvertMouseMovementToAxisMovement( FEditorViewportClient* InViewportClient, const FVector& InLocation, const FVector& InDiff, FVector& InDrag, FRotator& InRotation, FVector& InScale )
 {
- 	FSceneViewFamilyContext ViewFamily( FSceneViewFamily::ConstructionValues( InViewportClient->Viewport, InViewportClient->GetScene(), InViewportClient->EngineShowFlags ));
- 	FSceneView* View = InViewportClient->CalcSceneView(&ViewFamily);
+	FSceneViewFamilyContext ViewFamily( FSceneViewFamily::ConstructionValues( InViewportClient->Viewport, InViewportClient->GetScene(), InViewportClient->EngineShowFlags ));
+	FSceneView* View = InViewportClient->CalcSceneView(&ViewFamily);
 
 	FPlane Wk;
 	FVector2D AxisEnd;

@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <IntPoint.h>
+#include "IntPoint.h"
  
 /**
  * Exec handler that registers itself and is being routed via StaticExec.

@@ -92,7 +92,7 @@ public:
 
 void FTestSessionInterface::Test(UWorld* InWorld, bool bTestLAN, bool bIsPresence)
 {
-	IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get(FName(*Subsystem));
+	IOnlineSubsystem* OnlineSub = Online::GetSubsystem(InWorld, FName(*Subsystem));
 	check(OnlineSub); 
 
 	World = InWorld;
@@ -368,7 +368,7 @@ bool FTestSessionInterface::Tick(float DeltaTime)
 	return true;
 }
 
-bool FTestSessionInterface::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
+bool FTestSessionInterface::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 {
 	bool bWasHandled = false;
 
@@ -496,7 +496,7 @@ bool FTestSessionInterface::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevi
 		{
 			if (FParse::Command(&Cmd, TEXT("UI")))
 			{
-				IOnlineSubsystem::Get(FName(*Subsystem))->GetExternalUIInterface()->ShowInviteUI(LocalUserNum);
+				Online::GetSubsystem(InWorld, FName(*Subsystem))->GetExternalUIInterface()->ShowInviteUI(LocalUserNum);
 			}
 			else
 			{

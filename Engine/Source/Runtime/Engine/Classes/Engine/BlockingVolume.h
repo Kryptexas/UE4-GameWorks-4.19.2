@@ -10,7 +10,7 @@
 #include "BlockingVolume.generated.h"
 
 UCLASS(MinimalAPI)
-class ABlockingVolume : public AVolume, public INavRelevantActorInterface
+class ABlockingVolume : public AVolume
 {
 	GENERATED_UCLASS_BODY()
 

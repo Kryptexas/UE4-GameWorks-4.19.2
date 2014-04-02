@@ -81,7 +81,7 @@ public:
 		static const FName OnlineSubsystemModuleName = TEXT("OnlineSubsystem");
 		FOnlineSubsystemModule& OSSModule = FModuleManager::GetModuleChecked<FOnlineSubsystemModule>(OnlineSubsystemModuleName); 
 		return OSSModule.GetOnlineSubsystem(SubsystemName); 
-	}
+  	}
 
 	/** 
 	 * Determine if the subsystem for a given interface is already loaded

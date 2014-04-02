@@ -305,6 +305,7 @@ public:
 	virtual void PreSave() OVERRIDE;
 	virtual void PostLoad() OVERRIDE;
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) OVERRIDE;
+	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const OVERRIDE;
 	// End UObject interface.
 
 
@@ -426,6 +427,9 @@ public:
 	}
 	/** Decide if this psys can tick in any thread, and set bIsElligibleForAsyncTick */
 	ENGINE_API void ComputeCanTickInAnyThread();
+
+	/** Returns true if this system contains any GPU emitters. */
+	bool HasGPUEmitter() const;
 
 };
 

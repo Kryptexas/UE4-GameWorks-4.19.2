@@ -336,31 +336,29 @@ FBoxSphereBounds ULandscapeGizmoRenderComponent::CalcBounds(const FTransform & L
 ALandscapeGizmoActor::ALandscapeGizmoActor(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	// Structure to hold one-time initialization
-	struct FConstructorStatics
-	{
-		ConstructorHelpers::FObjectFinderOptional<UTexture2D> DecalActorIconTexture;
-		FName ID_Misc;
-		FText NAME_Misc;
-		FConstructorStatics()
-			: DecalActorIconTexture(TEXT("Texture2D'/Engine/EditorResources/S_DecalActorIcon.S_DecalActorIcon'"))
-			, ID_Misc(TEXT("Misc"))
-			, NAME_Misc(NSLOCTEXT( "SpriteCategory", "Misc", "Misc" ))
-		{
-		}
-	};
-	static FConstructorStatics ConstructorStatics;
-
-#if WITH_EDITOR
+#if WITH_EDITORONLY_DATA
 	SpriteComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
-	if (SpriteComponent)
+	if (!IsRunningCommandlet() && (SpriteComponent != nullptr))
 	{
+		// Structure to hold one-time initialization
+		struct FConstructorStatics
+		{
+			ConstructorHelpers::FObjectFinderOptional<UTexture2D> DecalActorIconTexture;
+			FName ID_Misc;
+			FText NAME_Misc;
+			FConstructorStatics()
+				: DecalActorIconTexture(TEXT("Texture2D'/Engine/EditorResources/S_DecalActorIcon.S_DecalActorIcon'"))
+				, ID_Misc(TEXT("Misc"))
+				, NAME_Misc(NSLOCTEXT("SpriteCategory", "Misc", "Misc"))
+			{
+			}
+		};
+		static FConstructorStatics ConstructorStatics;
+
 		SpriteComponent->Sprite = ConstructorStatics.DecalActorIconTexture.Get();
 		SpriteComponent->bHiddenInGame = true;
-#if WITH_EDITORONLY_DATA
 		SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Misc;
 		SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Misc;
-#endif // WITH_EDITORONLY_DATA
 		SpriteComponent->bIsScreenSizeScaled = true;
 	}
 #endif

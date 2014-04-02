@@ -17,20 +17,6 @@ AEQSTestingPawn::AEQSTestingPawn(const class FPostConstructInitializeProperties&
 	, bDrawFailedItems(true)
 	, bReRunQueryOnlyOnFinishedMove(true)
 {
-	struct FConstructorStatics
-	{
-		ConstructorHelpers::FObjectFinderOptional<UTexture2D> TextureObject;
-		FName ID_Misc;
-		FText NAME_Misc;
-		FConstructorStatics()
-			: TextureObject(TEXT("/Engine/EditorResources/S_Pawn"))
-			, ID_Misc(TEXT("Misc"))
-			, NAME_Misc(NSLOCTEXT( "SpriteCategory", "Misc", "Misc" ))
-		{
-		}
-	};
-	static FConstructorStatics ConstructorStatics;
-
 	static FName CollisionProfileName(TEXT("NoCollision"));
 	CapsuleComponent->SetCollisionProfileName(CollisionProfileName);
 
@@ -43,15 +29,27 @@ AEQSTestingPawn::AEQSTestingPawn(const class FPostConstructInitializeProperties&
 	}
 
 	TSubobjectPtr<UBillboardComponent> SpriteComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
-	if (SpriteComponent)
+	if (!IsRunningCommandlet() && (SpriteComponent != nullptr))
 	{
+		struct FConstructorStatics
+		{
+			ConstructorHelpers::FObjectFinderOptional<UTexture2D> TextureObject;
+			FName ID_Misc;
+			FText NAME_Misc;
+			FConstructorStatics()
+				: TextureObject(TEXT("/Engine/EditorResources/S_Pawn"))
+				, ID_Misc(TEXT("Misc"))
+				, NAME_Misc(NSLOCTEXT("SpriteCategory", "Misc", "Misc"))
+			{
+			}
+		};
+		static FConstructorStatics ConstructorStatics;
+
 		SpriteComponent->Sprite = ConstructorStatics.TextureObject.Get();
 		SpriteComponent->bHiddenInGame = true;
 		//SpriteComponent->Mobility = EComponentMobility::Static;
-#if WITH_EDITORONLY_DATA
 		SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Misc;
 		SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Misc;
-#endif // WITH_EDITORONLY_DATA
 		SpriteComponent->AttachParent = RootComponent;
 		SpriteComponent->bIsScreenSizeScaled = true;
 	}

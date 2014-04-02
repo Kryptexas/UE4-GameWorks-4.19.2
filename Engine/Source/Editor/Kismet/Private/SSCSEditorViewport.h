@@ -32,6 +32,13 @@ public:
 	void Invalidate();
 
 	/**
+	 * Sets whether or not the preview should be enabled.
+	 *
+	 * @param bEnable Whether or not to enable the preview.
+	 */
+	void EnablePreview(bool bEnable);
+
+	/**
 	 * Request a refresh of the preview scene/world. Will recreate actors as needed.
 	 *
 	 * @param bResetCamera If true, the camera will be reset to its default position based on the preview.

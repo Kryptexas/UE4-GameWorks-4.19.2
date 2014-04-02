@@ -343,7 +343,7 @@ public:
 	/** Asks generator to update navigation affected by DirtyAreas */
 	virtual void RebuildDirtyAreas(const TArray<FNavigationDirtyArea>& DirtyAreas) OVERRIDE;
 
-	virtual void TiggerGeneration() OVERRIDE;
+	virtual void TriggerGeneration() OVERRIDE;
 
 	virtual bool IsBuildInProgress(bool bCheckDirtyToo = false) const OVERRIDE;
 

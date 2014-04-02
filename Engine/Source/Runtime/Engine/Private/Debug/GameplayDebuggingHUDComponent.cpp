@@ -163,7 +163,7 @@ void AGameplayDebuggingHUDComponent::DrawDebugComponentData(APlayerController* M
 			DrawPerception(MyPC, DebugComponent);
 		}
 
-		DrawGameSpecyficView(MyPC, DebugComponent);
+		DrawGameSpecificView(MyPC, DebugComponent);
 	}
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }

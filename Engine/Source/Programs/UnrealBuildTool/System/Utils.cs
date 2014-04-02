@@ -468,7 +468,7 @@ namespace UnrealBuildTool
 			for (int Index = 0; Index < FilePath.Length; ++Index)
 			{
 				char C = FilePath[Index];				
-				if (C == Path.DirectorySeparatorChar || C == Path.AltDirectorySeparatorChar)
+				if (C == '/' || C == '\\')
 				{
 					C = UseDirectorySeparatorChar;
 					if (bCanCheckDoubleSeparators && C == PrevC)

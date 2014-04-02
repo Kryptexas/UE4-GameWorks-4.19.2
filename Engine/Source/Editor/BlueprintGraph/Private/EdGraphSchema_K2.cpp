@@ -576,6 +576,25 @@ bool UEdGraphSchema_K2::DoesGraphSupportImpureFunctions(const UEdGraph* InGraph)
 	return bAllowImpureFuncs;
 }
 
+bool UEdGraphSchema_K2::IsPropertyExposedOnSpawn(const UProperty* Property)
+{
+	if (Property)
+	{
+		const bool bMeta = Property->HasMetaData(FBlueprintMetadata::MD_ExposeOnSpawn);
+		const bool bFlag = Property->HasAllPropertyFlags(CPF_ExposeOnSpawn);
+		if (bMeta != bFlag)
+		{
+			UE_LOG(LogBlueprint, Warning
+				, TEXT("ExposeOnSpawn ambiguity. Property '%s', MetaData '%s', Flag '%s'")
+				, *Property->GetFullName()
+				, bMeta ? *GTrue.ToString() : *GFalse.ToString()
+				, bFlag ? *GTrue.ToString() : *GFalse.ToString());
+		}
+		return bMeta || bFlag;
+	}
+	return false;
+}
+
 // if node is a get/set variable and the variable it refers to does not exist
 static bool IsUsingNonExistantVariable(const UEdGraphNode* InGraphNode, UBlueprint* OwnerBlueprint)
 {
@@ -633,11 +652,17 @@ void UEdGraphSchema_K2::GetContextMenuActions(const UEdGraph* CurrentGraph, cons
 						    LOCTEXT("BreakLinkTo", "Break Link To..."),
 						    LOCTEXT("BreakSpecificLinks", "Break a specific link..."),
 						    FNewMenuDelegate::CreateUObject( (UEdGraphSchema_K2*const)this, &UEdGraphSchema_K2::GetBreakLinkToSubMenuActions, const_cast<UEdGraphPin*>(InGraphPin)));
+
+						MenuBuilder->AddSubMenu(
+							LOCTEXT("JumpToConnection", "Jump to Connection..."),
+							LOCTEXT("JumpToSpecificConnection", "Jump to specific connection..."),
+							FNewMenuDelegate::CreateUObject( (UEdGraphSchema_K2*const)this, &UEdGraphSchema_K2::GetJumpToConnectionSubMenuActions, const_cast<UEdGraphPin*>(InGraphPin)));
 				    }
 				    else
 				    {
 					    ((UEdGraphSchema_K2*const)this)->GetBreakLinkToSubMenuActions(*MenuBuilder, const_cast<UEdGraphPin*>(InGraphPin));
-				    }
+						((UEdGraphSchema_K2*const)this)->GetJumpToConnectionSubMenuActions(*MenuBuilder, const_cast<UEdGraphPin*>(InGraphPin));
+					}
 			    }
     
 			    // Conditionally add the var promotion pin if this is an output pin and it's not an exec pin
@@ -912,6 +937,49 @@ void UEdGraphSchema_K2::GetBreakLinkToSubMenuActions( class FMenuBuilder& MenuBu
 
 		MenuBuilder.AddMenuEntry( Description, Description, FSlateIcon(), FUIAction(
 			FExecuteAction::CreateUObject((USoundClassGraphSchema*const)this, &USoundClassGraphSchema::BreakSinglePinLink, const_cast< UEdGraphPin* >(InGraphPin), *Links) ) );
+	}
+}
+
+void UEdGraphSchema_K2::GetJumpToConnectionSubMenuActions( class FMenuBuilder& MenuBuilder, UEdGraphPin* InGraphPin )
+{
+	// Make sure we have a unique name for every entry in the list
+	TMap< FString, uint32 > LinkTitleCount;
+
+	// Add all the links we could break from
+	for(auto PinLink : InGraphPin->LinkedTo )
+	{
+		FString TitleString = PinLink->GetOwningNode()->GetNodeTitle(ENodeTitleType::ListView);
+		FText Title = FText::FromString( TitleString );
+		if ( PinLink->PinName != TEXT("") )
+		{
+			TitleString = FString::Printf(TEXT("%s (%s)"), *TitleString, *PinLink->PinName);
+
+			// Add name of connection if possible
+			FFormatNamedArguments Args;
+			Args.Add( TEXT("NodeTitle"), Title );
+			Args.Add( TEXT("PinName"), FText::FromString( PinLink->PinName ) );
+			Title = FText::Format( LOCTEXT("JumpToDescPin", "{NodeTitle} ({PinName})"), Args );
+		}
+
+		uint32 &Count = LinkTitleCount.FindOrAdd( TitleString );
+
+		FText Description;
+		FFormatNamedArguments Args;
+		Args.Add( TEXT("NodeTitle"), Title );
+		Args.Add( TEXT("NumberOfNodes"), Count );
+
+		if ( Count == 0 )
+		{
+			Description = FText::Format( LOCTEXT("JumpDesc", "Jump to {NodeTitle}"), Args );
+		}
+		else
+		{
+			Description = FText::Format( LOCTEXT("JumpDescMulti", "Jump to {NodeTitle} ({NumberOfNodes})"), Args );
+		}
+		++Count;
+
+		MenuBuilder.AddMenuEntry( Description, Description, FSlateIcon(), FUIAction(
+		FExecuteAction::CreateStatic(&FKismetEditorUtilities::BringKismetToFocusAttentionOnObject, Cast<const UObject>(PinLink), false)));
 	}
 }
 
@@ -1274,6 +1342,19 @@ bool UEdGraphSchema_K2::SearchForAutocastFunction(const UEdGraphPin* OutputPin, 
 		if(InputPin->PinType.PinCategory == PC_String)
 		{
 			TargetFunction = TEXT("Conv_TextToString");
+		}
+	}
+	else if ((OutputPin->PinType.PinCategory == PC_Object) && (InputPin->PinType.PinCategory == PC_Object))
+	{
+		UClass const* OutputClass = Cast<UClass const>(OutputPin->PinType.PinSubCategoryObject.Get());
+		bool const bOutputIsInterface = ((OutputClass != NULL) && OutputClass->IsChildOf(UInterface::StaticClass()));
+
+		UClass const* InputClass = Cast<UClass const>(InputPin->PinType.PinSubCategoryObject.Get());
+		bool const bInputIsUObject = ((InputClass != NULL) && (InputClass == UObject::StaticClass()));
+
+		if (bOutputIsInterface && bInputIsUObject)
+		{
+			TargetFunction = TEXT("Conv_InterfaceToObject");
 		}
 	}
 
@@ -2765,6 +2846,13 @@ bool UEdGraphSchema_K2::CanPromotePinToVariable( const UEdGraphPin& Pin ) const
 				bCanPromote = UEdGraphSchema_K2::IsAllowableBlueprintVariableType(Class);
 			}	
 		}
+		else if ((PinType.PinCategory == PC_Struct) && (PinType.PinSubCategoryObject != NULL))
+		{
+			if (UScriptStruct* Struct = Cast<UScriptStruct>(PinType.PinSubCategoryObject.Get()))
+			{
+				bCanPromote = UEdGraphSchema_K2::IsAllowableBlueprintVariableType(Struct);
+			}
+		}
 	}
 	
 	return bCanPromote;
@@ -3110,6 +3198,12 @@ void UEdGraphSchema_K2::BackwardCompatibilityNodeConversion(UEdGraph* Graph) con
 			UK2Node_MakeStruct* OldMakeStructNode = *It;
 			check(NULL != OldMakeStructNode);
 
+			// user may have since deleted the struct type
+			if (OldMakeStructNode->StructType == NULL)
+			{
+				continue;
+			}
+
 			// Check to see if the struct has a native make/break that we should try to convert to.
 			if(OldMakeStructNode->StructType->GetBoolMetaData(TEXT("HasNativeMakeBreak")))
 			{
@@ -3184,6 +3278,12 @@ void UEdGraphSchema_K2::BackwardCompatibilityNodeConversion(UEdGraph* Graph) con
 		{
 			UK2Node_BreakStruct* OldBreakStructNode = *It;
 			check(NULL != OldBreakStructNode);
+
+			// user may have since deleted the struct type
+			if (OldBreakStructNode->StructType == NULL)
+			{
+				continue;
+			}
 
 			// Check to see if the struct has a native make/break that we should try to convert to.
 			if(OldBreakStructNode->StructType->GetBoolMetaData(TEXT("HasNativeMakeBreak")))
@@ -3416,11 +3516,39 @@ TSharedPtr<FEdGraphSchemaAction> UEdGraphSchema_K2::GetCreateCommentAction() con
 	return TSharedPtr<FEdGraphSchemaAction>(static_cast<FEdGraphSchemaAction*>(new FEdGraphSchemaAction_K2AddComment));
 }
 
+bool UEdGraphSchema_K2::CanDuplicateGraph(UEdGraph* InSourceGraph) const
+{
+	if(GetGraphType(InSourceGraph) == GT_Function)
+	{
+		UBlueprint* SourceBP = FBlueprintEditorUtils::FindBlueprintForGraph(InSourceGraph);
+
+		// Do not duplicate graphs in Blueprint Interfaces
+		if(SourceBP->BlueprintType == BPTYPE_Interface)
+		{
+			return false;
+		}
+
+		// Do not duplicate functions from implemented interfaces
+		if( FBlueprintEditorUtils::FindFunctionInImplementedInterfaces(SourceBP, InSourceGraph->GetFName()) )
+		{
+			return false;
+		}
+
+		// Do not duplicate inherited functions
+		if( FindField<UFunction>(SourceBP->ParentClass, InSourceGraph->GetFName()) )
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
 UEdGraph* UEdGraphSchema_K2::DuplicateGraph(UEdGraph* GraphToDuplicate) const
 {
 	UEdGraph* NewGraph = NULL;
 
-	if (CanDuplicateGraph())
+	if (CanDuplicateGraph(GraphToDuplicate))
 	{
 		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(GraphToDuplicate);
 
@@ -3428,7 +3556,7 @@ UEdGraph* UEdGraphSchema_K2::DuplicateGraph(UEdGraph* GraphToDuplicate) const
 
 		if (NewGraph)
 		{
-			FEdGraphUtilities::RenameGraphCloseToName(NewGraph,GraphToDuplicate->GetName());
+			FEdGraphUtilities::RenameGraphCloseToName(NewGraph,GraphToDuplicate->GetFName().GetPlainNameString());
 
 			//Rename the entry node or any further renames will not update the entry node, also fixes a duplicate node issue on compile
 			for (int32 NodeIndex = 0; NodeIndex < NewGraph->Nodes.Num(); ++NodeIndex)

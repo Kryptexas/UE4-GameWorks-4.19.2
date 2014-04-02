@@ -25,17 +25,61 @@ public abstract class BaseLinuxPlatform : Platform
 
 	public override void GetFilesToDeployOrStage(ProjectParams Params, DeploymentContext SC)
 	{
-        SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Binaries", SC.PlatformDir), "*", false, null, CommandUtils.CombinePaths(SC.RelativeProjectRootForStage, "Binaries", SC.PlatformDir), false);
-
         if (SC.bStageCrashReporter)
         {
             SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir), "CrashReportClient", false);
         }
+
+        if (Params.bUsesSteam)
+        {
+            string SteamVersion = "Steamv128";
+            SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries/ThirdParty/Steamworks/" + SteamVersion, SC.PlatformDir), "libsteam_api.so", false, null, CombinePaths("Engine/Binaries", SC.PlatformDir));
+            SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Config"), "controller.vdf", false, null, CommandUtils.CombinePaths(SC.RelativeProjectRootForStage, "Saved/Config"));
+        }
+
+        List<string> Exes = GetExecutableNames(SC);
+
+        foreach (var Exe in Exes)
+        {
+
+            if (Exe.StartsWith(CombinePaths(SC.RuntimeProjectRootDir, "Binaries", SC.PlatformDir)))
+            {
+                // remap the project root. For Rocket executables, rename the executable to the game name.
+                if (Params.Rocket && Exe == Exes[0])
+                {
+                    SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Binaries", SC.PlatformDir), Path.GetFileNameWithoutExtension(Exe), true, null, CommandUtils.CombinePaths(SC.RelativeProjectRootForStage, "Binaries", SC.PlatformDir), false, true, SC.ShortProjectName);
+                }
+                else
+                {
+                    SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Binaries", SC.PlatformDir), Path.GetFileNameWithoutExtension(Exe), true, null, CommandUtils.CombinePaths(SC.RelativeProjectRootForStage, "Binaries", SC.PlatformDir), false);
+                }
+            }
+            else if (Exe.StartsWith(CombinePaths(SC.RuntimeRootDir, "Engine/Binaries", SC.PlatformDir)))
+            {
+                // Move the executable for non-code rocket projects into the game directory, using the game name, so it can figure out the UProject to look for and is consitent with code projects.
+                if (Params.Rocket && Exe == Exes[0])
+                {
+                    SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir), Path.GetFileNameWithoutExtension(Exe), true, null, CommandUtils.CombinePaths(SC.RelativeProjectRootForStage, "Binaries", SC.PlatformDir), false, true, SC.ShortProjectName);
+                }
+                else
+                {
+                    SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir), Path.GetFileNameWithoutExtension(Exe), true, null, null, false);
+                }
+            }
+            else
+            {
+                throw new AutomationException("Can't stage the exe {0} because it doesn't start with {1} or {2}", Exe, CombinePaths(SC.RuntimeProjectRootDir, "Binaries", SC.PlatformDir), CombinePaths(SC.RuntimeRootDir, "Engine/Binaries", SC.PlatformDir));
+            }
+        }
+
+        SC.StageFiles(StagedFileType.NonUFS, SC.ProjectRoot, SC.ShortProjectName + ".png", false, null, SC.RelativeProjectRootForStage);
     }
 
 	public override string GetCookPlatform(bool bDedicatedServer, bool bIsClientOnly, string CookFlavor)
 	{
-		return "LinuxServer";
+        const string ClientCookPlatform = "Linux";
+        const string ServerCookPlatform = "LinuxServer";
+        return bDedicatedServer ? ServerCookPlatform : ClientCookPlatform;
 	}
 
     /// <summary>
@@ -59,12 +103,46 @@ public abstract class BaseLinuxPlatform : Platform
             string sourcePath = CombinePaths(Params.BaseStageDirectory, GetCookPlatform(Params.DedicatedServer,false,""));
             string destPath = Params.DeviceUsername + "@" + Params.ServerDeviceAddress + ":.";
             RunAndLog(CmdEnv, pscpPath, String.Format("-batch -i {0} -r {1} {2}", Params.DevicePassword, sourcePath, destPath));
-            List<String> exes = GetExecutableNames(SC);
-            foreach (var exe in exes)
-            {
-                string exePath = CombinePaths(GetCookPlatform(Params.DedicatedServer,false,""), exe.Replace(sourcePath, "").ToLower()).Replace("\\", "/");
-                RunAndLog(CmdEnv, plinkPath, String.Format("-ssh -t -batch -l {0} -i {1} {2} chmod a+x {3}", Params.DeviceUsername, Params.DevicePassword, Params.ServerDeviceAddress, exePath));
-            }
+
+            List<string> Exes = GetExecutableNames(SC);
+
+            string binPath = CombinePaths(GetCookPlatform(Params.DedicatedServer, false, ""), SC.RelativeProjectRootForStage.ToLower(), "binaries", SC.PlatformDir.ToLower(), Path.GetFileName(Exes[0]).ToLower()).Replace("\\", "/");
+            string iconPath = CombinePaths(GetCookPlatform(Params.DedicatedServer, false, ""), SC.RelativeProjectRootForStage.ToLower(), SC.ShortProjectName.ToLower() + ".png").Replace("\\", "/");
+
+            string DesiredGLVersion = "4.3";
+
+            // Begin Bash Shell Script
+            string script = String.Format(@"#!/bin/bash
+# Check for OpenGL4 support
+glarg=''
+if command -v glxinfo >/dev/null 2>&1 ; then
+    export DISPLAY="":0""
+    glversion=$(glxinfo | grep ""OpenGL version string:"" | sed 's/[^0-9.]*\([0-9.]*\).*/\1/')
+    glmatch=$(echo -e ""$glversion\n{0}"" | sort -Vr | head -1)
+    [[ ""$glmatch"" = ""$glversion"" ]] && glarg=' -opengl4'
+fi
+
+# Create .desktop file
+cat > $HOME/Desktop/{1}.desktop << EOF
+[Desktop Entry]
+Type=Application
+Name={2}
+Comment=UE4 Game
+Exec=$HOME/{3}{4}$glarg
+Icon=$HOME/{5}
+Terminal=false
+Categories=Game;
+EOF
+
+# Set permissions
+chmod 755 $HOME/{3}
+chmod 700 $HOME/Desktop/{1}.desktop", DesiredGLVersion, SC.ShortProjectName.ToLower(), SC.ShortProjectName, binPath, (Params.Pak ? " -pak" : ""), iconPath);
+            // End Bash Shell Script
+
+            string scriptFile = Path.GetTempFileName();
+            File.WriteAllText(scriptFile, script);
+            RunAndLog(CmdEnv, plinkPath, String.Format("-ssh -t -batch -l {0} -i {1} {2} -m {3}", Params.DeviceUsername, Params.DevicePassword, Params.ServerDeviceAddress, scriptFile));
+            File.Delete(scriptFile);
         }
     }
 

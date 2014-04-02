@@ -234,6 +234,9 @@ class ENGINE_API UAudioComponent : public USceneComponent
 	UFUNCTION(BlueprintCallable, Category="Audio|Components|Audio")
 	void SetUISound(bool bInUISound);
 
+	UFUNCTION(BlueprintCallable, Category="Audio|Components|Audio")
+	void AdjustAttenuation(const FAttenuationSettings& InAttenuationSettings);
+
 	/** Called by the ActiveSound to inform the component that playback is finished */
 	void PlaybackCompleted(bool bFailedToStart);
 

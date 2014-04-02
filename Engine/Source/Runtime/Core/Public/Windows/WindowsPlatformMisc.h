@@ -174,13 +174,6 @@ struct CORE_API FWindowsPlatformMisc : public FGenericPlatformMisc
 	 */
 	static bool QueryRegKey( const HKEY InKey, const TCHAR* InSubKey, const TCHAR* InValueName, FString& OutData );
 
-	/** 
-	 * Looks up the application the user has set as their default browser choice from the registry
-	 *
-	 * @return	The applications to run to invoke the users default browser choice
-	 */
-	static FString GetDefaultBrowser();
-
 	/**
 	 * Returns the size of the cache line in bytes.
 	 *

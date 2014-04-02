@@ -14,7 +14,7 @@ class Promote : BuildCommand
 
 	void ExecuteInner()
 	{
-		MakeDownstreamLabel("");
+		P4.MakeDownstreamLabel(P4Env, "");
 	}
 
 	public override void ExecuteBuild()

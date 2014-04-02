@@ -21,6 +21,12 @@ class USkillSystemTestAttributeSet : public UAttributeSet
 	float	CritMultiplier;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AttributeTest")
+	float	ArmorDamageReduction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AttributeTest")
+	float	DodgeChance;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AttributeTest")
 	float	LifeSteal;
 
 	virtual void PreAttributeModify(struct FGameplayEffectModCallbackData &Data) OVERRIDE;

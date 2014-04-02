@@ -4147,7 +4147,22 @@ void FSkeletalMeshSceneProxy::DrawDynamicElementsSection(FPrimitiveDrawInterface
 		BatchElement.FirstIndex *= 4;
 	}
 
+#if WITH_EDITOR
+	const FOverrideSelectionColorMaterialRenderProxy SelectionOverrideProxy(
+		SectionElementInfo.Material->GetRenderProxy(bIsSelected, IsHovered()),
+		GetSelectionColor(GEngine->GetSelectedMaterialColor(), bIsSelected, IsHovered())
+		);
+	if (Section.bSelected)
+	{
+		Mesh.MaterialRenderProxy = &SelectionOverrideProxy;
+	}
+	else
+	{
+		Mesh.MaterialRenderProxy = SectionElementInfo.Material->GetRenderProxy(bIsSelected, IsHovered());
+	}
+#else
 	Mesh.MaterialRenderProxy = SectionElementInfo.Material->GetRenderProxy(bIsSelected, IsHovered());
+#endif
 
 	BatchElement.PrimitiveUniformBufferResource = &GetUniformBuffer();
 	

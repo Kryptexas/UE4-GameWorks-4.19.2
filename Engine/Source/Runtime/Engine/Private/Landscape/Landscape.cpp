@@ -466,29 +466,26 @@ ALandscape* ALandscape::GetLandscapeActor()
 ALandscapeProxy::ALandscapeProxy(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	// Structure to hold one-time initialization
-	struct FConstructorStatics
-	{
-		ConstructorHelpers::FObjectFinderOptional<UTexture2D> TerrainTexture;
-		ConstructorHelpers::FObjectFinderOptional<ULandscapeLayerInfoObject> DataLayer;
-		FConstructorStatics()
-			: TerrainTexture(TEXT("Texture2D'/Engine/EditorResources/S_Terrain.S_Terrain'"))
-			, DataLayer(TEXT("LandscapeLayerInfoObject'/Engine/EditorLandscapeResources/DataLayer.DataLayer'"))
-		{
-		}
-	};
-	static FConstructorStatics ConstructorStatics;
-
-
-	TSubobjectPtr<USceneComponent> SceneComponent = PCIP.CreateDefaultSubobject<USceneComponent>(this, TEXT("RootComponent0"));;
+	TSubobjectPtr<USceneComponent> SceneComponent = PCIP.CreateDefaultSubobject<USceneComponent>(this, TEXT("RootComponent0"));
 	RootComponent = SceneComponent;
 	RootComponent->RelativeScale3D = FVector(128.0f, 128.0f, 256.0f); // Old default scale, preserved for compatibility. See ULandscapeEditorObject::NewLandscape_Scale
 	RootComponent->Mobility = EComponentMobility::Static;
 	LandscapeSectionOffset = FIntPoint::ZeroValue;
 	
 #if WITH_EDITORONLY_DATA
-	if (SpriteComponent)
+	if (!IsRunningCommandlet() && (SpriteComponent != NULL))
 	{
+		// Structure to hold one-time initialization
+		struct FConstructorStatics
+		{
+			ConstructorHelpers::FObjectFinderOptional<UTexture2D> TerrainTexture;
+			FConstructorStatics()
+				: TerrainTexture(TEXT("Texture2D'/Engine/EditorResources/S_Terrain.S_Terrain'"))
+			{
+			}
+		};
+		static FConstructorStatics ConstructorStatics;
+
 		SpriteComponent->Sprite = ConstructorStatics.TerrainTexture.Get();
 		SpriteComponent->AttachParent = RootComponent;
 		SpriteComponent->bAbsoluteScale = true;
@@ -513,8 +510,19 @@ ALandscapeProxy::ALandscapeProxy(const class FPostConstructInitializeProperties&
 	MaxPaintedLayersPerComponent = 0;
 #endif
 
-	if (DataLayer==NULL)
+	if (DataLayer == NULL)
 	{
+		// Structure to hold one-time initialization
+		struct FConstructorStatics
+		{
+			ConstructorHelpers::FObjectFinderOptional<ULandscapeLayerInfoObject> DataLayer;
+			FConstructorStatics()
+				: DataLayer(TEXT("LandscapeLayerInfoObject'/Engine/EditorLandscapeResources/DataLayer.DataLayer'"))
+			{
+			}
+		};
+		static FConstructorStatics ConstructorStatics;
+
 		DataLayer = ConstructorStatics.DataLayer.Get();
 		check(DataLayer);
 		DataLayer->AddToRoot();

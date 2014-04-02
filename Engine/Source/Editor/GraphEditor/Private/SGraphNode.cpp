@@ -310,8 +310,12 @@ FReply SGraphNode::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerE
 // Called when a mouse button is double clicked.  Override this in derived classes
 FReply SGraphNode::OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent )
 {
-	OnDoubleClick.ExecuteIfBound(GraphNode);
-	return FReply::Handled();
+	if(InMouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton))
+	{
+		OnDoubleClick.ExecuteIfBound(GraphNode);
+		return FReply::Handled();
+	}
+	return FReply::Unhandled();
 }
 
 TSharedPtr<SToolTip> SGraphNode::GetToolTip()
@@ -383,9 +387,10 @@ void SGraphNode::MoveTo( const FVector2D& NewPosition )
 	{
 		if (!RequiresSecondPassLayout())
 		{
+			GraphNode->Modify();
+
 			GraphNode->NodePosX = NewPosition.X;
 			GraphNode->NodePosY = NewPosition.Y;
-			GraphNode->MarkPackageDirty();
 		}
 	}
 }
@@ -699,6 +704,8 @@ void SGraphNode::UpdateGraphNode()
 
 	CreateBelowWidgetControls(MainVerticalBox);
 	CreatePinWidgets();
+	CreateInputSideAddButton(LeftNodeBox);
+	CreateOutputSideAddButton(RightNodeBox);
 	CreateBelowPinControls(InnerVerticalBox);
 	CreateAdvancedViewArrow(InnerVerticalBox);
 }
@@ -1143,4 +1150,88 @@ bool SGraphNode::UseLowDetailNodeTitles() const
 	{
 		return false;
 	}
+}
+
+TSharedRef<SWidget> SGraphNode::AddPinButtonContent(FText PinText, FText PinTooltipText, bool bRightSide, FString DocumentationExcerpt, TSharedPtr<SToolTip> CustomTooltip)
+{
+	TSharedPtr<SWidget> ButtonContent;
+	if(bRightSide)
+	{
+		SAssignNew(ButtonContent, SHorizontalBox)
+		+SHorizontalBox::Slot()
+		.AutoWidth()
+		.HAlign(HAlign_Left)
+		[
+			SNew(STextBlock)
+			.Text(PinText)
+			.ColorAndOpacity(FLinearColor::White)
+		]
+		+SHorizontalBox::Slot()
+		.AutoWidth()
+		. VAlign(VAlign_Center)
+		. Padding( 7,0,0,0 )
+		[
+			SNew(SImage)
+			.Image(FEditorStyle::GetBrush(TEXT("PropertyWindow.Button_AddToArray")))
+		];
+	}
+	else
+	{
+		SAssignNew(ButtonContent, SHorizontalBox)
+		+SHorizontalBox::Slot()
+		.AutoWidth()
+		. VAlign(VAlign_Center)
+		. Padding( 0,0,7,0 )
+		[
+			SNew(SImage)
+			.Image(FEditorStyle::GetBrush(TEXT("PropertyWindow.Button_AddToArray")))
+		]
+		+SHorizontalBox::Slot()
+		.AutoWidth()
+		.HAlign(HAlign_Left)
+		[
+			SNew(STextBlock)
+			.Text(PinText)
+			.ColorAndOpacity(FLinearColor::White)
+		];
+	}
+
+	TSharedPtr<SToolTip> Tooltip;
+
+	if (CustomTooltip.IsValid())
+	{
+		Tooltip = CustomTooltip;
+	}
+	else if (!DocumentationExcerpt.IsEmpty())
+	{
+		Tooltip = IDocumentation::Get()->CreateToolTip( PinTooltipText, NULL, GraphNode->GetDocumentationLink(), DocumentationExcerpt );
+	}
+
+	TSharedRef<SButton> AddPinButton = SNew(SButton)
+	.ContentPadding(0.0f)
+	.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
+	.OnClicked( this, &SGraphNode::OnAddPin )
+	.ToolTipText(PinTooltipText)
+	.ToolTip(Tooltip)
+	.Visibility(this, &SGraphNode::IsAddPinButtonVisible)
+	[
+		ButtonContent.ToSharedRef()
+	];
+
+	AddPinButton->SetCursor( EMouseCursor::Hand );
+
+	return AddPinButton;
+}
+
+EVisibility SGraphNode::IsAddPinButtonVisible() const
+{
+	bool bIsHidden = false;
+	auto OwnerGraphPanel = OwnerGraphPanelPtr.Pin();
+	if(OwnerGraphPanel.IsValid())
+	{
+		bIsHidden |= (SGraphEditor::EPinVisibility::Pin_Show != OwnerGraphPanel->GetPinVisibility());
+		bIsHidden |= (OwnerGraphPanel->GetCurrentLOD() <= EGraphRenderingLOD::LowDetail);
+	}
+
+	return bIsHidden ? EVisibility::Collapsed : EVisibility::Visible;
 }

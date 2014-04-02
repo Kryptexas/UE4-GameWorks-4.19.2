@@ -532,15 +532,51 @@ public:
 
 #if WITH_EDITORONLY_DATA
 	template<class TFieldType>
-	static FName GetFieldNameFromClassByGuid(const UClass* InClass, const FGuid FieldGuid)
+	static FName GetFieldNameFromClassByGuid(const UClass* InClass, const FGuid VarGuid)
 	{
-		check(0);
+		UProperty* AssertPropertyType = (TFieldType*)0;
+
+		TArray<UBlueprint*> Blueprints;
+		UBlueprint::GetBlueprintHierarchyFromClass(InClass, Blueprints);
+
+		for (int32 BPIndex = 0; BPIndex < Blueprints.Num(); ++BPIndex)
+		{
+			UBlueprint* Blueprint = Blueprints[BPIndex];
+			for (int32 VarIndex = 0; VarIndex < Blueprint->NewVariables.Num(); ++VarIndex)
+			{
+				const FBPVariableDescription& BPVarDesc = Blueprint->NewVariables[VarIndex];
+				if (BPVarDesc.VarGuid == VarGuid)
+				{
+					return BPVarDesc.VarName;
+				}
+			}
+		}
+
 		return NAME_None;
 	}
 
 	template<class TFieldType>
-	static bool GetGuidFromClassByFieldName(const UClass* InClass, const FName FieldName, FGuid& FieldGuid)
+	static bool GetGuidFromClassByFieldName(const UClass* InClass, const FName VarName, FGuid& VarGuid)
 	{
+		UProperty* AssertPropertyType = (TFieldType*)0;
+
+		TArray<UBlueprint*> Blueprints;
+		UBlueprint::GetBlueprintHierarchyFromClass(InClass, Blueprints);
+
+		for (int32 BPIndex = 0; BPIndex < Blueprints.Num(); ++BPIndex)
+		{
+			UBlueprint* Blueprint = Blueprints[BPIndex];
+			for (int32 VarIndex = 0; VarIndex < Blueprint->NewVariables.Num(); ++VarIndex)
+			{
+				const FBPVariableDescription& BPVarDesc = Blueprint->NewVariables[VarIndex];
+				if (BPVarDesc.VarName == VarName)
+				{
+					VarGuid = BPVarDesc.VarGuid;
+					return true;
+				}
+			}
+		}
+
 		return false;
 	}
 #endif
@@ -580,28 +616,6 @@ public:
 
 #if WITH_EDITORONLY_DATA
 template<>
-inline FName UBlueprint::GetFieldNameFromClassByGuid<UProperty>(const UClass* InClass, const FGuid VarGuid)
-{
-	TArray<UBlueprint*> Blueprints;
-	UBlueprint::GetBlueprintHierarchyFromClass(InClass, Blueprints);
-
-	for (int32 BPIndex = 0; BPIndex < Blueprints.Num(); ++BPIndex)
-	{
-		UBlueprint* Blueprint = Blueprints[BPIndex];
-		for (int32 VarIndex = 0; VarIndex < Blueprint->NewVariables.Num(); ++VarIndex)
-		{
-			const FBPVariableDescription& BPVarDesc = Blueprint->NewVariables[VarIndex];
-			if (BPVarDesc.VarGuid == VarGuid)
-			{	
-				return BPVarDesc.VarName;
-			}
-		}
-	}
-
-	return NAME_None;
-}
-
-template<>
 inline FName UBlueprint::GetFieldNameFromClassByGuid<UFunction>(const UClass* InClass, const FGuid FunctionGuid)
 {
 	TArray<UBlueprint*> Blueprints;
@@ -621,30 +635,6 @@ inline FName UBlueprint::GetFieldNameFromClassByGuid<UFunction>(const UClass* In
 	}
 
 	return NAME_None;
-}
-
-
-template<>
-inline bool UBlueprint::GetGuidFromClassByFieldName<UProperty>(const UClass* InClass, const FName VarName, FGuid& VarGuid)
-{
-	TArray<UBlueprint*> Blueprints;
-	UBlueprint::GetBlueprintHierarchyFromClass(InClass, Blueprints);
-
-	for (int32 BPIndex = 0; BPIndex < Blueprints.Num(); ++BPIndex)
-	{
-		UBlueprint* Blueprint = Blueprints[BPIndex];
-		for (int32 VarIndex = 0; VarIndex < Blueprint->NewVariables.Num(); ++VarIndex)
-		{
-			const FBPVariableDescription& BPVarDesc = Blueprint->NewVariables[VarIndex];
-			if (BPVarDesc.VarName == VarName)
-			{	
-				VarGuid = BPVarDesc.VarGuid;
-				return true;
-			}
-		}
-	}
-
-	return false;
 }
 
 template<>

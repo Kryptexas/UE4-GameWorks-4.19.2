@@ -547,6 +547,12 @@ bool FSourceControlWindows::PromptForCheckin(const TArray<FString>& InPackageNam
 				TSharedRef<FCheckIn, ESPMode::ThreadSafe> CheckInOperation = ISourceControlOperation::Create<FCheckIn>();
 				CheckInOperation->SetDescription(Description.Description);
 				bCheckInSuccess &= (SourceControlProvider.Execute(CheckInOperation, CombinedFileList) == ECommandResult::Succeeded);
+
+				if(bCheckInSuccess)
+				{
+					// report success with a notification
+					FMessageLog("SourceControl").Notify(CheckInOperation->GetSuccessMessage());
+				}
 			}
 
 			if(!bCheckInSuccess)

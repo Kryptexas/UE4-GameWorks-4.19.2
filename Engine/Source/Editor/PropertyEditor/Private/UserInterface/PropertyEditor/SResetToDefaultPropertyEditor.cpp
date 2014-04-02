@@ -85,7 +85,7 @@ FReply SResetToDefaultPropertyEditor::OnDefaultResetClicked()
 
 FReply SResetToDefaultPropertyEditor::OnCustomResetClicked()
 {
-	CustomResetToDefault.OnResetToDefaultClicked.ExecuteIfBound();
+	PropertyEditor->CustomResetToDefault( CustomResetToDefault.OnResetToDefaultClicked );
 
 	return FReply::Handled();
 }

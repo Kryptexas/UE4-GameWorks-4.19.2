@@ -202,6 +202,13 @@ void AActor::RerunConstructionScripts()
 		// Reset random streams
 		ResetPropertiesForConstruction();
 
+		// Exchange net roles before running construction scripts
+		UWorld *OwningWorld = GetWorld();
+		if (OwningWorld && !OwningWorld->IsServer())
+		{
+			ExchangeNetRoles(true);
+		}
+
 		// Run the construction scripts
 		OnConstruction(OldTransform);
 

@@ -363,6 +363,14 @@ void FBlueprintEditor::SummonSearchUI(bool bSetFindWithinBlueprint, FString NewS
 	FindResults->FocusForUse(bSetFindWithinBlueprint, NewSearchTerms, bSelectFirstResult);
 }
 
+void FBlueprintEditor::EnableSCSPreview(bool bEnable)
+{
+	if(SCSViewport.IsValid())
+	{
+		SCSViewport->EnablePreview(bEnable);
+	}
+}
+
 void FBlueprintEditor::UpdateSCSPreview(bool bUpdateNow)
 {
 	// refresh widget
@@ -372,8 +380,6 @@ void FBlueprintEditor::UpdateSCSPreview(bool bUpdateNow)
 		SCSViewport->RequestRefresh(false, bUpdateNow && IsModeCurrent(FBlueprintEditorApplicationModes::BlueprintComponentsMode));
 	}
 }
-
-
 
 /** Create new tab for the supplied graph - don't call this directly.*/
 TSharedRef<SGraphEditor> FBlueprintEditor::CreateGraphEditorWidget(TSharedRef<FTabInfo> InTabInfo, UEdGraph* InGraph)

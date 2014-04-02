@@ -7,6 +7,8 @@
 #include "MacCursor.h"
 #include "GenericApplicationMessageHandler.h"
 #include "HIDInputInterface.h"
+#include "AnalyticsEventAttribute.h"
+#include "IAnalyticsProvider.h"
 
 #include "ModuleManager.h"
 
@@ -41,6 +43,17 @@ FMacApplication::FMacApplication()
 	, CurrentModifierFlags( 0 )
 {
 	CGDisplayRegisterReconfigurationCallback(FMacApplication::OnDisplayReconfiguration, this);
+	
+	TextInputMethodSystem = MakeShareable( new FMacTextInputMethodSystem );
+	if(!TextInputMethodSystem->Initialize())
+	{
+		TextInputMethodSystem.Reset();
+	}
+
+#if WITH_EDITOR
+	FMemory::MemZero(GestureUsage);
+	LastGestureUsed = EGestureEvent::None;
+#endif
 }
 
 FMacApplication::~FMacApplication()
@@ -51,6 +64,8 @@ FMacApplication::~FMacApplication()
 		[MouseCaptureWindow close];
 		MouseCaptureWindow = NULL;
 	}
+	
+	TextInputMethodSystem->Terminate();
 
 	MacApplication = NULL;
 }
@@ -249,8 +264,6 @@ void FMacApplication::ProcessEvent( NSEvent* Event )
 		case NSRightMouseDragged:
 		case NSOtherMouseDragged:
 		{
-			bUsingTrackpad = [Event subtype] == NSTouchEventSubtype;
-
 			if( CurrentEventWindow.IsValid() && CurrentEventWindow->IsRegularWindow() )
 			{
 				bool IsMouseOverTitleBar = false;
@@ -315,7 +328,7 @@ void FMacApplication::ProcessEvent( NSEvent* Event )
 				else
 				{
 					// Call this here or else the cursor gets stuck in place after returning from high precision mode
-                    CGAssociateMouseAndMouseCursorPosition( true );
+					CGAssociateMouseAndMouseCursorPosition( true );
 					FVector2D CurrentPosition = MacCursor->GetPosition();
 					if( MacCursor->UpdateCursorClipping( CurrentPosition ) )
 					{
@@ -336,8 +349,6 @@ void FMacApplication::ProcessEvent( NSEvent* Event )
 		case NSRightMouseDown:
 		case NSOtherMouseDown:
 		{
-			bUsingTrackpad = [Event subtype] == NSTouchEventSubtype;
-			
 			EMouseButtons::Type Button = [Event type] == NSLeftMouseDown ? EMouseButtons::Left : EMouseButtons::Right;
 			if ([Event type] == NSOtherMouseDown)
 			{
@@ -383,8 +394,6 @@ void FMacApplication::ProcessEvent( NSEvent* Event )
 		case NSRightMouseUp:
 		case NSOtherMouseUp:
 		{
-			bUsingTrackpad = [Event subtype] == NSTouchEventSubtype;
-			
 			EMouseButtons::Type Button = [Event type] == NSLeftMouseUp ? EMouseButtons::Left : EMouseButtons::Right;
 			if ([Event type] == NSOtherMouseUp)
 			{
@@ -423,26 +432,27 @@ void FMacApplication::ProcessEvent( NSEvent* Event )
 				const float DeltaX = ([Event modifierFlags] & NSShiftKeyMask) ? [Event deltaY] : [Event deltaX];
 				const float DeltaY = ([Event modifierFlags] & NSShiftKeyMask) ? [Event deltaX] : [Event deltaY];
 		
-                NSEventPhase Phase = [Event phase];
-                
-                if( Phase == NSEventPhaseNone || Phase == NSEventPhaseEnded || Phase == NSEventPhaseCancelled )
-                {
-                    bUsingTrackpad = false;
-                }
-                else
-                {
-                    bUsingTrackpad = true;
-                }
-                
+				NSEventPhase Phase = [Event phase];
+				
+				if( Phase == NSEventPhaseNone || Phase == NSEventPhaseEnded || Phase == NSEventPhaseCancelled )
+				{
+					bUsingTrackpad = false;
+				}
+				else
+				{
+					bUsingTrackpad = true;
+				}
+				
 				if ([Event momentumPhase] != NSEventPhaseNone || [Event phase] != NSEventPhaseNone)
 				{
-                    bool bInverted = [Event isDirectionInvertedFromDevice];
-                    
-                    FVector2D ScrollDelta( [Event scrollingDeltaX], [Event scrollingDeltaY] );
-                    
-                    
+					bool bInverted = [Event isDirectionInvertedFromDevice];
+					
+					FVector2D ScrollDelta( [Event scrollingDeltaX], [Event scrollingDeltaY] );
+					
+					
 					// This is actually a scroll gesture from trackpad
 					MessageHandler->OnTouchGesture( EGestureEvent::Scroll, bInverted ? -ScrollDelta : ScrollDelta, DeltaY );
+					RecordUsage( EGestureEvent::Scroll );
 				}
 				else
 				{
@@ -462,6 +472,7 @@ void FMacApplication::ProcessEvent( NSEvent* Event )
 			if( CurrentEventWindow.IsValid() )
 			{
 				MessageHandler->OnTouchGesture( EGestureEvent::Magnify, FVector2D( [Event magnification], [Event magnification] ), 0 );
+				RecordUsage( EGestureEvent::Magnify );
 			}
 			break;
 		}
@@ -471,6 +482,7 @@ void FMacApplication::ProcessEvent( NSEvent* Event )
 			if( CurrentEventWindow.IsValid() )
 			{
 				MessageHandler->OnTouchGesture( EGestureEvent::Swipe, FVector2D( [Event deltaX], [Event deltaY] ), 0 );
+				RecordUsage( EGestureEvent::Swipe );
 			}
 			break;
 		}
@@ -480,40 +492,56 @@ void FMacApplication::ProcessEvent( NSEvent* Event )
 			if( CurrentEventWindow.IsValid() )
 			{
 				MessageHandler->OnTouchGesture( EGestureEvent::Rotate, FVector2D( [Event rotation], [Event rotation] ), 0 );
+				RecordUsage( EGestureEvent::Rotate );
 			}
 			break;
 		}
-    
-        case NSEventTypeBeginGesture:
-        {
-            bUsingTrackpad = true;
-            break;
-        }
-        case NSEventTypeEndGesture:
-        {
-            bUsingTrackpad = false;
-            break;
-        }
+	
+		case NSEventTypeBeginGesture:
+		{
+			bUsingTrackpad = true;
+            if( CurrentEventWindow.IsValid() )
+			{
+				MessageHandler->OnBeginGesture();
+            }
+			break;
+		}
+        
+		case NSEventTypeEndGesture:
+		{
+            if( CurrentEventWindow.IsValid() )
+			{
+				MessageHandler->OnEndGesture();
+            }
+			bUsingTrackpad = false;
+#if WITH_EDITOR
+			LastGestureUsed = EGestureEvent::None;
+#endif
+			break;
+		}
 			
 		case NSKeyDown:
 		{
 			NSString *Characters = [Event characters];
 			if( [Characters length] && CurrentEventWindow.IsValid() )
 			{
-				const bool IsRepeat = [Event isARepeat];
-				const TCHAR Character = ConvertChar( [Characters characterAtIndex:0] );
-				const TCHAR CharCode = [[Event charactersIgnoringModifiers] characterAtIndex:0];
-				const uint32 KeyCode = [Event keyCode];
-				const bool IsPrintable = IsPrintableKey( Character );
-
-				MessageHandler->OnKeyDown( KeyCode, TranslateCharCode( CharCode, KeyCode ), IsRepeat );
-
-				// First KeyDown, then KeyChar. This is important, as in-game console ignores first character otherwise
-
-				bool bCmdKeyPressed = [Event modifierFlags] & 0x18;
-				if ( !bCmdKeyPressed && IsPrintable )
+				if(!CurrentEventWindow->OnIMKKeyDown(Event))
 				{
-					MessageHandler->OnKeyChar( Character, IsRepeat );
+					const bool IsRepeat = [Event isARepeat];
+					const TCHAR Character = ConvertChar( [Characters characterAtIndex:0] );
+					const TCHAR CharCode = [[Event charactersIgnoringModifiers] characterAtIndex:0];
+					const uint32 KeyCode = [Event keyCode];
+					const bool IsPrintable = IsPrintableKey( Character );
+					
+					MessageHandler->OnKeyDown( KeyCode, TranslateCharCode( CharCode, KeyCode ), IsRepeat );
+					
+					// First KeyDown, then KeyChar. This is important, as in-game console ignores first character otherwise
+					
+					bool bCmdKeyPressed = [Event modifierFlags] & 0x18;
+					if ( !bCmdKeyPressed && IsPrintable )
+					{
+						MessageHandler->OnKeyChar( Character, IsRepeat );
+					}
 				}
 			}
 			break;
@@ -627,18 +655,14 @@ FSlateCocoaWindow* FMacApplication::FindEventWindow( NSEvent* Event )
 #if WITH_EDITOR
 			NSScreen* MouseScreen = nil;
 			// Only fetch the spans-displays once - it requires a log-out to change.
-			// Note that we have no way to tell if the current setting is actually in effect,
-			// so this won't work if the user schedules a change but doesn't logout to confirm it.
-			static bool bSpansDisplays = false;
+			static bool bScreensHaveSeparateSpaces = false;
 			static bool bSettingFetched = false;
 			if(!bSettingFetched)
 			{
 				bSettingFetched = true;
-				NSUserDefaults* SpacesDefaults = [[[NSUserDefaults alloc] init] autorelease];
-				[SpacesDefaults addSuiteNamed:@"com.apple.spaces"];
-				bSpansDisplays = [SpacesDefaults boolForKey:@"spans-displays"] == YES;
+				bScreensHaveSeparateSpaces = [NSScreen screensHaveSeparateSpaces];
 			}
-			if(!bSpansDisplays)
+			if(bScreensHaveSeparateSpaces)
 			{
 				// New default mode which uses a separate Space per display
 				// Find the screen the cursor is currently on so we can ignore invisible window regions.
@@ -652,7 +676,7 @@ FSlateCocoaWindow* FMacApplication::FindEventWindow( NSEvent* Event )
 			for( int32 Index = 0; Index < [AllWindows count]; Index++ )
 			{
 				NSWindow* Window = (NSWindow*)[AllWindows objectAtIndex: Index];
-				if( [Window isMiniaturized] || ![Window isVisible] || ![Window isKindOfClass: [FSlateCocoaWindow class]] )
+				if( [Window isMiniaturized] || ![Window isVisible] || ![Window isOnActiveSpace] || ![Window isKindOfClass: [FSlateCocoaWindow class]] )
 				{
 					continue;
 				}
@@ -780,7 +804,7 @@ void FMacApplication::SetHighPrecisionMouseMode( const bool Enable, const TShare
 {
 	bUsingHighPrecisionMouseInput = Enable;
 	HighPrecisionMousePos = static_cast<FMacCursor*>( Cursor.Get() )->GetPosition();
-    
+	
 	CGAssociateMouseAndMouseCursorPosition( !Enable );
 }
 
@@ -818,22 +842,15 @@ FPlatformRect FMacApplication::GetWorkArea( const FPlatformRect& CurrentWindow )
 
 NSScreen* FMacApplication::FindScreenByPoint( int32 X, int32 Y ) const
 {
+	NSPoint Point = {0};
+	Point.x = X;
+	Point.y = FPlatformMisc::ConvertSlateYPositionToCocoa(Y);
+	
 	NSArray* AllScreens = [NSScreen screens];
-	NSScreen* PrimaryScreen = (NSScreen*)[AllScreens objectAtIndex: 0];
-
-	const float PrimaryScreenHeight = [PrimaryScreen frame].size.height;
-
-	NSScreen* TargetScreen = PrimaryScreen;
-
-	for( int32 Index = 1; Index < [AllScreens count]; Index++ )
+	NSScreen* TargetScreen = [AllScreens objectAtIndex: 0];
+	for(NSScreen* Screen in AllScreens)
 	{
-		NSScreen* Screen = (NSScreen*)[AllScreens objectAtIndex: Index];
-
-		NSRect ScreenFrame = [Screen frame];
-		ScreenFrame.origin.y = PrimaryScreenHeight - ScreenFrame.origin.y - ScreenFrame.size.height;
-
-		if( FMath::Trunc( ScreenFrame.origin.x ) < X && FMath::Trunc( ScreenFrame.origin.x + ScreenFrame.size.width ) >= X
-		   && FMath::Trunc( ScreenFrame.origin.y ) < Y && FMath::Trunc( ScreenFrame.origin.y + ScreenFrame.size.height ) >= Y )
+		if(Screen && NSPointInRect(Point, [Screen frame]))
 		{
 			TargetScreen = Screen;
 			break;
@@ -857,39 +874,30 @@ void FMacApplication::GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) co
 	OutDisplayMetrics.PrimaryDisplayWidth = ScreenFrame.size.width;
 	OutDisplayMetrics.PrimaryDisplayHeight = ScreenFrame.size.height;
 
-	// Get the screen rect of the primary monitor, excluding taskbar etc.
-	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Left = VisibleFrame.origin.x;
-	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Top = ScreenFrame.size.height - (VisibleFrame.origin.y + VisibleFrame.size.height);
-	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Right = VisibleFrame.origin.x + VisibleFrame.size.width;
-	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom = ScreenFrame.size.height - VisibleFrame.origin.y;
-
 	// Virtual desktop area
 	OutDisplayMetrics.VirtualDisplayRect.Left = 0;
 	OutDisplayMetrics.VirtualDisplayRect.Top = 0;
 	OutDisplayMetrics.VirtualDisplayRect.Right = 0;
 	OutDisplayMetrics.VirtualDisplayRect.Bottom = 0;
 
-	for( int32 Index = 0; Index < [AllScreens count]; Index++ )
+	NSRect WholeWorkspace = {0};
+	for(NSScreen* Screen in AllScreens)
 	{
-		NSScreen* Screen = (NSScreen*)[AllScreens objectAtIndex: Index];
-		NSRect DisplayFrame = [Screen frame];
-		if(DisplayFrame.origin.x != ScreenFrame.origin.x)
+		if(Screen)
 		{
-			OutDisplayMetrics.VirtualDisplayRect.Right += DisplayFrame.size.width;
-		}
-		else
-		{
-			OutDisplayMetrics.VirtualDisplayRect.Right = FMath::Max(OutDisplayMetrics.VirtualDisplayRect.Right, (int)DisplayFrame.size.width);
-		}
-		if(DisplayFrame.origin.y != ScreenFrame.origin.y)
-		{
-			OutDisplayMetrics.VirtualDisplayRect.Bottom += DisplayFrame.size.height;
-		}
-		else
-		{
-			OutDisplayMetrics.VirtualDisplayRect.Bottom = FMath::Max(OutDisplayMetrics.VirtualDisplayRect.Bottom, (int)DisplayFrame.size.height);
+			WholeWorkspace = NSUnionRect(WholeWorkspace, [Screen frame]);
 		}
 	}
+	OutDisplayMetrics.VirtualDisplayRect.Left = WholeWorkspace.origin.x;
+	OutDisplayMetrics.VirtualDisplayRect.Top = FMath::Min((ScreenFrame.size.height - (WholeWorkspace.origin.y + WholeWorkspace.size.height)), 0.0);
+	OutDisplayMetrics.VirtualDisplayRect.Right = WholeWorkspace.origin.x + WholeWorkspace.size.width;
+	OutDisplayMetrics.VirtualDisplayRect.Bottom = WholeWorkspace.size.height + OutDisplayMetrics.VirtualDisplayRect.Top;
+	
+	// Get the screen rect of the primary monitor, excluding taskbar etc.
+	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Left = VisibleFrame.origin.x;
+	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Top = ScreenFrame.size.height - (VisibleFrame.origin.y + VisibleFrame.size.height);
+	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Right = VisibleFrame.origin.x + VisibleFrame.size.width;
+	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom = ScreenFrame.size.height - VisibleFrame.origin.y;
 }
 
 void FMacApplication::OnDragEnter( FSlateCocoaWindow* Window, void *InPasteboard )
@@ -1123,17 +1131,17 @@ TCHAR FMacApplication::ConvertChar(TCHAR Character)
 TCHAR FMacApplication::TranslateCharCode(TCHAR CharCode, uint32 KeyCode)
 {
 	// Keys like F1-F12, enter or backspace do not need translation
-	bool bNeedsTranslation = (CharCode < 0xF700 || CharCode > 0xF8FF) && CharCode != 0x7F;
+	bool bNeedsTranslation = (CharCode < NSOpenStepUnicodeReservedBase || CharCode > 0xF8FF) && CharCode != 0x7F;
 	if( bNeedsTranslation )
 	{
 		// For non-numpad keys, the key code depends on the keyboard layout, so find out what was pressed by converting the key code to a Latin character
-		TISInputSourceRef CurrentKeyboard = TISCopyCurrentKeyboardInputSource();
+		TISInputSourceRef CurrentKeyboard = TISCopyCurrentKeyboardLayoutInputSource();
 		if( CurrentKeyboard )
 		{
 			CFDataRef CurrentLayoutData = ( CFDataRef )TISGetInputSourceProperty( CurrentKeyboard, kTISPropertyUnicodeKeyLayoutData );
 			CFRelease( CurrentKeyboard );
 
-			if( CurrentLayoutData ) // @todo: figure out why it's NULL for Hiragana etc. and how to make Japanese characters input work.
+			if( CurrentLayoutData )
 			{
 				const UCKeyboardLayout *KeyboardLayout = ( UCKeyboardLayout *)CFDataGetBytePtr( CurrentLayoutData );
 				if( KeyboardLayout )
@@ -1142,7 +1150,7 @@ TCHAR FMacApplication::TranslateCharCode(TCHAR CharCode, uint32 KeyCode)
 					UniCharCount BufferLength = 256;
 					uint32 DeadKeyState = 0;
 
-					// To ensure we get a latin characted, we pretend that command modifier key is pressed
+					// To ensure we get a latin character, we pretend that command modifier key is pressed
 					OSStatus Status = UCKeyTranslate( KeyboardLayout, KeyCode, kUCKeyActionDown, cmdKey >> 8, LMGetKbdType(), kUCKeyTranslateNoDeadKeysMask, &DeadKeyState, BufferLength, &BufferLength, Buffer );
 					if( Status == noErr )
 					{
@@ -1151,6 +1159,11 @@ TCHAR FMacApplication::TranslateCharCode(TCHAR CharCode, uint32 KeyCode)
 				}
 			}
 		}
+	}
+	// Private use range should not be returned
+	else if(CharCode >= NSOpenStepUnicodeReservedBase && CharCode <= 0xF8FF)
+	{
+		CharCode = 0;
 	}
 
 	return CharCode;
@@ -1269,4 +1282,30 @@ void FMacApplication::GotoLineInSource(const FString& FileAndLineNumber)
 		}
 	}
 }
+
+void FMacApplication::RecordUsage(EGestureEvent::Type Gesture)
+{
+	if ( LastGestureUsed != Gesture )
+	{
+		LastGestureUsed = Gesture;
+		GestureUsage[Gesture] += 1;
+	}
+}
+
+void FMacApplication::SendAnalytics(IAnalyticsProvider* Provider)
+{
+	checkAtCompileTime(EGestureEvent::Count == 5, "If the number of gestures changes you need to add more entries below!");
+
+	TArray<FAnalyticsEventAttribute> GestureAttributes;
+	GestureAttributes.Add(FAnalyticsEventAttribute(FString("Scroll"),	GestureUsage[EGestureEvent::Scroll]));
+	GestureAttributes.Add(FAnalyticsEventAttribute(FString("Magnify"),	GestureUsage[EGestureEvent::Magnify]));
+	GestureAttributes.Add(FAnalyticsEventAttribute(FString("Swipe"),	GestureUsage[EGestureEvent::Swipe]));
+	GestureAttributes.Add(FAnalyticsEventAttribute(FString("Rotate"),	GestureUsage[EGestureEvent::Rotate]));
+
+    Provider->RecordEvent(FString("Mac.Gesture.Usage"), GestureAttributes);
+
+	FMemory::MemZero(GestureUsage);
+	LastGestureUsed = EGestureEvent::None;
+}
+
 #endif

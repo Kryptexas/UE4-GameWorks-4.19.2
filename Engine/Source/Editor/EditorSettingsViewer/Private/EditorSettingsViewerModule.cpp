@@ -5,7 +5,7 @@
 =============================================================================*/
 
 #include "EditorSettingsViewerPrivatePCH.h"
-
+#include "InternationalizationSettingsModel.h"
 
 #define LOCTEXT_NAMESPACE "FEditorSettingsViewerModule"
 
@@ -91,6 +91,13 @@ protected:
 			UserSettingsDelegates.ResetDefaultsDelegate = FOnSettingsSectionResetDefaults::CreateRaw(this, &FEditorSettingsViewerModule::HandleUserSettingsResetDefaults);
 		}
 
+		// automation settings
+		SettingsModule.RegisterSettings("Editor", "General", "AutomationTest",
+			LOCTEXT("AutomationSettingsName", "Automation"),
+			LOCTEXT("AutomationSettingsDescription", "Set up automation test assets."),
+			TWeakObjectPtr<UObject>(GetMutableDefault<UAutomationTestSettings>())
+		);
+
 		// input bindings
 		FSettingsSectionDelegates InputBindingDelegates;
 		InputBindingDelegates.ExportDelegate = FOnSettingsSectionExport::CreateRaw(this, &FEditorSettingsViewerModule::HandleInputBindingsExport);
@@ -98,6 +105,20 @@ protected:
 		InputBindingDelegates.ResetDefaultsDelegate = FOnSettingsSectionResetDefaults::CreateRaw(this, &FEditorSettingsViewerModule::HandleInputBindingsResetToDefault);
 
 		InputBindingEditorPanel = FModuleManager::LoadModuleChecked<IInputBindingEditorModule>("InputBindingEditor").CreateInputBindingEditorPanel();
+
+		FSettingsSectionDelegates RegionAndLanguageDelegates;
+		RegionAndLanguageDelegates.ExportDelegate = FOnSettingsSectionExport::CreateRaw(this, &FEditorSettingsViewerModule::HandleRegionAndLanguageExport);
+		RegionAndLanguageDelegates.ImportDelegate = FOnSettingsSectionImport::CreateRaw(this, &FEditorSettingsViewerModule::HandleRegionAndLanguageImport);
+		RegionAndLanguageDelegates.SaveDefaultsDelegate = FOnSettingsSectionSaveDefaults::CreateRaw(this, &FEditorSettingsViewerModule::HandleRegionAndLanguageSaveDefaults);
+		RegionAndLanguageDelegates.ResetDefaultsDelegate = FOnSettingsSectionResetDefaults::CreateRaw(this, &FEditorSettingsViewerModule::HandleRegionAndLanguageResetToDefault);
+
+		SettingsModule.RegisterSettings("Editor", "General", "Internationalization",
+			LOCTEXT("InternationalizationSettingsModelName", "Region & Language"),
+			LOCTEXT("InternationalizationSettingsModelDescription", "Configure the editor's behavior to use a language and fit a region's culture."),
+			TWeakObjectPtr<UObject>(GetMutableDefault<UInternationalizationSettingsModel>()),
+			RegionAndLanguageDelegates
+			);
+
 		SettingsModule.RegisterSettings("Editor", "General", "InputBindings",
 			LOCTEXT("InputBindingsSettingsName", "Keyboard Shortcuts"),
 			LOCTEXT("InputBindingsSettingsDescription", "Configure keyboard shortcuts to quickly invoke operations."),
@@ -123,13 +144,6 @@ protected:
 			TWeakObjectPtr<UObject>(&GEditor->AccessEditorUserSettings()),
 			UserSettingsDelegates
 		);
-
-		// misc unsorted settings
-		SettingsModule.RegisterSettings("Editor", "General", "AutomationTest",
-			LOCTEXT("AutomationSettingsName", "AutomationTest"),
-			LOCTEXT("AutomationSettingsDescription", "Set up automation test assets."),
-			TWeakObjectPtr<UObject>(GetMutableDefault<UAutomationTestSettings>())
-			);
 
 		// experimental features
 		SettingsModule.RegisterSettings("Editor", "General", "Experimental",
@@ -351,6 +365,35 @@ private:
 		}
 
 		return false;
+	}
+
+	bool HandleRegionAndLanguageExport(const FString& FileName)
+	{
+		FString CultureName = GetMutableDefault<UInternationalizationSettingsModel>()->GetCultureName();
+		GConfig->SetString( TEXT("Internationalization"), TEXT("Culture"), *CultureName, FileName );
+		GConfig->Flush( false, FileName );
+		return true;
+	}
+
+	bool HandleRegionAndLanguageImport(const FString& FileName)
+	{
+		FString CultureName;
+		GConfig->LoadFile(FileName);
+		GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), CultureName, FileName );
+		GetMutableDefault<UInternationalizationSettingsModel>()->SetCultureName(CultureName);
+		return true;
+	}
+
+	bool HandleRegionAndLanguageSaveDefaults()
+	{
+		GetMutableDefault<UInternationalizationSettingsModel>()->SaveDefaults();
+		return true;
+	}
+
+	bool HandleRegionAndLanguageResetToDefault()
+	{
+		GetMutableDefault<UInternationalizationSettingsModel>()->ResetToDefault();
+		return true;
 	}
 
 private:

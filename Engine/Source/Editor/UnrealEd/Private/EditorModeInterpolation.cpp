@@ -319,9 +319,13 @@ bool FModeTool_InterpEdit::InputKey(FLevelEditorViewportClient* ViewportClient, 
 	// Handle keys
 	if( Event == IE_Pressed )
 	{
+		// Swallow 'Delete' key to avoid deleting stuff when trying to interpolate it!
 		if ( Key == EKeys::Platform_Delete )
 		{
-			// Swallow 'Delete' key to avoid deleting stuff when trying to interpolate it!
+			// Can't delete actors if Matinee is open.
+			const FText ErrorMsg = NSLOCTEXT("UnrealEd", "Error_WrongModeForActorDeletion", "Cannot delete actor while Matinee is open");
+			FNotificationInfo Info(ErrorMsg);
+			FSlateNotificationManager::Get().AddNotification(Info);
 			return true;
 		}
 		else if( mode->InterpEd->ProcessKeyPress( Key, bCtrlDown, bAltDown ) )

@@ -25,9 +25,6 @@ FXMPHelper* FXMPHelper::GetXMPHelper( void )
 	return( &XMPHelper ); 
 }
 
-// For calculating spatialised volumes
-FSpatializationHelper SpatializationHelper;
-
 /*------------------------------------------------------------------------------------
 	FXAudio2SoundSource.
 ------------------------------------------------------------------------------------*/
@@ -451,7 +448,7 @@ void FXAudio2SoundSource::GetChannelVolumes( float ChannelVolumes[CHANNELOUT_COU
 			ChannelVolumes[CHANNELOUT_RADIO] = 0.0f;
 
 			// Call the spatialisation magic
-			SpatializationHelper.CalculateDolbySurroundRate( OrientFront, ListenerPosition, EmitterPosition, ChannelVolumes );
+			AudioDevice->SpatializationHelper.CalculateDolbySurroundRate( OrientFront, ListenerPosition, EmitterPosition, ChannelVolumes );
 
 			// Handle any special post volume processing
 			if( WaveInstance->bApplyRadioFilter )
@@ -1125,6 +1122,10 @@ bool FXAudio2SoundSource::IsFinished( void )
  * Constructor, initializing all member variables.
  */
 FSpatializationHelper::FSpatializationHelper( void )
+{
+}
+
+void FSpatializationHelper::Init()
 {
 	// Initialize X3DAudio
 	//

@@ -85,11 +85,17 @@ public:
 	// Callback for handling user login/logout.  first int is UserID, second int is UserIndex
 	DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnUserLoginChangedEvent, bool, int32, int32);
 
+	// Callback for handling safe frame area size changes
+	DECLARE_MULTICAST_DELEGATE(FOnSafeFrameChangedEvent);
+
 	// get a hotfix delegate
 	static FHotFixDelegate& GetHotfixDelegate(EHotfixDelegates::Type HotFix);
 
 	// Callback when a user logs in/out of the platform.
 	static FOnUserLoginChangedEvent OnUserLoginChangedEvent;
+
+	// Callback when a user changes the safe frame size
+	static FOnSafeFrameChangedEvent OnSafeFrameChangedEvent;
 
 	// Callback for mounting a new pak file.
 	static FOnMountPak OnMountPak;

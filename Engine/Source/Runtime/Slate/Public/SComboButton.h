@@ -16,7 +16,14 @@ public:
 		, _ButtonStyle(nullptr)
 		, _ButtonContent()
 		, _MenuContent()
-		, _MenuBorderBrush(nullptr)
+		, _HasDownArrow(true)
+		, _ForegroundColor(FCoreStyle::Get().GetSlateColor("InvertedForeground"))
+		, _ButtonColorAndOpacity(FLinearColor::White)
+		, _ContentScale(FVector2D(1,1))
+		, _ContentPadding(FMargin(5))
+		, _MenuPlacement(MenuPlacement_ComboBox)
+		, _HAlign(HAlign_Fill)
+		, _VAlign(VAlign_Fill)
 		, _Method( SMenuAnchor::CreateNewWindow )
 		{}
 
@@ -30,18 +37,15 @@ public:
 		SLATE_EVENT( FOnGetContent, OnGetMenuContent )
 		SLATE_EVENT( FOnComboBoxOpened, OnComboBoxOpened )
 		SLATE_ARGUMENT( bool, IsFocusable )
+		SLATE_ARGUMENT( bool, HasDownArrow )
 
-		/* Style overrides (overrides ComboButtonStyle) */
-		SLATE_ATTRIBUTE( FVector2D, ContentScale )
-		SLATE_ARGUMENT( TOptional<bool>, HasDownArrow )
-		SLATE_ATTRIBUTE( FMargin, ContentPadding )
-		SLATE_ARGUMENT( TOptional<EHorizontalAlignment>, HAlign )
-		SLATE_ARGUMENT( TOptional<EVerticalAlignment>, VAlign )
 		SLATE_ATTRIBUTE( FSlateColor, ForegroundColor )
 		SLATE_ATTRIBUTE( FSlateColor, ButtonColorAndOpacity )
-		SLATE_ARGUMENT( const FSlateBrush*, MenuBorderBrush )
-		SLATE_ARGUMENT( TOptional<FMargin>, MenuBorderPadding )
+		SLATE_ATTRIBUTE( FVector2D, ContentScale )
+		SLATE_ATTRIBUTE( FMargin, ContentPadding )
 		SLATE_ATTRIBUTE( EMenuPlacement, MenuPlacement )
+		SLATE_ARGUMENT( EHorizontalAlignment, HAlign )
+		SLATE_ARGUMENT( EVerticalAlignment, VAlign )
 
 		/** Spawn a new window or reuse current window for this combo*/
 		SLATE_ARGUMENT( SMenuAnchor::EMethod, Method )

@@ -22,7 +22,7 @@ class TestP4_Info : BuildCommand
 		Log("P4CLIENT={0}", GetEnvVar("P4CLIENT"));
 		Log("P4PORT={0}", GetEnvVar("P4PORT"));
 
-		var Result = P4("info");
+		var Result = P4.P4("info");
 		if (Result != 0)
 		{
 			throw new AutomationException("p4 info failed: {0}", Result.Output);
@@ -85,6 +85,26 @@ class TestRecursionAuto : BuildCommand
 		RunUAT(CmdEnv, "TestRecursion -Cmd=TestFail");
 
 	}
+}
+
+[Help("Makes a zip file in Rocket/QFE")]
+class TestMacZip : BuildCommand
+{
+    public override void ExecuteBuild()
+    {
+        Log("TestMacZip *********************");
+
+        if (UnrealBuildTool.Utils.IsRunningOnMono)
+        {
+			PushDir(CombinePaths(CmdEnv.LocalRoot, "Rocket/QFE"));
+            RunAndLog(CommandUtils.CmdEnv, "zip", "-r TestZip .");
+            PopDir();
+        }
+        else
+        {
+            throw new AutomationException("This probably only works on the mac.");
+        }
+    }
 }
 
 [Help("Tests the temp storage operations.")]
@@ -366,7 +386,7 @@ class TestP4_CreateChangelist : BuildCommand
 		var CLDescription = "AutomationTool TestP4";
 
 		Log("Creating new changelist \"{0}\" using client \"{1}\"", CLDescription, GetEnvVar("P4CLIENT"));
-		var ChangelistNumber = CreateChange(Description: CLDescription);
+		var ChangelistNumber = P4.CreateChange(Description: CLDescription);
 		Log("Created changelist {0}", ChangelistNumber);
 	}
 }
@@ -376,7 +396,7 @@ class TestP4_StrandCheckout : BuildCommand
 {
 	public override void ExecuteBuild()
 	{
-		int WorkingCL = CreateChange(P4Env.Client, String.Format("TestP4_StrandCheckout, head={0}", P4Env.Changelist));
+		int WorkingCL = P4.CreateChange(P4Env.Client, String.Format("TestP4_StrandCheckout, head={0}", P4Env.Changelist));
 
 		Log("Build from {0}    Working in {1}", P4Env.Changelist, WorkingCL);
 
@@ -388,13 +408,13 @@ class TestP4_StrandCheckout : BuildCommand
 		CodeSign.SignMultipleIfEXEOrDLL(this, Sign);
 		foreach (var File in Sign)
 		{
-			Sync("-f -k " + File + "#head"); // sync the file without overwriting local one
+			P4.Sync("-f -k " + File + "#head"); // sync the file without overwriting local one
 			if (!FileExists(File))
 			{
 				throw new AutomationException("BUILD FAILED {0} was a build product but no longer exists", File);
 			}
 
-			ReconcileNoDeletes(WorkingCL, File);
+			P4.ReconcileNoDeletes(WorkingCL, File);
 		}
 	}
 }
@@ -407,7 +427,7 @@ class TestP4_LabelDescription : BuildCommand
 		string Label = GetEnvVar("SBF_LabelFromUser");
 		string Desc;
 		Log("LabelDescription {0}", Label);
-		var Result = LabelDescription(Label, out Desc);
+		var Result = P4.LabelDescription(Label, out Desc);
 		if (!Result)
 		{
 			throw new AutomationException("Could not get label description");
@@ -422,7 +442,7 @@ class TestP4_ClientOps : BuildCommand
     public override void ExecuteBuild()
     {
         string TemplateClient = "ue4_licensee_workspace";
-        var Clients = P4GetClientsForUser("UE4_Licensee");
+		var Clients = P4.GetClientsForUser("UE4_Licensee");
 
         string TestClient = "UAT_Test_Client";
 
@@ -443,11 +463,11 @@ class TestP4_ClientOps : BuildCommand
         NewClient.Host = Environment.MachineName.ToLower();
         NewClient.RootPath = @"C:\TestClient";
         NewClient.Name = TestClient;
-        if (DoesClientExist(TestClient))
+		if (P4.DoesClientExist(TestClient))
         {
-            DeleteClient(TestClient);
+			P4.DeleteClient(TestClient);
         }
-        CreateClient(NewClient);
+		P4.CreateClient(NewClient);
 
         //P4CLIENT         Name of client workspace        p4 help client
         //P4PASSWD         User password passed to server  p4 help passwd
@@ -470,7 +490,7 @@ class TestP4_ClientOps : BuildCommand
 
         //Sync(CombinePaths(PathSeparator.Slash, P4Env.BuildRootP4, "UE4Games.uprojectdirs"));
         string Output;
-        P4Output(out Output, "files -m 10 " + CombinePaths(PathSeparator.Slash, P4Env.BuildRootP4, "..."));
+		P4.P4Output(out Output, "files -m 10 " + CombinePaths(PathSeparator.Slash, P4Env.BuildRootP4, "..."));
  
         var Lines = Output.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
         string SlashRoot = CombinePaths(PathSeparator.Slash, P4Env.BuildRootP4, "/");
@@ -491,7 +511,7 @@ class TestP4_ClientOps : BuildCommand
         }
 
         // should be used as a sanity check! make sure there are no files!
-        LogP4Output(out Output, "files -m 10 " + CombinePaths(PathSeparator.Slash, P4Env.BuildRootP4, "...", "NoRedist", "..."));
+		P4.LogP4Output(out Output, "files -m 10 " + CombinePaths(PathSeparator.Slash, P4Env.BuildRootP4, "...", "NoRedist", "..."));
 
         // caution this doesn't actually use the client _view_ from the template at all!
         // if you want that sync -f -k /...
@@ -502,63 +522,10 @@ class TestP4_ClientOps : BuildCommand
         {
             SetEnvVar(ToLoad, KeyValues[ToLoad]);
         }
-        DeleteClient(TestClient);
+		P4.DeleteClient(TestClient);
     }
 }
 
-class TestAgent : BuildCommand
-{
-	public override void ExecuteBuild()
-	{
-		Log("*********************** Agent Test, sign");
-
-		List<string> Sign = new List<string>();
-		Sign.Add(CombinePaths(CmdEnv.LocalRoot, @"\Engine\Binaries\DotNET\AgentInterface.dll"));
-
-		CodeSign.SignMultipleIfEXEOrDLL(this, Sign);
-
-
-		Log("*********************** Agent Test, P: drive");
-
-		string UnitTestFile = @"p:\Builds\Fortnite\Test_p_drive.txt";
-		Log("Test file {0}", UnitTestFile);
-
-		if (FileExists(UnitTestFile))
-		{
-			DeleteFile(UnitTestFile);
-		}
-		string[] LinesToWrite = new string[]
-		{
-			"This is a test",
-			"Of writing to file " + UnitTestFile
-		};
-		foreach (string Line in LinesToWrite)
-		{
-			WriteToFile(UnitTestFile, Line);
-		}
-
-		string[] LinesRead = ReadAllLines(UnitTestFile);
-		DeleteFile(UnitTestFile);
-		if (LinesRead == null || LinesRead.Length != LinesToWrite.Length)
-		{
-			throw new AutomationException("Contents of the file created is different to the file read.");
-		}
-		for (int LineIndex = 0; LineIndex < LinesRead.Length; ++LineIndex)
-		{
-			if (LinesRead[LineIndex] != LinesToWrite[LineIndex])
-			{
-				throw new AutomationException("Contents of the file created is different to the file read.");
-			}
-		}
-
-		Log("*********************** Agent Test, Mount.exe");
-
-		if (!FileExists(CmdEnv.MountExe))
-		{
-			throw new AutomationException("Mount.exe is missing from the agent.  Please install it.");
-		}
-	}
-}
 
 class CleanDDC : BuildCommand
 {
@@ -754,9 +721,9 @@ class TestChangeFileType : BuildCommand
 	public override void ExecuteBuild()
 	{
 		var Filename = ParseParamValue("File", "");
-		if (FStat(Filename).Type == P4FileType.Binary)
+		if (P4.FStat(Filename).Type == P4FileType.Binary)
 		{
-			ChangeFileType(Filename, P4FileAttributes.Writeable);
+			P4.ChangeFileType(Filename, P4FileAttributes.Writeable);
 		}
 	}
 }
@@ -1062,33 +1029,7 @@ public class TestUATBuildProducts : BuildCommand
 	}
 }
 
-[Help("Tests enumeration of a directory on P:")]
-public class TestChunkDir : BuildCommand
-{
-	public override void ExecuteBuild()
-	{
-		var StartTime = DateTime.UtcNow;
-		var Files = CommandUtils.FindFiles("*.*", true, @"P:\Builds\Fortnite\CloudDir\Chunks\");
-		var Duration = (DateTime.UtcNow - StartTime).TotalSeconds;
-		Log("Found {0} files in {1}s with C#", Files.Length, Duration);
 
-		UE4Build Build = new UE4Build(this);
-		var Agenda = new UE4Build.BuildAgenda();
-
-		UnrealTargetPlatform EditorPlatform = HostPlatform.Current.HostEditorPlatform;
-		const UnrealTargetConfiguration EditorConfiguration = UnrealTargetConfiguration.Development;
-
-		Agenda.AddTargets(new string[] { "BlankProgram" }, EditorPlatform, EditorConfiguration);
-
-		Build.Build(Agenda, InDeleteBuildProducts: true, InUpdateVersionFiles: false);
-
-		var Exe = CombinePaths(CmdEnv.LocalRoot, @"Engine/Binaries/Win64/", "BlankProgram.exe");
-
-		RunAndLog(CmdEnv, Exe, "");
-
-
-	}
-}
 
 [Help("Tests WatchdogTimer functionality. The correct result is to exit the application with ExitCode=1 after a few seconds.")]
 public class TestWatchdogTimer : BuildCommand
@@ -1261,22 +1202,22 @@ public class ZeroEngineVersions : BuildCommand
 		string VersionFilename = CmdEnv.LocalRoot + @"/Engine/Source/Runtime/Launch/Resources/Version.h";
 		if (P4Env.Changelist > 0)
 		{
-			var Stat = FStat(ObjectVersionFilename);
+			var Stat = P4.FStat(ObjectVersionFilename);
 			if (Stat.IsValid && Stat.Action != P4Action.None)
 			{
 				Log("Reverting {0}", ObjectVersionFilename);
-				Revert(ObjectVersionFilename);
+				P4.Revert(ObjectVersionFilename);
 			}
-			Stat = FStat(VersionFilename);
+			Stat = P4.FStat(VersionFilename);
 			if (Stat.IsValid && Stat.Action != P4Action.None)
 			{
 				Log("Reverting {0}", VersionFilename);
-				Revert(VersionFilename);
+				P4.Revert(VersionFilename);
 			}
 
 			Log("Gettting engine version files @{0}", P4Env.Changelist);
-			Sync(String.Format("-f {0}@{1}", ObjectVersionFilename, P4Env.Changelist));
-			Sync(String.Format("-f {0}@{1}", VersionFilename, P4Env.Changelist));
+			P4.Sync(String.Format("-f {0}@{1}", ObjectVersionFilename, P4Env.Changelist));
+			P4.Sync(String.Format("-f {0}@{1}", VersionFilename, P4Env.Changelist));
 		}
 
 		Log("Checking if engine version files need to be reset...");
@@ -1309,14 +1250,14 @@ public class ZeroEngineVersions : BuildCommand
 
 		if (FilesToSubmit.Count > 0)
 		{
-			int CL = CreateChange(null, "Zero engine versions");
+			int CL = P4.CreateChange(null, "Zero engine versions");
 			foreach (var Filename in FilesToSubmit)
 			{
-				Edit(CL, Filename);
+				P4.Edit(CL, Filename);
 			}
 			Log("Submitting CL #{0}...", CL);
 			int SubmittedCL;
-			Submit(CL, out SubmittedCL, false, true);
+			P4.Submit(CL, out SubmittedCL, false, true);
 			Log("CL #{0} submitted as {1}", CL, SubmittedCL);
 		}
 		else
@@ -1338,7 +1279,7 @@ public class SyncSource : BuildCommand
 	{
 		try
 		{
-			Sync(SyncCmdLine);
+			P4.Sync(SyncCmdLine);
 		}
 		catch (Exception Ex)
 		{
@@ -1396,11 +1337,11 @@ public class SyncSource : BuildCommand
 		}
 
 		DepotPath = CombinePaths(PathSeparator.Depot, DepotPath, "*");
-		var ProjectDirectories = Dirs(String.Format("-D {0}", DepotPath));
+		var ProjectDirectories = P4.Dirs(String.Format("-D {0}", DepotPath));
 		foreach (var ProjectDir in ProjectDirectories)
 		{
 			var ProjectDirPath = CombinePaths(PathSeparator.Depot, ProjectDir, "*");
-			var SubDirectories = Dirs(ProjectDirPath);
+			var SubDirectories = P4.Dirs(ProjectDirPath);
 			foreach (var SubDir in SubDirectories)
 			{
 				var SubDirName = Path.GetFileNameWithoutExtension(GetDirectoryName(SubDir));
@@ -1499,5 +1440,68 @@ public class DebugSleep : BuildCommand
 	public override void ExecuteBuild()
 	{
 		Thread.Sleep(20000);
+	}
+}
+
+[Help("Tests if Mcp configs loaded properly.")]
+class TestMcpConfigs : BuildCommand
+{
+    public override void ExecuteBuild()
+    {
+        EpicGames.MCP.Config.McpConfigHelper.Find("localhost");
+    }
+}
+
+
+
+[Help("Test Blame P4 command.")]
+[Help("File", "(Optional) Filename of the file to produce a blame output for")]
+[Help("Out", "(Optional) File to save the blame result to.")]
+[Help("Timelapse", "If specified, will use Timelapse command instead of Blame")]
+[RequireP4]
+class TestBlame : BuildCommand
+{
+	public override void ExecuteBuild()
+	{
+		var Filename = ParseParamValue("File", "//depot/UE4/Engine/Source/Runtime/PakFile/Public/IPlatformFilePak.h");
+		var OutFilename = ParseParamValue("Out");
+
+		Log("Creating blame file for {0}", Filename);
+		P4Connection.BlameLineInfo[] Result = null;
+		if (ParseParam("Timelapse"))
+		{
+			Result = P4.Timelapse(Filename);
+		}
+		else
+		{
+			Result = P4.Blame(Filename);
+		}
+		var BlameResult = new StringBuilder();
+		foreach (var BlameLine in Result)
+		{
+			var ResultLine = String.Format("#{0} in {1} by {2}: {3}", BlameLine.Revision.Revision, BlameLine.Revision.Changelist, BlameLine.Revision.User, BlameLine.Line);
+			Log(ResultLine);
+			BlameResult.AppendLine(ResultLine);
+		}
+		if (String.IsNullOrEmpty(OutFilename) == false)
+		{
+			WriteAllText(OutFilename, BlameResult.ToString());
+		}
+	}
+}
+
+[Help("Spawns a process to test if UAT kills it automatically.")]
+class TestKillAll : BuildCommand
+{
+	public override void ExecuteBuild()
+	{
+		Log("*********************** TestKillAll");
+
+		string Exe = CombinePaths(CmdEnv.LocalRoot, "Engine", "Binaries", "Win64", "UE4Editor.exe");
+		string ClientLogFile = CombinePaths(CmdEnv.LogFolder, "HoverGameRun");
+		string CmdLine = " ../../../Samples/HoverShip/HoverShip.uproject -game -forcelogflush -log -abslog=" + ClientLogFile;
+
+		Run(Exe, CmdLine, null, ERunOptions.AllowSpew | ERunOptions.NoWaitForExit | ERunOptions.AppMustExist | ERunOptions.NoStdOutRedirect);
+		Thread.Sleep(1000);
 	}
 }

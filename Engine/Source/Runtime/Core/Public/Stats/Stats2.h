@@ -118,7 +118,7 @@ struct EStatOperation
 		AdvanceFrameEventRenderThread,  
 		CycleScopeStart,
 		CycleScopeEnd,
-		CycleSetToNow,
+		SpecialMessageMarker, // This is not a regular stat operation, but just a special message marker to determine that we encountered a special data in the stat file
 		Set, 
 		Clear,
 		Add,
@@ -521,7 +521,7 @@ struct FStatMessage
 		checkStats(NameAndInfo.GetFlag(EStatMetaFlags::IsCycle) == true);
 
 		// these branches are FORCEINLINE_STATS of constants in almost all cases, so they disappear
-		if (InStatOperation == EStatOperation::CycleScopeStart || InStatOperation == EStatOperation::CycleScopeEnd || InStatOperation == EStatOperation::CycleSetToNow)
+		if (InStatOperation == EStatOperation::CycleScopeStart || InStatOperation == EStatOperation::CycleScopeEnd)
 		{
 			GetValue_int64()= int64(FPlatformTime::Cycles());
 		}
@@ -970,7 +970,7 @@ public:
 	/** Clock operation. **/
 	static FORCEINLINE_STATS void AddMessage(FName InStatName, EStatOperation::Type InStatOperation)
 	{
-		checkStats((InStatOperation == EStatOperation::CycleScopeStart || InStatOperation == EStatOperation::CycleScopeEnd || InStatOperation == EStatOperation::CycleSetToNow));
+		checkStats((InStatOperation == EStatOperation::CycleScopeStart || InStatOperation == EStatOperation::CycleScopeEnd));
 		FThreadStats* ThreadStats = GetThreadStats();
 		// these branches are handled by the optimizer
 		if (InStatOperation == EStatOperation::CycleScopeStart)
@@ -1148,6 +1148,22 @@ public:
 	}
 };
 
+/** Manages startup messages, usually to update the metadata. */
+class CORE_API FStartupMessages
+{
+public:
+	TArray<FStatMessage> DelayedMessages;
+	FCriticalSection CriticalSection;
+
+	/** Adds a thread metadata. */
+	void AddThreadMetadata( const FName InThreadFName, uint32 InThreadID );
+
+	/** Adds a regular metadata. */
+	void AddMetadata( FName InStatName, const TCHAR* InStatDesc, const char* InGroupName, const TCHAR* InGroupDesc, bool bCanBeDisabled, EStatDataType::Type InStatType, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion InMemoryRegion = FPlatformMemory::MCR_Invalid );
+
+	/** Access the singleton. */
+	static FStartupMessages& Get();
+};
 
 /**
 * Single interface to control high performance stat disable
@@ -1208,7 +1224,7 @@ struct FThreadSafeStaticStatBase
 {
 protected:
 	mutable FName* HighPerformanceEnable; // must be uninitialized, because we need atomic initialization
-	CORE_API void DoSetup(const char* InStatName, const TCHAR* InStatDesc, const char* GroupName, const TCHAR* InGroupDesc, bool bDefaultEnable, bool bCanBeDisabled, EStatDataType::Type InStatType, bool IsCycleStat, FPlatformMemory::EMemoryCounterRegion InMemoryRegion) const;
+	CORE_API void DoSetup(const char* InStatName, const TCHAR* InStatDesc, const char* InGroupName, const TCHAR* InGroupDesc, bool bDefaultEnable, bool bCanBeDisabled, EStatDataType::Type InStatType, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion InMemoryRegion) const;
 };
 
 template<class TStatData, bool TCompiledIn>
@@ -1504,66 +1520,66 @@ struct FStat_##StatName\
  * but they do have to be unique. You're better off defining these in your
  * own headers/cpp files
  */
-DECLARE_STATS_GROUP(TEXT("DefaultStatGroup"),STATGROUP_Default);
+DECLARE_STATS_GROUP(TEXT("AI"),STATGROUP_AI);
 DECLARE_STATS_GROUP(TEXT("Anim"),STATGROUP_Anim);
 DECLARE_STATS_GROUP(TEXT("AsyncIO"),STATGROUP_AsyncIO);
 DECLARE_STATS_GROUP(TEXT("Audio"), STATGROUP_Audio);
 DECLARE_STATS_GROUP(TEXT("BeamParticles"),STATGROUP_BeamParticles);
+DECLARE_STATS_GROUP(TEXT("CPUStalls"), STATGROUP_CPUStalls);
 DECLARE_STATS_GROUP(TEXT("Canvas"),STATGROUP_Canvas);
 DECLARE_STATS_GROUP(TEXT("Collision"),STATGROUP_Collision);
+DECLARE_STATS_GROUP(TEXT("CrashTracker"),STATGROUP_CrashTracker);
+DECLARE_STATS_GROUP(TEXT("D3D11RHI"),STATGROUP_D3D11RHI);
+DECLARE_STATS_GROUP(TEXT("DDC"),STATGROUP_DDC);
+DECLARE_STATS_GROUP(TEXT("DefaultStatGroup"),STATGROUP_Default);
 DECLARE_STATS_GROUP(TEXT("Engine"),STATGROUP_Engine);
 DECLARE_STATS_GROUP(TEXT("FPSChart"),STATGROUP_FPSChart);
-DECLARE_STATS_GROUP(TEXT("Game"),STATGROUP_Game);
-DECLARE_STATS_GROUP(TEXT("UObjects"),STATGROUP_UObjects);
-DECLARE_STATS_GROUP(TEXT("Memory"),STATGROUP_Memory);
-DECLARE_STATS_GROUP(TEXT("MemoryStaticMesh"),STATGROUP_MemoryStaticMesh);
-DECLARE_STATS_GROUP(TEXT("MemoryChurn"),STATGROUP_MemoryChurn);
-DECLARE_STATS_GROUP(TEXT("MeshParticles"),STATGROUP_MeshParticles);
-DECLARE_STATS_GROUP(TEXT("Net"),STATGROUP_Net);
-DECLARE_STATS_GROUP(TEXT("Object"),STATGROUP_Object);
-DECLARE_STATS_GROUP(TEXT("Particles"),STATGROUP_Particles);
 DECLARE_STATS_GROUP(TEXT("GPUParticles"),STATGROUP_GPUParticles);
-DECLARE_STATS_GROUP(TEXT("ParticleMem"),STATGROUP_ParticleMem);
-DECLARE_STATS_GROUP(TEXT("Physics"),STATGROUP_Physics);
-DECLARE_STATS_GROUP(TEXT("D3D11RHI"),STATGROUP_D3D11RHI);
+DECLARE_STATS_GROUP(TEXT("Game"),STATGROUP_Game);
 DECLARE_STATS_GROUP(TEXT("Gnm"),STATGROUP_PS4RHI);
-DECLARE_STATS_GROUP(TEXT("SceneRendering"),STATGROUP_SceneRendering);
 DECLARE_STATS_GROUP(TEXT("InitViews"),STATGROUP_InitViews);
-DECLARE_STATS_GROUP(TEXT("ShadowRendering"),STATGROUP_ShadowRendering);
+DECLARE_STATS_GROUP(TEXT("Landscape"),STATGROUP_Landscape);
 DECLARE_STATS_GROUP(TEXT("LightRendering"),STATGROUP_LightRendering);
+DECLARE_STATS_GROUP(TEXT("Load Time"), STATGROUP_LoadTime);
+DECLARE_STATS_GROUP(TEXT("Memory"),STATGROUP_Memory);
+DECLARE_STATS_GROUP(TEXT("MemoryChurn"),STATGROUP_MemoryChurn);
+DECLARE_STATS_GROUP(TEXT("MemoryStaticMesh"),STATGROUP_MemoryStaticMesh);
+DECLARE_STATS_GROUP(TEXT("MeshParticles"),STATGROUP_MeshParticles);
+DECLARE_STATS_GROUP(TEXT("Morph"),STATGROUP_MorphTarget);
+DECLARE_STATS_GROUP(TEXT("Navigation"),STATGROUP_Navigation);
+DECLARE_STATS_GROUP(TEXT("Net"),STATGROUP_Net);
+DECLARE_STATS_GROUP(TEXT("Niagara"),STATGROUP_Niagara);
+DECLARE_STATS_GROUP(TEXT("Object"),STATGROUP_Object);
+DECLARE_STATS_GROUP(TEXT("OpenGLRHI"),STATGROUP_OpenGLRHI);
+DECLARE_STATS_GROUP(TEXT("PakFile"),STATGROUP_PakFile);
+DECLARE_STATS_GROUP(TEXT("ParticleMem"),STATGROUP_ParticleMem);
+DECLARE_STATS_GROUP(TEXT("Particles"),STATGROUP_Particles);
+DECLARE_STATS_GROUP(TEXT("Physics"),STATGROUP_Physics);
+DECLARE_STATS_GROUP(TEXT("Profiler"), STATGROUP_Profiler);
+DECLARE_STATS_GROUP(TEXT("Quick"), STATGROUP_Quick);
+DECLARE_STATS_GROUP(TEXT("RHI"),STATGROUP_RHI);
+DECLARE_STATS_GROUP(TEXT("RenderThread"),STATGROUP_RenderThreadProcessing);
+DECLARE_STATS_GROUP(TEXT("SceneMemory"),STATGROUP_SceneMemory);
+DECLARE_STATS_GROUP(TEXT("SceneRendering"),STATGROUP_SceneRendering);
 DECLARE_STATS_GROUP(TEXT("SceneUpdate"),STATGROUP_SceneUpdate);
+DECLARE_STATS_GROUP(TEXT("ServerCPU"),STATGROUP_ServerCPU);
 DECLARE_STATS_GROUP(TEXT("ShaderCompiling"),STATGROUP_ShaderCompiling);
 DECLARE_STATS_GROUP(TEXT("ShaderCompression"),STATGROUP_Shaders);
+DECLARE_STATS_GROUP(TEXT("ShadowRendering"),STATGROUP_ShadowRendering);
+DECLARE_STATS_GROUP(TEXT("Slate Memory"), STATGROUP_SlateMemory );
+DECLARE_STATS_GROUP(TEXT("Slate"), STATGROUP_Slate );
 DECLARE_STATS_GROUP(TEXT("StatSystem"),STATGROUP_StatSystem);
 DECLARE_STATS_GROUP(TEXT("Streaming"),STATGROUP_Streaming);
 DECLARE_STATS_GROUP(TEXT("StreamingDetails"),STATGROUP_StreamingDetails);
+DECLARE_STATS_GROUP(TEXT("Text"),STATGROUP_Text);
 DECLARE_STATS_GROUP(TEXT("Threading"),STATGROUP_Threading);
+DECLARE_STATS_GROUP(TEXT("Threads"),STATGROUP_Threads);
+DECLARE_STATS_GROUP(TEXT("Tickables"),STATGROUP_Tickables);
 DECLARE_STATS_GROUP(TEXT("TrailParticles"),STATGROUP_TrailParticles);
 DECLARE_STATS_GROUP(TEXT("UI"),STATGROUP_UI);
-DECLARE_STATS_GROUP(TEXT("Navigation"),STATGROUP_Navigation);
-DECLARE_STATS_GROUP(TEXT("Morph"),STATGROUP_MorphTarget);
-DECLARE_STATS_GROUP(TEXT("RenderThread"),STATGROUP_RenderThreadProcessing);
-DECLARE_STATS_GROUP(TEXT("OpenGLRHI"),STATGROUP_OpenGLRHI);
-DECLARE_STATS_GROUP(TEXT("Slate"), STATGROUP_Slate );
-DECLARE_STATS_GROUP(TEXT("Slate Memory"), STATGROUP_SlateMemory );
-DECLARE_STATS_GROUP(TEXT("SceneMemory"),STATGROUP_SceneMemory);
-DECLARE_STATS_GROUP(TEXT("Landscape"),STATGROUP_Landscape);
-DECLARE_STATS_GROUP(TEXT("DDC"),STATGROUP_DDC);
-DECLARE_STATS_GROUP(TEXT("CrashTracker"),STATGROUP_CrashTracker);
-DECLARE_STATS_GROUP(TEXT("GraphTasks"),STATGROUP_GraphTasks);
-DECLARE_STATS_GROUP(TEXT("Profiler"), STATGROUP_Profiler);
+DECLARE_STATS_GROUP(TEXT("UObjects"),STATGROUP_UObjects);
 DECLARE_STATS_GROUP(TEXT("User"),STATGROUP_User);
-DECLARE_STATS_GROUP(TEXT("Tickables"),STATGROUP_Tickables);
-DECLARE_STATS_GROUP(TEXT("ServerCPU"),STATGROUP_ServerCPU);
-DECLARE_STATS_GROUP(TEXT("Niagara"),STATGROUP_Niagara);
-DECLARE_STATS_GROUP(TEXT("Text"),STATGROUP_Text);
-DECLARE_STATS_GROUP(TEXT("CPUStalls"), STATGROUP_CPUStalls);
-DECLARE_STATS_GROUP(TEXT("Quick"), STATGROUP_Quick);
-DECLARE_STATS_GROUP(TEXT("Load Time"), STATGROUP_LoadTime);
-DECLARE_STATS_GROUP(TEXT("AI"),STATGROUP_AI);
-DECLARE_STATS_GROUP(TEXT("RHI"),STATGROUP_RHI);
 
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Root"),STAT_Root,STATGROUP_Default, CORE_API);
 DECLARE_CYCLE_STAT_EXTERN(TEXT("FrameTime"),STAT_FrameTime,STATGROUP_Engine, CORE_API);
 DECLARE_FLOAT_COUNTER_STAT_EXTERN(TEXT("StatUnit FPS"), STAT_FPS, STATGROUP_Engine, CORE_API);
 

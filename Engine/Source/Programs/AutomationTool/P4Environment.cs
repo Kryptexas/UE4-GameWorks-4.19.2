@@ -29,12 +29,12 @@ namespace AutomationTool
 
 		#endregion
 
-		internal P4Environment(CommandEnvironment CmdEnv)
+		internal P4Environment(P4Connection Connection, CommandEnvironment CmdEnv)
 		{
-			InitEnvironment(CmdEnv);
+			InitEnvironment(Connection, CmdEnv);
 		}
 
-		protected virtual void InitEnvironment(CommandEnvironment CmdEnv)
+		protected virtual void InitEnvironment(P4Connection Connection, CommandEnvironment CmdEnv)
 		{
 			//
 			// P4 Environment

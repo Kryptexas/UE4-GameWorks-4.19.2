@@ -720,6 +720,8 @@ FPropertyAccess::Result FPropertyValueImpl::OnUseSelected()
 		UInterfaceProperty* IntProp = Cast<UInterfaceProperty>( NodeProperty );
 		UClassProperty* ClassProp = Cast<UClassProperty>( NodeProperty );
 		UAssetClassProperty* AssetClassProperty = Cast<UAssetClassProperty>( NodeProperty );
+		UClass* const InterfaceThatMustBeImplemented = ObjProp ? ObjProp->GetOwnerProperty()->GetClassMetaData(TEXT("MustImplement")) : NULL;
+
 		if(ClassProp || AssetClassProperty)
 		{
 			FEditorDelegates::LoadSelectedAssetsIfNeeded.Broadcast();
@@ -727,7 +729,10 @@ FPropertyAccess::Result FPropertyValueImpl::OnUseSelected()
 			const UClass* const SelectedClass = GEditor->GetFirstSelectedClass(ClassProp ? ClassProp->MetaClass : AssetClassProperty->MetaClass);
 			if(SelectedClass)
 			{
-				SetValueAsString(SelectedClass->GetPathName(), EPropertyValueSetFlags::DefaultFlags);
+				if (!InterfaceThatMustBeImplemented || SelectedClass->ImplementsInterface(InterfaceThatMustBeImplemented))
+				{
+					SetValueAsString(SelectedClass->GetPathName(), EPropertyValueSetFlags::DefaultFlags);
+				}
 			}
 		}
 		else
@@ -744,7 +749,6 @@ FPropertyAccess::Result FPropertyValueImpl::OnUseSelected()
 				ObjPropClass = IntProp->InterfaceClass;
 			}
 
-			UClass* const InterfaceThatMustBeImplemented = ObjProp ? ObjProp->GetOwnerProperty()->GetClassMetaData(TEXT("MustImplement")) : NULL;
 			bool const bMustBeLevelActor = ObjProp ? ObjProp->GetOwnerProperty()->GetBoolMetaData(TEXT("MustBeLevelActor")) : false;
 
 			// Find best appropriate selected object

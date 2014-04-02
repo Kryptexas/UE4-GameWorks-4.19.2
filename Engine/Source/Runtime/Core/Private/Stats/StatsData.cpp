@@ -16,7 +16,13 @@ DECLARE_DWORD_COUNTER_STAT(TEXT("Frame Messages Condensed"),STAT_StatFramePacket
 /*-----------------------------------------------------------------------------
 	FStatConstants
 -----------------------------------------------------------------------------*/
-FName FStatConstants::NAME_ThreadRoot(TEXT("ThreadRoot"));
+
+const FName FStatConstants::NAME_ThreadRoot = "ThreadRoot";
+const char* FStatConstants::ThreadGroupName = STAT_GROUP_TO_FStatGroup( STATGROUP_Threads )::GetGroupName();
+const FName FStatConstants::NAME_ThreadGroup = FStatConstants::ThreadGroupName;
+
+const FString FStatConstants::StatsFileExtension = TEXT( ".ue4stats" );
+const FString FStatConstants::StatsFileRawExtension = TEXT( ".ue4statsraw" );
 
 /**
 * Magic numbers for stats streams
@@ -29,6 +35,10 @@ namespace EStatMagic
 		MAGIC_SWAPPED=0xC1831B7E
 	};
 }
+
+/*-----------------------------------------------------------------------------
+	FRawStatStackNode
+-----------------------------------------------------------------------------*/
 
 FRawStatStackNode::FRawStatStackNode(FRawStatStackNode const& Other)
 	: Meta(Other.Meta)
@@ -287,7 +297,7 @@ void FRawStatStackNode::DebugPrint(TCHAR const* Filter, int32 InMaxDepth, int32 
 		if (!Filter || !*Filter)
 		{
 			FString TmpDebugStr = FStatsUtils::DebugPrint(Meta);
-			UE_LOG(LogStats2, Log, TEXT("%s%s"), FCString::Spc(Depth*2), *TmpDebugStr);
+			UE_LOG(LogStats, Log, TEXT("%s%s"), FCString::Spc(Depth*2), *TmpDebugStr);
 		}
 
 		static int64 MinPrint = int64(.004f / FPlatformTime::ToMilliseconds(1.0f) + 0.5f);
@@ -465,101 +475,9 @@ FStatsThreadState::FStatsThreadState(int32 InHistoryFrames)
 {
 }
 
-FStatsThreadState::FStatsThreadState(FString const& Filename)
-	: HistoryFrames(MAX_int32)
-	, MaxFrameSeen(-1)
-	, MinFrameSeen(-1)
-	, LastFullFrameMetaAndNonFrame(-1)
-	, LastFullFrameProcessed(-1)
-	, bWasLoaded(true)
-	, CurrentGameFrame(-1)
-	, CurrentRenderFrame(-1)
-{
-	int64 Size = IFileManager::Get().FileSize(*Filename);
-	if (Size < 4)
-	{
-		UE_LOG(LogStats2, Error, TEXT( "Could not open: %s" ), *Filename );
-		return;
-	}
-	FArchive* FileReader = IFileManager::Get().CreateFileReader(*Filename);
-	if (!FileReader)
-	{
-		UE_LOG(LogStats2, Error, TEXT( "Could not open: %s" ), *Filename );
-		return;
-	}
-
-	uint32 Magic = 0;
-	*FileReader << Magic;
-	if (Magic == EStatMagic::MAGIC)
-	{
-
-	}
-	else if (Magic == EStatMagic::MAGIC_SWAPPED)
-	{
-		FileReader->SetByteSwapping(true);
-	}
-	else
-	{
-		UE_LOG(LogStats2, Error, TEXT( "Could not open, bad magic: %s" ), *Filename );
-		delete FileReader;
-		return;
-	}
-
-	TArray<FStatMessage> Messages;
-
-	FStatsReadStream Stream;
-
-	while (FileReader->Tell() < Size)
-	{
-		FStatMessage Read(Stream.ReadMessage(*FileReader));
-		if (Read.NameAndInfo.GetField<EStatOperation>() == EStatOperation::AdvanceFrameEventGameThread)
-		{
-			ProcessMetaDataForLoad(Messages);
-			if (CurrentGameFrame > 0 && Messages.Num())
-			{
-				check(!CondensedStackHistory.Contains(CurrentGameFrame));
-				TArray<FStatMessage>* Save = new TArray<FStatMessage>();
-				Exchange(*Save, Messages);
-				CondensedStackHistory.Add(CurrentGameFrame, Save);
-				GoodFrames.Add(CurrentGameFrame);
-			}
-		}
-
-		new (Messages) FStatMessage(Read);
-	}
-	// meh, we will discard the last frame, but we will look for meta data
-}
-
-void FStatsThreadState::AddMessages(TArray<FStatMessage>& InMessages)
-{
-	bWasLoaded = true;
-	TArray<FStatMessage> Messages;
-	for (int32 Index = 0; Index < InMessages.Num(); ++Index)
-	{
-		if (InMessages[Index].NameAndInfo.GetField<EStatOperation>() == EStatOperation::AdvanceFrameEventGameThread)
-		{
-			ProcessMetaDataForLoad(Messages);
-			if (!CondensedStackHistory.Contains(CurrentGameFrame) && Messages.Num())
-			{
-				TArray<FStatMessage>* Save = new TArray<FStatMessage>();
-				Exchange(*Save, Messages);
-				if (CondensedStackHistory.Num() >= HistoryFrames)
-				{
-					for (auto It = CondensedStackHistory.CreateIterator(); It; ++It)
-					{
-						delete It.Value();
-					}
-					CondensedStackHistory.Reset();
-				}
-				CondensedStackHistory.Add(CurrentGameFrame, Save);
-				GoodFrames.Add(CurrentGameFrame);
-			}
-		}
-
-		new (Messages) FStatMessage(InMessages[Index]);
-	}
-	bWasLoaded = false;
-}
+//FStatsThreadState::FStatsThreadState(FString const& Filename)
+// void FStatsThreadState::AddMessages(TArray<FStatMessage>& InMessages)
+// @see moved to StatsFile.cpp
 
 FStatsThreadState& FStatsThreadState::GetLocalState()
 {
@@ -733,7 +651,6 @@ void FStatsThreadState::ProcessMetaDataForLoad(TArray<FStatMessage>& Data)
 
 void FStatsThreadState::ProcessMetaDataOnly(TArray<FStatMessage>& Data)
 {
-	check(!bWasLoaded);
 	for (int32 Index = 0; Index < Data.Num() ; Index++)
 	{
 		FStatMessage& Item = Data[Index];
@@ -764,14 +681,14 @@ void FStatsThreadState::ProcessNonFrameStats(TArray<FStatMessage>& Data, TSet<FN
 				Op != EStatOperation::AdvanceFrameEventRenderThread
 				))
 			{
-				UE_LOG(LogStats2, Fatal, TEXT( "Stat %s was not cleared every frame, but was used with a scope cycle counter." ), *Item.NameAndInfo.GetRawName().ToString() );
+				UE_LOG(LogStats, Fatal, TEXT( "Stat %s was not cleared every frame, but was used with a scope cycle counter." ), *Item.NameAndInfo.GetRawName().ToString() );
 			}
 			else
 			{
 				FStatMessage* Result = NotClearedEveryFrame.Find(Item.NameAndInfo.GetRawName());
 				if (!Result)
 				{
-					UE_LOG(LogStats2, Error, TEXT( "Stat %s was cleared every frame, but we don't have metadata for it. Data loss." ), *Item.NameAndInfo.GetRawName().ToString() );
+					UE_LOG(LogStats, Error, TEXT( "Stat %s was cleared every frame, but we don't have metadata for it. Data loss." ), *Item.NameAndInfo.GetRawName().ToString() );
 				}
 				else
 				{
@@ -1086,52 +1003,19 @@ TArray<FStatMessage> const& FStatsThreadState::GetCondensedHistory(int64 TargetF
 
 void FStatsThreadState::GetRawStackStats(int64 TargetFrame, FRawStatStackNode& Root, TArray<FStatMessage>* OutNonStackStats) const
 {
-	check(IsFrameValid(TargetFrame));
-	FStatPacketArray const* Frame = History.Find(TargetFrame);
-	check(Frame);
-
-	static TMap<uint32, FName> OtherThreads;
+	const FStatPacketArray& Frame = GetStatPacketArray( TargetFrame );
 	TMap<FName, FStatMessage> ThisFrameNonStackStats;
 
-	for (int32 PacketIndex = 0; PacketIndex < Frame->Packets.Num(); PacketIndex++)
-	{
-		FStatPacket const& Packet = *Frame->Packets[PacketIndex];
-
-		FName ThreadName;
-		if (Packet.ThreadType == EThreadType::Game)
-		{
-			ThreadName = NAME_GameThread;
-		}
-		else if (Packet.ThreadType == EThreadType::Renderer)
-		{
-			ThreadName = NAME_RenderThread;
-		}
-		else if (Packet.ThreadType == EThreadType::Other)
-		{
-			FName& NewThreadName = OtherThreads.FindOrAdd(Packet.ThreadId);
-			if (NewThreadName == NAME_None)
-			{
-				FRunnableThread::GetThreadRegistry().Lock();
-				FRunnableThread* RunnableThread = FRunnableThread::GetThreadRegistry().GetThread(Packet.ThreadId);
-				if (RunnableThread)
+	for (int32 PacketIndex = 0; PacketIndex < Frame.Packets.Num(); PacketIndex++)
 				{
-					NewThreadName = FName(*FString::Printf(TEXT("%s_%x"), *RunnableThread->GetThreadName(), Packet.ThreadId));
-				}
-				else
-				{
-					NewThreadName = FName(*FString::Printf(TEXT("Thread_%x_0"), Packet.ThreadId));
-				}
-				FRunnableThread::GetThreadRegistry().Unlock();
-			}
-			ThreadName = NewThreadName;
-		}
-		check(ThreadName != NAME_None);
+		FStatPacket const& Packet = *Frame.Packets[PacketIndex];
+		const FName ThreadName = GetStatThreadName( Packet );
 
 		FRawStatStackNode* ThreadRoot = Root.Children.FindRef(ThreadName);
 		if (!ThreadRoot)
 		{
 			FString ThreadIdName = FString::Printf(TEXT("Thread_%x_0"), Packet.ThreadId);
-			ThreadRoot = Root.Children.Add(ThreadName, new FRawStatStackNode(FStatMessage(FStatMessage(ThreadName, EStatDataType::ST_int64, NULL, *ThreadIdName, true, true))));
+			ThreadRoot = Root.Children.Add(ThreadName, new FRawStatStackNode(FStatMessage(ThreadName, EStatDataType::ST_int64, NULL, *ThreadIdName, true, true)));
 			ThreadRoot->Meta.NameAndInfo.SetFlag(EStatMetaFlags::IsPackedCCAndDuration, true);
 			ThreadRoot->Meta.Clear();
 		}
@@ -1207,8 +1091,6 @@ void FStatsThreadState::GetRawStackStats(int64 TargetFrame, FRawStatStackNode& R
 void FStatsThreadState::UncondenseStackStats(int64 TargetFrame, FRawStatStackNode& Root, IItemFiler* Filter, TArray<FStatMessage>* OutNonStackStats) const
 {
 	TArray<FStatMessage> const& Data = GetCondensedHistory(TargetFrame);
-
-	static TMap<uint32, FName> OtherThreads;
 	TMap<FName, FStatMessage> ThisFrameNonStackStats;
 
 	{
@@ -1268,18 +1150,17 @@ void FStatsThreadState::UncondenseStackStats(int64 TargetFrame, FRawStatStackNod
 	}
 }
 
-int64 FStatsThreadState::GetFastThreadFrameTime(int64 TargetFrame, EThreadType::Type Thread) const
+int64 FStatsThreadState::GetFastThreadFrameTimeInternal( int64 TargetFrame, int32 ThreadID, EThreadType::Type Thread ) const
 {
 	int64 Result = 0;
-	check(IsFrameValid(TargetFrame));
-	FStatPacketArray const* Frame = History.Find(TargetFrame);
-	check(Frame);
 
-	for (int32 PacketIndex = 0; PacketIndex < Frame->Packets.Num(); PacketIndex++)
+	const FStatPacketArray& Frame = GetStatPacketArray( TargetFrame );
+
+	for( int32 PacketIndex = 0; PacketIndex < Frame.Packets.Num(); PacketIndex++ )
 	{
-		FStatPacket const& Packet = *Frame->Packets[PacketIndex];
+		FStatPacket const& Packet = *Frame.Packets[PacketIndex];
 
-		if (Packet.ThreadType == Thread)
+		if( Packet.ThreadId == ThreadID || Packet.ThreadType == Thread )
 		{
 			TArray<FStatMessage> const& Data = Packet.StatMessages;
 			for (int32 Index = 0; Index < Data.Num(); Index++)
@@ -1311,6 +1192,36 @@ int64 FStatsThreadState::GetFastThreadFrameTime(int64 TargetFrame, EThreadType::
 	return Result;
 }
 
+int64 FStatsThreadState::GetFastThreadFrameTime(int64 TargetFrame, EThreadType::Type Thread) const
+{
+	return GetFastThreadFrameTimeInternal( TargetFrame, 0, Thread );
+}
+
+int64 FStatsThreadState::GetFastThreadFrameTime( int64 TargetFrame, uint32 ThreadID ) const
+{
+	return GetFastThreadFrameTimeInternal( TargetFrame, ThreadID, EThreadType::Invalid );
+}
+
+FName FStatsThreadState::GetStatThreadName( const FStatPacket& Packet ) const
+{
+	FName ThreadName;
+	if( Packet.ThreadType == EThreadType::Game )
+	{
+		ThreadName = NAME_GameThread;
+	}
+	else if( Packet.ThreadType == EThreadType::Renderer )
+	{
+		ThreadName = NAME_RenderThread;
+	}
+	else if( Packet.ThreadType == EThreadType::Other )
+	{
+		ThreadName = Threads.FindChecked( Packet.ThreadId );
+	}
+
+	check( ThreadName != NAME_None );
+	return ThreadName;
+}
+
 void FStatsThreadState::Condense(int64 TargetFrame, TArray<FStatMessage>& OutStats) const
 {
 	static FStatNameAndInfo Adv(NAME_AdvanceFrame, "", TEXT(""), EStatDataType::ST_int64, true, false);
@@ -1335,6 +1246,14 @@ void FStatsThreadState::FindOrAddMetaData(FStatMessage const& Item)
 		check(ShortName != LongName);
 		FStatMessage AsSet(Item);
 		AsSet.Clear();
+		
+		// Whether to add to the threads group.
+		const bool bIsThread = FStatConstants::NAME_ThreadGroup == GroupName;
+		if( bIsThread )
+		{
+			Threads.Add( FStatsUtils::ParseThreadID( ShortName ), ShortName );
+		}
+
 		ShortNameToLongName.Add(ShortName, AsSet); // we want this to be a clear, but it should be a SetLongName
 		AsSet.NameAndInfo.SetField<EStatOperation>(EStatOperation::Set);
 		check(Item.NameAndInfo.GetField<EStatMetaFlags>());
@@ -1349,7 +1268,7 @@ void FStatsThreadState::FindOrAddMetaData(FStatMessage const& Item)
 			FPlatformMemory::EMemoryCounterRegion Region = FPlatformMemory::EMemoryCounterRegion(Item.NameAndInfo.GetField<EMemoryRegion>());
 			if (MemoryPoolToCapacityLongName.Contains(Region))
 			{
-				UE_LOG(LogStats2, Warning, TEXT("MetaData mismatch. Did you assign a memory pool capacity two different ways? %s vs %s"), *LongName.ToString(), *MemoryPoolToCapacityLongName[Region].ToString());
+				UE_LOG(LogStats, Warning, TEXT("MetaData mismatch. Did you assign a memory pool capacity two different ways? %s vs %s"), *LongName.ToString(), *MemoryPoolToCapacityLongName[Region].ToString());
 			}
 			else
 			{
@@ -1361,7 +1280,7 @@ void FStatsThreadState::FindOrAddMetaData(FStatMessage const& Item)
 	{
 		if (LongName != Result->NameAndInfo.GetRawName())
 		{
-			UE_LOG(LogStats2, Warning, TEXT("MetaData mismatch. Did you assign a stat to two groups? New %s old %s"), *LongName.ToString(), *Result->NameAndInfo.GetRawName().ToString());
+			UE_LOG(LogStats, Warning, TEXT("MetaData mismatch. Did you assign a stat to two groups? New %s old %s"), *LongName.ToString(), *Result->NameAndInfo.GetRawName().ToString());
 		}
 	}
 }
@@ -1778,31 +1697,5 @@ void FComplexStatUtils::DiviveStatArray( TArray<FComplexStatMessage>& Dest, uint
 	}
 }
 
-FStastsWriteStream::FStastsWriteStream()
-{
-	FMemoryWriter Ar(OutData, false, true);
-	int32 Magic = EStatMagic::MAGIC;
-
-	// we will 16-byte align the whole thing
-	Ar << Magic;
-	FStatsThreadState const& Stats = FStatsThreadState::GetLocalState();
-
-	for (auto It = Stats.ShortNameToLongName.CreateConstIterator(); It; ++It)
-	{
-		WriteMessage(Ar, It.Value());
-	}
-}
-
-void FStastsWriteStream::WriteCondensedFrame(int64 TargetFrame)
-{
-	FMemoryWriter Ar(OutData, false, true);
-	FStatsThreadState const& Stats = FStatsThreadState::GetLocalState();
-	TArray<FStatMessage> const& Data = Stats.GetCondensedHistory(TargetFrame);
-	for (auto It = Data.CreateConstIterator(); It; ++It)
-	{
-		WriteMessage(Ar, *It);
-	}
-}
 
 #endif
-

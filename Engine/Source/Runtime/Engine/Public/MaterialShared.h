@@ -1112,6 +1112,7 @@ public:
 	virtual FString GetFriendlyName() const = 0;
 	virtual bool HasVertexPositionOffsetConnected() const { return false; }
 	virtual uint32 GetDecalBlendMode() const { return 0; }
+	virtual uint32 GetMaterialDecalResponse() const { return 0; }
 	virtual bool HasNormalConnected() const { return false; }
 	virtual bool RequiresSynchronousCompilation() const { return false; };
 	virtual bool IsDefaultMaterial() const { return false; };
@@ -1201,6 +1202,9 @@ public:
 
 	/** Returns a string that describes the material's usage for debugging purposes. */
 	virtual FString GetMaterialUsageDescription() const = 0;
+
+	/** Returns true if this material is allowed to make development shaders via the global CVar CompileShadersForDevelopment. */
+	virtual bool GetAllowDevelopmentShaderCompile()const{ return true; }
 
 	/**
 	* Get user source code for the material, with a list of code snippets to highlight representing the code for each MaterialExpression
@@ -1729,6 +1733,7 @@ public:
 	ENGINE_API virtual bool UseLmDirectionality() const;
 	ENGINE_API virtual enum EBlendMode GetBlendMode() const;
 	ENGINE_API virtual uint32 GetDecalBlendMode() const;
+	ENGINE_API virtual uint32 GetMaterialDecalResponse() const;
 	ENGINE_API virtual bool HasNormalConnected() const;
 	ENGINE_API virtual enum EMaterialLightingModel GetLightingModel() const;
 	ENGINE_API virtual enum ETranslucencyLightingMode GetTranslucencyLightingMode() const;
@@ -1770,6 +1775,8 @@ public:
 	ENGINE_API virtual void LegacySerialize(FArchive& Ar);
 
 	ENGINE_API virtual const TArray<UTexture*>& GetReferencedTextures() const OVERRIDE;
+
+	ENGINE_API virtual bool GetAllowDevelopmentShaderCompile() const OVERRIDE;
 protected:
 	UMaterial* Material;
 	UMaterialInstance* MaterialInstance;

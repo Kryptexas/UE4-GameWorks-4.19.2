@@ -408,7 +408,7 @@ namespace AutomationTool
 								!String.IsNullOrEmpty(LogFilename) && File.Exists(LogFilename))
 						{
 							var DestFilename = CommandUtils.CombinePaths(LogFolder, "UAT_" + Path.GetFileName(LogFilename));
-							File.Copy(LogFilename, DestFilename, true);
+							SafeCopyLogFile(LogFilename, DestFilename);
 						}
 					}
 					catch (Exception)
@@ -418,6 +418,34 @@ namespace AutomationTool
 				}
 			}
 			base.Close();
+		}
+
+		/// <summary>
+		/// Copies log file to the final log folder, does multiple attempts if the destination file could not be created.
+		/// </summary>
+		/// <param name="SourceFilename"></param>
+		/// <param name="DestFilename"></param>
+		private void SafeCopyLogFile(string SourceFilename, string DestFilename)
+		{
+			const int MaxAttempts = 10;
+			int AttemptNo = 0;
+			var DestLogFilename = DestFilename;
+			bool Result = false;
+			do
+			{				
+				try
+				{
+					File.Copy(SourceFilename, DestLogFilename, true);
+					Result = true;
+				}
+				catch (Exception)
+				{
+					var ModifiedFilename = String.Format("{0}_{1}{2}", Path.GetFileNameWithoutExtension(DestFilename), AttemptNo, Path.GetExtension(DestLogFilename));
+					DestLogFilename = CommandUtils.CombinePaths(Path.GetDirectoryName(DestFilename), ModifiedFilename);
+					AttemptNo++;
+				}
+			}
+			while (Result == false && AttemptNo <= MaxAttempts);
 		}
 
 		public override void Write(string message)

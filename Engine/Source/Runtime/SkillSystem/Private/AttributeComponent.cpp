@@ -164,11 +164,9 @@ FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectSpecToTarget
 {
 	check(GameplayEffect);
 
-	FGameplayEffectSpec	Spec( GameplayEffect, TSharedPtr<FGameplayEffectLevelSpec>(new FGameplayEffectLevelSpec(Level)) );
+	FGameplayEffectSpec	Spec(GameplayEffect, TSharedPtr<FGameplayEffectLevelSpec>(new FGameplayEffectLevelSpec(Level)), GetCurveDataOverride());
 	Spec.Def = GameplayEffect;
 	Spec.InstigatorStack.AddInstigator(GetOwner());
-	
-	//Spec.OnExecute.AddUObject(
 	
 	return ApplyGameplayEffectSpecToTarget(Spec, Target);
 }
@@ -182,7 +180,7 @@ FActiveGameplayEffectHandle UAttributeComponent::K2_ApplyGameplayEffectToSelf(UG
 /** This is a helper function - it seems like this will be useful as a blueprint interface at the least, but Level parameter may need to be expanded */
 FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectToSelf(UGameplayEffect *GameplayEffect, float Level, AActor *Instigator, FModifierQualifier BaseQualifier)
 {
-	FGameplayEffectSpec	Spec(GameplayEffect, TSharedPtr<FGameplayEffectLevelSpec>(new FGameplayEffectLevelSpec(Level)));
+	FGameplayEffectSpec	Spec(GameplayEffect, TSharedPtr<FGameplayEffectLevelSpec>(new FGameplayEffectLevelSpec(Level)), GetCurveDataOverride());
 	Spec.Def = GameplayEffect;
 	Spec.InstigatorStack.AddInstigator(Instigator);
 
@@ -238,7 +236,14 @@ FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectSpecToSelf(c
 		float Duration = Spec.GetDuration();
 		if (Duration != UGameplayEffect::INSTANT_APPLICATION)
 		{
-			FActiveGameplayEffect &NewActiveEffect = ActiveGameplayEffects.CreateNewActiveGameplayEffect(Spec, GetWorld()->GetTimeSeconds());
+			float GameTime = GetWorld()->GetTimeSeconds();
+			// if we have a game state use the ElapsedTime so client server time replication is more accurate else use the time seconds of the game world.
+			if (GetWorld()->GetGameState<AGameState>())
+			{
+				GameTime = GetWorld()->GetGameState<AGameState>()->ElapsedTime;
+			}
+
+			FActiveGameplayEffect &NewActiveEffect = ActiveGameplayEffects.CreateNewActiveGameplayEffect(Spec, GameTime);
 			MyHandle = NewActiveEffect.Handle;
 			OurCopyOfSpec = &NewActiveEffect.Spec;
 

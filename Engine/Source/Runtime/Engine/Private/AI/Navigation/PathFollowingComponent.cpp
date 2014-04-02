@@ -991,13 +991,22 @@ void UPathFollowingComponent::OnActorBump(AActor* SelfActor, AActor* OtherActor,
 
 bool UPathFollowingComponent::IsOnPath() const
 {
+	bool bOnPath = false;
 	if (Path.IsValid() && Path->IsValid() && Path->GetOwner() != NULL)
 	{
-		FNavLocation NavLoc = GetCurrentNavLocation();
-		return Path->ContainsNode(NavLoc.NodeRef);
+		const bool bHasNavigationCorridor = (Path->CastPath<FNavMeshPath>() != NULL);
+		if (bHasNavigationCorridor)
+		{
+			FNavLocation NavLoc = GetCurrentNavLocation();
+			bOnPath = Path->ContainsNode(NavLoc.NodeRef);
+		}
+		else
+		{
+			bOnPath = true;
+		}
 	}
 
-	return false;
+	return bOnPath;
 }
 
 bool UPathFollowingComponent::IsBlocked() const

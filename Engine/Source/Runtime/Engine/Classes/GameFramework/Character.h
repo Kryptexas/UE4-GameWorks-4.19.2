@@ -67,7 +67,7 @@ namespace MovementBaseUtility
 {
 	FORCEINLINE bool IsDynamicBase(const class UPrimitiveComponent* MovementBase)
 	{
-		return (MovementBase && !MovementBase->IsWorldGeometry());
+		return (MovementBase && MovementBase->Mobility == EComponentMobility::Movable);
 	}
 
 	FORCEINLINE bool UseRelativePosition(const class UPrimitiveComponent* MovementBase)
@@ -176,7 +176,14 @@ protected:
 	// Always called immediately after properties are received from the remote.
 	virtual void PostNetReceiveBase();
 
+	/** CharacterMovement MovementMode (and custom mode) replicated for simulated proxies. Use CharacterMovementComponent::UnpackNetworkMovementMode() to translate it. */
+	UPROPERTY(Replicated)
+	uint8 ReplicatedMovementMode;
+
 public:	
+
+	/** Returns ReplicatedMovementMode */
+	uint8 GetReplicatedMovementMode() const { return ReplicatedMovementMode; }
 
 	/** @return Desired translation offset of mesh. */
 	const FVector& GetBaseTranslationOffset() const { return BaseTranslationOffset; }
@@ -213,13 +220,9 @@ public:
 	UPROPERTY(Transient)
 	uint32 bClientResimulateRootMotion:1;
 
-	/** Simulate gravity for this character on network clients when predicting position (true if character is walking or falling). */
-	UPROPERTY(replicated)
-	uint32 bSimulateGravity:1;    
-
 	/** Disable simulated gravity (set when character encroaches geometry on client, to keep him from falling through floors) */
 	UPROPERTY()
-	uint32 bSimGravityDisabled:1;    
+	uint32 bSimGravityDisabled:1;
 
 	// Begin AActor Interface.
 	virtual void TeleportSucceeded(bool bIsATest) OVERRIDE;
@@ -361,16 +364,23 @@ public:
 	/**
 	 * Called from CharacterMovementComponent to notify the character that the movement mode has changed.
 	 * @param	PrevMovementMode	Movement mode before the change
+	 * @param	PrevCustomMode		Custom mode before the change (applicable if PrevMovementMode is Custom)
 	 */
-	virtual void OnMovementModeChanged(EMovementMode PrevMovementMode);
+	virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode = 0);
 
 	/**
 	 * Called from CharacterMovementComponent to notify the character that the movement mode has changed.
 	 * @param	PrevMovementMode	Movement mode before the change
 	 * @param	NewMovementMode		New movement mode
+	 * @param	PrevCustomMode		Custom mode before the change (applicable if PrevMovementMode is Custom)
+	 * @param	NewCustomMode		New custom mode (applicable if NewMovementMode is Custom)
 	 */
 	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName = "OnMovementModeChanged"))
-	virtual void K2_OnMovementModeChanged(EMovementMode PrevMovementMode, EMovementMode NewMovementMode);
+	virtual void K2_OnMovementModeChanged(EMovementMode PrevMovementMode, EMovementMode NewMovementMode, uint8 PrevCustomMode, uint8 NewCustomMode);
+
+	/** Event for implementing custom character movement mode. Called by CharacterMovement if MovementMode is set to Custom. */
+	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName= "UpdateCustomMovement"))
+	virtual void K2_UpdateCustomMovement(float DeltaTime);
 
 	/**
 	 * Called when our pawn has landed from a fall.
@@ -390,13 +400,13 @@ public:
 public:
 	// Note: these network functions should be moved to the Character movement component. They are currently just wrappers that pass the calls to CharacterMovement.
 
-	/** Replicated function sent by client to server - contains client movement and firing info. */
+	/** Replicated function sent by client to server - contains client movement and view info. */
 	UFUNCTION(unreliable, server, WithValidation)
-	void ServerMove(float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 MoveFlags, uint8 ClientRoll, uint32 View, class UPrimitiveComponent* ClientMovementBase);
+	void ServerMove(float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 MoveFlags, uint8 ClientRoll, uint32 View, class UPrimitiveComponent* ClientMovementBase, uint8 ClientMovementMode);
 
-	/** Replicated function sent by client to server - contains client movement and firing info for two moves. */
+	/** Replicated function sent by client to server - contains client movement and view info for two moves. */
 	UFUNCTION(unreliable, server, WithValidation)
-	void ServerMoveDual(float TimeStamp0, FVector_NetQuantize100 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, class UPrimitiveComponent* ClientMovementBase);
+	void ServerMoveDual(float TimeStamp0, FVector_NetQuantize100 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, class UPrimitiveComponent* ClientMovementBase, uint8 ClientMovementMode);
 
 	/* Resending an (important) old move.  Process it if not already processed. */
 	UFUNCTION(unreliable, server, WithValidation)
@@ -408,15 +418,15 @@ public:
 
 	/** Replicate position correction to client, associated with a timestamped servermove.  Client will replay subsequent moves after applying adjustment.  */
 	UFUNCTION(unreliable, client)
-	void ClientAdjustPosition(float TimeStamp, FVector NewLoc, FVector NewVel, class UPrimitiveComponent* NewBase, bool bHasBase, bool bBaseRelativePosition);
+	void ClientAdjustPosition(float TimeStamp, FVector NewLoc, FVector NewVel, class UPrimitiveComponent* NewBase, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
 
 	/* Bandwidth saving version, when velocity is zeroed */
 	UFUNCTION(unreliable, client)
-	void ClientVeryShortAdjustPosition(float TimeStamp, FVector NewLoc, class UPrimitiveComponent* NewBase, bool bHasBase, bool bBaseRelativePosition);
+	void ClientVeryShortAdjustPosition(float TimeStamp, FVector NewLoc, class UPrimitiveComponent* NewBase, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
 
 	/** Replicate position correction to client when using root motion for mevement. */
 	UFUNCTION(unreliable, client)
-	void ClientAdjustRootMotionPosition(float TimeStamp, float ServerMontageTrackPosition, FVector ServerLoc, FVector_NetQuantizeNormal ServerRotation, float ServerVelZ, class UPrimitiveComponent * ServerBase, bool bHasBase, bool bBaseRelativePosition);
+	void ClientAdjustRootMotionPosition(float TimeStamp, float ServerMontageTrackPosition, FVector ServerLoc, FVector_NetQuantizeNormal ServerRotation, float ServerVelZ, class UPrimitiveComponent* ServerBase, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
 
 	UFUNCTION(reliable, client)
 	void ClientCheatWalk();

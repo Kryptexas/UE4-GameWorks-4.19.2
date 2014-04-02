@@ -19,8 +19,6 @@
 #include "Layers/Layers.h"
 #include "EditorLevelUtils.h"
 
-#include "LinkedObjDrawUtils.h"
-
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "AssetSelection.h"
 #include "FXSystem.h"
@@ -160,41 +158,45 @@ static void PrivateDestroySelectedSets()
 }
 
 UEditorEngine::UEditorEngine(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+: Super(PCIP)
 {
-	// Structure to hold one-time initialization
-	struct FConstructorStatics
+	if (!IsRunningCommandlet())
 	{
-		ConstructorHelpers::FObjectFinder<UTexture2D> BadTexture;
-		ConstructorHelpers::FObjectFinder<UTexture2D> BackgroundTexture;
-		ConstructorHelpers::FObjectFinder<UTexture2D> BackgroundHiTexture;
-		ConstructorHelpers::FObjectFinder<UStaticMesh> EditorCubeMesh;
-		ConstructorHelpers::FObjectFinder<UStaticMesh> EditorSphereMesh;
-		ConstructorHelpers::FObjectFinder<UStaticMesh> EditorPlaneMesh;
-		ConstructorHelpers::FObjectFinder<UStaticMesh> EditorCylinderMesh;
-		ConstructorHelpers::FObjectFinder<UFont> SmallFont;
-		FConstructorStatics()
-			: BadTexture(TEXT("/Engine/EditorResources/Bad"))
-			, BackgroundTexture(TEXT("/Engine/EditorResources/Bkgnd"))
-			, BackgroundHiTexture(TEXT("/Engine/EditorResources/BkgndHi"))
-			, EditorCubeMesh(TEXT("/Engine/EditorMeshes/EditorCube"))
-			, EditorSphereMesh(TEXT("/Engine/EditorMeshes/EditorSphere"))
-			, EditorPlaneMesh(TEXT("/Engine/EditorMeshes/EditorPlane"))
-			, EditorCylinderMesh(TEXT("/Engine/EditorMeshes/EditorCylinder"))
-			, SmallFont(TEXT("/Engine/EditorResources/SmallFont"))
+		// Structure to hold one-time initialization
+		struct FConstructorStatics
 		{
-		}
-	};
-	static FConstructorStatics ConstructorStatics;
+			ConstructorHelpers::FObjectFinder<UTexture2D> BadTexture;
+			ConstructorHelpers::FObjectFinder<UTexture2D> BackgroundTexture;
+			ConstructorHelpers::FObjectFinder<UTexture2D> BackgroundHiTexture;
+			ConstructorHelpers::FObjectFinder<UStaticMesh> EditorCubeMesh;
+			ConstructorHelpers::FObjectFinder<UStaticMesh> EditorSphereMesh;
+			ConstructorHelpers::FObjectFinder<UStaticMesh> EditorPlaneMesh;
+			ConstructorHelpers::FObjectFinder<UStaticMesh> EditorCylinderMesh;
+			ConstructorHelpers::FObjectFinder<UFont> SmallFont;
+			FConstructorStatics()
+				: BadTexture(TEXT("/Engine/EditorResources/Bad"))
+				, BackgroundTexture(TEXT("/Engine/EditorResources/Bkgnd"))
+				, BackgroundHiTexture(TEXT("/Engine/EditorResources/BkgndHi"))
+				, EditorCubeMesh(TEXT("/Engine/EditorMeshes/EditorCube"))
+				, EditorSphereMesh(TEXT("/Engine/EditorMeshes/EditorSphere"))
+				, EditorPlaneMesh(TEXT("/Engine/EditorMeshes/EditorPlane"))
+				, EditorCylinderMesh(TEXT("/Engine/EditorMeshes/EditorCylinder"))
+				, SmallFont(TEXT("/Engine/EditorResources/SmallFont"))
+			{
+			}
+		};
+		static FConstructorStatics ConstructorStatics;
 
-	Bad = ConstructorStatics.BadTexture.Object;
-	Bkgnd = ConstructorStatics.BackgroundTexture.Object;
-	BkgndHi = ConstructorStatics.BackgroundHiTexture.Object;
-	EditorCube = ConstructorStatics.EditorCubeMesh.Object;
-	EditorSphere = ConstructorStatics.EditorSphereMesh.Object;
-	EditorPlane = ConstructorStatics.EditorPlaneMesh.Object;
-	EditorCylinder = ConstructorStatics.EditorCylinderMesh.Object;
-	EditorFont = ConstructorStatics.SmallFont.Object;
+		Bad = ConstructorStatics.BadTexture.Object;
+		Bkgnd = ConstructorStatics.BackgroundTexture.Object;
+		BkgndHi = ConstructorStatics.BackgroundHiTexture.Object;
+		EditorCube = ConstructorStatics.EditorCubeMesh.Object;
+		EditorSphere = ConstructorStatics.EditorSphereMesh.Object;
+		EditorPlane = ConstructorStatics.EditorPlaneMesh.Object;
+		EditorCylinder = ConstructorStatics.EditorCylinderMesh.Object;
+		EditorFont = ConstructorStatics.SmallFont.Object;
+	}
+
 	DetailMode = DM_MAX;
 	PlayInEditorViewportIndex = -1;
 	CurrentPlayWorldDestination = -1;
@@ -372,7 +374,7 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 	
 	if (FSlateApplication::IsInitialized())
 	{
-		FSlateApplication::Get().GetRenderer()->SetColorVisionDeficiencyType((uint32)(GetDefault<UEditorStyleSettings>()->ColorVisionDeficiencyType.GetValue()));
+		FSlateApplication::Get().GetRenderer()->SetColorVisionDeficiencyType((uint32)(GetDefault<UEditorStyleSettings>()->ColorVisionDeficiencyPreviewType.GetValue()));
 		FSlateApplication::Get().EnableMenuAnimations(GetDefault<UEditorStyleSettings>()->bEnableWindowAnimations);
 	}
 
@@ -413,9 +415,9 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 
 void UEditorEngine::HandleSettingChanged( FName Name )
 {
-	if (Name == FName(TEXT("ColorVisionDeficiencyType")))
+	if (Name == FName(TEXT("ColorVisionDeficiencyPreviewType")))
 	{
-		uint32 DeficiencyType = (uint32)GetDefault<UEditorStyleSettings>()->ColorVisionDeficiencyType.GetValue();
+		uint32 DeficiencyType = (uint32)GetDefault<UEditorStyleSettings>()->ColorVisionDeficiencyPreviewType.GetValue();
 		FSlateApplication::Get().GetRenderer()->SetColorVisionDeficiencyType(DeficiencyType);
 
 		GEngine->Exec(NULL, TEXT("RecompileShaders SlateElementPixelShader"));
@@ -506,7 +508,6 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 		FModuleManager::Get().LoadModule(TEXT("PropertyEditor"));
 		FModuleManager::Get().LoadModule(TEXT("EditorStyle"));
 		FModuleManager::Get().LoadModule(TEXT("PackagesDialog"));
-		FModuleManager::Get().LoadModule(TEXT("PreferencesEditor"));
 		FModuleManager::Get().LoadModule(TEXT("AssetRegistry"));
 		FModuleManager::Get().LoadModule(TEXT("DetailCustomizations"));
 		FModuleManager::Get().LoadModule(TEXT("ComponentVisualizers"));
@@ -531,17 +532,13 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 		FModuleManager::Get().LoadModule(TEXT("UserFeedback"));
 		FModuleManager::Get().LoadModule(TEXT("GameplayTagsEditor"));
 		FModuleManager::Get().LoadModule(TEXT("UndoHistory"));
+		FModuleManager::Get().LoadModule(TEXT("DeviceProfileEditor"));
 
 		if( FParse::Param( FCommandLine::Get(),TEXT( "PListEditor" ) ) )
 		{
 			FModuleManager::Get().LoadModule(TEXT("PListEditor"));
 		}
-
-		if( FParse::Param( FCommandLine::Get(),TEXT( "DeviceProfileEditor" ) ) )
-		{
-			FModuleManager::Get().LoadModule(TEXT("DeviceProfileEditor"));
-		}
-
+		
 		//check if we need to load behavior tree editor module (it could be loaded earlier) 
 		bool bBehaviorTreeEditorEnabled = false;
 		GConfig->GetBool(TEXT("BehaviorTreesEd"), TEXT("BehaviorTreeEditorEnabled"), bBehaviorTreeEditorEnabled, GEngineIni);
@@ -623,9 +620,6 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 			}
 		}
 	}
-
-	// Init fonts used for editor drawing
-	FLinkedObjDrawUtils::InitFonts(this->EditorFont);
 
 	// Used for sorting ActorFactory classes.
 	struct FCompareUActorFactoryByMenuPriority
@@ -2666,12 +2660,10 @@ FString FReimportManager::SanitizeImportFilename(const FString& InPath, const UO
 		const FString	PackagePath	= Package->GetPathName();
 		const FName		MountPoint	= FPackageName::GetPackageMountPoint(PackagePath);
 		const FString	PackageFilename = FPackageName::LongPackageNameToFilename(PackagePath, FPaths::GetExtension(InPath, bIncludeDot));
+		const FString	AbsolutePath = FPaths::ConvertRelativePathToFull(InPath);
 
-		FString	NormalizedPath = InPath;
-		FPaths::NormalizeFilename(NormalizedPath);
-
-		if (( MountPoint == FName("Engine") && NormalizedPath.StartsWith(FPaths::ConvertRelativePathToFull(FPaths::EngineContentDir()))	) ||
-			( MountPoint == FName("Game")	&& NormalizedPath.StartsWith(FPaths::ConvertRelativePathToFull(FPaths::GameContentDir()))	) )
+		if ((MountPoint == FName("Engine") && AbsolutePath.StartsWith(FPaths::ConvertRelativePathToFull(FPaths::EngineContentDir()))) ||
+			(MountPoint == FName("Game") &&	AbsolutePath.StartsWith(FPaths::ConvertRelativePathToFull(FPaths::GameDir()))))
 		{
 			FString RelativePath = InPath;
 			FPaths::MakePathRelativeTo(RelativePath, *PackageFilename);
@@ -2681,6 +2673,7 @@ FString FReimportManager::SanitizeImportFilename(const FString& InPath, const UO
 
 	return IFileManager::Get().ConvertToRelativePath(*InPath);
 }
+
 
 FString FReimportManager::ResolveImportFilename(const FString& InRelativePath, const UObject* Obj)
 {
@@ -6494,7 +6487,7 @@ FORCEINLINE bool NetworkRemapPath_local(FWorldContext &Context, FString &Str, bo
 
 bool UEditorEngine::NetworkRemapPath( UWorld *InWorld, FString &Str, bool reading)
 {
-	FWorldContext &Context = WorldContextFromWorld(InWorld);
+	FWorldContext &Context = GetWorldContextFromWorldChecked(InWorld);
 	if (Context.PIEPrefix.IsEmpty() || Context.PIERemapPrefix.IsEmpty())
 	{
 		return false;
@@ -6505,7 +6498,7 @@ bool UEditorEngine::NetworkRemapPath( UWorld *InWorld, FString &Str, bool readin
 
 bool UEditorEngine::NetworkRemapPath( UPendingNetGame *PendingNetGame, FString &Str, bool reading)
 {
-	FWorldContext &Context = WorldContextFromPendingNetGame(PendingNetGame);
+	FWorldContext &Context = GetWorldContextFromPendingNetGameChecked(PendingNetGame);
 	if (Context.PIEPrefix.IsEmpty() || Context.PIERemapPrefix.IsEmpty())
 	{
 		return false;

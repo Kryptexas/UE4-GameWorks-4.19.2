@@ -98,6 +98,7 @@ public:
 	static FORCEINLINE bool SupportsTextureFloat()						{ return true; }
 	static FORCEINLINE bool SupportsTextureHalfFloat()					{ return true; }
 	static FORCEINLINE bool SupportsColorBufferHalfFloat()				{ return true; }
+	static FORCEINLINE bool SupportsVolumeTextureRendering()			{ return false; }
 	static FORCEINLINE bool SupportsGSRenderTargetLayerSwitchingToMips() { return true; }
 	static FORCEINLINE bool SupportsShaderFramebufferFetch()			{ return false; }
 	static FORCEINLINE bool SupportsVertexArrayBGRA()					{ return true; }
@@ -300,6 +301,9 @@ protected:
 
 	/** GL_ARB_seamless_cube_map */
 	static bool bSupportsSeamlessCubemap;
+	
+	/** Can we render to texture 2D array or 3D */
+	static bool bSupportsVolumeTextureRendering;
 };
 
 /** Unreal tokens that maps to different OpenGL tokens by platform. */

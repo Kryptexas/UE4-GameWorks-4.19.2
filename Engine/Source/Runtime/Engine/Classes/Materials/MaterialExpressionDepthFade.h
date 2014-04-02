@@ -13,27 +13,20 @@ class UMaterialExpressionDepthFade : public UMaterialExpression
 	GENERATED_UCLASS_BODY()
 
 	/** Input opacity which will be scaled by the result of the fade. */
-	UPROPERTY(meta=(RequiredInput = "false"))
+	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Defaults to 'OpacityDefault' if not specified"))
 	FExpressionInput InOpacity;
 
 	/** World space distance over which the fade should take place. */
-	UPROPERTY(meta=(RequiredInput = "false"))
+	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Defaults to 'FadeDistanceDefault' if not specified"))
 	FExpressionInput FadeDistance;
 
 	/** Opacity which will be scaled by the result of the fade.  This is used when InOpacity is unconnected. */
-	UPROPERTY(EditAnywhere, Category=MaterialExpressionDepthFade)
-		float OpacityDefault;
+	UPROPERTY(EditAnywhere, Category=MaterialExpressionDepthFade, meta=(OverridingInputProperty = "InOpacity"))
+	float OpacityDefault;
 
 	/** World space distance over which the fade should take place.  This is used when FadeDistance is unconnected. */
-	UPROPERTY(EditAnywhere, Category=MaterialExpressionDepthFade)
+	UPROPERTY(EditAnywhere, Category=MaterialExpressionDepthFade, meta=(OverridingInputProperty = "FadeDistance"))
 	float FadeDistanceDefault;
-
-
-	// Begin UObject Interface
-#if WITH_EDITOR
-	virtual bool CanEditChange( const UProperty* InProperty ) const OVERRIDE;
-#endif // WITH_EDITOR
-	// End UObject Interface
 
 
 	// Begin UMaterialExpression Interface

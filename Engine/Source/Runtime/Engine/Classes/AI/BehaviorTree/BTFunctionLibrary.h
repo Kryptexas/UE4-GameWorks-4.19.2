@@ -68,6 +68,9 @@ class UBTFunctionLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, Category="AI|BehaviorTree", Meta=(HidePin="NodeOwner", DefaultToSelf="NodeOwner"))
 	static void SetBlackboardValueAsVector(UBTNode* NodeOwner, const struct FBlackboardKeySelector& Key, FVector Value);
 
+	UFUNCTION(BlueprintCallable, Category=BehaviorTree, Meta=(HidePin="NodeOwner", DefaultToSelf="NodeOwner"))
+	static void ClearBlackboardValueAsVector(UBTNode* NodeOwner, const struct FBlackboardKeySelector& Key);
+
 	/** Initialize variables marked as "instance memory" and set owning actor for blackboard operations */
 	UFUNCTION(BlueprintCallable, Category="AI|BehaviorTree", Meta=(HidePin="NodeOwner", DefaultToSelf="NodeOwner", DeprecatedFunction, DeprecationMessage="No longer needed"))
 	static void StartUsingExternalEvent(UBTNode* NodeOwner, AActor* OwningActor);

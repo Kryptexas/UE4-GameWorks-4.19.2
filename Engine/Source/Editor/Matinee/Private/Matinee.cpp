@@ -7,6 +7,7 @@
 #include "MatineeModule.h"
 #include "Matinee.h"
 #include "MatineeActions.h"
+#include "MatineeFilterButton.h"
 
 #include "DistCurveEditorModule.h"
 #include "IDistCurveEditor.h"
@@ -94,6 +95,7 @@ FLinearColor FMatinee::GetWorldCentricTabColorScale() const
 	return FLinearColor(0.3f, 0.2f, 0.5f, 0.5f);
 }
 
+static const FName MatineeCurveEdName("Matinee_CurveEditor");
 static const FName MatineeTrackWindowName("Matinee_TrackWindow");
 static const FName MatineePropertyWindowName("Matinee_PropertyWindow");
 
@@ -103,8 +105,11 @@ void FMatinee::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManag
 
 	const IWorkspaceMenuStructure& MenuStructure = WorkspaceMenu::GetMenuStructure();
 
+	TabManager->RegisterTabSpawner(MatineeCurveEdName, FOnSpawnTab::CreateSP(this, &FMatinee::SpawnTab, MatineeCurveEdName))
+		.SetDisplayName(NSLOCTEXT("Matinee", "CurveEditorTitle", "Curve Editor"));
+
 	TabManager->RegisterTabSpawner(MatineeTrackWindowName, FOnSpawnTab::CreateSP(this, &FMatinee::SpawnTab, MatineeTrackWindowName))
-		.SetDisplayName(NSLOCTEXT("Matinee", "TrackViewEditorTitle", "Matinee View"));
+		.SetDisplayName(NSLOCTEXT("Matinee", "TrackViewEditorTitle", "Tracks"));
 
 	TabManager->RegisterTabSpawner( MatineePropertyWindowName, FOnSpawnTab::CreateSP(this, &FMatinee::SpawnTab, MatineePropertyWindowName) )
 		.SetDisplayName(NSLOCTEXT("Matinee", "PropertiesEditorTitle", "Details"));
@@ -114,35 +119,41 @@ void FMatinee::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabMan
 {
 	FAssetEditorToolkit::UnregisterTabSpawners(TabManager);
 
+	TabManager->UnregisterTabSpawner(MatineeCurveEdName);
 	TabManager->UnregisterTabSpawner(MatineeTrackWindowName);
 	TabManager->UnregisterTabSpawner(MatineePropertyWindowName);
 }
 
 TSharedRef<SDockTab> FMatinee::SpawnTab( const FSpawnTabArgs& TabSpawnArgs, FName TabIdentifier )
 {
-	if ( TabIdentifier == MatineeTrackWindowName )
+	if ( TabIdentifier == MatineeCurveEdName )
+	{
+		TSharedRef<SDockTab> NewCurveTab = SNew(SDockTab)
+			.Label(NSLOCTEXT("Matinee", "CurveEditorTitle", "Curve Editor"))
+			[
+				CurveEd.ToSharedRef()
+			];
+
+		CurveEdTab = NewCurveTab;
+
+		return NewCurveTab;
+	}
+	else if ( TabIdentifier == MatineeTrackWindowName )
 	{
 		TSharedRef<SDockTab> Tab = SNew(SDockTab)
-			.Label(NSLOCTEXT("Matinee", "MatineeTrackEditorTitle", "Matinee Track"))
-			.Content()
+			.Label(NSLOCTEXT("Matinee", "MatineeTrackEditorTitle", "Tracks"))
 			[
 				SNew(SSplitter)
 				.Orientation(Orient_Vertical)
 
 				+ SSplitter::Slot()
-				.Value(0.25f)
-				[
-					CurveEd.ToSharedRef()
-				]
-
-				+ SSplitter::Slot()
-				.Value(0.25f)
+				.Value(1.0f / 3.0f)
 				[
 					DirectorTrackWindow.ToSharedRef()
 				]
 
 				+ SSplitter::Slot()
-				.Value(0.50f)
+				.Value(2.0f / 3.0f)
 				[
 					SNew(SVerticalBox)
 
@@ -173,7 +184,6 @@ TSharedRef<SDockTab> FMatinee::SpawnTab( const FSpawnTabArgs& TabSpawnArgs, FNam
 	{
 		return SNew(SDockTab)
 			.Label(NSLOCTEXT("Matinee", "PropertiesEditorTitle", "Details"))
-			.Content()
 			[
 				PropertyWindow.ToSharedRef()
 			];
@@ -182,6 +192,19 @@ TSharedRef<SDockTab> FMatinee::SpawnTab( const FSpawnTabArgs& TabSpawnArgs, FNam
 	{
 		ensure(false);
 		return SNew(SDockTab);
+	}
+}
+
+void FMatinee::SetCurveTabVisibility(bool Visible)
+{
+	if ( CurveEdTab.IsValid() && !Visible )
+	{
+		TSharedPtr<SDockTab> PinnedCurveEdTab = CurveEdTab.Pin();
+		PinnedCurveEdTab->RequestCloseTab();
+	}
+	else if ( !CurveEdTab.IsValid() && Visible )
+	{
+		TabManager->InvokeTab(MatineeCurveEdName);
 	}
 }
 
@@ -217,16 +240,11 @@ TSharedRef<SWidget> FMatinee::BuildGroupFilterToolbar()
 
 TSharedRef<SWidget> FMatinee::AddFilterButton(UInterpFilter* Filter)
 {
-	return SNew(SCheckBox)
+	return SNew(SMatineeFilterButton)
+		.Text(FText::FromString(Filter->Caption))
 		.IsChecked(this, &FMatinee::GetFilterActive, Filter)
 		.OnCheckStateChanged(this, &FMatinee::SetFilterActive, Filter)
-		.Style(FEditorStyle::Get(), "ToggleButtonCheckbox")
-		.Padding(3.0f)
-		[
-			SNew(STextBlock)
-			.TextStyle(FEditorStyle::Get(), "Matinee.Filters.Text")
-			.Text(FText::FromString(Filter->Caption))
-		];
+		.OnContextMenuOpening(this, &FMatinee::CreateTabMenu);
 }
 
 void FMatinee::SetFilterActive(ESlateCheckBoxState::Type CheckStatus, UInterpFilter* Filter)
@@ -298,8 +316,10 @@ void FMatinee::OnToggleAspectRatioBars()
 	{
 		if(GCurrentLevelEditingViewportClient->IsPerspective() && GCurrentLevelEditingViewportClient->AllowMatineePreview() )
 		{
-			bool bEnabled = GCurrentLevelEditingViewportClient->IsShowingAspectRatioBarDisplay();
-			GCurrentLevelEditingViewportClient->SetShowAspectRatioBarDisplay(!bEnabled);
+			bool bEnabled = !AreAspectRatioBarsEnabled();
+			GCurrentLevelEditingViewportClient->SetShowAspectRatioBarDisplay(bEnabled);
+
+			GConfig->SetBool(TEXT("Matinee"), TEXT("AspectRatioBars"), bEnabled, GEditorUserSettingsIni);
 		}
 	}
 }
@@ -310,36 +330,36 @@ void FMatinee::OnToggleSafeFrames()
 	{
 		if(GCurrentLevelEditingViewportClient->IsPerspective() && GCurrentLevelEditingViewportClient->AllowMatineePreview() )
 		{
-			bool bEnabled = GCurrentLevelEditingViewportClient->IsShowingSafeFrameBoxDisplay();
-			GCurrentLevelEditingViewportClient->SetShowSafeFrameBoxDisplay(!bEnabled);
+			bool bEnabled = !IsSafeFrameDisplayEnabled();
+			GCurrentLevelEditingViewportClient->SetShowSafeFrameBoxDisplay(bEnabled);
+
+			GConfig->SetBool(TEXT("Matinee"), TEXT("SafeFrames"), bEnabled, GEditorUserSettingsIni);
 		}
 	}
 }
 
 bool FMatinee::AreAspectRatioBarsEnabled() const
 {
-	if (GCurrentLevelEditingViewportClient)
+	bool bEnabled = false;
+	if ( !GConfig->GetBool(TEXT("Matinee"), TEXT("AspectRatioBars"), bEnabled, GEditorUserSettingsIni) )
 	{
-		if(GCurrentLevelEditingViewportClient->IsPerspective() && GCurrentLevelEditingViewportClient->AllowMatineePreview() )
-		{
-			return GCurrentLevelEditingViewportClient->IsShowingAspectRatioBarDisplay();
-		}
+		// We enable them by default
+		return true;
 	}
 
-	return false;
+	return bEnabled;
 }
 
 bool FMatinee::IsSafeFrameDisplayEnabled() const
 {
-	if (GCurrentLevelEditingViewportClient)
+	bool bEnabled = false;
+	if ( !GConfig->GetBool(TEXT("Matinee"), TEXT("SafeFrames"), bEnabled, GEditorUserSettingsIni) )
 	{
-		if(GCurrentLevelEditingViewportClient->IsPerspective() && GCurrentLevelEditingViewportClient->AllowMatineePreview() )
-		{
-			return GCurrentLevelEditingViewportClient->IsShowingSafeFrameBoxDisplay();
-		}
+		// We not enabled by default
+		return false;
 	}
 
-	return false;
+	return bEnabled;
 }
 
 void FMatinee::BuildCurveEditor()
@@ -740,7 +760,7 @@ void FMatinee::InitMatinee(const EToolkitMode::Type Mode, const TSharedPtr< clas
 	BuildCurveEditor();
 
 	// Setup docked windows
-	const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_Matinee_Layout_v3")
+	const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_Matinee_Layout_v4")
 		->AddArea
 		(
 			FTabManager::NewPrimaryArea()
@@ -755,21 +775,36 @@ void FMatinee::InitMatinee(const EToolkitMode::Type Mode, const TSharedPtr< clas
 			->Split
 			(
 				FTabManager::NewSplitter()
-				->SetOrientation(Orient_Vertical)		
+				->SetOrientation(Orient_Vertical)
 				->SetSizeCoefficient(0.9)
 				->Split
 				(
-					FTabManager::NewStack()
+					FTabManager::NewSplitter()
+					->SetOrientation(Orient_Horizontal)
 					->SetSizeCoefficient(0.7)
-					->SetHideTabWell(true)
-					->AddTab(MatineeTrackWindowName, ETabState::OpenedTab)
-				)
-				->Split
-				(
-					FTabManager::NewStack()
-					->SetSizeCoefficient(0.3)
-					->SetHideTabWell(true)
-					->AddTab(MatineePropertyWindowName, ETabState::OpenedTab)
+					->Split
+					(
+						FTabManager::NewSplitter()
+						->SetOrientation(Orient_Vertical)
+						->Split
+						(
+							FTabManager::NewStack()
+							->SetSizeCoefficient(1.0f / 3.0f)
+							->AddTab(MatineeCurveEdName, ETabState::OpenedTab)
+						)
+						->Split
+						(
+							FTabManager::NewStack()
+							->SetSizeCoefficient(2.0f / 3.0f)
+							->AddTab(MatineeTrackWindowName, ETabState::OpenedTab)
+						)
+					)
+					->Split
+					(
+						FTabManager::NewStack()
+						->SetSizeCoefficient(0.3)
+						->AddTab(MatineePropertyWindowName, ETabState::OpenedTab)
+					)
 				)
 			)
 		);
@@ -1287,19 +1322,42 @@ void FMatinee::ResumePlaying()
 	// Start playing if we need to
 	if ( !bWasAlreadyPlaying )
 	{
-		// If we're at the end we need to restart.
-		if ( MatineeActor->bReversePlayback )
+		// If we're at the end we need to restart, but only do this if we're
+		// looping the section
+		if ( bLoopingSection )
 		{
-			if ( MatineeActor->InterpPosition <= IData->EdSectionStart )
+			if ( MatineeActor->bReversePlayback )
 			{
-				SetInterpPosition(IData->EdSectionEnd);
+				if ( MatineeActor->InterpPosition <= IData->EdSectionStart )
+				{
+					SetInterpPosition(IData->EdSectionEnd);
+				}
+			}
+			else
+			{
+				if ( MatineeActor->InterpPosition >= IData->EdSectionEnd )
+				{
+					SetInterpPosition(IData->EdSectionStart);
+				}
 			}
 		}
+		// If we're not looping, check if we're at the absolute beginning or end and adjust
+		// the position accordingly to begin playing again.
 		else
 		{
-			if ( MatineeActor->InterpPosition >= IData->EdSectionEnd )
+			if ( MatineeActor->bReversePlayback )
 			{
-				SetInterpPosition(IData->EdSectionStart);
+				if ( MatineeActor->InterpPosition <= 0.0f )
+				{
+					SetInterpPosition(IData->InterpLength);
+				}
+			}
+			else
+			{
+				if ( MatineeActor->InterpPosition >= IData->InterpLength )
+				{
+					SetInterpPosition(0.0f);
+				}
 			}
 		}
 

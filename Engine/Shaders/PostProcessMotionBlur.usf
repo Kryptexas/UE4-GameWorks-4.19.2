@@ -20,6 +20,10 @@
 // from the paper: We use SOFT Z EXTENT = 1mm to 10cm for our results
 #define SOFT_Z_EXTENT 1
 
+// 0: use more texture lookups avoiding .Gather() lookups
+#define GATHER_OPTIMIZATION (FEATURE_LEVEL >= FEATURE_LEVEL_SM5)
+
+
 // 0:off / 1:on, useful to debug the motionblur algorithm
 #define MOTIONBLUR_TESTCHART 0
 
@@ -147,23 +151,41 @@ void SetupPS(float4 UVAndScreenPos : TEXCOORD0,
 	// high quality 4 samples with blurring
 	float2 UVs[4];
 
-	// no filtering (2x2 kernel) to get no leaking in Depth of Field
-	UVs[0] = UV + PostprocessInput1Size.zw * float2(-0.5f, -0.5f);
-	UVs[1] = UV + PostprocessInput1Size.zw * float2( 0.5f, -0.5f);
-	UVs[2] = UV + PostprocessInput1Size.zw * float2(-0.5f,  0.5f);
-	UVs[3] = UV + PostprocessInput1Size.zw * float2( 0.5f,  0.5f);
+	float2 HalfPixelOffset = PostprocessInput1Size.zw * float2(0.5f, 0.5f);
+
+	// no filtering (2x2 kernel) to get no leaking in Depth of Field, lefttop,righttop,leftbottom,rightbottom
+	UVs[0] = UV + HalfPixelOffset * float2(-1, -1);
+	UVs[1] = UV + HalfPixelOffset * float2( 1, -1);
+	UVs[2] = UV + HalfPixelOffset * float2(-1,  1);
+	UVs[3] = UV + HalfPixelOffset * float2( 1,  1);
 	
 	// detect find objects
 	float4 ObjectMask;
 	float2 VelocitySamples[4];
+
+#if GATHER_OPTIMIZATION
 	{
-		UNROLL for( int i = 0; i < 4; i++ )
-		{
-			VelocitySamples[i] = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVs[i], 0).xy;
-			ObjectMask[i] = VelocitySamples[i].x > 0;
-			VelocitySamples[i] = DecodeVelocityFromTexture(VelocitySamples[i]);
-			VelocitySamples[i] = ObjectMask[i] ? VelocitySamples[i] : 0;
-		}
+		// using Gather: xyzw in counter clockwise order starting with the sample to the lower left of the queried location
+		float4 Red = PostprocessInput0.GatherRed(PostprocessInput0Sampler, UV);
+		float4 Green = PostprocessInput0.GatherGreen(PostprocessInput0Sampler, UV);
+
+		VelocitySamples[0] = float2(Red.w, Green.w);
+		VelocitySamples[1] = float2(Red.z, Green.z);
+		VelocitySamples[2] = float2(Red.x, Green.x);
+		VelocitySamples[3] = float2(Red.y, Green.y);
+	}
+#else
+	UNROLL for( int i = 0; i < 4; i++ )
+	{
+		VelocitySamples[i] = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVs[i], 0).xy;
+	}
+#endif
+
+	UNROLL for( int i = 0; i < 4; i++ )
+	{
+		ObjectMask[i] = VelocitySamples[i].x > 0;
+		VelocitySamples[i] = DecodeVelocityFromTexture(VelocitySamples[i]);
+		VelocitySamples[i] = ObjectMask[i] ? VelocitySamples[i] : 0;
 	}
 
 	float AvgObject = dot(ObjectMask, 0.25f);
@@ -174,11 +196,22 @@ void SetupPS(float4 UVAndScreenPos : TEXCOORD0,
 	float InvTotalWeight = 1.0 / ( dot( ObjectMask, 1 ) + 0.000001f );
 
 	float4 SumColorAndDepth = 0;
-	SumColorAndDepth += float4(PostprocessInput1.SampleLevel(PostprocessInput1Sampler, UVs[0], 0).rgb, PostprocessInput2.SampleLevel(PostprocessInput2Sampler, UVs[0], 0).r) * ObjectMask.x;
-	SumColorAndDepth += float4(PostprocessInput1.SampleLevel(PostprocessInput1Sampler, UVs[1], 0).rgb, PostprocessInput2.SampleLevel(PostprocessInput2Sampler, UVs[1], 0).r) * ObjectMask.y;
-	SumColorAndDepth += float4(PostprocessInput1.SampleLevel(PostprocessInput1Sampler, UVs[2], 0).rgb, PostprocessInput2.SampleLevel(PostprocessInput2Sampler, UVs[2], 0).r) * ObjectMask.z;
-	SumColorAndDepth += float4(PostprocessInput1.SampleLevel(PostprocessInput1Sampler, UVs[3], 0).rgb, PostprocessInput2.SampleLevel(PostprocessInput2Sampler, UVs[3], 0).r) * ObjectMask.w;
-	
+
+#if GATHER_OPTIMIZATION
+	float4 DepthValues = PostprocessInput2.GatherRed(PostprocessInput2Sampler, UV, 0).r;
+#else
+	float4 DepthValues = float4(
+		PostprocessInput2.SampleLevel(PostprocessInput2Sampler, UVs[2], 0).r,
+		PostprocessInput2.SampleLevel(PostprocessInput2Sampler, UVs[3], 0).r,
+		PostprocessInput2.SampleLevel(PostprocessInput2Sampler, UVs[1], 0).r,
+		PostprocessInput2.SampleLevel(PostprocessInput2Sampler, UVs[0], 0).r);
+#endif
+
+	SumColorAndDepth += float4(PostprocessInput1.SampleLevel(PostprocessInput1Sampler, UVs[0], 0).rgb, DepthValues.x) * ObjectMask.x;
+	SumColorAndDepth += float4(PostprocessInput1.SampleLevel(PostprocessInput1Sampler, UVs[1], 0).rgb, DepthValues.y) * ObjectMask.y;
+	SumColorAndDepth += float4(PostprocessInput1.SampleLevel(PostprocessInput1Sampler, UVs[2], 0).rgb, DepthValues.z) * ObjectMask.z;
+	SumColorAndDepth += float4(PostprocessInput1.SampleLevel(PostprocessInput1Sampler, UVs[3], 0).rgb, DepthValues.w) * ObjectMask.w;
+
 	OutColor = SumColorAndDepth * InvTotalWeight;
 
 	// clamp to avoid artifacts from exceeding fp16 through framebuffer blending of multiple very bright lights
@@ -206,15 +239,15 @@ void SetupPS(float4 UVAndScreenPos : TEXCOORD0,
 	}
 
 	// clamp motion vector in a disc from -1 to 1 (the maximum motion vector range)
- 	half Len = dot(TempVelocity.xy, TempVelocity.xy);
- 	FLATTEN if(Len > 1)
- 	{
- 		TempVelocity.xy *= rsqrt(Len);
- 	}
- 	FLATTEN if(Len < 0.01f)
- 	{
- 		TempVelocity = 0;
- 	}
+	half Len = dot(TempVelocity.xy, TempVelocity.xy);
+	FLATTEN if(Len > 1)
+	{
+		TempVelocity.xy *= rsqrt(Len);
+	}
+	FLATTEN if(Len < 0.01f)
+	{
+		TempVelocity = 0;
+	}
 
 	// 0:background, 1:object layer
 	TempVelocity.b = AvgObject > 0.5f;

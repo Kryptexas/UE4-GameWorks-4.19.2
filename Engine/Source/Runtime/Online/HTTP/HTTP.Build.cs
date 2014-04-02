@@ -20,6 +20,7 @@ public class HTTP : ModuleRules
 			Target.Platform == UnrealTargetPlatform.Win64)
 		{
 			AddThirdPartyPrivateStaticDependencies(Target, "WinInet");
+			AddThirdPartyPrivateStaticDependencies(Target, "libcurl");
 		}
 
 		if (Target.Platform == UnrealTargetPlatform.Linux)

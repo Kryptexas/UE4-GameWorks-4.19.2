@@ -1036,7 +1036,9 @@ public:
 	ERenderQueryType QueryType;
 
 	FOpenGLRenderQuery(ERenderQueryType InQueryType);
+	FOpenGLRenderQuery(FOpenGLRenderQuery const& OtherQuery);
 	virtual ~FOpenGLRenderQuery();
+	FOpenGLRenderQuery& operator=(FOpenGLRenderQuery const& OtherQuery);
 };
 
 class FOpenGLUnorderedAccessView : public FRHIUnorderedAccessView

@@ -6,7 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "Net/UnrealNetwork.h"
-#include "Online.h"
+#include "OnlineSubsystemUtils.h"
 #include "OnlineSubsystemTypes.h"
 #include "Net/NetworkProfiler.h"
 
@@ -26,25 +26,28 @@ void UVoiceChannel::CleanUp()
  */
 void UVoiceChannel::ReceivedBunch(FInBunch& Bunch)
 {
-	IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface();
-	if (VoiceInt.IsValid())
+	if (Connection->Driver && Connection->Driver->World)
 	{
-		while (!Bunch.AtEnd())
+		IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface(Connection->Driver->World);
+		if (VoiceInt.IsValid())
 		{
-			// Give the data to the local voice processing
-			TSharedPtr<FVoicePacket> VoicePacket = VoiceInt->SerializeRemotePacket(Bunch);
-			if (VoicePacket.IsValid())
+			while (!Bunch.AtEnd())
 			{
-				if (Connection->Driver->ServerConnection == NULL)
+				// Give the data to the local voice processing
+				TSharedPtr<FVoicePacket> VoicePacket = VoiceInt->SerializeRemotePacket(Bunch);
+				if (VoicePacket.IsValid())
 				{
-					// Possibly replicate the data to other clients
-					Connection->Driver->ReplicateVoicePacket(VoicePacket, Connection);
-				}
+					if (Connection->Driver->ServerConnection == NULL)
+					{
+						// Possibly replicate the data to other clients
+						Connection->Driver->ReplicateVoicePacket(VoicePacket, Connection);
+					}
 #if STATS
-				// Increment the number of voice packets we've received
-				Connection->Driver->VoicePacketsRecv++;
-				Connection->Driver->VoiceBytesRecv += VoicePacket->GetBufferSize();
+					// Increment the number of voice packets we've received
+					Connection->Driver->VoicePacketsRecv++;
+					Connection->Driver->VoiceBytesRecv += VoicePacket->GetBufferSize();
 #endif
+				}
 			}
 		}
 	}

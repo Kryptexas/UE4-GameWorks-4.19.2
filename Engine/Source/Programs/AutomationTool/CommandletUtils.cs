@@ -92,7 +92,7 @@ namespace AutomationTool
                 DeleteFile(ManifestFile);
             }
 
-            RunCommandlet(ProjectName, UE4Exe, "GenerateDistillFileSets", String.Format("{0} -OutputFolder={1} -Output={2} {3}", MapsToCook, Dir, Filename, Parameters));
+            RunCommandlet(ProjectName, UE4Exe, "GenerateDistillFileSets", String.Format("{0} -OutputFolder={1} -Output={2} {3}", MapsToCook, CommandUtils.MakePathSafeToUseWithCommandLine(Dir), Filename, Parameters));
 
             if (!FileExists_NoExceptions(ManifestFile))
             {

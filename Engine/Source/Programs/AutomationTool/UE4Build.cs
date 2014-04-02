@@ -320,7 +320,7 @@ namespace AutomationTool
 			RunUBT(CmdEnv, UBTExecutable: UBTExecutable, Project: ProjectName, Target: TargetName, Platform: TargetPlatform.ToString(), Config: Config, AdditionalArgs: AddArgs);
 
 			// allow the platform to perform any actions after building a target (seems almost like this should be done in UBT)
-			Platform.Platforms[TargetPlatform].PostBuildTarget(this, ProjectName, UprojectPath, Config);
+			Platform.Platforms[TargetPlatform].PostBuildTarget(this, string.IsNullOrEmpty(ProjectName) ? TargetName : ProjectName, UprojectPath, Config);
 
 			if (UseManifest)
 			{
@@ -1262,29 +1262,29 @@ namespace AutomationTool
 			Log("Adding {0} build products to changelist {1}...", Files.Count, WorkingCL);
 			foreach (var File in Files)
 			{
-				Sync("-f -k " + File + "#head"); // sync the file without overwriting local one
+				P4.Sync("-f -k " + File + "#head"); // sync the file without overwriting local one
 				if (!FileExists(File))
 				{
 					throw new AutomationException("BUILD FAILED {0} was a build product but no longer exists", File);
 				}
 
-				ReconcileNoDeletes(WorkingCL, File);
+				P4.ReconcileNoDeletes(WorkingCL, File);
 
 				// Change file type on binary files to be always writeable.
-				var FileStats = FStat(File);
+				var FileStats = P4.FStat(File);
 
                 if (IsProbablyAMacOrIOSExe(File))
                 {
                     if (FileStats.Type == P4FileType.Binary && (FileStats.Attributes & (P4FileAttributes.Executable | P4FileAttributes.Writeable)) != (P4FileAttributes.Executable | P4FileAttributes.Writeable))
                     {
-                        ChangeFileType(File, (P4FileAttributes.Executable | P4FileAttributes.Writeable));
+                        P4.ChangeFileType(File, (P4FileAttributes.Executable | P4FileAttributes.Writeable));
                     }
                 }
                 else
                 {
                     if (FileStats.Type == P4FileType.Binary && (FileStats.Attributes & P4FileAttributes.Writeable) != P4FileAttributes.Writeable)
                     {
-                        ChangeFileType(File, P4FileAttributes.Writeable);
+                        P4.ChangeFileType(File, P4FileAttributes.Writeable);
                     }
 
                 }                    

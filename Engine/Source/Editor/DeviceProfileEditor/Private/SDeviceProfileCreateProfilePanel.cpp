@@ -12,6 +12,11 @@
 
 #define LOCTEXT_NAMESPACE "DeviceProfileCreateProfilePanel"
 
+/** Panel layout constants */
+namespace DeviceProfileCreateProfileUIConstants
+{
+	const FMargin ListElementPadding(10.0f, 2.0f);
+}
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SDeviceProfileCreateProfilePanel::Construct( const FArguments& InArgs, TWeakObjectPtr< UDeviceProfileManager > InDeviceProfileManager )
@@ -144,7 +149,7 @@ void SDeviceProfileCreateProfilePanel::Construct( const FArguments& InArgs, TWea
 						[
 							SNew( STextBlock )
 							.Font( FEditorStyle::GetFontStyle( TEXT("PropertyWindow.NormalFont") ) )
-							.Text( LOCTEXT("EnterProfileArchetypeLabel", "Profile Archetype:") )
+							.Text( LOCTEXT("EnterProfileParentLabel", "Select a parent:") )
 						]
 					]
 					+SVerticalBox::Slot()
@@ -234,8 +239,12 @@ void SDeviceProfileCreateProfilePanel::HandleProfileTypeChanged(TSharedPtr<FStri
 
 TSharedRef<SWidget> SDeviceProfileCreateProfilePanel::HandleProfileTypeComboBoxGenarateWidget( TSharedPtr<FString> InItem )
 {
-	return SNew( STextBlock )
-		.Text( *InItem );
+	return SNew(SBox)
+	.Padding(DeviceProfileCreateProfileUIConstants::ListElementPadding)
+	[
+		SNew(STextBlock)
+		.Text(*InItem)
+	];
 }
 
 
@@ -260,10 +269,13 @@ FString SDeviceProfileCreateProfilePanel::SetBaseProfileComboBoxContent() const
 
 TSharedRef<SWidget> SDeviceProfileCreateProfilePanel::HandleBaseComboBoxGenerateWidget( UDeviceProfile* InItem )
 {
-	return SNew(STextBlock)
-		.Text( InItem->GetName() );
+	return SNew(SBox)
+	.Padding(DeviceProfileCreateProfileUIConstants::ListElementPadding)
+	[
+		SNew(STextBlock)
+		.Text(InItem->GetName())
+	];
 }
-
 
 
 bool SDeviceProfileCreateProfilePanel::IsCreateProfileButtonEnabled() const
@@ -281,7 +293,6 @@ FReply SDeviceProfileCreateProfilePanel::HandleCreateDeviceProfileButtonClicked(
 
 	return FReply::Handled();
 }
-
 
 
 void SDeviceProfileCreateProfilePanel::ResetComponentsState()

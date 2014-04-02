@@ -122,7 +122,6 @@ public:
 		OcclusionTexture.Bind(Initializer.ParameterMap, TEXT("OcclusionTexture"));
 		OcclusionSampler.Bind(Initializer.ParameterMap, TEXT("OcclusionSampler"));
 		SceneTextureParameters.Bind(Initializer.ParameterMap);
-		TranslucentLightingParameters.Bind(Initializer.ParameterMap);
 	}
 
 	void SetParameters(const FViewInfo& View, FLightShaftsOutput LightShaftsOutput)
@@ -130,7 +129,6 @@ public:
 		FGlobalShader::SetParameters(GetPixelShader(), View);
 		SceneTextureParameters.Set(GetPixelShader());
 		ExponentialParameters.Set(GetPixelShader(), &View);
-		TranslucentLightingParameters.Set(this);
 
 		if (LightShaftsOutput.bRendered)
 		{
@@ -159,7 +157,6 @@ public:
 		Ar << OcclusionTexture;
 		Ar << OcclusionSampler;
 		Ar << ExponentialParameters;
-		Ar << TranslucentLightingParameters;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -168,7 +165,6 @@ private:
 	FShaderResourceParameter OcclusionTexture;
 	FShaderResourceParameter OcclusionSampler;
 	FExponentialHeightFogShaderParameters ExponentialParameters;
-	FTranslucentLightingParameters TranslucentLightingParameters;
 };
 
 IMPLEMENT_SHADER_TYPE(,FExponentialHeightFogPS,TEXT("HeightFogPixelShader"), TEXT("ExponentialPixelMain"),SF_Pixel)

@@ -238,7 +238,8 @@ void USkyLightComponent::CheckForErrors()
 					&& Component->bVisible
 					&& Component->bAffectsWorld
 					&& Component->GetOwner() 
-					&& ThisWorld->ContainsActor(Component->GetOwner()))
+					&& ThisWorld->ContainsActor(Component->GetOwner())
+					&& !Component->GetOwner()->IsPendingKill())
 				{
 					bMultipleFound = true;
 					break;

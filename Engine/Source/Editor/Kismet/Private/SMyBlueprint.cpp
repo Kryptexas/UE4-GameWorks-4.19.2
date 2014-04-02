@@ -57,7 +57,7 @@ void FMyBlueprintCommands::RegisterCommands()
 class FMyBlueprintCategoryDragDropAction : public FGraphEditorDragDropAction
 {
 public:
-	// GetTypeId is the parent: FGraphEditorDragDropAction
+	DRAG_DROP_OPERATOR_TYPE(FMyBlueprintCategoryDragDropAction, FGraphEditorDragDropAction)
 
 	virtual void HoverTargetChanged() OVERRIDE
 	{
@@ -108,7 +108,6 @@ public:
 	static TSharedRef<FMyBlueprintCategoryDragDropAction> New(const FString& InCategory, TSharedPtr<SMyBlueprint> InMyBlueprint)
 	{
 		TSharedRef<FMyBlueprintCategoryDragDropAction> Operation = MakeShareable(new FMyBlueprintCategoryDragDropAction);
-		FSlateApplication::GetDragDropReflector().RegisterOperation<FMyBlueprintCategoryDragDropAction>(Operation);
 		Operation->DraggedCategory = InCategory;
 		Operation->MyBlueprintPtr = InMyBlueprint;
 		Operation->Construct();
@@ -167,6 +166,12 @@ void SMyBlueprint::Construct(const FArguments& InArgs, TWeakPtr<FBlueprintEditor
 	ToolKitCommandList->MapAction( FMyBlueprintCommands::Get().DeleteEntry,
 		FExecuteAction::CreateSP(this, &SMyBlueprint::OnDeleteEntry),
 		FCanExecuteAction::CreateSP(this, &SMyBlueprint::CanDeleteEntry) );
+
+	ToolKitCommandList->MapAction( FGenericCommands::Get().Duplicate,
+		FExecuteAction::CreateSP(this, &SMyBlueprint::OnDuplicateAction),
+		FCanExecuteAction::CreateSP(this, &SMyBlueprint::CanDuplicateAction),
+		FIsActionChecked(),
+		FIsActionButtonVisible::CreateSP(this, &SMyBlueprint::IsDuplicateActionVisible) );
 	
 	TSharedPtr<FBlueprintEditorToolbar> Toolbar = MakeShareable(new FBlueprintEditorToolbar(InBlueprintEditor.Pin()));
 	TSharedPtr<FExtender> Extender = MakeShareable(new FExtender);
@@ -197,50 +202,53 @@ void SMyBlueprint::Construct(const FArguments& InArgs, TWeakPtr<FBlueprintEditor
 	// now piece together all the content for this widget
 	ChildSlot
 	[
-		SNew(STutorialWrapper)
-		.Name(TEXT("MyBlueprintPanel"))
-		.Content()
+		SNew( STutorialWrapper, TEXT("MyBlueprintPanel") )
 		[
 			SNew(SBorder)
 			.Padding(4.0f)
 			.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
 			[
 				SNew(SVerticalBox)
-				+SVerticalBox::Slot()
-					.AutoHeight()
+
+				+ SVerticalBox::Slot()
+				.AutoHeight()
 				[
 					ToolbarBuilder.MakeWidget()
 				]
-				+SVerticalBox::Slot()
-					.AutoHeight()
+				
+				+ SVerticalBox::Slot()
+				.AutoHeight()
 				[
 					FilterBox.ToSharedRef()
 				]
-				+SVerticalBox::Slot()
-					.FillHeight(1.0f)
+				
+				+ SVerticalBox::Slot()
+				.FillHeight(1.0f)
 				[
 					SAssignNew(ActionMenuContainer, SSplitter)
-						.Orientation(Orient_Vertical)
-					+SSplitter::Slot()
+					.Orientation(Orient_Vertical)
+
+					+ SSplitter::Slot()
 					[
 						MyBlueprintActionMenu
 					]
 				]
-				+SVerticalBox::Slot()
-					.AutoHeight()
-					.Padding(FMargin(3.0f, 2.0f, 0.0f, 0.0f))
+
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(FMargin(3.0f, 2.0f, 0.0f, 0.0f))
 				[
 					SNew(SCheckBox)
-						.IsChecked(this, &SMyBlueprint::OnUserVarsCheckState)
-						.OnCheckStateChanged(this, &SMyBlueprint::OnUserVarsCheckStateChanged)
+					.IsChecked(this, &SMyBlueprint::OnUserVarsCheckState)
+					.OnCheckStateChanged(this, &SMyBlueprint::OnUserVarsCheckStateChanged)
 					[
 						SNew(STextBlock)
-							.Text(LOCTEXT("ShowInheritedVariables", "Show inherited variables"))
-							.ToolTip(IDocumentation::Get()->CreateToolTip(
-								LOCTEXT("ShowInheritedVariablesTooltip", "Should inherited variables from parent classes and blueprints be shown in the tree?"),
-								NULL,
-								TEXT("Shared/Editors/BlueprintEditor"),
-								TEXT("MyBlueprint_ShowInheritedVariables")))
+						.Text(LOCTEXT("ShowInheritedVariables", "Show inherited variables"))
+						.ToolTip(IDocumentation::Get()->CreateToolTip(
+							LOCTEXT("ShowInheritedVariablesTooltip", "Should inherited variables from parent classes and blueprints be shown in the tree?"),
+							NULL,
+							TEXT("Shared/Editors/BlueprintEditor"),
+							TEXT("MyBlueprint_ShowInheritedVariables")))
 					]
 				]
 			]
@@ -479,7 +487,7 @@ void SMyBlueprint::GetChildGraphs(UEdGraph* EdGraph, FGraphActionListBuilderBase
 		ChildSchema->GetGraphDisplayInformation(*Graph, ChildGraphDisplayInfo);
 
 		FString DisplayString = ChildGraphDisplayInfo.DisplayName.ToString();
- 		const FName DisplayName =  FName(*DisplayString);
+		const FName DisplayName =  FName(*DisplayString);
 
 		FString Category = ((ParentCategory.IsEmpty()) ? "" : ParentCategory + "|") + EdGraphDisplayName.ToString();
 		FString FunctionTooltip = DisplayString;
@@ -522,7 +530,7 @@ void SMyBlueprint::GetChildEvents(UEdGraph const* EdGraph, int32 const SectionId
 		TSharedPtr<FEdGraphSchemaAction_K2Event> EventNodeAction = MakeShareable(new FEdGraphSchemaAction_K2Event(ActionCategory, Description, Tooltip, 0));
 		EventNodeAction->NodeTemplate = EventNode;
 		EventNodeAction->SectionID = SectionId;
- 		OutAllActions.AddAction(EventNodeAction);
+		OutAllActions.AddAction(EventNodeAction);
 	}
 }
 
@@ -1109,7 +1117,8 @@ void SMyBlueprint::OnActionDoubleClicked( const TArray< TSharedPtr<FEdGraphSchem
 			{
 				for (int32 i=0; i<Blueprint->Timelines.Num(); i++)
 				{
-					if (Blueprint->Timelines[i]->GetFName() == VarAction->GetVariableName())
+					// Convert the Timeline's name to a variable name before comparing it to the variable
+					if (FName(*UTimelineTemplate::TimelineTemplateNameToVariableName(Blueprint->Timelines[i]->GetFName())) == VarAction->GetVariableName())
 					{
 						BlueprintEditorPtr.Pin()->OpenDocument(Blueprint->Timelines[i], FDocumentTracker::OpenNewDocument);
 					}
@@ -1239,6 +1248,7 @@ TSharedPtr<SWidget> SMyBlueprint::OnContextMenuOpening()
 			MenuBuilder.AddMenuEntry(FGenericCommands::Get().Rename, NAME_None, LOCTEXT("Rename", "Rename"), LOCTEXT("Rename_Tooltip", "Renames this function or variable from blueprint.") );
 			MenuBuilder.AddMenuEntry(FMyBlueprintCommands::Get().ImplementFunction);
 			MenuBuilder.AddMenuEntry(FMyBlueprintCommands::Get().FindEntry);
+			MenuBuilder.AddMenuEntry(FGenericCommands::Get().Duplicate);
 			MenuBuilder.AddMenuEntry(FMyBlueprintCommands::Get().DeleteEntry);
 		}
 		MenuBuilder.EndSection();
@@ -1673,6 +1683,55 @@ bool SMyBlueprint::CanDeleteEntry() const
 	return false;
 }
 
+bool SMyBlueprint::IsDuplicateActionVisible() const
+{
+	if (FEdGraphSchemaAction_K2Graph* GraphAction = SelectionAsGraph())
+	{
+		// Functions in interface Blueprints cannot be duplicated
+		if(GetBlueprintObj()->BlueprintType != BPTYPE_Interface)
+		{
+			// Only display it for valid function graphs
+			return GraphAction->EdGraph && GraphAction->EdGraph->GetSchema()->CanDuplicateGraph(GraphAction->EdGraph);
+		}
+	}
+
+	return false;
+}
+
+bool SMyBlueprint::CanDuplicateAction() const
+{
+	if (FEdGraphSchemaAction_K2Graph* GraphAction = SelectionAsGraph())
+	{
+		// Only support function graph duplication
+		if(GraphAction->EdGraph && GraphAction->EdGraph->GetSchema()->GetGraphType(GraphAction->EdGraph) == GT_Function)
+		{
+			return GraphAction->EdGraph->GetSchema()->CanDuplicateGraph(GraphAction->EdGraph);
+		}
+	}
+	return false;
+}
+
+void SMyBlueprint::OnDuplicateAction()
+{
+	if (FEdGraphSchemaAction_K2Graph* GraphAction = SelectionAsGraph())
+	{
+		const FScopedTransaction Transaction( LOCTEXT( "DuplicateGraph", "Duplicate Graph" ) );
+		GetBlueprintObj()->Modify();
+
+		UEdGraph* DuplicatedGraph = GraphAction->EdGraph->GetSchema()->DuplicateGraph(GraphAction->EdGraph);
+		check(DuplicatedGraph);
+
+		DuplicatedGraph->Modify();
+
+		// Only function duplication is supported
+		EGraphType GraphType = DuplicatedGraph->GetSchema()->GetGraphType(GraphAction->EdGraph);
+		check(GraphType == GT_Function);
+
+		GetBlueprintObj()->FunctionGraphs.Add(DuplicatedGraph);
+		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetBlueprintObj());
+	}
+}
+
 void SMyBlueprint::OnResetItemFilter()
 {
 	FilterBox->SetText(FText::GetEmpty());
@@ -1744,12 +1803,19 @@ void SMyBlueprint::OnRequestRenameOnActionNode()
 
 bool SMyBlueprint::CanRequestRenameOnActionNode() const
 {
-	// If the GraphActionMenu has nothing selected it will return false, so check the LocalGraphActionMenu to see if it's selection (if available) can be renamed.
-	if(!GraphActionMenu->CanRequestRenameOnActionNode() && LocalGraphActionMenu.IsValid())
+	TArray<TSharedPtr<FEdGraphSchemaAction> > SelectedActions;
+	GraphActionMenu->GetSelectedActions(SelectedActions);
+
+	// If there is anything selected in the GraphActionMenu, check the item for if it can be renamed.
+	if(SelectedActions.Num())
+	{
+		return GraphActionMenu->CanRequestRenameOnActionNode();
+	}
+	else if(LocalGraphActionMenu.IsValid())
 	{
 		return LocalGraphActionMenu->CanRequestRenameOnActionNode();
 	}
-	return true;
+	return false;
 }
 
 void SMyBlueprint::SelectItemByName(const FName& ItemName, ESelectInfo::Type SelectInfo)

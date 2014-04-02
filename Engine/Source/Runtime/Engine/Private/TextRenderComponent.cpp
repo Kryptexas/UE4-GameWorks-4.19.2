@@ -6,29 +6,32 @@
 ATextRenderActor::ATextRenderActor(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	// Structure to hold one-time initialization
-	struct FConstructorStatics
-	{
-		ConstructorHelpers::FObjectFinderOptional<UTexture2D> TextRenderTexture;
-		FConstructorStatics()
-		: TextRenderTexture(TEXT("/Engine/EditorResources/S_TextRenderActorIcon"))
-		{
-		}
-	};
-	static FConstructorStatics ConstructorStatics;
-
 	TextRender = PCIP.CreateDefaultSubobject<UTextRenderComponent>(this, TEXT("NewTextRenderComponent"));
 	RootComponent = TextRender;
 
-	SpriteComponent = PCIP.CreateDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
-	if (SpriteComponent)
+#if WITH_EDITORONLY_DATA
+	SpriteComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
+
+	if (!IsRunningCommandlet() && (SpriteComponent != nullptr))
 	{
+		// Structure to hold one-time initialization
+		struct FConstructorStatics
+		{
+			ConstructorHelpers::FObjectFinderOptional<UTexture2D> TextRenderTexture;
+			FConstructorStatics()
+				: TextRenderTexture(TEXT("/Engine/EditorResources/S_TextRenderActorIcon"))
+			{
+			}
+		};
+		static FConstructorStatics ConstructorStatics;
+
 		SpriteComponent->Sprite = ConstructorStatics.TextRenderTexture.Get();
 		SpriteComponent->AttachParent = TextRender;
 		SpriteComponent->bIsScreenSizeScaled = true;
 		SpriteComponent->bAbsoluteScale = true;
 		SpriteComponent->bReceivesDecals = false;
 	}
+#endif
 }
 
 // ---------------------------------------------------------------
@@ -87,6 +90,68 @@ struct FTextIterator
 			Ch = CurrentPosition[1];
 			return true;
 		}
+	}
+};
+
+// ---------------------------------------------------------------
+
+/** Vertex Buffer */
+class FTextRenderVertexBuffer : public FVertexBuffer 
+{
+public:
+	TArray<FDynamicMeshVertex> Vertices;
+
+	void InitRHI()
+	{
+		VertexBufferRHI = RHICreateVertexBuffer(Vertices.Num() * sizeof(FDynamicMeshVertex),NULL,BUF_Static);
+
+		// Copy the vertex data into the vertex buffer.
+		void* VertexBufferData = RHILockVertexBuffer(VertexBufferRHI,0,Vertices.Num() * sizeof(FDynamicMeshVertex), RLM_WriteOnly);
+		FMemory::Memcpy(VertexBufferData,Vertices.GetTypedData(),Vertices.Num() * sizeof(FDynamicMeshVertex));
+		RHIUnlockVertexBuffer(VertexBufferRHI);
+	}
+};
+
+/** Index Buffer */
+class FTextRenderIndexBuffer : public FIndexBuffer 
+{
+public:
+	TArray<int32> Indices;
+
+	void InitRHI()
+	{
+		IndexBufferRHI = RHICreateIndexBuffer(sizeof(int32),Indices.Num() * sizeof(int32),NULL,BUF_Static);
+
+		// Copy the index data into the index buffer.
+		void* Buffer = RHILockIndexBuffer(IndexBufferRHI,0,Indices.Num() * sizeof(int32),RLM_WriteOnly);
+		FMemory::Memcpy(Buffer,Indices.GetTypedData(),Indices.Num() * sizeof(int32));
+		RHIUnlockIndexBuffer(IndexBufferRHI);
+	}
+};
+
+/** Vertex Factory */
+class FTextRenderVertexFactory : public FLocalVertexFactory
+{
+public:
+
+	FTextRenderVertexFactory()
+	{}
+
+	/** Initialization */
+	void Init(const FTextRenderVertexBuffer* VertexBuffer)
+	{
+		check(IsInRenderingThread())
+
+		// Initialize the vertex factory's stream components.
+		DataType NewData;
+		NewData.PositionComponent = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer,FDynamicMeshVertex,Position,VET_Float3);
+		NewData.TextureCoordinates.Add(
+			FVertexStreamComponent(VertexBuffer,STRUCT_OFFSET(FDynamicMeshVertex,TextureCoordinate),sizeof(FDynamicMeshVertex),VET_Float2)
+			);
+		NewData.TangentBasisComponents[0] = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer,FDynamicMeshVertex,TangentX,VET_PackedNormal);
+		NewData.TangentBasisComponents[1] = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer,FDynamicMeshVertex,TangentZ,VET_PackedNormal);
+		NewData.ColorComponent = STRUCTMEMBER_VERTEXSTREAMCOMPONENT(VertexBuffer, FDynamicMeshVertex, Color, VET_Color);
+		SetData(NewData);
 	}
 };
 
@@ -225,45 +290,285 @@ float ComputeVerticalAlignmentOffset(float SizeY, EVerticalTextAligment Vertical
 	}
 }
 
-// @param Text must not be 0
-// @param Font 0 is silently ignored
-void DrawString3D(
-	FPrimitiveDrawInterface* PDI,
-	UMaterialInterface* TextMaterial,
+/**
+ * For the given text info, calculate the vertical offset that needs to be applied to the component
+ * in order to vertically align it to the requested alignment.
+ **/
+float CalculateVerticalAlignmentOffset(
 	const TCHAR* Text,
 	class UFont* Font,
-	const FLinearColor& Color,
-	FVector2D LeftTop,
-	const FMatrix& Transform,
 	float XScale, 
 	float YScale, 
 	float HorizSpacingAdjust,
-	EHorizTextAligment HorizontalAlignment,
-	EVerticalTextAligment VerticalAlignment,
-	bool bReceivesDecals)
+	EVerticalTextAligment VerticalAlignment)
 {
 	check(Text);
 
 	if(!Font)
 	{
-		return;
+		return 0;
 	}
 
 	float FirstLineHeight = -1; // Only kept around for legacy positioning support
 	float StartY = 0;
+
+	FTextIterator It(Text);
+
+	while (It.NextLine())
+	{
+		FVector2D LineSize = ComputeTextSize(It, Font, XScale, YScale, HorizSpacingAdjust);
+
+		if (FirstLineHeight < 0)
+		{
+			FirstLineHeight = LineSize.Y;
+		}
+
+		int32 Ch;
+
+		// Iterate to end of line
+		while (It.NextCharacterInLine(Ch))
+		{
+		}
+
+		// Move Y position down to next line. If the current line is empty, move by max char height in font
+		StartY += LineSize.Y > 0 ? LineSize.Y : Font->GetMaxCharHeight();
+	}
+
+	// Calculate a vertical translation to create the correct vertical alignment
+	return -ComputeVerticalAlignmentOffset(StartY, VerticalAlignment, FirstLineHeight);
+}
 	
-	FLinearColor ActualColor = Color;
-		
+// ------------------------------------------------------
+
+/** Represents a URenderTextComponent to the scene manager. */
+class FTextRenderSceneProxy : public FPrimitiveSceneProxy
+{
+public:
+	// constructor / destructor
+	FTextRenderSceneProxy(UTextRenderComponent* Component);
+	virtual ~FTextRenderSceneProxy();
+
+	// Begin FPrimitiveSceneProxy interface
+	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) OVERRIDE;
+	virtual void DrawStaticElements(FStaticPrimitiveDrawInterface* PDI) OVERRIDE;
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) OVERRIDE;
+	virtual bool CanBeOccluded() const OVERRIDE;
+	virtual uint32 GetMemoryFootprint() const OVERRIDE;
+	uint32 GetAllocatedSize() const;
+	// End FPrimitiveSceneProxy interface
+
+private:
+	// Begin FPrimitiveSceneProxy interface
+	virtual void CreateRenderThreadResources() OVERRIDE;
+	// End FPrimitiveSceneProxy interface
+
+	void ReleaseRenderThreadResources();
+	bool BuildStringMesh( TArray<FDynamicMeshVertex>& OutVertices, TArray<int32>& OutIndices );
+
+private:
+	FMaterialRelevance MaterialRelevance;
+	FTextRenderVertexBuffer VertexBuffer;
+	FTextRenderIndexBuffer IndexBuffer;
+	FTextRenderVertexFactory VertexFactory;
+	const FColor TextRenderColor;
+	UMaterialInterface* TextMaterial;
+	UFont* Font;
+	FString Text;
+	float XScale;
+	float YScale;
+	float HorizSpacingAdjust;
+	EHorizTextAligment HorizontalAlignment;
+	EVerticalTextAligment VerticalAlignment;
+};
+
+FTextRenderSceneProxy::FTextRenderSceneProxy( UTextRenderComponent* Component) :
+	FPrimitiveSceneProxy(Component),
+	TextRenderColor(Component->TextRenderColor),
+	Font(Component->Font),
+	Text(Component->Text),
+	XScale(Component->WorldSize * Component->XScale * Component->InvDefaultSize),
+	YScale(Component->WorldSize * Component->YScale * Component->InvDefaultSize),
+	HorizSpacingAdjust(Component->HorizSpacingAdjust),
+	HorizontalAlignment(Component->HorizontalAlignment),
+	VerticalAlignment(Component->VerticalAlignment)
+{
+	UMaterialInterface* EffectiveMaterial = 0;
+
+	if(Component->TextMaterial)
+	{
+		UMaterial* BaseMaterial = Component->TextMaterial->GetMaterial();
+
+		if(BaseMaterial->MaterialDomain == MD_Surface)
+		{
+			EffectiveMaterial = Component->TextMaterial;
+		}
+	}
+
+	if(!EffectiveMaterial)
+	{
+		EffectiveMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
+	}
+
+	TextMaterial = EffectiveMaterial;
+	MaterialRelevance |= TextMaterial->GetMaterial()->GetRelevance();
+}
+
+FTextRenderSceneProxy::~FTextRenderSceneProxy()
+{
+	ReleaseRenderThreadResources();
+}
+
+void FTextRenderSceneProxy::CreateRenderThreadResources()
+{
+	if(BuildStringMesh(VertexBuffer.Vertices, IndexBuffer.Indices))
+	{
+		// Init vertex factory
+		VertexFactory.Init(&VertexBuffer);
+
+		// Enqueue initialization of render resources
+		VertexBuffer.InitResource();
+		IndexBuffer.InitResource();
+		VertexFactory.InitResource();
+	}
+}
+
+void FTextRenderSceneProxy::ReleaseRenderThreadResources()
+{
+	VertexBuffer.ReleaseResource();
+	IndexBuffer.ReleaseResource();
+	VertexFactory.ReleaseResource();
+}
+
+void FTextRenderSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View)
+{
+	QUICK_SCOPE_CYCLE_COUNTER( STAT_TextRenderSceneProxy_DrawDynamicElements );
+
+	// Vertex factory will not been initialized when the text string is empty or font is invalid.
+	if(VertexFactory.IsInitialized())
+	{
+		// Draw the mesh.
+		FMeshBatch Mesh;
+		FMeshBatchElement& BatchElement = Mesh.Elements[0];
+		BatchElement.IndexBuffer = &IndexBuffer;
+		Mesh.VertexFactory = &VertexFactory;
+		BatchElement.PrimitiveUniformBufferResource = &GetUniformBuffer();
+		BatchElement.FirstIndex = 0;
+		BatchElement.NumPrimitives = IndexBuffer.Indices.Num() / 3;
+		BatchElement.MinVertexIndex = 0;
+		BatchElement.MaxVertexIndex = VertexBuffer.Vertices.Num() - 1;
+		Mesh.ReverseCulling = IsLocalToWorldDeterminantNegative();
+		Mesh.bDisableBackfaceCulling = false;
+		Mesh.Type = PT_TriangleList;
+		Mesh.DepthPriorityGroup = SDPG_World;
+		const bool bUseSelectedMaterial = GIsEditor && (View->Family->EngineShowFlags.Selection) ? IsSelected() : false;
+		Mesh.MaterialRenderProxy = TextMaterial->GetRenderProxy(bUseSelectedMaterial);
+
+		const bool bIsWireframe = View->Family->EngineShowFlags.Wireframe;
+
+		uint32 NumPasses = DrawRichMesh(
+			PDI, 
+			Mesh, 
+			FLinearColor(1.0f, 0.0f, 0.0f),	//WireframeColor,
+			FLinearColor(1.0f, 1.0f, 0.0f),	//LevelColor,
+			FLinearColor(1.0f, 1.0f, 1.0f),	//PropertyColor,		
+			this,
+			bUseSelectedMaterial,
+			bIsWireframe
+			);
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		RenderBounds(PDI, View->Family->EngineShowFlags, GetBounds(), IsSelected());
+#endif
+	}
+}
+
+void FTextRenderSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface* PDI)
+{
+	// Vertex factory will not been initialized when the font is invalid or the text string is empty.
+	if(VertexFactory.IsInitialized())
+	{
+		// Draw the mesh.
+		FMeshBatch Mesh;
+		FMeshBatchElement& BatchElement = Mesh.Elements[0];
+		BatchElement.IndexBuffer = &IndexBuffer;
+		Mesh.VertexFactory = &VertexFactory;
+		Mesh.MaterialRenderProxy = TextMaterial->GetRenderProxy(false);
+		BatchElement.PrimitiveUniformBufferResource = &GetUniformBuffer();
+		BatchElement.FirstIndex = 0;
+		BatchElement.NumPrimitives = IndexBuffer.Indices.Num() / 3;
+		BatchElement.MinVertexIndex = 0;
+		BatchElement.MaxVertexIndex = VertexBuffer.Vertices.Num() - 1;
+		Mesh.ReverseCulling = IsLocalToWorldDeterminantNegative();
+		Mesh.bDisableBackfaceCulling = false;
+		Mesh.Type = PT_TriangleList;
+		Mesh.DepthPriorityGroup = SDPG_World;
+		PDI->DrawMesh(Mesh,0.0, FLT_MAX);
+	}
+}
+
+bool FTextRenderSceneProxy::CanBeOccluded() const
+{
+	return !MaterialRelevance.bDisableDepthTest;
+}
+
+FPrimitiveViewRelevance FTextRenderSceneProxy::GetViewRelevance(const FSceneView* View)
+{
+	FPrimitiveViewRelevance Result;
+	Result.bDrawRelevance = IsShown(View) && View->Family->EngineShowFlags.TextRender;
+	Result.bShadowRelevance = IsShadowCast(View);
+	Result.bRenderCustomDepth = ShouldRenderCustomDepth();
+	Result.bRenderInMainPass = ShouldRenderInMainPass();
+
+	if( IsRichView(View) 
+		|| View->Family->EngineShowFlags.Bounds 
+		|| View->Family->EngineShowFlags.Collision 
+		|| IsSelected() 
+		|| IsHovered()
+		)
+	{
+		Result.bDynamicRelevance = true;
+	}
+	else
+	{
+		Result.bStaticRelevance = true;
+	}
+
+	MaterialRelevance.SetPrimitiveViewRelevance(Result);
+	return Result;
+}
+
+uint32 FTextRenderSceneProxy::GetMemoryFootprint() const
+{
+	return( sizeof( *this ) + GetAllocatedSize() );
+}
+
+uint32 FTextRenderSceneProxy::GetAllocatedSize() const
+{
+	return( FPrimitiveSceneProxy::GetAllocatedSize() ); 
+}
+
+/**
+* For the given text, constructs a mesh to be used by the vertex factory for rendering.
+*/
+bool  FTextRenderSceneProxy::BuildStringMesh( TArray<FDynamicMeshVertex>& OutVertices, TArray<int32>& OutIndices )
+{
+	if(!Font || Text.IsEmpty())
+	{
+		return false;
+	}
+
+	float FirstLineHeight = -1; // Only kept around for legacy positioning support
+	float StartY = 0;
+
+	FLinearColor ActualColor = TextRenderColor;
+
 	const float CharIncrement = ( (float)Font->Kerning + HorizSpacingAdjust ) * XScale;
 
 	float LineX = 0;
 
 	const int32 PageIndex = 0;
 
-	FDynamicMeshBuilder MeshBuilder;
-
-	FTextIterator It(Text);
-
+	FTextIterator It(*Text);
 	while (It.NextLine())
 	{
 		FVector2D LineSize = ComputeTextSize(It, Font, XScale, YScale, HorizSpacingAdjust);
@@ -324,13 +629,18 @@ void DrawString3D(
 				FVector TangentY(0, 0, -1);
 				FVector TangentZ(1, 0, 0);
 
-				int32 V00 = MeshBuilder.AddVertex(V0, FVector2D(U,			V),			TangentX, TangentY, TangentZ, ActualColor);
-				int32 V10 = MeshBuilder.AddVertex(V1, FVector2D(U + SizeU,	V),			TangentX, TangentY, TangentZ, ActualColor);
-				int32 V01 = MeshBuilder.AddVertex(V2, FVector2D(U,			V + SizeV),	TangentX, TangentY, TangentZ, ActualColor);
-				int32 V11 = MeshBuilder.AddVertex(V3, FVector2D(U + SizeU,	V + SizeV),	TangentX, TangentY, TangentZ, ActualColor);
+				int32 V00 = OutVertices.Add( FDynamicMeshVertex( V0, TangentX, TangentZ, FVector2D(U, V), ActualColor));
+				int32 V10 = OutVertices.Add( FDynamicMeshVertex( V1, TangentX, TangentZ, FVector2D(U + SizeU,	V),	ActualColor));
+				int32 V01 = OutVertices.Add( FDynamicMeshVertex( V2, TangentX, TangentZ, FVector2D(U,	V + SizeV), ActualColor));
+				int32 V11 = OutVertices.Add( FDynamicMeshVertex( V3, TangentX, TangentZ, FVector2D(U + SizeU,	V + SizeV), ActualColor));
 
-				MeshBuilder.AddTriangle(V00, V11, V10);
-				MeshBuilder.AddTriangle(V00, V01, V11);
+				OutIndices.Add(V00);
+				OutIndices.Add(V11);
+				OutIndices.Add(V10);
+
+				OutIndices.Add(V00);
+				OutIndices.Add(V01);
+				OutIndices.Add(V11);
 
 				// if we have another non-whitespace character to render, add the font's kerning.
 				int32 NextChar;
@@ -346,167 +656,7 @@ void DrawString3D(
 		// Move Y position down to next line. If the current line is empty, move by max char height in font
 		StartY += LineSize.Y > 0 ? LineSize.Y : Font->GetMaxCharHeight();
 	}
-
-	// Calculate a vertical translation to create the correct vertical alignment
-	FMatrix VerticalTransform = FMatrix::Identity;
-	float VerticalAlignmentOffset = -ComputeVerticalAlignmentOffset(StartY, VerticalAlignment, FirstLineHeight);
-	VerticalTransform = VerticalTransform.ConcatTranslation(FVector(0, 0, VerticalAlignmentOffset));
-
-	// Draw mesh
-	MeshBuilder.Draw(PDI, VerticalTransform * Transform, TextMaterial->GetRenderProxy(false), SDPG_World, 0.f, bReceivesDecals);
-}
-
-/**
- * For the given text info, calculate the vertical offset that needs to be applied to the component
- * in order to vertically align it to the requested alignment.
- **/
-float CalculateVerticalAlignmentOffset(
-	const TCHAR* Text,
-	class UFont* Font,
-	float XScale, 
-	float YScale, 
-	float HorizSpacingAdjust,
-	EVerticalTextAligment VerticalAlignment)
-{
-	check(Text);
-
-	if(!Font)
-	{
-		return 0;
-	}
-
-	float FirstLineHeight = -1; // Only kept around for legacy positioning support
-	float StartY = 0;
-
-	FTextIterator It(Text);
-
-	while (It.NextLine())
-	{
-		FVector2D LineSize = ComputeTextSize(It, Font, XScale, YScale, HorizSpacingAdjust);
-
-		if (FirstLineHeight < 0)
-		{
-			FirstLineHeight = LineSize.Y;
-		}
-
-		int32 Ch;
-
-		// Iterate to end of line
-		while (It.NextCharacterInLine(Ch))
-		{
-		}
-
-		// Move Y position down to next line. If the current line is empty, move by max char height in font
-		StartY += LineSize.Y > 0 ? LineSize.Y : Font->GetMaxCharHeight();
-	}
-
-	// Calculate a vertical translation to create the correct vertical alignment
-	return -ComputeVerticalAlignmentOffset(StartY, VerticalAlignment, FirstLineHeight);
-}
-	
-// ------------------------------------------------------
-
-/** Represents a URenderTextComponent to the scene manager. */
-class FTextRenderSceneProxy : public FPrimitiveSceneProxy
-{
-public:
-	// constructor
-	FTextRenderSceneProxy(UTextRenderComponent* Component);
-
-	// FPrimitiveSceneProxy interface.
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View);
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View);
-	virtual bool CanBeOccluded() const OVERRIDE;
-	virtual uint32 GetMemoryFootprint() const;
-	uint32 GetAllocatedSize() const;
-
-private:
-	FMaterialRelevance MaterialRelevance;
-	const FColor TextRenderColor;
-	UMaterialInterface* TextMaterial;
-	UFont* Font;
-	FString Text;
-	float XScale;
-	float YScale;
-	float HorizSpacingAdjust;
-	EHorizTextAligment HorizontalAlignment;
-	EVerticalTextAligment VerticalAlignment;
-};
-
-FTextRenderSceneProxy::FTextRenderSceneProxy( UTextRenderComponent* Component) :
-	FPrimitiveSceneProxy(Component),
-	TextRenderColor(Component->TextRenderColor),
-	Font(Component->Font),
-	Text(Component->Text),
-	XScale(Component->WorldSize * Component->XScale * Component->InvDefaultSize),
-	YScale(Component->WorldSize * Component->YScale * Component->InvDefaultSize),
-	HorizSpacingAdjust(Component->HorizSpacingAdjust),
-	HorizontalAlignment(Component->HorizontalAlignment),
-	VerticalAlignment(Component->VerticalAlignment)
-{
-	UMaterialInterface* EffectiveMaterial = 0;
-
-	if(Component->TextMaterial)
-	{
-		UMaterial* BaseMaterial = Component->TextMaterial->GetMaterial();
-
-		if(BaseMaterial->MaterialDomain == MD_Surface)
-		{
-			EffectiveMaterial = Component->TextMaterial;
-		}
-	}
-
-	if(!EffectiveMaterial)
-	{
-		EffectiveMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
-	}
-
-	TextMaterial = EffectiveMaterial;
-	MaterialRelevance |= TextMaterial->GetMaterial()->GetRelevance();
-}
-
-void FTextRenderSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View)
-{
-	QUICK_SCOPE_CYCLE_COUNTER( STAT_TextRenderSceneProxy_DrawDynamicElements );
-
-	const FMatrix& Transform = GetLocalToWorld();
-
-	FVector2D LeftTop(0, 0);
-
-	// more importantly we optimize by not generating the vertex buffer each time and batch.
-	DrawString3D(PDI, TextMaterial, *Text, Font, TextRenderColor, LeftTop, Transform, XScale, YScale, HorizSpacingAdjust, HorizontalAlignment, VerticalAlignment, ReceivesDecals());
-	
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	RenderBounds(PDI, View->Family->EngineShowFlags, GetBounds(), IsSelected());
-#endif
-}
-
-bool FTextRenderSceneProxy::CanBeOccluded() const
-{
-	return !MaterialRelevance.bDisableDepthTest;
-}
-
-FPrimitiveViewRelevance FTextRenderSceneProxy::GetViewRelevance(const FSceneView* View)
-{
-	FPrimitiveViewRelevance Result;
-	Result.bDrawRelevance = IsShown(View) && View->Family->EngineShowFlags.TextRender;
-	Result.bDynamicRelevance = true;
-	Result.bShadowRelevance = IsShadowCast(View);
-	Result.bRenderCustomDepth = ShouldRenderCustomDepth();
-	Result.bRenderInMainPass = ShouldRenderInMainPass();
-
-	MaterialRelevance.SetPrimitiveViewRelevance(Result);
-	return Result;
-}
-
-uint32 FTextRenderSceneProxy::GetMemoryFootprint() const
-{
-	return( sizeof( *this ) + GetAllocatedSize() );
-}
-
-uint32 FTextRenderSceneProxy::GetAllocatedSize() const
-{
-	return( FPrimitiveSceneProxy::GetAllocatedSize() ); 
+	return true;
 }
 
 // ------------------------------------------------------
@@ -601,7 +751,7 @@ FBoxSphereBounds UTextRenderComponent::CalcBounds(const FTransform & LocalToWorl
 
 		while (It.NextLine())
 		{
-			FVector2D LineSize = ComputeTextSize(It, Font, AdjustedXScale, YScale, HorizSpacingAdjust);
+			FVector2D LineSize = ComputeTextSize(It, Font, AdjustedXScale, AdjustedYScale, HorizSpacingAdjust);
 			float LineLeft = ComputeHorizontalAlignmentOffset(LineSize, HorizontalAlignment);
 
 			Size.X = FMath::Max(LineSize.X, Size.X);
@@ -626,6 +776,42 @@ FBoxSphereBounds UTextRenderComponent::CalcBounds(const FTransform & LocalToWorl
 	{
 		return FBoxSphereBounds(ForceInit);
 	}
+}
+
+FMatrix UTextRenderComponent::GetRenderMatrix() const
+{
+	// Adjust LocalToWorld transform to account for vertical text alignment when rendering.
+	if(!Text.IsEmpty())
+	{
+		float SizeY = 0;
+		float FirstLineHeight = -1;
+		float AdjustedXScale = WorldSize * XScale * InvDefaultSize;
+		float AdjustedYScale = WorldSize * YScale * InvDefaultSize;
+
+		FTextIterator It(*Text);
+		while (It.NextLine())
+		{
+			FVector2D LineSize = ComputeTextSize(It, Font, AdjustedXScale, AdjustedYScale, HorizSpacingAdjust);
+			SizeY += LineSize.Y > 0 ? LineSize.Y : Font->GetMaxCharHeight();
+
+			if (FirstLineHeight < 0)
+			{
+				FirstLineHeight = LineSize.Y;
+			}
+
+			int32 Ch;
+			while (It.NextCharacterInLine(Ch));
+		}
+
+		// Calculate a vertical translation to create the correct vertical alignment
+		FMatrix VerticalTransform = FMatrix::Identity;
+		float VerticalAlignmentOffset = -ComputeVerticalAlignmentOffset(SizeY, VerticalAlignment, FirstLineHeight);
+		VerticalTransform = VerticalTransform.ConcatTranslation(FVector(0, 0, VerticalAlignmentOffset));
+
+		return VerticalTransform *  ComponentToWorld.ToMatrixWithScale();
+
+	}
+	return UPrimitiveComponent::GetRenderMatrix();
 }
 
 void UTextRenderComponent::SetText(const FString& Value)

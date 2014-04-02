@@ -410,7 +410,7 @@ void FSkeletalMeshObjectCPUSkin::DrawVertexElements(FPrimitiveDrawInterface* PDI
 		const FVector Tangent = Vert.TangentX;
 		const FVector Binormal = FVector(Normal) ^ FVector(Tangent);
 
-		const float Len = 5.0f;
+		const float Len = 1.0f;
 
 		if( bDrawNormals )
 		{
@@ -553,7 +553,7 @@ FORCEINLINE void ApplyMorphBlend( VertexType& DestVertex, const FVertexAnimDelta
 	// Save W before = operator. That overwrites W to be 127.
 	uint8 W = DestVertex.TangentZ.Vector.W;
 	// add normal offset. can only apply normal deltas up to a weight of 1
-	DestVertex.TangentZ = FVector(FVector(DestVertex.TangentZ) + FVector(SrcMorph.TangentZDelta) * FMath::Min(Weight,1.0f)).UnsafeNormal();
+	DestVertex.TangentZ = FVector(FVector(DestVertex.TangentZ) + SrcMorph.TangentZDelta * FMath::Min(Weight,1.0f)).UnsafeNormal();
 	// Recover W
 	DestVertex.TangentZ.Vector.W = W;
 } 

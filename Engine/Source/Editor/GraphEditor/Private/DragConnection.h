@@ -5,7 +5,7 @@
 class FDragConnection : public FGraphEditorDragDropAction
 {
 public:
-	// GetTypeId is the parent: FGraphEditorDragDropAction
+	DRAG_DROP_OPERATOR_TYPE(FDragConnection, FGraphEditorDragDropAction)
 
 	static TSharedRef<FDragConnection> New(const TSharedRef<SGraphPanel>& InGraphPanel, const TSharedRef<SGraphPin>& InStartingPin);
 	static TSharedRef<FDragConnection> New(const TSharedRef<SGraphPanel>& InGraphPanel, const TArray< TSharedRef<SGraphPin> >& InStartingPins, bool bIsMovingLinks);

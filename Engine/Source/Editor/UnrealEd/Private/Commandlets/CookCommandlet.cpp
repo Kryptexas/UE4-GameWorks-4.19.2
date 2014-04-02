@@ -554,7 +554,17 @@ bool UCookCommandlet::SaveCookedPackage( UPackage* Package, uint32 SaveFlags, bo
 					World->PersistentLevel->OwningWorld = World;
 				}
 
-				bSavedCorrectly &= GEditor->SavePackage(Package, World, Flags, *PlatFilename, GError, NULL, bSwap, false, SaveFlags, Target, FDateTime::MinValue());
+				if( PlatFilename.Len() >= PLATFORM_MAX_FILEPATH_LENGTH )
+				{
+					UE_LOG( LogCookCommandlet, Error, TEXT( "Couldn't save package, filename is too long :%s" ), *PlatFilename );
+					bSavedCorrectly = false;
+				}
+				else
+				{
+					bSavedCorrectly &= GEditor->SavePackage( Package, World, Flags, *PlatFilename, GError, NULL, bSwap, false, SaveFlags, Target, FDateTime::MinValue() );
+				}
+
+				
 				bOutWasUpToDate = false;
 			}
 			else

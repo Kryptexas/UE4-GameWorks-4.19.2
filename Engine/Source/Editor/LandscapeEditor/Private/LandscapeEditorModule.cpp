@@ -47,7 +47,7 @@ public:
 		CommandList->MapAction(LandscapeActions.ViewModeLayerDebug,   FExecuteAction::CreateStatic(&ChangeLandscapeViewMode, ELandscapeViewMode::DebugLayer),   FCanExecuteAction(), FIsActionChecked::CreateStatic(&IsLandscapeViewModeSelected, ELandscapeViewMode::DebugLayer));
 
 		TSharedRef<FExtender> ViewportMenuExtender = MakeShareable(new FExtender);
-		ViewportMenuExtender->AddMenuExtension("Exposure", EExtensionHook::Before, CommandList, FMenuExtensionDelegate::CreateStatic(&ConstructLandscapeViewportMenu));
+		ViewportMenuExtender->AddMenuExtension("LevelViewportLandscape", EExtensionHook::First, CommandList, FMenuExtensionDelegate::CreateStatic(&ConstructLandscapeViewportMenu));
 		FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
 		LevelEditorModule.GetMenuExtensibilityManager()->AddExtender(ViewportMenuExtender);
 
@@ -75,27 +75,23 @@ public:
 
 	static void ConstructLandscapeViewportMenu(FMenuBuilder& MenuBuilder)
 	{
-		MenuBuilder.BeginSection("LevelViewportLandscapeVisualizers", LOCTEXT("LandscapeViewModeSectionName", "Landscape Visualizers") );
-
-		//struct Local
-		//{
-		//	static void BuildLandscapeVisualizersMenu(FMenuBuilder& MenuBuilder)
-		//	{
+		struct Local
+		{
+			static void BuildLandscapeVisualizersMenu(FMenuBuilder& MenuBuilder)
+			{
 				const FLandscapeEditorCommands& LandscapeActions = FLandscapeEditorCommands::Get();
 
-		//		MenuBuilder.BeginSection("LandscapeVisualizers", LOCTEXT("LandscapeHeader", "Landscape Visualizers"));
-		//		{
+				MenuBuilder.BeginSection("LandscapeVisualizers", LOCTEXT("LandscapeHeader", "Landscape Visualizers"));
+				{
 					MenuBuilder.AddMenuEntry(LandscapeActions.ViewModeNormal,       NAME_None, LOCTEXT("LandscapeViewModeNormal", "Normal"));
 					MenuBuilder.AddMenuEntry(LandscapeActions.ViewModeLOD,          NAME_None, LOCTEXT("LandscapeViewModeLOD", "LOD"));
 					MenuBuilder.AddMenuEntry(LandscapeActions.ViewModeLayerDensity, NAME_None, LOCTEXT("LandscapeViewModeLayerDensity", "Layer Density"));
 					MenuBuilder.AddMenuEntry(LandscapeActions.ViewModeLayerDebug,   NAME_None, LOCTEXT("LandscapeViewModeLayerDebug", "Layer Debug"));
-		//		}
-		//		MenuBuilder.EndSection();
-		//	}
-		//};
-		//MenuBuilder.AddSubMenu(LOCTEXT("LandscapeSubMenu", "Landscape Visualizers"), LOCTEXT("LandscapeSubMenu_ToolTip", "Select a Landscape visualiser"), FNewMenuDelegate::CreateStatic(&Local::BuildLandscapeVisualizersMenu));
-
-		MenuBuilder.EndSection();
+				}
+				MenuBuilder.EndSection();
+			}
+		};
+		MenuBuilder.AddSubMenu(LOCTEXT("LandscapeSubMenu", "Visualizers"), LOCTEXT("LandscapeSubMenu_ToolTip", "Select a Landscape visualiser"), FNewMenuDelegate::CreateStatic(&Local::BuildLandscapeVisualizersMenu));
 	}
 
 	static void ChangeLandscapeViewMode(ELandscapeViewMode::Type ViewMode)

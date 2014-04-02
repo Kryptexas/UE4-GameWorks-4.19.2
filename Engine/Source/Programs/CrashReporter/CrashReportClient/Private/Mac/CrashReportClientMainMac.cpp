@@ -12,6 +12,7 @@ void CrashReporterCrashHandler(const FGenericCrashContext & GenericContext)
 	Context.ReportCrash();
 	if (GLog)
 	{
+		GLog->SetCurrentThreadAsMasterThread();
 		GLog->Flush();
 	}
 	if (GWarn)
@@ -54,6 +55,9 @@ static FString GSavedCommandLine;
 	FPlatformMisc::SetGracefulTerminationHandler();
 	FPlatformMisc::SetCrashHandler(CrashReporterCrashHandler);
 	
+	// Force ourselves to the front
+	[[NSApplication sharedApplication] activateIgnoringOtherApps:YES];
+	
 	RunCrashReportClient(*GSavedCommandLine);
 	
 	[NSApp terminate: self];
@@ -79,7 +83,17 @@ int main(int argc, char *argv[])
 		FString Argument(ANSI_TO_TCHAR(argv[Option]));
 		if (Argument.Contains(TEXT(" ")))
 		{
-			Argument = FString::Printf(TEXT("\"%s\""), *Argument);
+			if (Argument.Contains(TEXT("=")))
+			{
+				FString ArgName;
+				FString ArgValue;
+				Argument.Split( TEXT("="), &ArgName, &ArgValue );
+				Argument = FString::Printf( TEXT("%s=\"%s\""), *ArgName, *ArgValue );
+			}
+			else
+			{
+				Argument = FString::Printf(TEXT("\"%s\""), *Argument);
+			}
 		}
 		GSavedCommandLine += Argument;
 	}

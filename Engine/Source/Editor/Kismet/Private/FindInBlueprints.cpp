@@ -409,6 +409,7 @@ void SFindInBlueprints::MatchTokens( const TArray<FString> &Tokens )
 		Extract(AssetData.TagsAndValues.Find("VariableSet"), Tokens, BlueprintCategory, UK2Node_VariableSet::StaticClass());
 		Extract(AssetData.TagsAndValues.Find("MulticastDelegate"), Tokens, BlueprintCategory, UK2Node_BaseMCDelegate::StaticClass());
 		Extract(AssetData.TagsAndValues.Find("DelegateSet"), Tokens, BlueprintCategory, UK2Node_DelegateSet::StaticClass());
+		Extract(AssetData.TagsAndValues.Find("ImplementedInterfaces"), Tokens, BlueprintCategory, UInterface::StaticClass());
 		Extract(AssetData.TagsAndValues.Find("Comments"), Tokens, BlueprintCategory, UEdGraphNode::StaticClass());
 
 		//if we got any matches and in FIB mode, add the blueprint as a category to the tree view
@@ -469,7 +470,7 @@ void SFindInBlueprints::MatchTokensWithinBlueprint(const TArray<FString>& Tokens
 	{
 		// Create the root for the comment hit results
 		const FString NodeName = FString::Printf(*LOCTEXT("BlueprintResultCommentResults", "Comments containing search term(s)").ToString() );
-		FSearchResult RootCommentResult(new FFindInBlueprintsResult(NodeName, RootSearchResult, CommentNodes[0]->GetClass(), 0));		
+		FSearchResult RootCommentResult(new FFindInBlueprintsResult(NodeName, RootSearchResult, CommentNodes[0]->GetClass(), 0));
 		
 		for(auto It(CommentNodes.CreateConstIterator());It;++It)
 		{
@@ -490,6 +491,62 @@ void SFindInBlueprints::MatchTokensWithinBlueprint(const TArray<FString>& Tokens
 		if (RootCommentResult->Children.Num() > 0)
 		{
 			ItemsFound.Add(RootCommentResult);
+		}
+	}
+	
+	// Search for interfaces/functions within interfaces matching the search
+	TArray<UK2Node*> AddedInterfaceFunctions;
+	for (int32 i=0; i < Blueprint->ImplementedInterfaces.Num(); i++)
+	{
+		// Create the root for the comment hit results
+		const FString NodeName = FString::Printf(*LOCTEXT("BlueprintResultInterfacesImplemented", "Interface implementations containing search term(s)").ToString() );
+		FSearchResult RootInterfaceResult(new FFindInBlueprintsResult(NodeName, RootSearchResult,  UFunction::StaticClass(), 0));
+
+		const FBPInterfaceDescription& InterfaceDesc = Blueprint->ImplementedInterfaces[i];
+		
+		// First check the interface name
+ 		FString NodeSearchString = InterfaceDesc.Interface->GetName();
+		const bool bInterfaceMatchesSearch = StringMatchesSearchTokens(Tokens, NodeSearchString);
+
+		for (int32 FuncIdx = 0; FuncIdx < InterfaceDesc.Graphs.Num(); FuncIdx++)
+		{
+			UEdGraph* Graph = InterfaceDesc.Graphs[FuncIdx];
+			check(Graph);
+
+			FString NodeSearchString = Graph->GetFName().ToString();// + FunctionName.ToString();
+			const bool bNodeMatchesSearch = StringMatchesSearchTokens(Tokens, NodeSearchString);
+
+			if (bNodeMatchesSearch)
+			{
+				FString SigName;
+				for (int32 iNode = 0; iNode < Graph->Nodes.Num() ; iNode++)
+				{
+					// Check if this token is implemented as a function
+					UK2Node_FunctionEntry* FunctionEntryNode = Cast<UK2Node_FunctionEntry>(Graph->Nodes[ iNode ]);
+					if( ( FunctionEntryNode != NULL ) && ( AddedInterfaceFunctions.Find( FunctionEntryNode ) == INDEX_NONE ) )
+					{						
+						SigName = FunctionEntryNode->SignatureName.ToString();
+						if( StringMatchesSearchTokens(Tokens, SigName ) == true )
+						{
+							const FString InterfaceImpl = FString::Printf(*LOCTEXT("BlueprintResultInterfaceImplemented", "Interface Function implementation: %s").ToString(), *SigName );
+							FSearchResult NodeResult(new FFindInBlueprintsResult( InterfaceImpl, RootInterfaceResult, FunctionEntryNode ));	
+							RootInterfaceResult->Children.Add( NodeResult );							
+						}						
+					}				
+				}
+			}	
+		}
+		// Did we match interface name but no functions ?
+		if( ( bInterfaceMatchesSearch == true ) && ( RootInterfaceResult->Children.Num() == 0 ) )
+		{
+			const FString InterfaceNameResult = FString::Printf(*LOCTEXT("BlueprintResultInterfaceImplementation", "Interface implementation: %s").ToString(), *NodeSearchString);
+			const FSearchResult NodeResult(new FFindInBlueprintsResult(InterfaceNameResult, RootInterfaceResult, InterfaceDesc.Interface->GetClass(), 0));
+			RootInterfaceResult->Children.Add(NodeResult);
+		}
+		
+		if (RootInterfaceResult->Children.Num() > 0)
+		{
+			ItemsFound.Add(RootInterfaceResult);
 		}
 	}
 }

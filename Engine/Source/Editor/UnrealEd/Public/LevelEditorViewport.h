@@ -160,6 +160,8 @@ public:
 	virtual bool IsAspectRatioConstrained() const OVERRIDE;
 	virtual float GetCameraSpeed(int32 SpeedSetting) const OVERRIDE;
 
+	virtual bool OverrideHighResScreenshotCaptureRegion(FIntRect& OutCaptureRegion) OVERRIDE;
+
 	void SetIsCameraCut( bool bInIsCameraCut ) { bEditorCameraCut = bInIsCameraCut; }
 
 	/**
@@ -400,8 +402,10 @@ public:
 	 * @param OutNewActors		 The new actor objects that were created
 	 * @param bOnlyDropOnTarget  Flag that when True, will only attempt a drop on the actor targeted by the Mouse position. Defaults to false.
 	 * @param bCreateDropPreview If true, a drop preview actor will be spawned instead of a normal actor.
+	 * @param bSelectActors		 If true, select the newly dropped actors (defaults: true)
+	 * @param FactoryToUse		 The preferred actor factory to use (optional)
 	 */
-	bool DropObjectsAtCoordinates(int32 MouseX, int32 MouseY, const TArray<UObject*>& DroppedObjects, TArray<AActor*>& OutNewActors, bool bOnlyDropOnTarget = false, bool bCreateDropPreview = false, bool SelectActor = true, class UActorFactory* FactoryToUse = NULL );
+	bool DropObjectsAtCoordinates(int32 MouseX, int32 MouseY, const TArray<UObject*>& DroppedObjects, TArray<AActor*>& OutNewActors, bool bOnlyDropOnTarget = false, bool bCreateDropPreview = false, bool bSelectActors = true, class UActorFactory* FactoryToUse = NULL );
 
 	/**
  	 * Sets GWorld to the appropriate world for this client
@@ -567,23 +571,29 @@ private:
 	 * @param	DroppedObjects		Array of objects dropped into the viewport
 	 * @param	ObjectFlags			The object flags to place on the actors that this function spawns.
 	 * @param	OutNewActors		The list of actors created while dropping
+	 * @param	bSelectActors		If true, select the newly dropped actors (defaults: true)
+	 * @param	FactoryToUse		The preferred actor factory to use (optional)
 	 *
 	 * @return	true if the drop operation was successfully handled; false otherwise
 	 */
-	bool DropObjectsOnBackground( struct FViewportCursorLocation& Cursor, const TArray<UObject*>& DroppedObjects, EObjectFlags ObjectFlags, TArray<AActor*>& OutNewActors, bool SelectActor = true, class UActorFactory* FactoryToUse = NULL );
+	bool DropObjectsOnBackground( struct FViewportCursorLocation& Cursor, const TArray<UObject*>& DroppedObjects, EObjectFlags ObjectFlags, TArray<AActor*>& OutNewActors, bool bSelectActors = true, class UActorFactory* FactoryToUse = NULL );
 
 	/**
 	* Called when an asset is dropped upon an existing actor.
 	*
 	* @param	Cursor				Mouse cursor location
 	* @param	DroppedObjects		Array of objects dropped into the viewport
-	* @param	TargetProxy			Hit proxy representing the dropped upon actor
+	* @param	DroppedUponActor	The actor that we are dropping upon
+	* @param	DroppedLocation		The location that we're dropping the objects
 	* @param	ObjectFlags			The object flags to place on the actors that this function spawns.
 	* @param	OutNewActors		The list of actors created while dropping
+	* @param	bUsedHitProxy		Whether or not a hit proxy was used for spawning
+	* @param	bSelectActors		If true, select the newly dropped actors (defaults: true)
+	* @param	FactoryToUse		The preferred actor factory to use (optional)
 	*
 	* @return	true if the drop operation was successfully handled; false otherwise
 	*/
-	bool DropObjectsOnActor( struct FViewportCursorLocation& Cursor, const TArray<UObject*>& DroppedObjects, struct HActor* TargetProxy, EObjectFlags ObjectFlags, TArray<AActor*>& OutNewActors, bool SelectActor = true, class UActorFactory* FactoryToUse = NULL );
+	bool DropObjectsOnActor(struct FViewportCursorLocation& Cursor, const TArray<UObject*>& DroppedObjects, AActor* DroppedUponActor, FVector* DroppedLocation, EObjectFlags ObjectFlags, TArray<AActor*>& OutNewActors, bool bUsedHitProxy = true, bool bSelectActors = true, class UActorFactory* FactoryToUse = NULL);
 
 	/**
 	 * Called when an asset is dropped upon a BSP surface.
@@ -594,10 +604,12 @@ private:
 	 * @param	TargetProxy			Hit proxy representing the dropped upon model
 	 * @param	ObjectFlags			The object flags to place on the actors that this function spawns.
 	 * @param	OutNewActors		The list of actors created while dropping
+	 * @param	bSelectActors		If true, select the newly dropped actors (defaults: true)
+	 * @param	FactoryToUse		The preferred actor factory to use (optional)
 	 *
 	 * @return	true if the drop operation was successfully handled; false otherwise
 	 */
-	bool DropObjectsOnBSPSurface( FSceneView* View, struct FViewportCursorLocation& Cursor, const TArray<UObject*>& DroppedObjects, class HModel* TargetProxy, EObjectFlags ObjectFlags, TArray<AActor*>& OutNewActors, bool SelectActor, UActorFactory* FactoryToUse );
+	bool DropObjectsOnBSPSurface( FSceneView* View, struct FViewportCursorLocation& Cursor, const TArray<UObject*>& DroppedObjects, class HModel* TargetProxy, EObjectFlags ObjectFlags, TArray<AActor*>& OutNewActors, bool bSelectActors, UActorFactory* FactoryToUse );
 
 	/**
 	 * Called when an asset is dropped upon a manipulation widget.
@@ -605,7 +617,6 @@ private:
 	 * @param	View				The SceneView for the dropped-in viewport
 	 * @param	Cursor				Mouse cursor location
 	 * @param	DroppedObjects		Array of objects dropped into the viewport
-	 * @param	TargetProxy			Hit proxy representing the dropped upon manipulation widget
 	 *
 	 * @return	true if the drop operation was successfully handled; false otherwise
 	 */

@@ -126,24 +126,51 @@ FText UKismetSystemLibrary::MakeLiteralText(FText Value)
 	return Value;
 }
 
+UObject* UKismetSystemLibrary::Conv_InterfaceToObject(const FScriptInterface& Interface)
+{
+	return Interface.GetObject();
+}
+
 void UKismetSystemLibrary::PrintString(UObject* WorldContextObject, const FString& InString, bool bPrintToScreen, bool bPrintToLog, FLinearColor TextColor)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) // Do not Print in Shipping or Test
+
+	WorldContextObject = GEngine->GetWorldFromContextObject(WorldContextObject, false);
+	FString Prefix;
+	if (WorldContextObject)
+	{
+		UWorld *World = WorldContextObject->GetWorld();
+		if (World->WorldType == EWorldType::PIE)
+		{
+			switch(World->GetNetMode())
+			{
+				case NM_Client:
+					Prefix = FString::Printf(TEXT("Client %d: "), GPlayInEditorID - 1);
+					break;
+				case NM_DedicatedServer:
+				case NM_ListenServer:
+					Prefix = FString::Printf(TEXT("Server: "));
+					break;
+			}
+		}
+	}
+	
+	const FString FinalString = Prefix + InString;
+
 	if (bPrintToLog)
 	{
-		UE_LOG(LogBlueprintUserMessages, Log, TEXT("%s"), *InString);
-
-		WorldContextObject = GEngine->GetWorldFromContextObject(WorldContextObject, false);
+		UE_LOG(LogBlueprintUserMessages, Log, TEXT("%s"), *FinalString);
+		
 		APlayerController* PC = (WorldContextObject ? UGameplayStatics::GetPlayerController(WorldContextObject, 0) : NULL);
 		ULocalPlayer* LocalPlayer = (PC ? Cast<ULocalPlayer>(PC->Player) : NULL);
 		if (LocalPlayer && LocalPlayer->ViewportClient && LocalPlayer->ViewportClient->ViewportConsole)
 		{
-			LocalPlayer->ViewportClient->ViewportConsole->OutputText(InString);
+			LocalPlayer->ViewportClient->ViewportConsole->OutputText(FinalString);
 		}
 	}
 	else
 	{
-		UE_LOG(LogBlueprintUserMessages, Verbose, TEXT("%s"), *InString);
+		UE_LOG(LogBlueprintUserMessages, Verbose, TEXT("%s"), *FinalString);
 	}
 
 	// Also output to the screen, if possible
@@ -156,7 +183,7 @@ void UKismetSystemLibrary::PrintString(UObject* WorldContextObject, const FStrin
 			{
 				GConfig->GetFloat( TEXT("Kismet"), TEXT("PrintStringDuration"), Duration, GEngineIni );
 			}
-			GEngine->AddOnScreenDebugMessage((uint64)-1, Duration, TextColor.ToFColor(true), InString);
+			GEngine->AddOnScreenDebugMessage((uint64)-1, Duration, TextColor.ToFColor(true), FinalString);
 		}
 		else
 		{
@@ -1993,6 +2020,31 @@ void UKismetSystemLibrary::DrawDebugCamera(const ACameraActor* CameraActor, FLin
 	}
 }
 
+void UKismetSystemLibrary::DrawDebugFloatHistoryTransform(UObject* WorldContextObject, const FDebugFloatHistory & FloatHistory, const FTransform & DrawTransform, FVector2D DrawSize, FLinearColor DrawColor, float LifeTime)
+{
+	UWorld * World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if (World)
+	{
+		::DrawDebugFloatHistory(*World, FloatHistory, DrawTransform, DrawSize, DrawColor.ToFColor(true), false, LifeTime);
+	}
+}
+
+void UKismetSystemLibrary::DrawDebugFloatHistoryLocation(UObject* WorldContextObject, const FDebugFloatHistory & FloatHistory, FVector DrawLocation, FVector2D DrawSize, FLinearColor DrawColor, float LifeTime)
+{
+	UWorld * World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if (World)
+	{
+		::DrawDebugFloatHistory(*World, FloatHistory, DrawLocation, DrawSize, DrawColor.ToFColor(true), false, LifeTime);
+	}
+}
+
+FDebugFloatHistory UKismetSystemLibrary::AddFloatHistorySample(float Value, const FDebugFloatHistory & FloatHistory)
+{
+	FDebugFloatHistory NewDebugFloatHistory = FloatHistory;
+	NewDebugFloatHistory.AddSample(Value);
+	return NewDebugFloatHistory;
+}
+
 /** Mark as modified. */
 void UKismetSystemLibrary::CreateCopyForUndoBuffer(UObject* ObjectToModify)
 {
@@ -2168,6 +2220,7 @@ void UKismetSystemLibrary::CollectGarbage()
 extern CORE_API void IOSShowAdBanner(bool bShowOnBottomOfScreen);
 extern CORE_API void IOSHideAdBanner();
 extern CORE_API void IOSCloseAd();
+extern CORE_API void IOSShowLeaderboardUI(const FString& CategoryName);
 #endif
 
 void UKismetSystemLibrary::EXPERIMENTAL_ShowAdBanner(bool bShowOnBottomOfScreen)
@@ -2188,5 +2241,12 @@ void UKismetSystemLibrary::EXPERIMENTAL_CloseAdBanner()
 {
 #if PLATFORM_IOS
 	IOSCloseAd();
+#endif
+}
+
+void UKismetSystemLibrary::EXPERIMENTAL_ShowGameCenterLeaderboard(const FString& CategoryName)
+{
+#if PLATFORM_IOS
+	IOSShowLeaderboardUI(CategoryName);
 #endif
 }

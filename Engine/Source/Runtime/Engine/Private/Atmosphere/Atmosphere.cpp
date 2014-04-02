@@ -11,44 +11,48 @@
 AAtmosphericFog::AAtmosphericFog(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	// Structure to hold one-time initialization
-	struct FConstructorStatics
-	{
-		ConstructorHelpers::FObjectFinderOptional<UTexture2D> FogTextureObject;
-		FName ID_Fog;
-		FText NAME_Fog;
-		FConstructorStatics()
-			: FogTextureObject(TEXT("/Engine/EditorResources/S_ExpoHeightFog"))
-			, ID_Fog(TEXT("Fog"))
-			, NAME_Fog(NSLOCTEXT( "SpriteCategory", "Fog", "Fog" ))
-		{
-		}
-	};
-	static FConstructorStatics ConstructorStatics;
-
 	AtmosphericFogComponent = PCIP.CreateDefaultSubobject<UAtmosphericFogComponent>(this, TEXT("AtmosphericFogComponent0"));
 	RootComponent = AtmosphericFogComponent;
 
 #if WITH_EDITORONLY_DATA
-	if (SpriteComponent)
-	{
-		SpriteComponent->Sprite = ConstructorStatics.FogTextureObject.Get();
-		SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Fog;
-		SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Fog;
-		SpriteComponent->AttachParent = AtmosphericFogComponent;
-	}
-
 	ArrowComponent = PCIP.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("ArrowComponent0"));
-	if (ArrowComponent)
-	{
-		ArrowComponent->ArrowColor = FColor(150, 200, 255);
 
-		ArrowComponent->bTreatAsASprite = true;
-		ArrowComponent->SpriteInfo.Category = ConstructorStatics.ID_Fog;
-		ArrowComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Fog;
-		ArrowComponent->AttachParent = AtmosphericFogComponent;
-		ArrowComponent->bLightAttachment = true;
-		ArrowComponent->bIsScreenSizeScaled = true;
+	if (!IsRunningCommandlet())
+	{
+		// Structure to hold one-time initialization
+		struct FConstructorStatics
+		{
+			ConstructorHelpers::FObjectFinderOptional<UTexture2D> FogTextureObject;
+			FName ID_Fog;
+			FText NAME_Fog;
+			FConstructorStatics()
+				: FogTextureObject(TEXT("/Engine/EditorResources/S_ExpoHeightFog"))
+				, ID_Fog(TEXT("Fog"))
+				, NAME_Fog(NSLOCTEXT("SpriteCategory", "Fog", "Fog"))
+			{
+			}
+		};
+		static FConstructorStatics ConstructorStatics;
+
+		if (SpriteComponent)
+		{
+			SpriteComponent->Sprite = ConstructorStatics.FogTextureObject.Get();
+			SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Fog;
+			SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Fog;
+			SpriteComponent->AttachParent = AtmosphericFogComponent;
+		}
+
+		if (ArrowComponent)
+		{
+			ArrowComponent->ArrowColor = FColor(150, 200, 255);
+
+			ArrowComponent->bTreatAsASprite = true;
+			ArrowComponent->SpriteInfo.Category = ConstructorStatics.ID_Fog;
+			ArrowComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Fog;
+			ArrowComponent->AttachParent = AtmosphericFogComponent;
+			ArrowComponent->bLightAttachment = true;
+			ArrowComponent->bIsScreenSizeScaled = true;
+		}
 	}
 #endif // WITH_EDITORONLY_DATA
 

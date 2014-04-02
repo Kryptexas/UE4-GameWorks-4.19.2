@@ -55,6 +55,7 @@
     </Compile>
     <Compile Include="AnalyzeThirdPartyLibs.Automation.cs" />
     <Compile Include="ArchiveCommand.Automation.cs" />
+    <Compile Include="BlameKeyword.Automation.cs" />
     <Compile Include="BuildCookRun.Automation.cs" />
     <Compile Include="BuildDocumentation.Automation.cs" />
     <Compile Include="BuildProjectCommand.Automation.cs" />

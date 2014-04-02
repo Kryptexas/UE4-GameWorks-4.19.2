@@ -1428,6 +1428,67 @@ void SMeshPaint::Construct(const FArguments& InArgs, TSharedRef<FMeshPaintToolKi
 						[
 							SNew(SVerticalBox)
 							.Visibility(this, &SMeshPaint::GetResourceTypeTexturesVisibility)
+
+							+SVerticalBox::Slot()
+							.AutoHeight()
+							[
+								SNew(SHorizontalBox)
+								+SHorizontalBox::Slot() 
+								.Padding(2.0f, 0.0f) 
+								.FillWidth(1) 
+								.HAlign(HAlign_Left)
+								[
+									SNew(STextBlock)
+									.Text(LOCTEXT("SelectedMeshIndex", "Mesh To Paint"))
+								]
+								+SHorizontalBox::Slot() 
+								.Padding(2.0f, 0.0f) 
+								.FillWidth(1) 
+								.HAlign(HAlign_Right)
+								[
+									SNew(SComboButton)
+									.OnGetMenuContent(this, &SMeshPaint::GetActorSelectionMenu)
+									.ContentPadding(2.0f)
+									.IsEnabled( this, &SMeshPaint::HasMultipleActorsSelected )
+									.ToolTipText( LOCTEXT("SelectMeshToolTip", "Controls which Mesh is edited") )
+									.ButtonContent()
+									[
+										SNew(STextBlock)
+										.Text(this, &SMeshPaint::GetEditingActorLabel)
+									]
+								]
+							]
+
+							+SVerticalBox::Slot()
+							.AutoHeight()
+							[
+								SNew(SHorizontalBox)
+								+SHorizontalBox::Slot() 
+								.Padding(2.0f, 0.0f) 
+								.FillWidth(1) 
+								.HAlign(HAlign_Left)
+								[
+									SNew(STextBlock)
+									.Text(LOCTEXT("SelectedMaterialIndex", "Material To Paint"))
+								]
+								+SHorizontalBox::Slot() 
+								.Padding(2.0f, 0.0f) 
+								.FillWidth(1) 
+								.HAlign(HAlign_Right)
+								[
+									SNew(SComboButton)
+									.OnGetMenuContent(this, &SMeshPaint::GetMaterialSelectionMenu)
+									.ContentPadding(2.0f)
+									.IsEnabled( this, &SMeshPaint::HasMultipleMaterialSlots )
+									.ToolTipText( LOCTEXT("SelectMaterialIndexToolTip", "Controls which material is edited") )
+									.ButtonContent()
+									[
+										SNew(STextBlock)
+										.Text(this, &SMeshPaint::GetEditingMaterial)
+									]
+								]
+							]
+
 							+SVerticalBox::Slot()
 							.AutoHeight()
 							.Padding(StandardPadding)
@@ -2732,5 +2793,66 @@ bool SMeshPaint::SavePackagesForObjects( TArray<UObject*>& InObjects )
 			
 	return true;
 }
+
+bool SMeshPaint::HasMultipleMaterialSlots() const
+{
+	return MeshPaintEditMode->GetEditingActorsNumberOfMaterials() > 1;
+}
+
+TSharedRef<SWidget> SMeshPaint::GetMaterialSelectionMenu()
+{
+	FMenuBuilder MenuBuilder(true, NULL);
+	for (int32 MaterialIndex=0; MaterialIndex < MeshPaintEditMode->GetEditingActorsNumberOfMaterials(); ++MaterialIndex)
+	{
+		MenuBuilder.AddMenuEntry( FText::AsNumber( MaterialIndex ), FText(), FSlateIcon(), FExecuteAction::CreateSP(this, &SMeshPaint::OnSetEditingMaterial, MaterialIndex) );
+	}
+	return MenuBuilder.MakeWidget();
+}
+
+FString SMeshPaint::GetEditingMaterial() const
+{
+	int32 SelectedMaterialIndex = MeshPaintEditMode->GetEditingMaterialIndex();
+	return TTypeToString<int32>::ToString(SelectedMaterialIndex);
+}
+
+void SMeshPaint::OnSetEditingMaterial( int32 NewMaterialIndex )
+{
+	MeshPaintEditMode->SetEditingMaterialIndex(NewMaterialIndex);
+}
+
+TSharedRef<SWidget> SMeshPaint::GetActorSelectionMenu()
+{
+	FMenuBuilder MenuBuilder(true, NULL);
+	TArray<TWeakObjectPtr<AActor>> SelectedActors = MeshPaintEditMode->GetEditingActors();
+	for (int32 MeshNameIndex=0; MeshNameIndex < SelectedActors.Num(); ++MeshNameIndex)
+	{
+		if (SelectedActors[MeshNameIndex].IsValid())
+		{
+			MenuBuilder.AddMenuEntry( FText::FromString(SelectedActors[MeshNameIndex].Get()->GetActorLabel()), FText(), FSlateIcon(), FExecuteAction::CreateSP(this, &SMeshPaint::OnSetEditingActor, SelectedActors[MeshNameIndex]) );
+		}
+	}
+	return MenuBuilder.MakeWidget();
+}
+
+FString SMeshPaint::GetEditingActorLabel() const
+{
+	TWeakObjectPtr<AActor> SelectedActor = MeshPaintEditMode->GetEditingActor();
+	if (SelectedActor.IsValid())
+	{
+		return SelectedActor.Get()->GetActorLabel();
+	}
+	return FString();
+}
+
+void SMeshPaint::OnSetEditingActor( TWeakObjectPtr<AActor> InActor )
+{
+	MeshPaintEditMode->SetEditingMesh(InActor);
+}
+
+bool SMeshPaint::HasMultipleActorsSelected() const
+{
+	return MeshPaintEditMode->GetEditingActors().Num() > 1;
+}
+
 
 #undef LOCTEXT_NAMESPACE

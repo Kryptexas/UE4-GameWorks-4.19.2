@@ -33,10 +33,15 @@ void UWorld::SetupPhysicsTickFunctions(float DeltaSeconds)
 {
 	StartPhysicsTickFunction.Target = this;
 	EndPhysicsTickFunction.Target = this;
+	StartClothTickFunction.Target = this;
+	EndClothTickFunction.Target = this;
+	
 	
 	// see if we need to update tick registration
 	bool bNeedToUpdateTickRegistration = (bShouldSimulatePhysics != StartPhysicsTickFunction.IsTickFunctionRegistered())
-		|| (bShouldSimulatePhysics != EndPhysicsTickFunction.IsTickFunctionRegistered());
+		|| (bShouldSimulatePhysics != EndPhysicsTickFunction.IsTickFunctionRegistered())
+		|| (bShouldSimulatePhysics != StartClothTickFunction.IsTickFunctionRegistered())
+		|| (bShouldSimulatePhysics != EndClothTickFunction.IsTickFunctionRegistered());
 
 	if (bNeedToUpdateTickRegistration && PersistentLevel)
 	{
@@ -60,6 +65,29 @@ void UWorld::SetupPhysicsTickFunctions(float DeltaSeconds)
 		{
 			EndPhysicsTickFunction.RemovePrerequisite(this, StartPhysicsTickFunction);
 			EndPhysicsTickFunction.UnRegisterTickFunction();
+		}
+
+		//cloth
+		if (bShouldSimulatePhysics && !StartClothTickFunction.IsTickFunctionRegistered())
+		{
+			StartClothTickFunction.TickGroup = TG_StartCloth;
+			StartClothTickFunction.RegisterTickFunction(PersistentLevel);
+		}
+		else if (!bShouldSimulatePhysics && StartClothTickFunction.IsTickFunctionRegistered())
+		{
+			StartClothTickFunction.UnRegisterTickFunction();
+		}
+
+		if (bShouldSimulatePhysics && !EndClothTickFunction.IsTickFunctionRegistered())
+		{
+			EndClothTickFunction.TickGroup = TG_EndCloth;
+			EndClothTickFunction.RegisterTickFunction(PersistentLevel);
+			EndClothTickFunction.AddPrerequisite(this, StartClothTickFunction);
+		}
+		else if (!bShouldSimulatePhysics && EndClothTickFunction.IsTickFunctionRegistered())
+		{
+			EndClothTickFunction.RemovePrerequisite(this, StartClothTickFunction);
+			EndClothTickFunction.UnRegisterTickFunction();
 		}
 	}
 
@@ -104,6 +132,17 @@ void UWorld::FinishPhysicsSim()
 	PhysScene->EndFrame(LineBatcher);
 }
 
+void UWorld::StartClothSim()
+{
+	FPhysScene* PhysScene = GetPhysicsScene();
+	if (PhysScene == NULL)
+	{
+		return;
+	}
+
+	PhysScene->StartCloth();
+}
+
 // the physics tick functions
 
 void FStartPhysicsTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
@@ -141,6 +180,34 @@ void FEndPhysicsTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickT
 FString FEndPhysicsTickFunction::DiagnosticMessage()
 {
 	return TEXT("FEndPhysicsTickFunction");
+}
+
+void FStartClothSimulationFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+{
+	check(Target);
+	Target->StartClothSim();
+}
+
+FString FStartClothSimulationFunction::DiagnosticMessage()
+{
+	return TEXT("FStartClothSimulationFunction");
+}
+
+void FEndClothSimulationFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+{
+	//We currently have nothing to do in this tick group, but we still want to wait on cloth simulation so that PostPhysics is ensured this is done
+	check(Target);
+	FPhysScene* PhysScene = Target->GetPhysicsScene();
+	if (PhysScene == NULL)
+	{
+		return;
+	}
+	PhysScene->WaitClothScene();
+}
+
+FString FEndClothSimulationFunction::DiagnosticMessage()
+{
+	return TEXT("FStartClothSimulationFunction");
 }
 
 //////// GAME-LEVEL RIGID BODY PHYSICS STUFF ///////

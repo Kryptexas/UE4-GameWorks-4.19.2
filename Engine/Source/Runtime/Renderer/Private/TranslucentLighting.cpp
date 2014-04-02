@@ -1051,7 +1051,7 @@ void ClearVolumeTextures(const FTextureRHIParamRef* RenderTargets, const FLinear
 
 void FDeferredShadingSceneRenderer::ClearTranslucentVolumeLighting()
 {
-	if (GUseTranslucentLightingVolumes)
+	if (GUseTranslucentLightingVolumes && GSupportsVolumeTextureRendering)
 	{
 		SCOPED_DRAW_EVENT(ClearTranslucentVolumeLighting, DEC_SCENE_ITEMS);
 
@@ -1277,7 +1277,7 @@ void FDeferredShadingSceneRenderer::CompositeIndirectTranslucentVolumeLighting()
 		bAnyViewAllowsIndirectLightingCache |= Views[ViewIndex].Family->EngineShowFlags.IndirectLightingCache;
 	}
 
-	if (GUseTranslucentLightingVolumes 
+	if (GUseTranslucentLightingVolumes && GSupportsVolumeTextureRendering
 		&& GUseIndirectLightingCacheInLightingVolume
 		&& bAnyViewAllowsIndirectLightingCache)
 	{
@@ -1330,7 +1330,7 @@ void FDeferredShadingSceneRenderer::CompositeIndirectTranslucentVolumeLighting()
 
 void FDeferredShadingSceneRenderer::ClearTranslucentVolumePerObjectShadowing()
 {
-	if (GUseTranslucentLightingVolumes)
+	if (GUseTranslucentLightingVolumes && GSupportsVolumeTextureRendering)
 	{
 		SCOPED_DRAW_EVENT(ClearTranslucentVolumePerLightShadowing, DEC_SCENE_ITEMS);
 
@@ -1385,7 +1385,7 @@ void FDeferredShadingSceneRenderer::AccumulateTranslucentVolumeObjectShadowing(c
 		ClearTranslucentVolumePerObjectShadowing();
 	}
 
-	if (GUseTranslucentLightingVolumes)
+	if (GUseTranslucentLightingVolumes && GSupportsVolumeTextureRendering)
 	{
 		SCOPED_DRAW_EVENT(AccumulateTranslucentVolumeShadowing, DEC_SCENE_ITEMS);
 
@@ -1679,7 +1679,7 @@ static void InjectTranslucentLightArray(const FViewInfo& View, const TArray<FTra
 
 void FDeferredShadingSceneRenderer::InjectTranslucentVolumeLighting(const FLightSceneInfo& LightSceneInfo, const FProjectedShadowInfo* InProjectedShadowInfo)
 {
-	if (GUseTranslucentLightingVolumes)
+	if (GUseTranslucentLightingVolumes && GSupportsVolumeTextureRendering)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_TranslucentInjectTime);
 
@@ -1845,7 +1845,7 @@ FGlobalBoundShaderState FilterBoundShaderState;
 
 void FDeferredShadingSceneRenderer::FilterTranslucentVolumeLighting()
 {
-	if (GUseTranslucentLightingVolumes)
+	if (GUseTranslucentLightingVolumes && GSupportsVolumeTextureRendering)
 	{
 		if (GUseTranslucencyVolumeBlur)
 		{

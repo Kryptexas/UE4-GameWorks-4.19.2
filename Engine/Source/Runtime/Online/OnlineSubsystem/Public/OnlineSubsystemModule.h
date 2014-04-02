@@ -23,6 +23,7 @@ private:
 	 */
 	FName DefaultPlatformService;
 
+	/** Existing instances of any online subsystems created <PlatformName:InstanceName> */
 	TMap<FName, class IOnlineFactory*> OnlineFactories;
 
 	/** Mapping of all currently loaded platform service subsystems to their name */

@@ -1290,7 +1290,7 @@ FSlateElementBatch& FSlateElementBatcher::FindBatchForElement(
 	{
 		// No batch with the specified parameter exists.  Create it from the temp batch.
 		FSetElementId ID = ElementBatches->Add( TempBatch );
-		ElementBatch = &(*ElementBatches)(ID);
+		ElementBatch = &(*ElementBatches)[ID];
 
 		// Get a free vertex array
 		if( VertexArrayFreeList.Num() > 0 )

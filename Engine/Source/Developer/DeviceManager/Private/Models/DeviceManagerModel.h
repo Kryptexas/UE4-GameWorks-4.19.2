@@ -13,7 +13,7 @@
 typedef TSharedPtr<class FDeviceManagerModel> FDeviceManagerModelPtr;
 
 /**
- * Type definition for shared references to instances of FMessagingDebuggerTypeFilter.
+ * Type definition for shared references to instances of FDeviceManagerModel.
  */
 typedef TSharedRef<class FDeviceManagerModel> FDeviceManagerModelRef;
 

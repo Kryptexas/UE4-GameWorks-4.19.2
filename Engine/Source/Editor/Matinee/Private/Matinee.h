@@ -907,7 +907,7 @@ public:
 	 */
 	void AddTrackToCurveEd( FString GroupName, FColor GroupColor, UInterpTrack* InTrack, bool bShouldShowTrack );
 
-	void SetInterpPosition(float NewPosition);
+	void SetInterpPosition(float NewPosition, bool Scrubbing = false);
 
 	/** Refresh the Matinee position marker and viewport state */
 	void RefreshInterpPosition();
@@ -986,6 +986,8 @@ public:
 	/** Called from TickInterp, handles the ticking of the camera recording (game caster, xbox controller)*/
 	void UpdateCameraRecording (void);
 
+	void UpdateViewportSettings();
+
 	/** Constrains the maximum frame rate to the fixed time step rate when playing back in that mode */
 	void ConstrainFixedTimeStepFrameRate();
 
@@ -1020,6 +1022,9 @@ public:
 	/** @return True if safe frames are displayed in a matinee controlled viewport */
 	bool IsSafeFrameDisplayEnabled() const;
 
+	/** Sets the curve tab's visibility */
+	void SetCurveTabVisibility(bool Visible);
+
 	/** Menubar */
 	TSharedPtr<SWidget> MenuBar;
 
@@ -1028,6 +1033,9 @@ public:
 
 	/** The curve editor window (dockable) */
 	TSharedPtr<IDistributionCurveEditor> CurveEd;
+
+	/** A weak pointer to the curve editor's tab so that we can tell if it's open or closed */
+	TWeakPtr<SDockTab> CurveEdTab;
 
 	/** Director track editor window (dockable) */
 	TSharedPtr<SMatineeViewport> DirectorTrackWindow;

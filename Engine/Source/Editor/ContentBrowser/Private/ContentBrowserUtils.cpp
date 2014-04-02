@@ -8,6 +8,7 @@
 #include "ObjectTools.h"
 #include "ImageUtils.h"
 #include "ISourceControlModule.h"
+#include "MessageLog.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -318,7 +319,7 @@ bool ContentBrowserUtils::LoadAssetsIfNeeded(const TArray<FString>& ObjectPaths,
 
 		GIsEditorLoadingPackage = true;
 
-		FString FailedObjectPaths;
+		bool bSomeObjectsFailedToLoad = false;
 		for (int32 PathIdx = 0; PathIdx < UnloadedObjectPaths.Num(); ++PathIdx)
 		{
 			const FString& ObjectPath = UnloadedObjectPaths[PathIdx];
@@ -335,7 +336,7 @@ bool ContentBrowserUtils::LoadAssetsIfNeeded(const TArray<FString>& ObjectPaths,
 			}
 			else
 			{
-				FailedObjectPaths += ObjectPath + LINE_TERMINATOR;
+				bSomeObjectsFailedToLoad = true;
 			}
 
 			if ( bShowProgressDialog )
@@ -354,11 +355,14 @@ bool ContentBrowserUtils::LoadAssetsIfNeeded(const TArray<FString>& ObjectPaths,
 		GIsEditorLoadingPackage = false;
 		GWarn->EndSlowTask();
 
-		if ( !FailedObjectPaths.IsEmpty() )
+		if ( bSomeObjectsFailedToLoad )
 		{
-			// Load failed at least one asset for some reason.  Play a warning message.
-			const FText Warning = FText::Format( LOCTEXT("LoadObjectFailed", "Failed to load the following assets:\r\n{0}"), FText::FromString( FailedObjectPaths ) );
-			FMessageDialog::Open( EAppMsgType::Ok, Warning);
+			FNotificationInfo Info(LOCTEXT("LoadObjectFailed", "Failed to load assets"));
+			Info.ExpireDuration = 5.0f;
+			Info.Hyperlink = FSimpleDelegate::CreateStatic([](){ FMessageLog("LoadErrors").Open(EMessageSeverity::Info, true); });
+			Info.HyperlinkText = LOCTEXT("LoadObjectHyperlink", "Show Log");
+
+			FSlateNotificationManager::Get().AddNotification(Info);
 			return false;
 		}
 	}
@@ -744,6 +748,27 @@ void ContentBrowserUtils::PrepareFoldersForDragDrop(const TArray<FString>& Sourc
 	// Load the Asset Registry to update paths during the move
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
 
+	
+	// Check up-front how many assets we might load in this operation & warn the user
+	TArray<FString> ObjectPathsToWarnAbout;
+	for ( auto PathIt = SourcePathNames.CreateConstIterator(); PathIt; ++PathIt )
+	{
+		// Get all assets in this path
+		TArray<FAssetData> AssetDataList;
+		AssetRegistryModule.Get().GetAssetsByPath(FName(**PathIt), AssetDataList, true);
+
+		for ( auto AssetIt = AssetDataList.CreateConstIterator(); AssetIt; ++AssetIt )
+		{
+			ObjectPathsToWarnAbout.Add((*AssetIt).ObjectPath.ToString());
+		}
+	}
+
+	TArray<FString> UnloadedObjects;
+	if(ShouldPromptToLoadAssets(ObjectPathsToWarnAbout, UnloadedObjects))
+	{
+		PromptToLoadAssets(UnloadedObjects);
+	}
+
 	// For every source path, load every package in the path (if necessary) and keep track of the assets that were loaded
 	for ( auto PathIt = SourcePathNames.CreateConstIterator(); PathIt; ++PathIt )
 	{
@@ -760,7 +785,7 @@ void ContentBrowserUtils::PrepareFoldersForDragDrop(const TArray<FString>& Sourc
 
 		// Load all assets in this path if needed
 		TArray<UObject*> AllLoadedAssets;
-		LoadAssetsIfNeeded(ObjectPaths, AllLoadedAssets);
+		LoadAssetsIfNeeded(ObjectPaths, AllLoadedAssets, false);
 
 		// Find all files in this path and subpaths
 		TArray<FString> Filenames;

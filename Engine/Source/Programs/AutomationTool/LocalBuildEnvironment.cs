@@ -125,6 +125,26 @@ namespace AutomationTool
 			}
 		}
 
+		/// <summary>
+		/// Deletes all files and folder from the specified directory.
+		/// </summary>
+		/// <param name="DirectoryName"></param>
+		private static void DeleteDirectoryContents(string DirectoryName)
+		{
+			Log.TraceInformation("DeleteDirectoryContents({0})", DirectoryName);
+			const bool bQuiet = true;
+			var Files = CommandUtils.FindFiles_NoExceptions(bQuiet, "*", false, DirectoryName);
+			foreach (var Filename in Files)
+			{
+				CommandUtils.DeleteFile_NoExceptions(Filename);
+			}
+			var Directories = CommandUtils.FindDirectories_NoExceptions(bQuiet, "*", false, DirectoryName);
+			foreach (var SubDirectoryName in Directories)
+			{
+				CommandUtils.DeleteDirectory_NoExceptions(true, SubDirectoryName);
+			}
+		}
+
 		private bool TryCreateLogFolder(string PossibleLogFolder)
 		{
 			bool Result = true;
@@ -132,9 +152,18 @@ namespace AutomationTool
 			{
 				if (Directory.Exists(PossibleLogFolder))
 				{
-					Directory.Delete(PossibleLogFolder, true);
+					DeleteDirectoryContents(PossibleLogFolder);
+					// Since the directory existed and might have been empty, we need to make sure
+					// we can actually write to it, so create and delete a temporary file.
+					var RandomFilename = Path.GetRandomFileName();
+					var RandomFilePath = CommandUtils.CombinePaths(PossibleLogFolder, RandomFilename);
+					File.WriteAllText(RandomFilePath, RandomFilename);
+					File.Delete(RandomFilePath);
 				}
-				Directory.CreateDirectory(PossibleLogFolder);
+				else
+				{
+					Directory.CreateDirectory(PossibleLogFolder);
+				}
 			}
 			catch (UnauthorizedAccessException Ex)
 			{

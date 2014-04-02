@@ -131,12 +131,12 @@ public:
 	/**
 	 * Register all delegates needed to manage online sessions
 	 */
-	virtual void RegisterOnlineDelegates() OVERRIDE;
+	virtual void RegisterOnlineDelegates(class UWorld* InWorld) OVERRIDE;
 
 	/**
 	 * Tear down all delegates used to manage online sessions
 	 */
-	virtual void ClearOnlineDelegates() OVERRIDE;
+	virtual void ClearOnlineDelegates(class UWorld* InWorld) OVERRIDE;
 
 	/**
 	 * Called to tear down any online sessions and return to main menu

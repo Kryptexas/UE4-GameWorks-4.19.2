@@ -630,4 +630,7 @@ protected:
 
 	/** The last key gesture detected in this graph panel */
 	FInputGesture LastKeyGestureDetected;
+
+	/** The current transaction for undo/redo */
+	TSharedPtr<FScopedTransaction> ScopedTransactionPtr;
 };

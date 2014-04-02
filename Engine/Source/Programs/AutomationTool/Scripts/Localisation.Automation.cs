@@ -15,9 +15,9 @@ class Localise : BuildCommand
         if (P4Enabled)
         {
             Log("Sync necessary content to head revision");
-            Sync(P4Env.BuildRootP4 + "/Engine/Config/...");
-            Sync(P4Env.BuildRootP4 + "/Engine/Content/...");
-            Sync(P4Env.BuildRootP4 + "/Engine/Source/...");
+			P4.Sync(P4Env.BuildRootP4 + "/Engine/Config/...");
+			P4.Sync(P4Env.BuildRootP4 + "/Engine/Content/...");
+			P4.Sync(P4Env.BuildRootP4 + "/Engine/Source/...");
             Log("Localize from label {0}", P4Env.LabelToSync);            
         }
 
@@ -25,7 +25,7 @@ class Localise : BuildCommand
         string EditorArguments = String.Empty;
         if (P4Enabled)
         {
-            EditorArguments = String.Format("-SCCProvider={0} -P4Port={1} -P4User={2} -P4Client={3} -P4Passwd={4}", "Perforce", P4Env.P4Port, P4Env.User, P4Env.Client, GetAuthenticationToken());
+			EditorArguments = String.Format("-SCCProvider={0} -P4Port={1} -P4User={2} -P4Client={3} -P4Passwd={4}", "Perforce", P4Env.P4Port, P4Env.User, P4Env.Client, P4.GetAuthenticationToken());
         }
         else
         {

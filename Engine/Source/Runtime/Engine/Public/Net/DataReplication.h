@@ -111,7 +111,7 @@ public:
 	bool	ReplicateProperties( FOutBunch & Bunch, FReplicationFlags RepFlags );
 	void	PostSendBunch(FPacketIdRange & PacketRange, uint8 bReliable);
 	
-	bool	ReceivedBunch( FInBunch &Bunch, const FReplicationFlags &RepFlags );
+	bool	ReceivedBunch( FInBunch & Bunch, const FReplicationFlags & RepFlags, bool & bOutHasUnmapped );
 	void	PostReceivedBunch();
 
 	void ForceRefreshUnreliableProperties();
@@ -123,6 +123,8 @@ public:
 	bool ReadyForDormancy(bool debug=false);
 
 	void StartBecomingDormant();
+
+	bool UpdateUnmappedObjects();
 
 	FORCEINLINE UObject *	GetObject() const { return ObjectPtr.Get(); }
 	FORCEINLINE void		SetObject( UObject * NewObj ) { ObjectPtr = TWeakObjectPtr<UObject>( NewObj ); }

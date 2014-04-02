@@ -23,6 +23,11 @@ FString UBlackboardKeyType::DescribeSelf() const
 	return FString();
 };
 
+void UBlackboardKeyType::Initialize(uint8* MemoryBlock) const
+{
+	// empty in base class
+}
+
 bool UBlackboardKeyType::IsAllowedByFilter(UBlackboardKeyType* FilterOb) const
 {
 	return GetClass() == (FilterOb ? FilterOb->GetClass() : NULL);

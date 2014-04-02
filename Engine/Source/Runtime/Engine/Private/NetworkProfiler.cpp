@@ -225,6 +225,7 @@ void FNetworkProfiler::TrackSocketSendTo( const FString& SocketDesc, const void*
 		uint32 NetworkByteOrderIP;
 		Destination.GetIp(NetworkByteOrderIP);
 		TrackSocketSendToCore( SocketDesc, Data, BytesSent, NetworkByteOrderIP);
+		bHasNoticeableNetworkTrafficOccured = true;
 	}
 }
 
@@ -412,6 +413,7 @@ void FNetworkProfiler::TrackSessionChange( bool bShouldContinueTracking, const F
 			}
 			else
 			{
+				UE_LOG(LogNet, Warning, TEXT("Netork Profiler: Nothing important happened"));
 				FileWriter->Close();
 			}
 

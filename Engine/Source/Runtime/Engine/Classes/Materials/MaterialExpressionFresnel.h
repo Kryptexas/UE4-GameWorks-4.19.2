@@ -15,33 +15,27 @@ class UMaterialExpressionFresnel : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(meta=(RequiredInput = "false"))
+	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Defaults to 'Exponent' if not specified"))
 	FExpressionInput ExponentIn;
 
 	/** The exponent to pass into the pow() function */
-	UPROPERTY(EditAnywhere, Category=MaterialExpressionFresnel)
+	UPROPERTY(EditAnywhere, Category=MaterialExpressionFresnel, meta=(OverridingInputProperty = "ExponentIn"))
 	float Exponent;
 
-	UPROPERTY(meta=(RequiredInput = "false"))
+	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Defaults to 'BaseReflectFraction' if not specified"))
 	FExpressionInput BaseReflectFractionIn;
 
 	/** 
 	 * Specifies the fraction of specular reflection when the surfaces is viewed from straight on.
 	 * A value of 1 effectively disables Fresnel.
 	 */
-	UPROPERTY(EditAnywhere, Category=MaterialExpressionFresnel)
+	UPROPERTY(EditAnywhere, Category=MaterialExpressionFresnel, meta=(OverridingInputProperty = "BaseReflectFractionIn"))
 	float BaseReflectFraction;
 
 	/** The normal to dot with the camera FVector */
-	UPROPERTY(meta=(RequiredInput = "false"))
+	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Defaults to Pixel World Normal if not specified"))
 	FExpressionInput Normal;
 
-
-	// Begin UObject Interface
-#if WITH_EDITOR
-	virtual bool CanEditChange( const UProperty* InProperty ) const OVERRIDE;
-#endif // WITH_EDITOR
-	// End UObject Interface
 
 	// Begin UMaterialExpression Interface
 	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) OVERRIDE;

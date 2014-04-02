@@ -1285,17 +1285,9 @@ FString FSourceCodeNavigation::GetSuggestedSourceCodeIDEDownloadURL()
 bool FSourceCodeNavigation::IsCompilerAvailable()
 {
 #if PLATFORM_WINDOWS
-	const TCHAR *EnvironmentVariables[] = { TEXT("VS110COMNTOOLS"), TEXT("VS120COMNTOOLS") };
-	for (int32 Idx = 0; Idx < ARRAY_COUNT(EnvironmentVariables); Idx++)
-	{
-		TCHAR ToolPath[MAX_PATH];
-		FPlatformMisc::GetEnvironmentVariable(EnvironmentVariables[Idx], ToolPath, ARRAY_COUNT(ToolPath));
-		if (FCString::Strlen(ToolPath) > 0 && IFileManager::Get().DirectoryExists(ToolPath))
-		{
-			return true;
-		}
-	}
-	return false;
+	FVSAccessorModule& VSAccessorModule = FModuleManager::GetModuleChecked<FVSAccessorModule>(TEXT("VSAccessor"));
+	FString OutPath;
+	return VSAccessorModule.CanRunVisualStudio(OutPath);
 #elif PLATFORM_MAC
 	return IFileManager::Get().DirectoryExists(TEXT("/Applications/Xcode.app"));
 #else
@@ -1328,10 +1320,15 @@ bool FSourceCodeNavigation::OpenSourceFiles(const TArray<FString>& AbsoluteSourc
 {
 	if ( IsCompilerAvailable() )
 	{
+#if PLATFORM_WINDOWS
+		FVSAccessorModule& VSAccessorModule = FModuleManager::GetModuleChecked<FVSAccessorModule>(TEXT("VSAccessor"));
+		VSAccessorModule.OpenVisualStudioFiles(AbsoluteSourcePaths);
+#else
 		for ( const FString& SourcePath : AbsoluteSourcePaths )
 		{
-			OpenSourceFile(SourcePath);
+			FPlatformProcess::LaunchFileInDefaultExternalApplication(*SourcePath);
 		}
+#endif
 
 		return true;
 	}

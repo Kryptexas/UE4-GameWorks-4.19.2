@@ -1346,7 +1346,7 @@ void FCollisionProfileDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBui
 	check(CollisionProfile);
 
 	// save currently loaded data
-	//SavedData.Save(CollisionProfile);
+	SavedData.Save(CollisionProfile);
 
 	RefreshChannelList(true);
 	RefreshChannelList(false);
@@ -1709,14 +1709,97 @@ void FCollisionProfileDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBui
 
 void FCollisionProfileDetails::CommitProfileChange(int32 ProfileIndex, FCollisionResponseTemplate & NewProfile)
 {
-	FCollisionResponseTemplate & SouceProfile = CollisionProfile->Profiles[ProfileIndex];
-	CollisionProfile->SaveCustomResponses(NewProfile);
-	SouceProfile = (NewProfile);
+	FCollisionResponseTemplate & SourceProfile = CollisionProfile->Profiles[ProfileIndex];
 
-	// @TOdo fixme - instead of applying profile directly, add system to apply to EditProfile
-// 	if(SouceProfile.bCanModify)
-// 	{
-// 	}
+	// if name changed, we need to add redirect
+	if(SourceProfile.Name != NewProfile.Name)
+	{
+		CollisionProfile->AddProfileRedirect(SourceProfile.Name, NewProfile.Name);
+	}
+
+	if(SourceProfile.bCanModify)
+	{
+		// if you can modify, overwrites everything
+		CollisionProfile->SaveCustomResponses(NewProfile);
+		SourceProfile = (NewProfile);
+	}
+	else
+	{
+		// copy everything else but not the response
+		// we add that to EditProfile
+		SourceProfile.CollisionEnabled = NewProfile.CollisionEnabled;
+		SourceProfile.ObjectTypeName = NewProfile.ObjectTypeName;
+		SourceProfile.HelpMessage = NewProfile.HelpMessage;
+
+		// now update EditProfiles
+		// look at the saved profile, and collect different responses first
+		FCollisionResponseTemplate & SavedProfile = SavedData.Profiles[ProfileIndex];
+		TArray<FResponseChannel>	NewCustomResponses;
+
+		struct FFindByName
+		{
+			FName Name;
+
+			FFindByName(FName InName): Name(InName) { }
+
+			bool operator() (const FResponseChannel& Element) const
+			{
+				return (Name == Element.Channel);
+			}
+
+			bool operator() (const FCustomProfile & Element) const
+			{
+				return (Name == Element.Name);
+			}
+			
+		};
+		
+		for (int32 Index = 0; Index<MAX_COLLISION_CHANNEL; ++Index)
+		{
+			if (NewProfile.ResponseToChannels.EnumArray[Index] != SavedProfile.ResponseToChannels.EnumArray[Index])
+			{
+				FName ChannelName = CollisionProfile->ChannelDisplayNames[Index];
+				NewCustomResponses.Add( FResponseChannel(ChannelName, (ECollisionResponse) NewProfile.ResponseToChannels.EnumArray[Index]) );
+			}
+		}
+
+		// we have new list, merge with existing ones
+		if ( NewCustomResponses.Num() > 0 )
+		{
+			FCustomProfile * CurrentProfile = CollisionProfile->EditProfiles.FindByPredicate(FFindByName(NewProfile.Name));
+			if ( !CurrentProfile )
+			{
+				// need to add new one, and just copy NewCustomResponses
+				FCustomProfile NewCustomProfile;
+				NewCustomProfile.Name = NewProfile.Name;
+				NewCustomProfile.CustomResponses = NewCustomResponses;
+				CollisionProfile->EditProfiles.Add(NewCustomProfile);
+			}
+			else
+			{
+				// need to merge previous list and new list
+				for (auto & Iter : NewCustomResponses)
+				{
+					FResponseChannel * CurrentChannel = CurrentProfile->CustomResponses.FindByPredicate(FFindByName(Iter.Channel));
+
+					if (CurrentChannel)
+					{
+						if (CurrentChannel->Response != Iter.Response)
+						{
+							CurrentChannel->Response = Iter.Response;
+						}
+					}
+					else 
+					{
+						// just add new one
+						CurrentProfile->CustomResponses.Add(Iter);
+					}
+				}
+			}
+		}	
+	}
+
+	SavedData.Save(CollisionProfile);
 }
 
 void FCollisionProfileDetails::UpdateChannel(bool bTraceType)
@@ -2089,13 +2172,6 @@ FReply	FCollisionProfileDetails::OnEditProfile()
 			if(ProfileEditor->bApplyChange &&
 				ensure(IsValidProfileSetup(&(ProfileEditor->ProfileTemplate), ProfileIndex)))
 			{
-				// if name changed, we need to add redirect
-				FCollisionResponseTemplate & SouceProfile = CollisionProfile->Profiles[ProfileIndex];
-				if(SouceProfile.Name != ProfileEditor->ProfileTemplate.Name)
-				{
-					CollisionProfile->AddProfileRedirect(SouceProfile.Name, ProfileEditor->ProfileTemplate.Name);
-				}
-
 				CommitProfileChange(ProfileIndex, ProfileEditor->ProfileTemplate);
 				UpdateProfile();
 			}
@@ -2154,26 +2230,12 @@ void FCollisionProfileDetails::OnProfileListItemDoubleClicked(TSharedPtr< FProfi
 // FCollsiionProfileData
 //=====================================================================================
 
-// void FCollisionProfileDetails::FCollsiionProfileData::Save(UCollisionProfile * Profile)
-// {
-// 	Profiles = Profile->Profiles;
-// 	DefaultChannelResponses = Profile->DefaultChannelResponses;
-// 	EditProfiles = Profile->EditProfiles;
-// }
-// 
-// bool FCollisionProfileDetails::FCollsiionProfileData::Equal(UCollisionProfile * Profile) const
-// {
-// // 	return (Profiles == Profile->Profiles &&
-// // 		DefaultChannelResponses == Profile->DefaultChannelResponses &&
-// // 		EditProfiles == Profile->EditProfiles);
-// 
-// 	return false;
-// }
-// 
-// bool FCollisionProfileDetails::FCollsiionProfileData::RegenerateEditProfiles(UCollisionProfile* Profile)
-// {
-// 	return false;
-// }
+void FCollisionProfileDetails::FCollsiionProfileData::Save(UCollisionProfile * Profile)
+{
+	Profiles = Profile->Profiles;
+	DefaultChannelResponses = Profile->DefaultChannelResponses;
+	EditProfiles = Profile->EditProfiles;
+}
 
 //=====================================================================================
 

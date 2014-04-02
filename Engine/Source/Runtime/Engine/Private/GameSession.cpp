@@ -6,7 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "Net/UnrealNetwork.h"
-#include "Online.h"
+#include "OnlineSubsystemUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGameSession, Log, All);
 
@@ -60,7 +60,8 @@ void AGameSession::InitOptions( const FString& Options )
 
 bool AGameSession::ProcessAutoLogin()
 {
-	IOnlineIdentityPtr IdentityInt = Online::GetIdentityInterface();
+	UWorld* World = GetWorld();
+	IOnlineIdentityPtr IdentityInt = Online::GetIdentityInterface(World);
 	if (IdentityInt.IsValid())
 	{
 		IdentityInt->AddOnLoginChangedDelegate(FOnLoginChangedDelegate::CreateUObject(this, &AGameSession::OnLoginChanged));
@@ -80,7 +81,8 @@ bool AGameSession::ProcessAutoLogin()
 
 void AGameSession::OnLoginComplete(int32 LocalUserNum, bool bWasSuccessful, const FUniqueNetId& UserId, const FString& Error)
 {
-	IOnlineIdentityPtr IdentityInt = Online::GetIdentityInterface();
+	UWorld* World = GetWorld();
+	IOnlineIdentityPtr IdentityInt = Online::GetIdentityInterface(World);
 	if (IdentityInt.IsValid())
 	{
 		IdentityInt->ClearOnLoginChangedDelegate(FOnLoginChangedDelegate::CreateUObject(this, &AGameSession::OnLoginChanged));
@@ -90,7 +92,8 @@ void AGameSession::OnLoginComplete(int32 LocalUserNum, bool bWasSuccessful, cons
 
 void AGameSession::OnLoginChanged(int32 LocalUserNum)
 {
-	IOnlineIdentityPtr IdentityInt = Online::GetIdentityInterface();
+	UWorld* World = GetWorld();
+	IOnlineIdentityPtr IdentityInt = Online::GetIdentityInterface(World);
 	if (IdentityInt.IsValid())
 	{
 		IdentityInt->ClearOnLoginChangedDelegate(FOnLoginChangedDelegate::CreateUObject(this, &AGameSession::OnLoginChanged));
@@ -169,7 +172,8 @@ void AGameSession::RegisterPlayer(APlayerController* NewPlayer, const TSharedPtr
  */
 void AGameSession::UnregisterPlayer(APlayerController* ExitingPlayer)
 {
-	IOnlineSessionPtr SessionInt = Online::GetSessionInterface();
+	UWorld* World = GetWorld();
+	IOnlineSessionPtr SessionInt = Online::GetSessionInterface(World);
 	if (SessionInt.IsValid())
 	{
 		if (GetNetMode() != NM_Standalone && 
@@ -268,14 +272,10 @@ void AGameSession::DumpSessionState()
 	UE_LOG(LogGameSession, Log, TEXT("  MaxPlayers: %i"), MaxPlayers);
 	UE_LOG(LogGameSession, Log, TEXT("  MaxSpectators: %i"), MaxSpectators);
 
-	IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get();
-	if (OnlineSub)
+	IOnlineSessionPtr SessionInt = Online::GetSessionInterface(GetWorld());
+	if (SessionInt.IsValid())
 	{
-		IOnlineSessionPtr SessionInt = OnlineSub->GetSessionInterface();
-		if (SessionInt.IsValid())
-		{
-			SessionInt->DumpSessionState();
-		}
+		SessionInt->DumpSessionState();
 	}
 }
 
@@ -292,21 +292,17 @@ void AGameSession::UpdateSessionJoinability(FName InSessionName, bool bPublicSea
 {
 	if (GetNetMode() != NM_Standalone)
 	{
-		IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get();
-		if (OnlineSub)
+		IOnlineSessionPtr SessionInt = Online::GetSessionInterface(GetWorld());
+		if (SessionInt.IsValid())
 		{
-			IOnlineSessionPtr SessionInt = OnlineSub->GetSessionInterface();
-			if (SessionInt.IsValid())
+			FOnlineSessionSettings* GameSettings = SessionInt->GetSessionSettings(InSessionName);
+			if (GameSettings != NULL)
 			{
-				FOnlineSessionSettings* GameSettings = SessionInt->GetSessionSettings(InSessionName);
-				if (GameSettings != NULL)
-				{
-					GameSettings->bAllowInvites = bAllowInvites;
-					GameSettings->bAllowJoinInProgress = bPublicSearchable;
-					GameSettings->bAllowJoinViaPresence = bJoinViaPresence && !bJoinViaPresenceFriendsOnly;
-					GameSettings->bAllowJoinViaPresenceFriendsOnly = bJoinViaPresenceFriendsOnly;
-					SessionInt->UpdateSession(InSessionName, *GameSettings, true);
-				}
+				GameSettings->bAllowInvites = bAllowInvites;
+				GameSettings->bAllowJoinInProgress = bPublicSearchable;
+				GameSettings->bAllowJoinViaPresence = bJoinViaPresence && !bJoinViaPresenceFriendsOnly;
+				GameSettings->bAllowJoinViaPresenceFriendsOnly = bJoinViaPresenceFriendsOnly;
+				SessionInt->UpdateSession(InSessionName, *GameSettings, true);
 			}
 		}
 	}

@@ -35,7 +35,6 @@
 	#include "RenderCore.h"
 	#include "ShaderCompiler.h"
 	#include "GlobalShader.h"
-	#include "TaskGraphInterfaces.h"
 	#include "ParticleHelper.h"
 	#include "Online.h"
 	#include "PlatformFeatures.h"
@@ -555,17 +554,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	// Switch into executable's directory (may be required by some of the platform file overrides)
 	FPlatformProcess::SetCurrentWorkingDirectoryToBaseDir();
 
-	// allow the command line to override the platform file singleton
-	bool bFileOverrideFound = false;
-	if (LaunchCheckForFileOverride(CmdLine, bFileOverrideFound) == false)
-	{
-		// if it failed, we cannot continue
-		return 1;
-	}
-
-	// Initialize file manager
-	IFileManager::Get().ProcessCommandLineOptions();
-
+	// This fixes up the relative project path, needs to happen before we set platform file paths
 	if (FPlatformProperties::IsProgram() == false)
 	{
 		if (FPaths::IsProjectFilePathSet())
@@ -586,6 +575,17 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			}
 		}
 	}
+
+	// allow the command line to override the platform file singleton
+	bool bFileOverrideFound = false;
+	if (LaunchCheckForFileOverride(CmdLine, bFileOverrideFound) == false)
+	{
+		// if it failed, we cannot continue
+		return 1;
+	}
+
+	// Initialize file manager
+	IFileManager::Get().ProcessCommandLineOptions();
 
 	if( GIsGameAgnosticExe )
 	{
@@ -660,8 +660,9 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 	const bool bFirstTokenIsGameName = (FApp::HasGameName() && Token == GGameName);
 	const bool bFirstTokenIsGameProjectFilePath = (FPaths::IsProjectFilePathSet() && Token.Replace(TEXT("\\"), TEXT("/")) == FPaths::GetProjectFilePath());
+	const bool bFirstTokenIsGameProjectFileShortName = (FPaths::IsProjectFilePathSet() && Token.Replace(TEXT("\\"), TEXT("/")) == FPaths::GetCleanFilename(FPaths::GetProjectFilePath()));
 
-	if (bFirstTokenIsGameName || bFirstTokenIsGameProjectFilePath)
+	if (bFirstTokenIsGameName || bFirstTokenIsGameProjectFilePath || bFirstTokenIsGameProjectFileShortName)
 	{
 		// first item on command line was the game name, remove it in all cases
 		FString RemainingCommandline = ParsedCmdLine;
@@ -674,7 +675,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		Token = FParse::Token( ParsedCmdLine, 0);
 		Token = Token.Trim();
 
-		if (bFirstTokenIsGameProjectFilePath)
+		if (bFirstTokenIsGameProjectFilePath || bFirstTokenIsGameProjectFileShortName)
 		{
 			// Convert it to relative if possible...
 			FString RelativeGameProjectFilePath = FFileManagerGeneric::DefaultConvertToRelativePath(*FPaths::GetProjectFilePath());
@@ -1653,6 +1654,10 @@ void FEngineLoop::InitTime()
 		GEngine->MatineeCaptureFPS = (int32)FixedFPS;
 		GFixedDeltaTime = 1 / FixedFPS;
 	}
+
+	// Whether we want to use a fixed time step or not.
+	GUseFixedTimeStep = FParse::Param( FCommandLine::Get(), TEXT( "UseFixedTimeStep" ) );
+
 #endif // !UE_BUILD_SHIPPING
 
 	// convert FloatMaxTickTime into number of frames (using 1 / GFixedDeltaTime to convert fps to seconds )
@@ -2364,8 +2369,9 @@ void FEngineLoop::AppInit( )
 	FThreadStats::StartThread();
 	if (FThreadStats::WillEverCollectData())
 	{
-		FThreadStats::ExplicitFlush(); // flush the stats and set update teh scope so we don't flush again until a frame update, this helps prevent fragmentation
+		FThreadStats::ExplicitFlush(); // flush the stats and set update the scope so we don't flush again until a frame update, this helps prevent fragmentation
 	}
+	FStartupMessages::Get().AddThreadMetadata( NAME_GameThread, FPlatformTLS::GetCurrentThreadId() );
 #endif
 
 #if WITH_ENGINE
@@ -2465,7 +2471,6 @@ void FEngineLoop::AppExit( )
 	if( GLog )
 	{
 		GLog->TearDown();
-		GLog = NULL;
 	}
 
 	FInternationalization::Terminate();

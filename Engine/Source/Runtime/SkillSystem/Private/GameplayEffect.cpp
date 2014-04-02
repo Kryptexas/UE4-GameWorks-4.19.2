@@ -56,7 +56,7 @@ bool UGameplayEffect::AreApplicationTagRequirementsSatisfied(const TSet<FName>& 
 //
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 
-void FGameplayEffectSpec::InitModifiers()
+void FGameplayEffectSpec::InitModifiers(const FGlobalCurveDataOverride *CurveData)
 {
 	check(Def);
 
@@ -66,7 +66,7 @@ void FGameplayEffectSpec::InitModifiers()
 	{
 		// This creates a new FModifierSpec that we own.
 		// The modifier level instance is shared through a shared pointer though
-		Modifiers.Emplace( FModifierSpec(ModInfo, ModifierLevel ));	
+		Modifiers.Emplace( FModifierSpec(ModInfo, ModifierLevel, CurveData));	
 	}	
 }
 
@@ -83,7 +83,10 @@ int32 FGameplayEffectSpec::ApplyModifiersFrom(const FGameplayEffectSpec &InSpec,
 	int32 NumApplied = 0;
 	bool ShouldSnapshot = InSpec.ShouldApplyAsSnapshot(QualifierContext);
 
-	// Fixme: todo 'Can I modify this spec' check
+	if (InSpec.Def && !InSpec.Def->AreGameplayEffectTagRequirementsSatisfied(Def))
+	{
+		return 0;
+	}
 
 	// Fixme: Use acceleration structures to speed up these types of lookups
 	for (const FModifierSpec &InMod : InSpec.Modifiers)
@@ -102,21 +105,50 @@ int32 FGameplayEffectSpec::ApplyModifiersFrom(const FGameplayEffectSpec &InSpec,
 					if (InMod.CanModifyModifier(MyMod, QualifierContext))
 					{
 						InMod.ApplyModTo(MyMod, ShouldSnapshot);
+						Def->OwnedTagsContainer.AppendTags(InMod.Info.PassedTags);
 						NumApplied++;
+					}
+					else
+					{
+						NumApplied += ApplyModifiersToAggregators(InMod, MyMod.Aggregator, QualifierContext, ShouldSnapshot);
 					}
 				}
 				break;
 			}
 
-			// Fixme: Duration mods aren't checking that atttributes match - do we care?
+			// Fixme: Duration mods aren't checking that attributes match - do we care?
 			// eg - "I mod duration of all GEs that modify Health" would need to check to see if this mod modifies health before doing the stuff below.
 			// Or can we get by with just tags?
 
 			case EGameplayModEffect::Duration:
 			{
 				Duration.Get()->ApplyMod(InMod.Info.ModifierOp, InMod.Aggregator, ShouldSnapshot);
+				Def->OwnedTagsContainer.AppendTags(InMod.Info.PassedTags);
 				NumApplied++;
 				break;
+			}
+		}
+	}
+
+	return NumApplied;
+}
+
+int32 FGameplayEffectSpec::ApplyModifiersToAggregators(const FModifierSpec &InMod, FAggregatorRef &MyMod, const FModifierQualifier &QualifierContext, bool ShouldSnapshot)
+{
+	int32 NumApplied = 0;
+	for (int32 Op = 0; Op < EGameplayModOp::Max; ++Op)
+	{
+		for (FAggregatorRef SubMod : MyMod.Get()->Mods[Op])
+		{
+			if (InMod.CanModifyAggregator(SubMod, QualifierContext))
+			{
+				SubMod.Get()->ApplyMod(InMod.Info.ModifierOp, InMod.Aggregator, ShouldSnapshot);
+				SubMod.Get()->BaseData.Tags.AppendTags(InMod.Info.PassedTags);
+				NumApplied++;
+			}
+			else
+			{
+				NumApplied += ApplyModifiersToAggregators(InMod, SubMod, QualifierContext, ShouldSnapshot);
 			}
 		}
 	}
@@ -201,7 +233,20 @@ bool FModifierSpec::CanModifyModifier(FModifierSpec &Other, const FModifierQuali
 		return false;
 	}
 
-	// TODO: Tag checks, etc
+	if (!AreTagRequirementsSatisfied(Other))
+	{
+		return false;
+	}
+
+	return true;
+}
+
+bool FModifierSpec::CanModifyAggregator(FAggregatorRef Ref, const FModifierQualifier &QualifierContext) const
+{
+	if (!AreTagRequirementsSatisfied(Ref))
+	{
+		return false;
+	}
 
 	return true;
 }
@@ -215,6 +260,28 @@ void FModifierSpec::ExecuteModOn(FModifierSpec &Other) const
 {
 	SKILL_LOG_SCOPE(TEXT("Executing %s on %s"), *ToSimpleString(), *Other.ToSimpleString() );
 	Other.Aggregator.Get()->ExecuteModAggr(this->Info.ModifierOp, this->Aggregator);
+}
+
+bool FModifierSpec::AreTagRequirementsSatisfied(const FModifierSpec &ModifierToBeModified) const
+{
+	bool HasRequired = ModifierToBeModified.Info.OwnedTags.HasAllTags(Info.RequiredTags);
+	bool HasIgnored = ModifierToBeModified.Info.OwnedTags.Num() > 0 && ModifierToBeModified.Info.OwnedTags.HasAnyTag(Info.IgnoreTags);
+
+	return HasRequired && !HasIgnored;
+}
+
+bool FModifierSpec::AreTagRequirementsSatisfied(const FAggregatorRef &AggregatorToBeModified) const
+{
+	const FAggregator* Aggregator = AggregatorToBeModified.Get();
+	if (Aggregator)
+	{
+		bool HasRequired = Aggregator->BaseData.Tags.HasAllTags(Info.RequiredTags);
+		bool HasIgnored = Aggregator->BaseData.Tags.Num() > 0 && Aggregator->BaseData.Tags.HasAnyTag(Info.IgnoreTags);
+
+		return HasRequired && !HasIgnored;
+	}
+
+	return false;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -450,6 +517,12 @@ void FAggregator::ExecuteMod(EGameplayModOp::Type ModType, const FGameplayModifi
 			BaseData.Tags.AppendTags(EvaluatedData.Tags);
 			break;
 		}
+		case EGameplayModOp::Division:
+		{
+			BaseData.Magnitude.Value /= EvaluatedData.Magnitude;
+			BaseData.Tags.AppendTags(EvaluatedData.Tags);
+			break;
+		}
 		case EGameplayModOp::Callback:
 		{
 			// Executing a callback mod on another aggregator, what is expected here?
@@ -502,7 +575,7 @@ const FGameplayModifierEvaluatedData& FAggregator::Evaluate() const
 
 		// If we are going to do math, we need to lock our base value in.
 		// Calculate our magnitude at our level
-		// (We may not have a level, in that case, ensure we also dont have a leveling table)
+		// (We may not have a level, in that case, ensure we also don't have a leveling table)
 		
 		float EvaluatedMagnitude = 0.f;
 		if (Level->IsValid())
@@ -538,6 +611,18 @@ const FGameplayModifierEvaluatedData& FAggregator::Evaluate() const
 			}
 		}
 		CachedData.Magnitude *= Factor;
+
+		// Divisor - sum the division with a bias then divide it at the end
+		Factor = 1.f;
+		for (const FAggregatorRef &Agg : Mods[EGameplayModOp::Division])
+		{
+			SKILL_LOG_SCOPE(TEXT("EGameplayModOp::Division"));
+			if (Agg.IsValid())
+			{
+				Agg.Get()->Evaluate().Aggregate(CachedData.Tags, Factor, 1.f);
+			}
+		}
+		CachedData.Magnitude /= Factor;
 
 		SKILL_LOG(Log, TEXT("Final Magnitude: %.2f"), CachedData.Magnitude);
 		
@@ -672,6 +757,10 @@ void FActiveGameplayEffect::PostReplicatedAdd(const struct FActiveGameplayEffect
 	InArray.Owner->InvokeGameplayCueAdded(Spec);
 	// Was this actually just activated, or are we just finding out about it due to relevancy/join in progress?
 	float WorldTimeSeconds = InArray.Owner->GetWorld()->GetTimeSeconds();
+	if (InArray.Owner->GetWorld()->GetGameState<AGameState>())
+	{
+		WorldTimeSeconds = InArray.Owner->GetWorld()->GetGameState<AGameState>()->ElapsedTime;
+	}
 	float DeltaTime = WorldTimeSeconds - StartTime;
 
 	if (WorldTimeSeconds > 0.f && FMath::Abs(DeltaTime) < MAX_DELTA_TIME)
@@ -997,6 +1086,12 @@ void FActiveGameplayEffectsContainer::TEMP_TickActiveEffects(float DeltaSeconds)
 
 
 	float CurrentTime = Owner->GetWorld()->GetTimeSeconds();
+	// if we have a game state use the ElapsedTime so client server time replication is more accurate else use the time seconds of the game world.
+	if (Owner->GetWorld()->GetGameState<AGameState>())
+	{
+		CurrentTime = Owner->GetWorld()->GetGameState<AGameState>()->ElapsedTime;
+	}
+
 	for (int32 idx = 0; idx < GameplayEffects.Num(); ++idx)
 	{
 		FActiveGameplayEffect &Effect = GameplayEffects[idx];
@@ -1017,6 +1112,8 @@ void FActiveGameplayEffectsContainer::TEMP_TickActiveEffects(float DeltaSeconds)
 		float Duration = Effect.GetDuration();
 		if (Duration > 0.f && Effect.StartTime + Effect.GetDuration() < CurrentTime)
 		{
+			Owner->InvokeGameplayCueRemoved(Effect.Spec);
+
 			MarkArrayDirty();
 			GameplayEffects.RemoveAtSwap(idx);
 			idx--;

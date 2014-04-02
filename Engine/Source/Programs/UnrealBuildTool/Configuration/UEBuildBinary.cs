@@ -632,7 +632,9 @@ namespace UnrealBuildTool
 		public override void SetupDependentLinkEnvironment(ref LinkEnvironment DependentLinkEnvironment)
 		{
 			string LibraryFileName;
-			if (Config.Type == UEBuildBinaryType.StaticLibrary || DependentLinkEnvironment.Config.TargetPlatform == CPPTargetPlatform.Mac)
+			if (Config.Type == UEBuildBinaryType.StaticLibrary
+                || DependentLinkEnvironment.Config.TargetPlatform == CPPTargetPlatform.Mac
+                || DependentLinkEnvironment.Config.TargetPlatform == CPPTargetPlatform.Linux)
 			{
 				LibraryFileName = Config.OutputFilePath;
 			}

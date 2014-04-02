@@ -190,6 +190,47 @@ public:
 	}
 };
 
+/** Parameters needed to implement the sky light cubemap reflection. */
+class FSkyLightReflectionParameters
+{
+public:
+
+	void Bind(const FShaderParameterMap& ParameterMap)
+	{
+		SkyLightCubemap.Bind(ParameterMap, TEXT("SkyLightCubemap"));
+		SkyLightCubemapSampler.Bind(ParameterMap, TEXT("SkyLightCubemapSampler"));
+		SkyLightParameters.Bind(ParameterMap, TEXT("SkyLightParameters"));
+	}
+
+	template<typename TParamRef>
+	void SetParameters(const TParamRef& ShaderRHI, const FScene* Scene, bool bApplySkyLight)
+	{
+		FTexture* SkyLightTextureResource = GBlackTextureCube;
+		float ApplySkyLightMask = 0;
+		float SkyMipCount = 1;
+
+		GetSkyParametersFromScene(Scene, bApplySkyLight, SkyLightTextureResource, ApplySkyLightMask, SkyMipCount);
+
+		SetTextureParameter(ShaderRHI, SkyLightCubemap, SkyLightCubemapSampler, SkyLightTextureResource);
+		const FVector2D SkyParametersValue(SkyMipCount - 1.0f, ApplySkyLightMask);
+		SetShaderValue(ShaderRHI, SkyLightParameters, SkyParametersValue);
+	}
+
+	friend FArchive& operator<<(FArchive& Ar,FSkyLightReflectionParameters& P)
+	{
+		Ar << P.SkyLightCubemap << P.SkyLightCubemapSampler << P.SkyLightParameters;
+		return Ar;
+	}
+
+private:
+
+	FShaderResourceParameter SkyLightCubemap;
+	FShaderResourceParameter SkyLightCubemapSampler;
+	FShaderParameter SkyLightParameters;
+
+	void GetSkyParametersFromScene(const FScene* Scene, bool bApplySkyLight, FTexture*& OutSkyLightTextureResource, float& OutApplySkyLightMask, float& OutSkyMipCount);
+};
+
 /** Parameters needed for lighting translucency, shared by multiple shaders. */
 class FTranslucentLightingParameters
 {
@@ -208,9 +249,10 @@ public:
 		ReflectionCubemap.Bind(ParameterMap, TEXT("ReflectionCubemap"));
 		ReflectionCubemapSampler.Bind(ParameterMap, TEXT("ReflectionCubemapSampler"));
 		CubemapArrayIndex.Bind(ParameterMap, TEXT("CubemapArrayIndex"));
+		SkyLightReflectionParameters.Bind(ParameterMap);
 	}
 
-	void Set(FShader* Shader);
+	void Set(FShader* Shader, const FSceneView* View);
 
 	void SetMesh(FShader* Shader, const FPrimitiveSceneProxy* Proxy);
 
@@ -228,6 +270,7 @@ public:
 		Ar << P.ReflectionCubemap;
 		Ar << P.ReflectionCubemapSampler;
 		Ar << P.CubemapArrayIndex;
+		Ar << P.SkyLightReflectionParameters;
 		return Ar;
 	}
 
@@ -244,6 +287,7 @@ private:
 	FShaderResourceParameter ReflectionCubemap;
 	FShaderResourceParameter ReflectionCubemapSampler;
 	FShaderParameter CubemapArrayIndex;
+	FSkyLightReflectionParameters SkyLightReflectionParameters;
 };
 
 /**
@@ -295,7 +339,7 @@ public:
 		{
 			if (IsTranslucentBlendMode(BlendMode))
 			{
-				TranslucentLightingParameters.Set(this);
+				TranslucentLightingParameters.Set(this, View);
 			}
 
 #if WITH_EDITOR

@@ -11,22 +11,26 @@ AFunctionalTest::AFunctionalTest( const class FPostConstructInitializeProperties
 	, bIsRunning(false)
 	, TimeLeft(0.f)
 {
-	struct FConstructorStatics
-	{
-		ConstructorHelpers::FObjectFinderOptional<UTexture2D> Texture;
-
-		FConstructorStatics()
-			: Texture(TEXT("/Engine/EditorResources/S_FTest"))
-		{
-		}
-	};
-	static FConstructorStatics ConstructorStatics;
-
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = false;
 	
 #if WITH_EDITORONLY_DATA
-	UTexture2D* SpriteTexture = ConstructorStatics.Texture.Get();
+	UTexture2D* SpriteTexture = nullptr;
+	
+	if (!IsRunningCommandlet())
+	{
+		struct FConstructorStatics
+		{
+			ConstructorHelpers::FObjectFinderOptional<UTexture2D> Texture;
+
+			FConstructorStatics()
+				: Texture(TEXT("/Engine/EditorResources/S_FTest"))
+			{
+			}
+		};
+		static FConstructorStatics ConstructorStatics;
+		SpriteTexture = ConstructorStatics.Texture.Get();
+	}
 
 	if (HasAnyFlags(RF_ClassDefaultObject) == false)
 	{

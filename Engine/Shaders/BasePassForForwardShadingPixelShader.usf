@@ -177,10 +177,10 @@ void Main(
 			Shadow = DirectionalLightShadowing;
 		#endif
 		
-		half NoL = max( 0, dot( MaterialParameters.WorldNormal, View.DirectionalLightDirection ) );
-		half RoL = max( 0, dot( MaterialParameters.ReflectionVector, View.DirectionalLightDirection ) );
+		half NoL = max(0, dot(MaterialParameters.WorldNormal, View.DirectionalLightDirection));
+		half RoL = max(0, dot(MaterialParameters.ReflectionVector, View.DirectionalLightDirection));
 
-		Color += (Shadow * NoL) * View.DirectionalLightColor.rgb * ( DiffuseColor + SpecularColor * PhongApprox( Roughness, RoL ) );
+		Color += (Shadow * NoL) * View.DirectionalLightColor.rgb * (DiffuseColor + SpecularColor * PhongApprox(Roughness, RoL));
 
 		#if !MATERIAL_FULLY_ROUGH
 			half3 SpecularIBL = GetImageBasedReflectionLighting(MaterialParameters, Roughness);

@@ -3,17 +3,8 @@
 # This script gets called every time Xcode does a build or clean operation, even though it's called "Build.sh".
 # Values for $ACTION: "" = building, "clean" = cleaning
 
-# Fix Mono if needed
-CUR_DIR=`pwd`
-cd "`dirname "$0"`"
-sh FixMonoFiles.sh
-cd "$CUR_DIR"
-
-# setup bundled mono
-CUR_DIR=`pwd`
-export UE_MONO_DIR=$CUR_DIR/Engine/Binaries/ThirdParty/Mono/Mac
-export PATH=$UE_MONO_DIR/bin:$PATH
-export MONO_PATH=$UE_MONO_DIR/lib:$MONO_PATH
+# Setup Mono
+source Engine/Build/BatchFiles/Mac/SetupMono.sh Engine/Build/BatchFiles/Mac
 
 case $ACTION in
 	"")

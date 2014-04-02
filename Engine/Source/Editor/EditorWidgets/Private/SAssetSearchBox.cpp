@@ -52,6 +52,19 @@ void SAssetSearchBox::SetText(const TAttribute< FText >& InNewText)
 	PreCommittedText = InNewText.Get();
 }
 
+FReply SAssetSearchBox::OnPreviewKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+{
+	if ( SuggestionBox->IsOpen() && InKeyboardEvent.GetKey() == EKeys::Escape )
+	{
+		// Clear any selection first to prevent the currently selection being set in the text box
+		SuggestionListView->ClearSelection();
+		SuggestionBox->SetIsOpen(false, false);
+		return FReply::Handled();
+	}
+
+	return FReply::Unhandled();
+}
+
 FReply SAssetSearchBox::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
 {
 	if ( SuggestionBox->IsOpen() && (InKeyboardEvent.GetKey() == EKeys::Up || InKeyboardEvent.GetKey() == EKeys::Down) )

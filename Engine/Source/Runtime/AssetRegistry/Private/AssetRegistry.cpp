@@ -11,6 +11,26 @@
 
 DEFINE_LOG_CATEGORY(LogAssetRegistry);
 
+/** Returns the appropriate ChunkProgressReportingType for the given Asset enum */
+EChunkProgressReportingType::Type GetChunkAvailabilityProgressType(EAssetAvailabilityProgressReportingType::Type ReportType)
+{
+	EChunkProgressReportingType::Type ChunkReportType;
+	switch (ReportType)
+	{
+	case EAssetAvailabilityProgressReportingType::ETA:
+		ChunkReportType = EChunkProgressReportingType::ETA;
+		break;
+	case EAssetAvailabilityProgressReportingType::PercentageComplete:
+		ChunkReportType = EChunkProgressReportingType::PercentageComplete;
+		break;
+	default:
+		ChunkReportType = EChunkProgressReportingType::PercentageComplete;
+		UE_LOG(LogAssetRegistry, Error, TEXT("Unsupported assetregistry report type: %i"), (int)ReportType);
+		break;
+	}
+	return ChunkReportType;
+}
+
 FAssetRegistry::FAssetRegistry()
 	: PathTreeRoot(TEXT(""))
 	, PreallocatedAssetDataBuffer(NULL)
@@ -944,18 +964,20 @@ EAssetAvailability::Type FAssetRegistry::GetAssetAvailability(const FAssetData& 
 	}
 }
 
-float FAssetRegistry::GetAssetAvailabilityProgress(const FAssetData& AssetData) const
+float FAssetRegistry::GetAssetAvailabilityProgress(const FAssetData& AssetData, EAssetAvailabilityProgressReportingType::Type ReportType) const
 {
 	IPlatformChunkInstall* ChunkInstall = FPlatformMisc::GetPlatformChunkInstall();
+	EChunkProgressReportingType::Type ChunkReportType = GetChunkAvailabilityProgressType(ReportType);
 
-	bool IsPercentageComplete = (GetAssetAvailabilityProgressType() == EAssetAvailabilityProgressReportingType::PercentageComplete) ? true : false;
+	bool IsPercentageComplete = (ChunkReportType == EChunkProgressReportingType::PercentageComplete) ? true : false;
+	check (ReportType == EAssetAvailabilityProgressReportingType::PercentageComplete || ReportType == EAssetAvailabilityProgressReportingType::ETA);
 
-	float BestProgress = MAX_FLT;
+	float BestProgress = MAX_FLT;	
 
 	// check all chunks to see which has the best time remaining
 	for (auto ChunkIt = AssetData.ChunkIDs.CreateConstIterator(); ChunkIt; ++ChunkIt)
 	{
-		float Progress = ChunkInstall->GetChunkProgress( *ChunkIt );
+		float Progress = ChunkInstall->GetChunkProgress( *ChunkIt, ChunkReportType );
 
 		// need to flip percentage completes for the comparison
 		if (IsPercentageComplete)
@@ -979,27 +1001,14 @@ float FAssetRegistry::GetAssetAvailabilityProgress(const FAssetData& AssetData) 
 	if (IsPercentageComplete)
 	{
 		BestProgress = 100.0f - BestProgress;
-	}
-
+	}	
 	return BestProgress;
 }
 
-EAssetAvailabilityProgressReportingType::Type FAssetRegistry::GetAssetAvailabilityProgressType() const
+bool FAssetRegistry::GetAssetAvailabilityProgressTypeSupported(EAssetAvailabilityProgressReportingType::Type ReportType) const
 {
-	IPlatformChunkInstall* ChunkInstall = FPlatformMisc::GetPlatformChunkInstall();
-
-	EChunkProgressReportingType::Type ChunkProgressType = ChunkInstall->GetProgressReportingType();
-
-	switch (ChunkProgressType)
-	{
-	case EChunkProgressReportingType::PercentageComplete:
-		return EAssetAvailabilityProgressReportingType::PercentageComplete;
-	case EChunkProgressReportingType::ETA:
-		return EAssetAvailabilityProgressReportingType::ETA;
-	default:
-		check(0);
-		return EAssetAvailabilityProgressReportingType::ETA;
-	}
+	IPlatformChunkInstall* ChunkInstall = FPlatformMisc::GetPlatformChunkInstall();	
+	return ChunkInstall->GetProgressReportingTypeSupported(GetChunkAvailabilityProgressType(ReportType));
 }
 
 void FAssetRegistry::PrioritizeAssetInstall(const FAssetData& AssetData) const

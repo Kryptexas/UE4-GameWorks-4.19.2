@@ -78,22 +78,55 @@ void FWorldTileCollectionModel::UnloadLevels(const FLevelModelList& InLevelList)
 	}
 	
 	// Check dirty levels
-	for (auto It = InLevelList.CreateConstIterator(); It; ++It)
+	bool bHasDirtyLevels = false;
+	for (TSharedPtr<FLevelModel> LevelModel : InLevelList)
 	{
-		ULevel* Level = (*It)->GetLevelObject();
+		ULevel* Level = LevelModel->GetLevelObject();
 		if (Level && Level->GetOutermost()->IsDirty())
 		{
-			// Warn the user that they are about to remove dirty level(s) from the world
-			const FText RemoveDirtyWarning = LOCTEXT("UnloadingDirtyLevelFromWorld", "You are about to unload dirty levels from the world and your changes to these levels will be lost.  Proceed?");
-			if (FMessageDialog::Open(EAppMsgType::YesNo, RemoveDirtyWarning) == EAppReturnType::No)
-			{
-				return;
-			}
+			bHasDirtyLevels = true;
 			break;
 		}
 	}
 
-	FLevelCollectionModel::UnloadLevels(InLevelList);
+	FLevelModelList LevelsToUnload = InLevelList;
+
+	if (bHasDirtyLevels)
+	{
+		// Warn the user that they are about to remove dirty level(s) from the world
+		const FText RemoveDirtyWarning = LOCTEXT("UnloadingDirtyLevelFromWorld", "You are about to unload dirty levels from the world and your changes to these levels will be lost (all children levels will be unloaded as well).  Proceed?");
+		if (FMessageDialog::Open(EAppMsgType::YesNo, RemoveDirtyWarning) == EAppReturnType::No)
+		{
+			return;
+		}
+
+		// We need to unload all children of an dirty tiles,
+		// to make sure that relative positions will be correct after parent tile information is discarded
+		struct FHierachyCollector : public FLevelModelVisitor
+		{
+			FLevelModelList& DirtyHierarchy;
+			FHierachyCollector(FLevelModelList& LevelToUnload) : DirtyHierarchy(LevelToUnload) {}
+
+			virtual void Visit(FLevelModel& Item) OVERRIDE
+			{
+				DirtyHierarchy.AddUnique(Item.AsShared());
+			}
+		};
+
+		FHierachyCollector HierachyCollector(LevelsToUnload);
+
+		for (TSharedPtr<FLevelModel> LevelModel : InLevelList)
+		{
+			ULevel* Level = LevelModel->GetLevelObject();
+			if (Level && Level->GetOutermost()->IsDirty())
+			{
+				LevelModel->Accept(HierachyCollector);
+			}
+		}
+	}
+
+	// Unload
+	FLevelCollectionModel::UnloadLevels(LevelsToUnload);
 }
 
 void FWorldTileCollectionModel::TranslateLevels(const FLevelModelList& InLevels, FVector2D InDelta, bool bSnapDelta)
@@ -519,20 +552,20 @@ void FWorldTileCollectionModel::BindCommands()
 
 	// Landscape operations
 	ActionList.MapAction(Commands.AddLandscapeLevelXNegative,
-		FExecuteAction::CreateSP(this, &FWorldTileCollectionModel::AddLandscapeProxy_Executed, FWorldTileCollectionModel::XNegative),
-		FCanExecuteAction::CreateSP(this, &FWorldTileCollectionModel::CanAddLandscapeProxy, FWorldTileCollectionModel::XNegative));
+		FExecuteAction::CreateSP(this, &FWorldTileCollectionModel::AddLandscapeProxy_Executed, FWorldTileModel::XNegative),
+		FCanExecuteAction::CreateSP(this, &FWorldTileCollectionModel::CanAddLandscapeProxy, FWorldTileModel::XNegative));
 	
 	ActionList.MapAction(Commands.AddLandscapeLevelXPositive,
-		FExecuteAction::CreateSP(this, &FWorldTileCollectionModel::AddLandscapeProxy_Executed, FWorldTileCollectionModel::XPositive),
-		FCanExecuteAction::CreateSP(this, &FWorldTileCollectionModel::CanAddLandscapeProxy, FWorldTileCollectionModel::XPositive));
+		FExecuteAction::CreateSP(this, &FWorldTileCollectionModel::AddLandscapeProxy_Executed, FWorldTileModel::XPositive),
+		FCanExecuteAction::CreateSP(this, &FWorldTileCollectionModel::CanAddLandscapeProxy, FWorldTileModel::XPositive));
 	
 	ActionList.MapAction(Commands.AddLandscapeLevelYNegative,
-		FExecuteAction::CreateSP(this, &FWorldTileCollectionModel::AddLandscapeProxy_Executed, FWorldTileCollectionModel::YNegative),
-		FCanExecuteAction::CreateSP(this, &FWorldTileCollectionModel::CanAddLandscapeProxy, FWorldTileCollectionModel::YNegative));
+		FExecuteAction::CreateSP(this, &FWorldTileCollectionModel::AddLandscapeProxy_Executed, FWorldTileModel::YNegative),
+		FCanExecuteAction::CreateSP(this, &FWorldTileCollectionModel::CanAddLandscapeProxy, FWorldTileModel::YNegative));
 	
 	ActionList.MapAction(Commands.AddLandscapeLevelYPositive,
-		FExecuteAction::CreateSP(this, &FWorldTileCollectionModel::AddLandscapeProxy_Executed, FWorldTileCollectionModel::YPositive),
-		FCanExecuteAction::CreateSP(this, &FWorldTileCollectionModel::CanAddLandscapeProxy, FWorldTileCollectionModel::YPositive));
+		FExecuteAction::CreateSP(this, &FWorldTileCollectionModel::AddLandscapeProxy_Executed, FWorldTileModel::YPositive),
+		FCanExecuteAction::CreateSP(this, &FWorldTileCollectionModel::CanAddLandscapeProxy, FWorldTileModel::YPositive));
 }
 
 void FWorldTileCollectionModel::OnLevelsCollectionChanged()
@@ -555,7 +588,7 @@ void FWorldTileCollectionModel::OnLevelsCollectionChanged()
 		auto TileList = WorldComposition->GetTilesList();
 		for (int32 TileIdx = 0; TileIdx < TileList.Num(); ++TileIdx)
 		{
-			AddLevelFromTile(TileIdx);
+			auto LevelModel = AddLevelFromTile(TileIdx);
 		}
 		
 		SetupParentChildLinks();
@@ -921,31 +954,36 @@ bool FWorldTileCollectionModel::HasLandscapeLevel(const FWorldTileModelList& InL
 	return false;
 }
 
-FVector2D FWorldTileCollectionModel::SnapTranslationDelta(const FLevelModelList& InLevels,	
-															FVector2D InAbsoluteDelta, 
-															float SnappingDistance)
+FVector2D FWorldTileCollectionModel::SnapTranslationDelta(const FLevelModelList& InLevels, FVector2D InTranslationDelta, bool bBoundsSnapping, float InSnappingValue)
 {
 	for (auto It = InLevels.CreateConstIterator(); It; ++It)
 	{
 		TSharedPtr<FWorldTileModel> TileModel = StaticCastSharedPtr<FWorldTileModel>(*It);
 		if (TileModel->IsLandscapeBased())
 		{
-			return SnapTranslationDeltaLandscape(TileModel, InAbsoluteDelta, SnappingDistance);
+			return SnapTranslationDeltaLandscape(TileModel, InTranslationDelta, InSnappingValue);
 		}
 	}
 
-	if (SnappingDistance <= 0.f)
+	// grid snapping
+	if (!bBoundsSnapping)
 	{
-		// no snapping
-		return InAbsoluteDelta;
+		InSnappingValue = FMath::Max(0.f, InSnappingValue);
+		InTranslationDelta.X = FMath::GridSnap(InTranslationDelta.X, InSnappingValue);
+		InTranslationDelta.Y = FMath::GridSnap(InTranslationDelta.Y, InSnappingValue);
+		return InTranslationDelta;
 	}
-			
+
+	//
+	// Bounds snapping
+	//
+				
 	// Compute moving levels total bounding box
 	FBox MovingLevelsBBoxStart = GetLevelsBoundingBox(InLevels, true);
-	FBox MovingLevelsBBoxExpected = MovingLevelsBBoxStart.ShiftBy(FVector(InAbsoluteDelta, 0.f));
+	FBox MovingLevelsBBoxExpected = MovingLevelsBBoxStart.ShiftBy(FVector(InTranslationDelta, 0.f));
 			
 	// Expand moving box by maximum snapping distance, so we can find all static levels we touching
-	FBox TestLevelsBBox = MovingLevelsBBoxExpected.ExpandBy(SnappingDistance);
+	FBox TestLevelsBBox = MovingLevelsBBoxExpected.ExpandBy(InSnappingValue);
 	
 	FVector2D ClosestValue(FLT_MAX, FLT_MAX);
 	FVector2D MinDistance(FLT_MAX, FLT_MAX);
@@ -1015,7 +1053,7 @@ FVector2D FWorldTileCollectionModel::SnapTranslationDelta(const FLevelModelList&
 	}
 
 	// Snap by X value
-	if (MinDistance.X < SnappingDistance)
+	if (MinDistance.X < InSnappingValue)
 	{
 		float Difference = ClosestValue.X - BoxSide.X;
 		MovingLevelsBBoxExpected.Min.X+= Difference;
@@ -1023,7 +1061,7 @@ FVector2D FWorldTileCollectionModel::SnapTranslationDelta(const FLevelModelList&
 	}
 	
 	// Snap by Y value
-	if (MinDistance.Y < SnappingDistance)
+	if (MinDistance.Y < InSnappingValue)
 	{
 		float Difference = ClosestValue.Y - BoxSide.Y;
 		MovingLevelsBBoxExpected.Min.Y+= Difference;
@@ -1146,7 +1184,7 @@ void FWorldTileCollectionModel::ClearParentLink_Executed()
 	BroadcastHierarchyChanged();
 }
 
-bool FWorldTileCollectionModel::CanAddLandscapeProxy(EWorldDirections InWhere) const
+bool FWorldTileCollectionModel::CanAddLandscapeProxy(FWorldTileModel::EWorldDirections InWhere) const
 {
 	if (SelectedLevelsList.Num() == 1 &&
 		SelectedLevelsList[0]->IsVisible() &&
@@ -1158,7 +1196,7 @@ bool FWorldTileCollectionModel::CanAddLandscapeProxy(EWorldDirections InWhere) c
 	return false;
 }
 
-void FWorldTileCollectionModel::AddLandscapeProxy_Executed(FWorldTileCollectionModel::EWorldDirections InWhere)
+void FWorldTileCollectionModel::AddLandscapeProxy_Executed(FWorldTileModel::EWorldDirections InWhere)
 {
 	if (IsReadOnly() || !IsOneLevelSelected())
 	{
@@ -1179,84 +1217,16 @@ void FWorldTileCollectionModel::AddLandscapeProxy_Executed(FWorldTileCollectionM
 	{
 		// Load it 
 		NewLevelModel->LoadLevel();
-				
-		// Set new level as current
-		UWorld* TargetWorld = CastChecked<UWorld>(NewLevelModel->GetLevelObject()->GetOuter());
-		ULevel* PrevCurentLevel = GetWorld()->GetCurrentLevel();
-		GetWorld()->SetCurrentLevel(TargetWorld->PersistentLevel);
 
-		// Spawn landscape proxy actor
+		FLevelModelList Levels; 
+		Levels.Add(NewLevelModel);
+
 		ALandscapeProxy* SourceLandscape = LandscapeTileModel->GetLandcape();
-		ALandscapeProxy* LandscapeProxy = TargetWorld->SpawnActor<ALandscapeProxy>();
+		FIntPoint SourceTileOffset = LandscapeTileModel->GetAbsoluteLevelPosition();
 
-		// Restore current level
-		GetWorld()->SetCurrentLevel(PrevCurentLevel);
-
-		// Copy shared properties to this new proxy
-		LandscapeProxy->GetSharedProperties(SourceLandscape);
-		
-		// Determine proxy import parameters from source landscape
-		FBox SourceLandscapeBounds = SourceLandscape->GetComponentsBoundingBox(true);
-		FVector SourceLandscapeScale = SourceLandscape->GetRootComponent()->GetComponentToWorld().GetScale3D();
-		FIntRect SourceLandscapeRect = SourceLandscape->GetBoundingRect();
-		FIntPoint SourceLandscapeSize = SourceLandscapeRect.Size();
-		
-		// Set proxy location at landscape bounds Min point
-		FVector ProxyLocation(-FVector(SourceLandscapeSize, 0.f)*SourceLandscapeScale/2.f);
-		ProxyLocation.Z = SourceLandscape->GetActorLocation().Z;
-
-		LandscapeProxy->SetActorLocation(ProxyLocation);
-
-		// Initialize blank heightmap data
-		const int32 VertsX = SourceLandscapeRect.Width() + 1;
-		const int32 VertsY = SourceLandscapeRect.Height() + 1;
-		TArray<uint16> HeightData;
-		HeightData.AddUninitialized(VertsX * VertsY);
-		for (int32 i = 0; i < HeightData.Num(); i++)
-		{
-			HeightData[i] = 32768;
-		}
-
-		TArray<FLandscapeImportLayerInfo> LayerInfos;
-	
-		int32 ComponentSizeQuads	= SourceLandscape->ComponentSizeQuads;
-		int32 SectionsPerComponent	= SourceLandscape->NumSubsections;
-		int32 QuadsPerSection		= SourceLandscape->SubsectionSizeQuads;
-		FGuid LandscapeGuid			= SourceLandscape->GetLandscapeGuid();
-		// Create landscape components	
-		LandscapeProxy->Import(LandscapeGuid, VertsX, VertsY, ComponentSizeQuads, SectionsPerComponent, QuadsPerSection, HeightData.GetData(), NULL, LayerInfos, NULL);
-		// 
-		FBox LandscapeProxyBounds = LandscapeProxy->GetComponentsBoundingBox(true);
-		
-		// Refresh level model bounding box
-		NewLevelModel->TileDetails->Bounds = LandscapeProxyBounds;
-		
-		// Calculate proxy offset from landscape actor
-		FVector ProxyOffset(SourceLandscapeBounds.GetCenter() - LandscapeProxyBounds.GetCenter());
-
-		// Add offset by chosen direction
-		switch (InWhere)
-		{
-		case XNegative:
-			ProxyOffset+= FVector(-SourceLandscapeScale.X*SourceLandscapeSize.X, 0.f, 0.f);
-			break;
-		case XPositive:
-			ProxyOffset+= FVector(+SourceLandscapeScale.X*SourceLandscapeSize.X, 0.f, 0.f);
-			break;
-		case YNegative:
-			ProxyOffset+= FVector(0.f, -SourceLandscapeScale.Y*SourceLandscapeSize.Y, 0.f);
-			break;
-		case YPositive:
-			ProxyOffset+= FVector(0.f, +SourceLandscapeScale.Y*SourceLandscapeSize.Y, 0.f);
-			break;
-		}
-
-		// Add source level position
-		FIntPoint IntOffset = FIntPoint(ProxyOffset.X, ProxyOffset.Y) + LandscapeTileModel->GetAbsoluteLevelPosition();
-				
-		// Move level with landscape proxy to desired position
-		FLevelModelList LevelsToMove; LevelsToMove.Add(NewLevelModel);
-		TranslateLevels(LevelsToMove, IntOffset);
+		NewLevelModel->SetVisible(false);
+		NewLevelModel->CreateAdjacentLandscapeProxy(SourceLandscape, SourceTileOffset, InWhere);
+		ShowLevels(Levels);
 	}
 }
 

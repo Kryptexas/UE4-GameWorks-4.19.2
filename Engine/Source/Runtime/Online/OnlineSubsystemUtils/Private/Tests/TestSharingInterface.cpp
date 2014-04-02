@@ -26,11 +26,11 @@ FTestSharingInterface::~FTestSharingInterface()
 }
 
 
-void FTestSharingInterface::Test(bool bWithImage)
+void FTestSharingInterface::Test(UWorld* InWorld, bool bWithImage)
 {
 	UE_LOG(LogOnline, Verbose, TEXT("FTestSharingInterface::Test"));
 
-	IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get(FName(*SubsystemName));
+	IOnlineSubsystem* OnlineSub = Online::GetSubsystem(InWorld, FName(*SubsystemName));
 	check(OnlineSub); 
 
 	SharingInterface = OnlineSub->GetSharingInterface();

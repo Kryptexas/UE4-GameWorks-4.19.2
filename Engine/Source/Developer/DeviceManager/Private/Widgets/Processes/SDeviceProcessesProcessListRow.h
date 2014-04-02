@@ -22,7 +22,6 @@ public:
 		SLATE_ARGUMENT(FDeviceProcessesProcessTreeNodePtr, Node)
 	SLATE_END_ARGS()
 
-
 public:
 
 	/**
@@ -36,7 +35,6 @@ public:
 
 		SMultiColumnTableRow<FDeviceProcessesProcessTreeNodePtr>::Construct(FSuperRowType::FArguments(), InOwnerTableView);
 	}
-
 
 public:
 
@@ -127,7 +125,6 @@ public:
 		return SNullWidget::NullWidget;
 	}
 	END_SLATE_FUNCTION_BUILD_OPTIMIZATION
-
 
 private:
 

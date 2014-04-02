@@ -100,14 +100,24 @@ FString FIOSTargetPlatform::GetIconPath( ETargetPlatformIcons::IconType InType )
 	switch (InType)
 	{
 	case ETargetPlatformIcons::Normal:
-		return FString(TEXT("Launcher/IOS/Platform_IOS_24x"));
+		return FString(TEXT("Launcher/iOS/Platform_iOS_24x"));
 
 	case ETargetPlatformIcons::Large:
 	case ETargetPlatformIcons::XLarge:
-		return FString(TEXT("Launcher/IOS/Platform_IOS_128x"));
+		return FString(TEXT("Launcher/iOS/Platform_iOS_128x"));
 	}
 
 	return FString();
+}
+
+bool FIOSTargetPlatform::IsSdkInstalled(bool bProjectHasCode, FString& OutDocumentationPath) const
+{
+	bool biOSSDKInstalled = true; // @todo How do we check that the iOS SDK is installed when building from Windows? Is that even possible?
+#if PLATFORM_MAC
+	OutDocumentationPath = FString("Shared/Tutorials/InstallingXCodeTutorial");
+	biOSSDKInstalled = IFileManager::Get().DirectoryExists(TEXT("/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform"));
+#endif
+	return biOSSDKInstalled;
 }
 
 

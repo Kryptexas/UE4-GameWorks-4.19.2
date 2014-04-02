@@ -15,8 +15,19 @@ FOnlineLeaderboardsIOS::FOnlineLeaderboardsIOS(FOnlineSubsystemIOS* InSubsystem)
 	// Cache a reference to the OSS Identity and Friends interfaces, we will need these when we are performing leaderboard actions
 	IdentityInterface = (FOnlineIdentityIOS*)InSubsystem->GetIdentityInterface().Get();
 	FriendsInterface = (FOnlineFriendsIOS*)InSubsystem->GetFriendsInterface().Get();
+
+	UnreportedScores = nil;
 }
 
+
+FOnlineLeaderboardsIOS::~FOnlineLeaderboardsIOS()
+{
+	if(UnreportedScores)
+	{
+		[UnreportedScores release];
+		UnreportedScores = nil;
+	}
+}
 
 bool FOnlineLeaderboardsIOS::ReadLeaderboards(const TArray< TSharedRef<FUniqueNetId> >& Players, FOnlineLeaderboardReadRef& InReadObject)
 {
@@ -178,7 +189,7 @@ bool FOnlineLeaderboardsIOS::WriteLeaderboards(const FName& SessionName, const F
 	// Make sure we have storage space for scores
 	if (UnreportedScores == nil)
 	{
-		UnreportedScores = [NSMutableArray arrayWithCapacity : WriteObject.Properties.Num()];
+		UnreportedScores = [[NSMutableArray alloc] initWithCapacity : WriteObject.Properties.Num()];
 	}
 
 	//@TODO: Note: The array of leaderboard names is ignored, because they offer no data.
@@ -247,8 +258,11 @@ bool FOnlineLeaderboardsIOS::FlushLeaderboards(const FName& SessionName)
 
 		if (bBeganFlushingScores)
 		{
-			NSMutableArray* ArrayCopy = UnreportedScores;
+			NSArray *ArrayCopy = [[NSArray alloc] initWithArray:UnreportedScores];
+			
+			[UnreportedScores release];
 			UnreportedScores = nil;
+			
 			dispatch_async(dispatch_get_main_queue(), ^
 			{
 				[GKScore reportScores : ArrayCopy withCompletionHandler : ^ (NSError *error)
@@ -263,6 +277,8 @@ bool FOnlineLeaderboardsIOS::FlushLeaderboards(const FName& SessionName)
 					{
 						UE_LOG(LogOnline, Display, TEXT("Error while flushing scores (code %d)"), [error code]);
 					}
+
+					[ArrayCopy release];
 
 					// Report back to the game thread whether this succeeded.
 					[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void)

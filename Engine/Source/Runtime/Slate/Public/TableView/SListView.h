@@ -266,16 +266,6 @@ public:
 
 				bWasHandled = true;
 			}
-			else if ( InKeyboardEvent.GetKey() == EKeys::Enter )
-			{
-				// Set the selected item
-				if ( this->Private_GetNumSelectedItems() > 0 )
-				{
-					this->Private_SignalSelectionChanged(ESelectInfo::OnKeyPress);
-				}
-
-				bWasHandled = true;
-			}
 
 			if( TListTypeTraits<ItemType>::IsPtrValid(ItemNavigatedTo) )
 			{

@@ -476,6 +476,9 @@ void SOutputLog::Construct( const FArguments& InArgs )
 				.FillWidth(1)
 				[
 					SNew(SScrollBorder, MessageListView.ToSharedRef())
+					[
+						MessageListView.ToSharedRef()
+					]
 				]
 				+SHorizontalBox::Slot()
 				.AutoWidth()

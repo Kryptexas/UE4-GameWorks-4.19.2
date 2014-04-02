@@ -24,7 +24,7 @@ class UFbxSkeletalMeshImportData : public UFbxMeshImportData
 	uint32 bPreserveSmoothingGroups:1;
 
 	/** If checked, meshes nested in bone hierarchies will be imported instead of being converted to bones. */
-	UPROPERTY(EditAnywhere, Category=ImportSettings)
+	UPROPERTY(EditAnywhere, config, Category=ImportSettings)
 	uint32 bImportMeshesInBoneHierarchy:1;
 
 	/** True to import morph target meshes from the FBX file */

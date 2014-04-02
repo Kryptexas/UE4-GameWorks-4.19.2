@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Settings.cpp: Implements the constructors for the various settings classes.
@@ -277,4 +277,3 @@ void UProjectPackagingSettings::UpdateBuildConfigurationVisibility()
 		ProjectPackagingConfigEnum->RemoveMetaData(TEXT("Hidden"), PPBC_DebugGame);
 	}
 }
-

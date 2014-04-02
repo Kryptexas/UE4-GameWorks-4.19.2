@@ -145,6 +145,10 @@ class ENGINE_API UBlackboardComponent : public UActorComponent
 	void SetValueAsVector(const FName& KeyName, FVector VectorValue);
 	void SetValueAsVector(uint8 KeyID, const FVector& VectorValue);
 
+	UFUNCTION(BlueprintCallable, Category="Blackboard")
+	void ClearValueAsVector(const FName& KeyName);
+	void ClearValueAsVector(uint8 KeyID);
+
 	/** return false if call failed (most probably no such entry in BB) */
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	bool GetLocationFromEntry(const FName& KeyName, FVector& ResultLocation) const;

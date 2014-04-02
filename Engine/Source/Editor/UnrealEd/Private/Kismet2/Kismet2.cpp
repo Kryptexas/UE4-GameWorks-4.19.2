@@ -1382,7 +1382,22 @@ inline void AddSearchMetaInfo( TArray<UObject::FAssetRegistryTag> &OutTags, cons
 	OutTags.Add( UObject::FAssetRegistryTag(Category, FinalString, UObject::FAssetRegistryTag::TT_Hidden) );
 }
 
-
+void FKismetEditorUtilities::AddInterfaceTags(const UBlueprint* Blueprint, TArray<UObject::FAssetRegistryTag>& OutTags)
+{
+	if (Blueprint->ImplementedInterfaces.Num() == 0)
+	{
+		return;
+	}
+	for (auto Iter(Blueprint->ImplementedInterfaces.CreateConstIterator()); Iter; Iter++)
+	{
+		const FBPInterfaceDescription& Description = *Iter;
+		if (Description.Interface->GetClass() != NULL)
+		{
+			FString Result = FString::Printf(TEXT("[%s] %s"), *Iter->Interface->GetSuperClass()->GetName(), *Iter->Interface->GetOuter()->GetName());
+			OutTags.Add(UObject::FAssetRegistryTag(TEXT("Interfaces"), Result, UObject::FAssetRegistryTag::TT_Hidden));
+		}
+	}
+}
 
 void FKismetEditorUtilities::GetAssetRegistryTagsForBlueprint(const UBlueprint* Blueprint, TArray<UObject::FAssetRegistryTag>& OutTags)
 {
@@ -1407,6 +1422,9 @@ void FKismetEditorUtilities::GetAssetRegistryTagsForBlueprint(const UBlueprint* 
 
 	//Add information for all node comments
 	AddSearchMetaInfo<UEdGraphNode>(OutTags, TEXT("Comments"), Blueprint);
+	
+	//Add information about interfaces (these are not nodes as the other tags are and so require a custom search)
+	AddInterfaceTags(Blueprint, OutTags);
 }
 
 bool FKismetEditorUtilities::IsTrackedBlueprintParent(const UClass* ParentClass)

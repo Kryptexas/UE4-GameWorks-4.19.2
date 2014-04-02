@@ -83,7 +83,7 @@ public:
 	/**
 	 * Save the device profiles.
 	 */
-	void SaveProfiles();
+	void SaveProfiles(bool bSaveToDefaults = false);
 
 	/**
 	 * Get the selected device profile. Set by the blueprint.
@@ -99,17 +99,13 @@ public:
 	 */
 	void SetActiveDeviceProfile( UDeviceProfile* DeviceProfile );
 
-private:
-
 	/**
-	 * Load the profiles from the .ini file.
+	 * Get a list of all possible parent profiles for a given device profile
+	 *
+	 * @param ChildProfile				- The profile we are looking for potential parents
+	 * @param PossibleParentProfiles	- The list of profiles which would be suitable as a parent for the given profile
 	 */
-	void InternalLoadProfiles();
-
-	/**
-	 * Save the profiles to the .ini file
-	 */
-	void InternalSaveProfiles();
+	void GetAllPossibleParentProfiles( const UDeviceProfile* ChildProfile, OUT TArray<UDeviceProfile*>& PossibleParentProfiles );
 
 
 public:

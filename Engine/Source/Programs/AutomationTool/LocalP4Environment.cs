@@ -13,8 +13,8 @@ namespace AutomationTool
 	/// </summary>
 	class LocalP4Environment : P4Environment
 	{
-		internal LocalP4Environment(CommandEnvironment CmdEnv)
-			: base(CmdEnv)
+		internal LocalP4Environment(P4Connection Connection, CommandEnvironment CmdEnv)
+			: base(Connection, CmdEnv)
 		{
 		}
 
@@ -22,7 +22,7 @@ namespace AutomationTool
 		/// Initializes the environment. Tries to autodetect all source control settings.
 		/// </summary>
 		/// <param name="CompilationEnv">Compilation environment</param>
-		protected override void InitEnvironment(CommandEnvironment CmdEnv)
+		protected override void InitEnvironment(P4Connection Connection, CommandEnvironment CmdEnv)
 		{
 			var HostName = Environment.MachineName.ToLower();
 			var P4PortEnv = Environment.GetEnvironmentVariable("P4PORT");
@@ -34,14 +34,14 @@ namespace AutomationTool
 			var UserName = CommandUtils.GetEnvVar(EnvVarNames.User);
 			if (String.IsNullOrEmpty(UserName))
 			{
-				UserName = DetectUserName();
+				UserName = DetectUserName(Connection);
 			}
 
 			var CommandLineClient = CommandUtils.GetEnvVar(EnvVarNames.Client);
 			P4ClientInfo ThisClient = null;
 			if (String.IsNullOrEmpty(CommandLineClient) == false)
 			{
-				ThisClient = CommandUtils.GetClientInfo(CommandLineClient);
+				ThisClient = Connection.GetClientInfo(CommandLineClient);
 				if (ThisClient == null)
 				{
 					throw new AutomationException("Unable to find client {0}", CommandLineClient);
@@ -54,7 +54,7 @@ namespace AutomationTool
 			}
 			else
 			{
-				ThisClient = DetectClient(UserName, HostName, CmdEnv.UATExe);
+				ThisClient = DetectClient(Connection, UserName, HostName, CmdEnv.UATExe);
 			}
 
 			Log.TraceInformation("Using user {0} clientspec {1} {2}", UserName, ThisClient.Name, ThisClient.RootPath);
@@ -62,7 +62,7 @@ namespace AutomationTool
 
 			string BuildRootPath;
 			string ClientRootPath;
-			DetectRootPaths(CmdEnv.LocalRoot, ThisClient, out BuildRootPath, out ClientRootPath);
+			DetectRootPaths(Connection, CmdEnv.LocalRoot, ThisClient, out BuildRootPath, out ClientRootPath);
 
 			CommandUtils.ConditionallySetEnvVar(EnvVarNames.P4Port, P4PortEnv);
 			CommandUtils.ConditionallySetEnvVar(EnvVarNames.User, UserName);
@@ -70,7 +70,11 @@ namespace AutomationTool
 			CommandUtils.ConditionallySetEnvVar(EnvVarNames.BuildRootP4, BuildRootPath);
 			CommandUtils.ConditionallySetEnvVar(EnvVarNames.ClientRoot, ClientRootPath);
 
-			var CLString = DetectCurrentCL(ClientRootPath);
+			var CLString = CommandUtils.GetEnvVar(EnvVarNames.Changelist);
+			if (String.IsNullOrEmpty(CLString))
+			{
+				DetectCurrentCL(Connection, ClientRootPath);
+			}
 			CommandUtils.ConditionallySetEnvVar(EnvVarNames.Changelist, CLString);
 
 			CommandUtils.ConditionallySetEnvVar(EnvVarNames.LabelToSync, "");
@@ -85,7 +89,7 @@ namespace AutomationTool
 
 			SetBuildRootEscaped();
 
-			base.InitEnvironment(CmdEnv);
+			base.InitEnvironment(Connection, CmdEnv);
 		}
 
 		/// <summary>
@@ -108,10 +112,10 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="ClientRootPath">Workspace path.</param>
 		/// <returns>Changelist number as a string.</returns>
-		private static string DetectCurrentCL(string ClientRootPath)
+		private static string DetectCurrentCL(P4Connection Connection, string ClientRootPath)
 		{
 			// Retrieve the current changelist 
-			var P4Result = CommandUtils.P4("changes -m 1 " + CommandUtils.CombinePaths(PathSeparator.Depot, ClientRootPath, "/...#have"), AllowSpew: false);
+			var P4Result = Connection.P4("changes -m 1 " + CommandUtils.CombinePaths(PathSeparator.Depot, ClientRootPath, "/...#have"), AllowSpew: false);
 			var CLTokens = P4Result.Output.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
 			var CLString = CLTokens[1];
 			var CL = Int32.Parse(CLString);
@@ -130,12 +134,12 @@ namespace AutomationTool
 		/// <param name="BuildRootPath">Build root</param>
 		/// <param name="LocalRootPath">Local root</param>
 		/// <param name="ClientRootPath">Client root</param>
-		private static void DetectRootPaths(string LocalRootPath, P4ClientInfo ThisClient, out string BuildRootPath, out string ClientRootPath)
+		private static void DetectRootPaths(P4Connection Connection, string LocalRootPath, P4ClientInfo ThisClient, out string BuildRootPath, out string ClientRootPath)
 		{
 			// Figure out the build root
 			string KnownFilePathFromRoot = CommandEnvironment.KnownFileRelativeToRoot;
-			string KnownLocalPath = CommandUtils.CombinePaths(PathSeparator.Slash, LocalRootPath, KnownFilePathFromRoot);
-			ProcessResult P4Result = CommandUtils.P4(String.Format("files -m 1 {0}", KnownLocalPath), AllowSpew: false);
+			string KnownLocalPath = CommandUtils.MakePathSafeToUseWithCommandLine(CommandUtils.CombinePaths(PathSeparator.Slash, LocalRootPath, KnownFilePathFromRoot));
+			ProcessResult P4Result = Connection.P4(String.Format("files -m 1 {0}", KnownLocalPath), AllowSpew: false);
 
 			string KnownFileDepotMapping = P4Result.Output;
 
@@ -167,10 +171,10 @@ namespace AutomationTool
 		/// <param name="HostName">Host</param>
 		/// <param name="UATLocation">Path to UAT exe, this will be checked agains the root path.</param>
 		/// <returns>Client to use.</returns>
-		private static P4ClientInfo DetectClient(string UserName, string HostName, string UATLocation)
+		private static P4ClientInfo DetectClient(P4Connection Connection, string UserName, string HostName, string UATLocation)
 		{
 			var MatchingClients = new List<P4ClientInfo>();
-			P4ClientInfo[] P4Clients = CommandUtils.P4GetClientsForUser(UserName);
+			P4ClientInfo[] P4Clients = Connection.GetClientsForUser(UserName);
 			foreach (var Client in P4Clients)
 			{
 				if (String.IsNullOrEmpty(Client.Host) || String.Compare(Client.Host, HostName, true) != 0)
@@ -238,17 +242,17 @@ namespace AutomationTool
 		/// Detects current user name.
 		/// </summary>
 		/// <returns></returns>
-		private static string DetectUserName()
+		private static string DetectUserName(P4Connection Connection)
 		{
 			var UserName = String.Empty;
-			var P4Result = CommandUtils.P4("info", AllowSpew: false);
+			var P4Result = Connection.P4("info", AllowSpew: false);
 			if (P4Result.ExitCode != 0)
 			{
 				throw new AutomationException("Perforce command failed: {0}. Please make sure your P4PORT or {1} is set properly.", P4Result.Output, EnvVarNames.P4Port);
 			}
 
 			// Retrieve the P4 user name			
-			var Tags = CommandUtils.ParseTaggedP4Output(P4Result.Output);
+			var Tags = Connection.ParseTaggedP4Output(P4Result.Output);
 			Tags.TryGetValue("User name", out UserName);
 
 			if (String.IsNullOrEmpty(UserName))

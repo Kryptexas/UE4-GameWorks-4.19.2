@@ -59,7 +59,7 @@ private:
 	bool DoPackagesNeedAutoSave() const;
 
 	/** @return The notification text to be displayed during auto-saving */
-	static FText GetAutoSaveNotificationText(const int32 TimeInSecondsUntilAutosave);
+	FText GetAutoSaveNotificationText(const int32 TimeInSecondsUntilAutosave);
 
 	/** 
 	 * @param bIgnoreCanAutoSave if True this function returns the time regardless of whether auto-save is enabled.
@@ -105,7 +105,7 @@ private:
 	TWeakPtr<SNotificationItem> AutoSaveNotificationPtr;
 
 	/** Packages that have been dirtied and not saved by the user, mapped to their latest auto-save file */
-	TMap< TWeakObjectPtr<UPackage>, FString > DirtyPackagesForUserSave;
+	TMap<TWeakObjectPtr<UPackage>, FString> DirtyPackagesForUserSave;
 
 	/** Restore information that was loaded following a crash */
 	TMap<FString, FString> PackagesThatCanBeRestored;

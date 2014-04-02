@@ -884,7 +884,7 @@ void ULightComponent::ReassignStationaryLightChannels(UWorld* TargetWorld, bool 
 	{
 		ULightComponent* const LightComponent = *LightIt;
 
-		const bool bLightIsInWorld = LightComponent->GetOwner() && TargetWorld->ContainsActor(LightComponent->GetOwner());
+		const bool bLightIsInWorld = LightComponent->GetOwner() && TargetWorld->ContainsActor(LightComponent->GetOwner()) && !LightComponent->GetOwner()->IsPendingKill();
 
 		if (bLightIsInWorld 
 			// Only operate on stationary light components (static shadowing only)

@@ -34,6 +34,9 @@ public:
 	 */
 	FOnlineFriendSteam(const CSteamID& InUserId=CSteamID());
 
+	/** Virtual destructor to keep clang happy */
+	virtual ~FOnlineFriendSteam() {};
+
 	/**
 	 * Get account data attribute
 	 *

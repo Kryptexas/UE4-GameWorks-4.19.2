@@ -22,21 +22,6 @@ namespace DecalEditorConstants
 ADecalActor::ADecalActor(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	// Structure to hold one-time initialization
-	struct FConstructorStatics
-	{
-		ConstructorHelpers::FObjectFinderOptional<UTexture2D> DecalTexture;
-		FName ID_Decals;
-		FText NAME_Decals;
-		FConstructorStatics()
-			: DecalTexture(TEXT("/Engine/EditorResources/S_DecalActorIcon"))
-			, ID_Decals(TEXT("Decals"))
-			, NAME_Decals(NSLOCTEXT( "SpriteCategory", "Decals", "Decals" ))
-		{
-		}
-	};
-	static FConstructorStatics ConstructorStatics;
-
 	Decal = PCIP.CreateDefaultSubobject<UDecalComponent>(this, TEXT("NewDecalComponent"));
 	Decal->RelativeScale3D = FVector(128.0f, 256.0f, 256.0f);
 
@@ -45,39 +30,61 @@ ADecalActor::ADecalActor(const class FPostConstructInitializeProperties& PCIP)
 	RootComponent = Decal;
 
 #if WITH_EDITORONLY_DATA
-	ArrowComponent = PCIP.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("ArrowComponent0"));
-	if (ArrowComponent)
+	BoxComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBoxComponent>(this, TEXT("DrawBox0"));
+	if (BoxComponent != nullptr)
 	{
-		ArrowComponent->bTreatAsASprite = true;
-		ArrowComponent->ArrowSize = 1.0f;
-		ArrowComponent->ArrowColor = FColor(80, 80, 200, 255);
-		ArrowComponent->SpriteInfo.Category = ConstructorStatics.ID_Decals;
-		ArrowComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Decals;
-		ArrowComponent->AttachParent = Decal;
-		ArrowComponent->bAbsoluteScale = true;
-		ArrowComponent->bIsScreenSizeScaled = true;
+		BoxComponent->BodyInstance.bEnableCollision_DEPRECATED = false;
+		BoxComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
+
+		BoxComponent->ShapeColor = FColor(80, 80, 200, 255);
+		BoxComponent->bDrawOnlyIfSelected = true;
+		BoxComponent->InitBoxExtent(FVector(1.0f, 1.0f, 1.0f));
+
+		BoxComponent->AttachParent = Decal;
+	}
+
+	ArrowComponent = PCIP.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("ArrowComponent0"));
+	SpriteComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
+
+	if (!IsRunningCommandlet())
+	{
+		// Structure to hold one-time initialization
+		struct FConstructorStatics
+		{
+			ConstructorHelpers::FObjectFinderOptional<UTexture2D> DecalTexture;
+			FName ID_Decals;
+			FText NAME_Decals;
+			FConstructorStatics()
+				: DecalTexture(TEXT("/Engine/EditorResources/S_DecalActorIcon"))
+				, ID_Decals(TEXT("Decals"))
+				, NAME_Decals(NSLOCTEXT("SpriteCategory", "Decals", "Decals"))
+			{
+			}
+		};
+		static FConstructorStatics ConstructorStatics;
+
+		if (ArrowComponent)
+		{
+			ArrowComponent->bTreatAsASprite = true;
+			ArrowComponent->ArrowSize = 1.0f;
+			ArrowComponent->ArrowColor = FColor(80, 80, 200, 255);
+			ArrowComponent->SpriteInfo.Category = ConstructorStatics.ID_Decals;
+			ArrowComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Decals;
+			ArrowComponent->AttachParent = Decal;
+			ArrowComponent->bAbsoluteScale = true;
+			ArrowComponent->bIsScreenSizeScaled = true;
+		}
+
+		if (SpriteComponent)
+		{
+			SpriteComponent->Sprite = ConstructorStatics.DecalTexture.Get();
+			SpriteComponent->AttachParent = Decal;
+			SpriteComponent->bIsScreenSizeScaled = true;
+			SpriteComponent->bAbsoluteScale = true;
+			SpriteComponent->bReceivesDecals = false;
+		}
 	}
 #endif // WITH_EDITORONLY_DATA
-
-	BoxComponent = PCIP.CreateDefaultSubobject<UBoxComponent>(this, TEXT("DrawBox0"));
-	BoxComponent->BodyInstance.bEnableCollision_DEPRECATED = false;
-	BoxComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
-
-	BoxComponent->ShapeColor = FColor(80, 80, 200, 255);
-	BoxComponent->bDrawOnlyIfSelected = true;
-	BoxComponent->InitBoxExtent(FVector(1.0f, 1.0f, 1.0f));
-
-	BoxComponent->AttachParent = Decal;
-
-	SpriteComponent = PCIP.CreateDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
-	if (SpriteComponent)
-	{
-		SpriteComponent->Sprite = ConstructorStatics.DecalTexture.Get();
-		SpriteComponent->AttachParent = Decal;
-		SpriteComponent->bIsScreenSizeScaled = true;
-		SpriteComponent->bAbsoluteScale = true;
-		SpriteComponent->bReceivesDecals = false;
-	}
 
 	bCanBeDamaged = false;
 }

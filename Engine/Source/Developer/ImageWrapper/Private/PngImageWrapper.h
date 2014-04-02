@@ -10,8 +10,8 @@
 
 #include "ThirdParty/zlib/zlib-1.2.5/Inc/zlib.h"
 
-#include "ThirdParty/libPNG/libpng-1.5.2/png.h"
-#include "ThirdParty/libPNG/libpng-1.5.2/pnginfo.h"
+#include "ThirdParty/libPNG/libPNG-1.5.2/png.h"
+#include "ThirdParty/libPNG/libPNG-1.5.2/pnginfo.h"
 
 
 /**

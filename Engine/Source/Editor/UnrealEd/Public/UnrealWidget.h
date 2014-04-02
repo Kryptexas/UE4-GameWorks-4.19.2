@@ -42,12 +42,12 @@ public:
 	 * Draws an arrow head line for a specific axis.
 	 * @param	bCubeHead		[opt] If true, render a cube at the axis tips.  If false (the default), render a cone.
 	 */
-	void Render_Axis( const FSceneView* View, FPrimitiveDrawInterface* PDI, EAxisList::Type InAxis, FMatrix& InMatrix, UMaterialInterface* InMaterial, const FLinearColor& InColor, FVector2D& OutAxisEnd, float InScale, bool bDrawWidget, bool bCubeHead=false );
+	void Render_Axis(const FSceneView* View, FPrimitiveDrawInterface* PDI, EAxisList::Type InAxis, FMatrix& InMatrix, UMaterialInterface* InMaterial, const FLinearColor& InColor, FVector2D& OutAxisEnd, const FVector& InScale, bool bDrawWidget, bool bCubeHead=false);
 
 	/**
 	 * Draws a cube
 	 */
-	void Render_Cube( FPrimitiveDrawInterface* PDI, const FMatrix& InMatrix, const UMaterialInterface* InMaterial, float InScale );
+	void Render_Cube( FPrimitiveDrawInterface* PDI, const FMatrix& InMatrix, const UMaterialInterface* InMaterial, const FVector& InScale );
 
 	/**
 	 * Draws the translation widget.

@@ -247,6 +247,15 @@ void UPrimitiveComponent::SetPhysicsAngularVelocity(FVector NewAngVel, bool bAdd
 	}
 }
 
+void UPrimitiveComponent::SetPhysicsMaxAngularVelocity(float NewMaxAngVel, bool bAddToCurrent, FName BoneName)
+{
+	FBodyInstance * const BI = GetBodyInstance(BoneName);
+	if (BI != NULL)
+	{
+		BI->SetMaxAngularVelocity(NewMaxAngVel, bAddToCurrent);
+	}
+}
+
 FVector UPrimitiveComponent::GetPhysicsAngularVelocity(FName BoneName)
 {
 	FBodyInstance* const BI = GetBodyInstance(BoneName);
@@ -331,11 +340,15 @@ float UPrimitiveComponent::GetMass() const
 	return 0.0f;
 }
 
-float UPrimitiveComponent::CalculateMass() const
+float UPrimitiveComponent::CalculateMass()
 {
 	if (BodyInstance.BodySetup.IsValid())
 	{
 		return BodyInstance.BodySetup->CalculateMass(this);
+	}
+	else if (UBodySetup * BodySetup = GetBodySetup())
+	{
+		return BodySetup->CalculateMass(this);
 	}
 	return 0.0f;
 }

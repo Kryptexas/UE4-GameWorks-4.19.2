@@ -13,7 +13,7 @@ Globals
 -----------------------------------------------------------------------------*/
 
 // smallest blend weight for vertex anims
-const float MinVertexAnimBlendWeight = 0.01f;
+const float MinVertexAnimBlendWeight = SMALL_NUMBER;
 // largest blend weight for vertex anims
 const float MaxVertexAnimBlendWeight = 5.0f;
 

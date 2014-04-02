@@ -1288,31 +1288,25 @@ void SBlueprintPalette::Construct(const FArguments& InArgs, TWeakPtr<FBlueprintE
 	{
 		this->ChildSlot
 		[
-			SNew(STutorialWrapper)
-			.Name(TEXT("FullBlueprintPalette"))
-			.Content()
+			SNew( STutorialWrapper, TEXT("FullBlueprintPalette") )
 			[
 				SAssignNew(PaletteSplitter, SSplitter)
 					.Orientation(Orient_Vertical)
 					.OnSplitterFinishedResizing(this, &SBlueprintPalette::OnSplitterResized)
 
-				+SSplitter::Slot()
-					.Value(FavoritesHeightRatio)
+				+ SSplitter::Slot()
+				.Value(FavoritesHeightRatio)
 				[
-					SAssignNew(FavoritesWrapper, STutorialWrapper)
-					.Name(TEXT("BlueprintPaletteFavorites"))
-					.Content()
+					SAssignNew( FavoritesWrapper, STutorialWrapper, TEXT("BlueprintPaletteFavorites") )
 					[
 						SNew(SBlueprintFavoritesPalette, InBlueprintEditor)
 					]
 				]
 
-				+SSplitter::Slot()
-					.Value(LibraryHeightRatio)
+				+ SSplitter::Slot()
+				.Value(LibraryHeightRatio)
 				[
-					SAssignNew(LibraryWrapper, STutorialWrapper)
-					.Name(TEXT("BlueprintPaletteLibrary"))
-					.Content()
+					SAssignNew( LibraryWrapper, STutorialWrapper, TEXT("BlueprintPaletteLibrary") )
 					[
 						SNew(SBlueprintLibraryPalette, InBlueprintEditor)
 					]

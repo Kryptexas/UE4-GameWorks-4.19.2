@@ -627,3 +627,20 @@ void UAudioComponent::SetUISound(bool bInIsUISound)
 		}
 	}
 }
+
+void UAudioComponent::AdjustAttenuation(const FAttenuationSettings& InAttenuationSettings)
+{
+	bOverrideAttenuation = true;
+	AttenuationOverrides = InAttenuationSettings;
+
+	// TODO - Audio Threading. This call would be a task
+	FAudioDevice* AudioDevice = GEngine ? GEngine->GetAudioDevice() : NULL;
+	if (AudioDevice != NULL)
+	{
+		FActiveSound* ActiveSound = AudioDevice->FindActiveSound(this);
+		if (ActiveSound)
+		{
+			ActiveSound->AttenuationSettings = AttenuationOverrides;
+		}
+	}
+}

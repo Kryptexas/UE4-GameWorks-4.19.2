@@ -27,6 +27,11 @@ public class StandaloneRenderer : ModuleRules
 			AddThirdPartyPrivateStaticDependencies(Target, "DX11");
 		}
 
+		if (Target.Platform == UnrealTargetPlatform.Linux)
+		{
+			AddThirdPartyPrivateStaticDependencies(Target, "SDL2");
+		}
+
 		if (Target.Platform == UnrealTargetPlatform.IOS)
 		{
 			PublicFrameworks.AddRange(new string[] { "OpenGLES", "QuartzCore", "GLKit" });

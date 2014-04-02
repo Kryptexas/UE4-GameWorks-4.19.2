@@ -8,7 +8,7 @@
 #include "EngineUserInterfaceClasses.h"
 #include "EngineInterpolationClasses.h"
 #include "EngineLevelScriptClasses.h"
-#include "Online.h"
+#include "OnlineSubsystemUtils.h"
 #include "IHeadMountedDisplay.h"
 #include "IForceFeedbackSystem.h"
 #include "Slate.h"
@@ -491,12 +491,6 @@ int32 BlendRot(float DeltaTime, float BlendC, float NewC)
 
 void APlayerController::SmoothTargetViewRotation(APawn* TargetPawn, float DeltaSeconds)
 {
-	const ACharacter* TargetCharacter = Cast<const ACharacter>(TargetPawn);
-	if (TargetCharacter && TargetCharacter->bSimulateGravity)
-	{
-		TargetViewRotation.Roll = 0;
-	}
-
 	BlendedTargetViewRotation.Pitch = BlendRot(DeltaSeconds, BlendedTargetViewRotation.Pitch, FRotator::ClampAxis(TargetViewRotation.Pitch));
 	BlendedTargetViewRotation.Yaw = BlendRot(DeltaSeconds, BlendedTargetViewRotation.Yaw, FRotator::ClampAxis(TargetViewRotation.Yaw));
 	BlendedTargetViewRotation.Roll = BlendRot(DeltaSeconds, BlendedTargetViewRotation.Roll, FRotator::ClampAxis(TargetViewRotation.Roll));
@@ -636,9 +630,9 @@ void APlayerController::Possess(APawn* PawnToPossess)
 		SetControlRotation( PawnToPossess->GetActorRotation() );
 
 		SetPawn(PawnToPossess);
-		GetPawn()->SetActorTickEnabled(true);
-
 		check(GetPawn() != NULL);
+
+		GetPawn()->SetActorTickEnabled(true);
 		GetControlledPawn()->Restart();
 
 		INetworkPredictionInterface* NetworkPredictionInterface = GetPawn() ? InterfaceCast<INetworkPredictionInterface>(GetPawn()->GetMovementComponent()) : NULL;
@@ -657,6 +651,15 @@ void APlayerController::Possess(APawn* PawnToPossess)
 		}
 		UpdateNavigationComponents();
 	}
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	if (!IsPendingKill() && DebuggingController == NULL && GetNetMode() != NM_DedicatedServer)
+	{
+		DebuggingController = ConstructObject<UGameplayDebuggingControllerComponent>(UGameplayDebuggingControllerComponent::StaticClass(), this);
+		DebuggingController->RegisterComponent();
+		DebuggingController->InitializeComponent();
+	}
+#endif
 }
 
 void APlayerController::AcknowledgePossession(APawn* P)
@@ -2466,7 +2469,7 @@ void APlayerController::StartFire( uint8 FireModeNum )
 	}
 	else if ( GetPawn() && !bCinematicMode && !GetWorld()->bPlayersOnly )
 	{
- 		GetPawn()->PawnStartFire( FireModeNum );
+		GetPawn()->PawnStartFire( FireModeNum );
 	}
 }
 
@@ -2551,12 +2554,14 @@ void APlayerController::DisplayDebug(class UCanvas* Canvas, const TArray<FName>&
 	{
 		if (PlayerCameraManager != NULL)
 		{
-			PlayerCameraManager->DisplayDebug(Canvas, DebugDisplay, YL, YPos);
+			Canvas->DrawText(RenderFont, "<<<< CAMERA >>>>", 4.0f, YPos );
+			YPos += YL;
+			PlayerCameraManager->DisplayDebug( Canvas, DebugDisplay, YL, YPos );
 		}
 		else
 		{
 			Canvas->SetDrawColor(255,0,0);
-			Canvas->DrawText(RenderFont, "NO CAMERA", 4.0f, YPos );
+			Canvas->DrawText(RenderFont, "<<<< NO CAMERA >>>>", 4.0f, YPos );
 			YPos += YL;
 		}
 	}
@@ -2566,7 +2571,7 @@ void APlayerController::DisplayDebug(class UCanvas* Canvas, const TArray<FName>&
 		BuildInputStack(InputStack);
 
 		Canvas->SetDrawColor(255,255,255);
-		Canvas->DrawText(RenderFont, TEXT("Input Stack"), 4.0f, YPos);
+		Canvas->DrawText(RenderFont, TEXT("<<<< INPUT STACK >>>"), 4.0f, YPos);
 		YPos += YL;
 
 		for(int32 i=InputStack.Num() - 1; i >= 0; --i)
@@ -2778,7 +2783,8 @@ void APlayerController::ToggleSpeaking(bool bSpeaking)
 	ULocalPlayer* LP = Cast<ULocalPlayer>(Player);
 	if (LP != NULL)
 	{
-		IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface();
+		UWorld* World = GetWorld();
+		IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface(World);
 		if (VoiceInt.IsValid())
 		{
 			if (bSpeaking)
@@ -3287,8 +3293,10 @@ void APlayerController::SetPlayer( UPlayer* InPlayer )
 	}
 
 	// initializations only for local players
-	if (Cast<ULocalPlayer>(InPlayer) != NULL)
+	ULocalPlayer *LP = Cast<ULocalPlayer>(InPlayer);
+	if (LP != NULL)
 	{
+		LP->InitOnlineSession();
 		InitInputSystem();
 	}
 	else
@@ -3304,15 +3312,6 @@ void APlayerController::SetPlayer( UPlayer* InPlayer )
 
 	// notify script that we've been assigned a valid player
 	ReceivedPlayer();
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (!IsPendingKill() && DebuggingController == NULL && GetNetMode() != NM_DedicatedServer)
-	{
-		DebuggingController = ConstructObject<UGameplayDebuggingControllerComponent>(UGameplayDebuggingControllerComponent::StaticClass(), this);
-		DebuggingController->RegisterComponent();
-		DebuggingController->InitializeComponent();
-	}
-#endif
 }
 
 

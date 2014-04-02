@@ -95,19 +95,14 @@ template <> struct TIsPODType<FMeshFace> { enum { Value = true }; };
 // A bone: an orientation, and a position, all relative to their parent.
 struct VJointPos
 {
-	FQuat   	Orientation;  //
-	FVector		Position;     //  needed or not ?
+	FTransform	Transform;
 
 	float       Length;       //  For collision testing / debugging drawing...
 	float       XSize;
 	float       YSize;
 	float       ZSize;
-
-	friend FArchive &operator<<( FArchive& Ar, VJointPos& V )
-	{
-		return Ar << V.Orientation << V.Position;
-	}
 };
+
 template <> struct TIsPODType<VJointPos> { enum { Value = true }; };
 
 // This contains Reference-skeleton related info

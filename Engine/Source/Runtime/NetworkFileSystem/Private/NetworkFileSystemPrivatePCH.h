@@ -16,7 +16,7 @@
 
 #include "Developer/DirectoryWatcher/Public/DirectoryWatcherModule.h"
 #include "IPlatformFileSandboxWrapper.h"
-#include "MultiChannelTCP.h"
+#include "MultichannelTCP.h"
 #include "Projects.h"
 #include "Sockets.h"
 #include "SocketSubsystem.h"

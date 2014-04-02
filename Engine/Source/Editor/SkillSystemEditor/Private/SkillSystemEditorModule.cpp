@@ -21,7 +21,6 @@ void FSkillSystemEditorModule::StartupModule()
 	FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 	PropertyModule.RegisterStructPropertyLayout( "GameplayAttribute", FOnGetStructCustomizationInstance::CreateStatic( &FAttributePropertyDetails::MakeInstance ) );
 	PropertyModule.RegisterStructPropertyLayout( "ScalableFloat", FOnGetStructCustomizationInstance::CreateStatic( &FScalableFloatDetails::MakeInstance ) );
-	PropertyModule.RegisterStructPropertyLayout( "FlexTableRowHandle", FOnGetStructCustomizationInstance::CreateStatic( &FFlexTableRowHandleDetails::MakeInstance ) );
 
 	PropertyModule.RegisterCustomPropertyLayout( "AttributeSet", FOnGetDetailCustomizationInstance::CreateStatic( &FAttributeDetails::MakeInstance ) );
 }

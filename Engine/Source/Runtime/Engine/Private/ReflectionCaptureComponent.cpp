@@ -38,25 +38,25 @@ void UWorld::UpdateAllReflectionCaptures()
 AReflectionCapture::AReflectionCapture(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	// Structure to hold one-time initialization
-	struct FConstructorStatics
-	{
-		FName NAME_ReflectionCapture;
-		ConstructorHelpers::FObjectFinderOptional<UTexture2D> DecalTexture;
-		FConstructorStatics()
-			: NAME_ReflectionCapture(TEXT("ReflectionCapture"))
-			, DecalTexture(TEXT("/Engine/EditorResources/S_ReflActorIcon"))
-		{
-		}
-	};
-	static FConstructorStatics ConstructorStatics;
-
 	CaptureComponent = PCIP.CreateAbstractDefaultSubobject<UReflectionCaptureComponent>(this, TEXT("NewReflectionComponent"));
 
 #if WITH_EDITORONLY_DATA
 	SpriteComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
-	if (SpriteComponent)
+	if (!IsRunningCommandlet() && (SpriteComponent != nullptr))
 	{
+		// Structure to hold one-time initialization
+		struct FConstructorStatics
+		{
+			FName NAME_ReflectionCapture;
+			ConstructorHelpers::FObjectFinderOptional<UTexture2D> DecalTexture;
+			FConstructorStatics()
+				: NAME_ReflectionCapture(TEXT("ReflectionCapture"))
+				, DecalTexture(TEXT("/Engine/EditorResources/S_ReflActorIcon"))
+			{
+			}
+		};
+		static FConstructorStatics ConstructorStatics;
+
 		SpriteComponent->Sprite = ConstructorStatics.DecalTexture.Get();
 		SpriteComponent->bHiddenInGame = true;
 		SpriteComponent->bAbsoluteScale = true;

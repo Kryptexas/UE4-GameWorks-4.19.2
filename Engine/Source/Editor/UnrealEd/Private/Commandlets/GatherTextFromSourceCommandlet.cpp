@@ -16,7 +16,6 @@ UGatherTextFromSourceCommandlet::UGatherTextFromSourceCommandlet(const class FPo
 
 const FString UGatherTextFromSourceCommandlet::FPreProcessorDescriptor::DefineString(TEXT("#define "));
 const FString UGatherTextFromSourceCommandlet::FPreProcessorDescriptor::UndefString(TEXT("#undef "));
-const FString UGatherTextFromSourceCommandlet::FPreProcessorDescriptor::LocNamespaceStringOld(TEXT("LOC_NAMESPACE"));
 const FString UGatherTextFromSourceCommandlet::FPreProcessorDescriptor::LocNamespaceString(TEXT("LOCTEXT_NAMESPACE"));
 const FString UGatherTextFromSourceCommandlet::FPreProcessorDescriptor::LocDefRegionString(TEXT("LOC_DEFINE_REGION"));
 const FString UGatherTextFromSourceCommandlet::FPreProcessorDescriptor::IniNamespaceString(TEXT("["));
@@ -180,9 +179,14 @@ int32 UGatherTextFromSourceCommandlet::Main( const FString& Params )
 	{
 		ParseCtxt.Filename = FilesToProcess[SourceFileIdx];
 		ParseCtxt.LineNumber = 0;
+		ParseCtxt.LineText.Empty();
+		ParseCtxt.Namespace.Empty();
 		ParseCtxt.ExcludedRegion = false;
 		ParseCtxt.WithinBlockComment = false;
 		ParseCtxt.WithinLineComment = false;
+		ParseCtxt.WithinStringLiteral = false;
+		ParseCtxt.WithinNamespaceDefine = false;
+		ParseCtxt.WithinStartingLine.Empty();
 
 		FString SourceFileText;
 		if (!FFileHelper::LoadFileToString(SourceFileText, *ParseCtxt.Filename))
@@ -194,6 +198,13 @@ int32 UGatherTextFromSourceCommandlet::Main( const FString& Params )
 			if (!ParseSourceText(SourceFileText, Parsables, ParseCtxt))
 			{
 				UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("GatherTextSource error(s) parsing source file %s"), *ParseCtxt.Filename);
+			}
+			else
+			{
+				if (ParseCtxt.WithinNamespaceDefine == true)
+				{
+					UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("Non-matching LOCTEXT_NAMESPACE defines found in %s"), *ParseCtxt.Filename);
+				}
 			}
 		}
 	}
@@ -280,8 +291,8 @@ bool UGatherTextFromSourceCommandlet::ParseSourceText(const FString& Text, const
 		bool EndOfLine = false;
 		while (!EndOfLine && !ParseCtxt.EndParsingCurrentLine)
 		{
-			// Check if we're starting comments. Begins *at* "//" or "/*".
-			if(!ParseCtxt.WithinLineComment && !ParseCtxt.WithinBlockComment)
+			// Check if we're starting comments or string literals. Begins *at* "//" or "/*".
+			if (!ParseCtxt.WithinLineComment && !ParseCtxt.WithinBlockComment && !ParseCtxt.WithinStringLiteral)
 			{
 				const TCHAR* ForwardCursor = Cursor;
 				if(*ForwardCursor == TEXT('/'))
@@ -292,13 +303,95 @@ bool UGatherTextFromSourceCommandlet::ParseSourceText(const FString& Text, const
 					case TEXT('/'):
 						{
 							ParseCtxt.WithinLineComment = true;
+							ParseCtxt.WithinStartingLine = ParseCtxt.LineText;
 						}
 						break;
 					case TEXT('*'):
 						{
 							ParseCtxt.WithinBlockComment = true;
-						}
+							ParseCtxt.WithinStartingLine = ParseCtxt.LineText;
+					}
 						break;
+					}
+				}
+			}
+
+			if (!ParseCtxt.WithinLineComment && !ParseCtxt.WithinBlockComment && !ParseCtxt.WithinStringLiteral)
+			{
+				if (*Cursor == TEXT('\"') && Cursor >= *Line)
+				{
+					const TCHAR* ReverseCursor = Cursor;
+					--ReverseCursor;
+					if ((*ReverseCursor != TEXT('\\') && *ReverseCursor != TEXT('\'') && ReverseCursor >= *Line) || ReverseCursor < *Line)
+					{
+						ParseCtxt.WithinStringLiteral = true;
+						ParseCtxt.WithinStartingLine = ParseCtxt.LineText;
+					}
+					else 
+					{
+						bool IsEscaped = false;
+						//if the backslash or single quote is itself escaped then the quote is good
+						while (*(--ReverseCursor) == TEXT('\\') && ReverseCursor >= *Line)
+						{
+							IsEscaped = !IsEscaped;
+						}
+
+						if (IsEscaped)
+						{
+							ParseCtxt.WithinStringLiteral = true;
+							ParseCtxt.WithinStartingLine = ParseCtxt.LineText;
+						}
+						else
+						{
+							//   check for '"'
+							ReverseCursor = Cursor;
+							--ReverseCursor;
+							const TCHAR* ForwardCursor = Cursor;
+							++ForwardCursor;
+							if (*ReverseCursor == TEXT('\'') && *ForwardCursor != TEXT('\'') && ReverseCursor >= *Line)
+							{
+								ParseCtxt.WithinStringLiteral = true;
+								ParseCtxt.WithinStartingLine = ParseCtxt.LineText;
+							}
+						}
+					}
+				}
+			}
+			else if (ParseCtxt.WithinStringLiteral)
+			{
+				const TCHAR* ReverseCursor = Cursor;
+				if (*ReverseCursor == TEXT('\"') && ReverseCursor >= *Line)
+				{
+					--ReverseCursor;
+					if ((*ReverseCursor != TEXT('\\') && *ReverseCursor != TEXT('\'') && ReverseCursor >= *Line) || ReverseCursor < *Line)
+					{
+						ParseCtxt.WithinStringLiteral = false;
+					}
+					else
+					{
+						bool IsEscaped = false;
+						//if the backslash or single quote is itself escaped then the quote is good
+						while (*(--ReverseCursor) == TEXT('\\') && ReverseCursor >= *Line)
+						{
+							IsEscaped = !IsEscaped;
+						}
+
+						if (IsEscaped)
+						{
+							ParseCtxt.WithinStringLiteral = false;
+						}
+						else
+						{
+							//   check for '"'
+							ReverseCursor = Cursor;
+							--ReverseCursor;
+							const TCHAR* ForwardCursor = Cursor;
+							++ForwardCursor;
+							if (*ReverseCursor == TEXT('\'') && *ForwardCursor != TEXT('\'') && ReverseCursor >= *Line)
+							{
+								ParseCtxt.WithinStringLiteral = false;
+							}
+						}
 					}
 				}
 			}
@@ -401,7 +494,7 @@ void UGatherTextFromSourceCommandlet::FDefineDescriptor::TryParse(const FString&
 	//  or
 	// #define <defname> <value>
 
-	if (!Context.ExcludedRegion && (Context.Filename.EndsWith(TEXT(".inl")) || (!Context.WithinBlockComment && !Context.WithinLineComment)) )
+	if (!Context.ExcludedRegion && (Context.Filename.EndsWith(TEXT(".inl")) || (!Context.WithinBlockComment && !Context.WithinLineComment && !Context.WithinStringLiteral)) )
 	{
 		FString RemainingText = Text.RightChop(GetToken().Len()).Trim();
 
@@ -418,11 +511,12 @@ void UGatherTextFromSourceCommandlet::FDefineDescriptor::TryParse(const FString&
 		{
 			// #define LOCTEXT_NAMESPACE <namespace>
 			FoundNamespaceString = LocNamespaceString;
-		}
-		else if(RemainingText.StartsWith(LocNamespaceStringOld, ESearchCase::CaseSensitive))
-		{
-			// #define LOC_NAMESPACE <namespace>
-			FoundNamespaceString = LocNamespaceStringOld;
+			if (Context.WithinNamespaceDefine == true)
+			{
+				UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("Non-matching LOCTEXT_NAMESPACE defines found in %s"), *Context.Filename);
+			}
+
+			Context.WithinNamespaceDefine = true;
 		}
 
 		if( !FoundNamespaceString.IsEmpty() )
@@ -448,20 +542,29 @@ void UGatherTextFromSourceCommandlet::FUndefDescriptor::TryParse(const FString& 
 
 	FString RemainingText = Text.RightChop(GetToken().Len()).Trim();
 
-	if (Context.ExcludedRegion)
+	if (!Context.ExcludedRegion && (Context.Filename.EndsWith(TEXT(".inl")) || (!Context.WithinBlockComment && !Context.WithinLineComment && !Context.WithinStringLiteral)))
 	{
-		if (LocDefRegionString == RemainingText)
+		if (Context.ExcludedRegion)
 		{
-			// #undef LOC_DEFINE_REGION
-			Context.ExcludedRegion = false;
-			Context.EndParsingCurrentLine = true;
+			if (LocDefRegionString == RemainingText)
+			{
+				// #undef LOC_DEFINE_REGION
+				Context.ExcludedRegion = false;
+				Context.EndParsingCurrentLine = true;
+			}
 		}
-	}
-	else
-	{
-		if( LocNamespaceString == RemainingText || LocNamespaceStringOld == RemainingText )
+		else
 		{
-			Context.EndParsingCurrentLine = true;
+			if (LocNamespaceString == RemainingText)
+			{
+				Context.EndParsingCurrentLine = true;
+				Context.Namespace.Empty();
+				if (Context.WithinNamespaceDefine == false)
+				{
+					UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("Non-matching LOCTEXT_NAMESPACE defines found in %s"), *Context.Filename);
+				}
+				Context.WithinNamespaceDefine = false;
+			}
 		}
 	}
 }
@@ -581,7 +684,7 @@ void UGatherTextFromSourceCommandlet::FCommandMacroDescriptor::TryParse(const FS
 	// Attempt to parse something of the format
 	// UI_COMMAND(LocKey, DefaultLangString, DefaultLangTooltipString, <IgnoredParam>, <IgnoredParam>)
 
-	if (!Context.ExcludedRegion && (Context.Filename.EndsWith(TEXT(".inl")) || (!Context.WithinBlockComment && !Context.WithinLineComment)) )
+	if (!Context.ExcludedRegion && (Context.Filename.EndsWith(TEXT(".inl")) || (!Context.WithinBlockComment && !Context.WithinLineComment && !Context.WithinStringLiteral)) )
 	{
 		TArray<FString> Arguments;
 		if (ParseArgsFromMacro(Text, Arguments, Context))
@@ -645,8 +748,7 @@ void UGatherTextFromSourceCommandlet::FStringMacroDescriptor::TryParse(const FSt
 	// Attempt to parse something of the format
 	// MACRONAME(param0, param1, param2)
 
-
-	if (!Context.ExcludedRegion && (Context.Filename.EndsWith(TEXT(".inl")) || (!Context.WithinBlockComment && !Context.WithinLineComment)) )
+	if (!Context.ExcludedRegion && (Context.Filename.EndsWith(TEXT(".inl")) || (!Context.WithinBlockComment && !Context.WithinLineComment && !Context.WithinStringLiteral)) )
 	{
 		TArray<FString> ArgArray;
 		if (ParseArgsFromMacro(Text, ArgArray, Context))

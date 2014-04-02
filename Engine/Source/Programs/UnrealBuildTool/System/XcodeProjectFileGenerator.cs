@@ -246,6 +246,10 @@ namespace UnrealBuildTool
             FrameworkGroupGuid = MakeXcodeGuid();
 			Contents.Append(string.Format("\t\t\t\t{0} /* Products */,{1}", ProductRefGroupGuid, ProjectFileGenerator.NewLine));
             Contents.Append(string.Format("\t\t\t\t{0} /* Frameworks */,{1}", FrameworkGroupGuid, ProjectFileGenerator.NewLine));
+			if (Groups.ContainsKey(""))
+			{
+				Groups[""].Append(ref Contents, bFilesOnly: true);
+			}
 
 			Contents.Append("\t\t\t);" + ProjectFileGenerator.NewLine);
 			Contents.Append("\t\t\tsourceTree = \"<group>\";" + ProjectFileGenerator.NewLine);
@@ -288,7 +292,10 @@ namespace UnrealBuildTool
 
 			foreach (XcodeFileGroup Group in Groups.Values)
 			{
-				Group.Append(ref Contents);
+				if (Group.GroupName != "")
+				{
+					Group.Append(ref Contents);
+				}
 			}
 
 			Contents.Append("/* End PBXGroup section */" + ProjectFileGenerator.NewLine + ProjectFileGenerator.NewLine);
@@ -371,7 +378,7 @@ namespace UnrealBuildTool
 
 			if (Target.Type == "Native")
 			{
-				if (Target.DisplayName.Contains("(Build)"))
+				if (Target.DisplayName.Contains("(Build)") || Target.DisplayName == "UE4XcodeHelper")
 				{
 					Contents.Append(
 						"\t\t\tproductReference = " + Target.ProductGuid + " /* " + Target.ProductName + " */;" + ProjectFileGenerator.NewLine +
@@ -442,7 +449,7 @@ namespace UnrealBuildTool
 						"\t\t\t\tGCC_ENABLE_CPP_RTTI = NO;" + ProjectFileGenerator.NewLine +
 						//This should only be needed for packaging for iOS. If this changes it should be moved to the iOS exclusive sections.
 						"\t\t\t\tCONFIGURATION_BUILD_DIR = \"Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine +
-						"\t\t\t\tMACOSX_DEPLOYMENT_TARGET = 10.8;" + ProjectFileGenerator.NewLine +
+						"\t\t\t\tMACOSX_DEPLOYMENT_TARGET = 10.9;" + ProjectFileGenerator.NewLine +
 						"\t\t\t\tONLY_ACTIVE_ARCH = YES;" + ProjectFileGenerator.NewLine +
 						"\t\t\t\tSDKROOT = macosx;" + ProjectFileGenerator.NewLine +
 						"\t\t\t};" + ProjectFileGenerator.NewLine +
@@ -458,7 +465,7 @@ namespace UnrealBuildTool
 						"\t\t\t\tCLANG_CXX_LANGUAGE_STANDARD = \"c++0x\";" + ProjectFileGenerator.NewLine +
 						//This should only be needed for packaging for iOS. If this changes it should be moved to the iOS exclusive sections.
 						"\t\t\t\tCONFIGURATION_BUILD_DIR = \"Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine +
-						"\t\t\t\tMACOSX_DEPLOYMENT_TARGET = 10.8;" + ProjectFileGenerator.NewLine +
+						"\t\t\t\tMACOSX_DEPLOYMENT_TARGET = 10.9;" + ProjectFileGenerator.NewLine +
 						"\t\t\t\tSDKROOT = macosx;" + ProjectFileGenerator.NewLine +
 						"\t\t\t};" + ProjectFileGenerator.NewLine +
 						"\t\t\tname = Test;" + ProjectFileGenerator.NewLine +
@@ -477,7 +484,7 @@ namespace UnrealBuildTool
 						"\t\t\t\tGCC_ENABLE_CPP_RTTI = NO;" + ProjectFileGenerator.NewLine +
 						//This should only be needed for packaging for iOS. If this changes it should be moved to the iOS exclusive sections.
 						"\t\t\t\tCONFIGURATION_BUILD_DIR = \"Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine +
-						"\t\t\t\tMACOSX_DEPLOYMENT_TARGET = 10.8;" + ProjectFileGenerator.NewLine +
+						"\t\t\t\tMACOSX_DEPLOYMENT_TARGET = 10.9;" + ProjectFileGenerator.NewLine +
 						"\t\t\t\tONLY_ACTIVE_ARCH = YES;" + ProjectFileGenerator.NewLine +
 						"\t\t\t\tSDKROOT = macosx;" + ProjectFileGenerator.NewLine +
 						"\t\t\t};" + ProjectFileGenerator.NewLine +
@@ -495,7 +502,7 @@ namespace UnrealBuildTool
 					"\t\t\t\tCLANG_CXX_LANGUAGE_STANDARD = \"c++0x\";" + ProjectFileGenerator.NewLine +
 									//This should only be needed for packaging for iOS. If this changes it should be moved to the iOS exclusive sections.
 					"\t\t\t\tCONFIGURATION_BUILD_DIR = \"Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine +
-					"\t\t\t\tMACOSX_DEPLOYMENT_TARGET = 10.8;" + ProjectFileGenerator.NewLine +
+					"\t\t\t\tMACOSX_DEPLOYMENT_TARGET = 10.9;" + ProjectFileGenerator.NewLine +
 					"\t\t\t\tSDKROOT = macosx;" + ProjectFileGenerator.NewLine +
 					"\t\t\t};" + ProjectFileGenerator.NewLine +
 					"\t\t\tname = Development;" + ProjectFileGenerator.NewLine +
@@ -510,7 +517,7 @@ namespace UnrealBuildTool
 					"\t\t\t\tCLANG_CXX_LANGUAGE_STANDARD = \"c++0x\";" + ProjectFileGenerator.NewLine +
 									//This should only be needed for packaging for iOS. If this changes it should be moved to the iOS exclusive sections.
 					"\t\t\t\tCONFIGURATION_BUILD_DIR = \"Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine +
-					"\t\t\t\tMACOSX_DEPLOYMENT_TARGET = 10.8;" + ProjectFileGenerator.NewLine +
+					"\t\t\t\tMACOSX_DEPLOYMENT_TARGET = 10.9;" + ProjectFileGenerator.NewLine +
 					"\t\t\t\tSDKROOT = macosx;" + ProjectFileGenerator.NewLine +
 					"\t\t\t};" + ProjectFileGenerator.NewLine +
 					"\t\t\tname = Shipping;" + ProjectFileGenerator.NewLine +
@@ -529,7 +536,7 @@ namespace UnrealBuildTool
 							"\t\t\tbuildSettings = {" + ProjectFileGenerator.NewLine +
 							"\t\t\t\tCOMBINE_HIDPI_IMAGES = YES;" + ProjectFileGenerator.NewLine +
 							"\t\t\t\tPRODUCT_NAME = \"$(TARGET_NAME)\";" + ProjectFileGenerator.NewLine +
-							"\t\t\t\tMACOSX_DEPLOYMENT_TARGET = 10.8;" + ProjectFileGenerator.NewLine +
+							"\t\t\t\tMACOSX_DEPLOYMENT_TARGET = 10.9;" + ProjectFileGenerator.NewLine +
 							"\t\t\t\tSDKROOT = macosx;" + ProjectFileGenerator.NewLine +
 							"\t\t\t};" + ProjectFileGenerator.NewLine +
 							"\t\t\tname = Debug;" + ProjectFileGenerator.NewLine +
@@ -540,7 +547,7 @@ namespace UnrealBuildTool
 							"\t\t\tbuildSettings = {" + ProjectFileGenerator.NewLine +
 							"\t\t\t\tCOMBINE_HIDPI_IMAGES = YES;" + ProjectFileGenerator.NewLine +
 							"\t\t\t\tPRODUCT_NAME = \"$(TARGET_NAME)\";" + ProjectFileGenerator.NewLine +
-							"\t\t\t\tMACOSX_DEPLOYMENT_TARGET = 10.8;" + ProjectFileGenerator.NewLine +
+							"\t\t\t\tMACOSX_DEPLOYMENT_TARGET = 10.9;" + ProjectFileGenerator.NewLine +
 							"\t\t\t\tSDKROOT = macosx;" + ProjectFileGenerator.NewLine +
 							"\t\t\t};" + ProjectFileGenerator.NewLine +
 							"\t\t\tname = Test;" + ProjectFileGenerator.NewLine +
@@ -555,7 +562,7 @@ namespace UnrealBuildTool
 							"\t\t\tbuildSettings = {" + ProjectFileGenerator.NewLine +
 							"\t\t\t\tCOMBINE_HIDPI_IMAGES = YES;" + ProjectFileGenerator.NewLine +
 							"\t\t\t\tPRODUCT_NAME = \"$(TARGET_NAME)\";" + ProjectFileGenerator.NewLine +
-							"\t\t\t\tMACOSX_DEPLOYMENT_TARGET = 10.8;" + ProjectFileGenerator.NewLine +
+							"\t\t\t\tMACOSX_DEPLOYMENT_TARGET = 10.9;" + ProjectFileGenerator.NewLine +
 							"\t\t\t\tSDKROOT = macosx;" + ProjectFileGenerator.NewLine +
 							"\t\t\t};" + ProjectFileGenerator.NewLine +
 							"\t\t\tname = DebugGame;" + ProjectFileGenerator.NewLine +
@@ -568,7 +575,7 @@ namespace UnrealBuildTool
 						"\t\t\tbuildSettings = {" + ProjectFileGenerator.NewLine +
 						"\t\t\t\tCOMBINE_HIDPI_IMAGES = YES;" + ProjectFileGenerator.NewLine +
 						"\t\t\t\tPRODUCT_NAME = \"$(TARGET_NAME)\";" + ProjectFileGenerator.NewLine +
-						"\t\t\t\tMACOSX_DEPLOYMENT_TARGET = 10.8;" + ProjectFileGenerator.NewLine +
+						"\t\t\t\tMACOSX_DEPLOYMENT_TARGET = 10.9;" + ProjectFileGenerator.NewLine +
 						"\t\t\t\tSDKROOT = macosx;" + ProjectFileGenerator.NewLine +
 						"\t\t\t};" + ProjectFileGenerator.NewLine +
 						"\t\t\tname = Development;" + ProjectFileGenerator.NewLine +
@@ -579,7 +586,7 @@ namespace UnrealBuildTool
 						"\t\t\tbuildSettings = {" + ProjectFileGenerator.NewLine +
 						"\t\t\t\tCOMBINE_HIDPI_IMAGES = YES;" + ProjectFileGenerator.NewLine +
 						"\t\t\t\tPRODUCT_NAME = \"$(TARGET_NAME)\";" + ProjectFileGenerator.NewLine +
-						"\t\t\t\tMACOSX_DEPLOYMENT_TARGET = 10.8;" + ProjectFileGenerator.NewLine +
+						"\t\t\t\tMACOSX_DEPLOYMENT_TARGET = 10.9;" + ProjectFileGenerator.NewLine +
 						"\t\t\t\tSDKROOT = macosx;" + ProjectFileGenerator.NewLine +
 						"\t\t\t};" + ProjectFileGenerator.NewLine +
 						"\t\t\tname = Shipping;" + ProjectFileGenerator.NewLine +
@@ -1196,7 +1203,6 @@ namespace UnrealBuildTool
 								"\t\t\t\tOBJROOT = \"" + EngineTarget + "Intermediate/IOS/build\";" + ProjectFileGenerator.NewLine +
 								"\t\t\t\tCONFIGURATION_BUILD_DIR = \"" + EngineTarget + "Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine +
 								"\t\t\t\tIPHONEOS_DEPLOYMENT_TARGET = 7.0;" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tONLY_ACTIVE_ARCH = YES;" + ProjectFileGenerator.NewLine +
 								"\t\t\t\tPRODUCT_NAME = \"$(TARGET_NAME)\";" + ProjectFileGenerator.NewLine +
 								"\t\t\t\tSDKROOT = iphoneos;" + ProjectFileGenerator.NewLine +
 								"\t\t\t\tTEST_HOST = \"$(BUNDLE_LOADER)\";" + ProjectFileGenerator.NewLine +
@@ -1236,7 +1242,6 @@ namespace UnrealBuildTool
 								"\t\t\t\tOBJROOT = \"" + EngineTarget + "Intermediate/IOS/build\";" + ProjectFileGenerator.NewLine +
 								"\t\t\t\tCONFIGURATION_BUILD_DIR = \"" + EngineTarget + "Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine +
 								"\t\t\t\tIPHONEOS_DEPLOYMENT_TARGET = 7.0;" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tONLY_ACTIVE_ARCH = YES;" + ProjectFileGenerator.NewLine +
 								"\t\t\t\tPRODUCT_NAME = \"$(TARGET_NAME)\";" + ProjectFileGenerator.NewLine +
 								"\t\t\t\tSDKROOT = iphoneos;" + ProjectFileGenerator.NewLine +
 								"\t\t\t\tTEST_HOST = \"$(BUNDLE_LOADER)\";" + ProjectFileGenerator.NewLine +
@@ -1513,9 +1518,19 @@ namespace UnrealBuildTool
 		/// Adds the include directory to the list, after converting it to relative to UE4 root
 		private void AddIncludeDirectory(ref List<string> IncludeDirectories, string IncludeDir, string ProjectDir)
 		{
-			string FullPath = Path.GetFullPath(Path.Combine(ProjectDir, IncludeDir));
-			FullPath = Utils.MakePathRelativeTo(FullPath, Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "../..")));
-			FullPath = FullPath.TrimEnd('/');
+			string FullProjectPath = Path.GetFullPath(ProjectFileGenerator.MasterProjectRelativePath);
+			string FullPath = "";
+			if (IncludeDir.StartsWith("/") && !IncludeDir.StartsWith(FullProjectPath))
+			{
+				// Full path to a fulder outside of project
+				FullPath = IncludeDir;
+			}
+			else
+			{
+				FullPath = Path.GetFullPath(Path.Combine(ProjectDir, IncludeDir));
+				FullPath = Utils.MakePathRelativeTo(FullPath, FullProjectPath);
+				FullPath = FullPath.TrimEnd('/');
+			}
 			if (!IncludeDirectories.Contains(FullPath))
 			{
 				IncludeDirectories.Add(FullPath);
@@ -1608,6 +1623,7 @@ namespace UnrealBuildTool
 			string PBXShellScriptBuildPhaseSection = "/* Begin PBXShellScriptBuildPhase section */" + ProjectFileGenerator.NewLine;
 			Dictionary<string, XcodeFileGroup> Groups = new Dictionary<string, XcodeFileGroup>();
 			List<string> IncludeDirectories = new List<string>();
+			List<string> SystemIncludeDirectories = new List<string>();
 			List<string> PreprocessorDefinitions = new List<string>();
 
             foreach (XcodeFramework Framework in Frameworks)
@@ -1755,25 +1771,34 @@ namespace UnrealBuildTool
                             {
                                 Group.bReference = true;
                             }
-
                         }
                     }
                     else
                     {
-					XcodeProject.GenerateSectionsContents (ref PBXBuildFileSection, ref PBXFileReferenceSection, ref PBXSourcesBuildPhaseSection, ref Groups);
+						XcodeProject.GenerateSectionsContents(ref PBXBuildFileSection, ref PBXFileReferenceSection, ref PBXSourcesBuildPhaseSection, ref Groups);
                     }
 
 					foreach (var CurPath in XcodeProject.IntelliSenseIncludeSearchPaths)
 					{
-						AddIncludeDirectory (ref IncludeDirectories, CurPath, Path.GetDirectoryName (XcodeProject.ProjectFilePath));
+						AddIncludeDirectory(ref IncludeDirectories, CurPath, Path.GetDirectoryName(XcodeProject.ProjectFilePath));
+					}
+
+					foreach (var CurPath in XcodeProject.IntelliSenseSystemIncludeSearchPaths)
+					{
+						AddIncludeDirectory(ref SystemIncludeDirectories, CurPath, Path.GetDirectoryName(XcodeProject.ProjectFilePath));
 					}
 
 					foreach (var CurDefinition in XcodeProject.IntelliSensePreprocessorDefinitions)
 					{
-						string AlternateDefinition = CurDefinition.Contains("=0") ? CurDefinition.Replace("=0", "=1") :  CurDefinition.Replace("=1", "=0");
-						if (!PreprocessorDefinitions.Contains(CurDefinition) && !PreprocessorDefinitions.Contains(AlternateDefinition) && !CurDefinition.StartsWith("UE_ENGINE_DIRECTORY") && !CurDefinition.StartsWith("ORIGINAL_FILE_NAME"))
+						string Definition = CurDefinition;
+						string AlternateDefinition = Definition.Contains("=0") ? Definition.Replace("=0", "=1") : Definition.Replace("=1", "=0");
+						if (Definition.Equals("WITH_EDITORONLY_DATA=0"))
 						{
-							PreprocessorDefinitions.Add (CurDefinition);
+							Definition = AlternateDefinition;
+						}
+						if (!PreprocessorDefinitions.Contains(Definition) && !PreprocessorDefinitions.Contains(AlternateDefinition) && !Definition.StartsWith("UE_ENGINE_DIRECTORY") && !Definition.StartsWith("ORIGINAL_FILE_NAME"))
+						{
+							PreprocessorDefinitions.Add(Definition);
 						}
 					}
 				}
@@ -1781,7 +1806,7 @@ namespace UnrealBuildTool
 				"\t\t\trunOnlyForDeploymentPostprocessing = 0;" + ProjectFileGenerator.NewLine +
 				"\t\t};" + ProjectFileGenerator.NewLine;
 
-				if( !bGeneratingRocketProjectFiles )
+				if (!bGeneratingRocketProjectFiles)
 				{
 					// Add UnrealBuildTool to the master project
 					string ProjectPath = System.IO.Path.Combine(System.IO.Path.Combine(EngineRelativePath, "Source"), "Programs", "UnrealBuildTool", "UnrealBuildTool_Mono.csproj");
@@ -1878,7 +1903,7 @@ namespace UnrealBuildTool
 				"\t\t" + UE4ProjectTarget.Guid + " /* Project object */ = {" + ProjectFileGenerator.NewLine +
 				"\t\t\tisa = PBXProject;" + ProjectFileGenerator.NewLine +
 				"\t\t\tattributes = {" + ProjectFileGenerator.NewLine +
-				"\t\t\t\tLastUpgradeCheck = 0440;" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tLastUpgradeCheck = 0510;" + ProjectFileGenerator.NewLine +
 				"\t\t\t\tORGANIZATIONNAME = EpicGames;" + ProjectFileGenerator.NewLine +
 				"\t\t\t};" + ProjectFileGenerator.NewLine +
 				"\t\t\tbuildConfigurationList = " + UE4ProjectTarget.BuildConfigGuild + " /* Build configuration list for PBXProject \"" + UE4ProjectTarget.DisplayName + "\" */;" + ProjectFileGenerator.NewLine +
@@ -1920,7 +1945,13 @@ namespace UnrealBuildTool
 			PreprocessorDefinitionsString += "\t\t\t\t\t\"MONOLITHIC_BUILD=1\"," + ProjectFileGenerator.NewLine;
 			PreprocessorDefinitionsString += "\t\t\t\t);" + ProjectFileGenerator.NewLine;
 
-			string HeaderSearchPaths = "\t\t\t\tUSER_HEADER_SEARCH_PATHS = (" + ProjectFileGenerator.NewLine;
+			string HeaderSearchPaths = "\t\t\t\tHEADER_SEARCH_PATHS = (" + ProjectFileGenerator.NewLine;
+			foreach (string Path in SystemIncludeDirectories)
+			{
+				HeaderSearchPaths += "\t\t\t\t\t\"" + Path + "\"," + ProjectFileGenerator.NewLine;
+			}
+			HeaderSearchPaths += "\t\t\t\t);" + ProjectFileGenerator.NewLine;
+			HeaderSearchPaths += "\t\t\t\tUSER_HEADER_SEARCH_PATHS = (" + ProjectFileGenerator.NewLine;
 			foreach (string Path in IncludeDirectories)
 			{
 				HeaderSearchPaths += "\t\t\t\t\t\"" + Path + "\"," + ProjectFileGenerator.NewLine;

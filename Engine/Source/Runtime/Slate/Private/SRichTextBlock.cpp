@@ -99,13 +99,13 @@ void SRichTextBlock::CacheDesiredSize()
 FVector2D SRichTextBlock::ComputeDesiredSize() const
 {
 	//The layouts current margin size. We should not report a size smaller then the margins.
-	const FMargin Margin = TextLayout->GetMargin();
+	const FMargin LayoutMargin = TextLayout->GetMargin();
 	const FVector2D TextLayoutSize = TextLayout->GetSize();
 
 	//If a wrapping width has been provided that should be reported as the desired width.
 	const float Width = TextLayout->GetWrappingWidth() > 0 ? TextLayout->GetWrappingWidth() : TextLayoutSize.X;
 
-	return FVector2D( FMath::Max( Margin.GetTotalSpaceAlong<Orient_Horizontal>(), Width ), FMath::Max( Margin.GetTotalSpaceAlong<Orient_Vertical>(), TextLayoutSize.Y ) );
+	return FVector2D(FMath::Max(LayoutMargin.GetTotalSpaceAlong<Orient_Horizontal>(), Width), FMath::Max(LayoutMargin.GetTotalSpaceAlong<Orient_Vertical>(), TextLayoutSize.Y));
 }
 
 FChildren* SRichTextBlock::GetChildren()
@@ -118,13 +118,13 @@ void SRichTextBlock::ArrangeChildren( const FGeometry& AllottedGeometry, FArrang
 	TextLayout->ArrangeChildren( AllottedGeometry, ArrangedChildren );
 }
 
-TSharedPtr< ITextDecorator > SRichTextBlock::TryGetDecorator( const TArray< TSharedRef< ITextDecorator > >& Decorators, const FString& Text, const FTextRunParseResults& TextRun ) const
+TSharedPtr< ITextDecorator > SRichTextBlock::TryGetDecorator( const TArray< TSharedRef< ITextDecorator > >& InDecorators, const FString& InText, const FTextRunParseResults& TextRun ) const
 {
-	if ( Decorators.Num() > 0 )
+	if (InDecorators.Num() > 0)
 	{
-		for( auto DecoratorIter = Decorators.CreateConstIterator(); DecoratorIter; ++DecoratorIter )
+		for (auto DecoratorIter = InDecorators.CreateConstIterator(); DecoratorIter; ++DecoratorIter)
 		{
-			if ( (*DecoratorIter)->Supports( TextRun, Text ) )
+			if ((*DecoratorIter)->Supports(TextRun, InText))
 			{
 				return *DecoratorIter;
 			}

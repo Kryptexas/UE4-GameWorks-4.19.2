@@ -182,8 +182,15 @@ public class AndroidPlatform : Platform
 
 	public override void Deploy(ProjectParams Params, DeploymentContext SC)
 	{
+		string SOName = GetFinalSOName(Params, SC.StageExecutables[0]);
 		string AdbCommand = GetAdbCommand(Params);
-		string ApkName = GetFinalApkName(Params, SC.StageExecutables[0], false);
+		string ApkName = GetFinalApkName(Params, SC.StageExecutables[0], true);
+
+		// make sure APK is up to date (this is fast if so)
+		UEBuildDeploy Deploy = UEBuildDeploy.GetBuildDeploy(UnrealTargetPlatform.Android);
+		Deploy.PrepForUATPackageOrDeploy(Params.ShortProjectName, SC.ProjectRoot, SOName, SC.LocalRoot + "/Engine", Params.Distribution);
+
+		// now we can use the apk to get more info
 		string DeviceObbName = GetDeviceObbName(ApkName);
 		string PackageName = GetPackageInfo(ApkName, false);
 
@@ -199,6 +206,7 @@ public class AndroidPlatform : Platform
 		// always delete the existing commandline text file, so it doesn't reuse an old one
 		string IntermediateCmdLineFile = CombinePaths(SC.StageDirectory, "UE4CommandLine.txt");
 		Project.WriteStageCommandline(IntermediateCmdLineFile, Params, SC);
+
 
 		// copy files to device if we were staging
 		if (SC.Stage)
@@ -325,7 +333,7 @@ public class AndroidPlatform : Platform
 		string ApkName = ClientApp + GetArchitecture(Params) + ".apk";
 		if (!File.Exists(ApkName))
 		{
-			ApkName = GetFinalApkName(Params, Path.GetFileNameWithoutExtension(ClientApp), false);
+			ApkName = GetFinalApkName(Params, Path.GetFileNameWithoutExtension(ClientApp), true);
 		}
 
 		Console.WriteLine("Apk='{0}', CLientApp='{1}', ExeName='{2}'", ApkName, ClientApp, Params.ProjectGameExeFilename);

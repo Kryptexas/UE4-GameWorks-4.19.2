@@ -888,8 +888,8 @@ namespace UnrealBuildTool
 			{
 				// Update project file's set of preprocessor definitions and include paths
 				IntelliSenseGatherer.AddIntelliSensePreprocessorDefinitions( ModuleCompileEnvironment.Config.Definitions );
-				IntelliSenseGatherer.AddInteliiSenseIncludePaths( ModuleCompileEnvironment.Config.SystemIncludePaths );
-				IntelliSenseGatherer.AddInteliiSenseIncludePaths( ModuleCompileEnvironment.Config.IncludePaths );
+				IntelliSenseGatherer.AddInteliiSenseIncludePaths( ModuleCompileEnvironment.Config.SystemIncludePaths, bAddingSystemIncludes: true );
+				IntelliSenseGatherer.AddInteliiSenseIncludePaths( ModuleCompileEnvironment.Config.IncludePaths, bAddingSystemIncludes: false );
 
 				// Bail out.  We don't need to actually compile anything while generating project files.
 				return LinkInputFiles;
@@ -1462,7 +1462,7 @@ namespace UnrealBuildTool
 				RedistLinkEnvironment.Config.OutputFilePath = RedistStaticLibraryPath;
 
 				// Replace the items built so far with the library
-				FileItem RedistLibrary = RedistLinkEnvironment.LinkExecutable(false);
+				RedistLinkEnvironment.LinkExecutable(false);
 				LinkInputFiles.Clear();
 			}
 
@@ -1473,7 +1473,6 @@ namespace UnrealBuildTool
 			// Keep track of this module's public and private UObject source files, so that we can pass those off to UHT if needed
 			{
 				string ModuleSourceFolder = Path.GetFullPath( this.ModuleDirectory );
-				var ModuleClassesSourceFolder = Path.Combine( ModuleSourceFolder, "Classes" );	// @todo uht: Want to deprecate this eventually
 				foreach( var SourceFile in SourceFiles )
 				{
 					// Will always be a cache hit (we did this earlier during Compile())

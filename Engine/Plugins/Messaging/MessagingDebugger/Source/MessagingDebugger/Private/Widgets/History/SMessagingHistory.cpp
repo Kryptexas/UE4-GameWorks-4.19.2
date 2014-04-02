@@ -77,45 +77,62 @@ void SMessagingHistory::Construct( const FArguments& InArgs, const FMessagingDeb
 							(
 								SNew(SHeaderRow)
 
-								+ SHeaderRow::Column("SendType")
-									.DefaultLabel( FText::FromString(TEXT(" ")))
+								+ SHeaderRow::Column("Flag")
+									.DefaultLabel(FText::FromString(TEXT(" ")))
 									.FixedWidth(20.0f)
+									.HAlignCell(HAlign_Center)
+									.HAlignHeader(HAlign_Center)
+									.VAlignCell(VAlign_Center)
 
 								+ SHeaderRow::Column("TimeSent")
 									.DefaultLabel(LOCTEXT("MessageListTimeSentColumnHeader", "Time Sent"))
-									.FixedWidth(112.0f)
+									.FillWidth(0.15f)
 									.HAlignCell(HAlign_Right)
 									.HAlignHeader(HAlign_Right)
+									.VAlignCell(VAlign_Center)
 
 								+ SHeaderRow::Column("MessageType")
 									.DefaultLabel(LOCTEXT("MessageListMessageTypeColumnHeader", "Message Type"))
-									.FillWidth(1.0f)
+									.FillWidth(0.3f)
+									.VAlignCell(VAlign_Center)
+
+								+ SHeaderRow::Column("Sender")
+									.DefaultLabel(LOCTEXT("MessageListSenderColumnHeader", "Sender"))
+									.FillWidth(0.4f)
+									.VAlignCell(VAlign_Center)
+
+								+ SHeaderRow::Column("Recipients")
+									.DefaultLabel(LOCTEXT("MessageListRecipientsColumnHeader", "Recipients"))
+									.FillWidth(0.15f)
+									.HAlignCell(HAlign_Center)
+									.HAlignHeader(HAlign_Center)
+									.VAlignCell(VAlign_Center)
 
 								+ SHeaderRow::Column("Scope")
 									.DefaultLabel(LOCTEXT("MessageListScopeColumnHeader", "Scope"))
 									.FixedWidth(64.0f)
+									.VAlignCell(VAlign_Center)
 
 								+ SHeaderRow::Column("RouteLatency")
 									.DefaultLabel(LOCTEXT("MessageListRouteLatencyColumnHeader", "Routing Latency"))
 									.FixedWidth(112.0f)
 									.HAlignCell(HAlign_Right)
 									.HAlignHeader(HAlign_Right)
+									.VAlignCell(VAlign_Center)
 
 								+ SHeaderRow::Column("DispatchLatency")
 									.DefaultLabel(LOCTEXT("MessageListDispatchLatencyColumnHeader", "Dispatch Latency"))
 									.FixedWidth(112.0f)
 									.HAlignCell(HAlign_Right)
 									.HAlignHeader(HAlign_Right)
+									.VAlignCell(VAlign_Center)
 
 								+ SHeaderRow::Column("HandleTime")
 									.DefaultLabel(LOCTEXT("MessageListHandleTimeColumnHeader", "Handle Time"))
 									.FixedWidth(80.0f)
 									.HAlignCell(HAlign_Right)
 									.HAlignHeader(HAlign_Right)
-
-								+ SHeaderRow::Column("Flag")
-									.DefaultLabel( FText::FromString(TEXT(" ")))
-									.FixedWidth(20.0f)
+									.VAlignCell(VAlign_Center)
 							)
 					]
 			]

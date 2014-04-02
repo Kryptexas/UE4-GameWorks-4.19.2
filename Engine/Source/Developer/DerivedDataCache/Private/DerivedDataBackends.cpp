@@ -664,9 +664,13 @@ public:
 							UE_LOG(LogDerivedDataCache, Error, TEXT("Could not delete the pak file %s to overwrite it with a new one."), *ReadPakFilename);
 						}
 					}
-					if (!FPlatformFileManager::Get().GetPlatformFile().MoveFile(*ReadPakFilename, *WritePakFilename))
+					if (!FPakFileDerivedDataBackend::SortAndCopy(WritePakFilename, ReadPakFilename))
 					{
-						UE_LOG(LogDerivedDataCache, Error, TEXT("Could not move the pak file from %s to %s."), *WritePakFilename, *ReadPakFilename);
+						UE_LOG(LogDerivedDataCache, Error, TEXT("Couldn't sort pak file (%s)"), *WritePakFilename);
+					}
+					else if (!IFileManager::Get().Delete(*WritePakFilename))
+					{
+						UE_LOG(LogDerivedDataCache, Error, TEXT("Couldn't delete pak file (%s)"), *WritePakFilename);
 					}
 					else
 					{

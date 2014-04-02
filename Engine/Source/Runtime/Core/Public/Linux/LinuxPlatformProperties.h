@@ -15,7 +15,7 @@
 /**
  * Implements Linux platform properties.
  */
-template<bool IS_DEDICATED_SERVER>
+template<bool IS_DEDICATED_SERVER, bool IS_CLIENT_ONLY>
 struct FLinuxPlatformProperties
 	: public FGenericPlatformProperties
 {
@@ -42,6 +42,11 @@ struct FLinuxPlatformProperties
 	static FORCEINLINE bool IsServerOnly( )
 	{
 		return IS_DEDICATED_SERVER;
+	}
+
+	static FORCEINLINE bool IsClientOnly()
+	{
+		return IS_CLIENT_ONLY;
 	}
 
 	static FORCEINLINE const char* PlatformName( )
@@ -78,6 +83,6 @@ struct FLinuxPlatformProperties
 
 	static FORCEINLINE bool SupportsWindowedMode()
 	{
-		return false;	// FIXME: this is a hack to work around logic in FApp::Init(), where debug output device is not added otherwise
+		return true;
 	}
 };

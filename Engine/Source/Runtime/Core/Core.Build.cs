@@ -41,6 +41,7 @@ public class Core : ModuleRules
 				"Runtime/Core/Private/Serialization/Json",
                 "Runtime/Core/Private/Internationalization",
 				"Runtime/Core/Private/Internationalization/Cultures",
+                "Runtime/Analytics/Public",
 			}
 			);
 
@@ -49,6 +50,7 @@ public class Core : ModuleRules
 				"TargetPlatform",
 				"DerivedDataCache",
 				"InputDevice",
+                "Analytics"
 			}
 			);
 
@@ -108,7 +110,9 @@ public class Core : ModuleRules
 			AddThirdPartyPrivateStaticDependencies(Target, 
 				"zlib",
 				"jemalloc",
-				"elftoolchain"
+				"elftoolchain",
+				"SDL2",
+                		"SteamController"
                 );
         }
 		else if (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32")

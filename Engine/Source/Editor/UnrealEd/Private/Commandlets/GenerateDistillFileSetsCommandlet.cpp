@@ -93,14 +93,17 @@ int32 UGenerateDistillFileSetsCommandlet::Main( const FString& InParams )
 		if ( Switch.StartsWith(TemplateFileSwitch) )
 		{
 			Switch.Split(TEXT("="), NULL, &TemplateFilename);
+			TemplateFilename = TemplateFilename.TrimQuotes();
 		}
 		else if ( Switch.StartsWith(OutputFileSwitch) )
 		{
 			Switch.Split(TEXT("="), NULL, &OutputFilename);
+			OutputFilename = OutputFilename.TrimQuotes();
 		}
 		else if ( Switch.StartsWith(TemplateFolderSwitch) )
 		{
 			Switch.Split(TEXT("="), NULL, &TemplateFolder);
+			TemplateFolder = TemplateFolder.TrimQuotes();
 			FPaths::NormalizeFilename(TemplateFolder);
 			if ( !TemplateFolder.EndsWith(TEXT("/")) )
 			{
@@ -111,6 +114,7 @@ int32 UGenerateDistillFileSetsCommandlet::Main( const FString& InParams )
 		else if ( Switch.StartsWith(OutputFolderSwitch) )
 		{
 			Switch.Split(TEXT("="), NULL, &OutputFolder);
+			OutputFolder = OutputFolder.TrimQuotes();
 			FPaths::NormalizeFilename(OutputFolder);
 			if ( !OutputFolder.EndsWith(TEXT("/")) )
 			{

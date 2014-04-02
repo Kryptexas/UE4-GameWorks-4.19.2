@@ -65,6 +65,7 @@ struct GeometryFromShapeStorage
 	PxCapsuleGeometry CapsuleGeom;
 	PxConvexMeshGeometry ConvexGeom;
 	PxTriangleMeshGeometry TriangleGeom;
+	PxHeightFieldGeometry HeightFieldGeom;
 };
 
 PxGeometry * GetGeometryFromShape(GeometryFromShapeStorage & LocalStorage, const PxShape * PShape, bool bTriangleMeshAllowed = false);

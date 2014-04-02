@@ -424,8 +424,7 @@ TSharedPtr<FSlateApplication> FSlateApplication::CurrentApplication = NULL;
 TSharedPtr< GenericApplication > FSlateApplication::PlatformApplication = NULL;
 
 FSlateApplication::FSlateApplication()
-	: MyDragDropReflector( MakeShareable( new FDragDropReflector() ) )
-	, bAppIsActive(true)
+	: bAppIsActive(true)
 	, bSlateWindowActive(true)
 	, Scale( 1.0f )
 	, LastUserInteractionTimeForThrottling( 0.0 )
@@ -694,16 +693,6 @@ void FSlateApplication::DrawWindowAndChildren( const TSharedRef<SWindow>& Window
 
 		FSlateWindowElementList& WindowElementList = DrawWindowArgs.OutDrawBuffer.AddWindowElementList( WindowToDraw );
 
-		{
-			SCOPE_CYCLE_COUNTER( STAT_SlateCacheDesiredSize );
-			WindowToDraw->SlatePrepass();
-		}
-
-		if (WindowToDraw->IsAutosized())
-		{
-			WindowToDraw->ReshapeWindow(WindowToDraw->GetPositionInScreen(), WindowToDraw->GetDesiredSize());
-		}
-
 		// Drawing is done in window space, so null out the positions and keep the size.
 		FGeometry WindowGeometry = WindowToDraw->GetWindowGeometryInWindow();
 		int32 MaxLayerId = 0;
@@ -741,6 +730,65 @@ void FSlateApplication::DrawWindowAndChildren( const TSharedRef<SWindow>& Window
 	}
 }
 
+static void DrawWindowPrepass( TSharedRef<SWindow> WindowToDraw )
+{
+	FScopedSwitchWorldHack SwitchWorld( WindowToDraw );
+
+	{
+		SCOPE_CYCLE_COUNTER(STAT_SlateCacheDesiredSize);
+		WindowToDraw->SlatePrepass();
+	}
+
+	if (WindowToDraw->IsAutosized())
+	{
+		WindowToDraw->ReshapeWindow(WindowToDraw->GetPositionInScreen(), WindowToDraw->GetDesiredSize());
+	}
+}
+
+void FSlateApplication::DrawPrepass( TSharedPtr<SWindow> DrawOnlyThisWindow )
+{
+	SCOPE_CYCLE_COUNTER(STAT_SlateDrawWindowTime);
+
+	TSharedPtr<SWindow> ActiveModalWindow = GetActiveModalWindow();
+
+	if (ActiveModalWindow.IsValid())
+	{
+		DrawWindowPrepass( ActiveModalWindow.ToSharedRef() );
+
+		for (TArray< TSharedRef<SWindow> >::TConstIterator CurrentWindowIt(SlateWindows); CurrentWindowIt; ++CurrentWindowIt)
+		{
+			const TSharedRef<SWindow>& CurrentWindow = *CurrentWindowIt;
+			if (CurrentWindow->IsTopmostWindow())
+			{
+				DrawWindowPrepass( CurrentWindow );
+			}
+		}
+
+		TArray< TSharedRef<SWindow> > NotificationWindows;
+		FSlateNotificationManager::Get().GetWindows(NotificationWindows);
+		for (auto CurrentWindowIt(NotificationWindows.CreateIterator()); CurrentWindowIt; ++CurrentWindowIt)
+		{
+			DrawWindowPrepass(*CurrentWindowIt );
+		}
+	}
+	else if (DrawOnlyThisWindow.IsValid())
+	{
+		DrawWindowPrepass( DrawOnlyThisWindow.ToSharedRef() );
+	}
+	else
+	{
+		// Draw all windows
+		for (TArray< TSharedRef<SWindow> >::TConstIterator CurrentWindowIt(SlateWindows); CurrentWindowIt; ++CurrentWindowIt)
+		{
+			TSharedRef<SWindow> CurrentWindow = *CurrentWindowIt;
+			if (CurrentWindow->IsVisible())
+			{
+				DrawWindowPrepass(CurrentWindow );
+			}
+		}
+	}
+}
+
 void FSlateApplication::PrivateDrawWindows( TSharedPtr<SWindow> DrawOnlyThisWindow )
 {
 	check(Renderer.IsValid());
@@ -755,6 +803,8 @@ void FSlateApplication::PrivateDrawWindows( TSharedPtr<SWindow> DrawOnlyThisWind
 	}
 
 	FWidgetPath FocusPath = FocusedWidgetPath.ToWidgetPath();
+
+	DrawPrepass( DrawOnlyThisWindow );
 
 	FDrawWindowArgs DrawWindowArgs( Renderer->GetDrawBuffer(), FocusPath, WidgetsUnderCursor );
 
@@ -1786,13 +1836,6 @@ void FSlateApplication::OnShutdown()
 	}
 
 	DestroyWindowsImmediately();
-}
-
-
-
-FDragDropReflector& FSlateApplication::GetDragDropReflector()
-{
-	return CurrentApplication->MyDragDropReflector.Get();
 }
 
 /**

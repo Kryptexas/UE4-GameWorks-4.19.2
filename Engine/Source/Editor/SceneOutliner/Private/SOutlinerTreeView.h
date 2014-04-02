@@ -23,6 +23,12 @@ namespace SceneOutliner
 
 		void FlashHighlightOnItem( FOutlinerTreeItemPtr FlashHighlightOnItem );
 
+		/** Check that it is valid to move the current selection to the specified folder path */
+		bool ValidateMoveSelectionTo(FName NewParent);
+
+		/** Moves the current selection to the specified folder path */
+		void MoveSelectionTo(FName NewParent);
+
 	protected:
 
 		virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;

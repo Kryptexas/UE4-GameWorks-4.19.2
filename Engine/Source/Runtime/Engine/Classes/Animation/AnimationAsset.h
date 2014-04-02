@@ -146,33 +146,6 @@ struct FAnimExtractContext
 	}
 };
 
-/** Remapping Struct. 
- * Used to remap animation data made for a specific Skeleton, 
- * to another Asset for blending and rendering, typically a SkeletalMesh. */
-struct FSkeletonRemappedBoneArray
-{
-	/** Mapping table between Skeleton Bone Indices and Pose Bone Indices. */
-	TArray<int32> SkeletonToPoseBoneIndexArray;
-
-	FSkeletonRemappedBoneArray()
-	{
-	}
-
-	/**
-	 * Serializes the bones
-	 *
-	 * @param Ar - The archive to serialize into.
-	 * @param Rect - The bone container to serialize.
-	 *
-	 * @return Reference to the Archive after serialization.
-	 */
-	friend FArchive& operator<<(FArchive& Ar, FSkeletonRemappedBoneArray& B)
-	{ 
-		Ar << B.SkeletonToPoseBoneIndexArray;	
-		return Ar;
-	}
-};
-
 /**
  * This is a native transient structure.
  * Contains:
@@ -197,11 +170,8 @@ private:
 	/** Pointer to RefSkeleton of Asset. */
 	const FReferenceSkeleton* RefSkeleton;
 
-	/** Array of Pose to Skeleton BoneIndex map. Use to Remap and Retarget current Asset to any Skeleton used by Animations. */
-	TArray<FSkeletonRemappedBoneArray> RemappedArrays;
-
-	/** TMap to quickly look up proper map given TargetAsset. */
-	TMap<TWeakObjectPtr<class UObject>, int32> AssetToIndexMap;
+	/** Mapping table between Skeleton Bone Indices and Pose Bone Indices. */
+	TArray<int32> SkeletonToPoseBoneIndexArray;
 
 	/** For debugging. */
 	/** Disable Retargeting. Extract animation, but do not retarget it. */
@@ -221,8 +191,7 @@ public:
 	{
 		BoneIndicesArray.Empty();
 		BoneSwitchArray.Empty();
-		RemappedArrays.Empty();
-		AssetToIndexMap.Empty();
+		SkeletonToPoseBoneIndexArray.Empty();
 	}
 
 	FBoneContainer(const TArray<FBoneIndexType>& InRequiredBoneIndexArray, UObject& InAsset)
@@ -259,7 +228,7 @@ public:
 	}
 
 	/** Get Skeleton Asset. Could either be the SkeletalMesh's Skeleton, or the Skeleton this BoneContainer was made for. Is non NULL is BoneContainer is valid. */
-	USkeleton* GetSkeletonAsset() const
+	USkeleton * GetSkeletonAsset() const
 	{
 		return AssetSkeleton.Get();
 	}
@@ -350,8 +319,7 @@ public:
 			<< B.Asset 
 			<< B.AssetSkeletalMesh 
 			<< B.AssetSkeleton 
-			<< B.RemappedArrays 
-			<< B.AssetToIndexMap
+			<< B.SkeletonToPoseBoneIndexArray
 			<< B.bDisableRetargeting
 			<< B.bUseRAWData
 			;	
@@ -366,18 +334,21 @@ public:
 		return BoneSwitchArray[NewIndex];
 	}
 
-	/** Get Remapping Array between current Asset and requested TargetSkeleton. Used by animation decompression to remap animation data to current asset. */
-	const FSkeletonRemappedBoneArray* GetRemappedArrayForSkeleton(USkeleton& TargetSkeleton) const;
+	/** Const accessor to GetSkeletonToPoseBoneIndexArray(). */
+	TArray<int32> const & GetSkeletonToPoseBoneIndexArray() const
+	{
+		return SkeletonToPoseBoneIndexArray;
+	}
 
 private:
 	/** Initialize FBoneContainer. */
 	ENGINE_API void Initialize();
 
 	/** Cache remapping data if current Asset is a SkeletalMesh, with all compatible Skeletons. */
-	const FSkeletonRemappedBoneArray* RemapFromSkelMesh(const USkeletalMesh& SourceSkeletalMesh, USkeleton& TargetSkeleton);
+	void RemapFromSkelMesh(USkeletalMesh const & SourceSkeletalMesh, USkeleton & TargetSkeleton);
 
 	/** Cache remapping data if current Asset is a Skeleton, with all compatible Skeletons. */
-	const FSkeletonRemappedBoneArray* RemapFromSkeleton(const USkeleton& SourceSkeleton, USkeleton& TargetSkeleton);
+	void RemapFromSkeleton(USkeleton const & SourceSkeleton);
 };
 
 USTRUCT()

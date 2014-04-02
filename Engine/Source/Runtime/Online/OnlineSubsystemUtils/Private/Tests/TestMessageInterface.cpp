@@ -25,11 +25,11 @@ FTestMessageInterface::~FTestMessageInterface()
 	UE_LOG(LogOnline, Display, TEXT("FTestMessageInterface::~FTestMessageInterface"));
 }
 
-void FTestMessageInterface::Test(const TArray<FString>& InRecipients)
+void FTestMessageInterface::Test(UWorld* InWorld, const TArray<FString>& InRecipients)
 {
 	UE_LOG(LogOnline, Display, TEXT("FTestMessageInterface::Test"));
 
-	OnlineSub = IOnlineSubsystem::Get(SubsystemName.Len() ? FName(*SubsystemName, FNAME_Find) : NAME_None);
+	OnlineSub = Online::GetSubsystem(InWorld, SubsystemName.Len() ? FName(*SubsystemName, FNAME_Find) : NAME_None);
 	if (OnlineSub != NULL &&
 		OnlineSub->GetIdentityInterface().IsValid() &&
 		OnlineSub->GetMessageInterface().IsValid())

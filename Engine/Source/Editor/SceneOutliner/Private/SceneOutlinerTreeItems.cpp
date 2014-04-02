@@ -5,62 +5,11 @@
 #include "SSceneOutliner.h"
 
 #include "ScopedTransaction.h"
-
+#include "EditorActorFolders.h"
 #define LOCTEXT_NAMESPACE "SceneOutlinerTreeItems"
 
 namespace SceneOutliner
 {
-	/** Called to broadcast that a folder is going to be moved.
-	 *	Since folders are implied only by actor folder paths, they don't actually exist anywhere
-	 *	in a level. We use this broadcast mechanism to change folders to ensure that all folders in
-	 *	all currently open scene outliners stay up to date.
-	 */
-	void BroadcastFolderMove(TOutlinerFolderTreeItem& Folder, FName NewPath)
-	{
-		// We copy this array as the broadcast may cause children to be removed
-		auto ChildItemsCopy = Folder.ChildItems;
-		for (auto ChildIt = ChildItemsCopy.CreateIterator(); ChildIt; ++ChildIt)
-		{
-			auto ChildItem = ChildIt->Pin();
-			if (ChildItem.IsValid() && ChildItem->Type == TOutlinerTreeItem::Folder)
-			{
-				auto ChildFolder = StaticCastSharedPtr<TOutlinerFolderTreeItem>(ChildItem);
-				FString NewChildPath = NewPath.ToString() / ChildFolder->LeafName.ToString();
-				BroadcastFolderMove(*ChildFolder, FName(*NewChildPath));
-			}
-		}
-
-		SSceneOutliner::OnFolderMove.Broadcast(Folder.Path, NewPath);
-	}
-
-	/** Called to set all the recursive actor children to have a different folder */
-	void SetActorFoldersRecursive(TOutlinerFolderTreeItem& Folder, FName NewPath)
-	{
-		// Now set the paths on all the actor children - operate on a copy in case the actual child items is manipulated
-		auto ChildItemsCopy = Folder.ChildItems;
-		for (auto& WeakChild : ChildItemsCopy)
-		{
-			auto ChildItem = WeakChild.Pin();
-			if (ChildItem.IsValid())
-			{
-				if (ChildItem->Type == TOutlinerTreeItem::Actor)
-				{
-					auto ChildActorItem = StaticCastSharedPtr<TOutlinerActorTreeItem>(ChildItem);
-					auto* ChildActor = ChildActorItem->Actor.Get();
-					if (ChildActor && ChildActor->GetFolderPath() != NewPath)
-					{
-						ChildActor->SetFolderPath(NewPath);
-					}
-				}
-				else
-				{
-					auto ChildFolderItem = StaticCastSharedPtr<TOutlinerFolderTreeItem>(ChildItem);
-					const FName NewChildPath(*(NewPath.ToString() / ChildFolderItem->LeafName.ToString()));
-					SetActorFoldersRecursive(*ChildFolderItem, NewChildPath);
-				}
-			}
-		}
-	}
 
 	bool TOutlinerActorTreeItem::IsVisible() const
 	{
@@ -106,17 +55,8 @@ namespace SceneOutliner
 		}
 	}
 
-	void TOutlinerFolderTreeItem::RelocateChildren(FName NewPath)
-	{
-		// Change actor paths first, then broadcast the folder move (to catch any empty folders which should be moved as well)
-		SetActorFoldersRecursive(*this, NewPath);
-		BroadcastFolderMove(*this, NewPath);
-	}
-
 	void TOutlinerFolderTreeItem::Rename(FName NewLabel)
 	{
-		const FScopedTransaction Transaction(LOCTEXT("UndoAction_RenameFolder", "Rename Folder"));
-
 		FName NewPath = GetParentPath();
 		if (NewPath.IsNone())
 		{
@@ -127,13 +67,15 @@ namespace SceneOutliner
 			NewPath = FName(*(NewPath.ToString() / NewLabel.ToString()));
 		}
 
-		RelocateChildren(NewPath);
+		if (NewPath != Path && !FActorFolders::PathIsChildOf(NewPath.ToString(), Path.ToString()))
+		{
+			const FScopedTransaction Transaction(LOCTEXT("UndoAction_RenameFolder", "Rename Folder"));
+			FActorFolders::Get().RenameFolderInWorld(*GWorld, Path, NewPath);
+		}
 	}
 
 	void TOutlinerFolderTreeItem::MoveTo(FName NewPath)
 	{
-		const FScopedTransaction Transaction(LOCTEXT("UndoAction_MoveFolder", "Move Folder"));
-
 		if (NewPath.IsNone())
 		{
 			NewPath = LeafName;
@@ -142,7 +84,12 @@ namespace SceneOutliner
 		{
 			NewPath = FName(*(NewPath.ToString() / LeafName.ToString()));
 		}
-		RelocateChildren(NewPath);
+
+		if (NewPath != Path && !FActorFolders::PathIsChildOf(NewPath.ToString(), Path.ToString()))
+		{
+			const FScopedTransaction Transaction(LOCTEXT("UndoAction_MoveFolder", "Move Folder"));
+			FActorFolders::Get().RenameFolderInWorld(*GWorld, Path, NewPath);
+		}
 	}
 
 	TSharedRef<FDecoratedDragDropOp> CreateDragDropOperation(TArray<TSharedPtr<TOutlinerTreeItem>>& InTreeItems)
@@ -166,7 +113,6 @@ namespace SceneOutliner
 		if (Actors.Num())
 		{
 			TSharedRef<FFolderActorDragDropOp> ActorOp = MakeShareable(new FFolderActorDragDropOp);
-			FSlateApplication::GetDragDropReflector().RegisterOperation<FFolderActorDragDropOp>(ActorOp);
 			ActorOp->Init(Actors);
 			ActorOp->Folders = Folders;
 			Operation = ActorOp;
@@ -174,7 +120,6 @@ namespace SceneOutliner
 		else
 		{
 			TSharedRef<FFolderDragDropOp> FolderOp = MakeShareable(new FFolderDragDropOp);
-			FSlateApplication::GetDragDropReflector().RegisterOperation<FFolderDragDropOp>(FolderOp);
 			FolderOp->Folders = Folders;
 			Operation = FolderOp;
 		}

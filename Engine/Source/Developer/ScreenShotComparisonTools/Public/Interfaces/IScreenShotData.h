@@ -36,6 +36,7 @@ typedef TSharedRef<class IScreenShotData> IScreenShotDataRef;
 class IScreenShotData
 {
 public:
+	virtual ~IScreenShotData(){ }
 
 	/**
 	* Add screen shot data to the tree

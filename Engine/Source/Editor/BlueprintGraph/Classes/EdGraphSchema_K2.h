@@ -409,6 +409,7 @@ public:
 	virtual void DroppedAssetsOnPin(const TArray<FAssetData>& Assets, const FVector2D& GraphPosition, UEdGraphPin* Pin) const OVERRIDE;
 	virtual void GetAssetsNodeHoverMessage(const TArray<FAssetData>& Assets, const UEdGraphNode* HoverNode, FString& OutTooltipText, bool& OutOkIcon) const OVERRIDE;
 	virtual void GetAssetsPinHoverMessage(const TArray<FAssetData>& Assets, const UEdGraphPin* HoverPin, FString& OutTooltipText, bool& OutOkIcon) const OVERRIDE;
+	virtual bool CanDuplicateGraph(UEdGraph* InSourceGraph) const OVERRIDE;
 	virtual UEdGraph* DuplicateGraph(UEdGraph* GraphToDuplicate) const OVERRIDE;
 	virtual UEdGraphNode* CreateSubstituteNode(UEdGraphNode* Node, const UEdGraph* Graph, FObjectInstancingGraph* InstanceGraph) const OVERRIDE;
 	virtual int32 GetNodeSelectionCount(const UEdGraph* Graph) const OVERRIDE;
@@ -624,6 +625,8 @@ public:
 	static bool IsAllowableBlueprintVariableType(const class UClass* InClass);
 	static bool IsAllowableBlueprintVariableType(const class UScriptStruct *InStruct);
 
+	static bool IsPropertyExposedOnSpawn(const UProperty* Property);
+
 	/**
 	 * Returns a list of parameters for the function that are specified as automatically emitting terms for unconnected ref parameters in the compiler (MD_AutoCreateRefTerm)
 	 *
@@ -785,6 +788,9 @@ public:
 
 	/** Get menu for breaking links to specific nodes*/
 	void GetBreakLinkToSubMenuActions(class FMenuBuilder& MenuBuilder, class UEdGraphPin* InGraphPin);
+
+	/** Get menu for jumping to specific pin links */
+	void GetJumpToConnectionSubMenuActions(class FMenuBuilder& MenuBuilder, class UEdGraphPin* InGraphPin);
 
 	/** Create menu for variable get/set nodes which refer to a variable which does not exist. */
 	void GetNonExistentVariableMenu(const UEdGraphNode* InGraphNode, UBlueprint* OwnerBlueprint, FMenuBuilder* MenuBuilder) const;

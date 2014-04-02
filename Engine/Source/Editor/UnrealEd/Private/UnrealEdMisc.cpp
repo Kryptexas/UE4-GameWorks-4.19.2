@@ -29,6 +29,7 @@
 #include "MaterialEditorActions.h"
 #include "NormalMapIdentification.h"
 #include "EngineBuildSettings.h"
+#include "Slate.h"
 
 #define LOCTEXT_NAMESPACE "UnrealEd"
 
@@ -112,6 +113,9 @@ void FUnrealEdMisc::OnInit()
 
 	// Register Material Editor commands
 	FMaterialEditorCommands::Register();
+
+	// Register navigation commands for all viewports
+	FViewportNavigationCommands::Register();
 
 	// Init the editor mode tools, and set default editor mode initially
 	GEditorModeTools().Init();
@@ -489,6 +493,10 @@ void FUnrealEdMisc::OnExit()
 		TabsAttribs.Add(FAnalyticsEventAttribute(FString("ProjectId"), ProjectSettings.ProjectID.ToString()));
 
 		FEngineAnalytics::GetProvider().RecordEvent(FString("Editor.Usage.WindowCounts"), TabsAttribs);
+		
+		FSlateApplication::Get().GetPlatformApplication()->SendAnalytics(&FEngineAnalytics::GetProvider());
+
+		FEditorViewportStats::SendUsageData();
 	}
 
 	FInputBindingManager::Get().UnregisterUserDefinedGestureChanged(FOnUserDefinedGestureChanged::FDelegate::CreateRaw( this, &FUnrealEdMisc::OnUserDefinedGestureChanged ));
@@ -839,22 +847,22 @@ FText FUnrealEdMisc::OnGetDisplayName(UObject* InObject, bool bFullPath)
 	if(InObject != NULL)
 	{
 		// Is this an object held by an actor?
- 		AActor* Actor = NULL;
- 		UActorComponent* Component = Cast<UActorComponent>(InObject);
+		AActor* Actor = NULL;
+		UActorComponent* Component = Cast<UActorComponent>(InObject);
  
- 		if (Component != NULL)
- 		{
- 			Actor = Cast<AActor>(Component->GetOuter());
- 		}
+		if (Component != NULL)
+		{
+			Actor = Cast<AActor>(Component->GetOuter());
+		}
  
- 		if (Actor != NULL)
- 		{
- 			Name = FText::FromString( bFullPath ? Actor->GetPathName() : Actor->GetName() );
- 		}
- 		else if (InObject != NULL)
- 		{
- 			Name = FText::FromString( bFullPath ? InObject->GetPathName() : InObject->GetName() );
- 		}
+		if (Actor != NULL)
+		{
+			Name = FText::FromString( bFullPath ? Actor->GetPathName() : Actor->GetName() );
+		}
+		else if (InObject != NULL)
+		{
+			Name = FText::FromString( bFullPath ? InObject->GetPathName() : InObject->GetName() );
+		}
 	}
 
 	return Name;

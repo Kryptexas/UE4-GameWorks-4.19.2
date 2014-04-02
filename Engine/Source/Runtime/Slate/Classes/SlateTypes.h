@@ -1341,46 +1341,11 @@ struct SLATE_API FComboButtonStyle : public FSlateWidgetStyle
 	FComboButtonStyle& SetButtonStyle( const FButtonStyle& InButtonStyle ){ ButtonStyle = InButtonStyle; return *this; }
 
 	/**
-	 * The scale to apply to this widget
-	 */	
-	UPROPERTY(EditAnywhere, Category=Appearance)
-	FVector2D ContentScale;
-	FComboButtonStyle& SetContentScale( const FVector2D& InContentScale ){ ContentScale = InContentScale; return *this; }
-
-	/**
-	 * The padding to apply around our content
-	 */	
-	UPROPERTY(EditAnywhere, Category=Appearance)
-	FMargin ContentPadding;
-	FComboButtonStyle& SetContentPadding( const FMargin& InContentPadding ){ ContentPadding = InContentPadding; return *this; }
-
-	/**
-	 * Should this combo display a down arrow?
-	 */	
-	UPROPERTY(EditAnywhere, Category=Appearance)
-	bool HasDownArrow;
-	FComboButtonStyle& SetHasDownArrow( const bool InHasDownArrow ){ HasDownArrow = InHasDownArrow; return *this; }
-
-	/**
 	 * Image to use for the down arrow
 	 */	
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	FSlateBrush DownArrowImage;
 	FComboButtonStyle& SetDownArrowImage( const FSlateBrush& InDownArrowImage ){ DownArrowImage = InDownArrowImage; return *this; }
-
-	/**
-	 * The foreground color of our button
-	 */	
-	UPROPERTY(EditAnywhere, Category=Appearance)
-	FSlateColor ForegroundColor;
-	FComboButtonStyle& SetForegroundColor( const FSlateColor& InForegroundColor ){ ForegroundColor = InForegroundColor; return *this; }
-
-	/**
-	 * The tint and opacity of our button
-	 */	
-	UPROPERTY(EditAnywhere, Category=Appearance)
-	FSlateColor ButtonColorAndOpacity;
-	FComboButtonStyle& SetButtonColorAndOpacity( const FSlateColor& InButtonColorAndOpacity ){ ButtonColorAndOpacity = InButtonColorAndOpacity; return *this; }
 
 	/**
 	 * Brush to use to add a "menu border" around the drop-down content
@@ -1395,27 +1360,6 @@ struct SLATE_API FComboButtonStyle : public FSlateWidgetStyle
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	FMargin MenuBorderPadding;
 	FComboButtonStyle& SetMenuBorderPadding( const FMargin& InMenuBorderPadding ){ MenuBorderPadding = InMenuBorderPadding; return *this; }
-
-	/**
-	 * Where to place the menu relative to its anchor point
-	 */
-	UPROPERTY(EditAnywhere, Category=Layout)
-	TEnumAsByte<EMenuPlacement> MenuPlacement;
-	FComboButtonStyle& SetMenuPlacement( const EMenuPlacement InMenuPlacement ){ MenuPlacement = InMenuPlacement; return *this; }
-
-	/**
-	 * Horizontal alignment to use when positioning the content within the button
-	 */
-	UPROPERTY(EditAnywhere, Category=Layout)
-	TEnumAsByte<EHorizontalAlignment> HAlign;
-	FComboButtonStyle& SetHAlign( const EHorizontalAlignment InHAlign ){ HAlign = InHAlign; return *this; }
-
-	/**
-	 * Vertical alignment to use when positioning the content within the button
-	 */
-	UPROPERTY(EditAnywhere, Category=Layout)
-	TEnumAsByte<EVerticalAlignment> VAlign;
-	FComboButtonStyle& SetVAlign( const EVerticalAlignment InVAlign ){ VAlign = InVAlign; return *this; }
 };
 
 

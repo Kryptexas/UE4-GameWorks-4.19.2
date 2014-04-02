@@ -295,7 +295,6 @@ FStaticLightingSystem::FStaticLightingSystem(const FLightingBuildOptions& InOpti
 	, bBuildCanceled(false)
 	, DeterministicIndex(0)
 	, NextVisibilityId(0)
-	, bUseCustomImportanceVolume(false)
 	, CurrentBuildStage(FStaticLightingSystem::NotRunning)
 	, bCrashTrackerOriginallyEnabled(false)
 	, World(InWorld)
@@ -426,8 +425,8 @@ bool FStaticLightingSystem::BeginLightmassProcess()
 		verify(GConfig->GetBool(TEXT("DevOptions.StaticLighting"), TEXT("bCompressLightmaps"), GCompressLightmaps, GLightmassIni));
 
 		GAllowLightmapPadding = true;
-		FMemory::Memzero(&CustomImportanceBoundingBox, sizeof(FBox));
 		FMemory::Memzero(&LightingMeshBounds, sizeof(FBox));
+		FMemory::Memzero(&AutomaticImportanceVolumeBounds, sizeof(FBox));
 
 		GLightingBuildQuality = Options.QualityLevel;
 		switch(Options.QualityLevel)
@@ -469,7 +468,8 @@ bool FStaticLightingSystem::BeginLightmassProcess()
 				{
 					ULightComponentBase* const Light = *LightIt;
 					const bool bLightIsInWorld = Light->GetOwner() 
-						&& World->ContainsActor(Light->GetOwner());
+						&& World->ContainsActor(Light->GetOwner())
+						&& !Light->GetOwner()->IsPendingKill();
 
 					if(bLightIsInWorld 
 						&& Light->bAffectsWorld
@@ -1341,7 +1341,6 @@ void FStaticLightingSystem::AddBSPStaticLightingInfo(ULevel* Level, bool bBuildL
 	Model->GroupAllNodes(Level, Lights);
 
 	// now we need to make the mappings/meshes
-	bool bLocalUseCustomImportanceVolume = false;
 	bool bMarkLevelDirty = false;
 	for (TMap<int32, FNodeGroup*>::TIterator It(Model->NodeGroups); It; ++It)
 	{
@@ -1435,6 +1434,11 @@ void FStaticLightingSystem::AddBSPStaticLightingInfo(ULevel* Level, bool bBuildL
 				Meshes.Add(SurfaceStaticLighting);
 				LightingMeshBounds += SurfaceStaticLighting->BoundingBox;
 
+				if (SomeModelComponent->CastShadow)
+				{
+					UpdateAutomaticImportanceVolumeBounds( SurfaceStaticLighting->BoundingBox );
+				}
+
 				FStaticLightingMapping* CurrentMapping = SurfaceStaticLighting;
 				if (GLightmassDebugOptions.bSortMappings)
 				{
@@ -1455,13 +1459,6 @@ void FStaticLightingSystem::AddBSPStaticLightingInfo(ULevel* Level, bool bBuildL
 				if (bBuildLightingForBSP)
 				{
 					CurrentMapping->bProcessMapping = true;
-					// Add it to the CustomImportanceVolume
-					CustomImportanceBoundingBox += SurfaceStaticLighting->BoundingBox;
-				}
-				else
-				{
-					// If any mapping is skipped, we assume we are using the custom importance volume.
-					bLocalUseCustomImportanceVolume = true;
 				}
 
 				// count how many node groups have yet to come back as complete
@@ -1469,12 +1466,6 @@ void FStaticLightingSystem::AddBSPStaticLightingInfo(ULevel* Level, bool bBuildL
 
 				// add this mapping to the list of mappings to be applied later
 				Model->CachedMappings.Add(SurfaceStaticLighting);
-
-				// Set the bUseCustomImportanceVolume flag if any mappings were skipped.
-				if (bLocalUseCustomImportanceVolume == true)
-				{
-					bUseCustomImportanceVolume = true;
-				}
 			}
 		}
 	}
@@ -1508,7 +1499,6 @@ void FStaticLightingSystem::AddBSPStaticLightingInfo(ULevel* Level, TArray<FNode
 	Model->bInvalidForStaticLighting = false;
 
 	// now we need to make the mappings/meshes
-	bool bLocalUseCustomImportanceVolume = true;
 	for (int32 NodeGroupIdx = 0; NodeGroupIdx < NodeGroupsToBuild.Num(); NodeGroupIdx++)
 	{
 		FNodeGroup* NodeGroup = NodeGroupsToBuild[NodeGroupIdx];
@@ -1582,6 +1572,11 @@ void FStaticLightingSystem::AddBSPStaticLightingInfo(ULevel* Level, TArray<FNode
 				Meshes.Add(SurfaceStaticLighting);
 				LightingMeshBounds += SurfaceStaticLighting->BoundingBox;
 
+				if (SomeModelComponent->CastShadow)
+				{
+					UpdateAutomaticImportanceVolumeBounds( SurfaceStaticLighting->BoundingBox );
+				}
+				
 				FStaticLightingMapping* CurrentMapping = SurfaceStaticLighting;
 				if (GLightmassDebugOptions.bSortMappings)
 				{
@@ -1597,20 +1592,12 @@ void FStaticLightingSystem::AddBSPStaticLightingInfo(ULevel* Level, TArray<FNode
 				}
 
 				CurrentMapping->bProcessMapping = true;
-				// Add it to the CustomImportanceVolume
-				CustomImportanceBoundingBox += SurfaceStaticLighting->BoundingBox;
 
 				// count how many node groups have yet to come back as complete
 				Model->NumIncompleteNodeGroups++;
 
 				// add this mapping to the list of mappings to be applied later
 				Model->CachedMappings.Add(SurfaceStaticLighting);
-
-				// Set the bUseCustomImportanceVolume flag if any mappings were skipped.
-				if (bLocalUseCustomImportanceVolume == true)
-				{
-					bUseCustomImportanceVolume = true;
-				}
 			}
 		}
 	}
@@ -1636,10 +1623,14 @@ void FStaticLightingSystem::AddPrimitiveStaticLightingInfo(FStaticLightingPrimit
 		}
 		Meshes.Add(Mesh);
 		LightingMeshBounds += Mesh->BoundingBox;
+
+		if (Mesh->bCastShadow)
+		{
+			UpdateAutomaticImportanceVolumeBounds( Mesh->BoundingBox );
+		}
 	}
 
 	// If lighting is being built for this component, add its mappings to the system.
-	bool bLocalUseCustomImportanceVolume = false;
 	for(int32 MappingIndex = 0;MappingIndex < PrimitiveInfo.Mappings.Num();MappingIndex++)
 	{
 		FStaticLightingMapping* CurrentMapping = PrimitiveInfo.Mappings[MappingIndex];
@@ -1659,15 +1650,6 @@ void FStaticLightingSystem::AddPrimitiveStaticLightingInfo(FStaticLightingPrimit
 		if (bBuildActorLighting)
 		{
 			CurrentMapping->bProcessMapping = true;
-
-			// Add it to the CustomImportanceVolume
-			CA_ASSUME(CurrentMapping->Mesh != NULL);
-			CustomImportanceBoundingBox += CurrentMapping->Mesh->BoundingBox;
-		}
-		else
-		{
-			// If any mapping is skipped, we assume we are using the custom importance volume.
-			bLocalUseCustomImportanceVolume = true;
 		}
 
 		if (GLightmassDebugOptions.bSortMappings)
@@ -1681,12 +1663,6 @@ void FStaticLightingSystem::AddPrimitiveStaticLightingInfo(FStaticLightingPrimit
 		{
 			Mappings.Add(CurrentMapping);
 		}
-	}
-
-	// Set the bUseCustomImportanceVolume flag if any mappings were skipped.
-	if (bLocalUseCustomImportanceVolume == true)
-	{
-		bUseCustomImportanceVolume = true;
 	}
 }
 
@@ -1756,7 +1732,7 @@ void FStaticLightingSystem::GatherScene()
 	for( TObjectIterator<ALightmassImportanceVolume> It ; It ; ++It )
 	{
 		ALightmassImportanceVolume* LMIVolume = *It;
-		if (World->ContainsActor(LMIVolume))
+		if (World->ContainsActor(LMIVolume) && !LMIVolume->IsPendingKill())
 		{
 			LightmassExporter->AddImportanceVolume(LMIVolume);
 		}
@@ -1765,47 +1741,42 @@ void FStaticLightingSystem::GatherScene()
 	for( TObjectIterator<ALightmassCharacterIndirectDetailVolume> It ; It ; ++It )
 	{
 		ALightmassCharacterIndirectDetailVolume* LMDetailVolume = *It;
-		if (World->ContainsActor(LMDetailVolume))
+		if (World->ContainsActor(LMDetailVolume) && !LMDetailVolume->IsPendingKill())
 		{
 			LightmassExporter->AddCharacterIndirectDetailVolume(LMDetailVolume);
 		}
 	}
 
-	if (bUseCustomImportanceVolume)
-	{
-		// A custom importance volume indicates that we're building lighting for a subset of the scene's primitives (e.g. selected actors)
-		float CustomImportanceVolumeExpandBy = 0.0f;
-		verify(GConfig->GetFloat(TEXT("DevOptions.StaticLightingSceneConstants"), TEXT("CustomImportanceVolumeExpandBy"), CustomImportanceVolumeExpandBy, GLightmassIni));
-		CustomImportanceBoundingBox.ExpandBy(CustomImportanceVolumeExpandBy);
-		LightmassExporter->SetCustomImportanceVolume(CustomImportanceBoundingBox);
-	}
-	else
-	{
-		float MinimumImportanceVolumeExtentWithoutWarning = 0.0f;
-		verify(GConfig->GetFloat(TEXT("DevOptions.StaticLightingSceneConstants"), TEXT("MinimumImportanceVolumeExtentWithoutWarning"), MinimumImportanceVolumeExtentWithoutWarning, GLightmassIni));
+	float MinimumImportanceVolumeExtentWithoutWarning = 0.0f;
+	verify(GConfig->GetFloat(TEXT("DevOptions.StaticLightingSceneConstants"), TEXT("MinimumImportanceVolumeExtentWithoutWarning"), MinimumImportanceVolumeExtentWithoutWarning, GLightmassIni));
 
-		// If we have no importance volumes, then we'll synthesize one now.  A scene without any importance volumes will not yield
-		// expected lighting results, so it's important to have a volume to pass to Lightmass.
-		if (LightmassExporter->GetImportanceVolumes().Num() == 0)
+	// If we have no importance volumes, then we'll synthesize one now.  A scene without any importance volumes will not yield
+	// expected lighting results, so it's important to have a volume to pass to Lightmass.
+	if (LightmassExporter->GetImportanceVolumes().Num() == 0)
+	{
+		FBox ReasonableSceneBounds = AutomaticImportanceVolumeBounds;
+		if (ReasonableSceneBounds.GetExtent().SizeSquared() > (MinimumImportanceVolumeExtentWithoutWarning * MinimumImportanceVolumeExtentWithoutWarning))
 		{
-			FBox ReasonableSceneBounds = LightingMeshBounds;
-			if (ReasonableSceneBounds.GetExtent().SizeSquared() > (MinimumImportanceVolumeExtentWithoutWarning * MinimumImportanceVolumeExtentWithoutWarning))
-			{
-				// Emit a serious warning to the user about performance.
-				FMessageLog("LightingResults").PerformanceWarning(LOCTEXT("LightmassError_MissingImportanceVolume", "No importance volume found and the scene is so large that the automatically synthesized volume will not yield good results.  Please add a tightly bounding lightmass importance volume to optimize your scene's quality and lighting build times."));
+			// Emit a serious warning to the user about performance.
+			FMessageLog("LightingResults").PerformanceWarning(LOCTEXT("LightmassError_MissingImportanceVolume", "No importance volume found and the scene is so large that the automatically synthesized volume will not yield good results.  Please add a tightly bounding lightmass importance volume to optimize your scene's quality and lighting build times."));
 
-				// Clamp the size of the importance volume we create to a reasonable size
-				ReasonableSceneBounds = FBox(ReasonableSceneBounds.GetCenter() - MinimumImportanceVolumeExtentWithoutWarning, ReasonableSceneBounds.GetCenter() + MinimumImportanceVolumeExtentWithoutWarning);
-			}
-			else
-			{
-				// The scene isn't too big, so we'll use the scene's bounds as a synthetic importance volume
-				// NOTE: We don't want to pop up a message log for this common case when creating a new level, so we just spray a log message.  It's not very important to a user.
-				UE_LOG(LogStaticLightingSystem, Warning, TEXT("No importance volume found, so the scene bounding box was used.  You can optimize your scene's quality and lighting build times by adding importance volumes."));
-			}
-
-			LightmassExporter->AddImportanceVolumeBoundingBox(ReasonableSceneBounds);
+			// Clamp the size of the importance volume we create to a reasonable size
+			ReasonableSceneBounds = FBox(ReasonableSceneBounds.GetCenter() - MinimumImportanceVolumeExtentWithoutWarning, ReasonableSceneBounds.GetCenter() + MinimumImportanceVolumeExtentWithoutWarning);
 		}
+		else
+		{
+			// The scene isn't too big, so we'll use the scene's bounds as a synthetic importance volume
+			// NOTE: We don't want to pop up a message log for this common case when creating a new level, so we just spray a log message.  It's not very important to a user.
+			UE_LOG(LogStaticLightingSystem, Warning, TEXT("No importance volume found, so the scene bounding box was used.  You can optimize your scene's quality and lighting build times by adding importance volumes."));
+
+			float AutomaticImportanceVolumeExpandBy = 0.0f;
+			verify(GConfig->GetFloat(TEXT("DevOptions.StaticLightingSceneConstants"), TEXT("AutomaticImportanceVolumeExpandBy"), AutomaticImportanceVolumeExpandBy, GLightmassIni));
+
+			// Expand the scene's bounds a bit to make sure volume lighting samples placed on surfaces are inside
+			ReasonableSceneBounds = ReasonableSceneBounds.ExpandBy(AutomaticImportanceVolumeExpandBy);
+		}
+
+		LightmassExporter->AddImportanceVolumeBoundingBox(ReasonableSceneBounds);
 	}
 
 	const int32 NumMeshesAndMappings = Meshes.Num() + Mappings.Num();
@@ -2069,6 +2040,12 @@ void FStaticLightingSystem::UpdateLightingBuild()
 			CurrentBuildStage = FStaticLightingSystem::WaitingForImport;
 		}
 	}
+}
+
+void FStaticLightingSystem::UpdateAutomaticImportanceVolumeBounds( const FBox& MeshBounds )
+{
+	// Note: skyboxes will be excluded if they are properly setup to not cast shadows
+	AutomaticImportanceVolumeBounds += MeshBounds;
 }
 
 bool FStaticLightingSystem::CanAutoApplyLighting() const

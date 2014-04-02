@@ -354,8 +354,8 @@ class SBlueprintDiffMenu : public SCompoundWidget
 							Label = LOCTEXT("Depo", "Depot");
 						}
 
- 						MenuBuilder.AddMenuEntry(TAttribute<FText>(Label), ToolTip, FSlateIcon(), 
- 									FUIAction(FExecuteAction::CreateSP(this, &SBlueprintDiffMenu::DiffAgainstRevision, Revision->GetRevisionNumber())));
+						MenuBuilder.AddMenuEntry(TAttribute<FText>(Label), ToolTip, FSlateIcon(), 
+									FUIAction(FExecuteAction::CreateSP(this, &SBlueprintDiffMenu::DiffAgainstRevision, Revision->GetRevisionNumber())));
 					}
 				}
 			}
@@ -639,9 +639,7 @@ void FBlueprintEditorToolbar::FillBlueprintEditorModesToolbar(FToolBarBuilder& T
 		BlueprintEditorPtr->AddToolbarWidget(SNew(SSpacer).Size(FVector2D(4.0f, 1.0f)));
 
 		BlueprintEditorPtr->AddToolbarWidget(
-			SNew(STutorialWrapper)
-			.Name(TEXT("DefaultsMode"))
-			.Content()
+			SNew( STutorialWrapper, TEXT("DefaultsMode") )
 			[
 				SNew(SModeWidget, FBlueprintEditorApplicationModes::GetLocalizedMode( FBlueprintEditorApplicationModes::BlueprintDefaultsMode ), FBlueprintEditorApplicationModes::BlueprintDefaultsMode)
 				.OnGetActiveMode(GetActiveMode)
@@ -659,9 +657,7 @@ void FBlueprintEditorToolbar::FillBlueprintEditorModesToolbar(FToolBarBuilder& T
 		BlueprintEditorPtr->AddToolbarWidget(SNew(SBlueprintModeSeparator));
 
 		BlueprintEditorPtr->AddToolbarWidget(
-			SNew(STutorialWrapper)
-			.Name(TEXT("ComponentsMode"))
-			.Content()
+			SNew( STutorialWrapper, TEXT("ComponentsMode") )
 			[
 				SNew(SModeWidget, FBlueprintEditorApplicationModes::GetLocalizedMode( FBlueprintEditorApplicationModes::BlueprintComponentsMode ), FBlueprintEditorApplicationModes::BlueprintComponentsMode)
 				.OnGetActiveMode(GetActiveMode)
@@ -680,9 +676,7 @@ void FBlueprintEditorToolbar::FillBlueprintEditorModesToolbar(FToolBarBuilder& T
 		BlueprintEditorPtr->AddToolbarWidget(SNew(SBlueprintModeSeparator));
 
 		BlueprintEditorPtr->AddToolbarWidget(
-			SNew(STutorialWrapper)
-			.Name(TEXT("GraphMode"))
-			.Content()
+			SNew( STutorialWrapper, TEXT("GraphMode") )
 			[
 				SNew(SModeWidget, FBlueprintEditorApplicationModes::GetLocalizedMode( FBlueprintEditorApplicationModes::StandardBlueprintEditorMode ), FBlueprintEditorApplicationModes::StandardBlueprintEditorMode)
 				.OnGetActiveMode(GetActiveMode)

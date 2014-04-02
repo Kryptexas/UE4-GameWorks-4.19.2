@@ -2132,12 +2132,12 @@ public:
 	/** 
 	 * Are we playing on a local PC session?
 	 */
-	bool IsPlayingOnLocalPCSession() const { return bPlayOnLocalPcSession; }
+	bool IsPlayingOnLocalPCSession() const { return bPlayOnLocalPcSession && !bIsPlayWorldQueued; }
 
 	/** 
 	 * Are we playing via the Launcher?
 	 */
-	bool IsPlayingViaLauncher() const { return bPlayUsingLauncher; }
+	bool IsPlayingViaLauncher() const { return bPlayUsingLauncher && !bIsPlayWorldQueued; }
 
 	/**
 	 * Ensures the assets specified are loaded and adds them to the global selection set

@@ -17,7 +17,7 @@ template<typename T,typename Allocator = FDefaultAllocator> class TArray; // @to
 #include "Timespan.h"							// Time span definition
 #include "DateTime.h"							// Date and time handling
 #include "PlatformIncludes.h"					// Include the main and misc platform headers
-#include "PlatformFileManager.h"				// Platform file manager.
+#include "PlatformFilemanager.h"				// Platform file manager.
 #include "AssertionMacros.h"					// Various assertion macros
 #include "UObject/UnrealNames.h"				// EName definition.
 #include "OutputDevice.h"						// Output devices, logf, debugf, etc

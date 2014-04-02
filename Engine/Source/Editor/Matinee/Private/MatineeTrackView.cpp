@@ -168,17 +168,21 @@ bool FMatinee::IsDirectorTimelineToggled()
 
 void FMatinee::OnToggleCurveEditor()
 {
-	if ( CurveEd.IsValid() )
+	if ( CurveEdTab.IsValid() )
 	{
-		CurveEd->SetVisibility(CurveEd->GetVisibility().IsVisible() ? EVisibility::Collapsed : EVisibility::Visible);
+		SetCurveTabVisibility(false);
+	}
+	else
+	{
+		SetCurveTabVisibility(true);
 	}
 }
 
 bool FMatinee::IsCurveEditorToggled()
 {
-	if ( CurveEd.IsValid() )
+	if ( CurveEdTab.IsValid() )
 	{
-		return CurveEd->GetVisibility().IsVisible();
+		return true;
 	}
 
 	return false;

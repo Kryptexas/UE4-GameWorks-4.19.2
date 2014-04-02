@@ -2,7 +2,7 @@
 
 #include "UnrealEd.h"
 
-#include "SPListEditor.h"
+#include "SPlistEditor.h"
 #include "DesktopPlatformModule.h"
 #include "MainFrame.h"
 

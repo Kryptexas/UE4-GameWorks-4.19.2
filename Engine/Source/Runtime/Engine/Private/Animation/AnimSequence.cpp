@@ -695,13 +695,7 @@ void UAnimSequence::GetBonePose(FTransformArrayA2 & OutAtoms, const FBoneContain
 	}
 
 	// Remap RequiredBones array to Source Skeleton.
-	const FSkeletonRemappedBoneArray * RemappedBoneArray = RequiredBones.GetRemappedArrayForSkeleton(*MySkeleton);
-	if( !RemappedBoneArray )
-	{
-		return;
-	}
-
-	const TArray<int32> & SkeletonToPoseBoneIndexArray = RemappedBoneArray->SkeletonToPoseBoneIndexArray;
+	TArray<int32> const & SkeletonToPoseBoneIndexArray = RequiredBones.GetSkeletonToPoseBoneIndexArray();
 
 	// Slower path for disable retargeting, that's only used in editor and for debugging.
 	if( RequiredBones.ShouldUseRawData() || RequiredBones.GetDisableRetargeting() )

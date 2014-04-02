@@ -647,10 +647,19 @@ static void AddUIBlur(FPostprocessContext& Context)
 	{
 		return;
 	}
-	FRenderingCompositePass* HalfResPass = Context.Graph.RegisterPass(new FRCPassPostProcessDownsample(PF_B8G8R8A8, 1, EPostProcessRectSource::GBS_ViewRect, TEXT("SceneColorHalfRes")));
+
+	EPostProcessRectSource::Type BlurType = EPostProcessRectSource::GBS_UIBlurRects;
+	
+	if(GIsEditor)
+	{
+		// workaround currentkly needed for editor, see TTP 317579
+		BlurType = EPostProcessRectSource::GBS_ViewRect;
+	}
+
+	FRenderingCompositePass* HalfResPass = Context.Graph.RegisterPass(new FRCPassPostProcessDownsample(PF_B8G8R8A8, 1, BlurType, TEXT("SceneColorHalfRes")));
 	HalfResPass->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
 
-	FRenderingCompositePass* QuarterResPass = Context.Graph.RegisterPass(new FRCPassPostProcessDownsample(PF_B8G8R8A8, 1, EPostProcessRectSource::GBS_ViewRect, TEXT("SceneColorQuarterRes")));
+	FRenderingCompositePass* QuarterResPass = Context.Graph.RegisterPass(new FRCPassPostProcessDownsample(PF_B8G8R8A8, 1, BlurType, TEXT("SceneColorQuarterRes")));
 	QuarterResPass->SetInput(ePId_Input0, FRenderingCompositeOutputRef(HalfResPass));
 
 	static auto* ICVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("UI.BlurRadius"));
@@ -659,7 +668,7 @@ static void AddUIBlur(FPostprocessContext& Context)
 	FRenderingCompositeOutputRef PostProcessBlur = QuarterResPass;
 	if (BlurRadius > 0)
 	{
-		PostProcessBlur = RenderGaussianBlur(Context, EPostProcessRectSource::GBS_ViewRect, TEXT("UIBlurX"), TEXT("UIBlurY"), QuarterResPass, BlurRadius);
+		PostProcessBlur = RenderGaussianBlur(Context, BlurType, TEXT("UIBlurX"), TEXT("UIBlurY"), QuarterResPass, BlurRadius);
 	}
 
 	// Apply blurry content to the selected areas

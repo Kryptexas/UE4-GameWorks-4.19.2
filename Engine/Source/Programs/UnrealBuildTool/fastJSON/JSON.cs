@@ -701,11 +701,11 @@ namespace fastJSON
         private object CreateStringKeyDictionary(Dictionary<string, object> reader, Type pt, Type[] types, Dictionary<string, object> globalTypes)
         {
             var col = (IDictionary)Reflection.Instance.FastCreateInstance(pt);
-            Type t1 = null;
+            //Type t1 = null;
             Type t2 = null;
             if (types != null)
             {
-                t1 = types[0];
+                //t1 = types[0];
                 t2 = types[1];
             }
 

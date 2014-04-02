@@ -218,9 +218,9 @@ public:
 	virtual void HideFilterArea(bool bHide) OVERRIDE;
 
 	/**
-	 * Tells if the properties  editing is enabled
+	 * @return true if property editing is enabled (based on the FIsPropertyEditingEnabled delegate)
 	 */
-	bool IsPropertyEditingEnabled() const;
+	virtual bool IsPropertyEditingEnabled() const OVERRIDE;
 
     /**
 	 * @return The thumbnail pool that should be used for thumbnails being rendered in this view

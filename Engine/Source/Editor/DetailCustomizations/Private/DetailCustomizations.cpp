@@ -63,7 +63,7 @@
 #include "FilePathStructCustomization.h"
 #include "DeviceProfileDetails.h"
 #include "KeyStructCustomization.h"
-#include "EditorStyleSettingsDetails.h"
+#include "InternationalizationSettingsModelDetails.h"
 #include "InputSettingsDetails.h"
 #include "InputStructCustomization.h"
 #include "CollisionProfileDetails.h"
@@ -183,7 +183,7 @@ void FDetailCustomizationsModule::StartupModule()
 
 	RegisterCustomPropertyLayout( "DeviceProfile", FOnGetDetailCustomizationInstance::CreateStatic( &FDeviceProfileDetails::MakeInstance ) );
 
-	RegisterCustomPropertyLayout( "EditorStyleSettings", FOnGetDetailCustomizationInstance::CreateStatic( &FEditorStyleSettingsDetails::MakeInstance ) );
+	RegisterCustomPropertyLayout( "InternationalizationSettingsModel", FOnGetDetailCustomizationInstance::CreateStatic( &FInternationalizationSettingsModelDetails::MakeInstance ) );
 
 	RegisterCustomPropertyLayout( "InputSettings", FOnGetDetailCustomizationInstance::CreateStatic( &FInputSettingsDetails::MakeInstance ) );
 

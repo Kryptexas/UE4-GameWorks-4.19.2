@@ -40,7 +40,7 @@
 #include "SkelImport.h"
 #include "FbxImporter.h"
 #include "FbxOptionWindow.h"
-#include "Mainframe.h"
+#include "MainFrame.h"
 
 DEFINE_LOG_CATEGORY(LogFbx);
 
@@ -53,12 +53,13 @@ TSharedPtr<FFbxImporter> FFbxImporter::StaticInstance;
 
 
 
-FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImportUI* ImportUI, bool & bShowOption, const FString& FullPath, bool& OutOperationCanceled, bool bForceImportType, EFBXImportType ImportType )
+FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImportUI* ImportUI, bool bShowOptionDialog, const FString& FullPath, bool& OutOperationCanceled, bool& bOutImportAll, bool bForceImportType, EFBXImportType ImportType )
 {
 	OutOperationCanceled = false;
 
-	if ( bShowOption )
+	if ( bShowOptionDialog )
 	{
+		bOutImportAll = false;
 		UnFbx::FBXImportOptions* ImportOptions = FbxImporter->GetImportOptions();
 
 		// if Skeleton was set by outside, please make sure copy back to UI
@@ -81,7 +82,7 @@ FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImport
 		}
 
 		TSharedPtr<SWindow> ParentWindow;
-		// Check if the main frame is loaded.  When using the old main frame it may not be.
+
 		if( FModuleManager::Get().IsModuleLoaded( "MainFrame" ) )
 		{
 			IMainFrameModule& MainFrame = FModuleManager::LoadModuleChecked<IMainFrameModule>( "MainFrame" );
@@ -127,11 +128,10 @@ FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImport
 			ImportUI->TextureImportData->SaveConfig();
 		}
 
-		// after showing an option, we should turn this off, so it does not show for batch import
-		bShowOption = false;
-
 		if (FbxOptionWindow->ShouldImport())
 		{
+			bOutImportAll = FbxOptionWindow->ShouldImportAll(); 
+
 			// open dialog
 			// see if it's canceled
 			ApplyImportUIToImportOptions(ImportUI, *ImportOptions);
@@ -540,18 +540,13 @@ bool FFbxImporter::OpenFile(FString Filename, bool bParseStatistics, bool bForSc
 
 	if( !bImportStatus )  // Problem with the file to be imported
 	{
-		UE_LOG(LogFbx, Error,TEXT("Call to KFbxImporter::Initialize() failed."));
-		UE_LOG(LogFbx, Warning, TEXT("Error returned: %s"), ANSI_TO_TCHAR(Importer->GetLastErrorString()));
+		AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, LOCTEXT("Error_FBXInitializationFailed", "Call to FbxImporter::Initialize() failed.")));
+		AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("Error_FBXError", "Error returned: {0}"),
+							FText::FromString(Importer->GetLastErrorString()))));
 
-		if ((FbxIO::EErrorCode)Importer->GetLastErrorID() ==
-			FbxIO::eFileVersionNotSupportedYet ||
-			(FbxIO::EErrorCode)Importer->GetLastErrorID() ==
-			FbxIO::eFileVersionNotSupportedAnymore)
-		{
-			UE_LOG(LogFbx, Warning, TEXT("FBX version number for this FBX SDK is %d.%d.%d"),
-				SDKMajor, SDKMinor, SDKRevision);
-		}
-
+		AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("Error_FBXVersion", "FBX version number for this FBX SDK is {0}.{1}.{2}"),
+							FText::FromString(FString::FromInt(SDKMajor)), FText::FromString(FString::FromInt(SDKMinor)), FText::FromString(FString::FromInt(SDKRevision)))));
+	
 		return false;
 	}
 

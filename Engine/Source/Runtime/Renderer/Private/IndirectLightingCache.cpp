@@ -135,8 +135,7 @@ bool IsIndirectLightingCacheAllowed()
 	static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
 	const bool bAllowStaticLighting = (!AllowStaticLightingVar || AllowStaticLightingVar->GetValueOnRenderThread() != 0);
 
-	return GIndirectLightingCache != 0 &&
-		bAllowStaticLighting;
+	return GIndirectLightingCache != 0 && GSupportsVolumeTextureRendering && bAllowStaticLighting;
 }
 
 bool CanIndirectLightingCacheUseVolumeTexture()
@@ -455,7 +454,7 @@ void FIndirectLightingCache::UpdateTranslucentVolumeCache(FViewInfo& View, TMap<
 {
 	extern int32 GUseIndirectLightingCacheInLightingVolume;
 
-	if (View.State && GUseIndirectLightingCacheInLightingVolume)
+	if (View.State && GUseIndirectLightingCacheInLightingVolume && GSupportsVolumeTextureRendering)
 	{
 		FSceneViewState* ViewState = (FSceneViewState*)View.State;
 
@@ -552,7 +551,7 @@ void FIndirectLightingCache::UpdateTransitionsOverTime(const TArray<FIndirectLig
 
 		if (TransitionDistance > DELTA)
 		{
-			// Compute a framerate independent transition by maintaining a constant world space speed between the current sample position and the target position
+			// Compute a frame rate independent transition by maintaining a constant world space speed between the current sample position and the target position
 			const float LerpFactor = FMath::Clamp(GSingleSampleTransitionSpeed * DeltaWorldTime / TransitionDistance, 0.0f, 1.0f);
 			Allocation->SingleSamplePosition = FMath::Lerp(Allocation->SingleSamplePosition, Allocation->TargetPosition, LerpFactor);
 
@@ -562,6 +561,15 @@ void FIndirectLightingCache::UpdateTransitionsOverTime(const TArray<FIndirectLig
 			}
 
 			Allocation->CurrentDirectionalShadowing = FMath::Lerp(Allocation->CurrentDirectionalShadowing, Allocation->TargetDirectionalShadowing, LerpFactor);
+
+			const FVector CurrentSkyBentNormal = FMath::Lerp(
+				FVector(Allocation->CurrentSkyBentNormal) * Allocation->CurrentSkyBentNormal.W, 
+				FVector(Allocation->TargetSkyBentNormal) * Allocation->TargetSkyBentNormal.W, 
+				LerpFactor);
+
+			const float BentNormalLength = CurrentSkyBentNormal.Size();
+
+			Allocation->CurrentSkyBentNormal = FVector4(CurrentSkyBentNormal / FMath::Max(BentNormalLength, .0001f), BentNormalLength);
 		}
 	}
 }
@@ -583,6 +591,7 @@ void FIndirectLightingCache::UpdateBlock(FScene* Scene, FViewInfo* DebugDrawingV
 
 	FSHVectorRGB2 SingleSample;
 	float DirectionalShadowing = 1;
+	FVector SkyBentNormal(0, 0, 1);
 
 	if (CanIndirectLightingCacheUseVolumeTexture() && BlockInfo.Allocation->bOpaqueRelevance)
 	{
@@ -594,8 +603,12 @@ void FIndirectLightingCache::UpdateBlock(FScene* Scene, FViewInfo* DebugDrawingV
 		AccumulatedIncidentRadiance.Reset(NumSamplesPerBlock);
 		AccumulatedIncidentRadiance.AddZeroed(NumSamplesPerBlock);
 
+		static TArray<FVector> AccumulatedSkyBentNormal;
+		AccumulatedSkyBentNormal.Reset(NumSamplesPerBlock);
+		AccumulatedSkyBentNormal.AddZeroed(NumSamplesPerBlock);
+
 		// Interpolate SH samples from precomputed lighting samples and accumulate lighting data for an entire block
-		InterpolateBlock(Scene, BlockInfo.Block, AccumulatedWeight, AccumulatedIncidentRadiance);
+		InterpolateBlock(Scene, BlockInfo.Block, AccumulatedWeight, AccumulatedIncidentRadiance, AccumulatedSkyBentNormal);
 
 		static TArray<FFloat16Color> Texture0Data;
 		static TArray<FFloat16Color> Texture1Data;
@@ -611,7 +624,7 @@ void FIndirectLightingCache::UpdateBlock(FScene* Scene, FViewInfo* DebugDrawingV
 		check(FormatSize == sizeof(FFloat16Color));
 
 		// Encode the SH samples into a texture format
-		EncodeBlock(DebugDrawingView, BlockInfo.Block, AccumulatedWeight, AccumulatedIncidentRadiance, Texture0Data, Texture1Data, Texture2Data, SingleSample);
+		EncodeBlock(DebugDrawingView, BlockInfo.Block, AccumulatedWeight, AccumulatedIncidentRadiance, AccumulatedSkyBentNormal, Texture0Data, Texture1Data, Texture2Data, SingleSample, SkyBentNormal);
 
 		// Setup an update region
 		const FUpdateTextureRegion3D UpdateRegion(
@@ -632,7 +645,7 @@ void FIndirectLightingCache::UpdateBlock(FScene* Scene, FViewInfo* DebugDrawingV
 	}
 	else
 	{
-		InterpolatePoint(Scene, BlockInfo.Block, DirectionalShadowing, SingleSample);
+		InterpolatePoint(Scene, BlockInfo.Block, DirectionalShadowing, SingleSample, SkyBentNormal);
 	}
 
 	// Record the position that the sample was taken at
@@ -641,6 +654,9 @@ void FIndirectLightingCache::UpdateBlock(FScene* Scene, FViewInfo* DebugDrawingV
 	BlockInfo.Allocation->TargetSamplePacked[1] = FVector4(SingleSample.G.V[0], SingleSample.G.V[1], SingleSample.G.V[2], SingleSample.G.V[3]) / PI;
 	BlockInfo.Allocation->TargetSamplePacked[2] = FVector4(SingleSample.B.V[0], SingleSample.B.V[1], SingleSample.B.V[2], SingleSample.B.V[3]) / PI;
 	BlockInfo.Allocation->TargetDirectionalShadowing = DirectionalShadowing;
+
+	const float BentNormalLength = SkyBentNormal.Size();
+	BlockInfo.Allocation->TargetSkyBentNormal = FVector4(SkyBentNormal / FMath::Max(BentNormalLength, .0001f), BentNormalLength);
 
 	if (!BlockInfo.Allocation->bHasEverUpdatedSingleSample)
 	{
@@ -654,6 +670,7 @@ void FIndirectLightingCache::UpdateBlock(FScene* Scene, FViewInfo* DebugDrawingV
 		}
 
 		BlockInfo.Allocation->CurrentDirectionalShadowing = BlockInfo.Allocation->TargetDirectionalShadowing;
+		BlockInfo.Allocation->CurrentSkyBentNormal = BlockInfo.Allocation->TargetSkyBentNormal;
 
 		BlockInfo.Allocation->bHasEverUpdatedSingleSample = true;
 	}
@@ -683,9 +700,11 @@ void FIndirectLightingCache::InterpolatePoint(
 	FScene* Scene, 
 	const FIndirectLightingCacheBlock& Block,
 	float& OutDirectionalShadowing, 
-	FSHVectorRGB2& OutIncidentRadiance)
+	FSHVectorRGB2& OutIncidentRadiance,
+	FVector& OutSkyBentNormal)
 {
 	FSHVectorRGB2 AccumulatedIncidentRadiance;
+	FVector AccumulatedSkyBentNormal(0, 0, 0);
 	float AccumulatedDirectionalShadowing = 0;
 	float AccumulatedWeight = 0;
 
@@ -696,13 +715,15 @@ void FIndirectLightingCache::InterpolatePoint(
 			Block.Min + Block.Size / 2, 
 			AccumulatedWeight, 
 			AccumulatedDirectionalShadowing,
-			AccumulatedIncidentRadiance);
+			AccumulatedIncidentRadiance,
+			AccumulatedSkyBentNormal);
 	}
 
 	if (AccumulatedWeight > 0)
 	{
 		OutDirectionalShadowing = AccumulatedDirectionalShadowing / AccumulatedWeight;
 		OutIncidentRadiance = AccumulatedIncidentRadiance / AccumulatedWeight;
+		OutSkyBentNormal = AccumulatedSkyBentNormal / AccumulatedWeight;
 
 		if (GCacheReduceSHRinging != 0)
 		{
@@ -713,6 +734,8 @@ void FIndirectLightingCache::InterpolatePoint(
 	{
 		OutIncidentRadiance = AccumulatedIncidentRadiance;
 		OutDirectionalShadowing = AccumulatedDirectionalShadowing;
+		// Use an unoccluded vector if no valid samples were found for interpolation
+		OutSkyBentNormal = FVector(0, 0, 1);
 	}
 }
 
@@ -720,7 +743,8 @@ void FIndirectLightingCache::InterpolateBlock(
 	FScene* Scene, 
 	const FIndirectLightingCacheBlock& Block, 
 	TArray<float>& AccumulatedWeight, 
-	TArray<FSHVectorRGB2>& AccumulatedIncidentRadiance)
+	TArray<FSHVectorRGB2>& AccumulatedIncidentRadiance,
+	TArray<FVector>& AccumulatedSkyBentNormal)
 {
 	const FBoxCenterAndExtent BlockBoundingBox(Block.Min + Block.Size / 2, Block.Size / 2);
 	const FVector HalfTexelWorldOffset = BlockBoundingBox.Extent / FVector(Block.TexelSize);
@@ -818,7 +842,8 @@ void FIndirectLightingCache::InterpolateBlock(
 							FIntVector(Block.TexelSize), 
 							CellIndex, 
 							AccumulatedWeight, 
-							AccumulatedIncidentRadiance);
+							AccumulatedIncidentRadiance,
+							AccumulatedSkyBentNormal);
 					}
 				}
 			}
@@ -838,7 +863,8 @@ void FIndirectLightingCache::InterpolateBlock(
 				FIntVector(Block.TexelSize), 
 				FIntVector(0), 
 				AccumulatedWeight, 
-				AccumulatedIncidentRadiance);
+				AccumulatedIncidentRadiance,
+				AccumulatedSkyBentNormal);
 		}
 	}
 }
@@ -848,10 +874,12 @@ void FIndirectLightingCache::EncodeBlock(
 	const FIndirectLightingCacheBlock& Block, 
 	const TArray<float>& AccumulatedWeight, 
 	const TArray<FSHVectorRGB2>& AccumulatedIncidentRadiance,
+	const TArray<FVector>& AccumulatedSkyBentNormal,
 	TArray<FFloat16Color>& Texture0Data,
 	TArray<FFloat16Color>& Texture1Data,
 	TArray<FFloat16Color>& Texture2Data,
-	FSHVectorRGB2& SingleSample)
+	FSHVectorRGB2& SingleSample,
+	FVector& SkyBentNormal)
 {
 	FViewElementPDI DebugPDI(DebugDrawingView, NULL);
 
@@ -880,6 +908,7 @@ void FIndirectLightingCache::EncodeBlock(
 				if (X == Block.TexelSize / 2 && Y == Block.TexelSize / 2 && Z == Block.TexelSize / 2)
 				{
 					SingleSample = IncidentRadiance;
+					SkyBentNormal = AccumulatedSkyBentNormal[LinearIndex] / (Weight > 0 ? Weight : 1);
 				}
 
 				if (GCacheDrawInterpolationPoints != 0 && DebugDrawingView)

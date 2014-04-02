@@ -117,6 +117,7 @@ class USplineMeshComponent : public UStaticMeshComponent, public IInterface_Coll
 
 	//Begin UObject Interface
 	virtual void Serialize(FArchive& Ar) OVERRIDE;
+	virtual bool Modify(bool bAlwaysMarkDirty = true) OVERRIDE;
 	//End UObject Interface
 
 	//Begin USceneComponent Interface

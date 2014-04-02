@@ -23,6 +23,7 @@ void glGetQueryObjectuivEXT(GLuint id,  GLenum pname,  GLuint * params);
 void glLabelObjectEXT(GLenum type, GLuint object, GLsizei length, const GLchar *label);
 void glPushGroupMarkerEXT (GLsizei length, const GLchar *marker);
 void glPopGroupMarkerEXT (void);
+void glGetObjectLabelEXT (GLenum type, GLuint object, GLsizei bufSize, GLsizei *length, GLchar *label);
 #endif 
 
 #define GL_BGRA									0x80E1

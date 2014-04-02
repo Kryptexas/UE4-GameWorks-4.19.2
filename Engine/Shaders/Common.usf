@@ -893,12 +893,16 @@ float2 EncodeVelocityToTexture(float2 In)
 {
 	// 0.499f is a value smaller than 0.5f to avoid using the full range to use the clear color (0,0) as special value
 	// 0.5f to allow for a range of -2..2 instead of -1..1 for really fast motions for temporal AA
-	return In * 0.499f * 0.5f + 32767.0f / 65535.0f;
+	return In * (0.499f * 0.5f) + 32767.0f / 65535.0f;
 }
 // see EncodeVelocityToTexture()
 float2 DecodeVelocityFromTexture(float2 In)
 {
-	return (In - 32767.0f / 65535.0f ) / (0.499f * 0.5f);
+	const float InvDiv = 1.0f / (0.499f * 0.5f);
+	// reference
+//	return (In - 32767.0f / 65535.0f ) / (0.499f * 0.5f);
+	// MAD layout to help compiler
+	return In * InvDiv - 32767.0f / 65535.0f * InvDiv;
 }
 
 // Used for the Global Illumination in the GIReplace material expression

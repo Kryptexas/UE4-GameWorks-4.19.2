@@ -66,5 +66,5 @@
 	/**
 	 * Kicks off all of the testing process
 	 */
-	void Test(const FOnlineAccountCredentials& InAccountCredentials);
+	void Test(UWorld* InWorld, const FOnlineAccountCredentials& InAccountCredentials);
  };

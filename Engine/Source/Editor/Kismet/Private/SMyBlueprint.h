@@ -171,6 +171,9 @@ private:
 	void AddNewUserDefinedEnum();
 	FReply OnAddNewLocalVariable();
 	bool CanRequestRenameOnActionNode() const;
+	bool IsDuplicateActionVisible() const;
+	bool CanDuplicateAction() const;
+	void OnDuplicateAction();
 
 	/** Callback when the filter is changed, forces the action tree(s) to filter */
 	void OnFilterTextChanged( const FText& InFilterText );

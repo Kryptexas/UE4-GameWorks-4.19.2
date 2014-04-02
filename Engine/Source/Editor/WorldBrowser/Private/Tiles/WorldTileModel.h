@@ -6,6 +6,7 @@ class UWorldTileDetails;
 //
 typedef TArray<TSharedPtr<class FWorldTileModel>> FWorldTileModelList;
 
+
 /**
  * The non-UI presentation logic for a single Level (Tile) in world composition
  */
@@ -20,6 +21,30 @@ public:
 		{
 			return A->GetLongPackageName() < B->GetLongPackageName();
 		}
+	};
+
+	enum EWorldDirections
+	{
+		XNegative,
+		YNegative,
+		XPositive,
+		YPositive
+	};
+
+	/**
+	 * 
+	 */
+	struct FLandscapeImportSettings
+	{
+		ALandscapeProxy*					SourceLandscape;
+		FTransform							LandscapeTransform;
+		int32								ComponentSizeQuads;
+		int32								SectionsPerComponent;
+		int32								QuadsPerSection;
+		int32								SizeX;
+		int32								SizeY;
+		TArray<uint16>						HeightData;
+		TArray<FLandscapeImportLayerInfo>	ImportLayers;
 	};
 	
 	/**
@@ -115,6 +140,12 @@ public:
 	 *	Creates a new object in case it does not exists in a persistent world
 	 */
 	ULevelStreaming* GetAssosiatedStreamingLevel();
+
+	/**  */
+	bool CreateAdjacentLandscapeProxy(ALandscapeProxy* SourceLandscape, FIntPoint SourceTileOffset, FWorldTileModel::EWorldDirections InWhere);
+
+	/**  */
+	ALandscapeProxy* ImportLandscape(const FLandscapeImportSettings& Settings);
 
 private:
 	/** Flush world info to package and level objects */

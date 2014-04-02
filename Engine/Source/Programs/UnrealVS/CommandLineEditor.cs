@@ -12,6 +12,7 @@ using Microsoft.VisualStudio.OLE.Interop;
 using EnvDTE;
 using System.Runtime.InteropServices;
 using System.Collections.Generic;
+using EnvDTE80;
 
 
 namespace UnrealVS
@@ -34,6 +35,7 @@ namespace UnrealVS
 				// CommandLineCombo
 				var ComboCommandID = new CommandID(GuidList.UnrealVSCmdSet, ComboID);
 				ComboCommand = new OleMenuCommand(new EventHandler(ComboHandler), ComboCommandID);
+				ComboCommand.BeforeQueryStatus += (sender, args) => { ComboCommand.Enabled = UnrealVSPackage.Instance.DTE.Solution.IsOpen; };
 				UnrealVSPackage.Instance.MenuCommandService.AddCommand(ComboCommand);
 
 				// CommandLineComboList
@@ -161,6 +163,17 @@ namespace UnrealVS
 					{
 						var CommandLineArguments = (string) CommandLineArgumentsProperty.Value;
 
+						// for "Game" projects automatically remove the game project filename from the start of the command line
+						var ActiveConfiguration = (SolutionConfiguration2) UnrealVSPackage.Instance.DTE.Solution.SolutionBuild.ActiveConfiguration;
+						if (UnrealVSPackage.Instance.IsUE4Loaded && Utils.IsGameProject(SelectedStartupProject) && Utils.HasUProjectCommandLineArg(ActiveConfiguration.Name))
+						{
+							string UProjectFileName = Utils.GetUProjectFileName(SelectedStartupProject);
+							if (CommandLineArguments.Trim().StartsWith(UProjectFileName, StringComparison.InvariantCultureIgnoreCase))
+							{
+								CommandLineArguments = CommandLineArguments.Trim().Substring(UProjectFileName.Length).Trim();
+							}
+						}
+
 						Text = CommandLineArguments;
 					}
 					else
@@ -234,6 +247,9 @@ namespace UnrealVS
 
 		private void CommitCommandLineText(string CommandLine)
 		{
+			
+			string FullCommandLine = CommandLine;
+
 			IVsHierarchy ProjectHierarchy;
 			UnrealVSPackage.Instance.SolutionBuildManager.get_StartupProject(out ProjectHierarchy);
 			if (ProjectHierarchy != null)
@@ -242,11 +258,31 @@ namespace UnrealVS
 
 				if (SelectedStartupProject != null)
 				{
+					// for "Game" projects automatically remove the game project filename from the start of the command line
+					var ActiveConfiguration = (SolutionConfiguration2)UnrealVSPackage.Instance.DTE.Solution.SolutionBuild.ActiveConfiguration;
+					if (UnrealVSPackage.Instance.IsUE4Loaded && Utils.IsGameProject(SelectedStartupProject) && Utils.HasUProjectCommandLineArg(ActiveConfiguration.Name))
+					{
+						string UProjectFileName = Utils.GetUProjectFileName(SelectedStartupProject);
+						if (FullCommandLine.Trim().StartsWith(UProjectFileName, StringComparison.InvariantCultureIgnoreCase))
+						{
+							VsShellUtilities.ShowMessageBox(ServiceProvider.GlobalProvider,
+															string.Format("INFORMATION: The filename {0} has been removed from the command line because it is included automatically for 'Game' projects.", UProjectFileName),
+															"UnrealVS",
+															OLEMSGICON.OLEMSGICON_INFO,
+															OLEMSGBUTTON.OLEMSGBUTTON_OK,
+															OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST);
+						}
+						else
+						{
+							FullCommandLine = UProjectFileName + " " + FullCommandLine;
+						}
+					}
+
 					var CommandLineArgumentsProperty = GetProjectCommandLineProperty(SelectedStartupProject);
 
 					if (CommandLineArgumentsProperty != null)
 					{
-						Utils.SetPropertyValue(CommandLineArgumentsProperty, CommandLine);
+						Utils.SetPropertyValue(CommandLineArgumentsProperty, FullCommandLine);
 					}
 				}
 			}

@@ -330,7 +330,7 @@ public:
 		void Add(uint32 ID, FRunnableThread* Thread)
 		{
 			Lock();
-			Registry.FindOrAdd(ID) = Thread;
+			Registry.FindOrAdd( ID ) = Thread;
 			Updated = true;
 			Unlock();
 		}
@@ -830,13 +830,6 @@ extern CORE_API bool IsInGameThread ();
 
 /** @return True if called from the slate thread, and not merely a thread calling slate functions. */
 extern CORE_API bool IsInSlateThread ();
-
-
-/** the stats system increments this and when pool threads notice it has been 
-*   incremented, they call GStatManager.AdvanceFrameForThread() to advance any
-*   stats that have been collected on a pool thread.
-*/
-STAT(extern FThreadSafeCounter GStatsFrameForPoolThreads);
 
 /**
 * This a special version of singleton. It means that there is created only one instance for each thread.

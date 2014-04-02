@@ -23,20 +23,28 @@ public:
 
 public:
 	void Construct(const FArguments& InArgs);
+	virtual bool SupportsKeyboardFocus() const OVERRIDE { return true; }
 
 	FReply OnImport()
 	{
-		bCanImport = true;
+		bShouldImport = true;
 		if ( WidgetWindow.IsValid() )
 		{
 			WidgetWindow.Pin()->RequestDestroyWindow();
 		}
 		return FReply::Handled();
+	}
+
+	FReply OnImportAll()
+	{
+		bShouldImportAll = true;
+		return OnImport();
 	}
 
 	FReply OnCancel()
 	{
-		bCanImport = false;
+		bShouldImport = false;
+		bShouldImportAll = false;
 		if ( WidgetWindow.IsValid() )
 		{
 			WidgetWindow.Pin()->RequestDestroyWindow();
@@ -44,21 +52,38 @@ public:
 		return FReply::Handled();
 	}
 
-	bool ShouldImport()
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE
 	{
-		return bCanImport;
+		if( InKeyboardEvent.GetKey() == EKeys::Escape )
+		{
+			return OnCancel();
+		}
+
+		return FReply::Unhandled();
+	}
+
+	bool ShouldImport() const
+	{
+		return bShouldImport;
+	}
+
+	bool ShouldImportAll() const
+	{
+		return bShouldImportAll;
 	}
 
 	void RefreshWindow();
 	
 	SFbxOptionWindow() 
 		: ImportUI(NULL)
-		, bCanImport(false)
+		, bShouldImport(false)
+		, bShouldImportAll(false)
 	{}
 		
 private:
 	UFbxImportUI*	ImportUI;
-	bool			bCanImport;
+	bool			bShouldImport;
+	bool			bShouldImportAll;
 	bool			bReimport;
 	FString			ErrorMessage;
 	SVerticalBox::FSlot* CustomBox;

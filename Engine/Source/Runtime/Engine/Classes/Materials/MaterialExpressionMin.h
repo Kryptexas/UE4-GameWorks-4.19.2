@@ -9,18 +9,18 @@ class UMaterialExpressionMin : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(meta=(RequiredInput = "false"))
+	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Defaults to 'ConstA' if not specified"))
 	FExpressionInput A;
 
-	UPROPERTY(meta=(RequiredInput = "false"))
+	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Defaults to 'ConstB' if not specified"))
 	FExpressionInput B;
 
 	/** only used if A is not hooked up */
-	UPROPERTY(EditAnywhere, Category=MaterialExpressionMin)
+	UPROPERTY(EditAnywhere, Category=MaterialExpressionMin, meta=(OverridingInputProperty = "A"))
 	float ConstA;
 
 	/** only used if B is not hooked up */
-	UPROPERTY(EditAnywhere, Category=MaterialExpressionMin)
+	UPROPERTY(EditAnywhere, Category=MaterialExpressionMin, meta=(OverridingInputProperty = "B"))
 	float ConstB;
 
 	// Begin UMaterialExpression Interface

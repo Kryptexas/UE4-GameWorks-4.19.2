@@ -2,7 +2,7 @@
 
 #include "EpicSurveyPrivatePCH.h"
 #include "SurveyTitleLocalStorage.h"
-#include "OnlinesubSystemTypes.h"
+#include "OnlineSubsystemTypes.h"
 
 IOnlineTitleFilePtr FSurveyTitleLocalStorage::Create( const FString& RootDirectory )
 {

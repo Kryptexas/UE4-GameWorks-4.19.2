@@ -70,11 +70,6 @@ void VertexMain(
 -----------------------------------------------------------------------------*/
 #if PIXELSHADER
 
-#if PS4_PROFILE
-#define SLOT0_32323232 1
-#include "PS4/PS4Pragmas.usf"
-#endif
-
 void PixelMain(
 	in FShaderInterpolants Interpolants,
 	out float4 OutPosition				: SV_Target0,
@@ -89,10 +84,5 @@ void PixelMain(
 	OutRenderAttributes = Interpolants.RenderAttributes;
 	OutSimulationAttributes = Interpolants.SimulationAttributes;
 }
-
-#if PS4_PROFILE
-#define SLOT_RESET 1
-#include "PS4/PS4Pragmas.usf"
-#endif
 
 #endif // #if PIXELSHADER

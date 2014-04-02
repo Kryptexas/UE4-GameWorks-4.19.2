@@ -320,6 +320,12 @@ private:
 	 */
 	static void ClearBinaryDumps();
 
+	/**
+	 * Conditionally adds the specified mesh bounding box to a global scene bounds used to synthesize
+	 * a lightmass importance volume bounds if no volume is present in the scene.
+	 */
+	void UpdateAutomaticImportanceVolumeBounds( const FBox& MeshBounds );
+
 private:
 
 	/** The lights in the world which the system is building. */
@@ -333,6 +339,9 @@ private:
 
 	/** A bound of all meshes being lit - used to check the ImportanceVolume when building with Lightmass */
 	FBox LightingMeshBounds;
+
+	/** Bounding box to use for a synthesized importance volume if one is missing from the scene. */
+	FBox AutomaticImportanceVolumeBounds;
 
 	/** All meshes in the system. */
 
@@ -350,16 +359,6 @@ private:
 	int32 DeterministicIndex;
 
 	int32 NextVisibilityId;
-
-	/** The 'custom' importance bounds when building selected objects/levels. */
-	FBox CustomImportanceBoundingBox;
-
-	/** 
-	 *	If true, then pass the CustomImportanceVolume to Lightmass.
-	 *	Will initialize to false, but get set to true if any mapping is
-	 *	skipped during the setup phase of the scene.
-	 */
-	bool bUseCustomImportanceVolume;
 
 	/** Lighting comes in various stages (amortized, async, etc.), we track them here. */
 	enum LightingStage

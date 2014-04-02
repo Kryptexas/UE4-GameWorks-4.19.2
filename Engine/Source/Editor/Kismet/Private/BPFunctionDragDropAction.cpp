@@ -164,7 +164,6 @@ TSharedRef<FKismetFunctionDragDropAction> FKismetFunctionDragDropAction::New(
 	FCanBeDroppedDelegate   CanBeDroppedDelegate /* = FCanBeDroppedDelegate() */)
 {
 	TSharedRef<FKismetFunctionDragDropAction> Operation = MakeShareable(new FKismetFunctionDragDropAction);
-	FSlateApplication::GetDragDropReflector().RegisterOperation<FKismetFunctionDragDropAction>(Operation);
 	Operation->FunctionName     = InFunctionName;
 	Operation->OwningClass      = InOwningClass;
 	Operation->CallOnMember     = InCallOnMember;
@@ -288,7 +287,6 @@ TSharedRef<FKismetMacroDragDropAction> FKismetMacroDragDropAction::New(
 	FNodeCreationAnalytic AnalyticCallback)
 {
 	TSharedRef<FKismetMacroDragDropAction> Operation = MakeShareable(new FKismetMacroDragDropAction);
-	FSlateApplication::GetDragDropReflector().RegisterOperation<FKismetMacroDragDropAction>(Operation);
 	Operation->MacroName = InMacroName;
 	Operation->Macro = InMacro;
 	Operation->Blueprint = InBlueprint;

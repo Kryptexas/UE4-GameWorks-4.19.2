@@ -32,7 +32,7 @@ static FAutoConsoleVariableRef CVarDumpShaderDebugInfo(
 // Serialize Queued Job information
 static void DoWriteTasks(TArray<FShaderCompileJob*>& QueuedJobs, FArchive& TransferFile)
 {
-	int32 ShaderCompileWorkerInputVersion = 0;
+	int32 ShaderCompileWorkerInputVersion = 1;
 	TransferFile << ShaderCompileWorkerInputVersion;
 	int32 NumBatches = QueuedJobs.Num();
 	TransferFile << NumBatches;
@@ -1863,7 +1863,8 @@ void GlobalBeginCompileShader(
 	const TCHAR* FunctionName,
 	FShaderTarget Target,
 	FShaderCompileJob* NewJob,
-	TArray<FShaderCompileJob*>& NewJobs
+	TArray<FShaderCompileJob*>& NewJobs,
+	bool bAllowDevelopmentShaderCompile
 	)
 {
 	FShaderCompilerInput& Input = NewJob->Input;
@@ -1937,6 +1938,7 @@ void GlobalBeginCompileShader(
 		Input.Environment.SetDefine(TEXT("DIFFUSE_SPEC_INPUTS"), CVar ? (CVar->GetValueOnGameThread() != 0) : 0);
 	}
 
+	if(bAllowDevelopmentShaderCompile)
 	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.CompileShadersForDevelopment"));
 		Input.Environment.SetDefine(TEXT("COMPILE_SHADERS_FOR_DEVELOPMENT"), CVar ? (CVar->GetValueOnGameThread() != 0) : 0);

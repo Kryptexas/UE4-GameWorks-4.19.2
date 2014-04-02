@@ -30,6 +30,7 @@ class UK2Node_InputAxisEvent : public UK2Node_Event
 	// Begin EdGraphNode interface
 	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual FString GetTooltip() const OVERRIDE;
+	virtual bool CanPasteHere(const UEdGraph* TargetGraph, const UEdGraphSchema* Schema) const OVERRIDE;
 	// End EdGraphNode interface
 
 	// Begin UK2Node interface

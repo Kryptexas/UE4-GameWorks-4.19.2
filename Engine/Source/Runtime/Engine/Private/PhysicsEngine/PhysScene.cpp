@@ -94,7 +94,7 @@ FPhysScene::FPhysScene()
 #endif
 
 	bAsyncSceneEnabled = PhysSetting->bEnableAsyncScene;
-	NumPhysScenes = bAsyncSceneEnabled ? PST_MAX : PST_Async;
+	NumPhysScenes = bAsyncSceneEnabled ? PST_Async + 1 : PST_Cloth + 1;
 
 
 	// Create scenes of all scene types
@@ -275,6 +275,7 @@ void FPhysScene::DeferredDestructibleDamageNotify(const NxApexDamageEventReportD
 
 bool FPhysScene::SubstepSimulation(uint32 SceneType, FGraphEventRef &InOutCompletionEvent)
 {
+	check(SceneType != PST_Cloth); //we don't bother sub-stepping cloth
 	float UseDelta = UseSyncTime(SceneType)? SyncDeltaSeconds : DeltaSeconds;
 	float SubTime = PhysSubSteppers[SceneType]->UpdateTime(UseDelta);
 	PxScene* PScene = GetPhysXScene(SceneType);
@@ -356,7 +357,7 @@ void FPhysScene::TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletion
 	}
 
 #if WITH_SUBSTEPPING
-	if(IsSubstepping())
+	if(IsSubstepping() && SceneType != PST_Cloth)	//we don't bother sub-stepping cloth
 	{
 		//We're about to start stepping so swap buffers. Might want to find a better place for this?
 		PhysSubSteppers[SceneType]->SwapBuffers();
@@ -420,7 +421,7 @@ void FPhysScene::TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletion
 	if(ApexScene && UseDelta > 0.f)
 	{
 #if WITH_SUBSTEPPING
-		if(IsSubstepping())
+		if (IsSubstepping() && SceneType != PST_Cloth) //we don't bother sub-stepping cloth
 		{
 			bTaskOutstanding = SubstepSimulation(SceneType, InOutCompletionEvent);
 		}else
@@ -471,6 +472,20 @@ void FPhysScene::WaitPhysScenes()
 	}
 }
 
+void FPhysScene::WaitClothScene()
+{
+	FGraphEventArray ThingsToComplete;
+	if (PhysicsSubsceneCompletion[PST_Cloth].GetReference())
+	{
+			ThingsToComplete.Add(PhysicsSubsceneCompletion[PST_Cloth]);
+	}
+	
+	if (ThingsToComplete.Num())
+	{
+		FTaskGraphInterface::Get().WaitUntilTasksComplete(ThingsToComplete, ENamedThreads::GameThread);
+	}
+}
+
 void FPhysScene::SceneCompletionTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent,EPhysicsSceneType SceneType)
 {
 	ProcessPhysScene(SceneType);
@@ -488,16 +503,16 @@ void FPhysScene::ProcessPhysScene(uint32 SceneType)
 		UE_LOG(LogPhysics, Log, TEXT("WaitPhysScene`: Not executing this scene (%d) - aborting."), SceneType);
 		return;
 	}
-	PhysicsSubsceneCompletion[SceneType] = NULL;
+
 	if (FrameLagAsync())
 	{
-		checkAtCompileTime(PST_MAX == 2, Assumtiopns_about_physics_scenes); // Here we assume the PST_Sync is the master and never fame lagged
+		checkAtCompileTime(PST_MAX == 3, Assumtiopns_about_physics_scenes); // Here we assume the PST_Sync is the master and never fame lagged
 		if (SceneType == PST_Sync)
 		{
 			// the one frame lagged one should be done by now.
 			check(!FrameLaggedPhysicsSubsceneCompletion[PST_Async].GetReference() || FrameLaggedPhysicsSubsceneCompletion[PST_Async]->IsComplete());
 		}
-		else
+		else if (SceneType == PST_Async)
 		{
 			FrameLaggedPhysicsSubsceneCompletion[PST_Async] = NULL;
 		}
@@ -523,6 +538,8 @@ void FPhysScene::ProcessPhysScene(uint32 SceneType)
 		UE_LOG(LogPhysics, Log, TEXT("PHYSX FETCHRESULTS ERROR: %d"), OutErrorCode);
 	}
 #endif // WITH_PHYSX
+
+	PhysicsSubsceneCompletion[SceneType] = NULL;
 
 	// Reset execution flag
 	bPhysXSceneExecuting[SceneType] = false;
@@ -726,6 +743,28 @@ void FPhysScene::StartFrame()
 	SyncDeltaSeconds = DeltaSeconds;
 }
 
+void FPhysScene::StartCloth()
+{
+	FGraphEventArray FinishPrerequisites;
+	TickPhysScene(PST_Cloth, PhysicsSubsceneCompletion[PST_Cloth]);
+	{
+		if (PhysicsSubsceneCompletion[PST_Cloth].GetReference())
+		{
+			new (FinishPrerequisites)FGraphEventRef(FDelegateGraphTask::CreateAndDispatchWhenReady(FDelegateGraphTask::FDelegate::CreateRaw(this, &FPhysScene::SceneCompletionTask, PST_Cloth), TEXT("ProcessPhysScene_Cloth"), PhysicsSubsceneCompletion[PST_Cloth], ENamedThreads::GameThread, ENamedThreads::GameThread));
+		}
+	}
+
+	//If the async scene is lagged we start it here to make sure any cloth in the async scene is using the results of the previous simulation.
+	if (FrameLagAsync() && bAsyncSceneEnabled)
+	{
+		TickPhysScene(PST_Async, PhysicsSubsceneCompletion[PST_Async]);
+		if (PhysicsSubsceneCompletion[PST_Async].GetReference())
+		{
+			FrameLaggedPhysicsSubsceneCompletion[PST_Async] = FDelegateGraphTask::CreateAndDispatchWhenReady(FDelegateGraphTask::FDelegate::CreateRaw(this, &FPhysScene::SceneCompletionTask, PST_Async), TEXT("ProcessPhysScene_Async"), PhysicsSubsceneCompletion[PST_Async], ENamedThreads::GameThread, ENamedThreads::GameThread);
+		}
+	}
+}
+
 void FPhysScene::EndFrame(ULineBatchComponent* InLineBatcher)
 {
 	PhysicsSceneCompletion = NULL;
@@ -753,16 +792,6 @@ void FPhysScene::EndFrame(ULineBatchComponent* InLineBatcher)
 
 	}
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-
-	if (FrameLagAsync() && bAsyncSceneEnabled)
-	{
-		TickPhysScene(PST_Async, PhysicsSubsceneCompletion[PST_Async]);
-		if (PhysicsSubsceneCompletion[PST_Async].GetReference())
-		{
-			FrameLaggedPhysicsSubsceneCompletion[PST_Async] = FDelegateGraphTask::CreateAndDispatchWhenReady(FDelegateGraphTask::FDelegate::CreateRaw(this, &FPhysScene::SceneCompletionTask, PST_Async), TEXT("ProcessPhysScene_Async"), PhysicsSubsceneCompletion[PST_Async], ENamedThreads::GameThread, ENamedThreads::GameThread);
-		}
-	}
-
 }
 
 void FPhysScene::SetIsStaticLoading(bool bStaticLoading)
@@ -1034,7 +1063,9 @@ void FPhysScene::InitPhysScene(uint32 SceneType)
 
 #if WITH_SUBSTEPPING
 	//Initialize substeppers
-	PhysSubSteppers[SceneType] = new FPhysSubstepTask(PScene);
+	//we don't bother sub-stepping cloth
+	PhysSubSteppers[SceneType] = SceneType == PST_Cloth ? NULL : new FPhysSubstepTask(PScene);
+	
 #endif
 
 #endif // WITH_PHYSX

@@ -12,7 +12,6 @@
 #include "EngineMaterialClasses.h"
 #include "EngineLevelScriptClasses.h"
 #include "SoundDefinitions.h"
-#include "LinkedObjDrawUtils.h"
 #include "InterpolationHitProxy.h"
 #include "AVIWriter.h"
 #include "AnimationUtils.h"
@@ -266,29 +265,28 @@ bool AMatineeActor::IgnoreActorSelection()
 AMatineeActor::AMatineeActor(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	// Structure to hold one-time initialization
-	struct FConstructorStatics
-	{
-		ConstructorHelpers::FObjectFinderOptional<UTexture2D> SceneManagerObject;
-		FName ID_Matinee;
-		FText NAME_Matinee;
-		FConstructorStatics()
-			: SceneManagerObject(TEXT("/Engine/EditorResources/SceneManager"))
-			, ID_Matinee(TEXT("Matinee"))
-			, NAME_Matinee(NSLOCTEXT( "SpriteCategory", "Matinee", "Matinee" ))
-		{
-		}
-	};
-	static FConstructorStatics ConstructorStatics;
-
-
 	TSubobjectPtr<USceneComponent> SceneComponent = PCIP.CreateDefaultSubobject<USceneComponent>(this, TEXT("SceneComp"));
 	RootComponent = SceneComponent;
 
 #if WITH_EDITORONLY_DATA
 	SpriteComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
-	if (SpriteComponent)
+	if (!IsRunningCommandlet() && (SpriteComponent != nullptr))
 	{
+		// Structure to hold one-time initialization
+		struct FConstructorStatics
+		{
+			ConstructorHelpers::FObjectFinderOptional<UTexture2D> SceneManagerObject;
+			FName ID_Matinee;
+			FText NAME_Matinee;
+			FConstructorStatics()
+				: SceneManagerObject(TEXT("/Engine/EditorResources/SceneManager"))
+				, ID_Matinee(TEXT("Matinee"))
+				, NAME_Matinee(NSLOCTEXT("SpriteCategory", "Matinee", "Matinee"))
+			{
+			}
+		};
+		static FConstructorStatics ConstructorStatics;
+
 		SpriteComponent->Sprite = ConstructorStatics.SceneManagerObject.Get();
 		SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Matinee;
 		SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Matinee;
@@ -7795,11 +7793,21 @@ void UInterpTrackSound::UpdateTrack(float NewPosition, UInterpTrackInst* TrInst,
 		VolumePitchValue *= FVector( SoundTrackKey.Volume, SoundTrackKey.Pitch, 1.0f );
 		if (VectorTrack.Points.Num() > 0)
 		{
-			VolumePitchValue *= VectorTrack.Eval(NewPosition,VolumePitchValue);
+			VolumePitchValue *= VectorTrack.Eval(NewPosition, VolumePitchValue);
 		}
 
-		// If we have moved into a new sound, we should start playing it now.
-		if(StartSoundIndex != EndSoundIndex)
+		// Check if we're in the audio range, and if we need to start playing the audio,
+		// either because it has never been played, or isn't currently playing.
+		bool bIsInRangeAndNeedsStart = NewPosition >= SoundTrackKey.Time && NewPosition <= ( SoundTrackKey.Time + SoundTrackKey.Sound->Duration );
+		if ( bIsInRangeAndNeedsStart )
+		{
+			bIsInRangeAndNeedsStart = SoundInst->PlayAudioComp == NULL || !SoundInst->PlayAudioComp->IsPlaying();
+		}
+
+		// If we have moved into a new sound, we should start playing it now, or if we don't have an audio
+		// component we must be starting mid playback, so go ahead and create one.  Or if it's not currently playing, but should be
+		// lets start it.
+		if ( StartSoundIndex != EndSoundIndex || bIsInRangeAndNeedsStart )
 		{
 			USoundBase* NewSound = SoundTrackKey.Sound;
 
@@ -7842,7 +7850,7 @@ void UInterpTrackSound::UpdateTrack(float NewPosition, UInterpTrackInst* TrInst,
 					SoundInst->PlayAudioComp->SetVolumeMultiplier(VolumePitchValue.X);
 					SoundInst->PlayAudioComp->SetPitchMultiplier(VolumePitchValue.Y);
 					SoundInst->PlayAudioComp->SubtitlePriority = bSuppressSubtitles ? 0.f : SUBTITLE_PRIORITY_MATINEE;
-					SoundInst->PlayAudioComp->Play();
+					SoundInst->PlayAudioComp->Play(NewPosition - SoundTrackKey.Time);
 				}
 				else
 				{
@@ -7872,7 +7880,7 @@ void UInterpTrackSound::UpdateTrack(float NewPosition, UInterpTrackInst* TrInst,
 						SoundInst->PlayAudioComp->SetVolumeMultiplier(VolumePitchValue.X);
 						SoundInst->PlayAudioComp->SetPitchMultiplier(VolumePitchValue.Y);
 						SoundInst->PlayAudioComp->SubtitlePriority = bSuppressSubtitles ? 0.f : SUBTITLE_PRIORITY_MATINEE;
-						SoundInst->PlayAudioComp->Play();				
+						SoundInst->PlayAudioComp->Play(NewPosition - SoundTrackKey.Time);
 					}
 				}
 			}
@@ -7933,16 +7941,42 @@ void UInterpTrackSound::PreviewUpdateTrack(float NewPosition, UInterpTrackInst* 
 	}
 
 	// Dont play sounds unless we are preview playback (ie not scrubbing).
-	bool bJump = !(MatineeActor->bIsPlaying);
+	bool bJump = !( MatineeActor->bIsPlaying );
 	UpdateTrack(NewPosition, TrInst, bJump);
+
+#if WITH_EDITORONLY_DATA
+	bool bTimeChangedDrastically = !FMath::IsNearlyEqual(NewPosition, MatineeActor->InterpPosition);
+	if ( bTimeChangedDrastically && MatineeActor->bIsScrubbing )
+	{
+		FSoundTrackKey& SoundTrackKey = GetSoundTrackKeyAtPosition(NewPosition);
+		const bool bIsInRange = NewPosition >= SoundTrackKey.Time && NewPosition <= ( SoundTrackKey.Time + SoundTrackKey.Sound->Duration );
+
+		USoundCue* TempPlaybackAudioCue = ConstructObject<USoundCue>(USoundCue::StaticClass());
+		UAudioComponent* Component = FAudioDevice::CreateComponent(TempPlaybackAudioCue, NULL, NULL, false, false);
+
+		if ( bIsInRange && Component )
+		{
+			float PitchMultiplier = 1.0f / 1.0f;// AudioSection->GetAudioDilationFactor();
+			Component->bAllowSpatialization = false;// !AudioTrack->IsAMasterTrack();
+			Component->SetSound(SoundTrackKey.Sound);
+			Component->SetVolumeMultiplier(1.f);
+			Component->SetPitchMultiplier(PitchMultiplier);
+			Component->bIsUISound = true;
+			Component->Play(NewPosition - SoundTrackKey.Time);
+
+			const float ScrubDuration = 0.05f;
+			Component->FadeOut(ScrubDuration, 1.0f);
+		}
+	}
+#endif
 }
 
-const FString	UInterpTrackSound::GetEdHelperClassName() const
+const FString UInterpTrackSound::GetEdHelperClassName() const
 {
 	return FString( TEXT("UnrealEd.InterpTrackSoundHelper") );
 }
 
-const FString	UInterpTrackSound::GetSlateHelperClassName() const
+const FString UInterpTrackSound::GetSlateHelperClassName() const
 {
 	return FString( TEXT("Matinee.MatineeTrackSoundHelper") );
 }

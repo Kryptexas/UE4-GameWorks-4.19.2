@@ -263,11 +263,21 @@ void FEQSSceneProxy::DrawDebugLabels(UCanvas* Canvas, APlayerController*)
 	Canvas->SetDrawColor(OldDrawColor);
 }
 
+bool FEQSSceneProxy::SafeIsActorSelected() const
+{
+	if(ActorOwner)
+	{
+		return ActorOwner->IsSelected();
+	}
+
+	return false;
+}
+
 FPrimitiveViewRelevance FEQSSceneProxy::GetViewRelevance(const FSceneView* View)
 {
 	FPrimitiveViewRelevance Result;
-	Result.bDrawRelevance = !!View->Family->EngineShowFlags.GetSingleFlag(ViewFlagIndex) && IsShown(View) 
-		&& (bDrawOnlyWhenSelected == false || ActorOwner->IsSelected());
+	Result.bDrawRelevance = View->Family->EngineShowFlags.GetSingleFlag(ViewFlagIndex) && IsShown(View) 
+		&& (!bDrawOnlyWhenSelected || SafeIsActorSelected());
 	Result.bDynamicRelevance = true;
 	Result.bNormalTranslucencyRelevance = IsShown(View);
 	return Result;

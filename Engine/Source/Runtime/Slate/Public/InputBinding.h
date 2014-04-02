@@ -504,7 +504,7 @@ private:
 class SLATE_API FUICommandDragDropOp : public FDragDropOperation
 {
 public:
-	static FString GetTypeId() {static FString Type = TEXT("FUICommandDragDropOp"); return Type;}
+	DRAG_DROP_OPERATOR_TYPE(FUICommandDragDropOp, FDragDropOperation)
 
 	static TSharedRef<FUICommandDragDropOp> New( TSharedRef<const FUICommandInfo> InCommandInfo, FName InOriginMultiBox, TSharedPtr<SWidget> CustomDectorator, FVector2D DecoratorOffset );
 

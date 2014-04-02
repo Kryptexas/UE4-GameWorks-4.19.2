@@ -25,6 +25,7 @@ TSharedRef<SWidget>	SGameplayTagGraphPin::GetDefaultValueWidget()
 			.OnGetMenuContent( this, &SGameplayTagGraphPin::GetListContent )
 			.ContentPadding( FMargin( 2.0f, 2.0f ) )
 			.Visibility( this, &SGraphPin::GetDefaultValueVisibility )
+			.MenuPlacement(MenuPlacement_BelowAnchor)
 			.ButtonContent()
 			[
 				SNew( STextBlock )

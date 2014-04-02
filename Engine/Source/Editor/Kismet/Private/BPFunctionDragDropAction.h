@@ -12,8 +12,8 @@
 class FKismetDragDropAction : public FGraphSchemaActionDragDropAction
 {
 public:
-	// GetTypeId is the parent: FGraphEditorDragDropAction
-
+	DRAG_DROP_OPERATOR_TYPE(FKismetDragDropAction, FGraphSchemaActionDragDropAction)
+		
 	// FGraphEditorDragDropAction interface
 	virtual void HoverTargetChanged() OVERRIDE;
 	virtual FReply DroppedOnPanel( const TSharedRef< class SWidget >& Panel, FVector2D ScreenPosition, FVector2D GraphPosition, UEdGraph& Graph) OVERRIDE;
@@ -24,7 +24,6 @@ public:
 	static TSharedRef<FKismetDragDropAction> New(TSharedPtr<FEdGraphSchemaAction> InActionNode, FNodeCreationAnalytic AnalyticCallback, FCanBeDroppedDelegate CanBeDroppedDelegate)
 	{
 		TSharedRef<FKismetDragDropAction> Operation = MakeShareable(new FKismetDragDropAction);
-		FSlateApplication::GetDragDropReflector().RegisterOperation<FKismetDragDropAction>(Operation);
 		Operation->ActionNode = InActionNode;
 		Operation->AnalyticCallback = AnalyticCallback;
 		Operation->CanBeDroppedDelegate = CanBeDroppedDelegate;
@@ -49,7 +48,7 @@ protected:
 class FKismetFunctionDragDropAction : public FKismetDragDropAction
 {
 public:
-	// GetTypeId is the parent: FGraphEditorDragDropAction
+	DRAG_DROP_OPERATOR_TYPE(FKismetFunctionDragDropAction, FKismetDragDropAction)
 
 	FKismetFunctionDragDropAction();
 
@@ -82,7 +81,7 @@ protected:
 class FKismetMacroDragDropAction : public FKismetDragDropAction
 {
 public:
-	// GetTypeId is the parent: FGraphEditorDragDropAction
+	DRAG_DROP_OPERATOR_TYPE(FKismetMacroDragDropAction, FKismetDragDropAction)
 
 	FKismetMacroDragDropAction();
 

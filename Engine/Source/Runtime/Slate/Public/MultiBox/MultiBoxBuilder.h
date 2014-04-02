@@ -72,6 +72,19 @@ public:
 	 */
 	TSharedPtr<const FUICommandList> GetTopCommandList();
 
+	/**
+	 * Pushes a new extender onto the stack. This extender will be used for all subsequently-added multiblocks, until the extender is popped.
+	 *
+	 * @param	InExtender	The new extender to use
+	 */
+	void PushExtender( TSharedRef< FExtender > InExtender );
+
+
+	/**
+	 * Pops the current extender.
+	 */
+	void PopExtender();
+
 	/** @return The style set used by the multibox widgets */
 	const ISlateStyle* GetStyleSet() const;
 
@@ -100,8 +113,8 @@ protected:
 		the command-list at the top of the stack at the time they are added. */
 	TArray< TSharedPtr< const FUICommandList > > CommandListStack;
 
-	/** The extender holding all the possible extensions for this menu builder */
-	TSharedPtr<class FExtender> Extender;
+	/** The extender stack holding all the possible extensions for this menu builder */
+	TArray< TSharedPtr<class FExtender> > ExtenderStack;
 };
 
 

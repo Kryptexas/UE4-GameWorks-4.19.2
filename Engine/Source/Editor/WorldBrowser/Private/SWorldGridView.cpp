@@ -57,7 +57,7 @@ SWorldLevelsGridView::SWorldLevelsGridView()
 	, bHasScrollRequest(false)
 	, bIsFirstTickCall(true)
 	, bHasNodeInteraction(true)
-	, SnappingDistance(20.f)
+	, BoundsSnappingDistance(20.f)
 {
 
 	SharedThumbnailRT = new FSlateTextureRenderTarget2DResource(
@@ -656,7 +656,7 @@ void SWorldLevelsGridView::OnEndNodeInteraction(const TSharedRef<SNode>& InNodeD
 		FIntPoint IntAbsoluteDelta = FIntPoint(AbsoluteDelta.X, AbsoluteDelta.Y);
 
 		// Reset stored translation delta to 0
-		WorldModel->UpdateTranslationDelta(WorldModel->GetSelectedLevels(), FVector2D::ZeroVector, 0.f);
+		WorldModel->UpdateTranslationDelta(WorldModel->GetSelectedLevels(), FVector2D::ZeroVector, false, 0.f);
 	
 		// In case we have non zero dragging delta, translate selected levels 
 		if (IntAbsoluteDelta != FIntPoint::ZeroValue)
@@ -676,13 +676,22 @@ void SWorldLevelsGridView::MoveSelectedNodes(const TSharedPtr<SNode>& InNodeToDr
 	
 	if (ItemDragged->IsItemEditable())
 	{
-		bool bEnableSnapping = (FSlateApplication::Get().GetModifierKeys().IsControlDown() == false);
-		float SnappingDistanceWorld = (bEnableSnapping ? SnappingDistance/GetZoomAmount() : 0.f);
+		// Current translation snapping value
+		float SnappingDistanceWorld = 0.f;
+		const bool bBoundsSnapping = (FSlateApplication::Get().GetModifierKeys().IsControlDown() == false);
+		if (bBoundsSnapping)
+		{
+			SnappingDistanceWorld = BoundsSnappingDistance/GetZoomAmount();
+		}
+		else if (GetDefault<ULevelEditorViewportSettings>()->GridEnabled)
+		{
+			SnappingDistanceWorld = GEditor->GetGridSize();
+		}
 		
 		FVector2D StartPosition = ItemDragged->GetPosition() - ItemDragged->GetLevelModel()->GetLevelTranslationDelta();
 		FVector2D AbsoluteDelta = NewPosition - StartPosition;
 
-		WorldModel->UpdateTranslationDelta(WorldModel->GetSelectedLevels(), AbsoluteDelta, SnappingDistanceWorld);
+		WorldModel->UpdateTranslationDelta(WorldModel->GetSelectedLevels(), AbsoluteDelta, bBoundsSnapping, SnappingDistanceWorld);
 	}
 }
 

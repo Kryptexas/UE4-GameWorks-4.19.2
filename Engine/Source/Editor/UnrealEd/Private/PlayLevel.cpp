@@ -342,6 +342,7 @@ void UEditorEngine::TeardownPlaySession(FWorldContext &PieWorldContext)
 		GetAudioDevice()->Flush( PlayWorld );
 		GetAudioDevice()->ResetInterpolation();
 		GetAudioDevice()->OnEndPIE(bIsSimulatingInEditor);
+		GetAudioDevice()->TransientMasterVolume = 1.0f;
 	}
 
 	// Clean up all streaming levels
@@ -681,10 +682,6 @@ void UEditorEngine::StartQueuedPlayMapRequest()
 {
 	const bool bWantSimulateInEditor = bIsSimulateInEditorQueued;
 
-	// note that we no longer have a queued request
-	bIsPlayWorldQueued = false;
-	bIsSimulateInEditorQueued = false;
-
 	//ULevelEditorPlaySettings* PlaySettings = GetMutableDefault<ULevelEditorPlaySettings>();
 	//PlaySettings->LastExecutedPlayModeType = PlayMode;
 
@@ -764,6 +761,10 @@ void UEditorEngine::StartQueuedPlayMapRequest()
 			PlayInEditor( GetEditorWorldContext().World(), bWantSimulateInEditor );
 		}
 	}
+
+	// note that we no longer have a queued request
+	bIsPlayWorldQueued = false;
+	bIsSimulateInEditorQueued = false;
 }
 
 /* Temporarily renames streaming levels for pie saving */
@@ -1114,11 +1115,11 @@ void UEditorEngine::PlayUsingLauncher()
 		bool bHasCode = GameProjectModule.Get().GetProjectCodeFileCount() > 0;
 
 		ILauncherProfileRef LauncherProfile = LauncherServicesModule.CreateProfile(TEXT("Play On Device"));
-		LauncherProfile->SetBuildGame(bHasCode && FSourceCodeNavigation::IsCompilerAvailable());
+		LauncherProfile->SetBuildGame((bHasCode && FSourceCodeNavigation::IsCompilerAvailable()) || !FRocketSupport::IsRocket());
 		LauncherProfile->SetCookMode(ELauncherProfileCookModes::ByTheBook);
 		LauncherProfile->AddCookedPlatform(PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@"))));
-        LauncherProfile->SetForceClose(true);
-        LauncherProfile->SetTimeout(60);
+		LauncherProfile->SetForceClose(true);
+		LauncherProfile->SetTimeout(60);
 
 		// Run the same version of the cooker that the editor is compiled as
 #if UE_BUILD_DEBUG
@@ -1555,6 +1556,36 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 				{
 					UBlueprint* Blueprint = *BlueprintIt;
 
+					int32 CurrItIndex = BlueprintIt.GetIndex();
+					// gather dependencies so we can ensure that they're getting recompiled as well
+					TArray<UBlueprint*> Dependencies;
+					FBlueprintEditorUtils::GetDependentBlueprints(Blueprint, Dependencies);
+					// if the user made a change, but didn't hit "compile", then dependent blueprints
+					// wouldn't have been marked dirty, so here we make sure to add those dependencies 
+					// to the end of the BlueprintsToRecompile array (so we hit them too in this loop)
+					for (auto DependencyIt = Dependencies.CreateIterator(); DependencyIt; ++DependencyIt)
+					{
+						UBlueprint* DependentBp = *DependencyIt;
+
+						int32 ExistingIndex = BlueprintsToRecompile.Find(DependentBp);
+						// if this dependent blueprint is already set up to compile 
+						// later in this loop, then there is no need to add it to be recompiled again
+						if (ExistingIndex >= CurrItIndex)
+						{
+							continue;
+						}
+
+						// if this blueprint wasn't slated to  be recompiled
+						if (ExistingIndex == INDEX_NONE)
+						{
+							// we need to make sure this gets recompiled as well 
+							// (since it depends on this other one that is dirty)
+							BlueprintsToRecompile.Add(DependentBp);
+						}
+						// else this is a circular dependency... it has previously been compiled
+						// ... is there a case where we'd want to recompile this again?
+					}
+
 					// Cache off the dirty flag for the package, so we can restore it later
 					UPackage* Package = Cast<UPackage>(Blueprint->GetOutermost());
 					const bool bIsPackageDirty = Package ? Package->IsDirty() : false;
@@ -1679,6 +1710,11 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 
 	ULevelEditorPlaySettings* PlayInSettings = Cast<ULevelEditorPlaySettings>(ULevelEditorPlaySettings::StaticClass()->GetDefaultObject());
 	int32 PIEInstance = 0;
+
+	if (!PlayInSettings->EnableSound && GetAudioDevice())
+	{
+		GetAudioDevice()->TransientMasterVolume = 0.0f;
+	}
 
 	if (!GEditor->bAllowMultiplePIEWorlds)
 	{
@@ -2604,7 +2640,10 @@ UWorld* UEditorEngine::CreatePIEWorldFromEntry(FWorldContext &WorldContext, UWor
 	// Create the world
 	UWorld *LoadedWorld = UWorld::CreateWorld( EWorldType::PIE, false );
 	check(LoadedWorld);
-
+	if (LoadedWorld->GetOutermost() != GetTransientPackage())
+	{
+		LoadedWorld->GetOutermost()->PIEInstanceID = WorldContext.PIEInstance;
+	}
 	// Force default GameMode class so project specific code doesn't fire off. 
 	// We want this world to truly remain empty while we wait for connect!
 	check(LoadedWorld->GetWorldSettings());
@@ -2616,7 +2655,7 @@ UWorld* UEditorEngine::CreatePIEWorldFromEntry(FWorldContext &WorldContext, UWor
 
 bool UEditorEngine::WorldIsPIEInNewViewport(UWorld *InWorld)
 {
-	FWorldContext &WorldContext = WorldContextFromWorld(InWorld);
+	FWorldContext &WorldContext = GetWorldContextFromWorldChecked(InWorld);
 	if (WorldContext.WorldType == EWorldType::PIE)
 	{
 		FSlatePlayInEditorInfo * SlateInfoPtr = SlatePlayInEditorMap.Find(WorldContext.ContextHandle);

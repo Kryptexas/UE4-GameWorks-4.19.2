@@ -806,6 +806,61 @@ void DrawDebugCamera(const UWorld* InWorld, FVector const& Location, FRotator co
 	}
 }
 
+
+void DrawDebugFloatHistory(UWorld const & WorldRef, FDebugFloatHistory const & FloatHistory, FTransform const & DrawTransform, FVector2D const & DrawSize, FColor const & DrawColor, bool const & bPersistent, float const & LifeTime, uint8 const & DepthPriority)
+{
+	int const NumSamples = FloatHistory.GetNumSamples();
+	if (NumSamples >= 2)
+	{
+		FVector DrawLocation = DrawTransform.GetLocation();
+		FVector const AxisX = DrawTransform.GetUnitAxis(EAxis::Y);
+		FVector const AxisY = DrawTransform.GetUnitAxis(EAxis::Z);
+		FVector const AxisXStep = AxisX *  DrawSize.X / float(NumSamples);
+		FVector const AxisYStep = AxisY *  DrawSize.Y / FMath::Max(FloatHistory.GetMinMaxRange(), KINDA_SMALL_NUMBER);
+
+		// Frame
+		DrawDebugLine(&WorldRef, DrawLocation, DrawLocation + AxisX * DrawSize.X, DrawColor, bPersistent, LifeTime, DepthPriority);
+		DrawDebugLine(&WorldRef, DrawLocation, DrawLocation + AxisY * DrawSize.Y, DrawColor, bPersistent, LifeTime, DepthPriority);
+		DrawDebugLine(&WorldRef, DrawLocation + AxisY * DrawSize.Y, DrawLocation + AxisX * DrawSize.X + AxisY * DrawSize.Y, DrawColor, bPersistent, LifeTime, DepthPriority);
+		DrawDebugLine(&WorldRef, DrawLocation + AxisX * DrawSize.X, DrawLocation + AxisX * DrawSize.X + AxisY * DrawSize.Y, DrawColor, bPersistent, LifeTime, DepthPriority);
+
+		TArray<float> const & Samples = FloatHistory.GetSamples();
+
+		TArray<FVector> Verts;
+		Verts.AddUninitialized(NumSamples * 2);
+
+		TArray<int32> Indices;
+		Indices.AddUninitialized((NumSamples - 1) * 6);
+
+		Verts[0] = DrawLocation;
+		Verts[1] = DrawLocation + AxisYStep * Samples[0];
+
+		for (int HistoryIndex = 1; HistoryIndex < NumSamples; HistoryIndex++)
+		{
+			DrawLocation += AxisXStep;
+
+			int const VertIndex = (HistoryIndex - 1) * 2;
+			Verts[VertIndex + 2] = DrawLocation;
+			Verts[VertIndex + 3] = DrawLocation + AxisYStep * FMath::Clamp(Samples[HistoryIndex], FloatHistory.GetMinValue(), FloatHistory.GetMaxValue());
+
+			int const StartIndex = (HistoryIndex - 1) * 6;
+			Indices[StartIndex + 0] = VertIndex + 0; Indices[StartIndex + 1] = VertIndex + 1; Indices[StartIndex + 2] = VertIndex + 3;
+			Indices[StartIndex + 3] = VertIndex + 0; Indices[StartIndex + 4] = VertIndex + 3; Indices[StartIndex + 5] = VertIndex + 2;
+		}
+
+		DrawDebugMesh(&WorldRef, Verts, Indices, DrawColor, bPersistent, LifeTime, DepthPriority);
+	}
+}
+
+void DrawDebugFloatHistory(UWorld const & WorldRef, FDebugFloatHistory const & FloatHistory, FVector const & DrawLocation, FVector2D const & DrawSize, FColor const & DrawColor, bool const & bPersistent, float const & LifeTime, uint8 const & DepthPriority)
+{
+	APlayerController * PlayerController = WorldRef.GetFirstPlayerController();
+	FRotator const DrawRotation = (PlayerController && PlayerController->PlayerCameraManager) ? PlayerController->PlayerCameraManager->CameraCache.POV.Rotation : FRotator(0, 0, 0);
+
+	FTransform const DrawTransform(DrawRotation, DrawLocation);
+	DrawDebugFloatHistory(WorldRef, FloatHistory, DrawTransform, DrawSize, DrawColor, bPersistent, LifeTime, DepthPriority);
+}
+
 //////////////////////////////////////////////////////////////////
 // Debug draw canvas operations
 

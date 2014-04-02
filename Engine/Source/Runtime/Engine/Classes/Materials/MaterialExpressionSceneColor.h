@@ -31,11 +31,15 @@ class UMaterialExpressionSceneColor : public UMaterialExpression
 	* UV coordinates to apply to the scene color lookup or 
 	* an offset to apply to the scene color lookup, in a 2d fraction of the screen.
 	*/
-	UPROPERTY(meta=(RequiredInput = "false"))
+	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Defaults to 'ConstInput' if not specified"))
 	FExpressionInput Input;
 
 	UPROPERTY()
 	FExpressionInput OffsetFraction_DEPRECATED;
+
+	/** only used if Input is not hooked up */
+	UPROPERTY(EditAnywhere, Category = MaterialExpressionSceneColor)
+	FVector2D ConstInput;
 
 	// Begin UObject interface.
 	virtual void PostLoad() OVERRIDE;

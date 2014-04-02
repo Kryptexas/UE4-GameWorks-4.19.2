@@ -1203,6 +1203,19 @@ void UInstancedStaticMeshComponent::InitInstanceBody(int32 InstanceIdx, FBodyIns
 #endif //WITH_PHYSX
 }
 
+void UInstancedStaticMeshComponent::ClearAllInstanceBodies()
+{
+	for (int32 i = 0; i < InstanceBodies.Num(); i++)
+	{
+		check(InstanceBodies[i]);
+		InstanceBodies[i]->TermBody();
+		delete InstanceBodies[i];
+	}
+
+	InstanceBodies.Empty();
+}
+
+
 void UInstancedStaticMeshComponent::CreatePhysicsState()
 {
 	check(InstanceBodies.Num() == 0);
@@ -1237,14 +1250,8 @@ void UInstancedStaticMeshComponent::DestroyPhysicsState()
 {
 	USceneComponent::DestroyPhysicsState();
 
-	for(int32 i=0; i<InstanceBodies.Num(); i++)
-	{
-		check( InstanceBodies[i] );
-		InstanceBodies[i]->TermBody();
-		delete InstanceBodies[i];
-	}
-
-	InstanceBodies.Empty();
+	// Release all physics representations
+	ClearAllInstanceBodies();
 
 #if WITH_PHYSX
 	// releasing Aggregate, it shouldn't contain any Bodies now, because they are released above
@@ -1378,6 +1385,24 @@ void UInstancedStaticMeshComponent::AddInstance(const FTransform& InstanceTransf
 
 	MarkRenderStateDirty();
 }
+
+bool UInstancedStaticMeshComponent::ShouldCreatePhysicsState() const
+{
+	return IsRegistered() && (bAlwaysCreatePhysicsState || IsCollisionEnabled());
+}
+
+
+void UInstancedStaticMeshComponent::ClearInstances()
+{
+	// Clear all the per-instance data
+	PerInstanceSMData.Empty();
+	// Release any physics representations
+	ClearAllInstanceBodies();
+
+	// Indicate we need to update render state to reflect changes
+	MarkRenderStateDirty();
+}
+
 
 void UInstancedStaticMeshComponent::SetupNewInstanceData(FInstancedStaticMeshInstanceData& InOutNewInstanceData, int32 InInstanceIndex, const FTransform& InInstanceTransform)
 {

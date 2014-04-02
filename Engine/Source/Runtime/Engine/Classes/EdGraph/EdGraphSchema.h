@@ -683,7 +683,7 @@ class ENGINE_API UEdGraphSchema : public UObject
 	}
 
 	/* Can this graph type be duplicated? */
-	virtual bool CanDuplicateGraph() const { return true; }
+	virtual bool CanDuplicateGraph(UEdGraph* InSourceGraph) const { return true; }
 
 	/* Duplicate a given graph return the duplicate graph */
 	virtual UEdGraph* DuplicateGraph(UEdGraph* GraphToDuplicate) const { return NULL;}

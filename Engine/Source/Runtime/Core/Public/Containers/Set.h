@@ -345,16 +345,15 @@ public:
 	}
 
 	/** Accesses the identified element's value. */
-	FORCEINLINE ElementType& operator()(FSetElementId Id)
+	FORCEINLINE ElementType& operator[](FSetElementId Id)
 	{
-		//checkSlow(IsValidId(Id)); // Disabled to improve loading times -BZ
 		return Elements[Id].Value;
 	}
 
 	/** Accesses the identified element's value. */
-	FORCEINLINE const ElementType& operator()(FSetElementId Id) const
+	FORCEINLINE const ElementType& operator[](FSetElementId Id) const
 	{
-		return const_cast<TSet&>(*this)(Id);
+		return Elements[Id].Value;
 	}
 
 	/**
@@ -963,7 +962,7 @@ private:
 				NextId = Set.GetInternalElement(Id).HashNextId;
 				checkSlow(Id != NextId);
 
-				if(KeyFuncs::Matches(KeyFuncs::GetSetKey(Set(Id)),Key))
+				if(KeyFuncs::Matches(KeyFuncs::GetSetKey(Set[Id]),Key))
 				{
 					break;
 				}
@@ -989,11 +988,11 @@ private:
 		// Accessors.
 		FORCEINLINE ItElementType* operator->() const
 		{
-			return &Set(Id);
+			return &Set[Id];
 		}
 		FORCEINLINE ItElementType& operator*() const
 		{
-			return Set(Id);
+			return Set[Id];
 		}
 
 	protected:

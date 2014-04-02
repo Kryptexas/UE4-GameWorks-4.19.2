@@ -76,7 +76,10 @@ namespace AutomationTool
 			if (AppName == "mono")
 			{
 				// Enable case-insensitive mode for Mono
-				NewProcess.StartInfo.EnvironmentVariables.Add("MONO_IOMAP", "case");
+                if (!NewProcess.StartInfo.EnvironmentVariables.ContainsKey("MONO_IOMAP"))
+                {
+                    NewProcess.StartInfo.EnvironmentVariables.Add("MONO_IOMAP", "case");
+                }
 			}
 			return NewProcess;
 		}

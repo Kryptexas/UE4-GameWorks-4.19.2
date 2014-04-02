@@ -83,179 +83,146 @@ private:
 	TSharedPtr< FAssetThumbnail > Thumbnail;
 };
 
-/**
- * A tile representation of the class or the asset.  These are embedded into the views inside
- * of each tab.
- */
-class SPlacementAssetEntry : public SCompoundWidget
-{
-	public:
+void SPlacementAssetEntry::Construct(const FArguments& InArgs, UActorFactory* InFactory, const FAssetData& InAsset)
+{	
+	bIsPressed = false;
 
-	SLATE_BEGIN_ARGS( SPlacementAssetEntry )
-		: _LabelOverride()
-	{}
-		SLATE_ARGUMENT( FText, LabelOverride )
-	SLATE_END_ARGS()
+	FactoryToUse = InFactory;
+	AssetData = InAsset;
 
-	/**
-	 * Construct this widget.  Called by the SNew() Slate macro.
-	 *
-	 * @param	InArgs				Declaration used by the SNew() macro to construct this widget
-	 * @param	InViewModel			The layer the row widget is supposed to represent
-	 * @param	InOwnerTableView	The owner of the row widget
-	 */
-	 void Construct( const FArguments& InArgs, UActorFactory* InFactory, const FAssetData& InAsset )
-	{	
-		bIsPressed = false;
+	TSharedPtr< SHorizontalBox > ActorType = SNew( SHorizontalBox );
 
-		FactoryToUse = InFactory;
-		AssetData = InAsset;
+	const bool IsClass = AssetData.GetClass() == UClass::StaticClass();
+	const bool IsVolume = IsClass ? Cast<UClass>( AssetData.GetAsset() )->IsChildOf( AVolume::StaticClass() ) : false;
 
-		TSharedPtr< SHorizontalBox > ActorType = SNew( SHorizontalBox );
+	AssetDisplayName = FText::FromName( AssetData.AssetName );
+	if ( IsClass )
+	{
+		AssetDisplayName = FText::FromString( EngineUtils::SanitizeDisplayName( AssetData.AssetName.ToString(), false ) );
+	}
 
-		const bool IsClass = AssetData.GetClass() == UClass::StaticClass();
-		const bool IsVolume = IsClass ? Cast<UClass>( AssetData.GetAsset() )->IsChildOf( AVolume::StaticClass() ) : false;
+	FText ActorTypeDisplayName;
+	AActor* DefaultActor = nullptr;
+	if ( IsClass && Cast<UClass>( AssetData.GetAsset() )->IsChildOf( AActor::StaticClass() ) )
+	{
+		DefaultActor = Cast<AActor>( Cast<UClass>( AssetData.GetAsset() )->ClassDefaultObject );
+		ActorTypeDisplayName = FText::FromString( EngineUtils::SanitizeDisplayName( DefaultActor->GetClass()->GetName(), false ) );
+	}
 
-		AssetDisplayName = FText::FromName( AssetData.AssetName );
-		if ( IsClass )
-		{
-			AssetDisplayName = FText::FromString( EngineUtils::SanitizeDisplayName( AssetData.AssetName.ToString(), false ) );
-		}
+	if ( FactoryToUse != nullptr )
+	{
+		DefaultActor = FactoryToUse->GetDefaultActor( AssetData );
+		ActorTypeDisplayName = FactoryToUse->GetDisplayName();
+	}
 
-		FText ActorTypeDisplayName;
-		AActor* DefaultActor = nullptr;
-		if ( IsClass && Cast<UClass>( AssetData.GetAsset() )->IsChildOf( AActor::StaticClass() ) )
-		{
-			DefaultActor = Cast<AActor>( Cast<UClass>( AssetData.GetAsset() )->ClassDefaultObject );
-			ActorTypeDisplayName = FText::FromString( EngineUtils::SanitizeDisplayName( DefaultActor->GetClass()->GetName(), false ) );
-		}
+	AssetDisplayName = ( IsClass && !IsVolume && !ActorTypeDisplayName.IsEmpty() ) ? ActorTypeDisplayName : AssetDisplayName;
 
-		if ( FactoryToUse != nullptr )
-		{
-			DefaultActor = FactoryToUse->GetDefaultActor( AssetData );
-			ActorTypeDisplayName = FactoryToUse->GetDisplayName();
-		}
+	if ( !InArgs._LabelOverride.IsEmpty() )
+	{
+		AssetDisplayName = InArgs._LabelOverride;
+	}
 
-		AssetDisplayName = ( IsClass && !IsVolume && !ActorTypeDisplayName.IsEmpty() ) ? ActorTypeDisplayName : AssetDisplayName;
+	const FButtonStyle& ButtonStyle = FEditorStyle::GetWidgetStyle<FButtonStyle>( "PlacementBrowser.Asset" );
 
-		if ( !InArgs._LabelOverride.IsEmpty() )
-		{
-			AssetDisplayName = InArgs._LabelOverride;
-		}
+	NormalImage = &ButtonStyle.Normal;
+	HoverImage = &ButtonStyle.Hovered;
+	PressedImage = &ButtonStyle.Pressed; 
 
-		const FButtonStyle& ButtonStyle = FEditorStyle::GetWidgetStyle<FButtonStyle>( "PlacementBrowser.Asset" );
-
-		NormalImage = &ButtonStyle.Normal;
-		HoverImage = &ButtonStyle.Hovered;
-		PressedImage = &ButtonStyle.Pressed; 
-
-		ChildSlot
+	ChildSlot
+	[
+		SNew( SBorder )
+		.BorderImage( this, &SPlacementAssetEntry::GetBorder )
+		.Cursor( EMouseCursor::GrabHand )
 		[
-			SNew( SBorder )
-			.BorderImage( this, &SPlacementAssetEntry::GetBorder )
-			.Cursor( EMouseCursor::GrabHand )
+			SNew( SHorizontalBox )
+
+			+ SHorizontalBox::Slot()
+			.Padding( 0 )
+			.AutoWidth()
 			[
-				SNew( SHorizontalBox )
-
-				+ SHorizontalBox::Slot()
-				.Padding( 0 )
-				.AutoWidth()
+				// Drop shadow border
+				SNew( SBorder )
+				.Padding( 5 )
+				.BorderImage( FEditorStyle::GetBrush( "ContentBrowser.ThumbnailShadow" ) )
+				.ToolTipText( ActorTypeDisplayName )
 				[
-					// Drop shadow border
-					SNew( SBorder )
-					.Padding( 5 )
-					.BorderImage( FEditorStyle::GetBrush( "ContentBrowser.ThumbnailShadow" ) )
-					.ToolTipText( ActorTypeDisplayName )
+					SNew( SBox )
+					.WidthOverride( 35 )
+					.HeightOverride( 35 )
 					[
-						SNew( SBox )
-						.WidthOverride( 35 )
-						.HeightOverride( 35 )
-						[
-							SNew( SPlacementAssetThumbnail, AssetData )
-						]
-					]
-				]
-
-				+ SHorizontalBox::Slot()
-				.VAlign(VAlign_Center)
-				.Padding(2, 0, 4, 0)
-				[
-					SNew( SVerticalBox )
-					+SVerticalBox::Slot()
-					.Padding(0, 0, 0, 1)
-					.AutoHeight()
-					[
-						SNew( STextBlock )
-						.TextStyle( FEditorStyle::Get(), "PlacementBrowser.Asset.Name" )
-						.Text( AssetDisplayName )
+						SNew( SPlacementAssetThumbnail, AssetData )
 					]
 				]
 			]
-		];
-	}
 
-	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE
+			+ SHorizontalBox::Slot()
+			.VAlign(VAlign_Center)
+			.Padding(2, 0, 4, 0)
+			[
+				SNew( SVerticalBox )
+				+SVerticalBox::Slot()
+				.Padding(0, 0, 0, 1)
+				.AutoHeight()
+				[
+					SNew( STextBlock )
+					.TextStyle( FEditorStyle::Get(), "PlacementBrowser.Asset.Name" )
+					.Text( AssetDisplayName )
+					.HighlightText(InArgs._HighlightText)
+				]
+			]
+		]
+	];
+}
+
+FReply SPlacementAssetEntry::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
 	{
-		if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
-		{
-			bIsPressed = true;
+		bIsPressed = true;
 
-			return FReply::Handled().DetectDrag( SharedThis( this ), MouseEvent.GetEffectingButton() );
-		}
-
-		return FReply::Unhandled();
+		return FReply::Handled().DetectDrag( SharedThis( this ), MouseEvent.GetEffectingButton() );
 	}
 
-	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
-	{
-		if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
-		{
-			bIsPressed = false;
-		}
+	return FReply::Unhandled();
+}
 
-		return FReply::Unhandled();
-	}
-
-	virtual FReply OnDragDetected( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE
+FReply SPlacementAssetEntry::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
 	{
 		bIsPressed = false;
-
-		return FReply::Handled().BeginDragDrop( FAssetDragDropOp::New( AssetData, FactoryToUse ) );
 	}
 
-	bool IsPressed() const { return bIsPressed; }
+	return FReply::Unhandled();
+}
 
-	FText AssetDisplayName;
+FReply SPlacementAssetEntry::OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	bIsPressed = false;
 
-	UActorFactory* FactoryToUse;
-	FAssetData AssetData;
+	return FReply::Handled().BeginDragDrop( FAssetDragDropOp::New( AssetData, FactoryToUse ) );
+}
 
-private:
-	const FSlateBrush* GetBorder() const
+bool SPlacementAssetEntry::IsPressed() const
+{
+	return bIsPressed;
+}
+
+const FSlateBrush* SPlacementAssetEntry::GetBorder() const
+{
+	if ( IsPressed() )
 	{
-		if ( IsPressed() )
-		{
-			return PressedImage;
-		}
-		else if ( IsHovered() )
-		{
-			return HoverImage;
-		}
-		else
-		{
-			return NormalImage;
-		}
+		return PressedImage;
 	}
-
-	bool bIsPressed;
-
-	/** Brush resource that represents a button */
-	const FSlateBrush* NormalImage;
-	/** Brush resource that represents a button when it is hovered */
-	const FSlateBrush* HoverImage;
-	/** Brush resource that represents a button when it is pressed */
-	const FSlateBrush* PressedImage;
-};
+	else if ( IsHovered() )
+	{
+		return HoverImage;
+	}
+	else
+	{
+		return NormalImage;
+	}
+}
 
 SPlacementModeTools::~SPlacementModeTools()
 {
@@ -268,6 +235,7 @@ SPlacementModeTools::~SPlacementModeTools()
 void SPlacementModeTools::Construct( const FArguments& InArgs )
 {
 	bPlaceablesRefreshRequested = false;
+	bPlaceablesFullRefreshRequested = false;
 	bVolumesRefreshRequested = false;
 
 	FPlacementMode* PlacementEditMode = (FPlacementMode*)GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Placement );
@@ -278,177 +246,40 @@ void SPlacementModeTools::Construct( const FArguments& InArgs )
 		SNew( SVerticalBox )
 
 		+ SVerticalBox::Slot()
+		.Padding(4)
+		.AutoHeight()
+		[
+			SNew( SSearchBox )
+			.HintText(NSLOCTEXT("PlacementMode", "SearchPlaceables", "Search Classes"))
+			.OnTextChanged(this, &SPlacementModeTools::OnSearchChanged)
+		]
+
+		+ SVerticalBox::Slot()
 		.Padding( 0 )
 		.FillHeight( 1.0f )
 		[
-			SNew( SHorizontalBox )
+			SNew(SWidgetSwitcher)
+			.WidgetIndex(this, &SPlacementModeTools::GetSelectedPanel)
 
-			// The tabs on the left
-			+ SHorizontalBox::Slot()
-			.AutoWidth()
+			// Normal Panel
+			+ SWidgetSwitcher::Slot()
 			[
-				SNew( SVerticalBox )
-
-				+ SVerticalBox::Slot()
-				.Padding( 0, 3, 0, 0 )
-				.AutoHeight()
-				[
-					SNew(STutorialWrapper)
-					.Name(TEXT("PMRecentlyPlaced"))
-					[
-						CreatePlacementGroupTab( (int32)EPlacementTab::RecentlyPlaced, NSLOCTEXT( "PlacementMode", "RecentlyPlaced", "Recently Placed" ), true )
-					]
-				]
-
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				[
-					SNew(STutorialWrapper)
-					.Name(TEXT("PMGeometry"))
-					[
-						CreatePlacementGroupTab( (int32)EPlacementTab::Geometry, NSLOCTEXT( "PlacementMode", "Geometry", "Geometry" ), false )
-					]
-				]
-
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				[
-					SNew(STutorialWrapper)
-					.Name(TEXT("PMLights"))
-					[
-						CreatePlacementGroupTab( (int32)EPlacementTab::Lights, NSLOCTEXT( "PlacementMode", "Lights", "Lights" ), false )
-					]
-				]
-
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				[
-					SNew(STutorialWrapper)
-					.Name(TEXT("PMVisual"))
-					[
-						CreatePlacementGroupTab( (int32)EPlacementTab::Visual, NSLOCTEXT( "PlacementMode", "Visual", "Visual" ), false )
-					]
-				]
-
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				[
-					SNew(STutorialWrapper)
-					.Name(TEXT("PMBasic"))
-					[
-						CreatePlacementGroupTab( (int32)EPlacementTab::Basic, NSLOCTEXT( "PlacementMode", "Basic", "Basic" ), false )
-					]
-				]
-
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				[
-					SNew(STutorialWrapper)
-					.Name(TEXT("PMVolumes"))
-					[
-						CreatePlacementGroupTab( (int32)EPlacementTab::Volumes, NSLOCTEXT( "PlacementMode", "Volumes", "Volumes" ), false )
-					]
-				]
-
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				[
-					SNew(STutorialWrapper)
-					.Name(TEXT("PMAllClasses"))
-					[
-						CreatePlacementGroupTab( (int32)EPlacementTab::AllClasses, NSLOCTEXT( "PlacementMode", "AllClasses", "All Classes" ), true )
-					]
-				]
+				CreateStandardPanel()
 			]
 
-			// The 'tab body' area that is switched out with the widget switcher based on the currently active tab.
-			+ SHorizontalBox::Slot()
-			.FillWidth( 1.0f )
+			// Search Results Panel
+			+ SWidgetSwitcher::Slot()
+			.Padding(4, 0, 4, 4)
 			[
-				SNew( SVerticalBox )
-
-				+ SVerticalBox::Slot()
-				.FillHeight( 1.0f )
-				.Padding( 0 )
+				SNew(SBorder)
+				.Padding(FMargin(3))
+				.BorderImage(FEditorStyle::GetBrush("ToolPanel.DarkGroupBorder"))
 				[
-					SNew( SBorder )
-					.Padding( FMargin( 3 ) )
-					.BorderImage( FEditorStyle::GetBrush( "ToolPanel.DarkGroupBorder" ) )
+					SNew(SScrollBox)
+
+					+ SScrollBox::Slot()
 					[
-						SAssignNew( WidgetSwitcher, SWidgetSwitcher )
-						.WidgetIndex( (int32)EPlacementTab::Geometry )
-
-						// Recently Placed
-						+ SWidgetSwitcher::Slot()
-						[
-							SNew( SScrollBox )
-
-							+ SScrollBox::Slot()
-							[
-								SAssignNew( RecentlyPlacedContainer, SVerticalBox )
-							]
-						]
-
-						// Geometry
-						+ SWidgetSwitcher::Slot()
-						[
-							FModuleManager::LoadModuleChecked<IBspModeModule>("BspMode").CreateBspModeWidget()
-						]
-
-						// Lights
-						+ SWidgetSwitcher::Slot()
-						[
-							SNew( SScrollBox )
-							
-							+ SScrollBox::Slot()
-							[
-								BuildLightsWidget()
-							]
-						]
-
-						// Visual
-						+ SWidgetSwitcher::Slot()
-						[
-							SNew( SScrollBox )
-							
-							+ SScrollBox::Slot()
-							[
-								BuildVisualWidget()
-							]
-						]
-
-						// Basics
-						+ SWidgetSwitcher::Slot()
-						[
-							SNew( SScrollBox )
-
-							+ SScrollBox::Slot()
-							[
-								BuildBasicWidget()
-							]
-						]
-
-						// Volumes
-						+ SWidgetSwitcher::Slot()
-						[
-							SNew( SScrollBox )
-
-							+ SScrollBox::Slot()
-							[
-								SAssignNew( VolumesContainer, SVerticalBox )
-							]
-						]
-
-						// Classes
-						+ SWidgetSwitcher::Slot()
-						[
-							SNew( SScrollBox )
-
-							+ SScrollBox::Slot()
-							[
-								SAssignNew( PlaceablesContainer, SVerticalBox )
-							]
-						]
+						SAssignNew(SearchResultsContainer, SVerticalBox)
 					]
 				]
 			]
@@ -458,6 +289,174 @@ void SPlacementModeTools::Construct( const FArguments& InArgs )
 	RefreshRecentlyPlaced();
 
 	IPlacementModeModule::Get().GetPlacementMode()->OnRecentlyPlacedChanged().AddSP( this, &SPlacementModeTools::UpdateRecentlyPlacedAssets );
+}
+
+TSharedRef< SWidget > SPlacementModeTools::CreateStandardPanel()
+{
+	return SNew( SHorizontalBox )
+
+	// The tabs on the left
+	+ SHorizontalBox::Slot()
+	.AutoWidth()
+	[
+		SNew( SVerticalBox )
+
+		+ SVerticalBox::Slot()
+		.Padding( 0, 3, 0, 0 )
+		.AutoHeight()
+		[
+			SNew( STutorialWrapper, TEXT("PMRecentlyPlaced") )
+			[
+				CreatePlacementGroupTab( (int32)EPlacementTab::RecentlyPlaced, NSLOCTEXT( "PlacementMode", "RecentlyPlaced", "Recently Placed" ), true )
+			]
+		]
+
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			SNew( STutorialWrapper, TEXT("PMGeometry") )
+			[
+				CreatePlacementGroupTab( (int32)EPlacementTab::Geometry, NSLOCTEXT( "PlacementMode", "Geometry", "Geometry" ), false )
+			]
+		]
+
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			SNew( STutorialWrapper, TEXT("PMLights") )
+			[
+				CreatePlacementGroupTab( (int32)EPlacementTab::Lights, NSLOCTEXT( "PlacementMode", "Lights", "Lights" ), false )
+			]
+		]
+
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			SNew( STutorialWrapper, TEXT("PMVisual") )
+			[
+				CreatePlacementGroupTab( (int32)EPlacementTab::Visual, NSLOCTEXT( "PlacementMode", "Visual", "Visual" ), false )
+			]
+		]
+
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			SNew( STutorialWrapper, TEXT("PMBasic") )
+			[
+				CreatePlacementGroupTab( (int32)EPlacementTab::Basic, NSLOCTEXT( "PlacementMode", "Basic", "Basic" ), false )
+			]
+		]
+
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			SNew( STutorialWrapper, TEXT("PMVolumes") )
+			[
+				CreatePlacementGroupTab( (int32)EPlacementTab::Volumes, NSLOCTEXT( "PlacementMode", "Volumes", "Volumes" ), false )
+			]
+		]
+
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			SNew( STutorialWrapper, TEXT("PMAllClasses") )
+			[
+				CreatePlacementGroupTab( (int32)EPlacementTab::AllClasses, NSLOCTEXT( "PlacementMode", "AllClasses", "All Classes" ), true )
+			]
+		]
+	]
+
+	// The 'tab body' area that is switched out with the widget switcher based on the currently active tab.
+	+ SHorizontalBox::Slot()
+	.FillWidth( 1.0f )
+	[
+		SNew( SVerticalBox )
+
+		+ SVerticalBox::Slot()
+		.FillHeight( 1.0f )
+		.Padding( 0 )
+		[
+			SNew( SBorder )
+			.Padding( FMargin( 3 ) )
+			.BorderImage( FEditorStyle::GetBrush( "ToolPanel.DarkGroupBorder" ) )
+			[
+				SAssignNew( WidgetSwitcher, SWidgetSwitcher )
+				.WidgetIndex( (int32)EPlacementTab::Geometry )
+
+				// Recently Placed
+				+ SWidgetSwitcher::Slot()
+				[
+					SNew( SScrollBox )
+
+					+ SScrollBox::Slot()
+					[
+						SAssignNew( RecentlyPlacedContainer, SVerticalBox )
+					]
+				]
+
+				// Geometry
+				+ SWidgetSwitcher::Slot()
+				[
+					FModuleManager::LoadModuleChecked<IBspModeModule>("BspMode").CreateBspModeWidget()
+				]
+
+				// Lights
+				+ SWidgetSwitcher::Slot()
+				[
+					SNew( SScrollBox )
+							
+					+ SScrollBox::Slot()
+					[
+						BuildLightsWidget()
+					]
+				]
+
+				// Visual
+				+ SWidgetSwitcher::Slot()
+				[
+					SNew( SScrollBox )
+							
+					+ SScrollBox::Slot()
+					[
+						BuildVisualWidget()
+					]
+				]
+
+				// Basics
+				+ SWidgetSwitcher::Slot()
+				[
+					SNew( SScrollBox )
+
+					+ SScrollBox::Slot()
+					[
+						BuildBasicWidget()
+					]
+				]
+
+				// Volumes
+				+ SWidgetSwitcher::Slot()
+				[
+					SNew( SScrollBox )
+
+					+ SScrollBox::Slot()
+					[
+						SAssignNew( VolumesContainer, SVerticalBox )
+					]
+				]
+
+				// Classes
+				+ SWidgetSwitcher::Slot()
+				[
+					SNew( SScrollBox )
+
+					+ SScrollBox::Slot()
+					[
+						SAssignNew( PlaceablesContainer, SVerticalBox )
+					]
+				]
+			]
+		]
+	];
 }
 
 TSharedRef< SWidget > SPlacementModeTools::CreatePlacementGroupTab( int32 TabIndex, FText TabText, bool Important )
@@ -512,7 +511,7 @@ void SPlacementModeTools::OnPlacementTabChanged( ESlateCheckBoxState::Type NewSt
 		}
 		else if ( PlacementGroupIndex == (int32)EPlacementTab::AllClasses )
 		{
-			bPlaceablesRefreshRequested = true;
+			bPlaceablesFullRefreshRequested = true;
 		}
 	}
 }
@@ -752,14 +751,8 @@ void SPlacementModeTools::RefreshVolumes()
 	}
 }
 
-void SPlacementModeTools::RefreshPlaceables()
+void SPlacementModeTools::RebuildPlaceableClassWidgetCache()
 {
-	bPlaceablesRefreshRequested = false;
-
-	PlaceablesContainer->ClearChildren();
-
-	TArray< TSharedRef<SPlacementAssetEntry> > Entries;
-
 	// Make a map of UClasses to ActorFactories that support them
 	const TArray< UActorFactory *>& ActorFactories = GEditor->ActorFactories;
 	TMap<UClass*, UActorFactory*> ActorFactoryMap;
@@ -769,9 +762,11 @@ void SPlacementModeTools::RefreshPlaceables()
 
 		if ( ActorFactory )
 		{
-			ActorFactoryMap.Add( ActorFactory->GetDefaultActorClass( FAssetData() ), ActorFactory );
+			ActorFactoryMap.Add(ActorFactory->GetDefaultActorClass(FAssetData()), ActorFactory);
 		}
 	}
+
+	TArray< TSharedRef<SPlacementAssetEntry> > Entries;
 
 	// Add loaded classes
 	FText UnusedErrorMessage;
@@ -779,56 +774,113 @@ void SPlacementModeTools::RefreshPlaceables()
 	for ( TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt )
 	{
 		// Don't offer skeleton classes
-		bool bIsSkeletonClass = ClassIt->HasAnyFlags( RF_Transient ) && ClassIt->HasAnyClassFlags( CLASS_CompiledFromBlueprint );
+		bool bIsSkeletonClass = ClassIt->HasAnyFlags(RF_Transient) && ClassIt->HasAnyClassFlags(CLASS_CompiledFromBlueprint);
 
-		if ( !ClassIt->HasAllClassFlags( CLASS_NotPlaceable ) &&
-			 !ClassIt->HasAnyClassFlags( CLASS_Abstract | CLASS_Deprecated | CLASS_NewerVersionExists ) &&
-			  ClassIt->IsChildOf( AActor::StaticClass() ) &&
-			( !ClassIt->IsChildOf( ABrush::StaticClass() ) || ClassIt->IsChildOf( AVolume::StaticClass() ) ) &&
+		if ( !ClassIt->HasAllClassFlags(CLASS_NotPlaceable) &&
+			!ClassIt->HasAnyClassFlags(CLASS_Abstract | CLASS_Deprecated | CLASS_NewerVersionExists) &&
+			ClassIt->IsChildOf(AActor::StaticClass()) &&
+			( !ClassIt->IsChildOf(ABrush::StaticClass()) || ClassIt->IsChildOf(AVolume::StaticClass()) ) &&
 			!bIsSkeletonClass )
 		{
-			UActorFactory** ActorFactory = ActorFactoryMap.Find( *ClassIt );
+			UActorFactory** ActorFactory = ActorFactoryMap.Find(*ClassIt);
 
-			const bool IsVolume = ClassIt->IsChildOf( AVolume::StaticClass() );
+			const bool IsVolume = ClassIt->IsChildOf(AVolume::StaticClass());
+
+			TSharedPtr<SPlacementAssetEntry> Entry;
 
 			if ( IsVolume )
 			{
-				UActorFactory* Factory = GEditor->FindActorFactoryByClassForActorClass( UActorFactoryBoxVolume::StaticClass(), *ClassIt );
-				Entries.Add( SNew( SPlacementAssetEntry, Factory, FAssetData( *ClassIt ) ) );
+				UActorFactory* Factory = GEditor->FindActorFactoryByClassForActorClass(UActorFactoryBoxVolume::StaticClass(), *ClassIt);
+				Entry = SNew(SPlacementAssetEntry, Factory, FAssetData(*ClassIt))
+					.HighlightText(this, &SPlacementModeTools::GetHighlightText);
 			}
 			else
 			{
-				if ( !ActorFactory || ( *ActorFactory )->CanCreateActorFrom( NoAssetData, UnusedErrorMessage ) )
+				if ( !ActorFactory || ( *ActorFactory )->CanCreateActorFrom(NoAssetData, UnusedErrorMessage) )
 				{
 					if ( !ActorFactory )
 					{
-						Entries.Add( SNew( SPlacementAssetEntry, nullptr, FAssetData( *ClassIt ) ) );
+						Entry = SNew(SPlacementAssetEntry, nullptr, FAssetData(*ClassIt))
+							.HighlightText(this, &SPlacementModeTools::GetHighlightText);
 					}
 					else
 					{
-						Entries.Add( SNew( SPlacementAssetEntry, *ActorFactory, FAssetData( *ClassIt ) ) );
+						Entry = SNew(SPlacementAssetEntry, *ActorFactory, FAssetData(*ClassIt))
+							.HighlightText(this, &SPlacementModeTools::GetHighlightText);
 					}
 				}
+			}
+
+			if ( Entry.IsValid() )
+			{
+				Entries.Add(Entry.ToSharedRef());
 			}
 		}
 	}
 
 	struct FCompareFactoryByDisplayName
 	{
-		FORCEINLINE bool operator()( const TSharedRef<SPlacementAssetEntry>& A, const TSharedRef<SPlacementAssetEntry>& B ) const
+		FORCEINLINE bool operator()(const TSharedRef<SPlacementAssetEntry>& A, const TSharedRef<SPlacementAssetEntry>& B) const
 		{
-			return A->AssetDisplayName.CompareTo( B->AssetDisplayName ) < 0;
+			return A->AssetDisplayName.CompareTo(B->AssetDisplayName) < 0;
 		}
 	};
 
-	Entries.Sort( FCompareFactoryByDisplayName() );
+	Entries.Sort(FCompareFactoryByDisplayName());
 
+	// Cache the result
+	PlaceableClassWidgets.Reset();
 	for ( int32 i = 0; i < Entries.Num(); i++ )
 	{
-		PlaceablesContainer->AddSlot()
-		[
-			Entries[i]
-		];
+		PlaceableClassWidgets.Add(Entries[i]);
+	}
+}
+
+void SPlacementModeTools::RefreshPlaceables()
+{
+	if ( bPlaceablesFullRefreshRequested )
+	{
+		RebuildPlaceableClassWidgetCache();
+	}
+
+	PlaceablesContainer->ClearChildren();
+	SearchResultsContainer->ClearChildren();
+
+	if ( SearchText.IsEmpty() )
+	{
+		// Just build the full list with no filtering
+		for ( int32 i = 0; i < PlaceableClassWidgets.Num(); i++ )
+		{
+			PlaceablesContainer->AddSlot()
+			[
+				PlaceableClassWidgets[i]
+			];
+		}
+	}
+	else
+	{
+		// Filter out the widgets that don't belong
+		for ( int32 i = 0; i < PlaceableClassWidgets.Num(); i++ )
+		{
+			if ( PlaceableClassWidgets[i]->AssetDisplayName.ToString().Contains(SearchText.ToString()) )
+			{
+				SearchResultsContainer->AddSlot()
+				[
+					PlaceableClassWidgets[i]
+				];
+			}
+		}
+
+		if ( SearchResultsContainer->GetChildren()->Num() == 0 )
+		{
+			SearchResultsContainer->AddSlot()
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Fill)
+				[
+					SNew(STextBlock)
+					.Text(NSLOCTEXT("PlacementMode", "NoResultsFound", "No Results Found"))
+				];
+		}
 	}
 }
 
@@ -836,9 +888,11 @@ void SPlacementModeTools::Tick( const FGeometry& AllottedGeometry, const double 
 {
 	SCompoundWidget::Tick( AllottedGeometry, InCurrentTime, InDeltaTime );
 
-	if ( bPlaceablesRefreshRequested )
+	if ( bPlaceablesRefreshRequested || bPlaceablesFullRefreshRequested )
 	{
 		RefreshPlaceables();
+		bPlaceablesRefreshRequested = false;
+		bPlaceablesFullRefreshRequested = false;
 	}
 
 	if ( bVolumesRefreshRequested )
@@ -859,4 +913,30 @@ FReply SPlacementModeTools::OnKeyDown( const FGeometry& MyGeometry, const FKeybo
 	}
 
 	return Reply;
+}
+
+int32 SPlacementModeTools::GetSelectedPanel() const
+{
+	return SearchText.IsEmpty() ? 0 : 1;
+}
+
+void SPlacementModeTools::OnSearchChanged(const FText& InFilterText)
+{
+	// If the search text was previously we do a full rebuild of our cached widgets
+	// for the placeable widgets.
+	if ( SearchText.IsEmpty() )
+	{
+		bPlaceablesFullRefreshRequested = true;
+	}
+	else
+	{
+		bPlaceablesRefreshRequested = true;
+	}
+
+	SearchText = InFilterText;
+}
+
+FText SPlacementModeTools::GetHighlightText() const
+{
+	return SearchText;
 }

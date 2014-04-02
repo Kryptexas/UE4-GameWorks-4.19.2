@@ -411,10 +411,18 @@ FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()
 				DeviceType = IOS_IPad4;
 			}
 		}
-		// iPadAir
+		// iPadAir and iPad Mini 2nd Generation
 		else if (Major == 4)
 		{
-			DeviceType = IOS_IPadAir;
+			if (Minor >= 4)
+			{
+				DeviceType = IOS_IPadMini;
+			}
+			else
+			{
+				DeviceType = IOS_IPadAir;
+			}
+
 		}
 		// Default to highest settings currently available for any future device
 		else if (Major > 4)

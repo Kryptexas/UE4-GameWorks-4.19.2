@@ -43,6 +43,7 @@ public:
 	TSharedPtr< FUICommandInfo > OpenToolbox;
 	TSharedPtr< FUICommandInfo > OpenDebugView;
 	TSharedPtr< FUICommandInfo > OpenClassViewer;
+	TSharedPtr< FUICommandInfo > OpenWidgetReflector;
 
 	TSharedPtr< FUICommandInfo > VisitWiki;
 	TSharedPtr< FUICommandInfo > VisitForums;
@@ -52,6 +53,7 @@ public:
 	TSharedPtr< FUICommandInfo > VisitEpicGamesDotCom;
 	TSharedPtr< FUICommandInfo > AboutUnrealEd;
 
+	TSharedPtr< FUICommandInfo > ResetLayout;
 	TSharedPtr< FUICommandInfo > SaveLayout;
 	TSharedPtr< FUICommandInfo > ToggleFullscreen;
 
@@ -138,6 +140,8 @@ public:
 
 	static void AboutUnrealEd_Execute();
 
+	static void OpenWidgetReflector_Execute();
+
 	/** Opens the new project dialog */
 	static void NewProject( bool bAllowProjectOpening, bool bAllowProjectCreate );
 
@@ -176,6 +180,12 @@ public:
 
 	/** Opens the specified project file or game. Restarts the editor */
 	static void SwitchProject(const FString& GameOrProjectFileName);
+
+	/** Opens the directory where the backup for preferences is stored. */
+	static void OpenBackupDirectory( FString BackupFile );
+
+	/** Resets the visual state of the editor */
+	static void ResetLayout();
 
 	/** Save the visual state of the editor */
 	static void SaveLayout();

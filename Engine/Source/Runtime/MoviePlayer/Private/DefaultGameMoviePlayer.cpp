@@ -9,7 +9,7 @@
 #include "Slate/SceneViewport.h"
 #include "GlobalShader.h"
 
-#include "Spinlock.h"
+#include "SpinLock.h"
 #include "MoviePlayerThreading.h"
 #include "DefaultGameMoviePlayer.h"
 #include "MoviePlayerSettings.h"

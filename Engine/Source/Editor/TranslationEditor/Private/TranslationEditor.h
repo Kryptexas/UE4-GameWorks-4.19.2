@@ -14,10 +14,16 @@ public:
 	/**
 	 *	Creates a new FTranslationEditor and calls Initialize
 	 */
-	static TSharedRef< FTranslationEditor > Create( TSharedRef< FTranslationDataManager > DataManager, FName ProjectName, FName TranslationTargetLanguage )
+	static TSharedRef< FTranslationEditor > Create( TSharedRef< FTranslationDataManager > DataManager, const FString& ProjectName, const FString& TranslationTargetLanguage )
 	{
 		TSharedRef< FTranslationEditor > TranslationEditor = MakeShareable( new FTranslationEditor( DataManager, ProjectName, TranslationTargetLanguage ) );
+
+		// Some stuff that needs to use the "this" pointer is done in Initialize (because it can't be done in the constructor)
 		TranslationEditor->Initialize();
+
+		// Set up a property changed event to trigger a write of the translation data when TranslationDataObject property changes
+		DataManager->GetTranslationDataObject()->OnPropertyChanged().Add(UTranslationDataObject::FTranslationDataPropertyChangedEvent::FDelegate::CreateSP(DataManager, &FTranslationDataManager::HandlePropertyChanged));
+
 		return TranslationEditor;
 	}
 	
@@ -48,7 +54,7 @@ protected:
 
 private:
 
-	FTranslationEditor(TSharedRef< FTranslationDataManager > InDataManager, FName InProjectName, FName InTranslationTargetLanguage )
+	FTranslationEditor(TSharedRef< FTranslationDataManager > InDataManager, const FString& InManifestFile, const FString& InArchiveFile )
 	: TranslationData(NULL)
 	, DataManager(InDataManager)
 	, SourceFont(FEditorStyle::GetFontStyle( PropertyTableConstants::NormalFontStyle ))
@@ -60,8 +66,8 @@ private:
 				.Font(TranslationTargetFont))
 	, NamespaceTextBlock(SNew(STextBlock)
 				.Text(FText::FromString("")))
-	, ProjectName(InProjectName)
-	, TranslationTargetLanguage(InTranslationTargetLanguage)
+	, ProjectName(FPaths::GetBaseFilename(InManifestFile))
+	, TranslationTargetLanguage(FPaths::GetBaseFilename(FPaths::GetPath(InArchiveFile)))
 	{}
 
 	/** Does some things we can't do in the constructor because we can't get a SharedRef to "this" there */ 
@@ -197,7 +203,7 @@ private:
 	TSharedRef<STextBlock> NamespaceTextBlock;
 
 	/** Name of the project we are translating for */
-	FName ProjectName;
+	FString ProjectName;
 	/** Name of the language we are translating to */
-	FName TranslationTargetLanguage;
+	FString TranslationTargetLanguage;
 };

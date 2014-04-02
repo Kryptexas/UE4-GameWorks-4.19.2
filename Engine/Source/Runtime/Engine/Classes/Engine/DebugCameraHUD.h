@@ -4,7 +4,7 @@
 #include "DebugCameraHUD.generated.h"
 
 UCLASS(config=Game)
-class ADebugCameraHUD : public AHUD
+class ENGINE_API ADebugCameraHUD : public AHUD
 {
 	GENERATED_UCLASS_BODY()
 

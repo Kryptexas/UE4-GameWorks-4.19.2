@@ -59,14 +59,43 @@ bool UEditorBrushBuilder::EndBrush( UWorld* InWorld, ABrush* InBrush )
 			Brush->Modify();
 			BuilderBrush->Modify();
 
-				BuilderBrush->Layers.AddUnique( Layer );
+			BuilderBrush->Layers.AddUnique( Layer );
 
 			FRotator Temp(0.0f,0.0f,0.0f);
 			FSnappingUtils::SnapToBSPVertex( Location, FVector::ZeroVector, Temp );
 			BuilderBrush->SetActorLocation(Location, false);
 			BuilderBrush->SetPrePivot( FVector::ZeroVector );
 			{
+				// Try and maintain the materials assigned to the surfaces. 
+				TArray<FPoly> CachedPolys;
+				UMaterialInterface* CachedMaterial = NULL;
+				if( Brush->Polys->Element.Num() == Polys.Num() )
+				{
+					// If the number of polygons match we assume its the same shape.
+					CachedPolys.Append(Brush->Polys->Element);
+				}
+				else if( Brush->Polys->Element.Num() > 0 )
+				{
+					// If the polygons have changed check if we only had one material before. 
+					CachedMaterial = Brush->Polys->Element[0].Material;
+					if (CachedMaterial != NULL)
+					{
+						for( auto Poly : Brush->Polys->Element )
+						{
+							if( CachedMaterial != Poly.Material )
+							{
+								CachedMaterial = NULL;
+								break;
+							}
+						}
+					}
+				}
+
+				// Clear existing polys.
 				Brush->Polys->Element.Empty();
+
+				const bool bUseCachedPolysMaterial = CachedPolys.Num() > 0;
+				int32 CachedPolyIdx = 0;
 				for( TArray<FBuilderPoly>::TIterator It(Polys); It; ++It )
 				{
 					if( It->Direction<0 )
@@ -82,6 +111,10 @@ bool UEditorBrushBuilder::EndBrush( UWorld* InWorld, ABrush* InBrush )
 					Poly.ItemName = It->ItemName;
 					Poly.Base = Vertices[It->VertexIndices[0]];
 					Poly.PolyFlags = It->PolyFlags;
+
+					// Try and maintain the polygons material where possible
+					Poly.Material = ( bUseCachedPolysMaterial ) ? CachedPolys[CachedPolyIdx++].Material : CachedMaterial;
+
 					for( int32 j=0; j<It->VertexIndices.Num(); j++ )
 					{
 						new(Poly.Vertices) FVector(Vertices[It->VertexIndices[j]]);

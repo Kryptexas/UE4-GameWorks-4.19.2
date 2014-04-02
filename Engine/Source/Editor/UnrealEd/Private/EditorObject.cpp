@@ -230,59 +230,22 @@ static const TCHAR* ImportProperties(
 				ImportedBrush = 1;
 			}
 		}
-		else if( GetBEGIN(&Str,TEXT("StaticMesh")))
-		{
-			// If SubobjectOuter is NULL, we are importing defaults for a UScriptStruct's defaultproperties block
-			if ( !bSubObjectsAllowed )
-			{
-				Warn->Logf(ELogVerbosity::Error, TEXT("BEGIN STATICMESH: Subobjects are not allowed in this context"));
-				return NULL;
-			}
-
-			// Parse static mesh on this line.
-			TCHAR	StaticMeshName[NAME_SIZE];
-			if(FParse::Value(Str,TEXT("Name="),StaticMeshName,NAME_SIZE))
-			{
-				// Rename any static meshes that have the desired name.
-				UStaticMesh*	ExistingStaticMesh = FindObject<UStaticMesh>(SubobjectRoot,StaticMeshName);
-
-				if(ExistingStaticMesh)
-				{
-					ExistingStaticMesh->Rename();
-				}
-
-				// Parse the static mesh.
-
-				UStaticMeshFactoryT3D*	StaticMeshFactory = new UStaticMeshFactoryT3D(FPostConstructInitializeProperties());
-				StaticMeshFactory->FactoryCreateText(UStaticMesh::StaticClass(),SubobjectRoot,FName(StaticMeshName, FNAME_Add, true),RF_NoFlags,NULL,TEXT("t3d"),SourceText,SourceText + FCString::Strlen(SourceText),Warn);
-			}
-		}
 		else if( GetBEGIN(&Str,TEXT("Foliage")) )
 		{
 			UStaticMesh* StaticMesh;
 			FName ComponentName;
-			if( SubobjectRoot && 
+			if (SubobjectRoot &&
 				ParseObject<UStaticMesh>( Str, TEXT("StaticMesh="), StaticMesh, ANY_PACKAGE ) &&
 				FParse::Value(Str, TEXT("Component="), ComponentName) )
 			{
-				UActorComponent* ActorComponent = Cast<UActorComponent>(SubobjectRoot->GetClass()->GetDefaultSubobjectByName(ComponentName));
+				UActorComponent* ActorComponent = FindObjectFast<UActorComponent>(SubobjectRoot, ComponentName);
 
-				if (ActorComponent && !SubobjectRoot->HasAnyFlags(RF_ClassDefaultObject))
+				if (ActorComponent)
 				{
-					// if this is not a CDO, then perhaps this foliage was already instanced; in that case, lets change to the instance pointer instead
-					UActorComponent* InstancedActorComponent = Cast<UActorComponent>(InstanceGraph.GetDestinationObject(ActorComponent));
-					if (InstancedActorComponent)
+					ULevel* ComponentLevel = CastChecked<ULevel>(SubobjectRoot->GetOuter());
+					if (ComponentLevel->IsCurrentLevel())
 					{
-						ActorComponent = InstancedActorComponent;
-					}
-				}
-
-				if( ActorComponent )
-				{
-					ULevel* ComponentLevel = Cast<ULevel>(SubobjectRoot->GetOuter());
-					if( ComponentLevel->IsCurrentLevel() )
-					{
-						AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActor(ActorComponent->GetWorld());
+						AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActor(ComponentLevel->OwningWorld);
 
 						const TCHAR* StrPtr;
 						FString TextLine;

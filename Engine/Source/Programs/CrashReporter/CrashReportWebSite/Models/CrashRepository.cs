@@ -826,45 +826,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		}
 
 		/// <summary>
-		/// Map a Guid from a Windows Error Report to a user name and machine name.
-		/// </summary>
-		/// <param name="UserName">The user name to map.</param>
-		/// <param name="MachineName">The machine name to map.</param>
-		/// <param name="MachineGUID">The Guid of the machine to map to.</param>
-		public void AddUserMapping( string UserName, string MachineName, string MachineGUID )
-		{
-			try
-			{
-				// Find if we've already mapped this guid
-				int MachineGUIDCount = ( from PIIMappingDetail in CrashRepositoryDataContext.PIIMappings
-										 where PIIMappingDetail.MachineGUID == MachineGUID
-										 select PIIMappingDetail.ID ).Count();
-
-				// If there is no mapping, add a new one
-				if( MachineGUIDCount == 0 )
-				{
-					int UserNameId = CrashRepositoryDataContext.FindOrAddUser( UserName );
-
-					PIIMapping NewMapping = new PIIMapping();
-					NewMapping.UserNameId = UserNameId;
-					NewMapping.MachineName = MachineName;
-					NewMapping.MachineGUID = MachineGUID;
-
-					CrashRepositoryDataContext.PIIMappings.InsertOnSubmit( NewMapping );
-					CrashRepositoryDataContext.SubmitChanges();
-
-					// Fix up the crashes with this GUID we just mapped
-					string UpdateQuery = "UPDATE Crashes SET ComputerName = '" + NewMapping.MachineName + "', UserNameId = '" + NewMapping.UserNameId + "' WHERE ComputerName = '" + MachineGUID + "'";
-					CrashRepositoryDataContext.ExecuteCommand( UpdateQuery );
-				}
-			}
-			catch( Exception Ex )
-			{
-				Debug.WriteLine( "Exception in AddUserMapping: " + Ex.ToString() );
-			}
-		}
-
-		/// <summary>
 		/// Extract the changelist from the 4 digit version number.
 		/// </summary>
 		/// <param name="NewCrash">The crash to extract the changelist for.</param>
@@ -882,6 +843,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			return Changelist;
 		}
 
+		// This string is written to the report in FCrashReportClient's constructor
+		const string UserNamePrefix = "!Name:";
+
 		/// <summary>
 		/// Add a new crash to the db based on a CrashDescription sent from the client.
 		/// </summary>
@@ -890,10 +854,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		public int AddNewCrash( CrashDescription NewCrashInfo )
 		{
 			int NewID = -1;
-
-			PIIMapping Mapping = ( from PIIMappingDetail in CrashRepositoryDataContext.PIIMappings
-									where PIIMappingDetail.MachineGUID == NewCrashInfo.MachineGuid
-									select PIIMappingDetail ).FirstOrDefault();
 
 			Crash NewCrash = new Crash();
 			NewCrash.Branch = NewCrashInfo.BranchName;
@@ -904,12 +864,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			NewCrash.EngineMode = NewCrashInfo.EngineMode;
 
 			NewCrash.ComputerName = NewCrashInfo.MachineGuid;
-			NewCrash.UserNameId = CrashRepositoryDataContext.FindOrAddUser( "Anonymous" );
-			if( Mapping != null )
-			{
-				NewCrash.ComputerName = Mapping.MachineName;
-				NewCrash.UserNameId = Mapping.UserNameId;
-			}
+
+			// Check for internal crashes with user name in the form "!Name:<name>"
+			NewCrash.UserNameId = CrashRepositoryDataContext.FindOrAddUser(
+				NewCrashInfo.MachineGuid.StartsWith(UserNamePrefix) ?
+					NewCrashInfo.MachineGuid.Substring(UserNamePrefix.Count()) : "Anonymous");
 
 			NewCrash.Description = "";
 			if( NewCrashInfo.UserDescription != null )

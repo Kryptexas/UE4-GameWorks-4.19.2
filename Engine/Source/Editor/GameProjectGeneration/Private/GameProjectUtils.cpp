@@ -8,6 +8,7 @@
 
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 #include "EngineAnalytics.h"
+#include "EngineBuildSettings.h"
 
 #define LOCTEXT_NAMESPACE "GameProjectUtils"
 
@@ -85,7 +86,7 @@ bool GameProjectUtils::IsValidProjectFileForCreation(const FString& ProjectFile,
 	{
 		FFormatNamedArguments Args;
 		Args.Add( TEXT("IllegalPathCharacters"), FText::FromString( IllegalPathCharacters ) );
-		OutFailReason = FText::Format( LOCTEXT( "ProjectNameContainsIllegalCharacters", "Project names may not contain the following characters: {IllegalNameCharacters}" ), Args );
+		OutFailReason = FText::Format( LOCTEXT( "ProjectNameContainsIllegalCharacters", "Project names may not contain the following characters: {IllegalPathCharacters}" ), Args );
 		return false;
 	}
 
@@ -1484,7 +1485,12 @@ bool GameProjectUtils::WriteOutputFile(const FString& OutputFilename, const FStr
 
 FString GameProjectUtils::MakeCopyrightLine()
 {
-	return FString(TEXT("// ")) + Cast<UGeneralProjectSettings>(UGeneralProjectSettings::StaticClass()->GetDefaultObject())->CopyrightNotice;
+	if(FEngineBuildSettings::IsInternalBuild())
+	{
+		return FString(TEXT("// ")) + Cast<UGeneralProjectSettings>(UGeneralProjectSettings::StaticClass()->GetDefaultObject())->CopyrightNotice;
+	}
+
+	return "";
 }
 
 FString GameProjectUtils::MakeCommaDelimitedList(const TArray<FString>& InList, bool bPlaceQuotesAroundEveryElement)

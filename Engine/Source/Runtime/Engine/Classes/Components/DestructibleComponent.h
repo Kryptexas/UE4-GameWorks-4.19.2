@@ -128,7 +128,6 @@ public:
 
 	virtual bool LineTraceComponent( FHitResult& OutHit, const FVector Start, const FVector End, const FCollisionQueryParams& Params ) OVERRIDE;
 	virtual bool SweepComponent( FHitResult& OutHit, const FVector Start, const FVector End, const FCollisionShape& CollisionShape, bool bTraceComplex=false) OVERRIDE;
-	virtual bool ShouldTrackOverlaps() const { return true; };
 	// End UPrimitiveComponent interface.
 
 	// Begin SkinnedMeshComponent interface.

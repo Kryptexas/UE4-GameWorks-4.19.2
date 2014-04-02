@@ -327,6 +327,11 @@ private:
 	 */
 	EVisibility GetAdvancedHelpTextVisibility() const;
 
+	/**
+	 * @return true if the parent that hosts us is enabled
+	 */
+	bool IsParentEnabled() const;
+
 private:
 	/** Layouts that appear in this category category */
 	FDetailLayoutMap LayoutMap;

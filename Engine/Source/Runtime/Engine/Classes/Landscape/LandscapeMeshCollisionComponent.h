@@ -5,7 +5,7 @@
 #include "LandscapeMeshCollisionComponent.generated.h"
 
 UCLASS(HeaderGroup=Terrain)
-class ULandscapeMeshCollisionComponent : public ULandscapeHeightfieldCollisionComponent, public IInterface_CollisionDataProvider
+class ULandscapeMeshCollisionComponent : public ULandscapeHeightfieldCollisionComponent
 {
 	GENERATED_UCLASS_BODY()
 
@@ -15,9 +15,6 @@ class ULandscapeMeshCollisionComponent : public ULandscapeHeightfieldCollisionCo
 	UPROPERTY()
 	FGuid MeshGuid;
 
-	/** Cooked physics data for each format */
-	FFormatContainer			CookedFormatData;
-
 	struct FPhysXMeshRef : public FRefCountedObject
 	{
 		FGuid Guid;
@@ -26,18 +23,27 @@ class ULandscapeMeshCollisionComponent : public ULandscapeHeightfieldCollisionCo
 		/** List of PxMaterials used on this landscape */
 		TArray<class physx::PxMaterial*>	UsedPhysicalMaterialArray;
 		class physx::PxTriangleMesh*		RBTriangleMesh;
+#if WITH_EDITOR
+		class physx::PxTriangleMesh*		RBTriangleMeshEd; // Used only by landscape editor, does not have holes in it
+#endif	//WITH_EDITOR
 #endif	//WITH_PHYSX
 
 		/** tors **/
 		FPhysXMeshRef() 
 #if WITH_PHYSX
 			:	RBTriangleMesh(NULL)
+#if WITH_EDITOR
+			,	RBTriangleMeshEd(NULL)
+#endif	//WITH_EDITOR
 #endif	//WITH_PHYSX
 		{}
 		FPhysXMeshRef(FGuid& InGuid)
 			:	Guid(InGuid)
 #if WITH_PHYSX
 			,	RBTriangleMesh(NULL)
+#if WITH_EDITOR
+			,	RBTriangleMeshEd(NULL)
+#endif	//WITH_EDITOR
 #endif	//WITH_PHYSX
 		{}
 		virtual ~FPhysXMeshRef();
@@ -49,13 +55,6 @@ class ULandscapeMeshCollisionComponent : public ULandscapeHeightfieldCollisionCo
 	/** Physics engine version of heightfield data. */
 	TRefCountPtr<struct FPhysXMeshRef>			MeshRef;
 
-	TArray<int32> UpdateMaterials();
-
-	// Begin IInterface_CollisionDataProvider Interface
-	virtual bool GetPhysicsTriMeshData(struct FTriMeshCollisionData* CollisionData, bool InUseAllTriData) OVERRIDE;
-	virtual bool ContainsPhysicsTriMeshData(bool InUseAllTriData) const OVERRIDE;
-	// End IInterface_CollisionDataProvider Interface
-
 	// Begin UActorComponent interface.
 	virtual void CreatePhysicsState() OVERRIDE;
 	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) OVERRIDE;
@@ -65,19 +64,24 @@ class ULandscapeMeshCollisionComponent : public ULandscapeHeightfieldCollisionCo
 	virtual void DestroyComponent() OVERRIDE;
 	// End USceneComponent interface.
 
+	// Begin UPrimitiveComponent interface
+	virtual bool DoCustomNavigableGeometryExport(struct FNavigableGeometryExport* GeomExport) const OVERRIDE;
+	//End UPrimitiveComponent interface
+
 	// Begin UObject Interface.
 	virtual void Serialize(FArchive& Ar) OVERRIDE;
 	virtual void BeginDestroy() OVERRIDE;
 #if WITH_EDITOR
 	virtual void ExportCustomProperties(FOutputDevice& Out, uint32 Indent) OVERRIDE;
 	virtual void ImportCustomProperties(const TCHAR* SourceText, FFeedbackContext* Warn) OVERRIDE;
+
+	virtual bool CookCollsionData(const FName& Format, bool bUseOnlyDefMaterial, TArray<uint8>& OutCookedData, TArray<UPhysicalMaterial*>& OutMaterails) const OVERRIDE;
 #endif
 	// End UObject Interface.
 
 	// Begin ULandscapeHeightfieldCollisionComponent Interface
+	virtual void CreateCollisionObject() OVERRIDE;
 	virtual void RecreateCollision(bool bUpdateAddCollision = true) OVERRIDE;
-
-	FByteBulkData* GetCookedData(FName Format, bool bIsMirrored);
 	// End ULandscapeHeightfieldCollisionComponent Interface
 };
 

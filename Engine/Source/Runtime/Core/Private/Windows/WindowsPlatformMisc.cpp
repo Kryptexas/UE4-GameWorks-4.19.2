@@ -192,6 +192,11 @@ void FWindowsPlatformMisc::PlatformPreInit()
 
 void FWindowsPlatformMisc::PlatformInit()
 {
+#if _MSC_VER == 1800 && PLATFORM_64BITS
+	// Work around bug in the VS 2013 math libraries in 64bit on certain windows versions. http://connect.microsoft.com/VisualStudio/feedback/details/811093 has details, remove this when runtime libraries are fixed
+	_set_FMA3_enable(0);
+#endif
+
 	// Randomize.
 	if( GIsBenchmarking )
 	{
@@ -250,6 +255,8 @@ void FWindowsPlatformMisc::PlatformPostInit()
 
 }
 
+#endif		// WITH_ENGINE
+
 /**
  * Prevents screen-saver from kicking in by moving the mouse by 0 pixels. This works even on
  * Vista in the presence of a group policy for password protected screen saver.
@@ -266,8 +273,6 @@ void FWindowsPlatformMisc::PreventScreenSaver()
 	Input.mi.dwExtraInfo = 0; 	
 	SendInput(1,&Input,sizeof(INPUT));
 }
-
-#endif		// WITH_ENGINE
 
 
 
@@ -1827,36 +1832,6 @@ bool FWindowsPlatformMisc::QueryRegKey( const HKEY InKey, const TCHAR* InSubKey,
 	}
 
 	return bSuccess;
-}
-
-FString FWindowsPlatformMisc::GetDefaultBrowser()
-{
-	// Default browser, should a custom one not be set
-	FString Browser( TEXT("iexplore") );
-
-	// Internet explorer doesn't modify the standard registry keys when it is made default browser again, check the program id to see if it should be overridden
-	FString IEKey;
-	if ( !QueryRegKey( HKEY_CURRENT_USER, TEXT("Software\\Microsoft\\Windows\\Shell\\Associations\\UrlAssociations\\http\\UserChoice"), TEXT("Progid"), IEKey )
-		|| !IEKey.StartsWith( TEXT( "IE." ) ) )	// If the key doesn't start with IE, then it doesn't use internet explorer either
-	{
-		// If it's being overridden, look up the actual application used to launch urls from the registry
-		FString BrowserKey;
-		if ( QueryRegKey( HKEY_CLASSES_ROOT, TEXT("http\\shell\\open\\command"), NULL, BrowserKey ) )
-		{
-			// Extract the path to the executable, don't use TrimQuotes as there may be params in the key too which we don't want
-			const int32 FirstQuote = BrowserKey.Find( TEXT("\"") );
-			if ( FirstQuote != INDEX_NONE )
-			{
-				const int32 SecondQuote = BrowserKey.Find( TEXT("\""), ESearchCase::IgnoreCase, ESearchDir::FromStart, FirstQuote+1 );
-				if ( SecondQuote != INDEX_NONE )
-				{
-					Browser = BrowserKey.Mid( FirstQuote+1, (SecondQuote-1)-FirstQuote );
-				}
-			}
-		}
-	}
-
-	return Browser;
 }
 
 int32 FWindowsPlatformMisc::GetCacheLineSize()

@@ -135,6 +135,7 @@ class UTextRenderComponent : public UPrimitiveComponent
 	virtual UMaterialInterface* GetMaterial(int32 ElementIndex) const;
 	virtual bool ShouldRecreateProxyOnUpdateTransform() const OVERRIDE;
 	virtual void SetMaterial(int32 ElementIndex, UMaterialInterface* InMaterial);
+	virtual FMatrix GetRenderMatrix() const;
 	// End UPrimitiveComponent interface.
 
 	// Begin USceneComponent interface.

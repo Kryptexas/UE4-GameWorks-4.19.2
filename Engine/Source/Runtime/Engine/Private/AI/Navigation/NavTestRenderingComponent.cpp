@@ -140,7 +140,7 @@ public:
 				LineColor.A = NodeData.bModified ? NavMeshRenderAlpha_Modifed : NavMeshRenderAlpha_NonModified;
 			}
 
-			FVector ParentPos(NodeData.ParentId.IsValidId() ? NodeDebug(NodeData.ParentId).Position : NodeData.Position);
+			FVector ParentPos(NodeData.ParentId.IsValidId() ? NodeDebug[NodeData.ParentId].Position : NodeData.Position);
 
 			if (bShowDiff && !NodeData.bModified)
 			{
@@ -265,7 +265,7 @@ public:
 			FSetElementId BestPathId = BestNodeId;
 			while (BestPathId.IsValidId())
 			{
-				FNodeDebugData& MyDebugNode = NodeDebug(BestPathId);
+				FNodeDebugData& MyDebugNode = NodeDebug[BestPathId];
 
 				MyDebugNode.bBestPath = true;
 				BestPathId = MyDebugNode.ParentId;

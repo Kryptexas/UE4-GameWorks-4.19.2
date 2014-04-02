@@ -31,7 +31,8 @@ public class DetailCustomizations : ModuleRules
 				"ExternalImagePicker",
 				"GameProjectGeneration",
 				"MoviePlayer",
-				"SourceControl"
+				"SourceControl",
+                "InternationalizationSettings"
 			}
 			);
 

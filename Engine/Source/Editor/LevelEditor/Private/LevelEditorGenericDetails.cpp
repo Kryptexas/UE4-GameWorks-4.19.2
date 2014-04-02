@@ -142,7 +142,7 @@ void FLevelEditorGenericDetails::AddSurfaceDetails( IDetailLayoutBuilder& Detail
 	const FSlateFontInfo& FontInfo = IDetailLayoutBuilder::GetDetailFont();
 
 	// Add a new section for static meshes
-	IDetailCategoryBuilder& BSPCategory = DetailBuilder.EditCategory( "BSP", LOCTEXT("BSPSurfacesTitle", "BSP").ToString() );
+	IDetailCategoryBuilder& BSPCategory = DetailBuilder.EditCategory( "Geometry", LOCTEXT("BSPSurfacesTitle", "Geometry").ToString() );
 	BSPCategory.AddCustomRow( TEXT("") )
 	[
 		SNew( SVerticalBox )
@@ -199,7 +199,7 @@ void FLevelEditorGenericDetails::AddSurfaceDetails( IDetailLayoutBuilder& Detail
 		]
 	];
 
-	BSPCategory.AddCustomRow( LOCTEXT("CleanBSPMaterials", "Clean BSP Materials").ToString(), true )
+	BSPCategory.AddCustomRow( LOCTEXT("CleanBSPMaterials", "Clean Geometry Materials").ToString(), true )
 	[
 		SNew(SVerticalBox)
 		+ SVerticalBox::Slot()
@@ -207,12 +207,12 @@ void FLevelEditorGenericDetails::AddSurfaceDetails( IDetailLayoutBuilder& Detail
 		.Padding( 2.0f )
 		[
 			SNew( SButton )
-			.ToolTipText( LOCTEXT("CleanBSPMaterials_Tooltip", "Cleans BSP Materials") )
+			.ToolTipText( LOCTEXT("CleanBSPMaterials_Tooltip", "Cleans Geometry Materials") )
 			.OnClicked( FOnClicked::CreateStatic( &Local::ExecuteExecCommand, FString( TEXT("CLEANBSPMATERIALS") ) ) )
 			.HAlign( HAlign_Center )
 			[
 				SNew( STextBlock )
-				.Text( LOCTEXT("CleanBSPMaterials", "Clean BSP Materials") )
+				.Text( LOCTEXT("CleanBSPMaterials", "Clean Geometry Materials") )
 				.Font( IDetailLayoutBuilder::GetDetailFont() )
 			]
 		]

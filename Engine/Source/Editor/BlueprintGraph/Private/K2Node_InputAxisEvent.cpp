@@ -9,7 +9,6 @@ UK2Node_InputAxisEvent::UK2Node_InputAxisEvent(const class FPostConstructInitial
 {
 	bConsumeInput = true;
 	bOverrideParentBinding = true;
-	bInternalEvent = true;
 
 	EventSignatureName = TEXT("InputAxisHandlerDynamicSignature__DelegateSignature");
 	EventSignatureClass = UInputComponent::StaticClass();
@@ -71,4 +70,35 @@ void UK2Node_InputAxisEvent::RegisterDynamicBinding(UDynamicBlueprintBinding* Bi
 	Binding.FunctionNameToBind = CustomFunctionName;
 
 	InputAxisBindingObject->InputAxisDelegateBindings.Add(Binding);
+}
+
+bool UK2Node_InputAxisEvent::CanPasteHere(const UEdGraph* TargetGraph, const UEdGraphSchema* Schema) const
+{
+	// By default, to be safe, we don't allow events to be pasted, except under special circumstances (see below)
+	bool bAllowPaste = false;
+
+	// Ensure that we can be instanced under the specified schema
+	if (CanCreateUnderSpecifiedSchema(Schema))
+	{
+		// Can only place events in ubergraphs
+		if (Schema->GetGraphType(TargetGraph) == EGraphType::GT_Ubergraph)
+		{
+			// Find the Blueprint that owns the target graph
+			UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(TargetGraph);
+			if (Blueprint && Blueprint->SkeletonGeneratedClass)
+			{
+				bAllowPaste = Blueprint->ParentClass->IsChildOf(AActor::StaticClass());
+				if (!bAllowPaste)
+				{
+					UE_LOG(LogBlueprint, Log, TEXT("Cannot paste event node (%s) directly because the graph does not belong to an Actor."), *GetFName().ToString());
+				}
+			}
+		}
+	}
+	else
+	{
+		UE_LOG(LogBlueprint, Log, TEXT("Cannot paste event node (%s) directly because it cannot be created under the specified schema."), *GetFName().ToString());
+	}
+
+	return bAllowPaste;
 }

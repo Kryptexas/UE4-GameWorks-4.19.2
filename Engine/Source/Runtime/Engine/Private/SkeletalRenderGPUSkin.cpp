@@ -316,12 +316,11 @@ void FSkeletalMeshObjectGPUSkin::UpdateDynamicData_RenderThread(FDynamicSkelMesh
 	}
 }
 
-void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::UpdateMorphVertexBuffer( const TArray<FActiveVertexAnim>& ActiveVertexAnims )
+void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::UpdateMorphVertexBuffer(const TArray<FActiveVertexAnim>& ActiveVertexAnims)
 {
-	SCOPE_CYCLE_COUNTER( STAT_MorphVertexBuffer_Update );
-	// static variables to initialize vertex buffer, FPackedNormal can't be initialized as 0, so preset arrays to init them
-	static FMorphGPUSkinVertex ZeroVertex(	FVector::ZeroVector, FPackedNormal::ZeroNormal	);
-	static TArray<FMorphGPUSkinVertex> ZeroVertexArray;
+	SCOPE_CYCLE_COUNTER(STAT_MorphVertexBuffer_Update);
+	static TArray<FVector> DeltaTangentZAccumulationArray;
+	static TArray<float> AccumulatedWeightArray;
 
 	if( IsValidRef(MorphVertexBuffer.VertexBufferRHI) )
 	{
@@ -331,35 +330,35 @@ void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::UpdateMorphVertexBuffer
 
 #if !WITH_EDITORONLY_DATA
 		// Lock the buffer.
-		FMorphGPUSkinVertex* Buffer = (FMorphGPUSkinVertex*)RHILockVertexBuffer(MorphVertexBuffer.VertexBufferRHI,0,Size,RLM_WriteOnly);
+		FMorphGPUSkinVertex* Buffer = (FMorphGPUSkinVertex*)RHILockVertexBuffer(MorphVertexBuffer.VertexBufferRHI, 0, Size, RLM_WriteOnly);
 #else
 		FMorphGPUSkinVertex* Buffer = (FMorphGPUSkinVertex*)FMemory::Malloc(Size);
 #endif
 
 		{
 			SCOPE_CYCLE_COUNTER(STAT_MorphVertexBuffer_Init);
-			int32 MaxZeroVertCount = 2048;	//32K of extra memory
-			if (ZeroVertexArray.Num() == 0)
+
+			// zero everything
+			int32 vertsToAdd = static_cast<int32>(LodModel.NumVertices) - DeltaTangentZAccumulationArray.Num();
+			if(vertsToAdd > 0) 
 			{
-				ZeroVertexArray.Init(ZeroVertex, MaxZeroVertCount);
+				// we're memzero-ing afterwards anyway, so add uninitalized
+				DeltaTangentZAccumulationArray.AddUninitialized(vertsToAdd);
+				AccumulatedWeightArray.AddUninitialized(vertsToAdd);
 			}
-			// zero all deltas (NOTE: DeltaTangentZ is FPackedNormal, so we can't just FMemory::Memzero)
-			uint32 VertIndex =0;
-			for (; VertIndex + (ZeroVertexArray.Num()-1) < LodModel.NumVertices; VertIndex += ZeroVertexArray.Num())
-			{
-				FMemory::Memcpy(&Buffer[VertIndex], ZeroVertexArray.GetData(), sizeof(FMorphGPUSkinVertex)*ZeroVertexArray.Num());
-			}
-			if ( VertIndex < LodModel.NumVertices )
-			{
-				FMemory::Memcpy(&Buffer[VertIndex], ZeroVertexArray.GetData(), sizeof(FMorphGPUSkinVertex)*(LodModel.NumVertices-VertIndex));
-			}
+
+			FMemory::Memzero(DeltaTangentZAccumulationArray.GetData(), sizeof(FVector)*DeltaTangentZAccumulationArray.Num());
+			FMemory::Memzero(AccumulatedWeightArray.GetData(), sizeof(float)*AccumulatedWeightArray.Num());
+
+			// PackedNormals will be wrong init with 0, but they'll be overwritten later
+			FMemory::Memzero(&Buffer[0], sizeof(FMorphGPUSkinVertex)*LodModel.NumVertices);
 		}
 
 		{
 			SCOPE_CYCLE_COUNTER(STAT_MorphVertexBuffer_ApplyDelta);
 
 			// iterate over all active vertex anims and accumulate their vertex deltas
-			for( int32 AnimIdx=0; AnimIdx < ActiveVertexAnims.Num(); AnimIdx++ )
+			for(int32 AnimIdx=0; AnimIdx < ActiveVertexAnims.Num(); AnimIdx++)
 			{
 				const FActiveVertexAnim& VertAnim = ActiveVertexAnims[AnimIdx];
 				checkSlow(VertAnim.VertAnim != NULL);
@@ -373,11 +372,6 @@ void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::UpdateMorphVertexBuffer
 				int32 NumDeltas;
 				FVertexAnimDelta* Deltas = VertAnim.VertAnim->GetDeltasAtTime(VertAnim.Time, LODIndex, AnimState, NumDeltas);
 
-				float ClampedMorphWeight = FMath::Min(VertAnim.Weight,1.0f);
-
-#if !WITH_EDITORONLY_DATA
-				VectorRegister MorphTangentZDelta, TangentZDelta;
-#endif
 				// iterate over the vertices that this lod model has changed
 				for( int32 MorphVertIdx=0; MorphVertIdx < NumDeltas; MorphVertIdx++ )
 				{
@@ -385,39 +379,41 @@ void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::UpdateMorphVertexBuffer
 					check(MorphVertex.SourceIdx < LodModel.NumVertices);
 					FMorphGPUSkinVertex& DestVertex = Buffer[MorphVertex.SourceIdx];
 
-					if (AnimIdx == 0)
-					{
-						//if the first morph, use direct assignment and do not blend with what is there (zeros)
-						DestVertex.DeltaPosition =  MorphVertex.PositionDelta * VertAnim.Weight;
+					DestVertex.DeltaPosition += MorphVertex.PositionDelta * VertAnim.Weight;
 
-#if !WITH_EDITORONLY_DATA
-						DestVertex.DeltaTangentZ.Vector.Packed = MorphVertex.TangentZDelta.Vector.Packed;
-#endif
-					}
-					else
-					{
-						DestVertex.DeltaPosition += MorphVertex.PositionDelta * VertAnim.Weight;
-#if !WITH_EDITORONLY_DATA
-						// vectorized method of below function to avoid humongous LHS
-						MorphTangentZDelta = Unpack3(&MorphVertex.TangentZDelta.Vector.Packed);
-						TangentZDelta = Unpack3(&DestVertex.DeltaTangentZ.Vector.Packed);
-						TangentZDelta = VectorMultiplyAdd(MorphTangentZDelta, VectorLoadFloat1(&ClampedMorphWeight), TangentZDelta);
-						Pack3(TangentZDelta, &DestVertex.DeltaTangentZ.Vector.Packed);
-#endif
-					}
-#if WITH_EDITORONLY_DATA
-					DestVertex.DeltaTangentZ = (FVector(DestVertex.DeltaTangentZ) + FVector(MorphVertex.TangentZDelta) * ClampedMorphWeight);	
-#endif
-				}
+					// add to accumulated tangent Z
+					DeltaTangentZAccumulationArray[MorphVertex.SourceIdx] += MorphVertex.TangentZDelta * VertAnim.Weight;
+					// accumulate the weight so we can normalized it later
+					AccumulatedWeightArray[MorphVertex.SourceIdx] += VertAnim.Weight;
+				} // for all vertices
 
 				VertAnim.VertAnim->TermEval(AnimState);
+			} // for all anim
+			
+			// copy back all the tangent values (can't use Memcpy, since we have to pack the normals)
+			for(uint32 iVertex = 0; iVertex < LodModel.NumVertices; ++iVertex) 
+			{
+				FMorphGPUSkinVertex& DestVertex = Buffer[iVertex];
+				float AccumulatedWeight = AccumulatedWeightArray[iVertex];
+
+				if (!FMath::IsNearlyZero(AccumulatedWeight) )
+				{
+					// when copy back, make sure to normalize by accumulated weight
+					// since delta diff of normal is (-2, 2), we divide by 2 to packed into packed normal
+					// when we unpack, we'll apply *2. 
+					DestVertex.DeltaTangentZ = (DeltaTangentZAccumulationArray[iVertex]/AccumulatedWeight)/2;
+				}
+				else
+				{
+					DestVertex.DeltaTangentZ = FPackedNormal::ZeroNormal;
+				}
 			}
-		}
+		} // ApplyDelta
 
 #if WITH_EDITORONLY_DATA
 		// Lock the real buffer.
-		FMorphGPUSkinVertex* ActualBuffer = (FMorphGPUSkinVertex*)RHILockVertexBuffer(MorphVertexBuffer.VertexBufferRHI,0,Size,RLM_WriteOnly);
-		FMemory::Memcpy(ActualBuffer,Buffer,Size);
+		FMorphGPUSkinVertex* ActualBuffer = (FMorphGPUSkinVertex*)RHILockVertexBuffer(MorphVertexBuffer.VertexBufferRHI, 0, Size, RLM_WriteOnly);
+		FMemory::Memcpy(ActualBuffer, Buffer, Size);
 		FMemory::Free(Buffer);
 #endif
 		// Unlock the buffer.

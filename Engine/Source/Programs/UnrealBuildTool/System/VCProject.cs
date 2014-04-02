@@ -339,6 +339,10 @@ namespace UnrealBuildTool
 				{
 					VCIncludeSearchPaths.Append( CurPath + ";" );
 				}
+				foreach( var CurPath in IntelliSenseSystemIncludeSearchPaths )
+				{
+					VCIncludeSearchPaths.Append( CurPath + ";" );
+				}
 				if(InPlatforms.Contains(UnrealTargetPlatform.Win64))
 				{
 					VCIncludeSearchPaths.Append(VCToolChain.GetVCIncludePaths(CPPTargetPlatform.Win64) + ";");

@@ -435,28 +435,6 @@ void SIntroTutorials::PlayDialogue(UDialogueWave* InDialogueWave)
 	}
 }
 
-void SIntroTutorials::PlaySound(const FString& WavePath)
-{
-	if (GEngine->GetAudioDevice())
-	{
-		// Try FindObject first
-		USoundWave* Wave = FindObject<USoundWave>(ANY_PACKAGE, *WavePath);
-		if(Wave == NULL)
-		{
-			// If not, load it now
-			Wave = LoadObject<USoundWave>(NULL, *WavePath);
-		}
-
-		if (Wave != NULL)
-		{
-			FActiveSound NewActiveSound;
-			NewActiveSound.Sound = Wave;
-			NewActiveSound.bIsUISound = true;
-			GEngine->GetAudioDevice()->AddNewActiveSound(NewActiveSound);
-		}
-	}
-}
-
 void SIntroTutorials::GotoPreviousPage()
 {
 	SetCurrentExcerpt(CurrentExcerptIndex - 1);
@@ -495,8 +473,6 @@ void SIntroTutorials::SetCurrentExcerpt(int32 NewExcerptIdx)
 
 void SIntroTutorials::TriggerCompleted()
 {
-	PlaySound(TEXT("/Engine/Tutorial/Audio/CompleteTrigger.CompleteTrigger"));
-
 	InteractiveTutorials->OnExcerptCompleted( Excerpts[CurrentExcerptIndex].Name );
 
 	GotoNextPage();
@@ -586,8 +562,6 @@ FReply SIntroTutorials::OnHomeClicked()
 
 FReply SIntroTutorials::OnPreviousClicked()
 {
-	PlaySound(TEXT("/Engine/Tutorial/Audio/PageBack.PageBack"));
-
 	if (IsFirstPage())
 	{
 		return OnHomeClicked();
@@ -604,8 +578,6 @@ bool SIntroTutorials::OnPreviousIsEnabled() const
 
 FReply SIntroTutorials::OnNextClicked()
 {
-	PlaySound(TEXT("/Engine/Tutorial/Audio/PageForward.PageForward"));
-
 	if (IsLastPage())
 	{
 		if(OnGotoNextTutorial.IsBound())

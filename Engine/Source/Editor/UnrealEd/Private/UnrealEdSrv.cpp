@@ -21,7 +21,7 @@
 #include "SnappingUtils.h"
 #include "MessageLog.h"
 #include "AssetSelection.h"
-#include "HighresScreenshot.h"
+#include "HighResScreenshot.h"
 #include "ActorEditorUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogUnrealEdSrv, Log, All);
@@ -481,32 +481,6 @@ bool UUnrealEdEngine::HandleBuildPathsCommand( const TCHAR* Str, FOutputDevice& 
 	return FEditorBuildUtils::EditorBuild(InWorld, EBuildOptions::BuildAIPaths);
 }
 
-bool UUnrealEdEngine::HandleUpdateLandscapeHoleCollisionCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld )
-{
-	if (GIsEditor)
-	{
-		if (InWorld && InWorld->GetWorldSettings())
-		{
-			for (FActorIterator It(InWorld); It; ++It)
-			{
-				ALandscapeProxy* Landscape = Cast<ALandscapeProxy>(*It);
-				if (Landscape)
-				{
-					for (int32 Idx = 0; Idx < Landscape->CollisionComponents.Num(); ++Idx )
-					{
-						if ( !Landscape->CollisionComponents[Idx]->bHeightFieldDataHasHole )
-						{
-							Landscape->CollisionComponents[Idx]->bHeightFieldDataHasHole = true;
-							Landscape->CollisionComponents[Idx]->RecreateCollision(false);
-						}
-					}
-				}
-			}
-		}
-	}
-	return true;
-}
-
 bool UUnrealEdEngine::HandleRestoreLandscapeLayerInfosCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld )
 {
 	if (!PlayWorld && InWorld && InWorld->GetWorldSettings())
@@ -829,10 +803,6 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 		HandleBuildPathsCommand( Str, Ar, InWorld );
 	}
 #if WITH_EDITOR
-	else if (FParse::Command(&Str, TEXT("UpdateLandscapeHoleCollision")))
-	{
-		HandleUpdateLandscapeHoleCollisionCommand( Str, Ar, InWorld );
-	}
 	else if (FParse::Command(&Str, TEXT("RestoreLandscapeLayerInfos")))
 	{
 		HandleRestoreLandscapeLayerInfosCommand( Str, Ar, InWorld );
@@ -1078,16 +1048,13 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 
 						FStaticMeshSourceModel& Model = Mesh->SourceModels[0];
 
+						FVector ScaleVec(Scale, Scale, Scale);	// bScale
 						if ( bScaleVec )
 						{
 							FBoxSphereBounds Bounds = Mesh->GetBounds();
-							const FVector ScaleVec = BoxVec / (Bounds.BoxExtent * 2.0f);	// x2 as artists wanted length not radius
-							Model.BuildSettings.BuildScale3D = ScaleVec;
+							ScaleVec = BoxVec / (Bounds.BoxExtent * 2.0f);	// x2 as artists wanted length not radius	
 						}
-						else	// bScale
-						{
-							Model.BuildSettings.BuildScale3D = FVector( Scale, Scale, Scale );
-						}
+						Model.BuildSettings.BuildScale3D *= ScaleVec;	// Scale by the current modification
 						
 						UE_LOG(LogUnrealEdSrv, Log, TEXT("Rescaling mesh '%s' with scale: %s"), *Mesh->GetName(), *Model.BuildSettings.BuildScale3D.ToString() );
 						
@@ -1193,7 +1160,61 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 			GWarn->EndSlowTask();
 		}
 	}
+	else if (FParse::Command(&Str, TEXT("RenameAssets")))
+	{
+		FString SearchTermStr;
+		if ( FParse::Value(Str, TEXT("Find="), SearchTermStr) )
+		{
+			FString ReplaceStr;
+			FParse::Value(Str, TEXT("Replace="), ReplaceStr );
 
+			GWarn->BeginSlowTask(NSLOCTEXT("UnrealEd", "RenamingAssets", "Renaming Assets"), true, true);
+
+			FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+			IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
+
+			TArray<FAssetData> AllAssets;
+			AssetRegistryModule.Get().GetAllAssets( AllAssets );
+
+			TArray<FAssetRenameData> AssetsToRename;
+			for( const FAssetData& Asset : AllAssets )
+			{
+				bool bRenamedPath = false;
+				bool bRenamedAsset = false;
+				FString NewAssetName = Asset.AssetName.ToString();
+				FString NewPathName = Asset.PackagePath.ToString();
+				if( NewAssetName.Contains( SearchTermStr ) )
+				{
+					NewAssetName = NewAssetName.Replace( *SearchTermStr, *ReplaceStr );
+					bRenamedAsset = true;
+				}
+				
+				if( NewPathName.Contains( SearchTermStr ) )
+				{
+					FString TempPathName = NewPathName.Replace( *SearchTermStr, *ReplaceStr );
+
+					if( !TempPathName.IsEmpty() )
+					{
+						NewPathName = TempPathName;
+						bRenamedPath = true;
+					}
+				}
+
+				if( bRenamedAsset || bRenamedPath )
+				{
+					FAssetRenameData RenameData(Asset.GetAsset(), NewPathName, NewAssetName);
+					AssetsToRename.Add(RenameData);
+				}
+			}
+
+			if( AssetsToRename.Num() > 0 )
+			{
+				AssetTools.RenameAssets( AssetsToRename );
+			}
+
+			GWarn->EndSlowTask();
+		}
+	}
 	else if( FParse::Command(&Str, TEXT("HighResShot") ) )
 	{
 		if (GetHighResScreenshotConfig().ParseConsoleCommand(Str, Ar))

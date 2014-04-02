@@ -257,8 +257,8 @@ bool FFileHelper::SaveStringToFile( const FString& String, const TCHAR* Filename
 /**
  * Generates the next unique bitmap filename
  * 
- * @param Pattern filename without extension, with path, must not be 0. Automatic index numbers are appended (e.g. "out00002")
- * @param OutFilename reference to an FString where the newly generated filename will be placed. Filename does not have a specific extension.
+ * @param Pattern filename with path, must not be 0, if with "bmp" extension (e.g. "out.bmp") the filename stays like this, if without (e.g. "out") automatic index numbers are appended (e.g. "out00002.bmp")
+ * @param OutFilename reference to an FString where the newly generated filename will be placed
  * @param FileManager must not be 0
  *
  * @return true if success
@@ -269,11 +269,9 @@ bool FFileHelper::GenerateNextBitmapFilename( const FString& Pattern, FString& O
 	OutFilename = "";
 	bool bSuccess = false;
 
-	checkSlow(FPaths::GetExtension(Pattern).Len() == 0);
-
 	for( int32 TestBitmapIndex = GScreenshotBitmapIndex + 1; TestBitmapIndex < 65536; ++TestBitmapIndex )
 	{
-		FCString::Sprintf( File, TEXT("%s%05i"), *Pattern, TestBitmapIndex );
+		FCString::Sprintf( File, TEXT("%s%05i.bmp"), *Pattern, TestBitmapIndex );
 		if( FileManager->FileSize(File) < 0 )
 		{
 			GScreenshotBitmapIndex = TestBitmapIndex;

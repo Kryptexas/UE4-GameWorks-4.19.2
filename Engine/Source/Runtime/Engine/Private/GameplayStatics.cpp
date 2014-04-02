@@ -322,7 +322,7 @@ void UGameplayStatics::OpenLevel(UObject* WorldContextObject, FName LevelName, b
 {
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	const ETravelType TravelType = (bAbsolute ? TRAVEL_Absolute : TRAVEL_Relative);
-	FWorldContext &WorldContext = GEngine->WorldContextFromWorld(World);
+	FWorldContext &WorldContext = GEngine->GetWorldContextFromWorldChecked(World);
 	FString Cmd = LevelName.ToString();
 	if (Options.Len() > 0)
 	{

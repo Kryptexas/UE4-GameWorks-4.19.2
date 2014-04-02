@@ -88,6 +88,18 @@ void FGameplayCueHandler::GameplayCueRemoved(const FGameplayTagContainer & Gamep
 		{
 			ClearEffects(*Effects);
 			SpawnedViewEffects.Remove(Tag);
+		}	
+		
+		// Add new effects
+		for (UGameplayCueView * Def : Definitions)
+		{
+			for (FGameplayCueViewInfo & View : Def->Views)
+			{
+				if (View.CueType == EGameplayCueEvent::Removed && View.Tags.HasTag(Tag))
+				{
+					View.SpawnViewEffects(Owner, NULL);
+				}
+			}
 		}
 	}
 }
@@ -112,7 +124,7 @@ void FGameplayCueHandler::ClearEffects(TArray< TSharedPtr<FGameplayCueViewEffect
 
 		if (Effect.AudioComponent.IsValid())
 		{
-			Effect.AudioComponent->DestroyComponent();
+			Effect.AudioComponent->Stop();
 			RemovedSomething = true;
 		}
 
@@ -160,6 +172,20 @@ TSharedPtr<FGameplayCueViewEffects> FGameplayCueViewInfo::SpawnViewEffects(AActo
 		if (SpawnedObjects)
 		{
 			SpawnedObjects->Add(SpawnedEffects->ParticleSystemComponent.Get());
+		}
+		else if (SpawnedEffects->ParticleSystemComponent.IsValid())
+		{
+			for (int32 EmitterIndx = 0; EmitterIndx < SpawnedEffects->ParticleSystemComponent->EmitterInstances.Num(); EmitterIndx++)
+			{
+				if (SpawnedEffects->ParticleSystemComponent->EmitterInstances[EmitterIndx] &&
+					SpawnedEffects->ParticleSystemComponent->EmitterInstances[EmitterIndx]->CurrentLODLevel &&
+					SpawnedEffects->ParticleSystemComponent->EmitterInstances[EmitterIndx]->CurrentLODLevel->RequiredModule &&
+					SpawnedEffects->ParticleSystemComponent->EmitterInstances[EmitterIndx]->CurrentLODLevel->RequiredModule->EmitterLoops == 0)
+				{
+					SKILL_LOG(Warning, TEXT("%s - particle system has a looping emitter...."), *SpawnedEffects->ParticleSystemComponent->GetName());
+					break;
+				}
+			}
 		}
 	}
 	if (ActorClass)

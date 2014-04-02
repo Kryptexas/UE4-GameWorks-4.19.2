@@ -86,7 +86,11 @@ namespace UnrealVS
 		private BatchBuilderToolControl GetToolControl()
 		{
 			BatchBuilderToolWindow ToolWindow =
-				UnrealVSPackage.Instance.FindToolWindow(typeof(BatchBuilderToolWindow), 0, false) as BatchBuilderToolWindow;
+				UnrealVSPackage.Instance.FindToolWindow(typeof(BatchBuilderToolWindow), 0, true) as BatchBuilderToolWindow;
+			if ((null == ToolWindow) || (null == ToolWindow.Frame))
+			{
+				throw new NotSupportedException(Resources.ToolWindowCreateError);
+			}
 
 			if (ToolWindow != null)
 			{

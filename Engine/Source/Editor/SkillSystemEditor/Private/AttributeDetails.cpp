@@ -7,6 +7,8 @@
 #include "AttributeSet.h"
 #include "BlueprintUtilities.h"
 #include "KismetEditorUtilities.h"
+#include "SkillSystemGlobals.h"
+#include "SkillSystemModule.h"
 
 #define LOCTEXT_NAMESPACE "AttributeDetailsCustomization"
 
@@ -136,9 +138,6 @@ void FAttributeDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLayout)
 		PropertyOptions.Add(MakeShareable(new FString(Property->GetName())));
 	}
 
-	//PropertyOptions.Add(MakeShareable(new FString("Test1")));
-	//PropertyOptions.Add(MakeShareable(new FString("Test2")));
-
 	IDetailCategoryBuilder& Category = DetailLayout.EditCategory("Variable", LOCTEXT("VariableDetailsCategory", "Variable").ToString());
 	const FSlateFontInfo DetailFontInfo = IDetailLayoutBuilder::GetDetailFont();
 	
@@ -237,6 +236,11 @@ void FScalableFloatDetails::CustomizeStructHeader( TSharedRef<class IPropertyHan
 	RowNameProperty = CurveTableHandleProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FCurveTableRowHandle, RowName));
 	CurveTableProperty = CurveTableHandleProperty->GetChildHandle(GET_MEMBER_NAME_CHECKED(FCurveTableRowHandle, CurveTable));
 
+	CurrentSelectedItem = InitWidgetContent();
+
+	FSimpleDelegate OnCurveTableChangedDelegate = FSimpleDelegate::CreateSP(this, &FScalableFloatDetails::OnCurveTableChanged);
+	CurveTableProperty->SetOnPropertyValueChanged(OnCurveTableChangedDelegate);
+
 	HeaderRow
 		.NameContent()
 		[
@@ -259,9 +263,16 @@ void FScalableFloatDetails::CustomizeStructHeader( TSharedRef<class IPropertyHan
 			+SHorizontalBox::Slot()
 			//.FillWidth(1.f)
 			.HAlign(HAlign_Fill)
-			.Padding(0.f, 0.f, 2.f, 0.f)
+			.Padding(2.f, 2.f, 2.f, 2.f)
 			[
-				RowNameProperty->CreatePropertyValueWidget()
+				SAssignNew(RowNameComboButton, SComboButton)
+				.OnGetMenuContent(this, &FScalableFloatDetails::GetListContent)
+				.ContentPadding(FMargin(2.0f, 2.0f))
+				.ButtonContent()
+				[
+					SNew(STextBlock)
+					.Text(this, &FScalableFloatDetails::GetRowNameComboBoxContentText)
+				]
 			]
 			+SHorizontalBox::Slot()
 			//.FillWidth(1.f)
@@ -270,52 +281,171 @@ void FScalableFloatDetails::CustomizeStructHeader( TSharedRef<class IPropertyHan
 			[
 				CurveTableProperty->CreatePropertyValueWidget()
 			]
-		];
-
-	/*
-	uint32 NumChildren = 0;
-	CurveTableHandleProperty ->GetNumChildren(NumChildren);
-
-	for (uint32 i = 0; i < NumChildren; i++)
-	{
-		FString PropName = LOCTEXT("Value", "Value: ").ToString();
-		TSharedPtr<IPropertyHandle> PropHandle = StructPropertyHandle->GetChildHandle(i);
-		if (PropHandle->GetProperty())
-		{
-			StructBuilder.AddChildContent(TEXT("ValueChildren"))
-				.NameContent()
-				[
-					SNew(STextBlock)
-					.Text(PropName)
-					.Font(StructCustomizationUtils.GetRegularFont())
-				]
-			.ValueContent()
-				[
-					PropHandle->CreatePropertyValueWidget()
-				];
-		}
-	}
-	
-
-
-	FString Desc = TEXT("HEllo");
-
-	HeaderRow.NameContent()
-		[
-			StructPropertyHandle->CreatePropertyNameWidget()
-		]
-	.ValueContent()
-		.MaxDesiredWidth(400.0f)
-		[
-			SNew(STextBlock)
-			.Text(Desc)
-			.Font(StructCustomizationUtils.GetRegularFont())
-		];
-	*/
-
+		];	
 }
 
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
+
+void FScalableFloatDetails::OnCurveTableChanged()
+{
+	CurrentSelectedItem = InitWidgetContent();
+	if (RowNameComboListView.IsValid())
+	{
+		RowNameComboListView->SetSelection(CurrentSelectedItem);
+		RowNameComboListView->RequestListRefresh();
+	}
+}
+
+TSharedPtr<FString> FScalableFloatDetails::InitWidgetContent()
+{
+	TSharedPtr<FString> InitialValue = MakeShareable(new FString(TEXT("None")));
+
+	FName RowName;
+	const FPropertyAccess::Result RowResult = RowNameProperty->GetValue(RowName);
+	RowNames.Empty();
+	RowNames.Add(InitialValue);
+
+	/** Get the properties we wish to work with */
+	UCurveTable* CurveTable = GetCurveTable();
+
+	if (CurveTable != NULL)
+	{
+		/** Extract all the row names from the RowMap */
+		for (TMap<FName, FRichCurve*>::TConstIterator Iterator(CurveTable->RowMap); Iterator; ++Iterator)
+		{
+			/** Create a simple array of the row names */
+			TSharedRef<FString> RowNameItem = MakeShareable(new FString(Iterator.Key().ToString()));
+			RowNames.Add(RowNameItem);
+
+			/** Set the initial value to the currently selected item */
+			if (Iterator.Key() == RowName)
+			{
+				InitialValue = RowNameItem;
+			}
+		}
+	}
+
+	/** Reset the initial value to ensure a valid entry is set */
+	if (RowResult != FPropertyAccess::MultipleValues)
+	{
+		FName NewValue = FName(**InitialValue);
+		RowNameProperty->SetValue(NewValue);
+	}
+
+	return InitialValue;
+}
+
+UCurveTable * FScalableFloatDetails::GetCurveTable()
+{
+	UCurveTable* CurveTable = NULL;
+	CurveTableProperty->GetValue((UObject*&)CurveTable);
+
+	if (CurveTable == NULL)
+	{
+		CurveTable = ISkillSystemModule::Get().GetSkillSystemGlobals().GetGlobalCurveTable();
+	}
+
+	return CurveTable;
+}
+
+TSharedRef<SWidget> FScalableFloatDetails::GetListContent()
+{
+	SAssignNew(RowNameComboListView, SListView<TSharedPtr<FString> >)
+		.ListItemsSource(&RowNames)
+		.OnSelectionChanged(this, &FScalableFloatDetails::OnSelectionChanged)
+		.OnGenerateRow(this, &FScalableFloatDetails::HandleRowNameComboBoxGenarateWidget)
+		.SelectionMode(ESelectionMode::Single);
+
+	if (CurrentSelectedItem.IsValid())
+	{
+		RowNameComboListView->SetSelection(CurrentSelectedItem);
+	}
+
+	return SNew(SVerticalBox)
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			SNew(SSearchBox)
+			.OnTextChanged(this, &FScalableFloatDetails::OnFilterTextChanged)
+		]
+		+ SVerticalBox::Slot()
+		.FillHeight(1.f)
+		[
+			RowNameComboListView.ToSharedRef()
+		];
+}
+
+void FScalableFloatDetails::OnSelectionChanged(TSharedPtr<FString> SelectedItem, ESelectInfo::Type SelectInfo)
+{
+	if (SelectedItem.IsValid())
+	{
+		CurrentSelectedItem = SelectedItem;
+		FName NewValue = FName(**SelectedItem);
+		RowNameProperty->SetValue(NewValue);
+
+		// Close the combo
+		RowNameComboButton->SetIsOpen(false);
+	}
+}
+
+TSharedRef<ITableRow> FScalableFloatDetails::HandleRowNameComboBoxGenarateWidget(TSharedPtr<FString> InItem, const TSharedRef<STableViewBase>& OwnerTable)
+{
+	return
+		SNew(STableRow<TSharedPtr<FString>>, OwnerTable)
+		[
+			SNew(STextBlock).Text(*InItem)
+		];
+}
+
+/** Display the current selection */
+FString FScalableFloatDetails::GetRowNameComboBoxContentText() const
+{
+	FString RowName = TEXT("Multiple Values");
+	const FPropertyAccess::Result RowResult = RowNameProperty->GetValue(RowName);
+	if (RowResult != FPropertyAccess::MultipleValues)
+	{
+		TSharedPtr<FString> SelectedRowName = CurrentSelectedItem;
+		if (SelectedRowName.IsValid())
+		{
+			RowName = *SelectedRowName;
+		}
+		else
+		{
+			RowName = TEXT("None");
+		}
+	}
+	return RowName;
+}
+
+/** Called by Slate when the filter box changes text. */
+void FScalableFloatDetails::OnFilterTextChanged(const FText& InFilterText)
+{
+	FString CurrentFilterText = InFilterText.ToString();
+
+	FName RowName;
+	const FPropertyAccess::Result RowResult = RowNameProperty->GetValue(RowName);
+	RowNames.Empty();
+
+	/** Get the properties we wish to work with */
+	UCurveTable* CurveTable = GetCurveTable();
+
+	if (CurveTable != NULL)
+	{
+		/** Extract all the row names from the RowMap */
+		for (TMap<FName, FRichCurve*>::TConstIterator Iterator(CurveTable->RowMap); Iterator; ++Iterator)
+		{
+			/** Create a simple array of the row names */
+			FString RowString = Iterator.Key().ToString();
+			if (CurrentFilterText == TEXT("") || RowString.Contains(CurrentFilterText))
+			{
+				TSharedRef<FString> RowNameItem = MakeShareable(new FString(RowString));
+				RowNames.Add(RowNameItem);
+			}
+		}
+	}
+	RowNameComboListView->RequestListRefresh();
+}
 
 bool FScalableFloatDetails::IsEditable( ) const
 {
@@ -324,299 +454,10 @@ bool FScalableFloatDetails::IsEditable( ) const
 
 void FScalableFloatDetails::CustomizeStructChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
 {
-	/*
-	if (StructPropertyHandle->IsValidHandle())
-	{
-		StructBuilder.AddChildProperty(ValueProperty.ToSharedRef());
-		//StructBuilder.AddChildProperty(CurveTableHandleProperty.ToSharedRef());
-
-		StructBuilder.AddChildProperty(RowNameProperty.ToSharedRef());
-		StructBuilder.AddChildProperty(CurveTableProperty.ToSharedRef());
-	}
-	*/
-
-	/*
-	uint32 NumChildren = 0;
-	StructPropertyHandle->GetNumChildren(NumChildren);
-
-	for (uint32 i = 0; i < NumChildren; i++)
-	{
-		FString PropName = LOCTEXT("Value", "Value: ").ToString();
-		TSharedPtr<IPropertyHandle> PropHandle = StructPropertyHandle->GetChildHandle(i);
-		if (PropHandle->GetProperty())
-		{
-			StructBuilder.AddChildContent(TEXT("ValueChildren"))
-				.NameContent()
-				[
-					SNew(STextBlock)
-					.Text(PropName)
-					.Font(StructCustomizationUtils.GetRegularFont())
-				]
-			.ValueContent()
-				[
-					PropHandle->CreatePropertyValueWidget()
-				];
-		}
-	}
-	*/
-}
-
-// ------------------------------------------------------------------------------------
-// ------------------------------------------------------------------------------------
-// ------------------------------------------------------------------------------------
-// ------------------------------------------------------------------------------------
-// ------------------------------------------------------------------------------------
-
-template< typename T >
-TSharedPtr<FString> InitWidgetContent(TSharedPtr<IPropertyHandle> DataPropertyHandle, TSharedPtr<IPropertyHandle> RowNamePropertyHandle, TArray<TSharedPtr<FString> > &RowNames, FString LookForName)
-{
-	TSharedPtr<FString> InitialValue = MakeShareable( new FString( TEXT( "None" ) ) );
-
-	FString RowName;
-	const FPropertyAccess::Result RowResult = RowNamePropertyHandle->GetValue( RowName );
-	RowNames.Empty();
-
-	/** Get the properties we wish to work with */
-	T* Table = NULL;
-	DataPropertyHandle->GetValue( ( UObject*& )Table );
-
-	if( Table != NULL )
-	{
-		/** Extract all the row names from the RowMap */
-		for (auto It = Table->RowMap.CreateIterator(); It; ++It)
-		{
-			/** Create a simple array of the row names */
-			FString FullRowName = It.Key().ToString();
-			
-			int32 StartIdx = FullRowName.Find(LookForName);
-
-			if ( StartIdx != INDEX_NONE )
-			{
-				StartIdx += LookForName.Len() + 1;
-
-				int32 EndIdx = FullRowName.Find(TEXT("."), ESearchCase::IgnoreCase, ESearchDir::FromStart, StartIdx);
-
-				FString ParsedName = FullRowName.Mid(StartIdx, EndIdx - StartIdx);
-
-				TSharedRef<FString> RowNameItem = MakeShareable( new FString( ParsedName ) );
-				RowNames.Add( RowNameItem );
-
-				/** Set the initial value to the currently selected item */
-				
-				if( ParsedName == RowName )
-				{
-					InitialValue = RowNameItem;
-				}
-				
-			}
-		}
-	}
-
-	/** Reset the initial value to ensure a valid entry is set */
 	
-	if ( RowResult != FPropertyAccess::MultipleValues )
-	{
-		FName NewValue = FName( **InitialValue );
-		RowNamePropertyHandle->SetValue( NewValue );
-	}
-	
-
-	return InitialValue;
 }
-
-
 
 //-------------------------------------------------------------------------------------
 
-TSharedRef<IStructCustomization> FFlexTableRowHandleDetails::MakeInstance()
-{
-	return MakeShareable(new FFlexTableRowHandleDetails());
-}
 
-BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-void FFlexTableRowHandleDetails::CustomizeStructHeader( TSharedRef<class IPropertyHandle> InStructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
-{
-	StructPropertyHandle = InStructPropertyHandle;
-	
-	DataTablePropertyHandle = StructPropertyHandle->GetChildHandle( "DataTable" );
-	BaseStringPropertyHandle = StructPropertyHandle->GetChildHandle( "BaseString" );
-	RowStringPropertyHandle = StructPropertyHandle->GetChildHandle( "RowName" );
-	
-	ParentArrayProperty = RowStringPropertyHandle->GetParentHandle();
-	ParentArrayProperty = ParentArrayProperty->GetParentHandle();
-
-	LookForName = *ParentArrayProperty->GetProperty()->GetName();
-
-	// When the data table* changes (this is changed by the owning class
-	FSimpleDelegate OnCurveTableChangedDelegate = FSimpleDelegate::CreateSP( this, &FFlexTableRowHandleDetails::OnCurveTableChanged );
-	DataTablePropertyHandle->SetOnPropertyValueChanged( OnCurveTableChangedDelegate );
-
-	CurrentSelectedItem = InitWidgetContent<UDataTable>(DataTablePropertyHandle, RowStringPropertyHandle, RowNames, LookForName);
-
-	HeaderRow
-		.NameContent()
-		[
-			InStructPropertyHandle->CreatePropertyNameWidget( TEXT( "" ), false )
-		]
-		.ValueContent()
-		[
-			SNew( SVerticalBox )
-			.IsEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FFlexTableRowHandleDetails::IsEditable)))
-			+SVerticalBox::Slot()
-			.AutoHeight()
-			[
-				SAssignNew( RowNameComboButton, SComboButton )
-				.OnGetMenuContent( this, &FFlexTableRowHandleDetails::GetListContent )
-				.ContentPadding( FMargin( 2.0f, 2.0f ) )
-				.ButtonContent()
-				[
-					SNew( STextBlock )
-					.Text( this, &FFlexTableRowHandleDetails::GetRowNameComboBoxContentText )
-				]
-			]
-		];
-
-
-}
-END_SLATE_FUNCTION_BUILD_OPTIMIZATION
-
-void FFlexTableRowHandleDetails::CustomizeStructChildren( TSharedRef<class IPropertyHandle> InStructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IStructCustomizationUtils& StructCustomizationUtils )
-{
-
-}
-
-
-/** Returns the ListView for the ComboButton */
-TSharedRef<SWidget> FFlexTableRowHandleDetails::GetListContent()
-{
-	SAssignNew( RowNameComboListView, SListView<TSharedPtr<FString> > )
-		.ListItemsSource( &RowNames )
-		.OnSelectionChanged( this, &FFlexTableRowHandleDetails::OnSelectionChanged )
-		.OnGenerateRow( this, &FFlexTableRowHandleDetails::HandleRowNameComboBoxGenarateWidget )
-		.SelectionMode(ESelectionMode::Single);
-
-
-	if( CurrentSelectedItem.IsValid() )
-	{
-		RowNameComboListView->SetSelection(CurrentSelectedItem);
-	}
-
-	return SNew( SVerticalBox )
-		+SVerticalBox::Slot()
-		.AutoHeight()
-		[
-			SNew( SSearchBox )
-			.OnTextChanged( this, &FFlexTableRowHandleDetails::OnFilterTextChanged )
-		]
-	+SVerticalBox::Slot()
-		.FillHeight( 1.f )
-		[
-			RowNameComboListView.ToSharedRef()
-		];				
-}
-
-/** Delegate to refresh the drop down when the datatable changes */
-void FFlexTableRowHandleDetails::OnCurveTableChanged()
-{
-	CurrentSelectedItem = InitWidgetContent<UDataTable>(DataTablePropertyHandle, RowStringPropertyHandle, RowNames, LookForName);
-	if( RowNameComboListView.IsValid() )
-	{
-		RowNameComboListView->SetSelection( CurrentSelectedItem );
-		RowNameComboListView->RequestListRefresh();
-	}
-}
-
-void FFlexTableRowHandleDetails::OnFilterTextChanged( const FText& InFilterText )
-{
-#if 0
-	FString CurrentFilterText = InFilterText.ToString();
-
-	FName RowName;
-	const FPropertyAccess::Result RowResult = RowNamePropertyHandle->GetValue( RowName );
-	RowNames.Empty();
-
-	/** Get the properties we wish to work with */
-	UCurveTable* CurveTable = NULL;
-	CurveTablePropertyHandle->GetValue( ( UObject*& )CurveTable );
-
-
-	if( CurveTable != NULL )
-	{
-		/** Extract all the row names from the RowMap */
-		for( TMap<FName, FRichCurve*>::TConstIterator Iterator( CurveTable->RowMap ); Iterator; ++Iterator )
-		{
-			/** Create a simple array of the row names */
-			FString RowString = Iterator.Key().ToString();
-			if( CurrentFilterText == TEXT("") || RowString.Contains(CurrentFilterText) )
-			{
-				TSharedRef<FString> RowNameItem = MakeShareable( new FString( RowString ) );				
-				RowNames.Add( RowNameItem );					
-			}			
-		}
-	}		
-#endif
-	RowNameComboListView->RequestListRefresh();
-}
-
-/** Display the current selection */
-FString FFlexTableRowHandleDetails::GetRowNameComboBoxContentText( ) const
-{
-	FString RowName = TEXT( "Multiple Values" );
-	const FPropertyAccess::Result RowResult = RowStringPropertyHandle->GetValue( RowName );
-	if ( RowResult != FPropertyAccess::MultipleValues )
-	{
-		TSharedPtr<FString> SelectedRowName = CurrentSelectedItem;
-		if ( SelectedRowName.IsValid() )
-		{
-			RowName = *SelectedRowName;
-		}
-		else
-		{
-			RowName = TEXT( "None" );
-		}
-	}
-	return RowName;
-}
-
-/** Update the root data on a change of selection */
-void FFlexTableRowHandleDetails::OnSelectionChanged( TSharedPtr<FString> SelectedItem, ESelectInfo::Type SelectInfo )
-{
-	if( SelectedItem.IsValid() )
-	{
-		CurrentSelectedItem = SelectedItem; 
-		FName NewValue = FName( **SelectedItem );
-		RowStringPropertyHandle->SetValue( NewValue );
-
-		// Close the combo
-		RowNameComboButton->SetIsOpen( false );
-	}
-}
-
-/** Return the representation of the the row names to display */
-TSharedRef<ITableRow> FFlexTableRowHandleDetails::HandleRowNameComboBoxGenarateWidget( TSharedPtr<FString> InItem, const TSharedRef<STableViewBase>& OwnerTable )
-{
-	return
-		SNew( STableRow<TSharedPtr<FString>>, OwnerTable)
-		[
-			SNew( STextBlock ).Text( *InItem )
-		];
-}
-
-void FFlexTableRowHandleDetails::OnTest()
-{
-	DataTablePropertyHandle->NotifyPostChange();
-}
-
-bool FFlexTableRowHandleDetails::IsEditable() const
-{
-	bool bValidTable = false;
-	if (DataTablePropertyHandle.IsValid())
-	{
-		UObject *Data;
-		DataTablePropertyHandle->GetValue(Data);
-		bValidTable = (Data != NULL);
-	}
-
-	return bValidTable;
-}
 #undef LOCTEXT_NAMESPACE

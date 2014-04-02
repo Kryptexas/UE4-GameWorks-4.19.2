@@ -82,6 +82,7 @@ TSharedRef<SWidget>	SGraphPinObject::GetDefaultValueWidget()
 			.ForegroundColor( this, &SGraphPinObject::OnGetComboForeground)
 			.ContentPadding( FMargin(2,2,2,1) )
 			.ButtonColorAndOpacity( this, &SGraphPinObject::OnGetWidgetBackground )
+			.MenuPlacement(MenuPlacement_BelowAnchor)
 			.ButtonContent()
 			[
 				SNew(STextBlock)

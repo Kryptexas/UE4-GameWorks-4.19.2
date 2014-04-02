@@ -6,7 +6,7 @@
 class GRAPHEDITOR_API FGraphEditorDragDropAction : public FDragDropOperation
 {
 public:
-	static FString GetTypeId() { static FString Type = TEXT("FGraphEditorDragDropAction"); return Type; }
+	DRAG_DROP_OPERATOR_TYPE(FGraphEditorDragDropAction, FDragDropOperation)
 
 	void SetHoveredPin(const TSharedPtr<class SGraphPin>& InPin);
 	void SetHoveredNode(const TSharedPtr<class SGraphNode>& InNode);
@@ -58,7 +58,8 @@ protected:
 class GRAPHEDITOR_API FGraphSchemaActionDragDropAction : public FGraphEditorDragDropAction
 {
 public:
-	// GetTypeId is the parent: FGraphEditorDragDropAction
+	
+	DRAG_DROP_OPERATOR_TYPE(FGraphSchemaActionDragDropAction, FGraphEditorDragDropAction)
 
 	// FGraphEditorDragDropAction interface
 	virtual void HoverTargetChanged() OVERRIDE;
@@ -68,7 +69,6 @@ public:
 	static TSharedRef<FGraphSchemaActionDragDropAction> New(TSharedPtr<FEdGraphSchemaAction> InActionNode )
 	{
 		TSharedRef<FGraphSchemaActionDragDropAction> Operation = MakeShareable(new FGraphSchemaActionDragDropAction);
-		FSlateApplication::GetDragDropReflector().RegisterOperation<FGraphSchemaActionDragDropAction>(Operation);
 		Operation->ActionNode = InActionNode;
 		Operation->Construct();
 		return Operation;

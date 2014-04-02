@@ -2,7 +2,7 @@
 
 #include "UnrealEd.h"
 #include "PListNodeString.h"
-#include "SPListEditor.h"
+#include "SPlistEditor.h"
 
 /** Validation check */
 bool FPListNodeString::IsValid()

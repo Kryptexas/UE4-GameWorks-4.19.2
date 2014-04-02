@@ -81,25 +81,51 @@ void UK2Node::AutowireNewNode(UEdGraphPin* FromPin)
 	{
 		TSet<UEdGraphNode*> NodeList;
 
+		// sometimes we don't always find an ideal connection, but we want to exhaust 
+		// all our options first... this stores a secondary less-ideal pin to connect to, if nothing better was found
+		UEdGraphPin* BackupConnection = NULL;
 		// If not dragging an exec pin, auto-connect from dragged pin to first compatible pin on the new node
 		for (int32 i=0; i<Pins.Num(); i++)
 		{
 			UEdGraphPin* Pin = Pins[i];
 			check(Pin);
-			if (ECanCreateConnectionResponse::CONNECT_RESPONSE_MAKE == K2Schema->CanCreateConnection(FromPin, Pin).Response)
+
+			ECanCreateConnectionResponse ConnectResponse = K2Schema->CanCreateConnection(FromPin, Pin).Response;
+			if (ConnectResponse == ECanCreateConnectionResponse::CONNECT_RESPONSE_MAKE)
 			{
 				if (K2Schema->TryCreateConnection(FromPin, Pin))
 				{
 					NodeList.Add(FromPin->GetOwningNode());
 					NodeList.Add(this);
 				}
+
+				// null out the backup connection (so we don't attempt to make it 
+				// once we exit the loop... we successfully made this connection!)
+				BackupConnection = NULL;
 				break;
 			}
-			else if(FromPin->PinType.PinCategory == K2Schema->PC_Exec && ECanCreateConnectionResponse::CONNECT_RESPONSE_BREAK_OTHERS_A == K2Schema->CanCreateConnection(FromPin, Pin).Response)
+			else if((FromPin->PinType.PinCategory == K2Schema->PC_Exec) && (ConnectResponse == ECanCreateConnectionResponse::CONNECT_RESPONSE_BREAK_OTHERS_A))
 			{
-				InsertNewNode(FromPin, Pin, NodeList);				
+				InsertNewNode(FromPin, Pin, NodeList);
+
+				// null out the backup connection (so we don't attempt to make it 
+				// once we exit the loop... we successfully made this connection!)
+				BackupConnection = NULL;
 				break;
 			}
+			else if ((BackupConnection == NULL) && (ConnectResponse == ECanCreateConnectionResponse::CONNECT_RESPONSE_MAKE_WITH_CONVERSION_NODE))
+			{
+				// save this off, in-case we don't make any connection at all
+				BackupConnection = Pin;
+			}
+		}
+
+		// if we didn't find an ideal connection, then lets connect this pin to 
+		// the BackupConnection (something, like a connection that requires a conversion node, etc.)
+		if ((BackupConnection != NULL) && K2Schema->TryCreateConnection(FromPin, BackupConnection))
+		{
+			NodeList.Add(FromPin->GetOwningNode());
+			NodeList.Add(this);
 		}
 
 		// If we were not dragging an exec pin, but it was an output pin, try and connect the Then and Execute pins

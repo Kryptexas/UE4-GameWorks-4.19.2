@@ -16,6 +16,19 @@
 #define LOCTEXT_NAMESPACE "SkeletalMeshComponentPhysics"
 
 #if WITH_APEX_CLOTHING
+void FSkeletalMeshComponentPreClothTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+{
+	if ((TickType == LEVELTICK_All) && Target && !Target->HasAnyFlags(RF_PendingKill | RF_Unreachable))
+	{
+		Target->PreClothTick(DeltaTime);
+	}
+}
+
+FString FSkeletalMeshComponentPreClothTickFunction::DiagnosticMessage()
+{
+	return TEXT("FSkeletalMeshComponentPreClothTickFunction");
+}
+
 //
 //	FClothingActor
 //
@@ -756,6 +769,7 @@ void USkeletalMeshComponent::TermArticulated()
 
 #if WITH_CLOTH_COLLISION_DETECTION
 	ReleaseAllParentCollisions();
+	ReleaseAllChildrenCollisions();
 //should be called before removing clothing actors
 	RemoveAllOverappedComponentMap();
 #endif // #if WITH_CLOTH_COLLISION_DETECTION
@@ -1748,12 +1762,6 @@ bool USkeletalMeshComponent::ComponentOverlapMulti(TArray<struct FOverlapResult>
 }
 
 
-bool USkeletalMeshComponent::ShouldTrackOverlaps() const 
-{
-	return true;
-}
-
-
 #if WITH_APEX_CLOTHING
 void USkeletalMeshComponent::AddClothingBounds(FBoxSphereBounds& InOutBounds) const
 {
@@ -1936,9 +1944,7 @@ bool USkeletalMeshComponent::CreateClothingActor(int32 AssetIndex, TSharedPtr<FC
 		return false;
 	}
 
-	const uint32 SceneType = BodyInstance.UseAsyncScene() ? PST_Async : PST_Sync;
-
-	physx::apex::NxApexScene* ScenePtr = PhysScene->GetApexScene(SceneType);
+	physx::apex::NxApexScene* ScenePtr = PhysScene->GetApexScene(PST_Cloth);
 
 	if(!ScenePtr)
 	{
@@ -1951,7 +1957,7 @@ bool USkeletalMeshComponent::CreateClothingActor(int32 AssetIndex, TSharedPtr<FC
 	physx::apex::NxClothingActor* ClothingActor = static_cast<physx::apex::NxClothingActor*>(apexActor);
 
 	ClothingActors[ActorIndex].ApexClothingActor = ClothingActor;
-	ClothingActors[ActorIndex].SceneType = SceneType;
+	ClothingActors[ActorIndex].SceneType = PST_Cloth;
 	ClothingActors[ActorIndex].PhysScene = PhysScene;
 
 	if(!ClothingActor)
@@ -2353,6 +2359,101 @@ bool USkeletalMeshComponent::GetClothCollisionData(UPrimitiveComponent* PrimComp
 	return true;
 }
 
+static void FindClothCollisions(USkeletalMeshComponent* InSkelMeshComp, TArray<FApexClothCollisionVolumeData>& OutCollisions)
+{
+	if(!InSkelMeshComp || !InSkelMeshComp->SkeletalMesh)
+	{
+		return;
+	}
+
+	USkeletalMesh* SkelMesh = InSkelMeshComp->SkeletalMesh;
+	int32 NumAssets = SkelMesh->ClothingAssets.Num();
+
+	// find all new collisions passing to children
+	for(int32 AssetIdx=0; AssetIdx < NumAssets; AssetIdx++)
+	{
+		FClothingAssetData& Asset = SkelMesh->ClothingAssets[AssetIdx];
+		int32 NumCollisions = Asset.ClothCollisionVolumes.Num();
+
+		for(int32 ColIdx=0; ColIdx < NumCollisions; ColIdx++)
+		{
+			FApexClothCollisionVolumeData& Collision = Asset.ClothCollisionVolumes[ColIdx];
+
+			if(Collision.BoneIndex < 0)
+			{
+				continue;
+			}
+
+			FName BoneName = Asset.ApexClothingAsset->GetConvertedBoneName(Collision.BoneIndex);
+
+			int32 BoneIndex = InSkelMeshComp->GetBoneIndex(BoneName);
+
+			if(BoneIndex < 0)
+			{
+				continue;
+			}
+
+			FMatrix BoneMat = InSkelMeshComp->GetBoneMatrix(BoneIndex);
+
+			FMatrix LocalToWorld = Collision.LocalPose * BoneMat;
+
+			// support only capsule now 
+			if(Collision.IsCapsule())
+			{
+				FApexClothCollisionVolumeData NewCollision = Collision;
+				NewCollision.LocalPose = LocalToWorld;
+				OutCollisions.Add(NewCollision);
+			}
+		}
+	}
+}
+
+static void CreateAndAddCollisions(USkeletalMeshComponent* InSkelMeshComp, TArray<FApexClothCollisionVolumeData>& InCollisions, TArray<physx::apex::NxClothingCollision*>& OutCollisions)
+{
+	int32 NumCollisions = InCollisions.Num();
+
+	const int32 MaxNumCapsules = 16;
+	// because sphere number can not be larger than 32 and 1 capsule takes 2 spheres 
+	NumCollisions = FMath::Min(NumCollisions, MaxNumCapsules);
+	int32 NumActors = InSkelMeshComp->ClothingActors.Num();
+
+	for (int32 ActorIdx = 0; ActorIdx < NumActors; ActorIdx++)
+	{
+		if (!InSkelMeshComp->IsValidClothingActor(ActorIdx))
+		{
+			continue;
+		}
+
+		NxClothingActor* Actor = InSkelMeshComp->ClothingActors[ActorIdx].ApexClothingActor;
+		int32 NumCurrentCapsules = InSkelMeshComp->SkeletalMesh->ClothingAssets[ActorIdx].ClothCollisionVolumes.Num(); // # of capsules 
+
+		for (int32 ColIdx = 0; ColIdx < NumCollisions; ColIdx++)
+		{
+			// support only capsules now 
+			if (InCollisions[ColIdx].IsCapsule() && NumCurrentCapsules < MaxNumCapsules)
+			{
+				FVector Origin = InCollisions[ColIdx].LocalPose.GetOrigin();
+				// apex uses y-axis as the up-axis of capsule
+				FVector UpAxis = InCollisions[ColIdx].LocalPose.GetScaledAxis(EAxis::Y);
+
+				float Radius = InCollisions[ColIdx].CapsuleRadius*UpAxis.Size();
+
+				float HalfHeight = InCollisions[ColIdx].CapsuleHeight*0.5f;
+				const FVector TopEnd = Origin + (HalfHeight * UpAxis);
+				const FVector BottomEnd = Origin - (HalfHeight * UpAxis);
+
+				NxClothingSphere* Sphere1 = Actor->createCollisionSphere(U2PVector(TopEnd), Radius);
+				NxClothingSphere* Sphere2 = Actor->createCollisionSphere(U2PVector(BottomEnd), Radius);
+
+				NxClothingCapsule* Capsule = Actor->createCollisionCapsule(*Sphere1, *Sphere2);
+
+				OutCollisions.Add(Capsule);
+				NumCurrentCapsules++;
+			}
+		}
+	}
+}
+
 void USkeletalMeshComponent::CopyCollisionsToChildren()
 {
 	// 3 steps
@@ -2385,92 +2486,51 @@ void USkeletalMeshComponent::CopyCollisionsToChildren()
 		return;
 	}
 
-	int32 NumAssets = SkeletalMesh->ClothingAssets.Num();
+	TArray<FApexClothCollisionVolumeData> NewCollisions;
+
+	FindClothCollisions(this, NewCollisions);
+
+	for(int32 ChildIdx=0; ChildIdx < NumClothChildren; ChildIdx++)
+	{
+		CreateAndAddCollisions(ClothChildren[ChildIdx], NewCollisions, ClothChildren[ChildIdx]->ParentCollisions);
+	}
+}
+
+void USkeletalMeshComponent::ReleaseAllChildrenCollisions()
+{
+	for(int32 i=0; i<ChildrenCollisions.Num(); i++)
+	{
+		ReleaseClothingCollision(ChildrenCollisions[i]);
+	}
+
+	ChildrenCollisions.Empty();
+}
+
+// children's collisions can affect to parent's cloth reversely
+void USkeletalMeshComponent::CopyChildrenCollisionsToParent()
+{
+	// 3 steps
+	// 1. release all previous children collisions
+	// 2. find new collisions from children
+	// 3. add new collisions to parent (this component)
+
+	ReleaseAllChildrenCollisions();
+
+	int32 NumChildren = AttachChildren.Num();
+	TArray<USkeletalMeshComponent*> ClothCollisionChildren;
 
 	TArray<FApexClothCollisionVolumeData> NewCollisions;
 
-	// find all new collisions passing to children
-	for(int32 AssetIdx=0; AssetIdx < NumAssets; AssetIdx++)
+	for(int32 i=0; i < NumChildren; i++)
 	{
-		FClothingAssetData& Asset = SkeletalMesh->ClothingAssets[AssetIdx];
-		int32 NumCollisions = Asset.ClothCollisionVolumes.Num();
-
-		for(int32 ColIdx=0; ColIdx < NumCollisions; ColIdx++)
+		USkeletalMeshComponent* pChild = Cast<USkeletalMeshComponent>(AttachChildren[i]);
+		if(pChild)
 		{
-			FApexClothCollisionVolumeData& Collision = Asset.ClothCollisionVolumes[ColIdx];
-
-			if(Collision.BoneIndex < 0)
-			{
-				continue;
-			}
-
-			FName BoneName = Asset.ApexClothingAsset->GetConvertedBoneName(Collision.BoneIndex);
-
-			int32 BoneIndex = GetBoneIndex(BoneName);
-
-			if(BoneIndex < 0)
-			{
-				continue;
-			}
-
-			FMatrix BoneMat = GetBoneMatrix(BoneIndex);
-
-			FMatrix LocalToWorld = Collision.LocalPose * BoneMat;
-
-			// support only capsule now 
-			if(Collision.IsCapsule())
-			{
-				FApexClothCollisionVolumeData NewCollision = Collision;
-				NewCollision.LocalPose = LocalToWorld;
-				NewCollisions.Add(NewCollision);
-			}
+			FindClothCollisions(pChild, NewCollisions);
 		}
 	}
 
-	//
-	for(int32 ChildIdx=0; ChildIdx < NumClothChildren; ChildIdx++)
-	{
-		int32 NumActors = ClothChildren[ChildIdx]->ClothingActors.Num();
-
-		for(int32 ActorIdx=0; ActorIdx < NumActors; ActorIdx++)
-		{
-			if(!ClothChildren[ChildIdx]->IsValidClothingActor(ActorIdx))
-			{
-				continue;
-			}
-
-			NxClothingActor* Actor = ClothChildren[ChildIdx]->ClothingActors[ActorIdx].ApexClothingActor;
-
-			int32 NumCollisions = NewCollisions.Num();
-
-			// because sphere number can not be larger than 32 and 1 capsule takes 2 spheres 
-			NumCollisions = FMath::Min(NumCollisions, 16);
-
-			for(int32 ColIdx=0; ColIdx < NumCollisions; ColIdx++)
-			{
-				// support only capsules now 
-				if(NewCollisions[ColIdx].IsCapsule())
-				{
-					FVector Origin = NewCollisions[ColIdx].LocalPose.GetOrigin();
-					// apex uses y-axis as the up-axis of capsule
-					FVector UpAxis = NewCollisions[ColIdx].LocalPose.GetScaledAxis(EAxis::Y);
-					
-					float Radius = NewCollisions[ColIdx].CapsuleRadius*UpAxis.Size();
-
-					float HalfHeight = NewCollisions[ColIdx].CapsuleHeight*0.5f;
-					const FVector TopEnd = Origin + (HalfHeight * UpAxis);
-					const FVector BottomEnd = Origin - (HalfHeight * UpAxis);
-
-					NxClothingSphere* Sphere1 = Actor->createCollisionSphere(U2PVector(TopEnd), Radius);
-					NxClothingSphere* Sphere2 = Actor->createCollisionSphere(U2PVector(BottomEnd), Radius);
-
-					NxClothingCapsule* Capsule = Actor->createCollisionCapsule(*Sphere1, *Sphere2);
-
-					ClothChildren[ChildIdx]->ParentCollisions.Add(Capsule);
-				}
-			}
-		}
-	}
+	CreateAndAddCollisions(this, NewCollisions, ChildrenCollisions);
 }
 
 void USkeletalMeshComponent::ReleaseClothingCollision(NxClothingCollision* Collision)
@@ -2483,7 +2543,7 @@ void USkeletalMeshComponent::ReleaseClothingCollision(NxClothingCollision* Colli
 
 			check(Capsule);
 
-			Capsule->releaseWithSpheres();
+			Capsule->releaseWithSpheres(); 
 		}
 		break;
 
@@ -2762,6 +2822,39 @@ void USkeletalMeshComponent::CheckClothTeleport(float DeltaTime)
 	PrevRootBoneMatrix = CurRootBoneMat;
 }
 
+void USkeletalMeshComponent::PreClothTick(float DeltaTime)
+{
+	// if physics is disabled on dedicated server, no reason to be here. 
+	if (!bEnablePhysicsOnDedicatedServer && IsRunningDedicatedServer())
+	{
+		return;
+	}
+
+	if (IsRegistered() && IsSimulatingPhysics())
+	{
+		SyncComponentToRBPhysics();
+	}
+
+	// this used to not run if not rendered, but that causes issues such as bounds not updated
+	// causing it to not rendered, at the end, I think we should blend body positions
+	// for example if you're only simulating, this has to happen all the time
+	// whether looking at it or not, otherwise
+	// @todo better solution is to check if it has moved by changing SyncComponentToRBPhysics to return true if anything modified
+	// and run this if that is true or rendered
+	// that will at least reduce the chance of mismatch
+	// generally if you move your actor position, this has to happen to approximately match their bounds
+	if (Bodies.Num() > 0 && IsRegistered())
+	{
+		BlendInPhysics();
+	}
+
+	// if skeletal mesh has clothing assets, call TickClothing
+	if (SkeletalMesh && SkeletalMesh->ClothingAssets.Num() > 0)
+	{
+		TickClothing(DeltaTime + SkippedTickDeltaTime);
+	}
+}
+
 void USkeletalMeshComponent::UpdateClothState(float DeltaTime)
 {
 	int32 NumActors = ClothingActors.Num();
@@ -2771,6 +2864,7 @@ void USkeletalMeshComponent::UpdateClothState(float DeltaTime)
 	if(bCollideWithAttachedChildren)
 	{
 		CopyCollisionsToChildren();
+		CopyChildrenCollisionsToParent();
 	}
 #endif // WITH_CLOTH_COLLISION_DETECTION
 
@@ -3185,11 +3279,15 @@ void USkeletalMeshComponent::DrawClothingCollisionVolumes(FPrimitiveDrawInterfac
 	}
 
 	FColor Colors[3] = { FColor::Red, FColor::Green, FColor::Blue };
+	FColor GrayColor(50, 50, 50); // dark gray to represent ignored collisions
+
+	const int32 MaxSphereCollisions = 32; // Apex clothing supports up to 16 capsules or 32 spheres because 1 capsule takes 2 spheres
 
 	for(int32 AssetIdx=0; AssetIdx < SkeletalMesh->ClothingAssets.Num(); AssetIdx++)
 	{
 		TArray<FApexClothCollisionVolumeData>& Collisions = SkeletalMesh->ClothingAssets[AssetIdx].ClothCollisionVolumes;
 		int32 NumCollisions = Collisions.Num();
+		int32 SphereCount = 0;
 
 		for(int32 i=0; i<NumCollisions; i++)
 		{
@@ -3213,10 +3311,18 @@ void USkeletalMeshComponent::DrawClothingCollisionVolumes(FPrimitiveDrawInterfac
 
 			if(Collisions[i].IsCapsule())
 			{
+				FColor CapsuleColor = Colors[AssetIdx % 3];
+				if (SphereCount >= MaxSphereCollisions)
+				{
+					CapsuleColor = GrayColor; // Draw in gray to show that these collisions are ignored
+				}
+
 				const int32 CapsuleSides = FMath::Clamp<int32>(Collisions[i].CapsuleRadius/4.f, 16, 64);
 				float CapsuleHalfHeight = (Collisions[i].CapsuleHeight*0.5f+Collisions[i].CapsuleRadius);
+				float CapsuleRadius = Collisions[i].CapsuleRadius*2.f;
 				// swapped Y-axis and Z-axis to convert apex coordinate to UE coordinate
-				DrawWireCapsule(PDI, LocalToWorld.GetOrigin(), LocalToWorld.GetUnitAxis( EAxis::X ), LocalToWorld.GetUnitAxis( EAxis::Z ), LocalToWorld.GetUnitAxis( EAxis::Y ), Colors[AssetIdx%3], Collisions[i].CapsuleRadius, CapsuleHalfHeight, CapsuleSides, SDPG_World );
+				DrawWireCapsule(PDI, LocalToWorld.GetOrigin(), LocalToWorld.GetUnitAxis(EAxis::X), LocalToWorld.GetUnitAxis(EAxis::Z), LocalToWorld.GetUnitAxis(EAxis::Y), CapsuleColor, Collisions[i].CapsuleRadius, CapsuleHalfHeight, CapsuleSides, SDPG_World);
+				SphereCount += 2; // 1 capsule takes 2 spheres
 			}
 		}
 
@@ -3230,7 +3336,7 @@ void USkeletalMeshComponent::DrawClothingCollisionVolumes(FPrimitiveDrawInterfac
 
 		for(int32 i=0; i<NumSpheres; i++)
 		{
-			if(Spheres[i].BoneIndex < 0)
+			if(Spheres[i].BoneIndex < 0) 
 			{
 				continue;
 			}
@@ -3250,7 +3356,15 @@ void USkeletalMeshComponent::DrawClothingCollisionVolumes(FPrimitiveDrawInterfac
 
 			SpherePositions[i] = SpherePos;
 			FTransform SphereTransform(FQuat::Identity, SpherePos);
-			DrawWireSphere(PDI, SphereTransform, Colors[AssetIdx%3], Spheres[i].Radius, 10, SDPG_World);
+
+			FColor SphereColor = Colors[AssetIdx % 3];
+			if (SphereCount >= MaxSphereCollisions)
+			{
+				SphereColor = GrayColor; // Draw in gray to show that these collisions are ignored
+			}
+
+			DrawWireSphere(PDI, SphereTransform, SphereColor, Spheres[i].Radius, 10, SDPG_World);
+			SphereCount++;
 		}
 
 		// draw connections between bone spheres, this makes 2 sphere to a capsule

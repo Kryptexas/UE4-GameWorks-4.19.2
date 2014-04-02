@@ -82,7 +82,7 @@ void FNavGraphGenerator::UpdateBuilding()
 
 }
 
-void FNavGraphGenerator::TiggerGeneration()
+void FNavGraphGenerator::TriggerGeneration()
 {
 
 }

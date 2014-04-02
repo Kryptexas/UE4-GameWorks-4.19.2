@@ -18,8 +18,7 @@ struct FClientData
 	bool Preview;
 
 #if STATS
-	/** Stats write stream **/
-	FStastsWriteStream Stream;
+	FStatsWriteFile StatsWriteFile;
 
 	/** Current frame of data sent */
 	int64 CurrentFrame;

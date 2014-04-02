@@ -163,7 +163,7 @@ bool FConnectLatentCommand::Update()
 	// attempt a login and wait for the result
 	if(!AsyncHelper.IsDispatched())
 	{
-		if(!ISourceControlModule::Get().GetProvider().Login( FString(), EConcurrency::Asynchronous, FSourceControlOperationComplete::CreateRaw( &AsyncHelper, &FAsyncCommandHelper::SourceControlOperationComplete ) ))
+		if(ISourceControlModule::Get().GetProvider().Login( FString(), EConcurrency::Asynchronous, FSourceControlOperationComplete::CreateRaw( &AsyncHelper, &FAsyncCommandHelper::SourceControlOperationComplete ) ) != ECommandResult::Succeeded)
 		{
 			return false;
 		}
@@ -195,12 +195,12 @@ bool FRevertLatentCommand::Update()
 {
 	if(!AsyncHelper.IsDispatched())
 	{
-		if(!ISourceControlModule::Get().GetProvider().Execute( 
+		if( ISourceControlModule::Get().GetProvider().Execute( 
 			ISourceControlOperation::Create<FRevert>(), 
 			SourceControlHelpers::PackageFilename(AsyncHelper.GetParameter()),
 			EConcurrency::Asynchronous, 
 			FSourceControlOperationComplete::CreateRaw( &AsyncHelper, &FAsyncCommandHelper::SourceControlOperationComplete ) 
-			))
+			) != ECommandResult::Succeeded)
 		{
 			return true;
 		}
@@ -237,12 +237,12 @@ bool FCheckOutLatentCommand::Update()
 {
 	if(!AsyncHelper.IsDispatched())
 	{
-		if(!ISourceControlModule::Get().GetProvider().Execute( 
+		if( ISourceControlModule::Get().GetProvider().Execute( 
 			ISourceControlOperation::Create<FCheckOut>(), 
 			SourceControlHelpers::PackageFilename(AsyncHelper.GetParameter()),
 			EConcurrency::Asynchronous, 
 			FSourceControlOperationComplete::CreateRaw( &AsyncHelper, &FAsyncCommandHelper::SourceControlOperationComplete ) 
-			))
+			) != ECommandResult::Succeeded)
 		{
 			return true;
 		}
@@ -388,12 +388,12 @@ bool FMarkForAddLatentCommand::Update()
 {
 	if(!AsyncHelper.IsDispatched())
 	{
-		if(!ISourceControlModule::Get().GetProvider().Execute( 
+		if( ISourceControlModule::Get().GetProvider().Execute( 
 			ISourceControlOperation::Create<FMarkForAdd>(), 
 			SourceControlHelpers::PackageFilename(AsyncHelper.GetParameter()),
 			EConcurrency::Asynchronous, 
 			FSourceControlOperationComplete::CreateRaw( &AsyncHelper, &FAsyncCommandHelper::SourceControlOperationComplete ) 
-			))
+			) != ECommandResult::Succeeded)
 		{
 			return true;
 		}
@@ -461,12 +461,12 @@ bool FDeleteLatentCommand::Update()
 {
 	if(!AsyncHelper.IsDispatched())
 	{
-		if(!ISourceControlModule::Get().GetProvider().Execute( 
-				ISourceControlOperation::Create<FDelete>(), 
-				SourceControlHelpers::PackageFilename(AsyncHelper.GetParameter()),
-				EConcurrency::Asynchronous, 
-				FSourceControlOperationComplete::CreateRaw( &AsyncHelper, &FAsyncCommandHelper::SourceControlOperationComplete ) 
-			))
+		if( ISourceControlModule::Get().GetProvider().Execute( 
+			ISourceControlOperation::Create<FDelete>(), 
+			SourceControlHelpers::PackageFilename(AsyncHelper.GetParameter()),
+			EConcurrency::Asynchronous, 
+			FSourceControlOperationComplete::CreateRaw( &AsyncHelper, &FAsyncCommandHelper::SourceControlOperationComplete ) 
+			) != ECommandResult::Succeeded)
 		{
 			return true;
 		}
@@ -534,12 +534,12 @@ bool FCheckInLatentCommand::Update()
 		TSharedRef<FCheckIn, ESPMode::ThreadSafe> CheckInOperation = ISourceControlOperation::Create<FCheckIn>();
 		CheckInOperation->SetDescription(NSLOCTEXT("SourceControlTests", "TestChangelistDescription", "[AUTOMATED TEST] Automatic checkin, testing functionality."));
 
-		if(!ISourceControlModule::Get().GetProvider().Execute( 
+		if( ISourceControlModule::Get().GetProvider().Execute( 
 			CheckInOperation, 
 			SourceControlHelpers::PackageFilename(AsyncHelper.GetParameter()),
 			EConcurrency::Asynchronous, 
 			FSourceControlOperationComplete::CreateRaw( &AsyncHelper, &FAsyncCommandHelper::SourceControlOperationComplete ) 
-			))
+			) != ECommandResult::Succeeded)
 		{
 			return true;
 		}
@@ -579,7 +579,7 @@ bool FEditTextureLatentCommand::Update()
 		check(Texture);
 		Texture->AdjustBrightness = FMath::FRand();
 		Package->SetDirtyFlag(true);
-		if(!UPackage::SavePackage(Package, NULL, RF_Standalone, *FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetAssetPackageExtension())))
+		if(!UPackage::SavePackage(Package, NULL, RF_Standalone, *FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetAssetPackageExtension()), GError, nullptr, false, true, SAVE_NoError))
 		{
 			UE_LOG(LogSourceControl, Error, TEXT("Could not save package: '%s'"), *PackageName);
 		}
@@ -632,12 +632,12 @@ bool FSyncLatentCommand::Update()
 {
 	if(!AsyncHelper.IsDispatched())
 	{
-		if(!ISourceControlModule::Get().GetProvider().Execute( 
+		if( ISourceControlModule::Get().GetProvider().Execute( 
 			ISourceControlOperation::Create<FSync>(), 
 			SourceControlHelpers::PackageFilename(AsyncHelper.GetParameter()),
 			EConcurrency::Asynchronous, 
 			FSourceControlOperationComplete::CreateRaw( &AsyncHelper, &FAsyncCommandHelper::SourceControlOperationComplete ) 
-			))
+			) != ECommandResult::Succeeded)
 		{
 			return true;
 		}
@@ -732,12 +732,12 @@ bool FUpdateStatusLatentCommand::Update()
 		UpdateStatusOperation->SetUpdateHistory(true);
 		UpdateStatusOperation->SetGetOpenedOnly(true);
 
-		if(!ISourceControlModule::Get().GetProvider().Execute( 
+		if( ISourceControlModule::Get().GetProvider().Execute( 
 			UpdateStatusOperation, 
 			SourceControlHelpers::PackageFilename(AsyncHelper.GetParameter()),
 			EConcurrency::Asynchronous, 
 			FSourceControlOperationComplete::CreateRaw( &AsyncHelper, &FAsyncCommandHelper::SourceControlOperationComplete ) 
-			))
+			) != ECommandResult::Succeeded)
 		{
 			return true;
 		}
@@ -950,20 +950,6 @@ bool FGetRevisionTest::RunTest(const FString& Parameters)
 	ADD_LATENT_AUTOMATION_COMMAND(FUpdateStatusLatentCommand(FAsyncCommandHelper(ParamArray[1])));
 	ADD_LATENT_AUTOMATION_COMMAND(FGetRevisionLatentCommand(ParamArray[1]));
 
-	return true;
-}
-
-IMPLEMENT_COMPLEX_AUTOMATION_TEST(FDiffTest, "Editor.Source Control.Diff", EAutomationTestFlags::ATF_Editor | EAutomationTestFlags::ATF_RequiresUser)
-
-void FDiffTest::GetTests(TArray<FString>& OutBeautifiedNames, TArray<FString>& OutTestCommands) const
-{
-	GetProviders(OutBeautifiedNames, OutTestCommands);
-}
-
-bool FDiffTest::RunTest(const FString& Parameters)
-{
-	// parameter is the provider we want to use
-	ADD_LATENT_AUTOMATION_COMMAND(FSetProviderLatentCommand(FName(*Parameters)));
 	return true;
 }
 

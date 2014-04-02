@@ -33,9 +33,7 @@ void SEditorViewport::Construct( const FArguments& InArgs )
 
 	ChildSlot
 	[
-		SNew(STutorialWrapper)
-		.Name("EditorViewports")
-		.Content()
+		SNew( STutorialWrapper, TEXT("EditorViewports") )
 		[
 			SAssignNew( ViewportWidget, SViewport )
 			.ShowEffectWhenDisabled( false )

@@ -507,9 +507,15 @@ void FSceneRenderTargets::ResolveSceneDepthTexture()
 
 void FSceneRenderTargets::ResolveSceneDepthToAuxiliaryTexture()
 {
-	SCOPED_DRAW_EVENT(ResolveSceneDepthToAuxiliaryTexture, DEC_SCENE_ITEMS);
+	// Resolve the scene depth to an auxiliary texture when SM3/SM4 is in use. This needs to happen so the auxiliary texture can be bound as a shader parameter
+	// while the primary scene depth texture can be bound as the target. Simultaneously binding a single DepthStencil resource as a parameter and target
+	// is unsupported in d3d feature level 10.
+	if(!GSupportsDepthFetchDuringDepthTest)
+	{
+		SCOPED_DRAW_EVENT(ResolveSceneDepthToAuxiliaryTexture, DEC_SCENE_ITEMS);
 
-	RHICopyToResolveTarget(GetSceneDepthSurface(), GetAuxiliarySceneDepthTexture(), true, FResolveParams());
+		RHICopyToResolveTarget(GetSceneDepthSurface(), GetAuxiliarySceneDepthTexture(), true, FResolveParams());
+	}
 }
 
 void FSceneRenderTargets::BeginRenderingHitProxies()
@@ -863,7 +869,7 @@ void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets()
 
 		// Create the screen space ambient occlusion buffer
 		{
-			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_B8G8R8A8, TexCreate_None, TexCreate_RenderTargetable, false));
+			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_G8, TexCreate_None, TexCreate_RenderTargetable, false));
 			GRenderTargetPool.FindFreeElement(Desc, ScreenSpaceAO, TEXT("ScreenSpaceAO"));
 		}
 
@@ -900,7 +906,7 @@ void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets()
 
 		extern int32 GUseIndirectLightingCacheInLightingVolume;
 
-		if (GUseIndirectLightingCacheInLightingVolume)
+		if (GUseIndirectLightingCacheInLightingVolume && GSupportsVolumeTextureRendering)
 		{
 			GRenderTargetPool.FindFreeElement(
 				FPooledRenderTargetDesc(FPooledRenderTargetDesc::CreateVolumeDesc(

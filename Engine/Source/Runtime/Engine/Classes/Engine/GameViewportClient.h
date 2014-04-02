@@ -19,22 +19,26 @@
 /**
  * Enum of the different splitscreen types
  */
-enum ESplitScreenType
+namespace ESplitScreenType
 {
-	// No split
-	eSST_NONE,
-	// 2 player horizontal split
-	eSST_2P_HORIZONTAL,
-	// 2 player vertical split
-	eSST_2P_VERTICAL,
-	// 3 Player split with 1 player on top and 2 on bottom
-	eSST_3P_FAVOR_TOP,
-	// 3 Player split with 1 player on bottom and 2 on top
-	eSST_3P_FAVOR_BOTTOM,
-	// 4 Player split
-	eSST_4P,
-	eSST_MAX,
-};
+	enum Type
+	{
+		// No split
+		None,
+		// 2 player horizontal split
+		TwoPlayer_Horizontal,
+		// 2 player vertical split
+		TwoPlayer_Vertical,
+		// 3 Player split with 1 player on top and 2 on bottom
+		ThreePlayer_FavorTop,
+		// 3 Player split with 1 player on bottom and 2 on top
+		ThreePlayer_FavorBottom,
+		// 4 Player split
+		FourPlayer,
+
+		SplitTypeCount
+	};
+}
 
 /**
  * Stereoscopic rendering passes.  FULL implies stereoscopic rendering isn't enabled for this pass
@@ -147,9 +151,8 @@ struct FDebugDisplayProperty
  * The first parameter is the width.
  * The second parameter is the height.
  * The third parameter is the array of bitmap data.
- * The fourth parameter is the filename. Filename does not contain a specific extension.
  */
-DECLARE_MULTICAST_DELEGATE_FourParams(FOnScreenshotCaptured, int32 /*Width*/, int32 /*Height*/, const TArray<FColor>& /*Colors*/, const FString& /*Filename*/);
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnScreenshotCaptured, int32 /*Width*/, int32 /*Height*/, const TArray<FColor>& /*Colors*/);
 
 /**
  * Delegate type for when a png screenshot has been captured
@@ -192,26 +195,18 @@ public:
 	/** set to disable world rendering */
 	uint32 bDisableWorldRendering:1;
 
-	/** Defaults for intances where there are multiple configs for a certain number of players */
-	TEnumAsByte<enum ESplitScreenType> Default2PSplitType;
-
-	/** @todo document */
-	TEnumAsByte<enum ESplitScreenType> Default3PSplitType;
-
 protected:
-	/**
-	 * The splitscreen layout type that the player wishes to use;  this value usually comes from places like the player's profile
-	 */
-	TEnumAsByte<enum ESplitScreenType> DesiredSplitscreenType;
-
 	/**
 	 * The splitscreen type that is actually being used; takes into account the number of players and other factors (such as cinematic mode)
 	 * that could affect the splitscreen mode that is actually used.
 	 */
-	TEnumAsByte<enum ESplitScreenType> ActiveSplitscreenType;
+	TEnumAsByte<ESplitScreenType::Type> ActiveSplitscreenType;
 
 	UPROPERTY()
 	UWorld* World;
+
+	/** If true will suppress the blue transition text messages. */
+	bool bSuppressTransitionMessage;
 
 public:
 	/** @todo document */
@@ -237,10 +232,6 @@ public:
 	 */
 	UFUNCTION(exec)
 	virtual void DebugRemovePlayer(int32 ControllerId);
-
-	/** debug test for testing splitscreens */
-	UFUNCTION(exec)
-	virtual void SetSplit(int32 mode);
 
 	/** Exec for toggling the display of the title safe area */
 	UFUNCTION(exec)
@@ -443,15 +434,11 @@ public:
 	 */
 	virtual ULocalPlayer* CreateInitialPlayer( FString& OutError );
 
-	/** Sets the screen layout configuration that the player wishes to use when in split-screen mode. */
-	void SetSplitscreenConfiguration( ESplitScreenType SplitType );
-
 	/** @return Returns the splitscreen type that is currently being used */
-	FORCEINLINE ESplitScreenType GetCurrentSplitscreenConfiguration() const
+	FORCEINLINE ESplitScreenType::Type GetCurrentSplitscreenConfiguration() const
 	{
-		return static_cast<ESplitScreenType>(ActiveSplitscreenType);
+		return ActiveSplitscreenType;
 	}
-
 
 	/**
 	 * Sets the value of ActiveSplitscreenConfiguration based on the desired split-screen layout type, current number of players, and any other
@@ -610,6 +597,16 @@ public:
 
 	/** The platform-specific viewport frame which this viewport is contained by. */
 	FViewportFrame* ViewportFrame;
+
+	/*
+ 	 * Controls supression of the blue transition text messages 
+	 * 
+	 * @param bSuppress	Pass true to supress messages
+	 */
+	void SetSuppressTransitionMessage( bool bSuppress )
+	{
+		bSuppressTransitionMessage = bSuppress;
+	}
 
 private:
 	/** Slate window associated with this viewport client.  The same window may host more than one viewport client. */

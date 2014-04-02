@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-	      SPListEditor.h: Definition for PList editor app/menu
+	      SPlistEditor.h: Definition for PList editor app/menu
 =============================================================================*/
 
 #pragma once

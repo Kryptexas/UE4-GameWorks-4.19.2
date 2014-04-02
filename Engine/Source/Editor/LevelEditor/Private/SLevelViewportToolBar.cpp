@@ -29,6 +29,9 @@ void SLevelViewportToolBar::Construct( const FArguments& InArgs )
 
 	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>( "LevelEditor");
 
+	const FMargin ToolbarSlotPadding( 2.0f, 2.0f );
+	const FMargin ToolbarButtonPadding( 2.0f, 0.0f );
+
 	ChildSlot
 	[
 		SNew( SBorder )
@@ -44,7 +47,7 @@ void SLevelViewportToolBar::Construct( const FArguments& InArgs )
 				SNew( SHorizontalBox )
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
-				.Padding( 2.0f, 2.0f )
+				.Padding( ToolbarSlotPadding )
 				[
 					SNew( SEditorViewportToolbarMenu )
 					.ParentToolBar( SharedThis( this ) )
@@ -54,7 +57,7 @@ void SLevelViewportToolBar::Construct( const FArguments& InArgs )
 				]
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
-				.Padding( 2.0f, 2.0f )
+				.Padding( ToolbarSlotPadding )
 				[
 					SNew( SEditorViewportToolbarMenu )
 					.ParentToolBar( SharedThis( this ) )
@@ -65,14 +68,15 @@ void SLevelViewportToolBar::Construct( const FArguments& InArgs )
 				]
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
-				.Padding( 2.0f, 2.0f )
+				.Padding( ToolbarSlotPadding )
 				[
 					SNew( SEditorViewportViewMenu, ViewportRef, SharedThis(this) )
+					.Cursor( EMouseCursor::Default )
 					.MenuExtenders( GetViewMenuExtender() )
 				]
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
-				.Padding( 2.0f, 2.0f )
+				.Padding( ToolbarSlotPadding )
 				[
 					SNew( SEditorViewportToolbarMenu )
 					.Label( LOCTEXT("ShowMenuTitle", "Show") )
@@ -82,7 +86,7 @@ void SLevelViewportToolBar::Construct( const FArguments& InArgs )
 				]
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
-				.Padding( 2.0f, 2.0f )
+				.Padding( ToolbarSlotPadding )
 				[
 					SNew( SEditorViewportToolbarMenu )
 					.ParentToolBar( SharedThis( this ) )
@@ -94,7 +98,7 @@ void SLevelViewportToolBar::Construct( const FArguments& InArgs )
 					.Visibility(EVisibility::Collapsed)
 				]
 				+ SHorizontalBox::Slot()
-				.Padding( 3.0f, 1.0f )
+				.Padding( ToolbarSlotPadding )
 				.HAlign( HAlign_Right )
 				[
 					SNew(STransformViewportToolBar)
@@ -106,7 +110,7 @@ void SLevelViewportToolBar::Construct( const FArguments& InArgs )
 				+ SHorizontalBox::Slot()
 				.HAlign( HAlign_Right )
 				.AutoWidth()
-				.Padding( FMargin( 2.0f, 0.0f ) )
+				.Padding( ToolbarButtonPadding )
 				[
 					//The Maximize/Minimize button is only displayed when not in Immersive mode.
 					SNew( SEditorViewportToolBarButton )
@@ -121,7 +125,7 @@ void SLevelViewportToolBar::Construct( const FArguments& InArgs )
 				+ SHorizontalBox::Slot()
 				.HAlign( HAlign_Right )
 				.AutoWidth()
-				.Padding( FMargin( 2.0f, 0.0f ) )
+				.Padding( ToolbarButtonPadding )
 				[
 					//The Restore from Immersive' button is only displayed when the editor is in Immersive mode.
 					SNew( SEditorViewportToolBarButton )
@@ -138,14 +142,6 @@ void SLevelViewportToolBar::Construct( const FArguments& InArgs )
 
 	SViewportToolBar::Construct(SViewportToolBar::FArguments());
 }
-
-
-EVisibility SLevelViewportToolBar::GetFOVMenuVisibility() const
-{
-	return IsPerspectiveViewport() ? EVisibility::Visible : EVisibility::Collapsed;
-}
-
-
 
 FText SLevelViewportToolBar::GetCameraMenuLabel() const
 {
@@ -522,7 +518,12 @@ TSharedRef<SWidget> SLevelViewportToolBar::GenerateOptionsMenu() const
 			OptionsMenuBuilder.AddMenuEntry( FEditorViewportCommands::Get().ToggleRealTime );
 			OptionsMenuBuilder.AddMenuEntry( FEditorViewportCommands::Get().ToggleStats );
 			OptionsMenuBuilder.AddMenuEntry( FEditorViewportCommands::Get().ToggleFPS );
-			OptionsMenuBuilder.AddWidget( GenerateFOVMenu(), LOCTEXT("FOVAngle", "Field of View") );
+
+			if( bIsPerspective )
+			{
+				OptionsMenuBuilder.AddWidget( GenerateFOVMenu(), LOCTEXT("FOVAngle", "Field of View") );
+				OptionsMenuBuilder.AddWidget( GenerateFarViewPlaneMenu(), LOCTEXT("FarViewPlane", "Far View Plane") );
+			}
 		}
 		OptionsMenuBuilder.EndSection();
 
@@ -929,14 +930,19 @@ TSharedRef<SWidget> SLevelViewportToolBar::GenerateFOVMenu() const
 
 	return
 		SNew( SBox )
-		.WidthOverride( 125.0f )
+		.HAlign( HAlign_Right )
 		[
-			SNew(SSpinBox<float>)
-			.Font( FEditorStyle::GetFontStyle( TEXT( "MenuItem.Font" ) ) )
-			.MinValue(FOVMin)
-			.MaxValue(FOVMax)
-			.Value( this, &SLevelViewportToolBar::OnGetFOVValue )
-			.OnValueChanged( this, &SLevelViewportToolBar::OnFOVValueChanged )
+			SNew( SBox )
+			.Padding( FMargin(4.0f, 0.0f, 0.0f, 0.0f) )
+			.WidthOverride( 100.0f )
+			[
+				SNew(SSpinBox<float>)
+				.Font( FEditorStyle::GetFontStyle( TEXT( "MenuItem.Font" ) ) )
+				.MinValue(FOVMin)
+				.MaxValue(FOVMax)
+				.Value( this, &SLevelViewportToolBar::OnGetFOVValue )
+				.OnValueChanged( this, &SLevelViewportToolBar::OnFOVValueChanged )
+			]
 		];
 }
 
@@ -966,6 +972,37 @@ void SLevelViewportToolBar::OnFOVValueChanged( float NewValue )
 
 	ViewportClient.ViewFOV = NewValue;
 	ViewportClient.Invalidate();
+}
+
+TSharedRef<SWidget> SLevelViewportToolBar::GenerateFarViewPlaneMenu() const
+{
+	return
+		SNew(SBox)
+		.HAlign(HAlign_Right)
+		[
+			SNew(SBox)
+			.Padding(FMargin(4.0f, 0.0f, 0.0f, 0.0f))
+			.WidthOverride(100.0f)
+			[
+				SNew(SSpinBox<float>)
+				.ToolTipText(LOCTEXT("FarViewPlaneTooltip", "Distance to use as the far view plane, or zero to enable an infinite far view plane"))
+				.MinValue(0.0f)
+				.MaxValue(100000.0f)
+				.Font(FEditorStyle::GetFontStyle(TEXT("MenuItem.Font")))
+				.Value(this, &SLevelViewportToolBar::OnGetFarViewPlaneValue)
+				.OnValueChanged(this, &SLevelViewportToolBar::OnFarViewPlaneValueChanged)
+			]
+		];
+}
+
+float SLevelViewportToolBar::OnGetFarViewPlaneValue() const
+{
+	return Viewport.Pin()->GetLevelViewportClient().GetFarClipPlaneOverride();
+}
+
+void SLevelViewportToolBar::OnFarViewPlaneValueChanged( float NewValue )
+{
+	Viewport.Pin()->GetLevelViewportClient().OverrideFarClipPlane(NewValue);
 }
 
 void SLevelViewportToolBar::FillShowLayersMenu( FMenuBuilder& MenuBuilder, TWeakPtr<class SLevelViewport> Viewport )
@@ -1092,20 +1129,24 @@ void SLevelViewportToolBar::CreateViewMenuExtensions(FMenuBuilder& MenuBuilder)
 		{
 			static void BuildLandscapeLODMenu(FMenuBuilder& Menu, SLevelViewportToolBar* Toolbar)
 			{
-				static const FText FormatString = LOCTEXT("LandscapeLODFixed", "Fixed at {0}");
-				Menu.AddMenuEntry(LOCTEXT("LandscapeLODAuto", "Auto"), FText(), FSlateIcon(), FUIAction(FExecuteAction::CreateSP(Toolbar, &SLevelViewportToolBar::OnLandscapeLODChanged, -1), FCanExecuteAction(), FIsActionChecked::CreateSP(Toolbar, &SLevelViewportToolBar::IsLandscapeLODSettingChecked, -1)), NAME_None, EUserInterfaceActionType::RadioButton);
-				Menu.AddMenuEntry(FText::Format(FormatString, FText::AsNumber(0)), FText(), FSlateIcon(), FUIAction(FExecuteAction::CreateSP(Toolbar, &SLevelViewportToolBar::OnLandscapeLODChanged, 0), FCanExecuteAction(), FIsActionChecked::CreateSP(Toolbar, &SLevelViewportToolBar::IsLandscapeLODSettingChecked, 0)), NAME_None, EUserInterfaceActionType::RadioButton);
-				Menu.AddMenuEntry(FText::Format(FormatString, FText::AsNumber(1)), FText(), FSlateIcon(), FUIAction(FExecuteAction::CreateSP(Toolbar, &SLevelViewportToolBar::OnLandscapeLODChanged, 1), FCanExecuteAction(), FIsActionChecked::CreateSP(Toolbar, &SLevelViewportToolBar::IsLandscapeLODSettingChecked, 1)), NAME_None, EUserInterfaceActionType::RadioButton);
-				Menu.AddMenuEntry(FText::Format(FormatString, FText::AsNumber(2)), FText(), FSlateIcon(), FUIAction(FExecuteAction::CreateSP(Toolbar, &SLevelViewportToolBar::OnLandscapeLODChanged, 2), FCanExecuteAction(), FIsActionChecked::CreateSP(Toolbar, &SLevelViewportToolBar::IsLandscapeLODSettingChecked, 2)), NAME_None, EUserInterfaceActionType::RadioButton);
-				Menu.AddMenuEntry(FText::Format(FormatString, FText::AsNumber(3)), FText(), FSlateIcon(), FUIAction(FExecuteAction::CreateSP(Toolbar, &SLevelViewportToolBar::OnLandscapeLODChanged, 3), FCanExecuteAction(), FIsActionChecked::CreateSP(Toolbar, &SLevelViewportToolBar::IsLandscapeLODSettingChecked, 3)), NAME_None, EUserInterfaceActionType::RadioButton);
-				Menu.AddMenuEntry(FText::Format(FormatString, FText::AsNumber(4)), FText(), FSlateIcon(), FUIAction(FExecuteAction::CreateSP(Toolbar, &SLevelViewportToolBar::OnLandscapeLODChanged, 4), FCanExecuteAction(), FIsActionChecked::CreateSP(Toolbar, &SLevelViewportToolBar::IsLandscapeLODSettingChecked, 4)), NAME_None, EUserInterfaceActionType::RadioButton);
-				Menu.AddMenuEntry(FText::Format(FormatString, FText::AsNumber(5)), FText(), FSlateIcon(), FUIAction(FExecuteAction::CreateSP(Toolbar, &SLevelViewportToolBar::OnLandscapeLODChanged, 5), FCanExecuteAction(), FIsActionChecked::CreateSP(Toolbar, &SLevelViewportToolBar::IsLandscapeLODSettingChecked, 5)), NAME_None, EUserInterfaceActionType::RadioButton);
-				Menu.AddMenuEntry(FText::Format(FormatString, FText::AsNumber(6)), FText(), FSlateIcon(), FUIAction(FExecuteAction::CreateSP(Toolbar, &SLevelViewportToolBar::OnLandscapeLODChanged, 6), FCanExecuteAction(), FIsActionChecked::CreateSP(Toolbar, &SLevelViewportToolBar::IsLandscapeLODSettingChecked, 6)), NAME_None, EUserInterfaceActionType::RadioButton);
-				Menu.AddMenuEntry(FText::Format(FormatString, FText::AsNumber(7)), FText(), FSlateIcon(), FUIAction(FExecuteAction::CreateSP(Toolbar, &SLevelViewportToolBar::OnLandscapeLODChanged, 7), FCanExecuteAction(), FIsActionChecked::CreateSP(Toolbar, &SLevelViewportToolBar::IsLandscapeLODSettingChecked, 7)), NAME_None, EUserInterfaceActionType::RadioButton);
+				Menu.BeginSection("LevelViewportLandScapeLOD", LOCTEXT("LandscapeLODHeader", "Landscape LOD"));
+				{
+					static const FText FormatString = LOCTEXT("LandscapeLODFixed", "Fixed at {0}");
+					Menu.AddMenuEntry(LOCTEXT("LandscapeLODAuto", "Auto"), FText(), FSlateIcon(), FUIAction(FExecuteAction::CreateSP(Toolbar, &SLevelViewportToolBar::OnLandscapeLODChanged, -1), FCanExecuteAction(), FIsActionChecked::CreateSP(Toolbar, &SLevelViewportToolBar::IsLandscapeLODSettingChecked, -1)), NAME_None, EUserInterfaceActionType::RadioButton);
+					Menu.AddMenuEntry(FText::Format(FormatString, FText::AsNumber(0)), FText(), FSlateIcon(), FUIAction(FExecuteAction::CreateSP(Toolbar, &SLevelViewportToolBar::OnLandscapeLODChanged, 0), FCanExecuteAction(), FIsActionChecked::CreateSP(Toolbar, &SLevelViewportToolBar::IsLandscapeLODSettingChecked, 0)), NAME_None, EUserInterfaceActionType::RadioButton);
+					Menu.AddMenuEntry(FText::Format(FormatString, FText::AsNumber(1)), FText(), FSlateIcon(), FUIAction(FExecuteAction::CreateSP(Toolbar, &SLevelViewportToolBar::OnLandscapeLODChanged, 1), FCanExecuteAction(), FIsActionChecked::CreateSP(Toolbar, &SLevelViewportToolBar::IsLandscapeLODSettingChecked, 1)), NAME_None, EUserInterfaceActionType::RadioButton);
+					Menu.AddMenuEntry(FText::Format(FormatString, FText::AsNumber(2)), FText(), FSlateIcon(), FUIAction(FExecuteAction::CreateSP(Toolbar, &SLevelViewportToolBar::OnLandscapeLODChanged, 2), FCanExecuteAction(), FIsActionChecked::CreateSP(Toolbar, &SLevelViewportToolBar::IsLandscapeLODSettingChecked, 2)), NAME_None, EUserInterfaceActionType::RadioButton);
+					Menu.AddMenuEntry(FText::Format(FormatString, FText::AsNumber(3)), FText(), FSlateIcon(), FUIAction(FExecuteAction::CreateSP(Toolbar, &SLevelViewportToolBar::OnLandscapeLODChanged, 3), FCanExecuteAction(), FIsActionChecked::CreateSP(Toolbar, &SLevelViewportToolBar::IsLandscapeLODSettingChecked, 3)), NAME_None, EUserInterfaceActionType::RadioButton);
+					Menu.AddMenuEntry(FText::Format(FormatString, FText::AsNumber(4)), FText(), FSlateIcon(), FUIAction(FExecuteAction::CreateSP(Toolbar, &SLevelViewportToolBar::OnLandscapeLODChanged, 4), FCanExecuteAction(), FIsActionChecked::CreateSP(Toolbar, &SLevelViewportToolBar::IsLandscapeLODSettingChecked, 4)), NAME_None, EUserInterfaceActionType::RadioButton);
+					Menu.AddMenuEntry(FText::Format(FormatString, FText::AsNumber(5)), FText(), FSlateIcon(), FUIAction(FExecuteAction::CreateSP(Toolbar, &SLevelViewportToolBar::OnLandscapeLODChanged, 5), FCanExecuteAction(), FIsActionChecked::CreateSP(Toolbar, &SLevelViewportToolBar::IsLandscapeLODSettingChecked, 5)), NAME_None, EUserInterfaceActionType::RadioButton);
+					Menu.AddMenuEntry(FText::Format(FormatString, FText::AsNumber(6)), FText(), FSlateIcon(), FUIAction(FExecuteAction::CreateSP(Toolbar, &SLevelViewportToolBar::OnLandscapeLODChanged, 6), FCanExecuteAction(), FIsActionChecked::CreateSP(Toolbar, &SLevelViewportToolBar::IsLandscapeLODSettingChecked, 6)), NAME_None, EUserInterfaceActionType::RadioButton);
+					Menu.AddMenuEntry(FText::Format(FormatString, FText::AsNumber(7)), FText(), FSlateIcon(), FUIAction(FExecuteAction::CreateSP(Toolbar, &SLevelViewportToolBar::OnLandscapeLODChanged, 7), FCanExecuteAction(), FIsActionChecked::CreateSP(Toolbar, &SLevelViewportToolBar::IsLandscapeLODSettingChecked, 7)), NAME_None, EUserInterfaceActionType::RadioButton);
+				}
+				Menu.EndSection();
 			}
 		};
 
-		MenuBuilder.AddSubMenu(LOCTEXT("LandscapeLODDisplayName", "Landscape LOD"), LOCTEXT("LandscapeLODMenu_ToolTip", "Override Landscape LOD in this viewport"), FNewMenuDelegate::CreateStatic(&Local::BuildLandscapeLODMenu, this), /*Default*/false, FSlateIcon());
+		MenuBuilder.AddSubMenu(LOCTEXT("LandscapeLODDisplayName", "LOD"), LOCTEXT("LandscapeLODMenu_ToolTip", "Override Landscape LOD in this viewport"), FNewMenuDelegate::CreateStatic(&Local::BuildLandscapeLODMenu, this), /*Default*/false, FSlateIcon());
 	}
 	MenuBuilder.EndSection();
 }

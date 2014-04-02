@@ -520,9 +520,9 @@ void FHZBOcclusionTester::InitDynamicRHI()
 	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM3)
 	{
 #if PLATFORM_MAC // Workaround radr://16096028 Texture Readback via glReadPixels + PBOs stalls on Nvidia GPUs
-		FPooledRenderTargetDesc Desc( FPooledRenderTargetDesc::Create2DDesc( FIntPoint( SizeX, SizeY ), PF_R8G8B8A8, TexCreate_CPUReadback, TexCreate_None, false ) );
+		FPooledRenderTargetDesc Desc( FPooledRenderTargetDesc::Create2DDesc( FIntPoint( SizeX, SizeY ), PF_R8G8B8A8, TexCreate_CPUReadback | TexCreate_HideInVisualizeTexture, TexCreate_None, false ) );
 #else
-		FPooledRenderTargetDesc Desc( FPooledRenderTargetDesc::Create2DDesc( FIntPoint( SizeX, SizeY ), PF_B8G8R8A8, TexCreate_CPUReadback, TexCreate_None, false ) );
+		FPooledRenderTargetDesc Desc( FPooledRenderTargetDesc::Create2DDesc( FIntPoint( SizeX, SizeY ), PF_B8G8R8A8, TexCreate_CPUReadback | TexCreate_HideInVisualizeTexture, TexCreate_None, false ) );
 #endif
 		GRenderTargetPool.FindFreeElement( Desc, ResultsTextureCPU, TEXT("HZBResultsCPU") );
 	}
@@ -614,7 +614,6 @@ class FHZBTestPS : public FGlobalShader
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
-		OutEnvironment.SetDefine( TEXT("HZBTEST_PIXELSHADER"), 1 );
 	}
 
 	FHZBTestPS() {}
@@ -787,7 +786,7 @@ class THZBBuildPS : public FGlobalShader
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
 		OutEnvironment.SetDefine( TEXT("STAGE"), Stage );
-		OutEnvironment.SetDefine( TEXT("HZBBUILD_PIXELSHADER"), 1 );
+		OutEnvironment.SetRenderTargetOutputFormat(0, PF_R32_FLOAT);
 	}
 
 	THZBBuildPS() {}

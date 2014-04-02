@@ -82,6 +82,8 @@ public:
 		return TTargetPlatformBase<FIOSPlatformProperties>::SupportsFeature(Feature);
 	}
 
+	virtual bool IsSdkInstalled(bool bProjectHasCode, FString& OutDocumentationPath) const OVERRIDE;
+
 
 #if WITH_ENGINE
 	virtual void GetReflectionCaptureFormats( TArray<FName>& OutFormats ) const OVERRIDE

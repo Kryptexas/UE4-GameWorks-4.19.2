@@ -160,9 +160,15 @@ public class Launch : ModuleRules
 
 		if ((Target.Platform == UnrealTargetPlatform.Win32) ||
 			(Target.Platform == UnrealTargetPlatform.Win64) ||
-			(Target.Platform == UnrealTargetPlatform.Mac))
+			(Target.Platform == UnrealTargetPlatform.Mac) ||
+			(Target.Platform == UnrealTargetPlatform.Linux && !UEBuildConfiguration.bBuildDedicatedServer))
 		{
 			DynamicallyLoadedModuleNames.Add("OpenGLDrv");
+		}
+
+		if ((Target.Platform == UnrealTargetPlatform.Linux))
+		{
+			PrivateDependencyModuleNames.Add("ALAudio");
 		}
 
         if (Target.Platform == UnrealTargetPlatform.HTML5 )

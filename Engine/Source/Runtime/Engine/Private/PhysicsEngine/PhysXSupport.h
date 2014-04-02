@@ -74,10 +74,8 @@ private:
 };
 
 
-#define SCOPED_SCENE_READ_LOCK_INDEXED( _scene, _index ) FPhysXSceneReadLock _rlock##_index(_scene)
-#define SCOPED_SCENE_READ_LOCK( _scene ) SCOPED_SCENE_READ_LOCK_INDEXED( _scene, 1 )
-#define SCOPED_SCENE_WRITE_LOCK_INDEXED( _scene, _index ) FPhysXSceneWriteLock _wlock##_index(_scene)
-#define SCOPED_SCENE_WRITE_LOCK( _scene ) SCOPED_SCENE_WRITE_LOCK_INDEXED( _scene, 1 )
+#define SCOPED_SCENE_READ_LOCK( _scene ) FPhysXSceneReadLock _rlock##__LINE__(_scene)
+#define SCOPED_SCENE_WRITE_LOCK( _scene ) FPhysXSceneWriteLock _wlock##__LINE__(_scene)
 #define SCENE_LOCK_READ( _scene ) if((_scene) != NULL) { (_scene)->lockRead(); }
 #define SCENE_UNLOCK_READ( _scene ) if((_scene) != NULL) { (_scene)->unlockRead(); }
 #define SCENE_LOCK_WRITE( _scene ) if((_scene) != NULL) { (_scene)->lockWrite(); }

@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "EngineSplineClasses.h"
+#include "Net/UnrealNetwork.h"
 #include "MessageLog.h"
 #include "UObjectToken.h"
 #include "MapErrors.h"
@@ -30,6 +31,26 @@ UStaticMeshComponent::UStaticMeshComponent(const class FPostConstructInitializeP
 #if WITH_EDITORONLY_DATA
 	SelectedEditorSection = INDEX_NONE;
 #endif
+}
+
+void UStaticMeshComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME( UStaticMeshComponent, StaticMesh );
+}
+
+void UStaticMeshComponent::OnRep_StaticMesh(class UStaticMesh *OldStaticMesh)
+{
+	// Only do stuff if this actually changed from the last local value
+	if (OldStaticMesh!= StaticMesh)
+	{
+		// We have to force a call to SetStaticMesh with a new StaticMesh
+		UStaticMesh *NewStaticMesh = StaticMesh;
+		StaticMesh = NULL;
+		
+		SetStaticMesh(NewStaticMesh);
+	}
 }
 
 bool UStaticMeshComponent::HasAnySockets() const

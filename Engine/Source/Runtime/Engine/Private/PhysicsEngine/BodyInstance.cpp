@@ -906,6 +906,8 @@ void FBodyInstance::InitBody(UBodySetup* Setup, const FTransform& Transform, UPr
 		// Update damping
 		UpdateDampingProperties();
 
+		SetMaxAngularVelocity(MaxAngularVelocity, false);
+
 		// Set initial velocity 
 		if(bUseSimulate)
 		{
@@ -1023,6 +1025,45 @@ void FBodyInstance::TermBody()
 
 	OwnerComponent = NULL;
 }
+
+#if WITH_BODY_WELDING
+void FBodyInstance::Weld(FBodyInstance * TheirBody, const FTransform & RelativeTM)
+{
+	check(TheirBody);
+#if WITH_PHYSX
+	
+	//UBodySetup * LocalSpaceSetup = TheirBody->BodySetup->CreateSpaceCopy(RelativeTM);
+
+	//child body gets placed into the same scenes as parent body
+	if (PxRigidActor * MyBody = RigidActorSync)
+	{
+		TheirBody->BodySetup->AddShapesToRigidActor(MyBody, Scale3D, &RelativeTM);
+	}
+
+	if (PxRigidActor * MyBody = RigidActorAsync)
+	{
+		TheirBody->BodySetup->AddShapesToRigidActor(MyBody, Scale3D, &RelativeTM);
+	}
+
+
+	
+	// Apply correct physical materials to shape we created.
+	UpdatePhysicalMaterials();
+
+	// Set the filter data on the shapes (call this after setting BodyData because it uses that pointer)
+	UpdatePhysicsFilterData();
+
+
+	UpdateMassProperties();
+	// Update damping
+	UpdateDampingProperties();
+
+	//remove their body from scenes
+	TermBodyHelper(TheirBody->SceneIndexSync, TheirBody->RigidActorSync, TheirBody);
+	TermBodyHelper(TheirBody->SceneIndexAsync, TheirBody->RigidActorAsync, TheirBody);
+#endif
+}
+#endif
 
 bool FBodyInstance::UpdateBodyScale(const FVector & inScale3D)
 {
@@ -1860,7 +1901,6 @@ void FBodyInstance::UpdateMassProperties()
 void FBodyInstance::UpdateDampingProperties()
 {
 #if WITH_PHYSX
-	check(BodySetup != NULL);
 	PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic();
 	if (PRigidDynamic != NULL)
 	{
@@ -1946,6 +1986,31 @@ void FBodyInstance::SetAngularVelocity(const FVector& NewAngVel, bool bAddToCurr
 #endif //WITH_PHYSX
 }
 
+void FBodyInstance::SetMaxAngularVelocity(float NewMaxAngVel, bool bAddToCurrent)
+{
+	//NewMaxAngVel = 400;
+#if WITH_PHYSX
+	PxRigidDynamic * PRigidDynamic = GetPxRigidDynamic();
+	if (PRigidDynamic)
+	{
+		float RadNewMaxAngVel = FMath::DegreesToRadians(NewMaxAngVel);
+		
+		if (bAddToCurrent)
+		{
+			float RadOldMaxAngVel = PRigidDynamic->getMaxAngularVelocity();
+			RadNewMaxAngVel += RadOldMaxAngVel;
+		}
+
+		PRigidDynamic->setMaxAngularVelocity(RadNewMaxAngVel);
+
+		MaxAngularVelocity = FMath::RadiansToDegrees(RadNewMaxAngVel);
+	}
+	else
+	{
+		MaxAngularVelocity = NewMaxAngVel;	//doesn't really matter since we are not dynamic, but makes sense that we update this anyway
+	}
+#endif
+}
 
 
 void FBodyInstance::AddForce(const FVector& Force)

@@ -1143,6 +1143,8 @@ FArchive& operator<<( FArchive& Ar, FString& A )
 				// read in the unicode string and byteswap it, etc
 				auto Passthru = StringMemoryPassthru<UCS2CHAR>(A.Data.GetTypedData(), SaveNum, SaveNum);
 				Ar.Serialize(Passthru.Get(), SaveNum * sizeof(UCS2CHAR));
+				// Ensure the string has a null terminator
+				Passthru.Get()[SaveNum-1] = '\0';
 				Passthru.Apply();
 
 				INTEL_ORDER_TCHARARRAY(A.Data.GetTypedData())
@@ -1151,6 +1153,8 @@ FArchive& operator<<( FArchive& Ar, FString& A )
 			{
 				auto Passthru = StringMemoryPassthru<ANSICHAR>(A.Data.GetTypedData(), SaveNum, SaveNum);
 				Ar.Serialize(Passthru.Get(), SaveNum * sizeof(ANSICHAR));
+				// Ensure the string has a null terminator
+				Passthru.Get()[SaveNum-1] = '\0';
 				Passthru.Apply();
 			}
 

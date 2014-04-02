@@ -99,6 +99,20 @@ struct FServiceConnection
 
 	// updates the meta date for the given instance
 	void UpdateMetaData();
+
+	
+	/**
+	 * Reads stat message from the archive and converts them to be usable by the profiler..
+	 *
+	 * @return true if read a special marker that indicates end of file
+	 */
+	bool ReadAndConvertStatMessages( FArchive& FileReader, bool bUseInAsync );
+
+	/** Adds all collected stat messages to the current stats thread state. */
+	void AddCollectedStatMessages( FStatMessage Message );
+
+	/** Generates profiler data frame based on the collected stat messages. */
+	void GenerateProfilerDataFrame();
 #endif
 };
 
@@ -111,12 +125,13 @@ class FProfilerClientManager
 	class FAsyncReadWorker : public FNonAbandonableTask
 	{
 	public:
-		FServiceConnection& Connection;
+		FServiceConnection* LoadConnection;
 		FArchive* FileReader;
+		FStatsStreamHeader Header;
 
 		/** Constructor */
 		FAsyncReadWorker(FServiceConnection* InConnection, FArchive* InReader)
-			: Connection(*InConnection)
+			: LoadConnection(InConnection)
 			, FileReader(InReader)
 		{}
 
@@ -249,6 +264,12 @@ private:
 	/** If hash is ok, writes the data to the archive and returns true, otherwise only returns false. */
 	bool CheckHashAndWrite( const FProfilerServiceFileChunk& FileChunk, const FProfilerFileChunkHeader& FileChunkHeader, FArchive* Writer );
 
+	/** Broadcast that meta data has been updated. */
+	void BroadcastMetadataUpdate();
+
+	/** Broadcast that loading has completed and cleans internal structures. */
+	void FinalizeLoading();
+
 private:
 
 	/** Session this client is currently communicating with */
@@ -338,6 +359,7 @@ private:
 #if PROFILER_THREADED_LOAD
 	/** Loads a file asynchronously */
 	bool AsyncLoad();
+
 	/** Load Task */
 	FAsyncTask<FAsyncReadWorker>* LoadTask;
 #else
@@ -345,6 +367,8 @@ private:
 	bool SyncLoad();
 	/** File reader */
 	FArchive* FileReader;
+	/** Stats file header. */
+	FStatsStreamHeader Header;
 #endif
 
 	/** Holds the last time a ping was made to instances */

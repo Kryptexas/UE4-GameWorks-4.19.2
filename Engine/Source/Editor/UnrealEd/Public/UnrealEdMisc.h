@@ -212,7 +212,7 @@ private:
 	void CB_MapChange( uint32 InFlags );
 	void CB_RedrawAllViewports();
 	void CB_Undo();
-    void CB_EditorModeWindowClosed(const TSharedRef<SWindow>&);
+	void CB_EditorModeWindowClosed(const TSharedRef<SWindow>&);
 	void CB_LevelActorsAdded(class AActor* InActor);
 
 	/** Called right before unit testing is about to begin */

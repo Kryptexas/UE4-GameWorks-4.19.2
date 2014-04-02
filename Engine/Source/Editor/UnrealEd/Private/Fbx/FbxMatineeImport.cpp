@@ -35,7 +35,6 @@
 #include "UnrealEd.h"
 
 #include "EngineInterpolationClasses.h"
-#include "LinkedObjDrawUtils.h"
 #include "FbxImporter.h"
 
 namespace UnFbx {

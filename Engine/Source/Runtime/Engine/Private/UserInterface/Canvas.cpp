@@ -724,6 +724,12 @@ int32 FCanvas::DrawShadowedString( float StartX,float StartY,const TCHAR* Text,c
 	return TextItem.DrawnSize.Y;	
 }
 
+void FCanvas::DrawNGon(const FVector2D& Center, const FColor& Color, int32 NumSides, float Radius)
+{
+	FCanvasNGonItem NGonItem(Center, FVector2D(Radius, Radius), FMath::Clamp(NumSides, 3, 255), Color);
+	DrawItem(NGonItem);
+}
+
 int32 FCanvas::DrawShadowedText( float StartX,float StartY,const FText& Text,class UFont* Font,const FLinearColor& Color, const FLinearColor& ShadowColor )
 {
 	const float Z = 1.0f;

@@ -19,9 +19,11 @@ class ATextRenderActor : public AActor
 	UPROPERTY(Category=TextRenderActor, VisibleAnywhere, BlueprintReadOnly)
 	TSubobjectPtr<class UTextRenderComponent> TextRender;
 
+#if WITH_EDITORONLY_DATA
 	// Reference to the billboard component
 	UPROPERTY()
 	TSubobjectPtr<UBillboardComponent> SpriteComponent;
+#endif
 };
 
 

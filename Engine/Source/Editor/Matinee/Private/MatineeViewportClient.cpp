@@ -868,7 +868,7 @@ void FMatineeViewportClient::MouseMove(FViewport* Viewport, int32 X, int32 Y)
 				NewTime = InterpEd->SnapTimeToNearestFrame( NewTime );
 			}
 
-			InterpEd->SetInterpPosition(NewTime);
+			InterpEd->SetInterpPosition( NewTime, true );
 		}
 		else if(bBoxSelecting)
 		{

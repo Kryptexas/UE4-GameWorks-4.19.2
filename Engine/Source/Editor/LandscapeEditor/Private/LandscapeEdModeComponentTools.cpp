@@ -1887,17 +1887,19 @@ public:
 		int32 MinX, MinY, MaxX, MaxY;
 		if (EdMode->CurrentToolTarget.LandscapeInfo->GetLandscapeExtent(MinX, MinY, MaxX, MaxY))
 		{
-			EdMode->UISettings->ResizeLandscape_OriginalResolution = FIntPoint(MaxX - MinX, MaxY - MinY);
-			EdMode->UISettings->ResizeLandscape_ComponentCount.X = (MaxX - MinX) / ComponentSizeQuads;
-			EdMode->UISettings->ResizeLandscape_ComponentCount.Y = (MaxY - MinY) / ComponentSizeQuads;
+			EdMode->UISettings->ResizeLandscape_Original_ComponentCount.X = (MaxX - MinX) / ComponentSizeQuads;
+			EdMode->UISettings->ResizeLandscape_Original_ComponentCount.Y = (MaxY - MinY) / ComponentSizeQuads;
+			EdMode->UISettings->ResizeLandscape_ComponentCount = EdMode->UISettings->ResizeLandscape_Original_ComponentCount;
 		}
 		else
 		{
-			EdMode->UISettings->ResizeLandscape_OriginalResolution = FIntPoint::ZeroValue;
+			EdMode->UISettings->ResizeLandscape_Original_ComponentCount = FIntPoint::ZeroValue;
 			EdMode->UISettings->ResizeLandscape_ComponentCount = FIntPoint::ZeroValue;
 		}
-		EdMode->UISettings->ResizeLandscape_QuadsPerSection = EdMode->CurrentToolTarget.LandscapeInfo->SubsectionSizeQuads;
-		EdMode->UISettings->ResizeLandscape_SectionsPerComponent = EdMode->CurrentToolTarget.LandscapeInfo->ComponentNumSubsections;
+		EdMode->UISettings->ResizeLandscape_Original_QuadsPerSection      = EdMode->CurrentToolTarget.LandscapeInfo->SubsectionSizeQuads;
+		EdMode->UISettings->ResizeLandscape_Original_SectionsPerComponent = EdMode->CurrentToolTarget.LandscapeInfo->ComponentNumSubsections;
+		EdMode->UISettings->ResizeLandscape_QuadsPerSection      = EdMode->UISettings->ResizeLandscape_Original_QuadsPerSection;
+		EdMode->UISettings->ResizeLandscape_SectionsPerComponent = EdMode->UISettings->ResizeLandscape_Original_SectionsPerComponent;
 	}
 
 	virtual void ExitTool()

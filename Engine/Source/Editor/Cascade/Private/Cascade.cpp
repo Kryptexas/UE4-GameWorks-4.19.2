@@ -2482,7 +2482,10 @@ void FCascade::RestartParticleSystem()
 	{
 		ParticleSystemComponent->ResetParticles();
 		ParticleSystemComponent->ActivateSystem();
-		ParticleSystemComponent->Template->bShouldResetPeakCounts = true;
+		if (ParticleSystemComponent->Template)
+		{
+			ParticleSystemComponent->Template->bShouldResetPeakCounts = true;
+		}
 		ParticleSystemComponent->bIsViewRelevanceDirty = true;
 		ParticleSystemComponent->CachedViewRelevanceFlags.Empty();
 		ParticleSystemComponent->ConditionalCacheViewRelevanceFlags();
@@ -3555,7 +3558,7 @@ void FCascade::OnRestartInLevel()
 
 	for (TObjectIterator<UParticleSystemComponent> It;It;++It)
 	{
-		if (It->Template == ParticleSystemComponent->Template)
+		if (It->Template && It->Template == ParticleSystemComponent->Template)
 		{
 			UParticleSystemComponent* PSysComp = *It;
 

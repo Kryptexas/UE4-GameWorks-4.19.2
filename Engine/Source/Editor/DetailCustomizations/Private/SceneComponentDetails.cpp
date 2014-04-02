@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "SceneComponentDetails.h"
@@ -346,6 +346,50 @@ TSharedRef<IDetailCustomization> FSceneComponentDetails::MakeInstance()
 	return MakeShareable( new FSceneComponentDetails );
 }
 
+ESlateCheckBoxState::Type FSceneComponentDetails::IsMobilityActive(TWeakPtr<IPropertyHandle> MobilityHandle, EComponentMobility::Type InMobility) const
+{
+	if ( MobilityHandle.IsValid() )
+	{
+		uint8 MobilityByte;
+		MobilityHandle.Pin()->GetValue(MobilityByte);
+
+		return MobilityByte == InMobility ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	}
+
+	return ESlateCheckBoxState::Unchecked;
+}
+
+FSlateColor FSceneComponentDetails::GetMobilityTextColor(TWeakPtr<IPropertyHandle> MobilityHandle, EComponentMobility::Type InMobility) const
+{
+	if ( MobilityHandle.IsValid() )
+	{
+		uint8 MobilityByte;
+		MobilityHandle.Pin()->GetValue(MobilityByte);
+
+		return MobilityByte == InMobility ? FSlateColor(FLinearColor(0, 0, 0)) : FSlateColor(FLinearColor(0.72f, 0.72f, 0.72f, 1.f));
+	}
+
+	return FSlateColor(FLinearColor(0.72f, 0.72f, 0.72f, 1.f));
+}
+
+void FSceneComponentDetails::OnMobilityChanged(ESlateCheckBoxState::Type InCheckedState, TWeakPtr<IPropertyHandle> MobilityHandle, EComponentMobility::Type InMobility)
+{
+	if ( MobilityHandle.IsValid() && InCheckedState == ESlateCheckBoxState::Checked)
+	{
+		MobilityHandle.Pin()->SetValue((uint8)InMobility);
+	}
+}
+
+FText FSceneComponentDetails::GetMobilityToolTip(TWeakPtr<IPropertyHandle> MobilityHandle) const
+{
+	if ( MobilityHandle.IsValid() )
+	{
+		return FText::FromString(MobilityHandle.Pin()->GetToolTipText());
+	}
+
+	return FText::GetEmpty();
+}
+
 void FSceneComponentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 {
 	MakeTransformDetails( DetailBuilder );
@@ -414,7 +458,143 @@ void FSceneComponentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuild
 	FSimpleDelegate OnMobilityChangedDelegate = FSimpleDelegate::CreateSP(this, &FSceneComponentDetails::OnMobilityChanged, MobilityProperty);
 	MobilityProperty->SetOnPropertyValueChanged(OnMobilityChangedDelegate);
 
-	TransformCategory.AddProperty(MobilityProperty);
+
+	// Build Editor for Mobility
+	TWeakPtr<IPropertyHandle> MobilityPropertyWeak(MobilityProperty);
+
+	TSharedPtr<SUniformGridPanel> ButtonOptionsPanel;
+
+	IDetailPropertyRow& MobilityRow = TransformCategory.AddProperty(MobilityProperty);
+	MobilityRow.CustomWidget()
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(LOCTEXT("Mobility", "Mobility"))
+		.ToolTipText(this, &FSceneComponentDetails::GetMobilityToolTip, MobilityPropertyWeak)
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+	]
+	.ValueContent()
+	.MaxDesiredWidth(0)
+	[
+		SAssignNew(ButtonOptionsPanel, SUniformGridPanel)
+	];
+
+	bool bShowStatic = !( RestrictedMobilityBits & StaticMobilityBitMask );
+	bool bShowStationary = !( RestrictedMobilityBits & StationaryMobilityBitMask );
+
+	int32 ColumnIndex = 0;
+
+	if ( bShowStatic )
+	{
+		// Static Mobility
+		ButtonOptionsPanel->AddSlot(0, 0)
+		[
+			SNew(SCheckBox)
+			.Style(FEditorStyle::Get(), "Property.ToggleButton.Start")
+			.IsChecked(this, &FSceneComponentDetails::IsMobilityActive, MobilityPropertyWeak, EComponentMobility::Static)
+			.OnCheckStateChanged(this, &FSceneComponentDetails::OnMobilityChanged, MobilityPropertyWeak, EComponentMobility::Static)
+			.ToolTipText(LOCTEXT("Mobility_Movable", "A static object can't be changed in game.\n● Allows Baked Lighting\n● Fastest Rendering"))
+			[
+				SNew(SHorizontalBox)
+
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.VAlign(VAlign_Center)
+				.Padding(3, 2)
+				[
+					SNew(SImage)
+					.Image(FEditorStyle::GetBrush("Mobility.Static"))
+				]
+
+				+ SHorizontalBox::Slot()
+				.FillWidth(1.0f)
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Center)
+				.Padding(6, 2)
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("Static", "Static"))
+					.Font(IDetailLayoutBuilder::GetDetailFont())
+					.ColorAndOpacity(this, &FSceneComponentDetails::GetMobilityTextColor, MobilityPropertyWeak, EComponentMobility::Static)
+				]
+			]
+		];
+
+		ColumnIndex++;
+	}
+
+	// Stationary Mobility
+	if ( bShowStationary )
+	{
+		ButtonOptionsPanel->AddSlot(ColumnIndex, 0)
+		[
+			SNew(SCheckBox)
+			.IsChecked(this, &FSceneComponentDetails::IsMobilityActive, MobilityPropertyWeak, EComponentMobility::Stationary)
+			.Style(FEditorStyle::Get(), ( ColumnIndex == 0 ) ? "Property.ToggleButton.Start" : "Property.ToggleButton.Middle")
+			.OnCheckStateChanged(this, &FSceneComponentDetails::OnMobilityChanged, MobilityPropertyWeak, EComponentMobility::Stationary)
+			.ToolTipText(LOCTEXT("Mobility_Movable", "A stationary light will only have its shadowing and bounced lighting from static geometry baked by Lightmass, all other lighting will be dynamic.  It can change color and intensity in game.\n● Can't Move\n● Allows Partial Baked Lighting\n● Dynamic Shadows"))
+			[
+				SNew(SHorizontalBox)
+
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.VAlign(VAlign_Center)
+				.Padding(3, 2)
+				[
+					SNew(SImage)
+					.Image(FEditorStyle::GetBrush("Mobility.Stationary"))
+				]
+
+				+ SHorizontalBox::Slot()
+				.FillWidth(1.0f)
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Center)
+				.Padding(6, 2)
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("Stationary", "Stationary"))
+					.Font(IDetailLayoutBuilder::GetDetailFont())
+					.ColorAndOpacity(this, &FSceneComponentDetails::GetMobilityTextColor, MobilityPropertyWeak, EComponentMobility::Stationary)
+				]
+			]
+		];
+
+		ColumnIndex++;
+	}
+
+	// Movable Mobility
+	ButtonOptionsPanel->AddSlot(ColumnIndex, 0)
+	[
+		SNew(SCheckBox)
+		.IsChecked(this, &FSceneComponentDetails::IsMobilityActive, MobilityPropertyWeak, EComponentMobility::Movable)
+		.Style(FEditorStyle::Get(), ( ColumnIndex == 0 ) ? "Property.ToggleButton" : "Property.ToggleButton.End")
+		.OnCheckStateChanged(this, &FSceneComponentDetails::OnMobilityChanged, MobilityPropertyWeak, EComponentMobility::Movable)
+		.ToolTipText(LOCTEXT("Mobility_Movable", "Movable objects can be moved and changed in game.\n● Totally Dynamic\n● Allows Dynamic Shadows\n● Slowest Rendering"))
+		[
+			SNew(SHorizontalBox)
+
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.Padding(3, 2)
+			[
+				SNew(SImage)
+				.Image(FEditorStyle::GetBrush("Mobility.Movable"))
+			]
+
+			+ SHorizontalBox::Slot()
+			.FillWidth(1.0f)
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Center)
+			.Padding(6, 2)
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("Movable", "Movable"))
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+				.ColorAndOpacity(this, &FSceneComponentDetails::GetMobilityTextColor, MobilityPropertyWeak, EComponentMobility::Movable)
+			]
+		]
+	];
 }
 
 void FSceneComponentDetails::MakeTransformDetails( IDetailLayoutBuilder& DetailBuilder )

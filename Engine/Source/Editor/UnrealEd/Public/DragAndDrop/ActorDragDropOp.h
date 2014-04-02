@@ -10,7 +10,7 @@
 class FActorDragDropOp : public FDecoratedDragDropOp
 {
 public:
-	static FString GetTypeId() {static FString Type = TEXT("FActorDragDropOp"); return Type;}
+	DRAG_DROP_OPERATOR_TYPE(FActorDragDropOp, FDecoratedDragDropOp)
 
 	/** Actor that we are dragging */
 	TArray< TWeakObjectPtr<AActor> >	Actors;

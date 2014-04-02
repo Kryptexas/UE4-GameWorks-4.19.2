@@ -115,16 +115,17 @@ void UMorphTarget::CreateMorphMeshStreams( const FMorphMeshRawSource& BaseSource
 
 					// change in position from base to target
 					FVector PositionDelta( VTarget.Position - VBase.Position );
+					FVector NormalDeltaZ (VTarget.TanZ - VBase.TanZ);
 
 					// check if position actually changed much
-					if( PositionDelta.Size() > CLOSE_TO_ZERO_DELTA )
+					if( PositionDelta.Size() > CLOSE_TO_ZERO_DELTA || NormalDeltaZ.Size() > KINDA_SMALL_NUMBER)
 					{
 						// create a new entry
 						FVertexAnimDelta NewVertex;
 						// position delta
 						NewVertex.PositionDelta = PositionDelta;
 						// normal delta
-						NewVertex.TangentZDelta = VTarget.TanZ - VBase.TanZ;
+						NewVertex.TangentZDelta = NormalDeltaZ;
 						// index of base mesh vert this entry is to modify
 						NewVertex.SourceIdx = BaseVertIdx;
 

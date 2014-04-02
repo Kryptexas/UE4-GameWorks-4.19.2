@@ -532,6 +532,8 @@ bool IsCustomProperty( const TSharedPtr<FPropertyNode>& PropertyNode )
 
 void FDetailCategoryImpl::GenerateNodesFromCustomizations( const FCustomizationList& InCustomizationList, bool bDefaultLayouts, FDetailNodeList& OutNodeList, bool &bOutLastItemHasMultipleColumns )
 {
+	TAttribute<bool> IsParentEnabled(this, &FDetailCategoryImpl::IsParentEnabled);
+
 	bOutLastItemHasMultipleColumns = false;
 	for( int32 CustomizationIndex = 0; CustomizationIndex < InCustomizationList.Num(); ++CustomizationIndex )
 	{
@@ -539,8 +541,7 @@ void FDetailCategoryImpl::GenerateNodesFromCustomizations( const FCustomizationL
 		// When building default layouts cull default properties which have been customized
 		if( Customization.IsValidCustomization() && ( !bDefaultLayouts || !IsCustomProperty( Customization.GetPropertyNode() ) ) )
 		{
-			bool bParentEnabled = true;
-			TSharedRef<FDetailItemNode> NewNode = MakeShareable( new FDetailItemNode( Customization, AsShared(), bParentEnabled ) );
+			TSharedRef<FDetailItemNode> NewNode = MakeShareable( new FDetailItemNode( Customization, AsShared(), IsParentEnabled ) );
 			NewNode->Initialize();
 
 			if( CustomizationIndex == InCustomizationList.Num()-1 )
@@ -750,3 +751,8 @@ void FDetailCategoryImpl::GenerateLayout()
 	bHasVisibleDetails = SimpleChildNodes.Num() + AdvancedChildNodes.Num() > 0;
 }
 
+bool FDetailCategoryImpl::IsParentEnabled() const
+{
+	TSharedPtr<FDetailLayoutBuilderImpl> DetailLayoutBuilderPtr = DetailLayoutBuilder.Pin();
+	return !DetailLayoutBuilderPtr.IsValid() || DetailLayoutBuilderPtr->GetDetailsView().IsPropertyEditingEnabled();
+}

@@ -1761,7 +1761,7 @@ FSetElementId UNavigationSystem::RegisterNavOctreeElement(class UObject* Element
 		if (SetId.IsValidId())
 		{
 			// make sure this request stays, in case it has been invalidated already
-			PendingOctreeUpdates(SetId) = UpdateInfo;
+			PendingOctreeUpdates[SetId] = UpdateInfo;
 		}
 		else
 		{
@@ -2018,7 +2018,7 @@ void UNavigationSystem::UnregisterNavOctreeElement(class UObject* ElementOwner, 
 		const FSetElementId RequestId = PendingOctreeUpdates.FindId(ElementOwner);
 		if (RequestId.IsValidId())
 		{
-			PendingOctreeUpdates(RequestId).bInvalidRequest = true;
+			PendingOctreeUpdates[RequestId].bInvalidRequest = true;
 		}
 	}
 }
@@ -2027,11 +2027,10 @@ void UNavigationSystem::UpdateNavOctree(class AActor* Actor, int32 UpdateFlags)
 {
 	INC_DWORD_STAT(STAT_Navigation_UpdateNavOctree);
 
-	// Check if derives from INavRelevantActorInterface
-	const INavRelevantActorInterface* NavRelevantActor = InterfaceCast<INavRelevantActorInterface>(Actor);
-	if (NavRelevantActor && Actor->IsNavigationRelevant())
+	if (Actor->IsNavigationRelevant())
 	{
-		const bool bPerComponentNavigation = NavRelevantActor->DoesSupplyPerComponentNavigationCollision();
+		const INavRelevantActorInterface* NavRelevantActor = InterfaceCast<INavRelevantActorInterface>(Actor);
+		const bool bPerComponentNavigation = NavRelevantActor ? NavRelevantActor->DoesSupplyPerComponentNavigationCollision() : false;
 		if (bPerComponentNavigation)
 		{
 			TArray<UActorComponent*> Components;
@@ -2055,7 +2054,7 @@ void UNavigationSystem::UpdateNavOctree(class AActor* Actor, int32 UpdateFlags)
 			}
 		}
 
-		UNavigationProxy* ProxyOb = NavRelevantActor->GetNavigationProxy();
+		UNavigationProxy* ProxyOb = NavRelevantActor ? NavRelevantActor->GetNavigationProxy() : NULL;
 		UObject* NodeOwner = (ProxyOb && !bPerComponentNavigation) ? (UObject*)ProxyOb : Actor;
 
 		UpdateNavOctreeElement(NodeOwner, UpdateFlags, NavigationSystem::InvalidBoundingBox);
@@ -2100,7 +2099,7 @@ void UNavigationSystem::UpdateNavOctreeElement(class UObject* ElementOwner, int3
 	// so it could be dirtied properly when system receive unregister request while actor is still queued
 	if (RequestId.IsValidId())
 	{
-		FNavigationDirtyElement& UpdateInfo = PendingOctreeUpdates(RequestId);
+		FNavigationDirtyElement& UpdateInfo = PendingOctreeUpdates[RequestId];
 		UpdateInfo.PrevFlags = CurrentFlags;
 		UpdateInfo.PrevBounds = CurrentBounds;
 		UpdateInfo.bHasPrevData = bAlreadyExists;

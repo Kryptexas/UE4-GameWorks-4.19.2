@@ -51,7 +51,7 @@ private:
 	FReply OnDisableSourceControl();
 
 	/** Called when a connection attempt fails */
-	void DisplayConnectionError() const;
+	void DisplayConnectionError(const FText& InErrorText = FText()) const;
 
 	/** Called when a connection attempt succeeds */
 	void DisplayConnectionSuccess() const;

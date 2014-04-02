@@ -81,6 +81,14 @@ namespace AutomationTool
 				ProcessesToKill = new List<ProcessResult>(ActiveProcesses);
 				ActiveProcesses.Clear();
 			}
+			CommandUtils.Log("Trying to kill {0} spawned processes.", ProcessesToKill.Count);
+			foreach (var Proc in ProcessesToKill)
+			{
+				if (!Proc.HasExited)
+				{
+					CommandUtils.Log("  {0}", Proc.ProcessObject.ProcessName);
+				}
+			}
             if (CommandUtils.IsBuildMachine)
             {
                 for (int Cnt = 0; Cnt < 9; Cnt++)
@@ -438,7 +446,8 @@ namespace AutomationTool
                 HashSet<int> VisitedPids = new HashSet<int>();
                 if (IsOurDescendant(ProcessToCheck, KillCandidate.Id, VisitedPids))
                 {
-                    CommandUtils.Log("Descendant pid={0}, name={1}", KillCandidate.Id, KillCandidate.ProcessName);
+                    CommandUtils.Log("Descendant pid={0}, name={1}, filename={2}", KillCandidate.Id, KillCandidate.ProcessName,
+						KillCandidate.MainModule != null ? KillCandidate.MainModule.FileName : "unknown");
                     return true;
                 }
             }
@@ -536,7 +545,7 @@ namespace AutomationTool
 		{
 			App = ConvertSeparators(PathSeparator.Default, App);
 			HostPlatform.Current.SetupOptionsForRun(ref App, ref Options, ref CommandLine);
-			if (App == "ectool")
+			if (App == "ectool" || App == "zip" || App == "xcodebuild")
 			{
 				Options &= ~ERunOptions.AppMustExist;
 			}

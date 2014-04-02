@@ -24,6 +24,10 @@ void* FMacPlatformProcess::GetDllHandle( const TCHAR* Filename )
 		// Maybe we're not a bundle. Try opening from current working dir.
 		Handle = dlopen( TCHAR_TO_ANSI(Filename), RTLD_LAZY | RTLD_LOCAL );
 	}
+	if (!Handle)
+	{
+		UE_LOG(LogMac, Warning, TEXT("dlopen failed: %s"), ANSI_TO_TCHAR(dlerror()) );
+	}
 	return Handle;
 }
 
@@ -299,7 +303,7 @@ FProcHandle FMacPlatformProcess::CreateProc( const TCHAR* URL, const TCHAR* Parm
 	FString ProcessPath = URL;
 	if (*URL != '/' && OptionalWorkingDirectory)
 	{
- 		ProcessPath = FString(BaseDir()) + ProcessPath;
+		ProcessPath = FString(BaseDir()) + ProcessPath;
 	}
 
 	NSString* LaunchPath = (NSString*)FPlatformString::TCHARToCFString(*ProcessPath);
@@ -440,7 +444,7 @@ void FMacPlatformProcess::TerminateProc( FProcHandle & ProcessHandle, bool KillT
 
 		int32 Mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_ALL, 0 };
 		size_t BufferSize = 0;
-		if (BufferSize > 0 && sysctl(Mib, 4, NULL, &BufferSize, NULL, 0) != -1)
+		if (sysctl(Mib, 4, NULL, &BufferSize, NULL, 0) != -1 && BufferSize > 0)
 		{
 			struct kinfo_proc* Processes = (struct kinfo_proc*)FMemory::Malloc(BufferSize);
 			if (sysctl(Mib, 4, Processes, &BufferSize, NULL, 0) != -1)
@@ -483,25 +487,25 @@ bool FMacPlatformProcess::GetProcReturnCode( FProcHandle & ProcessHandle, int32*
 
 bool FMacPlatformProcess::IsApplicationRunning( const TCHAR* ProcName )
 {
-    SCOPED_AUTORELEASE_POOL;
-    
-    NSArray* ActiveApps = [[NSWorkspace sharedWorkspace] runningApplications ];
-    
-    if( ActiveApps )
-    {
-        for( NSRunningApplication* App in ActiveApps )
-        {
-            if( App )
-            {
-                NSString* AppName = [App localizedName];
-                if( FString(AppName) == FString(ProcName) )
-                {
-                    return true;
-                }
-            }
-        }
-    }
-    return false;
+	SCOPED_AUTORELEASE_POOL;
+	
+	NSArray* ActiveApps = [[NSWorkspace sharedWorkspace] runningApplications ];
+	
+	if( ActiveApps )
+	{
+		for( NSRunningApplication* App in ActiveApps )
+		{
+			if( App )
+			{
+				NSString* AppName = [App localizedName];
+				if( FString(AppName) == FString(ProcName) )
+				{
+					return true;
+				}
+			}
+		}
+	}
+	return false;
 }
 bool FMacPlatformProcess::IsApplicationRunning( uint32 ProcessId )
 {
@@ -574,7 +578,7 @@ const TCHAR* FMacPlatformProcess::UserDir()
 
 const TCHAR* FMacPlatformProcess::UserSettingsDir()
 {
-	return UserDir();
+	return ApplicationSettingsDir();
 }
 
 const TCHAR* FMacPlatformProcess::ApplicationSettingsDir()
@@ -673,7 +677,7 @@ const FString FMacPlatformProcess::GetModulesDirectory()
 	}
 }
 
-void FMacPlatformProcess::LaunchFileInDefaultExternalApplication( const TCHAR* FileName, const TCHAR* Parms /*= NULL*/ )
+void FMacPlatformProcess::LaunchFileInDefaultExternalApplication( const TCHAR* FileName, const TCHAR* Parms /*= NULL*/, ELaunchVerb::Type Verb /*= ELaunchVerb::Open*/ )
 {
 	SCOPED_AUTORELEASE_POOL;
 	// First attempt to open the file in its default application

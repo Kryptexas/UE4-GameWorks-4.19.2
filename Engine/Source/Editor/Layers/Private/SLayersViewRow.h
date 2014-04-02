@@ -81,8 +81,9 @@ protected:
 					.ColorAndOpacity( this, &SLayersViewRow::GetColorAndOpacity )
 					.HighlightText( HighlightText )
 					.ToolTipText( LOCTEXT("DoubleClickToolTip", "Double Click to Select All Actors") )
-						.OnTextCommitted(this, &SLayersViewRow::OnRenameLayerTextCommitted)
-						.IsSelected(this, &SLayersViewRow::IsSelectedExclusively)
+					.OnVerifyTextChanged(this, &SLayersViewRow::OnRenameLayerTextChanged)
+					.OnTextCommitted(this, &SLayersViewRow::OnRenameLayerTextCommitted)
+					.IsSelected(this, &SLayersViewRow::IsSelectedExclusively)
 				]
 			;
 
@@ -115,10 +116,25 @@ protected:
 		return TableRowContent.ToSharedRef();
 	}
 
-	/** Callback when the SInlineEditableTextBlock changes, to update the name of the layer this row represents. */
+	/** Callback when the SInlineEditableTextBlock is committed, to update the name of the layer this row represents. */
 	void OnRenameLayerTextCommitted(const FText& InText, ETextCommit::Type eInCommitType)
 	{
-		ViewModel->RenameTo(InText.ToString());
+		if (!InText.IsEmpty())
+		{
+			ViewModel->RenameTo(InText.ToString());
+		}
+	}
+
+	/** Callback when the SInlineEditableTextBlock is changed, to check for error conditions. */
+	bool OnRenameLayerTextChanged(const FText& NewText, FText& OutErrorMessage)
+	{
+		if (NewText.IsEmpty())
+		{
+			OutErrorMessage = LOCTEXT("EmptyLayerName", "Layer must be given a name");
+			return false;
+		}
+
+		return true;
 	}
 
 	/**

@@ -284,6 +284,12 @@ void FPropertyEditor::ResetToDefault()
 	PropertyUtilities->EnqueueDeferredAction( FSimpleDelegate::CreateSP( this, &FPropertyEditor::OnResetToDefault ) );
 }
 
+void FPropertyEditor::CustomResetToDefault( FSimpleDelegate OnCustomResetToDefaultDelegate )
+{
+	// This action must be deferred until next tick so that we avoid accessing invalid data before we have a chance to tick
+	PropertyUtilities->EnqueueDeferredAction( FSimpleDelegate::CreateSP( this, &FPropertyEditor::OnCustomResetToDefault, OnCustomResetToDefaultDelegate ) );
+}
+
 void FPropertyEditor::OnGetClassesForAssetPicker( TArray<const UClass*>& OutClasses )
 {
 	UProperty* NodeProperty = GetPropertyNode()->GetProperty();
@@ -333,6 +339,22 @@ void FPropertyEditor::OnGetActorFiltersForSceneOutliner( TSharedPtr<TFilterColle
 void FPropertyEditor::OnResetToDefault()
 {
 	PropertyNode->ResetToDefault( PropertyUtilities->GetNotifyHook() );
+}
+
+void FPropertyEditor::OnCustomResetToDefault( FSimpleDelegate OnCustomResetToDefaultDelegate )
+{
+	if(OnCustomResetToDefaultDelegate.IsBound())
+	{
+		PropertyNode->NotifyPreChange( PropertyNode->GetProperty(), PropertyUtilities->GetNotifyHook() );
+
+		OnCustomResetToDefaultDelegate.Execute();
+
+		// Call PostEditchange on all the objects
+		// Assume reset to default, can change topology
+		const bool bTopologyChange = true;
+		FPropertyChangedEvent ChangeEvent( PropertyNode->GetProperty(), bTopologyChange );
+		PropertyNode->NotifyPostChange( ChangeEvent, PropertyUtilities->GetNotifyHook() );
+	}
 }
 
 bool FPropertyEditor::IsPropertyEditingEnabled() const
@@ -597,6 +619,10 @@ void FPropertyEditor::SyncToObjectsInNode( const TWeakPtr< FPropertyNode >& Weak
 			}
 
 			UObject* Object = StaticFindObject( PropertyClass, Package, *ObjectNames[ObjectIndex] );
+			if( !Object && Package != ANY_PACKAGE )
+			{
+				Object = StaticLoadObject(PropertyClass, Package, *ObjectNames[ObjectIndex]);
+			}
 			if ( Object )
 			{
 				// If the selected object is a blueprint generated class, then browsing to it in the content browser should instead point to the blueprint

@@ -11,11 +11,65 @@ TSharedRef< HIDInputInterface > HIDInputInterface::Create( const TSharedRef< FGe
 HIDInputInterface::HIDInputInterface( const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler )
 	: MessageHandler( InMessageHandler )
 {
+	for ( int32 ControllerIndex=0; ControllerIndex < MAX_NUM_HIDINPUT_CONTROLLERS; ++ControllerIndex )
+	{
+		FControllerState& ControllerState = ControllerStates[ControllerIndex];
+		FMemory::Memzero( &ControllerState, sizeof(FControllerState) );
+		
+		ControllerState.ControllerId = ControllerIndex;
+	}
+	
+	InitialButtonRepeatDelay = 0.2f;
+	ButtonRepeatDelay = 0.1f;
+	
+	
+	HIDToXboxControllerMapping[0] = -1;
+	HIDToXboxControllerMapping[1] = 0;		// A
+	HIDToXboxControllerMapping[2] = 1;		// B
+	HIDToXboxControllerMapping[3] = 2;		// X
+	HIDToXboxControllerMapping[4] = 3;		// Y
+	HIDToXboxControllerMapping[5] = 4;		// L1
+	HIDToXboxControllerMapping[6] = 5;		// R1
+	HIDToXboxControllerMapping[7] = 10;		// L2
+	HIDToXboxControllerMapping[8] = 11;		// R2
+	HIDToXboxControllerMapping[9] = 7;		// Back
+	HIDToXboxControllerMapping[10] = 6;		// Start
+	HIDToXboxControllerMapping[11] = 8;		// Left thumbstick
+	HIDToXboxControllerMapping[12] = 9;		// Right thumbstick
+	HIDToXboxControllerMapping[13] = -1;
+	HIDToXboxControllerMapping[14] = -1;
+	HIDToXboxControllerMapping[15] = -1;
+	
+	Buttons[0] = EControllerButtons::FaceButtonBottom;
+	Buttons[1] = EControllerButtons::FaceButtonRight;
+	Buttons[2] = EControllerButtons::FaceButtonLeft;
+	Buttons[3] = EControllerButtons::FaceButtonTop;
+	Buttons[4] = EControllerButtons::LeftShoulder;
+	Buttons[5] = EControllerButtons::RightShoulder;
+	Buttons[6] = EControllerButtons::SpecialRight;
+	Buttons[7] = EControllerButtons::SpecialLeft;
+	Buttons[8] = EControllerButtons::LeftThumb;
+	Buttons[9] = EControllerButtons::RightThumb;
+	Buttons[10] = EControllerButtons::LeftTriggerThreshold;
+	Buttons[11] = EControllerButtons::RightTriggerThreshold;
+	Buttons[12] = EControllerButtons::DPadUp;
+	Buttons[13] = EControllerButtons::DPadDown;
+	Buttons[14] = EControllerButtons::DPadLeft;
+	Buttons[15] = EControllerButtons::DPadRight;
+
 	// Init HID Manager
 	HIDManager = IOHIDManagerCreate( kCFAllocatorDefault, 0L );
 	if( !HIDManager )
 	{
 		return;	// This will cause all subsequent calls to return information that nothing's connected
+	}
+
+	IOReturn Result = IOHIDManagerOpen( HIDManager, kIOHIDOptionsTypeNone );
+	if( Result != kIOReturnSuccess )
+	{
+		CFRelease( HIDManager );
+		HIDManager = NULL;
+		return;
 	}
 
 	// Set HID Manager to detect devices of two distinct types: Gamepads and joysticks
@@ -72,64 +126,6 @@ HIDInputInterface::HIDInputInterface( const TSharedRef< FGenericApplicationMessa
 
 	// Add HID Manager to run loop
 	IOHIDManagerScheduleWithRunLoop( HIDManager, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode );
-
-	// Open HID Manager - this will cause add device callbacks for all presently connected devices
-	IOReturn Result = IOHIDManagerOpen( HIDManager, kIOHIDOptionsTypeNone );
-	if( Result != kIOReturnSuccess )
-	{
-		IOHIDManagerUnscheduleFromRunLoop( HIDManager, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode );
-		IOHIDManagerRegisterDeviceMatchingCallback( HIDManager, NULL, NULL );
-		IOHIDManagerRegisterDeviceRemovalCallback( HIDManager, NULL, NULL );
-		CFRelease( HIDManager );
-		HIDManager = NULL;
-		return;
-	}
-
-	for ( int32 ControllerIndex=0; ControllerIndex < MAX_NUM_HIDINPUT_CONTROLLERS; ++ControllerIndex )
-	{
-		FControllerState& ControllerState = ControllerStates[ControllerIndex];
-		FMemory::Memzero( &ControllerState, sizeof(FControllerState) );
-
-		ControllerState.ControllerId = ControllerIndex;
-	}
-
-	InitialButtonRepeatDelay = 0.2f;
-	ButtonRepeatDelay = 0.1f;
-
-
-	HIDToXboxControllerMapping[0] = -1;
-	HIDToXboxControllerMapping[1] = 0;		// A
-	HIDToXboxControllerMapping[2] = 1;		// B
-	HIDToXboxControllerMapping[3] = 2;		// X
-	HIDToXboxControllerMapping[4] = 3;		// Y
-	HIDToXboxControllerMapping[5] = 4;		// L1
-	HIDToXboxControllerMapping[6] = 5;		// R1
-	HIDToXboxControllerMapping[7] = 10;		// L2
-	HIDToXboxControllerMapping[8] = 11;		// R2
-	HIDToXboxControllerMapping[9] = 7;		// Back
-	HIDToXboxControllerMapping[10] = 6;		// Start
-	HIDToXboxControllerMapping[11] = 8;		// Left thumbstick
-	HIDToXboxControllerMapping[12] = 9;		// Right thumbstick
-	HIDToXboxControllerMapping[13] = -1;
-	HIDToXboxControllerMapping[14] = -1;
-	HIDToXboxControllerMapping[15] = -1;
-
-	Buttons[0] = EControllerButtons::FaceButtonBottom;
-	Buttons[1] = EControllerButtons::FaceButtonRight;
-	Buttons[2] = EControllerButtons::FaceButtonLeft;
-	Buttons[3] = EControllerButtons::FaceButtonTop;
-	Buttons[4] = EControllerButtons::LeftShoulder;
-	Buttons[5] = EControllerButtons::RightShoulder;
-	Buttons[6] = EControllerButtons::SpecialRight;
-	Buttons[7] = EControllerButtons::SpecialLeft;
-	Buttons[8] = EControllerButtons::LeftThumb;
-	Buttons[9] = EControllerButtons::RightThumb;
-	Buttons[10] = EControllerButtons::LeftTriggerThreshold;
-	Buttons[11] = EControllerButtons::RightTriggerThreshold;
-	Buttons[12] = EControllerButtons::DPadUp;
-	Buttons[13] = EControllerButtons::DPadDown;
-	Buttons[14] = EControllerButtons::DPadLeft;
-	Buttons[15] = EControllerButtons::DPadRight;
 }
 
 void HIDInputInterface::Tick( float DeltaTime )

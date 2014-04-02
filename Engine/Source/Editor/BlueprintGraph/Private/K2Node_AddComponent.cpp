@@ -89,7 +89,7 @@ void UK2Node_AddComponent::AllocatePinsForExposedVariables()
 		{
 			UProperty* Property = *PropertyIt;
 			const bool bNotDelegate = !Property->IsA(UMulticastDelegateProperty::StaticClass());
-			const bool bIsExposedToSpawn = Property->HasMetaData(FBlueprintMetadata::MD_ExposeOnSpawn);
+			const bool bIsExposedToSpawn = UEdGraphSchema_K2::IsPropertyExposedOnSpawn(Property);
 			const bool bIsVisible = Property->HasAllPropertyFlags(CPF_BlueprintVisible);
 			const bool bNotParam = !Property->HasAllPropertyFlags(CPF_Parm);
 			if(bNotDelegate && bIsExposedToSpawn && bIsVisible && bNotParam)

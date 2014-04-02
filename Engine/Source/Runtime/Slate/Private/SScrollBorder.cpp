@@ -14,13 +14,11 @@ void SScrollBorder::Construct(const FArguments& InArgs, TSharedRef<IScrollableWi
 	BorderFadeDistance = InArgs._BorderFadeDistance;
 	ScrollableWidget = InScrollableWidget;
 
-	TSharedRef<SWidget> ContentWidget = (InArgs._Content.Widget != SNullWidget::NullWidget) ? InArgs._Content.Widget : InScrollableWidget->GetScrollWidget();
-
 	TSharedRef<SOverlay> Overlay = SNew(SOverlay)
-		+SOverlay::Slot()
+		+ SOverlay::Slot()
 		.Padding(FMargin(0.0f, 0.0f, 0.0f, 0.0f))
 		[
-			ContentWidget
+			InArgs._Content.Widget
 		];
 
 	Overlay->AddSlot()

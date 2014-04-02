@@ -44,14 +44,16 @@ public:
 	virtual const FLinearColor& GetColor(const FName PropertyName, const ANSICHAR* Specifier = NULL) const OVERRIDE;
 	virtual const FSlateColor GetSlateColor(const FName PropertyName, const ANSICHAR* Specifier = NULL) const OVERRIDE;
 	virtual const FMargin& GetMargin(const FName PropertyName, const ANSICHAR* Specifier = NULL) const OVERRIDE;
-	virtual const FSlateBrush* GetBrush(const FName PropertyName, const ANSICHAR* Specifier = NULL) const OVERRIDE;
 
-	const TSharedPtr< FSlateDynamicImageBrush > GetDynamicImageBrush(const FName BrushTemplate, const FName TextureName, const ANSICHAR* Specifier = NULL);
-	const TSharedPtr< FSlateDynamicImageBrush > GetDynamicImageBrush(const FName BrushTemplate, const ANSICHAR* Specifier, UTexture2D* TextureResource, const FName TextureName);
-	const TSharedPtr< FSlateDynamicImageBrush > GetDynamicImageBrush(const FName BrushTemplate, UTexture2D* TextureResource, const FName TextureName);
+	virtual const FSlateBrush* GetBrush(const FName PropertyName, const ANSICHAR* Specifier = NULL) const OVERRIDE;
+	virtual const FSlateBrush* GetOptionalBrush(const FName PropertyName, const ANSICHAR* Specifier = NULL, const FSlateBrush* const DefaultBrush = FStyleDefaults::GetNoBrush()) const OVERRIDE;
+
+	virtual const TSharedPtr< FSlateDynamicImageBrush > GetDynamicImageBrush(const FName BrushTemplate, const FName TextureName, const ANSICHAR* Specifier = NULL) OVERRIDE;
+	virtual const TSharedPtr< FSlateDynamicImageBrush > GetDynamicImageBrush(const FName BrushTemplate, const ANSICHAR* Specifier, UTexture2D* TextureResource, const FName TextureName) OVERRIDE;
+	virtual const TSharedPtr< FSlateDynamicImageBrush > GetDynamicImageBrush(const FName BrushTemplate, UTexture2D* TextureResource, const FName TextureName) OVERRIDE;
 
 	virtual FSlateBrush* GetDefaultBrush() const OVERRIDE;
-	virtual const FSlateBrush* GetOptionalBrush(const FName PropertyName, const ANSICHAR* Specifier = NULL) const OVERRIDE;
+
 	virtual const FSlateSound& GetSound(const FName PropertyName, const ANSICHAR* Specifier = NULL) const OVERRIDE;
 	virtual FSlateFontInfo GetFontStyle(const FName PropertyName, const ANSICHAR* Specifier = NULL) const OVERRIDE;
 

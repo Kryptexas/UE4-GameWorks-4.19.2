@@ -7,7 +7,7 @@
 class FDecoratedDragDropOp : public FDragDropOperation, public TSharedFromThis<FDecoratedDragDropOp>
 {
 public:
-	static FString GetTypeId() {static FString Type = TEXT("FDecoratedDragDropOp"); return Type;}
+	DRAG_DROP_OPERATOR_TYPE(FDecoratedDragDropOp, FDragDropOperation)
 
 	/** String to show as hover text */
 	FString								CurrentHoverText;

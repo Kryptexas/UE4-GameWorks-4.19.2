@@ -126,7 +126,7 @@ protected:
 
 	void AddDescription( const TSharedRef<SGridPanel>& Grid, int32& RowPos )
 	{
-		const FProfilerStat& ProfilerStat = ProfilerSession->GetMetaData()->GetStat( StatID );
+		const FProfilerStat& ProfilerStat = ProfilerSession->GetMetaData()->GetStatByID( StatID );
 		const EProfilerSampleTypes::Type SampleType = ProfilerSession->GetMetaData()->GetSampleTypeForStatID( StatID );
 		const FSlateBrush* const StatIcon = SFiltersAndPresetsHelper::GetIconForStatType( SampleType );
 

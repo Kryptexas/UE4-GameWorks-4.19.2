@@ -7,8 +7,6 @@
 #include "EnginePrivate.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/NetworkProfiler.h"
-#include "Online.h"
-
 
 /*-----------------------------------------------------------------------------
 	UNetConnection implementation.
@@ -1070,9 +1068,9 @@ void UNetConnection::SendAck( int32 AckPacketId, bool FirstTime/*=1*/, bool bHav
 
 		PreSend(SendSize);
 		Out.WriteBit( 1 );
-		//check(!Out.IsError());
+		check(!Out.IsError());
 		Out.WriteIntWrapped(AckPacketId, MAX_PACKETID);
-		//check(!Out.IsError());
+		check(!Out.IsError());
 
 		if (bPingAck)
 		{

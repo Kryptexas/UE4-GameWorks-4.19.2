@@ -5,9 +5,9 @@
 #include "OnlineIdentityInterface.h"
 #include "ModuleManager.h"
 
-void FTestCloudInterface::Test()
+void FTestCloudInterface::Test(UWorld* InWorld)
 {
-	IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get(FName(*Subsystem));
+	IOnlineSubsystem* OnlineSub = Online::GetSubsystem(InWorld, FName(*Subsystem));
 	check(OnlineSub); 
 
 	if (OnlineSub->GetIdentityInterface().IsValid())

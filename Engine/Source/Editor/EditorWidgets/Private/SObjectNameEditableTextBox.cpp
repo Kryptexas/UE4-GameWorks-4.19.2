@@ -272,6 +272,9 @@ void SObjectNameEditableTextBox::OnNameTextCommitted(const FText& NewText, EText
 			ParentWindow->SetWidgetToFocusOnActivate( NULL );
 		}
 	}
+
+	// Clear Error 
+	TextBox->SetError(FText::GetEmpty());
 }
 
 void SObjectNameEditableTextBox::OnTextChanged( const FText& InLabel )

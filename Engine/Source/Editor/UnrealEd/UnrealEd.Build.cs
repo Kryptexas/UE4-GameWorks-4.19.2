@@ -101,6 +101,7 @@ public class UnrealEd : ModuleRules
                 "EditorWidgets",
 				"GraphEditor",
 				"Kismet",
+                "InternationalizationSettings"
 			}
 		);
 
@@ -130,7 +131,6 @@ public class UnrealEd : ModuleRules
 				"LevelEditor",
 				"InputBindingEditor",
 				"PackagesDialog",
-				"PreferencesEditor",
 				"Persona",
 				"PhAT",
 				"DeviceManager",

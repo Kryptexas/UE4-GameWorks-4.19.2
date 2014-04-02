@@ -12,13 +12,13 @@ class UMaterialExpressionIf : public UMaterialExpression
 	UPROPERTY()
 	FExpressionInput A;
 
-	UPROPERTY(meta=(RequiredInput = "false"))
+	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Defaults to 'ConstB' if not specified"))
 	FExpressionInput B;
 
 	UPROPERTY()
 	FExpressionInput AGreaterThanB;
 
-	UPROPERTY(meta=(RequiredInput = "false"))
+	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Defaults to 'ConstAEqualsB' if not specified"))
 	FExpressionInput AEqualsB;
 
 	UPROPERTY()
@@ -26,6 +26,14 @@ class UMaterialExpressionIf : public UMaterialExpression
 
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionIf)
 	float EqualsThreshold;
+
+	/** only used if B is not hooked up */
+	UPROPERTY(EditAnywhere, Category = MaterialExpressionIf)
+	float ConstB;
+
+	/** only used if AEqualsB is not hooked up */
+	UPROPERTY(EditAnywhere, Category = MaterialExpressionIf)
+	float ConstAEqualsB;
 
 	// Begin UMaterialExpression Interface
 	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) OVERRIDE;

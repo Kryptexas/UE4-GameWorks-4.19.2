@@ -61,7 +61,10 @@ FWorldTileModel::FWorldTileModel(const TWeakObjectPtr<UEditorEngine>& InEditor,
 				LoadedLevel = World->PersistentLevel;
 				// Enable tile properties
 				TileDetails->bTileEditable = true;
-				LoadedLevel.Get()->LevelBoundsActorUpdated().AddRaw(this, &FWorldTileModel::OnLevelBoundsActorUpdated);
+				if (World->PersistentLevel->bIsVisible)
+				{
+					LoadedLevel.Get()->LevelBoundsActorUpdated().AddRaw(this, &FWorldTileModel::OnLevelBoundsActorUpdated);
+				}
 			}
 		}
 	}
@@ -525,18 +528,18 @@ void FWorldTileModel::Update()
 		}
 		else 
 		{
+			if (Level->LevelBoundsActor.IsValid())
+			{
+				TileDetails->Bounds = Level->LevelBoundsActor.Get()->GetComponentsBoundingBox();
+			}
+
 			if (Level->bIsVisible)
 			{
-				if (Level->LevelBoundsActor.IsValid())
-				{
-					TileDetails->Bounds = Level->LevelBoundsActor.Get()->GetComponentsBoundingBox();
-				}
-
 				// True level bounds without offsets applied
 				if (TileDetails->Bounds.IsValid)
 				{
 					FBox LevelWorldBounds = TileDetails->Bounds;
-					FIntPoint GlobalOriginOffset =  LevelCollectionModel.GetWorld()->GlobalOriginOffset;
+					FIntPoint GlobalOriginOffset = LevelCollectionModel.GetWorld()->GlobalOriginOffset;
 					FIntPoint LevelAbolutePosition = GetAbsoluteLevelPosition();
 					FIntPoint LevelOffset = LevelAbolutePosition - GlobalOriginOffset;
 
@@ -728,7 +731,7 @@ void FWorldTileModel::OnPositionPropertyChanged()
 
 		// Snap the delta
 		FLevelModelList LevelsList; LevelsList.Add(this->AsShared());
-		FVector2D SnappedDelta = LevelCollectionModel.SnapTranslationDelta(LevelsList, FVector2D(Delta), 0.f);
+		FVector2D SnappedDelta = LevelCollectionModel.SnapTranslationDelta(LevelsList, FVector2D(Delta), false, 0.f);
 
 		// Set new level position
 		SetLevelPosition(Info.AbsolutePosition + FIntPoint(SnappedDelta.X, SnappedDelta.Y));
@@ -815,6 +818,126 @@ FText FWorldTileModel::GetLevelLayerNameText() const
 FText FWorldTileModel::GetLevelLayerDistanceText() const
 {
 	return FText::AsNumber(TileDetails->Layer.StreamingDistance);
+}
+
+bool FWorldTileModel::CreateAdjacentLandscapeProxy(ALandscapeProxy* SourceLandscape, FIntPoint SourceTileOffset, FWorldTileModel::EWorldDirections InWhere)
+{
+	if (!IsLoaded())	
+	{
+		return false;
+	}
+
+	// Determine import parameters from source landscape
+	FBox SourceLandscapeBounds = SourceLandscape->GetComponentsBoundingBox(true);
+	FVector SourceLandscapeScale = SourceLandscape->GetRootComponent()->GetComponentToWorld().GetScale3D();
+	FIntRect SourceLandscapeRect = SourceLandscape->GetBoundingRect();
+	FIntPoint SourceLandscapeSize = SourceLandscapeRect.Size();
+
+	FLandscapeImportSettings ImportSettings;
+	ImportSettings.SourceLandscape = SourceLandscape;
+	ImportSettings.ComponentSizeQuads = SourceLandscape->ComponentSizeQuads;
+	ImportSettings.SectionsPerComponent = SourceLandscape->NumSubsections;
+	ImportSettings.QuadsPerSection = SourceLandscape->SubsectionSizeQuads;
+	ImportSettings.SizeX = SourceLandscapeRect.Width() + 1;
+	ImportSettings.SizeY = SourceLandscapeRect.Height() + 1;
+
+	// Initialize blank heightmap data
+	ImportSettings.HeightData.AddUninitialized(ImportSettings.SizeX * ImportSettings.SizeY);
+	for (auto& HeightSample : ImportSettings.HeightData)
+	{
+		HeightSample = 32768;
+	}
+
+	// Set proxy location at landscape bounds Min point
+	ImportSettings.LandscapeTransform.SetLocation(-FVector(SourceLandscapeSize, 0.f)*SourceLandscapeScale*0.5f + FVector(0.f, 0.f, SourceLandscape->GetActorLocation().Z));
+	ImportSettings.LandscapeTransform.SetScale3D(SourceLandscapeScale);
+	
+	// Create new landscape object
+	ALandscapeProxy* AdjacenLandscape = ImportLandscape(ImportSettings);
+	if (AdjacenLandscape)
+	{
+		// Refresh level model bounding box
+		FBox AdjacentLandscapeBounds = AdjacenLandscape->GetComponentsBoundingBox(true);
+		TileDetails->Bounds = AdjacentLandscapeBounds;
+
+		// Calculate proxy offset from source landscape actor
+		FVector ProxyOffset(SourceLandscapeBounds.GetCenter() - AdjacentLandscapeBounds.GetCenter());
+
+		// Add offset by chosen direction
+		switch (InWhere)
+		{
+		case FWorldTileModel::XNegative:
+			ProxyOffset += FVector(-SourceLandscapeScale.X*SourceLandscapeSize.X, 0.f, 0.f);
+			break;
+		case FWorldTileModel::XPositive:
+			ProxyOffset += FVector(+SourceLandscapeScale.X*SourceLandscapeSize.X, 0.f, 0.f);
+			break;
+		case FWorldTileModel::YNegative:
+			ProxyOffset += FVector(0.f, -SourceLandscapeScale.Y*SourceLandscapeSize.Y, 0.f);
+			break;
+		case FWorldTileModel::YPositive:
+			ProxyOffset += FVector(0.f, +SourceLandscapeScale.Y*SourceLandscapeSize.Y, 0.f);
+			break;
+		}
+
+		// Add source level position
+		FIntPoint IntOffset = FIntPoint(ProxyOffset.X, ProxyOffset.Y) + SourceTileOffset;
+
+		// Move level with landscape proxy to desired position
+		SetLevelPosition(IntOffset);
+		return true;
+	}
+
+	return false;
+}
+
+ALandscapeProxy* FWorldTileModel::ImportLandscape(const FLandscapeImportSettings& Settings)
+{
+	if (!IsLoaded())
+	{
+		return nullptr;
+	}
+	
+	// In case SourceLandscape os provided, create LnadscapeProxy and copy settings from it
+	// Otherwise create a new LandscapeActor
+	ALandscapeProxy*	Landscape;
+	FGuid				LandscapeGuid;
+	if (Settings.SourceLandscape)
+	{
+		// These settings have to match source landscape settings
+		if (Settings.ComponentSizeQuads != Settings.SourceLandscape->ComponentSizeQuads || 
+			Settings.SectionsPerComponent != Settings.SourceLandscape->NumSubsections ||
+			Settings.QuadsPerSection != Settings.SourceLandscape->SubsectionSizeQuads)
+		{
+			return nullptr;
+		}
+				
+		Landscape = Cast<UWorld>(LoadedLevel->GetOuter())->SpawnActor<ALandscapeProxy>();
+		Landscape->GetSharedProperties(Settings.SourceLandscape);
+		LandscapeGuid = Settings.SourceLandscape->GetLandscapeGuid();
+	}
+	else
+	{
+		Landscape = Cast<UWorld>(LoadedLevel->GetOuter())->SpawnActor<ALandscape>();
+		LandscapeGuid = FGuid::NewGuid();
+	}
+	
+	Landscape->SetActorTransform(Settings.LandscapeTransform);
+	
+	// Create landscape components	
+	Landscape->Import(
+		LandscapeGuid, 
+		Settings.SizeX, 
+		Settings.SizeY, 
+		Settings.ComponentSizeQuads, 
+		Settings.SectionsPerComponent, 
+		Settings.QuadsPerSection, 
+		Settings.HeightData.GetData(), 
+		NULL, 
+		Settings.ImportLayers, 
+		NULL);
+
+	return Landscape;
 }
 
 #undef LOCTEXT_NAMESPACE

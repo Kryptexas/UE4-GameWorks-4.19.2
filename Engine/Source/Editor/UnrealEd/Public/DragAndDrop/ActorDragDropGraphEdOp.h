@@ -11,7 +11,7 @@
 class FActorDragDropGraphEdOp : public FActorDragDropOp
 {
 public:
-	static FString GetTypeId() {static FString Type = TEXT("FActorDragDropGraphEdOp"); return Type;}
+	DRAG_DROP_OPERATOR_TYPE(FActorDragDropGraphEdOp, FActorDragDropOp)
 
 	enum ToolTipTextType
 	{
@@ -98,7 +98,6 @@ public:
 	static TSharedRef<FActorDragDropGraphEdOp> New(const TArray< TWeakObjectPtr<AActor> >& InActors)
 	{
 		TSharedRef<FActorDragDropGraphEdOp> Operation = MakeShareable(new FActorDragDropGraphEdOp);
-		FSlateApplication::GetDragDropReflector().RegisterOperation<FActorDragDropGraphEdOp>(Operation);
 		
 		Operation->Init(InActors);
 		Operation->SetupDefaults();

@@ -7,24 +7,6 @@ DEFINE_LOG_CATEGORY_STATIC(LogNavigationPoint, Log, All);
 ANavigationObjectBase::ANavigationObjectBase(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	// Structure to hold one-time initialization
-	struct FConstructorStatics
-	{
-		ConstructorHelpers::FObjectFinderOptional<UTexture2D> NavigationTextureObject;
-		FName ID_Navigation;
-		FText NAME_Navigation;
-		ConstructorHelpers::FObjectFinderOptional<UTexture2D> BadNavigationTextureObject;
-		FConstructorStatics()
-			: NavigationTextureObject(TEXT("/Engine/EditorResources/S_NavP"))
-			, ID_Navigation(TEXT("Navigation"))
-			, NAME_Navigation(NSLOCTEXT( "SpriteCategory", "Navigation", "Navigation" ))
-			, BadNavigationTextureObject(TEXT("/Engine/EditorResources/Bad"))
-		{
-		}
-	};
-	static FConstructorStatics ConstructorStatics;
-
-
 	CapsuleComponent = PCIP.CreateDefaultSubobject<UCapsuleComponent>(this, TEXT("CollisionCapsule"));
 	CapsuleComponent->ShapeColor = FColor(255, 138, 5, 255);
 	CapsuleComponent->bDrawOnlyIfSelected = true;
@@ -38,30 +20,50 @@ ANavigationObjectBase::ANavigationObjectBase(const class FPostConstructInitializ
 	bCollideWhenPlacing = true;
 
 	GoodSprite = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
-#if WITH_EDITORONLY_DATA
-	if (GoodSprite)
-	{
-		GoodSprite->Sprite = ConstructorStatics.NavigationTextureObject.Get();
-		GoodSprite->bHiddenInGame = true;
-		GoodSprite->SpriteInfo.Category = ConstructorStatics.ID_Navigation;
-		GoodSprite->SpriteInfo.DisplayName = ConstructorStatics.NAME_Navigation;
-		GoodSprite->AttachParent = CapsuleComponent;
-		GoodSprite->bAbsoluteScale = true;
-		GoodSprite->bIsScreenSizeScaled = true;
-	}
-#endif // WITH_EDITORONLY_DATA
 
 	BadSprite = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite2"));
+
 #if WITH_EDITORONLY_DATA
-	if (BadSprite)
+	if (!IsRunningCommandlet())
 	{
-		BadSprite->Sprite = ConstructorStatics.BadNavigationTextureObject.Get();
-		BadSprite->bHiddenInGame = true;
-		BadSprite->SpriteInfo.Category = ConstructorStatics.ID_Navigation;
-		BadSprite->SpriteInfo.DisplayName = ConstructorStatics.NAME_Navigation;
-		BadSprite->bAbsoluteScale = true;
-		BadSprite->AttachParent = CapsuleComponent;
-		BadSprite->bIsScreenSizeScaled = true;
+		// Structure to hold one-time initialization
+		struct FConstructorStatics
+		{
+			ConstructorHelpers::FObjectFinderOptional<UTexture2D> NavigationTextureObject;
+			FName ID_Navigation;
+			FText NAME_Navigation;
+			ConstructorHelpers::FObjectFinderOptional<UTexture2D> BadNavigationTextureObject;
+			FConstructorStatics()
+				: NavigationTextureObject(TEXT("/Engine/EditorResources/S_NavP"))
+				, ID_Navigation(TEXT("Navigation"))
+				, NAME_Navigation(NSLOCTEXT("SpriteCategory", "Navigation", "Navigation"))
+				, BadNavigationTextureObject(TEXT("/Engine/EditorResources/Bad"))
+			{
+			}
+		};
+		static FConstructorStatics ConstructorStatics;
+
+		if (GoodSprite)
+		{
+			GoodSprite->Sprite = ConstructorStatics.NavigationTextureObject.Get();
+			GoodSprite->bHiddenInGame = true;
+			GoodSprite->SpriteInfo.Category = ConstructorStatics.ID_Navigation;
+			GoodSprite->SpriteInfo.DisplayName = ConstructorStatics.NAME_Navigation;
+			GoodSprite->AttachParent = CapsuleComponent;
+			GoodSprite->bAbsoluteScale = true;
+			GoodSprite->bIsScreenSizeScaled = true;
+		}
+
+		if (BadSprite)
+		{
+			BadSprite->Sprite = ConstructorStatics.BadNavigationTextureObject.Get();
+			BadSprite->bHiddenInGame = true;
+			BadSprite->SpriteInfo.Category = ConstructorStatics.ID_Navigation;
+			BadSprite->SpriteInfo.DisplayName = ConstructorStatics.NAME_Navigation;
+			BadSprite->bAbsoluteScale = true;
+			BadSprite->AttachParent = CapsuleComponent;
+			BadSprite->bIsScreenSizeScaled = true;
+		}
 	}
 #endif // WITH_EDITORONLY_DATA
 }

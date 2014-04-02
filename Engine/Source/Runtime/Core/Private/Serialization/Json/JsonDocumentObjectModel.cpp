@@ -104,7 +104,7 @@ void FJsonObject::RemoveField(const FString& FieldName)
 
 double FJsonObject::GetNumberField(const FString& FieldName) const
 {
-	return GetField<EJson::Number>(FieldName)->AsNumber();
+	return GetField<EJson::None>(FieldName)->AsNumber();
 }
 
 void FJsonObject::SetNumberField( const FString& FieldName, double Number )
@@ -114,7 +114,7 @@ void FJsonObject::SetNumberField( const FString& FieldName, double Number )
 
 FString FJsonObject::GetStringField(const FString& FieldName) const
 {
-	return GetField<EJson::String>(FieldName)->AsString();
+	return GetField<EJson::None>(FieldName)->AsString();
 }
 
 void FJsonObject::SetStringField( const FString& FieldName, const FString& StringValue )
@@ -124,7 +124,7 @@ void FJsonObject::SetStringField( const FString& FieldName, const FString& Strin
 
 bool FJsonObject::GetBoolField(const FString& FieldName) const
 {
-	return GetField<EJson::Boolean>(FieldName)->AsBool();
+	return GetField<EJson::None>(FieldName)->AsBool();
 }
 
 void FJsonObject::SetBoolField( const FString& FieldName, bool InValue )

@@ -182,7 +182,7 @@ namespace AutomationTool
 
 		public override string LocalBuildsLogFolder
 		{
-			get { return CommandUtils.CombinePaths(PathSeparator.Slash, Environment.GetFolderPath(Environment.SpecialFolder.Personal), "Unreal Engine", "AutomationTool", "Logs"); }
+			get { return CommandUtils.CombinePaths(PathSeparator.Slash, Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Unreal Engine", "AutomationTool", "Logs"); }
 		}
 
 		public override string P4Exe

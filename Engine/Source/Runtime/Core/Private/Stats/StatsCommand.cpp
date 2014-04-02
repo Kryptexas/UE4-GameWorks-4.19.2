@@ -1,18 +1,16 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivate.h"
+
 #if STATS
 
 #include "TaskGraphInterfaces.h"
 #include "StatsData.h"
+#include "StatsFile.h"
 #include "DefaultValueHelper.h"
-
-DEFINE_LOG_CATEGORY(LogStats2);
 
 DECLARE_CYCLE_STAT(TEXT("Hitch Scan"),STAT_HitchScan,STATGROUP_StatSystem);
 DECLARE_CYCLE_STAT(TEXT("HUD Group"),STAT_HUDGroup,STATGROUP_StatSystem);
-DECLARE_CYCLE_STAT(TEXT("Stream File"),STAT_StreamFile,STATGROUP_StatSystem);
-DECLARE_CYCLE_STAT(TEXT("Wait For Write"),STAT_StreamFileWaitForWrite,STATGROUP_StatSystem);
 
 DECLARE_CYCLE_STAT(TEXT("Accumulate"),STAT_Accumulate,STATGROUP_StatSystem);
 DECLARE_CYCLE_STAT(TEXT("GetFlatAggregates"),STAT_GetFlatAggregates,STATGROUP_StatSystem);
@@ -121,17 +119,17 @@ struct FStatGroupParams
 
 void DumpHistoryFrame(FStatsThreadState const& StatsData, int64 TargetFrame, float DumpCull = 0.0f, int32 MaxDepth = MAX_int32, TCHAR const* Filter = NULL)
 {
-	UE_LOG(LogStats2, Log, TEXT("Single Frame %lld ---------------------------------"), TargetFrame);
+	UE_LOG(LogStats, Log, TEXT("Single Frame %lld ---------------------------------"), TargetFrame);
 	if (DumpCull == 0.0f)
 	{
-		UE_LOG(LogStats2, Log, TEXT("Full data, use -ms=5, for example to show just the stack data with a 5ms threshhold."));
+		UE_LOG(LogStats, Log, TEXT("Full data, use -ms=5, for example to show just the stack data with a 5ms threshhold."));
 	}
 	else
 	{
-		UE_LOG(LogStats2, Log, TEXT("Culled to %fms, use -ms=0, for all data and aggregates."), DumpCull);
+		UE_LOG(LogStats, Log, TEXT("Culled to %fms, use -ms=0, for all data and aggregates."), DumpCull);
 	}
 	{
-		UE_LOG(LogStats2, Log, TEXT("Stack ---------------"));
+		UE_LOG(LogStats, Log, TEXT("Stack ---------------"));
 		FRawStatStackNode Stack;
 		StatsData.UncondenseStackStats(TargetFrame, Stack);
 		if (DumpCull != 0.0f)
@@ -144,7 +142,7 @@ void DumpHistoryFrame(FStatsThreadState const& StatsData, int64 TargetFrame, flo
 	}
 	if (DumpCull == 0.0f)
 	{
-		UE_LOG(LogStats2, Log, TEXT("Inclusive aggregate stack data---------------"));
+		UE_LOG(LogStats, Log, TEXT("Inclusive aggregate stack data---------------"));
 		TArray<FStatMessage> Stats;
 		StatsData.GetInclusiveAggregateStackStats(TargetFrame, Stats);
 		Stats.Sort(FGroupSort());
@@ -155,14 +153,14 @@ void DumpHistoryFrame(FStatsThreadState const& StatsData, int64 TargetFrame, flo
 			if (LastGroup != Meta.NameAndInfo.GetGroupName())
 			{
 				LastGroup = Meta.NameAndInfo.GetGroupName();
-				UE_LOG(LogStats2, Log, TEXT("%s"), *LastGroup.ToString());
+				UE_LOG(LogStats, Log, TEXT("%s"), *LastGroup.ToString());
 			}
-			UE_LOG(LogStats2, Log, TEXT("  %s"), *FStatsUtils::DebugPrint(Meta));
+			UE_LOG(LogStats, Log, TEXT("  %s"), *FStatsUtils::DebugPrint(Meta));
 		}
 	}
 	if (DumpCull == 0.0f)
 	{
-		UE_LOG(LogStats2, Log, TEXT("Exclusive aggregate stack data---------------"));
+		UE_LOG(LogStats, Log, TEXT("Exclusive aggregate stack data---------------"));
 		TArray<FStatMessage> Stats;
 		StatsData.GetExclusiveAggregateStackStats(TargetFrame, Stats);
 		Stats.Sort(FGroupSort());
@@ -173,16 +171,16 @@ void DumpHistoryFrame(FStatsThreadState const& StatsData, int64 TargetFrame, flo
 			if (LastGroup != Meta.NameAndInfo.GetGroupName())
 			{
 				LastGroup = Meta.NameAndInfo.GetGroupName();
-				UE_LOG(LogStats2, Log, TEXT("%s"), *LastGroup.ToString());
+				UE_LOG(LogStats, Log, TEXT("%s"), *LastGroup.ToString());
 			}
-			UE_LOG(LogStats2, Log, TEXT("  %s"), *FStatsUtils::DebugPrint(Meta));
+			UE_LOG(LogStats, Log, TEXT("  %s"), *FStatsUtils::DebugPrint(Meta));
 		}
 	}
 }
 
 void DumpNonFrame(FStatsThreadState const& StatsData)
 {
-	UE_LOG(LogStats2, Log, TEXT("Full non-frame data ---------------------------------"));
+	UE_LOG(LogStats, Log, TEXT("Full non-frame data ---------------------------------"));
 
 	TArray<FStatMessage> Stats;
 	for (auto It = StatsData.NotClearedEveryFrame.CreateConstIterator(); It; ++It)
@@ -197,15 +195,15 @@ void DumpNonFrame(FStatsThreadState const& StatsData)
 		if (LastGroup != Meta.NameAndInfo.GetGroupName())
 		{
 			LastGroup = Meta.NameAndInfo.GetGroupName();
-			UE_LOG(LogStats2, Log, TEXT("%s"), *LastGroup.ToString());
+			UE_LOG(LogStats, Log, TEXT("%s"), *LastGroup.ToString());
 		}
-		UE_LOG(LogStats2, Log, TEXT("  %s"), *FStatsUtils::DebugPrint(Meta));
+		UE_LOG(LogStats, Log, TEXT("  %s"), *FStatsUtils::DebugPrint(Meta));
 	}
 }
 
 void DumpCPUSummary(FStatsThreadState const& StatsData, int64 TargetFrame)
 {
-	UE_LOG(LogStats2, Log, TEXT("CPU Summary: Single Frame %lld ---------------------------------"), TargetFrame);
+	UE_LOG(LogStats, Log, TEXT("CPU Summary: Single Frame %lld ---------------------------------"), TargetFrame);
 
 	struct FTimeInfo
 	{
@@ -347,19 +345,19 @@ void DumpCPUSummary(FStatsThreadState const& StatsData, int64 TargetFrame)
 		}
 		else
 		{
-			UE_LOG(LogStats2, Log, TEXT("%s%s"), FCString::Spc(2), *FStatsUtils::DebugPrint(Item));
+			UE_LOG(LogStats, Log, TEXT("%s%s"), FCString::Spc(2), *FStatsUtils::DebugPrint(Item));
 			TMap<FName, FStatMessage>& ThreadStats = StallsPerThreads.FindOrAdd(ThreadIt.Key());
 			for (TMap<FName, FStatMessage>::TConstIterator ItStall(ThreadStats); ItStall; ++ItStall)
 			{
 				const FStatMessage& Stall = ItStall.Value();
-				UE_LOG(LogStats2, Log, TEXT("%s%s"), FCString::Spc(4), *FStatsUtils::DebugPrint(Stall));
+				UE_LOG(LogStats, Log, TEXT("%s%s"), FCString::Spc(4), *FStatsUtils::DebugPrint(Stall));
 			}
 		}
 	}
 	if (TotalStat)
 	{
-		UE_LOG(LogStats2, Log, TEXT("----------------------------------------"));
-		UE_LOG(LogStats2, Log, TEXT("%s%s"), FCString::Spc(2), *FStatsUtils::DebugPrint(*TotalStat));
+		UE_LOG(LogStats, Log, TEXT("----------------------------------------"));
+		UE_LOG(LogStats, Log, TEXT("%s%s"), FCString::Spc(2), *FStatsUtils::DebugPrint(*TotalStat));
 	}
 }
 
@@ -372,7 +370,7 @@ static void DumpHitch(int64 Frame)
 	float RenderThreadTime = FPlatformTime::ToSeconds(Stats.GetFastThreadFrameTime(Frame, EThreadType::Renderer));
 	if (GameThreadTime > GHitchThreshold || RenderThreadTime > GHitchThreshold)
 	{
-		UE_LOG(LogStats2, Log, TEXT("------------------Thread Hitch, Frame %lld  %6.1fms ---------------"), Frame, FMath::Max<float>(GameThreadTime, RenderThreadTime) * 1000.0f );
+		UE_LOG(LogStats, Log, TEXT("------------------Thread Hitch, Frame %lld  %6.1fms ---------------"), Frame, FMath::Max<float>(GameThreadTime, RenderThreadTime) * 1000.0f );
 		FRawStatStackNode Stack;
 		Stats.UncondenseStackStats(Frame, Stack);
 		Stack.AddNameHierarchy();
@@ -392,14 +390,14 @@ static void DumpHitch(int64 Frame)
 			if (ChildString.StartsWith(GameThreadString))
 			{
 				GameThread = ChildIter.Value();
-				UE_LOG(LogStats2, Log, TEXT("------------------ Game Thread %.2fms"), GameThreadTime * 1000.0f);
+				UE_LOG(LogStats, Log, TEXT("------------------ Game Thread %.2fms"), GameThreadTime * 1000.0f);
 				GameThread->Cull(MinCycles);
 				GameThread->DebugPrint();
 			}
 			else if (ChildString.StartsWith(RenderThreadString))
 			{
 				RenderThread = ChildIter.Value();
-				UE_LOG(LogStats2, Log, TEXT("------------------ Render Thread (%s) %.2fms"), *RenderThread->Meta.NameAndInfo.GetRawName().ToString(), RenderThreadTime * 1000.0f);
+				UE_LOG(LogStats, Log, TEXT("------------------ Render Thread (%s) %.2fms"), *RenderThread->Meta.NameAndInfo.GetRawName().ToString(), RenderThreadTime * 1000.0f);
 				RenderThread->Cull(MinCycles);
 				RenderThread->DebugPrint();
 			}
@@ -407,12 +405,12 @@ static void DumpHitch(int64 Frame)
 
 		if (!GameThread)
 		{
-			UE_LOG(LogStats2, Warning, TEXT("No game thread?!"));
+			UE_LOG(LogStats, Warning, TEXT("No game thread?!"));
 		}
 
 		if (!RenderThread)
 		{
-			UE_LOG(LogStats2, Warning, TEXT("No render thread."));
+			UE_LOG(LogStats, Warning, TEXT("No render thread."));
 		}
 	}
 
@@ -907,103 +905,10 @@ struct FHUDGroupManager
 	}
 };
 
-static FString LastFileSaved;
 
-FStatsWriteFile::FStatsWriteFile()
-	: File(NULL)
-	, AsyncTask(NULL)
-	, bFirstFrameWritten(false)
-{
-}
-
-FStatsWriteFile::~FStatsWriteFile()
-{
-}
-
-void FStatsWriteFile::Start(FString const& InFilename)
-{
-	const FString PathName = *(FPaths::ProfilingDir() + TEXT("UnrealStats/") );
-
-	FString Filename = PathName + InFilename;	
-	FString Path = FPaths::GetPath(Filename);
-	IFileManager::Get().MakeDirectory( *Path, true );
-
-	UE_LOG(LogStats2, Log, TEXT( "Opening stats file: %s" ), *Filename );
-
-	File = IFileManager::Get().CreateFileWriter( *Filename );
-	if (!File)
-	{
-		UE_LOG(LogStats2, Error, TEXT( "Could not open: %s" ), *Filename );
-	}
-	else
-	{
-		ArchiveFilename = Filename;
-		FStatsThreadState const& Stats = FStatsThreadState::GetLocalState();
-		Stats.NewFrameDelegate.AddThreadSafeSP(this->AsShared(), &FStatsWriteFile::NewFrame);
-		SendTask();
-		StatsMasterEnableAdd();
-	}
-}
-
-void FStatsWriteFile::Stop()
-{
-	if (IsValid())
-	{
-		StatsMasterEnableSubtract();
-		FStatsThreadState const& Stats = FStatsThreadState::GetLocalState();
-		Stats.NewFrameDelegate.RemoveThreadSafeSP(this->AsShared(), &FStatsWriteFile::NewFrame);
-		SendTask();
-		SendTask();
-		if(AsyncTask)
-		{
-			AsyncTask->EnsureCompletion();
-			delete AsyncTask;
-			AsyncTask = NULL;
-		}
-		File->Close();
-		delete File;
-		File = NULL;
-		UE_LOG(LogStats2, Log, TEXT( "Wrote stats file: %s" ), *ArchiveFilename );
-		LastFileSaved = ArchiveFilename;
-	}
-}
-
-void FStatsWriteFile::NewFrame(int64 TargetFrame)
-{
-	SCOPE_CYCLE_COUNTER(STAT_StreamFile);
-	Stream.WriteCondensedFrame(TargetFrame);
-	if (Stream.OutData.Num() > 1024 * 1024)
-	{
-		SendTask();
-	}
-
-	if ( !bFirstFrameWritten )
-	{
-		DECLARE_FLOAT_COUNTER_STAT(TEXT("Seconds Per Cycle"), STAT_SecondsPerCycle, STATGROUP_Engine);
-		SET_FLOAT_STAT(STAT_SecondsPerCycle,FPlatformTime::GetSecondsPerCycle()); // update the seconds per cycle, might be able to just set this once
-
-		bFirstFrameWritten = true;
-	}
-}
-
-void FStatsWriteFile::SendTask()
-{
-	if (AsyncTask)
-	{
-		SCOPE_CYCLE_COUNTER(STAT_StreamFileWaitForWrite);
-		AsyncTask->EnsureCompletion();
-		delete AsyncTask;
-		AsyncTask = NULL;
-	}
-	if (Stream.OutData.Num())
-	{
-		AsyncTask = new FAsyncTask<FAsyncWriteWorker>(File, &Stream.OutData);
-		check(!Stream.OutData.Num());
-		AsyncTask->StartBackgroundTask();
-	}
-}
-
-
+/*-----------------------------------------------------------------------------
+	Dump...
+-----------------------------------------------------------------------------*/
 
 static float DumpCull = 5.0f;
 static int32 MaxDepth = MAX_int32;
@@ -1063,15 +968,15 @@ struct FDumpMultiple
 				{
 					Stack->Divide(NumFrames);
 				}
-				UE_LOG(LogStats2, Log, TEXT("------------------ %d frames, average ---------------"), NumFrames );
+				UE_LOG(LogStats, Log, TEXT("------------------ %d frames, average ---------------"), NumFrames );
 			}
 			else if (bSum)
 			{
-				UE_LOG(LogStats2, Log, TEXT("------------------ %d frames, sum ---------------"), NumFrames );
+				UE_LOG(LogStats, Log, TEXT("------------------ %d frames, sum ---------------"), NumFrames );
 			}
 			else
 			{
-				UE_LOG(LogStats2, Log, TEXT("------------------ %d frames, max ---------------"), NumFrames );
+				UE_LOG(LogStats, Log, TEXT("------------------ %d frames, max ---------------"), NumFrames );
 			}
 			Stack->AddNameHierarchy();
 			Stack->AddSelf();
@@ -1144,7 +1049,36 @@ static void PrintStatsHelpToOutputDevice( FOutputDevice& Ar )
 	Ar.Log( TEXT("stat stopfile - stops dumping a capture"));
 }
 
-static TSharedPtr<FStatsWriteFile, ESPMode::ThreadSafe> CurrentStatFile = NULL;
+static void CommandTestFile()
+{
+	const FString& LastFileSaved = FCommandStatsFile::LastFileSaved;
+
+	FStatsThreadState Loaded( LastFileSaved );
+	if( Loaded.GetLatestValidFrame() < 0 )
+	{
+		UE_LOG( LogStats, Log, TEXT( "Failed to stats file: %s" ), *LastFileSaved );
+		return;
+	}
+	UE_LOG( LogStats, Log, TEXT( "Loaded stats file: %s, %lld frame" ), *LastFileSaved, 1 + Loaded.GetLatestValidFrame() - Loaded.GetOldestValidFrame() );
+	{
+		int64 TestFrame = Loaded.GetOldestValidFrame();
+		UE_LOG( LogStats, Log, TEXT( "**************************** Test Frame %lld" ), TestFrame );
+		DumpHistoryFrame( Loaded, TestFrame );
+	}
+	{
+		int64 TestFrame = (Loaded.GetLatestValidFrame() + Loaded.GetOldestValidFrame()) / 2;
+		if( Loaded.IsFrameValid( TestFrame ) )
+		{
+			UE_LOG( LogStats, Log, TEXT( "**************************** Test Frame %lld" ), TestFrame );
+			DumpHistoryFrame( Loaded, TestFrame );
+		}
+	}
+	{
+		int64 TestFrame = Loaded.GetLatestValidFrame();
+		UE_LOG( LogStats, Log, TEXT( "**************************** Test Frame %lld" ), TestFrame );
+		DumpHistoryFrame( Loaded, TestFrame );
+	}
+}
 
 static void StatCmd(FString InCmd)
 {
@@ -1235,52 +1169,19 @@ static void StatCmd(FString InCmd)
 	}
 	else if( FParse::Command( &Cmd, TEXT( "STARTFILE" ) ) )
 	{
-		CurrentStatFile = NULL;
-		FString File;
-		FParse::Token(Cmd, File, false);
-		TSharedPtr<FStatsWriteFile, ESPMode::ThreadSafe> StatFile = MakeShareable(new FStatsWriteFile());
-		CurrentStatFile = StatFile;
-		CurrentStatFile->Start(File);
-		if (!CurrentStatFile->IsValid())
-		{
-			CurrentStatFile = NULL;
-		}
+		FCommandStatsFile::Start( Cmd );
 	}
-	else if( FParse::Command( &Cmd, TEXT( "STOPFILE" ) ) )
+	else if( FParse::Command( &Cmd, TEXT( "StartFileRaw" ) ) )
 	{
-		if (CurrentStatFile.IsValid())
-		{
-			CurrentStatFile->Stop();
-		}
-		CurrentStatFile = NULL;
+		FCommandStatsFile::StartRaw( Cmd );
+	}
+	else if( FParse::Command( &Cmd, TEXT( "STOPFILE" ) ) || FParse::Command( &Cmd, TEXT( "StopFileRaw" ) ) )
+	{
+		FCommandStatsFile::Stop();
 	}
 	else if( FParse::Command( &Cmd, TEXT( "TESTFILE" ) ) )
 	{
-		FStatsThreadState Loaded(LastFileSaved);
-		if (Loaded.GetLatestValidFrame() < 0)
-		{
-			UE_LOG(LogStats2, Log, TEXT("Failed to stats file: %s" ), *LastFileSaved );
-			return;
-		}
-		UE_LOG(LogStats2, Log, TEXT("Loaded stats file: %s, %lld frame" ), *LastFileSaved, 1 +  Loaded.GetLatestValidFrame() - Loaded.GetOldestValidFrame());
-		{
-			int64 TestFrame = Loaded.GetOldestValidFrame();
-			UE_LOG(LogStats2, Log, TEXT("**************************** Test Frame %lld" ), TestFrame);
-			DumpHistoryFrame(Loaded, TestFrame);
-		}
-		{
-			int64 TestFrame = (Loaded.GetLatestValidFrame() + Loaded.GetOldestValidFrame()) / 2;
-			if (Loaded.IsFrameValid(TestFrame))
-			{
-				UE_LOG(LogStats2, Log, TEXT("**************************** Test Frame %lld" ), TestFrame);
-				DumpHistoryFrame(Loaded, TestFrame);
-			}
-		}
-		{
-			int64 TestFrame = Loaded.GetLatestValidFrame();
-			UE_LOG(LogStats2, Log, TEXT("**************************** Test Frame %lld" ), TestFrame);
-			DumpHistoryFrame(Loaded, TestFrame);
-		}
+		CommandTestFile();
 	}
 	else if( FParse::Command( &Cmd, TEXT( "testdisable" ) ) )
 	{
@@ -1356,9 +1257,13 @@ bool DirectStatsCommand(const TCHAR* Cmd, bool bBlockForCompletion /*= false*/, 
 		}
 		else if( FParse::Command( &TempCmd, TEXT( "STARTFILE" ) ) )
 		{
-			FString Extension = TEXT(".ue4stats");
 			AddArgs += TEXT(" ");
-			AddArgs += CreateProfileFilename( Extension, true );
+			AddArgs += CreateProfileFilename( FStatConstants::StatsFileExtension, true );
+		}
+		else if( FParse::Command( &TempCmd, TEXT( "StartFileRaw" ) ) )
+		{
+			AddArgs += TEXT( " " );
+			AddArgs += CreateProfileFilename( FStatConstants::StatsFileRawExtension, true );
 		}
 		else if( FParse::Command(&TempCmd,TEXT("DUMPFRAME")) )
 		{

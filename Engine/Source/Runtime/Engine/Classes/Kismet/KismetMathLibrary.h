@@ -982,4 +982,26 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	*/
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Math|Geometry", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject"))
 	static void MinimumAreaRectangle(UObject* WorldContextObject, const TArray<FVector>& InVerts, const FVector& SampleSurfaceNormal, FVector& OutRectCenter, FRotator& OutRectRotation, float& OutSideLengthX, float& OutSideLengthY, bool bDebugDraw = false);
+
+	//
+	// Intersection
+	//
+
+	/**
+	 * Computes the intersection point between a line and a plane.
+	 * @param		T - The t of the intersection between the line and the plane
+	 * @param		Intersection - The point of intersection between the line and the plane
+	 * @return		True if the intersection test was successful.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Math|Intersection")
+	static bool LinePlaneIntersection(const FVector& LineStart, const FVector& LineEnd, const FPlane& APlane, float& T, FVector& Intersection);
+
+	/**
+	 * Computes the intersection point between a line and a plane.
+	 * @param		T - The t of the intersection between the line and the plane
+	 * @param		Intersection - The point of intersection between the line and the plane
+	 * @return		True if the intersection test was successful.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Math|Intersection", meta = (FriendlyName = "Line Plane Intersection (Origin & Normal)"))
+	static bool LinePlaneIntersection_OriginNormal(const FVector& LineStart, const FVector& LineEnd, FVector PlaneOrigin, FVector PlaneNormal, float& T, FVector& Intersection);
 };

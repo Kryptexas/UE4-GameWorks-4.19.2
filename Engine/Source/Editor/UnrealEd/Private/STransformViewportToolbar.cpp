@@ -156,17 +156,14 @@ public:
 				ToggleControl->AsShared()
 			]
 
-			// Black Seperator line
+			// Black Separator line
 			+SHorizontalBox::Slot()
 			.AutoWidth()
 			[
-				SNew( SBox )
-				.WidthOverride( 1 )
-				[
-					SNew(SImage)
-					.Image(FEditorStyle::GetBrush(EMultiBlockLocation::ToName(ButtonStyle,EMultiBlockLocation::Middle)))
-					.ColorAndOpacity(FLinearColor::Black)
-				]
+				SNew(SBorder)
+				.Padding(FMargin(1.0f, 0.0f, 0.0f, 0.0f))
+				.BorderImage(FEditorStyle::GetDefaultBrush())
+				.BorderBackgroundColor(FLinearColor::Black)
 			]
 
 			// Menu dropdown concept
@@ -591,7 +588,13 @@ FText STransformViewportToolBar::GetRotationGridLabel() const
 
 FText STransformViewportToolBar::GetScaleGridLabel() const
 {
-	return FText::AsNumber( GEditor->GetScaleGridSize() );
+	FNumberFormattingOptions NumberFormattingOptions;
+	NumberFormattingOptions.MaximumFractionalDigits = 5;
+
+	const float CurGridAmount = GEditor->GetScaleGridSize();
+	return (GEditor->UsePercentageBasedScaling()) 
+		? FText::AsPercent(CurGridAmount / 100.0f, &NumberFormattingOptions) 
+		: FText::AsNumber(CurGridAmount, &NumberFormattingOptions);
 }
 
 FText STransformViewportToolBar::GetCameraSpeedLabel() const
@@ -786,7 +789,7 @@ TSharedRef<SWidget> STransformViewportToolBar::FillScaleGridSnapMenu()
 	FNumberFormattingOptions NumberFormattingOptions;
 	NumberFormattingOptions.MaximumFractionalDigits = 5;
 
-	FMenuBuilder ScaleGridMenuBuilder( bShouldCloseWindowAfterMenuSelection, CommandList                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   );
+	FMenuBuilder ScaleGridMenuBuilder( bShouldCloseWindowAfterMenuSelection, CommandList );
 
 	for( int32 CurGridAmountIndex = 0; CurGridAmountIndex < ViewportSettings->ScalingGridSizes.Num(); ++CurGridAmountIndex )
 	{
@@ -797,7 +800,7 @@ TSharedRef<SWidget> STransformViewportToolBar::FillScaleGridSnapMenu()
 
 		if( GEditor->UsePercentageBasedScaling() )
 		{
-			MenuText = FText::AsPercent( CurGridAmount / 100 );
+			MenuText = FText::AsPercent( CurGridAmount / 100.0f, &NumberFormattingOptions );
 			ToolTipText = FText::Format( LOCTEXT("ScaleGridAmountOld_ToolTip", "Snaps scale values to {0}"), MenuText );
 		}
 		else

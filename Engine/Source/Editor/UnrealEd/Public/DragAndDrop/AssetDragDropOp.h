@@ -10,7 +10,7 @@
 class FAssetDragDropOp : public FDecoratedDragDropOp
 {
 public:
-	static FString GetTypeId() {static FString Type = TEXT("FAssetDragDropOp"); return Type;}
+	DRAG_DROP_OPERATOR_TYPE(FAssetDragDropOp, FDecoratedDragDropOp)
 
 	/** Data for the asset this item represents */
 	TArray<FAssetData> AssetData;
@@ -34,7 +34,6 @@ public:
 	static TSharedRef<FAssetDragDropOp> New(const TArray<FAssetData>& InAssetData, UActorFactory* ActorFactory = NULL)
 	{
 		TSharedRef<FAssetDragDropOp> Operation = MakeShareable(new FAssetDragDropOp);
-		FSlateApplication::GetDragDropReflector().RegisterOperation<FAssetDragDropOp>(Operation);
 
 		Operation->MouseCursor = EMouseCursor::GrabHandClosed;
 

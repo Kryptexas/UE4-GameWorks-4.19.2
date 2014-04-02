@@ -8,178 +8,12 @@
 #include "NativeClassExporter.h"
 #include "HeaderParser.h"
 #include "ClassMaps.h"
-#include "Json.h"
-
-namespace
-{
-	template <typename T> struct TJsonFieldType;
-	template <>           struct TJsonFieldType<double>                         { static const EJson::Type Value = EJson::Number;  };
-	template <>           struct TJsonFieldType<FString>                        { static const EJson::Type Value = EJson::String;  };
-	template <>           struct TJsonFieldType<bool>                           { static const EJson::Type Value = EJson::Boolean; };
-	template <>           struct TJsonFieldType<TArray<TSharedPtr<FJsonValue>>> { static const EJson::Type Value = EJson::Array;   };
-	template <>           struct TJsonFieldType<TSharedPtr<FJsonObject>>        { static const EJson::Type Value = EJson::Object;  };
-
-	template <typename T>
-	void GetJsonValue(T& OutVal, const TSharedPtr<FJsonValue>& JsonValue, const TCHAR* Outer)
-	{
-		if (JsonValue->Type != TJsonFieldType<T>::Value)
-			FError::Throwf(TEXT("'%s' is the wrong type"), Outer);
-
-		JsonValue->AsArgumentType(OutVal);
-	}
-
-	template <typename T>
-	void GetJsonFieldValue(T& OutVal, const TSharedPtr<FJsonObject>& JsonObject, const TCHAR* FieldName, const TCHAR* Outer)
-	{
-		auto JsonValue = JsonObject->Values.Find(FieldName);
-		if (!JsonValue)
-			FError::Throwf(TEXT("Unable to find field '%s' in '%s'"), FieldName, Outer);
-
-		if ((*JsonValue)->Type != TJsonFieldType<T>::Value)
-			FError::Throwf(TEXT("Field '%s' in '%s' is the wrong type"), Outer);
-
-		(*JsonValue)->AsArgumentType(OutVal);
-	}
-
-	void ProcessHeaderArray(FString* OutStringArray, const TArray<TSharedPtr<FJsonValue>>& InJsonArray, const TCHAR* Outer)
-	{
-		for (int32 Index = 0, Count = InJsonArray.Num(); Index != Count; ++Index)
-		{
-			GetJsonValue(*OutStringArray++, InJsonArray[Index], *FString::Printf(TEXT("%s[%d]"), Outer, Index));
-		}
-	}
-}
+#include "Manifest.h"
 
 /////////////////////////////////////////////////////
-// FCodeGeneratorConfigState
+// Globals
 
-struct FUObjectModuleInfo
-{
-	/** The name of the module */
-	FString Name;
-
-	/** Long package name for this module's UObject class */
-	FString LongPackageName;
-
-	/** Base directory of this module on disk */
-	FString BaseDirectory;
-
-	/** Directory where generated include files should go */
-	FString GeneratedIncludeDirectory;
-
-	/** List of C++ public 'Classes' header files with UObjects in them (legacy) */
-	TArray<FString> PublicUObjectClassesHeaders;
-
-	/** List of C++ public header files with UObjects in them */
-	TArray<FString> PublicUObjectHeaders;
-
-	/** List of C++ private header files with UObjects in them */
-	TArray<FString> PrivateUObjectHeaders;
-
-	/** Whether or not to write out headers that have changed */
-	bool SaveExportedHeaders;
-};
-
-
-class FCodeGeneratorConfigState
-{
-public:
-	bool    UseRelativePaths;
-	FString RootLocalPath;
-	FString RootBuildPath;
-
-	/** Ordered list of modules that define UObjects or UStructs, which we may need to generate
-	    code for.  The list is in module dependency order, such that most dependent modules appear first. */
-	TArray<FUObjectModuleInfo> UObjectModuleList;
-
-public:
-	/**
-	 * Loads module info data
-	 */
-	void LoadManifest(const FString& ModuleInfoPath, const FString& ManifestFilename)
-	{
-		FString Json;
-		if (!FFileHelper::LoadFileToString(Json, *ManifestFilename))
-		{
-			UE_LOG(LogCompile, Error, TEXT("Unable to load manifest: %s"), *ManifestFilename );
-			return;
-		}
-
-		auto RootObject = TSharedPtr<FJsonObject>();
-		auto Reader     = TJsonReaderFactory<TCHAR>::Create(Json);
-		if (!FJsonSerializer::Deserialize(Reader, RootObject))
-		{
-			UE_LOG(LogCompile, Error, TEXT("Manifest is malformed: %s"), *ManifestFilename );
-			return;
-		}
-
-		TArray<TSharedPtr<FJsonValue>> ModulesArray;
-
-		GetJsonFieldValue(UseRelativePaths, RootObject, TEXT("UseRelativePaths"), TEXT("{manifest root}"));
-		GetJsonFieldValue(RootLocalPath,    RootObject, TEXT("RootLocalPath"),    TEXT("{manifest root}"));
-		GetJsonFieldValue(RootBuildPath,    RootObject, TEXT("RootBuildPath"),    TEXT("{manifest root}"));
-		GetJsonFieldValue(ModulesArray,     RootObject, TEXT("Modules"),          TEXT("{manifest root}"));
-
-		RootLocalPath = FPaths::ConvertRelativePathToFull(FPaths::GetPath(ManifestFilename), RootLocalPath);
-		RootBuildPath = FPaths::ConvertRelativePathToFull(FPaths::GetPath(ManifestFilename), RootBuildPath);
-
-		// Ensure directories end with a slash, because this aids their use with FPaths::MakePathRelativeTo.
-		if (!RootLocalPath.EndsWith(TEXT("/"))) { RootLocalPath += TEXT("/"); }
-		if (!RootBuildPath.EndsWith(TEXT("/"))) { RootBuildPath += TEXT("/"); }
-
-		int32 ModuleIndex = 0;
-		for (auto Module : ModulesArray)
-		{
-			auto ModuleObj = Module->AsObject();
-
-			TArray<TSharedPtr<FJsonValue>> ClassesHeaders;
-			TArray<TSharedPtr<FJsonValue>> PublicHeaders;
-			TArray<TSharedPtr<FJsonValue>> PrivateHeaders;
-
-			UObjectModuleList.AddZeroed();
-			FUObjectModuleInfo& KnownModule = UObjectModuleList.Last();
-
-			FString Outer = FString::Printf(TEXT("Modules[%d]"), ModuleIndex);
-
-			GetJsonFieldValue(KnownModule.Name,                      ModuleObj, TEXT("Name"),                *Outer);
-			GetJsonFieldValue(KnownModule.BaseDirectory,             ModuleObj, TEXT("BaseDirectory"),       *Outer);
-			GetJsonFieldValue(KnownModule.GeneratedIncludeDirectory, ModuleObj, TEXT("OutputDirectory"),     *Outer);
-			GetJsonFieldValue(KnownModule.SaveExportedHeaders,       ModuleObj, TEXT("SaveExportedHeaders"), *Outer);
-			GetJsonFieldValue(ClassesHeaders,                        ModuleObj, TEXT("ClassesHeaders"),      *Outer);
-			GetJsonFieldValue(PublicHeaders,                         ModuleObj, TEXT("PublicHeaders"),       *Outer);
-			GetJsonFieldValue(PrivateHeaders,                        ModuleObj, TEXT("PrivateHeaders"),      *Outer);
-
-			KnownModule.LongPackageName = FPackageName::ConvertToLongScriptPackageName(*KnownModule.Name);
-
-			// Convert relative paths
-			KnownModule.BaseDirectory             = FPaths::ConvertRelativePathToFull(ModuleInfoPath, KnownModule.BaseDirectory);
-			KnownModule.GeneratedIncludeDirectory = FPaths::ConvertRelativePathToFull(ModuleInfoPath, KnownModule.GeneratedIncludeDirectory);
-
-			// Ensure directories end with a slash, because this aids their use with FPaths::MakePathRelativeTo.
-			if (!KnownModule.BaseDirectory            .EndsWith(TEXT("/"))) { KnownModule.BaseDirectory            .AppendChar(TEXT('/')); }
-			if (!KnownModule.GeneratedIncludeDirectory.EndsWith(TEXT("/"))) { KnownModule.GeneratedIncludeDirectory.AppendChar(TEXT('/')); }
-
-			KnownModule.PublicUObjectClassesHeaders.AddZeroed(ClassesHeaders.Num());
-			KnownModule.PublicUObjectHeaders       .AddZeroed(PublicHeaders .Num());
-			KnownModule.PrivateUObjectHeaders      .AddZeroed(PrivateHeaders.Num());
-
-			ProcessHeaderArray(KnownModule.PublicUObjectClassesHeaders.GetTypedData(), ClassesHeaders, *(Outer + TEXT(".ClassHeaders"  )));
-			ProcessHeaderArray(KnownModule.PublicUObjectHeaders       .GetTypedData(), PublicHeaders , *(Outer + TEXT(".PublicHeaders" )));
-			ProcessHeaderArray(KnownModule.PrivateUObjectHeaders      .GetTypedData(), PrivateHeaders, *(Outer + TEXT(".PrivateHeaders")));
-
-			// Sort the headers alphabetically.  This is just to add determinism to the compilation dependency order, since we currently
-			// don't rely on explicit includes (but we do support 'dependson')
-			// @todo uht: Ideally, we should sort these by sensical order before passing them in -- or better yet, follow include statements ourselves in here.
-			KnownModule.PublicUObjectClassesHeaders.Sort();
-			KnownModule.PublicUObjectHeaders       .Sort();
-			KnownModule.PrivateUObjectHeaders      .Sort();
-
-			++ModuleIndex;
-		}
-	}
-};
-
-FCodeGeneratorConfigState CodeGeneratorConfig;
+FManifest GManifest;
 
 static TArray<FString> ChangeMessages;
 static bool bWriteContents = false;
@@ -363,15 +197,15 @@ bool MakeCommandlet_FindPackageLocation(const TCHAR* InPackage, FString& OutLoca
 {
 	// Mapping of processed packages to their locations
 	// An empty location string means it was processed but not found
-	static TMap<FString,FUObjectModuleInfo*> CheckedPackageList;
+	static TMap<FString, FManifest::FModule*> CheckedPackageList;
 
 	FString CheckPackage(InPackage);
 
-	FUObjectModuleInfo* ModuleInfoPtr = CheckedPackageList.FindRef(CheckPackage);
+	auto* ModuleInfoPtr = CheckedPackageList.FindRef(CheckPackage);
 
 	if (!ModuleInfoPtr)
 	{
-		FUObjectModuleInfo* ModuleInfoPtr2 = CodeGeneratorConfig.UObjectModuleList.FindByPredicate([&](FUObjectModuleInfo& Module) { return Module.Name == CheckPackage; });
+		auto* ModuleInfoPtr2 = GManifest.Modules.FindByPredicate([&](FManifest::FModule& Module) { return Module.Name == CheckPackage; });
 		if (ModuleInfoPtr2 && IFileManager::Get().DirectoryExists(*ModuleInfoPtr2->BaseDirectory))
 		{
 			ModuleInfoPtr = ModuleInfoPtr2;
@@ -630,7 +464,7 @@ void FNativeClassHeaderGenerator::ExportProperties( UStruct* Struct, int32 TextI
 		NumProperties++;
 		if (bIsByteProperty)
 		{
-			NumByteProperties;
+			NumByteProperties++;
 		}
 		if (!bIsEditorOnlyProperty)
 		{
@@ -2186,9 +2020,9 @@ void FNativeClassHeaderGenerator::ExportClassHeaderWrapper( UClass* Class, bool 
 			NewFileName.ReplaceInline(TEXT("\\"), TEXT("/"));
 		}
 		// ...we cannot rebase paths relative to the install directory. It may be on a different drive.
-		else if (FPaths::MakePathRelativeTo(NewFileName, *CodeGeneratorConfig.RootLocalPath))
+		else if (FPaths::MakePathRelativeTo(NewFileName, *GManifest.RootLocalPath))
 		{
-			NewFileName = CodeGeneratorConfig.RootBuildPath / NewFileName;
+			NewFileName = GManifest.RootBuildPath / NewFileName;
 		}
 
 		// Keep track of all of the UObject headers for this module, in the same order that we digest them in
@@ -4768,7 +4602,7 @@ int32 UnrealHeaderTool_Main(const FString& ModuleInfoFilename)
 	// Load the manifest file, giving a list of all modules to be processed, pre-sorted by dependency ordering
 	try
 	{
-		CodeGeneratorConfig.LoadManifest( ModuleInfoPath, ModuleInfoFilename );
+		GManifest = FManifest::LoadFromFile(ModuleInfoFilename);
 	}
 	catch (const TCHAR* Ex)
 	{
@@ -4812,7 +4646,7 @@ int32 UnrealHeaderTool_Main(const FString& ModuleInfoFilename)
 			};
 		}
 
-		for (const FUObjectModuleInfo& Module : CodeGeneratorConfig.UObjectModuleList)
+		for (const auto& Module : GManifest.Modules)
 		{
 			if (!Success)
 				break;
@@ -4944,11 +4778,11 @@ int32 UnrealHeaderTool_Main(const FString& ModuleInfoFilename)
 
 		if (Success)
 		{
-			for (const FUObjectModuleInfo& Module : CodeGeneratorConfig.UObjectModuleList)
+			for (const auto& Module : GManifest.Modules)
 			{
 				if (UPackage* Package = Cast<UPackage>( StaticFindObjectFast( UPackage::StaticClass(), NULL, FName(*Module.LongPackageName), false, false ) ))
 				{
-					Success = FHeaderParser::ParseAllHeadersInside(GWarn, Package, Module.SaveExportedHeaders, CodeGeneratorConfig.UseRelativePaths);
+					Success = FHeaderParser::ParseAllHeadersInside(GWarn, Package, Module.SaveExportedHeaders, GManifest.UseRelativePaths);
 					if (!Success)
 					{
 						++NumFailures;

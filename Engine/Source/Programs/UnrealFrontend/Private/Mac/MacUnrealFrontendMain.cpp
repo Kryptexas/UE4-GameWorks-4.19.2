@@ -31,16 +31,17 @@ static FString GSavedCommandLine;
     NSAppleEventManager* appleEventManager = [NSAppleEventManager sharedAppleEventManager];
     [appleEventManager setEventHandler:self andSelector:@selector(handleQuitEvent:withReplyEvent:) forEventClass:kCoreEventClass andEventID:kAEQuitApplication];
 	
+	// OS X always uses the CrashReportClient, since the other paths aren't reliable
+	GUseCrashReportClient = true;
 	FPlatformMisc::SetGracefulTerminationHandler();
-
+	FPlatformMisc::SetCrashHandler(NULL);
+	
 #if !UE_BUILD_SHIPPING
 	if (FParse::Param(*GSavedCommandLine,TEXT("crashreports")))
 	{
 		GAlwaysReportCrash = true;
 	}
 #endif
-
-	GUseCrashReportClient = true;
 	
 #if UE_BUILD_DEBUG
 	if (!GAlwaysReportCrash)
@@ -83,7 +84,17 @@ int main( int argc, char *argv[] )
 		FString Argument(ANSI_TO_TCHAR(argv[Option]));
 		if (Argument.Contains(TEXT(" ")))
 		{
-			Argument = FString::Printf(TEXT("\"%s\""), *Argument);
+			if (Argument.Contains(TEXT("=")))
+			{
+				FString ArgName;
+				FString ArgValue;
+				Argument.Split( TEXT("="), &ArgName, &ArgValue );
+				Argument = FString::Printf( TEXT("%s=\"%s\""), *ArgName, *ArgValue );
+			}
+			else
+			{
+				Argument = FString::Printf(TEXT("\"%s\""), *Argument);
+			}
 		}
 		GSavedCommandLine += Argument;
 	}

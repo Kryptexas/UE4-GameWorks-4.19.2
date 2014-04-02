@@ -432,11 +432,6 @@ void SMultiBoxWidget::AddBlockWidget( const FMultiBlock& Block, TSharedPtr<SHori
 		.ContentPadding(0)
 		.OnClicked( this, &SMultiBoxWidget::OnDeleteBlockClicked, BlockWeakPtr )
 		.ButtonStyle( StyleSet, "MultiBox.DeleteButton" )
-		.Content()
-		[
-			SNew(SSpacer)
-			.Size( StyleSet->GetBrush("MultiBox.DeleteButton", ".Normal" )->ImageSize )
-		]
 	];
 
 	switch (MultiBox->GetType())

@@ -52,7 +52,7 @@ public class IntelTBB : ModuleRules
 		{
 			PublicIncludePaths.AddRange(
 				new string[] {
-					UEBuildConfiguration.UEThirdPartyDirectory + "IntelTBB/IntelTBB-4.0/Include",
+					UEBuildConfiguration.UEThirdPartyDirectory + "IntelTBB/IntelTBB-4.0/include",
 				}
 			);
 

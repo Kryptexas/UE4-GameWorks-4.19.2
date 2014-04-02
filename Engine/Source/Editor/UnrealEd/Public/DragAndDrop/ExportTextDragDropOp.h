@@ -53,7 +53,7 @@ public:
 class FExportTextDragDropOp : public FDragDropOperation
 {
 public:
-	static FString GetTypeId() {static FString Type = TEXT("FActorDragDropOp"); return Type;}
+	DRAG_DROP_OPERATOR_TYPE(FExportTextDragDropOp, FDragDropOperation)
 
 	FString ActorExportText;
 	int32 NumActors;
@@ -67,7 +67,6 @@ public:
 	static TSharedRef<FExportTextDragDropOp> New(const TArray<AActor*>& InActors)
 	{
 		TSharedRef<FExportTextDragDropOp> Operation = MakeShareable(new FExportTextDragDropOp);
-		FSlateApplication::GetDragDropReflector().RegisterOperation<FExportTextDragDropOp>(Operation);
 
 		for(int32 i=0; i<InActors.Num(); i++)
 		{

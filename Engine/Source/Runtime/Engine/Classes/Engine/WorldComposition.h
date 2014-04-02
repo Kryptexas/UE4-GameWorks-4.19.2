@@ -66,7 +66,7 @@ class ENGINE_API UWorldComposition : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	typedef TArray<FWorldCompositionTile> TilesList;
+	typedef TArray<FWorldCompositionTile> FTilesList;
 
 	/** Adds or removes level streaming objects to world based on distance settings from current view */
 	void UpdateStreamingState(FSceneViewFamily* InViewFamily = NULL);
@@ -115,7 +115,10 @@ class ENGINE_API UWorldComposition : public UObject
 	void OnTileInfoUpdated(const FName& InPackageName, const FWorldTileInfo& InInfo);
 
 	/** @returns Tiles list in a world composition */
-	TilesList& GetTilesList();
+	FTilesList& GetTilesList();
+
+	/** Restores dirty tiles information after world composition being rescanned */
+	void RestoreDirtyTilesInfo(const FTilesList& TilesPrevState);
 	
 	/** Collect tiles package names to cook  */
 	static bool CollectTilesToCook(const FString& CmdLineMapEntry, TArray<FString>& FilesInPath);
@@ -166,7 +169,7 @@ private:
 	FString						WorldRoot;
 	
 	// List of all tiles participating in the world composition
-	TilesList					Tiles;
+	FTilesList					Tiles;
 
 public:
 	// Streaming level objects for each tile

@@ -1814,12 +1814,14 @@ void FLevelCollectionViewModel::ClearStreamingVolumes_Executed()
 //visibility
 void FLevelCollectionViewModel::SetVisible(TArray< TSharedPtr< FLevelViewModel > >& LevelViewModels, bool bVisible )
 {
-	for( auto LevelIt = LevelViewModels.CreateIterator(); LevelIt; ++LevelIt )
+	TArray<TSharedPtr<FLevelViewModel>> CachedLevelViewModels = LevelViewModels;
+
+	for (const TSharedPtr<FLevelViewModel>& Level : CachedLevelViewModels)
 	{
 		// Only set visibility if the level its valid.
-		if( (*LevelIt)->IsValid() )
+		if (Level->IsValid())
 		{
-			(*LevelIt)->SetVisible( bVisible );
+			Level->SetVisible(bVisible);
 		}
 	}
 }

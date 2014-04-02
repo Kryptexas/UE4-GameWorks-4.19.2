@@ -32,6 +32,8 @@ public:
 
 	virtual EPropertyTableColumnSizeMode::Type GetSizeMode() const = 0;
 
+	virtual void SetSizeMode(EPropertyTableColumnSizeMode::Type InSizeMode) = 0;
+
 	virtual float GetWidth() const = 0;
 	virtual void SetWidth( float InWidth ) = 0;
 

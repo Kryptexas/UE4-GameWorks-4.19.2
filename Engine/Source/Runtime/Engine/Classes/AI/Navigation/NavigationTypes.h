@@ -84,16 +84,6 @@ struct FNavigationDirtyElement
 
 	bool operator==(const FNavigationDirtyElement& Other) const 
 	{ 
-		if (bHasBoundsOverride)
-		{
-			if (BoundsOverride.IsValid != Other.BoundsOverride.IsValid ||
-				BoundsOverride.Min != Other.BoundsOverride.Min ||
-				BoundsOverride.Max != Other.BoundsOverride.Max)
-			{
-				return false;
-			}
-		}
-	
 		return Owner == Other.Owner; 
 	}
 

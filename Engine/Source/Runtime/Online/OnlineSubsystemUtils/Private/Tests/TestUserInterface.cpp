@@ -22,11 +22,11 @@ FTestUserInterface::~FTestUserInterface()
 	UE_LOG(LogOnline, Display, TEXT("FTestUserInterface::~FTestUserInterface"));
 }
 
-void FTestUserInterface::Test(const TArray<FString>& InUserIds)
+void FTestUserInterface::Test(UWorld* InWorld, const TArray<FString>& InUserIds)
 {
 	UE_LOG(LogOnline, Display, TEXT("FTestUserInterface::Test"));
 
-	OnlineSub = IOnlineSubsystem::Get(SubsystemName.Len() ? FName(*SubsystemName, FNAME_Find) : NAME_None);
+	OnlineSub = Online::GetSubsystem(InWorld, SubsystemName.Len() ? FName(*SubsystemName, FNAME_Find) : NAME_None);
 	if (OnlineSub != NULL &&
 		OnlineSub->GetIdentityInterface().IsValid() &&
 		OnlineSub->GetUserInterface().IsValid())

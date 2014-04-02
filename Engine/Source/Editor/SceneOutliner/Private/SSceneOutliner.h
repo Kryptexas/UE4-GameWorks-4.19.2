@@ -5,11 +5,6 @@
 
 namespace SceneOutliner
 {
-	/** Multicast delegates for broadcasting various folder events */
-	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnFolderCreate, FName, const SSceneOutliner*);
-	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnFolderMove, FName, FName);
-	DECLARE_MULTICAST_DELEGATE_OneParam(FOnFolderDelete, FName);
-
 	struct TOutlinerActorTreeItem;
 	struct TOutlinerFolderTreeItem;
 
@@ -30,20 +25,11 @@ namespace SceneOutliner
 	{
 
 	public:
-		
-		/** Called when a scene outliner folder is to be created */
-		static FOnFolderCreate OnFolderCreate;
-
-		/** Called when a scene outliner folder is to be moved */
-		static FOnFolderMove OnFolderMove;
-
-		/** Called when a scene outliner folder is to be deleted */
-		static FOnFolderDelete OnFolderDelete;
 
 		SLATE_BEGIN_ARGS( SSceneOutliner ){}
 
 			SLATE_ARGUMENT( FOnContextMenuOpening, MakeContextMenuWidgetDelegate );
-			SLATE_ARGUMENT( FOnActorPicked, OnActorPickedDelegate )
+			SLATE_ARGUMENT( FOnSceneOutlinerItemPicked, OnItemPickedDelegate )
 
 		SLATE_END_ARGS()
 
@@ -102,7 +88,10 @@ namespace SceneOutliner
 		void PopulateSearchStrings( const TOutlinerTreeItem& TreeItem, OUT TArray< FString >& OutSearchStrings ) const;
 
 		/** Tells the scene outliner that it should do a full refresh, which will clear the entire tree and rebuild it from scratch. */
-		void FullRefresh(const bool bForgetEmptyFolders = false);
+		void FullRefresh();
+
+		/** Check whether we should be showing folders or not in this scene outliner */
+		bool ShouldShowFolders() const;
 
 		/** Is actor class name text visible? */
 		EVisibility IsActorClassNameVisible() const;
@@ -182,11 +171,21 @@ namespace SceneOutliner
 		/** Open a context menu for this scene outliner */
 		TSharedPtr<SWidget> OnOpenContextMenu() const;
 
+		/** Build a context menu for right-clicking a folder */
+		TSharedPtr<SWidget> BuildFolderContextMenu() const;
+		void FillFoldersSubMenu(FMenuBuilder& MenuBuilder) const;
+
+		/** Move the selected items to the specified parent */
+		void MoveSelectionTo(TSharedRef<TOutlinerTreeItem> NewParent);
+
+		/** Move the selected items to the specified parent */
+		void MoveSelectionTo(FName NewParent);
+
 		/** Called when the user has clicked the button to add a new folder */
 		FReply OnCreateFolderClicked();
 
-		/** Create a new folder under the specified parent (null for root) */
-		void CreateFolder(TSharedPtr<TOutlinerFolderTreeItem> ParentFolder);
+		/** Create a new folder under the specified parent name (NAME_None for root) */
+		void CreateFolder(FName ParentPath);
 
 		/** Initiate a rename operation for the specified folder */
 		void RenameFolder(TSharedRef<TOutlinerFolderTreeItem> Folder);
@@ -194,20 +193,17 @@ namespace SceneOutliner
 		/** Delete the specified folder and all its contents */
 		void DeleteFolder(TSharedRef<TOutlinerFolderTreeItem> Folder);
 
-		/** Delete the specified folder and selects all child actors */
-		void DeleteFolderAndSelectActors(TSharedRef<TOutlinerFolderTreeItem> Folder);
-
 		/** Add the specified tree item to its parent, attempting to create the parent if possible */
 		bool AddChildToParent(FOutlinerTreeItemRef TreeItem, FName ParentPath, bool bIgnoreSearchFilter = false);
 
 		/** Called when a folder is to be created */
-		void OnBroadcastFolderCreate(FName NewPath, const SSceneOutliner* Origin);
+		void OnBroadcastFolderCreate(const UWorld& InWorld, FName NewPath);
 
 		/** Called when a folder is to be moved */
 		void OnBroadcastFolderMove(FName OldPath, FName NewPath);
 
 		/** Called when a folder is to be deleted */
-		void OnBroadcastFolderDelete(FName Path);
+		void OnBroadcastFolderDelete(const UWorld& InWorld, FName Path);
 
 		/** Detach the specified item from its parent if specified */
 		void DetachChildFromParent(TSharedRef<TOutlinerTreeItem> Child, FName ParentPath);
@@ -329,8 +325,8 @@ namespace SceneOutliner
 		/** List for items that need to be refreshed in the tree since last Populate. */
 		TArray<TSharedRef<TOutlinerTreeItem>> RefreshItemsList;
 
-		/** Callback that's fired when an actor is selected while in 'actor picking' mode */
-		FOnActorPicked OnActorPicked;
+		/** Callback that's fired when an item is selected while in 'picking' mode */
+		FOnSceneOutlinerItemPicked OnItemPicked;
 
 		/** Our tree view */
 		TSharedPtr< SOutlinerTreeView > OutlinerTreeView;
@@ -340,9 +336,6 @@ namespace SceneOutliner
 
 		/** Map of folder paths to list items in our OutlinerData. Used to quickly find the item for a specified folder. */
 		FFolderToTreeItemMap FolderToTreeItemMap;
-
-		/** List of empty folder paths, used to preserve empty folders during FullRefreshes */
-		TArray<FName> EmptyFolderBackup;
 
 		/** The button that displays view options */
 		TSharedPtr<SComboButton> ViewOptionsComboButton;
@@ -421,9 +414,6 @@ namespace SceneOutliner
 
 		/** true if the Scene Outliner should do a full refresh. */
 		bool bFullRefresh;
-		
-		/** true if the Scene Outliner should forget all its empty folders on refresh. */
-		bool bForgetEmptyFolders;
 
 		/** Timer for PIE/SIE mode to sort the outliner. */
 		float SortOutlinerTimer;

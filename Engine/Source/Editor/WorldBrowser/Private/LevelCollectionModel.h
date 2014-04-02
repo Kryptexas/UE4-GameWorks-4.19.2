@@ -101,10 +101,10 @@ public:
 	virtual void TranslateLevels(const FLevelModelList& InLevelList, FVector2D InAbsoluteDelta, bool bSnapDelta = true);
 	
 	/** Snaps translation delta */
-	virtual FVector2D SnapTranslationDelta(const FLevelModelList& InLevelList, FVector2D InAbsoluteDelta, float SnappingDistance);
+	virtual FVector2D SnapTranslationDelta(const FLevelModelList& InLevelList, FVector2D InAbsoluteDelta, bool bBoundsSnapping, float SnappingValue);
 
 	/**	Updates current translation delta, when user drags levels on minimap */
-	virtual void UpdateTranslationDelta(const FLevelModelList& InLevelList, FVector2D InTranslationDelta, float InSnappingScale);
+	virtual void UpdateTranslationDelta(const FLevelModelList& InLevelList, FVector2D InTranslationDelta, bool bBoundsSnapping, float SnappingValue);
 
 	/** Attach levels as children to specified level */
 	void AssignParent(const FLevelModelList& InLevels, TSharedPtr<FLevelModel> InParent);

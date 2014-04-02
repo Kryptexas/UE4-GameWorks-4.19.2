@@ -597,7 +597,7 @@ bool UTransBuffer::Redo()
 
 	if (!CanRedo())
 	{
-		UndoDelegate.Broadcast(FUndoSessionContext(), false);
+		RedoDelegate.Broadcast(FUndoSessionContext(), false);
 
 		return false;
 	}
@@ -610,7 +610,7 @@ bool UTransBuffer::Redo()
 
 		BeforeRedoUndoDelegate.Broadcast(Transaction.GetContext());
 		Transaction.Apply();
-		UndoDelegate.Broadcast(Transaction.GetContext(), true);
+		RedoDelegate.Broadcast(Transaction.GetContext(), true);
 	}
 	GIsTransacting = false;
 

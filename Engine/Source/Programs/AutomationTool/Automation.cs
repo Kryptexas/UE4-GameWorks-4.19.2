@@ -323,6 +323,7 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 			{
 				Log.TraceInformation("Setting up Perforce environment.");
 				CommandUtils.InitP4Environment();
+				CommandUtils.InitDefaultP4Connection();
 			}
 
 			// Find and execute commands.

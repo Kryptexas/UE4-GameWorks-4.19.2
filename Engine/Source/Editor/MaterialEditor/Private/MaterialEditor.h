@@ -162,49 +162,6 @@ struct FCategorizedMaterialExpressionNode
 	TArray<FMaterialExpression> MaterialExpressions;
 };
 
-/** Used in the material function library to store function information. */
-struct FFunctionEntryInfo
-{
-	FString Name;
-	FString Path;
-	FString ToolTip;
-
-	FFunctionEntryInfo(){}
-	FFunctionEntryInfo(const FString& InPath, const FString& InToolTip)
-	{
-		Path = InPath;
-		ToolTip = InToolTip;
-
-		// Extract the object name from the path
-		FString FunctionName = Path;
-		int32 PeriodIndex = Path.Find(TEXT("."), ESearchCase::CaseSensitive, ESearchDir::FromEnd);
-
-		if (PeriodIndex != INDEX_NONE)
-		{
-			FunctionName = Path.Right(Path.Len() - PeriodIndex - 1);
-		}
-		Name = FunctionName;
-	}
-
-	friend bool operator==(const FFunctionEntryInfo& A,const FFunctionEntryInfo& B)
-	{
-		return A.Path == B.Path;
-	}
-};
-
-/** Used in the material function library to store category information. */
-struct FCategorizedMaterialFunctions
-{
-	FString	CategoryName;
-	TArray<FFunctionEntryInfo> FunctionInfos;
-
-	FCategorizedMaterialFunctions(){}
-	FCategorizedMaterialFunctions(const FString& InCategoryName)
-	{
-		CategoryName = InCategoryName;
-	}
-};
-
 /** Used to display material information, compile errors etc. */
 struct FMaterialInfo
 {
@@ -217,11 +174,29 @@ struct FMaterialInfo
 	{}
 };
 
+/**
+This class allows for the display of stats on the overhead introduce into shaders because they have been compiled for development.
+It compiles two empty materials with the same set up as the current preview material. One with the development overhead and one without.
+The difference in instruction counts between the two is reported to the user as the development overhead.
+*/
+class FMaterialDevelopmentOverheadStats
+{
+public:
+	FMaterialDevelopmentOverheadStats()
+		: EmptyMaterialWithOverhead(NULL)
+		, EmptyMaterial(NULL)
+	{
 
-typedef TSharedPtr<class FMaterialItem> FMaterialItemPtr;
-typedef STreeView<FMaterialItemPtr> SMaterialTreeView;
+	}
+	void Init( UMaterial* InMaterial );
+	void Update( UMaterial* InMaterial );
+	bool GetOverheadCounts( TArray<int32>& OverheadCounts, ERHIFeatureLevel::Type FeatureLevel  );
+	void AddReferencedObjects( FReferenceCollector& Collector );
 
-
+private:
+	UMaterial* EmptyMaterialWithOverhead;
+	UMaterial* EmptyMaterial;
+};
 
 /**
  * Material Editor class
@@ -273,9 +248,6 @@ public:
 
 	/** The material instance applied to the preview mesh. */
 	virtual UMaterialInterface* GetMaterialInterface() const OVERRIDE;
-	
-	/** Called by our list to generate a widget that represents the specified item at the specified column in the tree */
-	TSharedRef< SWidget > GenerateWidgetForItemAndColumn( FMaterialItemPtr Item, const FName ColumnID ) const;
 	
 	/**
 	 * Draws material info strings such as instruction count and current errors onto the canvas.
@@ -353,12 +325,6 @@ public:
 	/** Pushes the PreviewMesh assigned the the material instance to the thumbnail info */
 	static void UpdateThumbnailInfoPreviewMesh(UMaterialInterface* MatInterface);
 
-	/** Checks whether we are using the new Graph Editor */
-	bool UsingNewGraphEditor() const
-	{
-		return bUseNewGraphEditor;
-	}
-
 	/** Callback for when the canvas search next and previous are used */
 	void OnSearch(SSearchBox::SearchDirection Direction);
 
@@ -394,6 +360,9 @@ public:
 	
 	/** The material applied to the preview mesh when previewing an expression. */
 	UMaterial* ExpressionPreviewMaterial;
+
+	/** An helper class containing empty materials to calculate editor overhead on this material. */
+	FMaterialDevelopmentOverheadStats MaterialDevelopmentOverheadStats;
 
 	/** The expression currently being previewed.  This is NULL when not in expression preview mode. */
 	UMaterialExpression* PreviewExpression;
@@ -499,38 +468,11 @@ private:
 public:
 
 private:
-	/** Populates the expressions tree view with the appropriate items, based on filters present */
-	void PopulateMaterialExpressionsTree();
-	/** Populates the functions tree view with the appropriate items, based on filters present */
-	void PopulateMaterialFunctionsTree();
-
 	/** Called when the graph search box changes text */
 	void OnGraphSearchChanged( const FText& InFilterText );
 
 	/** Called when the graph search text is committed */
 	void OnGraphSearchCommitted(const FText& NewTypeInValue, ETextCommit::Type CommitInfo);
-
-	/** Called by STreeView to generate a table row for the specified item */
-	TSharedRef< ITableRow > OnGenerateRowForTree( FMaterialItemPtr Item, const TSharedRef< STableViewBase >& OwnerTable );
-
-	/** Called by STreeView to get child items for the specified parent item */
-	void OnGetChildrenForTree( FMaterialItemPtr Parent, TArray<FMaterialItemPtr>& OutChildren );
-	
-	/** Called by STreeView when the user double-clicks on an item in the tree */
-	void OnTreeDoubleClick( FMaterialItemPtr TreeItem );
-
-	/** Gets the text in the expressions search filter */
-	FText GetExpressionsFilterText() const;
-	/** Gets the text in the functions search filter */
-	FText GetFunctionsFilterText() const;
-	
-	/**
-	 * Called by the editable text control when the filter text is changed by the user
-	 *
-	 * @param	InFilterText	The new text
-	 */
-	void OnExpressionsFilterTextChanged( const FText& InFilterText );
-	void OnFunctionsFilterTextChanged( const FText& InFilterText );
 	
 	/**
 	 * Load editor settings from disk (docking state, window pos/size, option state, etc).
@@ -600,12 +542,6 @@ private:
 
 	/** Callback from the Asset Registry when an asset is renamed. */
 	void RenameAssetFromRegistry(const FAssetData& InAddedAssetData, const FString& InNewName);
-
-	/** Callback to tell the Material Editor that the Material List needs to be refreshed. */
-	void FunctionMaterialListNeedsRefresh()
-	{
-		bFunctionListNeedsRefresh = true;
-	}
 
 	/** Callback to tell the Material Editor that a materials usage flags have been changed */
 	void OnMaterialUsageFlagsChanged(class UMaterial* MaterialThatChanged, int32 FlagThatChanged);
@@ -692,8 +628,6 @@ private:
 	TSharedRef<SDockTab> SpawnTab_Preview(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_GraphCanvas(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_MaterialProperties(const FSpawnTabArgs& Args);
-	TSharedRef<SDockTab> SpawnTab_MaterialExpressions(const FSpawnTabArgs& Args);
-	TSharedRef<SDockTab> SpawnTab_MaterialFunctions(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_HLSLCode(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_Palette(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_Stats(const FSpawnTabArgs& Args);
@@ -703,9 +637,6 @@ private:
 
 	/** Property View */
 	TSharedPtr<class IDetailsView> MaterialDetailsView;
-
-	/** Graph Canvas Widget */
-	TSharedPtr<class SMaterialEditorCanvas> GraphCanvas;
 
 	/** New Graph Editor */
 	TSharedPtr<class SGraphEditor> GraphEditor;
@@ -727,24 +658,6 @@ private:
 	/** Stats log, with the log listing that it reflects */
 	TSharedPtr<class SWidget> Stats;
 	TSharedPtr<class IMessageLogListing> StatsListing;
-
-	/** True if the Material Editor's function list needs to refresh. */
-	bool bFunctionListNeedsRefresh;
-
-	/** True if we are using the new EdGraph based editor */
-	bool bUseNewGraphEditor;
-
-	/** Array of all expressions and functions gathered in the tree views currently (filtered) */
-	TArray<FMaterialItemPtr> MaterialExpressions;
-	TArray<FMaterialItemPtr> MaterialFunctions;
-	
-	/** Tree Views for Expressions and functions */
-	TSharedPtr<SMaterialTreeView> MaterialExpressionsView;
-	TSharedPtr<SMaterialTreeView> MaterialFunctionsLibraryView;
-
-	/* Widgets containing the filtering text box */
-	TSharedPtr< SSearchBox > ExpressionsFilterTextBox;
-	TSharedPtr< SSearchBox > FunctionsFilterTextBox;
 
 	/** Current search query */
 	FString SearchQuery;
@@ -786,64 +699,7 @@ private:
 	static const FName PreviewTabId;		
 	static const FName GraphCanvasTabId;	
 	static const FName PropertiesTabId;	
-	static const FName ExpressionsTabId;	
-	static const FName FunctionsTabId;	
 	static const FName HLSLCodeTabId;	
 	static const FName PaletteTabId;
 	static const FName StatsTabId;
-};
-
-
-
-class FExpressionDragDropOp : public FDragDropOperation
-{
-public:
-	static FString GetTypeId() {static FString Type = TEXT("FExpressionDragDropOp"); return Type;}
-
-	FMaterialExpression* MaterialExpression;
-	FFunctionEntryInfo* FunctionEntryInfo;
-	
-	/** The widget decorator to use */
-	virtual TSharedPtr<SWidget> GetDefaultDecorator() const OVERRIDE
-	{
-		return SNew(SBorder)
-			.BorderImage(FEditorStyle::GetBrush("Graph.ConnectorFeedback.Border"))
-			.Content()
-			[
-				SNew(STextBlock) 
-				.Text(MaterialExpression ? MaterialExpression->Name : FunctionEntryInfo->Name)
-			];
-	}
-
-	static TSharedRef<FExpressionDragDropOp> New(FMaterialExpression* InMaterialExpression, FFunctionEntryInfo* InFunctionEntryInfo)
-	{
-		TSharedRef<FExpressionDragDropOp> Operation = MakeShareable(new FExpressionDragDropOp);
-		FSlateApplication::GetDragDropReflector().RegisterOperation<FExpressionDragDropOp>(Operation);
-		Operation->MaterialExpression = InMaterialExpression;
-		Operation->FunctionEntryInfo = InFunctionEntryInfo;
-		Operation->Construct();
-		return Operation;
-	}
-};
-
-class FGraphEditorExpressionDragDropAction : public FGraphEditorDragDropAction
-{
-public:
-	FMaterialExpression* MaterialExpression;
-	FFunctionEntryInfo* FunctionEntryInfo;
-
-	// GetTypeId is the parent: FGraphEditorDragDropAction
-
-	// FGraphEditorDragDropAction Interface
-	virtual FReply DroppedOnPanel(const TSharedRef< class SWidget >& Panel, FVector2D ScreenPosition, FVector2D GraphPosition, UEdGraph& Graph) OVERRIDE;
-
-	static TSharedRef<FGraphEditorExpressionDragDropAction> New(FMaterialExpression* InMaterialExpression, FFunctionEntryInfo* InFunctionEntryInfo)
-	{
-		TSharedRef<FGraphEditorExpressionDragDropAction> Operation = MakeShareable(new FGraphEditorExpressionDragDropAction);
-		FSlateApplication::GetDragDropReflector().RegisterOperation<FGraphEditorExpressionDragDropAction>(Operation);
-		Operation->MaterialExpression = InMaterialExpression;
-		Operation->FunctionEntryInfo = InFunctionEntryInfo;
-		Operation->Construct();
-		return Operation;
-	}
 };

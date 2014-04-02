@@ -295,7 +295,7 @@ void SFriendsList::RefreshFriendsList()
 
 FString SFriendsList::GetListCountText() const
 {
-	static const FString ListCount = LOCTEXT( "FriendList_Title", "FRIENDS : " ).ToString();
+	static const FString ListCount = LOCTEXT( "FriendList_Title", "Friends:1 " ).ToString();
 	return ListCount + FString::Printf( TEXT( "%d" ), FFriendsAndChatManager::Get()->GetFriendCount() );
 }
 

@@ -4,26 +4,30 @@
 #include "SPerforceSourceControlSettings.h"
 #include "PerforceSourceControlModule.h"
 
+TWeakPtr<SEditableTextBox> SPerforceSourceControlSettings::PasswordTextBox;
+
 #define LOCTEXT_NAMESPACE "SPerforceSourceControlSettings"
 
 void SPerforceSourceControlSettings::Construct(const FArguments& InArgs)
 {
 	FPerforceSourceControlModule& PerforceSourceControl = FModuleManager::LoadModuleChecked<FPerforceSourceControlModule>( "PerforceSourceControl" );
 
+	bAreAdvancedSettingsExpanded = false;
+
 	// check our settings & query if we don't already have any
-	FString HostName = PerforceSourceControl.AccessSettings().GetHost();
+	FString PortName = PerforceSourceControl.AccessSettings().GetPort();
 	FString UserName = PerforceSourceControl.AccessSettings().GetUserName();
 
-	if ( HostName.IsEmpty() && UserName.IsEmpty() )
+	if (PortName.IsEmpty() && UserName.IsEmpty())
 	{
 		ClientApi TestP4;
 		Error P4Error;
 		TestP4.Init(&P4Error);
-		HostName = ANSI_TO_TCHAR(TestP4.GetPort().Text());
+		PortName = ANSI_TO_TCHAR(TestP4.GetPort().Text());
 		UserName = ANSI_TO_TCHAR(TestP4.GetUser().Text());
 		TestP4.Final(&P4Error);
 
-		PerforceSourceControl.AccessSettings().SetHost(HostName);
+		PerforceSourceControl.AccessSettings().SetPort(PortName);
 		PerforceSourceControl.AccessSettings().SetUserName(UserName);
 		PerforceSourceControl.SaveSettings();
 	}
@@ -32,105 +36,207 @@ void SPerforceSourceControlSettings::Construct(const FArguments& InArgs)
 
 	ChildSlot
 	[
-		SNew(SHorizontalBox)
-		+SHorizontalBox::Slot()
-		.FillWidth(1.0f)
+		SNew(SVerticalBox)
+		+SVerticalBox::Slot()
+		.AutoHeight()
 		[
-			SNew(SVerticalBox)
-			+SVerticalBox::Slot()
-			.FillHeight(1.0f)
-			.Padding(2.0f)
-			.VAlign(VAlign_Center)
+			SNew( SBorder )
+			.BorderImage( FEditorStyle::GetBrush("DetailsView.CategoryMiddle") )
+			.Padding( FMargin( 0.0f, 3.0f, 0.0f, 0.0f ) )
 			[
-				SNew(STextBlock)
-				.Text(LOCTEXT("HostLabel", "Host"))
-				.ToolTipText( LOCTEXT("HostLabel_Tooltip", "The host and port for your Perforce server. Usage hostname:1234.") )
-				.Font(Font)
-			]
-			+SVerticalBox::Slot()
-			.FillHeight(1.0f)
-			.Padding(2.0f)
-			.VAlign(VAlign_Center)
-			[
-				SNew(STextBlock)
-				.Text(LOCTEXT("UserNameLabel", "User Name"))
-				.ToolTipText( LOCTEXT("UserNameLabel_Tooltip", "Perforce username.") )
-				.Font(Font)
-			]
-			+SVerticalBox::Slot()
-			.FillHeight(1.0f)
-			.Padding(2.0f)
-			.VAlign(VAlign_Center)
-			[
-				SNew(STextBlock)
-				.Text(LOCTEXT("WorkspaceLabel", "Workspace"))
-				.ToolTipText( LOCTEXT("WorkspaceLabel_Tooltip", "Perforce workspace.") )
-				.Font(Font)
-			]
-			+SVerticalBox::Slot()
-			.FillHeight(1.0f)
-			.Padding(2.0f)
-			.VAlign(VAlign_Center)
-			[
-				SNew(STextBlock)
-				.Text(LOCTEXT("AutoWorkspaces", "Available Workspaces"))
-				.ToolTipText( LOCTEXT("AutoWorkspaces_Tooltip", "Choose from a list of available workspaces. Requires a host and username before use.") )
-				.Font(Font)
+				SNew(SHorizontalBox)
+				+SHorizontalBox::Slot()
+				.FillWidth(1.0f)
+				[
+					SNew(SVerticalBox)
+					+SVerticalBox::Slot()
+					.FillHeight(1.0f)
+					.Padding(2.0f)
+					.VAlign(VAlign_Center)
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("PortLabel", "Server"))
+						.ToolTipText( LOCTEXT("PortLabel_Tooltip", "The server and port for your Perforce server. Usage ServerName:1234.") )
+						.Font(Font)
+					]
+					+SVerticalBox::Slot()
+					.FillHeight(1.0f)
+					.Padding(2.0f)
+					.VAlign(VAlign_Center)
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("UserNameLabel", "User Name"))
+						.ToolTipText( LOCTEXT("UserNameLabel_Tooltip", "Perforce username.") )
+						.Font(Font)
+					]
+					+SVerticalBox::Slot()
+					.FillHeight(1.0f)
+					.Padding(2.0f)
+					.VAlign(VAlign_Center)
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("WorkspaceLabel", "Workspace"))
+						.ToolTipText( LOCTEXT("WorkspaceLabel_Tooltip", "Perforce workspace.") )
+						.Font(Font)
+					]
+					+SVerticalBox::Slot()
+					.FillHeight(1.0f)
+					.Padding(2.0f)
+					.VAlign(VAlign_Center)
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("AutoWorkspaces", "Available Workspaces"))
+						.ToolTipText( LOCTEXT("AutoWorkspaces_Tooltip", "Choose from a list of available workspaces. Requires a server and username before use.") )
+						.Font(Font)
+					]
+				]
+				+SHorizontalBox::Slot()
+				.FillWidth(2.0f)
+				[
+					SNew(SVerticalBox)
+					+SVerticalBox::Slot()
+					.FillHeight(1.0f)
+					.Padding(2.0f)
+					[
+						SNew(SEditableTextBox)
+						.Text(this, &SPerforceSourceControlSettings::GetPortText)
+						.ToolTipText( LOCTEXT("PortLabel_Tooltip", "The server and port for your Perforce server. Usage ServerName:1234.") )
+						.OnTextCommitted(this, &SPerforceSourceControlSettings::OnPortTextCommited)
+						.OnTextChanged(this, &SPerforceSourceControlSettings::OnPortTextCommited, ETextCommit::Default)
+						.Font(Font)
+					]
+					+SVerticalBox::Slot()
+					.FillHeight(1.0f)
+					.Padding(2.0f)
+					[
+						SNew(SEditableTextBox)
+						.Text(this, &SPerforceSourceControlSettings::GetUserNameText)
+						.ToolTipText( LOCTEXT("UserNameLabel_Tooltip", "Perforce username.") )
+						.OnTextCommitted(this, &SPerforceSourceControlSettings::OnUserNameTextCommited)
+						.OnTextChanged(this, &SPerforceSourceControlSettings::OnUserNameTextCommited, ETextCommit::Default)
+						.Font(Font)
+					]
+					+SVerticalBox::Slot()
+					.FillHeight(1.0f)
+					.Padding(2.0f)
+					[
+						SNew(SEditableTextBox)
+						.Text(this, &SPerforceSourceControlSettings::GetWorkspaceText)
+						.ToolTipText( LOCTEXT("WorkspaceLabel_Tooltip", "Perforce workspace.") )
+						.OnTextCommitted(this, &SPerforceSourceControlSettings::OnWorkspaceTextCommited)
+						.OnTextChanged(this, &SPerforceSourceControlSettings::OnWorkspaceTextCommited, ETextCommit::Default)
+						.Font(Font)
+					]
+					+SVerticalBox::Slot()
+					.FillHeight(1.0f)
+					.Padding(2.0f)
+					[
+						SAssignNew(WorkspaceCombo, SComboButton)
+						.OnGetMenuContent(this, &SPerforceSourceControlSettings::OnGetMenuContent)
+						.ContentPadding(1)
+						.ToolTipText( LOCTEXT("AutoWorkspaces_Tooltip", "Choose from a list of available workspaces. Requires a server and username before use.") )
+						.ButtonContent()
+						[
+							SNew( STextBlock )
+							.Text( this, &SPerforceSourceControlSettings::OnGetButtonText )
+							.Font(Font)
+						]
+					]
+				]	
 			]
 		]
-		+SHorizontalBox::Slot()
-		.FillWidth(2.0f)
+		+SVerticalBox::Slot()
+		.AutoHeight()
 		[
-			SNew(SVerticalBox)
-			+SVerticalBox::Slot()
-			.FillHeight(1.0f)
-			.Padding(2.0f)
+			SNew( SBorder )
+			.BorderImage( FEditorStyle::GetBrush("DetailsView.CategoryMiddle") )
+			.Padding( FMargin( 0.0f, 3.0f, 0.0f, 0.0f ) )
+			.Visibility(this, &SPerforceSourceControlSettings::GetAdvancedSettingsVisibility)
 			[
-				SNew(SEditableTextBox)
-				.Text(this, &SPerforceSourceControlSettings::GetHostText)
-				.ToolTipText( LOCTEXT("HostLabel_Tooltip", "The host and port for your Perforce server. Usage hostname:1234.") )
-				.OnTextCommitted(this, &SPerforceSourceControlSettings::OnHostTextCommited)
-				.OnTextChanged(this, &SPerforceSourceControlSettings::OnHostTextCommited, ETextCommit::Default)
-				.Font(Font)
+				SNew( SImage )
+				.Image( FEditorStyle::GetBrush("DetailsView.AdvancedDropdownBorder.Open") )
 			]
-			+SVerticalBox::Slot()
-			.FillHeight(1.0f)
-			.Padding(2.0f)
+		]
+		+SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			SNew( SBorder )
+			.BorderImage( FEditorStyle::GetBrush("DetailsView.CategoryMiddle") )
+			.Padding( FMargin( 0.0f, 0.0f, 0.0f, 0.0f ) )
+			.Visibility(this, &SPerforceSourceControlSettings::GetAdvancedSettingsVisibility)
 			[
-				SNew(SEditableTextBox)
-				.Text(this, &SPerforceSourceControlSettings::GetUserNameText)
-				.ToolTipText( LOCTEXT("UserNameLabel_Tooltip", "Perforce username.") )
-				.OnTextCommitted(this, &SPerforceSourceControlSettings::OnUserNameTextCommited)
-				.OnTextChanged(this, &SPerforceSourceControlSettings::OnUserNameTextCommited, ETextCommit::Default)
-				.Font(Font)
-			]
-			+SVerticalBox::Slot()
-			.FillHeight(1.0f)
-			.Padding(2.0f)
-			[
-				SNew(SEditableTextBox)
-				.Text(this, &SPerforceSourceControlSettings::GetWorkspaceText)
-				.ToolTipText( LOCTEXT("WorkspaceLabel_Tooltip", "Perforce workspace.") )
-				.OnTextCommitted(this, &SPerforceSourceControlSettings::OnWorkspaceTextCommited)
-				.OnTextChanged(this, &SPerforceSourceControlSettings::OnWorkspaceTextCommited, ETextCommit::Default)
-				.Font(Font)
-			]			
-			+SVerticalBox::Slot()
-			.FillHeight(1.0f)
-			.Padding(2.0f)
-			[
-				SAssignNew(WorkspaceCombo, SComboButton)
-				.OnGetMenuContent(this, &SPerforceSourceControlSettings::OnGetMenuContent)
-				.ContentPadding(1)
-				.ToolTipText( LOCTEXT("AutoWorkspaces_Tooltip", "Choose from a list of available workspaces. Requires a host and username before use.") )
-				.ButtonContent()
+				SNew(SHorizontalBox)
+				+SHorizontalBox::Slot()
+				.FillWidth(1.0f)
 				[
-					SNew( STextBlock )
-					.Text( this, &SPerforceSourceControlSettings::OnGetButtonText )
-					.Font(Font)
+					SNew(SVerticalBox)
+					+SVerticalBox::Slot()
+					.FillHeight(1.0f)
+					.Padding(2.0f)
+					.VAlign(VAlign_Center)
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("HostLabel", "Host"))
+						.ToolTipText(LOCTEXT("HostLabel_Tooltip", "If you wish to impersonate a particular host, enter this here. This is not normally needed."))
+						.Font(Font)
+					]
+					+SVerticalBox::Slot()
+					.FillHeight(1.0f)
+					.Padding(2.0f)
+					.VAlign(VAlign_Center)
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("PasswordLabel", "Password"))
+						.ToolTipText(LOCTEXT("PasswordLabel_Tooltip", "Perforce password. This normally only needs to be entered if your ticket has expired."))
+						.Font(Font)
+					]
 				]
-			]			
-		]	
+				+SHorizontalBox::Slot()
+				.FillWidth(2.0f)
+				[
+					SNew(SVerticalBox)
+					+SVerticalBox::Slot()
+					.FillHeight(1.0f)
+					.Padding(2.0f)
+					[
+						SNew(SEditableTextBox)
+						.Text(this, &SPerforceSourceControlSettings::GetHostText)
+						.ToolTipText(LOCTEXT("HostLabel_Tooltip", "If you wish to impersonate a particular host, enter this here. This is not normally needed."))
+						.OnTextCommitted(this, &SPerforceSourceControlSettings::OnHostTextCommited)
+						.OnTextChanged(this, &SPerforceSourceControlSettings::OnHostTextCommited, ETextCommit::Default)
+						.Font(Font)
+					]
+					+SVerticalBox::Slot()
+					.FillHeight(1.0f)
+					.Padding(2.0f)
+					[
+						SAssignNew(PasswordTextBox, SEditableTextBox)
+						.ToolTipText( LOCTEXT("PasswordLabel_Tooltip", "Perforce password. This normally only needs to be entered if your ticket has expired.") )
+						.Font(Font)
+						.IsPassword(true)
+					]
+				]	
+			]
+		]
+		+SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			SNew( SBorder )
+			.BorderImage( FEditorStyle::GetBrush("DetailsView.AdvancedDropdownBorder") )
+			.Padding( FMargin( 0.0f, 3.0f, 0.0f, 0.0f ) )
+			[
+				SAssignNew( ExpanderButton, SButton )
+				.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
+				.ToolTipText( LOCTEXT("DisplayAdvancedSettings", "Display advanced settings"))
+				.HAlign(HAlign_Center)
+				.ContentPadding(2)
+				.OnClicked( this, &SPerforceSourceControlSettings::OnAdvancedSettingsClicked )
+				[
+					SNew( SImage )
+					.Image( this, &SPerforceSourceControlSettings::GetAdvancedPulldownImage )
+				]
+			]
+		]
 	];
 
 	// fire off the workspace query
@@ -138,16 +244,25 @@ void SPerforceSourceControlSettings::Construct(const FArguments& InArgs)
 	QueryWorkspaces();
 }
 
-FText SPerforceSourceControlSettings::GetHostText() const
+FString SPerforceSourceControlSettings::GetPassword()
 {
-	FPerforceSourceControlModule& PerforceSourceControl = FModuleManager::LoadModuleChecked<FPerforceSourceControlModule>( "PerforceSourceControl" );
-	return FText::FromString(PerforceSourceControl.AccessSettings().GetHost());
+	if(PasswordTextBox.IsValid())
+	{
+		return PasswordTextBox.Pin()->GetText().ToString();
+	}
+	return FString();
 }
 
-void SPerforceSourceControlSettings::OnHostTextCommited(const FText& InText, ETextCommit::Type InCommitType) const
+FText SPerforceSourceControlSettings::GetPortText() const
 {
 	FPerforceSourceControlModule& PerforceSourceControl = FModuleManager::LoadModuleChecked<FPerforceSourceControlModule>( "PerforceSourceControl" );
-	PerforceSourceControl.AccessSettings().SetHost(InText.ToString());
+	return FText::FromString(PerforceSourceControl.AccessSettings().GetPort());
+}
+
+void SPerforceSourceControlSettings::OnPortTextCommited(const FText& InText, ETextCommit::Type InCommitType) const
+{
+	FPerforceSourceControlModule& PerforceSourceControl = FModuleManager::LoadModuleChecked<FPerforceSourceControlModule>( "PerforceSourceControl" );
+	PerforceSourceControl.AccessSettings().SetPort(InText.ToString());
 	PerforceSourceControl.SaveSettings();
 }
 
@@ -174,6 +289,19 @@ void SPerforceSourceControlSettings::OnWorkspaceTextCommited(const FText& InText
 {
 	FPerforceSourceControlModule& PerforceSourceControl = FModuleManager::LoadModuleChecked<FPerforceSourceControlModule>( "PerforceSourceControl" );
 	PerforceSourceControl.AccessSettings().SetWorkspace(InText.ToString());
+	PerforceSourceControl.SaveSettings();
+}
+
+FText SPerforceSourceControlSettings::GetHostText() const
+{
+	FPerforceSourceControlModule& PerforceSourceControl = FModuleManager::LoadModuleChecked<FPerforceSourceControlModule>( "PerforceSourceControl" );
+	return FText::FromString(PerforceSourceControl.AccessSettings().GetHostOverride());
+}
+
+void SPerforceSourceControlSettings::OnHostTextCommited(const FText& InText, ETextCommit::Type InCommitType) const
+{
+	FPerforceSourceControlModule& PerforceSourceControl = FModuleManager::LoadModuleChecked<FPerforceSourceControlModule>( "PerforceSourceControl" );
+	PerforceSourceControl.AccessSettings().SetHostOverride(InText.ToString());
 	PerforceSourceControl.SaveSettings();
 }
 
@@ -327,6 +455,29 @@ FReply SPerforceSourceControlSettings::OnCancelWorkspacesRequest()
 		ISourceControlModule& SourceControl = FModuleManager::LoadModuleChecked<ISourceControlModule>( "SourceControl" );
 		SourceControl.GetProvider().CancelOperation(GetWorkspacesOperation.ToSharedRef());
 	}
+	return FReply::Handled();
+}
+
+const FSlateBrush* SPerforceSourceControlSettings::GetAdvancedPulldownImage() const
+{
+	if( ExpanderButton->IsHovered() )
+	{
+		return bAreAdvancedSettingsExpanded ? FEditorStyle::GetBrush("DetailsView.PulldownArrow.Up.Hovered") : FEditorStyle::GetBrush("DetailsView.PulldownArrow.Down.Hovered");
+	}
+	else
+	{
+		return bAreAdvancedSettingsExpanded ? FEditorStyle::GetBrush("DetailsView.PulldownArrow.Up") : FEditorStyle::GetBrush("DetailsView.PulldownArrow.Down");
+	}
+}
+
+EVisibility SPerforceSourceControlSettings::GetAdvancedSettingsVisibility() const
+{
+	return bAreAdvancedSettingsExpanded ? EVisibility::Visible : EVisibility::Collapsed;
+}
+
+FReply SPerforceSourceControlSettings::OnAdvancedSettingsClicked()
+{
+	bAreAdvancedSettingsExpanded = !bAreAdvancedSettingsExpanded;
 	return FReply::Handled();
 }
 

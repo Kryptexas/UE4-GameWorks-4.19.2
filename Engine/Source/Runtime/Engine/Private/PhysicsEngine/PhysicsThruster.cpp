@@ -44,46 +44,50 @@ void UPhysicsThrusterComponent::PostLoad()
 APhysicsThruster::APhysicsThruster(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	// Structure to hold one-time initialization
-	struct FConstructorStatics
-	{
-		ConstructorHelpers::FObjectFinderOptional<UTexture2D> ThrusterTexture;
-		FName ID_Physics;
-		FText NAME_Physics;
-		FConstructorStatics()
-			: ThrusterTexture(TEXT("/Engine/EditorResources/S_Thruster"))
-			, ID_Physics(TEXT("Physics"))
-			, NAME_Physics(NSLOCTEXT( "SpriteCategory", "Physics", "Physics" ))
-		{
-		}
-	};
-	static FConstructorStatics ConstructorStatics;
-
 	ThrusterComponent = PCIP.CreateDefaultSubobject<UPhysicsThrusterComponent>(this, TEXT("Thruster0"));
 	RootComponent = ThrusterComponent;
 
 #if WITH_EDITORONLY_DATA
 	ArrowComponent = PCIP.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("ArrowComponent0"));
-	if (ArrowComponent)
-	{
-		ArrowComponent->ArrowSize = 1.7f;
-		ArrowComponent->ArrowColor = FColor(255, 180, 0);
-
-		ArrowComponent->bTreatAsASprite = true;
-		ArrowComponent->SpriteInfo.Category = ConstructorStatics.ID_Physics;
-		ArrowComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Physics;
-		ArrowComponent->AttachParent = ThrusterComponent;
-		ArrowComponent->bIsScreenSizeScaled = true;
-	}
-
 	SpriteComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
-	if (SpriteComponent)
+
+	if (!IsRunningCommandlet())
 	{
-		SpriteComponent->Sprite = ConstructorStatics.ThrusterTexture.Get();
-		SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Physics;
-		SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Physics;
-		SpriteComponent->AttachParent = ThrusterComponent;
-		SpriteComponent->bIsScreenSizeScaled = true;
+		// Structure to hold one-time initialization
+		struct FConstructorStatics
+		{
+			ConstructorHelpers::FObjectFinderOptional<UTexture2D> ThrusterTexture;
+			FName ID_Physics;
+			FText NAME_Physics;
+			FConstructorStatics()
+				: ThrusterTexture(TEXT("/Engine/EditorResources/S_Thruster"))
+				, ID_Physics(TEXT("Physics"))
+				, NAME_Physics(NSLOCTEXT("SpriteCategory", "Physics", "Physics"))
+			{
+			}
+		};
+		static FConstructorStatics ConstructorStatics;
+
+		if (ArrowComponent)
+		{
+			ArrowComponent->ArrowSize = 1.7f;
+			ArrowComponent->ArrowColor = FColor(255, 180, 0);
+
+			ArrowComponent->bTreatAsASprite = true;
+			ArrowComponent->SpriteInfo.Category = ConstructorStatics.ID_Physics;
+			ArrowComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Physics;
+			ArrowComponent->AttachParent = ThrusterComponent;
+			ArrowComponent->bIsScreenSizeScaled = true;
+		}
+
+		if (SpriteComponent)
+		{
+			SpriteComponent->Sprite = ConstructorStatics.ThrusterTexture.Get();
+			SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Physics;
+			SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Physics;
+			SpriteComponent->AttachParent = ThrusterComponent;
+			SpriteComponent->bIsScreenSizeScaled = true;
+		}
 	}
 #endif // WITH_EDITORONLY_DATA
 }

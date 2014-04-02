@@ -120,8 +120,8 @@ namespace AutomationTool
 				}
 				else
 				{
-					Log.WriteLine(TraceEventType.Error, "Failed to delete file {0} in {1} attempts.", Path, MaxAttempts);
-					Log.WriteLine(TraceEventType.Error, LogUtils.FormatException(LastException));
+					Log.WriteLine(TraceEventType.Warning, "Failed to delete file {0} in {1} attempts.", Path, MaxAttempts);
+					Log.WriteLine(TraceEventType.Warning, LogUtils.FormatException(LastException));
 				}
 			}
 
@@ -202,8 +202,8 @@ namespace AutomationTool
 
 			if (Result == false && LastException != null)
 			{
-				Log.WriteLine(TraceEventType.Error, "Failed to delete directory {0} in {1} attempts.", Path, MaxAttempts);
-				Log.WriteLine(TraceEventType.Error, LogUtils.FormatException(LastException));
+				Log.WriteLine(TraceEventType.Warning, "Failed to delete directory {0} in {1} attempts.", Path, MaxAttempts);
+				Log.WriteLine(TraceEventType.Warning, LogUtils.FormatException(LastException));
 			}
 
 			return Result;
@@ -265,8 +265,8 @@ namespace AutomationTool
 				{
 					if (File.Exists(OldName) == true || File.Exists(NewName) == false)
 					{
-						Log.WriteLine(TraceEventType.Error, "Failed to rename {0} to {1}", OldName, NewName);
-						Log.WriteLine(TraceEventType.Error, LogUtils.FormatException(Ex));
+						Log.WriteLine(TraceEventType.Warning, "Failed to rename {0} to {1}", OldName, NewName);
+						Log.WriteLine(TraceEventType.Warning, LogUtils.FormatException(Ex));
 						Result = false;
 					}
 				}
@@ -312,8 +312,8 @@ namespace AutomationTool
                         }
                         else
                         {
-                            Log.WriteLine(TraceEventType.Error, "Failed to copy {0} to {1}", SourceName, TargetName);
-                            Log.WriteLine(TraceEventType.Error, LogUtils.FormatException(Ex));
+                            Log.WriteLine(TraceEventType.Warning, "Failed to copy {0} to {1}", SourceName, TargetName);
+                            Log.WriteLine(TraceEventType.Warning, LogUtils.FormatException(Ex));
                         }
                         Result = false;
 					}
@@ -340,8 +340,8 @@ namespace AutomationTool
 			}
 			catch (Exception Ex)
 			{
-				Log.WriteLine(TraceEventType.Error, "Failed to load {0}", Filename);
-				Log.WriteLine(TraceEventType.Error, LogUtils.FormatException(Ex));
+				Log.WriteLine(TraceEventType.Warning, "Failed to load {0}", Filename);
+				Log.WriteLine(TraceEventType.Warning, LogUtils.FormatException(Ex));
 			}
 			return Result;
 		}
@@ -361,8 +361,8 @@ namespace AutomationTool
 			}
 			catch (Exception Ex)
 			{
-				Log.WriteLine(TraceEventType.Error, "Failed to load {0}", Filename);
-				Log.WriteLine(TraceEventType.Error, LogUtils.FormatException(Ex));
+				Log.WriteLine(TraceEventType.Warning, "Failed to load {0}", Filename);
+				Log.WriteLine(TraceEventType.Warning, LogUtils.FormatException(Ex));
 			}
 			return Result;
 		}
@@ -381,6 +381,22 @@ namespace AutomationTool
 				Log.WriteLine(TraceEventType.Information, "FindFiles {0} {1} {2}", Path, SearchPattern, Recursive);
 			}
 			return Directory.GetFiles(Path, SearchPattern, Recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
+		}
+
+		/// <summary>
+		/// Finds directories in the specified path.
+		/// </summary>
+		/// <param name="Path">Path</param>
+		/// <param name="SearchPattern">Search pattern</param>
+		/// <param name="Recursive">Whether to search recursively or not.</param>
+		/// <returns>List of all directories found (can be empty) or null if the operation failed.</returns>
+		public static string[] FindDirectories(string Path, string SearchPattern, bool Recursive, bool bQuiet = false)
+		{
+			if (!bQuiet)
+			{
+				Log.WriteLine(TraceEventType.Information, "FindDirectories {0} {1} {2}", Path, SearchPattern, Recursive);
+			}
+			return Directory.GetDirectories(Path, SearchPattern, Recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
 		}
 
 		/// <summary>
@@ -403,10 +419,36 @@ namespace AutomationTool
 			}
 			catch (Exception Ex)
 			{
-				Log.WriteLine(TraceEventType.Error, "Unable to Find Files in {0}", Path);
-				Log.WriteLine(TraceEventType.Error, LogUtils.FormatException(Ex));
+				Log.WriteLine(TraceEventType.Warning, "Unable to Find Files in {0}", Path);
+				Log.WriteLine(TraceEventType.Warning, LogUtils.FormatException(Ex));
 			}
 			return Files;
+		}
+
+		/// <summary>
+		/// Finds directories in the specified path.
+		/// </summary>
+		/// <param name="Path">Path</param>
+		/// <param name="SearchPattern">Search pattern</param>
+		/// <param name="Recursive">Whether to search recursively or not.</param>
+		/// <returns>List of all files found (can be empty) or null if the operation failed.</returns>
+		public static string[] SafeFindDirectories(string Path, string SearchPattern, bool Recursive, bool bQuiet = false)
+		{
+			if (!bQuiet)
+			{
+				Log.WriteLine(TraceEventType.Information, "SafeFindDirectories {0} {1} {2}", Path, SearchPattern, Recursive);
+			}
+			string[] Directories = null;
+			try
+			{
+				Directories = FindDirectories(Path, SearchPattern, Recursive, bQuiet);
+			}
+			catch (Exception Ex)
+			{
+				Log.WriteLine(TraceEventType.Warning, "Unable to Find Directories in {0}", Path);
+				Log.WriteLine(TraceEventType.Warning, LogUtils.FormatException(Ex));
+			}
+			return Directories;
 		}
 
 		/// <summary>
@@ -428,8 +470,8 @@ namespace AutomationTool
 			}
 			catch (Exception Ex)
 			{
-				Log.WriteLine(TraceEventType.Error, "Unable to check if file {0} exists.", Path);
-				Log.WriteLine(TraceEventType.Error, LogUtils.FormatException(Ex));
+				Log.WriteLine(TraceEventType.Warning, "Unable to check if file {0} exists.", Path);
+				Log.WriteLine(TraceEventType.Warning, LogUtils.FormatException(Ex));
 			}
 			return Result;
 		}
@@ -454,8 +496,8 @@ namespace AutomationTool
 			}
 			catch (Exception Ex)
 			{
-				Log.WriteLine(TraceEventType.Error, "Unable to check if directory {0} exists.", Path);
-				Log.WriteLine(TraceEventType.Error, LogUtils.FormatException(Ex));
+				Log.WriteLine(TraceEventType.Warning, "Unable to check if directory {0} exists.", Path);
+				Log.WriteLine(TraceEventType.Warning, LogUtils.FormatException(Ex));
 			}
 			return Result;
 		}
@@ -477,8 +519,8 @@ namespace AutomationTool
 			}
 			catch (Exception Ex)
 			{
-				Log.WriteLine(TraceEventType.Error, "Unable to write text to {0}", Path);
-				Log.WriteLine(TraceEventType.Error, LogUtils.FormatException(Ex));
+				Log.WriteLine(TraceEventType.Warning, "Unable to write text to {0}", Path);
+				Log.WriteLine(TraceEventType.Warning, LogUtils.FormatException(Ex));
 			}
 			return Result;
 		}
@@ -500,8 +542,8 @@ namespace AutomationTool
 			}
 			catch (Exception Ex)
 			{
-				Log.WriteLine(TraceEventType.Error, "Unable to write text to {0}", Path);
-				Log.WriteLine(TraceEventType.Error, LogUtils.FormatException(Ex));
+				Log.WriteLine(TraceEventType.Warning, "Unable to write text to {0}", Path);
+				Log.WriteLine(TraceEventType.Warning, LogUtils.FormatException(Ex));
 			}
 			return Result;
 		}
@@ -523,8 +565,8 @@ namespace AutomationTool
 			}
 			catch (Exception Ex)
 			{
-				Log.WriteLine(TraceEventType.Error, "Unable to write text to {0}", Path);
-				Log.WriteLine(TraceEventType.Error, LogUtils.FormatException(Ex));
+				Log.WriteLine(TraceEventType.Warning, "Unable to write text to {0}", Path);
+				Log.WriteLine(TraceEventType.Warning, LogUtils.FormatException(Ex));
 			}
 			return Result;
 		}
@@ -669,7 +711,7 @@ namespace AutomationTool
             {
                 throw new AutomationException("Failed to find MAJOR, MINOR, and PATCH fields from version file {0}", Filename);
             }
-
+            CommandUtils.Log("Read {0}.{1}.{2} from {3}", foundElements["MAJOR"], foundElements["MINOR"], foundElements["PATCH"], Filename);
             return new Version(foundElements["MAJOR"], foundElements["MINOR"], foundElements["PATCH"]);
         }
 

@@ -39,6 +39,8 @@
 #include "AnalyticsEventAttribute.h"
 #include "IAnalyticsProvider.h"
 
+#include "EditorActorFolders.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LevelEditorActions, Log, All);
 
 #define LOCTEXT_NAMESPACE "LevelEditorActions"
@@ -419,6 +421,18 @@ void FLevelEditorActionCallbacks::AttachToSocketSelection(const FName SocketName
 			Transaction.Cancel();
 		}
 	}	
+}
+
+void FLevelEditorActionCallbacks::SetActorFolder(FName Folder)
+{
+	FSlateApplication::Get().DismissAllMenus();
+
+	FScopedTransaction Transaction(LOCTEXT("SetActorFolder", "Set Actor Folder"));
+	for ( FSelectionIterator It( GEditor->GetSelectedActorIterator() ) ; It ; ++It )
+	{
+		AActor* Actor = Cast<AActor>( *It );
+		Actor->SetFolderPath(Folder);
+	}
 }
 
 void FLevelEditorActionCallbacks::SetMaterialQualityLevel( EMaterialQualityLevel::Type NewQualityLevel )
@@ -1015,6 +1029,12 @@ void FLevelEditorActionCallbacks::DetachActor_Clicked()
 void FLevelEditorActionCallbacks::AttachSelectedActors()
 {
 	GUnrealEd->AttachSelectedActors();
+}
+
+void FLevelEditorActionCallbacks::CreateNewOutlinerFolder_Clicked()
+{
+	const FName NewFolderName = FActorFolders::Get().GetDefaultFolderNameForSelection(*GetWorld());
+	FActorFolders::Get().CreateFolderContainingSelection(*GetWorld(), NewFolderName);
 }
 
 bool FLevelEditorActionCallbacks::LockActorMovement_IsChecked()
@@ -2552,6 +2572,7 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND( LockActorMovement, "Lock Actor Movement", "Locks the actor so it cannot be moved", EUserInterfaceActionType::ToggleButton, FInputGesture() );
 	UI_COMMAND( DetachFromParent, "Detach", "Detach the actor from its parent", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( AttachSelectedActors, "Attach Selected Actors", "Attach the selected actors to the last selected actor", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::Alt, EKeys::B) );
+	UI_COMMAND( CreateNewOutlinerFolder, "Create Folder", "Place the selected actors in a new folder", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( HoldToEnableVertexSnapping, "Hold to Enable Vertex Snapping", "When the key binding is pressed and held vertex snapping will be enabled", EUserInterfaceActionType::ToggleButton, FInputGesture(EKeys::V) );
 
 	//@ todo Slate better tooltips for pivot options
@@ -2663,11 +2684,11 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND( EditMatinee, "Edit Matinee", "Selects a Matinee to edit", EUserInterfaceActionType::Button, FInputGesture() );
 
 	UI_COMMAND( OpenLevelBlueprint, "Open Level Blueprint", "Edit the Level Blueprint for the current level", EUserInterfaceActionType::Button, FInputGesture() );
-	UI_COMMAND( OpenGameModeBlueprint, "Open Game Mode Blueprint", "Open the GameMode blueprint", EUserInterfaceActionType::Button, FInputGesture() );
-	UI_COMMAND( OpenGameStateBlueprint, "Open Game State Blueprint", "Open the GameState blueprint", EUserInterfaceActionType::Button, FInputGesture() );
-	UI_COMMAND( OpenDefaultPawnBlueprint, "Open Default Pawn Blueprint", "Open the Pawn blueprint", EUserInterfaceActionType::Button, FInputGesture() );
-	UI_COMMAND( OpenHUDBlueprint, "Open HUD Blueprint", "Open the HUD blueprint", EUserInterfaceActionType::Button, FInputGesture() );
-	UI_COMMAND( OpenPlayerControllerBlueprint, "Open Player Controller Blueprint", "Open the Player Controller blueprint", EUserInterfaceActionType::Button, FInputGesture() );
+	UI_COMMAND( OpenGameModeBlueprint, "Open/Create Game Mode Blueprint", "Opens or create the active GameMode blueprint", EUserInterfaceActionType::Button, FInputGesture() );
+	UI_COMMAND( OpenGameStateBlueprint, "Open/Create Game State Blueprint", "Open or create the GameState blueprint and auto assign it to the active GameMode", EUserInterfaceActionType::Button, FInputGesture() );
+	UI_COMMAND( OpenDefaultPawnBlueprint, "Open/Create Default Pawn Blueprint", "Open or create the Pawn blueprint and auto assign it to the active GameMode", EUserInterfaceActionType::Button, FInputGesture() );
+	UI_COMMAND( OpenHUDBlueprint, "Open/Create HUD Blueprint", "Open or create the HUD blueprint and auto assign it to the active GameMode", EUserInterfaceActionType::Button, FInputGesture() );
+	UI_COMMAND( OpenPlayerControllerBlueprint, "Open/Create Player Controller Blueprint", "Open or create the Player Controller blueprint and auto assign it to the active GameMode", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( CreateClassBlueprint, "New Class Blueprint...", "Create a new Class Blueprint", EUserInterfaceActionType::Button, FInputGesture());
 
 	UI_COMMAND( ShowTransformWidget, "Show Transform Widget", "Toggles the visibility of the transform widgets", EUserInterfaceActionType::ToggleButton, FInputGesture() );

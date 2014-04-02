@@ -25,6 +25,8 @@ FAutoConsoleVariable CVarDoReplicationContextString( TEXT( "net.ContextDebug" ),
 
 static const int32 UNMAPPED_FRAMES_THRESHOLD = 100;
 
+#define ENABLE_CLIENT_UNMAP_LOGIC 0
+
 #ifdef USE_CUSTOM_COMPARE
 static FORCEINLINE bool CompareBool( const FRepLayoutCmd & Cmd, const void * A, const void * B )
 {
@@ -449,26 +451,6 @@ void FRepLayout::SanityCheckShadowStateAgainstChangeList(
 	}
 }
 
-bool FRepLayout::GenerateChangelist( FRepState * RepState, const uint8 * Data, TArray< FRepChangedParent > & OutChangedParents ) const
-{
-	OutChangedParents.Empty();
-
-	OutChangedParents.SetNum( Parents.Num() );
-
-	return CompareProperties( RepState, RepState->StaticBuffer.GetTypedData(), Data, OutChangedParents, UnconditionalLifetime );
-}
-
-void FRepLayout::ValidateChangelist(
-	FRepState *							RepState, 
-	const uint8 * 						Data, 
-	UActorChannel *						OwningChannel,
-	FRepState *							OtherRepState,
-	const TArray< FRepChangedParent > &	OtherChangedParents ) const
-{
-	SanityCheckShadowStateAgainstChangeList( RepState, Data, OwningChannel, UnconditionalLifetime, OtherRepState, OtherChangedParents );
-}
-
-
 bool FRepLayout::ReplicateProperties( 
 	FRepState * RESTRICT		RepState, 
 	const uint8 * RESTRICT		Data, 
@@ -651,7 +633,7 @@ bool FRepLayout::ReplicateProperties(
 		WritePropertyHeader( (UObject*)Data, ObjectClass, OwningChannel, Parents[FirstNonCustomParent].Property, Writer, 0, LastIndex, bContentBlockWritten );
 
 		// Send the final merged change list
-		SendProperties( RepState, Data, ObjectClass, OwningChannel, Writer, Changed, LastIndex, bContentBlockWritten );
+		SendProperties( RepState, RepFlags, Data, ObjectClass, OwningChannel, Writer, Changed, LastIndex, bContentBlockWritten );
 
 #ifdef ENABLE_SUPER_CHECKSUMS
 		Writer.WriteBit( bIsAllAcked ? 1 : 0 );
@@ -855,14 +837,14 @@ static FORCEINLINE void WritePropertyHandle( FNetBitWriter & Writer, uint16 Hand
 #endif
 }
 
-static bool ShouldSendProperty( FRepWriterState & WriterState, uint16 Handle )
+static bool ShouldSendProperty( FRepWriterState & WriterState, const uint16 Handle )
 {
 	if ( Handle == WriterState.Changed[WriterState.CurrentChanged] )
 	{
 		// Write out the handle
 		WritePropertyHandle( WriterState.Writer, Handle, WriterState.bDoChecksum );
 
-		// Now load the next expected handle (we should have at least one)
+		// Advance to the next expected handle
 		WriterState.CurrentChanged++;
 
 		return true;
@@ -872,13 +854,14 @@ static bool ShouldSendProperty( FRepWriterState & WriterState, uint16 Handle )
 }
 
 void FRepLayout::SendProperties_DynamicArray_r( 
-	FRepState *	RESTRICT	RepState, 
-	FRepWriterState &		WriterState,
-	const int32				CmdIndex, 
-	const uint8 * RESTRICT	StoredData, 
-	const uint8 * RESTRICT	Data, 
-	TArray< uint16 > &		Unmapped,
-	uint16					Handle ) const
+	FRepState *	RESTRICT		RepState, 
+	const FReplicationFlags &	RepFlags,
+	FRepWriterState &			WriterState,
+	const int32					CmdIndex, 
+	const uint8 * RESTRICT		StoredData, 
+	const uint8 * RESTRICT		Data, 
+	TArray< uint16 > &			Unmapped,
+	uint16						Handle ) const
 {
 	const FRepLayoutCmd & Cmd = Cmds[ CmdIndex ];
 
@@ -910,7 +893,7 @@ void FRepLayout::SendProperties_DynamicArray_r(
 	for ( int32 i = 0; i < Array->Num(); i++ )
 	{
 		const int32 ElementOffset = i * Cmd.ElementSize;
-		LocalHandle = SendProperties_r( RepState, WriterState, CmdIndex + 1, Cmd.EndCmd - 1, StoredData + ElementOffset, Data + ElementOffset, LocalUnmapped, LocalHandle );
+		LocalHandle = SendProperties_r( RepState, RepFlags, WriterState, CmdIndex + 1, Cmd.EndCmd - 1, StoredData + ElementOffset, Data + ElementOffset, LocalUnmapped, LocalHandle );
 	}
 
 	check( WriterState.CurrentChanged - OldChangedIndex == ArrayChangedCount );	// Make sure we read correct amount
@@ -931,14 +914,15 @@ void FRepLayout::SendProperties_DynamicArray_r(
 }
 
 uint16 FRepLayout::SendProperties_r( 
-	FRepState *	RESTRICT	RepState, 
-	FRepWriterState &		WriterState,
-	const int32				CmdStart, 
-	const int32				CmdEnd, 
-	const uint8 * RESTRICT	StoredData, 
-	const uint8 * RESTRICT	Data, 
-	TArray< uint16 > &		Unmapped,
-	uint16					Handle ) const
+	FRepState *	RESTRICT		RepState, 
+	const FReplicationFlags &	RepFlags,
+	FRepWriterState &			WriterState,
+	const int32					CmdStart, 
+	const int32					CmdEnd, 
+	const uint8 * RESTRICT		StoredData, 
+	const uint8 * RESTRICT		Data, 
+	TArray< uint16 > &			Unmapped,
+uint16						Handle ) const
 {
 	for ( int32 CmdIndex = CmdStart; CmdIndex < CmdEnd; CmdIndex++ )
 	{
@@ -952,7 +936,7 @@ uint16 FRepLayout::SendProperties_r(
 		{
 			if ( ShouldSendProperty( WriterState, Handle ) )
 			{
-				SendProperties_DynamicArray_r( RepState, WriterState, CmdIndex, StoredData + Cmd.Offset, Data + Cmd.Offset, Unmapped, Handle );
+				SendProperties_DynamicArray_r( RepState, RepFlags, WriterState, CmdIndex, StoredData + Cmd.Offset, Data + Cmd.Offset, Unmapped, Handle );
 			}
 			CmdIndex = Cmd.EndCmd - 1;	// Jump past children of this array (-1 for the ++ in the for loop)
 			continue;
@@ -960,7 +944,6 @@ uint16 FRepLayout::SendProperties_r(
 
 		if ( ShouldSendProperty( WriterState, Handle ) )
 		{
-
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 			if (CVarDoReplicationContextString->GetInt() > 0)
 			{
@@ -976,12 +959,20 @@ uint16 FRepLayout::SendProperties_r(
 
 			const int32 NumEndBits = WriterState.Writer.GetNumBits();
 
-			const FRepParentCmd & Parent = Parents[Cmd.ParentIndex];
+			const FRepParentCmd & ParentCmd = Parents[Cmd.ParentIndex];
 
-			NETWORK_PROFILER( GNetworkProfiler.TrackReplicateProperty( Parent.Property, false, false, 0, 0, NumEndBits - NumStartBits ) );
+			NETWORK_PROFILER( GNetworkProfiler.TrackReplicateProperty( ParentCmd.Property, false, false, 0, 0, NumEndBits - NumStartBits ) );
+
+#if ENABLE_CLIENT_UNMAP_LOGIC == 0
+			// HACK: REMOVE ME. 
+			// Move all this unmapped logic to client.
+			// This is to fix an issue where "Owner" on actor is replicated to all connections, but since only one connection will be mapped
+			// this will trigger a bunch of "unmapped longer than normal" false positives.
+			// We can't use COND_OwnerOnly since we also want to send NULL's to old owners
+			const bool bWorryAboutUnmapped = ( RepFlags.bNetOwner || ParentCmd.Condition != COND_OwnerOrNotNull );
 
 			// If this property is unmapped, force it to resend
-			if ( !bMapped || WriterState.Writer.PackageMap->SerializedUnAckedObject() )
+			if ( ( !bMapped || WriterState.Writer.PackageMap->SerializedUnAckedObject() ) && bWorryAboutUnmapped )
 			{
 				Unmapped.Add( Handle );
 
@@ -990,6 +981,7 @@ uint16 FRepLayout::SendProperties_r(
 					UE_LOG( LogNet, Warning, TEXT( "  FRepLayout::SendProperties_r: Property has been unmapped longer than normal: %s" ), *Cmd.Property->GetName() );
 				}
 			}
+#endif
 
 			// Make the shadow state match the actual state at the time of send
 			StoreProperty( Cmd, (void*)( StoredData + Cmd.Offset ), (const void*)( Data + Cmd.Offset ) );
@@ -1063,14 +1055,15 @@ void FRepLayout::WritePropertyHeader(
 }
 
 void FRepLayout::SendProperties( 
-	FRepState *	RESTRICT	RepState, 
-	const uint8 * RESTRICT	Data, 
-	UClass *				ObjectClass,
-	UActorChannel	*		OwningChannel,
-	FOutBunch &				Writer, 
-	TArray< uint16 > &		Changed, 
-	int32 &					LastIndex, 
-	bool &					bContentBlockWritten ) const
+	FRepState *	RESTRICT		RepState, 
+	const FReplicationFlags &	RepFlags,
+	const uint8 * RESTRICT		Data, 
+	UClass *					ObjectClass,
+	UActorChannel	*			OwningChannel,
+	FOutBunch &					Writer, 
+	TArray< uint16 > &			Changed, 
+	int32 &						LastIndex, 
+	bool &						bContentBlockWritten ) const
 {
 	check( RepState->Unmapped.Num() == 0 );
 
@@ -1086,7 +1079,7 @@ void FRepLayout::SendProperties(
 	Writer.WriteBit( bDoChecksum ? 1 : 0 );
 #endif
 
-	SendProperties_r( RepState, WriterState, 0, Cmds.Num() - 1, RepState->StaticBuffer.GetTypedData(), Data, RepState->Unmapped, 0 );
+	SendProperties_r( RepState, RepFlags, WriterState, 0, Cmds.Num() - 1, RepState->StaticBuffer.GetTypedData(), Data, RepState->Unmapped, 0 );
 
 	WritePropertyHandle( Writer, 0, bDoChecksum );
 
@@ -1121,7 +1114,15 @@ static bool ShouldReadProperty( FRepReaderState & ReaderState )
 	return false;
 }
 
-bool FRepLayout::ReadProperty( FRepReaderState & ReaderState, const FRepLayoutCmd & Cmd, const int32 CmdIndex, uint8 * RESTRICT StoredData, uint8 * RESTRICT Data, const bool bDiscard ) const
+bool FRepLayout::ReadProperty( 
+	FRepReaderState &		ReaderState, 
+	FUnmappedGuidMgr *		UnmappedGuids,
+	const int32				AbsOffset,
+	const FRepLayoutCmd &	Cmd, 
+	const int32				CmdIndex, 
+	uint8 * RESTRICT		StoredData, 
+	uint8 * RESTRICT		Data, 
+	const bool				bDiscard ) const
 {
 	if ( !ShouldReadProperty( ReaderState ) )
 	{
@@ -1151,6 +1152,8 @@ bool FRepLayout::ReadProperty( FRepReaderState & ReaderState, const FRepLayoutCm
 	// This swaps Role/RemoteRole as we write it
 	const FRepLayoutCmd & SwappedCmd = Parent.RoleSwapIndex != -1 ? Cmds[Parents[Parent.RoleSwapIndex].CmdStart] : Cmd;
 
+	ReaderState.Bunch.PackageMap->ResetLoadedUnmappedObject();
+
 	if ( Parent.Property->HasAnyPropertyFlags( CPF_RepNotify ) )
 	{
 		// Copy current value over so we can check to see if it changed
@@ -1170,6 +1173,18 @@ bool FRepLayout::ReadProperty( FRepReaderState & ReaderState, const FRepLayoutCm
 		Cmd.Property->NetSerializeItem( ReaderState.Bunch, ReaderState.Bunch.PackageMap, Data + SwappedCmd.Offset );
 	}
 
+#if ENABLE_CLIENT_UNMAP_LOGIC == 1
+	if ( ReaderState.Bunch.PackageMap->GetLoadedUnmappedObject() )
+	{
+		// If we have an unmapped guid, we need to remember it, so we can fix up this object pointer when it finally arrives at a other time
+		const int32 LocalAbsOffset = AbsOffset + SwappedCmd.Offset;
+		UnmappedGuids->Map.Add( LocalAbsOffset, FUnmappedGuidMgrElement( ReaderState.Bunch.PackageMap->GetLastUnmappedNetGUID(), Cmd.ParentIndex, CmdIndex ) );
+
+		UE_LOG( LogNet, Warning, TEXT( "ADDED unmapped property: Offset: %i, Guid: %s, Name: %s"), LocalAbsOffset, *ReaderState.Bunch.PackageMap->GetLastUnmappedNetGUID().ToString(), *Cmd.Property->GetName() );
+		ReaderState.bHasUnmapped = true;
+	}
+#endif
+
 #ifdef ENABLE_PROPERTY_CHECKSUMS
 	if ( ReaderState.bDoChecksum )
 	{
@@ -1188,6 +1203,8 @@ bool FRepLayout::ReadProperty( FRepReaderState & ReaderState, const FRepLayoutCm
 
 bool FRepLayout::ReceiveProperties_AnyArray_r( 
 	FRepReaderState &	ReaderState, 
+	FUnmappedGuidMgr *	UnmappedGuids,
+	const int32			AbsOffset,
 	const int32			ArrayNum, 
 	const int32			ElementSize, 
 	const int32			CmdIndex, 
@@ -1202,7 +1219,7 @@ bool FRepLayout::ReceiveProperties_AnyArray_r(
 	{
 		const int32 ElementOffset = i * ElementSize;
 
-		if ( !ReceiveProperties_r( ReaderState, CmdStart, CmdEnd, StoredData + ElementOffset, Data + ElementOffset, bDiscard ) )
+		if ( !ReceiveProperties_r( ReaderState, UnmappedGuids, AbsOffset + ElementOffset, CmdStart, CmdEnd, StoredData + ElementOffset, Data + ElementOffset, bDiscard ) )
 		{
 			return false;
 		}
@@ -1213,6 +1230,8 @@ bool FRepLayout::ReceiveProperties_AnyArray_r(
 
 bool FRepLayout::ReceiveProperties_DynamicArray_r( 
 	FRepReaderState &		ReaderState, 
+	FUnmappedGuidMgr *		UnmappedGuids,
+	const int32				AbsOffset,
 	const FRepLayoutCmd &	Cmd, 
 	const int32				CmdIndex, 
 	uint8 * RESTRICT		StoredData, 
@@ -1236,6 +1255,25 @@ bool FRepLayout::ReceiveProperties_DynamicArray_r(
 	{
 		FScriptArray * Array = (FScriptArray *)Data;
 		FScriptArray * StoredArray = (FScriptArray *)StoredData;
+
+#if ENABLE_CLIENT_UNMAP_LOGIC == 1
+		// Since we don't know yet if something under us could be unmapped, go ahead and allocate an array container now
+		FUnmappedGuidMgrElement * NewArrayElement = UnmappedGuids->Map.Find( AbsOffset );
+
+		if ( NewArrayElement == NULL )
+		{
+			NewArrayElement = &UnmappedGuids->Map.FindOrAdd( AbsOffset );
+			NewArrayElement->Array = new FUnmappedGuidMgr;
+			NewArrayElement->ParentIndex = Cmd.ParentIndex;
+			NewArrayElement->CmdIndex = CmdIndex;
+		}
+
+		check( NewArrayElement != NULL );
+		check( NewArrayElement->ParentIndex == Cmd.ParentIndex );
+		check( NewArrayElement->CmdIndex == CmdIndex );
+
+		UnmappedGuids = NewArrayElement->Array;
+#endif
 
 		const FRepParentCmd & Parent = Parents[Cmd.ParentIndex];
 
@@ -1261,7 +1299,7 @@ bool FRepLayout::ReceiveProperties_DynamicArray_r(
 	ReaderState.CurrentHandle = 0;
 
 	// Read any changed properties into the array
-	if ( !ReceiveProperties_AnyArray_r( ReaderState, ArrayNum, Cmd.ElementSize, CmdIndex, StoredData, Data, bDiscard ) )
+	if ( !ReceiveProperties_AnyArray_r( ReaderState, UnmappedGuids, 0, ArrayNum, Cmd.ElementSize, CmdIndex, StoredData, Data, bDiscard ) )
 	{
 		return false;
 	}
@@ -1277,6 +1315,8 @@ bool FRepLayout::ReceiveProperties_DynamicArray_r(
 
 bool FRepLayout::ReceiveProperties_r( 
 	FRepReaderState &	ReaderState, 
+	FUnmappedGuidMgr *	UnmappedGuids,
+	const int32			AbsOffset,
 	const int32			CmdStart, 
 	const int32			CmdEnd, 
 	uint8 * RESTRICT	StoredData, 
@@ -1291,7 +1331,7 @@ bool FRepLayout::ReceiveProperties_r(
 
 		if ( Cmd.Type == REPCMD_DynamicArray )
 		{
-			if ( !ReceiveProperties_DynamicArray_r( ReaderState, Cmd, CmdIndex, StoredData + Cmd.Offset, Data + Cmd.Offset, bDiscard ) )
+			if ( !ReceiveProperties_DynamicArray_r( ReaderState, UnmappedGuids, AbsOffset + Cmd.Offset, Cmd, CmdIndex, StoredData + Cmd.Offset, Data + Cmd.Offset, bDiscard ) )
 			{
 				return false;
 			}
@@ -1299,7 +1339,7 @@ bool FRepLayout::ReceiveProperties_r(
 			continue;
 		}
 
-		if ( !ReadProperty( ReaderState, Cmd, CmdIndex, StoredData, Data, bDiscard ) )
+		if ( !ReadProperty( ReaderState, UnmappedGuids, AbsOffset, Cmd, CmdIndex, StoredData, Data, bDiscard ) )
 		{
 			return false;
 		}
@@ -1308,7 +1348,7 @@ bool FRepLayout::ReceiveProperties_r(
 	return true;
 }
 
-bool FRepLayout::ReceiveProperties( UClass * InObjectClass, FRepState * RESTRICT RepState, void * RESTRICT Data, FNetBitReader & InBunch, bool bDiscard ) const
+bool FRepLayout::ReceiveProperties( UClass * InObjectClass, FRepState * RESTRICT RepState, void * RESTRICT Data, FNetBitReader & InBunch, bool bDiscard, bool & bOutHasUnmapped ) const
 {
 	check( InObjectClass == Owner );
 
@@ -1318,13 +1358,15 @@ bool FRepLayout::ReceiveProperties( UClass * InObjectClass, FRepState * RESTRICT
 	const bool bDoChecksum = false;
 #endif
 
+	bOutHasUnmapped = false;
+
 	FRepReaderState ReaderState( InBunch, RepState, bDoChecksum );
 
 	// Read first handle
 	ReadNextHandle( ReaderState );
 
 	// Read all properties
-	if ( !ReceiveProperties_r( ReaderState, 0, Cmds.Num() - 1, RepState->StaticBuffer.GetTypedData(), (uint8*)Data, bDiscard ) )
+	if ( !ReceiveProperties_r( ReaderState, &RepState->UnmappedGuids, 0, 0, Cmds.Num() - 1, RepState->StaticBuffer.GetTypedData(), (uint8*)Data, bDiscard ) )
 	{
 		return false;
 	}
@@ -1343,7 +1385,87 @@ bool FRepLayout::ReceiveProperties( UClass * InObjectClass, FRepState * RESTRICT
 	}
 #endif
 
+	bOutHasUnmapped = ReaderState.bHasUnmapped;
+
 	return true;
+}
+
+FUnmappedGuidMgrElement::~FUnmappedGuidMgrElement()
+{
+	if ( Array != NULL )
+	{
+		delete Array;
+		Array = NULL;
+	}
+}
+
+bool FRepLayout::UpdateUnmappedObjects_r( FRepState * RepState, FUnmappedGuidMgr * UnmappedGuids, UPackageMap * PackageMap, uint8 * RESTRICT Data, const int32 MaxAbsOffset ) const
+{
+	bool bHasUnmapped = false;
+
+	for ( auto It = UnmappedGuids->Map.CreateIterator(); It; ++It )
+	{
+		const int32 AbsOffset = It.Key();
+
+		if ( AbsOffset >= MaxAbsOffset )
+		{
+			// Array must have shrunk, we can remove this item
+			//UE_LOG( LogNet, Log, TEXT( "REMOVED unmapped property: AbsOffset >= MaxAbsOffset. Offset: %i" ), AbsOffset );
+			It.RemoveCurrent();
+			continue;
+		}
+
+		const FRepLayoutCmd & Cmd = Cmds[It.Value().CmdIndex];
+		const FRepParentCmd & Parent = Parents[It.Value().ParentIndex];
+
+		if ( It.Value().Array != NULL )
+		{
+			check( Cmd.Type == REPCMD_DynamicArray );
+			FScriptArray * Array = (FScriptArray *)( Data + AbsOffset );
+			if ( UpdateUnmappedObjects_r( RepState, It.Value().Array, PackageMap, (uint8*)Array->GetData(), Array->Num() * Cmd.ElementSize ) )
+			{
+				bHasUnmapped = true;
+			}
+			continue;
+		}
+
+		check( Cmd.Type == REPCMD_PropertyObject );
+
+		UObject * Object = PackageMap->GetObjectFromNetGUID( It.Value().Guid );
+
+		if ( Object != NULL )
+		{
+			//UE_LOG( LogNet, Log, TEXT( "REMOVED unmapped property: Offset: %i, Guid: %s, PropName: %s, ObjName: %s" ), AbsOffset, *It.Value().Guid.ToString(), *Cmd.Property->GetName(), *Object->GetName() );
+			UObjectPropertyBase * ObjProperty = CastChecked< UObjectPropertyBase>( Cmd.Property );
+
+			UObject * OldObject = ObjProperty->GetObjectPropertyValue( Data + AbsOffset );
+
+			ObjProperty->SetObjectPropertyValue( Data + AbsOffset, Object );
+
+			if ( OldObject != Object && Parent.Property->HasAnyPropertyFlags( CPF_RepNotify ) )
+			{
+				RepState->RepNotifies.AddUnique( Parent.Property );
+			} 
+
+			It.RemoveCurrent();
+			continue;
+		}
+
+		bHasUnmapped = true;
+
+		//UE_LOG( LogNet, Warning, TEXT( "UnmappedGuids: Offset: %i, Guid: %s" ), AbsOffset, *It.Value().Guid.ToString() );
+	}
+
+	return bHasUnmapped;
+}
+
+bool FRepLayout::UpdateUnmappedObjects( FRepState *	RepState, UPackageMap * PackageMap, void * RESTRICT Data ) const
+{
+#if ENABLE_CLIENT_UNMAP_LOGIC == 0
+	return false;
+#else
+	return UpdateUnmappedObjects_r( RepState, &RepState->UnmappedGuids, PackageMap, (uint8*)Data, RepState->StaticBuffer.Num() );
+#endif
 }
 
 void FRepLayout::CallRepNotifies( FRepState * RepState, UObject * Object ) const
@@ -2100,6 +2222,9 @@ void FRepLayout::InitFromObjectClass( UClass * InObjectClass )
 		// Fix Lifetime props to have the proper index to the parent
 		for ( int32 i = 0; i < LifetimeProps.Num(); i++ )
 		{
+			// Store the condition on the parent in case we need it (for now we use this for COND_OwnerOrNotNull)
+			Parents[LifetimeProps[i].RepIndex].Condition = LifetimeProps[i].Condition;
+
 			if ( Parents[LifetimeProps[i].RepIndex].Flags & PARENT_IsCustomDelta )
 			{
 				continue;		// We don't handle custom properties in the FRepLayout class
@@ -2386,6 +2511,7 @@ void FRepLayout::RebuildConditionalProperties( FRepState * RESTRICT	RepState, co
 	ConditionMap[COND_InitialOnly]			= bIsInitial;
 
 	ConditionMap[COND_OwnerOnly]			= bIsOwner;
+	ConditionMap[COND_OwnerOrNotNull]		= true;			// We always put these in the list so we can do special logic at send time
 	ConditionMap[COND_SkipOwner]			= !bIsOwner;
 
 	ConditionMap[COND_SimulatedOnly]		= bIsSimulated;

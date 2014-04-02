@@ -13,4 +13,5 @@ class UBlackboardKeyType_Vector : public UBlackboardKeyType
 	virtual FString DescribeValue(const uint8* RawData) const OVERRIDE;
 	virtual bool GetLocation(const uint8* RawData, FVector& Location) const OVERRIDE;
 	virtual int32 Compare(const uint8* MemoryBlockA, const uint8* MemoryBlockB) const OVERRIDE;
+	virtual void Initialize(uint8* RawData) const OVERRIDE;
 };

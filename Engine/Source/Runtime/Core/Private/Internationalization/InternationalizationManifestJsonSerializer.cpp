@@ -405,8 +405,10 @@ void FInternationalizationManifestJsonSerializer::StructuredDataToJsonObj( TShar
 		}
 
 		// Add escapes for special chars - doesn't do backslash
-		FString ProcessedText = Entry->Source.Text.ReplaceQuotesWithEscapedQuotes();
-		SourceNode->SetStringField( TAG_SOURCE_TEXT, ProcessedText );
+		{
+			FString ProcessedText = Entry->Source.Text.ReplaceQuotesWithEscapedQuotes();
+			SourceNode->SetStringField(TAG_SOURCE_TEXT, ProcessedText);
+		}
 
 		EntryNode->SetObjectField( TAG_SOURCE, SourceNode );
 

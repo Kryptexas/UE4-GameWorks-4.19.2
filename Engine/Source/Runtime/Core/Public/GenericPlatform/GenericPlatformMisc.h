@@ -463,6 +463,22 @@ public:
 	{
 	}
 
+	enum EScreenSaverAction
+	{
+		Disable,
+		Enable
+	};
+	/**
+	 * Disables screensaver (if platform supports such an API)
+	 *
+	 * @param Action enable or disable
+	 * @return true if succeeded, false if platform does not have this API and PreventScreenSaver() hack is needed
+	 */
+	static bool ControlScreensaver(EScreenSaverAction Action)
+	{
+		return false;
+	}
+
 	/*
 	 *	Shows the intial game window in the proper position and size.
 	 *	It also changes the window proc from StartupWindowProc to

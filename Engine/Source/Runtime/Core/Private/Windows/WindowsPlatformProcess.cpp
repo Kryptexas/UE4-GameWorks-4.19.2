@@ -146,18 +146,86 @@ void FWindowsPlatformProcess::PopDllDirectory(const TCHAR* Directory)
 
 void FWindowsPlatformProcess::LaunchURL( const TCHAR* URL, const TCHAR* Parms, FString* Error )
 {
-	check( URL );
-	const FString URLParams = FString::Printf( TEXT("%s %s"), URL, Parms?Parms:TEXT("") ).TrimTrailing();
-	
-	if ( URLParams.StartsWith( TEXT("http://") ) || URLParams.StartsWith( TEXT("https://") ) )
+	// Initialize the error to empty string.
+	if (Error)
 	{
-		UE_LOG(LogWindows, Log, TEXT("LaunchURL %s"), *URLParams);
+		*Error = TEXT("");
+	}
 
-		// Specify the browser to open the URL with as windows won't pass anchor points on to file:/// urls that are open via explorer
-		const HINSTANCE Code = ::ShellExecuteW(NULL, TEXT("open"), *FWindowsPlatformMisc::GetDefaultBrowser(), *URLParams, TEXT(""), SW_SHOWNORMAL);
-		if (Error)
+	check( URL );
+	FString URLParams = FString::Printf(TEXT("%s %s"), URL, Parms ? Parms : TEXT("")).TrimTrailing();
+		
+	UE_LOG(LogWindows, Log, TEXT("LaunchURL %s"), *URLParams);
+
+	FString BrowserOpenCommand;
+
+	// First lookup the program Id for the default browser.
+	FString ProgId;
+	if ( FWindowsPlatformMisc::QueryRegKey(HKEY_CURRENT_USER, TEXT("Software\\Microsoft\\Windows\\Shell\\Associations\\UrlAssociations\\http\\UserChoice"), TEXT("Progid"), ProgId) )
+	{
+		// If we found it, then lookup it's open shell command in the classes registry.
+		FString BrowserRegPath = ProgId + TEXT("\\shell\\open\\command");
+		FWindowsPlatformMisc::QueryRegKey(HKEY_CLASSES_ROOT, *BrowserRegPath, NULL, BrowserOpenCommand);
+	}
+
+	// If we failed to find a default browser using the newer location, revert to using shell open command for the HTTP file association.
+	if ( BrowserOpenCommand.IsEmpty() )
+	{
+		FWindowsPlatformMisc::QueryRegKey(HKEY_CLASSES_ROOT, TEXT("http\\shell\\open\\command"), NULL, BrowserOpenCommand);
+	}
+
+	// If we have successfully looked up the correct shell command, then we can create a new process using that command
+	// we do this instead of shell execute due to security concerns.  By starting the browser directly we avoid most issues.
+	if ( !BrowserOpenCommand.IsEmpty() )
+	{
+		FString ExePath, ExeArgs;
+
+		// If everything has gone to plan, the shell command should be something like this:
+		// "C:\Program Files (x86)\Mozilla Firefox\firefox.exe" -osint -url "%1"
+		// We need to extract out the executable portion, and the arguments portion and expand any %1's with the URL,
+		// then start the browser process.
+
+		// Extract the exe and any arguments to the executable.
+		const int32 FirstQuote = BrowserOpenCommand.Find(TEXT("\""));
+		if ( FirstQuote != INDEX_NONE )
 		{
-			*Error = ((PTRINT)Code <= 32) ? NSLOCTEXT("Core", "UrlFailed", "Failed launching URL").ToString() : TEXT("");
+			const int32 SecondQuote = BrowserOpenCommand.Find(TEXT("\""), ESearchCase::IgnoreCase, ESearchDir::FromStart, FirstQuote + 1);
+			if ( SecondQuote != INDEX_NONE )
+			{
+				ExePath = BrowserOpenCommand.Mid(FirstQuote + 1, ( SecondQuote - 1 ) - FirstQuote);
+				ExeArgs = BrowserOpenCommand.Mid(SecondQuote + 1);
+			}
+		}
+
+		// If anything failed to parse right, don't continue down this path, just use shell execute.
+		if ( !ExePath.IsEmpty() )
+		{
+			ExeArgs = ExeArgs.Replace(TEXT("%1"), *URLParams);
+
+			// Now that we have the shell open command to use, run the shell command in the open process with any and all parameters.
+			if ( FPlatformProcess::CreateProc(*ExePath, *ExeArgs, true, false, false, NULL, 0, NULL, NULL).IsValid() )
+			{
+				// Success!
+				return;
+			}
+			else
+			{
+				if ( Error )
+				{
+					*Error = NSLOCTEXT("Core", "UrlFailed", "Failed launching URL").ToString();
+				}
+			}
+		}
+	}
+
+	// If all else fails just do a shell execute and let windows sort it out.  But only do it if it's an
+	// HTTP or HTTPS address.  A malicious address could be problematic if just passed directly to shell execute.
+	if ( URLParams.StartsWith(TEXT("http://")) || URLParams.StartsWith(TEXT("https://")) )
+	{
+		const HINSTANCE Code = ::ShellExecuteW(NULL, TEXT("open"), *URLParams, NULL, NULL, SW_SHOWNORMAL);
+		if ( Error )
+		{
+			*Error = ( (PTRINT)Code <= 32 ) ? NSLOCTEXT("Core", "UrlFailed", "Failed launching URL").ToString() : TEXT("");
 		}
 	}
 }
@@ -326,13 +394,13 @@ bool FWindowsPlatformProcess::IsApplicationRunning( uint32 ProcessId )
 
 bool FWindowsPlatformProcess::IsApplicationRunning( const TCHAR* ProcName )
 {
-    // append the extension
+	// append the extension
 
-    FString ProcNameWithExtension = ProcName;
-    if( ProcNameWithExtension.Find( TEXT(".exe"), ESearchCase::IgnoreCase, ESearchDir::FromEnd ) == INDEX_NONE )
-    {
-        ProcNameWithExtension += TEXT(".exe");
-    }
+	FString ProcNameWithExtension = ProcName;
+	if( ProcNameWithExtension.Find( TEXT(".exe"), ESearchCase::IgnoreCase, ESearchDir::FromEnd ) == INDEX_NONE )
+	{
+		ProcNameWithExtension += TEXT(".exe");
+	}
 
 	HANDLE SnapShot = ::CreateToolhelp32Snapshot( TH32CS_SNAPPROCESS, 0 );
 	if( SnapShot != INVALID_HANDLE_VALUE )
@@ -643,11 +711,13 @@ const TCHAR* FWindowsPlatformProcess::GetBinariesSubdirectory()
 	return TEXT("Win32");
 }
 
-void FWindowsPlatformProcess::LaunchFileInDefaultExternalApplication( const TCHAR* FileName, const TCHAR* Parms /*= NULL*/ )
+void FWindowsPlatformProcess::LaunchFileInDefaultExternalApplication( const TCHAR* FileName, const TCHAR* Parms /*= NULL*/, ELaunchVerb::Type Verb /*= ELaunchVerb::Open*/ )
 {
+	TCHAR* VerbString = Verb == ELaunchVerb::Edit ? TEXT("edit") : TEXT("open");
+
 	// First attempt to open the file in its default application
 	UE_LOG(LogWindows, Log,  TEXT("LaunchFileInExternalEditor %s %s"), FileName, Parms ? Parms : TEXT("") );
-	HINSTANCE Code = ::ShellExecuteW( NULL, TEXT("open"), FileName, Parms ? Parms : TEXT(""), TEXT(""), SW_SHOWNORMAL );
+	HINSTANCE Code = ::ShellExecuteW( NULL, VerbString, FileName, Parms ? Parms : TEXT(""), TEXT(""), SW_SHOWNORMAL );
 	
 	UE_LOG(LogWindows, Log,  TEXT("Launch application code for %s %s: %d"), FileName, Parms ? Parms : TEXT(""), (PTRINT)Code );
 
@@ -656,7 +726,7 @@ void FWindowsPlatformProcess::LaunchFileInDefaultExternalApplication( const TCHA
 	// an application to use.
 	if ( (PTRINT)Code == SE_ERR_NOASSOC || (PTRINT)Code == SE_ERR_ASSOCINCOMPLETE )
 	{
-		::ShellExecuteW( NULL, TEXT("open"), TEXT("RUNDLL32.EXE"), *FString::Printf( TEXT("shell32.dll,OpenAs_RunDLL %s"), FileName ), TEXT(""), SW_SHOWNORMAL );
+		::ShellExecuteW( NULL, VerbString, TEXT("RUNDLL32.EXE"), *FString::Printf( TEXT("shell32.dll,OpenAs_RunDLL %s"), FileName ), TEXT(""), SW_SHOWNORMAL );
 	}
 }
 
@@ -838,3 +908,127 @@ FString FWindowsPlatformProcess::ReadPipe( void* ReadPipe )
 
 	return Output;
 }
+
+#include "AllowWindowsPlatformTypes.h"
+
+FWindowsPlatformProcess::FWindowsSemaphore::FWindowsSemaphore(const FString & InName, HANDLE InSemaphore)
+	:	FSemaphore(InName)
+	,	Semaphore(InSemaphore)
+{
+}
+
+FWindowsPlatformProcess::FWindowsSemaphore::~FWindowsSemaphore()
+{
+	// actual cleanup should be done in DeleteInterprocessSynchObject() since it can return errors
+}
+
+void FWindowsPlatformProcess::FWindowsSemaphore::Lock()
+{
+	check(Semaphore);
+	DWORD WaitResult = WaitForSingleObject(Semaphore, INFINITE);
+	if (WaitResult != WAIT_OBJECT_0)
+	{
+		DWORD ErrNo = GetLastError();
+		UE_LOG(LogHAL, Warning, TEXT("WaitForSingleObject(,INFINITE) for semaphore '%s' failed with return code 0x%08x and LastError = %d"),
+			GetName(),
+			WaitResult,
+			ErrNo);
+	}
+}
+
+bool FWindowsPlatformProcess::FWindowsSemaphore::TryLock(uint64 NanosecondsToWait)
+{
+	check(Semaphore);
+	DWORD MillisecondsToWait = NanosecondsToWait / 1000000ULL;
+	DWORD WaitResult = WaitForSingleObject(Semaphore, MillisecondsToWait);
+	if (WaitResult != WAIT_OBJECT_0 && WaitResult != WAIT_TIMEOUT)	// timeout is not a warning
+	{
+		DWORD ErrNo = GetLastError();
+		UE_LOG(LogHAL, Warning, TEXT("WaitForSingleObject(,INFINITE) for semaphore '%s' failed with return code 0x%08x and LastError = %d"),
+			GetName(),
+			WaitResult,
+			ErrNo);
+	}
+
+	return WaitResult == WAIT_OBJECT_0;
+}
+
+void FWindowsPlatformProcess::FWindowsSemaphore::Unlock()
+{
+	check(Semaphore);
+	if (!ReleaseSemaphore(Semaphore, 1, NULL))
+	{
+		DWORD ErrNo = GetLastError();
+		UE_LOG(LogHAL, Warning, TEXT("ReleaseSemaphore(,ReleaseCount=1,) for semaphore '%s' failed with LastError = %d"),
+			GetName(),
+			ErrNo);
+	}
+}
+
+FWindowsPlatformProcess::FSemaphore * FWindowsPlatformProcess::NewInterprocessSynchObject(const FString & Name, bool bCreate, uint32 MaxLocks)
+{
+	HANDLE Semaphore = NULL;
+	
+	if (bCreate)
+	{
+		Semaphore = CreateSemaphore(NULL, MaxLocks, MaxLocks, *Name);
+		if (NULL == Semaphore)
+		{
+			DWORD ErrNo = GetLastError();
+			UE_LOG(LogHAL, Warning, TEXT("CreateSemaphore(Attrs=NULL, InitialValue=%d, MaxValue=%d, Name='%s') failed with LastError = %d"),
+				MaxLocks, MaxLocks,
+				*Name,
+				ErrNo);
+			return NULL;
+		}
+	}
+	else
+	{
+		DWORD AccessRights = SYNCHRONIZE | SEMAPHORE_MODIFY_STATE;
+		Semaphore = OpenSemaphore(AccessRights, false, *Name);
+		if (NULL == Semaphore)
+		{
+			DWORD ErrNo = GetLastError();
+			UE_LOG(LogHAL, Warning, TEXT("OpenSemaphore(AccessRights=0x%08x, bInherit=false, Name='%s') failed with LastError = %d"),
+				AccessRights,
+				*Name,
+				ErrNo);
+			return NULL;
+		}
+	}
+	check(Semaphore);
+
+	return new FWindowsSemaphore(Name, Semaphore);
+}
+
+bool FWindowsPlatformProcess::DeleteInterprocessSynchObject(FSemaphore * Object)
+{
+	if (NULL == Object)
+	{
+		return false;
+	}
+
+	FWindowsSemaphore * WinSem = static_cast< FWindowsSemaphore * >(Object);
+	check( WinSem );
+
+	HANDLE Semaphore = WinSem->GetSemaphore();
+	bool bSucceeded = false;
+	if (Semaphore)
+	{
+		bSucceeded = (CloseHandle(Semaphore) == TRUE);
+		if (!bSucceeded)
+		{
+			DWORD ErrNo = GetLastError();
+			UE_LOG(LogHAL, Warning, TEXT("CloseHandle() for semaphore '%s' failed with LastError = %d"),
+				Object->GetName(),
+				ErrNo);
+		}
+	}
+
+	// delete anyways
+	delete WinSem;
+
+	return bSucceeded;
+}
+
+#include "HideWindowsPlatformTypes.h"

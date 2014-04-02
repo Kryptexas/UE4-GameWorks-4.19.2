@@ -326,7 +326,7 @@ typedef uint64 EClassCastFlags;
 #define CPF_BlueprintAuthorityOnly			DECLARE_UINT64(0x0000200000000000)		// MC Delegates only.  This delegate accepts (only in blueprint) only events with BlueprintAuthorityOnly.
 #define CPF_TextExportTransient				DECLARE_UINT64(0x0000400000000000)		// Property shouldn't be exported to text format (e.g. copy/paste)
 #define CPF_NonPIETransient					DECLARE_UINT64(0x0000800000000000)		// Property should only be copied in PIE
-
+#define CPF_ExposeOnSpawn					DECLARE_UINT64(0x0001000000000000)		// Property is exposed on spawn
 
 /** @name Combinations flags */
 //@{

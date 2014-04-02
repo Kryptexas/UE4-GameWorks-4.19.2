@@ -92,11 +92,12 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 						.HAlign( HAlign_Left )
 						.Padding(0,0,4,0)
 						[
-							SNew( STutorialWrapper )
-							.Name( TEXT( "ContentBrowserNewAsset" ) )
+							SNew( STutorialWrapper, TEXT("ContentBrowserNewAsset") )
 							[
 								SNew( SComboButton )
 								.ComboButtonStyle( FEditorStyle::Get(), "ContentBrowser.NewAsset.Style" )
+								.ForegroundColor(FLinearColor::White)
+								.ContentPadding(0)
 								.OnGetMenuContent( this, &SContentBrowser::MakeCreateAssetContextMenu )
 								.ToolTipText( this, &SContentBrowser::GetNewAssetToolTipText )
 								.IsEnabled( this, &SContentBrowser::IsAssetPathSelected )
@@ -134,8 +135,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 						.HAlign( HAlign_Left )
 						.Padding(0,0,10,0)
 						[
-							SNew( STutorialWrapper )
-							.Name( TEXT( "ContentBrowserImportAsset" ) )
+							SNew( STutorialWrapper, TEXT("ContentBrowserImportAsset") )
 							[
 								SNew( SButton )
 								.ButtonStyle( FEditorStyle::Get(), "ToggleButton" )
@@ -175,8 +175,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 						.VAlign(VAlign_Center)
 						.HAlign(HAlign_Left)
 						[
-							SNew( STutorialWrapper )
-							.Name( TEXT( "ContentBrowserSaveDirtyPackages" ) )
+							SNew( STutorialWrapper, TEXT("ContentBrowserSaveDirtyPackages") )
 							[
 								SNew( SButton )
 								.ButtonStyle( FEditorStyle::Get(), "ToggleButton" )
@@ -212,8 +211,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 						+ SVerticalBox::Slot()
 						.FillHeight(1.0f)
 						[
-							SNew(STutorialWrapper)
-							.Name(TEXT("ContentBrowserHistoryBack"))
+							SNew( STutorialWrapper, TEXT("ContentBrowserHistoryBack") )
 							[
 								SNew(SButton)
 								.VAlign(EVerticalAlignment::VAlign_Center)
@@ -241,8 +239,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 						+ SVerticalBox::Slot()
 						.FillHeight(1.0f)
 						[
-							SNew(STutorialWrapper)
-							.Name(TEXT("ContentBrowserHistoryForward"))
+							SNew(STutorialWrapper, "ContentBrowserHistoryForward")
 							[
 								SNew(SButton)
 								.VAlign(EVerticalAlignment::VAlign_Center)
@@ -274,11 +271,11 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 					.AutoWidth()
 					.VAlign( VAlign_Fill )
 					[
-						SNew( STutorialWrapper )
-						.Name( TEXT( "ContentBrowserPathPicker" ) )
+						SNew( STutorialWrapper, TEXT("ContentBrowserPathPicker") )
 						[
 							SAssignNew( PathPickerButton, SComboButton )
 							.ComboButtonStyle( FEditorStyle::Get(), "ToolbarComboButton" )
+							.ForegroundColor(FLinearColor::White)
 							.ToolTipText( LOCTEXT( "PathPickerTooltip", "Choose a path" ) )
 							.OnGetMenuContent( this, &SContentBrowser::GetPathPickerContent )
 							.HasDownArrow( false )
@@ -302,8 +299,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 						.VAlign(VAlign_Center)
 						.FillWidth(1.0f)
 						[
-							SNew(STutorialWrapper)
-							.Name(TEXT("ContentBrowserPath"))
+							SNew( STutorialWrapper, TEXT("ContentBrowserPath") )
 							[
 								SAssignNew(PathBreadcrumbTrail, SBreadcrumbTrail<FString>)
 								//.ToolTipText( LOCTEXT("PathTooltip", "Content Path") )
@@ -328,8 +324,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 						+ SVerticalBox::Slot()
 						.FillHeight(1.0f)
 						[
-							SNew( STutorialWrapper )
-							.Name( TEXT( "ContentBrowserLock" ) )
+							SNew( STutorialWrapper, TEXT("ContentBrowserLock") )
 							[
 								SNew(SButton)
 								.VAlign(EVerticalAlignment::VAlign_Center)
@@ -377,8 +372,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 						.Padding(FMargin(3))
 						.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
 						[
-							SNew( STutorialWrapper )
-							.Name( TEXT( "ContentBrowserSources" ) )
+							SNew( STutorialWrapper, TEXT("ContentBrowserSources") )
 							[
 								SAssignNew( PathViewPtr, SPathView )
 								.OnPathSelected( this, &SContentBrowser::PathSelected )
@@ -389,8 +383,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 								.ShowSeparator( false )
 								.SearchContent()
 								[
-									SNew( STutorialWrapper )
-									.Name( TEXT( "ContentBrowserSourcesToggle" ) )
+									SNew( STutorialWrapper, TEXT("ContentBrowserSourcesToggle") )
 									[
 										SNew( SVerticalBox )
 
@@ -424,8 +417,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 						.Padding(FMargin(3))
 						.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
 						[
-							SNew( STutorialWrapper )
-							.Name( TEXT( "ContentBrowserCollections" ) )
+							SNew( STutorialWrapper, TEXT("ContentBrowserCollections") )
 							[
 								SAssignNew(CollectionViewPtr, SCollectionView)
 								.OnCollectionSelected(this, &SContentBrowser::CollectionSelected)
@@ -456,8 +448,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 						.AutoWidth()
 						.Padding( 0, 0, 4, 0 )
 						[
-							SNew( STutorialWrapper )
-							.Name( TEXT( "ContentBrowserSourcesToggle" ) )
+							SNew( STutorialWrapper, TEXT("ContentBrowserSourcesToggle") )
 							[
 								SNew( SVerticalBox )
 
@@ -484,11 +475,12 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 						+ SHorizontalBox::Slot()
 						.AutoWidth()
 						[
-							SNew( STutorialWrapper )
-							.Name( TEXT( "ContentBrowserFiltersCombo" ) )
+							SNew( STutorialWrapper, TEXT("ContentBrowserFiltersCombo") )
 							[
 								SNew( SComboButton )
 								.ComboButtonStyle( FEditorStyle::Get(), "ContentBrowser.Filters.Style" )
+								.ForegroundColor(FLinearColor::White)
+								.ContentPadding(0)
 								.ToolTipText( LOCTEXT( "AddFilterToolTip", "Add an asset filter." ) )
 								.OnGetMenuContent( this, &SContentBrowser::MakeAddFilterMenu )
 								.HasDownArrow( true )
@@ -508,8 +500,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 						.VAlign(VAlign_Center)
 						.FillWidth(1.0f)
 						[
-							SNew(STutorialWrapper)
-							.Name(TEXT("ContentBrowserSearchAssets"))
+							SNew( STutorialWrapper, TEXT("ContentBrowserSearchAssets") )
 							[
 								SAssignNew(SearchBoxPtr, SAssetSearchBox)
 								.HintText( this, &SContentBrowser::GetSearchAssetsHintText )
@@ -525,8 +516,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 					+ SVerticalBox::Slot()
 					.AutoHeight()
 					[
-						SNew( STutorialWrapper )
-						.Name( TEXT( "ContentBrowserFilters" ) )
+						SNew( STutorialWrapper, TEXT("ContentBrowserFilters") )
 						[
 							SAssignNew(FilterListPtr, SFilterList)
 							.OnFilterChanged(this, &SContentBrowser::OnFilterChanged)
@@ -540,8 +530,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 					.FillHeight( 1.0f )
 					.Padding( 0 )
 					[
-						SNew( STutorialWrapper )
-						.Name( TEXT( "ContentBrowserAssets" ) )
+						SNew( STutorialWrapper, TEXT("ContentBrowserAssets") )
 						[
 							SAssignNew(AssetViewPtr, SAssetView)
 							.ThumbnailScale( 0.0f )

@@ -1454,26 +1454,6 @@ IMPLEMENT_VM_FUNCTION( EX_FinalFunction, execFinalFunction );
 class FCallDelegateHelper
 {
 public:
-	static void CheckEqualParamSize(const FMulticastScriptDelegate& MulticastDelegate, const UFunction* SignatureFunction)
-	{
-		check(SignatureFunction);
-		const uint32 ParamSize = SignatureFunction->ParmsSize;
-		for (auto FunctionIt = MulticastDelegate.InvocationList.CreateConstIterator(); FunctionIt; ++FunctionIt)
-		{
-			if( FunctionIt->IsBound() )
-			{
-				const UObject* Obj = FunctionIt->GetObject();
-				FName FunctionName = FunctionIt->GetFunctionName();
-				if(Obj && (FunctionName != NAME_None))
-				{
-					UFunction* Function = Obj->FindFunctionChecked( FunctionName );
-					check(Function->ParmsSize == ParamSize);
-					check(SignatureFunction->IsSignatureCompatibleWith(Function));
-				}
-			}
-		}
-	}
-
 	static void CallMulticastDelegate(FFrame& Stack)
 	{
 		//Get delegate
@@ -1483,7 +1463,6 @@ public:
 		Stack.Step( Stack.Object, NULL );
 		const FMulticastScriptDelegate* DelegateAddr = (FMulticastScriptDelegate*)Stack.MostRecentPropertyAddress;
 		check(NULL != DelegateAddr);
-		CheckEqualParamSize(*DelegateAddr, SignatureFunction);
 
 		//Fill parameters
 		uint8* Parameters = (uint8*)FMemory_Alloca(SignatureFunction->ParmsSize);
@@ -1871,8 +1850,7 @@ void UObject::execInterfaceCast( FFrame& Stack, RESULT_DECL )
 {
 	(Stack.Object->*GCasts[CST_ObjectToInterface])(Stack, Result);
 }
-IMPLEMENT_VM_FUNCTION( EX_InterfaceCast, execInterfaceCast );
-
+IMPLEMENT_VM_FUNCTION( EX_ObjToInterfaceCast, execInterfaceCast );
 
 void UObject::execObjectToBool( FFrame& Stack, RESULT_DECL )
 {
@@ -1915,3 +1893,32 @@ void UObject::execObjectToInterface( FFrame& Stack, RESULT_DECL )
 	}
 }
 IMPLEMENT_CAST_FUNCTION( UObject, CST_ObjectToInterface, execObjectToInterface );
+
+void UObject::execInterfaceToInterface( FFrame& Stack, RESULT_DECL )
+{
+	FScriptInterface& CastResult = *(FScriptInterface*)Result;
+
+	// read the interface class off the stack
+	UClass* ClassToCastTo = Cast<UClass>(Stack.ReadObject());
+	checkSlow(ClassToCastTo != NULL);
+	checkSlow(ClassToCastTo->HasAnyClassFlags(CLASS_Interface));
+
+	// read the input interface-object off the stack
+	FScriptInterface InterfaceInput;
+	Stack.Step(Stack.Object, &InterfaceInput);
+
+	UObject* ObjectWithInterface = InterfaceInput.GetObjectRef();
+	if ((ObjectWithInterface != NULL) && ObjectWithInterface->GetClass()->ImplementsInterface(ClassToCastTo))
+	{
+		CastResult.SetObject(ObjectWithInterface);
+
+		void* IAddress = ObjectWithInterface->GetInterfaceAddress(ClassToCastTo);
+		CastResult.SetInterface(IAddress);
+	}
+	else
+	{
+ 		CastResult.SetObject(NULL);
+ 	}
+}
+IMPLEMENT_VM_FUNCTION( EX_CrossInterfaceCast, execInterfaceToInterface );
+

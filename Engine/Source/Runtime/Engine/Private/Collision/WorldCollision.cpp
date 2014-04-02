@@ -570,13 +570,6 @@ bool UWorld::ComponentOverlapTest(class UPrimitiveComponent* PrimComp, const FVe
 		return false;
 	}
 
-	// if target is skeletalmeshcomponent and do not support singlebody physics, we don't support this yet
-	// talk to @JG, SP, LH
-	if ( !PrimComp->ShouldTrackOverlaps() )
-	{
-		UE_LOG(LogCollision, Log, TEXT("ComponentOverlapMulti : (%s) Does not support skeletalmesh with Physics Asset and destructibles."), *PrimComp->GetPathName());
-		return false;
-	}
 #if WITH_PHYSX
 	ECollisionChannel TraceChannel = PrimComp->GetCollisionObjectType();
 
@@ -645,12 +638,6 @@ bool UWorld::ComponentOverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, c
 		return false;
 	}
 
-	if ( !PrimComp->ShouldTrackOverlaps() )
-	{
-		UE_LOG(LogCollision, Warning, TEXT("ComponentOverlapMulti : (%s) not supported."), *PrimComp->GetPathName());
-		return false;
-	}
-
 	return PrimComp->ComponentOverlapMulti(OutOverlaps, this, Pos, Rot, TestChannel, Params, ObjectQueryParams);
 }
 
@@ -669,14 +656,7 @@ bool UWorld::ComponentSweepSingle(struct FHitResult& OutHit,class UPrimitiveComp
 		UE_LOG(LogCollision, Log, TEXT("ComponentSweepSingle : No PrimComp"));
 		return false;
 	}
-
-	// if target is skeletalmeshcomponent and do not support singlebody physics
-	if ( !PrimComp->ShouldTrackOverlaps() )
-	{
-		UE_LOG(LogCollision, Log, TEXT("ComponentSweepSingle : (%s) Does not support skeletalmesh with Physics Asset and destructibles."), *PrimComp->GetPathName());
-		return false;
-	}
-
+	
 	ECollisionChannel TraceChannel = PrimComp->GetCollisionObjectType();
 #if WITH_PHYSX
 	// if extent is 0, do line trace
@@ -746,13 +726,6 @@ bool UWorld::ComponentSweepMulti(TArray<struct FHitResult>& OutHits, class UPrim
 	if(PrimComp == NULL)
 	{
 		UE_LOG(LogCollision, Log, TEXT("ComponentSweepMulti : No PrimComp"));
-		return false;
-	}
-
-	// if target is skeletalmeshcomponent and do not support singlebody physics
-	if ( !PrimComp->ShouldTrackOverlaps() )
-	{
-		UE_LOG(LogCollision, Log, TEXT("ComponentSweepMulti : (%s) Does not support skeletalmesh with Physics Asset and destructibles."), *PrimComp->GetPathName());
 		return false;
 	}
 

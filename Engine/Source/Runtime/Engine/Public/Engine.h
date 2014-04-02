@@ -47,6 +47,10 @@
 #endif//WITH_CLOTH_COLLISION_DETECTION
 #endif //WITH_APEX_CLOTHING
 
+#ifndef WITH_BODY_WELDING
+	//#define WITH_BODY_WELDING 1
+#endif
+
 #ifndef ENABLE_VISUAL_LOG
 	#define ENABLE_VISUAL_LOG (1 && !NO_LOGGING && !USING_CODE_ANALYSIS && !(UE_BUILD_SHIPPING || UE_BUILD_TEST))
 #endif
@@ -553,7 +557,6 @@ class FSceneView;
 class FSceneViewFamily;
 class FViewportClient;
 class FCanvas;
-class FLinkedObjectDrawHelper;
 class UActorChannel;
 class FAudioDevice;
 

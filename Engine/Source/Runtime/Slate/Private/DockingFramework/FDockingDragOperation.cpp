@@ -226,7 +226,6 @@ void FDockingDragOperation::SetHoveredTarget( const FDockTarget& InTarget, const
 TSharedRef<FDockingDragOperation> FDockingDragOperation::New( const TSharedRef<class SDockTab>& InTabToBeDragged, const FVector2D InTabGrabOffset, TSharedRef<class SDockingArea> InTabOwnerArea, const FVector2D& OwnerAreaSize )
 {
 	const TSharedRef<FDockingDragOperation> Operation = MakeShareable( new FDockingDragOperation( InTabToBeDragged, InTabGrabOffset, InTabOwnerArea, OwnerAreaSize ) );
-	FSlateApplication::GetDragDropReflector().RegisterOperation<FDockingDragOperation>(Operation);
 	return Operation;
 }
 

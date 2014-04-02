@@ -94,8 +94,8 @@ protected:
 	void	InternalWriteObject( FArchive& Ar, FNetworkGUID NetGUID, const UObject * Object, FString ObjectPathName, UObject* ObjectOuter );	
 	void	InternalWriteObjectPath( FArchive& Ar, FNetworkGUID NetGUID, const UObject * Object, FString ObjectPathName, UObject* ObjectOuter );
 
-	FNetworkGUID	InternalLoadObject( FArchive& Ar, UObject*& Object);
-	bool			InternalLoadObjectPath( FArchive& Ar, UObject*& Object, FNetworkGUID NetGUID);
+	FNetworkGUID	InternalLoadObject( FArchive& Ar, UObject*& Object, int InternalLoadObjectRecursionCount);
+	bool			InternalLoadObjectPath( FArchive& Ar, UObject*& Object, FNetworkGUID NetGUID, int InternalLoadObjectRecursionCount);
 
 	bool	ShouldSendFullPath(const UObject* Object, const FNetworkGUID &NetGUID);
 

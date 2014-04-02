@@ -1527,7 +1527,7 @@ float UAnimInstance::Montage_GetPlayRate(UAnimMontage* Montage)
 void UAnimInstance::Montage_SetPlayRate(UAnimMontage* Montage, float NewPlayRate)
 {
 	FAnimMontageInstance* CurMontageInstance = GetActiveMontageInstance();
-	if( CurMontageInstance )
+	if( CurMontageInstance && (CurMontageInstance->Montage == Montage) && CurMontageInstance->IsPlaying() )
 	{
 		CurMontageInstance->PlayRate = NewPlayRate;
 	}

@@ -473,6 +473,10 @@ UMaterial::UMaterial(const class FPostConstructInitializeProperties& PCIP)
 
 	bUseEmissiveForDynamicAreaLighting = false;
 	RefractionDepthBias = 0.0f;
+	MaterialDecalResponse = MDR_ColorNormalRoughness;
+
+	bAllowDevelopmentShaderCompile = true;
+	bIsMaterialDevelopmentOverheadStatsMaterial = false;
 
 #if WITH_EDITORONLY_DATA
 	MaterialGraph = NULL;
@@ -1941,6 +1945,13 @@ bool UMaterial::CanEditChange(const UProperty* InProperty) const
 			return BlendMode == BLEND_Masked;
 		}
 
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, MaterialDecalResponse))
+		{
+			static auto* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.DBuffer"));
+
+			return CVar->GetValueOnGameThread() > 0;
+		}		
+
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, BlendableLocation) ||
 			PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, BlendablePriority)
 			)
@@ -1976,7 +1987,13 @@ bool UMaterial::CanEditChange(const UProperty* InProperty) const
 
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bEnableSeparateTranslucency)
 			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bEnableResponsiveAA)
-			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, TranslucencyLightingMode)
+			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bDisableDepthTest)
+			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bUseTranslucencyVertexFog))
+		{
+			return IsTranslucentBlendMode(BlendMode);
+		}
+
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, TranslucencyLightingMode)
 			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, TranslucencyDirectionalLightingIntensity)
 			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, TranslucentShadowDensityScale)
 			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, TranslucentSelfShadowDensityScale)
@@ -1984,11 +2001,9 @@ bool UMaterial::CanEditChange(const UProperty* InProperty) const
 			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, TranslucentSelfShadowSecondOpacity)
 			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, TranslucentBackscatteringExponent)
 			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, TranslucentMultipleScatteringExtinction)
-			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, TranslucentShadowStartOffset)
-			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bDisableDepthTest)
-			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, bUseTranslucencyVertexFog))
+			|| PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, TranslucentShadowStartOffset))
 		{
-			return IsTranslucentBlendMode(BlendMode);
+			return IsTranslucentBlendMode(BlendMode) && LightingModel != MLM_Unlit;
 		}
 	}
 
@@ -2060,7 +2075,7 @@ void UMaterial::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEve
 		// Ensure that any components with static elements using this material are reregistered so changes
 		// are propagated to them. The preview material is only applied to the preview mesh component,
 		// and that reregister is handled by the material editor.
-		if( !bIsPreviewMaterial )
+		if( !bIsPreviewMaterial && !bIsMaterialDevelopmentOverheadStatsMaterial )
 		{
 			FGlobalComponentReregisterContext RecreateComponents;
 		}

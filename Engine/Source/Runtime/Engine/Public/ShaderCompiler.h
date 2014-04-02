@@ -307,7 +307,8 @@ extern void GlobalBeginCompileShader(
 	const TCHAR* FunctionName,
 	FShaderTarget Target,
 	FShaderCompileJob* NewJob,
-	TArray<FShaderCompileJob*>& NewJobs
+	TArray<FShaderCompileJob*>& NewJobs,
+	bool bAllowDevelopmentShaderCompile = true
 	);
 
 /** Implementation of the 'recompileshaders' console command.  Recompiles shaders at runtime based on various criteria. */

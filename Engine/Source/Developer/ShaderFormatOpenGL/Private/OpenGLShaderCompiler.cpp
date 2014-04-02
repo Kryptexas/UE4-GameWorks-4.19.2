@@ -15,6 +15,7 @@
 #endif
 #include "ShaderPreprocessor.h"
 #include "hlslcc.h"
+#include "glsl/ir_gen_glsl.h"
 #if PLATFORM_WINDOWS
 #include "AllowWindowsPlatformTypes.h"
 	#include <GL/glcorearb.h>
@@ -985,6 +986,7 @@ static void OpenGLVersionFromGLSLVersion(GLSLVersion InVersion, int& OutMajorVer
 	switch(InVersion)
 	{
 		case GLSL_150:
+		case GLSL_150_MAC:
 			OutMajorVersion = 3;
 			OutMinorVersion = 2;
 			break;
@@ -1024,11 +1026,11 @@ static FString CreateGLSLES2CompilerArguments(const FString& ShaderFile, const F
 	const TCHAR* FrequencySwitch = TEXT("");
 	switch (Frequency)
 	{
-	case HLSLCC_PixelShader:
+	case HSF_PixelShader:
 		FrequencySwitch = TEXT(" -f");
 		break;
 
-	case HLSLCC_VertexShader:
+	case HSF_VertexShader:
 		FrequencySwitch = TEXT(" -v");
 		break;
 
@@ -1288,26 +1290,26 @@ static FString CreateCommandLineHLSLCC( const FString& ShaderFile, const FString
 	const TCHAR* FrequencySwitch = TEXT("");
 	switch (Frequency)
 	{
-		case HLSLCC_PixelShader:
+		case HSF_PixelShader:
 			FrequencySwitch = TEXT(" -ps");
 			break;
 
-		case HLSLCC_VertexShader:
+		case HSF_VertexShader:
 			FrequencySwitch = TEXT(" -vs");
 			break;
 
-		case HLSLCC_HullShader:
+		case HSF_HullShader:
 			FrequencySwitch = TEXT(" -hs");
 			break;
 
-		case HLSLCC_DomainShader:
+		case HSF_DomainShader:
 			FrequencySwitch = TEXT(" -ds");
 			break;
-		case HLSLCC_ComputeShader:
+		case HSF_ComputeShader:
 			FrequencySwitch = TEXT(" -cs");
 			break;
 
-		case HLSLCC_GeometryShader:
+		case HSF_GeometryShader:
 			FrequencySwitch = TEXT(" -gs");
 			break;
 
@@ -1320,6 +1322,10 @@ static FString CreateCommandLineHLSLCC( const FString& ShaderFile, const FString
 	{
 		case GLSL_150:
 			VersionSwitch = TEXT(" -gl3");
+			break;
+
+		case GLSL_150_MAC:
+			VersionSwitch = TEXT(" -gl3 -mac");
 			break;
 
 		case GLSL_150_ES2:
@@ -1344,7 +1350,7 @@ static FString CreateCommandLineHLSLCC( const FString& ShaderFile, const FString
 	}
 
 	const TCHAR* ApplyCSE = (CCFlags & HLSLCC_ApplyCommonSubexpressionElimination) != 0 ? TEXT("-cse") : TEXT("");
-	FString CmdLine = FPaths::RootDir() / FString::Printf(TEXT("Engine\\Source\\ThirdParty\\hlslcc\\hlslcc\\bin\\Win64\\VS2010\\hlslcc_64.exe %s -o=%s %s -entry=%s %s %s"), *ShaderFile, *OutputFile, FrequencySwitch, *EntryPoint, VersionSwitch, ApplyCSE);
+	FString CmdLine = FPaths::RootDir() / FString::Printf(TEXT("Engine\\Source\\ThirdParty\\hlslcc\\hlslcc\\bin\\Win64\\VS2013\\hlslcc_64.exe %s -o=%s %s -entry=%s %s %s"), *ShaderFile, *OutputFile, FrequencySwitch, *EntryPoint, VersionSwitch, ApplyCSE);
 	CmdLine += "\npause";
 	return CmdLine;
 }
@@ -1358,27 +1364,33 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 {
 	FString PreprocessedShader;
 	FShaderCompilerDefinitions AdditionalDefines;
-	EHlslCompileTarget HlslCompilerTarget = HLSLCC_InvalidTarget;
-	EShaderBackEnd BackEnd = SBE_Regular;
+	EHlslCompileTarget HlslCompilerTarget = HCT_InvalidTarget;
 	switch (Version)
 	{
 		case GLSL_430:
 			AdditionalDefines.SetDefine(TEXT("COMPILER_GLSL"), 1);
 			AdditionalDefines.SetDefine(TEXT("GL4_PROFILE"), 1);
-			HlslCompilerTarget = HLSLCC_Glsl430;
+			HlslCompilerTarget = HCT_FeatureLevelSM5;
 			break;
 
 		case GLSL_150:
 			AdditionalDefines.SetDefine(TEXT("COMPILER_GLSL"), 1);
 			AdditionalDefines.SetDefine(TEXT("GL3_PROFILE"), 1);
-			HlslCompilerTarget = HLSLCC_Glsl150;
+			HlslCompilerTarget = HCT_FeatureLevelSM4;
+			break;
+
+		case GLSL_150_MAC:
+			AdditionalDefines.SetDefine(TEXT("MAC"), 1);
+			AdditionalDefines.SetDefine(TEXT("COMPILER_GLSL"), 1);
+			AdditionalDefines.SetDefine(TEXT("GL3_PROFILE"), 1);
+			HlslCompilerTarget = HCT_FeatureLevelSM4;
 			break;
 
 		case GLSL_ES2_WEBGL:
 			AdditionalDefines.SetDefine(TEXT("WEBGL"), 1);
 			AdditionalDefines.SetDefine(TEXT("COMPILER_GLSL_ES2"), 1);
 			AdditionalDefines.SetDefine(TEXT("ES2_PROFILE"), 1);
-			HlslCompilerTarget = HLSLCC_GlslEs2;
+			HlslCompilerTarget = HCT_FeatureLevelES2;
 			AdditionalDefines.SetDefine(TEXT("row_major"), TEXT(""));
 			break; 
 
@@ -1386,22 +1398,21 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 			AdditionalDefines.SetDefine(TEXT("IOS"), 1);
 			AdditionalDefines.SetDefine(TEXT("COMPILER_GLSL_ES2"), 1);
 			AdditionalDefines.SetDefine(TEXT("ES2_PROFILE"), 1);
-			HlslCompilerTarget = HLSLCC_GlslEs2;
+			HlslCompilerTarget = HCT_FeatureLevelES2;
 			AdditionalDefines.SetDefine(TEXT("row_major"), TEXT(""));
-			BackEnd = SBE_IOS;
 			break; 
 
 		case GLSL_ES2:
 			AdditionalDefines.SetDefine(TEXT("COMPILER_GLSL_ES2"), 1);
 			AdditionalDefines.SetDefine(TEXT("ES2_PROFILE"), 1);
-			HlslCompilerTarget = HLSLCC_GlslEs2;
+			HlslCompilerTarget = HCT_FeatureLevelES2;
 			AdditionalDefines.SetDefine(TEXT("row_major"), TEXT(""));
 			break; 
 
 		case GLSL_150_ES2:
 			AdditionalDefines.SetDefine(TEXT("COMPILER_GLSL"), 1);
 			AdditionalDefines.SetDefine(TEXT("ES2_PROFILE"), 1);
-			HlslCompilerTarget = HLSLCC_Glsl150;
+			HlslCompilerTarget = HCT_FeatureLevelSM4;
 			AdditionalDefines.SetDefine(TEXT("row_major"), TEXT(""));
 			break;
 
@@ -1419,16 +1430,16 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 
 		const EHlslShaderFrequency FrequencyTable[] =
 		{
-			HLSLCC_VertexShader,
-			Version == GLSL_430 ? HLSLCC_HullShader : HLSLCC_InvalidFrequency,
-			Version == GLSL_430 ? HLSLCC_DomainShader : HLSLCC_InvalidFrequency,
-			HLSLCC_PixelShader,
-			IsES2Platform(Version) ? HLSLCC_InvalidFrequency : HLSLCC_GeometryShader,
-			Version == GLSL_430 ? HLSLCC_ComputeShader : HLSLCC_InvalidFrequency
+			HSF_VertexShader,
+			Version == GLSL_430 ? HSF_HullShader : HSF_InvalidFrequency,
+			Version == GLSL_430 ? HSF_DomainShader : HSF_InvalidFrequency,
+			HSF_PixelShader,
+			IsES2Platform(Version) ? HSF_InvalidFrequency : HSF_GeometryShader,
+			Version == GLSL_430 ? HSF_ComputeShader : HSF_InvalidFrequency
 		};
 
 		const EHlslShaderFrequency Frequency = FrequencyTable[Input.Target.Frequency];
-		if (Frequency == HLSLCC_InvalidFrequency)
+		if (Frequency == HSF_InvalidFrequency)
 		{
 			Output.bSucceeded = false;
 			FShaderCompilerError* NewError = new(Output.Errors) FShaderCompilerError();
@@ -1474,12 +1485,13 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 			}
 		}
 
+		FGlslCodeBackend GlslBackEnd(CCFlags);
 		int32 Result = HlslCrossCompile(
 			TCHAR_TO_ANSI(*Input.SourceFilename),
 			TCHAR_TO_ANSI(*PreprocessedShader),
 			TCHAR_TO_ANSI(*Input.EntryPointName),
 			Frequency,
-			BackEnd,
+			&GlslBackEnd,
 			CCFlags,
 			HlslCompilerTarget,
 			&GlslShaderSource,

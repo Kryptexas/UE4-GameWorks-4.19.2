@@ -2,7 +2,6 @@
 
 #include "OnlineSubsystemUtilsPrivatePCH.h"
 #include "ModuleManager.h"
-#include "Online.h"
 #include "TestAchievementsInterface.h"
 
 
@@ -16,11 +15,11 @@
  */
 
 
-void FTestAchievementsInterface::Test(void)
+void FTestAchievementsInterface::Test(UWorld* InWorld)
 {
 	UE_LOG(LogOnline, Display, TEXT("FTestAchievementsInterface::Test"));
 
-	IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get(FName(*SubsystemName));
+	IOnlineSubsystem* OnlineSub = Online::GetSubsystem(InWorld, FName(*SubsystemName));
 	check(OnlineSub); 
 
 	if (OnlineSub->GetIdentityInterface().IsValid())

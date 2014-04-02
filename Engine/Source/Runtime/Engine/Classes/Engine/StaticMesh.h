@@ -268,6 +268,41 @@ struct FMeshSectionInfoMap
 	bool AnySectionHasCollision() const;
 };
 
+USTRUCT()
+struct FAssetEditorOrbitCameraPosition
+{
+	GENERATED_USTRUCT_BODY()
+
+	FAssetEditorOrbitCameraPosition()
+		: bIsSet(false)
+	{
+	}
+
+	FAssetEditorOrbitCameraPosition(const FVector& InCamOrbitPoint, const FVector& InCamOrbitZoom, const FRotator& InCamOrbitRotation)
+		: bIsSet(true)
+		, CamOrbitPoint(InCamOrbitPoint)
+		, CamOrbitZoom(InCamOrbitZoom)
+		, CamOrbitRotation(InCamOrbitRotation)
+	{
+	}
+
+	/** Whether or not this has been set to a valid value */
+	UPROPERTY()
+	bool bIsSet;
+
+	/** The position to orbit the camera around */
+	UPROPERTY()
+	FVector	CamOrbitPoint;
+
+	/** The distance of the camera from the orbit point */
+	UPROPERTY()
+	FVector CamOrbitZoom;
+
+	/** The rotation to apply around the orbit point */
+	UPROPERTY()
+	FRotator CamOrbitRotation;
+};
+
 UCLASS(HeaderGroup=StaticMesh, collapsecategories, hidecategories=Object, customconstructor, MinimalAPI, BlueprintType, config=Engine)
 class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, public IInterface_AssetUserData
 {
@@ -371,6 +406,10 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	/** Information for thumbnail rendering */
 	UPROPERTY()
 	class UThumbnailInfo* ThumbnailInfo;
+
+	/** The stored camera position to use as a default for the static mesh editor */
+	UPROPERTY()
+	FAssetEditorOrbitCameraPosition EditorCameraPosition;
 #endif // WITH_EDITORONLY_DATA
 
 	/** For simplified meshes, this is the CRC of the high res mesh we were originally duplicated from. */

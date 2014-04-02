@@ -2,7 +2,7 @@
 
 #include "EpicSurveyPrivatePCH.h"
 #include "SurveyTitleCdnStorage.h"
-#include "OnlinesubSystemTypes.h"
+#include "OnlineSubsystemTypes.h"
 #include "Base64.h"
 #include "SecureHash.h"
 #include "HttpModule.h"

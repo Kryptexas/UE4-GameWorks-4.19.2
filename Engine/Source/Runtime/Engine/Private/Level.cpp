@@ -182,6 +182,18 @@ void FPrecomputedVisibilityHandler::Invalidate(FSceneInterface* Scene)
 	NextId++;
 }
 
+void FPrecomputedVisibilityHandler::ApplyWorldOffset(const FVector& InOffset)
+{
+	PrecomputedVisibilityCellBucketOriginXY-= FVector2D(InOffset.X, InOffset.Y);
+	for (FPrecomputedVisibilityBucket& Bucket : PrecomputedVisibilityCellBuckets)
+	{
+		for (FPrecomputedVisibilityCell& Cell : Bucket.Cells)
+		{
+			Cell.Min+= InOffset;
+		}
+	}
+}
+
 FArchive& operator<<( FArchive& Ar, FPrecomputedVisibilityHandler& D )
 {
 	Ar << D.PrecomputedVisibilityCellBucketOriginXY;
@@ -890,7 +902,7 @@ void ULevel::CreateModelComponents()
 		for(TObjectIterator<ULightComponent> LightIt;LightIt;++LightIt)
 		{
 			ULightComponent* const Light = *LightIt;
-			const bool bLightIsInWorld = Light->GetOwner() && OwningWorld->ContainsActor(Light->GetOwner());
+			const bool bLightIsInWorld = Light->GetOwner() && OwningWorld->ContainsActor(Light->GetOwner()) && !Light->GetOwner()->IsPendingKill();
 			if (bLightIsInWorld && (Light->HasStaticLighting() || Light->HasStaticShadowing()))
 			{
 				// Make sure the light GUIDs and volumes are up-to-date.
@@ -1771,6 +1783,10 @@ void ULevel::ApplyWorldOffset(const FVector& InWorldOffset, bool bWorldShift)
 	{
 		PrecomputedLightVolume->ApplyWorldOffset(InWorldOffset, bWorldShift);
 	}
+
+	// Move precomputed visibility volume
+	// TODO: should probably move it to RT
+	PrecomputedVisibilityHandler.ApplyWorldOffset(InWorldOffset);
 
 	// Iterate over all actors in the level and move them
 	for (int32 ActorIndex = 0; ActorIndex < Actors.Num(); ActorIndex++)

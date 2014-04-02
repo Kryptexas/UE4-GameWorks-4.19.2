@@ -5,12 +5,11 @@
 class FBrushBuilderDragDropOp : public FDragDropOperation
 {
 public:
-	static FString GetTypeId() {static FString Type = TEXT("FBspBrushDragDropOp"); return Type;}
+	DRAG_DROP_OPERATOR_TYPE(FBrushBuilderDragDropOp, FDragDropOperation)
 
 	static TSharedRef<FBrushBuilderDragDropOp> New(TWeakObjectPtr<UBrushBuilder> InBrushBuilder, const FSlateBrush* InIconBrush, bool bInIsAddtive)
 	{
 		TSharedRef<FBrushBuilderDragDropOp> Operation = MakeShareable(new FBrushBuilderDragDropOp(InBrushBuilder, InIconBrush, bInIsAddtive));
-		FSlateApplication::GetDragDropReflector().RegisterOperation<FBrushBuilderDragDropOp>(Operation);
 
 		Operation->MouseCursor = EMouseCursor::GrabHandClosed;
 

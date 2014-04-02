@@ -85,7 +85,8 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 		IOS_IPad3,
 		IOS_IPad4,
 		IOS_IPadMini,
-		IOS_IPadAir, // also the IPad Mini Retina
+		IOS_IPadMini2,
+		IOS_IPadAir,
 		IOS_Unknown,
 	};
 
@@ -105,6 +106,7 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 			L"IPad3",
 			L"IPad4",
 			L"IPadMini",
+			L"IPadMini2",
 			L"IPadAir",
 			L"Unknown",
 		};

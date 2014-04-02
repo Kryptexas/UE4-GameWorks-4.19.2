@@ -481,7 +481,10 @@ bool FHttpRequestWinInet::StartRequest()
 	{
 		for (TMap<FString, FString>::TConstIterator It(RequestHeaders); It; ++It)
 		{
-			UE_LOG(LogHttp, Verbose, TEXT("%p Header %s : %s"), this, *It.Key(), *It.Value());
+			if (!It.Key().Contains(TEXT("Authorization")))
+			{
+				UE_LOG(LogHttp, Verbose, TEXT("%p Header %s : %s"), this, *It.Key(), *It.Value());
+			}
 		}
 	}
 
@@ -614,7 +617,10 @@ void FHttpRequestWinInet::FinishedRequest()
 			for (TArray<FString>::TConstIterator It(AllHeaders); It; ++It)
 			{
 				const FString& HeaderStr = *It;
-				UE_LOG(LogHttp, Verbose, TEXT("%p Header %s"), this, *HeaderStr);
+				if (!HeaderStr.Contains(TEXT("Authorization")))
+				{
+					UE_LOG(LogHttp, Verbose, TEXT("%p Response Header %s"), this, *HeaderStr);
+				}
 			}
 		}
 

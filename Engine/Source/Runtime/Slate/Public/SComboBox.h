@@ -74,6 +74,8 @@ public:
 		: _Content()
 		, _ComboBoxStyle( &FCoreStyle::Get().GetWidgetStyle< FComboBoxStyle >( "ComboBox" ) )
 		, _ButtonStyle(nullptr)
+		, _ContentPadding(FMargin(4.0, 2.0))
+		, _ForegroundColor(FCoreStyle::Get().GetSlateColor("InvertedForeground"))
 		, _OptionsSource()
 		, _OnSelectionChanged()
 		, _OnGenerateWidget()
@@ -89,6 +91,7 @@ public:
 
 		/** The visual style of the button part of the combo box (overrides ComboBoxStyle) */
 		SLATE_STYLE_ARGUMENT( FButtonStyle, ButtonStyle )
+
 		SLATE_ATTRIBUTE( FMargin, ContentPadding )
 		SLATE_ATTRIBUTE( FSlateColor, ForegroundColor )
 
@@ -127,8 +130,6 @@ public:
 		// Work out which values we should use based on whether we were given an override, or should use the style's version
 		const FComboButtonStyle& OurComboButtonStyle = InArgs._ComboBoxStyle->ComboButtonStyle;
 		const FButtonStyle* const OurButtonStyle = InArgs._ButtonStyle ? InArgs._ButtonStyle : &OurComboButtonStyle.ButtonStyle;
-		TAttribute<FMargin> OurContentPadding = InArgs._ContentPadding.IsSet() ? InArgs._ContentPadding : OurComboButtonStyle.ContentPadding;
-		TAttribute<FSlateColor> OurForegroundColor = InArgs._ForegroundColor.IsSet() ? InArgs._ForegroundColor : OurComboButtonStyle.ForegroundColor;
 		PressedSound = InArgs._PressedSoundOverride.Get(InArgs._ComboBoxStyle->PressedSlateSound);
 		SelectionChangeSound = InArgs._SelectionChangeSoundOverride.Get(InArgs._ComboBoxStyle->SelectionChangeSlateSound);
 
@@ -175,8 +176,8 @@ public:
 				MenuContent
 			]
 			.HasDownArrow( true )
-			.ContentPadding( OurContentPadding )
-			.ForegroundColor( OurForegroundColor )
+			.ContentPadding( InArgs._ContentPadding )
+			.ForegroundColor( InArgs._ForegroundColor )
 		);
 		SetMenuContentWidgetToFocus(ComboListView);
 

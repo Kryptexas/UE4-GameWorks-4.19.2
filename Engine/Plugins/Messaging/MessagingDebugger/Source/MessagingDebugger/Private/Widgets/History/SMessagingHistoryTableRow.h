@@ -86,28 +86,25 @@ public:
 		{
 			return SNew(SBox)
 				.Padding(FMargin(4.0f, 0.0f))
-				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
+						.ColorAndOpacity(this, &SMessagingHistoryTableRow::HandleTextColorAndOpacity)
 						.Text(this, &SMessagingHistoryTableRow::HandleDispatchLatencyText)
 				];
 		}
 		else if (ColumnName == "Flag")
 		{
 			return SNew(SBox)
-				.HAlign(HAlign_Center)
-				.VAlign(VAlign_Center)
+				.ToolTipText(LOCTEXT("DeadMessageTooltip", "No valid recipients (dead letter)"))
 				[
 					SNew(SImage)
 						.Image(this, &SMessagingHistoryTableRow::HandleFlagImage)
-						.ToolTipText(LOCTEXT("DeadMessageTooltip", "No valid recipients (dead letter)"))
 				];
 		}
 		else if (ColumnName == "HandleTime")
 		{
 			return SNew(SBox)
 				.Padding(FMargin(4.0f, 0.0f))
-				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
 						.ColorAndOpacity(this, &SMessagingHistoryTableRow::HandleTextColorAndOpacity)
@@ -118,7 +115,6 @@ public:
 		{
 			return SNew(SBox)
 				.Padding(FMargin(4.0f, 0.0f))
-				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
 						.ColorAndOpacity(this, &SMessagingHistoryTableRow::HandleTextColorAndOpacity)
@@ -126,11 +122,21 @@ public:
 						.Text(MessageInfo->Context->GetMessageType().ToString())
 				];
 		}
+		else if (ColumnName == "Recipients")
+		{
+			return SNew(SBox)
+				.Padding(FMargin(4.0f, 0.0f))
+				.ToolTipText(LOCTEXT("LocalRemoteRecipients", "Local/Remote Recipients"))
+				[
+					SNew(STextBlock)
+						.ColorAndOpacity(this, &SMessagingHistoryTableRow::HandleTextColorAndOpacity)
+						.Text(this, &SMessagingHistoryTableRow::HandleRecipientsText)
+				];
+		}
 		else if (ColumnName == "RouteLatency")
 		{
 			return SNew(SBox)
 				.Padding(FMargin(4.0f, 0.0f))
-				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
 						.ColorAndOpacity(this, &SMessagingHistoryTableRow::HandleRouteLatencyColorAndOpacity)
@@ -139,73 +145,76 @@ public:
 		}
 		else if (ColumnName == "Scope")
 		{
-			return SNew(SBox)
-				.Padding(FMargin(4.0f, 0.0f))
-				.VAlign(VAlign_Center)
-				[
-					SNew(STextBlock)
-						.Text(this, &SMessagingHistoryTableRow::HandleScopeText)
-				];
-		}
-		else if (ColumnName == "SendType")
-		{
-			bool Forwarded;
-			int32 NumRecipients;
+			FText Text;
+			FText ToolTipText;
 
 			if (MessageInfo->Context.IsValid())
 			{
-				Forwarded = MessageInfo->Context->IsForwarded();
-				NumRecipients = MessageInfo->Context->GetRecipients().Num();
-			}
-			else
-			{
-				Forwarded = false;
-				NumRecipients = 0;
-			}
-			
-			bool Published = (NumRecipients == 0);
+				int32 NumRecipients = MessageInfo->Context->GetRecipients().Num();
 
-			FFormatNamedArguments Args;
-			Args.Add(TEXT("NumRecipients"), NumRecipients);
+				if (MessageInfo->Context->IsForwarded())
+				{
+					// forwarded message
+					FText ScopeText = ScopeToText(MessageInfo->Context->GetScope());
+					Text = FText::Format(LOCTEXT("ForwardedMessageTextFormat", "F - {0}"), ScopeText);
 
-			FText ToolTipText;
-			FName BrushImageName;
+					if (NumRecipients > 0)
+					{
+						ToolTipText = FText::Format(LOCTEXT("ForwardedSentMessageToolTipTextFormat", "This message was forwarded directly to {0} recipients"), FText::AsNumber(NumRecipients));
+					}
+					else
+					{
+						ToolTipText = FText::Format(LOCTEXT("ForwardedPublishedMessageToolTipTextFormat", "This message was forwarded to all subscribed recipients in scope '{0}'"), ScopeText);
+					}				
+				}
+				else if (NumRecipients == 0)
+				{
+					// published message
+					FText ScopeText = ScopeToText(MessageInfo->Context->GetScope());
 
-			if (Forwarded)
-			{
-				ToolTipText = FText::Format(LOCTEXT("ForwaredMessageTooltip", "Forwarded Message ({NumRecipients} recipients)"), Args);
-				BrushImageName = "ForwardedMessage";
-			}
-			else if (Published)
-			{
-				ToolTipText = LOCTEXT("PublishedMessageTooltip", "Published Message");
-				BrushImageName = "PublishedMessage";
-			}
-			else
-			{
-				ToolTipText = FText::Format(LOCTEXT("ForwaredMessageTooltip", "Sent Message ({NumRecipients} recipients)"), Args);
-				BrushImageName = "SentMessage";
+					Text = FText::Format(LOCTEXT("PublishedMessageTextFormat", "P - {0}"), ScopeText);
+					ToolTipText = FText::Format(LOCTEXT("PublishedMessageToolTipTextFormat", "This message was published to all subscribed recipients in scope '{0}'"), ScopeText);
+				}
+				else
+				{
+					// sent message
+					Text = LOCTEXT("SentMessageTextFormat", "S");
+					ToolTipText = FText::Format(LOCTEXT("SentMessageToolTipTextFormat", "This message was sent directly to {0} recipients"), FText::AsNumber(NumRecipients));
+				}
 			}
 
 			return SNew(SBox)
-				.HAlign(HAlign_Center)
-				.VAlign(VAlign_Center)
+				.ToolTipText(ToolTipText)
 				[
-					SNew(SImage)
-					.Image(Style->GetBrush(BrushImageName))
-					.ToolTipText(ToolTipText)
+					SNew(STextBlock)
+						.ColorAndOpacity(this, &SMessagingHistoryTableRow::HandleTextColorAndOpacity)
+						.Text(Text)
 				];
 		}
-		else if (ColumnName == "TimeSent")
+		else if (ColumnName == "Sender")
 		{
 			return SNew(SBox)
 				.Padding(FMargin(4.0f, 0.0f))
-				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
 						.ColorAndOpacity(this, &SMessagingHistoryTableRow::HandleTextColorAndOpacity)
 						.HighlightText(HighlightText)
-						.Text(FText::AsNumber(MessageInfo->TimeSent - GStartTime))
+						.Text(this, &SMessagingHistoryTableRow::HandleSenderText)
+				];
+		}
+		else if (ColumnName == "TimeSent")
+		{
+			FNumberFormattingOptions NumberFormattingOptions;
+			NumberFormattingOptions.MaximumFractionalDigits = 3;
+			NumberFormattingOptions.MinimumFractionalDigits = 3;
+
+			return SNew(SBox)
+				.Padding(FMargin(4.0f, 0.0f))
+				[
+					SNew(STextBlock)
+						.ColorAndOpacity(this, &SMessagingHistoryTableRow::HandleTextColorAndOpacity)
+						.HighlightText(HighlightText)
+						.Text(FText::AsNumber(MessageInfo->TimeSent - GStartTime, &NumberFormattingOptions))
 				];
 		}
 
@@ -216,6 +225,36 @@ public:
 	// End SMultiColumnTableRow interface
 
 protected:
+
+	/** 
+	 * Converts the given message scope to a human readable string.
+	 *
+	 * @return The string representation.
+	 */
+	FText ScopeToText( EMessageScope::Type Scope ) const
+	{
+		switch (Scope)
+		{
+		case EMessageScope::Thread:
+			return LOCTEXT("ScopeThread", "Thread");
+			break;
+
+		case EMessageScope::Process:
+			return LOCTEXT("ScopeProcess", "Process");
+			break;
+
+		case EMessageScope::Network:
+			return LOCTEXT("ScopeNetwork", "Network");
+			break;
+
+		case EMessageScope::All:
+			return LOCTEXT("ScopeAll", "All");
+			break;
+
+		default:
+			return LOCTEXT("ScopeUnknown", "Unknown");
+		}
+	}
 
 	/**
 	 * Converts the given time span in seconds to a human readable string.
@@ -257,7 +296,7 @@ protected:
 
 private:
 
-	// Callback for getting the text olor of the DispatchLatency column.
+	// Callback for getting the text color of the DispatchLatency column.
 	FSlateColor HandleDispatchLatencyColorAndOpacity( ) const
 	{
 		if (MaxDispatchLatency >= 0.01)
@@ -278,7 +317,7 @@ private:
 		return FSlateColor::UseForeground();
 	}
 
-	// Callback for getting the text of the DispatchLatency column.
+	// Callback for getting the text in the DispatchLatency column.
 	FText HandleDispatchLatencyText( ) const
 	{
 		return TimespanToReadableText(MaxDispatchLatency);
@@ -294,10 +333,36 @@ private:
 		return NULL;
 	}
 
-	// Callback for getting the text of the HandlingTime column.
+	// Callback for getting the text in the HandlingTime column.
 	FText HandleHandlingTimeText( ) const
 	{
 		return TimespanToReadableText(MaxHandlingTime);
+	}
+
+	// Callback for getting the text in the Recipients column.
+	FText HandleRecipientsText( ) const
+	{
+		int32 LocalRecipients = 0;
+		int32 RemoteRecipients = 0;
+
+		for (auto It = MessageInfo->DispatchStates.CreateConstIterator(); It; ++It)
+		{
+			FMessageTracerEndpointInfoPtr EndpointInfo = It.Value()->EndpointInfo;
+
+			if (EndpointInfo.IsValid())
+			{
+				if (EndpointInfo->Remote)
+				{
+					++RemoteRecipients;
+				}
+				else
+				{
+					++LocalRecipients;
+				}
+			}
+		}
+
+		return FText::Format(LOCTEXT("RecipientsTextFormat", "{0} / {1}"), FText::AsNumber(LocalRecipients), FText::AsNumber(RemoteRecipients));
 	}
 
 	// Callback for getting the text color of the RouteLatency column.
@@ -320,51 +385,29 @@ private:
 			return FLinearColor::Yellow;
 		}
 
+		if (MessageInfo->TimeRouted == 0.0)
+		{
+			return FSlateColor::UseSubduedForeground();
+		}
+
 		return FSlateColor::UseForeground();
 	}
 
-	// Callback for getting the text of the RouteLatency column.
+	// Callback for getting the text in the RouteLatency column.
 	FText HandleRouteLatencyText( ) const
 	{
 		if (MessageInfo->TimeRouted > 0.0)
 		{
 			return TimespanToReadableText(MessageInfo->TimeRouted - MessageInfo->TimeSent);
 		}
-		
-		return FText::GetEmpty();
+
+		return LOCTEXT("RouteLatencyPending", "Pending");
 	}
 
-	// Callback for getting the text of the Scope column.
-	FText HandleScopeText( ) const
+	// Callback for getting the text in the Sender column.
+	FText HandleSenderText( ) const
 	{
-		if (MessageInfo->Context.IsValid() && MessageInfo->Context->IsForwarded() || (MessageInfo->Context->GetRecipients().Num() == 0))
-		{
-			EMessageScope::Type Scope = MessageInfo->Context->GetScope();
-
-			switch (Scope)
-			{
-			case EMessageScope::Thread:
-				return LOCTEXT("ScopeThread", "Thread");
-				break;
-
-			case EMessageScope::Process:
-				return LOCTEXT("ScopeProcess", "Process");
-				break;
-
-			case EMessageScope::Network:
-				return LOCTEXT("ScopeNetwork", "Network");
-				break;
-
-			case EMessageScope::All:
-				return LOCTEXT("ScopeAll", "All");
-				break;
-
-			default:
-				return LOCTEXT("ScopeUnknown", "Unknown");
-			}
-		}
-
-		return LOCTEXT("NoScope", "-");
+		return FText::FromString(MessageInfo->SenderInfo->Name.ToString());
 	}
 
 	// Callback for getting the text color of various columns.

@@ -13,41 +13,12 @@ DEFINE_LOG_CATEGORY_STATIC(LogTranslationEditor, Log, All);
 
 #define LOCTEXT_NAMESPACE "TranslationDataManager"
 
-FTranslationDataManager::FTranslationDataManager( const FName& ProjectName, const FName& TranslationTargetLanguage )
+FTranslationDataManager::FTranslationDataManager( const FString& ManifestFile, const FString& ArchiveFile )
 {
-	ManifestName;
-	ProjectPath;
-	ArchiveName;
-
-	// TODO: Hardcoded special cases for the Editor and Engine, should fix
-	if (ProjectName == FName("Editor"))
-	{
-		ManifestName = FString("Editor.manifest");
-		ArchiveName = FString("Editor.archive");
-		ProjectPath = FPaths::EngineDir() + FString("Content/Localization/Editor");
-	}
-	else if (ProjectName == FName("Engine"))
-	{
-		ManifestName = FString("Engine.manifest");
-		ArchiveName = FString("Engine.archive");
-		ProjectPath = FPaths::EngineDir() + FString("Content/Localization/Engine");
-	}
-
-	CulturePath;
-
-	// TODO: Detect language paths rather than hard code them
-	if (TranslationTargetLanguage == FName("ja"))
-	{
-		CulturePath = ProjectPath + TEXT("/") + TEXT("ja");
-	}
-	else if (TranslationTargetLanguage == FName("ko"))
-	{
-		CulturePath = ProjectPath + TEXT("/") + TEXT("ko");
-	}
-	else if (TranslationTargetLanguage == FName("zh"))
-	{
-		CulturePath = ProjectPath + TEXT("/") + TEXT("zh");
-	}
+	FString ManifestName = FPaths::GetCleanFilename(ManifestFile);
+	FString ProjectPath = FPaths::GetPath(ManifestFile);
+	FString ArchiveName = FPaths::GetCleanFilename(ArchiveFile);
+	FString CulturePath = FPaths::GetPath(ArchiveFile);
 
 	GWarn->BeginSlowTask(LOCTEXT("LoadingTranslationData", "Loading Translation Data..."), true);
 
@@ -432,68 +403,96 @@ void FTranslationDataManager::GetHistoryForTranslationUnits( TArray<FTranslation
 	{
 		int32 HistorySize = SourceControlState->GetHistorySize();
 
-		for (int HistoryItemIndex = 0; HistoryItemIndex < HistorySize; ++HistoryItemIndex)
+		for (int HistoryItemIndex = HistorySize-1; HistoryItemIndex >=0; --HistoryItemIndex)
 		{
-			GWarn->StatusUpdate(HistoryItemIndex, HistorySize, FText::Format(LOCTEXT("LoadingOldManifestRevisionNumber", "Loading Translation History from Manifest Revision {0} of {1} from Source Control..."), FText::AsNumber(HistoryItemIndex), FText::AsNumber(HistorySize)));
+			GWarn->StatusUpdate(HistorySize - HistoryItemIndex, HistorySize, FText::Format(LOCTEXT("LoadingOldManifestRevisionNumber", "Loading Translation History from Manifest Revision {0} of {1} from Source Control..."), FText::AsNumber(HistorySize - HistoryItemIndex), FText::AsNumber(HistorySize)));
 
 			TSharedPtr<ISourceControlRevision, ESPMode::ThreadSafe> Revision = SourceControlState->GetHistoryItem(HistoryItemIndex);
 			if(Revision.IsValid())
 			{
-				FString TempFileName;
-				if(Revision->Get(TempFileName))
+				FString ManifestFullPath = FPaths::ConvertRelativePathToFull(ManifestFilePath);
+				FString EngineFullPath = FPaths::ConvertRelativePathToFull(FPaths::EngineContentDir());
+
+				bool IsEngineManifest = false;
+				if (ManifestFullPath.StartsWith(EngineFullPath))
 				{
-					TSharedPtr< FInternationalizationManifest > OldManifestPtr = ReadManifest( TempFileName );
-					if (OldManifestPtr.IsValid())	// There may be corrupt manifests in the history, so ignore them.
+					IsEngineManifest = true;
+				}
+
+				FString ProjectName;
+				FString SavedDir;	// Store these cached translation history files in the saved directory
+				if (IsEngineManifest)
+				{
+					ProjectName = "Engine";
+					SavedDir = FPaths::EngineSavedDir();
+				}
+				else
+				{
+					ProjectName = GGameName;
+					SavedDir = FPaths::GameSavedDir();
+				}
+
+				FString TempFileName = SavedDir / "CachedTranslationHistory" / "UE4-Manifest-" + ProjectName + "-" + FPaths::GetBaseFilename(ManifestFilePath) + "-Rev-" + FString::FromInt(Revision->GetRevisionNumber());
+
+				
+				if (!FPaths::FileExists(TempFileName))	// Don't bother syncing again if we already have this manifest version cached locally
+				{
+					Revision->Get(TempFileName);
+				}
+
+				TSharedPtr< FInternationalizationManifest > OldManifestPtr = ReadManifest( TempFileName );
+				if (OldManifestPtr.IsValid())	// There may be corrupt manifests in the history, so ignore them.
+				{
+					TSharedRef< FInternationalizationManifest > OldManifest = OldManifestPtr.ToSharedRef();
+
+					for (FTranslationUnit& TranslationUnit : TranslationUnits)
 					{
-						TSharedRef< FInternationalizationManifest > OldManifest = OldManifestPtr.ToSharedRef();
-
-						for (FTranslationUnit& TranslationUnit : TranslationUnits)
+						if(TranslationUnit.Contexts.Num() > 0)
 						{
-							if(TranslationUnit.Contexts.Num() > 0)
+							for (FTranslationContextInfo& ContextInfo : TranslationUnit.Contexts)
 							{
-								for (FTranslationContextInfo& ContextInfo : TranslationUnit.Contexts)
+								FString PreviousSourceText = "";
+
+								// If we already have history, then compare against the newest history so far
+								if (ContextInfo.Changes.Num() > 0)
 								{
-									FString PreviousSourceText = TranslationUnit.Source;
+									PreviousSourceText = ContextInfo.Changes[0].Source;
+								}
 
-									// If we already have history, then compare against the oldest history so far
-									if (ContextInfo.Changes.Num() > 0)
-									{
-										PreviousSourceText = ContextInfo.Changes[ContextInfo.Changes.Num()-1].Source;
-									}
+								FContext SearchContext;
+								SearchContext.Key = ContextInfo.Key;
+								TSharedPtr< FManifestEntry > OldManifestEntryPtr = OldManifest->FindEntryByContext(TranslationUnit.Namespace, SearchContext);
+								if (!OldManifestEntryPtr.IsValid())
+								{
+									// If this version of the manifest didn't know anything about this string, move onto the next
+									continue;
+								}
 
-									FContext SearchContext;
-									SearchContext.Key = ContextInfo.Key;
-									TSharedPtr< FManifestEntry > OldManifestEntryPtr = OldManifest->FindEntryByContext(TranslationUnit.Namespace, SearchContext);
-									if (!OldManifestEntryPtr.IsValid())
+								// Always add first instance of this string, and then add any versions that changed since
+								if (ContextInfo.Changes.Num() == 0 || !OldManifestEntryPtr->Source.Text.ReplaceEscapedCharWithChar().Equals(PreviousSourceText))
+								{
+									TSharedPtr< FArchiveEntry > OldArchiveEntry = ArchivePtr->FindEntryBySource(OldManifestEntryPtr->Namespace, OldManifestEntryPtr->Source, NULL);
+									if (OldArchiveEntry.IsValid())
 									{
-										continue;
-									}
-
-									if (!OldManifestEntryPtr->Source.Text.Equals(PreviousSourceText))
-									{
-										TSharedPtr< FArchiveEntry > OldArchiveEntry = ArchivePtr->FindEntryBySource(OldManifestEntryPtr->Namespace, OldManifestEntryPtr->Source, NULL);
-										if (OldArchiveEntry.IsValid())
-										{
-											FTranslationChange Change;
-											Change.Source = OldManifestEntryPtr->Source.Text.ReplaceEscapedCharWithChar();
-											Change.Translation = OldArchiveEntry->Translation.Text.ReplaceEscapedCharWithChar();
-											Change.DateAndTime = Revision->GetDate();
-											Change.Version = FString::FromInt(Revision->GetRevisionNumber());
-											ContextInfo.Changes.Add(Change);
-										}
+										FTranslationChange Change;
+										Change.Source = OldManifestEntryPtr->Source.Text.ReplaceEscapedCharWithChar();
+										Change.Translation = OldArchiveEntry->Translation.Text.ReplaceEscapedCharWithChar();
+										Change.DateAndTime = Revision->GetDate();
+										Change.Version = FString::FromInt(Revision->GetRevisionNumber());
+										ContextInfo.Changes.Insert(Change, 0);
 									}
 								}
 							}
 						}
 					}
-					else // OldManifestPtr.IsValid() is false
-					{
-						FFormatNamedArguments Arguments;
-						Arguments.Add( TEXT("ManifestFilePath"), FText::FromString(ManifestFilePath) );
-						Arguments.Add( TEXT("ManifestRevisionNumber"), FText::AsNumber(Revision->GetRevisionNumber()) );
-						FMessageLog TranslationEditorMessageLog("TranslationEditor");
-						TranslationEditorMessageLog.Warning(FText::Format(LOCTEXT("PreviousManifestCorrupt", "Previous revision {ManifestRevisionNumber} of {ManifestFilePath} failed to load correctly. Ignoring."), Arguments));
-					}
+				}
+				else // OldManifestPtr.IsValid() is false
+				{
+					FFormatNamedArguments Arguments;
+					Arguments.Add( TEXT("ManifestFilePath"), FText::FromString(ManifestFilePath) );
+					Arguments.Add( TEXT("ManifestRevisionNumber"), FText::AsNumber(Revision->GetRevisionNumber()) );
+					FMessageLog TranslationEditorMessageLog("TranslationEditor");
+					TranslationEditorMessageLog.Warning(FText::Format(LOCTEXT("PreviousManifestCorrupt", "Previous revision {ManifestRevisionNumber} of {ManifestFilePath} failed to load correctly. Ignoring."), Arguments));
 				}
 			}
 		}
@@ -508,6 +507,12 @@ void FTranslationDataManager::GetHistoryForTranslationUnits( TArray<FTranslation
 	}
 
 	GWarn->EndSlowTask();
+}
+
+void FTranslationDataManager::HandlePropertyChanged(FName PropertyName)
+{
+	// When a property changes, write the data so we don't lose changes if user forgets to save or editor crashes
+	WriteTranslationData();
 }
 
 #undef LOCTEXT_NAMESPACE

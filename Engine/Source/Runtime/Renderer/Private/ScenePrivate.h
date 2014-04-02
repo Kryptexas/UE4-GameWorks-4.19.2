@@ -961,14 +961,16 @@ private:
 		FScene* Scene, 
 		const FIndirectLightingCacheBlock& Block,
 		float& OutDirectionalShadowing, 
-		FSHVectorRGB2& OutIncidentRadiance);
+		FSHVectorRGB2& OutIncidentRadiance,
+		FVector& OutSkyBentNormal);
 
 	/** Interpolates SH samples for a block from all levels. */
 	void InterpolateBlock(
 		FScene* Scene, 
 		const FIndirectLightingCacheBlock& Block, 
 		TArray<float>& AccumulatedWeight, 
-		TArray<FSHVectorRGB2>& AccumulatedIncidentRadiance);
+		TArray<FSHVectorRGB2>& AccumulatedIncidentRadiance,
+		TArray<FVector>& AccumulatedSkyBentNormal);
 
 	/** 
 	 * Normalizes, adjusts for SH ringing, and encodes SH samples into a texture format.
@@ -979,10 +981,12 @@ private:
 		const FIndirectLightingCacheBlock& Block, 
 		const TArray<float>& AccumulatedWeight, 
 		const TArray<FSHVectorRGB2>& AccumulatedIncidentRadiance,
+		const TArray<FVector>& AccumulatedSkyBentNormal,
 		TArray<FFloat16Color>& Texture0Data,
 		TArray<FFloat16Color>& Texture1Data,
 		TArray<FFloat16Color>& Texture2Data,
-		FSHVectorRGB2& SingleSample);
+		FSHVectorRGB2& SingleSample,
+		FVector& SkyBentNormal);
 
 	/** Helper that calculates an effective world position min and size given a bounds. */
 	void CalculateBlockPositionAndSize(const FBoxSphereBounds& Bounds, int32 TexelSize, FVector& OutMin, FVector& OutSize) const;

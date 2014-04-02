@@ -490,6 +490,8 @@ public:
 	 */
 	void LoadProfilerCapture( const FString& ProfilerCaptureFilepath, const bool bAdd = false );
 
+	/** Creates a new profiler session instance and load a raw stats file from the specified location. */
+	void LoadRawStatsFile( const FString& RawStatsFileFileath );
 
 protected:
 	void ProfilerClient_OnProfilerData( const FGuid& InstanceID, const FProfilerDataFrame& Content, const float DataLoadingProgress );

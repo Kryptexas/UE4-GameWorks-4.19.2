@@ -677,6 +677,12 @@ FOutputDeviceRedirector::FOutputDeviceRedirector()
 {
 }
 
+FOutputDeviceRedirector* FOutputDeviceRedirector::Get()
+{
+	static FOutputDeviceRedirector Singleton;
+	return &Singleton;
+}
+
 /**
  * Adds an output device to the chain of redirections.	
  *

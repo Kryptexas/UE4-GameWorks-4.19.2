@@ -77,9 +77,7 @@ void SGraphTitleBar::Construct( const FArguments& InArgs )
 	
 	this->ChildSlot
 	[
-		SNew(STutorialWrapper)
-		.Name(TEXT("EventGraphTitleBar"))
-		.Content()
+		SNew( STutorialWrapper, TEXT("EventGraphTitleBar") )
 		[
 			SNew(SBorder)
 			.BorderImage( FEditorStyle::GetBrush( TEXT("Graph.TitleBackground") ) )

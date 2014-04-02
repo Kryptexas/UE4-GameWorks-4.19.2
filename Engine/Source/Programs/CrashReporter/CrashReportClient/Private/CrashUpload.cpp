@@ -10,9 +10,12 @@
 
 #define LOCTEXT_NAMESPACE "CrashReportClient"
 
+namespace
+{
 const float PingTimeoutSeconds = 5.f;
 // Ignore files bigger than 100MB; mini-dumps are smaller than this, but heap dumps can be very large
 const int MaxFileSizeToUpload = 100 * 1024 * 1024;
+}
 
 FCrashUpload::FCrashUpload(const FString& ServerAddress)
 	: UrlPrefix(ServerAddress / "CrashReporter")
@@ -20,22 +23,7 @@ FCrashUpload::FCrashUpload(const FString& ServerAddress)
 	, PauseState(EUploadState::Ready)
 	, bDiagnosticsFileSent(false)
 {
-	// Ping server
-	SetCurrentState(EUploadState::PingingServer);
-
-	auto Request = CreateHttpRequest();
-	Request->SetVerb(TEXT("GET"));
-	Request->SetURL(UrlPrefix / TEXT("Ping"));
-	UE_LOG(CrashReportClientLog, Log, TEXT("Sending HTTP request (pinging server)"));
-
-	if (Request->ProcessRequest())
-	{
-		FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &FCrashUpload::PingTimeout), PingTimeoutSeconds);
-	}
-	else
-	{
-		PingTimeout(0);
-	}
+	SendPingRequest();
 }
 
 FCrashUpload::~FCrashUpload()
@@ -88,14 +76,13 @@ void FCrashUpload::LocalDiagnosisComplete(const FString& DiagnosticsFile)
 {
 	if (State >= EUploadState::FirstCompletedState)
 	{
-		// Must be a failure/cancelled state
-		check(State != EUploadState::Finished);
+		// Must be a failure/cancelled state, or the report was a rejected by the server
 		return;
 	}
 
 	bool SendDiagnosticsFile = !bDiagnosticsFileSent && !DiagnosticsFile.IsEmpty();
 
-	check(PauseState == EUploadState::PostingReportComplete);
+	CRASHREPORTCLIENT_CHECK(PauseState == EUploadState::PostingReportComplete);
 	PauseState = EUploadState::Finished;
 	if (State == EUploadState::WaitingToPostReportComplete)
 	{
@@ -347,7 +334,7 @@ void FCrashUpload::CheckPendingReportsForFilesToUpload()
 		if (PendingReportDirectories.Num() == 0)
 		{
 			// Nothing to upload
-			UE_LOG(CrashReportClientLog, Warning, TEXT("Nothing to upload!"));
+			UE_LOG(CrashReportClientLog, Log, TEXT("All uploads done"));
 			SetCurrentState(EUploadState::Finished);
 			return;
 		}
@@ -386,6 +373,25 @@ TSharedRef<IHttpRequest> FCrashUpload::CreateHttpRequest()
 	auto Request = FHttpModule::Get().CreateRequest();
 	Request->OnProcessRequestComplete().BindRaw(this, &FCrashUpload::OnProcessRequestComplete);
 	return Request;
+}
+
+void FCrashUpload::SendPingRequest()
+{
+	SetCurrentState(EUploadState::PingingServer);
+
+	auto Request = CreateHttpRequest();
+	Request->SetVerb(TEXT("GET"));
+	Request->SetURL(UrlPrefix / TEXT("Ping"));
+	UE_LOG(CrashReportClientLog, Log, TEXT("Sending HTTP request (pinging server)"));
+
+	if (Request->ProcessRequest())
+	{
+		FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &FCrashUpload::PingTimeout), PingTimeoutSeconds);
+	}
+	else
+	{
+		PingTimeout(0);
+	}
 }
 
 bool FCrashUpload::ParseServerResponse(FHttpResponsePtr Response)

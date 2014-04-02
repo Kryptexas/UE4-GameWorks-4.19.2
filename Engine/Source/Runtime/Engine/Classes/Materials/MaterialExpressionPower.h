@@ -12,11 +12,11 @@ class UMaterialExpressionPower : public UMaterialExpression
 	UPROPERTY()
 	FExpressionInput Base;
 
-	UPROPERTY(meta=(RequiredInput = "false"))
+	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Defaults to 'ConstExponent' if not specified"))
 	FExpressionInput Exponent;
 
-	/** only used if A is not hooked up */
-	UPROPERTY(EditAnywhere, Category=MaterialExpressionPower)
+	/** only used if Exponent is not hooked up */
+	UPROPERTY(EditAnywhere, Category=MaterialExpressionPower, meta=(OverridingInputProperty = "Exponent"))
 	float ConstExponent;
 
 	// Begin UMaterialExpression Interface

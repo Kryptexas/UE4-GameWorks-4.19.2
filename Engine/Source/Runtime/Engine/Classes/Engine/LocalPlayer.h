@@ -7,13 +7,13 @@
 #pragma once
 #include "LocalPlayer.generated.h"
 
-struct ENGINE_API FGameWorldContext
+/** A context object that binds to a LocalPlayer. Useful for UI or other things that need to pass around player references */
+struct ENGINE_API FLocalPlayerContext
 {
-	FGameWorldContext();
-	FGameWorldContext( const AActor* InActor );
-	FGameWorldContext( const class ULocalPlayer* InLocalPlayer );
-	FGameWorldContext( const class APlayerController* InPlayerController );
-	FGameWorldContext( const FGameWorldContext& InWidgetWorldContext );
+	FLocalPlayerContext();
+	FLocalPlayerContext( const class ULocalPlayer* InLocalPlayer );
+	FLocalPlayerContext( const class APlayerController* InPlayerController );
+	FLocalPlayerContext( const FLocalPlayerContext& InPlayerContext );
 
 	/* Returns the world context. */
 	UWorld* GetWorld() const;
@@ -24,10 +24,10 @@ struct ENGINE_API FGameWorldContext
 	/* Returns the player controller. */
 	class APlayerController* GetPlayerController() const;
 
-	/** Is this GameWorldContext initialized and still valid? */
+	/** Is this context initialized and still valid? */
 	bool IsValid() const;
 
-	/** Is this GameWorldContext initialized */
+	/** Is this context initialized */
 	bool IsInitialized() const;
 
 private:	
@@ -41,6 +41,11 @@ private:
 	TWeakObjectPtr<class ULocalPlayer>		LocalPlayer;
 };
 
+/**
+ *	Each player that is active on the current client has a LocalPlayer. It stays active across maps
+ *	There may be several spawned in the case of splitscreen/coop
+ *	There may be 0 spawned on servers
+ */
 UCLASS(HeaderGroup=Network, Within=Engine, config=Engine, transient)
 class ENGINE_API ULocalPlayer : public UPlayer
 {
@@ -162,6 +167,11 @@ public:
 	 * Called at creation time for internal setup
 	 */
 	virtual void PlayerAdded(class UGameViewportClient* InViewportClient, int32 InControllerID);
+
+	/**
+	 * Called to initialize the online delegates
+	 */
+	virtual void InitOnlineSession();
 
 	/**
 	 * Called when the player is removed from the viewport client

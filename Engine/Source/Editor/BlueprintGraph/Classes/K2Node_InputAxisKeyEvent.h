@@ -27,6 +27,7 @@ class UK2Node_InputAxisKeyEvent : public UK2Node_Event
 	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual FString GetTooltip() const OVERRIDE;
 	virtual FName GetPaletteIcon(FLinearColor& OutColor) const OVERRIDE;
+	virtual bool CanPasteHere(const UEdGraph* TargetGraph, const UEdGraphSchema* Schema) const OVERRIDE;
 	// End EdGraphNode interface
 
 	// Begin UK2Node interface

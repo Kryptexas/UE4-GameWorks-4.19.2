@@ -173,6 +173,13 @@ public:
 	 */
 	UPackage* GetPackage() const { return Package; }
 
+	/** 
+	 * Get the object belonging to the package, if any
+	 * 
+	 * @return the object which is in the package, if any
+	 */
+	UObject* GetPackageObject() const;
+
 	/**
 	 * Checks to see if the checkbox item is disabled
 	 *
@@ -193,6 +200,29 @@ public:
 	 * @return the icon name of the checkbox item
 	 */
 	FString GetIconName() const { return IconName; }
+
+	/**
+	 * Gets the type name and color of the package item
+	 *
+	 * @param OutName	FString into which the type name will be placed, or an empty string if type cannot be obtained
+	 * @param OutColor	FColor into which the type color will be placed
+	 *
+	 * @return Whether the details were successfully fetched.
+	 */
+	bool GetTypeNameAndColor(FString& OutName, FColor& OutColor) const;
+
+	/**
+	 * Gets just the type name of the package item
+	 *
+	 * @return Type name of the package item, or an empty string
+	 */
+	FString GetTypeName() const
+	{
+		FString OutName;
+		FColor OutColor;
+		GetTypeNameAndColor(OutName, OutColor);
+		return OutName;
+	}
 
 	/**
 	 * Gets the tool tip of the checkbox item
@@ -247,6 +277,16 @@ public:
 	 * @param	InArgs	The declaration data for this widget
 	 */
 	void Construct( const FArguments& InArgs );
+
+	/**
+	 * Create and return a widget for the given item and column ID
+	 *
+	 * @param	Item		The item being queried
+	 * @param	ColumnID	The column ID being queried
+	 *
+	 * @return	The widget which was created
+	 */
+	TSharedRef<SWidget> GenerateWidgetForItemAndColumn( TSharedPtr<FPackageItem> Item, const FName ColumnID ) const;
 
 	/**
 	 * Adds a new checkbox item to the dialog
@@ -358,14 +398,6 @@ private:
 	void ExecuteSCCDiffAgainstDepot() const;
 
 	/** 
-	 * Get the object belonging to the package, if any
-	 * 
-	 * @param Item - the item which we want to get the object for
-	 * @return the object which is in the package, if any
-	 */
-	UObject* GetPackageObject( const TSharedPtr<FPackageItem> Item ) const;
-
-	/** 
 	 * Get all the selected items in the dialog.
 	 * 
 	 * @param bAllIfNone - if true, returns all teh items when none are selected
@@ -375,6 +407,35 @@ private:
 
 	/** Delegate used to supply message text to the widget */
 	FText GetMessage() const;
+
+	/**
+	 * Returns the current column sort mode (ascending or descending) if the ColumnId parameter matches the current
+	 * column to be sorted by, otherwise returns EColumnSortMode_None.
+	 *
+	 * @param	ColumnId	Column ID to query sort mode for.
+	 *
+	 * @return	The sort mode for the column, or EColumnSortMode_None if it is not known.
+	 */
+	EColumnSortMode::Type GetColumnSortMode( const FName ColumnId ) const;
+
+	/**
+	 * Callback for SHeaderRow::Column::OnSort, called when the column to sort by is changed.
+	 *
+	 * @param	ColumnId	The new column to sort by
+	 * @param	InSortMode	The sort mode (ascending or descending)
+	 */
+	void OnColumnSortModeChanged( const FName& ColumnId, EColumnSortMode::Type InSortMode );
+
+	/**
+	 * Requests that the source list data be sorted according to the current sort column and mode,
+	 * and refreshes the list view.
+	 */
+	void RequestSort();
+
+	/**
+	 * Sorts the source list data according to the current sort column and mode.
+	 */
+	void SortTree();
 
 	/** A Checkbox used to toggle multiple packages. */
 	TSharedPtr< SCheckBox > ToggleSelectedCheckBox;
@@ -405,6 +466,47 @@ private:
 
 	/** The message to display */
 	FText Message;
+
+	/** Specify which column to sort with */
+	FName SortByColumn;
+
+	/** Currently selected sorting mode */
+	EColumnSortMode::Type SortMode;
 };
+
+/** Widget that represents a row in the PackagesDialog's list view.  Generates widgets for each column on demand. */
+class SPackageItemsListRow
+	: public SMultiColumnTableRow< TSharedPtr< FPackageItem > >
+{
+
+public:
+
+	SLATE_BEGIN_ARGS( SPackageItemsListRow ) {}
+
+		/** The Packages Dialog that owns the tree.  We'll only keep a weak reference to it. */
+		SLATE_ARGUMENT( TSharedPtr< SPackagesDialog >, PackagesDialog )
+
+		/** The list item for this row */
+		SLATE_ARGUMENT( TSharedPtr< FPackageItem >, Item )
+
+	SLATE_END_ARGS()
+
+
+	/** Construct function for this widget */
+	void Construct( const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView );
+
+	/** Overridden from SMultiColumnTableRow.  Generates a widget for this column of the list row. */
+	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) OVERRIDE;
+
+
+private:
+
+	/** Weak reference to the PackagesDialog widget that owns our list */
+	TWeakPtr< SPackagesDialog > PackagesDialogWeak;
+
+	/** The item associated with this row of data */
+	TSharedPtr< FPackageItem > Item;
+};
+
 
 #endif	// __SPackagesDialog_h__

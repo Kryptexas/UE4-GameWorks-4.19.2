@@ -317,6 +317,9 @@ public:
 	/** Called when graph editor focus is changed */
 	virtual void OnGraphEditorFocused(const TSharedRef<class SGraphEditor>& InGraphEditor);
 
+	/** Enable/disable the SCS editor preview viewport */
+	void EnableSCSPreview(bool bEnable);
+
 	/** Refresh the preview viewport to reflect changes in the SCS */
 	void UpdateSCSPreview(bool bUpdateNow = false);
 
@@ -436,6 +439,9 @@ public:
 
 	/** Adds to a list of custom objects for debugging beyond what will automatically be found/used */
 	virtual void GetCustomDebugObjects(TArray<FCustomDebugObject>& DebugList) const { }
+
+	/** Called when a node's title is committed for a rename */
+	void OnNodeTitleCommitted(const FText& NewText, ETextCommit::Type CommitInfo, UEdGraphNode* NodeBeingChanged);
 
 protected:
 	
@@ -747,9 +753,6 @@ protected:
 
 	/** Called when a node's title is being committed for a rename so it can be verified */
 	bool OnNodeVerifyTitleCommit(const FText& NewText, UEdGraphNode* NodeBeingChanged);
-
-	/** Called when a node's title is committed for a rename */
-	void OnNodeTitleCommitted(const FText& NewText, ETextCommit::Type CommitInfo, UEdGraphNode* NodeBeingChanged);
 
 	/**Load macro & function blueprint libraries from asset registry*/
 	void LoadLibrariesFromAssetRegistry();

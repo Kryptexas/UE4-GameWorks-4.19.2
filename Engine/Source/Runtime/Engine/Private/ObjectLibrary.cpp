@@ -184,6 +184,14 @@ bool UObjectLibrary::RemoveObject(UObject *ObjectToRemove)
 int32 UObjectLibrary::LoadAssetsFromPaths(TArray<FString> Paths)
 {
 	int32 Count = 0;
+
+	if (bIsFullyLoaded)
+	{
+		// We already ran this
+		return 0; 
+	}
+
+	bIsFullyLoaded = true;
 	
 	for (int PathIndex = 0; PathIndex < Paths.Num(); PathIndex++)
 	{
@@ -217,6 +225,14 @@ int32 UObjectLibrary::LoadBlueprintsFromPaths(TArray<FString> Paths)
 	{
 		return 0;
 	}
+
+	if (bIsFullyLoaded)
+	{
+		// We already ran this
+		return 0; 
+	}
+
+	bIsFullyLoaded = true;
 
 	for (int PathIndex = 0; PathIndex < Paths.Num(); PathIndex++)
 	{
@@ -263,6 +279,12 @@ int32 UObjectLibrary::LoadAssetDataFromPaths(TArray<FString> Paths)
 	if ( ObjectBaseClass )
 	{
 		ARFilter.ClassNames.Add(ObjectBaseClass->GetFName());
+
+		// Add any old names to the list in case things haven't been resaved
+		TArray<FName> OldNames = ULinkerLoad::FindPreviousNamesForClass(ObjectBaseClass->GetPathName(), false);
+
+		ARFilter.ClassNames.Append(OldNames);
+
 		ARFilter.bRecursiveClasses = true;
 	}
 
@@ -333,7 +355,7 @@ int32 UObjectLibrary::LoadBlueprintAssetDataFromPaths(TArray<FString> Paths)
 			UClass* Class = FindObject<UClass>(ANY_PACKAGE, **LoadedParentClass);
 			if ( Class == NULL )
 			{
-				Class = LoadObject<UClass>(ANY_PACKAGE, **LoadedParentClass);
+				Class = LoadObject<UClass>(NULL, **LoadedParentClass);
 			}
 			if (!Class || (ObjectBaseClass && !Class->IsChildOf(ObjectBaseClass)))
 			{

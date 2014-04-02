@@ -307,6 +307,9 @@ public:
 	/** Ends a frame */
 	ENGINE_API void EndFrame(ULineBatchComponent* LineBatcher);
 
+	/** Starts cloth Simulation*/
+	ENGINE_API void StartCloth();
+
 	/** returns the completion event for a frame */
 	FGraphEventRef GetCompletionEvent()
 	{
@@ -318,6 +321,9 @@ public:
 
 	/** Waits for all physics scenes to complete */
 	ENGINE_API void WaitPhysScenes();
+
+	/** Waits for cloth scene to complete */
+	ENGINE_API void WaitClothScene();
 
 	/** Fetches results, fires events, and adds debug lines */
 	void ProcessPhysScene(uint32 SceneType);

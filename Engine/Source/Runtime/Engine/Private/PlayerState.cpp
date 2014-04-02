@@ -6,8 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "Net/UnrealNetwork.h"
-#include "Online.h"
-#include "OnlineSubsystemTypes.h"
+#include "OnlineSubsystemUtils.h"
 
 APlayerState::APlayerState(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP
@@ -237,35 +236,22 @@ void APlayerState::SetPlayerName(const FString& S)
 	ForceNetUpdate();
 }
 
-/** 
- * Replication of UniqueId from server
- */
 void APlayerState::OnRep_UniqueId()
 {
 	// Register player with session
 	RegisterPlayerWithSession(false);
 }
 
-/**
- * Associate a UniqueId with this player
- * 
- * @param InUniqueId unique id to associate with this player
- */
 void APlayerState::SetUniqueId(const TSharedPtr<FUniqueNetId>& InUniqueId)
 {
 	UniqueId.SetUniqueNetId(InUniqueId);
 }
 
-/** 
- * Register a player with the online subsystem
- *
- * @param bWasFromInvite was this player invited directly
- */
 void APlayerState::RegisterPlayerWithSession(bool bWasFromInvite)
 {
 	if (GetNetMode() != NM_Standalone)
 	{
-		IOnlineSessionPtr SessionInt = Online::GetSessionInterface();
+		IOnlineSessionPtr SessionInt = Online::GetSessionInterface(GetWorld());
 		if (SessionInt.IsValid() && UniqueId.IsValid())
 		{
 			// Register the player as part of the session
@@ -275,9 +261,6 @@ void APlayerState::RegisterPlayerWithSession(bool bWasFromInvite)
 	}
 }
 
-/** 
- * Unregister a player with the online subsystem
- */
 void APlayerState::UnregisterPlayerWithSession()
 {
 	if (GetNetMode() == NM_Client && UniqueId.IsValid())
@@ -285,7 +268,7 @@ void APlayerState::UnregisterPlayerWithSession()
 		const APlayerState* PlayerState = GetDefault<APlayerState>();
 		if (PlayerState->SessionName != NAME_None)
 		{
-			IOnlineSessionPtr SessionInt = Online::GetSessionInterface();
+			IOnlineSessionPtr SessionInt = Online::GetSessionInterface(GetWorld());
 			if (SessionInt.IsValid())
 			{
 				// Remove the player from the session

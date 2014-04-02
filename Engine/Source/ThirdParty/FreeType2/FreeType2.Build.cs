@@ -12,7 +12,7 @@ public class FreeType2 : ModuleRules
       
         string FreeType2Path = UEBuildConfiguration.UEThirdPartyDirectory + "FreeType2/FreeType2-2.4.12/";
 
-        PublicSystemIncludePaths.Add(FreeType2Path + "Include");
+        PublicSystemIncludePaths.Add(FreeType2Path + "include");
 
         string FreeType2LibPath = FreeType2Path + "Lib/";
 

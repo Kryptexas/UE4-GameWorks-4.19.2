@@ -9,7 +9,7 @@
 
 struct CORE_API FLinuxOutputDevices : public FGenericPlatformOutputDevices
 {
-	static class FFeedbackContext*		GetWarn();
+	// generic implementation for now
 };
 
 typedef FLinuxOutputDevices FPlatformOutputDevices;

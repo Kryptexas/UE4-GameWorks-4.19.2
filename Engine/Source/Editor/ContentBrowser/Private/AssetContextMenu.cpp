@@ -5,7 +5,6 @@
 #include "AssetContextMenu.h"
 #include "ContentBrowserModule.h"
 
-#include "Editor/UnrealEd/Public/LinkedObjEditor.h"
 #include "Editor/UnrealEd/Public/ObjectTools.h"
 #include "Editor/UnrealEd/Public/PackageTools.h"
 #include "Editor/UnrealEd/Public/FileHelpers.h"

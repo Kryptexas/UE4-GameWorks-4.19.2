@@ -1108,9 +1108,15 @@ void AActor::OnRep_AttachmentReplication()
 
 			if (ParentComponent)
 			{
+				// Calculate scale before attachment as ComponentToWorld will be modified after AttachTo()
+				FTransform ParentToWorld = ParentComponent->GetSocketTransform(AttachmentReplication.AttachSocket);
+				FTransform RelativeTM = RootComponent->ComponentToWorld.GetRelativeTransform(ParentToWorld);
+				FVector RelativeScale3D = RelativeTM.GetScale3D();
+
 				RootComponent->AttachTo(ParentComponent, AttachmentReplication.AttachSocket);
 				RootComponent->RelativeLocation = AttachmentReplication.LocationOffset;
 				RootComponent->RelativeRotation = AttachmentReplication.RotationOffset;
+				RootComponent->RelativeScale3D = RelativeScale3D;
 
 				RootComponent->UpdateComponentToWorld();
 			}
@@ -1816,10 +1822,17 @@ void AActor::CalcCamera(float DeltaTime, FMinimalViewInfo& OutResult)
 {
 	if (bFindCameraComponentWhenViewTarget)
 	{
-		if (UCameraComponent* CameraComponent = FindComponentByClass<UCameraComponent>())
+		// Look for the first active camera component and use that for the view
+		TArray<UCameraComponent*> Cameras;
+		GetComponents<UCameraComponent>(/*out*/ Cameras);
+
+		for (UCameraComponent* CameraComponent : Cameras)
 		{
-			CameraComponent->GetCameraView(DeltaTime, OutResult);
-			return;
+			if (CameraComponent->bIsActive)
+			{
+				CameraComponent->GetCameraView(DeltaTime, OutResult);
+				return;
+			}
 		}
 	}
 
@@ -2657,8 +2670,13 @@ int32 AActor::GetFunctionCallspace( UFunction* Function, void* Parameters, FFram
 				return Callspace;
 			}
 		}
+		else if (!NetConnection->Driver || !NetConnection->Driver->World)
+		{
+			// NetDriver does not have a world, most likely shutting down
+			return FunctionCallspace::Absorbed;
+		}
 
-		// There is a net connection, so continue and call remotely
+		// There is a valid net connection, so continue and call remotely
 	}
 
 	// about to call remotely - unless the actor is not actually replicating
@@ -3126,6 +3144,30 @@ float AActor::GetHorizontalDistanceTo(AActor* OtherActor)
 float AActor::GetVerticalDistanceTo(AActor* OtherActor)
 {
 	return OtherActor ? FMath::Abs((GetActorLocation().Z - OtherActor->GetActorLocation().Z)) : 0.f;
+}
+
+float AActor::GetDotProductTo(AActor* OtherActor)
+{
+	if (OtherActor)
+	{
+		FVector Dir = GetActorForwardVector();
+		FVector Offset = OtherActor->GetActorLocation() - GetActorLocation();
+		Offset = Offset.SafeNormal();
+		return Dir.DotProduct(Dir, Offset);
+	}
+	return -2.0;
+}
+
+float AActor::GetHorizontalDotProductTo(AActor* OtherActor)
+{
+	if (OtherActor)
+	{
+		FVector Dir = GetActorForwardVector();
+		FVector Offset = OtherActor->GetActorLocation() - GetActorLocation();
+		Offset = Offset.SafeNormal2D();
+		return Dir.DotProduct(Dir, Offset);
+	}
+	return -2.0;
 }
 
 #if WITH_EDITOR

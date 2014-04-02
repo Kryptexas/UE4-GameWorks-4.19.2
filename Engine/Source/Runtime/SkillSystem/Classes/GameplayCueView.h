@@ -19,7 +19,8 @@ namespace EGameplayCueEvent
 	{
 		Applied,
 		Added,
-		Executed
+		Executed,
+		Removed
 	};
 }
 

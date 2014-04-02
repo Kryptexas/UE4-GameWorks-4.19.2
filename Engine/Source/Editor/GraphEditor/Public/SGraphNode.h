@@ -271,6 +271,23 @@ protected:
 	/** Create the inner node content area, including the left/right pin boxes */
 	virtual TSharedRef<SWidget> CreateNodeContentArea();
 
+	///// ADD PIN BUTTON FUNCTIONS /////
+
+	/** Override this to create a button to add pins on the input side of the node */
+	virtual void CreateInputSideAddButton(TSharedPtr<SVerticalBox> InputBox) {};
+
+	/** Override this to create a button to add pins on the output side of the node */
+	virtual void CreateOutputSideAddButton(TSharedPtr<SVerticalBox> OutputBox) {};
+
+	/** Creates widget for an Add pin button, which can then be added to the node */
+	TSharedRef<SWidget> AddPinButtonContent(FText PinText, FText PinTooltipText, bool bRightSide = true, FString DocumentationExcerpt = FString(), TSharedPtr<SToolTip> CustomTooltip = NULL);
+
+	/** Checks whether Add pin button should currently be visible */
+	virtual EVisibility IsAddPinButtonVisible() const;
+
+	/** Callback function executed when Add pin button is clicked */
+	virtual FReply OnAddPin() {return FReply::Handled();}
+
 protected:
 	/** Input pin widgets on this node */
 	TArray< TSharedRef<SGraphPin> > InputPins;

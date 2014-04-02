@@ -20,7 +20,7 @@ enum EKismetCompiledStatementType
 	KCST_ComputedGoto = 10,		// NextState = LHS;
 	KCST_EndOfThreadIfNot = 11, // [if (!TargetObject->TargetProperty)] { same as KCST_EndOfThread; }
 	KCST_DebugSite = 12,		// NOP with recorded address
-	KCST_CastToInterface = 13,	// TargetInterface(TargetObject)
+	KCST_CastObjToInterface = 13,	// TargetInterface(TargetObject)
 	KCST_DynamicCast = 14,	    // Cast<TargetClass>(TargetObject)
 	KCST_ObjectToBool = 15,		// (TargetObject != None)
 	KCST_AddMulticastDelegate = 16,		// TargetDelegate->Add(EventDelegate)
@@ -30,6 +30,8 @@ enum EKismetCompiledStatementType
 	KCST_RemoveMulticastDelegate = 20,	//  TargetDelegate->Remove(EventDelegate)
 	KCST_CallDelegate = 21,		// TargetDelegate->Broadcast(...)
 	KCST_CreateArray = 22,		// Creates and sets an array literal term
+	KCST_CrossInterfaceCast = 23,	// TargetInterface(Interface)
+	KCST_MetaCast = 24,	    // Cast<TargetClass>(TargetObject)
 };
 
 //@TODO: Too rigid / icky design

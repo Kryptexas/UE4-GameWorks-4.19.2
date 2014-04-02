@@ -121,13 +121,28 @@ struct FViewTargetTransitionParams
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=ViewTargetTransitionParams)
 	uint32 bLockOutgoing:1;
 
-
 	FViewTargetTransitionParams()
 		: BlendTime(0.f)
 		, BlendFunction(VTBlend_Cubic)
 		, BlendExp(2.f)
 		, bLockOutgoing(false)
 	{}
+
+	float GetBlendAlpha(const float & TimePct) const
+	{
+		switch (BlendFunction)
+		{
+		case VTBlend_Linear: return FMath::Lerp(0.f, 1.f, TimePct); 
+		case VTBlend_Cubic:	return FMath::CubicInterp(0.f, 0.f, 1.f, 0.f, TimePct); 
+		case VTBlend_EaseInOut: return FMath::InterpEaseInOut(0.f, 1.f, TimePct, BlendExp); 
+		case VTBlend_EaseIn: return FMath::Lerp(0.f, 1.f, FMath::Pow(TimePct, BlendExp)); 
+		case VTBlend_EaseOut: return FMath::Lerp(0.f, 1.f, FMath::Pow(TimePct, (FMath::IsNearlyZero(BlendExp) ? 1.f : (1.f / BlendExp))));
+		default:
+			break;
+		}
+
+		return 1.f;
+	}
 };
 
 /**
@@ -399,7 +414,7 @@ protected:
 	/** Returns first existing instance of the specified camera anim, or NULL if none exists. */
 	UCameraAnimInst* FindExistingCameraAnimInst(UCameraAnim const* Anim);
 
-	void AssignViewTarget(AActor* NewTarget, FTViewTarget& VT, struct FViewTargetTransitionParams TransitionParams=FViewTargetTransitionParams());
+	virtual void AssignViewTarget(AActor* NewTarget, FTViewTarget& VT, struct FViewTargetTransitionParams TransitionParams=FViewTargetTransitionParams());
 
 	friend struct FTViewTarget;
 public:

@@ -382,6 +382,11 @@ void ReturnPooledTexture2D(int32 MipCount, EPixelFormat PixelFormat, ID3D11Textu
 #if WITH_D3DX_LIBS
 DXGI_FORMAT FD3D11DynamicRHI::GetPlatformTextureResourceFormat(DXGI_FORMAT InFormat, uint32 InFlags)
 {
+	// DX 11 Shared textures must be B8G8R8A8_UNORM
+	if (InFlags & TexCreate_Shared)
+	{
+		return DXGI_FORMAT_B8G8R8A8_UNORM;
+	}
 	return InFormat;
 }
 #endif	//WITH_D3DX_LIBS
@@ -463,9 +468,11 @@ TD3D11Texture2D<BaseResourceType>* FD3D11DynamicRHI::CreateD3D11Texture2D(uint32
 		Flags &= ~TexCreate_SRGB;
 	}
 
+	const bool bSRGB = (Flags & TexCreate_SRGB) != 0;
+
 	const DXGI_FORMAT PlatformResourceFormat = FD3D11DynamicRHI::GetPlatformTextureResourceFormat((DXGI_FORMAT)GPixelFormats[Format].PlatformFormat, Flags);
-	const DXGI_FORMAT PlatformShaderResourceFormat = FindShaderResourceDXGIFormat(PlatformResourceFormat, ((Flags & TexCreate_SRGB) != 0));
-	const DXGI_FORMAT PlatformRenderTargetFormat = FindShaderResourceDXGIFormat(PlatformResourceFormat,false);
+	const DXGI_FORMAT PlatformShaderResourceFormat = FindShaderResourceDXGIFormat(PlatformResourceFormat, bSRGB);
+	const DXGI_FORMAT PlatformRenderTargetFormat = FindShaderResourceDXGIFormat(PlatformResourceFormat, bSRGB);
 	
 	// Determine the MSAA settings to use for the texture.
 	D3D11_DSV_DIMENSION DepthStencilViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
@@ -481,7 +488,7 @@ TD3D11Texture2D<BaseResourceType>* FD3D11DynamicRHI::CreateD3D11Texture2D(uint32
 	uint32 ActualMSAAQuality = GetMaxMSAAQuality(ActualMSAACount);
 
 	// 0xffffffff means not supported
-	if(ActualMSAAQuality == 0xffffffff)
+	if (ActualMSAAQuality == 0xffffffff || (Flags & TexCreate_Shared) != 0)
 	{
 		// no MSAA
 		ActualMSAACount = 1;
@@ -496,7 +503,7 @@ TD3D11Texture2D<BaseResourceType>* FD3D11DynamicRHI::CreateD3D11Texture2D(uint32
 		bPooledTexture = false;
 	}
 
-	if (NumMips < 1 || SizeX != SizeY || (1 << (NumMips-1)) != SizeX)
+	if (NumMips < 1 || SizeX != SizeY || (1 << (NumMips - 1)) != SizeX || (Flags & TexCreate_Shared) != 0)
 	{
 		bPooledTexture = false;
 	}
@@ -526,6 +533,11 @@ TD3D11Texture2D<BaseResourceType>* FD3D11DynamicRHI::CreateD3D11Texture2D(uint32
 	TextureDesc.BindFlags = BindFlags;
 	TextureDesc.CPUAccessFlags = CPUAccessFlags;
 	TextureDesc.MiscFlags = bCubeTexture ? D3D11_RESOURCE_MISC_TEXTURECUBE : 0;
+
+	if (Flags & TexCreate_Shared)
+	{
+		TextureDesc.MiscFlags |= D3D11_RESOURCE_MISC_SHARED;
+	}
 
 	if (Flags & TexCreate_GenerateMipCapable)
 	{
@@ -804,9 +816,11 @@ FD3D11Texture3D* FD3D11DynamicRHI::CreateD3D11Texture3D(uint32 SizeX,uint32 Size
 {
 	SCOPE_CYCLE_COUNTER(STAT_D3D11CreateTextureTime);
 	
+	const bool bSRGB = (Flags & TexCreate_SRGB) != 0;
+
 	const DXGI_FORMAT PlatformResourceFormat = (DXGI_FORMAT)GPixelFormats[Format].PlatformFormat;
-	const DXGI_FORMAT PlatformShaderResourceFormat = FindShaderResourceDXGIFormat(PlatformResourceFormat,((Flags & TexCreate_SRGB) != 0));
-	const DXGI_FORMAT PlatformRenderTargetFormat = FindShaderResourceDXGIFormat(PlatformResourceFormat,false);
+	const DXGI_FORMAT PlatformShaderResourceFormat = FindShaderResourceDXGIFormat(PlatformResourceFormat, bSRGB);
+	const DXGI_FORMAT PlatformRenderTargetFormat = FindShaderResourceDXGIFormat(PlatformResourceFormat, bSRGB);
 
 	// Describe the texture.
 	D3D11_TEXTURE3D_DESC TextureDesc;

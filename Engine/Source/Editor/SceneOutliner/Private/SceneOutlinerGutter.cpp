@@ -10,14 +10,13 @@ class FVisibilityDragDropOp : public FDragDropOperation, public TSharedFromThis<
 {
 public:
 	
+	DRAG_DROP_OPERATOR_TYPE(FVisibilityDragDropOp, FDragDropOperation)
+
 	/** Flag which defines whether to hide destination actors or not */
 	bool bHidden;
 
 	/** Undo transaction stolen from the gutter which is kept alive for the duration of the drag */
 	TUniquePtr<FScopedTransaction> UndoTransaction;
-
-	/** Get the type ID for this drag/drop operation */
-	static FString GetTypeId() { static FString Type = TEXT("FVisibilityDragDropOp"); return Type; }
 
 	/** The widget decorator to use */
 	virtual TSharedPtr<SWidget> GetDefaultDecorator() const OVERRIDE
@@ -29,7 +28,6 @@ public:
 	static TSharedRef<FVisibilityDragDropOp> New(const bool _bHidden, TUniquePtr<FScopedTransaction>& ScopedTransaction)
 	{
 		TSharedRef<FVisibilityDragDropOp> Operation = MakeShareable(new FVisibilityDragDropOp);
-		FSlateApplication::GetDragDropReflector().RegisterOperation<FVisibilityDragDropOp>(Operation);
 
 		Operation->bHidden = _bHidden;
 		Operation->UndoTransaction = MoveTemp(ScopedTransaction);
@@ -82,10 +80,10 @@ private:
 	/** If a visibility drag drop operation has entered this widget, set its actor to the new visibility state */
 	virtual void OnDragEnter(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) OVERRIDE
 	{
-		if (DragDrop::IsTypeMatch<FVisibilityDragDropOp>(DragDropEvent.GetOperation()))
+		auto VisibilityOp = DragDropEvent.GetOperationAs<FVisibilityDragDropOp>();
+		if (VisibilityOp.IsValid())
 		{
-			TSharedPtr<FVisibilityDragDropOp> DragOp = StaticCastSharedPtr<FVisibilityDragDropOp>(DragDropEvent.GetOperation());
-			SetIsVisible(!DragOp->bHidden);
+			SetIsVisible(!VisibilityOp->bHidden);
 		}
 	}
 

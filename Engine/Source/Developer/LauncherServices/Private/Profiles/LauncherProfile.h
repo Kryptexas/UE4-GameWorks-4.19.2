@@ -536,9 +536,16 @@ public:
 
 	virtual void SetDeployedDeviceGroup( const ILauncherDeviceGroupPtr& DeviceGroup ) OVERRIDE
 	{
+		if(DeployedDeviceGroup.IsValid())
+		{
+			DeployedDeviceGroup->OnDeviceAdded().RemoveRaw(this, &FLauncherProfile::OnLauncherDeviceGroupDeviceAdded);
+			DeployedDeviceGroup->OnDeviceRemoved().RemoveRaw(this, &FLauncherProfile::OnLauncherDeviceGroupDeviceRemove);
+		}
 		DeployedDeviceGroup = DeviceGroup;
 		if (DeployedDeviceGroup.IsValid())
 		{
+			DeployedDeviceGroup->OnDeviceAdded().AddRaw(this, &FLauncherProfile::OnLauncherDeviceGroupDeviceAdded);
+			DeployedDeviceGroup->OnDeviceRemoved().AddRaw(this, &FLauncherProfile::OnLauncherDeviceGroupDeviceRemove);
 			DeployedDeviceGroupId = DeployedDeviceGroup->GetId();
 		}
 		else
@@ -758,6 +765,77 @@ protected:
 		if ((LaunchMode != ELauncherProfileLaunchModes::DoNotLaunch) && (CookMode != ELauncherProfileCookModes::OnTheFly))
 		{
 			// @todo ensure that launched devices have cooked content
+		}
+		
+		ValidatePlatformSDKs();
+	}
+	
+	void ValidatePlatformSDKs(void)
+	{
+		ValidationErrors.Remove(ELauncherProfileValidationErrors::NoPlatformSDKInstalled);
+		
+		// Cook: ensure that all platform SDKs are installed
+		if (CookedPlatforms.Num() > 0)
+		{
+			bool bProjectHasCode = false; // @todo: Does the project have any code?
+			FString NotInstalledDocLink;
+			for (auto PlatformName : CookedPlatforms)
+			{
+				const ITargetPlatform* Platform = GetTargetPlatformManager()->FindTargetPlatform(PlatformName);
+				if(!Platform || !Platform->IsSdkInstalled(bProjectHasCode, NotInstalledDocLink))
+				{
+					ValidationErrors.Add(ELauncherProfileValidationErrors::NoPlatformSDKInstalled);
+					ILauncherServicesModule& LauncherServicesModule = FModuleManager::GetModuleChecked<ILauncherServicesModule>(TEXT("LauncherServices"));
+					LauncherServicesModule.BroadcastLauncherServicesSDKNotInstalled(PlatformName, NotInstalledDocLink);
+					return;
+				}
+			}
+		}
+		
+		// Deploy: ensure that all the target device SDKs are installed
+		if ((DeploymentMode != ELauncherProfileDeploymentModes::DoNotDeploy) && DeployedDeviceGroup.IsValid())
+		{
+			const TArray<FString>& Devices = DeployedDeviceGroup->GetDevices();
+			for(auto DeviceId : Devices)
+			{
+				TSharedPtr<ITargetDeviceServicesModule> TargetDeviceServicesModule = StaticCastSharedPtr<ITargetDeviceServicesModule>(FModuleManager::Get().LoadModule(TEXT("TargetDeviceServices")));
+				
+				if (TargetDeviceServicesModule.IsValid())
+				{
+					ITargetDeviceProxyPtr DeviceProxy = TargetDeviceServicesModule->GetDeviceProxyManager()->FindProxy(DeviceId);
+					
+					if(DeviceProxy.IsValid())
+					{
+						FString const& PlatformName = DeviceProxy->GetPlatformName();
+						bool bProjectHasCode = false; // @todo: Does the project have any code?
+						FString NotInstalledDocLink;
+						const ITargetPlatform* Platform = GetTargetPlatformManager()->FindTargetPlatform(PlatformName);
+						if(!Platform || !Platform->IsSdkInstalled(bProjectHasCode, NotInstalledDocLink))
+						{
+							ValidationErrors.Add(ELauncherProfileValidationErrors::NoPlatformSDKInstalled);
+							ILauncherServicesModule& LauncherServicesModule = FModuleManager::GetModuleChecked<ILauncherServicesModule>(TEXT("LauncherServices"));
+							LauncherServicesModule.BroadcastLauncherServicesSDKNotInstalled(PlatformName, NotInstalledDocLink);
+							return;
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	void OnLauncherDeviceGroupDeviceAdded(const ILauncherDeviceGroupRef& DeviceGroup, const FString& DeviceId)
+	{
+		if( DeviceGroup == DeployedDeviceGroup )
+		{
+			ValidatePlatformSDKs();
+		}
+	}
+	
+	void OnLauncherDeviceGroupDeviceRemove(const ILauncherDeviceGroupRef& DeviceGroup, const FString& DeviceId)
+	{
+		if( DeviceGroup == DeployedDeviceGroup )
+		{
+			ValidatePlatformSDKs();
 		}
 	}
 

@@ -6,7 +6,7 @@
 #include "RenderResource.h"
 #include "RHIStaticStates.h"
 #include "../../Renderer/Private/ScenePrivate.h"
-#include "HighresScreenshot.h"
+#include "HighResScreenshot.h"
 
 #include "Slate.h"
 #include "SNotificationList.h"

@@ -5,8 +5,7 @@
 class GRAPHEDITOR_API FDragNode : public FGraphEditorDragDropAction
 {
 public:
-	// GetTypeId 
-	static FString GetTypeId() { static FString Type = TEXT("FDragNode"); return Type; }
+	DRAG_DROP_OPERATOR_TYPE(FDragNode, FGraphEditorDragDropAction)
 
 	static TSharedRef<FDragNode> New(const TSharedRef<SGraphPanel>& InGraphPanel, const TSharedRef<SGraphNode>& InDraggedNode);
 

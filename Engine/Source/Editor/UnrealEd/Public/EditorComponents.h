@@ -77,7 +77,7 @@ private:
 	/**
 	 * Draws an origin axis line for the orthographic grid
 	 */
-	static void DrawOriginAxisLine(FVector* A,FVector* B,float* AX,float* BX,const FSceneView* View,FPrimitiveDrawInterface* PDI);
+	static void DrawOriginAxisLine(FVector* A,FVector* B,float* AX,float* BX,const FSceneView* View,FPrimitiveDrawInterface* PDI, const FLinearColor& Color);
 
 
 	/** Draws the viewport grid. */

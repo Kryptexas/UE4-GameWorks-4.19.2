@@ -5,7 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-#include "Online.h"
+#include "OnlineSubsystemUtils.h"
 
 FArchive& operator<<( FArchive& Ar, FUniqueNetIdRepl& UniqueNetId)
 {
@@ -25,6 +25,7 @@ FArchive& operator<<( FArchive& Ar, FUniqueNetIdRepl& UniqueNetId)
 			FString Contents;
 			Ar << Contents;	// that takes care about possible overflow
 
+			// Don't need to distinguish OSS interfaces here with world because we just want the create function below
 			IOnlineIdentityPtr IdentityInt = Online::GetIdentityInterface();
 			if (IdentityInt.IsValid())
 			{
@@ -61,11 +62,11 @@ FString FUniqueNetIdRepl::ToString() const
 	return IsValid() ? UniqueNetId->ToString() : TEXT("INVALID");
 }
 
-void TestUniqueIdRepl()
+void TestUniqueIdRepl(UWorld* InWorld)
 {
 	bool bSuccess = true;
 
-	IOnlineIdentityPtr IdentityPtr = Online::GetIdentityInterface();
+	IOnlineIdentityPtr IdentityPtr = Online::GetIdentityInterface(InWorld);
 	if (IdentityPtr.IsValid())
 	{
 		TSharedPtr<FUniqueNetId> UserId = IdentityPtr->GetUniquePlayerId(0);

@@ -123,10 +123,6 @@ protected:
 		uint32 NumConstants;
 	} CurrentConstantBuffers[SF_NumFrequencies][D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
 
-	FVertexBufferRHIRef DummyVertexBufferRHI;
-	FShaderResourceViewRHIRef DummyVertexBufferSRVRHI;
-	ID3D11ShaderResourceView* DummyVertexBufferSRVD3D;
-
 	bool bAlwaysSetIndexBuffers;
 
 #endif
@@ -861,23 +857,12 @@ public:
 		SetContext(InDeviceContext);
 		
 #if D3D11_ALLOW_STATE_CACHE
-		//create dummy VertexBuffer/VertexBuffer SRV
-		DummyVertexBufferRHI = RHICreateVertexBuffer(sizeof(FVector2D)*512, NULL, BUF_Static | BUF_ShaderResource | BUF_UnorderedAccess);
-
-		DummyVertexBufferSRVRHI = RHICreateShaderResourceView(DummyVertexBufferRHI, /*Stride=*/ sizeof(FVector2D), PF_G32R32F);
-		FShaderResourceViewRHIParamRef SRVParamRHI = DummyVertexBufferSRVRHI;
-		DYNAMIC_CAST_D3D11RESOURCE(ShaderResourceView,SRVParam);
-		DummyVertexBufferSRVD3D = SRVParam->View;
 		bAlwaysSetIndexBuffers = bInAlwaysSetIndexBuffers;
 #endif
 	}
 
 	~FD3D11StateCacheBase()
 	{
-#if D3D11_ALLOW_STATE_CACHE
-		DummyVertexBufferSRVRHI.SafeRelease();
-		DummyVertexBufferRHI.SafeRelease();
-#endif
 	}
 
 	virtual D3D11_STATE_CACHE_INLINE void SetContext(ID3D11DeviceContext* InDeviceContext)

@@ -14,8 +14,11 @@ namespace EProfilerSessionTypes
 		/** Based on the live connection. */
 		Live,
 
-		/** Based on the capture file. */
+		/** Based on the regular stats file. */
 		Offline,
+
+		/** Based on the raw stats file. */
+		OfflineRaw,
 
 		Combined,
 		Summary,
@@ -329,6 +332,7 @@ protected:
 class FProfilerStatMetaData : public FNoncopyable, public TSharedFromThis<FProfilerStatMetaData>
 {
 	friend class FProfilerSession;
+	friend class FRawProfilerSession;
 
 protected:
 	/** Constructor. */
@@ -342,7 +346,7 @@ public:
 	{
 		// Delete all allocated descriptions.
 		for( auto It = StatDescriptions.CreateConstIterator(); It; ++It )
-			{
+		{
 			delete It.Value();
 		}
 		StatDescriptions.Empty();
@@ -374,7 +378,7 @@ public:
 			MemorySize += It.Value()->GetMemoryUsage();
 		}
 
-		MemorySize += ThreadDescriptions.GetAllocatedSize();
+		MemorySize += GetThreadDescriptions().GetAllocatedSize();
 
 		return MemorySize;
 	}
@@ -400,8 +404,13 @@ protected:
 		ThreadDescriptions.Append( LocalCopy.ThreadDescriptions );
 
 		// Initialize fake stat for Self.
-		InitializeGroup( 0, "GroupSelf" );
-		InitializeStat( 0, 0, TEXT("Self"), STATTYPE_CycleCounter );
+		const uint32 NoGroupID = 0;
+		FString FF1 = FStatConstants::NAME_ThreadRoot.ToString();
+		FString FF2 = FStatConstants::NAME_ThreadRoot.GetPlainNameString();
+
+		InitializeGroup( NoGroupID, "NoGroup" );
+		InitializeStat( 0, NoGroupID, TEXT( "Self" ), STATTYPE_CycleCounter );
+		InitializeStat( 1, NoGroupID, FStatConstants::NAME_ThreadRoot.GetPlainNameString(), STATTYPE_CycleCounter, FStatConstants::NAME_ThreadRoot );
 
 		// Iterate through all stat group descriptions.
 		for( auto It = LocalCopy.GroupDescriptions.CreateConstIterator(); It; ++It )
@@ -419,6 +428,13 @@ protected:
 
 		SecondsPerCycle = LocalCopy.SecondsPerCycle;
 	}
+
+public:
+	/**
+	 *	Updates this stats metadata based on the stats thread state.
+	 *	This is a temporary solution to make it working with current implementation of FProfilerSample.
+	 */
+	void UpdateFromStatsState( const FStatsThreadState& StatsThreadStats );
 
 private:
 
@@ -447,38 +463,41 @@ private:
 	 * @param GroupID	- the id of the stat group that will be assigned to the specified stat
 	 * @param StatName  - the name of the stat that needs to be initialized
 	 * @param InType	- the type of the stat that needs to be initialized
+	 * @param StatName	- the unique stat name
 	 *
 	 */
-	void InitializeStat( const uint32 StatID, const uint32 GroupID, const FString& StatName, const EStatType InType )	
+	void InitializeStat( const uint32 StatID, const uint32 GroupID, const FString& StatName, const EStatType InType, FName StatFName = NAME_None )	
 	{
+		// @TODO yrx 2014-03-24 FindRef!
 		FProfilerGroup** GroupPtr = GroupDescriptions.Find( GroupID );
 
 		FProfilerStat** StatPtr = StatDescriptions.Find( StatID );
 		if( !StatPtr )
 		{
 			StatPtr = &StatDescriptions.Add( StatID, new FProfilerStat( StatID ) );
+
+			if( StatFName != NAME_None )
+			{
+				StatFNameDescriptions.Add( StatFName, *StatPtr );
+			}
 		}
 		(*StatPtr)->Initialize( StatName, *GroupPtr, InType );
 
+		if( StatFName == NAME_None && (*GroupPtr)->Name() == TEXT( "Threads" ) )
 		{
 			// Check if this stat is a thread stat.
-			const FString StatPtrName = (*StatPtr)->_Name.ToString();
-			const int32 Thread_Pos = StatPtrName.Find( TEXT("Thread_") );
-			const int32 _0Pos = StatPtrName.Find( TEXT("_0") );
-			if( Thread_Pos != INDEX_NONE && _0Pos != INDEX_NONE )
+			const uint32 ThreadID = FStatsUtils::ParseThreadID( (*StatPtr)->_Name );
+			if( ThreadID != 0 )
 			{
-				// Extract the thread id.
-				FString ThreadIDStr( StatPtrName.Len()-9, *StatPtrName+7 );
-				const uint32 ThreadID = FParse::HexNumber(*ThreadIDStr);
-				const FString* ThreadDesc = ThreadDescriptions.Find( ThreadID );
+				const FString* ThreadDesc = GetThreadDescriptions().Find( ThreadID );
 				if( ThreadDesc )
 				{
 					// Replace the stat name with a thread name.
-					const FString UniqueThreadName = FString::Printf( TEXT("%s [0x%x]"), **ThreadDesc, ThreadID );
+					const FString UniqueThreadName = FString::Printf( TEXT( "%s [0x%x]" ), **ThreadDesc, ThreadID );
 					(*StatPtr)->_Name = *UniqueThreadName;
 					ThreadIDtoStatID.Add( ThreadID, StatID );
 				}
-		}
+			}
 		}
 
 		if( *GroupPtr != FProfilerGroup::GetDefaultPtr() )
@@ -491,9 +510,17 @@ public:
 	/**
 	 * @return a reference to the stat description specified by the stat ID
 	 */
-	const FProfilerStat& GetStat( const uint32 StatID ) const
+	const FProfilerStat& GetStatByID( const uint32 StatID ) const
 	{
 		return *StatDescriptions.FindChecked( StatID );
+	}
+
+	/**
+	* @return a reference to the stat description specified by the unique stat name.
+	*/
+	const FProfilerStat& GetStatByFName( FName StatName ) const
+	{
+		return *StatFNameDescriptions.FindChecked( StatName );
 	}
 
 	/**
@@ -549,7 +576,7 @@ public:
 	 */
 	const EProfilerSampleTypes::Type GetSampleTypeForStatID( const uint32 StatID ) const
 	{
-		return GetStat( StatID ).Type();
+		return GetStatByID( StatID ).Type();
 	}
 
 	/**
@@ -563,6 +590,9 @@ public:
 protected:
 	/** All initialized stat descriptions, stored as StatID -> FProfilerStat. */
 	TMap<uint32,FProfilerStat*> StatDescriptions;
+
+	/** All initialized stat descriptions, stored as unique stat name -> FProfilerStat. */
+	TMap<FName, FProfilerStat*> StatFNameDescriptions;
 
 	/** All initialized stat group descriptions, stored as StatID -> FProfilerGroup. */
 	TMap<uint32,FProfilerGroup*> GroupDescriptions;
@@ -877,14 +907,24 @@ class FProfilerSession : public TSharedFromThis<FProfilerSession>
 	friend class FProfilerManager;
 	friend class FProfilerActionManager;
 
+protected:
+	/** Default constructor. */
+	FProfilerSession
+	( 
+		EProfilerSessionTypes::Type InSessionType, 
+		const ISessionInstanceInfoPtr InSessionInstanceInfo,
+		FGuid InSessionInstanceID,
+		FString InDataFilepath
+	);
+
 public:
 	/**
-	 * Default constructor, creates a profiler session from a capture file.
+	 * Initialization constructor, creates a profiler session from a capture file.
 	 */
 	FProfilerSession( const FString& InDataFilepath );
 
 	/**
-	 * Default constructor, creates a live profiler session.
+	 * Initialization constructor, creates a live profiler session.
 	 */
 	FProfilerSession( const ISessionInstanceInfoPtr InSessionInstanceInfo );
 
@@ -894,7 +934,7 @@ public:
 	/** Updates this profiler session. */
 	bool HandleTicker( float DeltaTime );
 
-public:
+
 	/**
 	 * The delegate to execute when this profiler session has fully processed a capture file and profiler manager can update all widgets.
 	 *
@@ -933,6 +973,10 @@ public:
 		else if( SessionType == EProfilerSessionTypes::Offline )
 		{
 			SessionName = FString::Printf( TEXT("%s"), *DataFilepath );
+		}
+		else if( SessionType == EProfilerSessionTypes::OfflineRaw )
+		{
+			SessionName = FString::Printf( TEXT( "%s" ), *DataFilepath );
 		}
 		
 		return SessionName;
@@ -1141,16 +1185,16 @@ protected:
 	/*const*/ FDateTime CreationTime;
 
 	/** Session type for this profiler session. */
-	const EProfilerSessionTypes::Type SessionType;
+	/*const*/ EProfilerSessionTypes::Type SessionType;
 
 	/** Shared pointer to the session instance info. */
 	const ISessionInstanceInfoPtr SessionInstanceInfo;
 
 	/** An unique session instance ID. */
-	const FGuid SessionInstanceID;
+	/*const*/ FGuid SessionInstanceID;
 
 	/** Data filepath. */
-	const FString DataFilepath;
+	/*const*/ FString DataFilepath;
 
 	/** True, if this profiler session instance is currently previewing data, only valid if profiler is connected to network based session. */
 	bool bDataPreviewing;
@@ -1164,4 +1208,39 @@ protected:
 public:
 	/** Provides analysis of the frame rate */
 	TSharedRef<FFPSAnalyzer> FPSAnalyzer;
+};
+
+/*-----------------------------------------------------------------------------
+	Profiler session for the raw stats files
+-----------------------------------------------------------------------------*/
+
+
+class FRawProfilerSession : public FProfilerSession
+{
+	friend class FProfilerManager;
+	friend class FProfilerActionManager;
+
+	/** Stats thread state, mostly used to manage the stats metadata. */
+	FStatsThreadState StatsThreadStats;
+
+public:
+	/**
+	* Default constructor, creates a profiler session from a capture file.
+	*/
+	FRawProfilerSession( const FString& InRawStatsFileFileath );
+
+	/** Destructor. */
+	~FRawProfilerSession();
+
+	/** Updates this profiler session. */
+	bool HandleTicker( float DeltaTime );
+
+	/** Starts a process of loading the raw stats file. */
+	void PrepareLoading();
+
+	/**
+	 *	Process all stats packets and convert them to data accessible by the profiler.
+	 *	Temporary version, will be optimized later.
+	 */
+	void ProcessStatPacketArray( const FStatPacketArray& PacketArray );
 };

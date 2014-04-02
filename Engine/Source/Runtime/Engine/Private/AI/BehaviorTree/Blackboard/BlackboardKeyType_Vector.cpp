@@ -19,17 +19,23 @@ bool UBlackboardKeyType_Vector::SetValue(uint8* RawData, const FVector& Value)
 
 FString UBlackboardKeyType_Vector::DescribeValue(const uint8* RawData) const
 {
-	return GetValue(RawData).ToString();
+	const FVector Location = GetValue(RawData);
+	return FAISystem::IsValidLocation(Location) ? Location.ToString() : TEXT("(invalid)");
 }
 
 bool UBlackboardKeyType_Vector::GetLocation(const uint8* RawData, FVector& Location) const
 {
 	Location = GetValue(RawData);
-	return true;
+	return FAISystem::IsValidLocation(Location);
 }
 
 int32 UBlackboardKeyType_Vector::Compare(const uint8* MemoryBlockA, const uint8* MemoryBlockB) const
 {
 	return GetValueFromMemory<FVector>(MemoryBlockA).Equals(GetValueFromMemory<FVector>(MemoryBlockB))
 		? UBlackboardKeyType::Equal : UBlackboardKeyType::NotEqual;
+}
+
+void UBlackboardKeyType_Vector::Initialize(uint8* RawData) const
+{
+	SetValue(RawData, FAISystem::InvalidLocation);
 }

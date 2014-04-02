@@ -8,6 +8,8 @@ class FStatIDDragDropOp
 	, public TSharedFromThis<FStatIDDragDropOp>
 {
 public:
+	DRAG_DROP_OPERATOR_TYPE(FStatIDDragDropOp, FDragDropOperation)
+
 	const TArray<int32>& GetStatIDs() const
 	{
 		return StatIDs;
@@ -36,7 +38,6 @@ public:
 	static TSharedRef<FStatIDDragDropOp> NewGroup( const TArray<int32>& StatIDs, const FString GroupDesc )
 	{
 		TSharedRef<FStatIDDragDropOp> Operation = MakeShareable(new FStatIDDragDropOp());
-		FSlateApplication::GetDragDropReflector().RegisterOperation<FStatIDDragDropOp>(Operation);
 
 		Operation->StatIDs.Append( StatIDs );
 		Operation->Description = GroupDesc;
@@ -48,19 +49,12 @@ public:
 	static TSharedRef<FStatIDDragDropOp> NewSingle( const int32 StatID, const FString StatDesc )
 	{
 		TSharedRef<FStatIDDragDropOp> Operation = MakeShareable(new FStatIDDragDropOp());
-		FSlateApplication::GetDragDropReflector().RegisterOperation<FStatIDDragDropOp>(Operation);
 
 		Operation->StatIDs.Add( StatID );
 		Operation->Description = StatDesc;
 		Operation->bShowOkIcon = false;
 		Operation->Construct();
 		return Operation;
-	}
-
-	static FString GetTypeId() 
-	{
-		static FString Type = TEXT("FStatIDDragDropOp"); 
-		return Type;
 	}
 
 private:

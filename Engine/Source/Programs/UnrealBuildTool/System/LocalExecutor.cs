@@ -91,7 +91,6 @@ namespace UnrealBuildTool
 		private void ThreadFunc()
 		{
 			// thread start time
-			DateTime StartTime = DateTime.UtcNow;
 			Action.StartTime = DateTimeOffset.Now;
 			
 			if (Action.ActionHandler != null)

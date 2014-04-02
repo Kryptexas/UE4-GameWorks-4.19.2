@@ -1314,7 +1314,7 @@ void FBlueprintVarActionDetails::OnChangeReplication(TSharedPtr<FString> ItemSel
 				if (!FuncGraph)
 				{
 					FuncGraph = FBlueprintEditorUtils::CreateNewGraph(GetBlueprintObj(), FName(*NewFuncName), UEdGraph::StaticClass(), UEdGraphSchema_K2::StaticClass());
-					FBlueprintEditorUtils::AddFunctionGraph(GetBlueprintObj(), FuncGraph, true, NULL);
+					FBlueprintEditorUtils::AddFunctionGraph(GetBlueprintObj(), FuncGraph, false, NULL);
 				}
 
 				if (FuncGraph)
@@ -4513,6 +4513,130 @@ void FBlueprintComponentDetails::OnSocketSelection( FName SocketName )
 		// Record selection if there is an actual asset attached
 		SCS_Node->AttachToName = SocketName;
 		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetBlueprintObj());
+	}
+}
+
+BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
+void FBlueprintGraphNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
+{
+	// Cache the GraphNode
+	if( BlueprintEditorPtr.IsValid() )
+	{
+		/** Get the currently selected set of nodes */
+		TSet<UObject*> Objects = BlueprintEditorPtr.Pin()->GetSelectedNodes();
+
+		if (Objects.Num() == 1)
+		{
+			TSet<UObject*>::TIterator Iter(Objects);
+			UObject* Object = *Iter;
+
+			if (Object && Object->IsA<UEdGraphNode>())
+			{
+				GraphNodePtr = Cast<UEdGraphNode>(Object);
+			}
+		}
+	}
+
+	if(!GraphNodePtr.IsValid() || !GraphNodePtr.Get()->bCanRenameNode)
+	{
+		return;
+	}
+
+	IDetailCategoryBuilder& Category = DetailLayout.EditCategory("GraphNodeDetail", LOCTEXT("GraphNodeDetailsCategory", "Graph Node").ToString(), ECategoryPriority::Important);
+	const FSlateFontInfo DetailFontInfo = IDetailLayoutBuilder::GetDetailFont();
+	FText RowHeader;
+	FText NameContent;
+
+	if( GraphNodePtr->IsA( UEdGraphNode_Comment::StaticClass() ))
+	{
+		RowHeader = LOCTEXT("GraphNodeDetail_CommentRowTitle", "Comment");
+		NameContent = LOCTEXT("GraphNodeDetail_CommentContentTitle", "Comment Text");
+	}
+	else
+	{
+		RowHeader = LOCTEXT("GraphNodeDetail_NodeRowTitle", "Node Title");
+		NameContent = LOCTEXT("GraphNodeDetail_ContentTitle", "Name");
+	}
+
+
+	Category.AddCustomRow( RowHeader.ToString() )
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text( NameContent )
+		.Font(DetailFontInfo)
+	]
+	.ValueContent()
+	[
+		SAssignNew(NameEditableTextBox, SEditableTextBox)
+		.Text(this, &FBlueprintGraphNodeDetails::OnGetName)
+		.OnTextChanged(this, &FBlueprintGraphNodeDetails::OnNameChanged)
+		.OnTextCommitted(this, &FBlueprintGraphNodeDetails::OnNameCommitted)
+		.Font(DetailFontInfo)
+	];
+}
+END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
+bool FBlueprintGraphNodeDetails::IsNameReadOnly() const
+{
+	bool bReadOnly = true;
+	if(GraphNodePtr.IsValid())
+	{
+		bReadOnly = !GraphNodePtr->bCanRenameNode;
+	}
+	return bReadOnly;
+}
+
+FText FBlueprintGraphNodeDetails::OnGetName() const
+{
+	FText Name;
+	if(GraphNodePtr.IsValid())
+	{
+		Name = FText::FromString( GraphNodePtr->GetNodeTitle( ENodeTitleType::EditableTitle ));
+	}
+	return Name;
+}
+
+void FBlueprintGraphNodeDetails::OnNameChanged(const FText& InNewText)
+{
+	bIsNodeNameInvalid = true;
+
+	if( GraphNodePtr.IsValid() && BlueprintEditorPtr.IsValid() )
+	{
+		FName NodeName( *GraphNodePtr->GetNodeTitle(ENodeTitleType::EditableTitle) );
+		TSharedPtr<INameValidatorInterface> NameValidator = GraphNodePtr->MakeNameValidator();
+
+		if( !NameValidator.IsValid() )
+		{
+			NameValidator = MakeShareable(new FKismetNameValidator(BlueprintEditorPtr.Pin()->GetBlueprintObj(), NodeName));
+		}
+
+		EValidatorResult ValidatorResult = NameValidator->IsValid(InNewText.ToString());
+		if(ValidatorResult == EValidatorResult::AlreadyInUse)
+		{
+			NameEditableTextBox->SetError(FText::Format(LOCTEXT("RenameFailed_InUse", "{0} is in use by another variable or function!"), InNewText));
+		}
+		else if(ValidatorResult == EValidatorResult::EmptyName)
+		{
+			NameEditableTextBox->SetError(LOCTEXT("RenameFailed_LeftBlank", "Names cannot be left blank!"));
+		}
+		else if(ValidatorResult == EValidatorResult::TooLong)
+		{
+			NameEditableTextBox->SetError(FText::Format( LOCTEXT("RenameFailed_NameTooLong", "Names must have fewer than {0} characters!"), FText::AsNumber( FKismetNameValidator::GetMaximumNameLength())));
+		}
+		else
+		{
+			bIsNodeNameInvalid = false;
+			NameEditableTextBox->SetError(FText::GetEmpty());
+		}
+	}
+}
+
+void FBlueprintGraphNodeDetails::OnNameCommitted(const FText& InNewText, ETextCommit::Type InTextCommit)
+{
+	if( BlueprintEditorPtr.IsValid() && GraphNodePtr.IsValid() )
+	{
+		BlueprintEditorPtr.Pin()->OnNodeTitleCommitted( InNewText, InTextCommit, GraphNodePtr.Get() );
 	}
 }
 

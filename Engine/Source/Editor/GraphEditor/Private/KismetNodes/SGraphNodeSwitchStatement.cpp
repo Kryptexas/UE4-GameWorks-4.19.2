@@ -4,7 +4,6 @@
 #include "SGraphNodeK2Base.h"
 #include "SGraphNodeSwitchStatement.h"
 #include "KismetPins/SGraphPinExec.h"
-#include "SGraphNodeK2Sequence.h"
 #include "NodeFactory.h"
 
 #include "ScopedTransaction.h"
@@ -78,24 +77,13 @@ void SGraphNodeSwitchStatement::CreatePinWidgets()
 	}
 }
 
-void SGraphNodeSwitchStatement::UpdateGraphNode()
+void SGraphNodeSwitchStatement::CreateOutputSideAddButton(TSharedPtr<SVerticalBox> OutputBox)
 {
-	SGraphNodeK2Base::UpdateGraphNode();
+	TSharedRef<SWidget> AddPinButton = AddPinButtonContent(
+		NSLOCTEXT("SwitchStatementNode", "SwitchStatementNodeAddPinButton", "Add pin"),
+		NSLOCTEXT("SwitchStatementNode", "SwitchStatementNodeAddPinButton_Tooltip", "Add new pin"));
 
-	TSharedRef<SButton> AddPinButton = SNew(SButton)
-		.ContentPadding(0.0f)
-		.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
-		.OnClicked( this, &SGraphNodeSwitchStatement::OnAddPin )
-		.ToolTipText(NSLOCTEXT("SwitchStatementNode", "SwitchStatementNodeAddPinButton", "Add new pin"))
-		.Visibility(this, &SGraphNodeSwitchStatement::IsAddPinButtonVisible)
-		[
-			FAddPinButtonHelper::AddPinButtonContent()
-		];	
-		
-	AddPinButton->SetCursor( EMouseCursor::Hand );
-
-	//Add buttons to the sequence node.
-	RightNodeBox->AddSlot()
+	OutputBox->AddSlot()
 	.AutoHeight()
 	.VAlign(VAlign_Center)
 	.Padding(10,10,10,4)
@@ -108,7 +96,7 @@ EVisibility SGraphNodeSwitchStatement::IsAddPinButtonVisible() const
 {
 	if(NULL != Cast<UK2Node_SwitchInteger>(GraphNode))
 	{
-		return FAddPinButtonHelper::IsAddPinButtonVisible(OwnerGraphPanelPtr);
+		return SGraphNode::IsAddPinButtonVisible();
 	}
 	return EVisibility::Collapsed;
 }

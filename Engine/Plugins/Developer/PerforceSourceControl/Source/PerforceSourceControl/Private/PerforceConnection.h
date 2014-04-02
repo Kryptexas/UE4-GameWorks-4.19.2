@@ -25,34 +25,34 @@ class FPerforceConnection
 {
 public:
 	//This constructor is strictly for internal questions to perforce (get client spec list, etc)
-	FPerforceConnection(const FString& InServerName, const FString& InUserName, const FString& InWorkspaceName, const FString& InTicket);
+	FPerforceConnection(const FPerforceConnectionInfo& InConnectionInfo);
 	/** API Specific close of source control project*/
 	~FPerforceConnection();
 
 	/** 
 	 * Attempts to automatically detect the workspace to use based on the working directory
 	 */
-	static bool AutoDetectWorkspace(const FString& InPortName, const FString& InUserName, FString& OutWorkspaceName, const FString& InTicket);
+	static bool AutoDetectWorkspace(const FPerforceConnectionInfo& InConnectionInfo, FString& OutWorkspaceName);
 
 	/**
 	 * Static function in charge of making sure the specified connection is valid or requests that data from the user via dialog
-	 * @param InOutPortName - Port name in the inifile.  Out value is the port name from the connection dialog
-	 * @param InOutUserName - User name in the inifile.  Out value is the user name from the connection dialog
-	 * @param InOutWorkspaceName - Workspace name in the inifile.  Out value is the client spec from the connection dialog
-	 * @param InTicket - The ticket to use as a password when talking to Perforce.
+	 * @param InOutPortName			Port name in the inifile.  Out value is the port name from the connection dialog
+	 * @param InOutUserName			User name in the inifile.  Out value is the user name from the connection dialog
+	 * @param InOutWorkspaceName	Workspace name in the inifile.  Out value is the client spec from the connection dialog
+	 * @param InConnectionInfo		Connection credentials
 	 * @return - true if the connection, whether via dialog or otherwise, is valid.  False if source control should be disabled
 	 */
-	static bool EnsureValidConnection(FString& InOutServerName, FString& InOutUserName, FString& InOutWorkspaceName, const FString& InTicket);
+	static bool EnsureValidConnection(FString& InOutServerName, FString& InOutUserName, FString& InOutWorkspaceName, const FPerforceConnectionInfo& InConnectionInfo);
 
 	/**
 	 * Get List of ClientSpecs
-	 * @param InUserName		The username who should own the workspaces in the list
+	 * @param InConnectionInfo	Connection credentials
 	 * @param InOnIsCancelled	Delegate called to check for operation cancellation.
 	 * @param OutWorkspaceList	The workspace list output.
 	 * @param OutErrorMessages	Any error messages output.
-	 * @return - List of client spec names
+	 * @return - True if successful
 	 */
-	bool GetWorkspaceList(const FString& InUserName, FOnIsCancelled InOnIsCancelled, TArray<FString>& OutWorkspaceList, TArray<FText>& OutErrorMessages);
+	bool GetWorkspaceList(const FPerforceConnectionInfo& InConnectionInfo, FOnIsCancelled InOnIsCancelled, TArray<FString>& OutWorkspaceList, TArray<FText>& OutErrorMessages);
 
 	/** Returns true if connection is currently active */
 	bool IsValidConnection();
@@ -81,19 +81,17 @@ public:
 	int32 CreatePendingChangelist(const FText &Description, FOnIsCancelled InIsCancelled, TArray<FText>& OutErrorMessages);
 
 	/**
-	 * Submits the specified changelist
+	 * Attempt to login - some servers will require this 
+	 * @param	InConnectionInfo		Credentials to use
+	 * @return true if successful
 	 */
-	bool SubmitChangelist(int32 ChangeList, FOnIsCancelled InIsCancelled, TArray<FText>& OutErrorMessages);
+	bool Login(const FPerforceConnectionInfo& InConnectionInfo);
 
 	/**
 	 * Make a valid connection if possible
-	 * @param InServerName - Server name for the perforce connection
-	 * @param InUserName - User for the perforce connection
-	 * @param InWorkspaceName - Client Spec name for the perforce connection
-	 * @param InTicket - The ticket to use in lieu of a login
-	 * @param bInExceptOnWarnings - If true, perforce will except on warnings
+	 * @param InConnectionInfo		Connection credentials
 	 */
-	void EstablishConnection(const FString& InServerName, const FString& InUserName, const FString& InWorkspaceName, const FString& InTicket);
+	void EstablishConnection(const FPerforceConnectionInfo& InConnectionInfo);
 
 public:
 	/** Perforce API client object */
@@ -128,7 +126,7 @@ public:
 	 * The concurrency passed in determines whether the persistent connection is used or another 
 	 * connection is established (connections cannot safely be used across different threads).
 	 */
-	FScopedPerforceConnection( EConcurrency::Type InConcurrency, const FString& InPort, const FString& InUserName, const FString& InClientSpec, const FString& InTicket );
+	FScopedPerforceConnection( EConcurrency::Type InConcurrency, const FPerforceConnectionInfo& InConnectionInfo );
 
 	/**
 	 * Destructor - disconnect if this is a temporary connection
@@ -149,7 +147,7 @@ public:
 
 private:
 	/** Set up the connection */
-	void Initialize( const FString& InPort, const FString& InUserName, const FString& InClientSpec, const FString& InTicket );
+	void Initialize( const FPerforceConnectionInfo& InConnectionInfo );
 
 private:
 	/** The perforce connection we are using */

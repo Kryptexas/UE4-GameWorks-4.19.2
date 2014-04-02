@@ -6,7 +6,7 @@
 
 #include "RendererPrivate.h"
 #include "RenderingCompositionGraph.h"
-#include "HighresScreenshot.h"
+#include "HighResScreenshot.h"
 
 // render thread, 0:off, >0 next n frames should be debugged
 uint32 GDebugCompositionGraphFrames = 0;
@@ -323,6 +323,7 @@ void FRenderingCompositionGraph::RecursivelyProcess(const FRenderingCompositeOut
 		}
 	}
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if(ShouldDebugCompositionGraph())
 	{
 		GGMLFileWriter.WriteLine("\tnode");
@@ -497,6 +498,7 @@ void FRenderingCompositionGraph::RecursivelyProcess(const FRenderingCompositeOut
 
 		UE_LOG(LogConsoleResponse,Log, TEXT(""));
 	}
+#endif
 
 	Context.Pass = Pass;
 	Context.SetViewportInvalid();
@@ -505,6 +507,7 @@ void FRenderingCompositionGraph::RecursivelyProcess(const FRenderingCompositeOut
 	Pass->Process(Context);
 
 	// for VisualizeTexture and output buffer dumping
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	{
 		uint32 OutputId = 0;
 
@@ -538,6 +541,7 @@ void FRenderingCompositionGraph::RecursivelyProcess(const FRenderingCompositeOut
 			OutputId++;
 		}
 	}
+#endif
 
 	// iterate through all inputs of this pass and decrement the references for it's inputs
 	// this can release some intermediate RT so they can be reused

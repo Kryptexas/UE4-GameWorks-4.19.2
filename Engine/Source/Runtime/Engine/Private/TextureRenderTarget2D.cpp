@@ -319,7 +319,7 @@ void FTextureRenderTarget2DResource::InitDynamicRHI()
 			1,
 			TexCreateFlags,
 			TexCreate_RenderTargetable,
-			Owner->bNeedsTwoCopies,
+			false,
 			RenderTargetTextureRHI,
 			Texture2DRHI
 			);

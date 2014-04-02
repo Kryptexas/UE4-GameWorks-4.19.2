@@ -153,11 +153,10 @@ TSharedRef<SDockTab> FPhAT::SpawnTab( const FSpawnTabArgs& TabSpawnArgs, FName T
 				]
 				
 				+ SVerticalBox::Slot()
-					.AutoHeight()
-					.Padding(FMargin(0.f, 0.f, 0.f, 0.f))
-					[
-						HierarchyControl.ToSharedRef()
-					]
+				.Padding(FMargin(0.f, 0.f, 0.f, 0.f))
+				[
+					HierarchyControl.ToSharedRef()
+				]
 			];
 
 		RefreshHierachyTree();

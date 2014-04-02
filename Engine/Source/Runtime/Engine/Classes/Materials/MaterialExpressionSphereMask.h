@@ -18,19 +18,19 @@ class UMaterialExpressionSphereMask : public UMaterialExpression
 	FExpressionInput B;
 
 	/** in the units that A and B are measured, if not hooked up the internal constant is used */
-	UPROPERTY(meta=(RequiredInput = "false"))
+	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Defaults to 'AttenuationRadius' if not specified"))
 	FExpressionInput Radius;
 
 	/** 0..1 for the range of 0% to 100%, if not hooked up the internal constant is used */
-	UPROPERTY(meta=(RequiredInput = "false"))
+	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Defaults to 'HardnessPercent' if not specified"))
 	FExpressionInput Hardness;
 
 	/** in the units that A and B are measured */
-	UPROPERTY(EditAnywhere, Category=MaterialExpressionSphereMask)
+	UPROPERTY(EditAnywhere, Category=MaterialExpressionSphereMask, meta=(OverridingInputProperty = "Radius"))
 	float AttenuationRadius;
 
 	/** in percent 0%..100% */
-	UPROPERTY(EditAnywhere, Category=MaterialExpressionSphereMask, meta=(UIMin = "0.0", UIMax = "100.0", ClampMin = "0.0", ClampMax = "100.0"))
+	UPROPERTY(EditAnywhere, Category=MaterialExpressionSphereMask, meta=(UIMin = "0.0", UIMax = "100.0", ClampMin = "0.0", ClampMax = "100.0", OverridingInputProperty = "Hardness"))
 	float HardnessPercent;
 
 

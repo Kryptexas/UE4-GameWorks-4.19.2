@@ -309,7 +309,7 @@ public:
 	TMap<FD3D11LockedKey,FD3D11LockedData> OutstandingLocks;
 
 	/** Initialization constructor. */
-	FD3D11DynamicRHI(IDXGIFactory* InDXGIFactory,D3D_FEATURE_LEVEL InFeatureLevel);
+	FD3D11DynamicRHI(IDXGIFactory* InDXGIFactory,D3D_FEATURE_LEVEL InFeatureLevel,int32 InChosenAdapter);
 
 	/** Destructor */
 	virtual ~FD3D11DynamicRHI();
@@ -477,6 +477,8 @@ protected:
 	FComputeShaderRHIRef CurrentComputeShader;
 
 	FD3DGPUProfiler GPUProfilingData;
+	// >= 0, was computed before, unless hardware was changed during engine init it should be the same
+	int32 ChosenAdapter;
 
 	template<typename BaseResourceType>
 	TD3D11Texture2D<BaseResourceType>* CreateD3D11Texture2D(uint32 SizeX,uint32 SizeY,uint32 SizeZ,bool bTextureArray,bool CubeTexture,uint8 Format,uint32 NumMips,uint32 NumSamples,uint32 Flags,FResourceBulkDataInterface* BulkData = NULL);
@@ -554,13 +556,30 @@ protected:
 	friend struct FD3DGPUProfiler;
 };
 
+struct FD3D11Adapter
+{
+	/** -1 if not supported or FindAdpater() wasn't called. Ideally we would store a pointer to IDXGIAdapter but it's unlikely the adpaters change during engine init. */
+	int32 AdapterIndex;
+	/** The maximum D3D11 feature level supported. 0 if not supported or FindAdpater() wasn't called */
+	D3D_FEATURE_LEVEL MaxSupportedFeatureLevel;
+
+	// constructor
+	FD3D11Adapter(int32 InAdapterIndex = -1, D3D_FEATURE_LEVEL InMaxSupportedFeatureLevel = (D3D_FEATURE_LEVEL)0)
+		: AdapterIndex(InAdapterIndex)
+		, MaxSupportedFeatureLevel(InMaxSupportedFeatureLevel)
+	{
+	}
+
+	bool IsValid() const
+	{
+		return MaxSupportedFeatureLevel != (D3D_FEATURE_LEVEL)0 && AdapterIndex >= 0;
+	}
+};
+
 /** Implements the D3D11RHI module as a dynamic RHI providing module. */
 class FD3D11DynamicRHIModule : public IDynamicRHIModule
 {
 public:
-	/** Default constructor. */
-	FD3D11DynamicRHIModule();
-	
 	// IModuleInterface
 	virtual bool SupportsDynamicReloading() OVERRIDE { return false; }
 
@@ -569,8 +588,10 @@ public:
 	virtual FDynamicRHI* CreateRHI() OVERRIDE;
 
 private:
-	/** The maximum D3D11 feature level supported. */
-	D3D_FEATURE_LEVEL MaxSupportedFeatureLevel;
+	FD3D11Adapter ChosenAdapter;
+
+	// set MaxSupportedFeatureLevel and ChosenAdapter
+	void FindAdapter();
 };
 
 /** Find an appropriate DXGI format for the input format and SRGB setting. */

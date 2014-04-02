@@ -37,26 +37,21 @@ void SBspPalette::Construct( const FArguments& InArgs )
 	ChildSlot
 	[
 		SNew(SVerticalBox)
-		+SVerticalBox::Slot()
+
+		+ SVerticalBox::Slot()
 		.FillHeight(1.0f)
 		[
-			SNew(SOverlay)
-			+SOverlay::Slot()
-			.Padding(0.0f)
+			SNew(SScrollBorder, ListViewWidget)
 			[
 				ListViewWidget
 			]
-			+SOverlay::Slot()
-			.HAlign( HAlign_Fill )
-			.VAlign( VAlign_Fill )
-			[
-				SNew(SScrollBorder, ListViewWidget)
-			]
 		]
-		+SVerticalBox::Slot()
+
+		+ SVerticalBox::Slot()
 		.AutoHeight()
 		[
 			SNew( SHorizontalBox )
+
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
 			.Padding( 3.0f )
@@ -93,7 +88,8 @@ void SBspPalette::Construct( const FArguments& InArgs )
 					]
 				]
 			]
-			+SHorizontalBox::Slot()
+
+			+ SHorizontalBox::Slot()
 			.Padding( 3.0f )
 			.AutoWidth()
 			.HAlign(HAlign_Right)

@@ -185,6 +185,33 @@ struct FSingleAnimationPlayData
 };
 
 /**
+* Tick function that prepares for cloth tick
+**/
+USTRUCT()
+struct FSkeletalMeshComponentPreClothTickFunction : public FTickFunction
+{
+	GENERATED_USTRUCT_BODY()
+
+#if WITH_APEX_CLOTHING
+	/** World this tick function belongs to **/
+	class USkeletalMeshComponent*	Target;
+
+	/**
+	* Abstract function actually execute the tick.
+	* @param DeltaTime - frame time to advance, in seconds
+	* @param TickType - kind of tick for this frame
+	* @param CurrentThread - thread we are executing on, useful to pass along as new tasks are created
+	* @param MyCompletionGraphEvent - completion event for this task. Useful for holding the completetion of this task until certain child tasks are complete.
+	**/
+	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) OVERRIDE;
+	/** Abstract function to describe this tick. Used to print messages about illegal cycles in the dependency graph **/
+	virtual FString DiagnosticMessage();
+
+#endif
+};
+
+
+/**
  * SkeletalMeshComponent is a mesh that supports skeletal animation and physics.
  */
 UCLASS(HeaderGroup=Component, ClassGroup=(Rendering, Common), hidecategories=Object, config=Engine, editinlinenew, meta=(BlueprintSpawnableComponent))
@@ -276,8 +303,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Clothing)
 	uint32 bDisableClothSimulation:1;
 
+	/** can't collide with part of environment if total collision volumes exceed 16 capsules or 32 planes per convex */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Clothing)
 	uint32 bCollideWithEnvironment:1;
+	/** can't collide with part of attached children if total collision volumes exceed 16 capsules or 32 planes per convex */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Clothing)
 	uint32 bCollideWithAttachedChildren:1;
 	/** reset the clothing after moving the clothing position (called teleport) */
@@ -305,7 +334,10 @@ public:
 	/** Draw Computed Normal Vectors in Tangent space for clothing section */
 	uint32 bDisplayClothingTangents:1;
 
-	/** Draw Collision Volumes from apex clothing asset */
+	/** 
+	 * Draw Collision Volumes from apex clothing asset. 
+	 * Supports up to 16 capsules / 32 planes per convex and ignored collisions by a max number will be drawn in Dark Gray.
+	 */
 	uint32 bDisplayClothingCollisionVolumes:1;
 
 	/** Draw only clothing sections, disables non-clothing sections */
@@ -498,6 +530,8 @@ public:
 #endif	//WITH_PHYSX
 
 #if WITH_APEX_CLOTHING
+
+	FSkeletalMeshComponentPreClothTickFunction PreClothTickFunction;
 	/** 
 	* clothing actors will be created from clothing assets for cloth simulation 
 	* 1 actor should correspond to 1 asset
@@ -525,6 +559,7 @@ public:
 
 	TArray<physx::apex::NxClothingCollision*>	ParentCollisions;
 	TArray<physx::apex::NxClothingCollision*>	EnvironmentCollisions;
+	TArray<physx::apex::NxClothingCollision*>	ChildrenCollisions;
 
 	TMap<TWeakObjectPtr<UPrimitiveComponent>, FApexClothCollisionInfo> ClothOverlappedComponentsMap;
 #endif // WITH_CLOTH_COLLISION_DETECTION
@@ -613,6 +648,7 @@ public:
 	virtual void DestroyPhysicsState() OVERRIDE;
 	virtual void InitializeComponent() OVERRIDE;
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) OVERRIDE;
+	virtual void RegisterComponentTickFunctions(bool bRegister) OVERRIDE;
 	// End UActorComponent interface.
 
 	// Begin USceneComponent interface.
@@ -650,7 +686,6 @@ public:
 	virtual void SetPhysMaterialOverride(UPhysicalMaterial* NewPhysMaterial) OVERRIDE;
 	virtual bool LineTraceComponent( FHitResult& OutHit, const FVector Start, const FVector End, const FCollisionQueryParams& Params ) OVERRIDE;
 	virtual bool SweepComponent( FHitResult& OutHit, const FVector Start, const FVector End, const FCollisionShape& CollisionShape, bool bTraceComplex=false) OVERRIDE;
-	virtual bool ShouldTrackOverlaps() const OVERRIDE;
 	virtual bool ComponentOverlapComponent(class UPrimitiveComponent* PrimComp, const FVector Pos, const FRotator FRotator, const FCollisionQueryParams& Params) OVERRIDE;
 	virtual bool OverlapComponent(const FVector& Pos, const FQuat& Rot, const FCollisionShape& CollisionShape) OVERRIDE;
 	virtual void SetSimulatePhysics(bool bEnabled) OVERRIDE;
@@ -658,7 +693,7 @@ public:
 	virtual void AddRadialForce(FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff) OVERRIDE;
 	virtual void SetAllPhysicsLinearVelocity(FVector NewVel,bool bAddToCurrent = false) OVERRIDE;
 	virtual float GetMass() const OVERRIDE;
-	virtual float CalculateMass() const OVERRIDE;
+	virtual float CalculateMass() OVERRIDE;
 	// End UPrimitiveComponent interface.
 
 	// Begin USkinnedMeshComponent interface
@@ -854,6 +889,8 @@ public:
 	void SetClothingLOD(int32 LODIndex);
 	/** check whether clothing teleport is needed or not to avoid a weird simulation result */
 	void CheckClothTeleport(float DeltaTime);
+	/** Calls needed cloth updates */
+	void PreClothTick(float DeltaTime);
 	/** 
 	 * Updates all clothing animation states including ComponentToWorld-related states.
 	 */
@@ -881,10 +918,13 @@ public:
 	void RemoveAllOverappedComponentMap();
 
 	void ReleaseAllParentCollisions();
+	void ReleaseAllChildrenCollisions();
 
 	void ProcessClothCollisionWithEnvironment();
 
 	void CopyCollisionsToChildren();
+	// copy children's collisions to parent, where parent means this component
+	void CopyChildrenCollisionsToParent();
 
 	/**
   	 * Get collision data only for collision with clothes.

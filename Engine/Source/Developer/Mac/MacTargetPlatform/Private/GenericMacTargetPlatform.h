@@ -280,9 +280,8 @@ public:
 		// no shaders needed for dedicated server target
 		if (!IS_DEDICATED_SERVER)
 		{
-			static FName NAME_GLSL_150(TEXT("GLSL_150"));
-
-			OutFormats.AddUnique(NAME_GLSL_150);
+			static FName NAME_GLSL_150_MAC(TEXT("GLSL_150_MAC"));
+			OutFormats.AddUnique(NAME_GLSL_150_MAC);
 		}
 	}
 

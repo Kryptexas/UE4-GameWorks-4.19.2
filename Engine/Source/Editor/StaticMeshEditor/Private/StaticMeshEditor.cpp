@@ -11,7 +11,6 @@
 
 #include "UnrealEd.h"
 #include "ISocketManager.h"
-#include "LinkedObjDrawUtils.h"
 #include "PreviewScene.h"
 #include "ScopedTransaction.h"
 #include "BusyCursor.h"

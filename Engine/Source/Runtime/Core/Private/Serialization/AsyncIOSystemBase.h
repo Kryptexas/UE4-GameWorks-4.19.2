@@ -208,6 +208,7 @@ protected:
 		,	Counter(NULL)
 		,	Priority(AIOP_MIN)
 		,	bIsDestroyHandleRequest(false)
+		, bHasAlreadyRequestedHandleToBeCached(false)
 		{}
 
 		/**

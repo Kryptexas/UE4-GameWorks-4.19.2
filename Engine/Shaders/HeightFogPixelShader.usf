@@ -16,7 +16,7 @@ void ExponentialPixelMain(
 	float4 ScreenVector : TEXCOORD1,
 	out float4 OutColor : SV_Target0
 	)
-{
+{ 
 	float SceneDepth = CalcSceneDepth(TexCoord);
 
 	float3 CameraToReceiver = ScreenVector.xyz * SceneDepth;

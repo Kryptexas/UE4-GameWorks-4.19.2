@@ -2751,7 +2751,7 @@ void FDynamicBeam2EmitterData::PreRenderView(FParticleSystemSceneProxy* Proxy, c
 	// Only need to do this once per-view
 	if (LastFramePreRendered < FrameNumber)
 	{
-		bool bOnlyOneView = !GIsEditor && ((GEngine && GEngine->GameViewport && (GEngine->GameViewport->GetCurrentSplitscreenConfiguration() == eSST_NONE)) ? true : false);
+		bool bOnlyOneView = !GIsEditor && ((GEngine && GEngine->GameViewport && (GEngine->GameViewport->GetCurrentSplitscreenConfiguration() == ESplitScreenType::None)) ? true : false);
 
 		BuildViewFillDataAndSubmit(Proxy,ViewFamily,VisibilityMap,bOnlyOneView,Source.VertexCount,sizeof(FParticleBeamTrailVertex),0);
 
@@ -5556,7 +5556,7 @@ void FDynamicTrailsEmitterData::PreRenderView(FParticleSystemSceneProxy* Proxy, 
 			DynamicParameterVertexStride = GetDynamicParameterVertexStride();
 		}
 
-		bool bOnlyOneView = ShouldUsePrerenderView() || ((GEngine && GEngine->GameViewport && (GEngine->GameViewport->GetCurrentSplitscreenConfiguration() == eSST_NONE)) ? true : false);
+		bool bOnlyOneView = ShouldUsePrerenderView() || ((GEngine && GEngine->GameViewport && (GEngine->GameViewport->GetCurrentSplitscreenConfiguration() == ESplitScreenType::None)) ? true : false);
 
 		BuildViewFillDataAndSubmit(Proxy,ViewFamily,VisibilityMap,bOnlyOneView,SourcePointer->VertexCount,VertexStride, DynamicParameterVertexStride);
 
@@ -7259,12 +7259,16 @@ void DrawParticleSystemHelpers(UParticleSystemComponent* InPSysComp, const FScen
 
 ENGINE_API void DrawParticleSystemHelpers(const FSceneView* View,FPrimitiveDrawInterface* PDI)
 {
-	for (TObjectIterator<AEmitter> It; It; ++It)
+	TArray<UParticleSystemComponent*> PSCArray;
+
+	for (TObjectIterator<AActor> It; It; ++It)
 	{
-		AEmitter* EmitterActor = *It;
-		if (EmitterActor->ParticleSystemComponent.IsValid())
+		PSCArray.Empty();
+		(*It)->GetComponents(PSCArray);
+
+		for (int PSCIndex = 0; PSCIndex < PSCArray.Num(); ++PSCIndex)
 		{
-			DrawParticleSystemHelpers(EmitterActor->ParticleSystemComponent, View, PDI);
+			DrawParticleSystemHelpers(PSCArray[PSCIndex], View, PDI);
 		}
 	}
 }

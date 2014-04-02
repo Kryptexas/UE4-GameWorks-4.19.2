@@ -149,6 +149,14 @@ public:
 	/** Return information about the given macro graph */
 	static void GetInformationOnMacro(UEdGraph* MacroGraph, /*out*/ class UK2Node_Tunnel*& EntryNode, /*out*/ class UK2Node_Tunnel*& ExitNode, bool& bIsPure);
 	
+	/** 
+	 * Add information about any interfaces that have been implemented to the OutTags array
+	 *
+	 * @param	Blueprint		Blueprint to harvest interface data from
+	 * @param	OutTags			Array to add tags to
+	 */
+	static void AddInterfaceTags(const UBlueprint* Blueprint, TArray<UObject::FAssetRegistryTag>& OutTags);
+
 private:
 	/** Stores whether we are already listening for kismet clicks */
 	static bool bIsListeningForClicksOnKismetLog;

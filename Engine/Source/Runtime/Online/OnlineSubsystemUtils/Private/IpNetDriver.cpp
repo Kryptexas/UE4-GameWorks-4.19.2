@@ -50,6 +50,14 @@ bool UIpNetDriver::InitBase( bool bInitAsClient, FNetworkNotify* InNotify, const
 	}
 
 	// Derived types may have already allocated a socket
+
+	// First, try and create a socket specific to the session subsystem
+	if ( Socket == NULL )
+	{
+		// Create UDP socket and enable broadcasting.
+		Socket = SocketSubsystem->CreateSocket( FName( "SessionSocket" ), TEXT( "Unreal" ) );
+	}
+
 	if (Socket == NULL)
 	{
 		// Create UDP socket and enable broadcasting.

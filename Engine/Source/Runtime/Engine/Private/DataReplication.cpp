@@ -352,7 +352,7 @@ void FObjectReplicator::ReceivedNak( int32 NakPacketId )
 	}
 }
 
-bool FObjectReplicator::ReceivedBunch( FInBunch &Bunch, const FReplicationFlags & RepFlags )
+bool FObjectReplicator::ReceivedBunch( FInBunch &Bunch, const FReplicationFlags & RepFlags, bool & bOutHasUnmapped )
 {
 	UObject *		Object		= GetObject();
 	UPackageMap *	PackageMap	= OwningChannel->Connection->PackageMap;
@@ -462,7 +462,7 @@ bool FObjectReplicator::ReceivedBunch( FInBunch &Bunch, const FReplicationFlags 
 					bDiscardLayout = true;
 				}
 				
-				if ( !RepLayout->ReceiveProperties( ObjectClass, RepState, (void*)Object, Bunch, bDiscardLayout ) )
+				if ( !RepLayout->ReceiveProperties( ObjectClass, RepState, (void*)Object, Bunch, bDiscardLayout, bOutHasUnmapped ) )
 				{
 					UE_LOG( LogNet, Error, TEXT( "ReceiveProperties FAILED %s in %s" ), *ReplicatedProp->GetName(), *Object->GetFullName() );
 					return false;
@@ -1101,6 +1101,26 @@ bool FObjectReplicator::ReadyForDormancy(bool suppressLogs)
 void FObjectReplicator::StartBecomingDormant()
 {
 	bLastUpdateEmpty = false; // Ensure we get one more attempt to update properties
+}
+
+bool FObjectReplicator::UpdateUnmappedObjects()
+{
+	UObject * Object = GetObject();
+
+	if ( Object == NULL || Object->IsPendingKill() )
+	{
+		return false;
+	}
+
+	if ( !RepLayout->UpdateUnmappedObjects( RepState, Connection->PackageMap, Object ) )
+	{
+		return false;
+	}
+
+	// Call any rep notifies that need to happen when object pointers change
+	RepLayout->CallRepNotifies( RepState, Object );
+
+	return true;
 }
 
 void FObjectReplicator::QueuePropertyRepNotify( UObject * Object, UProperty * Property, const int32 ElementIndex, TArray< uint8 > & MetaData )

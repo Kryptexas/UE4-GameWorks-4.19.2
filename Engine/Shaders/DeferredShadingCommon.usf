@@ -168,19 +168,19 @@ struct FGBufferData
 // all values that are output by the forward rendering pass
 struct FDBufferData
 {
-	// 0..1
+	// 0..1, premultiplied with ColorOpacity
 	float3 Color;
-	// 0..1
+	// 0:opaque ..1:see through
 	float ColorOpacity;
 
-	// -1..1
+	// -1..1, premultiplied with NormalOpacity
 	float3 WorldNormal;
-	// 0..1
+	// 0:opaque ..1:see through
 	float NormalOpacity;
 
-	// 0..1
+	// 0..1, premultiplied with RoughnessOpacity
 	float Roughness;
-	// 0..1
+	// 0:opaque ..1:see through
 	float RoughnessOpacity;
 };
 
@@ -281,7 +281,8 @@ FGBufferData DecodeGBufferData(
 	ret.DiffuseColor = lerp( ret.BaseColor, float3(0, 0, 0), ret.Metallic.xxx );
 	ret.SpecularColor = lerp( 0.08 * ret.Specular.xxx, ret.BaseColor, ret.Metallic );
 
-	#if COMPILE_SHADERS_FOR_DEVELOPMENT == 1
+// todo: COMPILE_SHADERS_FOR_DEVELOPMENT is unfinished feature, using XBOXONE_PROFILE as workaround
+#if COMPILE_SHADERS_FOR_DEVELOPMENT == 1 && !XBOXONE_PROFILE
 	{
 		// this feature is only needed for development/editor - we can compile it out for a shipping build (see r.CompileShadersForDevelopment cvar help)
 		ret.DiffuseColor = ret.DiffuseColor * View.DiffuseOverrideParameter.www + View.DiffuseOverrideParameter.xyz;

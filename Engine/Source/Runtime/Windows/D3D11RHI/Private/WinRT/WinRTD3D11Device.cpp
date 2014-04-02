@@ -10,7 +10,7 @@ bool FD3D11DynamicRHIModule::IsSupported()
 
 FDynamicRHI* FD3D11DynamicRHIModule::CreateRHI()
 {
-	FDynamicRHI* DynamicRHI = new FD3D11DynamicRHI(NULL,D3D_FEATURE_LEVEL_11_0);
+	FDynamicRHI* DynamicRHI = new FD3D11DynamicRHI(NULL,D3D_FEATURE_LEVEL_11_0,ChosenAdapter.AdapterIndex);
 	if (DynamicRHI)
 	{
 		// Initialize the RHI capabilities.
@@ -52,11 +52,9 @@ bool FD3D11DynamicRHI::RHIGetAvailableResolutions(FScreenResolutionArray& Resolu
 		MaxAllowableRefreshRate = 10480;
 	}
 
-	// Check the default adapter only.
-	int32 CurrentAdapter = 0;
 	HRESULT hr = S_OK;
 	TRefCountPtr<IDXGIAdapter> Adapter;
-	hr = DXGIFactory->EnumAdapters(CurrentAdapter,Adapter.GetInitReference());
+	hr = DXGIFactory->EnumAdapters(ChosenAdapter,Adapter.GetInitReference());
 
 	if( DXGI_ERROR_NOT_FOUND == hr )
 		return false;

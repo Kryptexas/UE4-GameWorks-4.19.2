@@ -12,7 +12,15 @@ public:
 	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) OVERRIDE;
 
 private:
+	ESlateCheckBoxState::Type IsMobilityActive(TSharedRef<IPropertyHandle> MobilityHandle, EComponentMobility::Type InMobility) const;
+
+	void OnMobilityChanged(ESlateCheckBoxState::Type InCheckedState, TSharedRef<IPropertyHandle> MobilityHandle, EComponentMobility::Type InMobility);
+
 	void AddAdvancedSubCategory(IDetailLayoutBuilder& DetailBuilder, FName MainCategory, FName SubCategory);
+
+	FReply OnMobilityResetClicked(TSharedRef<IPropertyHandle> MobilityHandle);
+
+	EVisibility GetMobilityResetVisibility(TSharedRef<IPropertyHandle> MobilityHandle) const;
 	
 	/** Returns whether to enable editing the 'Simulate Physics' checkbox based on the selected objects physics geometry */
 	bool IsSimulatePhysicsEditable() const;

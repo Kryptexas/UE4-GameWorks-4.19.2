@@ -70,7 +70,6 @@
     <CodeAnalysisIgnoreBuiltInRuleSets>true</CodeAnalysisIgnoreBuiltInRuleSets>
     <CodeAnalysisIgnoreBuiltInRules>true</CodeAnalysisIgnoreBuiltInRules>
     <WarningLevel>4</WarningLevel>
-    <Commandlineparameters>PlatformerGame IOS Development</Commandlineparameters>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Ionic.Zip.Reduced">
@@ -134,6 +133,7 @@
     <Compile Include="System\JunkDeleter.cs" />
     <Compile Include="System\LinkEnvironment.cs" />
     <Compile Include="System\LocalExecutor.cs" />
+    <Compile Include="System\MakefileGenerator.cs" />
     <Compile Include="System\Plugins.cs" />
     <Compile Include="System\Project.cs" />
     <Compile Include="System\ProjectFileGenerator.cs" />
@@ -156,6 +156,7 @@
     <Compile Include="ToolChain\UEToolChain.cs" />
     <Compile Include="System\XGE.cs" />
     <Compile Include="Utilities\CopyrightVerify.cs" />
+    <Compile Include="Utilities\XmlConfigLoader.cs" />
     <Compile Include="Utilities\GraphVisualization.cs">
       <SubType>Code</SubType>
     </Compile>

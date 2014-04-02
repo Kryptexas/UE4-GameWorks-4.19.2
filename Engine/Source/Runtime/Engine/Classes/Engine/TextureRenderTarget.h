@@ -13,11 +13,7 @@
 UCLASS(abstract, MinimalAPI)
 class UTextureRenderTarget : public UTexture
 {
-	GENERATED_UCLASS_BODY()
-
-	/** If true, there will be two copies in memory - one for the texture and one for the render target. If false, they will share memory if possible. This is useful for scene capture textures that are used in the scene. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=TextureRenderTarget)
-	uint32 bNeedsTwoCopies:1;
+	GENERATED_UCLASS_BODY()	
 
 	/** Will override FTextureRenderTarget2DResource::GetDisplayGamma if > 0. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=TextureRenderTarget)

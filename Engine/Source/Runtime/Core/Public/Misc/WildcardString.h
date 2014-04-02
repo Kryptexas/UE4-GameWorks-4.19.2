@@ -40,7 +40,6 @@ public:
 		: FString(Pattern)
 	{ }
 
-
 public:
 
 	/**
@@ -77,7 +76,6 @@ public:
 		return IsMatch(**this, *Input);
 	}
 
-
 public:
 
 	/**
@@ -96,7 +94,6 @@ public:
 	 * @param Input - The input string to check.
 	 */
 	static CORE_API bool IsMatch(const TCHAR* Pattern, const TCHAR* Input);
-
 
 protected:
 

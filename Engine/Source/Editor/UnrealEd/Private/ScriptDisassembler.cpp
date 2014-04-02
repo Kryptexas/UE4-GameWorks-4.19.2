@@ -172,69 +172,6 @@ FString FKismetBytecodeDisassembler::ReadString16(int32& ScriptIndex)
 	return Result;
 }
 
-/*
-	void ProcessCastByte(int32 CastType)
-	{
-		switch (CastType)
-		{
-		case CST_InterfaceToObject:
-		case CST_InterfaceToString:
-		case CST_InterfaceToBool:
-			break;
-		case CST_RotatorToVector:
-			break;
-		case CST_ByteToInt:
-		case CST_ByteToBool:
-		case CST_ByteToFloat:
-		case CST_ByteToString:
-			break;
-		case CST_IntToByte:
-		case CST_IntToBool:
-		case CST_IntToFloat:
-		case CST_IntToString:
-			break;
-		case CST_BoolToByte:
-		case CST_BoolToInt:
-		case CST_BoolToFloat:
-		case CST_BoolToString:
-			break;
-		case CST_FloatToByte:
-		case CST_FloatToInt:
-		case CST_FloatToBool:
-		case CST_FloatToString:
-			break;
-		case CST_ObjectToInterface:
-		case CST_ObjectToBool:
-		case CST_InterfaceToBool:
-		case CST_ObjectToString:
-			break;
-		case CST_NameToBool:
-		case CST_NameToString:
-			break;
-		case CST_StringToByte:
-		case CST_StringToInt:
-		case CST_StringToBool:
-		case CST_StringToFloat:
-		case CST_StringToVector:
-		case CST_StringToRotator:
-			break;
-		case CST_VectorToBool:
-		case CST_VectorToRotator:
-		case CST_VectorToString:
-			break;
-		case CST_RotatorToBool:
-		case CST_RotatorToString:
-
-		case CST_DelegateToString:
-		//case // 	CST_StringToDelegate	= 0x5B,
-		case CST_MulticastDelegateToString:
-		case CST_StringToName:
-		default:
-			UE_LOG(LogScriptDisassembler, Fatal, TEXT("Bad cast type %02x"), CastType );
-		}
-	}
-*/
-
 void FKismetBytecodeDisassembler::ProcessCastByte(int32 CastType, int32& ScriptIndex)
 {
 	// Expression of cast
@@ -260,15 +197,26 @@ void FKismetBytecodeDisassembler::ProcessCommon(int32& ScriptIndex, EExprToken O
 			//SerializeExpr( ScriptIndex );
 			break;
 		}
-	case EX_InterfaceCast:
+	case EX_ObjToInterfaceCast:
 		{
-
 			// A conversion from an object variable to a native interface variable.
 			// We use a different bytecode to avoid the branching each time we process a cast token
 
 			// the interface class to convert to
 			UClass* InterfaceClass = ReadPointer<UClass>(ScriptIndex);
-			Ar.Logf(TEXT("%s $%X: InterfaceCast to %s"), *Indents, (int32)Opcode, *InterfaceClass->GetName());
+			Ar.Logf(TEXT("%s $%X: ObjToInterfaceCast to %s"), *Indents, (int32)Opcode, *InterfaceClass->GetName());
+
+			SerializeExpr( ScriptIndex );
+			break;
+		}
+	case EX_CrossInterfaceCast:
+		{
+			// A conversion from one interface variable to a different interface variable.
+			// We use a different bytecode to avoid the branching each time we process a cast token
+
+			// the interface class to convert to
+			UClass* InterfaceClass = ReadPointer<UClass>(ScriptIndex);
+			Ar.Logf(TEXT("%s $%X: InterfaceToInterfaceCast to %s"), *Indents, (int32)Opcode, *InterfaceClass->GetName());
 
 			SerializeExpr( ScriptIndex );
 			break;

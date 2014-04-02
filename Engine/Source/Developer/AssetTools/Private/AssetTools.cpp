@@ -352,19 +352,58 @@ TArray<UObject*> FAssetTools::ImportAssets(const FString& DestinationPath)
 	return ReturnObjects;
 }
 
-TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const FString& DestinationPath) const
+void FAssetTools::ExpandDirectories(const TArray<FString>& Files, const FString& DestinationPath, TArray<TPair<FString, FString>>& FilesAndDestinations) const
+{
+	// Iterate through all files in the list, if any folders are found, recurse and expand them.
+	for ( int32 FileIdx = 0; FileIdx < Files.Num(); ++FileIdx )
+	{
+		const FString& Filename = Files[FileIdx];
+
+		// If the file being imported is a directory, just include all sub-files and skip the directory.
+		if ( IFileManager::Get().DirectoryExists(*Filename) )
+		{
+			FString FolderName = FPaths::GetCleanFilename(Filename);
+
+			// Get all files & folders in the folder.
+			FString SearchPath = Filename / FString(TEXT("*"));
+			TArray<FString> SubFiles;
+			IFileManager::Get().FindFiles(SubFiles, *SearchPath, true, true);
+
+			// FindFiles just returns file and directory names, so we need to tack on the root path to get the full path.
+			TArray<FString> FullPathItems;
+			for ( FString& SubFile : SubFiles )
+			{
+				FullPathItems.Add(Filename / SubFile);
+			}
+
+			// Expand any sub directories found.
+			FString NewSubDestination = DestinationPath / FolderName;
+			ExpandDirectories(FullPathItems, NewSubDestination, FilesAndDestinations);
+		}
+		else
+		{
+			// Add any files and their destination path.
+			FilesAndDestinations.Add(TPairInitializer<FString, FString>(Filename, DestinationPath));
+		}
+	}
+}
+
+TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const FString& RootDestinationPath) const
 {
 	TArray<UObject*> ReturnObjects;
 	TMap< FString, TArray<UFactory*> > ExtensionToFactoriesMap;
 
-	GWarn->BeginSlowTask( LOCTEXT("ImportSlowTask", "Importing"), true );
+	GWarn->BeginSlowTask(LOCTEXT("ImportSlowTask", "Importing"), true);
 
 	// Reset the 'Do you want to overwrite the existing object?' Yes to All / No to All prompt, to make sure the
 	// user gets a chance to select something
 	UFactory::ResetState();
 
+	TArray<TPair<FString, FString>> FilesAndDestinations;
+	ExpandDirectories(Files, RootDestinationPath, FilesAndDestinations);
+
 	// First instantiate one factory for each file extension encountered that supports the extension
-	for( TObjectIterator<UClass> ClassIt ; ClassIt ; ++ClassIt )
+	for( TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt )
 	{
 		if( (*ClassIt)->IsChildOf(UFactory::StaticClass()) && !((*ClassIt)->HasAnyClassFlags(CLASS_Abstract)) )
 		{
@@ -373,9 +412,9 @@ TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const F
 			{
 				TArray<FString> FactoryExtensions;
 				Factory->GetSupportedFileExtensions(FactoryExtensions);
-				for ( auto FileIt = Files.CreateConstIterator(); FileIt; ++FileIt )
+				for ( auto& FileDest : FilesAndDestinations )
 				{
-					const FString FileExtension = FPaths::GetExtension(*FileIt);
+					const FString FileExtension = FPaths::GetExtension(FileDest.Key);
 
 					// Case insensitive string compare with supported formats of this factory
 					if ( FactoryExtensions.Contains(FileExtension) )
@@ -397,7 +436,7 @@ TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const F
 						if ( !bFactoryAlreadyInMap )
 						{
 							// We found a factory for this file, it can be imported!
-							// Create a new factory of the same class and make sure it doesnt get GCed.
+							// Create a new factory of the same class and make sure it doesn't get GCed.
 							// The object will be removed from the root set at the end of this function.
 							UFactory* NewFactory = ConstructObject<UFactory>( Factory->GetClass() );
 							if ( NewFactory->ConfigureProperties() )
@@ -419,9 +458,11 @@ TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const F
 	bool bDontReplaceAny = false;
 
 	// Now iterate over the input files and use the same factory object for each file with the same extension
-	for (int32 FileIdx = 0; FileIdx < Files.Num(); ++FileIdx)
+	for ( int32 FileIdx = 0; FileIdx < FilesAndDestinations.Num(); ++FileIdx )
 	{
-		const FString& Filename = Files[FileIdx];
+		const FString& Filename = FilesAndDestinations[FileIdx].Key;
+		const FString& DestinationPath = FilesAndDestinations[FileIdx].Value;
+
 		FString FileExtension = FPaths::GetExtension(Filename);
 
 		const TArray<UFactory*>* FactoriesPtr = ExtensionToFactoriesMap.Find(FileExtension);
@@ -449,7 +490,13 @@ TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const F
 		else
 		{
 			const FText Message = FText::Format( LOCTEXT("ImportFailed_UnknownExtension", "Failed to import '{0}'. Unknown extension '{1}'."), FText::FromString( Filename ), FText::FromString( FileExtension ) );
-			FMessageDialog::Open( EAppMsgType::Ok, Message );
+			FNotificationInfo Info(Message);
+			Info.ExpireDuration = 3.0f;
+			Info.bUseLargeFont = false;
+			Info.bFireAndForget = true;
+			Info.bUseSuccessFailIcons = true;
+			FSlateNotificationManager::Get().AddNotification(Info)->SetCompletionState(SNotificationItem::CS_Fail);
+
 			UE_LOG(LogAssetTools, Warning, TEXT("%s"), *Message.ToString() );
 		}
 
@@ -539,8 +586,8 @@ TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const F
 					else
 					{
 						UserResponse = FMessageDialog::Open(
-								EAppMsgType::YesNoYesAllNoAll,
-								FText::Format( LOCTEXT("ImportObjectAlreadyExists_DifferentClass", "Do you want to replace the existing asset?\n\nAn asset already exists at the import location: {0}"), FText::FromString( PackageName ) ) );
+							EAppMsgType::YesNoYesAllNoAll,
+							FText::Format( LOCTEXT("ImportObjectAlreadyExists_DifferentClass", "Do you want to replace the existing asset?\n\nAn asset already exists at the import location: {0}"), FText::FromString( PackageName ) ) );
 
 						bReplaceAll = UserResponse == EAppReturnType::YesAll;
 						bDontReplaceAny = UserResponse == EAppReturnType::NoAll;
@@ -649,9 +696,13 @@ void FAssetTools::CreateUniqueAssetName(const FString& InBasePackageName, const 
 	const FString PackagePath = FPackageName::GetLongPackagePath(InBasePackageName);
 	const FString BaseAssetName = FPackageName::GetLongPackageAssetName(InBasePackageName);
 	int32 IntSuffix = 1;
-	UObject* ExistingObject = NULL;
+	bool bObjectExists = false;
+
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::Get().LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+
 	do
 	{
+		bObjectExists = false;
 		if ( IntSuffix <= 1 )
 		{
 			OutAssetName = FString::Printf( TEXT("%s%s"), *BaseAssetName, *InSuffix);
@@ -664,10 +715,22 @@ void FAssetTools::CreateUniqueAssetName(const FString& InBasePackageName, const 
 		OutPackageName = PackagePath + TEXT("/") + OutAssetName;
 		FString ObjectPath = OutPackageName + TEXT(".") + OutAssetName;
 
-		ExistingObject = LoadObject<UObject>(NULL, *ObjectPath, NULL, LOAD_NoWarn | LOAD_NoRedirects);
+		// Use the asset registry if possible to find existing assets without loading them
+		if ( !AssetRegistryModule.Get().IsLoadingAssets() )
+		{
+			FAssetData AssetData = AssetRegistryModule.Get().GetAssetByObjectPath(*ObjectPath);
+			if(AssetData.IsValid())
+			{
+				bObjectExists = true;
+			}
+		}
+		else
+		{
+			bObjectExists = LoadObject<UObject>(NULL, *ObjectPath, NULL, LOAD_NoWarn | LOAD_NoRedirects) != NULL;
+		}
 		IntSuffix++;
 	}
-	while (ExistingObject != NULL);
+	while (bObjectExists != false);
 }
 
 bool FAssetTools::AssetUsesGenericThumbnail( const FAssetData& AssetData ) const

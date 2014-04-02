@@ -282,16 +282,16 @@ void FEdModeFoliage::FoliageBrushTrace( FLevelEditorViewportClient* ViewportClie
 
 		FHitResult Hit;
 		UWorld* World = ViewportClient->GetWorld();
-		if ( World->LineTraceSingle(Hit, Start, End, FCollisionQueryParams(true), FCollisionObjectQueryParams(ECC_WorldStatic)) )
+		if ( World->LineTraceSingle(Hit, Start, End, FCollisionQueryParams(NAME_None, true, AInstancedFoliageActor::GetInstancedFoliageActor(World, false)), FCollisionObjectQueryParams(ECC_WorldStatic)) )
 		{
 			// Check filters
 			UPrimitiveComponent* PrimComp = Hit.Component.Get();
-			if( (PrimComp &&		 
+			if (PrimComp &&
 				(PrimComp->GetOutermost() != World->GetCurrentLevel()->GetOutermost() ||
 				(!UISettings.bFilterLandscape && PrimComp->IsA(ULandscapeHeightfieldCollisionComponent::StaticClass())) ||
 				(!UISettings.bFilterStaticMesh && PrimComp->IsA(UStaticMeshComponent::StaticClass())) ||
 				(!UISettings.bFilterBSP && PrimComp->IsA(UModelComponent::StaticClass()))
-				)))
+				))
 			{
 				bBrushTraceValid = false;
 			}
@@ -629,7 +629,7 @@ void FEdModeFoliage::AddInstancesForBrush( UWorld* InWorld, AInstancedFoliageAct
 			
 			FHitResult Hit;
 			static FName NAME_AddInstancesForBrush = FName(TEXT("AddInstancesForBrush"));
-			FCollisionQueryParams TraceParams(NAME_AddInstancesForBrush, true);
+			FCollisionQueryParams TraceParams(NAME_AddInstancesForBrush, true, AInstancedFoliageActor::GetInstancedFoliageActor(InWorld, false));
 			if( MeshSettings->VertexColorMask != FOLIAGEVERTEXCOLORMASK_Disabled )
 			{
 				TraceParams.bReturnFaceIndex = true;
@@ -651,7 +651,7 @@ void FEdModeFoliage::AddInstancesForBrush( UWorld* InWorld, AInstancedFoliageAct
 				if( !CheckLocationForPotentialInstance( MeshInfo, MeshSettings, DensityCheckRadius, Hit.Location, Hit.Normal, PotentialInstanceLocations, PotentialInstanceHash ) )
 				{
 					continue;
-				}	
+				}
 
 				// Check vertex color mask
 				if( MeshSettings->VertexColorMask != FOLIAGEVERTEXCOLORMASK_Disabled && Hit.FaceIndex != INDEX_NONE )
@@ -689,7 +689,7 @@ void FEdModeFoliage::AddInstancesForBrush( UWorld* InWorld, AInstancedFoliageAct
 							{
 								continue;
 							}
-						}					
+						}
 					}
 				}
 
@@ -1763,7 +1763,7 @@ bool FEdModeFoliage::InputKey( FLevelEditorViewportClient* ViewportClient, FView
 							for( int32 Idx=0;Idx<MeshInfo.Instances.Num();Idx++ )
 							{
 								MeshInfo.Instances[Idx].Flags &= (~FOLIAGE_Readjusted);
-							}							
+							}
 						}
 					}
 				}

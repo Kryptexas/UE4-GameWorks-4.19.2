@@ -8,3 +8,12 @@ UTranslationDataObject::UTranslationDataObject( const class FPostConstructInitia
 {
 
 }
+
+void UTranslationDataObject::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	const FName Name = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+
+	TranslationDataPropertyChangedEvent.Broadcast(Name);
+}

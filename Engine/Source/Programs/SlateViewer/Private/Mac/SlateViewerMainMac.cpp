@@ -26,6 +26,8 @@ static FString GSavedCommandLine;
 	
 	// OS X always uses the CrashReportClient, since the other paths aren't reliable
 	GUseCrashReportClient = true;
+	FPlatformMisc::SetGracefulTerminationHandler();
+	FPlatformMisc::SetCrashHandler(NULL);
 	
 	RunSlateViewer(*GSavedCommandLine);
 
@@ -52,7 +54,17 @@ int main(int argc, char *argv[])
 		FString Argument(ANSI_TO_TCHAR(argv[Option]));
 		if (Argument.Contains(TEXT(" ")))
 		{
-			Argument = FString::Printf(TEXT("\"%s\""), *Argument);
+			if (Argument.Contains(TEXT("=")))
+			{
+				FString ArgName;
+				FString ArgValue;
+				Argument.Split( TEXT("="), &ArgName, &ArgValue );
+				Argument = FString::Printf( TEXT("%s=\"%s\""), *ArgName, *ArgValue );
+			}
+			else
+			{
+				Argument = FString::Printf(TEXT("\"%s\""), *Argument);
+			}
 		}
 		GSavedCommandLine += Argument;
 	}

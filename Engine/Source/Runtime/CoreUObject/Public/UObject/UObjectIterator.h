@@ -18,8 +18,8 @@ public:
 	 * Constructor
 	 * @param	bOnlyGCedObjects	if true, skip all of the permanent objects
 	 */
-	FRawObjectIterator(bool bOnlyGCedObjects = false) :	
-	  FUObjectArray::TIterator( GUObjectArray, bOnlyGCedObjects )
+	FRawObjectIterator(bool bOnlyGCedObjects = false) :
+		FUObjectArray::TIterator( GUObjectArray, bOnlyGCedObjects )
 	{
 	}
 	/**
@@ -84,9 +84,7 @@ public:
 	/**
 	 * Constructor
 	 *
-	 * @param	InClass						return only object of the class or a subclass
-	 * @param	bOnlyGCedObjects			if true, skip all of the permanent objects
-	 * @param	AdditionalExclusionFlags	RF_* flags that should not be included in results
+	 * @param	Begin	The iterator to get the end iterator of.
 	 */
 	FObjectIterator( FUObjectArray::TIterator::EEndTagType, const FObjectIterator& Begin ) :
 		FUObjectArray::TIterator( FUObjectArray::TIterator::EndTag, Begin ),
@@ -155,7 +153,7 @@ public:
 	/**
 	 * Constructor
 	 */
-	TObjectIterator(EObjectFlags AdditionalExclusionFlags = RF_ClassDefaultObject, bool bIncludeDerivedClasses = true)
+	explicit TObjectIterator(EObjectFlags AdditionalExclusionFlags = RF_ClassDefaultObject, bool bIncludeDerivedClasses = true)
 		: Index(-1)
 	{
 		GetObjectsOfClass(T::StaticClass(), ObjectArray, bIncludeDerivedClasses, AdditionalExclusionFlags);
@@ -248,15 +246,19 @@ protected:
 template<> class TObjectIterator<UObject> : public FObjectIterator
 {
 public:
+	explicit TObjectIterator(EObjectFlags AdditionalExclusionFlags = RF_ClassDefaultObject) :
+		FObjectIterator(UObject::StaticClass(), false, AdditionalExclusionFlags)
+	{
+	}
+
 	/**
 	 * Constructor
 	 *
 	 * @param	bOnlyGCedObjects			if true, skip all of the permanent objects
 	 */
-	explicit TObjectIterator(bool bOnlyGCedObjects = false) :
-		FObjectIterator( UObject::StaticClass(),bOnlyGCedObjects, RF_ClassDefaultObject )
+	explicit TObjectIterator(bool bOnlyGCedObjects) :
+		FObjectIterator(UObject::StaticClass(), bOnlyGCedObjects, RF_ClassDefaultObject)
 	{
-		// there will be one unnecessary IsA in the base class constructor
 	}
 
 	/**
@@ -267,7 +269,6 @@ public:
 	TObjectIterator(FObjectIterator::EEndTagType, const TObjectIterator& Begin) :
 		FObjectIterator( FObjectIterator::EndTag, Begin )
 	{
-		// there will be one unnecessary IsA in the base class constructor
 	}
 
 	/**
@@ -304,7 +305,12 @@ struct TObjectRange
 template <>
 struct TObjectRange<UObject>
 {
-	explicit TObjectRange(bool bOnlyGCedObjects = false)
+	explicit TObjectRange(EObjectFlags AdditionalExclusionFlags = RF_ClassDefaultObject)
+		: Begin(AdditionalExclusionFlags)
+	{
+	}
+
+	explicit TObjectRange(bool bOnlyGCedObjects)
 		: Begin(bOnlyGCedObjects)
 	{
 	}

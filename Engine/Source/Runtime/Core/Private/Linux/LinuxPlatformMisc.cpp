@@ -6,11 +6,12 @@
 
 #include "CorePrivate.h"
 #include "LinuxPlatformMisc.h"
+#include "LinuxApplication.h"
+
 #include <sys/sysinfo.h>
 #include <sched.h>
 #include <fcntl.h>
 #include <signal.h>
-#include <syslog.h>
 
 // these are not actually system headers, but a TPS library (see ThirdParty/elftoolchain)
 #include <libelf.h>
@@ -55,6 +56,20 @@ namespace
 		Action.sa_flags = SA_SIGINFO | SA_RESTART | SA_ONSTACK;
 		sigaction(SIGCHLD, &Action, NULL);
 	}
+}
+
+bool FLinuxMisc::ControlScreensaver(EScreenSaverAction Action)
+{
+	if (Action == FGenericPlatformMisc::EScreenSaverAction::Disable)
+	{
+		SDL_DisableScreenSaver();
+	}
+	else
+	{
+		SDL_EnableScreenSaver();
+	}
+
+	return true;
 }
 
 /** Global variable to resolve interdependency between RootDir(), which calls NormalizePath(), and NormalizePath(), which needs RootDir() once.*/
@@ -121,8 +136,6 @@ void FLinuxMisc::PlatformInit()
 	// install a platform-specific signal handler
 	InstallChildExitedSignalHanlder();
 
-	openlog(NULL, LOG_PID, LOG_USER); // specifying NULL is not strictly POSIX compliant, so this is Linux-specific
-
 	UE_LOG(LogInit, Log, TEXT("Linux hardware info:"));
 	UE_LOG(LogInit, Log, TEXT(" - this process' id (pid) is %d, parent process' id (ppid) is %d"), static_cast< int32 >(getpid()), static_cast< int32 >(getppid()));
 	UE_LOG(LogInit, Log, TEXT(" - we are %srunning under debugger"), IsDebuggerPresent() ? TEXT("") : TEXT("not "));
@@ -142,6 +155,88 @@ void FLinuxMisc::PlatformInit()
 	UE_LOG(LogInit, Log, TEXT(" -httpproxy=ADDRESS:PORT - redirects HTTP requests to a proxy (only supported if compiled with libcurl)"));
 	UE_LOG(LogInit, Log, TEXT(" -reuseconn - allow libcurl to reuse HTTP connections (only matters if compiled with libcurl)"));
 	UE_LOG(LogInit, Log, TEXT(" -virtmemkb=NUMBER - sets process virtual memory (address space) limit (overrides VirtualMemoryLimitInKB value from .ini)"));
+}
+
+GenericApplication* FLinuxMisc::CreateApplication()
+{
+	return FLinuxApplication::CreateLinuxApplication();
+}
+
+void FLinuxMisc::PumpMessages( bool bFromMainLoop )
+{
+	if( bFromMainLoop )
+	{
+		SDL_Event event;
+
+		while (SDL_PollEvent(&event))
+		{
+			if( LinuxApplication )
+			{
+				LinuxApplication->AddPendingEvent( event );
+			}
+		}
+	}
+}
+
+uint32 FLinuxMisc::GetCharKeyMap(uint16* KeyCodes, FString* KeyNames, uint32 MaxMappings)
+{
+	return FGenericPlatformMisc::GetStandardPrintableKeyMap(KeyCodes, KeyNames, MaxMappings, false, true);
+}
+
+uint32 FLinuxMisc::GetKeyMap( uint16* KeyCodes, FString* KeyNames, uint32 MaxMappings )
+{
+#define ADDKEYMAP(KeyCode, KeyName)		if (NumMappings<MaxMappings) { KeyCodes[NumMappings]=KeyCode; KeyNames[NumMappings]=KeyName; ++NumMappings; };
+
+	uint32 NumMappings = 0;
+
+	if ( KeyCodes && KeyNames && (MaxMappings > 0) )
+	{
+		ADDKEYMAP( SDL_SCANCODE_BACKSPACE, TEXT("BackSpace") );
+		ADDKEYMAP( SDL_SCANCODE_TAB, TEXT("Tab") );
+		ADDKEYMAP( SDL_SCANCODE_RETURN, TEXT("Enter") );
+		ADDKEYMAP( SDL_SCANCODE_RETURN2, TEXT("Enter") );
+		ADDKEYMAP( SDL_SCANCODE_KP_ENTER, TEXT("Enter") );
+		ADDKEYMAP( SDL_SCANCODE_PAUSE, TEXT("Pause") );
+
+		ADDKEYMAP( SDL_SCANCODE_ESCAPE, TEXT("Escape") );
+		ADDKEYMAP( SDL_SCANCODE_SPACE, TEXT("SpaceBar") );
+		ADDKEYMAP( SDL_SCANCODE_PAGEUP, TEXT("PageUp") );
+		ADDKEYMAP( SDL_SCANCODE_PAGEDOWN, TEXT("PageDown") );
+		ADDKEYMAP( SDL_SCANCODE_END, TEXT("End") );
+		ADDKEYMAP( SDL_SCANCODE_HOME, TEXT("Home") );
+
+		ADDKEYMAP( SDL_SCANCODE_LEFT, TEXT("Left") );
+		ADDKEYMAP( SDL_SCANCODE_UP, TEXT("Up") );
+		ADDKEYMAP( SDL_SCANCODE_RIGHT, TEXT("Right") );
+		ADDKEYMAP( SDL_SCANCODE_DOWN, TEXT("Down") );
+
+		ADDKEYMAP( SDL_SCANCODE_INSERT, TEXT("Insert") );
+		ADDKEYMAP( SDL_SCANCODE_DELETE, TEXT("Delete") );
+
+		ADDKEYMAP( SDL_SCANCODE_F1, TEXT("F1") );
+		ADDKEYMAP( SDL_SCANCODE_F2, TEXT("F2") );
+		ADDKEYMAP( SDL_SCANCODE_F3, TEXT("F3") );
+		ADDKEYMAP( SDL_SCANCODE_F4, TEXT("F4") );
+		ADDKEYMAP( SDL_SCANCODE_F5, TEXT("F5") );
+		ADDKEYMAP( SDL_SCANCODE_F6, TEXT("F6") );
+		ADDKEYMAP( SDL_SCANCODE_F7, TEXT("F7") );
+		ADDKEYMAP( SDL_SCANCODE_F8, TEXT("F8") );
+		ADDKEYMAP( SDL_SCANCODE_F9, TEXT("F9") );
+		ADDKEYMAP( SDL_SCANCODE_F10, TEXT("F10") );
+		ADDKEYMAP( SDL_SCANCODE_F11, TEXT("F11") );
+		ADDKEYMAP( SDL_SCANCODE_F12, TEXT("F12") );
+
+        ADDKEYMAP( SDL_SCANCODE_CAPSLOCK, TEXT("CapsLock") );
+        ADDKEYMAP( SDL_SCANCODE_LCTRL, TEXT("LeftControl") );
+        ADDKEYMAP( SDL_SCANCODE_LSHIFT, TEXT("LeftShift") );
+        ADDKEYMAP( SDL_SCANCODE_LALT, TEXT("LeftAlt") );
+        ADDKEYMAP( SDL_SCANCODE_RCTRL, TEXT("RightControl") );
+        ADDKEYMAP( SDL_SCANCODE_RSHIFT, TEXT("RightShift") );
+        ADDKEYMAP( SDL_SCANCODE_RALT, TEXT("RightAlt") );
+	}
+
+	check(NumMappings < MaxMappings);
+	return NumMappings;
 }
 
 int32 FLinuxMisc::NumberOfCores()

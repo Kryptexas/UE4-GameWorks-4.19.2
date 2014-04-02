@@ -4,7 +4,7 @@
 #include "Interfaces/IAnalyticsProviderModule.h"
 #include "Interfaces/IAnalyticsProvider.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogAnalytics, Log, All);
+DEFINE_LOG_CATEGORY_STATIC(LogAnalytics, Display, All);
 
 IMPLEMENT_MODULE( FAnalytics, Analytics );
 

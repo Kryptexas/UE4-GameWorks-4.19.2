@@ -545,10 +545,6 @@ protected:
 	TArray<FOverlapInfo> OverlappingComponents;
 
 public:
-
-	/** Returns true, if this component tracks overlaps. This might be false for multi-body components like SkelMeshes or Destructibles. Even if 
-		false, other components can still overlap this component. */
-	virtual bool ShouldTrackOverlaps() const { return true; };
 	/** 
 	 * Begin tracking an overlap interaction with the component specified.
 	 * @param OtherComp - The component of the other actor that this component is now overlapping
@@ -823,6 +819,16 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Physics")
 	void SetPhysicsAngularVelocity(FVector NewAngVel, bool bAddToCurrent = false, FName BoneName = NAME_None);
 
+	/**
+	*	Set the maximum angular velocity of a single body.
+	*
+	*	@param NewMaxAngVel		New maximum angular velocity to apply to body, in degrees per second.
+	*	@param bAddToCurrent	If true, NewMaxAngVel is added to the existing maximum angular velocity of the body.
+	*	@param BoneName			If a SkeletalMeshComponent, name of body to modify maximum angular velocity of. 'None' indicates root body.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Physics")
+	void SetPhysicsMaxAngularVelocity(float NewMaxAngVel, bool bAddToCurrent = false, FName BoneName = NAME_None);
+
 	/** 
 	 *	Get the angular velocity of a single body, in degrees per second. 
 	 *	@param BoneName			If a SkeletalMeshComponent, name of body to get velocity of. 'None' indicates root body.
@@ -1092,6 +1098,12 @@ protected:
 	/** Called when AttachParent changes, to allow the scene to update its attachment state. */
 	virtual void OnAttachmentChanged() OVERRIDE;
 
+	/**
+	* Called after a child is attached to this component.
+	* Note: Do not change the attachment state of the child during this call.
+	*/
+	virtual void OnChildAttached(USceneComponent* ChildComponent) OVERRIDE;
+
 public:
 	virtual bool IsSimulatingPhysics(FName BoneName = NAME_None) const OVERRIDE;
 
@@ -1272,7 +1284,7 @@ public:
 	virtual float GetMass() const;
 	
 	/** Returns the calculated mass in kg. This is not 100% exactly the mass physx will calculate, but it is very close ( difference < 0.1kg ). */
-	virtual float CalculateMass() const;
+	virtual float CalculateMass();
 
 	/**
 	 *	Force all bodies in this component to sleep.

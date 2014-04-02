@@ -41,6 +41,13 @@ public:
 	static void RefreshExternalBlueprintDependencyNodes(UBlueprint* Blueprint);
 
 	/**
+	 * Refresh the nodes of an individual graph.
+	 * 
+	 * @param	Graph	The graph to refresh.
+	 */
+	static void RefreshGraphNodes(const UEdGraph* Graph);
+
+	/**
 	 * Preloads the object and all the members it owns (nodes, pins, etc)
 	 */
 	static void PreloadMembers(UObject* InObject);
@@ -539,6 +546,14 @@ public:
 	 */
 	static void GetSCSVariableNameList(const UBlueprint* Blueprint, TArray<FName>& VariableNames);
 
+	/** 
+	 * Gets a list of function names in blueprints that implement the interface defined by the given blueprint.
+	 *
+	 * @param [in,out]	Blueprint			The interface blueprint to check.
+	 * @param [in,out]	VariableNames		The list of function names for implementing blueprints.
+	 */
+	static void GetImplementingBlueprintsFunctionNameList(const UBlueprint* Blueprint, TArray<FName>& FunctionNames);
+
 	/**
 	 * Find the index of a SCS_Node first declared in this blueprint. Returns INDEX_NONE if not found.
 	 *
@@ -571,6 +586,14 @@ public:
 
 	//////////////////////////////////////////////////////////////////////////
 	// Interface
+
+	/** 
+	 * Find the interface Guid for a function if it exists.
+	 * 
+	 * @param	Function		The function to find a graph for.
+	 * @param	InterfaceClass	The interface's generated class.
+	 */
+	static FGuid FindInterfaceFunctionGuid(const UFunction* Function, const UClass* InterfaceClass);
 
 	/** Add a new interface, and member function graphs to the blueprint */
 	static bool ImplementNewInterface(UBlueprint* Blueprint, const FName& InterfaceClassName);

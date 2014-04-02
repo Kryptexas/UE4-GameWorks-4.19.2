@@ -217,23 +217,27 @@ void FActionMappingsNodeBuilder::RebuildGroupedMappings()
 	{
 		TSharedRef<IPropertyHandle> ActionMapping = ActionMappingsArrayHandle->GetElement(Index);
 		FName ActionName;
-		ActionMapping->GetChildHandle(GET_MEMBER_NAME_CHECKED(FInputActionKeyMapping, ActionName))->GetValue(ActionName);
-		int32 FoundIndex = INDEX_NONE;
-		for (int32 GroupIndex = 0; GroupIndex < GroupedMappings.Num(); ++GroupIndex)
+		FPropertyAccess::Result Result = ActionMapping->GetChildHandle(GET_MEMBER_NAME_CHECKED(FInputActionKeyMapping, ActionName))->GetValue(ActionName);
+
+		if (Result == FPropertyAccess::Success)
 		{
-			if (GroupedMappings[GroupIndex].SharedName == ActionName)
+			int32 FoundIndex = INDEX_NONE;
+			for (int32 GroupIndex = 0; GroupIndex < GroupedMappings.Num(); ++GroupIndex)
 			{
-				FoundIndex = GroupIndex;
-				break;
+				if (GroupedMappings[GroupIndex].SharedName == ActionName)
+				{
+					FoundIndex = GroupIndex;
+					break;
+				}
 			}
+			if (FoundIndex == INDEX_NONE)
+			{
+				FoundIndex = GroupedMappings.Num();
+				GroupedMappings.AddZeroed();
+				GroupedMappings[FoundIndex].SharedName = ActionName;
+			}
+			GroupedMappings[FoundIndex].Mappings.Add(ActionMapping);
 		}
-		if (FoundIndex == INDEX_NONE)
-		{
-			FoundIndex = GroupedMappings.Num();
-			GroupedMappings.AddZeroed();
-			GroupedMappings[FoundIndex].SharedName = ActionName;
-		}
-		GroupedMappings[FoundIndex].Mappings.Add(ActionMapping);
 	}
 }
 
@@ -446,23 +450,27 @@ void FAxisMappingsNodeBuilder::RebuildGroupedMappings()
 	{
 		TSharedRef<IPropertyHandle> AxisMapping = AxisMappingsArrayHandle->GetElement(Index);
 		FName AxisName;
-		AxisMapping->GetChildHandle(GET_MEMBER_NAME_CHECKED(FInputAxisKeyMapping, AxisName))->GetValue(AxisName);
-		int32 FoundIndex = INDEX_NONE;
-		for (int32 GroupIndex = 0; GroupIndex < GroupedMappings.Num(); ++GroupIndex)
+		FPropertyAccess::Result Result = AxisMapping->GetChildHandle(GET_MEMBER_NAME_CHECKED(FInputAxisKeyMapping, AxisName))->GetValue(AxisName);
+
+		if (Result == FPropertyAccess::Success)
 		{
-			if (GroupedMappings[GroupIndex].SharedName == AxisName)
+			int32 FoundIndex = INDEX_NONE;
+			for (int32 GroupIndex = 0; GroupIndex < GroupedMappings.Num(); ++GroupIndex)
 			{
-				FoundIndex = GroupIndex;
-				break;
+				if (GroupedMappings[GroupIndex].SharedName == AxisName)
+				{
+					FoundIndex = GroupIndex;
+					break;
+				}
 			}
+			if (FoundIndex == INDEX_NONE)
+			{
+				FoundIndex = GroupedMappings.Num();
+				GroupedMappings.AddZeroed();
+				GroupedMappings[FoundIndex].SharedName = AxisName;
+			}
+			GroupedMappings[FoundIndex].Mappings.Add(AxisMapping);
 		}
-		if (FoundIndex == INDEX_NONE)
-		{
-			FoundIndex = GroupedMappings.Num();
-			GroupedMappings.AddZeroed();
-			GroupedMappings[FoundIndex].SharedName = AxisName;
-		}
-		GroupedMappings[FoundIndex].Mappings.Add(AxisMapping);
 	}
 }
 

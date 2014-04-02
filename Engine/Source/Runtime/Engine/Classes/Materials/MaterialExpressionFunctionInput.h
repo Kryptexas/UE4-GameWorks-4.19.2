@@ -25,7 +25,7 @@ class UMaterialExpressionFunctionInput : public UMaterialExpression
 	GENERATED_UCLASS_BODY()
 
 	/** Used for previewing when editing the function, also temporarily used to connect to the outside material when compiling that material. */
-	UPROPERTY()
+	UPROPERTY(meta=(RequiredInput = "false"))
 	FExpressionInput Preview;
 
 	/** The input's name, which will be drawn on the connector in function call expressions that use this function. */
@@ -48,7 +48,7 @@ class UMaterialExpressionFunctionInput : public UMaterialExpression
 	TEnumAsByte<enum EFunctionInputType> InputType;
 
 	/** Value used to preview this input when editing the material function. */
-	UPROPERTY(EditAnywhere, Category=MaterialExpressionFunctionInput)
+	UPROPERTY(EditAnywhere, Category=MaterialExpressionFunctionInput, meta=(OverridingInputProperty = "Preview"))
 	FVector4 PreviewValue;
 
 	/** Whether to use the preview value or texture as the default value for this input. */
@@ -75,7 +75,6 @@ class UMaterialExpressionFunctionInput : public UMaterialExpression
 	virtual void PostEditImport() OVERRIDE;
 	virtual void PreEditChange(UProperty* PropertyAboutToChange) OVERRIDE;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
-	virtual bool CanEditChange( const UProperty* InProperty ) const OVERRIDE;
 #endif // WITH_EDITOR
 	// End UObject interface.
 

@@ -211,6 +211,8 @@ public:
 
 	TSharedPtr< FUICommandInfo > AttachSelectedActors;
 
+	TSharedPtr< FUICommandInfo > CreateNewOutlinerFolder;
+
 	TSharedPtr< FUICommandInfo > HoldToEnableVertexSnapping;
 
 	/**
@@ -709,6 +711,7 @@ public:
 	static void ShowLightingStaticMeshInfo();
 	static void AttachToActor(AActor* ParentActorPtr );
 	static void AttachToSocketSelection(FName SocketName, AActor* ParentActorPtr);
+	static void SetActorFolder(FName Folder);
 	static void SetMaterialQualityLevel( EMaterialQualityLevel::Type NewQualityLevel );
 	static bool IsMaterialQualityLevelChecked( EMaterialQualityLevel::Type TestQualityLevel );
 	
@@ -752,6 +755,9 @@ public:
 
 	/** Called when attach selected actors is pressed */
 	static void AttachSelectedActors();
+
+	/** Called when create new outliner folder is clicked */
+	static void CreateNewOutlinerFolder_Clicked();
 
 	/** Called when 'Go to Code for Actor' is clicked */
 	static void GoToCodeForActor_Clicked();

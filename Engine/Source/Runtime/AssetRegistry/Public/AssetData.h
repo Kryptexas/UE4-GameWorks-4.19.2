@@ -123,7 +123,19 @@ public:
 			return NULL;
 		}
 
-		return FindObject<UClass>(ANY_PACKAGE, *AssetClass.ToString());
+		UClass* FoundClass = FindObject<UClass>(ANY_PACKAGE, *AssetClass.ToString());
+
+		if (!FoundClass)
+		{
+			// Look for class redirectors
+			FName NewPath = ULinkerLoad::FindNewNameForClass(AssetClass, false);
+
+			if (NewPath != NAME_None)
+			{
+				FoundClass = FindObject<UClass>(ANY_PACKAGE, *NewPath.ToString());
+			}
+		}
+		return FoundClass;
 	}
 
 	/** Convert to a StringAssetReference for loading */

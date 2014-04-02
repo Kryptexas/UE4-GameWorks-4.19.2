@@ -26,7 +26,7 @@ namespace MarkdownSharp.EpicMarkdown
         {
             try
             {
-                builder.Append(path.GetPath(data));
+                builder.Append(path.GetPath(data).Replace("\\", "/"));
             }
             catch (EMPathVerificationException e)
             {

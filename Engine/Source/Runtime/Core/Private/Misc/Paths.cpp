@@ -23,6 +23,18 @@ FString FPaths::EngineDir()
 	return FString(FPlatformMisc::EngineDir());
 }
 
+FString FPaths::EngineUserDir()
+{
+	if (ShouldSaveToUserDir() || FApp::IsEngineInstalled())
+	{
+		return FPaths::Combine(FPlatformProcess::UserSettingsDir(), TEXT(EPIC_PRODUCT_IDENTIFIER), *GEngineVersion.ToString(EVersionComponent::Minor)) + TEXT("/");
+	}
+	else
+	{
+		return FPaths::EngineDir();
+	}
+}
+
 FString FPaths::EngineContentDir()
 {
 	return FPaths::EngineDir() + TEXT("Content/");
@@ -40,12 +52,7 @@ FString FPaths::EngineIntermediateDir()
 
 FString FPaths::EngineSavedDir()
 {
-	if (ShouldSaveToUserDir() || FApp::IsEngineInstalled())
-	{
-		return FPaths::Combine(FPlatformProcess::UserSettingsDir(), TEXT(EPIC_PRODUCT_IDENTIFIER), *GEngineVersion.ToString(EVersionComponent::Minor)) + TEXT("/");
-	}
-
-	return FPaths::EngineDir() + TEXT("Saved/");
+	return EngineUserDir() + TEXT("Saved/");
 }
 
 FString FPaths::EnginePluginsDir()
@@ -63,6 +70,18 @@ FString FPaths::GameDir()
 	return FString(FPlatformMisc::GameDir());
 }
 
+FString FPaths::GameUserDir()
+{
+	if (ShouldSaveToUserDir())
+	{
+		return FPaths::Combine(FPlatformProcess::UserSettingsDir(), GGameName) + TEXT("/");
+	}
+	else
+	{
+		return FPaths::GameDir();
+	}
+}
+
 FString FPaths::GameContentDir()
 {
 	return FPaths::GameDir() + TEXT("Content/");
@@ -70,12 +89,7 @@ FString FPaths::GameContentDir()
 
 FString FPaths::GameSavedDir()
 {
-	if (ShouldSaveToUserDir())
-	{
-		return FPaths::Combine(FPlatformProcess::UserSettingsDir(), GGameName, TEXT("Saved/"));
-	}
-
-	return FPaths::GameDir() + TEXT("Saved/");
+	return GameUserDir() + TEXT("Saved/");
 }
 
 FString FPaths::GameIntermediateDir()

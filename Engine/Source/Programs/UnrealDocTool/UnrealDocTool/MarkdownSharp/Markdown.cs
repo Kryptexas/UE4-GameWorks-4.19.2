@@ -1082,7 +1082,7 @@ namespace MarkdownSharp
                                     String.IsNullOrWhiteSpace(
                                         data.CurrentFolderDetails.CurrentFolderFromMarkdownAsTopLeaf)
                                         ? ""
-                                        : data.CurrentFolderDetails.CurrentFolderFromMarkdownAsTopLeaf,
+                                        : data.CurrentFolderDetails.CurrentFolderFromMarkdownAsTopLeaf.Replace("\\", "/"),
                                 otherLanguage = translatedLanguage,
                                 relativeHTMLPath = data.CurrentFolderDetails.RelativeHTMLPath
                             });

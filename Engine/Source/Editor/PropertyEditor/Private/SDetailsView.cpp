@@ -119,6 +119,7 @@ void SDetailsView::Construct(const FArguments& InArgs)
 			// Create the search box
 			SNew( SButton )
 			.OnClicked( this, &SDetailsView::OnOpenRawPropertyEditorClicked )
+			.IsEnabled( this, &SDetailsView::IsPropertyEditingEnabled )
 			.ToolTipText( LOCTEXT("RawPropertyEditorButtonLabel", "Open Selection in Property Matrix") )
 			[
 				SNew( SImage )

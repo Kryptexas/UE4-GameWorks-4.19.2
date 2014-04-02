@@ -35,6 +35,6 @@ class UK2Node_DynamicCast : public UK2Node
 	BLUEPRINTGRAPH_API UEdGraphPin* GetCastResultPin() const;
 
 	/** Get the input object to be casted pin */
-	BLUEPRINTGRAPH_API UEdGraphPin* GetCastSourcePin() const;
+	BLUEPRINTGRAPH_API virtual UEdGraphPin* GetCastSourcePin() const;
 };
 

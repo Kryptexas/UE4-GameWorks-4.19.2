@@ -180,6 +180,13 @@
       </ItemGroup>
     </When>
   </Choose>
+  <Choose>
+    <When Condition="Exists('ToolChain\NoRedist\EpicMachineNames.cs')">
+      <ItemGroup>
+        <Compile Include="ToolChain\NoRedist\EpicMachineNames.cs" />
+      </ItemGroup>
+    </When>
+  </Choose>
   <ItemGroup>
     <Compile Include="..\DotNETCommon\MetaData.cs">
       <Link>Properties\MetaData.cs</Link>
@@ -208,6 +215,7 @@
     <Compile Include="System\BuildException.cs" />
     <Compile Include="Configuration\BuildConfiguration.cs" />
     <Compile Include="System\ModuleProcessingException.cs" />
+    <Compile Include="System\MakefileGenerator.cs" />
     <Compile Include="System\VCSolutionOptions.cs" />
     <Compile Include="System\DirectoryLookupCache.cs" />
     <Compile Include="System\CPPEnvironment.cs" />
@@ -245,6 +253,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Configuration\EngineConfiguration.cs" />
+    <Compile Include="Utilities\XmlConfigLoader.cs" />
     <Compile Include="Windows\UEBuildWindows.cs" />
     <Compile Include="Windows\VCToolChain.cs" />
     <Compile Include="Windows\WindowsProjectGenerator.cs" />

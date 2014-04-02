@@ -72,5 +72,5 @@ struct RECT
 
 // include platform properties and typedef it for the runtime
 #include "Linux/LinuxPlatformProperties.h"
-typedef FLinuxPlatformProperties<UE_SERVER> FPlatformProperties;
+typedef FLinuxPlatformProperties<UE_SERVER, !WITH_SERVER_CODE> FPlatformProperties;
 

@@ -2,12 +2,11 @@
 
 #include "OnlineSubsystemUtilsPrivatePCH.h"
 #include "ModuleManager.h"
-#include "Online.h"
 #include "TestTimeInterface.h"
 
-void FTestTimeInterface::Test(void)
+void FTestTimeInterface::Test(UWorld* InWorld)
 {
-	OnlineTime = Online::GetTimeInterface(SubsystemName.Len() ? FName(*SubsystemName, FNAME_Find) : NAME_None);
+	OnlineTime = Online::GetTimeInterface(InWorld, SubsystemName.Len() ? FName(*SubsystemName, FNAME_Find) : NAME_None);
 	if (OnlineTime.IsValid())
 	{
 		// Create and add delegate for the async call

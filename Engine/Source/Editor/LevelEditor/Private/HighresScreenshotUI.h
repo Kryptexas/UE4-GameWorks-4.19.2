@@ -59,6 +59,9 @@ private:
 	FReply OnSelectCaptureCancelRegionClicked();
 	FReply OnSelectCaptureAcceptRegionClicked();
 	FReply OnSetFullViewportCaptureRegionClicked();
+	FReply OnSetCameraSafeAreaCaptureRegionClicked();
+
+	bool IsSetCameraSafeAreaCaptureRegionEnabled() const;
 
 	void OnResolutionMultiplierChanged( float NewValue, ETextCommit::Type CommitInfo )
 	{

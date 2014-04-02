@@ -328,7 +328,7 @@ namespace UnrealVS
 
 				BuildJobSet SelectedSet =
 					_BuildJobSetsCollection.FirstOrDefault(
-						Set => String.Compare(Set.Name, value, StringComparison.OrdinalIgnoreCase) == 0);
+						Set => String.Compare(Set.Name, value, StringComparison.InvariantCultureIgnoreCase) == 0);
 
 				if (SelectedSet == null)
 				{

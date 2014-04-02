@@ -336,13 +336,13 @@ private:
 
 	const FSlateBrush* GetClassThumbnailBrush() const
 	{
-		return FEditorStyle::GetBrush( ClassThumbnailBrushName );
+		return FEditorStyle::GetOptionalBrush( ClassThumbnailBrushName );
 	}
 
 	EVisibility GetClassThumbnailVisibility() const
 	{
-		const FSlateBrush* ClassThumbnailBrush = FEditorStyle::GetBrush( ClassThumbnailBrushName );
-		if(!bHasRenderedThumbnail && ClassThumbnailBrush != FEditorStyle::GetDefaultBrush())
+		const FSlateBrush* ClassThumbnailBrush = FEditorStyle::GetOptionalBrush( ClassThumbnailBrushName, nullptr, nullptr );
+		if(!bHasRenderedThumbnail && ClassThumbnailBrush)
 		{
 			const FAssetData& AssetData = AssetThumbnail->GetAssetData();
 			FString AssetClass = AssetData.AssetClass.ToString();

@@ -4,7 +4,7 @@
 #include "StreamingNetworkPlatformFile.h"
 #include "Sockets.h"
 #include "FileManagerGeneric.h"
-#include "MultichannelTCP.h"
+#include "MultichannelTcp.h"
 #include "IPlatformFileModule.h"
 
 DEFINE_LOG_CATEGORY(LogStreamingPlatformFile);

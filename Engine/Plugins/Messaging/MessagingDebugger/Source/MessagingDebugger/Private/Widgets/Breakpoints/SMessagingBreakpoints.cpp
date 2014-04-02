@@ -47,7 +47,7 @@ void SMessagingBreakpoints::Construct( const FArguments& InArgs, const TSharedRe
 
 								+ SHeaderRow::Column("HitCount")
 									.DefaultLabel(LOCTEXT("BreakpointListHitCountColumnHeader", "Hit Count"))
-									.FixedWidth(48.0f)
+									.FixedWidth(64.0f)
 							)
 					]
 			]

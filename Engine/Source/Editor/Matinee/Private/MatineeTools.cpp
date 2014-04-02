@@ -18,6 +18,11 @@
 void FMatinee::TickInterp(float DeltaTime)
 {
 	static bool bWasPlayingLastTick = false;
+
+	if ( !bClosed )
+	{
+		UpdateViewportSettings();
+	}
 	
 	// Don't tick if a windows close request was issued.
 	if( !bClosed && MatineeActor->bIsPlaying )
@@ -66,6 +71,28 @@ void FMatinee::TickInterp(float DeltaTime)
 
 	/**Capture key frames and increment the state of recording*/
 	UpdateCameraRecording();
+}
+
+void FMatinee::UpdateViewportSettings()
+{
+	if ( GCurrentLevelEditingViewportClient )
+	{
+		if ( GCurrentLevelEditingViewportClient->IsPerspective() && GCurrentLevelEditingViewportClient->AllowMatineePreview() )
+		{
+			bool bSafeFrames = IsSafeFrameDisplayEnabled();
+			bool bAspectRatioBars = AreAspectRatioBarsEnabled();
+
+			if ( GCurrentLevelEditingViewportClient->IsShowingSafeFrameBoxDisplay() != bSafeFrames )
+			{
+				GCurrentLevelEditingViewportClient->SetShowSafeFrameBoxDisplay(bSafeFrames);
+			}
+
+			if ( GCurrentLevelEditingViewportClient->IsShowingAspectRatioBarDisplay() != bAspectRatioBars )
+			{
+				GCurrentLevelEditingViewportClient->SetShowAspectRatioBarDisplay(bAspectRatioBars);
+			}
+		}
+	}
 }
 
 void  FMatinee::UpdateCameraRecording (void)
@@ -723,7 +750,7 @@ void FMatinee::SelectGroup( UInterpGroup* GroupToSelect, bool bDeselectPreviousG
 	// the option to prevent this, especially for case such as multi-group select.
 	if( bDeselectPreviousGroups )
 	{
-		DeselectAllGroups();
+		DeselectAllGroups(false);
 	}
 
 	// By selecting a group, we must deselect any selected tracks.
@@ -3461,8 +3488,12 @@ void FMatinee::CropAnimKey(bool bCropBeginning)
 }
 
 /** Jump the position of the interpolation to the current time, updating Actors. */
-void FMatinee::SetInterpPosition( float NewPosition )
+void FMatinee::SetInterpPosition( float NewPosition, bool Scrubbing )
 {
+#if WITH_EDITORONLY_DATA
+	MatineeActor->bIsScrubbing = Scrubbing;
+#endif
+
 	bool bTimeChanged = (NewPosition != MatineeActor->InterpPosition);
 
 	// Make sure particle replay tracks have up-to-date editor-only transient state
@@ -3489,9 +3520,11 @@ void FMatinee::SetInterpPosition( float NewPosition )
 
 	// Update the position of the marker in the curve view.
 	CurveEd->SetPositionMarker( true, MatineeActor->InterpPosition, PosMarkerColor );
+
+#if WITH_EDITORONLY_DATA
+	MatineeActor->bIsScrubbing = false;
+#endif
 }
-
-
 
 /** Make sure particle replay tracks have up-to-date editor-only transient state */
 void FMatinee::UpdateParticleReplayTracks()

@@ -23,19 +23,28 @@ struct FLayerBlendInput
 	UPROPERTY(EditAnywhere, Category=LayerBlendInput)
 	TEnumAsByte<enum ELandscapeLayerBlendType> BlendType;
 
-	UPROPERTY()
+	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Defaults to 'ConstLayerInput' if not specified"))
 	FExpressionInput LayerInput;
 
-	UPROPERTY(meta=(RequiredInput = "false"))
+	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Defaults to 'ConstHeightInput' if not specified"))
 	FExpressionInput HeightInput;
 
 	UPROPERTY(EditAnywhere, Category=LayerBlendInput)
 	float PreviewWeight;
 
+	/** only used if LayerInput is not hooked up */
+	UPROPERTY(EditAnywhere, Category = LayerBlendInput)
+	FVector ConstLayerInput;
+
+	/** only used if HeightInput is not hooked up */
+	UPROPERTY(EditAnywhere, Category=LayerBlendInput)
+	float ConstHeightInput;
 
 	FLayerBlendInput()
 		: BlendType(0)
-		, PreviewWeight(0)
+		, PreviewWeight(0.f)		
+		, ConstLayerInput(0.f, 0.f, 0.f)
+		, ConstHeightInput(0.f)
 	{
 	}
 };
