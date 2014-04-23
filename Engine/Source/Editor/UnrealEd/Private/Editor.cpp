@@ -1437,7 +1437,15 @@ float UEditorEngine::GetMaxTickRate( float DeltaTime, bool bAllowFrameRateSmooth
 	// Clamp editor frame rate, even if smoothing is disabled
 	if( !bSmoothFrameRate && GIsEditor && !GIsPlayInEditorWorld )
 	{
-		MaxTickRate = FMath::Clamp<float>( 1.0f / DeltaTime, MinSmoothedFrameRate, MaxSmoothedFrameRate );
+		MaxTickRate = 1.0f / DeltaTime;
+		if (SmoothedFrameRateRange.HasLowerBound())
+		{
+			MaxTickRate = FMath::Max(MaxTickRate, SmoothedFrameRateRange.GetLowerBoundValue());
+		}
+		if (SmoothedFrameRateRange.HasUpperBound())
+		{
+			MaxTickRate = FMath::Min(MaxTickRate, SmoothedFrameRateRange.GetUpperBoundValue());
+		}
 	}
 
 	return MaxTickRate;
