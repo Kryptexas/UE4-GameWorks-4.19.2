@@ -1722,41 +1722,93 @@ FLinearColor FWindowsPlatformMisc::GetScreenPixelColor(const FVector2D& InScreen
 	return ScreenColor;
 }
 
-bool FWindowsPlatformMisc::HasCPUIDInstruction()
+/**
+* Class that caches __cpuid queried data.
+*/
+class FCPUIDQueriedData
 {
-#if PLATFORM_SEH_EXCEPTIONS_DISABLED
-	return false;
-#else
-	__try
+public:
+	FCPUIDQueriedData()
+		: bHasCPUIDInstruction(CheckForCPUIDInstruction()), Vendor(), CPUInfo(0), CacheLineSize(1)
 	{
-		int Args[4];
-		__cpuid(Args, 0);
-	}
-	__except (EXCEPTION_EXECUTE_HANDLER)
-	{
-		return false;
-	}
-	return true;
-#endif
-}
-
-FString FWindowsPlatformMisc::GetCPUVendor()
-{
-	union
-	{
-		char Buffer[12+1];
-		struct
+		if(bHasCPUIDInstruction)
 		{
-			int dw0;
-			int dw1;
-			int dw2;
-		} Dw;
-	} VendorResult;
-	
+			Vendor = QueryCPUVendor();
+			CPUInfo = QueryCPUInfo();
+			CacheLineSize = QueryCacheLineSize();
+		}
+	}
 
-	FString Vendor;
-	if (HasCPUIDInstruction())
+	/** 
+	 * Checks if this CPU supports __cpuid instruction.
+	 *
+	 * @returns True if this CPU supports __cpuid instruction. False otherwise.
+	 */
+	static bool HasCPUIDInstruction() { return CPUIDStaticCache.bHasCPUIDInstruction; }
+
+	/**
+	 * Gets pre-cached CPU vendor name.
+	 *
+	 * @returns CPU vendor name.
+	 */
+	static const FString& GetVendor() { return CPUIDStaticCache.Vendor; }
+
+	/**
+	 * Gets __cpuid CPU info.
+	 *
+	 * @returns CPU info unsigned int queried using __cpuid.
+	 */
+	static uint32 GetCPUInfo() { return CPUIDStaticCache.CPUInfo; }
+
+	/** 
+	 * Gets cache line size.
+	 *
+	 * @returns Cache line size.
+	 */
+	static int32 GetCacheLineSize() { return CPUIDStaticCache.CacheLineSize; }
+
+private:
+	/**
+	 * Checks if __cpuid instruction is present on current machine.
+	 *
+	 * @returns True if this CPU supports __cpuid instruction. False otherwise.
+	 */
+	static bool CheckForCPUIDInstruction()
 	{
+#if PLATFORM_SEH_EXCEPTIONS_DISABLED
+		return false;
+#else
+		__try
+		{
+			int Args[4];
+			__cpuid(Args, 0);
+		}
+		__except (EXCEPTION_EXECUTE_HANDLER)
+		{
+			return false;
+		}
+		return true;
+#endif
+	}
+
+	/**
+	 * Queries Vendor name using __cpuid instruction.
+	 *
+	 * @returns CPU vendor name.
+	 */
+	static FString QueryCPUVendor()
+	{
+		union
+		{
+			char Buffer[12 + 1];
+			struct
+			{
+				int dw0;
+				int dw1;
+				int dw2;
+			} Dw;
+		} VendorResult;
+
 		int Args[4];
 		__cpuid(Args, 0);
 
@@ -1765,22 +1817,81 @@ FString FWindowsPlatformMisc::GetCPUVendor()
 		VendorResult.Dw.dw2 = Args[2];
 		VendorResult.Buffer[12] = 0;
 
-		Vendor = ANSI_TO_TCHAR(VendorResult.Buffer);
+		return ANSI_TO_TCHAR(VendorResult.Buffer);
 	}
-	return Vendor;
-}
 
-uint32 FWindowsPlatformMisc::GetCPUInfo()
-{
-	uint32 Info = 0;
-	if (HasCPUIDInstruction())
+	/**
+	 * Queries CPU info using __cpuid instruction.
+	 *
+	 * @returns CPU info unsigned int queried using __cpuid.
+	 */
+	static uint32 QueryCPUInfo()
 	{
+		uint32 Info = 0;
+
 		int Args[4];
 		__cpuid(Args, 1);
 
 		Info = Args[0];
+
+		return Info;
 	}
-	return Info;
+
+	/**
+	 * Queries cache line size using __cpuid instruction.
+	 *
+	 * @returns Cache line size.
+	 */
+	static int32 QueryCacheLineSize()
+	{
+		int32 Result = 1;
+
+		int Args[4];
+		__cpuid(Args, 0x80000006);
+
+		Result = Args[2] & 0xFF;
+		check(Result && !(Result & (Result - 1))); // assumed to be a power of two
+
+		return Result;
+	}
+
+	/** Static field with pre-cached __cpuid data. */
+	static FCPUIDQueriedData CPUIDStaticCache;
+
+	/** If machine has CPUID instruction. */
+	bool bHasCPUIDInstruction;
+
+	/** Vendor of the CPU. */
+	FString Vendor;
+
+	/** CPU info from __cpuid. */
+	uint32 CPUInfo;
+
+	/** CPU cache line size. */
+	int32 CacheLineSize;
+};
+
+/** Static initialization of data to pre-cache __cpuid queries. */
+FCPUIDQueriedData FCPUIDQueriedData::CPUIDStaticCache;
+
+bool FWindowsPlatformMisc::HasCPUIDInstruction()
+{
+	return FCPUIDQueriedData::HasCPUIDInstruction();
+}
+
+FString FWindowsPlatformMisc::GetCPUVendor()
+{
+	return FCPUIDQueriedData::GetVendor();
+}
+
+uint32 FWindowsPlatformMisc::GetCPUInfo()
+{
+	return FCPUIDQueriedData::GetCPUInfo();
+}
+
+int32 FWindowsPlatformMisc::GetCacheLineSize()
+{
+	return FCPUIDQueriedData::GetCacheLineSize();
 }
 
 bool FWindowsPlatformMisc::GetRegistryString(const FString& InRegistryKey, const FString& InValueName, bool bPerUserSetting, FString& OutValue)
@@ -1827,20 +1938,6 @@ bool FWindowsPlatformMisc::QueryRegKey( const HKEY InKey, const TCHAR* InSubKey,
 	}
 
 	return bSuccess;
-}
-
-int32 FWindowsPlatformMisc::GetCacheLineSize()
-{
-	int32 Result = 1;
-	if (HasCPUIDInstruction())
-	{
-		int Args[4];
-		__cpuid(Args, 0x80000006);
-
-		Result = Args[2] & 0xFF;
-		check(Result && !(Result & (Result - 1))); // assumed to be a power of two
-	}
-	return Result;
 }
 
 const TCHAR* FWindowsPlatformMisc::GetDefaultPathSeparator()
