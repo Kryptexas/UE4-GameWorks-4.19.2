@@ -632,17 +632,29 @@ TD3D11Texture2D<BaseResourceType>* FD3D11DynamicRHI::CreateD3D11Texture2D(uint32
 		if (BulkData)
 		{
 			uint8* Data = (uint8*)BulkData->GetResourceBulkData();
-			SubResourceData.AddZeroed(NumMips);
-			uint32 MipOffset = 0;
-			for(uint32 MipIndex = 0;MipIndex < NumMips;++MipIndex)
-			{
-				uint32 NumBlocksX = FMath::Max<uint32>(1,(SizeX >> MipIndex) / GPixelFormats[Format].BlockSizeX);
-				uint32 NumBlocksY = FMath::Max<uint32>(1,(SizeY >> MipIndex) / GPixelFormats[Format].BlockSizeY);
 
-				SubResourceData[MipIndex].pSysMem = &Data[MipOffset];
-				SubResourceData[MipIndex].SysMemPitch      =  NumBlocksX * GPixelFormats[Format].BlockBytes;
-				SubResourceData[MipIndex].SysMemSlicePitch =  NumBlocksX * NumBlocksY * SubResourceData[MipIndex].SysMemPitch;
-				MipOffset                                  += SubResourceData[MipIndex].SysMemSlicePitch;
+			// each mip of each array slice counts as a subresource
+			SubResourceData.AddZeroed(NumMips * SizeZ);
+
+			uint32 SliceOffset = 0;
+			for (uint32 ArraySliceIndex = 0; ArraySliceIndex < SizeZ; ++ArraySliceIndex)
+			{			
+				uint32 MipOffset = 0;
+				for(uint32 MipIndex = 0;MipIndex < NumMips;++MipIndex)
+				{
+					uint32 DataOffset = SliceOffset + MipOffset;
+					uint32 SubResourceIndex = ArraySliceIndex * NumMips + MipIndex;
+
+					uint32 NumBlocksX = FMath::Max<uint32>(1,(SizeX >> MipIndex) / GPixelFormats[Format].BlockSizeX);
+					uint32 NumBlocksY = FMath::Max<uint32>(1,(SizeY >> MipIndex) / GPixelFormats[Format].BlockSizeY);
+
+					SubResourceData[SubResourceIndex].pSysMem = &Data[DataOffset];
+					SubResourceData[SubResourceIndex].SysMemPitch      =  NumBlocksX * GPixelFormats[Format].BlockBytes;
+					SubResourceData[SubResourceIndex].SysMemSlicePitch =  NumBlocksX * NumBlocksY * SubResourceData[MipIndex].SysMemPitch;
+
+					MipOffset                                  += NumBlocksY * SubResourceData[MipIndex].SysMemPitch;
+				}
+				SliceOffset += MipOffset;
 			}
 		}
 

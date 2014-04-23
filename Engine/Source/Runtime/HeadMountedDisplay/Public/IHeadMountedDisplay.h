@@ -206,10 +206,13 @@ public:
 	/** 
 	 * Additional optional distorion rendering parameters
 	 * @todo:  Once we can move shaders into plugins, remove these!
-	 */
-	virtual void GetImageTranslation(float& x, float& y) const {}
-	virtual void GetDistortionCenterOffset(float& x, float& y) const {}
-	virtual const FTexture*  GetDistortionTexture() {return NULL;}	
+	 */	
+	virtual FTexture* GetDistortionTextureLeft() const {return NULL;}
+	virtual FTexture* GetDistortionTextureRight() const {return NULL;}
+	virtual FVector2D GetTextureOffsetLeft() const {return FVector2D::ZeroVector;}
+	virtual FVector2D GetTextureOffsetRight() const {return FVector2D::ZeroVector;}
+	virtual FVector2D GetTextureScaleLeft() const {return FVector2D::ZeroVector;}
+	virtual FVector2D GetTextureScaleRight() const {return FVector2D::ZeroVector;}
 
 private:
 	/** Stores the dimensions of the window before we moved into fullscreen mode, so they can be restored */
