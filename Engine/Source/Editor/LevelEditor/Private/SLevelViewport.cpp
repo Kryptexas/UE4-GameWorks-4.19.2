@@ -845,7 +845,7 @@ void FLevelViewportDropContextMenuImpl::FillDropAddReplaceActorMenu( bool bRepla
 				{
 					FUIAction Action( FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::ReplaceActors_Clicked, MenuItem.FactoryToUse, MenuItem.AssetData ) );
 	
-					FText MenuEntryName = FText::Format( NSLOCTEXT("FLevelViewportContextMenuImpl", "ReplaceActorMenuFormat", "Replace with {0}"), MenuItem.FactoryToUse->GetDisplayName() );
+					FText MenuEntryName = FText::Format( NSLOCTEXT("LevelEditor", "ReplaceActorMenuFormat", "Replace with {0}"), MenuItem.FactoryToUse->GetDisplayName() );
 					if ( MenuItem.AssetData.IsValid() )
 					{
 						MenuEntryName = FText::Format( NSLOCTEXT("LevelEditor", "ReplaceActorUsingAssetMenuFormat", "Replace with {0}: {1}"), 

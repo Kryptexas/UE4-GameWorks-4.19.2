@@ -11,7 +11,7 @@
 #include "SLevelViewport.h"
 #include "LevelViewportTabContent.h"
 #include "AssetSelection.h"
-#include "LevelViewportContextMenu.h"
+#include "LevelEditorContextMenu.h"
 #include "LevelEditorToolBar.h"
 #include "ScopedTransaction.h"
 #include "SLevelEditorToolBox.h"
@@ -612,7 +612,7 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 					// Only extend the menu if we have actors selected
 					if (GEditor->GetSelectedActors()->Num())
 					{
-						FLevelViewportContextMenu::FillMenu(MenuBuilder, WeakLevelEditor, TSharedPtr<FExtender>());
+						FLevelEditorContextMenu::FillMenu(MenuBuilder, WeakLevelEditor, LevelEditorMenuContext::NonViewport, TSharedPtr<FExtender>());
 					}
 				}, WeakLevelEditor)
 			);
@@ -1393,7 +1393,7 @@ void SLevelEditor::OnLayoutHasChanged()
 
 void SLevelEditor::SummonLevelViewportContextMenu()
 {
-	FLevelViewportContextMenu::SummonMenu( SharedThis( this ) );
+	FLevelEditorContextMenu::SummonMenu( SharedThis( this ), LevelEditorMenuContext::Viewport );
 }
 
 

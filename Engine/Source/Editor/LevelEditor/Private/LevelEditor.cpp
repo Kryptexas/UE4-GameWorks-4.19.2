@@ -7,7 +7,7 @@
 #include "LevelEditorActions.h"
 #include "LevelEditorModesActions.h"
 #include "AssetSelection.h"
-#include "LevelViewportContextMenu.h"
+#include "LevelEditorContextMenu.h"
 #include "SLevelViewport.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 #include "Developer/MessageLog/Public/MessageLogModule.h"

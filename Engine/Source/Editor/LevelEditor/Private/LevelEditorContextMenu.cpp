@@ -6,7 +6,7 @@
 #include "Editor/Kismet/Public/BlueprintEditorModule.h"
 #include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
 #include "AssetSelection.h"
-#include "LevelViewportContextMenu.h"
+#include "LevelEditorContextMenu.h"
 #include "LevelEditorActions.h"
 #include "ScopedTransaction.h"
 #include "Toolkits/AssetEditorManager.h"
@@ -33,7 +33,7 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogViewportMenu, Log, All);
 
-class FLevelViewportContextMenuImpl
+class FLevelEditorContextMenuImpl
 {
 public:
 	static FSelectedActorInfo SelectionInfo;
@@ -60,15 +60,6 @@ public:
 	 * @param MenuBuilder			The menu to add items to
 	 */
 	static void FillActorLevelMenu( class FMenuBuilder& MenuBuilder );
-
-	/**
-	 * Fills in menu options for the add/replace actor level menu
-	 *
-	 * @param MenuBuilder			The menu to add items to
-	 * @param bAdd					true if we want to add an add menu
-	 * @param bReplace				true if we want to add a replace menu
-	 */
-	static void FillLoadedAssetActorLevelMenu( class FMenuBuilder& MenuBuilder, bool bAdd, bool bReplace );
 
 	/**
 	 * Fills in menu options for the transform menu
@@ -109,8 +100,9 @@ public:
 	 * Fills in menu options for the edit menu
 	 *
 	 * @param MenuBuilder	The menu to add items to
+	 * @param ContextType	The context for this editor menu
 	 */
-	static void FillEditMenu( class FMenuBuilder& MenuBuilder );
+	static void FillEditMenu( class FMenuBuilder& MenuBuilder, LevelEditorMenuContext ContextType );
 
 	/**
 	 * Fills in menu options for the actors merging
@@ -128,7 +120,7 @@ private:
 	static void FillMatineeSelectActorMenu( class FMenuBuilder& MenuBuilder );
 };
 
-FSelectedActorInfo FLevelViewportContextMenuImpl::SelectionInfo;
+FSelectedActorInfo FLevelEditorContextMenuImpl::SelectionInfo;
 
 struct FLevelScriptEventMenuHelper
 {
@@ -142,24 +134,24 @@ struct FLevelScriptEventMenuHelper
 
 // NOTE: We intentionally receive a WEAK pointer here because we want to be callable by a delegate whose
 //       payload contains a weak reference to a level editor instance
-TSharedPtr< SWidget > FLevelViewportContextMenu::BuildMenuWidget( TWeakPtr< SLevelEditor > LevelEditor, TSharedPtr<FExtender> Extender )
+TSharedPtr< SWidget > FLevelEditorContextMenu::BuildMenuWidget( TWeakPtr< SLevelEditor > LevelEditor, LevelEditorMenuContext ContextType, TSharedPtr<FExtender> Extender )
 {
 	// Build up the menu
 	const bool bShouldCloseWindowAfterMenuSelection = true;
 	FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, TSharedPtr<const FUICommandList>());
 
-	FillMenu(MenuBuilder, LevelEditor, Extender);
+	FillMenu(MenuBuilder, LevelEditor, ContextType, Extender);
 	
 	return MenuBuilder.MakeWidget();
 }
 
-void FLevelViewportContextMenu::FillMenu( FMenuBuilder& MenuBuilder, TWeakPtr<SLevelEditor> LevelEditor, TSharedPtr<FExtender> Extender )
+void FLevelEditorContextMenu::FillMenu( FMenuBuilder& MenuBuilder, TWeakPtr<SLevelEditor> LevelEditor, LevelEditorMenuContext ContextType, TSharedPtr<FExtender> Extender )
 {
 	// Generate information about our selection
 	TArray<AActor*> SelectedActors;
 	GEditor->GetSelectedActors()->GetSelectedObjects<AActor>( SelectedActors );
 
-	FSelectedActorInfo& SelectionInfo = FLevelViewportContextMenuImpl::SelectionInfo;
+	FSelectedActorInfo& SelectionInfo = FLevelEditorContextMenuImpl::SelectionInfo;
 	SelectionInfo = AssetSelectionUtils::BuildSelectedActorInfo( SelectedActors );
 
 	// Get all menu extenders for this context menu from the level editor module
@@ -266,17 +258,17 @@ void FLevelViewportContextMenu::FillMenu( FMenuBuilder& MenuBuilder, TWeakPtr<SL
 		MenuBuilder.AddSubMenu( 
 			LOCTEXT("SelectSubMenu", "Select"),
 			LOCTEXT("SelectSubMenu_ToolTip", "Opens the actor selection menu"),
-			FNewMenuDelegate::CreateStatic( &FLevelViewportContextMenuImpl::FillSelectActorMenu ) );
+			FNewMenuDelegate::CreateStatic( &FLevelEditorContextMenuImpl::FillSelectActorMenu ) );
 
 		MenuBuilder.AddSubMenu( 
 			LOCTEXT("EditSubMenu", "Edit"),
 			FText::GetEmpty(),
-			FNewMenuDelegate::CreateStatic( &FLevelViewportContextMenuImpl::FillEditMenu ) );
+			FNewMenuDelegate::CreateStatic( &FLevelEditorContextMenuImpl::FillEditMenu, ContextType ) );
 
 		MenuBuilder.AddSubMenu( 
 			LOCTEXT("VisibilitySubMenu", "Visibility"),
 			LOCTEXT("VisibilitySubMenu_ToolTip", "Selected actor visibility options"),
-			FNewMenuDelegate::CreateStatic( &FLevelViewportContextMenuImpl::FillActorVisibilityMenu ) );
+			FNewMenuDelegate::CreateStatic( &FLevelEditorContextMenuImpl::FillActorVisibilityMenu ) );
 
 		// Build the menu for grouping actors
 		BuildGroupMenu( MenuBuilder, SelectionInfo );
@@ -284,11 +276,14 @@ void FLevelViewportContextMenu::FillMenu( FMenuBuilder& MenuBuilder, TWeakPtr<SL
 		MenuBuilder.AddSubMenu( 
 			LOCTEXT("LevelSubMenu", "Level"),
 			LOCTEXT("LevelSubMenu_ToolTip", "Options for interacting with this actor's level"),
-			FNewMenuDelegate::CreateStatic( &FLevelViewportContextMenuImpl::FillActorLevelMenu ) );
+			FNewMenuDelegate::CreateStatic( &FLevelEditorContextMenuImpl::FillActorLevelMenu ) );
 	}
 	MenuBuilder.EndSection();
 
-	LevelEditorCreateActorMenu::FillAddReplaceViewportContextMenuSections( MenuBuilder );
+	if (ContextType == LevelEditorMenuContext::Viewport)
+	{
+		LevelEditorCreateActorMenu::FillAddReplaceViewportContextMenuSections( MenuBuilder );
+	}
 
 	if( GEditor->PlayWorld != NULL )
 	{
@@ -315,7 +310,7 @@ void FLevelViewportContextMenu::FillMenu( FMenuBuilder& MenuBuilder, TWeakPtr<SL
 			MenuBuilder.AddSubMenu( 
 				LOCTEXT( "ActorAttachToSubMenu", "Attach To" ), 
 				LOCTEXT( "ActorAttachToSubMenu_ToolTip", "Attach Actor as child" ),
-				FNewMenuDelegate::CreateStatic( &FLevelViewportContextMenuImpl::FillActorMenu ) );
+				FNewMenuDelegate::CreateStatic( &FLevelEditorContextMenuImpl::FillActorMenu ) );
 		}
 
 		// Add a heading for "Movement" if an actor is selected
@@ -325,7 +320,7 @@ void FLevelViewportContextMenu::FillMenu( FMenuBuilder& MenuBuilder, TWeakPtr<SL
 			MenuBuilder.AddSubMenu( 
 				LOCTEXT("TransformSubMenu", "Transform"), 
 				LOCTEXT("TransformSubMenu_ToolTip", "Actor transform utils"),
-				FNewMenuDelegate::CreateStatic( &FLevelViewportContextMenuImpl::FillTransformMenu ) );
+				FNewMenuDelegate::CreateStatic( &FLevelEditorContextMenuImpl::FillTransformMenu ) );
 		}
 
 		// @todo UE4: The current pivot options only work for brushes
@@ -335,7 +330,7 @@ void FLevelViewportContextMenu::FillMenu( FMenuBuilder& MenuBuilder, TWeakPtr<SL
 			MenuBuilder.AddSubMenu( 
 				LOCTEXT("PivotSubMenu", "Pivot"), 
 				LOCTEXT("PivotSubMenu_ToolTip", "Actor pivoting utils"),
-				FNewMenuDelegate::CreateStatic( &FLevelViewportContextMenuImpl::FillPivotMenu ) );
+				FNewMenuDelegate::CreateStatic( &FLevelEditorContextMenuImpl::FillPivotMenu ) );
 		}
 
 		if (GetDefault<UEditorExperimentalSettings>()->bActorMerging && 
@@ -344,7 +339,7 @@ void FLevelViewportContextMenu::FillMenu( FMenuBuilder& MenuBuilder, TWeakPtr<SL
 			MenuBuilder.AddSubMenu( 
 				LOCTEXT("MergeActorsSubMenu", "Merge"), 
 				LOCTEXT("MergeActorsSubMenu_ToolTip", "Actor merging utils"),
-				FNewMenuDelegate::CreateStatic( &FLevelViewportContextMenuImpl::FillMergeActorsMenu ) );
+				FNewMenuDelegate::CreateStatic( &FLevelEditorContextMenuImpl::FillMergeActorsMenu ) );
 		}
 	}
 	MenuBuilder.EndSection();
@@ -356,7 +351,7 @@ void FLevelViewportContextMenu::FillMenu( FMenuBuilder& MenuBuilder, TWeakPtr<SL
 }
 
 
-void FLevelViewportContextMenu::SummonMenu( const TSharedRef< SLevelEditor >& LevelEditor )
+void FLevelEditorContextMenu::SummonMenu( const TSharedRef< SLevelEditor >& LevelEditor, LevelEditorMenuContext ContextType )
 {
 	struct Local
 	{
@@ -380,7 +375,7 @@ void FLevelViewportContextMenu::SummonMenu( const TSharedRef< SLevelEditor >& Le
 	Extender->AddMenuExtension("LevelViewportAttach", EExtensionHook::After, TSharedPtr< FUICommandList >(), FMenuExtensionDelegate::CreateStatic(&Local::ExtendMenu));
 
 	// Create the context menu!
-	TSharedPtr<SWidget> MenuWidget = BuildMenuWidget( LevelEditor, Extender );
+	TSharedPtr<SWidget> MenuWidget = BuildMenuWidget( LevelEditor, ContextType, Extender );
 	if ( MenuWidget.IsValid() )
 	{
 		// @todo: Should actually use the location from a click event instead!
@@ -402,7 +397,7 @@ FSlateColor InvertOnHover( const TWeakPtr< SWidget > WidgetPtr )
 	return FSlateColor::UseForeground();
 }
 
-void FLevelViewportContextMenu::BuildGroupMenu( FMenuBuilder& MenuBuilder, const FSelectedActorInfo& SelectedActorInfo )
+void FLevelEditorContextMenu::BuildGroupMenu( FMenuBuilder& MenuBuilder, const FSelectedActorInfo& SelectedActorInfo )
 {
 	if( GEditor->bGroupingActive )
 	{
@@ -429,12 +424,12 @@ void FLevelViewportContextMenu::BuildGroupMenu( FMenuBuilder& MenuBuilder, const
 			MenuBuilder.AddSubMenu( 
 				LOCTEXT("GroupMenu", "Groups"),
 				LOCTEXT("GroupMenu_ToolTip", "Opens the actor grouping menu"),
-				FNewMenuDelegate::CreateStatic( &FLevelViewportContextMenuImpl::FillGroupMenu ) );
+				FNewMenuDelegate::CreateStatic( &FLevelEditorContextMenuImpl::FillGroupMenu ) );
 		}
 	}
 }
 
-void FLevelViewportContextMenuImpl::FillSelectActorMenu( FMenuBuilder& MenuBuilder )
+void FLevelEditorContextMenuImpl::FillSelectActorMenu( FMenuBuilder& MenuBuilder )
 {
 	FText SelectAllActorStr = FText::Format( LOCTEXT("SelectActorsOfSameClass", "Select All {0}(s)"), FText::FromString( SelectionInfo.SelectionStr ) );
 	int32 NumSelectedSurfaces = NumSelectedSurfaces = AssetSelectionUtils::GetNumSelectedSurfaces( SelectionInfo.SharedWorld );
@@ -538,7 +533,7 @@ void FLevelViewportContextMenuImpl::FillSelectActorMenu( FMenuBuilder& MenuBuild
 	FillMatineeSelectActorMenu( MenuBuilder );
 }
 
-void FLevelViewportContextMenuImpl::FillMatineeSelectActorMenu( FMenuBuilder& MenuBuilder )
+void FLevelEditorContextMenuImpl::FillMatineeSelectActorMenu( FMenuBuilder& MenuBuilder )
 {
 	MenuBuilder.BeginSection("SelectMatinee", LOCTEXT("SelectMatineeHeading", "Matinee") );
 	{
@@ -623,7 +618,7 @@ void FLevelViewportContextMenuImpl::FillMatineeSelectActorMenu( FMenuBuilder& Me
 	MenuBuilder.EndSection();
 }
 
-void FLevelViewportContextMenuImpl::FillActorVisibilityMenu( FMenuBuilder& MenuBuilder )
+void FLevelEditorContextMenuImpl::FillActorVisibilityMenu( FMenuBuilder& MenuBuilder )
 {
 	MenuBuilder.BeginSection("VisibilitySelected");
 	{
@@ -651,7 +646,7 @@ void FLevelViewportContextMenuImpl::FillActorVisibilityMenu( FMenuBuilder& MenuB
 	}
 }
 
-void FLevelViewportContextMenuImpl::FillActorLevelMenu( FMenuBuilder& MenuBuilder )
+void FLevelEditorContextMenuImpl::FillActorLevelMenu( FMenuBuilder& MenuBuilder )
 {
 	MenuBuilder.BeginSection("ActorLevel");
 	{
@@ -678,72 +673,8 @@ void FLevelViewportContextMenuImpl::FillActorLevelMenu( FMenuBuilder& MenuBuilde
 	MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().RemoveLevelsFromSelection );
 }
 
-void FLevelViewportContextMenuImpl::FillLoadedAssetActorLevelMenu( class FMenuBuilder& MenuBuilder, bool bAdd, bool bReplace )
-{
-	// Early out if they want neither menu!
-	if ( !bAdd && !bReplace )
-	{
-		return;
-	}
 
-	// Load selected assets first
-	FEditorDelegates::LoadSelectedAssetsIfNeeded.Broadcast();
-
-	TArray<FAssetData> SelectedAssets;
-	AssetSelectionUtils::GetSelectedAssets( SelectedAssets );
-
-	FAssetData TargetAssetData;
-	if ( SelectedAssets.Num() > 0 )
-	{
-		TargetAssetData = SelectedAssets.Top();
-		
-		//The data we get from calling GetSelectedAssets is updated one tick later, so this ensures the data is current
-		TargetAssetData = FAssetData( TargetAssetData.GetAsset() );
-	}
-
-	// Build sub-menu with loaded asset options
-	TArray< FActorFactoryAssetProxy::FMenuItem > SelectedAssetMenuOptions;
-	FActorFactoryAssetProxy::GenerateActorFactoryMenuItems( TargetAssetData, &SelectedAssetMenuOptions, false );
-	
-	if ( bAdd )
-	{
-		for( int32 ItemIndex = 0; ItemIndex < SelectedAssetMenuOptions.Num(); ++ItemIndex )
-		{
-			const FActorFactoryAssetProxy::FMenuItem& MenuItem = SelectedAssetMenuOptions[ItemIndex];
-			
-			FUIAction Action( FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::AddActor_Clicked, MenuItem.FactoryToUse, MenuItem.AssetData, false ) );
-			FText MenuEntryName = FText::Format( NSLOCTEXT("FLevelViewportContextMenuImpl", "AddActorUsingAssetMenuFormat", "Add {0}: {1}"), 
-				MenuItem.FactoryToUse->GetDisplayName(), 
-				FText::FromName( MenuItem.AssetData.AssetName ) );
-
-			MenuBuilder.AddMenuEntry( 
-				MenuEntryName, 
-				FText::GetEmpty(), 
-				FSlateIcon(), Action );
-		}
-	}
-
-	if ( bReplace )
-	{
-		for( int32 ItemIndex = 0; ItemIndex < SelectedAssetMenuOptions.Num(); ++ItemIndex )
-		{
-			const FActorFactoryAssetProxy::FMenuItem& MenuItem = SelectedAssetMenuOptions[ItemIndex];
-
-			FUIAction Action( FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::ReplaceActors_Clicked, MenuItem.FactoryToUse, MenuItem.AssetData ) );
-			FText MenuEntryName = FText::Format( NSLOCTEXT("FLevelViewportContextMenuImpl", "ReplaceActorUsingAssetMenuFormat", "Replace with {0}: {1}"), 
-				MenuItem.FactoryToUse->GetDisplayName(), 
-				FText::FromName( MenuItem.AssetData.AssetName ) );
-
-			MenuBuilder.AddMenuEntry( 
-				MenuEntryName, 
-				FText(), 
-				FSlateIcon(), Action );
-		}
-	}
-}
-
-
-void FLevelViewportContextMenuImpl::FillTransformMenu( FMenuBuilder& MenuBuilder )
+void FLevelEditorContextMenuImpl::FillTransformMenu( FMenuBuilder& MenuBuilder )
 {
 	if ( FLevelEditorActionCallbacks::ActorSelected_CanExecute() )
 	{
@@ -752,7 +683,7 @@ void FLevelViewportContextMenuImpl::FillTransformMenu( FMenuBuilder& MenuBuilder
 			MenuBuilder.AddSubMenu( 
 				LOCTEXT("SnapAlignSubMenu", "Snap/Align"), 
 				LOCTEXT("SnapAlignSubMenu_ToolTip", "Actor snap/align utils"),
-				FNewMenuDelegate::CreateStatic( &FLevelViewportContextMenuImpl::FillSnapAlignMenu ) );
+				FNewMenuDelegate::CreateStatic( &FLevelEditorContextMenuImpl::FillSnapAlignMenu ) );
 		}
 		MenuBuilder.EndSection();
 
@@ -772,7 +703,7 @@ void FLevelViewportContextMenuImpl::FillTransformMenu( FMenuBuilder& MenuBuilder
 	}
 }
 
-void FLevelViewportContextMenuImpl::FillActorMenu( FMenuBuilder& MenuBuilder )
+void FLevelEditorContextMenuImpl::FillActorMenu( FMenuBuilder& MenuBuilder )
 {
 	FSceneOutlinerInitializationOptions InitOptions;
 	{
@@ -855,7 +786,7 @@ void FLevelViewportContextMenuImpl::FillActorMenu( FMenuBuilder& MenuBuilder )
 	MenuBuilder.AddWidget(MiniSceneOutliner, FText::GetEmpty(), false);
 }
 
-void FLevelViewportContextMenuImpl::FillSnapAlignMenu( FMenuBuilder& MenuBuilder )
+void FLevelEditorContextMenuImpl::FillSnapAlignMenu( FMenuBuilder& MenuBuilder )
 {
 	MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().SnapOriginToGrid );
 	MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().SnapOriginToGridPerActor );
@@ -914,7 +845,7 @@ void FLevelViewportContextMenuImpl::FillSnapAlignMenu( FMenuBuilder& MenuBuilder
 */
 }
 
-void FLevelViewportContextMenuImpl::FillPivotMenu( FMenuBuilder& MenuBuilder )
+void FLevelEditorContextMenuImpl::FillPivotMenu( FMenuBuilder& MenuBuilder )
 {
 	MenuBuilder.BeginSection("SaveResetPivot");
 	{
@@ -933,7 +864,7 @@ void FLevelViewportContextMenuImpl::FillPivotMenu( FMenuBuilder& MenuBuilder )
 	MenuBuilder.EndSection();
 }
 
-void FLevelViewportContextMenuImpl::FillGroupMenu( class FMenuBuilder& MenuBuilder )
+void FLevelEditorContextMenuImpl::FillGroupMenu( class FMenuBuilder& MenuBuilder )
 {
 	if( SelectionInfo.NumSelectedUngroupedActors > 1 )
 	{
@@ -977,19 +908,22 @@ void FLevelViewportContextMenuImpl::FillGroupMenu( class FMenuBuilder& MenuBuild
 	}
 }
 
-void FLevelViewportContextMenuImpl::FillEditMenu( class FMenuBuilder& MenuBuilder )
+void FLevelEditorContextMenuImpl::FillEditMenu( class FMenuBuilder& MenuBuilder, LevelEditorMenuContext ContextType )
 {
 	MenuBuilder.AddMenuEntry( FGenericCommands::Get().Cut );
 	MenuBuilder.AddMenuEntry( FGenericCommands::Get().Copy );
 	MenuBuilder.AddMenuEntry( FGenericCommands::Get().Paste );
-	MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().PasteHere );
+	if (ContextType == LevelEditorMenuContext::Viewport)
+	{
+		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().PasteHere );
+	}
 
 	MenuBuilder.AddMenuEntry( FGenericCommands::Get().Duplicate );
 	MenuBuilder.AddMenuEntry( FGenericCommands::Get().Delete );
 	MenuBuilder.AddMenuEntry( FGenericCommands::Get().Rename );
 }
 
-void FLevelViewportContextMenuImpl::FillMergeActorsMenu( class FMenuBuilder& MenuBuilder )
+void FLevelEditorContextMenuImpl::FillMergeActorsMenu( class FMenuBuilder& MenuBuilder )
 {
 	MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().MergeActorsByMaterials );
 
