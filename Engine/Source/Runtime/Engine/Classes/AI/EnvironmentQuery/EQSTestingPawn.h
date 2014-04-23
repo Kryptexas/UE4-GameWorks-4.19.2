@@ -4,7 +4,10 @@
 
 #include "EQSTestingPawn.generated.h"
 
-UCLASS(HeaderGroup=Pawn, hidecategories=(Advanced, Attachment, Collision, Animation),DependsOn=(UEnvQueryTypes))
+/** this class is abstract even though it's perfectly functional on its own.
+ *	The reason is to stop it from showing as valid player pawn type when configuring 
+ *	project's game mode. */
+UCLASS(abstract, HeaderGroup=Pawn, hidecategories=(Advanced, Attachment, Collision, Animation),DependsOn=(UEnvQueryTypes))
 class ENGINE_API AEQSTestingPawn : public ACharacter, public IEQSQueryResultSourceInterface
 {
 	GENERATED_UCLASS_BODY()
