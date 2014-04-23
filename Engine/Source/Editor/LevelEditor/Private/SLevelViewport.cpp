@@ -141,6 +141,8 @@ void SLevelViewport::Construct(const FArguments& InArgs)
 
 	// Tell the level editor we want to be notified when selection changes
 	LevelEditor.OnMapChanged().AddSP( this, &SLevelViewport::OnMapChanged );
+
+	GEngine->OnLevelActorDeleted().AddSP( this, &SLevelViewport::OnLevelActorsRemoved );
 }
 
 void SLevelViewport::ConstructViewportOverlayContent()
@@ -797,6 +799,20 @@ void SLevelViewport::OnMapChanged( UWorld* World, EMapChangeType::Type MapChange
 		World->EditorViews[LevelViewportClient->ViewportType].CamUpdated = false;
 
 		RedrawViewport(true);
+	}
+}
+
+void SLevelViewport::OnLevelActorsRemoved(AActor* InActor)
+{
+	// Kill any existing actor previews that have expired
+	for( int32 PreviewIndex = 0; PreviewIndex < ActorPreviews.Num(); ++PreviewIndex )
+	{
+		AActor* ExistingActor = ActorPreviews[PreviewIndex].Actor.Get();
+		if ( !ExistingActor || ExistingActor == InActor )
+		{
+			// decrement index so we don't miss next preview after deleting
+			RemoveActorPreview( PreviewIndex-- );
+		}
 	}
 }
 

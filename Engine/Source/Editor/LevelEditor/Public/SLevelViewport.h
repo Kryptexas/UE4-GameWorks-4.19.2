@@ -540,6 +540,9 @@ private:
 	 */
 	void OnMapChanged( UWorld* World, EMapChangeType::Type MapChangeType );
 
+	/** Called in response to an actor being deleted in the level */
+	void OnLevelActorsRemoved(AActor* InActor);
+
 	/** Gets whether the locked icon should be shown in the viewport because it is locked to an actor */
 	EVisibility GetLockedIconVisibility() const;
 
