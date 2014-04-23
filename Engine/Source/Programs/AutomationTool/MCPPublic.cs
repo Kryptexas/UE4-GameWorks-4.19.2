@@ -366,7 +366,43 @@ namespace EpicGames.MCP.Automation
         /// Given a MCPStagingInfo defining our build info, posts the build to the MCP BuildInfo Service.
         /// </summary>
         /// <param name="stagingInfo">Staging Info describing the BuildInfo to post.</param>
-        public abstract void PostBuildInfo(BuildPatchToolStagingInfo stagingInfo);
+        abstract public void PostBuildInfo(BuildPatchToolStagingInfo stagingInfo);
+
+		/// <summary>
+		/// Given a MCPStagingInfo defining our build info and a MCP config name, posts the build to the requested MCP BuildInfo Service.
+		/// </summary>
+		/// <param name="StagingInfo">Staging Info describing the BuildInfo to post.</param>
+		/// <param name="McpConfigName">Name of which MCP config to post to.</param>
+		abstract public void PostBuildInfo(BuildPatchToolStagingInfo StagingInfo, string McpConfigName);
+
+		/// <summary>
+		/// Given a BuildVersion defining our a build, return the labels applied to that build
+		/// </summary>
+		/// <param name="BuildVersion">Build version to return labels for.</param>
+		/// <param name="McpConfigName">Which BuildInfo backend to get labels from for this promotion attempt.</param>
+		abstract public List<string> GetBuildLabels(BuildPatchToolStagingInfo StagingInfo, string McpConfigName);
+
+		/// <summary>
+		/// Get a label string for the specific Platform requested.
+		/// </summary>
+		/// <param name="DestinationLabel">Base of label</param>
+		/// <param name="Platform">Platform to add to base label.</param>
+		abstract public string GetLabelWithPlatform(string DestinationLabel, MCPPlatform Platform);
+
+		/// <summary>
+		/// Get a BuildVersion string with the Platform concatenated on.
+		/// </summary>
+		/// <param name="DestinationLabel">Base of label</param>
+		/// <param name="Platform">Platform to add to base label.</param>
+		abstract public string GetBuildVersionWithPlatform(BuildPatchToolStagingInfo StagingInfo);
+
+		/// <summary>
+		/// Apply the requested label to the requested build in the BuildInfo backend for the requested MCP environment
+		/// </summary>
+		/// <param name="StagingInfo">Staging info for the build to label.</param>
+		/// <param name="DestinationLabelWithPlatform">Label, including platform, to apply</param>
+		/// <param name="McpConfigName">Which BuildInfo backend to label the build in.</param>
+		abstract public void LabelBuild(BuildPatchToolStagingInfo StagingInfo, string DestinationLabelWithPlatform, string McpConfigName);
 
         /// <summary>
         /// Informs Patcher Service of a new build availability after async labeling is complete
@@ -377,7 +413,7 @@ namespace EpicGames.MCP.Automation
         /// <param name="BuildVersion">BuildVersion string that the patcher service will use.</param>
         /// <param name="ManifestRelativePath">Relative path to the Manifest file relative to the global build root (which is like P:\Builds) </param>
         /// <param name="LabelName">Name of the label that we will be setting.</param>
-        public abstract void BuildPromotionCompleted(BuildPatchToolStagingInfo stagingInfo, string AppName, string BuildVersion, string ManifestRelativePath, string PlatformName, string LabelName);
+        abstract public void BuildPromotionCompleted(BuildPatchToolStagingInfo stagingInfo, string AppName, string BuildVersion, string ManifestRelativePath, string PlatformName, string LabelName);
 
         /// <summary>
         /// Mounts the production CDN share (allows overriding via -CDNDrive command line arg)
@@ -580,12 +616,13 @@ namespace EpicGames.MCP.Config
             {
                 ConfigMap = new List<MapEntry>();
 
+				// Promotions will copy builds to Prod BuildInfo.  Mapping will be needed once ReleaseQA BuildInfo is setup as default for branch builds.
                 ConfigMap.Add(new MapEntry("UnrealEngineLauncher", "//depot/UE4", "MainGameDevNet"));
-                ConfigMap.Add(new MapEntry("UnrealEngineLauncher", "//depot/UE4-LauncherReleases", "ProdCom"));
+				ConfigMap.Add(new MapEntry("UnrealEngineLauncher", "//depot/UE4-LauncherReleases", "MainGameDevNet"));
                 ConfigMap.Add(new MapEntry("UE", "//depot/UE4", "MainGameDevNet"));
-                ConfigMap.Add(new MapEntry("UE", "//depot/UE4-Releases/4.0", "ProdCom"));
+				ConfigMap.Add(new MapEntry("UE", "//depot/UE4-Releases/4.0", "MainGameDevNet"));
                 ConfigMap.Add(new MapEntry("UE", "//depot/UE4-Releases/4.1", "MainGameDevNet"));
-                ConfigMap.Add(new MapEntry("Fortnite", "//depot/UE4-Fortnite", "LatestGameDevNet"));
+				ConfigMap.Add(new MapEntry("Fortnite", "//depot/UE4-Fortnite", "MainGameDevNet"));
             }
             string NormalizedBranch = CommandUtils.CombinePaths(PathSeparator.Slash, CommandUtils.P4Env.BuildRootP4, "/");
             foreach (var Map in ConfigMap)
