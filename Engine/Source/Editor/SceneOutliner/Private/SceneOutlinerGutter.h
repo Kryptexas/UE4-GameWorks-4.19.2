@@ -6,6 +6,8 @@
 #include "ISceneOutlinerColumn.h"
 #include "SceneOutlinerInitializationOptions.h"
 
+DECLARE_DELEGATE_TwoParams(FOnSetItemVisibility, TSharedRef<SceneOutliner::TOutlinerTreeItem>, bool)
+
 /**
  * A gutter for the SceneOutliner which is capable of displaying a variety of Actor details
  */
@@ -15,7 +17,7 @@ class FSceneOutlinerGutter : public ISceneOutlinerColumn
 public:
 
 	/**	Constructor */
-	FSceneOutlinerGutter();
+	FSceneOutlinerGutter(FOnSetItemVisibility InOnSetItemVisibility);
 
 	// -----------------------------------------
 	// ISceneOutlinerColumn Implementation
@@ -34,4 +36,8 @@ public:
 	virtual void SortItems(TArray<TSharedPtr<SceneOutliner::TOutlinerTreeItem>>& RootItems, const EColumnSortMode::Type SortMode) const OVERRIDE;
 	// -----------------------------------------
 
+private:
+
+	/** A delegate to execute when we need to set the visibility of an item */
+	FOnSetItemVisibility OnSetItemVisibility;
 };

@@ -43,12 +43,14 @@ class SVisibilityWidget : public SImage
 public:
 	SLATE_BEGIN_ARGS(SVisibilityWidget){}
 		SLATE_ARGUMENT(TWeakPtr<SceneOutliner::TOutlinerTreeItem>, TreeItem);
+		SLATE_EVENT(FOnSetItemVisibility, OnSetItemVisibility);
 	SLATE_END_ARGS()
 
 	/** Construct this widget */
 	void Construct(const FArguments& InArgs)
 	{
 		WeakTreeItem = InArgs._TreeItem;
+		OnSetItemVisibility = InArgs._OnSetItemVisibility;
 
 		SImage::Construct(
 			SImage::FArguments()
@@ -152,24 +154,26 @@ private:
 	{
 		if (IsVisible() != bVisible)
 		{
-			auto TreeItem = WeakTreeItem.Pin();
-			if (TreeItem.IsValid())
+			auto ClickedOnItem = WeakTreeItem.Pin();
+			if (ClickedOnItem.IsValid())
 			{
-				TreeItem->SetIsVisible(bVisible);
+				OnSetItemVisibility.ExecuteIfBound(ClickedOnItem.ToSharedRef(), bVisible);
 			}
-
-			GEditor->RedrawAllViewports();
 		}
 	}
 
 	/** Tree item that we relate to */
 	TWeakPtr<SceneOutliner::TOutlinerTreeItem> WeakTreeItem;
 
+	/** A delegate to execute when we need to set the visibility of an item */
+	FOnSetItemVisibility OnSetItemVisibility;
+
 	/** Scoped undo transaction */
 	TUniquePtr<FScopedTransaction> UndoTransaction;
 };
 
-FSceneOutlinerGutter::FSceneOutlinerGutter()
+FSceneOutlinerGutter::FSceneOutlinerGutter(FOnSetItemVisibility InOnSetItemVisibility)
+	: OnSetItemVisibility(InOnSetItemVisibility)
 {
 
 }
@@ -192,6 +196,7 @@ const TSharedRef<SWidget> FSceneOutlinerGutter::ConstructRowWidget(const TShared
 		.VAlign(VAlign_Center)
 		[
 			SNew(SVisibilityWidget)
+			.OnSetItemVisibility(OnSetItemVisibility)
 			.TreeItem(TreeItem)
 		];
 }

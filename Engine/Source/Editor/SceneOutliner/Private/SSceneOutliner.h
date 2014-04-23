@@ -136,6 +136,9 @@ namespace SceneOutliner
 		/** Check whether we should be showing folders or not in this scene outliner */
 		bool ShouldShowFolders() const;
 
+		/** Synchronize (and scroll into view) the current selection to the specified actor item, if the corresponding actor is selected */
+		void SynchronizeSelectionTo(TSharedRef<TOutlinerActorTreeItem> ActorItem);
+
 		/** Is actor class name text visible? */
 		EVisibility IsActorClassNameVisible() const;
 
@@ -217,6 +220,7 @@ namespace SceneOutliner
 		/** Build a context menu for right-clicking an item in the tree */
 		TSharedPtr<SWidget> BuildDefaultContextMenu() const;
 		void FillFoldersSubMenu(FMenuBuilder& MenuBuilder) const;
+		void AddMoveToFolderOutliner(FMenuBuilder& MenuBuilder) const;
 		void FillSelectionSubMenu(FMenuBuilder& MenuBuilder) const;
 
 		/** Select the immediate children of the currently selected folders */
@@ -287,6 +291,9 @@ namespace SceneOutliner
 
 		/** Called by the editable text control when a user presses enter or commits their text change */
 		void OnFilterTextCommitted( const FText& InFilterText, ETextCommit::Type CommitInfo );
+
+		/** Invoked by the scene outliner gutter when we need to set the specified item's visibility */
+		void OnSetItemVisibility(FOutlinerTreeItemRef Item, bool bIsVisible);
 
 		/**
 		 * Called by the filter button to get the image to display in the button

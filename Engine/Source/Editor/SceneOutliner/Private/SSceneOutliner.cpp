@@ -189,7 +189,8 @@ namespace SceneOutliner
 		if (InInitOptions.Mode == ESceneOutlinerMode::ActorBrowsing)
 		{
 			// Set up the gutter if we're in actor browsing mode
-			Gutter = MakeShareable(new FSceneOutlinerGutter());
+
+			Gutter = MakeShareable(new FSceneOutlinerGutter(FOnSetItemVisibility::CreateSP(this, &SSceneOutliner::OnSetItemVisibility)));
 			HeaderRowWidget->AddColumn(
 				Gutter->ConstructHeaderRowColumn()
 				.FixedWidth(16.f)
@@ -2545,6 +2546,24 @@ namespace SceneOutliner
 		{
 			OutlinerTreeView->FlashHighlightOnItem(*TreeItem);
 		}
+	}
+
+	void SSceneOutliner::OnSetItemVisibility(FOutlinerTreeItemRef Item, bool bIsVisible)
+	{
+		// We operate on all the selected items if the specified item is selected
+		if (OutlinerTreeView->IsItemSelected(Item))
+		{
+			for (auto& TreeItem : OutlinerTreeView->GetSelectedItems())
+			{
+				TreeItem->SetIsVisible(bIsVisible);
+			}
+		}
+		else
+		{
+			Item->SetIsVisible(bIsVisible);
+		}
+
+		GEditor->RedrawAllViewports();
 	}
 
 	void SSceneOutliner::OnFilterTextChanged( const FText& InFilterText )
