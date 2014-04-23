@@ -439,7 +439,7 @@ public:
 	(
 		const TCHAR*		Section,
 		const TCHAR*		Key,
-		FVector4			Value,
+		const FVector4&		Value,
 		const FString&	Filename
 	);
 	void SetRotator

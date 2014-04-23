@@ -2070,7 +2070,7 @@ void FConfigCacheIni::SetVector4
 (
  const TCHAR*		Section,
  const TCHAR*		Key,
- const FVector4		 Value,
+ const FVector4&	 Value,
  const FString&	Filename
 )
 {
