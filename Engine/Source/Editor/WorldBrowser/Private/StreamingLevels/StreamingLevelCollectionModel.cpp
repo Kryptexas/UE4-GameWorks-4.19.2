@@ -78,6 +78,8 @@ void FStreamingLevelCollectionModel::OnLevelsSelectionChanged()
 			InvalidSelectedLevels.Add(LevelModel);
 		}
 	}
+
+	FLevelCollectionModel::OnLevelsSelectionChanged();
 }
 
 void FStreamingLevelCollectionModel::UnloadLevels(const FLevelModelList& InLevelList)
