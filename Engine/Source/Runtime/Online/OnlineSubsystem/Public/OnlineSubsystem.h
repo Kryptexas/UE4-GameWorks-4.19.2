@@ -84,6 +84,17 @@ public:
   	}
 
 	/** 
+	 * Destroy a single online subsystem instance
+	 * @param SubsystemName - Name of the online service to destroy
+	 */
+	static void Destroy(FName SubsystemName)
+	{
+		static const FName OnlineSubsystemModuleName = TEXT("OnlineSubsystem");
+		FOnlineSubsystemModule& OSSModule = FModuleManager::GetModuleChecked<FOnlineSubsystemModule>(OnlineSubsystemModuleName);
+		return OSSModule.DestroyOnlineSubsystem(SubsystemName);
+	}
+
+	/** 
 	 * Determine if the subsystem for a given interface is already loaded
 	 * @param SubsystemName - Name of the requested online service
 	 * @return true if module for the subsystem is loaded
