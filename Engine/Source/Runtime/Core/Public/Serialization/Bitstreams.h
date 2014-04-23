@@ -138,7 +138,8 @@ struct CORE_API FBitWriterMark
 {
 public:
 	FBitWriterMark()
-	:	Num         ( 0 )
+	:	Overflowed	( false ),
+		Num			( 0 )
 	{}
 	FBitWriterMark( FBitWriter& Writer )
 	{
@@ -160,7 +161,7 @@ public:
 
 private:
 	bool			Overflowed;
-	int64				Num;
+	int64			Num;
 };
 
 /*-----------------------------------------------------------------------------
