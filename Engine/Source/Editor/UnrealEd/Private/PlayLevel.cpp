@@ -2572,9 +2572,19 @@ UWorld* UEditorEngine::CreatePIEWorldByDuplication(FWorldContext &WorldContext, 
 		FLazyObjectPtr::ResetPIEFixups();
 
 		// Prepare string asset references for fixup
-		TArray<UPackage*> PackagesBeingDuplicatedForPIE;
-		PackagesBeingDuplicatedForPIE.Add(EditorWorld->GetOutermost());
-		FStringAssetReference::SetPackagesBeingDuplicatedForPIE(PackagesBeingDuplicatedForPIE);
+		TArray<FString> PackageNamesBeingDuplicatedForPIE;
+		PackageNamesBeingDuplicatedForPIE.Add(PlayWorldMapName);
+		for ( auto LevelIt = EditorWorld->StreamingLevels.CreateConstIterator(); LevelIt; ++LevelIt )
+		{
+			ULevelStreaming* StreamingLevel = *LevelIt;
+			if ( StreamingLevel )
+			{
+				const FString StreamingLevelPIEName = UWorld::ConvertToPIEPackageName(StreamingLevel->PackageName.ToString(), WorldContext.PIEInstance);
+				PackageNamesBeingDuplicatedForPIE.Add(StreamingLevelPIEName);
+			}
+		}
+
+		FStringAssetReference::SetPackageNamesBeingDuplicatedForPIE(PackageNamesBeingDuplicatedForPIE);
 
 		// NULL GWorld before various PostLoad functions are called, this makes it easier to debug invalid GWorld accesses
 		GWorld = NULL;
@@ -2589,7 +2599,7 @@ UWorld* UEditorEngine::CreatePIEWorldByDuplication(FWorldContext &WorldContext, 
 			SDO_DuplicateForPie		// bDuplicateForPIE
 			) );
 
-		FStringAssetReference::ClearPackagesBeingDuplicatedForPIE();
+		FStringAssetReference::ClearPackageNamesBeingDuplicatedForPIE();
 
 		// Store prefix we used to rename this world and streaming levels package names
 		NewPIEWorld->StreamingLevelsPrefix = UWorld::BuildPIEPackagePrefix(WorldContext.PIEInstance);

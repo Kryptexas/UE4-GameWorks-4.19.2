@@ -1855,8 +1855,28 @@ UWorld* UWorld::DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningW
 	PIELevelPackage->PIEInstanceID = WorldContext.PIEInstance;
 #endif
 
+	const FString PlayWorldMapName = ConvertToPIEPackageName(OwningWorld->GetOutermost()->GetName(), WorldContext.PIEInstance);
+
+	// Set up string asset reference fixups
+	TArray<FString> PackageNamesBeingDuplicatedForPIE;
+	PackageNamesBeingDuplicatedForPIE.Add(PlayWorldMapName);
+	for (auto LevelIt = OwningWorld->StreamingLevels.CreateConstIterator(); LevelIt; ++LevelIt)
+	{
+		ULevelStreaming* StreamingLevel = *LevelIt;
+		if (StreamingLevel)
+		{
+			const FString StreamingLevelPIEName = UWorld::ConvertToPIEPackageName(StreamingLevel->PackageName.ToString(), WorldContext.PIEInstance);
+			PackageNamesBeingDuplicatedForPIE.Add(StreamingLevelPIEName);
+		}
+	}
+
+	FStringAssetReference::SetPackageNamesBeingDuplicatedForPIE(PackageNamesBeingDuplicatedForPIE);
+
 	ULevel::StreamedLevelsOwningWorld.Add(PIELevelPackage->GetFName(), OwningWorld);
 	UWorld* PIELevelWorld = CastChecked<UWorld>(StaticDuplicateObject(EditorLevelWorld, PIELevelPackage, *EditorLevelWorld->GetName(), RF_AllFlags, NULL, SDO_DuplicateForPie));
+
+	// Clean up string asset reference fixups
+	FStringAssetReference::ClearPackageNamesBeingDuplicatedForPIE();
 	
 	PIELevelWorld->StreamingLevelsPrefix = BuildPIEPackagePrefix(WorldContext.PIEInstance);
 	{

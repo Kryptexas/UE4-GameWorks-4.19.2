@@ -100,8 +100,8 @@ struct COREUOBJECT_API FStringAssetReference
 
 	static FStringAssetReference GetOrCreateIDForObject(const class UObject *Object);
 
-	static void SetPackagesBeingDuplicatedForPIE(const TArray<UPackage*>& InPackagesBeingDuplicatedForPIE);
-	static void ClearPackagesBeingDuplicatedForPIE();
+	static void SetPackageNamesBeingDuplicatedForPIE(const TArray<FString>& InPackageNamesBeingDuplicatedForPIE);
+	static void ClearPackageNamesBeingDuplicatedForPIE();
 
 private:
 

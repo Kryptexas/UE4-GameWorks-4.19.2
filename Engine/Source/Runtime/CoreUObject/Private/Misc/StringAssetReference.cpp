@@ -146,19 +146,12 @@ FStringAssetReference FStringAssetReference::GetOrCreateIDForObject(const class 
 	return FStringAssetReference(Object);
 }
 
-void FStringAssetReference::SetPackagesBeingDuplicatedForPIE(const TArray<UPackage*>& InPackagesBeingDuplicatedForPIE)
+void FStringAssetReference::SetPackageNamesBeingDuplicatedForPIE(const TArray<FString>& InPackageNamesBeingDuplicatedForPIE)
 {
-	for ( auto PackageIt = InPackagesBeingDuplicatedForPIE.CreateConstIterator(); PackageIt; ++PackageIt )
-	{
-		UPackage* Package = *PackageIt;
-		if ( Package )
-		{
-			PackageNamesBeingDuplicatedForPIE.Add(Package->GetName());
-		}
-	}
+	PackageNamesBeingDuplicatedForPIE = InPackageNamesBeingDuplicatedForPIE;
 }
 
-void FStringAssetReference::ClearPackagesBeingDuplicatedForPIE()
+void FStringAssetReference::ClearPackageNamesBeingDuplicatedForPIE()
 {
 	PackageNamesBeingDuplicatedForPIE.Empty();
 }
@@ -175,15 +168,16 @@ void FStringAssetReference::FixupForPIE()
 		{
 			check(GPlayInEditorID != -1);
 
+			const FString PIEPath = FString::Printf(TEXT("%s/%s_%d_%s"), *FPackageName::GetLongPackagePath(Path), PLAYWORLD_PACKAGE_PREFIX, GPlayInEditorID, *ShortPackageOuterAndName);
+
 			// Determine if this refers to a package that is being duplicated for PIE
 			for (auto PackageNameIt = PackageNamesBeingDuplicatedForPIE.CreateConstIterator(); PackageNameIt; ++PackageNameIt)
 			{
 				const FString PathPrefix = (*PackageNameIt) + TEXT(".");
-				if (Path.StartsWith(PathPrefix))
+				if (PIEPath.StartsWith(PathPrefix))
 				{
 					// Need to prepend PIE prefix, as we're in PIE and this refers to an object in a PIE package
-					Path = FString::Printf(TEXT("%s/%s_%d_%s"), *FPackageName::GetLongPackagePath(Path), PLAYWORLD_PACKAGE_PREFIX, GPlayInEditorID, *ShortPackageOuterAndName);
-					AssetLongPathname = Path;
+					AssetLongPathname = PIEPath;
 
 					break;
 				}
