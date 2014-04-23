@@ -52,7 +52,8 @@ FText FText::AsMemory(SIZE_T NumBytes, const FNumberFormattingOptions* const Opt
 		++Prefix;
 	}
 
-	Args.Add( TEXT("Number"), FText::AsNumber( (uint64)(NumBytes / 1024) , Options, TargetCulture) );
+	const double MemorySizeAsDouble = (double)NumBytes / 1024.0;
+	Args.Add( TEXT("Number"), FText::AsNumber( MemorySizeAsDouble, Options, TargetCulture) );
 	Args.Add( TEXT("Unit"), FText::FromString( FString( 1, &Prefixes[Prefix] ) + TEXT("B") ) );
 	return FText::Format( NSLOCTEXT("Internationalization", "ComputerMemoryFormatting", "{Number} {Unit}"), Args);
 }
