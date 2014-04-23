@@ -34,6 +34,7 @@
 #include "AssetToolsModule.h"
 #include "Editor/GraphEditor/Private/GraphActionNode.h"
 #include "IDocumentation.h"
+#include "Editor/UnrealEd/Public/SourceCodeNavigation.h"
 
 #define LOCTEXT_NAMESPACE "MyBlueprint"
 
@@ -50,6 +51,7 @@ void FMyBlueprintCommands::RegisterCommands()
 	UI_COMMAND(DeleteEntry, "Delete", "Deletes this function or variable from this blueprint.", EUserInterfaceActionType::Button, FInputGesture(EKeys::Platform_Delete));
 	UI_COMMAND( FindUserDefinedEnumInContentBrowser, "Find in Content Browser...", "Find user defined enum in content browser...", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( AddNewUserDefinedEnum, "Create Enum Asset", "Create new user defined enum asset", EUserInterfaceActionType::Button, FInputGesture() );
+	UI_COMMAND( GotoNativeVarDefinition, "Goto Code Definition", "Goto the native code definition of this variable", EUserInterfaceActionType::Button, FInputGesture() );
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -172,7 +174,13 @@ void SMyBlueprint::Construct(const FArguments& InArgs, TWeakPtr<FBlueprintEditor
 		FCanExecuteAction::CreateSP(this, &SMyBlueprint::CanDuplicateAction),
 		FIsActionChecked(),
 		FIsActionButtonVisible::CreateSP(this, &SMyBlueprint::IsDuplicateActionVisible) );
-	
+
+	ToolKitCommandList->MapAction( FMyBlueprintCommands::Get().GotoNativeVarDefinition,
+		FExecuteAction::CreateSP(this, &SMyBlueprint::GotoNativeCodeVarDefinition),
+		FCanExecuteAction(),
+		FIsActionChecked(),
+		FIsActionButtonVisible::CreateSP(this, &SMyBlueprint::IsNativeVariable) );
+
 	TSharedPtr<FBlueprintEditorToolbar> Toolbar = MakeShareable(new FBlueprintEditorToolbar(InBlueprintEditor.Pin()));
 	TSharedPtr<FExtender> Extender = MakeShareable(new FExtender);
 	Toolbar->AddNewToolbar(Extender);
@@ -1248,6 +1256,7 @@ TSharedPtr<SWidget> SMyBlueprint::OnContextMenuOpening()
 			MenuBuilder.AddMenuEntry(FGenericCommands::Get().Rename, NAME_None, LOCTEXT("Rename", "Rename"), LOCTEXT("Rename_Tooltip", "Renames this function or variable from blueprint.") );
 			MenuBuilder.AddMenuEntry(FMyBlueprintCommands::Get().ImplementFunction);
 			MenuBuilder.AddMenuEntry(FMyBlueprintCommands::Get().FindEntry);
+			MenuBuilder.AddMenuEntry(FMyBlueprintCommands::Get().GotoNativeVarDefinition);
 			MenuBuilder.AddMenuEntry(FGenericCommands::Get().Duplicate);
 			MenuBuilder.AddMenuEntry(FMyBlueprintCommands::Get().DeleteEntry);
 		}
@@ -1730,6 +1739,31 @@ void SMyBlueprint::OnDuplicateAction()
 		GetBlueprintObj()->FunctionGraphs.Add(DuplicatedGraph);
 		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetBlueprintObj());
 	}
+}
+
+void SMyBlueprint::GotoNativeCodeVarDefinition()
+{
+	if( FEdGraphSchemaAction_K2Var* VarAction = SelectionAsVar() )
+	{
+		if( UProperty* VarProperty = VarAction->GetProperty() )
+		{
+			FSourceCodeNavigation::NavigateToProperty( VarProperty );
+		}
+	}
+}
+
+bool SMyBlueprint::IsNativeVariable() const
+{
+	if( FEdGraphSchemaAction_K2Var* VarAction = SelectionAsVar() )
+	{
+		UProperty* VarProperty = VarAction->GetProperty();
+
+		if( VarProperty && VarProperty->HasAllFlags( RF_Native ))
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 void SMyBlueprint::OnResetItemFilter()

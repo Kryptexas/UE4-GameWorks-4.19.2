@@ -251,6 +251,18 @@ public:
 	/** Handles opening the header file of native parent class */
 	void OnEditParentClassNativeCodeClicked();
 
+	/** Called to open native function definition of the current node selection in an IDE */
+	void GotoNativeFunctionDefinition();
+
+	/** Called to check if the current selection is a native function */
+	bool IsSelectionNativeFunction();
+
+	/** Called to open native variable declaration of the current node selection in an IDE */
+	void GotoNativeVariableDefinition();
+
+	/** Called to check if the current selection is a native variable */
+	bool IsSelectionNativeVariable();
+
 	/** Returns: "(<NativeParentClass>.h)" */
 	FText GetTextForNativeParentClassHeaderLink() const;
 

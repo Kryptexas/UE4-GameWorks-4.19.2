@@ -627,6 +627,16 @@ TSharedRef<SGraphEditor> FBlueprintEditor::CreateGraphEditorWidget(TSharedRef<FT
 				FExecuteAction::CreateSP( this, &FBlueprintEditor::OnFindVariableReferences ),
 				FCanExecuteAction::CreateSP( this, &FBlueprintEditor::CanFindVariableReferences )
 				);
+
+			GraphEditorCommands->MapAction( FGraphEditorCommands::Get().GotoNativeFunctionDefinition,
+				FExecuteAction::CreateSP( this, &FBlueprintEditor::GotoNativeFunctionDefinition ),
+				FCanExecuteAction::CreateSP(this, &FBlueprintEditor::IsSelectionNativeFunction)
+				);
+
+			GraphEditorCommands->MapAction( FGraphEditorCommands::Get().GotoNativeVariableDefinition,
+				FExecuteAction::CreateSP( this, &FBlueprintEditor::GotoNativeVariableDefinition ),
+				FCanExecuteAction::CreateSP(this, &FBlueprintEditor::IsSelectionNativeVariable)
+				);
 		}
 	}
 
@@ -5859,6 +5869,93 @@ bool FBlueprintEditor::CanFindVariableReferences()
 		if( SelectedNodes.Num() == 1 )
 		{
 			return true;
+		}
+	}
+	return false;
+}
+
+void FBlueprintEditor::GotoNativeFunctionDefinition()
+{
+	auto GraphEditor = FocusedGraphEdPtr.Pin();
+	if( GraphEditor.IsValid() && IsSelectionNativeFunction() )
+	{
+		const FGraphPanelSelectionSet SelectedNodes = GraphEditor->GetSelectedNodes();
+		FGraphPanelSelectionSet::TConstIterator NodeIter( SelectedNodes );
+
+		const UK2Node_CallFunction* FunctionNode = Cast<UK2Node_CallFunction>( *NodeIter );
+
+		if( FunctionNode )
+		{
+			UFunction* TargetFunction = FunctionNode->GetTargetFunction();
+
+			if( TargetFunction )
+			{
+				FSourceCodeNavigation::NavigateToFunctionAsync( TargetFunction );
+			}
+		}
+	}
+}
+
+bool FBlueprintEditor::IsSelectionNativeFunction()
+{
+	auto GraphEditor = FocusedGraphEdPtr.Pin();
+	if( GraphEditor.IsValid() && FSourceCodeNavigation::IsCompilerAvailable() )
+	{
+		FGraphPanelSelectionSet SelectedNodes = GraphEditor->GetSelectedNodes();
+		FGraphPanelSelectionSet::TIterator NodeIter( SelectedNodes );
+		const UK2Node_CallFunction* FunctionNode = Cast<UK2Node_CallFunction>( *NodeIter );
+
+		if( FunctionNode && SelectedNodes.Num() == 1 )
+		{
+			UClass* OwningClass = FunctionNode->FunctionReference.GetMemberParentClass( FunctionNode );
+
+			if( OwningClass && OwningClass->HasAllClassFlags( CLASS_Native ))
+			{
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+void FBlueprintEditor::GotoNativeVariableDefinition()
+{
+	auto GraphEditor = FocusedGraphEdPtr.Pin();
+	if( GraphEditor.IsValid() && IsSelectionNativeVariable() )
+	{
+		const FGraphPanelSelectionSet SelectedNodes = GraphEditor->GetSelectedNodes();
+		FGraphPanelSelectionSet::TConstIterator NodeIter( SelectedNodes );
+		const UK2Node_Variable* VarNode = Cast<UK2Node_Variable>( *NodeIter );
+
+		if( VarNode )
+		{
+			UProperty* VariableProperty = VarNode->VariableReference.ResolveMember<UProperty>( VarNode );
+
+			if( VariableProperty )
+			{
+				FSourceCodeNavigation::NavigateToProperty( VariableProperty );
+			}
+		}
+	}
+}
+
+bool FBlueprintEditor::IsSelectionNativeVariable()
+{
+	auto GraphEditor = FocusedGraphEdPtr.Pin();
+	if( GraphEditor.IsValid() )
+	{
+		FGraphPanelSelectionSet SelectedNodes = GraphEditor->GetSelectedNodes();
+		FGraphPanelSelectionSet::TIterator NodeIter( SelectedNodes );
+		const UK2Node_Variable* VarNode = Cast<UK2Node_Variable>( *NodeIter );
+
+		if( VarNode && SelectedNodes.Num() == 1 )
+		{
+			UProperty* VariableProperty = VarNode->VariableReference.ResolveMember<UProperty>( VarNode );
+
+			if( VariableProperty && VariableProperty->HasAllFlags( RF_Native ))
+			{
+				return true;
+			}
 		}
 	}
 	return false;

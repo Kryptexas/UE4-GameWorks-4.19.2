@@ -82,6 +82,22 @@ public:
 	 */
 	UNREALED_API static void GatherFunctionsForActors( TArray< AActor* >& Actors, const EGatherMode::Type GatherMode, TArray< FEditCodeMenuClass >& Classes );
 
+	/**
+	 * Navigates asynchronously to the UFunction definition in IDE
+	 *
+	 * @param	InFunction		UFunction to navigate to in source code
+	 * @return					whether the navigation was successfull or not
+	 */
+	UNREALED_API static bool NavigateToFunctionAsync( UFunction* InFunction );
+
+	/**
+	 * Navigates to UProperty source header in the IDE
+	 *
+	 * @param	InProperty		UProperty to navigate to in source code
+	 * @return					whether the navigation was successfull or not
+	 */
+	UNREALED_API static bool NavigateToProperty( UProperty* InProperty );
+
 	/** Delegate that's triggered when any symbol query has completed */
 	DECLARE_MULTICAST_DELEGATE( FOnSymbolQueryFinished );
 
@@ -110,6 +126,9 @@ public:
 	UNREALED_API static bool OpenSourceFiles(const TArray<FString>& AbsoluteSourcePaths);
 
 	UNREALED_API static bool OpenModuleSolution();
+
+	/** Attempt to locate fully qualified class module name */
+	UNREALED_API static bool FindClassModuleName( UClass* InClass, FString& ModuleName );
 
 	/** Delegate that's triggered when any symbol query has completed */
 	DECLARE_MULTICAST_DELEGATE( FOnCompilerNotFound );
