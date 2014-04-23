@@ -340,7 +340,7 @@ float UPrimitiveComponent::GetMass() const
 	return 0.0f;
 }
 
-float UPrimitiveComponent::CalculateMass()
+float UPrimitiveComponent::CalculateMass(FName)
 {
 	if (BodyInstance.BodySetup.IsValid())
 	{
