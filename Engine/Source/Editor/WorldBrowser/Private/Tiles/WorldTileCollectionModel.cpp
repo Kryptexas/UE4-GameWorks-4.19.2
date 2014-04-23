@@ -1304,6 +1304,7 @@ void FWorldTileCollectionModel::ImportTiledLandscape_Executed()
 			TileImportSettings.SectionsPerComponent = ImportSettings.SectionsPerComponent;
 			TileImportSettings.SizeX				= ImportSettings.TileResolution;
 			TileImportSettings.SizeY				= ImportSettings.TileResolution;
+			TileImportSettings.HeightmapFilename	= Filename;
 			TileImportSettings.LandscapeTransform.SetScale3D(TileScale);
 
 			if (ReadHeighmapFile(TileImportSettings.HeightData, *Filename, FILEREAD_Silent))

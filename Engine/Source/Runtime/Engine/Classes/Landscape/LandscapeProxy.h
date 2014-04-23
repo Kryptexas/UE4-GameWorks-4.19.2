@@ -124,6 +124,9 @@ struct FLandscapeImportLayerInfo
 
 	UPROPERTY(Category="Import", EditAnywhere)
 	FString SourceFilePath; // Optional
+	
+	// Raw weightmap data
+	TArray<uint8> LayerData;		
 #endif
 
 #if WITH_EDITOR
@@ -387,7 +390,7 @@ public:
 	ENGINE_API void Import(FGuid Guid, int32 VertsX, int32 VertsY, 
 							int32 ComponentSizeQuads, int32 NumSubsections, int32 SubsectionSizeQuads, 
 							const uint16* HeightData, const TCHAR* HeightmapFileName, 
-							TArray<FLandscapeImportLayerInfo> ImportLayerInfos, uint8* AlphaDataPointers[] );
+							const TArray<FLandscapeImportLayerInfo>& ImportLayerInfos);
 
 	/**
 	 * Exports landscape into raw mesh

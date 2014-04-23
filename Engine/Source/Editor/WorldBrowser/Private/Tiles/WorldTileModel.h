@@ -46,6 +46,7 @@ public:
 		int32								SizeY;
 		TArray<uint16>						HeightData;
 		TArray<FLandscapeImportLayerInfo>	ImportLayers;
+		FString								HeightmapFilename;
 	};
 	
 	/**

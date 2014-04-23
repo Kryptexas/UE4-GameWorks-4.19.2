@@ -929,9 +929,8 @@ ALandscapeProxy* FWorldTileModel::ImportLandscape(const FLandscapeImportSettings
 		Settings.SectionsPerComponent, 
 		Settings.QuadsPerSection, 
 		Settings.HeightData.GetData(), 
-		NULL, 
-		Settings.ImportLayers, 
-		NULL);
+		*Settings.HeightmapFilename, 
+		Settings.ImportLayers);
 
 	return Landscape;
 }

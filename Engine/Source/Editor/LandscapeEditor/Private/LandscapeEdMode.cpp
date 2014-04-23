@@ -2451,8 +2451,6 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 			FLandscapeEditDataInterface LandscapeEdit(LandscapeInfo);
 			TArray<uint16> HeightData;
 			TArray<FLandscapeImportLayerInfo> ImportLayerInfos;
-			TArray<TArray<uint8>, TInlineAllocator<8>> LayerDataArrays;
-			TArray<uint8*> LayerDataPtrs;
 			FVector LandscapeOffset = FVector::ZeroVector;
 			float LandscapeScaleFactor = 1.0f;
 
@@ -2471,18 +2469,15 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 				{
 					if (LayerSettings.LayerInfoObj != NULL)
 					{
-						TArray<uint8>* LayerData = new(LayerDataArrays)(TArray<uint8>);
-						LayerData->AddZeroed(OldVertsX * OldVertsY * sizeof(uint8));
-
+						auto ImportLayerInfo = new(ImportLayerInfos) FLandscapeImportLayerInfo(LayerSettings);
+						ImportLayerInfo->LayerData.AddZeroed(OldVertsX * OldVertsY * sizeof(uint8));
+						
 						TMinX = OldMinX; TMinY = OldMinY; TMaxX = OldMaxX; TMaxY = OldMaxY;
-						LandscapeEdit.GetWeightData(LayerSettings.LayerInfoObj, TMinX, TMinY, TMaxX, TMaxY, LayerData->GetData(), 0);
+						LandscapeEdit.GetWeightData(LayerSettings.LayerInfoObj, TMinX, TMinY, TMaxX, TMaxY, ImportLayerInfo->LayerData.GetData(), 0);
 
-						*LayerData = LandscapeEditorUtils::ResampleData(*LayerData,
+						ImportLayerInfo->LayerData = LandscapeEditorUtils::ResampleData(ImportLayerInfo->LayerData,
 							OldVertsX, OldVertsY,
 							NewVertsX, NewVertsY);
-
-						new(ImportLayerInfos) FLandscapeImportLayerInfo(LayerSettings);
-						LayerDataPtrs.Add(LayerData->GetData());
 					}
 				}
 
@@ -2516,18 +2511,15 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 				{
 					if (LayerSettings.LayerInfoObj != NULL)
 					{
-						TArray<uint8>* LayerData = new(LayerDataArrays)(TArray<uint8>);
-						LayerData->AddZeroed(NewVertsX * NewVertsY * sizeof(uint8));
+						auto ImportLayerInfo = new(ImportLayerInfos) FLandscapeImportLayerInfo(LayerSettings);
+						ImportLayerInfo->LayerData.AddZeroed(NewVertsX * NewVertsY * sizeof(uint8));
 
 						TMinX = RequestedMinX; TMinY = RequestedMinY; TMaxX = RequestedMaxX; TMaxY = RequestedMaxY;
-						LandscapeEdit.GetWeightData(LayerSettings.LayerInfoObj, TMinX, TMinY, TMaxX, TMaxY, LayerData->GetData(), 0);
+						LandscapeEdit.GetWeightData(LayerSettings.LayerInfoObj, TMinX, TMinY, TMaxX, TMaxY, ImportLayerInfo->LayerData.GetData(), 0);
 
-						*LayerData = LandscapeEditorUtils::ExpandData(*LayerData,
+						ImportLayerInfo->LayerData = LandscapeEditorUtils::ExpandData(ImportLayerInfo->LayerData,
 							RequestedMinX, RequestedMinY, RequestedMaxX, RequestedMaxY,
 							NewMinX, NewMinY, NewMaxX, NewMaxY);
-
-						new(ImportLayerInfos) FLandscapeImportLayerInfo(LayerSettings);
-						LayerDataPtrs.Add(LayerData->GetData());
 					}
 				}
 
@@ -2542,7 +2534,7 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 
 			Landscape->LandscapeMaterial = OldLandscapeProxy->LandscapeMaterial;
 			Landscape->CollisionMipLevel = OldLandscapeProxy->CollisionMipLevel;
-			Landscape->Import(FGuid::NewGuid(), NewVertsX, NewVertsY, NumSubsections*SubsectionSizeQuads, NumSubsections, SubsectionSizeQuads, HeightData.GetData(), *OldLandscapeProxy->ReimportHeightmapFilePath, ImportLayerInfos, LayerDataPtrs.Num() ? LayerDataPtrs.GetData() : NULL);
+			Landscape->Import(FGuid::NewGuid(), NewVertsX, NewVertsY, NumSubsections*SubsectionSizeQuads, NumSubsections, SubsectionSizeQuads, HeightData.GetData(), *OldLandscapeProxy->ReimportHeightmapFilePath, ImportLayerInfos);
 
 			Landscape->MaxLODLevel                 = OldLandscapeProxy->MaxLODLevel;
 			Landscape->ExportLOD                   = OldLandscapeProxy->ExportLOD;

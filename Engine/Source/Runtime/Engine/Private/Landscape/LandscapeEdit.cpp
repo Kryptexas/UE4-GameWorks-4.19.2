@@ -1679,7 +1679,7 @@ ULandscapeLayerInfoObject* ALandscapeProxy::CreateLayerInfo(const TCHAR* LayerNa
 void ALandscapeProxy::Import(FGuid Guid, int32 VertsX, int32 VertsY, 
 								int32 InComponentSizeQuads, int32 InNumSubsections, int32 InSubsectionSizeQuads, 
 								const uint16* HeightData, const TCHAR* HeightmapFileName, 
-								TArray<FLandscapeImportLayerInfo> ImportLayerInfos, uint8* AlphaDataPointers[] )
+								const TArray<FLandscapeImportLayerInfo>& ImportLayerInfos )
 {
 	GWarn->BeginSlowTask( LOCTEXT("BeingImportingLandscapeTask", "Importing Landscape"), true);
 
@@ -1839,11 +1839,14 @@ void ALandscapeProxy::Import(FGuid Guid, int32 VertsX, int32 VertsY,
 			{
 				FLandscapeComponentAlphaInfo* NewAlphaInfo = new(EditingAlphaLayerData) FLandscapeComponentAlphaInfo(LandscapeComponent, LayerIndex);
 
-				for( int32 AlphaY=0;AlphaY<=LandscapeComponent->ComponentSizeQuads;AlphaY++ )
+				if (ImportLayerInfos[LayerIndex].LayerData.Num())
 				{
-					uint8* OldAlphaRowStart = &AlphaDataPointers[LayerIndex][ (AlphaY+LandscapeComponent->GetSectionBase().Y) * VertsX + (LandscapeComponent->GetSectionBase().X) ];
-					uint8* NewAlphaRowStart = &NewAlphaInfo->AlphaValues[AlphaY * (LandscapeComponent->ComponentSizeQuads+1)];
-					FMemory::Memcpy(NewAlphaRowStart, OldAlphaRowStart, LandscapeComponent->ComponentSizeQuads+1);
+					for( int32 AlphaY=0;AlphaY<=LandscapeComponent->ComponentSizeQuads;AlphaY++ )
+					{
+						const uint8* OldAlphaRowStart = &ImportLayerInfos[LayerIndex].LayerData[ (AlphaY+LandscapeComponent->GetSectionBase().Y) * VertsX + (LandscapeComponent->GetSectionBase().X) ];
+						uint8* NewAlphaRowStart = &NewAlphaInfo->AlphaValues[AlphaY * (LandscapeComponent->ComponentSizeQuads+1)];
+						FMemory::Memcpy(NewAlphaRowStart, OldAlphaRowStart, LandscapeComponent->ComponentSizeQuads+1);
+					}
 				}
 			}
 
