@@ -992,11 +992,6 @@ bool UConsole::InputKey_Open( int32 ControllerId, FKey Key, EInputEvent Event, f
 			SetCursorPos(TypedStr.Len());
 			bAutoCompleteLocked = true;
 		}
-		else
-		{
-			FakeGotoState(NAME_None);
-			bCaptureKeyInput = true;
-		}
 		return true;
 	}
 	else if( Key == EKeys::Enter && Event == IE_Released )
