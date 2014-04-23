@@ -877,9 +877,11 @@ private:
 #endif // WITH_RECAST
 };
 
+#if WITH_RECAST
 FORCEINLINE
 bool ARecastNavMesh::NavMeshRaycast(const ANavigationData* Self, const FVector& RayStart, const FVector& RayEnd, FVector& HitLocation, TSharedPtr<const FNavigationQueryFilter> QueryFilter, const UObject* Querier)
 {
 	FRaycastResult Result;
 	return NavMeshRaycast(Self, RayStart, RayEnd, HitLocation, QueryFilter, Querier, Result);
 }
+#endif // WITH_RECAST
