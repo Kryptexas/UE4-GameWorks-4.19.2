@@ -244,7 +244,7 @@ public:
 	/** Returns a relative world context for this viewport.	 */
 	virtual UWorld* GetWorld() const OVERRIDE;
 
-	void SetReferenceToWorldContext(struct FWorldContext& WorldContext);
+	virtual void SetReferenceToWorldContext(struct FWorldContext& WorldContext);
 
 public:
 	// Begin UObject Interface
