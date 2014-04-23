@@ -12,7 +12,7 @@ UAnimGraphNode_Fabrik::UAnimGraphNode_Fabrik(const FPostConstructInitializePrope
 
 FString UAnimGraphNode_Fabrik::GetControllerDescription() const
 {
-	return TEXT("Fabrik IK");
+	return TEXT("FABRIK");
 }
 
 FString UAnimGraphNode_Fabrik::GetNodeTitle(ENodeTitleType::Type TitleType) const

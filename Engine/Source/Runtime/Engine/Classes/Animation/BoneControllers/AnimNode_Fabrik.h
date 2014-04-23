@@ -16,11 +16,20 @@ struct FABRIKChainLink
 	GENERATED_USTRUCT_BODY()
 
 public:
+	/** Position of bone in component space. */
 	FVector Position;
+
+	/** Distance to its parent link. */
 	float Length;
+
+	/** Bone Index in SkeletalMesh */
 	int32 BoneIndex;
+
+	/** Transform Index that this control will output */
 	int32 TransformIndex;
 
+	/** Child bones which are overlapping this bone. 
+	 * They have a zero length distance, so they will inherit this bone's transformation. */
 	UPROPERTY()
 	TArray<int32> ChildZeroLengthTransformIndices;
 
