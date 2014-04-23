@@ -12,12 +12,14 @@
 /* FNetworkFileServerClientConnection structors
  *****************************************************************************/
 
-FNetworkFileServerClientConnection::FNetworkFileServerClientConnection( FSocket* InSocket, const FFileRequestDelegate& InFileRequestDelegate, const FRecompileShadersDelegate& InRecompileShadersDelegate )
+FNetworkFileServerClientConnection::FNetworkFileServerClientConnection( FSocket* InSocket, const FFileRequestDelegate& InFileRequestDelegate, 
+		const FRecompileShadersDelegate& InRecompileShadersDelegate, const TArray<ITargetPlatform*>& InActiveTargetPlatforms )
 	: LastHandleId(0)
 	, MCSocket(NULL)
 	, Sandbox(NULL)
 	, Socket(InSocket)
 	, bNeedsToStop(false)
+	, ActiveTargetPlatforms(InActiveTargetPlatforms)
 {
 	if (InFileRequestDelegate.IsBound())
 	{
@@ -696,15 +698,14 @@ void FNetworkFileServerClientConnection::ProcessGetFileList( FArchive& In, FArch
 
 	ConnectedPlatformName = TEXT("");
 	// figure out the best matching target platform for the set of valid ones
-	ITargetPlatformManagerModule& TPM = GetTargetPlatformManagerRef();
-	static const TArray<ITargetPlatform*>& ActiveTargetPlatforms =  TPM.GetTargetPlatforms();
-	for (int32 TPIndex = 0; TPIndex < TargetPlatformNames.Num(); TPIndex++)
+	for (int32 TPIndex = 0; TPIndex < TargetPlatformNames.Num() && ConnectedPlatformName == TEXT(""); TPIndex++)
 	{
 		UE_LOG(LogFileServer, Display, TEXT("    Possible Target Platform from client: %s"), *TargetPlatformNames[TPIndex]);
 
 		// look for a matching target platform
 		for (int32 ActiveTPIndex = 0; ActiveTPIndex < ActiveTargetPlatforms.Num(); ActiveTPIndex++)
 		{
+			UE_LOG(LogFileServer, Display, TEXT("   Checking against: %s"), *ActiveTargetPlatforms[ActiveTPIndex]->PlatformName());
 			if (ActiveTargetPlatforms[ActiveTPIndex]->PlatformName() == TargetPlatformNames[TPIndex])
 			{
 				ConnectedPlatformName = ActiveTargetPlatforms[ActiveTPIndex]->PlatformName();

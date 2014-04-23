@@ -22,7 +22,8 @@ public:
 	 * @param InSocket - The client socket to use.
 	 * @param InFileRequestDelegate - A delegate to be invoked when the client requests a file.
 	 */
-	FNetworkFileServerClientConnection( FSocket* InSocket, const FFileRequestDelegate& InFileRequestDelegate, const FRecompileShadersDelegate& InRecompileShadersDelegate );
+	FNetworkFileServerClientConnection( FSocket* InSocket, const FFileRequestDelegate& InFileRequestDelegate, 
+		const FRecompileShadersDelegate& InRecompileShadersDelegate, const TArray<ITargetPlatform*>& InActiveTargetPlatforms );
 
 	/**
 	 * Destructor.
@@ -220,6 +221,9 @@ private:
 
 	// Holds a delegate to be invoked when a client requests a shader recompile.
 	FRecompileShadersDelegate RecompileShadersDelegate;
+
+	// cached copy of the active target platforms (if any)
+	const TArray<ITargetPlatform*>& ActiveTargetPlatforms;
 
 	/** Holds a flag indicating that the thread should be stopped. */
 	bool bNeedsToStop;
