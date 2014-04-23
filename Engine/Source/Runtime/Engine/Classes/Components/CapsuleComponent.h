@@ -105,18 +105,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Components|Capsule")
 	float GetShapeScale() const;
 
-	// Sets the capsule size without triggering a render or physics update.
+	// Sets the capsule size without triggering a render or physics update. This is the preferred method when initializing a component in a class constructor.
 	FORCEINLINE void InitCapsuleSize(float InRadius, float InHalfHeight)
 	{
 		CapsuleRadius = InRadius;
-		CapsuleHalfHeight = InHalfHeight;
+		CapsuleHalfHeight = FMath::Max(InHalfHeight, InRadius);
 	}
-
-	// Sets the capsule radius without triggering a render or physics update.
-	FORCEINLINE void InitCapsuleRadius(float InRadius) { CapsuleRadius = InRadius; }
-
-	// Sets the capsule half-height without triggering a render or physics update.
-	FORCEINLINE void InitCapsuleHalfHeight(float InHalfHeight) { CapsuleHalfHeight = InHalfHeight; }
 };
 
 
