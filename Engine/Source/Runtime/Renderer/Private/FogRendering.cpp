@@ -240,7 +240,10 @@ void FSceneRenderer::InitFogConstants()
 				{
 					const FLightSceneInfoCompact& LightInfo = *It;
 
+					// This will find the first directional light that is set to be used as an atmospheric sun light of sufficient brightness.
+					// If you have more than one directional light with these properties then all subsequent lights will be ignored.
 					if (LightInfo.LightSceneInfo->Proxy->GetLightType() == LightType_Directional
+						&& LightInfo.LightSceneInfo->Proxy->IsUsedAsAtmosphereSunLight()
 						&& LightInfo.LightSceneInfo->Proxy->GetColor().ComputeLuminance() > KINDA_SMALL_NUMBER
 						&& FogInfo.DirectionalInscatteringColor.ComputeLuminance() > KINDA_SMALL_NUMBER)
 					{

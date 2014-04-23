@@ -1005,7 +1005,7 @@ protected:
 	/** Whether the light affects translucency or not.  Disabling this can save GPU time when there are many small lights. */
 	const uint32 bAffectTranslucentLighting : 1;
 
-	/** Whether to consider light as a sunlight for atmospheric scattering. */
+	/** Whether to consider light as a sunlight for atmospheric scattering and exponential height fog. */
 	const uint32 bUsedAsAtmosphereSunLight : 1;
 
 	/** Does the light have dynamic GI? */
