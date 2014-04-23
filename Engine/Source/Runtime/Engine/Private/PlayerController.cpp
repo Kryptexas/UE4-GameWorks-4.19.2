@@ -1961,6 +1961,7 @@ bool APlayerController::InputKey(FKey Key, EInputEvent EventType, float AmountDe
 				switch(EventType)
 				{
 				case IE_Pressed:
+				case IE_DoubleClick:
 					ClickedPrimitive->DispatchOnClicked();
 					break;
 

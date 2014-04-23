@@ -708,18 +708,18 @@ const TArray<FIntRect>& AHUD::GetUIBlurRectangles() const
 
 bool AHUD::UpdateAndDispatchHitBoxClickEvents(EInputEvent InEventType)
 {
-	for (int32 iBox = 0; iBox < HitBoxHits.Num(); iBox++)
+	for (FHUDHitBox* HitBoxHit : HitBoxHits)
 	{
-		if(InEventType == IE_Pressed)
+		if(InEventType == IE_Pressed || InEventType == IE_DoubleClick)
 		{
-			ReceiveHitBoxClick( HitBoxHits[ iBox ]->GetName() );
+			ReceiveHitBoxClick( HitBoxHit->GetName() );
 		}
 		else if(InEventType == IE_Released)
 		{
-			ReceiveHitBoxRelease( HitBoxHits[ iBox ]->GetName() );
+			ReceiveHitBoxRelease( HitBoxHit->GetName() );
 		}
 
-		if( HitBoxHits[ iBox ]->ConsumesInput() == true )
+		if( HitBoxHit->ConsumesInput() == true )
 		{
 			break;	//Early out if this box consumed the click
 		}
