@@ -53,7 +53,8 @@ public class UE4GameTarget : TargetRules
 			}
 			else if (Target.Platform == UnrealTargetPlatform.Android)
 			{
-				// @todo Rocket: Add Android online subsystem
+				// @todo android: Add Android online subsystem
+				OutExtraModuleNames.Add("AndroidAdvertising");
 			}
 		}
 	}

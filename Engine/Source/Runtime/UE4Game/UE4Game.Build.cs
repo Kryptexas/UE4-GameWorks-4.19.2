@@ -15,5 +15,11 @@ public class UE4Game : ModuleRules
 			DynamicallyLoadedModuleNames.Add("OnlineSubsystemIOS");
 			DynamicallyLoadedModuleNames.Add("IOSAdvertising");
 		}
+		else if (Target.Platform == UnrealTargetPlatform.Android)
+		{
+			// @todo android: Add Android online subsystem
+			PrivateDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "OnlineSubsystem", "OnlineSubsystemUtils" });
+			DynamicallyLoadedModuleNames.Add("AndroidAdvertising");
+		}
 	}
 }
