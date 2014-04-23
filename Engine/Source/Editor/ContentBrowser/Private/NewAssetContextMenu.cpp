@@ -156,7 +156,7 @@ void FNewAssetContextMenu::MakeContextMenu(FMenuBuilder& MenuBuilder, const FStr
 			);
 
 		MenuBuilder.AddSubMenu(
-			LOCTEXT("MaterialAssetCategory", "User Interface"),
+			LOCTEXT("UserInterfaceAssetCategory", "User Interface"),
 			FText::GetEmpty(),
 			FNewMenuDelegate::CreateStatic(&FNewAssetContextMenu::CreateNewAssetMenuCategory, EAssetTypeCategories::UI, InPath, InOnNewAssetRequested)
 			);
