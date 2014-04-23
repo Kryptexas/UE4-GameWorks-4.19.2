@@ -28,6 +28,7 @@ public class Engine : ModuleRules
 				"DerivedDataCache",
 				"ImageWrapper",
 				"HeadMountedDisplay",
+				"Advertising"
 			}
 		);
 
@@ -122,7 +123,8 @@ public class Engine : ModuleRules
 				"Analytics",
 				"AnalyticsET",
 				"OnlineSubsystem", 
-				"OnlineSubsystemUtils"
+				"OnlineSubsystemUtils",
+				"Advertising"
 			}
 		);
 

@@ -49,6 +49,7 @@ public class UE4GameTarget : TargetRules
 			{
 				OutExtraModuleNames.Add("OnlineSubsystemFacebook");
 				OutExtraModuleNames.Add("OnlineSubsystemIOS");
+				OutExtraModuleNames.Add("IOSAdvertising");
 			}
 			else if (Target.Platform == UnrealTargetPlatform.Android)
 			{
