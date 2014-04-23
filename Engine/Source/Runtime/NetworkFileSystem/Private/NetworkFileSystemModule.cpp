@@ -6,6 +6,9 @@
 
 #include "NetworkFileSystemPrivatePCH.h"
 
+#include "TargetDeviceId.h"
+#include "ITargetDevice.h"
+#include "ITargetPlatformManagerModule.h"
 #include "ModuleManager.h"
 
 DEFINE_LOG_CATEGORY(LogFileServer);
