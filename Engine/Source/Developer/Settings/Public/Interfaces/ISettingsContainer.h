@@ -75,7 +75,7 @@ public:
 	/**
 	 * Gets the category with the specified name.
 	 *
-	 * @return The category, or NULL if it doesn't exist.
+	 * @return The category, or nullptr if it doesn't exist.
 	 */
 	virtual ISettingsCategoryPtr GetCategory( const FName& CategoryName ) const = 0;
 

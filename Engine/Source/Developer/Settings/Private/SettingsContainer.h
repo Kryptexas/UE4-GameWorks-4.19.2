@@ -38,7 +38,7 @@ public:
 	 * @param SettingsObject - The object that holds the section's settings.
 	 * @param Delegates - The section's optional callback delegates.
 	 *
-	 * @return The added settings section, or NULL if the category does not exist.
+	 * @return The added settings section, or nullptr if the category does not exist.
 	 */
 	ISettingsSectionPtr AddSection( const FName& CategoryName, const FName& SectionName, const FText& InDisplayName, const FText& InDescription, const TWeakObjectPtr<UObject>& SettingsObject, const FSettingsSectionDelegates& Delegates )
 	{
@@ -46,7 +46,7 @@ public:
 
 		if (!Category.IsValid())
 		{
-			return NULL;
+			return nullptr;
 		}
 
 		ISettingsSectionRef Section = Category->AddSection(SectionName, InDisplayName, InDescription, SettingsObject, Delegates);
@@ -67,7 +67,7 @@ public:
 	 * @param CustomWidget - A custom settings widget.
 	 * @param Delegates - The section's optional callback delegates.
 	 *
-	 * @return The added settings section, or NULL if the category does not exist.
+	 * @return The added settings section, or nullptr if the category does not exist.
 	 */
 	ISettingsSectionPtr AddSection( const FName& CategoryName, const FName& SectionName, const FText& InDisplayName, const FText& InDescription, const TSharedRef<SWidget>& CustomWidget, const FSettingsSectionDelegates& Delegates )
 	{
@@ -75,7 +75,7 @@ public:
 
 		if (!Category.IsValid())
 		{
-			return NULL;
+			return nullptr;
 		}
 
 		ISettingsSectionRef Section = Category->AddSection(SectionName, InDisplayName, InDescription, CustomWidget, Delegates);
