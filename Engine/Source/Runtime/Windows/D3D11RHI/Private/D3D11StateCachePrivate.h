@@ -543,7 +543,7 @@ template <EShaderFrequency ShaderFrequency>
 			CurrentBlendState->AddRef();
 		}
 		*SampleMask = CurrentBlendSampleMask;
-		FMemory::Memcmp(BlendFactor, CurrentBlendFactor, sizeof(CurrentBlendFactor));
+		FMemory::Memcpy(BlendFactor, CurrentBlendFactor, sizeof(CurrentBlendFactor));
 #else
 		Direct3DDeviceIMContext->OMGetBlendState(BlendState, BlendFactor, SampleMask);
 #endif
