@@ -450,7 +450,7 @@ UActorComponent* AActor::AddComponent(FName TemplateName, bool bManualAttachment
 
 		// need to defer component registration until after the construction script
 		// is ran, since the construction script can mutate the object (for collision, etc.)
-		if (bRunningUserConstructionScript)
+		if (bRunningUserConstructionScript && (NewSceneComp != NULL))
 		{
 			// Defer registration until after UCS has completed.
 			FDeferRegisterComponents::Get().DeferComponentRegistration(this, NewSceneComp, OriginalMobility);

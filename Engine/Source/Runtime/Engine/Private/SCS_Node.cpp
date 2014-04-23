@@ -68,9 +68,16 @@ void USCS_Node::ExecuteNodeOnActor(AActor* Actor, USceneComponent* ParentCompone
 		// Call function to notify component it has been created
 		NewActorComp->OnComponentCreated();
 
-		// need to defer component registration until after the construction script
-		// is ran, since the construction script can mutate the object (for collision, etc.)
-		FDeferRegisterComponents::Get().DeferComponentRegistration(Actor, NewSceneComp, OriginalMobility);
+		if (NewSceneComp != NULL)
+		{
+			// need to defer component registration until after the construction script
+			// is ran, since the construction script can mutate the object (for collision, etc.)
+			FDeferRegisterComponents::Get().DeferComponentRegistration(Actor, NewSceneComp, OriginalMobility);
+		}
+		else 
+		{
+			NewActorComp->RegisterComponent();
+		}
 
 		if (NewActorComp->GetIsReplicated())
 		{
