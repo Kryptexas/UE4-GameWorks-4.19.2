@@ -191,6 +191,12 @@ public:
 	 */
 	virtual void InvalidateAllViewports() {}
 
+	/** 
+	 * Prepares the renderer to take a screenshot of the UI.  The Rect is portion of the rendered output
+	 * that will be stored into the TArray of FColors.
+	 */
+	virtual void PrepareToTakeScreenshot(const FIntRect& Rect, TArray<FColor>* OutColorData) {}
+
 protected:
 	TSharedPtr<class FSlateFontCache> FontCache;
 	TSharedPtr<class FSlateFontMeasure> FontMeasure;

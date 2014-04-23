@@ -275,6 +275,12 @@ public:
 	 */
 	int32 Width( ) const;
 
+	/**
+	 * Returns true if the rectangle is 0 x 0.
+	 *
+	 * @return true if the rectangle is 0 x 0.
+	 */
+	bool IsEmpty() const;
 
 public:
 
@@ -535,4 +541,9 @@ FORCEINLINE FString FIntRect::ToString( ) const
 FORCEINLINE int32 FIntRect::Width( ) const
 {
 	return Max.X-Min.X;
+}
+
+FORCEINLINE bool FIntRect::IsEmpty() const
+{
+	return Width() == 0 && Height() == 0;
 }

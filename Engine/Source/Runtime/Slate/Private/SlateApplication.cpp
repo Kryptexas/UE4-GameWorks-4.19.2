@@ -3036,9 +3036,49 @@ void FSlateApplication::GotoLineInSource(const FString& FileAndLineNumber) const
 	}
 }
 
-void FSlateApplication::RedrawWindowForScreenshot( TSharedRef<SWindow>& InWindowToDraw )
+void FSlateApplication::ForceRedrawWindow(TSharedRef<SWindow>& InWindowToDraw)
 {
 	PrivateDrawWindows( InWindowToDraw );
+}
+
+bool FSlateApplication::TakeScreenshot(TSharedRef<SWidget>& Widget, TArray<FColor>&OutColorData, FIntVector& OutSize)
+{
+	return TakeScreenshot(Widget, FIntRect(), OutColorData, OutSize);
+}
+
+bool FSlateApplication::TakeScreenshot(TSharedRef<SWidget>& Widget, const FIntRect& InnerWidgetArea, TArray<FColor>& OutColorData, FIntVector& OutSize)
+{
+	// We can't screenshot the widget unless there's a valid window handle to draw it in.
+	TSharedPtr<SWindow> WidgetWindow = FSlateApplication::Get().FindWidgetWindow(Widget);
+	if ( !WidgetWindow.IsValid() )
+	{
+		return false;
+	}
+
+	TSharedRef<SWindow> CurrentWindowRef = WidgetWindow.ToSharedRef();
+
+	FWidgetPath WidgetPath;
+	FSlateApplication::Get().GeneratePathToWidgetChecked(Widget, WidgetPath);
+
+	FArrangedWidget ArrangedWidget = WidgetPath.FindArrangedWidget(Widget);
+	FVector2D Position = ArrangedWidget.Geometry.AbsolutePosition;
+	FVector2D Size = ArrangedWidget.Geometry.GetDrawSize();
+	FVector2D WindowPosition = WidgetWindow->GetPositionInScreen();
+
+	FIntRect ScreenshotRect = InnerWidgetArea.IsEmpty() ? FIntRect(0, 0, (int32)Size.X, (int32)Size.Y) : InnerWidgetArea;
+
+	ScreenshotRect.Min.X += ( Position.X - WindowPosition.X );
+	ScreenshotRect.Min.Y += ( Position.Y - WindowPosition.Y );
+	ScreenshotRect.Max.X += ( Position.X - WindowPosition.X );
+	ScreenshotRect.Max.Y += ( Position.Y - WindowPosition.Y );
+
+	Renderer->PrepareToTakeScreenshot(ScreenshotRect, &OutColorData);
+	PrivateDrawWindows(WidgetWindow);
+
+	OutSize.X = ScreenshotRect.Size().X;
+	OutSize.Y = ScreenshotRect.Size().Y;
+
+	return true;
 }
 
 static TSharedPtr<SWindow> FindWindowByPlatformWindow( const TArray< TSharedRef<SWindow> >& WindowsToSearch, const TSharedRef< FGenericWindow >& PlatformWindow )

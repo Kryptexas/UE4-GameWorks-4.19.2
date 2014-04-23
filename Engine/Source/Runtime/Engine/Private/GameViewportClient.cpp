@@ -583,16 +583,16 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 		EngineShowFlags)
 		.SetRealtimeUpdate(true));
 
-    // Allow HMD to modify the view later, just before rendering
-    if (GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D())
-    {
-        ISceneViewExtension* HmdViewExt = GEngine->HMDDevice->GetViewExtension();
-        if (HmdViewExt)
-        {
-            ViewFamily.ViewExtensions.Add(HmdViewExt);
-            HmdViewExt->ModifyShowFlags(ViewFamily.EngineShowFlags);
-        }
-    }
+	// Allow HMD to modify the view later, just before rendering
+	if (GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D())
+	{
+		ISceneViewExtension* HmdViewExt = GEngine->HMDDevice->GetViewExtension();
+		if (HmdViewExt)
+		{
+			ViewFamily.ViewExtensions.Add(HmdViewExt);
+			HmdViewExt->ModifyShowFlags(ViewFamily.EngineShowFlags);
+		}
+	}
 
 
 	ESplitScreenType::Type SplitScreenConfig = GetCurrentSplitscreenConfiguration();
@@ -681,9 +681,9 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 							// Update the listener.
 							if (AudioDevice != NULL)
 							{
-		 						FVector Location;
- 								FVector ProjFront;
- 								FVector ProjRight;
+								FVector Location;
+								FVector ProjFront;
+								FVector ProjRight;
 								PlayerController->GetAudioListenerPosition(/*out*/ Location, /*out*/ ProjFront, /*out*/ ProjRight);
 
 								FTransform ListenerTransform(FRotationMatrix::MakeFromXY(ProjFront, ProjRight));
@@ -966,7 +966,7 @@ void UGameViewportClient::ProcessScreenShots(FViewport* InViewport)
 		if (!GIsDumpingMovie && (FScreenshotRequest::ShouldShowUI() && WindowPtr.IsValid()))
 		{
 			TSharedRef<SWindow> WindowRef = WindowPtr.ToSharedRef();
-			FSlateApplication::Get().RedrawWindowForScreenshot( WindowRef );
+			FSlateApplication::Get().ForceRedrawWindow(WindowRef);
 		}
 
 		if (GetViewportScreenShot(InViewport, Bitmap))

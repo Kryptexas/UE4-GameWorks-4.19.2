@@ -147,7 +147,8 @@ FSlateRHIRenderer::FSlateRHIRenderer()
 							FPlane(0,	0,	1,  0),
 							FPlane(0,	0,	0,	1));
 
-
+	bTakingAScreenShot = false;
+	OutScreenshotData = NULL;
 }
 
 FSlateRHIRenderer::~FSlateRHIRenderer()
@@ -536,6 +537,15 @@ static void EndDrawingWindows( FSlateDrawBuffer* DrawBuffer, FSlateRHIRenderingP
 }
 
 
+void FSlateRHIRenderer::PrepareToTakeScreenshot(const FIntRect& Rect, TArray<FColor>* OutColorData)
+{
+	check(OutColorData);
+
+	bTakingAScreenShot = true;
+	ScreenshotRect = Rect;
+	OutScreenshotData = OutColorData;
+}
+
 /** 
  * Creates necessary resources to render a window and sends draw commands to the rendering thread
  *
@@ -638,6 +648,23 @@ void FSlateRHIRenderer::DrawWindows_Private( FSlateDrawBuffer& WindowDrawBuffer 
 						Params.Renderer->DrawWindow_RenderThread( *Params.ViewportInfo, *Params.WindowElementList, Params.bLockToVsync );
 						Params.MarkWindowAsDrawn.ExecuteIfBound();
 					});
+
+					if ( bTakingAScreenShot )
+					{
+						ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(SlateCaptureScreenshotCommand,
+							FSlateDrawWindowCommandParams, Params, Params,
+							FIntRect, ScreenshotRect, ScreenshotRect,
+							TArray<FColor>*, OutScreenshotData, OutScreenshotData,
+						{
+							FTexture2DRHIRef BackBuffer = RHIGetViewportBackBuffer(Params.ViewportInfo->ViewportRHI);
+							RHIReadSurfaceData(BackBuffer, ScreenshotRect, *OutScreenshotData, FReadSurfaceDataFlags());
+						});
+
+						FlushRenderingCommands();
+
+						bTakingAScreenShot = false;
+						OutScreenshotData = NULL;
+					}
 				}
 			}
 		}
@@ -797,7 +824,7 @@ void FSlateRHIRenderer::CopyWindowsToDrawBuffer(const TArray<FString>& KeypressB
 		FWriteMouseCursorAndKeyPressesContext, Context, WriteMouseCursorAndKeyPressesContext,
 	{
 		RHISetBlendState(TStaticBlendState<CW_RGBA,BO_Add,BF_SourceAlpha,BF_InverseSourceAlpha,BO_Add,BF_Zero,BF_One>::GetRHI());
-        
+		
 		Context.RenderPolicy->UpdateBuffers(*Context.SlateElementList);
 		if( Context.SlateElementList->GetRenderBatches().Num() > 0 )
 		{

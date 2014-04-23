@@ -713,9 +713,25 @@ public:
 	FPopupSupport& GetPopupSupport() { return PopupSupport; }
 
 	/**
-	 * Redraws a provided window for a screenshot
+	 * Forces the window to redraw immediately.
 	 */
-	void RedrawWindowForScreenshot( TSharedRef<SWindow>& InWindowToDraw );
+	void ForceRedrawWindow( TSharedRef<SWindow>& InWindowToDraw );
+
+	/**
+	 * Takes a screenshot of the widget writing the results into the color buffer provided.  Note that the format is BGRA.
+	 * the size of the resulting image is also output.
+	 * 
+	 * @return true if taking the screenshot was successful.
+	 */
+	bool TakeScreenshot(TSharedRef<SWidget>& Widget, TArray<FColor>&OutColorData, FIntVector& OutSize);
+
+	/**
+	 * Takes a screenshot of the widget writing the results into the color buffer provided, this version allows you to provide 
+	 * an inner area to screenshot.  Note that the format is BGRA.  The size of the resulting image is also output.
+	 *
+	 * @return true if taking the screenshot was successful.
+	 */
+	bool TakeScreenshot(TSharedRef<SWidget>& Widget, const FIntRect& InnerWidgetArea, TArray<FColor>& OutColorData, FIntVector& OutSize);
 
 protected:
 

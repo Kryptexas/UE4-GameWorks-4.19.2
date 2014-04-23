@@ -84,7 +84,7 @@ public:
 		return false;
 	}
 
-	FArrangedWidget FindArrangedWidget( TSharedRef<const SWidget> WidgetToFind ) const;
+	SLATE_API FArrangedWidget FindArrangedWidget( TSharedRef<const SWidget> WidgetToFind ) const;
 	
 	/**
 	 * Get the first (top-most) widget in this path, which is always a window; assumes path is valid
