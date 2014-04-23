@@ -73,3 +73,5 @@ void UWidgetBlueprintGeneratedClass::CreateComponentsForActor(AActor* Actor) con
 		Widget->RegisterComponent();
 	}
 }
+
+#undef LOCTEXT_NAMESPACE

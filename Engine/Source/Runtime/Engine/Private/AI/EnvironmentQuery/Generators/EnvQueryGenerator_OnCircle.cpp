@@ -258,7 +258,7 @@ FText UEnvQueryGenerator_OnCircle::GetDescriptionDetails() const
 		FFormatNamedArguments ProjArgs;
 		ProjArgs.Add(TEXT("Description"), Desc);
 		ProjArgs.Add(TEXT("ProjectionDescription"), ProjDesc);
-		Desc = FText::Format(LOCTEXT("DescriptionWithProjection", "{Description}, {ProjectionDescription}"), ProjArgs);
+		Desc = FText::Format(LOCTEXT("OnCircle_DescriptionWithProjection", "{Description}, {ProjectionDescription}"), ProjArgs);
 	}
 
 	return Desc;

@@ -36,3 +36,5 @@ bool UWidgetBlueprint::ValidateGeneratedClass(const UClass* InClass)
 
 	return Result;
 }
+
+#undef LOCTEXT_NAMESPACE 

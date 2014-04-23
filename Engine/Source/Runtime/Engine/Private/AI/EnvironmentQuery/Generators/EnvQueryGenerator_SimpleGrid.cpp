@@ -101,7 +101,7 @@ FText UEnvQueryGenerator_SimpleGrid::GetDescriptionDetails() const
 		FFormatNamedArguments ProjArgs;
 		ProjArgs.Add(TEXT("Description"), Desc);
 		ProjArgs.Add(TEXT("ProjectionDescription"), ProjDesc);
-		Desc = FText::Format(LOCTEXT("DescriptionWithProjection", "{Description}, {ProjectionDescription}"), ProjArgs);
+		Desc = FText::Format(LOCTEXT("SimpleGridDescriptionWithProjection", "{Description}, {ProjectionDescription}"), ProjArgs);
 	}
 
 	return Desc;
