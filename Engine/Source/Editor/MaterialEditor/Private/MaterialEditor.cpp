@@ -2253,6 +2253,7 @@ void FMaterialEditor::OnMaterialUsageFlagsChanged(UMaterial* MaterialThatChanged
 	{
 		bool bNeedsRecompile = false;
 		Material->SetMaterialUsage(bNeedsRecompile, Flag, MaterialThatChanged->GetUsageByFlag(Flag));
+		MaterialDevelopmentOverheadStats.Update(Material);
 	}
 }
 
