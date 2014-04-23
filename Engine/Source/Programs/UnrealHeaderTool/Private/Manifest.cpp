@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Manifest.h"
 #include "UnrealHeaderTool.h"
+#include "Manifest.h"
 #include "Json.h"
 
 namespace
