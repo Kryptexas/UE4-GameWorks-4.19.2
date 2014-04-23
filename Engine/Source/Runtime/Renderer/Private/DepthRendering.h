@@ -86,7 +86,8 @@ public:
 		const FVertexFactory* InVertexFactory,
 		const FMaterialRenderProxy* InMaterialRenderProxy,
 		const FMaterial& InMaterialResource,
-		bool bIsTwoSided
+		bool bIsTwoSided,
+		bool bIsWireframe
 		);
 
 	// FMeshDrawingPolicy interface.

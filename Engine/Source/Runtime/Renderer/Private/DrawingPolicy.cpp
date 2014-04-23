@@ -21,12 +21,13 @@ FMeshDrawingPolicy::FMeshDrawingPolicy(
 	const FMaterialRenderProxy* InMaterialRenderProxy,
 	const FMaterial& InMaterialResource,
 	bool bInOverrideWithShaderComplexity,
-	bool bInTwoSidedOverride
+	bool bInTwoSidedOverride,
+	bool bInWireframeOverride
 	):
 	VertexFactory(InVertexFactory),
 	MaterialRenderProxy(InMaterialRenderProxy),
 	MaterialResource(&InMaterialResource),
-	bIsWireframeMaterial(InMaterialResource.IsWireframe()),
+	bIsWireframeMaterial(InMaterialResource.IsWireframe() || bInWireframeOverride),
 	//convert from signed bool to unsigned uint32
 	bOverrideWithShaderComplexity(bInOverrideWithShaderComplexity != false)
 {
