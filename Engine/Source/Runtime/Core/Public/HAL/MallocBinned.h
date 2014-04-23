@@ -871,6 +871,9 @@ public:
 		check(MAX_POOLED_ALLOCATION_SIZE - 1 == PoolTable[POOL_COUNT - 1].BlockSize);
 	}
 	
+	virtual ~FMallocBinned()
+	{}
+
 	/**
 	 * Returns if the allocator is guaranteed to be thread-safe and therefore
 	 * doesn't need a unnecessary thread-safety wrapper around it.
