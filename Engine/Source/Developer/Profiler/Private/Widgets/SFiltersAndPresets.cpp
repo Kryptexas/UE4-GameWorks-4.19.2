@@ -80,7 +80,7 @@ public:
 		else
 		{
 			return SNew(SToolTip)
-				.Text( LOCTEXT("NotImplemented","Tooltip for multiple profiler instances has not been implemented yet").ToString() );
+				.Text( LOCTEXT("NotImplemented","Tooltip for multiple profiler instances has not been implemented yet") );
 		}
 	}
 
@@ -94,7 +94,7 @@ protected:
 		[
 			SNew(STextBlock)
 			.TextStyle( FEditorStyle::Get(), TEXT("Profiler.TooltipBold") )
-			.Text( LOCTEXT("NoStatData","There is no data for this stat").ToString() )
+			.Text( LOCTEXT("NoStatData","There is no data for this stat") )
 		];
 		RowPos++;
 	}
@@ -109,7 +109,7 @@ protected:
 		[
 			SNew(STextBlock)
 			.TextStyle( FEditorStyle::Get(), TEXT("Profiler.TooltipBold") )
-			.Text( LOCTEXT("StatInstance","Stat information for profiler instance").ToString() )
+			.Text( LOCTEXT("StatInstance","Stat information for profiler instance") )
 		];
 
 		Grid->AddSlot( 0, RowPos++ )
@@ -135,7 +135,7 @@ protected:
 		[
 			SNew(STextBlock)
 			.TextStyle( FEditorStyle::Get(), TEXT("Profiler.TooltipBold") )
-			.Text( LOCTEXT("GroupDesc","Group:").ToString() )
+			.Text( LOCTEXT("GroupDesc","Group:") )
 		];
 
 		Grid->AddSlot( 1, RowPos )
@@ -144,7 +144,7 @@ protected:
 		[
 			SNew(STextBlock)
 			.TextStyle( FEditorStyle::Get(), TEXT("Profiler.Tooltip") )
-			.Text( ProfilerStat.OwningGroup().Name().GetPlainNameString() )
+			.Text( FText::FromName(ProfilerStat.OwningGroup().Name() ))
 		];
 		RowPos++;
 
@@ -153,7 +153,7 @@ protected:
 		[
 			SNew(STextBlock)
 			.TextStyle( FEditorStyle::Get(), TEXT("Profiler.TooltipBold") )
-			.Text( LOCTEXT("NameDesc","Name:").ToString() )
+			.Text( LOCTEXT("NameDesc","Name:") )
 		];
 
 		Grid->AddSlot( 1, RowPos )
@@ -162,7 +162,7 @@ protected:
 		[
 			SNew(STextBlock)
 			.TextStyle( FEditorStyle::Get(), TEXT("Profiler.Tooltip") )
-			.Text( ProfilerStat.Name().GetPlainNameString() )
+			.Text( FText::FromName(ProfilerStat.Name()) )
 		];
 		RowPos++;
 
@@ -171,7 +171,7 @@ protected:
 		[
 			SNew(STextBlock)
 			.TextStyle( FEditorStyle::Get(), TEXT("Profiler.TooltipBold") )
-			.Text( LOCTEXT("TypeDesc","Type:").ToString() )
+			.Text( LOCTEXT("TypeDesc","Type:") )
 		];
 
 		Grid->AddSlot( 1, RowPos )
@@ -210,7 +210,7 @@ protected:
 		[
 			SNew(STextBlock)
 			.TextStyle( FEditorStyle::Get(), TEXT("Profiler.TooltipBold") )
-			.Text( LOCTEXT("ValueDesc","Value").ToString() )
+			.Text( LOCTEXT("ValueDesc","Value") )
 		];
 		RowPos++;
 
@@ -219,7 +219,7 @@ protected:
 		[
 			SNew(STextBlock)
 			.TextStyle( FEditorStyle::Get(), TEXT("Profiler.Tooltip") )
-			.Text( FString(LOCTEXT("MinDesc","Min: ").ToString()) += Aggregated.GetFormattedValue(FProfilerAggregatedStat::EMinValue) )
+			.Text(FText::Format(LOCTEXT("MinDesc", "Min: {0}"), FText::FromString(Aggregated.GetFormattedValue(FProfilerAggregatedStat::EMinValue))))
 		];
 
 		Grid->AddSlot( 1, RowPos )
@@ -227,7 +227,7 @@ protected:
 		[
 			SNew(STextBlock)
 			.TextStyle( FEditorStyle::Get(), TEXT("Profiler.Tooltip") )
-			.Text( FString(LOCTEXT("AvgDesc","Avg: ").ToString()) += Aggregated.GetFormattedValue(FProfilerAggregatedStat::EAvgValue) )
+			.Text(FText::Format(LOCTEXT("AvgDesc", "Avg: {0}"), FText::FromString(Aggregated.GetFormattedValue(FProfilerAggregatedStat::EAvgValue))))
 		];
 
 		Grid->AddSlot( 2, RowPos )
@@ -235,7 +235,7 @@ protected:
 		[
 			SNew(STextBlock)
 			.TextStyle( FEditorStyle::Get(), TEXT("Profiler.Tooltip") )
-			.Text( FString(LOCTEXT("MaxDesc","Max: ").ToString()) += Aggregated.GetFormattedValue(FProfilerAggregatedStat::EMaxValue) )
+			.Text(FText::Format(LOCTEXT("MaxDesc", "Max: {0}"), FText::FromString(Aggregated.GetFormattedValue(FProfilerAggregatedStat::EMaxValue))))
 		];
 		RowPos++;
 
@@ -255,7 +255,7 @@ protected:
 		[
 			SNew(STextBlock)
 			.TextStyle( FEditorStyle::Get(), TEXT("Profiler.TooltipBold") )
-			.Text( FString(LOCTEXT("CallsFramesPctDesc","Calls Frames with call: ").ToString()) += Aggregated.GetFormattedValue(FProfilerAggregatedStat::EFramesWithCallPct) )
+			.Text(FText::Format(LOCTEXT("CallsFramesPctDesc", "Calls Frames with call: {0}"), FText::FromString(Aggregated.GetFormattedValue(FProfilerAggregatedStat::EFramesWithCallPct))))
 		];
 		RowPos++;
 
@@ -264,7 +264,7 @@ protected:
 		[
 			SNew(STextBlock)
 			.TextStyle( FEditorStyle::Get(), TEXT("Profiler.Tooltip") )
-			.Text( FString(LOCTEXT("MinDesc","Min: ").ToString()) += Aggregated.GetFormattedValue(FProfilerAggregatedStat::EMinNumCalls) )
+			.Text(FText::Format(LOCTEXT("MinDesc", "Min: {0}"), FText::FromString(Aggregated.GetFormattedValue(FProfilerAggregatedStat::EMinNumCalls))))
 		];
 
 		Grid->AddSlot( 1, RowPos )
@@ -272,7 +272,7 @@ protected:
 		[
 			SNew(STextBlock)
 			.TextStyle( FEditorStyle::Get(), TEXT("Profiler.Tooltip") )
-			.Text( FString(LOCTEXT("AvgDesc","Avg: ").ToString()) += Aggregated.GetFormattedValue(FProfilerAggregatedStat::EAvgNumCalls) )
+			.Text(FText::Format(LOCTEXT("AvgDesc", "Avg: {0}"), FText::FromString(Aggregated.GetFormattedValue(FProfilerAggregatedStat::EAvgNumCalls))))
 		];
 
 		Grid->AddSlot( 2, RowPos )
@@ -280,7 +280,7 @@ protected:
 		[
 			SNew(STextBlock)
 			.TextStyle( FEditorStyle::Get(), TEXT("Profiler.Tooltip") )
-			.Text( FString(LOCTEXT("MaxDesc","Max: ").ToString()) += Aggregated.GetFormattedValue(FProfilerAggregatedStat::EMaxNumCalls) )
+			.Text(FText::Format(LOCTEXT("MaxDesc", "Max: {0}"), FText::FromString(Aggregated.GetFormattedValue(FProfilerAggregatedStat::EMaxNumCalls))))
 		];
 		RowPos++;
 
@@ -305,29 +305,29 @@ protected:
 	EStatGroupingOrSortingMode
 -----------------------------------------------------------------------------*/
 
-FString EStatGroupingOrSortingMode::ToName( const Type StatGroupingOrSortingMode )
+FText EStatGroupingOrSortingMode::ToName( const Type StatGroupingOrSortingMode )
 {
 	switch( StatGroupingOrSortingMode )
 	{
-	case GroupName: return LOCTEXT("GroupingOrSorting_Name_GroupName", "Group Name").ToString();
-	case StatName: return LOCTEXT("GroupingOrSorting_Name_StatName", "Stat Name").ToString();
-	case StatType: return LOCTEXT("GroupingOrSorting_Name_StatType", "Stat Type").ToString();
-	case StatValue: return LOCTEXT("GroupingOrSorting_Name_StatValue", "Stat Value").ToString();
+	case GroupName: return LOCTEXT("GroupingOrSorting_Name_GroupName", "Group Name");
+	case StatName: return LOCTEXT("GroupingOrSorting_Name_StatName", "Stat Name");
+	case StatType: return LOCTEXT("GroupingOrSorting_Name_StatType", "Stat Type");
+	case StatValue: return LOCTEXT("GroupingOrSorting_Name_StatValue", "Stat Value");
 
-	default: return LOCTEXT("InvalidOrMax", "InvalidOrMax").ToString();
+	default: return LOCTEXT("InvalidOrMax", "InvalidOrMax");
 	}
 }
 
-FString EStatGroupingOrSortingMode::ToDescription( const Type StatGroupingOrSortingMode )
+FText EStatGroupingOrSortingMode::ToDescription(const Type StatGroupingOrSortingMode)
 {
 	switch( StatGroupingOrSortingMode )
 	{
-	case GroupName: return LOCTEXT("GroupingOrSorting_Desc_GroupName", "Creates groups based on stat metadata groups").ToString();
-	case StatName: return LOCTEXT("GroupingOrSorting_Desc_StatName", "Creates one group for one letter").ToString();
-	case StatType: return LOCTEXT("GroupingOrSorting_Desc_StatType", "Creates one group for each stat type").ToString();
-	case StatValue: return LOCTEXT("GroupingOrSorting_Desc_StatValue", "Creates one group for each logarithmic range ie. 0.001 - 0.01, 0.01 - 0.1, 0.1 - 1.0, 1.0 - 10.0 etc").ToString();
+	case GroupName: return LOCTEXT("GroupingOrSorting_Desc_GroupName", "Creates groups based on stat metadata groups");
+	case StatName: return LOCTEXT("GroupingOrSorting_Desc_StatName", "Creates one group for one letter");
+	case StatType: return LOCTEXT("GroupingOrSorting_Desc_StatType", "Creates one group for each stat type");
+	case StatValue: return LOCTEXT("GroupingOrSorting_Desc_StatValue", "Creates one group for each logarithmic range ie. 0.001 - 0.01, 0.01 - 0.1, 0.1 - 1.0, 1.0 - 10.0 etc");
 
-	default: return LOCTEXT("InvalidOrMax", "InvalidOrMax").ToString();
+	default: return LOCTEXT("InvalidOrMax", "InvalidOrMax");
 	}
 }
 
@@ -1170,12 +1170,12 @@ TSharedRef<SWidget> SFiltersAndPresets::GroupBy_OnGenerateWidget( TSharedPtr<ESt
 		.ToolTipText( EStatGroupingOrSortingMode::ToDescription( *InGroupingMode ) );
 }
 
-FString SFiltersAndPresets::GroupBy_GetSelectedText() const
+FText SFiltersAndPresets::GroupBy_GetSelectedText() const
 {
 	return EStatGroupingOrSortingMode::ToName( GroupingMode );
 }
 
-FString SFiltersAndPresets::GroupBy_GetSelectedTooltipText() const
+FText SFiltersAndPresets::GroupBy_GetSelectedTooltipText() const
 {
 	return EStatGroupingOrSortingMode::ToDescription( GroupingMode );
 }
@@ -1203,7 +1203,7 @@ TSharedRef<SWidget> SFiltersAndPresets::SortBy_OnGenerateWidget( TSharedPtr<ESta
 		.ToolTipText( EStatGroupingOrSortingMode::ToDescription( *InSortingMode ) );
 }
 
-FString SFiltersAndPresets::SortBy_GetSelectedText() const
+FText SFiltersAndPresets::SortBy_GetSelectedText() const
 {
 	return EStatGroupingOrSortingMode::ToName( SortingMode );
 }

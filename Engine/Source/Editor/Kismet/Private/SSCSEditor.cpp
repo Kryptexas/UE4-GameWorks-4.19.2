@@ -1645,8 +1645,8 @@ FText SSCS_RowWidget::GetTooltipText() const
 		}
 		else
 		{
-			return LOCTEXT("DefaultSceneRootToolTip", "This is the default scene root component. It cannot be renamed or deleted. Adding a new scene component will automatically replace it as the new root.");
-		}
+		return LOCTEXT("DefaultSceneRootToolTip", "This is the default scene root component. It cannot be renamed or deleted. Adding a new scene component will automatically replace it as the new root.");
+	}
 	}
 	else
 	{
@@ -1796,25 +1796,25 @@ void SSCSEditor::Construct( const FArguments& InArgs, TSharedPtr<FBlueprintEdito
 		[
 			SNew(SVerticalBox)
 
-			+ SVerticalBox::Slot()
+			+SVerticalBox::Slot()
 			.AutoHeight()
 			[
 				SAssignNew(ComponentClassCombo, SComponentClassCombo)
 				.OnComponentClassSelected(this, &SSCSEditor::PerformComboAddClass)
 			]
 
-			+ SVerticalBox::Slot()
+			+SVerticalBox::Slot()
 			.AutoHeight()
 			[
 				SNew(SSpacer)
 				.Size(FVector2D(0.0f,2.0f))
 			]
 
-			+ SVerticalBox::Slot()
+			+SVerticalBox::Slot()
 			.FillHeight(.8f)
 			[
 				SAssignNew(SCSTreeWidget, SSCSTreeType)
-				.ToolTipText(LOCTEXT("DropAssetToAddComponent", "Drop asset here to add component.").ToString())
+				.ToolTipText(LOCTEXT("DropAssetToAddComponent", "Drop asset here to add component."))
 				.SCSEditor( this )
 				.TreeItemsSource( &RootNodes )
 				.SelectionMode(ESelectionMode::Multi)
@@ -1828,13 +1828,13 @@ void SSCSEditor::Construct( const FArguments& InArgs, TSharedPtr<FBlueprintEdito
 				(
 					SNew(SHeaderRow)
 
-					+ SHeaderRow::Column(SCS_ColumnName_Mobility)
-						.DefaultLabel(LOCTEXT("MobilityColumnLabel", "Mobility").ToString())
+					+SHeaderRow::Column(SCS_ColumnName_Mobility)
+						.DefaultLabel(LOCTEXT("MobilityColumnLabel", "Mobility"))
 						.FixedWidth(16.0f) // mobility icons are 16px (16 slate-units = 16px, when application scale == 1)
 						.HeaderContent()
 						[
 							SNew(SHorizontalBox)
-								.ToolTip(SNew(SToolTip).Text(LOCTEXT("MobilityColumnTooltip", "Mobility").ToString()))
+								.ToolTip(SNew(SToolTip).Text(LOCTEXT("MobilityColumnTooltip", "Mobility")))
 							+SHorizontalBox::Slot()
 								.FillWidth(1.0f)
 								.VAlign(VAlign_Center)
@@ -1843,13 +1843,13 @@ void SSCSEditor::Construct( const FArguments& InArgs, TSharedPtr<FBlueprintEdito
 									SNew(SImage).Image(MobilityHeaderBrush)
 								]
 						]
-					
+				
 					+ SHeaderRow::Column(SCS_ColumnName_ComponentClass)
-					.DefaultLabel( LOCTEXT("Class", "Class").ToString() )
+					.DefaultLabel( LOCTEXT("Class", "Class") )
 					.FillWidth(4)
 					
 					+ SHeaderRow::Column(SCS_ColumnName_Asset)
-					.DefaultLabel( LOCTEXT("Asset", "Asset").ToString() )
+					.DefaultLabel( LOCTEXT("Asset", "Asset") )
 					.FillWidth(3)
 				)
 			]

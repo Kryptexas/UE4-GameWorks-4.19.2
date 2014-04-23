@@ -48,7 +48,7 @@ private:
 	 * Get the list count as text.
 	 * @return The number of friends
 	 */
-	FString GetListCountText() const;
+	FText GetListCountText() const;
 
 	/**
 	 * Handles the search for friend button clicked.

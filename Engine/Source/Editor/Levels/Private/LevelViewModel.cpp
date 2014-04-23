@@ -508,11 +508,11 @@ void FLevelViewModel::ChangeColor(const TSharedRef<SWidget>& InPickerParentWidge
 }
 
 //@todo: add actor drag+drop support
-bool FLevelViewModel::CanAssignActors( const TArray< TWeakObjectPtr<AActor> > Actors, FString& OutMessage ) const
+bool FLevelViewModel::CanAssignActors( const TArray< TWeakObjectPtr<AActor> > Actors, FText& OutMessage ) const
 {
 	return false;
 }
-bool FLevelViewModel::CanAssignActor( const TWeakObjectPtr<AActor> Actor, FString& OutMessage ) const
+bool FLevelViewModel::CanAssignActor(const TWeakObjectPtr<AActor> Actor, FText& OutMessage) const
 {
 	return true;
 }

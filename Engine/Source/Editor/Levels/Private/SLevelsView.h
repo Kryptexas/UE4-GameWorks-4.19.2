@@ -68,7 +68,7 @@ public:
 				.HeaderContent()
 				[
 					SNew(STextBlock)
-						.ToolTipText( NSLOCTEXT("LevelsView", "Lock", "Lock").ToString() )
+						.ToolTipText( NSLOCTEXT("LevelsView", "Lock", "Lock") )
 				]
 
 			/** Level color column */
@@ -77,7 +77,7 @@ public:
 				.HeaderContent()
 				[
 					SNew(STextBlock)
-						.ToolTipText( NSLOCTEXT("LevelsView", "Color", "Color").ToString() )
+						.ToolTipText( NSLOCTEXT("LevelsView", "Color", "Color") )
 				]
 
 			/** Level visibility column */
@@ -86,7 +86,7 @@ public:
 				.HeaderContent()
 				[
 					SNew(STextBlock)
-						.ToolTipText( NSLOCTEXT("LevelsView", "Visibility", "Visibility").ToString() )
+						.ToolTipText( NSLOCTEXT("LevelsView", "Visibility", "Visibility") )
 				]
 
 			/** Level kismet column */
@@ -95,12 +95,12 @@ public:
 				.HeaderContent()
 				[
 					SNew(STextBlock)
-						.ToolTipText( NSLOCTEXT("LevelsView", "Kismet", "Open the level blueprint for this Level").ToString() )
+						.ToolTipText( NSLOCTEXT("LevelsView", "Kismet", "Open the level blueprint for this Level") )
 				]
 
 			/** LevelName label column */
 			+ SHeaderRow::Column( LevelsView::ColumnID_LevelLabel )
-				.DefaultLabel( LOCTEXT("Column_LevelNameLabel", "Level").ToString() )
+				.DefaultLabel( LOCTEXT("Column_LevelNameLabel", "Level") )
 				.FillWidth( 0.45f )
 
 			/** Level SCC status column */
@@ -109,7 +109,7 @@ public:
 				.HeaderContent()
 				[
 					SNew(STextBlock)
-						.ToolTipText( NSLOCTEXT("LevelsView", "SCCStatus", "Status in Source Control").ToString() )
+						.ToolTipText( NSLOCTEXT("LevelsView", "SCCStatus", "Status in Source Control") )
 				]
 
 			/** Level save column */
@@ -118,7 +118,7 @@ public:
 				.HeaderContent()
 				[
 					SNew(STextBlock)
-						.ToolTipText( NSLOCTEXT("LevelsView", "Save", "Save this Level").ToString() )
+						.ToolTipText( NSLOCTEXT("LevelsView", "Save", "Save this Level") )
 				];
 
 		ChildSlot
@@ -360,8 +360,8 @@ private:
 					.VAlign(VAlign_Center)
 					[
 						SNew(STextBlock)
-						.Text( LOCTEXT("Column_ActorCountLabel", "Actors").ToString() )
-						.ToolTipText( LOCTEXT("Column_ActorCountLabel", "Actors").ToString() )
+						.Text( LOCTEXT("Column_ActorCountLabel", "Actors") )
+						.ToolTipText( LOCTEXT("Column_ActorCountLabel", "Actors") )
 					]
 				], InsertColumnIndex);
 			++InsertColumnIndex;
@@ -389,8 +389,8 @@ private:
 					.VAlign(VAlign_Center)
 					[
 						SNew(STextBlock)
-						.Text( LOCTEXT("Column_LightmassSizeLabel", "Lightmass Size (MB)").ToString() )
-						.ToolTipText( LOCTEXT("Column_LightmassSizeLabel", "Lightmass Size (MB)").ToString() )
+						.Text( LOCTEXT("Column_LightmassSizeLabel", "Lightmass Size (MB)") )
+						.ToolTipText( LOCTEXT("Column_LightmassSizeLabel", "Lightmass Size (MB)") )
 					]
 				], InsertColumnIndex);
 			++InsertColumnIndex;
@@ -418,8 +418,8 @@ private:
 					.VAlign(VAlign_Center)
 					[
 						SNew(STextBlock)
-						.Text( LOCTEXT("Column_FileSizeLabel", "File Size (MB)").ToString() )
-						.ToolTipText( LOCTEXT("Column_FileSizeLabel", "File Size (MB)").ToString() )
+						.Text( LOCTEXT("Column_FileSizeLabel", "File Size (MB)") )
+						.ToolTipText( LOCTEXT("Column_FileSizeLabel", "File Size (MB)") )
 					]
 				], InsertColumnIndex);
 			++InsertColumnIndex;
@@ -447,7 +447,7 @@ private:
 					.VAlign(VAlign_Center)
 					[
 						SNew(STextBlock)
-						.Text( LOCTEXT("Column_EditorOffsetLabel", "Editor Offset").ToString() )
+						.Text( LOCTEXT("Column_EditorOffsetLabel", "Editor Offset") )
 					]
 				], InsertColumnIndex);
 			++InsertColumnIndex;

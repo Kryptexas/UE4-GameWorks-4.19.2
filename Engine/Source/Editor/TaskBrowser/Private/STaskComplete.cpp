@@ -61,7 +61,7 @@ void STaskComplete::Construct(const FArguments& InArgs)
 					.Padding( SmallPadding )
 					.FillWidth( 0.18f )
 					[
-						SNew(STextBlock) .Text( LOCTEXT("Resolution", "Resolution").ToString() )
+						SNew(STextBlock) .Text( LOCTEXT("Resolution", "Resolution") )
 					]
 					+SHorizontalBox::Slot()
 					.FillWidth( 0.33f )
@@ -83,7 +83,7 @@ void STaskComplete::Construct(const FArguments& InArgs)
 					.Padding( SmallPadding )
 					.FillWidth( 0.18f )
 					[
-						SNew(STextBlock) .Text( LOCTEXT("Comments", "Comments").ToString() )
+						SNew(STextBlock) .Text( LOCTEXT("Comments", "Comments") )
 					]
 					+SHorizontalBox::Slot()
 					.FillWidth( 0.82f )
@@ -102,7 +102,7 @@ void STaskComplete::Construct(const FArguments& InArgs)
 					.Padding( SmallPadding )
 					.FillWidth( 0.184f )
 					[
-						SNew(STextBlock) .Text( LOCTEXT("Changelist", "Changelist").ToString() )
+						SNew(STextBlock) .Text( LOCTEXT("Changelist", "Changelist") )
 					]
 					+SHorizontalBox::Slot()
 					.FillWidth( 0.17f )
@@ -115,7 +115,7 @@ void STaskComplete::Construct(const FArguments& InArgs)
 					.Padding( SmallPadding )
 					.FillWidth( 0.408f )
 					[
-						SNew(STextBlock) .Text( LOCTEXT("TimeToComplete", "Time to complete (hours)").ToString() )
+						SNew(STextBlock) .Text( LOCTEXT("TimeToComplete", "Time to complete (hours)") )
 					]
 					+SHorizontalBox::Slot()
 					.FillWidth( 0.08f )
@@ -141,7 +141,7 @@ void STaskComplete::Construct(const FArguments& InArgs)
 						.HAlign(HAlign_Center)
 						.OnClicked( this, &STaskComplete::OnOKClicked )
 						[
-							SNew(STextBlock) .Text( LOCTEXT("OK", "OK").ToString() )
+							SNew(STextBlock) .Text( LOCTEXT("OK", "OK") )
 						]
 					]
 					+SUniformGridPanel::Slot(1,0)
@@ -151,7 +151,7 @@ void STaskComplete::Construct(const FArguments& InArgs)
 						.HAlign(HAlign_Center)
 						.OnClicked( this, &STaskComplete::OnCancelClicked )
 						[
-							SNew(STextBlock) .Text( LOCTEXT("Cancel", "Cancel").ToString() )
+							SNew(STextBlock) .Text( LOCTEXT("Cancel", "Cancel") )
 						]
 					]
 				]

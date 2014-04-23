@@ -199,7 +199,7 @@ public:
 			+SUniformGridPanel::Slot(0,0)
 			[
 				SNew(SButton)
-				.Text(LOCTEXT("Accept", "Accept").ToString())
+				.Text(LOCTEXT("Accept", "Accept"))
 				.HAlign(HAlign_Center)
 				.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
 				.OnClicked_Raw( this, &SSkeletonSelectorWindow::OnAccept )
@@ -207,7 +207,7 @@ public:
 			+SUniformGridPanel::Slot(1,0)
 			[
 				SNew(SButton)
-				.Text(LOCTEXT("Cancel", "Cancel").ToString())
+				.Text(LOCTEXT("Cancel", "Cancel"))
 				.HAlign(HAlign_Center)
 				.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
 				.OnClicked_Raw( this, &SSkeletonSelectorWindow::OnCancel )

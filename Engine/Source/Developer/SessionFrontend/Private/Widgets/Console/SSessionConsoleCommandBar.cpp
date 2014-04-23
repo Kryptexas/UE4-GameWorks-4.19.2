@@ -43,10 +43,10 @@ void SSessionConsoleCommandBar::Construct( const FArguments& InArgs )
 					.ContentPadding(FMargin(6.0f, 2.0f))
 					.IsEnabled(false)
 					.OnClicked(this, &SSessionConsoleCommandBar::HandleSendButtonClicked)
-					.ToolTipText(LOCTEXT("SendButtonTooltip", "Send the command").ToString())
+					.ToolTipText(LOCTEXT("SendButtonTooltip", "Send the command"))
 					[
 						SNew(STextBlock)
-							.Text(LOCTEXT("SendButtonLabel", "Send Command").ToString())
+							.Text(LOCTEXT("SendButtonLabel", "Send Command"))
 					]
 			]
 
@@ -59,10 +59,10 @@ void SSessionConsoleCommandBar::Construct( const FArguments& InArgs )
 					.ContentPadding(FMargin(6.0f, 2.0f))
 					.IsEnabled(false)
 					.OnClicked(this, &SSessionConsoleCommandBar::HandlePromoteToShortcutButtonClicked)
-					.ToolTipText(LOCTEXT("PromoteConsoleCommandButtonTooltip", "Promote Command to Shortcut").ToString())
+					.ToolTipText(LOCTEXT("PromoteConsoleCommandButtonTooltip", "Promote Command to Shortcut"))
 					[
 						SNew(STextBlock)
-							.Text(LOCTEXT("PromoteConsoleCommandButtonLabel", "Promote to Shortcut").ToString())
+							.Text(LOCTEXT("PromoteConsoleCommandButtonLabel", "Promote to Shortcut"))
 					]
 			]
 	];

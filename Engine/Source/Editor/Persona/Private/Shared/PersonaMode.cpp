@@ -279,7 +279,7 @@ TSharedRef<SWidget> FAnimBlueprintDefaultsEditorSummoner::CreateTabBody(const FW
 						[
 							SNew( STextBlock )
 							.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 9 ) )
-							.Text( LOCTEXT("AnimBlueprintDefaultsPreviewMode", "Edit Preview").ToString() )
+							.Text( LOCTEXT("AnimBlueprintDefaultsPreviewMode", "Edit Preview") )
 						]
 					]
 				]
@@ -301,7 +301,7 @@ TSharedRef<SWidget> FAnimBlueprintDefaultsEditorSummoner::CreateTabBody(const FW
 						[
 							SNew( STextBlock )
 							.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 9 ) )
-							.Text( LOCTEXT("AnimBlueprintDefaultsDefaultsMode", "Edit Defaults").ToString() )
+							.Text( LOCTEXT("AnimBlueprintDefaultsDefaultsMode", "Edit Defaults") )
 						]
 					]
 				]

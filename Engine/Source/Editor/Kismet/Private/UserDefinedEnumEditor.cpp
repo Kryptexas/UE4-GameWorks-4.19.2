@@ -155,7 +155,7 @@ void FEnumDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 				.HAlign(HAlign_Right)
 				[
 					SNew(SButton)
-					.Text(LOCTEXT("FunctionNewInputArg", "New").ToString())
+					.Text(LOCTEXT("FunctionNewInputArg", "New"))
 					.OnClicked(this, &FEnumDetails::OnAddNewEnumerator)
 				]
 			];
@@ -346,15 +346,15 @@ bool FUserDefinedEnumIndexLayout::IsValidEnumeratorDisplayName(const FText& NewT
 
 	const FString NewName = NewText.ToString();
 	bool bUnchangedName = (NewName == FEnumEditorUtils::GetEnumeratorDisplayName(TargetEnum.Get(), EnumeratorIndex));
-	FString ErrorMsg;
+	FText ErrorMsg;
 	if (NewText.IsEmpty())
 	{
-		ErrorMsg = LOCTEXT("NameMissingError", "You must provide a name.").ToString();
+		ErrorMsg = LOCTEXT("NameMissingError", "You must provide a name.");
 		bValidName = false;
 	}
 	else if (!bUnchangedName && !FEnumEditorUtils::IsEnumeratorDisplayNameValid(TargetEnum.Get(), NewName))
 	{
-		ErrorMsg = FText::Format(LOCTEXT("NameInUseError", "'{0}' is already in use."), FText::FromString( NewName)).ToString();
+		ErrorMsg = FText::Format(LOCTEXT("NameInUseError", "'{0}' is already in use."), NewText);
 		bValidName = false;
 	}
 

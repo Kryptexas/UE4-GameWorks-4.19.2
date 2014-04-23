@@ -73,7 +73,7 @@ void SCurveAssetWidget::Construct(const FArguments& InArgs)
 								.Padding(4)
 								[
 									SNew(STextBlock)
-									.Text( LOCTEXT( "AssetPath", "Path:" ).ToString() )
+									.Text( LOCTEXT( "AssetPath", "Path:" ) )
 								]
 
 							//Editable text
@@ -100,7 +100,7 @@ void SCurveAssetWidget::Construct(const FArguments& InArgs)
 							[
 								SNew(SButton)
 								.HAlign(HAlign_Center)
-								.Text( LOCTEXT( "CreateAssetButton", "Create External Curve" ).ToString() )
+								.Text( LOCTEXT( "CreateAssetButton", "Create External Curve" ) )
 								.OnClicked(this, &SCurveAssetWidget::OnCreateButtonClicked)
 							]
 						]
@@ -248,7 +248,7 @@ void STimelineEdTrack::Construct(const FArguments& InArgs, TSharedPtr<FTimelineE
 							.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
 							.OnClicked(this, &STimelineEdTrack::OnClickUse)
 							.ContentPadding(1.f)
-							.ToolTipText(NSLOCTEXT("TimelineEdTrack", "TimelineEdTrack_Use", "Use External Curve").ToString())
+							.ToolTipText(NSLOCTEXT("TimelineEdTrack", "TimelineEdTrack_Use", "Use External Curve"))
 							[
 								SNew(SImage)
 								.Image( FEditorStyle::GetBrush(TEXT("PropertyWindow.Button_Use")) )
@@ -264,7 +264,7 @@ void STimelineEdTrack::Construct(const FArguments& InArgs, TSharedPtr<FTimelineE
 							.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
 							.OnClicked(this, &STimelineEdTrack::OnClickBrowse)
 							.ContentPadding(0)
-							.ToolTipText(NSLOCTEXT("TimelineEdTrack", "TimelineEdTrack_Browse", "Browse External Curve").ToString())
+							.ToolTipText(NSLOCTEXT("TimelineEdTrack", "TimelineEdTrack_Browse", "Browse External Curve"))
 							[
 								SNew(SImage)
 								.Image( FEditorStyle::GetBrush(TEXT("PropertyWindow.Button_Browse")) )
@@ -280,7 +280,7 @@ void STimelineEdTrack::Construct(const FArguments& InArgs, TSharedPtr<FTimelineE
 							.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
 							.OnClicked(this, &STimelineEdTrack::OnClickClear)
 							.ContentPadding(1.f)
-							.ToolTipText(NSLOCTEXT("TimelineEdTrack", "TimelineEdTrack_Clear", "Convert to Internal Curve").ToString())
+							.ToolTipText(NSLOCTEXT("TimelineEdTrack", "TimelineEdTrack_Clear", "Convert to Internal Curve"))
 							[
 								SNew(SImage)
 								.Image( FEditorStyle::GetBrush(TEXT("PropertyWindow.Button_Clear")) )
@@ -845,7 +845,7 @@ void STimelineEditor::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintE
 					SNew(SImage)
 					.Image(FEditorStyle::GetBrush("TimelineEditor.AddFloatTrack"))
 				]
-				.ToolTipText( LOCTEXT( "AddFloatTrack", "Add Float Track" ).ToString() )
+				.ToolTipText( LOCTEXT( "AddFloatTrack", "Add Float Track" ) )
 				.OnClicked( this, &STimelineEditor::CreateNewTrack, FTimelineEdTrack::TT_FloatInterp )
 			]
 			+SHorizontalBox::Slot()
@@ -859,7 +859,7 @@ void STimelineEditor::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintE
 					SNew(SImage)
 					.Image(FEditorStyle::GetBrush("TimelineEditor.AddVectorTrack"))
 				]
-				.ToolTipText( LOCTEXT( "AddVectorTrack", "Add Vector Track" ).ToString() )
+				.ToolTipText( LOCTEXT( "AddVectorTrack", "Add Vector Track" ) )
 				.OnClicked( this, &STimelineEditor::CreateNewTrack, FTimelineEdTrack::TT_VectorInterp )
 			]
 			+SHorizontalBox::Slot()
@@ -873,7 +873,7 @@ void STimelineEditor::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintE
 					SNew(SImage)
 					.Image(FEditorStyle::GetBrush("TimelineEditor.AddEventTrack"))
 				]
-				.ToolTipText( LOCTEXT( "AddEventTrack", "Add Event Track" ).ToString() )
+				.ToolTipText( LOCTEXT( "AddEventTrack", "Add Event Track" ) )
 				.OnClicked( this, &STimelineEditor::CreateNewTrack, FTimelineEdTrack::TT_Event )
 			]
 			+SHorizontalBox::Slot()
@@ -887,7 +887,7 @@ void STimelineEditor::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintE
 					SNew(SImage)
 					.Image(FEditorStyle::GetBrush("TimelineEditor.AddColorTrack"))
 				]
-				.ToolTipText( LOCTEXT( "AddColorTrack", "Add Color Track" ).ToString() )
+				.ToolTipText( LOCTEXT( "AddColorTrack", "Add Color Track" ) )
 				.OnClicked( this, &STimelineEditor::CreateNewTrack, FTimelineEdTrack::TT_LinearColorInterp )
 			]
 			+SHorizontalBox::Slot()
@@ -901,7 +901,7 @@ void STimelineEditor::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintE
 					SNew(SImage)
 					.Image(FEditorStyle::GetBrush("TimelineEditor.AddCurveAssetTrack"))
 				]
-				.ToolTipText( LOCTEXT( "AddExternalAsset", "Add Selected Curve Asset" ).ToString() )
+				.ToolTipText( LOCTEXT( "AddExternalAsset", "Add Selected Curve Asset" ) )
 				.IsEnabled( this, &STimelineEditor::IsCurveAssetSelected )
 				.OnClicked( this, &STimelineEditor::CreateNewTrackFromAsset )
 			]
@@ -912,7 +912,7 @@ void STimelineEditor::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintE
 			[
 				// Length label
 				SNew(STextBlock)
-				.Text( LOCTEXT( "Length", "Length" ).ToString() )
+				.Text( LOCTEXT( "Length", "Length" ) )
 			]
 			+SHorizontalBox::Slot()
 			.AutoWidth()
@@ -934,7 +934,7 @@ void STimelineEditor::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintE
 				.IsChecked( this, &STimelineEditor::IsUseLastKeyframeChecked )
 				.OnCheckStateChanged( this, &STimelineEditor::OnUseLastKeyframeChanged )
 				[
-					SNew(STextBlock) .Text( LOCTEXT( "UseLastKeyframe", "Use Last Keyframe?" ).ToString() )
+					SNew(STextBlock) .Text( LOCTEXT( "UseLastKeyframe", "Use Last Keyframe?" ) )
 				]
 			]
 			+SHorizontalBox::Slot()
@@ -946,7 +946,7 @@ void STimelineEditor::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintE
 				.IsChecked( this, &STimelineEditor::IsAutoPlayChecked )
 				.OnCheckStateChanged( this, &STimelineEditor::OnAutoPlayChanged )
 				[
-					SNew(STextBlock) .Text( LOCTEXT( "AutoPlay", "AutoPlay" ).ToString() )
+					SNew(STextBlock) .Text( LOCTEXT( "AutoPlay", "AutoPlay" ) )
 				]
 			]
 			+SHorizontalBox::Slot()
@@ -958,7 +958,7 @@ void STimelineEditor::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintE
 				.IsChecked( this, &STimelineEditor::IsLoopChecked )
 				.OnCheckStateChanged( this, &STimelineEditor::OnLoopChanged )
 				[
-					SNew(STextBlock) .Text( LOCTEXT( "Loop", "Loop" ).ToString() )
+					SNew(STextBlock) .Text( LOCTEXT( "Loop", "Loop" ) )
 				]
 			]
 			+SHorizontalBox::Slot()
@@ -970,7 +970,7 @@ void STimelineEditor::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintE
 				.IsChecked( this, &STimelineEditor::IsReplicatedChecked )
 				.OnCheckStateChanged( this, &STimelineEditor::OnReplicatedChanged )
 				[
-					SNew(STextBlock) .Text( LOCTEXT( "Replicated", "Replicated" ).ToString() )
+					SNew(STextBlock) .Text( LOCTEXT( "Replicated", "Replicated" ) )
 				]
 			]
 		]
@@ -996,15 +996,15 @@ void STimelineEditor::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintE
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-FString STimelineEditor::GetTimelineName() const
+FText STimelineEditor::GetTimelineName() const
 {
 	if(TimelineObj != NULL)
 	{
-		return UTimelineTemplate::TimelineTemplateNameToVariableName(TimelineObj->GetFName());
+		return FText::FromString(UTimelineTemplate::TimelineTemplateNameToVariableName(TimelineObj->GetFName()));
 	}
 	else
 	{
-		return LOCTEXT( "NoTimeline", "No Timeline" ).ToString();
+		return LOCTEXT( "NoTimeline", "No Timeline" );
 	}
 }
 

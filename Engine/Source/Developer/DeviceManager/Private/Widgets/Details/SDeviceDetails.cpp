@@ -87,7 +87,7 @@ void SDeviceDetails::Construct( const FArguments& InArgs, const FDeviceManagerMo
 					.Visibility(this, &SDeviceDetails::HandleSelectDeviceOverlayVisibility)
 					[
 						SNew(STextBlock)
-							.Text(LOCTEXT("SelectSessionOverlayText", "Please select a device from the Device Browser").ToString())
+							.Text(LOCTEXT("SelectSessionOverlayText", "Please select a device from the Device Browser"))
 					]
 			]
 	];

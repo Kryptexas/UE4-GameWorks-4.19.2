@@ -161,25 +161,25 @@ void SCAQueryDetails::Construct(const FArguments& InArgs, TSharedPtr<SCollisionA
 					.Padding(2)
 					[
 						SNew(STextBlock)
-						.Text(LOCTEXT("QueryStart", "Start:").ToString())
+						.Text(LOCTEXT("QueryStart", "Start:"))
 					]
 					+SGridPanel::Slot(1,0)
 					.Padding(2)
 					[
 						SNew(STextBlock)
-						.Text(this, &SCAQueryDetails::GetStartString)
+						.Text(this, &SCAQueryDetails::GetStartText)
 					]
 					+SGridPanel::Slot(0,1)
 					.Padding(2)
 					[
 						SNew(STextBlock)
-						.Text(LOCTEXT("QueryEnd", "End:").ToString())
+						.Text(LOCTEXT("QueryEnd", "End:"))
 					]
 					+SGridPanel::Slot(1,1)
 					.Padding(2)
 					[
 						SNew(STextBlock)
-						.Text(this, &SCAQueryDetails::GetEndString)
+						.Text(this, &SCAQueryDetails::GetEndText)
 					]
 				]
 				// Right has controls
@@ -193,7 +193,7 @@ void SCAQueryDetails::Construct(const FArguments& InArgs, TSharedPtr<SCollisionA
 					.Content()
 					[
 						SNew(STextBlock)
-						.Text(LOCTEXT("ShowMisses", "Show Misses").ToString())
+						.Text(LOCTEXT("ShowMisses", "Show Misses"))
 					]
 				]
 			]
@@ -214,10 +214,10 @@ void SCAQueryDetails::Construct(const FArguments& InArgs, TSharedPtr<SCollisionA
 				.OnGenerateRow(this, &SCAQueryDetails::ResultListGenerateRow)
 				.HeaderRow(
 					SNew(SHeaderRow)
-					+SHeaderRow::Column("Time").DefaultLabel(LOCTEXT("ResultListTimeHeader", "Time").ToString()).FillWidth(0.7)
-					+SHeaderRow::Column("Type").DefaultLabel(LOCTEXT("ResultListTypeHeader", "Type").ToString()).FillWidth(0.7)
-					+SHeaderRow::Column("Component").DefaultLabel(LOCTEXT("ResultListComponentHeader", "Component").ToString()).FillWidth(3)
-					+SHeaderRow::Column("Normal").DefaultLabel(LOCTEXT("ResultListNormalHeader", "Normal").ToString()).FillWidth(1.8)
+					+SHeaderRow::Column("Time").DefaultLabel(LOCTEXT("ResultListTimeHeader", "Time")).FillWidth(0.7)
+					+SHeaderRow::Column("Type").DefaultLabel(LOCTEXT("ResultListTypeHeader", "Type")).FillWidth(0.7)
+					+SHeaderRow::Column("Component").DefaultLabel(LOCTEXT("ResultListComponentHeader", "Component")).FillWidth(3)
+					+SHeaderRow::Column("Normal").DefaultLabel(LOCTEXT("ResultListNormalHeader", "Normal")).FillWidth(1.8)
 				)
 			]
 		]
@@ -225,14 +225,14 @@ void SCAQueryDetails::Construct(const FArguments& InArgs, TSharedPtr<SCollisionA
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-FString SCAQueryDetails::GetStartString() const
+FText SCAQueryDetails::GetStartText() const
 {
-	return bDisplayQuery ? CurrentQuery.Start.ToString() : TEXT("");
+	return bDisplayQuery ? CurrentQuery.Start.ToText() : FText::GetEmpty();
 }
 
-FString SCAQueryDetails::GetEndString() const
+FText SCAQueryDetails::GetEndText() const
 {
-	return bDisplayQuery ? CurrentQuery.End.ToString() : TEXT("");
+	return bDisplayQuery ? CurrentQuery.End.ToText() : FText::GetEmpty();
 }
 
 TSharedRef<ITableRow> SCAQueryDetails::ResultListGenerateRow(TSharedPtr<FCAHitInfo> Info, const TSharedRef<STableViewBase>& OwnerTable)

@@ -404,7 +404,7 @@ protected:
 		}
 
 		bool bCanAssign = false;
-		FString Message;
+		FText Message;
 		if( DragActorOp->Actors.Num() > 1 )
 		{
 			bCanAssign = ViewModel->CanAssignActors( DragActorOp->Actors, OUT Message );
@@ -416,11 +416,11 @@ protected:
 
 		if ( bCanAssign )
 		{
-			DragActorOp->SetToolTip( FActorDragDropGraphEdOp::ToolTip_CompatibleGeneric, FText::FromString(Message) );
+			DragActorOp->SetToolTip( FActorDragDropGraphEdOp::ToolTip_CompatibleGeneric, Message );
 		}
 		else
 		{
-			DragActorOp->SetToolTip( FActorDragDropGraphEdOp::ToolTip_IncompatibleGeneric, FText::FromString(Message) );
+			DragActorOp->SetToolTip( FActorDragDropGraphEdOp::ToolTip_IncompatibleGeneric, Message );
 		}
 
 		return FReply::Handled();
@@ -513,7 +513,7 @@ private:
 		{
 			TSharedPtr<FActorDragDropGraphEdOp> DragDropActorOp = StaticCastSharedPtr<FActorDragDropGraphEdOp>(DragDropOp);
 
-			FString Message;
+			FText Message;
 			bCanAcceptDrop = ViewModel->CanAssignActors( DragDropActorOp->Actors, OUT Message );
 		}
 

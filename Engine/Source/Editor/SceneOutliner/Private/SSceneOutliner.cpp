@@ -288,7 +288,7 @@ namespace SceneOutliner
 			[
 				SNew( STextBlock )
 				.Visibility( this, &SSceneOutliner::GetEmptyLabelVisibility )
-				.Text( LOCTEXT( "EmptyLabel", "Empty" ).ToString() )
+				.Text( LOCTEXT( "EmptyLabel", "Empty" ) )
 				.ColorAndOpacity( FLinearColor( 0.4f, 1.0f, 0.4f ) )
 			]
 
@@ -378,7 +378,7 @@ namespace SceneOutliner
 						.Padding(2, 0, 0, 0)
 						.VAlign(VAlign_Center)
 						[
-							SNew(STextBlock).Text( LOCTEXT("ViewButton", "View Options").ToString() )
+							SNew(STextBlock).Text( LOCTEXT("ViewButton", "View Options") )
 						]
 					]
 				]

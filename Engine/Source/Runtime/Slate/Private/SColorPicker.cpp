@@ -416,15 +416,15 @@ public:
 						[
 							SNew(SImage)
 								.Image(FCoreStyle::Get().GetBrush("ColorPicker.EyeDropper"))
-								.ToolTipText(LOCTEXT("EyeDropperButton_ToolTip", "Activates the eye-dropper for selecting a colored pixel from any window.").ToString())
+								.ToolTipText(LOCTEXT("EyeDropperButton_ToolTip", "Activates the eye-dropper for selecting a colored pixel from any window."))
 								.ColorAndOpacity(this, &SEyeDropperButton::GetDropperImageColor)				
 						]
 
 					+ SOverlay::Slot()
 						[
 							SNew(STextBlock)
-								.Text(LOCTEXT("EscapeCue", "Esc").ToString())
-								.ToolTipText(LOCTEXT("EyeDropperEscapeCue_ToolTip", "Hit Escape key to stop the eye dropper").ToString())
+								.Text(LOCTEXT("EscapeCue", "Esc"))
+								.ToolTipText(LOCTEXT("EyeDropperEscapeCue_ToolTip", "Hit Escape key to stop the eye dropper"))
 								.Visibility(this, &SEyeDropperButton::GetEscapeTextVisibility)
 						]
 				]
@@ -875,7 +875,7 @@ void SColorPicker::GenerateDefaultColorPickerContent( bool bAdvancedSectionExpan
 	ColorThemeComboButton = SNew(SComboButton)
 		.ContentPadding(3.0f)
 		.MenuPlacement(MenuPlacement_ComboBox)
-		.ToolTipText(LOCTEXT("OpenThemeManagerToolTip", "Open Color Theme Manager").ToString());
+		.ToolTipText(LOCTEXT("OpenThemeManagerToolTip", "Open Color Theme Manager"));
 
 	ColorThemeComboButton->SetMenuContent(ColorThemesViewer.ToSharedRef());
 
@@ -913,10 +913,10 @@ void SColorPicker::GenerateDefaultColorPickerContent( bool bAdvancedSectionExpan
 										// color theme bar
 										SAssignNew(CurrentThemeBar, SThemeColorBlocksBar)
 											.ColorTheme(this, &SColorPicker::HandleThemeBarColorTheme)
-											.EmptyText(LOCTEXT("EmptyBarHint", "Drag & drop colors here to save").ToString())
+											.EmptyText(LOCTEXT("EmptyBarHint", "Drag & drop colors here to save"))
 											.HideTrashCallback(this, &SColorPicker::HideSmallTrash)
 											.ShowTrashCallback(this, &SColorPicker::ShowSmallTrash)
-											.ToolTipText(LOCTEXT("CurrentThemeBarToolTip", "Current Color Theme").ToString())
+											.ToolTipText(LOCTEXT("CurrentThemeBarToolTip", "Current Color Theme"))
 											.UseAlpha(SharedThis(this), &SColorPicker::HandleThemeBarUseAlpha)
 											.UseSRGB(SharedThis(this), &SColorPicker::HandleColorPickerUseSRGB)
 											.OnSelectColor(this, &SColorPicker::HandleThemeBarColorSelected)
@@ -928,7 +928,7 @@ void SColorPicker::GenerateDefaultColorPickerContent( bool bAdvancedSectionExpan
 									.VAlign(VAlign_Center)
 									[
 										SNew(STextBlock)
-											.Text(LOCTEXT("EmptyBarHint", "Drag & drop colors here to save").ToString())
+											.Text(LOCTEXT("EmptyBarHint", "Drag & drop colors here to save"))
 											.Visibility(this, &SColorPicker::HandleThemeBarHintVisibility)
 									]
 							]
@@ -949,12 +949,12 @@ void SColorPicker::GenerateDefaultColorPickerContent( bool bAdvancedSectionExpan
 					[
 						// sRGB check box
 						SNew(SCheckBox)
-							.ToolTipText(LOCTEXT("SRGBCheckboxToolTip", "Toggle gamma corrected sRGB previewing").ToString())
+							.ToolTipText(LOCTEXT("SRGBCheckboxToolTip", "Toggle gamma corrected sRGB previewing"))
 							.IsChecked(this, &SColorPicker::HandleSRGBCheckBoxIsChecked)
 							.OnCheckStateChanged(this, &SColorPicker::HandleSRGBCheckBoxCheckStateChanged)
 							[
 								SNew(STextBlock)
-									.Text(LOCTEXT("SRGBCheckboxLabel", "sRGB").ToString())
+									.Text(LOCTEXT("SRGBCheckboxLabel", "sRGB"))
 							]
 					]
 
@@ -1053,7 +1053,7 @@ void SColorPicker::GenerateDefaultColorPickerContent( bool bAdvancedSectionExpan
 											[
 												SNew(SImage)
 													.Image(FCoreStyle::Get().GetBrush("ColorPicker.Mode"))
-													.ToolTipText(LOCTEXT("ColorPickerModeEToolTip", "Toggle between color wheel and color spectrum.").ToString())
+													.ToolTipText(LOCTEXT("ColorPickerModeEToolTip", "Toggle between color wheel and color spectrum."))
 											]									
 									]
 
@@ -1153,7 +1153,7 @@ void SColorPicker::GenerateDefaultColorPickerContent( bool bAdvancedSectionExpan
 									.Padding(0.0f, 8.0f, 0.0f, 0.0f)
 									[
 										SNew(SHorizontalBox)
-											.ToolTipText(LOCTEXT("HexSliderToolTip", "Hexadecimal Value").ToString())
+											.ToolTipText(LOCTEXT("HexSliderToolTip", "Hexadecimal Value"))
 
 										+ SHorizontalBox::Slot()
 											.AutoWidth()
@@ -1195,7 +1195,7 @@ void SColorPicker::GenerateDefaultColorPickerContent( bool bAdvancedSectionExpan
 						SNew(SButton)
 							.ContentPadding( FCoreStyle::Get().GetMargin("StandardDialog.ContentPadding") )
 							.HAlign(HAlign_Center)
-							.Text(LOCTEXT("OKButton", "OK").ToString())
+							.Text(LOCTEXT("OKButton", "OK"))
 							.OnClicked(this, &SColorPicker::HandleOkButtonClicked)
 					]
 
@@ -1205,7 +1205,7 @@ void SColorPicker::GenerateDefaultColorPickerContent( bool bAdvancedSectionExpan
 						SNew(SButton)
 							.ContentPadding( FCoreStyle::Get().GetMargin("StandardDialog.ContentPadding") )
 							.HAlign(HAlign_Center)
-							.Text(LOCTEXT("CancelButton", "Cancel").ToString())
+							.Text(LOCTEXT("CancelButton", "Cancel"))
 							.OnClicked(this, &SColorPicker::HandleCancelButtonClicked)
 					]
 			]
@@ -1442,7 +1442,7 @@ TSharedRef<SWidget> SColorPicker::MakeColorSlider( EColorPickerChannels::Type Ch
 	}
 
 	return SNew(SOverlay)
-		.ToolTipText(SliderTooltip.ToString())
+		.ToolTipText(SliderTooltip)
 
 	+ SOverlay::Slot()
 		.Padding(FMargin(4.0f, 0.0f))
@@ -1565,14 +1565,14 @@ TSharedRef<SWidget> SColorPicker::MakeColorSpinBox( EColorPickerChannels::Type C
 		.VAlign(VAlign_Center)
 		[
 			SNew(STextBlock)
-				.Text(SliderLabel.ToString())
+				.Text(SliderLabel)
 		]
 
 	+ SHorizontalBox::Slot()
 		.FillWidth(1.0f)
 		[
 			SNew(SVerticalBox)
-				.ToolTipText(SliderTooltip.ToString())
+				.ToolTipText(SliderTooltip)
 
 			+ SVerticalBox::Slot()
 				.AutoHeight()

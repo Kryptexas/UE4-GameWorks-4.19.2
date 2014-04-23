@@ -606,17 +606,16 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 FText SAutomationWindow::CreateDeviceTooltip(int32 ClusterIndex)
 {
-	//the tool tip
-	FString ToolTip = LOCTEXT("ToolTipGameInstances", "Game Instances:").ToString();
+	FTextBuilder ReportBuilder;
+	ReportBuilder.AppendLine(LOCTEXT("ToolTipGameInstances", "Game Instances:"));
 
 	int32 NumDevices = AutomationController->GetNumDevicesInCluster( ClusterIndex );
 	for ( int32 DeviceIndex = 0; DeviceIndex < NumDevices; ++DeviceIndex )
 	{
-		ToolTip += TEXT("\n   ");
-		ToolTip += AutomationController->GetGameInstanceName( ClusterIndex, DeviceIndex );
+		ReportBuilder.AppendLine(AutomationController->GetGameInstanceName(ClusterIndex, DeviceIndex));
 	}
 
-	return FText::FromString( ToolTip );
+	return ReportBuilder.ToText();
 }
 
 

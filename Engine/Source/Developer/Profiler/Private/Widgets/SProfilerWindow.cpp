@@ -250,7 +250,7 @@ void SProfilerWindow::Construct( const FArguments& InArgs, const ISessionManager
 				.Visibility( this, &SProfilerWindow::IsSessionOverlayVissible )
 				[
 					SNew(STextBlock)
-					.Text(LOCTEXT("SelectSessionOverlayText", "Please select a session from the Session Browser or load a saved capture.").ToString())
+					.Text(LOCTEXT("SelectSessionOverlayText", "Please select a session from the Session Browser or load a saved capture."))
 				]
 			]
 

@@ -72,7 +72,7 @@ public:
 			.AutoHeight()
 			[
 				SNew( SSearchBox )
-				.ToolTipText( LOCTEXT("FilterSearchToolTip", "Type here to search layers").ToString() )
+				.ToolTipText( LOCTEXT("FilterSearchToolTip", "Type here to search layers") )
 				.HintText( LOCTEXT( "FilterSearchHint", "Search Layers" ) )
 				.OnTextChanged( SearchBoxLayerFilter.Get(), &LayerTextFilter::SetRawFilterText )
 			]
@@ -126,7 +126,7 @@ public:
 					.VAlign( VAlign_Center )
 					[
 						SNew( STextBlock )
-						.Text( LOCTEXT("ContentsLabel", "See Contents").ToString() )
+						.Text( LOCTEXT("ContentsLabel", "See Contents") )
 						.Visibility( this, &SLayerBrowser::IsVisibleIfModeIs, ELayerBrowserMode::Layers )
 						.ColorAndOpacity( this, &SLayerBrowser::GetInvertedForegroundIfHovered )
 					]
@@ -251,7 +251,7 @@ protected:
 		}
 
 		bool bCanAssign = false;
-		FString Message;
+		FText Message;
 		if( DragActorOp->Actors.Num() > 1 )
 		{
 			bCanAssign = SelectedLayerViewModel->CanAssignActors( DragActorOp->Actors, OUT Message );
@@ -263,11 +263,11 @@ protected:
 
 		if ( bCanAssign )
 		{
-			DragActorOp->SetToolTip( FActorDragDropGraphEdOp::ToolTip_CompatibleGeneric, FText::FromString(Message) );
+			DragActorOp->SetToolTip( FActorDragDropGraphEdOp::ToolTip_CompatibleGeneric, Message );
 		}
 		else
 		{
-			DragActorOp->SetToolTip( FActorDragDropGraphEdOp::ToolTip_IncompatibleGeneric, FText::FromString(Message) );
+			DragActorOp->SetToolTip( FActorDragDropGraphEdOp::ToolTip_IncompatibleGeneric, Message );
 		}
 
 		// We leave the event unhandled so the children of the ListView get a chance to grab the drag/drop
@@ -333,9 +333,9 @@ private:
 		return ( Mode == ELayerBrowserMode::Layers ) ? FEditorStyle::GetBrush( "LayerBrowser.ExploreLayerContents" ) : FEditorStyle::GetBrush( "LayerBrowser.ReturnToLayersList" );
 	}
 
-	FString GetLayerContentsHeaderText() const
+	FText GetLayerContentsHeaderText() const
 	{
-		return FString::Printf( *LOCTEXT("SelectedContentsLabel", "%s Contents").ToString(), *SelectedLayerViewModel->GetName() );
+		return FText::Format( LOCTEXT("SelectedContentsLabel", "{0} Contents"), FText::FromString(SelectedLayerViewModel->GetName()));
 	}
 
 	/**	Returns the visibility of the See Contents label */

@@ -128,13 +128,13 @@ void FMaterialEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& T
 		.SetDisplayName( LOCTEXT("DetailsTab", "Details") )
 		.SetGroup( MenuStructure.GetAssetEditorCategory() );
 
-	TabManager->RegisterTabSpawner( PaletteTabId, FOnSpawnTab::CreateSP(this, &FMaterialEditor::SpawnTab_Palette) )
-		.SetDisplayName( LOCTEXT("PaletteTab", "Palette") )
-		.SetGroup( MenuStructure.GetAssetEditorCategory() );
+		TabManager->RegisterTabSpawner( PaletteTabId, FOnSpawnTab::CreateSP(this, &FMaterialEditor::SpawnTab_Palette) )
+			.SetDisplayName( LOCTEXT("PaletteTab", "Palette") )
+			.SetGroup( MenuStructure.GetAssetEditorCategory() );
 
-	TabManager->RegisterTabSpawner( StatsTabId, FOnSpawnTab::CreateSP(this, &FMaterialEditor::SpawnTab_Stats) )
-		.SetDisplayName( LOCTEXT("StatsTab", "Stats") )
-		.SetGroup( MenuStructure.GetAssetEditorCategory() );
+		TabManager->RegisterTabSpawner( StatsTabId, FOnSpawnTab::CreateSP(this, &FMaterialEditor::SpawnTab_Stats) )
+			.SetDisplayName( LOCTEXT("StatsTab", "Stats") )
+			.SetGroup( MenuStructure.GetAssetEditorCategory() );
 	
 	TabManager->RegisterTabSpawner( HLSLCodeTabId, FOnSpawnTab::CreateSP(this, &FMaterialEditor::SpawnTab_HLSLCode) )
 		.SetDisplayName( LOCTEXT("HLSLCodeTab", "HLSL Code") )
@@ -149,8 +149,8 @@ void FMaterialEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>&
 	TabManager->UnregisterTabSpawner( PreviewTabId );
 	TabManager->UnregisterTabSpawner( GraphCanvasTabId );
 	TabManager->UnregisterTabSpawner( PropertiesTabId );
-	TabManager->UnregisterTabSpawner( PaletteTabId );
-	TabManager->UnregisterTabSpawner( StatsTabId );
+		TabManager->UnregisterTabSpawner( PaletteTabId );
+		TabManager->UnregisterTabSpawner( StatsTabId );
 	TabManager->UnregisterTabSpawner( HLSLCodeTabId );
 }
 
@@ -216,20 +216,20 @@ void FMaterialEditor::InitMaterialEditor( const EToolkitMode::Type Mode, const T
 	bStatsFromPreviewMaterial = false;
 	ColorPickerObject = NULL;
 
-	// Support undo/redo
-	Material->SetFlags(RF_Transactional);
+		// Support undo/redo
+		Material->SetFlags(RF_Transactional);
 
-	GEditor->RegisterForUndo(this);
+		GEditor->RegisterForUndo(this);
 
-	if (!Material->MaterialGraph)
-	{
-		Material->MaterialGraph = CastChecked<UMaterialGraph>(FBlueprintEditorUtils::CreateNewGraph(Material, NAME_None, UMaterialGraph::StaticClass(), UMaterialGraphSchema::StaticClass()));
-	}
-	Material->MaterialGraph->Material = Material;
-	Material->MaterialGraph->MaterialFunction = MaterialFunction;
-	Material->MaterialGraph->RealtimeDelegate.BindSP(this, &FMaterialEditor::IsToggleRealTimeExpressionsChecked);
-	Material->MaterialGraph->MaterialDirtyDelegate.BindSP(this, &FMaterialEditor::SetMaterialDirty);
-	Material->MaterialGraph->ToggleCollapsedDelegate.BindSP(this, &FMaterialEditor::ToggleCollapsed);
+		if (!Material->MaterialGraph)
+		{
+			Material->MaterialGraph = CastChecked<UMaterialGraph>(FBlueprintEditorUtils::CreateNewGraph(Material, NAME_None, UMaterialGraph::StaticClass(), UMaterialGraphSchema::StaticClass()));
+		}
+		Material->MaterialGraph->Material = Material;
+		Material->MaterialGraph->MaterialFunction = MaterialFunction;
+		Material->MaterialGraph->RealtimeDelegate.BindSP(this, &FMaterialEditor::IsToggleRealTimeExpressionsChecked);
+		Material->MaterialGraph->MaterialDirtyDelegate.BindSP(this, &FMaterialEditor::SetMaterialDirty);
+		Material->MaterialGraph->ToggleCollapsedDelegate.BindSP(this, &FMaterialEditor::ToggleCollapsed);
 
 	// copy material usage
 	for( int32 Usage=0; Usage < MATUSAGE_MAX; Usage++ )
@@ -258,9 +258,9 @@ void FMaterialEditor::InitMaterialEditor( const EToolkitMode::Type Mode, const T
 	CreateInternalWidgets();
 
 	// Do setup previously done in SMaterialEditorCanvas
-	SetPreviewMaterial(Material);
-	Material->bIsPreviewMaterial = true;
-	FMaterialEditorUtilities::InitExpressions(Material);
+		SetPreviewMaterial(Material);
+		Material->bIsPreviewMaterial = true;
+		FMaterialEditorUtilities::InitExpressions(Material);
 
 	BindCommands();
 
@@ -405,24 +405,24 @@ void FMaterialEditor::InitMaterialEditor( const EToolkitMode::Type Mode, const T
 						bSetPreviewExpression = true;
 
 						// Preview the last output previewed
-						SetPreviewExpression(FunctionOutput);
+							SetPreviewExpression(FunctionOutput);
+						}
 					}
 				}
-			}
 
 			if (!bSetPreviewExpression && FirstOutput)
 			{
-				SetPreviewExpression(FirstOutput);
+					SetPreviewExpression(FirstOutput);
+				}
 			}
 		}
-	}
 
-	// TODO: Remove this once Expressions are saved as flipped
-	FlipExpressionPositions(Material->Expressions, Material->EditorComments, Material);
-	Material->MaterialGraph->RebuildGraph();
-	RecenterEditor();
-	ForceRefreshExpressionPreviews();
-}
+		// TODO: Remove this once Expressions are saved as flipped
+		FlipExpressionPositions(Material->Expressions, Material->EditorComments, Material);
+		Material->MaterialGraph->RebuildGraph();
+		RecenterEditor();
+		ForceRefreshExpressionPreviews();
+	}
 
 FMaterialEditor::FMaterialEditor()
 	: bMaterialDirty(false)
@@ -456,16 +456,16 @@ FMaterialEditor::~FMaterialEditor()
 
 	MaterialDetailsView.Reset();
 
-	{
-		SCOPED_SUSPEND_RENDERING_THREAD(true);
+		{
+			SCOPED_SUSPEND_RENDERING_THREAD(true);
 	
-		ExpressionPreviews.Empty();
+			ExpressionPreviews.Empty();
+		}
+	
+		check( !ScopedTransaction );
+	
+		GEditor->UnregisterForUndo( this );
 	}
-	
-	check( !ScopedTransaction );
-	
-	GEditor->UnregisterForUndo( this );
-}
 
 void FMaterialEditor::GetAllMaterialExpressionGroups(TArray<FString>* OutGroups)
 {
@@ -498,13 +498,13 @@ void FMaterialEditor::CreateInternalWidgets()
 
 	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>( "PropertyEditor" );
 
-	GraphEditor = CreateGraphEditorWidget();
-	// Manually set zoom level to avoid deferred zooming
-	GraphEditor->SetViewLocation(FVector2D::ZeroVector, 1);
+		GraphEditor = CreateGraphEditorWidget();
+		// Manually set zoom level to avoid deferred zooming
+		GraphEditor->SetViewLocation(FVector2D::ZeroVector, 1);
 
-	const FDetailsViewArgs DetailsViewArgs( false, false, true, false, true, this );
-	MaterialDetailsView = PropertyEditorModule.CreateDetailView( DetailsViewArgs );
-
+		const FDetailsViewArgs DetailsViewArgs( false, false, true, false, true, this );
+		MaterialDetailsView = PropertyEditorModule.CreateDetailView( DetailsViewArgs );
+	
 	FOnGetDetailCustomizationInstance LayoutExpressionParameterDetails = FOnGetDetailCustomizationInstance::CreateStatic(
 		&FMaterialExpressionParameterDetails::MakeInstance, FOnCollectParameterGroups::CreateSP(this, &FMaterialEditor::GetAllMaterialExpressionGroups) );
 
@@ -530,22 +530,22 @@ void FMaterialEditor::CreateInternalWidgets()
 		LayoutCollectionParameterDetails
 		);
 
-	Palette = SNew(SMaterialPalette, SharedThis(this));
+		Palette = SNew(SMaterialPalette, SharedThis(this));
 
-	FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
-	FMessageLogInitializationOptions LogOptions;
-	// Show Pages so that user is never allowed to clear log messages
-	LogOptions.bShowPages = true;
-	LogOptions.MaxPageCount = 1;
-	StatsListing = MessageLogModule.CreateLogListing( "MaterialEditorStats", LogOptions );
+		FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
+		FMessageLogInitializationOptions LogOptions;
+		// Show Pages so that user is never allowed to clear log messages
+		LogOptions.bShowPages = true;
+		LogOptions.MaxPageCount = 1;
+		StatsListing = MessageLogModule.CreateLogListing( "MaterialEditorStats", LogOptions );
 
-	Stats = 
-		SNew(SBorder)
-		.Padding(0.0f)
-		.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
-		[
-			MessageLogModule.CreateLogListingWidget( StatsListing.ToSharedRef() )
-		];
+		Stats = 
+			SNew(SBorder)
+			.Padding(0.0f)
+			.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+			[
+				MessageLogModule.CreateLogListingWidget( StatsListing.ToSharedRef() )
+			];
 
 	CodeViewUtility =
 		SNew(SVerticalBox)
@@ -561,8 +561,8 @@ void FMaterialEditor::CreateInternalWidgets()
 			.HAlign(HAlign_Left)
 			[
 				SNew(SButton)
-				.Text( LOCTEXT("CopyHLSLButton", "Copy").ToString() )
-				.ToolTipText( LOCTEXT("CopyHLSLButtonToolTip", "Copies all HLSL code to the clipboard.").ToString() )
+				.Text( LOCTEXT("CopyHLSLButton", "Copy") )
+				.ToolTipText( LOCTEXT("CopyHLSLButtonToolTip", "Copies all HLSL code to the clipboard.") )
 				.ContentPadding(3)
 				.OnClicked(this, &FMaterialEditor::CopyCodeViewTextToClipboard)
 			]
@@ -621,9 +621,9 @@ FLinearColor FMaterialEditor::GetWorldCentricTabColorScale() const
 
 void FMaterialEditor::Tick( float InDeltaTime )
 {
-	UpdateMaterialInfoList();
-	UpdateGraphNodeStates();
-}
+		UpdateMaterialInfoList();
+		UpdateGraphNodeStates();
+	}
 
 TStatId FMaterialEditor::GetStatId() const
 {
@@ -686,18 +686,18 @@ void FMaterialEditor::ExtendToolbar()
 	TSharedRef<SHorizontalBox> Searchbox = SNew(SHorizontalBox);
 	TSharedRef<SWidget> SearchWidget = Searchbox;
 
-	Searchbox->AddSlot()
-	.MaxWidth(SearchWidth)
-	.FillWidth(1.f)
-	.VAlign(VAlign_Bottom)
-	[
-		SNew( SSearchBox )
-		.ToolTipText( LOCTEXT("GraphSearchHint", "Type here to search expressions in the graph").ToString() )
-		.OnTextChanged( this, &FMaterialEditor::OnGraphSearchChanged )
-		.OnTextCommitted( this, &FMaterialEditor::OnGraphSearchCommitted )
-		.OnSearch( this, &FMaterialEditor::OnSearch )
-		.MinDesiredWidth(SearchWidth)
-	];
+		Searchbox->AddSlot()
+		.MaxWidth(SearchWidth)
+		.FillWidth(1.f)
+		.VAlign(VAlign_Bottom)
+		[
+			SNew( SSearchBox )
+			.ToolTipText( LOCTEXT("GraphSearchHint", "Type here to search expressions in the graph").ToString() )
+			.OnTextChanged( this, &FMaterialEditor::OnGraphSearchChanged )
+			.OnTextCommitted( this, &FMaterialEditor::OnGraphSearchCommitted )
+			.OnSearch( this, &FMaterialEditor::OnSearch )
+			.MinDesiredWidth(SearchWidth)
+		];
 
 	ToolbarExtender->AddToolBarExtension(
 		"Asset",
@@ -849,40 +849,40 @@ void FMaterialEditor::DrawMaterialInfoStrings(
 
 void FMaterialEditor::DrawMessages( FViewport* InViewport, FCanvas* Canvas )
 {
-	if( PreviewExpression != NULL )
-	{
-		Canvas->PushAbsoluteTransform( FMatrix::Identity );
-
-		// The message to display in the viewport.
-		FString Name = FString::Printf( TEXT("Previewing: %s"), *PreviewExpression->GetName() );
-
-		// Size of the tile we are about to draw.  Should extend the length of the view in X.
-		const FIntPoint TileSize( InViewport->GetSizeXY().X, 25);
-
-		const FColor PreviewColor( 70,100,200 );
-		const FColor FontColor( 255,255,128 );
-
-		UFont* FontToUse = GEditor->EditorFont;
-
-		Canvas->DrawTile(  0.0f, 0.0f, TileSize.X, TileSize.Y, 0.0f, 0.0f, 0.0f, 0.0f, PreviewColor );
-
-		int32 XL, YL;
-		StringSize( FontToUse, XL, YL, *Name );
-		if( XL > TileSize.X )
+		if( PreviewExpression != NULL )
 		{
-			// There isn't enough room to show the preview expression name
-			Name = TEXT("Previewing");
+			Canvas->PushAbsoluteTransform( FMatrix::Identity );
+
+			// The message to display in the viewport.
+			FString Name = FString::Printf( TEXT("Previewing: %s"), *PreviewExpression->GetName() );
+
+			// Size of the tile we are about to draw.  Should extend the length of the view in X.
+			const FIntPoint TileSize( InViewport->GetSizeXY().X, 25);
+
+			const FColor PreviewColor( 70,100,200 );
+			const FColor FontColor( 255,255,128 );
+
+			UFont* FontToUse = GEditor->EditorFont;
+
+			Canvas->DrawTile(  0.0f, 0.0f, TileSize.X, TileSize.Y, 0.0f, 0.0f, 0.0f, 0.0f, PreviewColor );
+
+			int32 XL, YL;
 			StringSize( FontToUse, XL, YL, *Name );
+			if( XL > TileSize.X )
+			{
+				// There isn't enough room to show the preview expression name
+				Name = TEXT("Previewing");
+				StringSize( FontToUse, XL, YL, *Name );
+			}
+
+			// Center the string in the middle of the tile.
+			const FIntPoint StringPos( (TileSize.X-XL)/2, ((TileSize.Y-YL)/2)+1 );
+			// Draw the preview message
+			Canvas->DrawShadowedString(  StringPos.X, StringPos.Y, *Name, FontToUse, FontColor );
+
+			Canvas->PopTransform();
 		}
-
-		// Center the string in the middle of the tile.
-		const FIntPoint StringPos( (TileSize.X-XL)/2, ((TileSize.Y-YL)/2)+1 );
-		// Draw the preview message
-		Canvas->DrawShadowedString(  StringPos.X, StringPos.Y, *Name, FontToUse, FontColor );
-
-		Canvas->PopTransform();
 	}
-}
 
 void FMaterialEditor::RecenterEditor()
 {
@@ -970,9 +970,9 @@ void FMaterialEditor::LoadEditorSettings()
 {
 	EditorOptions = ConstructObject<UMaterialEditorOptions>( UMaterialEditorOptions::StaticClass() );
 	
-	if (EditorOptions->bHideUnusedConnectors) { OnShowConnectors(); }
-	if (EditorOptions->bAlwaysRefreshAllPreviews) { OnAlwaysRefreshAllPreviews(); }
-	if (EditorOptions->bRealtimeExpressionViewport) { ToggleRealTimeExpressions(); }
+		if (EditorOptions->bHideUnusedConnectors) {OnShowConnectors();}
+		if (EditorOptions->bAlwaysRefreshAllPreviews) {OnAlwaysRefreshAllPreviews();}
+		if (EditorOptions->bRealtimeExpressionViewport) {ToggleRealTimeExpressions();}
 
 	if ( Viewport.IsValid() )
 	{
@@ -1009,9 +1009,9 @@ void FMaterialEditor::SaveEditorSettings()
 		EditorOptions->bShowBackground				= Viewport->IsTogglePreviewBackgroundChecked();
 		EditorOptions->bRealtimeMaterialViewport	= Viewport->IsRealtime();
 		EditorOptions->bShowMobileStats				= bShowMobileStats;
-		EditorOptions->bHideUnusedConnectors = !IsOnShowConnectorsChecked();
-		EditorOptions->bAlwaysRefreshAllPreviews = IsOnAlwaysRefreshAllPreviews();
-		EditorOptions->bRealtimeExpressionViewport = IsToggleRealTimeExpressionsChecked();
+			EditorOptions->bHideUnusedConnectors		= !IsOnShowConnectorsChecked();
+			EditorOptions->bAlwaysRefreshAllPreviews	= IsOnAlwaysRefreshAllPreviews();
+			EditorOptions->bRealtimeExpressionViewport	= IsToggleRealTimeExpressionsChecked();
 		EditorOptions->SaveConfig();
 	}
 
@@ -1020,17 +1020,17 @@ void FMaterialEditor::SaveEditorSettings()
 
 void FMaterialEditor::OnGraphSearchChanged( const FText& InFilterText )
 {
-	SearchQuery = InFilterText.ToString();
-	UpdateSearch(true);
-}
+		SearchQuery = InFilterText.ToString();
+		UpdateSearch(true);
+	}
 
 void FMaterialEditor::OnGraphSearchCommitted(const FText& NewTypeInValue, ETextCommit::Type CommitInfo)
 {
 	if (CommitInfo ==  ETextCommit::OnEnter)
 	{
-		OnSearch( SSearchBox::Next );
+			OnSearch( SSearchBox::Next );
+		}
 	}
-}
 
 FString FMaterialEditor::GetCodeViewText() const
 {
@@ -1103,10 +1103,10 @@ void FMaterialEditor::UpdatePreviewMaterial( )
 {
 	bStatsFromPreviewMaterial = true;
 
-	if( PreviewExpression && ExpressionPreviewMaterial )
-	{
-		PreviewExpression->ConnectToPreviewMaterial(ExpressionPreviewMaterial,0);
-	}
+		if( PreviewExpression && ExpressionPreviewMaterial )
+		{
+			PreviewExpression->ConnectToPreviewMaterial(ExpressionPreviewMaterial,0);
+		}
 
 	if(PreviewExpression)
 	{
@@ -1201,7 +1201,7 @@ void FMaterialEditor::UpdateOriginalMaterial()
 	}
 
 	// Make sure any graph position changes that might not have been copied are taken into account
-	Material->MaterialGraph->LinkMaterialExpressionsFromGraph();
+		Material->MaterialGraph->LinkMaterialExpressionsFromGraph();
 
 	//remove any memory copies of shader files, so they will be reloaded from disk
 	//this way the material editor can be used for quick shader iteration
@@ -1241,8 +1241,8 @@ void FMaterialEditor::UpdateOriginalMaterial()
 		MaterialFunction->ParentFunction->ThumbnailInfo = OriginalThumbnailInfo;
 		MaterialFunction->ThumbnailInfo = ThumbnailInfo;
 
-		// TODO: Remove this once Expressions are saved as flipped
-		FlipExpressionPositions(MaterialFunction->ParentFunction->FunctionExpressions, MaterialFunction->ParentFunction->FunctionEditorComments);
+			// TODO: Remove this once Expressions are saved as flipped
+			FlipExpressionPositions(MaterialFunction->ParentFunction->FunctionExpressions, MaterialFunction->ParentFunction->FunctionEditorComments);
 
 		// Restore RF_Standalone on the original material function, as it had been removed from the preview material so that it could be GC'd.
 		MaterialFunction->ParentFunction->SetFlags( RF_Standalone );
@@ -1372,8 +1372,8 @@ void FMaterialEditor::UpdateOriginalMaterial()
 			OriginalMaterial->ThumbnailInfo = OriginalThumbnailInfo;
 			Material->ThumbnailInfo = ThumbnailInfo;
 
-			// TODO: Remove this once Expressions are saved as flipped
-			FlipExpressionPositions(OriginalMaterial->Expressions, OriginalMaterial->EditorComments, OriginalMaterial);
+				// TODO: Remove this once Expressions are saved as flipped
+				FlipExpressionPositions(OriginalMaterial->Expressions, OriginalMaterial->EditorComments, OriginalMaterial);
 
 			// Change the original material object to the new original material
 			OriginalMaterialObject = OriginalMaterial;
@@ -1641,106 +1641,106 @@ void FMaterialEditor::BindCommands()
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP( Viewport.ToSharedRef(), &SMaterialEditorViewport::IsRealtime ) );
 
-	ToolkitCommands->MapAction(
-		FGenericCommands::Get().Undo,
-		FExecuteAction::CreateSP(this, &FMaterialEditor::UndoGraphAction));
+		ToolkitCommands->MapAction(
+			FGenericCommands::Get().Undo,
+			FExecuteAction::CreateSP(this, &FMaterialEditor::UndoGraphAction));
 
-	ToolkitCommands->MapAction(
-		FGenericCommands::Get().Redo,
-		FExecuteAction::CreateSP(this, &FMaterialEditor::RedoGraphAction));
+		ToolkitCommands->MapAction(
+			FGenericCommands::Get().Redo,
+			FExecuteAction::CreateSP(this, &FMaterialEditor::RedoGraphAction));
 
-	ToolkitCommands->MapAction(
-		Commands.CameraHome,
-		FExecuteAction::CreateSP(this, &FMaterialEditor::OnCameraHome),
-		FCanExecuteAction() );
+		ToolkitCommands->MapAction(
+			Commands.CameraHome,
+			FExecuteAction::CreateSP(this, &FMaterialEditor::OnCameraHome),
+			FCanExecuteAction() );
 
-	ToolkitCommands->MapAction(
-		Commands.CleanUnusedExpressions,
-		FExecuteAction::CreateSP(this, &FMaterialEditor::CleanUnusedExpressions),
-		FCanExecuteAction() );
+		ToolkitCommands->MapAction(
+			Commands.CleanUnusedExpressions,
+			FExecuteAction::CreateSP(this, &FMaterialEditor::CleanUnusedExpressions),
+			FCanExecuteAction() );
 
-	ToolkitCommands->MapAction(
-		Commands.ShowHideConnectors,
-		FExecuteAction::CreateSP(this, &FMaterialEditor::OnShowConnectors),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &FMaterialEditor::IsOnShowConnectorsChecked));
+		ToolkitCommands->MapAction(
+			Commands.ShowHideConnectors,
+			FExecuteAction::CreateSP(this, &FMaterialEditor::OnShowConnectors),
+			FCanExecuteAction(),
+			FIsActionChecked::CreateSP(this, &FMaterialEditor::IsOnShowConnectorsChecked));
 
-	ToolkitCommands->MapAction(
-		Commands.ToggleRealtimeExpressions,
-		FExecuteAction::CreateSP(this, &FMaterialEditor::ToggleRealTimeExpressions),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &FMaterialEditor::IsToggleRealTimeExpressionsChecked));
+		ToolkitCommands->MapAction(
+			Commands.ToggleRealtimeExpressions,
+			FExecuteAction::CreateSP(this, &FMaterialEditor::ToggleRealTimeExpressions),
+			FCanExecuteAction(),
+			FIsActionChecked::CreateSP(this, &FMaterialEditor::IsToggleRealTimeExpressionsChecked));
 
-	ToolkitCommands->MapAction(
-		Commands.AlwaysRefreshAllPreviews,
-		FExecuteAction::CreateSP(this, &FMaterialEditor::OnAlwaysRefreshAllPreviews),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &FMaterialEditor::IsOnAlwaysRefreshAllPreviews));
+		ToolkitCommands->MapAction(
+			Commands.AlwaysRefreshAllPreviews,
+			FExecuteAction::CreateSP(this, &FMaterialEditor::OnAlwaysRefreshAllPreviews),
+			FCanExecuteAction(),
+			FIsActionChecked::CreateSP(this, &FMaterialEditor::IsOnAlwaysRefreshAllPreviews));
 
-	ToolkitCommands->MapAction(
-		Commands.ToggleMaterialStats,
-		FExecuteAction::CreateSP(this, &FMaterialEditor::ToggleStats),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &FMaterialEditor::IsToggleStatsChecked));
+		ToolkitCommands->MapAction(
+			Commands.ToggleMaterialStats,
+			FExecuteAction::CreateSP(this, &FMaterialEditor::ToggleStats),
+			FCanExecuteAction(),
+			FIsActionChecked::CreateSP(this, &FMaterialEditor::IsToggleStatsChecked));
 
-	ToolkitCommands->MapAction(
-		Commands.ToggleMobileStats,
-		FExecuteAction::CreateSP(this, &FMaterialEditor::ToggleMobileStats),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &FMaterialEditor::IsToggleMobileStatsChecked));
+		ToolkitCommands->MapAction(
+			Commands.ToggleMobileStats,
+			FExecuteAction::CreateSP(this, &FMaterialEditor::ToggleMobileStats),
+			FCanExecuteAction(),
+			FIsActionChecked::CreateSP(this, &FMaterialEditor::IsToggleMobileStatsChecked));
 
-	ToolkitCommands->MapAction(
-		Commands.UseCurrentTexture,
-		FExecuteAction::CreateSP(this, &FMaterialEditor::OnUseCurrentTexture));
+		ToolkitCommands->MapAction(
+			Commands.UseCurrentTexture,
+			FExecuteAction::CreateSP(this, &FMaterialEditor::OnUseCurrentTexture));
 
-	ToolkitCommands->MapAction(
-		Commands.ConvertObjects,
-		FExecuteAction::CreateSP(this, &FMaterialEditor::OnConvertObjects));
+		ToolkitCommands->MapAction(
+			Commands.ConvertObjects,
+			FExecuteAction::CreateSP(this, &FMaterialEditor::OnConvertObjects));
 
-	ToolkitCommands->MapAction(
-		Commands.ConvertToTextureObjects,
-		FExecuteAction::CreateSP(this, &FMaterialEditor::OnConvertTextures));
+		ToolkitCommands->MapAction(
+			Commands.ConvertToTextureObjects,
+			FExecuteAction::CreateSP(this, &FMaterialEditor::OnConvertTextures));
 
-	ToolkitCommands->MapAction(
-		Commands.ConvertToTextureSamples,
-		FExecuteAction::CreateSP(this, &FMaterialEditor::OnConvertTextures));
+		ToolkitCommands->MapAction(
+			Commands.ConvertToTextureSamples,
+			FExecuteAction::CreateSP(this, &FMaterialEditor::OnConvertTextures));
 
-	ToolkitCommands->MapAction(
-		Commands.StopPreviewNode,
-		FExecuteAction::CreateSP(this, &FMaterialEditor::OnPreviewNode));
+		ToolkitCommands->MapAction(
+			Commands.StopPreviewNode,
+			FExecuteAction::CreateSP(this, &FMaterialEditor::OnPreviewNode));
 
-	ToolkitCommands->MapAction(
-		Commands.StartPreviewNode,
-		FExecuteAction::CreateSP(this, &FMaterialEditor::OnPreviewNode));
+		ToolkitCommands->MapAction(
+			Commands.StartPreviewNode,
+			FExecuteAction::CreateSP(this, &FMaterialEditor::OnPreviewNode));
 
-	ToolkitCommands->MapAction(
-		Commands.EnableRealtimePreviewNode,
-		FExecuteAction::CreateSP(this, &FMaterialEditor::OnToggleRealtimePreview));
+		ToolkitCommands->MapAction(
+			Commands.EnableRealtimePreviewNode,
+			FExecuteAction::CreateSP(this, &FMaterialEditor::OnToggleRealtimePreview));
 
-	ToolkitCommands->MapAction(
-		Commands.DisableRealtimePreviewNode,
-		FExecuteAction::CreateSP(this, &FMaterialEditor::OnToggleRealtimePreview));
+		ToolkitCommands->MapAction(
+			Commands.DisableRealtimePreviewNode,
+			FExecuteAction::CreateSP(this, &FMaterialEditor::OnToggleRealtimePreview));
 
-	ToolkitCommands->MapAction(
-		Commands.SelectDownstreamNodes,
-		FExecuteAction::CreateSP(this, &FMaterialEditor::OnSelectDownsteamNodes));
+		ToolkitCommands->MapAction(
+			Commands.SelectDownstreamNodes,
+			FExecuteAction::CreateSP(this, &FMaterialEditor::OnSelectDownsteamNodes));
 
-	ToolkitCommands->MapAction(
-		Commands.SelectUpstreamNodes,
-		FExecuteAction::CreateSP(this, &FMaterialEditor::OnSelectUpsteamNodes));
+		ToolkitCommands->MapAction(
+			Commands.SelectUpstreamNodes,
+			FExecuteAction::CreateSP(this, &FMaterialEditor::OnSelectUpsteamNodes));
 
-	ToolkitCommands->MapAction(
-		Commands.RemoveFromFavorites,
-		FExecuteAction::CreateSP(this, &FMaterialEditor::RemoveSelectedExpressionFromFavorites));
+		ToolkitCommands->MapAction(
+			Commands.RemoveFromFavorites,
+			FExecuteAction::CreateSP(this, &FMaterialEditor::RemoveSelectedExpressionFromFavorites));
 		
-	ToolkitCommands->MapAction(
-		Commands.AddToFavorites,
-		FExecuteAction::CreateSP(this, &FMaterialEditor::AddSelectedExpressionToFavorites));
+		ToolkitCommands->MapAction(
+			Commands.AddToFavorites,
+			FExecuteAction::CreateSP(this, &FMaterialEditor::AddSelectedExpressionToFavorites));
 
-	ToolkitCommands->MapAction(
-		Commands.ForceRefreshPreviews,
-		FExecuteAction::CreateSP(this, &FMaterialEditor::OnForceRefreshPreviews));
-}
+		ToolkitCommands->MapAction(
+			Commands.ForceRefreshPreviews,
+			FExecuteAction::CreateSP(this, &FMaterialEditor::OnForceRefreshPreviews));
+	}
 
 void FMaterialEditor::OnApply()
 {
@@ -2254,9 +2254,9 @@ void FMaterialEditor::RenameAssetFromRegistry(const FAssetData& InAddedAssetData
 
 	if(Asset->IsChildOf(UMaterialFunction::StaticClass()))
 	{
-		ForceRefreshExpressionPreviews();
+			ForceRefreshExpressionPreviews();
+		}
 	}
-}
 
 void FMaterialEditor::OnMaterialUsageFlagsChanged(UMaterial* MaterialThatChanged, int32 FlagThatChanged)
 {
@@ -3061,134 +3061,134 @@ FMaterialRenderProxy* FMaterialEditor::GetExpressionPreview(UMaterialExpression*
 
 void FMaterialEditor::UndoGraphAction()
 {
-	int32 NumExpressions = Material->Expressions.Num();
-	GEditor->UndoTransaction();
+		int32 NumExpressions = Material->Expressions.Num();
+		GEditor->UndoTransaction();
 
-	if(NumExpressions != Material->Expressions.Num())
-	{
-		Material->BuildEditorParameterList();
-	}
-
-	UpdateSearch(false);
-
-	// Update the current preview material.
-	UpdatePreviewMaterial();
-
-	RefreshExpressionPreviews();
-	GraphEditor->NotifyGraphChanged();
-	SetMaterialDirty();
-}
-
-void FMaterialEditor::RedoGraphAction()
-{
-	// Clear selection, to avoid holding refs to nodes that go away
-	GraphEditor->ClearSelectionSet();
-
-	int32 NumExpressions = Material->Expressions.Num();
-	GEditor->RedoTransaction();
-
-	if(NumExpressions != Material->Expressions.Num())
-	{
-		Material->BuildEditorParameterList();
-	}
-
-	// Update the current preview material.
-	UpdatePreviewMaterial();
-
-	RefreshExpressionPreviews();
-	GraphEditor->NotifyGraphChanged();
-	SetMaterialDirty();
-}
-
-void FMaterialEditor::PostUndo(bool bSuccess)
-{
-	GraphEditor->ClearSelectionSet();
-
-	Material->BuildEditorParameterList();
-
-	UpdateSearch(false);
-
-	// Update the current preview material.
-	UpdatePreviewMaterial();
-
-	RefreshExpressionPreviews();
-	GraphEditor->NotifyGraphChanged();
-	SetMaterialDirty();
-}
-
-void FMaterialEditor::NotifyPreChange(UProperty* PropertyAboutToChange)
-{
-	check( !ScopedTransaction );
-	ScopedTransaction = new FScopedTransaction( NSLOCTEXT("UnrealEd", "MaterialEditorEditProperties", "Material Editor: Edit Properties") );
-	FlushRenderingCommands();
-}
-
-void FMaterialEditor::NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged)
-{
-	check( ScopedTransaction );
-
-	if ( PropertyThatChanged )
-	{
-		const FName NameOfPropertyThatChanged( *PropertyThatChanged->GetName() );
-		if ( NameOfPropertyThatChanged == FName(TEXT("PreviewMesh")) ||
-			NameOfPropertyThatChanged == FName(TEXT("bUsedWithSkeletalMesh")) )
+		if(NumExpressions != Material->Expressions.Num())
 		{
-			// SetPreviewMesh will return false if the material has bUsedWithSkeletalMesh and
-			// a skeleton was requested, in which case revert to a sphere static mesh.
-			if ( !SetPreviewMesh( *Material->PreviewMesh.AssetLongPathname ) )
-			{
-				SetPreviewMesh( GUnrealEd->GetThumbnailManager()->EditorSphere, NULL );
-			}
-		}
-
-		FGraphPanelSelectionSet SelectedNodes = GraphEditor->GetSelectedNodes();
-
-		for (FGraphPanelSelectionSet::TConstIterator NodeIt(SelectedNodes); NodeIt; ++NodeIt)
-		{
-			UMaterialGraphNode* SelectedNode = Cast<UMaterialGraphNode>(*NodeIt);
-
-			if (SelectedNode && SelectedNode->MaterialExpression)
-			{
-				if(NameOfPropertyThatChanged == FName(TEXT("ParameterName")))
-				{
-					Material->UpdateExpressionParameterName(SelectedNode->MaterialExpression);
-				}
-				else if (NameOfPropertyThatChanged == FName(TEXT("ParamNames")))
-				{
-					Material->UpdateExpressionDynamicParameterNames(SelectedNode->MaterialExpression);
-				}
-				else
-				{
-					Material->PropagateExpressionParameterChanges(SelectedNode->MaterialExpression);
-				}
-			}
-		}
-	}
-
-	// Prevent constant recompilation of materials while properties are being interacted with
-	if( PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive )
-	{
-		// Also prevent recompilation when properties have no effect on material output
-		const FName PropertyName = PropertyChangedEvent.MemberProperty ? PropertyChangedEvent.MemberProperty->GetFName() : NAME_None;
-		if (PropertyName != GET_MEMBER_NAME_CHECKED(UMaterialExpressionComment, Text)
-		&& PropertyName != GET_MEMBER_NAME_CHECKED(UMaterialExpressionComment, CommentColor)
-		&& PropertyName != GET_MEMBER_NAME_CHECKED(UMaterialExpression, Desc))
-		{
-			// Update the current preview material.
-			UpdatePreviewMaterial();
-			RefreshExpressionPreviews();
-			RegenerateCodeView();
+			Material->BuildEditorParameterList();
 		}
 
 		UpdateSearch(false);
+
+		// Update the current preview material.
+		UpdatePreviewMaterial();
+
+		RefreshExpressionPreviews();
+		GraphEditor->NotifyGraphChanged();
+		SetMaterialDirty();
 	}
 
-	delete ScopedTransaction;
-	ScopedTransaction = NULL;
+void FMaterialEditor::RedoGraphAction()
+{
+		// Clear selection, to avoid holding refs to nodes that go away
+		GraphEditor->ClearSelectionSet();
 
-	Material->MarkPackageDirty();
-	SetMaterialDirty();
-}
+		int32 NumExpressions = Material->Expressions.Num();
+		GEditor->RedoTransaction();
+
+		if(NumExpressions != Material->Expressions.Num())
+		{
+			Material->BuildEditorParameterList();
+		}
+
+		// Update the current preview material.
+		UpdatePreviewMaterial();
+
+		RefreshExpressionPreviews();
+		GraphEditor->NotifyGraphChanged();
+		SetMaterialDirty();
+	}
+
+void FMaterialEditor::PostUndo(bool bSuccess)
+{
+		GraphEditor->ClearSelectionSet();
+
+		Material->BuildEditorParameterList();
+
+		UpdateSearch(false);
+
+		// Update the current preview material.
+		UpdatePreviewMaterial();
+
+		RefreshExpressionPreviews();
+		GraphEditor->NotifyGraphChanged();
+		SetMaterialDirty();
+	}
+
+void FMaterialEditor::NotifyPreChange(UProperty* PropertyAboutToChange)
+{
+		check( !ScopedTransaction );
+		ScopedTransaction = new FScopedTransaction( NSLOCTEXT("UnrealEd", "MaterialEditorEditProperties", "Material Editor: Edit Properties") );
+		FlushRenderingCommands();
+	}
+
+void FMaterialEditor::NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged)
+{
+		check( ScopedTransaction );
+
+		if ( PropertyThatChanged )
+		{
+			const FName NameOfPropertyThatChanged( *PropertyThatChanged->GetName() );
+			if ( NameOfPropertyThatChanged == FName(TEXT("PreviewMesh")) ||
+				NameOfPropertyThatChanged == FName(TEXT("bUsedWithSkeletalMesh")) )
+			{
+				// SetPreviewMesh will return false if the material has bUsedWithSkeletalMesh and
+				// a skeleton was requested, in which case revert to a sphere static mesh.
+				if ( !SetPreviewMesh( *Material->PreviewMesh.AssetLongPathname ) )
+				{
+					SetPreviewMesh( GUnrealEd->GetThumbnailManager()->EditorSphere, NULL );
+				}
+			}
+
+			FGraphPanelSelectionSet SelectedNodes = GraphEditor->GetSelectedNodes();
+
+			for (FGraphPanelSelectionSet::TConstIterator NodeIt(SelectedNodes); NodeIt; ++NodeIt)
+			{
+				UMaterialGraphNode* SelectedNode = Cast<UMaterialGraphNode>(*NodeIt);
+
+				if (SelectedNode && SelectedNode->MaterialExpression)
+				{
+					if(NameOfPropertyThatChanged == FName(TEXT("ParameterName")))
+					{
+						Material->UpdateExpressionParameterName(SelectedNode->MaterialExpression);
+					}
+					else if (NameOfPropertyThatChanged == FName(TEXT("ParamNames")))
+					{
+						Material->UpdateExpressionDynamicParameterNames(SelectedNode->MaterialExpression);
+					}
+					else
+					{
+						Material->PropagateExpressionParameterChanges(SelectedNode->MaterialExpression);
+					}
+				}
+			}
+		}
+
+		// Prevent constant recompilation of materials while properties are being interacted with
+		if( PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive )
+		{
+			// Also prevent recompilation when properties have no effect on material output
+			const FName PropertyName = PropertyChangedEvent.MemberProperty ? PropertyChangedEvent.MemberProperty->GetFName() : NAME_None;
+			if (PropertyName != GET_MEMBER_NAME_CHECKED(UMaterialExpressionComment, Text)
+			&& PropertyName != GET_MEMBER_NAME_CHECKED(UMaterialExpressionComment, CommentColor)
+			&& PropertyName != GET_MEMBER_NAME_CHECKED(UMaterialExpression, Desc))
+			{
+				// Update the current preview material.
+				UpdatePreviewMaterial();
+				RefreshExpressionPreviews();
+				RegenerateCodeView();
+			}
+
+			UpdateSearch(false);
+		}
+
+		delete ScopedTransaction;
+		ScopedTransaction = NULL;
+
+		Material->MarkPackageDirty();
+		SetMaterialDirty();
+	}
 
 void FMaterialEditor::ToggleCollapsed(UMaterialExpression* MaterialExpression)
 {

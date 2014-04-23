@@ -1133,7 +1133,7 @@ void FBlueprintEditor::PostRegenerateMenusAndToolbars()
 				SNew(STextBlock)
 				.ColorAndOpacity( FSlateColor::UseSubduedForeground() )
 				.ShadowOffset( FVector2D::UnitVector )
-				.Text(LOCTEXT("BlueprintEditor_ParentClass", "Parent class: ").ToString())
+				.Text(LOCTEXT("BlueprintEditor_ParentClass", "Parent class: "))
 			]
 			+SHorizontalBox::Slot()
 			.AutoWidth()
@@ -1148,8 +1148,8 @@ void FBlueprintEditor::PostRegenerateMenusAndToolbars()
 			[
 				SNew(STextBlock)
 				.ShadowOffset( FVector2D::UnitVector )
-				.Text(this, &FBlueprintEditor::GetParentClassName)
-				.ToolTipText(LOCTEXT("ParentClassToolTip", "The class that the current Blueprint is based on. The parent provides the base definition, which the current Blueprint extends.").ToString())
+				.Text(this, &FBlueprintEditor::GetParentClassNameText)
+				.ToolTipText(LOCTEXT("ParentClassToolTip", "The class that the current Blueprint is based on. The parent provides the base definition, which the current Blueprint extends."))
 				.Visibility(this, &FBlueprintEditor::GetParentClassNameVisibility)
 			]
 			+SHorizontalBox::Slot()
@@ -1161,7 +1161,7 @@ void FBlueprintEditor::PostRegenerateMenusAndToolbars()
 				.OnClicked( this, &FBlueprintEditor::OnFindParentClassInContentBrowserClicked )
 				.IsEnabled( this, &FBlueprintEditor::IsParentClassABlueprint )
 				.Visibility( this, &FBlueprintEditor::ParentClassButtonsVisibility )
-				.ToolTipText( LOCTEXT("FindParentInCBToolTip", "Find parent in Content Browser").ToString() )
+				.ToolTipText( LOCTEXT("FindParentInCBToolTip", "Find parent in Content Browser") )
 				.ContentPadding(4.0f)
 				.ForegroundColor( FSlateColor::UseForeground() )
 				[
@@ -1178,7 +1178,7 @@ void FBlueprintEditor::PostRegenerateMenusAndToolbars()
 				.OnClicked( this, &FBlueprintEditor::OnEditParentClassClicked )
 				.IsEnabled( this, &FBlueprintEditor::IsParentClassABlueprint )
 				.Visibility( this, &FBlueprintEditor::ParentClassButtonsVisibility )
-				.ToolTipText( LOCTEXT("EditParentClassToolTip", "Open parent in editor").ToString() )
+				.ToolTipText( LOCTEXT("EditParentClassToolTip", "Open parent in editor") )
 				.ContentPadding(4.0f)
 				.ForegroundColor( FSlateColor::UseForeground() )
 				[
@@ -1209,10 +1209,10 @@ void FBlueprintEditor::PostRegenerateMenusAndToolbars()
 	}
 }
 
-FString FBlueprintEditor::GetParentClassName() const
+FText FBlueprintEditor::GetParentClassNameText() const
 {
 	UClass* ParentClass = (GetBlueprintObj() != NULL) ? GetBlueprintObj()->ParentClass : NULL;
-	return ((ParentClass != NULL) ? FText::FromName( ParentClass->GetFName() ) : LOCTEXT("BlueprintEditor_NoParentClass", "None")).ToString();
+	return (ParentClass != NULL) ? FText::FromName( ParentClass->GetFName() ) : LOCTEXT("BlueprintEditor_NoParentClass", "None");
 }
 
 bool FBlueprintEditor::IsParentClassOfObjectABlueprint( const UBlueprint* Blueprint ) const
@@ -1297,7 +1297,7 @@ void FBlueprintEditor::OnEditParentClassNativeCodeClicked()
 FText FBlueprintEditor::GetTextForNativeParentClassHeaderLink() const
 {
 	// it could be done using FSourceCodeNavigation, but it could be slow
-	return FText::FromString(FString::Printf(TEXT("%s.h"), *GetParentClassName()));
+	return FText::FromString(FString::Printf(TEXT("%s.h"), *GetParentClassNameText().ToString()));
 }
 
 FReply FBlueprintEditor::OnFindParentClassInContentBrowserClicked()
@@ -5338,29 +5338,29 @@ void FBlueprintEditor::OnAddNewDelegate()
 
 void FBlueprintEditor::NewDocument_OnClicked(ECreatedDocumentType GraphType)
 {
-	FString DocumentNameString;
+	FText DocumentNameText;
 	bool bResetMyBlueprintFilter = false;
 
 	switch (GraphType)
 	{
 	case CGT_NewFunctionGraph:
-		DocumentNameString = LOCTEXT("NewDocFuncName", "NewFunction").ToString();
+		DocumentNameText = LOCTEXT("NewDocFuncName", "NewFunction");
 		bResetMyBlueprintFilter = true;
 		break;
 	case CGT_NewEventGraph:
-		DocumentNameString = LOCTEXT("NewDocEventGraphName", "NewEventGraph").ToString();
+		DocumentNameText = LOCTEXT("NewDocEventGraphName", "NewEventGraph");
 		bResetMyBlueprintFilter = true;
 		break;
 	case CGT_NewMacroGraph:
-		DocumentNameString = LOCTEXT("NewDocMacroName", "NewMacro").ToString();
+		DocumentNameText = LOCTEXT("NewDocMacroName", "NewMacro");
 		bResetMyBlueprintFilter = true;
 		break;
 	case CGT_NewAnimationGraph:
-		DocumentNameString = LOCTEXT("NewDocAnimationGraphName", "NewAnimationGraph").ToString();
+		DocumentNameText = LOCTEXT("NewDocAnimationGraphName", "NewAnimationGraph");
 		bResetMyBlueprintFilter = true;
 		break;
 	default:
-		DocumentNameString = LOCTEXT("NewDocNewName", "NewDocument").ToString();
+		DocumentNameText = LOCTEXT("NewDocNewName", "NewDocument");
 		break;
 	}
 	
@@ -5370,13 +5370,13 @@ void FBlueprintEditor::NewDocument_OnClicked(ECreatedDocumentType GraphType)
 		MyBlueprintWidget->OnResetItemFilter();
 	}
 
-	FName DocumentName = FName(*DocumentNameString);
+	FName DocumentName = FName(*DocumentNameText.ToString());
 
 	// Make sure the new name is valid
 	int32 Index = 0;
 	while (!FBlueprintEditorUtils::IsGraphNameUnique(GetBlueprintObj(), DocumentName))
 	{
-		DocumentName = FName(*FString::Printf(TEXT("%s%i"), *DocumentNameString, Index));
+		DocumentName = FName(*FString::Printf(TEXT("%s%i"), *DocumentNameText.ToString(), Index));
 		++Index;
 	}
 

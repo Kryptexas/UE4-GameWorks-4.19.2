@@ -277,7 +277,7 @@ private:
 	void OnDeleteSelectedTracks();
 
 	/** Get the name of the timeline we are editing */
-	FString GetTimelineName() const;
+	FText GetTimelineName() const;
 
 	/** Get state of autoplay box*/
 	ESlateCheckBoxState::Type IsAutoPlayChecked() const;

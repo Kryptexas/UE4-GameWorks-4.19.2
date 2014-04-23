@@ -117,7 +117,7 @@ TSharedRef<SWidget> SSurfaceProperties::ConstructTexturePan()
 	.Padding(0,0,0,5)
 	[
 		SNew(STextBlock)
-		.Text( LOCTEXT("Pan", "Pan:").ToString() )
+		.Text( LOCTEXT("Pan", "Pan:") )
 	];
 
 	TSharedPtr<SHorizontalBox> HorizontalBox;
@@ -148,7 +148,7 @@ TSharedRef<SWidget> SSurfaceProperties::ConstructTexturePan()
 			.IsChecked( this, &SSurfaceProperties::IsUsingNegativePanning, Channels[i] )
 			.OnCheckStateChanged( this, &SSurfaceProperties::OnTogglePanningDirection, Channels[i])
 			.Style( FEditorStyle::Get(), "TransparentCheckBox" )
-			.ToolTipText( LOCTEXT("InvertPanningDirection", "Toggle panning direction.").ToString() )
+			.ToolTipText( LOCTEXT("InvertPanningDirection", "Toggle panning direction.") )
 			[
 				SNew( SImage )
 				.Image( this, &SSurfaceProperties::GetTogglePanDirectionImage, Channels[i] )
@@ -176,7 +176,7 @@ TSharedRef<SWidget> SSurfaceProperties::ConstructTexturePan()
 			.HAlign(HAlign_Center)
 			.VAlign(VAlign_Center)
 			.Text(ButtonFields[i])
-			.ToolTipText(LOCTEXT("PanUTooltip", "Pans U texture coordinate").ToString())
+			.ToolTipText(LOCTEXT("PanUTooltip", "Pans U texture coordinate"))
 			.OnClicked(this,&SSurfaceProperties::OnPanTexture,ButtonIncriments[i],SSurfaceProperties::UChannel)
 		];
 	
@@ -188,7 +188,7 @@ TSharedRef<SWidget> SSurfaceProperties::ConstructTexturePan()
 			.HAlign(HAlign_Center)
 			.VAlign(VAlign_Center)
 			.Text(ButtonFields[i])
-			.ToolTipText(LOCTEXT("PanVTooltip", "Pans V texture coordinate").ToString())
+			.ToolTipText(LOCTEXT("PanVTooltip", "Pans V texture coordinate"))
 			.OnClicked(this,&SSurfaceProperties::OnPanTexture,ButtonIncriments[i],SSurfaceProperties::VChannel)
 		];
 	}
@@ -212,8 +212,8 @@ TSharedRef<SWidget> SSurfaceProperties::ConstructTexturePan()
 				.HAlign(HAlign_Center)
 				[
 					SNew(STextBlock)
-					.Text(LOCTEXT("PanToolCustomPan", "---").ToString())
-					.ToolTipText(LOCTEXT("PanToolCustomPanToolTip", "Set Custom pan amount").ToString())
+					.Text(LOCTEXT("PanToolCustomPan", "---"))
+					.ToolTipText(LOCTEXT("PanToolCustomPanToolTip", "Set Custom pan amount"))
 				]
 			] 
 			.MenuContent()
@@ -247,7 +247,7 @@ TSharedRef<SWidget> SSurfaceProperties::ConstructTextureRotate()
 	.Padding(0,0,5,5)
 	[
 		SNew (STextBlock)
-		.Text(LOCTEXT("RotateTitle", "Rotate:").ToString())
+		.Text(LOCTEXT("RotateTitle", "Rotate:"))
 	];
 
 	TSharedPtr<SHorizontalBox> RotateBox;
@@ -267,7 +267,7 @@ TSharedRef<SWidget> SSurfaceProperties::ConstructTextureRotate()
 		.IsChecked( this, &SSurfaceProperties::IsUsingNegativeRotation )
 		.OnCheckStateChanged( this, &SSurfaceProperties::OnToggleRotationDirection )
 		.Style( FEditorStyle::Get(), "TransparentCheckBox" )
-		.ToolTipText( LOCTEXT("InvertRotation", "Toggle Rotation direction.").ToString() )
+		.ToolTipText( LOCTEXT("InvertRotation", "Toggle Rotation direction.") )
 		[
 			SNew( SImage )
 			.Image( this, &SSurfaceProperties::GetToggleRotationDirectionImage )
@@ -276,7 +276,7 @@ TSharedRef<SWidget> SSurfaceProperties::ConstructTextureRotate()
 	];
 
 	// Rotation button fields:
-	const static FString ButtonFields[] = {"45", "90", LOCTEXT("RotateCustom", "---").ToString()};
+	const static FText ButtonFields[] = { LOCTEXT("Rotate45Degrees", "45"), LOCTEXT("Rotate45Degrees", "90"), LOCTEXT("RotateCustom", "---") };
 	const static int32 RotationValues[] = {45, 90, -1};
 	const static RotationAction RotationActions[] = {Rotate,Rotate,RotateCustom};
 	
@@ -303,7 +303,7 @@ TSharedRef<SWidget> SSurfaceProperties::ConstructTextureRotate()
 					[
 						SNew(STextBlock)
 						.Text(ButtonFields[Idx])
-						.ToolTipText(LOCTEXT("RotateToolTip_Custom", "Sets a custom rotate amount").ToString())
+						.ToolTipText(LOCTEXT("RotateToolTip_Custom", "Sets a custom rotate amount"))
 					]
 				] 
 				.MenuContent()
@@ -331,7 +331,7 @@ TSharedRef<SWidget> SSurfaceProperties::ConstructTextureRotate()
 				.VAlign(VAlign_Center)
 				.HAlign(HAlign_Center)
 				.Text(ButtonFields[Idx])
-				.ToolTipText(LOCTEXT("RotateToolTip", "Rotate texture").ToString())
+				.ToolTipText(LOCTEXT("RotateToolTip", "Rotate texture"))
 				.OnClicked(this,&SSurfaceProperties::OnRotateTexture,RotationValues[Idx],RotationActions[Idx])
 			];
 		}
@@ -351,7 +351,7 @@ TSharedRef<SWidget> SSurfaceProperties::ConstructTextureFlip()
 	.Padding(0,0,5,5)
 	[
 		SNew (STextBlock)
-		.Text(LOCTEXT("FlipTitle", "Flip:").ToString())
+		.Text(LOCTEXT("FlipTitle", "Flip:"))
 	];
 
 	Parent->AddSlot()
@@ -361,7 +361,7 @@ TSharedRef<SWidget> SSurfaceProperties::ConstructTextureFlip()
 	];
 
 	// Flip button fields:
-	const static FString ButtonFields[] = {LOCTEXT("RotateFlipU", "Flip U").ToString(), LOCTEXT("RotateFlipV", "Flip V").ToString()};
+	const static FText ButtonFields[] = {LOCTEXT("RotateFlipU", "Flip U"), LOCTEXT("RotateFlipV", "Flip V")};
 	const static TextureCoordChannel TextureCoordinateChannels[] = {UChannel,VChannel};
 
 	// create flip controls
@@ -377,7 +377,7 @@ TSharedRef<SWidget> SSurfaceProperties::ConstructTextureFlip()
 			.HAlign(HAlign_Center)
 			.ContentPadding(FMargin(0,5))
 			.Text(ButtonFields[Idx])
-			.ToolTipText(LOCTEXT("FlipToolTip", "Flip texture").ToString())
+			.ToolTipText(LOCTEXT("FlipToolTip", "Flip texture"))
 			.OnClicked(this,&SSurfaceProperties::OnFlipTexture,TextureCoordinateChannels[Idx])
 		];
 	}
@@ -401,7 +401,7 @@ TSharedRef<SWidget> SSurfaceProperties::ConstructTextureScale()
 			[
 				SNew(SHyperlink)
 					.Text(this, &SSurfaceProperties::GetScalingLabel)
-					.ToolTipText(LOCTEXT("ScalingRelativeToggle", "Toggle between Absolute and Relative scaling").ToString())
+					.ToolTipText(LOCTEXT("ScalingRelativeToggle", "Toggle between Absolute and Relative scaling"))
 					.OnNavigate( this, &SSurfaceProperties::OnScaleLabelClicked )
 					.TextStyle(FEditorStyle::Get(), "DetailsView.HyperlinkStyle")
 			]
@@ -464,7 +464,7 @@ TSharedRef<SWidget> SSurfaceProperties::ConstructTextureScale()
 		.IsChecked( this, &SSurfaceProperties::IsPreserveScaleRatioChecked )
 		.OnCheckStateChanged( this, &SSurfaceProperties::OnPreserveScaleRatioToggled )
 		.Style( FEditorStyle::Get(), "TransparentCheckBox" )
-		.ToolTipText( LOCTEXT("PreserveScaleSurfaceToolTip", "When locked changes to ether scaling value will be applied to the other.").ToString() )
+		.ToolTipText( LOCTEXT("PreserveScaleSurfaceToolTip", "When locked changes to ether scaling value will be applied to the other.") )
 		[
 			SNew( SImage )
 			.Image( this, &SSurfaceProperties::GetPreserveScaleRatioImage )
@@ -480,8 +480,8 @@ TSharedRef<SWidget> SSurfaceProperties::ConstructTextureScale()
 	.HAlign(HAlign_Right)
 	[
 		SNew(SButton)
-		.Text(LOCTEXT("ApplyScaling", "Apply").ToString())
-		.ToolTipText(LOCTEXT("ApplyScalingToolTip", "Apply scaling to selected surfaces").ToString())
+		.Text(LOCTEXT("ApplyScaling", "Apply"))
+		.ToolTipText(LOCTEXT("ApplyScalingToolTip", "Apply scaling to selected surfaces"))
 		.OnClicked(this, &SSurfaceProperties::OnApplyScaling)
 	];
 
@@ -491,8 +491,6 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 TSharedRef<SWidget> SSurfaceProperties::ConstructLighting()
 {
-	FString MaterialNameForTitle;
-
 	LevelLightmassSettingsObjects.Empty();
 	SelectedLightmassSettingsObjects.Empty();
 	
@@ -528,30 +526,6 @@ TSharedRef<SWidget> SSurfaceProperties::ConstructLighting()
 						ObjArray.Add(LightmassSettingsObject);
 						SelectedLightmassSettingsObjects.Add(LightmassSettingsObject);
 					}
-
-					//Find Material Name for title
-					FString NewName;
-					if (Surf.Material)
-					{
-						NewName = Surf.Material->GetName();
-					}
-					else
-					{
-						NewName = NSLOCTEXT("UnrealEd", "SurfaceProperties_NoMaterial", "No Material").ToString();
-					}
-					//if we've never assigned a material before
-					if (MaterialNameForTitle.Len() == 0)
-					{
-						MaterialNameForTitle = NewName;
-					}
-					else
-					{
-						//already been assigned once, check if it's the same
-						if (NewName != MaterialNameForTitle)
-						{
-							MaterialNameForTitle = NSLOCTEXT("UnrealEd", "SurfaceProperties_MultipleMaterials", "Multiple Materials").ToString();
-						}
-					}
 				}
 			}
 			LevelLightmassSettingsObjects.Add(ObjArray);
@@ -566,7 +540,7 @@ TSharedRef<SWidget> SSurfaceProperties::ConstructLighting()
 	.Padding(0,0,0,5)
 	[
 		SNew(STextBlock)
-		.Text(LOCTEXT("LightingTitle", "Lighting:").ToString())
+		.Text(LOCTEXT("LightingTitle", "Lighting:"))
 	];
 
 	Parent->AddSlot()
@@ -578,7 +552,7 @@ TSharedRef<SWidget> SSurfaceProperties::ConstructLighting()
 		.Padding(0,0,10,5)
 		[
 			SNew(STextBlock)
-			.Text(LOCTEXT("LightingLightMapResolution", "Lightmap Resolution:").ToString())
+			.Text(LOCTEXT("LightingLightMapResolution", "Lightmap Resolution:"))
 		]
 
 		+SHorizontalBox::Slot()
@@ -588,7 +562,7 @@ TSharedRef<SWidget> SSurfaceProperties::ConstructLighting()
 		[
 			SNew(SNumericEntryBox<float>)
 			.OnValueCommitted(this, &SSurfaceProperties::OnLightmapResolutionCommitted)
-			.UndeterminedString( LOCTEXT("MultipleValues", "Multiple Values").ToString() )
+			.UndeterminedString( LOCTEXT("MultipleValues", "Multiple Values") )
 			.Value(this, &SSurfaceProperties::GetLightmapResolutionValue)
 		]
 
@@ -874,9 +848,9 @@ void SSurfaceProperties::OnScaleLabelClicked( )
 	GConfig->SetBool(TEXT("SurfaceSelection"), TEXT("UseRelativeScaling"), bUseRelativeScaling, GEditorUserSettingsIni);
 }
 
-FString SSurfaceProperties::GetScalingLabel() const
+FText SSurfaceProperties::GetScalingLabel() const
 {
-	return (bUseRelativeScaling) ? LOCTEXT("ScaleRelativeTitle", "Scale Relative:").ToString() : LOCTEXT("ScaleTitle", "Scale:").ToString();
+	return (bUseRelativeScaling) ? LOCTEXT("ScaleRelativeTitle", "Scale Relative:") : LOCTEXT("ScaleTitle", "Scale:");
 }
 
 TSharedRef< ITableRow > SSurfaceProperties::OnGenerateScaleTableRow( TSharedPtr<FString> Item, const TSharedRef< STableViewBase >& OwnerTable )

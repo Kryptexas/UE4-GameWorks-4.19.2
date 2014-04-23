@@ -49,7 +49,7 @@ TSharedRef<SWidget> SKismetInspector::MakeContextualEditingWidget(struct FKismet
 			.Padding( 2.0f, 14.0f, 2.0f, 2.0f )
 			[
 				SNew( STextBlock )
-				.Text( LOCTEXT("NoNodesSelected", "Select a node to edit details.").ToString() )
+				.Text( LOCTEXT("NoNodesSelected", "Select a node to edit details.") )
 			];
 		}
 		else
@@ -89,11 +89,11 @@ TSharedRef<SWidget> SKismetInspector::MakeContextualEditingWidget(struct FKismet
 				.VAlign( VAlign_Top )
 				[
 					SNew(SCheckBox)
-					.ToolTipText(LOCTEXT("TogglePublicView", "Toggle Public View").ToString())
+					.ToolTipText(LOCTEXT("TogglePublicView", "Toggle Public View"))
 					.IsChecked(this, &SKismetInspector::GetPublicViewCheckboxState)
 					.OnCheckStateChanged( this, &SKismetInspector::SetPublicViewCheckboxState)
 					[
-						SNew(STextBlock) .Text(LOCTEXT("PublicViewCheckboxLabel", "Public View").ToString())
+						SNew(STextBlock) .Text(LOCTEXT("PublicViewCheckboxLabel", "Public View"))
 					]
 				];
 		}

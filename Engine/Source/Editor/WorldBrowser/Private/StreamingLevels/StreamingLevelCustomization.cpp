@@ -43,7 +43,7 @@ void FStreamingLevelCustomization::CustomizeDetails(IDetailLayoutBuilder& Detail
 		.NameContent()
 		[
 			SNew(STextBlock)
-				.Text(LOCTEXT("Position", "Position").ToString())
+				.Text(LOCTEXT("Position", "Position"))
 				.Font(IDetailLayoutBuilder::GetDetailFont())
 		]
 		.ValueContent()
@@ -67,7 +67,7 @@ void FStreamingLevelCustomization::CustomizeDetails(IDetailLayoutBuilder& Detail
 		.NameContent()
 		[
 			SNew(STextBlock)
-				.Text(LOCTEXT("Rotation", "Rotation").ToString())
+				.Text(LOCTEXT("Rotation", "Rotation"))
 				.Font(IDetailLayoutBuilder::GetDetailFont())
 		]
 		.ValueContent()

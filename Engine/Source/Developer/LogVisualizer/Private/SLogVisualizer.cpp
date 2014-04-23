@@ -183,8 +183,8 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 						.Content()
 						[
 							SNew(STextBlock)
-							.Text(LOCTEXT("VisLogDrawLogsPath", "Draw Log\'s path").ToString())
-							.ToolTipText(LOCTEXT("VisLogDrawLogsPathTooltip", "Toggle whether path of composed of log entries\' locations").ToString())
+							.Text(LOCTEXT("VisLogDrawLogsPath", "Draw Log\'s path"))
+							.ToolTipText(LOCTEXT("VisLogDrawLogsPathTooltip", "Toggle whether path of composed of log entries\' locations"))
 						]
 					]
 					+SVerticalBox::Slot()
@@ -196,8 +196,8 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 						.Content()
 						[
 							SNew(STextBlock)
-							.Text(LOCTEXT("VisLogIgnoreTrivialLogs", "Ignore trivial logs").ToString())
-							.ToolTipText(LOCTEXT("VisLogIgnoreTrivialLogsTooltip", "Whether to show trivial logs, i.e. the ones with only one entry.").ToString())
+							.Text(LOCTEXT("VisLogIgnoreTrivialLogs", "Ignore trivial logs"))
+							.ToolTipText(LOCTEXT("VisLogIgnoreTrivialLogsTooltip", "Whether to show trivial logs, i.e. the ones with only one entry."))
 						]
 					]
 				]
@@ -224,7 +224,7 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 						.HeaderRow(
 																																																																																				SNew(SHeaderRow)
 							// ID
-							+SHeaderRow::Column(*NAME_LogName.ToString())
+							+SHeaderRow::Column(NAME_LogName)
 							.SortMode(this, &SLogVisualizer::GetLogsSortMode)
 							.OnSort(this, &SLogVisualizer::OnSortByChanged)
 							.HAlignCell(HAlign_Left)
@@ -237,7 +237,7 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 								.Padding(0.0, 2.0)
 								[
 									SNew(STextBlock)
-									.Text(LOCTEXT("VisLogName", "Log Subject").ToString())
+									.Text(LOCTEXT("VisLogName", "Log Subject"))
 								]
 								+SHorizontalBox::Slot()
 								.AutoWidth()
@@ -250,7 +250,7 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 									.RevertTextOnEscape(true)
 								]
 							]
-							+SHeaderRow::Column(*NAME_LogTimeSpan.ToString())
+							+SHeaderRow::Column(NAME_LogTimeSpan)
 							/*.OnSort(this, &SLogVisualizer::OnSortByChanged)*/
 							.VAlignCell(VAlign_Center)
 							[
@@ -259,8 +259,8 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 								.AutoHeight()
 								[
 									SNew(STextBlock)
-									.Text(LOCTEXT("VisLogTimeSpan", "Overview").ToString())
-									.ToolTipText(LOCTEXT("VisLogTimeSpanTooltip", "Mouse-over to see timestamp, click to show log entry").ToString())
+									.Text(LOCTEXT("VisLogTimeSpan", "Overview"))
+									.ToolTipText(LOCTEXT("VisLogTimeSpanTooltip", "Mouse-over to see timestamp, click to show log entry"))
 								]
 							]
 						)

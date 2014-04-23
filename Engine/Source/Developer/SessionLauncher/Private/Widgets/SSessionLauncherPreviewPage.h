@@ -46,22 +46,22 @@ protected:
 private:
 
 	// Callback for getting the text in the 'Build Configuration' text block.
-	FString HandleBuildConfigurationTextBlockText( ) const;
+	FText HandleBuildConfigurationTextBlockText( ) const;
 
 	// Callback for getting the list of platforms to build for.
-	FString HandleBuildPlatformsTextBlockText( ) const;
+	FText HandleBuildPlatformsTextBlockText() const;
 
 	// Callback for getting the text in the 'Command Line' text block.
-	FString HandleCommandLineTextBlockText( ) const;
+	FText HandleCommandLineTextBlockText() const;
 
 	// Callback for getting the text in the 'Cooked Cultures' text block.
-	FString HandleCookedCulturesTextBlockText( ) const;
+	FText HandleCookedCulturesTextBlockText() const;
 
 	// Callback for getting the text in the 'Cooked Maps' text block.
-	FString HandleCookedMapsTextBlockText( ) const;
+	FText HandleCookedMapsTextBlockText() const;
 
 	// Callback for getting the text in the 'Cooker Options' text block.
-	FString HandleCookerOptionsTextBlockText( ) const;
+	FText HandleCookerOptionsTextBlockText() const;
 
 	// Callback for getting the visibility of the specified cook summary box.
 	EVisibility HandleCookSummaryBoxVisibility( ELauncherProfileCookModes::Type CookMode ) const;

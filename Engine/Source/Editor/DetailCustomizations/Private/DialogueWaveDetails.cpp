@@ -104,8 +104,8 @@ void FDialogueWaveDetails::CustomizeDetails( class IDetailLayoutBuilder& DetailB
 		.HAlign(HAlign_Center)
 		[
 			SNew( SButton )
-			.Text( LOCTEXT("AddDialogueContext", "Add Dialogue Context").ToString() )
-			.ToolTipText( LOCTEXT("AddDialogueContextToolTip", "Adds a new context for dialogue based on speakers, those spoken to, and the associated soundwave.").ToString() )
+			.Text( LOCTEXT("AddDialogueContext", "Add Dialogue Context") )
+			.ToolTipText( LOCTEXT("AddDialogueContextToolTip", "Adds a new context for dialogue based on speakers, those spoken to, and the associated soundwave.") )
 			.OnClicked( FOnClicked::CreateSP( this, &FDialogueWaveDetails::AddDialogueContextMapping_OnClicked ) )
 		]
 	];

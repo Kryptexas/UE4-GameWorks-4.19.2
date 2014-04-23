@@ -119,7 +119,7 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 						[
 							SNew(STextBlock)
 							.TextStyle( FEditorStyle::Get(), "NewClassDialog.PageTitle" )
-							.Text( LOCTEXT( "ParentClassTitle", "Choose Parent Class" ).ToString() )
+							.Text( LOCTEXT( "ParentClassTitle", "Choose Parent Class" ) )
 						]
 
 						// Title spacer
@@ -142,7 +142,7 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 							.VAlign(VAlign_Center)
 							[
 								SNew(STextBlock)
-								.Text( FText::Format( LOCTEXT("ChooseParentClassDescription", "You are about to add a C++ source code file. To compile these files you must have {0} installed."), FSourceCodeNavigation::GetSuggestedSourceCodeIDE() ).ToString() )
+								.Text( FText::Format( LOCTEXT("ChooseParentClassDescription", "You are about to add a C++ source code file. To compile these files you must have {0} installed."), FSourceCodeNavigation::GetSuggestedSourceCodeIDE() ) )
 							]
 
 							// Full tree checkbox
@@ -156,7 +156,7 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 								.OnCheckStateChanged( this, &SNewClassDialog::OnFullClassTreeChanged )
 								[
 									SNew(STextBlock)
-									.Text( LOCTEXT( "FullClassTree", "Show All Classes" ).ToString() )
+									.Text( LOCTEXT( "FullClassTree", "Show All Classes" ) )
 								]
 							]
 						]
@@ -211,7 +211,7 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 							[
 								SNew(STextBlock)
 								.TextStyle( FEditorStyle::Get(), "NewClassDialog.SelectedParentClassLabel" )
-								.Text( LOCTEXT( "ParentClassLabel", "Selected Class" ).ToString() )
+								.Text( LOCTEXT( "ParentClassLabel", "Selected Class" ) )
 							]
 
 							// Class selection preview
@@ -261,7 +261,7 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 							.Padding(0, 0, 0, 5)
 							[
 								SNew(STextBlock)
-								.Text( LOCTEXT("ClassNameDescription", "Enter a name for your new class. Class names may only contain alphanumeric characters, and may not contain a space.").ToString() )
+								.Text( LOCTEXT("ClassNameDescription", "Enter a name for your new class. Class names may only contain alphanumeric characters, and may not contain a space.") )
 							]
 
 							+SVerticalBox::Slot()
@@ -269,7 +269,7 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 							.Padding(0, 0, 0, 20)
 							[
 								SNew(STextBlock)
-								.Text( LOCTEXT("ClassNameDetails", "When you click the \"Create\" button below, a header (.h) file and a source (.cpp) file will be made using this name.").ToString() )
+								.Text( LOCTEXT("ClassNameDetails", "When you click the \"Create\" button below, a header (.h) file and a source (.cpp) file will be made using this name.") )
 							]
 
 							// Name Error label
@@ -306,7 +306,7 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 								[
 									SNew(STextBlock)
 									.TextStyle( FEditorStyle::Get(), "NewClassDialog.SelectedParentClassLabel" )
-									.Text( LOCTEXT( "NameLabel", "Name" ).ToString() )
+									.Text( LOCTEXT( "NameLabel", "Name" ) )
 								]
 
 								// Name edit box
@@ -347,7 +347,7 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 									.AutoWidth()
 									[
 										SNew(SHyperlink)
-											.Text( FText::Format( LOCTEXT("IDEDownloadLinkText", "Download {0}"), FSourceCodeNavigation::GetSuggestedSourceCodeIDE() ).ToString() )
+											.Text( FText::Format( LOCTEXT("IDEDownloadLinkText", "Download {0}"), FSourceCodeNavigation::GetSuggestedSourceCodeIDE() ) )
 											.OnNavigate( this, &SNewClassDialog::OnDownloadIDEClicked, FSourceCodeNavigation::GetSuggestedSourceCodeIDEDownloadURL() )
 											.Visibility( this, &SNewClassDialog::GetGlobalErrorLabelIDELinkVisibility )
 									]

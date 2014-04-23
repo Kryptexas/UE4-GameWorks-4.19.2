@@ -134,7 +134,7 @@ void FAnimTransitionNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 				.HAlign(HAlign_Right)
 				.OnClicked(this, &FAnimTransitionNodeDetails::OnClickEditBlendGraph)
 				.Visibility( this, &FAnimTransitionNodeDetails::GetBlendGraphButtonVisibility )
-				.Text(LOCTEXT("EditBlendGraph", "Edit Blend Graph").ToString())
+				.Text(LOCTEXT("EditBlendGraph", "Edit Blend Graph"))
 			]
 		];
 

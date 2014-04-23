@@ -637,8 +637,18 @@ public:
 	 */
 	FString ToString() const;
 
+	/**
+	* Get a locale aware textual representation of this vector.
+	*
+	* @return A string describing the vector.
+	*/
+	FText ToText() const;
+
 	/** Get a short textural representation of this vector, for compact readable logging. */
 	FString ToCompactString() const;
+
+	/** Get a short locale aware textural representation of this vector, for compact readable logging. */
+	FText ToCompactText() const;
 
 	/**
 	 * Initialize this Vector based on an FString. The String is expected to contain X=, Y=, Z=.
@@ -1579,6 +1589,68 @@ FORCEINLINE bool FVector::IsUnit(float LengthSquaredTolerance ) const
 FORCEINLINE FString FVector::ToString() const
 {
 	return FString::Printf(TEXT("X=%3.3f Y=%3.3f Z=%3.3f"), X, Y, Z);
+}
+
+FORCEINLINE FText FVector::ToText() const
+{
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("X"), X);
+	Args.Add(TEXT("Y"), Y);
+	Args.Add(TEXT("Z"), Z);
+
+	return FText::Format(NSLOCTEXT("Core", "Vector3", "X={X} Y={Y} Z={Z}"), Args);
+}
+
+FORCEINLINE FText FVector::ToCompactText() const
+{
+	if (IsNearlyZero())
+	{
+		return NSLOCTEXT("Core", "Vector3_CompactZeroVector", "V(0)");
+	}
+
+	const bool XIsNotZero = !FMath::IsNearlyZero(X);
+	const bool YIsNotZero = !FMath::IsNearlyZero(Y);
+	const bool ZIsNotZero = !FMath::IsNearlyZero(Z);
+
+	FNumberFormattingOptions FormatRules;
+	FormatRules.MinimumFractionalDigits = 2;
+	FormatRules.MinimumIntegralDigits = 0;
+
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("X"), FText::AsNumber(X, &FormatRules));
+	Args.Add(TEXT("Y"), FText::AsNumber(Y, &FormatRules));
+	Args.Add(TEXT("Z"), FText::AsNumber(Z, &FormatRules));
+
+	if (XIsNotZero && YIsNotZero && ZIsNotZero)
+	{
+		return FText::Format(NSLOCTEXT("Core", "Vector3_CompactXYZ", "V(X={X}, Y={Y}, Z={Z})"), Args);
+	}
+	else if (!XIsNotZero && YIsNotZero && ZIsNotZero)
+	{
+		return FText::Format(NSLOCTEXT("Core", "Vector3_CompactYZ", "V(Y={Y}, Z={Z})"), Args);
+	}
+	else if (XIsNotZero && !YIsNotZero && ZIsNotZero)
+	{
+		return FText::Format(NSLOCTEXT("Core", "Vector3_CompactXZ", "V(X={X}, Z={Z})"), Args);
+	}
+	else if (XIsNotZero && YIsNotZero && !ZIsNotZero)
+	{
+		return FText::Format(NSLOCTEXT("Core", "Vector3_CompactXY", "V(X={X}, Y={Y})"), Args);
+	}
+	else if (!XIsNotZero && !YIsNotZero && ZIsNotZero)
+	{
+		return FText::Format(NSLOCTEXT("Core", "Vector3_CompactZ", "V(Z={Z})"), Args);
+	}
+	else if (XIsNotZero && !YIsNotZero && !ZIsNotZero)
+	{
+		return FText::Format(NSLOCTEXT("Core", "Vector3_CompactX", "V(X={X})"), Args);
+	}
+	else if (!XIsNotZero && YIsNotZero && !ZIsNotZero)
+	{
+		return FText::Format(NSLOCTEXT("Core", "Vector3_CompactY", "V(Y={Y})"), Args);
+	}
+
+	return NSLOCTEXT("Core", "Vector3_CompactZeroVector", "V(0)");
 }
 
 FORCEINLINE FString FVector::ToCompactString() const

@@ -49,7 +49,7 @@ public:
 	// widget event handlers
 	TSharedRef<SWidget> HandleResponseComboBoxGenerateWidget(TSharedPtr<FString> StringItem);
 	void HandleResponseComboBoxSelectionChanged(TSharedPtr<FString> StringItem, ESelectInfo::Type SelectInfo);
-	FString HandleResponseComboBoxContentText() const;
+	FText HandleResponseComboBoxContentText() const;
 
 	FText GetName() const;
 	void NewNameEntered(const FText& NewText, ETextCommit::Type CommitInfo);
@@ -118,7 +118,7 @@ void SChannelEditDialog::Construct(const FArguments& InArgs)
 				SNew(STextBlock)
 				.ColorAndOpacity(FSlateColor::UseSubduedForeground())
 				.Font(IDetailLayoutBuilder::GetDetailFont())
-				.Text(LOCTEXT("Dialog_TextTypeHelp", "Type Enter to apply text change. ").ToString())
+				.Text(LOCTEXT("Dialog_TextTypeHelp", "Type Enter to apply text change. "))
 			]
 			// channel name
 			+ SVerticalBox::Slot()
@@ -198,7 +198,7 @@ void SChannelEditDialog::Construct(const FArguments& InArgs)
 				[
 					SNew(SButton)
 					.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
-					.Text(LOCTEXT("SChannelEditDialog_Accept", "Accept").ToString())
+					.Text(LOCTEXT("SChannelEditDialog_Accept", "Accept"))
 					.OnClicked(this, &SChannelEditDialog::OnAccept)
 					.IsEnabled(this, &SChannelEditDialog::IsAcceptAvailable)
 				]
@@ -206,7 +206,7 @@ void SChannelEditDialog::Construct(const FArguments& InArgs)
 				[
 					SNew(SButton)
 					.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
-					.Text(LOCTEXT("SChannelEditDialog_Cancel", "Cancel").ToString())
+					.Text(LOCTEXT("SChannelEditDialog_Cancel", "Cancel"))
 					.OnClicked(this, &SChannelEditDialog::OnCancel)
 				]
 			]
@@ -264,11 +264,11 @@ void SChannelEditDialog::OnTextChanged(const FText& NewText)
 	if(NewName.Find(TEXT(" "))!=INDEX_NONE)
 	{
 		// no white space
-		NameBox->SetError(TEXT("No white space is allowed"));
+		NameBox->SetError(LOCTEXT("ChannelNameValidationWhitespaceError", "No white space is allowed"));
 	}
 	else
 	{
-		NameBox->SetError(TEXT(""));
+		NameBox->SetError(FText::GetEmpty());
 	}
 }
 
@@ -281,7 +281,7 @@ void SChannelEditDialog::NewNameEntered(const FText& NewText, ETextCommit::Type 
 		{
 			ChannelSetup.Name = NewName;
 
-			NameBox->SetError(TEXT(""));
+			NameBox->SetError(FText::GetEmpty());
 		}
 	}
 }
@@ -290,7 +290,7 @@ FText SChannelEditDialog::GetName() const
 {
 	if (ChannelSetup.Name == NAME_None)
 	{
-		return FText::FromString(TEXT(""));
+		return FText::GetEmpty();
 	}
 
 	return FText::FromName(ChannelSetup.Name);
@@ -319,15 +319,15 @@ void SChannelEditDialog::HandleResponseComboBoxSelectionChanged(TSharedPtr<FStri
 	check(false);
 }
 
-FString SChannelEditDialog::HandleResponseComboBoxContentText() const
+FText SChannelEditDialog::HandleResponseComboBoxContentText() const
 {
 	int32 Index = (int32)ChannelSetup.DefaultResponse;
 	if (ResponseComboBoxString.IsValidIndex(Index))
 	{
-		return *ResponseComboBoxString[Index];
+		return FText::FromString(*ResponseComboBoxString[Index]);
 	}
 
-	return FString(TEXT("Select Response"));
+	return LOCTEXT("ChannelResponseTypeMessage", "Select Response");
 }
 
 //====================================================================================
@@ -357,11 +357,11 @@ public:
 	// widget event handlers
 	TSharedRef<SWidget> HandleCollisionEnabledComboBoxGenerateWidget(TSharedPtr<FString> StringItem);
 	void HandleCollisionEnabledComboBoxSelectionChanged(TSharedPtr<FString> StringItem, ESelectInfo::Type SelectInfo);
-	FString HandleCollisionEnabledComboBoxContentText() const;
+	FText HandleCollisionEnabledComboBoxContentText() const;
 
 	TSharedRef<SWidget> HandleObjectTypeComboBoxGenerateWidget(TSharedPtr<FString> StringItem);
 	void HandleObjectTypeComboBoxSelectionChanged(TSharedPtr<FString> StringItem, ESelectInfo::Type SelectInfo);
-	FString HandleObjectTypeComboBoxContentText() const;
+	FText HandleObjectTypeComboBoxContentText() const;
 
 	FText GetName() const;
 	void NewNameEntered(const FText& NewText, ETextCommit::Type CommitInfo);
@@ -769,15 +769,15 @@ void SProfileEditDialog::HandleCollisionEnabledComboBoxSelectionChanged(TSharedP
 	check(false);
 }
 
-FString SProfileEditDialog::HandleCollisionEnabledComboBoxContentText() const
+FText SProfileEditDialog::HandleCollisionEnabledComboBoxContentText() const
 {
 	int32 Index = (int32)ProfileTemplate.CollisionEnabled;
 	if(CollisionEnabledComboBoxString.IsValidIndex(Index))
 	{
-		return *CollisionEnabledComboBoxString[Index];
+		return FText::FromString(*CollisionEnabledComboBoxString[Index]);
 	}
 
-	return FString(TEXT("Select CollisionEnabled"));
+	return LOCTEXT("ProfileCollisionEnabledMessage", "Select CollisionEnabled");
 }
 
 
@@ -813,7 +813,7 @@ void SProfileEditDialog::HandleObjectTypeComboBoxSelectionChanged(TSharedPtr<FSt
 	check(false);
 }
 
-FString SProfileEditDialog::HandleObjectTypeComboBoxContentText() const
+FText SProfileEditDialog::HandleObjectTypeComboBoxContentText() const
 {
 	for(auto Iter = ObjectTypeMapping.CreateConstIterator(); Iter; ++Iter)
 	{
@@ -822,12 +822,12 @@ FString SProfileEditDialog::HandleObjectTypeComboBoxContentText() const
 			int32 Index = Iter.GetIndex();
 			if(ObjectTypeComboBoxString.IsValidIndex(Index))
 			{
-				return *ObjectTypeComboBoxString[Index];
+				return FText::FromString(*ObjectTypeComboBoxString[Index]);
 			}
 		}
 	}
 
-	return FString(TEXT("Select ObjectType"));
+	return LOCTEXT("ProfileObjectTypeMessage", "Select ObjectType");
 }
 
 void SProfileEditDialog::AddCollisionResponse()

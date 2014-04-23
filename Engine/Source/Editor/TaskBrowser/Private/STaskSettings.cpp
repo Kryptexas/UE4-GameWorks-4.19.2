@@ -45,7 +45,7 @@ void STaskSettings::Construct(const FArguments& InArgs)
 				.AutoHeight()
 				.Padding( HeaderPadding )
 				[
-					SNew(STextBlock) .Text( LOCTEXT("Connection", "Connection").ToString() )
+					SNew(STextBlock) .Text( LOCTEXT("Connection", "Connection") )
 				]
 				+SVerticalBox::Slot()
 				.AutoHeight()
@@ -64,7 +64,7 @@ void STaskSettings::Construct(const FArguments& InArgs)
 							.Padding( SmallPadding )
 							.FillWidth( SettingWidth )
 							[
-								SNew(STextBlock) .Text( LOCTEXT("Server", "Server").ToString() )
+								SNew(STextBlock) .Text( LOCTEXT("Server", "Server") )
 							]
 							+SHorizontalBox::Slot()
 							.FillWidth( 0.5f )
@@ -77,7 +77,7 @@ void STaskSettings::Construct(const FArguments& InArgs)
 							.Padding( SmallPadding )
 							.FillWidth( 0.13f )
 							[
-								SNew(STextBlock) .Text( LOCTEXT("Port", "Port").ToString() )
+								SNew(STextBlock) .Text( LOCTEXT("Port", "Port") )
 							]
 							+SHorizontalBox::Slot()
 							.FillWidth( 0.10f )
@@ -96,7 +96,7 @@ void STaskSettings::Construct(const FArguments& InArgs)
 							.Padding( SmallPadding )
 							.FillWidth( SettingWidth )
 							[
-								SNew(STextBlock) .Text( LOCTEXT("Login", "Login").ToString() )
+								SNew(STextBlock) .Text( LOCTEXT("Login", "Login") )
 							]
 							+SHorizontalBox::Slot()
 							.MaxWidth( FieldWidth )
@@ -116,7 +116,7 @@ void STaskSettings::Construct(const FArguments& InArgs)
 							.Padding( SmallPadding )
 							.FillWidth( SettingWidth )
 							[
-								SNew(STextBlock) .Text( LOCTEXT("Password", "Password").ToString() )
+								SNew(STextBlock) .Text( LOCTEXT("Password", "Password") )
 							]
 							+SHorizontalBox::Slot()
 							.MaxWidth( FieldWidth )
@@ -136,7 +136,7 @@ void STaskSettings::Construct(const FArguments& InArgs)
 							.Padding( SmallPadding )
 							.FillWidth( SettingWidth )
 							[
-								SNew(STextBlock) .Text( LOCTEXT("ProjectName", "Project name").ToString() )
+								SNew(STextBlock) .Text( LOCTEXT("ProjectName", "Project name") )
 							]
 							+SHorizontalBox::Slot()
 							.MaxWidth( FieldWidth )
@@ -151,7 +151,7 @@ void STaskSettings::Construct(const FArguments& InArgs)
 				.AutoHeight()
 				.Padding( HeaderPadding )
 				[
-					SNew(STextBlock) .Text( LOCTEXT("Preferences", "Preferences").ToString() )
+					SNew(STextBlock) .Text( LOCTEXT("Preferences", "Preferences") )
 				]
 				+SVerticalBox::Slot()
 				.AutoHeight()
@@ -175,7 +175,7 @@ void STaskSettings::Construct(const FArguments& InArgs)
 							.HAlign(HAlign_Right)
 							.VAlign(VAlign_Center)
 							[
-								SNew(STextBlock) .Text( LOCTEXT("AutoConnectAtStartup", "Auto connect at startup").ToString() )
+								SNew(STextBlock) .Text( LOCTEXT("AutoConnectAtStartup", "Auto connect at startup") )
 							]
 							+SHorizontalBox::Slot()	// Set this box to be as wide as possible, forcing the rest in this row to be right aligned
 							.FillWidth( 1.0f )
@@ -191,7 +191,7 @@ void STaskSettings::Construct(const FArguments& InArgs)
 							.HAlign(HAlign_Right)
 							.VAlign(VAlign_Center)
 							[
-								SNew(STextBlock) .Text( LOCTEXT("UseSingleSignOn", "Use single sign-on").ToString() )
+								SNew(STextBlock) .Text( LOCTEXT("UseSingleSignOn", "Use single sign-on") )
 							]
 						]
 					]
@@ -215,7 +215,7 @@ void STaskSettings::Construct(const FArguments& InArgs)
 						.HAlign(HAlign_Center)
 						.OnClicked( this, &STaskSettings::OnOKClicked )
 						[
-							SNew(STextBlock) .Text( LOCTEXT("OK", "OK").ToString() )
+							SNew(STextBlock) .Text( LOCTEXT("OK", "OK") )
 						]
 					]
 					+SUniformGridPanel::Slot(1,0)
@@ -225,7 +225,7 @@ void STaskSettings::Construct(const FArguments& InArgs)
 						.HAlign(HAlign_Center)
 						.OnClicked( this, &STaskSettings::OnCancelClicked )
 						[
-							SNew(STextBlock) .Text( LOCTEXT("Cancel", "Cancel").ToString() )
+							SNew(STextBlock) .Text( LOCTEXT("Cancel", "Cancel") )
 						]
 					]
 				]

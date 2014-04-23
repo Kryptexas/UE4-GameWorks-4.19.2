@@ -311,7 +311,7 @@ TSharedRef<SHorizontalBox> SDistributionCurveEditor::BuildToolBar()
 				.Padding(4)
 				[
 					SNew(STextBlock)
-					.Text(LOCTEXT("CurrentTab", "Current Tab: ").ToString())
+					.Text(LOCTEXT("CurrentTab", "Current Tab: "))
 					.Visibility( this, &SDistributionCurveEditor::GetLargeIconVisibility )
 				]
 				+SVerticalBox::Slot()
@@ -519,7 +519,7 @@ void SDistributionCurveEditor::OnSetTime()
 
 	TSharedRef<STextEntryPopup> TextEntry = 
 		SNew(STextEntryPopup)
-		.Label(LOCTEXT("SetTime", "Time: ").ToString())
+		.Label(LOCTEXT("SetTime", "Time: "))
 		.DefaultText(FText::FromString( DefaultText ) )
 		.OnTextCommitted(this, &SDistributionCurveEditor::KeyTimeCommitted)
 		.SelectAllTextWhenFocused(true)
@@ -545,7 +545,7 @@ void SDistributionCurveEditor::OnSetValue()
 
 	TSharedRef<STextEntryPopup> TextEntry = 
 		SNew(STextEntryPopup)
-		.Label(LOCTEXT("SetValue", "Value: ").ToString())
+		.Label(LOCTEXT("SetValue", "Value: "))
 		.DefaultText(FText::FromString(DefaultText))
 		.OnTextCommitted(this, &SDistributionCurveEditor::KeyValueCommitted)
 		.SelectAllTextWhenFocused(true)
@@ -767,7 +767,7 @@ void SDistributionCurveEditor::OnScaleTimes(ECurveScaleScope::Type Scope)
 
 	TSharedRef<STextEntryPopup> TextEntry = 
 		SNew(STextEntryPopup)
-		.Label(Label.ToString())
+		.Label(Label)
 		.DefaultText(FText::FromString( DefaultText ))
 		.OnTextCommitted(this, &SDistributionCurveEditor::ScaleTimeCommitted, Scope)
 		.SelectAllTextWhenFocused(true)
@@ -805,7 +805,7 @@ void SDistributionCurveEditor::OnScaleValues(ECurveScaleScope::Type Scope)
 
 	TSharedRef<STextEntryPopup> TextEntry = 
 		SNew(STextEntryPopup)
-		.Label(Label.ToString())
+		.Label(Label)
 		.DefaultText(FText::FromString( DefaultText ))
 		.OnTextCommitted(this, &SDistributionCurveEditor::ScaleValueCommitted, Scope)
 		.SelectAllTextWhenFocused(true)
@@ -964,7 +964,7 @@ void SDistributionCurveEditor::OnCreateTab()
 {
 	TSharedRef<STextEntryPopup> TextEntry = 
 		SNew(STextEntryPopup)
-		.Label(LOCTEXT("SetTabName", "Tab Name: ").ToString())
+		.Label(LOCTEXT("SetTabName", "Tab Name: "))
 		.OnTextCommitted(this, &SDistributionCurveEditor::TabNameCommitted)
 		.ClearKeyboardFocusOnCommit(false);
 

@@ -51,7 +51,7 @@ namespace PackageRestore
 		}
 
 		/** @return The tooltip text for this item  */
-		FString GetToolTip() const
+		FText GetToolTip() const
 		{
 			FFormatNamedArguments Args;
 			Args.Add(TEXT("PackageName"), LOCTEXT("PackageName", "Package Name"));
@@ -62,7 +62,7 @@ namespace PackageRestore
 			Args.Add(TEXT("PackageFileStr"), FText::FromString(PackageFilename));
 			Args.Add(TEXT("AutoSaveFileStr"), FText::FromString(AutoSaveFilename));
 
-			return FText::Format(FText::FromString("{PackageName}: {PackageNameStr}\n\n{PackageFile}: {PackageFileStr}\n\n{AutoSaveFile}: {AutoSaveFileStr}"), Args).ToString();
+			return FText::Format(FText::FromString("{PackageName}: {PackageNameStr}\n\n{PackageFile}: {PackageFileStr}\n\n{AutoSaveFile}: {AutoSaveFileStr}"), Args);
 		}
 
 		/** @return Process a request to navigate to the package location */
@@ -128,7 +128,7 @@ namespace PackageRestore
 					.AutoHeight()
 					[
 						SNew(STextBlock)
-						.Text(LOCTEXT("RestoreInfo", "Unreal Editor detected that it did not shut-down cleanly and that the following packages have auto-saves associated with them.\nWould you like to restore from these auto-saves?").ToString())
+						.Text(LOCTEXT("RestoreInfo", "Unreal Editor detected that it did not shut-down cleanly and that the following packages have auto-saves associated with them.\nWould you like to restore from these auto-saves?"))
 						.AutoWrapText(true)
 					]
 					+SVerticalBox::Slot() 
@@ -160,7 +160,7 @@ namespace PackageRestore
 									.FillWidth(1)
 									[
 										SNew(STextBlock) 
-										.Text(LOCTEXT("PackageName", "Package Name").ToString())
+										.Text(LOCTEXT("PackageName", "Package Name"))
 									]
 									+SHorizontalBox::Slot()
 									.Padding(FMargin(4, 0, 0, 0))
@@ -169,7 +169,7 @@ namespace PackageRestore
 									.FillWidth(1)
 									[
 										SNew(STextBlock) 
-										.Text(LOCTEXT("PackageFile", "Package File").ToString())
+										.Text(LOCTEXT("PackageFile", "Package File"))
 									]
 									+SHorizontalBox::Slot()
 									.Padding(FMargin(4, 0, 0, 0))
@@ -178,7 +178,7 @@ namespace PackageRestore
 									.FillWidth(1)
 									[
 										SNew(STextBlock) 
-										.Text(LOCTEXT("AutoSaveFile", "Autosave File").ToString())
+										.Text(LOCTEXT("AutoSaveFile", "Autosave File"))
 									]
 								]
 							]
@@ -203,7 +203,7 @@ namespace PackageRestore
 						.AutoWidth()
 						[
 							SNew(SButton) 
-							.Text(LOCTEXT("RestoreSelectedPackages", "Restore Selected").ToString())
+							.Text(LOCTEXT("RestoreSelectedPackages", "Restore Selected"))
 							.OnClicked(this, &SPackageRestoreDialog::OnRestoreSelectedButtonClicked)
 							.IsEnabled(this, &SPackageRestoreDialog::IsRestoreSelectedButtonEnabled)
 						]
@@ -212,7 +212,7 @@ namespace PackageRestore
 						.AutoWidth()
 						[
 							SNew(SButton) 
-							.Text(LOCTEXT("SkipRestorePackages", "Skip Restore").ToString())
+							.Text(LOCTEXT("SkipRestorePackages", "Skip Restore"))
 							.OnClicked(this, &SPackageRestoreDialog::OnSkipRestoreButtonClicked)
 						]
 					]

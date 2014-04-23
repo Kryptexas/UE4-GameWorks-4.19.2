@@ -371,7 +371,7 @@ TSharedRef<SWidget> SBlueprintLibraryPalette::ConstructClassFilterDropdownConten
 						.OnClicked(this, &SBlueprintLibraryPalette::ClearClassFilter)
 						.ToolTip(ClearFilterToolTip)
 					[
-						SNew(STextBlock).Text(LOCTEXT("All", "All").ToString())
+						SNew(STextBlock).Text(LOCTEXT("All", "All"))
 					]
 				]
 

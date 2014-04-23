@@ -35,7 +35,7 @@ void SSessionLauncherPreviewPage::Construct( const FArguments& InArgs, const FSe
 					[
 						SNew(STextBlock)
 							.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 13))
-							.Text(LOCTEXT("BuildSectionHeader", "Build").ToString())
+							.Text(LOCTEXT("BuildSectionHeader", "Build"))
 					]
 
 				+ SGridPanel::Slot(1, 0)
@@ -58,7 +58,7 @@ void SSessionLauncherPreviewPage::Construct( const FArguments& InArgs, const FSe
 											.AutoWidth()
 											[
 												SNew(STextBlock)
-													.Text(LOCTEXT("ProjectLabel", "Project:").ToString())
+													.Text(LOCTEXT("ProjectLabel", "Project:"))
 											]
 
 										+ SHorizontalBox::Slot()
@@ -90,7 +90,7 @@ void SSessionLauncherPreviewPage::Construct( const FArguments& InArgs, const FSe
 											.AutoWidth()
 											[
 												SNew(STextBlock)
-													.Text(LOCTEXT("ConfigurationLabel", "Build Configuration:").ToString())
+													.Text(LOCTEXT("ConfigurationLabel", "Build Configuration:"))
 											]
 
 										+ SHorizontalBox::Slot()
@@ -122,7 +122,7 @@ void SSessionLauncherPreviewPage::Construct( const FArguments& InArgs, const FSe
 											.AutoWidth()
 											[
 												SNew(STextBlock)
-													.Text(LOCTEXT("PlatformsLabel", "Platforms:").ToString())
+													.Text(LOCTEXT("PlatformsLabel", "Platforms:"))
 											]
 
 										+ SHorizontalBox::Slot()
@@ -161,7 +161,7 @@ void SSessionLauncherPreviewPage::Construct( const FArguments& InArgs, const FSe
 					[
 						SNew(STextBlock)
 							.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 13))
-							.Text(LOCTEXT("CookSectionHeader", "Cook").ToString())
+							.Text(LOCTEXT("CookSectionHeader", "Cook"))
 					]
 
 				+ SGridPanel::Slot(1, 2)
@@ -184,7 +184,7 @@ void SSessionLauncherPreviewPage::Construct( const FArguments& InArgs, const FSe
 											.AutoWidth()
 											[
 												SNew(STextBlock)
-													.Text(LOCTEXT("CookModeLabel", "Cook Mode:").ToString())
+													.Text(LOCTEXT("CookModeLabel", "Cook Mode:"))
 											]
 
 										+ SHorizontalBox::Slot()
@@ -194,7 +194,7 @@ void SSessionLauncherPreviewPage::Construct( const FArguments& InArgs, const FSe
 											[
 												// do not cook
 												SNew(STextBlock)
-													.Text(LOCTEXT("DoNotCookLabel", "Do not cook").ToString())
+													.Text(LOCTEXT("DoNotCookLabel", "Do not cook"))
 											]
 									]
 							]
@@ -214,7 +214,7 @@ void SSessionLauncherPreviewPage::Construct( const FArguments& InArgs, const FSe
 											.AutoWidth()
 											[
 												SNew(STextBlock)
-													.Text(LOCTEXT("BuildModeLabel", "Cook Mode:").ToString())
+													.Text(LOCTEXT("BuildModeLabel", "Cook Mode:"))
 											]
 
 										+ SHorizontalBox::Slot()
@@ -224,7 +224,7 @@ void SSessionLauncherPreviewPage::Construct( const FArguments& InArgs, const FSe
 											[
 												// cook on the fly
 												SNew(STextBlock)
-													.Text(LOCTEXT("CookOnTheFlyLabel", "On the fly").ToString())
+													.Text(LOCTEXT("CookOnTheFlyLabel", "On the fly"))
 											]
 									]
 
@@ -238,7 +238,7 @@ void SSessionLauncherPreviewPage::Construct( const FArguments& InArgs, const FSe
 											.AutoWidth()
 											[
 												SNew(STextBlock)
-													.Text(LOCTEXT("CookerOptionsLabel", "Cooker Options:").ToString())
+													.Text(LOCTEXT("CookerOptionsLabel", "Cooker Options:"))
 											]
 
 										+ SHorizontalBox::Slot()
@@ -268,7 +268,7 @@ void SSessionLauncherPreviewPage::Construct( const FArguments& InArgs, const FSe
 											.AutoWidth()
 											[
 												SNew(STextBlock)
-													.Text(LOCTEXT("BuildModeLabel", "Cook Mode:").ToString())
+													.Text(LOCTEXT("BuildModeLabel", "Cook Mode:"))
 											]
 
 										+ SHorizontalBox::Slot()
@@ -278,7 +278,7 @@ void SSessionLauncherPreviewPage::Construct( const FArguments& InArgs, const FSe
 											[
 												// cook by the book
 												SNew(STextBlock)
-													.Text(LOCTEXT("CookByTheBookLabel", "By the book").ToString())
+													.Text(LOCTEXT("CookByTheBookLabel", "By the book"))
 											]
 									]
 
@@ -292,7 +292,7 @@ void SSessionLauncherPreviewPage::Construct( const FArguments& InArgs, const FSe
 											.AutoWidth()
 											[
 												SNew(STextBlock)
-													.Text(LOCTEXT("CulturesBuildLabel", "Cooked Cultures:").ToString())
+													.Text(LOCTEXT("CulturesBuildLabel", "Cooked Cultures:"))
 											]
 
 										+ SHorizontalBox::Slot()
@@ -324,7 +324,7 @@ void SSessionLauncherPreviewPage::Construct( const FArguments& InArgs, const FSe
 											.AutoWidth()
 											[
 												SNew(STextBlock)
-													.Text(LOCTEXT("MapsBuildLabel", "Cooked Maps:").ToString())
+													.Text(LOCTEXT("MapsBuildLabel", "Cooked Maps:"))
 											]
 
 										+ SHorizontalBox::Slot()
@@ -348,7 +348,7 @@ void SSessionLauncherPreviewPage::Construct( const FArguments& InArgs, const FSe
 											.AutoWidth()
 											[
 												SNew(STextBlock)
-													.Text(LOCTEXT("CookerOptionsLabel", "Cooker Options:").ToString())
+													.Text(LOCTEXT("CookerOptionsLabel", "Cooker Options:"))
 											]
 
 										+ SHorizontalBox::Slot()
@@ -380,7 +380,7 @@ void SSessionLauncherPreviewPage::Construct( const FArguments& InArgs, const FSe
 					[
 						SNew(STextBlock)
 							.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 13))
-							.Text(LOCTEXT("PackageSectionHeader", "Package").ToString())
+							.Text(LOCTEXT("PackageSectionHeader", "Package"))
 					]
 
 				+ SGridPanel::Slot(1, 4)
@@ -405,7 +405,7 @@ void SSessionLauncherPreviewPage::Construct( const FArguments& InArgs, const FSe
 					[
 						SNew(STextBlock)
 							.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 13))
-							.Text(LOCTEXT("DeploySectionHeader", "Deploy").ToString())
+							.Text(LOCTEXT("DeploySectionHeader", "Deploy"))
 					]
 
 				+ SGridPanel::Slot(1, 6)
@@ -428,7 +428,7 @@ void SSessionLauncherPreviewPage::Construct( const FArguments& InArgs, const FSe
 											.AutoWidth()
 											[
 												SNew(STextBlock)
-													.Text(LOCTEXT("DeployModeLabel", "Deploy Mode:").ToString())
+													.Text(LOCTEXT("DeployModeLabel", "Deploy Mode:"))
 											]
 
 										+ SHorizontalBox::Slot()
@@ -438,7 +438,7 @@ void SSessionLauncherPreviewPage::Construct( const FArguments& InArgs, const FSe
 											[
 												// do not cook
 												SNew(STextBlock)
-													.Text(LOCTEXT("DoNotDeployLabel", "Do not deploy").ToString())
+													.Text(LOCTEXT("DoNotDeployLabel", "Do not deploy"))
 											]
 									]
 							]
@@ -556,7 +556,7 @@ void SSessionLauncherPreviewPage::Construct( const FArguments& InArgs, const FSe
 																	.Visibility(EVisibility::Collapsed)
 
 																+ SHeaderRow::Column("Device")
-																	.DefaultLabel(LOCTEXT("DeviceListDeviceColumnHeader", "Device").ToString())
+																	.DefaultLabel(LOCTEXT("DeviceListDeviceColumnHeader", "Device"))
 															)
 													]
 											]
@@ -837,50 +837,46 @@ void SSessionLauncherPreviewPage::RefreshDeviceProxyList( )
 /* SSessionLauncherPreviewPage callbacks
  *****************************************************************************/
 
-FString SSessionLauncherPreviewPage::HandleBuildConfigurationTextBlockText( ) const
+FText SSessionLauncherPreviewPage::HandleBuildConfigurationTextBlockText( ) const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
 	if (SelectedProfile.IsValid())
 	{
-		return EBuildConfigurations::ToString(SelectedProfile->GetBuildConfiguration());
+		return FText::FromString(EBuildConfigurations::ToString(SelectedProfile->GetBuildConfiguration()));
 	}
 
-	return LOCTEXT("NotAvailableText", "n/a").ToString();
+	return LOCTEXT("NotAvailableText", "n/a");
 }
 
 
-FString SSessionLauncherPreviewPage::HandleBuildPlatformsTextBlockText( ) const
+FText SSessionLauncherPreviewPage::HandleBuildPlatformsTextBlockText( ) const
 {
-	FString Result;
-
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
 	if (SelectedProfile.IsValid())
 	{
 		const TArray<FString>& Platforms = SelectedProfile->GetCookedPlatforms();
-
-		for (int32 PlatformIndex = 0; PlatformIndex < Platforms.Num(); ++PlatformIndex)
+		if (Platforms.Num() > 0)
 		{
-			Result += Platforms[PlatformIndex];
-
-			if (PlatformIndex + 1 < Platforms.Num())
+			FTextBuilder Builder;
+			for (int32 PlatformIndex = 0; PlatformIndex < Platforms.Num(); ++PlatformIndex)
 			{
-				Result += LINE_TERMINATOR;
+				Builder.AppendLine(Platforms[PlatformIndex]);
 			}
+			return Builder.ToText();
 		}
-
-		if (Result.IsEmpty())
+		else
 		{
-			Result = LOCTEXT("NotSetText", "<not set>").ToString();
+			return LOCTEXT("NotSetText", "<not set>");
 		}
 	}
 
-	return Result;
+	return FText::GetEmpty();
 }
 
 
-FString SSessionLauncherPreviewPage::HandleCommandLineTextBlockText( ) const
+FText SSessionLauncherPreviewPage::HandleCommandLineTextBlockText( ) const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -890,93 +886,83 @@ FString SSessionLauncherPreviewPage::HandleCommandLineTextBlockText( ) const
 
 		if (CommandLine.IsEmpty())
 		{
-			return LOCTEXT("EmptyText", "<empty>").ToString();
+			return LOCTEXT("EmptyText", "<empty>");
 		}
 
-		return CommandLine;
+		return FText::FromString( CommandLine );
 	}
 
-	return LOCTEXT("NotAvailableText", "n/a").ToString();
+	return LOCTEXT("NotAvailableText", "n/a");
 }
 
 
-FString SSessionLauncherPreviewPage::HandleCookedCulturesTextBlockText( ) const
+FText SSessionLauncherPreviewPage::HandleCookedCulturesTextBlockText( ) const
 {
-	FString Result;
-
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
 	if (SelectedProfile.IsValid())
 	{
 		const TArray<FString>& CookedCultures = SelectedProfile->GetCookedCultures();
-
-		for (int32 CookedCultureIndex = 0; CookedCultureIndex < CookedCultures.Num(); ++CookedCultureIndex)
+		if (CookedCultures.Num() > 0)
 		{
-			Result += CookedCultures[CookedCultureIndex];
-			
-			if (CookedCultureIndex + 1 < CookedCultures.Num())
+			FTextBuilder Builder;
+			for (int32 CookedCultureIndex = 0; CookedCultureIndex < CookedCultures.Num(); ++CookedCultureIndex)
 			{
-				Result += LINE_TERMINATOR;
+				Builder.AppendLine(CookedCultures[CookedCultureIndex]);
 			}
+			return Builder.ToText();
 		}
-
-		if (Result.IsEmpty())
+		else
 		{
-			Result = LOCTEXT("NotSetText", "<not set>").ToString();
+			return LOCTEXT("NotSetText", "<not set>");
 		}
 	}
 
-	return Result;
+	return FText::GetEmpty();
 }
 
 
-FString SSessionLauncherPreviewPage::HandleCookedMapsTextBlockText( ) const
+FText SSessionLauncherPreviewPage::HandleCookedMapsTextBlockText( ) const
 {
-	FString Result;
-
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
 	if (SelectedProfile.IsValid())
 	{
 		const TArray<FString>& CookedMaps = SelectedProfile->GetCookedMaps();
-
-		for (int32 CookedMapIndex = 0; CookedMapIndex < CookedMaps.Num(); ++CookedMapIndex)
+		if (CookedMaps.Num() > 0)
 		{
-			Result += CookedMaps[CookedMapIndex];
-
-			if (CookedMapIndex + 1 < CookedMaps.Num())
+			FTextBuilder Builder;
+			for (int32 CookedMapIndex = 0; CookedMapIndex < CookedMaps.Num(); ++CookedMapIndex)
 			{
-				Result += LINE_TERMINATOR;
+				Builder.AppendLine(CookedMaps[CookedMapIndex]);
 			}
+			return Builder.ToText();
 		}
-
-		if (Result.IsEmpty())
+		else
 		{
-			Result = LOCTEXT("NoneText", "<none>").ToString();
+			return LOCTEXT("NotSetText", "<not set>");
 		}
 	}
 
-	return Result;
+	return FText::GetEmpty();
 }
 
 
-FString SSessionLauncherPreviewPage::HandleCookerOptionsTextBlockText( ) const
+FText SSessionLauncherPreviewPage::HandleCookerOptionsTextBlockText( ) const
 {
-	FString Result;
-
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
 	if (SelectedProfile.IsValid())
 	{
 		if (SelectedProfile->GetCookOptions().IsEmpty())
 		{
-			return LOCTEXT("NoneText", "<none>").ToString();
+			return LOCTEXT("NoneText", "<none>");
 		}
 
-		return SelectedProfile->GetCookOptions();
+		return FText::FromString(SelectedProfile->GetCookOptions());
 	}
 
-	return Result;
+	return FText::GetEmpty();
 }
 
 

@@ -54,17 +54,17 @@ public:
 
 				+SVerticalBox::Slot().AutoHeight()
 				[
-					SNew(SUniformGridPanel)
-					+SUniformGridPanel::Slot(0, 0)
-					[
+			SNew(SUniformGridPanel)
+			+ SUniformGridPanel::Slot(0, 0)
+			[
 						CreateRadioButton(*ImportTypeEnum, FBXIT_StaticMesh, FEditorStyle::GetBrush("FBXIcon.StaticMesh"), 0)
-					]
-					+SUniformGridPanel::Slot(1, 0)
-					[
+			]
+			+ SUniformGridPanel::Slot(1, 0)
+			[
 						CreateRadioButton(*ImportTypeEnum, FBXIT_SkeletalMesh, FEditorStyle::GetBrush("FBXIcon.SkeletalMesh"), 1)
-					]
-					+SUniformGridPanel::Slot(2, 0)
-					[
+			]
+			+ SUniformGridPanel::Slot(2, 0)
+			[
 						CreateRadioButton(*ImportTypeEnum, FBXIT_Animation, FEditorStyle::GetBrush("FBXIcon.Animation"), 2)
 					]
 				]
@@ -108,7 +108,7 @@ private:
 				.VAlign(VAlign_Center)
 				.HAlign(HAlign_Center)
 				.Padding(6, 2)
-				[
+			[
 					SNew(STextBlock)
 					.Text(Enum.GetEnumText(RadioButtonChoice))
 					.ColorAndOpacity(FLinearColor(0.72f, 0.72f, 0.72f, 1.f))
@@ -511,8 +511,8 @@ void SFbxOptionWindow::RefreshWindow()
 			]
 			.BodyContent()
 			[
-				ConstructMiscOption()
-			]
+					ConstructMiscOption()
+				]
 		];
 	}
 }
@@ -1354,7 +1354,7 @@ FText SFbxOptionWindow::OnGenerateTextForImportMethod( EFBXNormalImportMethod Im
 FText SFbxOptionWindow::OnGenerateToolTipForImportMethod( EFBXNormalImportMethod ImportMethod ) const
 {
 	// TODO: change this to read the tooltip text from the enum directly
-	if (ImportMethod == FBXNIM_ComputeNormals)
+	if( ImportMethod == FBXNIM_ComputeNormals ) 
 	{	
 		return LOCTEXT("FBXOptions_CalculateNormalsToolTip", "Let Unreal calculate normals and tangents. Ignores normals in the fbx file");
 	}

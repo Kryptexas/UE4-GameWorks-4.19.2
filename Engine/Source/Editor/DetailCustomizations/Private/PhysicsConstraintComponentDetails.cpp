@@ -63,8 +63,8 @@ void FPhysicsConstraintComponentDetails::CustomizeDetails( IDetailLayoutBuilder&
 						SNew(SButton)
 						.VAlign(VAlign_Center)
 						.OnClicked( this, &FPhysicsConstraintComponentDetails::OnHingeClicked )
-						.Text( LOCTEXT("HingePreset", "Hinge").ToString() )
-						.ToolTipText( LOCTEXT("HingePresetTooltip", "Setup joint as hinge. A hinge joint allows motion only in one plane.").ToString() )
+						.Text( LOCTEXT("HingePreset", "Hinge") )
+						.ToolTipText( LOCTEXT("HingePresetTooltip", "Setup joint as hinge. A hinge joint allows motion only in one plane.") )
 					]
 					+SHorizontalBox::Slot()
 						.AutoWidth()
@@ -75,8 +75,8 @@ void FPhysicsConstraintComponentDetails::CustomizeDetails( IDetailLayoutBuilder&
 							SNew(SButton)
 							.VAlign(VAlign_Center)
 							.OnClicked( this, &FPhysicsConstraintComponentDetails::OnPrismaticClicked )
-							.Text( LOCTEXT("PrismaticPreset", "Prismatic").ToString() )
-							.ToolTipText( LOCTEXT("PrismaticPresetTooltip", "Setup joint as prismatic. A prismatic joint allows only linear sliding movement.").ToString() )
+							.Text( LOCTEXT("PrismaticPreset", "Prismatic") )
+							.ToolTipText( LOCTEXT("PrismaticPresetTooltip", "Setup joint as prismatic. A prismatic joint allows only linear sliding movement.") )
 						]
 					+SHorizontalBox::Slot()
 						.AutoWidth()
@@ -87,8 +87,8 @@ void FPhysicsConstraintComponentDetails::CustomizeDetails( IDetailLayoutBuilder&
 							SNew(SButton)
 							.VAlign(VAlign_Center)
 							.OnClicked( this, &FPhysicsConstraintComponentDetails::OnBallSocketClicked )
-							.Text( LOCTEXT("BSPreset", "Ball and Socket").ToString() )
-							.ToolTipText( LOCTEXT("BSPresetTooltip", "Setup joint as ball and socket. A Ball and Socket joint allows motion around an indefinite number of axes, which have one common center").ToString() )
+							.Text( LOCTEXT("BSPreset", "Ball and Socket") )
+							.ToolTipText( LOCTEXT("BSPresetTooltip", "Setup joint as ball and socket. A Ball and Socket joint allows motion around an indefinite number of axes, which have one common center") )
 						]
 				]
 			];

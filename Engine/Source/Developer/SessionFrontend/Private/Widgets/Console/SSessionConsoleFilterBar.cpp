@@ -66,7 +66,7 @@ void SSessionConsoleFilterBar::Construct( const FArguments& InArgs )
 					.ButtonContent()
 					[
 						SNew(STextBlock)
-							.Text(LOCTEXT("CategoryComboButtonText", "Categories").ToString())
+							.Text(LOCTEXT("CategoryComboButtonText", "Categories"))
 					]
 					.ContentPadding(FMargin(6.0f, 2.0f))
 					.MenuContent()

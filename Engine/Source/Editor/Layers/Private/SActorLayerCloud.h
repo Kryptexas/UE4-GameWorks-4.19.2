@@ -44,7 +44,7 @@ public:
 			.HAlign( HAlign_Center )
 			[
 				SNew( STextBlock )
-				.Text( LOCTEXT("NoLayersMessage", "No Layers").ToString() )
+				.Text( LOCTEXT("NoLayersMessage", "No Layers") )
 				.Visibility( this, &SActorLayerCloud::GetNoLayersMessageVisibility )
 			]
 		];
@@ -95,7 +95,7 @@ private:
 								.VAlign( VAlign_Center )
 								.OnClicked( this, &SActorLayerCloud::OnRemoveLayerFromActorsClicked, Layer )
 								.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
-								.ToolTipText( LOCTEXT("RemoveLayerButton", "Remove from Layer").ToString() )
+								.ToolTipText( LOCTEXT("RemoveLayerButton", "Remove from Layer") )
 								.Content()
 								[
 									SNew( SImage )

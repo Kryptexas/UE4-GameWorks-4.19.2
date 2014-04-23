@@ -414,6 +414,8 @@ public:
 	 */
 	float DrawText(UFont* InFont, const FString& InText, float X, float Y, float XScale = 1.f, float YScale = 1.f, const FFontRenderInfo& RenderInfo = FFontRenderInfo());
 
+	float DrawText(UFont* InFont, const FText& InText, float X, float Y, float XScale = 1.f, float YScale = 1.f, const FFontRenderInfo& RenderInfo = FFontRenderInfo());
+
 	enum ELastCharacterIndexFormat
 	{
 		// The last whole character before the horizontal offset

@@ -42,7 +42,7 @@ void SDeviceProfileDetailsPanel::Construct( const FArguments& InArgs )
 					.VAlign( VAlign_Center )
 					[
 						SNew( STextBlock )
-						.Text( LOCTEXT("CVarsLabel", "Console Variables").ToString() )
+						.Text( LOCTEXT("CVarsLabel", "Console Variables") )
 						.TextStyle( FEditorStyle::Get(), "Docking.TabFont" )
 					]
 			]
@@ -170,7 +170,7 @@ void SDeviceProfileDetailsPanel::RefreshUI()
 					.Padding( 4.0f )
 					[
 						SNew( STextBlock )
-						.Text( LOCTEXT("SelectAProfile", "Select a device profile above...").ToString() )					
+						.Text( LOCTEXT("SelectAProfile", "Select a device profile above...") )					
 					]
 
 				]

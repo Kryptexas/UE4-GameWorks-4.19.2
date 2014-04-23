@@ -178,7 +178,7 @@ private:
 	 * @note	The current implementation is naive and will wipe out any pre-existing message when called. The current needs of the window don't require
 	 *			anything more sophisticated, but in the future perhaps the messages should be appended, multiple panel types should exist, etc.
 	 */
-	void DisplayMessage( bool bError, const FString& ErrorMessage );
+	void DisplayMessage( bool bError, const FText& ErrorMessage );
 	
 	// Button Responses
 
@@ -352,7 +352,7 @@ void SConsolidateToolWidget::Construct( const FArguments& InArgs )
 		[
 			SNew( STextBlock )
 			.AutoWrapText(true)
-			.Text( LOCTEXT("Consolidate_Select", "Select an asset to serve as the asset to consolidate the non-selected assets to. This will replace all uses of the non-selected assets below with the selected asset.").ToString() )
+			.Text( LOCTEXT("Consolidate_Select", "Select an asset to serve as the asset to consolidate the non-selected assets to. This will replace all uses of the non-selected assets below with the selected asset.") )
 		]
 
 		+SVerticalBox::Slot()
@@ -536,7 +536,7 @@ int32 SConsolidateToolWidget::AddConsolidationObjects( const TArray<UObject*>& I
 	// display a warning message informing them of the potential danger.
 	if ( !AreObjClassesHomogeneous() && !bAlreadyWarnedAboutTypes )
 	{
-		DisplayMessage( false, LOCTEXT("Consolidate_WarningSameClass", "The object to consolidate are not the same class").ToString());
+		DisplayMessage( false, LOCTEXT("Consolidate_WarningSameClass", "The object to consolidate are not the same class"));
 		bAlreadyWarnedAboutTypes = true;
 	}
 
@@ -735,7 +735,7 @@ void SConsolidateToolWidget::RemoveSelectedObject()
  * @note	The current implementation is naive and will wipe out any pre-existing message when called. The current needs of the window don't require
  *			anything more sophisticated, but in the future perhaps the messages should be appended, multiple panel types should exist, etc.
  */
-void SConsolidateToolWidget::DisplayMessage( bool bError, const FString& ErrorMessage )
+void SConsolidateToolWidget::DisplayMessage( bool bError, const FText& ErrorMessage )
 {
 	// Update the error text block to display the requested message
 	ErrorPanel->SetError(ErrorMessage);
@@ -794,7 +794,7 @@ FReply SConsolidateToolWidget::OnConsolidateButtonClicked()
 		// If the consolidation resulted in failed (partially consolidated) objects, do not save, and inform the user no save attempt was made
 		else if ( ConsResults.FailedConsolidationObjs.Num() > 0 && bSavePackagesChecked == true )
 		{
-			DisplayMessage( true, LOCTEXT("Consolidate_WarningPartial", "Not all objects could be consolidated, no save has occurred").ToString() );
+			DisplayMessage( true, LOCTEXT("Consolidate_WarningPartial", "Not all objects could be consolidated, no save has occurred") );
 		}
 	}
 

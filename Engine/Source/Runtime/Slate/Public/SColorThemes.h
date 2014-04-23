@@ -159,18 +159,18 @@ private:
 	FSlateColor HandleBorderColor() const;
 	const FSlateBrush* HandleBorderImage() const;
 
-	FString GetRedText() const;
-	FString GetGreenText() const;
-	FString GetBlueText() const;
-	FString GetAlphaText() const;
-	FString GetHueText() const;
-	FString GetSaturationText() const;
-	FString GetValueText() const;
+	FText GetRedText() const;
+	FText GetGreenText() const;
+	FText GetBlueText() const;
+	FText GetAlphaText() const;
+	FText GetHueText() const;
+	FText GetSaturationText() const;
+	FText GetValueText() const;
 
 	/**
 	 * Function for formatting text for the tooltip which has limited space.
 	 */
-	FString FormatToolTipText(float Value) const;
+	FText FormatToolTipText(const FText& ColorIdentifier, float Value) const;
 	
 	bool OnReadIgnoreAlpha() const;
 	bool OnReadShowBackgroundForAlpha() const;
@@ -228,7 +228,7 @@ public:
 		SLATE_EVENT(FSimpleDelegate, HideTrashCallback)
 		
 		/** Specify what the bar should display when no colors are present */
-		SLATE_ARGUMENT(FString, EmptyText)
+		SLATE_TEXT_ARGUMENT(EmptyText)
 
 		/** Whether to display sRGB color */
 		SLATE_ATTRIBUTE(bool, UseSRGB)

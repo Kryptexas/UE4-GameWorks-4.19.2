@@ -82,19 +82,19 @@ public:
 									SNew(SHeaderRow)
 
 									+ SHeaderRow::Column("Icon")
-										.DefaultLabel(LOCTEXT("TaskListIconColumnHeader", " ").ToString())
+										.DefaultLabel(LOCTEXT("TaskListIconColumnHeader", " "))
 										.FixedWidth(20.0)
 
 									+ SHeaderRow::Column("Task")
-										.DefaultLabel(LOCTEXT("TaskListTaskColumnHeader", "Task").ToString())
+										.DefaultLabel(LOCTEXT("TaskListTaskColumnHeader", "Task"))
 										.FillWidth(1.0)
 
 									+ SHeaderRow::Column("Duration")
-										.DefaultLabel(LOCTEXT("TaskListDurationColumnHeader", "Duration").ToString())
+										.DefaultLabel(LOCTEXT("TaskListDurationColumnHeader", "Duration"))
 										.FixedWidth(64.0)
 
 									+ SHeaderRow::Column("Status")
-										.DefaultLabel(LOCTEXT("TaskListStatusColumnHeader", "Status").ToString())
+										.DefaultLabel(LOCTEXT("TaskListStatusColumnHeader", "Status"))
 										.FixedWidth(80.0)
 								)
 								.ListItemsSource(&TaskList)
@@ -119,7 +119,7 @@ public:
 							SNew(SHeaderRow)
 
 							+ SHeaderRow::Column("Status")
-							.DefaultLabel(LOCTEXT("TaskListStatusColumnHeader", "Status").ToString())
+							.DefaultLabel(LOCTEXT("TaskListStatusColumnHeader", "Status"))
 							.FillWidth(1.0)
 						)
 						.ListItemsSource(&MessageList)
@@ -142,8 +142,8 @@ public:
 						SAssignNew(CopyButton, SButton)
 						.ContentPadding(FMargin(6.0f, 2.0f))
 						.IsEnabled(false)
-						.Text(LOCTEXT("CopyButtonText", "Copy").ToString())
-						.ToolTipText(LOCTEXT("CopyButtonTooltip", "Copy the selected log messages to the clipboard").ToString())
+						.Text(LOCTEXT("CopyButtonText", "Copy"))
+						.ToolTipText(LOCTEXT("CopyButtonTooltip", "Copy the selected log messages to the clipboard"))
 						.OnClicked(this, &SSessionLauncherProgress::HandleCopyButtonClicked)
 					]
 
@@ -155,8 +155,8 @@ public:
 							SAssignNew(ClearButton, SButton)
 							.ContentPadding(FMargin(6.0f, 2.0f))
 							.IsEnabled(false)
-							.Text(LOCTEXT("ClearButtonText", "Clear Log").ToString())
-							.ToolTipText(LOCTEXT("ClearButtonTooltip", "Clear the log window").ToString())
+							.Text(LOCTEXT("ClearButtonText", "Clear Log"))
+							.ToolTipText(LOCTEXT("ClearButtonTooltip", "Clear the log window"))
 							.OnClicked(this, &SSessionLauncherProgress::HandleClearButtonClicked)
 						]
 
@@ -168,8 +168,8 @@ public:
 							SAssignNew(SaveButton, SButton)
 							.ContentPadding(FMargin(6.0f, 2.0f))
 							.IsEnabled(false)
-							.Text(LOCTEXT("ExportButtonText", "Save Log...").ToString())
-							.ToolTipText(LOCTEXT("SaveButtonTooltip", "Save the entire log to a file").ToString())
+							.Text(LOCTEXT("ExportButtonText", "Save Log..."))
+							.ToolTipText(LOCTEXT("SaveButtonTooltip", "Save the entire log to a file"))
 							.Visibility((FDesktopPlatformModule::Get() != NULL) ? EVisibility::Visible : EVisibility::Collapsed)
 							.OnClicked(this, &SSessionLauncherProgress::HandleSaveButtonClicked)
 						]
@@ -257,7 +257,7 @@ private:
 	}
 
 	// Callback for getting the text of the progress text box.
-	FString HandleProgressTextBlockText( ) const
+	FText HandleProgressTextBlockText( ) const
 	{
 		ILauncherWorkerPtr LauncherWorkerPtr = LauncherWorker.Pin();
 
@@ -266,7 +266,7 @@ private:
 			if ((LauncherWorkerPtr->GetStatus() == ELauncherWorkerStatus::Busy) ||
 				(LauncherWorkerPtr->GetStatus() == ELauncherWorkerStatus::Canceling))
 			{
-				return LOCTEXT("OperationInProgressText", "Operation in progress...").ToString();
+				return LOCTEXT("OperationInProgressText", "Operation in progress...");
 			}
 
 			int32 NumCanceled = 0;
@@ -291,10 +291,15 @@ private:
 				}
 			}
 
-			return FString::Printf(*LOCTEXT("TasksFinishedFormatText", "Operation finished. Completed: %i, Failed: %i, Canceled: %i").ToString(), NumCompleted, NumFailed, NumCanceled);
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("NumCompleted"), NumCompleted);
+			Args.Add(TEXT("NumFailed"), NumCompleted);
+			Args.Add(TEXT("NumCanceled"), NumCanceled);
+
+			return FText::Format(LOCTEXT("TasksFinishedFormatText", "Operation finished. Completed: {NumCompleted}, Failed: {NumFailed}, Canceled: {NumCanceled}"), Args);
 		}
 
-		return FString();
+		return FText::GetEmpty();
 	}
 
 	// Callback for generating a row in the task list view.

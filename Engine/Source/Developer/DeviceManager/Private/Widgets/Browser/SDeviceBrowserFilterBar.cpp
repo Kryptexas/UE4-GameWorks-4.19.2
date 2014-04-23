@@ -54,7 +54,7 @@ void SDeviceBrowserFilterBar::Construct( const FArguments& InArgs, FDeviceBrowse
 					.ButtonContent()
 					[
 						SNew(STextBlock)
-							.Text(LOCTEXT("PlatformComboButtonText", "Platforms").ToString())
+							.Text(LOCTEXT("PlatformComboButtonText", "Platforms"))
 					]
 					.ContentPadding(FMargin(6.0f, 2.0f))
 					.MenuContent()

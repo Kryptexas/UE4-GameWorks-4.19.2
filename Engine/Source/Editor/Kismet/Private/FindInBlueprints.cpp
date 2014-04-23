@@ -254,7 +254,7 @@ void SFindInBlueprints::Construct( const FArguments& InArgs, TSharedPtr<FBluepri
 					.IsChecked(this, &SFindInBlueprints::OnGetFindModeChecked)
 					[
 						SNew(STextBlock)
-						.Text(LOCTEXT("BlueprintSearchModeChange", "Find In Current Blueprint Only").ToString())
+						.Text(LOCTEXT("BlueprintSearchModeChange", "Find In Current Blueprint Only"))
 					]
 				]
 			]
@@ -469,7 +469,7 @@ void SFindInBlueprints::MatchTokensWithinBlueprint(const TArray<FString>& Tokens
 	if( CommentNodes.Num() != 0 )
 	{
 		// Create the root for the comment hit results
-		const FString NodeName = FString::Printf(*LOCTEXT("BlueprintResultCommentResults", "Comments containing search term(s)").ToString() );
+		const FString NodeName = LOCTEXT("BlueprintResultCommentResults", "Comments containing search term(s)").ToString();
 		FSearchResult RootCommentResult(new FFindInBlueprintsResult(NodeName, RootSearchResult, CommentNodes[0]->GetClass(), 0));
 		
 		for(auto It(CommentNodes.CreateConstIterator());It;++It)

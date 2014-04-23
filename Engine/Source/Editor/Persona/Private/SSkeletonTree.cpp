@@ -301,7 +301,7 @@ void FDisplayedMeshBoneInfo::GenerateWidgetForNameColumn( TSharedPtr< SHorizonta
 		[
 			SNew( STextBlock )
 			.ColorAndOpacity(TextColor)
-			.Text( BoneName.ToString() )
+			.Text( FText::FromName(BoneName) )
 			.HighlightText( FilterText )
 			.Font(TextFont)
 			.ToolTipText( ToolTip )
@@ -698,9 +698,9 @@ void FDisplayedAttachedAssetInfo::GenerateWidgetForNameColumn( TSharedPtr< SHori
 		[
 			SNew( STextBlock )
 			.ColorAndOpacity( FLinearColor::Gray )
-			.Text(LOCTEXT( "AttachedAssetPreviewText", "[Preview Only]" ).ToString() )
+			.Text(LOCTEXT( "AttachedAssetPreviewText", "[Preview Only]" ) )
 			.Font(TextFont)
-			.ToolTipText( LOCTEXT( "AttachedAssetPreviewText_ToolTip", "Attached assets in Persona are preview only and do not carry through to the game." ).ToString() )
+			.ToolTipText( LOCTEXT( "AttachedAssetPreviewText_ToolTip", "Attached assets in Persona are preview only and do not carry through to the game." ) )
 		];
 }
 
@@ -712,7 +712,7 @@ TSharedRef< SWidget > FDisplayedAttachedAssetInfo::GenerateWidgetForDataColumn()
 		.HAlign( HAlign_Left )
 		[
 			SNew( SCheckBox )
-			.ToolTipText( LOCTEXT( "TranslationCheckBoxToolTip", "Click to toggle visibility of this asset" ).ToString() )
+			.ToolTipText( LOCTEXT( "TranslationCheckBoxToolTip", "Click to toggle visibility of this asset" ) )
 			.OnCheckStateChanged( this, &FDisplayedAttachedAssetInfo::OnToggleAssetDisplayed )
 			.IsChecked( this, &FDisplayedAttachedAssetInfo::IsAssetDisplayed )
 			.Style( FEditorStyle::Get(), "CheckboxLookToggleButtonCheckbox" )
@@ -821,7 +821,7 @@ void SSkeletonTree::Construct(const FArguments& InArgs)
 				SNew( SComboButton )
 				.ContentPadding(3)
 				.OnGetMenuContent( this, &SSkeletonTree::CreateBoneFilterMenu )
-				.ToolTipText( LOCTEXT( "BoneFilterToolTip", "Change which types of bones are shown" ).ToString() )
+				.ToolTipText( LOCTEXT( "BoneFilterToolTip", "Change which types of bones are shown" ) )
 				.ButtonContent()
 				[
 					SNew( STextBlock )
@@ -837,7 +837,7 @@ void SSkeletonTree::Construct(const FArguments& InArgs)
 				SNew( SComboButton )
 				.ContentPadding(3)
 				.OnGetMenuContent( this, &SSkeletonTree::CreateSocketFilterMenu )
-				.ToolTipText( LOCTEXT( "SocketFilterToolTip", "Change which types of sockets are shown" ).ToString() )
+				.ToolTipText( LOCTEXT( "SocketFilterToolTip", "Change which types of sockets are shown" ) )
 				.ButtonContent()
 				[
 					SNew( STextBlock )
@@ -863,11 +863,11 @@ void SSkeletonTree::Construct(const FArguments& InArgs)
 				SNew(SHeaderRow)
 
 				+ SHeaderRow::Column( ColumnID_BoneLabel )
-				.DefaultLabel( LOCTEXT( "SkeletonBoneNameLabel", "Name" ).ToString() )
+				.DefaultLabel( LOCTEXT( "SkeletonBoneNameLabel", "Name" ) )
 				.FillWidth( 0.75f )
 
 				+ SHeaderRow::Column( ColumnID_RetargetingLabel )
-				.DefaultLabel( LOCTEXT( "SkeletonBoneTranslationRetargetingLabel", "Translation Retargeting" ).ToString() )
+				.DefaultLabel( LOCTEXT( "SkeletonBoneTranslationRetargetingLabel", "Translation Retargeting" ) )
 				.FillWidth( 0.25f )
 			)
 		]

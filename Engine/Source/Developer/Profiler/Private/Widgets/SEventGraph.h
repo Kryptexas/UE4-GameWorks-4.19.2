@@ -747,15 +747,15 @@ protected:
 			return AverageEventGraph->GetNumFrames();
 		}
 
-		FString GetFullDescription() const;
+		FText GetFullDescription() const;
 
-		FString GetRootedDesc() const;
+		FText GetRootedDesc() const;
 
-		FString GetCullingDesc() const;
+		FText GetCullingDesc() const;
 
-		FString GetFilteringDesc() const;
+		FText GetFilteringDesc() const;
 
-		FString GetHistoryDesc() const;
+		FText GetHistoryDesc() const;
 
 		const FEventGraphDataRef& GetEventGraph() const
 		{

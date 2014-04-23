@@ -31,7 +31,7 @@ void SSessionLauncherProjectPage::Construct( const FArguments& InArgs, const FSe
 					.VAlign(VAlign_Center)
 					[
 						SNew(STextBlock)
-							.Text(LOCTEXT("WhichProjectToUseText", "Which project would you like to use?").ToString())			
+							.Text(LOCTEXT("WhichProjectToUseText", "Which project would you like to use?"))			
 					]
 			]
 

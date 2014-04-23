@@ -46,14 +46,14 @@ void SGameplayTagWidget::Construct(const FArguments& InArgs, const TArray<FEdita
 				[
 					SNew(SButton)
 					.OnClicked(this, &SGameplayTagWidget::OnExpandAllClicked)
-					.Text(LOCTEXT("GameplayTagWidget_ExpandAll", "Expand All").ToString())
+					.Text(LOCTEXT("GameplayTagWidget_ExpandAll", "Expand All"))
 				]
 				+SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(SButton)
 					.OnClicked(this, &SGameplayTagWidget::OnCollapseAllClicked)
-					.Text(LOCTEXT("GameplayTagWidget_CollapseAll", "Collapse All").ToString())
+					.Text(LOCTEXT("GameplayTagWidget_CollapseAll", "Collapse All"))
 				]
 				+SHorizontalBox::Slot()
 				.AutoWidth()
@@ -61,7 +61,7 @@ void SGameplayTagWidget::Construct(const FArguments& InArgs, const TArray<FEdita
 					SNew(SButton)
 					.IsEnabled(!bReadOnly)
 					.OnClicked(this, &SGameplayTagWidget::OnClearAllClicked)
-					.Text(LOCTEXT("GameplayTagWidget_ClearAll", "Clear All").ToString())
+					.Text(LOCTEXT("GameplayTagWidget_ClearAll", "Clear All"))
 				]
 				+SHorizontalBox::Slot()
 				.VAlign( VAlign_Center )
@@ -151,10 +151,10 @@ bool SGameplayTagWidget::FilterChildrenCheck( TSharedPtr<FGameplayTagNode> InIte
 
 TSharedRef<ITableRow> SGameplayTagWidget::OnGenerateRow(TSharedPtr<FGameplayTagNode> InItem, const TSharedRef<STableViewBase>& OwnerTable)
 {
-	FString TooltipText;
+	FText TooltipText;
 	if (InItem.IsValid())
 	{
-		TooltipText = InItem.Get()->GetCompleteTag().ToString();
+		TooltipText = FText::FromName(InItem.Get()->GetCompleteTag());
 	}
 
 	return SNew(STableRow< TSharedPtr<FGameplayTagNode> >, OwnerTable)
@@ -167,7 +167,7 @@ TSharedRef<ITableRow> SGameplayTagWidget::OnGenerateRow(TSharedPtr<FGameplayTagN
 			.ReadOnly( bReadOnly )
 			[
 				SNew(STextBlock)				
-				.Text(InItem->GetSimpleTag().ToString())
+				.Text(FText::FromName(InItem->GetSimpleTag()))
 			]	
 		];
 }

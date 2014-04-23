@@ -38,8 +38,8 @@ void SAutomationWindowCommandBar::Construct( const FArguments& InArgs, const TSh
 				SAssignNew(CopyButton, SButton)
 					.ContentPadding(FMargin(6.0, 2.0))
 					.IsEnabled(false)
-					.Text(LOCTEXT("AutomationCopyButtonText", "Copy").ToString())
-					.ToolTipText(LOCTEXT("AutomationCopyButtonTooltip", "Copy the selected log messages to the clipboard").ToString())
+					.Text(LOCTEXT("AutomationCopyButtonText", "Copy"))
+					.ToolTipText(LOCTEXT("AutomationCopyButtonTooltip", "Copy the selected log messages to the clipboard"))
 					.OnClicked(this, &SAutomationWindowCommandBar::HandleCopyButtonClicked)
 			]
 	];

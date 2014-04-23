@@ -38,8 +38,8 @@ void FSkeletonNotifyDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuild
 		.NameContent()
 		[
 			SNew(STextBlock)
-			.ToolTipText(LOCTEXT("Animations_Tooltip", "List of animations that reference this notify").ToString())
-			.Text( LOCTEXT("AnimationsLabel","Animations").ToString() )
+			.ToolTipText(LOCTEXT("Animations_Tooltip", "List of animations that reference this notify"))
+			.Text( LOCTEXT("AnimationsLabel","Animations") )
 			.Font( DetailFontInfo )
 		]
 		.ValueContent()

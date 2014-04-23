@@ -112,7 +112,7 @@ public:
 							.HAlign(HAlign_Center)
 							.ContentPadding( FEditorStyle::GetMargin("StandardDialog.ContentPadding") )
 							.OnClicked(this, &SAnimBlueprintCreateDialog::OkClicked)	
-							.Text(LOCTEXT("CreateAnimBlueprintOk", "OK").ToString())
+							.Text(LOCTEXT("CreateAnimBlueprintOk", "OK"))
 						]
 						+SUniformGridPanel::Slot(1,0)
 						[
@@ -120,7 +120,7 @@ public:
 							.HAlign(HAlign_Center)
 							.ContentPadding( FEditorStyle::GetMargin("StandardDialog.ContentPadding") )
 							.OnClicked(this, &SAnimBlueprintCreateDialog::CancelClicked)
-							.Text(LOCTEXT("CreateAnimBlueprintCancel", "Cancel").ToString())
+							.Text(LOCTEXT("CreateAnimBlueprintCancel", "Cancel"))
 						]
 					]
 				]

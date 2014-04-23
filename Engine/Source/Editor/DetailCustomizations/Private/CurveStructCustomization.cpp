@@ -98,7 +98,7 @@ void FCurveStructCustomization::CustomizeStructHeader( TSharedRef<class IPropert
 				.VAlign(VAlign_Fill)
 				[
 					SNew(STextBlock)
-					.Text(LOCTEXT("MultipleCurves", "Multiple Curves - unable to modify").ToString())
+					.Text(LOCTEXT("MultipleCurves", "Multiple Curves - unable to modify"))
 				]
 			];
 	}
@@ -144,8 +144,8 @@ void FCurveStructCustomization::CustomizeStructChildren( TSharedRef<class IPrope
 							SNew(SButton)
 							.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
 							.ContentPadding(1.f)
-							.ToolTipText(LOCTEXT( "ConvertInternalCurveTooltip", "Convert to Internal Curve").ToString())
-							//.ToolTipText(LOCTEXT( "ConvertInternalCurveTooltip", "Copy the external CurveFloat asset to this curve").ToString() )
+							.ToolTipText(LOCTEXT( "ConvertInternalCurveTooltip", "Convert to Internal Curve"))
+							//.ToolTipText(LOCTEXT( "ConvertInternalCurveTooltip", "Copy the external CurveFloat asset to this curve") )
 							.OnClicked(this, &FCurveStructCustomization::OnConvertButtonClicked)
 							.IsEnabled(this, &FCurveStructCustomization::IsConvertButtonEnabled)
 							[
@@ -162,8 +162,8 @@ void FCurveStructCustomization::CustomizeStructChildren( TSharedRef<class IPrope
 						[
 							SNew(SButton)
 							.HAlign(HAlign_Center)
-							.Text( LOCTEXT( "CreateAssetButton", "Create External Curve" ).ToString() )
-							.ToolTipText(LOCTEXT( "CreateAssetTooltip", "Create a new CurveFloat asset from this curve").ToString() )
+							.Text( LOCTEXT( "CreateAssetButton", "Create External Curve" ) )
+							.ToolTipText(LOCTEXT( "CreateAssetTooltip", "Create a new CurveFloat asset from this curve") )
 							.OnClicked(this, &FCurveStructCustomization::OnCreateButtonClicked)
 							.IsEnabled(this, &FCurveStructCustomization::IsCreateButtonEnabled)
 						]
@@ -171,8 +171,8 @@ void FCurveStructCustomization::CustomizeStructChildren( TSharedRef<class IPrope
 						[
 							SNew(SButton)
 							.HAlign(HAlign_Center)
-							.Text( LOCTEXT( "ConvertAssetButton", "Convert to Internal Curve" ).ToString() )
-							.ToolTipText(LOCTEXT( "CopyExternalCurveTooltip", "Copy the external CurveFloat asset to this curve").ToString() )
+							.Text( LOCTEXT( "ConvertAssetButton", "Convert to Internal Curve" ) )
+							.ToolTipText(LOCTEXT( "CopyExternalCurveTooltip", "Copy the external CurveFloat asset to this curve") )
 							.OnClicked(this, &FCurveStructCustomization::OnConvertButtonClicked)
 							.IsEnabled(this, &FCurveStructCustomization::IsConvertButtonEnabled)
 						]*/

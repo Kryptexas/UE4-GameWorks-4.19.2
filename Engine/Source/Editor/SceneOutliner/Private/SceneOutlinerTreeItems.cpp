@@ -123,7 +123,7 @@ namespace SceneOutliner
 				auto TheFolder = Folders[0].Pin();
 				if (TheFolder.IsValid())
 				{
-					Operation->CurrentHoverText = FText::FromString(TheFolder->LeafName.ToString());
+					Operation->CurrentHoverText = FText::FromName(TheFolder->LeafName);
 					Operation->CurrentIconBrush = FEditorStyle::Get().GetBrush(TEXT("SceneOutliner.FolderClosed"));
 				}
 			}

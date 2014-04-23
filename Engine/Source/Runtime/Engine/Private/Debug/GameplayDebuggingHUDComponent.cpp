@@ -564,6 +564,15 @@ void AGameplayDebuggingHUDComponent::CalulateStringSize(const AGameplayDebugging
 	}
 }
 
+void AGameplayDebuggingHUDComponent::CalulateTextSize(const AGameplayDebuggingHUDComponent::FPrintContext& DefaultContext, UFont* Font, const FText& InText, float& OutX, float& OutY)
+{
+	OutX = OutY = 0;
+	if (DefaultContext.Canvas != NULL)
+	{
+		DefaultContext.Canvas->StrLen(Font != NULL ? Font : DefaultContext.Font, InText.ToString(), OutX, OutY);
+	}
+}
+
 FVector AGameplayDebuggingHUDComponent::ProjectLocation(const AGameplayDebuggingHUDComponent::FPrintContext& Context, const FVector& Location)
 {
 	if (Context.Canvas != NULL)

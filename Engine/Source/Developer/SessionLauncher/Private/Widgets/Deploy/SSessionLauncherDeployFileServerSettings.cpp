@@ -38,7 +38,7 @@ void SSessionLauncherDeployFileServerSettings::Construct( const FArguments& InAr
 			.Padding(0.0f, 8.0f, 0.0f, 0.0f)
 			[
 				SNew(SExpandableArea)
-					.AreaTitle(LOCTEXT("AdvancedAreaTitle", "Advanced Settings").ToString())
+					.AreaTitle(LOCTEXT("AdvancedAreaTitle", "Advanced Settings"))
 					.InitiallyCollapsed(true)
 					.Padding(8.0f)
 					.BodyContent()
@@ -53,11 +53,11 @@ void SSessionLauncherDeployFileServerSettings::Construct( const FArguments& InAr
 									.IsChecked(this, &SSessionLauncherDeployFileServerSettings::HandleHideWindowCheckBoxIsChecked)
 									.OnCheckStateChanged(this, &SSessionLauncherDeployFileServerSettings::HandleHideWindowCheckBoxCheckStateChanged)
 									.Padding(FMargin(4.0f, 0.0f))
-									.ToolTipText(LOCTEXT("HideWindowCheckBoxTooltip", "If checked, the file server's console window will be hidden from your desktop.").ToString())
+									.ToolTipText(LOCTEXT("HideWindowCheckBoxTooltip", "If checked, the file server's console window will be hidden from your desktop."))
 									.Content()
 									[
 										SNew(STextBlock)
-											.Text(LOCTEXT("HideWindowCheckBoxText", "Hide the file server's console window").ToString())
+											.Text(LOCTEXT("HideWindowCheckBoxText", "Hide the file server's console window"))
 									]
 							]
 
@@ -70,11 +70,11 @@ void SSessionLauncherDeployFileServerSettings::Construct( const FArguments& InAr
 									.IsChecked(this, &SSessionLauncherDeployFileServerSettings::HandleStreamingServerCheckBoxIsChecked)
 									.OnCheckStateChanged(this, &SSessionLauncherDeployFileServerSettings::HandleStreamingServerCheckBoxCheckStateChanged)
 									.Padding(FMargin(4.0f, 0.0f))
-									.ToolTipText(LOCTEXT("StreamingServerCheckBoxTooltip", "If checked, the file server uses an experimental implementation that can serve multiple files simultaneously.").ToString())
+									.ToolTipText(LOCTEXT("StreamingServerCheckBoxTooltip", "If checked, the file server uses an experimental implementation that can serve multiple files simultaneously."))
 									.Content()
 									[
 										SNew(STextBlock)
-											.Text(LOCTEXT("StreamingServerCheckBoxText", "Streaming server (experimental)").ToString())
+											.Text(LOCTEXT("StreamingServerCheckBoxText", "Streaming server (experimental)"))
 									]
 							]
 					]

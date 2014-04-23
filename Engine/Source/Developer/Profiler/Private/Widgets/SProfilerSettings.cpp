@@ -14,13 +14,13 @@ void SProfilerSettings::Construct( const FArguments& InArgs )
 	const TSharedRef<SGridPanel> SettingsGrid = SNew(SGridPanel);
 	int CurrentRowPos = 0;
 
-	AddTitle( LOCTEXT("ProfilerSettingTitle","Profiler settings").ToString(), SettingsGrid, CurrentRowPos );
+	AddTitle( LOCTEXT("ProfilerSettingTitle","Profiler settings"), SettingsGrid, CurrentRowPos );
 	AddSeparator( SettingsGrid, CurrentRowPos );
-	AddHeader( LOCTEXT("MiscTitle","Miscellaneous").ToString(), SettingsGrid, CurrentRowPos );
+	AddHeader( LOCTEXT("MiscTitle","Miscellaneous"), SettingsGrid, CurrentRowPos );
 	AddOption
 	( 
-		LOCTEXT("bSingleInstanceMode_T","Single Instance Mode").ToString(), 
-		LOCTEXT("bSingleInstanceMode_TT","If True, the profiler will work in the single instance mode, all functionality related to multi instances will be disabled or removed from the UI").ToString(), 
+		LOCTEXT("bSingleInstanceMode_T","Single Instance Mode"), 
+		LOCTEXT("bSingleInstanceMode_TT","If True, the profiler will work in the single instance mode, all functionality related to multi instances will be disabled or removed from the UI"), 
 		SettingPtr->bSingleInstanceMode, 
 		SettingPtr->GetDefaults().bSingleInstanceMode,
 		SettingsGrid, 
@@ -28,8 +28,8 @@ void SProfilerSettings::Construct( const FArguments& InArgs )
 	);
 	AddOption
 	( 
-		LOCTEXT("bShowCoalescedViewModesInEventGraph_T","Show Coalesced View Modes In Event Graph").ToString(), 
-		LOCTEXT("bShowCoalescedViewModesInEventGraph_TT","If True, coalesced view modes related functionality will be added to the event graph").ToString(), 
+		LOCTEXT("bShowCoalescedViewModesInEventGraph_T","Show Coalesced View Modes In Event Graph"), 
+		LOCTEXT("bShowCoalescedViewModesInEventGraph_TT","If True, coalesced view modes related functionality will be added to the event graph"), 
 		SettingPtr->bShowCoalescedViewModesInEventGraph, 
 		SettingPtr->GetDefaults().bShowCoalescedViewModesInEventGraph,
 		SettingsGrid, 
@@ -46,7 +46,7 @@ void SProfilerSettings::Construct( const FArguments& InArgs )
 	SettingPtr->EnterEditMode();
 }
 
-void SProfilerSettings::AddTitle( const FString& TitleText, const TSharedRef<SGridPanel>& Grid, int32& RowPos )
+void SProfilerSettings::AddTitle( const FText& TitleText, const TSharedRef<SGridPanel>& Grid, int32& RowPos )
 {
 	Grid->AddSlot( 0, RowPos++ )
 	.Padding( 2.0f )
@@ -70,7 +70,7 @@ void SProfilerSettings::AddSeparator( const TSharedRef<SGridPanel>& Grid, int32&
 	RowPos++;
 }
 
-void SProfilerSettings::AddHeader( const FString& HeaderText, const TSharedRef<SGridPanel>& Grid, int32& RowPos )
+void SProfilerSettings::AddHeader( const FText& HeaderText, const TSharedRef<SGridPanel>& Grid, int32& RowPos )
 {
 	Grid->AddSlot( 0, RowPos++ )
 	.Padding( 2.0f )
@@ -82,7 +82,7 @@ void SProfilerSettings::AddHeader( const FString& HeaderText, const TSharedRef<S
 	RowPos++;
 }
 
-void SProfilerSettings::AddOption( const FString& OptionName, const FString& OptionDesc, bool& Value, const bool& Default, const TSharedRef<SGridPanel>& Grid, int32& RowPos )
+void SProfilerSettings::AddOption(const FText& OptionName, const FText& OptionDesc, bool& Value, const bool& Default, const TSharedRef<SGridPanel>& Grid, int32& RowPos)
 {
 	Grid->AddSlot( 0, RowPos )
 	.Padding( 2.0f )
@@ -117,7 +117,7 @@ void SProfilerSettings::AddOption( const FString& OptionName, const FString& Opt
 		.VAlign( VAlign_Center )
 		[
 			SNew(SButton)
-			.ToolTipText( LOCTEXT("ResetToDefaultToolTip", "Reset to default").ToString() )
+			.ToolTipText( LOCTEXT("ResetToDefaultToolTip", "Reset to default") )
 			.ButtonStyle( FEditorStyle::Get(), TEXT("NoBorder") )
 			.ContentPadding( 0.0f ) 
 			.Visibility( this, &SProfilerSettings::OptionDefault_GetDiffersFromDefaultAsVisibility, (const bool*)&Value, (const bool*)&Default )
@@ -165,7 +165,7 @@ void SProfilerSettings::AddFooter( const TSharedRef<SGridPanel>& Grid, int32& Ro
 				.AutoWidth()
 				[
 					SNew(STextBlock)
-					.Text( LOCTEXT("SaveAndCloseTitle","Save and close").ToString() )
+					.Text( LOCTEXT("SaveAndCloseTitle","Save and close") )
 				]
 			]
 		]
@@ -193,7 +193,7 @@ void SProfilerSettings::AddFooter( const TSharedRef<SGridPanel>& Grid, int32& Ro
 				.AutoWidth()
 				[
 					SNew(STextBlock)
-					.Text( LOCTEXT("ResetToDefaultsTitle","Reset to defaults").ToString() )
+					.Text( LOCTEXT("ResetToDefaultsTitle","Reset to defaults") )
 				]
 			]
 		]

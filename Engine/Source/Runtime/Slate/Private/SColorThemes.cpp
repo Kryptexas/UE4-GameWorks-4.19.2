@@ -324,18 +324,18 @@ const FSlateBrush* SThemeColorBlock::HandleBorderImage() const
 }
 
 #define LOCTEXT_NAMESPACE "ThemeColorBlock"
-FString SThemeColorBlock::GetRedText() const {return ColorPtr.IsValid() ? LOCTEXT("Red", "R").ToString() + FormatToolTipText(ColorPtr.Pin()->HSVToLinearRGB().R) : TEXT("");}
-FString SThemeColorBlock::GetGreenText() const {return ColorPtr.IsValid() ? LOCTEXT("Green", "G").ToString() + FormatToolTipText(ColorPtr.Pin()->HSVToLinearRGB().G) : TEXT("");}
-FString SThemeColorBlock::GetBlueText() const {return ColorPtr.IsValid() ? LOCTEXT("Blue", "B").ToString() + FormatToolTipText(ColorPtr.Pin()->HSVToLinearRGB().B) : TEXT("");}
-FString SThemeColorBlock::GetAlphaText() const {return ColorPtr.IsValid() ? LOCTEXT("Alpha", "A").ToString() + FormatToolTipText(ColorPtr.Pin()->HSVToLinearRGB().A) : TEXT("");}
-FString SThemeColorBlock::GetHueText() const {return ColorPtr.IsValid() ? LOCTEXT("Hue", "H").ToString() + FormatToolTipText(ColorPtr.Pin()->R) : TEXT("");}
-FString SThemeColorBlock::GetSaturationText() const {return ColorPtr.IsValid() ? LOCTEXT("Saturation", "S").ToString() + FormatToolTipText(ColorPtr.Pin()->G) : TEXT("");}
-FString SThemeColorBlock::GetValueText() const {return ColorPtr.IsValid() ? LOCTEXT("Value", "V").ToString() + FormatToolTipText(ColorPtr.Pin()->B) : TEXT("");}
-#undef LOCTEXT_NAMESPACE
+FText SThemeColorBlock::GetRedText() const { return ColorPtr.IsValid() ? FormatToolTipText(LOCTEXT("Red", "R"), ColorPtr.Pin()->HSVToLinearRGB().R) : FText::GetEmpty(); }
+FText SThemeColorBlock::GetGreenText() const { return ColorPtr.IsValid() ? FormatToolTipText(LOCTEXT("Green", "G"), ColorPtr.Pin()->HSVToLinearRGB().G) : FText::GetEmpty(); }
+FText SThemeColorBlock::GetBlueText() const { return ColorPtr.IsValid() ? FormatToolTipText(LOCTEXT("Blue", "B"), ColorPtr.Pin()->HSVToLinearRGB().B) : FText::GetEmpty(); }
+FText SThemeColorBlock::GetAlphaText() const { return ColorPtr.IsValid() ? FormatToolTipText(LOCTEXT("Alpha", "A"), ColorPtr.Pin()->HSVToLinearRGB().A) : FText::GetEmpty(); }
+FText SThemeColorBlock::GetHueText() const { return ColorPtr.IsValid() ? FormatToolTipText(LOCTEXT("Hue", "H"), ColorPtr.Pin()->R) : FText::GetEmpty(); }
+FText SThemeColorBlock::GetSaturationText() const { return ColorPtr.IsValid() ? FormatToolTipText(LOCTEXT("Saturation", "S"), ColorPtr.Pin()->G) : FText::GetEmpty(); }
+FText SThemeColorBlock::GetValueText() const { return ColorPtr.IsValid() ? FormatToolTipText(LOCTEXT("Value", "V"), ColorPtr.Pin()->B) : FText::GetEmpty(); }
 
-FString SThemeColorBlock::FormatToolTipText(float Value) const
+FText SThemeColorBlock::FormatToolTipText(const FText& ColorIdentifier, float Value) const
 {
-	FString Result = FString(TEXT(": "));
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("Identifier"), ColorIdentifier);
 
 	if (Value >= 0.f)
 	{
@@ -343,10 +343,20 @@ FString SThemeColorBlock::FormatToolTipText(float Value) const
 		int32 PreRadixDigits = FMath::Max(0, int32(FMath::Loge(Value + KINDA_SMALL_NUMBER) * LogToLog10));
 
 		int32 Precision = FMath::Max(0, 2 - PreRadixDigits);
-		Result += FString::Printf(*FString::Printf(TEXT("%%.%if"), Precision), Value);
+
+		FNumberFormattingOptions FormatRules;
+		FormatRules.MinimumFractionalDigits = Precision;
+
+		Args.Add(TEXT("Value"), FText::AsNumber(Value, &FormatRules));
 	}
-	return Result;
+	else
+	{
+		Args.Add(TEXT("Value"), FText::GetEmpty());
+	}
+
+	return FText::Format(LOCTEXT("ToolTipFormat", "{Identifier}: {Value}"), Args);
 }
+#undef LOCTEXT_NAMESPACE
 
 bool SThemeColorBlock::OnReadIgnoreAlpha() const
 {
@@ -702,22 +712,22 @@ void SColorThemesViewer::Construct(const FArguments& InArgs)
 		SNew(SHorizontalBox)
 		+SHorizontalBox::Slot() .FillWidth(1) .Padding(3)
 		[
-			SNew(SButton) .Text(LOCTEXT("NewButton", "New").ToString()) .HAlign(HAlign_Center)
+			SNew(SButton) .Text(LOCTEXT("NewButton", "New")) .HAlign(HAlign_Center)
 				.OnClicked(this, &SColorThemesViewer::NewColorTheme)
 		]
 		+SHorizontalBox::Slot() .FillWidth(1) .Padding(3)
 		[
-			SNew(SButton) .Text(LOCTEXT("DuplicateButton", "Duplicate").ToString()) .HAlign(HAlign_Center)
+			SNew(SButton) .Text(LOCTEXT("DuplicateButton", "Duplicate")) .HAlign(HAlign_Center)
 				.OnClicked(this, &SColorThemesViewer::DuplicateColorTheme)
 		]
 		+SHorizontalBox::Slot() .FillWidth(1) .Padding(3)
 		[
-			SNew(SButton) .Text(LOCTEXT("RenameButton", "Rename").ToString()) .HAlign(HAlign_Center)
+			SNew(SButton) .Text(LOCTEXT("RenameButton", "Rename")) .HAlign(HAlign_Center)
 				.OnClicked(this, &SColorThemesViewer::MenuToRename)
 		]
 		+SHorizontalBox::Slot() .FillWidth(1) .Padding(3)
 		[
-			SNew(SButton) .Text(LOCTEXT("DeleteButton", "Delete").ToString()) .HAlign(HAlign_Center)
+			SNew(SButton) .Text(LOCTEXT("DeleteButton", "Delete")) .HAlign(HAlign_Center)
 				.OnClicked(this, &SColorThemesViewer::MenuToDelete)
 		];
 
@@ -730,12 +740,12 @@ void SColorThemesViewer::Construct(const FArguments& InArgs)
 		]
 		+SHorizontalBox::Slot().AutoWidth() .Padding(3)
 		[
-			SNew(SButton) .Text(LOCTEXT("AcceptRenameButton", "Accept").ToString()) .HAlign(HAlign_Right)
+			SNew(SButton) .Text(LOCTEXT("AcceptRenameButton", "Accept")) .HAlign(HAlign_Right)
 				.OnClicked(this, &SColorThemesViewer::ChangeThemeName)
 		]
 		+SHorizontalBox::Slot().AutoWidth() .Padding(3)
 		[
-			SNew(SButton) .Text(LOCTEXT("CancelRenameButton", "Cancel").ToString()) .HAlign(HAlign_Right)
+			SNew(SButton) .Text(LOCTEXT("CancelRenameButton", "Cancel")) .HAlign(HAlign_Right)
 				.OnClicked(this, &SColorThemesViewer::MenuToStandard)
 		];
 
@@ -744,16 +754,16 @@ void SColorThemesViewer::Construct(const FArguments& InArgs)
 		SNew(SHorizontalBox)
 		+SHorizontalBox::Slot() .FillWidth(1) .HAlign(HAlign_Left) .Padding(3)
 		[
-			SNew(SButton) .Text(LOCTEXT("ConfirmDeleteButton", "Delete").ToString()) .HAlign(HAlign_Center)
+			SNew(SButton) .Text(LOCTEXT("ConfirmDeleteButton", "Delete")) .HAlign(HAlign_Center)
 				.OnClicked(this, &SColorThemesViewer::DeleteColorTheme)
 		]
 		+SHorizontalBox::Slot() .FillWidth(1) .HAlign(HAlign_Center) .VAlign(VAlign_Center) .Padding(3)
 		[
-			SNew(STextBlock) .Text(LOCTEXT("ConfirmDeletePrompt", "Confirm Delete").ToString()) .Font(SmallLayoutFont)
+			SNew(STextBlock) .Text(LOCTEXT("ConfirmDeletePrompt", "Confirm Delete")) .Font(SmallLayoutFont)
 		]
 		+SHorizontalBox::Slot() .FillWidth(1) .HAlign(HAlign_Right) .Padding(3)
 		[
-			SNew(SButton) .Text(LOCTEXT("CancelDeleteButton", "Cancel").ToString()) .HAlign(HAlign_Center)
+			SNew(SButton) .Text(LOCTEXT("CancelDeleteButton", "Cancel")) .HAlign(HAlign_Center)
 				.OnClicked(this, &SColorThemesViewer::MenuToStandard)
 		];
 

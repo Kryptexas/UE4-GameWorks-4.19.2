@@ -44,8 +44,8 @@ public:
 	FCAQuery* GetCurrentQuery();
 
 	// Get delegates
-	FString GetStartString() const;
-	FString GetEndString() const;
+	FText GetStartText() const;
+	FText GetEndText() const;
 	ESlateCheckBoxState::Type GetShowMissesState() const;
 	// List delegates
 	TSharedRef<ITableRow> ResultListGenerateRow(TSharedPtr<FCAHitInfo> Info, const TSharedRef<STableViewBase>& OwnerTable);

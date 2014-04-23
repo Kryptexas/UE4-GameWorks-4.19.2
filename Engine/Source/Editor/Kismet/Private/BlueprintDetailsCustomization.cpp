@@ -61,7 +61,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 	.NameContent()
 	[
 		SNew(STextBlock)
-		.Text(LOCTEXT("BlueprintVarActionDetails_VariableNameLabel", "Variable Name").ToString())
+		.Text(LOCTEXT("BlueprintVarActionDetails_VariableNameLabel", "Variable Name"))
 		.ToolTip(VarNameTooltip)
 		.Font(IDetailLayoutBuilder::GetDetailFont())
 	]
@@ -462,7 +462,6 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 		UClass* VariableClass = (VariableProperty != NULL) ? VariableProperty->GetTypedOuter<UClass>() : NULL;
 
 		FText ErrorMessage;
-		const FString TooltipStr = LOCTEXT("DefaultValue_Tooltip", "Edit the default value of this variable.").ToString();
 		IDetailCategoryBuilder& DefaultValueCategory = DetailLayout.EditCategory(TEXT("DefaultValueCategory"), LOCTEXT("DefaultValueCategoryHeading", "Default Value").ToString());
 
 		if (VariableProperty == NULL)
@@ -505,8 +504,8 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 			DefaultValueCategory.AddCustomRow( TEXT("Error") )
 			[
 				SNew(STextBlock)
-				.ToolTipText(ErrorMessage.ToString())
-				.Text(ErrorMessage.ToString())
+				.ToolTipText(ErrorMessage)
+				.Text(ErrorMessage)
 				.Font(DetailFontInfo)
 			];
 		}
@@ -4164,7 +4163,7 @@ void FBlueprintComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLa
 				.AutoWidth()
 				[
 					SNew( STextBlock )
-						.Text( LOCTEXT("ScriptingEvents_Label", "Add Event").ToString()  )
+						.Text( LOCTEXT("ScriptingEvents_Label", "Add Event")  )
 						.Font( IDetailLayoutBuilder::GetDetailFont() )
 				]
 			]
@@ -4472,9 +4471,9 @@ FText FBlueprintComponentDetails::GetSocketName() const
 
 	if (CachedNodePtr->GetSCSNode() != NULL)
 	{
-		return FText::FromString(CachedNodePtr->GetSCSNode()->AttachToName.ToString());
+		return FText::FromName(CachedNodePtr->GetSCSNode()->AttachToName);
 	}
-	return FText();
+	return FText::GetEmpty();
 }
 
 void FBlueprintComponentDetails::OnBrowseSocket()

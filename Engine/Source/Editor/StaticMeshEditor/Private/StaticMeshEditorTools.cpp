@@ -98,7 +98,7 @@ void SConvexDecomposition::Construct(const FArguments& InArgs)
 			.VAlign(VAlign_Center)
 			[
 				SNew(STextBlock)
-				.Text( LOCTEXT("MaxNumHulls_ConvexDecomp", "Max Hulls").ToString() )
+				.Text( LOCTEXT("MaxNumHulls_ConvexDecomp", "Max Hulls") )
 			]
 
 			+SHorizontalBox::Slot()
@@ -123,7 +123,7 @@ void SConvexDecomposition::Construct(const FArguments& InArgs)
 			.VAlign(VAlign_Center)
 			[
 				SNew(STextBlock)
-				.Text( LOCTEXT("MaxHullVerts_ConvexDecomp", "Max Hull Verts").ToString() )
+				.Text( LOCTEXT("MaxHullVerts_ConvexDecomp", "Max Hull Verts") )
 			]
 
 			+SHorizontalBox::Slot()
@@ -148,7 +148,7 @@ void SConvexDecomposition::Construct(const FArguments& InArgs)
 			.Padding(8.0f, 0.0f, 8.0f, 0.0f)
 			[
 				SNew(SButton)
-				.Text( LOCTEXT("Apply_ConvexDecomp", "Apply").ToString() )
+				.Text( LOCTEXT("Apply_ConvexDecomp", "Apply") )
 				.OnClicked(this, &SConvexDecomposition::OnApplyDecomp)
 			]
 
@@ -157,7 +157,7 @@ void SConvexDecomposition::Construct(const FArguments& InArgs)
 			.Padding(8.0f, 0.0f, 8.0f, 0.0f)
 			[
 				SNew(SButton)
-				.Text( LOCTEXT("Defaults_ConvexDecomp", "Defaults").ToString() )
+				.Text( LOCTEXT("Defaults_ConvexDecomp", "Defaults") )
 				.OnClicked(this, &SConvexDecomposition::OnDefaults)
 			]
 		]
@@ -261,7 +261,7 @@ void FMeshBuildSettingsLayout::GenerateHeaderRowContent( FDetailWidgetRow& NodeR
 	NodeRow.NameContent()
 	[
 		SNew( STextBlock )
-		.Text( LOCTEXT("MeshBuildSettings", "Build Settings").ToString() )
+		.Text( LOCTEXT("MeshBuildSettings", "Build Settings") )
 		.Font( IDetailLayoutBuilder::GetDetailFont() )
 	];
 }
@@ -274,7 +274,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 		[
 			SNew(STextBlock)
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
-			.Text(LOCTEXT("RecomputeNormals", "Recompute Normals").ToString())
+			.Text(LOCTEXT("RecomputeNormals", "Recompute Normals"))
 		
 		]
 		.ValueContent()
@@ -291,7 +291,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 		[
 			SNew(STextBlock)
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
-			.Text(LOCTEXT("RecomputeTangents", "Recompute Tangents").ToString())
+			.Text(LOCTEXT("RecomputeTangents", "Recompute Tangents"))
 		]
 		.ValueContent()
 		[
@@ -307,7 +307,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 		[
 			SNew(STextBlock)
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
-			.Text(LOCTEXT("RemoveDegenerates", "Remove Degenerates").ToString())
+			.Text(LOCTEXT("RemoveDegenerates", "Remove Degenerates"))
 		]
 		.ValueContent()
 		[
@@ -323,7 +323,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 		[
 			SNew(STextBlock)
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
-			.Text(LOCTEXT("UseFullPrecisionUVs", "Use Full Precision UVs").ToString())
+			.Text(LOCTEXT("UseFullPrecisionUVs", "Use Full Precision UVs"))
 		]
 		.ValueContent()
 		[
@@ -339,7 +339,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 		[
 			SNew(STextBlock)
 			.Font(IDetailLayoutBuilder::GetDetailFont())
-			.Text(LOCTEXT("BuildScale", "Build Scale").ToString())
+			.Text(LOCTEXT("BuildScale", "Build Scale"))
 			.ToolTipText( LOCTEXT("BuildScale_ToolTip", "The local scale applied when building the mesh") )
 		]
 		.ValueContent()
@@ -409,7 +409,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 			.IsEnabled(ParentLODSettings.Pin().ToSharedRef(), &FLevelOfDetailSettingsLayout::IsApplyNeeded)
 			[
 				SNew( STextBlock )
-				.Text(LOCTEXT("ApplyChanges", "Apply Changes").ToString())
+				.Text(LOCTEXT("ApplyChanges", "Apply Changes"))
 				.Font( IDetailLayoutBuilder::GetDetailFont() )
 			]
 		];
@@ -515,7 +515,7 @@ void FMeshReductionSettingsLayout::GenerateHeaderRowContent( FDetailWidgetRow& N
 	NodeRow.NameContent()
 	[
 		SNew( STextBlock )
-		.Text( LOCTEXT("MeshReductionSettings", "Reduction Settings").ToString() )
+		.Text( LOCTEXT("MeshReductionSettings", "Reduction Settings") )
 		.Font( IDetailLayoutBuilder::GetDetailFont() )
 	];
 }
@@ -530,7 +530,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 		[
 			SNew(STextBlock)
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
-			.Text(LOCTEXT("PercentTriangles", "Percent Triangles").ToString())
+			.Text(LOCTEXT("PercentTriangles", "Percent Triangles"))
 		]
 		.ValueContent()
 		[
@@ -550,7 +550,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 		[
 			SNew(STextBlock)
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
-			.Text(LOCTEXT("MaxDeviation", "Max Deviation").ToString())
+			.Text(LOCTEXT("MaxDeviation", "Max Deviation"))
 		]
 		.ValueContent()
 		[
@@ -570,7 +570,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 		[
 			SNew( STextBlock )
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
-			.Text( LOCTEXT("Silhouette_MeshSimplification", "Silhouette").ToString() )
+			.Text( LOCTEXT("Silhouette_MeshSimplification", "Silhouette") )
 		]
 		.ValueContent()
 		[
@@ -590,7 +590,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 		[
 			SNew( STextBlock )
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
-			.Text( LOCTEXT("Texture_MeshSimplification", "Texture").ToString() )
+			.Text( LOCTEXT("Texture_MeshSimplification", "Texture") )
 		]
 		.ValueContent()
 		[
@@ -610,7 +610,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 		[
 			SNew( STextBlock )
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
-			.Text( LOCTEXT("Shading_MeshSimplification", "Shading").ToString() )
+			.Text( LOCTEXT("Shading_MeshSimplification", "Shading") )
 		]
 		.ValueContent()
 		[
@@ -630,7 +630,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 		[
 			SNew(STextBlock)
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
-			.Text(LOCTEXT("WeldingThreshold", "Welding Threshold").ToString())
+			.Text(LOCTEXT("WeldingThreshold", "Welding Threshold"))
 		]
 		.ValueContent()
 		[
@@ -649,7 +649,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 		[
 			SNew(STextBlock)
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
-			.Text(LOCTEXT("RecomputeNormals", "Recompute Normals").ToString())
+			.Text(LOCTEXT("RecomputeNormals", "Recompute Normals"))
 
 		]
 		.ValueContent()
@@ -666,7 +666,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 		[
 			SNew(STextBlock)
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
-			.Text(LOCTEXT("HardEdgeAngle", "Hard Edge Angle").ToString())
+			.Text(LOCTEXT("HardEdgeAngle", "Hard Edge Angle"))
 		]
 		.ValueContent()
 		[
@@ -690,7 +690,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 				.IsEnabled(ParentLODSettings.Pin().ToSharedRef(), &FLevelOfDetailSettingsLayout::IsApplyNeeded)
 				[
 					SNew( STextBlock )
-					.Text(LOCTEXT("ApplyChanges", "Apply Changes").ToString())
+					.Text(LOCTEXT("ApplyChanges", "Apply Changes"))
 					.Font( IDetailLayoutBuilder::GetDetailFont() )
 				]
 			];
@@ -866,12 +866,12 @@ TSharedRef<SWidget> FMeshSectionSettingsLayout::OnGenerateNameWidgetsForMaterial
 		SNew(SCheckBox)
 		.IsChecked(this, &FMeshSectionSettingsLayout::IsSectionSelected, SlotIndex)
 		.OnCheckStateChanged(this, &FMeshSectionSettingsLayout::OnSectionSelectedChanged, SlotIndex)
-		.ToolTipText(LOCTEXT("Highlight_ToolTip", "Highlights this section in the viewport").ToString())
+		.ToolTipText(LOCTEXT("Highlight_ToolTip", "Highlights this section in the viewport"))
 		[
 			SNew(STextBlock)
 			.Font(IDetailLayoutBuilder::GetDetailFont())
 			.ColorAndOpacity( FLinearColor( 0.4f, 0.4f, 0.4f, 1.0f) )
-			.Text(LOCTEXT("Highlight", "Highlight").ToString())
+			.Text(LOCTEXT("Highlight", "Highlight"))
 
 		];
 }
@@ -888,7 +888,7 @@ TSharedRef<SWidget> FMeshSectionSettingsLayout::OnGenerateWidgetsForMaterial(UMa
 			[
 				SNew(STextBlock)
 					.Font(FEditorStyle::GetFontStyle("StaticMeshEditor.NormalFont"))
-					.Text(LOCTEXT("CastShadow", "Cast Shadow").ToString())
+					.Text(LOCTEXT("CastShadow", "Cast Shadow"))
 			]
 		]
 		+SVerticalBox::Slot()
@@ -901,7 +901,7 @@ TSharedRef<SWidget> FMeshSectionSettingsLayout::OnGenerateWidgetsForMaterial(UMa
 			[
 				SNew(STextBlock)
 					.Font(FEditorStyle::GetFontStyle("StaticMeshEditor.NormalFont"))
-					.Text(LOCTEXT("EnableCollision", "Enable Collision").ToString())
+					.Text(LOCTEXT("EnableCollision", "Enable Collision"))
 			]
 		];
 }
@@ -1043,7 +1043,7 @@ void FLevelOfDetailSettingsLayout::AddToDetailsPanel( IDetailLayoutBuilder& Deta
 	[
 		SNew(STextBlock)
 		.Font( IDetailLayoutBuilder::GetDetailFont() )
-		.Text(LOCTEXT("LODGroup", "LOD Group").ToString())
+		.Text(LOCTEXT("LODGroup", "LOD Group"))
 	]
 	.ValueContent()
 	[
@@ -1059,7 +1059,7 @@ void FLevelOfDetailSettingsLayout::AddToDetailsPanel( IDetailLayoutBuilder& Deta
 		[
 			SNew(STextBlock)
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
-			.Text(LOCTEXT("LODImport", "LOD Import").ToString())
+			.Text(LOCTEXT("LODImport", "LOD Import"))
 		]
 	.ValueContent()
 		[
@@ -1077,7 +1077,7 @@ void FLevelOfDetailSettingsLayout::AddToDetailsPanel( IDetailLayoutBuilder& Deta
 	[
 		SNew(STextBlock)
 		.Font( IDetailLayoutBuilder::GetDetailFont() )
-		.Text(LOCTEXT("NumberOfLODs", "Number of LODs").ToString())
+		.Text(LOCTEXT("NumberOfLODs", "Number of LODs"))
 	]
 	.ValueContent()
 	[
@@ -1098,7 +1098,7 @@ void FLevelOfDetailSettingsLayout::AddToDetailsPanel( IDetailLayoutBuilder& Deta
 	[
 		SNew(STextBlock)
 		.Font( IDetailLayoutBuilder::GetDetailFont() )
-		.Text(LOCTEXT("AutoComputeLOD", "Auto Compute LOD Distances").ToString())
+		.Text(LOCTEXT("AutoComputeLOD", "Auto Compute LOD Distances"))
 	]
 	.ValueContent()
 	[
@@ -1116,7 +1116,7 @@ void FLevelOfDetailSettingsLayout::AddToDetailsPanel( IDetailLayoutBuilder& Deta
 		.IsEnabled(this, &FLevelOfDetailSettingsLayout::IsApplyNeeded)
 		[
 			SNew( STextBlock )
-			.Text(LOCTEXT("ApplyChanges", "Apply Changes").ToString())
+			.Text(LOCTEXT("ApplyChanges", "Apply Changes"))
 			.Font( DetailBuilder.GetDetailFont() )
 		]
 	];
@@ -1128,7 +1128,7 @@ void FLevelOfDetailSettingsLayout::AddToDetailsPanel( IDetailLayoutBuilder& Deta
 	[
 		SNew(STextBlock)
 		.Font(FEditorStyle::GetFontStyle("StaticMeshEditor.NormalFont"))
-		.Text(LOCTEXT("AllowedPixelError", "Auto Distance Error").ToString())
+		.Text(LOCTEXT("AllowedPixelError", "Auto Distance Error"))
 	]
 	.ValueContent()
 	[
@@ -1201,7 +1201,7 @@ void FLevelOfDetailSettingsLayout::AddLODLevelCategories( IDetailLayoutBuilder& 
 			FString CategoryName = FString(TEXT("LOD"));
 			CategoryName.AppendInt( LODIndex );
 
-			FString LODLevelString = FText::Format( LOCTEXT("LODLevel", "LOD {0}"), FText::AsNumber( LODIndex ) ).ToString();
+			FString LODLevelString = FText::Format( LOCTEXT("LODLevel", "LOD{0}"), FText::AsNumber( LODIndex ) ).ToString();
 
 			IDetailCategoryBuilder& LODCategory = DetailBuilder.EditCategory( *CategoryName, LODLevelString, ECategoryPriority::Important );
 
@@ -1250,7 +1250,7 @@ void FLevelOfDetailSettingsLayout::AddLODLevelCategories( IDetailLayoutBuilder& 
 				[
 					SNew(STextBlock)
 					.Font( IDetailLayoutBuilder::GetDetailFont() )
-					.Text(LOCTEXT("Distance", "Distance").ToString())
+					.Text(LOCTEXT("Distance", "Distance"))
 				]
 				.ValueContent()
 				[
@@ -1657,7 +1657,7 @@ void SGenerateUniqueUVs::Construct(const FArguments& InArgs)
 			.AutoHeight()
 			[
 				SNew(STextBlock)
-					.Text( LOCTEXT("CreationMode", "Creation Mode").ToString() )
+					.Text( LOCTEXT("CreationMode", "Creation Mode") )
 			]
 
 			+SVerticalBox::Slot()
@@ -1676,7 +1676,7 @@ void SGenerateUniqueUVs::Construct(const FArguments& InArgs)
 						.OnCheckStateChanged( this, &SGenerateUniqueUVs::OnCreationModeChanged, CreateNew )
 						[
 							SNew(STextBlock)
-								.Text( LOCTEXT("CreateNew", "Create New").ToString() )
+								.Text( LOCTEXT("CreateNew", "Create New") )
 						]
 				]
 
@@ -1690,7 +1690,7 @@ void SGenerateUniqueUVs::Construct(const FArguments& InArgs)
 						.OnCheckStateChanged( this, &SGenerateUniqueUVs::OnCreationModeChanged, UseChannel0 )
 						[
 							SNew(STextBlock)
-								.Text( LOCTEXT("LayoutUsing0Channel", "Layout using 0 channel").ToString() )
+								.Text( LOCTEXT("LayoutUsing0Channel", "Layout using 0 channel") )
 						]
 				]
 			]
@@ -1705,7 +1705,7 @@ void SGenerateUniqueUVs::Construct(const FArguments& InArgs)
 					.FillWidth(3.0f)
 				[
 					SNew(STextBlock)
-						.Text( LOCTEXT("UVChannelSaveSelection", "UV channel to save results to:").ToString() )
+						.Text( LOCTEXT("UVChannelSaveSelection", "UV channel to save results to:") )
 				]
 
 				+SHorizontalBox::Slot()
@@ -1724,7 +1724,7 @@ void SGenerateUniqueUVs::Construct(const FArguments& InArgs)
 				.Padding( 0.0f, 8.0f, 0.0f, 0.0f)
 			[
 				SNew(STextBlock)
-					.Text( LOCTEXT("SelectGenerationMethod", "Select Generation Method").ToString() )
+					.Text( LOCTEXT("SelectGenerationMethod", "Select Generation Method") )
 					.IsEnabled(this, &SGenerateUniqueUVs::IsCreateNew)
 			]
 
@@ -1744,7 +1744,7 @@ void SGenerateUniqueUVs::Construct(const FArguments& InArgs)
 						.IsEnabled(this, &SGenerateUniqueUVs::IsCreateNew)
 					[
 						SNew(STextBlock)
-							.Text( LOCTEXT("LimitMaxStretching", "Limit maximum stretching").ToString() )
+							.Text( LOCTEXT("LimitMaxStretching", "Limit maximum stretching") )
 					]
 				]
 
@@ -1778,7 +1778,7 @@ void SGenerateUniqueUVs::Construct(const FArguments& InArgs)
 						.IsEnabled(this, &SGenerateUniqueUVs::IsCreateNew)
 					[
 						SNew(STextBlock)
-							.Text( LOCTEXT("LimitMaxCharts", "Limit maximum number of charts").ToString() )
+							.Text( LOCTEXT("LimitMaxCharts", "Limit maximum number of charts") )
 					]
 				]
 
@@ -1806,7 +1806,7 @@ void SGenerateUniqueUVs::Construct(const FArguments& InArgs)
 					.FillWidth(3.0f)
 				[
 					SNew(STextBlock)
-						.Text( LOCTEXT("LimitChartSpacing", "Limit spacing between charts:").ToString() )
+						.Text( LOCTEXT("LimitChartSpacing", "Limit spacing between charts:") )
 						.IsEnabled(this, &SGenerateUniqueUVs::IsCreateNew)
 				]
 
@@ -1830,7 +1830,7 @@ void SGenerateUniqueUVs::Construct(const FArguments& InArgs)
 				.Padding( 0.0f, 8.0f, 0.0f, 0.0f)
 			[
 				SNew(SButton)
-					.Text( LOCTEXT("Apply", "Apply").ToString() )
+					.Text( LOCTEXT("Apply", "Apply") )
 					.OnClicked( this, &SGenerateUniqueUVs::OnApply )
 			]
 		];

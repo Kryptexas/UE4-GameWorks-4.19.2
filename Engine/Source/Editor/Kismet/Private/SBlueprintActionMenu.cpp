@@ -288,7 +288,7 @@ void SBlueprintActionMenu::Construct( const FArguments& InArgs, TSharedPtr<FBlue
 							TEXT("BlueprintActionMenuContextToggle")))
 						[
 							SNew(STextBlock)
-							.Text(LOCTEXT("BlueprintActionMenuContextToggle", "Context Sensitive").ToString())
+							.Text(LOCTEXT("BlueprintActionMenuContextToggle", "Context Sensitive"))
 						]
 					]
 				]

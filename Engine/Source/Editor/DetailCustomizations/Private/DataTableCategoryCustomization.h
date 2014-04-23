@@ -51,7 +51,7 @@ public:
 			.NameContent()
 				[
 					SNew(STextBlock)
-					.Text(LOCTEXT("DataTable_ColumnName", "Column Name").ToString())
+					.Text(LOCTEXT("DataTable_ColumnName", "Column Name"))
 					.Font(StructCustomizationUtils.GetRegularFont())
 				]
 			.ValueContent()
@@ -75,7 +75,7 @@ public:
 			.NameContent()
 				[
 					SNew(STextBlock)
-					.Text(LOCTEXT("DataTable_RowContains", "Row Contains").ToString())
+					.Text(LOCTEXT("DataTable_RowContains", "Row Contains"))
 					.Font(StructCustomizationUtils.GetRegularFont())
 				]
 			.ValueContent()

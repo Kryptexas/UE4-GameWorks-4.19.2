@@ -61,22 +61,22 @@ public:
 		{
 			// The state column shows the source control status. It should only ever be one of the three states shown below.
 			// Uses a smaller font and uses CAPS to make them stand out next to the name column.
-			FString StateText;
+			FText StateText;
 			if(Item->SourceControlState->IsCheckedOut())
 			{
-				StateText = LOCTEXT("SourceControlState_CheckedOut", "CHECKED OUT").ToString();
+				StateText = LOCTEXT("SourceControlState_CheckedOut", "CHECKED OUT");
 			}
 			else if(!Item->SourceControlState->IsSourceControlled())
 			{
-				StateText = LOCTEXT("SourceControlState_NotInDepot", "NOT IN DEPOT").ToString();
+				StateText = LOCTEXT("SourceControlState_NotInDepot", "NOT IN DEPOT");
 			}
 			else if(Item->SourceControlState->IsAdded())
 			{
-				StateText = LOCTEXT("SourceControlState_OpenForAdd", "OPEN FOR ADD").ToString();
+				StateText = LOCTEXT("SourceControlState_OpenForAdd", "OPEN FOR ADD");
 			}
 			else
 			{
-				StateText = LOCTEXT("SourceControlState_Unknown", "UNKNOWN").ToString();
+				StateText = LOCTEXT("SourceControlState_Unknown", "UNKNOWN");
 			}
 
 			return SNew(SHorizontalBox)
@@ -142,7 +142,7 @@ void SLevelEditorBuildAndSubmit::Construct( const FArguments& InArgs, const TSha
 			.Padding( 0.0f, 3.0f, 0.0f, 0.0f )
 			[
 				SNew( STextBlock )
-				.Text(LOCTEXT("ColumnHeader_Name", "Name").ToString())
+				.Text(LOCTEXT("ColumnHeader_Name", "Name"))
 			]
 		]
 		+ SHeaderRow::Column(NAME_StateColumn)
@@ -154,7 +154,7 @@ void SLevelEditorBuildAndSubmit::Construct( const FArguments& InArgs, const TSha
 			.Padding( 0.0f, 3.0f, 0.0f, 0.0f )
 			[
 				SNew( STextBlock )
-				.Text(LOCTEXT("ColumnHeader_State", "State").ToString())
+				.Text(LOCTEXT("ColumnHeader_State", "State"))
 			]
 		];
 
@@ -166,7 +166,7 @@ void SLevelEditorBuildAndSubmit::Construct( const FArguments& InArgs, const TSha
 		.Padding(5)
 		[
 			SNew(SExpandableArea)
-			.AreaTitle(LOCTEXT("DescriptionSectionTitle", "Submission Description").ToString())
+			.AreaTitle(LOCTEXT("DescriptionSectionTitle", "Submission Description"))
 			.Padding(2)
 			.BodyContent()
 			[
@@ -179,7 +179,7 @@ void SLevelEditorBuildAndSubmit::Construct( const FArguments& InArgs, const TSha
 		.Padding(5)
 		[
 			SNew(SExpandableArea )
-			.AreaTitle(LOCTEXT("ExtraPackagesSectionTitle", "Additional Files to Submit").ToString())
+			.AreaTitle(LOCTEXT("ExtraPackagesSectionTitle", "Additional Files to Submit"))
 			.Padding(2)
 			.InitiallyCollapsed(true)
 			.MaxHeight(300)
@@ -198,7 +198,7 @@ void SLevelEditorBuildAndSubmit::Construct( const FArguments& InArgs, const TSha
 		.Padding(5)
 		[
 			SNew( SExpandableArea )
-			.AreaTitle(LOCTEXT("BuildOptionsSectionTitle", "Build Options").ToString())
+			.AreaTitle(LOCTEXT("BuildOptionsSectionTitle", "Build Options"))
 			.Padding(2)
 			.BodyContent()
 			[
@@ -210,7 +210,7 @@ void SLevelEditorBuildAndSubmit::Construct( const FArguments& InArgs, const TSha
 					SAssignNew(NoSubmitOnMapErrorBox, SCheckBox)
 					[
 						SNew(STextBlock)
-						.Text(LOCTEXT("NoSubmitMapErrorsButtonLabel", "Don't Submit in Event of Map Errors").ToString())
+						.Text(LOCTEXT("NoSubmitMapErrorsButtonLabel", "Don't Submit in Event of Map Errors"))
 					]
 				]
 				+SVerticalBox::Slot()
@@ -220,7 +220,7 @@ void SLevelEditorBuildAndSubmit::Construct( const FArguments& InArgs, const TSha
 					SAssignNew(NoSubmitOnSaveErrorBox, SCheckBox)
 					[
 						SNew(STextBlock)
-						.Text(LOCTEXT("NoSubmitSaveErrorsButtonLabel", "Don't Submit in Event of Save Errors").ToString())
+						.Text(LOCTEXT("NoSubmitSaveErrorsButtonLabel", "Don't Submit in Event of Save Errors"))
 					]
 				]
 				+SVerticalBox::Slot()
@@ -231,7 +231,7 @@ void SLevelEditorBuildAndSubmit::Construct( const FArguments& InArgs, const TSha
 					.OnCheckStateChanged(this, &SLevelEditorBuildAndSubmit::OnShowPackagesNotInSCBoxChanged)
 					[
 						SNew(STextBlock)
-						.Text(LOCTEXT("ShowPackagesButtonLabel", "Show Files not in Source Control").ToString())
+						.Text(LOCTEXT("ShowPackagesButtonLabel", "Show Files not in Source Control"))
 					]
 				]
 				+SVerticalBox::Slot()
@@ -242,7 +242,7 @@ void SLevelEditorBuildAndSubmit::Construct( const FArguments& InArgs, const TSha
 					.IsChecked(ESlateCheckBoxState::Checked)
 					[
 						SNew(STextBlock)
-						.Text(LOCTEXT("AddFilesButtonLabel", "Add Files to Source Control if Necessary").ToString())
+						.Text(LOCTEXT("AddFilesButtonLabel", "Add Files to Source Control if Necessary"))
 					]
 				]
 			]			
@@ -259,14 +259,14 @@ void SLevelEditorBuildAndSubmit::Construct( const FArguments& InArgs, const TSha
 			[
 				SNew(SButton)
 				.OnClicked(this, &SLevelEditorBuildAndSubmit::OnBuildAndCloseClicked)
-				.Text(LOCTEXT("BuildAndCloseButtonLabel", "Build and Close").ToString())
+				.Text(LOCTEXT("BuildAndCloseButtonLabel", "Build and Close"))
 			]
 			+SHorizontalBox::Slot()
 			.AutoWidth()
 			[
 				SNew(SButton)
 				.OnClicked(this, &SLevelEditorBuildAndSubmit::OnBuildClicked)
-				.Text(LOCTEXT("BuildButtonLabel", "Build").ToString())
+				.Text(LOCTEXT("BuildButtonLabel", "Build"))
 			]
 		]
 	];

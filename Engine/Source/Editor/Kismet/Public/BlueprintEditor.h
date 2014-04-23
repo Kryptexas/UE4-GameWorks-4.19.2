@@ -466,7 +466,7 @@ protected:
 	virtual void PostRegenerateMenusAndToolbars() OVERRIDE;
 
 	/** Returns the name of the Blueprint's parent class */
-	FString GetParentClassName() const;
+	FText GetParentClassNameText() const;
 
 	/** Handler for "Find parent class in CB" button */
 	FReply OnFindParentClassInContentBrowserClicked();

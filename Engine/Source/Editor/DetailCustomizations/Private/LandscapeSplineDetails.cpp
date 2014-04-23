@@ -25,13 +25,13 @@ void FLandscapeSplineDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuil
 		.FillWidth(1)
 		[
 			SNew(STextBlock)
-			.Text(LOCTEXT("SelectAll", "Select all connected:").ToString())
+			.Text(LOCTEXT("SelectAll", "Select all connected:"))
 		]
 		+ SHorizontalBox::Slot()
 		.FillWidth(1)
 		[
 			SNew(SButton)
-			.Text(LOCTEXT("ControlPoints", "Control Points").ToString())
+			.Text(LOCTEXT("ControlPoints", "Control Points"))
 			.HAlign(HAlign_Center)
 			.OnClicked(this, &FLandscapeSplineDetails::OnSelectConnectedControlPointsButtonClicked)
 		]
@@ -39,7 +39,7 @@ void FLandscapeSplineDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuil
 		.FillWidth(1)
 		[
 			SNew(SButton)
-			.Text(LOCTEXT("Segments", "Segments").ToString())
+			.Text(LOCTEXT("Segments", "Segments"))
 			.HAlign(HAlign_Center)
 			.OnClicked(this, &FLandscapeSplineDetails::OnSelectConnectedSegmentsButtonClicked)
 		]

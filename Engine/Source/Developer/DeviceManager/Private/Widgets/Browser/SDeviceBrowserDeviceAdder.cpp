@@ -39,7 +39,7 @@ void SDeviceBrowserDeviceAdder::Construct( const FArguments& InArgs, const ITarg
 							.HAlign(HAlign_Left)
 							[
 								SNew(STextBlock)
-									.Text(LOCTEXT("PlatformLabel", "Platform:").ToString())
+									.Text(LOCTEXT("PlatformLabel", "Platform:"))
 							]
 
 						+ SVerticalBox::Slot()
@@ -72,7 +72,7 @@ void SDeviceBrowserDeviceAdder::Construct( const FArguments& InArgs, const ITarg
 							.HAlign(HAlign_Left)
 							[
 								SNew(STextBlock)
-									.Text(LOCTEXT("DeviceIdLabel", "Device Identifier:").ToString())
+									.Text(LOCTEXT("DeviceIdLabel", "Device Identifier:"))
 							]
 
 						+ SVerticalBox::Slot()
@@ -96,7 +96,7 @@ void SDeviceBrowserDeviceAdder::Construct( const FArguments& InArgs, const ITarg
 							.HAlign(HAlign_Left)
 							[
 								SNew(STextBlock)
-									.Text(LOCTEXT("DisplayNameLabel", "Display Name:").ToString())
+									.Text(LOCTEXT("DisplayNameLabel", "Display Name:"))
 							]
 
 						+ SVerticalBox::Slot()
@@ -116,7 +116,7 @@ void SDeviceBrowserDeviceAdder::Construct( const FArguments& InArgs, const ITarg
 						SAssignNew(AddButton, SButton)
 							.ContentPadding(FMargin(9.0, 2.0))
 							.IsEnabled(this, &SDeviceBrowserDeviceAdder::HandleAddButtonIsEnabled)
-							.Text(LOCTEXT("AddButtonText", "Add").ToString())
+							.Text(LOCTEXT("AddButtonText", "Add"))
 							.OnClicked(this, &SDeviceBrowserDeviceAdder::HandleAddButtonClicked)
 					]
 			]
@@ -139,7 +139,7 @@ void SDeviceBrowserDeviceAdder::Construct( const FArguments& InArgs, const ITarg
 							.HAlign(HAlign_Left)
 							[
 								SNew(STextBlock)
-									.Text(LOCTEXT("UserNameLabel", "User:").ToString())
+									.Text(LOCTEXT("UserNameLabel", "User:"))
 							]
 
 						+ SVerticalBox::Slot()
@@ -162,7 +162,7 @@ void SDeviceBrowserDeviceAdder::Construct( const FArguments& InArgs, const ITarg
 							.HAlign(HAlign_Left)
 							[
 								SNew(STextBlock)
-									.Text(LOCTEXT("UserPasswordLabel", "Password:").ToString())
+									.Text(LOCTEXT("UserPasswordLabel", "Password:"))
 							]
 
 						+ SVerticalBox::Slot()

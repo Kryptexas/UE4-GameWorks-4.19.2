@@ -1236,23 +1236,29 @@ void VARARGS UCanvas::WrappedStrLenf( UFont* Font, float ScaleX, float ScaleY, i
 	WrappedPrint( false, 0.0f, 0.0f, XL, YL, Font, ScaleX, ScaleY, false, false, Text, Info ); 
 }
 
-float UCanvas::DrawText(UFont* InFont, const FString& InText, float X, float Y, float XScale, float YScale, const FFontRenderInfo& RenderInfo)
+float UCanvas::DrawText(UFont* InFont, const FText& InText, float X, float Y, float XScale, float YScale, const FFontRenderInfo& RenderInfo)
 {
 	ensure(InFont);
-	int32		XL		= 0;
-	int32		YL		= 0; 
+	int32		XL = 0;
+	int32		YL = 0;
 	// need this call in any case to update YL and XL - one of them will be needed anyway
-	WrappedPrint(RenderInfo.bClipText == false, X, Y, XL, YL, InFont, XScale, YScale, bCenterX, bCenterY, *InText, RenderInfo);
+	WrappedPrint(RenderInfo.bClipText == false, X, Y, XL, YL, InFont, XScale, YScale, bCenterX, bCenterY, *InText.ToString(), RenderInfo);
 
 	if (RenderInfo.bClipText)
 	{
-		FCanvasTextItem TextItem( FVector2D( FMath::Trunc(OrgX + X), FMath::Trunc(OrgY + Y) ), FText::FromString( InText ), InFont, DrawColor );
-		TextItem.Scale = FVector2D( XScale, YScale ), 
-		TextItem.BlendMode = SE_BLEND_Translucent;
+		FCanvasTextItem TextItem(FVector2D(FMath::Trunc(OrgX + X), FMath::Trunc(OrgY + Y)), InText, InFont, DrawColor);
+		TextItem.Scale = FVector2D(XScale, YScale),
+			TextItem.BlendMode = SE_BLEND_Translucent;
 		TextItem.FontRenderInfo = RenderInfo;
-		Canvas->DrawItem( TextItem );	
+		Canvas->DrawItem(TextItem);
 	}
+
 	return (float)YL;
+}
+
+float UCanvas::DrawText(UFont* InFont, const FString& InText, float X, float Y, float XScale, float YScale, const FFontRenderInfo& RenderInfo)
+{
+	return DrawText(InFont, FText::FromString(InText), X, Y, XScale, YScale, RenderInfo);
 }
 
 int32 UCanvas::WrappedPrint(bool Draw, float X, float Y, int32& out_XL, int32& out_YL, UFont* Font, float ScaleX, float ScaleY, bool bCenterTextX, bool bCenterTextY, const TCHAR* Text, const FFontRenderInfo& RenderInfo) 

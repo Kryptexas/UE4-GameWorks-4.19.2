@@ -33,7 +33,7 @@ void FSkinnedMeshComponentDetails::CreateActuallyUsedPhysicsAssetWidget(FDetailW
 	.NameContent()
 	[
 		SNew(STextBlock)
-		.Text(LOCTEXT("CurrentPhysicsAsset", "Currently used Physics Asset").ToString())
+		.Text(LOCTEXT("CurrentPhysicsAsset", "Currently used Physics Asset"))
 		.Font(IDetailLayoutBuilder::GetDetailFont())
 	]
 	.ValueContent()
@@ -92,7 +92,7 @@ FText FSkinnedMeshComponentDetails::GetUsedPhysicsAssetAsText(IDetailLayoutBuild
 	UPhysicsAsset* UsedPhysicsAsset = NULL;
 	if (! FindUniqueUsedPhysicsAsset(DetailBuilder, UsedPhysicsAsset))
 	{
-		return FText::FromString(LOCTEXT("MultipleValues", "Multiple Values").ToString());
+		return LOCTEXT("MultipleValues", "Multiple Values");
 	}
 	if (UsedPhysicsAsset)
 	{
@@ -100,7 +100,7 @@ FText FSkinnedMeshComponentDetails::GetUsedPhysicsAssetAsText(IDetailLayoutBuild
 	}
 	else
 	{
-		return FText::FromString(TEXT(""));
+		return FText::GetEmpty();
 	}
 }
 
