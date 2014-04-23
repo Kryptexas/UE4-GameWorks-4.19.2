@@ -12,10 +12,15 @@ public class MessagingDebugger : ModuleRules
 				"Core",
 				"CoreUObject",
                 "InputCore",
-				"Messaging",
                 "PropertyEditor",
 				"Slate",
                 "EditorStyle"
+			}
+		);
+
+		PrivateIncludePathModuleNames.AddRange(
+			new string[] {
+				"Messaging",
 			}
 		);
 
