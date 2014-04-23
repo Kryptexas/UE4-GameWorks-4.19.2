@@ -2500,9 +2500,17 @@ bool USplineMeshComponent::ContainsPhysicsTriMeshData(bool InUseAllTriData) cons
 void USplineMeshComponent::CreatePhysicsState()
 {
 #if WITH_EDITOR
-	if (StaticMesh != NULL && CachedMeshBodySetupGuid != StaticMesh->BodySetup->BodySetupGuid)
+	// With editor code we can recreate the collision if the mesh changes
+	const FGuid MeshBodySetupGuid = (StaticMesh != NULL ? StaticMesh->BodySetup->BodySetupGuid : FGuid());
+	if (CachedMeshBodySetupGuid != MeshBodySetupGuid)
 	{
 		RecreateCollision();
+	}
+#else
+	// Without editor code we can only destroy the collision if the mesh is missing
+	if (StaticMesh == NULL && BodySetup != NULL)
+	{
+		DestroyBodySetup();
 	}
 #endif
 
@@ -2564,6 +2572,18 @@ bool USplineMeshComponent::DoCustomNavigableGeometryExport(struct FNavigableGeom
 	}
 
 	return true;
+}
+
+void USplineMeshComponent::DestroyBodySetup()
+{
+	if (BodySetup != NULL)
+	{
+		BodySetup->MarkPendingKill();
+		BodySetup = NULL;
+#if WITH_EDITORONLY_DATA
+		CachedMeshBodySetupGuid.Invalidate();
+#endif
+	}
 }
 
 #if WITH_EDITOR
@@ -2657,12 +2677,7 @@ void USplineMeshComponent::RecreateCollision()
 	}
 	else
 	{
-		if (BodySetup != NULL)
-		{
-			BodySetup->MarkPendingKill();
-			BodySetup = NULL;
-			CachedMeshBodySetupGuid = FGuid();
-		}
+		DestroyBodySetup();
 	}
 }
 #endif

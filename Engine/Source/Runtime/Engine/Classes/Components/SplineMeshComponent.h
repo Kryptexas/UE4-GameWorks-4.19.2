@@ -147,6 +147,8 @@ class USplineMeshComponent : public UStaticMeshComponent, public IInterface_Coll
 	virtual bool WantsNegXTriMesh() OVERRIDE { return false; }
 	// End Interface_CollisionDataProvider Interface
 
+	// Destroys the body setup, used to clear collision if the mesh goes missing
+	void DestroyBodySetup();
 #if WITH_EDITOR
 	// Builds collision for the spline mesh (if collision is enabled)
 	void RecreateCollision();
