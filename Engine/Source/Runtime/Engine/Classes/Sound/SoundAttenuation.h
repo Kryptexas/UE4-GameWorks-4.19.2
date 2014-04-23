@@ -37,14 +37,13 @@ namespace EAttenuationShape
 	};
 }
 
+/*
+The settings for attenuating.
+*/
 USTRUCT(BlueprintType)
 struct ENGINE_API FAttenuationSettings
 {
 	GENERATED_USTRUCT_BODY()
-
-	/* 
-	 The settings for attenuating. 
-	 */
 
 	/* Enable attenuation via volume. */
 	UPROPERTY(EditAnywhere, Category=Attenuation )
@@ -83,16 +82,24 @@ struct ENGINE_API FAttenuationSettings
 	UPROPERTY()
 	float RadiusMax_DEPRECATED;
 
+	/* The dimensions to use for the attenuation shape. Interpretation of the values differ per shape.
+	   Sphere  - X is Sphere Radius. Y and Z are unused
+	   Capsule - X is Capsule Half Height, Y is Capsule Radius, Z is unused
+	   Box     - X, Y, and Z are the Box's dimensions
+	   Cone    - X is Cone Radius, Y is Cone Angle, Z is Cone Falloff Angle
+	*/
 	UPROPERTY(EditAnywhere, Category=Attenuation)
 	FVector AttenuationShapeExtents;
 
+	/* The distance back from the sound's origin to begin the cone when using the cone attenuation shape. */
 	UPROPERTY(EditAnywhere, Category=Attenuation, meta=(ClampMin = "0"))
 	float ConeOffset;
 
+	/* The distance over which falloff occurs. */
 	UPROPERTY(EditAnywhere, Category=Attenuation, meta=(ClampMin = "0"))
 	float FalloffDistance;
 
-	/* The range at which to start applying a low passfilter. */
+	/* The range at which to start applying a low pass filter. */
 	UPROPERTY(EditAnywhere, Category=LowPassFilter )
 	float LPFRadiusMin;
 

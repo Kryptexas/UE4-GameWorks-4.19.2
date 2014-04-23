@@ -33,18 +33,17 @@ class ENGINE_API USoundBase : public UObject
 	UPROPERTY()
 	FName SoundClass_DEPRECATED;
 
-	/** Sound group this sound cue belongs to */
+	/** Sound class this sound belongs to */
 	UPROPERTY(EditAnywhere, Category=Sound, meta=(DisplayName = "Sound Class"))
 	USoundClass* SoundClassObject;
 
-	/** For debugging purpose only . */
+	/** When "stat sounds -debug" has been specified, draw this sound's attenuation shape when the sound is audible. For debugging purpose only. */
 	UPROPERTY(EditAnywhere, Category=Playback)
 	uint32 bDebug:1;
 
 	/** If we try to play a new version of this sound when at the max concurrent count how should it be resolved. */
 	UPROPERTY(EditAnywhere, Category=Playback)
 	TEnumAsByte<EMaxConcurrentResolutionRule::Type> MaxConcurrentResolutionRule;
-
 
 	/** Maximum number of times this sound can be played concurrently. */
 	UPROPERTY(EditAnywhere, Category=Playback)

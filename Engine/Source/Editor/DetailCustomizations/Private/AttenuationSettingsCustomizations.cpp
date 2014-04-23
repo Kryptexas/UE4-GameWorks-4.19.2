@@ -81,15 +81,17 @@ void FAttenuationSettingsCustomization::CustomizeStructChildren( TSharedRef<IPro
 
 	IDetailPropertyRow& AttenuationShapeRow = ChildBuilder.AddChildProperty( AttenuationShapeHandle.ToSharedRef() );
 	
-	ChildBuilder.AddChildProperty( AttenuationExtentsHandle )
+	ChildBuilder.AddChildProperty(AttenuationExtentsHandle)
 		.Visibility(TAttribute<EVisibility>(this, &FAttenuationSettingsCustomization::IsBoxSelected))
-		.DisplayName(TEXT("Extents"));
+		.DisplayName(TEXT("Extents"))
+		.ToolTip(NSLOCTEXT("AttenuationSettings", "BoxExtents", "The dimensions of the of the box.").ToString());
 
 	ChildBuilder.AddChildContent(TEXT("Radius"))
 		.NameContent()
 		[
 			SNew(STextBlock)
 				.Text(NSLOCTEXT("AttenuationSettings", "RadiusLabel", "Radius"))
+				.ToolTipText(NSLOCTEXT("AttenuationSettings", "RadiusToolTip", "The distance from the location of the sound at which falloff begins."))
 				.Font(StructCustomizationUtils.GetRegularFont())
 		]
 		.ValueContent()
@@ -103,6 +105,7 @@ void FAttenuationSettingsCustomization::CustomizeStructChildren( TSharedRef<IPro
 			[
 				SNew(STextBlock)
 				.Text(NSLOCTEXT("AttenuationSettings", "CapsuleHalfHeightLabel", "Capsule Half Height"))
+				.ToolTipText(NSLOCTEXT("AttenuationSettings", "CapsuleHalfHeightToolTip", "The attenuation capsule's half height."))
 				.Font(StructCustomizationUtils.GetRegularFont())
 			]
 		.ValueContent()
@@ -116,6 +119,7 @@ void FAttenuationSettingsCustomization::CustomizeStructChildren( TSharedRef<IPro
 		[
 			SNew(STextBlock)
 			.Text(NSLOCTEXT("AttenuationSettings", "CapsuleRadiusLabel", "Capsule Radius"))
+			.ToolTipText(NSLOCTEXT("AttenuationSettings", "CapsuleRadiusToolTip", "The attenuation capsule's radius."))
 			.Font(StructCustomizationUtils.GetRegularFont())
 		]
 	.ValueContent()
@@ -129,6 +133,7 @@ void FAttenuationSettingsCustomization::CustomizeStructChildren( TSharedRef<IPro
 		[
 			SNew(STextBlock)
 			.Text(NSLOCTEXT("AttenuationSettings", "ConeRadiusLabel", "Cone Radius"))
+			.ToolTipText(NSLOCTEXT("AttenuationSettings", "ConeRadiusToolTip", "The attenuation cone's radius."))
 			.Font(StructCustomizationUtils.GetRegularFont())
 		]
 	.ValueContent()
@@ -142,6 +147,7 @@ void FAttenuationSettingsCustomization::CustomizeStructChildren( TSharedRef<IPro
 		[
 			SNew(STextBlock)
 			.Text(NSLOCTEXT("AttenuationSettings", "ConeAngleLabel", "Cone Angle"))
+			.ToolTipText(NSLOCTEXT("AttenuationSettings", "ConeAngleToolTip", "The angle of the inner edge of the attenuation cone's falloff. Inside this angle sounds will be at full volume."))
 			.Font(StructCustomizationUtils.GetRegularFont())
 		]
 	.ValueContent()
@@ -155,6 +161,7 @@ void FAttenuationSettingsCustomization::CustomizeStructChildren( TSharedRef<IPro
 		[
 			SNew(STextBlock)
 			.Text(NSLOCTEXT("AttenuationSettings", "ConeFalloffAngleLabel", "Cone Falloff Angle"))
+			.ToolTipText(NSLOCTEXT("AttenuationSettings", "ConeFalloffAngleToolTip", "The angle of the outer edge of the attenuation cone's falloff. Outside this angle sounds will be inaudible."))
 			.Font(StructCustomizationUtils.GetRegularFont())
 		]
 	.ValueContent()

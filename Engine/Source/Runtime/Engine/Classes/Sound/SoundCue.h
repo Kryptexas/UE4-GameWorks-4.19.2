@@ -38,18 +38,22 @@ class USoundCue : public USoundBase
 {
 	GENERATED_UCLASS_BODY()
 
+	/* Indicates whether attenuation should use the Attenuation Overrides or the Attenuation Settings asset */
 	UPROPERTY(EditAnywhere, Category=Attenuation)
 	uint32 bOverrideAttenuation:1;
 
 	UPROPERTY()
 	class USoundNode* FirstNode;
 
+	/* Volume multiplier for the Sound Cue */
 	UPROPERTY(EditAnywhere, Category=Sound, AssetRegistrySearchable)
 	float VolumeMultiplier;
 
+	/* Pitch multiplier for the Sound Cue */
 	UPROPERTY(EditAnywhere, Category=Sound, AssetRegistrySearchable)
 	float PitchMultiplier;
 
+	/* Attenuation settings to use if Override Attenuation is set to true */
 	UPROPERTY(EditAnywhere, Category=Attenuation, meta=(EditCondition="bOverrideAttenuation"))
 	FAttenuationSettings AttenuationOverrides;
 

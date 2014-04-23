@@ -9,12 +9,15 @@
 #pragma once
 #include "SoundNodeConcatenator.generated.h"
 
-UCLASS(hidecategories=Object, editinlinenew, MinimalAPI, meta=( DisplayName="Concatenator" ))
+/**
+ Plays child nodes sequentially
+*/
+UCLASS(hidecategories = Object, editinlinenew, MinimalAPI, meta = (DisplayName = "Concatenator"))
 class USoundNodeConcatenator : public USoundNode
 {
 	GENERATED_UCLASS_BODY()
 
-	/** A volume for each input.  Automatically sized. */
+	/** Volume multiplier for each input. */
 	UPROPERTY(EditAnywhere, editfixedsize, Category=Concatenator)
 	TArray<float> InputVolume;
 

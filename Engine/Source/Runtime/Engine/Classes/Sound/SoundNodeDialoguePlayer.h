@@ -1,14 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 
-/** 
- * Sound node that contains a reference to the dialogue table to pull from and be played
- */
-
 #pragma once
 #include "SoundNodeDialoguePlayer.generated.h"
 
-UCLASS(hidecategories=Object, editinlinenew, MinimalAPI, meta=(DisplayName = "Dialogue Player"))
+/**
+ Sound node that contains a reference to the dialogue table to pull from and be played
+*/
+UCLASS(hidecategories = Object, editinlinenew, MinimalAPI, meta = (DisplayName = "Dialogue Player"))
 class USoundNodeDialoguePlayer : public USoundNode
 {
 	GENERATED_UCLASS_BODY()
@@ -16,6 +15,7 @@ class USoundNodeDialoguePlayer : public USoundNode
 	UPROPERTY(EditAnywhere, Category=DialoguePlayer)
 	FDialogueWaveParameter DialogueWaveParameter;
 
+	/* Whether the dialogue line should be played looping */
 	UPROPERTY(EditAnywhere, Category=DialoguePlayer)
 	uint32 bLooping:1;
 
