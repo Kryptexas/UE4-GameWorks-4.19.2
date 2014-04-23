@@ -444,7 +444,11 @@ void FBodyInstance::UpdatePhysicsFilterData()
 		return;
 	}
 
-	check(BodySetup.IsValid());
+	// this can happen in landscape height field collision component
+	if (!BodySetup.IsValid())
+	{
+		return;
+	}
 
 	// Figure out if we are static
 	AActor* Owner = OwnerComponent.IsValid() ? OwnerComponent.Get()->GetOwner() : NULL;
