@@ -369,7 +369,6 @@ public:
 	 * @param Tex - Texture to draw
 	 * @param X - Position to draw X
 	 * @param Y - Position to draw Y
-	 * @param Z - Position to draw Z
 	 * @param XL - Width of tile
 	 * @param YL - Height of tile
 	 * @param U - Horizontal position of the upper left corner of the portion of the texture to be shown(texels)
@@ -379,7 +378,7 @@ public:
 	 * @param ClipTile - true to clip tile
 	 * @param BlendMode - blending mode of texture
 	 */
-	void DrawTile(UTexture* Tex, float X, float Y, float Z, float XL, float YL, float U, float V, float UL, float VL, EBlendMode BlendMode=BLEND_Translucent);
+	void DrawTile(UTexture* Tex, float X, float Y, float XL, float YL, float U, float V, float UL, float VL, EBlendMode BlendMode=BLEND_Translucent);
 
 	/** calculate the length of a string 
 	 * @param Font - font used

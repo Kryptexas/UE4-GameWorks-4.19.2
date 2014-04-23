@@ -1182,7 +1182,7 @@ ESimpleElementBlendMode FCanvas::BlendToSimpleElementBlend(EBlendMode BlendMode)
 }
 
 
-void UCanvas::DrawTile( UTexture* Tex, float X, float Y, float Z, float XL, float YL, float U, float V, float UL, float VL, EBlendMode BlendMode )
+void UCanvas::DrawTile( UTexture* Tex, float X, float Y, float XL, float YL, float U, float V, float UL, float VL, EBlendMode BlendMode )
 {
 	if ( !Tex ) 
 	{
@@ -1497,9 +1497,9 @@ void UCanvas::DrawScaledIcon(FCanvasIcon Icon, float X, float Y, FVector Scale)
 		{
 			Icon.VL = Icon.Texture->GetSurfaceHeight();
 		}
-		const float Z = 0.1f;
+
 		// and draw the texture
-		DrawTile(Icon.Texture, X, Y, Z, FMath::Abs(Icon.UL) * Scale.X, FMath::Abs(Icon.VL) * Scale.Y, Icon.U, Icon.V, Icon.UL, Icon.VL);
+		DrawTile(Icon.Texture, X, Y, FMath::Abs(Icon.UL) * Scale.X, FMath::Abs(Icon.VL) * Scale.Y, Icon.U, Icon.V, Icon.UL, Icon.VL);
 	}
 }
 
@@ -1522,9 +1522,8 @@ void UCanvas::DrawIcon(FCanvasIcon Icon, float X, float Y, float Scale)
 			Icon.VL = Icon.Texture->GetSurfaceHeight();
 		}
 		
-		const float Z = 0.1f;
 		// and draw the texture
-		DrawTile(Icon.Texture, X, Y, Z, FMath::Abs(Icon.UL) * Scale, FMath::Abs(Icon.VL) * Scale, Icon.U, Icon.V, Icon.UL, Icon.VL );
+		DrawTile(Icon.Texture, X, Y, FMath::Abs(Icon.UL) * Scale, FMath::Abs(Icon.VL) * Scale, Icon.U, Icon.V, Icon.UL, Icon.VL );
 	}
 }
 
