@@ -10,6 +10,8 @@
 JavaVM* GJavaVM;
 jobject GJavaGlobalThis = NULL;
 
+extern FString GFilePathBase;
+
 //////////////////////////////////////////////////////////////////////////
 // FJNIHelper
 
@@ -192,6 +194,21 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* InJavaVM, void* InReserved)
 	{
 		FPlatformMisc::SetCrashHandler(EngineCrashHandler);
 	}
+
+	// Cache path to external storage
+	jclass EnvClass = env->FindClass("android/os/Environment");
+	jmethodID getExternalStorageDir = env->GetStaticMethodID(EnvClass, "getExternalStorageDirectory", "()Ljava/io/File;");
+	jobject externalStoragePath = env->CallStaticObjectMethod(EnvClass, getExternalStorageDir, nullptr);
+	jmethodID getFilePath = env->GetMethodID(env->FindClass("java/io/File"), "getPath", "()Ljava/lang/String;");
+	jstring pathString = (jstring)env->CallObjectMethod(externalStoragePath, getFilePath, nullptr);
+	const char *nativePathString = env->GetStringUTFChars(pathString, 0);
+	// Copy that somewhere safe 
+	GFilePathBase = FString(nativePathString);
+	
+	// then release...
+	env->ReleaseStringUTFChars(pathString, nativePathString);
+	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Path found as '%s'\n"), *GFilePathBase);
+
 
 	// Wire up to core delegates, so core code can call out to Java
 	DECLARE_DELEGATE_OneParam(FAndroidLaunchURLDelegate, const FString&);

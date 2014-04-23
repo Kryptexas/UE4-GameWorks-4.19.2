@@ -17,6 +17,9 @@ FString GPackageName;
 static int32 GPackageVersion = 0;
 static int32 GPackagePatchVersion = 0;
 
+// External File Path base - setup during load
+FString GFilePathBase;
+
 //This function is declared in the Java-defined class, GameActivity.java: "public native void nativeSetObbInfo(String PackageName, int Version, int PatchVersion);"
 extern "C" void Java_com_epicgames_ue4_GameActivity_nativeSetObbInfo(JNIEnv* jenv, jobject thiz, jstring PackageName, jint Version, jint PatchVersion)
 {
@@ -386,7 +389,7 @@ public:
 			// look in the downloader path first, then manual location as a fallback
 			for (int32 PassIndex = 0; PassIndex < 2 && ObbHijackedPakDirectory == TEXT(""); PassIndex++)
 			{
-				FString ObbPath = ((PassIndex == 0) ? FString(TEXT("/mnt/sdcard/Android/obb/")) : FString(TEXT("/mnt/sdcard/obb/"))) + GPackageName;
+				FString ObbPath = GFilePathBase + ((PassIndex == 0) ? FString(TEXT("/Android/obb/")) : FString(TEXT("/obb/"))) + GPackageName;
 
 				DIR* Handle = opendir(TCHAR_TO_UTF8(*ObbPath));
 				if (Handle)
@@ -462,7 +465,7 @@ public:
 		Result.ReplaceInline(TEXT(".."), TEXT(""));
 		Result.ReplaceInline(FPlatformProcess::BaseDir(), TEXT(""));
 
-		static FString BasePath = FString("/mnt/sdcard/") + GGameName + FString("/");
+		static FString BasePath = GFilePathBase + FString("/") + GGameName + FString("/");
 		Result =  BasePath + Result;
 		return Result;
 	}
