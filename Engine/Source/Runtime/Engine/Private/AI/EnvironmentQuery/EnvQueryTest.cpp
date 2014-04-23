@@ -11,12 +11,13 @@ UEnvQueryTest::UEnvQueryTest(const class FPostConstructInitializeProperties& PCI
 	WeightModifier = EEnvTestWeight::None;
 	Weight.Value = 1.0f;
 	bWorkOnFloatValues = true;
+	bDiscardFailedItems = true;
 	BoolFilter.Value = true;
 }
 
 void UEnvQueryTest::NormalizeItemScores(struct FEnvQueryInstance& QueryInstance)
 {
-	if (WeightModifier == EEnvTestWeight::Flat)
+	if (WeightModifier == EEnvTestWeight::Skip)
 	{
 		return;
 	}
@@ -33,10 +34,16 @@ void UEnvQueryTest::NormalizeItemScores(struct FEnvQueryInstance& QueryInstance)
 	FEnvQueryItemDetails* DetailInfo = QueryInstance.ItemDetails.GetTypedData();
 	for (int32 iItem = 0; iItem < QueryInstance.Items.Num(); iItem++, DetailInfo++)
 	{
-		if (QueryInstance.Items[iItem].IsValid())
+		if (!QueryInstance.Items[iItem].IsValid())
 		{
-			MinScore = FMath::Min(MinScore, DetailInfo->TestResults[QueryInstance.CurrentTest]);
-			MaxScore = FMath::Max(MaxScore, DetailInfo->TestResults[QueryInstance.CurrentTest]);
+			continue;
+		}
+
+		const float TestValue = DetailInfo->TestResults[QueryInstance.CurrentTest];
+		if (TestValue != UEnvQueryTypes::SkippedItemValue)
+		{
+			MinScore = FMath::Min(MinScore, TestValue);
+			MaxScore = FMath::Max(MaxScore, TestValue);
 		}
 	}
 
@@ -61,12 +68,23 @@ void UEnvQueryTest::NormalizeItemScores(struct FEnvQueryInstance& QueryInstance)
 					continue;
 				}
 
-				const float ModifiedScore = FMath::Abs(DetailInfo->TestResults[QueryInstance.CurrentTest]);
+				float WeightedScore = 0.0f;
 
-				const float NormalizedScore = ModifiedScore / MaxScore;
-				const float WeightedScore = ((WeightValue > 0) ? NormalizedScore : 1.0f - NormalizedScore) * FMath::Abs(WeightValue);
+				float& TestValue = DetailInfo->TestResults[QueryInstance.CurrentTest];
+				if (TestValue != UEnvQueryTypes::SkippedItemValue)
+				{
+					const float ModifiedScore = FMath::Abs(DetailInfo->TestResults[QueryInstance.CurrentTest]);
 
-#if EQS_STORE_PARTIAL_WEIGHTS
+					const float NormalizedScore = ModifiedScore / MaxScore;
+					WeightedScore = ((WeightValue > 0) ? NormalizedScore : 1.0f - NormalizedScore) * FMath::Abs(WeightValue);
+				}
+				else
+				{
+					TestValue = 0.0f;
+					WeightedScore = 0.0f;
+				}
+
+#if USE_EQS_DEBUGGER
 				DetailInfo->TestWeightedScores[QueryInstance.CurrentTest] = WeightedScore;
 #endif
 				QueryInstance.Items[ItemIndex].Score += WeightedScore;
@@ -82,17 +100,27 @@ void UEnvQueryTest::NormalizeItemScores(struct FEnvQueryInstance& QueryInstance)
 				continue;
 			}
 
-			const float NormalizedScore = (DetailInfo->TestResults[QueryInstance.CurrentTest] - MinScore) / (MaxScore - MinScore);
+			float WeightedScore = 0.0f;
 
-			const float ModifiedScore =
-				(WeightModifier == EEnvTestWeight::Square) ? NormalizedScore * NormalizedScore :
-				(WeightModifier == EEnvTestWeight::Inverse) ? 1.0f / FMath::Max(0.01f, NormalizedScore) :
-				(WeightModifier == EEnvTestWeight::Flat) ? 1.0f :
-				NormalizedScore;
+			float& TestValue = DetailInfo->TestResults[QueryInstance.CurrentTest];
+			if (TestValue != UEnvQueryTypes::SkippedItemValue)
+			{
+				const float NormalizedScore = (TestValue - MinScore) / (MaxScore - MinScore);
+				const float ModifiedScore =
+					(WeightModifier == EEnvTestWeight::Square) ? NormalizedScore * NormalizedScore :
+					(WeightModifier == EEnvTestWeight::Inverse) ? 1.0f / FMath::Max(0.01f, NormalizedScore) :
+					(WeightModifier == EEnvTestWeight::Constant) ? 1.0f :
+					NormalizedScore;
 
-			const float WeightedScore = ((WeightValue > 0) ? ModifiedScore : 1.0f - ModifiedScore) * FMath::Abs(WeightValue);
+				WeightedScore = ((WeightValue > 0) ? ModifiedScore : 1.0f - ModifiedScore) * FMath::Abs(WeightValue);
+			}
+			else
+			{
+				TestValue = 0.0f;
+				WeightedScore = 0.0f;
+			}
 
-#if EQS_STORE_PARTIAL_WEIGHTS
+#if USE_EQS_DEBUGGER
 			DetailInfo->TestWeightedScores[QueryInstance.CurrentTest] = WeightedScore;
 #endif
 			QueryInstance.Items[ItemIndex].Score += WeightedScore;
@@ -163,9 +191,15 @@ FText UEnvQueryTest::DescribeFloatTestParams() const
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("ParmDesc"), ParamDesc);
 
-	if (WeightModifier == EEnvTestWeight::Flat)
+	if (WeightModifier == EEnvTestWeight::Skip)
 	{
 		ParamDesc = FText::Format(LOCTEXT("ParmDescWithDontScore", "{ParmDesc}, don't score"), Args);
+	}
+	else if (WeightModifier == EEnvTestWeight::Constant)
+	{
+		FText WeightDesc = Weight.IsNamedParam() ? FText::FromName(Weight.ParamName) : FText::Format( LOCTEXT("ConstantWeightDescPattern", "x{0}"), FText::AsNumber(FMath::Abs(Weight.Value)) );
+		Args.Add(TEXT("WeightDesc"), WeightDesc);
+		ParamDesc = FText::Format(LOCTEXT("ParmDescWithConstantWeight", "{ParmDesc}, constant weight [{WeightDesc}]"), Args);
 	}
 	else if (Weight.IsNamedParam())
 	{
@@ -178,7 +212,7 @@ FText UEnvQueryTest::DescribeFloatTestParams() const
 		NumberFormattingOptions.MaximumFractionalDigits = 2;
 
 		Args.Add(TEXT("WeightCondition"), (Weight.Value > 0) ? LOCTEXT("Greater", "greater") : LOCTEXT("Lesser", "lesser"));
-		Args.Add(TEXT("WeightValue"), FText::AsNumber(Weight.Value, &NumberFormattingOptions));
+		Args.Add(TEXT("WeightValue"), FText::AsNumber(FMath::Abs(Weight.Value), &NumberFormattingOptions));
 		ParamDesc = FText::Format(LOCTEXT("DescriptionPreferWeightValue", "{ParmDesc}, prefer {WeightCondition} [x{WeightValue}]"), Args);
 	}
 
@@ -215,9 +249,15 @@ FText UEnvQueryTest::DescribeBoolTestParams(const FString& ConditionDesc) const
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("ParmDesc"), ParamDesc);
 
-	if (WeightModifier == EEnvTestWeight::Flat)
+	if (WeightModifier == EEnvTestWeight::Skip)
 	{
 		ParamDesc = FText::Format(LOCTEXT("ParmDescWithDontScore", "{ParmDesc}, don't score"), Args);
+	}
+	else if (WeightModifier == EEnvTestWeight::Constant)
+	{
+		FText WeightDesc = Weight.IsNamedParam() ? FText::FromName(Weight.ParamName) : FText::Format(LOCTEXT("ConstantWeightDescPattern", "x{0}"), FText::AsNumber(FMath::Abs(Weight.Value)));
+		Args.Add(TEXT("WeightDesc"), WeightDesc);
+		ParamDesc = FText::Format(LOCTEXT("ParmDescWithConstantWeight", "{ParmDesc}, constant weight [{WeightDesc}]"), Args);
 	}
 	else if (Weight.IsNamedParam())
 	{
@@ -231,7 +271,7 @@ FText UEnvQueryTest::DescribeBoolTestParams(const FString& ConditionDesc) const
 
 		Args.Add(TEXT("ConditionDesc"), FText::FromString(ConditionDesc));
 		Args.Add(TEXT("WeightCondition"), (Weight.Value > 0) ? FText::GetEmpty() : LOCTEXT("NotWithSpace", "not "));
-		Args.Add(TEXT("WeightValue"), FText::AsNumber(Weight.Value, &NumberFormattingOptions));
+		Args.Add(TEXT("WeightValue"), FText::AsNumber(FMath::Abs(Weight.Value), &NumberFormattingOptions));
 		ParamDesc = FText::Format(LOCTEXT("ParmDescWithPreference", "{ParmDesc}, prefer {WeightCondition}{ConditionDesc} [x{WeightValue}]"), Args);
 	}
 

@@ -214,7 +214,7 @@ void FAppEventManager::ExecWindowChanged()
 
 	if(GEngine && GEngine->GameViewport && GEngine->GameViewport->ViewportFrame)
 	{
-		GEngine->GameViewport->ViewportFrame->ResizeFrame(ScreenRect.Right, ScreenRect.Bottom, true);
+		GEngine->GameViewport->ViewportFrame->ResizeFrame(ScreenRect.Right, ScreenRect.Bottom, EWindowMode::Fullscreen);
 	}
 }
 

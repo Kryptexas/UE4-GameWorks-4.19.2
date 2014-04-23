@@ -17,12 +17,7 @@ void FBlackboardDecoratorDetails::CustomizeDetails( IDetailLayoutBuilder& Detail
 
 	CacheBlackboardData(DetailLayout);
 	const bool bIsEnabled = CachedBlackboardAsset.IsValid();
-	TAttribute<bool> PropertyEditCheck = TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateStatic(&FBehaviorTreeDebugger::IsPIENotSimulating));
-
-	IDetailCategoryBuilder& FlowCategory = DetailLayout.EditCategory( "FlowControl" );
-	NotifyObserverProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UBTDecorator_Blackboard, NotifyObserver));
-	IDetailPropertyRow& AbortRow = FlowCategory.AddProperty(NotifyObserverProperty);
-	AbortRow.IsEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FBlackboardDecoratorDetails::IsObserverNotifyEnabled)));
+	TAttribute<bool> PropertyEditCheck = TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FBehaviorDecoratorDetails::IsEditingEnabled));
 
 	IDetailCategoryBuilder& BBCategory = DetailLayout.EditCategory( "Blackboard" );
 	IDetailPropertyRow& KeySelectorRow = BBCategory.AddProperty(DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UBTDecorator_Blackboard, BlackboardKey)));
@@ -107,6 +102,7 @@ void FBlackboardDecoratorDetails::CacheBlackboardData(IDetailLayoutBuilder& Deta
 
 void FBlackboardDecoratorDetails::OnKeyIDChanged()
 {
+	CachedOperationType = EBlackboardKeyOperation::Basic;
 	CachedKeyType = NULL;
 
 	UBlackboardData* Blackboard = CachedBlackboardAsset.Get();
@@ -119,7 +115,9 @@ void FBlackboardDecoratorDetails::OnKeyIDChanged()
 	FPropertyAccess::Result Result = KeyIDProperty->GetValue(KeyID);
 	if (Result == FPropertyAccess::Success)
 	{
-		CachedKeyType = Blackboard->GetKeyType(KeyID);
+		const FBlackboardEntry* KeyEntry = Blackboard->GetKey(KeyID);
+		CachedKeyType = KeyEntry && KeyEntry->KeyType ? KeyEntry->KeyType->GetClass() : NULL;
+		CachedOperationType = KeyEntry->KeyType->GetTestOperation();
 	}
 
 	// special handling of enum type: cache all names for combo box (display names)
@@ -149,9 +147,6 @@ void FBlackboardDecoratorDetails::OnKeyIDChanged()
 			}
 		}
 	}
-
-	const uint8 NotifyModeValue = IsObserverNotifyEnabled() ? EBTBlackboardRestart::ValueChange : EBTBlackboardRestart::ResultChange;
-	NotifyObserverProperty->SetValue(NotifyModeValue);
 }
 
 TSharedRef<SWidget> FBlackboardDecoratorDetails::OnGetEnumValueContent() const
@@ -191,33 +186,17 @@ void FBlackboardDecoratorDetails::OnEnumValueComboChange(int32 Index)
 
 EVisibility FBlackboardDecoratorDetails::GetIntValueVisibility() const
 {
-	if (CachedKeyType == UBlackboardKeyType_Int::StaticClass())
-	{
-		return EVisibility::Visible;
-	}
-
-	return EVisibility::Collapsed;
+	return (CachedKeyType == UBlackboardKeyType_Int::StaticClass()) ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 EVisibility FBlackboardDecoratorDetails::GetFloatValueVisibility() const
 {
-	if (CachedKeyType == UBlackboardKeyType_Float::StaticClass())
-	{
-		return EVisibility::Visible;
-	}
-
-	return EVisibility::Collapsed;
+	return (CachedKeyType == UBlackboardKeyType_Float::StaticClass()) ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 EVisibility FBlackboardDecoratorDetails::GetStringValueVisibility() const
 {
-	if (CachedKeyType == UBlackboardKeyType_String::StaticClass() ||
-		CachedKeyType == UBlackboardKeyType_Name::StaticClass())
-	{
-		return EVisibility::Visible;
-	}
-
-	return EVisibility::Collapsed;
+	return (CachedOperationType == EBlackboardKeyOperation::Text) ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 EVisibility FBlackboardDecoratorDetails::GetEnumValueVisibility() const
@@ -233,49 +212,17 @@ EVisibility FBlackboardDecoratorDetails::GetEnumValueVisibility() const
 
 EVisibility FBlackboardDecoratorDetails::GetBasicOpVisibility() const
 {
-	if (CachedKeyType == UBlackboardKeyType_Object::StaticClass() ||
-		CachedKeyType == UBlackboardKeyType_Class::StaticClass() ||
-		CachedKeyType == UBlackboardKeyType_Bool::StaticClass() ||
-		CachedKeyType == UBlackboardKeyType_Vector::StaticClass())
-	{
-		return EVisibility::Visible;
-	}
-
-	return EVisibility::Collapsed;
+	return (CachedOperationType == EBlackboardKeyOperation::Basic) ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 EVisibility FBlackboardDecoratorDetails::GetArithmeticOpVisibility() const
 {
-	if (CachedKeyType == UBlackboardKeyType_Int::StaticClass() ||
-		CachedKeyType == UBlackboardKeyType_Float::StaticClass() ||
-		CachedKeyType == UBlackboardKeyType_Enum::StaticClass() ||
-		CachedKeyType == UBlackboardKeyType_NativeEnum::StaticClass())
-	{
-		return EVisibility::Visible;
-	}
-
-	return EVisibility::Collapsed;
+	return (CachedOperationType == EBlackboardKeyOperation::Arithmetic) ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 EVisibility FBlackboardDecoratorDetails::GetTextOpVisibility() const
 {
-	if (CachedKeyType == UBlackboardKeyType_String::StaticClass() ||
-		CachedKeyType == UBlackboardKeyType_Name::StaticClass())
-	{
-		return EVisibility::Visible;
-	}
-
-	return EVisibility::Collapsed;
-}
-
-bool FBlackboardDecoratorDetails::IsObserverNotifyEnabled() const
-{
-	return FBehaviorTreeDebugger::IsPIENotSimulating() && 
-		(CachedKeyType == UBlackboardKeyType_Object::StaticClass() ||
-		CachedKeyType == UBlackboardKeyType_Class::StaticClass() ||
-		CachedKeyType == UBlackboardKeyType_Vector::StaticClass() ||
-		CachedKeyType == UBlackboardKeyType_String::StaticClass() ||
-		CachedKeyType == UBlackboardKeyType_Name::StaticClass());
+	return (CachedOperationType == EBlackboardKeyOperation::Text) ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 #undef LOCTEXT_NAMESPACE

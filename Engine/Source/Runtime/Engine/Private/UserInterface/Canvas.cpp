@@ -91,6 +91,10 @@ void FCanvas::SetBaseTransform(const FMatrix& Transform)
 
 FMatrix FCanvas::CalcBaseTransform2D(uint32 ViewSizeX, uint32 ViewSizeY)
 {
+	// Guard against division by zero.
+	ViewSizeX = FMath::Max<uint32>(ViewSizeX, 1.f);
+	ViewSizeY = FMath::Max<uint32>(ViewSizeY, 1.f);
+
 	return AdjustProjectionMatrixForRHI(
 		FTranslationMatrix(FVector(-GPixelCenterOffset,-GPixelCenterOffset,0)) *
 		FMatrix(

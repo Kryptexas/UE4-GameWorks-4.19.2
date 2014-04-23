@@ -355,6 +355,9 @@ public:
 	 */
 	virtual void LowLevelSend( void* Data, int32 Count ) PURE_VIRTUAL(UNetConnection::LowLevelSend,); //!! "Looks like an FArchive"
 
+	/** Validates the FBitWriter to make sure it's not in an error state */
+	ENGINE_API virtual void ValidateSendBuffer();
+
 	/** Resets the FBitWriter to its default state */
 	ENGINE_API virtual void InitSendBuffer();
 

@@ -1975,18 +1975,18 @@ void UCharacterMovementComponent::CalcAvoidanceVelocity(float DeltaTime)
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 			if (bShowDebug)
 			{
-				DrawDebugLine(GetWorld(), GetActorLocation(), GetActorLocation() + Velocity, FColor(0,0,255), true, 0.5f, SDPG_MAX);
+				DrawDebugLine(GetWorld(), GetActorFeetLocation(), GetActorFeetLocation() + Velocity, FColor(0,0,255), true, 0.5f, SDPG_MAX);
 			}
 #endif
 		}
 		else
 		{
-			FNavAvoidanceData currentData;
-			currentData.Init(AvoidanceManager, GetActorLocation(),
+			FNavAvoidanceData CurrentData;
+			CurrentData.Init(AvoidanceManager, GetActorFeetLocation(),
 				OurCapsule->GetScaledCapsuleRadius(), OurCapsule->GetScaledCapsuleHalfHeight(),
 				Velocity, AvoidanceWeight, AvoidanceGroup.Packed, GroupsToAvoid.Packed, GroupsToIgnore.Packed);
 
-			FVector NewVelocity = AvoidanceManager->GetAvoidanceVelocityIgnoringUID(currentData, AvoidanceManager->DeltaTimeToPredict, AvoidanceUID);
+			FVector NewVelocity = AvoidanceManager->GetAvoidanceVelocityIgnoringUID(CurrentData, AvoidanceManager->DeltaTimeToPredict, AvoidanceUID);
 			if (bUseRVOPostProcess)
 			{
 				PostProcessAvoidanceVelocity(NewVelocity);
@@ -2000,7 +2000,7 @@ void UCharacterMovementComponent::CalcAvoidanceVelocity(float DeltaTime)
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 				if (bShowDebug)
 				{
-					DrawDebugLine(GetWorld(), GetActorLocation(), GetActorLocation() + Velocity, FColor(255,0,0), true, 0.05f, SDPG_MAX, 10.0f);
+					DrawDebugLine(GetWorld(), GetActorFeetLocation(), GetActorFeetLocation() + Velocity, FColor(255,0,0), true, 0.05f, SDPG_MAX, 10.0f);
 				}
 #endif
 			}
@@ -2017,7 +2017,7 @@ void UCharacterMovementComponent::CalcAvoidanceVelocity(float DeltaTime)
 			}
 		}
 		//RickH - We might do better to do this later in our update
-		AvoidanceManager->UpdateRVO(AvoidanceUID, GetActorLocation(),
+		AvoidanceManager->UpdateRVO(AvoidanceUID, GetActorFeetLocation(),
 			OurCapsule->GetScaledCapsuleRadius(), OurCapsule->GetScaledCapsuleHalfHeight() * 2.0f,
 			Velocity, AvoidanceWeight, AvoidanceGroup.Packed, GroupsToAvoid.Packed, GroupsToIgnore.Packed);
 
@@ -2026,13 +2026,13 @@ void UCharacterMovementComponent::CalcAvoidanceVelocity(float DeltaTime)
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	else if (bShowDebug)
 	{
-		DrawDebugLine(GetWorld(), GetActorLocation(), GetActorLocation() + Velocity, FColor(255,255,0), true, 0.05f, SDPG_MAX);
+		DrawDebugLine(GetWorld(), GetActorFeetLocation(), GetActorFeetLocation() + Velocity, FColor(255,255,0), true, 0.05f, SDPG_MAX);
 	}
 
 	if (bShowDebug)
 	{
 		FVector UpLine(0,0,500);
-		DrawDebugLine(GetWorld(), GetActorLocation(), GetActorLocation() + UpLine, (AvoidanceLockTimer > 0.01f) ? FColor(255,0,0) : FColor(0,0,255), true, 0.05f, SDPG_MAX, 5.0f);
+		DrawDebugLine(GetWorld(), GetActorFeetLocation(), GetActorFeetLocation() + UpLine, (AvoidanceLockTimer > 0.01f) ? FColor(255,0,0) : FColor(0,0,255), true, 0.05f, SDPG_MAX, 5.0f);
 	}
 #endif
 }
@@ -2056,7 +2056,7 @@ void UCharacterMovementComponent::UpdateDefaultAvoidance()
 	{
 		if (UCapsuleComponent *OurCapsule = GetCharacterOwner()->CapsuleComponent.Get())
 		{
-			AvoidanceManager->UpdateRVO(AvoidanceUID, GetActorLocation(),
+			AvoidanceManager->UpdateRVO(AvoidanceUID, GetActorFeetLocation(),
 				OurCapsule->GetScaledCapsuleRadius(), OurCapsule->GetScaledCapsuleHalfHeight() * 2.0f,
 				Velocity, AvoidanceWeight, AvoidanceGroup.Packed, GroupsToAvoid.Packed, GroupsToIgnore.Packed);
 
@@ -2084,7 +2084,7 @@ void UCharacterMovementComponent::NotifyBumpedPawn(APawn* BumpedPawn)
 	const bool bShowDebug = Avoidance && Avoidance->IsDebugEnabled(AvoidanceUID);
 	if (bShowDebug)
 	{
-		DrawDebugLine(GetWorld(), GetActorLocation(), GetActorLocation() + FVector(0,0,500), (AvoidanceLockTimer > 0) ? FColor(255,64,64) : FColor(64,64,255), true, 2.0f, SDPG_MAX, 20.0f);
+		DrawDebugLine(GetWorld(), GetActorFeetLocation(), GetActorFeetLocation() + FVector(0,0,500), (AvoidanceLockTimer > 0) ? FColor(255,64,64) : FColor(64,64,255), true, 2.0f, SDPG_MAX, 20.0f);
 	}
 #endif
 

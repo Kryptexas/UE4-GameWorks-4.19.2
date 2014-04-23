@@ -10,9 +10,7 @@ class ENGINE_API UEnvQueryItemType_ActorBase : public UEnvQueryItemType_VectorBa
 
 	virtual AActor* GetActor(const uint8* RawData) const;
 
-	/** add filters for blackboard key selector */
 	virtual void AddBlackboardFilters(struct FBlackboardKeySelector& KeySelector, UObject* FilterOwner) const OVERRIDE;
-
-	/** store value in blackboard entry */
 	virtual bool StoreInBlackboard(struct FBlackboardKeySelector& KeySelector, class UBlackboardComponent* Blackboard, const uint8* RawData) const OVERRIDE;
+	virtual FString GetDescription(const uint8* RawData) const OVERRIDE;
 };

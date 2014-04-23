@@ -97,9 +97,9 @@ public:
 		// draw path
 		if (!bShowBestPath || !NodeDebug.Num())
 		{
-			for (int32 i = 1; i < PathPoints.Num(); i++)
+			for (int32 PointIndex = 1; PointIndex < PathPoints.Num(); PointIndex++)
 			{
-				PDI->DrawLine(PathPoints[i-1], PathPoints[i], FLinearColor::Red, SDPG_World, 2.0f, 0.0f, true);
+				PDI->DrawLine(PathPoints[PointIndex-1], PathPoints[PointIndex], FLinearColor::Red, SDPG_World, 2.0f, 0.0f, true);
 			}
 		}
 
@@ -167,10 +167,10 @@ public:
 	{
 		if (NavTestActor && NavTestActor->LastPath.IsValid())
 		{
-			for (int32 i = 0; i < NavTestActor->LastPath->PathPoints.Num(); i++)
+			for (int32 PointIndex = 0; PointIndex < NavTestActor->LastPath->PathPoints.Num(); PointIndex++)
 			{
-				PathPoints.Add(NavTestActor->LastPath->PathPoints[i].Location); 
-				PathPointFlags.Add(FString::Printf(TEXT("%d"),FNavMeshNodeFlags(NavTestActor->LastPath->PathPoints[i].Flags).AreaFlags));
+				PathPoints.Add(NavTestActor->LastPath->PathPoints[PointIndex].Location); 
+				PathPointFlags.Add(FString::Printf(TEXT("%d-%d"), PointIndex , FNavMeshNodeFlags(NavTestActor->LastPath->PathPoints[PointIndex].Flags).AreaFlags)); 
 			}
 		}
 	}
@@ -229,8 +229,25 @@ public:
 				}
 
 				FNodeDebugData NewNodeData;
-				NewNodeData.Desc = FString::Printf(TEXT("%.2f%s"), DebugNode.TotalCost,
-					DebugNode.bOffMeshLink ? TEXT(" [link]") : TEXT(""));
+
+				float DisplayedCost = FLT_MAX; 
+				switch (NavTestActor->CostDisplayMode)
+				{
+				case ENavCostDisplay::TotalCost:
+					DisplayedCost = DebugNode.TotalCost;
+					break;
+				case ENavCostDisplay::RealCostOnly:
+					DisplayedCost = DebugNode.Cost;
+					break;
+				case ENavCostDisplay::HeuristicOnly:
+					DisplayedCost = DebugNode.GetHeuristicCost();
+					break;
+				default:
+					break;
+				}
+
+				NewNodeData.Desc = FString::Printf(TEXT("%.2f%s"), DisplayedCost, DebugNode.bOffMeshLink ? TEXT(" [link]") : TEXT(""));
+
 				NewNodeData.Position = DebugNode.NodePos;
 				NewNodeData.PolyRef = DebugNode.PolyRef;
 				NewNodeData.bClosedSet = !DebugNode.bOpenSet;
@@ -282,7 +299,6 @@ public:
 		}
 
 		const FColor OldDrawColor = Canvas->DrawColor;
-
 		Canvas->SetDrawColor(FColor::White);
 
 #if WITH_EDITORONLY_DATA && WITH_RECAST
@@ -305,18 +321,18 @@ public:
 
 				Canvas->SetDrawColor(MyColor);
 
-				const FVector ScreenLoc = Canvas->Project(NodeData.Position);
+				const FVector ScreenLoc = Canvas->Project(NodeData.Position) + FVector( NavTestActor->TextCanvasOffset, 0.f );
 				Canvas->DrawText(RenderFont, NodeData.Desc, ScreenLoc.X, ScreenLoc.Y);			
 			}
 		}
 		else
 		{
 #endif
-			for (int32 i = 0; i < PathPoints.Num(); ++i)
+			for (int32 PointIndex = 0; PointIndex < PathPoints.Num(); ++PointIndex)
 			{
-				const FVector PathPointLoc = Canvas->Project(PathPoints[i]);
+				const FVector PathPointLoc = Canvas->Project(PathPoints[PointIndex]);
 				UFont* RenderFont = GEngine->GetSmallFont();
-				Canvas->DrawText(RenderFont, PathPointFlags[i], PathPointLoc.X, PathPointLoc.Y);
+				Canvas->DrawText(RenderFont, PathPointFlags[PointIndex], PathPointLoc.X, PathPointLoc.Y);
 			}
 
 #if WITH_EDITORONLY_DATA && WITH_RECAST
@@ -390,9 +406,9 @@ FBoxSphereBounds UNavTestRenderingComponent::CalcBounds(const FTransform & Local
 	
 		if (TestActor->LastPath.IsValid())
 		{
-			for (int32 i = 0; i < TestActor->LastPath->PathPoints.Num(); i++)
+			for (int32 PointIndex = 0; PointIndex < TestActor->LastPath->PathPoints.Num(); PointIndex++)
 			{
-				BoundingBox += TestActor->LastPath->PathPoints[i].Location;
+				BoundingBox += TestActor->LastPath->PathPoints[PointIndex].Location;
 			}
 		}
 #if WITH_EDITORONLY_DATA && WITH_RECAST

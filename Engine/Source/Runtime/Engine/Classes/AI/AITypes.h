@@ -5,6 +5,38 @@
 #include "AITypes.generated.h"
 
 UENUM()
+namespace EAIOptionFlag
+{
+	enum Type
+	{
+		Default,
+		Enable UMETA(DisplayName = "Yes"),	// UHT was complaining when tried to use True as value instead of Enable
+		Disable UMETA(DisplayName = "No"),
+
+		MAX UMETA(Hidden)
+	};
+}
+
+USTRUCT()
+struct FGenericTeamId
+{
+	GENERATED_USTRUCT_BODY()
+
+	enum EPredefinedId
+	{
+		NoTeam = 255
+	};
+
+	UPROPERTY(Category="TeamID", EditAnywhere, BlueprintReadWrite)
+	uint8 TeamID;
+
+	FGenericTeamId(uint8 InTeamID = NoTeam)  : TeamID(InTeamID)
+	{}
+
+	FORCEINLINE operator uint8() const { return TeamID; }
+};
+
+UENUM()
 namespace EAILockSource
 {
 	enum Type

@@ -14,6 +14,16 @@ struct FFieldRemapInfo
 	/** The new name of the field's outer class if different from its original location, or NAME_None if it hasn't moved */
 	FName FieldClass;
 
+	bool operator==(const FFieldRemapInfo& Other) const
+	{
+		return FieldName == Other.FieldName && FieldClass == Other.FieldClass;
+	}
+
+	friend uint32 GetTypeHash(const FFieldRemapInfo& RemapInfo)
+	{
+		return GetTypeHash(RemapInfo.FieldName) + GetTypeHash(RemapInfo.FieldClass) * 23;
+	}
+
 	FFieldRemapInfo()
 		: FieldName(NAME_None)
 		, FieldClass(NAME_None)
@@ -258,7 +268,7 @@ protected:
 	/** 
 	 * A mapping from old property and function names to new ones.  Get primed from INI files, and should contain entries for properties, functions, and delegates that get moved, so they can be fixed up
 	 */
-	static TMap<FName, FFieldRemapInfo> FieldRedirectMap;
+	static TMap<FFieldRemapInfo, FFieldRemapInfo> FieldRedirectMap;
 	/** 
 	 * A mapping from old pin name to new pin name for each K2 node.  Get primed from INI files, and should contain entries for node class, and old param name and new param name
 	 */

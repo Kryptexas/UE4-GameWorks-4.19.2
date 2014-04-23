@@ -12,7 +12,7 @@ typedef TSharedPtr<class FOnlineProfileNull, ESPMode::ThreadSafe> FOnlineProfile
 typedef TSharedPtr<class FOnlineFriendsNull, ESPMode::ThreadSafe> FOnlineFriendsNullPtr;
 typedef TSharedPtr<class FOnlineUserCloudNull, ESPMode::ThreadSafe> FOnlineUserCloudNullPtr;
 typedef TSharedPtr<class FOnlineLeaderboardsNull, ESPMode::ThreadSafe> FOnlineLeaderboardsNullPtr;
-typedef TSharedPtr<class FOnlineVoiceNull, ESPMode::ThreadSafe> FOnlineVoiceNullPtr;
+typedef TSharedPtr<class FOnlineVoiceImpl, ESPMode::ThreadSafe> FOnlineVoiceImplPtr;
 typedef TSharedPtr<class FOnlineExternalUINull, ESPMode::ThreadSafe> FOnlineExternalUINullPtr;
 typedef TSharedPtr<class FOnlineIdentityNull, ESPMode::ThreadSafe> FOnlineIdentityNullPtr;
 typedef TSharedPtr<class FOnlineAchievementsNull, ESPMode::ThreadSafe> FOnlineAchievementsNullPtr;
@@ -75,6 +75,7 @@ PACKAGE_SCOPE:
 	FOnlineSubsystemNull(FName InInstanceName) :
 		FOnlineSubsystemImpl(InInstanceName),
 		SessionInterface(NULL),
+		VoiceInterface(NULL),
 		LeaderboardsInterface(NULL),
 		IdentityInterface(NULL),
 		AchievementsInterface(NULL),
@@ -84,17 +85,25 @@ PACKAGE_SCOPE:
 
 	FOnlineSubsystemNull() :
 		SessionInterface(NULL),
+		VoiceInterface(NULL),
 		LeaderboardsInterface(NULL),
 		IdentityInterface(NULL),
 		AchievementsInterface(NULL),
 		OnlineAsyncTaskThreadRunnable(NULL),
 		OnlineAsyncTaskThread(NULL)
 	{}
+	/**
+	 *	@return true if the specified Id is considered a local player, false otherwise
+	 */
+	bool IsLocalPlayer(const FUniqueNetId& UniqueId) const;
 
 private:
 
 	/** Interface to the session services */
 	FOnlineSessionNullPtr SessionInterface;
+
+	/** Interface for voice communication */
+	FOnlineVoiceImplPtr VoiceInterface;
 
 	/** Interface to the leaderboard services */
 	FOnlineLeaderboardsNullPtr LeaderboardsInterface;

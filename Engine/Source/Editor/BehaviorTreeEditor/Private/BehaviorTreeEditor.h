@@ -27,6 +27,8 @@ public:
 	// Begin IBehaviorTreeEditor interface
 	virtual uint32 GetSelectedNodesCount() const OVERRIDE { return SelectedNodesCount; }
 	virtual void InitializeDebuggerState(class FBehaviorTreeDebugger* ParentDebugger) const OVERRIDE;
+	virtual UEdGraphNode* FindInjectedNode(int32 Index) const OVERRIDE;
+	virtual void DoubleClickNode(class UEdGraphNode* Node) OVERRIDE;
 	// End IBehaviorTreeEditor interface
 
 	// Begin FEditorUndoClient Interface
@@ -76,6 +78,8 @@ public:
 	void JumpToNode(const UEdGraphNode* Node);
 
 	bool IsPropertyVisible(UProperty const * const InProperty) const;
+	bool IsPropertyEditable() const;
+	void OnPackageSaved(const FString& PackageFileName, UObject* Outer);
 	void OnFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent);
 
 	void UpdateToolbar();
@@ -85,13 +89,14 @@ public:
 	void OnDebuggerActorSelected(TWeakObjectPtr<UBehaviorTreeComponent> InstanceToDebug);
 	FString GetDebuggerActorDesc() const;
 	FGraphAppearanceInfo GetGraphAppearance() const;
-	bool InEditingMode() const;
+	bool InEditingMode(bool bGraphIsEditable) const;
 
 	void DebuggerSwitchAsset(UBehaviorTree* NewAsset);
 
 	EVisibility GetDebuggerDetailsVisibility() const;
 	EVisibility GetRangeLowerVisibility() const;
 	EVisibility GetRangeSelfVisibility() const;
+	EVisibility GetInjectedNodeVisibility() const;
 
 	TWeakPtr<SGraphEditor> GetFocusedGraphPtr() const;
 
@@ -154,8 +159,10 @@ private:
 	/** Find results log as well as the search filter */
 	TSharedPtr<class SFindInBT> FindResults;
 
-	bool bShowDecoratorRangeLower;
-	bool bShowDecoratorRangeSelf;
+	uint32 bShowDecoratorRangeLower : 1;
+	uint32 bShowDecoratorRangeSelf : 1;
+	uint32 bForceDisablePropertyEdit : 1;
+	uint32 bSelectedNodeIsInjected : 1;
 	uint32 SelectedNodesCount;
 
 public:

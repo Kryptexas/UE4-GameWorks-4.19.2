@@ -2744,12 +2744,18 @@ void FSlateEditorStyle::FStyle::SetupGraphEditorStyles()
 
 			Set( "BTEditor.Graph.FlowControl.Icon", new IMAGE_BRUSH( "/Persona/StateMachineEditor/Conduit_Node_Icon_32x", Icon16x16 ) );
 
-			Set( "BTEditor.Debugger.ShowPrevStep", new IMAGE_BRUSH( "Icons/icon_step_back_40x", Icon40x40 ) );
-			Set( "BTEditor.Debugger.ShowPrevStep.Small", new IMAGE_BRUSH( "Icons/icon_step_back_40x", Icon20x20 ) );
-			Set( "BTEditor.Debugger.ShowNextStep", new IMAGE_BRUSH( "Icons/icon_step_40x", Icon40x40 ) );
-			Set( "BTEditor.Debugger.ShowNextStep.Small", new IMAGE_BRUSH( "Icons/icon_step_40x", Icon20x20 ) );
-			Set( "BTEditor.Debugger.Step", new IMAGE_BRUSH( "Icons/icon_findnode_40x", Icon40x40 ) );
-			Set( "BTEditor.Debugger.Step.Small", new IMAGE_BRUSH( "Icons/icon_findnode_40x", Icon20x20 ) );
+			Set( "BTEditor.Debugger.BackOver", new IMAGE_BRUSH( "Icons/icon_step_back_40x", Icon40x40 ) );
+			Set( "BTEditor.Debugger.BackOver.Small", new IMAGE_BRUSH( "Icons/icon_step_back_40x", Icon20x20 ) );
+			Set( "BTEditor.Debugger.BackInto", new IMAGE_BRUSH("Icons/icon_step_back_40x", Icon40x40));
+			Set( "BTEditor.Debugger.BackInto.Small", new IMAGE_BRUSH("Icons/icon_step_back_40x", Icon20x20));
+			Set( "BTEditor.Debugger.ForwardInto", new IMAGE_BRUSH("Icons/icon_step_40x", Icon40x40));
+			Set( "BTEditor.Debugger.ForwardInto.Small", new IMAGE_BRUSH( "Icons/icon_step_40x", Icon20x20 ) );
+			Set( "BTEditor.Debugger.ForwardOver", new IMAGE_BRUSH("Icons/icon_step_40x", Icon40x40));
+			Set( "BTEditor.Debugger.ForwardOver.Small", new IMAGE_BRUSH("Icons/icon_step_40x", Icon20x20));
+			Set( "BTEditor.Debugger.StepOut", new IMAGE_BRUSH("Icons/icon_step_40x", Icon40x40));
+			Set( "BTEditor.Debugger.StepOut.Small", new IMAGE_BRUSH("Icons/icon_step_40x", Icon20x20));
+			Set( "BTEditor.Debugger.SingleStep", new IMAGE_BRUSH("Icons/icon_advance_40x", Icon40x40));
+			Set( "BTEditor.Debugger.SingleStep.Small", new IMAGE_BRUSH( "Icons/icon_advance_40x", Icon20x20 ) );
 
 			Set( "BTEditor.Debugger.PausePlaySession", new IMAGE_BRUSH( "Icons/icon_pause_40x", Icon40x40 ) );
 			Set( "BTEditor.Debugger.PausePlaySession.Small", new IMAGE_BRUSH( "Icons/icon_pause_40x", Icon20x20 ) );

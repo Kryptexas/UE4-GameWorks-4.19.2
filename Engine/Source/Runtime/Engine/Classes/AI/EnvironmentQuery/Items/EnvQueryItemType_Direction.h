@@ -19,4 +19,5 @@ class ENGINE_API UEnvQueryItemType_Direction : public UEnvQueryItemType_VectorBa
 	static void SetContextHelper(struct FEnvQueryContextData& ContextData, const TArray<FRotator>& MultipleRotations);
 
 	virtual FRotator GetRotation(const uint8* RawData) const OVERRIDE;
+	virtual FString GetDescription(const uint8* RawData) const OVERRIDE;
 };

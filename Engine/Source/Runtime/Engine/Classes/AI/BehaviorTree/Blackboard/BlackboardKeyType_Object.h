@@ -18,5 +18,6 @@ class UBlackboardKeyType_Object : public UBlackboardKeyType
 	virtual bool IsAllowedByFilter(UBlackboardKeyType* FilterOb) const OVERRIDE;
 	virtual bool GetLocation(const uint8* RawData, FVector& Location) const OVERRIDE;
 	virtual bool GetRotation(const uint8* MemoryBlock, FRotator& Rotation) const OVERRIDE;
-	virtual int32 Compare(const uint8* MemoryBlockA, const uint8* MemoryBlockB) const OVERRIDE;
+	virtual EBlackboardCompare::Type Compare(const uint8* MemoryBlockA, const uint8* MemoryBlockB) const OVERRIDE;
+	virtual bool TestBasicOperation(const uint8* MemoryBlock, EBasicKeyOperation::Type Op) const OVERRIDE;
 };

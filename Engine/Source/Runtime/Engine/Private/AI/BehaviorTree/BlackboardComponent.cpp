@@ -15,8 +15,20 @@ void UBlackboardComponent::InitializeComponent()
 	Super::InitializeComponent();
 
 	// cache blackboard component if owner has one
-	BehaviorComp = GetOwner()->FindComponentByClass<UBehaviorTreeComponent>();
+	BrainComp = GetOwner()->FindComponentByClass<UBrainComponent>();
+	if (BrainComp)
+	{
+		BrainComp->CacheBlackboardComponent(this);
+	}
 	InitializeBlackboard(BlackboardAsset);
+}
+
+void UBlackboardComponent::CacheBrainComponent(UBrainComponent* BrainComponent)
+{
+	if (BrainComponent != BrainComp)
+	{
+		BrainComp = BrainComponent;
+	}
 }
 
 struct FBlackboardInitializationData
@@ -101,9 +113,9 @@ void UBlackboardComponent::InitializeBlackboard(class UBlackboardData* NewAsset)
 	}
 }
 
-class UBehaviorTreeComponent* UBlackboardComponent::GetBehaviorComponent() const
+class UBrainComponent* UBlackboardComponent::GetBrainComponent() const
 {
-	return BehaviorComp;
+	return BrainComp;
 }
 
 class UBlackboardData* UBlackboardComponent::GetBlackboardAsset() const
@@ -187,9 +199,10 @@ bool UBlackboardComponent::IsCompatibileWith(class UBlackboardData* TestAsset) c
 	return false;
 }
 
-UBlackboardKeyType::CompareResult UBlackboardComponent::CompareKeyValues(TSubclassOf<class UBlackboardKeyType> KeyType, uint8 KeyA, uint8 KeyB) const
+EBlackboardCompare::Type UBlackboardComponent::CompareKeyValues(TSubclassOf<class UBlackboardKeyType> KeyType, uint8 KeyA, uint8 KeyB) const
 {
-	return UBlackboardKeyType::CompareResult(Cast<UBlackboardKeyType>((*KeyType)->GetDefaultObject())->Compare(GetKeyRawData(KeyA), GetKeyRawData(KeyB)));
+	UBlackboardKeyType* KeyCDO = KeyType->GetDefaultObject<UBlackboardKeyType>();
+	return KeyCDO->Compare(GetKeyRawData(KeyA), GetKeyRawData(KeyB));
 }
 
 FString UBlackboardComponent::GetDebugInfoString(EBlackboardDescription::Type Mode) const 

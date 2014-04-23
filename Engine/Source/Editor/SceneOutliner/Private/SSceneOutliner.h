@@ -18,6 +18,7 @@ namespace SceneOutliner
 	typedef TSet< const AActor* > FParentActorsSet;
 
 	FText GetLabelForItem( const TSharedRef<TOutlinerTreeItem> TreeItem );
+	FString GetLabelForItemAsString(const TSharedRef<TOutlinerTreeItem> TreeItem);
 
 	/** An array of actions to apply to newly added items in the scene outliner */
 	struct NewItemActuator

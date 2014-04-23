@@ -10,8 +10,9 @@ class UBlackboardKeyType_Vector : public UBlackboardKeyType
 	static FVector GetValue(const uint8* RawData);
 	static bool SetValue(uint8* RawData, const FVector& Value);
 
+	virtual void Initialize(uint8* RawData) const OVERRIDE;
 	virtual FString DescribeValue(const uint8* RawData) const OVERRIDE;
 	virtual bool GetLocation(const uint8* RawData, FVector& Location) const OVERRIDE;
-	virtual int32 Compare(const uint8* MemoryBlockA, const uint8* MemoryBlockB) const OVERRIDE;
-	virtual void Initialize(uint8* RawData) const OVERRIDE;
+	virtual EBlackboardCompare::Type Compare(const uint8* MemoryBlockA, const uint8* MemoryBlockB) const OVERRIDE;
+	virtual bool TestBasicOperation(const uint8* MemoryBlock, EBasicKeyOperation::Type Op) const OVERRIDE;
 };

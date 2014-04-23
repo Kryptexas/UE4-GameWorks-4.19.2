@@ -24,11 +24,7 @@ void FFuncTestManager::SetLooping(const bool bLoop)
 
 void FFuncTestManager::RunAllTestsOnMap(bool bClearLog, bool bRunLooped)
 {
-	if (TestScript.IsValid())
-	{
-		TestScript->RunAllTestsOnMap(bClearLog, bRunLooped);
-	}
-	else
+	if (UFunctionalTestingManager::RunAllFunctionalTests(GWorld, bClearLog, bRunLooped) == false)
 	{
 		UE_LOG(LogFunctionalTest, Error, TEXT("No functional testing script on map."));
 	}

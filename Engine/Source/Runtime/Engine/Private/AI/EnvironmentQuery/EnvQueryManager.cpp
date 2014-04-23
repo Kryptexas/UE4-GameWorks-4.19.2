@@ -21,9 +21,9 @@ DEFINE_STAT(STAT_AI_EQS_InstanceMemory);
 
 FEnvQueryRequest& FEnvQueryRequest::SetNamedParams(const TArray<struct FEnvNamedValue>& Params)
 {
-	for (int32 i = 0; i < Params.Num(); i++)
+	for (int32 ParamIndex = 0; ParamIndex < Params.Num(); ParamIndex++)
 	{
-		NamedParams.Add(Params[i].ParamName, Params[i].Value);
+		NamedParams.Add(Params[ParamIndex].ParamName, Params[ParamIndex].Value);
 	}
 
 	return *this;
@@ -81,6 +81,17 @@ void UEnvQueryManager::FinishDestroy()
 {
 	FCoreDelegates::PreLoadMap.RemoveAll(this);
 	Super::FinishDestroy();
+}
+
+UEnvQueryManager* UEnvQueryManager::GetCurrent(UWorld* World)
+{
+	return World ? World->GetEnvironmentQueryManager() : NULL;
+}
+
+UEnvQueryManager* UEnvQueryManager::GetCurrent(class UObject* WorldContextObject)
+{
+	UWorld* World = WorldContextObject ? GEngine->GetWorldFromContextObject(WorldContextObject) : NULL;
+	return World ? World->GetEnvironmentQueryManager() : NULL;
 }
 
 #if WITH_EDITOR
@@ -151,9 +162,9 @@ TSharedPtr<FEnvQueryResult> UEnvQueryManager::RunInstantQuery(const FEnvQueryReq
 		QueryInstance->ExecuteOneStep((double)FLT_MAX);
 	}
 
-#if WITH_EDITOR
+#if USE_EQS_DEBUGGER
 	EQSDebugger.StoreQuery(QueryInstance);
-#endif // WITH_EDITOR
+#endif // USE_EQS_DEBUGGER
 
 	return QueryInstance;
 }
@@ -183,16 +194,16 @@ TSharedPtr<struct FEnvQueryInstance> UEnvQueryManager::PrepareQueryInstance(cons
 
 bool UEnvQueryManager::AbortQuery(int32 RequestID)
 {
-	for (int32 i = 0; i < RunningQueries.Num(); i++)
+	for (int32 QueryIndex = 0; QueryIndex < RunningQueries.Num(); QueryIndex++)
 	{
-		TSharedPtr<FEnvQueryInstance>& QueryInstance = RunningQueries[i];
+		TSharedPtr<FEnvQueryInstance>& QueryInstance = RunningQueries[QueryIndex];
 		if (QueryInstance->QueryID == RequestID &&
 			QueryInstance->Status == EEnvQueryStatus::Processing)
 		{
 			QueryInstance->Status = EEnvQueryStatus::Aborted;
 			QueryInstance->FinishDelegate.ExecuteIfBound(QueryInstance);
 			
-			RunningQueries.RemoveAt(i);
+			RunningQueries.RemoveAt(QueryIndex);
 			return true;
 		}
 	}
@@ -219,9 +230,9 @@ void UEnvQueryManager::Tick(float DeltaTime)
 			
 			if (QueryInstance->Status != EEnvQueryStatus::Processing)
 			{
-#if WITH_EDITOR
+#if USE_EQS_DEBUGGER
 				EQSDebugger.StoreQuery(QueryInstance);
-#endif // WITH_EDITOR
+#endif // USE_EQS_DEBUGGER
 
 				QueryInstance->FinishDelegate.ExecuteIfBound(QueryInstance);
 
@@ -265,8 +276,8 @@ namespace EnvQueryTestSort
 			}
 
 			// conditions go first
-			const bool bConditionA = (TestA.Condition != EEnvTestCondition::NoCondition);
-			const bool bConditionB = (TestB.Condition != EEnvTestCondition::NoCondition);
+			const bool bConditionA = (TestA.Condition != EEnvTestCondition::NoCondition) && TestA.bDiscardFailedItems;
+			const bool bConditionB = (TestB.Condition != EEnvTestCondition::NoCondition) && TestB.bDiscardFailedItems;
 			if (bConditionA && !bConditionB)
 			{
 				return true;
@@ -289,8 +300,8 @@ namespace EnvQueryTestSort
 				return true;
 			}
 
-			const bool bConditionA = (TestA.Condition != EEnvTestCondition::NoCondition);
-			const bool bConditionB = (TestB.Condition != EEnvTestCondition::NoCondition);
+			const bool bConditionA = (TestA.Condition != EEnvTestCondition::NoCondition) && TestA.bDiscardFailedItems;
+			const bool bConditionB = (TestB.Condition != EEnvTestCondition::NoCondition) && TestB.bDiscardFailedItems;
 			if (TestA.Cost == HighestCost)
 			{
 				// highest cost: weights go first, conditions later (first match will return result)
@@ -300,8 +311,8 @@ namespace EnvQueryTestSort
 				}
 
 				// conditions with weights before pure conditions
-				const bool bNoWeightA = (TestA.WeightModifier == EEnvTestWeight::Flat);
-				const bool bNoWeightB = (TestB.WeightModifier == EEnvTestWeight::Flat);
+				const bool bNoWeightA = (TestA.WeightModifier >= EEnvTestWeight::Constant);
+				const bool bNoWeightB = (TestB.WeightModifier >= EEnvTestWeight::Constant);
 				if (!bNoWeightA && bNoWeightB)
 				{
 					return true;
@@ -383,23 +394,29 @@ TSharedPtr<FEnvQueryInstance> UEnvQueryManager::CreateQueryInstance(class UEnvQu
 			InstanceTemplate = &InstanceCache[Idx].Instance;
 		}
 
-		for (int32 i = 0; i < Template->Options.Num(); i++)
+		for (int32 OptionIndex = 0; OptionIndex < Template->Options.Num(); OptionIndex++)
 		{
-			UEnvQueryOption* MyOption = Template->Options[i];
-			check(MyOption->Generator);
+			UEnvQueryOption* MyOption = Template->Options[OptionIndex];
+			if (MyOption == NULL || MyOption->Generator == NULL)
+			{
+				UE_LOG(LogEQS, Error, TEXT("Trying to spawn a query with broken Template (empty generator): %s, option %d"),
+					*GetNameSafe(Template), OptionIndex);
+
+				continue;
+			}
 
 			EEnvTestCost::Type HighestCost(EEnvTestCost::Low);
 			TArray<UEnvQueryTest*> SortedTests = MyOption->Tests;
 			TSubclassOf<UEnvQueryItemType> GeneratedType = MyOption->Generator->ItemType;
-			for (int32 iTest = SortedTests.Num() - 1; iTest >= 0; iTest--)
+			for (int32 TestIndex = SortedTests.Num() - 1; TestIndex >= 0; TestIndex--)
 			{
-				UEnvQueryTest* TestOb = SortedTests[iTest];
-				if (!TestOb->IsSupportedItem(GeneratedType))
+				UEnvQueryTest* TestOb = SortedTests[TestIndex];
+				if (TestOb == NULL || !TestOb->IsSupportedItem(GeneratedType))
 				{
 					UE_LOG(LogEQS, Warning, TEXT("Query [%s] can't use test [%s] in option %d [%s], removing it"),
-						*GetNameSafe(Template), *TestOb->GetName(), i, *MyOption->Generator->OptionName);
+						*GetNameSafe(Template), *GetNameSafe(TestOb), OptionIndex, *MyOption->Generator->OptionName);
 
-					SortedTests.RemoveAt(iTest);
+					SortedTests.RemoveAt(TestIndex);
 				}
 				else if (HighestCost < TestOb->Cost)
 				{
@@ -451,10 +468,10 @@ void UEnvQueryManager::CreateOptionInstance(class UEnvQueryOption* OptionTemplat
 	OptionInstance.bShuffleItems = true;
 
 	OptionInstance.TestDelegates.AddZeroed(SortedTests.Num());
-	for (int32 iTest = 0; iTest < SortedTests.Num(); iTest++)
+	for (int32 TestIndex = 0; TestIndex < SortedTests.Num(); TestIndex++)
 	{
-		const UEnvQueryTest* TestOb = SortedTests[iTest];
-		OptionInstance.TestDelegates[iTest] = TestOb->ExecuteDelegate;
+		const UEnvQueryTest* TestOb = SortedTests[TestIndex];
+		OptionInstance.TestDelegates[TestIndex] = TestOb->ExecuteDelegate;
 
 		// always randomize when asking for single result
 		// otherwise, can skip randomization if test wants to score every item
@@ -475,7 +492,7 @@ void UEnvQueryManager::CreateOptionInstance(class UEnvQueryOption* OptionTemplat
 //----------------------------------------------------------------------//
 // FEQSDebugger
 //----------------------------------------------------------------------//
-#if WITH_EDITOR
+#if USE_EQS_DEBUGGER
 
 void FEQSDebugger::StoreQuery(TSharedPtr<FEnvQueryInstance>& Query)
 {
@@ -493,4 +510,4 @@ const TSharedPtr<FEnvQueryInstance> FEQSDebugger::GetQueryForOwner(const UObject
 	return StoredQueries.FindRef(Owner);
 }
 
-#endif // WITH_EDITOR
+#endif // USE_EQS_DEBUGGER

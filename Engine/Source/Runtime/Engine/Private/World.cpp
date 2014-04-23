@@ -4032,33 +4032,12 @@ UWorld* FSeamlessTravelHandler::Tick()
 	bool bWorldChanged = false;
 	if (bNeedCancelCleanUp)
 	{
-		if (IsAsyncLoading())
-		{
-			// allocate more time for async loading so we can clean up faster
-			ProcessAsyncLoading(true, 0.003f);
-		}
 		if (!IsAsyncLoading())
 		{
 			CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS, true);
 			bNeedCancelCleanUp = false;
 			SetPauseAtMidpoint(false);
 		}
-	}
-	else if (IsInTransition())
-	{
-		float ExtraTime = 0.003f;
-
-		// on console, we're locked to 30 FPS, so if we actually spent less time than that put it all into loading faster
-		if (FPlatformProperties::SupportsWindowedMode() == false)
-		{
-			// Calculate the maximum time spent, EXCLUDING idle time. We don't use DeltaSeconds as it includes idle time waiting
-			// for VSYNC so we don't know how much "buffer" we have.
-			float FrameTime	= FPlatformTime::ToSeconds(FMath::Max<uint32>(GRenderThreadTime, GGameThreadTime));
-			ExtraTime = FMath::Max<float>(ExtraTime, 0.0333f - FrameTime);
-		}
-
-		// allocate more time for async loading during transition
-		ProcessAsyncLoading(true, ExtraTime);
 	}
 	//@fixme: wait for client to verify packages before finishing transition. Is this the right fix?
 	// Once the default map is loaded, go ahead and start loading the destination map

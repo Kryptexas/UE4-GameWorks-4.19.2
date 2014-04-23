@@ -93,13 +93,18 @@ void UBTComposite_SimpleParallel::NotifyNodeDeactivation(struct FBehaviorTreeSea
 	SearchData.AddUniqueUpdate(FBehaviorTreeSearchUpdate(Children[EBTParallelChild::MainTask].ChildTask, ActiveInstanceIdx, EBTNodeUpdateMode::Remove));
 
 	// remove all active nodes from background tree
-	const FBTNodeIndex FirstBackgroundIndex(ActiveInstanceIdx, GetChildExecutionIndex(EBTParallelChild::MainTask) + 1);
+	const FBTNodeIndex FirstBackgroundIndex(ActiveInstanceIdx, GetChildExecutionIndex(EBTParallelChild::BackgroundTree, EBTChildIndex::FirstNode));
 	SearchData.OwnerComp->UnregisterAuxNodesUpTo(FirstBackgroundIndex);
 }
 
 uint16 UBTComposite_SimpleParallel::GetInstanceMemorySize() const
 {
 	return sizeof(FBTParallelMemory);
+}
+
+bool UBTComposite_SimpleParallel::CanPushSubtree(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, int32 ChildIdx) const
+{
+	return (ChildIdx != EBTParallelChild::MainTask);
 }
 
 FString UBTComposite_SimpleParallel::DescribeFinishMode(EBTParallelMode::Type Mode)

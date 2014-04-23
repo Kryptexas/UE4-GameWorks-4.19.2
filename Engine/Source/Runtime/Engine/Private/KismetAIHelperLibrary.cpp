@@ -86,7 +86,7 @@ APawn* UKismetAIHelperLibrary::SpawnAIFromClass(class UObject* WorldContextObjec
 	APawn* NewPawn = NULL;
 
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
-	if (World && *PawnClass && BehaviorTree)
+	if (World && *PawnClass)
 	{
 		FActorSpawnParameters ActorSpawnParams;
 		ActorSpawnParams.bNoCollisionFail = bNoCollisionFail;
@@ -106,11 +106,14 @@ APawn* UKismetAIHelperLibrary::SpawnAIFromClass(class UObject* WorldContextObjec
 				}
 			}
 
-			AAIController* AIController = Cast<AAIController>(NewPawn->Controller);
-
-			if (AIController != NULL)
+			if (BehaviorTree != NULL)
 			{
-				AIController->RunBehaviorTree(BehaviorTree);
+				AAIController* AIController = Cast<AAIController>(NewPawn->Controller);
+
+				if (AIController != NULL)
+				{
+					AIController->RunBehaviorTree(BehaviorTree);
+				}
 			}
 		}
 	}

@@ -192,8 +192,9 @@ uint16 FNavigationQueryFilter::GetExcludeFlags() const
 //----------------------------------------------------------------------//
 // 
 //----------------------------------------------------------------------//
-FPathFindingQuery::FPathFindingQuery(const class ANavigationData* InNavData, const FVector& Start, const FVector& End, TSharedPtr<const FNavigationQueryFilter> SourceQueryFilter)
+FPathFindingQuery::FPathFindingQuery(const UObject* InOwner, const class ANavigationData* InNavData, const FVector& Start, const FVector& End, TSharedPtr<const FNavigationQueryFilter> SourceQueryFilter)
 	: NavData(InNavData)
+	, Owner(InOwner)
 	, StartLocation(Start)
 	, EndLocation(End)
 	, QueryFilter(SourceQueryFilter)
@@ -206,6 +207,7 @@ FPathFindingQuery::FPathFindingQuery(const class ANavigationData* InNavData, con
 
 FPathFindingQuery::FPathFindingQuery(const FPathFindingQuery& Source)
 	: NavData(Source.NavData)
+	, Owner(Source.Owner)
 	, StartLocation(Source.StartLocation)
 	, EndLocation(Source.EndLocation)
 	, QueryFilter(Source.QueryFilter)
@@ -221,8 +223,8 @@ FPathFindingQuery::FPathFindingQuery(const FPathFindingQuery& Source)
 //----------------------------------------------------------------------//
 uint32 FAsyncPathFindingQuery::LastPathFindingUniqueID = INVALID_NAVQUERYID;
 
-FAsyncPathFindingQuery::FAsyncPathFindingQuery(const class ANavigationData* InNavData, const FVector& Start, const FVector& End, const FNavPathQueryDelegate& Delegate, TSharedPtr<const FNavigationQueryFilter> SourceQueryFilter)
-	: FPathFindingQuery(InNavData, Start, End, SourceQueryFilter)
+FAsyncPathFindingQuery::FAsyncPathFindingQuery(const UObject* InOwner, const class ANavigationData* InNavData, const FVector& Start, const FVector& End, const FNavPathQueryDelegate& Delegate, TSharedPtr<const FNavigationQueryFilter> SourceQueryFilter)
+	: FPathFindingQuery(InOwner, InNavData, Start, End, SourceQueryFilter)
 	, QueryID(GetUniqueID())
 	, OnDoneDelegate(Delegate)
 {
@@ -2877,4 +2879,38 @@ bool UNavigationSystem::IsNavigationDirty()
 	}
 
 	return false;
+}
+
+bool UNavigationSystem::DoesPathIntersectBox(const FNavigationPath* Path, const FBox& Box)
+{
+	if (Path == NULL)
+	{
+		return false;
+	}
+
+	 // iterate over all segments and check if any intersects with given box
+	const TArray<FNavPathPoint>& PathPoints = Path->GetPathPoints();
+	bool bIntersects = false;
+	if (PathPoints.Num() > 1)
+	{
+		FVector Start = PathPoints[0].Location;
+		for (int32 Index = 1; Index < PathPoints.Num(); ++Index)
+		{
+			const FVector End = PathPoints[Index].Location;
+			if (FVector::DistSquared(Start, End) > SMALL_NUMBER)
+			{
+				const FVector Direction = (End - Start);
+
+				if (FMath::LineBoxIntersection(Box, Start, End, Direction, Direction.Reciprocal()))
+				{
+					bIntersects = true;
+					break;
+				}
+			}
+
+			Start = End;
+		}
+	}
+
+	return bIntersects;
 }

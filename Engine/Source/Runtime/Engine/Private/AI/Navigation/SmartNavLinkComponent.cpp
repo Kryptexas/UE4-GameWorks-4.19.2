@@ -166,9 +166,14 @@ void USmartNavLinkComponent::OnApplyModifiers(FCompositeNavModifier& Modifiers)
 	}
 }
 
+bool USmartNavLinkComponent::IsPathfindingAllowed(const UObject* Querier) const
+{
+	return true;
+}
+
 void USmartNavLinkComponent::NotifyLinkReached(class UPathFollowingComponent* PathComp, const FVector& DestPoint)
 {
-	TWeakObjectPtr<UPathFollowingComponent> WeakPathComp;
+	TWeakObjectPtr<UPathFollowingComponent> WeakPathComp = PathComp;
 	MovingAgents.Add(WeakPathComp);
 
 	if (OnMoveReachedLink.IsBound())

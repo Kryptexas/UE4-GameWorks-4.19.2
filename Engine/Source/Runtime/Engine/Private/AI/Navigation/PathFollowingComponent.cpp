@@ -94,7 +94,7 @@ void LogBlockHelper(AActor* LogOwner, class UNavMovementComponent* MoveComp, flo
 #if ENABLE_VISUAL_LOG
 	if (MoveComp && LogOwner)
 	{
-		const FVector AgentLocation = MoveComp->GetActorLocation();
+		const FVector AgentLocation = MoveComp->GetActorFeetLocation();
 		const FVector ToTarget = (SegmentEnd - AgentLocation);
 		const float SegmentDot = FVector::DotProduct(ToTarget.SafeNormal(), (SegmentEnd - SegmentStart).SafeNormal());
 		UE_VLOG(LogOwner, LogPathFollowing, Verbose, TEXT("[agent to segment end] dot [segment dir]: %f"), SegmentDot);
@@ -185,7 +185,7 @@ uint32 UPathFollowingComponent::RequestMove(FNavPathSharedPtr InPath, FRequestCo
 		SetDestinationActor(InDestinationActor);
 
 	#if ENABLE_VISUAL_LOG
-		const FVector CurrentLocation = MovementComp ? MovementComp->GetActorLocation() : FVector::ZeroVector;
+		const FVector CurrentLocation = MovementComp ? MovementComp->GetActorFeetLocation() : FVector::ZeroVector;
 		const FVector DestLocation = InPath->GetDestinationLocation();
 		const FVector ToDest = DestLocation - CurrentLocation;
 		UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("RequestMove: accepted, ID(%u) dist2D(%.0f) distZ(%.0f)"),
@@ -302,7 +302,7 @@ void UPathFollowingComponent::PauseMove(uint32 RequestID, bool bResetVelocity)
 			MovementComp->StopMovementImmediately();
 		}
 
-		LocationWhenPaused = MovementComp ? MovementComp->GetActorLocation() : FVector::ZeroVector;
+		LocationWhenPaused = MovementComp ? MovementComp->GetActorFeetLocation() : FVector::ZeroVector;
 		Status = EPathFollowingStatus::Paused;
 
 		UpdateMoveFocus();
@@ -332,6 +332,12 @@ void UPathFollowingComponent::ResumeMove(uint32 RequestID)
 
 			Status = EPathFollowingStatus::Moving;
 		}
+		else if (Path.IsValid() && Path->IsValid() && Path->GetOwner() == NULL)
+		{
+			// this means it's a scripted path, just resume
+			UpdateMoveFocus();
+			Status = EPathFollowingStatus::Moving;
+		}
 		else
 		{
 			OnPathFinished(EPathFollowingResult::OffPath);
@@ -347,7 +353,7 @@ bool UPathFollowingComponent::ShouldCheckPathOnResume() const
 		float AgentRadius = 0.0f, AgentHalfHeight = 0.0f;
 		MovementComp->GetOwner()->GetSimpleCollisionCylinder(AgentRadius, AgentHalfHeight);
 
-		const FVector CurrentLocation = MovementComp->GetActorLocation();
+		const FVector CurrentLocation = MovementComp->GetActorFeetLocation();
 		const float DeltaMove2DSq = (CurrentLocation - LocationWhenPaused).SizeSquared2D();
 		const float DeltaZ = FMath::Abs(CurrentLocation.Z - LocationWhenPaused.Z);
 		if (DeltaMove2DSq < FMath::Square(AgentRadius) && DeltaZ < (AgentHalfHeight * 0.5f))
@@ -518,7 +524,7 @@ int32 UPathFollowingComponent::DetermineStartingPathPoint(const FNavigationPath*
 		if (MovementComp && PickedPathPoint < 0)
 		{
 			// check if is closer to first or second path point (don't assume AI's standing)
-			const FVector CurrentLocation = MovementComp->GetActorLocation();
+			const FVector CurrentLocation = MovementComp->GetActorFeetLocation();
 			const float SqDistToFirstPoint = FVector::DistSquared(CurrentLocation, ConsideredPath->PathPoints[0].Location);
 			const float SqDistToSecondPoint = FVector::DistSquared(CurrentLocation, ConsideredPath->PathPoints[1].Location);
 			PickedPathPoint = (SqDistToFirstPoint < SqDistToSecondPoint) ? 0 : 1;
@@ -600,6 +606,11 @@ uint32 UPathFollowingComponent::PrepareBestNextMoveSegment(uint32 NextSegmentSta
 {
 	const AAIController* MyAI = Cast<AAIController>(GetOwner());
 	const ANavigationData* NavData = MyAI && MyAI->NavComponent ? MyAI->NavComponent->GetNavData() : NULL;
+	if (Path.IsValid())
+	{
+		Path->ShortcutNodeRefs.Reset();
+	}
+
 	if (NavData == NULL)
 	{
 		return NextSegmentStartIndex + 1;
@@ -611,11 +622,13 @@ uint32 UPathFollowingComponent::PrepareBestNextMoveSegment(uint32 NextSegmentSta
 
 #if USE_PHYSIC_FOR_VISIBILITY_TESTS
 	static const FName NAME_NavAreaTrace = TEXT("NavmeshVisibilityTrace");
-	const FCollisionShape CollisionShape = FCollisionShape::MakeCapsule(MyAI->GetPawn()->GetSimpleCollisionRadius(), 24.f);
+	float Radius, HalfHeight;
+	MyPawn->GetSimpleCollisionCylinder(Radius, HalfHeight);
+	const FCollisionShape CollisionShape = FCollisionShape::MakeCapsule(Radius, HalfHeight);
 	FCollisionQueryParams CapsuleParams(NAME_NavAreaTrace, false, MyAI->GetCharacter());
 	if (MyPawn->GetRootPrimitiveComponent())
 	{
-		CapsuleParams.AddIgnoredActors( MyPawn->GetRootPrimitiveComponent()->MoveIgnoreActors );
+		CapsuleParams.AddIgnoredActors(MyPawn->GetRootPrimitiveComponent()->MoveIgnoreActors);
 	}
 
 #endif
@@ -630,6 +643,7 @@ uint32 UPathFollowingComponent::PrepareBestNextMoveSegment(uint32 NextSegmentSta
 
 	const int32 MaxPoints = Path->PathPoints.Num();
 	int32 Index = NextSegmentStartIndex + 2;
+
 	for (; Index <= MaxPoints; ++Index)
 	{
 		if (!Path->PathPoints.IsValidIndex(Index))
@@ -641,7 +655,19 @@ uint32 UPathFollowingComponent::PrepareBestNextMoveSegment(uint32 NextSegmentSta
 		const FVector AdjustedDestination = PathPt1.Location + FVector(0.0f, 0.0f, PawnHalfHeight);
 
 		FVector HitLocation;
-		if ( NavData->Raycast(PawnLocation, AdjustedDestination, HitLocation, QueryFilter) )
+#if WITH_RECAST
+		ARecastNavMesh::FRaycastResult RaycastResult;
+		const bool RaycastHitResult = ARecastNavMesh::NavMeshRaycast(NavData, PawnLocation, AdjustedDestination, HitLocation, QueryFilter, MyAI, RaycastResult);
+		if (Path.IsValid())
+		{
+			Path->ShortcutNodeRefs.Reserve(RaycastResult.CorridorPolysCount);
+			Path->ShortcutNodeRefs.SetNumUninitialized(RaycastResult.CorridorPolysCount);
+		}
+		FPlatformMemory::Memcmp(Path->ShortcutNodeRefs.GetTypedData(), RaycastResult.CorridorPolys, RaycastResult.CorridorPolysCount * sizeof(NavNodeRef));
+#else
+		const bool RaycastHitResult = NavData->Raycast(PawnLocation, AdjustedDestination, HitLocation, QueryFilter);
+#endif
+		if (RaycastHitResult)
 		{
 			break;
 		}
@@ -682,7 +708,7 @@ void UPathFollowingComponent::UpdatePathSegment()
 	const bool bCanReachTarget = MovementComp->CanStopPathFollowing();
 	if (bCanReachTarget && Status == EPathFollowingStatus::Moving)
 	{
-		const FVector CurrentLocation = MovementComp->GetActorLocation();
+		const FVector CurrentLocation = MovementComp->GetActorFeetLocation();
 		const uint32 LastSegmentEndIndex = Path->PathPoints.Num() - 1;
 		const bool bFollowingLastSegment = (MoveSegmentEndIndex >= LastSegmentEndIndex);
 
@@ -755,21 +781,31 @@ void UPathFollowingComponent::FollowPathSegment(float DeltaTime)
 		return;
 	}
 
-	const FVector CurrentLocation = MovementComp->GetActorLocation();
-	const FVector CurrentTarget = GetCurrentTargetLocation();
-	FVector MoveVelocity = (CurrentTarget - CurrentLocation) / DeltaTime;
+	const FVector CurrentLocation = MovementComp->GetActorFeetLocation();
 
-	const uint32 LastSegmentStartIndex = Path->PathPoints.Num() - 2;
-	const bool bNotFollowingLastSegment = (MoveSegmentStartIndex < LastSegmentStartIndex);
+	// check if already at acceptance radius
+	if (HasReachedDestination(CurrentLocation))
+	{
+		OnSegmentFinished();
+		OnPathFinished(EPathFollowingResult::Success);
+	}
+	else
+	{
+		const FVector CurrentTarget = GetCurrentTargetLocation();
+		FVector MoveVelocity = (CurrentTarget - CurrentLocation) / DeltaTime;
 
-	PostProcessMove.ExecuteIfBound(this, MoveVelocity);
-	MovementComp->RequestDirectMove(MoveVelocity, bNotFollowingLastSegment);	
+		const uint32 LastSegmentStartIndex = Path->PathPoints.Num() - 2;
+		const bool bNotFollowingLastSegment = (MoveSegmentStartIndex < LastSegmentStartIndex);
+
+		PostProcessMove.ExecuteIfBound(this, MoveVelocity);
+		MovementComp->RequestDirectMove(MoveVelocity, bNotFollowingLastSegment);
+	}
 }
 
 bool UPathFollowingComponent::HasReached(const FVector& TestPoint, float InAcceptanceRadius, bool bExactSpot) const
 {
 	// simple test for stationary agent, used as early finish condition
-	const FVector CurrentLocation = MovementComp ? MovementComp->GetActorLocation() : FVector::ZeroVector;
+	const FVector CurrentLocation = MovementComp ? MovementComp->GetActorFeetLocation() : FVector::ZeroVector;
 	const float GoalRadius = 0.0f;
 	const float GoalHalfHeight = 0.0f;
 	if (InAcceptanceRadius == UPathFollowingComponent::DefaultAcceptanceRadius)
@@ -805,7 +841,7 @@ bool UPathFollowingComponent::HasReached(const AActor* TestGoal, float InAccepta
 		TestPoint = FRotationTranslationMatrix(TestGoal->GetActorRotation(), NavAgent->GetNavAgentLocation()).TransformPosition(GoalOffset);
 	}
 
-	const FVector CurrentLocation = MovementComp ? MovementComp->GetActorLocation() : FVector::ZeroVector;
+	const FVector CurrentLocation = MovementComp ? MovementComp->GetActorFeetLocation() : FVector::ZeroVector;
 	return HasReachedInternal(TestPoint, GoalRadius, GoalHalfHeight, CurrentLocation, InAcceptanceRadius, !bExactSpot);
 }
 
@@ -845,7 +881,7 @@ bool UPathFollowingComponent::HasReachedCurrentTarget(const FVector& CurrentLoca
 	const FVector CurrentTarget = GetCurrentTargetLocation();
 
 	// check if moved too far
-	const FVector ToTarget = (CurrentTarget - MovementComp->GetActorLocation());
+	const FVector ToTarget = (CurrentTarget - MovementComp->GetActorFeetLocation());
 	const float SegmentDot = FVector::DotProduct(ToTarget, MoveSegmentDirection);
 	if (SegmentDot < 0.0)
 	{
@@ -907,7 +943,7 @@ void UPathFollowingComponent::DebugReachTest(float& CurrentDot, float& CurrentDi
 	bool bUseAgentRadius = false;
 	float RadiusThreshold = 0.0f;
 
-	FVector AgentLocation = MovementComp->GetActorLocation();
+	FVector AgentLocation = MovementComp->GetActorFeetLocation();
 	FVector GoalLocation = GetCurrentTargetLocation();
 	
 	if (bFollowingLastSegment)
@@ -1053,7 +1089,7 @@ bool UPathFollowingComponent::UpdateBlockDetection()
 			LocationSamples.AddZeroed(1);
 		}
 
-		LocationSamples[NextSampleIdx] = MovementComp->GetActorLocationBased();
+		LocationSamples[NextSampleIdx] = MovementComp->GetActorFeetLocationBased();
 		NextSampleIdx = (NextSampleIdx + 1) % BlockDetectionSampleCount;
 		return true;
 	}

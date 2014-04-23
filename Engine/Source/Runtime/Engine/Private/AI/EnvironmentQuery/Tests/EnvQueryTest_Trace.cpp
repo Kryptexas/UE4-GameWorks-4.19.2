@@ -81,7 +81,7 @@ void UEnvQueryTest_Trace::RunTest(struct FEnvQueryInstance& QueryInstance)
 		ContextLocations[iContext].Z += ContextZ;
 	}
 
-	for (FEnvQueryInstance::ItemIterator It(QueryInstance); It; ++It)
+	for (FEnvQueryInstance::ItemIterator It(this, QueryInstance); It; ++It)
 	{
 		const FVector ItemLocation = GetItemLocation(QueryInstance, *It) + FVector(0,0,ItemZ);
 		AActor* ItemActor = GetItemActor(QueryInstance, *It);

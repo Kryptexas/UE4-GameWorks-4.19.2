@@ -145,11 +145,14 @@ void UEnvQueryGenerator_OnCircle::GenerateItems(FEnvQueryInstance& QueryInstance
 	if (TraceData.TraceMode == EEnvQueryTrace::Navigation)
 	{
 #if WITH_RECAST
-		TSharedPtr<const FNavigationQueryFilter> NavigationFilter = UNavigationQueryFilter::GetQueryFilter(NavMesh, TraceData.NavigationFilter);
-
-		for (int32 Step = 0; Step < StepsCount; ++Step)
+		if (NavMesh != NULL)
 		{
-			NavMesh->Raycast(CenterLocation, ItemCandidates[Step], ItemCandidates[Step], NavigationFilter);
+			TSharedPtr<const FNavigationQueryFilter> NavigationFilter = UNavigationQueryFilter::GetQueryFilter(NavMesh, TraceData.NavigationFilter);
+
+			for (int32 Step = 0; Step < StepsCount; ++Step)
+			{
+				NavMesh->Raycast(CenterLocation, ItemCandidates[Step], ItemCandidates[Step], NavigationFilter);
+			}
 		}
 #endif
 	}

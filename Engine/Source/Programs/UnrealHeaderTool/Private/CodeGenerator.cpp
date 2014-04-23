@@ -2786,6 +2786,7 @@ void ExportMCPDeclaration(FOutputDevice& Out, const FString& MessageName, TField
 		ToMCPTypeMappings.Add(TEXT("bool"), TEXT("boolean"));
 		ToMCPTypeMappings.Add(TEXT("double"), TEXT("double"));
 		ToMCPTypeMappings.Add(TEXT("float"), TEXT("float"));
+		ToMCPTypeMappings.Add(TEXT("byte"), TEXT("byte"));
 
 		ToAnnotationMappings.Add(TEXT("FString"), TEXT("@NotBlankOrNull"));
 
@@ -2859,8 +2860,18 @@ void ExportMCPDeclaration(FOutputDevice& Out, const FString& MessageName, TField
 			}
 			else
 			{
-				MCPTypeName = ToMCPTypeMappings.Find(VariableTypeName);
-				AnnotationName = ToAnnotationMappings.Find(VariableTypeName);
+				UByteProperty* ByteProperty = Cast<UByteProperty>(Property);
+				if (ByteProperty != NULL && ByteProperty->Enum != NULL)
+				{
+					// treat enums like strings because that's how they'll be exported in JSON
+					MCPTypeName = ToMCPTypeMappings.Find(TEXT("FString"));
+					AnnotationName = ToAnnotationMappings.Find(TEXT("FString"));
+				}
+				else
+				{
+					MCPTypeName = ToMCPTypeMappings.Find(VariableTypeName);
+					AnnotationName = ToAnnotationMappings.Find(VariableTypeName);
+				}
 			}
 
 			if (AnnotationName != NULL && !AnnotationName->IsEmpty())
@@ -2879,7 +2890,7 @@ void ExportMCPDeclaration(FOutputDevice& Out, const FString& MessageName, TField
 			}
 			else
 			{
-				FError::Throwf(TEXT("ExportMCPDeclaration - Unhandled property mapping '%s': %s"), *PropClass->GetName(), *Property->GetPathName());
+				FError::Throwf(TEXT("ExportMCPDeclaration - Unhandled property mapping '%s' (%s): %s"), *PropClass->GetName(), *VariableTypeName, *Property->GetPathName());
 			}
 		}
 		else

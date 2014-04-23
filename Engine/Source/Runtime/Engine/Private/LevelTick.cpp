@@ -1064,10 +1064,10 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 		TickType = LEVELTICK_ViewportsOnly;
 	}
 
-	// give the async loading code more time if we're performing a high priority load
-	if (Info->bHighPriorityLoading || Info->bHighPriorityLoadingLocal)
+	// give the async loading code more time if we're performing a high priority load or are in seamless travel
+	if (Info->bHighPriorityLoading || Info->bHighPriorityLoadingLocal || IsInSeamlessTravel())
 	{
-		ProcessAsyncLoading(true, 0.02f);
+		ProcessAsyncLoading(true, GEngine->PriorityAsyncLoadingExtraTime);
 	}
 
 	// Translate world origin if requested

@@ -13,10 +13,7 @@ class FDebugRenderSceneProxy : public FPrimitiveSceneProxy
 {
 public:
 
-	FDebugRenderSceneProxy(const UPrimitiveComponent* InComponent):
-	  FPrimitiveSceneProxy(InComponent)
-	{}
-
+	ENGINE_API FDebugRenderSceneProxy(const UPrimitiveComponent* InComponent);
 	// FPrimitiveSceneProxy interface.
 	  
 	/** 
@@ -37,15 +34,34 @@ public:
 	 */
 	void DrawLineArrow(FPrimitiveDrawInterface* PDI,const FVector &Start,const FVector &End,const FColor &Color,float Mag);
 
+	ENGINE_API virtual void DrawDebugLabels(UCanvas* Canvas, APlayerController*);
+
 	virtual uint32 GetMemoryFootprint( void ) const { return( sizeof( *this ) + GetAllocatedSize() ); }
-	uint32 GetAllocatedSize( void ) const { return( FPrimitiveSceneProxy::GetAllocatedSize() + Cylinders.GetAllocatedSize() + ArrowLines.GetAllocatedSize() + Stars.GetAllocatedSize() + DashedLines.GetAllocatedSize() + Lines.GetAllocatedSize() + WireBoxes.GetAllocatedSize() ); }
+	uint32 GetAllocatedSize(void) const;
 
 	/** called to set up debug drawing delegate in UDebugDrawService if you want to draw labels */
-	virtual void RegisterDebugDrawDelgate() {}
+	ENGINE_API virtual void RegisterDebugDrawDelgate();
 	/** called to clean up debug drawing delegate in UDebugDrawService */
-	virtual void UnregisterDebugDrawDelgate() {}
+	ENGINE_API virtual void UnregisterDebugDrawDelgate();
 
-	  /** Struct to hold info about lines to render. */
+	FORCEINLINE bool PointInView(const FVector& Location, const FSceneView* View)
+	{
+		return View ? View->ViewFrustum.IntersectBox(Location, FVector::ZeroVector) : false;
+	}
+
+	FORCEINLINE bool PointWithinCorrectDistance(const FVector& Start, const FSceneView* View, float CorrectDistance = -1)
+	{
+		const float MaxDistance = CorrectDistance > 0 ? (CorrectDistance*CorrectDistance) : ARecastNavMesh::GetDrawDistanceSq();
+
+		if (FVector::DistSquared(Start, View->ViewMatrices.ViewOrigin) > MaxDistance)
+		{
+			return false;
+		}
+
+		return true;
+	}
+
+	/** Struct to hold info about lines to render. */
 	struct FDebugLine
 	{
 		FDebugLine(const FVector &InStart, const FVector &InEnd, const FColor &InColor) : 
@@ -126,12 +142,47 @@ public:
 		float DashSize;
 	};
 
+	/** Struct to hold info about spheres to render */
+	struct FSphere
+	{
+		FSphere() {}
+		FSphere(const float& InRadius, const FVector& InLocation, const FLinearColor& InColor) :
+		Radius(InRadius),
+		Location(InLocation),
+		Color(InColor) {}
+
+		float Radius;
+		FVector Location;
+		FLinearColor Color;
+	};
+
+	/** Struct to hold info about texts to render using 3d coordinates */
+	struct FText3d
+	{
+		FText3d() {}
+		FText3d(const FString& InString, const FVector& InLocation, const FLinearColor& InColor) :
+		Text(InString),
+		Location(InLocation),
+		Color(InColor) {}
+
+		FString Text;
+		FVector Location;
+		FLinearColor Color;
+	};
+
 	TArray<FWireCylinder>	Cylinders;
 	TArray<FArrowLine>		ArrowLines;
 	TArray<FWireStar>		Stars;
 	TArray<FDashedLine>		DashedLines;
 	TArray<FDebugLine>		Lines;
 	TArray<FDebugBox>		WireBoxes;
+	TArray<FSphere> SolidSpheres;
+	TArray<FText3d> Texts;
+
+	uint32 ViewFlagIndex;
+	FString ViewFlagName;
+	float TextWithoutShadowDistance;
+	FDebugDrawDelegate DebugTextDrawingDelegate;
 };
 
 #endif

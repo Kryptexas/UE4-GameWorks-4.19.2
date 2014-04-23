@@ -27,10 +27,8 @@ class AFunctionalTest : public AActor
 
 	static const uint32 DefaultTimeLimit = 60;	// seconds
 
-#if WITH_EDITORONLY_DATA
 	UPROPERTY()
-	class UBillboardComponent* SpriteComponent;
-#endif // WITH_EDITORONLY_DATA
+	TSubobjectPtr<UBillboardComponent> SpriteComponent;
 
 	UPROPERTY(BlueprintReadWrite, Category=FunctionalTesting)
 	TEnumAsByte<EFunctionalTestResult::Type> Result;
@@ -56,6 +54,8 @@ class AFunctionalTest : public AActor
 
 	UPROPERTY(Transient)
 	TArray<AActor*> AutoDestroyActors;
+
+	FString FailureMessage;
 	
 #if WITH_EDITORONLY_DATA
 	UPROPERTY()
@@ -63,10 +63,12 @@ class AFunctionalTest : public AActor
 #endif // WITH_EDITORONLY_DATA
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=FunctionalTesting)
-	uint32 bIsTestDisabled : 1;
+	uint32 bIsEnabled:1;
+
+public:
 
 	UFUNCTION(BlueprintCallable, Category="Development")
-	virtual void StartTest();
+	virtual bool StartTest();
 
 	UFUNCTION(BlueprintCallable, Category="Development")
 	virtual void FinishTest(TEnumAsByte<EFunctionalTestResult::Type> TestResult, const FString& Message);
@@ -77,10 +79,22 @@ class AFunctionalTest : public AActor
 	UFUNCTION(BlueprintCallable, Category="Development")
 	virtual void SetTimeLimit(float NewTimeLimit, TEnumAsByte<EFunctionalTestResult::Type> ResultWhenTimeRunsOut);
 
+	/** retrieves information whether test wants to have another run just after finishing */
+	UFUNCTION(BlueprintImplementableEvent, Category="FunctionalTesting")
+	virtual bool WantsToRunAgain() const;
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "FunctionalTesting")
+	virtual FString GetAdditionalTestFinishedMessage(EFunctionalTestResult::Type TestResult) const;
+	
 	/** ACtors registered this way will be automatically destroyed (by limiting their lifespan)
 	 *	on test finish */
 	UFUNCTION(BlueprintCallable, Category="Development", meta=(Keywords = "Delete"))
 	virtual void RegisterAutoDestroyActor(AActor* ActorToAutoDestroy);
+
+	/** Called to clean up when tests is removed from the list of active tests after finishing execution. 
+	 *	Note that FinishTest gets called after every "cycle" of a test (where further cycles are enabled by  
+	 *	WantsToRunAgain calls). CleanUp gets called when all cycles are done. */
+	virtual void CleanUp();
 
 #if WITH_EDITOR
 	void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;

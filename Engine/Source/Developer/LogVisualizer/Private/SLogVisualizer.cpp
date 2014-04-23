@@ -1268,6 +1268,8 @@ FReply SLogVisualizer::OnLoad()
 		}
 	}
 
+	DoFullUpdate();
+
 	return FReply::Handled();
 }
 

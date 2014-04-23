@@ -16,6 +16,7 @@ UBTNode::UBTNode(const class FPostConstructInitializeProperties& PCIP) : Super(P
 	TreeDepth = 0;
 	bCreateNodeInstance = false;
 	bIsInstanced = false;
+	bIsInjected = false;
 
 #if USE_BEHAVIORTREE_DEBUGGER
 	NextExecutionNode = NULL;

@@ -14,6 +14,7 @@
 #include "OnlineTitleFileInterface.h"
 #include "OnlineAchievementsInterface.h"
 #include "OnlinePresenceInterface.h"
+#include "OnlineUserCloudInterface.h"
 
 /** Macro to handle the boilerplate of accessing the proper online subsystem and getting the requested interface */
 #define IMPLEMENT_GET_INTERFACE(InterfaceType) \

@@ -21,11 +21,14 @@ struct FARFilter
 	bool bRecursivePaths;
 	/** If true, Classes will include subclasses */
 	bool bRecursiveClasses;
+	/** If true, only on-disk assets will be returned. Be warned that this is rarely what you want and should only be used for performance reasons */
+	bool bIncludeOnlyOnDiskAssets;
 
 	FARFilter()
 	{
 		bRecursivePaths = false;
 		bRecursiveClasses = false;
+		bIncludeOnlyOnDiskAssets = false;
 	}
 
 	/** Appends the other filter to this one */
@@ -45,6 +48,7 @@ struct FARFilter
 
 		bRecursivePaths |= Other.bRecursivePaths;
 		bRecursiveClasses |= Other.bRecursiveClasses;
+		bIncludeOnlyOnDiskAssets |= Other.bIncludeOnlyOnDiskAssets;
 	}
 
 	/** Returns true if this filter has no entries */
@@ -65,6 +69,7 @@ struct FARFilter
 
 		bRecursivePaths = false;
 		bRecursiveClasses = false;
+		bIncludeOnlyOnDiskAssets = false;
 
 		ensure(IsEmpty());
 	}

@@ -32,7 +32,7 @@ class ENGINE_API USmartNavLinkComponent : public UNavRelevantComponent
 
 	/** set basic link data: end points and direction */
 	void SetLinkData(const FVector& RelativeStart, const FVector& RelativeEnd, ESmartNavLinkDir::Type Direction);
-	FNavigationLink GetLink() const;
+	virtual FNavigationLink GetLink() const;
 
 	/** set area class to use when link is enabled */
 	void SetEnabledArea(TSubclassOf<class UNavArea> AreaClass);
@@ -87,6 +87,11 @@ class ENGINE_API USmartNavLinkComponent : public UNavRelevantComponent
 	virtual void OnOwnerUnregistered() OVERRIDE;
 	virtual void OnApplyModifiers(struct FCompositeNavModifier& Modifiers) OVERRIDE;
 
+	/** called during path finding to verify if link can be traversed
+	 *  @param	Querier		owner of path finding request, usually AIController
+	 */
+	virtual bool IsPathfindingAllowed(const UObject* Querier) const;
+
 	/** called by path following when agent needs to go through this link
 	  * will trigger OnMoveReachedLink delegate, or call ResumePathFollowing() when it's not bound */
 	void NotifyLinkReached(class UPathFollowingComponent* PathComp, const FVector& DestPoint);
@@ -125,7 +130,7 @@ class ENGINE_API USmartNavLinkComponent : public UNavRelevantComponent
 protected:
 
 	/** link Id assigned by navigation system */
-	UPROPERTY()
+	UPROPERTY(DuplicateTransient)
 	uint32 NavLinkUserId;
 
 	/** area class to use when link is enabled */

@@ -156,6 +156,17 @@ TSharedPtr<FAssetThumbnailPool> FDetailPropertyRow::GetThumbnailPool() const
 	return ParentCategoryPinned.IsValid() ? ParentCategoryPinned->GetParentLayout().GetThumbnailPool() : NULL;
 }
 
+TSharedPtr<IPropertyUtilities> FDetailPropertyRow::GetPropertyUtilities() const
+{
+	TSharedPtr<FDetailCategoryImpl> ParentCategoryPinned = ParentCategory.Pin();
+	if (ParentCategoryPinned.IsValid())
+	{
+		return ParentCategoryPinned->GetParentLayout().GetPropertyUtilities();
+	}
+	
+	return NULL;
+}
+
 FDetailWidgetRow FDetailPropertyRow::GetWidgetRow()
 {
 	if( HasColumns() )
@@ -183,6 +194,12 @@ void FDetailPropertyRow::OnItemNodeInitialized( TSharedRef<FDetailCategoryImpl> 
 		CustomPropertyWidget = MakeShareable(new FDetailWidgetRow);
 
 		CustomStructInterface->CustomizeStructHeader(PropertyHandle.ToSharedRef(), *CustomPropertyWidget, *this);
+
+		// set initial value of enabled attribute to settings from struct customization
+		if (CustomPropertyWidget->IsEnabledAttr.IsBound())
+		{
+			CustomIsEnabledAttrib = CustomPropertyWidget->IsEnabledAttr;
+		}
 	}
 
 	if( bShowCustomPropertyChildren && CustomStructInterface.IsValid() )

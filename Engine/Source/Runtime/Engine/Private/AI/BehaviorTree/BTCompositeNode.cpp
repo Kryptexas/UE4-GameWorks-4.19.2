@@ -194,9 +194,16 @@ void UBTCompositeNode::NotifyDecoratorsOnDeactivation(struct FBehaviorTreeSearch
 		DecoratorOb->WrappedOnNodeProcessed(SearchData, NodeResult);
 		DecoratorOb->WrappedOnNodeDeactivation(SearchData, NodeResult);
 
+		// leaving child branch: 
 		if (DecoratorOb->GetFlowAbortMode() == EBTFlowAbortMode::Self)
 		{
+			// - observers with mode "Self" are now out of scope, remove them
 			SearchData.AddUniqueUpdate(FBehaviorTreeSearchUpdate(DecoratorOb, SearchData.OwnerComp->GetActiveInstanceIdx(), EBTNodeUpdateMode::Remove));
+		}
+		else if (DecoratorOb->GetFlowAbortMode() == EBTFlowAbortMode::LowerPriority)
+		{
+			// - observers with mode "Lower Priority" will try to reactivate themselves ("Both" is not removed on node activation)
+			SearchData.AddUniqueUpdate(FBehaviorTreeSearchUpdate(DecoratorOb, SearchData.OwnerComp->GetActiveInstanceIdx(), EBTNodeUpdateMode::AddForLowerPri));
 		}
 	}
 }
@@ -501,10 +508,21 @@ void UBTCompositeNode::RequestDelayedExecution(class UBehaviorTreeComponent* Own
 	OwnerComp->RequestExecution(LastResult);
 }
 
-uint16 UBTCompositeNode::GetChildExecutionIndex(int32 Index) const
+uint16 UBTCompositeNode::GetChildExecutionIndex(int32 Index, EBTChildIndex::Type ChildMode) const
 {
 	const UBTNode* ChildNode = GetChildNode(Index);
-	return ChildNode ? ChildNode->GetExecutionIndex() : (LastExecutionIndex + 1);
+	if (ChildNode)
+	{
+		const int32 Offset = (ChildMode == EBTChildIndex::FirstNode) ? Children[Index].Decorators.Num() : 0;
+		return ChildNode->GetExecutionIndex() - Offset;
+	}
+	
+	return (LastExecutionIndex + 1);
+}
+
+bool UBTCompositeNode::CanPushSubtree(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, int32 ChildIdx) const
+{
+	return true;
 }
 
 void UBTCompositeNode::DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const

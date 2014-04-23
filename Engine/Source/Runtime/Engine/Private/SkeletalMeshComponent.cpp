@@ -826,6 +826,7 @@ void USkeletalMeshComponent::RefreshBoneTransforms()
 	
 	AActor * Owner = GetOwner();
 	const FAnimUpdateRateParameters  & UpdateRateParams = Owner ? Owner->AnimUpdateRateParams : FAnimUpdateRateParameters();
+	UE_LOG(LogAnimation, Verbose, TEXT("RefreshBoneTransforms(%s)"), *GetNameSafe(Owner));
 
 	{
 		FScopeLockPhysXWriter LockPhysXForWriting;

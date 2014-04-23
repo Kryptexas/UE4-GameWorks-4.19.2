@@ -27,6 +27,7 @@ namespace FAISystem
 	}
 }
 
+UENUM()
 namespace EAIRequestPriority
 {
 	enum Type
@@ -36,11 +37,15 @@ namespace EAIRequestPriority
 		HardScript, // actions LDs really want AI to perform
 		Reaction,	// actions being result of game-world mechanics, like hit reactions, death, falling, etc. In general things not depending on what AI's thinking
 		Ultimate,	// ultimate priority, to be used with caution, makes AI perform given action regardless of anything else (for example disabled reactions)
-	};
 
-	static const int32 Lowest = Logic;
-	static const int32 MAX = Ultimate + 1;
+		MAX UMETA(Hidden)
+	};
 }
+
+namespace EAIRequestPriority
+{
+	static const int32 Lowest = Logic;
+};
 
 namespace EAIFocusPriority
 {
@@ -104,6 +109,9 @@ public:
 	/** Component responsible for behaviors. */
 	UPROPERTY()
 	class UBrainComponent* BrainComponent;
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "AI")
+	void OnPossess(class APawn* PossessedPawn);
 
 	/** Makes AI go toward specified Goal actor (destination will be continuously updated)
 	 *  @param AcceptanceRadius - finish move if pawn gets close enough
@@ -183,6 +191,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="AI")
 	virtual bool RunBehaviorTree(class UBehaviorTree* BTAsset);
 
+	/** makes AI use specified BB asset */
+	UFUNCTION(BlueprintCallable, Category = "AI")
+	virtual bool UseBlackboard(class UBlackboardData* BlackboardAsset);
+
 	/** Retrieve the final position that controller should be looking at. */
 	UFUNCTION(BlueprintCallable, Category="AI")
 	virtual FVector GetFocalPoint();
@@ -257,8 +269,9 @@ public:
 	/* Set Focus actor for given priority, will set FocalPoint as a result. */
 	virtual void SetFocus(AActor* NewFocus, uint8 InPriority=EAIFocusPriority::Gameplay);
 
-	/** Clears Focus for given priority, will also clear FocalPoint as a result */
-	virtual void ClearFocus(uint8 InPriority=EAIFocusPriority::Gameplay);
+	/** Clears Focus for given priority, will also clear FocalPoint as a result
+	 *	@param InPriority focus priority to clear. If you don't know what to use you probably mean EAIFocusPriority::Gameplay*/
+	virtual void ClearFocus(uint8 InPriority);
 
 	virtual FString GetDebugIcon() const {return FString();}
 

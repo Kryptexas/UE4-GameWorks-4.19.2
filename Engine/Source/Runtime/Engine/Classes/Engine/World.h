@@ -840,7 +840,7 @@ public:
 	/** @todo document */
 	FString NextURL;
 
-	/** @todo document */
+	/** Amount of time to wait before traveling to next map, gives clients time to receive final RPCs @see ServerTravelPause */
 	float NextSwitchCountdown;
 
 	/** array of levels that were loaded into this map via PrepareMapChange() / CommitMapChange() (to inform newly joining clients) */

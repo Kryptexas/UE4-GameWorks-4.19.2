@@ -12,5 +12,7 @@ public:
 	
 	virtual void SetScript(class UFunctionalTestingManager* NewScript) = 0;
 
+	virtual class UFunctionalTestingManager* GetCurrentScript() = 0;
+
 	virtual void SetLooping(const bool bLoop) = 0;
 };

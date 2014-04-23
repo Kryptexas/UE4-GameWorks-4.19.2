@@ -7,37 +7,21 @@
 class FEQSSceneProxy : public FDebugRenderSceneProxy
 {
 public:
-	struct FEQSItemDebugData
-	{
-		FString Label;
-		FVector Location;
-		float Score;
-	};
+	FEQSSceneProxy(const UPrimitiveComponent* InComponent, const FString& ViewFlagName = TEXT("DebugAI"), bool bDrawOnlyWhenSelected = true);
+	FEQSSceneProxy(const UPrimitiveComponent* InComponent, const FString& ViewFlagName, bool bDrawOnlyWhenSelected, const TArray<FSphere>& Spheres, const TArray<FText3d>& Texts);
 
-	FEQSSceneProxy(const UPrimitiveComponent* InComponent, const FString& ViewFlagName = TEXT("DebugAI"), bool bDrawOnlyWhenSelected=true);
-
-	virtual void RegisterDebugDrawDelgate() OVERRIDE;
-	virtual void UnregisterDebugDrawDelgate() OVERRIDE;
-	void DrawDebugLabels(UCanvas* Canvas, APlayerController*);
+	virtual void DrawDebugLabels(UCanvas* Canvas, APlayerController*) OVERRIDE;
 	
 	//virtual void DrawStaticElements(FStaticPrimitiveDrawInterface* PDI) OVERRIDE;
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View) OVERRIDE;
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) OVERRIDE;
-	virtual uint32 GetMemoryFootprint( void ) const;
-	uint32 GetAllocatedSize( void ) const;
 
+	static void CollectEQSData(const UPrimitiveComponent* InComponent, const class IEQSQueryResultSourceInterface* QueryDataSource, TArray<FSphere>& Spheres, TArray<FText3d>& Texts);
 private:
 	FEnvQueryResult QueryResult;	
-	FDebugDrawDelegate DebugTextDrawingDelegate;
-	TArray<FEQSItemDebugData> DebugItems;
-	TArray<FEQSItemDebugData> FailedDebugItems;
 	// can be 0
 	AActor* ActorOwner;
 	const class IEQSQueryResultSourceInterface* QueryDataSource;
-	bool bUntestedItems;
 	bool bDrawOnlyWhenSelected;
-	const uint32 ViewFlagIndex;
-	const FString ViewFlagName;
 
 	static const FVector ItemDrawRadius;
 

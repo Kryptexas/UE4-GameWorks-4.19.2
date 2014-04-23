@@ -15,6 +15,16 @@ struct FBTCompositeMemory
 };
 
 UENUM()
+namespace EBTChildIndex
+{
+	enum Type
+	{
+		FirstNode,
+		TaskNode,
+	};
+}
+
+UENUM()
 namespace EBTDecoratorLogic
 {
 	// keep in sync with DescribeLogicOp() in BTCompositeNode.cpp
@@ -121,7 +131,7 @@ class ENGINE_API UBTCompositeNode : public UBTNode
 	int32 GetChildrenNum() const;
 
 	/** @return execution index of child node */
-	uint16 GetChildExecutionIndex(int32 Index) const;
+	uint16 GetChildExecutionIndex(int32 Index, EBTChildIndex::Type ChildMode = EBTChildIndex::TaskNode) const;
 
 	/** @return execution index of last node in child branches */
 	uint16 GetLastExecutionIndex() const;
@@ -131,6 +141,9 @@ class ENGINE_API UBTCompositeNode : public UBTNode
 
 	/** gathers description of all runtime parameters */
 	virtual void DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const OVERRIDE;
+
+	/** check if child node can execute new subtree */
+	virtual bool CanPushSubtree(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, int32 ChildIdx) const;
 
 #if WITH_EDITOR
 	/** @return allowed flow abort modes for decorators */

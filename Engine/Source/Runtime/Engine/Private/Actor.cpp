@@ -1994,7 +1994,10 @@ void AActor::SetNavigationRelevancy(const bool bNewRelevancy)
 	{
 		// @TODO if this starts failing I'll remodel the way things get registered 
 		// with NavOctree.
-		ensure(IsInGameThread() && "Tell Mieszko this one failed!");
+		if(IsInGameThread() == false)
+		{
+			UE_LOG(LogNavigation, Fatal, TEXT("AActor::SetNavigationRelevancy called outside of GameThread for %s"), *GetFullName());
+		}
 		
 		bNavigationRelevant = bNewRelevancy;
 		UWorld* MyWorld = GetWorld();

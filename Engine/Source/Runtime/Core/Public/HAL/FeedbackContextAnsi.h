@@ -27,7 +27,7 @@ public:
 #if PLATFORM_APPLE 
 		printf("%s", TCHAR_TO_ANSI(Str));
 #else
-		wprintf(TEXT("%ls"), Str);
+		printf("%ls", Str);
 #endif
 	}
 

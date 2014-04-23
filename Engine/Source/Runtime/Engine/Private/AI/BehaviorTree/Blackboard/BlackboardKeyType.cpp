@@ -5,6 +5,7 @@
 UBlackboardKeyType::UBlackboardKeyType(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
 	ValueSize = 0;
+	SupportedOp = EBlackboardKeyOperation::Basic;
 }
 
 FString UBlackboardKeyType::DescribeValue(const uint8* RawData) const
@@ -43,7 +44,27 @@ bool UBlackboardKeyType::GetRotation(const uint8* MemoryBlock, FRotator& Rotatio
 	return false;
 }
 
-int32 UBlackboardKeyType::Compare(const uint8* MemoryBlockA, const uint8* MemoryBlockB) const
+EBlackboardCompare::Type UBlackboardKeyType::Compare(const uint8* MemoryBlockA, const uint8* MemoryBlockB) const
 { 
-	return MemoryBlockA == MemoryBlockB ? UBlackboardKeyType::Equal : UBlackboardKeyType::NotEqual;
+	return MemoryBlockA == MemoryBlockB ? EBlackboardCompare::Equal : EBlackboardCompare::NotEqual;
+}
+
+bool UBlackboardKeyType::TestBasicOperation(const uint8* MemoryBlock, EBasicKeyOperation::Type Op) const
+{
+	return false;
+}
+
+bool UBlackboardKeyType::TestArithmeticOperation(const uint8* MemoryBlock, EArithmeticKeyOperation::Type Op, int32 OtherIntValue, float OtherFloatValue) const
+{
+	return false;
+}
+
+bool UBlackboardKeyType::TestTextOperation(const uint8* MemoryBlock, ETextKeyOperation::Type Op, const FString& OtherString) const
+{
+	return false;
+}
+
+FString UBlackboardKeyType::DescribeArithmeticParam(int32 IntValue, float FloatValue) const
+{
+	return FString();
 }

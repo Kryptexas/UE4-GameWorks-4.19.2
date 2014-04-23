@@ -326,5 +326,15 @@ inline bool IsServer() { return IsServerForOnlineSubsystems(); }
  *
  * @return true if unique id found in session, false otherwise
  */
-ONLINESUBSYSTEM_API bool IsPlayerInSessionImpl(IOnlineSession* SessionInt, FName SessionName, const FUniqueNetId& UniqueId);
+ONLINESUBSYSTEM_API bool IsPlayerInSessionImpl(class IOnlineSession* SessionInt, FName SessionName, const FUniqueNetId& UniqueId);
+
+/**
+ * Common implementation for asking if a player is local by unique id
+ *
+ * @param IdentityInt Identity interface to use
+ * @param UniqueId UniqueId of the player
+ * 
+ * @return true if unique id is local to this machine, false otherwise
+ */
+ONLINESUBSYSTEM_API bool IsLocalPlayerImpl(IOnlineIdentityPtr IdentityInt, const FUniqueNetId& UniqueId);
 

@@ -47,7 +47,7 @@ void UEnvQueryTest_Distance::RunTest(struct FEnvQueryInstance& QueryInstance)
 	switch (TestMode)
 	{
 	case EEnvTestDistance::Distance3D:	
-		for (FEnvQueryInstance::ItemIterator It(QueryInstance); It; ++It)
+		for (FEnvQueryInstance::ItemIterator It(this, QueryInstance); It; ++It)
 		{
 			const FVector ItemLocation = GetItemLocation(QueryInstance, *It);
 			for (int32 iContext = 0; iContext < ContextLocations.Num(); iContext++)
@@ -58,7 +58,7 @@ void UEnvQueryTest_Distance::RunTest(struct FEnvQueryInstance& QueryInstance)
 		}
 		break;
 	case EEnvTestDistance::Distance2D:	
-		for (FEnvQueryInstance::ItemIterator It(QueryInstance); It; ++It)
+		for (FEnvQueryInstance::ItemIterator It(this, QueryInstance); It; ++It)
 		{
 			const FVector ItemLocation = GetItemLocation(QueryInstance, *It);
 			for (int32 iContext = 0; iContext < ContextLocations.Num(); iContext++)
@@ -69,7 +69,7 @@ void UEnvQueryTest_Distance::RunTest(struct FEnvQueryInstance& QueryInstance)
 		}
 		break;
 	case EEnvTestDistance::DistanceZ:	
-		for (FEnvQueryInstance::ItemIterator It(QueryInstance); It; ++It)
+		for (FEnvQueryInstance::ItemIterator It(this, QueryInstance); It; ++It)
 		{
 			const FVector ItemLocation = GetItemLocation(QueryInstance, *It);
 			for (int32 iContext = 0; iContext < ContextLocations.Num(); iContext++)

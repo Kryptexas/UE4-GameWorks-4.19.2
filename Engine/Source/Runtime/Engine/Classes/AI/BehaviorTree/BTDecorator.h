@@ -50,16 +50,16 @@ class ENGINE_API UBTDecorator : public UBTAuxiliaryNode
 	/** @return flow controller's abort mode */
 	EBTFlowAbortMode::Type GetFlowAbortMode() const;
 
-	/** @return true if restart self can result in EBTRestartRange::OnlyChildNodes range, false means that execution have to leave the node */
-	bool IsRestartChildOnlyAllowed() const;
-
 	/** @return true if condition should be inversed */
 	bool IsInversed() const;
 
 	virtual FString GetStaticDescription() const OVERRIDE;
 
-	/** make sure that current flow abort mode can be used with parent composite */
-	void ValidateFlowAbortMode();
+	/** modify current flow abort mode, so it can be used with parent composite */
+	void UpdateFlowAbortMode();
+
+	/** @return true if current abort mode can be used with parent composite */
+	bool IsFlowAbortModeValid() const;
 
 protected:
 
@@ -123,12 +123,6 @@ protected:
 FORCEINLINE EBTFlowAbortMode::Type UBTDecorator::GetFlowAbortMode() const
 {
 	return FlowAbortMode;
-}
-
-FORCEINLINE bool UBTDecorator::IsRestartChildOnlyAllowed() const
-{
-	/** execution have to leave node only when decorator always work in abort self mode (e.g. TimeLimit) */
-	return bAllowAbortNone || bAllowAbortLowerPri;
 }
 
 FORCEINLINE bool UBTDecorator::IsInversed() const

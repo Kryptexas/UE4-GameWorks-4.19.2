@@ -665,11 +665,14 @@ void APlayerController::Possess(APawn* PawnToPossess)
 	}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (!IsPendingKill() && DebuggingController == NULL && GetNetMode() != NM_DedicatedServer)
+	if (!IsPendingKill() && GetNetMode() != NM_DedicatedServer)
 	{
-		DebuggingController = ConstructObject<UGameplayDebuggingControllerComponent>(UGameplayDebuggingControllerComponent::StaticClass(), this);
-		DebuggingController->RegisterComponent();
-		DebuggingController->InitializeComponent();
+		if (!DebuggingController)
+		{
+			DebuggingController = ConstructObject<UGameplayDebuggingControllerComponent>(UGameplayDebuggingControllerComponent::StaticClass(), this);
+			DebuggingController->RegisterComponent();
+			DebuggingController->InitBasicFuncionality();
+		}
 	}
 #endif
 }
@@ -816,6 +819,16 @@ void APlayerController::PostInitializeComponents()
 
 	bPlayerIsWaiting = true;
 	ChangeState(NAME_Spectating);
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	if (!IsPendingKill() && DebuggingController == NULL && GetNetMode() != NM_DedicatedServer)
+	{
+		DebuggingController = ConstructObject<UGameplayDebuggingControllerComponent>(UGameplayDebuggingControllerComponent::StaticClass(), this);
+		DebuggingController->RegisterComponent();
+		DebuggingController->InitializeComponent();
+	}
+#endif
+
 }
 
 bool APlayerController::ServerShortTimeout_Validate()
@@ -2097,6 +2110,11 @@ void APlayerController::SetupInputComponent()
 	{
 		InputComponent->bBlockInput = bBlockInput;
 		UInputDelegateBinding::BindInputDelegates(BGClass, InputComponent);
+	}
+
+	if (GetNetMode() != NM_DedicatedServer && InputComponent && DebuggingController)
+	{
+		DebuggingController->BindActivationKeys();
 	}
 }
 

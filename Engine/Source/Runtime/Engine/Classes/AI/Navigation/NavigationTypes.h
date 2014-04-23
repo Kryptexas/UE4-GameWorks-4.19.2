@@ -215,6 +215,8 @@ struct ENGINE_API FNavigationPath : public TSharedFromThis<FNavigationPath, ESPM
 		return false;
 	}
 
+	FORCEINLINE const TArray<FNavPathPoint>& GetPathPoints() const { return PathPoints; }
+
 	/** type safe casts */
 	template<typename PathClass>
 	FORCEINLINE const PathClass* CastPath() const
@@ -235,6 +237,9 @@ public:
 	 *	point 0 is path's starting point - if it's the only point on the path then there's no path per se
 	 */
 	TArray<FNavPathPoint> PathPoints;
+
+	/** additional node refs used during path following shortcuts */
+	TArray<NavNodeRef> ShortcutNodeRefs;
 
 	/** base actor, if exist path points locations will be relative to it */
 	TWeakObjectPtr<AActor> Base;

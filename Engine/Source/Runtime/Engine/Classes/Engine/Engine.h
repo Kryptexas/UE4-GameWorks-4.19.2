@@ -1015,7 +1015,15 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=LevelStreaming)
 	uint32 bUseBackgroundLevelStreaming:1;
 
-	/** Maximum allowed time to spend for actor registration steps during level streaming (per frame)*/
+	/** Maximum amount of time to spend doing asynchronous loading (ms per frame) */
+	UPROPERTY(EditAnywhere, config, Category = LevelStreaming, AdvancedDisplay)
+	float AsyncLoadingTimeLimit;
+
+	/** Additional time to spend asynchronous loading during a "high priority" load */
+	UPROPERTY(EditAnywhere, config, Category = LevelStreaming, AdvancedDisplay)
+	float PriorityAsyncLoadingExtraTime;
+
+	/** Maximum allowed time to spend for actor registration steps during level streaming (ms per frame)*/
 	UPROPERTY(EditAnywhere, config, Category=LevelStreaming, AdvancedDisplay)
 	float LevelStreamingActorsUpdateTimeLimit;
 	

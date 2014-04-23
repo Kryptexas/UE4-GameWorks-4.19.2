@@ -75,7 +75,7 @@ void FAnimMontageSegmentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 	SegmentCategory.AddProperty("AnimSegment.LoopingCount").DisplayName( TEXT("Loop Count") );
 
 	TSharedPtr<IPropertyHandle> InPropertyHandle = DetailBuilder.GetProperty("AnimSegment.AnimReference");
-	UObject *Object;
+	UObject *Object = NULL;
 	InPropertyHandle->GetValue(Object);
 
 	UAnimSequenceBase *AnimRef = Cast<UAnimSequenceBase>(Object);
@@ -217,7 +217,7 @@ void SAnimationSegmentViewport::Construct(const FArguments& InArgs)
 
 void SAnimationSegmentViewport::InitSkeleton()
 {
-	UObject *Object;
+	UObject *Object = NULL;
 	AnimRefPropertyHandle->GetValue(Object);
 	UAnimSequenceBase *AnimSequence = Cast<UAnimSequenceBase>(Object);
 	USkeleton *Skeleton = NULL;

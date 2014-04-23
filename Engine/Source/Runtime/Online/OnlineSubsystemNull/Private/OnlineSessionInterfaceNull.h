@@ -184,6 +184,20 @@ PACKAGE_SCOPE:
 	void CheckPendingSessionInvite();
 
 	/**
+	* Registers and updates voice data for the given player id
+	*
+	* @param PlayerId player to register with the voice subsystem
+	*/
+	void RegisterVoice(const FUniqueNetId& PlayerId);
+
+	/**
+	* Unregisters a given player id from the voice subsystem
+	*
+	* @param PlayerId player to unregister with the voice subsystem
+	*/
+	void UnregisterVoice(const FUniqueNetId& PlayerId);
+
+	/**
 	 * Registers all local players with the current session
 	 *
 	 * @param Session the session that they are registering in

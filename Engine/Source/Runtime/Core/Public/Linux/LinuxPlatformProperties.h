@@ -83,6 +83,6 @@ struct FLinuxPlatformProperties
 
 	static FORCEINLINE bool SupportsWindowedMode()
 	{
-		return true;
+		return !IS_DEDICATED_SERVER;
 	}
 };

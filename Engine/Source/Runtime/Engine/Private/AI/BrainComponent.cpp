@@ -186,7 +186,15 @@ UBrainComponent::UBrainComponent(const class FPostConstructInitializeProperties&
 #if ENABLE_VISUAL_LOG
 void UBrainComponent::DescribeSelfToVisLog(struct FVisLogEntry* Snapshot) const
 {
+	if (IsPendingKill())
+	{
+		return;
+	}
 
+	if (BlackboardComp)
+	{
+		BlackboardComp->DescribeSelfToVisLog(Snapshot);
+	}
 }
 #endif // ENABLE_VISUAL_LOG
 
@@ -219,4 +227,24 @@ void UBrainComponent::ForceUnlockResource()
 bool UBrainComponent::IsResourceLocked() const
 {
 	return ResourceLock.IsLocked();
+}
+
+void UBrainComponent::InitializeComponent()
+{
+	Super::InitializeComponent();
+
+	// cache blackboard component if owner has one
+	BlackboardComp = GetOwner()->FindComponentByClass<UBlackboardComponent>();
+	if (BlackboardComp)
+	{
+		BlackboardComp->CacheBrainComponent(this);
+	}
+}
+
+void UBrainComponent::CacheBlackboardComponent(UBlackboardComponent* BBComp)
+{
+	if (BBComp)
+	{
+		BlackboardComp = BBComp;
+	}
 }

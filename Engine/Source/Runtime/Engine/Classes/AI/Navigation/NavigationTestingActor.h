@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
 #include "NavigationTestingActor.generated.h"
 
 struct FNavTestTickHelper : FTickableGameObject
@@ -14,8 +15,19 @@ struct FNavTestTickHelper : FTickableGameObject
 	virtual TStatId GetStatId() const ;
 };
 
+UENUM()
+namespace ENavCostDisplay
+{
+	enum Type
+	{
+		TotalCost,
+		HeuristicOnly,
+		RealCostOnly,
+	};
+}
+
 UCLASS(hidecategories=(Object, Actor, Input, Rendering), HeaderGroup=Navigation, Blueprintable)
-class ANavigationTestingActor : public AActor, public INavAgentInterface, public INavPathObserverInterface
+class ENGINE_API ANavigationTestingActor : public AActor, public INavAgentInterface, public INavPathObserverInterface
 {
 	GENERATED_UCLASS_BODY()
 
@@ -48,9 +60,6 @@ class ANavigationTestingActor : public AActor, public INavAgentInterface, public
 	uint32 bSearchStart : 1;
 
 	UPROPERTY(EditAnywhere, Category=Pathfinding)
-	uint32 bSearchGoal : 1;
-
-	UPROPERTY(EditAnywhere, Category=Pathfinding)
 	uint32 bUseHierarchicalPathfinding : 1;
 
 	/** if set, all steps of A* algorithm will be accessible for debugging */
@@ -72,6 +81,14 @@ class ANavigationTestingActor : public AActor, public INavAgentInterface, public
 	UPROPERTY(EditAnywhere, Category=Debug)
 	uint32 bShouldBeVisibleInGame : 1;
 
+	/** determines which cost will be shown*/
+	UPROPERTY(EditAnywhere, Category=Debug)
+	TEnumAsByte<ENavCostDisplay::Type> CostDisplayMode;
+
+	/** text canvas offset to apply */
+	UPROPERTY(EditAnywhere, Category=Debug)
+	FVector2D TextCanvasOffset;
+
 	UPROPERTY(transient, VisibleAnywhere, BlueprintReadOnly, Category=PathfindingStatus)
 	uint32 bPathExist : 1;
 
@@ -91,11 +108,8 @@ class ANavigationTestingActor : public AActor, public INavAgentInterface, public
 	UPROPERTY(transient, VisibleAnywhere, BlueprintReadOnly, Category=PathfindingStatus)
 	int32 PathfindingSteps;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=PathfindingStatus)
+	UPROPERTY(transient, EditAnywhere, Category=Pathfinding)
 	ANavigationTestingActor* OtherActor;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=PathfindingStatus)
-	ANavigationTestingActor* ForcedOtherActor;
 
 	/** "None" will result in default filter being used */
 	UPROPERTY(EditAnywhere, Category=Pathfinding)
@@ -119,7 +133,10 @@ class ANavigationTestingActor : public AActor, public INavAgentInterface, public
 	/** Dtor */
 	virtual ~ANavigationTestingActor();
 
+	virtual void BeginDestroy() OVERRIDE;
+
 #if WITH_EDITOR
+	virtual void PreEditChange(UProperty* PropertyThatWillChange) OVERRIDE;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
 	virtual void PostEditMove(bool bFinished) OVERRIDE;
 	
@@ -142,4 +159,9 @@ class ANavigationTestingActor : public AActor, public INavAgentInterface, public
 	void UpdatePathfinding();
 	void GatherDetailedData(class ANavigationTestingActor* Goal);
 	void SearchPathTo(class ANavigationTestingActor* Goal);
+
+	// Virtual method to override if you want to customize the query being 
+	// constructed for the path find (e.g. change the filter or add 
+	// constraints/goal evaluators).
+	virtual FPathFindingQuery BuildPathFindingQuery(const ANavigationTestingActor* Goal) const;
 };

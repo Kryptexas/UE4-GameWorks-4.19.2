@@ -31,9 +31,15 @@ checkAtCompileTime(RECAST_UNWALKABLE_POLY_COST == DT_UNWALKABLE_POLY_COST, Unwal
 #endif
 
 /// Helper for accessing navigation query from different threads
-#define INITIALIZE_NAVQUERY(NavQueryVariable, NumNodes)	dtNavMeshQuery NavQueryVariable##Private;	\
-														dtNavMeshQuery& NavQueryVariable = IsInGameThread() ? SharedNavQuery : NavQueryVariable##Private; \
-														NavQueryVariable.init(DetourNavMesh, NumNodes);
+#define INITIALIZE_NAVQUERY_SIMPLE(NavQueryVariable, NumNodes)	\
+	dtNavMeshQuery NavQueryVariable##Private;	\
+	dtNavMeshQuery& NavQueryVariable = IsInGameThread() ? SharedNavQuery : NavQueryVariable##Private; \
+	NavQueryVariable.init(DetourNavMesh, NumNodes);
+
+#define INITIALIZE_NAVQUERY(NavQueryVariable, NumNodes, LinkFilter)	\
+	dtNavMeshQuery NavQueryVariable##Private;	\
+	dtNavMeshQuery& NavQueryVariable = IsInGameThread() ? SharedNavQuery : NavQueryVariable##Private; \
+	NavQueryVariable.init(DetourNavMesh, NumNodes, &LinkFilter);
 
 static void* DetourMalloc(int Size, dtAllocHint)
 {
@@ -196,6 +202,13 @@ uint16 FRecastQueryFilter::GetExcludeFlags() const
 {
 	return getExcludeFlags();
 }
+
+bool FRecastSpeciaLinkFilter::isLinkAllowed(const int32 UserId) const
+{
+	USmartNavLinkComponent* LinkComp = NavSys ? NavSys->GetSmartLink(UserId) : NULL;
+	return LinkComp ? LinkComp->IsPathfindingAllowed(SearchOwner) : true;
+}
+
 
 //----------------------------------------------------------------------//
 // FPImplRecastNavMesh
@@ -608,7 +621,7 @@ void FPImplRecastNavMesh::SetRecastMesh(dtNavMesh* NavMesh, bool bOwnData)
 	DetourNavMesh = NavMesh;
 }
 
-void FPImplRecastNavMesh::Raycast2D(const FVector& StartLoc, const FVector& EndLoc, const FNavigationQueryFilter& InQueryFilter, ARecastNavMesh::FRaycastResult& RaycastResult) const
+void FPImplRecastNavMesh::Raycast2D(const FVector& StartLoc, const FVector& EndLoc, const FNavigationQueryFilter& InQueryFilter, const UObject* Owner, ARecastNavMesh::FRaycastResult& RaycastResult) const
 {
 	if (DetourNavMesh == NULL || NavMeshOwner == NULL)
 	{
@@ -622,7 +635,8 @@ void FPImplRecastNavMesh::Raycast2D(const FVector& StartLoc, const FVector& EndL
 		return;
 	}
 
-	INITIALIZE_NAVQUERY(NavQuery, InQueryFilter.GetMaxSearchNodes());
+	FRecastSpeciaLinkFilter LinkFilter(UNavigationSystem::GetCurrent(NavMeshOwner->GetWorld()), Owner);
+	INITIALIZE_NAVQUERY(NavQuery, InQueryFilter.GetMaxSearchNodes(), LinkFilter);
 
 	const FVector& NavExtent = NavMeshOwner->GetDefaultQueryExtent();
 	const float Extent[3] = { NavExtent.X, NavExtent.Z, NavExtent.Y };
@@ -646,7 +660,7 @@ void FPImplRecastNavMesh::Raycast2D(const FVector& StartLoc, const FVector& EndL
 }
 
 // @TODONAV
-ENavigationQueryResult::Type FPImplRecastNavMesh::FindPath(const FVector& StartLoc, const FVector& EndLoc, FNavMeshPath& Path, const FNavigationQueryFilter& InQueryFilter) const
+ENavigationQueryResult::Type FPImplRecastNavMesh::FindPath(const FVector& StartLoc, const FVector& EndLoc, FNavMeshPath& Path, const FNavigationQueryFilter& InQueryFilter, const UObject* Owner) const
 {
 	// temporarily disabling this check due to it causing too much "crashes"
 	// @todo but it needs to be back at some point since it realy checks for a buggy setup
@@ -671,7 +685,8 @@ ENavigationQueryResult::Type FPImplRecastNavMesh::FindPath(const FVector& StartL
 		return ENavigationQueryResult::Error;
 	}
 
-	INITIALIZE_NAVQUERY(NavQuery, InQueryFilter.GetMaxSearchNodes());
+	FRecastSpeciaLinkFilter LinkFilter(UNavigationSystem::GetCurrent(NavMeshOwner->GetWorld()), Owner);
+	INITIALIZE_NAVQUERY(NavQuery, InQueryFilter.GetMaxSearchNodes(), LinkFilter);
 
 	FVector RecastStartPos, RecastEndPos;
 	NavNodeRef StartPolyID, EndPolyID;
@@ -732,7 +747,7 @@ ENavigationQueryResult::Type FPImplRecastNavMesh::FindPath(const FVector& StartL
 	return DTStatusToNavQueryResult(FindPathStatus);
 }
 
-ENavigationQueryResult::Type FPImplRecastNavMesh::TestPath(const FVector& StartLoc, const FVector& EndLoc, const FNavigationQueryFilter& InQueryFilter) const
+ENavigationQueryResult::Type FPImplRecastNavMesh::TestPath(const FVector& StartLoc, const FVector& EndLoc, const FNavigationQueryFilter& InQueryFilter, const UObject* Owner) const
 {
 	const dtQueryFilter* QueryFilter = ((const FRecastQueryFilter*)(InQueryFilter.GetImplementation()))->GetAsDetourQueryFilter();
 	if (QueryFilter == NULL)
@@ -741,7 +756,8 @@ ENavigationQueryResult::Type FPImplRecastNavMesh::TestPath(const FVector& StartL
 		return ENavigationQueryResult::Error;
 	}
 
-	INITIALIZE_NAVQUERY(NavQuery, InQueryFilter.GetMaxSearchNodes());
+	FRecastSpeciaLinkFilter LinkFilter(UNavigationSystem::GetCurrent(NavMeshOwner->GetWorld()), Owner);
+	INITIALIZE_NAVQUERY(NavQuery, InQueryFilter.GetMaxSearchNodes(), LinkFilter);
 
 	FVector RecastStartPos, RecastEndPos;
 	NavNodeRef StartPolyID, EndPolyID;
@@ -770,7 +786,7 @@ ENavigationQueryResult::Type FPImplRecastNavMesh::TestClusterPath(const FVector&
 	NavNodeRef StartPolyID, EndPolyID;
 	const dtQueryFilter* ClusterFilter = ((const FRecastQueryFilter*)NavMeshOwner->GetDefaultQueryFilterImpl())->GetAsDetourQueryFilter();
 
-	INITIALIZE_NAVQUERY(ClusterQuery, RECAST_MAX_SEARCH_NODES);
+	INITIALIZE_NAVQUERY_SIMPLE(ClusterQuery, RECAST_MAX_SEARCH_NODES);
 
 	const bool bCanSearch = InitPathfinding(StartLoc, EndLoc, ClusterQuery, ClusterFilter, RecastStartPos, StartPolyID, RecastEndPos, EndPolyID);
 	if (!bCanSearch)
@@ -788,7 +804,7 @@ ENavigationQueryResult::Type FPImplRecastNavMesh::FindClusterPath(const FVector&
 	NavNodeRef StartPolyID, EndPolyID;
 	const dtQueryFilter* ClusterFilter = ((const FRecastQueryFilter*)NavMeshOwner->GetDefaultQueryFilterImpl())->GetAsDetourQueryFilter();
 
-	INITIALIZE_NAVQUERY(ClusterQuery, RECAST_MAX_SEARCH_NODES);
+	INITIALIZE_NAVQUERY_SIMPLE(ClusterQuery, RECAST_MAX_SEARCH_NODES);
 
 	const bool bCanSearch = InitPathfinding(StartLoc, EndLoc, ClusterQuery, ClusterFilter, RecastStartPos, StartPolyID, RecastEndPos, EndPolyID);
 	if (!bCanSearch)
@@ -1128,7 +1144,7 @@ static void StorePathfindingDebugStep(const dtNavMeshQuery& NavQuery, const dtNa
 	}
 }
 
-int32 FPImplRecastNavMesh::DebugPathfinding(const FVector& StartLoc, const FVector& EndLoc, const FNavigationQueryFilter& Filter, TArray<FRecastDebugPathfindingStep>& Steps)
+int32 FPImplRecastNavMesh::DebugPathfinding(const FVector& StartLoc, const FVector& EndLoc, const FNavigationQueryFilter& Filter, const UObject* Owner, TArray<FRecastDebugPathfindingStep>& Steps)
 {
 	int32 NumSteps = 0;
 
@@ -1139,7 +1155,8 @@ int32 FPImplRecastNavMesh::DebugPathfinding(const FVector& StartLoc, const FVect
 		return NumSteps;
 	}
 
-	INITIALIZE_NAVQUERY(NavQuery, Filter.GetMaxSearchNodes());
+	FRecastSpeciaLinkFilter LinkFilter(UNavigationSystem::GetCurrent(NavMeshOwner->GetWorld()), Owner);
+	INITIALIZE_NAVQUERY(NavQuery, Filter.GetMaxSearchNodes(), LinkFilter);
 
 	FVector RecastStartPos, RecastEndPos;
 	NavNodeRef StartPolyID, EndPolyID;
@@ -1181,7 +1198,7 @@ NavNodeRef FPImplRecastNavMesh::GetClusterRefFromPolyRef(const NavNodeRef PolyRe
 	return 0;
 }
 
-FNavLocation FPImplRecastNavMesh::GetRandomPoint(const FNavigationQueryFilter& Filter) const
+FNavLocation FPImplRecastNavMesh::GetRandomPoint(const FNavigationQueryFilter& Filter, const UObject* Owner) const
 {
 	FNavLocation OutLocation;
 	if (DetourNavMesh == NULL)
@@ -1189,7 +1206,8 @@ FNavLocation FPImplRecastNavMesh::GetRandomPoint(const FNavigationQueryFilter& F
 		return OutLocation;
 	}
 
-	INITIALIZE_NAVQUERY(NavQuery, Filter.GetMaxSearchNodes());
+	FRecastSpeciaLinkFilter LinkFilter(UNavigationSystem::GetCurrent(NavMeshOwner->GetWorld()), Owner);
+	INITIALIZE_NAVQUERY(NavQuery, Filter.GetMaxSearchNodes(), LinkFilter);
 
 	// inits to "pass all"
 	const dtQueryFilter* QueryFilter = ((const FRecastQueryFilter*)(Filter.GetImplementation()))->GetAsDetourQueryFilter();
@@ -1210,14 +1228,15 @@ FNavLocation FPImplRecastNavMesh::GetRandomPoint(const FNavigationQueryFilter& F
 	return OutLocation;
 }
 
-bool FPImplRecastNavMesh::GetRandomPointInRadius(const FVector& Origin, float Radius, FNavLocation& OutLocation, const FNavigationQueryFilter& Filter) const
+bool FPImplRecastNavMesh::GetRandomPointInRadius(const FVector& Origin, float Radius, FNavLocation& OutLocation, const FNavigationQueryFilter& Filter, const UObject* Owner) const
 {
 	if (DetourNavMesh == NULL || Radius <= 0.f)
 	{
 		return false;
 	}
 
-	INITIALIZE_NAVQUERY(NavQuery, Filter.GetMaxSearchNodes());
+	FRecastSpeciaLinkFilter LinkFilter(UNavigationSystem::GetCurrent(NavMeshOwner->GetWorld()), Owner);
+	INITIALIZE_NAVQUERY(NavQuery, Filter.GetMaxSearchNodes(), LinkFilter);
 
 	// inits to "pass all"
 	const dtQueryFilter* QueryFilter = ((const FRecastQueryFilter*)(Filter.GetImplementation()))->GetAsDetourQueryFilter();
@@ -1258,7 +1277,7 @@ bool FPImplRecastNavMesh::GetRandomPointInCluster(NavNodeRef ClusterRef, FNavLoc
 		return false;
 	}
 
-	INITIALIZE_NAVQUERY(NavQuery, RECAST_MAX_SEARCH_NODES);
+	INITIALIZE_NAVQUERY_SIMPLE(NavQuery, RECAST_MAX_SEARCH_NODES);
 
 	dtPolyRef Poly;
 	float RandPt[3];
@@ -1273,7 +1292,7 @@ bool FPImplRecastNavMesh::GetRandomPointInCluster(NavNodeRef ClusterRef, FNavLoc
 	return false;
 }
 
-bool FPImplRecastNavMesh::ProjectPointToNavMesh(const FVector& Point, FNavLocation& Result, const FVector& Extent, const FNavigationQueryFilter& Filter) const
+bool FPImplRecastNavMesh::ProjectPointToNavMesh(const FVector& Point, FNavLocation& Result, const FVector& Extent, const FNavigationQueryFilter& Filter, const UObject* Owner) const
 {
 	// sanity check
 	if (DetourNavMesh == NULL)
@@ -1283,7 +1302,8 @@ bool FPImplRecastNavMesh::ProjectPointToNavMesh(const FVector& Point, FNavLocati
 
 	bool bSuccess = false;
 
-	INITIALIZE_NAVQUERY(NavQuery, Filter.GetMaxSearchNodes());
+	FRecastSpeciaLinkFilter LinkFilter(UNavigationSystem::GetCurrent(NavMeshOwner->GetWorld()), Owner);
+	INITIALIZE_NAVQUERY(NavQuery, Filter.GetMaxSearchNodes(), LinkFilter);
 
 	const dtQueryFilter* QueryFilter = ((const FRecastQueryFilter*)(Filter.GetImplementation()))->GetAsDetourQueryFilter();
 	ensure(QueryFilter);
@@ -1308,7 +1328,7 @@ bool FPImplRecastNavMesh::ProjectPointToNavMesh(const FVector& Point, FNavLocati
 }
 
 bool FPImplRecastNavMesh::ProjectPointMulti(const FVector& Point, TArray<FNavLocation>& Result, const FVector& Extent,
-											float MinZ, float MaxZ, const FNavigationQueryFilter& Filter) const
+	float MinZ, float MaxZ, const FNavigationQueryFilter& Filter, const UObject* Owner) const
 {
 	// sanity check
 	if (DetourNavMesh == NULL)
@@ -1318,7 +1338,8 @@ bool FPImplRecastNavMesh::ProjectPointMulti(const FVector& Point, TArray<FNavLoc
 
 	bool bSuccess = false;
 
-	INITIALIZE_NAVQUERY(NavQuery, Filter.GetMaxSearchNodes());
+	FRecastSpeciaLinkFilter LinkFilter(UNavigationSystem::GetCurrent(NavMeshOwner->GetWorld()), Owner);
+	INITIALIZE_NAVQUERY(NavQuery, Filter.GetMaxSearchNodes(), LinkFilter);
 
 	const dtQueryFilter* QueryFilter = ((const FRecastQueryFilter*)(Filter.GetImplementation()))->GetAsDetourQueryFilter();
 	ensure(QueryFilter);
@@ -1358,7 +1379,7 @@ bool FPImplRecastNavMesh::ProjectPointMulti(const FVector& Point, TArray<FNavLoc
 	return bSuccess;
 }
 
-NavNodeRef FPImplRecastNavMesh::FindNearestPoly(FVector const& Loc, FVector const& Extent, const FNavigationQueryFilter& Filter) const
+NavNodeRef FPImplRecastNavMesh::FindNearestPoly(FVector const& Loc, FVector const& Extent, const FNavigationQueryFilter& Filter, const UObject* Owner) const
 {
 	// sanity check
 	if (DetourNavMesh == NULL)
@@ -1366,7 +1387,8 @@ NavNodeRef FPImplRecastNavMesh::FindNearestPoly(FVector const& Loc, FVector cons
 		return INVALID_NAVNODEREF;
 	}
 
-	INITIALIZE_NAVQUERY(NavQuery, Filter.GetMaxSearchNodes());
+	FRecastSpeciaLinkFilter LinkFilter(UNavigationSystem::GetCurrent(NavMeshOwner->GetWorld()), Owner);
+	INITIALIZE_NAVQUERY(NavQuery, Filter.GetMaxSearchNodes(), LinkFilter);
 
 	// inits to "pass all"
 	const dtQueryFilter* QueryFilter = ((const FRecastQueryFilter*)(Filter.GetImplementation()))->GetAsDetourQueryFilter();
@@ -1389,7 +1411,7 @@ NavNodeRef FPImplRecastNavMesh::FindNearestPoly(FVector const& Loc, FVector cons
 	return INVALID_NAVNODEREF;
 }
 
-bool FPImplRecastNavMesh::GetPolysWithinPathingDistance(FVector const& StartLoc, const float PathingDistance, const FNavigationQueryFilter& Filter, TArray<NavNodeRef>& FoundPolys) const
+bool FPImplRecastNavMesh::GetPolysWithinPathingDistance(FVector const& StartLoc, const float PathingDistance, const FNavigationQueryFilter& Filter, const UObject* Owner, TArray<NavNodeRef>& FoundPolys) const
 {
 	ensure(PathingDistance > 0.0f && "PathingDistance <= 0 doesn't make sense");
 
@@ -1399,7 +1421,8 @@ bool FPImplRecastNavMesh::GetPolysWithinPathingDistance(FVector const& StartLoc,
 		return false;
 	}
 
-	INITIALIZE_NAVQUERY(NavQuery, Filter.GetMaxSearchNodes());
+	FRecastSpeciaLinkFilter LinkFilter(UNavigationSystem::GetCurrent(NavMeshOwner->GetWorld()), Owner);
+	INITIALIZE_NAVQUERY(NavQuery, Filter.GetMaxSearchNodes(), LinkFilter);
 
 	const dtQueryFilter* QueryFilter = ((const FRecastQueryFilter*)(Filter.GetImplementation()))->GetAsDetourQueryFilter();
 	ensure(QueryFilter);
@@ -1439,7 +1462,7 @@ bool FPImplRecastNavMesh::GetClustersWithinPathingDistance(FVector const& StartL
 		return false;
 	}
 
-	INITIALIZE_NAVQUERY(NavQuery, RECAST_MAX_SEARCH_NODES);
+	INITIALIZE_NAVQUERY_SIMPLE(NavQuery, RECAST_MAX_SEARCH_NODES);
 
 	const dtQueryFilter* ClusterFilter = ((const FRecastQueryFilter*)NavMeshOwner->GetDefaultQueryFilterImpl())->GetAsDetourQueryFilter();
 	ensure(ClusterFilter);
@@ -1648,12 +1671,12 @@ void FPImplRecastNavMesh::GetEdgesForPathCorridor(TArray<NavNodeRef>* PathCorrid
 		return;
 	}
 
-	INITIALIZE_NAVQUERY(NavQuery, RECAST_MAX_SEARCH_NODES);
+	INITIALIZE_NAVQUERY_SIMPLE(NavQuery, RECAST_MAX_SEARCH_NODES);
 
 	GetEdgesForPathCorridorImpl(PathCorridor, PathCorridorEdges, NavQuery);
 }
 
-bool FPImplRecastNavMesh::FilterPolys(TArray<NavNodeRef>& PolyRefs, const class FRecastQueryFilter* Filter) const
+bool FPImplRecastNavMesh::FilterPolys(TArray<NavNodeRef>& PolyRefs, const class FRecastQueryFilter* Filter, const UObject* Owner) const
 {
 	if (Filter == NULL || DetourNavMesh == NULL)
 	{

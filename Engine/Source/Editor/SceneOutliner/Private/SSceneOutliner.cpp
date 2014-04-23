@@ -64,6 +64,20 @@ namespace SceneOutliner
 		}
 	}
 
+	/** Get label as a string, much faster than as a FText */
+	FString GetLabelForItemAsString(const TSharedRef<TOutlinerTreeItem> TreeItem)
+	{
+		if (TreeItem->Type == SceneOutliner::TOutlinerTreeItem::Actor)
+		{
+			const AActor* Actor = StaticCastSharedRef<const SceneOutliner::TOutlinerActorTreeItem>(TreeItem)->Actor.Get();
+			return Actor ? Actor->GetActorLabel() : LOCTEXT("ActorLabelForMissingActor", "(Deleted Actor)").ToString();
+		}
+		else
+		{
+			return StaticCastSharedRef<const SceneOutliner::TOutlinerFolderTreeItem>(TreeItem)->LeafName.ToString();
+		}
+	}
+
 	namespace Helpers
 	{
 		/** Sorts tree items alphabetically */
@@ -75,7 +89,7 @@ namespace SceneOutliner
 				{
 					return A->Type == TOutlinerTreeItem::Folder;
 				}
-				return GetLabelForItem(A.ToSharedRef()).ToString() < GetLabelForItem(B.ToSharedRef()).ToString();
+				return GetLabelForItemAsString(A.ToSharedRef()) < GetLabelForItemAsString(B.ToSharedRef());
 			}
 		};
 		struct FSortByActorDescending
@@ -86,7 +100,7 @@ namespace SceneOutliner
 				{
 					return A->Type != TOutlinerTreeItem::Folder;
 				}
-				return GetLabelForItem(A.ToSharedRef()).ToString() > GetLabelForItem(B.ToSharedRef()).ToString();
+				return GetLabelForItemAsString(A.ToSharedRef()) > GetLabelForItemAsString(B.ToSharedRef());
 			}
 		};
 	}

@@ -440,6 +440,14 @@ bool UNetConnection::ClientHasInitializedLevelFor(const UObject* TestObject)
 			ClientVisibleLevelNames.Contains(Level->GetOutermost()->GetFName()) );
 }
 
+void UNetConnection::ValidateSendBuffer()
+{
+	if ( SendBuffer.IsError() )
+	{
+		UE_LOG( LogNetTraffic, Fatal, TEXT( "UNetConnection::ValidateSendBuffer: Out.IsError() == true. NumBits: %i, NumBytes: %i, MaxBits: %i" ), SendBuffer.GetNumBits(), SendBuffer.GetNumBytes(), SendBuffer.GetMaxBits() );
+	}
+}
+
 void UNetConnection::InitSendBuffer()
 {
 	check(MaxPacket > 0);
@@ -454,6 +462,8 @@ void UNetConnection::InitSendBuffer()
 		// First time initialization needs to allocate the buffer
 		SendBuffer = FBitWriter(MaxPacket * 8);
 	}
+
+	ValidateSendBuffer();
 }
 
 void UNetConnection::ReceivedRawPacket( void* InData, int32 Count )
@@ -497,8 +507,7 @@ void UNetConnection::ReceivedRawPacket( void* InData, int32 Count )
 void UNetConnection::FlushNet(bool bIgnoreSimulation)
 {
 	// Update info.
-	check( !SendBuffer.IsError() );
-
+	ValidateSendBuffer();
 	LastEnd = FBitWriterMark();
 	TimeSensitive = 0;
 
@@ -517,8 +526,7 @@ void UNetConnection::FlushNet(bool bIgnoreSimulation)
 		{
 			SendBuffer.WriteBit( 0 );
 		}
-
-		check( !SendBuffer.IsError() );
+		ValidateSendBuffer();
 
 		// Send now.
 #if DO_ENABLE_NET_TEST
@@ -657,6 +665,8 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 		ensureMsgf(false, TEXT("Packet too small") );
 		return;
 	}
+
+	ValidateSendBuffer();
 
 	// Update receive time to avoid timeout.
 	LastReceiveTime = Driver->Time;
@@ -999,6 +1009,8 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 		}
 	}
 
+	ValidateSendBuffer();
+
 	// Acknowledge the packet.
 	if ( !bSkipAck )
 	{
@@ -1012,7 +1024,7 @@ int32 UNetConnection::WriteBitsToSendBuffer(
 	const uint8 *	ExtraBits, 
 	const int32		ExtraSizeInBits )
 {
-	check( !SendBuffer.IsError() );
+	ValidateSendBuffer();
 
 	const int32 TotalSizeInBits = SizeInBits + ExtraSizeInBits;
 
@@ -1030,21 +1042,21 @@ int32 UNetConnection::WriteBitsToSendBuffer(
 	if ( SendBuffer.GetNumBits() == 0 )
 	{
 		SendBuffer.WriteIntWrapped( OutPacketId, MAX_PACKETID );
-		check( !SendBuffer.IsError() );
+		ValidateSendBuffer();
 	}
 
 	// Add the bits to the queue
 	if ( SizeInBits )
 	{
 		SendBuffer.SerializeBits( const_cast< uint8 * >( Bits ), SizeInBits );
-		check( !SendBuffer.IsError() );
+		ValidateSendBuffer();
 	}
 
 	// Add any extra bits
 	if ( ExtraSizeInBits )
 	{
 		SendBuffer.SerializeBits( const_cast< uint8 * >( ExtraBits ), ExtraSizeInBits );
-		check( !SendBuffer.IsError() );
+		ValidateSendBuffer();
 	}
 
 	const int32 RememberedPacketId = OutPacketId;
@@ -1085,6 +1097,8 @@ void UNetConnection::PurgeAcks()
 
 void UNetConnection::SendAck( int32 AckPacketId, bool FirstTime/*=1*/, bool bHavePingAckData/*=0*/, uint32 PingAckData/*=0*/ )
 {
+	ValidateSendBuffer();
+
 	if( !InternalAck )
 	{
 		if( FirstTime )
@@ -1121,6 +1135,7 @@ void UNetConnection::SendAck( int32 AckPacketId, bool FirstTime/*=1*/, bool bHav
 
 int32 UNetConnection::SendRawBunch( FOutBunch& Bunch, bool InAllowMerge )
 {
+	ValidateSendBuffer();
 	check(!Bunch.ReceivedAck);
 	check(!Bunch.IsError());
 	Driver->OutBunches++;

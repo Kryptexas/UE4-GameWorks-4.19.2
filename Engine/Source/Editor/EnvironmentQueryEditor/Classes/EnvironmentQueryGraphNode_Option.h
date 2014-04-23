@@ -14,6 +14,7 @@ class UEnvironmentQueryGraphNode_Option : public UEnvironmentQueryGraphNode
 	virtual void AllocateDefaultPins() OVERRIDE;
 	virtual void PostPlacedNewNode() OVERRIDE;
 	virtual void GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const OVERRIDE;
+	virtual void PrepareForCopying() OVERRIDE;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual FText GetDescription() const OVERRIDE;
 
@@ -21,4 +22,8 @@ class UEnvironmentQueryGraphNode_Option : public UEnvironmentQueryGraphNode
 	void CreateAddTestSubMenu(class FMenuBuilder& MenuBuilder, UEdGraph* Graph) const;
 
 	void CalculateWeights();
+
+protected:
+
+	virtual void ResetNodeOwner() OVERRIDE;
 };

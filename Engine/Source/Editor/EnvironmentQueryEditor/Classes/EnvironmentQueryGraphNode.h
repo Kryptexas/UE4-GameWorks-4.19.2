@@ -43,6 +43,6 @@ class UEnvironmentQueryGraphNode : public UEdGraphNode
 
 protected:
 
-	void ResetNodeOwner();
+	virtual void ResetNodeOwner();
 };
 

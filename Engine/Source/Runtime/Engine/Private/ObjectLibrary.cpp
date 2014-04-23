@@ -294,6 +294,7 @@ int32 UObjectLibrary::LoadAssetDataFromPaths(TArray<FString> Paths)
 	}
 
 	ARFilter.bRecursivePaths = true;
+	ARFilter.bIncludeOnlyOnDiskAssets = true;
 
 	AssetRegistry.GetAssets(ARFilter, AssetDataList);
 
@@ -326,6 +327,7 @@ int32 UObjectLibrary::LoadBlueprintAssetDataFromPaths(TArray<FString> Paths)
 	}
 	
 	ARFilter.bRecursivePaths = true;
+	ARFilter.bIncludeOnlyOnDiskAssets = true;
 
 	/* GetDerivedClassNames doesn't work yet
 	if ( ObjectBaseClass )

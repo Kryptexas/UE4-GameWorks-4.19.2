@@ -148,7 +148,7 @@ extern CORE_API void (*GFlushStreamingFunc)(void);
 
 extern CORE_API float GVolumeMultiplier;
 
-
+ 
 #if WITH_EDITORONLY_DATA
 
 	/** 

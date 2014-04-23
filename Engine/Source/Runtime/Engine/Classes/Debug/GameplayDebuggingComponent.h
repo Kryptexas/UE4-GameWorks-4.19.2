@@ -36,10 +36,12 @@ namespace EDebugComponentMessage
 	{
 		EnableExtendedView,
 		DisableExtendedView, 
-		ActivateReplication, 
-		DeactivateReplilcation, 
+		ActivateReplication,
+		DeactivateReplilcation,
 		CycleReplicationView,
 		ToggleReplicationView,
+		ActivateDataView,
+		DeactivateDataView,
 	};
 }
 
@@ -51,6 +53,34 @@ struct ENGINE_API FDebugCategoryView
 	FDebugCategoryView() {}
 	FDebugCategoryView(EAIDebugDrawDataView::Type InView, const FString& Description) : Desc(Description), View(InView) {}
 };
+
+namespace EQSDebug
+{
+	struct FItemData
+	{
+		FString Desc;
+		int32 ItemIdx;
+		float TotalScore;
+
+		TArray<float> TestValues;
+		TArray<float> TestScores;
+	};
+
+	struct FTestData
+	{
+		FString ShortName;
+		FString Detailed;
+	};
+
+	struct FQueryData
+	{
+		TArray<FItemData> Items;
+		TArray<FTestData> Tests;
+		TArray<FEQSSceneProxy::FSphere> SolidSpheres;
+		TArray<FEQSSceneProxy::FText3d> Texts;
+		int32 NumValidItems;
+	};
+}
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnDebuggingTargetChanged, class AActor* /*Owner of debugging component*/, bool /*is being debugged now*/);
 
@@ -66,6 +96,9 @@ class ENGINE_API UGameplayDebuggingComponent : public UPrimitiveComponent, publi
 
 	UPROPERTY(Replicated)
 	int32 ShowExtendedInformatiomCounter;
+
+	UPROPERTY(Replicated)
+	TArray<int32> ReplicateViewDataCounters;
 
 	UPROPERTY(Replicated)
 	FString ControllerName;
@@ -93,13 +126,35 @@ class ENGINE_API UGameplayDebuggingComponent : public UPrimitiveComponent, publi
 	UPROPERTY(ReplicatedUsing=OnRep_UpdateNavmesh)
 	TArray<uint8> NavmeshRepData;
 
+	/** Begin EQS replication data */
+	UPROPERTY(Replicated)
+	float EQSTimestamp;
+	
+	UPROPERTY(Replicated)
+	FString EQSName;
+	
+	UPROPERTY(Replicated)
+	int32 EQSId;
+
+	UPROPERTY(ReplicatedUsing = OnRep_UpdateEQS)
+	TArray<uint8> EQSRepData;
+	
+	/** local EQS debug data, decoded from EQSRepData blob */
+	EQSDebug::FQueryData EQSLocalData;	
+	/** End EQS replication data */
+
+
 	/** flags indicating debug channels to draw. Sums up with StaticActiveViews */
 	uint32 ActiveViews;
 
-	float EQSTimestamp;
-	TSharedPtr<FEnvQueryInstance> EQSQueryInstance;
+	TSharedPtr<FEnvQueryInstance> CachedQueryInstance;
 	uint32 bDrawEQSLabels:1;
-	uint32 bDrawEQSFailedItems:1;
+	uint32 bDrawEQSFailedItems : 1;
+
+	virtual bool GetComponentClassCanReplicate() const OVERRIDE{ return true; }
+
+	UFUNCTION()
+	virtual void OnRep_UpdateEQS();
 
 	UFUNCTION()
 	virtual void OnRep_UpdateNavmesh();
@@ -148,6 +203,7 @@ class ENGINE_API UGameplayDebuggingComponent : public UPrimitiveComponent, publi
 		}
 	}
 
+	bool ShouldReplicateData(EAIDebugDrawDataView::Type InView) { return ReplicateViewDataCounters[InView] > 0; }
 	//=============================================================================
 	// client side debugging
 	//=============================================================================

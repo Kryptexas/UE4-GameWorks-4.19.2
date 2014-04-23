@@ -57,6 +57,9 @@ void FEnvQueryTestDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout 
 	IDetailPropertyRow& BoolFilterRow = FilterCategory.AddProperty(DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UEnvQueryTest,BoolFilter)));
 	BoolFilterRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvQueryTestDetails::GetBoolFilterVisibility)));
 
+	IDetailPropertyRow& DiscardFailedRow = FilterCategory.AddProperty(DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UEnvQueryTest, bDiscardFailedItems)));
+	DiscardFailedRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvQueryTestDetails::GetDiscardFailedVisibility)));
+
 	// helper for weight modifier
 	IDetailCategoryBuilder& WeightCategory = DetailLayout.EditCategory( "Weight" );
 	IDetailPropertyRow& WeightRow = WeightCategory.AddProperty(DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UEnvQueryTest,Weight)));
@@ -168,8 +171,11 @@ FString FEnvQueryTestDetails::GetWeightModifierInfo() const
 	case EEnvTestWeight::Absolute:
 		return LOCTEXT("WeightAbsolute","Final score = | ItemValue | * weight\nDiscards sign of item's value.").ToString();
 
-	case EEnvTestWeight::Flat:
-		return LOCTEXT("WeightFlat","Final score = 1\nOptimized when quering for single result.").ToString();
+	case EEnvTestWeight::Constant:
+		return LOCTEXT("WeightConstant", "Final score = weight\nConstant weight, doesn't depend on item's value.").ToString();
+
+	case EEnvTestWeight::Skip:
+		return LOCTEXT("WeightSkip","This test will not affect item score\nOptimized when quering for single result.").ToString();
 
 	default: break;
 	}
@@ -204,6 +210,14 @@ EVisibility FEnvQueryTestDetails::GetBoolFilterVisibility() const
 	}
 
 	return EVisibility::Collapsed;
+}
+
+EVisibility FEnvQueryTestDetails::GetDiscardFailedVisibility() const
+{
+	uint8 EnumValue;
+	ConditionHandle->GetValue(EnumValue);
+
+	return (EnumValue == EEnvTestCondition::NoCondition) ? EVisibility::Collapsed : EVisibility::Visible;
 }
 
 

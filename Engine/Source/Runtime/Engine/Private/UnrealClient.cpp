@@ -269,7 +269,7 @@ FViewport::FViewport(FViewportClient* InViewportClient):
 	ViewportClient(InViewportClient),
 	SizeX(0),
 	SizeY(0),
-	bIsFullscreen(false),
+	WindowMode(EWindowMode::Windowed),
 	bHitProxiesCached(false),
 	bHasRequestedToggleFreeze(false),
 	bIsSlateViewport(false),
@@ -911,7 +911,7 @@ HHitProxy* FViewport::GetHitProxy(int32 X,int32 Y)
 	return HitProxy;
 }
 
-void FViewport::UpdateViewportRHI(bool bDestroyed,uint32 NewSizeX,uint32 NewSizeY,bool bNewIsFullscreen)
+void FViewport::UpdateViewportRHI(bool bDestroyed,uint32 NewSizeX,uint32 NewSizeY,EWindowMode::Type NewWindowMode)
 {
 	// Make sure we're not in the middle of streaming textures.
 	(*GFlushStreamingFunc)();
@@ -924,7 +924,7 @@ void FViewport::UpdateViewportRHI(bool bDestroyed,uint32 NewSizeX,uint32 NewSize
 		// This is done AFTER the command flush done by UpdateViewportRHI, to avoid disrupting rendering thread accesses to the old viewport size.
 		SizeX = NewSizeX;
 		SizeY = NewSizeY;
-		bIsFullscreen = bNewIsFullscreen;
+		WindowMode = NewWindowMode;
 
 		// Release the viewport's resources.
 		BeginReleaseResource(this);
@@ -947,7 +947,7 @@ void FViewport::UpdateViewportRHI(bool bDestroyed,uint32 NewSizeX,uint32 NewSize
 					ViewportRHI,
 					SizeX,
 					SizeY,
-					bIsFullscreen
+					IsFullscreen()
 					);
 			}
 			else
@@ -957,7 +957,7 @@ void FViewport::UpdateViewportRHI(bool bDestroyed,uint32 NewSizeX,uint32 NewSize
 					GetWindow(),
 					SizeX,
 					SizeY,
-					bIsFullscreen
+					IsFullscreen()
 					);
 			}
 		
@@ -1052,7 +1052,7 @@ void FViewport::InitRHI()
 			GetWindow(),
 			SizeX,
 			SizeY,
-			bIsFullscreen
+			IsFullscreen()
 			);
 		
 		UpdateRenderTargetSurfaceRHIToCurrentBackBuffer();
@@ -1176,7 +1176,7 @@ void FViewport::SetInitialSize( FIntPoint InitialSizeXY )
 	// Initial size only works if the viewport has not yet been resized
 	if( GetSizeXY() == FIntPoint::ZeroValue )
 	{
-		UpdateViewportRHI( false, InitialSizeXY.X, InitialSizeXY.Y, false );
+		UpdateViewportRHI( false, InitialSizeXY.X, InitialSizeXY.Y, EWindowMode::Windowed );
 	}
 }
 

@@ -15,7 +15,8 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void FBehaviorDecoratorDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 {
 	FString AbortModeDesc = LOCTEXT("ObserverTitle","Observer aborts").ToString();
-	
+	PropUtils = &(DetailLayout.GetPropertyUtilities().Get());
+
 	TArray<TWeakObjectPtr<UObject> > EditedObjects;
 	DetailLayout.GetObjectsBeingCustomized(EditedObjects);
 	
@@ -65,33 +66,36 @@ void FBehaviorDecoratorDetails::UpdateAllowedAbortModes()
 
 	UBTDecorator* MyDecorator = Cast<UBTDecorator>(MyNode);
 	UBTCompositeNode* MyParentNode = MyDecorator ? MyDecorator->GetParentNode() : NULL;
-	if (MyParentNode)
-	{
-		const bool bAllowAbortNone = MyDecorator->bAllowAbortNone;
-		const bool bAllowAbortSelf = MyDecorator->bAllowAbortChildNodes && MyParentNode->CanAbortSelf();
-		const bool bAllowAbortLowerPriority = MyDecorator->bAllowAbortLowerPri && MyParentNode->CanAbortLowerPriority();
 
-		const bool AbortCondition[] = { bAllowAbortNone, bAllowAbortSelf, bAllowAbortLowerPriority, bAllowAbortSelf && bAllowAbortLowerPriority };
-		EBTFlowAbortMode::Type AbortValues[] = { EBTFlowAbortMode::None, EBTFlowAbortMode::Self, EBTFlowAbortMode::LowerPriority, EBTFlowAbortMode::Both };
-		for (int32 i = 0; i < 4; i++)
+	const bool bAllowAbortNone = MyDecorator->bAllowAbortNone;
+	const bool bAllowAbortSelf = MyDecorator->bAllowAbortChildNodes && (MyParentNode == NULL || MyParentNode->CanAbortSelf());
+	const bool bAllowAbortLowerPriority = MyDecorator->bAllowAbortLowerPri && (MyParentNode == NULL || MyParentNode->CanAbortLowerPriority());
+
+	const bool AbortCondition[] = { bAllowAbortNone, bAllowAbortSelf, bAllowAbortLowerPriority, bAllowAbortSelf && bAllowAbortLowerPriority };
+	EBTFlowAbortMode::Type AbortValues[] = { EBTFlowAbortMode::None, EBTFlowAbortMode::Self, EBTFlowAbortMode::LowerPriority, EBTFlowAbortMode::Both };
+	for (int32 i = 0; i < 4; i++)
+	{
+		if (AbortCondition[i])
 		{
-			if (AbortCondition[i])
-			{
-				FStringIntPair ModeDesc;
-				ModeDesc.Int = AbortValues[i];
-				ModeDesc.Str = UBehaviorTreeTypes::DescribeFlowAbortMode(AbortValues[i]);
-				ModeValues.Add(ModeDesc);
-			}
+			FStringIntPair ModeDesc;
+			ModeDesc.Int = AbortValues[i];
+			ModeDesc.Str = UBehaviorTreeTypes::DescribeFlowAbortMode(AbortValues[i]);
+			ModeValues.Add(ModeDesc);
 		}
 	}
 
-	bIsModeEnabled = MyDecorator && MyParentNode && ModeValues.Num();
+	bIsModeEnabled = MyDecorator && ModeValues.Num();
 	bShowMode = ModeValues.Num() > 0;
+}
+
+bool FBehaviorDecoratorDetails::IsEditingEnabled() const
+{
+	return FBehaviorTreeDebugger::IsPIENotSimulating() && PropUtils->IsPropertyEditingEnabled();
 }
 
 bool FBehaviorDecoratorDetails::GetAbortModeEnabled() const
 {
-	return bIsModeEnabled && FBehaviorTreeDebugger::IsPIENotSimulating();
+	return bIsModeEnabled && IsEditingEnabled();
 }
 
 void FBehaviorDecoratorDetails::InitPropertyValues()

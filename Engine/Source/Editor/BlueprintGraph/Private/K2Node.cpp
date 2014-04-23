@@ -605,7 +605,7 @@ FLinearColor UK2Node::GetNodeTitleColor() const
 }
 
 
-TMap<FName, FFieldRemapInfo> UK2Node::FieldRedirectMap;
+TMap<FFieldRemapInfo, FFieldRemapInfo> UK2Node::FieldRedirectMap;
 TMultiMap<UClass*, FParamRemapInfo> UK2Node::ParamRedirectMap;
 
 bool UK2Node::bFieldRedirectMapInitialized = false;
@@ -618,8 +618,11 @@ bool UK2Node::FindReplacementFieldName(UClass* Class, FName FieldName, FFieldRem
 	// Reset the property remap info
 	RemapInfo = FFieldRemapInfo();
 
-	FString FullOldField = FString::Printf(TEXT("%s.%s"), *Class->GetName(), *FieldName.ToString());
-	FFieldRemapInfo* NewFieldInfoPtr = FieldRedirectMap.Find(FName(*FullOldField));
+	FFieldRemapInfo OldField;
+	OldField.FieldClass = Class->GetFName();
+	OldField.FieldName = FieldName;
+
+	FFieldRemapInfo* NewFieldInfoPtr = FieldRedirectMap.Find(OldField);
 	if (NewFieldInfoPtr != NULL)
 	{
 		RemapInfo = *NewFieldInfoPtr;
@@ -642,30 +645,51 @@ void UK2Node::InitFieldRedirectMap()
 			{
 				if (It.Key() == TEXT("K2FieldRedirects"))
 				{
-					FName OldFieldName = NAME_None;
+					FString OldFieldPathString;
 					FString NewFieldPathString;
 
-					FParse::Value( *It.Value(), TEXT("OldFieldName="), OldFieldName );
+					FParse::Value( *It.Value(), TEXT("OldFieldName="), OldFieldPathString );
 					FParse::Value( *It.Value(), TEXT("NewFieldName="), NewFieldPathString );
 
 					// Handle both cases of just a field being renamed (just one FName), as well as a class and field name (ClassName.FieldName)
-					TArray<FString> NewFieldPath;
-					NewFieldPathString.ParseIntoArray(&NewFieldPath, TEXT("."), true);
-
-					FFieldRemapInfo FieldRemap;
-					if( NewFieldPath.Num() == 1 )
+					FFieldRemapInfo OldFieldRemap;
 					{
-						// Only the new property name is specified
-						FieldRemap.FieldName = FName(*NewFieldPath[0]);
-					}
-					else if( NewFieldPath.Num() == 2 )
-					{
-						// Property name and new class are specified
-						FieldRemap.FieldClass = FName(*NewFieldPath[0]);
-						FieldRemap.FieldName = FName(*NewFieldPath[1]);
+						TArray<FString> OldFieldPath;
+						OldFieldPathString.ParseIntoArray(&OldFieldPath, TEXT("."), true);
+
+						if (OldFieldPath.Num() == 1)
+						{
+							// Only the new property name is specified
+							OldFieldRemap.FieldName = FName(*OldFieldPath[0]);
+						}
+						else if (OldFieldPath.Num() == 2)
+						{
+							// Property name and new class are specified
+							OldFieldRemap.FieldClass = FName(*OldFieldPath[0]);
+							OldFieldRemap.FieldName = FName(*OldFieldPath[1]);
+						}
 					}
 
-					FieldRedirectMap.Add(OldFieldName, FieldRemap);
+					// Handle both cases of just a field being renamed (just one FName), as well as a class and field name (ClassName.FieldName)
+					FFieldRemapInfo NewFieldRemap;
+					{
+						TArray<FString> NewFieldPath;
+						NewFieldPathString.ParseIntoArray(&NewFieldPath, TEXT("."), true);
+
+						if( NewFieldPath.Num() == 1 )
+						{
+							// Only the new property name is specified
+							NewFieldRemap.FieldName = FName(*NewFieldPath[0]);
+						}
+						else if( NewFieldPath.Num() == 2 )
+						{
+							// Property name and new class are specified
+							NewFieldRemap.FieldClass = FName(*NewFieldPath[0]);
+							NewFieldRemap.FieldName = FName(*NewFieldPath[1]);
+						}
+					}
+
+					FieldRedirectMap.Add(OldFieldRemap, NewFieldRemap);
 				}			
 				if (It.Key() == TEXT("K2ParamRedirects"))
 				{

@@ -227,7 +227,7 @@ void FSceneOutlinerGutter::SortItems(TArray<TSharedPtr<SceneOutliner::TOutlinerT
 			if (VisibleA == VisibleB)
 			{
 				// Always sort identical items by name
-				return GetLabelForItem(A.ToSharedRef()).ToString() < GetLabelForItem(B.ToSharedRef()).ToString();
+				return GetLabelForItemAsString(A.ToSharedRef()) < GetLabelForItemAsString(B.ToSharedRef());
 			}
 			else
 			{

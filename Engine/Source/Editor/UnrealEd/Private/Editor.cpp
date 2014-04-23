@@ -823,7 +823,7 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	// Update subsystems.
 	{
 		// This assumes that UObject::StaticTick only calls ProcessAsyncLoading.	
-		StaticTick( DeltaSeconds );
+		StaticTick(DeltaSeconds, AsyncLoadingTimeLimit / 1000.f);
 	}
 
 	// Look for realtime flags.

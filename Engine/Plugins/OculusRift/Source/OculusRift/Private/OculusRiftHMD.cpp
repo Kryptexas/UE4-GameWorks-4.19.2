@@ -1088,9 +1088,9 @@ bool FOculusRiftHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar 
 	return false;
 }
 
-void FOculusRiftHMD::OnScreenModeChange(bool bFullScreenNow)
+void FOculusRiftHMD::OnScreenModeChange(EWindowMode::Type WindowMode)
 {
-	EnableStereo(bFullScreenNow);
+	EnableStereo(WindowMode != EWindowMode::Windowed);
 	UpdateStereoRenderingParams();
 }
 

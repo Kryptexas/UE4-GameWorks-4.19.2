@@ -238,7 +238,7 @@ COREUOBJECT_API void PreInitUObject();
  */
 COREUOBJECT_API void MarkObjectsToDisregardForGC();
 COREUOBJECT_API bool StaticExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar=*GLog );
-COREUOBJECT_API void StaticTick( float DeltaTime );
+COREUOBJECT_API void StaticTick( float DeltaTime, float AsyncLoadingTime = 0.005f );
 
 /**
  * Loads a package and all contained objects that match context flags.

@@ -5,8 +5,8 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogEQS, Log, All);
 
-// If set, normalized partial weights will be stored
-#define EQS_STORE_PARTIAL_WEIGHTS		0
+// If set, execution details will be processed by debugger
+#define USE_EQS_DEBUGGER				(1 && !(UE_BUILD_SHIPPING || UE_BUILD_TEST))
 
 DECLARE_STATS_GROUP(TEXT("EnvironmentQuery"),STATGROUP_AI_EQS);
 
@@ -39,7 +39,8 @@ namespace EEnvTestWeight
 		Square,
 		Inverse,
 		Absolute,
-		Flat,
+		Constant,
+		Skip			UMETA(DisplayName = "Do not weight"),
 	};
 }
 
@@ -309,11 +310,11 @@ struct ENGINE_API FEnvQueryItem
 	/** raw data offset */
 	int32 DataOffset:31;
 
-	/** has this item been discarded */
-	int32 bIsDiscarted:1;
+	/** has this item been discarded? */
+	int32 bIsDiscarded:1;
 
-	FORCEINLINE bool IsValid() const { return DataOffset >= 0 && !bIsDiscarted; }
-	FORCEINLINE void Discard() { bIsDiscarted = true; }
+	FORCEINLINE bool IsValid() const { return DataOffset >= 0 && !bIsDiscarded; }
+	FORCEINLINE void Discard() { bIsDiscarded = true; }
 
 	bool operator<(const FEnvQueryItem& Other) const
 	{
@@ -328,8 +329,8 @@ struct ENGINE_API FEnvQueryItem
 		return Score < Other.Score;
 	}
 
-	FEnvQueryItem() : Score(0.0f), DataOffset(-1), bIsDiscarted(false) {}
-	FEnvQueryItem(int32 InOffset) : Score(0.0f), DataOffset(InOffset), bIsDiscarted(false) {}
+	FEnvQueryItem() : Score(0.0f), DataOffset(-1), bIsDiscarded(false) {}
+	FEnvQueryItem(int32 InOffset) : Score(0.0f), DataOffset(InOffset), bIsDiscarded(false) {}
 };
 
 template <> struct TIsZeroConstructType<FEnvQueryItem> { enum { Value = true }; };
@@ -386,28 +387,29 @@ struct ENGINE_API FEnvQueryItemDetails
 	/** Results assigned by option's tests, before any modifications */
 	TArray<float> TestResults;
 
-#if EQS_STORE_PARTIAL_WEIGHTS
+#if USE_EQS_DEBUGGER
 	/** Results assigned by option's tests, after applying modifiers, normalization and weight */
 	TArray<float> TestWeightedScores;
-#endif
 
-#if WITH_EDITOR
 	int32 FailedTestIndex;
-#endif // WITH_EDITOR
+	int32 ItemIndex;
+#endif // USE_EQS_DEBUGGER
 
 	FEnvQueryItemDetails() {}
-	FEnvQueryItemDetails(int32 NumTests)
+	FEnvQueryItemDetails(int32 NumTests, int32 InItemIndex)
 	{
 		TestResults.AddZeroed(NumTests);
-#if EQS_STORE_PARTIAL_WEIGHTS
+#if USE_EQS_DEBUGGER
 		TestWeightedScores.AddZeroed(NumTests);
+		ItemIndex = InItemIndex;
+		FailedTestIndex = INDEX_NONE;
 #endif
 	}
 
 	FORCEINLINE uint32 GetAllocatedSize() const
 	{
 		return sizeof(*this) +
-#if EQS_STORE_PARTIAL_WEIGHTS
+#if USE_EQS_DEBUGGER
 			TestWeightedScores.GetAllocatedSize() +
 #endif
 			TestResults.GetAllocatedSize();
@@ -516,10 +518,10 @@ struct ENGINE_API FEnvQueryInstance : public FEnvQueryResult
 	/** set when testing final condition of an option */
 	uint8 bPassOnSingleResult : 1;
 
-#if WITH_EDITOR
+#if USE_EQS_DEBUGGER
 	/** set to true to store additional debug info */
 	uint8 bStoreDebugInfo : 1;
-#endif // WITH_EDITOR
+#endif // USE_EQS_DEBUGGER
 
 	/** run mode */
 	TEnumAsByte<EEnvQueryRunMode::Type> Mode;
@@ -534,9 +536,9 @@ struct ENGINE_API FEnvQueryInstance : public FEnvQueryResult
 	double TimeLimit;
 
 	FEnvQueryInstance() : World(NULL), CurrentTest(-1), NumValidItems(0), bFoundSingleResult(false)
-#if WITH_EDITOR
+#if USE_EQS_DEBUGGER
 		, bStoreDebugInfo(bDebuggingInfoEnabled) 
-#endif // WITH_EDITOR
+#endif // USE_EQS_DEBUGGER
 	{ IncStats(); }
 	FEnvQueryInstance(const FEnvQueryInstance& Other) { *this = Other; IncStats(); }
 	~FEnvQueryInstance() { DecStats(); }
@@ -651,13 +653,9 @@ public:
 #endif // #if !NO_LOGGING
 
 #if CPP || UE_BUILD_DOCS
-	struct ItemIterator
+	struct ENGINE_API ItemIterator
 	{
-		ItemIterator(FEnvQueryInstance& QueryInstance) : Instance(&QueryInstance), CurrentItem(QueryInstance.CurrentTestStartingItem)
-		{
-			Deadline = QueryInstance.TimeLimit > 0.0 ? (FPlatformTime::Seconds() + QueryInstance.TimeLimit) : -1.0;
-			InitItemScore();
-		}
+		ItemIterator(class UEnvQueryTest* QueryTest, FEnvQueryInstance& QueryInstance);
 
 		~ItemIterator()
 		{
@@ -669,7 +667,15 @@ public:
 			if ((Condition == EEnvTestCondition::AtLeast && Score < Threshold) ||
 				(Condition == EEnvTestCondition::UpTo && Score > Threshold))
 			{
-				bPassed = false;
+				if (bDiscardFailed)
+				{
+					bPassed = false;
+				}
+				else
+				{
+					bSkipped = true;
+					NumPartialScores++;
+				}
 			}
 			else
 			{
@@ -682,7 +688,15 @@ public:
 		{
 			if (Condition == EEnvTestCondition::Match && bScore != bExpected)
 			{
-				bPassed = false;
+				if (bDiscardFailed)
+				{
+					bPassed = false;
+				}
+				else
+				{
+					bSkipped = true;
+					NumPartialScores++;
+				}
 			}
 			else
 			{
@@ -691,9 +705,19 @@ public:
 			}
 		}
 
+		uint8* GetItemData()
+		{
+			return Instance->RawData.GetTypedData() + Instance->Items[CurrentItem].DataOffset;
+		}
+
 		void DiscardItem()
 		{
 			bPassed = false;
+		}
+
+		void SkipItem()
+		{
+			bSkipped++;
 		}
 
 		operator bool() const
@@ -719,27 +743,31 @@ public:
 	protected:
 
 		FEnvQueryInstance* Instance;
+		UEnvQueryTest* Test;
 		int32 CurrentItem;
 		int32 NumPartialScores;
 		double Deadline;
 		float ItemScore;
-		bool bPassed;
+		uint32 bPassed : 1;
+		uint32 bSkipped : 1;
+		uint32 bDiscardFailed : 1;
 
 		void InitItemScore()
 		{
 			NumPartialScores = 0;
 			ItemScore = 0.0f;
 			bPassed = true;
+			bSkipped = false;
 		}
 
-		ENGINE_API void StoreTestResult();
+		void StoreTestResult();
 	};
 #endif
 
-#if WITH_EDITOR
+#if USE_EQS_DEBUGGER
 	FEQSQueryDebugData DebugData;
 	static bool bDebuggingInfoEnabled;
-#endif // WITH_EDITOR
+#endif // USE_EQS_DEBUGGER
 	FBox GetBoundingBox() const;
 };
 
@@ -754,6 +782,9 @@ UCLASS(Abstract, CustomConstructor)
 class ENGINE_API UEnvQueryTypes : public UObject
 {
 	GENERATED_UCLASS_BODY()
+
+	/** special test value assigned to items skipped by condition check */
+	static float SkippedItemValue;
 
 	UEnvQueryTypes(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP) {}
 	static FText GetShortTypeName(const UObject* Ob);

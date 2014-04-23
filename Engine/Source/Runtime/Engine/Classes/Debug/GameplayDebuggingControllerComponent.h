@@ -29,19 +29,21 @@ class ENGINE_API UGameplayDebuggingControllerComponent : public UActorComponent
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) OVERRIDE;
 	virtual void BeginDestroy() OVERRIDE;
 	virtual void InitializeComponent();
+	void InitBasicFuncionality();
+	void BindActivationKeys();
 
 	APawn* GetCurrentDebugTarget() const;
 
 	/** periodic update of navmesh data */
 	void UpdateNavMeshTimer();
 
+	virtual void OnControlPressed();
+	virtual void OnControlReleased();
+
 protected:
 
 	UPROPERTY(Transient)
 	class AHUD*	OnDebugAIHUD;
-
-	UPROPERTY(Transient)
-	class AHUD*	OryginalHUD;
 
 	UPROPERTY(Transient)
 	class APawn* DebugAITargetActor;
@@ -53,9 +55,6 @@ protected:
 	virtual void BeginAIDebugView(bool bJustBugIt = false);
 	virtual void LockAIDebugView();
 	virtual void EndAIDebugView();
-
-	virtual void OnControlPressed();
-	virtual void OnControlReleased();
 
 	/** Sets appropriate EngineFlags.GameplayDebug flag to bNewValue. 
 	 *	@param MyPC used to determine which EngineFlags instance to use. If NULL component's Owner will be used */

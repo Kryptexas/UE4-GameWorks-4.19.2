@@ -7,6 +7,7 @@
 #include "OnlineSessionInterfaceNull.h"
 #include "OnlineLeaderboardInterfaceNull.h"
 #include "OnlineIdentityNull.h"
+#include "VoiceInterfaceImpl.h"
 #include "OnlineAchievementsInterfaceNull.h"
 
 IOnlineSessionPtr FOnlineSubsystemNull::GetSessionInterface() const
@@ -43,8 +44,7 @@ IOnlineLeaderboardsPtr FOnlineSubsystemNull::GetLeaderboardsInterface() const
 
 IOnlineVoicePtr FOnlineSubsystemNull::GetVoiceInterface() const
 {
-	//return VoiceInterface;
-	return NULL;
+	return VoiceInterface;
 }
 
 IOnlineExternalUIPtr FOnlineSubsystemNull::GetExternalUIInterface() const
@@ -115,6 +115,11 @@ bool FOnlineSubsystemNull::Tick(float DeltaTime)
  		SessionInterface->Tick(DeltaTime);
  	}
 
+	if (VoiceInterface.IsValid())
+	{
+		VoiceInterface->Tick(DeltaTime);
+	}
+
 	return true;
 }
 
@@ -135,6 +140,11 @@ bool FOnlineSubsystemNull::Init()
 		LeaderboardsInterface = MakeShareable(new FOnlineLeaderboardsNull(this));
 		IdentityInterface = MakeShareable(new FOnlineIdentityNull(this));
 		AchievementsInterface = MakeShareable(new FOnlineAchievementsNull(this));
+		VoiceInterface = MakeShareable(new FOnlineVoiceImpl(this));
+		if (!VoiceInterface->Init())
+		{
+			VoiceInterface = NULL;
+		}
 	}
 	else
 	{
@@ -177,6 +187,12 @@ bool FOnlineSubsystemNull::Shutdown()
 	#undef DESTRUCT_INTERFACE
 	
 	return true;
+}
+
+bool FOnlineSubsystemNull::IsLocalPlayer(const FUniqueNetId& UniqueId) const
+{
+	IOnlineIdentityPtr IdentityInt = GetIdentityInterface();
+	return IsLocalPlayerImpl(IdentityInt, UniqueId);
 }
 
 FString FOnlineSubsystemNull::GetAppId() const

@@ -34,10 +34,10 @@ public:
 	void UpdateNavAgent(class AActor* Owner);
 	void UpdateNavAgent(class UCapsuleComponent* CapsuleComponent);
 
-	/** @returns location of controlled actor (on ground level) */
-	FORCEINLINE FVector GetActorLocation() const { return UpdatedComponent ? (UpdatedComponent->GetComponentLocation() - FVector(0,0,UpdatedComponent->Bounds.BoxExtent.Z)) : FVector::ZeroVector; }
+	/** @returns location of controlled actor's "feet" meaning center of bottom of collision bounding box */
+	FORCEINLINE FVector GetActorFeetLocation() const { return UpdatedComponent ? (UpdatedComponent->GetComponentLocation() - FVector(0,0,UpdatedComponent->Bounds.BoxExtent.Z)) : FVector::ZeroVector; }
 	/** @returns based location of controlled actor */
-	virtual FBasedPosition GetActorLocationBased() const;
+	virtual FBasedPosition GetActorFeetLocationBased() const;
 	/** @returns navigation location of controlled actor */
 	FORCEINLINE FVector GetActorNavLocation() const { INavAgentInterface* MyOwner = InterfaceCast<INavAgentInterface>(GetOwner()); return MyOwner ? MyOwner->GetNavAgentLocation() : FVector::ZeroVector; }
 

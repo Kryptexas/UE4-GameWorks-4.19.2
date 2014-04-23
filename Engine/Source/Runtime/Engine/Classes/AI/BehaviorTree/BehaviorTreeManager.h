@@ -38,6 +38,9 @@ class ENGINE_API UBehaviorTreeManager : public UObject
 	/** get aligned memory size */
 	static int32 GetAlignedDataSize(int32 Size);
 
+	/** helper function for sorting and aligning node memory */
+	static void InitializeMemoryHelper(const TArray<UBTDecorator*>& Nodes, TArray<uint16>& MemoryOffsets, int32& MemorySize);
+
 	/** cleanup hooks for map loading */
 	virtual void FinishDestroy() OVERRIDE;
 

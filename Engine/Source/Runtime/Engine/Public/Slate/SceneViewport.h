@@ -140,9 +140,9 @@ public:
 	 *
 	 * @param NewSizeX		The new width of the viewport
 	 * @param NewSizeY		The new height of the viewport
-	 * @param bFullscreen	True if the viewport should be fullscreen
+	 * @param NewWindowMode	 What window mode should the viewport be resized to
 	 */
-	virtual void ResizeFrame(uint32 NewSizeX,uint32 NewSizeY,bool bNewFullscreen,int32 InPosX, int32 InPosY ) OVERRIDE;
+	virtual void ResizeFrame(uint32 NewSizeX,uint32 NewSizeY,EWindowMode::Type NewWindowMode,int32 InPosX, int32 InPosY ) OVERRIDE;
 
 	/**
 	 *	Sets the Viewport resize delegate.
@@ -162,7 +162,7 @@ public:
 	}
 
 	/** Updates the viewport RHI with a new size and fullscreen flag */
-	virtual void UpdateViewportRHI(bool bDestroyed,uint32 NewSizeX,uint32 NewSizeY,bool bNewIsFullscreen) OVERRIDE;
+	virtual void UpdateViewportRHI(bool bDestroyed,uint32 NewSizeX,uint32 NewSizeY,EWindowMode::Type NewWindowMode) OVERRIDE;
 
 	/** ISlateViewport interface */
 	virtual FSlateShaderResource* GetViewportRenderTargetTexture() const OVERRIDE;
@@ -213,9 +213,9 @@ private:
 	 *
 	 * @param NewSizeX		 The new width of the viewport
 	 * @param NewSizeY		 The new height of the viewport
-	 * @param bNewFullscreen True if the viewport should be fullscreen
+	 * @param NewWindowMode	 What window mode should the viewport be resized to
 	 */
-	virtual void ResizeViewport( uint32 NewSizeX,uint32 NewSizeY,bool bNewFullscreen,int32 InPosX, int32 InPosY );
+	virtual void ResizeViewport( uint32 NewSizeX,uint32 NewSizeY,EWindowMode::Type NewWindowMode,int32 InPosX, int32 InPosY );
 
 
 	/**

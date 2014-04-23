@@ -277,20 +277,126 @@ void AGameplayDebuggingHUDComponent::DrawEQSData(APlayerController* PC, class UG
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	PrintString(DefaultContext, TEXT("\n{green}EQS\n"));
-	if (DebugComponent->EQSQueryInstance.IsValid())
+	if (DebugComponent->EQSRepData.Num())
 	{
-		PrintString(DefaultContext, FString::Printf(TEXT("{yellow}Timestamp: {white}%.3f (%.2fs ago)\n")
+		PrintString(DefaultContext, FString::Printf(TEXT("{white}Timestamp: {yellow}%.3f (%.2fs ago)\n")
 			, DebugComponent->EQSTimestamp, PC->GetWorld()->GetTimeSeconds() - DebugComponent->EQSTimestamp
 			));
-		PrintString(DefaultContext, FString::Printf(TEXT("{yellow}Query Name: {white}%s\n")
-			, *DebugComponent->EQSQueryInstance->QueryName
+		PrintString(DefaultContext, FString::Printf(TEXT("{white}Query Name: {yellow}%s\n")
+			, *DebugComponent->EQSName
 			));
-		PrintString(DefaultContext, FString::Printf(TEXT("{yellow}Query ID: {white}%d\n")
-			, DebugComponent->EQSQueryInstance->QueryID
+		PrintString(DefaultContext, FString::Printf(TEXT("{white}Query ID: {yellow}%d\n")
+			, DebugComponent->EQSId
 			));
 	}
-	
+
+	if (DebugComponent->EQSLocalData.NumValidItems > 0)
+	{
+		// draw test weights for best X items
+		const int32 NumItems = DebugComponent->EQSLocalData.Items.Num();
+		const int32 NumTests = DebugComponent->EQSLocalData.Tests.Num();
+		const float RowHeight = 20.0f;
+
+		FCanvasTileItem TileItem(FVector2D(0, 0), GWhiteTexture, FVector2D(Canvas->SizeX, RowHeight), FLinearColor::Black);
+		FLinearColor ColorOdd(0, 0, 0, 0.6f);
+		FLinearColor ColorEven(0, 0, 0.4f, 0.4f);
+		TileItem.BlendMode = SE_BLEND_Translucent;
+
+		// table header		
+		{
+			DefaultContext.CursorY += RowHeight;
+			const float HeaderY = DefaultContext.CursorY + 3.0f;
+			TileItem.SetColor(ColorOdd);
+			DrawItem(DefaultContext, TileItem, 0, DefaultContext.CursorY);
+
+			float HeaderX = DefaultContext.CursorX;
+			PrintString(DefaultContext, FColor::Yellow, FString::Printf(TEXT("Num items: %d"), DebugComponent->EQSLocalData.NumValidItems), HeaderX, HeaderY);
+			HeaderX += 200.0f;
+
+			PrintString(DefaultContext, FColor::White, TEXT("Score"), HeaderX, HeaderY);
+			HeaderX += 50.0f;
+
+			for (int32 TestIdx = 0; TestIdx < NumTests; TestIdx++)
+			{
+				PrintString(DefaultContext, FColor::White, FString::Printf(TEXT("Test %d"), TestIdx), HeaderX, HeaderY);
+				HeaderX += 100.0f;
+			}
+
+			DefaultContext.CursorY += RowHeight;
+		}
+
+		// valid items
+		for (int32 Idx = 0; Idx < NumItems; Idx++)
+		{
+			TileItem.SetColor((Idx % 2) ? ColorOdd : ColorEven);
+			DrawItem(DefaultContext, TileItem, 0, DefaultContext.CursorY);
+
+			DrawEQSItemDetails(Idx, DebugComponent);
+			DefaultContext.CursorY += RowHeight;
+		}
+
+		// test description
+		DefaultContext.CursorY += RowHeight;
+		for (int32 TestIdx = 0; TestIdx < NumTests; TestIdx++)
+		{
+			FString TestDesc = FString::Printf(TEXT("{white}Test %d = {yellow}%s {LightBlue}(%s)\n"), TestIdx,
+				*DebugComponent->EQSLocalData.Tests[TestIdx].ShortName,
+				*DebugComponent->EQSLocalData.Tests[TestIdx].Detailed);
+
+			PrintString(DefaultContext, TestDesc);
+		}
+	}
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+}
+
+void AGameplayDebuggingHUDComponent::DrawEQSItemDetails(int32 ItemIdx, class UGameplayDebuggingComponent *DebugComponent)
+{
+#if USE_EQS_DEBUGGER
+	const float PosY = DefaultContext.CursorY + 1.0f;
+	float PosX = DefaultContext.CursorX;
+
+	const EQSDebug::FItemData& ItemData = DebugComponent->EQSLocalData.Items[ItemIdx];
+
+	PrintString(DefaultContext, FColor::White, ItemData.Desc, PosX, PosY);
+	PosX += 200.0f;
+
+	FString ScoreDesc = FString::Printf(TEXT("%.2f"), ItemData.TotalScore);
+	PrintString(DefaultContext, FColor::Yellow, ScoreDesc, PosX, PosY);
+	PosX += 50.0f;
+
+	FCanvasTileItem ActiveTileItem(FVector2D(0, PosY + 15.0f), GWhiteTexture, FVector2D(0, 2.0f), FLinearColor::Yellow);
+	FCanvasTileItem BackTileItem(FVector2D(0, PosY + 15.0f), GWhiteTexture, FVector2D(0, 2.0f), FLinearColor(0.1f, 0.1f, 0.1f));
+	const float BarWidth = 80.0f;
+
+	const int32 NumTests = ItemData.TestScores.Num();
+
+	float TotalWeightedScore = 0.0f;
+	for (int32 Idx = 0; Idx < NumTests; Idx++)
+	{
+		TotalWeightedScore += ItemData.TestScores[Idx];
+	}
+
+	for (int32 Idx = 0; Idx < NumTests; Idx++)
+	{
+		const float ScoreW = ItemData.TestScores[Idx];
+		const float ScoreN = ItemData.TestValues[Idx];
+		FString DescScoreW = FString::Printf(TEXT("%.2f"), ScoreW);
+		FString DescScoreN = (ScoreN == UEnvQueryTypes::SkippedItemValue) ? TEXT("SKIP") : FString::Printf(TEXT("%.2f"), ScoreN);
+		FString TestDesc = DescScoreW + FString(" {LightBlue}") + DescScoreN;
+
+		float Pct = (TotalWeightedScore > KINDA_SMALL_NUMBER) ? (ScoreW / TotalWeightedScore) : 0.0f;
+		ActiveTileItem.Position.X = PosX;
+		ActiveTileItem.Size.X = BarWidth * Pct;
+		BackTileItem.Position.X = PosX + ActiveTileItem.Size.X;
+		BackTileItem.Size.X = FMath::Max(BarWidth * (1.0f - Pct), 0.0f);
+
+		DrawItem(DefaultContext, ActiveTileItem, ActiveTileItem.Position.X, ActiveTileItem.Position.Y);
+		DrawItem(DefaultContext, BackTileItem, BackTileItem.Position.X, BackTileItem.Position.Y);
+
+		PrintString(DefaultContext, FColor::Green, TestDesc, PosX, PosY);
+		PosX += 100.0f;
+	}
+#endif
 }
 
 void AGameplayDebuggingHUDComponent::DrawPerception(APlayerController* PC, class UGameplayDebuggingComponent *DebugComponent)

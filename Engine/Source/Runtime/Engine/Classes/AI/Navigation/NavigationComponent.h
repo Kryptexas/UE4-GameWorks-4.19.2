@@ -125,6 +125,7 @@ class ENGINE_API UNavigationComponent : public UActorComponent, public INavigati
 		}
 	}
 
+	void SwapCurrentMoveGoal(const AActor* NewGoalActor);
 	FORCEINLINE FVector GetQueryExtent() const { return NavigationQueryExtent; }
 
 	//----------------------------------------------------------------------//

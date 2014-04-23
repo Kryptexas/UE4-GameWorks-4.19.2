@@ -31,12 +31,16 @@ public:
 	void OnBreakpointAdded(class UBehaviorTreeGraphNode* Node);
 	void OnBreakpointRemoved(class UBehaviorTreeGraphNode* Node);
 
-	void ShowNextStep();
-	void ShowPrevStep();
-	void StepForward();
-	bool CanShowNextStep() const;
-	bool CanShowPrevStep() const;
-	bool CanStepFoward() const;
+	void StepBackInto();
+	void StepBackOver();
+	void StepForwardInto();
+	void StepForwardOver();
+	void StepOut();
+	bool CanStepBackInto() const;
+	bool CanStepBackOver() const;
+	bool CanStepForwardInto() const;
+	bool CanStepForwardOver() const;
+	bool CanStepOut() const;
 
 	static void StopPlaySession();
 	static void PausePlaySession();
@@ -81,6 +85,13 @@ private:
 	/** index of displayed step, used to detect changes */
 	int32 DisplayedStepIndex;
 
+	/** indices of display steps for different step actions */
+	int32 StepForwardIntoIdx;
+	int32 StepForwardOverIdx;
+	int32 StepBackIntoIdx;
+	int32 StepBackOverIdx;
+	int32 StepOutIdx;
+
 	/** execution indices of currently active breakpoints */
 	TArray<uint16> ActiveBreakpoints;
 
@@ -89,9 +100,6 @@ private:
 
 	/** cached PIE state */
 	uint32 bIsPIEActive : 1;
-
-	/** pause world when active node change */
-	uint32 bPauseOnNodeChange : 1;
 
 	/** set when debugger instance is currently active one */
 	uint32 bIsCurrentSubtree : 1;
@@ -152,4 +160,10 @@ private:
 
 	/** check if currently debugged instance is active subtree */
 	void UpdateCurrentSubtree();
+
+	/** updates currently displayed execution step */
+	void UpdateCurrentStep(int32 PrevStepIdx, int32 NewStepIdx);
+
+	/** updates button states */
+	void UpdateAvailableActions();
 };

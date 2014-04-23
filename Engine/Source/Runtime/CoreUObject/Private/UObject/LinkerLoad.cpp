@@ -677,9 +677,12 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::CreateLoader()
 			}
 			else
 			{
-				FFormatNamedArguments Args;
-				Args.Add( TEXT("CleanFilename"), FText::FromString( CleanFilename ) );
-				GWarn->StatusUpdate( 0, ULinkerDefs::TotalProgressSteps, FText::Format( NSLOCTEXT("Core", "Loading", "Loading file: {CleanFilename}..."), Args ) );
+				if ( GIsSlowTask )
+				{
+					FFormatNamedArguments Args;
+					Args.Add( TEXT("CleanFilename"), FText::FromString( CleanFilename ) );
+					GWarn->StatusUpdate( 0, ULinkerDefs::TotalProgressSteps, FText::Format( NSLOCTEXT("Core", "Loading", "Loading file: {CleanFilename}..."), Args ) );
+				}
 			}
 			GWarn->PushStatus();
 		}

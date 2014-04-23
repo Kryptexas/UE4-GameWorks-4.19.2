@@ -86,7 +86,7 @@ class FViewportFrame
 public:
 
 	virtual class FViewport* GetViewport() = 0;
-	virtual void ResizeFrame(uint32 NewSizeX,uint32 NewSizeY,bool NewFullscreen,int32 InPosX = -1, int32 InPosY = -1) = 0;
+	virtual void ResizeFrame(uint32 NewSizeX,uint32 NewSizeY,EWindowMode::Type NewWindowMode,int32 InPosX = -1, int32 InPosY = -1) = 0;
 };
 
 /**
@@ -199,7 +199,7 @@ public:
 	virtual float GetTabletPressure() { return 0.f; }
 	virtual bool IsPenActive() { return false; }
 	virtual void SetMouse(int32 x, int32 y) = 0;
-	virtual bool IsFullscreen()	const { return bIsFullscreen; }
+	virtual bool IsFullscreen()	const { return WindowMode == EWindowMode::Fullscreen || WindowMode == EWindowMode::WindowedFullscreen; }
 	virtual void ProcessInput( float DeltaTime ) = 0;
 
 	/**
@@ -408,7 +408,7 @@ protected:
 	 * Updates the viewport RHI with the current viewport state.
 	 * @param bDestroyed - True if the viewport has been destroyed.
 	 */
-	ENGINE_API virtual void UpdateViewportRHI(bool bDestroyed,uint32 NewSizeX,uint32 NewSizeY,bool bNewIsFullscreen);
+	ENGINE_API virtual void UpdateViewportRHI(bool bDestroyed,uint32 NewSizeX,uint32 NewSizeY,EWindowMode::Type NewWindowMode);
 
 	/**
 	 * Take a high-resolution screenshot and save to disk.
@@ -488,8 +488,8 @@ protected:
 	/** The size of the region to check hit proxies */
 	uint32 HitProxySize;
 
-	/** True if the viewport is fullscreen. */
-	uint32 bIsFullscreen : 1;
+	/** What is the current window mode. */
+	EWindowMode::Type WindowMode;
 
 	/** True if the viewport client requires hit proxy storage. */
 	uint32 bRequiresHitProxyStorage : 1;

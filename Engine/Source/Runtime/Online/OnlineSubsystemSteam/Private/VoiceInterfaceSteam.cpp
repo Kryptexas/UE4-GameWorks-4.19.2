@@ -268,12 +268,12 @@ bool FOnlineVoiceSteam::RegisterRemoteTalker(const FUniqueNetId& UniqueId)
 			}
 			else
 			{
-				UE_LOG(LogVoice, Warning, TEXT("Remote talker %s is being re-registered"), *UniqueId.ToDebugString());
+				UE_LOG(LogVoice, Verbose, TEXT("Remote talker %s is being re-registered"), *UniqueId.ToDebugString());
 				Return = S_OK;
 			}
 			
-			// @todo ONLINE Mute List update
-
+			// Update muting all of the local talkers with this remote talker
+			ProcessMuteChangeNotification();
 			// Now start processing the remote voices
 			Return = VoiceEngine->StartRemoteVoiceProcessing(UniqueId);
 			UE_LOG(LogVoice, Log, TEXT("StartRemoteVoiceProcessing(%s) returned 0x%08X"), *UniqueId.ToDebugString(), Return);

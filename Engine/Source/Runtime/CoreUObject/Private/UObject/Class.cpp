@@ -404,21 +404,30 @@ void UStruct::Link(FArchive& Ar, bool bRelinkExistingProperties)
 {
 	if (bRelinkExistingProperties)
 	{
+		// Preload everything before we calculate size, as the preload may end up recursively linking things
+		UStruct* InheritanceSuper = GetInheritanceSuper();
+		if (InheritanceSuper)
+		{
+			Ar.Preload(InheritanceSuper);			
+		}
+
+		for (UField* Field = Children; Field; Field = Field->Next)
+		{
+			// calling Preload here is required in order to load the value of Field->Next
+			Ar.Preload(Field);
+		}
+
 		PropertiesSize = 0;
 		MinAlignment = 1;
 
-		if (UStruct* InheritanceSuper = GetInheritanceSuper())
+		if (InheritanceSuper)
 		{
-			Ar.Preload(InheritanceSuper);
-
 			PropertiesSize = InheritanceSuper->GetPropertiesSize();
 			MinAlignment = InheritanceSuper->GetMinAlignment();
 		}
 
 		for (UField* Field = Children; Field; Field = Field->Next)
 		{
-			// calling Preload here is required in order to load the value of Field->Next
-			Ar.Preload( Field );
 			if (Field->GetOuter() != this)
 			{
 				break;
@@ -1276,21 +1285,22 @@ void UStruct::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collect
 		{
 			Collector.AddReferencedObject( ScriptObjectReferences[ Index ], This );
 		}
-//@todo NickW, temp hack to make stale property chains less crashy
-		for ( UProperty* Property = This->PropertyLink; Property != NULL; Property = Property->PropertyLinkNext )
-		{
-			Collector.AddReferencedObject( Property, This );
-		}
-		for ( UProperty* Property = This->RefLink; Property != NULL; Property = Property->NextRef )
-		{
-			Collector.AddReferencedObject( Property, This );
-		}
-		for ( UProperty* Property = This->DestructorLink; Property != NULL; Property = Property->DestructorLinkNext )
-		{
-			Collector.AddReferencedObject( Property, This );
-		}
-//
 	}
+
+	//@todo NickW, temp hack to make stale property chains less crashy
+	for (UProperty* Property = This->PropertyLink; Property != NULL; Property = Property->PropertyLinkNext)
+	{
+		Collector.AddReferencedObject(Property, This);
+	}
+	for (UProperty* Property = This->RefLink; Property != NULL; Property = Property->NextRef)
+	{
+		Collector.AddReferencedObject(Property, This);
+	}
+	for (UProperty* Property = This->DestructorLink; Property != NULL; Property = Property->DestructorLinkNext)
+	{
+		Collector.AddReferencedObject(Property, This);
+	}
+	//
 #endif
 	Super::AddReferencedObjects( This, Collector );
 }

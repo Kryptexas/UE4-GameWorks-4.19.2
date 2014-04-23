@@ -153,7 +153,7 @@ public:
 	/**
 	 * A callback that is called when screen mode is changed (fullscreen <-> window). 
 	 */
-	virtual void OnScreenModeChange(bool bFullScreenNow) = 0;
+	virtual void OnScreenModeChange(EWindowMode::Type WindowMode) = 0;
 
 	/** Returns true if positional tracking enabled and working. */
 	virtual bool IsPositionalTrackingEnabled() const = 0;

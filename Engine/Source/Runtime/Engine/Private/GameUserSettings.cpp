@@ -5,7 +5,7 @@
 #include "AudioDevice.h"
 #include "Scalability.h"
 
-extern EWindowMode::Type GetWindowModeType(bool bFullscreen);
+extern EWindowMode::Type GetWindowModeType(EWindowMode::Type WindowMode);
 
 enum EGameUserSettingsVersion
 {
@@ -107,8 +107,8 @@ bool UGameUserSettings::IsFullscreenModeDirty() const
 	bool bIsDirty = false;
 	if ( GEngine && GEngine->GameViewport && GEngine->GameViewport->ViewportFrame )
 	{
-		bool bIsCurrentlyFullscreen = GEngine->GameViewport->IsFullScreenViewport();
-		EWindowMode::Type CurrentFullscreenMode = GetWindowModeType(bIsCurrentlyFullscreen);
+		EWindowMode::Type WindowMode = GEngine->GameViewport->IsFullScreenViewport() ? EWindowMode::Fullscreen : EWindowMode::Windowed;
+		EWindowMode::Type CurrentFullscreenMode = GetWindowModeType(WindowMode);
 		EWindowMode::Type NewFullscreenMode = GetFullscreenMode();
 		bIsDirty = (CurrentFullscreenMode != NewFullscreenMode) ? true : false;
 	}
@@ -206,16 +206,15 @@ void UGameUserSettings::ApplySettings()
 	ValidateSettings();
 
 	bool bIsDirty = IsDirty();
-	EWindowMode::Type NewFullscreenMode = GetFullscreenMode();
+	EWindowMode::Type NewWindowMode = GetFullscreenMode();
 
 	{
 		IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.FullScreenMode")); 
-		CVar->Set(NewFullscreenMode);
+		CVar->Set(NewWindowMode);
 	}
 
 	// Request a resolution change
-	bool bIsFullscreen = (NewFullscreenMode == EWindowMode::Fullscreen || NewFullscreenMode == EWindowMode::WindowedFullscreen) ? true : false;
-	FSystemResolution::RequestResolutionChange(ResolutionSizeX, ResolutionSizeY, bIsFullscreen);
+	FSystemResolution::RequestResolutionChange(ResolutionSizeX, ResolutionSizeY, NewWindowMode);
 
 	// Update vsync cvar
 	{
@@ -250,26 +249,18 @@ void UGameUserSettings::LoadSettings( bool bForceReload/*=false*/ )
 
 	// Allow override using command-line settings
 	const EWindowMode::Type FullscreenWindowMode = GetFullscreenMode();
-	const bool bIsFullscreen = (FullscreenWindowMode == EWindowMode::Fullscreen || FullscreenWindowMode == EWindowMode::WindowedFullscreen) ? true : false;
-	bool bOverrideFullScreen = bIsFullscreen;
+	EWindowMode::Type OverrideFullscreenWindowMode = FullscreenWindowMode;
 	int32 OverrideResolutionSizeX = ResolutionSizeX;
 	int32 OverrideResolutionSizeY = ResolutionSizeY;
 	bool bDetectingResolution = ResolutionSizeX == 0 || ResolutionSizeY == 0;
 
-	UGameEngine::ConditionallyOverrideSettings(OverrideResolutionSizeX, OverrideResolutionSizeY, bOverrideFullScreen);
+	UGameEngine::ConditionallyOverrideSettings(OverrideResolutionSizeX, OverrideResolutionSizeY, OverrideFullscreenWindowMode);
 
 	ResolutionSizeX = OverrideResolutionSizeX;
 	ResolutionSizeY = OverrideResolutionSizeY;
-	if(bOverrideFullScreen != bIsFullscreen)
+	if (OverrideFullscreenWindowMode != FullscreenWindowMode)
 	{
-		if(bOverrideFullScreen)
-		{
-			SetFullscreenMode(EWindowMode::Fullscreen);
-		}
-		else
-		{
-			SetFullscreenMode(EWindowMode::Windowed);
-		}
+		SetFullscreenMode(OverrideFullscreenWindowMode);
 	}
 
 	if (bDetectingResolution)
@@ -302,7 +293,7 @@ void UGameUserSettings::PreloadResolutionSettings()
 
 	int32 ResolutionX = GetDefaultResolution().X; 
 	int32 ResolutionY = GetDefaultResolution().Y;
-	int32 FullscreenValue = GetDefaultWindowMode();
+	EWindowMode::Type WindowMode = GetDefaultWindowMode();
 	bool bUseDesktopResolution = false;
 
 	int32 Version=0;
@@ -310,13 +301,15 @@ void UGameUserSettings::PreloadResolutionSettings()
 	{
 		GConfig->GetBool(*GameUserSettingsCategory, TEXT("bUseDesktopResolution"), bUseDesktopResolution, GGameUserSettingsIni );
 
-		GConfig->GetInt(*GameUserSettingsCategory, TEXT("FullscreenMode"), FullscreenValue, GGameUserSettingsIni);
+		int32 WindowModeInt = (int32)WindowMode;
+		GConfig->GetInt(*GameUserSettingsCategory, TEXT("FullscreenMode"), WindowModeInt, GGameUserSettingsIni);
+		WindowMode = ConvertIntToWindowMode(WindowModeInt);
 
 		GConfig->GetInt(*GameUserSettingsCategory, TEXT("ResolutionSizeX"), ResolutionX, GGameUserSettingsIni);
 		GConfig->GetInt(*GameUserSettingsCategory, TEXT("ResolutionSizeY"), ResolutionY, GGameUserSettingsIni);
 
 #if PLATFORM_DESKTOP
-		if( bUseDesktopResolution && ResolutionX == 0 && ResolutionY == 0 && FullscreenValue != EWindowMode::Windowed )
+		if (bUseDesktopResolution && ResolutionX == 0 && ResolutionY == 0 && WindowMode != EWindowMode::Windowed)
 		{
 			// Grab display metrics so we can get the primary display output size.
 			FDisplayMetrics DisplayMetrics;
@@ -330,12 +323,11 @@ void UGameUserSettings::PreloadResolutionSettings()
 
 	{
 		auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.FullScreenMode")); 
-		CVar->Set(FullscreenValue);
+		CVar->Set((int32)WindowMode);
 	}
 
-	bool bFullscreen = FullscreenValue != EWindowMode::Windowed;
-	UGameEngine::ConditionallyOverrideSettings(ResolutionX, ResolutionY, bFullscreen);
-	FSystemResolution::RequestResolutionChange(ResolutionX, ResolutionY, bFullscreen);
+	UGameEngine::ConditionallyOverrideSettings(ResolutionX, ResolutionY, WindowMode);
+	FSystemResolution::RequestResolutionChange(ResolutionX, ResolutionY, WindowMode);
 
 	IConsoleManager::Get().CallAllConsoleVariableSinks();
 }
@@ -360,8 +352,7 @@ void UGameUserSettings::ResetToCurrentSettings()
 	if ( GEngine && GEngine->GameViewport && GEngine->GameViewport->GetWindow().IsValid() )
 	{
 		//handle the fullscreen setting
-		bool bIsCurrentlyFullscreen = GEngine->GameViewport->GetWindow()->GetWindowMode() != EWindowMode::Windowed;
-		SetFullscreenMode(GetWindowModeType(bIsCurrentlyFullscreen));
+		SetFullscreenMode(GetWindowModeType(GEngine->GameViewport->GetWindow()->GetWindowMode()));
 
 		//set the current resolution
 		SetScreenResolution(FIntPoint( GSystemResolution.ResX, GSystemResolution.ResY ));

@@ -68,7 +68,7 @@ bool UBTDecorator_DoesPathExist::CalculateRawConditionValue(class UBehaviorTreeC
 		else
 		{		
 			EPathFindingMode::Type TestMode = (PathQueryType == EPathExistanceQueryType::HierarchicalQuery) ? EPathFindingMode::Hierarchical : EPathFindingMode::Regular;
-			bHasPath = NavSys->TestPathSync(FPathFindingQuery(NavData, PointA, PointB, QueryFilter), TestMode);
+			bHasPath = NavSys->TestPathSync(FPathFindingQuery(AIOwner, NavData, PointA, PointB, QueryFilter), TestMode);
 		}
 	}
 

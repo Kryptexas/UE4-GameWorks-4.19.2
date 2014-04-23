@@ -170,7 +170,7 @@ void UBTDecorator_BlueprintBase::DescribeRuntimeValues(const class UBehaviorTree
 
 void UBTDecorator_BlueprintBase::OnBlackboardChange(const UBlackboardComponent* Blackboard, uint8 ChangedKeyID)
 {
-	UBehaviorTreeComponent* BehaviorComp = Blackboard ? (UBehaviorTreeComponent*)Blackboard->GetBehaviorComponent() : NULL;
+	UBehaviorTreeComponent* BehaviorComp = Blackboard ? (UBehaviorTreeComponent*)Blackboard->GetBrainComponent() : NULL;
 	if (BehaviorComp)
 	{
 		BehaviorComp->RequestExecution(this);		

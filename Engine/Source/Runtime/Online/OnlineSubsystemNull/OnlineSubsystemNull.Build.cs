@@ -16,6 +16,7 @@ public class OnlineSubsystemNull : ModuleRules
 				"Engine", 
 				"Sockets", 
 				"OnlineSubsystem", 
+				"OnlineSubsystemUtils"
 			}
 			);
 	}

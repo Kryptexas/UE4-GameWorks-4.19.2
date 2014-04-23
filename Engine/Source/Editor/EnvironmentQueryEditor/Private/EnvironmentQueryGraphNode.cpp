@@ -33,8 +33,8 @@ void UEnvironmentQueryGraphNode::ResetNodeOwner()
 {
 	if (NodeInstance)
 	{
-		UBehaviorTree* BT = Cast<UBehaviorTree>(GetEnvironmentQueryGraph()->GetOuter());
-		NodeInstance->Rename(NULL, BT, REN_DontCreateRedirectors | REN_DoNotDirty);
+		UEnvQuery* Query = Cast<UEnvQuery>(GetEnvironmentQueryGraph()->GetOuter());
+		NodeInstance->Rename(NULL, Query, REN_DontCreateRedirectors | REN_DoNotDirty);
 	}
 }
 

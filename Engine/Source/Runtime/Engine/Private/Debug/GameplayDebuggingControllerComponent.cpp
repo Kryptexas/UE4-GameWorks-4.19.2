@@ -26,6 +26,12 @@ UGameplayDebuggingControllerComponent::UGameplayDebuggingControllerComponent(con
 	DebugComponentHUDClass = NULL;
 	DebugAITargetActor = NULL;
 	DebugComponent_LastActiveViews = 1 << EAIDebugDrawDataView::Basic;
+	
+	bDisplayAIDebugInfo = false;
+	bWaitingForOwnersComponent = false;
+
+	ControlKeyPressedTime = 0;
+	bWasDisplayingInfo = false;
 }
 
 void UGameplayDebuggingControllerComponent::BeginDestroy()
@@ -62,7 +68,26 @@ void UGameplayDebuggingControllerComponent::BeginDestroy()
 void UGameplayDebuggingControllerComponent::InitializeComponent()
 {
 	Super::InitializeComponent();
+	InitBasicFuncionality();
+}
 
+void UGameplayDebuggingControllerComponent::InitBasicFuncionality()
+{
+	if (DebugComponentHUDClass == NULL)
+	{
+		DebugComponentHUDClass = StaticLoadClass(AHUD::StaticClass(), NULL, *DebugComponentHUDClassName, NULL, LOAD_None, NULL);
+	}
+
+	BindActivationKeys();
+
+#if !UE_BUILD_SHIPPING && WITH_EDITOR
+	// Register for debug drawing
+	UDebugDrawService::Register(TEXT("DebugAI"), FDebugDrawDelegate::CreateUObject(this, &UGameplayDebuggingControllerComponent::OnDebugAI));
+#endif
+}
+
+void UGameplayDebuggingControllerComponent::BindActivationKeys()
+{
 	APlayerController* PC = Cast<APlayerController>(GetOuter());
 
 	if (PC && PC->InputComponent)
@@ -70,16 +95,6 @@ void UGameplayDebuggingControllerComponent::InitializeComponent()
 		PC->InputComponent->BindKey(FInputChord(DebugComponentKey, false, false, false), IE_Pressed, this, &UGameplayDebuggingControllerComponent::OnControlPressed);
 		PC->InputComponent->BindKey(FInputChord(DebugComponentKey, false, false, false), IE_Released, this, &UGameplayDebuggingControllerComponent::OnControlReleased);
 	}
-
-	if ( DebugComponentHUDClass == NULL )
-	{
-		DebugComponentHUDClass = StaticLoadClass( AHUD::StaticClass(), NULL, *DebugComponentHUDClassName, NULL, LOAD_None, NULL );
-	}
-
-#if !UE_BUILD_SHIPPING && WITH_EDITOR
-	// Register for debug drawing
-	UDebugDrawService::Register(TEXT("DebugAI"), FDebugDrawDelegate::CreateUObject(this, &UGameplayDebuggingControllerComponent::OnDebugAI));
-#endif
 }
 
 void UGameplayDebuggingControllerComponent::OnControlPressed()
@@ -167,8 +182,6 @@ void UGameplayDebuggingControllerComponent::BeginAIDebugView(bool bInJustBugIt)
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	APlayerController* PC = Cast<APlayerController>(GetOuter());
 
-	SetGameplayDebugFlag(true, PC);
-
 	APawn* Pawn = PC ? PC->GetPawn() : NULL;
 
 	if (!World || !PC || !Pawn)
@@ -209,7 +222,9 @@ void UGameplayDebuggingControllerComponent::BeginAIDebugView(bool bInJustBugIt)
 		return;
 	}
 
-	if (DebugAITargetActor != NULL && DebugAITargetActor->GetDebugComponent() != NULL )
+	SetGameplayDebugFlag(true, PC);
+
+	if (DebugAITargetActor != NULL && DebugAITargetActor->GetDebugComponent() != NULL)
 	{
 		DebugComponent_LastActiveViews = DebugAITargetActor->GetDebugComponent()->GetActiveViews();
 	}
@@ -224,12 +239,14 @@ void UGameplayDebuggingControllerComponent::BeginAIDebugView(bool bInJustBugIt)
 	{
 		bDisplayAIDebugInfo = true;
 
-		OryginalHUD = PC->GetHUD();
-		FActorSpawnParameters SpawnInfo;
-		SpawnInfo.Owner = PC;
-		SpawnInfo.Instigator = PC->Instigator;
-		SpawnInfo.bNoCollisionFail = true;
-		PC->MyHUD = PC->GetWorld()->SpawnActor<AHUD>( DebugComponentHUDClass, SpawnInfo );
+		UDebugDrawService::Unregister(FDebugDrawDelegate::CreateUObject(this, &UGameplayDebuggingControllerComponent::OnDebugAI));
+		UDebugDrawService::Register(TEXT("Game"), FDebugDrawDelegate::CreateUObject(this, &UGameplayDebuggingControllerComponent::OnDebugAI));
+
+		AHUD* GameHUD = PC->GetHUD();
+		if (GameHUD)
+		{
+			GameHUD->bShowHUD = false;
+		}
 	}
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
@@ -313,14 +330,13 @@ void UGameplayDebuggingControllerComponent::EndAIDebugView()
 
 	if (MyPC)
 	{
-		if (MyPC->MyHUD)
+		if (AHUD* GameHUD = MyPC->GetHUD())
 		{
-			MyPC->MyHUD->Destroy();
+			GameHUD->bShowHUD = true;
 		}
-
-		MyPC->MyHUD = OryginalHUD;
 	}
-	OryginalHUD = NULL;
+	UDebugDrawService::Unregister(FDebugDrawDelegate::CreateUObject(this, &UGameplayDebuggingControllerComponent::OnDebugAI));
+	UDebugDrawService::Register(TEXT("DebugAI"), FDebugDrawDelegate::CreateUObject(this, &UGameplayDebuggingControllerComponent::OnDebugAI));
 
 	DebugAITargetActor = NULL;
 	bDisplayAIDebugInfo = false;

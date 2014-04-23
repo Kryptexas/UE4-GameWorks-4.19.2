@@ -106,6 +106,12 @@ void UGameViewportClient::PostInitProperties()
 	EngineShowFlags = FEngineShowFlags(ESFIM_Game);
 }
 
+void UGameViewportClient::BeginDestroy()
+{
+	RemoveAllViewportWidgets();
+	Super::BeginDestroy();
+}
+
 
 void UGameViewportClient::DetachViewportClient()
 {
@@ -2292,7 +2298,7 @@ bool UGameViewportClient::HandlePreCacheCommand( const TCHAR* Cmd, FOutputDevice
 	return true;
 }
 
-bool UGameViewportClient::SetDisplayConfiguration(const FIntPoint* Dimensions, bool bRequestingFullScreen)
+bool UGameViewportClient::SetDisplayConfiguration(const FIntPoint* Dimensions, EWindowMode::Type WindowMode)
 {
 	if (Viewport == NULL || ViewportFrame == NULL)
 	{
@@ -2305,7 +2311,7 @@ bool UGameViewportClient::SetDisplayConfiguration(const FIntPoint* Dimensions, b
 	{
 		UGameUserSettings* UserSettings = GameEngine->GetGameUserSettings();
 
-		UserSettings->SetFullscreenMode(bRequestingFullScreen ? EWindowMode::Fullscreen : EWindowMode::Windowed);
+		UserSettings->SetFullscreenMode(WindowMode);
 
 		if (Dimensions)
 		{
@@ -2325,7 +2331,7 @@ bool UGameViewportClient::SetDisplayConfiguration(const FIntPoint* Dimensions, b
 			NewY = Dimensions->Y;
 		}
 	
-		FSystemResolution::RequestResolutionChange(NewX, NewY, bRequestingFullScreen);
+		FSystemResolution::RequestResolutionChange(NewX, NewY, WindowMode);
 	}
 
 	return true;
@@ -2333,7 +2339,7 @@ bool UGameViewportClient::SetDisplayConfiguration(const FIntPoint* Dimensions, b
 
 bool UGameViewportClient::HandleToggleFullscreenCommand(const TCHAR* Cmd, FOutputDevice& Ar)
 {
-	return SetDisplayConfiguration(NULL, !Viewport->IsFullscreen() );
+	return SetDisplayConfiguration(NULL, Viewport->IsFullscreen() ? EWindowMode::Windowed : EWindowMode::Fullscreen);
 }
 
 bool UGameViewportClient::HandleSetResCommand( const TCHAR* Cmd, FOutputDevice& Ar )
@@ -2344,19 +2350,27 @@ bool UGameViewportClient::HandleSetResCommand( const TCHAR* Cmd, FOutputDevice& 
 		const TCHAR* CmdTemp = FCString::Strchr(Cmd,'x') ? FCString::Strchr(Cmd,'x')+1 : FCString::Strchr(Cmd,'X') ? FCString::Strchr(Cmd,'X')+1 : TEXT("");
 		int32 Y=FCString::Atoi(CmdTemp);
 		Cmd = CmdTemp;
-		bool bFullscreen = Viewport->IsFullscreen();
+		EWindowMode::Type WindowMode = Viewport->IsFullscreen() ? EWindowMode::Fullscreen : EWindowMode::Windowed;
 		if(FCString::Strchr(Cmd,'w') || FCString::Strchr(Cmd,'W'))
 		{
-			bFullscreen = false;
+			if(FCString::Strchr(Cmd, 'f') || FCString::Strchr(Cmd, 'F'))
+			{
+				WindowMode = EWindowMode::WindowedFullscreen;
+			}
+			else
+			{
+				WindowMode = EWindowMode::Windowed;
+			}
+			
 		}
 		else if(FCString::Strchr(Cmd,'f') || FCString::Strchr(Cmd,'F'))
 		{
-			bFullscreen = true;
+			WindowMode = EWindowMode::Fullscreen;
 		}
 		if( X && Y )
 		{
 			FIntPoint Dims = FIntPoint(X,Y);
-			return SetDisplayConfiguration(&Dims, bFullscreen );
+			return SetDisplayConfiguration(&Dims, WindowMode);
 		}
 	}
 	return true;

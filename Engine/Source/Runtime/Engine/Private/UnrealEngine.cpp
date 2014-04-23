@@ -358,26 +358,48 @@ void ScalabilityCVarsSinkCallback()
 	}
 }
 
+inline EWindowMode::Type ConvertIntToWindowMode(int32 InWindowMode)
+{
+	EWindowMode::Type WindowMode = EWindowMode::Windowed;
+	switch (InWindowMode)
+	{
+	case 0:
+		WindowMode = EWindowMode::Fullscreen;
+		break;
+	case 1:
+		WindowMode = EWindowMode::WindowedFullscreen;
+		break;
+	case 2:
+	default:
+		WindowMode = EWindowMode::Windowed;
+		break;
+	}
+	return WindowMode;
+}
+
 void SystemResolutionSinkCallback()
 {
 	auto ResString = CVarSystemResolution->GetString();
 	
 	uint32 ResX, ResY;
-	bool bFullScreen = GSystemResolution.bFullScreen;
-	if (FParse::Resolution(*ResString, ResX, ResY, bFullScreen))
+	int32 WindowModeInt = GSystemResolution.WindowMode;
+	
+	if (FParse::Resolution(*ResString, ResX, ResY, WindowModeInt))
 	{
+		EWindowMode::Type WindowMode = ConvertIntToWindowMode(WindowModeInt);
+
 		// TODO: This isn't correct, as we also need to compare the required fullscreen mode to the existing one.
 		if( GSystemResolution.ResX != ResX ||
 			GSystemResolution.ResY != ResY ||
-			GSystemResolution.bFullScreen != bFullScreen )
+			GSystemResolution.WindowMode != WindowMode)
 		{
 			GSystemResolution.ResX = ResX;
 			GSystemResolution.ResY = ResY;
-			GSystemResolution.bFullScreen = bFullScreen;
+			GSystemResolution.WindowMode = WindowMode;
 
 			if(GEngine && GEngine->GameViewport && GEngine->GameViewport->ViewportFrame)
 			{
-				GEngine->GameViewport->ViewportFrame->ResizeFrame(ResX, ResY, bFullScreen);
+				GEngine->GameViewport->ViewportFrame->ResizeFrame(ResX, ResY, WindowMode);
 			}
 		}
 	}
@@ -11226,9 +11248,26 @@ bool AllowHighQualityLightmaps()
 }
 
 // Helper function for changing system resolution via the r.setres console command
-void FSystemResolution::RequestResolutionChange(int32 InResX, int32 InResY, bool bInFullScreen)
+void FSystemResolution::RequestResolutionChange(int32 InResX, int32 InResY, EWindowMode::Type InWindowMode)
 {
-	FString NewValue = FString::Printf(TEXT("%dx%d%s"), InResX, InResY, bInFullScreen ? TEXT("f") : TEXT("w"));
+	FString WindowModeSuffix;
+	switch (InWindowMode)
+	{
+		case EWindowMode::Windowed:
+		{
+			WindowModeSuffix = TEXT("w");
+		} break;
+		case EWindowMode::WindowedFullscreen:
+		{
+			WindowModeSuffix = TEXT("wf");
+		} break;
+		case EWindowMode::Fullscreen:
+		{
+			WindowModeSuffix = TEXT("f");
+		} break;
+	}
+
+	FString NewValue = FString::Printf(TEXT("%dx%d%s"), InResX, InResY, *WindowModeSuffix);
 	CVarSystemResolution->Set(*NewValue);
 }
 

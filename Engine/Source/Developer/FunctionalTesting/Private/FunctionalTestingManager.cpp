@@ -4,10 +4,44 @@
 
 #define LOCTEXT_NAMESPACE "FunctionalTesting"
 
+//struct FFuncTestingTickHelper : FTickableGameObject
+//{
+//	class UFunctionalTestingManager* Manager;
+//
+//	FFuncTestingTickHelper() : Manager(NULL) {}
+//	virtual void Tick(float DeltaTime);
+//	virtual bool IsTickable() const { return Owner && !((AActor*)Owner)->IsPendingKillPending(); }
+//	virtual bool IsTickableInEditor() const { return true; }
+//	virtual TStatId GetStatId() const ;
+//};
+//
+////----------------------------------------------------------------------//
+//// 
+////----------------------------------------------------------------------//
+//void FFuncTestingTickHelper::Tick(float DeltaTime)
+//{
+//	if (Manager->IsPendingKill() == false)
+//	{
+//		Manager->TickMe(DeltaTime);
+//	}
+//}
+//
+//TStatId FFuncTestingTickHelper::GetStatId() const 
+//{
+//	RETURN_QUICK_DECLARE_CYCLE_STAT(FRecastTickHelper, STATGROUP_Tickables);
+//}
+
+//----------------------------------------------------------------------//
+// 
+//----------------------------------------------------------------------//
 UFunctionalTestingManager::UFunctionalTestingManager( const class FPostConstructInitializeProperties& PCIP )
 	: Super(PCIP)
+	, bIsRunning(false)
+	, bLooped(false)
+	, bWaitForNavigationBuildFinish(false)
+	, bInitialDelayApplied(false)
+	, CurrentIteration(INDEX_NONE)
 {
-	
 }
 
 void UFunctionalTestingManager::SetUpTests()
@@ -15,12 +49,14 @@ void UFunctionalTestingManager::SetUpTests()
 	OnSetupTests.Broadcast();
 }
 
-void UFunctionalTestingManager::RunAllTestsOnMap(bool bNewLog, bool bRunLooped)
+bool UFunctionalTestingManager::RunAllFunctionalTests(UObject* WorldContext, bool bNewLog, bool bRunLooped, bool bInWaitForNavigationBuildFinish)
 {
-	if (bIsRunning)
+	UFunctionalTestingManager* Manager = GetManager(WorldContext);
+
+	if (Manager->bIsRunning)
 	{
 		UE_LOG(LogFunctionalTest, Warning, TEXT("Functional tests are already running, aborting."));
-		return;
+		return true;
 	}
 	
 	FMessageLog FunctionalTestingLog("FunctionalTestingLog");
@@ -29,41 +65,76 @@ void UFunctionalTestingManager::RunAllTestsOnMap(bool bNewLog, bool bRunLooped)
 	{
 		FunctionalTestingLog.NewPage(LOCTEXT("NewLogLabel", "Functional Test"));
 	}
-	bLooped = bRunLooped;
 
-	CurrentIteration = 0;
+	Manager->bLooped = bRunLooped;
+	Manager->bWaitForNavigationBuildFinish = bInWaitForNavigationBuildFinish;
+	Manager->CurrentIteration = 0;
 
 	for ( FActorIterator It(GWorld); It; ++It )
 	{
 		AFunctionalTest* Test = Cast<AFunctionalTest>(*It);
-		if (Test != NULL)
+		if (Test != NULL && Test->bIsEnabled == true)
 		{
-			AllTests.Add(Test);
+			Manager->AllTests.Add(Test);
 		}
 	}
 
-	if (AllTests.Num() > 0)
+	if (Manager->AllTests.Num() > 0)
 	{
-		SetUpTests();
+		Manager->SetUpTests();
+		Manager->TestsLeft = Manager->AllTests;
 
-		TestsLeft = AllTests;
-		
+		Manager->TriggerFirstValidTest();
+	}
+
+	if (Manager->bIsRunning == false)
+	{
+		FunctionalTestingLog.Info(LOCTEXT("NoTestsDefined", "No tests defined on map or . DONE."));		
+		return false;
+	}
+
+#if WITH_EDITOR
+	FEditorDelegates::EndPIE.AddUObject(Manager, &UFunctionalTestingManager::OnEndPIE);
+#endif // WITH_EDITOR
+	Manager->AddToRoot();
+
+	return true;
+}
+
+void UFunctionalTestingManager::OnEndPIE(const bool bIsSimulating)
+{
+	RemoveFromRoot();
+}
+
+void UFunctionalTestingManager::TriggerFirstValidTest()
+{
+	UWorld* World = GEngine->GetWorldFromContextObject(GetOuter()); 
+	bIsRunning = World != NULL && World->GetNavigationSystem() != NULL;
+
+	if (bInitialDelayApplied == true && (bWaitForNavigationBuildFinish == false || UNavigationSystem::IsNavigationBeingBuilt(World) == false))
+	{
 		bIsRunning = RunFirstValidTest();
 	}
-	
-	if (bIsRunning == false)
+	else
 	{
-		FunctionalTestingLog.Info(LOCTEXT("NoTestsDefined", "No tests defined on map or all disabled. DONE."));
+		bInitialDelayApplied = true;
+		static const float WaitingTime = 0.25f;
+		World->GetTimerManager().SetTimer(this, &UFunctionalTestingManager::TriggerFirstValidTest, WaitingTime);
 	}
 }
 
-UFunctionalTestingManager* UFunctionalTestingManager::CreateFTestManager(UObject* WorldContext)
+UFunctionalTestingManager* UFunctionalTestingManager::GetManager(UObject* WorldContext)
 {
-	UObject* Outer = WorldContext ? WorldContext : (UObject*)GetTransientPackage();
-	UFunctionalTestingManager* Script = NewObject<UFunctionalTestingManager>(Outer);
-	FFunctionalTestingModule::Get()->SetScript(Script);
+	UFunctionalTestingManager* Manager = FFunctionalTestingModule::Get()->GetCurrentScript();
 
-	return Script;
+	if (Manager == NULL)
+	{
+		UObject* Outer = WorldContext ? WorldContext : (UObject*)GetTransientPackage();
+		Manager = NewObject<UFunctionalTestingManager>(Outer);
+		FFunctionalTestingModule::Get()->SetScript(Manager);
+	}
+
+	return Manager;
 }
 
 void UFunctionalTestingManager::OnTestDone(AFunctionalTest* FTest)
@@ -81,7 +152,13 @@ void UFunctionalTestingManager::NotifyTestDone(AFunctionalTest* FTest)
 {
 	FMessageLog FunctionalTestingLog("FunctionalTestingLog");
 
-	if (TestsLeft.RemoveSingle(FTest) && TestsLeft.Num() > 0)
+	if (FTest->WantsToRunAgain() == false)
+	{
+		TestsLeft.RemoveSingle(FTest);
+		FTest->CleanUp();
+	}
+
+	if (TestsLeft.Num() > 0)
 	{
 		bIsRunning = RunFirstValidTest();
 	}
@@ -104,6 +181,7 @@ void UFunctionalTestingManager::NotifyTestDone(AFunctionalTest* FTest)
 		else
 		{
 			FunctionalTestingLog.Info( LOCTEXT("TestDone", "DONE.") );
+			RemoveFromRoot();
 		}
 	}
 }
@@ -112,20 +190,34 @@ bool UFunctionalTestingManager::RunFirstValidTest()
 {
 	for (int32 Index = 0; Index < TestsLeft.Num(); ++Index)
 	{
-		if (TestsLeft[Index] != NULL && TestsLeft[Index]->bIsTestDisabled == false)
+		bool bRemove = TestsLeft[Index] == NULL;
+		if (TestsLeft[Index] != NULL)
 		{
+			ensure(TestsLeft[Index]->bIsEnabled);
 			TestsLeft[Index]->TestFinishedObserver = FFunctionalTestDoneSignature::CreateUObject(this, &UFunctionalTestingManager::OnTestDone);
-			TestsLeft[Index]->StartTest(); 
-
-			return true;
+			if (TestsLeft[Index]->StartTest())
+			{
+				return true;
+			}
+			else
+			{
+				bRemove = true;
+			}
 		}
-		else
+		
+		if (bRemove)
 		{
 			TestsLeft.RemoveAtSwap(Index, 1, false);
 		}
 	}
 
 	return false;
+}
+
+void UFunctionalTestingManager::TickMe(float DeltaTime)
+{
+
+	
 }
 
 #undef LOCTEXT_NAMESPACE

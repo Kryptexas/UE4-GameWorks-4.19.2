@@ -81,6 +81,10 @@ public:
 	 */
 	virtual TSharedPtr<class FAssetThumbnailPool> GetThumbnailPool() const = 0;
 
+	/**
+	*	@return the utilities various widgets need access to certain features of PropertyDetails
+	*/
+	virtual TSharedPtr<class IPropertyUtilities> GetPropertyUtilities() const { return NULL; }
 };
 
 /**

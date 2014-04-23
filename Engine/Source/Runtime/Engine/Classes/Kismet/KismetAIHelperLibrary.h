@@ -8,8 +8,8 @@
 #pragma once
 #include "KismetAIHelperLibrary.generated.h"
 
-UCLASS(HeaderGroup=KismetLibrary,MinimalAPI)
-class UKismetAIHelperLibrary : public UBlueprintFunctionLibrary
+UCLASS(HeaderGroup=KismetLibrary)
+class ENGINE_API UKismetAIHelperLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()
 

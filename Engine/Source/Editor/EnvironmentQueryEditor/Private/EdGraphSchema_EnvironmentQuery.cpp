@@ -172,7 +172,8 @@ static void GatherEQSGenerators(TArray<UClass*>& Classes)
 			UClass* TestClass = *It;
 			if (TestClass->HasAnyClassFlags(CLASS_Abstract) ||
 				!TestClass->HasAnyClassFlags(CLASS_Native) ||
-				!TestClass->IsChildOf(UEnvQueryGenerator::StaticClass()))
+				!TestClass->IsChildOf(UEnvQueryGenerator::StaticClass()) ||
+				TestClass == UEnvQueryGenerator_Composite::StaticClass())
 			{
 				continue;
 			}

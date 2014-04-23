@@ -294,105 +294,108 @@ bool FAssetRegistry::GetAssets(const FARFilter& Filter, TArray<FAssetData>& OutA
 		}
 	}
 
-	for ( int32 ObjectPathIdx = 0; ObjectPathIdx < Filter.ObjectPaths.Num(); ++ObjectPathIdx )
+	if ( !Filter.bIncludeOnlyOnDiskAssets )
 	{
-		FilterObjectPaths.Add(Filter.ObjectPaths[ObjectPathIdx]);
-	}
-
-	// Iterate over all in-memory assets to find the ones that pass the filter components
-	for (FObjectIterator ObjIt; ObjIt; ++ObjIt)
-	{
-		if ( ObjIt->IsAsset() )
+		for (int32 ObjectPathIdx = 0; ObjectPathIdx < Filter.ObjectPaths.Num(); ++ObjectPathIdx)
 		{
-			UPackage* InMemoryPackage = ObjIt->GetOutermost();
-			const FName ObjectPath = FName(*ObjIt->GetPathName());
+			FilterObjectPaths.Add(Filter.ObjectPaths[ObjectPathIdx]);
+		}
 
-			static const bool bUsingWorldAssets = FParse::Param(FCommandLine::Get(), TEXT("WorldAssets"));
-			// Skip assets in map packages... unless we are showing world assets
-			if ( InMemoryPackage->ContainsMap() && !bUsingWorldAssets )
+		// Iterate over all in-memory assets to find the ones that pass the filter components
+		for (FObjectIterator ObjIt; ObjIt; ++ObjIt)
+		{
+			if ( ObjIt->IsAsset() )
 			{
-				continue;
-			}
+				UPackage* InMemoryPackage = ObjIt->GetOutermost();
+				const FName ObjectPath = FName(*ObjIt->GetPathName());
 
-			// add it to in-memory object list for later merge
-			InMemoryObjectPaths.Add(ObjectPath);
-			
-			// Package name
-			const FName PackageName = InMemoryPackage->GetFName();
-			if ( NumFilterPackageNames && !FilterPackageNames.Contains(PackageName) )
-			{
-				continue;
-			}
-
-			// Object Path
-			if ( NumFilterObjectPaths && !FilterObjectPaths.Contains(ObjectPath) )
-			{
-				continue;
-			}
-
-			// Package path
-			const FName PackagePath = FName(*FPackageName::GetLongPackagePath(InMemoryPackage->GetName()));
-			if ( NumFilterPackagePaths && !FilterPackagePaths.Contains(PackagePath) )
-			{
-				continue;
-			}
-
-			// Asset class
-			const FName AssetClassName = ObjIt->GetClass()->GetFName();
-			if ( NumFilterClasses && !FilterClassNames.Contains(AssetClassName) )
-			{
-				continue;
-			}
-
-			// Tags and values
-			TArray<UObject::FAssetRegistryTag> ObjectTags;
-			ObjIt->GetAssetRegistryTags(ObjectTags);
-			if ( Filter.TagsAndValues.Num() )
-			{
-				bool bMatch = false;
-				for (auto FilterTagIt = Filter.TagsAndValues.CreateConstIterator(); FilterTagIt; ++FilterTagIt)
+				static const bool bUsingWorldAssets = FParse::Param(FCommandLine::Get(), TEXT("WorldAssets"));
+				// Skip assets in map packages... unless we are showing world assets
+				if ( InMemoryPackage->ContainsMap() && !bUsingWorldAssets )
 				{
-					const FName Tag = FilterTagIt.Key();
-					const FString& Value = FilterTagIt.Value();
+					continue;
+				}
 
-					for ( auto ObjectTagIt = ObjectTags.CreateConstIterator(); ObjectTagIt; ++ObjectTagIt )
+				// add it to in-memory object list for later merge
+				InMemoryObjectPaths.Add(ObjectPath);
+			
+				// Package name
+				const FName PackageName = InMemoryPackage->GetFName();
+				if ( NumFilterPackageNames && !FilterPackageNames.Contains(PackageName) )
+				{
+					continue;
+				}
+
+				// Object Path
+				if ( NumFilterObjectPaths && !FilterObjectPaths.Contains(ObjectPath) )
+				{
+					continue;
+				}
+
+				// Package path
+				const FName PackagePath = FName(*FPackageName::GetLongPackagePath(InMemoryPackage->GetName()));
+				if ( NumFilterPackagePaths && !FilterPackagePaths.Contains(PackagePath) )
+				{
+					continue;
+				}
+
+				// Asset class
+				const FName AssetClassName = ObjIt->GetClass()->GetFName();
+				if ( NumFilterClasses && !FilterClassNames.Contains(AssetClassName) )
+				{
+					continue;
+				}
+
+				// Tags and values
+				TArray<UObject::FAssetRegistryTag> ObjectTags;
+				ObjIt->GetAssetRegistryTags(ObjectTags);
+				if ( Filter.TagsAndValues.Num() )
+				{
+					bool bMatch = false;
+					for (auto FilterTagIt = Filter.TagsAndValues.CreateConstIterator(); FilterTagIt; ++FilterTagIt)
 					{
-						if ( ObjectTagIt->Name == Tag )
+						const FName Tag = FilterTagIt.Key();
+						const FString& Value = FilterTagIt.Value();
+
+						for ( auto ObjectTagIt = ObjectTags.CreateConstIterator(); ObjectTagIt; ++ObjectTagIt )
 						{
-							if ( ObjectTagIt->Value == Value )
+							if ( ObjectTagIt->Name == Tag )
 							{
-								bMatch = true;
-							}
+								if ( ObjectTagIt->Value == Value )
+								{
+									bMatch = true;
+								}
 							
+								break;
+							}
+						}
+
+						if ( bMatch )
+						{
 							break;
 						}
 					}
 
-					if ( bMatch )
+					if (!bMatch)
 					{
-						break;
+						continue;
 					}
 				}
 
-				if (!bMatch)
+				// Find the group names
+				FString GroupNamesStr;
+				FString AssetNameStr;
+				ObjIt->GetPathName(InMemoryPackage).Split(TEXT("."), &GroupNamesStr, &AssetNameStr, ESearchCase::CaseSensitive, ESearchDir::FromEnd);
+
+				TMap<FName, FString> TagMap;
+				for ( auto TagIt = ObjectTags.CreateConstIterator(); TagIt; ++TagIt )
 				{
-					continue;
+					TagMap.Add(TagIt->Name, TagIt->Value);
 				}
+
+				// This asset is in memory and passes all filters
+				FAssetData* AssetData = new (OutAssetData) FAssetData(PackageName, PackagePath, FName(*GroupNamesStr), ObjIt->GetFName(), AssetClassName, TagMap, InMemoryPackage->GetChunkIDs());
 			}
-
-			// Find the group names
-			FString GroupNamesStr;
-			FString AssetNameStr;
-			ObjIt->GetPathName(InMemoryPackage).Split(TEXT("."), &GroupNamesStr, &AssetNameStr, ESearchCase::CaseSensitive, ESearchDir::FromEnd);
-
-			TMap<FName, FString> TagMap;
-			for ( auto TagIt = ObjectTags.CreateConstIterator(); TagIt; ++TagIt )
-			{
-				TagMap.Add(TagIt->Name, TagIt->Value);
-			}
-
-			// This asset is in memory and passes all filters
-			FAssetData* AssetData = new (OutAssetData) FAssetData(PackageName, PackagePath, FName(*GroupNamesStr), ObjIt->GetFName(), AssetClassName, TagMap, InMemoryPackage->GetChunkIDs());
 		}
 	}
 
@@ -1427,47 +1430,41 @@ FDependsNode* FAssetRegistry::CreateOrFindDependsNode(FName ObjectPath)
 
 bool FAssetRegistry::RemoveDependsNode( FName PackageName )
 {
-	FDependsNode** NodeEntry = CachedDependsNodes.Find(PackageName);
+	FDependsNode** NodePtr = CachedDependsNodes.Find( PackageName );
 
-	// If it has already been removed, then we're done.
-	if ( NodeEntry == NULL )
+	if ( NodePtr != nullptr )
 	{
-		return true;
-	}
-
-	FDependsNode* Node = *(NodeEntry);
-
-	if ( Node != nullptr )
-	{
-		TArray<FDependsNode*> DependencyNodes;
-		Node->GetDependencies( DependencyNodes );
-
-		// Remove the reference to this node from all dependencies
-		for ( FDependsNode* DependencyNode : DependencyNodes )
+		FDependsNode* Node = *NodePtr;
+		if ( Node != nullptr )
 		{
-			DependencyNode->Referencers.Remove( Node );
+			TArray<FDependsNode*> DependencyNodes;
+			Node->GetDependencies( DependencyNodes );
+
+			// Remove the reference to this node from all dependencies
+			for ( FDependsNode* DependencyNode : DependencyNodes )
+			{
+				DependencyNode->Referencers.Remove( Node );
+			}
+
+			TArray<FDependsNode*> ReferencerNodes;
+			Node->GetReferencers( ReferencerNodes );
+
+			// Remove the reference to this node from all referencers
+			for ( FDependsNode* ReferencerNode : ReferencerNodes )
+			{
+				ReferencerNode->Dependencies.Remove( Node );
+			}
+
+			// Remove the node and delete it
+			CachedDependsNodes.Remove( PackageName );
+			NumDependsNodes--;
+			delete Node;
+
+			return true;
 		}
-
-		TArray<FDependsNode*> ReferencerNodes;
-		Node->GetReferencers( ReferencerNodes );
-
-		// Remove the reference to this node from all referencers
-		for ( FDependsNode* ReferencerNode : ReferencerNodes )
-		{
-			ReferencerNode->Dependencies.Remove( Node );
-		}
-
-		// Remove the node and delete it
-		CachedDependsNodes.Remove( PackageName );
-		NumDependsNodes--;
-		delete Node;
-
-		return true;
 	}
-	else
-	{
-		return false;
-	}
+	
+	return false;
 }
 
 void FAssetRegistry::AddEmptyPackage(FName PackageName)

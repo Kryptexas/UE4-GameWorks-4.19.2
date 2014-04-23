@@ -132,11 +132,22 @@ void APawn::PawnStartFire(uint8 FireModeNum) {}
 class UGameplayDebuggingComponent* APawn::GetDebugComponent(bool bCreateIfNotFound)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (DebugComponent == NULL && bCreateIfNotFound)
+	if (DebugComponent == NULL)
 	{
-		DebugComponent = ConstructObject<UGameplayDebuggingComponent>(GameplayDebuggingComponentClass, this, UGameplayDebuggingComponent::DefaultComponentName);
-		DebugComponent->RegisterComponent();
-		DebugComponent->SetIsReplicated(true);
+		//let's see if we have it replicated but DebugComponent variable is not 
+		TArray<UGameplayDebuggingComponent*> Components;
+		GetComponents(Components);
+		if (Components.Num() > 0)
+		{
+			DebugComponent = Components[0];
+		}
+
+		if (DebugComponent == NULL && bCreateIfNotFound)
+		{
+			DebugComponent = ConstructObject<UGameplayDebuggingComponent>(GameplayDebuggingComponentClass, this, UGameplayDebuggingComponent::DefaultComponentName);
+			DebugComponent->SetIsReplicated(true);
+			DebugComponent->RegisterComponent();
+		}
 	}
 	return DebugComponent;
 #else

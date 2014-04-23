@@ -122,7 +122,7 @@ public:
 	UPROPERTY(Config)
 	int32 MaxClientRate;
 
-	/** @todo document */
+	/** Amount of time a server will wait before traveling to next map, gives clients time to receive final RPCs on existing level @see NextSwitchCountdown */
 	UPROPERTY(Config)
 	float ServerTravelPause;
 

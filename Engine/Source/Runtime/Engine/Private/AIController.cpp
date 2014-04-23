@@ -385,6 +385,8 @@ void AAIController::Possess(APawn* InPawn)
 	{
 		ChangeState(NAME_Playing);
 	}
+
+	OnPossess(InPawn);
 }
 
 void AAIController::InitNavigationControl(UNavigationComponent*& PathFindingComp, UPathFollowingComponent*& PathFollowingComp)
@@ -594,28 +596,8 @@ bool AAIController::RunBehaviorTree(UBehaviorTree* BTAsset)
 	UBlackboardComponent* BlackboardComp = NULL;
 	if (BTAsset->BlackboardAsset)
 	{
+		bSuccess = UseBlackboard(BTAsset->BlackboardAsset);
 		BlackboardComp = FindComponentByClass<UBlackboardComponent>();
-		if (BlackboardComp == NULL)
-		{
-			BlackboardComp = ConstructObject<UBlackboardComponent>(UBlackboardComponent::StaticClass(), this, TEXT("BlackboardComponent"));
-			if (BlackboardComp != NULL)
-			{
-				BlackboardComp->InitializeBlackboard(BTAsset->BlackboardAsset);
-				
-				BlackboardComp->RegisterComponent();
-				bShouldInitializeBlackboard = true;
-			}
-		}
-		else if (BlackboardComp->GetBlackboardAsset() == NULL)
-		{
-			BlackboardComp->InitializeBlackboard(BTAsset->BlackboardAsset);
-		}
-		else if (BlackboardComp->GetBlackboardAsset() != BTAsset->BlackboardAsset)
-		{
-			bSuccess = false;
-			UE_VLOG(this, LogBehaviorTree, Log, TEXT("RunBehaviorTree: BTAsset %s requires blackboard %s while already has %s instantiated"),
-				*GetNameSafe(BTAsset), *GetNameSafe(BTAsset->BlackboardAsset), *GetNameSafe(BlackboardComp->GetBlackboardAsset()) );
-		}
 	}
 	
 	if (bSuccess)
@@ -636,14 +618,6 @@ bool AAIController::RunBehaviorTree(UBehaviorTree* BTAsset)
 			}
 		}
 
-		if (bShouldInitializeBlackboard && BlackboardComp && BlackboardComp->bWantsInitializeComponent)
-		{
-			// make sure that newly created component is initialized before running BT
-			// both blackboard and BT to must exist before calling it!
-
-			BlackboardComp->InitializeComponent();
-		}
-
 		check(BTComp != NULL);
 		BTComp->StartTree(BTAsset, EBTExecutionMode::Looped);
 	}
@@ -651,6 +625,41 @@ bool AAIController::RunBehaviorTree(UBehaviorTree* BTAsset)
 	return bSuccess;
 }
 
+bool AAIController::UseBlackboard(UBlackboardData* BlackboardAsset)
+{
+	if (BlackboardAsset == NULL)
+	{
+		UE_VLOG(this, LogBehaviorTree, Log, TEXT("UseBlackboard: trying to use NULL Blackboard asset. Ignoring"));
+		return false;
+	}
+
+	bool bSuccess = true;
+	UBlackboardComponent* BlackboardComp = FindComponentByClass<UBlackboardComponent>();
+
+	if (BlackboardComp == NULL)
+	{
+		BlackboardComp = ConstructObject<UBlackboardComponent>(UBlackboardComponent::StaticClass(), this, TEXT("BlackboardComponent"));
+		if (BlackboardComp != NULL)
+		{
+			BlackboardComp->InitializeBlackboard(BlackboardAsset);
+			BlackboardComp->RegisterComponent();
+			BlackboardComp->InitializeComponent();
+		}
+
+	}
+	else if (BlackboardComp->GetBlackboardAsset() == NULL)
+	{
+		BlackboardComp->InitializeBlackboard(BlackboardAsset);
+	}
+	else if (BlackboardComp->GetBlackboardAsset() != BlackboardAsset)
+	{
+		UE_VLOG(this, LogBehaviorTree, Log, TEXT("UseBlackboard: requested blackboard %s while already has %s instantiated. Forcing new BB.")
+			, *GetNameSafe(BlackboardAsset), *GetNameSafe(BlackboardComp->GetBlackboardAsset()));
+		BlackboardComp->InitializeBlackboard(BlackboardAsset);
+	}
+
+	return bSuccess;
+}
 
 bool AAIController::SuggestTossVelocity(FVector& OutTossVelocity, FVector Start, FVector End, float TossSpeed, bool bPreferHighArc, float CollisionRadius, bool bOnlyTraceUp)
 {

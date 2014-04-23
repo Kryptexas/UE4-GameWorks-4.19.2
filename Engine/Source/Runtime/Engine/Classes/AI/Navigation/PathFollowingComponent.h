@@ -160,6 +160,7 @@ class ENGINE_API UPathFollowingComponent : public UActorComponent, public IAIRes
 
 	FORCEINLINE EPathFollowingStatus::Type GetStatus() const { return Status; }
 	FORCEINLINE float GetAcceptanceRadius() const { return AcceptanceRadius; }
+	FORCEINLINE void SetAcceptanceRadius(float InAcceptanceRadius) { AcceptanceRadius = InAcceptanceRadius; }
 	FORCEINLINE AActor* GetMoveGoal() const { return DestinationActor.Get(); }
 	FORCEINLINE bool HasPartialPath() const { return Path.IsValid() && Path->IsPartial(); }
 	FORCEINLINE bool DidMoveReachGoal() const { return bLastMoveReachedGoal && (Status == EPathFollowingStatus::Idle); }
@@ -170,6 +171,7 @@ class ENGINE_API UPathFollowingComponent : public UActorComponent, public IAIRes
 	FORCEINLINE FVector GetCurrentTargetLocation() const { return *CurrentDestination; }
 	FORCEINLINE FVector GetCurrentDirection() const { return MoveSegmentDirection; }
 	FORCEINLINE FBasedPosition GetCurrentTargetLocationBased() const { return CurrentDestination; }
+	FORCEINLINE USmartNavLinkComponent* GetCurrentSmartLink() const { return CurrentSmartLink;  }
 
 	/** will be deprecated soon, please use AIController.GetMoveStatus instead! */
 	UFUNCTION(BlueprintCallable, Category="AI|Components|PathFollowing")
@@ -179,10 +181,14 @@ class ENGINE_API UPathFollowingComponent : public UActorComponent, public IAIRes
 	UFUNCTION(BlueprintCallable, Category="AI|Components|PathFollowing")
 	FVector GetPathDestination() const;
 
+	FORCEINLINE const FNavPathSharedPtr GetPath() const { return Path; }
+
 	/** readable name of current status */
 	FString GetStatusDesc() const;
 	/** readable name of result enum */
 	FString GetResultDesc(EPathFollowingResult::Type Result) const;
+
+	void SetDestinationActor(const AActor* InDestinationActor);
 
 	/** debug point reach test values */
 	void DebugReachTest(float& CurrentDot, float& CurrentDistance, float& CurrentHeight, uint8& bDotFailed, uint8& bDistanceFailed, uint8& bHeightFailed); 
@@ -340,8 +346,6 @@ protected:
 	@param NextSegmentStartIndex Selected next segment to follow
 	@return  better path segment to follow, to use as MoveSegmentEndIndex */
 	uint32 PrepareBestNextMoveSegment(uint32 NextSegmentStartIndex);
-
-	void SetDestinationActor(const AActor* InDestinationActor);
 
 	/** check if movement component is valid or tries to grab one from owner 
 	 *	@param bForce results in looking for owner's movement component even if pointer to one is already cached */

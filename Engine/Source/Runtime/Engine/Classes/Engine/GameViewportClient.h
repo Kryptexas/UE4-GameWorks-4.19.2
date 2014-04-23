@@ -249,6 +249,7 @@ public:
 public:
 	// Begin UObject Interface
 	virtual void PostInitProperties() OVERRIDE;
+	virtual void BeginDestroy() OVERRIDE;
 	// End UObject Interface
 
 	// FViewportClient interface.
@@ -626,9 +627,9 @@ private:
 
 	/** Applies requested changes to display configuration 
 	* @param	Dimensions - Pointer to new dimensions of the display. NULL for no change.
-	* @param	bRequestingFullScreen - true for full screen mode, false for windowed.
+	* @param	WindowMode - What window mode do we want to st the display to.
 	*/
-	bool SetDisplayConfiguration( const FIntPoint* Dimensions, bool bRequestingFullScreen);
+	bool SetDisplayConfiguration( const FIntPoint* Dimensions, EWindowMode::Type WindowMode);
 
 	/** Delegate called at the end of the frame when a screenshot is captured and a .png is requested */
 	FOnPNGScreenshotCaptured PNGScreenshotCapturedDelegate;

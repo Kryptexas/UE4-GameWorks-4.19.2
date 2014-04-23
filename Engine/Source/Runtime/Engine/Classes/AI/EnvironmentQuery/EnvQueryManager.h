@@ -70,7 +70,7 @@ struct FEnvQueryInstanceCache
 	struct FEnvQueryInstance Instance;
 };
 
-#if WITH_EDITOR
+#if USE_EQS_DEBUGGER
 struct ENGINE_API FEQSDebugger
 {
 	void StoreQuery(TSharedPtr<FEnvQueryInstance>& Query);
@@ -81,7 +81,7 @@ protected:
 	// maps owner to performed queries
 	TMap<const UObject*, TSharedPtr<FEnvQueryInstance> > StoredQueries;
 };
-#endif // WITH_EDITOR
+#endif // USE_EQS_DEBUGGER
 
 UCLASS()
 class ENGINE_API UEnvQueryManager : public UObject, public FTickableGameObject
@@ -122,14 +122,17 @@ class ENGINE_API UEnvQueryManager : public UObject, public FTickableGameObject
 	/** list of all known item types */
 	static TArray<TSubclassOf<UEnvQueryItemType> > RegisteredItemTypes;
 
-#if WITH_EDITOR
+	static UEnvQueryManager* GetCurrent(class UWorld* World);
+	static UEnvQueryManager* GetCurrent(class UObject* WorldContextObject);
+
+#if USE_EQS_DEBUGGER
 	static void NotifyAssetUpdate(UEnvQuery* Query);
 
 	FEQSDebugger& GetDebugger() { return EQSDebugger; }
 
 protected:
 	FEQSDebugger EQSDebugger;
-#endif // WITH_EDITOR
+#endif // USE_EQS_DEBUGGER
 
 protected:
 

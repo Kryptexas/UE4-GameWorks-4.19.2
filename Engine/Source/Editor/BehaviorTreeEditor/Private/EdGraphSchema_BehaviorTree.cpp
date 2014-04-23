@@ -350,8 +350,14 @@ void UEdGraphSchema_BehaviorTree::GetGraphContextActions(FGraphContextMenuBuilde
 			const FText NodeTypeName = FText::FromString(FName::NameToDisplayString(NodeClasses[i].ToString(), false));
 
 			TSharedPtr<FBehaviorTreeSchemaAction_NewNode> AddOpAction = AddNewNodeAction(ContextMenuBuilder, TEXT("Tasks"), NodeTypeName, "");
+			UClass* GraphNodeClass = UBehaviorTreeGraphNode_Task::StaticClass();
+			
+			if (NodeClasses[i].GetClassName() == UBTTask_RunBehavior::StaticClass()->GetName())
+			{
+				GraphNodeClass = UBehaviorTreeGraphNode_SubtreeTask::StaticClass();
+			}
 
-			UBehaviorTreeGraphNode* OpNode = NewObject<UBehaviorTreeGraphNode_Task>(ContextMenuBuilder.OwnerOfTemporaries);
+			UBehaviorTreeGraphNode* OpNode = ConstructObject<UBehaviorTreeGraphNode>(GraphNodeClass, ContextMenuBuilder.OwnerOfTemporaries);
 			OpNode->ClassData = NodeClasses[i];
 			AddOpAction->NodeTemplate = OpNode;
 			AddOpAction->SearchTitle = AddOpAction->NodeTemplate->GetNodeSearchTitle();
@@ -550,11 +556,52 @@ const FPinConnectionResponse UEdGraphSchema_BehaviorTree::CanMergeNodes(const UE
 
 	if (FBehaviorTreeDebugger::IsPIENotSimulating())
 	{
-	if ((bNodeAIsDecorator && (bNodeBIsComposite || bNodeBIsTask || bNodeBIsDecorator))
-		|| (bNodeAIsService && (bNodeBIsComposite || bNodeBIsService)))
-	{
-		return FPinConnectionResponse(CONNECT_RESPONSE_MAKE, TEXT(""));
-	}
+		if (bNodeAIsDecorator)
+		{
+			const UBehaviorTreeGraphNode* BTNodeA = Cast<const UBehaviorTreeGraphNode>(NodeA);
+			const UBehaviorTreeGraphNode* BTNodeB = Cast<const UBehaviorTreeGraphNode>(NodeB);
+			
+			if (BTNodeA && BTNodeA->bInjectedNode)
+			{
+				return FPinConnectionResponse(CONNECT_RESPONSE_DISALLOW, LOCTEXT("MergeInjectedNodeNoMove", "Can't move injected nodes!"));
+			}
+
+			if (BTNodeB && BTNodeB->bInjectedNode)
+			{
+				int32 FirstInjectedIdx = INDEX_NONE;
+				for (int32 Idx = 0; Idx < BTNodeB->ParentNode->Decorators.Num(); Idx++)
+				{
+					if (BTNodeB->ParentNode->Decorators[Idx]->bInjectedNode)
+					{
+						FirstInjectedIdx = Idx;
+						break;
+					}
+				}
+
+				int32 NodeIdx = BTNodeB->ParentNode->Decorators.IndexOfByKey(BTNodeB);
+				if (NodeIdx != FirstInjectedIdx)
+				{
+					return FPinConnectionResponse(CONNECT_RESPONSE_DISALLOW, LOCTEXT("MergeInjectedNodeAtEnd", "Decorators must be placed above injected nodes!"));
+				}
+			}
+
+			if (BTNodeB && BTNodeB->Decorators.Num())
+			{
+				for (int32 Idx = 0; Idx < BTNodeB->Decorators.Num(); Idx++)
+				{
+					if (BTNodeB->Decorators[Idx]->bInjectedNode)
+					{
+						return FPinConnectionResponse(CONNECT_RESPONSE_DISALLOW, LOCTEXT("MergeInjectedNodeAtEnd", "Decorators must be placed above injected nodes!"));
+					}
+				}
+			}
+		}
+
+		if ((bNodeAIsDecorator && (bNodeBIsComposite || bNodeBIsTask || bNodeBIsDecorator))
+			|| (bNodeAIsService && (bNodeBIsComposite || bNodeBIsService)))
+		{
+			return FPinConnectionResponse(CONNECT_RESPONSE_MAKE, TEXT(""));
+		}
 	}
 
 	return FPinConnectionResponse(CONNECT_RESPONSE_DISALLOW, TEXT(""));

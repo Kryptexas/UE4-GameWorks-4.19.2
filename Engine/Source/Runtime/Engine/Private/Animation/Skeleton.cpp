@@ -61,7 +61,10 @@ void USkeleton::PostLoad()
 	check(Guid.IsValid());
 
 #if WITH_EDITOR
-	CollectAnimationNotifies();
+	if ( GIsEditor )
+	{
+		CollectAnimationNotifies();
+	}
 #endif
 }
 

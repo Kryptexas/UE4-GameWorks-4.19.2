@@ -62,10 +62,13 @@ class ENGINE_API UBlackboardComponent : public UActorComponent
 	void ResumeUpdates();
 
 	/** @return associated behavior tree component */
-	class UBehaviorTreeComponent* GetBehaviorComponent() const;
+	class UBrainComponent* GetBrainComponent() const;
 
 	/** @return blackboard data asset */
 	class UBlackboardData* GetBlackboardAsset() const;
+
+	/** caches UBrainComponent pointer to be used in communication */
+	void CacheBrainComponent(class UBrainComponent* BrainComponent);
 
 	/** setup component for using given blackboard asset */
 	void InitializeBlackboard(class UBlackboardData* NewAsset);
@@ -169,7 +172,7 @@ class ENGINE_API UBlackboardComponent : public UActorComponent
 	FORCEINLINE bool IsValidKey(uint8 KeyID) const { check(BlackboardAsset); return KeyID != UBlackboardData::InvalidKeyID && BlackboardAsset->Keys.IsValidIndex(KeyID); }
 
 	/** compares blackboard's values under specified keys */
-	UBlackboardKeyType::CompareResult CompareKeyValues(TSubclassOf<class UBlackboardKeyType> KeyType, uint8 KeyA, uint8 KeyB) const;
+	EBlackboardCompare::Type CompareKeyValues(TSubclassOf<class UBlackboardKeyType> KeyType, uint8 KeyA, uint8 KeyB) const;
 
 	FString GetDebugInfoString(EBlackboardDescription::Type Mode) const;
 
@@ -185,7 +188,7 @@ protected:
 
 	/** cached behavior tree component */
 	UPROPERTY(transient)
-	class UBehaviorTreeComponent* BehaviorComp;
+	class UBrainComponent* BrainComp;
 
 	/** data asset defining entries */
 	UPROPERTY(transient)

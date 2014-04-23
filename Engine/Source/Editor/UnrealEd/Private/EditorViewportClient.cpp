@@ -2116,7 +2116,7 @@ FString UnrealUnitsToSiUnits(float UnrealUnits)
 	// Put it in mm to start off with
 	UnrealUnits *= 10.f;
 
-	const int32 OrderOfMagnitude = FMath::Trunc(FMath::LogX(10.0f, UnrealUnits));
+	const int32 OrderOfMagnitude = UnrealUnits > 0 ? FMath::Trunc(FMath::LogX(10.0f, UnrealUnits)) : 0;
 
 	// Get an exponent applied to anything >= 1,000,000,000mm (1000km)
 	const int32 Exponent = (OrderOfMagnitude - 6)  / 3;
@@ -2168,7 +2168,7 @@ void FEditorViewportClient::DrawScaleUnits(FViewport* InViewport, FCanvas* Canva
 
 	// Find the closest power of ten to our target width
 	static const int32 ApproxTargetMarkerWidthPx = 100;
-	const float SegmentWidthUnits = FMath::Pow(10.f, FMath::Round(FMath::LogX(10.f, UnitsPerPixel * ApproxTargetMarkerWidthPx)));
+	const float SegmentWidthUnits = UnitsPerPixel > 0 ? FMath::Pow(10.f, FMath::Round(FMath::LogX(10.f, UnitsPerPixel * ApproxTargetMarkerWidthPx))) : 0.f;
 
 	const FString DisplayText = UnrealUnitsToSiUnits(SegmentWidthUnits);
 	
@@ -2178,7 +2178,7 @@ void FEditorViewportClient::DrawScaleUnits(FViewport* InViewport, FCanvas* Canva
 
 	// Origin is the bottom left of the scale
 	const FIntPoint StartPoint(80, InViewport->GetSizeXY().Y - 30);
-	const FIntPoint EndPoint = StartPoint + FIntPoint(SegmentWidthUnits / UnitsPerPixel, 0);
+	const FIntPoint EndPoint = StartPoint + (UnitsPerPixel != 0 ? FIntPoint(SegmentWidthUnits / UnitsPerPixel, 0) : FIntPoint(0,0));
 
 	// Sort out the color for the text and widget
 	FLinearColor HSVBackground = InView.BackgroundColor.LinearRGBToHSV().CopyWithNewOpacity(1.f);

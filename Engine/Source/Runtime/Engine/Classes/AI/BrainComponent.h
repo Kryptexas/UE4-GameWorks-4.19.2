@@ -88,6 +88,12 @@ class ENGINE_API UBrainComponent : public UActorComponent, public IAIResourceInt
 {
 	GENERATED_UCLASS_BODY()
 
+protected:
+	/** blackboard component */
+	UPROPERTY(transient)
+	class UBlackboardComponent* BlackboardComp;
+
+public:
 	virtual FString GetDebugInfoString() const { return TEXT(""); }
 
 	virtual void RestartLogic() {}
@@ -110,6 +116,19 @@ public:
 	virtual bool IsResourceLocked() const OVERRIDE;
 	// IAIResourceInterface end
 
+	/** BEGIN UActorComponent overrides */
+	virtual void InitializeComponent() OVERRIDE;
+	/** END UActorComponent overrides */
+
+	/** caches BlackboardComponent's pointer to be used with this brain component */
+	void CacheBlackboardComponent(class UBlackboardComponent* BBComp);
+
+	/** @return blackboard used with this component */
+	class UBlackboardComponent* GetBlackboardComponent();
+
+	/** @return blackboard used with this component */
+	const class UBlackboardComponent* GetBlackboardComponent() const;
+
 protected:
 
 	/** active message observers */
@@ -129,3 +148,16 @@ public:
 	static const FName AIMessage_RepathFailed;
 	static const FName AIMessage_QueryFinished;
 };
+
+//////////////////////////////////////////////////////////////////////////
+// Inlines
+
+FORCEINLINE class UBlackboardComponent* UBrainComponent::GetBlackboardComponent()
+{
+	return BlackboardComp;
+}
+
+FORCEINLINE const class UBlackboardComponent* UBrainComponent::GetBlackboardComponent() const
+{
+	return BlackboardComp;
+}

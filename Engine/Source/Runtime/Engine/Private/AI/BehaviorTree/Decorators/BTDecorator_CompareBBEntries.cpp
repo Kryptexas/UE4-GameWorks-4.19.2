@@ -42,11 +42,11 @@ bool UBTDecorator_CompareBBEntries::CalculateRawConditionValue(class UBehaviorTr
 	if (BlackboardComp)
 	{
 		//BlackboardComp->GetKeyType
-		const UBlackboardKeyType::CompareResult Result = BlackboardComp->CompareKeyValues(BlackboardKeyA.SelectedKeyType
-			, BlackboardKeyA.GetSelectedKeyID(), BlackboardKeyB.GetSelectedKeyID());
+		const EBlackboardCompare::Type Result = BlackboardComp->CompareKeyValues(BlackboardKeyA.SelectedKeyType, 
+			BlackboardKeyA.GetSelectedKeyID(), BlackboardKeyB.GetSelectedKeyID());
 
-		checkAtCompileTime(int32(UBlackboardKeyType::Equal) == int32(EBlackBoardEntryComparison::Equal)
-			&& int32(UBlackboardKeyType::NotEqual) == int32(EBlackBoardEntryComparison::NotEqual)
+		checkAtCompileTime(int32(EBlackboardCompare::Equal) == int32(EBlackBoardEntryComparison::Equal)
+			&& int32(EBlackboardCompare::NotEqual) == int32(EBlackBoardEntryComparison::NotEqual)
 			, "These values need to be equal");
 
 		return int32(Operator) == int32(Result);
@@ -86,7 +86,7 @@ void UBTDecorator_CompareBBEntries::OnCeaseRelevant(UBehaviorTreeComponent* Owne
 
 void UBTDecorator_CompareBBEntries::OnBlackboardChange(const UBlackboardComponent* Blackboard, uint8 ChangedKeyID)
 {
-	UBehaviorTreeComponent* BehaviorComp = Blackboard ? (UBehaviorTreeComponent*)Blackboard->GetBehaviorComponent() : NULL;
+	UBehaviorTreeComponent* BehaviorComp = Blackboard ? (UBehaviorTreeComponent*)Blackboard->GetBrainComponent() : NULL;
 	if (BehaviorComp && (BlackboardKeyA.GetSelectedKeyID() == ChangedKeyID || BlackboardKeyB.GetSelectedKeyID() == ChangedKeyID))
 	{
 		BehaviorComp->RequestExecution(this);		

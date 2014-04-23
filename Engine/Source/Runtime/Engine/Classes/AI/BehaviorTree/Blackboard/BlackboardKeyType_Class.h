@@ -16,5 +16,6 @@ class UBlackboardKeyType_Class : public UBlackboardKeyType
 	virtual FString DescribeValue(const uint8* RawData) const OVERRIDE;
 	virtual FString DescribeSelf() const OVERRIDE;
 	virtual bool IsAllowedByFilter(UBlackboardKeyType* FilterOb) const OVERRIDE;
-	virtual int32 Compare(const uint8* MemoryBlockA, const uint8* MemoryBlockB) const OVERRIDE;
+	virtual EBlackboardCompare::Type Compare(const uint8* MemoryBlockA, const uint8* MemoryBlockB) const OVERRIDE;
+	virtual bool TestBasicOperation(const uint8* MemoryBlock, EBasicKeyOperation::Type Op) const OVERRIDE;
 };

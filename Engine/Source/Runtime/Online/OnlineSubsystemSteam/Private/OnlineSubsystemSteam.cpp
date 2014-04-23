@@ -503,9 +503,7 @@ bool FOnlineSubsystemSteam::InitSteamworksServer()
 
 	// Initialize the Steam game server interfaces (done regardless of whether or not a server will be setup)
 	// NOTE: The port values specified here, are not changeable once the interface is setup
-	bool bVACEnabled = 0;
-	FString GameVersion;
-
+	
 	uint32 LocalServerIP = 0;
 	FString MultiHome;
 	if (FParse::Value(FCommandLine::Get(), TEXT("MULTIHOME="), MultiHome) && !MultiHome.IsEmpty())
@@ -523,14 +521,20 @@ bool FOnlineSubsystemSteam::InitSteamworksServer()
 	GConfig->GetInt(TEXT("URL"), TEXT("Port"), GameServerGamePort, GEngineIni);
 	GameServerSteamPort = GameServerGamePort + 1;
 
-	if (GConfig->GetInt(TEXT("OnlineSubsystemSteam"), TEXT("GameServerQueryPort"), GameServerQueryPort, GEngineIni))
+	// Allow the command line to override the default query port
+	if (FParse::Value(FCommandLine::Get(), TEXT("QueryPort="), GameServerQueryPort) == false)
 	{
-		GameServerQueryPort = 27015;
+		if (!GConfig->GetInt(TEXT("OnlineSubsystemSteam"), TEXT("GameServerQueryPort"), GameServerQueryPort, GEngineIni))
+		{
+			GameServerQueryPort = 27015;
+		}
 	}
 
+	bool bVACEnabled = false;
 	GConfig->GetBool(TEXT("OnlineSubsystemSteam"), TEXT("bVACEnabled"), bVACEnabled, GEngineIni);
-	GConfig->GetString(TEXT("OnlineSubsystemSteam"), TEXT("GameVersion"), GameVersion, GEngineIni);
 
+	FString GameVersion;
+	GConfig->GetString(TEXT("OnlineSubsystemSteam"), TEXT("GameVersion"), GameVersion, GEngineIni);
 	if (GameVersion.Len() == 0)
 	{
 		UE_LOG_ONLINE(Warning, TEXT("[OnlineSubsystemSteam].GameVersion is not set. Server advertising will fail"));
@@ -578,7 +582,6 @@ void FOnlineSubsystemSteam::ShutdownSteamworks()
 		if (SteamGameServer() != NULL)
 		{
 			// Since SteamSDK 1.17, LogOff is required to stop the game server advertising after exit; ensure we don't miss this at shutdown
-			//	(NOTE: the OnlineGameInterface code does not require LogOff to stop advertising though, it does this differently)
 			if (SteamGameServer()->BLoggedOn())
 			{
 				SteamGameServer()->LogOff();

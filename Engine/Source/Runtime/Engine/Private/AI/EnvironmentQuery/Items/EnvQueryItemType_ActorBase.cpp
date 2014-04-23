@@ -26,6 +26,12 @@ bool UEnvQueryItemType_ActorBase::StoreInBlackboard(struct FBlackboardKeySelecto
 	return bStored;
 }
 
+FString UEnvQueryItemType_ActorBase::GetDescription(const uint8* RawData) const
+{
+	const AActor* Actor = GetActor(RawData);
+	return GetNameSafe(Actor);
+}
+
 AActor* UEnvQueryItemType_ActorBase::GetActor(const uint8* RawData) const
 {
 	return NULL;
