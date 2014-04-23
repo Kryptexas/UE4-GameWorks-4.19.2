@@ -223,6 +223,18 @@ class ENGINE_API UWheeledVehicleMovementComponent : public UPawnMovementComponen
 	UPROPERTY(EditAnywhere, Category=VehicleSetup)
 	float Mass;
 
+	/** DragCoefficient of the vehicle chassis. */
+	UPROPERTY(EditAnywhere, Category = VehicleSetup)
+	float DragCoefficient;
+
+	/** Chassis width used for drag force computation (cm)*/
+	UPROPERTY(EditAnywhere, Category = VehicleSetup)
+	float ChassisWidth;
+
+	/** Chassis height used for drag force computation (cm)*/
+	UPROPERTY(EditAnywhere, Category = VehicleSetup)
+	float ChassisHeight;
+
 	/** Override center of mass offset, makes tweaking easier [uu] */
 	UPROPERTY(EditAnywhere, Category=VehicleSetup, AdvancedDisplay)
 	FVector COMOffset;
@@ -267,6 +279,9 @@ class ENGINE_API UWheeledVehicleMovementComponent : public UPawnMovementComponen
 
 	/** Updates the vehicle tuning data. Used when designer tweaks values while game is running */
 	virtual void UpdateTuning();
+
+	/** Updates the forces of drag acting on the vehicle */
+	virtual void UpdateDrag( float DeltaTime );
 
 	/** Used to create any physics engine information for this component */
 	virtual void CreatePhysicsState() OVERRIDE;
@@ -411,6 +426,10 @@ protected:
 	// Rate at which input steering can rise and fall
 	UPROPERTY(EditAnywhere, Category=VehicleInput, AdvancedDisplay)
 	FVehicleInputRate SteeringInputRate;
+
+	// Debug drag magnitude last applied
+	UPROPERTY(transient)
+	float DebugDragMagnitude;
 
 	/** Compute steering input */
 	float CalcSteeringInput();
