@@ -204,6 +204,23 @@ namespace AutomationTool
 		}
 
 		/// <summary>
+		/// Gets the location where all rules assemblies should go
+		/// </summary>
+		private static string GetRulesAssemblyFolder()
+		{
+			string RulesFolder;
+			if (GlobalCommandLine.Installed.IsSet)
+			{
+				RulesFolder = CommandUtils.CombinePaths(Path.GetTempPath(), "UAT", CommandUtils.EscapePath(CommandUtils.CmdEnv.LocalRoot), "Rules"); 
+			}
+			else
+			{
+				RulesFolder = CommandUtils.CombinePaths(CommandUtils.CmdEnv.EngineSavedFolder, "Rules");
+			}
+			return RulesFolder;
+		}
+
+		/// <summary>
 		/// Finds all targets for the project.
 		/// </summary>
 		/// <param name="Properties">Project properties.</param>
@@ -215,11 +232,12 @@ namespace AutomationTool
 			string FullProjectPath = null;
 
 			var GameFolders = new List<string>();
+			var RulesFolder = GetRulesAssemblyFolder();
 			if (!String.IsNullOrEmpty(Properties.RawProjectPath))
 			{
 				CommandUtils.Log("Looking for targets for project {0}", Properties.RawProjectPath);
 
-				TargetsDllFilename = CommandUtils.CombinePaths(Path.GetTempPath(), String.Format("UATRules{0}.dll", Properties.RawProjectPath.GetHashCode()));
+				TargetsDllFilename = CommandUtils.CombinePaths(RulesFolder, String.Format("UATRules{0}.dll", Properties.RawProjectPath.GetHashCode()));
 
 				FullProjectPath = CommandUtils.GetDirectoryName(Properties.RawProjectPath);
 				GameFolders.Add(FullProjectPath);
@@ -227,7 +245,7 @@ namespace AutomationTool
 			}
 			else
 			{
-				TargetsDllFilename = CommandUtils.CombinePaths(Path.GetTempPath(), String.Format("UATRules{0}.dll", "_BaseEngine_"));
+				TargetsDllFilename = CommandUtils.CombinePaths(RulesFolder, String.Format("UATRules{0}.dll", "_BaseEngine_"));
 			}
 			RulesCompiler.SetAssemblyNameAndGameFolders(TargetsDllFilename, GameFolders);
 
@@ -382,6 +400,19 @@ namespace AutomationTool
 				Name = Name.Substring(0, Name.Length - TargetPostfix.Length);
 			}
 			return Name;
+		}
+
+		/// <summary>
+		/// Performs initial cleanup of target rules folder
+		/// </summary>
+		public static void CleanupFolders()
+		{
+			CommandUtils.Log("Cleaning up project rules folder");
+			var RulesFolder = GetRulesAssemblyFolder();
+			if (CommandUtils.DirectoryExists(RulesFolder))
+			{
+				CommandUtils.DeleteDirectoryContents(RulesFolder);
+			}
 		}
 	}
 

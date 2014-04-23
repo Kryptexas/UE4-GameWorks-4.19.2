@@ -464,8 +464,11 @@ namespace AutomationTool
                 }
                 catch (Exception Ex)
                 {
-                    Log(TraceEventType.Warning, "Failed to delete directory, exception '{0}'", NormalizedDirectory);
-                    Log(TraceEventType.Warning, Ex);
+					if (!bQuiet)
+					{
+						Log(TraceEventType.Warning, "Failed to delete directory, exception '{0}'", NormalizedDirectory);
+						Log(TraceEventType.Warning, Ex);
+					}
                     Result = false;
                 }
             }
@@ -482,6 +485,29 @@ namespace AutomationTool
 		public static bool DeleteDirectory_NoExceptions(params string[] Directories)
 		{
 			return DeleteDirectory_NoExceptions(false, Directories);
+		}
+
+
+		/// <summary>
+		/// Attempts to delete a directory, if that fails deletes all files and folder from the specified directory.
+		/// This works around the issue when the user has a file open in a notepad from that directory. Somehow deleting the file works but
+		/// deleting the directory with the file that's open, doesn't.
+		/// </summary>
+		/// <param name="DirectoryName"></param>
+		public static void DeleteDirectoryContents(string DirectoryName)
+		{
+			Log("DeleteDirectoryContents({0})", DirectoryName);
+			const bool bQuiet = true;
+			var Files = CommandUtils.FindFiles_NoExceptions(bQuiet, "*", false, DirectoryName);
+			foreach (var Filename in Files)
+			{
+				CommandUtils.DeleteFile_NoExceptions(Filename);
+			}
+			var Directories = CommandUtils.FindDirectories_NoExceptions(bQuiet, "*", false, DirectoryName);
+			foreach (var SubDirectoryName in Directories)
+			{
+				CommandUtils.DeleteDirectory_NoExceptions(bQuiet, SubDirectoryName);
+			}
 		}
 
 		/// <summary>
@@ -1586,6 +1612,11 @@ namespace AutomationTool
 		#endregion
 
 		#region Other
+
+		public static string EscapePath(string InPath)
+		{
+			return InPath.Replace(":", "").Replace("/", "+").Replace("\\", "+").Replace(" ", "+");
+		}
 
 		/// <summary>
 		/// Checks if collection is either null or empty.

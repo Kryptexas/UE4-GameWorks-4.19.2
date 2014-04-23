@@ -102,8 +102,7 @@ namespace AutomationTool
 			{
 				throw new AutomationException("Build root is empty");
 			}
-			BuildRoot = BuildRoot.Replace(":", "");
-			BuildRoot = BuildRoot.Replace("/", "+");
+			BuildRoot = CommandUtils.EscapePath(BuildRoot);
 			CommandUtils.ConditionallySetEnvVar(EnvVarNames.BuildRootEscaped, BuildRoot);
 		}
 

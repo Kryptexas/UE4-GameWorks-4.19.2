@@ -295,6 +295,9 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 			// Fill in the project info
 			UnrealBuildTool.UProjectInfo.FillProjectInfo();
 
+			// Clean rules folders up
+			ProjectUtils.CleanupFolders();
+
 			// Compile scripts.
 			Log.TraceInformation("Compiling scripts.");
 			ScriptCompiler Compiler = new ScriptCompiler();
