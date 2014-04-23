@@ -214,6 +214,29 @@ IOnlineSubsystem* FOnlineSubsystemModule::GetOnlineSubsystem(const FName InSubsy
 	return (OnlineSubsystem == NULL) ? NULL : (*OnlineSubsystem).Get();
 }
 
+void FOnlineSubsystemModule::DestroyOnlineSubsystem(const FName InSubsystemName)
+{
+	FName SubsystemName, InstanceName;
+	ParseOnlineSubsystemName(InSubsystemName, SubsystemName, InstanceName);
+
+	IOnlineSubsystemPtr* OnlineSubsystem = NULL;
+	if (SubsystemName != NAME_None)
+	{
+		FName KeyName = FName(*FString::Printf(TEXT("%s:%s"), *SubsystemName.ToString(), *InstanceName.ToString()));
+
+		IOnlineSubsystemPtr OnlineSubsystem;
+		OnlineSubsystems.RemoveAndCopyValue(KeyName, OnlineSubsystem);
+		if (OnlineSubsystem.IsValid())
+		{
+			OnlineSubsystem->Shutdown();
+		}
+		else
+		{
+			UE_LOG(LogOnline, Warning, TEXT("OnlineSubsystem instance %s not found, unable to destroy."), *KeyName.ToString());
+		}
+	}
+}
+
 bool FOnlineSubsystemModule::IsOnlineSubsystemLoaded(const FName InSubsystemName) const
 {
 	bool bIsLoaded = false;
