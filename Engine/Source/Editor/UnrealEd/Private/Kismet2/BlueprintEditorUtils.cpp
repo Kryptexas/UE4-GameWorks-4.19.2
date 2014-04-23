@@ -4341,11 +4341,20 @@ FName FBlueprintEditorUtils::FindUniqueKismetName(const UBlueprint* InBlueprint,
 {
 	int32 Count = 0;
 	FString KismetName;
+	FString BaseName = InBaseName;
 
-	TSharedPtr<INameValidatorInterface> NameValidator = MakeShareable(new FKismetNameValidator(InBlueprint));
+	TSharedPtr<FKismetNameValidator> NameValidator = MakeShareable(new FKismetNameValidator(InBlueprint));
 	while(NameValidator->IsValid(KismetName) != EValidatorResult::Ok)
 	{
-		KismetName = FString::Printf(TEXT("%s_%d"), *InBaseName, Count);
+		// Calculate the number of digits in the number, adding 2 (1 extra to correctly count digits, another to account for the '_' that will be added to the name
+		int32 CountLength = Count > 0? (int32)log((double)Count) + 2 : 2;
+
+		// If the length of the final string will be too long, cut off the end so we can fit the number
+		if(CountLength + BaseName.Len() > NameValidator->GetMaximumNameLength())
+		{
+			BaseName = BaseName.Left(NameValidator->GetMaximumNameLength() - CountLength);
+		}
+		KismetName = FString::Printf(TEXT("%s_%d"), *BaseName, Count);
 		Count++;
 	}
 

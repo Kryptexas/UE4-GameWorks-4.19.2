@@ -19,7 +19,6 @@
 #include "IContentBrowserSingleton.h"
 #include "ContentBrowserModule.h"
 #include "AssetRegistryModule.h"
-#include "Kismet2NameValidators.h"
 #include "Layers/Layers.h"
 #include "ScopedTransaction.h"
 #include "AssetToolsModule.h"
@@ -598,22 +597,6 @@ public:
 	{
 	}
 
-	/** Util to get a unique name within the BP from the supplied Actor */
-	FName GetUniqueNameFromActor(FKismetNameValidator& InValidator, const AActor* InActor)
-	{
-		FName NewName;
-		NewName = FName(*InActor->GetActorLabel());
-
-		//find valid name--
-		for (int32 i = 1; EValidatorResult::Ok != InValidator.IsValid(NewName); ++i)
-		{
-			NewName = FName(*InActor->GetActorLabel(), i);
-			check(i < 10000);
-		}
-
-		return NewName;
-	}
-
 	UBlueprint* Execute(FString Path, TArray<AActor*> SelectedActors, bool bReplaceInWorld)
 	{
 		if (SelectedActors.Num() > 0)
@@ -669,13 +652,11 @@ public:
 			check(Blueprint->SimpleConstructionScript != NULL);
 			SCS = Blueprint->SimpleConstructionScript;
 
-			FKismetNameValidator Validator(Blueprint);
-
 			// If we have a single component selected, make a BP with a single component
 			if(SingleSceneComp != NULL)
 			{
 				USCS_Node* Node = CreateUSCSNode(SingleSceneComp);
-				Node->VariableName = GetUniqueNameFromActor(Validator, SingleSceneComp->GetOwner());
+				Node->VariableName = FBlueprintEditorUtils::FindUniqueKismetName(Blueprint, SingleSceneComp->GetOwner()->GetActorLabel());
 				SCS->AddNode(Node);
 
 				NewActorTransform = SingleSceneComp->ComponentToWorld;
@@ -715,11 +696,17 @@ public:
 					if(ActorRootComponent != NULL && ActorRootComponent->GetClass()->HasMetaData(FBlueprintMetadata::MD_BlueprintSpawnableComponent))
 					{
 						USCS_Node* Node = CreateUSCSNode(ActorRootComponent);
-						Node->VariableName = GetUniqueNameFromActor(Validator, Actor);
+						Node->VariableName = FBlueprintEditorUtils::FindUniqueKismetName(Blueprint, Actor->GetActorLabel());
+
+						// Add the node as a child to the root node, this will be rearranged later for correct parent-child relations but needs to be there now for name validation purposes
+						RootNode->AddChildNode(Node);
 
 						ActorToUSCSNodeMap.Add(Actor, Node);
 					}
 				}
+
+				// Clear the root node of all children we added, they will be re-added with correct parent-child relationships
+				RootNode->ChildNodes.Empty();
 
 				// Attach all immediate children to their parent, or the root if their parent is not being added
 				for (auto ActorIt = SelectedActors.CreateConstIterator(); ActorIt; ++ActorIt)
