@@ -336,5 +336,7 @@ bool FIOSDeviceHelper::InstallIPAOnDevice(const FTargetDeviceId& DeviceId, const
 
 void FIOSDeviceHelper::EnableDeviceCheck(bool OnOff)
 {
-	QueryTask->Enable(OnOff);
+#if ENABLE_IOS_DEVICE_DETECT
+		QueryTask->Enable(OnOff);
+#endif
 }
