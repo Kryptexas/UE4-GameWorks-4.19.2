@@ -2203,7 +2203,10 @@ public:
 	bool IsPlayingViaLauncher() const { return bPlayUsingLauncher && !bIsPlayWorldQueued; }
 
 	/** @return true if the editor is able to launch PIE with online platform support */
-	virtual bool SupportsOnlinePIE() const;
+	bool SupportsOnlinePIE() const;
+
+    /** @return true if there are active PIE instances logged into an online platform */
+	bool IsPlayingWithOnlinePIE() const { return NumOnlinePIEInstances > 0; }
 
 	/**
 	 * Ensures the assets specified are loaded and adds them to the global selection set
@@ -2533,6 +2536,9 @@ private:
 	virtual void VerifyLoadMapWorldCleanup() OVERRIDE;
 
 	FPIEInstanceWindowSwitch PIEInstanceWindowSwitchDelegate;
+
+	/** Number of currently running instances logged into an online platform */
+	int32 NumOnlinePIEInstances;
 
 protected:
 

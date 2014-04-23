@@ -203,6 +203,7 @@ UEditorEngine::UEditorEngine(const class FPostConstructInitializeProperties& PCI
 	bDisableDeltaModification = false;
 	bPlayOnLocalPcSession = false;
 	bAllowMultiplePIEWorlds = true;
+	NumOnlinePIEInstances = 0;
 }
 
 
