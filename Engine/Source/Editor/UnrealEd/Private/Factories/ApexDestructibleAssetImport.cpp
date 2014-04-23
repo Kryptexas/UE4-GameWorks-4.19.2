@@ -319,7 +319,8 @@ static void ImportMaterialsForSkelMesh(FSkeletalMeshImportData &ImportData, cons
 		{
 			ImportData.Materials.Add( VMaterial() );
 
-			ImportData.Materials.Last().MaterialName = DefaultMaterial->GetName();
+			ImportData.Materials.Last().Material = DefaultMaterial;
+			ImportData.Materials.Last().MaterialImportName = DefaultMaterial->GetName();
 		}
 	}
 }
@@ -483,7 +484,7 @@ static bool FillSkelMeshImporterFromApexDestructibleAsset(FSkeletalMeshImportDat
 
 		for (int32 CurUniqueMatIdx=0; CurUniqueMatIdx < UniqueMaterials.Num(); ++CurUniqueMatIdx)
 		{
-			if (ImportData.Materials[CurMatIdx].MaterialName == UniqueMaterials[CurUniqueMatIdx].MaterialName)
+			if (ImportData.Materials[CurMatIdx].MaterialImportName == UniqueMaterials[CurUniqueMatIdx].MaterialImportName)
 			{
 				bHasMaterial = true;
 				break;
@@ -619,11 +620,11 @@ static bool FillSkelMeshImporterFromApexDestructibleAsset(FSkeletalMeshImportDat
 				
 				if (SubmeshIndex < (uint32)ImportData.Materials.Num())
 				{
-					const FString& MaterialName = ImportData.Materials[SubmeshIndex].MaterialName;
+					const FString& MaterialName = ImportData.Materials[SubmeshIndex].MaterialImportName;
 
 					for (int32 UniqueMaterialIdx = 0; UniqueMaterialIdx < UniqueMaterials.Num(); ++UniqueMaterialIdx)
 					{
-						if (UniqueMaterials[UniqueMaterialIdx].MaterialName == MaterialName)
+						if (UniqueMaterials[UniqueMaterialIdx].MaterialImportName == MaterialName)
 						{
 							MatIdx = UniqueMaterialIdx;
 							break;
@@ -851,7 +852,8 @@ bool SetApexDestructibleAsset(UDestructibleMesh& DestructibleMesh, NxDestructibl
 			UMaterialInterface* MI = DestructibleMesh.Materials[i].MaterialInterface;
 			VMaterial NewMat;
 			
-			NewMat.MaterialName = MI != NULL ? MI->GetName() : TEXT("");
+			NewMat.Material = MI;
+			NewMat.MaterialImportName = MI != NULL ? MI->GetName() : TEXT("");
 			SkelMeshImportDataPtr->Materials.Add(NewMat);
 		}
 	}

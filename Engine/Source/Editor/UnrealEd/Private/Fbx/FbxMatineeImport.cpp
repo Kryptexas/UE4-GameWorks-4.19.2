@@ -28,10 +28,6 @@
 * and restrictions as described herein.
 */
 
-/*=============================================================================
-	FBX importer for Unreal Engine 3.
-==============================================================================*/
-
 #include "UnrealEd.h"
 
 #include "EngineInterpolationClasses.h"

@@ -4,14 +4,15 @@
 	Data structures only used for importing skeletal meshes and animations.
 -----------------------------------------------------------------------------*/
 
-#ifndef __SKELIMPORT_H__
-#define __SKELIMPORT_H__
-
+#pragma once
 
 // Raw data material.
 struct VMaterial
 {
-	FString            MaterialName;
+	/** The actual material created on import or found among existing materials */
+	TWeakObjectPtr<UMaterialInterface> Material;
+	/** The material name found by the importer */
+	FString MaterialImportName;
 };
 
 
@@ -211,5 +212,3 @@ public:
 	FSkeletalMeshImportData RawMeshInfluencesData;
 	int32 MaxBoneCountPerChunk;
 };
-
-#endif

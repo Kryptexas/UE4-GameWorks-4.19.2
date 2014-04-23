@@ -220,6 +220,19 @@ public:
 FBXImportOptions* GetImportOptions( class FFbxImporter* FbxImporter, UFbxImportUI* ImportUI, bool bShowOptionDialog, const FString& FullPath, bool& OutOperationCanceled, bool& OutImportAll, bool bForceImportType = false, EFBXImportType ImportType = FBXIT_StaticMesh );
 void ApplyImportUIToImportOptions(UFbxImportUI* ImportUI, FBXImportOptions& InOutImportOptions);
 
+struct FImportedMaterialData
+{
+public:
+	void AddImportedMaterial( FbxSurfaceMaterial& FbxMaterial, UMaterialInterface& UnrealMaterial );
+	bool IsUnique( FbxSurfaceMaterial& FbxMaterial, FName ImportedMaterialName ) const;
+	UMaterialInterface* GetUnrealMaterial( const FbxSurfaceMaterial& FbxMaterial ) const;
+	void Clear();
+private:
+	/** Mapping of FBX material to Unreal material.  Some materials in FBX have the same name so we use this map to determine if materials are unique */
+	TMap<FbxSurfaceMaterial*, TWeakObjectPtr<UMaterialInterface> > FbxToUnrealMaterialMap;
+	TSet<FName> ImportedMaterialNames;
+};
+
 /**
  * Main FBX Importer class.
  */
@@ -586,12 +599,13 @@ protected:
 	};
 	
 	static TSharedPtr<FFbxImporter> StaticInstance;
-	static const float SCALE_TOLERANCE;
 
 	struct FFbxMaterial
 	{
-		FString Name;
+		FbxSurfaceMaterial* FbxMaterial;
 		UMaterialInterface* Material;
+
+		FString GetName() const { return FbxMaterial ? ANSI_TO_TCHAR( FbxMaterial->GetName() ) : TEXT("None"); }
 	};
 	
 	// scene management
@@ -603,7 +617,7 @@ protected:
 	FString ErrorMessage;
 	// base path of fbx file
 	FString FileBasePath;
-	UObject* Parent;
+	TWeakObjectPtr<UObject> Parent;
 	// Flag that the mesh is the first mesh to import in current FBX scene
 	// FBX scene may contain multiple meshes, importer can import them at one time.
 	// Initialized as true when start to import a FBX scene
@@ -629,17 +643,10 @@ protected:
 	bool BuildStaticMeshFromGeometry(FbxMesh* FbxMesh, UStaticMesh* StaticMesh, TArray<FFbxMaterial>& MeshMaterials, int LODIndex, TMap<FVector, FColor>* ExistingVertexColorData);
 	
 	/**
-	 * Creates a Matinee group for a given actor within a given Matinee sequence.
-	 */
-	//UInterpGroupInst* CreateMatineeGroup(USeqAct_Interp* Sequence, AActor* Actor);
-
-	/**
 	 * Clean up for destroy the Importer.
 	 */
 	void CleanUp();
-	
-	//UObject* CreateObjectFromNode(FbxNode* Node);
-	//void PlaceActor(AActor* Actor, FbxNode* Node, bool bInvertOrientation = false);
+
 	/**
 	* Compute the global matrix for Fbx Node
 	*
@@ -695,17 +702,7 @@ protected:
 	* @returns bool*	true if import successfully.
 	*/
     bool FillSkelMeshImporterFromFbx(FSkeletalMeshImportData& ImportData, FbxMesh*& Mesh, FbxSkin* Skin, 
-										FbxShape* Shape, TArray<FbxNode*> &SortedLinks, TArray<FString>& FbxMatList);
-
-	/**
-	* Fill material name list data from Fbx Nodes.
-	* If import material option is OFF, the API will create default material slots for the skeletal mesh.
-	*
-	* @param NodeArray   Fbx Nodes to import, they are bound to the same skeleton system.
-	* @param ImportData object to store skeletal mesh data.
-	* @param FbxMatList  All material names of the skeletal mesh
-	*/
-	void ImportMaterialsForSkelMesh(TArray<FbxNode*>& NodeArray, FSkeletalMeshImportData &ImportData, TArray<FString>& OutFbxMatList);
+										FbxShape* Shape, TArray<FbxNode*> &SortedLinks, const TArray<FbxSurfaceMaterial*>& FbxMaterials );
 
 	/**
 	 * Import bones from skeletons that NodeArray bind to.
@@ -781,7 +778,7 @@ protected:
 	 *
 	 * @param FSkeletalMeshBinaryImport& The unreal skeletal mesh.
 	 */
-	void SetMaterialSkinXXOrder(FSkeletalMeshImportData& ImportData, const TArray<FString>& FbxMatList );
+	void SetMaterialSkinXXOrder(FSkeletalMeshImportData& ImportData);
 	
 	/**
 	 * Create materials from Fbx node.
@@ -804,7 +801,7 @@ protected:
 	* @param outMaterials Unreal Materials we created
 	* @param outUVSets
 	 */
-	void CreateUnrealMaterial(FbxSurfaceMaterial* FbxMaterial, TArray<UMaterialInterface*>& OutMaterials, TArray<FString>& UVSets);
+	void CreateUnrealMaterial(FbxSurfaceMaterial& FbxMaterial, TArray<UMaterialInterface*>& OutMaterials, TArray<FString>& UVSets);
 	
 	/**
 	 * Visit all materials of one node, import textures from materials.
@@ -970,6 +967,8 @@ private:
 	class FFbxLogger * Logger;
 	void SetLogger(class FFbxLogger * InLogger);
 	void ClearLogger();
+
+	FImportedMaterialData ImportedMaterialData;
 };
 
 

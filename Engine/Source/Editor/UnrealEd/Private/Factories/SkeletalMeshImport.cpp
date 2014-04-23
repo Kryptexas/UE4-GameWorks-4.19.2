@@ -150,26 +150,32 @@ void FSkeletalMeshImportData::CopyLODImportData(
 */
 void ProcessImportMeshMaterials(TArray<FSkeletalMaterial>& Materials, FSkeletalMeshImportData& ImportData )
 {
-	TArray <VMaterial>&	MaterialsBinary = ImportData.Materials;
+	TArray <VMaterial>&	ImportedMaterials = ImportData.Materials;
 
 	// If direct linkup of materials is requested, try to find them here - to get a texture name from a 
 	// material name, cut off anything in front of the dot (beyond are special flags).
 	Materials.Empty();
-	for( int32 m=0; m < MaterialsBinary.Num(); m++)
+	for( int32 MatIndex=0; MatIndex < ImportedMaterials.Num(); ++MatIndex)
 	{			
-		const FString& MaterialName = MaterialsBinary[m].MaterialName;
+		const VMaterial& ImportedMaterial = ImportedMaterials[MatIndex];
 
-		UMaterialInterface* Material = FindObject<UMaterialInterface>( ANY_PACKAGE, *MaterialName );
-		Materials.Add( FSkeletalMaterial( Material, true ) );	// I guess true is a sensible default for shadow casting
-
-		if( !Material )
+		UMaterialInterface* Material = NULL;
+		if( ImportedMaterial.Material.IsValid() )
 		{
-			UE_LOG(LogSkeletalMeshImport, Log, TEXT(" Mesh material not found among currently loaded ones: %s"), *MaterialName );
+			Material = ImportedMaterial.Material.Get();
 		}
+		else
+		{
+			const FString& MaterialName = ImportedMaterial.MaterialImportName;
+			Material = FindObject<UMaterialInterface>(ANY_PACKAGE, *MaterialName);
+		}
+
+		const bool bEnableShadowCasting = true;
+		Materials.Add( FSkeletalMaterial( Material, bEnableShadowCasting ) );
 	}
 
 	// Pad the material pointers.
-	while( MaterialsBinary.Num() > Materials.Num() )
+	while( ImportedMaterials.Num() > Materials.Num() )
 	{
 		Materials.Add( FSkeletalMaterial( NULL, true ) );
 	}

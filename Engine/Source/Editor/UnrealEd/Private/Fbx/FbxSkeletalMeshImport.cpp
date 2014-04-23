@@ -931,89 +931,6 @@ bool UnFbx::FFbxImporter::ImportBone(TArray<FbxNode*>& NodeArray, FSkeletalMeshI
 	return true;
 }
 
-void UnFbx::FFbxImporter::ImportMaterialsForSkelMesh(TArray<FbxNode*>& NodeArray, FSkeletalMeshImportData &ImportData, TArray<FString>& OutFbxMatList)
-{
-	FbxNode* Node;
-	int32 MaterialCount;
-	
-	// visit all FBX node to get all materials
-	for (int32 NodeIndex = 0; NodeIndex < NodeArray.Num(); NodeIndex++)
-	{
-		Node = NodeArray[NodeIndex];
-		
-		MaterialCount = Node->GetMaterialCount();
-		int32 ExistMatNum = OutFbxMatList.Num();
-
-		for(int32 MaterialIndex=0; MaterialIndex < MaterialCount; ++MaterialIndex)
-		{
-			FbxSurfaceMaterial *FbxMaterial = Node->GetMaterial(MaterialIndex);
-
-			FString MaterialName = ANSI_TO_TCHAR( FbxMaterial->GetName() );
-
-			int32 ExistMatIndex;
-			// check if the material has been recorded to the OurFbxMatList
-			for ( ExistMatIndex = 0; ExistMatIndex<ExistMatNum; ExistMatIndex++)
-			{
-				if ( OutFbxMatList[ExistMatIndex] == MaterialName )
-				{
-					break;
-				}
-			}
-
-			// the material has not been imported for this skeletal mesh, import this FBX material
-			if (ExistMatIndex == ExistMatNum)
-			{
-				OutFbxMatList.Add( MaterialName );
-
-				// Add material slot for the skeletal mesh
-				// We will create the unreal material later when import mesh data
-				if ( ImportOptions->bImportMaterials )
-				{
-					ImportData.Materials.Add( VMaterial() );
-
-					ImportData.Materials.Last().MaterialName = ANSI_TO_TCHAR( MakeName(FbxMaterial->GetName() ) );
-				}
-			}
-		}
-
-		// import texture only if UI option is checked
-		if ( !ImportOptions->bImportMaterials && ImportOptions->bImportTextures)
-		{
-			ImportTexturesFromNode(Node);
-		}
-	}
-	
-
-	// no material info, create a default material slot
-	if ( OutFbxMatList.Num() == 0 )
-	{
-		AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, LOCTEXT("FbxSkeletaLMeshimport_NoMaterialAssociatedWithMesh", "No material associated with skeletal mesh - using default")));
-		UMaterial* DefaultMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
-		if (DefaultMaterial)
-		{
-			ImportData.Materials.Add( VMaterial() );
-
-			ImportData.Materials.Last().MaterialName = DefaultMaterial->GetName();
-		}
-	}
-	else if (!ImportOptions->bImportMaterials)
-	{
-		// if we don't import FBX materials, we will create material slots as FBX objects have
-		AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, LOCTEXT("FbxSkeletaLMeshimport_NoimportMaterial", "Import Material isn't set. Using default materials for material slot")));
-		UMaterial* DefaultMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
-		if (DefaultMaterial)
-		{
-			for (int32 MatIndex = 0; MatIndex < OutFbxMatList.Num(); MatIndex++)
-			{
-				VMaterial NewMat;
-				NewMat.MaterialName = DefaultMaterial->GetName();
-
-				ImportData.Materials.Add(NewMat);
-			}
-		}
-	}
-}
-
 USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray<FbxNode*>& NodeArray, const FName& Name, EObjectFlags Flags, UFbxSkeletalMeshImportData* TemplateImportData, FString Filename, TArray<FbxShape*> *FbxShapeArray, FSkeletalMeshImportData* OutData, bool bCreateRenderData )
 {
 	if (NodeArray.Num() == 0)
@@ -1081,11 +998,6 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 		SkelMeshImportDataPtr = OutData;
 	}
 
-	// Get all FBX material names here, 
-	// then we can set material index mapping correctly in FillSkelMeshImporterFromFbx() even if we do not import FBX materials
-	TArray<FString> FbxMatList;
-	ImportMaterialsForSkelMesh(NodeArray, *SkelMeshImportDataPtr, FbxMatList);
-	
 	bool bDiffPose;
 	TArray<FbxNode*> SortedLinkArray;
 	FbxArray<FbxAMatrix> GlobalsPerLink;
@@ -1102,19 +1014,40 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 		return NULL;
 	}
 
-	for ( int32 i = 0; i < NodeArray.Num(); i++)
+	// Create a list of all unique fbx materials.  This needs to be done as a separate pass before reading geometry
+	// so that we know about all possible materials before assigning material indices to each triangle
+	TArray<FbxSurfaceMaterial*> FbxMaterials;
+	for( int32 NodeIndex = 0; NodeIndex < NodeArray.Num(); ++NodeIndex )
 	{
-		Node = NodeArray[i];
+		FbxNode* Node = NodeArray[NodeIndex];
+
+		int32 MaterialCount = Node->GetMaterialCount();
+
+		for (int32 MaterialIndex = 0; MaterialIndex < MaterialCount; ++MaterialIndex)
+		{
+			FbxSurfaceMaterial* FbxMaterial = Node->GetMaterial( MaterialIndex );
+			if( !FbxMaterials.Contains( FbxMaterial ) )
+			{
+				FbxMaterials.Add( FbxMaterial );
+				// Add an entry for each unique material
+				SkelMeshImportDataPtr->Materials.Add( VMaterial() );
+			}
+		}
+	}
+
+	for ( int32 NodeIndex = 0; NodeIndex < NodeArray.Num(); ++NodeIndex)
+	{
+		Node = NodeArray[NodeIndex];
 		FbxMesh = Node->GetMesh();
 		FbxSkin* Skin = (FbxSkin*)FbxMesh->GetDeformer(0, FbxDeformer::eSkin);
 		FbxShape* FbxShape = NULL;
 		if (FbxShapeArray)
 		{
-			FbxShape = (*FbxShapeArray)[i];
+			FbxShape = (*FbxShapeArray)[NodeIndex];
 		}
 
 		// NOTE: This function may invalidate FbxMesh and set it to point to a an updated version
-		if (!FillSkelMeshImporterFromFbx(*SkelMeshImportDataPtr, FbxMesh, Skin, FbxShape, SortedLinkArray, FbxMatList))
+		if (!FillSkelMeshImporterFromFbx( *SkelMeshImportDataPtr, FbxMesh, Skin, FbxShape, SortedLinkArray, FbxMaterials ) )
 		{
 			// I can't delete object here since this is middle of import
 			// but I can move to transient package, and GC will automatically collect it
@@ -1130,11 +1063,8 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 		}
 	}
 	
-	if( SkelMeshImportDataPtr->Materials.Num() == FbxMatList.Num() )
-	{
-		// reorder material according to "SKinXX" in material name
-		SetMaterialSkinXXOrder(*SkelMeshImportDataPtr, FbxMatList );
-	}
+	// reorder material according to "SKinXX" in material name
+	SetMaterialSkinXXOrder(*SkelMeshImportDataPtr );
 	
 	if( ImportOptions->bPreserveSmoothingGroups )
 	{
@@ -1522,11 +1452,9 @@ USkeletalMesh* UnFbx::FFbxImporter::ReimportSkeletalMesh(USkeletalMesh* Mesh, UF
 	return NewMesh;
 }
 
-void UnFbx::FFbxImporter::SetMaterialSkinXXOrder(FSkeletalMeshImportData& ImportData, const TArray<FString>& FbxMatList )
+void UnFbx::FFbxImporter::SetMaterialSkinXXOrder(FSkeletalMeshImportData& ImportData )
 {
 	TArray<int32> MaterialIndexToSkinIndex;
-
-	if( ImportData.Materials.Num() == FbxMatList.Num() )
 	{
 		int32 MaterialCount = ImportData.Materials.Num();
 		MaterialIndexToSkinIndex.AddZeroed(MaterialCount);
@@ -1535,7 +1463,7 @@ void UnFbx::FFbxImporter::SetMaterialSkinXXOrder(FSkeletalMeshImportData& Import
 		for(int32 MaterialIndex=0; MaterialIndex < MaterialCount; ++MaterialIndex)
 		{
 			// get skin index
-			FString MatName = FbxMatList[MaterialIndex];
+			FString MatName = ImportData.Materials[MaterialIndex].MaterialImportName;
 
 			if (MatName.Len() > 6)
 			{
@@ -1553,7 +1481,7 @@ void UnFbx::FFbxImporter::SetMaterialSkinXXOrder(FSkeletalMeshImportData& Import
 						MaterialIndexToSkinIndex[MaterialIndex] = TmpIndex;
 
 						// remove the 'skinXX' suffix from the material name					
-						ImportData.Materials[MaterialIndex].MaterialName.LeftChop( Offset );
+						ImportData.Materials[MaterialIndex].MaterialImportName.LeftChop( Offset );
 					}
 				}
 			}
@@ -1562,19 +1490,14 @@ void UnFbx::FFbxImporter::SetMaterialSkinXXOrder(FSkeletalMeshImportData& Import
 		if (bNeedsReorder)
 		{
 			// re-order the materials
-			TArray< FString > MatNames;
-
-			for(int32 MaterialIndex=0; MaterialIndex < MaterialCount; ++MaterialIndex)
-			{
-				MatNames.Add( ImportData.Materials[MaterialIndex].MaterialName );
-			}
+			TArray< VMaterial > ExistingMatList = ImportData.Materials;
 
 			for(int32 MaterialIndex=0; MaterialIndex < MaterialCount; ++MaterialIndex)
 			{
 				int32 NewIndex = MaterialIndexToSkinIndex[MaterialIndex];
-				if( MatNames.IsValidIndex( NewIndex ) )
+				if( ExistingMatList.IsValidIndex( NewIndex ) )
 				{
-					ImportData.Materials[MaterialIndex].MaterialName =  MatNames[ NewIndex ];
+					ImportData.Materials[MaterialIndex] = ExistingMatList[ NewIndex ];
 				}
 			}
 
@@ -1589,7 +1512,7 @@ void UnFbx::FFbxImporter::SetMaterialSkinXXOrder(FSkeletalMeshImportData& Import
 	}
 }
 
-bool UnFbx::FFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshImportData& ImportData, FbxMesh*& Mesh, FbxSkin* Skin, FbxShape* FbxShape, TArray<FbxNode*> &SortedLinks, TArray<FString>& FbxMatList)
+bool UnFbx::FFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshImportData& ImportData, FbxMesh*& Mesh, FbxSkin* Skin, FbxShape* FbxShape, TArray<FbxNode*> &SortedLinks, const TArray<FbxSurfaceMaterial*>& FbxMaterials )
 {
 	FbxNode* Node = Mesh->GetNode();
 
@@ -1671,37 +1594,44 @@ bool UnFbx::FFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshImportData& 
 		}
 	}
 
-	//
-	// setup materials index mapping
-	//
-	int32 MaterialCount = Node->GetMaterialCount();
-	int32 ExistedMatNum = ImportData.Materials.Num();
-	// for skeletal mesh, only one UVSet is used, so the variable UVSets is useless, just used as parameter
+
+	TArray<UMaterialInterface*> Materials;
+	if (ImportOptions->bImportMaterials)
+	{
+		CreateNodeMaterials(Node, Materials, UVSets);
+	}
+	else if (ImportOptions->bImportTextures)
+	{
+		ImportTexturesFromNode(Node);
+	}
+
+	// Maps local mesh material index to global material index
 	TArray<int32> MaterialMapping;
+
+	int32 MaterialCount = Node->GetMaterialCount();
 
 	MaterialMapping.AddUninitialized(MaterialCount);
 
-	for (int32 MaterialIndex=0; MaterialIndex < MaterialCount; ++MaterialIndex)
+	for( int32 MaterialIndex = 0; MaterialIndex < MaterialCount; ++MaterialIndex )
 	{
-		FbxSurfaceMaterial *FbxMaterial = Node->GetMaterial(MaterialIndex);
+		FbxSurfaceMaterial* FbxMaterial = Node->GetMaterial( MaterialIndex );
 
-		// create unreal materials here because we get UVset data now
-		if (ImportOptions->bImportMaterials)
+		int32 ExistingMatIndex = INDEX_NONE;
+		FbxMaterials.Find( FbxMaterial, ExistingMatIndex ); 
+		if( ExistingMatIndex != INDEX_NONE )
 		{
-			TArray<UMaterialInterface*> Materials;
-			Materials.Empty();
+			// Reuse existing material
+			MaterialMapping[MaterialIndex] = ExistingMatIndex;
 
-			CreateUnrealMaterial(FbxMaterial,Materials,UVSets);
-		}
-
-		int32 ExistMatIndex;
-		for ( ExistMatIndex = 0; ExistMatIndex<ExistedMatNum; ExistMatIndex++)
-		{
-			if ( FbxMatList[ExistMatIndex] == ANSI_TO_TCHAR(FbxMaterial->GetName()) )
+			if (ImportOptions->bImportMaterials && Materials.IsValidIndex(MaterialIndex) )
 			{
-				MaterialMapping[MaterialIndex] = ExistMatIndex;
-				break;
+				ImportData.Materials[ExistingMatIndex].MaterialImportName = ANSI_TO_TCHAR(MakeName(FbxMaterial->GetName()));
+				ImportData.Materials[ExistingMatIndex].Material = Materials[MaterialIndex];
 			}
+		}
+		else
+		{
+			MaterialMapping[MaterialIndex] = 0;
 		}
 	}
 
@@ -2037,13 +1967,13 @@ bool UnFbx::FFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshImportData& 
 				// material index is stored in the IndexArray, not the DirectArray (which is irrelevant with 2009.1)
 				case FbxLayerElement::eAllSame:
 					{	
-						Triangle.MatIndex = MaterialMapping[LayerElementMaterial->GetIndexArray().GetAt(0)];
+						Triangle.MatIndex = MaterialMapping[ LayerElementMaterial->GetIndexArray().GetAt(0) ];
 					}
 					break;
 				case FbxLayerElement::eByPolygon:
 					{	
-						int32 Index = LayerElementMaterial->GetIndexArray().GetAt(LocalIndex);
-						if( !MaterialMapping.IsValidIndex(Index) )
+						int32 Index = LayerElementMaterial->GetIndexArray().GetAt(LocalIndex);							
+						if (!MaterialMapping.IsValidIndex(Index))
 						{
 							AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, LOCTEXT("FbxSkeletaLMeshimport_MaterialIndexInconsistency", "Face material index inconsistency - forcing to 0")));
 						}
@@ -2055,14 +1985,16 @@ bool UnFbx::FFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshImportData& 
 					break;
 				}
 			}
+
 			// When import morph, we don't check the material index 
 			// because we don't import material for morph, so the ImportData.Materials contains zero material
-			if ( !FbxShape && (Triangle.MatIndex < 0 ||  Triangle.MatIndex >= ImportData.Materials.Num() ) )
+			if ( !FbxShape && (Triangle.MatIndex < 0 ||  Triangle.MatIndex >= FbxMaterials.Num() ) )
 			{
 				AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, LOCTEXT("FbxSkeletaLMeshimport_MaterialIndexInconsistency", "Face material index inconsistency - forcing to 0")));
 				Triangle.MatIndex = 0;
 			}
 		}
+	
 		Triangle.AuxMatIndex = 0;
 		for (VertexIndex=0; VertexIndex<3; VertexIndex++)
 		{

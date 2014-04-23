@@ -197,9 +197,30 @@ void ApplyImportUIToImportOptions(UFbxImportUI* ImportUI, FBXImportOptions& InOu
 	InOutImportOptions.bPreserveLocalTransform = ImportUI->bPreserveLocalTransform;
 }
 
-//-------------------------------------------------------------------------
-//
-//-------------------------------------------------------------------------
+void FImportedMaterialData::AddImportedMaterial( FbxSurfaceMaterial& FbxMaterial, UMaterialInterface& UnrealMaterial )
+{
+	FbxToUnrealMaterialMap.Add( &FbxMaterial, &UnrealMaterial );
+	ImportedMaterialNames.Add( *UnrealMaterial.GetPathName() );
+}
+
+bool FImportedMaterialData::IsUnique( FbxSurfaceMaterial& FbxMaterial, FName ImportedMaterialName ) const
+{
+	UMaterialInterface* FoundMaterial = GetUnrealMaterial( FbxMaterial );
+
+	return FoundMaterial != NULL || ImportedMaterialNames.Contains( ImportedMaterialName );
+}
+
+UMaterialInterface* FImportedMaterialData::GetUnrealMaterial( const FbxSurfaceMaterial& FbxMaterial ) const
+{
+	return FbxToUnrealMaterialMap.FindRef( &FbxMaterial ).Get();
+}
+
+void FImportedMaterialData::Clear()
+{
+	FbxToUnrealMaterialMap.Empty();
+	ImportedMaterialNames.Empty();
+}
+
 FFbxImporter::FFbxImporter()
 	: bFirstMesh(true)
 	, Importer( NULL )
@@ -233,8 +254,6 @@ FFbxImporter::~FFbxImporter()
 {
 	CleanUp();
 }
-
-const float FFbxImporter::SCALE_TOLERANCE = 0.000001;
 
 //-------------------------------------------------------------------------
 //
@@ -291,6 +310,8 @@ void FFbxImporter::ReleaseScene()
 		Scene = NULL;
 	}
 	
+	ImportedMaterialData.Clear();
+
 	// reset
 	CollisionModels.Clear();
 	CurPhase = NOTSTARTED;
