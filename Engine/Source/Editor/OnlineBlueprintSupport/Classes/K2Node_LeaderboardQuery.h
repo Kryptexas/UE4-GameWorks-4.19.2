@@ -8,13 +8,4 @@ UCLASS()
 class ONLINEBLUEPRINTSUPPORT_API UK2Node_LeaderboardQuery : public UK2Node_BaseAsyncTask
 {
 	GENERATED_UCLASS_BODY()
-
-	// UEdGraphNode interface
-	virtual FString GetTooltip() const OVERRIDE;
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	// End of UEdGraphNode interface
-
-	// UK2Node_BaseAsyncTask interface
-	virtual FString GetCategoryName() OVERRIDE;
-	// End of UK2Node_BaseAsyncTask interface
 };
