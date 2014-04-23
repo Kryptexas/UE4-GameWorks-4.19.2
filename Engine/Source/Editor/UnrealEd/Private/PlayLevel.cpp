@@ -1499,7 +1499,7 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 	check(EditorPlayInSettings);
 
 	// Prompt the user to compile any dirty Blueprints before PIE can occur.
-	bool bAnyBlueprintErrors = false;
+	TArray< UBlueprint* > ErrorBlueprintList;
 	bool bAnyBlueprintsDirty = false;
 	{
 		FString DirtyBlueprints;
@@ -1523,9 +1523,9 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 				{
 					BlueprintsToRecompile.Add(Blueprint);
 				}
-				else if(BS_Error == Blueprint->Status)
+				else if(BS_Error == Blueprint->Status && Blueprint->bDisplayCompilePIEWarning)
 				{
-					bAnyBlueprintErrors = true;
+					ErrorBlueprintList.Add(Blueprint);
 					ErrorBlueprints += FString::Printf(TEXT("\n   %s"), *Blueprint->GetName());
 				}
 			}
@@ -1538,8 +1538,11 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 					// Treating unknown as up to date for right now
 					break;
 				case BS_Error:
-					bAnyBlueprintErrors = true;
-					ErrorBlueprints += FString::Printf(TEXT("\n   %s"), *Blueprint->GetName());
+					if( Blueprint->bDisplayCompilePIEWarning)
+					{
+						ErrorBlueprintList.Add(Blueprint);
+						ErrorBlueprints += FString::Printf(TEXT("\n   %s"), *Blueprint->GetName());
+					}
 					break;
 				case BS_UpToDate:
 				case BS_UpToDateWithWarnings:
@@ -1606,9 +1609,13 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 					UE_LOG(LogPlayLevel, Log, TEXT("[PIE] Compiling %s before PIE..."), *Blueprint->GetName());
 					FKismetEditorUtilities::CompileBlueprint(Blueprint, false, true);
 					const bool bHadError = (!Blueprint->IsUpToDate() && Blueprint->Status != BS_Unknown);
-					bAnyBlueprintErrors |= bHadError;
-					if (bHadError)
+
+					// Check if the Blueprint has already been added to the error list to prevent it from being added again
+					if (bHadError && ErrorBlueprintList.Find(Blueprint) == INDEX_NONE)
 					{
+						ErrorBlueprintList.Add(Blueprint);
+						ErrorBlueprints += FString::Printf(TEXT("\n   %s"), *Blueprint->GetName());
+
 						FFormatNamedArguments Arguments;
 						Arguments.Add(TEXT("Name"), FText::FromString(Blueprint->GetName()));
 
@@ -1657,9 +1664,9 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 							const bool bIsPackageDirty = Package ? Package->IsDirty() : false;
 
 							FKismetEditorUtilities::CompileBlueprint(Blueprint);
-							if (Blueprint->Status == BS_Error)
+							if (Blueprint->Status == BS_Error && Blueprint->bDisplayCompilePIEWarning)
 							{
-								bAnyBlueprintErrors = true;
+								ErrorBlueprintList.Add(Blueprint);
 							}
 
 							// Restore the dirty flag
@@ -1673,7 +1680,7 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 			}
 		}
 
-		if ( bAnyBlueprintErrors && !GIsDemoMode )
+		if ( ErrorBlueprintList.Num() && !GIsDemoMode )
 		{
 			FFormatNamedArguments Args;
 			Args.Add( TEXT("ErrorBlueprints"), FText::FromString( ErrorBlueprints ) );
@@ -1689,6 +1696,14 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 				}
 
 				return;
+			}
+			else
+			{
+				// The user wants to ignore the compiler errors, mark the Blueprints and do not warn them again unless the Blueprint attempts to compile
+				for( auto Blueprint : ErrorBlueprintList )
+				{
+					Blueprint->bDisplayCompilePIEWarning = false;
+				}
 			}
 		}
 	}
@@ -1750,6 +1765,8 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 
 	// Can't allow realtime viewports whilst in PIE so disable it for ALL viewports here.
 	DisableRealtimeViewports();
+
+	bool bAnyBlueprintErrors = ErrorBlueprintList.Num()? true : false;
 
 	if (bInSimulateInEditor || (PlayInSettings->PlayNetMode == EPlayNetMode::PIE_Standalone) || !PlayInSettings->RunUnderOneProcess)
 	{

@@ -317,6 +317,10 @@ class ENGINE_API UBlueprint : public UBlueprintCore
 	UPROPERTY(EditAnywhere, Category=BlueprintOption)
 	FString BlueprintDescription;
 
+	/** TRUE to show a warning when attempting to start in PIE and there is a compiler error on this Blueprint */
+	UPROPERTY(transient)
+	bool bDisplayCompilePIEWarning;
+
 #endif //WITH_EDITORONLY_DATA
 
 	/** 'Simple' construction script - graph of components to instance */

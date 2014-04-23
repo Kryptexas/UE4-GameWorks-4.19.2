@@ -296,6 +296,9 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprint(UClass* ParentClass, UObject
 
 void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIsRegeneratingOnLoad, bool bSkipGarbageCollection, bool bSaveIntermediateProducts, FCompilerResultsLog* pResults)
 {
+	// Reset the flag, so if the user tries to use PIE it will warn them if the BP did not compile
+	BlueprintObj->bDisplayCompilePIEWarning = true;
+
 	UPackage* const BlueprintPackage = Cast<UPackage>(BlueprintObj->GetOutermost());
 	// compiling the blueprint will inherently dirty the package, but if there 
 	// weren't any changes to save before, there shouldn't be after
