@@ -942,7 +942,7 @@ bool AGameMode::MustSpectate(APlayerController* NewPlayer)
 	return NewPlayer->PlayerState->bOnlySpectator;
 }
 
-APlayerController* AGameMode::Login(const FString& Portal, const FString& Options, const TSharedPtr<FUniqueNetId>& UniqueId, FString& ErrorMessage)
+APlayerController* AGameMode::Login(UPlayer* NewPlayer, const FString& Portal, const FString& Options, const TSharedPtr<FUniqueNetId>& UniqueId, FString& ErrorMessage)
 {
 	ErrorMessage = GameSession->ApproveLogin(Options);
 	if ( !ErrorMessage.IsEmpty() )
@@ -950,10 +950,10 @@ APlayerController* AGameMode::Login(const FString& Portal, const FString& Option
 		return NULL;
 	}
 
-	APlayerController* NewPlayer = SpawnPlayerController(FVector::ZeroVector, FRotator::ZeroRotator);
+	APlayerController* NewPlayerController = SpawnPlayerController(FVector::ZeroVector, FRotator::ZeroRotator);
 
 	// Handle spawn failure.
-	if( NewPlayer == NULL)
+	if( NewPlayerController == NULL)
 	{
 		UE_LOG(LogGameMode, Log, TEXT("Couldn't spawn player controller of class %s"), PlayerControllerClass ? *PlayerControllerClass->GetName() : TEXT("NULL"));
 		ErrorMessage = FString::Printf(TEXT("Failed to spawn player controller"));
@@ -961,7 +961,7 @@ APlayerController* AGameMode::Login(const FString& Portal, const FString& Option
 	}
 
 	// Customize incoming player based on URL options
-	InitNewPlayer(NewPlayer, UniqueId, Options);
+	InitNewPlayer(NewPlayerController, UniqueId, Options);
 
 	// Find a start spot.
 	AActor* const StartSpot = FindPlayerStart( NULL, Portal );
@@ -973,29 +973,29 @@ APlayerController* AGameMode::Login(const FString& Portal, const FString& Option
 
 	FRotator InitialControllerRot = StartSpot->GetActorRotation();
 	InitialControllerRot.Roll = 0.f;
-	NewPlayer->SetInitialLocationAndRotation(StartSpot->GetActorLocation(), InitialControllerRot);
-	NewPlayer->StartSpot = StartSpot;
+	NewPlayerController->SetInitialLocationAndRotation(StartSpot->GetActorLocation(), InitialControllerRot);
+	NewPlayerController->StartSpot = StartSpot;
 
 	// Register the player with the session
-	GameSession->RegisterPlayer(NewPlayer, UniqueId, HasOption(Options, TEXT("bIsFromInvite")));
+	GameSession->RegisterPlayer(NewPlayerController, UniqueId, HasOption(Options, TEXT("bIsFromInvite")));
 	
 	// Init player's name
 	FString InName = ParseOption( Options, TEXT("Name")).Left(20);
 	if( InName.IsEmpty() )
 	{
-		InName = FString::Printf(TEXT("%s%i"), *DefaultPlayerName, NewPlayer->PlayerState->PlayerId);
+		InName = FString::Printf(TEXT("%s%i"), *DefaultPlayerName, NewPlayerController->PlayerState->PlayerId);
 	}
-	ChangeName( NewPlayer, InName, false );
+	ChangeName( NewPlayerController, InName, false );
 
 	// Set up spectating
 	bool bSpectator = FCString::Stricmp(*ParseOption( Options, TEXT("SpectatorOnly") ), TEXT("1")) == 0;
-	if ( bSpectator || MustSpectate(NewPlayer) )
+	if ( bSpectator || MustSpectate(NewPlayerController) )
 	{
-		NewPlayer->StartSpectatingOnly();
-		return NewPlayer;
+		NewPlayerController->StartSpectatingOnly();
+		return NewPlayerController;
 	}
 
-	return NewPlayer;
+	return NewPlayerController;
 }
 
 

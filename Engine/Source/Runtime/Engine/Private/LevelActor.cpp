@@ -565,7 +565,7 @@ bool UWorld::DestroyActor( AActor* ThisActor, bool bNetForce, bool bShouldModify
 	Player spawning.
 -----------------------------------------------------------------------------*/
 
-APlayerController* UWorld::SpawnPlayActor(UPlayer* Player, ENetRole RemoteRole, const FURL& InURL, const TSharedPtr<FUniqueNetId>& UniqueId, FString& Error, uint8 InNetPlayerIndex)
+APlayerController* UWorld::SpawnPlayActor(UPlayer* NewPlayer, ENetRole RemoteRole, const FURL& InURL, const TSharedPtr<FUniqueNetId>& UniqueId, FString& Error, uint8 InNetPlayerIndex)
 {
 	Error = TEXT("");
 
@@ -580,26 +580,27 @@ APlayerController* UWorld::SpawnPlayActor(UPlayer* Player, ENetRole RemoteRole, 
 	AGameMode* GameMode = GetAuthGameMode();
 
 	// Give the GameMode a chance to accept the login
-	APlayerController* const Actor = GameMode->Login(*InURL.Portal, Options, UniqueId, Error);
-	if (Actor == NULL)
+	APlayerController* const NewPlayerController = GameMode->Login(NewPlayer, *InURL.Portal, Options, UniqueId, Error);
+	if (NewPlayerController == NULL)
 	{
 		UE_LOG(LogSpawn, Warning, TEXT("Login failed: %s"), *Error);
 		return NULL;
 	}
 
+	UE_LOG(LogSpawn, Log, TEXT("%s got player %s [%s]"), *NewPlayerController->GetName(), *NewPlayer->GetName(), *UniqueId->ToString());
+
 	// Possess the newly-spawned player.
-	Actor->NetPlayerIndex = InNetPlayerIndex;
-	//UE_LOG(LogSpawn, Log, TEXT("%s got player %s"), *Actor->GetName(), *Player->GetName());
-	Actor->Role = ROLE_Authority;
-	Actor->SetReplicates(RemoteRole != ROLE_None);
+	NewPlayerController->NetPlayerIndex = InNetPlayerIndex;
+	NewPlayerController->Role = ROLE_Authority;
+	NewPlayerController->SetReplicates(RemoteRole != ROLE_None);
 	if (RemoteRole == ROLE_AutonomousProxy)
 	{
-		Actor->SetAutonomousProxy(true);
+		NewPlayerController->SetAutonomousProxy(true);
 	}
-	Actor->SetPlayer(Player);
-	GameMode->PostLogin(Actor);
+	NewPlayerController->SetPlayer(NewPlayer);
+	GameMode->PostLogin(NewPlayerController);
 
-	return Actor;
+	return NewPlayerController;
 }
 
 /*-----------------------------------------------------------------------------
