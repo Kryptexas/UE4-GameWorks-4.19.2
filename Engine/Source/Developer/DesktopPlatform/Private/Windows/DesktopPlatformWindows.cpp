@@ -8,6 +8,8 @@
 	#include <Winver.h>
 #include "HideWindowsPlatformTypes.h"
 
+#pragma comment( lib, "version.lib" )
+
 #define LOCTEXT_NAMESPACE "DesktopPlatform"
 #define MAX_FILETYPES_STR 4096
 #define MAX_FILENAME_STR 65536 // This buffer has to be big enough to contain the names of all the selected files as well as the null characters between them and the null character at the end

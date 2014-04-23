@@ -30,5 +30,5 @@ private:
 	int32 ParseReleaseVersion(const FString &Version);
 
 	TSharedPtr<FJsonObject> LoadProjectFile(const FString &FileName);
-	bool FDesktopPlatformBase::SaveProjectFile(const FString &FileName, TSharedPtr<FJsonObject> Object);
+	bool SaveProjectFile(const FString &FileName, TSharedPtr<FJsonObject> Object);
 };
