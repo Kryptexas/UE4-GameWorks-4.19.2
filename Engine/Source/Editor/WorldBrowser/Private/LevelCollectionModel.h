@@ -511,3 +511,25 @@ private:
 	UObject*		ImmuneObject;
 	bool			bTransient;
 };
+
+/**  */
+struct FTiledLandscapeImportSettings
+{
+	FTiledLandscapeImportSettings()
+		: Scale3D(100.f,100.f,100.f)
+		, ComponentsNum(8)
+		, QuadsPerSection(63)
+		, SectionsPerComponent(1)
+		, TileResolution(1009)	
+	{}
+	
+	FVector			Scale3D;
+	int32			ComponentsNum;
+	int32			QuadsPerSection;
+	int32			SectionsPerComponent;
+	
+	TArray<FString>		ImportFileList;
+	TArray<FIntPoint>	TileCoordinates;
+	FIntRect			TotalLandscapeRect;	
+	int32				TileResolution;	
+};

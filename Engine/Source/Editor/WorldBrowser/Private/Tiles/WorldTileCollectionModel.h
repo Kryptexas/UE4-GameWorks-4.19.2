@@ -211,6 +211,9 @@ private:
 	/** @return whether it is possible to add a level with landscape proxy at specified location */	
 	bool CanAddLandscapeProxy(FWorldTileModel::EWorldDirections InWhere) const;
 
+	/**  */	
+	void ImportTiledLandscape_Executed();
+
 public:
 	/** Whether Editor has support for generating LOD levels */	
 	bool HasGenerateLODLevelSupport() const;

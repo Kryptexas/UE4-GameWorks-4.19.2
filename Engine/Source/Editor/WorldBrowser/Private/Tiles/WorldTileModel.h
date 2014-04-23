@@ -36,7 +36,8 @@ public:
 	 */
 	struct FLandscapeImportSettings
 	{
-		ALandscapeProxy*					SourceLandscape;
+		// Depending on landscape guid import code will spawn Landscape actor or LandscapeProxy actor
+		FGuid								LandscapeGuid;
 		FTransform							LandscapeTransform;
 		int32								ComponentSizeQuads;
 		int32								SectionsPerComponent;

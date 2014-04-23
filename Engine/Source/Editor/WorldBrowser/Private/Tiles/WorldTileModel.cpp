@@ -834,7 +834,7 @@ bool FWorldTileModel::CreateAdjacentLandscapeProxy(ALandscapeProxy* SourceLandsc
 	FIntPoint SourceLandscapeSize = SourceLandscapeRect.Size();
 
 	FLandscapeImportSettings ImportSettings;
-	ImportSettings.SourceLandscape = SourceLandscape;
+	ImportSettings.LandscapeGuid = SourceLandscape->GetLandscapeGuid();
 	ImportSettings.ComponentSizeQuads = SourceLandscape->ComponentSizeQuads;
 	ImportSettings.SectionsPerComponent = SourceLandscape->NumSubsections;
 	ImportSettings.QuadsPerSection = SourceLandscape->SubsectionSizeQuads;
@@ -856,6 +856,9 @@ bool FWorldTileModel::CreateAdjacentLandscapeProxy(ALandscapeProxy* SourceLandsc
 	ALandscapeProxy* AdjacenLandscape = ImportLandscape(ImportSettings);
 	if (AdjacenLandscape)
 	{
+		// Copy source landscape properties 
+		AdjacenLandscape->GetSharedProperties(SourceLandscape);
+		
 		// Refresh level model bounding box
 		FBox AdjacentLandscapeBounds = AdjacenLandscape->GetComponentsBoundingBox(true);
 		TileDetails->Bounds = AdjacentLandscapeBounds;
@@ -898,23 +901,12 @@ ALandscapeProxy* FWorldTileModel::ImportLandscape(const FLandscapeImportSettings
 		return nullptr;
 	}
 	
-	// In case SourceLandscape os provided, create LnadscapeProxy and copy settings from it
-	// Otherwise create a new LandscapeActor
 	ALandscapeProxy*	Landscape;
-	FGuid				LandscapeGuid;
-	if (Settings.SourceLandscape)
+	FGuid				LandscapeGuid = Settings.LandscapeGuid;
+	
+	if (LandscapeGuid.IsValid())
 	{
-		// These settings have to match source landscape settings
-		if (Settings.ComponentSizeQuads != Settings.SourceLandscape->ComponentSizeQuads || 
-			Settings.SectionsPerComponent != Settings.SourceLandscape->NumSubsections ||
-			Settings.QuadsPerSection != Settings.SourceLandscape->SubsectionSizeQuads)
-		{
-			return nullptr;
-		}
-				
 		Landscape = Cast<UWorld>(LoadedLevel->GetOuter())->SpawnActor<ALandscapeProxy>();
-		Landscape->GetSharedProperties(Settings.SourceLandscape);
-		LandscapeGuid = Settings.SourceLandscape->GetLandscapeGuid();
 	}
 	else
 	{
