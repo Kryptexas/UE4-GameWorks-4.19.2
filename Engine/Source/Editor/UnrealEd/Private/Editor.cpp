@@ -345,21 +345,21 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 	// Call base.
 	UEngine::Init(InEngineLoop);
 
-    if( !FEngineBuildSettings::IsInternalBuild() &&
+	if( !FEngineBuildSettings::IsInternalBuild() &&
 		!FEngineBuildSettings::IsPerforceBuild() && 
 		!FApp::IsBenchmarking() &&
 		!GIsDemoMode && 
 		!IsRunningCommandlet() &&
 		!FPlatformProcess::IsApplicationRunning(TEXT("UnrealEngineLauncher") ) &&
 		!FPlatformProcess::IsApplicationRunning(TEXT("Unreal Engine Launcher") ) )
-    {
-        IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
-        if( DesktopPlatform != NULL )
-        {
-            DesktopPlatform->OpenLauncher( false, TEXT("") );
-        }
-    }
-    
+	{
+		IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+		if( DesktopPlatform != NULL )
+		{
+			DesktopPlatform->OpenLauncher( false, TEXT("") );
+		}
+	}
+	
 	// Create selection sets.
 	PrivateInitSelectedSets();
 	
@@ -472,10 +472,6 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 	GEditor = this;
 	InitEditor(InEngineLoop);
 
-	//Init the class hierarchy
-	EditorClassHierarchy = new FEditorClassHierarchy;
-	EditorClassHierarchy->Init();
-
 	Layers = FLayers::Create( TWeakObjectPtr< UEditorEngine >( this ) );
 
 	// Init transactioning.
@@ -568,9 +564,6 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 	UModel::SetGlobalBSPTexelScale(BSPTexelScale);
 
 	GLog->EnableBacklog( false );
-
-	// Re-init the class hierarchy to catch new classes due to module loads
-	EditorClassHierarchy->Init();
 
 	{
 		// avoid doing this every time, create a list of classes that derive from AVolume

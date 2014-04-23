@@ -10,7 +10,6 @@
 
 #include "EngineInterpolationClasses.h"
 #include "Commandlets/EditorCommandlets.h"
-#include "EditorClassHierarchy.h"
 #include "EditorUndoClient.h"
 #include "TickableEditorObject.h"
 
@@ -87,7 +86,7 @@ struct UNREALED_API FEditorDelegates
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnBlueprintContextMenuCreated, FBlueprintGraphActionListBuilder &/*ContextMenuBuilder*/);
 
 	/** Called when the CurrentLevel is switched to a new level.  Note that this event won't be fired for temporary
-	    changes to the current level, such as when copying/pasting actors. */
+		changes to the current level, such as when copying/pasting actors. */
 	static FSimpleMulticastDelegate NewCurrentLevel;
 	/** Called when the map has changed */
 	static FOnMapChanged MapChange;
@@ -197,11 +196,11 @@ DECLARE_SCOPED_DELEGATE( RefreshAllBrowsers, FEditorDelegates::RefreshAllBrowser
 /** Texture alignment. */
 enum ETAxis
 {
-    TAXIS_X                 = 0,
-    TAXIS_Y                 = 1,
-    TAXIS_Z                 = 2,
-    TAXIS_WALLS             = 3,
-    TAXIS_AUTO              = 4,
+	TAXIS_X                 = 0,
+	TAXIS_Y                 = 1,
+	TAXIS_Z                 = 2,
+	TAXIS_WALLS             = 3,
+	TAXIS_AUTO              = 4,
 };
 
 /** Coordinate system identifiers. */
@@ -298,7 +297,7 @@ struct FImportObjectParams
 	UStruct*			ObjectStruct;
 
 	/** the original object that ImportObjectProperties was called for.
-	    if SubobjectOuter is a subobject, corresponds to the first object in SubobjectOuter's Outer chain that is not a subobject itself.
+		if SubobjectOuter is a subobject, corresponds to the first object in SubobjectOuter's Outer chain that is not a subobject itself.
 		if SubobjectOuter is not a subobject, should normally be the same value as SubobjectOuter */
 	UObject*			SubobjectRoot;
 
@@ -320,7 +319,7 @@ struct FImportObjectParams
 
 
 	/** True if we should call PreEditChange/PostEditChange on the object as it's imported.  Pass false here
-	    if you're going to do that on your own. */
+		if you're going to do that on your own. */
 	bool				bShouldCallEditChange;
 
 

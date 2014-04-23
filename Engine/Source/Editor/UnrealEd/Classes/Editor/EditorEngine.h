@@ -433,9 +433,6 @@ public:
 	/** List of level editor viewport clients for level specific actions */
 	TArray<class FLevelEditorViewportClient*> LevelViewportClients;
 
-	/** Stores the class hierarchy generated from the make commandlet*/
-	class FEditorClassHierarchy*			EditorClassHierarchy;
-
 	/** Annotation to track which PIE/SIE (PlayWorld) UObjects have counterparts in the EditorWorld **/
 	class FUObjectAnnotationSparseBool ObjectsThatExistInEditorWorld;
 

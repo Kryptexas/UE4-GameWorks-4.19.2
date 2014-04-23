@@ -374,10 +374,9 @@ public:
 private:
 	/** Recursive function to build a tree, will not filter.
 	 *	@param InOutRootNode						The node that this function will add the children of to the tree.
-	 *	@param InRootClassIndex						The index of the root node.
 	 *  @param PackageNameToAssetDataMap			The asset registry map of blueprint package names to blueprint data
 	 */	
-	void AddChildren_NoFilter( TSharedPtr< FClassViewerNode >& InOutRootNode, int32 InRootClassIndex, const TMultiMap<FName,FAssetData>& BlueprintPackageToAssetDataMap );
+	void AddChildren_NoFilter( TSharedPtr< FClassViewerNode >& InOutRootNode, const TMultiMap<FName,FAssetData>& BlueprintPackageToAssetDataMap );
 
 	/** Finds the node, recursively going deeper into the hierarchy. Does so by comparing generated class package names.
 	 *	@param InGeneratedClassPackageName			The name of the generated class package to find the node for.
@@ -785,9 +784,6 @@ namespace ClassViewer
 		 */
 		static void GetClassInfo( TWeakObjectPtr<UClass> InClass, bool& bInOutIsBlueprintBase, bool& bInOutHasBlueprint )
 		{
-			FEditorClassHierarchy* EditorClassHierarchy = GEditor->EditorClassHierarchy;
-			check(EditorClassHierarchy);
-			 
 			if (UClass* Class = InClass.Get())
 			{
 				bInOutIsBlueprintBase = FKismetEditorUtilities::CanCreateBlueprintOfClass( Class );
@@ -1515,11 +1511,16 @@ private:
 	FOnClassItemDoubleClickDelegate OnDoubleClicked;
 };
 
+static void OnModulesChanged(FName ModuleThatChanged, EModuleChangeReason::Type ReasonForChange)
+{
+	ClassViewer::Helpers::RequestPopulateClassHierarchy();
+}
+
 FClassHierarchy::FClassHierarchy()
 {
 	// Register with the Asset Registry to be informed when it is done loading up files.
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::GetModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-	AssetRegistryModule.Get().OnFilesLoaded().AddStatic(ClassViewer::Helpers::RequestPopulateClassHierarchy);
+	AssetRegistryModule.Get().OnFilesLoaded().AddStatic( ClassViewer::Helpers::RequestPopulateClassHierarchy );
 	AssetRegistryModule.Get().OnAssetAdded().AddRaw( this, &FClassHierarchy::AddAsset);
 	AssetRegistryModule.Get().OnAssetRemoved().AddRaw( this, &FClassHierarchy::RemoveAsset );
 
@@ -1527,6 +1528,8 @@ FClassHierarchy::FClassHierarchy()
 	GEditor->OnHotReload().AddStatic(ClassViewer::Helpers::RequestPopulateClassHierarchy);
 	GEditor->OnBlueprintCompiled().AddStatic(ClassViewer::Helpers::RequestPopulateClassHierarchy);
 	GEditor->OnClassPackageLoadedOrUnloaded().AddStatic(ClassViewer::Helpers::RequestPopulateClassHierarchy);
+
+	FModuleManager::Get().OnModulesChanged().AddStatic(&OnModulesChanged);
 }
 
 FClassHierarchy::~FClassHierarchy()
@@ -1544,65 +1547,96 @@ FClassHierarchy::~FClassHierarchy()
 		GEditor->OnBlueprintCompiled().RemoveStatic(ClassViewer::Helpers::RequestPopulateClassHierarchy);
 		GEditor->OnClassPackageLoadedOrUnloaded().RemoveStatic(ClassViewer::Helpers::RequestPopulateClassHierarchy);
 	}
+
+	FModuleManager::Get().OnModulesChanged().RemoveAll(this);
 }
 
-void FClassHierarchy::AddChildren_NoFilter( TSharedPtr< FClassViewerNode >& InOutRootNode, int32 InRootClassIndex, const TMultiMap<FName,FAssetData>& BlueprintPackageToAssetDataMap )
+static TSharedPtr< FClassViewerNode > CreateNodeForClass(UClass* Class, const TMultiMap<FName, FAssetData>& BlueprintPackageToAssetDataMap)
 {
-	FEditorClassHierarchy* EditorClassHierarchy = GEditor->EditorClassHierarchy;
-	check(EditorClassHierarchy);
+	FString ClassName = Class->GetName();
 
-	// Get a list of all direct descendants of this class.
-	TArray<int32> ChildClassIndexArray;
-	EditorClassHierarchy->GetChildrenOfClass(InRootClassIndex, ChildClassIndexArray);
+	const bool bIsPlaceable = ClassViewer::Helpers::IsPlaceable(Class);
+	const bool bIsAbstract = ClassViewer::Helpers::IsAbstract(Class);
+	const bool bIsBrush = ClassViewer::Helpers::IsBrush(Class);
+
+	// Create the new node so it can be passed to AddChildren, fill it in with if it is placeable, abstract, and/or a brush.
+	TSharedPtr< FClassViewerNode > NewNode = MakeShareable(new FClassViewerNode(ClassName, bIsPlaceable && !bIsAbstract && !bIsBrush));
+	NewNode->Blueprint = ClassViewer::Helpers::GetBlueprint(Class);
+	NewNode->Class = Class;
+
+	// Retrieve all blueprint classes
+	TArray<FAssetData> BlueprintList;
+	BlueprintPackageToAssetDataMap.MultiFind(NewNode->Class->GetOuterUPackage()->GetFName(), BlueprintList);
+
+	// Check if the Asset Registry found anything, it should, but check.
+	if ( BlueprintList.Num() )
+	{
+		// Grab the generated class name and check it before assigning. Objects that haven't been saved since this has started to be exported do not have the information.
+		FString* GeneratedClassnamePtr = BlueprintList[0].TagsAndValues.Find(FName("GeneratedClass"));
+
+		if ( GeneratedClassnamePtr )
+		{
+			NewNode->GeneratedClassname = *GeneratedClassnamePtr;
+		}
+	}
+
+	return NewNode;
+}
+
+void FClassHierarchy::AddChildren_NoFilter( TSharedPtr< FClassViewerNode >& InOutRootNode, const TMultiMap<FName, FAssetData>& BlueprintPackageToAssetDataMap )
+{
+	UClass* RootClass = UObject::StaticClass();
+
+	ObjectClassRoot = MakeShareable(new FClassViewerNode(RootClass->GetName(), false));
+	ObjectClassRoot->Class = RootClass;
+
+	TMap< UClass*, TSharedPtr< FClassViewerNode > > Nodes;
+
+	Nodes.Add(RootClass, ObjectClassRoot);
+
+	TSet<UClass*> Visited;
+	Visited.Add(RootClass);
 
 	// Go through all of the classes children and see if they should be added to the list.
-	for(int32 ChildClassIndex = 0; ChildClassIndex < ChildClassIndexArray.Num(); ChildClassIndex++)
+	for ( TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt )
 	{
-		int32 CurrentChildIndex = ChildClassIndexArray[ ChildClassIndex ];
+		UClass* CurrentClass = *ClassIt;
 
-		// Pull out the class for this object, check to make sure it is not NULL.
-		UClass* Class = EditorClassHierarchy->GetClass(CurrentChildIndex);
-
-		if(Class)
+		// Ignore deprecated and temporary trash classes.
+		if ( CurrentClass->HasAnyClassFlags(CLASS_Deprecated | CLASS_NewerVersionExists) )
 		{
-			FString ClassName = EditorClassHierarchy->GetClassName( CurrentChildIndex );
-
-			const bool bIsPlaceable = ClassViewer::Helpers::IsPlaceable(Class);
-			const bool bIsAbstract = ClassViewer::Helpers::IsAbstract(Class);
-			const bool bIsBrush = ClassViewer::Helpers::IsBrush(Class);
-
-			FString ChildClassName = EditorClassHierarchy->GetClassName(CurrentChildIndex);
-
-			// Create the new node so it can be passed to AddChildren, fill it in with if it is placeable, abstract, and/or a brush.
-			TSharedPtr< FClassViewerNode > NewNode = MakeShareable(new FClassViewerNode(ClassName, bIsPlaceable && !bIsAbstract && !bIsBrush));
-			NewNode->Blueprint = ClassViewer::Helpers::GetBlueprint(Class);
-			NewNode->Class = Class;
-
-			// Recurse into the child and check if it should be displayed.
-			AddChildren_NoFilter(NewNode, CurrentChildIndex, BlueprintPackageToAssetDataMap);
-
-			// Retrieve all blueprint classes
-			TArray<FAssetData> BlueprintList;
-			BlueprintPackageToAssetDataMap.MultiFind(NewNode->Class->GetOuterUPackage()->GetFName(), BlueprintList);
-
-			// Check if the Asset Registry found anything, it should, but check.
-			if (BlueprintList.Num() )
-			{
-				// Grab the generated class name and check it before assigning. Objects that haven't been saved since this has started to be exported do not have the information.
-				FString* GeneratedClassnamePtr = BlueprintList[0].TagsAndValues.Find(FName("GeneratedClass"));
-
-				if(GeneratedClassnamePtr)
-				{
-					NewNode->GeneratedClassname = *GeneratedClassnamePtr;
-				}
-			}
-
-			InOutRootNode->AddChild(NewNode);
+			continue;
+		}
+		
+		TSharedPtr<FClassViewerNode>& Entry = Nodes.FindOrAdd(CurrentClass);
+		if ( Visited.Contains(CurrentClass) )
+		{
+			continue;
 		}
 		else
 		{
-			// Log that the Class was NULL, ideally no class in the hierarchy should be NULL.
-			UE_LOG(LogEditorClassViewer, Warning, TEXT("Class is NULL"));
+			while ( CurrentClass->GetSuperClass() != NULL )
+			{
+				TSharedPtr<FClassViewerNode>& ParentEntry = Nodes.FindOrAdd(CurrentClass->GetSuperClass());
+				if ( !ParentEntry.IsValid() )
+				{
+					ParentEntry = CreateNodeForClass(CurrentClass->GetSuperClass(), BlueprintPackageToAssetDataMap);
+				}
+
+				TSharedPtr<FClassViewerNode>& MyEntry = Nodes.FindOrAdd(CurrentClass);
+				if ( !MyEntry.IsValid() )
+				{
+					MyEntry = CreateNodeForClass(CurrentClass, BlueprintPackageToAssetDataMap);
+				}
+
+				if ( !Visited.Contains(CurrentClass) )
+				{
+					ParentEntry->AddChild(MyEntry);
+					Visited.Add(CurrentClass);
+				}
+
+				CurrentClass = CurrentClass->GetSuperClass();
+			}
 		}
 	}
 }
@@ -1880,7 +1914,7 @@ void FClassHierarchy::PopulateClassHierarchy()
 	AssetRegistryModule.Get().GetAssets(Filter, BlueprintList);
 
 	TMultiMap<FName,FAssetData> BlueprintPackageToAssetDataMap;
-	for (int32 AssetIdx = 0; AssetIdx < BlueprintList.Num(); ++AssetIdx)
+	for ( int32 AssetIdx = 0; AssetIdx < BlueprintList.Num(); ++AssetIdx )
 	{
 		TSharedPtr< FClassViewerNode > NewNode;
 		LoadUnloadedTagData(NewNode, BlueprintList[AssetIdx]);
@@ -1893,17 +1927,7 @@ void FClassHierarchy::PopulateClassHierarchy()
 		BlueprintPackageToAssetDataMap.Add(BlueprintList[AssetIdx].PackageName, BlueprintList[AssetIdx]);
 	}
 
-	// Retrieve the children
-	FEditorClassHierarchy* EditorClassHierarchy = GEditor->EditorClassHierarchy;
-	check(EditorClassHierarchy);
-
-	int32 RootClassIndex;
-	RootClassIndex = EditorClassHierarchy->Find(TEXT("Object"));
-
-	ObjectClassRoot = MakeShareable(new FClassViewerNode(EditorClassHierarchy->GetClassName(RootClassIndex), false));
-	ObjectClassRoot->Class = EditorClassHierarchy->GetClass(RootClassIndex);
-
-	AddChildren_NoFilter(ObjectClassRoot, RootClassIndex, BlueprintPackageToAssetDataMap);
+	AddChildren_NoFilter(ObjectClassRoot, BlueprintPackageToAssetDataMap);
 
 	RootLevelClasses.Add(ObjectClassRoot);
 
