@@ -397,11 +397,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				Results =
 				(
 					from BuggDetail in Buggs
-					from UserDetail in BuggsDataContext.Users
-					join BuggsUserDetail in BuggsDataContext.Buggs_Users on BuggDetail.Id equals BuggsUserDetail.BuggId
-					join UserGroupDetail in BuggsDataContext.UserGroups on UserDetail.UserGroupId equals UserGroupDetail.Id
-					where BuggsUserDetail.UserNameId == UserDetail.Id || BuggsUserDetail.UserName == UserDetail.UserName
-					group BuggDetail by UserGroupDetail.Name into GroupCount
+					join BuggsUserGroupDetail in BuggsDataContext.Buggs_UserGroups on BuggDetail.Id equals BuggsUserGroupDetail.UserGroupId
+					join UserGroupDetail in BuggsDataContext.UserGroups on BuggsUserGroupDetail.UserGroupId equals UserGroupDetail.Id
+					group 0 by UserGroupDetail.Name into GroupCount
 					select new { Key = GroupCount.Key, Count = GroupCount.Count() }
 				).ToDictionary( x => x.Key, y => y.Count );
 
