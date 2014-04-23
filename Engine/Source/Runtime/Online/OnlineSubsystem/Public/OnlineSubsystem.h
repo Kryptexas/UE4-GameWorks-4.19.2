@@ -217,6 +217,33 @@ public:
 	 */
 	virtual IOnlinePresencePtr GetPresenceInterface() const = 0;
 
+	/**
+	 * Get custom UObject data preserved by the online subsystem
+	 *
+	 * @param InterfaceName key to the custom data
+	 */
+	virtual class UObject* GetNamedInterface(FName InterfaceName) { return NULL; }
+
+	/**
+	 * Set a custom UObject to be preserved by the online subsystem
+	 *
+	 * @param InterfaceName key to the custom data
+	 * @param NewInterface object to preserve
+	 */
+	virtual void SetNamedInterface(FName InterfaceName, class UObject* NewInterface) {};
+
+	/**
+	 * Force the online subsystem to behave as if it's associated with running a dedicated server
+	 *
+	 * @param bForce force dedicated mode if true
+	 */
+	virtual void SetForceDedicated(bool bForce) {}
+
+	/**
+	 * @return true if the online subsystem is in forced dedicated server mode, false otherwise
+	 */
+	virtual bool IsDedicated() const { return false; }
+
 	/** 
 	 * Initialize the underlying subsystem APIs
 	 * @return true if the subsystem was successfully initialized, false otherwise

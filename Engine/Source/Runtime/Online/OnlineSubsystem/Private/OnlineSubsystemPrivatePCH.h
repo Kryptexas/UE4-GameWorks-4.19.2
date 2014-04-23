@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Core.h"
+#include "CoreUObject.h"
 #include "OnlineSubsystem.h"
 #include "OnlineSubsystemModule.h"
 #include "SocketSubsystem.h"
