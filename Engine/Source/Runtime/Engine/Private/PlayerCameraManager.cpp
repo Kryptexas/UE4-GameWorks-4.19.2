@@ -726,7 +726,7 @@ void APlayerCameraManager::SetDesiredColorScale(FVector NewColorScale, float Int
 
 void APlayerCameraManager::UpdateCamera(float DeltaTime)
 {
-	if ( (PCOwner->IsLocalPlayerController() && PCOwner->Player) || !bUseClientSideCameraUpdates || bDebugClientSideCamera )
+	if ((PCOwner->Player && PCOwner->IsLocalPlayerController()) || !bUseClientSideCameraUpdates || bDebugClientSideCamera)
 	{
 		DoUpdateCamera(DeltaTime);
 
