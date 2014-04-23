@@ -509,10 +509,11 @@ void FAssetContextMenu::ExecuteFindInExplorer()
 		{
 			FAssetData AssetData(Asset);
 
-			const FString FilePath = FPackageName::LongPackageNameToFilename(AssetData.PackageName.ToString());
+			const bool bIsWorldAsset = (AssetData.AssetClass == UWorld::StaticClass()->GetFName());
+			const FString Extension = bIsWorldAsset ? FPackageName::GetMapPackageExtension() : FPackageName::GetAssetPackageExtension();
+			const FString FilePath = FPackageName::LongPackageNameToFilename(AssetData.PackageName.ToString(), Extension);
 			const FString FullFilePath = FPaths::ConvertRelativePathToFull(FilePath);
-			const FString Filename = FullFilePath + FPackageName::GetAssetPackageExtension();
-			FPlatformProcess::ExploreFolder(*Filename);
+			FPlatformProcess::ExploreFolder(*FullFilePath);
 		}
 	}
 }
