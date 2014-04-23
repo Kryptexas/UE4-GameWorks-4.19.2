@@ -29,6 +29,8 @@ FAndroidTargetSettingsCustomization::FAndroidTargetSettingsCustomization()
 	, GameAndroidPath(FPaths::GameDir() + TEXT("Build/Android"))
 	, EngineManifestPath(EngineAndroidPath / TEXT("AndroidManifest.xml"))
 	, GameManifestPath(GameAndroidPath / TEXT("AndroidManifest.xml"))
+	, EngineGooglePlayAppIDPath(EngineAndroidPath / TEXT("res") / TEXT("values") / TEXT("GooglePlayAppID.xml"))
+	, GameGooglePlayAppIDPath(GameAndroidPath / TEXT("res") / TEXT("values") / TEXT("GooglePlayAppID.xml"))
 	, EngineSigningConfigPath(EngineAndroidPath / TEXT("SigningConfig.xml"))
 	, GameSigningConfigPath(GameAndroidPath / TEXT("SigningConfig.xml"))
 	, EngineProguardPath(EngineAndroidPath / TEXT("proguard-project.txt"))
@@ -112,6 +114,43 @@ void FAndroidTargetSettingsCustomization::BuildAppManifestSection(IDetailLayoutB
 	OrientationProperty->SetOnPropertyValueChanged(FSimpleDelegate::CreateRaw(this, &FAndroidTargetSettingsCustomization::OnOrientationModified));
 	AppManifestCategory.AddProperty(OrientationProperty)
 		.EditCondition(SetupForPlatformAttribute, NULL);
+
+
+	// Google Play category
+	IDetailCategoryBuilder& GooglePlayCategory = DetailLayout.EditCategory(TEXT("GooglePlayServices"));
+	
+	TSharedRef<SPlatformSetupMessage> GooglePlaySetupMessage = SNew(SPlatformSetupMessage, GameGooglePlayAppIDPath)
+		.PlatformName(LOCTEXT("GooglePlayPlatformName", "Google Play services"))
+		.OnSetupClicked(this, &FAndroidTargetSettingsCustomization::CopyGooglePlayAppIDFileIntoProject);
+
+	SetupForGooglePlayAttribute = GooglePlaySetupMessage->GetReadyToGoAttribute();
+
+	GooglePlayCategory.AddCustomRow(TEXT("Warning"), false)
+		.WholeRowWidget
+		[
+			GooglePlaySetupMessage
+		];
+
+	GooglePlayCategory.AddCustomRow(TEXT("App ID Hyperlink"), false)
+		.WholeRowWidget
+		[
+			SNew(SBox)
+			.HAlign(HAlign_Center)
+			[
+				SNew(SHyperlinkLaunchURL, TEXT("http://developer.android.com/google/index.html"))
+				.Text(LOCTEXT("GooglePlayDeveloperPage", "Android Developer Page on Google Play services"))
+				.ToolTipText(LOCTEXT("GooglePlayDeveloperPageTooltip", "Opens a page that discusses Google Play services"))
+			]
+		];
+
+	TSharedRef<IPropertyHandle> EnabledProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UAndroidRuntimeSettings, bEnableGooglePlaySupport));
+	GooglePlayCategory.AddProperty(EnabledProperty)
+		.EditCondition(SetupForGooglePlayAttribute, NULL);
+
+	TSharedRef<IPropertyHandle> AppIDProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UAndroidRuntimeSettings, GamesAppID));
+	AppIDProperty->SetOnPropertyValueChanged(FSimpleDelegate::CreateRaw(this, &FAndroidTargetSettingsCustomization::OnAppIDModified));
+	GooglePlayCategory.AddProperty(AppIDProperty)
+		.EditCondition(SetupForGooglePlayAttribute, NULL);
 }
 
 void FAndroidTargetSettingsCustomization::BuildIconSection(IDetailLayoutBuilder& DetailLayout)
@@ -208,6 +247,19 @@ void FAndroidTargetSettingsCustomization::CopySetupFilesIntoProject()
 	SavedLayoutBuilder->ForceRefreshDetails();
 }
 
+void FAndroidTargetSettingsCustomization::CopyGooglePlayAppIDFileIntoProject()
+{
+	FText ErrorMessage;
+	if (!SourceControlHelpers::CopyFileUnderSourceControl(GameGooglePlayAppIDPath, EngineGooglePlayAppIDPath, LOCTEXT("GooglePlayAppID", "GooglePlayAppID.xml"), /*out*/ ErrorMessage))
+	{
+		FNotificationInfo Info(ErrorMessage);
+		Info.ExpireDuration = 3.0f;
+		FSlateNotificationManager::Get().AddNotification(Info);
+	}
+
+	SavedLayoutBuilder->ForceRefreshDetails();
+}
+
 void FAndroidTargetSettingsCustomization::OnOrientationModified()
 {
 	check(SetupForPlatformAttribute.Get() == true);
@@ -231,6 +283,21 @@ FString FAndroidTargetSettingsCustomization::OrientationToString(const EAndroidS
 	check(Enum != nullptr);
 	
 	return Enum->GetMetaData(TEXT("ManifestValue"), (int32)Orientation);
+}
+
+void FAndroidTargetSettingsCustomization::OnAppIDModified()
+{
+	check(SetupForPlatformAttribute.Get() == true);
+
+
+	FManifestUpdateHelper Updater(GameGooglePlayAppIDPath);
+
+	const FString AppIDTag(TEXT("name=\"app_id\">"));
+	const FString ClosingTag(TEXT("</string>"));
+	const FString NewIDString = GetDefault<UAndroidRuntimeSettings>()->GamesAppID;
+	Updater.ReplaceKey(AppIDTag, ClosingTag, NewIDString);
+
+	Updater.Finalize(GameGooglePlayAppIDPath);
 }
 
 //////////////////////////////////////////////////////////////////////////

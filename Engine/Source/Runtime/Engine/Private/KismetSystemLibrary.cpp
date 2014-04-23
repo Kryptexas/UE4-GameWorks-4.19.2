@@ -2255,5 +2255,11 @@ void UKismetSystemLibrary::EXPERIMENTAL_ShowGameCenterLeaderboard(const FString&
 {
 #if PLATFORM_IOS
 	IOSShowLeaderboardUI(CategoryName);
+#elif PLATFORM_ANDROID
+	UE_LOG(LogTemp, Log, TEXT("Showing leaderboard!"));
+
+	extern void AndroidThunkCpp_ShowLeaderboard(const FString&);
+	extern FString GetLeaderboardID(const FString&);
+	AndroidThunkCpp_ShowLeaderboard(GetLeaderboardID(CategoryName));
 #endif
 }

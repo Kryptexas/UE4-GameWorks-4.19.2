@@ -223,6 +223,13 @@ int32 AndroidMain(struct android_app* state)
 
 	UE_LOG(LogAndroid, Log, TEXT("Passed GEngineLoop.Init()"));
 
+	// Hack to initialize Google Play if enabled until we get the full subsystem online.
+	// GConfig should be valid here.
+	if (JNIEnv* Env = GetJavaEnv())
+	{
+		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_GooglePlayConnect);
+	}
+
 	// tick until done
 	while (!GIsRequestingExit)
 	{
@@ -659,4 +666,13 @@ extern "C" void Java_com_epicgames_ue4_GameActivity_nativeConsoleCommand(JNIEnv*
 
 	//Release the string
 	jenv->ReleaseStringUTFChars(commandString, javaChars);
+}
+
+//This function is declared in the Java-defined class, GameActivity.java: "public native void nativeIsGooglePlayEnabled(String commandString);"
+extern "C" jboolean Java_com_epicgames_ue4_GameActivity_nativeIsGooglePlayEnabled(JNIEnv* jenv, jobject thiz)
+{
+	bool bEnabled = true;
+	GConfig->GetBool(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("bEnableGooglePlaySupport"), bEnabled, GEngineIni);
+	UE_LOG(LogOnline, Log, TEXT("Checking whether Google Play is enabled. bEnableGooglePlaySupport = %d"), bEnabled);
+	return bEnabled;
 }

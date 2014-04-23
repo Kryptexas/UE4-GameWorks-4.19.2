@@ -195,11 +195,37 @@ namespace UnrealBuildTool.Android
 			}
 		}
 
+		private void DeleteDirectory(string Path)
+		{
+			Console.WriteLine("\nDeleting: " + Path);
+			if (Directory.Exists(Path))
+			{
+				try
+				{
+					// first make sure everything it writable
+					string[] Files = Directory.GetFiles(Path, "*.*", SearchOption.AllDirectories);
+					foreach (string Filename in Files)
+					{
+						// remove any read only flags
+						FileInfo FileInfo = new FileInfo(Filename);
+						FileInfo.Attributes = FileInfo.Attributes & ~FileAttributes.ReadOnly;
+					}
+
+					// now deleting will work better
+					Directory.Delete(Path, true);
+				}
+				catch (Exception)
+				{
+					Log.TraceInformation("Failed to delete intermediate cdirectory {0}. Continuing on...", Path);
+				}
+			}
+		}
+
 		private void MakeAPK(string ProjectName, string ProjectDirectory, string OutputPath, string EngineDirectory, bool bForDistribution)
 		{
 			// cache some build product paths
 			string SourceSOName = OutputPath;
-			string DestApkName = ProjectDirectory + "/Binaries/Android/" + Path.GetFileNameWithoutExtension(SourceSOName) + ".apk";
+			string DestApkName = Path.Combine(ProjectDirectory, "Binaries/Android/") + Path.GetFileNameWithoutExtension(SourceSOName) + ".apk";
 
 			// if the source binary was UE4Game, replace it with the new project name, when re-packaging a binary only build
 			DestApkName = DestApkName.Replace("UE4Game-", ProjectName + "-");
@@ -210,10 +236,10 @@ namespace UnrealBuildTool.Android
 			string AntBuildPath = GetAntPath();
 
 			// set up some directory info
-			string UE4BuildPath = ProjectDirectory + "/Intermediate/Android/APK";
+			string IntermediateAndroidPath = Path.Combine(ProjectDirectory, "Intermediate/Android/");
+			string UE4BuildPath = IntermediateAndroidPath + "APK";
 			string UE4BuildFilesPath = Path.GetFullPath(Path.Combine(EngineDirectory, "Build/Android/Java"));
-			string GameBuildFilesPath = ProjectDirectory + "/Build/Android";
-
+			string GameBuildFilesPath = Path.Combine(ProjectDirectory, "Build/Android");
 
 			// check to see if it's out of date before trying the slow make apk process (look at .so and all Engine and Project build files to be safe)
 			List<String> InputFiles = new List<string>();
@@ -246,28 +272,7 @@ namespace UnrealBuildTool.Android
 
 			
 			//Wipe the Intermediate/Build/APK directory first
-			Console.WriteLine("\nDeleting: " + UE4BuildPath);
-			if (Directory.Exists(UE4BuildPath))
-			{
-				try
-				{
-					// first make sure everything it writable
-					string[] Files = Directory.GetFiles(UE4BuildPath, "*.*", SearchOption.AllDirectories);
-					foreach (string Filename in Files)
-					{
-						// remove any read only flags
-						FileInfo FileInfo = new FileInfo(Filename);
-						FileInfo.Attributes = FileInfo.Attributes & ~FileAttributes.ReadOnly;
-					}
-
-					// now deleting will work better
-					Directory.Delete(UE4BuildPath, true);
-				}
-				catch (Exception)
-				{
-					Log.TraceInformation("Failed to delete intermediate cdirectory {0}. Continuing on...", UE4BuildPath);
-				}
-			}
+			DeleteDirectory(UE4BuildPath);
 
 			Dictionary<string, string> Replacements = new Dictionary<string, string>();
 			Replacements.Add("${EXECUTABLE_NAME}", ProjectName);
@@ -315,6 +320,53 @@ namespace UnrealBuildTool.Android
 			{
 				throw new BuildException("android.bat failed [{0}]", AndroidBatStartInfoGame.Arguments);
 			}
+
+            // Update the Google Play services lib with the target platform version currently in use.
+            // This appears to be required for the build to work without errors when Play services are referenced by the game.
+            // This will try to modify existing files, like project.properties, so we copy the entire library into
+            // an intermediate directory and work from there.
+            string GooglePlayServicesSourcePath = Path.GetFullPath(Path.Combine(EngineDirectory, "Source/ThirdParty/Android/google-play-services_lib/"));
+			string GooglePlayServicesIntermediatePath = Path.GetFullPath(Path.Combine(IntermediateAndroidPath, "google-play-services_lib/"));
+
+			DeleteDirectory(GooglePlayServicesIntermediatePath);
+			CopyFileDirectory(GooglePlayServicesSourcePath, GooglePlayServicesIntermediatePath, new Dictionary<string, string>());
+		    
+			ProcessStartInfo AndroidBatStartInfoPlayServicesLib = new ProcessStartInfo();
+			AndroidBatStartInfoPlayServicesLib.WorkingDirectory = GooglePlayServicesIntermediatePath;
+			AndroidBatStartInfoPlayServicesLib.FileName = AndroidCommandPath;
+			AndroidBatStartInfoPlayServicesLib.Arguments = "update project " + " --path . --target " + GetSdkApiLevel();
+			AndroidBatStartInfoPlayServicesLib.UseShellExecute = false;
+			Console.WriteLine("\nRunning: " + AndroidBatStartInfoPlayServicesLib.FileName + " " + AndroidBatStartInfoPlayServicesLib.Arguments);
+			Process AndroidBatPlayServicesLib = new Process();
+			AndroidBatPlayServicesLib.StartInfo = AndroidBatStartInfoPlayServicesLib;
+			AndroidBatPlayServicesLib.Start();
+			AndroidBatPlayServicesLib.WaitForExit();
+
+            // android bat failure
+            if (AndroidBatPlayServicesLib.ExitCode != 0)
+            {
+                throw new BuildException("android.bat failed [{0}]", AndroidBatStartInfoPlayServicesLib.Arguments);
+            }
+
+            //need to create separate run for each lib. Will be added to project.properties in order in which they are added 
+            //the order is important.
+            //as android.library.reference.X=libpath where X = 1 - N
+            //for e.g this one will be added as android.library.reference.1=<EngineDirectory>/Source/ThirdParty/Android/google_play_services_lib
+            
+            // Ant seems to need a relative path to work
+			Uri ServicesBuildUri = new Uri(GooglePlayServicesIntermediatePath);
+            Uri ProjectUri = new Uri(UE4BuildPath + "/");
+			string RelativeServicesUri = ProjectUri.MakeRelativeUri(ServicesBuildUri).ToString();
+
+            AndroidBatStartInfoGame.Arguments = " update project --name " + ProjectName + " --path .  --target " + GetSdkApiLevel() + " --library " + RelativeServicesUri;
+            Console.WriteLine("\nRunning: " + AndroidBatStartInfoGame.FileName + " " + AndroidBatStartInfoGame.Arguments);
+            AndroidBatGame.Start();
+            AndroidBatGame.WaitForExit();
+
+            if (AndroidBatGame.ExitCode != 0)
+            {
+                throw new BuildException("android.bat failed [{0}]", AndroidBatStartInfoGame.Arguments);
+            }
 
 			// Use ndk-build to do stuff and move the .so file to the lib folder (only if NDK is installed)
 

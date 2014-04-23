@@ -21,6 +21,9 @@ public:
 	// Nonstatic methods
 	static jmethodID AndroidThunkJava_ShowConsoleWindow;
 	static jmethodID AndroidThunkJava_LaunchURL;
+	static jmethodID AndroidThunkJava_ShowLeaderboard;
+	static jmethodID AndroidThunkJava_WriteLeaderboardValue;
+	static jmethodID AndroidThunkJava_GooglePlayConnect;
 };
 
 // Returns the java environment

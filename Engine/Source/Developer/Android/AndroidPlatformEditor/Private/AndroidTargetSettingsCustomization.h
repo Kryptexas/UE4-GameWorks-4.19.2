@@ -31,8 +31,15 @@ private:
 	// Copies the setup files for the platform into the project
 	void CopySetupFilesIntoProject();
 
+	// Copies the strings.xml file for the platform into the project
+	void CopyGooglePlayAppIDFileIntoProject();
+
 	// Called when the orientation is modified
 	void OnOrientationModified();
+
+	// Called when the app id is modified
+	void OnAppIDModified();
+
 private:
 	const FString AndroidRelativePath;
 
@@ -41,6 +48,9 @@ private:
 
 	const FString EngineManifestPath;
 	const FString GameManifestPath;
+	
+	const FString EngineGooglePlayAppIDPath;
+	const FString GameGooglePlayAppIDPath;
 
 	const FString EngineSigningConfigPath;
 	const FString GameSigningConfigPath;
@@ -55,6 +65,9 @@ private:
 
 	// Is the manifest writable?
 	TAttribute<bool> SetupForPlatformAttribute;
+
+	// Is the App ID string writable?
+	TAttribute<bool> SetupForGooglePlayAttribute;
 
 	// Converts an orientation enum to the associated string value
 	static FString OrientationToString(const EAndroidScreenOrientation::Type Orientation);

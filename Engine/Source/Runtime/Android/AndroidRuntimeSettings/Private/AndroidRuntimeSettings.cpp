@@ -7,6 +7,7 @@
 UAndroidRuntimeSettings::UAndroidRuntimeSettings(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 	, Orientation(EAndroidScreenOrientation::Landscape)
+	, bEnableGooglePlaySupport(false)
 {
 
 }

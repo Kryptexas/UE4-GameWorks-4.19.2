@@ -48,4 +48,11 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = AppManifest)
 	TEnumAsByte<EAndroidScreenOrientation::Type> Orientation;
 
+	// Should Google Play support be enabled?
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = GooglePlayServices)
+	bool bEnableGooglePlaySupport;
+
+	// The app id obtained from the Google Play Developer Console
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = GooglePlayServices)
+	FString GamesAppID;
 };
