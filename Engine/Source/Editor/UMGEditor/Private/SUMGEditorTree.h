@@ -3,6 +3,7 @@
 #pragma once
 
 #include "SCompoundWidget.h"
+#include "IUMGEditor.h"
 
 //TODO rename SUMGEditorHierarchy
 class SUMGEditorTree : public SCompoundWidget, public FGCObject

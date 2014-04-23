@@ -4,6 +4,8 @@
 
 #include "UMGEditor.h"
 #include "UMGEditorModule.h"
+#include "SUMGEditorTree.h"
+#include "SUMGEditorViewport.h"
 
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"

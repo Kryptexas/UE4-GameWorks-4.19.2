@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Toolkits/IToolkitHost.h"
+#include "AssetEditorToolkit.h"
 
 class IUMGEditor : public FAssetEditorToolkit
 {
