@@ -394,6 +394,9 @@ public:
 
 	void TakeHighResScreenShot();
 
+	/** Called when an editor mode has been (de)activated */
+	void OnEditorModeChanged(FEdMode* EditorMode, bool bIsEntering);
+
 	/** FViewElementDrawer interface */
 	virtual void Draw(const FSceneView* View,FPrimitiveDrawInterface* PDI) OVERRIDE;
 	virtual void Draw(FViewport* Viewport,FCanvas* Canvas) OVERRIDE;

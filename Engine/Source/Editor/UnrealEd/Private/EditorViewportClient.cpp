@@ -248,10 +248,14 @@ FEditorViewportClient::FEditorViewportClient(FPreviewScene* InPreviewScene)
 	EngineShowFlags.SetSnap(1);
 
 	SetViewMode(VMI_Lit);
+
+	GEditorModeTools().OnEditorModeChanged().AddRaw(this, &FEditorViewportClient::OnEditorModeChanged);
 }
 
 FEditorViewportClient::~FEditorViewportClient()
 {
+	GEditorModeTools().OnEditorModeChanged().RemoveAll(this);
+
 	delete Widget;
 	delete MouseDeltaTracker;
 
@@ -284,6 +288,11 @@ void FEditorViewportClient::RedrawRequested(FViewport* InViewport)
 void FEditorViewportClient::RequestInvalidateHitProxy(FViewport* InViewport)
 {
 	bNeedsInvalidateHitProxy = true;
+}
+
+void FEditorViewportClient::OnEditorModeChanged(FEdMode* EditorMode, bool bIsEntering)
+{
+	RequestInvalidateHitProxy(Viewport);
 }
 
 float FEditorViewportClient::GetOrthoUnitsPerPixel(const FViewport* InViewport) const
