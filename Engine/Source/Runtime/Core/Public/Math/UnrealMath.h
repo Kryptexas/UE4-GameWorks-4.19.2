@@ -417,6 +417,25 @@ FORCEINLINE_DEBUGGABLE FQuat FMath::CubicInterp( const FQuat& P0, const FQuat& T
 	return FQuat::Squad(P0, T0, P1, T1, A);
 }
 
+template< class U > 
+FORCEINLINE_DEBUGGABLE U FMath::CubicCRSplineInterp(const U& P0, const U& P1, const U& P2, const U& P3, const float T0, const float T1, const float T2, const float T3, const float T)
+{
+	//Based on http://www.cemyuksel.com/research/catmullrom_param/catmullrom.pdf 
+	float InvT1MinusT0 = 1.0f / (T1 - T0);
+	U L01 = ( P0 * ((T1 - T) * InvT1MinusT0) ) + ( P1 * ((T - T0) * InvT1MinusT0) );
+	float InvT2MinusT1 = 1.0f / (T2 - T1);
+	U L12 = ( P1 * ((T2 - T) * InvT2MinusT1) ) + ( P2 * ((T - T1) * InvT2MinusT1) );
+	float InvT3MinusT2 = 1.0f / (T3 - T2);
+	U L23 = ( P2 * ((T3 - T) * InvT3MinusT2) ) + ( P3 * ((T - T2) * InvT3MinusT2) );
+
+	float InvT2MinusT0 = 1.0f / (T2 - T0);
+	U L012 = ( L01 * ((T2 - T) * InvT2MinusT0) ) + ( L12 * ((T - T0) * InvT2MinusT0) );
+	float InvT3MinusT1 = 1.0f / (T3 - T1);
+	U L123 = ( L12 * ((T3 - T) * InvT3MinusT1) ) + ( L23 * ((T - T1) * InvT3MinusT1) );
+
+	return  ( ( L012 * ((T2 - T) * InvT2MinusT1) ) + ( L123 * ((T - T1) * InvT2MinusT1) ) );
+}
+
 /**
  * Performs a sphere vs box intersection test using Arvo's algorithm:
  *

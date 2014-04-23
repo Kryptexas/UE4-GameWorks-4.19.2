@@ -431,6 +431,13 @@ public:
 	/** Returns true if this system contains any GPU emitters. */
 	bool HasGPUEmitter() const;
 
+	/** 
+	Returns true if this system contains an emitter of the pasesd type. 
+	@ param TypeData - The emitter type to check for. Must be a child class of UParticleModuleTypeDataBase
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Particle System")
+	bool ContainsEmitterType(UClass* TypeData);
+
 };
 
 

@@ -733,18 +733,14 @@ struct FRibbonTypeDataPayload : public FTrailsBaseTypeDataPayload
 /** AnimTrail payload */
 struct FAnimTrailTypeDataPayload : public FTrailsBaseTypeDataPayload
 {
-	/**	The first edge of the trail */
-	FVector FirstEdge;
-	/**	The first edge velocity of the trail */
-	FVector FirstVelocity;
-	/**	The second edge of the trail */
-	FVector SecondEdge;
-	/**	The second edge velocity of the trail */
-	FVector SecondVelocity;
-	/**	The control edge of the trail will be the particle position */
-	//FVector ControlEdge;
-	/**	The control edge velocity of the trail */
-	FVector ControlVelocity;
+	//Direction from the first socket sample to the second.
+	FVector Direction;
+	//Tangent of the curve.
+	FVector Tangent;
+	//Half length between the sockets. First vertex = Location - Dir * Length; Second vertex = Location + Dir * Lenght
+	float Length;
+	/** Parameter of this knot on the spline*/
+	float InterpolationParameter;
 };
 
 /** Mesh rotation data payload										*/
@@ -2411,6 +2407,12 @@ struct FDynamicTrailsEmitterData : public FDynamicSpriteEmitterDataBase
 		return *SourcePointer;
 	}
 
+	virtual const FDynamicTrailsEmitterReplayData* GetSourceData() const
+	{
+		check(SourcePointer);
+		return SourcePointer;
+	}
+
 	virtual void DoBufferFill(FAsyncBufferFillData& Me)
 	{
 		if( Me.VertexCount <= 0 || Me.IndexCount <= 0 || Me.VertexData == NULL || Me.IndexData == NULL )
@@ -2525,8 +2527,6 @@ struct FDynamicAnimTrailEmitterData : public FDynamicTrailsEmitterData
 	 *	non-simulating 'replay' particle systems, this data may have come straight from disk!
 	 */
 	FDynamicTrailsEmitterReplayData Source;
-	/** The time step the animation data was sampled at. */
-	float AnimSampleTimeStep;
 };
 
 /*-----------------------------------------------------------------------------

@@ -2843,6 +2843,24 @@ void UParticleSystem::ComputeCanTickInAnyThread()
 	}
 }
 
+bool UParticleSystem::ContainsEmitterType(UClass* TypeData)
+{
+	for ( int32 EmitterIndex = 0; EmitterIndex < Emitters.Num(); ++EmitterIndex)
+	{
+		UParticleEmitter* Emitter = Emitters[EmitterIndex];
+		if (Emitter)
+		{
+			UParticleLODLevel* LODLevel = Emitter->LODLevels[0];
+			if (LODLevel && LODLevel->TypeDataModule && LODLevel->TypeDataModule->IsA(TypeData))
+			{
+				return true;
+			}
+		}
+	}
+	
+	return false;
+}
+
 bool UParticleSystem::HasGPUEmitter() const
 {
 	for (int32 EmitterIndex = 0; EmitterIndex < Emitters.Num(); ++EmitterIndex)
@@ -4706,6 +4724,22 @@ int32 UParticleSystemComponent::GetNumActiveParticles() const
 		}
 	}
 	return NumParticles;
+}
+
+void UParticleSystemComponent::GetTrailEmitters(UAnimNotifyState* InAnimNotifyState, TArray< FParticleAnimTrailEmitterInstance* >& OutTrailEmitters, bool bIncludeUnassociated)
+{
+	int32 NumEmitters = EmitterInstances.Num();
+	for (int32 i = 0; i < NumEmitters; ++i)
+	{
+		if (EmitterInstances[i]->IsTrailEmitter())
+		{
+			FParticleAnimTrailEmitterInstance* Instance = (FParticleAnimTrailEmitterInstance*)(EmitterInstances[i]);
+			if (Instance && ((bIncludeUnassociated && Instance->AnimNotifyState == NULL) || Instance->AnimNotifyState == InAnimNotifyState))
+			{
+				OutTrailEmitters.Add(Instance);
+			}
+		}
+	}
 }
 
 bool UParticleSystemComponent::HasCompleted()

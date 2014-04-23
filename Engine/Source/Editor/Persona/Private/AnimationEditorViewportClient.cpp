@@ -823,7 +823,18 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 			FMath::Round(PreviewSkelMeshComp->Bounds.BoxExtent.X * 2.0f),
 			FMath::Round(PreviewSkelMeshComp->Bounds.BoxExtent.Y * 2.0f),
 			FMath::Round(PreviewSkelMeshComp->Bounds.BoxExtent.Z * 2.0f));
-		Canvas->DrawShadowedString( CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor );
+		Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
+
+		uint32 NumNotiesWithErrors = PreviewSkelMeshComp->AnimNotifyErrors.Num();
+		for (uint32 i = 0; i < NumNotiesWithErrors; ++i)
+		{
+			uint32 NumErrors = PreviewSkelMeshComp->AnimNotifyErrors[i].Errors.Num();
+			for (uint32 ErrorIdx = 0; ErrorIdx < NumErrors; ++ErrorIdx)
+			{
+				CurYOffset += YL + 2;
+				Canvas->DrawShadowedString(CurXOffset, CurYOffset, *PreviewSkelMeshComp->AnimNotifyErrors[i].Errors[ErrorIdx], GEngine->GetSmallFont(), FLinearColor(1.0f, 0.0f, 0.0f, 1.0f));
+			}
+		}
 	}
 }
 

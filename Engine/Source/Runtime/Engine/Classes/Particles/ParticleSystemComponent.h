@@ -608,6 +608,14 @@ public:
 	/** Get the current number of active particles in this system */
 	UFUNCTION(BlueprintCallable, Category="Effects|Components|ParticleSystem")
 	int32 GetNumActiveParticles() const;
+	
+	/**
+	* Fills the passed array with all trail emitters associated with a particular AnimNotifyState.
+	* @param InAnimNotifyState	The AnimNotifyState collecting the trails.
+	* @param OutTrailEmitters	The array to fill with pointers to
+	* @param bIncludeUnassociated If true, trails that have not yet been associated with an AnimNotifyState are included in OutTrailEmitters.
+	*/
+	virtual void GetTrailEmitters(UAnimNotifyState* InAnimNotifyState, TArray< FParticleAnimTrailEmitterInstance* >& OutTrailEmitters, bool bIncludeUnassociated = false);
 
 public:
 	TArray<struct FParticleEmitterInstance*> EmitterInstances;

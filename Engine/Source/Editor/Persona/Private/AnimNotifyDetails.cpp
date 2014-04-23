@@ -18,67 +18,70 @@ TSharedRef<IDetailCustomization> FAnimNotifyDetails::MakeInstance()
 
 void FAnimNotifyDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 {
-	IDetailCategoryBuilder& AnimNotifyCategory = DetailBuilder.EditCategory( TEXT("AnimNotify"), TEXT(""), ECategoryPriority::TypeSpecific );
+	const UClass* DetailObjectClass = DetailBuilder.GetDetailsView().GetBaseClass();
 
-	// Get the correct property from the various notifies.
-	BoneNameProperty = GetBoneNameProperty(DetailBuilder);
-
-	if( BoneNameProperty.IsValid() && BoneNameProperty->GetProperty() )
+	if (DetailObjectClass->GetName().Find(TEXT("AnimNotify_PlayParticleEffect")) != INDEX_NONE)
 	{
+		AddBoneNameProperty(DetailBuilder, DetailObjectClass, TEXT("SocketName"), TEXT("AnimNotify"));
+	}
+	else if (DetailObjectClass->GetName().Find(TEXT("AnimNotify_PlaySound")) != INDEX_NONE)
+	{
+		AddBoneNameProperty(DetailBuilder, DetailObjectClass, TEXT("AttachName"), TEXT("AnimNotify"));
+	}
+	else if (DetailObjectClass->GetName().Find(TEXT("AnimNotifyState_Trail")) != INDEX_NONE)
+	{
+		AddBoneNameProperty(DetailBuilder, DetailObjectClass, TEXT("FirstSocketName"), TEXT("Trail"));
+		AddBoneNameProperty(DetailBuilder, DetailObjectClass, TEXT("SecondSocketName"), TEXT("Trail"));
+	}
+}
+
+void FAnimNotifyDetails::AddBoneNameProperty(IDetailLayoutBuilder& DetailBuilder, const UClass* PropertyClass, const TCHAR* PropertyName, const TCHAR* CategoryName)
+{
+	IDetailCategoryBuilder& AnimNotifyCategory = DetailBuilder.EditCategory(CategoryName, TEXT(""), ECategoryPriority::TypeSpecific);
+	int32 PropIndex = BoneNameProperties.Num();
+	TSharedPtr<IPropertyHandle> BoneNameProperty = DetailBuilder.GetProperty(FName(PropertyName), PropertyClass);
+
+	if (BoneNameProperty.IsValid() && BoneNameProperty->GetProperty())
+	{
+		BoneNameProperties.Add(BoneNameProperty);
 		// get all the possible suggestions for the bones and sockets.
 		const TArray< TWeakObjectPtr<UObject> >& SelectedObjects = DetailBuilder.GetDetailsView().GetSelectedObjects();
-		if( SelectedObjects.Num() == 1 )
+		if (SelectedObjects.Num() == 1)
 		{
 			TWeakObjectPtr<UObject> SelectedObject = SelectedObjects[0];
 			const UObject* OuterObject = SelectedObject->GetOuter();
-			if( const UAnimSequence* AnimSequence = Cast<const UAnimSequence>(OuterObject) )
+			if (const UAnimSequence* AnimSequence = Cast<const UAnimSequence>(OuterObject))
 			{
-				if( const USkeleton* Skeleton = AnimSequence->GetSkeleton() )
+				if (const USkeleton* Skeleton = AnimSequence->GetSkeleton())
 				{
-					AnimNotifyCategory.AddProperty( BoneNameProperty.ToSharedRef() )
-					.CustomWidget()
-					.NameContent()
-					[
-						SNew(SHorizontalBox)
-						+SHorizontalBox::Slot()
-						.Padding( FMargin( 2, 1, 0, 1 ) )
+					AnimNotifyCategory.AddProperty(BoneNameProperty.ToSharedRef())
+						.CustomWidget()
+						.NameContent()
 						[
-							SNew(STextBlock)
-							.Text(BoneNameProperty->GetPropertyDisplayName())
-							.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+							SNew(SHorizontalBox)
+							+ SHorizontalBox::Slot()
+							.Padding(FMargin(2, 1, 0, 1))
+							[
+								SNew(STextBlock)
+								.Text(BoneNameProperty->GetPropertyDisplayName())
+								.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+							]
 						]
-					]
 					.ValueContent()
-					[
-						SNew(SAssetSearchBoxForBones, Skeleton, BoneNameProperty)
-						.IncludeSocketsForSuggestions(true)
-						.MustMatchPossibleSuggestions(true)
-						.HintText(NSLOCTEXT( "AnimNotifyDetails", "Hint Text", "Bone Name..." ) )
-						.OnTextCommitted( this, &FAnimNotifyDetails::OnSearchBoxCommitted )
-					];
+						[
+							SNew(SAssetSearchBoxForBones, Skeleton, BoneNameProperty)
+							.IncludeSocketsForSuggestions(true)
+							.MustMatchPossibleSuggestions(true)
+							.HintText(NSLOCTEXT("AnimNotifyDetails", "Hint Text", "Bone Name..."))
+							.OnTextCommitted(this, &FAnimNotifyDetails::OnSearchBoxCommitted, PropIndex)
+						];
 				}
 			}
 		}
 	}
 }
 
-TSharedPtr<IPropertyHandle> FAnimNotifyDetails::GetBoneNameProperty( IDetailLayoutBuilder& DetailBuilder )
+void FAnimNotifyDetails::OnSearchBoxCommitted(const FText& InSearchText, ETextCommit::Type CommitInfo, int32 PropertyIndex )
 {
-	const UClass* DetailObjectClass = DetailBuilder.GetDetailsView().GetBaseClass();
-
-	if( DetailObjectClass->GetName().Find( TEXT("AnimNotify_PlayParticleEffect") ) != INDEX_NONE )
-	{
-		return DetailBuilder.GetProperty( FName(TEXT("SocketName")), DetailObjectClass );
-	}
-	else if( DetailObjectClass->GetName().Find( TEXT("AnimNotify_PlaySound") ) != INDEX_NONE )
-	{
-		return DetailBuilder.GetProperty( FName(TEXT("AttachName")), DetailObjectClass );
-	}
-
-	return NULL;
-}
-
-void FAnimNotifyDetails::OnSearchBoxCommitted(const FText& InSearchText, ETextCommit::Type CommitInfo)
-{
-	BoneNameProperty->SetValue( InSearchText.ToString() );
+	BoneNameProperties[PropertyIndex]->SetValue( InSearchText.ToString() );
 }

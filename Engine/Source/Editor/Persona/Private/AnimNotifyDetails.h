@@ -15,14 +15,14 @@ public:
 
 private:
 
-	/** Pointer to the bone name property */
-	TSharedPtr<IPropertyHandle> BoneNameProperty;
+	/** Array of pointers to the bone name properties */
+	TArray<TSharedPtr<IPropertyHandle>> BoneNameProperties;
 
-	/** Get the PropertyHandle corresponding to the socket name variable */
-	static TSharedPtr<IPropertyHandle> GetBoneNameProperty( IDetailLayoutBuilder& DetailBuilder );
+	/** Adds a Bone Name property to the details layout. */
+	void AddBoneNameProperty(IDetailLayoutBuilder& DetailBuilder, const UClass* PropertyClass, const TCHAR* PropertyName, const TCHAR* CategoryName);
 
 	/** Handle the committed text */
-	void OnSearchBoxCommitted(const FText& InSearchText, ETextCommit::Type CommitInfo);
+	void OnSearchBoxCommitted(const FText& InSearchText, ETextCommit::Type CommitInfo, int32 PropertyIndex);
 
 	/** Get the search suggestions */
 	TArray<FString> GetSearchSuggestions() const;

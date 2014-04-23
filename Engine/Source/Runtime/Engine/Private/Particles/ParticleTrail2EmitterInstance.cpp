@@ -2792,14 +2792,20 @@ FParticleAnimTrailEmitterInstance::FParticleAnimTrailEmitterInstance() :
 	  FParticleTrailsEmitterInstance_Base()
 	, TrailTypeData(NULL)
 	, SpawnPerUnitModule(NULL)
-	, CurrentAnimDataCount(0)
-	, CurrentSourceUpdateTime(0.0f)
+	, FirstSocketName(NAME_None)
+	, SecondSocketName(NAME_None)
+	, Width(1.0f)
+	, WidthMode( ETrailWidthMode_FromCentre )
+	, AnimNotifyState(NULL)
 	, bTagTrailAsDead(false)
-	, bTagEmitterAsDead(false)
+	, bTrailEnabled(false)
+#if WITH_EDITORONLY_DATA
+	, bRenderGeometry(true)
+	, bRenderSpawnPoints(false)
+	, bRenderTangents(false)
+	, bRenderTessellation(false)
+#endif
 {
-	FMemory::Memzero(&CurrentSourceData, sizeof(CurrentSourceData));
-	FMemory::Memzero(&LastSourceData, sizeof(CurrentSourceData));
-	FMemory::Memzero(&LastAnimSampleTime, sizeof(float));
 }
 
 /** Destructor	*/
@@ -2817,8 +2823,6 @@ void FParticleAnimTrailEmitterInstance::InitParameters(UParticleEmitter* InTempl
 	TrailTypeData = CastChecked<UParticleModuleTypeDataAnimTrail>(LODLevel->TypeDataModule);
 	check(TrailTypeData);
 
-	CurrentSourceUpdateTime = 0.0f;
-
 	bDeadTrailsOnDeactivate = TrailTypeData->bDeadTrailsOnDeactivate;
 
 	TrailSpawnTimes.Empty(1);
@@ -2834,7 +2838,7 @@ void FParticleAnimTrailEmitterInstance::InitParameters(UParticleEmitter* InTempl
 }
 
 /**
- *	Helper function for recalculating tangents...
+ *	Helper function for recalculating tangents and the interpolation parameter for this particle...
  *
  *	@param	PrevParticle		The previous particle in the trail
  *	@param	PrevTrailData		The payload of the previous particle in the trail
@@ -2843,64 +2847,37 @@ void FParticleAnimTrailEmitterInstance::InitParameters(UParticleEmitter* InTempl
  *	@param	NextParticle		The next particle in the trail
  *	@param	NextTrailData		The payload of the next particle in the trail
  */
-void FParticleAnimTrailEmitterInstance::RecalculateTangent(
+void FParticleAnimTrailEmitterInstance::RecalculateTangentAndInterpolationParam(
 	FBaseParticle* PrevParticle, FAnimTrailTypeDataPayload* PrevTrailData, 
 	FBaseParticle* CurrParticle, FAnimTrailTypeDataPayload* CurrTrailData, 
 	FBaseParticle* NextParticle, FAnimTrailTypeDataPayload* NextTrailData)
 {
-	if (NextParticle != NULL)
+	check(CurrParticle);
+	check(PrevParticle || NextParticle);
+	FVector Tangent;
+	float SegmentDistance;
+	
+	if( PrevParticle )
 	{
-		check(CurrParticle && PrevParticle);
-		// Recalculate the current tangent...
-		// Calculate the new tangent from the previous and next position...
-		// LastSourcePosition will be that position of the first particle that will be spawned this frame
-		FVector PositionDelta = PrevParticle->Location - NextParticle->Location;
-		FVector FirstDelta = PrevTrailData->FirstEdge - NextTrailData->FirstEdge;
-		FVector SecondDelta = PrevTrailData->SecondEdge - NextTrailData->SecondEdge;
-		float TimeDelta = 2.0f * AnimSampleTimeStep;
-		FVector NewTangent = (PositionDelta / TimeDelta);
-		FVector NewFirstTangent = (FirstDelta / TimeDelta);
-		FVector NewSecondTangent = (SecondDelta / TimeDelta);
-		if (NewTangent.IsNearlyZero() == false)
+		(PrevParticle->Location - CurrParticle->Location).ToDirectionAndLength(Tangent, SegmentDistance);
+		//If there is a next particle and a prev available then we can get a better tangent.
+		if (NextParticle != NULL)
 		{
-			CurrTrailData->ControlVelocity = NewTangent;
-		}
-		if (NewFirstTangent.IsNearlyZero() == false)
-		{
-			CurrTrailData->FirstVelocity = NewFirstTangent;
-		}
-		if (NewSecondTangent.IsNearlyZero() == false)
-		{
-			CurrTrailData->SecondVelocity = NewSecondTangent;
+			Tangent = PrevParticle->Location - NextParticle->Location;
+			if( !Tangent.IsNearlyZero() )
+			{
+				Tangent.Normalize();
+			}
 		}
 	}
-	else if (PrevParticle != NULL)
+	else
 	{
-		check(CurrParticle);
-		// The start particle... should we recalc w/ the current source position???
-		// Recalculate the current tangent...
-		// Calculate the new tangent from the previous and next position...
-		// LastSourcePosition will be that position of the first particle that will be spawned this frame
-		FVector PositionDelta = PrevParticle->Location - CurrParticle->Location;
-		FVector FirstDelta = PrevTrailData->FirstEdge - CurrTrailData->FirstEdge;
-		FVector SecondDelta = PrevTrailData->SecondEdge - CurrTrailData->SecondEdge;
-		float TimeDelta = AnimSampleTimeStep;
-		FVector NewTangent = (PositionDelta / TimeDelta);
-		FVector NewFirstTangent = (FirstDelta / TimeDelta);
-		FVector NewSecondTangent = (SecondDelta / TimeDelta);
-		if (NewTangent.IsNearlyZero() == false)
-		{
-			CurrTrailData->ControlVelocity = NewTangent;
-		}
-		if (NewFirstTangent.IsNearlyZero() == false)
-		{
-			CurrTrailData->FirstVelocity = NewFirstTangent;
-		}
-		if (NewSecondTangent.IsNearlyZero() == false)
-		{
-			CurrTrailData->SecondVelocity = NewSecondTangent;
-		}
+		//Only the next available, this is the head of the trail.
+		(CurrParticle->Location - NextParticle->Location).ToDirectionAndLength(Tangent, SegmentDistance);
 	}
+		
+	CurrTrailData->InterpolationParameter = FMath::Sqrt(SegmentDistance);//Using centripetal as it is visually better and can be bounded more conveniently.
+	CurrTrailData->Tangent = Tangent;
 }
 
 /**
@@ -2961,7 +2938,7 @@ void FParticleAnimTrailEmitterInstance::Tick_RecalculateTangents(float DeltaTime
 				check(CurrParticle != PrevParticle);
 				check(CurrParticle != NextParticle);
 
-				RecalculateTangent(PrevParticle, PrevTrailData, CurrParticle, CurrTrailData, NextParticle, NextTrailData);
+				RecalculateTangentAndInterpolationParam(PrevParticle, PrevTrailData, CurrParticle, CurrTrailData, NextParticle, NextTrailData);
 
 				// Move up the chain...
 				PrevParticle = CurrParticle;
@@ -2978,14 +2955,295 @@ bool FParticleAnimTrailEmitterInstance::GetSpawnPerUnitAmount(float DeltaTime, i
 	return false;
 }
 
+struct FAnimTrailParticleSpawnParams
+{
+	/** The index of the 'oldest' particle in the current batch of spawns. */
+	int32 FirstSpawnIndex;
+	/** The index of the current particle being spawned offset from the FirstSpawnParticle*/
+	int32 SpawnIndex;
+	/** Inverse of the number of particles being spawned. */
+	int32 InvCount;
+	/** Frame delta time */
+	float DeltaTime;
+	/** Total elapsed time for this emitter. */
+	float ElapsedTime;
+	/** Previous elapsed time for this emitter. */
+	float LastTime;
+	/** ElapsedTime - LastTime */
+	float TimeDiff;
+	bool bTilingTrail;
+	
+	
+	//TODO - These params are for interpolated spawn particles which are currently disabled.
+	///** The ComponentToWorld transform of the particle component before spawning began. */
+	//FTransform SavedComponentToWorld;
+	///** True if this particle is interpolated. False otherwise. */
+	//bool bInterpolated;
+	
+	FAnimTrailParticleSpawnParams(	int32 InFirstSpawnIndex, int32 InSpawnIndex, int32 InInvCount, float InDeltaTime, float InElapsedTime,
+									float InLastTime, float InTimeDiff, bool InbTilingTrail )
+		: 	FirstSpawnIndex(InFirstSpawnIndex), SpawnIndex(InSpawnIndex), InvCount(InInvCount), DeltaTime(InDeltaTime), ElapsedTime(InElapsedTime),
+			LastTime(InLastTime), TimeDiff(InTimeDiff), bTilingTrail(InbTilingTrail)
+	{
+	}
+};
+
+void FParticleAnimTrailEmitterInstance::SpawnParticle( int32& StartParticleIndex, const FAnimTrailParticleSpawnParams& Params )
+{
+	/** Interpolation factor for the current particle between the non interpolated particles either side of it. */
+	float InterpFactor = 1.0f;
+
+//	At the moment, spawning interpolated particles is not enabled. 
+//	More thought needed.
+//	//Calculate interp factor and interpolate the component transform. This is restored back to the SavedComponentTransform after spawning.
+//	if( Params.bInterpolated )
+//	{
+//		InterpFactor = Params.InvCount * Params.SpawnIndex;
+//
+//		//Lerp this. Desirable to do a spline interpolation?
+//		FVector InterpSourcePos = FMath::Lerp<FVector>(PreviousComponentTransform.GetLocation(), Params.SavedComponentToWorld.GetLocation(), InterpFactor);
+//		FQuat InterpSourceRot = FQuat::Slerp(PreviousComponentTransform.GetRotation(), Params.SavedComponentToWorld.GetRotation(), InterpFactor);
+//		FTransform InterpSourceTransform = FTransform(InterpSourceRot, InterpSourcePos);
+//		Component->ComponentToWorld = InterpSourceTransform;
+//	}
+
+	//TODO - Multiple trails.
+	int32 TrailIdx = 0;
+
+	UParticleLODLevel* LODLevel = SpriteTemplate->LODLevels[0];
+	int32 ParticleIndex = ParticleIndices[Params.FirstSpawnIndex+Params.SpawnIndex];
+	DECLARE_PARTICLE_PTR(Particle, ParticleData + ParticleStride * ParticleIndex);
+	FAnimTrailTypeDataPayload* TrailData = ((FAnimTrailTypeDataPayload*)((uint8*)Particle + TypeDataOffset));
+
+	FBaseParticle* StartParticle = NULL;
+	FAnimTrailTypeDataPayload* StartTrailData = NULL;
+
+	float SpawnTime = Params.DeltaTime * InterpFactor;
+	float SpawnTimeDelta = Params.TimeDiff * InterpFactor;
+
+	// Standard spawn setup
+	PreSpawn(Particle, Location, FVector::ZeroVector);
+	for (int32 SpawnModuleIdx = 0; SpawnModuleIdx < LODLevel->SpawnModules.Num(); SpawnModuleIdx++)
+	{
+		UParticleModule* SpawnModule = LODLevel->SpawnModules[SpawnModuleIdx];
+		if (!SpawnModule || !SpawnModule->bEnabled)
+		{
+			continue;
+		}
+
+		uint32* Offset = ModuleOffsetMap.Find(SpawnModule);
+		SpawnModule->Spawn(this, Offset ? *Offset : 0, SpawnTime, Particle);
+	}
+
+	if ((1.0f / Particle->OneOverMaxLifetime) < 0.001f)
+	{
+		Particle->OneOverMaxLifetime = 1.f / 0.001f;
+	}
+
+	if (LODLevel->TypeDataModule)
+	{
+		//@todo. Need to track TypeData offset into payload!
+		LODLevel->TypeDataModule->Spawn(this, TypeDataOffset, SpawnTime, Particle);
+	}
+	PostSpawn(Particle, 1.f, SpawnTime);
+
+	//Now init the particle values and flags
+//	if( Params.bInterpolated )
+//	{
+		//Interpolated particles are not enabled currently. All interpolation is done during vertex generation.
+		// Not too sure interpolating using catmull-rom splines is going to work really given that we don't have a "next" particle to influence the interpolation.
+		// Making it up may work ok for rendering as that data is regenerated correctly when there is data to use but actually filling in duff data like this seems bad.
+//	}
+//	else
+	{
+		UMeshComponent* MeshComp = Cast<UMeshComponent>(Component->AttachParent);
+		check(TrailTypeData);
+		check(MeshComp);
+
+		//This particle samples the animated socket locations.
+		FTransform FirstEdgeSocketSample = MeshComp->GetSocketTransform(FirstSocketName);
+		FTransform SecondEdgeSocketSample = MeshComp->GetSocketTransform(SecondSocketName);
+		
+		// Trail specific...
+		// Clear the next and previous - just to be safe
+		TrailData->Flags = TRAIL_EMITTER_SET_NEXT(TrailData->Flags, TRAIL_EMITTER_NULL_NEXT);
+		TrailData->Flags = TRAIL_EMITTER_SET_PREV(TrailData->Flags, TRAIL_EMITTER_NULL_PREV);
+		// Set the trail-specific data on this particle
+		TrailData->TrailIndex = TrailIdx;
+		TrailData->SpawnTime = Params.LastTime + SpawnTimeDelta;
+ 		
+		//Not being used at the moment for anim trails or ribbons it seems. Can be removed?
+		TrailData->SpawnDelta = Params.SpawnIndex * InterpFactor;
+
+		// Set the location
+		TrailData->bInterpolatedSpawn = false; 
+		TrailData->SpawnedTessellationPoints = 1;
+
+		FVector First = FirstEdgeSocketSample.GetLocation();
+		FVector Second = SecondEdgeSocketSample.GetLocation();
+		FVector Dir;
+		float Length;
+
+		(Second - First).ToDirectionAndLength(Dir, Length);
+		//Particle location is in the center of the sheet (for better tangent calcs and interpolation).
+		switch ((uint32)WidthMode)
+		{
+		case ETrailWidthMode_FromCentre:
+		{
+			Length *= 0.5f;
+			First += (Dir * Length);
+			Length *= Width;
+		}
+			break;
+		case ETrailWidthMode_FromFirst:
+		{
+			Length *= 0.5f * Width;
+			First += (Dir * Length);
+		}
+			break;
+		case ETrailWidthMode_FromSecond:
+		{
+			Length *= 0.5f * Width;
+			First = Second - (Dir * Length);
+		}
+			break;
+		default:
+			UE_LOG(LogParticles, Fatal, TEXT("Invalid Width Mode for trail: %u"), (uint32)WidthMode);
+			break;
+		}
+		Particle->Location = First;
+		Particle->OldLocation = First;
+		TrailData->Direction = Dir;
+		TrailData->Length = Length;
+
+		bool bAddedParticle = false;
+		//Todo - Multiple trails.
+		if (INDEX_NONE == StartParticleIndex)
+		{
+			// This it the first particle.
+			// Tag it as the 'only'
+			TrailData->Flags = TRAIL_EMITTER_SET_ONLY(TrailData->Flags);
+			TiledUDistanceTraveled[TrailIdx] = 0.0f;
+			TrailData->TiledU = 0.0f;
+			bAddedParticle		= true;
+
+			TrailData->InterpolationParameter = 0.0f;
+		}
+		else
+		{
+			StartParticle = (FBaseParticle*)(ParticleData + ParticleStride * StartParticleIndex);
+			StartTrailData = ((FAnimTrailTypeDataPayload*)((uint8*)StartParticle + TypeDataOffset));
+
+			//@todo. Determine how to handle multiple trails...
+			if (TRAIL_EMITTER_IS_ONLY(StartTrailData->Flags))
+			{
+				StartTrailData->Flags	= TRAIL_EMITTER_SET_END(StartTrailData->Flags);
+				StartTrailData->Flags	= TRAIL_EMITTER_SET_NEXT(StartTrailData->Flags, TRAIL_EMITTER_NULL_NEXT);
+				StartTrailData->Flags	= TRAIL_EMITTER_SET_PREV(StartTrailData->Flags, ParticleIndex);
+
+				if (TrailData->SpawnTime < StartTrailData->SpawnTime)
+				{
+					UE_LOG(LogParticles, Log, TEXT("BAD SPAWN TIME! Curr %8.6f, Start %8.6f"), TrailData->SpawnTime, StartTrailData->SpawnTime);
+				}
+
+				// Now, 'join' them
+				TrailData->Flags		= TRAIL_EMITTER_SET_PREV(TrailData->Flags, TRAIL_EMITTER_NULL_PREV);
+				TrailData->Flags		= TRAIL_EMITTER_SET_NEXT(TrailData->Flags, StartParticleIndex);
+				TrailData->Flags		= TRAIL_EMITTER_SET_START(TrailData->Flags);
+
+				//Try to get a half passable tangent for the current particle.					
+				RecalculateTangentAndInterpolationParam(NULL,NULL,Particle,TrailData,StartParticle,StartTrailData);
+
+				//As this is the second particle in the trail we also have to regenerate the initial particle tangent and interpolation parameter.
+				RecalculateTangentAndInterpolationParam(Particle,TrailData,StartParticle,StartTrailData,NULL,NULL);
+
+				bAddedParticle = true;
+			}
+			else
+			{
+				// It better be the start!!!
+				check(TRAIL_EMITTER_IS_START(StartTrailData->Flags));
+				check(TRAIL_EMITTER_GET_NEXT(StartTrailData->Flags) != TRAIL_EMITTER_NULL_NEXT);
+
+				StartTrailData->Flags	= TRAIL_EMITTER_SET_MIDDLE(StartTrailData->Flags);
+				StartTrailData->Flags	= TRAIL_EMITTER_SET_PREV(StartTrailData->Flags, ParticleIndex);
+
+				if (TrailData->SpawnTime < StartTrailData->SpawnTime)
+				{
+					checkf(0, TEXT("BAD SPAWN TIME! Curr %8.6f, Start %8.6f"), TrailData->SpawnTime, StartTrailData->SpawnTime);
+				}
+
+				// Now, 'join' them
+				TrailData->Flags		= TRAIL_EMITTER_SET_PREV(TrailData->Flags, TRAIL_EMITTER_NULL_PREV);
+				TrailData->Flags		= TRAIL_EMITTER_SET_NEXT(TrailData->Flags, StartParticleIndex);
+				TrailData->Flags		= TRAIL_EMITTER_SET_START(TrailData->Flags);
+
+				bAddedParticle = true;
+
+				//Try to get a half passable tangent for the current particle.					
+				RecalculateTangentAndInterpolationParam(NULL,NULL,Particle,TrailData,StartParticle,StartTrailData);
+			}
+
+			if ((TrailTypeData->bEnablePreviousTangentRecalculation == true)&& 
+				(TrailTypeData->bTangentRecalculationEveryFrame == false))
+			{
+				FBaseParticle* PrevParticle = Particle;
+				FAnimTrailTypeDataPayload* PrevTrailData = TrailData;
+				FBaseParticle* CurrParticle = StartParticle;
+				FAnimTrailTypeDataPayload* CurrTrailData = StartTrailData;
+				FBaseParticle* NextParticle = NULL;
+				FAnimTrailTypeDataPayload* NextTrailData = NULL;
+
+				int32 StartNext = TRAIL_EMITTER_GET_NEXT(StartTrailData->Flags);
+				if (StartNext != TRAIL_EMITTER_NULL_NEXT)
+				{
+					DECLARE_PARTICLE_PTR(TempParticle, ParticleData + ParticleStride * StartNext);
+					NextParticle = TempParticle;
+					NextTrailData = ((FAnimTrailTypeDataPayload*)((uint8*)NextParticle + TypeDataOffset));
+				}
+				RecalculateTangentAndInterpolationParam(PrevParticle, PrevTrailData, CurrParticle, CurrTrailData, NextParticle, NextTrailData);
+				PrevTrailData->Tangent = CurrTrailData->Tangent;
+			}
+		}
+
+		if( bAddedParticle )
+		{
+			if (Params.bTilingTrail == true)
+			{
+				if (INDEX_NONE == StartParticleIndex)
+				{
+					TrailData->TiledU = 0.0f;
+				}
+				else
+				{
+					check(StartParticle);
+					check(StartTrailData);
+
+					FVector PositionDelta = Particle->Location - StartParticle->Location;
+					TiledUDistanceTraveled[TrailIdx] += PositionDelta.Size();
+					TrailData->TiledU = TiledUDistanceTraveled[TrailIdx] / TrailTypeData->TilingDistance;
+					//@todo. Is there going to be a problem when distance gets REALLY high?
+				}
+			}
+
+			StartParticleIndex = ParticleIndex;
+
+			ActiveParticles++;
+			//check((int32)ActiveParticles < TrailTypeData->MaxParticleInTrailCount);
+			INC_DWORD_STAT(STAT_TrailParticlesSpawned);
+		}
+		else
+		{
+			check(TEXT("Failed to add particle to trail!!!!"));
+		}
+
+		INC_DWORD_STAT_BY(STAT_TrailParticles, ActiveParticles);
+	}
+}
+
 float FParticleAnimTrailEmitterInstance::Spawn(float DeltaTime)
 {
-static int32 TickCount = 0;
-	if (CurrentAnimDataCount <= 0)
-	{
-		// Nothing to spawn this tick...
-		return SpawnFraction;
-	}
+	static int32 TickCount = 0;
 
 	UParticleLODLevel* LODLevel = SpriteTemplate->LODLevels[0];
 	check(LODLevel);
@@ -2997,7 +3255,6 @@ static int32 TickCount = 0;
 	int32 TrailIdx = 0;
 
 	float SpawnRate = 0.0f;
-	int32 SpawnCount = 0;
 	int32 BurstCount = 0;
 	float OldLeftover = SpawnFraction;
 	// For now, we are not supporting bursts on trails...
@@ -3030,10 +3287,9 @@ static int32 TickCount = 0;
 	float SpawnStartTime = DeltaTime + OldLeftover * SliceIncrement - SliceIncrement;
 	SpawnFraction = NewLeftover - SpawnNumber;
 	// Do the resize stuff here!!!!!!!!!!!!!!!!!!!
-	int32 TotalCount = CurrentAnimDataCount + SpawnNumber + BurstCount;
-	// Determine if no particles are alive
-	bool bNoLivingParticles = (ActiveParticles == 0);
+	int32 NewCount = 1 + SpawnNumber + BurstCount; //At least 1 for the actual anim sample.
 
+	//TODO - Sort this out. If max particles is exceeded maybe mark the trail as dead? Or prematurely kill off old particles?
 	// Don't allow more than TrailCount trails...
 // 	int32	MaxParticlesAllowed	= MaxTrailCount * TrailTypeData->MaxParticleInTrailCount;
 // 	if ((TotalCount + ActiveParticles) > MaxParticlesAllowed)
@@ -3047,16 +3303,16 @@ static int32 TickCount = 0;
 
 	// Handle growing arrays.
 	bool bProcessSpawn = true;
-	int32 NewCount = ActiveParticles + TotalCount;
-	if (NewCount >= MaxActiveParticles)
+	int32 TotalCount = ActiveParticles + NewCount;
+	if (TotalCount >= MaxActiveParticles)
 	{
 		if (DeltaTime < 0.25f)
 		{
-			bProcessSpawn = Resize(NewCount + FMath::Trunc(FMath::Sqrt((float)NewCount)) + 1);
+			bProcessSpawn = Resize(TotalCount + FMath::Trunc(FMath::Sqrt((float)TotalCount)) + 1);
 		}
 		else
 		{
-			bProcessSpawn = Resize((NewCount + FMath::Trunc(FMath::Sqrt((float)NewCount)) + 1), false);
+			bProcessSpawn = Resize((TotalCount + FMath::Trunc(FMath::Sqrt((float)TotalCount)) + 1), false);
 		}
 	}
 
@@ -3067,9 +3323,7 @@ static int32 TickCount = 0;
 
 	//@todo. Support multiple trails per emitter
 	// Find the start particle of the current trail...
-	FBaseParticle* StartParticle = NULL;
 	int32 StartParticleIndex = -1;
-	FAnimTrailTypeDataPayload* StartTrailData = NULL;
 	for (int32 FindTrailIdx = 0; FindTrailIdx < ActiveParticles; FindTrailIdx++)
 	{
 		int32 CheckStartIndex = ParticleIndices[FindTrailIdx];
@@ -3079,244 +3333,64 @@ static int32 TickCount = 0;
 		{
 			if (TRAIL_EMITTER_IS_START(CheckTrailData->Flags))
 			{
-				StartParticle = CheckParticle;
 				StartParticleIndex = CheckStartIndex;
-				StartTrailData = CheckTrailData;
 				break;
 			}
 		}
 	}
 
-	bNoLivingParticles = (StartParticle == NULL);
 	bool bTilingTrail = !FMath::IsNearlyZero(TrailTypeData->TilingDistance);
 
-	// Do we have movement based spawning?
-	// If so, then interpolate the position/tangent data between 
-	// CurrentSource<Position/Tangent> and LastSource<Position/Tangent>
+	//The mesh we're sampline socket locations from.
+	UMeshComponent* MeshComp = Cast<UMeshComponent>(Component->AttachParent);
+
+	check(TrailTypeData);
 	// Don't allow new spawning if the emitter is finished
-	if (CurrentAnimDataCount > 0 && !bTagEmitterAsDead)
+	if (MeshComp && NewCount > 0 && bTrailEnabled)
 	{
-		float ElapsedTime = RunningTime;//SecondsSinceCreation;
-		float LastTime = TrailSpawnTimes[TrailIdx];
-		float Diff = ElapsedTime - LastTime;
-		float InvCount = 1.0f / CurrentAnimDataCount;
-		// SpawnTime increment
-		float Increment = DeltaTime / CurrentAnimDataCount;
+		FAnimTrailParticleSpawnParams SpawnParams( 
+			ActiveParticles,
+			NewCount-1,
+			1.0f / NewCount,
+			DeltaTime,
+			RunningTime,
+			TrailSpawnTimes[TrailIdx],
+			RunningTime - TrailSpawnTimes[TrailIdx],
+			bTilingTrail);
 
-		FTransform SavedComponentToWorld = Component->ComponentToWorld;
-
-		check(CurrentAnimDataCount <= AnimData.Num());
-
+		//TODO - For interpolated spawn which is disabled currently.
+		//if(ActiveParticles > 0)
+		//{
+			//PreviousComponentTransform = SpawnParams.SavedComponentToWorld;
+		//}
+		
 		float ProcessedTime = 0.0f;
 
-//		UE_LOG(LogParticles, Log, TEXT("TickCount %5d: Processing %2d AnimData samples!"), TickCount, CurrentAnimDataCount);
-
-		// Source time difference for interpolating the source position
-		float SourceTimeDiff = CurrentSourceUpdateTime - LastSourceUpdateTime;
-		for (int32 SpawnIdx = 0; SpawnIdx < CurrentAnimDataCount; SpawnIdx++)
-		{
-			float TimeStep = InvCount * SpawnIdx;
-
-			FAnimTrailSamplePoint& SamplePoint = AnimData[SpawnIdx];
-
-// 			UE_LOG(LogParticles, Log, TEXT("\tSAMPLED %8.6f, CURR %8.6f, REL %8.6f, TS %8.6f: Position %8.5f,%8.5f,%8.5f - Velocity %8.5f,%8.5f,%8.5f"),
-// 				SamplePoint.AnimSampleTime, SamplePoint.AnimCurrentTime, SamplePoint.RelativeTime, SamplePoint.TimeStep,
-// 				SamplePoint.ControlPointSample.Position.X, SamplePoint.ControlPointSample.Position.Y, SamplePoint.ControlPointSample.Position.Z,
-// 				SamplePoint.ControlPointSample.Velocity.X, SamplePoint.ControlPointSample.Velocity.Y, SamplePoint.ControlPointSample.Velocity.Z);
-
-			float SampleTimeDiff = SamplePoint.AnimCurrentTime - LastSourceUpdateTime;
-			float SourceInterpStep = (SourceTimeDiff > 0.0f) ? (SampleTimeDiff / SourceTimeDiff) : 0.0f;
-
-			FVector InterpSourcePos = FMath::Lerp<FVector>(LastOwnerData.Position, CurrentOwnerData.Position, SourceInterpStep);
-			FQuat InterpSourceRot = FQuat::Slerp(LastOwnerData.Rotation, CurrentOwnerData.Rotation, SourceInterpStep);
-			FTransform InterpSourceTransform = FTransform(InterpSourceRot, InterpSourcePos);
-
-			FVector TransformedControlPosition = SamplePoint.ControlPointSample.Position;
-			FVector TransformedControlVelocity = SamplePoint.ControlPointSample.Velocity;
-			FVector TransformedFirstEdgePosition = SamplePoint.FirstEdgeSample.Position;
-			FVector TransformedFirstEdgeVelocity = SamplePoint.FirstEdgeSample.Velocity;
-			FVector TransformedSecondEdgePosition = SamplePoint.SecondEdgeSample.Position;
-			FVector TransformedSecondEdgeVelocity = SamplePoint.SecondEdgeSample.Velocity;
-
-			int32 ParticleIndex = ParticleIndices[ActiveParticles];
-			DECLARE_PARTICLE_PTR(Particle, ParticleData + ParticleStride * ParticleIndex);
-			FAnimTrailTypeDataPayload* TrailData = ((FAnimTrailTypeDataPayload*)((uint8*)Particle + TypeDataOffset));
-
-			// We are going from 'oldest' to 'newest' for this spawn, so reverse the time
-			float StoredSpawnTime = Diff * (1.0f - TimeStep);
-			float SpawnTime = DeltaTime - (SpawnIdx * Increment);
-			float TrueSpawnTime = Diff * TimeStep;
-
-			Component->ComponentToWorld = InterpSourceTransform;
-
-			// Standard spawn setup
-			PreSpawn(Particle, Location, FVector::ZeroVector);
-			for (int32 SpawnModuleIdx = 0; SpawnModuleIdx < LODLevel->SpawnModules.Num(); SpawnModuleIdx++)
-			{
-				UParticleModule* SpawnModule = LODLevel->SpawnModules[SpawnModuleIdx];
-				if (!SpawnModule || !SpawnModule->bEnabled)
-				{
-					continue;
-				}
-
-				uint32* Offset = ModuleOffsetMap.Find(SpawnModule);
-				SpawnModule->Spawn(this, Offset ? *Offset : 0, SpawnTime, Particle);
-			}
-
-			if ((1.0f / Particle->OneOverMaxLifetime) < 0.001f)
-			{
-				Particle->OneOverMaxLifetime = 1.f / 0.001f;
-			}
-
-			if (LODLevel->TypeDataModule)
-			{
-				//@todo. Need to track TypeData offset into payload!
-				LODLevel->TypeDataModule->Spawn(this, TypeDataOffset, SpawnTime, Particle);
-			}
-			PostSpawn(Particle, 1.f - float(SpawnIdx + 1) / float(CurrentAnimDataCount), SpawnTime);
-
-			Component->ComponentToWorld = SavedComponentToWorld;
-
-			ProcessedTime = SamplePoint.AnimCurrentTime;
-
-			// Trail specific...
-			// Clear the next and previous - just to be safe
-			TrailData->Flags = TRAIL_EMITTER_SET_NEXT(TrailData->Flags, TRAIL_EMITTER_NULL_NEXT);
-			TrailData->Flags = TRAIL_EMITTER_SET_PREV(TrailData->Flags, TRAIL_EMITTER_NULL_PREV);
-			// Set the trail-specific data on this particle
-			TrailData->TrailIndex = TrailIdx;
-			TrailData->FirstEdge = TransformedFirstEdgePosition;
-			TrailData->FirstVelocity = TransformedFirstEdgeVelocity;
-			TrailData->SecondEdge = TransformedSecondEdgePosition;
-			TrailData->SecondVelocity = TransformedSecondEdgeVelocity;
-			TrailData->ControlVelocity = TransformedControlVelocity;
-			TrailData->SpawnTime = ElapsedTime - StoredSpawnTime;
-			TrailData->SpawnDelta = TrueSpawnTime;
-			// Set the location and up vectors
-			Particle->Location = TransformedControlPosition;
-			Particle->OldLocation = TransformedControlPosition;
-
-			// If this is the true spawned particle, store off the spawn interpolated count
-			TrailData->bInterpolatedSpawn = false; 
-			TrailData->SpawnedTessellationPoints = 1;
-
-			bool bAddedParticle = false;
-			// Determine which trail to attach to
-			if (bNoLivingParticles)
-			{
-				// These are the first particles!
-				// Tag it as the 'only'
-				TrailData->Flags = TRAIL_EMITTER_SET_ONLY(TrailData->Flags);
-				TiledUDistanceTraveled[TrailIdx] = 0.0f;
-				TrailData->TiledU = 0.0f;
-				bNoLivingParticles	= false;
-				bAddedParticle		= true;
-			}
-			else if (StartParticle)
-			{
-				//@todo. Determine how to handle multiple trails...
-				if (TRAIL_EMITTER_IS_ONLY(StartTrailData->Flags))
-				{
-						StartTrailData->Flags	= TRAIL_EMITTER_SET_END(StartTrailData->Flags);
-						StartTrailData->Flags	= TRAIL_EMITTER_SET_NEXT(StartTrailData->Flags, TRAIL_EMITTER_NULL_NEXT);
-						StartTrailData->Flags	= TRAIL_EMITTER_SET_PREV(StartTrailData->Flags, ParticleIndex);
-
-						if (TrailData->SpawnTime < StartTrailData->SpawnTime)
-						{
-							UE_LOG(LogParticles, Log, TEXT("BAD SPAWN TIME! Curr %8.6f, Start %8.6f"), TrailData->SpawnTime, StartTrailData->SpawnTime);
-						}
-
-						// Now, 'join' them
-						TrailData->Flags		= TRAIL_EMITTER_SET_PREV(TrailData->Flags, TRAIL_EMITTER_NULL_PREV);
-						TrailData->Flags		= TRAIL_EMITTER_SET_NEXT(TrailData->Flags, StartParticleIndex);
-						TrailData->Flags		= TRAIL_EMITTER_SET_START(TrailData->Flags);
-
-						bAddedParticle = true;
-				}
-				else
-				{
-					// It better be the start!!!
-					check(TRAIL_EMITTER_IS_START(StartTrailData->Flags));
-					check(TRAIL_EMITTER_GET_NEXT(StartTrailData->Flags) != TRAIL_EMITTER_NULL_NEXT);
-
-					StartTrailData->Flags	= TRAIL_EMITTER_SET_MIDDLE(StartTrailData->Flags);
-					StartTrailData->Flags	= TRAIL_EMITTER_SET_PREV(StartTrailData->Flags, ParticleIndex);
-
-					if (TrailData->SpawnTime < StartTrailData->SpawnTime)
-					{
-						checkf(0, TEXT("BAD SPAWN TIME! Curr %8.6f, Start %8.6f"), TrailData->SpawnTime, StartTrailData->SpawnTime);
-					}
-
-					// Now, 'join' them
-					TrailData->Flags		= TRAIL_EMITTER_SET_PREV(TrailData->Flags, TRAIL_EMITTER_NULL_PREV);
-					TrailData->Flags		= TRAIL_EMITTER_SET_NEXT(TrailData->Flags, StartParticleIndex);
-					TrailData->Flags		= TRAIL_EMITTER_SET_START(TrailData->Flags);
-
-					//SourceDistanceTravelled(TrailData->TrailIndex) += SourceDistanceTravelled(CheckTrailData->TrailIndex);
-
-					bAddedParticle = true;
-				}
-
-				if ((TrailTypeData->bEnablePreviousTangentRecalculation == true)&& 
-					(TrailTypeData->bTangentRecalculationEveryFrame == false))
-				{
-					FBaseParticle* PrevParticle = Particle;
-					FAnimTrailTypeDataPayload* PrevTrailData = TrailData;
-					FBaseParticle* CurrParticle = StartParticle;
-					FAnimTrailTypeDataPayload* CurrTrailData = StartTrailData;
-					FBaseParticle* NextParticle = NULL;
-					FAnimTrailTypeDataPayload* NextTrailData = NULL;
-
-					int32 StartNext = TRAIL_EMITTER_GET_NEXT(StartTrailData->Flags);
-					if (StartNext != TRAIL_EMITTER_NULL_NEXT)
-					{
-						DECLARE_PARTICLE_PTR(TempParticle, ParticleData + ParticleStride * StartNext);
-						NextParticle = TempParticle;
-						NextTrailData = ((FAnimTrailTypeDataPayload*)((uint8*)NextParticle + TypeDataOffset));
-					}
-					RecalculateTangent(PrevParticle, PrevTrailData, CurrParticle, CurrTrailData, NextParticle, NextTrailData);
-				}
-			}
-
-			if (bAddedParticle)
-			{
-				if (bTilingTrail == true)
-				{
-					if (StartParticle == NULL)
-					{
-						TrailData->TiledU = 0.0f;
-					}
-					else
-					{
-						FVector PositionDelta = Particle->Location - StartParticle->Location;
-						TiledUDistanceTraveled[TrailIdx] += PositionDelta.Size();
-						TrailData->TiledU = TiledUDistanceTraveled[TrailIdx] / TrailTypeData->TilingDistance;
-						//@todo. Is there going to be a problem when distance gets REALLY high?
-					}
-				}
-
-				StartParticle = Particle;
-				StartParticleIndex = ParticleIndex;
-				StartTrailData = TrailData;
-
-				ActiveParticles++;
-//				check((int32)ActiveParticles < TrailTypeData->MaxParticleInTrailCount);
-				INC_DWORD_STAT(STAT_TrailParticlesSpawned);
-			}
-			else
-			{
-				check(TEXT("Failed to add particle to trail!!!!"));
-			}
-
-			INC_DWORD_STAT_BY(STAT_TrailParticles, ActiveParticles);
-		}
-
-		// Update the last position
-		TrailSpawnTimes[0] = RunningTime;
-		CurrentAnimDataCount = 0;
-		LastAnimProcessedTime = ProcessedTime;
-		LastSourceUpdateTime = CurrentSourceUpdateTime;
+		//Spawn sampled particle at the end.
+		//SpawnParams.bInterpolated = false;
+		SpawnParticle( StartParticleIndex, SpawnParams );
+		INC_DWORD_STAT_BY(STAT_TrailParticles, ActiveParticles);
+		
+//		Interpolated Spawned Particles are Disabled For Now.
+//		Needs more thought but some kind of interpolation here will be needed to avoid DeltaTime depenance on spawn positions.
+//		//Work forwards from the oldest particle laid up to the final particle which will be at the sample position.
+//		SpawnParams.bInterpolated = true;
+//		for (int32 SpawnIdx = 0; SpawnIdx < NewCount-1; SpawnIdx++)
+//		{
+//			SpawnParams.SpawnIndex = SpawnIdx;
+//
+//			SpawnParticle( StartParticleIndex, SpawnParams );
+//
+//			INC_DWORD_STAT_BY(STAT_TrailParticles, ActiveParticles);
+//		}
 	}
+
+	// Update the last position
+	TrailSpawnTimes[TrailIdx] = RunningTime;
+
+	//TODO - If I enable interpolated spawning then the component transform needs restoring and storing.
+	//Component->ComponentToWorld = SpawnParams.SavedComponentToWorld;
+	//PreviousComponentTransform = Component->ComponentToWorld;
 
 	if (bTagTrailAsDead == true)
 	{
@@ -3335,7 +3409,7 @@ static int32 TickCount = 0;
 		}
 		bTagTrailAsDead = false;
 	}
-TickCount++;
+	TickCount++;
 	return SpawnFraction;
 }
 
@@ -3390,6 +3464,195 @@ void FParticleAnimTrailEmitterInstance::UpdateSourceData(float DeltaTime, bool b
 {
 }
 
+void FParticleAnimTrailEmitterInstance::UpdateBoundingBox(float DeltaTime)
+{
+	SCOPE_CYCLE_COUNTER(STAT_ParticleUpdateBounds);
+	if (Component)
+	{
+		bool bUpdateBox = ((Component->bWarmingUp == false) &&
+			(Component->Template != NULL) && (Component->Template->bUseFixedRelativeBoundingBox == false));
+		// Handle local space usage
+		check(SpriteTemplate->LODLevels.Num() > 0);
+		UParticleLODLevel* LODLevel = SpriteTemplate->LODLevels[0];
+		check(LODLevel);
+
+		if (bUpdateBox)
+		{
+			// Set the min/max to the position of the trail
+			if (LODLevel->RequiredModule->bUseLocalSpace == false) 
+			{
+				ParticleBoundingBox.Max = Component->GetComponentLocation();
+				ParticleBoundingBox.Min = Component->GetComponentLocation();
+			}
+			else
+			{
+				ParticleBoundingBox.Max = FVector::ZeroVector;
+				ParticleBoundingBox.Min = FVector::ZeroVector;
+			}
+		}
+		ParticleBoundingBox.IsValid = true;
+
+		// Take scale into account
+		FVector Scale = Component->ComponentToWorld.GetScale3D();
+
+		// As well as each particle
+		int32 LocalActiveParticles = ActiveParticles;
+		if (LocalActiveParticles > 0)
+		{
+			FVector MinPos(FLT_MAX);
+			FVector MaxPos(-FLT_MAX);
+			FVector TempMin;
+			FVector TempMax;
+
+			DECLARE_PARTICLE_PTR(FirstParticle, ParticleData + ParticleStride * ParticleIndices[0]);
+			FAnimTrailTypeDataPayload*	FirstPayload = ((FAnimTrailTypeDataPayload*)((uint8*)FirstParticle + TypeDataOffset));
+			FVector PrevParticleLocation = FirstParticle->Location;
+			float PrevParticleLength = FirstPayload->Length;
+
+			for (int32 i = 0; i < LocalActiveParticles; i++)
+			{
+				DECLARE_PARTICLE_PTR(Particle, ParticleData + ParticleStride * ParticleIndices[i]);
+				FAnimTrailTypeDataPayload*	Payload = ((FAnimTrailTypeDataPayload*)((uint8*)Particle + TypeDataOffset));
+
+				// Do linear integrator and update bounding box
+				Particle->Location	+= DeltaTime * Particle->Velocity;
+				Particle->Rotation	+= DeltaTime * Particle->RotationRate;
+				Particle->Location	+= PositionOffsetThisTick;
+				
+				FPlatformMisc::Prefetch(ParticleData, (ParticleIndices[i+1] * ParticleStride));
+				FPlatformMisc::Prefetch(ParticleData, (ParticleIndices[i+1] * ParticleStride) + CACHE_LINE_SIZE);
+				Particle->OldLocation = Particle->Location;
+				if (bUpdateBox)
+				{
+					//Interpolated points on the trail can be bounded by 1/4 the length of the segment for centripetal parameterization.	
+					//Length is also interpolated so need to use the maximum possible length. TODO - Handle it dropping to zero or -ve?
+					//This makes the bounds quite a bit fatter than they need to be. Especially for wide trails. I expect it can be improved quite a bit.
+					float LengthBound = Payload->Length + ((Payload->Length - PrevParticleLength) * .25f);		
+					FVector BoundSize = FVector( ((Particle->Location - PrevParticleLocation).Size() * 0.25f) + LengthBound);
+					PrevParticleLocation = Particle->Location;
+					PrevParticleLength = Payload->Length;
+
+					TempMin = Particle->Location - BoundSize;
+					TempMax = Particle->Location + BoundSize;
+
+					MinPos.X = FMath::Min(TempMin.X, MinPos.X);
+					MinPos.Y = FMath::Min(TempMin.Y, MinPos.Y);
+					MinPos.Z = FMath::Min(TempMin.Z, MinPos.Z);
+					MaxPos.X = FMath::Max(TempMin.X, MaxPos.X);
+					MaxPos.Y = FMath::Max(TempMin.Y, MaxPos.Y);
+					MaxPos.Z = FMath::Max(TempMin.Z, MaxPos.Z);
+					MinPos.X = FMath::Min(TempMax.X, MinPos.X);
+					MinPos.Y = FMath::Min(TempMax.Y, MinPos.Y);
+					MinPos.Z = FMath::Min(TempMax.Z, MinPos.Z);
+					MaxPos.X = FMath::Max(TempMax.X, MaxPos.X);
+					MaxPos.Y = FMath::Max(TempMax.Y, MaxPos.Y);
+					MaxPos.Z = FMath::Max(TempMax.Z, MaxPos.Z);
+				}
+
+				// Do angular integrator, and wrap result to within +/- 2 PI
+				Particle->Rotation	 = FMath::Fmod(Particle->Rotation, 2.f*(float)PI);
+			}
+			if (bUpdateBox)
+			{
+				ParticleBoundingBox += MinPos;
+				ParticleBoundingBox += MaxPos;
+			}
+		}
+
+		// Transform bounding box into world space if the emitter uses a local space coordinate system.
+		if (bUpdateBox)
+		{
+			if (LODLevel->RequiredModule->bUseLocalSpace) 
+			{
+				ParticleBoundingBox = ParticleBoundingBox.TransformBy(Component->ComponentToWorld);
+			}
+		}
+	}
+}
+
+/**
+ * Force the bounding box to be updated.
+ */
+void FParticleAnimTrailEmitterInstance::ForceUpdateBoundingBox()
+{
+	if (Component)
+	{
+		// Handle local space usage
+		check(SpriteTemplate->LODLevels.Num() > 0);
+		UParticleLODLevel* LODLevel = SpriteTemplate->LODLevels[0];
+		check(LODLevel);
+
+		// Set the min/max to the position of the trail
+		if (LODLevel->RequiredModule->bUseLocalSpace == false) 
+		{
+			ParticleBoundingBox.Max = Component->GetComponentLocation();
+			ParticleBoundingBox.Min = Component->GetComponentLocation();
+		}
+		else
+		{
+			ParticleBoundingBox.Max = FVector::ZeroVector;
+			ParticleBoundingBox.Min = FVector::ZeroVector;
+		}
+		ParticleBoundingBox.IsValid = true;
+
+		// Take scale into account
+		FVector Scale = Component->ComponentToWorld.GetScale3D();
+
+		// As well as each particle
+		int32 LocalActiveParticles = ActiveParticles;
+		if (LocalActiveParticles > 0)
+		{
+			FVector MinPos(FLT_MAX);
+			FVector MaxPos(-FLT_MAX);
+			FVector TempMin;
+			FVector TempMax;			
+
+			DECLARE_PARTICLE_PTR(FirstParticle, ParticleData + ParticleStride * ParticleIndices[0]);
+			FAnimTrailTypeDataPayload*	FirstPayload = ((FAnimTrailTypeDataPayload*)((uint8*)FirstParticle + TypeDataOffset));
+			FVector PrevParticleLocation = FirstParticle->Location;
+			float PrevParticleLength = FirstPayload->Length;
+			for (int32 i = 0; i < LocalActiveParticles; i++)
+			{
+				DECLARE_PARTICLE_PTR(Particle, ParticleData + ParticleStride * ParticleIndices[i]);
+				FAnimTrailTypeDataPayload*	Payload = ((FAnimTrailTypeDataPayload*)((uint8*)Particle + TypeDataOffset));
+				
+				//Interpolated points on the trail can be bounded by 1/4 the length of the segment for centripetal parameterization.	
+				//Length is also interpolated so need to use the maximum possible length. TODO - Handle it dropping to zero or -ve?
+				//This makes the bounds quite a bit fatter than they need to be. Especially for wide trails. I expect it can be improved quite a bit.
+				float LengthBound = Payload->Length + ((Payload->Length - PrevParticleLength) * .25f);		
+				FVector BoundSize = FVector( ((Particle->Location - PrevParticleLocation).Size() * 0.25f) + LengthBound);
+				PrevParticleLocation = Particle->Location;
+				PrevParticleLength = Payload->Length;
+
+				TempMin = Particle->Location - BoundSize;
+				TempMax = Particle->Location + BoundSize;
+
+				MinPos.X = FMath::Min(TempMin.X, MinPos.X);
+				MinPos.Y = FMath::Min(TempMin.Y, MinPos.Y);
+				MinPos.Z = FMath::Min(TempMin.Z, MinPos.Z);
+				MaxPos.X = FMath::Max(TempMin.X, MaxPos.X);
+				MaxPos.Y = FMath::Max(TempMin.Y, MaxPos.Y);
+				MaxPos.Z = FMath::Max(TempMin.Z, MaxPos.Z);
+				MinPos.X = FMath::Min(TempMax.X, MinPos.X);
+				MinPos.Y = FMath::Min(TempMax.Y, MinPos.Y);
+				MinPos.Z = FMath::Min(TempMax.Z, MinPos.Z);
+				MaxPos.X = FMath::Max(TempMax.X, MaxPos.X);
+				MaxPos.Y = FMath::Max(TempMax.Y, MaxPos.Y);
+				MaxPos.Z = FMath::Max(TempMax.Z, MaxPos.Z);
+			}
+
+			ParticleBoundingBox += MinPos;
+			ParticleBoundingBox += MaxPos;
+		}
+
+		// Transform bounding box into world space if the emitter uses a local space coordinate system.
+		if (LODLevel->RequiredModule->bUseLocalSpace) 
+		{
+			ParticleBoundingBox = ParticleBoundingBox.TransformBy(Component->ComponentToWorld);
+		}
+	}
+}
+
 /** Determine the number of vertices and triangles in each trail */
 void FParticleAnimTrailEmitterInstance::DetermineVertexAndTriangleCount()
 {
@@ -3404,7 +3667,17 @@ void FParticleAnimTrailEmitterInstance::DetermineVertexAndTriangleCount()
 	int32 CheckParticleCount = 0;
 
 	int32 TempVertexCount;
-	// 
+
+	bool bApplyDistanceTessellation = !FMath::IsNearlyZero(TrailTypeData->DistanceTessellationStepSize);
+	bool bApplyTangentTessellation = !FMath::IsNearlyZero(TrailTypeData->TangentTessellationStepSize);
+	bool bApplyWidthTessellation = !FMath::IsNearlyZero(TrailTypeData->WidthTessellationStepSize);
+
+	//There's little point doing this if a decent tangent isn't being calculated. Todo - Expose this to user?
+	bool bUseNextInTangetTesselationCalculations = TrailTypeData->bEnablePreviousTangentRecalculation;
+	bool bUseNextInWidthTesselationCalculations = true;
+
+	float TangentTessellationStepSize = FMath::Fmod(TrailTypeData->TangentTessellationStepSize, 180.0f) / 180.0f;
+	
 	for (int32 ii = 0; ii < ActiveParticles; ii++)
 	{
 		int32 LocalIndexCount = 0;
@@ -3414,20 +3687,14 @@ void FParticleAnimTrailEmitterInstance::DetermineVertexAndTriangleCount()
 
 		bool bProcessParticle = false;
 
+		FBaseParticle* NextParticle = NULL;
+		FAnimTrailTypeDataPayload* NextTrailData = NULL;
+
 		DECLARE_PARTICLE_PTR(Particle, ParticleData + ParticleStride * ParticleIndices[ii]);
 		FBaseParticle* CurrParticle = Particle;
 		FAnimTrailTypeDataPayload*	CurrTrailData = ((FAnimTrailTypeDataPayload*)((uint8*)Particle + TypeDataOffset));
 		if (TRAIL_EMITTER_IS_ONLY(CurrTrailData->Flags))
 		{
-			// If there is only a single particle in the trail, then we only want to render it
-			// if we are connecting to the source...
-//			if (TrailTypeData->bClipSourceSegement == false)
-			{
-				// Store off the rendering interp count for this particle
-// 				CurrTrailData->RenderingInterpCount = 1;
-// 				CurrTrailData->PinchScaleFactor = 1.0f;
-// 				bProcessParticle = true;
-			}
 			CurrTrailData->RenderingInterpCount = 0;
 			CurrTrailData->TriangleCount = 0;
 		}
@@ -3448,37 +3715,48 @@ void FParticleAnimTrailEmitterInstance::DetermineVertexAndTriangleCount()
 				while (!bDone)
 				{
 					ParticleCount++;
-					// Determine the number of rendered interpolated points between these two particles
-					float CheckDistance = (CurrParticle->Location - PrevParticle->Location).Size();
-					FVector SrcTangent = CurrTrailData->ControlVelocity;
-					SrcTangent.Normalize();
-					FVector PrevTangent = PrevTrailData->ControlVelocity;
-					PrevTangent.Normalize();
-					float CheckTangent = (SrcTangent | PrevTangent);
-					// Map the tangent difference to [0..1] for [0..180]
-					//  1.0 = parallel    --> -1 = 0
-					//  0.0 = orthogonal  --> -1 = -1 --> * -0.5 = 0.5
-					// -1.0 = oppositedir --> -1 = -2 --> * -0.5 = 1.0
-					CheckTangent = (CheckTangent - 1.0f) * -0.5f;
+					int32 InterpCount = 1;
+					if( bApplyDistanceTessellation )
+					{
+						// Determine the number of rendered interpolated points between these two particles
+						float CheckDistance = (CurrParticle->Location - PrevParticle->Location).Size();
+						float DistDiff = CheckDistance / TrailTypeData->DistanceTessellationStepSize;
+						InterpCount += FMath::Trunc(DistDiff);
+					}
+					
+					if (bApplyTangentTessellation )
+					{
+						//Alter tessellation based on difference between tangents.
+						float CheckTangent = (CurrTrailData->Tangent | PrevTrailData->Tangent);
+						// Map the tangent difference to [0..1] for [0..180]
+						//  1.0 = parallel    --> -1 = 0
+						//  0.0 = orthogonal  --> -1 = -1 --> * -0.5 = 0.5
+						// -1.0 = oppositedir --> -1 = -2 --> * -0.5 = 1.0
+						CheckTangent = (CheckTangent - 1.0f) * -0.5f;		
+						if( bUseNextInTangetTesselationCalculations && NextTrailData )
+						{
+							float NextCheckTangent = (NextTrailData->Tangent | CurrTrailData->Tangent);
+							NextCheckTangent = (NextCheckTangent - 1.0f) * -0.5f;		
+							CheckTangent = FMath::Max( CheckTangent, NextCheckTangent );
+						}		
+						float TangDiff = CheckTangent / TangentTessellationStepSize;
+						InterpCount += FMath::Trunc(TangDiff);
+					}
 
-					float DistDiff = (TrailTypeData->DistanceTessellationStepSize > 0.0f) ? CheckDistance / TrailTypeData->DistanceTessellationStepSize : 0.0f;
-					//@todo. Need to adjust the tangent diff count when the distance is REALLY small...
-					float TangDiff = CheckTangent * TrailTypeData->TangentTessellationScalar;
-					int32 InterpCount = FMath::Trunc(DistDiff) + FMath::Trunc(TangDiff);
-
-					// There always is at least 1 point (the source particle itself)
-					InterpCount = (InterpCount > 0) ? InterpCount : 1;
+					if( bApplyWidthTessellation )
+					{
+						//Alter the tessellation based on the change in the trail width.
+						float CheckWidth = FMath::Abs(CurrTrailData->Length - PrevTrailData->Length);
+						if (bUseNextInWidthTesselationCalculations && NextTrailData)
+						{
+							CheckWidth = FMath::Max( CheckWidth, FMath::Abs(NextTrailData->Length - CurrTrailData->Length) );
+						}
+						float WidthDiff = CheckWidth / TrailTypeData->WidthTessellationStepSize;
+						InterpCount += FMath::Trunc(WidthDiff);
+					}
 
 					// Store off the rendering interp count for this particle
 					CurrTrailData->RenderingInterpCount = InterpCount;
-					if (CheckTangent <= 0.5f)
-					{
-						CurrTrailData->PinchScaleFactor = 1.0f;
-					}
-					else
-					{
-						CurrTrailData->PinchScaleFactor = 1.0f - (CheckTangent * 0.5f);
-					}
 
 					// Tally up the vertex and index counts for this segment...
 					TempVertexCount = 2 * InterpCount * Sheets;
@@ -3487,6 +3765,8 @@ void FParticleAnimTrailEmitterInstance::DetermineVertexAndTriangleCount()
 					LocalIndexCount += TempVertexCount;
 
 					// Move to the previous particle in the chain
+					NextParticle = CurrParticle;
+					NextTrailData = CurrTrailData;
 					CurrParticle = PrevParticle;
 					CurrTrailData = PrevTrailData;
 					Prev = TRAIL_EMITTER_GET_PREV(CurrTrailData->Flags);
@@ -3583,15 +3863,19 @@ FDynamicEmitterDataBase* FParticleAnimTrailEmitterInstance::GetDynamicData(bool 
 		INC_DWORD_STAT_BY(STAT_DynamicEmitterMem, sizeof(FDynamicAnimTrailEmitterData));
 	}
 
-	NewEmitterData->bClipSourceSegement = TrailTypeData->bClipSourceSegement;
-	NewEmitterData->bRenderGeometry = TrailTypeData->bRenderGeometry;
-	NewEmitterData->bRenderParticles = TrailTypeData->bRenderSpawnPoints;
-	NewEmitterData->bRenderTangents = TrailTypeData->bRenderTangents;
-	NewEmitterData->bRenderTessellation = TrailTypeData->bRenderTessellation;
-	NewEmitterData->DistanceTessellationStepSize = TrailTypeData->DistanceTessellationStepSize;
-	NewEmitterData->TangentTessellationScalar = TrailTypeData->TangentTessellationScalar;
-	NewEmitterData->TextureTileDistance = TrailTypeData->TilingDistance;
-	NewEmitterData->AnimSampleTimeStep = AnimSampleTimeStep;
+	NewEmitterData->bClipSourceSegement = true;//Unused in trails.
+#if WITH_EDITORONLY_DATA
+	NewEmitterData->bRenderGeometry = bRenderGeometry;
+	NewEmitterData->bRenderParticles = bRenderSpawnPoints;
+	NewEmitterData->bRenderTangents = bRenderTangents;
+	NewEmitterData->bRenderTessellation = bRenderTessellation;
+#else
+	NewEmitterData->bRenderGeometry = true;
+	NewEmitterData->bRenderParticles = false;
+	NewEmitterData->bRenderTangents = false;
+	NewEmitterData->bRenderTessellation = false;
+#endif
+
 	if (NewEmitterData->TextureTileDistance > 0.0f)
 	{
 		NewEmitterData->bTextureTileDistance = true;
@@ -3642,12 +3926,17 @@ bool FParticleAnimTrailEmitterInstance::UpdateDynamicData(FDynamicEmitterDataBas
 		return false;
 	}
 
-	TrailDynamicData->bRenderGeometry = TrailTypeData->bRenderGeometry;
-	TrailDynamicData->bRenderParticles = TrailTypeData->bRenderSpawnPoints;
-	TrailDynamicData->bRenderTangents = TrailTypeData->bRenderTangents;
-	TrailDynamicData->bRenderTessellation = TrailTypeData->bRenderTessellation;
-	TrailDynamicData->DistanceTessellationStepSize = TrailTypeData->DistanceTessellationStepSize;
-	TrailDynamicData->TangentTessellationScalar = TrailTypeData->TangentTessellationScalar;
+#if WITH_EDITORONLY_DATA
+	TrailDynamicData->bRenderGeometry = bRenderGeometry;
+	TrailDynamicData->bRenderParticles = bRenderSpawnPoints;
+	TrailDynamicData->bRenderTangents = bRenderTangents;
+	TrailDynamicData->bRenderTessellation = bRenderTessellation;
+#else
+	TrailDynamicData->bRenderGeometry = true;
+	TrailDynamicData->bRenderParticles = false;
+	TrailDynamicData->bRenderTangents = false;
+	TrailDynamicData->bRenderTessellation = false;
+#endif
 
 	// Setup dynamic render data.  Only call this AFTER filling in source data for the emitter.
 	TrailDynamicData->Init(bSelected);
@@ -3726,6 +4015,71 @@ SIZE_T FParticleAnimTrailEmitterInstance::GetResourceSize(EResourceSizeMode::Typ
 	return ResSize;
 }
 
+void FParticleAnimTrailEmitterInstance::BeginTrail(class UAnimNotifyState* InAnimNotifyState)
+{
+	if( !AnimNotifyState )
+	{
+		//This is the first time we've been triggered.
+		AnimNotifyState = InAnimNotifyState;
+	}
+
+	check(AnimNotifyState == InAnimNotifyState);
+
+	//Mark any existing trails as dead.
+	for (int32 FindTrailIdx = 0; FindTrailIdx < ActiveParticles; FindTrailIdx++)
+	{
+		int32 CheckStartIndex = ParticleIndices[FindTrailIdx];
+		DECLARE_PARTICLE_PTR(CheckParticle, ParticleData + ParticleStride * CheckStartIndex);
+		FAnimTrailTypeDataPayload* CheckTrailData = ((FAnimTrailTypeDataPayload*)((uint8*)CheckParticle + TypeDataOffset));
+		if (CheckTrailData->TrailIndex == 0)
+		{
+			if (TRAIL_EMITTER_IS_START(CheckTrailData->Flags))
+			{
+				CheckTrailData->Flags = TRAIL_EMITTER_SET_DEADTRAIL(CheckTrailData->Flags);
+			}
+		}
+	}
+	bTagTrailAsDead = false;
+	bTrailEnabled = true;
+}
+
+void FParticleAnimTrailEmitterInstance::EndTrail()
+{
+	check(AnimNotifyState);
+
+	FirstSocketName = NAME_None;
+	SecondSocketName = NAME_None;
+	bTagTrailAsDead = true;
+	bTrailEnabled = false;
+}
+
+void FParticleAnimTrailEmitterInstance::SetTrailSourceData(FName InFirstSocketName, FName InSecondSocketName, ETrailWidthMode InWidthMode, float InWidth )
+{
+	check(AnimNotifyState);
+	check(!InFirstSocketName.IsNone());
+	check(!InSecondSocketName.IsNone());
+
+	FirstSocketName = InFirstSocketName;
+	SecondSocketName = InSecondSocketName;
+	Width = InWidth;
+	WidthMode = InWidthMode;
+}
+
+bool FParticleAnimTrailEmitterInstance::IsTrailActive()const 
+{
+	return bTrailEnabled;
+}
+
+#if WITH_EDITORONLY_DATA
+void FParticleAnimTrailEmitterInstance::SetTrailDebugData(bool bInRenderGeometry, bool bInRenderSpawnPoints, bool bInRenderTessellation, bool bInRenderTangents)
+{
+	bRenderGeometry = bInRenderGeometry;
+	bRenderSpawnPoints = bInRenderSpawnPoints;
+	bRenderTessellation = bInRenderTessellation;
+	bRenderTangents = bInRenderTangents;
+}
+#endif
+
 /**
  * Captures dynamic replay data for this particle system.
  *
@@ -3777,28 +4131,25 @@ bool FParticleAnimTrailEmitterInstance::FillReplayData( FDynamicEmitterReplayDat
 
 	if (TriangleCount <= 0)
 	{
-		if (ActiveParticles > 0)
+		if (ActiveParticles > 1)
 		{
-			if (!TrailTypeData->bClipSourceSegement)
-			{
 // 				UE_LOG(LogParticles, Warning, TEXT("TRAIL: GetDynamicData -- TriangleCount == 0 (APC = %4d) for PSys %s"),
 // 					ActiveParticles, 
 // 					Component ? (Component->Template ? *Component->Template->GetName() : 
 // 					TEXT("No Template")) : TEXT("No Component"));
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-				if (Component && Component->GetWorld())
-				{
-					FString ErrorMessage = 
-						FString::Printf(TEXT("ANIMTRAIL: GetDynamicData -- TriangleCount == 0 (APC = %4d) for PSys %s"),
-						ActiveParticles, 
-						Component ? (Component->Template ? *Component->Template->GetName() : 
-						TEXT("No Template")) : TEXT("No Component"));
-					FColor ErrorColor(255,0,0);
-					GEngine->AddOnScreenDebugMessage((uint64)((PTRINT)this), 5.0f, ErrorColor,ErrorMessage);
-					UE_LOG(LogParticles, Log, TEXT("%s"), *ErrorMessage);
-				}
-#endif	//#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+			if (Component && Component->GetWorld())
+			{
+				FString ErrorMessage = 
+					FString::Printf(TEXT("ANIMTRAIL: GetDynamicData -- TriangleCount == 0 (APC = %4d) for PSys %s"),
+					ActiveParticles, 
+					Component ? (Component->Template ? *Component->Template->GetName() : 
+					TEXT("No Template")) : TEXT("No Component"));
+				FColor ErrorColor(255,0,0);
+				GEngine->AddOnScreenDebugMessage((uint64)((PTRINT)this), 5.0f, ErrorColor,ErrorMessage);
+				UE_LOG(LogParticles, Log, TEXT("%s"), *ErrorMessage);
 			}
+#endif	//#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		}
 		return false;
 	}
@@ -3813,7 +4164,7 @@ bool FParticleAnimTrailEmitterInstance::FillReplayData( FDynamicEmitterReplayDat
 	NewReplayData->bLockAxis = false;
 	
 	NewReplayData->MaxActiveParticleCount = MaxActiveParticles;
-	NewReplayData->Sheets = TrailTypeData->SheetsPerTrail ? TrailTypeData->SheetsPerTrail : 1;
+	NewReplayData->Sheets = 1;//Always only 1; //TrailTypeData->SheetsPerTrail ? TrailTypeData->SheetsPerTrail : 1;
 
 	NewReplayData->VertexCount = VertexCount;
 	NewReplayData->IndexCount = TriangleCount + (2 * TrailCount);

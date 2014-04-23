@@ -544,6 +544,19 @@ struct FMath : public FPlatformMath
 	 */
 	template< class U > static FQuat CubicInterp( const FQuat& P0, const FQuat& T0, const FQuat& P1, const FQuat& T1, const U& A);
 
+	/*
+	 *	Cubic Catmull-Rom Spline interpolation. Based on http://www.cemyuksel.com/research/catmullrom_param/catmullrom.pdf 
+	 *	Curves are guaranteed to pass through the control points and are easily chained together.
+	 *	Equation supports abitrary parameterization. eg. Uniform=0,1,2,3 ; chordal= |Pn - Pn-1| ; centripetal = |Pn - Pn-1|^0.5
+	 *	P0 - The control point preceding the interpolation range.
+	 *	P1 - The control point starting the interpolation range.
+	 *	P2 - The control point ending the interpolation range.
+	 *	P3 - The control point following the interpolation range.
+	 *	T0-3 - The interpolation parameters for the corresponding control points.		
+	 *	T - The interpolation factor in the range 0 to 1. 0 returns P1. 1 returns P2.
+	 */
+	template< class U > static U CubicCRSplineInterp(const U& P0, const U& P1, const U& P2, const U& P3, const float T0, const float T1, const float T2, const float T3, const float T);
+
 	// Special-case interpolation
 
 	/** Interpolate a normal vector Current to Target, by interpolating the angle between those vectors with constant step. */

@@ -394,3 +394,32 @@ void UDebugSkelMeshComponent::RefreshBoneTransforms()
 		}
 	}
 }
+
+#if WITH_EDITOR
+void UDebugSkelMeshComponent::ReportAnimNotifyError(const FText& Error, UObject* InSourceNotify)
+{
+	for (FAnimNotifyErrors& Errors : AnimNotifyErrors)
+	{
+		if (Errors.SourceNotify == InSourceNotify)
+		{
+			Errors.Errors.Add(Error.ToString());
+			return;
+		}
+	}
+
+	int32 i = AnimNotifyErrors.Num();
+	AnimNotifyErrors.Add(FAnimNotifyErrors(InSourceNotify));
+	AnimNotifyErrors[i].Errors.Add(Error.ToString());
+}
+
+void UDebugSkelMeshComponent::ClearAnimNotifyErrors(UObject* InSourceNotify)
+{
+	for (FAnimNotifyErrors& Errors : AnimNotifyErrors)
+	{
+		if (Errors.SourceNotify == InSourceNotify)
+		{
+			Errors.Errors.Empty();
+		}
+	}
+}
+#endif

@@ -507,6 +507,19 @@ public:
 	/** @return true if wind is enabled */
 	virtual bool IsWindEnabled() const;
 
+#if WITH_EDITOR
+	/**
+	* Subclasses such as DebugSkelMeshComponent keep track of errors in the anim notifies so they can be displayed to the user. This function adds an error.
+	* Errors are added uniquely and only removed when they're cleared by ClearAnimNotifyError.
+	*/
+	virtual void ReportAnimNotifyError(const FText& Error, UObject* InSourceNotify){}
+	
+	/**
+	* Clears currently stored errors. Call before triggering anim notifies for a particular mesh.
+	*/
+	virtual void ClearAnimNotifyErrors(UObject* InSourceNotify){}
+#endif
+
 public:
 	/** Temporary array of bone indices required this frame. Filled in by UpdateSkelPose. */
 	TArray<FBoneIndexType> RequiredBones;
