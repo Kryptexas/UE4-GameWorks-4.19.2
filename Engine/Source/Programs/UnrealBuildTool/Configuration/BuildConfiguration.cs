@@ -303,47 +303,47 @@ namespace UnrealBuildTool
 		/// </summary>
 		public static void Reset()
 		{
-			bAllowLTCG = Utils.GetEnvironmentVariable("ue.bAllowLTCG", false);
-			bAllowRemotelyCompiledPCHs = Utils.GetEnvironmentVariable("ue.bAllowRemotelyCompiledPCHs", false);
-            bAllowXGE = Utils.GetEnvironmentVariable("ue.bAllowXGE", true);
+			bAllowLTCG = false;
+			bAllowRemotelyCompiledPCHs = false;
+            bAllowXGE = true;
 
 			// Don't bother to check external (stable) headers for modification.  It slows down UBT's dependency checking.
-			bCheckExternalHeadersForModification = Utils.GetEnvironmentVariable("ue.bCheckExternalHeadersForModification", false);
-			bCheckSystemHeadersForModification = Utils.GetEnvironmentVariable("ue.bCheckSystemHeadersForModification", false);
+			bCheckExternalHeadersForModification = false;
+			bCheckSystemHeadersForModification = false;
 
-			bCopyAppBundleBackToDevice = Utils.GetEnvironmentVariable("ue.bCopyAppBundleBackToDevice", false);
-			bCreateStubIPA = Utils.GetEnvironmentVariable("ue.iPhone_CreateStubIPA", true);
+			bCopyAppBundleBackToDevice = false;
+			bCreateStubIPA = true;
 			bDeployAfterCompile = false;
-			bDisableDebugInfo = Utils.GetEnvironmentVariable("ue.bDisableDebugInfo", false);
+			bDisableDebugInfo = false;
 			bEnableCodeAnalysis = false;
 			bFlushBuildDirOnRemoteMac = false;
-			bGeneratedSYMFile = Utils.GetEnvironmentVariable("ue.bGeneratedSYMFile", false);
-			bStripSymbolsOnIOS = Utils.GetEnvironmentVariable("ue.bStripSymbolsOnIOS", bGeneratedSYMFile);
+			bGeneratedSYMFile = false;
+			bStripSymbolsOnIOS = bGeneratedSYMFile;
 
 			// By default we don't bother relinking targets if only a dependent .lib has changed, as chances are that
 			// the import library wasn't actually different unless a dependent header file of this target was also changed,
 			// in which case the target would be rebuilt automatically.
-			bIgnoreOutdatedImportLibraries = Utils.GetEnvironmentVariable("ue.bIgnoreOutdatedImportLibraries", true);
+			bIgnoreOutdatedImportLibraries = true;
 
-			bLogDetailedActionStats = Utils.GetEnvironmentVariable("ue.bLogDetailedActionStats", false);
-			bOmitFramePointers = Utils.GetEnvironmentVariable("ue.bOmitFramePointers", true);
-			bOmitPCDebugInfoInDevelopment = Utils.GetEnvironmentVariable("ue.bOmitPCDebugInfoInDevelopment", false);
-			bPrintDebugInfo = Utils.GetEnvironmentVariable("ue.bPrintDebugInfo", false);
-			bPrintPerformanceInfo = Utils.GetEnvironmentVariable("ue.bPrintPerformanceInfo", false);
-			bShouldDeleteAllOutdatedProducedItems = Utils.GetEnvironmentVariable("ue.bShouldDeleteAllOutdatedProducedItems", false);
-			bShowXGEMonitor = Utils.GetEnvironmentVariable("ue.bShowXGEMonitor", false);
-			bStopXGECompilationAfterErrors = Utils.GetEnvironmentVariable("ue.bStopXGECompilationAfterErrors", true);
-			bStressTestUnity = Utils.GetEnvironmentVariable("ue.bStressTestUnity", false);
-			bSupportEditAndContinue = Utils.GetEnvironmentVariable("ue.bSupportEditAndContinue", false);
+			bLogDetailedActionStats = false;
+			bOmitFramePointers = true;
+			bOmitPCDebugInfoInDevelopment = false;
+			bPrintDebugInfo = false;
+			bPrintPerformanceInfo = false;
+			bShouldDeleteAllOutdatedProducedItems = false;
+			bShowXGEMonitor = false;
+			bStopXGECompilationAfterErrors = true;
+			bStressTestUnity = false;
+			bSupportEditAndContinue = false;
 			bUseActionHistory = true;
 
 			// Incremental linking can yield faster iteration times when making small changes
 			// NOTE: We currently don't use incremental linking because it tends to behave a bit buggy on some computers (PDB-related compile errors)
-			bUseIncrementalLinking = Utils.GetEnvironmentVariable("ue.bUseIncrementalLinking", false);
+			bUseIncrementalLinking = false;
 
 			bUseMallocProfiler = false;
-			bUsePDBFiles = Utils.GetEnvironmentVariable("ue.bUsePDBFiles", false);
-			bUsePCHFiles = Utils.GetEnvironmentVariable("ue.bUsePCHFiles", true);
+			bUsePDBFiles = false;
+			bUsePCHFiles = true;
 
 			// Shared PCHs are necessary to avoid generating tons of private PCH files for every single little module.  While
 			// these private PCHs do yield fastest incremental compiles for single files, it causes full rebuilds to
@@ -355,7 +355,7 @@ namespace UnrealBuildTool
 			// Using unity build to coalesce source files allows for much faster full rebuild times.  For fastest iteration times on single-file
 			// changes, consider turning this off.  In some cases, unity builds can cause linker errors after iterative changes to files, because
 			// the synthesized file names for unity code files may change between builds.
-			bUseUnityBuild = Utils.GetEnvironmentVariable("ue.bUseUnityBuild", true);
+			bUseUnityBuild = true;
 
             bForceUnityBuild = false;
 
@@ -380,11 +380,11 @@ namespace UnrealBuildTool
 
 			// When using the local executor (not XGE), run a single action on each CPU core.  Note that you can set this to a larger value
 			// to get slightly faster build times in many cases, but your computer's responsiveness during compiling may be much worse.
-			ProcessorCountMultiplier = Utils.GetEnvironmentVariable("ue.ProcessorCountMultiplier", 1.0);
+			ProcessorCountMultiplier = 1.0;
 
 			bTestIncludeDependencyResolveCache = false;
 			// if we are testing the resolve cache, we require UBT to use it.
-			bUseIncludeDependencyResolveCache = bTestIncludeDependencyResolveCache || Utils.GetEnvironmentVariable("ue.bUseIncludeDependencyResolveCache", true);
+			bUseIncludeDependencyResolveCache = true;
             
             //IMPORTANT THIS IS THE MAIN SWITCH FOR MONO.
             // New Monolithic Graphics drivers replace D3D and are *mostly* API compatible

@@ -11,12 +11,18 @@ namespace UnrealBuildTool
 {
 	class AndroidPlatform : UEBuildPlatform
 	{
+		/// <summary>
+		/// Android settings.
+		/// </summary>
+		public static string AndroidArchitecture = "-armv7";
+		public static string AndroidNdkApiTarget = "latest";
+		public static string AndroidSdkApiTarget = "latest";
+
 		// The current architecture - affects everything about how UBT operates on Android
-		private static string ActiveArchitecture = Utils.GetStringEnvironmentVariable("ue.AndroidArchitecture", "-armv7");
 		public override string GetActiveArchitecture()
 		{
 			// by default, use an empty architecture (which is really just a modifer to the platform for some paths/names)
-			return ActiveArchitecture;
+			return AndroidArchitecture;
 		}
 
         public override bool CanUseXGE()

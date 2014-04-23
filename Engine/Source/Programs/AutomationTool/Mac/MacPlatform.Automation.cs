@@ -110,7 +110,7 @@ public class MacPlatform : Platform
 	{
 		// don't use the manifest to set up build products if we are compiling Mac under Windows and we aren't going to copy anything back to the PC
 		bool bIsBuildingRemotely = UnrealBuildTool.ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac;
-		bool bUseManifest = !bIsBuildingRemotely || UnrealBuildTool.Utils.GetEnvironmentVariable("ue.bCopyAppBundleBackToDevice", false);
+		bool bUseManifest = !bIsBuildingRemotely || BuildConfiguration.bCopyAppBundleBackToDevice;
 		return bUseManifest;
 	}
     public override string GUBP_GetPlatformFailureEMails(string Branch)

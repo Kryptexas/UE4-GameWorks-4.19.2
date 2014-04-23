@@ -10,6 +10,11 @@ namespace UnrealBuildTool
 {
 	class WinRTPlatform : UEBuildPlatform
 	{
+		/// <summary>
+		/// Should the app be compiled as WinRT
+		/// </summary>
+		public static bool bCompileWinRT = false;
+
 		public static bool IsVisualStudioInstalled()
 		{
 			string BaseVSToolPath = WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2012 ? Environment.GetEnvironmentVariable("VS110COMNTOOLS") : Environment.GetEnvironmentVariable("VS120COMNTOOLS");
@@ -656,7 +661,7 @@ namespace UnrealBuildTool
 		 */
 		public static bool ShouldCompileWinRT()
 		{
-			return Utils.GetEnvironmentVariable("ue.bCompileWinRT", false);
+			return WinRTPlatform.bCompileWinRT;
 		}
 	}
 }

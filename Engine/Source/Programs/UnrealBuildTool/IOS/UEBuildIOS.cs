@@ -11,12 +11,13 @@ namespace UnrealBuildTool
 {
 	class IOSPlatform : UEBuildPlatform
 	{
+		// by default, use an empty architecture (which is really just a modifer to the platform for some paths/names)
+		public static string IOSArchitecture = "";
+
 		// The current architecture - affects everything about how UBT operates on IOS
-		private static string ActiveArchitecture = Utils.GetStringEnvironmentVariable("ue.IOSArchitecture", "");//"-simulator");
 		public override string GetActiveArchitecture()
 		{
-			// by default, use an empty architecture (which is really just a modifer to the platform for some paths/names)
-			return ActiveArchitecture;
+			return IOSArchitecture;
 		}
 
 		/**

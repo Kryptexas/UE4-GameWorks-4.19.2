@@ -114,9 +114,9 @@ namespace UnrealBuildTool
 		{
 			//@todo. Allow disabling PhysX/APEX via these values...
 			// Currently, WITH_PHYSX is forced to true in Engine.h (as it isn't defined anywhere by the builder)
-			bCompilePhysX = true;// Utils.GetEnvironmentVariable("ue.bCompilePhysX", true);
-			bCompileAPEX = true;// Utils.GetEnvironmentVariable("ue.bCompileAPEX", true);
-			bCompileNetworkProfiler = Utils.GetEnvironmentVariable("ue.bCompileNetworkProfiler", false);
+			bCompilePhysX = true;
+			bCompileAPEX = true;
+			bCompileNetworkProfiler = false;
 			bBuildDedicatedServer = false;
 			bBuildEditor = true;
 			bBuildRequiresCookedData = false;
@@ -124,32 +124,42 @@ namespace UnrealBuildTool
 			bBuildDeveloperTools = true;
 			bForceBuildTargetPlatforms = false;
 			bForceBuildShaderFormats = false;
-            bCompileSimplygon = Utils.GetEnvironmentVariable("ue.bCompileSimplygon", true)
-                && Directory.Exists(UEBuildConfiguration.UEThirdPartyDirectory + "NoRedist") == true
-                && Directory.Exists(UEBuildConfiguration.UEThirdPartyDirectory + "NoRedist/Simplygon") == true
-                && Directory.Exists("Developer/SimplygonMeshReduction") == true
-                && !(ProjectFileGenerator.bGenerateProjectFiles && ProjectFileGenerator.bGeneratingRocketProjectFiles);
+			bCompileSimplygon = true;
 			bCompileLeanAndMeanUE = false;
 			bCompileAgainstEngine = true;
 			bCompileAgainstCoreUObject = true;
 			UEThirdPartyDirectory = "ThirdParty/";
-			bCompileRecast = Utils.GetEnvironmentVariable("ue.bCompileRecast", true);
+			bCompileRecast = true;
 			bForceEnableExceptions = false;
 			bWithServerCode = true;
-			bCompileSpeedTree = Utils.GetEnvironmentVariable("ue.bCompileSpeedTree", true)
-				&& Directory.Exists(UEBuildConfiguration.UEThirdPartyDirectory + "NoRedist") == true
-				&& Directory.Exists(UEBuildConfiguration.UEThirdPartyDirectory + "NoRedist/SpeedTree") == true
-				&& !(ProjectFileGenerator.bGenerateProjectFiles && ProjectFileGenerator.bGeneratingRocketProjectFiles);
+			bCompileSpeedTree = true;
 			bCompileWithStatsWithoutEngine = false;
 			bCompileWithPluginSupport = false;
             bUseLoggingInShipping = false;
+			bCompileSteamOSS = true;
+			bCompileMcpOSS = true;
 
+			XmlConfigLoader.Load(typeof(UEBuildConfiguration));
+
+			// Configuration overrides.
 			string SteamVersion = "Steamv128";
-			bCompileSteamOSS = Utils.GetEnvironmentVariable("ue.bCompileSteamOSS", true)
+			bCompileSteamOSS = bCompileSteamOSS
 			   && Directory.Exists(UEBuildConfiguration.UEThirdPartyDirectory + "Steamworks/" + SteamVersion) == true;
 
-			bCompileMcpOSS = Utils.GetEnvironmentVariable("ue.bCompileMcpOSS", true)
-			   && Directory.Exists("Runtime/Online/NoRedist/OnlineSubsystemMcp") == true;	
+			bCompileMcpOSS = bCompileMcpOSS
+			   && Directory.Exists("Runtime/Online/NoRedist/OnlineSubsystemMcp") == true;
+
+
+			bCompileSimplygon = bCompileSimplygon
+				&& Directory.Exists(UEBuildConfiguration.UEThirdPartyDirectory + "NoRedist") == true
+				&& Directory.Exists(UEBuildConfiguration.UEThirdPartyDirectory + "NoRedist/Simplygon") == true
+				&& Directory.Exists("Developer/SimplygonMeshReduction") == true
+				&& !(ProjectFileGenerator.bGenerateProjectFiles && ProjectFileGenerator.bGeneratingRocketProjectFiles);
+
+			bCompileSpeedTree = bCompileSpeedTree
+				&& Directory.Exists(UEBuildConfiguration.UEThirdPartyDirectory + "NoRedist") == true
+				&& Directory.Exists(UEBuildConfiguration.UEThirdPartyDirectory + "NoRedist/SpeedTree") == true
+				&& !(ProjectFileGenerator.bGenerateProjectFiles && ProjectFileGenerator.bGeneratingRocketProjectFiles);
 		}
 
 		/**

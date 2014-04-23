@@ -10,12 +10,13 @@ namespace UnrealBuildTool
 {
 	class HTML5Platform : UEBuildPlatform
 	{
+		public static string HTML5Architecture = "";
+
 		// The current architecture - affects everything about how UBT operates on HTML5
-		private static string ActiveArchitecture = Utils.GetStringEnvironmentVariable("ue.HTML5Architecture", "");//"-win32");
 		public override string GetActiveArchitecture()
 		{
 			// by default, use an empty architecture (which is really just a modifier to the platform for some paths/names)
-			return ActiveArchitecture;
+			return HTML5Architecture;
 		}
 
 		// F5 should always try to run the Win32 version

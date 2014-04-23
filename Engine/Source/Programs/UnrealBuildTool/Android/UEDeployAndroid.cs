@@ -58,7 +58,7 @@ namespace UnrealBuildTool.Android
 		private static string GetSdkApiLevel()
 		{
 			// default to looking on disk for latest API level
-			string Target = Utils.GetStringEnvironmentVariable("ue.AndroidSdkApiTarget", "latest");
+			string Target = AndroidPlatform.AndroidSdkApiTarget;
 
 			// if we want to use whatever version the ndk uses, then use that
 			if (Target == "matchndk")

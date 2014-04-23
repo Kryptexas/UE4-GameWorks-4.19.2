@@ -25,6 +25,8 @@ namespace AutomationTool
 			LogUtils.InitLogging(CommandLine);
 			Log.WriteLine(TraceEventType.Information, "Running on {0}", HostPlatform.Current.GetType().Name);
 
+			XmlConfigLoader.Init();
+
 			// Log if we're running from the launcher
 			var ExecutingAssemblyLocation = CommandUtils.CombinePaths(Assembly.GetExecutingAssembly().Location);
 			if (String.Compare(ExecutingAssemblyLocation, CommandUtils.CombinePaths(InternalUtils.ExecutingAssemblyLocation), true) != 0)

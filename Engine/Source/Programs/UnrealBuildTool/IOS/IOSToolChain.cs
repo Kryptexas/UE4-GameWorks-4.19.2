@@ -30,27 +30,27 @@ namespace UnrealBuildTool
 		// If you are looking for where to change the remote compile server name, look in RemoteToolChain.cs
 
 		/** If this is set, then we don't do any post-compile steps except moving the executable into the proper spot on the Mac */
-		public static bool bUseDangerouslyFastMode = Utils.GetEnvironmentVariable("ue.IOSDangerouslyFastMode", false);
+		public static bool bUseDangerouslyFastMode = false;
 
 		/** Which version of the iOS SDK to target at build time */
-		public static string IOSSDKVersion = Utils.GetStringEnvironmentVariable("ue.IOSSDKVersion", "latest");
+		public static string IOSSDKVersion = "latest";
 
 		/** The architecture(s) to compile */
-		public static string NonShippingArchitectures = Utils.GetStringEnvironmentVariable("ue.iPhone_NonShippingArchitectures", "armv7");//,arm64");
-		public static string ShippingArchitectures = Utils.GetStringEnvironmentVariable("ue.iPhone_ShippingArchitectures", "armv7");//,arm64");
+		public static string NonShippingArchitectures = "armv7";
+		public static string ShippingArchitectures = "armv7";
 
 		// In case the SDK checking fails for some reason, use this version
 		private static string BackupVersion = "6.0";
 
 		/** Which version of the iOS to allow at run time */
-		public static string IOSVersion = Utils.GetStringEnvironmentVariable("ue.MinIOSVersion", "6.0");
+		public static string IOSVersion = "6.0";
 
 		/** Which developer directory to root from */
-		private static string DeveloperDir = Utils.GetStringEnvironmentVariable("ue.XcodeDeveloperDir", "/Applications/Xcode.app/Contents/Developer/");
+		public static string XcodeDeveloperDir = "/Applications/Xcode.app/Contents/Developer/";
 
 		/** Location of the SDKs */
-		private static string BaseSDKDir = DeveloperDir + "Platforms/iPhoneOS.platform/Developer/SDKs";
-		private static string BaseSDKDirSim = DeveloperDir + "Platforms/iPhoneSimulator.platform/Developer/SDKs";
+		private static string BaseSDKDir;
+		private static string BaseSDKDirSim;
 
 		/** Which compiler frontend to use */
 		private static string IOSCompiler = "clang++";
@@ -60,6 +60,18 @@ namespace UnrealBuildTool
 
 		/** Which library archiver to use */
 		private static string IOSArchiver = "libtool";
+
+		/// <summary>
+		/// Function to call to reset default data.
+		/// </summary>
+		public static void Reset()
+		{
+			XmlConfigLoader.Load(typeof(IOSToolChain));
+
+			/** Location of the SDKs */
+			BaseSDKDir = XcodeDeveloperDir + "Platforms/iPhoneOS.platform/Developer/SDKs";
+			BaseSDKDirSim = XcodeDeveloperDir + "Platforms/iPhoneSimulator.platform/Developer/SDKs";
+		}
 
 		/** Hunt down the latest IOS sdk if desired */
 		public override void SetUpGlobalEnvironment()
@@ -274,12 +286,12 @@ namespace UnrealBuildTool
 			if (LinkEnvironment.Config.TargetArchitecture == "-simulator")
 			{
 				Result += " -arch i386";
-				Result += " -isysroot " + DeveloperDir + "Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator" + IOSSDKVersion + ".sdk";
+				Result += " -isysroot " + XcodeDeveloperDir + "Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator" + IOSSDKVersion + ".sdk";
 			}
 			else
 			{
 				Result += Result += GetArchitectureArgument(LinkEnvironment.Config.TargetConfiguration, LinkEnvironment.Config.TargetArchitecture);
-				Result += " -isysroot " + DeveloperDir + "Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS" + IOSSDKVersion + ".sdk";
+				Result += " -isysroot " + XcodeDeveloperDir + "Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS" + IOSSDKVersion + ".sdk";
 			}
 			Result += " -dead_strip";
 			Result += " -miphoneos-version-min=" + IOSVersion;
@@ -460,7 +472,7 @@ namespace UnrealBuildTool
 				// Add the source file path to the command-line.
 				FileArguments += string.Format(" \"{0}\"", ConvertPath(SourceFile.AbsolutePath), false);
 
-				string CompilerPath = DeveloperDir + "Toolchains/XcodeDefault.xctoolchain/usr/bin/" + IOSCompiler;
+				string CompilerPath = XcodeDeveloperDir + "Toolchains/XcodeDefault.xctoolchain/usr/bin/" + IOSCompiler;
 				if (!Utils.IsRunningOnMono && ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
 				{
 					CompileAction.ActionHandler = new Action.BlockingActionHandler(RPCUtilHelper.RPCActionHandler);
@@ -482,7 +494,7 @@ namespace UnrealBuildTool
 
 		public override FileItem LinkFiles(LinkEnvironment LinkEnvironment, bool bBuildImportLibraryOnly)
 		{
-			string LinkerPath = DeveloperDir + "Toolchains/XcodeDefault.xctoolchain/usr/bin/" + 
+			string LinkerPath = XcodeDeveloperDir + "Toolchains/XcodeDefault.xctoolchain/usr/bin/" + 
 				(LinkEnvironment.Config.bIsBuildingLibrary ? IOSArchiver : IOSLinker);
 
 			// Create an action that invokes the linker.
@@ -631,7 +643,7 @@ namespace UnrealBuildTool
 
 			// note that the source and dest are switched from a copy command
 			GenDebugAction.CommandArguments = string.Format("-c '{0}/usr/bin/dsymutil {1} -o {2}; cd {2}/..; zip -r -y -1 {3}.app.dSYM.zip {3}.app.dSYM'",
-				DeveloperDir,
+				XcodeDeveloperDir,
 				Executable.AbsolutePath,
 				FullDestPathRoot,
 				Path.GetFileName(Executable.AbsolutePath));
