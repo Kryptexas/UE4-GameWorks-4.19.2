@@ -1058,24 +1058,29 @@ void UWorld::UpdateCullDistanceVolumes()
 	{
 		SCOPE_SECONDS_COUNTER(Duration);
 
+		TArray<ACullDistanceVolume*> CullDistanceVolumes;
+
 		// Establish base line of LD specified cull distances.
 		for( FActorIterator It(this); It; ++It )
 		{
-			auto PrimitiveComponent = It->FindComponentByClass<UPrimitiveComponent>();
-			if (PrimitiveComponent)
+			TArray<UPrimitiveComponent*> PrimitiveComponents;
+			It->GetComponents(PrimitiveComponents);
+			for (UPrimitiveComponent* PrimitiveComponent : PrimitiveComponents)
 			{
 				CompToNewMaxDrawMap.Add(PrimitiveComponent, PrimitiveComponent->LDMaxDrawDistance);
+			}
+
+			ACullDistanceVolume* CullDistanceVolume = Cast<ACullDistanceVolume>(*It);
+			if (CullDistanceVolume)
+			{
+				CullDistanceVolumes.Add(CullDistanceVolume);
 			}
 		}
 
 		// Iterate over all cull distance volumes and get new cull distances.
-		for( FActorIterator It(this); It; ++It )
+		for (ACullDistanceVolume* CullDistanceVolume : CullDistanceVolumes)
 		{
-			ACullDistanceVolume* CullDistanceVolume = Cast<ACullDistanceVolume>(*It);
-			if( CullDistanceVolume )
-			{
-				CullDistanceVolume->GetPrimitiveMaxDrawDistances(CompToNewMaxDrawMap);
-			}
+			CullDistanceVolume->GetPrimitiveMaxDrawDistances(CompToNewMaxDrawMap);
 		}
 
 		// Finally, go over all primitives, and see if they need to change.
