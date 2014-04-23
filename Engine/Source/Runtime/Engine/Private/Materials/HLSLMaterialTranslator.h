@@ -2164,7 +2164,7 @@ protected:
 		}
 		
 		MaterialCompilationOutput.bNeedsSceneTextures = true;
-		bNeedsSceneTexturePostProcessInputs = ((InSceneTextureId >= PPI_PostProcessInput0 && InSceneTextureId <= PPI_PostProcessInput6) || InSceneTextureId == PPI_SceneColor);
+		bNeedsSceneTexturePostProcessInputs = bNeedsSceneTexturePostProcessInputs || ((InSceneTextureId >= PPI_PostProcessInput0 && InSceneTextureId <= PPI_PostProcessInput6) || InSceneTextureId == PPI_SceneColor);
 
 		ESceneTextureId SceneTextureId = (ESceneTextureId)InSceneTextureId;
 
