@@ -2767,6 +2767,33 @@ bool FHeaderParser::GetVarType
 		VarProperty.ArrayType = EArrayType::Dynamic;
 		RequireSymbol( TEXT(">"), TEXT("'tarray'") );
 	}
+	else if( VarType.Matches(TEXT("TAttribute")) )
+	{
+		RequireSymbol( TEXT("<"), TEXT("'tattribute'") );
+
+		// GetVarType() clears the property flags of the array var, so use dummy 
+		// flags when getting the inner property
+		EObjectFlags InnerFlags;
+		uint64 OriginalVarTypeFlags = VarType.PropertyFlags;
+		VarType.PropertyFlags |= Flags;
+
+		GetVarType(AllClasses, Scope, VarProperty, InnerFlags, Disallow, TEXT("'tattribute'"), &VarType, EPropertyDeclarationStyle::None, VariableCategory );
+		if( VarProperty.Type == CPT_None )
+		{
+			FError::Throwf( TEXT("Unsupported attribute type.") );
+		}
+		else if( VarProperty.bIsAttribute == true )
+		{
+			FError::Throwf( TEXT("Attributes within attributes are not supported") );
+		}
+
+		VarProperty.bIsAttribute = true;
+		OriginalVarTypeFlags |= VarProperty.PropertyFlags & (CPF_ContainsInstancedReference | CPF_InstancedReference);
+		VarType.PropertyFlags = OriginalVarTypeFlags;
+	
+		RequireSymbol(TEXT(">"), TEXT("'tattribute'"));
+
+	}
 	else if ( VarType.Matches(TEXT("FString")) )
 	{
 		VarProperty = FPropertyBase(CPT_String);
@@ -3454,6 +3481,7 @@ UProperty* FHeaderParser::GetVarNameAndDim
 			Prev = *It;
 		}
 
+		UProperty* Attribute = NULL;
 		UProperty* Array    = NULL;
 		UObject*   NewScope = Scope;
 		int32      ArrayDim = 1; // 1 = not a static array, 2 = static array
@@ -3466,6 +3494,12 @@ UProperty* FHeaderParser::GetVarNameAndDim
 		else if (VarProperty.ArrayType == EArrayType::Static)
 		{
 			ArrayDim = 2;
+		}
+		else if( VarProperty.bIsAttribute == true )
+		{
+			Attribute = new(Scope,PropertyName,ObjectFlags)UAttributeProperty(FPostConstructInitializeProperties());	
+			NewScope = Attribute;
+			ObjectFlags = RF_Public;
 		}
 
 		if (VarProperty.Type == CPT_Byte)
@@ -3643,6 +3677,24 @@ UProperty* FHeaderParser::GetVarNameAndDim
 			}
 			NewProperty = Array;
 		}
+		else if( Attribute )
+		{
+			check(NewProperty);
+
+			UAttributeProperty* AttributeProp = CastChecked<UAttributeProperty>(Attribute);
+			AttributeProp->Inner = NewProperty;
+	
+			// Copy some of the property flags to the inner property.
+			NewProperty->PropertyFlags |= (VarProperty.PropertyFlags&CPF_PropagateToArrayInner);
+
+			if (NewProperty->PropertyFlags & (CPF_ContainsInstancedReference | CPF_InstancedReference))
+			{
+				VarProperty.PropertyFlags |= CPF_ContainsInstancedReference;
+				VarProperty.PropertyFlags &= ~CPF_InstancedReference; //this was propagated to the inner
+			}
+			NewProperty = Attribute;
+		}
+
 		NewProperty->ArrayDim = ArrayDim;
 		if (ArrayDim == 2)
 		{

@@ -11,6 +11,7 @@
 #include "SPropertyEditor.h"
 #include "SPropertyEditorNumeric.h"
 #include "SPropertyEditorArray.h"
+#include "SPropertyEditorAttribute.h"
 #include "SPropertyEditorCombo.h"
 #include "SPropertyEditorEditInline.h"
 #include "SPropertyEditorText.h"
@@ -143,6 +144,14 @@ TSharedRef<SWidget> SPropertyValueWidget::ConstructPropertyEditorWidget( TShared
 				.Font( FontStyle );
 
 			ArrayWidget->GetDesiredWidth( MinDesiredWidth, MaxDesiredWidth );
+		}
+		else if( SPropertyEditorAttribute::Supports(PropertyEditorRef) )
+		{
+			TSharedRef<SPropertyEditorAttribute> AttributeWidget =
+				SAssignNew(PropertyWidget, SPropertyEditorAttribute, PropertyEditorRef)
+				.Font(FontStyle);
+
+			AttributeWidget->GetDesiredWidth(MinDesiredWidth, MaxDesiredWidth);
 		}
 		else if ( SPropertyEditorAsset::Supports( PropertyEditorRef ) )
 		{

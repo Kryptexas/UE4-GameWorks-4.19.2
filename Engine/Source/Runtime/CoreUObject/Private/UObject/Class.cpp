@@ -958,6 +958,10 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 			{
 				UE_LOG(LogClass, Warning, TEXT("Array Inner Type mismatch in %s of %s - Previous (%s) Current(%s) for package:  %s"), *Tag.Name.ToString(), *GetName(), *Tag.InnerType.ToString(), *CastChecked<UArrayProperty>(Property)->Inner->GetID().ToString(), *Ar.GetArchiveName() );
 			}
+			else if (Tag.Type == NAME_AttributeProperty && Tag.InnerType != NAME_None && Tag.InnerType != CastChecked<UAttributeProperty>(Property)->Inner->GetID())
+			{
+				UE_LOG(LogClass, Warning, TEXT("Attribute Inner Type mismatch in %s of %s - Previous (%s) Current(%s) for package:  %s"), *Tag.Name.ToString(), *GetName(), *Tag.InnerType.ToString(), *CastChecked<UAttributeProperty>(Property)->Inner->GetID().ToString(), *Ar.GetArchiveName());
+			}
 			else if( Tag.Type==NAME_StructProperty && Tag.StructName!=CastChecked<UStructProperty>(Property)->Struct->GetFName() 
 				&& CastChecked<UStructProperty>(Property)->UseBinaryOrNativeSerialization(Ar) )
 			{

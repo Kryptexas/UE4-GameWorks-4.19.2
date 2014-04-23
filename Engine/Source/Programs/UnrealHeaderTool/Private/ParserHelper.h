@@ -125,6 +125,8 @@ public:
 
 	EPointerType::Type PointerType;
 
+	/** Is the property a TAttribute */
+	bool bIsAttribute;
 public:
 	/** @name Constructors */
 	//@{
@@ -140,6 +142,7 @@ public:
 	, RepNotifyName      (NAME_None)
 	, ReferenceType      (InRefType)
 	, PointerType        (EPointerType::None)
+	, bIsAttribute		 (false)
 	{
 	}
 
@@ -155,6 +158,7 @@ public:
 	, RepNotifyName      (NAME_None)
 	, ReferenceType      (InRefType)
 	, PointerType        (EPointerType::None)
+	, bIsAttribute		 (false)
 	{
 	}
 
@@ -170,6 +174,7 @@ public:
 	, RepNotifyName      (NAME_None)
 	, ReferenceType      (InRefType)
 	, PointerType        (EPointerType::None)
+	, bIsAttribute		 (false)
 	{
 		// if this is an interface class, we use the UInterfaceProperty class instead of UObjectProperty
 		if ( InClass->HasAnyClassFlags(CLASS_Interface) )
@@ -228,6 +233,7 @@ public:
 	, RepNotifyName      (NAME_None)
 	, ReferenceType      (InRefType)
 	, PointerType        (EPointerType::None)
+	, bIsAttribute		 (false)
 	{
 	}
 
@@ -235,6 +241,7 @@ public:
 	: PropertyExportFlags(PROPEXPORT_Public)
 	, DelegateName       (NAME_None)
 	, RepNotifyName      (NAME_None)
+	, bIsAttribute		 (false)
 	{
 		checkSlow(Property);
 
@@ -251,6 +258,12 @@ public:
 			PropagateFlags = Property->PropertyFlags & CPF_ParmFlags;
 			Property = CastChecked<UArrayProperty>(Property)->Inner;
 			ClassOfProperty = Property->GetClass();
+		}
+		else if( ClassOfProperty == UAttributeProperty::StaticClass() )
+		{
+			Property = CastChecked<UAttributeProperty>(Property)->Inner;
+			ClassOfProperty = Property->GetClass();
+			bIsAttribute = true;
 		}
 
 		if( ClassOfProperty==UByteProperty::StaticClass() )

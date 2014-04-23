@@ -96,7 +96,8 @@ void FItemPropertyNode::InitExpansionFlags (void)
 	if(	Cast<UStructProperty>(MyProperty)
 		||	( Cast<UArrayProperty>(MyProperty) && GetReadAddress(false,Addresses) )
 		||  HasNodeFlags(EPropertyNodeFlags::EditInline)
-		||	( Property->ArrayDim > 1 && ArrayIndex == -1 ) )
+		||	( Property->ArrayDim > 1 && ArrayIndex == -1 ) 
+		|| Cast<UAttributeProperty>(MyProperty) )
 	{
 		SetNodeFlags(EPropertyNodeFlags::CanBeExpanded, true);
 	}
@@ -111,6 +112,7 @@ void FItemPropertyNode::InitChildNodes()
 	UStructProperty* StructProperty = Cast<UStructProperty>(Property);
 	UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Property);
 	UObjectPropertyBase* ObjectProperty = Cast<UObjectPropertyBase>(Property);
+	UAttributeProperty* AttributeProperty = Cast<UAttributeProperty>(Property);
 
 	bool bShouldShowHiddenProperties = !!HasNodeFlags(EPropertyNodeFlags::ShouldShowHiddenProperties);
 
@@ -267,6 +269,21 @@ void FItemPropertyNode::InitChildNodes()
 			}
 		}
 	}
+	else if( AttributeProperty )
+	{
+		TSharedPtr<FItemPropertyNode> NewItemNode(new FItemPropertyNode);
+
+		FPropertyNodeInitParams InitParams;
+		InitParams.ParentNode = SharedThis(this);
+		InitParams.Property = AttributeProperty->Inner;
+		InitParams.ArrayOffset = 0;
+		InitParams.ArrayIndex = INDEX_NONE;
+		InitParams.bAllowChildren = true;
+		InitParams.bForceHiddenPropertyVisibility = bShouldShowHiddenProperties;
+
+		NewItemNode->InitNode(InitParams);
+		AddChildNode(NewItemNode);
+	}
 
 	//needs to be after all the children are created
 	if ( FPropertySettings::Get().ExpandDistributions() == true)
@@ -300,7 +317,11 @@ FString FItemPropertyNode::GetDisplayName() const
 	else 
 	{
 		const UProperty* PropertyPtr = GetProperty();
-		if( GetArrayIndex()==-1 && PropertyPtr != NULL  )
+		if (GetParentNode() && GetParentNode()->GetProperty() && GetParentNode()->GetProperty()->IsA<UAttributeProperty>())
+		{
+			FinalDisplayName = NSLOCTEXT("PropertyEditor", "AttributeValue", "Value").ToString();
+		}
+		else if( GetArrayIndex()==-1 && PropertyPtr != NULL  )
 		{
 			// This item is not a member of an array, get a traditional display name
 			if ( FPropertySettings::Get().ShowFriendlyPropertyNames() )

@@ -713,6 +713,10 @@ FString FNativeClassHeaderGenerator::PropertyNew(FString& Meta, UProperty* Prop,
 		UFunction *TargetFunction = MulticastDelegateProperty->SignatureFunction;
 		ExtraArgs = FString::Printf(TEXT(", %s"), *GetSingletonName(TargetFunction));
 	}
+	else if( UAttributeProperty* AttributeProperty = Cast<UAttributeProperty>(Prop) )
+	{
+		ExtraArgs = FString::Printf(TEXT(", sizeof(TAttribute<%s>)"), *AttributeProperty->Inner->GetCPPType() );
+	}
 
 	FString Constructor = FString::Printf(TEXT("new(%s, TEXT(\"%s\"), RF_Public|RF_Transient|RF_Native) U%s(%s, 0x%016llx%s);"),
 		*OuterString,
@@ -820,11 +824,18 @@ void FNativeClassHeaderGenerator::OutputProperty(FString& Meta, FOutputDevice& O
 		OutputDevice.Log(*PropertyNew(Meta, Prop, OuterString, PropMacroOuterClass, TEXT(""), Spaces, *SourceStruct));
 	}
 	UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Prop);
+	UAttributeProperty* AttributeProperty = Cast<UAttributeProperty>(Prop);
 	if (ArrayProperty)
 	{
 		FString InnerOuterString = FString::Printf(TEXT("NewProp_%s"), *Prop->GetName());
 		FString PropMacroOuterArray = TEXT("FPostConstructInitializeProperties(), EC_CppProperty, 0");
 		OutputDevice.Log(*PropertyNew(Meta, ArrayProperty->Inner, InnerOuterString, PropMacroOuterArray, TEXT("_Inner"), Spaces));
+	}
+	else if(AttributeProperty)
+	{
+		FString InnerOuterString = FString::Printf(TEXT("NewProp_%s"), *Prop->GetName());
+		FString PropMacroOuterAttrib = TEXT("FPostConstructInitializeProperties(), EC_CppProperty, 0");
+		OutputDevice.Log(*PropertyNew(Meta, AttributeProperty->Inner, InnerOuterString, PropMacroOuterAttrib, TEXT("_Inner"), Spaces));
 	}
 }
 
@@ -878,10 +889,16 @@ static void FindNoExportStructs(TArray<UScriptStruct*>& Structs, UStruct* Start)
 		{
 			UStructProperty* InnerStruct = Cast<UStructProperty>(*ItInner);
 			UArrayProperty* InnerArray = Cast<UArrayProperty>(*ItInner);
+			UAttributeProperty* InnerAttribute = Cast<UAttributeProperty>(*ItInner);
 			if (InnerArray)
 			{
 				InnerStruct = Cast<UStructProperty>(InnerArray->Inner);
 			}
+			else if(InnerAttribute)
+			{
+				InnerStruct = Cast<UStructProperty>(InnerAttribute->Inner);
+			}
+
 			if (InnerStruct)
 			{
 				FindNoExportStructs(Structs, InnerStruct->Struct);
@@ -2616,16 +2633,19 @@ void ExportProtoDeclaration(FOutputDevice& Out, const FString& MessageName, TFie
 		{
 			bool bIsRepeated = false;
 			UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Property);
-			if (ArrayProperty != NULL)
+			UAttributeProperty* AttributeProperty = Cast<UAttributeProperty>(Property);
+			if (ArrayProperty != NULL || AttributeProperty != NULL)
 			{
-				UClass* InnerPropClass = ArrayProperty->Inner->GetClass();
+				UProperty* Inner = ArrayProperty ? ArrayProperty->Inner : AttributeProperty->Inner;
+
+				UClass* InnerPropClass = Inner->GetClass();
 				if (InnerPropClass != UInterfaceProperty::StaticClass() && InnerPropClass != UObjectProperty::StaticClass())
 				{
 					FString InnerExtendedTypeText;
-					FString InnerTypeText = ArrayProperty->Inner->GetCPPType(&InnerExtendedTypeText, CPPF_None);
+					FString InnerTypeText = Inner->GetCPPType(&InnerExtendedTypeText, CPPF_None);
 					TypeText = InnerTypeText;
 					ExtendedTypeText = InnerExtendedTypeText;
-					Property = ArrayProperty->Inner;
+					Property = Inner;
 					bIsRepeated = true;
 				}
 				else
@@ -3062,7 +3082,8 @@ void FNativeClassHeaderGenerator::ExportEventParms( const TArray<UFunction*>& In
 				Cast<UStrProperty>(Prop) ||
 				Cast<UTextProperty>(Prop) ||
 				Cast<UArrayProperty>(Prop) ||
-				Cast<UInterfaceProperty>(Prop)
+				Cast<UInterfaceProperty>(Prop) ||
+				Cast<UAttributeProperty>(Prop)
 				)
 			{
 				bNeedsOutput = false;
@@ -3134,7 +3155,8 @@ FString FNativeClassHeaderGenerator::GetNullParameterValue( UProperty* Prop, boo
 	}
 	else if ( PropClass == UArrayProperty::StaticClass()
 		||    PropClass == UDelegateProperty::StaticClass()
-		||    PropClass == UMulticastDelegateProperty::StaticClass() )
+		||    PropClass == UMulticastDelegateProperty::StaticClass()
+		||    PropClass == UAttributeProperty::StaticClass() )
 	{
 		FString Type, ExtendedType;
 		Type = Prop->GetCPPType(&ExtendedType,CPPF_OptionalValue);
@@ -3663,9 +3685,14 @@ void FNativeClassHeaderGenerator::ApplyAlternatePropertyExportText( UProperty* P
 	if ( ObjectProp == NULL )
 	{
 		UArrayProperty* ArrayProp = Cast<UArrayProperty>(Prop);
+		UAttributeProperty* AttributeProp = Cast<UAttributeProperty>(Prop);
 		if ( ArrayProp != NULL )
 		{
 			ObjectProp = Cast<UObjectProperty>(ArrayProp->Inner);
+		}
+		else if( AttributeProp != NULL )
+		{
+			ObjectProp = Cast<UObjectProperty>(AttributeProp->Inner);
 		}
 	}
 	if ( ObjectProp != NULL && PropData && PropData->Token.ExportInfo.Len() > 0)
@@ -3678,9 +3705,14 @@ void FNativeClassHeaderGenerator::ApplyAlternatePropertyExportText( UProperty* P
 	if ( StructProp == NULL )
 	{
 		UArrayProperty* ArrayProp = Cast<UArrayProperty>(Prop);
+		UAttributeProperty* AttributeProp = Cast<UAttributeProperty>(Prop);
 		if ( ArrayProp != NULL )
 		{
 			StructProp = Cast<UStructProperty>(ArrayProp->Inner);
+		}
+		else if (AttributeProp != NULL)
+		{
+			StructProp = Cast<UStructProperty>(AttributeProp->Inner);
 		}
 	}
 
