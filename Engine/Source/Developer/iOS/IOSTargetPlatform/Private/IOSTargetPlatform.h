@@ -42,6 +42,8 @@ public:
 
 	// Begin ITargetPlatform interface
 
+	virtual void EnableDeviceCheck(bool OnOff) OVERRIDE;
+
 	virtual void GetAllDevices( TArray<ITargetDevicePtr>& OutDevices ) const OVERRIDE;
 
 	virtual ECompressionFlags GetBaseCompressionMethod() const OVERRIDE
