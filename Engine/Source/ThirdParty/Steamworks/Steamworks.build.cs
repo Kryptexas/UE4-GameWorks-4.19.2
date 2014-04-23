@@ -31,6 +31,7 @@ public class Steamworks : ModuleRules
 		{
             LibraryPath += "osx32/libsteam_api.dylib";
 			PublicDelayLoadDLLs.Add(LibraryPath);
+			PublicAdditionalShadowFiles.Add(LibraryPath);
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
