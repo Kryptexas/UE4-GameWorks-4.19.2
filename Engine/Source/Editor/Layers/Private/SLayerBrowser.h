@@ -172,7 +172,7 @@ public:
 		.BorderImage( FEditorStyle::GetBrush( "NoBrush" ) )
 		.Content()
 		[
-			SceneOutlinerModule.CreateSceneOutliner( InitOptions, FOnContextMenuOpening(), FOnActorPicked() )
+			SceneOutlinerModule.CreateSceneOutliner( InitOptions, FOnActorPicked() )
 		];
 
 

@@ -711,7 +711,6 @@ public:
 	static void ShowLightingStaticMeshInfo();
 	static void AttachToActor(AActor* ParentActorPtr );
 	static void AttachToSocketSelection(FName SocketName, AActor* ParentActorPtr);
-	static void SetActorFolder(FName Folder);
 	static void SetMaterialQualityLevel( EMaterialQualityLevel::Type NewQualityLevel );
 	static bool IsMaterialQualityLevelChecked( EMaterialQualityLevel::Type TestQualityLevel );
 	

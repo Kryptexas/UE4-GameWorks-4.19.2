@@ -104,6 +104,13 @@ public:
 
 	/** True to only show folders in this outliner */
 	bool bOnlyShowFolders;
+
+	/** Override default context menu handling */
+	FOnContextMenuOpening ContextMenuOverride;
+
+	/** Extend default context menu handling */
+	TSharedPtr<FExtender> DefaultMenuExtender;
+
 public:
 
 	/** Constructor */

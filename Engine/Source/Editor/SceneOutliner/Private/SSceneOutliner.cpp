@@ -67,10 +67,28 @@ namespace SceneOutliner
 		};
 	}
 
+	void PerformActionOnItem(TSharedPtr<SOutlinerTreeView> OutlinerTreeView, TSharedRef<TOutlinerTreeItem> NewItem, uint8 ActionMask)
+	{
+		if (ActionMask & NewItemActuator::Select)
+		{
+			OutlinerTreeView->ClearSelection();
+			OutlinerTreeView->SetItemSelection(NewItem, true);
+		}
+
+		if (ActionMask & NewItemActuator::Rename)
+		{
+			NewItem->Flags.RenameWhenInView = true;
+		}
+
+		if (ActionMask & (NewItemActuator::ScrollIntoView | NewItemActuator::Rename))
+		{
+			OutlinerTreeView->RequestScrollIntoView(NewItem);
+		}
+	}
+
 	void SSceneOutliner::Construct( const FArguments& InArgs, const FSceneOutlinerInitializationOptions& InInitOptions )
 	{
 		InitOptions = InInitOptions;
-		OnContextMenuOpening = InArgs._MakeContextMenuWidgetDelegate;
 
 		OnItemPicked = InArgs._OnItemPickedDelegate;
 
@@ -727,6 +745,8 @@ namespace SceneOutliner
 			RequestSort();
 		}
 
+		NewItemActions.Empty();
+
 		// We're fully refreshed now.
 		bNeedsRefresh = false;
 	}
@@ -955,10 +975,7 @@ namespace SceneOutliner
 			}
 		}
 
-		if (InActorItem->Flags.RenameWhenInView)
-		{
-			OutlinerTreeView->RequestScrollIntoView(InActorItem);
-		}
+		NewItemActions.ItemHasBeenCreated(OutlinerTreeView.ToSharedRef(), InActorItem);
 
 		return true;
 	}
@@ -1001,10 +1018,7 @@ namespace SceneOutliner
 		// Folders are always expanded by default
 		OutlinerTreeView->SetItemExpansion(InFolderItem, true);
 
-		if (InFolderItem->Flags.RenameWhenInView)
-		{
-			OutlinerTreeView->RequestScrollIntoView(InFolderItem);
-		}
+		NewItemActions.ItemHasBeenCreated(OutlinerTreeView.ToSharedRef(), InFolderItem);
 
 		return true;
 	}
@@ -1418,7 +1432,21 @@ namespace SceneOutliner
 			auto FolderTreeItem = StaticCastSharedPtr<TOutlinerFolderTreeItem>(TreeItem);
 			if (!InLabel.EqualTo(FText::FromName(FolderTreeItem->LeafName)))
 			{
-				FolderTreeItem->Rename(FName(*InLabel.ToString()));
+				// Rename the item
+				FName NewPath = FolderTreeItem->GetParentPath();
+				if (NewPath.IsNone())
+				{
+					NewPath = FName(*InLabel.ToString());
+				}
+				else
+				{
+					NewPath = FName(*(NewPath.ToString() / InLabel.ToString()));
+				}
+
+				if (FActorFolders::Get().RenameFolderInWorld(*RepresentingWorld, FolderTreeItem->Path, NewPath))
+				{
+					NewItemActions.WhenCreated(NewPath, NewItemActuator::Select | NewItemActuator::ScrollIntoView);
+				}
 			}
 		}
 		
@@ -1493,27 +1521,24 @@ namespace SceneOutliner
 		TArray<AActor*> SelectedActors;
 		GEditor->GetSelectedActors()->GetSelectedObjects<AActor>( SelectedActors );
 
-		if (SelectedActors.Num())
+		if (SelectedActors.Num() && InitOptions.ContextMenuOverride.IsBound())
 		{
-			if (OnContextMenuOpening.IsBound())
-			{
-				return OnContextMenuOpening.Execute();
-			}
+			return InitOptions.ContextMenuOverride.Execute();
 		}
-		else if (InitOptions.Mode == ESceneOutlinerMode::ActorBrowsing)
+
+		if (InitOptions.Mode == ESceneOutlinerMode::ActorBrowsing)
 		{
-			return BuildFolderContextMenu();
+			return BuildDefaultContextMenu();
 		}
 
 		return TSharedPtr<SWidget>();
 	}
 
-	/** Build a context menu for right-clicking a folder */
-	TSharedPtr<SWidget> SSceneOutliner::BuildFolderContextMenu()  const
+	TSharedPtr<SWidget> SSceneOutliner::BuildDefaultContextMenu()  const
 	{
 		// Build up the menu
 		const bool bCloseAfterSelection = true;
-		FMenuBuilder MenuBuilder(bCloseAfterSelection, TSharedPtr<FUICommandList>());
+		FMenuBuilder MenuBuilder(bCloseAfterSelection, TSharedPtr<FUICommandList>(), InitOptions.DefaultMenuExtender);
 
 		TSharedPtr<TOutlinerFolderTreeItem> ParentFolder;
 		auto SelectedItems = OutlinerTreeView->GetSelectedItems();
@@ -1522,23 +1547,32 @@ namespace SceneOutliner
 			ParentFolder = StaticCastSharedPtr<TOutlinerFolderTreeItem>(SelectedItems[0]);
 		}
 
-		MenuBuilder.BeginSection(FName(), LOCTEXT("FolderClassName", "Folder"));
+		const FSlateIcon NewFolderIcon(FEditorStyle::GetStyleSetName(), "SceneOutliner.NewFolderIcon");
+		MenuBuilder.BeginSection("FolderSection", LOCTEXT("ThisFolderSection", "This Folder"));
 		{
-			MenuBuilder.AddMenuEntry(LOCTEXT("CreateFolder", "Create Folder"), FText(), FSlateIcon(FEditorStyle::GetStyleSetName(), "SceneOutliner.NewFolderIcon"),
-				FUIAction(FExecuteAction::CreateSP(this, &SSceneOutliner::CreateFolder, ParentFolder.IsValid() ? ParentFolder->Path : FName())));
-
 			if (ParentFolder.IsValid())
 			{
+				MenuBuilder.AddMenuEntry(LOCTEXT("CreateSubFolder", "Create Sub Folder"), FText(), NewFolderIcon, FUIAction(FExecuteAction::CreateSP(this, &SSceneOutliner::CreateSubFolder, ParentFolder->Path)));
 				MenuBuilder.AddMenuEntry(LOCTEXT("RenameFolder", "Rename Folder"), FText(), FSlateIcon(), FUIAction(FExecuteAction::CreateSP(this, &SSceneOutliner::RenameFolder, ParentFolder.ToSharedRef())));
 				MenuBuilder.AddMenuEntry(LOCTEXT("DeleteFolder", "Delete Folder"), FText(), FSlateIcon(), FUIAction(FExecuteAction::CreateSP(this, &SSceneOutliner::DeleteFolder, ParentFolder.ToSharedRef())));
 			}
 		}
 		MenuBuilder.EndSection();
 
-		MenuBuilder.AddSubMenu( 
-			LOCTEXT("MoveActorsToFolder", "Move To"),
-			LOCTEXT("MoveActorsToFolder_Tooltip", "Move selection to a folder"),
-			FNewMenuDelegate::CreateSP(this,  &SSceneOutliner::FillFoldersSubMenu));
+		if (SelectedItems.Num() != 0)
+		{
+			MenuBuilder.BeginSection("SelectionSection", LOCTEXT("OutlinerSelection", "Current Outliner Selection"));
+			{
+				MenuBuilder.AddSubMenu(
+					LOCTEXT("MoveActorsToFolder", "Move To Folder"),
+					LOCTEXT("MoveActorsToFolder_Tooltip", "Move selection to a folder"),
+					FNewMenuDelegate::CreateSP(this,  &SSceneOutliner::FillFoldersSubMenu));
+			}
+		}
+		else
+		{
+			MenuBuilder.AddMenuEntry(LOCTEXT("CreateFolder", "Create Folder"), FText(), NewFolderIcon, FUIAction(FExecuteAction::CreateSP(this, &SSceneOutliner::CreateFolder)));
+		}
 
 		return MenuBuilder.MakeWidget();
 	}
@@ -1563,10 +1597,13 @@ namespace SceneOutliner
 				.OnItemPickedDelegate(FOnSceneOutlinerItemPicked::CreateSP(this, &SSceneOutliner::MoveSelectionTo))
 			];
 
+		MenuBuilder.AddMenuEntry(LOCTEXT( "CreateNew", "Create New" ), LOCTEXT( "MoveToRoot_ToolTip", "Move to a new folder" ),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "SceneOutliner.NewFolderIcon"), FExecuteAction::CreateSP(this, &SSceneOutliner::CreateFolder));
+
 		if (OutlinerTreeView->ValidateMoveSelectionTo(FName()))
 		{
 			MenuBuilder.AddMenuEntry(LOCTEXT( "MoveToRoot", "Move To Root" ), LOCTEXT( "MoveToRoot_ToolTip", "Move to the root of the scene outliner" ),
-				FSlateIcon(FEditorStyle::GetStyleSetName(), "SceneOutliner.MoveToRoot"), FExecuteAction::CreateSP(OutlinerTreeView.Get(), &SOutlinerTreeView::MoveSelectionTo, FName()));
+				FSlateIcon(FEditorStyle::GetStyleSetName(), "SceneOutliner.MoveToRoot"), FExecuteAction::CreateSP(this, &SSceneOutliner::MoveSelectionTo, FName()));
 		}
 
 		// Existing folders - it would be good to filter out the existing selected folders from this mini-outliner, but that's currently not possible
@@ -1575,11 +1612,71 @@ namespace SceneOutliner
 		MenuBuilder.EndSection();
 	}
 
+	FName SSceneOutliner::MoveFolderTo(TSharedRef<TOutlinerFolderTreeItem> Folder, FName NewParent)
+	{
+		FName NewPath;
+		if (NewParent.IsNone())
+		{
+			NewPath = Folder->LeafName;
+		}
+		else
+		{
+			NewPath = FName(*(NewParent.ToString() / Folder->LeafName.ToString()));
+		}
+
+		if (FActorFolders::Get().RenameFolderInWorld(*RepresentingWorld, Folder->Path, NewPath))
+		{
+			return NewPath;
+		}
+
+		return FName();
+	}
+
 	void SSceneOutliner::MoveSelectionTo(TSharedRef<TOutlinerTreeItem> NewParent)
 	{
 		if (NewParent->Type == TOutlinerTreeItem::Folder)
 		{
-			OutlinerTreeView->MoveSelectionTo(StaticCastSharedRef<TOutlinerFolderTreeItem>(NewParent)->Path);
+			MoveSelectionTo(StaticCastSharedRef<TOutlinerFolderTreeItem>(NewParent)->Path);
+		}
+	}
+
+	void SSceneOutliner::MoveSelectionTo(FName NewParent)
+	{
+		FSlateApplication::Get().DismissAllMenus();
+
+		if (!OutlinerTreeView->ValidateMoveSelectionTo(NewParent))
+		{
+			return;
+		}
+
+		auto SelectedItems = GetSelectedItems();
+
+		const FScopedTransaction Transaction( LOCTEXT("MoveOutlinerItems", "Move Scene Outliner Items") );
+		for (const auto& Item : SelectedItems)
+		{
+			if (Item->Type == TOutlinerTreeItem::Folder)
+			{
+				auto Folder = StaticCastSharedPtr<TOutlinerFolderTreeItem>(Item).ToSharedRef();
+				auto NewPath = MoveFolderTo(Folder, NewParent);
+				if (!NewPath.IsNone() && SelectedItems.Num() == 1)
+				{
+					NewItemActions.WhenCreated(NewPath, NewItemActuator::Select | NewItemActuator::ScrollIntoView);
+				}
+			}
+			else
+			{
+				auto ActorItem = StaticCastSharedPtr<TOutlinerActorTreeItem>(Item);
+				auto* Actor = ActorItem->Actor.Get();
+				if (Actor)
+				{
+					Actor->SetFolderPath(NewParent);
+
+					if (SelectedItems.Num() == 1)
+					{
+						NewItemActions.WhenCreated(ActorItem.ToSharedRef(), NewItemActuator::Select | NewItemActuator::ScrollIntoView);
+					}
+				}
+			}
 		}
 	}
 
@@ -1613,21 +1710,54 @@ namespace SceneOutliner
 			return FReply::Unhandled();
 		}
 
-		const FName NewFolderName = FActorFolders::Get().GetDefaultFolderNameForSelection(*RepresentingWorld);
-		FActorFolders::Get().CreateFolderContainingSelection(*RepresentingWorld, NewFolderName);
+		CreateFolder();
 
 		return FReply::Handled();
 	}
 
-	void SSceneOutliner::CreateFolder(FName ParentPath)
+	void SSceneOutliner::CreateFolder()
 	{
 		if (!RepresentingWorld)
 		{
 			return;
 		}
 
-		const FName NewFolderName = FActorFolders::Get().GetDefaultFolderName(*RepresentingWorld, ParentPath);
+		const FScopedTransaction Transaction(LOCTEXT("UndoAction_CreateFolder", "Create Folder"));
+
+		const FName NewFolderName = FActorFolders::Get().GetDefaultFolderNameForSelection(*RepresentingWorld);
+		FActorFolders::Get().CreateFolderContainingSelection(*RepresentingWorld, NewFolderName);
+
+		// Clear the current actor selection.
+		GEditor->SelectNone(false, true, true);
+
+		// Move any selected folders into the new folder name
+		for (auto& Item : GetSelectedItems())
+		{
+			if (Item->Type == TOutlinerTreeItem::Folder)
+			{
+				auto Folder = StaticCastSharedPtr<TOutlinerFolderTreeItem>(Item).ToSharedRef();
+				MoveFolderTo(Folder, NewFolderName);
+			}
+		}
+
+		// At this point the new folder will be in our newly added list, so select it and open a rename when it gets refreshed
+		NewItemActions.WhenCreated(NewFolderName, NewItemActuator::Select | NewItemActuator::Rename);
+	}
+	
+	void SSceneOutliner::CreateSubFolder(FName Parent)
+	{
+		if (!RepresentingWorld)
+		{
+			return;
+		}
+
+		const FScopedTransaction Transaction(LOCTEXT("UndoAction_CreateFolder", "Create Folder"));
+
+		const FName NewFolderName = FActorFolders::Get().GetDefaultFolderName(*RepresentingWorld, Parent);
 		FActorFolders::Get().CreateFolder(*RepresentingWorld, NewFolderName);
+
+		// At this point the new folder will be in our newly added list, so select it and open a rename when it gets refreshed
+		NewItemActions.WhenCreated(NewFolderName, NewItemActuator::Select | NewItemActuator::Rename);
 	}
 
 	void SSceneOutliner::OnBroadcastFolderCreate(const UWorld& InWorld, FName NewPath)
@@ -2692,7 +2822,69 @@ namespace SceneOutliner
 			CustomColumn->SortItems(RootTreeItems, SortMode);
 		}
 	}
+	
+	void NewItemActuator::Empty()
+	{
+		PendingFolderActions.Empty();
+		PendingActorActions.Empty();
+	}
 
+	void NewItemActuator::WhenCreated(FName FolderPath, uint8 InActionMask)
+	{
+		const FolderAction NewAction = { InActionMask, FolderPath };
+		PendingFolderActions.Add(NewAction);
+	}
+
+	void NewItemActuator::WhenCreated(FOutlinerTreeItemRef Item, uint8 InActionMask)
+	{
+		if (Item->Type == TOutlinerTreeItem::Actor)
+		{
+			const ActorAction NewAction = { InActionMask, StaticCastSharedRef<TOutlinerActorTreeItem>(Item) };
+			PendingActorActions.Add(NewAction);
+		}
+		else
+		{
+			WhenCreated(StaticCastSharedRef<TOutlinerFolderTreeItem>(Item)->Path, InActionMask);
+		}
+	}
+
+	void NewItemActuator::ItemHasBeenCreated(TSharedRef<SOutlinerTreeView> OutlinerTreeView, TSharedRef<TOutlinerActorTreeItem> NewItem)
+	{
+		for (int32 Index = 0; Index < PendingActorActions.Num(); )
+		{
+			auto PinnedPendingItem = PendingActorActions[Index].ActorItem.Pin();
+			if (!PinnedPendingItem.IsValid())
+			{
+				PendingActorActions.RemoveAt(Index);
+			}
+			else if(PinnedPendingItem == NewItem)
+			{
+				PerformActionOnItem(OutlinerTreeView, NewItem, PendingActorActions[Index].Actions);
+
+				PendingActorActions.RemoveAt(Index);
+			}
+			else
+			{
+				++Index;
+			}
+		}
+	}
+
+	void NewItemActuator::ItemHasBeenCreated(TSharedRef<SOutlinerTreeView> OutlinerTreeView, TSharedRef<TOutlinerFolderTreeItem> NewItem)
+	{
+		for (int32 Index = 0; Index < PendingFolderActions.Num(); )
+		{
+			if (PendingFolderActions[Index].FolderPath == NewItem->Path)
+			{
+				PerformActionOnItem(OutlinerTreeView, NewItem, PendingFolderActions[Index].Actions);
+				PendingFolderActions.RemoveAt(Index);
+			}
+			else
+			{
+				++Index;
+			}
+		}
+	}
 
 }	// namespace SceneOutliner
 

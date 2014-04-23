@@ -68,7 +68,7 @@ TSharedRef<SWidget> SPropertySceneOutliner::OnGenerateSceneOutliner()
 			SNew( SBorder )
 			.BorderImage( FEditorStyle::GetBrush("Menu.Background") )
 			[
-				SceneOutlinerModule.CreateSceneOutliner(InitOptions, FOnContextMenuOpening(), FOnActorPicked::CreateSP(this, &SPropertySceneOutliner::OnActorSelectedFromOutliner))
+				SceneOutlinerModule.CreateSceneOutliner(InitOptions, FOnActorPicked::CreateSP(this, &SPropertySceneOutliner::OnActorSelectedFromOutliner))
 			]
 		];
 

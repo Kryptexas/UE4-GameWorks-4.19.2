@@ -31,16 +31,15 @@ namespace SceneOutliner
 	}
 }
 
-TSharedRef< ISceneOutliner > FSceneOutlinerModule::CreateSceneOutliner( const FSceneOutlinerInitializationOptions& InitOptions, const FOnContextMenuOpening& MakeContextMenuWidgetDelegate, const FOnActorPicked& OnActorPickedDelegate ) const
+TSharedRef< ISceneOutliner > FSceneOutlinerModule::CreateSceneOutliner( const FSceneOutlinerInitializationOptions& InitOptions, const FOnActorPicked& OnActorPickedDelegate ) const
 {
 	auto OnItemPicked = FOnSceneOutlinerItemPicked::CreateStatic( &SceneOutliner::OnSceneOutlinerItemClicked, OnActorPickedDelegate );
-	return CreateSceneOutliner(InitOptions, MakeContextMenuWidgetDelegate, OnItemPicked);
+	return CreateSceneOutliner(InitOptions, OnItemPicked);
 }
 
-TSharedRef< ISceneOutliner > FSceneOutlinerModule::CreateSceneOutliner( const FSceneOutlinerInitializationOptions& InitOptions, const FOnContextMenuOpening& MakeContextMenuWidgetDelegate, const FOnSceneOutlinerItemPicked& OnItemPickedDelegate ) const
+TSharedRef< ISceneOutliner > FSceneOutlinerModule::CreateSceneOutliner( const FSceneOutlinerInitializationOptions& InitOptions, const FOnSceneOutlinerItemPicked& OnItemPickedDelegate ) const
 {
 	return SNew( SceneOutliner::SSceneOutliner, InitOptions )
 		.IsEnabled( FSlateApplication::Get().GetNormalExecutionAttribute() )
-		.MakeContextMenuWidgetDelegate( MakeContextMenuWidgetDelegate )
 		.OnItemPickedDelegate( OnItemPickedDelegate );
 }

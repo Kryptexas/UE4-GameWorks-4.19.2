@@ -55,43 +55,6 @@ namespace SceneOutliner
 		}
 	}
 
-	void TOutlinerFolderTreeItem::Rename(FName NewLabel)
-	{
-		FName NewPath = GetParentPath();
-		if (NewPath.IsNone())
-		{
-			NewPath = FName(*NewLabel.ToString());
-		}
-		else
-		{
-			NewPath = FName(*(NewPath.ToString() / NewLabel.ToString()));
-		}
-
-		if (NewPath != Path && !FActorFolders::PathIsChildOf(NewPath.ToString(), Path.ToString()))
-		{
-			const FScopedTransaction Transaction(LOCTEXT("UndoAction_RenameFolder", "Rename Folder"));
-			FActorFolders::Get().RenameFolderInWorld(*GWorld, Path, NewPath);
-		}
-	}
-
-	void TOutlinerFolderTreeItem::MoveTo(FName NewPath)
-	{
-		if (NewPath.IsNone())
-		{
-			NewPath = LeafName;
-		}
-		else
-		{
-			NewPath = FName(*(NewPath.ToString() / LeafName.ToString()));
-		}
-
-		if (NewPath != Path && !FActorFolders::PathIsChildOf(NewPath.ToString(), Path.ToString()))
-		{
-			const FScopedTransaction Transaction(LOCTEXT("UndoAction_MoveFolder", "Move Folder"));
-			FActorFolders::Get().RenameFolderInWorld(*GWorld, Path, NewPath);
-		}
-	}
-
 	TSharedRef<FDecoratedDragDropOp> CreateDragDropOperation(TArray<TSharedPtr<TOutlinerTreeItem>>& InTreeItems)
 	{
 		TArray<TWeakObjectPtr<AActor>> Actors;

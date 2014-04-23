@@ -84,7 +84,7 @@ void SPropertyMenuActorPicker::Construct( const FArguments& InArgs )
 				SNew( SBorder )
 				.BorderImage( FEditorStyle::GetBrush("Menu.Background") )
 				[
-					SceneOutlinerModule.CreateSceneOutliner(InitOptions, FOnContextMenuOpening(), FOnActorPicked::CreateSP(this, &SPropertyMenuActorPicker::OnActorSelected))
+					SceneOutlinerModule.CreateSceneOutliner(InitOptions, FOnActorPicked::CreateSP(this, &SPropertyMenuActorPicker::OnActorSelected))
 				]
 			];
 

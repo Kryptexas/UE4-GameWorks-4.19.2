@@ -603,6 +603,21 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 	{
 		FSceneOutlinerInitializationOptions InitOptions;
 		InitOptions.Mode = ESceneOutlinerMode::ActorBrowsing;
+		{
+			TWeakPtr<SLevelEditor> WeakLevelEditor = SharedThis(this);
+			InitOptions.DefaultMenuExtender = MakeShareable(new FExtender);
+			InitOptions.DefaultMenuExtender->AddMenuExtension(
+				"FolderSection", EExtensionHook::Before, GetLevelEditorActions(),
+				FMenuExtensionDelegate::CreateStatic([](FMenuBuilder& MenuBuilder, TWeakPtr<SLevelEditor> WeakLevelEditor){
+					// Only extend the menu if we have actors selected
+					if (GEditor->GetSelectedActors()->Num())
+					{
+						FLevelViewportContextMenu::FillMenu(MenuBuilder, WeakLevelEditor, TSharedPtr<FExtender>());
+					}
+				}, WeakLevelEditor)
+			);
+		}
+
 
 		FText Label = NSLOCTEXT( "LevelEditor", "SceneOutlinerTabTitle", "Scene Outliner" );
 
@@ -621,7 +636,6 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 					[
 						SceneOutlinerModule.CreateSceneOutliner(
 							InitOptions,
-							FOnContextMenuOpening::CreateStatic< TWeakPtr< SLevelEditor >, TSharedPtr<FExtender> >( &FLevelViewportContextMenu::BuildMenuWidget, SharedThis( this ), TSharedPtr<FExtender>() ),
 							FOnActorPicked() /* Not used for outliner when in browsing mode */ )
 					]
 				]

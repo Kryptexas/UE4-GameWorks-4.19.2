@@ -423,18 +423,6 @@ void FLevelEditorActionCallbacks::AttachToSocketSelection(const FName SocketName
 	}	
 }
 
-void FLevelEditorActionCallbacks::SetActorFolder(FName Folder)
-{
-	FSlateApplication::Get().DismissAllMenus();
-
-	FScopedTransaction Transaction(LOCTEXT("SetActorFolder", "Set Actor Folder"));
-	for ( FSelectionIterator It( GEditor->GetSelectedActorIterator() ) ; It ; ++It )
-	{
-		AActor* Actor = Cast<AActor>( *It );
-		Actor->SetFolderPath(Folder);
-	}
-}
-
 void FLevelEditorActionCallbacks::SetMaterialQualityLevel( EMaterialQualityLevel::Type NewQualityLevel )
 {
 	GUnrealEd->AccessEditorUserSettings().MaterialQualityLevel = NewQualityLevel;

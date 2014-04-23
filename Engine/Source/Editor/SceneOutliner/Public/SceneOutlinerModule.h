@@ -35,7 +35,6 @@ public:
 	 */
 	virtual TSharedRef< class ISceneOutliner > CreateSceneOutliner(
 		const FSceneOutlinerInitializationOptions& InitOptions,
-		const FOnContextMenuOpening& MakeContextMenuWidgetDelegate,
 		const FOnActorPicked& OnActorPickedDelegate ) const;
 
 	/**
@@ -50,7 +49,6 @@ public:
 
 	virtual TSharedRef< class ISceneOutliner > CreateSceneOutliner(
 		const FSceneOutlinerInitializationOptions& InitOptions,
-		const FOnContextMenuOpening& MakeContextMenuWidgetDelegate,
 		const FOnSceneOutlinerItemPicked& OnItemPickedDelegate ) const;
 };
 

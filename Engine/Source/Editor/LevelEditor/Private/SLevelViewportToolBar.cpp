@@ -336,7 +336,6 @@ static void OnGenerateActorLockingMenuSection( TWeakPtr<SLevelViewport> Viewport
 		[
 			SceneOutlinerModule.CreateSceneOutliner(
 				InitOptions,
-				FOnContextMenuOpening(), //no context menu allowed here
 				FOnActorPicked::CreateSP( Viewport.Pin().ToSharedRef(), &SLevelViewport::OnActorLockToggleFromMenu ) )
 		];
 

@@ -1027,7 +1027,6 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateMatineeMenuContent( TSharedRe
 		[
 			SceneOutlinerModule.CreateSceneOutliner(
 				InitOptions,
-				FOnContextMenuOpening(), //no context menu allowed here
 				FOnActorPicked::CreateStatic( &FLevelEditorToolBar::OnMatineeActorPicked ) )
 		];
 

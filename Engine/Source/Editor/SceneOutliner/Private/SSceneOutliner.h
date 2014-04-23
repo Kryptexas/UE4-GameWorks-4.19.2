@@ -18,6 +18,47 @@ namespace SceneOutliner
 
 	FText GetLabelForItem( const TSharedRef<TOutlinerTreeItem> TreeItem );
 
+	/** An array of actions to apply to newly added items in the scene outliner */
+	struct NewItemActuator
+	{
+		enum ActionType
+		{
+			/** Select the item when it is created */
+			Select			= 1 << 0,
+			/** Scroll the item into view when it is created */
+			ScrollIntoView	= 1 << 1,
+			/** Interactively rename the item when it is created (implies the above) */
+			Rename			= 1 << 2,
+		};
+
+		/** Empty this actuator (called after every refresh of the tree) */
+		void Empty();
+
+		/** Specify an action to perform on the specified actor or folder when it is created (see ActionType enum) */
+		void WhenCreated(FName FolderPath, uint8 InActionMask);
+		void WhenCreated(FOutlinerTreeItemRef, uint8 InActionMask);
+
+		/** Called by the scene outliner when an item has been added to the tree */
+		void ItemHasBeenCreated(TSharedRef<SOutlinerTreeView> OutlinerTreeView, TSharedRef<TOutlinerActorTreeItem> NewItem);
+		void ItemHasBeenCreated(TSharedRef<SOutlinerTreeView> OutlinerTreeView, TSharedRef<TOutlinerFolderTreeItem> NewItem);
+
+	private:
+
+		struct ActorAction
+		{	
+			uint8 Actions;
+			TWeakPtr<TOutlinerActorTreeItem> ActorItem;
+		};
+		struct FolderAction
+		{	
+			uint8 Actions;
+			FName FolderPath;
+		};
+
+		TArray<ActorAction>		PendingActorActions;
+		TArray<FolderAction>	PendingFolderActions;
+	};
+
 	/**
 	 * Scene Outliner widget
 	 */
@@ -28,7 +69,6 @@ namespace SceneOutliner
 
 		SLATE_BEGIN_ARGS( SSceneOutliner ){}
 
-			SLATE_ARGUMENT( FOnContextMenuOpening, MakeContextMenuWidgetDelegate );
 			SLATE_ARGUMENT( FOnSceneOutlinerItemPicked, OnItemPickedDelegate )
 
 		SLATE_END_ARGS()
@@ -75,6 +115,9 @@ namespace SceneOutliner
 
 		/** Find a folder by its path */
 		const TSharedPtr<TOutlinerFolderTreeItem> FindFolderByPath(FName Path) const;
+
+		/** Move the specified folder to a new parent path, returning the new full path */
+		FName MoveFolderTo(TSharedRef<TOutlinerFolderTreeItem> Folder, FName NewParent);
 
 	private:
 
@@ -171,21 +214,24 @@ namespace SceneOutliner
 		/** Open a context menu for this scene outliner */
 		TSharedPtr<SWidget> OnOpenContextMenu() const;
 
-		/** Build a context menu for right-clicking a folder */
-		TSharedPtr<SWidget> BuildFolderContextMenu() const;
+		/** Build a context menu for right-clicking an item in the tree */
+		TSharedPtr<SWidget> BuildDefaultContextMenu() const;
 		void FillFoldersSubMenu(FMenuBuilder& MenuBuilder) const;
 
 		/** Move the selected items to the specified parent */
 		void MoveSelectionTo(TSharedRef<TOutlinerTreeItem> NewParent);
 
-		/** Move the selected items to the specified parent */
+		/** Moves the current selection to the specified folder path */
 		void MoveSelectionTo(FName NewParent);
 
 		/** Called when the user has clicked the button to add a new folder */
 		FReply OnCreateFolderClicked();
 
 		/** Create a new folder under the specified parent name (NAME_None for root) */
-		void CreateFolder(FName ParentPath);
+		void CreateFolder();
+
+		/** Create a sub folder inside the specified parent */
+		void CreateSubFolder(FName Parent);
 
 		/** Initiate a rename operation for the specified folder */
 		void RenameFolder(TSharedRef<TOutlinerFolderTreeItem> Folder);
@@ -414,6 +460,9 @@ namespace SceneOutliner
 
 		/** true if the Scene Outliner should do a full refresh. */
 		bool bFullRefresh;
+
+		/** An instance of a class responsible for operating on newly added tree items */
+		NewItemActuator NewItemActions;
 
 		/** Timer for PIE/SIE mode to sort the outliner. */
 		float SortOutlinerTimer;

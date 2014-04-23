@@ -424,33 +424,6 @@ namespace SceneOutliner
 		return ValidationInfo.IsValid();
 	}
 
-	void SOutlinerTreeView::MoveSelectionTo(FName NewParent)
-	{
-		FSlateApplication::Get().DismissAllMenus();
-
-		if (!ValidateMoveSelectionTo(NewParent))
-		{
-			return;
-		}
-
-		const FScopedTransaction Transaction( LOCTEXT("MoveOutlinerItems", "Move Scene Outliner Items") );
-		for (const auto& Item : GetSelectedItems())
-		{
-			if (Item->Type == TOutlinerTreeItem::Folder)
-			{
-				StaticCastSharedPtr<TOutlinerFolderTreeItem>(Item)->MoveTo(NewParent);
-			}
-			else
-			{
-				auto* Actor = StaticCastSharedPtr<TOutlinerActorTreeItem>(Item)->Actor.Get();
-				if (Actor)
-				{
-					Actor->SetFolderPath(NewParent);
-				}
-			}
-		}
-	}
-
 	FReply SOutlinerTreeView::OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
 	{
 		auto SceneOutlinerPtr = SceneOutlinerWeak.Pin();
@@ -540,8 +513,7 @@ namespace SceneOutliner
 				auto FolderPtr = Folder.Pin();
 				if (FolderPtr.IsValid())
 				{
-					// Put it at the root
-					FolderPtr->MoveTo(FName());
+					SceneOutlinerPtr->MoveFolderTo(FolderPtr.ToSharedRef(), FName());
 				}
 			}
 		}
@@ -589,13 +561,12 @@ namespace SceneOutliner
 		if (Item->Type == TOutlinerTreeItem::Folder && DraggedFolders)
 		{
 			auto DropFolder = StaticCastSharedPtr<TOutlinerFolderTreeItem>(Item);
-
 			for (auto& FolderIt : *DraggedFolders)
 			{
 				auto FolderItemPtr = FolderIt.Pin();
 				if (FolderItemPtr.IsValid())
 				{
-					FolderItemPtr->MoveTo(DropFolder->Path);
+					SceneOutlinerPtr->MoveFolderTo(FolderItemPtr.ToSharedRef(), DropFolder->Path);
 				}
 			}
 		}

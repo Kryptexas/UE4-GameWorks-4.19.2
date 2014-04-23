@@ -64,7 +64,7 @@ struct UNREALED_API FActorFolders : public FGCObject
 	void DeleteFolder(const UWorld& InWorld, FName FolderToDelete);
 
 	/** Rename the specified path to a new name */
-	void RenameFolderInWorld(UWorld& World, FName OldPath, FName NewPath);
+	bool RenameFolderInWorld(UWorld& World, FName OldPath, FName NewPath);
 
 private:
 

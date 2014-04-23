@@ -276,11 +276,11 @@ void FActorFolders::DeleteFolder(const UWorld& InWorld, FName FolderToDelete)
 	}
 }
 
-void FActorFolders::RenameFolderInWorld(UWorld& World, FName OldPath, FName NewPath)
+bool FActorFolders::RenameFolderInWorld(UWorld& World, FName OldPath, FName NewPath)
 {
-	if (OldPath.IsNone())
+	if (OldPath.IsNone() || OldPath == NewPath || PathIsChildOf(NewPath.ToString(), OldPath.ToString()))
 	{
-		return;
+		return false;
 	}
 
 	const FScopedTransaction Transaction(LOCTEXT("UndoAction_RenameFolder", "Rename Folder"));
@@ -334,6 +334,8 @@ void FActorFolders::RenameFolderInWorld(UWorld& World, FName OldPath, FName NewP
 		FoldersInWorld.Paths.Remove(Path);
 		OnFolderDelete.Broadcast(World, Path);
 	}
+
+	return RenamedFolders.Num() != 0;
 }
 
 #undef LOCTEXT_NAMESPACE

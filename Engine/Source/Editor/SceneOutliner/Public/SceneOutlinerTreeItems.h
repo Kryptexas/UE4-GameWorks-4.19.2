@@ -114,20 +114,6 @@ struct SCENEOUTLINER_API TOutlinerFolderTreeItem : TOutlinerTreeItem
 		}
 	}
 
-	/** Move this folder to a new parent path.
-	 *	Broadcasts notifications to ensure all scene outliners are kept up to date.
-	 *
-	 *	@param	NewParentPath	The new parent path to put this folder in (NAME_None for root)
-	 */
-	void MoveTo(FName NewParentPath);
-
-	/** Rename this folder leaf name.
-	 *	Broadcasts notifications to ensure all scene outliners are kept up to date.
-	 *
-	 *	@param	NewLabel	The new label for this folder
-	 */
-	void Rename(FName NewLabel);
-
 	/** Get the parent path for this folder */
 	FName GetParentPath() const
 	{
