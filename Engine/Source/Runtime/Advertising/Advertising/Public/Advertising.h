@@ -42,15 +42,15 @@ public:
 	static FName GetDefaultProviderName()
 	{
 		FString ProviderName;
-		GConfig->GetString( TEXT( "Advertising" ), TEXT( "ProviderName" ), ProviderName, GEngineIni );
+		GConfig->GetString( TEXT( "Advertising" ), TEXT( "DefaultProviderName" ), ProviderName, GEngineIni );
 		return FName( *ProviderName );
 	}
 
-	virtual TSharedPtr< IAdvertisingProvider > CreateAdvertisingProvider( const FName & ProviderName );
+	virtual IAdvertisingProvider * GetAdvertisingProvider( const FName & ProviderName );
 
-	virtual TSharedPtr< IAdvertisingProvider > GetDefaultProvider()
+	virtual IAdvertisingProvider * GetDefaultProvider()
 	{
-		return CreateAdvertisingProvider( GetDefaultProviderName() );
+		return GetAdvertisingProvider( GetDefaultProviderName() );
 	}
 
 private:

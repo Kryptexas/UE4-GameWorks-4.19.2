@@ -15,16 +15,16 @@ FAdvertising::~FAdvertising()
 {
 }
 
-TSharedPtr< IAdvertisingProvider > FAdvertising::CreateAdvertisingProvider( const FName & ProviderName )
+IAdvertisingProvider * FAdvertising::GetAdvertisingProvider( const FName & ProviderName )
 {
 	// Check if we can successfully load the module.
 	if ( ProviderName != NAME_None )
 	{
 		IAdvertisingProvider * Module = FModuleManager::Get().LoadModulePtr<IAdvertisingProvider>(ProviderName);
-		if (Module != NULL)
+		if ( Module != NULL )
 		{
 			UE_LOG(LogAdvertising, Log, TEXT("Creating Advertising provider %s"), *ProviderName.ToString());
-			return MakeShareable< IAdvertisingProvider >( Module );
+			return Module;
 		}
 		else
 		{
@@ -33,7 +33,7 @@ TSharedPtr< IAdvertisingProvider > FAdvertising::CreateAdvertisingProvider( cons
 	}
 	else
 	{
-		UE_LOG(LogAdvertising, Warning, TEXT("CreateAdvertisingProvider called with a module name of None."));
+		UE_LOG(LogAdvertising, Warning, TEXT("GetAdvertisingProvider called with a module name of None."));
 	}
 	return NULL;
 }
