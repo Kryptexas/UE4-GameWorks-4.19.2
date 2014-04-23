@@ -90,11 +90,9 @@ private:
 	void OnExposedToMatineeChanged(ESlateCheckBoxState::Type InNewState);
 	EVisibility ExposeToMatineeVisibility() const;
 
-	FText OnGetSliderMinValue() const;
-	void OnSliderMinValueChanged(const FText& NewMinValue, ETextCommit::Type CommitInfo);
-	FText OnGetSliderMaxValue() const;
-	void OnSliderMaxValueChanged(const FText& NewMaxValue, ETextCommit::Type CommitInfo);
-	EVisibility SliderVisibility() const;
+	FText OnGetMetaKeyValue(FName Key) const;
+	void OnMetaKeyValueChanged(const FText& NewMinValue, ETextCommit::Type CommitInfo, FName Key);
+	EVisibility RangeVisibility() const;
 	
 	TSharedPtr<FString> GetVariableReplicationType() const;
 	void OnChangeReplication(TSharedPtr<FString> ItemSelected, ESelectInfo::Type SelectInfo);

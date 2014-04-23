@@ -2367,7 +2367,14 @@ void FBlueprintEditorUtils::SetBlueprintVariableMetaData(UBlueprint* Blueprint, 
 		Blueprint->NewVariables[VarIndex].SetMetaData(MetaDataKey, MetaDataValue);
 		UProperty* Property = FindField<UProperty>(Blueprint->SkeletonGeneratedClass, VarName);
 		Property->SetMetaData(MetaDataKey, *MetaDataValue);
+		
+		Property = FindField<UProperty>(Blueprint->GeneratedClass, VarName);
+		if (Property)
+		{
+			Property->SetMetaData(MetaDataKey, *MetaDataValue);
+		}
 	}
+	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
 }
 
 bool FBlueprintEditorUtils::GetBlueprintVariableMetaData(UBlueprint* Blueprint, const FName& VarName, const FName& MetaDataKey, FString& OutMetaDataValue)

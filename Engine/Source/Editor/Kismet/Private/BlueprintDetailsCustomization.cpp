@@ -270,8 +270,10 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 
 	TSharedPtr<SToolTip> SliderRangeTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("SliderRange_Tooltip", "Allows setting the minimum and maximum values for the UI slider for this variable."), NULL, DocLink, TEXT("SliderRange"));
 
+	FName UIMin = TEXT("UIMin");
+	FName UIMax = TEXT("UIMax");
 	Category.AddCustomRow( TEXT("Slider Range") )
-	.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::SliderVisibility))
+	.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::RangeVisibility))
 	.NameContent()
 	[
 		SNew(STextBlock)
@@ -287,8 +289,8 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 		.FillWidth(1)
 		[
 			SNew(SEditableTextBox)
-			.Text( this, &FBlueprintVarActionDetails::OnGetSliderMinValue )
-			.OnTextCommitted( this, &FBlueprintVarActionDetails::OnSliderMinValueChanged )
+			.Text(this, &FBlueprintVarActionDetails::OnGetMetaKeyValue, UIMin)
+			.OnTextCommitted(this, &FBlueprintVarActionDetails::OnMetaKeyValueChanged, UIMin)
 			.Font( DetailFontInfo )
 		]
 		+SHorizontalBox::Slot()
@@ -302,12 +304,53 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 		.FillWidth(1)
 		[
 			SNew(SEditableTextBox)
-			.Text( this, &FBlueprintVarActionDetails::OnGetSliderMaxValue )
-			.OnTextCommitted(this, &FBlueprintVarActionDetails::OnSliderMaxValueChanged)
+			.Text(this, &FBlueprintVarActionDetails::OnGetMetaKeyValue, UIMax)
+			.OnTextCommitted(this, &FBlueprintVarActionDetails::OnMetaKeyValueChanged, UIMax)
 			.Font( DetailFontInfo )
 		]
 	];
 
+	TSharedPtr<SToolTip> ValueRangeTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("ValueRangeLabel_Tooltip", "The range of values allowed by this variable. Values outside of this will be clamped to the range."), NULL, DocLink, TEXT("ValueRange"));
+
+	FName ClampMin = TEXT("ClampMin");
+	FName ClampMax = TEXT("ClampMax");
+	Category.AddCustomRow(TEXT("Value Range"))
+	.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::RangeVisibility))
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(LOCTEXT("ValueRangeLabel", "Value Range"))
+		.ToolTipText(LOCTEXT("ValueRangeLabel_Tooltip", "The range of values allowed by this variable. Values outside of this will be clamped to the range."))
+		.ToolTip(ValueRangeTooltip)
+		.Font(DetailFontInfo)
+	]
+	.ValueContent()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.FillWidth(1)
+		[
+			SNew(SEditableTextBox)
+			.Text(this, &FBlueprintVarActionDetails::OnGetMetaKeyValue, ClampMin)
+			.OnTextCommitted(this, &FBlueprintVarActionDetails::OnMetaKeyValueChanged, ClampMin)
+			.Font(DetailFontInfo)
+		]
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("Min .. Max Separator", " .. "))
+			.Font(DetailFontInfo)
+		]
+		+ SHorizontalBox::Slot()
+		.FillWidth(1)
+		[
+			SNew(SEditableTextBox)
+			.Text(this, &FBlueprintVarActionDetails::OnGetMetaKeyValue, ClampMax)
+			.OnTextCommitted(this, &FBlueprintVarActionDetails::OnMetaKeyValueChanged, ClampMax)
+			.Font(DetailFontInfo)
+		]
+	];
 	ReplicationOptions.Empty();
 	ReplicationOptions.Add(MakeShareable(new FString("None")));
 	ReplicationOptions.Add(MakeShareable(new FString("Replicated")));
@@ -1177,57 +1220,32 @@ EVisibility FBlueprintVarActionDetails::ExposeToMatineeVisibility() const
 	return EVisibility::Collapsed;
 }
 
-FText FBlueprintVarActionDetails::OnGetSliderMinValue() const
+FText FBlueprintVarActionDetails::OnGetMetaKeyValue(FName Key) const
 {
 	FName VarName = GetVariableName();
 	if (VarName != NAME_None)
 	{
 		FString Result;
-		FBlueprintEditorUtils::GetBlueprintVariableMetaData(GetBlueprintObj(), VarName, TEXT("UIMin"), /*out*/ Result);
+		FBlueprintEditorUtils::GetBlueprintVariableMetaData(GetBlueprintObj(), VarName, Key, /*out*/ Result);
 
 		return FText::FromString(Result);
 	}
 	return FText();
 }
 
-void FBlueprintVarActionDetails::OnSliderMinValueChanged(const FText& NewMinValue, ETextCommit::Type CommitInfo)
+void FBlueprintVarActionDetails::OnMetaKeyValueChanged(const FText& NewMinValue, ETextCommit::Type CommitInfo, FName Key)
 {
 	FName VarName = GetVariableName();
 	if (VarName != NAME_None)
 	{
 		if ((CommitInfo == ETextCommit::OnEnter) || (CommitInfo == ETextCommit::OnUserMovedFocus))
 		{
-			FBlueprintEditorUtils::SetBlueprintVariableMetaData(GetBlueprintObj(), VarName, TEXT("UIMin"), NewMinValue.ToString());
+			FBlueprintEditorUtils::SetBlueprintVariableMetaData(GetBlueprintObj(), VarName, Key, NewMinValue.ToString());
 		}
 	}
 }
 
-FText FBlueprintVarActionDetails::OnGetSliderMaxValue() const
-{
-	FName VarName = GetVariableName();
-	if (VarName != NAME_None)
-	{
-		FString Result;
-		FBlueprintEditorUtils::GetBlueprintVariableMetaData(GetBlueprintObj(), VarName, TEXT("UIMax"), /*out*/ Result);
-
-		return FText::FromString(Result);
-	}
-	return FText();
-}
-
-void FBlueprintVarActionDetails::OnSliderMaxValueChanged(const FText& NewMaxValue, ETextCommit::Type CommitInfo)
-{
-	FName VarName = GetVariableName();
-	if (VarName != NAME_None)
-	{
-		if ((CommitInfo == ETextCommit::OnEnter) || (CommitInfo == ETextCommit::OnUserMovedFocus))
-		{
-			FBlueprintEditorUtils::SetBlueprintVariableMetaData(GetBlueprintObj(), VarName, TEXT("UIMax"), NewMaxValue.ToString());
-		}
-	}
-}
-
-EVisibility FBlueprintVarActionDetails::SliderVisibility() const
+EVisibility FBlueprintVarActionDetails::RangeVisibility() const
 {
 	UProperty* VariableProperty = SelectionAsProperty();
 	if (VariableProperty)

@@ -199,7 +199,7 @@ private:
 				}
 			}
 
-			// We don't create a transaction for each property change when usign the slider.  Only once when the slider first is moved
+			// We don't create a transaction for each property change when using the slider.  Only once when the slider first is moved
 			EPropertyValueSetFlags::Type Flags = (EPropertyValueSetFlags::InteractiveChange | EPropertyValueSetFlags::NotTransactable);
 			PropertyHandle->SetValue( NewValue, Flags );
 		}
