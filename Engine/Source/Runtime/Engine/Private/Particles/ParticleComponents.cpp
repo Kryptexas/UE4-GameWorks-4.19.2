@@ -4149,7 +4149,7 @@ void UParticleSystemComponent::InitParticles()
 		else
 		{
 			// create new instances as needed
-			for (int32 Idx = 0; Idx < Template->Emitters.Num(); Idx++)
+			for (int32 Idx = 0; Idx < EmitterInstances.Num(); Idx++)
 			{
 				FParticleEmitterInstance* Instance = EmitterInstances[Idx];
 				if (Instance)
