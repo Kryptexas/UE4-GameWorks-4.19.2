@@ -36,27 +36,7 @@ public:
 	 *
 	 * @return The build configuration.
 	 */
-	static EBuildConfigurations::Type GetBuildConfiguration( )
-	{
-#if UE_BUILD_DEBUG
-		return EBuildConfigurations::Debug;
-
-#elif UE_BUILD_DEBUGGAME
-		return EBuildConfigurations::DebugGame;
-
-#elif UE_BUILD_DEVELOPMENT
-		return EBuildConfigurations::Development;
-
-#elif UE_BUILD_SHIPPING || UI_BUILD_SHIPPING_EDITOR
-		return EBuildConfigurations::Shipping;
-
-#elif UE_BUILD_TEST
-		return EBuildConfigurations::Test;
-
-#else
-		return EBuildConfigurations::Unknown;
-#endif
-	}
+	static EBuildConfigurations::Type GetBuildConfiguration();
 
 	/**
 	 * Gets the date at which this application was built.

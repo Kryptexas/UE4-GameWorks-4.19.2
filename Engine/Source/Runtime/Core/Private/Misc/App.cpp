@@ -26,6 +26,25 @@ FString FApp::GetBranchName( )
 	return FString(TEXT(BRANCH_NAME));
 }
 
+EBuildConfigurations::Type FApp::GetBuildConfiguration()
+{
+#if UE_BUILD_DEBUG
+	return EBuildConfigurations::Debug;
+
+#elif UE_BUILD_DEVELOPMENT
+	static bool bUsingDebugGame = FParse::Param(FCommandLine::Get(), TEXT("debug"));
+	return bUsingDebugGame ? EBuildConfigurations::DebugGame : EBuildConfigurations::Development;
+
+#elif UE_BUILD_SHIPPING || UI_BUILD_SHIPPING_EDITOR
+	return EBuildConfigurations::Shipping;
+
+#elif UE_BUILD_TEST
+	return EBuildConfigurations::Test;
+
+#else
+	return EBuildConfigurations::Unknown;
+#endif
+}
 
 FString FApp::GetBuildDate( )
 {
