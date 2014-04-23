@@ -10,6 +10,16 @@ UVerticalBoxComponent::UVerticalBoxComponent(const FPostConstructInitializePrope
 {
 }
 
+int32 UVerticalBoxComponent::GetChildrenCount() const
+{
+	return Slots.Num();
+}
+
+USlateWrapperComponent* UVerticalBoxComponent::GetChildAt(int32 Index) const
+{
+	return Slots[Index]->Content;
+}
+
 TSharedRef<SWidget> UVerticalBoxComponent::RebuildWidget()
 {
 	TSharedRef<SVerticalBox> NewCanvas = SNew(SVerticalBox);

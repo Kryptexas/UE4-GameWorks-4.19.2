@@ -19,6 +19,9 @@ class UMG_API USlateNonLeafWidgetComponent : public USlateWrapperComponent
 	// End of UActorComponent interface
 #endif
 
+	virtual int32 GetChildrenCount() const { return 0; }
+	virtual USlateWrapperComponent* GetChildAt(int32 Index) const { return NULL; }
+
 protected:
 	// This function is called when the known children list has changed; use this to repopulate child slots in derived classes
 	virtual void OnKnownChildrenChanged() {}

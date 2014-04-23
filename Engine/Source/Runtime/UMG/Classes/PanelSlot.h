@@ -8,4 +8,7 @@ UCLASS()
 class UMG_API UPanelSlot : public UObject
 {
 	GENERATED_UCLASS_BODY()
+
+	UPROPERTY()
+	class USlateWrapperComponent* Content;
 };

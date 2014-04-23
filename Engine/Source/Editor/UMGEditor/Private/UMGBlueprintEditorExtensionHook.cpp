@@ -280,6 +280,37 @@ public:
 	}
 };
 
+
+/////////////////////////////////////////////////////
+// FWidgetTemplatesSummoner
+
+static const FName UMGWidgetTemplatesTabID(TEXT("WidgetTemplates"));
+
+struct FWidgetTemplatesSummoner : public FWorkflowTabFactory
+{
+protected:
+	TWeakPtr<class FBlueprintEditor> BlueprintEditor;
+public:
+	FWidgetTemplatesSummoner(TSharedPtr<class FBlueprintEditor> InBlueprintEditor)
+		: FWorkflowTabFactory(UMGWidgetTemplatesTabID, InBlueprintEditor)
+		, BlueprintEditor(InBlueprintEditor)
+	{
+		TabLabel = LOCTEXT("WidgetTemplatesTabLabel", "Templates");
+		//TabIcon = FEditorStyle::GetBrush("Kismet.Tabs.Components");
+
+		bIsSingleton = true;
+
+		ViewMenuDescription = LOCTEXT("WidgetTemplates_ViewMenu_Desc", "Templates");
+		ViewMenuTooltip = LOCTEXT("WidgetTemplates_ViewMenu_ToolTip", "Show the Templates");
+	}
+
+	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const OVERRIDE
+	{
+		return SNew(SUMGEditorWidgetTemplates, BlueprintEditor.Pin(), BlueprintEditor.Pin()->GetBlueprintObj()->SimpleConstructionScript);
+	}
+};
+
+
 //////////////////////////////////////////////////////////////////////////
 // FComponentsEditorModeOverride
 
@@ -295,9 +326,11 @@ public:
 		//BlueprintComponentsTabFactories.RegisterFactory(MakeShareable(new FDefaultsEditorSummoner(InBlueprintEditor)));
 		//BlueprintComponentsTabFactories.RegisterFactory(MakeShareable(new FFindResultsSummoner(InBlueprintEditor)));
 
+		//BlueprintComponentsTabFactories.UnregisterFactory(FBlueprintEditorTabs::ConstructionScriptEditorID);
 		BlueprintComponentsTabFactories.UnregisterFactory(FBlueprintEditorTabs::SCSViewportID);
 		BlueprintComponentsTabFactories.RegisterFactory(MakeShareable(new FSlatePreviewSummoner(InBlueprintEditor)));
 		BlueprintComponentsTabFactories.RegisterFactory(MakeShareable(new FSlateTreeSummoner(InBlueprintEditor)));
+		BlueprintComponentsTabFactories.RegisterFactory(MakeShareable(new FWidgetTemplatesSummoner(InBlueprintEditor)));
 
 		TabLayout = FTabManager::NewLayout( "Standalone_UMGEditor_Layout_v2" )
 		->AddArea
@@ -324,7 +357,7 @@ public:
 					(
 						FTabManager::NewStack()
 						->SetSizeCoefficient( 0.5f )
-						->AddTab( FBlueprintEditorTabs::ConstructionScriptEditorID, ETabState::OpenedTab )
+						->AddTab( UMGWidgetTemplatesTabID, ETabState::OpenedTab )
 					)
 				)
 				->Split
@@ -359,14 +392,27 @@ public:
 				)
 			)
 		);
-
 	}
 
-	UBlueprint* GetBlueprint() const
+	virtual void PreDeactivateMode() OVERRIDE
+	{
+		FBlueprintComponentsApplicationMode::PreDeactivateMode();
+
+		GetBlueprintEditor()->GetInspector()->EnableComponentDetailsCustomization(false);
+	}
+
+	virtual void PostActivateMode() OVERRIDE
+	{
+		FBlueprintComponentsApplicationMode::PostActivateMode();
+
+		GetBlueprintEditor()->GetInspector()->EnableComponentDetailsCustomization(false);
+	}
+
+	UWidgetBlueprint* GetBlueprint() const
 	{
 		if (FBlueprintEditor* Editor = MyBlueprintEditor.Pin().Get())
 		{
-			return Editor->GetBlueprintObj();
+			return Cast<UWidgetBlueprint>(Editor->GetBlueprintObj());
 		}
 		else
 		{
@@ -377,13 +423,6 @@ public:
 	TSharedPtr<FBlueprintEditor> GetBlueprintEditor() const
 	{
 		return MyBlueprintEditor.Pin();
-	}
-
-	void Foo()
-	{
-		if (AActor* PreviewActor = GetPreviewActor())
-		{
-		}
 	}
 };
 

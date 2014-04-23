@@ -40,6 +40,16 @@ UCanvasPanelComponent::UCanvasPanelComponent(const FPostConstructInitializePrope
 	DesiredCanvasSize = FVector2D(128.0f, 128.0f);
 }
 
+int32 UCanvasPanelComponent::GetChildrenCount() const
+{
+	return Slots.Num();
+}
+
+USlateWrapperComponent* UCanvasPanelComponent::GetChildAt(int32 Index) const
+{
+	return Slots[Index]->Content;
+}
+
 TSharedRef<SWidget> UCanvasPanelComponent::RebuildWidget()
 {
 	TSharedRef<SFixedSizeCanvas> NewCanvas = SNew(SFixedSizeCanvas, DesiredCanvasSize);

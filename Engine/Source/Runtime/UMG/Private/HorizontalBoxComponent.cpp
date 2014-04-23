@@ -10,6 +10,16 @@ UHorizontalBoxComponent::UHorizontalBoxComponent(const FPostConstructInitializeP
 {
 }
 
+int32 UHorizontalBoxComponent::GetChildrenCount() const
+{
+	return Slots.Num();
+}
+
+USlateWrapperComponent* UHorizontalBoxComponent::GetChildAt(int32 Index) const
+{
+	return Slots[Index]->Content;
+}
+
 TSharedRef<SWidget> UHorizontalBoxComponent::RebuildWidget()
 {
 	TSharedRef<SHorizontalBox> NewCanvas = SNew(SHorizontalBox);

@@ -11,15 +11,16 @@
 #include "SceneViewport.h"
 
 #include "BlueprintEditor.h"
+#include "SKismetInspector.h"
 
 void SUMGEditorTree::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEditor> InBlueprintEditor, USimpleConstructionScript* InSCS)
 {
 	BlueprintEditor = InBlueprintEditor;
 
-	UBlueprint* BP = InBlueprintEditor->GetBlueprintObj();
-	//BP->ComponentTemplates
+	UWidgetBlueprint* Blueprint = GetBlueprint();
+	RootWidgets.Add(Blueprint->WidgetTemplates[0]);
 
-	//FCoreDelegates::OnObjectPropertyChanged.Add( FCoreDelegates::FOnObjectPropertyChanged::FDelegate::CreateRaw(this, &SUMGEditorTree::OnObjectPropertyChanged) );
+	FCoreDelegates::OnObjectPropertyChanged.Add( FCoreDelegates::FOnObjectPropertyChanged::FDelegate::CreateRaw(this, &SUMGEditorTree::OnObjectPropertyChanged) );
 
 	ChildSlot
 	[
@@ -38,19 +39,94 @@ void SUMGEditorTree::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEd
 		+ SVerticalBox::Slot()
 		.FillHeight(1.0f)
 		[
-			SAssignNew(PageTreeView, STreeView<TSharedPtr<FString>>)
+			SAssignNew(WidgetTreeView, STreeView< USlateWrapperComponent* >)
 			.ItemHeight(20.0f)
-			//.OnGenerateRow(this, &SDeviceProcesses::HandleProcessTreeViewGenerateRow)
-			//.OnGetChildren(this, &SDeviceProcesses::HandleProcessTreeViewGetChildren)
-			//.SelectionMode(ESelectionMode::Multi)
-			//.TreeItemsSource(&ProcessList)
+			.SelectionMode(ESelectionMode::Single)
+			.OnGetChildren(this, &SUMGEditorTree::WidgetHierarchy_OnGetChildren)
+			.OnGenerateRow(this, &SUMGEditorTree::WidgetHierarchy_OnGenerateRow)
+			.OnSelectionChanged(this, &SUMGEditorTree::WidgetHierarchy_OnSelectionChanged)
+			.TreeItemsSource(&RootWidgets)
 		]
 	];
 }
 
 SUMGEditorTree::~SUMGEditorTree()
 {
-	//FCoreDelegates::OnObjectPropertyChanged.Remove( FCoreDelegates::FOnObjectPropertyChanged::FDelegate::CreateRaw(this, &SUMGEditorTree::OnObjectPropertyChanged) );
+	FCoreDelegates::OnObjectPropertyChanged.Remove( FCoreDelegates::FOnObjectPropertyChanged::FDelegate::CreateRaw(this, &SUMGEditorTree::OnObjectPropertyChanged) );
+}
+
+UWidgetBlueprint* SUMGEditorTree::GetBlueprint() const
+{
+	if ( BlueprintEditor.IsValid() )
+	{
+		UBlueprint* BP = BlueprintEditor.Pin()->GetBlueprintObj();
+		return Cast<UWidgetBlueprint>(BP);
+	}
+
+	return NULL;
+}
+
+
+void SUMGEditorTree::OnObjectPropertyChanged(UObject* ObjectBeingModified)
+{
+	if ( !ensure(ObjectBeingModified) )
+	{
+		return;
+	}
+}
+
+void SUMGEditorTree::ShowDetailsForObjects(TArray<USlateWrapperComponent*> Widgets)
+{
+	// Convert the selection set to an array of UObject* pointers
+	FString InspectorTitle;
+	TArray<UObject*> InspectorObjects;
+	InspectorObjects.Empty(Widgets.Num());
+	for ( USlateWrapperComponent* Widget : Widgets )
+	{
+		//if ( NodePtr->CanEditDefaults() )
+		{
+			InspectorTitle = "Widget";// Widget->GetDisplayString();
+			InspectorObjects.Add(Widget);
+		}
+	}
+
+	// Update the details panel
+	SKismetInspector::FShowDetailsOptions Options(InspectorTitle, true);
+	BlueprintEditor.Pin()->GetInspector()->ShowDetailsForObjects(InspectorObjects, Options);
+}
+
+void SUMGEditorTree::WidgetHierarchy_OnGetChildren(USlateWrapperComponent* InParent, TArray< USlateWrapperComponent* >& OutChildren)
+{
+	USlateNonLeafWidgetComponent* Widget = Cast<USlateNonLeafWidgetComponent>(InParent);
+	if ( Widget )
+	{
+		for ( int32 i = 0; i < Widget->GetChildrenCount(); i++ )
+		{
+			OutChildren.Add( Widget->GetChildAt(i) );
+		}
+	}
+}
+
+TSharedRef< ITableRow > SUMGEditorTree::WidgetHierarchy_OnGenerateRow(USlateWrapperComponent* InItem, const TSharedRef<STableViewBase>& OwnerTable)
+{
+	return
+		SNew(STableRow< USlateWrapperComponent* >, OwnerTable)
+		.Padding(2.0f)
+//		.OnDragDetected(this, &SUMGEditorWidgetTemplates::OnDraggingWidgetTemplateItem)
+		[
+			SNew(STextBlock)
+			.Text(InItem->GetFName().ToString())
+		];
+}
+
+void SUMGEditorTree::WidgetHierarchy_OnSelectionChanged(USlateWrapperComponent* SelectedItem, ESelectInfo::Type SelectInfo)
+{
+	if ( SelectInfo != ESelectInfo::Direct )
+	{
+		TArray<USlateWrapperComponent*> Items;
+		Items.Add(SelectedItem);
+		ShowDetailsForObjects(Items);
+	}
 }
 
 FReply SUMGEditorTree::CreateTestUI()

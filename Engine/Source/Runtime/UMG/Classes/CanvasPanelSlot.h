@@ -8,9 +8,6 @@ UCLASS()
 class UMG_API UCanvasPanelSlot : public UPanelSlot
 {
 	GENERATED_UCLASS_BODY()
-	
-	UPROPERTY()
-	class USlateWrapperComponent* Content;
 
 	/** Position. */
 	UPROPERTY(EditAnywhere, Category=Appearance)

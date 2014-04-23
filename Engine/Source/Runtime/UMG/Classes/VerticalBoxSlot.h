@@ -11,9 +11,6 @@ class UMG_API UVerticalBoxSlot : public UPanelSlot
 {
 	GENERATED_UCLASS_BODY()
 	
-	UPROPERTY()
-	class USlateWrapperComponent* Content;
-
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	FMargin Padding;
 

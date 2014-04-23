@@ -14,7 +14,18 @@ public:
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEditor> InBlueprintEditor, USimpleConstructionScript* InSCS);
-	~SUMGEditorTree();
+	virtual ~SUMGEditorTree();
+
+private:
+	UWidgetBlueprint* GetBlueprint() const;
+
+	void OnObjectPropertyChanged(UObject* ObjectBeingModified);
+
+	void ShowDetailsForObjects(TArray<USlateWrapperComponent*> Widgets);
+
+	void WidgetHierarchy_OnGetChildren(USlateWrapperComponent* InParent, TArray< USlateWrapperComponent* >& OutChildren);
+	TSharedRef< ITableRow > WidgetHierarchy_OnGenerateRow(USlateWrapperComponent* InItem, const TSharedRef<STableViewBase>& OwnerTable);
+	void WidgetHierarchy_OnSelectionChanged(USlateWrapperComponent* SelectedItem, ESelectInfo::Type SelectInfo);
 
 	FReply CreateTestUI();
 	
@@ -22,5 +33,7 @@ private:
 
 	TWeakPtr<class FBlueprintEditor> BlueprintEditor;
 
-	TSharedPtr< STreeView< TSharedPtr< FString > > > PageTreeView;
+	TArray< USlateWrapperComponent* > RootWidgets;
+
+	TSharedPtr< STreeView< USlateWrapperComponent* > > WidgetTreeView;
 };

@@ -15,6 +15,11 @@ class UMG_API UHorizontalBoxComponent : public USlateNonLeafWidgetComponent
 
 	UHorizontalBoxSlot* AddSlot(USlateWrapperComponent* Content);
 
+	// USlateNonLeafWidgetComponent
+	virtual int32 GetChildrenCount() const OVERRIDE;
+	virtual USlateWrapperComponent* GetChildAt(int32 Index) const OVERRIDE;
+	// End USlateNonLeafWidgetComponent
+
 #if WITH_EDITOR
 	// UObject interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;

@@ -37,7 +37,7 @@ void UWidgetBlueprintGeneratedClass::CreateComponentsForActor(AActor* Actor) con
 		FArchiveReplaceObjectRef<UObject> ReplaceInCDOAr(Widget, DuplicatedObjectList, /*bNullPrivateRefs=*/ false, /*bIgnoreOuterRef=*/ false, /*bIgnoreArchetypeRef=*/ false);
 	}
 
-	// Iterate over each timeline template
+	int32 i = 0;
 	for ( USlateWrapperComponent* Widget : ClonedWidgets )
 	{
 		// Not fatal if NULL, but shouldn't happen
@@ -54,6 +54,8 @@ void UWidgetBlueprintGeneratedClass::CreateComponentsForActor(AActor* Actor) con
 		//FObjectReader(ClonedComponent, SavedProperties);
 
 
+		FString VariableName = Widget->GetClass()->GetName() + TEXT("_") + FString::FromInt(i);
+
 
 		//USlateWrapperComponent* Widget = ConstructObject<USlateWrapperComponent>(Template->GetClass(), Actor, NewName);
 		Widget->bCreatedByConstructionScript = true; // Indicate it comes from a blueprint so it gets cleared when we rerun construction scripts
@@ -62,15 +64,16 @@ void UWidgetBlueprintGeneratedClass::CreateComponentsForActor(AActor* Actor) con
 
 		// Find property with the same name as the template and assign the new Timeline to it
 		UClass* ActorClass = Actor->GetClass();
-		FName thing = Widget->GetClass()->GetFName();
 		//UTimelineTemplate::TimelineTemplateNameToVariableName(Template->GetFName())
-		UObjectPropertyBase* Prop = FindField<UObjectPropertyBase>(ActorClass, thing);
+		UObjectPropertyBase* Prop = FindField<UObjectPropertyBase>(ActorClass, *VariableName);
 		if ( Prop )
 		{
 			Prop->SetObjectPropertyValue_InContainer(Actor, Widget);
 		}
 
 		Widget->RegisterComponent();
+
+		i++;
 	}
 }
 
