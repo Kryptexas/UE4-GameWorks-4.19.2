@@ -1305,7 +1305,7 @@ void UEdGraphSchema::GetGraphContextActions(FGraphContextMenuBuilder& ContextMen
 	for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
 	{
 		UClass* Class = *ClassIt;
-		if (Class->IsChildOf(UEdGraphNode::StaticClass()) && !Class->HasAnyClassFlags(CLASS_Abstract))
+		if (Class->IsChildOf(UEdGraphNode::StaticClass()) && !Class->HasAnyClassFlags(CLASS_Abstract | CLASS_Deprecated))
 		{
 			const UEdGraphNode* ClassCDO = Class->GetDefaultObject<UEdGraphNode>();
 
