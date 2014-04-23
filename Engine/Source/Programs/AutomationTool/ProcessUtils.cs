@@ -44,7 +44,7 @@ namespace AutomationTool
 		/// Creates a new process and adds it to the tracking list.
 		/// </summary>
 		/// <returns>New Process objects</returns>
-		public static ProcessResult CreateProcess(bool bAllowSpew, string LogName, Dictionary<string, string> Env = null)
+		public static ProcessResult CreateProcess(bool bAllowSpew, string LogName, Dictionary<string, string> Env = null, TraceEventType SpewVerbosity = TraceEventType.Information)
 		{
 			var NewProcess = HostPlatform.Current.CreateProcess(LogName);
 			if (Env != null)
@@ -61,7 +61,7 @@ namespace AutomationTool
 					}
 				}
 			}
-			var Result = new ProcessResult(NewProcess, bAllowSpew, LogName);
+			var Result = new ProcessResult(NewProcess, bAllowSpew, LogName, SpewVerbosity:SpewVerbosity);
 			NewProcess.Exited += NewProcess_Exited;
 			lock (SyncObject)
 			{
@@ -195,17 +195,19 @@ namespace AutomationTool
 		int ProcessExitCode = -1;
 		StringBuilder ProcessOutput = new StringBuilder();
 		bool AllowSpew = true;
+		TraceEventType SpewVerbosity = TraceEventType.Information;
 		private Process Proc = null;
 		private AutoResetEvent OutputWaitHandle = new AutoResetEvent(false);
 		private AutoResetEvent ErrorWaitHandle = new AutoResetEvent(false);
 		private object ProcSyncObject;
 
-		public ProcessResult(Process InProc, bool bAllowSpew, string LogName)
+		public ProcessResult(Process InProc, bool bAllowSpew, string LogName, TraceEventType SpewVerbosity = TraceEventType.Information)
 		{
 			ProcSyncObject = new object();
 			Proc = InProc;
 			Source = LogName;
 			AllowSpew = bAllowSpew;
+			this.SpewVerbosity = SpewVerbosity;
 		}
 
 		private void LogOutput(TraceEventType Verbosity, string Message)
@@ -229,7 +231,7 @@ namespace AutomationTool
 			{
 				if (AllowSpew)
 				{
-					LogOutput(TraceEventType.Information, e.Data);
+					LogOutput(SpewVerbosity, e.Data);
 				}
 
 				ProcessOutput.Append(e.Data);
@@ -252,7 +254,7 @@ namespace AutomationTool
 			{
 				if (AllowSpew)
 				{
-                    LogOutput(TraceEventType.Information, e.Data);
+                    LogOutput(SpewVerbosity, e.Data);
 				}
 
 				ProcessOutput.Append(e.Data);
@@ -530,6 +532,9 @@ namespace AutomationTool
             NoLoggingOfRunCommand = 1 << 4,
             UTF8Output = 1 << 5,
 
+			/// When specified with AllowSpew, the output will be TraceEventType.Verbose instead of TraceEventType.Information
+			SpewIsVerbose = 1 << 6,
+
 			Default = AllowSpew | AppMustExist,
 		}
 
@@ -557,12 +562,12 @@ namespace AutomationTool
 			}
 			var StartTime = DateTime.UtcNow;
 
+			TraceEventType SpewVerbosity = Options.HasFlag(ERunOptions.SpewIsVerbose) ? TraceEventType.Verbose : TraceEventType.Information;
             if (!Options.HasFlag(ERunOptions.NoLoggingOfRunCommand))
             {
-                Log("Run: " + App + " " + (String.IsNullOrEmpty(CommandLine) ? "" : CommandLine));
-
+                Log(SpewVerbosity,"Run: " + App + " " + (String.IsNullOrEmpty(CommandLine) ? "" : CommandLine));
             }
-			ProcessResult Result = ProcessManager.CreateProcess(Options.HasFlag(ERunOptions.AllowSpew), Path.GetFileNameWithoutExtension(App), Env);
+			ProcessResult Result = ProcessManager.CreateProcess(Options.HasFlag(ERunOptions.AllowSpew), Path.GetFileNameWithoutExtension(App), Env, SpewVerbosity:SpewVerbosity);
 			Process Proc = Result.ProcessObject;
 
 			bool bRedirectStdOut = (Options & ERunOptions.NoStdOutRedirect) != ERunOptions.NoStdOutRedirect;
@@ -604,7 +609,7 @@ namespace AutomationTool
 				AddRunTime(App, (int)(BuildDuration));
                 if (!Options.HasFlag(ERunOptions.NoLoggingOfRunCommand))
                 {
-                    Log("Run: Took {0}s to run " + Path.GetFileName(App), BuildDuration / 1000);
+                    Log(SpewVerbosity,"Run: Took {0}s to run " + Path.GetFileName(App), BuildDuration / 1000);
 
                 }
 				Result.ExitCode = Proc.ExitCode;
