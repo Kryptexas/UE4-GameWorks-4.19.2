@@ -511,35 +511,35 @@ public:
 	UPROPERTY(BlueprintAssignable, Category="Collision")
 	FActorEndOverlapSignature OnActorEndOverlap;
 
-	/** Called when the mouse cursor is moved over this actor when this mouse interface is enabled and mouse over events are enabled */
+	/** Called when the mouse cursor is moved over this actor and mouse over events are enabled in the player controller */
 	UPROPERTY(BlueprintAssignable, Category="Input|Mouse Input")
 	FActorBeginCursorOverSignature OnBeginCursorOver;
 
-	/** Called when the mouse cursor is moved off this actor when this mouse interface is enabled and mouse over events are enabled */
+	/** Called when the mouse cursor is moved off this actor and mouse over events are enabled in the player controller */
 	UPROPERTY(BlueprintAssignable, Category="Input|Mouse Input")
 	FActorEndCursorOverSignature OnEndCursorOver;
 
-	/** Called when the left mouse button is clicked while the mouse is over this actor when the mouse interface is enabled and click events are enabled */
+	/** Called when the left mouse button is clicked while the mouse is over this actor and click events are enabled in the player controller */
 	UPROPERTY(BlueprintAssignable, Category="Input|Mouse Input")
 	FActorOnClickedSignature OnClicked;
 
-	/** Called when the left mouse button is released while the mouse is over this actor when the mouse interface is enabled and click events are enabled */
+	/** Called when the left mouse button is released while the mouse is over this actor and click events are enabled in the player controller */
 	UPROPERTY(BlueprintAssignable, Category="Input|Mouse Input")
 	FActorOnReleasedSignature OnReleased;
 
-	/** Called when a touch input is received over this actor when and click events are enabled */
+	/** Called when a touch input is received over this actor when touch events are enabled in the player controller */
 	UPROPERTY(BlueprintAssignable, Category="Input|Touch Input")
 	FActorOnInputTouchBeginSignature OnInputTouchBegin;
 		
-	/** Called when a touch input is received over this component when and click events are enabled */
+	/** Called when a touch input is received over this component when touch events are enabled in the player controller */
 	UPROPERTY(BlueprintAssignable, Category="Input|Touch Input")
 	FActorOnInputTouchEndSignature OnInputTouchEnd;
 
-	/** Called when a finger is moved over this actor when this mouse interface is enabled and touch over events are enabled */
+	/** Called when a finger is moved over this actor when touch over events are enabled in the player controller */
 	UPROPERTY(BlueprintAssignable, Category="Input|Touch Input")
 	FActorBeginTouchOverSignature OnInputTouchEnter;
 
-	/** Called when a finger is moved off this actor when this mouse interface is enabled and touch over events are enabled */
+	/** Called when a finger is moved off this actor when touch over events are enabled in the player controller */
 	UPROPERTY(BlueprintAssignable, Category="Input|Touch Input")
 	FActorEndTouchOverSignature OnInputTouchLeave;
 

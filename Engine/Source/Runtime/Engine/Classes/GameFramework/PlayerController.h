@@ -163,11 +163,11 @@ class ENGINE_API APlayerController : public AController
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MouseInterface)
 	uint32 bShowMouseCursor:1;
 
-	/** Whether actor/component click and touch events should be generated. */
+	/** Whether actor/component click events should be generated. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MouseInterface)
 	uint32 bEnableClickEvents:1;
 
-	/** Whether actor/component click and touch events should be generated. */
+	/** Whether actor/component touch events should be generated. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MouseInterface)
 	uint32 bEnableTouchEvents:1;
 
