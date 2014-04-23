@@ -217,6 +217,13 @@ namespace SceneOutliner
 		/** Build a context menu for right-clicking an item in the tree */
 		TSharedPtr<SWidget> BuildDefaultContextMenu() const;
 		void FillFoldersSubMenu(FMenuBuilder& MenuBuilder) const;
+		void FillSelectionSubMenu(FMenuBuilder& MenuBuilder) const;
+
+		/** Select the immediate children of the currently selected folders */
+		void SelectFoldersImmediateChildren() const;
+
+		/** Called to select all the descendants of the currently selected folders */
+		void SelectFoldersDescendants() const;
 
 		/** Move the selected items to the specified parent */
 		void MoveSelectionTo(TSharedRef<TOutlinerTreeItem> NewParent);
@@ -333,6 +340,8 @@ namespace SceneOutliner
 		/** @return the foreground color for the view button */
 		FSlateColor GetViewButtonForegroundColor() const;
 
+		/** Get an array of selected folders in this scene outliner */
+		TArray<TSharedRef<TOutlinerFolderTreeItem>> GetSelectedFolders() const;
 
 		/** FILTERS */
 		/** @return whether we are displaying only selected Actors */
