@@ -363,6 +363,52 @@ namespace MovementBaseUtility
 			}
 		}
 	}
+
+	FVector GetMovementBaseVelocity(const class UPrimitiveComponent* MovementBase)
+	{
+		FVector BaseVelocity = FVector::ZeroVector;
+		if (MovementBaseUtility::IsDynamicBase(MovementBase))
+		{
+			BaseVelocity = MovementBase->GetComponentVelocity();
+			if (BaseVelocity.IsZero())
+			{
+				// Fall back to actor's Root component
+				const AActor* Owner = MovementBase->GetOwner();
+				if (Owner)
+				{
+					// Component might be moved manually (not by simulated physics or a movement component), see if the root component of the actor has a velocity.
+					BaseVelocity = MovementBase->GetOwner()->GetVelocity();
+				}				
+			}
+
+			// Fall back to physics velocity.
+			if (BaseVelocity.IsZero() && MovementBase->GetBodyInstance())
+			{
+				BaseVelocity = MovementBase->GetBodyInstance()->GetUnrealWorldVelocity();
+			}
+		}
+		
+		return BaseVelocity;
+	}
+
+	FVector GetMovementBaseTangentialVelocity(const class UPrimitiveComponent* MovementBase, const FVector& WorldLocation)
+	{
+		if (MovementBaseUtility::IsDynamicBase(MovementBase))
+		{
+			if (MovementBase->GetBodyInstance())
+			{
+				const FVector BaseAngVel = MovementBase->GetBodyInstance()->GetUnrealWorldAngularVelocity();
+				if (!BaseAngVel.IsZero())
+				{
+					const FVector RadialDistanceToBase = WorldLocation - MovementBase->GetComponentLocation();
+					const FVector TangentialVel = FMath::DegreesToRadians(BaseAngVel) ^ RadialDistanceToBase;
+					return TangentialVel;
+				}
+			}			
+		}
+		
+		return FVector::ZeroVector;
+	}
 }
 
 
@@ -537,20 +583,16 @@ void ACharacter::LaunchCharacter(FVector LaunchVelocity, bool bXYOverride, bool 
 	if (CharacterMovement)
 	{
 		FVector FinalVel = LaunchVelocity;
-		if (MovementBaseUtility::IsDynamicBase(MovementBase))
-		{
-			// Is this right? What if we are based on non root component and the root component has a velocity? Will it be lost?
-			FinalVel += MovementBase->GetComponentVelocity();
-		}
+		const FVector Velocity = GetVelocity();
 
 		if (!bXYOverride)
 		{
-			FinalVel.X += GetVelocity().X;
-			FinalVel.Y += GetVelocity().Y;
+			FinalVel.X += Velocity.X;
+			FinalVel.Y += Velocity.Y;
 		}
 		if (!bZOverride)
 		{
-			FinalVel.Z += GetVelocity().Z;
+			FinalVel.Z += Velocity.Z;
 		}
 
 		CharacterMovement->Launch(FinalVel);

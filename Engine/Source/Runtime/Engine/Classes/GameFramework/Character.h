@@ -80,6 +80,12 @@ namespace MovementBaseUtility
 
 	/** Remove tick dependency of BasedObjectTick on OldBase */
 	void RemoveTickDependency(FTickFunction& BasedObjectTick, class UPrimitiveComponent* OldBase);
+
+	/** Get the velocity of the given component, first checking the ComponentVelocity and falling back to the physics velocity if necessary. */
+	FVector GetMovementBaseVelocity(const class UPrimitiveComponent* MovementBase);
+
+	/** Get the tangential velocity at WorldLocation for the given component. */
+	FVector GetMovementBaseTangentialVelocity(const class UPrimitiveComponent* MovementBase, const FVector& WorldLocation);
 }
 
 /** Struct to hold relative position information from the server. */

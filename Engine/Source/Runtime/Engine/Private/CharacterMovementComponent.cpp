@@ -363,31 +363,15 @@ FVector UCharacterMovementComponent::GetImpartedMovementBaseVelocity() const
 	if (CharacterOwner)
 	{
 		UPrimitiveComponent* MovementBase = CharacterOwner->GetMovementBase();
-		if (MovementBase != NULL && (MovementBase->Mobility == EComponentMobility::Movable))
+		if (MovementBaseUtility::IsDynamicBase(MovementBase))
 		{
-			FVector BaseVelocity = MovementBase->GetComponentVelocity();
-			if (BaseVelocity.IsZero() && MovementBase->GetOwner())
-			{
-				// Component might be moved manually (not by simulated physics or a movement component), see if the root component of the actor has a velocity.
-				BaseVelocity = MovementBase->GetOwner()->GetVelocity();
-			}
-
-			// Fall back to physics velocity.
-			if (BaseVelocity.IsZero() && MovementBase->GetBodyInstance())
-			{
-				BaseVelocity = MovementBase->GetBodyInstance()->GetUnrealWorldVelocity();
-			}
-
+			FVector BaseVelocity = MovementBaseUtility::GetMovementBaseVelocity(MovementBase);
+			
 			if (bImpartBaseAngularVelocity)
 			{
-				const FVector BaseAngVel = MovementBase->GetPhysicsAngularVelocity();
-				if (!BaseAngVel.IsZero())
-				{
-					const FVector CharacterBasePosition = (UpdatedComponent->GetComponentLocation() - FVector(0.f, 0.f, CharacterOwner->CapsuleComponent->GetScaledCapsuleHalfHeight()));
-					const FVector RadialDistanceToBase = CharacterBasePosition - MovementBase->GetComponentLocation();
-					const FVector BaseLinearVelFromAngularVel = FMath::DegreesToRadians(BaseAngVel) ^ RadialDistanceToBase;
-					BaseVelocity += BaseLinearVelFromAngularVel;
-				}
+				const FVector CharacterBasePosition = (UpdatedComponent->GetComponentLocation() - FVector(0.f, 0.f, CharacterOwner->CapsuleComponent->GetScaledCapsuleHalfHeight()));
+				const FVector BaseTangentialVel = MovementBaseUtility::GetMovementBaseTangentialVelocity(MovementBase, CharacterBasePosition);
+				BaseVelocity += BaseTangentialVel;
 			}
 
 			if (bImpartBaseVelocityX)
