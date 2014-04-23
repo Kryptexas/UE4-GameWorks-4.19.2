@@ -303,7 +303,7 @@ namespace UnrealBuildTool
         public bool bUsesSteam;
 
 		/// <summary>
-		/// Whether the project uses visual Slate UI (as opposed to the low level windowing/messaging which is alway used)
+		/// Whether the project uses visual Slate UI (as opposed to the low level windowing/messaging which is always used)
 		/// </summary>
 		public bool bUsesSlate = true;
 
