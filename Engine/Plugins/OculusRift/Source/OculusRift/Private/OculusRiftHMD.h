@@ -210,7 +210,7 @@ private:
 	void		  SetHeadModel(const OVR::Vector3d&);
 
 #if !UE_BUILD_SHIPPING
-	void DrawDebugTrackingCameraFrustum(const FVector& ViewLocation);
+	void DrawDebugTrackingCameraFrustum(class UWorld* InWorld, const FVector& ViewLocation);
 #endif // #if !UE_BUILD_SHIPPING
 
 private: // data
