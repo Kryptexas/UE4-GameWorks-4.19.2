@@ -1086,6 +1086,13 @@ void FBlueprintEditor::InitBlueprintEditor(const EToolkitMode::Type Mode, const 
 				MakeShareable(new FBlueprintMacroApplicationMode( SharedThis(this) )));
 			SetCurrentMode(FBlueprintEditorApplicationModes::BlueprintMacroMode);
 		}
+		else if (SingleBP->BlueprintType == BPTYPE_FunctionLibrary)
+		{
+			AddApplicationMode(
+				FBlueprintEditorApplicationModes::StandardBlueprintEditorMode,
+				MakeShareable(new FBlueprintEditorApplicationMode(SharedThis(this), FBlueprintEditorApplicationModes::StandardBlueprintEditorMode)));
+			SetCurrentMode(FBlueprintEditorApplicationModes::StandardBlueprintEditorMode);
+		}
 		else
 		{
 			AddApplicationMode(
@@ -1860,7 +1867,7 @@ bool FBlueprintEditor::ReparentBlueprint_IsVisible() const
 	if (Blueprint != NULL)
 	{
 		// Don't show the reparent option if it's an Interface or we're not in editing mode
-		return !FBlueprintEditorUtils::IsInterfaceBlueprint(Blueprint) && InEditingMode();
+		return !FBlueprintEditorUtils::IsInterfaceBlueprint(Blueprint) && InEditingMode() && (BPTYPE_FunctionLibrary != Blueprint->BlueprintType);
 	}
 	else
 	{
@@ -2515,7 +2522,8 @@ bool FBlueprintEditor::CanAccessComponentsMode() const
 		UBlueprint* Blueprint = GetBlueprintObj();
 		bCanAccess = Blueprint->SimpleConstructionScript != NULL		// An SCS must be present (otherwise there is nothing valid to edit)
 			&& FBlueprintEditorUtils::IsActorBased(Blueprint)			// Must be parented to an AActor-derived class (some older BPs may have an SCS but may not be Actor-based)
-			&& Blueprint->BlueprintType != BPTYPE_MacroLibrary;			// Must not be a macro-type Blueprint
+			&& Blueprint->BlueprintType != BPTYPE_MacroLibrary			// Must not be a macro-type Blueprint
+			&& Blueprint->BlueprintType != BPTYPE_FunctionLibrary;		// Must not be a function library
 	}
 	
 	return bCanAccess;
@@ -5441,7 +5449,9 @@ bool FBlueprintEditor::NewDocument_IsVisibleForType(ECreatedDocumentType GraphTy
 	switch (GraphType)
 	{
 	case CGT_NewVariable:
-		return (GetBlueprintObj()->BlueprintType != BPTYPE_Interface) && (GetBlueprintObj()->BlueprintType != BPTYPE_MacroLibrary);
+		return (GetBlueprintObj()->BlueprintType != BPTYPE_FunctionLibrary) 
+			&& (GetBlueprintObj()->BlueprintType != BPTYPE_Interface) 
+			&& (GetBlueprintObj()->BlueprintType != BPTYPE_MacroLibrary);
 	case CGT_NewFunctionGraph:
 		return (GetBlueprintObj()->BlueprintType != BPTYPE_MacroLibrary);
 	case CGT_NewMacroGraph:
@@ -5462,7 +5472,8 @@ bool FBlueprintEditor::AddNewDelegateIsVisible() const
 	const UBlueprint* Blueprint = GetBlueprintObj();
 	return (NULL != Blueprint)
 		&& (Blueprint->BlueprintType != BPTYPE_Interface) 
-		&& (Blueprint->BlueprintType != BPTYPE_MacroLibrary);
+		&& (Blueprint->BlueprintType != BPTYPE_MacroLibrary)
+		&& (Blueprint->BlueprintType != BPTYPE_FunctionLibrary);
 }
 
 void FBlueprintEditor::NotifyPreChange(UProperty* PropertyAboutToChange)

@@ -6258,6 +6258,65 @@ UObject* UBlueprintMacroFactory::FactoryCreateNew(UClass* Class, UObject* InPare
 	}
 }
 
+/*------------------------------------------------------------------------------
+BlueprintFunctionLibraryFactory implementation.
+------------------------------------------------------------------------------*/
+UBlueprintFunctionLibraryFactory::UBlueprintFunctionLibraryFactory(const class FPostConstructInitializeProperties& PCIP)
+: Super(PCIP)
+{
+	struct FCanCreateNewHelper
+	{
+		bool bCanCreateNew;
+		FCanCreateNewHelper() : bCanCreateNew(false)
+		{
+			GConfig->GetBool(TEXT("CustomBlueprintFunctionLibrary"), TEXT("bCanCreateNew"), bCanCreateNew, GEditorIni);
+		}
+	};
+	static const FCanCreateNewHelper Helper;
+	bCreateNew = Helper.bCanCreateNew;
+	bEditAfterNew = true;
+	SupportedClass = UBlueprint::StaticClass();
+	ParentClass = UBlueprintFunctionLibrary::StaticClass();
+}
+
+FText UBlueprintFunctionLibraryFactory::GetDisplayName() const
+{
+	return LOCTEXT("BlueprintFunctionLibraryFactoryDescription", "Blueprint Function Library");
+}
+
+FName UBlueprintFunctionLibraryFactory::GetNewAssetThumbnailOverride() const
+{
+	return TEXT("ClassThumbnail.BlueprintMacroLibrary");
+}
+
+uint32 UBlueprintFunctionLibraryFactory::GetMenuCategories() const
+{
+	// Force this factory into the misc category, since it does not belong in the top menu
+	return EAssetTypeCategories::Misc;
+}
+
+UObject* UBlueprintFunctionLibraryFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn, FName CallingContext)
+{
+	// Make sure we are trying to factory a blueprint, then create and init one
+	check(Class->IsChildOf(UBlueprint::StaticClass()));
+
+	if ((ParentClass == NULL) || !FKismetEditorUtilities::CanCreateBlueprintOfClass(ParentClass))
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("ClassName"), (ParentClass != NULL) ? FText::FromString(ParentClass->GetName()) : LOCTEXT("Null", "(null)"));
+		FMessageDialog::Open(EAppMsgType::Ok, FText::Format(LOCTEXT("CannotCreateBlueprintFromClass", "Cannot create a blueprint based on the class '{0}'."), Args));
+		return NULL;
+	}
+	else
+	{
+		return FKismetEditorUtilities::CreateBlueprint(ParentClass, InParent, Name, BPTYPE_FunctionLibrary, UBlueprint::StaticClass(), CallingContext);
+	}
+}
+
+bool UBlueprintFunctionLibraryFactory::ConfigureProperties()
+{
+	return true;
+}
 
 /*------------------------------------------------------------------------------
 	UBlueprintInterfaceFactory implementation.

@@ -1454,8 +1454,9 @@ void FK2ActionMenuBuilder::GetFuncNodesForClass(FGraphActionListBuilderBase& Lis
 		for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
 		{
 			UClass* TestClass = *ClassIt;
+			const bool bIsSkeletonClass = TestClass->HasAnyFlags(RF_Transient) && TestClass->HasAnyClassFlags(CLASS_CompiledFromBlueprint);
 			if (TestClass->IsChildOf(UBlueprintFunctionLibrary::StaticClass()) &&
-				CanUseLibraryFunctionsForScope(TestClass, OwnerClass))
+				CanUseLibraryFunctionsForScope(TestClass, OwnerClass) && !bIsSkeletonClass)
 			{
 				GetFuncNodesForClass(ListBuilder, TestClass, OwnerClass, DestGraph, FunctionTypes, BaseCategory, TargetInfo);
 			}
@@ -2481,8 +2482,9 @@ void FK2ActionMenuBuilder::GetFuncNodesWithPinType(FBlueprintGraphActionListBuil
 		for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
 		{
 			UClass* TestClass = *ClassIt;
+			const bool bIsSkeletonClass = TestClass->HasAnyFlags(RF_Transient) && TestClass->HasAnyClassFlags(CLASS_CompiledFromBlueprint);
 			if (TestClass->IsChildOf(UBlueprintFunctionLibrary::StaticClass()) &&
-				CanUseLibraryFunctionsForScope(OwnerClass, TestClass))
+				CanUseLibraryFunctionsForScope(OwnerClass, TestClass) && !bIsSkeletonClass)
 			{
 				GetFuncNodesWithPinType(ContextMenuBuilder, TestClass, OwnerClass, DesiredPinType, bWantOutput, bPureOnly);
 			}

@@ -1540,7 +1540,12 @@ void FBlueprintEditorUtils::AddFunctionGraph(UBlueprint* Blueprint, class UEdGra
 		if (bIsUserCreated)
 		{
 			// We need to flag the entry node to make sure that the compiled function is callable from Kismet2
-			K2Schema->AddExtraFunctionFlags(Graph, (FUNC_BlueprintCallable|FUNC_BlueprintEvent|FUNC_Public));
+			int32 ExtraFunctionFlags = (FUNC_BlueprintCallable | FUNC_BlueprintEvent | FUNC_Public);
+			if (BPTYPE_FunctionLibrary == Blueprint->BlueprintType)
+			{
+				ExtraFunctionFlags |= FUNC_Static;
+			}
+			K2Schema->AddExtraFunctionFlags(Graph, ExtraFunctionFlags);
 			K2Schema->MarkFunctionEntryAsEditable(Graph, true);
 		}
 	}
@@ -2170,7 +2175,8 @@ bool FBlueprintEditorUtils::SupportsConstructionScript(const UBlueprint* Bluepri
 			!FBlueprintEditorUtils::IsBlueprintConst(Blueprint) && 
 			!FBlueprintEditorUtils::IsLevelScriptBlueprint(Blueprint) && 
 			FBlueprintEditorUtils::IsActorBased(Blueprint)) &&
-			!(Blueprint->BlueprintType == BPTYPE_MacroLibrary);
+			!(Blueprint->BlueprintType == BPTYPE_MacroLibrary) &&
+			!(Blueprint->BlueprintType == BPTYPE_FunctionLibrary);
 }
 
 UEdGraph* FBlueprintEditorUtils::FindUserConstructionScript(const UBlueprint* Blueprint)
@@ -2224,7 +2230,8 @@ bool FBlueprintEditorUtils::DoesBlueprintContainField(const UBlueprint* Blueprin
 bool FBlueprintEditorUtils::DoesSupportOverridingFunctions(const UBlueprint* Blueprint)
 {
 	return Blueprint->BlueprintType != BPTYPE_MacroLibrary 
-		&& Blueprint->BlueprintType != BPTYPE_Interface;
+		&& Blueprint->BlueprintType != BPTYPE_Interface
+		&& Blueprint->BlueprintType != BPTYPE_FunctionLibrary;
 }
 
 bool FBlueprintEditorUtils::DoesSupportTimelines(const UBlueprint* Blueprint)
@@ -2242,9 +2249,10 @@ bool FBlueprintEditorUtils::DoesSupportEventGraphs(const UBlueprint* Blueprint)
 /** Returns whether or not the blueprint supports implementing interfaces */
 bool FBlueprintEditorUtils::DoesSupportImplementingInterfaces(const UBlueprint* Blueprint)
 {
-	return Blueprint->BlueprintType != BPTYPE_MacroLibrary 
-		&& Blueprint->BlueprintType != BPTYPE_Interface 
-		&& Blueprint->BlueprintType != BPTYPE_LevelScript;
+	return Blueprint->BlueprintType != BPTYPE_MacroLibrary
+		&& Blueprint->BlueprintType != BPTYPE_Interface
+		&& Blueprint->BlueprintType != BPTYPE_LevelScript
+		&& Blueprint->BlueprintType != BPTYPE_FunctionLibrary;
 }
 
 // Returns a descriptive name of the type of blueprint passed in
@@ -2262,6 +2270,7 @@ FString FBlueprintEditorUtils::GetBlueprintTypeDescription(const UBlueprint* Blu
 	case BPTYPE_Interface:
 		BlueprintTypeString = LOCTEXT("BlueprintType_Interface", "Interface").ToString();
 		break;
+	case BPTYPE_FunctionLibrary:
 	case BPTYPE_Normal:
 	case BPTYPE_Const:
 		BlueprintTypeString = Blueprint->GetClass()->GetName();
