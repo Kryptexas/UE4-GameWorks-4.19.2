@@ -504,7 +504,7 @@ void FWorldTileModel::SetLevelPosition(const FIntPoint& InPosition)
 void FWorldTileModel::FixLandscapeSectionsOffset()
 {
 	check(IsLandscapeBased());
-	ULandscapeInfo::RecreateLandscapeInfo(LevelCollectionModel.GetWorld(), true);
+	Editor->DeferredCommands.AddUnique(TEXT("UpdateLandscapeEditorData"));
 }
 
 void FWorldTileModel::Update()
@@ -884,7 +884,7 @@ bool FWorldTileModel::CreateAdjacentLandscapeProxy(ALandscapeProxy* SourceLandsc
 		}
 
 		// Add source level position
-		FIntPoint IntOffset = FIntPoint(ProxyOffset.X, ProxyOffset.Y) + SourceTileOffset;
+		FIntPoint IntOffset = FIntPoint(ProxyOffset.X, ProxyOffset.Y) + LevelCollectionModel.GetWorld()->GlobalOriginOffset;
 
 		// Move level with landscape proxy to desired position
 		SetLevelPosition(IntOffset);

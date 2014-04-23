@@ -1786,8 +1786,8 @@ void ULandscapeInfo::RecreateLandscapeInfo(UWorld* InWorld, bool bMapCheck)
 				FVector	DrawScale = FirstVisibleLandscape->GetRootComponent()->RelativeScale3D;
 				
 				FIntPoint QuadsSpaceOffset; 
-				QuadsSpaceOffset.X = Offset.X/DrawScale.X;
-				QuadsSpaceOffset.Y = Offset.Y/DrawScale.Y;
+				QuadsSpaceOffset.X = FMath::Round(Offset.X/DrawScale.X);
+				QuadsSpaceOffset.Y = FMath::Round(Offset.Y/DrawScale.Y);
 				Proxy->SetAbsoluteSectionBase(QuadsSpaceOffset);
 			}
 
