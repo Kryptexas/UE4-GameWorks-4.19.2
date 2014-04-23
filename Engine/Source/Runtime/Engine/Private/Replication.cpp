@@ -55,13 +55,13 @@ void AMatineeActor::PreNetReceive()
 
 	SavedInterpData = MatineeData;
 
- 	if (MatineeData != NULL)
- 	{
- 		SavedbIsPlaying = bIsPlaying;
- 		SavedPosition = InterpPosition;
+	if (MatineeData != NULL)
+	{
+		SavedbIsPlaying = bIsPlaying;
+		SavedPosition = InterpPosition;
 		SavedbReversePlayback = bReversePlayback;
 		SavedReplicationForceIsPlaying = ReplicationForceIsPlaying;
- 	}
+	}
 }
 
 /** @hack: saves and restores fade state for a PC when it goes out of scope

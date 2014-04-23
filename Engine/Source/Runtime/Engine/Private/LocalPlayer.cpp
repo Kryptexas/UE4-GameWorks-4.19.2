@@ -293,15 +293,15 @@ void ULocalPlayer::GetViewPoint(FMinimalViewInfo& OutViewInfo)
 		}
 	}
 
-    // allow HMDs to override fov
-    if (GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D())
-    {
-        float HmdFov = GEngine->HMDDevice->GetFieldOfViewInRadians();
-        if (HmdFov > 0)
-        {
-            OutViewInfo.FOV = HmdFov;
-        }
-    }
+	// allow HMDs to override fov
+	if (GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D())
+	{
+		float HmdFov = GEngine->HMDDevice->GetFieldOfViewInRadians();
+		if (HmdFov > 0)
+		{
+			OutViewInfo.FOV = HmdFov;
+		}
+	}
 }
 
 FSceneView* ULocalPlayer::CalcSceneView( class FSceneViewFamily* ViewFamily, 
@@ -618,11 +618,11 @@ bool ULocalPlayer::GetProjectionData(FViewport* Viewport, EStereoscopicPass Ster
 	// scale distances for cull distance purposes by the ratio of our current FOV to the default FOV
 	PlayerController->LocalPlayerCachedLODDistanceFactor = ViewInfo.FOV / FMath::Max<float>(0.01f, (PlayerController->PlayerCameraManager != NULL) ? PlayerController->PlayerCameraManager->DefaultFOV : 90.f);
 	
-    FVector StereoViewLocation = ViewInfo.Location;
-    if (GEngine->IsStereoscopic3D() && StereoPass != eSSP_FULL)
-    {
-        GEngine->StereoRenderingDevice->CalculateStereoViewOffset(StereoPass, ViewInfo.Rotation, GetWorld()->GetWorldSettings()->WorldToMeters, StereoViewLocation);
-    }
+	FVector StereoViewLocation = ViewInfo.Location;
+	if (GEngine->IsStereoscopic3D() && StereoPass != eSSP_FULL)
+	{
+		GEngine->StereoRenderingDevice->CalculateStereoViewOffset(StereoPass, ViewInfo.Rotation, GetWorld()->GetWorldSettings()->WorldToMeters, StereoViewLocation);
+	}
 
 	// Create the view matrix
 	ProjectionData.ViewMatrix = FTranslationMatrix(-StereoViewLocation);
