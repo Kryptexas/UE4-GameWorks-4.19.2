@@ -6,9 +6,6 @@ using System.Linq;
 using System.Text;
 using System.Xml;
 using System.IO;
-using System.Diagnostics;
-using Ionic.Zip;
-using Ionic.Zlib;
 
 namespace UnrealBuildTool.IOS
 {
@@ -65,32 +62,6 @@ namespace UnrealBuildTool.IOS
 				// remove any read only flags
 				FileInfo DestFileInfo = new FileInfo(DestFilename);
 				DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
-			}
-		}
-
-		/// <summary>
-		/// Process.OutputDataReceived event handler.
-		/// </summary>
-		/// <param name="sender">Sender</param>
-		/// <param name="e">Event args</param>
-		private void StdOut(object sender, DataReceivedEventArgs e)
-		{
-			if (e.Data != null)
-			{
-				Console.WriteLine (e.Data);
-			}
-		}
-
-		/// <summary>
-		/// Process.ErrorDataReceived event handler.
-		/// </summary>
-		/// <param name="sender">Sender</param>
-		/// <param name="e">Event args</param>
-		private void StdErr(object sender, DataReceivedEventArgs e)
-		{
-			if (e.Data != null)
-			{
-				Console.WriteLine ("Error: " + e.Data);
 			}
 		}
 
@@ -151,11 +122,6 @@ namespace UnrealBuildTool.IOS
 				File.Copy (ProvisionWithPrefix, Environment.GetEnvironmentVariable ("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + InProjectName + ".mobileprovision", true);
 				FileInfo DestFileInfo = new FileInfo (Environment.GetEnvironmentVariable ("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + InProjectName + ".mobileprovision");
 				DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
-
-				if (BuildConfiguration.bCreateStubIPA)
-				{
-					File.Copy (ProvisionWithPrefix, AppDirectory + "/embedded.mobileprovision");
-				}
 			}
 
 			// install the distribution provision
@@ -176,12 +142,6 @@ namespace UnrealBuildTool.IOS
 			if (File.Exists(BuildDirectory + "/" + InProjectName + "-Info.plist"))
 			{
 				PListFile = BuildDirectory + "/" + InProjectName + "-Info.plist";
-			}
-
-			string Entitlements = InEngineDir + "/Build/IOS/UE4Game.entitlements";
-			if (File.Exists(BuildDirectory + "/" + InProjectName + ".entitlements"))
-			{
-				Entitlements = BuildDirectory + "/" + InProjectName + ".entitlements";
 			}
 
 			Dictionary<string, string> Replacements = new Dictionary<string, string>();
