@@ -1050,6 +1050,12 @@ void SLevelViewport::BindViewCommands( FUICommandList& CommandList )
 		);
 
 	CommandList.MapAction(
+		ViewportActions.ViewportConfig_OnePane,
+		FExecuteAction::CreateSP(this, &SLevelViewport::OnSetViewportConfiguration, LevelViewportConfigurationNames::OnePane),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SLevelViewport::IsViewportConfigurationSet, LevelViewportConfigurationNames::OnePane));
+
+	CommandList.MapAction(
 		ViewportActions.ViewportConfig_TwoPanesH,
 		FExecuteAction::CreateSP( this, &SLevelViewport::OnSetViewportConfiguration, LevelViewportConfigurationNames::TwoPanesHoriz ),
 		FCanExecuteAction(),
@@ -1296,8 +1302,15 @@ EVisibility SLevelViewport::GetToolBarVisibility() const
 
 EVisibility SLevelViewport::GetMaximizeToggleVisibility() const
 {
+	bool bIsMaximizeSupported = false;
+	TSharedPtr<FLevelViewportLayout> LayoutPinned = ParentLayout.Pin();
+	if (LayoutPinned.IsValid())
+	{
+		bIsMaximizeSupported = LayoutPinned->IsMaximizeSupported();
+	}
+
 	// Do not show the maximize/minimize toggle when in immersive mode
-	return IsImmersive() ? EVisibility::Collapsed : EVisibility::Visible;
+	return (!bIsMaximizeSupported || IsImmersive()) ? EVisibility::Collapsed : EVisibility::Visible;
 }
 
 EVisibility SLevelViewport::GetCloseImmersiveButtonVisibility() const
@@ -2042,7 +2055,8 @@ void  SLevelViewport::OnToggleMaximizeMode()
 
 FReply SLevelViewport::OnToggleMaximize()
 {
-	if( ParentLayout.IsValid() ) 
+	TSharedPtr<FLevelViewportLayout> ParentLayoutPinned = ParentLayout.Pin();
+	if (ParentLayoutPinned.IsValid() && ParentLayoutPinned->IsMaximizeSupported())
 	{
 		bool bWantImmersive = IsImmersive();
 		bool bWantMaximize = IsMaximized();
@@ -2060,7 +2074,7 @@ FReply SLevelViewport::OnToggleMaximize()
 		// We always want to animate in response to user-interactive toggling of maximized state
 		const bool bAllowAnimation = true;
 
-		ParentLayout.Pin()->RequestMaximizeViewport( SharedThis( this ), bWantMaximize, bWantImmersive, bAllowAnimation );
+		ParentLayoutPinned->RequestMaximizeViewport(SharedThis(this), bWantMaximize, bWantImmersive, bAllowAnimation);
 	}
 	return FReply::Handled();
 }

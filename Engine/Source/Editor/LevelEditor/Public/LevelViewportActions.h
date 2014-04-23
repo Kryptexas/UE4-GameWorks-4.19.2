@@ -21,6 +21,7 @@ namespace LevelViewportConfigurationNames
 	static FName FourPanesTop("FourPanesTop");
 	static FName FourPanesBottom("FourPanesBottom");
 	static FName FourPanes2x2("FourPanes2x2");
+	static FName OnePane("OnePane");
 }
 
 /**
@@ -140,6 +141,7 @@ public:
 	TSharedPtr< FUICommandInfo > ActorUnlockSelected;
 
 	/** Viewport pane configurations */
+	TSharedPtr< FUICommandInfo > ViewportConfig_OnePane;
 	TSharedPtr< FUICommandInfo > ViewportConfig_TwoPanesH;
 	TSharedPtr< FUICommandInfo > ViewportConfig_TwoPanesV;
 	TSharedPtr< FUICommandInfo > ViewportConfig_ThreePanesLeft;

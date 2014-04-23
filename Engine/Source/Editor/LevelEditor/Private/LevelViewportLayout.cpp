@@ -128,6 +128,7 @@ FLevelViewportLayout::FLevelViewportLayout()
 	: bIsTransitioning( false ),
 	  bIsReplacement( false ),
 	  bIsQueryingLayoutMetrics( false ),
+	  bIsMaximizeSupported( true ),
 	  bIsMaximized( false ),
 	  bIsImmersive( false ),
 	  bWasMaximized( false ),
@@ -216,7 +217,7 @@ void  FLevelViewportLayout::EndThrottleForAnimatedResize()
 
 void FLevelViewportLayout::InitCommonLayoutFromString( const FString& SpecificLayoutString )
 {
-	bool bShouldBeMaximized = ViewportLayoutDefs::bDefaultShouldBeMaximized;
+	bool bShouldBeMaximized = bIsMaximizeSupported && ViewportLayoutDefs::bDefaultShouldBeMaximized;
 	bool bShouldBeImmersive = ViewportLayoutDefs::bDefaultShouldBeImmersive;
 	int32 MaximizedViewportID = ViewportLayoutDefs::DefaultMaximizedViewportID;
 	if (!SpecificLayoutString.IsEmpty())
@@ -228,7 +229,7 @@ void FLevelViewportLayout::InitCommonLayoutFromString( const FString& SpecificLa
 		GConfig->GetInt(*IniSection, *(SpecificLayoutString + TEXT(".MaximizedViewportID")), MaximizedViewportID, GEditorUserSettingsIni);
 	}
 	// Replacement layouts (those selected by the user via a command) don't start maximized so the layout can be seen clearly.
-	if (!bIsReplacement && MaximizedViewportID >= 0 && MaximizedViewportID < Viewports.Num() && (bShouldBeMaximized || bShouldBeImmersive))
+	if (!bIsReplacement && bIsMaximizeSupported && MaximizedViewportID >= 0 && MaximizedViewportID < Viewports.Num() && (bShouldBeMaximized || bShouldBeImmersive))
 	{
 		TSharedRef<SLevelViewport> LevelViewport = Viewports[MaximizedViewportID].ToSharedRef();
 		// we are not toggling maximize or immersive state but setting it directly
@@ -255,7 +256,7 @@ void FLevelViewportLayout::SaveCommonLayoutString( const FString& SpecificLayout
 		}
 	}
 
-	GConfig->SetBool(*IniSection, *(SpecificLayoutString + TEXT(".bIsMaximized")), bIsMaximized, GEditorUserSettingsIni);
+	GConfig->SetBool(*IniSection, *(SpecificLayoutString + TEXT(".bIsMaximized")), bIsMaximizeSupported && bIsMaximized, GEditorUserSettingsIni);
 	GConfig->SetBool(*IniSection, *(SpecificLayoutString + TEXT(".bIsImmersive")), bIsImmersive, GEditorUserSettingsIni);
 	GConfig->SetInt(*IniSection, *(SpecificLayoutString + TEXT(".MaximizedViewportID")), MaximizedViewportID, GEditorUserSettingsIni);
 }
@@ -284,6 +285,7 @@ void FLevelViewportLayout::MaximizeViewport( TSharedRef<SLevelViewport> Viewport
 {
 	// Should never get into a situation where the viewport is being maximized and there is already a maximized viewport. 
 	// I.E Maximized viewport is NULL which means this is a new maximize or MaximizeViewport is equal to the passed in one which means this is a restore of the current maximized viewport
+	check( bIsMaximizeSupported );
 	check( Viewports.Contains( ViewportToMaximize ) );
 	check( !MaximizedViewport.IsValid() || MaximizedViewport == ViewportToMaximize );
 
