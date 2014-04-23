@@ -591,9 +591,7 @@ public:
 		SplinesComponent->Modify();
 		ControlPoint->Modify();
 
-		const ALandscapeProxy* Landscape = CastChecked<ALandscapeProxy>(SplinesComponent->GetOuter());
-		const FTransform LocalToWorld = Landscape->GetTransform();
-
+		const FTransform LocalToWorld = SplinesComponent->GetComponentToWorld();
 		const FVector Start = LocalToWorld.TransformPosition(ControlPoint->Location);
 		const FVector End = Start + FVector(0, 0, -HALF_WORLD_MAX);
 
