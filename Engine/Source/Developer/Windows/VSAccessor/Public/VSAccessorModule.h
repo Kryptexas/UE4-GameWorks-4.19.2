@@ -133,6 +133,24 @@ private:
 	 */
 	void AddVisualStudioVersion(const int MajorVersion, const bool bAllowExpress = true);
 
+	/** 
+	 * Run a new instance Visual Studio, optionally opening the provided solution and list of files
+	 * 
+	 * @param	ExecutablePath	Path to the Visual Studio executable to open
+	 * @param	SolutionPath	Path to the solution to open, or an empty string to open no solution
+	 * @param	Requests		Array of files to open, or null to open no files
+	 */
+	bool RunVisualStudioAndOpenSolutionAndFiles(const FString& ExecutablePath, const FString& SolutionPath, const TArray<FileOpenRequest>* const Requests) const;
+
+#if VSACCESSOR_HAS_DTE
+	/** DTE specific implementations */
+	bool OpenVisualStudioSolutionViaDTE();
+	bool OpenVisualStudioFilesInternalViaDTE(const TArray<FileOpenRequest>& Requests, bool& bWasDeferred);
+#endif
+	/** Fallback (non-DTE) implementations */
+	bool OpenVisualStudioSolutionViaProcess();
+	bool OpenVisualStudioFilesInternalViaProcess(const TArray<FileOpenRequest>& Requests);
+
 private:
 
 	/** The versions of VS we support, in preference order */
