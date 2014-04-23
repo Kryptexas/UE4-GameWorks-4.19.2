@@ -127,6 +127,7 @@ protected:
 public:
 	// FApplicationMode interface
 	virtual void RegisterTabFactories(TSharedPtr<FTabManager> InTabManager) OVERRIDE;
+	virtual void PostActivateMode() OVERRIDE;
 	// End of FApplicationMode interface
 
 protected:

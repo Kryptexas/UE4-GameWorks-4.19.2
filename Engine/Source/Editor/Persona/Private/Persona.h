@@ -181,6 +181,9 @@ public:
 	/** Returns the editors preview scene */
 	FPreviewScene& GetPreviewScene() { return PreviewScene; }
 
+	/** Gets called when it's clicked via mode tab - Reinitialize the mode **/
+	void ReinitMode();
+
 public:
 	// IToolkit interface
 	virtual FName GetToolkitFName() const OVERRIDE;

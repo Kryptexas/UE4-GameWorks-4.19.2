@@ -69,6 +69,15 @@ void FPersonaAppMode::RegisterTabFactories(TSharedPtr<FTabManager> InTabManager)
 	BP->PushTabFactories(PersonaTabFactories);
 }
 
+void FPersonaAppMode::PostActivateMode()
+{
+	FApplicationMode::PostActivateMode();
+
+	if(MyPersona.IsValid())
+	{
+		MyPersona.Pin()->ReinitMode();
+	}
+}
 /////////////////////////////////////////////////////
 // FPersonaModeSharedData
 
