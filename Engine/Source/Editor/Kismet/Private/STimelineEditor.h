@@ -4,44 +4,6 @@
 
 #include "BlueprintEditor.h"
 
-
-//////////////////////////////////////////////////////////////////////////
-// SCurveAssetWidget
-class SCurveAssetWidget : public SCompoundWidget
-{
-public:
-	SLATE_BEGIN_ARGS( SCurveAssetWidget ){}
-	SLATE_ATTRIBUTE( FString, VisibleText )
-		SLATE_EVENT( FSimpleDelegate, OnCreateCurve )
-		SLATE_EVENT( FOnTextChanged, OnTextChanged )
-	SLATE_END_ARGS()
-
-
-	void Construct(const FArguments& InArgs);
-
-private:
-
-	/**	Reference to editable text */
-	TAttribute< FString > VisibleText;
-
-	/**	Callback function pointer to execute curve asset creation command */
-	FSimpleDelegate OnCreateCurve;
-
-	/** Callback function pointer to notify editable text changes */
-	FOnTextChanged OnTextChanged;
-
-	/** Widget that we want to be focused when the popup is shown  */
-	TSharedPtr<SWidget> WidgetWithDefaultFocus;
-
-	/** Function to execute curve asset creation command */
-	FReply OnCreateButtonClicked( );
-
-
-	/** Function to notify editable text changes */
-	void OnEditableTextChanged( const FText& NewString );
-};
-
-
 //////////////////////////////////////////////////////////////////////////
 // FTimelineEdTrack
 
@@ -106,9 +68,6 @@ private:
 	/**	Pointer to a window which prompts user to save internal curve as an external asset */
 	TSharedPtr<SWindow> AssetCreationWindow;
 
-	/**	File path to be used to save the external curve asset */
-	FString SaveCurveAssetPath;
-
 	/**	Pointer to the curve */
 	UCurveBase* CurveBasePtr;
 
@@ -118,17 +77,8 @@ private:
 	/** String to display external curve path as tooltip*/
 	FString ExternalCurvePath;
 
-	/**	Get curve asset path used to save the asset*/
-	FString GetSaveCurvePath() const;
-
-	/** Set curve asset path used to save the asset*/
-	void SetSaveCurvePath(const FText& NewStr);
-
 	/**Function to destroy popup window*/
 	void OnCloseCreateCurveWindow();
-
-	/** Callback function to confirm button press in order to create curve asset */
-	void OnCreateButtonClicked();
 
 	/** Function to create curve asset inside the user specified package*/
 	UCurveBase* CreateCurveAsset();
@@ -136,11 +86,8 @@ private:
 	/** Callback function to initiate the external curve asset creation process*/
 	void OnCreateExternalCurve();
 
-	/** Function to create dialog which prompts to create external curve*/
-	TSharedRef<SWidget> CreateCurveAssetWidget();
-
-	/** Initialize default asset path*/
-	void InitCurveAssetPath();
+	/** Creates default asset path*/
+	FString CreateUniqueCurveAssetPathName();
 
 	/** Get the current external curve name*/
 	FText GetExternalCurveName( ) const;
