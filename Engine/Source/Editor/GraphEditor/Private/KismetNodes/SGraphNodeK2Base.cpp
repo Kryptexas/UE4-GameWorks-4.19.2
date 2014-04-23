@@ -76,9 +76,7 @@ void SGraphNodeK2Base::UpdateCompactNode()
 			]
 			+SOverlay::Slot()
 			.HAlign(HAlign_Center)
-			// Pad out so that the node circles do not
-			// overlap the background text.
-			.Padding( FMargin(23,0) )
+			.VAlign(VAlign_Center)
 			[
 				// MIDDLE
 				SNew(STextBlock)
@@ -90,7 +88,7 @@ void SGraphNodeK2Base::UpdateCompactNode()
 			[
 				SNew(SHorizontalBox)
 				+SHorizontalBox::Slot()
-				.Padding( FMargin(0,0,5,0) )
+				.Padding(0)
 				.HAlign(HAlign_Left)
 				.VAlign(VAlign_Center)
 				.FillWidth(1.0f)
@@ -100,7 +98,7 @@ void SGraphNodeK2Base::UpdateCompactNode()
 				]
 				+SHorizontalBox::Slot()
 				.AutoWidth()
-				.Padding( FMargin(5,0,0,0) )
+				.Padding(0)
 				.HAlign(HAlign_Right)
 				.VAlign(VAlign_Center)
 				[

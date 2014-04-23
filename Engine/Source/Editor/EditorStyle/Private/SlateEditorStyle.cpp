@@ -3100,6 +3100,18 @@ void FSlateEditorStyle::FStyle::SetupGraphEditorStyles()
 					);
 			}
 
+			// VectorEditableTextBox
+			{
+				Set( "Graph.VectorEditableTextBox", FEditableTextBoxStyle()
+					.SetBackgroundImageNormal( BOX_BRUSH( "Graph/CommonWidgets/TextBox", FMargin(4.0f/16.0f) ) )
+					.SetBackgroundImageHovered( BOX_BRUSH( "Graph/CommonWidgets/TextBox_Hovered", FMargin(4.0f/16.0f) ) )
+					.SetBackgroundImageFocused( BOX_BRUSH( "Graph/CommonWidgets/TextBox_Hovered", FMargin(4.0f/16.0f) ) )
+					.SetBackgroundImageReadOnly( BOX_BRUSH( "Graph/CommonWidgets/TextBox", FMargin(4.0f/16.0f) ) )
+					.SetForegroundColor( FLinearColor::White )
+					.SetBackgroundColor( FLinearColor::Blue )
+					);
+			}
+
 			// Check Box
 			{
 				/* Set images for various SCheckBox states of style Graph.Checkbox ... */

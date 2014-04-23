@@ -36,6 +36,8 @@ public:
 		, _MinSliderValue(0)
 		, _MaxSliderValue(100)
 		, _SliderExponent(1.f)
+		, _BorderForegroundColor(FCoreStyle::Get().GetSlateColor("InvertedForeground"))
+		, _BorderBackgroundColor(FLinearColor::White)
 	{}		
 
 		/** Style to use for the editable text box within this widget */
@@ -47,6 +49,10 @@ public:
 		SLATE_ARGUMENT( EVerticalAlignment, LabelVAlign )
 		/** Padding around the label content */
 		SLATE_ARGUMENT( FMargin, LabelPadding )
+		/** Border Foreground Color */
+		SLATE_ARGUMENT( FSlateColor, BorderForegroundColor )
+		/** Border Background Color */
+		SLATE_ARGUMENT( FSlateColor, BorderBackgroundColor )
 		/** The value that should be displayed.  This value is optional in the case where a value cannot be determined */
 		SLATE_ATTRIBUTE( TOptional<NumericType>, Value )
 		/** The string to display if the value cannot be determined */
@@ -169,8 +175,8 @@ public:
 			[
 				SNew( SBorder )
 				.BorderImage( this, &SNumericEntryBox<NumericType>::GetBorderImage )
-				.BorderBackgroundColor( FLinearColor::White )
-				.ForegroundColor( FCoreStyle::Get().GetSlateColor("InvertedForeground") )
+				.BorderBackgroundColor( InArgs._BorderBackgroundColor )
+				.ForegroundColor( InArgs._BorderForegroundColor )
 				.Padding(0)
 				[
 					HorizontalBox
