@@ -68,6 +68,7 @@
     <Compile Include="GenerateDSYM.Automation.cs" />
     <Compile Include="GUBP.Automation.cs" />
     <Compile Include="IOSBuildCookPackage.Automation.cs" />
+    <Compile Include="LauncherLocalization.Automation.cs" />
     <Compile Include="Localisation.Automation.cs" />
     <Compile Include="MegaXGE.Automation.cs" />
     <Compile Include="PackageCommand.Automation.cs" />
