@@ -21,7 +21,6 @@ namespace UnrealBuildTool.Rules
 				new string[]
 				{
 					"CoreUObject",
-					"Networking",
 					"ProfilerMessages",
 				}
 			);

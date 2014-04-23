@@ -21,6 +21,7 @@ namespace UnrealBuildTool.Rules
 			PrivateIncludePaths.AddRange(
 				new string[] {
 					"UdpMessaging/Private",
+					"UdpMessaging/Private/Shared",
 					"UdpMessaging/Private/Transport",
 					"UdpMessaging/Private/Transport/Tests",
 					"UdpMessaging/Private/Tunnel",

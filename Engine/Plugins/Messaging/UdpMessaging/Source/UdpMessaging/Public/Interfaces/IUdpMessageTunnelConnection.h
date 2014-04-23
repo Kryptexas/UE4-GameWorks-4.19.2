@@ -1,27 +1,27 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-	IMessageTunnelConnection.h: Declares the IMessageTunnelConnection interface.
+	IUdpMessageTunnelConnection.h: Declares the IUdpMessageTunnelConnection interface.
 =============================================================================*/
 
 #pragma once
 
 
 /**
- * Type definition for shared pointers to instances of IMessageTunnelConnection.
+ * Type definition for shared pointers to instances of IUdpMessageTunnelConnection.
  */
-typedef TSharedPtr<class IMessageTunnelConnection> IMessageTunnelConnectionPtr;
+typedef TSharedPtr<class IUdpMessageTunnelConnection> IUdpMessageTunnelConnectionPtr;
 
 /**
- * Type definition for shared references to instances of IMessageTunnelConnection.
+ * Type definition for shared references to instances of IUdpMessageTunnelConnection.
  */
-typedef TSharedRef<class IMessageTunnelConnection> IMessageTunnelConnectionRef;
+typedef TSharedRef<class IUdpMessageTunnelConnection> IUdpMessageTunnelConnectionRef;
 
 
 /**
  * Interface for message tunnel connections.
  */
-class IMessageTunnelConnection
+class IUdpMessageTunnelConnection
 {
 public:
 
@@ -70,5 +70,5 @@ public:
 	/**
 	 * Virtual destructor.
 	 */
-	virtual ~IMessageTunnelConnection( ) { }
+	virtual ~IUdpMessageTunnelConnection( ) { }
 };

@@ -12,7 +12,6 @@
 
 #include "Core.h"
 #include "ModuleInterface.h"
-#include "Messaging.h"
 
 
 /* Interfaces

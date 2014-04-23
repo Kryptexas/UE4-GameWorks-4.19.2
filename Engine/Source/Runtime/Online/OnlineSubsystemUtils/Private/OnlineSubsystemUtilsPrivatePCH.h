@@ -4,6 +4,7 @@
 
 #include "Core.h"
 #include "Engine.h"
+#include "Sockets.h"
 #include "OnlineSubsystem.h"
 #include "OnlineSubsystemUtils.h"
 #include "OnlineSubsystemUtilsModule.h"

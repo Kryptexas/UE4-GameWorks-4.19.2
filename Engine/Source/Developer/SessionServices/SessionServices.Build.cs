@@ -10,7 +10,6 @@ public class SessionServices : ModuleRules
 			new string[]
 			{
 				"Core",
-				"Networking",
 			}
 		);
 

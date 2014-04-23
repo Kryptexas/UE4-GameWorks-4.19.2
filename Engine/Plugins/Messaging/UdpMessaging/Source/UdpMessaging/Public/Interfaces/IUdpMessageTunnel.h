@@ -1,27 +1,27 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-	IMessageTunnel.h: Declares the IMessageTunnel interface.
+	IUdpMessageTunnel.h: Declares the IUdpMessageTunnel interface.
 =============================================================================*/
 
 #pragma once
 
 
 /**
- * Type definition for shared pointers to instances of IMessageTunnel.
+ * Type definition for shared pointers to instances of IUdpMessageTunnel.
  */
-typedef TSharedPtr<class IMessageTunnel> IMessageTunnelPtr;
+typedef TSharedPtr<class IUdpMessageTunnel> IUdpMessageTunnelPtr;
 
 /**
- * Type definition for shared references to instances of IMessageTunnel.
+ * Type definition for shared references to instances of IUdpMessageTunnel.
  */
-typedef TSharedRef<class IMessageTunnel> IMessageTunnelRef;
+typedef TSharedRef<class IUdpMessageTunnel> IUdpMessageTunnelRef;
 
 
 /**
  * Interface for message tunnels.
  */
-class IMessageTunnel
+class IUdpMessageTunnel
 {
 public:
 
@@ -65,7 +65,7 @@ public:
 	 *
 	 * @see Connect
 	 */
-	virtual int32 GetConnections( TArray<IMessageTunnelConnectionPtr>& OutConnections ) = 0;
+	virtual int32 GetConnections( TArray<IUdpMessageTunnelConnectionPtr>& OutConnections ) = 0;
 
 	/**
 	 * Gets the total number of bytes that were received from tunnels.
@@ -103,5 +103,5 @@ public:
 	/**
 	 * Virtual destructor.
 	 */
-	virtual ~IMessageTunnel( ) { }
+	virtual ~IUdpMessageTunnel( ) { }
 };

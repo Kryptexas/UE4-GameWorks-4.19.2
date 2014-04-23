@@ -18,7 +18,6 @@ namespace UnrealBuildTool.Rules
 				{
 					"AutomationMessages",
 					"CoreUObject",
-					"Networking",
 				}
 			);
 

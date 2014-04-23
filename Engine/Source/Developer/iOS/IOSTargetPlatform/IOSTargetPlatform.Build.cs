@@ -17,7 +17,6 @@ public class IOSTargetPlatform : ModuleRules
 				"Messaging",
 				"TargetDeviceServices",
 				"LaunchDaemonMessages",
-				"Networking"
 			}
 		);
         PlatformSpecificDynamicallyLoadedModuleNames.Add("LaunchDaemonMessages");

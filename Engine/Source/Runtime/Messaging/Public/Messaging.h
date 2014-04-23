@@ -12,7 +12,6 @@
 
 #include "CoreUObject.h"
 #include "ModuleManager.h"
-#include "Networking.h"
 #include "TaskGraphInterfaces.h"
 
 
@@ -35,8 +34,6 @@
 #include "ISerializeMessages.h"
 #include "ITransportMessages.h"
 #include "IMessageBridge.h"
-#include "IMessageTunnelConnection.h"
-#include "IMessageTunnel.h"
 #include "IMessagingModule.h"
 
 

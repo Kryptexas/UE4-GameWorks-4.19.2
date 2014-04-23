@@ -21,7 +21,6 @@ namespace UnrealBuildTool.Rules
 					"DesktopPlatform",
                     "InputCore",
 					"Messaging",
-					"Networking",
 					"Slate",
                     "EditorStyle",
 				}

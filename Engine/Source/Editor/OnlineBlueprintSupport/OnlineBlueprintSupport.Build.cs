@@ -13,7 +13,8 @@ public class OnlineBlueprintSupport : ModuleRules
 				"Engine",
 				"BlueprintGraph",
 				"OnlineSubsystem",
-				"OnlineSubsystemUtils"
+				"OnlineSubsystemUtils",
+				"Sockets",
 			}
 		);
 	}

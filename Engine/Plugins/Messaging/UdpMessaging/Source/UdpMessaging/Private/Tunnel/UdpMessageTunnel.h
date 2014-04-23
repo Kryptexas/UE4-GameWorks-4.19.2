@@ -12,7 +12,7 @@
  */
 class FUdpMessageTunnel
 	: FRunnable
-	, public IMessageTunnel
+	, public IUdpMessageTunnel
 {
 	// Structure for transport node information
 	struct FNodeInfo
@@ -128,7 +128,7 @@ public:
 
 public:
 
-	// Begin IMessageTunnel interface
+	// Begin IUdpMessageTunnel interface
 
 	virtual bool Connect( const FIPv4Endpoint& RemoteEndpoint ) OVERRIDE
 	{
@@ -151,7 +151,7 @@ public:
 		return false;
 	}
 
-	virtual int32 GetConnections( TArray<IMessageTunnelConnectionPtr>& OutConnections ) OVERRIDE
+	virtual int32 GetConnections( TArray<IUdpMessageTunnelConnectionPtr>& OutConnections ) OVERRIDE
 	{
 		FScopeLock Lock(&CriticalSection);
 
@@ -197,7 +197,7 @@ public:
 		Listener = NULL;
 	}
 
-	// End IMessageTunnel interface
+	// End IUdpMessageTunnel interface
 
 protected:
 

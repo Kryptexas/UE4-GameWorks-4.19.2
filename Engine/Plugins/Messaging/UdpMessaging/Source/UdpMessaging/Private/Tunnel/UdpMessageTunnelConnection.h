@@ -44,7 +44,7 @@ DECLARE_DELEGATE_TwoParams(FOnUdpMessageTunnelConnectionPacketReceived, FSaveByt
 class FUdpMessageTunnelConnection
 	: public FRunnable
 	, public TSharedFromThis<FUdpMessageTunnelConnection>
-	, public IMessageTunnelConnection
+	, public IUdpMessageTunnelConnection
 {
 public:
 
@@ -153,7 +153,7 @@ public:
 
 public:
 
-	// Begin IMessageTunnelConnection interface
+	// Begin IUdpMessageTunnelConnection interface
 
 	virtual void Close( ) OVERRIDE
 	{
@@ -190,7 +190,7 @@ public:
 		return (Socket->GetConnectionState() == SCS_Connected);
 	}
 
-	// End IMessageTunnelConnection interface
+	// End IUdpMessageTunnelConnection interface
 
 protected:
 

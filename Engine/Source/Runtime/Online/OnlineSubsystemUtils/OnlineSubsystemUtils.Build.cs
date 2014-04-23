@@ -17,8 +17,8 @@ public class OnlineSubsystemUtils : ModuleRules
 				"Engine", 
 				"EngineSettings",
                 "ImageCore",
-				"Sockets",
 				"OnlineSubsystem",
+				"Sockets",
 				"Voice"
 			}
 		);

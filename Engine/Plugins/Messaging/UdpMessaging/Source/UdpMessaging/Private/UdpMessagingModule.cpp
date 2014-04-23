@@ -299,7 +299,7 @@ private:
 	IMessageBridgePtr MessageBridge;
 
 	// Holds the message tunnel if present
-	IMessageTunnelPtr MessageTunnel;
+	IUdpMessageTunnelPtr MessageTunnel;
 };
 
 
