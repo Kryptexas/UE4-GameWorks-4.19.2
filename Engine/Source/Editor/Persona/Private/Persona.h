@@ -262,6 +262,9 @@ protected:
 	/** Clear up Preview Mesh's AnimNotifyStates. Called when undo or redo**/
 	void ClearupPreviewMeshAnimNotifyStates();
 
+	/** Handler connected to open skeleton so we get notified when it changes */
+	void OnSkeletonHierarchyChanged();
+
 protected:
 	USkeleton* TargetSkeleton;
 
@@ -518,6 +521,10 @@ private:
 	/** Change skeleton preview mesh functions */
 	void ChangeSkeletonPreviewMesh();
 	bool CanChangeSkeletonPreviewMesh() const;
+
+	/** Remove unused bones from skeleton functions */
+	void RemoveUnusedBones();
+	bool CanRemoveBones() const;
 
 	/** Returns the editor objects that are applicable for our current mode (e.g mesh, animation etc) */
 	TArray<UObject*> GetEditorObjectsForMode(FName Mode) const;

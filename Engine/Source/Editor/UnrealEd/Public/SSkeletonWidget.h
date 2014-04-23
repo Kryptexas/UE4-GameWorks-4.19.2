@@ -374,6 +374,73 @@ private:
 	TArray< TSharedRef<FText> > FailedRemaps;
 };
 
+/////////////////////////////////////////////
+/** 
+ * Slate panel for choose displaying bones to remove
+ */
+class SSkeletonBoneRemoval : public SCompoundWidget
+{
+public:
+
+	SLATE_BEGIN_ARGS(SSkeletonBoneRemoval){}
+
+		/** The bones to remove (for list display) */
+		SLATE_ARGUMENT( TArray<FName>, BonesToRemove )
+
+		/** The window this panel has been placed in */
+		SLATE_ARGUMENT( TSharedPtr<SWindow>, WidgetWindow )
+
+		/** Message to display to the user */
+		SLATE_ARGUMENT( FText, WarningMessage )
+
+	SLATE_END_ARGS()	
+
+	/**
+	 * Constructs this widget
+	 *
+	 * @param	InArgs	The declaration data for this widget
+	 */
+	void Construct( const FArguments& InArgs );
+
+	/** Reference to our window */
+	TWeakPtr<SWindow> WidgetWindow;
+
+	/** Button Handlers */
+	FReply OnOk();
+	FReply OnCancel();
+
+	/** Handle closing to dialog window */
+	void CloseWindow();
+
+	/** Create an individual row for the bone name list */
+	TSharedRef<ITableRow> GenerateSkeletonBoneRow( TSharedPtr<FName> InBoneName, const TSharedRef<STableViewBase>& OwnerTable )
+	{
+		return
+		SNew( STableRow< TSharedPtr<FName> >, OwnerTable )
+		. Content()
+		[
+			SNew(STextBlock)
+			.Text(InBoneName->ToString())	
+		];
+	}
+
+	/**
+	 *  Show Modal window
+	 *
+	 * @param BonesToRemove		List of bones that will be removed
+	 * @param WarningMessage	Message to display to the user so they know what is going on
+	 *
+	 * @return true if successfully selected new skeleton
+	 */
+	static UNREALED_API bool ShowModal(const TArray<FName> BonesToRemove, const FText& WarningMessage);
+
+	/** Did the user choose to continue */
+	bool bShouldContinue;
+
+	/** List of bone names that will be removed */
+	TArray< TSharedPtr<FName> > BoneNames;
+};
+
 #undef LOCTEXT_NAMESPACE
 
 #endif // __SSkeletonWidget_h__

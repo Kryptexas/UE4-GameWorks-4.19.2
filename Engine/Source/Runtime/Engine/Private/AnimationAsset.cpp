@@ -18,11 +18,8 @@ void UAnimationAsset::PostLoad()
 		Skeleton ->ConditionalPostLoad();
 	}
 
-	if (Skeleton && Skeleton->GetGuid() != SkeletonGuid)
-	{
-		// reset Skeleton
-		ResetSkeleton(Skeleton);
-	}
+	ValidateSkeleton();
+
 
 	check( Skeleton==NULL || SkeletonGuid.IsValid() );
 }
@@ -93,6 +90,16 @@ bool UAnimationAsset::GetAllAnimationSequencesReferred(TArray<UAnimSequence*>& A
 void UAnimationAsset::ReplaceReferredAnimations(const TMap<UAnimSequence*, UAnimSequence*>& ReplacementMap)
 {
 }
+
+void UAnimationAsset::ValidateSkeleton()
+{
+	if (Skeleton && Skeleton->GetGuid() != SkeletonGuid)
+	{
+		// reset Skeleton
+		ResetSkeleton(Skeleton);
+	}
+}
+
 #endif
 
 void FBoneContainer::InitializeTo(const TArray<FBoneIndexType>& InRequiredBoneIndexArray, UObject& InAsset)

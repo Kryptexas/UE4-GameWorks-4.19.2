@@ -511,8 +511,23 @@ protected:
 	 */
 	bool CreateReferenceSkeletonFromMesh(const USkeletalMesh * InSkeletalMesh, const TArray<int32> & RequiredRefBones);
 
-public: 
 #if WITH_EDITOR
+	DECLARE_MULTICAST_DELEGATE( FOnSkeletonHierarchyChangedMulticaster );
+	FOnSkeletonHierarchyChangedMulticaster OnSkeletonHierarchyChanged;
+
+	/** Call this when the skeleton has changed to fix dependent assets */
+	void HandleSkeletonHierarchyChange();
+
+public:
+	typedef FOnSkeletonHierarchyChangedMulticaster::FDelegate FOnSkeletonHierarchyChanged;
+
+	/** Registers a delegate to be called after notification has changed*/
+	ENGINE_API void RegisterOnSkeletonHierarchyChanged(const FOnSkeletonHierarchyChanged& Delegate);
+	ENGINE_API void UnregisterOnSkeletonHierarchyChanged(void * Unregister);
+
+	/** Removes the supplied bones from the skeleton */
+	ENGINE_API void RemoveBonesFromSkeleton(const TArray<FName>& BonesToRemove, bool bRemoveChildBones);
+
 	static const FName AnimNotifyTag;
 	static const TCHAR AnimNotifyTagDeliminator;
 #endif

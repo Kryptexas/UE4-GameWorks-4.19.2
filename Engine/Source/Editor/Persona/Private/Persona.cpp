@@ -19,6 +19,7 @@
 #include "SAnimationBlendSpace.h"
 #include "SAnimationBlendSpace1D.h"
 #include "SKismetInspector.h"
+#include "SSkeletonWidget.h"
 
 #include "Editor/Kismet/Public/BlueprintEditorTabs.h"
 #include "Editor/Kismet/Public/BlueprintEditorModes.h"
@@ -438,6 +439,11 @@ FPersona::~FPersona()
 	FPersonaModule* PersonaModule = &FModuleManager::LoadModuleChecked<FPersonaModule>( "Persona" );
 	PersonaModule->GetMenuExtensibilityManager()->RemoveExtender(PersonaMenuExtender);
 
+	if(TargetSkeleton)
+	{
+		TargetSkeleton->UnregisterOnSkeletonHierarchyChanged(this);
+	}
+
 	if(Viewport.IsValid())
 	{
 		Viewport.Pin()->CleanupPersonaReferences();
@@ -717,6 +723,8 @@ void FPersona::InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< clas
 	ObjectsBeingEdited.Add(TargetSkeleton);
 	check(TargetSkeleton);
 
+	TargetSkeleton->RegisterOnSkeletonHierarchyChanged( USkeleton::FOnSkeletonHierarchyChanged::CreateSP( this, &FPersona::OnSkeletonHierarchyChanged ) );
+
 	// We could modify the skeleton within Persona (add/remove sockets), so we need to enable undo/redo on it
 	TargetSkeleton->SetFlags( RF_Transactional );
 
@@ -772,6 +780,7 @@ void FPersona::InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< clas
 			MenuBuilder.BeginSection("Persona", LOCTEXT("PersonaAssetMenuMenu", "Skeleton" ) );
 			{
 				MenuBuilder.AddMenuEntry( FPersonaCommands::Get().ChangeSkeletonPreviewMesh );
+				MenuBuilder.AddMenuEntry( FPersonaCommands::Get().RemoveUnusedBones );
 			}
 			MenuBuilder.EndSection();
 		}
@@ -1023,6 +1032,11 @@ void FPersona::CreateDefaultCommands()
 	ToolkitCommands->MapAction( FPersonaCommands::Get().ChangeSkeletonPreviewMesh,
 		FExecuteAction::CreateSP( this, &FPersona::ChangeSkeletonPreviewMesh ),
 		FCanExecuteAction::CreateSP( this, &FPersona::CanChangeSkeletonPreviewMesh )
+		);
+
+	ToolkitCommands->MapAction( FPersonaCommands::Get().RemoveUnusedBones,
+		FExecuteAction::CreateSP( this, &FPersona::RemoveUnusedBones ),
+		FCanExecuteAction::CreateSP( this, &FPersona::CanRemoveBones )
 		);
 
 	// Generic deletion
@@ -1628,6 +1642,11 @@ void FPersona::ClearupPreviewMeshAnimNotifyStates()
 			AnimInstantace->ActiveAnimNotifyState.Empty();
 		}
 	}
+}
+
+void FPersona::OnSkeletonHierarchyChanged()
+{
+	OnSkeletonTreeChanged.Broadcast();
 }
 
 bool FPersona::IsInAScriptingMode() const
@@ -2300,6 +2319,95 @@ void FPersona::ChangeSkeletonPreviewMesh()
 	}
 }
 
+void FPersona::RemoveUnusedBones()
+{
+	// Menu option cannot be called unless this is valid
+	if(TargetSkeleton)
+	{
+		TArray<FName> SkeletonBones;
+		const FReferenceSkeleton& RefSkeleton = TargetSkeleton->GetReferenceSkeleton();
+
+		for(int32 BoneIndex = 0; BoneIndex < RefSkeleton.GetNum(); ++BoneIndex)
+		{
+			SkeletonBones.Add(RefSkeleton.GetBoneName(BoneIndex));
+		}
+
+		FARFilter Filter;
+		Filter.ClassNames.Add(USkeletalMesh::StaticClass()->GetFName());
+
+		FString SkeletonString = FAssetData(TargetSkeleton).GetExportTextName();
+		Filter.TagsAndValues.Add(GET_MEMBER_NAME_CHECKED(USkeletalMesh, Skeleton), SkeletonString);
+
+		TArray<FAssetData> SkeletalMeshes;
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+		AssetRegistryModule.Get().GetAssets(Filter, SkeletalMeshes);
+
+		FText Message = FText::Format( LOCTEXT("TimeTakenWarning", "In order to verify bone use all Skeletal Meshes that use this skeleton will be loaded, this may take some time.\n\nProceed?\n\nNumber of Meshes: {0}"), FText::AsNumber(SkeletalMeshes.Num()) );
+		
+		if(FMessageDialog::Open( EAppMsgType::YesNo, Message ) == EAppReturnType::Yes)
+		{
+			const FText StatusUpdate = FText::Format(LOCTEXT("RemoveUnusedBones_ProcessingAssets", "Processing Skeletal Meshes for {0}"), FText::FromString(TargetSkeleton->GetName()) );
+			GWarn->BeginSlowTask(StatusUpdate, true );
+
+			// Loop through all SkeletalMeshes and remove the bones they use from our list
+			for ( int32 MeshIdx = 0; MeshIdx < SkeletalMeshes.Num(); ++MeshIdx )
+			{
+				GWarn->StatusUpdate( MeshIdx, SkeletalMeshes.Num(), StatusUpdate );
+
+				USkeletalMesh* Mesh = Cast<USkeletalMesh>(SkeletalMeshes[MeshIdx].GetAsset());
+				const FReferenceSkeleton& MeshRefSkeleton = Mesh->RefSkeleton;
+
+				for(int32 BoneIndex = 0; BoneIndex < MeshRefSkeleton.GetNum(); ++BoneIndex)
+				{
+					SkeletonBones.Remove(MeshRefSkeleton.GetBoneName(BoneIndex));
+					if(SkeletonBones.Num() == 0)
+					{
+						break;
+					}
+				}
+				if(SkeletonBones.Num() == 0)
+				{
+					break;
+				}
+			}
+
+			GWarn->EndSlowTask();
+
+			//Remove bones that are a parent to bones we aren't removing
+			for(int32 BoneIndex = RefSkeleton.GetNum() -1; BoneIndex >= 0; --BoneIndex)
+			{
+				FName CurrBoneName = RefSkeleton.GetBoneName(BoneIndex);
+				if(!SkeletonBones.Contains(CurrBoneName))
+				{
+					//We aren't removing this bone, so remove parent from list of bones to remove too
+					int32 ParentIndex = RefSkeleton.GetParentIndex(BoneIndex);
+					if(ParentIndex != INDEX_NONE)
+					{
+						SkeletonBones.Remove(RefSkeleton.GetBoneName(ParentIndex));
+					}
+				}
+			}
+
+			// If we have any bones left they are unused
+			if(SkeletonBones.Num() > 0)
+			{
+				const FText Message = FText::Format(LOCTEXT("RemoveBoneWarning", "Continuing will remove the following bones from the skeleton '{0}'. These bones are not being used by any of the SkeletalMeshes assigned to this skeleton\n\nOnce the bones have been removed all loaded animations for this skeleton will be recompressed (any that aren't loaded will be recompressed the next time they are loaded)."), FText::FromString(TargetSkeleton->GetName()) );
+
+				// Ask User whether they would like to remove the bones from the skeleton
+				if (SSkeletonBoneRemoval::ShowModal(SkeletonBones, Message))
+				{
+					//Remove these bones from the skeleton
+					TargetSkeleton->RemoveBonesFromSkeleton(SkeletonBones, true);
+				}
+			}
+			else
+			{
+				FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("NoBonesToRemove", "No unused bones were found."));
+			}
+		}
+	}
+}
+
 bool FPersona::IsAnimationBeingRecorded() const
 {
 	return (Recorder.GetAnimationObject()!=NULL);
@@ -2353,6 +2461,11 @@ bool FPersona::CanRecordAnimation() const
 }
 
 bool FPersona::CanChangeSkeletonPreviewMesh() const
+{
+	return PreviewComponent && PreviewComponent->SkeletalMesh;
+}
+
+bool FPersona::CanRemoveBones() const
 {
 	return PreviewComponent && PreviewComponent->SkeletalMesh;
 }
@@ -2543,6 +2656,51 @@ void FAnimationRecorder::Record( USkeletalMeshComponent * Component, TArray<FTra
 		LastFrame = FrameToAdd;
 	}
 }
+
+static class FMeshHierarchyCmd : private FSelfRegisteringExec
+{
+public:
+	/** Console commands, see embeded usage statement **/
+	virtual bool Exec( UWorld*, const TCHAR* Cmd, FOutputDevice& Ar ) OVERRIDE
+	{
+		bool bResult = false;
+		if(FParse::Command(&Cmd,TEXT("TMH")))
+		{
+			Ar.Log(TEXT("Starting Mesh Test"));
+			FARFilter Filter;
+			Filter.ClassNames.Add(USkeletalMesh::StaticClass()->GetFName());
+
+			TArray<FAssetData> SkeletalMeshes;
+			FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+			AssetRegistryModule.Get().GetAssets(Filter, SkeletalMeshes);
+
+			const FText StatusUpdate = LOCTEXT("RemoveUnusedBones_ProcessingAssets", "Processing Skeletal Meshes");
+			GWarn->BeginSlowTask(StatusUpdate, true );
+
+			// go through all assets try load
+			for ( int32 MeshIdx = 0; MeshIdx < SkeletalMeshes.Num(); ++MeshIdx )
+			{
+				GWarn->StatusUpdate( MeshIdx, SkeletalMeshes.Num(), StatusUpdate );
+
+				USkeletalMesh* Mesh = Cast<USkeletalMesh>(SkeletalMeshes[MeshIdx].GetAsset());
+				if(Mesh->Skeleton)
+				{
+					FName MeshRoot = Mesh->RefSkeleton.GetBoneName(0);
+					FName SkelRoot = Mesh->Skeleton->GetReferenceSkeleton().GetBoneName(0);
+
+					if(MeshRoot != SkelRoot)
+					{
+						Ar.Logf( TEXT("Mesh Found '%s' %s->%s"), *Mesh->GetName(), *MeshRoot.ToString(), *SkelRoot.ToString());
+					}
+				}
+			}
+
+			GWarn->EndSlowTask();
+			Ar.Log(TEXT("Mesh Test Finished"));
+		}
+		return bResult;
+	}
+} MeshHierarchyCmdExec;
 
 #undef LOCTEXT_NAMESPACE
 

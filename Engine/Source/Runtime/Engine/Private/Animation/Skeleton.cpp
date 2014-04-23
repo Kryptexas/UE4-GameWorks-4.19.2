@@ -816,6 +816,48 @@ void USkeleton::AddBoneToLOD(int32 LODIndex, int32 BoneIndex)
 	}
 }
 
+void USkeleton::RemoveBonesFromSkeleton( const TArray<FName>& BonesToRemove, bool bRemoveChildBones )
+{
+	TArray<int32> BonesRemoved = ReferenceSkeleton.RemoveBonesByName(BonesToRemove);
+	if(BonesRemoved.Num() > 0)
+	{
+		BonesRemoved.Sort();
+		for(int32 Index = BonesRemoved.Num()-1; Index >=0; --Index)
+		{
+			BoneTree.RemoveAt(Index);
+		}
+		HandleSkeletonHierarchyChange();
+	}
+}
+
+void USkeleton::HandleSkeletonHierarchyChange()
+{
+	MarkPackageDirty();
+
+	RegenerateGuid();
+
+	// Fix up loaded animations (any animations that aren't loaded will be fixed on load)
+	for(TObjectIterator<UAnimationAsset> It; It; ++It)
+	{
+		UAnimationAsset* CurrentAnimation = *It;
+		CurrentAnimation->ValidateSkeleton();
+	}
+
+	RefreshAllRetargetSources();
+
+	OnSkeletonHierarchyChanged.Broadcast();
+}
+
+void USkeleton::RegisterOnSkeletonHierarchyChanged(const FOnSkeletonHierarchyChanged& Delegate)
+{
+	OnSkeletonHierarchyChanged.Add(Delegate);
+}
+
+void USkeleton::UnregisterOnSkeletonHierarchyChanged(void * Unregister)
+{
+	OnSkeletonHierarchyChanged.RemoveAll(Unregister);
+}
+
 #endif
 
 void USkeleton::RegenerateGuid()

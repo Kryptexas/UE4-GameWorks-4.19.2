@@ -582,6 +582,10 @@ public:
 	ENGINE_API void SetSkeleton(USkeleton* NewSkeleton);
 	void ResetSkeleton(USkeleton* NewSkeleton);
 	virtual void PostLoad() OVERRIDE;
+
+	/** Validate our stored data against our skeleton and update accordingly */
+	void ValidateSkeleton();
+
 	virtual void Serialize(FArchive& Ar) OVERRIDE;
 
 #if WITH_EDITOR

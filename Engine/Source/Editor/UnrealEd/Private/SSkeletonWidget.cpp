@@ -687,5 +687,162 @@ FReply SRemapFailures::CloseClicked()
 
 	return FReply::Handled();
 }
+
+void SSkeletonBoneRemoval::Construct( const FArguments& InArgs )
+{
+	bShouldContinue = false;
+	WidgetWindow = InArgs._WidgetWindow;
+
+	for (int32 I=0; I<InArgs._BonesToRemove.Num(); ++I)
+	{
+		BoneNames.Add( MakeShareable(new FName(InArgs._BonesToRemove[I])) ) ;
+	}
+
+	this->ChildSlot
+	[
+		SNew (SVerticalBox)
+
+		+SVerticalBox::Slot()
+		.AutoHeight() 
+		.Padding(2) 
+		.HAlign(HAlign_Fill)
+		[
+			SNew(SHorizontalBox)
+
+			+SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			+SHorizontalBox::Slot()
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("BoneRemovalLabel", "Bone Removal"))
+				.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 16))
+			]
+		]
+
+		+SVerticalBox::Slot()
+		.AutoHeight() 
+		.Padding(2, 10)
+		.HAlign(HAlign_Fill)
+		[
+			SNew(SSeparator)
+			.Orientation(Orient_Horizontal)
+		]
+
+		+SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(5)
+		[
+			SNew(STextBlock)
+			.WrapTextAt(400.f)
+			.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10 ) )
+			.Text( InArgs._WarningMessage )
+		]
+
+		+SVerticalBox::Slot()
+		.AutoHeight() 
+		.Padding(5)
+		[
+			SNew(SSeparator)
+		]
+
+		+SVerticalBox::Slot()
+		.MaxHeight(300)
+		.Padding(5)
+		[
+			SNew(SListView< TSharedPtr<FName> >)
+			.OnGenerateRow(this, &SSkeletonBoneRemoval::GenerateSkeletonBoneRow)
+			.ListItemsSource(&BoneNames)
+			.HeaderRow
+			(
+			SNew(SHeaderRow)
+			+SHeaderRow::Column(TEXT("Bone Name"))
+			.DefaultLabel(NSLOCTEXT("SkeletonWidget", "BoneName", "Bone Name"))
+			)
+		]
+
+		+SVerticalBox::Slot()
+		.AutoHeight() 
+		.Padding(5)
+		[
+			SNew(SSeparator)
+		]
+
+		+SVerticalBox::Slot()
+		.AutoHeight()
+		.HAlign(HAlign_Right)
+		.VAlign(VAlign_Bottom)
+		[
+			SNew(SUniformGridPanel)
+			.SlotPadding(FEditorStyle::GetMargin("StandardDialog.SlotPadding"))
+			.MinDesiredSlotWidth(FEditorStyle::GetFloat("StandardDialog.MinDesiredSlotWidth"))
+			.MinDesiredSlotHeight(FEditorStyle::GetFloat("StandardDialog.MinDesiredSlotHeight"))
+			+SUniformGridPanel::Slot(0,0)
+			[
+				SNew(SButton) .HAlign(HAlign_Center)
+				.Text(LOCTEXT("BoneRemoval_Ok", "Ok"))
+				.OnClicked(this, &SSkeletonBoneRemoval::OnOk)
+				.HAlign(HAlign_Center)
+				.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
+			]
+			+SUniformGridPanel::Slot(1,0)
+			[
+				SNew(SButton) .HAlign(HAlign_Center)
+				.Text(LOCTEXT("BoneRemoval_Cancel", "Cancel"))
+				.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
+				.OnClicked(this, &SSkeletonBoneRemoval::OnCancel)
+			]
+		]
+	];
+}
+
+FReply SSkeletonBoneRemoval::OnOk()
+{
+	bShouldContinue = true;
+	CloseWindow();
+	return FReply::Handled();
+}
+
+FReply SSkeletonBoneRemoval::OnCancel()
+{
+	CloseWindow();
+	return FReply::Handled();
+}
+
+void SSkeletonBoneRemoval::CloseWindow()
+{
+	if ( WidgetWindow.IsValid() )
+	{
+		WidgetWindow.Pin()->RequestDestroyWindow();
+	}
+}
+
+bool SSkeletonBoneRemoval::ShowModal(const TArray<FName> BonesToRemove, const FText& WarningMessage)
+{
+	TSharedPtr<class SSkeletonBoneRemoval> DialogWidget;
+
+	TSharedPtr<SWindow> DialogWindow = SNew(SWindow)
+		.Title( LOCTEXT("RemapSkeleton", "Select Skeleton") )
+		.SupportsMinimize(false) .SupportsMaximize(false)
+		.SizingRule( ESizingRule::Autosized );
+
+	TSharedPtr<SBorder> DialogWrapper = 
+		SNew(SBorder)
+		.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+		.Padding(4.0f)
+		[
+			SAssignNew(DialogWidget, SSkeletonBoneRemoval)
+			.WidgetWindow(DialogWindow)
+			.BonesToRemove(BonesToRemove)
+			.WarningMessage(WarningMessage)
+		];
+
+	DialogWindow->SetContent(DialogWrapper.ToSharedRef());
+
+	GEditor->EditorAddModalWindow(DialogWindow.ToSharedRef());
+
+	return DialogWidget.Get()->bShouldContinue;
+}
+
 #undef LOCTEXT_NAMESPACE 
 

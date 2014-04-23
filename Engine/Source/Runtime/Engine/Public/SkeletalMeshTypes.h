@@ -145,6 +145,40 @@ private:
 	/** TMap to look up bone index from bone name. */
 	TMap<FName, int32>		NameToIndexMap;
 
+	/** Removes the specified bone, so long as it has no children. Returns whether we removed the bone or not */
+	bool RemoveIndividualBone(int32 BoneIndex, TArray<int32>& OutBonesRemoved)
+	{
+		bool bRemoveThisBone = true;
+
+		// Make sure we have no children
+		for(int32 CurrBoneIndex=BoneIndex+1; CurrBoneIndex < GetNum(); CurrBoneIndex++)
+		{
+			if( RefBoneInfo[CurrBoneIndex].ParentIndex == BoneIndex )
+			{
+				bRemoveThisBone = false;
+				break;
+			}
+		}
+
+		if(bRemoveThisBone)
+		{
+			// Update parent indices of bones further through the array
+			for(int32 CurrBoneIndex=BoneIndex+1; CurrBoneIndex < GetNum(); CurrBoneIndex++)
+			{
+				FMeshBoneInfo& Bone = RefBoneInfo[CurrBoneIndex];
+				if( Bone.ParentIndex > BoneIndex )
+				{
+					Bone.ParentIndex -= 1;
+				}
+			}
+
+			OutBonesRemoved.Add(BoneIndex);
+			RefBonePose.RemoveAt(BoneIndex, 1);
+			RefBoneInfo.RemoveAt(BoneIndex, 1);
+		}
+		return bRemoveThisBone;
+	}
+
 public:
 	void Allocate(int32 Size)
 	{
@@ -382,6 +416,25 @@ public:
 		{
 			RefBonePose[BoneIndex].NormalizeRotation();
 		}
+	}
+
+	/** Removes the supplied bones from the skeleton, unless they have children that aren't also going to be removed */
+	TArray<int32> RemoveBonesByName(const TArray<FName>& BonesToRemove)
+	{
+		TArray<int32> BonesRemoved;
+
+		const int32 NumBones = GetNum();
+		for(int32 BoneIndex=NumBones-1; BoneIndex>=0; BoneIndex--)
+		{
+			FMeshBoneInfo& Bone = RefBoneInfo[BoneIndex];
+
+			if(BonesToRemove.Contains(Bone.Name))
+			{
+				RemoveIndividualBone(BoneIndex, BonesRemoved);
+			}
+		}
+		RebuildNameToIndexMap();
+		return BonesRemoved;
 	}
 
 	void RebuildNameToIndexMap()
