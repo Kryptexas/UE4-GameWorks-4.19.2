@@ -245,7 +245,7 @@ SHOWFLAG_ALWAYS_ACCESSIBLE(PrecomputedVisibility, SFG_Advanced, LOCTEXT("Precomp
 /** Contribution from sky light */
 SHOWFLAG_ALWAYS_ACCESSIBLE(SkyLighting, SFG_LightingComponents, LOCTEXT("SkyLightingSF", "Sky Lighting"))
 /** Visualize Light Propagation Volume, for developer (by default off): */
-SHOWFLAG_ALWAYS_ACCESSIBLE(VisualizeLPV, SFG_Visualize, LOCTEXT("LpvLightingOnlySF", "LPV Lighting Only"))
+SHOWFLAG_ALWAYS_ACCESSIBLE(VisualizeLPV, SFG_Visualize, LOCTEXT("VisualizeLPVSF", "Visualize Light Propagation Volume"))
 /** Visualize preview shadow indicator */
 SHOWFLAG_ALWAYS_ACCESSIBLE(PreviewShadowsIndicator, SFG_Visualize, LOCTEXT("PreviewShadowIndicatorSF", "Preview Shadows Indicator"))
 /** Visualize precomputed visibilty cells */

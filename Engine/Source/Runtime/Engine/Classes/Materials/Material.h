@@ -460,7 +460,7 @@ public:
 	/**
 	 * If enabled, the material's emissive colour is injected into the LightPropagationVolume
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Material, AdvancedDisplay)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Material, meta=(DisplayName = "Emissive (Dynamic Area Light)"), AdvancedDisplay)
 	uint32 bUseEmissiveForDynamicAreaLighting : 1;
 
 	/** Whether material uses BaseColor, Metallic, Specular */
