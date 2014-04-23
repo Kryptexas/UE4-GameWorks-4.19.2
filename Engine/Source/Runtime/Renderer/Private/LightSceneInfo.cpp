@@ -140,9 +140,36 @@ void FLightSceneInfo::Detach()
 
 bool FLightSceneInfo::ShouldRenderLight(const FViewInfo& View) const
 {
-	const bool bInViewFrustum = bVisible ? View.VisibleLightInfos[Id].bInViewFrustum : true;
 	// Only render the light if it is in the view frustum
-	return bInViewFrustum
+	bool bLocalVisible = bVisible ? View.VisibleLightInfos[Id].bInViewFrustum : true;
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	ELightComponentType Type = (ELightComponentType)Proxy->GetLightType();
+
+	switch(Type)
+	{
+		case LightType_Directional:
+			if(!View.Family->EngineShowFlags.DirectionalLights) 
+			{
+				bLocalVisible = false;
+			}
+			break;
+		case LightType_Point:
+			if(!View.Family->EngineShowFlags.PointLights) 
+			{
+				bLocalVisible = false;
+			}
+			break;
+		case LightType_Spot:
+			if(!View.Family->EngineShowFlags.SpotLights)
+			{
+				bLocalVisible = false;
+			}
+			break;
+	}
+#endif
+
+	return bLocalVisible
 		// Only render lights with static shadowing for reflection captures, since they are only captured at edit time
 		&& (!View.bIsReflectionCapture || Proxy->HasStaticShadowing());
 }
