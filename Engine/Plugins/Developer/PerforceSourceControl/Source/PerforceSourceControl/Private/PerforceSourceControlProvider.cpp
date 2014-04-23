@@ -19,7 +19,6 @@ static FName ProviderName("Perforce");
 /** Init of connection with source control server */
 void FPerforceSourceControlProvider::Init(bool bForceConnection)
 {
-	LoadLibraries();
 	ParseCommandLineSettings(bForceConnection);
 }
 
@@ -37,8 +36,6 @@ void FPerforceSourceControlProvider::Close()
 	StateCache.Empty();
 
 	bServerAvailable = false;
-
-	UnloadLibraries();
 }
 
 TSharedRef<FPerforceSourceControlState, ESPMode::ThreadSafe> FPerforceSourceControlProvider::GetStateInternal(const FString& Filename)
@@ -429,26 +426,6 @@ TSharedPtr<IPerforceSourceControlWorker, ESPMode::ThreadSafe> FPerforceSourceCon
 void FPerforceSourceControlProvider::RegisterWorker( const FName& InName, const FGetPerforceSourceControlWorker& InDelegate )
 {
 	WorkersMap.Add( InName, InDelegate );
-}
-
-void FPerforceSourceControlProvider::LoadLibraries()
-{
-#if PLATFORM_WINDOWS
-	FString P4BinaryPath = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/Perforce/");
-
-	P4apiHandle = LoadLibraryW( *( P4BinaryPath + TEXT( "p4api.dll" ) ) );
-#endif
-}
-
-void FPerforceSourceControlProvider::UnloadLibraries()
-{
-#if PLATFORM_WINDOWS
-	if(P4apiHandle != NULL)
-	{
-		FreeLibrary( P4apiHandle );
-		P4apiHandle = NULL;
-	}
-#endif
 }
 
 ECommandResult::Type FPerforceSourceControlProvider::ExecuteSynchronousCommand(FPerforceSourceControlCommand& InCommand, const FText& Task, bool bSuppressResponseMsg)

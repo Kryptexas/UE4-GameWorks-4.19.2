@@ -15,9 +15,6 @@ public:
 	FPerforceSourceControlProvider()
 		: bServerAvailable(false)
 		, PersistentConnection(NULL)
-#if PLATFORM_WINDOWS
-		, P4apiHandle(NULL)
-#endif
 	{
 	}
 
@@ -89,16 +86,6 @@ private:
 	void ParseCommandLineSettings(bool bForceConnection);
 
 	/**
-	 * Load the p4api dll's
-	 */
-	void LoadLibraries();
-
-	/**
-	 * Unload the perforce dll's
-	 */
-	void UnloadLibraries();
-
-	/**
 	 * Helper function for running command 'synchronously'.
 	 * This really doesn't execute synchronously; rather it adds the command to the queue & does not return until
 	 * the command is completed.
@@ -111,11 +98,6 @@ private:
 	ECommandResult::Type IssueCommand(class FPerforceSourceControlCommand& InCommand, const bool bSynchronous);
 
 private:
-#if PLATFORM_WINDOWS
-	/** A handle for the p4api module */
-	HMODULE P4apiHandle;
-#endif
-
 	/** The ticket we use for login. */
 	FString Ticket;
 

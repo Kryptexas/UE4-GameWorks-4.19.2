@@ -15,7 +15,15 @@ public class Perforce : ModuleRules
 
 		if (Target.Platform == UnrealTargetPlatform.Win64)
 		{
-			string P4APIPath = UEBuildConfiguration.UEThirdPartyDirectory + "Perforce/p4api-2013.1-BETA/";
+			string P4APIPath;
+			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2013)
+			{
+				P4APIPath = UEBuildConfiguration.UEThirdPartyDirectory + "Perforce/p4api-2014.2/";
+			}
+			else
+			{
+				P4APIPath = UEBuildConfiguration.UEThirdPartyDirectory + "Perforce/p4api-2013.1-BETA/";
+			}
 			PublicIncludePaths.Add(P4APIPath + "include");
 
 			LibFolder += "win64";
@@ -24,7 +32,15 @@ public class Perforce : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Win32)
 		{
-			string P4APIPath = UEBuildConfiguration.UEThirdPartyDirectory + "Perforce/p4api-2013.1-BETA/";
+			string P4APIPath;
+			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2013)
+			{
+				P4APIPath = UEBuildConfiguration.UEThirdPartyDirectory + "Perforce/p4api-2014.2/";
+			}
+			else
+			{
+				P4APIPath = UEBuildConfiguration.UEThirdPartyDirectory + "Perforce/p4api-2013.1-BETA/";
+			}
 			PublicIncludePaths.Add(P4APIPath + "include");
 
 			LibFolder += "win32";
