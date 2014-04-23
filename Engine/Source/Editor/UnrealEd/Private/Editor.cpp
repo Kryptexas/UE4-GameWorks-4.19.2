@@ -6301,12 +6301,18 @@ void UEditorEngine::OnLevelRemovedFromWorld(ULevel* InLevel, UWorld* InWorld)
 			}
 		}
 	}
+	else
+	{
+		// UEngine::LoadMap broadcast this event with InLevel==NULL, before cleaning up the world
+		// Reset transactions buffer, to ensure that there are no references to a world which is about to be destroyed
+		ResetTransaction( NSLOCTEXT("UnrealEd", "LoadMapTransReset", "Loading a New Map") );
+	}
 }
 
 void UEditorEngine::OnGCStreamedOutLevels()
 {
 	// Reset transaction buffer because it may hold references to streamed out levels
-	ResetTransaction( NSLOCTEXT("UnrealEd", "GCStreamedOutLevels", "Garabage Collected Streamed Out Levels") );
+	ResetTransaction( NSLOCTEXT("UnrealEd", "GCStreamedOutLevelsTransReset", "GC Streaming Levels") );
 }
 
 void UEditorEngine::UpdateRecentlyLoadedProjectFiles()
