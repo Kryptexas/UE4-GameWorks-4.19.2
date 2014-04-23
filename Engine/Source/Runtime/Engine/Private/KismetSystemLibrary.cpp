@@ -6,6 +6,7 @@
 #include "LatentActions.h"
 #include "DelayAction.h"
 #include "InterpolateComponentToAction.h"
+#include "Advertising.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UKismetSystemLibrary
@@ -2217,31 +2218,37 @@ void UKismetSystemLibrary::CollectGarbage()
 }
 
 #if PLATFORM_IOS
-extern CORE_API void IOSShowAdBanner(bool bShowOnBottomOfScreen);
-extern CORE_API void IOSHideAdBanner();
-extern CORE_API void IOSCloseAd();
 extern CORE_API void IOSShowLeaderboardUI(const FString& CategoryName);
 #endif
 
 void UKismetSystemLibrary::EXPERIMENTAL_ShowAdBanner(bool bShowOnBottomOfScreen)
 {
-#if PLATFORM_IOS
-	IOSShowAdBanner(bShowOnBottomOfScreen);
-#endif
+	IAdvertisingProvider * Provider = FAdvertising::Get().GetDefaultProvider();
+
+	if ( Provider != NULL )
+	{
+		Provider->ShowAdBanner( bShowOnBottomOfScreen );
+	}
 }
 
 void UKismetSystemLibrary::EXPERIMENTAL_HideAdBanner()
 {
-#if PLATFORM_IOS
-	IOSHideAdBanner();
-#endif
+	IAdvertisingProvider * Provider = FAdvertising::Get().GetDefaultProvider();
+
+	if ( Provider != NULL )
+	{
+		Provider->HideAdBanner();
+	}
 }
 
 void UKismetSystemLibrary::EXPERIMENTAL_CloseAdBanner()
 {
-#if PLATFORM_IOS
-	IOSCloseAd();
-#endif
+	IAdvertisingProvider * Provider = FAdvertising::Get().GetDefaultProvider();
+
+	if ( Provider != NULL )
+	{
+		Provider->CloseAdBanner();
+	}
 }
 
 void UKismetSystemLibrary::EXPERIMENTAL_ShowGameCenterLeaderboard(const FString& CategoryName)

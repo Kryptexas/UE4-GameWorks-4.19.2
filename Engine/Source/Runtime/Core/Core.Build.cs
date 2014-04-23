@@ -90,8 +90,6 @@ public class Core : ModuleRules
 
 			bool bSupportAdvertising = true;
 
-			Definitions.Add("UE_WITH_IAD=" + (bSupportAdvertising ? "1" : "0"));
-			
 			if (bSupportAdvertising)
 			{
 				PublicFrameworks.AddRange(new string[] { "iAD", "CoreGraphics" });

@@ -4,15 +4,6 @@
 
 #import <UIKit/UIKit.h>
 #import <AVFoundation/AVAudioSession.h>
-
-#if !defined(UE_WITH_IAD)
-#define UE_WITH_IAD 1
-#endif
-
-#if UE_WITH_IAD
-#import <iAd/ADBannerView.h>
-#endif
-
 #import <GameKit/GKLeaderboardViewController.h>
 
 @class EAGLView;
@@ -35,9 +26,6 @@ namespace FAppEntry
 @interface IOSAppDelegate : UIResponder <UIApplicationDelegate,
 #if !UE_BUILD_SHIPPING
 	UIGestureRecognizerDelegate,
-#endif
-#if UE_WITH_IAD
-	ADBannerViewDelegate,
 #endif
 	GKLeaderboardViewControllerDelegate,
 UITextFieldDelegate, AVAudioSessionDelegate>
@@ -70,29 +58,6 @@ UITextFieldDelegate, AVAudioSessionDelegate>
 	@property (nonatomic, retain) UIAlertView*		ConsoleAlert;
 	@property (nonatomic, retain) NSMutableArray*	ConsoleHistoryValues;
 	@property (nonatomic, assign) int				ConsoleHistoryValuesIndex;
-#endif
-
-#if UE_WITH_IAD
-	/** iAd banner view, if open */
-	@property(retain) ADBannerView* BannerView;
-
-	/**
-	* Will show an iAd on the top or bottom of screen, on top of the GL view (doesn't resize
-	* the view)
-	*
-	* @param bShowOnBottomOfScreen If true, the iAd will be shown at the bottom of the screen, top otherwise
-	*/
-	-(void)ShowAdBanner:(NSNumber*)bShowOnBottomOfScreen;
-
-	/**
-	* Hides the iAd banner shows with ShowAdBanner. Will force close the ad if it's open
-	*/
-	-(void)HideAdBanner;
-
-	/**
-	* Forces closed any displayed ad. Can lead to loss of revenue
-	*/
-	-(void)CloseAd;
 #endif
 
 /** True if the engine has been initialized */
