@@ -160,7 +160,7 @@ bool UseSyncTime(uint32 SceneType)
 
 }
 
-void FPhysScene::SetKinematicTarget(FBodyInstance * BodyInstance, const FTransform & TargetTransform)
+void FPhysScene::SetKinematicTarget(FBodyInstance * BodyInstance, const FTransform & TargetTransform, bool bAllowSubstepping)
 {
 	TargetTransform.DiagnosticCheckNaN_All();
 
@@ -168,7 +168,7 @@ void FPhysScene::SetKinematicTarget(FBodyInstance * BodyInstance, const FTransfo
 	if (PxRigidDynamic * PRigidDynamic = BodyInstance->GetPxRigidDynamic())
 	{
 #if WITH_SUBSTEPPING
-		if (IsSubstepping())
+		if (bAllowSubstepping && IsSubstepping())
 		{
 			FPhysSubstepTask * PhysSubStepper = PhysSubSteppers[SceneType(BodyInstance)];
 			PhysSubStepper->SetKinematicTarget(BodyInstance, TargetTransform);
@@ -186,14 +186,14 @@ void FPhysScene::SetKinematicTarget(FBodyInstance * BodyInstance, const FTransfo
 #endif
 }
 
-void FPhysScene::AddForce(FBodyInstance * BodyInstance, const FVector & Force)
+void FPhysScene::AddForce(FBodyInstance * BodyInstance, const FVector & Force, bool bAllowSubstepping)
 {
 #if WITH_PHYSX
 
 	if (PxRigidDynamic * PRigidDynamic = BodyInstance->GetPxRigidDynamic())
 	{
 #if WITH_SUBSTEPPING
-		if (IsSubstepping())
+		if (bAllowSubstepping && IsSubstepping())
 		{
 			FPhysSubstepTask * PhysSubStepper = PhysSubSteppers[SceneType(BodyInstance)];
 			PhysSubStepper->AddForce(BodyInstance, Force);
@@ -208,14 +208,14 @@ void FPhysScene::AddForce(FBodyInstance * BodyInstance, const FVector & Force)
 #endif
 }
 
-void FPhysScene::AddForceAtPosition(FBodyInstance * BodyInstance, const FVector & Force, const FVector & Position)
+void FPhysScene::AddForceAtPosition(FBodyInstance * BodyInstance, const FVector & Force, const FVector & Position, bool bAllowSubstepping)
 {
 #if WITH_PHYSX
 
 	if (PxRigidDynamic * PRigidDynamic = BodyInstance->GetPxRigidDynamic())
 	{
 #if WITH_SUBSTEPPING
-		if (IsSubstepping())
+		if (bAllowSubstepping && IsSubstepping())
 		{
 			FPhysSubstepTask * PhysSubStepper = PhysSubSteppers[SceneType(BodyInstance)];
 			PhysSubStepper->AddForceAtPosition(BodyInstance, Force, Position);
@@ -230,14 +230,14 @@ void FPhysScene::AddForceAtPosition(FBodyInstance * BodyInstance, const FVector 
 #endif
 }
 
-void FPhysScene::AddTorque(FBodyInstance * BodyInstance, const FVector & Torque)
+void FPhysScene::AddTorque(FBodyInstance * BodyInstance, const FVector & Torque, bool bAllowSubstepping)
 {
 #if WITH_PHYSX
 
 	if (PxRigidDynamic * PRigidDynamic = BodyInstance->GetPxRigidDynamic())
 	{
 #if WITH_SUBSTEPPING
-		if (IsSubstepping())
+		if (bAllowSubstepping && IsSubstepping())
 		{
 			FPhysSubstepTask * PhysSubStepper = PhysSubSteppers[SceneType(BodyInstance)];
 			PhysSubStepper->AddTorque(BodyInstance, Torque);
