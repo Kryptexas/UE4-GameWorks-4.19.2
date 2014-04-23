@@ -2181,15 +2181,24 @@ FString UEdGraphSchema_K2::TypeToString(UProperty* const Property)
 {
 	if (UStructProperty* Struct = Cast<UStructProperty>(Property))
 	{
-		return FString::Printf(TEXT("struct'%s'"), *Struct->Struct->GetName());
+		if (Struct->Struct)
+		{
+			return FString::Printf(TEXT("struct'%s'"), *Struct->Struct->GetName());
+		}
 	}
 	else if (UClassProperty* Class = Cast<UClassProperty>(Property))
 	{
-		return FString::Printf(TEXT("class'%s'"), *Class->MetaClass->GetName());
+		if (Class->MetaClass != nullptr)
+		{
+			return FString::Printf(TEXT("class'%s'"), *Class->MetaClass->GetName());
+		}
 	}
 	else if (UInterfaceProperty* Interface = Cast<UInterfaceProperty>(Property))
 	{
-		return FString::Printf(TEXT("interface'%s'"), *Interface->InterfaceClass->GetName());
+		if (Interface->InterfaceClass != nullptr)
+		{
+			return FString::Printf(TEXT("interface'%s'"), *Interface->InterfaceClass->GetName());
+		}
 	}
 	else if (UObjectPropertyBase* Obj = Cast<UObjectPropertyBase>(Property))
 	{
@@ -2209,12 +2218,13 @@ FString UEdGraphSchema_K2::TypeToString(UProperty* const Property)
 	}
 	else if (UArrayProperty* Array = Cast<UArrayProperty>(Property))
 	{
-		return FString::Printf(TEXT("array[%s]"), *TypeToString(Array->Inner)); 
+		if (Array->Inner)
+		{
+			return FString::Printf(TEXT("array[%s]"), *TypeToString(Array->Inner));
+		}
 	}
-	else
-	{
-		return Property->GetClass()->GetName();
-	}
+	
+	return Property->GetClass()->GetName();
 }
 
 FText UEdGraphSchema_K2::TypeToText(const FEdGraphPinType& Type)

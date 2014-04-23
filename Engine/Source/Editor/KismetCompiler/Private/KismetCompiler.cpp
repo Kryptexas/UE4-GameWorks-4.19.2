@@ -961,7 +961,10 @@ void FKismetCompilerContext::ValidateSelfPinsInGraph(const UEdGraph* SourceGraph
 									(Pin->PinType.PinCategory == Schema->PC_Interface) ||
 									(Pin->PinType.PinCategory == Schema->PC_Class))
 								{
-									PinType = Pin->PinType.PinSubCategoryObject->GetName();
+									if (Pin->PinType.PinSubCategoryObject.IsValid())
+									{
+										PinType = Pin->PinType.PinSubCategoryObject->GetName();
+									}
 								}
 
 								FString ErrorMsg = FString::Printf(*LOCTEXT("PinMustHaveConnection_Error", "This blueprint (self) is not a %s, therefore '@@' must have a connection").ToString(), *PinType);
