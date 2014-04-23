@@ -24,7 +24,14 @@ class FPostProcessMorpheusPS : public FGlobalShader
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return true;
+		// we must use a run time check for this because the builds the build machines create will have Morpheus defined,
+		// but a user will not necessarily have the Morpheus files
+		bool bEnableMorpheus = false;
+		if (GConfig->GetBool(TEXT("Morpheus.Settings"), TEXT("EnableMorpheus"), bEnableMorpheus, GEngineIni))
+		{
+			return bEnableMorpheus;
+		}
+		return false;
 	}
 
 	/** Default constructor. */
@@ -164,7 +171,14 @@ class FPostProcessMorpheusVS : public FGlobalShader
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return true;
+		// we must use a run time check for this because the builds the build machines create will have Morpheus defined,
+		// but a user will not necessarily have the Morpheus files
+		bool bEnableMorpheus = false;
+		if (GConfig->GetBool(TEXT("Morpheus.Settings"), TEXT("EnableMorpheus"), bEnableMorpheus, GEngineIni))
+		{
+			return bEnableMorpheus;
+		}
+		return false;
 	}
 
 	/** Default constructor. */
