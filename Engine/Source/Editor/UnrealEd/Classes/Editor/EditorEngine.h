@@ -2202,6 +2202,9 @@ public:
 	 */
 	bool IsPlayingViaLauncher() const { return bPlayUsingLauncher && !bIsPlayWorldQueued; }
 
+	/** @return true if the editor is able to launch PIE with online platform support */
+	virtual bool SupportsOnlinePIE() const;
+
 	/**
 	 * Ensures the assets specified are loaded and adds them to the global selection set
 	 * @param Assets		An array of assets to load and select
@@ -2284,9 +2287,6 @@ private:
 	UWorld* CreatePIEWorldBySavingToTemp(FWorldContext &WorldContext, UWorld* InWorld, FString &PlayWorldMapName);
 
 	UWorld* CreatePIEWorldFromEntry(FWorldContext &WorldContext, UWorld* InWorld, FString &PlayWorldMapName);
-
-	/** @return true if the editor is able to launch PIE with online platform support */
-	virtual bool SupportsOnlinePIE() const;
 
 	/**
 	 * Login PIE instances with the online platform before actually creating any PIE worlds
