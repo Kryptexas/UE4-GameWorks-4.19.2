@@ -557,7 +557,7 @@ namespace AutomationTool
             return Result;
         }
         static Dictionary<string, List<ChangeRecord>> ChangesCache = new Dictionary<string, List<ChangeRecord>>();
-        public bool Changes(out List<ChangeRecord> ChangeRecords, string CommandLine, bool AllowSpew = true, bool UseCaching = false)
+        public bool Changes(out List<ChangeRecord> ChangeRecords, string CommandLine, bool AllowSpew = true, bool UseCaching = false, bool LongComment = false)
         {
             if (UseCaching && ChangesCache.ContainsKey(CommandLine))
             {
@@ -570,11 +570,46 @@ namespace AutomationTool
             {
                 // Change 1999345 on 2014/02/16 by buildmachine@BuildFarm_BUILD-23_buildmachine_++depot+UE4 'GUBP Node Shadow_LabelPromotabl'
                 string Output;
-                if (!LogP4Output(out Output, "changes " + CommandLine, null, AllowSpew))
+                if (!LogP4Output(out Output, "changes " + (LongComment ? "-L " : "") + CommandLine, null, AllowSpew))
                 {
                     return false;
                 }
-                var Lines = Output.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+                var TempLines = Output.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+                var Lines = new List<string>();
+                if (LongComment)
+                {
+                    string Start = null;
+                    string Comment = "";
+                    foreach (var Line in TempLines)
+                    {
+                        if (Line.StartsWith("\t"))
+                        {
+                            Comment += Line;
+                        }
+                        else
+                        {
+                            if (Start != null)
+                            {
+                                Start = Start + " '" + Comment.Replace("\t", "").Replace("\n", "  ").Replace("\r", "") + "'";
+                                Lines.Add(Start);
+                                Comment = "";
+                            }
+                            Start = Line;
+                        }
+                    }
+                    if (Start != null)
+                    {
+                        Start = Start + " '" + Comment.Replace("\t", "").Replace("\n", "  ").Replace("\r", "") + "'";
+                        Lines.Add(Start);
+                    }
+                }
+                else
+                {
+                    foreach (var Line in TempLines)
+                    {
+                        Lines.Add(Line);
+                    }
+                }
                 foreach (var Line in Lines)
                 {
                     ChangeRecord Change = new ChangeRecord();

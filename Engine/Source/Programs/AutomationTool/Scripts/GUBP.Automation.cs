@@ -2968,7 +2968,7 @@ public class GUBP : BuildCommand
                     CombinePaths(PathSeparator.Slash, P4Env.BuildRootP4, "*", "Build", "..."), LastOutputForChanges + 1, TopCL
                     );
                 List<P4Connection.ChangeRecord> ChangeRecords;
-				if (P4.Changes(out ChangeRecords, Cmd, false, true))
+				if (P4.Changes(out ChangeRecords, Cmd, false, true, LongComment: true))
                 {
                     foreach (var Record in ChangeRecords)
                     {
@@ -3008,7 +3008,10 @@ public class GUBP : BuildCommand
         int LastGreen = History.LastSucceeded;
         if (bShowAllChanges)
         {
-            LastGreen = 0;
+            if (History.AllStarted.Count > 0)
+            {
+                LastGreen = History.AllStarted[0];
+            }
         }
         foreach (var cl in History.AllStarted)
         {
