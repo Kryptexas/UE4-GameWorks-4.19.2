@@ -87,7 +87,7 @@ bool FSurveyTitleLocalStorage::EnumerateFiles()
 
 bool FSurveyTitleLocalStorage::EnumerateFiles(int32 Start, int32 Count)
 {
-	EnumerateFiles();
+	return EnumerateFiles();
 }
 
 void FSurveyTitleLocalStorage::GetFileList(TArray<FCloudFileHeader>& InFileHeaders)

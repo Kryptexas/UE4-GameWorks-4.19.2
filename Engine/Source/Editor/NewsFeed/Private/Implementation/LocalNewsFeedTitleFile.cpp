@@ -90,7 +90,7 @@ bool FLocalNewsFeedTitleFile::EnumerateFiles()
 
 bool FLocalNewsFeedTitleFile::EnumerateFiles(int32 Start, int32 Count)
 {
-	EnumerateFiles();
+	return EnumerateFiles();
 }
 
 
