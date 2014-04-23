@@ -4740,7 +4740,7 @@ void UWorld::ServerTravel(const FString& FURL, bool bAbsolute, bool bShouldSkipG
 	}
 
 	// Check for an error in the server's connection
-	if (AuthorityGameMode && AuthorityGameMode->bHasNetworkError)
+	if (AuthorityGameMode && AuthorityGameMode->GetMatchState() == MatchState::Aborted)
 	{
 		UE_LOG(LogWorld, Log, TEXT("Not traveling because of network error"));
 		return;

@@ -25,15 +25,44 @@ class ENGINE_API AGameState : public AInfo
 	UPROPERTY(replicatedUsing=OnRep_SpectatorClass)
 	TSubclassOf<class ASpectatorPawn> SpectatorClass;
 
-	/** Match is in progress. */
-	UPROPERTY(replicatedUsing=OnRep_bMatchHasBegun)
-	uint32 bMatchHasBegun:1;
+	// Code to deal with the match state machine
 
-	/** Match is over. */
-	UPROPERTY(replicatedUsing=OnRep_bMatchIsOver)
-	uint32 bMatchIsOver:1;
+	/** Returns the current match state, this is an accessor to protect the state machine flow */
+	FName GetMatchState() const { return MatchState; }
 
-	/** Elapsed game time since GameState was created. */
+	/** Returns true if the match state is InProgress or later */
+	virtual bool HasMatchStarted() const;
+
+	/** Returns true if we're in progress */
+	virtual bool IsMatchInProgress() const;
+
+	/** Returns true if match is WaitingPostMatch or later */
+	virtual bool HasMatchEnded() const;
+
+	/** Updates the match state and calls the appropriate transition functions, only valid on server */
+	void SetMatchState(FName NewState);
+
+protected:
+
+	/** What match state we are currently in */
+	UPROPERTY(replicatedUsing=OnRep_MatchState)
+	FName MatchState;
+
+	/** Called when the state transitions to WaitingToStart */
+	virtual void HandleMatchIsWaitingToStart();
+
+	/** Called when the state transitions to InProgress */
+	virtual void HandleMatchHasStarted();
+
+	/** Called when the map transitions to WaitingPostMatch */
+	virtual void HandleMatchHasEnded();
+
+	/** Called when the match transitions to LeavingMap */
+	virtual void HandleLeavingMap();
+
+public:
+
+	/** Elapsed game time since match has started. */
 	UPROPERTY(replicated, BlueprintReadOnly, Category=GameState)
 	int32 ElapsedTime;
 
@@ -53,13 +82,9 @@ class ENGINE_API AGameState : public AInfo
 	UFUNCTION()
 	virtual void OnRep_SpectatorClass();
 
-	/** Match begun Notification Callback */
+	/** Match state has changed */
 	UFUNCTION()
-	virtual void OnRep_bMatchHasBegun();
-
-	/** Match Is Over Notification Callback */
-	UFUNCTION()
-	virtual void OnRep_bMatchIsOver();
+	virtual void OnRep_MatchState();
 
 	// Begin AActor interface
 	virtual void PostInitializeComponents() OVERRIDE;
@@ -83,11 +108,6 @@ class ENGINE_API AGameState : public AInfo
 	/** Remove PlayerState from the PlayerArray. */
 	virtual void RemovePlayerState(class APlayerState* PlayerState);
 
-	/** Called on the server when the match has begun. */
-	virtual void StartMatch();
-
-	/** Called on the server when the match is over. */
-	virtual void EndGame();
 
 	/** Called periodically, overridden by subclasses */
 	virtual void DefaultTimer();

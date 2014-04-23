@@ -39,10 +39,11 @@ AGameSession::AGameSession(const class FPostConstructInitializeProperties& PCIP)
 {
 }
 
-void AGameSession::StartPendingMatch() {}
-void AGameSession::EndPendingMatch() {}
+void AGameSession::HandleMatchIsWaitingToStart() {}
+void AGameSession::HandleMatchHasStarted() {}
+void AGameSession::HandleMatchHasEnded() {}
 
-bool AGameSession::HandleStartMatch() 
+bool AGameSession::HandleStartMatchRequest()
 {
 	return false;
 }
@@ -282,10 +283,6 @@ void AGameSession::DumpSessionState()
 bool AGameSession::CanRestartGame()
 {
 	return true;
-}
-
-void AGameSession::EndGame()
-{
 }
 
 void AGameSession::UpdateSessionJoinability(FName InSessionName, bool bPublicSearchable, bool bAllowInvites, bool bJoinViaPresence, bool bJoinViaPresenceFriendsOnly)

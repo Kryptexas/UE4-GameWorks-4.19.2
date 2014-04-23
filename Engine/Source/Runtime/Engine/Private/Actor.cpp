@@ -2166,7 +2166,7 @@ void AActor::PostNetInit()
 	check(RemoteRole == ROLE_Authority);
 
 	AGameState *GameState = GetWorld()->GameState;
-	if (GameState && GameState->bMatchHasBegun)
+	if (GameState && GameState->HasMatchStarted())
 	{
 		BeginPlay();
 	}

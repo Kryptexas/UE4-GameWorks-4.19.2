@@ -9,6 +9,19 @@
 //  instanced on the server and will never exist on the client.
 //=============================================================================
 
+/** Possible state of the current match, where a match is all the gameplay that happens on a single map */
+namespace MatchState
+{
+	extern ENGINE_API const FName EnteringMap;			// We are entering this map, actors are not yet ticking
+	extern ENGINE_API const FName WaitingToStart;		// Actors are ticking, but the match has not yet started
+	extern ENGINE_API const FName InProgress;			// Normal gameplay is occurring. Specific games will have their own state machine inside this state
+	extern ENGINE_API const FName WaitingPostMatch;		// Match has ended so we aren't accepting new players, but actors are still ticking
+	extern ENGINE_API const FName LeavingMap;			// We are transitioning out of the map to another location
+	extern ENGINE_API const FName Aborted;				// Match has failed due to network issues or other problems, cannot continue
+
+	// If a game needs to add additional states, you may need to override HasMatchStarted and HasMatchEnded to deal with the new states
+	// Do not add any states before WaitingToStart or after WaitingPostMatch
+}
 
 /** Default delegate that provides an implementation for those that don't have special needs other than a toggle */
 DECLARE_DELEGATE_RetVal( bool, FCanUnpause );
@@ -42,26 +55,91 @@ class ENGINE_API AGameMode : public AInfo
 {
 	GENERATED_UCLASS_BODY()
 
-public:
-	/** Whether the match is currently in progress */
+	// Code to deal with the match state machine
+
+	/** Returns the current match state, this is an accessor to protect the state machine flow */
+	FName GetMatchState() const { return MatchState; }
+
+	/** Returns true if the match state is InProgress or later */
+	virtual bool HasMatchStarted() const;
+
+	/** Returns true if the match state is InProgress or other gameplay state */
+	virtual bool IsMatchInProgress() const;
+
+	/** Returns true if the match state is WaitingPostMatch or later */
+	virtual bool HasMatchEnded() const;
+
+
+	/** Transition from WaitingToStart to InProgress. You can call this manually, will also get called if ReadyToStartMatch returns true */
+	virtual void StartMatch();
+
+	/** Transition from InProgress to WaitingPostMatch. You can call this manually, will also get called if ReadyToEndMatch returns true */
+	virtual void EndMatch();
+
+	/** Transition to LeavingMap state. Start the transition out of the current map. Called at start of seamless travel, or right before map change for hard travel. */
+	virtual void StartToLeaveMap();
+
+	/** Restart the game, by default travel to the current map */
+	virtual void RestartGame();
+
+	/** Return to main menu, and disconnect any players */
+	virtual void ReturnToMainMenuHost();
+
+	/** Report that a match has failed due to unrecoverable error */
+	virtual void AbortMatch();
+
+protected:
+
+	/** What match state we are currently in */
 	UPROPERTY()
-	uint32 bMatchIsInProgress:1;
+	FName MatchState;
+
+	/** Updates the match state and calls the appropriate transition functions */
+	virtual void SetMatchState(FName NewState);
+
+	// Games should override these functions to deal with their game specific logic
+
+	/** Called when the state transitions to WaitingToStart */
+	virtual void HandleMatchIsWaitingToStart();
+
+	/** @return True if ready to Start Match. Games should override this */
+	virtual bool ReadyToStartMatch();
+
+	/** Called when the state transitions to InProgress */
+	virtual void HandleMatchHasStarted();
+
+	/** @return true if ready to End Match. Games should override this */
+	virtual bool ReadyToEndMatch();
+
+	/** Called when the map transitions to WaitingPostMatch */
+	virtual void HandleMatchHasEnded();
+
+	/** Called when the match transitions to LeavingMap */
+	virtual void HandleLeavingMap();
+
+	/** Called when the match transitions to Aborted */
+	virtual void HandleMatchAborted();
+
+public:
+
+	/**
+	 * perform map travels using SeamlessTravel() which loads in the background and doesn't disconnect clients
+	 * @see World::SeamlessTravel()
+	 */
+	UPROPERTY()
+	uint32 bUseSeamlessTravel : 1;
 
 	/** Whether the game is pauseable. */
 	UPROPERTY()
-	uint32 bPauseable:1;    
+	uint32 bPauseable:1;
 
-	/** Match has not yet started - waiting for players to join and be ready. */
+	/** Whether players should immediately spawn when logging in, or stay as spectators until they manually spawn */
 	UPROPERTY()
-	uint32 bWaitingToStartMatch:1; 
+	uint32 bStartPlayersAsSpectators : 1;
 
-	/** Flag to make sure RestartGame() only gets executed once. */
+	/** Whether the game should immediately start when the first player logs in. Affects the default behavior of ReadyToStartMatch */
 	UPROPERTY()
-	uint32 bGameRestarted:1; 
-
-	/** Level transition in progress. */
-	UPROPERTY()
-	uint32 bLevelChange:1;    
+	uint32 bDelayedStart : 1;
 
 	/** Save options string and parse it when needed */
 	UPROPERTY()
@@ -149,20 +227,6 @@ public:
 	/** The list of delegates to check before unpausing a game */
 	TArray<FCanUnpause> Pausers;
 
-	/** 
-	 * perform map travels using SeamlessTravel() which loads in the background and doesn't disconnect clients
-	 * @see World::SeamlessTravel()
-	 */
-	UPROPERTY()
-	uint32 bUseSeamlessTravel:1;
-
-	/** Tracks whether the server can travel due to a critical network error. */
-	UPROPERTY()
-	uint32 bHasNetworkError:1;
-
-	/** Whether the game should immediately start when the player logs in. */
-	uint32 bDelayedStart:1;
-
 protected:
 
 	/** Handy alternate short names for GameMode classes (e.g. "DM" could be an alias for "MyProject.MyGameModeMP_DM". */
@@ -170,8 +234,6 @@ protected:
 	TArray<struct FGameClassShortName> GameModeClassAliases;
 
 public:
-	/** Does end of game handling for the online layer. */
-	virtual void PerformEndGameHandling();
 
 	/** Alters the synthetic bandwidth limit for a running game. */
 	UFUNCTION(exec)
@@ -179,11 +241,11 @@ public:
 
 	// Begin AActor interface
 	virtual void PreInitializeComponents() OVERRIDE;
-	virtual void PostInitializeComponents() OVERRIDE;
-	virtual void AddPlayerStart(APlayerStart* NewPlayerStart);
-	virtual void RemovePlayerStart(APlayerStart* RemovedPlayerStart);
+	/** This sets the match state to WaitingToStart unless we're in seamless travel */
+	virtual void PostInitializeComponents() OVERRIDE; 
 	virtual void DisplayDebug(class UCanvas* Canvas, const TArray<FName>& DebugDisplay, float& YL, float& YPos) OVERRIDE;
 	virtual void Reset() OVERRIDE;
+	virtual void Tick(float DeltaSeconds) OVERRIDE;
 	// End AActor interface
 
 	/** 
@@ -191,9 +253,6 @@ public:
 	 *		   false if the GameMode will manually reset it or if the actor does not need to be reset
 	 */
 	virtual bool ShouldReset(AActor* ActorToReset);
-
-	/** Called when StartSpot is selected for spawning NewPlayer to allow optional initialization. */
-	virtual void InitStartSpot(class AActor* StartSpot, AController* NewPlayer);
 
 	/** Resets level by calling Reset() on all actors */
 	virtual void ResetLevel();
@@ -209,8 +268,13 @@ public:
 	 */
 	bool ShouldStartInCinematicMode(bool& OutHidePlayer, bool& OutHideHud, bool& OutDisableMovement, bool& OutDisableTurning);
 
-	/** Called right before exiting or performing a server travel. */
-	virtual void GameEnding();
+	/**
+	 * Initialize the game.
+	 * The GameMode's InitGame() event is called before any other functions (including PreInitializeComponents() )
+	 * and is used by the GameMode to initialize parameters and spawn its helper classes.
+	 * @warning: this is called before actors' PreInitializeComponents.
+	 */
+	virtual void InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage);
 
 	/**
 	 * Initialize the GameState actor with default settings
@@ -291,19 +355,13 @@ public:
 	/** @return GameSession class to use for this game  */
 	virtual TSubclassOf<class AGameSession> GetGameSessionClass() const;
 
-	/**
-	 * Initialize the game.
-	 * The GameMode's InitGame() event is called before any other scripts (including
-	 * PreInitializeComponents() ), and is used by the GameMode to initialize parameters and spawn
-	 * its helper classes.
-	 * @warning: this is called before actors' PreInitializeComponents.
-	 */
-	virtual void InitGame( const FString& MapName, const FString& Options, FString& ErrorMessage );
-
 	/** Called when a connection closes before getting to PostLogin() */
 	virtual void NotifyPendingConnectionLost();
 
-	/* Optional handling of ServerTravel for network games. */
+	/** @return true if we want to travel_absolute */
+	virtual bool GetTravelType();
+
+	/** Optional handling of ServerTravel for network games. */
 	virtual void ProcessServerTravel(const FString& URL, bool bAbsolute = false);
 
 	/**
@@ -343,11 +401,17 @@ public:
 	/** @Returns true if NewPlayer may only join the server as a spectator. */
 	virtual bool MustSpectate(APlayerController* NewPlayer);
 
-	/* Start the game - inform all actors that the match is starting, and spawn player pawns. */
-	virtual void StartMatch();
-
 	/** returns default pawn class for given controller */
 	virtual UClass* GetDefaultPawnClassForController(AController* InController);
+
+	/** Called when StartSpot is selected for spawning NewPlayer to allow optional initialization. */
+	virtual void InitStartSpot(class AActor* StartSpot, AController* NewPlayer);
+
+	/** Register new player start */
+	virtual void AddPlayerStart(APlayerStart* NewPlayerStart);
+
+	/** Remove an existing player start */
+	virtual void RemovePlayerStart(APlayerStart* RemovedPlayerStart);
 
 	/**
 	 * @param	NewPlayer - Controller for whom this pawn is spawned
@@ -389,15 +453,6 @@ public:
 	/* Send a player to a URL.*/
 	virtual void SendPlayer( APlayerController* aPlayer, const FString& URL );
 
-	/** @return true if we want to travel_absolute */
-	virtual bool GetTravelType();
-
-	/** Restart the game */
-	virtual void RestartGame();
-
-	/** Return to main menu */
-	virtual void ReturnToMainMenuHost();
-
 	/** Broadcast a string to all players. */
 	virtual void Broadcast( AActor* Sender, const FString& Msg, FName Type = NAME_None );
 
@@ -427,11 +482,8 @@ public:
 	 */
 	virtual class AActor* ChoosePlayerStart( AController* Player );
 
-	/** @return true if player can restart the game */
-	virtual bool PlayerCanRestartGame( APlayerController* aPlayer );
-
-	/** @return true if player can be restarted */
-	virtual bool PlayerCanRestart( APlayerController* aPlayer );
+	/** @return true if it's valid to call RestartPlayer. Will call Player->CanRestartPlayer */
+	virtual bool PlayerCanRestart( APlayerController* Player );
 
 	/**
 	 * Used to notify the game type that it is ok to update a player's gameplay
@@ -450,13 +502,13 @@ public:
 	virtual bool AllowPausing( APlayerController* PC = NULL );
 
 	/**
-	 * Called from CommitMapChange before unloading previous level
+	 * Called from CommitMapChange before unloading previous level. Used for asynchronous level streaming
 	 * @param PreviousMapName - Name of the previous persistent level
 	 * @param NextMapName - Name of the persistent level being streamed to
 	 */
 	virtual void PreCommitMapChange(const FString& PreviousMapName, const FString& NextMapName);
 
-	/** Called from CommitMapChange after unloading previous level and loading new level+sublevels */
+	/** Called from CommitMapChange after unloading previous level and loading new level+sublevels. Used for asynchronous level streaming */
 	virtual void PostCommitMapChange();
 
 	/** Add PlayerState to the inactive list, remove from the active list */
@@ -482,7 +534,8 @@ public:
 	 */
 	virtual void GetSeamlessTravelActorList(bool bToEntry, TArray<AActor*>& ActorList);
 
-	/** used to swap a viewport/connection's PlayerControllers when seamless travelling and the new GameMode's
+	/** 
+	 * used to swap a viewport/connection's PlayerControllers when seamless travelling and the new GameMode's
 	 * controller class is different than the previous
 	 * includes network handling
 	 * @param OldPC - the old PC that should be discarded
@@ -490,13 +543,11 @@ public:
 	 */
 	virtual void SwapPlayerControllers(APlayerController* OldPC, APlayerController* NewPC);
 
-	/** called after a seamless level transition has been completed on the *new* GameMode
-	 * used to reinitialize players already in the game as they won't have *Login() called on them
+	/** 
+	 * Called after a seamless level transition has been completed on the *new* GameMode. This transitions to WaitingToStart
+	 * Used to reinitialize players already in the game as they won't have *Login() called on them
 	 */
 	virtual void PostSeamlessTravel();
-
-	/** @return true if ready to Start Match */
-	virtual bool ReadyToStartMatch();
 
 	/** 
 	 * Handles reinitializing players that remained through a seamless level transition

@@ -913,7 +913,7 @@ void UNetDriver::UpdateStandbyCheatStatus(void)
 						NetworkManager->StandbyCheatDetected(STDBY_BadPing);
 					}
 					// Check for the host not sending to the clients, but only during a match
-					else if ( GameMode && !GameMode->bWaitingToStartMatch && !GameMode->bLevelChange &&
+					else if ( GameMode && GameMode->IsMatchInProgress() &&
 						float(CountBadTx) / float(ClientConnections.Num()) > PercentMissingForTxStandby)
 					{
 						bHasStandbyCheatTriggered = true;

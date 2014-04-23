@@ -8798,7 +8798,7 @@ static inline void CallHandleDisconnectForFailure(UWorld* InWorld, UNetDriver* N
 		if (GameMode)
 		{
 			// Mark the server as having a problem
-			GameMode->bHasNetworkError = true;
+			GameMode->AbortMatch();
 		}
 	}
 	
@@ -9372,7 +9372,7 @@ bool UEngine::TickWorldTravel(FWorldContext& Context, float DeltaSeconds)
 			UE_LOG(LogEngine, Log,  TEXT("Server switch level: %s"), *Context.World()->NextURL );
 			if (Context.World()->GetAuthGameMode() != NULL)
 			{
-				Context.World()->GetAuthGameMode()->GameEnding(); 
+				Context.World()->GetAuthGameMode()->StartToLeaveMap();
 			}
 			FString Error;
 			FString NextURL = Context.World()->NextURL;
@@ -9407,7 +9407,7 @@ bool UEngine::TickWorldTravel(FWorldContext& Context, float DeltaSeconds)
 		AGameMode* const GameMode = Context.World()->GetAuthGameMode();
 		if (GameMode)
 		{
-			GameMode->GameEnding(); 
+			GameMode->StartToLeaveMap();
 		}
 
 		FString Error, TravelURLCopy = Context.TravelURL;

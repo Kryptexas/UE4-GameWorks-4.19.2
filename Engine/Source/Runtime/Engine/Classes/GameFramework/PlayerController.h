@@ -1094,7 +1094,7 @@ public:
 	 */
 	virtual void ViewAPlayer(int32 dir);
 
-	/** @return true if game allows this player to spawn */
+	/** @return true if this controller thinks it's able to restart. Called from GameMode::PlayerCanRestart */
 	virtual bool CanRestartPlayer();
 
 	/**

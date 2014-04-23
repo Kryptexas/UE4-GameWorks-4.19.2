@@ -699,7 +699,7 @@ bool UGameEngine::HandleExitCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 
 		if (GameMode)
 		{
-			GameMode->GameEnding();
+			GameMode->StartToLeaveMap();
 		}
 
 		// Cancel any pending connection to a server

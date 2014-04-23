@@ -142,20 +142,20 @@ class ENGINE_API AGameSession : public AInfo
 	//=================================================================================
 	// MATCH INTERFACE
 
-	/** Start a pending match */
-	virtual void StartPendingMatch();
+	/** @RETURNS true if GameSession handled the request, in case it wants to stall for some reason. Otherwise, game mode will start immediately */
+	virtual bool HandleStartMatchRequest();
 
-	/** End a pending match */
-	virtual void EndPendingMatch();
+	/** Handle when the match enters waiting to start */
+	virtual void HandleMatchIsWaitingToStart();
+
+	/** Handle when the match has started */
+	virtual void HandleMatchHasStarted();
+
+	/** Handle when the match has completed */
+	virtual void HandleMatchHasEnded();
 
 	/** Called from GameMode.RestartGame(). */
 	virtual bool CanRestartGame();
-
-	/** End a game */
-	virtual void EndGame();
-
-	/** @RETURNS true if GameSession handled starting the match */
-	virtual bool HandleStartMatch();
 
 private:
 	// Hidden functions that don't make sense to use on this class.
