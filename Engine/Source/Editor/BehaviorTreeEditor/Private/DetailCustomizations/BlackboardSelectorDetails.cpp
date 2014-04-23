@@ -2,6 +2,7 @@
 
 #include "../BehaviorTreeEditorPrivatePCH.h"
 #include "BlackboardSelectorDetails.h"
+#include "IPropertyUtilities.h"
 
 #define LOCTEXT_NAMESPACE "BlackboardSelectorDetails"
 
