@@ -46,6 +46,7 @@
 #include "HighResScreenshot.h"
 
 #include "PostProcessMorpheus.h"
+#include "IHeadMountedDisplay.h"
 
 
 /** The global center for all post processing activities. */
