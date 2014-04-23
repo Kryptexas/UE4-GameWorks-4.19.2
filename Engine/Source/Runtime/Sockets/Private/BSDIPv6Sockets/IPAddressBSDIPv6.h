@@ -2,7 +2,7 @@
 
 #pragma once
 
-#if PLATFORM_HAS_BSD_SOCKETS
+#if PLATFORM_HAS_BSD_IPV6_SOCKETS
 
 #include "Core.h"
 #include "IPAddress.h"
@@ -266,4 +266,4 @@ public:
  	}
 };
 
-#endif	//PLATFORM_HAS_BSD_SOCKETS
+#endif

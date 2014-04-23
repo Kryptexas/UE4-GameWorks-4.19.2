@@ -5,7 +5,7 @@
 #include "SocketSubsystem.h"
 #include "SocketSubsystemPackage.h"
 
-#if PLATFORM_HAS_BSD_SOCKETS
+#if PLATFORM_HAS_BSD_IPV6_SOCKETS
 
 #include "../BSDSockets/SocketSubsystemBSDPrivate.h"
 #include "IPAddressBSDIPv6.h"

@@ -4,7 +4,7 @@
 
 #include "Platform.h"
 
-#if PLATFORM_HAS_BSD_SOCKETS
+#if PLATFORM_HAS_BSD_IPV6_SOCKETS
 
 #include "Sockets.h"
 #include "IPAddress.h"
@@ -129,4 +129,4 @@ protected:
 	ISocketSubsystem * SocketSubsystem;
 };
 
-#endif	//PLATFORM_HAS_BSD_SOCKETS
+#endif

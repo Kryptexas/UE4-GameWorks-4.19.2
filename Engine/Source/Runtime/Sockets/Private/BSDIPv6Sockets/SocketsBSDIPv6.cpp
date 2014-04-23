@@ -2,7 +2,7 @@
 
 #include "SocketsPrivatePCH.h"
 
-#if PLATFORM_HAS_BSD_SOCKETS
+#if PLATFORM_HAS_BSD_IPV6_SOCKETS
 
 #include "SocketSubsystemBSDIPv6.h"
 #include "SocketsBSDIPv6.h"
@@ -404,4 +404,4 @@ bool FSocketBSDIPv6::SetIPv6Only(bool bIPv6Only)
 	return bOk;
 }
 
-#endif	//PLATFORM_HAS_BSD_SOCKETS
+#endif
