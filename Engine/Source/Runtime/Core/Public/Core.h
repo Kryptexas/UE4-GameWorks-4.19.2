@@ -467,6 +467,8 @@ extern CORE_API double GBlueprintCompileTime;
 #include "App.h"
 #include "OutputDeviceConsole.h"
 #include "MonitoredProcess.h"
+#include "Attribute.h"
+#include "Optional.h"
 
 #ifdef TRUE
 	#undef TRUE
