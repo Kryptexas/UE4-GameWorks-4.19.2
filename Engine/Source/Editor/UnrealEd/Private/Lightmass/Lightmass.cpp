@@ -7,6 +7,7 @@
 #include "UnrealEd.h"
 #include "PrecomputedLightVolume.h"
 #include "Runtime/Engine/Public/Landscape/LandscapeRender.h"
+#include "Runtime/Engine/Public/Landscape/LandscapeLight.h"
 
 extern FSwarmDebugOptions GSwarmDebugOptions;
 
@@ -2254,6 +2255,9 @@ FLightmassProcessor::~FLightmassProcessor()
 		delete ImportData;
 	}
 	ImportedMappings.Empty();
+
+	FLandscapeStaticLightingMesh::LandscapeUpscaleHeightDataCache.Empty();
+	FLandscapeStaticLightingMesh::LandscapeUpscaleXYOffsetDataCache.Empty();
 }
 
 /** Retrieve an exporter for the given channel name */

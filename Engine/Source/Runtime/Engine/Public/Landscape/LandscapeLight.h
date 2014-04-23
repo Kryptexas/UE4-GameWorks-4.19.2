@@ -80,7 +80,13 @@ protected:
 	float UVFactor;
 
 	friend class FLightmassExporter;
-};
 
+#if WITH_EDITOR
+public:
+	// Cache data for Landscape upscaling data
+	ENGINE_API static TMap<FIntPoint, FColor> LandscapeUpscaleHeightDataCache;
+	ENGINE_API static TMap<FIntPoint, FColor> LandscapeUpscaleXYOffsetDataCache;
+#endif
+};
 
 #endif // _LANDSCAPELIGHT_H
