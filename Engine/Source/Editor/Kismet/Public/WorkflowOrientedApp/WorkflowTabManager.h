@@ -25,6 +25,9 @@ public:
 	// Registers a factory with this set - must be unique.
 	void RegisterFactory(TSharedPtr<class FWorkflowTabFactory> Factory);
 
+	// Unregisters a factory with this specified ID.
+	void UnregisterFactory(FName FactoryID);
+
 	// Merges in a set of factories into this set - duplicates are OK.
 	void MergeInSet(const FWorkflowAllowedTabSet& OtherSet);
 

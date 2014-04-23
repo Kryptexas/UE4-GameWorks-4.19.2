@@ -1698,6 +1698,18 @@ void FPersona::CreateDefaultTabContents(const TArray<UBlueprint*>& InBlueprints)
 		. OnFinishedChangingProperties( FOnFinishedChangingProperties::FDelegate::CreateSP( this, &FPersona::OnFinishedChangingProperties ) );
 }
 
+FGraphAppearanceInfo FPersona::GetGraphAppearance() const
+{
+	FGraphAppearanceInfo AppearanceInfo = FBlueprintEditor::GetGraphAppearance();
+
+	if ( GetBlueprintObj()->IsA(UAnimBlueprint::StaticClass()) )
+	{
+		AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_Animation", "ANIMATION").ToString();
+	}
+
+	return AppearanceInfo;
+}
+
 void FPersona::FocusWindow(UObject* ObjectToFocusOn)
 {
 	FBlueprintEditor::FocusWindow(ObjectToFocusOn);

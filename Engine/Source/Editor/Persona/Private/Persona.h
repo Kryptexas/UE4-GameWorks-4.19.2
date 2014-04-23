@@ -234,6 +234,7 @@ protected:
 	virtual void OnOpenRelatedAsset() OVERRIDE;
 	virtual void GetCustomDebugObjects(TArray<FCustomDebugObject>& DebugList) const OVERRIDE;
 	virtual void CreateDefaultTabContents(const TArray<UBlueprint*>& InBlueprints) OVERRIDE;
+	virtual FGraphAppearanceInfo GetGraphAppearance() const OVERRIDE;
 	// End of FBlueprintEditor interface
 
 	// IAssetEditorInstance interface

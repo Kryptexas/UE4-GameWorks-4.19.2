@@ -703,28 +703,20 @@ FGraphAppearanceInfo FBlueprintEditor::GetGraphAppearance() const
 {
 	// Create the appearance info
 	FGraphAppearanceInfo AppearanceInfo;
-	if (GetBlueprintObj()->IsA(UAnimBlueprint::StaticClass()))
+	switch ( GetBlueprintObj()->BlueprintType )
 	{
-		AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_Animation", "ANIMATION").ToString();
-	}
-	else
-	{
-		switch (GetBlueprintObj()->BlueprintType)
-		{
-		case BPTYPE_LevelScript:
-			AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_LevelScript", "LEVEL BLUEPRINT").ToString();
-			break;
-		case BPTYPE_MacroLibrary:
-			AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_Macro", "MACRO").ToString();
-			break;
-		case BPTYPE_Interface:
-			AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_Interface", "INTERFACE").ToString();
-			break;
-		default:
-			AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_Blueprint", "BLUEPRINT").ToString();
-			break;
-		}
-
+	case BPTYPE_LevelScript:
+		AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_LevelScript", "LEVEL BLUEPRINT").ToString();
+		break;
+	case BPTYPE_MacroLibrary:
+		AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_Macro", "MACRO").ToString();
+		break;
+	case BPTYPE_Interface:
+		AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_Interface", "INTERFACE").ToString();
+		break;
+	default:
+		AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_Blueprint", "BLUEPRINT").ToString();
+		break;
 	}
 
 	AppearanceInfo.PIENotifyText = GetPIEStatus();

@@ -779,6 +779,9 @@ protected:
 
 	virtual void AnalyticsTrackNewNode( FName NodeClass, FName NodeType ) OVERRIDE;
 
+	/** Get graph appearance */
+	virtual FGraphAppearanceInfo GetGraphAppearance() const;
+
 private:
 
 	/* User wants to edit tunnel via function editor */
@@ -792,9 +795,6 @@ private:
 
 	/** Helper to move focused graph when clicking on graph breadcrumb */
 	void OnChangeBreadCrumbGraph( class UEdGraph* InGraph);
-
-	/** Get graph appearance */
-	FGraphAppearanceInfo GetGraphAppearance() const;
 
 	/** Function to check whether the give graph is a subgraph */
 	static bool IsASubGraph( const class UEdGraph* GraphPtr );
