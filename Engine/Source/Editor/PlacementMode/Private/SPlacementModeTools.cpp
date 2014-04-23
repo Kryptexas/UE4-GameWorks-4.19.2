@@ -98,7 +98,7 @@ void SPlacementAssetEntry::Construct(const FArguments& InArgs, UActorFactory* In
 	AssetDisplayName = FText::FromName( AssetData.AssetName );
 	if ( IsClass )
 	{
-		AssetDisplayName = FText::FromString( EngineUtils::SanitizeDisplayName( AssetData.AssetName.ToString(), false ) );
+		AssetDisplayName = FText::FromString( FName::NameToDisplayString( AssetData.AssetName.ToString(), false ) );
 	}
 
 	FText ActorTypeDisplayName;
@@ -106,7 +106,7 @@ void SPlacementAssetEntry::Construct(const FArguments& InArgs, UActorFactory* In
 	if ( IsClass && Cast<UClass>( AssetData.GetAsset() )->IsChildOf( AActor::StaticClass() ) )
 	{
 		DefaultActor = Cast<AActor>( Cast<UClass>( AssetData.GetAsset() )->ClassDefaultObject );
-		ActorTypeDisplayName = FText::FromString( EngineUtils::SanitizeDisplayName( DefaultActor->GetClass()->GetName(), false ) );
+		ActorTypeDisplayName = FText::FromString( FName::NameToDisplayString( DefaultActor->GetClass()->GetName(), false ) );
 	}
 
 	if ( FactoryToUse != nullptr )

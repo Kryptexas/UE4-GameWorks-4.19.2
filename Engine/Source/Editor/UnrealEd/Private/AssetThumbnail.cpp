@@ -483,7 +483,7 @@ private:
 
 			if ( ClassDisplayName.IsEmpty() )
 			{
-				ClassDisplayName = FText::FromString( EngineUtils::SanitizeDisplayName(*Class->GetName(), false) );
+				ClassDisplayName = FText::FromString( FName::NameToDisplayString(*Class->GetName(), false) );
 			}
 		}
 

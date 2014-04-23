@@ -324,13 +324,13 @@ DEF_ASPERCENT(double)
 DEF_ASPERCENT(float)
 #undef DEF_ASPERCENT
 
-bool FText::FindText( const FString& Namespace, const FString& Key, FText& OutText )
+bool FText::FindText( const FString& Namespace, const FString& Key, FText& OutText, const FString* const SourceString )
 {
 	TSharedPtr< FString > FoundString = FTextLocalizationManager::Get().FindString( Namespace, Key );
 
 	if ( FoundString.IsValid() )
 	{
-		OutText = FText( FString(), Namespace, Key );
+		OutText = FText( SourceString ? *SourceString : FString(), Namespace, Key );
 	}
 
 	return FoundString.IsValid();

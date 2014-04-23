@@ -196,6 +196,17 @@ void FTextLocalizationManager::LoadResources(const bool ShouldLoadEditor, const 
 	if(ShouldLoadEditor)
 	{
 		LocalizationPaths += FPaths::GetEditorLocalizationPaths();
+		LocalizationPaths += FPaths::GetToolTipLocalizationPaths();
+
+		bool bShouldLoadLocalizedPropertyNames = true;
+		if( !GConfig->GetBool( TEXT("Internationalization"), TEXT("ShouldLoadLocalizedPropertyNames"), bShouldLoadLocalizedPropertyNames, GEditorGameAgnosticIni ) )
+		{
+			GConfig->GetBool( TEXT("Internationalization"), TEXT("ShouldLoadLocalizedPropertyNames"), bShouldLoadLocalizedPropertyNames, GEngineIni );
+		}
+		if(bShouldLoadLocalizedPropertyNames)
+		{
+			LocalizationPaths += FPaths::GetPropertyNameLocalizationPaths();
+		}
 	}
 	LocalizationPaths += FPaths::GetEngineLocalizationPaths();
 
@@ -324,7 +335,7 @@ void FTextLocalizationManager::OnCultureChanged()
 	LoadResources(ShouldLoadEditor, ShouldLoadGame);
 }
 
-TSharedPtr<FString> FTextLocalizationManager::FindString( const FString& Namespace, const FString& Key )
+TSharedPtr<FString> FTextLocalizationManager::FindString( const FString& Namespace, const FString& Key, const FString* const SourceString )
 {
 	FScopeLock ScopeLock( &SynchronizationObject );
 
@@ -334,7 +345,7 @@ TSharedPtr<FString> FTextLocalizationManager::FindString( const FString& Namespa
 	// Find key table's entry.
 	const FStringEntry* LiveEntry = LiveKeyTable ? LiveKeyTable->Find( Key ) : NULL;
 
-	if ( LiveEntry != NULL )
+	if( LiveEntry != NULL && ( !SourceString || LiveEntry->SourceStringHash == FCrc::StrCrc32(**SourceString) ) )
 	{
 		return LiveEntry->String;
 	}

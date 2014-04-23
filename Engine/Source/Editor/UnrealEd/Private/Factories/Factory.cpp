@@ -91,7 +91,7 @@ FText UFactory::GetDisplayName() const
 		}
 
 		// Factories whose classes do not have asset type actions should just display the sanitized class name
-		return FText::FromString( EngineUtils::SanitizeDisplayName(*LocalSupportedClass->GetName(), false) );
+		return FText::FromString( FName::NameToDisplayString(*LocalSupportedClass->GetName(), false) );
 	}
 
 	// Factories that have no supported class have no display name.

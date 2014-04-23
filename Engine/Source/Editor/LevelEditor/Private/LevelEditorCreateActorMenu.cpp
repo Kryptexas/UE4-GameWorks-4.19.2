@@ -68,7 +68,7 @@ class SAssetMenuEntry : public SCompoundWidget
 		FText AssetDisplayName = FText::FromName( Asset.AssetName );
 		if ( IsClass )
 		{
-			AssetDisplayName = FText::FromString( EngineUtils::SanitizeDisplayName( Asset.AssetName.ToString(), false ) );
+			AssetDisplayName = FText::FromString( FName::NameToDisplayString( Asset.AssetName.ToString(), false ) );
 		}
 
 		FText ActorTypeDisplayName;
@@ -80,7 +80,7 @@ class SAssetMenuEntry : public SCompoundWidget
 			if ( IsClass && Cast<UClass>( MenuItem.AssetData.GetAsset() )->IsChildOf( AActor::StaticClass() ) )
 			{
 				DefaultActor = Cast<AActor>( Cast<UClass>( MenuItem.AssetData.GetAsset() )->ClassDefaultObject );
-				ActorTypeDisplayName = FText::FromString( EngineUtils::SanitizeDisplayName( DefaultActor->GetClass()->GetName(), false ) );
+				ActorTypeDisplayName = FText::FromString( FName::NameToDisplayString( DefaultActor->GetClass()->GetName(), false ) );
 			}
 
 			const FSlateBrush* IconBrush = NULL;

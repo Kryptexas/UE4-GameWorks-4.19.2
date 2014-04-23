@@ -66,18 +66,8 @@ FPropertyAccess::Result FPropertyValueImpl::GetPropertyValueString( FString& Out
 				UByteProperty* ByteProperty = Cast<UByteProperty>(Property);
 				if ( ByteProperty != NULL && ByteProperty->Enum != NULL )
 				{
-					// see if we have alternate text to use for displaying the value
-					UMetaData* PackageMetaData = ByteProperty->Enum->GetOutermost()->GetMetaData();
-					if ( PackageMetaData )
-					{
-						FName AltDisplayName = FName(*(OutString+TEXT(".DisplayName")));
-						FString ValueText = PackageMetaData->GetValue(ByteProperty->Enum, AltDisplayName);
-						if ( ValueText.Len() > 0 )
-						{
-							// render the alternate text for this enum value
-							OutString = ValueText;
-						}
-					}
+					uint8 EnumValue = ByteProperty->GetPropertyValue(ValueAddress);
+					OutString = ByteProperty->Enum->GetEnumString(EnumValue);
 				}
 			}
 			else
@@ -123,18 +113,8 @@ FPropertyAccess::Result FPropertyValueImpl::GetPropertyValueText( FText& OutText
 				UByteProperty* ByteProperty = Cast<UByteProperty>(Property);
 				if ( ByteProperty != NULL && ByteProperty->Enum != NULL )
 				{
-					// see if we have alternate text to use for displaying the value
-					UMetaData* PackageMetaData = ByteProperty->Enum->GetOutermost()->GetMetaData();
-					if ( PackageMetaData )
-					{
-						FName AltDisplayName = FName(*(OutString+TEXT(".DisplayName")));
-						FString ValueText = PackageMetaData->GetValue(ByteProperty->Enum, AltDisplayName);
-						if ( ValueText.Len() > 0 )
-						{
-							// render the alternate text for this enum value
-							OutString = ValueText;
-						}
-					}
+					uint8 EnumValueIndex = ByteProperty->GetPropertyValue(ValueAddress);
+					OutString = ByteProperty->Enum->GetEnumString(EnumValueIndex);
 				}
 
 				OutText = FText::FromString(OutString);

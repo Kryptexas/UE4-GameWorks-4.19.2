@@ -1913,7 +1913,7 @@ FString UEdGraphSchema_K2::GetPinDisplayName(const UEdGraphPin* Pin) const
 
 		if( GEditor && GetDefault<UEditorStyleSettings>()->bShowFriendlyNames )
 		{
-			DisplayName = EngineUtils::SanitizeDisplayName(DisplayName, Pin->PinType.PinCategory == PC_Boolean);
+			DisplayName = FName::NameToDisplayString(DisplayName, Pin->PinType.PinCategory == PC_Boolean);
 		}
 	}
 	return DisplayName;

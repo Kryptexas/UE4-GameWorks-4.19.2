@@ -22,6 +22,8 @@ public:
 	void ResetToDefault();
 	FString GetCultureName() const;
 	void SetCultureName(const FString& CultureName);
+	bool ShouldLoadLocalizedPropertyNames() const;
+	void ShouldLoadLocalizedPropertyNames(const bool Value);
 
 public:
 	/**

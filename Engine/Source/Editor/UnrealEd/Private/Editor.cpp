@@ -4520,7 +4520,7 @@ FString UEditorEngine::GetFriendlyName( const UProperty* Property, UClass* Owner
 		if ( DefaultFriendlyName.Len() == 0 )
 		{
 			const bool bIsBool = Cast<const UBoolProperty>(Property) != NULL;
-			return EngineUtils::SanitizeDisplayName( Property->GetName(), bIsBool );
+			return FName::NameToDisplayString( Property->GetName(), bIsBool );
 		}
 		return DefaultFriendlyName;
 	}

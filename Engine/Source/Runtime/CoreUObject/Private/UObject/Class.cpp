@@ -188,11 +188,21 @@ void UField::AddCppProperty( UProperty* Property )
 FText UField::GetDisplayNameText() const
 {
 	FText LocalizedDisplayName;
-	const FString NativeDisplayName = GetMetaData( TEXT("DisplayName") );
 
 	static const FString Namespace = TEXT("UObjectDisplayNames");
 	const FString Key = GetFullGroupName(true) + TEXT(".") + GetName();
-	if ( !(FText::FindText( Namespace, Key, /*OUT*/LocalizedDisplayName )) || *FTextInspector::GetSourceString(LocalizedDisplayName) != NativeDisplayName )
+
+	FString NativeDisplayName;
+	if( HasMetaData( TEXT("DisplayName") ) )
+	{
+		NativeDisplayName = GetMetaData( TEXT("DisplayName") );
+	}
+	else
+	{
+		NativeDisplayName = FName::NameToDisplayString(GetName(), IsA<UBoolProperty>());
+	}
+
+	if ( !( FText::FindText( Namespace, Key, /*OUT*/LocalizedDisplayName, &NativeDisplayName ) ) )
 	{
 		LocalizedDisplayName = FText::FromString(NativeDisplayName );
 	}

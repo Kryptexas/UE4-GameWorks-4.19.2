@@ -518,7 +518,7 @@ FString FClassPickerDefaults::GetName() const
 	{
 		UClass* ItemClass = LoadClass<UObject>(NULL, *ClassName, NULL, LOAD_None, NULL);
 		check( ItemClass );
-		return EngineUtils::SanitizeDisplayName(ItemClass->GetName(), false);
+		return FName::NameToDisplayString(ItemClass->GetName(), false);
 	}
 	
 	const FText* PreExistingName = LocNames.Find( LocTextNameID );

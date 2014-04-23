@@ -247,6 +247,56 @@ const TArray<FString>& FPaths::GetEditorLocalizationPaths()
 	return Results;
 }
 
+const TArray<FString>& FPaths::GetPropertyNameLocalizationPaths()
+{
+	static TArray<FString> Results;
+	static bool HasInitialized = false;
+
+	if(!HasInitialized)
+	{
+		if(GConfig && GConfig->IsReadyForUse())
+		{
+			GConfig->GetArray( TEXT("Internationalization"), TEXT("PropertyNameLocalizationPaths"), Results, GEditorIni );
+			if(!Results.Num())
+			{
+				UE_LOG(LogInit, Warning, TEXT("We appear to have no property name localization data? Editor can't run."));
+			}
+			HasInitialized = true;
+		}
+		else
+		{
+			Results.AddUnique(TEXT("../../../Engine/Content/Localization/Editor/PropertyNames")); // Hardcoded convention.
+		}
+	}
+
+	return Results;
+}
+
+const TArray<FString>& FPaths::GetToolTipLocalizationPaths()
+{
+	static TArray<FString> Results;
+	static bool HasInitialized = false;
+
+	if(!HasInitialized)
+	{
+		if(GConfig && GConfig->IsReadyForUse())
+		{
+			GConfig->GetArray( TEXT("Internationalization"), TEXT("ToolTipLocalizationPaths"), Results, GEditorIni );
+			if(!Results.Num())
+			{
+				UE_LOG(LogInit, Warning, TEXT("We appear to have no tool tip localization data? Editor can't run."));
+			}
+			HasInitialized = true;
+		}
+		else
+		{
+			Results.AddUnique(TEXT("../../../Engine/Content/Localization/Editor/ToolTips")); // Hardcoded convention.
+		}
+	}
+
+	return Results;
+}
+
 const TArray<FString>& FPaths::GetGameLocalizationPaths()
 {
 	static TArray<FString> Results;

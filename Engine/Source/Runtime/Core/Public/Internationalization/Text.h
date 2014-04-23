@@ -162,7 +162,7 @@ public:
 	 * Attempts to find an existing FText using the representation found in the loc tables for the specified namespace and key
 	 * @return true if OutText was properly set; otherwise false and OutText will be untouched
 	 */
-	static bool FindText( const FString& Namespace, const FString& Key, FText& OutText );
+	static bool FindText( const FString& Namespace, const FString& Key, FText& OutText, const FString* const SourceString = nullptr );
 
 	/**
 	 * Generate an FText representing the pass name

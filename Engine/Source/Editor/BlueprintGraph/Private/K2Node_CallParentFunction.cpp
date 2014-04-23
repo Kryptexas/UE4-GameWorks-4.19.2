@@ -18,7 +18,7 @@ FString UK2Node_CallParentFunction::GetNodeTitle(ENodeTitleType::Type TitleType)
 	
 	if( GEditor && GetDefault<UEditorStyleSettings>()->bShowFriendlyNames )
 	{
-		Result = EngineUtils::SanitizeDisplayName(Result, false);
+		Result = FName::NameToDisplayString(Result, false);
 	}
 	return Result;
 }

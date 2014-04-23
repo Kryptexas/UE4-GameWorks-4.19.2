@@ -452,7 +452,7 @@ void FDetailCategoryImpl::SetDisplayName( FName InCategoryName, const FString& L
 		FName BaseClassName = BaseClass ? BaseClass->GetFName() : FName("Generic");
 
 		FString CategoryStr = InCategoryName != NAME_None ? InCategoryName.ToString() : BaseClassName.ToString();
-		FString SourceCategoryStr = EngineUtils::SanitizeDisplayName( CategoryStr, false );
+		FString SourceCategoryStr = FName::NameToDisplayString( CategoryStr, false );
 
 		bool FoundText = false;
 		FText DisplayNameText;
