@@ -1399,7 +1399,15 @@ FUnmappedGuidMgrElement::~FUnmappedGuidMgrElement()
 	}
 }
 
-bool FRepLayout::UpdateUnmappedObjects_r( FRepState * RepState, FUnmappedGuidMgr * UnmappedGuids, UPackageMap * PackageMap, uint8 * RESTRICT Data, const int32 MaxAbsOffset ) const
+void FRepLayout::UpdateUnmappedObjects_r( 
+	FRepState *			RepState, 
+	FUnmappedGuidMgr *	UnmappedGuids, 
+	UObject *			OriginalObject,
+	UPackageMap *		PackageMap, 
+	uint8 * RESTRICT	Data, 
+	const int32			MaxAbsOffset,
+	bool &				bOutSomeObjectsWereMapped,
+	bool &				bOutHasMoreUnmapped ) const
 {
 	bool bHasUnmapped = false;
 
@@ -1410,7 +1418,7 @@ bool FRepLayout::UpdateUnmappedObjects_r( FRepState * RepState, FUnmappedGuidMgr
 		if ( AbsOffset >= MaxAbsOffset )
 		{
 			// Array must have shrunk, we can remove this item
-			UE_LOG( LogNet, Verbose, TEXT( "REMOVED unmapped property: AbsOffset >= MaxAbsOffset. Offset: %i" ), AbsOffset );
+			UE_LOG( LogNet, VeryVerbose, TEXT( "REMOVED unmapped property: AbsOffset >= MaxAbsOffset. Offset: %i" ), AbsOffset );
 			It.RemoveCurrent();
 			continue;
 		}
@@ -1422,10 +1430,7 @@ bool FRepLayout::UpdateUnmappedObjects_r( FRepState * RepState, FUnmappedGuidMgr
 		{
 			check( Cmd.Type == REPCMD_DynamicArray );
 			FScriptArray * Array = (FScriptArray *)( Data + AbsOffset );
-			if ( UpdateUnmappedObjects_r( RepState, It.Value().Array, PackageMap, (uint8*)Array->GetData(), Array->Num() * Cmd.ElementSize ) )
-			{
-				bHasUnmapped = true;
-			}
+			UpdateUnmappedObjects_r( RepState, It.Value().Array, OriginalObject, PackageMap, (uint8*)Array->GetData(), Array->Num() * Cmd.ElementSize, bOutSomeObjectsWereMapped, bOutHasMoreUnmapped );
 			continue;
 		}
 
@@ -1435,36 +1440,46 @@ bool FRepLayout::UpdateUnmappedObjects_r( FRepState * RepState, FUnmappedGuidMgr
 
 		if ( Object != NULL )
 		{
-			UE_LOG( LogNet, Verbose, TEXT( "REMOVED unmapped property: Offset: %i, Guid: %s, PropName: %s, ObjName: %s" ), AbsOffset, *It.Value().Guid.ToString(), *Cmd.Property->GetName(), *Object->GetName() );
+			UE_LOG( LogNet, VeryVerbose, TEXT( "REMOVED unmapped property: Offset: %i, Guid: %s, PropName: %s, ObjName: %s" ), AbsOffset, *It.Value().Guid.ToString(), *Cmd.Property->GetName(), *Object->GetName() );
 			UObjectPropertyBase * ObjProperty = CastChecked< UObjectPropertyBase>( Cmd.Property );
 
 			UObject * OldObject = ObjProperty->GetObjectPropertyValue( Data + AbsOffset );
 
-			ObjProperty->SetObjectPropertyValue( Data + AbsOffset, Object );
-
-			if ( OldObject != Object && Parent.Property->HasAnyPropertyFlags( CPF_RepNotify ) )
+			if ( OldObject != Object )
 			{
-				RepState->RepNotifies.AddUnique( Parent.Property );
-			} 
+				if ( !bOutSomeObjectsWereMapped )
+				{
+					// Call PreNetReceive if we are going to change a value (some game code will need to think this is an actual replicated value)
+					OriginalObject->PreNetReceive();
+					bOutSomeObjectsWereMapped = true;
+				}
+
+				ObjProperty->SetObjectPropertyValue( Data + AbsOffset, Object );
+
+				// If this properties needs an OnRep, queue that up to be handled later
+				if ( Parent.Property->HasAnyPropertyFlags( CPF_RepNotify ) )
+				{
+					RepState->RepNotifies.AddUnique( Parent.Property );
+				} 
+			}
 
 			It.RemoveCurrent();
 			continue;
 		}
 
-		bHasUnmapped = true;
+		UE_LOG( LogNet, VeryVerbose, TEXT( "UnmappedGuids: Offset: %i, Guid: %s" ), AbsOffset, *It.Value().Guid.ToString() );
 
-		UE_LOG( LogNet, Verbose, TEXT( "UnmappedGuids: Offset: %i, Guid: %s" ), AbsOffset, *It.Value().Guid.ToString() );
+		bOutHasMoreUnmapped = true;
 	}
-
-	return bHasUnmapped;
 }
 
-bool FRepLayout::UpdateUnmappedObjects( FRepState *	RepState, UPackageMap * PackageMap, void * RESTRICT Data ) const
+void FRepLayout::UpdateUnmappedObjects( FRepState *	RepState, UPackageMap * PackageMap, UObject * OriginalObject, bool & bOutSomeObjectsWereMapped, bool & bOutHasMoreUnmapped ) const
 {
-#if ENABLE_CLIENT_UNMAP_LOGIC == 0
-	return false;
-#else
-	return UpdateUnmappedObjects_r( RepState, &RepState->UnmappedGuids, PackageMap, (uint8*)Data, RepState->StaticBuffer.Num() );
+	bOutSomeObjectsWereMapped	= false;
+	bOutHasMoreUnmapped			= false;
+
+#if ENABLE_CLIENT_UNMAP_LOGIC == 1
+	UpdateUnmappedObjects_r( RepState, &RepState->UnmappedGuids, OriginalObject, PackageMap, (uint8*)OriginalObject, RepState->StaticBuffer.Num(), bOutSomeObjectsWereMapped, bOutHasMoreUnmapped );
 #endif
 }
 

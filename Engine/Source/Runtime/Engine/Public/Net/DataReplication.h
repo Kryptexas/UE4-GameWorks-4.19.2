@@ -124,7 +124,7 @@ public:
 
 	void StartBecomingDormant();
 
-	bool UpdateUnmappedObjects();
+	void UpdateUnmappedObjects( bool & bOutHasMoreUnmapped );
 
 	FORCEINLINE UObject *	GetObject() const { return ObjectPtr.Get(); }
 	FORCEINLINE void		SetObject( UObject * NewObj ) { ObjectPtr = TWeakObjectPtr<UObject>( NewObj ); }
