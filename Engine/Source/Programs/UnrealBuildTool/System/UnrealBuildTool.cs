@@ -1041,6 +1041,12 @@ namespace UnrealBuildTool
 					BuildConfiguration.bUseIncludeDependencyResolveCache = true;
 				}
 
+				bool CreateStub = Utils.ParseCommandLineFlag(Arguments, "-nocreatestub", out ArgumentIndex);
+				if (CreateStub)
+				{
+					BuildConfiguration.bCreateStubIPA = false;
+				}
+
 				// Build action lists for all passed in targets.
 				var OutputItemsForAllTargets = new List<FileItem>();
 				foreach (string[] TargetSetting in TargetSettings)

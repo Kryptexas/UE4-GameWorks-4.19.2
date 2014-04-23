@@ -16,11 +16,13 @@ case $ACTION in
                 if [ $2 = "iphoneos" ]
                 then
 	                Platform="IOS"
+			AdditionalFlags+=" -nocreatestub"
                 else
 	                if [ $2 = "iphonesimulator" ]
 	                then
 		                Platform="IOS"
 		                AdditionalFlags+=" -simulator"
+				AdditionalFlags+=" -nocreatestub"
 	                else
 		                Platform="Mac"
 	                fi
@@ -37,11 +39,13 @@ case $ACTION in
                 if [ $3 = "iphoneos" ]
                 then
 	                Platform="IOS"
+			AdditionalFlags+=" -nocreatestub"
                 else
 	                if [ $3 = "iphonesimulator" ]
 	                then
 		                Platform="IOS"
 		                AdditionalFlags+=" -simulator"
+				AdditionalFlags+=" -nocreatestub"
 	                else
 		                Platform="Mac"
 	                fi
