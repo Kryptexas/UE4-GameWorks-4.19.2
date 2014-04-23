@@ -1215,7 +1215,7 @@ void UAnimInstance::SlotEvaluatePose(FName SlotNodeName, const FA2Pose & SourceP
 			FAnimMontageInstance * MontageInstance = (*Iter);
 
 			// @todo make this struct?
-			if (MontageInstance->IsValid() && MontageInstance->Montage->IsValidSlot(SlotNodeName))
+			if (MontageInstance->IsValid() && MontageInstance->Montage->IsValidSlot(SlotNodeName) && MontageInstance->Weight>ZERO_ANIMWEIGHT_THRESH)
 			{
 				int32 NewIndex = MontageWeights.AddUninitialized(1);
 				MontagePoses.AddZeroed(1);
