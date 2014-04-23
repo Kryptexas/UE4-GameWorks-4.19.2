@@ -1772,7 +1772,7 @@ static void DumpDrawListStats()
 }
 
 static FAutoConsoleCommand GDumpDrawListStatsCmd(
-	TEXT("R.DumpDrawListStats"),
+	TEXT("r.DumpDrawListStats"),
 	TEXT("Dumps static mesh draw list statistics for all scenes associated with ")
 	TEXT("world objects."),
 	FConsoleCommandDelegate::CreateStatic(&DumpDrawListStats)
