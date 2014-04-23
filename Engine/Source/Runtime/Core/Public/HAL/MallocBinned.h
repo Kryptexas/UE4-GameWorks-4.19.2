@@ -878,7 +878,7 @@ public:
 	 * Returns if the allocator is guaranteed to be thread-safe and therefore
 	 * doesn't need a unnecessary thread-safety wrapper around it.
 	 */
-	virtual bool IsInternallyThreadSafe() const 
+	virtual bool IsInternallyThreadSafe() const OVERRIDE
 	{ 
 #ifdef USE_INTERNAL_LOCKS
 		return true;

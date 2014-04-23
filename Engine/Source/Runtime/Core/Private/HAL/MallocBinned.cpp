@@ -6,8 +6,6 @@
 
 #include "CorePrivate.h"
 
-#if	!FORCE_ANSI_ALLOCATOR
-
 #include "MallocBinned.h"
 #include "MemoryMisc.h"
 
@@ -43,5 +41,3 @@ void FMallocBinned::GetAllocatorStats( FGenericMemoryStats& out_Stats )
 	out_Stats.Add( GET_STATFNAME( STAT_Binned_SlackCurrent ), SlackCurrent );
 #endif // STATS
 }
-
-#endif // !FORCE_ANSI_ALLOCATOR
