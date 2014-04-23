@@ -9,7 +9,7 @@ public:
 	virtual FText GetName() const OVERRIDE { return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_SlateStyle", "Slate Widget Style"); }
 	virtual FColor GetTypeColor() const OVERRIDE { return FColor(62, 140, 35); }
 	virtual UClass* GetSupportedClass() const OVERRIDE { return USlateWidgetStyleAsset::StaticClass(); }
-	virtual uint32 GetCategories() OVERRIDE { return EAssetTypeCategories::Misc; }
+	virtual uint32 GetCategories() OVERRIDE { return EAssetTypeCategories::UI; }
 	virtual bool HasActions ( const TArray<UObject*>& InObjects ) const OVERRIDE { return true; }
 	virtual void GetActions( const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder ) OVERRIDE;
 

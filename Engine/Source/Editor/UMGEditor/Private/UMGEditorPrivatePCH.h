@@ -6,3 +6,5 @@
 #include "UMGClasses.h"
 #include "IUMGModule.h"
 #include "UMGEditorClasses.h"
+#include "AssetTypeActions_Base.h"
+#include "AssetTypeActions_Blueprint.h"

@@ -6,7 +6,13 @@ public class UMGEditor : ModuleRules
 {
 	public UMGEditor(TargetInfo Target)
 	{
-        PrivateIncludePaths.Add("Editor/UMGEditor/Private");	// For PCH includes (because they don't work with relative paths, yet)
+        PrivateIncludePaths.AddRange(
+            new string[] {
+                "Editor/GraphEditor/Private",
+				"Editor/Kismet/Private",
+                "Developer/AssetTools/Private/AssetTypeActions",
+                "Editor/UMGEditor/Private" // For PCH includes (because they don't work with relative paths, yet)
+            });
 
         PrivateIncludePathModuleNames.AddRange(
             new string[] {

@@ -18,6 +18,7 @@ public:
 	/** Called right after the module DLL has been loaded and the module object has been created */
 	virtual void StartupModule() OVERRIDE
 	{
+		printf("ALIVE");
 	}
 
 	/** Called before the module is unloaded, right before the module object is destroyed. */

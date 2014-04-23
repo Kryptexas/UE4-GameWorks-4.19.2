@@ -24,9 +24,9 @@ void FUMGEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabMan
 
 	const IWorkspaceMenuStructure& MenuStructure = WorkspaceMenu::GetMenuStructure();
 
-	TabManager->RegisterTabSpawner(UMGEditor_HierarchyTab, FOnSpawnTab::CreateSP(this, &FUMGEditor::SpawnTab_Hierarchy))
-		.SetDisplayName(LOCTEXT("Hierarchy", "Hierarchy"))
-		.SetGroup(MenuStructure.GetAssetEditorCategory());
+	//TabManager->RegisterTabSpawner(UMGEditor_HierarchyTab, FOnSpawnTab::CreateSP(this, &FUMGEditor::SpawnTab_Hierarchy))
+	//	.SetDisplayName(LOCTEXT("Hierarchy", "Hierarchy"))
+	//	.SetGroup(MenuStructure.GetAssetEditorCategory());
 
 	TabManager->RegisterTabSpawner(UMGEditor_PreviewViewportTab, FOnSpawnTab::CreateSP(this, &FUMGEditor::SpawnTab_Viewport))
 		.SetDisplayName(LOCTEXT("Viewport", "Viewport"))
@@ -45,27 +45,27 @@ void FUMGEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabM
 {
 	FAssetEditorToolkit::UnregisterTabSpawners(TabManager);
 
-	TabManager->UnregisterTabSpawner(UMGEditor_HierarchyTab);
+	//TabManager->UnregisterTabSpawner(UMGEditor_HierarchyTab);
 	TabManager->UnregisterTabSpawner(UMGEditor_PreviewViewportTab);
 	TabManager->UnregisterTabSpawner(UMGEditor_DetailsTab);
 	//TabManager->UnregisterTabSpawner(UMGEditor_CurveEditorTab);
 }
 
-TSharedRef<SDockTab> FUMGEditor::SpawnTab_Hierarchy(const FSpawnTabArgs& Args)
-{
-	check(Args.GetTabId() == UMGEditor_HierarchyTab);
-
-	TSharedRef<SDockTab> SpawnedTab =
-		SNew(SDockTab)
-		.Label(LOCTEXT("Hierarchy", "Hierarchy"))
-		[
-			Hierarchy.ToSharedRef()
-		];
-
-	Hierarchy->SetParentTab(SpawnedTab);
-
-	return SpawnedTab;
-}
+//TSharedRef<SDockTab> FUMGEditor::SpawnTab_Hierarchy(const FSpawnTabArgs& Args)
+//{
+//	check(Args.GetTabId() == UMGEditor_HierarchyTab);
+//
+//	TSharedRef<SDockTab> SpawnedTab =
+//		SNew(SDockTab)
+//		.Label(LOCTEXT("Hierarchy", "Hierarchy"))
+//		[
+//			Hierarchy.ToSharedRef()
+//		];
+//
+//	//Hierarchy->SetParentTab(SpawnedTab);
+//
+//	return SpawnedTab;
+//}
 
 TSharedRef<SDockTab> FUMGEditor::SpawnTab_Viewport(const FSpawnTabArgs& Args)
 {
@@ -104,7 +104,7 @@ FUMGEditor::~FUMGEditor()
 
 void FUMGEditor::Initialize(const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UObject* ObjectToEdit)
 {
-	Page = CastChecked<UGUIPage>(ObjectToEdit);
+	Page = CastChecked<AUserWidget>(ObjectToEdit);
 
 	// Support undo/redo
 	Page->SetFlags(RF_Transactional);
@@ -114,7 +114,7 @@ void FUMGEditor::Initialize(const EToolkitMode::Type Mode, const TSharedPtr< cla
 	BuildDetailsWidget();
 
 	Viewport = SNew(SUMGEditorViewport, SharedThis(this), Page);
-	Hierarchy = SNew(SUMGEditorTree, SharedThis(this), Page);
+	//Hierarchy = SNew(SUMGEditorTree, SharedThis(this), Page);
 
 	const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout( "UMGEditor_Layout_v1" )
 	->AddArea(

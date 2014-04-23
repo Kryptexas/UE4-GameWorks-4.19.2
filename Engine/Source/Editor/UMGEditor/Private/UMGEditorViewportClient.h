@@ -9,7 +9,7 @@
 class FUMGEditorViewportClient : public FEditorViewportClient, public TSharedFromThis<FUMGEditorViewportClient>
 {
 public:
-	FUMGEditorViewportClient(TWeakPtr<IUMGEditor> InUMGEditor, FPreviewScene& InPreviewScene, UGUIPage* InPreviewGUIPage);
+	FUMGEditorViewportClient(TWeakPtr<IUMGEditor> InUMGEditor, FPreviewScene& InPreviewScene, AUserWidget* InPreviewGUIPage);
 
 	// FEditorViewportClient interface
 	virtual bool InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed = 1.f, bool bGamepad=false) OVERRIDE;
@@ -22,7 +22,7 @@ public:
 
 	void ResetCamera();
 
-	void SetPreviewPage(UGUIPage* InPreviewPage);
+	void SetPreviewPage(AUserWidget* InPreviewPage);
 
 protected:
 	// FEditorViewportClient interface
@@ -34,5 +34,8 @@ private:
 	/** Pointer back to the UMG editor tool that owns us */
 	TWeakPtr<IUMGEditor> UMGEditorPtr;
 
-	UGUIPage* PreviewPage;
+	AUserWidget* PreviewPage;
+
+	/** Overlay widget that contains widgets to draw on top of the game viewport */
+	TWeakPtr<class SOverlay> ViewportOverlayWidget;
 };

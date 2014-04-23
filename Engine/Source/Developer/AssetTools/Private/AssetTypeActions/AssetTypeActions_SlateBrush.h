@@ -9,6 +9,6 @@ public:
 	virtual FText GetName() const OVERRIDE { return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_SlateBrush", "Slate Brush"); }
 	virtual FColor GetTypeColor() const OVERRIDE { return FColor(105, 165, 60); }
 	virtual UClass* GetSupportedClass() const OVERRIDE { return USlateBrushAsset::StaticClass(); }
-	virtual uint32 GetCategories() OVERRIDE { return EAssetTypeCategories::Misc; }
+	virtual uint32 GetCategories() OVERRIDE { return EAssetTypeCategories::UI; }
 	virtual bool HasActions ( const TArray<UObject*>& InObjects ) const OVERRIDE { return false; }
 };

@@ -10,7 +10,7 @@
 #include "PreviewScene.h"
 #include "SceneViewport.h"
 
-void SUMGEditorViewport::Construct(const FArguments& InArgs, TWeakPtr<IUMGEditor> UMGEditor, UGUIPage* ObjectToEdit)
+void SUMGEditorViewport::Construct(const FArguments& InArgs, TWeakPtr<IUMGEditor> UMGEditor, AUserWidget* ObjectToEdit)
 {
 	UMGEditorPtr = UMGEditor;
 	Page = ObjectToEdit;
@@ -52,7 +52,7 @@ void SUMGEditorViewport::OnObjectPropertyChanged(UObject* ObjectBeingModified)
 	}
 }
 
-void SUMGEditorViewport::SetPreviewPage(UGUIPage* InPage)
+void SUMGEditorViewport::SetPreviewPage(AUserWidget* InPage)
 {
 	EditorViewportClient->SetPreviewPage(InPage);
 }

@@ -6,7 +6,8 @@
 #include "ModuleManager.h"
 #include "UMGEditor.h"
 #include "AssetToolsModule.h"
-#include "GUIPageAssetTypeActions.h"
+#include "UMGBlueprintEditorExtensionHook.h"
+#include "AssetTypeActions_WidgetBlueprint.h"
 
 #include "UMGEditor.generated.inl"
 
@@ -23,12 +24,16 @@ public:
 	/** Called right after the module DLL has been loaded and the module object has been created */
 	virtual void StartupModule() OVERRIDE
 	{
+		FModuleManager::LoadModuleChecked<IUMGModule>("UMG");
+
 		MenuExtensibilityManager = MakeShareable(new FExtensibilityManager());
 		ToolBarExtensibilityManager = MakeShareable(new FExtensibilityManager());
 
 		// Register asset types
 		IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
-		RegisterAssetTypeAction(AssetTools, MakeShareable(new FGUIPageAssetTypeActions()));
+		RegisterAssetTypeAction(AssetTools, MakeShareable(new FAssetTypeActions_WidgetBlueprint()));
+		
+		FUMGBlueprintEditorExtensionHook::InstallHooks();
 	}
 
 	/** Called before the module is unloaded, right before the module object is destroyed. */
@@ -39,6 +44,7 @@ public:
 
 		if ( UObjectInitialized() )
 		{
+			FUMGBlueprintEditorExtensionHook::InstallHooks();
 		}
 
 		// Unregister all the asset types that we registered

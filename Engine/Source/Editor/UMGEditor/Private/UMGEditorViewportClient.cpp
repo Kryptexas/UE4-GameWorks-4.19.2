@@ -16,7 +16,7 @@ namespace {
 	static const int32 CellSize = 16;
 }
 
-FUMGEditorViewportClient::FUMGEditorViewportClient(TWeakPtr<IUMGEditor> InUMGEditor, FPreviewScene& InPreviewScene, UGUIPage* InPreviewPage)
+FUMGEditorViewportClient::FUMGEditorViewportClient(TWeakPtr<IUMGEditor> InUMGEditor, FPreviewScene& InPreviewScene, AUserWidget* InPreviewPage)
 	: FEditorViewportClient(&InPreviewScene)
 	, UMGEditorPtr(InUMGEditor)
 {
@@ -42,7 +42,7 @@ FUMGEditorViewportClient::FUMGEditorViewportClient(TWeakPtr<IUMGEditor> InUMGEdi
 	SetPreviewPage(InPreviewPage);
 }
 
-void FUMGEditorViewportClient::SetPreviewPage(UGUIPage* InPreviewPage)
+void FUMGEditorViewportClient::SetPreviewPage(AUserWidget* InPreviewPage)
 {
 	PreviewPage = InPreviewPage;
 }

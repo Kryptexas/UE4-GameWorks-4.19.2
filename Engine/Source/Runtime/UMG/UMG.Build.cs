@@ -13,6 +13,7 @@ public class UMG : ModuleRules
 				"Engine",
 				"ShaderCore",
 				"RenderCore",
+                "InputCore",
 				"RHI",
 			}
 			);

@@ -10,12 +10,16 @@
 #include "PreviewScene.h"
 #include "SceneViewport.h"
 
-void SUMGEditorTree::Construct(const FArguments& InArgs, TWeakPtr<IUMGEditor> UMGEditor, UGUIPage* ObjectToEdit)
-{
-	UMGEditorPtr = UMGEditor;
-	Page = ObjectToEdit;
+#include "BlueprintEditor.h"
 
-	FCoreDelegates::OnObjectPropertyChanged.Add( FCoreDelegates::FOnObjectPropertyChanged::FDelegate::CreateRaw(this, &SUMGEditorTree::OnObjectPropertyChanged) );
+void SUMGEditorTree::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEditor> InBlueprintEditor, USimpleConstructionScript* InSCS)
+{
+	BlueprintEditor = InBlueprintEditor;
+
+	UBlueprint* BP = InBlueprintEditor->GetBlueprintObj();
+	//BP->ComponentTemplates
+
+	//FCoreDelegates::OnObjectPropertyChanged.Add( FCoreDelegates::FOnObjectPropertyChanged::FDelegate::CreateRaw(this, &SUMGEditorTree::OnObjectPropertyChanged) );
 
 	ChildSlot
 	[
@@ -34,18 +38,18 @@ void SUMGEditorTree::Construct(const FArguments& InArgs, TWeakPtr<IUMGEditor> UM
 
 SUMGEditorTree::~SUMGEditorTree()
 {
-	FCoreDelegates::OnObjectPropertyChanged.Remove( FCoreDelegates::FOnObjectPropertyChanged::FDelegate::CreateRaw(this, &SUMGEditorTree::OnObjectPropertyChanged) );
+	//FCoreDelegates::OnObjectPropertyChanged.Remove( FCoreDelegates::FOnObjectPropertyChanged::FDelegate::CreateRaw(this, &SUMGEditorTree::OnObjectPropertyChanged) );
 }
 
-void SUMGEditorTree::AddReferencedObjects( FReferenceCollector& Collector )
-{
-	Collector.AddReferencedObject(Page);
-}
-
-void SUMGEditorTree::OnObjectPropertyChanged(UObject* ObjectBeingModified)
-{
-	if ( !ensure(ObjectBeingModified) )
-	{
-		return;
-	}
-}
+//void SUMGEditorTree::AddReferencedObjects( FReferenceCollector& Collector )
+//{
+//	Collector.AddReferencedObject(Page);
+//}
+//
+//void SUMGEditorTree::OnObjectPropertyChanged(UObject* ObjectBeingModified)
+//{
+//	if ( !ensure(ObjectBeingModified) )
+//	{
+//		return;
+//	}
+//}

@@ -6,13 +6,14 @@ namespace EAssetTypeCategories
 {
 	enum Type
 	{
-		None					= 0x00,
-		Basic					= 0x01,
-		Animation				= 0x02,
-		MaterialsAndTextures	= 0x04,
-		Sounds					= 0x08,
-		Physics					= 0x10,
-		Misc					= 0x20
+		None					= 0,
+		Basic					= 1 << 0,
+		Animation				= 1 << 1,
+		MaterialsAndTextures	= 1 << 2,
+		Sounds					= 1 << 3,
+		Physics					= 1 << 4,
+		UI						= 1 << 5,
+		Misc					= 1 << 6
 	};
 }
 

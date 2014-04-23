@@ -156,6 +156,12 @@ void FNewAssetContextMenu::MakeContextMenu(FMenuBuilder& MenuBuilder, const FStr
 			);
 
 		MenuBuilder.AddSubMenu(
+			LOCTEXT("MaterialAssetCategory", "User Interface"),
+			FText::GetEmpty(),
+			FNewMenuDelegate::CreateStatic(&FNewAssetContextMenu::CreateNewAssetMenuCategory, EAssetTypeCategories::UI, InPath, InOnNewAssetRequested)
+			);
+
+		MenuBuilder.AddSubMenu(
 			LOCTEXT("MiscellaneousAssetCategory", "Miscellaneous"),
 			FText::GetEmpty(),
 			FNewMenuDelegate::CreateStatic(&FNewAssetContextMenu::CreateNewAssetMenuCategory, EAssetTypeCategories::Misc, InPath, InOnNewAssetRequested)

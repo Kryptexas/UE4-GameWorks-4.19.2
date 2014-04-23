@@ -2,11 +2,10 @@
 
 #pragma once
 
-#include "GUIPage.generated.h"
+#include "PanelSlot.generated.h"
 
 UCLASS()
-class UMG_API UGUIPage : public UObject
+class UMG_API UPanelSlot : public UObject
 {
 	GENERATED_UCLASS_BODY()
-	
 };

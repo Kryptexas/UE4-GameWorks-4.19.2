@@ -14,7 +14,7 @@ public:
 	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) OVERRIDE;
 	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) OVERRIDE;
 	
-	TSharedRef<SDockTab> SpawnTab_Hierarchy(const FSpawnTabArgs& Args);
+	//TSharedRef<SDockTab> SpawnTab_Hierarchy(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_Viewport(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_Details(const FSpawnTabArgs& Args);
 
@@ -44,7 +44,7 @@ public:
 private:
 	void BuildDetailsWidget();
 
-	UGUIPage* Page;
+	AUserWidget* Page;
 
 	TSharedPtr<class IDetailsView> Details;
 	TSharedPtr<class SUMGEditorViewport> Viewport;

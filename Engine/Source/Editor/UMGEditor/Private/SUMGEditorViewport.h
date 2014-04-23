@@ -15,7 +15,7 @@ public:
 	SLATE_BEGIN_ARGS( SUMGEditorViewport ){}
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, TWeakPtr<IUMGEditor> UMGEditor, UGUIPage* ObjectToEdit);
+	void Construct(const FArguments& InArgs, TWeakPtr<IUMGEditor> UMGEditor, AUserWidget* ObjectToEdit);
 	~SUMGEditorViewport();
 	
 	// FGCObject interface
@@ -24,7 +24,7 @@ public:
 
 	void RefreshViewport();
 
-	void SetPreviewPage(UGUIPage* InPage);
+	void SetPreviewPage(AUserWidget* InPage);
 
 	/** @return The editor viewport client */
 	class FUMGEditorViewportClient& GetViewportClient();
@@ -63,7 +63,7 @@ private:
 	TSharedPtr<class FUMGEditorViewportClient> EditorViewportClient;
 
 	/** gui page being edited */
-	UGUIPage* Page;
+	AUserWidget* Page;
 
 	/** The currently selected view mode. */
 	EViewModeIndex CurrentViewMode;
