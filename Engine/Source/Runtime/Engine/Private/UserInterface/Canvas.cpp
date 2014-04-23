@@ -1120,7 +1120,7 @@ void UCanvas::UpdateAllCanvasSafeZoneData()
 
 void UCanvas::Update()
 {
-	// Call UnrealScript to reset.
+	// Reset canvas params.
 	Reset();
 
 	// Copy size parameters from viewport.
