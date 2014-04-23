@@ -142,6 +142,8 @@ public:
 	UFUNCTION(BlueprintPure, Category="Pawn", meta=(ToolTip="Gets the owning actor of the Movement Base Component on which the pawn is standing."))
 	static AActor* GetMovementBaseActor(const APawn* Pawn);
 
+	virtual bool IsBasedOnActor(const AActor * Other) const OVERRIDE;
+
 	virtual bool ReachedDesiredRotation();
 
 	/** @return The half-height of the default Pawn, scaled by the component scale. By default returns the half-height of the RootComponent, regardless of whether it is registered or collidable. */

@@ -811,16 +811,19 @@ void AActor::GetSimpleCollisionCylinder(float& CollisionRadius, float& Collision
 	}
 }
 
-
 bool AActor::IsRootComponentCollisionRegistered() const
 {
 	return RootComponent != NULL && RootComponent->IsRegistered() && RootComponent->IsCollisionEnabled();
 }
 
-
-bool AActor::IsBasedOn( const AActor* Other ) const
+bool AActor::IsAttachedTo(const AActor * Other) const
 {
 	return (RootComponent && Other && Other->RootComponent) ? RootComponent->IsAttachedTo(Other->RootComponent) : false;
+}
+
+bool AActor::IsBasedOnActor(const AActor* Other) const
+{
+	return IsAttachedTo(Other);
 }
 
 bool AActor::Modify( bool bAlwaysMarkDirty/*=true*/ )

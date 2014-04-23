@@ -226,7 +226,6 @@ public:
 
 	// Begin AActor Interface.
 	virtual void TeleportSucceeded(bool bIsATest) OVERRIDE;
-	virtual bool IsBasedOn(const AActor* Other) const OVERRIDE;
 	virtual void ClearCrossLevelReferences() OVERRIDE;
 	virtual void PreNetReceive() OVERRIDE;
 	virtual void PostNetReceive() OVERRIDE;

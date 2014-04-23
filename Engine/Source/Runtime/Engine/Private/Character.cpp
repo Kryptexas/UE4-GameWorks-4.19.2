@@ -334,18 +334,6 @@ void ACharacter::ClearCrossLevelReferences()
 }
 
 
-bool ACharacter::IsBasedOn( const AActor* Other ) const
-{
-	AActor* MovementBaseActor = MovementBase ? MovementBase->GetOwner() : NULL;
-
-	if ( (MovementBaseActor == Other) || (MovementBaseActor && Cast<APawn>(MovementBaseActor) && Cast<APawn>(MovementBaseActor)->IsBasedOn(Other)) )
-	{
-		return true;
-	}
-	return Super::IsBasedOn(Other);
-}
-
-
 // Helper to set up tick dependencies on a movement base
 namespace MovementBaseUtility
 {

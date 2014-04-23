@@ -1110,13 +1110,13 @@ const static float PERF_SHOW_MOVECOMPONENT_TAKING_LONG_TIME_AMOUNT = 2.0f; // mo
 static bool ShouldIgnoreHitResult(const UWorld* InWorld, FHitResult const& TestHit, FVector const& MovementDirDenormalized, AActor* MovingActor, EMoveComponentFlags MoveFlags)
 {
 	// check "ignore bases" functionality
-	if ( (MoveFlags & MOVECOMP_IgnoreBases) && MovingActor )
+	if ( (MoveFlags & MOVECOMP_IgnoreBases) && MovingActor && TestHit.bBlockingHit )	//we let overlap components go through because their overlap is still needed and will cause beginOverlap/endOverlap events
 	{
 		// ignore if there's a base relationship between moving actor and hit actor
 		AActor const* const HitActor = TestHit.GetActor();
 		if (HitActor)
 		{
-			if ( MovingActor->IsBasedOn(HitActor) || HitActor->IsBasedOn(MovingActor) )
+			if (MovingActor->IsBasedOnActor(HitActor) || HitActor->IsBasedOnActor(MovingActor))
 			{
 				return true;
 			}
@@ -2053,10 +2053,10 @@ void UPrimitiveComponent::UpdateOverlaps(TArray<FOverlapInfo> const* PendingOver
 					const FOverlapResult& Result = Overlaps[ResultIdx];
 
 					UPrimitiveComponent const* const HitComp = Result.Component.Get();
-					if (HitComp  && HitComp->bGenerateOverlapEvents)
+					if (!Result.bBlockingHit && HitComp  && HitComp->bGenerateOverlapEvents)
 					{
 						AActor* const ResultActor = Result.GetActor();
-						if ( (ResultActor != NULL) && (HitComp != this) && !ResultActor->IsBasedOn(MyActor) && (ResultActor != MyWorld->GetWorldSettings() && ResultActor->bActorInitialized) )
+						if ( (ResultActor != NULL) && (HitComp != this) && !ResultActor->IsAttachedTo(MyActor) && !MyActor->IsAttachedTo(ResultActor) && ResultActor != MyWorld->GetWorldSettings() && ResultActor->bActorInitialized)
 						{
 							NewOverlappingComponents.Add(FOverlapInfo(Result.Component.Get(), Result.ItemIndex));		// don't need to add unique unless the overlap check can return dupes
 						}						

@@ -1624,7 +1624,14 @@ public:
 	 * @param Other the Actor to test for
 	 * @return true if this Actor is based on Other Actor
 	 */
-	virtual bool IsBasedOn( const AActor* Other ) const;
+	virtual bool AActor::IsBasedOnActor(const AActor* Other) const;
+	
+
+	/** iterates up the Base chain to see whether or not this Actor is attached to the given Actor
+	* @param Other the Actor to test for
+	* @return true if this Actor is attached on Other Actor
+	*/
+	virtual bool IsAttachedTo( const AActor* Other ) const;
 
 	/** Get the extent used when placing this actor in the editor, used for 'pulling back' hit. */
 	FVector GetPlacementExtent() const;

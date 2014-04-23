@@ -924,10 +924,24 @@ void APawn::PostNetReceiveLocation()
 	}
 }
 
+bool APawn::IsBasedOnActor(const AActor* Other) const
+{
+	UPrimitiveComponent * MovementBase = GetMovementBase();
+	AActor* MovementBaseActor = MovementBase ? MovementBase->GetOwner() : NULL;
+
+	if (MovementBaseActor && MovementBaseActor == Other)
+	{
+		return true;
+	}
+
+	return Super::IsBasedOnActor(Other);
+}
+
+
 bool APawn::IsNetRelevantFor(APlayerController* RealViewer, AActor* Viewer, const FVector& SrcLocation)
 {
 	if( bAlwaysRelevant || RealViewer == Controller || IsOwnedBy(Viewer) || IsOwnedBy(RealViewer) || this==Viewer || Viewer==Instigator
-		|| IsBasedOn(Viewer) || (Viewer && Viewer->IsBasedOn(this)) )
+		|| IsBasedOnActor(Viewer) || (Viewer && Viewer->IsBasedOnActor(this)))
 	{
 		return true;
 	}
