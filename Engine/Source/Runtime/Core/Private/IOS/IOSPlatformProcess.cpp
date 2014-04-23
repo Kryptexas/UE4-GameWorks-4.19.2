@@ -59,5 +59,5 @@ void FIOSPlatformProcess::SetRealTimeMode()
     Policy.constraint  = (uint32_t)(ConstraintProcessingTimeMs * MsToAbs);
     Policy.preemptible = false;
     
-    thread_policy_set(pthread_mach_thread_np(pthread_self()), THREAD_TIME_CONSTRAINT_POLICY, (thread_policy_t)&Policy, THREAD_TIME_CONSTRAINT_POLICY_COUNT);
+ //   thread_policy_set(pthread_mach_thread_np(pthread_self()), THREAD_TIME_CONSTRAINT_POLICY, (thread_policy_t)&Policy, THREAD_TIME_CONSTRAINT_POLICY_COUNT);
 }
