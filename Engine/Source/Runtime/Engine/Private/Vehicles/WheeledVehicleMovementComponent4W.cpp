@@ -262,11 +262,6 @@ void UWheeledVehicleMovementComponent4W::UpdateSimulation(float DeltaTime)
 
 #endif // WITH_PHYSX
 
-float UWheeledVehicleMovementComponent4W::CalcThrottleInput()
-{
-	return FMath::Abs(RawThrottleInput);
-}
-
 void UWheeledVehicleMovementComponent4W::UpdateEngineSetup(const FVehicleEngineData& NewEngineSetup)
 {
 #if WITH_PHYSX

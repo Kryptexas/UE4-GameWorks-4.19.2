@@ -192,9 +192,6 @@ protected:
 
 #endif // WITH_PHYSX
 
-	/** Compute throttle input */
-	virtual float CalcThrottleInput() OVERRIDE;
-
 	/** update simulation data: engine */
 	void UpdateEngineSetup(const FVehicleEngineData& NewEngineSetup);
 
