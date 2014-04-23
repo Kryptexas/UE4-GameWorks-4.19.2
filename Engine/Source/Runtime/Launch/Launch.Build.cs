@@ -109,7 +109,8 @@ public class Launch : ModuleRules
 					"ModuleUI",
 					"OutputLog",
 					"TextureCompressor",
-					"MeshUtilities"
+					"MeshUtilities",
+					"SourceCodeAccess"
 				}
 			);
 
@@ -128,11 +129,6 @@ public class Launch : ModuleRules
 		{
 			DynamicallyLoadedModuleNames.Add("D3D11RHI");
 			DynamicallyLoadedModuleNames.Add("XAudio2");
-
-			if (UEBuildConfiguration.bBuildEditor == true)
-			{
-				DynamicallyLoadedModuleNames.Add("VSAccessor");
-			}
 		}
 
 		if (Target.Platform == UnrealTargetPlatform.Mac)

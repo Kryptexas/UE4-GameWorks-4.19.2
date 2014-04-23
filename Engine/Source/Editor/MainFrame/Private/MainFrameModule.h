@@ -144,14 +144,14 @@ private:
 	// Handles the level editor module finishing to recompile.
 	void HandleLevelEditorModuleCompileFinished( const FString& LogDump, ECompilationResult::Type CompilationResult, bool bShowLog );
 
-	// Handles the VSHandler having finished launching Visual Studio.
-	void HandleVSAccessorLaunched( const bool WasSuccessful );
+	// Handles the code accessor having finished launching its editor
+	void HandleCodeAccessorLaunched( const bool WasSuccessful );
 
-	// Handle an VS open file operation failing
-	void HandleVSAccessorOpenFileFailed(const FString& Filename);
+	// Handle an open file operation failing
+	void HandleCodeAccessorOpenFileFailed(const FString& Filename);
 
-	// Handles VSHandler launching Visual Studio.
-	void HandleVSAccessorLaunching( );
+	// Handles launching code accessor
+	void HandleCodeAccessorLaunching( );
 
 private:
 
@@ -179,8 +179,8 @@ private:
 	// Holds the collection of most recently used favorites.
 	class FMainMRUFavoritesList* MRUFavoritesList;
 
-	// Weak pointer to the VSAccessor's notification item.
-	TWeakPtr<class SNotificationItem> VSAccessorNotificationPtr;
+	// Weak pointer to the code accessor's notification item.
+	TWeakPtr<class SNotificationItem> CodeAccessorNotificationPtr;
 
 	// Sounds used for compilation.
 	class USoundBase* CompileStartSound;

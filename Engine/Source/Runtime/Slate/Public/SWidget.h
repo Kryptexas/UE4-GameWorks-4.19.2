@@ -613,8 +613,11 @@ public:
 	/** @return A String of the widget's code location in readable format */
 	virtual FString GetReadableLocation() const;
 
-	/** @return A String of the widget's code location in parsable format */
-	virtual FString GetParsableFileAndLineNumber() const;
+	/** @return A String of the widget's code location */
+	virtual FString GetCreatedInFile() const;
+
+	/** @return The line number of the widgets location */
+	virtual int32 GetCreatedInLineNumber() const;
 
 	/** @return the Foreground color that this widget sets; unset options if the widget does not set a foreground color */
 	virtual FSlateColor GetForegroundColor() const;

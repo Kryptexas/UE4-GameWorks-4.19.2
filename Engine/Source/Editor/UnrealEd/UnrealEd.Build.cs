@@ -44,7 +44,7 @@ public class UnrealEd : ModuleRules
 				"Settings",
 				"SoundClassEditor",
 				"ViewportSnapping",
-				"VSAccessor",
+				"SourceCodeAccess",
 			}
 		);
 
@@ -163,6 +163,7 @@ public class UnrealEd : ModuleRules
 				"UserFeedback",
 				"GameplayTagsEditor",
 				"UndoHistory",
+				"SourceCodeAccess"
 			}
 		);
 
@@ -197,7 +198,7 @@ public class UnrealEd : ModuleRules
 				"DX11Audio"
 				);
 
-			DynamicallyLoadedModuleNames.Add("VSAccessor");
+			
 		}
 
         if (Target.Platform == UnrealTargetPlatform.HTML5)

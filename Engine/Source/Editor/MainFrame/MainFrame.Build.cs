@@ -44,7 +44,7 @@ public class MainFrame : ModuleRules
 				"LevelEditor",
 				"OutputLog",
 				"Settings",
-				"VSAccessor",
+				"SourceCodeAccess",
 			}
 		);
 
@@ -65,12 +65,8 @@ public class MainFrame : ModuleRules
 				"LevelEditor",
 				"OutputLog",
                 "TranslationEditor",
+				"SourceCodeAccess",
 			}
 		);
-
-		if ((Target.Platform == UnrealTargetPlatform.Win64) || (Target.Platform == UnrealTargetPlatform.Win32))
-		{
-			DynamicallyLoadedModuleNames.Add("VSAccessor");
-		}
 	}
 }

@@ -11,7 +11,7 @@
 #include "MessageLog.h"
 #include "Developer/MessageLog/Public/MessageLogModule.h"
 #include "Kismet2/KismetDebugUtilities.h"
-#include "VSAccessorModule.h"
+#include "ISourceCodeAccessModule.h"
 #include "SourceControlWindows.h"
 #include "FbxLibs.h"
 #include "CompilerResultsLog.h"
@@ -93,11 +93,9 @@ void FUnrealEdMisc::OnInit()
 	FCoreDelegates::PreModal.AddRaw(this, &FUnrealEdMisc::OnEditorPreModal);
 	FCoreDelegates::PostModal.AddRaw(this, &FUnrealEdMisc::OnEditorPostModal);
 
-#if !PLATFORM_MAC
 	/** Delegate that gets called by modules that can't directly access Engine */
-	FVSAccessorModule& VSAccessor = FModuleManager::LoadModuleChecked< FVSAccessorModule >( TEXT( "VSAccessor" ) );
-	VSAccessor.OnLaunchVSDeferred().AddRaw(this, &FUnrealEdMisc::OnDeferCommand);
-#endif
+	ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>("SourceCodeAccess");
+	SourceCodeAccessModule.OnLaunchCodeAccessorDeferred().AddRaw(this, &FUnrealEdMisc::OnDeferCommand);
 
 	FEditorDelegates::OnAssetPostImport.AddStatic(&NormalMapIdentification::HandleAssetPostImport);
 
@@ -541,10 +539,8 @@ void FUnrealEdMisc::OnExit()
 	FCoreDelegates::PreModal.RemoveAll(this);
 	FCoreDelegates::PostModal.RemoveAll(this);
 
-#if !PLATFORM_MAC
-	FVSAccessorModule& VSAccessor = FModuleManager::LoadModuleChecked< FVSAccessorModule >( TEXT( "VSAccessor" ) );
-	VSAccessor.OnLaunchVSDeferred().RemoveAll(this);
-#endif
+	ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>("SourceCodeAccess");
+	SourceCodeAccessModule.OnLaunchCodeAccessorDeferred().RemoveAll(this);
 
 	FComponentAssetBrokerage::PRIVATE_ShutdownBrokerage();
 

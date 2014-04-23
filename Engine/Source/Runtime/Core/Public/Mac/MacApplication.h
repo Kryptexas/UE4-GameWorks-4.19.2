@@ -73,10 +73,6 @@ public:
 	void UseMouseCaptureWindow( bool bUseMouseCaptureWindow );
 
 #if WITH_EDITOR
-	virtual bool SupportsSourceAccess() const OVERRIDE;
-
-	virtual void GotoLineInSource(const FString& FileAndLineNumber) OVERRIDE;
-
     virtual void SendAnalytics(IAnalyticsProvider* Provider) OVERRIDE;
 #endif
 

@@ -274,11 +274,6 @@ public:
 
 	virtual void DestroyApplication() { }
 
-	virtual bool SupportsSourceAccess() const { return false; }
-
-	/** Function to access source code with from a file and line number. Passed in to the slate widget inspector */
-	virtual void GotoLineInSource(const FString& FileAndLineNumber) { };
-
 	/** Function to return the current implementation of the ForceFeedback system */
 	virtual IForceFeedbackSystem *GetForceFeedbackSystem() { return NULL; }
 

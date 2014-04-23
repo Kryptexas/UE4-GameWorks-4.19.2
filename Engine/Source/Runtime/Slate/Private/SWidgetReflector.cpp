@@ -211,11 +211,18 @@ protected:
 			: FString();
 	}
 
-	FString GetWidgetFileAndLineNumber() const
+	FString GetWidgetFile() const
 	{
 		return WidgetInfo.Get()->Widget.IsValid()
-			? WidgetInfo.Get()->Widget.Pin()->GetParsableFileAndLineNumber()
+			? WidgetInfo.Get()->Widget.Pin()->GetCreatedInFile()
 			: FString();
+	}
+
+	int32 GetWidgetLineNumber() const
+	{
+		return WidgetInfo.Get()->Widget.IsValid()
+			? WidgetInfo.Get()->Widget.Pin()->GetCreatedInLineNumber()
+			: 0;
 	}
 
 	FString GetVisibilityAsString() const
@@ -234,7 +241,10 @@ protected:
 
 	void HandleHyperlinkNavigate()
 	{
-		OnAccessSourceCode.ExecuteIfBound(GetWidgetFileAndLineNumber());
+		if(OnAccessSourceCode.IsBound())
+		{
+			OnAccessSourceCode.Execute(GetWidgetFile(), GetWidgetLineNumber(), 0);
+		}
 	}
 
 	/** The info about the widget that we are visualizing */

@@ -15,7 +15,10 @@ class SVirtualKeyboardEntry;
 class IForceFeedbackSystem;
 
 /** A Delegate for passing along a string of a source code location to access */
-DECLARE_DELEGATE_OneParam(FAccessSourceCode, const FString&)
+DECLARE_DELEGATE_RetVal_ThreeParams(bool, FAccessSourceCode, const FString& /*FileName*/, int32 /*InLineNumber*/, int32 /*InColumnNumber*/);
+
+/** A Delegate for querying whether source code access is possible */
+DECLARE_DELEGATE_RetVal(bool, FQueryAccessSourceCode);
 
 /** Delegates for when modal windows open or close */
 DECLARE_DELEGATE(FModalWindowStackStarted)
@@ -568,6 +571,9 @@ public:
 	/** @param AccessDelegate The delegate to pass along to the widget reflector */
 	void SetWidgetReflectorSourceAccessDelegate(FAccessSourceCode AccessDelegate);
 
+	/** @param QueryAccessDelegate The delegate to pass along to the widget reflector */
+	void SetWidgetReflectorQuerySourceAccessDelegate(FQueryAccessSourceCode QueryAccessDelegate);
+
 	/** @return the ratio SlateUnit / ScreenPixel */
 	float GetApplicationScale() const { return Scale; }
 	
@@ -707,7 +713,7 @@ public:
 	bool SupportsSourceAccess() const;
 
 	/** Opens the current platform's code editing IDE (if necessary) and focuses the specified line in the specified file. Will only work if SupportsSourceAccess() returns true */
-	void GotoLineInSource(const FString& FileAndLineNumber) const;
+	void GotoLineInSource(const FString& FileName, int32 LineNumber) const;
 
 	/** @return Service that supports popups; helps with auto-hiding of popups */
 	FPopupSupport& GetPopupSupport() { return PopupSupport; }
@@ -1293,6 +1299,9 @@ private:
 
 	/** Delegate for accessing source code to pass to any widget inspectors. */
 	FAccessSourceCode SourceCodeAccessDelegate;
+
+	/** Delegate for querying if source code access is available */
+	FQueryAccessSourceCode QuerySourceCodeAccessDelegate;
 
 	/** System for logging all relevant slate events to a log file */
 	TSharedPtr<class IEventLogger> EventLogger;

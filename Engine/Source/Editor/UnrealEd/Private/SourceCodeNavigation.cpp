@@ -3,10 +3,8 @@
 
 #include "UnrealEd.h"
 #include "SourceCodeNavigation.h"
-
-// Used for VSAccessor module access
-#include "VSAccessorModule.h"
 #include "MainFrame.h"
+#include "ISourceCodeAccessModule.h"
 
 #if PLATFORM_WINDOWS
 #include "AllowWindowsPlatformTypes.h"
@@ -195,13 +193,12 @@ public:
 	/**
 	 * Locates the source file and line for a specific function in a specific module and navigates an external editing to that source line
 	 *
-	 * @param	VSAccessor		The VSAccessor module.  Needed to talk to external editing tools.  This needs to be passed in because module access is currently not thread safe.
 	 * @param	FunctionSymbolName	The function to navigate tool (e.g. "MyClass::MyFunction")
 	 * @param	FunctionModuleName	The module to search for this function's symbols (e.g. "GameName-Win64-Debug")
 	 * @param	bIgnoreLineNumber	True if we should just go to the source file and not a specific line within the file
 	 * @param	Application	The running Slate application reference.
 	 */
-	void NavigateToFunctionSource( class FVSAccessorModule* VSAccessor, const FString& FunctionSymbolName, const FString& FunctionModuleName, const bool bIgnoreLineNumber, FSlateApplication& Application );
+	void NavigateToFunctionSource( ISourceCodeAccessor* SourceCodeAccessor, const FString& FunctionSymbolName, const FString& FunctionModuleName, const bool bIgnoreLineNumber, FSlateApplication& Application );
 
 	/**
 	 * Gathers all functions within a C++ class using debug symbols
@@ -320,12 +317,9 @@ void FSourceCodeNavigationImpl::SetupModuleSymbols()
 }
 
 
-void FSourceCodeNavigationImpl::NavigateToFunctionSource( FVSAccessorModule* VSAccessorPtr, const FString& FunctionSymbolName, const FString& FunctionModuleName, const bool bIgnoreLineNumber, FSlateApplication& Application )
+void FSourceCodeNavigationImpl::NavigateToFunctionSource( ISourceCodeAccessor* SourceCodeAccessor, const FString& FunctionSymbolName, const FString& FunctionModuleName, const bool bIgnoreLineNumber, FSlateApplication& Application )
 {
 #if PLATFORM_WINDOWS
-	check(VSAccessorPtr);
-	FVSAccessorModule& VSAccessor = *VSAccessorPtr;
-
 	// We'll need the current process handle in order to call into DbgHelp.  This must be the same
 	// process handle that was passed to SymInitialize() earlier.
 	const HANDLE ProcessHandle = ::GetCurrentProcess();
@@ -376,8 +370,8 @@ void FSourceCodeNavigationImpl::NavigateToFunctionSource( FVSAccessorModule* VSA
 				(uint32)FileAndLineInfo.LineNumber,
 				SourceColumnNumber );
 
-			// Open this source file in Visual Studio and take the user right to the line number
-			VSAccessor.OpenVisualStudioFileAtLine( SourceFileName, SourceLineNumber, SourceColumnNumber );
+			// Open this source file in our IDE and take the user right to the line number
+			SourceCodeAccessor->OpenFileAtLine( SourceFileName, SourceLineNumber, SourceColumnNumber );
 		}
 #if !NO_LOGGING
 		else
@@ -529,17 +523,14 @@ void FSourceCodeNavigationImpl::NavigateToFunctionSource( FVSAccessorModule* VSA
 									if(Results.FindChar(TCHAR('('), FirstIndex) && Results.FindLastChar(TCHAR('('), LastIndex) && FirstIndex != LastIndex)
 									{
 										int32 CloseIndex = -1;
-										if(Results.FindLastChar(TCHAR(')'), CloseIndex))
+										int32 ColonIndex = -1;
+										if(Results.FindLastChar(TCHAR(':'), ColonIndex) && Results.FindLastChar(TCHAR(')'), CloseIndex))
 										{
 											int32 FileNamePos = LastIndex+1;
-											int32 FileNameLen = CloseIndex-FileNamePos;
+											int32 FileNameLen = ColonIndex-FileNamePos;
 											FString FileName = Results.Mid(FileNamePos, FileNameLen);
-											int32 ReplaceCount = FileName.ReplaceInline(TEXT(":"), TEXT("|"));
-											if(!ReplaceCount)
-											{
-												FileName += TCHAR('|');
-											}
-											Application.GotoLineInSource(FileName);
+											FString LineNumber = Results.Mid(ColonIndex + 1, 1);
+											SourceCodeAccessor->OpenFileAtLine( FileName, FCString::Atoi(*LineNumber), 0 );
 										}
 									}
 								}
@@ -574,17 +565,14 @@ void FSourceCodeNavigation::NavigateToFunctionSourceAsync( const FString& Functi
 	//				   system that this may block internally and it should always have it's own thread.  Also
 	//				   we may need a way to kill these tasks on shutdown, or when an action is cancelled/overridden
 	//				   by the user interactively
-#if PLATFORM_WINDOWS
-	FVSAccessorModule* VSAccessor = FModuleManager::LoadModulePtr< FVSAccessorModule >( TEXT( "VSAccessor" ) );
-#else
-	FVSAccessorModule* VSAccessor = NULL;
-#endif
+	ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>("SourceCodeAccess");
+	ISourceCodeAccessor* SourceCodeAccessor = &SourceCodeAccessModule.GetAccessor();
 	
 	FSlateApplication& Application = FSlateApplication::Get();
 
 	struct FNavigateFunctionParams
 	{
-		FVSAccessorModule* VSAccessor;
+		ISourceCodeAccessor* SourceCodeAccessor;
 		FString FunctionSymbolName;
 		FString FunctionModuleName;
 		bool bIgnoreLineNumber;
@@ -592,7 +580,7 @@ void FSourceCodeNavigation::NavigateToFunctionSourceAsync( const FString& Functi
 	};
 
 	TSharedRef< FNavigateFunctionParams, ESPMode::ThreadSafe > NavigateFunctionParams( new FNavigateFunctionParams() );
-	NavigateFunctionParams->VSAccessor = VSAccessor;
+	NavigateFunctionParams->SourceCodeAccessor = SourceCodeAccessor;
 	NavigateFunctionParams->FunctionSymbolName = FunctionSymbolName;
 	NavigateFunctionParams->FunctionModuleName = FunctionModuleName;
 	NavigateFunctionParams->bIgnoreLineNumber = bIgnoreLineNumber;
@@ -605,7 +593,7 @@ void FSourceCodeNavigation::NavigateToFunctionSourceAsync( const FString& Functi
 		static void NavigateToFunctionSourceTaskWrapper( ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent, TSharedRef< FNavigateFunctionParams, ESPMode::ThreadSafe > Params )
 		{
 			// Call the navigate function!
-			FSourceCodeNavigationImpl::Get().NavigateToFunctionSource( Params->VSAccessor, Params->FunctionSymbolName, Params->FunctionModuleName, Params->bIgnoreLineNumber, *Params->Application );
+			FSourceCodeNavigationImpl::Get().NavigateToFunctionSource( Params->SourceCodeAccessor, Params->FunctionSymbolName, Params->FunctionModuleName, Params->bIgnoreLineNumber, *Params->Application );
 		}
 	};
 
@@ -1338,30 +1326,16 @@ FString FSourceCodeNavigation::GetSuggestedSourceCodeIDEDownloadURL()
 
 bool FSourceCodeNavigation::IsCompilerAvailable()
 {
-#if PLATFORM_WINDOWS
-	FVSAccessorModule& VSAccessorModule = FModuleManager::GetModuleChecked<FVSAccessorModule>(TEXT("VSAccessor"));
-	FString OutPath;
-	return VSAccessorModule.CanRunVisualStudio(OutPath);
-#elif PLATFORM_MAC
-	return IFileManager::Get().DirectoryExists(TEXT("/Applications/Xcode.app"));
-#else
-	// Unknown platform, impossible to check if the compiler is available
-	UE_LOG(LogSelectionDetails, Error, TEXT( "Unknown platform, impossible to check if the compiler is available. Returning false." ));
-	return false;
-#endif
+	ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>("SourceCodeAccess");
+	return SourceCodeAccessModule.GetAccessor().CanAccessSourceCode();
 }
 
 bool FSourceCodeNavigation::OpenSourceFile( const FString& AbsoluteSourcePath, int32 LineNumber, int32 ColumnNumber )
 {
 	if ( IsCompilerAvailable() )
 	{
-#if PLATFORM_WINDOWS
-		FVSAccessorModule& VSAccessorModule = FModuleManager::GetModuleChecked<FVSAccessorModule>( TEXT( "VSAccessor" ) );
-		VSAccessorModule.OpenVisualStudioFileAtLine( AbsoluteSourcePath, LineNumber, ColumnNumber );
-#else
-		FPlatformProcess::LaunchFileInDefaultExternalApplication( *AbsoluteSourcePath );
-#endif
-		return true;
+		ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>("SourceCodeAccess");
+		return SourceCodeAccessModule.GetAccessor().OpenFileAtLine(AbsoluteSourcePath, LineNumber, ColumnNumber);
 	}
 
 	// Let others know that we've failed to open a source file.
@@ -1374,15 +1348,8 @@ bool FSourceCodeNavigation::OpenSourceFiles(const TArray<FString>& AbsoluteSourc
 {
 	if ( IsCompilerAvailable() )
 	{
-#if PLATFORM_WINDOWS
-		FVSAccessorModule& VSAccessorModule = FModuleManager::GetModuleChecked<FVSAccessorModule>(TEXT("VSAccessor"));
-		VSAccessorModule.OpenVisualStudioFiles(AbsoluteSourcePaths);
-#else
-		for ( const FString& SourcePath : AbsoluteSourcePaths )
-		{
-			FPlatformProcess::LaunchFileInDefaultExternalApplication(*SourcePath);
-		}
-#endif
+		ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>("SourceCodeAccess");
+		SourceCodeAccessModule.GetAccessor().OpenSourceFiles(AbsoluteSourcePaths);
 
 		return true;
 	}
@@ -1395,18 +1362,8 @@ bool FSourceCodeNavigation::OpenSourceFiles(const TArray<FString>& AbsoluteSourc
 
 bool FSourceCodeNavigation::OpenModuleSolution()
 {
-#if PLATFORM_WINDOWS
-	FVSAccessorModule& VSAccessorModule = FModuleManager::GetModuleChecked<FVSAccessorModule>( TEXT( "VSAccessor" ) );
-	return VSAccessorModule.OpenVisualStudioSolution();
-#else
-	const FString FullPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead( *FModuleManager::Get().GetSolutionFilepath() );
-	if ( FPaths::FileExists( FullPath ) )
-	{
-		FPlatformProcess::LaunchFileInDefaultExternalApplication( *FullPath );
-		return true;
-	}
-	return false;
-#endif
+	ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>("SourceCodeAccess");
+	return SourceCodeAccessModule.GetAccessor().OpenSolution();
 }
 
 /** Call this to access the multi-cast delegate that you can register a callback with */

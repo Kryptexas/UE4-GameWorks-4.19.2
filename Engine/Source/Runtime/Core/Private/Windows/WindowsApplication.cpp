@@ -11,7 +11,7 @@
 
 #if WITH_EDITOR
 #include "ModuleManager.h"
-#include "Developer/Windows/VSAccessor/Public/VSAccessorModule.h"
+#include "Developer/SourceCodeAccess/Public/ISourceCodeAccessModule.h"
 #endif
 
 // Allow Windows Platform types in the entire file.
@@ -1627,34 +1627,5 @@ HRESULT FWindowsApplication::OnOLEDrop( const HWND HWnd, const FDragDropOLEData&
 
 	return 0;
 }
-
-#if WITH_EDITOR
-bool FWindowsApplication::SupportsSourceAccess() const 
-{
-	return true;
-}
-
-void FWindowsApplication::GotoLineInSource(const FString& FileAndLineNumber)
-{
-	FString FullPath, LineNumberWithColumnString;
-	if (FileAndLineNumber.Split(TEXT("|"), &FullPath, &LineNumberWithColumnString))
-	{
-		FString LineNumberString;
-		FString ColumnNumberString;
-		if ( !LineNumberWithColumnString.Split(TEXT(":"), &LineNumberString, &ColumnNumberString, ESearchCase::CaseSensitive, ESearchDir::FromEnd) )
-		{
-			// The column was not in the string
-			LineNumberString = LineNumberWithColumnString;
-			ColumnNumberString = TEXT("");
-		}
-		
-		int32 LineNumber = FCString::Strtoi(*LineNumberString, NULL, 10);
-		int32 ColumnNumber = FCString::Strtoi(*ColumnNumberString, NULL, 10);
-
-		FVSAccessorModule& VSAccessorModule = FModuleManager::LoadModuleChecked<FVSAccessorModule>(TEXT("VSAccessor"));
-		VSAccessorModule.OpenVisualStudioFileAtLine(FullPath, LineNumber, ColumnNumber);
-	}
-}
-#endif
 
 #include "HideWindowsPlatformTypes.h"

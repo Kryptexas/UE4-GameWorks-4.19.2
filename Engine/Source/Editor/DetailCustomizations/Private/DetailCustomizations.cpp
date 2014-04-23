@@ -72,6 +72,7 @@
 #include "GeneralProjectSettingsDetails.h"
 #include "WindowsTargetSettingsDetails.h"
 #include "MoviePlayerSettingsDetails.h"
+#include "SourceCodeAccessSettingsDetails.h"
 
 
 IMPLEMENT_MODULE( FDetailCustomizationsModule, DetailCustomizations );
@@ -189,6 +190,8 @@ void FDetailCustomizationsModule::StartupModule()
 	RegisterCustomPropertyLayout( "InputSettings", FOnGetDetailCustomizationInstance::CreateStatic( &FInputSettingsDetails::MakeInstance ) );
 	RegisterCustomPropertyLayout( "WindowsTargetSettings", FOnGetDetailCustomizationInstance::CreateStatic( &FWindowsTargetSettingsDetails::MakeInstance ) );
 	RegisterCustomPropertyLayout( "MoviePlayerSettings", FOnGetDetailCustomizationInstance::CreateStatic( &FMoviePlayerSettingsDetails::MakeInstance ) );
+
+	RegisterCustomPropertyLayout( "SourceCodeAccessSettings", FOnGetDetailCustomizationInstance::CreateStatic( &FSourceCodeAccessSettingsDetails::MakeInstance ) );
 
 	PropertyModule.NotifyCustomizationModuleChanged();
 }

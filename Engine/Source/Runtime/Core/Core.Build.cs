@@ -54,17 +54,17 @@ public class Core : ModuleRules
 			}
 			);
 
+		if (UEBuildConfiguration.bBuildEditor == true)
+		{
+			DynamicallyLoadedModuleNames.Add("SourceCodeAccess");
+		}
+
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
 			(Target.Platform == UnrealTargetPlatform.Win32))
 		{
 			PublicIncludePaths.Add("Runtime/Core/Public/Windows");
 			AddThirdPartyPrivateStaticDependencies(Target, 
 				"zlib");
-
-			if (UEBuildConfiguration.bBuildEditor == true)
-			{
-				DynamicallyLoadedModuleNames.Add("VSAccessor");
-			}
 
 			AddThirdPartyPrivateStaticDependencies(Target, 
 				"IntelTBB",

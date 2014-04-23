@@ -32,7 +32,8 @@ public class DetailCustomizations : ModuleRules
 				"GameProjectGeneration",
 				"MoviePlayer",
 				"SourceControl",
-                "InternationalizationSettings"
+                "InternationalizationSettings",
+				"SourceCodeAccess"
 			}
 			);
 

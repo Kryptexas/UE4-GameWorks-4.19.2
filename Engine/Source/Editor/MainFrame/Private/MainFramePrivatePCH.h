@@ -43,9 +43,7 @@
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Kismet2/KismetDebugUtilities.h"
 
-#if WITH_EDITOR
-	#include "VSAccessorModule.h"
-#endif
+#include "ISourceCodeAccessModule.h"
 
 
 /* Private includes

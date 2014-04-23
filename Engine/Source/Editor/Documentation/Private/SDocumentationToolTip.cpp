@@ -3,6 +3,7 @@
 #include "DocumentationModulePrivatePCH.h"
 #include "SDocumentationToolTip.h"
 #include "DocumentationLink.h"
+#include "ISourceCodeAccessModule.h"
 
 void SDocumentationToolTip::Construct( const FArguments& InArgs )
 {
@@ -200,7 +201,8 @@ void SDocumentationToolTip::CreateExcerpt( FString FileSource, FString InExcerpt
 	FileWriter->Close();
 	delete FileWriter;
 
-	FSlateApplication::Get().GotoLineInSource( FileSource + "|" + FString::FromInt(0) );
+	ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>("SourceCodeAccess");
+	SourceCodeAccessModule.GetAccessor().OpenFileAtLine(FileSource, 0);
 
 	ReloadDocumentation();
 }
@@ -271,9 +273,10 @@ void SDocumentationToolTip::ConstructFullTipContent()
 			{
 				struct Local
 				{
-					static void EditSource( FString Link )
+					static void EditSource( FString Link, int32 LineNumber )
 					{
-						FSlateApplication::Get().GotoLineInSource( Link );
+						ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>("SourceCodeAccess");
+						SourceCodeAccessModule.GetAccessor().OpenFileAtLine(Link, LineNumber);
 					}
 				};
 
@@ -283,7 +286,7 @@ void SDocumentationToolTip::ConstructFullTipContent()
 				[
 					SNew( SHyperlink )
 						.Text( NSLOCTEXT( "SToolTip", "EditDocumentationMessage_Edit", "edit" ) )
-						.OnNavigate_Static(&Local::EditSource, FPaths::ConvertRelativePathToFull(FDocumentationLink::ToSourcePath(DocumentationLink, FInternationalization::Get().GetCurrentCulture())) + TEXT("|") + FString::FromInt(Excerpts[ExcerptIndex].LineNumber))
+						.OnNavigate_Static(&Local::EditSource, FPaths::ConvertRelativePathToFull(FDocumentationLink::ToSourcePath(DocumentationLink, FInternationalization::Get().GetCurrentCulture())), Excerpts[ExcerptIndex].LineNumber)
 				];
 			}
 		}

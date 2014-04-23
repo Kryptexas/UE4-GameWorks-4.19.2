@@ -8,8 +8,6 @@ public class Slate : ModuleRules
 	{
 //		SharedPCHHeaderFile = "Runtime/Slate/Public/Slate.h";
 
-		PrivateIncludePathModuleNames.Add("VSAccessor");
-
 		PublicDependencyModuleNames.AddRange(
 			new string[] { 
 				"Core",
@@ -29,10 +27,6 @@ public class Slate : ModuleRules
 			(Target.Platform == UnrealTargetPlatform.Win32))
 		{
 			AddThirdPartyPrivateStaticDependencies(Target, "XInput");
-			if (UEBuildConfiguration.bBuildEditor == true)
-			{
-				DynamicallyLoadedModuleNames.Add("VSAccessor");
-			}
 		}
 	}
 }

@@ -37,7 +37,8 @@ namespace UnrealBuildTool.Rules
                     "Slate",
                     "EditorStyle",
                     "UnrealEd",
-					"Analytics"
+					"Analytics",
+					"SourceCodeAccess"
 				}
 			);
 

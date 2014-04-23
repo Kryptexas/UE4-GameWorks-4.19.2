@@ -413,11 +413,6 @@ void FSlateApplication::Create()
 	PlatformApplication = MakeShareable( FPlatformMisc::CreateApplication() );
 
 	PlatformApplication->SetMessageHandler( CurrentApplication.ToSharedRef() );
-
-	if ( PlatformApplication->SupportsSourceAccess() )
-	{
-		CurrentApplication->SetWidgetReflectorSourceAccessDelegate( FAccessSourceCode::CreateSP( PlatformApplication.ToSharedRef(), &GenericApplication::GotoLineInSource ) );
-	}
 }
 
 TSharedPtr<FSlateApplication> FSlateApplication::CurrentApplication = NULL;
@@ -1999,6 +1994,12 @@ void FSlateApplication::SetWidgetReflectorSourceAccessDelegate(FAccessSourceCode
 	SourceCodeAccessDelegate = AccessDelegate;
 }
 
+void FSlateApplication::SetWidgetReflectorQuerySourceAccessDelegate(FQueryAccessSourceCode QueryAccessDelegate)
+{
+	QuerySourceCodeAccessDelegate = QueryAccessDelegate;
+}
+
+
 /**
  * Apply any requests form the Reply to the application. E.g. Capture mouse
  *
@@ -3025,14 +3026,21 @@ FSlateRect FSlateApplication::GetWorkArea( const FSlateRect& InRect ) const
 
 bool FSlateApplication::SupportsSourceAccess() const
 {
-	return PlatformApplication->SupportsSourceAccess();
+	if(QuerySourceCodeAccessDelegate.IsBound())
+	{
+		return QuerySourceCodeAccessDelegate.Execute();
+	}
+	return false;
 }
 
-void FSlateApplication::GotoLineInSource(const FString& FileAndLineNumber) const
+void FSlateApplication::GotoLineInSource(const FString& FileName, int32 LineNumber) const
 {
 	if ( SupportsSourceAccess() )
 	{
-		PlatformApplication->GotoLineInSource(FileAndLineNumber);
+		if(SourceCodeAccessDelegate.IsBound())
+		{
+			SourceCodeAccessDelegate.Execute(FileName, LineNumber, 0);
+		}
 	}
 }
 

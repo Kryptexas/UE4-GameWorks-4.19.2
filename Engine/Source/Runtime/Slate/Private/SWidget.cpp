@@ -388,9 +388,14 @@ FString SWidget::GetReadableLocation() const
 	return FString::Printf(TEXT("%s(%d)"), *this->CreatedInFile.ToString(), this->CreatedOnLine );
 }
 
-FString SWidget::GetParsableFileAndLineNumber() const
+FString SWidget::GetCreatedInFile() const
 {
-	return FString::Printf(TEXT("%s|%d"), *this->CreatedInFileFullPath.ToString(), this->CreatedOnLine );
+	return this->CreatedInFileFullPath.ToString();
+}
+
+int32 SWidget::GetCreatedInLineNumber() const
+{
+	return this->CreatedOnLine;
 }
 
 FSlateColor SWidget::GetForegroundColor() const

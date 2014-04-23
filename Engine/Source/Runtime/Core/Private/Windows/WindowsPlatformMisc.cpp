@@ -1597,7 +1597,7 @@ void FWindowsPlatformMisc::LoadStartupModules()
 	FModuleManager::Get().LoadModule(TEXT("HeadMountedDisplay"));
 
 #if WITH_EDITOR
-	FModuleManager::Get().LoadModule(TEXT("VSAccessor"));
+	FModuleManager::Get().LoadModule(TEXT("SourceCodeAccess"));
 #endif	//WITH_EDITOR
 }
 

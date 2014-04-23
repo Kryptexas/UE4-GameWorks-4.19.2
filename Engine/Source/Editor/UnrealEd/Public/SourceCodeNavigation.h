@@ -53,7 +53,6 @@ public:
 	/**
 	 * Asynchronously locates the source file and line for a specific function in a specific module and navigates an external editing to that source line
 	 *
-	 * @param	VSAccessor		The VSAccessor module.  Needed to talk to external editing tools.  This needs to be passed in because module access is currently not thread safe.
 	 * @param	FunctionSymbolName	The function to navigate tool (e.g. "MyClass::MyFunction")
 	 * @param	FunctionModuleName	The module to search for this function's symbols (e.g. "GameName-Win64-Debug")
 	 * @param	bIgnoreLineNumber	True if we should just open the file and not go to a specific line number
