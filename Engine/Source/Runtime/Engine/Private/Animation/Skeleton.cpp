@@ -716,6 +716,8 @@ USkeletalMesh* USkeleton::GetPreviewMesh(bool bFindIfNotSet)
 			if(AssetList.Num() > 0)
 			{
 				SetPreviewMesh( Cast<USkeletalMesh>(AssetList[0].GetAsset()), false );
+				// update PreviewMesh
+				PreviewMesh = PreviewSkeletalMesh.Get();
 			}			
 		}
 	}
