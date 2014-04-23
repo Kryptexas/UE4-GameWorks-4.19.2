@@ -633,11 +633,18 @@ bool UWorld::FindTeleportSpot(AActor* TestActor, FVector& TestLocation, FRotator
 	// now try just XY
 	if ( (Adjust.X != 0.f) || (Adjust.Y != 0.f) )
 	{
-		TestLocation.X += Adjust.X;
-		TestLocation.Y += Adjust.Y;
-		if( !EncroachingBlockingGeometry(TestActor, TestLocation, TestRotation, &Adjust) )
+		for (int i = 0; i < 8; ++i)
 		{
-			return true;
+			const FVector OriginalTestLocation = TestLocation;
+
+			TestLocation.X += (i < 4 ? Adjust.X : Adjust.Y) * (i % 2 == 0 ? 1 : -1);
+			TestLocation.Y += (i < 4 ? Adjust.Y : Adjust.X) * (i % 4 < 2 ? 1 : -1);
+			if (!EncroachingBlockingGeometry(TestActor, TestLocation, TestRotation, &Adjust))
+			{
+				return true;
+			}
+
+			TestLocation = OriginalTestLocation;
 		}
 	}
 
