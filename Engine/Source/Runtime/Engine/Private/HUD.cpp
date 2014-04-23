@@ -584,6 +584,15 @@ FVector AHUD::Project(FVector Location)
 	return FVector(0,0,0);
 }
 
+void AHUD::Deproject(float ScreenX, float ScreenY, FVector& WorldPosition, FVector& WorldDirection)
+{
+	WorldPosition = WorldDirection = FVector(0,0,0);
+	if (IsCanvasValid_WarnIfNot())
+	{
+		Canvas->Deproject(FVector2D(ScreenX, ScreenY), WorldPosition, WorldDirection);
+	}
+}
+
 void AHUD::DrawRect(FLinearColor Color, float ScreenX, float ScreenY, float Width, float Height)
 {
 	if (IsCanvasValid_WarnIfNot())	

@@ -1688,32 +1688,42 @@ bool APlayerController::GetHitResultUnderFingerForObjects(ETouchIndex::Type Fing
 	return bHit;
 }
 
-void APlayerController::DeprojectMousePositionToWorld(FVector & WorldPosition, FVector & WorldDirection) const
+void APlayerController::DeprojectMousePositionToWorld(FVector & WorldLocation, FVector & WorldDirection) const
+{
+	ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player);
+	if (LocalPlayer != NULL && LocalPlayer->ViewportClient != NULL)
+	{
+		FVector2D ScreenPosition = LocalPlayer->ViewportClient->GetMousePosition();
+		DeprojectScreenPositionToWorld(ScreenPosition.X, ScreenPosition.Y, WorldLocation, WorldDirection);
+	}
+}
+
+void APlayerController::DeprojectScreenPositionToWorld(float ScreenX, float ScreenY, FVector & WorldLocation, FVector & WorldDirection) const
 {
 	ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player);
 
 	if (LocalPlayer != NULL && LocalPlayer->ViewportClient != NULL && LocalPlayer->ViewportClient->Viewport != NULL)
 	{
-		FVector2D ScreenPosition = LocalPlayer->ViewportClient->GetMousePosition();
-
 		// Create a view family for the game viewport
-		FSceneViewFamilyContext ViewFamily( FSceneViewFamily::ConstructionValues(
+		FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
 			LocalPlayer->ViewportClient->Viewport,
 			GetWorld()->Scene,
-			LocalPlayer->ViewportClient->EngineShowFlags )
-			.SetRealtimeUpdate(true) );
+			LocalPlayer->ViewportClient->EngineShowFlags)
+			.SetRealtimeUpdate(true));
 
 		// Calculate a view where the player is to update the streaming from the players start location
 		FVector ViewLocation;
 		FRotator ViewRotation;
-		FSceneView* SceneView = LocalPlayer->CalcSceneView( &ViewFamily, /*out*/ ViewLocation, /*out*/ ViewRotation, LocalPlayer->ViewportClient->Viewport );
+		FSceneView* SceneView = LocalPlayer->CalcSceneView(&ViewFamily, /*out*/ ViewLocation, /*out*/ ViewRotation, LocalPlayer->ViewportClient->Viewport);
 
 		if (SceneView)
 		{
-			SceneView->DeprojectFVector2D(ScreenPosition, WorldPosition, WorldDirection);
+			const FVector2D ScreenPosition(ScreenX, ScreenY);
+			SceneView->DeprojectFVector2D(ScreenPosition, WorldLocation, WorldDirection);
 		}
 	}
 }
+
 
 bool APlayerController::GetHitResultAtScreenPosition(const FVector2D ScreenPosition, const ECollisionChannel TraceChannel, bool bTraceComplex, FHitResult& HitResult) const
 {
