@@ -36,6 +36,11 @@ public:
 	{
 		return Complete;
 	}
+
+	TArray<UTranslationUnit*>& GetSearchResultsArray()
+	{
+		return SearchResults;
+	}
 	
 	/** Write the translation data in memory out to .archive file (check out the .archive file first if necessary) */
 	void WriteTranslationData();
@@ -45,6 +50,9 @@ public:
 
 	/** Regenerate and reload archives to reflect modifications in the UI */
 	void PreviewAllTranslationsInEditor();
+
+	/** Put items in the Search Array if they match this filter */
+	void PopulateSearchResultsUsingFilter(const FString& SearchFilter);
 
 private:
 	/** Read text file into a JSON file */
@@ -66,6 +74,7 @@ private:
 	TArray<UTranslationUnit*> Untranslated;
 	TArray<UTranslationUnit*> Review;
 	TArray<UTranslationUnit*> Complete;
+	TArray<UTranslationUnit*> SearchResults;
 
 	/** Serializes and deserializes our Archive */
 	FInternationalizationArchiveJsonSerializer ArchiveSerializer;

@@ -19,6 +19,7 @@ FTranslationDataManager::FTranslationDataManager( const FString& InManifestFileP
 , ArchiveFilePath(InArchiveFilePath)
 {
 	GWarn->BeginSlowTask(LOCTEXT("LoadingTranslationData", "Loading Translation Data..."), true);
+	TArray<UTranslationUnit*> TranslationUnits;
 
 	ManifestAtHeadRevisionPtr = ReadManifest( ManifestFilePath );
 	if (ManifestAtHeadRevisionPtr.IsValid())
@@ -68,19 +69,20 @@ FTranslationDataManager::FTranslationDataManager( const FString& InManifestFileP
 					TranslationUnit->Contexts.Add(ContextInfo);
 				}
 
-				AllTranslations.Add(TranslationUnit);
+				TranslationUnits.Add(TranslationUnit);
 			}
 			GWarn->EndSlowTask();
 
 			// Once we have the context information, we can look up history
-			GetHistoryForTranslationUnits(AllTranslations, ManifestFilePath);
+			GetHistoryForTranslationUnits(TranslationUnits, ManifestFilePath);
 
 			GWarn->BeginSlowTask(LOCTEXT("LoadingArchiveEntries", "Loading Entries from Translation Archive..."), true);
-			for (int32 CurrentTranslationUnitIndex = 0; CurrentTranslationUnitIndex < AllTranslations.Num(); ++CurrentTranslationUnitIndex)
+			for (int32 CurrentTranslationUnitIndex = 0; CurrentTranslationUnitIndex < TranslationUnits.Num(); ++CurrentTranslationUnitIndex)
 			{
-				UTranslationUnit* TranslationUnit = AllTranslations[CurrentTranslationUnitIndex];
+				UTranslationUnit* TranslationUnit = TranslationUnits[CurrentTranslationUnitIndex];
+				AllTranslations.Add(TranslationUnit);
 
-				GWarn->StatusUpdate(CurrentTranslationUnitIndex, AllTranslations.Num(), FText::Format(LOCTEXT("LoadingCurrentArchiveEntries", "Loading Entry {0} of {1} from Translation Archive..."), FText::AsNumber(CurrentTranslationUnitIndex), FText::AsNumber(AllTranslations.Num())));
+				GWarn->StatusUpdate(CurrentTranslationUnitIndex, TranslationUnits.Num(), FText::Format(LOCTEXT("LoadingCurrentArchiveEntries", "Loading Entry {0} of {1} from Translation Archive..."), FText::AsNumber(CurrentTranslationUnitIndex), FText::AsNumber(TranslationUnits.Num())));
 
 				const FLocItem SourceSearch(TranslationUnit->Source);
 				TSharedPtr<FArchiveEntry> ArchiveEntry = Archive->FindEntryBySource(TranslationUnit->Namespace, SourceSearch, NULL);
@@ -542,6 +544,20 @@ void FTranslationDataManager::PreviewAllTranslationsInEditor()
 	FString ConfigFilePath = ConfigDirectory / "Localization" / "Regenerate" + FPaths::GetBaseFilename(ManifestFilePath) + ".ini";
 
 	FTextLocalizationManager::Get().RegenerateResources(ConfigFilePath);
+}
+
+void FTranslationDataManager::PopulateSearchResultsUsingFilter(const FString& SearchFilter)
+{
+	SearchResults.Empty();
+
+	for (UTranslationUnit* TranslationUnit : AllTranslations)
+	{
+		if (TranslationUnit->Source.Contains(SearchFilter) || 
+			TranslationUnit->Translation.Contains(SearchFilter))
+		{
+			SearchResults.Add(TranslationUnit);
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

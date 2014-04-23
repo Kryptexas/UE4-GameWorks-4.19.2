@@ -39,6 +39,9 @@ public:
 	/** Export to PortableObject format (.po) */
 	TSharedPtr<FUICommandInfo> ExportToPortableObjectFormat;
 
+	/** Open the tab for searching */
+	TSharedPtr<FUICommandInfo> OpenSearchTab;
+
 	/** Initialize commands */
 	virtual void RegisterCommands() OVERRIDE;
 };

@@ -21,6 +21,8 @@
 
 #include "IPropertyTableWidgetHandle.h"
 
+#include "SSearchBox.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LocalizationExport, Log, All);
 
 #define LOCTEXT_NAMESPACE "TranslationEditor"
@@ -31,6 +33,7 @@ const FName FTranslationEditor::CompletedTabId( TEXT( "TranslationEditor_Complet
 const FName FTranslationEditor::PreviewTabId( TEXT( "TranslationEditor_Preview" ) );
 const FName FTranslationEditor::ContextTabId( TEXT( "TranslationEditor_Context" ) );
 const FName FTranslationEditor::HistoryTabId( TEXT( "TranslationEditor_History" ) );
+const FName FTranslationEditor::SearchTabId( TEXT( "TranslationEditor_Search" ) );
 
 void FTranslationEditor::Initialize()
 {
@@ -70,6 +73,10 @@ void FTranslationEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>
 	TabManager->RegisterTabSpawner( HistoryTabId, FOnSpawnTab::CreateSP(this, &FTranslationEditor::SpawnTab_History) )
 		.SetDisplayName( LOCTEXT("HistoryTab", "History") )
 		.SetGroup( MenuStructure.GetAssetEditorCategory() );
+
+	TabManager->RegisterTabSpawner(SearchTabId, FOnSpawnTab::CreateSP(this, &FTranslationEditor::SpawnTab_Search))
+		.SetDisplayName(LOCTEXT("SearchTab", "Search"))
+		.SetGroup(MenuStructure.GetAssetEditorCategory());
 }
 
 void FTranslationEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
@@ -79,7 +86,8 @@ void FTranslationEditor::UnregisterTabSpawners(const TSharedRef<class FTabManage
 	TabManager->UnregisterTabSpawner( CompletedTabId );
 	TabManager->UnregisterTabSpawner( PreviewTabId );
 	TabManager->UnregisterTabSpawner( ContextTabId );
-	TabManager->UnregisterTabSpawner( HistoryTabId );
+	TabManager->UnregisterTabSpawner(HistoryTabId);
+	TabManager->UnregisterTabSpawner(SearchTabId);
 }
 
 void FTranslationEditor::InitTranslationEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost )
@@ -95,7 +103,7 @@ void FTranslationEditor::InitTranslationEditor( const EToolkitMode::Type Mode, c
 			->SetSizeCoefficient(0.1f)
 			->SetHideTabWell( true )
 			->AddTab(GetToolbarTabId(), ETabState::OpenedTab)
-		) 
+		)
 		->Split
 		(
 			FTabManager::NewStack()
@@ -104,6 +112,7 @@ void FTranslationEditor::InitTranslationEditor( const EToolkitMode::Type Mode, c
 			->AddTab( UntranslatedTabId, ETabState::OpenedTab )
 			->AddTab( ReviewTabId,  ETabState::OpenedTab )
 			->AddTab( CompletedTabId,  ETabState::OpenedTab )
+			->AddTab( SearchTabId, ETabState::ClosedTab )
 		)
 		->Split
 		(
@@ -389,6 +398,84 @@ TSharedRef<SDockTab> FTranslationEditor::SpawnTab_Completed( const FSpawnTabArgs
 	return NewDockTab;
 }
 
+TSharedRef<SDockTab> FTranslationEditor::SpawnTab_Search(const FSpawnTabArgs& Args)
+{
+	check(Args.GetTabId().TabType == SearchTabId);
+
+	UProperty* SourceProperty = FindField<UProperty>(UTranslationUnit::StaticClass(), "Source");
+	UProperty* TranslationProperty = FindField<UProperty>(UTranslationUnit::StaticClass(), "Translation");
+
+	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
+
+	// create empty property table
+	SearchPropertyTable = PropertyEditorModule.CreatePropertyTable();
+	SearchPropertyTable->SetIsUserAllowedToChangeRoot(false);
+	SearchPropertyTable->SetOrientation(EPropertyTableOrientation::AlignPropertiesInColumns);
+	SearchPropertyTable->SetShowRowHeader(true);
+	SearchPropertyTable->SetShowObjectName(false);
+	SearchPropertyTable->OnSelectionChanged()->AddSP(this, &FTranslationEditor::UpdateTranslationUnitSelection);
+
+	// we want to customize some columns
+	TArray< TSharedRef< class IPropertyTableCustomColumn > > CustomColumns;
+	SourceColumn->AddSupportedProperty(SourceProperty);
+	TranslationColumn->AddSupportedProperty(TranslationProperty);
+	CustomColumns.Add(SourceColumn);
+	CustomColumns.Add(TranslationColumn);
+
+	SearchPropertyTable->SetObjects((TArray<UObject*>&)DataManager->GetSearchResultsArray());
+
+	// Add the columns we want to display
+	SearchPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>(UTranslationUnit::StaticClass(), "Source"));
+	SearchPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>(UTranslationUnit::StaticClass(), "Translation"));
+
+	// Freeze columns, don't want user to remove them
+	TArray<TSharedRef<IPropertyTableColumn>> Columns = SearchPropertyTable->GetColumns();
+	for (TSharedRef<IPropertyTableColumn> Column : Columns)
+	{
+		Column->SetFrozen(true);
+	}
+
+	SearchPropertyTableWidgetHandle = PropertyEditorModule.CreatePropertyTableWidgetHandle(SearchPropertyTable.ToSharedRef(), CustomColumns);
+	TSharedRef<SWidget> PropertyTableWidget = SearchPropertyTableWidgetHandle->GetWidget();
+
+	TSharedRef<SDockTab> NewDockTab = SNew(SDockTab)
+		//.Icon(FEditorStyle::GetBrush("TranslationEditor.Tabs.Properties"))
+		.Label(LOCTEXT("SearchTabTitle", "Search"))
+		.TabColorScale(GetTabColorScale())
+		[
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			.HAlign(HAlign_Fill)
+			.VAlign(VAlign_Top)
+			.AutoHeight()
+			.Padding(0.0f, 0.0f, 0.0f, 4.0f)
+			[
+				SAssignNew(SearchBox, SSearchBox)
+				.HintText(LOCTEXT("FilterSearch", "Search..."))
+				.ToolTipText(LOCTEXT("FilterSearchHint", "Type here to search").ToString())
+				.OnTextChanged(this, &FTranslationEditor::OnFilterTextChanged)
+				.OnTextCommitted(this, &FTranslationEditor::OnFilterTextCommitted)
+			]
+			+ SVerticalBox::Slot()
+				.HAlign(HAlign_Fill)
+				.VAlign(VAlign_Top)
+				.FillHeight(10.f)
+			[
+				SNew(SBorder)
+				.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+				.Padding(0.0f)
+				.VAlign(VAlign_Top)
+				[
+					PropertyTableWidget
+				]
+			]
+		];
+
+	SearchTab = NewDockTab;
+
+	return NewDockTab;
+}
+
 TSharedRef<SDockTab> FTranslationEditor::SpawnTab_Preview( const FSpawnTabArgs& Args )
 {
 	check( Args.GetTabId().TabType == PreviewTabId );
@@ -589,6 +676,10 @@ void FTranslationEditor::MapActions()
 	ToolkitCommands->MapAction(FTranslationEditorCommands::Get().ExportToPortableObjectFormat,
 		FExecuteAction::CreateSP(this, &FTranslationEditor::ExportToPortableObjectFormat_Execute),
 		FCanExecuteAction());
+
+	ToolkitCommands->MapAction(FTranslationEditorCommands::Get().OpenSearchTab,
+		FExecuteAction::CreateSP(this, &FTranslationEditor::OpenSearchTab_Execute),
+		FCanExecuteAction());
 }
 
 void FTranslationEditor::ChangeSourceFont()
@@ -649,6 +740,10 @@ void FTranslationEditor::RefreshUI()
 	{
 		HistoryPropertyTableWidgetHandle->RequestRefresh();
 	}
+	if (SearchPropertyTableWidgetHandle.IsValid())
+	{
+		SearchPropertyTableWidgetHandle->RequestRefresh();
+	}
 }
 
 bool FTranslationEditor::OpenFontPicker( const FString DefaultFile, FString& OutFile )
@@ -702,6 +797,7 @@ void FTranslationEditor::UpdateTranslationUnitSelection()
 	TSharedPtr<SDockTab> UntranslatedTabSharedPtr = UntranslatedTab.Pin();
 	TSharedPtr<SDockTab> ReviewTabSharedPtr = ReviewTab.Pin();
 	TSharedPtr<SDockTab> CompletedTabSharedPtr = CompletedTab.Pin();
+	TSharedPtr<SDockTab> SearchTabSharedPtr = SearchTab.Pin();
 	if (UntranslatedTabSharedPtr.IsValid() && UntranslatedTabSharedPtr->IsForeground() && UntranslatedPropertyTable.IsValid())
 	{
 		SelectedRows = UntranslatedPropertyTable->GetSelectedRows();
@@ -713,6 +809,10 @@ void FTranslationEditor::UpdateTranslationUnitSelection()
 	else if (CompletedTab.IsValid() && CompletedTabSharedPtr->IsForeground() && CompletedPropertyTable.IsValid())
 	{
 		SelectedRows = CompletedPropertyTable->GetSelectedRows();
+	}
+	else if (SearchTab.IsValid() && SearchTabSharedPtr->IsForeground() && SearchPropertyTable.IsValid())
+	{
+		SelectedRows = SearchPropertyTable->GetSelectedRows();
 	}
 
 	// Can only really handle single selection
@@ -954,6 +1054,46 @@ void FTranslationEditor::ExportToPortableObjectFormat_Execute()
 		}
 	}
 
+}
+
+void FTranslationEditor::OnFilterTextChanged(const FText& InFilterText)
+{
+
+}
+
+void FTranslationEditor::OnFilterTextCommitted(const FText& InFilterText, ETextCommit::Type CommitInfo)
+{
+	const FString InFilterString = InFilterText.ToString();
+
+	if (CommitInfo == ETextCommit::OnEnter)
+	{
+		if (InFilterString != CurrentSearchFilter)
+		{
+			CurrentSearchFilter = InFilterString;
+
+			DataManager->PopulateSearchResultsUsingFilter(InFilterString);
+
+			if (SearchPropertyTable.IsValid())
+			{
+				SearchPropertyTable->SetObjects((TArray<UObject*>&)DataManager->GetSearchResultsArray());
+
+				// Need to re-add the columns we want to display
+				SearchPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>(UTranslationUnit::StaticClass(), "Source"));
+				SearchPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>(UTranslationUnit::StaticClass(), "Translation"));
+
+				TArray<TSharedRef<IPropertyTableColumn>> Columns = SearchPropertyTable->GetColumns();
+				for (TSharedRef<IPropertyTableColumn> Column : Columns)
+				{
+					Column->SetFrozen(true);
+				}
+			}
+		}
+	}
+}
+
+void FTranslationEditor::OpenSearchTab_Execute()
+{
+	TabManager->InvokeTab(SearchTabId);
 }
 
 #undef LOCTEXT_NAMESPACE
