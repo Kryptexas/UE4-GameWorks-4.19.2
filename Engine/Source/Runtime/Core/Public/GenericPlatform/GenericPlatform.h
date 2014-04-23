@@ -59,5 +59,6 @@ struct FGenericPlatformTypes
 	typedef UPTRINT SIZE_T;															// signed int the same size as a pointer
 
 	typedef int32					TYPE_OF_NULL;
+	typedef decltype(nullptr)		TYPE_OF_NULLPTR;
 };
 
