@@ -1711,7 +1711,7 @@ protected:
 		return false;
 	}
 
-	void CheckValidObject(void* Value) const;
+	virtual void CheckValidObject(void* Value) const;
 	// End of UObjectPropertyBase interface
 
 };
@@ -1926,6 +1926,9 @@ public:
 	virtual const TCHAR* ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* OwnerObject, FOutputDevice* ErrorText ) const OVERRIDE;
 	virtual bool SameType(const UProperty* Other) const OVERRIDE;
 	// End of UProperty interface
+
+protected:
+	virtual void CheckValidObject(void* Value) const OVERRIDE;
 };
 
 /*-----------------------------------------------------------------------------

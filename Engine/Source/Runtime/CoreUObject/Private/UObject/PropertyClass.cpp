@@ -63,6 +63,59 @@ bool UClassProperty::SameType(const UProperty* Other) const
 	return Super::SameType(Other) && (MetaClass == ((UClassProperty*)Other)->MetaClass);
 }
 
+void UClassProperty::CheckValidObject(void* Value) const
+{
+#if WITH_EDITOR
+	// Ugly hack to replace Blueprint references with Class references.
+
+	struct FReplaceBlueprintWithClassHelper
+	{
+		bool bShouldReplace;
+		UClass* BlueprintClass;
+		UClassProperty* BPGeneratedClassProp;
+
+		FReplaceBlueprintWithClassHelper() : bShouldReplace(false), BlueprintClass(NULL), BPGeneratedClassProp(NULL)
+		{
+			GConfig->GetBool(TEXT("EditoronlyBP"), TEXT("bReplaceBlueprintWithClass"), bShouldReplace, GEditorIni);
+			if (bShouldReplace)
+			{
+				BlueprintClass = FindObject<UClass>(NULL, TEXT("/Script/Engine.Blueprint"));
+				ensure(BlueprintClass);
+				BPGeneratedClassProp = BlueprintClass ? FindField<UClassProperty>(BlueprintClass, TEXT("GeneratedClass")) : NULL;
+				ensure(BPGeneratedClassProp);
+			}
+		}
+
+		bool CanReplace() const
+		{
+			return bShouldReplace && BlueprintClass && BPGeneratedClassProp;
+		}
+	};
+	static FReplaceBlueprintWithClassHelper Helper;
+
+	const UObject* Object = GetObjectPropertyValue(Value);
+	Super::CheckValidObject(Value);
+	const UObject* CurrentObject = GetObjectPropertyValue(Value);
+
+	if (Helper.CanReplace()
+		&& !CurrentObject
+		&& Object 
+		&& Object->IsA(Helper.BlueprintClass)
+		&& (UObject::StaticClass() == MetaClass))
+	{
+		UObject* RecoveredObject = Helper.BPGeneratedClassProp->GetPropertyValue_InContainer(Object);
+		SetObjectPropertyValue(Value, RecoveredObject);
+		UE_LOG(LogProperty, Log,
+			TEXT("Blueprint '%s' is replaced with class '%s' in property '%s'"),
+			*Object->GetFullName(),
+			*RecoveredObject->GetFullName(),
+			*GetFullName());
+	}
+#else	// WITH_EDITOR
+	Super::CheckValidObject(Value);
+#endif	// WITH_EDITOR
+}
+
 IMPLEMENT_CORE_INTRINSIC_CLASS(UClassProperty, UObjectProperty,
 	{
 		Class->EmitObjectReference( STRUCT_OFFSET( UClassProperty, MetaClass ) );
