@@ -20,7 +20,7 @@
 	#include "Engine.h"
 	#include "TextureCompressorModule.h"
 #endif
-#include "TargetDeviceServices.h"
+
 #include "TargetPlatform.h"
 #include "AndroidDeviceDetection.h"
 
