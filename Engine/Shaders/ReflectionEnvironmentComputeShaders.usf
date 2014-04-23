@@ -264,10 +264,10 @@ void DoTileCulling(uint3 GroupId, uint ThreadIndex, float MinTileZ, float MaxTil
 
 		// O(N^2) simple parallel sort
 		LOOP
-		for (uint CaptureIndex = ThreadIndex; CaptureIndex < NumCapturesAffectingTile; CaptureIndex += THREADGROUP_TOTALSIZE)
+		for (uint CaptureIndex2 = ThreadIndex; CaptureIndex2 < NumCapturesAffectingTile; CaptureIndex2 += THREADGROUP_TOTALSIZE)
 		{
 			// Sort by original capture index
-			int SortKey = TileReflectionCaptureIndices[CaptureIndex];
+			int SortKey = TileReflectionCaptureIndices[CaptureIndex2];
 			uint NumSmaller = 0;
 
 			// Count how many items have a smaller key, so we can insert ourselves into the correct position, without requiring interaction between threads
@@ -282,7 +282,7 @@ void DoTileCulling(uint3 GroupId, uint ThreadIndex, float MinTileZ, float MaxTil
 			}
 
 			// Move this entry into its sorted position
-			SortedTileReflectionCaptureIndices[NumSmaller] = TileReflectionCaptureIndices[CaptureIndex];
+			SortedTileReflectionCaptureIndices[NumSmaller] = TileReflectionCaptureIndices[CaptureIndex2];
 		}
 
 	#endif
@@ -318,7 +318,7 @@ void ReflectionEnvironmentTiledDeferredMain(
 	DoTileCulling(GroupId, ThreadIndex, MinTileZ, MaxTileZ, MinTileZ2, MaxTileZ2);
 
 	// Lookup GBuffer properties once per pixel
-	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(PixelPos);
+	FScreenSpaceData ScreenSpaceData = GetScreenSpaceDataUint(PixelPos);
 	FGBufferData InGBufferData = ScreenSpaceData.GBuffer;
 	
 	float4 HomogeneousWorldPosition = mul(float4(ScreenPosition * SceneDepth, SceneDepth, 1), View.ScreenToWorld);

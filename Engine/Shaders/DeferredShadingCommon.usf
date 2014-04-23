@@ -432,7 +432,7 @@ SamplerState CustomDepthTextureSampler;
 	Texture2D<float> CustomDepthTextureNonMS;
 
 	// @param PixelPos - integer pixel pos (from left top)
-	FGBufferData GetGBufferData(uint2 PixelPos, bool bGetNormalizedNormal = true)
+	FGBufferData GetGBufferDataUint(uint2 PixelPos, bool bGetNormalizedNormal = true)
 	{
 		float4 GBufferA = GBufferATextureNonMS.Load(int3(PixelPos, 0));
 		float4 GBufferB = GBufferBTextureNonMS.Load(int3(PixelPos, 0));
@@ -461,11 +461,11 @@ SamplerState CustomDepthTextureSampler;
 	}
 
 	// @param PixelPos - integer pixel pos (from left top)
-	FScreenSpaceData GetScreenSpaceData(uint2 PixelPos, bool bGetNormalizedNormal = true)
+	FScreenSpaceData GetScreenSpaceDataUint(uint2 PixelPos, bool bGetNormalizedNormal = true)
 	{
 		FScreenSpaceData Out;
-	
-		Out.GBuffer = GetGBufferData(PixelPos, bGetNormalizedNormal);
+
+		Out.GBuffer = GetGBufferDataUint(PixelPos, bGetNormalizedNormal);
 
 		// todo: optimize
 		// this is what we want but because WhiteDummy (in case AO is disabled) doesn't support this lookup we do the code below
@@ -480,7 +480,7 @@ SamplerState CustomDepthTextureSampler;
 
 			Out.AmbientOcclusion = ScreenSpaceAO.r;
 		}
-	
+
 		return Out;
 	}
 #endif
