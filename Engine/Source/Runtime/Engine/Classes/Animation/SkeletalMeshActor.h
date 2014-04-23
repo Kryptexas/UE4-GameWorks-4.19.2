@@ -76,7 +76,10 @@ public:
 	// End IMatineeAnimInterface Interface
 
 private:
+	// Saved flag used to restore animation mode
 	EAnimationMode::Type	SavedAnimationMode;
+	// Saved flag used to restore mesh update mode
+	EMeshComponentUpdateFlag::Type	SavedMeshUpdateFlag;
 	// utility function to see if it can play animation or not
 	bool CanPlayAnimation();
 };
