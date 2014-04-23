@@ -265,6 +265,8 @@ void InitGamePhys()
 	//This approach facilitates mixing the use of height fields and meshes in the application with no tangible difference in collision behavior between the two approaches
 	PxRegisterUnifiedHeightFields(*GPhysXSDK);
 
+
+#if WITH_PHYSICS_COOKING
 	// Create Cooking
 	PxCookingParams PCookingParams(PScale);
 	PCookingParams.meshWeldTolerance = 0.1f; // Weld to 1mm precision
@@ -274,6 +276,7 @@ void InitGamePhys()
 	//PCookingParams.meshSizePerformanceTradeOff = 0.0f;
 	GPhysXCooking = PxCreateCooking(PX_PHYSICS_VERSION, *GPhysXFoundation, PCookingParams);
 	check(GPhysXCooking);
+#endif
 
 #if WITH_APEX
 	// Build the descriptor for the APEX SDK
@@ -383,11 +386,13 @@ void TermGamePhys()
 	}
 #endif	// #if WITH_APEX
 
+#if WITH_PHYSICS_COOKING
 	if(GPhysXCooking != NULL)
 	{
 		GPhysXCooking->release(); 
 		GPhysXCooking = NULL;
 	}
+#endif
 
 	PxCloseExtensions();
 	PxCloseVehicleSDK();

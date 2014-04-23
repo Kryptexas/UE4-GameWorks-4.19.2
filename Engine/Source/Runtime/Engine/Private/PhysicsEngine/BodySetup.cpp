@@ -464,9 +464,7 @@ void UBodySetup::AddShapesToRigidActor(PxRigidActor* PDestActor, FVector& Scale3
 				if(NewShape)
 				{
 					NewShape->setLocalPose(PLocalPose);
-
-					const float ContactOffset = FMath::Min(MaxContactOffset, GPhysXCooking->getParams().skinWidth);
-					NewShape->setContactOffset(ContactOffset);
+					NewShape->setContactOffset(MaxContactOffset);
 				}
 				else
 				{

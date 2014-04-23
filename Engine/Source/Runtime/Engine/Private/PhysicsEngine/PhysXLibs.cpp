@@ -14,7 +14,9 @@
 #if PLATFORM_WINDOWS
 	HMODULE PhysX3CommonHandle = 0;
 	HMODULE	PhysX3Handle = 0;
-	HMODULE	PhysX3CookingHandle = 0;
+	#if WITH_PHYSICS_COOKING
+		HMODULE	PhysX3CookingHandle = 0;
+	#endif
 	HMODULE	nvToolsExtHandle = 0;
 	#if WITH_APEX
 			HMODULE	APEXFrameworkHandle = 0;
@@ -57,7 +59,9 @@ void LoadPhysXModules()
 			PhysX3CommonHandle = LoadLibraryW(*(RootPhysXPath + "PhysX3CommonDEBUG_x64.dll"));
 			nvToolsExtHandle = LoadLibraryW(*(RootPhysXPath + "nvToolsExt64_1.dll"));
 			PhysX3Handle = LoadLibraryW(*(RootPhysXPath + "PhysX3DEBUG_x64.dll"));
-			PhysX3CookingHandle = LoadLibraryW(*(RootPhysXPath + "PhysX3CookingDEBUG_x64.dll"));
+			#if WITH_PHYSICS_COOKING
+				PhysX3CookingHandle = LoadLibraryW(*(RootPhysXPath + "PhysX3CookingDEBUG_x64.dll"));
+			#endif
 			#if WITH_APEX
 				APEXFrameworkHandle = LoadLibraryW(*(RootAPEXPath + "APEXFrameworkDEBUG_x64.dll"));
 				APEX_DestructibleHandle = LoadLibraryW(*(RootAPEXPath + "APEX_DestructibleDEBUG_x64.dll"));
@@ -74,7 +78,9 @@ void LoadPhysXModules()
 			PhysX3CommonHandle = LoadLibraryW(*(RootPhysXPath + "PhysX3Common_x64.dll"));
 			nvToolsExtHandle = LoadLibraryW(*(RootPhysXPath + "nvToolsExt64_1.dll"));
 			PhysX3Handle = LoadLibraryW(*(RootPhysXPath + "PhysX3_x64.dll"));
-			PhysX3CookingHandle = LoadLibraryW(*(RootPhysXPath + "PhysX3Cooking_x64.dll"));
+			#if WITH_PHYSICS_COOKING
+				PhysX3CookingHandle = LoadLibraryW(*(RootPhysXPath + "PhysX3Cooking_x64.dll"));
+			#endif
 			#if WITH_APEX
 				APEXFrameworkHandle = LoadLibraryW(*(RootAPEXPath + "APEXFramework_x64.dll"));
 				APEX_DestructibleHandle = LoadLibraryW(*(RootAPEXPath + "APEX_Destructible_x64.dll"));
@@ -90,7 +96,9 @@ void LoadPhysXModules()
 			PhysX3CommonHandle = LoadLibraryW(*(RootPhysXPath + "PhysX3CommonPROFILE_x64.dll"));
 			nvToolsExtHandle = LoadLibraryW(*(RootPhysXPath + "nvToolsExt64_1.dll"));
 			PhysX3Handle = LoadLibraryW(*(RootPhysXPath + "PhysX3PROFILE_x64.dll"));
-			PhysX3CookingHandle = LoadLibraryW(*(RootPhysXPath + "PhysX3CookingPROFILE_x64.dll"));
+			#if WITH_PHYSICS_COOKING
+				PhysX3CookingHandle = LoadLibraryW(*(RootPhysXPath + "PhysX3CookingPROFILE_x64.dll"));
+			#endif
 			#if WITH_APEX
 				APEXFrameworkHandle = LoadLibraryW(*(RootAPEXPath + "APEXFrameworkPROFILE_x64.dll"));
 				APEX_DestructibleHandle = LoadLibraryW(*(RootAPEXPath + "APEX_DestructiblePROFILE_x64.dll"));
@@ -117,7 +125,9 @@ void LoadPhysXModules()
 			PhysX3CommonHandle = LoadLibraryW(*(RootPhysXPath + "PhysX3CommonDEBUG_x86.dll"));
 			nvToolsExtHandle = LoadLibraryW(*(RootPhysXPath + "nvToolsExt32_1.dll"));
 			PhysX3Handle = LoadLibraryW(*(RootPhysXPath + "PhysX3DEBUG_x86.dll"));
-			PhysX3CookingHandle = LoadLibraryW(*(RootPhysXPath + "PhysX3CookingDEBUG_x86.dll"));
+			#if WITH_PHYSICS_COOKING
+				PhysX3CookingHandle = LoadLibraryW(*(RootPhysXPath + "PhysX3CookingDEBUG_x86.dll"));
+			#endif
 			#if WITH_APEX
 				APEXFrameworkHandle = LoadLibraryW(*(RootAPEXPath + "APEXFrameworkDEBUG_x86.dll"));
 				APEX_DestructibleHandle = LoadLibraryW(*(RootAPEXPath + "APEX_DestructibleDEBUG_x86.dll"));
@@ -133,7 +143,9 @@ void LoadPhysXModules()
 			PhysX3CommonHandle = LoadLibraryW(*(RootPhysXPath + "PhysX3Common_x86.dll"));
 			nvToolsExtHandle = LoadLibraryW(*(RootPhysXPath + "nvToolsExt32_1.dll"));
 			PhysX3Handle = LoadLibraryW(*(RootPhysXPath + "PhysX3_x86.dll"));
-			PhysX3CookingHandle = LoadLibraryW(*(RootPhysXPath + "PhysX3Cooking_x86.dll"));
+			#if WITH_PHYSICS_COOKING
+				PhysX3CookingHandle = LoadLibraryW(*(RootPhysXPath + "PhysX3Cooking_x86.dll"));
+			#endif
 			#if WITH_APEX
 				APEXFrameworkHandle = LoadLibraryW(*(RootAPEXPath + "APEXFramework_x86.dll"));
 				APEX_DestructibleHandle = LoadLibraryW(*(RootAPEXPath + "APEX_Destructible_x86.dll"));
@@ -149,7 +161,9 @@ void LoadPhysXModules()
 			PhysX3CommonHandle = LoadLibraryW(*(RootPhysXPath + "PhysX3CommonPROFILE_x86.dll"));
 			nvToolsExtHandle = LoadLibraryW(*(RootPhysXPath + "nvToolsExt32_1.dll"));
 			PhysX3Handle = LoadLibraryW(*(RootPhysXPath + "PhysX3PROFILE_x86.dll"));
-			PhysX3CookingHandle = LoadLibraryW(*(RootPhysXPath + "PhysX3CookingPROFILE_x86.dll"));
+			#if WITH_PHYSICS_COOKING
+				PhysX3CookingHandle = LoadLibraryW(*(RootPhysXPath + "PhysX3CookingPROFILE_x86.dll"));
+			#endif
 			#if WITH_APEX
 					APEXFrameworkHandle = LoadLibraryW(*(RootAPEXPath + "APEXFrameworkPROFILE_x86.dll"));
 					APEX_DestructibleHandle = LoadLibraryW(*(RootAPEXPath + "APEX_DestructiblePROFILE_x86.dll"));
@@ -172,7 +186,9 @@ void UnloadPhysXModules()
 {
 #if PLATFORM_WINDOWS
 	FreeLibrary(PhysX3Handle);
-	FreeLibrary(PhysX3CookingHandle);
+	#if WITH_PHYSICS_COOKING
+		FreeLibrary(PhysX3CookingHandle);
+	#endif
 	FreeLibrary(PhysX3CommonHandle);
 	#if WITH_APEX
 		FreeLibrary(APEXFrameworkHandle);

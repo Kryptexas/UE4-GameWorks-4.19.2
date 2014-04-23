@@ -14,7 +14,9 @@
 PxFoundation*			GPhysXFoundation = NULL;
 PxProfileZoneManager*	GPhysXProfileZoneManager = NULL;
 PxPhysics*				GPhysXSDK = NULL;
+#if WITH_PHYSICS_COOKING
 PxCooking*				GPhysXCooking = NULL;
+#endif
 FPhysXAllocator*		GPhysXAllocator = NULL;
 
 #if WITH_APEX

@@ -240,7 +240,10 @@ public class PhysX : ModuleRules
 
 			foreach (string Lib in StaticLibrariesAndroid)
 			{
-				PublicAdditionalLibraries.Add(String.Format(Lib, LibrarySuffix));
+                if (!Lib.Contains("Cooking") || Target.IsCooked == false)
+                {
+                    PublicAdditionalLibraries.Add(String.Format(Lib, LibrarySuffix));
+                }
 			}
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux)
@@ -307,8 +310,11 @@ public class PhysX : ModuleRules
 
 			foreach (string PhysXLib in PhysXLibs)
 			{
-				PublicAdditionalLibraries.Add(PhysXLib + LibrarySuffix);
-				PublicAdditionalShadowFiles.Add(Path.Combine(PhysXLibDir, "lib" + PhysXLib + LibrarySuffix + ".a"));
+                if (!PhysXLib.Contains("Cooking") || Target.IsCooked == false)
+                {
+                    PublicAdditionalLibraries.Add(PhysXLib + LibrarySuffix);
+                    PublicAdditionalShadowFiles.Add(Path.Combine(PhysXLibDir, "lib" + PhysXLib + LibrarySuffix + ".a"));
+                }
 			}
 		}
         else if (Target.Platform == UnrealTargetPlatform.HTML5)
@@ -337,7 +343,10 @@ public class PhysX : ModuleRules
 
             foreach (var lib in PhysXLibs)
             {
-                PublicAdditionalLibraries.Add(PhysXLibDir + lib + ".bc");
+                if (!lib.Contains("Cooking") || Target.IsCooked == false)
+                {
+                    PublicAdditionalLibraries.Add(PhysXLibDir + lib + ".bc");
+                }
             }
         }
 		else if (Target.Platform == UnrealTargetPlatform.PS4)
