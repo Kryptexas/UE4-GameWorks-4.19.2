@@ -4,7 +4,7 @@
 #include "LinuxWindow.h"
 #include "LinuxCursor.h"
 #include "GenericApplicationMessageHandler.h"
-#if WITH_ENGINE
+#if WITH_ENGINE && !UE_SERVER
 #include "SteamControllerInterface.h"
 #endif
 
@@ -77,7 +77,7 @@ FLinuxApplication* FLinuxApplication::CreateLinuxApplication()
 
 
 FLinuxApplication::FLinuxApplication() : GenericApplication( MakeShareable( new FLinuxCursor() ) )
-#if WITH_ENGINE
+#if WITH_ENGINE && !UE_SERVER
 	, SteamInput( SteamControllerInterface::Create(MessageHandler) )
 #endif
 {
