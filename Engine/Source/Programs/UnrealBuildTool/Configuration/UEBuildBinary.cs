@@ -67,6 +67,11 @@ namespace UnrealBuildTool
 		/// </summary>
 		public bool bAllowCompilation = true;
 
+		/// <summary>
+		/// True if this binary has any Build.cs files, if not this is probably a binary-only plugins
+		/// </summary>
+		public bool bHasModuleRules = true;
+
         /// <summary>
         /// For most binaries, this is false. If this is a cross-platform binary build for a specific platform (for example XB1 DLL for a windows editor) this will be true.
         /// </summary>
@@ -115,6 +120,7 @@ namespace UnrealBuildTool
 				bool bInCreateImportLibrarySeparately = false,
 				bool bInIncludeDependentLibrariesInLibrary = false,
 				bool bInAllowCompilation = true,
+				bool bInHasModuleRules = true,
                 bool bInIsCrossTarget = false,
                 bool bInCompileMonolithic = false,
 				UnrealTargetConfiguration InTargetConfiguration = UnrealTargetConfiguration.Development,
@@ -130,6 +136,7 @@ namespace UnrealBuildTool
 			bCreateImportLibrarySeparately = bInCreateImportLibrarySeparately;
 			bIncludeDependentLibrariesInLibrary = bInIncludeDependentLibrariesInLibrary;
 			bAllowCompilation = bInAllowCompilation;
+			bHasModuleRules = bInHasModuleRules;
             bIsCrossTarget = bInIsCrossTarget;
             bCompileMonolithic = bInCompileMonolithic;
 			TargetConfiguration = InTargetConfiguration;
@@ -314,13 +321,17 @@ namespace UnrealBuildTool
 		{
 			foreach(var ModuleName in ModuleNames)
 			{
-				var Module = Target.FindOrCreateModuleByName(ModuleName);
-				if(Module.Binary != null)
+				UEBuildModule Module = null;
+				if (Config.bHasModuleRules)
 				{
-					throw new BuildException("Module \"{0}\" linked into both {1} and {2}, which creates ambiguous linkage for dependents.", ModuleName, Module.Binary.Config.OutputFilePath, Config.OutputFilePath);
+					Module = Target.FindOrCreateModuleByName(ModuleName);
+					if (Module.Binary != null)
+					{
+						throw new BuildException("Module \"{0}\" linked into both {1} and {2}, which creates ambiguous linkage for dependents.", ModuleName, Module.Binary.Config.OutputFilePath, Config.OutputFilePath);
+					}
+					Module.Binary = this;
+					Module.bIncludedInTarget = true;
 				}
-				Module.Binary = this;
-				Module.bIncludedInTarget = true;
 
 				// We set whether the binary is being compiled monolithic here to know later - specifically
 				// when we are determining whether to use SharedPCHs or not for static lib builds of plugins.
@@ -332,7 +343,7 @@ namespace UnrealBuildTool
 				Config.TargetConfiguration = Target.Configuration;
 				Config.TargetName = Target.GetAppName();
 
-				if ((Target.Rules == null) || (Target.Rules.bOutputToEngineBinaries == false))
+				if (Module != null && (Target.Rules == null || Target.Rules.bOutputToEngineBinaries == false))
 				{
 					// Fix up the binary path if this is module specifies an alternate output directory
 					Config.OutputFilePath = Module.FixupOutputPath(Config.OutputFilePath);
@@ -377,10 +388,21 @@ namespace UnrealBuildTool
 		public override List<UEBuildBinary> ProcessUnboundModules()
 		{
 			var Binaries = new Dictionary<string, UEBuildBinary>( StringComparer.InvariantCultureIgnoreCase );
-			foreach( var ModuleName in ModuleNames )
+			if (Config.bHasModuleRules)
 			{
-				var Module = Target.FindOrCreateModuleByName(ModuleName);
-				Module.RecursivelyProcessUnboundModules( Target, ref Binaries, this );
+				foreach (var ModuleName in ModuleNames)
+				{
+					var Module = Target.FindOrCreateModuleByName(ModuleName);
+					Module.RecursivelyProcessUnboundModules(Target, ref Binaries, this);
+				}
+			}
+			else
+			{
+				// There's only one module in this case, so just bind it to this binary
+				foreach (var ModuleName in ModuleNames)
+				{
+					Binaries.Add(ModuleName, this);
+				}
 			}
 
 			// Now build a final list of newly-created binaries that were bound to.  The hash may contain duplicates, so

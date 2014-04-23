@@ -1719,9 +1719,12 @@ namespace UnrealBuildTool
 				OutputFilePath = MakeBinaryPath(Module.Name, GetAppName() + "-" + Module.Name, BinaryType, Rules.Type, bIsRocketModule, Plugin, AppName);
 			}
 
+			// Try to determine if we have the rules file
+			var ModuleFilename = RulesCompiler.GetModuleFilename(Module.Name);
+			var bHasModuleRules = String.IsNullOrEmpty(ModuleFilename) == false;
 			// Figure out whether we should build it from source
-			string ModuleSourceFolder = Path.GetDirectoryName(RulesCompiler.GetModuleFilename(Module.Name));
-			bool bShouldBeBuiltFromSource = Directory.GetFiles(ModuleSourceFolder, "*.cpp", SearchOption.AllDirectories).Length > 0;
+			var ModuleSourceFolder = bHasModuleRules ? Path.GetDirectoryName(RulesCompiler.GetModuleFilename(Module.Name)) : ModuleFilename;
+			bool bShouldBeBuiltFromSource = bHasModuleRules && Directory.GetFiles(ModuleSourceFolder, "*.cpp", SearchOption.AllDirectories).Length > 0;
 
 			// Create the binary
 			UEBuildBinaryConfiguration Config = new UEBuildBinaryConfiguration( InType: BinaryType, 
@@ -1729,6 +1732,7 @@ namespace UnrealBuildTool
 																				InIntermediateDirectory: IntermediateDirectory,
 																				bInAllowExports: true,
 																				bInAllowCompilation: bShouldBeBuiltFromSource,
+																				bInHasModuleRules : bHasModuleRules,
 																				InModuleNames: new List<string> { Module.Name } );
 			AppBinaries.Add(new UEBuildBinaryCPP(this, Config));
             return SpecialRocketLibFilesThatAreBuildProducts;
@@ -1809,11 +1813,15 @@ namespace UnrealBuildTool
 			if ((BinaryType == UEBuildBinaryType.DynamicLinkLibrary) && (string.IsNullOrEmpty(ModuleName) == false))
 			{
 				// Allow for modules to specify sub-folders in the Binaries folder
-				string IgnoredRulesFilename;
-				ModuleRules ModuleRulesObj = RulesCompiler.CreateModuleRules(ModuleName, new TargetInfo(Platform, Configuration, TargetType), out IgnoredRulesFilename);
-				if (ModuleRulesObj != null)
+				var RulesFilename = RulesCompiler.GetModuleFilename(ModuleName);
+				// Plugins can be binary-only and can have no rules object
+				if (PluginInfo == null || !String.IsNullOrEmpty(RulesFilename))
 				{
-					ModuleBinariesSubDir = ModuleRulesObj.BinariesSubFolder;
+					ModuleRules ModuleRulesObj = RulesCompiler.CreateModuleRules(ModuleName, new TargetInfo(Platform, Configuration, TargetType), out RulesFilename);
+					if (ModuleRulesObj != null)
+					{
+						ModuleBinariesSubDir = ModuleRulesObj.BinariesSubFolder;
+					}
 				}
 			}
 
