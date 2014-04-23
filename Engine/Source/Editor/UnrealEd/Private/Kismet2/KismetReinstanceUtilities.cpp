@@ -385,7 +385,12 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UCl
 
 				if (UAnimInstance* AnimTree = Cast<UAnimInstance>(NewObject))
 				{
-					AnimTree->InitializeAnimation();
+					// Initialising the anim instance isn't enough to correctly set up the skeletal mesh again in a
+					// paused world, need to initialise the skeletal mesh component that contains the anim instance.
+					if(USkeletalMeshComponent* SkelComponent = Cast<USkeletalMeshComponent>(AnimTree->GetOuter()))
+					{
+						SkelComponent->InitAnim(true);
+					}
 				}
 
 				OldObject->RemoveFromRoot();

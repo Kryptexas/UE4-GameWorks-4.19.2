@@ -63,6 +63,8 @@ USkeletalMeshComponent::USkeletalMeshComponent(const class FPostConstructInitial
 	PrimaryComponentTick.TickGroup = TG_ParallelAnimWork;
 	PrimaryComponentTick.bRunOnAnyThread = true;	
 #endif
+
+	bTickInEditor = true;
 }
 
 
@@ -446,6 +448,15 @@ bool USkeletalMeshComponent::UpdateLODStatus()
 
 bool USkeletalMeshComponent::ShouldUpdateTransform(bool bLODHasChanged) const
 {
+#if WITH_EDITOR
+	// If we're in an editor world (Non running, WorldType will be PIE when simulating or in PIE) then we only want transform updates on LOD changes as the
+	// animation isn't running so it would just waste CPU time
+	if(GetWorld()->WorldType == EWorldType::Editor && !bLODHasChanged)
+	{
+		return false;
+	}
+#endif
+
 	// If forcing RefPose we can skip updating the skeleton for perf, except if it's using MorphTargets.
 	const bool bSkipBecauseOfRefPose = bForceRefpose && bOldForceRefPose && (MorphTargetCurves.Num() == 0) && ((AnimScriptInstance)? AnimScriptInstance->MorphTargetCurves.Num() == 0 : true);
 
