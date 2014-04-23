@@ -343,43 +343,36 @@ static void GetBuildSettingsForRunningPlatform(
 	FTextureBuildSettings& OutBuildSettings
 	)
 {
-	static bool bInitialized = false;
-	static TArray<FName> PlatformFormats;
-
-	if ( !bInitialized )
+	// Compress to whatever formats the active target platforms want
+	ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
+	if (TPM)
 	{
-		bInitialized = true;
-		// Compress to whatever formats the active target platforms want
-		ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
-		if (TPM)
+		ITargetPlatform* CurrentPlatform = NULL;
+		const TArray<ITargetPlatform*>& Platforms = TPM->GetActiveTargetPlatforms();
+
+		check(Platforms.Num());
+
+		CurrentPlatform = Platforms[0];
+
+		for (int32 Index = 1; Index < Platforms.Num(); Index++)
 		{
-			ITargetPlatform* CurrentPlatform = NULL;
-			const TArray<ITargetPlatform*>& Platforms = TPM->GetActiveTargetPlatforms();
-
-			check(Platforms.Num());
-
-			CurrentPlatform = Platforms[0];
-
-			for (int32 Index = 1; Index < Platforms.Num(); Index++)
+			if (Platforms[Index]->IsRunningPlatform())
 			{
-				if (Platforms[Index]->IsRunningPlatform())
-				{
-					CurrentPlatform = Platforms[Index];
-					break;
-				}
+				CurrentPlatform = Platforms[Index];
+				break;
 			}
-
-			check(CurrentPlatform != NULL);
-
-			CurrentPlatform->GetTextureFormats(&Texture, PlatformFormats);
 		}
+
+		check(CurrentPlatform != NULL);
+
+		TArray<FName> PlatformFormats;
+		CurrentPlatform->GetTextureFormats(&Texture, PlatformFormats);
+
+		// Assume there is at least one format and the first one is what we want at runtime.
+		check(PlatformFormats.Num());
+		GetTextureBuildSettings(Texture, GSystemSettings.TextureLODSettings, OutBuildSettings);
+		OutBuildSettings.TextureFormatName = PlatformFormats[0];
 	}
-
-
-	// Assume there is at least one format and the first one is what we want at runtime.
-	check(PlatformFormats.Num());
-	GetTextureBuildSettings(Texture, GSystemSettings.TextureLODSettings, OutBuildSettings);
-	OutBuildSettings.TextureFormatName = PlatformFormats[0];
 }
 
 /**
