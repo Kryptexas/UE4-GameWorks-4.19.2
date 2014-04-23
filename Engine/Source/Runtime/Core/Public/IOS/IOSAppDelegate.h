@@ -4,7 +4,7 @@
 
 #import <UIKit/UIKit.h>
 #import <AVFoundation/AVAudioSession.h>
-#import <GameKit/GKLeaderboardViewController.h>
+#import <GameKit/GKGameCenterViewController.h>
 
 @class EAGLView;
 @class IOSViewController;
@@ -27,7 +27,7 @@ namespace FAppEntry
 #if !UE_BUILD_SHIPPING
 	UIGestureRecognizerDelegate,
 #endif
-	GKLeaderboardViewControllerDelegate,
+	GKGameCenterControllerDelegate,
 UITextFieldDelegate, AVAudioSessionDelegate>
 
 /** Window object */

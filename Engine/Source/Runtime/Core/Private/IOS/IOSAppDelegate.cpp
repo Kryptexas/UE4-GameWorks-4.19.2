@@ -504,10 +504,10 @@ void InstallSignalHandlers()
 	[self HideController : Controller Animated : YES];
 }
 
--(void)leaderboardViewControllerDidFinish:(GKLeaderboardViewController*)LeaderboardDisplay
+-(void)gameCenterViewControllerDidFinish:(GKGameCenterViewController*)GameCenterDisplay
 {
 	// close the view 
-	[self HideController : LeaderboardDisplay];
+	[self HideController : GameCenterDisplay];
 }
 
 /**
@@ -516,14 +516,27 @@ void InstallSignalHandlers()
 -(void)ShowLeaderboard:(NSString*)Category
 {
 	// create the leaderboard display object 
-	GKLeaderboardViewController* LeaderboardDisplay = [[[GKLeaderboardViewController alloc] init] autorelease];
-	LeaderboardDisplay.leaderboardDelegate = self;
-
-	// set which leaderboard to get 
-	LeaderboardDisplay.category = Category;
+	GKGameCenterViewController* GameCenterDisplay = [[[GKGameCenterViewController alloc] init] autorelease];
+	GameCenterDisplay.viewState = GKGameCenterViewControllerStateLeaderboards;
+	GameCenterDisplay.leaderboardCategory = Category;
+	GameCenterDisplay.gameCenterDelegate = self;
 
 	// show it 
-	[self ShowController : LeaderboardDisplay];
+	[self ShowController : GameCenterDisplay];
+}
+
+/**
+ * Show the achievements interface (call from iOS main thread)
+ */
+-(void)ShowAchievements
+{
+	// create the leaderboard display object 
+	GKGameCenterViewController* GameCenterDisplay = [[[GKGameCenterViewController alloc] init] autorelease];
+	GameCenterDisplay.viewState = GKGameCenterViewControllerStateAchievements;
+	GameCenterDisplay.gameCenterDelegate = self;
+
+	// show it 
+	[self ShowController : GameCenterDisplay];
 }
 
 /**
@@ -538,5 +551,15 @@ CORE_API bool IOSShowLeaderboardUI(const FString& CategoryName)
 	return true;
 }
 
+/**
+* Show the achievements interface (call from game thread)
+*/
+CORE_API bool IOSShowAchievementsUI()
+{
+	// route the function to iOS thread
+	[[IOSAppDelegate GetDelegate] performSelectorOnMainThread:@selector(ShowAchievements) withObject:nil waitUntilDone : NO];
+
+	return true;
+}
 
 @end
