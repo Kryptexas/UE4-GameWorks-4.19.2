@@ -38,6 +38,9 @@ struct FTouchInputControl
 };
 
 
+/**
+ * Defines an interface by which touch input can be controlled using any number of buttons and virtual joysticks
+ */
 UCLASS(Blueprintable, BlueprintType)
 class ENGINE_API UTouchInterface : public UObject
 {

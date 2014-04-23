@@ -1,13 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-
-/**
- * CameraAnim: defines a pre-packaged animation to be played on a camera.
- */
-
 #pragma once
+
 #include "CameraAnim.generated.h"
 
+/**
+ * A predefined animation to be played on a camera
+ */
 UCLASS(notplaceable, MinimalAPI)
 class UCameraAnim : public UObject
 {

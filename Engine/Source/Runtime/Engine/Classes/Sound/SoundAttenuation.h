@@ -150,7 +150,7 @@ struct TStructOpsTypeTraits<FAttenuationSettings> : public TStructOpsTypeTraitsB
 };
 
 /** 
- * Defines how a sounds changes volume with distance to the listener
+ * Defines how a sound changes volume with distance to the listener
  */
 UCLASS(BlueprintType, hidecategories=Object, editinlinenew, MinimalAPI)
 class USoundAttenuation : public UObject

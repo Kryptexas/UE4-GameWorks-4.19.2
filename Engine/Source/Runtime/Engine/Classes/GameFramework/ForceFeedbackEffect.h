@@ -66,6 +66,10 @@ struct FActiveForceFeedbackEffect
 	bool Update(const float DeltaTime, struct FForceFeedbackValues& Values);
 };
 
+
+/**
+ * A predefined force-feedback effect to be played on a controller
+ */
 UCLASS(BlueprintType, headergroup=UserInterface, MinimalAPI)
 class UForceFeedbackEffect : public UObject
 {
