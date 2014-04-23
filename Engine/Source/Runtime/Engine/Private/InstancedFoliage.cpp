@@ -123,10 +123,13 @@ UInstancedFoliageSettings::UInstancedFoliageSettings(const class FPostConstructI
 	VertexColorMask = FOLIAGEVERTEXCOLORMASK_Disabled;
 	VertexColorMaskThreshold = 0.5f;
 
+	// Static lighting is not currently supported by instanced static meshes, so we treat CastShadow as controlling all shadow settings
+	// (enables dynamic shadows, disables static shadows) which makes these two settings (bCastDynamicShadow, bCastStaticShadow) irrelevant at this point in time
+	// See UInstancedStaticMeshComponent::GetStaticLightingInfo (it's empty, but it's what would add data to the Lightmass generation)
 	CastShadow = true;
-	bCastDynamicShadow = true;
+	//bCastDynamicShadow = true;
+	//bCastStaticShadow = true;
 	bAffectDynamicIndirectLighting = false;
-	bCastStaticShadow = true;
 	bCastHiddenShadow = false;
 	bCastShadowAsTwoSided = false;
 
@@ -291,7 +294,9 @@ void FFoliageMeshInfo::AddInstance( AInstancedFoliageActor* InIFA, UStaticMesh* 
 			ConstructObject<UInstancedStaticMeshComponent>(UInstancedStaticMeshComponent::StaticClass(),InIFA,NAME_None,RF_Transactional),
 			InMesh->GetBounds().TransformBy(InstanceTransform)
 			);
-		BestCluster->ClusterComponent->Mobility = EComponentMobility::Static;
+
+		// Make the instanced static mesh component movable so it doesn't get statically lit; see the comment below about CastShadow for more details
+		BestCluster->ClusterComponent->Mobility = EComponentMobility::Movable;
 
 		BestCluster->ClusterComponent->StaticMesh = InMesh;
 		BestCluster->ClusterComponent->bSelectable = true;
@@ -300,10 +305,13 @@ void FFoliageMeshInfo::AddInstance( AInstancedFoliageActor* InIFA, UStaticMesh* 
 		BestCluster->ClusterComponent->InstanceStartCullDistance = Settings->StartCullDistance;
 		BestCluster->ClusterComponent->InstanceEndCullDistance = Settings->EndCullDistance;
 
+		// Static lighting is not currently supported by instanced static meshes, so we treat CastShadow as controlling all shadow settings
+		// (enables dynamic shadows, disables static shadows) which makes these two settings (bCastDynamicShadow, bCastStaticShadow) irrelevant at this point in time
+		// See UInstancedStaticMeshComponent::GetStaticLightingInfo (it's empty, but it's what would add data to the Lightmass generation)
 		BestCluster->ClusterComponent->CastShadow = Settings->CastShadow;
-		BestCluster->ClusterComponent->bCastDynamicShadow = Settings->bCastDynamicShadow;
+		BestCluster->ClusterComponent->bCastDynamicShadow = true; //Settings->bCastDynamicShadow;
+		BestCluster->ClusterComponent->bCastStaticShadow = false; //Settings->bCastStaticShadow;
 		BestCluster->ClusterComponent->bAffectDynamicIndirectLighting = Settings->bAffectDynamicIndirectLighting;
-		BestCluster->ClusterComponent->bCastStaticShadow = Settings->bCastStaticShadow;
 		BestCluster->ClusterComponent->bCastHiddenShadow = Settings->bCastHiddenShadow;
 		BestCluster->ClusterComponent->bCastShadowAsTwoSided = Settings->bCastShadowAsTwoSided;
 
@@ -1460,14 +1468,14 @@ void AInstancedFoliageActor::Serialize(FArchive& Ar)
 	Super::Serialize(Ar);
 	Ar << FoliageMeshes;
 
-	if (Ar.UE4Ver() < VER_UE4_FOLIAGE_COLLISION)
+	if (Ar.UE4Ver() < VER_UE4_FOLIAGE_MOVABLE_MOBILITY)
 	{
 		for (const TPair<UStaticMesh*, FFoliageMeshInfo>& MeshInfo : FoliageMeshes)
 		{
 			for (const FFoliageInstanceCluster& Cluster : MeshInfo.Value.InstanceClusters)
 			{
-				if (Ar.UE4Ver() < VER_UE4_FOLIAGE_MOBILITY)
-					Cluster.ClusterComponent->SetMobility(EComponentMobility::Static);
+				if (Ar.UE4Ver() < VER_UE4_FOLIAGE_MOVABLE_MOBILITY)
+					Cluster.ClusterComponent->SetMobility(EComponentMobility::Movable);
 				if (Ar.UE4Ver() < VER_UE4_FOLIAGE_COLLISION)
 					Cluster.ClusterComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 			}
