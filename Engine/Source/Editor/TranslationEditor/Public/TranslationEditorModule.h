@@ -7,7 +7,6 @@
 #include "Toolkits/AssetEditorToolkit.h" // For FExtensibilityManager
 //#include "ITranslationEditor.h"
 
-class UTranslationDataObject;
 class FTranslationEditor;
 
 class FTranslationEditorModule : public IModuleInterface,

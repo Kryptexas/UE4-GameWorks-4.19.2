@@ -5,6 +5,7 @@
 #include "Toolkits/AssetEditorManager.h"
 #include "ITranslationEditor.h"
 #include "CustomFontColumn.h"
+#include "TranslationUnit.h"
 
 class TRANSLATIONEDITOR_API FTranslationEditor :  public ITranslationEditor
 {
@@ -21,8 +22,11 @@ public:
 		// Some stuff that needs to use the "this" pointer is done in Initialize (because it can't be done in the constructor)
 		TranslationEditor->Initialize();
 
-		// Set up a property changed event to trigger a write of the translation data when TranslationDataObject property changes
-		DataManager->GetTranslationDataObject()->OnPropertyChanged().Add(UTranslationDataObject::FTranslationDataPropertyChangedEvent::FDelegate::CreateSP(DataManager, &FTranslationDataManager::HandlePropertyChanged));
+		for (UTranslationUnit* TranslationUnit : DataManager->GetAllTranslationsArray())
+		{
+			// Set up a property changed event to trigger a write of the translation data when TranslationUnit property changes
+			TranslationUnit->OnPropertyChanged().Add(UTranslationUnit::FTranslationUnitPropertyChangedEvent::FDelegate::CreateSP(DataManager, &FTranslationDataManager::HandlePropertyChanged));
+		}
 
 		return TranslationEditor;
 	}
@@ -39,7 +43,7 @@ public:
 	 * @param	InitToolkitHost			When Mode is WorldCentric, this is the level editor instance to spawn this editor within
 	 * @param	ObjectToEdit			The object to edit
 	 */
-	void InitTranslationEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UTranslationDataObject* TranslationDataToEdit );
+	void InitTranslationEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost );
 
 	/** IToolkit interface */
 	virtual FName GetToolkitFName() const OVERRIDE;
@@ -55,8 +59,7 @@ protected:
 private:
 
 	FTranslationEditor(TSharedRef< FTranslationDataManager > InDataManager, const FString& InManifestFile, const FString& InArchiveFile )
-	: TranslationData(NULL)
-	, DataManager(InDataManager)
+	:  DataManager(InDataManager)
 	, SourceFont(FEditorStyle::GetFontStyle( PropertyTableConstants::NormalFontStyle ))
 	, TranslationTargetFont(FEditorStyle::GetFontStyle( PropertyTableConstants::NormalFontStyle ))
 	, SourceColumn(MakeShareable(new FCustomFontColumn(SourceFont)))
@@ -162,14 +165,8 @@ private:
 	/** The Review Tab */
 	TWeakPtr<SDockTab> CompletedTab;
 
-	/** UObject containing our translation information */
-	UTranslationDataObject* TranslationData;
-
 	/** Manages the reading and writing of data to file */
 	TSharedRef< FTranslationDataManager > DataManager;
-
-	/** Array of Objects for the Property Table */
-	TArray<UObject*>  PropertyTableObjects;
 
 	/** The table of untranslated items */
 	TSharedPtr< class IPropertyTable > UntranslatedPropertyTable;

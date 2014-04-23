@@ -15,7 +15,7 @@
 #include "Editor/PropertyEditor/Public/PropertyPath.h"
 #include "CustomFontColumn.h"
 
-#include "TranslationDataObject.h"
+#include "TranslationUnit.h"
 
 #include "DesktopPlatformModule.h"
 
@@ -82,11 +82,8 @@ void FTranslationEditor::UnregisterTabSpawners(const TSharedRef<class FTabManage
 	TabManager->UnregisterTabSpawner( HistoryTabId );
 }
 
-void FTranslationEditor::InitTranslationEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UTranslationDataObject* TranslationDataToEdit )
+void FTranslationEditor::InitTranslationEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost )
 {	
-	TranslationData = TranslationDataToEdit;
-	PropertyTableObjects.Add(TranslationData);
-
 	TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout( "Standalone_TranslationEditor_Layout" )
 	->AddArea
 	(
@@ -138,7 +135,17 @@ void FTranslationEditor::InitTranslationEditor( const EToolkitMode::Type Mode, c
 
 	const bool bCreateDefaultStandaloneMenu = true;
 	const bool bCreateDefaultToolbar = true;
-	FAssetEditorToolkit::InitAssetEditor( Mode, InitToolkitHost, FTranslationEditorModule::TranslationEditorAppIdentifier, StandaloneDefaultLayout, bCreateDefaultStandaloneMenu, bCreateDefaultToolbar, TranslationData );
+	// Need editing object to not be null
+	UTranslationUnit* EditingObject;
+	if (DataManager->GetAllTranslationsArray().Num() > 0)
+	{
+		EditingObject = DataManager->GetAllTranslationsArray()[0];
+	}
+	else
+	{
+		EditingObject = NewObject<UTranslationUnit>();
+	}
+	FAssetEditorToolkit::InitAssetEditor(Mode, InitToolkitHost, FTranslationEditorModule::TranslationEditorAppIdentifier, StandaloneDefaultLayout, bCreateDefaultStandaloneMenu, bCreateDefaultToolbar, EditingObject);
 	
 	FTranslationEditorModule& TranslationEditorModule = FModuleManager::LoadModuleChecked<FTranslationEditorModule>( "TranslationEditor" );
 	AddMenuExtender(TranslationEditorModule.GetMenuExtensibilityManager()->GetAllExtenders(GetToolkitCommands(), GetEditingObjects()));
@@ -207,8 +214,8 @@ TSharedRef<SDockTab> FTranslationEditor::SpawnTab_Untranslated( const FSpawnTabA
 
 	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>( "PropertyEditor" );
 
-	UProperty* SourceProperty = FindField<UProperty>( FTranslationUnit::StaticStruct(), "Source");
-	UProperty* TranslationProperty = FindField<UProperty>( FTranslationUnit::StaticStruct(), "Translation");
+	UProperty* SourceProperty = FindField<UProperty>( UTranslationUnit::StaticClass(), "Source");
+	UProperty* TranslationProperty = FindField<UProperty>( UTranslationUnit::StaticClass(), "Translation");
 
 	// create empty property table
 	UntranslatedPropertyTable = PropertyEditorModule.CreatePropertyTable();
@@ -225,10 +232,7 @@ TSharedRef<SDockTab> FTranslationEditor::SpawnTab_Untranslated( const FSpawnTabA
 	CustomColumns.Add( SourceColumn );
 	CustomColumns.Add(TranslationColumn);
 
-	UntranslatedPropertyTable->SetObjects(PropertyTableObjects);
-
-	// Build the Path to the data we want to show
-	UntranslatedPropertyTable->SetRootPath(FPropertyPath::Create(FindField<UArrayProperty>( UTranslationDataObject::StaticClass(), "Untranslated" )));
+	UntranslatedPropertyTable->SetObjects((TArray<UObject*>&)DataManager->GetUntranslatedArray());
 
 	// Add the columns we want to display
 	UntranslatedPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)SourceProperty);
@@ -266,8 +270,8 @@ TSharedRef<SDockTab> FTranslationEditor::SpawnTab_Review( const FSpawnTabArgs& A
 {
 	check( Args.GetTabId().TabType == ReviewTabId );
 
-	UProperty* SourceProperty = FindField<UProperty>( FTranslationUnit::StaticStruct(), "Source");
-	UProperty* TranslationProperty = FindField<UProperty>( FTranslationUnit::StaticStruct(), "Translation");
+	UProperty* SourceProperty = FindField<UProperty>( UTranslationUnit::StaticClass(), "Source");
+	UProperty* TranslationProperty = FindField<UProperty>( UTranslationUnit::StaticClass(), "Translation");
 
 	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>( "PropertyEditor" );
 
@@ -286,15 +290,12 @@ TSharedRef<SDockTab> FTranslationEditor::SpawnTab_Review( const FSpawnTabArgs& A
 	CustomColumns.Add( SourceColumn );
 	CustomColumns.Add( TranslationColumn );
 
-	ReviewPropertyTable->SetObjects(PropertyTableObjects);
-
-	// Build the Path to the data we want to show
-	ReviewPropertyTable->SetRootPath(FPropertyPath::Create(FindField<UArrayProperty>( UTranslationDataObject::StaticClass(), "Review" )));
+	ReviewPropertyTable->SetObjects((TArray<UObject*>&)DataManager->GetReviewArray());
 
 	// Add the columns we want to display
-	ReviewPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>( FTranslationUnit::StaticStruct(), "Source"));
-	ReviewPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>( FTranslationUnit::StaticStruct(), "Translation"));
-	ReviewPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>( FTranslationUnit::StaticStruct(), "HasBeenReviewed"));
+	ReviewPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>( UTranslationUnit::StaticClass(), "Source"));
+	ReviewPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>( UTranslationUnit::StaticClass(), "Translation"));
+	ReviewPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>( UTranslationUnit::StaticClass(), "HasBeenReviewed"));
 
 	TArray<TSharedRef<IPropertyTableColumn>> Columns = ReviewPropertyTable->GetColumns();
 	for (TSharedRef<IPropertyTableColumn> Column : Columns)
@@ -334,8 +335,8 @@ TSharedRef<SDockTab> FTranslationEditor::SpawnTab_Completed( const FSpawnTabArgs
 {
 	check( Args.GetTabId().TabType == CompletedTabId );
 
-	UProperty* SourceProperty = FindField<UProperty>( FTranslationUnit::StaticStruct(), "Source");
-	UProperty* TranslationProperty = FindField<UProperty>( FTranslationUnit::StaticStruct(), "Translation");
+	UProperty* SourceProperty = FindField<UProperty>( UTranslationUnit::StaticClass(), "Source");
+	UProperty* TranslationProperty = FindField<UProperty>( UTranslationUnit::StaticClass(), "Translation");
 
 	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>( "PropertyEditor" );
 
@@ -354,14 +355,11 @@ TSharedRef<SDockTab> FTranslationEditor::SpawnTab_Completed( const FSpawnTabArgs
 	CustomColumns.Add( SourceColumn );
 	CustomColumns.Add( TranslationColumn );
 
-	CompletedPropertyTable->SetObjects(PropertyTableObjects);
-
-	// Build the Path to the data we want to show
-	CompletedPropertyTable->SetRootPath(FPropertyPath::Create(FindField<UArrayProperty>( UTranslationDataObject::StaticClass(), "Complete" )));
+	CompletedPropertyTable->SetObjects((TArray<UObject*>&)DataManager->GetCompleteArray());
 
 	// Add the columns we want to display
-	CompletedPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>( FTranslationUnit::StaticStruct(), "Source"));
-	CompletedPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>( FTranslationUnit::StaticStruct(), "Translation"));
+	CompletedPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>( UTranslationUnit::StaticClass(), "Source"));
+	CompletedPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>( UTranslationUnit::StaticClass(), "Translation"));
 
 	// Freeze columns, don't want user to remove them
 	TArray<TSharedRef<IPropertyTableColumn>> Columns = CompletedPropertyTable->GetColumns();
@@ -431,19 +429,19 @@ TSharedRef<SDockTab> FTranslationEditor::SpawnTab_Context( const FSpawnTabArgs& 
 	ContextPropertyTable->SetShowObjectName( false );
 	ContextPropertyTable->OnSelectionChanged()->AddSP( this, &FTranslationEditor::UpdateContextSelection );
 
-	ContextPropertyTable->SetObjects(PropertyTableObjects);
+	if (DataManager->GetAllTranslationsArray().Num() > 0)
+	{
+		TArray<UObject*> Objects;
+		Objects.Add(DataManager->GetAllTranslationsArray()[0]);
+		ContextPropertyTable->SetObjects(Objects);
+	}
 
 	// Build the Path to the data we want to show
-	UArrayProperty* Prop = FindField<UArrayProperty>( UTranslationDataObject::StaticClass(), "Untranslated" );
-	TSharedRef<FPropertyPath> Path = FPropertyPath::Create(Prop);
-	FPropertyInfo PropInfo;
-	PropInfo.Property = Prop->Inner;
-	PropInfo.ArrayIndex = 0;
-	Path = Path->ExtendPath(PropInfo);
-	UProperty* ContextProp = FindField<UProperty>( FTranslationUnit::StaticStruct(), "Contexts" );
+	UProperty* ContextProp = FindField<UProperty>( UTranslationUnit::StaticClass(), "Contexts" );
 	FPropertyInfo ContextPropInfo;
 	ContextPropInfo.Property = ContextProp;
 	ContextPropInfo.ArrayIndex = INDEX_NONE;
+	TSharedRef<FPropertyPath> Path = FPropertyPath::CreateEmpty();
 	Path = Path->ExtendPath(ContextPropInfo);
 	ContextPropertyTable->SetRootPath(Path);
 
@@ -513,17 +511,16 @@ TSharedRef<SDockTab> FTranslationEditor::SpawnTab_History( const FSpawnTabArgs& 
 	CustomColumns.Add( SourceColumn );
 	CustomColumns.Add( TranslationColumn );
 
-	HistoryPropertyTable->SetObjects(PropertyTableObjects);
+	if (DataManager->GetAllTranslationsArray().Num() > 0)
+	{
+		TArray<UObject*> Objects;
+		Objects.Add(DataManager->GetAllTranslationsArray()[0]);
+		HistoryPropertyTable->SetObjects(Objects);
+	}
 
 	// Build the Path to the data we want to show
-	UArrayProperty* ReviewProp = FindField<UArrayProperty>( UTranslationDataObject::StaticClass(), "Review" );
-	TSharedRef<FPropertyPath> Path = FPropertyPath::Create(ReviewProp);
-	FPropertyInfo PropInfo;
-	PropInfo.Property = ReviewProp->Inner;
-	PropInfo.ArrayIndex = 0;
-	Path = Path->ExtendPath(PropInfo);
-
-	UArrayProperty* ContextsProp = FindField<UArrayProperty>( FTranslationUnit::StaticStruct(), "Contexts" );
+	TSharedRef<FPropertyPath> Path = FPropertyPath::CreateEmpty();
+	UArrayProperty* ContextsProp = FindField<UArrayProperty>( UTranslationUnit::StaticClass(), "Contexts" );
 	Path = Path->ExtendPath(FPropertyPath::Create(ContextsProp));
 	FPropertyInfo ContextsPropInfo;
 	ContextsPropInfo.Property = ContextsProp->Inner;
@@ -657,7 +654,6 @@ void FTranslationEditor::RefreshUI()
 bool FTranslationEditor::OpenFontPicker( const FString DefaultFile, FString& OutFile )
 {
 	const FString FontFileDescription = LOCTEXT( "FontFileDescription", "Font File" ).ToString();
-	//TODO: support more than one filetype (ttf and otf are supported)
 	const FString FontFileExtension = TEXT("*.ttf;*.otf");
 	const FString FileTypes = FString::Printf( TEXT("%s (%s)|%s"), *FontFileDescription, *FontFileExtension, *FontFileExtension );
 
@@ -701,8 +697,6 @@ bool FTranslationEditor::OpenFontPicker( const FString DefaultFile, FString& Out
 void FTranslationEditor::UpdateTranslationUnitSelection()
 {
 	TSet<TSharedRef<IPropertyTableRow>> SelectedRows;
-	TSharedRef<FPropertyPath> InitialPath = FPropertyPath::CreateEmpty(); // Dummy Path for now
-	UProperty* PropertyToFind = NULL;
 
 	// Different Selection based on which tab is in the foreground
 	TSharedPtr<SDockTab> UntranslatedTabSharedPtr = UntranslatedTab.Pin();
@@ -711,20 +705,14 @@ void FTranslationEditor::UpdateTranslationUnitSelection()
 	if (UntranslatedTabSharedPtr.IsValid() && UntranslatedTabSharedPtr->IsForeground() && UntranslatedPropertyTable.IsValid())
 	{
 		SelectedRows = UntranslatedPropertyTable->GetSelectedRows();
-		InitialPath = UntranslatedPropertyTable->GetRootPath();
-		PropertyToFind = FindField<UProperty>( UTranslationDataObject::StaticClass(), "Untranslated");
 	}
 	else if (ReviewTab.IsValid() && ReviewTabSharedPtr->IsForeground() && ReviewPropertyTable.IsValid())
 	{
 		SelectedRows = ReviewPropertyTable->GetSelectedRows();
-		InitialPath = ReviewPropertyTable->GetRootPath();
-		PropertyToFind = FindField<UProperty>( UTranslationDataObject::StaticClass(), "Review");
 	}
 	else if (CompletedTab.IsValid() && CompletedTabSharedPtr->IsForeground() && CompletedPropertyTable.IsValid())
 	{
 		SelectedRows = CompletedPropertyTable->GetSelectedRows();
-		InitialPath = CompletedPropertyTable->GetRootPath();
-		PropertyToFind = FindField<UProperty>( UTranslationDataObject::StaticClass(), "Complete");
 	}
 
 	// Can only really handle single selection
@@ -732,62 +720,55 @@ void FTranslationEditor::UpdateTranslationUnitSelection()
 	{
 		TSharedRef<IPropertyTableRow> SelectedRow = *(SelectedRows.CreateConstIterator());
 		TSharedRef<FPropertyPath> PartialPath = SelectedRow->GetPartialPath();
-		
-		TArray<FTranslationUnit>& TranslationUnitArray = *(PropertyToFind->ContainerPtrToValuePtr<TArray<FTranslationUnit>>(TranslationData));
-		FTranslationUnit& SelectedTranslationUnit = TranslationUnitArray[PartialPath->GetLeafMostProperty().ArrayIndex];
-		PreviewTextBlock->SetText(TranslationUnitArray[PartialPath->GetLeafMostProperty().ArrayIndex].Translation);
-		NamespaceTextBlock->SetText( FText::Format(LOCTEXT("TranslationNamespace", "Namespace: {0}"), FText::FromString(TranslationUnitArray[PartialPath->GetLeafMostProperty().ArrayIndex].Namespace) ) );
 
-		// Add the ContextPropertyTable-specific path
-		UArrayProperty* ContextArrayProp = FindField<UArrayProperty>( FTranslationUnit::StaticStruct(), "Contexts" );
-		FPropertyInfo ContextArrayPropInfo;
-		ContextArrayPropInfo.Property = ContextArrayProp;
-		ContextArrayPropInfo.ArrayIndex = INDEX_NONE;
-		TSharedRef<FPropertyPath> ContextPath = InitialPath;
-		ContextPath = ContextPath->ExtendPath(PartialPath);
-		ContextPath = ContextPath->ExtendPath(ContextArrayPropInfo);
-		
-		if (ContextPropertyTable.IsValid())
+		TWeakObjectPtr<UObject> UObjectWeakPtr = SelectedRow->GetDataSource()->AsUObject();
+		if (UObjectWeakPtr.IsValid())
 		{
-			ContextPropertyTable->SetRootPath(ContextPath);
-
-			// Need to re-add the columns we want to display
-			ContextPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>(FTranslationContextInfo::StaticStruct(), "Key"));
-			ContextPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>(FTranslationContextInfo::StaticStruct(), "Context"));
-
-			TArray<TSharedRef<IPropertyTableColumn>> Columns = ContextPropertyTable->GetColumns();
-			for (TSharedRef<IPropertyTableColumn> Column : Columns)
+			UObject* UObjectPtr = UObjectWeakPtr.Get();
+			if (UObjectPtr != NULL)
 			{
-				Column->SetFrozen(true);
-			}
-		}
+				UTranslationUnit* SelectedTranslationUnit = (UTranslationUnit*)UObjectPtr;
+				if (SelectedTranslationUnit != NULL)
+				{
+					PreviewTextBlock->SetText(SelectedTranslationUnit->Translation);
+					NamespaceTextBlock->SetText(FText::Format(LOCTEXT("TranslationNamespace", "Namespace: {0}"), FText::FromString(SelectedTranslationUnit->Namespace)));
 
-		// Add the HistoryPropertyTable-specific path
-		TSharedRef<FPropertyPath> HistoryPath = ContextPath;
-		FPropertyInfo ContextPropInfo;
-		ContextPropInfo.Property = ContextArrayProp->Inner;
-		ContextPropInfo.ArrayIndex = 0;	// Just show history for the first context until the user selects something else
-		HistoryPath = HistoryPath->ExtendPath(ContextPropInfo);
-		UArrayProperty* ChangesProp = FindField<UArrayProperty>( FTranslationContextInfo::StaticStruct(), "Changes" );
-		FPropertyInfo ChangesPropInfo;
-		ChangesPropInfo.Property = ChangesProp;
-		ChangesPropInfo.ArrayIndex = INDEX_NONE;
-		HistoryPath = HistoryPath->ExtendPath(ChangesPropInfo);
+					// Add the ContextPropertyTable-specific path
+					UArrayProperty* ContextArrayProp = FindField<UArrayProperty>(UTranslationUnit::StaticClass(), "Contexts");
+					FPropertyInfo ContextArrayPropInfo;
+					ContextArrayPropInfo.Property = ContextArrayProp;
+					ContextArrayPropInfo.ArrayIndex = INDEX_NONE;
+					TSharedRef<FPropertyPath> ContextPath = FPropertyPath::CreateEmpty();
+					ContextPath = ContextPath->ExtendPath(PartialPath);
+					ContextPath = ContextPath->ExtendPath(ContextArrayPropInfo);
 
-		if (HistoryPropertyTable.IsValid())
-		{
-			HistoryPropertyTable->SetRootPath(HistoryPath);
+					if (ContextPropertyTable.IsValid())
+					{
+						TArray<UObject*> ObjectArray;
+						ObjectArray.Add(SelectedTranslationUnit);
+						ContextPropertyTable->SetObjects(ObjectArray);
+						ContextPropertyTable->SetRootPath(ContextPath);
 
-			// Need to re-add the columns we want to display
-			HistoryPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>(FTranslationChange::StaticStruct(), "Version"));
-			HistoryPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>(FTranslationChange::StaticStruct(), "DateAndTime"));
-			HistoryPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>(FTranslationChange::StaticStruct(), "Source"));
-			HistoryPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>(FTranslationChange::StaticStruct(), "Translation"));
+						// Need to re-add the columns we want to display
+						ContextPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>(FTranslationContextInfo::StaticStruct(), "Key"));
+						ContextPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>(FTranslationContextInfo::StaticStruct(), "Context"));
 
-			TArray<TSharedRef<IPropertyTableColumn>> Columns = HistoryPropertyTable->GetColumns();
-			for (TSharedRef<IPropertyTableColumn> Column : Columns)
-			{
-				Column->SetFrozen(true);
+						TArray<TSharedRef<IPropertyTableColumn>> Columns = ContextPropertyTable->GetColumns();
+						for (TSharedRef<IPropertyTableColumn> Column : Columns)
+						{
+							Column->SetFrozen(true);
+						}
+
+						TSharedPtr<IPropertyTableCell> ContextToSelectPtr = ContextPropertyTable->GetFirstCellInTable();
+
+						if (ContextToSelectPtr.IsValid())
+						{
+							TSet<TSharedRef<IPropertyTableCell>> CellsToSelect;
+							CellsToSelect.Add(ContextToSelectPtr.ToSharedRef());
+							ContextPropertyTable->SetSelectedCells(CellsToSelect);
+						}
+					}
+				}
 			}
 		}
 	}
@@ -813,62 +794,67 @@ void FTranslationEditor::UpdateContextSelection()
 			TSharedRef<IPropertyTableRow> SelectedRow = *(SelectedRows.CreateConstIterator());
 			TSharedRef<FPropertyPath> PartialPath = SelectedRow->GetPartialPath();
 
-			TArray<FTranslationUnit>& TranslationUnitArray = *(PropertyToFind->ContainerPtrToValuePtr<TArray<FTranslationUnit>>(TranslationData));
-
-			// Index of the next to last property in the list is the index in the array of translation units
-			FTranslationUnit& SelectedTranslationUnit = TranslationUnitArray[InitialPath->GetPropertyInfo(InitialPath->GetNumProperties() - 2).ArrayIndex];
-			// Index of the leaf most property is the context info index we need
-			FTranslationContextInfo& SelectedContextInfo = SelectedTranslationUnit.Contexts[PartialPath->GetLeafMostProperty().ArrayIndex];
-
-			// If this is a translation unit from the review tab and they select a context, possibly update the selected translation with one from that context
-			if (InitialPath->GetRootProperty().Property == FindField<UProperty>(UTranslationDataObject::StaticClass(), "Review"))
+			TWeakObjectPtr<UObject> UObjectWeakPtr = SelectedRow->GetDataSource()->AsUObject();
+			if (UObjectWeakPtr.IsValid())
 			{
-				// Only change the suggested translation if they haven't yet reviewed it
-				if (SelectedTranslationUnit.HasBeenReviewed == false)
+				UObject* UObjectPtr = UObjectWeakPtr.Get();
+				if (UObjectPtr != NULL)
 				{
-					for (int32 ChangeIndex = 0; ChangeIndex < SelectedContextInfo.Changes.Num(); ++ChangeIndex)
+					UTranslationUnit* SelectedTranslationUnit = (UTranslationUnit*)UObjectPtr;
+					if (SelectedTranslationUnit != NULL)
 					{
-						// Find most recent, non-empty translation
-						if (!SelectedContextInfo.Changes[ChangeIndex].Translation.IsEmpty())
+						// Index of the leaf most property is the context info index we need
+						FTranslationContextInfo& SelectedContextInfo = SelectedTranslationUnit->Contexts[PartialPath->GetLeafMostProperty().ArrayIndex];
+
+						// If this is a translation unit from the review tab and they select a context, possibly update the selected translation with one from that context
+						// Only change the suggested translation if they haven't yet reviewed it
+						if (SelectedTranslationUnit->HasBeenReviewed == false)
 						{
-							check(TranslationData != NULL);
-							if (TranslationData != NULL)
+							for (int32 ChangeIndex = 0; ChangeIndex < SelectedContextInfo.Changes.Num(); ++ChangeIndex)
 							{
-								TranslationData->Modify();
-								SelectedTranslationUnit.Translation = SelectedContextInfo.Changes[ChangeIndex].Translation;
-								TranslationData->PostEditChange();
+								// Find most recent, non-empty translation
+								if (!SelectedContextInfo.Changes[ChangeIndex].Translation.IsEmpty() && SelectedTranslationUnit->Translation != SelectedContextInfo.Changes[ChangeIndex].Translation)
+								{
+									SelectedTranslationUnit->Modify();
+									SelectedTranslationUnit->Translation = SelectedContextInfo.Changes[ChangeIndex].Translation;
+									SelectedTranslationUnit->PostEditChange();
+								}
+							}
+						}
+
+
+						// Add the HistoryPropertyTable-specific path
+						TSharedRef<FPropertyPath> HistoryPath = ContextPropertyTable->GetRootPath();
+						UArrayProperty* ContextArrayProp = FindField<UArrayProperty>(UTranslationUnit::StaticClass(), "Contexts");
+						FPropertyInfo ContextPropInfo;
+						ContextPropInfo.Property = ContextArrayProp->Inner;
+						ContextPropInfo.ArrayIndex = PartialPath->GetLeafMostProperty().ArrayIndex;
+						HistoryPath = HistoryPath->ExtendPath(ContextPropInfo);
+						UArrayProperty* ChangesProp = FindField<UArrayProperty>(FTranslationContextInfo::StaticStruct(), "Changes");
+						FPropertyInfo ChangesPropInfo;
+						ChangesPropInfo.Property = ChangesProp;
+						ChangesPropInfo.ArrayIndex = INDEX_NONE;
+						HistoryPath = HistoryPath->ExtendPath(ChangesPropInfo);
+						if (HistoryPropertyTable.IsValid())
+						{
+							TArray<UObject*> ObjectArray;
+							ObjectArray.Add(SelectedTranslationUnit);
+							HistoryPropertyTable->SetObjects(ObjectArray);
+							HistoryPropertyTable->SetRootPath(HistoryPath);
+
+							// Need to re-add the columns we want to display
+							HistoryPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>(FTranslationChange::StaticStruct(), "Version"));
+							HistoryPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>(FTranslationChange::StaticStruct(), "DateAndTime"));
+							HistoryPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>(FTranslationChange::StaticStruct(), "Source"));
+							HistoryPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>(FTranslationChange::StaticStruct(), "Translation"));
+
+							TArray<TSharedRef<IPropertyTableColumn>> Columns = HistoryPropertyTable->GetColumns();
+							for (TSharedRef<IPropertyTableColumn> Column : Columns)
+							{
+								Column->SetFrozen(true);
 							}
 						}
 					}
-				}
-			}
-
-			// Add the HistoryPropertyTable-specific path
-			TSharedRef<FPropertyPath> HistoryPath = ContextPropertyTable->GetRootPath();
-			UArrayProperty* ContextArrayProp = FindField<UArrayProperty>(FTranslationUnit::StaticStruct(), "Contexts");
-			FPropertyInfo ContextPropInfo;
-			ContextPropInfo.Property = ContextArrayProp->Inner;
-			ContextPropInfo.ArrayIndex = PartialPath->GetLeafMostProperty().ArrayIndex;
-			HistoryPath = HistoryPath->ExtendPath(ContextPropInfo);
-			UArrayProperty* ChangesProp = FindField<UArrayProperty>(FTranslationContextInfo::StaticStruct(), "Changes");
-			FPropertyInfo ChangesPropInfo;
-			ChangesPropInfo.Property = ChangesProp;
-			ChangesPropInfo.ArrayIndex = INDEX_NONE;
-			HistoryPath = HistoryPath->ExtendPath(ChangesPropInfo);
-			if (HistoryPropertyTable.IsValid())
-			{
-				HistoryPropertyTable->SetRootPath(HistoryPath);
-
-				// Need to re-add the columns we want to display
-				HistoryPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>(FTranslationChange::StaticStruct(), "Version"));
-				HistoryPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>(FTranslationChange::StaticStruct(), "DateAndTime"));
-				HistoryPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>(FTranslationChange::StaticStruct(), "Source"));
-				HistoryPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>(FTranslationChange::StaticStruct(), "Translation"));
-
-				TArray<TSharedRef<IPropertyTableColumn>> Columns = HistoryPropertyTable->GetColumns();
-				for (TSharedRef<IPropertyTableColumn> Column : Columns)
-				{
-					Column->SetFrozen(true);
 				}
 			}
 		}

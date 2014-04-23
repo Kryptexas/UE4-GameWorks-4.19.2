@@ -2,24 +2,39 @@
 
 #pragma once
 
-class UTranslationDataObject;
 class FTranslationEditor;
 class FInternationalizationArchive;
 class FInternationalizationManifest;
+class UTranslationUnit;
 
 #include "InternationalizationArchiveJsonSerializer.h"
 #include "InternationalizationManifestJsonSerializer.h"
-#include "TranslationDataObject.h"
 
 class FTranslationDataManager : public TSharedFromThis<FTranslationDataManager>
 {
 
 public:
+
 	FTranslationDataManager( const FString& InManifestFilePath, const FString& InArchiveFilePath);
 
-	UTranslationDataObject* GetTranslationDataObject() 
+	TArray<UTranslationUnit*>& GetAllTranslationsArray()
 	{
-		return TranslationData;
+		return AllTranslations;
+	}
+
+	TArray<UTranslationUnit*>& GetUntranslatedArray()
+	{
+		return Untranslated;
+	}
+
+	TArray<UTranslationUnit*>& GetReviewArray()
+	{
+		return Review;
+	}
+
+	TArray<UTranslationUnit*>& GetCompleteArray()
+	{
+		return Complete;
 	}
 	
 	/** Write the translation data in memory out to .archive file (check out the .archive file first if necessary) */
@@ -44,10 +59,13 @@ private:
 	bool WriteJSONToTextFile( TSharedRef<FJsonObject>& Output, const FString& Filename );
 
 	/** Get the history data for a given translation unit */
-	void GetHistoryForTranslationUnits( TArray<FTranslationUnit>& TranslationUnits, const FString& ManifestFilePath );
+	void GetHistoryForTranslationUnits( TArray<UTranslationUnit*>& TranslationUnits, const FString& ManifestFilePath );
 
-	/** UObject containing our translation information */
-	UTranslationDataObject* TranslationData;
+	// Arrays containing the translation data
+	TArray<UTranslationUnit*> AllTranslations;
+	TArray<UTranslationUnit*> Untranslated;
+	TArray<UTranslationUnit*> Review;
+	TArray<UTranslationUnit*> Complete;
 
 	/** Serializes and deserializes our Archive */
 	FInternationalizationArchiveJsonSerializer ArchiveSerializer;

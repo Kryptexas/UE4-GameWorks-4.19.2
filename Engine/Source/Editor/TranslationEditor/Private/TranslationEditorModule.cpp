@@ -5,7 +5,6 @@
 #include "TranslationEditor.h"
 //#include "Toolkits/ToolkitManager.h"
 #include "WorkspaceMenuStructureModule.h"
-#include "TranslationDataObject.h"
 #include "MessageLogModule.h"
 
 class FTranslationEditor;
@@ -46,7 +45,7 @@ TSharedRef<FTranslationEditor> FTranslationEditorModule::CreateTranslationEditor
 	GWarn->BeginSlowTask(LOCTEXT("BuildingUserInterface", "Building Translation Editor UI..."), true);
 
 	TSharedRef< FTranslationEditor > NewTranslationEditor( FTranslationEditor::Create(DataManager, ManifestFile, ArchiveFile) );
-	NewTranslationEditor->InitTranslationEditor( EToolkitMode::Standalone, TSharedPtr<IToolkitHost>(), DataManager->GetTranslationDataObject() );
+	NewTranslationEditor->InitTranslationEditor( EToolkitMode::Standalone, TSharedPtr<IToolkitHost>() );
 
 	GWarn->EndSlowTask();
 

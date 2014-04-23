@@ -3,7 +3,7 @@
 #include "TranslationEditorPrivatePCH.h"
 #include "TranslationEditor.h"
 #include "WorkspaceMenuStructureModule.h"
-#include "TranslationDataObject.h"
+#include "TranslationUnit.h"
 #include "InternationalizationManifestJsonSerializer.h"
 #include "InternationalizationArchiveJsonSerializer.h"
 #include "ISourceControlModule.h"
@@ -19,12 +19,6 @@ FTranslationDataManager::FTranslationDataManager( const FString& InManifestFileP
 , ArchiveFilePath(InArchiveFilePath)
 {
 	GWarn->BeginSlowTask(LOCTEXT("LoadingTranslationData", "Loading Translation Data..."), true);
-
-	TranslationData = NewObject<UTranslationDataObject>();
-	check (TranslationData != NULL);
-
-	// We want Undo/Redo support
-	TranslationData->SetFlags(RF_Transactional);
 
 	ManifestAtHeadRevisionPtr = ReadManifest( ManifestFilePath );
 	if (ManifestAtHeadRevisionPtr.IsValid())
@@ -47,7 +41,6 @@ FTranslationDataManager::FTranslationDataManager( const FString& InManifestFileP
 		if (ArchivePtr.IsValid())
 		{
 			TSharedRef< FInternationalizationArchive > Archive = ArchivePtr.ToSharedRef();
-			TArray<FTranslationUnit> TranslationUnits;
 			int32 NumManifestEntriesParsed = 0;
 
 			GWarn->BeginSlowTask(LOCTEXT("LoadingCurrentManifest", "Loading Entries from Current Translation Manifest..."), true);
@@ -56,10 +49,13 @@ FTranslationDataManager::FTranslationDataManager( const FString& InManifestFileP
 			{
 				GWarn->StatusUpdate(NumManifestEntriesParsed, ManifestEntriesCount, FText::Format(LOCTEXT("LoadingCurrentManifestEntries", "Loading Entry {0} of {1} from Current Translation Manifest..."), FText::AsNumber(NumManifestEntriesParsed), FText::AsNumber(ManifestEntriesCount)));
 				const TSharedRef<FManifestEntry> ManifestEntry = ManifestItr.Value();
-				FTranslationUnit TranslationUnit;
-				TranslationUnit.HasBeenReviewed = false;
-				TranslationUnit.Source = ManifestEntry->Source.Text.ReplaceEscapedCharWithChar();
-				TranslationUnit.Namespace = ManifestEntry->Namespace;
+				UTranslationUnit* TranslationUnit = NewObject<UTranslationUnit>();
+				check(TranslationUnit != NULL);
+				// We want Undo/Redo support
+				TranslationUnit->SetFlags(RF_Transactional);
+				TranslationUnit->HasBeenReviewed = false;
+				TranslationUnit->Source = ManifestEntry->Source.Text.ReplaceEscapedCharWithChar();
+				TranslationUnit->Namespace = ManifestEntry->Namespace;
 
 				for(auto ContextIter( ManifestEntry->Contexts.CreateConstIterator() ); ContextIter; ++ContextIter)
 				{
@@ -69,25 +65,25 @@ FTranslationDataManager::FTranslationDataManager( const FString& InManifestFileP
 					ContextInfo.Context = AContext.SourceLocation;
 					ContextInfo.Key = AContext.Key;
 
-					TranslationUnit.Contexts.Add(ContextInfo);
+					TranslationUnit->Contexts.Add(ContextInfo);
 				}
 
-				TranslationUnits.Add(TranslationUnit);
+				AllTranslations.Add(TranslationUnit);
 			}
 			GWarn->EndSlowTask();
 
 			// Once we have the context information, we can look up history
-			GetHistoryForTranslationUnits(TranslationUnits, ManifestFilePath);
+			GetHistoryForTranslationUnits(AllTranslations, ManifestFilePath);
 
 			GWarn->BeginSlowTask(LOCTEXT("LoadingArchiveEntries", "Loading Entries from Translation Archive..."), true);
-			for (int32 CurrentTranslationUnitIndex = 0; CurrentTranslationUnitIndex < TranslationUnits.Num(); ++CurrentTranslationUnitIndex)
+			for (int32 CurrentTranslationUnitIndex = 0; CurrentTranslationUnitIndex < AllTranslations.Num(); ++CurrentTranslationUnitIndex)
 			{
-				FTranslationUnit& TranslationUnit = TranslationUnits[CurrentTranslationUnitIndex];
+				UTranslationUnit* TranslationUnit = AllTranslations[CurrentTranslationUnitIndex];
 
-				GWarn->StatusUpdate(CurrentTranslationUnitIndex, TranslationUnits.Num(), FText::Format(LOCTEXT("LoadingCurrentArchiveEntries", "Loading Entry {0} of {1} from Translation Archive..."), FText::AsNumber(CurrentTranslationUnitIndex), FText::AsNumber(TranslationUnits.Num())));
+				GWarn->StatusUpdate(CurrentTranslationUnitIndex, AllTranslations.Num(), FText::Format(LOCTEXT("LoadingCurrentArchiveEntries", "Loading Entry {0} of {1} from Translation Archive..."), FText::AsNumber(CurrentTranslationUnitIndex), FText::AsNumber(AllTranslations.Num())));
 
-				const FLocItem SourceSearch(TranslationUnit.Source);
-				TSharedPtr<FArchiveEntry> ArchiveEntry = Archive->FindEntryBySource(TranslationUnit.Namespace, SourceSearch, NULL);
+				const FLocItem SourceSearch(TranslationUnit->Source);
+				TSharedPtr<FArchiveEntry> ArchiveEntry = Archive->FindEntryBySource(TranslationUnit->Namespace, SourceSearch, NULL);
 				if ( ArchiveEntry.IsValid() )
 				{
 					const FString UnescapedTranslatedString = ArchiveEntry->Translation.Text.ReplaceEscapedCharWithChar();
@@ -98,11 +94,11 @@ FTranslationDataManager::FTranslationDataManager( const FString& InManifestFileP
 						int32 MostRecentNonNullTranslationIndex = -1;
 						int32 ContextForRecentTranslation = -1;
 
-						for (int32 ContextIndex = 0; ContextIndex < TranslationUnit.Contexts.Num(); ++ContextIndex)
+						for (int32 ContextIndex = 0; ContextIndex < TranslationUnit->Contexts.Num(); ++ContextIndex)
 						{
-							for (int32 ChangeIndex = 0; ChangeIndex < TranslationUnit.Contexts[ContextIndex].Changes.Num(); ++ChangeIndex)
+							for (int32 ChangeIndex = 0; ChangeIndex < TranslationUnit->Contexts[ContextIndex].Changes.Num(); ++ChangeIndex)
 							{
-								if (!(TranslationUnit.Contexts[ContextIndex].Changes[ChangeIndex].Translation.IsEmpty()))
+								if (!(TranslationUnit->Contexts[ContextIndex].Changes[ChangeIndex].Translation.IsEmpty()))
 								{
 									bHasTranslationHistory = true;
 									MostRecentNonNullTranslationIndex = ChangeIndex;
@@ -121,19 +117,19 @@ FTranslationDataManager::FTranslationDataManager( const FString& InManifestFileP
 						if (bHasTranslationHistory)
 						{
 							// Offer the most recent translation (for the first context in the list) as a suggestion or starting point (not saved unless user checks "Has Been Reviewed")
-							TranslationUnit.Translation = TranslationUnit.Contexts[ContextForRecentTranslation].Changes[MostRecentNonNullTranslationIndex].Translation;
-							TranslationData->Review.Add(TranslationUnit);
+							TranslationUnit->Translation = TranslationUnit->Contexts[ContextForRecentTranslation].Changes[MostRecentNonNullTranslationIndex].Translation;
+							Review.Add(TranslationUnit);
 						}
 						else
 						{
-							TranslationData->Untranslated.Add(TranslationUnit);
+							Untranslated.Add(TranslationUnit);
 						}
 					}
 					else
 					{
-						TranslationUnit.Translation = UnescapedTranslatedString;
-						TranslationUnit.HasBeenReviewed = true;
-						TranslationData->Complete.Add(TranslationUnit);
+						TranslationUnit->Translation = UnescapedTranslatedString;
+						TranslationUnit->HasBeenReviewed = true;
+						Complete.Add(TranslationUnit);
 					}
 				}
 			}
@@ -229,38 +225,38 @@ void FTranslationDataManager::WriteTranslationData()
 
 	bool bNeedsWrite = false;
 
-	for (FTranslationUnit TranslationUnit : TranslationData->Untranslated)
+	for (UTranslationUnit* TranslationUnit : Untranslated)
 	{
-		const FLocItem SearchSource(TranslationUnit.Source);
-		FString OldTranslation = Archive->FindEntryBySource(TranslationUnit.Namespace, SearchSource, NULL)->Translation.Text;
-		FString TranslationToWrite = TranslationUnit.Translation.ReplaceCharWithEscapedChar();
+		const FLocItem SearchSource(TranslationUnit->Source);
+		FString OldTranslation = Archive->FindEntryBySource(TranslationUnit->Namespace, SearchSource, NULL)->Translation.Text;
+		FString TranslationToWrite = TranslationUnit->Translation.ReplaceCharWithEscapedChar();
 		if ( !TranslationToWrite.Equals(OldTranslation) )
 		{
-			Archive->SetTranslation(TranslationUnit.Namespace, TranslationUnit.Source, TranslationToWrite, NULL);
+			Archive->SetTranslation(TranslationUnit->Namespace, TranslationUnit->Source, TranslationToWrite, NULL);
 			bNeedsWrite = true;
 		}
 	}
 
-	for (FTranslationUnit TranslationUnit : TranslationData->Review)
+	for (UTranslationUnit* TranslationUnit : Review)
 	{
-		const FLocItem SearchSource(TranslationUnit.Source);
-		FString OldTranslation = Archive->FindEntryBySource(TranslationUnit.Namespace, SearchSource, NULL)->Translation.Text;
-		FString TranslationToWrite = TranslationUnit.Translation.ReplaceCharWithEscapedChar();
-		if ( TranslationUnit.HasBeenReviewed && !TranslationToWrite.Equals(OldTranslation) )
+		const FLocItem SearchSource(TranslationUnit->Source);
+		FString OldTranslation = Archive->FindEntryBySource(TranslationUnit->Namespace, SearchSource, NULL)->Translation.Text;
+		FString TranslationToWrite = TranslationUnit->Translation.ReplaceCharWithEscapedChar();
+		if ( TranslationUnit->HasBeenReviewed && !TranslationToWrite.Equals(OldTranslation) )
 		{
-			Archive->SetTranslation(TranslationUnit.Namespace, TranslationUnit.Source, TranslationToWrite, NULL);
+			Archive->SetTranslation(TranslationUnit->Namespace, TranslationUnit->Source, TranslationToWrite, NULL);
 			bNeedsWrite = true;
 		}
 	}
 
-	for (FTranslationUnit TranslationUnit : TranslationData->Complete)
+	for (UTranslationUnit* TranslationUnit : Complete)
 	{
-		const FLocItem SearchSource(TranslationUnit.Source);
-		FString OldTranslation = Archive->FindEntryBySource(TranslationUnit.Namespace, SearchSource, NULL)->Translation.Text;
-		FString TranslationToWrite = TranslationUnit.Translation.ReplaceCharWithEscapedChar();
+		const FLocItem SearchSource(TranslationUnit->Source);
+		FString OldTranslation = Archive->FindEntryBySource(TranslationUnit->Namespace, SearchSource, NULL)->Translation.Text;
+		FString TranslationToWrite = TranslationUnit->Translation.ReplaceCharWithEscapedChar();
 		if ( !TranslationToWrite.Equals(OldTranslation) )
 		{
-			Archive->SetTranslation(TranslationUnit.Namespace, TranslationUnit.Source, TranslationToWrite, NULL);
+			Archive->SetTranslation(TranslationUnit->Namespace, TranslationUnit->Source, TranslationToWrite, NULL);
 			bNeedsWrite = true;
 		}
 	}
@@ -381,7 +377,7 @@ bool FTranslationDataManager::WriteJSONToTextFile(TSharedRef<FJsonObject>& Outpu
 	return CheckoutAndSaveWasSuccessful;
 }
 
-void FTranslationDataManager::GetHistoryForTranslationUnits( TArray<FTranslationUnit>& TranslationUnits, const FString& ManifestFilePath )
+void FTranslationDataManager::GetHistoryForTranslationUnits( TArray<UTranslationUnit*>& TranslationUnits, const FString& ManifestFilePath )
 {
 	GWarn->BeginSlowTask(LOCTEXT("LoadingSourceControlHistory", "Loading Translation History from Source Control..."), true);
 
@@ -451,11 +447,11 @@ void FTranslationDataManager::GetHistoryForTranslationUnits( TArray<FTranslation
 				{
 					TSharedRef< FInternationalizationManifest > OldManifest = OldManifestPtr.ToSharedRef();
 
-					for (FTranslationUnit& TranslationUnit : TranslationUnits)
+					for (UTranslationUnit* TranslationUnit : TranslationUnits)
 					{
-						if(TranslationUnit.Contexts.Num() > 0)
+						if(TranslationUnit->Contexts.Num() > 0)
 						{
-							for (FTranslationContextInfo& ContextInfo : TranslationUnit.Contexts)
+							for (FTranslationContextInfo& ContextInfo : TranslationUnit->Contexts)
 							{
 								FString PreviousSourceText = "";
 
@@ -467,7 +463,7 @@ void FTranslationDataManager::GetHistoryForTranslationUnits( TArray<FTranslation
 
 								FContext SearchContext;
 								SearchContext.Key = ContextInfo.Key;
-								TSharedPtr< FManifestEntry > OldManifestEntryPtr = OldManifest->FindEntryByContext(TranslationUnit.Namespace, SearchContext);
+								TSharedPtr< FManifestEntry > OldManifestEntryPtr = OldManifest->FindEntryByContext(TranslationUnit->Namespace, SearchContext);
 								if (!OldManifestEntryPtr.IsValid())
 								{
 									// If this version of the manifest didn't know anything about this string, move onto the next
