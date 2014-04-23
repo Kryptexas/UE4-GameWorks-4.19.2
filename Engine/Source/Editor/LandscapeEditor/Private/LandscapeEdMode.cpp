@@ -616,6 +616,15 @@ void FEdModeLandscape::Tick(FLevelEditorViewportClient* ViewportClient,float Del
 /** FEdMode: Called when the mouse is moved over the viewport */
 bool FEdModeLandscape::MouseMove( FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, int32 MouseX, int32 MouseY )
 {
+	if (bToolActive && !Viewport->KeyState(EKeys::LeftMouseButton))
+	{
+		if (CurrentToolSet && CurrentToolSet->GetTool())
+		{
+			CurrentToolSet->GetTool()->EndTool(ViewportClient);
+			bToolActive = false;
+		}
+	}
+
 	if (GEditor->PlayWorld != NULL)
 	{
 		return false;

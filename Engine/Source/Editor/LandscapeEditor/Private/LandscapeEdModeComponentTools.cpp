@@ -334,6 +334,7 @@ public:
 				{
 					return;
 				}
+				LandscapeInfo->GetComponentsInRegion(X1 + 1, Y1 + 1, X2 - 1, Y2 - 1, SelectedComponents);
 				bBrush = true;
 			}
 
