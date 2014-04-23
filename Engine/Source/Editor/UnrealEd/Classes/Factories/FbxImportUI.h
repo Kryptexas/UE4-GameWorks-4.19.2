@@ -13,11 +13,11 @@
 UENUM()
 enum EFBXImportType
 {
-	/** Static mesh */
+	/** Select Static Mesh if you'd like to import static mesh. */
 	FBXIT_StaticMesh UMETA(DisplayName="Static Mesh"),
-	/** Skeletal mesh */
+	/** Select Skeletal Mesh if you'd like to import skeletal mesh. */
 	FBXIT_SkeletalMesh UMETA(DisplayName="Skeletal Mesh"),
-	/** Animation */
+	/** Select Animation if you'd like to import only animation. */
 	FBXIT_Animation UMETA(DisplayName="Animation"),
 	FBXIT_MAX,
 };

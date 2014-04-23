@@ -143,17 +143,17 @@ private:
 	TSharedRef<SWidget> MakeSkeletonPickerMenu();
 	void OnAssetSelectedFromSkeletonPicker(const FAssetData& AssetData);
 	TSharedPtr<SComboButton> SkeletonPickerComboButton;
-	FString GetSkeletonDisplay() const;
+	FText GetSkeletonDisplay() const;
 
 	TSharedRef<SWidget> MakePhysicsAssetPickerMenu();
 	void OnAssetSelectedFromPhysicsAssetPicker(const FAssetData& AssetData);
 	TSharedPtr<SComboButton> PhysicsAssetPickerComboButton;
-	FString GetPhysicsAssetDisplay() const;
+	FText GetPhysicsAssetDisplay() const;
 
 	TSharedRef<SWidget> OnGenerateWidgetForComboItem( TSharedPtr<EFBXNormalImportMethod> ImportMethod );
 	void OnNormalImportMethodChanged( TSharedPtr<EFBXNormalImportMethod> NewMethod, ESelectInfo::Type SelectionType );
-	FString OnGenerateTextForImportMethod( EFBXNormalImportMethod ImportMethod ) const;
-	FString OnGenerateToolTipForImportMethod( EFBXNormalImportMethod ImportMethod ) const;
+	FText OnGenerateTextForImportMethod( EFBXNormalImportMethod ImportMethod ) const;
+	FText OnGenerateToolTipForImportMethod( EFBXNormalImportMethod ImportMethod ) const;
 
 	FText GetAnimationName() const { return FText::FromString( ImportUI->AnimationName ); }
 	FString GetAnimationRangeStart() const { return FString::FromInt(ImportUI->AnimSequenceImportData->StartFrame); }
