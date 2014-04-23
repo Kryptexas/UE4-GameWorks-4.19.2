@@ -433,7 +433,7 @@ protected:
 	FGeometry ThisGeometry;
 
 	/** Current Slate OnPaint state. */
-	uint8 PaintStateMemory[sizeof FSlateOnPaintState];
+	uint8 PaintStateMemory[sizeof(FSlateOnPaintState)];
 	mutable FSlateOnPaintState*	PaintState;
 
 	/** The current mouse position. */
