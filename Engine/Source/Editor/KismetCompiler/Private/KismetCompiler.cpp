@@ -1987,7 +1987,7 @@ void FKismetCompilerContext::ExpandPlayMovieSceneNodes( UEdGraph* SourceGraph )
 FPinConnectionResponse FKismetCompilerContext::MovePinLinksToIntermediate(UEdGraphPin& SourcePin, UEdGraphPin& IntermediatePin)
 {
 	 UEdGraphSchema_K2 const* K2Schema = GetSchema();
-	 FPinConnectionResponse ConnectionResult = K2Schema->MovePinLinks(SourcePin, IntermediatePin);
+	 FPinConnectionResponse ConnectionResult = K2Schema->MovePinLinks(SourcePin, IntermediatePin, true);
 
 	 CheckConnectionResponse(ConnectionResult, SourcePin.GetOwningNode());
 	 MessageLog.NotifyIntermediateObjectCreation(&IntermediatePin, &SourcePin);
@@ -1998,7 +1998,7 @@ FPinConnectionResponse FKismetCompilerContext::MovePinLinksToIntermediate(UEdGra
 FPinConnectionResponse FKismetCompilerContext::CopyPinLinksToIntermediate(UEdGraphPin& SourcePin, UEdGraphPin& IntermediatePin)
 {
 	UEdGraphSchema_K2 const* K2Schema = GetSchema();
-	FPinConnectionResponse ConnectionResult = K2Schema->CopyPinLinks(SourcePin, IntermediatePin);
+	FPinConnectionResponse ConnectionResult = K2Schema->CopyPinLinks(SourcePin, IntermediatePin, true);
 
 	CheckConnectionResponse(ConnectionResult, SourcePin.GetOwningNode());
 	MessageLog.NotifyIntermediateObjectCreation(&IntermediatePin, &SourcePin);
