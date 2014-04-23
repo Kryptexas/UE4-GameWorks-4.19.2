@@ -60,6 +60,7 @@ namespace AutomationTool
 			CommandUtils.ClearDirStack();
 			Environment.ExitCode = Result;
 
+			Log.WriteLine(TraceEventType.Information, "AutomationTool exiting with ExitCode={0}", Result);
 			return Result;
 		}
 
@@ -77,8 +78,9 @@ namespace AutomationTool
 		static void Domain_ProcessExit(object sender, EventArgs e)
 		{
 			// Kill all spawned processes.
+			Console.WriteLine("Domain_ProcessExit");
 			if (ShouldKillProcesses)
-			{
+			{			
 				ProcessManager.KillAll();
 			}
 			// Close logging
