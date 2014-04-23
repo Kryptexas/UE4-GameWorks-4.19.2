@@ -4900,7 +4900,13 @@ if (HostPlatform == UnrealTargetPlatform.Mac) continue; //temp hack till mac aut
                         {
                             EMails = GUBPNode.MergeSpaceStrings(AddEmails, EMails);
                         }
-                        EMails = EMails.Trim().Replace("[epic]", "@epicgames.com");
+
+                        {
+                            EMails = EMails.Trim().Replace("[epic]", "@epicgames.com");
+                            EMails = EMails.Replace("[phosphor]", "@phosphorgames.com");
+                            EMails = EMails.Replace("[pitbull]", "@pitbullstudio.co.uk");
+                        }
+                        
                         ECProps.Add("FailEmails/" + NodeToDo + "=" + EMails);
                     }
                     if (GUBPNodes[NodeToDo].SendSuccessEmail())
