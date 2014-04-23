@@ -270,6 +270,8 @@ private:
 	int32 volatile bResponseSucceeded;
 	/** Threadsafe counter for exchanging bytes read so far with main thread tick */
 	FThreadSafeCounter ProgressBytesRead;
+	/** Max buffer size for individual http reads */
+	int32 MaxReadBufferSize;
 };
 
 /**

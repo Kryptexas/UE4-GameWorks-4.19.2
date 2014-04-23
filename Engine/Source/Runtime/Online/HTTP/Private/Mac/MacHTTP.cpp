@@ -14,6 +14,7 @@
 FMacHttpRequest::FMacHttpRequest()
 :	Connection(NULL)
 ,	CompletionStatus(EHttpRequestStatus::NotStarted)
+,	ProgressBytesSent(0)
 {
 	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpRequest::FMacHttpRequest()"));
 	Request = [[NSMutableURLRequest alloc] init];
@@ -315,6 +316,15 @@ void FMacHttpRequest::Tick(float DeltaSeconds)
 {
 	if( CompletionStatus == EHttpRequestStatus::Processing || Response->HadError() )
 	{
+		if( OnRequestProgress().IsBound() )
+		{
+			const int32 NumBytesReceived = Response->GetNumBytesReceived();
+			if( ProgressBytesSent < NumBytesReceived )
+			{
+				ProgressBytesSent = NumBytesReceived;
+				OnRequestProgress().Execute(SharedThis(this), NumBytesReceived);
+			}
+		}
 		if( Response->IsReady() )
 		{
 			FinishedRequest();
@@ -545,4 +555,9 @@ bool FMacHttpResponse::HadError()
 	}
 	
 	return bHadError;
+}
+
+const int32 FMacHttpResponse::GetNumBytesReceived() const
+{
+	return [[ResponseWrapper Payload] length];
 }

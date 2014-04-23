@@ -110,6 +110,23 @@ public:
 	}
 
 	/**
+	 * @return max read buffer size for http requests
+	 */
+	inline int32 GetMaxReadBufferSize() const
+	{
+		return MaxReadBufferSize;
+	}
+
+	/**
+	 * Sets timeout in seconds for the entire http request to complete
+	 * @param SizeInBytes	The maximum number of bytes to use for the read buffer
+	 */
+	inline void SetMaxReadBufferSize(int32 SizeInBytes)
+	{
+		MaxReadBufferSize = SizeInBytes;
+	}
+
+	/**
 	 * @return true if http requests are enabled
 	 */
 	inline bool IsHttpEnabled() const
@@ -146,6 +163,8 @@ private:
 	float HttpSendTimeout;
 	/** Max number of simultaneous connections to a specific server */
 	int32 HttpMaxConnectionsPerServer;
+	/** Max buffer size for individual http reads */
+	int32 MaxReadBufferSize;
 	/** toggles http requests */
 	bool bEnableHttp;
 	/** singleton for the module while loaded and available */
