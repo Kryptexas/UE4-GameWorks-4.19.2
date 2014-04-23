@@ -303,6 +303,12 @@ public:
 		PropertiesSize = NewSize;
 	}
 
+	template<class T>
+	bool IsChildOf() const
+	{
+		return IsChildOf(T::StaticClass());
+	}
+
 	bool IsChildOf( const UStruct* SomeBase ) const
 	{
 		for (const UStruct* Struct = this; Struct; Struct = Struct->GetSuperStruct())
