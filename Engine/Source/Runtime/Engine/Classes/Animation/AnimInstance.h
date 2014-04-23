@@ -25,6 +25,18 @@ enum EBoneControlSpace
 	BCS_MAX,
 };
 
+/** Enum for specifying the source of a bone's rotation. */
+UENUM()
+enum EBoneRotationSource
+{
+	/** Don't change rotation at all. */
+	BRS_KeepComponentSpaceRotation UMETA(DisplayName = "No Change (Preserve Existing Component Space Rotation)"),
+	/** Keep forward direction vector relative to the parent bone. */
+	BRS_KeepLocalSpaceRotation UMETA(DisplayName = "Maintain Local Rotation Relative to Parent"),
+	/** Copy rotation of target to bone. */
+	BRS_CopyFromTarget UMETA(DisplayName = "Copy Target Rotation"),
+};
+
 USTRUCT()
 struct FA2Pose
 {
