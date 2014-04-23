@@ -417,23 +417,37 @@ void USkyLightComponent::RecaptureSky()
 ASkyLight::ASkyLight(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	// Structure to hold one-time initialization
-	struct FConstructorStatics
-	{
-		FName ID_Sky;
-		FText NAME_Sky;
-
-		FConstructorStatics()
-			: ID_Sky(TEXT("Sky"))
-			, NAME_Sky(NSLOCTEXT( "SpriteCategory", "Sky", "Sky" ))
-		{
-		}
-	};
-	static FConstructorStatics ConstructorStatics;
-
 	LightComponent = PCIP.CreateDefaultSubobject<USkyLightComponent>(this, TEXT("SkyLightComponent0"));
 	RootComponent = LightComponent;
 
+#if WITH_EDITORONLY_DATA
+	if (!IsRunningCommandlet())
+	{
+		// Structure to hold one-time initialization
+		struct FConstructorStatics
+		{
+			ConstructorHelpers::FObjectFinderOptional<UTexture2D> SkyLightTextureObject;
+			FName ID_Sky;
+			FText NAME_Sky;
+
+			FConstructorStatics()
+				: SkyLightTextureObject(TEXT("/Engine/EditorResources/LightIcons/SkyLight"))
+				, ID_Sky(TEXT("Sky"))
+				, NAME_Sky(NSLOCTEXT( "SpriteCategory", "Sky", "Sky" ))
+			{
+			}
+		};
+		static FConstructorStatics ConstructorStatics;
+
+		if (SpriteComponent)
+		{
+			SpriteComponent->Sprite = ConstructorStatics.SkyLightTextureObject.Get();
+			SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Sky;
+			SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Sky;
+			SpriteComponent->AttachParent = LightComponent;
+		}
+	}
+#endif // WITH_EDITORONLY_DATA
 }
 
 void ASkyLight::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const
