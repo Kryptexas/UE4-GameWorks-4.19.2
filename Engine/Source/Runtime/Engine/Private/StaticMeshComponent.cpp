@@ -144,7 +144,7 @@ TArray<FName> UStaticMeshComponent::GetAllSocketNames() const
 	{
 		for( auto It=StaticMesh->Sockets.CreateConstIterator(); It; ++It )
 		{
-			SocketNames.Add( FName( *((*It)->GetName()) ) );
+			SocketNames.Add( (*It)->SocketName ) ;
 		}
 	}
 	return SocketNames;

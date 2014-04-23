@@ -943,7 +943,7 @@ TArray<FName> USkinnedMeshComponent::GetAllSocketNames() const
 	{
 		for( auto It=SkeletalMesh->Skeleton->Sockets.CreateConstIterator(); It; ++It )
 		{
-			SocketNames.Add( FName( *((*It)->GetName()) ) );
+			SocketNames.Add( (*It)->SocketName ) ;
 		}
 	}
 	return SocketNames;
