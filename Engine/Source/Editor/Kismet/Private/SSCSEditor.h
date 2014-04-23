@@ -116,6 +116,14 @@ public:
 	 */
 	bool CanEditDefaults() const;
 
+	/**
+	 * Finds the closest ancestor node in the given node set.
+	 * 
+	 * @param InNodes The given node set.
+	 * @return One of the nodes from the set, or an invalid node reference if the set does not contain any ancestor nodes.
+	 */
+	FSCSEditorTreeNodePtrType FindClosestParent(TArray<FSCSEditorTreeNodePtrType> InNodes);
+
 	/** 
 	 * Adds the given node as a child node.
 	 *
@@ -144,17 +152,21 @@ public:
 	 * Attempts to find a reference to the child node that matches the given SCS node.
 	 *
 	 * @param InSCSNode The SCS node to match.
-	 * @return Index of the child node that matches the given SCS node, or INDEX_NONE if no match was found.
+	 * @param bRecursiveSearch Whether or not to recursively search child nodes (default == false).
+	 * @param OutDepth If non-NULL, the depth of the child node will be returned in this parameter on success (default == NULL).
+	 * @return The child node that matches the given SCS node, or an invalid node reference if no match was found.
 	 */
-	FSCSEditorTreeNodePtrType FindChild(const USCS_Node* InSCSNode) const;
+	FSCSEditorTreeNodePtrType FindChild(const USCS_Node* InSCSNode, bool bRecursiveSearch = false, uint32* OutDepth = NULL) const;
 
 	/** 
 	 * Attempts to find a reference to the child node that matches the given component template.
 	 *
 	 * @param InComponentTemplate The component template instance to match.
-	 * @return Index of the child node with a component template that matches the given component template instance, or INDEX_NONE if no match was found.
+	 * @param bRecursiveSearch Whether or not to recursively search child nodes (default == false).
+	 * @param OutDepth If non-NULL, the depth of the child node will be returned in this parameter on success (default == NULL).
+	 * @return The child node with a component template that matches the given component template instance, or an invalid node reference if no match was found.
 	 */
-	FSCSEditorTreeNodePtrType FindChild(const UActorComponent* InComponentTemplate) const;
+	FSCSEditorTreeNodePtrType FindChild(const UActorComponent* InComponentTemplate, bool bRecursiveSearch = false, uint32* OutDepth = NULL) const;
 
 	/** 
 	 * Removes the given node from the list of child nodes.
@@ -387,14 +399,28 @@ public:
 	/** Adds a new Node to the component Table
 	   @param NewNode	(In) The node to add
 	   @param Asset		(In) Optional asset to assign to the component
+	   @param bMarkBlueprintModified (In) Whether or not to mark the Blueprint as structurally modified
+	   @param bSetFocusToNewItem (In) Select the new item and activate the inline rename widget (default is true)
 	   @return The reference of the newly created ActorComponent */
-	UActorComponent* AddNewNode(USCS_Node* NewNode, UObject* Asset, bool bMarkBlueprintModified);
+	UActorComponent* AddNewNode(USCS_Node* NewNode, UObject* Asset, bool bMarkBlueprintModified, bool bSetFocusToNewItem = true);
 	
 	/** Returns true if the specified component is currently selected */
 	bool IsComponentSelected(const UPrimitiveComponent* PrimComponent) const;
 
 	/** Assigns a selection override delegate to the specified component */
 	void SetSelectionOverride(UPrimitiveComponent* PrimComponent) const;
+
+	/** Cut selected node(s) */
+	void CutSelectedNodes();
+	bool CanCutNodes() const;
+
+	/** Copy selected node(s) */
+	void CopySelectedNodes();
+	bool CanCopyNodes() const;
+
+	/** Pastes previously copied node(s) */
+	void PasteNodes();
+	bool CanPasteNodes() const;
 
 	/** Removes existing selected component nodes from the SCS */
 	void OnDeleteNodes();
@@ -526,6 +552,9 @@ protected:
 
 	/** Callback when a component item is scrolled into view */
 	void OnItemScrolledIntoView( FSCSEditorTreeNodePtrType InItem, const TSharedPtr<ITableRow>& InWidget);
+
+	/** Returns the set of expandable nodes that are currently collapsed in the UI */
+	void GetCollapsedNodes(const FSCSEditorTreeNodePtrType& InNodePtr, TSet<FSCSEditorTreeNodePtrType>& OutCollapsedNodes) const;
 public:
 	/** Pointer to the script that we are editing */
 	USimpleConstructionScript* SCS;
