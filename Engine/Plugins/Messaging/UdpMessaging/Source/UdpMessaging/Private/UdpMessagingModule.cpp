@@ -46,7 +46,7 @@ public:
 			SettingsModule->RegisterSettings("Project", "Plugins", "UdpMessaging",
 				LOCTEXT("UdpMessagingSettingsName", "UDP Messaging"),
 				LOCTEXT("UdpMessagingSettingsDescription", "Configure the UDP Messaging plug-in."),
-				TWeakObjectPtr<UObject>(UUdpMessagingSettings::StaticClass()->GetDefaultObject()),
+				GetMutableDefault<UUdpMessagingSettings>(),
 				SettingsDelegates
 			);
 		}

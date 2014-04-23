@@ -88,49 +88,49 @@ protected:
 		SettingsModule.RegisterSettings("Project", "Engine", "General",
 			LOCTEXT("GeneralEngineSettingsName", "General Settings"),
 			LOCTEXT("ProjectGeneralSettingsDescription", "General options and defaults for the game engine."),
-			TWeakObjectPtr<UObject>(GetMutableDefault<UEngine>())
+			GetMutableDefault<UEngine>()
 		);
 
 		// Audio settings
 		SettingsModule.RegisterSettings("Project", "Engine", "Audio",
 			LOCTEXT("EngineAudioSettingsName", "Audio"),
 			LOCTEXT("ProjectAudioSettingsDescription", "Audio settings."),
-			TWeakObjectPtr<UObject>(GetMutableDefault<UAudioSettings>())
-			);
+			GetMutableDefault<UAudioSettings>()
+		);
 
 		// packaging settings
 		SettingsModule.RegisterSettings("Project", "Engine", "Collision",
 			LOCTEXT("ProjectCollisionSettingsName", "Collision"),
 			LOCTEXT("ProjectCollisionSettingsDescription", "Set up and modify collision settings."),
-			TWeakObjectPtr<UObject>(GetMutableDefault<UCollisionProfile>())
+			GetMutableDefault<UCollisionProfile>()
 		);
 
 		// game console settings
 		SettingsModule.RegisterSettings("Project", "Engine", "Console",
 			LOCTEXT("ProjectConsoleSettingsName", "Console"),
 			LOCTEXT("ProjectConsoleSettingsDescription", "Configure the in-game input console."),
-			TWeakObjectPtr<UObject>(GetMutableDefault<UConsole>())
+			GetMutableDefault<UConsole>()
 		);
 
 		// Input settings
 		SettingsModule.RegisterSettings("Project", "Engine", "Input",
 			LOCTEXT("EngineInputSettingsName", "Input"),
 			LOCTEXT("ProjectInputSettingsDescription", "Input settings, including default input action and axis bindings."),
-			TWeakObjectPtr<UObject>(GetMutableDefault<UInputSettings>())
+			GetMutableDefault<UInputSettings>()
 		);
 
 		// navigation system
 		SettingsModule.RegisterSettings("Project", "Engine", "NavigationSystem",
 			LOCTEXT("NavigationSystemSettingsName", "Navigation System"),
 			LOCTEXT("NavigationSystemSettingsDescription", "Settings for the navigation system."),
-			TWeakObjectPtr<UObject>(GetMutableDefault<UNavigationSystem>())
+			GetMutableDefault<UNavigationSystem>()
 		);
 
 		// navigation mesh
 		SettingsModule.RegisterSettings("Project", "Engine", "NavigationMesh",
 			LOCTEXT("NavigationMeshSettingsName", "Navigation Mesh"),
 			LOCTEXT("NavigationMeshSettingsDescription", "Settings for the navigation mesh."),
-			TWeakObjectPtr<UObject>(GetMutableDefault<ARecastNavMesh>())
+			GetMutableDefault<ARecastNavMesh>()
 		);
 
 /*
@@ -138,22 +138,22 @@ protected:
 		SettingsModule.RegisterSettings("Project", "Engine", "NetworkManager",
 			LOCTEXT("GameNetworkManagerSettingsName", "Network Manager"),
 			LOCTEXT("GameNetworkManagerSettingsDescription", "Game Network Manager settings."),
-			TWeakObjectPtr<UObject>(GetMutableDefault<UGameNetworkManagerSettings>())
+			GetMutableDefault<UGameNetworkManagerSettings>()
 		);*/
 
 		// Physics settings
 		SettingsModule.RegisterSettings("Project", "Engine", "Physics",
 			LOCTEXT("EnginePhysicsSettingsName", "Physics"),
 			LOCTEXT("ProjectPhysicsSettingsDescription", "Default physics settings."),
-			TWeakObjectPtr<UObject>(GetMutableDefault<UPhysicsSettings>())
-			);	
+			GetMutableDefault<UPhysicsSettings>()
+		);
 
 		// Rendering settings
 		SettingsModule.RegisterSettings("Project", "Engine", "Rendering",
 			LOCTEXT("EngineRenderingSettingsName", "Rendering"),
 			LOCTEXT("ProjectRenderingSettingsDescription", "Rendering settings."),
-			TWeakObjectPtr<UObject>(GetMutableDefault<URendererSettings>())
-			);	
+			GetMutableDefault<URendererSettings>()
+		);
 	}
 
 	/**
@@ -165,46 +165,45 @@ protected:
 		SettingsModule.RegisterSettings("Project", "Game", "General",
 			LOCTEXT("GeneralGameSettingsName", "Description"),
 			LOCTEXT("GeneralGameSettingsDescription", "Descriptions and other information about your game."),
-			TWeakObjectPtr<UObject>(GetMutableDefault<UGeneralProjectSettings>())
+			GetMutableDefault<UGeneralProjectSettings>()
 		);
 
 		// map related settings
 		SettingsModule.RegisterSettings("Project", "Game", "Maps",
 			LOCTEXT("GameMapsSettingsName", "Maps & Modes"),
 			LOCTEXT("GameMapsSettingsDescription", "Default maps, game modes and other map related settings."),
-			TWeakObjectPtr<UObject>(GetMutableDefault<UGameMapsSettings>())
+			GetMutableDefault<UGameMapsSettings>()
 		);
 
 		// packaging settings
 		SettingsModule.RegisterSettings("Project", "Game", "Packaging",
 			LOCTEXT("ProjectPackagingSettingsName", "Packaging"),
 			LOCTEXT("ProjectPackagingSettingsDescription", "Fine tune how your project is packaged for release."),
-			TWeakObjectPtr<UObject>(GetMutableDefault<UProjectPackagingSettings>())
+			GetMutableDefault<UProjectPackagingSettings>()
 		);
 
 		// movie settings
 		SettingsModule.RegisterSettings("Project", "Game", "Movies",
 			LOCTEXT("MovieSettingsName", "Movies"),
 			LOCTEXT("MovieSettingsDescription", "Movie player settings"),
-			TWeakObjectPtr<UObject>(GetMutableDefault<UMoviePlayerSettings>())
+			GetMutableDefault<UMoviePlayerSettings>()
 		);
 
 		// update the visible packaging enum values
 		UProjectPackagingSettings::UpdateBuildConfigurationVisibility();
-
 /*
 		// game session
 		SettingsModule.RegisterSettings("Project", "Game", "GameSession",
 			LOCTEXT("GameSessionettingsName", "Game Session"),
 			LOCTEXT("GameSessionSettingsDescription", "Game Session settings."),
-			TWeakObjectPtr<UObject>(GetMutableDefault<UGameSessionSettings>())
+			GetMutableDefault<UGameSessionSettings>()
 		);
 
 		// head-up display
 		SettingsModule.RegisterSettings("Project", "Game", "HUD",
 			LOCTEXT("HudSettingsName", "HUD"),
 			LOCTEXT("HudSettingsDescription", "Head-up display (HUD) settings."),
-			TWeakObjectPtr<UObject>(GetMutableDefault<UHudSettings>())
+			GetMutableDefault<UHudSettings>()
 		);*/
 	}
 

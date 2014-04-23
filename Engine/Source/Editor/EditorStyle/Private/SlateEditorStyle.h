@@ -28,7 +28,7 @@ public:
 			SettingsModule->RegisterSettings( "Editor", "General", "Appearance",
 				NSLOCTEXT("EditorStyle", "Appearance_UserSettingsName", "Appearance"),
 				NSLOCTEXT("EditorStyle", "Appearance_UserSettingsDescription", "Customize the look of the editor."),
-				TWeakObjectPtr<UObject>( Settings.Get() )
+				Settings
 			);
 		}
 #endif

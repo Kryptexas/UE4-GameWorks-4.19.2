@@ -28,8 +28,8 @@ class FAndroidPlatformEditorModule : public IModuleInterface
 			SettingsModule->RegisterSettings("Project", "Platforms", "Android",
 				LOCTEXT("RuntimeSettingsName", "Android"),
 				LOCTEXT("RuntimeSettingsDescription", "Settings and resources for Android platforms"),
-				TWeakObjectPtr<UObject>(GetMutableDefault<UAndroidRuntimeSettings>())
-				);
+				GetMutableDefault<UAndroidRuntimeSettings>()
+			);
 		}
 	}
 

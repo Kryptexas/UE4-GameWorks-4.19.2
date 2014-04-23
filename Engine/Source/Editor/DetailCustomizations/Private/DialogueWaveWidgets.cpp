@@ -325,7 +325,7 @@ void SDialogueVoicePropertyEditor::OnBrowseToDialogueVoice()
 	if( DialogueVoice )
 	{	
 		// Find the item in the content browser
-		GoToAssetInContentBrowser( TWeakObjectPtr<UObject>( DialogueVoice ) );
+		GoToAssetInContentBrowser(DialogueVoice);
 	}
 }
 
