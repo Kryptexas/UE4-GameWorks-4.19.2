@@ -7,17 +7,20 @@ public class SettingsEditor : ModuleRules
 	public SettingsEditor(TargetInfo Target)
 	{
 		PublicDependencyModuleNames.AddRange(
-			new string[]
-			{
+			new string[] {
                 "EditorStyle",
-				"Settings",
 				"Slate",
 			}
 		);
 
-        PrivateDependencyModuleNames.AddRange(
-            new string[]
-            {
+		PublicIncludePathModuleNames.AddRange(
+			new string[] {
+				"Settings",
+			}
+		);
+
+		PrivateDependencyModuleNames.AddRange(
+            new string[] {
 				"Core",
                 "CoreUObject",
                 "InputCore",
@@ -28,8 +31,7 @@ public class SettingsEditor : ModuleRules
         );
 
 		PrivateIncludePaths.AddRange(
-			new string[]
-            {
+			new string[] {
                 "Developer/SettingsEditor/Private",
 				"Developer/SettingsEditor/Private/Models",
                 "Developer/SettingsEditor/Private/Widgets",

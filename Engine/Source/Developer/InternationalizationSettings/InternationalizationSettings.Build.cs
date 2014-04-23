@@ -7,8 +7,7 @@ namespace UnrealBuildTool.Rules
         public InternationalizationSettings(TargetInfo Target)
 		{
             PrivateDependencyModuleNames.AddRange(
-                new string[]
-                {
+                new string[] {
 				    "Core",
 				    "CoreUObject",
 				    "InputCore",
@@ -17,9 +16,14 @@ namespace UnrealBuildTool.Rules
 				    "EditorStyle",
 				    "PropertyEditor",
 				    "SharedSettingsWidgets",
-				    "Settings",
                 }
-                );
+            );
+
+			PrivateIncludePathModuleNames.AddRange(
+				new string[] {
+					"Settings",
+				}
+			);
 		}
 	}
 }

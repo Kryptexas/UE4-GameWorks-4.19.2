@@ -6,19 +6,8 @@ public class NewsFeed : ModuleRules
 {
 	public NewsFeed(TargetInfo Target)
 	{
-		PrivateIncludePaths.AddRange(
-			new string[]
-			{
-				"Editor/NewsFeed/Private",
-				"Editor/NewsFeed/Private/Implementation",
-				"Editor/NewsFeed/Private/Models",
-				"Editor/NewsFeed/Private/Widgets",
-			}
-		);
-
 		PrivateDependencyModuleNames.AddRange(
-			new string[]
-			{
+			new string[] {
 				"Analytics",
 				"Core",
 				"CoreUObject",
@@ -29,8 +18,22 @@ public class NewsFeed : ModuleRules
 				"ImageWrapper",
                 "InputCore",
 				"OnlineSubsystem",
-				"Settings",
 				"Slate",
+			}
+		);
+
+		PrivateIncludePathModuleNames.AddRange(
+			new string[] {
+				"Settings",
+			}
+		);
+
+		PrivateIncludePaths.AddRange(
+			new string[] {
+				"Editor/NewsFeed/Private",
+				"Editor/NewsFeed/Private/Implementation",
+				"Editor/NewsFeed/Private/Models",
+				"Editor/NewsFeed/Private/Widgets",
 			}
 		);
 	}

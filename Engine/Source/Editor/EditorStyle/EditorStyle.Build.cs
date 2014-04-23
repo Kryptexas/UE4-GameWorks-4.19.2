@@ -14,13 +14,13 @@ public class EditorStyle : ModuleRules
 			}
 		);
 
-        PrivateDependencyModuleNames.AddRange(
+		PrivateDependencyModuleNames.Add("TargetPlatform");
+
+		PrivateIncludePathModuleNames.AddRange(
 			new string[] {
 				"Settings",
 			}
 		);
-
-		PrivateDependencyModuleNames.Add("TargetPlatform");
 
 		OptimizeCode = CodeOptimization.Never;
 	}

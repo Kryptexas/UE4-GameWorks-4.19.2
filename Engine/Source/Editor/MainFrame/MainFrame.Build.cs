@@ -32,7 +32,6 @@ public class MainFrame : ModuleRules
 				"WorkspaceMenuStructure",
 				"MessageLog",
 //				"SearchUI",
-				"Settings",
 				"TranslationEditor"
 			}
 		);
@@ -44,13 +43,13 @@ public class MainFrame : ModuleRules
 				"GameProjectGeneration",
 				"LevelEditor",
 				"OutputLog",
+				"Settings",
 				"VSAccessor",
 			}
 		);
 
 		PrivateIncludePaths.AddRange(
-			new string[]
-            {
+			new string[] {
                 "Editor/MainFrame/Private",
 				"Editor/MainFrame/Private/Frame",
                 "Editor/MainFrame/Private/Menus",
@@ -58,8 +57,7 @@ public class MainFrame : ModuleRules
 		);
 
 		DynamicallyLoadedModuleNames.AddRange(
-			new string[]
-			{
+			new string[] {
 				"AssetTools",
 				"DesktopPlatform",
                 "Documentation",
@@ -69,7 +67,6 @@ public class MainFrame : ModuleRules
                 "TranslationEditor",
 			}
 		);
-
 
 		if ((Target.Platform == UnrealTargetPlatform.Win64) || (Target.Platform == UnrealTargetPlatform.Win32))
 		{

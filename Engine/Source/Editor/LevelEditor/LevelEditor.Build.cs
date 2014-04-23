@@ -17,9 +17,10 @@ public class LevelEditor : ModuleRules
 
 		PublicIncludePathModuleNames.AddRange(
 			new string[] {
-				"UserFeedback"
+				"Settings",
+				"UserFeedback",
 			}
-			);
+		);
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
@@ -33,7 +34,6 @@ public class LevelEditor : ModuleRules
 				"Engine",
 				"MessageLog",
 				"NewsFeed",
-				"Settings",
                 "SourceControl",
                 "StatsViewer",
 				"UnrealEd", 

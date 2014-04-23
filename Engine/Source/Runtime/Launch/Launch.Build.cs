@@ -70,7 +70,7 @@ public class Launch : ModuleRules
 
 		if (UEBuildConfiguration.bCompileAgainstEngine)
 		{
-			PublicDependencyModuleNames.Add("Messaging");
+			PrivateIncludePathModuleNames.Add("Messaging");
 			PublicDependencyModuleNames.Add("SessionServices");
 			PrivateIncludePaths.Add("Developer/DerivedDataCache/Public");
 

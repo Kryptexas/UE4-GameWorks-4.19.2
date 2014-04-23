@@ -7,20 +7,17 @@ namespace UnrealBuildTool.Rules
 		public EditorSettingsViewer(TargetInfo Target)
 		{
 			PublicDependencyModuleNames.AddRange(
-				new string[]
-				{
+				new string[] {
 					"Core",
 				}
 			);
 
 			PrivateDependencyModuleNames.AddRange(
-				new string[]
-				{
+				new string[] {
 					"CoreUObject",
 					"Engine",
 					"InputBindingEditor",
 					"MessageLog",
-					"Settings",
 					"SettingsEditor",
 					"Slate",
 					"UnrealEd",
@@ -28,9 +25,14 @@ namespace UnrealBuildTool.Rules
 				}
 			);
 
+			PrivateIncludePathModuleNames.AddRange(
+				new string[] {
+					"Settings",
+				}
+			);
+
 			PrivateIncludePaths.AddRange(
-				new string[]
-				{
+				new string[] {
 					"Editor/EditorSettingsViewer/Private",
 				}
 			);
