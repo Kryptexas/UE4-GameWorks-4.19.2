@@ -132,6 +132,12 @@ FDateTime::FDate FDateTime::ToDate( ) const
 }
 
 
+FString FDateTime::ToIso8601( ) const
+{
+	return ToString(TEXT("%Y-%m-%dT%H:%M:%S.%sZ"));
+}
+
+
 FString FDateTime::ToString( ) const
 {
 	return ToString(TEXT("%Y.%m.%d-%H.%M.%S"));
@@ -142,7 +148,7 @@ FString FDateTime::ToString( const TCHAR* Format ) const
 {
 	FString Result;
 
-	if (Format != NULL)
+	if (Format != nullptr)
 	{
 		while (*Format != TCHAR('\0'))
 		{
@@ -240,123 +246,6 @@ FDateTime FDateTime::Now( )
 	return FDateTime(Date.Year, Date.Month, Date.Day, Time.Hour, Time.Minute, Time.Second, Time.Millisecond);
 }
 
-FString FDateTime::ToIso8601() const
-{
-	return ToString(TEXT("%Y-%m-%dT%H:%M:%S.%sZ"));
-}
-
-//static 
-bool FDateTime::FromIso8601( const TCHAR* DateTimeString, FDateTime* OutDateTime )
-{
-	check(OutDateTime != NULL);
-	// DateOnly: YYYY-MM-DD
-	// DateTime: YYYY-mm-ddTHH:MM:SS(.ssss)(Z|+th:tm|-th:tm)
-
-	const TCHAR* Ptr = DateTimeString;
-	TCHAR* Next = NULL;
-
-	int32 Year = 0, Month = 0, Day = 0;
-	int32 Hour = 0, Minute = 0, Second = 0, Millisecond = 0;
-	int32 TzHour = 0, TzMinute = 0;
-
-	// get date
-	Year = FCString::Strtoi(Ptr, &Next, 10);
-	if (Next <= Ptr || *Next == TCHAR('\0'))
-	{
-		return false;
-	}
-	Ptr = Next + 1; // skip separator
-	Month = FCString::Strtoi(Ptr, &Next, 10);
-	if (Next <= Ptr || *Next == TCHAR('\0'))
-	{
-		return false;
-	}
-	Ptr = Next + 1; // skip separator
-	Day = FCString::Strtoi(Ptr, &Next, 10);
-	if (Next <= Ptr)
-	{
-		return false;
-	}
-
-	// see if this is date+time
-	if (*Next == TCHAR('T'))
-	{
-		Ptr = Next + 1;
-
-		// parse time
-		Hour = FCString::Strtoi(Ptr, &Next, 10);
-		if (Next <= Ptr || *Next == TCHAR('\0'))
-		{
-			return false;
-		}
-		Ptr = Next + 1; // skip separator
-		Minute = FCString::Strtoi(Ptr, &Next, 10);
-		if (Next <= Ptr || *Next == TCHAR('\0'))
-		{
-			return false;
-		}
-		Ptr = Next + 1; // skip separator
-		Second = FCString::Strtoi(Ptr, &Next, 10);
-		if (Next <= Ptr)
-		{
-			return false;
-		}
-
-		// check for milliseconds
-		if (*Next == TCHAR('.'))
-		{
-			Ptr = Next + 1;
-			Millisecond = FCString::Strtoi(Ptr, &Next, 10);
-			if (Next <= Ptr || Next > Ptr + 3) // should be no more than 3 digits
-			{
-				return false;
-			}
-			for (int32 Digits = Next - Ptr; Digits < 3; ++Digits)
-			{
-				Millisecond *= 10;
-			}
-		}
-
-		// see if the timezone offset is included
-		if (*Next == TCHAR('+') || *Next == TCHAR('-'))
-		{
-			// include the separator since it's + or -
-			Ptr = Next;
-
-			// parse the timezone offset
-			TzHour = FCString::Strtoi(Ptr, &Next, 10);
-			if (Next <= Ptr || *Next == TCHAR('\0'))
-			{
-				return false;
-			}
-			Ptr = Next + 1; // skip separator
-			TzMinute = FCString::Strtoi(Ptr, &Next, 10);
-			if (Next <= Ptr)
-			{
-				return false;
-			}
-		}
-		else if (*Next != TCHAR('\0') && *Next != TCHAR('Z'))
-		{
-			return false;
-		}
-	}
-	else if (*Next != TCHAR('\0'))
-	{
-		return false;
-	}
-
-	// convert these times into a DateTime
-	FDateTime Final(Year, Month, Day, Hour, Minute, Second, Millisecond);
-
-	// adjust for the timezone (bringing the DateTime into UTC)
-	int32 TzOffsetMinutes = (TzHour < 0) ? TzHour * 60 - TzMinute : TzHour * 60 + TzMinute;
-	Final -= FTimespan(0, TzOffsetMinutes, 0);
-
-	*OutDateTime = Final;
-	return true;
-}
-
 
 bool FDateTime::Parse( const FString& DateTimeString, FDateTime& OutDateTime )
 {
@@ -389,6 +278,132 @@ bool FDateTime::Parse( const FString& DateTimeString, FDateTime& OutDateTime )
 	).GetTicks();
 
 	// @todo gmp: need some better validation here
+	return true;
+}
+
+
+bool FDateTime::ParseIso8601( const TCHAR* DateTimeString, FDateTime& OutDateTime )
+{
+	// DateOnly: YYYY-MM-DD
+	// DateTime: YYYY-mm-ddTHH:MM:SS(.ssss)(Z|+th:tm|-th:tm)
+
+	const TCHAR* Ptr = DateTimeString;
+	TCHAR* Next = nullptr;
+
+	int32 Year = 0, Month = 0, Day = 0;
+	int32 Hour = 0, Minute = 0, Second = 0, Millisecond = 0;
+	int32 TzHour = 0, TzMinute = 0;
+
+	// get date
+	Year = FCString::Strtoi(Ptr, &Next, 10);
+
+	if ((Next <= Ptr) || (*Next == TCHAR('\0')))
+	{
+		return false;
+	}
+
+	Ptr = Next + 1; // skip separator
+	Month = FCString::Strtoi(Ptr, &Next, 10);
+
+	if ((Next <= Ptr) || (*Next == TCHAR('\0')))
+	{
+		return false;
+	}
+
+	Ptr = Next + 1; // skip separator
+	Day = FCString::Strtoi(Ptr, &Next, 10);
+
+	if (Next <= Ptr)
+	{
+		return false;
+	}
+
+	// see if this is date+time
+	if (*Next == TCHAR('T'))
+	{
+		Ptr = Next + 1;
+
+		// parse time
+		Hour = FCString::Strtoi(Ptr, &Next, 10);
+
+		if ((Next <= Ptr) || (*Next == TCHAR('\0')))
+		{
+			return false;
+		}
+
+		Ptr = Next + 1; // skip separator
+		Minute = FCString::Strtoi(Ptr, &Next, 10);
+
+		if ((Next <= Ptr) || (*Next == TCHAR('\0')))
+		{
+			return false;
+		}
+
+		Ptr = Next + 1; // skip separator
+		Second = FCString::Strtoi(Ptr, &Next, 10);
+
+		if (Next <= Ptr)
+		{
+			return false;
+		}
+
+		// check for milliseconds
+		if (*Next == TCHAR('.'))
+		{
+			Ptr = Next + 1;
+			Millisecond = FCString::Strtoi(Ptr, &Next, 10);
+
+			// should be no more than 3 digits
+			if ((Next <= Ptr) || (Next > Ptr + 3))
+			{
+				return false;
+			}
+
+			for (int32 Digits = Next - Ptr; Digits < 3; ++Digits)
+			{
+				Millisecond *= 10;
+			}
+		}
+
+		// see if the timezone offset is included
+		if (*Next == TCHAR('+') || *Next == TCHAR('-'))
+		{
+			// include the separator since it's + or -
+			Ptr = Next;
+
+			// parse the timezone offset
+			TzHour = FCString::Strtoi(Ptr, &Next, 10);
+
+			if ((Next <= Ptr) || (*Next == TCHAR('\0')))
+			{
+				return false;
+			}
+
+			Ptr = Next + 1; // skip separator
+			TzMinute = FCString::Strtoi(Ptr, &Next, 10);
+
+			if (Next <= Ptr)
+			{
+				return false;
+			}
+		}
+		else if ((*Next != TCHAR('\0')) && (*Next != TCHAR('Z')))
+		{
+			return false;
+		}
+	}
+	else if (*Next != TCHAR('\0'))
+	{
+		return false;
+	}
+
+	FDateTime Final(Year, Month, Day, Hour, Minute, Second, Millisecond);
+
+	// adjust for the timezone (bringing the DateTime into UTC)
+	int32 TzOffsetMinutes = (TzHour < 0) ? TzHour * 60 - TzMinute : TzHour * 60 + TzMinute;
+	Final -= FTimespan(0, TzOffsetMinutes, 0);
+	OutDateTime = Final;
+
 	return true;
 }
 

@@ -406,20 +406,20 @@ public:
 	 *
 	 * @return The month.
 	 */
-	 int32 GetMonth( ) const
-	 {
-		 return ToDate().Month;
-	 }
+	int32 GetMonth( ) const
+	{
+		return ToDate().Month;
+	}
 
-	 /**
-	  * Gets the date's month of the year (January to December).
-	  *
-	  * @return Month of year.
-	  */
-	 EMonthOfYear::Type GetMonthOfYear( ) const
-	 {
-		 return static_cast<EMonthOfYear::Type>(GetMonth());
-	 }
+	/**
+	 * Gets the date's month of the year (January to December).
+	 *
+	 * @return Month of year.
+	 */
+	EMonthOfYear::Type GetMonthOfYear( ) const
+	{
+		return static_cast<EMonthOfYear::Type>(GetMonth());
+	}
 
 	/**
 	 * Gets this date's second part.
@@ -487,6 +487,17 @@ public:
 	CORE_API FDate ToDate( ) const;
 
 	/**
+	 * Returns the ISO-8601 string representation of the FDateTime.
+	 *
+	 * The resulting string assumes that the FDateTime is in UTC.
+	 * 
+	 * @return String representation.
+	 *
+	 * @see FromIso8601
+	 */
+	CORE_API FString ToIso8601( ) const;
+
+	/**
 	 * Returns the string representation of this date using a default format.
 	 *
 	 * The returned string has the following format:
@@ -495,15 +506,6 @@ public:
 	 * @return String representation.
 	 */
 	CORE_API FString ToString( ) const;
-
-	/**
-	 * Returns the ISO-8601 string representation of the FDateTime.
-	 * The resulting string assumes that the FDateTime is in UTC since this class
-	 * doesn't contain timezone offset information.
-	 * 
-	 * @return String representation.
-	 */
-	CORE_API FString ToIso8601() const;
 
 	/**
 	 * Returns the string representation of this date.
@@ -579,16 +581,6 @@ public:
 	}
 
 	/**
-	 * Parses a stringified DateTime in ISO-8601 format
-	 * 
-	 * @param DateTimeString The string to be parsed
-	 * @param OutDateTime FDateTime object (in UTC) corresponding to the input string (which may have been in any timezone).
-	 *
-	 * @return success/fail
-	 */
-	static CORE_API bool FromIso8601( const TCHAR* DateTimeString, FDateTime* OutDateTime );
-
-	/**
 	 * Checks whether the given year is a leap year.
 	 *
 	 * A leap year is a year containing one additional day in order to keep the calendar synchronized
@@ -651,6 +643,18 @@ public:
 	 * @return true if the string was converted successfully, false otherwise.
 	 */
 	static CORE_API bool Parse( const FString& DateTimeString, FDateTime& OutDateTime );
+
+	/**
+	 * Parses a date string in ISO-8601 format.
+	 * 
+	 * @param DateTimeString The string to be parsed
+	 * @param OutDateTime FDateTime object (in UTC) corresponding to the input string (which may have been in any timezone).
+	 *
+	 * @return true if the string was converted successfully, false otherwise.
+	 *
+	 * @see ToIso8601
+	 */
+	static CORE_API bool ParseIso8601( const TCHAR* DateTimeString, FDateTime& OutDateTime );
 
 	/**
 	 * Gets the local date on this computer.
