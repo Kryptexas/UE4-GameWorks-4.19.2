@@ -983,15 +983,11 @@ namespace UnrealBuildTool
 						VCProjectFileContent.Append(PathStrings);
 					}
 
-					// Force specification of TargetName on XboxOne so that the manifest can identify the correct executable to the debugger.
-					if (Platform == UnrealTargetPlatform.XboxOne)
+					if (TargetRules.IsGameType(TargetRulesObject.Type) &&
+						(TargetRules.IsEditorType(TargetRulesObject.Type) == false))
 					{
-						VCProjectFileContent.Append("		<TargetName>" + Utils.GetFilenameWithoutAnyExtensions( TargetFilePath ));
-						if (Configuration != UnrealTargetConfiguration.Development)
-						{
-							VCProjectFileContent.Append(UBTConfigurationName);
-						}
-						VCProjectFileContent.Append("</TargetName>" + ProjectFileGenerator.NewLine);
+						// Allow platforms to add any special properties they require... like aumid override for Xbox One
+						UEPlatformProjectGenerator.GenerateGamePlatformSpecificProperties(Platform, Configuration, TargetRulesObject.Type, VCProjectFileContent, RootDirectory, TargetFilePath);
 					}
 
 					// This is the standard UE4 based project NMake build line:
