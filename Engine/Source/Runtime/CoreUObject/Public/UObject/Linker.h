@@ -1338,7 +1338,7 @@ public:
 	 *
 	 * @return true if initialized, false if pending.
 	 */
-	bool HasFinishedInitializtion() const
+	bool HasFinishedInitialization() const
 	{
         return bHasFinishedInitialization;
 	}
