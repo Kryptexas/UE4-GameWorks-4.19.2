@@ -33,14 +33,12 @@ public:
 	 */
 	virtual const FName GetDeviceIconName( const FString& DeviceName ) const = 0;
 
-
 	/**
 	 * Gets Platform List.
 	 *
 	 * @return the platform list.
 	 */
 	virtual const TArray<TSharedPtr<FString> > GetPlatformList( ) = 0;
-
 
 	/**
 	 * Gets an array of profile that match a type.
@@ -50,7 +48,6 @@ public:
 	 */
 	virtual void GetProfilesByType( TArray<UDeviceProfile*>& OutDeviceProfiles, const FString& InType ) = 0;
 
-
 	/**
 	 * Gets an icon name for a given platform.
 	 *
@@ -59,9 +56,8 @@ public:
 	 */
 	virtual const FName GetPlatformIconName( const FString& DeviceName ) const = 0;
 
-
 	/**
-	 * Set a profile - add the type to a .ini file so it can be used in a history view.
+	 * Set a profile - add the type to an INI file so it can be used in a history view.
 	 *
 	 * @param DeviceProfileName - The platform type.
 	 */

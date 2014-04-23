@@ -5,9 +5,10 @@
 =============================================================================*/
 
 #include "DeviceProfileServicesPCH.h"
-#include "TargetDeviceServices.h"
+
 
 DEFINE_LOG_CATEGORY_STATIC(LogDeviceProfileServices, Log, All);
+
 
 FDeviceProfileServicesUIManager::FDeviceProfileServicesUIManager()
 {

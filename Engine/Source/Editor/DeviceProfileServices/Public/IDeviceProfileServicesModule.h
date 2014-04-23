@@ -12,7 +12,6 @@
 class IDeviceProfileServicesModule 
 	: public IModuleInterface
 {
-
 public:
 
 	/**
@@ -27,4 +26,3 @@ public:
 	 */
 	virtual ~IDeviceProfileServicesModule( ) { }
 };
-

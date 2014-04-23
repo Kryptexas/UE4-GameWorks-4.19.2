@@ -6,14 +6,19 @@
 
 #pragma once
 
+#include "DeviceProfileServices.h"
+
+
 /* Dependencies
  *****************************************************************************/
+
 #include "EnginePrivate.h"
-#include "Core.h"
 #include "ModuleManager.h"
+#include "TargetDeviceServices.h"
 
 
 /* Private includes
 *****************************************************************************/
+
 #include "DeviceProfileServices.h"
 #include "DeviceProfileServicesUIManager.h"

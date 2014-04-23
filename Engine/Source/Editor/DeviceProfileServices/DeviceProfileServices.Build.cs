@@ -14,11 +14,16 @@ public class DeviceProfileServices : ModuleRules
 				"Core",
 				"CoreUObject", // @todo Mac: for some reason it's needed to link in debug on Mac
 				"Engine",
+				"TargetPlatform",
 				"UnrealEd",
-				"TargetDeviceServices",
 			}
 		);
 
+		PrivateIncludePathModuleNames.AddRange(
+			new string[] {
+				"TargetDeviceServices",
+			}
+		);
 	}
 }
 
