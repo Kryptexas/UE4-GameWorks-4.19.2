@@ -252,6 +252,7 @@ extern CORE_API float GNearClippingPlane;
 
 extern CORE_API bool GExitPurge;
 extern CORE_API TCHAR GGameName[64];
+extern CORE_API const TCHAR* GForeignEngineDir;
 
 /** Exec handler for game debugging tool, allowing commands like "editactor" */
 extern CORE_API FExec* GDebugToolExec;

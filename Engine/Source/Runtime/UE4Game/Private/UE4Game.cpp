@@ -9,4 +9,5 @@ IMPLEMENT_MODULE(FDefaultModuleImpl, UE4Game);
 PER_MODULE_BOILERPLATE
 bool GIsGameAgnosticExe = true;
 TCHAR GGameName[64] = TEXT("");
+IMPLEMENT_FOREIGN_ENGINE_DIR()
 #endif

@@ -782,6 +782,17 @@ class FDefaultGameModuleImpl
 #define IMPLEMENT_GAME_MODULE( ModuleImplClass, ModuleName ) \
 	IMPLEMENT_MODULE( ModuleImplClass, ModuleName )
 
+/** IMPLEMENT_ENGINE_DIR declares the engine directory to check for foreign or nested projects */
+#if PLATFORM_DESKTOP
+	#ifdef UE_ENGINE_DIRECTORY
+		#define IMPLEMENT_FOREIGN_ENGINE_DIR() const TCHAR *GForeignEngineDir = TEXT( PREPROCESSOR_TO_STRING(UE_ENGINE_DIRECTORY) );
+	#else
+		#define IMPLEMENT_FOREIGN_ENGINE_DIR() const TCHAR *GForeignEngineDir = NULL;
+	#endif
+#else
+	#define IMPLEMENT_FOREIGN_ENGINE_DIR() 
+#endif
+
 #if IS_PROGRAM
 
 	#if IS_MONOLITHIC
@@ -789,7 +800,8 @@ class FDefaultGameModuleImpl
 		#define IMPLEMENT_APPLICATION( ModuleName, GameName ) \
 			/* For monolithic builds, we must statically define the game's name string (See Core.h) */ \
 			TCHAR GGameName[64] = TEXT( GameName ); \
-			IMPLEMENT_GAME_MODULE( FDefaultGameModuleImpl, ModuleName ) \
+			IMPLEMENT_FOREIGN_ENGINE_DIR() \
+			IMPLEMENT_GAME_MODULE(FDefaultGameModuleImpl, ModuleName) \
 			PER_MODULE_BOILERPLATE \
 			FEngineLoop GEngineLoop;
 
@@ -804,6 +816,7 @@ class FDefaultGameModuleImpl
 					FCString::Strncpy(GGameName, TEXT( GameName ), ARRAY_COUNT(GGameName)); \
 				} \
 			} AutoSet##ModuleName; \
+			IMPLEMENT_FOREIGN_ENGINE_DIR() \
 			PER_MODULE_BOILERPLATE \
 			PER_MODULE_BOILERPLATE_ANYLINK(FDefaultGameModuleImpl, ModuleName) \
 			FEngineLoop GEngineLoop;
@@ -821,6 +834,7 @@ class FDefaultGameModuleImpl
 			TCHAR GGameName[64] = TEXT( GameName ); \
 			/* Implement the GIsGameAgnosticExe variable (See Core.h). */ \
 			bool GIsGameAgnosticExe = false; \
+			IMPLEMENT_FOREIGN_ENGINE_DIR() \
 			IMPLEMENT_GAME_MODULE( ModuleImplClass, ModuleName ) \
 			PER_MODULE_BOILERPLATE \
 			void UELinkerFixupCheat() \
@@ -835,6 +849,7 @@ class FDefaultGameModuleImpl
 			/* For monolithic builds, we must statically define the game's name string (See Core.h) */ \
 			TCHAR GGameName[64] = TEXT( GameName ); \
 			PER_MODULE_BOILERPLATE \
+			IMPLEMENT_FOREIGN_ENGINE_DIR() \
 			IMPLEMENT_GAME_MODULE( ModuleImplClass, ModuleName ) \
 			/* Implement the GIsGameAgnosticExe variable (See Core.h). */ \
 			bool GIsGameAgnosticExe = false; \

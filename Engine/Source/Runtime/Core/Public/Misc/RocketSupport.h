@@ -20,11 +20,4 @@ public:
 	 * @return	True if we are in rocket mode, otherwise false
 	 */
 	static bool IsRocket( const TCHAR* CmdLine = FCommandLine::Get() );
-
-	/**
-	 *	Gets the engine directory for an 'installed' UE4/Rocket
-	 *
-	 *	@return	FString		The EngineDir, empty string if not found
-	 */
-	static FString GetInstalledEngineDirectory();
 };
