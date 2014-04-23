@@ -1122,6 +1122,10 @@ uint32 FShaderCompilingManager::LaunchWorker(const FString& WorkingDirectory, ui
 	{
 		WorkerParameters += FString(TEXT(" -communicatethroughfile "));
 	}
+	if ( GIsBuildMachine )
+	{
+		WorkerParameters += FString(TEXT(" -buildmachine "));
+	}
 	WorkerParameters += FCommandLine::GetSubprocessCommandline();
 
 	// Launch the worker process
