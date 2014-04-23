@@ -5,7 +5,8 @@
 =============================================================================*/
 
 #include "UnrealFrontendMain.h"
-
+#include "ExceptionHandling.h"
+#include "LaunchEngineLoop.h"
 
 /**
  * The main application entry point for Windows platforms.
