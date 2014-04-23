@@ -54,8 +54,8 @@ namespace UnrealVS
 	{
 		/** Constants */
 
-		private const string VersionString = "v1.28";
-		private const string UnrealSolutionFileName = "UE4.sln";
+		private const string VersionString = "v1.29";
+		private const string UnrealSolutionFileNamePrefix = "UE4";
 		private const string ExtensionName = "UnrealVS";
 		private const string CommandLineOptionKey = ExtensionName + "CommandLineMRU";
 		private const string BatchBuildSetsOptionKey = ExtensionName + "BatchBuildSetsV002";
@@ -733,7 +733,11 @@ namespace UnrealVS
 		{
 			string SolutionDirectory, UserOptsFile;
 			SolutionManager.GetSolutionInfo(out SolutionDirectory, out _SolutionFilepath, out UserOptsFile);
-			IsUE4Loaded = (_SolutionFilepath != null && Path.GetFileName(_SolutionFilepath).Equals(UnrealSolutionFileName, StringComparison.InvariantCultureIgnoreCase));
+			IsUE4Loaded =
+				(
+					_SolutionFilepath != null &&
+					Path.GetFileName(_SolutionFilepath).StartsWith(UnrealSolutionFileNamePrefix, StringComparison.InvariantCultureIgnoreCase)
+				);
 		}
 
 		/** Private Fields & Properties */
