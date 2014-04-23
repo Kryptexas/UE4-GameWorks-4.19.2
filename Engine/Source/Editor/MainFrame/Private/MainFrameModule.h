@@ -107,7 +107,6 @@ public:
 
 	// End IMainFrameModule interface
 
-
 public:
 
 	// Begin IModuleInterface interface
@@ -123,7 +122,6 @@ public:
 
 	// EndIModuleInterface interface
 
-
 protected:
 
 	/**
@@ -134,7 +132,6 @@ protected:
 	 * @return true if the project dialog should be shown, false otherwise.
 	 */
 	bool ShouldShowProjectDialogAtStartup( ) const;
-
 
 private:
 
@@ -155,7 +152,6 @@ private:
 
 	// Handles VSHandler launching Visual Studio.
 	void HandleVSAccessorLaunching( );
-
 
 private:
 

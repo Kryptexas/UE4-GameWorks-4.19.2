@@ -73,6 +73,7 @@
 #include "WindowsTargetSettingsDetails.h"
 #include "MoviePlayerSettingsDetails.h"
 
+
 IMPLEMENT_MODULE( FDetailCustomizationsModule, DetailCustomizations );
 
 
@@ -183,19 +184,15 @@ void FDetailCustomizationsModule::StartupModule()
 	RegisterCustomPropertyLayout( "ParticleModuleVectorFieldScaleOverLife", FOnGetDetailCustomizationInstance::CreateStatic( &FParticleModuleVectorFieldScaleOverLifeDetails::MakeInstance ) );
 
 	RegisterCustomPropertyLayout( "CameraComponent", FOnGetDetailCustomizationInstance::CreateStatic( &FCameraDetails::MakeInstance ) );
-
 	RegisterCustomPropertyLayout( "DeviceProfile", FOnGetDetailCustomizationInstance::CreateStatic( &FDeviceProfileDetails::MakeInstance ) );
-
 	RegisterCustomPropertyLayout( "InternationalizationSettingsModel", FOnGetDetailCustomizationInstance::CreateStatic( &FInternationalizationSettingsModelDetails::MakeInstance ) );
-
 	RegisterCustomPropertyLayout( "InputSettings", FOnGetDetailCustomizationInstance::CreateStatic( &FInputSettingsDetails::MakeInstance ) );
-
 	RegisterCustomPropertyLayout( "WindowsTargetSettings", FOnGetDetailCustomizationInstance::CreateStatic( &FWindowsTargetSettingsDetails::MakeInstance ) );
-
 	RegisterCustomPropertyLayout( "MoviePlayerSettings", FOnGetDetailCustomizationInstance::CreateStatic( &FMoviePlayerSettingsDetails::MakeInstance ) );
 
 	PropertyModule.NotifyCustomizationModuleChanged();
 }
+
 
 void FDetailCustomizationsModule::ShutdownModule()
 {
@@ -225,6 +222,7 @@ void FDetailCustomizationsModule::ShutdownModule()
 	}
 }
 
+
 void FDetailCustomizationsModule::RegisterCustomPropertyLayout(FName ClassName, FOnGetDetailCustomizationInstance DetailLayoutDelegate )
 {
 	check( ClassName != NAME_None );
@@ -236,6 +234,7 @@ void FDetailCustomizationsModule::RegisterCustomPropertyLayout(FName ClassName, 
 
 	PropertyModule.RegisterCustomPropertyLayout( ClassName, DetailLayoutDelegate );
 }
+
 
 void FDetailCustomizationsModule::RegisterStructPropertyLayout(FName StructTypeName, FOnGetStructCustomizationInstance StructLayoutDelegate)
 {
