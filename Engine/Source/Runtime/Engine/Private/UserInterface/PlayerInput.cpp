@@ -30,7 +30,6 @@ UPlayerInput::UPlayerInput(const class FPostConstructInitializeProperties& PCIP)
 	SetFlags(RF_Transactional);
 	MouseSamplingTotal = +0.0083f;
 	MouseSamples = 1;
-	bEnableFOVScaling = true;
 }
 
 void UPlayerInput::PostInitProperties()
@@ -1277,9 +1276,11 @@ float UPlayerInput::MassageAxisInput(FKey Key, float RawValue, float DeltaTime)
 	// special handling for mouse input
 	if ( (Key == EKeys::MouseX) || (Key == EKeys::MouseY) )
 	{
+		const UInputSettings* DefaultInputSettings = GetDefault<UInputSettings>();
+
 		// Take FOV into account (lower FOV == less sensitivity).
 		APlayerController const* const PlayerController = GetOuterAPlayerController();
-		float const FOVScale = (bEnableFOVScaling && PlayerController->PlayerCameraManager) ? (0.01111f*PlayerController->PlayerCameraManager->GetFOVAngle()) : 1.0f;
+		float const FOVScale = (DefaultInputSettings->bEnableFOVScaling && PlayerController->PlayerCameraManager) ? (DefaultInputSettings->FOVScale*PlayerController->PlayerCameraManager->GetFOVAngle()) : 1.0f;
 		NewVal *= FOVScale;
 
 		// debug
@@ -1293,7 +1294,7 @@ float UPlayerInput::MassageAxisInput(FKey Key, float RawValue, float DeltaTime)
 		}
 
 		// mouse smoothing 
-		if (GetDefault<UInputSettings>()->bEnableMouseSmoothing)
+		if (DefaultInputSettings->bEnableMouseSmoothing)
 		{
 			FKeyState* const KeyState = KeyStateMap.Find(Key);
 			if (KeyState)

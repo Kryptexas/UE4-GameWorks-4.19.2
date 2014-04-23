@@ -234,10 +234,6 @@ public:
 	// @todo: We have 10 touches to match the number of Touch* entries in EKeys (not easy to make this an enum or define or anything)
 	FVector Touches[EKeys::NUM_TOUCH_KEYS];
 
-	// Zoom Scaling
-	UPROPERTY()
-	uint32 bEnableFOVScaling:1;
-
 	// Mouse smoothing sample data
 	float ZeroTime[2];    /** How long received mouse movement has been zero. */
 	float SmoothedMouse[2];    /** Current average mouse movement/sample */

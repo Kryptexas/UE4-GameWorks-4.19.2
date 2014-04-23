@@ -19,9 +19,17 @@ class ENGINE_API UInputSettings : public UObject
 
 	// Mouse smoothing control
 	UPROPERTY(config, EditAnywhere, Category="MouseProperties", AdvancedDisplay)
-	uint32 bEnableMouseSmoothing:1;    /** if true, mouse smoothing is enabled */
+	uint32 bEnableMouseSmoothing:1;
 
-	/** If a button is pressed twice in this amount of time, it's considered a "double click" */
+	// Scale the mouse based on the player camera manager's field of view
+	UPROPERTY(config, EditAnywhere, Category="MouseProperties", AdvancedDisplay)
+	uint32 bEnableFOVScaling:1;
+
+	// The scaling value to multiply the field of view by
+	UPROPERTY(config, EditAnywhere, Category="MouseProperties", AdvancedDisplay, meta=(editcondition="bEnableFOVScaling"))
+	float FOVScale;
+
+	/** If a key is pressed twice in this amount of time, it's considered a "double click" */
 	UPROPERTY(config, EditAnywhere, Category="MouseProperties", AdvancedDisplay)
 	float DoubleClickTime;
 
