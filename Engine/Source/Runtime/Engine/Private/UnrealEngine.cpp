@@ -358,25 +358,6 @@ void ScalabilityCVarsSinkCallback()
 	}
 }
 
-inline EWindowMode::Type ConvertIntToWindowMode(int32 InWindowMode)
-{
-	EWindowMode::Type WindowMode = EWindowMode::Windowed;
-	switch (InWindowMode)
-	{
-	case 0:
-		WindowMode = EWindowMode::Fullscreen;
-		break;
-	case 1:
-		WindowMode = EWindowMode::WindowedFullscreen;
-		break;
-	case 2:
-	default:
-		WindowMode = EWindowMode::Windowed;
-		break;
-	}
-	return WindowMode;
-}
-
 void SystemResolutionSinkCallback()
 {
 	auto ResString = CVarSystemResolution->GetString();
@@ -386,7 +367,7 @@ void SystemResolutionSinkCallback()
 	
 	if (FParse::Resolution(*ResString, ResX, ResY, WindowModeInt))
 	{
-		EWindowMode::Type WindowMode = ConvertIntToWindowMode(WindowModeInt);
+		EWindowMode::Type WindowMode = EWindowMode::ConvertIntToWindowMode(WindowModeInt);
 
 		// TODO: This isn't correct, as we also need to compare the required fullscreen mode to the existing one.
 		if( GSystemResolution.ResX != ResX ||

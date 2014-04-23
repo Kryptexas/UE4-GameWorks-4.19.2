@@ -18,6 +18,25 @@ namespace EWindowMode
 		/** The window has a border and may not take up the entire screen area */
 		Windowed
 	};
+
+	static inline Type ConvertIntToWindowMode(int32 InWindowMode)
+	{
+		Type WindowMode = Windowed;
+		switch (InWindowMode)
+		{
+			case 0:
+				WindowMode = Fullscreen;
+				break;
+			case 1:
+				WindowMode = WindowedFullscreen;
+				break;
+			case 2:
+			default:
+				WindowMode = Windowed;
+				break;
+		}
+		return WindowMode;
+	}
 }
 
 class CORE_API FGenericWindow

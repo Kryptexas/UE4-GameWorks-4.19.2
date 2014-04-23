@@ -35,8 +35,6 @@ DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
 
 ENGINE_API bool GDisallowNetworkTravel = false;
 
-extern EWindowMode::Type ConvertIntToWindowMode(int32 InWindowMode);
-
 /** Benchmark results to the log */
 static void RunSynthBenchmark(const TArray<FString>& Args)
 {
@@ -87,7 +85,7 @@ int32 GetBoundFullScreenModeCVar()
 // depending on WindowMode and the console variable r.FullScreenMode
 EWindowMode::Type GetWindowModeType(EWindowMode::Type WindowMode)
 {
-	EWindowMode::Type CurrentWindowMode = ConvertIntToWindowMode(GetBoundFullScreenModeCVar());
+	EWindowMode::Type CurrentWindowMode = EWindowMode::ConvertIntToWindowMode(GetBoundFullScreenModeCVar());
 
 	if (FPlatformProperties::SupportsWindowedMode())
 	{

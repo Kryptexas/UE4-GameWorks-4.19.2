@@ -36,33 +36,14 @@ void UGameUserSettings::SetScreenResolution( FIntPoint Resolution )
 	ResolutionSizeY = Resolution.Y;
 }
 
-inline EWindowMode::Type ConvertIntToWindowMode(int32 InWindowMode)
-{
-	EWindowMode::Type WindowMode = EWindowMode::Windowed;
-	switch ( InWindowMode )
-	{
-	case 0:
-		WindowMode = EWindowMode::Fullscreen;
-		break;
-	case 1:
-		WindowMode = EWindowMode::WindowedFullscreen;
-		break;
-	case 2:
-	default:
-		WindowMode = EWindowMode::Windowed;
-		break;
-	}
-	return WindowMode;
-}
-
 EWindowMode::Type UGameUserSettings::GetFullscreenMode() const
 {
-	return ConvertIntToWindowMode(FullscreenMode);
+	return EWindowMode::ConvertIntToWindowMode(FullscreenMode);
 }
 
 EWindowMode::Type UGameUserSettings::GetLastConfirmedFullscreenMode() const
 {
-	return ConvertIntToWindowMode(LastConfirmedFullscreenMode);
+	return EWindowMode::ConvertIntToWindowMode(LastConfirmedFullscreenMode);
 }
 
 void UGameUserSettings::SetFullscreenMode( EWindowMode::Type InFullscreenMode )
@@ -303,7 +284,7 @@ void UGameUserSettings::PreloadResolutionSettings()
 
 		int32 WindowModeInt = (int32)WindowMode;
 		GConfig->GetInt(*GameUserSettingsCategory, TEXT("FullscreenMode"), WindowModeInt, GGameUserSettingsIni);
-		WindowMode = ConvertIntToWindowMode(WindowModeInt);
+		WindowMode = EWindowMode::ConvertIntToWindowMode(WindowModeInt);
 
 		GConfig->GetInt(*GameUserSettingsCategory, TEXT("ResolutionSizeX"), ResolutionX, GGameUserSettingsIni);
 		GConfig->GetInt(*GameUserSettingsCategory, TEXT("ResolutionSizeY"), ResolutionY, GGameUserSettingsIni);
