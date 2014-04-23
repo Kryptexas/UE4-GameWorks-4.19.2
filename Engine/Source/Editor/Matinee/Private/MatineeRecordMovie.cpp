@@ -265,7 +265,7 @@ void SMatineeRecordMovie::InitializeOptions()
 	UEnum* FormatEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EMatineeCaptureType"), true);
 	for(int32 EnumMember = 0; EnumMember < FormatEnum->NumEnums() - 1; EnumMember++)
 	{
-		CaptureFormats.Add(MakeShareable(new FString(FormatEnum->GetEnumString(EnumMember))));
+		CaptureFormats.Add(MakeShareable(new FString(FormatEnum->GetEnumText(EnumMember).ToString())));
 	}	
 
 	Options.CaptureTypeIndex = FMath::Clamp<int32>(Options.CaptureTypeIndex, 0, FormatEnum->NumEnums() - 1);
@@ -599,7 +599,7 @@ void SMatineeRecordMovie::OnCaptureTypeSettingChanged(  TSharedPtr<FString> Chos
 	UEnum* FormatEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EMatineeCaptureType"), true);
 	for(int32 EnumMember = 0; EnumMember < FormatEnum->NumEnums() - 1; EnumMember++)
 	{
-		if(*ChosenString.Get() == FormatEnum->GetEnumString(EnumMember))
+		if(*ChosenString.Get() == FormatEnum->GetEnumText(EnumMember).ToString())
 		{
 			CaptureType = (EMatineeCaptureType::Type)EnumMember;
 			break;

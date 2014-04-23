@@ -95,7 +95,7 @@ void UEnvQueryTest_Trace::RunTest(struct FEnvQueryInstance& QueryInstance)
 FString UEnvQueryTest_Trace::GetDescriptionTitle() const
 {
 	UEnum* ChannelEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("ETraceTypeQuery"), true);
-	FString ChannelDesc = ChannelEnum->GetEnumString(TraceData.TraceChannel);
+	FString ChannelDesc = ChannelEnum->GetEnumText(TraceData.TraceChannel).ToString();
 
 	FString DirectionDesc = TraceToItem.IsNamedParam() ?
 		FString::Printf(TEXT("%s, direction: %s"), *UEnvQueryTypes::DescribeContext(Context), *UEnvQueryTypes::DescribeBoolParam(TraceToItem)) :

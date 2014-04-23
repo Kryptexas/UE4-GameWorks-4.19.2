@@ -1100,8 +1100,8 @@ static bool VerifySamplerType(
 			UEnum* SamplerTypeEnum = FindObject<UEnum>( NULL, TEXT("/Script/Engine.EngineTypes.EMaterialSamplerType") );
 			check( SamplerTypeEnum );
 
-			FString SamplerTypeDisplayName = SamplerTypeEnum->GetEnumString(SamplerType);
-			FString TextureTypeDisplayName = SamplerTypeEnum->GetEnumString(CorrectSamplerType);
+			FString SamplerTypeDisplayName = SamplerTypeEnum->GetEnumText(SamplerType).ToString();
+			FString TextureTypeDisplayName = SamplerTypeEnum->GetEnumText(CorrectSamplerType).ToString();
 
 			Compiler->Errorf( TEXT("%s> Sampler type is %s, should be %s for %s"),
 				ExpressionDesc,
@@ -1115,7 +1115,7 @@ static bool VerifySamplerType(
 			UEnum* SamplerTypeEnum = FindObject<UEnum>( NULL, TEXT("/Script/Engine.EngineTypes.EMaterialSamplerType") );
 			check( SamplerTypeEnum );
 
-			FString SamplerTypeDisplayName = SamplerTypeEnum->GetEnumString(SamplerType);
+			FString SamplerTypeDisplayName = SamplerTypeEnum->GetEnumText(SamplerType).ToString();
 
 			Compiler->Errorf( TEXT("%s> To use '%s' as sampler type, SRGB must be disabled for %s"),
 				ExpressionDesc,

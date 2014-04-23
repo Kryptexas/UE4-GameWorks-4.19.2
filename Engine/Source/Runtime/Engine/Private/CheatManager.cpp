@@ -1019,7 +1019,7 @@ void UCheatManager::ToggleGameplayDebugView(const FString& InViewName)
 		ViewNames.AddZeroed(EAIDebugDrawDataView::MAX);
 		for (int32 Index = 0; Index < EAIDebugDrawDataView::MAX; ++Index)
 		{
-			ViewNames[Index] = ViewlEnum->GetEnumString(Index);
+			ViewNames[Index] = ViewlEnum->GetEnumName(Index);
 		}
 	}
 

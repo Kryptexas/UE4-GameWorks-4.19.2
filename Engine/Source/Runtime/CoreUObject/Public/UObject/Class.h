@@ -1331,27 +1331,10 @@ public:
 		return FName(NAME_None).ToString();
 	}
 
-
 	/**
 	 * @return	The enum string at the specified index.
 	 */
-	COREUOBJECT_API virtual FString GetEnumString(int32 InIndex) const
-	{
-#if WITH_EDITOR
-		FString LocalizedDisplayName = GetDisplayNameText(InIndex).ToString();
-		if(!LocalizedDisplayName.IsEmpty())
-		{
-			return LocalizedDisplayName;
-		}
-#endif
-
-		return GetEnumName(InIndex);
-	}
-
-	/**
-	 * @return	The enum string at the specified index.
-	 */
-	FText GetEnumText(int32 InIndex) const
+	COREUOBJECT_API virtual FText GetEnumText(int32 InIndex) const
 	{
 #if WITH_EDITOR
 		//@todo These values should be properly localized [9/24/2013 justin.sargent]

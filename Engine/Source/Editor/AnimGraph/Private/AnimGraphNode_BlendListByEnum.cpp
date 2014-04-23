@@ -219,7 +219,7 @@ void UAnimGraphNode_BlendListByEnum::CustomizePinData(UEdGraphPin* Pin, FName So
 				const int32 EnumIndex = BoundEnum->FindEnumIndex(EnumElementName);
 				if (EnumIndex != INDEX_NONE)
 				{
-					Pin->PinFriendlyName = BoundEnum->GetEnumString(EnumIndex);
+					Pin->PinFriendlyName = BoundEnum->GetEnumText(EnumIndex).ToString();
 				}
 				else
 				{

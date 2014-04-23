@@ -87,11 +87,12 @@ int32 UUserDefinedEnum::ResolveEnumerator(FArchive& Ar, int32 EnumeratorIndex) c
 #endif // WITH_EDITOR
 }
 
-FString UUserDefinedEnum::GetEnumString(int32 InIndex) const
+FText UUserDefinedEnum::GetEnumText(int32 InIndex) const
 {
 	if (DisplayNames.IsValidIndex(InIndex))
 	{
 		return DisplayNames[InIndex];
 	}
-	return Super::GetEnumString(InIndex);
+
+	return Super::GetEnumText(InIndex);
 }

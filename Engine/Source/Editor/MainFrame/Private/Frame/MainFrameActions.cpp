@@ -604,7 +604,7 @@ void FMainFrameActionCallbacks::PackageProject( const FString InPlatformName, co
 		*ProjectPath,
 		*PackagingSettings->StagingDirectory.Path,
 		*PlatformName,
-		*FindObject<UEnum>(ANY_PACKAGE, TEXT("EProjectPackagingBuildConfigurations"))->GetEnumString(PackagingSettings->BuildConfiguration),
+		*FindObject<UEnum>(ANY_PACKAGE, TEXT("EProjectPackagingBuildConfigurations"))->GetEnumName(PackagingSettings->BuildConfiguration),
 		*ExecutableName,
 		*OptionalParams
 	);
