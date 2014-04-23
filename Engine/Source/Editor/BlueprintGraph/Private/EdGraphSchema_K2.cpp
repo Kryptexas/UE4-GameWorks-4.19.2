@@ -2495,7 +2495,7 @@ bool UEdGraphSchema_K2::ArePinTypesCompatible(const FEdGraphPinType& Output, con
 		return OutputClass->ImplementsInterface(InterfaceClass) || OutputClass->IsChildOf(InterfaceClass);
 	}
 
-	// Pins representing BLueprint objects and subclass of UObject can match when EditoronlyBP.bAllowClassObjAndBluepirntPinMatching=true (BaseEngine.ini)
+	// Pins representing BLueprint objects and subclass of UObject can match when EditoronlyBP.bAllowClassAndBlueprintPinMatching=true (BaseEngine.ini)
 	// It's required for converting all UBlueprint references into UClass.
 	struct FObjClassAndBlueprintHelper
 	{
@@ -2504,7 +2504,7 @@ bool UEdGraphSchema_K2::ArePinTypesCompatible(const FEdGraphPinType& Output, con
 	public:
 		FObjClassAndBlueprintHelper() : bAllow(false)
 		{
-			GConfig->GetBool(TEXT("EditoronlyBP"), TEXT("bAllowClassObjAndBluepirntPinMatching"), bAllow, GEditorIni);
+			GConfig->GetBool(TEXT("EditoronlyBP"), TEXT("bAllowClassAndBlueprintPinMatching"), bAllow, GEditorIni);
 		}
 
 		bool Match(const FEdGraphPinType& A, const FEdGraphPinType& B, const UEdGraphSchema_K2& Schema) const
@@ -3326,6 +3326,16 @@ struct FBackwardCompatibilityConversionHelper
 					UE_LOG(LogBlueprint, Warning, TEXT("BackwardCompatibilityNodeConversion Error 'cannot connect' in blueprint: %s, pin: %s"),
 						Blueprint ? *Blueprint->GetName() : TEXT("Unknown"),
 						*ValidCastPin->PinName);
+					return false;
+				}
+
+				auto InValidCastPin = CastNode->GetInvalidCastPin();
+				check(InValidCastPin);
+				if (!Schema.TryCreateConnection(InValidCastPin, ExecPin))
+				{
+					UE_LOG(LogBlueprint, Warning, TEXT("BackwardCompatibilityNodeConversion Error 'cannot connect' in blueprint: %s, pin: %s"),
+						Blueprint ? *Blueprint->GetName() : TEXT("Unknown"),
+						*InValidCastPin->PinName);
 					return false;
 				}
 

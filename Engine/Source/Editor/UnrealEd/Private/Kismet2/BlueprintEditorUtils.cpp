@@ -714,6 +714,179 @@ void FBlueprintEditorUtils::RefreshInputDelegatePins(UBlueprint* Blueprint)
 	}
 }
 
+struct FEditoronlyBlueprintHelper
+{
+	static bool IsUnwantedType(const FEdGraphPinType& Type)
+	{
+		if (const UClass* BPClass = Cast<const UClass>(Type.PinSubCategoryObject.Get()))
+		{
+			if (BPClass->IsChildOf(UBlueprint::StaticClass()))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	static bool IsUnwantedDefaultObject(const UObject* Obj)
+	{
+		return Obj && Obj->IsA<UBlueprint>();
+	}
+
+	static void ChangePinType(FEdGraphPinType& Type)
+	{
+		const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
+
+		Type.PinCategory = Schema->PC_Class;
+		Type.PinSubCategoryObject = UObject::StaticClass();
+	}
+
+	static bool ShouldBeFixed(const UBlueprint* Blueprint, bool bLogWhy)
+	{
+		check(Blueprint);
+		//any blueprint variable
+		for (const auto& VarDesc : Blueprint->NewVariables)
+		{
+			if (IsUnwantedType(VarDesc.VarType))
+			{
+				if (bLogWhy)
+				{
+					UE_LOG(LogBlueprint, Warning, TEXT("FEditoronlyBlueprintHelper::ShouldBeFixed"));
+				}
+				return true;
+			}
+		}
+
+		//anything on graph
+		TArray<UEdGraph*> Graphs;
+		Blueprint->GetAllGraphs(Graphs);
+		for (const auto Graph : Graphs)
+		{
+			TArray<UK2Node*> Nodes;
+			Graph->GetNodesOfClass(Nodes);
+			for (const auto Node : Nodes)
+			{
+				for (const auto Pin : Node->Pins)
+				{
+					if (Pin && (IsUnwantedType(Pin->PinType) || IsUnwantedDefaultObject(Pin->DefaultObject)))
+					{
+						if (bLogWhy)
+						{
+							UE_LOG(LogBlueprint, Warning, TEXT("FEditoronlyBlueprintHelper::ShouldBeFixed"));
+						}
+						return true;
+					}
+				}
+			}
+		}
+
+		return false;
+	}
+
+	static void HandleEditablePinNode(UK2Node_EditablePinBase* Node)
+	{
+		check(Node);
+
+		const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
+
+		for (auto UserPinInfo : Node->UserDefinedPins)
+		{
+			if (UserPinInfo.IsValid() && IsUnwantedType(UserPinInfo->PinType))
+			{
+				UserPinInfo->PinType.PinCategory = Schema->PC_Class;
+				UserPinInfo->PinType.PinSubCategoryObject = UObject::StaticClass();
+
+				UserPinInfo->PinDefaultValue.Empty();
+			}
+		}
+
+		for (auto Pin : Node->Pins)
+		{
+			if (IsUnwantedType(Pin->PinType))
+			{
+				ChangePinType(Pin->PinType);
+
+				if (Pin->DefaultObject)
+				{
+					UBlueprint* DefaultBlueprint = Cast<UBlueprint>(Pin->DefaultObject);
+					Pin->DefaultObject = DefaultBlueprint ? *DefaultBlueprint->GeneratedClass : NULL;
+				}
+			}
+
+		}
+	}
+
+	static void HandleDefaultObjects(UK2Node* Node)
+	{
+		if (Node)
+		{
+			for (auto Pin : Node->Pins)
+			{
+				if (Pin && IsUnwantedDefaultObject(Pin->DefaultObject))
+				{
+					const UBlueprint* DefaultBlueprint = Cast<const UBlueprint>(Pin->DefaultObject);
+					if (DefaultBlueprint)
+					{
+						Pin->DefaultObject = *DefaultBlueprint->GeneratedClass;
+					}
+				}
+			}
+		}
+	}
+
+	static bool ChangeBlueprint(UBlueprint* Blueprint)
+	{
+		if (ShouldBeFixed(Blueprint, false))
+		{
+			UE_LOG(LogBlueprint, Log, TEXT("Bluepirnt references will b e removed from '%s'"), *Blueprint->GetName());
+
+			const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
+
+			//any native function call with blueprint parameter
+			TArray<UEdGraph*> Graphs;
+			Blueprint->GetAllGraphs(Graphs);
+			for (const auto Graph : Graphs)
+			{
+				Schema->BackwardCompatibilityNodeConversion(Graph, false);
+			}
+
+			//any blueprint pin (function/event/macro parameter
+			for (const auto Graph : Graphs)
+			{
+				TArray<UK2Node_EditablePinBase*> EditablePinNodes;
+				Graph->GetNodesOfClass(EditablePinNodes);
+				for (const auto Node : EditablePinNodes)
+				{
+					HandleEditablePinNode(Node);
+				}
+			}
+
+			// change variables
+			for (auto& VarDesc : Blueprint->NewVariables)
+			{
+				if (IsUnwantedType(VarDesc.VarType))
+				{
+					ChangePinType(VarDesc.VarType);
+				}
+			}
+
+			for (const auto Graph : Graphs)
+			{
+				TArray<UK2Node*> Nodes;
+				Graph->GetNodesOfClass(Nodes);
+				for (const auto Node : Nodes)
+				{
+					HandleDefaultObjects(Node);
+				}
+			}
+
+			return true;
+		}
+		return false;
+	}
+};
+
 UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, UClass* ClassToRegenerate, UObject* PreviousCDO, TArray<UObject*>& ObjLoaded)
 {
 	bool bRegenerated = false;
@@ -797,6 +970,23 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 		FRegenerationHelper::LinkExternalDependencies(Blueprint);
 		FBlueprintEditorUtils::RefreshInputDelegatePins(Blueprint);
 
+		struct FReplaceBlueprintWithClassHelper
+		{
+			bool bShouldReplace;
+
+			FReplaceBlueprintWithClassHelper() : bShouldReplace(false)
+			{
+				GConfig->GetBool(TEXT("EditoronlyBP"), TEXT("bReplaceBlueprintWithClass"), bShouldReplace, GEditorIni);
+			}
+		};
+		static FReplaceBlueprintWithClassHelper ReplaceBlueprintWithClassHelper;
+		const bool bReplaceBlueprintWithClass = ReplaceBlueprintWithClassHelper.bShouldReplace;
+
+		if (bReplaceBlueprintWithClass)
+		{
+			FEditoronlyBlueprintHelper::ChangeBlueprint(Blueprint);
+		}
+
 		if( bHasCode )
 		{
 			// Make sure parent function calls are up to date
@@ -840,6 +1030,11 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 
 			// Flag data only blueprints as being up-to-date
 			Blueprint->Status = BS_UpToDate;
+		}
+
+		if (bReplaceBlueprintWithClass)
+		{
+			FEditoronlyBlueprintHelper::ShouldBeFixed(Blueprint, true);
 		}
 		
 		// Patch the new CDOs to the old indices in the linker
