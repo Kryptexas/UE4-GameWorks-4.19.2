@@ -103,7 +103,7 @@ class ENGINE_API ULightComponent : public ULightComponentBase
 	class UMaterialInterface* LightFunctionMaterial;
 
 	/** Scales the light function projection.  X and Y scale in the directions perpendicular to the light's direction, Z scales along the light direction. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=LightFunction)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=LightFunction, meta=(AllowPreserveRatio = "true"))
 	FVector LightFunctionScale;
 
 	/** IES texture (light profiles from real world measured data) */
