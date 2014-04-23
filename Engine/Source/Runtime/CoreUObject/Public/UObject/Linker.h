@@ -1748,7 +1748,7 @@ class ULinkerSave : public ULinker, public FArchiveUObject
 	TMap<UObject *,FPackageIndex> ObjectIndicesMap;
 
 	/** Index array - location of the name in the NameMap array for each FName is stored in the NameIndices array using the FName's Index */
-	TArray<int32> NameIndices;
+	TMap<int32, int32> NameIndices;
 
 	/** List of bulkdata that needs to be stored at the end of the file */
 	struct FBulkDataStorageInfo
@@ -1771,12 +1771,16 @@ class ULinkerSave : public ULinker, public FArchiveUObject
 	ULinkerSave( const class FPostConstructInitializeProperties& PCIP, UPackage* InParent, bool bForceByteSwapping, bool bInSaveUnversioned = false );
 	void BeginDestroy();
 
-	int32 MapName( const FName* Name ) const;
-	FPackageIndex MapObject( const UObject* Object ) const;
+	/** Returns the appropriate name index for the source name, or 0 if not found in NameIndices */
+	int32 MapName(const FName& Name) const;
+
+	/** Returns the appropriate package index for the source object, or default value if not found in ObjectIndicesMap */
+	FPackageIndex MapObject(const UObject* Object) const;
+
 	// FArchive interface.
-	FArchive& operator<<( FName& InName )
+	FArchive& operator<<(FName& InName)
 	{
-		int32 Save = NameIndices[InName.GetIndex()];
+		int32 Save = MapName(InName);
 		int32 Number = InName.GetNumber();
 		FArchive& Ar = *this;
 		return Ar << Save << Number;

@@ -466,29 +466,30 @@ void FArchiveSaveTagExports::ProcessBaseObject(UObject* BaseObject )
  */
 void FArchiveSaveTagExports::ProcessTaggedObjects()
 {
+	const int32 ArrayPreSize = 1024; // Was originally total number of objects, but this was unreasonably large
 	TArray<UObject*> CurrentlyTaggedObjects;
-	CurrentlyTaggedObjects.Empty(GUObjectArray.GetObjectArrayNum());
-	while ( TaggedObjects.Num() )
+	CurrentlyTaggedObjects.Empty(ArrayPreSize);
+	while (TaggedObjects.Num())
 	{
 		CurrentlyTaggedObjects += TaggedObjects;
 		TaggedObjects.Empty();
 
-		for ( int32 ObjIndex = 0; ObjIndex < CurrentlyTaggedObjects.Num(); ObjIndex++ )
+		for (int32 ObjIndex = 0; ObjIndex < CurrentlyTaggedObjects.Num(); ObjIndex++)
 		{
 			UObject* Obj = CurrentlyTaggedObjects[ObjIndex];
 
 			// Recurse with this object's children.
-			if ( Obj->HasAnyFlags(RF_ClassDefaultObject) )
+			if (Obj->HasAnyFlags(RF_ClassDefaultObject))
 			{
 				Obj->GetClass()->SerializeDefaultObject(Obj, *this);
 			}
 			else
 			{
-				Obj->Serialize( *this );
+				Obj->Serialize(*this);
 			}
 		}
 
-		CurrentlyTaggedObjects.Empty(GUObjectArray.GetObjectArrayNum());
+		CurrentlyTaggedObjects.Empty(ArrayPreSize);
 	}
 }
 
@@ -2854,7 +2855,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				for( int32 i=0; i<Linker->NameMap.Num(); i++ )
 				{
 					*Linker << *const_cast<FNameEntry*>(FName::GetEntry( Linker->NameMap[i].GetIndex() ));
-					Linker->NameIndices[Linker->NameMap[i].GetIndex()] = i;
+					Linker->NameIndices.Add(Linker->NameMap[i].GetIndex(), i);
 				}
 
 				
