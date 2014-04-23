@@ -269,11 +269,6 @@ void UEditorEngine::GetContentBrowserSelections( TArray<UClass*>& Selection ) co
 	}
 }
 
-void UEditorEngine::GetContentBrowserAssetTreePath( FString& SelectedPath ) const
-{
-	// @todo: Remove this function
-}
-
 USelection* UEditorEngine::GetSelectedSet( const UClass* Class ) const
 {
 	USelection* SelectedSet = GetSelectedActors();

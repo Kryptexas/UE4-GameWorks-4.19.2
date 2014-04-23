@@ -1565,9 +1565,6 @@ public:
 	/** Function to return list of assets currently selected in content browser (loaded/not loaded) */
 	void GetContentBrowserSelections( TArray<UClass*>& Selection ) const;
 
-	/** Function to fetch the currently selected asset tree path in content browser*/
-	void GetContentBrowserAssetTreePath( FString& SelectedPath ) const;
-
 	/**
 	 * Returns an FSelectionIterator that iterates over the set of selected actors.
 	 */

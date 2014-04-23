@@ -333,9 +333,6 @@ void STimelineEdTrack::InitCurveAssetPath()
 	//Default path
 	SaveCurveAssetPath = FString(TEXT( "/Game/Unsorted" ));
 
-	//Get the currently selected 
-	GEditor->GetContentBrowserAssetTreePath( SaveCurveAssetPath );
-
 	TSharedRef<STimelineEditor> TimelineRef = TimelineEdPtr.Pin().ToSharedRef();
 
 	//Get curve name from editable text box
