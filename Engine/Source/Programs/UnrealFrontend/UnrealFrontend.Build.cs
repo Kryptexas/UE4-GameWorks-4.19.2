@@ -20,7 +20,6 @@ public class UnrealFrontend : ModuleRules
 				"AutomationController",
 				"Core",
 				"DeviceManager",
-				"Messaging",
 				"ProfilerClient",
 				"Projects",
 				"SessionFrontend",
@@ -37,6 +36,12 @@ public class UnrealFrontend : ModuleRules
 				"Networking",
 				"Sockets",
 				"UdpMessaging",
+			}
+		);
+
+		PrivateIncludePathModuleNames.AddRange(
+			new string[] {
+				"Messaging",
 			}
 		);
 	}

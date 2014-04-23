@@ -6,9 +6,24 @@ public class DeviceManager : ModuleRules
 {
 	public DeviceManager(TargetInfo Target)
 	{
+		PublicIncludePathModuleNames.AddRange(
+			new string[] {
+				"TargetDeviceServices",
+			}
+		);
+
+		PrivateDependencyModuleNames.AddRange(
+			new string[] {
+				"Core",
+				"EditorStyle",
+                "InputCore",
+				"Slate",
+				"TargetPlatform",
+			}
+		);
+
 		PrivateIncludePaths.AddRange(
-			new string[]
-			{
+			new string[] {
 				"Developer/DeviceManager/Private",
 				"Developer/DeviceManager/Private/Models",
 				"Developer/DeviceManager/Private/Widgets",
@@ -18,23 +33,6 @@ public class DeviceManager : ModuleRules
 				"Developer/DeviceManager/Private/Widgets/Processes",
 				"Developer/DeviceManager/Private/Widgets/Shared",
 				"Developer/DeviceManager/Private/Widgets/Toolbar",
-			}
-		);
-
-		PrivateDependencyModuleNames.AddRange(
-			new string[]
-			{
-				"Core",
-				"EditorStyle",
-                "InputCore",
-				"Slate",
-			}
-		);
-
-		PublicDependencyModuleNames.AddRange(
-			new string[]
-			{
-				"TargetDeviceServices",
 			}
 		);
 	}

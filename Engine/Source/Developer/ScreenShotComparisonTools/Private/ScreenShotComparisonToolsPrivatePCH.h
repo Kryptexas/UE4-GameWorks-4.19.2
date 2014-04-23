@@ -9,16 +9,20 @@
 
 #include "ScreenShotComparisonTools.h"
 
+
 /* Dependencies
  *****************************************************************************/
+
 #include "AutomationMessages.h"
+#include "Messaging.h"
 #include "ModuleManager.h"
 #include "Slate.h"
 
+
 /* Private includes
  *****************************************************************************/
+
 #include "ScreenShotBaseNode.h"
 #include "ScreenShotPlatformNode.h"
 #include "ScreenShotScreenNode.h"
-
 #include "ScreenShotManager.h"

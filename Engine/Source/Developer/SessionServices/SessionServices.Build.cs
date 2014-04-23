@@ -18,8 +18,13 @@ public class SessionServices : ModuleRules
 			{
 				"CoreUObject",
 				"EngineMessages",
-				"Messaging",
 				"SessionMessages",
+			}
+		);
+
+		PrivateIncludePathModuleNames.AddRange(
+			new string[] {
+				"Messaging",
 			}
 		);
 	}

@@ -7,27 +7,34 @@ namespace UnrealBuildTool.Rules
 		public LauncherServices(TargetInfo Target)
 		{
 			PublicDependencyModuleNames.AddRange(
-			new string[]
-				{
+				new string[] {
 					"Core",
+				}
+			);
+
+			PublicIncludePathModuleNames.AddRange(
+				new string[] {
 					"TargetDeviceServices",
 				}
 			);
 
 			PrivateDependencyModuleNames.AddRange(
-				new string[]
-				{
+				new string[] {
 					"CoreUObject",
-					"Messaging",
 					"SessionMessages",
 					"TargetPlatform",
 					"UnrealEdMessages",
 				}
 			);
 
+			PrivateIncludePathModuleNames.AddRange(
+				new string[] {
+					"Messaging",
+				}
+			);
+
 			PrivateIncludePaths.AddRange(
-			new string[]
-				{
+				new string[] {
 					"Developer/LauncherServices/Private",
 					"Developer/LauncherServices/Private/Devices",
 					"Developer/LauncherServices/Private/Games",

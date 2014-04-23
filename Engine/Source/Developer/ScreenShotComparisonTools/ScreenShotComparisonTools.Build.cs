@@ -7,16 +7,13 @@ public class ScreenShotComparisonTools : ModuleRules
 	public ScreenShotComparisonTools(TargetInfo Target)
 	{
 		PublicDependencyModuleNames.AddRange(
-			new string[]
-			{
+			new string[] {
 				"Core",
-				"Messaging"
 			}
 		);
 
 		PrivateDependencyModuleNames.AddRange(
-			new string[]
-			{
+			new string[] {
 				"AutomationMessages",
 				"CoreUObject",
 				"UnrealEdMessages",
@@ -26,15 +23,13 @@ public class ScreenShotComparisonTools : ModuleRules
 		);
 
 		PrivateIncludePathModuleNames.AddRange(
-			new string[]
-			{
+			new string[] {
 				"Messaging"
 			}
 		);
 
 		PrivateIncludePaths.AddRange(
-			new string[]
-			{
+			new string[] {
 				"Developer/ScreenShotComparisonTools/Private"
 			}
 		);

@@ -6,25 +6,28 @@ public class ScreenShotComparison : ModuleRules
 {
 	public ScreenShotComparison(TargetInfo Target)
 	{
-		PrivateIncludePaths.AddRange(
-			new string[]
-			{
-				"Developer/ScreenShotComparison/Private",
-				"Developer/ScreenShotComparison/Private/Widgets",
-				"Developer/ScreenShotComparison/Private/Models",
-			}
-			);
-
 		PrivateDependencyModuleNames.AddRange(
-			new string[]
-			{
+			new string[] {
 				"Core",
                 "InputCore",
-				"SessionServices",
 				"Slate",
                 "EditorStyle",
 				"ScreenShotComparisonTools",
 			}
-			);
+		);
+
+		PrivateIncludePathModuleNames.AddRange(
+			new string[] {
+				"SessionServices",
+			}
+		);
+
+		PrivateIncludePaths.AddRange(
+			new string[] {
+				"Developer/ScreenShotComparison/Private",
+				"Developer/ScreenShotComparison/Private/Widgets",
+				"Developer/ScreenShotComparison/Private/Models",
+			}
+		);
 	}
 }

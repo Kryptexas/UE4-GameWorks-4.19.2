@@ -6,21 +6,38 @@ public class SessionLauncher : ModuleRules
 {
 	public SessionLauncher(TargetInfo Target)
 	{
+		PublicDependencyModuleNames.AddRange(
+			new string[] {
+				"Core",
+				"CoreUObject",
+				"TargetPlatform",
+			}
+		);
+
+		PublicIncludePathModuleNames.AddRange(
+			new string[] {
+				"LauncherServices",
+			}
+		);
+
 		PrivateDependencyModuleNames.AddRange(
-			new string[]
-			{
+			new string[] {
 				"DesktopPlatform",
                 "InputCore",
-				"SessionServices",
 				"Slate",
                 "EditorStyle",
+			}
+		);
+
+		PrivateIncludePathModuleNames.AddRange(
+			new string[] {
+				"SessionServices",
 				"TargetDeviceServices",
 			}
 		);
 
 		PrivateIncludePaths.AddRange(
-			new string[]
-			{
+			new string[] {
 				"Developer/SessionLauncher/Private",
 				"Developer/SessionLauncher/Private/Models",
 				"Developer/SessionLauncher/Private/Widgets",
@@ -32,17 +49,6 @@ public class SessionLauncher : ModuleRules
 				"Developer/SessionLauncher/Private/Widgets/Project",
 				"Developer/SessionLauncher/Private/Widgets/Shared",
 				"Developer/SessionLauncher/Private/Widgets/Toolbar",
-			}
-		);
-
-		PublicDependencyModuleNames.AddRange(
-			new string[]
-			{
-				"Core",
-				"CoreUObject",
-				"LauncherServices",
-				"SessionServices",
-				"TargetDeviceServices",
 			}
 		);
 	}

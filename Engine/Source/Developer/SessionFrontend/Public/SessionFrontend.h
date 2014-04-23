@@ -14,7 +14,6 @@
 #include "ModuleInterface.h"
 #include "SessionServices.h"
 #include "Slate.h"
-#include "TargetDeviceServices.h"
 
 
 /* Interfaces
