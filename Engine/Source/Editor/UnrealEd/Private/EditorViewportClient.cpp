@@ -209,6 +209,7 @@ FEditorViewportClient::FEditorViewportClient(FPreviewScene* InPreviewScene)
 	, LastMouseY(0)
 	, CachedMouseX(0)
 	, CachedMouseY(0)
+	, CurrentMousePos(-1, -1)
 	, bIsRealtime(false)
 	, bStoredRealtime(false)
 	, bStoredShowFPS(false)
@@ -610,6 +611,7 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
 	ViewInitOptions.bUseFauxOrthoViewPos = true;
 
 	ViewInitOptions.OverrideFarClippingPlaneDistance = FarPlane;
+	ViewInitOptions.CursorPos = CurrentMousePos;
 
 	FSceneView* View = new FSceneView(ViewInitOptions);
 
@@ -1929,8 +1931,6 @@ void FEditorViewportClient::ProcessClickInViewport( const FInputEventState& Inpu
 		const int32	HitX = InputStateViewport->GetMouseX();
 		const int32	HitY = InputStateViewport->GetMouseY();
 		
-		FIntPoint CurrentMousePos(HitX,HitY);
-
 		// Calc the raw delta from the mouse to detect if there was any movement
 		FVector RawMouseDelta = MouseDeltaTracker->GetScreenDelta();
 
@@ -3656,6 +3656,17 @@ void FEditorViewportClient::OnJoystickPlugged(const uint32 InControllerID, const
 void FEditorViewportClient::MouseMove(FViewport* InViewport,int32 x, int32 y)
 {
 	check(IsInGameThread());
+
+	CurrentMousePos = FIntPoint(x, y);
+}
+
+void FEditorViewportClient::MouseLeave( FViewport* Viewport )
+{
+	check(IsInGameThread());
+
+	CurrentMousePos = FIntPoint(-1, -1);
+
+	FCommonViewportClient::MouseLeave(Viewport);
 }
 
 void FEditorViewportClient::CapturedMouseMove( FViewport* InViewport, int32 InMouseX, int32 InMouseY )

@@ -255,7 +255,7 @@ private:
 	FReply CurrentReplyState;
 	/** A mapping of key names to their pressed state */
 	TMap<FKey,bool> KeyStateMap;
-	/** The last known mouse position in local space */
+	/** The last known mouse position in local space, -1, -1 if unknown */
 	FIntPoint CachedMousePos;
 	/** The last known geometry info */
 	FGeometry CachedGeometry;

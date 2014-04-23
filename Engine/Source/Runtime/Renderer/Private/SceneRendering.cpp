@@ -767,7 +767,7 @@ void FSceneRenderer::RenderFinish()
 				continue;
 			}
 
-			GRenderTargetPool.VisualizeTexture.PresentContent(View);
+			GRenderTargetPool.PresentContent(View);
 		}
 	}
 

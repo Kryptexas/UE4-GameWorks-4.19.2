@@ -339,7 +339,10 @@ struct IPooledRenderTarget : public IRefCountedObject
 	virtual const FPooledRenderTargetDesc& GetDesc() const = 0;
 	/** @param InName must not be 0 */
 	virtual void SetDebugName(const TCHAR *InName) = 0;
-	/** Only for debugging purpose */
+	/**
+	 * Only for debugging purpose
+	 * @return in bytes
+	 **/
 	virtual uint32 ComputeMemorySize() const = 0;
 	/** Get the low level internals (texture/surface) */
 	inline FSceneRenderTargetItem& GetRenderTargetItem() { return RenderTargetItem; }

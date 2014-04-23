@@ -2475,6 +2475,8 @@ struct FSceneViewInitOptions : public FSceneViewProjectionData
 
 	TSet<FPrimitiveComponentId> HiddenPrimitives;
 
+	// -1,-1 if not setup
+	FIntPoint CursorPos;
 
 	float LODDistanceFactor;
 
@@ -2505,6 +2507,7 @@ struct FSceneViewInitOptions : public FSceneViewProjectionData
 		, ColorScale(FLinearColor::White)
 		, StereoPass(eSSP_FULL)
 		, WorldToMetersScale(100.f)
+		, CursorPos(-1, -1)
 		, LODDistanceFactor(1.0f)
 		, OverrideFarClippingPlaneDistance(-1.0f)
 		, bInCameraCut(false)
@@ -2627,6 +2630,9 @@ public:
 
 	/** Whether we did a camera cut for this view this frame. */
 	bool bCameraCut;
+
+	// -1,-1 if not setup
+	FIntPoint CursorPos;
 
 	/** True if this scene was created from a game world. */
 	bool bIsGameView;

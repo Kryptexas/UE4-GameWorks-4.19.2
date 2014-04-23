@@ -509,6 +509,8 @@ void FDeferredShadingSceneRenderer::Render()
 		Scene->FXSystem->PreRender();
 	}
 
+	GRenderTargetPool.AddPhaseEvent(TEXT("EarlyZPass"));
+
 	// Draw the scene pre-pass / early z pass, populating the scene depth buffer and HiZ
 	RenderPrePass();
 	
@@ -556,6 +558,8 @@ void FDeferredShadingSceneRenderer::Render()
 		// Begin rendering to scene color
 		GSceneRenderTargets.BeginRenderingSceneColor(true);
 	}
+
+	GRenderTargetPool.AddPhaseEvent(TEXT("BasePass"));
 
 	RenderBasePass();
 
@@ -617,6 +621,8 @@ void FDeferredShadingSceneRenderer::Render()
 		&& ViewFamily.EngineShowFlags.DeferredLighting
 		)
 	{
+		GRenderTargetPool.AddPhaseEvent(TEXT("Lighting"));
+
 		// Pre-lighting composition lighting stage
 		// e.g. deferred decals, blurred GBuffer
 		for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
@@ -694,6 +700,8 @@ void FDeferredShadingSceneRenderer::Render()
 		}
 	}
 
+	GRenderTargetPool.AddPhaseEvent(TEXT("Fog"));
+
 	// Draw fog.
 	if(ShouldRenderFog(ViewFamily))
 	{
@@ -702,6 +710,8 @@ void FDeferredShadingSceneRenderer::Render()
 
 	// No longer needed, release
 	LightShaftOutput.LightShaftOcclusion = NULL;
+
+	GRenderTargetPool.AddPhaseEvent(TEXT("Translucency"));
 
 	// Draw translucency.
 	if(ViewFamily.EngineShowFlags.Translucency)

@@ -410,6 +410,7 @@ public:
 	virtual void ReceivedFocus(FViewport* Viewport) OVERRIDE;
 	virtual void OnJoystickPlugged(const uint32 InControllerID, const uint32 InType, const uint32 bInConnected)  OVERRIDE;
 	virtual void MouseMove(FViewport* Viewport,int32 x, int32 y) OVERRIDE;
+	virtual void MouseLeave( FViewport* Viewport ) OVERRIDE;
 	virtual EMouseCursor::Type GetCursor(FViewport* Viewport,int32 X,int32 Y) OVERRIDE;
 	virtual void CapturedMouseMove( FViewport* InViewport, int32 InMouseX, int32 InMouseY ) OVERRIDE;
 	virtual bool IsOrtho() const OVERRIDE;
@@ -1164,12 +1165,16 @@ protected:
 	bool bUseControllingActorViewInfo;
 	FMinimalViewInfo ControllingActorViewInfo;
 
+	/* Updated on each mouse drag start */
 	uint32 LastMouseX;
 	uint32 LastMouseY;
 
-	/** Represents the last known mouse position. */
+	/** Represents the last known mouse position. If the mouse stops moving it's not the current but the last position before the current location. */
 	uint32 CachedMouseX;
 	uint32 CachedMouseY;
+
+	// -1, -1 if not set
+	FIntPoint CurrentMousePos;
 
 	/**
 	 * true when within a FMouseDeltaTracker::StartTracking/EndTracking block.

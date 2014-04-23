@@ -709,6 +709,7 @@ void FPostProcessing::Process(const FViewInfo& View, TRefCountPtr<IPooledRenderT
 
 	bool bSimpleDynamicLighting = IsSimpleDynamicLightingEnabled();
 
+	GRenderTargetPool.AddPhaseEvent(TEXT("PostProcessing"));
 
 	// This page: https://udn.epicgames.com/Three/RenderingOverview#Rendering%20state%20defaults 
 	// describes what state a pass can expect and to what state it need to be set back.

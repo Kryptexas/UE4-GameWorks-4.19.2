@@ -317,6 +317,11 @@ void FRenderingCompositionGraph::RecursivelyProcess(const FRenderingCompositeOut
 				// to track down an issue, should never happen
 				check(OutputRefIt->GetPass());
 
+				if(GRenderTargetPool.IsEventRecordingEnabled() && Pass != Context.Root)
+				{
+					GRenderTargetPool.AddPhaseEvent(*Pass->ConstructDebugName());
+				}
+
 				Context.Pass = Pass;
 				RecursivelyProcess(*OutputRefIt, Context);
 			}

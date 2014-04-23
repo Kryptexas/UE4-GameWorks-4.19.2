@@ -15,6 +15,7 @@ extern EWindowMode::Type GetWindowModeType(EWindowMode::Type WindowMode);
 
 FSceneViewport::FSceneViewport( FViewportClient* InViewportClient, TSharedPtr<SViewport> InViewportWidget )
 	: FViewport( InViewportClient )
+	, CachedMousePos(-1, -1)
 	, CurrentReplyState( FReply::Unhandled() )
 	, PreCaptureMousePos( -1, -1 )
 	, SoftwareCursorPosition( 0, 0 )
@@ -383,6 +384,7 @@ void FSceneViewport::OnMouseEnter( const FGeometry& MyGeometry, const FPointerEv
 
 void FSceneViewport::OnMouseLeave( const FPointerEvent& MouseEvent )
 {
+	CachedMousePos = FIntPoint(-1, -1);
 	ViewportClient->MouseLeave( this );
 }
 
