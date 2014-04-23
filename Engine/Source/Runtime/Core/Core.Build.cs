@@ -111,9 +111,13 @@ public class Core : ModuleRules
 				"zlib",
 				"jemalloc",
 				"elftoolchain",
-				"SDL2",
-                		"SteamController"
+				"SDL2"
                 );
+
+            if (UEBuildConfiguration.bCompileAgainstEngine == true)
+            {
+                AddThirdPartyPrivateStaticDependencies(Target, "SteamController");
+            }
         }
 		else if (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32")
 		{
