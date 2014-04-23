@@ -440,6 +440,13 @@ bool UNetConnection::ClientHasInitializedLevelFor(const UObject* TestObject)
 			ClientVisibleLevelNames.Contains(Level->GetOutermost()->GetFName()) );
 }
 
+void UNetConnection::ValidateOut()
+{
+	if ( Out.IsError() )
+	{
+		UE_LOG( LogNetTraffic, Fatal, TEXT( "UNetConnection::ValidateOut: Out.IsError() == true. NumBits: %i, NumBytes: %i, MaxBits: %i" ), Out.GetNumBits(), Out.GetNumBytes(), Out.GetMaxBits() );
+	}
+}
 
 void UNetConnection::InitOut()
 {
@@ -455,6 +462,8 @@ void UNetConnection::InitOut()
 		// First time initialization needs to allocate the buffer
 		Out = FBitWriter(MaxPacket * 8);
 	}
+
+	ValidateOut();
 }
 
 void UNetConnection::ReceivedRawPacket( void* InData, int32 Count )
@@ -498,7 +507,7 @@ void UNetConnection::ReceivedRawPacket( void* InData, int32 Count )
 void UNetConnection::FlushNet(bool bIgnoreSimulation)
 {
 	// Update info.
-	check(!Out.IsError());
+	ValidateOut();
 	LastEnd = FBitWriterMark();
 	TimeSensitive = 0;
 
@@ -513,12 +522,12 @@ void UNetConnection::FlushNet(bool bIgnoreSimulation)
 
 		// Make sure packet size is byte-aligned.
 		Out.WriteBit( 1 );
-		check(!Out.IsError());
+		ValidateOut();
 		while( Out.GetNumBits() & 7 )
 		{
 			Out.WriteBit( 0 );
 		}
-		check(!Out.IsError());
+		ValidateOut();
 
 		// Send now.
 #if DO_ENABLE_NET_TEST
@@ -657,6 +666,8 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 		ensureMsgf(false, TEXT("Packet too small") );
 		return;
 	}
+
+	ValidateOut();
 
 	// Update receive time to avoid timeout.
 	LastReceiveTime = Driver->Time;
@@ -999,6 +1010,8 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 		}
 	}
 
+	ValidateOut();
+
 	// Acknowledge the packet.
 	if ( !bSkipAck )
 	{
@@ -1008,6 +1021,8 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 
 void UNetConnection::PreSend( int32 SizeBits )
 {
+	ValidateOut();
+
 	// Flush if not enough space.
 	if( GetRemainingPacketBits() < SizeBits)
 		FlushNet();
@@ -1017,12 +1032,14 @@ void UNetConnection::PreSend( int32 SizeBits )
 	{
 		Out.WriteIntWrapped(OutPacketId, MAX_PACKETID);
 		check(Out.GetNumBits()<=MAX_PACKET_HEADER_BITS);
-		check(!Out.IsError());		// Shouldn't be possible, but just in case
+		ValidateOut();
 	}
 
 	// Make sure there's enough space now.
 	if( Out.GetNumBits() + SizeBits + MAX_PACKET_TRAILER_BITS > MaxPacket*8 )
+	{
 		UE_LOG(LogNet, Fatal, TEXT("PreSend overflowed: %i+%i>%i"), Out.GetNumBits(), SizeBits, MaxPacket*8 );
+	}
 }
 
 /** Returns number of bits left in current packet that can be used without causing a flush  */
@@ -1036,7 +1053,9 @@ void UNetConnection::PostSend()
 	// If absolutely filled now, flush so that MaxSend() doesn't return zero unnecessarily.
 	check(Out.GetNumBits()<=MaxPacket*8);
 	if( Out.GetNumBits()==MaxPacket*8 )
+	{
 		FlushNet();
+	}
 }
 
 
@@ -1050,6 +1069,8 @@ void UNetConnection::PurgeAcks()
 
 void UNetConnection::SendAck( int32 AckPacketId, bool FirstTime/*=1*/, bool bHavePingAckData/*=0*/, uint32 PingAckData/*=0*/ )
 {
+	ValidateOut();
+
 	if( !InternalAck )
 	{
 		if( FirstTime )
@@ -1068,17 +1089,19 @@ void UNetConnection::SendAck( int32 AckPacketId, bool FirstTime/*=1*/, bool bHav
 
 		PreSend(SendSize);
 		Out.WriteBit( 1 );
-		check(!Out.IsError());
+		ValidateOut();
 		Out.WriteIntWrapped(AckPacketId, MAX_PACKETID);
-		check(!Out.IsError());
+		ValidateOut();
 
 		if (bPingAck)
 		{
 			Out.WriteBit(bHavePingAckData);
+			ValidateOut();
 
 			if (bHavePingAckData)
 			{
 				Out.Serialize(&PingAckData, sizeof(uint32));
+				ValidateOut();
 			}
 		}
 
@@ -1092,6 +1115,7 @@ void UNetConnection::SendAck( int32 AckPacketId, bool FirstTime/*=1*/, bool bHav
 
 int32 UNetConnection::SendRawBunch( FOutBunch& Bunch, bool InAllowMerge )
 {
+	ValidateOut();
 	check(!Bunch.ReceivedAck);
 	check(!Bunch.IsError());
 	Driver->OutBunches++;
@@ -1156,11 +1180,11 @@ int32 UNetConnection::SendRawBunch( FOutBunch& Bunch, bool InAllowMerge )
 
 	Out.SerializeBits( Header.GetData(), Header.GetNumBits() );
 
-	check( !Out.IsError() );
+	ValidateOut();
 
 	Out.SerializeBits( Bunch .GetData(), Bunch .GetNumBits() );
 
-	check( !Out.IsError() );
+	ValidateOut();
 
 	if ( PackageMap && Bunch.bHasGUIDs )
 	{

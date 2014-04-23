@@ -561,6 +561,8 @@ FPacketIdRange UChannel::SendBunch( FOutBunch* Bunch, bool Merge )
 		Merge = false;
 	}
 
+	Connection->ValidateOut();
+
 	//-----------------------------------------------------
 	// Contemplate merging.
 	//-----------------------------------------------------
@@ -587,6 +589,8 @@ FPacketIdRange UChannel::SendBunch( FOutBunch* Bunch, bool Merge )
 		Connection->LastStart.Pop( Connection->Out );
 		Connection->Driver->OutBunches--;
 	}
+
+	Connection->ValidateOut();
 
 	//-----------------------------------------------------
 	// Possibly split large bunch into list of smaller partial bunches
