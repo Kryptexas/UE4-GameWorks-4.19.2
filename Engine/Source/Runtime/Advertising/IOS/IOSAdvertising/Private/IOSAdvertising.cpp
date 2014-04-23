@@ -3,11 +3,11 @@
 #include "IOSAdvertising.h"
 #include "IOSAppDelegate.h"
 
+#import <iAd/ADBannerView.h>
+
 DEFINE_LOG_CATEGORY_STATIC( LogAdvertising, Display, All );
 
 IMPLEMENT_MODULE( FIOSAdvertisingProvider, IOSAdvertising );
-
-#import <iAd/ADBannerView.h>
 
 @interface IOSAdvertising : UIResponder <ADBannerViewDelegate>
 	/** iAd banner view, if open */
@@ -66,7 +66,6 @@ static bool bWantVisibleBanner = false;
 	if (bNeedsToAddSubview)
 	{
 		[[IOSAppDelegate GetDelegate].RootView addSubview : self.BannerView];
-
 	}
 	else// if (self.BannerView.bannerLoaded)
 	{
