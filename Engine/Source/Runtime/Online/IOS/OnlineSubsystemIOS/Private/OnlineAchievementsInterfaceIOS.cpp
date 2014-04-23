@@ -241,20 +241,17 @@ EOnlineCachedResult::Type FOnlineAchievementsIOS::GetCachedAchievements(const FU
 	return (OutAchievements.Num() > 0) ? EOnlineCachedResult::Success : EOnlineCachedResult::NotFound;
 }
 
-
 EOnlineCachedResult::Type FOnlineAchievementsIOS::GetCachedAchievementDescription(const FString& AchievementId, FOnlineAchievementDesc& OutAchievementDesc)
 {
 	if (FOnlineAchievementDesc* FoundDesc = AchievementDescriptions.Find(AchievementId))
 	{
 		OutAchievementDesc = *FoundDesc;
+		return EOnlineCachedResult::Success;
 	}
-	return (FoundDesc != NULL) ? EOnlineCachedResult::Success : EOnlineCachedResult::NotFound;
-}
-
-
-FString FOnlineAchievementsIOS::NormalizeAchievementName(const FString& InAchievementId)
-{
-	return InAchievementId;
+	else
+	{
+		return EOnlineCachedResult::NotFound;
+	}
 }
 
 #if !UE_BUILD_SHIPPING
