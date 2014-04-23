@@ -125,6 +125,8 @@ class ENGINE_API UNavigationComponent : public UActorComponent, public INavigati
 		}
 	}
 
+	FORCEINLINE FVector GetQueryExtent() const { return NavigationQueryExtent; }
+
 	//----------------------------------------------------------------------//
 	// misc
 	//----------------------------------------------------------------------//
@@ -171,6 +173,9 @@ protected:
 	/** associated path following component */
 	UPROPERTY(transient)
 	class UPathFollowingComponent* PathFollowComp;
+
+	/** default query extent to use. It's a sum of navigation data's default query extent and nav agent's size */
+	mutable FVector NavigationQueryExtent;
 
 	/** Shared path - there can be multiple users of one path instance. No not modify it, unless you know what you're doing */
 	FNavPathSharedPtr Path;
@@ -241,6 +246,9 @@ protected:
 
 	/** asks NavigationSystem for NavigationData appropriate for self and caches it in MyNavData */
 	class ANavigationData* PickNavData() const;
+
+	/** called as part of PickNavData to update NavigationQueryExtent */
+	virtual void CacheNavQueryExtent() const;
 
 	/** Generates simple path in straight line without using navigation data. */
 	bool GenerateSimplePath(const FVector& GoalLocation);
