@@ -1495,6 +1495,10 @@ public class GUBP : BuildCommand
             }
             return Result;
         }
+        public override int TimeoutInMinutes()
+        {
+            return 0;
+        }
     }
 
     public class WaitForPromotionUserInput : WaitForUserInput
