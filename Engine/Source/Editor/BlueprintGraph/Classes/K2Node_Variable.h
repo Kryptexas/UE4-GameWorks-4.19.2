@@ -4,6 +4,16 @@
 #pragma once
 #include "K2Node_Variable.generated.h"
 
+UENUM()
+namespace ESelfContextInfo
+{
+	enum Type
+	{
+		Unspecified,
+		NotSelfContext,
+	};
+}
+
 UCLASS(MinimalAPI, abstract)
 class UK2Node_Variable : public UK2Node
 {
@@ -12,6 +22,9 @@ class UK2Node_Variable : public UK2Node
 	/** Reference to variable we want to set/get */
 	UPROPERTY()
 	FMemberReference	VariableReference;
+
+	UPROPERTY()
+	TEnumAsByte<ESelfContextInfo::Type> SelfContextInfo;
 
 protected:
 	/** Class that this variable is defined in. Should be NULL if bSelfContext is true.  */
