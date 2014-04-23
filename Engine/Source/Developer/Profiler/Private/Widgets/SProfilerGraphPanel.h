@@ -43,7 +43,9 @@ protected:
 	 *
 	 * @param ScrollOffset - scroll offset as a fraction between 0 and 1.
 	 */
-	void ScrollBar_OnUserScrolled( float ScrollOffset );
+	void HorizontalScrollBar_OnUserScrolled( float ScrollOffset );
+
+	void VerticalScrollBar_OnUserScrolled( float ScrollOffset );
 
 	/** Called when the frame offset has been changed in the data graph widget. */
 	void OnDataGraphGraphOffsetChanged( int32 InFrameOffset );
@@ -65,8 +67,11 @@ protected:
 	/** Holds the data graph widget. */
 	TSharedPtr<SDataGraph> DataGraph;
 
-	/** Widget used for scrolling graphs. */
-	TSharedPtr<SScrollBar> ScrollBar;
+	/** Horizontal scroll bar, used for scrolling graphs. */
+	TSharedPtr<SScrollBar> HorizontalScrollBar;
+
+	/** Vertical scroll bar, used for scrolling graphs. */
+	TSharedPtr<SScrollBar> VerticalScrollBar;
 
 	/** Number of graph points. */
 	int32 NumDataPoints;
