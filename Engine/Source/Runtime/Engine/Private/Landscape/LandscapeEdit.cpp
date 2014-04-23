@@ -3854,6 +3854,26 @@ void ULandscapeComponent::SetLOD(bool bForcedLODChanged, int32 InLODValue)
 	FComponentReregisterContext ReregisterContext(this);
 }
 
+void ULandscapeComponent::PreEditChange(UProperty* PropertyThatWillChange)
+{
+	Super::PreEditChange(PropertyThatWillChange);
+	if (GIsEditor && PropertyThatWillChange && (PropertyThatWillChange->GetName() == TEXT("ForcedLOD") || PropertyThatWillChange->GetName() == TEXT("LODBias")))
+	{
+		// PreEdit unregister component and re-register after PostEdit so we will lose XYtoComponentMap for this component
+		ULandscapeInfo* Info = GetLandscapeInfo(false);
+		if (Info)
+		{
+			FIntPoint ComponentKey = GetSectionBase() / ComponentSizeQuads;
+			auto RegisteredComponent = Info->XYtoComponentMap.FindRef(ComponentKey);
+
+			if (RegisteredComponent == NULL)
+			{
+				Info->XYtoComponentMap.Add(ComponentKey, this);
+			}
+		}
+	}
+}
+
 void ULandscapeComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);

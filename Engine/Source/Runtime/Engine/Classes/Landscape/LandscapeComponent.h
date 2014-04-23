@@ -230,6 +230,7 @@ public:
 #if WITH_EDITOR
 	virtual void PostLoad() OVERRIDE;
 	virtual void PostEditUndo() OVERRIDE;
+	virtual void PreEditChange(UProperty* PropertyThatWillChange) OVERRIDE;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
 	// End UObject interface
 
