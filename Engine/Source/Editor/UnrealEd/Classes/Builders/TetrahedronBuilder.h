@@ -12,9 +12,11 @@ class UTetrahedronBuilder : public UEditorBrushBuilder
 {
 	GENERATED_UCLASS_BODY()
 
+	/** The radius of this sphere */
 	UPROPERTY(EditAnywhere, Category=BrushSettings, meta=(ClampMin = "0.000001"))
 	float Radius;
 
+	/** How many iterations this sphere uses to tessellate its geometry */
 	UPROPERTY(EditAnywhere, Category=BrushSettings, meta=(ClampMin = "1", ClampMax = "5",DisplayName="Tessellation"))
 	int32 SphereExtrapolation;
 
