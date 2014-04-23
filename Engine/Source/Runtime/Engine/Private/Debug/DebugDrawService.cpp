@@ -57,7 +57,7 @@ void UDebugDrawService::Draw(const FEngineShowFlags Flags, FViewport* Viewport, 
 		CanvasObject->AddToRoot();
 	}
 	
-	CanvasObject->Init(View->ViewRect.Width(), View->ViewRect.Height(), View);
+	CanvasObject->Init(View->UnscaledViewRect.Width(), View->UnscaledViewRect.Height(), View);
 	CanvasObject->Update();	
 	CanvasObject->Canvas = Canvas;
 
