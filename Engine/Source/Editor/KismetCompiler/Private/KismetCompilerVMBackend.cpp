@@ -458,7 +458,7 @@ public:
 					}
 
 					// Assume that any errors on the import of the name string have been caught in the function call generation
-					StructProperty->ImportText(*Term->Name, StructData, 0, NULL, GLog);
+					StructProperty->ImportText(Term->Name.IsEmpty() ? TEXT("()") : *Term->Name, StructData, 0, NULL, GLog);
 
  					Writer << EX_StructConst;
 					Writer << Struct;
