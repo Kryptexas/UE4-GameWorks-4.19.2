@@ -388,7 +388,7 @@ public:
 	 * @param  AssetPath	A path detailing the asset in question (in the form of <PackageName>.<AssetName>)
 	 * @return True if a blueprint can be found with a matching package/name, false if no corresponding blueprint was found.
 	 */
-	static bool IsBlueprintLoaded(FString const& AssetPath)
+	static bool IsBlueprintLoaded(FString const& AssetPath, UBlueprint** BlueprintOut = nullptr)
 	{
 		bool bIsLoaded = false;
 
@@ -400,6 +400,10 @@ public:
 			if (UBlueprint* ExistingBP = Cast<UBlueprint>(StaticFindObject(UBlueprint::StaticClass(), ExistingPackage, *AssetName)))
 			{
 				bIsLoaded = true;
+				if (BlueprintOut != nullptr)
+				{
+					*BlueprintOut = ExistingBP;
+				}
 			}
 		}
 
@@ -700,9 +704,10 @@ bool FBlueprintCompileOnLoadTest::RunTest(const FString& BlueprintAssetPath)
 {
 	FCompilerResultsLog Results;
 
+	UBlueprint* ExistingBP = nullptr;
 	// if this blueprint was already loaded, then these tests are invalidated 
 	// (because dependencies have already been loaded)
-	if (FBlueprintAutomationTestUtilities::IsBlueprintLoaded(BlueprintAssetPath))
+	if (FBlueprintAutomationTestUtilities::IsBlueprintLoaded(BlueprintAssetPath, &ExistingBP))
 	{
 		if (FBlueprintAutomationTestUtilities::IsAssetUnsaved(BlueprintAssetPath))
 		{
@@ -711,7 +716,8 @@ bool FBlueprintCompileOnLoadTest::RunTest(const FString& BlueprintAssetPath)
 		}
 		else 
 		{
-			AddWarning(FString::Printf(TEXT("Invalid test, blueprint has previously been loaded: '%s'"), *BlueprintAssetPath));
+			AddWarning(FString::Printf(TEXT("Test may be invalid (the blueprint is already loaded): '%s'"), *BlueprintAssetPath));
+			FBlueprintAutomationTestUtilities::UnloadBlueprint(ExistingBP);
 		}		
 	}
 
