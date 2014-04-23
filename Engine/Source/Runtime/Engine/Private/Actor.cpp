@@ -1083,6 +1083,11 @@ void AActor::SetOwner( AActor *NewOwner )
 	}
 }
 
+AActor* AActor::GetOwner() const
+{ 
+	return Owner; 
+}
+
 void AActor::AttachRootComponentTo(USceneComponent* InParent, FName InSocketName, EAttachLocation::Type AttachLocationType /*= EAttachLocation::KeepRelativeOffset */)
 {
 	if(RootComponent && InParent)

@@ -1389,7 +1389,8 @@ public:
 	/** Set the owner for this Actor */
 	void SetOwner( AActor* NewOwner );
 
-	AActor* GetOwner() const { return Owner; }
+	UFUNCTION(BlueprintCallable, Category=Actor)
+	AActor* GetOwner() const;
 
 	/**
 	 * This will check to see if the Actor is still in the world.  It will check things like
