@@ -497,6 +497,10 @@ void FSlateElementBatcher::AddTextElement( const FVector2D& Position, const FVec
 			{
 				Kerning = CharacterList.GetKerning( PreviousChar, CurrentChar );
 			}
+			else
+			{
+				Kerning = 0;
+			}
 
 			LineX += Kerning;
 			PreviousChar = CurrentChar;
