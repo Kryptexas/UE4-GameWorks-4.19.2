@@ -1074,14 +1074,7 @@ struct FAsyncParticleFill
 	/** Work function, just forwards the request to the parent  */
 	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent);
 
-	/** Give the name for external event viewers
-	* @return	the name to display in external event viewers
-	*/
-	static const TCHAR *GetTaskName()
-	{
-		return TEXT("FAsyncParticleFill");
-	}
-	FORCEINLINE static TStatId GetStatId()
+	FORCEINLINE TStatId GetStatId() const
 	{
 		RETURN_QUICK_DECLARE_CYCLE_STAT(FAsyncParticleFill, STATGROUP_TaskGraphTasks);
 	}

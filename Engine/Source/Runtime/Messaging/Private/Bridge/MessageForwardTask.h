@@ -62,7 +62,7 @@ public:
 	 *
 	 * @return Stats identifier.
 	 */
-	static TStatId GetStatId( );
+	TStatId GetStatId() const;
 
 	/**
 	 * Gets the mode for tracking subsequent tasks.
@@ -72,16 +72,6 @@ public:
 	static ESubsequentsMode::Type GetSubsequentsMode( ) 
 	{ 
 		return ESubsequentsMode::TrackSubsequents; 
-	}
-
-	/**
-	 * Gets the name of this task.
-	 *
-	 * @return Task name.
-	 */
-	static const TCHAR* GetTaskName( )
-	{
-		return TEXT("FMessageForwardTask");
 	}
 
 private:

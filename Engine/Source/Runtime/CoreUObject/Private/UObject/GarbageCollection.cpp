@@ -372,11 +372,7 @@ private:
 				NumObjects--;
 			}
 		}
-		static const TCHAR* GetTaskName()
-		{
-			return TEXT("FGCTask");
-		}
-		FORCEINLINE static TStatId GetStatId()
+		FORCEINLINE TStatId GetStatId() const
 		{
 			RETURN_QUICK_DECLARE_CYCLE_STAT(FGCTask, STATGROUP_TaskGraphTasks);
 		}

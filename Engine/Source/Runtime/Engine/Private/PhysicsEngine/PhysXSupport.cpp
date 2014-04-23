@@ -540,12 +540,7 @@ public:
 		Task.release();
 	}
 
-	static const TCHAR* GetTaskName()
-	{
-		return TEXT("FPhysXTask"); // @TODO Use Task.getName()
-	}
-
-	FORCEINLINE static TStatId GetStatId()
+	FORCEINLINE TStatId GetStatId() const
 	{
 		RETURN_QUICK_DECLARE_CYCLE_STAT(FPhysXTask, STATGROUP_TaskGraphTasks);
 	}

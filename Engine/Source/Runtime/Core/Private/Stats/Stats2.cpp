@@ -641,11 +641,7 @@ public:
 		: Packet(InPacket)
 	{
 	}
-	static const TCHAR* GetTaskName()
-	{
-		return TEXT("FStatMessagesTask");
-	}
-	FORCEINLINE static TStatId GetStatId()
+	FORCEINLINE TStatId GetStatId() const
 	{
 		return TStatId(); // we don't want to record this or it spams the stat system; we cover this time when we tick the stats system
 	}

@@ -19,10 +19,7 @@
 DECLARE_STATS_GROUP(TEXT("Task Graph Tasks"), STATGROUP_TaskGraphTasks);
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("FReturnGraphTask"), STAT_FReturnGraphTask, STATGROUP_TaskGraphTasks, CORE_API);
-DECLARE_CYCLE_STAT_EXTERN(TEXT("FNullGraphTask"), STAT_FNullGraphTask, STATGROUP_TaskGraphTasks, CORE_API);
 DECLARE_CYCLE_STAT_EXTERN(TEXT("FTriggerEventGraphTask"), STAT_FTriggerEventGraphTask, STATGROUP_TaskGraphTasks, CORE_API);
-DECLARE_CYCLE_STAT_EXTERN(TEXT("FSimpleDelegateGraphTask"), STAT_FSimpleDelegateGraphTask, STATGROUP_TaskGraphTasks, CORE_API);
-DECLARE_CYCLE_STAT_EXTERN(TEXT("FSimpleDelegateGraphTask"), STAT_FDelegateGraphTask, STATGROUP_TaskGraphTasks, CORE_API);
 
 namespace ENamedThreads
 {
@@ -272,13 +269,6 @@ private:
 	 **/
 	virtual void ExecuteTask(TArray<FBaseGraphTask*>& NewTasks, ENamedThreads::Type CurrentThread)=0;
 
-	/** 
-	 *	Virtual call to retrieve the task name.
-	 *	@return the name of the task. This returned string should be static memory, usable until the end of time.
-	 **/
-	virtual const TCHAR* GetTaskName()=0;
-
-
 	// API called from other parts of the system
 
 	/** 
@@ -303,16 +293,6 @@ private:
 		checkThreadGraph(LifeStage.Increment() == int32(LS_Executing));
 		ExecuteTask(NewTasks, CurrentThread);
 	}
-
-	/** 
-	 *	Called by the system to retrieve a task name for debugging or profilers. Just calls the virtual version.
-	 *	@return the name of the task. This returned string should be static memory, usable until the end of time.
-	 **/
-	const TCHAR* GetDebugName()
-	{
-		return GetTaskName();
-	}
-
 
 	// Internal Use
 
@@ -500,11 +480,7 @@ public:
 	{
 		// you will be destroyed immediately after you execute. Might as well do cleanup in DoWork, but you could also use a destructor.
 	}
-	static const TCHAR* GetTaskName()
-	{
-		return TEXT("FGenericTask"); // this must return a pointer to memory usable until the end of time.
-	}
-	FORCEINLINE static TStatId GetStatId()
+	FORCEINLINE TStatId GetStatId() const
 	{
 		RETURN_QUICK_DECLARE_CYCLE_STAT(FGenericTask, STATGROUP_TaskGraphTasks);
 	}
@@ -653,14 +629,20 @@ private:
 		
 		TTask& Task = *(TTask*)&TaskStorage;
 		{
-			FScopeCycleCounter Scope(TTask::GetStatId()); 
+			FScopeCycleCounter Scope(Task.GetStatId()); 
 			Task.DoTask(CurrentThread, Subsequents);
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 			if (TTask::GetSubsequentsMode() == ESubsequentsMode::TrackSubsequents)
 			{
 				if (!Subsequents->CheckSubsequents())
 				{
-					LogPossiblyInvalidSubsequentsTask(Task.GetTaskName());					
+					LogPossiblyInvalidSubsequentsTask(
+#if STATS
+						*Task.GetStatId()->ToString()
+#else
+						TEXT("Unknown")
+#endif
+					);
 				}
 			}	
 #endif
@@ -686,17 +668,6 @@ private:
 			delete this;
 		}
 	}
-	/** 
-	 *	Virtual call to retrieve the task name.
-	 *	@return the name of the task. This returned string should be static memory, usable until the end of time.
-	 **/
-	virtual const TCHAR* GetTaskName()
-	{
-		checkThreadGraph(TaskConstructed);
-		TTask& Task = *(TTask*)&TaskStorage;
-		return Task.GetTaskName();
-	}
-
 
 	// Internals 
 
@@ -796,15 +767,8 @@ public:
 	{
 		checkThreadGraph(ThreadToReturnFrom != ENamedThreads::AnyThread); // doesn't make any sense to return from any thread
 	}
-	/** 
-	 *	Retrieve the task name.
-	 *	@return the name of the task. This returned string should be static memory, usable until the end of time.
-	 **/
-	static const TCHAR* GetTaskName()
-	{
-		return TEXT("FReturnGraphTask");
-	}
-	FORCEINLINE static TStatId GetStatId()
+
+	FORCEINLINE TStatId GetStatId() const
 	{
 		return GET_STATID(STAT_FReturnGraphTask);
 	}
@@ -837,10 +801,58 @@ private:
 	ENamedThreads::Type ThreadToReturnFrom;
 };
 
+/**
+ * Class that generalizes functionality of creating, storing and exposing stat id for custom name.
+ * Should only be used as a base of a task graph class with custom stat name.
+ */
+class FCustomNameGraphTaskBase
+{
+public:
+	/** 
+	 * Creates the custom stat id.
+	 *
+	 * @param TaskClassName The name of generic class name for stats e.g. FNullTaskGraph
+	 * @param InTaskName The name of this task.
+	 */
+	FCustomNameGraphTaskBase(const TCHAR* TaskClassName, const TCHAR* TaskName)
+	{
+#if STATS
+		const FName StatName = FName(*(FString(TaskClassName) + TEXT(".") + FString(TaskName)));
+
+		FStartupMessages::Get().AddMetadata(StatName, TEXT(""),
+			STAT_GROUP_TO_FStatGroup(STATGROUP_TaskGraphTasks)::GetGroupName(),
+			STAT_GROUP_TO_FStatGroup(STATGROUP_TaskGraphTasks)::GetDescription(),
+			true, EStatDataType::ST_int64, true);
+
+		StatID = IStatGroupEnableManager::Get().GetHighPerformanceEnableForStat(StatName,
+			STAT_GROUP_TO_FStatGroup(STATGROUP_TaskGraphTasks)::GetGroupName(),
+			STAT_GROUP_TO_FStatGroup(STATGROUP_TaskGraphTasks)::DefaultEnable,
+			true, EStatDataType::ST_int64, TEXT(""), true);
+#endif
+	}
+
+	/** 
+	 * Gets stat id for this task.
+	 *
+	 * @return Stat id.
+	 */
+	FORCEINLINE TStatId GetStatId() const
+	{
+#if STATS
+		return StatID;
+#endif
+		return TStatId();
+	}
+
+private:
+	/** Stat id of this object. */
+	STAT(TStatId StatID;)
+};
+
 /** 
  *	FNullGraphTask is a task that does nothing. It can be used to "gather" tasks into one prerequisite.
  **/
-class FNullGraphTask
+class FNullGraphTask : public FCustomNameGraphTaskBase
 {
 public:
 	/** 
@@ -849,22 +861,9 @@ public:
 	 *	@param InDesiredThread; Thread to run on, can be ENamedThreads::AnyThread
 	**/
 	FNullGraphTask(const TCHAR*	InTaskName, ENamedThreads::Type InDesiredThread = ENamedThreads::AnyThread)
-		: DesiredThread(InDesiredThread)
-		, TaskName(InTaskName)
+		: FCustomNameGraphTaskBase(TEXT("FNullGraphTask"), InTaskName)
+		, DesiredThread(InDesiredThread)
 	{
-	}
-
-	/** 
-	 *	Retrieve the task name.
-	 *	@return the name of the task. This returned string should be static memory, usable until the end of time.
-	 **/
-	const TCHAR* GetTaskName()
-	{
-		return TaskName;
-	}
-	FORCEINLINE static TStatId GetStatId()
-	{
-		return GET_STATID(STAT_FNullGraphTask);
 	}
 
 	/** 
@@ -890,8 +889,6 @@ public:
 private:
 	/** Thread to run on, can be ENamedThreads::AnyThread **/
 	ENamedThreads::Type DesiredThread;
-	/** Name of the task **/
-	const TCHAR*		TaskName;
 };
 
 /** 
@@ -910,11 +907,7 @@ public:
 		check(Event);
 	}
 
-	static const TCHAR* GetTaskName()
-	{
-		return TEXT("FTriggerEventGraphTask");
-	}
-	FORCEINLINE static TStatId GetStatId()
+	FORCEINLINE TStatId GetStatId() const
 	{
 		return GET_STATID(STAT_FTriggerEventGraphTask);
 	}
@@ -935,15 +928,13 @@ private:
 };
 
 /** Task class for simple delegate based tasks. This is less efficient than a custom task, doesn't provide the task arguments, doesn't allow specification of the current thread, etc. **/
-class FSimpleDelegateGraphTask
+class FSimpleDelegateGraphTask : public FCustomNameGraphTaskBase
 {
 public:
 	DECLARE_DELEGATE(FDelegate);
 
 	/** Delegate to fire when task runs **/
 	FDelegate							TaskDelegate;
-	/** Name of the task, static memory **/
-	const TCHAR*						TaskName;
 	/** Thread to run delegate on **/
 	const ENamedThreads::Type			DesiredThread;
 public:
@@ -953,14 +944,6 @@ public:
 	}
 	static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }
 
-	const TCHAR* GetTaskName()
-	{
-		return TaskName;
-	}
-	FORCEINLINE static TStatId GetStatId()
-	{
-		return GET_STATID(STAT_FSimpleDelegateGraphTask);
-	}
 	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 	{
 		TaskDelegate.ExecuteIfBound();
@@ -972,8 +955,8 @@ public:
 	  * @param InDesiredThread - Thread to run on
 	**/
 	FSimpleDelegateGraphTask(const FDelegate& InTaskDeletegate, const TCHAR* InTaskName, ENamedThreads::Type InDesiredThread)
-		: TaskDelegate(InTaskDeletegate)
-		, TaskName(InTaskName)
+		: FCustomNameGraphTaskBase(TEXT("FSimpleDelegateGraphTask"), InTaskName)
+		, TaskDelegate(InTaskDeletegate)
 		, DesiredThread(InDesiredThread)
 	{
 	}
@@ -1008,15 +991,13 @@ public:
 };
 
 /** Task class for more full featured delegate based tasks. Still less efficient than a custom task, but provides all of the args **/
-class FDelegateGraphTask
+class FDelegateGraphTask : public FCustomNameGraphTaskBase
 {
 public:
 	DECLARE_DELEGATE_TwoParams( FDelegate,ENamedThreads::Type, const  FGraphEventRef& );
 
 	/** Delegate to fire when task runs **/
 	FDelegate							TaskDelegate;
-	/** Name of the task, static memory **/
-	const TCHAR*						TaskName;
 	/** Thread to run delegate on **/
 	const ENamedThreads::Type			DesiredThread;
 public:
@@ -1027,14 +1008,6 @@ public:
 	static ESubsequentsMode::Type GetSubsequentsMode() 
 	{ 
 		return ESubsequentsMode::TrackSubsequents; 
-	}
-	const TCHAR* GetTaskName()
-	{
-		return TaskName;
-	}
-	FORCEINLINE static TStatId GetStatId()
-	{
-		return GET_STATID(STAT_FDelegateGraphTask);
 	}
 	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 	{
@@ -1047,8 +1020,8 @@ public:
 	  * @param InDesiredThread - Thread to run on
 	**/
 	FDelegateGraphTask(const FDelegate& InTaskDeletegate, const TCHAR* InTaskName, ENamedThreads::Type InDesiredThread)
-		: TaskDelegate(InTaskDeletegate)
-		, TaskName(InTaskName)
+		: FCustomNameGraphTaskBase(TEXT("FDelegateGraphTask"), InTaskName)
+		, TaskDelegate(InTaskDeletegate)
 		, DesiredThread(InDesiredThread)
 	{
 	}

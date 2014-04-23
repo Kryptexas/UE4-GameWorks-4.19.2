@@ -291,12 +291,7 @@ private:
 			, bLogTick(InbLogTick)
 		{
 		}
-		/** return the name of the task **/
-		static const TCHAR* GetTaskName()
-		{
-			return TEXT("FTickFunctionTask");
-		}
-		FORCEINLINE static TStatId GetStatId()
+		FORCEINLINE TStatId GetStatId() const
 		{
 			RETURN_QUICK_DECLARE_CYCLE_STAT(FTickFunctionTask, STATGROUP_TaskGraphTasks);
 		}
@@ -831,11 +826,7 @@ private:
 			, Context(InContext)
 		{
 		}
-		static const TCHAR* GetTaskName()
-		{
-			return TEXT("QueueTickTasks");
-		}
-		FORCEINLINE static TStatId GetStatId()
+		FORCEINLINE TStatId GetStatId() const
 		{
 			RETURN_QUICK_DECLARE_CYCLE_STAT(QueueTickTasks, STATGROUP_TaskGraphTasks);
 		}
@@ -875,11 +866,7 @@ private:
 			, NumTickFunctions(InNumTickFunctions)
 		{
 		}
-		static const TCHAR* GetTaskName()
-		{
-			return TEXT("PostTickTasks");
-		}
-		FORCEINLINE static TStatId GetStatId()
+		FORCEINLINE TStatId GetStatId() const
 		{
 			RETURN_QUICK_DECLARE_CYCLE_STAT(PostTickTasks, STATGROUP_TaskGraphTasks);
 		}

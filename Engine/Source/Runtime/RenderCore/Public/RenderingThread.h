@@ -167,11 +167,7 @@ DECLARE_STATS_GROUP(TEXT("Render Thread Commands"), STATGROUP_RenderThreadComman
 		} 
 
 #define TASKNAME_FUNCTION(TypeName) \
-		FORCEINLINE static const TCHAR* GetTaskName() \
-		{ \
-			return TEXT( #TypeName ); \
-		} \
-		FORCEINLINE static TStatId GetStatId() \
+		FORCEINLINE TStatId GetStatId() const \
 		{ \
 			RETURN_QUICK_DECLARE_CYCLE_STAT(TypeName, STATGROUP_RenderThreadCommands); \
 		}
@@ -195,7 +191,7 @@ DECLARE_STATS_GROUP(TEXT("Render Thread Commands"), STATGROUP_RenderThreadComman
 		else \
 		{ \
 			EURCMacro_##TypeName TempCommand; \
-			FScopeCycleCounter EURCMacro_Scope(EURCMacro_##TypeName::GetStatId()); \
+			FScopeCycleCounter EURCMacro_Scope(TempCommand.GetStatId()); \
 			TempCommand.DoTask(ENamedThreads::GameThread, FGraphEventRef() ); \
 		} \
 	}
@@ -227,7 +223,7 @@ DECLARE_STATS_GROUP(TEXT("Render Thread Commands"), STATGROUP_RenderThreadComman
 		else \
 		{ \
 			EURCMacro_##TypeName TempCommand(ParamValue1); \
-			FScopeCycleCounter EURCMacro_Scope(EURCMacro_##TypeName::GetStatId()); \
+			FScopeCycleCounter EURCMacro_Scope(TempCommand.GetStatId()); \
 			TempCommand.DoTask(ENamedThreads::GameThread, FGraphEventRef() ); \
 		} \
 	}
@@ -273,7 +269,7 @@ DECLARE_STATS_GROUP(TEXT("Render Thread Commands"), STATGROUP_RenderThreadComman
 		else \
 		{ \
 			EURCMacro_##TypeName TempCommand(ParamValue1,ParamValue2); \
-			FScopeCycleCounter EURCMacro_Scope(EURCMacro_##TypeName::GetStatId()); \
+			FScopeCycleCounter EURCMacro_Scope(TempCommand.GetStatId()); \
 			TempCommand.DoTask(ENamedThreads::GameThread, FGraphEventRef() ); \
 		} \
 	}
@@ -322,7 +318,7 @@ DECLARE_STATS_GROUP(TEXT("Render Thread Commands"), STATGROUP_RenderThreadComman
 		else \
 		{ \
 			EURCMacro_##TypeName TempCommand(ParamValue1,ParamValue2,ParamValue3); \
-			FScopeCycleCounter EURCMacro_Scope(EURCMacro_##TypeName::GetStatId()); \
+			FScopeCycleCounter EURCMacro_Scope(TempCommand.GetStatId()); \
 			TempCommand.DoTask(ENamedThreads::GameThread, FGraphEventRef() ); \
 		} \
 	}
@@ -374,7 +370,7 @@ DECLARE_STATS_GROUP(TEXT("Render Thread Commands"), STATGROUP_RenderThreadComman
 		else \
 		{ \
 			EURCMacro_##TypeName TempCommand(ParamValue1,ParamValue2,ParamValue3,ParamValue4); \
-			FScopeCycleCounter EURCMacro_Scope(EURCMacro_##TypeName::GetStatId()); \
+			FScopeCycleCounter EURCMacro_Scope(TempCommand.GetStatId()); \
 			TempCommand.DoTask(ENamedThreads::GameThread, FGraphEventRef() ); \
 		} \
 	}

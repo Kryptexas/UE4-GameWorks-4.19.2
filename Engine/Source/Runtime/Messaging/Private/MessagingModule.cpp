@@ -150,25 +150,25 @@ private:
 /* Misc static functions
  *****************************************************************************/
 
-TStatId FMessageForwardTask::GetStatId( )
+TStatId FMessageForwardTask::GetStatId() const
 {
 	RETURN_QUICK_DECLARE_CYCLE_STAT(FMessageForwardTask, STATGROUP_TaskGraphTasks);
 }
 
 
-TStatId FMessageDispatchTask::GetStatId( )
+TStatId FMessageDispatchTask::GetStatId() const
 {
 	RETURN_QUICK_DECLARE_CYCLE_STAT(FMessageDispatchTask, STATGROUP_TaskGraphTasks);
 }
 
 
-TStatId FMessageSerializeTask::GetStatId( )
+TStatId FMessageSerializeTask::GetStatId() const
 {
 	RETURN_QUICK_DECLARE_CYCLE_STAT(FMessageSerializeTask, STATGROUP_TaskGraphTasks);
 }
 
 
-TStatId FMessageDeserializeTask::GetStatId( )
+TStatId FMessageDeserializeTask::GetStatId() const
 {
 	RETURN_QUICK_DECLARE_CYCLE_STAT(FMessageDeserializeTask, STATGROUP_TaskGraphTasks);
 }

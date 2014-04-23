@@ -784,12 +784,7 @@ void UWorld::SendAllEndOfFrameUpdates(FGraphEventArray* OutCompletion)
 				: Components(InComponents)
 			{
 			}
-
-			static const TCHAR* GetTaskName()
-			{
-				return TEXT("DoRenderthreadUpdatesTask");
-			}
-			FORCEINLINE static TStatId GetStatId()
+			FORCEINLINE TStatId GetStatId() const
 			{
 				RETURN_QUICK_DECLARE_CYCLE_STAT(DoRenderthreadUpdatesTask, STATGROUP_TaskGraphTasks);
 			}
