@@ -3,7 +3,6 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "KismetDebugUtilities.h" // for HasDebuggingData(), GetWatchText()
-#include "ScopedTransaction.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
@@ -325,12 +324,6 @@ void UK2Node::RemovePinsFromOldPins(TArray<UEdGraphPin*>& OldPins, int32 Removed
 
 void UK2Node::ReconstructNode()
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("NodeTitle"), GetNodeTitle(ENodeTitleType::FullTitle));
-
-	FText TransactionDesc = FText::Format(LOCTEXT("ReconstructNodeTransaction", "'{NodeTitle}' Node Refreshed"), Args);
-	FScopedTransaction const Transaction(TransactionDesc);
-
 	Modify();
 
 	UBlueprint* Blueprint = GetBlueprint();

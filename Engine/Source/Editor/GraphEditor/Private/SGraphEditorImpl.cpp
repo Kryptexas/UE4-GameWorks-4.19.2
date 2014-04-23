@@ -437,12 +437,15 @@ bool SGraphEditorImpl::CanBreakPinLinks() const
 void SGraphEditorImpl::ReconstructNodes()
 {
 	const UEdGraphSchema* Schema = this->EdGraphObj->GetSchema();
-
-	for (FGraphPanelSelectionSet::TConstIterator NodeIt( GraphPanel->SelectionManager.GetSelectedNodes() ); NodeIt; ++NodeIt)
 	{
-		if (UEdGraphNode* Node = Cast<UEdGraphNode>(*NodeIt))
+		FScopedTransaction const Transaction(LOCTEXT("ReconstructNodeTransaction", "Refresh Node(s)"));
+
+		for (FGraphPanelSelectionSet::TConstIterator NodeIt( GraphPanel->SelectionManager.GetSelectedNodes() ); NodeIt; ++NodeIt)
 		{
-			Schema->ReconstructNode(*Node);
+			if (UEdGraphNode* Node = Cast<UEdGraphNode>(*NodeIt))
+			{
+				Schema->ReconstructNode(*Node);
+			}
 		}
 	}
 	NotifyGraphChanged();

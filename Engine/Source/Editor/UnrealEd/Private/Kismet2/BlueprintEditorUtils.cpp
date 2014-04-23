@@ -246,9 +246,6 @@ void FBlueprintEditorUtils::RefreshAllNodes(UBlueprint* Blueprint)
 		AllNodes.Sort(FCompareNodePriority());
 	}
 
-	// scoped transaction (so users don't have to undo every single ReconstructNode)
-	FScopedTransaction const Transaction(LOCTEXT("ReconstructNodes", "Refresh All Nodes"));
-
 	bool bLastChangesStructure = (AllNodes.Num() > 0) ? AllNodes[0]->NodeCausesStructuralBlueprintChange() : true;
 	for( TArray<UK2Node*>::TIterator NodeIt(AllNodes); NodeIt; ++NodeIt )
 	{
