@@ -379,7 +379,12 @@ void AAIController::Possess(APawn* InPawn)
 		return;
 	}
 	
-	UpdateNavigationComponents();
+	// no point in doing navigation setup if pawn has no movement component
+	const UPawnMovementComponent* MovementComp = InPawn->GetMovementComponent();
+	if (MovementComp != NULL)
+	{
+		UpdateNavigationComponents();
+	}
 
 	if (bWantsPlayerState)
 	{
