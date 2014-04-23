@@ -1041,6 +1041,12 @@ void UGameplayStatics::EnableLiveStreaming(bool Enable)
 	}
 }
 
+FString UGameplayStatics::GetPlatformName()
+{
+	// the string that BP users care about is actually the platform name that we'd name the .ini file directory (Windows, not WindowsEditor)
+	return FPlatformProperties::IniPlatformName();
+}
+
 bool UGameplayStatics::BlueprintSuggestProjectileVelocity(UObject* WorldContextObject, FVector& OutTossVelocity, FVector StartLocation, FVector EndLocation, float LaunchSpeed, float OverrideGravityZ, ESuggestProjVelocityTraceOption::Type TraceOption, float CollisionRadius, bool bFavorHighArc, bool bDrawDebug)
 {
 	// simple pass-through to the C++ interface
