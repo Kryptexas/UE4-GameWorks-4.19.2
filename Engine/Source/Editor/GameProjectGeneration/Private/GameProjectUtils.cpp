@@ -383,49 +383,30 @@ void GameProjectUtils::CheckForOutOfDateGameProjectFile()
 		{
 			if ( !ProjectStatus.bUpToDate )
 			{
-				// For the time being, if it's writable, just overwrite it with the latest info. If we need to do anything potentially destructive, we can change this logic for this in future builds.
-				bool bHaveUpdatedProject = false;
-				if (!FPlatformFileManager::Get().GetPlatformFile().IsReadOnly(*LoadedProjectFilePath))
+				const FText UpdateProjectText = LOCTEXT("UpdateProjectFilePrompt", "Update project to open in this version of the editor by default?");
+				const FText UpdateProjectConfirmText = LOCTEXT("UpdateProjectFileConfirm", "Update");
+				const FText UpdateProjectCancelText = LOCTEXT("UpdateProjectFileCancel", "Not Now");
+
+				FNotificationInfo Info(UpdateProjectText);
+				Info.bFireAndForget = false;
+				Info.bUseLargeFont = false;
+				Info.bUseThrobber = false;
+				Info.bUseSuccessFailIcons = false;
+				Info.FadeOutDuration = 3.f;
+				Info.ButtonDetails.Add(FNotificationButtonInfo(UpdateProjectConfirmText, FText(), FSimpleDelegate::CreateStatic(&GameProjectUtils::OnUpdateProjectConfirm)));
+				Info.ButtonDetails.Add(FNotificationButtonInfo(UpdateProjectCancelText, FText(), FSimpleDelegate::CreateStatic(&GameProjectUtils::OnUpdateProjectCancel)));
+
+				if (UpdateGameProjectNotification.IsValid())
 				{
-					FText FailureReason;
-					if (IProjectManager::Get().UpdateLoadedProjectFileToCurrent(NULL, FailureReason))
-					{
-						bHaveUpdatedProject = true;
-					}
-					else
-					{
-						UE_LOG(LogGameProjectGeneration, Error, TEXT("Failed to auto-update project file %s"), *LoadedProjectFilePath, *FailureReason.ToString());
-					}
+					UpdateGameProjectNotification.Pin()->ExpireAndFadeout();
+					UpdateGameProjectNotification.Reset();
 				}
 
-				// Otherwise, fall back to prompting
-				if (!bHaveUpdatedProject)
+				UpdateGameProjectNotification = FSlateNotificationManager::Get().AddNotification(Info);
+
+				if (UpdateGameProjectNotification.IsValid())
 				{
-					const FText UpdateProjectText = LOCTEXT("UpdateProjectFilePrompt", "The project file you have loaded is not up to date. Would you like to update it now?");
-					const FText UpdateProjectConfirmText = LOCTEXT("UpdateProjectFileConfirm", "Update");
-					const FText UpdateProjectCancelText = LOCTEXT("UpdateProjectFileCancel", "Not Now");
-
-					FNotificationInfo Info(UpdateProjectText);
-					Info.bFireAndForget = false;
-					Info.bUseLargeFont = false;
-					Info.bUseThrobber = false;
-					Info.bUseSuccessFailIcons = false;
-					Info.FadeOutDuration = 3.f;
-					Info.ButtonDetails.Add(FNotificationButtonInfo(UpdateProjectConfirmText, FText(), FSimpleDelegate::CreateStatic(&GameProjectUtils::OnUpdateProjectConfirm)));
-					Info.ButtonDetails.Add(FNotificationButtonInfo(UpdateProjectCancelText, FText(), FSimpleDelegate::CreateStatic(&GameProjectUtils::OnUpdateProjectCancel)));
-
-					if (UpdateGameProjectNotification.IsValid())
-					{
-						UpdateGameProjectNotification.Pin()->ExpireAndFadeout();
-						UpdateGameProjectNotification.Reset();
-					}
-
-					UpdateGameProjectNotification = FSlateNotificationManager::Get().AddNotification(Info);
-
-					if (UpdateGameProjectNotification.IsValid())
-					{
-						UpdateGameProjectNotification.Pin()->SetCompletionState(SNotificationItem::CS_Pending);
-					}
+					UpdateGameProjectNotification.Pin()->SetCompletionState(SNotificationItem::CS_Pending);
 				}
 			}
 		}

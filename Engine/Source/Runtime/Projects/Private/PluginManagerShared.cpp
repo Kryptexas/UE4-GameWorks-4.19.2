@@ -300,18 +300,20 @@ bool FProjectOrPlugin::IsUpToDate( ) const
 {
 	const FProjectOrPluginInfo& ProjectOrPluginInfo = GetProjectOrPluginInfo();
 
-	if ( ProjectOrPluginInfo.FileVersion < VER_LATEST_PROJECT_FILE
-		|| ProjectOrPluginInfo.PackageFileUE4Version < GPackageFileUE4Version
-		|| ProjectOrPluginInfo.EngineVersion.ToString() != GEngineVersion.ToString()
-		|| ProjectOrPluginInfo.PackageFileLicenseeUE4Version < GPackageFileLicenseeUE4Version )
+	if (ProjectOrPluginInfo.FileVersion < VER_LATEST_PROJECT_FILE)
 	{
-		// This project file is out of date in at least one category
 		return false;
 	}
-	else
+
+	FString CurrentEngineIdentifier;
+	FPlatformMisc::GetEngineIdentifierFromRootDir(FPlatformMisc::RootDir(), CurrentEngineIdentifier);
+
+	if (ProjectOrPluginInfo.EngineAssociation != CurrentEngineIdentifier)
 	{
-		return true;
+		return false;
 	}
+
+	return true;
 }
 
 void FProjectOrPlugin::UpdateVersionToCurrent( )
@@ -322,6 +324,8 @@ void FProjectOrPlugin::UpdateVersionToCurrent( )
 	ProjectOrPluginInfo.EngineVersion = GEngineVersion;
 	ProjectOrPluginInfo.PackageFileUE4Version = GPackageFileUE4Version;
 	ProjectOrPluginInfo.PackageFileLicenseeUE4Version = GPackageFileLicenseeUE4Version;
+
+	FPlatformMisc::GetEngineIdentifierFromRootDir(FPlatformMisc::RootDir(), ProjectOrPluginInfo.EngineAssociation);
 }
 
 void FProjectOrPlugin::ReplaceModulesInProject(const TArray<FString>* StartupModuleNames)
