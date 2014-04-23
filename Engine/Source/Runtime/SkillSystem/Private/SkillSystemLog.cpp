@@ -26,6 +26,7 @@ FString SkillSystemLog::Log(ELogVerbosity::Type Verbosity, FString Log)
 {
 	SkillSystemLog * Instance = GetInstance();
 
+#if !NO_LOGGING
 	if (!LogSkillSystem.IsSuppressed(Verbosity))
 	{
 		for (int32 idx=0; idx < Instance->ScopeStack.Num(); ++idx)
@@ -46,6 +47,7 @@ FString SkillSystemLog::Log(ELogVerbosity::Type Verbosity, FString Log)
 			}
 		}
 	}
+#endif
 
 	FString IndentStr = FString::Printf(TEXT("%*s"), Instance->Indent, TEXT(""));
 	
