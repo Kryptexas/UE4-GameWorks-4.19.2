@@ -151,10 +151,10 @@ class ENGINE_API UAudioComponent : public USceneComponent
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Modulation)
 	float HighFrequencyGainMultiplier;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Attenuation)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Attenuation, meta=(EditCondition="!bOverrideAttenuation"))
 	class USoundAttenuation* AttenuationSettings;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Attenuation)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Attenuation, meta=(EditCondition="bOverrideAttenuation"))
 	struct FAttenuationSettings AttenuationOverrides;
 
 	/** while playing, this component will check for occlusion from its closest listener every this many seconds */

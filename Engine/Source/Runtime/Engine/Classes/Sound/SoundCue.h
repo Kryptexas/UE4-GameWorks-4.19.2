@@ -44,13 +44,13 @@ class USoundCue : public USoundBase
 	UPROPERTY()
 	class USoundNode* FirstNode;
 
-	UPROPERTY(EditAnywhere, Category=SoundCue, AssetRegistrySearchable)
+	UPROPERTY(EditAnywhere, Category=Sound, AssetRegistrySearchable)
 	float VolumeMultiplier;
 
-	UPROPERTY(EditAnywhere, Category=SoundCue, AssetRegistrySearchable)
+	UPROPERTY(EditAnywhere, Category=Sound, AssetRegistrySearchable)
 	float PitchMultiplier;
 
-	UPROPERTY(EditAnywhere, Category=Attenuation)
+	UPROPERTY(EditAnywhere, Category=Attenuation, meta=(EditCondition="bOverrideAttenuation"))
 	FAttenuationSettings AttenuationOverrides;
 
 #if WITH_EDITORONLY_DATA

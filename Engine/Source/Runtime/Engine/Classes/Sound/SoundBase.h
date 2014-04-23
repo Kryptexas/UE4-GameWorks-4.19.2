@@ -38,16 +38,16 @@ class USoundBase : public UObject
 	USoundClass* SoundClassObject;
 
 	/** For debugging purpose only . */
-	UPROPERTY(EditAnywhere, Category=Sound)
+	UPROPERTY(EditAnywhere, Category=Playback)
 	uint32 bDebug:1;
 
 	/** If we try to play a new version of this sound when at the max concurrent count how should it be resolved. */
-	UPROPERTY(EditAnywhere, Category=Sound)
+	UPROPERTY(EditAnywhere, Category=Playback)
 	TEnumAsByte<EMaxConcurrentResolutionRule::Type> MaxConcurrentResolutionRule;
 
 
 	/** Maximum number of times this sound can be played concurrently. */
-	UPROPERTY(EditAnywhere, Category=Sound)
+	UPROPERTY(EditAnywhere, Category=Playback)
 	int32 MaxConcurrentPlayCount;
 
 	/** Duration of sound in seconds. */
