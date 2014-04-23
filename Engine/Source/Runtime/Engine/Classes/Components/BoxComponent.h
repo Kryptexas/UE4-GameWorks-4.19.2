@@ -7,8 +7,8 @@
 /** 
  * A box generally used for simple collision. Bounds are rendered as lines in the editor.
  */
-UCLASS(HeaderGroup=Component, ClassGroup=Shapes, hidecategories=(Object,LOD,Lighting,TextureStreaming), editinlinenew, MinimalAPI, meta=(BlueprintSpawnableComponent))
-class UBoxComponent : public UShapeComponent
+UCLASS(HeaderGroup=Component, ClassGroup=Shapes, hidecategories=(Object,LOD,Lighting,TextureStreaming), editinlinenew, meta=(BlueprintSpawnableComponent))
+class ENGINE_API UBoxComponent : public UShapeComponent
 {
 	GENERATED_UCLASS_BODY()
 
@@ -24,15 +24,15 @@ public:
 	 * @param	bUpdateOverlaps: if true and this shape is registered and collides, updates touching array for owner actor.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Components|Box")
-	ENGINE_API void SetBoxExtent(FVector InBoxExtent, bool bUpdateOverlaps=true);
+	void SetBoxExtent(FVector InBoxExtent, bool bUpdateOverlaps=true);
 
 	// @return the box extent, scaled by the component scale.
 	UFUNCTION(BlueprintCallable, Category="Components|Box")
-	ENGINE_API FVector GetScaledBoxExtent() const;
+	FVector GetScaledBoxExtent() const;
 
 	// @return the box extent, ignoring component scale.
 	UFUNCTION(BlueprintCallable, Category="Components|Box")
-	ENGINE_API FVector GetUnscaledBoxExtent() const;
+	FVector GetUnscaledBoxExtent() const;
 
 	// Begin UPrimitiveComponent interface.
 	virtual bool IsZeroExtent() const OVERRIDE;
