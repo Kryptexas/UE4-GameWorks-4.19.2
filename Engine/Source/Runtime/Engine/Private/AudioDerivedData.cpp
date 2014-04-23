@@ -82,7 +82,6 @@ static void CookSimpleWave(USoundWave* SoundWave, FName FormatName, const IAudio
 		QualityInfo.NumChannels = *WaveInfo.pChannels;
 		QualityInfo.SampleRate = *WaveInfo.pSamplesPerSec;
 		QualityInfo.SampleDataSize = Input.Num();
-		QualityInfo.bLoopableSound = SoundWave->bLoopableSound;
 		QualityInfo.DebugName = SoundWave->GetFullName();
 
 		// Cook the data.
@@ -172,7 +171,6 @@ void CookSurroundWave( USoundWave* SoundWave, FName FormatName, const IAudioForm
 			QualityInfo.NumChannels = ChannelCount;
 			QualityInfo.SampleRate = *WaveInfo.pSamplesPerSec;
 			QualityInfo.SampleDataSize = SampleDataSize;
-			QualityInfo.bLoopableSound = SoundWave->bLoopableSound;
 			QualityInfo.DebugName = SoundWave->GetFullName();
 			//@todo tighten up the checking for empty results here
 			if(Format.CookSurround(FormatName, SourceBuffers, QualityInfo, Output)) 

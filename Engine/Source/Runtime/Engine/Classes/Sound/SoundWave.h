@@ -34,12 +34,8 @@ class ENGINE_API USoundWave : public USoundBase
 	UPROPERTY(EditAnywhere, Category=Compression, AssetRegistrySearchable)
 	int32 CompressionQuality;
 
-	/** If set, the compressor does everything required to make this a seamlessly looping sound. */
-	UPROPERTY(EditAnywhere, Category=Compression )
-	uint32 bLoopableSound:1;
-
 	/** If set, when played directly (not through a sound cue) the wave will be played looping. */
-	UPROPERTY(EditAnywhere, Category=Compression )
+	UPROPERTY(EditAnywhere, Category=SoundWave )
 	uint32 bLooping:1;
 
 	/** Set to true for programmatically-generated, streamed audio. */

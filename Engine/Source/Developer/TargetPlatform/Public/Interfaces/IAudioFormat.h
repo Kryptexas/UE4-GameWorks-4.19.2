@@ -19,11 +19,6 @@ struct FSoundQualityInfo
 	int32 Quality;
 
 	/**
-	 * Holds a flag indicating Whether to do the additional processing required for looping sounds.
-	 */
-	int32 bLoopableSound;
-
-	/**
 	 * Holds the number of distinct audio channels.
 	 */
 	uint32 NumChannels;

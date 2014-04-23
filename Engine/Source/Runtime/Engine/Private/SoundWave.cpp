@@ -13,7 +13,6 @@ USoundWave::USoundWave(const class FPostConstructInitializeProperties& PCIP)
 	Volume = 1.0;
 	Pitch = 1.0;
 	CompressionQuality = 40;
-	bLoopableSound = true;
 }
 
 SIZE_T USoundWave::GetResourceSize(EResourceSizeMode::Type Mode)
@@ -314,14 +313,10 @@ void USoundWave::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
 	static FName CompressionQualityFName = FName( TEXT( "CompressionQuality" ) );
-	static FName LoopableSoundFName = FName( TEXT( "bLoopableSound" ) );
 
 	UProperty* PropertyThatChanged = PropertyChangedEvent.Property;
 	// Regenerate on save any compressed sound formats
-	if( PropertyThatChanged &&
-		( PropertyThatChanged->GetFName() == CompressionQualityFName
-		|| PropertyThatChanged->GetFName() == LoopableSoundFName
-		) )
+	if ( PropertyThatChanged && PropertyThatChanged->GetFName() == CompressionQualityFName )
 	{
 		InvalidateCompressedData();
 		MarkPackageDirty();

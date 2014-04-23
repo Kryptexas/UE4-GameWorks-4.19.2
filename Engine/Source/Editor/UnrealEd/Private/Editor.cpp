@@ -2803,7 +2803,6 @@ void SoundWaveQualityPreview( USoundWave* SoundWave, FPreviewInfo* PreviewInfo )
 	QualityInfo.NumChannels = *WaveInfo.pChannels;
 	QualityInfo.SampleRate = SoundWave->SampleRate;
 	QualityInfo.SampleDataSize = WaveInfo.SampleDataSize;
-	QualityInfo.bLoopableSound = SoundWave->bLoopableSound;
 	QualityInfo.DebugName = SoundWave->GetFullName();
 
 	// PCM -> Vorbis -> PCM 

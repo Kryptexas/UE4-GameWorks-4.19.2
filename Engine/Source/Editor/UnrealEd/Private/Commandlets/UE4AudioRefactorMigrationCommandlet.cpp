@@ -507,7 +507,6 @@ void ReplaceSoundNodeWaveWithSoundWave(const FAssetRegistryModule& AssetRegistry
 			USoundWave* SoundWave = ConstructObject<USoundWave>(USoundWave::StaticClass(), Package, SoundName, RF_Public | RF_Standalone);
 
 			SoundWave->CompressionQuality = SoundNodeWave->CompressionQuality;
-			SoundWave->bLoopableSound = SoundNodeWave->bLoopingSound;
 			SoundWave->SpokenText = SoundNodeWave->SpokenText;
 			SoundWave->Volume = SoundNodeWave->Volume;
 			SoundWave->Pitch = SoundNodeWave->Pitch;
