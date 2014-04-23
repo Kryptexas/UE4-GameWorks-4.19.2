@@ -13,11 +13,6 @@ public:
 	virtual void OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<class IToolkitHost> EditWithinLevelEditor = TSharedPtr<IToolkitHost>() ) OVERRIDE;
 	virtual uint32 GetCategories() OVERRIDE { return EAssetTypeCategories::Animation; }
 
-protected:
-
-	/** Whether or not we can create derived blueprints */
-	virtual bool CanCreateNewDerivedBlueprint() const OVERRIDE;
-
 private:
 
 	/** Handler to fill the retarget submenu */

@@ -134,10 +134,10 @@ void FAssetTypeActions_Blueprint::ExecuteNewDerivedBlueprint(TWeakObjectPtr<UBlu
 	if ( Object )
 	{
 		// The menu option should ONLY be available if there is only one blueprint selected, validated by the menu creation code
-		UBlueprint* TargetBP = Object;
-		UClass* TargetClass = TargetBP->GeneratedClass;
+		UBlueprint* TargetParentBP = Object;
+		UClass* TargetParentClass = TargetParentBP->GeneratedClass;
 
-		if(!FKismetEditorUtilities::CanCreateBlueprintOfClass(TargetClass))
+		if (!FKismetEditorUtilities::CanCreateBlueprintOfClass(TargetParentClass))
 		{
 			FMessageDialog::Open( EAppMsgType::Ok, LOCTEXT("InvalidClassToMakeBlueprintFrom", "Invalid class with which to make a Blueprint."));
 			return;
@@ -148,11 +148,11 @@ void FAssetTypeActions_Blueprint::ExecuteNewDerivedBlueprint(TWeakObjectPtr<UBlu
 		CreateUniqueAssetName(Object->GetOutermost()->GetName(), TEXT("_Child"), PackageName, Name);
 
 		UPackage* Package = CreatePackage(NULL, *PackageName);
-		if ( ensure(Package) )
+		if (ensure(Package))
 		{
 			// Create and init a new Blueprint
-			UBlueprint* NewBP = FKismetEditorUtilities::CreateBlueprint(TargetClass, Package, FName(*Name), BPTYPE_Normal, UBlueprint::StaticClass());
-			if(NewBP)
+			UBlueprint* NewBP = FKismetEditorUtilities::CreateBlueprint(TargetParentClass, Package, FName(*Name), BPTYPE_Normal, TargetParentBP->GetClass());
+			if (NewBP)
 			{
 				FAssetEditorManager::Get().OpenEditorForAsset(NewBP);
 

@@ -240,17 +240,22 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprint(UClass* ParentClass, UObject
 		CreateDefaultEventGraphs(NewBP);
 	}
 
-	// if this is an anim blueprint, add the root animation graph
 	//@TODO: ANIMREFACTOR: This kind of code should be on a per-blueprint basis; not centralized here
 	if (UAnimBlueprint* AnimBP = Cast<UAnimBlueprint>(NewBP))
 	{
-		if (UAnimBlueprint::FindRootAnimBlueprint(AnimBP) == NULL)
+		UAnimBlueprint* RootAnimBP = UAnimBlueprint::FindRootAnimBlueprint(AnimBP);
+		if (RootAnimBP == NULL)
 		{
 			// Only allow an anim graph if there isn't one in a parent blueprint
 			UEdGraph* NewGraph = FBlueprintEditorUtils::CreateNewGraph(AnimBP, K2Schema->GN_AnimGraph, UAnimationGraph::StaticClass(), UAnimationGraphSchema::StaticClass());
 			FBlueprintEditorUtils::AddDomainSpecificGraph(NewBP, NewGraph);
 			NewBP->LastEditedDocuments.Add(NewGraph);
 			NewGraph->bAllowDeletion = false;
+		}
+		else
+		{
+			// Make sure the anim blueprint targets the same skeleton as the parent
+			AnimBP->TargetSkeleton = RootAnimBP->TargetSkeleton;
 		}
 	}
 
