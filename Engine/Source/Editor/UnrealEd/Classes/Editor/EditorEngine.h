@@ -677,7 +677,6 @@ public:
 	 */
 	bool UpdateSingleViewportClient(FEditorViewportClient* InViewportClient, const bool bInAllowNonRealtimeViewportToDraw, bool bLinkedOrthoMovement );
 
-
 	/** Used for generating status bar text */
 	enum EMousePositionType
 	{
@@ -2546,6 +2545,9 @@ protected:
 
 	/** Called when Matinee is opened */
 	virtual void OnOpenMatinee(){};
+
+	/** Invalidate all viewport client hit proxies immediately */
+	void InvalidateAllViewportClientHitProxies();
 };
 
 

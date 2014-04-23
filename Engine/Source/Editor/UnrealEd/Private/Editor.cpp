@@ -1626,6 +1626,16 @@ bool UEditorEngine::UpdateSingleViewportClient(FEditorViewportClient* InViewport
 	return bUpdatedNonRealtimeViewport;
 }
 
+void UEditorEngine::InvalidateAllViewportClientHitProxies()
+{
+	for (const auto* LevelViewportClient : LevelViewportClients)
+	{
+		if (LevelViewportClient->Viewport != nullptr)
+		{
+			LevelViewportClient->Viewport->InvalidateHitProxy();
+		}
+	}
+}
 
 void UEditorEngine::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {

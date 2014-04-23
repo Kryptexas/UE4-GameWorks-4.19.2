@@ -1786,6 +1786,9 @@ UWorld* UEditorEngine::NewMap()
 	// Clear the transaction buffer so the user can't remove the builder brush
 	GUnrealEd->ResetTransaction( CleanseText );
 
+	// Invalidate all the level viewport hit proxies
+	InvalidateAllViewportClientHitProxies();
+
 	return Context.World();
 }
 
@@ -2160,6 +2163,9 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 					{
 						GEngine->WorldAdded( Context.World() );
 					}
+
+					// Invalidate all the level viewport hit proxies
+					InvalidateAllViewportClientHitProxies();
 				}
 			}
 			else
