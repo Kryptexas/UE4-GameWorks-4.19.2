@@ -9765,15 +9765,15 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 		// Do this after destroying pawns/playercontrollers, in case that spawns new things (e.g. dropped weapons)
 		WorldContext.World()->CleanupWorld();
 
-		// clear any "DISPLAY" properties referencing level objects
-		if (GEngine->GameViewport != NULL)
-		{
-			ClearDebugDisplayProperties();
-		}
-
 		if( GEngine )
 		{
-			GEngine->WorldDestroyed( WorldContext.World() );
+			// clear any "DISPLAY" properties referencing level objects
+			if (GEngine->GameViewport != NULL)
+			{
+				ClearDebugDisplayProperties();
+			}
+
+			GEngine->WorldDestroyed(WorldContext.World());
 		}
 		WorldContext.World()->RemoveFromRoot();
 
