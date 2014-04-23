@@ -348,6 +348,10 @@ void UTexture::FinishDestroy()
 		delete Resource;
 		Resource = NULL;
 	}
+
+	CleanupCachedRunningPlatformData();
+	CleanupCachedCookedPlatformData();
+
 }
 
 void UTexture::PreSave()

@@ -278,8 +278,6 @@ struct FTexturePlatformData
 #if WITH_EDITORONLY_DATA
 	/** The key associated with this derived data. */
 	FString DerivedDataKey;
-	/** The next cached platform data in the list. */
-	TScopedPointer<FTexturePlatformData> NextCachedPlatformData;
 	/** Async cache task if one is outstanding. */
 	struct FTextureAsyncCacheDerivedDataTask* AsyncTask;
 #endif
@@ -313,7 +311,6 @@ struct FTexturePlatformData
 		uint32 InFlags
 		);
 	void FinishCache();
-	void MakeCurrent(class UTexture& InTexture, TScopedPointer<FTexturePlatformData>* PlatformDataLink);
 	ENGINE_API bool TryInlineMipData();
 	bool AreDerivedMipsAvailable() const;
 #endif
@@ -563,7 +560,11 @@ public:
 	 * Textures that use the derived data cache must override this function and
 	 * provide a pointer to the linked list of platform data.
 	 */
-	virtual TScopedPointer<FTexturePlatformData>* GetPlatformDataLink() { return NULL; }
+	virtual FTexturePlatformData** GetRunningPlatformData() { return NULL; }
+	virtual TMap<FString, FTexturePlatformData*>* GetCookedPlatformData() { return NULL; }
+
+	void CleanupCachedRunningPlatformData();
+	void CleanupCachedCookedPlatformData();
 
 	/**
 	 * Serializes cooked platform data.
@@ -574,7 +575,13 @@ public:
 	/**
 	 * Caches platform data for the texture.
 	 */
-	void CachePlatformData();
+	void CachePlatformData(bool bAsyncCache = false);
+
+	/**
+	 * Begins caching platform data in the background for the platform requested
+	 */
+	virtual void BeginCacheForCookedPlatformData(  const ITargetPlatform *TargetPlatform ) OVERRIDE;
+
 
 	/**
 	 * Begins caching platform data in the background.
@@ -595,6 +602,8 @@ public:
 	 * Forces platform data to be rebuilt.
 	 */
 	void ForceRebuildPlatformData();
+
+	void UpdateCachedLODBias();
 
 	/**
 	 * Marks platform data as transient. This optionally removes persistent or cached data associated with the platform.

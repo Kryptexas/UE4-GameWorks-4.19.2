@@ -490,16 +490,7 @@ void UTexture2D::CookerWillNeverCookAgain()
 {
 	Super::CookerWillNeverCookAgain();
 
-	TScopedPointer<FTexturePlatformData>* PlatformDataLinkPtr = GetPlatformDataLink();
-	if (!IsTemplate() && PlatformDataLinkPtr)
-	{
-		// Release the resource. This will block on the rendering thread if we actually created a resource which we shouldn't have.
-		// We could probably check(Resource == NULL) instead.
-		ReleaseResource();
-
-		// This will free any platform data currently allocated. It's actually a linked list of scoped pointers so the entire list will be destroyed.
-		*PlatformDataLinkPtr = NULL;
-	}
+	CleanupCachedCookedPlatformData();
 }
 void UTexture2D::PostLinkerChange()
 {

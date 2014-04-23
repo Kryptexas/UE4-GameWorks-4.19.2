@@ -122,9 +122,10 @@ public:
 	FGuid TextureFileCacheGuid_DEPRECATED;
 
 public:
-	/** The derived data for this texture. */
-	TScopedPointer<FTexturePlatformData> PlatformData;
-
+	/** The derived data for this texture on this platform. */
+	FTexturePlatformData *PlatformData;
+	/* cooked platform data for this texture */
+	TMap<FString, FTexturePlatformData*> CookedPlatformData;
 	/**
 	 * Thread-safe counter indicating the texture streaming state. The definitions below are mirrored in Texture.h.
 	 *
@@ -177,7 +178,8 @@ public:
 	virtual EMaterialValueType GetMaterialType() OVERRIDE { return MCT_Texture2D; }
 	virtual void UpdateResource() OVERRIDE;
 	virtual float GetAverageBrightness(bool bIgnoreTrueBlack, bool bUseGrayscale) OVERRIDE;
-	virtual TScopedPointer<FTexturePlatformData>* GetPlatformDataLink() OVERRIDE { return &PlatformData; }
+	virtual FTexturePlatformData** GetRunningPlatformData() OVERRIDE { return &PlatformData; }
+	virtual TMap<FString,FTexturePlatformData*>* GetCookedPlatformData() OVERRIDE { return &CookedPlatformData; }
 	// End UTexture interface.
 
 	/** Trivial accessors. */
