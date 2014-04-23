@@ -92,6 +92,14 @@ void UUnrealEdEngine::Init(IEngineLoop* InEngineLoop)
 		PropertyModule.RegisterCustomPropertyLayout("GameMapsSettings", FOnGetDetailCustomizationInstance::CreateStatic(&FGameMapsSettingsCustomization::MakeInstance));
 		PropertyModule.RegisterCustomPropertyLayout("LevelEditorPlaySettings", FOnGetDetailCustomizationInstance::CreateStatic(&FLevelEditorPlaySettingsCustomization::MakeInstance));
 	}
+
+	bool bCookOnTheSide = FParse::Param( FCommandLine::Get(),TEXT("COOKONTHESIDE"));
+	if ( bCookOnTheSide )
+	{
+		CookServer = ConstructObject<UCookOnTheFlyServer>( UCookOnTheFlyServer::StaticClass() );
+		CookServer->Initialize( false, false, false, true, true );
+		CookServer->StartNetworkFileServer( false );
+	}
 }
 
 void UUnrealEdEngine::MakeSortedSpriteInfo(TArray<FSpriteCategoryInfo>& OutSortedSpriteInfo) const

@@ -140,6 +140,10 @@ class UNREALED_API UUnrealEdEngine : public UEditorEngine, public FNotifyHook
 	UPROPERTY(config)
 	TArray<FTemplateMapInfo> TemplateMapInfos;
 
+	/** Cooker server incase we want to cook ont he side while editing... */
+	UPROPERTY()
+	class UCookOnTheFlyServer* CookServer;
+
 	/** A mapping of packages to their checkout notify state.  This map only contains dirty packages.  Once packages become clean again, they are removed from the map.*/
 	TMap<TWeakObjectPtr<UPackage>, uint8>	PackageToNotifyState;
 

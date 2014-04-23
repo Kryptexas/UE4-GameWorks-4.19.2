@@ -101,15 +101,6 @@ public:
 
 private:
 
-	// Callback for handling a network file request.
-	void HandleNetworkFileServerFileRequest( const FString& Filename, const FString &Platformname, TArray<FString>& UnsolicitedFiles );
-
-	// Callback for recompiling shaders
-	void HandleNetworkFileServerRecompileShaders(const struct FShaderRecompileData& RecompileData);
-
-
-private:
-
 	/** Holds the instance identifier. */
 	FGuid InstanceId;
 
