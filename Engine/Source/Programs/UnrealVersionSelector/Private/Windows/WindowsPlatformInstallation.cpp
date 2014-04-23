@@ -113,7 +113,7 @@ private:
 			SendDlgItemMessage(hWnd, IDC_BUILDLIST, CB_ADDSTRING, 0, (LPARAM)*Description);
 		}
 
-		int32 NewIdx = SortedIdentifiers.IndexOfByKey(Identifier);
+		int32 NewIdx = FMath::Max(SortedIdentifiers.IndexOfByKey(Identifier), 0);
 		SendDlgItemMessage(hWnd, IDC_BUILDLIST, CB_SETCURSEL, NewIdx, 0);
 	}
 
