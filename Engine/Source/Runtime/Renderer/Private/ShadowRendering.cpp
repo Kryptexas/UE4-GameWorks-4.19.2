@@ -431,6 +431,17 @@ public:
 				ProjectionMatrixParameter,
 				FTranslationMatrix(ShadowInfo->PreShadowTranslation - View.ViewMatrices.PreViewTranslation) * ShadowInfo->SubjectAndReceiverMatrix
 				);
+
+			const FSceneViewState* ViewState = (const FSceneViewState*)View.State;
+			if(ViewState)
+			{
+				const FLightPropagationVolume* Lpv = ViewState->GetLightPropagationVolume();
+
+				if(Lpv)
+				{
+					SetUniformBufferParameter(ShaderRHI, GetUniformBufferParameter<FLpvWriteUniformBufferParameters>(), Lpv->GetWriteUniformBuffer());
+				}
+			}
 		}
 	}
 
