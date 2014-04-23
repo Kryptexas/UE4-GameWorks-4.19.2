@@ -165,7 +165,7 @@ namespace ELandscapeLayerPaintingRestriction
 }
 
 UCLASS(HeaderGroup=Terrain, dependson=UEngineTypes, NotPlaceable, hidecategories=(Display, Attachment, Physics, Debug, Lighting, LOD), showcategories=(Rendering, "Utilities|Orientation"), MinimalAPI)
-class ALandscapeProxy : public AInfo, public INavRelevantActorInterface
+class ALandscapeProxy : public AActor, public INavRelevantActorInterface
 {
 	GENERATED_UCLASS_BODY()
 
