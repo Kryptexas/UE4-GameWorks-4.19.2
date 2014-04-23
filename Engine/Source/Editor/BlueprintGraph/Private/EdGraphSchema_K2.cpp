@@ -3170,7 +3170,10 @@ void UEdGraphSchema_K2::DroppedAssetsOnGraph(const TArray<FAssetData>& Assets, c
 			// Make sure we have an asset type that's registered with the component list
 			if (DestinationComponentType != NULL)
 			{
-				TSharedPtr<FEdGraphSchemaAction_K2AddComponent> Action = FK2ActionMenuBuilder::CreateAddComponentAction(GetTransientPackage(), Blueprint, DestinationComponentType, Asset);
+				UEdGraph* TempOuter = NewObject<UEdGraph>((UObject*)Blueprint);
+				TempOuter->SetFlags(RF_Transient);
+
+				TSharedPtr<FEdGraphSchemaAction_K2AddComponent> Action = FK2ActionMenuBuilder::CreateAddComponentAction(TempOuter, Blueprint, DestinationComponentType, Asset);
 				Action->PerformAction(Graph, NULL, GraphPosition);
 			}
 		}
