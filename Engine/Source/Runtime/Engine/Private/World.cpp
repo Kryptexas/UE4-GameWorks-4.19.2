@@ -706,7 +706,7 @@ void UWorld::InitWorld(const InitializationValues IVS)
 			// Spawn the default brush.
 			DefaultBrush = SpawnBrush();
 			check(DefaultBrush->BrushComponent);
-			DefaultBrush->Brush = new( GetOuter(), TEXT("Brush") )UModel( FPostConstructInitializeProperties(), DefaultBrush, 1 );
+			DefaultBrush->Brush = new( DefaultBrush->GetOuter(), TEXT("Brush") )UModel( FPostConstructInitializeProperties(), DefaultBrush, 1 );
 			DefaultBrush->BrushComponent->Brush = DefaultBrush->Brush;
 			DefaultBrush->SetNotForClientOrServer();
 			DefaultBrush->Brush->SetFlags( RF_Transactional );
@@ -733,6 +733,12 @@ void UWorld::InitWorld(const InitializationValues IVS)
 		if (DefaultBrush->Brush != NULL)
 		{
 			UModel* Model = DefaultBrush->Brush;
+
+			// Ensure the DefaultBrush's model has the same outer as the default brush itself. Older packages erroneously stored this object as a top-level package
+			if (Model->GetOuter() != DefaultBrush->GetOuter())
+			{
+				Model->Rename(NULL, DefaultBrush->GetOuter(), REN_DoNotDirty | REN_DontCreateRedirectors | REN_ForceNoResetLoaders | REN_NonTransactional);
+			}
 
 			const FLightmassPrimitiveSettings DefaultSettings;
 
