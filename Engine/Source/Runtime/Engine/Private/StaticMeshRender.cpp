@@ -293,6 +293,49 @@ void FStaticMeshSceneProxy::SetIndexSource(int32 LODIndex, int32 SectionIndex, F
 }
 
 // FPrimitiveSceneProxy interface.
+#if WITH_EDITOR
+HHitProxy* FStaticMeshSceneProxy::CreateHitProxies(UPrimitiveComponent* Component, TArray<TRefCountPtr<HHitProxy> >& OutHitProxies)
+{
+	if ( Component->GetOwner() )
+	{
+		for ( int32 LODIndex = 0; LODIndex < RenderData->LODResources.Num(); LODIndex++ )
+		{
+			const FStaticMeshLODResources& LODModel = RenderData->LODResources[LODIndex];
+
+			check(LODs[LODIndex].Sections.Num() == LODModel.Sections.Num());
+
+			for ( int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); SectionIndex++ )
+			{
+				HHitProxy* ActorHitProxy;
+
+				if ( Component->GetOwner()->IsA(ABrush::StaticClass()) && Component->IsA(UBrushComponent::StaticClass()) )
+				{
+					ActorHitProxy = new HActor(Component->GetOwner(), Component, HPP_Wireframe, SectionIndex);
+				}
+				else
+				{
+					ActorHitProxy = new HActor(Component->GetOwner(), Component, SectionIndex);
+				}
+
+				FLODInfo::FSectionInfo& Section = LODs[LODIndex].Sections[SectionIndex];
+
+				// Set the hitproxy.
+				check(Section.HitProxy == NULL);
+				Section.HitProxy = ActorHitProxy;
+
+				OutHitProxies.Add(ActorHitProxy);
+			}
+		}
+		
+		return NULL;
+	}
+	else
+	{
+		return NULL;
+	}
+}
+#endif // WITH_EDITOR
+
 void FStaticMeshSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface* PDI)
 {
 	checkSlow(IsInRenderingThread());
@@ -312,16 +355,20 @@ void FStaticMeshSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface* PD
 			int32 LODIndex = FMath::Clamp(ForcedLodModel, 1, NumLODs) - 1;
 			const FStaticMeshLODResources& LODModel = RenderData->LODResources[LODIndex];
 			// Draw the static mesh elements.
-			for(int32 SectionIndex = 0;SectionIndex < LODModel.Sections.Num();SectionIndex++)
+			for(int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); SectionIndex++)
 			{
 #if WITH_EDITOR
 				if( GIsEditor )
 				{
-					bUseSelectedMaterial = LODs[LODIndex].Sections[SectionIndex].bSelected;
+					const FLODInfo::FSectionInfo& Section = LODs[LODIndex].Sections[SectionIndex];
+
+					bUseSelectedMaterial = Section.bSelected;
+					PDI->SetHitProxy(Section.HitProxy);
 				}
 #endif // WITH_EDITOR
+
 				FMeshBatch MeshElement;
-				if(GetMeshElement(LODIndex,SectionIndex,PrimitiveDPG,MeshElement,bUseSelectedMaterial,bUseHoveredMaterial))
+				if(GetMeshElement(LODIndex, SectionIndex, PrimitiveDPG, MeshElement, bUseSelectedMaterial, bUseHoveredMaterial))
 				{
 					PDI->DrawMesh(MeshElement, 0, FLT_MAX);
 				}
@@ -329,7 +376,7 @@ void FStaticMeshSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface* PD
 		} 
 		else //no LOD is being forced, submit them all with appropriate cull distances
 		{
-			for(int32 LODIndex = 0;LODIndex < NumLODs;LODIndex++)
+			for(int32 LODIndex = 0; LODIndex < NumLODs; LODIndex++)
 			{
 				const FStaticMeshLODResources& LODModel = RenderData->LODResources[LODIndex];
 				float MinDist = GetMinLODDist(LODIndex);
@@ -376,11 +423,15 @@ void FStaticMeshSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface* PD
 #if WITH_EDITOR
 					if( GIsEditor )
 					{
-						bUseSelectedMaterial = LODs[LODIndex].Sections[SectionIndex].bSelected;
+						const FLODInfo::FSectionInfo& Section = LODs[LODIndex].Sections[SectionIndex];
+
+						bUseSelectedMaterial = Section.bSelected;
+						PDI->SetHitProxy(Section.HitProxy);
 					}
 #endif // WITH_EDITOR
+
 					FMeshBatch MeshElement;
-					if(GetMeshElement(LODIndex,SectionIndex,PrimitiveDPG,MeshElement,bUseSelectedMaterial,bUseHoveredMaterial))
+					if(GetMeshElement(LODIndex, SectionIndex, PrimitiveDPG, MeshElement, bUseSelectedMaterial, bUseHoveredMaterial))
 					{
 						// If we have submitted an optimized shadow-only mesh, remaining mesh elements must not cast shadows.
 						MeshElement.CastShadow = MeshElement.CastShadow && !bHaveShadowOnlyMesh;
@@ -496,16 +547,20 @@ void FStaticMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI,con
 				const FLinearColor UtilColor( LevelColor );
 
 				// Draw the static mesh sections.
-				for(int32 SectionIndex = 0;SectionIndex < LODModel.Sections.Num();SectionIndex++)
+				for(int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); SectionIndex++)
 				{
 					bool bSectionIsSelected = false;
 
 #if WITH_EDITOR
 					if( GIsEditor )
 					{
-						bSectionIsSelected = LODs[LODIndex].Sections[SectionIndex].bSelected;
+						const FLODInfo::FSectionInfo& Section = LODs[LODIndex].Sections[SectionIndex];
+
+						bSectionIsSelected = Section.bSelected;
+						PDI->SetHitProxy(Section.HitProxy);
 					}
 #endif // WITH_EDITOR
+
 					FMeshBatch MeshElement;
 					if(GetMeshElement(LODIndex,SectionIndex,GetDepthPriorityGroup(View),MeshElement,bSectionIsSelected,IsHovered()))
 					{

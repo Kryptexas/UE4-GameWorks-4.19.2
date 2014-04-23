@@ -438,16 +438,40 @@ bool SLevelViewport::HandleDragObjects(const FGeometry& MyGeometry, const FDragD
 
 	DragDropEvent.GetOperation()->SetCursorOverride(TOptional<EMouseCursor::Type>());
 
+	FText HintText;
+
 	// Determine if we can drop the assets
 	for ( auto InfoIt = SelectedAssetDatas.CreateConstIterator(); InfoIt; ++InfoIt )
 	{
 		const FAssetData& AssetData = *InfoIt;
-		if ( AssetData.IsValid() && !LevelViewportClient->CanDropObjectsAtCoordinates( CachedOnDropLocalMousePos.X, CachedOnDropLocalMousePos.Y, AssetData ) )
+
+		// Ignore invalid assets
+		if ( !AssetData.IsValid() )
+		{
+			continue;
+		}
+		
+		FDropQuery DropResult = LevelViewportClient->CanDropObjectsAtCoordinates(CachedOnDropLocalMousePos.X, CachedOnDropLocalMousePos.Y, AssetData);
+		
+		if ( !DropResult.bCanDrop )
 		{
 			// At least one of the assets can't be dropped.
 			DragDropEvent.GetOperation()->SetCursorOverride(EMouseCursor::SlashedCircle);
 			return false;
 		}
+		else
+		{
+			if ( HintText.IsEmpty() )
+			{
+				HintText = DropResult.HintText;
+			}
+		}
+	}
+
+	if ( DragDrop::IsTypeMatch<FAssetDragDropOp>(DragDropEvent.GetOperation()) )
+	{
+		auto Operation = StaticCastSharedPtr<FAssetDragDropOp>(DragDropEvent.GetOperation());
+		Operation->SetToolTip(HintText, NULL);
 	}
 
 	return bValidDrag;
@@ -1698,7 +1722,7 @@ FLevelEditorViewportInstanceSettings SLevelViewport::LoadLegacyConfigFromIni(con
 			// Default to Lit for a perspective viewport
 			ViewportInstanceSettings.PerspViewModeIndex = VMI_Lit;
 		}
- 	}
+	}
 
 	if(!GConfig->GetInt(*IniSection, *(ConfigKey+TEXT(".OrthoViewModeIndex")), (int32&)ViewportInstanceSettings.OrthoViewModeIndex, GEditorUserSettingsIni))
 	{

@@ -531,10 +531,11 @@ static UObject* GetOrCreateMaterialFromTexture( UTexture* UnrealTexture )
  *
  * @param	ObjToUse				Object to attempt to apply as specific asset
  * @param	ActorToApplyTo			Actor to whom the asset should be applied
+ * @param   TargetMaterialSlot      When dealing with submeshes this will represent the target section/slot to apply materials to.
  *
  * @return	true if the provided object was successfully applied to the provided actor
  */
-static bool AttemptApplyObjToActor( UObject* ObjToUse, AActor* ActorToApplyTo, bool bTest = false )
+static bool AttemptApplyObjToActor( UObject* ObjToUse, AActor* ActorToApplyTo, int32 TargetMaterialSlot = -1, bool bTest = false )
 {
 	bool bResult = false;
 
@@ -565,7 +566,7 @@ static bool AttemptApplyObjToActor( UObject* ObjToUse, AActor* ActorToApplyTo, b
 			{
 				// Apply the material to the actor
 				FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "DragDrop_Transaction_ApplyMaterialToActor", "Apply Material to Actor") );
-				bResult = FActorFactoryAssetProxy::ApplyMaterialToActor( ActorToApplyTo, DroppedObjAsMaterial );
+				bResult = FActorFactoryAssetProxy::ApplyMaterialToActor( ActorToApplyTo, DroppedObjAsMaterial, TargetMaterialSlot );
 			}
 		}
 
@@ -854,7 +855,7 @@ bool FLevelEditorViewportClient::DropObjectsOnBackground( FViewportCursorLocatio
 	return bResult;
 }
 
-bool FLevelEditorViewportClient::DropObjectsOnActor(FViewportCursorLocation& Cursor, const TArray<UObject*>& DroppedObjects, AActor* DroppedUponActor, FVector* DroppedLocation, EObjectFlags ObjectFlags, TArray<AActor*>& OutNewActors, bool bUsedHitProxy, bool bSelectActors, UActorFactory* FactoryToUse)
+bool FLevelEditorViewportClient::DropObjectsOnActor(FViewportCursorLocation& Cursor, const TArray<UObject*>& DroppedObjects, AActor* DroppedUponActor, int32 DroppedUponSlot, FVector* DroppedLocation, EObjectFlags ObjectFlags, TArray<AActor*>& OutNewActors, bool bUsedHitProxy, bool bSelectActors, UActorFactory* FactoryToUse)
 {
 	bool bResult = false;
 
@@ -869,7 +870,7 @@ bool FLevelEditorViewportClient::DropObjectsOnActor(FViewportCursorLocation& Cur
 			ensure( AssetObj );
 
 			// Attempt to apply the dropped asset as a material to the actor
-			const bool bAppliedToActor = ( FactoryToUse == NULL ) ? AttemptApplyObjToActor( AssetObj, DroppedUponActor ) : false;
+			const bool bAppliedToActor = ( FactoryToUse == NULL ) ? AttemptApplyObjToActor( AssetObj, DroppedUponActor, DroppedUponSlot ) : false;
 			if ( !bAppliedToActor )
 			{
 				// Actor
@@ -1200,7 +1201,7 @@ bool FLevelEditorViewportClient::UpdateDropPreviewActors(int32 MouseX, int32 Mou
 						ensure( AssetObj );
 
 						// Attempt to apply the dropped asset as a material to the actor, just test if it is possible
-						if ( !AttemptApplyObjToActor( AssetObj, TargetActor, true ) )
+						if ( !AttemptApplyObjToActor( AssetObj, TargetActor, -1, true ) )
 						{
 							// hide all objects as we are applying them, not creating new object
 							out_bDroppedObjectsVisible = true;
@@ -1405,14 +1406,13 @@ void FLevelEditorViewportClient::DestroyDropPreviewActors()
 * @param MouseY			The position of the mouse's Y coordinate
 * @param AssetData			Asset in question to be dropped
 */
-bool FLevelEditorViewportClient::CanDropObjectsAtCoordinates(int32 MouseX, int32 MouseY, const FAssetData& AssetData)
+FDropQuery FLevelEditorViewportClient::CanDropObjectsAtCoordinates(int32 MouseX, int32 MouseY, const FAssetData& AssetData)
 {
-	// Initialize the result to wxDragNone in case we don't have any droppable assets
-	bool Result = false;
+	FDropQuery Result;
 
 	if ( !ObjectTools::IsAssetValidForPlacing( GetWorld(), AssetData.ObjectPath.ToString() ) )
 	{
-		return false;
+		return Result;
 	}
 
 	UObject* AssetObj = AssetData.GetAsset();
@@ -1430,12 +1430,12 @@ bool FLevelEditorViewportClient::CanDropObjectsAtCoordinates(int32 MouseX, int32
 
 		if ( AssetObj->IsA( AActor::StaticClass() ) || bHasActorFactory )
 		{
-			Result = true;
+			Result.bCanDrop = true;
 			bPivotMovedIndependantly = false;
 		}
 		else if( AssetObj->IsA( UBrushBuilder::StaticClass()) )
 		{
-			Result = true;
+			Result.bCanDrop = true;
 			bPivotMovedIndependantly = false;
 		}
 		else
@@ -1446,8 +1446,13 @@ bool FLevelEditorViewportClient::CanDropObjectsAtCoordinates(int32 MouseX, int32
 				if ( AssetObj->IsA( UMaterialInterface::StaticClass() ) || AssetObj->IsA( UTexture::StaticClass() ) )
 				{
 					// If our asset is a material and the target is a valid recipient
-					Result = true;
+					Result.bCanDrop = true;
 					bPivotMovedIndependantly = false;
+
+					//if ( HitProxy->IsA(HActor::StaticGetType()) )
+					//{
+					//	Result.HintText = LOCTEXT("Material_Shift_Hint", "Hold [Shift] to apply material to every slot");
+					//}
 				}
 			}
 		}
@@ -1500,17 +1505,28 @@ bool FLevelEditorViewportClient::DropObjectsAtCoordinates(int32 MouseX, int32 Mo
 			const bool bUsedHitProxy = true;
 			AActor* TargetActor = NULL;
 			FVector TargetLocation = FVector::ZeroVector;
+			int32 TargetMaterialSlot = -1;
+
 			if (HitProxy->IsA(HActor::StaticGetType()))
 			{
 				HActor* TargetProxy = static_cast<HActor*>(HitProxy);
 				TargetActor = TargetProxy->Actor;
 				TargetLocation = TargetActor ? TargetActor->GetActorLocation() : FVector::ZeroVector;
+				TargetMaterialSlot = TargetProxy->MaterialIndex;
 			}
 			else if (HitProxy->IsA(HBSPBrushVert::StaticGetType()))
 			{
 				HBSPBrushVert* TargetProxy = static_cast<HBSPBrushVert*>(HitProxy);
 				TargetActor = TargetProxy->Brush.Get();
 				TargetLocation = TargetActor ? (TargetProxy->Vertex ? TargetActor->ActorToWorld().TransformPosition(*TargetProxy->Vertex) : TargetActor->GetActorLocation()) : FVector::ZeroVector;
+			}
+
+			// If shift is pressed set the material slot to -1, so that it's applied to every slot.
+			// We have to request it from the platform application directly because IsShiftPressed gets 
+			// the cached state, when the viewport had focus
+			if ( FSlateApplication::Get().GetPlatformApplication()->GetModifierKeys().IsShiftDown() )
+			{
+				TargetMaterialSlot = -1;
 			}
 
 			if (TargetActor != NULL)
@@ -1522,9 +1538,9 @@ bool FLevelEditorViewportClient::DropObjectsAtCoordinates(int32 MouseX, int32 Mo
 				if( !bDropOntoSelected || 
 					bOnlyDropOnTarget || 
 					FactoryToUse != NULL ||
-					!AttemptApplyObjToActor( DroppedObjects[0], TargetActor, true ) )
+					!AttemptApplyObjToActor(DroppedObjects[0], TargetActor, TargetMaterialSlot, true) )
 				{
-					bResult = DropObjectsOnActor( Cursor, DroppedObjects, TargetActor, &TargetLocation, ObjectFlags, OutNewActors, bUsedHitProxy, SelectActors, FactoryToUse );
+					bResult = DropObjectsOnActor( Cursor, DroppedObjects, TargetActor, TargetMaterialSlot, &TargetLocation, ObjectFlags, OutNewActors, bUsedHitProxy, SelectActors, FactoryToUse );
 				}
 				else
 				{
@@ -1534,7 +1550,7 @@ bool FLevelEditorViewportClient::DropObjectsAtCoordinates(int32 MouseX, int32 Mo
 						if( TargetActor )
 						{
 							TargetLocation = TargetActor->GetActorLocation();
-							DropObjectsOnActor( Cursor, DroppedObjects, TargetActor, &TargetLocation, ObjectFlags, OutNewActors, bUsedHitProxy, SelectActors, FactoryToUse );
+							DropObjectsOnActor( Cursor, DroppedObjects, TargetActor, TargetMaterialSlot, &TargetLocation, ObjectFlags, OutNewActors, bUsedHitProxy, SelectActors, FactoryToUse );
 							bResult = true;
 						}
 					}

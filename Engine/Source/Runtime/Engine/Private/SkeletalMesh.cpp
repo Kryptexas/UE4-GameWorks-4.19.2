@@ -1159,7 +1159,7 @@ void FStaticLODModel::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 	}
 
 	Ar << Sections;
-	MultiSizeIndexContainer.Serialize(Ar,bKeepBuffersInCPUMemory);
+	MultiSizeIndexContainer.Serialize(Ar, bKeepBuffersInCPUMemory);
 	Ar << ActiveBoneIndices;
 	Ar << Chunks;
 	Ar << Size;
@@ -3987,13 +3987,62 @@ private:
 #endif
 };
 
+#if WITH_EDITOR
+HHitProxy* FSkeletalMeshSceneProxy::CreateHitProxies(UPrimitiveComponent* Component, TArray<TRefCountPtr<HHitProxy> >& OutHitProxies)
+{
+	if ( Component->GetOwner() )
+	{
+		if ( LODSections.Num() > 0 )
+		{
+			for ( int32 LODIndex = 0; LODIndex < SkelMeshResource->LODModels.Num(); LODIndex++ )
+			{
+				const FStaticLODModel& LODModel = SkelMeshResource->LODModels[LODIndex];
+
+				FLODSectionElements& LODSection = LODSections[LODIndex];
+
+				check(LODSection.SectionElements.Num() == LODModel.Sections.Num());
+
+				for ( int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); SectionIndex++ )
+				{
+					HHitProxy* ActorHitProxy;
+
+					if ( Component->GetOwner()->IsA(ABrush::StaticClass()) && Component->IsA(UBrushComponent::StaticClass()) )
+					{
+						ActorHitProxy = new HActor(Component->GetOwner(), Component, HPP_Wireframe, SectionIndex);
+					}
+					else
+					{
+						ActorHitProxy = new HActor(Component->GetOwner(), Component, SectionIndex);
+					}
+
+					// Set the hitproxy.
+					check(LODSection.SectionElements[SectionIndex].HitProxy == NULL);
+					LODSection.SectionElements[SectionIndex].HitProxy = ActorHitProxy;
+					OutHitProxies.Add(ActorHitProxy);
+				}
+			}
+
+			return NULL;
+		}
+		else
+		{
+			return FPrimitiveSceneProxy::CreateHitProxies(Component, OutHitProxies);
+		}
+	}
+	else
+	{
+		return NULL;
+	}
+}
+#endif
+
 /** 
 * Draw the scene proxy as a dynamic element
 *
 * @param	PDI - draw interface to render to
 * @param	View - current view
 */
-void FSkeletalMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View)
+void FSkeletalMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View)
 {
 	QUICK_SCOPE_CYCLE_COUNTER( STAT_SkeletalMeshSceneProxy_DrawDynamicElements );
 
@@ -4010,9 +4059,9 @@ void FSkeletalMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI,c
 	{
 		const FLODSectionElements& LODSection = LODSections[LODIndex];
 
-		check(LODSection.SectionElements.Num()==LODModel.Sections.Num());
+		check(LODSection.SectionElements.Num() == LODModel.Sections.Num());
 
-		for (FSkeletalMeshSectionIter Iter(LODIndex,*MeshObject,LODModel,LODSection); Iter; ++Iter)
+		for (FSkeletalMeshSectionIter Iter(LODIndex, *MeshObject, LODModel, LODSection); Iter; ++Iter)
 		{
 			FSkelMeshSection Section = Iter.GetSection();
 			const FSkelMeshChunk& Chunk = Iter.GetChunk();
@@ -4024,7 +4073,7 @@ void FSkeletalMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI,c
 			Section.bSelected = (SkeletalMeshForDebug->SelectedEditorSection == SectionElementInfo.UseMaterialIndex);
 #endif
 			// If hidden skip the draw
-			if (MeshObject->IsMaterialHidden(LODIndex,SectionElementInfo.UseMaterialIndex))
+			if (MeshObject->IsMaterialHidden(LODIndex, SectionElementInfo.UseMaterialIndex))
 			{
 				continue;
 			}
@@ -4034,6 +4083,13 @@ void FSkeletalMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI,c
 			{
 				continue;
 			}
+
+#if WITH_EDITOR
+			if ( GIsEditor && PDI->IsHitTesting() )
+			{
+				PDI->SetHitProxy(SectionElementInfo.HitProxy);
+			}
+#endif
 
 			DrawDynamicElementsSection(PDI, View, LODModel, LODIndex, Section, Chunk, SectionElementInfo, CustomLeftRightVectors );
 		}

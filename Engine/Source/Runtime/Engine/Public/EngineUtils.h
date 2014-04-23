@@ -17,16 +17,32 @@ struct HActor : public HHitProxy
 	DECLARE_HIT_PROXY( ENGINE_API )
 	AActor* Actor;
 	const UPrimitiveComponent* PrimComponent;
+	int32 MaterialIndex;
 
-	HActor( AActor* InActor, const UPrimitiveComponent* InPrimComponent ) 
+	HActor( AActor* InActor, const UPrimitiveComponent* InPrimComponent )
 		: Actor( InActor ) 
 		, PrimComponent( InPrimComponent )
+		, MaterialIndex( -1 )
+		{}
+
+	HActor(AActor* InActor, const UPrimitiveComponent* InPrimComponent, int32 MaterialIndex)
+		: Actor( InActor )
+		, PrimComponent( InPrimComponent )
+		, MaterialIndex( MaterialIndex )
 		{}
 
 	HActor( AActor* InActor, const UPrimitiveComponent* InPrimComponent, EHitProxyPriority InPriority) 
-		: HHitProxy(InPriority)
-		, Actor(InActor) 
+		: HHitProxy( InPriority )
+		, Actor( InActor )
 		, PrimComponent( InPrimComponent )
+		, MaterialIndex( -1 )
+		{}
+
+	HActor(AActor* InActor, const UPrimitiveComponent* InPrimComponent, EHitProxyPriority InPriority, int32 MaterialIndex)
+		: HHitProxy(InPriority)
+		, Actor(InActor)
+		, PrimComponent(InPrimComponent)
+		, MaterialIndex(MaterialIndex)
 		{}
 
 	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE

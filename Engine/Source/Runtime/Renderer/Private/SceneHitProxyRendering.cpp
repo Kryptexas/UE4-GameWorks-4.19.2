@@ -99,7 +99,7 @@ IMPLEMENT_MATERIAL_SHADER_TYPE(,FHitProxyHS,TEXT("HitProxyVertexShader"),TEXT("M
 IMPLEMENT_MATERIAL_SHADER_TYPE(,FHitProxyDS,TEXT("HitProxyVertexShader"),TEXT("MainDomain"),SF_Domain);
 
 /**
- * A pixel shader for rendering the depth of a mesh.
+ * A pixel shader for rendering the HitProxyId of an object as a unique color in the scene.
  */
 class FHitProxyPS : public FMeshMaterialShader
 {
@@ -135,7 +135,7 @@ public:
 
 	void SetHitProxyId(FHitProxyId HitProxyIdValue)
 	{
-		SetShaderValue(GetPixelShader(),HitProxyId,HitProxyIdValue.GetColor().ReinterpretAsLinear());
+		SetShaderValue(GetPixelShader(), HitProxyId, HitProxyIdValue.GetColor().ReinterpretAsLinear());
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -155,7 +155,7 @@ FHitProxyDrawingPolicy::FHitProxyDrawingPolicy(
 	const FVertexFactory* InVertexFactory,
 	const FMaterialRenderProxy* InMaterialRenderProxy
 	):
-	FMeshDrawingPolicy(InVertexFactory,InMaterialRenderProxy,*InMaterialRenderProxy->GetMaterial(GRHIFeatureLevel))
+	FMeshDrawingPolicy(InVertexFactory, InMaterialRenderProxy, *InMaterialRenderProxy->GetMaterial(GRHIFeatureLevel))
 {
 	HullShader = NULL;
 	DomainShader = NULL;
@@ -172,7 +172,7 @@ FHitProxyDrawingPolicy::FHitProxyDrawingPolicy(
 	PixelShader = MaterialResource->GetShader<FHitProxyPS>(InVertexFactory->GetType());
 }
 
-void FHitProxyDrawingPolicy::DrawShared(const FSceneView* View,FBoundShaderStateRHIParamRef BoundShaderState) const
+void FHitProxyDrawingPolicy::DrawShared(const FSceneView* View, FBoundShaderStateRHIParamRef BoundShaderState) const
 {
 	// Set the actual shader & vertex declaration state
 	RHISetBoundShaderState( BoundShaderState);
@@ -224,15 +224,15 @@ void FHitProxyDrawingPolicy::SetMeshRenderState(
 
 	const FMeshBatchElement& BatchElement = Mesh.Elements[BatchElementIndex];
 
-	VertexShader->SetMesh(VertexFactory,View,PrimitiveSceneProxy,BatchElement);
+	VertexShader->SetMesh(VertexFactory, View, PrimitiveSceneProxy, BatchElement);
 
 	if(HullShader && DomainShader)
 	{
-		HullShader->SetMesh(VertexFactory,View,PrimitiveSceneProxy,BatchElement);
-		DomainShader->SetMesh(VertexFactory,View,PrimitiveSceneProxy,BatchElement);
+		HullShader->SetMesh(VertexFactory, View, PrimitiveSceneProxy, BatchElement);
+		DomainShader->SetMesh(VertexFactory, View, PrimitiveSceneProxy, BatchElement);
 	}
 
-	PixelShader->SetMesh(VertexFactory,View,PrimitiveSceneProxy,BatchElement);
+	PixelShader->SetMesh(VertexFactory, View, PrimitiveSceneProxy, BatchElement);
 	// Per-instance hitproxies are supplied by the vertex factory
 	if( PrimitiveSceneProxy && PrimitiveSceneProxy->HasPerInstanceHitProxies() )
 	{
@@ -311,10 +311,10 @@ bool FHitProxyDrawingPolicyFactory::DrawDynamicMesh(
 				MaterialRenderProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy(false);
 			}
 			FHitProxyDrawingPolicy DrawingPolicy( Mesh.VertexFactory, MaterialRenderProxy );
-			DrawingPolicy.DrawShared(&View,DrawingPolicy.CreateBoundShaderState());
-			for( int32 BatchElementIndex=0;BatchElementIndex<Mesh.Elements.Num();BatchElementIndex++ )
+			DrawingPolicy.DrawShared(&View, DrawingPolicy.CreateBoundShaderState());
+			for( int32 BatchElementIndex = 0; BatchElementIndex < Mesh.Elements.Num(); BatchElementIndex++ )
 			{
-				DrawingPolicy.SetMeshRenderState(View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,HitProxyId);
+				DrawingPolicy.SetMeshRenderState(View, PrimitiveSceneProxy, Mesh, BatchElementIndex, bBackFace, HitProxyId);
 				DrawingPolicy.DrawMesh(Mesh,BatchElementIndex);
 			}
 			return true;

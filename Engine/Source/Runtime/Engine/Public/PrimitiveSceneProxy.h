@@ -49,10 +49,10 @@ public:
 	void SetSelection_GameThread(const bool bInSelected);
 
 	/**
-     * Updates hover state for the primitive proxy. This simply sends a message to the rendering thread to call SetHovered_RenderThread.
-     * This is called in the game thread as hover state changes
-     * @param bInHovered - true if the parent actor is hovered
-     */
+	 * Updates hover state for the primitive proxy. This simply sends a message to the rendering thread to call SetHovered_RenderThread.
+	 * This is called in the game thread as hover state changes
+	 * @param bInHovered - true if the parent actor is hovered
+	 */
 	void SetHovered_GameThread(const bool bInHovered);
 
 	/**
@@ -117,7 +117,7 @@ public:
 	/**
 	 *	Called during InitViews for view processing on scene proxies before rendering them
 	 *  Only called for primitives that are visible and have bDynamicRelevance
- 	 *
+	 *
 	 *	@param	ViewFamily		The ViewFamily to pre-render for
 	 *	@param	VisibilityMap	A BitArray that indicates whether the primitive was visible in that view (index)
 	 *	@param	FrameNumber		The frame number of this pre-render

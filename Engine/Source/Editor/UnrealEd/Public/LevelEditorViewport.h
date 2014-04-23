@@ -49,7 +49,6 @@ struct FViewportHoverTarget
 	{
 		return Key.HoveredActor ? GetTypeHash(Key.HoveredActor) : GetTypeHash(Key.HoveredModel)+Key.ModelSurfaceIndex;
 	}
-
 };
 
 struct FTrackingTransaction
@@ -98,6 +97,20 @@ private:
 
 	/** The description to use if a pending transaction turns into a real transaction */
 	FText PendingDescription;
+};
+
+
+struct FDropQuery
+{
+	FDropQuery()
+		: bCanDrop(false)
+	{}
+
+	/** True if it's valid to drop the object at the location queried */
+	bool bCanDrop;
+
+	/** Optional hint text that may be returned to the user. */
+	FText HintText;
 };
 
 
@@ -194,7 +207,7 @@ public:
 	/**
 	 * Updates the audio listener for this viewport 
 	 *
- 	 * @param View	The scene view to use when calculate the listener position
+	 * @param View	The scene view to use when calculate the listener position
 	 */
 	void UpdateAudioListener( const FSceneView& View );
 
@@ -231,7 +244,7 @@ public:
 	}
 
 	/** Called every time the viewport is ticked to update the view based on an actor that is
-	    driving the location, FOV and other settings for this view.  This is used for live camera PIP
+		driving the location, FOV and other settings for this view.  This is used for live camera PIP
 		preview within editor viewports */
 	void PushControllingActorDataToViewportClient();
 
@@ -370,7 +383,7 @@ public:
 	/**
 	 * If dragging an actor for placement, this function updates its position.
 	 *
- 	 * @param MouseX						The position of the mouse's X coordinate
+	 * @param MouseX						The position of the mouse's X coordinate
 	 * @param MouseY						The position of the mouse's Y coordinate
 	 * @param DroppedObjects				The Objects that were used to create preview objects
 	 * @param out_bDroppedObjectsVisible	Output, returns if preview objects are visible or not
@@ -387,16 +400,16 @@ public:
 	/**
 	 * Checks the viewport to see if the given object can be dropped using the given mouse coordinates local to this viewport
 	 *
- 	 * @param MouseX			The position of the mouse's X coordinate
+	 * @param MouseX			The position of the mouse's X coordinate
 	 * @param MouseY			The position of the mouse's Y coordinate
 	 * @param AssetInfo			Asset in question to be dropped
 	 */
-	bool CanDropObjectsAtCoordinates(int32 MouseX, int32 MouseY, const FAssetData& AssetInfo);
+	FDropQuery CanDropObjectsAtCoordinates(int32 MouseX, int32 MouseY, const FAssetData& AssetInfo);
 
 	/**
 	 * Attempts to intelligently drop the given objects in the viewport, using the given mouse coordinates local to this viewport
 	 *
- 	 * @param MouseX			 The position of the mouse's X coordinate
+	 * @param MouseX			 The position of the mouse's X coordinate
 	 * @param MouseY			 The position of the mouse's Y coordinate
 	 * @param DroppedObjects	 The Objects to be placed into the editor via this viewport
 	 * @param OutNewActors		 The new actor objects that were created
@@ -408,17 +421,17 @@ public:
 	bool DropObjectsAtCoordinates(int32 MouseX, int32 MouseY, const TArray<UObject*>& DroppedObjects, TArray<AActor*>& OutNewActors, bool bOnlyDropOnTarget = false, bool bCreateDropPreview = false, bool bSelectActors = true, class UActorFactory* FactoryToUse = NULL );
 
 	/**
- 	 * Sets GWorld to the appropriate world for this client
+	 * Sets GWorld to the appropriate world for this client
 	 * 
 	 * @return the previous GWorld
- 	 */
+	 */
 	virtual UWorld* ConditionalSetWorld() OVERRIDE;
 
 	/**
- 	 * Restores GWorld to InWorld
+	 * Restores GWorld to InWorld
 	 *
 	 * @param InWorld	The world to restore
- 	 */
+	 */
 	virtual void ConditionalRestoreWorld( UWorld* InWorld  ) OVERRIDE;
 
 	/**
@@ -584,6 +597,7 @@ private:
 	* @param	Cursor				Mouse cursor location
 	* @param	DroppedObjects		Array of objects dropped into the viewport
 	* @param	DroppedUponActor	The actor that we are dropping upon
+	* @param    DroppedUponSlot     The material slot/submesh that was identified as the drop location.  If unknown use -1.
 	* @param	DroppedLocation		The location that we're dropping the objects
 	* @param	ObjectFlags			The object flags to place on the actors that this function spawns.
 	* @param	OutNewActors		The list of actors created while dropping
@@ -593,7 +607,7 @@ private:
 	*
 	* @return	true if the drop operation was successfully handled; false otherwise
 	*/
-	bool DropObjectsOnActor(struct FViewportCursorLocation& Cursor, const TArray<UObject*>& DroppedObjects, AActor* DroppedUponActor, FVector* DroppedLocation, EObjectFlags ObjectFlags, TArray<AActor*>& OutNewActors, bool bUsedHitProxy = true, bool bSelectActors = true, class UActorFactory* FactoryToUse = NULL);
+	bool DropObjectsOnActor(struct FViewportCursorLocation& Cursor, const TArray<UObject*>& DroppedObjects, AActor* DroppedUponActor, int32 DroppedUponSlot, FVector* DroppedLocation, EObjectFlags ObjectFlags, TArray<AActor*>& OutNewActors, bool bUsedHitProxy = true, bool bSelectActors = true, class UActorFactory* FactoryToUse = NULL);
 
 	/**
 	 * Called when an asset is dropped upon a BSP surface.
@@ -691,7 +705,7 @@ private:
 	static TArray< TWeakObjectPtr< AActor > > DropPreviewActors;
 
 	/** Optional actor that is 'controlling' this view.  That is, the view's location, rotation, FOV and other settings
-	    should be pushed to this caInera every frame.  This is used by the editor's live viewport camera PIP feature */
+		should be pushed to this caInera every frame.  This is used by the editor's live viewport camera PIP feature */
 	TWeakObjectPtr< AActor > ControllingActor;
 
 	/** Bit array representing the visibility of every sprite category in the current viewport */

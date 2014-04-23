@@ -287,10 +287,11 @@ public:
 	 *
 	 * @param	TargetActor		the actor to apply the material to
 	 * @param	MaterialToApply	the material to apply to the actor
+	 * @param   OptionalMaterialSlot the material slot to apply it to.
 	 *
 	 * @return	true if the material was successfully applied to the actor
 	 */
-	static bool ApplyMaterialToActor( AActor* TargetActor, UMaterialInterface* MaterialToApply );
+	static bool ApplyMaterialToActor( AActor* TargetActor, UMaterialInterface* MaterialToApply, int32 OptionalMaterialSlot = -1 );
 
 private:
 	/**

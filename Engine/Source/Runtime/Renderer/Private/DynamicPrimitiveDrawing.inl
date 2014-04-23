@@ -256,8 +256,8 @@ bool DrawDynamicPrimitiveSet(
 {
 	
 	// Draw the elements of each dynamic primitive.
-	TDynamicPrimitiveDrawer<DrawingPolicyFactoryType> Drawer(&View,DrawingContext,bPreFog,bIsHitTesting);
-	for(int32 PrimitiveIndex = 0;PrimitiveIndex <PrimitiveSet.Num();PrimitiveIndex++)
+	TDynamicPrimitiveDrawer<DrawingPolicyFactoryType> Drawer(&View, DrawingContext, bPreFog, bIsHitTesting);
+	for(int32 PrimitiveIndex = 0; PrimitiveIndex < PrimitiveSet.Num(); PrimitiveIndex++)
 	{
 		const FPrimitiveSceneInfo* PrimitiveSceneInfo = PrimitiveSet[PrimitiveIndex];
 		int32 PrimitiveId = PrimitiveSceneInfo->GetIndex();

@@ -749,6 +749,9 @@ protected:
 
 public:
 	// FPrimitiveSceneProxy interface.
+#if WITH_EDITOR
+	virtual HHitProxy* CreateHitProxies(UPrimitiveComponent* Component, TArray<TRefCountPtr<HHitProxy> >& OutHitProxies) OVERRIDE;
+#endif
 	virtual void DrawStaticElements(FStaticPrimitiveDrawInterface* PDI) OVERRIDE;
 	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) OVERRIDE { DrawDynamicElements( PDI, View, 0 ); }
 	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View, uint32 DrawDynamicFlags ) OVERRIDE;
@@ -770,17 +773,27 @@ protected:
 		/** Information about an element of a LOD. */
 		struct FSectionInfo
 		{
+			/** Default constructor. */
+			FSectionInfo()
+				: Material(NULL)
+				, bSelected(false)
+#if WITH_EDITOR
+				, HitProxy(NULL)
+#endif
+			{}
+
 			/** The material with which to render this section. */
 			UMaterialInterface* Material;
+
 			/** True if this section should be rendered as selected (editor only). */
 			bool bSelected;
 
-			/** Default constructor. */
-			FSectionInfo() :
-				Material(NULL),
-				bSelected(false)
-			{}
+#if WITH_EDITOR
+			/** The editor needs to be able to individual sub-mesh hit detection, so we store a hit proxy on each mesh. */
+			HHitProxy* HitProxy;
+#endif
 		};
+
 		/** Per-section information. */
 		TArray<FSectionInfo> Sections;
 
