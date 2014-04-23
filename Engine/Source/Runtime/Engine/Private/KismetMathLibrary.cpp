@@ -906,6 +906,16 @@ bool UKismetMathLibrary::NotEqual_ObjectObject(class UObject* A, class UObject* 
 	return A != B;
 }
 
+bool UKismetMathLibrary::EqualEqual_ClassClass(class UClass* A, class UClass* B)
+{
+	return A == B;
+}
+
+bool UKismetMathLibrary::NotEqual_ClassClass(class UClass* A, class UClass* B)
+{
+	return A != B;
+}
+
 bool UKismetMathLibrary::ClassIsChildOf(TSubclassOf<class UObject> TestClass, TSubclassOf<class UObject> ParentClass)
 {
 	return ((*ParentClass != NULL) && (*TestClass != NULL)) ? (*TestClass)->IsChildOf(*ParentClass) : false;
