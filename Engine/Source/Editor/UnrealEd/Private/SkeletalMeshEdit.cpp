@@ -240,7 +240,7 @@ void UnFbx::FFbxImporter::MergeAllLayerAnimation(FbxAnimStack* AnimStack, int32 
 	lFramePeriod.SetSecondDouble(1.0 / ResampleRate);
 
 	FbxTimeSpan lTimeSpan = AnimStack->GetLocalTimeSpan();
-	AnimStack->BakeLayers(Scene->GetEvaluator(), lTimeSpan.GetStart(), lTimeSpan.GetStop(), lFramePeriod);
+	AnimStack->BakeLayers(Scene->GetAnimationEvaluator(), lTimeSpan.GetStart(), lTimeSpan.GetStop(), lFramePeriod);
 
 	// always apply unroll filter
 	FbxAnimCurveFilterUnroll UnrollFilter;
@@ -267,7 +267,7 @@ bool UnFbx::FFbxImporter::IsValidAnimationData(TArray<FbxNode*>& SortedLinks, TA
 	{
 		FbxAnimStack* CurAnimStack = FbxCast<FbxAnimStack>(Scene->GetSrcObject(FbxAnimStack::ClassId, AnimStackIndex));
 		// set current anim stack
-		Scene->GetEvaluator()->SetContext(CurAnimStack);
+		Scene->SetCurrentAnimationStack(CurAnimStack);
 
 		// debug purpose
 		for (int32 BoneIndex = 0; BoneIndex < SortedLinks.Num(); BoneIndex++)
@@ -600,7 +600,7 @@ int32 UnFbx::FFbxImporter::GetMaxSampleRate(TArray<FbxNode*>& SortedLinks, TArra
 bool UnFbx::FFbxImporter::ValidateAnimStack(TArray<FbxNode*>& SortedLinks, TArray<FbxNode*>& NodeArray, FbxAnimStack* CurAnimStack, int32 ResampleRate, bool bImportMorph, FbxTimeSpan &AnimTimeSpan)
 {
 	// set current anim stack
-	Scene->GetEvaluator()->SetContext(CurAnimStack);
+	Scene->SetCurrentAnimationStack(CurAnimStack);
 
 	UE_LOG(LogFbx, Log, TEXT("Parsing AnimStack %s"),ANSI_TO_TCHAR(CurAnimStack->GetName()));
 

@@ -192,7 +192,7 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxMesh* Mesh, UStaticMesh
 	{
 		ImportTexturesFromNode(Node);
 	}
-	
+
 	MaterialCount = Node->GetMaterialCount();
 	check(!ImportOptions->bImportMaterials || Materials.Num() == MaterialCount);
 	
@@ -241,19 +241,22 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxMesh* Mesh, UStaticMesh
 		GeometryConverter->ComputePolygonSmoothingFromEdgeSmoothing (Mesh, i);
 	}
 
-	bool bDestroyMesh = false;
 	if (!Mesh->IsTriangleMesh())
 	{
 		UE_LOG(LogFbx, Warning, TEXT("Triangulating static mesh %s"), ANSI_TO_TCHAR(Node->GetName()));
-		bool bSuccess;
-		Mesh = GeometryConverter->TriangulateMeshAdvance(Mesh, bSuccess); // not in place ! the old mesh is still there
-		if (Mesh == NULL)
+
+		const bool bReplace = true;
+		FbxNodeAttribute* ConvertedNode = GeometryConverter->Triangulate(Mesh, bReplace);
+
+		if( ConvertedNode != NULL && ConvertedNode->GetAttributeType() == FbxNodeAttribute::eMesh )
+		{
+			Mesh = ConvertedNode->GetNode()->GetMesh();
+		}
+		else
 		{
 			AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("Error_FailedToTriangulate", "Unable to triangulate mesh '{0}'"), FText::FromString(Mesh->GetName()))));
 			return false; // not clean, missing some dealloc
 		}
-		// this gets deleted at the end of the import
-		bDestroyMesh = true;
 	}
 	
 	// renew the base layer
@@ -669,11 +672,6 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxMesh* Mesh, UStaticMesh
 	UVReferenceMode.Empty();
 	UVMappingMode.Empty();
 
-
-	if (bDestroyMesh)
-	{
-		Mesh->Destroy(true);
-	}
 	return true;
 }
 
@@ -802,7 +800,7 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 		return NULL;
 	}
 	
-	// Ensure that the vert indicies can fit into a 16-bit integer
+	// Count the number of verts
 	int32 NumVerts = 0;
 	int32 MeshIndex;
 	for (MeshIndex = 0; MeshIndex < MeshNodeArray.Num(); MeshIndex++ )
@@ -1363,7 +1361,6 @@ bool UnFbx::FFbxImporter::ImportCollisionModels(UStaticMesh* StaticMesh, const F
 		FbxMesh* FbxMesh = Node->GetMesh();
 
 		FbxMesh->RemoveBadPolygons();
-		bool bDestroyMesh = false;
 
 		// Must do this before triangulating the mesh due to an FBX bug in TriangulateMeshAdvance
 		int32 LayerSmoothingCount = FbxMesh->GetLayerCount(FbxLayerElement::eSmoothing);
@@ -1376,15 +1373,19 @@ bool UnFbx::FFbxImporter::ImportCollisionModels(UStaticMesh* StaticMesh, const F
 		{
 			FString NodeName = ANSI_TO_TCHAR(MakeName(Node->GetName()));
 			UE_LOG(LogFbx, Warning, TEXT("Triangulating mesh %s for collision model"), *NodeName);
-			bool bSuccess;
-			FbxMesh = GeometryConverter->TriangulateMeshAdvance(FbxMesh, bSuccess); // not in place ! the old mesh is still there
-			if (FbxMesh == NULL)
+
+			const bool bReplace = true;
+			FbxNodeAttribute* ConvertedNode = GeometryConverter->Triangulate(FbxMesh, bReplace); // not in place ! the old mesh is still there
+
+			if( ConvertedNode != NULL && ConvertedNode->GetAttributeType() == FbxNodeAttribute::eMesh )
+			{
+				FbxMesh = ConvertedNode->GetNode()->GetMesh();
+			}
+			else
 			{
 				AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("Error_FailedToTriangulate", "Unable to triangulate mesh '{0}'"), FText::FromString(NodeName))));
-				return false; // not clean, missing some dealloc
+				return false;
 			}
-			// this gets deleted at the end of the import
-			bDestroyMesh = true;
 		}
 
 		int32 ControlPointsIndex;
@@ -1522,11 +1523,6 @@ bool UnFbx::FFbxImporter::ImportCollisionModels(UStaticMesh* StaticMesh, const F
 
 		// Clear any cached rigid-body collision shapes for this body setup.
 		StaticMesh->BodySetup->ClearPhysicsMeshes();
-
-		if (bDestroyMesh)
-		{
-			FbxMesh->Destroy();
-		}
 
 		// Remove the empty key because we only use the model once for the first mesh
 		if (bRemoveEmptyKey)

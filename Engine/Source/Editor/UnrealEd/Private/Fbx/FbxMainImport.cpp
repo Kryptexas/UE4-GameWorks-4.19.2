@@ -561,13 +561,15 @@ bool FFbxImporter::OpenFile(FString Filename, bool bParseStatistics, bool bForSc
 
 	if( !bImportStatus )  // Problem with the file to be imported
 	{
-		AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, LOCTEXT("Error_FBXInitializationFailed", "Call to FbxImporter::Initialize() failed.")));
-		AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("Error_FBXError", "Error returned: {0}"),
-							FText::FromString(Importer->GetLastErrorString()))));
+		UE_LOG(LogFbx, Error,TEXT("Call to FbxImporter::Initialize() failed."));
+		UE_LOG(LogFbx, Warning, TEXT("Error returned: %s"), ANSI_TO_TCHAR(Importer->GetStatus().GetErrorString()));
 
-		AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("Error_FBXVersion", "FBX version number for this FBX SDK is {0}.{1}.{2}"),
-							FText::FromString(FString::FromInt(SDKMajor)), FText::FromString(FString::FromInt(SDKMinor)), FText::FromString(FString::FromInt(SDKRevision)))));
-	
+		if (Importer->GetStatus().GetCode() == FbxStatus::eInvalidFileVersion )
+		{
+			UE_LOG(LogFbx, Warning, TEXT("FBX version number for this FBX SDK is %d.%d.%d"),
+				SDKMajor, SDKMinor, SDKRevision);
+		}
+
 		return false;
 	}
 
@@ -648,7 +650,7 @@ bool FFbxImporter::ImportFile(FString Filename)
 	}
 	else
 	{
-		ErrorMessage = ANSI_TO_TCHAR(Importer->GetLastErrorString());
+		ErrorMessage = ANSI_TO_TCHAR(Importer->GetStatus().GetErrorString());
 		AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("FbxSkeletaLMeshimport_TriangulatingFailed", "FBX Scene Loading Failed : '{0}'"), FText::FromString(ErrorMessage))));
 		CleanUp();
 		Result = false;
@@ -822,7 +824,7 @@ FbxAMatrix FFbxImporter::ComputeTotalMatrix(FbxNode* Node)
 	Geometry.SetS(Scaling);
 
 	//For Single Matrix situation, obtain transfrom matrix from eDESTINATION_SET, which include pivot offsets and pre/post rotations.
-	FbxAMatrix& GlobalTransform = Scene->GetEvaluator()->GetNodeGlobalTransform(Node);
+	FbxAMatrix& GlobalTransform = Scene->GetAnimationEvaluator()->GetNodeGlobalTransform(Node);
 	
 	FbxAMatrix TotalMatrix;
 	TotalMatrix = GlobalTransform * Geometry;

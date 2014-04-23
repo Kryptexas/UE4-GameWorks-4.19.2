@@ -203,7 +203,7 @@ void FFbxImporter::SkinControlPointsToPose(FSkeletalMeshImportData& ImportData, 
 				if (lClusterMode == FbxCluster::eAdditive && Cluster->GetAssociateModel())
 				{
 					Cluster->GetTransformAssociateModelMatrix(lReferenceGlobalInitPosition);
-					lReferenceGlobalCurrentPosition = Cluster->GetAssociateModel()->GetScene()->GetEvaluator()->GetNodeGlobalTransform(Cluster->GetAssociateModel(), poseTime);
+					lReferenceGlobalCurrentPosition = Scene->GetAnimationEvaluator()->GetNodeGlobalTransform(Cluster->GetAssociateModel(), poseTime);
 					// Geometric transform of the model
 					lReferenceGeometry = GetGeometry(Cluster->GetAssociateModel());
 					lReferenceGlobalCurrentPosition *= lReferenceGeometry;
@@ -218,7 +218,7 @@ void FFbxImporter::SkinControlPointsToPose(FSkeletalMeshImportData& ImportData, 
 				}
 				// Get the link initial global position and the link current global position.
 				Cluster->GetTransformLinkMatrix(lClusterGlobalInitPosition);
-				lClusterGlobalCurrentPosition = Link->GetScene()->GetEvaluator()->GetNodeGlobalTransform(Link, poseTime);
+				lClusterGlobalCurrentPosition = Link->GetScene()->GetAnimationEvaluator()->GetNodeGlobalTransform(Link, poseTime);
 
 				// Compute the initial position of the link relative to the reference.
 				lClusterRelativeInitPosition = lClusterGlobalInitPosition.Inverse() * lReferenceGlobalInitPosition;
@@ -855,7 +855,7 @@ bool UnFbx::FFbxImporter::ImportBone(TArray<FbxNode*>& NodeArray, FSkeletalMeshI
 		
 		if (ImportOptions->bUseT0AsRefPose)
 		{
-			FbxAMatrix& T0Matrix = Scene->GetEvaluator()->GetNodeGlobalTransform(Link, 0);
+			FbxAMatrix& T0Matrix = Scene->GetAnimationEvaluator()->GetNodeGlobalTransform(Link, 0);
 			if (GlobalsPerLink[LinkIndex] != T0Matrix)
 			{
 				bOutDiffPose = true;
@@ -1671,27 +1671,21 @@ bool UnFbx::FFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshImportData& 
 	//
 	// Convert data format to unreal-compatible
 	//
-	bool bDestroyMesh = false;
+
 	if (!Mesh->IsTriangleMesh())
 	{
 		UE_LOG(LogFbx, Log, TEXT("Triangulating skeletal mesh %s"), ANSI_TO_TCHAR(Node->GetName()));
 		
-		bool bSuccess = GeometryConverter->TriangulateInPlace(Mesh->GetNode());
-
-		if (bSuccess == false)
+		const bool bReplace = true;
+		FbxNodeAttribute* ConvertedNode = GeometryConverter->Triangulate(Mesh, bReplace);
+		if( ConvertedNode != NULL && ConvertedNode->GetAttributeType() == FbxNodeAttribute::eMesh )
 		{
-			AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("FbxSkeletaLMeshimport_TriangulatingFailed", "Unable to triangulate mesh '{0}'. Check detail for Ouput Log."), FText::FromString(Node->GetName()))));
-			const FbxError& Error = Mesh->GetError();
-			const int32 ErrorStrCount = Error.GetErrorCount();
-			for (int32 ErrorStrIndex = 0 ; ErrorStrIndex < ErrorStrCount; ++ErrorStrIndex)
-			{
-				UE_LOG(LogFbx,Error,TEXT(" Fbx error %d/%d: [%s]"), ErrorStrIndex+1, ErrorStrIndex, ANSI_TO_TCHAR(Error.GetErrorString(ErrorStrIndex)));
-			}
-			return false;
+			Mesh = ConvertedNode->GetNode()->GetMesh();
 		}
 		else
 		{
-			Mesh = Node->GetMesh();
+			AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("FbxSkeletaLMeshimport_TriangulatingFailed", "Unable to triangulate mesh '{0}'. Check detail for Ouput Log."), FText::FromString(Node->GetName()))));
+			return false;
 		}
 	}
 	
@@ -2183,11 +2177,6 @@ bool UnFbx::FFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshImportData& 
 		delete[] UVMappingMode;
 	}
 	
-	if( bDestroyMesh )
-	{
-		Mesh->Destroy( true );
-	}
-
 	return true;
 }
 

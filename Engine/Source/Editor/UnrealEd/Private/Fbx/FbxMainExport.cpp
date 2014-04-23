@@ -156,7 +156,7 @@ void FFbxExporter::WriteToFile(const TCHAR* Filename)
 	if( !Exporter->Initialize(TCHAR_TO_UTF8(Filename), FileFormat, SdkManager->GetIOSettings()) )
 	{
 		UE_LOG(LogFbx, Warning, TEXT("Call to KFbxExporter::Initialize() failed.\n"));
-		UE_LOG(LogFbx, Warning, TEXT("Error returned: %s\n\n"), Exporter->GetLastErrorString());
+		UE_LOG(LogFbx, Warning, TEXT("Error returned: %s\n\n"), Exporter->GetStatus().GetErrorString() );
 		return;
 	}
 
@@ -195,7 +195,7 @@ void FFbxExporter::CreateAnimatableUserProperty(FbxNode* Node, float Value, cons
 	// Add one user property for recording the animation
 	FbxProperty IntensityProp = FbxProperty::Create(Node, FbxFloatDT, Name, Label);
 	IntensityProp.Set(Value);
-	IntensityProp.ModifyFlag(FbxPropertyAttr::eUser, true);
+	IntensityProp.ModifyFlag(FbxPropertyAttr::eUserDefined, true);
 	IntensityProp.ModifyFlag(FbxPropertyAttr::eAnimatable, true);
 }
 
