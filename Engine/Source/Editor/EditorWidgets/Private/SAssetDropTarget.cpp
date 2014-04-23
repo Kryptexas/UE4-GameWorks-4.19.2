@@ -3,6 +3,7 @@
 #include "EditorWidgetsPrivatePCH.h"
 #include "SAssetDropTarget.h"
 #include "AssetDragDropOp.h"
+#include "ActorDragDropOp.h"
 #include "AssetSelection.h"
 
 void SAssetDropTarget::Construct(const FArguments& InArgs )
@@ -134,6 +135,17 @@ UObject* SAssetDropTarget::GetDroppedObject( const FDragDropEvent& DragDropEvent
 		if (DroppedAssetData.Num() == 1)
 		{
 			DroppedObject = DroppedAssetData[0].GetAsset();
+		}
+	}
+	// Actor being dragged?
+	else if (Operation->IsOfType<FActorDragDropOp>())
+	{
+		bOutRecognizedEvent = true;
+		TSharedPtr<FActorDragDropOp> ActorDragDrop = StaticCastSharedPtr<FActorDragDropOp>(Operation);
+
+		if (ActorDragDrop->Actors.Num() == 1)
+		{
+			DroppedObject = ActorDragDrop->Actors[0].Get();
 		}
 	}
 
