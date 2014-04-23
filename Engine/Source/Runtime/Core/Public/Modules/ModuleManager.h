@@ -816,7 +816,6 @@ class FDefaultGameModuleImpl
 					FCString::Strncpy(GGameName, TEXT( GameName ), ARRAY_COUNT(GGameName)); \
 				} \
 			} AutoSet##ModuleName; \
-			IMPLEMENT_FOREIGN_ENGINE_DIR() \
 			PER_MODULE_BOILERPLATE \
 			PER_MODULE_BOILERPLATE_ANYLINK(FDefaultGameModuleImpl, ModuleName) \
 			FEngineLoop GEngineLoop;
