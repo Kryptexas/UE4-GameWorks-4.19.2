@@ -473,12 +473,19 @@ namespace AutomationTool
 
                         }
                     }
-                }
-                CommandUtils.Log("      Programs {0}:", Properties.Programs.Count);
-                foreach (var ThisTarget in Properties.Programs)
-                {
-                    CommandUtils.Log("        TargetName          : " + ThisTarget.TargetName);
-                    CommandUtils.Log("          Build With Editor  : " + (ThisTarget.Rules.GUBP_AlwaysBuildWithBaseEditor() ? "YES" : "NO"));
+                    CommandUtils.Log("      Programs {0}:", Properties.Programs.Count);
+                    foreach (var ThisTarget in Properties.Programs)
+                    {
+                        bool bInternalToolOnly;
+                        bool SeparateNode;
+                        bool Tool = ThisTarget.Rules.GUBP_AlwaysBuildWithTools(HostPlatform, out bInternalToolOnly, out SeparateNode);
+
+                        CommandUtils.Log("            TargetName                    : " + ThisTarget.TargetName);
+                        CommandUtils.Log("              Build With Editor           : " + (ThisTarget.Rules.GUBP_AlwaysBuildWithBaseEditor() ? "YES" : "NO"));
+                        CommandUtils.Log("              Build With Tools            : " + (Tool && !bInternalToolOnly ? "YES" : "NO"));
+                        CommandUtils.Log("              Build With Internal Tools   : " + (Tool && bInternalToolOnly ? "YES" : "NO"));
+                        CommandUtils.Log("              Separate Node               : " + (Tool && SeparateNode ? "YES" : "NO"));
+                    }
                 }
             }
         };

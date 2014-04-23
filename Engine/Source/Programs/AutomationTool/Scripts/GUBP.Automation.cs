@@ -91,6 +91,44 @@ public class GUBP : BuildCommand
         }
     }
 
+    public abstract class GUBPEmailHacker
+    {
+        public virtual string HackEmails(string Emails, GUBP bp, string Branch, string NodeName)
+        {
+            return Emails;
+        }
+    }
+
+    private static List<GUBPEmailHacker> EmailHackers;
+    private string HackEmails(string Emails, string Branch, string NodeName)
+    {
+        string Result = Emails;
+        if (EmailHackers == null)
+        {
+            EmailHackers = new List<GUBPEmailHacker>();
+            Assembly[] LoadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
+            foreach (var Dll in LoadedAssemblies)
+            {
+                Type[] AllTypes = Dll.GetTypes();
+                foreach (var PotentialConfigType in AllTypes)
+                {
+                    if (PotentialConfigType != typeof(GUBPEmailHacker) && typeof(GUBPEmailHacker).IsAssignableFrom(PotentialConfigType))
+                    {
+                        GUBPEmailHacker Config = Activator.CreateInstance(PotentialConfigType) as GUBPEmailHacker;
+                        if (Config != null)
+                        {
+                            EmailHackers.Add(Config);
+                        }
+                    }
+                }
+            }
+        }
+        foreach (var EmailHacker in EmailHackers)
+        {
+            Result = EmailHacker.HackEmails(Result, this, Branch, NodeName);
+        }
+        return Result;
+    }
     public abstract class GUBPNode
     {
         public List<string> FullNamesOfDependencies = new List<string>();
@@ -2949,10 +2987,7 @@ public class GUBP : BuildCommand
         {
             Emails = "Engine-QA[epic]";
         }
-        if (BranchForEmail.Contains("Fort"))
-        {
-            Emails = Emails.Replace("Engine-QA[epic]", "Fortress-QA[epic]").Replace(" Engine-QA-Team[epic]", "");
-        }
+        Emails = HackEmails(Emails, BranchForEmail, NodeToDo);
         return Emails;
     }
 
