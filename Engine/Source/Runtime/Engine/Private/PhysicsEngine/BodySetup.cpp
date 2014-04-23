@@ -408,7 +408,7 @@ void UBodySetup::AddShapesToRigidActor(PxRigidActor* PDestActor, FVector& Scale3
 		{
 			FKConvexElem* ConvexElem = &(AggGeom.ConvexElems[i]);
 
-			if(ensure(ConvexElem->ConvexMesh != NULL))
+			if(ConvexElem->ConvexMesh != NULL)
 			{
 				PxTransform PLocalPose;
 				bool bUseNegX = CalcMeshNegScaleCompensation(Scale3D, PLocalPose);
