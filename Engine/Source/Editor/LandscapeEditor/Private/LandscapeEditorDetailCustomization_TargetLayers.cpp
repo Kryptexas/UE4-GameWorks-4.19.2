@@ -559,13 +559,14 @@ void FLandscapeEditorCustomNodeBuilder_TargetLayers::OnReimportLayer(const TShar
 
 bool FLandscapeEditorCustomNodeBuilder_TargetLayers::ShouldFilterLayerInfo(const class FAssetData& AssetData, FName LayerName)
 {
-	ULandscapeLayerInfoObject* LayerInfo = CastChecked<ULandscapeLayerInfoObject>(AssetData.GetAsset());
-	if (LayerInfo->LayerName != LayerName)
+	const FString* const LayerNameMetaData = AssetData.TagsAndValues.Find("LayerName");
+	if (LayerNameMetaData && !LayerNameMetaData->IsEmpty())
 	{
-		return true;
+		return FName(**LayerNameMetaData) != LayerName;
 	}
 
-	return false;
+	ULandscapeLayerInfoObject* LayerInfo = CastChecked<ULandscapeLayerInfoObject>(AssetData.GetAsset());
+	return LayerInfo->LayerName != LayerName;
 }
 
 void FLandscapeEditorCustomNodeBuilder_TargetLayers::OnTargetLayerSetObject(const UObject* Object, const TSharedRef<FLandscapeTargetListInfo> Target)
