@@ -137,9 +137,6 @@ public:
 
 	KISMETCOMPILER_API UK2Node_TemporaryVariable* SpawnInternalVariable(UEdGraphNode* SourceNode, FString Category, FString SubCategory = TEXT(""), UObject* SubcategoryObject = NULL, bool bIsArray = false);
 
-	/** Checks a connection response, and errors if it didn't succeed */
-	KISMETCOMPILER_API void CheckConnectionResponse(const FPinConnectionResponse &Response, const UEdGraphNode *Node);
-
 protected:
 	virtual UEdGraphSchema_K2* CreateSchema();
 	virtual void PostCreateSchema();
@@ -157,6 +154,13 @@ protected:
 	 * @param OldCDO			Reference to the old CDO of the class, so we can copy the properties from it to the new class's CDO
 	 */
 	virtual void CleanAndSanitizeClass(UBlueprintGeneratedClass* ClassToClean, UObject*& OldCDO);
+
+	/** 
+	 * Checks a connection response, and errors if it didn't succeed (not public, 
+	 * users should be using MovePinLinksToIntermediate/CopyPinLinksToIntermediate 
+	 * instead of wrapping their own with this).
+	 */
+	KISMETCOMPILER_API void CheckConnectionResponse(const FPinConnectionResponse &Response, const UEdGraphNode *Node);
 
 protected:
 	// FGraphCompilerContext interface
