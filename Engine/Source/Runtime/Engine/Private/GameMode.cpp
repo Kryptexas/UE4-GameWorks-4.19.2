@@ -829,13 +829,13 @@ void AGameMode::HandleSeamlessTravelPlayer(AController*& C)
 		NumBots++;
 	}
 
-	GenericPlayerInitialization(C);
-
 	if (PC)
 	{
 		// This handles setting hud, and may spawn the player pawn if the game is in progress
 		StartNewPlayer(PC);
 	}
+
+	GenericPlayerInitialization(C);
 
 	UE_LOG(LogGameMode, Log, TEXT("<< GameMode::HandleSeamlessTravelPlayer: %s"), *C->GetName());
 }
