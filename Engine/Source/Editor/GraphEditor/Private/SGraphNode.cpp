@@ -37,7 +37,7 @@ void SNodeTitle::Tick(const FGeometry& AllottedGeometry, const double InCurrentT
 	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 
 	// Checks to see if the cached string is valid, and if not, updates it.
-	if (TitleText.Get().CompareTo(CachedTitle) == 0)
+	if (TitleText.Get().CompareTo(CachedTitle) != 0)
 	{
 		CachedTitle = TitleText.Get();
 		RebuildWidget();
