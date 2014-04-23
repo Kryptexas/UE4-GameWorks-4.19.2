@@ -157,3 +157,19 @@ FString UIpConnection::LowLevelDescribe()
 		:								TEXT("Invalid")
 	);
 }
+
+int32 UIpConnection::GetAddrAsInt(void)
+{
+	uint32 OutAddr = 0;
+	// Get the host byte order ip addr
+	RemoteAddr->GetIp(OutAddr);
+	return (int32)OutAddr;
+}
+
+int32 UIpConnection::GetAddrPort(void)
+{
+	int32 OutPort = 0;
+	// Get the host byte order ip port
+	RemoteAddr->GetPort(OutPort);
+	return OutPort;
+}
