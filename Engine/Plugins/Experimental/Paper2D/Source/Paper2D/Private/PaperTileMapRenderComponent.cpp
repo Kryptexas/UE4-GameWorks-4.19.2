@@ -91,7 +91,7 @@ UBodySetup* UPaperTileMapRenderComponent::GetBodySetup()
 
 void UPaperTileMapRenderComponent::UpdateBodySetup()
 {
-	if (ShapeBodySetup == NULL)
+	if (ShapeBodySetup == NULL || ShapeBodySetup->IsPendingKill())
 	{
 		ShapeBodySetup = ConstructObject<UBodySetup>(UBodySetup::StaticClass(), this);
 		ShapeBodySetup->CollisionTraceFlag = CTF_UseSimpleAsComplex;

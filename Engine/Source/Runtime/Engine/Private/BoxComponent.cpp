@@ -34,7 +34,7 @@ void UBoxComponent::SetBoxExtent(FVector NewBoxExtent, bool bUpdateOverlaps)
 
 void UBoxComponent::UpdateBodySetup()
 {
-	if( ShapeBodySetup == NULL )
+	if(ShapeBodySetup == NULL || ShapeBodySetup->IsPendingKill())
 	{
 		ShapeBodySetup = ConstructObject<UBodySetup>(UBodySetup::StaticClass(), this);
 		ShapeBodySetup->CollisionTraceFlag = CTF_UseSimpleAsComplex;

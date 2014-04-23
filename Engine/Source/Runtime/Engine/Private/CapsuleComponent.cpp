@@ -142,7 +142,7 @@ void UCapsuleComponent::SetCapsuleSize(float NewRadius, float NewHalfHeight, boo
 
 void UCapsuleComponent::UpdateBodySetup()
 {
-	if(ShapeBodySetup == NULL)
+	if (ShapeBodySetup == NULL || ShapeBodySetup->IsPendingKill())
 	{
 		ShapeBodySetup = ConstructObject<UBodySetup>(UBodySetup::StaticClass(), this);
 		ShapeBodySetup->CollisionTraceFlag = CTF_UseSimpleAsComplex;
