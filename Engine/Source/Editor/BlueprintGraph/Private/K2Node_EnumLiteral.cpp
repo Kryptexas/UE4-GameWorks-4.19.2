@@ -2,6 +2,7 @@
 
 
 #include "BlueprintGraphPrivatePCH.h"
+#include "KismetCompilerMisc.h"
 
 const FString& UK2Node_EnumLiteral::GetEnumInputPinName()
 {
