@@ -105,6 +105,13 @@ public:
 	ENGINE_API uint32 GetAllocatedSize() const;
 
 	/**
+	 * Gets all vertex colors in the buffer
+	 *
+	 * @param OutColors	The populated list of colors 
+	 */
+	ENGINE_API void GetVertexColors( TArray<FColor>& OutColors );
+
+	/**
 	* Load from a array of colors
 	* @param InColors - must not be 0
 	* @param Count - must be > 0

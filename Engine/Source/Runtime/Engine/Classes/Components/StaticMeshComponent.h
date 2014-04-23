@@ -116,6 +116,58 @@ public:
 	TArray<FGuid> IrrelevantLights;
 };
 
+/**
+ * Vertex color information stored during RerunConstructionScripts
+ */
+class FVertexColorInstanceData : public FComponentInstanceDataBase
+{
+public:
+	static const FName VertexColorInstanceDataName;
+
+	/** FComponentInstanceDataBase interface */
+	virtual FName GetDataTypeName() const OVERRIDE
+	{
+		return VertexColorInstanceDataName;
+	}
+
+	/** Add vertex color data for a specified LOD before RerunConstructionScripts is called */
+	void AddVertexColorData( const struct FStaticMeshComponentLODInfo& LODInfo, uint32 LODIndex );
+
+	/** Re-apply vertex color data after RerunConstructionScripts is called */
+	bool ApplyVertexColorData( UStaticMeshComponent* StaticMeshComponent );
+
+	/** Check whether this vertex color data can match the specified component */
+	bool MatchesComponent( const UStaticMeshComponent* StaticMeshComponent ) const;
+
+	/** Vertex data stored per-LOD */
+	struct FVertexColorLODData
+	{
+		/** copy of painted vertex data */
+		TArray<FPaintedVertex> PaintedVertices;
+
+		/** Copy of vertex buffer colors */
+		TArray<FColor> VertexBufferColors;
+
+		/** Index of the LOD that this data came from */
+		uint32 LODIndex;
+
+		/** Check whether this contains valid data */
+		bool IsValid() const 
+		{ 
+			return PaintedVertices.Num() > 0 && VertexBufferColors.Num() > 0; 
+		}
+	};
+
+	/** Mesh being used by component */
+	class UStaticMesh* StaticMesh;
+
+	/** 'Stable' index into serialized components array */
+	int32 SerializedComponentsIndex;
+
+	/** Array of cached vertex colors for each LOD */
+	TArray<FVertexColorLODData> VertexColorLODs;
+};
+
 /** A StaticMeshComponent is a mesh that does not animate. */
 UCLASS(HeaderGroup=Component, ClassGroup=(Rendering, Common), hidecategories=(Object,Activation,"Components|Activation"), ShowCategories=(Mobility), dependson=ULightmassPrimitiveSettingsObject, editinlinenew, meta=(BlueprintSpawnableComponent))
 class ENGINE_API UStaticMeshComponent : public UMeshComponent
@@ -437,6 +489,8 @@ public:
 	/** Returns the wireframe color to use for this component. */
 	FColor GetWireframeColor() const;
 
+	/** Get this components index in its parents serialized components array (used for matching instance data) */
+	int32 GetSerializedComponentIndex() const;
 };
 
 

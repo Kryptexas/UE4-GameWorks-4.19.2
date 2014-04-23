@@ -294,6 +294,25 @@ private:
 		TMap<FVector, FColor> ColorsByPosition;
 	};
 
+	/** struct used to store the color data copied from mesh component to mesh component */
+	struct FPerComponentVertexColorData
+	{
+		FPerComponentVertexColorData(UStaticMesh* InStaticMesh, int32 InComponentIndex)
+			: OriginalMesh(InStaticMesh)
+			, ComponentIndex(InComponentIndex)
+		{
+		}
+
+		/** We match up components by the mesh they use */
+		TWeakObjectPtr<UStaticMesh> OriginalMesh;
+
+		/** We also match by component index */
+		int32 ComponentIndex;
+
+		/** Vertex colors by LOD */
+		TArray<FPerLODVertexColorData> PerLODVertexColorData;
+	};
+
 public:
 
 	struct PaintTexture2DData
@@ -394,7 +413,7 @@ public:
 	/** Helper function to get the current paint action for use in DoPaint */
 	EMeshPaintAction::Type GetPaintAction(FViewport* InViewport);
 
-	/** Removes vertex colors associated with the object (if it's a StaticMeshActor) */
+	/** Removes vertex colors associated with the object */
 	void RemoveInstanceVertexColors(UObject* Obj) const;
 
 	/** Removes vertex colors associated with the static mesh component */
@@ -777,7 +796,7 @@ private:
 	TMap< UTexture2D*, PaintTexture2DData > PaintTargetData;
 
 	/** Temporary buffers used when copying/pasting colors */
-	TArray< FPerLODVertexColorData > CopiedColorsByLOD;
+	TArray<FPerComponentVertexColorData> CopiedColorsByComponent;
 
 	/**
 	 * Does the work of removing instance vertex colors from a single static mesh component.

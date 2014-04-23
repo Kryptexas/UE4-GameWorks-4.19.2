@@ -9,6 +9,71 @@
 
 #define LOCTEXT_NAMESPACE "StaticMeshComponent"
 
+const FName FVertexColorInstanceData::VertexColorInstanceDataName(TEXT("VertexColorInstanceData"));
+
+void FVertexColorInstanceData::AddVertexColorData( const FStaticMeshComponentLODInfo& LODInfo, uint32 LODIndex )
+{
+	if(VertexColorLODs.Num() <= (int32)LODIndex)
+	{
+		VertexColorLODs.SetNum(LODIndex + 1);
+	}
+	FVertexColorLODData& VertexColorData = VertexColorLODs[LODIndex];
+	VertexColorData.LODIndex = LODIndex;
+	VertexColorData.PaintedVertices = LODInfo.PaintedVertices;
+	LODInfo.OverrideVertexColors->GetVertexColors( VertexColorData.VertexBufferColors );
+}
+
+bool FVertexColorInstanceData::ApplyVertexColorData( UStaticMeshComponent* StaticMeshComponent )
+{
+	bool bAppliedAnyData = false;
+
+	if(StaticMeshComponent != NULL)
+	{
+		StaticMeshComponent->SetLODDataCount(VertexColorLODs.Num(), VertexColorLODs.Num());
+
+		for( int32 LODDataIndex = 0; LODDataIndex < VertexColorLODs.Num(); ++LODDataIndex )
+		{
+			const FVertexColorLODData& VertexColorLODData = VertexColorLODs[LODDataIndex];
+			uint32 LODIndex = VertexColorLODData.LODIndex;
+
+			if( StaticMeshComponent->LODData.IsValidIndex( LODIndex ) )
+			{
+				FStaticMeshComponentLODInfo& LODInfo = StaticMeshComponent->LODData[LODIndex];
+			
+				// Should not already have overriden vertex colors
+				if( LODInfo.OverrideVertexColors == NULL )
+				{
+					LODInfo.PaintedVertices = VertexColorLODData.PaintedVertices;
+
+					LODInfo.OverrideVertexColors = new FColorVertexBuffer;
+					LODInfo.OverrideVertexColors->InitFromColorArray( VertexColorLODData.VertexBufferColors );
+
+					BeginInitResource( LODInfo.OverrideVertexColors );	
+					bAppliedAnyData = true;
+				}
+			}
+		}	
+	}
+
+	return bAppliedAnyData;
+}
+
+bool FVertexColorInstanceData::MatchesComponent( const UStaticMeshComponent* StaticMeshComponent ) const
+{
+	if(StaticMeshComponent != NULL)
+	{
+		if(StaticMeshComponent->StaticMesh != StaticMesh)
+		{
+			return false;
+		}
+
+		return SerializedComponentsIndex == StaticMeshComponent->GetSerializedComponentIndex();
+	}
+
+	// this component was not found
+	return false;
+}
+
 UStaticMeshComponent::UStaticMeshComponent(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
@@ -1359,6 +1424,22 @@ void UStaticMeshComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMate
 	}
 }
 
+int32 UStaticMeshComponent::GetSerializedComponentIndex() const
+{
+	int32 ComponentIndex = 0;
+	for(const auto& Component : GetOwner()->SerializedComponents)
+	{
+		if(Component == this)
+		{
+			return ComponentIndex;
+		}
+
+		ComponentIndex++;
+	}
+
+	return INDEX_NONE;
+}
+
 // Init type name static
 const FName FLightMapInstanceData::LightMapInstanceDataTypeName(TEXT("LightMapInstanceData"));
 
@@ -1384,6 +1465,32 @@ void UStaticMeshComponent::GetComponentInstanceData(FComponentInstanceDataCache&
 		// Add to cache
 		Cache.AddInstanceData(LightMapData);
 	}
+
+
+	// Cache instance vertex colors
+	TSharedPtr<FVertexColorInstanceData> VertexColorData;
+	for( int32 LODIndex = 0; LODIndex < LODData.Num(); ++LODIndex )
+	{
+		const FStaticMeshComponentLODInfo& LODInfo = LODData[LODIndex];
+
+		if ( LODInfo.OverrideVertexColors && LODInfo.OverrideVertexColors->GetNumVertices() > 0 && LODInfo.PaintedVertices.Num() > 0 )
+		{
+			if( !VertexColorData.IsValid() )
+			{
+				VertexColorData = MakeShareable( new FVertexColorInstanceData );
+				VertexColorData->StaticMesh = StaticMesh;
+				VertexColorData->SerializedComponentsIndex = GetSerializedComponentIndex();
+			}
+
+			VertexColorData->AddVertexColorData( LODInfo, LODIndex );
+		}
+	}
+
+	if( VertexColorData.IsValid() )
+	{
+		Cache.AddInstanceData( VertexColorData );
+	}
+
 }
 
 void UStaticMeshComponent::ApplyComponentInstanceData(const FComponentInstanceDataCache& Cache)
@@ -1415,6 +1522,19 @@ void UStaticMeshComponent::ApplyComponentInstanceData(const FComponentInstanceDa
 			bHasCachedStaticLighting = true;
 
 			MarkRenderStateDirty();
+		}
+	}
+
+	TArray< TSharedPtr<FComponentInstanceDataBase> > AllCachedVertexColorData;
+	Cache.GetInstanceDataOfType( FVertexColorInstanceData::VertexColorInstanceDataName, AllCachedVertexColorData );
+
+	for(const auto& CachedVertexColorData : AllCachedVertexColorData)
+	{
+		TSharedPtr<FVertexColorInstanceData> ComponentInstanceData = StaticCastSharedPtr<FVertexColorInstanceData>(CachedVertexColorData);
+		if(	ComponentInstanceData->MatchesComponent(this) )
+		{
+			ComponentInstanceData->ApplyVertexColorData(this);
+			MarkRenderStateDirty();	
 		}
 	}
 }
