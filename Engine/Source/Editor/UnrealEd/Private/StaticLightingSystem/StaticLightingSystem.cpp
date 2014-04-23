@@ -2050,7 +2050,7 @@ void FStaticLightingSystem::UpdateAutomaticImportanceVolumeBounds( const FBox& M
 
 bool FStaticLightingSystem::CanAutoApplyLighting() const
 {
-	const bool bAutoApplyEnabled = GetDefault<UEditorUserSettings>()->bAutoApplyLightingEnable;
+	const bool bAutoApplyEnabled = GetDefault<ULevelEditorMiscSettings>()->bAutoApplyLightingEnable;
 	const bool bSlowTask = GIsSlowTask;
 	const bool bInterpEditMode = GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_InterpEdit );
 	const bool bPlayWorldValid = GUnrealEd->PlayWorld != nullptr;

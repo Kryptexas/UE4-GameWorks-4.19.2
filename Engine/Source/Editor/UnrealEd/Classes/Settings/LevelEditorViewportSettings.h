@@ -154,11 +154,13 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Controls, meta=(DisplayName = "Orthographic Zoom to Cursor Position"))
 	uint32 bCenterZoomAroundCursor:1;
 
-	/**
-	 * If checked all orthographic view ports are linked to the same position and move together.
-	 */
-	UPROPERTY(EditAnywhere, config, Category=Controls, meta=(DisplayName = "Link Orthographic Viewport Movement"))
-	uint32 bUseLinkedOrthographicViewports:1;
+	/** Allow translate/rotate widget */
+	UPROPERTY(EditAnywhere, config, Category=Controls, meta=( DisplayName = "Enable Combined Translate/Rotate Widget" ))
+	uint32 bAllowTranslateRotateZWidget:1;
+
+	/** If true, Clicking a BSP selects the brush and ctrl+shift+click selects the surface. If false, vice versa */
+	UPROPERTY(EditAnywhere, config, Category=Controls, meta=( DisplayName = "Clicking BSP Enables Brush" ))
+	uint32 bClickBSPSelectsBrush:1;
 
 	/**
 	 * How fast the perspective camera moves when flying through the world.
@@ -199,28 +201,6 @@ public:
 	/** When checked, orbit the camera by using the L or U keys when unchecked, Alt and Left Mouse Drag will orbit around the look at point */
 	UPROPERTY(EditAnywhere, config, Category=Controls, meta=(DisplayName="Use UE3 Orbit Controls"), AdvancedDisplay)
 	bool bUseUE3OrbitControls;
-
-public:
-
-	/** Allow translate/rotate widget */
-	UPROPERTY(EditAnywhere, config, Category=Editing, meta=( DisplayName = "Enable Combined Translate/Rotate Widget" ))
-	uint32 bAllowTranslateRotateZWidget:1;
-
-	/** If true, Clicking a BSP selects the brush and ctrl+shift+click selects the surface. If false, vice versa */
-	UPROPERTY(EditAnywhere, config, Category=Editing, meta=( DisplayName = "Clicking BSP Enables Brush" ))
-	uint32 bClickBSPSelectsBrush:1;
-
-	/** If true, BSP will auto-update */
-	UPROPERTY(EditAnywhere, config, Category=Editing, meta=( DisplayName = "Update BSP Automatically" ))
-	uint32 bBSPAutoUpdate:1;
-
-	/** If true, Navigation will auto-update */
-	UPROPERTY(EditAnywhere, config, Category=Editing, meta=( DisplayName = "Update Navigation Automatically" ))
-	uint32 bNavigationAutoUpdate:1;
-
-	/** If enabled, replacing actors will respect the scale of the original actor.  Otherwise, the replaced actors will have a scale of 1.0 */
-	UPROPERTY(EditAnywhere, config, Category=Editing, meta=( DisplayName = "Preserve Actor Scale on Replace" ))
-	uint32 bReplaceRespectsScale:1;
 
 public:
 
@@ -323,6 +303,12 @@ public:
 	/** If enabled, selected objects will be highlighted with brackets in all modes rather than a special highlight color. */
 	UPROPERTY(EditAnywhere, config, Category=LookAndFeel, meta=(DisplayName = "Highlight Selected Objects with Brackets"))
 	uint32 bHighlightWithBrackets:1;
+
+	/**
+	 * If checked all orthographic view ports are linked to the same position and move together.
+	 */
+	UPROPERTY(EditAnywhere, config, Category=LookAndFeel, meta=(DisplayName = "Link Orthographic Viewport Movement"))
+	uint32 bUseLinkedOrthographicViewports:1;
 
 	/** True if viewport box selection requires objects to be fully encompassed by the selection box to be selected */
 	UPROPERTY(config)

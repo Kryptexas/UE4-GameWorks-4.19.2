@@ -1390,7 +1390,7 @@ void UEditorEngine::RebuildMap(UWorld* InWorld, EMapRebuildType RebuildType)
 void UEditorEngine::RebuildLevel(ULevel& Level)
 {
 	// Early out if BSP auto-updating is disabled
-	if (!GetDefault<ULevelEditorViewportSettings>()->bBSPAutoUpdate)
+	if (!GetDefault<ULevelEditorMiscSettings>()->bBSPAutoUpdate)
 	{
 		return;
 	}
@@ -1478,7 +1478,7 @@ void UEditorEngine::RebuildModelFromBrushes(UModel* Model, bool bSelectedBrushes
 void UEditorEngine::RebuildAlteredBSP()
 {
 	// Early out if BSP auto-updating is disabled
-	if (!GetDefault<ULevelEditorViewportSettings>()->bBSPAutoUpdate)
+	if (!GetDefault<ULevelEditorMiscSettings>()->bBSPAutoUpdate)
 	{
 		return;
 	}

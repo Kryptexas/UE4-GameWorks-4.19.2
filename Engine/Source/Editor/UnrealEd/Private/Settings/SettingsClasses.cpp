@@ -117,12 +117,41 @@ void UEditorLoadingSavingSettings::PostEditChangeProperty( struct FPropertyChang
 }
 
 
-/* ULevelEditorPlaySettings interface
+/* UEditorMiscSettings interface
  *****************************************************************************/
 
 UEditorMiscSettings::UEditorMiscSettings( const class FPostConstructInitializeProperties& PCIP )
 	: Super(PCIP)
 { }
+
+
+/* ULevelEditorMiscSettings interface
+ *****************************************************************************/
+
+ULevelEditorMiscSettings::ULevelEditorMiscSettings( const class FPostConstructInitializeProperties& PCIP )
+	: Super(PCIP)
+{
+	bAutoApplyLightingEnable = true;
+}
+
+
+void ULevelEditorMiscSettings::PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent )
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	const FName Name = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+
+	if (Name == FName(TEXT("bNavigationAutoUpdate")))
+	{
+		FWorldContext &EditorContext = GEditor->GetEditorWorldContext();
+		UNavigationSystem::SetNavigationAutoUpdateEnabled(bNavigationAutoUpdate, EditorContext.World()->GetNavigationSystem());
+	}
+
+	if (!FUnrealEdMisc::Get().IsDeletePreferences())
+	{
+		SaveConfig();
+	}
+}
 
 
 /* ULevelEditorPlaySettings interface
@@ -179,11 +208,6 @@ void ULevelEditorViewportSettings::PostEditChangeProperty( struct FPropertyChang
 	{
 		GEngine->HoverHighlightIntensity = HoverHighlightIntensity;
 	}
-	else if (Name == FName(TEXT("bNavigationAutoUpdate")))
-	{
-		FWorldContext &EditorContext = GEditor->GetEditorWorldContext();
-		UNavigationSystem::SetNavigationAutoUpdateEnabled(bNavigationAutoUpdate, EditorContext.World()->GetNavigationSystem());
-	}
 	else if (Name == FName(TEXT("SelectionHighlightIntensity")))
 	{
 		GEngine->SelectionHighlightIntensity = SelectionHighlightIntensity;
@@ -228,6 +252,7 @@ void ULevelEditorViewportSettings::PostEditChangeProperty( struct FPropertyChang
 		UBillboardComponent::SetEditorScale(BillboardScale);
 		UArrowComponent::SetEditorScale(BillboardScale);
 	}
+
 	if (!FUnrealEdMisc::Get().IsDeletePreferences())
 	{
 		SaveConfig();

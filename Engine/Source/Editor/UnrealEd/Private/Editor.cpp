@@ -390,7 +390,7 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 	
 	// Set navigation system property indicating whether navigation is supposed to rebuild automatically 
 	FWorldContext &EditorContext = GEditor->GetEditorWorldContext();
-	UNavigationSystem::SetNavigationAutoUpdateEnabled(GetDefault<ULevelEditorViewportSettings>()->bNavigationAutoUpdate, EditorContext.World()->GetNavigationSystem() );
+	UNavigationSystem::SetNavigationAutoUpdateEnabled(GetDefault<ULevelEditorMiscSettings>()->bNavigationAutoUpdate, EditorContext.World()->GetNavigationSystem() );
 
 	// Allocate temporary model.
 	TempModel = new UModel( FPostConstructInitializeProperties(),NULL, 1 );
@@ -838,7 +838,7 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	bool IsRealtime = false;
 
 	// True if a viewport has realtime audio	// If any realtime audio is enabled in the editor
-	bool bAudioIsRealtime = GEditor->AccessEditorUserSettings().bEnableRealTimeAudio;
+	bool bAudioIsRealtime = GetDefault<ULevelEditorMiscSettings>()->bEnableRealTimeAudio;
 
 	// By default we tick the editor world.  
 	// When in PIE if we are in immersive we do not tick the editor world unless there is a visible editor viewport.
@@ -943,12 +943,12 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	// Find out if the editor has focus. Audio should only play if the editor has focus.
 	const bool bHasFocus = FPlatformProcess::IsThisApplicationForeground();
 
-	if (bHasFocus || GEditor->AccessEditorUserSettings().bAllowBackgroundAudio)
+	if (bHasFocus || GetDefault<ULevelEditorMiscSettings>()->bAllowBackgroundAudio)
 	{
 		if (!PlayWorld)
 		{
 			// Adjust the global volume multiplier if the window has focus and there is no pie world or no viewport overriding audio.
-			GVolumeMultiplier = GEditor->AccessEditorUserSettings().EditorVolumeLevel;
+			GVolumeMultiplier = GetDefault<ULevelEditorMiscSettings>()->EditorVolumeLevel;
 		}
 		else
 		{
@@ -1516,28 +1516,28 @@ bool UEditorEngine::IsRealTimeAudioMuted() const
 	{
 		return true;
 	}
-	return EditorUserSettings->bEnableRealTimeAudio ? false : true;
+	return GetDefault<ULevelEditorMiscSettings>()->bEnableRealTimeAudio ? false : true;
 }
 
 void UEditorEngine::MuteRealTimeAudio(bool bMute)
 {
-	AccessEditorUserSettings().bEnableRealTimeAudio = bMute ? false : true;
-	AccessEditorUserSettings().PostEditChange();
+	ULevelEditorMiscSettings* LevelEditorMiscSettings = GetMutableDefault<ULevelEditorMiscSettings>();
+
+	LevelEditorMiscSettings->bEnableRealTimeAudio = bMute ? false : true;
+	LevelEditorMiscSettings->PostEditChange();
 }
 
 float UEditorEngine::GetRealTimeAudioVolume() const
 {
-	if (EditorUserSettings == NULL)
-	{
-		return 0.f;
-	}
-	return EditorUserSettings->EditorVolumeLevel;
+	return GetDefault<ULevelEditorMiscSettings>()->EditorVolumeLevel;
 }
 
 void UEditorEngine::SetRealTimeAudioVolume(float VolumeLevel)
 {
-	AccessEditorUserSettings().EditorVolumeLevel = VolumeLevel;
-	AccessEditorUserSettings().PostEditChange();
+	ULevelEditorMiscSettings* LevelEditorMiscSettings = GetMutableDefault<ULevelEditorMiscSettings>();
+
+	LevelEditorMiscSettings->EditorVolumeLevel = VolumeLevel;
+	LevelEditorMiscSettings->PostEditChange();
 }
 
 bool UEditorEngine::UpdateSingleViewportClient(FEditorViewportClient* InViewportClient, const bool bInAllowNonRealtimeViewportToDraw, bool bLinkedOrthoMovement )
@@ -1729,7 +1729,7 @@ void UEditorEngine::PlayPreviewSound( USoundBase* Sound,  USoundNode* SoundNode 
 void UEditorEngine::PlayEditorSound( const FString& SoundAssetName )
 {
 	// Only play sounds if the user has that feature enabled
-	if( GetEditorUserSettings().bEnableEditorSounds )
+	if( GetDefault<ULevelEditorMiscSettings>()->bEnableEditorSounds )
 	{
 		USoundBase* Sound = Cast<USoundBase>( StaticFindObject( USoundBase::StaticClass(), NULL, *SoundAssetName ) );
 		if( Sound == NULL )
@@ -4966,7 +4966,7 @@ void UEditorEngine::ReplaceSelectedActors(UActorFactory* Factory, const FAssetDa
 			USceneComponent* const NewActorRootComponent = NewActor->GetRootComponent();
 			if(NewActorRootComponent)
 			{
-				if(!GetDefault<ULevelEditorViewportSettings>()->bReplaceRespectsScale || OldActor->GetRootComponent() == NULL )
+				if(!GetDefault<ULevelEditorMiscSettings>()->bReplaceRespectsScale || OldActor->GetRootComponent() == NULL )
 				{
 					NewActorRootComponent->SetRelativeScale3D(FVector(1.0f, 1.0f, 1.0f));
 				}

@@ -248,17 +248,6 @@ class UEditorUserSettings : public UObject
 	UPROPERTY(config)
 	uint32 bAllowSelectTranslucent:1;
 
-	UPROPERTY(EditAnywhere, config, Category=Sound)
-	uint32 bAllowBackgroundAudio:1;
-
-	/** If true audio will be enabled in the editor. Does not affect PIE **/
-	UPROPERTY(config)
-	uint32 bEnableRealTimeAudio:1;
-
-	/** Global volume setting for the editor */
-	UPROPERTY(config)
-	float EditorVolumeLevel;
-
 	/** True if the actor count is displayed in the slate level browser */
 	UPROPERTY(config)
 	uint32 bDisplayActorCountInLevelBrowser:1;
@@ -279,16 +268,8 @@ class UEditorUserSettings : public UObject
 	UPROPERTY(config)
 	uint32 bDisplayEditorOffsetInLevelBrowser:1;
 
-	/** Enables audio feedback for certain operations in Unreal Editor, such as entering and exiting Play mode */
-	UPROPERTY(EditAnywhere, config, Category=Sound)
-	uint32 bEnableEditorSounds:1;
-
 	UPROPERTY()
 	class UBlueprintPaletteFavorites* BlueprintFavorites;
-
-	/** Whether to automatically save after a time interval */
-	UPROPERTY( EditAnywhere, config, Category = Build, meta = ( DisplayName = "Enable auto apply lighting" ) )
-	uint32 bAutoApplyLightingEnable : 1;
 
 public:
 
@@ -307,6 +288,7 @@ public:
 	int32 MaterialQualityLevel;
 
 public:
+
 	/** Delegate for when a user setting has changed */
 	DECLARE_EVENT_OneParam(UEditorUserSettings, FUserSettingChangedEvent, FName /*PropertyName*/);
 	FUserSettingChangedEvent& OnUserSettingChanged() { return UserSettingChangedEvent; }

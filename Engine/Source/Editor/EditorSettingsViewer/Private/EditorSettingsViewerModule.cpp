@@ -171,6 +171,13 @@ protected:
 			LOCTEXT("LevelEditorViewportSettingsDescription", "Configure the look and feel of the Level Editor view ports."),
 			TWeakObjectPtr<UObject>(GetMutableDefault<ULevelEditorViewportSettings>())
 		);
+
+		// miscellaneous settings
+		SettingsModule.RegisterSettings("Editor", "LevelEditor", "Misc",
+			LOCTEXT("LevelEditorMiscSettingsName", "Miscellaneous"),
+			LOCTEXT("LevelEditorMiscSettingsDescription", "Configure miscellaneous settings for the Level Editor."),
+			TWeakObjectPtr<UObject>(GetMutableDefault<ULevelEditorMiscSettings>())
+		);
 	}
 
 	/**

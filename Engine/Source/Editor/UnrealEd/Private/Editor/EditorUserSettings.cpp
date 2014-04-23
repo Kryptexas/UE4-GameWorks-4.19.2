@@ -64,8 +64,6 @@ UEditorUserSettings::UEditorUserSettings(const class FPostConstructInitializePro
 	MaterialQualityLevel = 1;
 
 	BlueprintFavorites = ConstructObject<UBlueprintPaletteFavorites>(UBlueprintPaletteFavorites::StaticClass(), this);
-
-	bAutoApplyLightingEnable = true;
 }
 
 void UEditorUserSettings::PostInitProperties()
