@@ -112,7 +112,7 @@ public class Core : ModuleRules
 				"SDL2"
                 );
 
-            if (UEBuildConfiguration.bCompileAgainstEngine == true && Target.Type != TargetRules.TargetType.Server)
+            if (UEBuildConfiguration.bCompileAgainstEngine == true && Target.Type != TargetRules.TargetType.Server && UEBuildConfiguration.bCompileSteamOSS)
             {
                 AddThirdPartyPrivateStaticDependencies(Target, "SteamController");
             }
@@ -136,7 +136,9 @@ public class Core : ModuleRules
         }
         Definitions.Add("UE_ENABLE_ICU=" + (UEBuildConfiguration.bCompileICU ? "1" : "0")); // Enable/disable (=1/=0) ICU usage in the codebase. NOTE: This flag is for use while integrating ICU and will be removed afterward.
 
-		// If we're compiling with the engine, then add Core's engine dependencies
+        Definitions.Add("WITH_STEAMWORKS=" + (UEBuildConfiguration.bCompileSteamOSS ? "1" : "0"));
+
+        // If we're compiling with the engine, then add Core's engine dependencies
 		if (UEBuildConfiguration.bCompileAgainstEngine == true)
 		{
 			if (!UEBuildConfiguration.bBuildRequiresCookedData)
