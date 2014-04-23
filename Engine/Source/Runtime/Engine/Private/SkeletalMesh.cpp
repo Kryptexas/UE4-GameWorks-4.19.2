@@ -4027,18 +4027,14 @@ HHitProxy* FSkeletalMeshSceneProxy::CreateHitProxies(UPrimitiveComponent* Compon
 					OutHitProxies.Add(ActorHitProxy);
 				}
 			}
-
-			return NULL;
 		}
 		else
 		{
 			return FPrimitiveSceneProxy::CreateHitProxies(Component, OutHitProxies);
 		}
 	}
-	else
-	{
-		return NULL;
-	}
+
+	return NULL;
 }
 #endif
 
