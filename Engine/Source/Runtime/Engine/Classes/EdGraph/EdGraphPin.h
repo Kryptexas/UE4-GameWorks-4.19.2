@@ -215,6 +215,11 @@ public:
 		return CastChecked<UEdGraphNode>(GetOuter());
 	}
 
+	class UEdGraphNode* GetOwningNodeUnchecked() const
+	{
+		return Cast<UEdGraphNode>(GetOuter());
+	}
+
 	/** Shorthand way to access the schema of the graph that owns the node that owns this pin */
 	ENGINE_API const class UEdGraphSchema* GetSchema() const;
 

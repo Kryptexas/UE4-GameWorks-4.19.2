@@ -128,7 +128,7 @@ void FCompilerResultsLog::InternalLogMessage(const EMessageSeverity::Type& Sever
 					OwnerNode = Cast<UEdGraphNode>(ObjectArgument);
 					if (Pin)
 					{
-						OwnerNode = Cast<UEdGraphNode>(Pin->GetOwningNode());
+						OwnerNode = Pin->GetOwningNodeUnchecked();
 					}
 
 					if (ObjectArgument->GetOutermost() == GetTransientPackage())

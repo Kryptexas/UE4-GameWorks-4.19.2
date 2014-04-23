@@ -1081,16 +1081,13 @@ const FPinConnectionResponse UEdGraphSchema_K2::DetermineConnectionResponseOfCom
 
 const FPinConnectionResponse UEdGraphSchema_K2::CanCreateConnection(const UEdGraphPin* PinA, const UEdGraphPin* PinB) const
 {
-	// Find the calling context in case one of the pins is of type object and has a value of Self
-	UClass* CallingContext = NULL;
-	const UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForNode(PinA->GetOwningNode());
-	if (Blueprint)
-	{
-		CallingContext = (Blueprint->GeneratedClass != NULL) ? Blueprint->GeneratedClass : Blueprint->ParentClass;
-	}
+	const UK2Node* OwningNodeA = Cast<UK2Node>(PinA->GetOwningNodeUnchecked());
+	const UK2Node* OwningNodeB = Cast<UK2Node>(PinB->GetOwningNodeUnchecked());
 
-	const UK2Node* OwningNodeA = Cast<UK2Node>(PinA->GetOwningNode());
-	const UK2Node* OwningNodeB = Cast<UK2Node>(PinB->GetOwningNode());
+	if (!OwningNodeA || !OwningNodeB)
+	{
+		return FPinConnectionResponse(CONNECT_RESPONSE_DISALLOW, TEXT("Invalid nodes"));
+	}
 
 	// Make sure the pins are not on the same node
 	if (OwningNodeA == OwningNodeB)
@@ -1127,6 +1124,14 @@ const FPinConnectionResponse UEdGraphSchema_K2::CanCreateConnection(const UEdGra
 		const bool bNotAnArrayFunction = !InputPin->PinType.bIsArray;
 		const bool bSelfPin = IsSelfPin(*InputPin);
 		bIgnoreArray = bAllowMultipleSelfs && bNotAnArrayFunction && bSelfPin;
+	}
+
+	// Find the calling context in case one of the pins is of type object and has a value of Self
+	UClass* CallingContext = NULL;
+	const UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForNode(PinA->GetOwningNodeUnchecked());
+	if (Blueprint)
+	{
+		CallingContext = (Blueprint->GeneratedClass != NULL) ? Blueprint->GeneratedClass : Blueprint->ParentClass;
 	}
 
 	// Compare the types
@@ -2183,22 +2188,22 @@ FString UEdGraphSchema_K2::TypeToString(UProperty* const Property)
 	{
 		if (Struct->Struct)
 		{
-			return FString::Printf(TEXT("struct'%s'"), *Struct->Struct->GetName());
-		}
+		return FString::Printf(TEXT("struct'%s'"), *Struct->Struct->GetName());
+	}
 	}
 	else if (UClassProperty* Class = Cast<UClassProperty>(Property))
 	{
 		if (Class->MetaClass != nullptr)
 		{
-			return FString::Printf(TEXT("class'%s'"), *Class->MetaClass->GetName());
-		}
+		return FString::Printf(TEXT("class'%s'"), *Class->MetaClass->GetName());
+	}
 	}
 	else if (UInterfaceProperty* Interface = Cast<UInterfaceProperty>(Property))
 	{
 		if (Interface->InterfaceClass != nullptr)
 		{
-			return FString::Printf(TEXT("interface'%s'"), *Interface->InterfaceClass->GetName());
-		}
+		return FString::Printf(TEXT("interface'%s'"), *Interface->InterfaceClass->GetName());
+	}
 	}
 	else if (UObjectPropertyBase* Obj = Cast<UObjectPropertyBase>(Property))
 	{
@@ -2220,12 +2225,12 @@ FString UEdGraphSchema_K2::TypeToString(UProperty* const Property)
 	{
 		if (Array->Inner)
 		{
-			return FString::Printf(TEXT("array[%s]"), *TypeToString(Array->Inner));
-		}
+		return FString::Printf(TEXT("array[%s]"), *TypeToString(Array->Inner)); 
+	}
 	}
 	
-	return Property->GetClass()->GetName();
-}
+		return Property->GetClass()->GetName();
+	}
 
 FText UEdGraphSchema_K2::TypeToText(const FEdGraphPinType& Type)
 {

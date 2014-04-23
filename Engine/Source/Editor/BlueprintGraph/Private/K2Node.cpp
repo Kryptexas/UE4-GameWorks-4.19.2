@@ -344,7 +344,7 @@ void UK2Node::ReconstructNode()
 		{
 			UEdGraphPin* OtherPin = LinkedToCopy[LinkIdx];
 			// If we are linked to a pin that its owner doesn't know about, break that link
-			if ((OtherPin == NULL) || !OtherPin->GetOwningNode()->Pins.Contains(OtherPin))
+			if ((OtherPin == NULL) || !OtherPin->GetOwningNodeUnchecked() || !OtherPin->GetOwningNode()->Pins.Contains(OtherPin))
 			{
 				Pin->LinkedTo.Remove(OtherPin);
 			}

@@ -18,7 +18,7 @@ void FGraphCompilerContext::ValidateLink(const UEdGraphPin* PinA, const UEdGraph
 		MessageLog.Error(TEXT("Direction mismatch between pins @@ and @@"), PinA, PinB);
 	}
 
-	if (PinA->GetOwningNode() == PinB->GetOwningNode())
+	if (PinA->GetOwningNodeUnchecked() == PinB->GetOwningNodeUnchecked())
 	{
 		MessageLog.Error(TEXT("Pins @@ and @@ on the same node @@ are connected to each other, creating a loop."), PinA, PinB, PinA->GetOwningNode());
 	}
@@ -27,8 +27,21 @@ void FGraphCompilerContext::ValidateLink(const UEdGraphPin* PinA, const UEdGraph
 /** Validate that the wiring for a single pin is schema compatible */
 void FGraphCompilerContext::ValidatePin(const UEdGraphPin* Pin) const
 {
+	if (NULL == Pin->GetOwningNodeUnchecked())
+	{
+		MessageLog.Error(
+			*FString::Printf(
+				*NSLOCTEXT("EdGraphCompiler", "PinWrongOuterError", "Blueprint is corrupted! Pin '%s' has wrong outer '%s'.").ToString(),
+				*Pin->GetName(),
+				Pin->GetOuter() ? *Pin->GetOuter()->GetName() : TEXT("NULL")),
+			Pin);
+		return;
+	}
+
+	const int32 ErrorNum = MessageLog.NumErrors;
+
 	// Validate the links to each connected pin
-	for (int32 LinkIndex = 0; LinkIndex < Pin->LinkedTo.Num(); ++LinkIndex)
+	for (int32 LinkIndex = 0; (LinkIndex < Pin->LinkedTo.Num()) && (ErrorNum == MessageLog.NumErrors); ++LinkIndex)
 	{
 		if (const UEdGraphPin* OtherPin = Pin->LinkedTo[LinkIndex])
 		{
@@ -207,10 +220,11 @@ void FGraphCompilerContext::CreateExecutionSchedule(const TArray<UEdGraphNode*>&
 						continue;
 					}
 
-					UEdGraphNode* WasDependentNode = OutPin->LinkedTo[LinkIndex]->GetOwningNode();
+					UEdGraphNode* WasDependentNode = OutPin->LinkedTo[LinkIndex]->GetOwningNodeUnchecked();
+					int32* pNumEdgesLeft = WasDependentNode ? NumIncomingEdges.Find(WasDependentNode) : NULL;
 
 					// Remove the edge between these two nodes, since node is scheduled
-					if (int32* pNumEdgesLeft = NumIncomingEdges.Find(WasDependentNode))
+					if (pNumEdgesLeft)
 					{
 						int32& NumEdgesLeft = *pNumEdgesLeft;
 
