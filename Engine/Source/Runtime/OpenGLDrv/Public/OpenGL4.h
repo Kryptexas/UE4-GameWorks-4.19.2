@@ -15,7 +15,7 @@ struct FOpenGL4 : public FOpenGL3
 {
 	static FORCEINLINE bool SupportsSeparateAlphaBlend()				{ return true; }
 	static FORCEINLINE bool SupportsTessellation()						{ return true; }
-	static FORCEINLINE bool SupportsComputeShaders()					{ return true; }
+	static FORCEINLINE bool SupportsComputeShaders()					{ return bSupportsComputeShaders; }
 
 	// Optional
 
@@ -62,4 +62,5 @@ struct FOpenGL4 : public FOpenGL3
 protected:
 	static GLint MaxComputeTextureImageUnits;
 	static GLint MaxComputeUniformComponents;
+	static bool bSupportsComputeShaders;
 };
