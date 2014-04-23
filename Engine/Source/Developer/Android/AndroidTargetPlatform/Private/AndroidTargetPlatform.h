@@ -164,29 +164,10 @@ protected:
 		return true;
 	}
 
-	/**
-	 * Executes an SDK command with the specified command line.
-	 *
-	 * @param Params - The command line parameters.
-	 * @param OutStdOut - Optional pointer to a string that will hold the command's output log.
-	 * @param OutStdErr - Optional pointer to a string that will hold the error message, if any.
-	 *
-	 * @return true on success, false otherwise.
-	 */
-	bool ExecuteAdbCommand( const FString& Params, FString* OutStdOut, FString* OutStdErr ) const;
-
-	/**
-	 * Gathers a list of all devices that are currently connected.
-	 */
-	void QueryConnectedDevices( );
-
 private:
 
 	// Handles when the ticker fires.
 	bool HandleTicker( float DeltaTime );
-
-	// Handles received pong messages from the LauncherDaemon.
-//	void HandlePongMessage( const FAndroidPong &Message, const IMessageContextRef &Context );
 
 private:
 
@@ -195,6 +176,9 @@ private:
 
 	// Holds a delegate to be invoked when the widget ticks.
 	FTickerDelegate TickDelegate;
+	
+	// Pointer to the device detection handler that grabs device ids in another thread
+	IAndroidDeviceDetection* DeviceDetection;
 
 #if WITH_ENGINE
 	// Holds the Engine INI settings (for quick access).

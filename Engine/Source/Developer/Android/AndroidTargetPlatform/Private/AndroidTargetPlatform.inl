@@ -8,7 +8,8 @@
 /* FAndroidTargetPlatform structors
  *****************************************************************************/
 
-inline FAndroidTargetPlatform::FAndroidTargetPlatform( )
+inline FAndroidTargetPlatform::FAndroidTargetPlatform( ) :
+	DeviceDetection(nullptr)
 {
 	#if WITH_ENGINE
 		FConfigCacheIni::LoadLocalIniFile(EngineSettings, TEXT("Engine"), true, *PlatformName());
@@ -17,7 +18,7 @@ inline FAndroidTargetPlatform::FAndroidTargetPlatform( )
 	#endif
 
 	TickDelegate = FTickerDelegate::CreateRaw(this, &FAndroidTargetPlatform::HandleTicker);
-	FTicker::GetCoreTicker().AddTicker(TickDelegate, 5.0f);
+	FTicker::GetCoreTicker().AddTicker(TickDelegate, 4.0f);
 }
 
 
@@ -297,137 +298,54 @@ inline void FAndroidTargetPlatform::AddTextureFormatIfSupports( FName Format, TA
 }
 
 
-inline bool FAndroidTargetPlatform::ExecuteAdbCommand( const FString& CommandLine, FString* OutStdOut, FString* OutStdErr ) const
+/* FAndroidTargetPlatform callbacks
+ *****************************************************************************/
+
+inline bool FAndroidTargetPlatform::HandleTicker( float DeltaTime )
 {
-	// get the SDK binaries folder
-	TCHAR AndroidDirectory[32768] = { 0 };
-	FPlatformMisc::GetEnvironmentVariable(TEXT("ANDROID_HOME"), AndroidDirectory, 32768);
-
-	if (AndroidDirectory[0] == 0)
+	if (DeviceDetection == nullptr)
 	{
-		return false;
+		DeviceDetection = FModuleManager::LoadModuleChecked<IAndroidDeviceDetectionModule>("AndroidDeviceDetection").GetAndroidDeviceDetection();
 	}
-
-	FString Filename = FString::Printf(TEXT("%s\\platform-tools\\adb.exe"), AndroidDirectory);
-
-	// execute the command
-	int32 ReturnCode;
-	FString DefaultError;
-
-	// make sure there's a place for error output to go if the caller specified nullptr
-	if (!OutStdErr)
-	{
-		OutStdErr = &DefaultError;
-	}
-
-	FPlatformProcess::ExecProcess(*Filename, *CommandLine, &ReturnCode, OutStdOut, OutStdErr);
-
-	if (ReturnCode != 0)
-	{
-		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("The Android SDK command '%s' failed to run. Return code: %d, Error: %s\n"), *CommandLine, ReturnCode, **OutStdErr);
-
-		return false;
-	}
-
-	return true;
-}
-
-
-inline void FAndroidTargetPlatform::QueryConnectedDevices( )
-{
-	FString StdOut;
-
-	// grab the list of devices via adb
-	if (!ExecuteAdbCommand(TEXT("devices -l"), &StdOut, nullptr))
-	{
-		return;
-	}
-
-	// separate out each line
-	TArray<FString> DeviceStrings;
-	StdOut = StdOut.Replace(TEXT("\r"), TEXT("\n"));
-	StdOut.ParseIntoArray(&DeviceStrings, TEXT("\n"), true);
 
 	TArray<FString> ConnectedDeviceIds;
 
-	for (int32 StringIndex = 0; StringIndex < DeviceStrings.Num(); ++StringIndex)
 	{
-		const FString& DeviceString = DeviceStrings[StringIndex];
+		FScopeLock ScopeLock(DeviceDetection->GetDeviceMapLock());
 
-		// skip over non-device lines
-
-		if (DeviceString.StartsWith("* ") || DeviceString.StartsWith("List "))
+		auto DeviceIt = DeviceDetection->GetDeviceMap().CreateConstIterator();
+		
+		for (; DeviceIt; ++DeviceIt)
 		{
-			continue;
+			ConnectedDeviceIds.Add(DeviceIt.Key());
+
+			// see if this device is already known
+			if (Devices.Contains(DeviceIt.Key()))
+			{
+				continue;
+			}
+
+			const FAndroidDeviceInfo& DeviceInfo = DeviceIt.Value();
+
+#if 0	// todo android: really need to filter devices differently based on deploy vs. package
+			// check if this platform is supported by the extensions and version
+			if (!SupportedByExtensionsString(DeviceInfo.GLESExtensions, DeviceInfo.GLESVersion))
+			{
+				continue;
+			}
+#endif
+
+			// create target device
+			FAndroidTargetDevicePtr& Device = Devices.Add(DeviceInfo.SerialNumber);
+
+			Device = MakeShareable(new FAndroidTargetDevice(*this, DeviceInfo.SerialNumber, GetAndroidVariantName()));
+
+			Device->SetConnected(true);
+			Device->SetModel(DeviceInfo.Model);
+			Device->SetDeviceName(DeviceInfo.DeviceName);
+
+			DeviceDiscoveredEvent.Broadcast(Device.ToSharedRef());
 		}
-
-		// grab the device serial number
-		int32 TabIndex;
-
-		if (!DeviceString.FindChar(TCHAR(' '), TabIndex))
-		{
-			continue;
-		}
-
-		FString SerialNumber = DeviceString.Left(TabIndex);
-		ConnectedDeviceIds.Add(DeviceString.Left(TabIndex));
-
-		// move on to next device if this one is already a known device
-		if (Devices.Find(SerialNumber))
-		{
-			continue;
-		}
-
-		// get the GL extensions string (and a bunch of other stuff)
-		FString ExtensionsString;
-
-		FString ExtensionsCommand = FString::Printf(TEXT("-s %s shell dumpsys SurfaceFlinger"), *SerialNumber);
-		if (!ExecuteAdbCommand(*ExtensionsCommand, &ExtensionsString, nullptr))
-		{
-			continue;
-		}
-
-		// grab the GL ES version
-		FString GLESVersionString;
-
-		FString VersionCommand = FString::Printf(TEXT("-s %s shell getprop ro.opengles.version"), *SerialNumber);
-		if (!ExecuteAdbCommand(*VersionCommand, &GLESVersionString, nullptr))
-		{
-			continue;
-		}
-
-		int GLESVersion = FCString::Atoi(*GLESVersionString);
-
-		// check if this platform is supported by the extensions and version
-		if (!SupportedByExtensionsString(ExtensionsString, GLESVersion))
-		{
-			continue;
-		}
-
-		// create target device
-		FAndroidTargetDevicePtr& Device = Devices.Add(SerialNumber);
-
-		Device = MakeShareable(new FAndroidTargetDevice(*this, SerialNumber, GetAndroidVariantName()));
-
-		Device->SetConnected(true);
-
-		// parse device model
-		FString Model;
-
-		if (FParse::Value(*DeviceString, TEXT("model:"), Model))
-		{
-			Device->SetModel(Model);
-		}
-	
-		// parse device name
-		FString DeviceName;
-
-		if (FParse::Value(*DeviceString, TEXT("device:"), DeviceName))
-		{
-			Device->SetDeviceName(DeviceName);
-		}
-
-		DeviceDiscoveredEvent.Broadcast(Device.ToSharedRef());
 	}
 
 	// remove disconnected devices
@@ -443,15 +361,6 @@ inline void FAndroidTargetPlatform::QueryConnectedDevices( )
 			DeviceLostEvent.Broadcast(RemovedDevice.ToSharedRef());
 		}
 	}
-}
-
-
-/* FAndroidTargetPlatform callbacks
- *****************************************************************************/
-
-inline bool FAndroidTargetPlatform::HandleTicker( float DeltaTime )
-{
-	QueryConnectedDevices();
 
 	return true;
 }

@@ -16,6 +16,7 @@ public class Android_PVRTCTargetPlatform : ModuleRules
 				"TargetPlatform",
 				"Messaging",
 				"TargetDeviceServices",
+				"AndroidDeviceDetection",
 			}
 		);
 

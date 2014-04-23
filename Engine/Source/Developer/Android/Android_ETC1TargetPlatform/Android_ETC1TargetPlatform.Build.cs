@@ -16,6 +16,7 @@ public class Android_ETC1TargetPlatform : ModuleRules
 				"TargetPlatform",
 				"Messaging",
 				"TargetDeviceServices",
+				"AndroidDeviceDetection",
 			}
 		);
 
