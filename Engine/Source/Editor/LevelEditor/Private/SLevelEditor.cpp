@@ -32,6 +32,7 @@
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 #include "Editor/Sequencer/Public/ISequencerModule.h"
 #include "Editor/StatsViewer/Public/StatsViewerModule.h"
+#include "Editor/UMGEditor/Public/UMGEditorModule.h"
 #include "EditorModes.h"
 #include "STutorialWrapper.h"
 #include "IDocumentation.h"
@@ -157,6 +158,11 @@ void SLevelEditor::Construct( const SLevelEditor::FArguments& InArgs)
 
 	FEditorDelegates::MapChange.AddSP(this, &SLevelEditor::HandleEditorMapChange);
 	HandleEditorMapChange(MapChangeEventFlags::NewMap);
+
+	if ( FParse::Param(FCommandLine::Get(), TEXT("umg")) )
+	{
+		FModuleManager::LoadModuleChecked<IUMGEditorModule>("UMGEditor");
+	}
 }
 
 void SLevelEditor::Initialize( const TSharedRef<SDockTab>& OwnerTab, const TSharedRef<SWindow>& OwnerWindow )

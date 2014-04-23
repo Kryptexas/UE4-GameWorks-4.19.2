@@ -114,6 +114,7 @@ public class UnrealEd : ModuleRules
 				"StaticMeshEditor",
 				"TextureEditor",
 				"Cascade",
+                "UMGEditor",
 				"Matinee",
 				"AssetRegistry",
 				"AssetTools",
