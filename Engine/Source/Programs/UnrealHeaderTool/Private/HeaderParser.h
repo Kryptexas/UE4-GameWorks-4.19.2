@@ -9,6 +9,9 @@
 #include "ParserHelper.h"
 #include "BaseParser.h"
 
+class FClass;
+class FClasses;
+
 /*-----------------------------------------------------------------------------
 	Constants & types.
 -----------------------------------------------------------------------------*/
@@ -89,48 +92,12 @@ public:
 	static void SimplifiedClassParse(const TCHAR* Buffer, bool& bIsInterface, TArray<FName>& DependentOn, FString& out_ClassName, FString& out_ParentClassName, int32& out_ClassDeclLine, FStringOutputDevice& ScriptText);
 	
 	/** 
-	 * Attempts to get class prefix. If the given class name does not start with a valid Unreal Prefix, it will return an empty string.
-	 *
-	 * @param InClassName - Name w/ potential prefix to check
-	 */
-	static FString GetClassPrefix( const FString InClassName );
-
-	/** 
-	 * Attempts to get class prefix. If the given class name does not start with a valid Unreal Prefix, it will return an empty string.
-	 *
-	 * @param InClassName - Name w/ potential prefix to check
-	 * @param out bIsLabledDeprecated - Reference param set to True if the class name is marked as deprecated
-	 */
-	static FString GetClassPrefix( const FString InClassName, bool& bIsLabledDeprecated );
-
-	/** 
 	 * Returns True if the given class name includes a valid Unreal prefix and matches up with the given original class Name.
 	 *
 	 * @param InNameToCheck - Name w/ potential prefix to check
 	 * @param OriginalClassName - Name of class w/ no prefix to check against
 	 */
 	static bool ClassNameHasValidPrefix(const FString InNameToCheck, const FString OriginalClassName);
-	/** 
-	 * Returns True if the given class name includes a valid Unreal prefix and matches based on the given class.
-	 *
-	 * @param InNameToCheck - Name w/ potential prefix to check
-	 * @param OriginalClass - Class to check against
-	 */
-	static bool ClassNameHasValidPrefix(const FString InNameToCheck, const UClass* OriginalClass);
-
-	/** 
-	 * Attempts to strip the given class name of it's affixed prefix. If no prefix exists, will return a blank string.
-	 *
-	 * @param InClassName - Class Name with a prefix to be stripped
-	 */
-	static FString GetClassNameWithPrefixRemoved( const FString InClassName );
-
-	/** 
-	 * Attempts to strip the given class name of it's affixed prefix. If no prefix exists, will return unchanged string.
-	 *
-	 * @param InClassName - Class Name with a prefix to be stripped
-	 */
-	static FString GetClassNameWithoutPrefix( const FString& InClassNameOrFilename );
 
 	/**
 	 * Tries to convert the header file name to a class name (with 'U' prefix)
@@ -171,7 +138,7 @@ protected:
 	FFeedbackContext* Warn;
 
 	// Class that is currently being parsed.
-	UClass* Class;
+	FClass* Class;
 
 	// Filename currently being parsed
 	FString Filename;
@@ -299,7 +266,7 @@ protected:
 	bool IsBitfieldProperty();
 
 	// Parse the parameter list of a function or delegate declaration
-	void ParseParameterList(UFunction* Function, bool bExpectCommaBeforeName = false, TMap<FName, FString>* MetaData = NULL);
+	void ParseParameterList(FClasses& AllClasses, UFunction* Function, bool bExpectCommaBeforeName = false, TMap<FName, FString>* MetaData = NULL);
 
 	// Throws if a specifier value wasn't provided
 	void RequireSpecifierValue(const FPropertySpecifier& Specifier, bool bRequireExactlyOne = false);
@@ -315,7 +282,7 @@ protected:
 	 *
 	 * @return	Result enumeration.
 	 */
-	static ECompilationResult::Type ParseHeaders(FClassTree& AllClasses, FHeaderParser& HeaderParser, UClass* Class, bool bParseSubclasses);
+	static ECompilationResult::Type ParseHeaders(FClasses& AllClasses, FHeaderParser& HeaderParser, FClass* Class, bool bParseSubclasses);
 
 	//@TODO: Remove this method
 	static void ParseClassName(const TCHAR* Temp, FString& ClassName);
@@ -332,25 +299,25 @@ protected:
 	 * @param	CurrentPackage	the package being compiled
 	 * @param	AllClasses		the class tree for CurrentPackage
 	 */
-	static void ExportNativeHeaders( UPackage* CurrentPackage, FClassTree& AllClasses, bool bAllowSaveExportedHeaders, bool bUseRelativePaths );
+	static void ExportNativeHeaders( UPackage* CurrentPackage, FClasses& AllClasses, bool bAllowSaveExportedHeaders, bool bUseRelativePaths );
 
 	// FContextSupplier interface.
 	virtual FString GetContext() OVERRIDE;
 	// End of FContextSupplier interface.
 
 	// High-level compiling functions.
-	ECompilationResult::Type ParseHeaderForOneClass(FClassTree& AllClasses, UClass* InClass);
+	ECompilationResult::Type ParseHeaderForOneClass(FClasses& AllClasses, FClass* InClass);
 	void CompileDirective(UClass* Class);
 	void FinalizeScriptExposedFunctions(UClass* Class);
 	UEnum* CompileEnum(UClass* Owner);
-	UScriptStruct* CompileStructDeclaration(UClass* Owner);
-	bool CompileDeclaration(FToken& Token);
+	UScriptStruct* CompileStructDeclaration(FClasses& AllClasses, FClass* Owner);
+	bool CompileDeclaration(FClasses& AllClasses, FToken& Token);
 	/** Skip C++ (noexport) declaration. */
 	bool SkipDeclaration(FToken& Token);
 	/** Similar to MatchSymbol() but will return to the exact location as on entry if the symbol was not found. */
 	bool SafeMatchSymbol(const TCHAR* Match);
-	void HandleOneInheritedClass(FString InterfaceName);
-	void ParseClassNameDeclaration(FString& DeclaredClassName, FString& RequiredAPIMacroIfPresent);
+	void HandleOneInheritedClass(FClasses& AllClasses, FString InterfaceName);
+	void ParseClassNameDeclaration(FClasses& AllClasses, FString& DeclaredClassName, FString& RequiredAPIMacroIfPresent);
 
 	/** The property style of a variable declaration being parsed */
 	struct EPropertyDeclarationStyle
@@ -362,16 +329,16 @@ protected:
 		};
 	};
 
-	void CompileClassDeclaration    ();
-	void CompileDelegateDeclaration (const TCHAR* DelegateIdentifier, EDelegateSpecifierAction::Type SpecifierAction = EDelegateSpecifierAction::DontParse);
-	void CompileFunctionDeclaration ();
-	void CompileVariableDeclaration (UStruct* Struct, EPropertyDeclarationStyle::Type PropertyDeclarationStyle);
-	void CompileInterfaceDeclaration();
+	void CompileClassDeclaration    (FClasses& AllClasses);
+	void CompileDelegateDeclaration (FClasses& AllClasses, const TCHAR* DelegateIdentifier, EDelegateSpecifierAction::Type SpecifierAction = EDelegateSpecifierAction::DontParse);
+	void CompileFunctionDeclaration (FClasses& AllClasses);
+	void CompileVariableDeclaration (FClasses& AllClasses, UStruct* Struct, EPropertyDeclarationStyle::Type PropertyDeclarationStyle);
+	void CompileInterfaceDeclaration(FClasses& AllClasses);
 
-	void ParseInterfaceNameDeclaration(FString& DeclaredInterfaceName, FString& RequiredAPIMacroIfPresent);
-	void ParseSecondInterfaceClass();
+	void ParseInterfaceNameDeclaration(FClasses& AllClasses, FString& DeclaredInterfaceName, FString& RequiredAPIMacroIfPresent);
+	void ParseSecondInterfaceClass(FClasses& AllClasses);
 
-	bool CompileStatement();
+	bool CompileStatement(FClasses& AllClasses);
 
 	// Compute the function parameter size and save the return offset
 	static void ComputeFunctionParametersSize( UClass* InClass );
@@ -418,6 +385,7 @@ protected:
 	/**
 	 * Parses a variable or return value declaration and determines the variable type and property flags.
 	 *
+	 * @param   AllClasses                the class tree for CurrentPackage
 	 * @param   Scope                     struct to create the property in
 	 * @param   VarProperty               will be filled in with type and property flag data for the property declaration that was parsed
 	 * @param   ObjectFlags               will contain the object flags that should be assigned to all UProperties which are part of this declaration (will not be determined
@@ -430,7 +398,16 @@ protected:
 	 *
 	 * @return  true if the variable type was parsed
 	 */
-	bool GetVarType(UStruct* Scope, FPropertyBase& VarProperty, EObjectFlags& ObjectFlags, uint64 Disallow, const TCHAR* Thing, FToken* OuterPropertyType, EPropertyDeclarationStyle::Type PropertyDeclarationStyle, EVariableCategory::Type VariableCategory);
+	bool GetVarType(
+		FClasses&                       AllClasses,
+		UStruct*                        Scope,
+		FPropertyBase&                  VarProperty,
+		EObjectFlags&                   ObjectFlags,
+		uint64                          Disallow,
+		const TCHAR*                    Thing,
+		FToken*                         OuterPropertyType,
+		EPropertyDeclarationStyle::Type PropertyDeclarationStyle,
+		EVariableCategory::Type         VariableCategory);
 
 	/**
 	 * Parses a variable name declaration and creates a new UProperty object.
@@ -505,11 +482,11 @@ protected:
 
 	const TCHAR* NestTypeName( ENestType NestType );
 
-	UClass* GetQualifiedClass( const TCHAR* Thing );
+	FClass* GetQualifiedClass(const FClasses& AllClasses, const TCHAR* Thing);
 
 	// Nest management functions.
 	void PushNest( ENestType NestType, FName ThisName, UStruct* InNode );
-	void PopNest( ENestType NestType, const TCHAR* Descr );
+	void PopNest ( FClasses& AllClasses, ENestType NestType, const TCHAR* Descr );
 
 	/**
 	 * Binds all delegate properties declared in ValidationScope the delegate functions specified in the variable declaration, verifying that the function is a valid delegate
@@ -517,11 +494,12 @@ protected:
 	 *
 	 * @todo: this function will no longer be required once the post-parse fixup phase is added (TTPRO #13256)
 	 *
+	 * @param	AllClasses			the class tree for CurrentPackage
 	 * @param	ValidationScope		the scope to validate delegate properties for
 	 * @param	OwnerClass			the class currently being compiled.
 	 * @param	DelegateCache		cached map of delegates that have already been found; used for faster lookup.
 	 */
-	void FixupDelegateProperties( UStruct* ValidationScope, UClass* OwnerClass, TMap<FName, UFunction*>& DelegateCache );
+	void FixupDelegateProperties( FClasses& AllClasses, UStruct* ValidationScope, UClass* OwnerClass, TMap<FName, UFunction*>& DelegateCache );
 
 	/**
 	 * Verifies that all specified class's UProperties with CFG_RepNotify have valid callback targets with no parameters nor return values
@@ -533,17 +511,6 @@ protected:
 	// Retry functions.
 	void InitScriptLocation( FScriptLocation& Retry );
 	void ReturnToLocation( const FScriptLocation& Retry, bool Binary=1, bool Text=1 );
-
-	/**
-	 * Helper function to determine whether the class hierarchy rooted at Suspect is
-	 * dependent on the hierarchy rooted at Source.
-	 *
-	 * @param	Suspect		Root of hierarchy for suspect class
-	 * @param	Source		Root of hierarchy for source class
-	 * @param	AllClasses	Array of parsed classes
-	 * @return	true if the hierarchy rooted at Suspect is dependent on the one rooted at Source, false otherwise
-	 */
-	bool IsDependentOn( UClass* Suspect, UClass* Source, const FClassTree& AllClasses );
 
 	/**
 	 * If the property has already been seen during compilation, then return add. If not,

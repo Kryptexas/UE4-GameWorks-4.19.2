@@ -34,7 +34,7 @@ struct FNativeClassHeaderGenerator
 private:
 
 	UClass*				CurrentClass;
-	TArray<UClass*>		Classes;
+	TArray<FClass*>		Classes;
 	FString				ClassHeaderFilename;
 	FString				API;
 	FString			ClassesHeaderPath;
@@ -71,9 +71,6 @@ private:
 
 	/** Names that have been exported so far **/
 	TSet<FName> ReferencedNames;
-
-	/** the class tree for this package */
-	const FClassTree&	ClassTree;
 
 	/** the existing disk version of the header for this package's names */
 	FString				OriginalNamesHeader;
@@ -149,7 +146,7 @@ private:
 	 * @param	DependencyChain		[out] Receives dependency chain, if found.
 	 * @return	true if a dependency chain was found and filled in.
 	 */
-	bool FindDependencyChain( const UClass* Class, const FString& Header1, const FString& Header2, TArray<const UClass*>& DependencyChain );
+	bool FindDependencyChain( FClass* Class, const FString& Header1, const FString& Header2, TArray<FClass*>& DependencyChain );
 
 	/**
 	 * Finds a dependency chain between two class header files.
@@ -161,7 +158,7 @@ private:
 	 * @param	DependencyChain		[out] Receives dependency chain, if found. Must be empty before the call.
 	 * @return	true if a dependency chain was found and filled in.
 	 */
-	bool FindDependencyChainRecursive( const UClass* Class, const FString& Header1, const FString& Header2, bool bChainStarted, TArray<const UClass*>& DependencyChain );
+	bool FindDependencyChainRecursive( FClass* Class, const FString& Header1, const FString& Header2, bool bChainStarted, TArray<FClass*>& DependencyChain );
 
 	/**
 	 * Determines whether the glue version of the specified native function
@@ -489,5 +486,5 @@ private:
 public:
 
 	// Constructor
-	FNativeClassHeaderGenerator( UPackage* InPackage, FClassTree& inClassTree, bool InAllowSaveExportedHeaders, bool bInUseRelativePaths );
+	FNativeClassHeaderGenerator( UPackage* InPackage, FClasses& AllClasses, bool InAllowSaveExportedHeaders, bool bInUseRelativePaths );
 };

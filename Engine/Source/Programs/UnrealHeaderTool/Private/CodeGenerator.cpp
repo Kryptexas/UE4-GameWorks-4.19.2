@@ -26,28 +26,6 @@ static UClass* GenerateCodeForHeader(UObject* InParent, const TCHAR* Name, EObje
 
 FCompilerMetadataManager* GScriptHelper = NULL;
 
-/////////////////////////////////////////////////////
-// FClassPackageComparator
-
-class FClassPackageComparator
-{
-	UPackage* Package;
-
-public:
-
-	FClassPackageComparator( UPackage* InPackage )
-	: Package(InPackage)
-	{
-	}
-
-	bool IsValidClass( const class FClassTree* Node ) const
-	{
-		UClass* Cls = Node->GetClass();
-		return Cls == UObject::StaticClass() || Cls->GetOuter() == Package;
-	}
-};
-
-
 /** C++ name lookup helper */
 FNameLookupCPP* NameLookupCPP;
 
@@ -2124,7 +2102,7 @@ void FNativeClassHeaderGenerator::ExportClassHeaderRecursive( UClass* Class, TAr
 
 		// Handle #include directives as 'dependson' (allowing them to fail).
 		const bool bClassNameFromHeader = FHeaderParser::DependentClassNameFromHeader(*DependencyClassNameStripped, DependencyClassNameStripped);
-		DependencyClassNameStripped = FHeaderParser::GetClassNameWithPrefixRemoved( DependencyClassNameStripped );
+		DependencyClassNameStripped = GetClassNameWithPrefixRemoved( DependencyClassNameStripped );
 
 		int32 ClassIndex = FindByIndirectName( Classes, *DependencyClassNameStripped );
 		UClass* FoundClass = FindObject<UClass>(ANY_PACKAGE, *DependencyClassNameStripped);
@@ -2133,7 +2111,7 @@ void FNativeClassHeaderGenerator::ExportClassHeaderRecursive( UClass* Class, TAr
 		if (FoundClass == NULL)
 		{
 			// Try again with temporary class name. This may be struct only header.
-			DependencyClassNameStripped = FHeaderParser::GetClassNameWithoutPrefix(DependencyClassName.ToString());
+			DependencyClassNameStripped = GetClassNameWithoutPrefix(DependencyClassName.ToString());
 			DependencyClassNameStripped = FHeaderParser::GenerateTemporaryClassName(*DependencyClassNameStripped);
 			ClassIndex = FindByIndirectName( Classes, *DependencyClassNameStripped );
 			FoundClass = FindObject<UClass>(ANY_PACKAGE, *DependencyClassNameStripped);
@@ -3816,7 +3794,7 @@ bool FNativeClassHeaderGenerator::FindInterDependencyRecursive( TMap<const FStri
  * @param	DependencyChain		[out] Receives dependency chain, if found.
  * @return	true if a dependency chain was found and filled in.
  */
-bool FNativeClassHeaderGenerator::FindDependencyChain( const UClass* Class, const FString& Header1, const FString& Header2, TArray<const UClass*>& DependencyChain )
+bool FNativeClassHeaderGenerator::FindDependencyChain( FClass* Class, const FString& Header1, const FString& Header2, TArray<FClass*>& DependencyChain )
 {
 	DependencyChain.Empty();
 	return FindDependencyChainRecursive( Class, Header1, Header2, false, DependencyChain );
@@ -3832,7 +3810,7 @@ bool FNativeClassHeaderGenerator::FindDependencyChain( const UClass* Class, cons
  * @param	DependencyChain		[out] Receives dependency chain, if found. Must be empty before the call.
  * @return	true if a dependency chain was found and filled in.
  */
-bool FNativeClassHeaderGenerator::FindDependencyChainRecursive( const UClass* Class, const FString& Header1, const FString& Header2, bool bChainStarted, TArray<const UClass*>& DependencyChain )
+bool FNativeClassHeaderGenerator::FindDependencyChainRecursive( FClass* Class, const FString& Header1, const FString& Header2, bool bChainStarted, TArray<FClass*>& DependencyChain )
 {
 	bool bIsExportClass = Class->HasAnyClassFlags(CLASS_Native) && !Class->HasAnyClassFlags(CLASS_NoExport|CLASS_Intrinsic|CLASS_Temporary);
 	if ( bIsExportClass )
@@ -3851,15 +3829,14 @@ bool FNativeClassHeaderGenerator::FindDependencyChainRecursive( const UClass* Cl
 		}
 	}
 
-	UClass* SuperClass = Class->GetSuperClass();
+	FClass* SuperClass = Class->GetSuperClass();
 	if ( SuperClass && SuperClass->GetOuter() == Class->GetOuter() && FindDependencyChainRecursive( SuperClass, Header1, Header2, bChainStarted, DependencyChain ) )
 	{
 		return true;
 	}
 
-	for (TArray<FImplementedInterface>::TConstIterator It(Class->Interfaces); It; ++It)
+	for (FClass* InterfaceClass : Class->GetInterfaceTypes())
 	{
-		UClass* InterfaceClass = It->Class;
 		if ( InterfaceClass->GetOuter() == Class->GetOuter() && FindDependencyChainRecursive( InterfaceClass, Header1, Header2, bChainStarted, DependencyChain ) )
 		{
 			return true;
@@ -3874,11 +3851,10 @@ bool FNativeClassHeaderGenerator::FindDependencyChainRecursive( const UClass* Cl
 }
 
 // Constructor.
-FNativeClassHeaderGenerator::FNativeClassHeaderGenerator( UPackage* InPackage, FClassTree& inClassTree, bool InAllowSaveExportedHeaders, bool bInUseRelativePaths )
+FNativeClassHeaderGenerator::FNativeClassHeaderGenerator( UPackage* InPackage, FClasses& AllClasses, bool InAllowSaveExportedHeaders, bool bInUseRelativePaths )
 	: CurrentClass                          (NULL)
 	, API                                   (FPackageName::GetShortName(InPackage).ToUpper())
 	, Package                               (InPackage)
-	, ClassTree                             (inClassTree)
 	, bIsExportingForOffsetDeterminationOnly(false)
 	, bAllowSaveExportedHeaders             (InAllowSaveExportedHeaders)
 	, bFailIfGeneratedCodeChanges           (false)
@@ -3893,8 +3869,7 @@ FNativeClassHeaderGenerator::FNativeClassHeaderGenerator( UPackage* InPackage, F
 
 	// Tag native classes in this package for export.
 
-	Classes.Add(UObject::StaticClass());
-	ClassTree.GetChildClasses(Classes, FDefaultComparator(), true);
+	Classes = AllClasses.GetClassesInPackage();
 
 	TMap<FName,UClass*> ClassNameMap;
 	for ( int32 ClassIndex = 0; ClassIndex < Classes.Num(); ClassIndex++ )
@@ -3927,14 +3902,9 @@ FNativeClassHeaderGenerator::FNativeClassHeaderGenerator( UPackage* InPackage, F
 	bool bCircularDependencyDetected = false;
  	{
 	 	TMap<const FString*, HeaderDependents> HeaderDependencyMap;
-		TArray<UClass*> ClassesInPackage;
-
-		ClassesInPackage.Add(UObject::StaticClass());
-		ClassTree.GetChildClasses(ClassesInPackage, FClassPackageComparator(Package), true);
-		for (auto ClassIt = ClassesInPackage.CreateConstIterator(); ClassIt; ++ClassIt)
+		TArray<FClass*> ClassesInPackage = AllClasses.GetClassesInPackage(Package);
+		for (FClass* Cls : ClassesInPackage)
 		{
-			UClass* Cls = *ClassIt;
-
 			auto ClsHeaderFilename = GClassHeaderFilenameMap.FindRef(Cls);
 
 			bool bIsExportClass = Cls->HasAnyClassFlags(CLASS_Native) && !Cls->HasAnyClassFlags(CLASS_NoExport|CLASS_Intrinsic|CLASS_Temporary);
@@ -3992,21 +3962,18 @@ FNativeClassHeaderGenerator::FNativeClassHeaderGenerator( UPackage* InPackage, F
 				if (!FindInterDependency(HeaderDependencyMap, Header, ClassHeaderFilename1, ClassHeaderFilename2))
 					continue;
 
-				TArray<const UClass*> DependencyChain1, DependencyChain2;
-				for (auto ClassIt = ClassesInPackage.CreateConstIterator(); ClassIt; ++ClassIt)
+				TArray<FClass*> DependencyChain1;
+				for (FClass* Class : ClassesInPackage)
 				{
-					UClass* Class = *ClassIt;
-
 					FindDependencyChain( Class, *ClassHeaderFilename1, *ClassHeaderFilename2, DependencyChain1 );
 
 					if (DependencyChain1.Num())
 						break;
 				}
 
-				for (auto ClassIt = ClassesInPackage.CreateConstIterator(); ClassIt; ++ClassIt)
+				TArray<FClass*> DependencyChain2;
+				for (FClass* Class : ClassesInPackage)
 				{
-					UClass* Class = *ClassIt;
-
 					FindDependencyChain( Class, *ClassHeaderFilename2, *ClassHeaderFilename1, DependencyChain2 );
 
 					if (DependencyChain2.Num())
@@ -4017,10 +3984,8 @@ FNativeClassHeaderGenerator::FNativeClassHeaderGenerator( UPackage* InPackage, F
 					continue;
 
 				FString DependencyChainString1;
-				for (auto DependencyIt = DependencyChain1.CreateConstIterator(); DependencyIt; ++DependencyIt)
+				for (FClass* Dependency : DependencyChain1)
 				{
-					auto Dependency = *DependencyIt;
-
 					if (!DependencyChainString1.IsEmpty())
 					{
 						DependencyChainString1 += TEXT(" -> ");
@@ -4030,10 +3995,8 @@ FNativeClassHeaderGenerator::FNativeClassHeaderGenerator( UPackage* InPackage, F
 				}
 
 				FString DependencyChainString2;
-				for (auto DependencyIt = DependencyChain2.CreateConstIterator(); DependencyIt; ++DependencyIt)
+				for (FClass* Dependency : DependencyChain2)
 				{
-					auto Dependency = *DependencyIt;
-
 					if (!DependencyChainString1.IsEmpty())
 					{
 						DependencyChainString2 += TEXT(" -> ");
@@ -4881,13 +4844,13 @@ UClass* GenerateCodeForHeader
 		bNonClassHeader = true;
 	}
 
-	FString ClassNameStripped = FHeaderParser::GetClassNameWithPrefixRemoved( *ClassName );
+	FString ClassNameStripped = GetClassNameWithPrefixRemoved( *ClassName );
 
 	// Ensure the base class has any valid prefix and exists as a valid class. Checking for the 'correct' prefix will occur during compilation
 	FString BaseClassNameStripped;
 	if (!BaseClassName.IsEmpty())
 	{
-		BaseClassNameStripped = FHeaderParser::GetClassNameWithPrefixRemoved(BaseClassName);
+		BaseClassNameStripped = GetClassNameWithPrefixRemoved(BaseClassName);
 		if( !FHeaderParser::ClassNameHasValidPrefix(BaseClassName, BaseClassNameStripped) )
 			FError::Throwf(TEXT("No prefix or invalid identifier for base class %s.\nClass names must match Unreal prefix specifications (e.g., \"UObject\" or \"AActor\")"), *BaseClassName );
 

@@ -17,15 +17,6 @@ enum EClassFlagMatchType
 };
 
 /**
- * Used by GetChildClasses<> as the comparison class when none is specified.
- */
-class FDefaultComparator
-{
-public:
-	bool IsValidClass( const class FClassTree* ) const { return true; }
-};
-
-/**
  * Manages an inheritance tree.  There is one FClassTree node for each UClass.  Each node 
  * stores pointers to its parent and child nodes.  New nodes should always be added to the root node.
  * This is enforced by allowing const references to child nodes.
@@ -347,7 +338,7 @@ public:
 		for ( int32 i = 0; i < Children.Num(); i++ )
 		{
 			FClassTree* ChildNode = Children[i];
-			if ( Mask.IsValidClass(ChildNode) )
+			if ( Mask(ChildNode->GetClass()) )
 			{
 				ChildClasses.Add( ChildNode->GetClass() );
 			}
@@ -434,22 +425,19 @@ public:
 	 */
 	const FClassTree* FindNode( UClass* SearchClass ) const
 	{
-		const FClassTree* Result(NULL);
-
 		if ( SearchClass == Class )
-			Result = this;
+			return this;
 
-		else if ( SearchClass->IsChildOf(Class) )
+		if (!SearchClass->IsChildOf(Class))
+			return NULL;
+
+		for (auto Child : Children)
 		{
-			for ( int32 i = 0; i < Children.Num(); i++ )
-			{
-				Result = Children[i]->FindNode(SearchClass);
-				if ( Result != NULL )
-					break;
-			}
+			if (auto Result = Child->FindNode(SearchClass))
+				return Result;
 		}
 
-		return Result;
+		return NULL;
 	}
 
 	/**
@@ -478,42 +466,30 @@ public:
 
 		// find the node associated with SearchClass's new SuperClass
 		FClassTree* NewParentNode = GetNode(NewParentClass);
-		if ( NewParentNode == NULL )
+		if (!NewParentNode)
 		{
 			// if that class hasn't been added yet, add it now.
-			if ( AddClass(NewParentClass) )
-			{
-				NewParentNode = GetNode(NewParentClass);
-			}
-			else
-			{
+			if (!AddClass(NewParentClass))
 				return false;
-			}
+
+			NewParentNode = GetNode(NewParentClass);
 		}
 		check(NewParentNode);
 
 		// find the node for the class that changed SuperClass
-		FClassTree* ClassNode = GetNode(SearchClass,true);
-		if ( ClassNode != NULL )
+		if (FClassTree* ClassNode = GetNode(SearchClass,true))
 		{
 			// if the node has an existing parent, remove it from the parent's Children array
-			if ( ClassNode->Parent != NULL )
+			if (ClassNode->Parent)
 			{
-				int32 ChildIndex = ClassNode->Parent->Children.Find(ClassNode);
-				if ( ChildIndex != INDEX_NONE )
-				{
-					ClassNode->Parent->Children.RemoveAt(ChildIndex);
-				}
+				ClassNode->Parent->Children.RemoveSingle(ClassNode);
 			}
-		}
-		else
-		{
-			return AddClass(SearchClass);
+
+			// move the node to the new SuperClass
+			return NewParentNode->AddChildNode(ClassNode) != INDEX_NONE;
 		}
 
-
-		// move the node to the new SuperClass
-		return NewParentNode->AddChildNode(ClassNode) != INDEX_NONE;
+		return AddClass(SearchClass);
 	}
 
 

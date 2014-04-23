@@ -1,7 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 
-#include "ClassTree.h"
 #include "ClassMaps.h"
 
 #pragma once
