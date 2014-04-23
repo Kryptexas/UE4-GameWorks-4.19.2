@@ -20,12 +20,16 @@ public class UnrealFrontend : ModuleRules
 				"AutomationController",
 				"Core",
 				"DeviceManager",
+				"LauncherServices",
+				"Messaging",
 				"ProfilerClient",
 				"Projects",
 				"SessionFrontend",
 				"SessionLauncher",
+				"SessionServices",
 				"Slate",
 				"StandaloneRenderer",
+				"TargetDeviceServices",
 				"TargetPlatform",
 			}
 		);
