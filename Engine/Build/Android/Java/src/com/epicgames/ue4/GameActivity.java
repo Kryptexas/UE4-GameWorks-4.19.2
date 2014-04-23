@@ -269,6 +269,15 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 		}
 	}
 
+	public void AndroidThunkJava_ShowAchievements()
+	{
+		Log.debug("In AndroidThunkJava_ShowAchievements");
+		if(googleClient.isConnected())
+		{
+			startActivityForResult(Games.Achievements.getAchievementsIntent(googleClient), 0);
+		}
+	}
+
 	public void AndroidThunkJava_WriteLeaderboardValue(String LeaderboardID, long Value)
 	{
 		Log.debug("In AndroidThunkJava_WriteLeaderboardValue, ID is " + LeaderboardID + ", value is " + Value);

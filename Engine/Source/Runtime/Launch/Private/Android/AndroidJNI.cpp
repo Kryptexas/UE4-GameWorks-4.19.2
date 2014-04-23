@@ -95,6 +95,7 @@ jclass JDef_GameActivity::ClassID;
 jmethodID JDef_GameActivity::AndroidThunkJava_ShowConsoleWindow;
 jmethodID JDef_GameActivity::AndroidThunkJava_LaunchURL;
 jmethodID JDef_GameActivity::AndroidThunkJava_ShowLeaderboard;
+jmethodID JDef_GameActivity::AndroidThunkJava_ShowAchievements;
 jmethodID JDef_GameActivity::AndroidThunkJava_WriteLeaderboardValue;
 jmethodID JDef_GameActivity::AndroidThunkJava_GooglePlayConnect;
 
@@ -174,6 +175,14 @@ void AndroidThunkCpp_ShowLeaderboard(const FString& CategoryName)
 	}
 }
 
+void AndroidThunkCpp_ShowAchievements()
+{
+ 	if (JNIEnv* Env = GetJavaEnv())
+ 	{
+		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_ShowAchievements);
+ 	}
+}
+
 void AndroidThunkCpp_WriteLeaderboardValue(const FString& LeaderboardName, int64_t Value)
 {
 	if (JNIEnv* Env = GetJavaEnv())
@@ -209,6 +218,7 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* InJavaVM, void* InReserved)
 	JDef_GameActivity::AndroidThunkJava_ShowConsoleWindow = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_ShowConsoleWindow", "(Ljava/lang/String;)V");
 	JDef_GameActivity::AndroidThunkJava_LaunchURL = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_LaunchURL", "(Ljava/lang/String;)V");
 	JDef_GameActivity::AndroidThunkJava_ShowLeaderboard = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_ShowLeaderboard", "(Ljava/lang/String;)V");
+	JDef_GameActivity::AndroidThunkJava_ShowAchievements = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_ShowAchievements", "()V");
 	JDef_GameActivity::AndroidThunkJava_WriteLeaderboardValue = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_WriteLeaderboardValue", "(Ljava/lang/String;J)V");
 	JDef_GameActivity::AndroidThunkJava_GooglePlayConnect = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_GooglePlayConnect", "()V");
 
