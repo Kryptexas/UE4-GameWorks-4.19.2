@@ -166,7 +166,7 @@ public class Launch : ModuleRules
 			DynamicallyLoadedModuleNames.Add("OpenGLDrv");
 		}
 
-		if ((Target.Platform == UnrealTargetPlatform.Linux))
+        if ((Target.Platform == UnrealTargetPlatform.Linux) && (Target.Type != TargetRules.TargetType.Server))
 		{
 			PrivateDependencyModuleNames.Add("ALAudio");
 		}
