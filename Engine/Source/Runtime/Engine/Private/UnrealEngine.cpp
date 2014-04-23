@@ -388,6 +388,12 @@ void SystemResolutionSinkCallback()
 */
 void RefreshSamplerStatesCallback()
 {
+	if (FApp::CanEverRender() == false)
+	{
+		// Avoid unnecessary work when running in dedicated server mode.
+		return;
+	}
+
 	bool bRefreshSamplerStates = false;
 
 	{

@@ -1124,6 +1124,11 @@ float UTexture2D::GetGlobalMipMapLODBias()
 
 void UTexture2D::RefreshSamplerStates()
 {
+	if (Resource == nullptr)
+	{
+		return;
+	}
+
 	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
 		RefreshSamplerStatesCommand,
 		FTexture2DResource*, Texture2DResource, ((FTexture2DResource*)Resource),
