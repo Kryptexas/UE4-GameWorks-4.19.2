@@ -1204,10 +1204,7 @@ namespace UnrealBuildTool
 
 						var ArgumentsCopy = new string[ Arguments.Length + 1 ];
 						ArgumentsCopy[ 0 ] = TargetName;
-						for( var CurEntryIndex = 0; CurEntryIndex < Arguments.Length; ++CurEntryIndex )
-						{
-							ArgumentsCopy[ CurEntryIndex + 1 ] = Arguments[ CurEntryIndex ];
-						}
+						Array.Copy(Arguments, 0, ArgumentsCopy, 1, Arguments.Length);
 
 						bSuccess = UnrealBuildTool.RunUBT( ArgumentsCopy ) == ECompilationResult.Succeeded;
 						if( !bSuccess )
