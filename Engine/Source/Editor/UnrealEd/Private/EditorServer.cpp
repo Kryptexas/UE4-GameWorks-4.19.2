@@ -1751,15 +1751,12 @@ UWorld* UEditorEngine::NewMap()
 	// Create a new world
 	UWorldFactory* Factory = ConstructObject<UWorldFactory>(UWorldFactory::StaticClass());
 	Factory->WorldType = EWorldType::Editor;
-	UPackage* Pkg = CreatePackage(NULL, TEXT("/Temp/NewMap"));
+	UPackage* Pkg = CreatePackage( NULL, NULL );
 	EObjectFlags Flags = RF_Public | RF_Standalone;
-	UWorld* NewWorld = Cast<UWorld>(Factory->FactoryCreateNew(UWorld::StaticClass(), Pkg, TEXT("NewMap"), Flags, NULL, GWarn));
-	if ( NewWorld )
-	{
-		Context.SetCurrentWorld(NewWorld);
-		GWorld = NewWorld;
-		NewWorld->AddToRoot();
-	}
+	UWorld* NewWorld = CastChecked<UWorld>(Factory->FactoryCreateNew(UWorld::StaticClass(), Pkg, TEXT("NewWorld"), Flags, NULL, GWarn));
+	Context.SetCurrentWorld(NewWorld);
+	GWorld = NewWorld;
+	NewWorld->AddToRoot();
 
 	NoteSelectionChange();
 

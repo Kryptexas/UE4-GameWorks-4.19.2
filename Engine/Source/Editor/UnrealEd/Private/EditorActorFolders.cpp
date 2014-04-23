@@ -87,12 +87,14 @@ void FActorFolders::Housekeeping()
 void FActorFolders::OnLevelActorListChanged()
 {
 	Housekeeping();
+	check(GWorld);
 	RebuildFolderListForWorld(*GWorld);
 }
 
 void FActorFolders::OnMapChange(uint32 MapChangeFlags)
 {
 	Housekeeping();
+	check(GWorld);
 	RebuildFolderListForWorld(*GWorld);
 }
 
