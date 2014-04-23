@@ -708,6 +708,11 @@ void FApexChunkReport::onDamageNotify(const NxApexDamageEventReportData& damageE
 	UDestructibleComponent* DestructibleComponent = Cast<UDestructibleComponent>(FPhysxUserData::Get<UPrimitiveComponent>(damageEvent.destructible->userData));
 	check(DestructibleComponent);
 
+	if (DestructibleComponent->IsPendingKill())	//don't notify if object is being destroyed
+	{
+		return;
+	}
+
 #if WITH_SUBSTEPPING
 	if (UPhysicsSettings::Get()->bSubstepping)
 	{
