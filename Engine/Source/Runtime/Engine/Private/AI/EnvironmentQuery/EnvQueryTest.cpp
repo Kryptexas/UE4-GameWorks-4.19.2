@@ -156,7 +156,7 @@ FText UEnvQueryTest::DescribeFloatTestParams() const
 		FText InvalidConditionDesc = LOCTEXT("InvalidCondition", "invalid condition");
 		ParamDesc =
 			(Condition == EEnvTestCondition::AtLeast) ? FText::Format(LOCTEXT("AtLeastFiltered", "at least {Filter}"), Args) :
-			(Condition == EEnvTestCondition::UpTo) ? FText::Format(LOCTEXT("UpToFiltered", "up to %s"), Args) :
+			(Condition == EEnvTestCondition::UpTo) ? FText::Format(LOCTEXT("UpToFiltered", "up to {Filter}"), Args) :
 			InvalidConditionDesc;
 	}
 

@@ -83,8 +83,9 @@ FText UAnimGraphNode_SequencePlayer::GetNodeTitle(ENodeTitleType::Type TitleType
 	{
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("Title"), Title);
+		Args.Add(TEXT("SyncGroup"), FText::FromName(SyncGroup.GroupName));
 
-		Title = FText::Format(LOCTEXT("SequenceNodeGroupWithSubtitle", "{Title}\nSync group {Title}"), Args);
+		Title = FText::Format(LOCTEXT("SequenceNodeGroupWithSubtitle", "{Title}\nSync group {SyncGroup}"), Args);
 	}
 
 	return Title;

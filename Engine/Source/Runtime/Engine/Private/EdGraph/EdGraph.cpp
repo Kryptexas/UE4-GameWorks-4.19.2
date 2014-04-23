@@ -635,11 +635,11 @@ FText UEdGraphNode::GetNodeSearchTitle() const
 
 	FText LocalizedTitle = GetNodeTitle(ENodeTitleType::ListView);
 	FText NativeTitle = FText::FromString(GetNodeNativeTitle(ENodeTitleType::ListView));
-//	@TODO: vet the performance implications of this
-// 	if(FInternationalization::Get().GetCurrentCulture()->GetName() == TEXT("en_US"))
-// 	{
-// 		ensure( LocalizedTitle.CompareTo(NativeTitle) == 0 );
-// 	}
+
+	if(FInternationalization::Get().GetCurrentCulture()->GetName() == TEXT("en_US"))
+	{
+		ensure( LocalizedTitle.CompareTo(NativeTitle) == 0 );
+	}
 
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("LocalizedTitle"), LocalizedTitle);

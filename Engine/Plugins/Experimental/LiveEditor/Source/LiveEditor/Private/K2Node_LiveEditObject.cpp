@@ -187,9 +187,11 @@ FText UK2Node_LiveEditObject::GetNodeTitle(ENodeTitleType::Type TitleType) const
 		SpawnString = FText::FromString(BaseClassPin->DefaultObject->GetName());
 	}
 
+	FNumberFormattingOptions NumberOptions;
+	NumberOptions.UseGrouping = false;
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("SpawnString"), SpawnString);
-	Args.Add(TEXT("ID"), GetUniqueID());
+	Args.Add(TEXT("ID"), FText::AsNumber(GetUniqueID(), &NumberOptions));
 	return FText::Format(NSLOCTEXT("K2Node", "LiveEditObject", "LiveEditObject {SpawnString}_{ID}"), Args );
 }
 
