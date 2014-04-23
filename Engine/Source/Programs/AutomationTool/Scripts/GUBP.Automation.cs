@@ -2949,6 +2949,10 @@ public class GUBP : BuildCommand
         {
             Emails = "Engine-QA[epic]";
         }
+        if (BranchForEmail.Contains("Fort"))
+        {
+            Emails = Emails.Replace("Engine-QA[epic]", "Fortress-QA[epic]").Replace(" Engine-QA-Team[epic]", "");
+        }
         return Emails;
     }
 
