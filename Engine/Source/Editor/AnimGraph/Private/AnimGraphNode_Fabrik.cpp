@@ -5,18 +5,21 @@
 /////////////////////////////////////////////////////
 // UAnimGraphNode_Fabrik 
 
+#define LOCTEXT_NAMESPACE "A3Nodes"
+
 UAnimGraphNode_Fabrik::UAnimGraphNode_Fabrik(const FPostConstructInitializeProperties& PCIP)
 : Super(PCIP)
 {
 }
 
-FString UAnimGraphNode_Fabrik::GetControllerDescription() const
+FText UAnimGraphNode_Fabrik::GetControllerDescription() const
 {
-	return TEXT("FABRIK");
+	return LOCTEXT("Fabrik", "FABRIK");
 }
 
-FString UAnimGraphNode_Fabrik::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UAnimGraphNode_Fabrik::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	FString Result = *GetControllerDescription();
-	return Result;
+	return GetControllerDescription();
 }
+
+#undef LOCTEXT_NAMESPACE

@@ -113,23 +113,23 @@ FString UK2Node_Literal::GetTooltip() const
 	return NSLOCTEXT("K2Node", "Literal_Tooltip", "Stores a reference to an actor in the level").ToString();
 }
 
-FString UK2Node_Literal::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_Literal::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	if( ObjectRef != NULL )
 	{
 		AActor* Actor = Cast<AActor>(ObjectRef);
 		if(Actor != NULL)
 		{
-			return Actor->GetActorLabel();
+			return FText::FromString(Actor->GetActorLabel());
 		}
 		else
 		{
-			return ObjectRef->GetName();
+			return FText::FromString(ObjectRef->GetName());
 		}
 	}
 	else
 	{
-		return NSLOCTEXT("K2Node", "Unknown", "Unknown").ToString();
+		return NSLOCTEXT("K2Node", "Unknown", "Unknown");
 	}
 }
 
@@ -184,7 +184,8 @@ void UK2Node_Literal::SetObjectRef(UObject* NewValue)
 
 	if( ValuePin )
 	{
-		ValuePin->PinName = GetNodeTitle(ENodeTitleType::ListView);
+		ValuePin->PinName = GetNodeNativeTitle(ENodeTitleType::ListView);
+		ValuePin->PinFriendlyName = GetNodeTitle(ENodeTitleType::ListView);
 	}
 }
 

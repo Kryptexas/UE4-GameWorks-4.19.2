@@ -84,11 +84,55 @@ FString UK2Node_VariableSet::GetTooltip() const
 	return FText::Format( NSLOCTEXT( "K2Node", "SetValueOfVariable", "Set the value of variable {VarName}{ReplicationCall}{ReplicationNotifyName}{TextPartition}{MetaData}"), Args ).ToString();
 }
 
-FString UK2Node_VariableSet::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_VariableSet::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
-	FString Result = HasLocalRepNotify() ? NSLOCTEXT("K2Node", "SetWithNotify", "Set with Notify").ToString() : NSLOCTEXT("K2Node", "Set", "Set").ToString();
+	FText Result = HasLocalRepNotify() ? NSLOCTEXT("K2Node", "SetWithNotify", "Set with Notify") : NSLOCTEXT("K2Node", "Set", "Set");
+
+	// If there is only one variable being written (one non-meta input pin), the title can be made the variable name
+	FString InputPinName;
+	int32 NumInputsFound = 0;
+
+	for (int32 PinIndex = 0; PinIndex < Pins.Num(); ++PinIndex)
+	{
+		UEdGraphPin* Pin = Pins[PinIndex];
+		if ((Pin->Direction == EGPD_Input) && (!K2Schema->IsMetaPin(*Pin)))
+		{
+			++NumInputsFound;
+			InputPinName = Pin->PinName;
+		}
+	}
+
+	if (NumInputsFound == 1)
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("PinName"), FText::FromString(InputPinName));
+
+		if(HasLocalRepNotify())
+		{
+			Result = FText::Format(NSLOCTEXT("K2Node", "SetWithNotifyPinName", "Set with Notify {PinName}"), Args);
+		}
+		else
+		{
+			Result = FText::Format(NSLOCTEXT("K2Node", "SetPinName", "Set {PinName}"), Args);
+		}
+	}
+	else
+	{
+		Result = HasLocalRepNotify() ? NSLOCTEXT("K2Node", "SetWithNotify", "Set with Notify") : NSLOCTEXT("K2Node", "Set", "Set");
+	}
+
+	return Result;
+}
+
+FString UK2Node_VariableSet::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
+
+	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+
+	FString Result = HasLocalRepNotify() ? TEXT("Set with Notify") : TEXT("Set");
 
 	// If there is only one variable being written (one non-meta input pin), the title can be made the variable name
 	FString InputPinName;

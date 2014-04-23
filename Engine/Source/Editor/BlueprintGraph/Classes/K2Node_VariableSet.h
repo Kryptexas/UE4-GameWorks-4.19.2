@@ -13,7 +13,8 @@ class UK2Node_VariableSet : public UK2Node_Variable
 	virtual void AllocateDefaultPins() OVERRIDE;
 	virtual void ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins) OVERRIDE;
 	virtual FString GetTooltip() const OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	// End UEdGraphNode interface
 
 	// Begin K2Node interface

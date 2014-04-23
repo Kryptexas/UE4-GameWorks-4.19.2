@@ -58,7 +58,8 @@ public:
 	virtual void DestroyNode() OVERRIDE;
 	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
 	virtual FString GetTooltip() const OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual FString GetDescriptiveCompiledName() const OVERRIDE;
 	virtual bool IsDeprecated() const OVERRIDE;
 	virtual bool ShouldWarnOnDeprecation() const OVERRIDE;
@@ -76,7 +77,7 @@ public:
 	virtual void PostReconstructNode() OVERRIDE;
 	virtual bool ShouldDrawCompact() const OVERRIDE;
 	virtual bool ShouldDrawAsBead() const OVERRIDE;
-	virtual FString GetCompactNodeTitle() const OVERRIDE;
+	virtual FText GetCompactNodeTitle() const OVERRIDE;
 	virtual void PostPasteNode() OVERRIDE;
 	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const OVERRIDE;
 	virtual bool ShouldShowNodeProperties() const OVERRIDE;

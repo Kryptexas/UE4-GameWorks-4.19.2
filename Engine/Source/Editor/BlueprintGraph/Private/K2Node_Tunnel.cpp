@@ -47,19 +47,19 @@ FString UK2Node_Tunnel::GetTooltip() const
 	}
 }
 
-FString UK2Node_Tunnel::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_Tunnel::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	if (bCanHaveInputs && !bCanHaveOutputs)
 	{
-		return NSLOCTEXT("K2Node", "OutputTunnelTitle", "Outputs").ToString();
+		return NSLOCTEXT("K2Node", "OutputTunnelTitle", "Outputs");
 	}
 	else if (!bCanHaveInputs && bCanHaveOutputs)
 	{
-		return NSLOCTEXT("K2Node", "InputTunnelTitle", "Inputs").ToString();
+		return NSLOCTEXT("K2Node", "InputTunnelTitle", "Inputs");
 	}
 	else
 	{
-		return NSLOCTEXT("K2Node", "TunnelConnectionTitle", "Tunnel Connection").ToString();
+		return NSLOCTEXT("K2Node", "TunnelConnectionTitle", "Tunnel Connection");
 	}
 }
 

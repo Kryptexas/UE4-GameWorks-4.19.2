@@ -695,6 +695,15 @@ public:
 	static FString TypeToString(UProperty* const Property);
 
 	/**
+	 * Converts a pin type into a fully qualified FText (e.g., object'ObjectName').
+	 *
+	 * @param	Type	The type to convert into a FText.
+	 *
+	 * @return	The converted type text.
+	 */
+	static FText TypeToText(const FEdGraphPinType& Type);
+
+	/**
 	 * Get the type tree for all of the property types valid for this schema
 	 *
 	 * @param	TypeTree		The array that will contain the type tree hierarchy for this schema upon returning

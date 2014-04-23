@@ -1823,7 +1823,7 @@ bool FTraceAllTimelinesAutomationTest::RunTest(const FString& BlueprintName)
 				const bool bIsWarningEvent = WarningEventNodes.Contains(Event);
 				const TCHAR SymbolString = bIsBadEvent ? TEXT('-') : (bIsWarningEvent ? TEXT('?') : TEXT('+'));
 				const TCHAR* CosmeticString = bIsCosmeticEvent ? TEXT("Client") : TEXT("Server");
-				FString OutputText = FString::Printf(TEXT("TraceTimeline:   %c %sEvent '%s' -> %s"), SymbolString, CosmeticString, *Event->GetNodeTitle(ENodeTitleType::EditableTitle), *TimelinePtr->TimelineName.ToString());
+				FString OutputText = FString::Printf(TEXT("TraceTimeline:   %c %sEvent '%s' -> %s"), SymbolString, CosmeticString, *Event->GetNodeTitle(ENodeTitleType::EditableTitle).ToString(), *TimelinePtr->TimelineName.ToString());
 
 				if (bIsBadEvent)
 				{

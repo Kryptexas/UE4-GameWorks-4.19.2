@@ -72,9 +72,9 @@ UK2Node_FunctionResult::UK2Node_FunctionResult(const class FPostConstructInitial
 {
 }
 
-FString UK2Node_FunctionResult::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_FunctionResult::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return NSLOCTEXT("K2Node", "ReturnNode", "ReturnNode").ToString();
+	return NSLOCTEXT("K2Node", "ReturnNode", "ReturnNode");
 }
 
 void UK2Node_FunctionResult::AllocateDefaultPins()

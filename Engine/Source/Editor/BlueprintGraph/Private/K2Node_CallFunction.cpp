@@ -66,8 +66,44 @@ FString UK2Node_CallFunction::GetFunctionContextString() const
 }
 
 
-FString UK2Node_CallFunction::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_CallFunction::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
+	FString FunctionName;
+	FString ContextString;
+	FString RPCString;
+
+	if (UFunction* Function = GetTargetFunction())
+	{
+		RPCString = UK2Node_Event::GetLocalizedNetString(Function->FunctionFlags, true);
+		FunctionName = UK2Node_CallFunction::GetUserFacingFunctionName(Function);
+		ContextString = GetFunctionContextString();
+	}
+	else
+	{
+		FunctionName = FunctionReference.GetMemberName().ToString();
+		if ((GEditor != NULL) && (GetDefault<UEditorStyleSettings>()->bShowFriendlyNames))
+		{
+			FunctionName = FName::NameToDisplayString(FunctionName, false);
+		}
+	}
+
+	if(TitleType == ENodeTitleType::FullTitle)
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("FunctionName"), FText::FromString(FunctionName));
+		Args.Add(TEXT("ContextString"), FText::FromString(ContextString));
+		Args.Add(TEXT("RPCString"), FText::FromString(RPCString));
+		return FText::Format(LOCTEXT("CallFunction_FullTitle", "{FunctionName}{ContextString}{RPCString}"), Args);
+	}
+	else
+	{
+		return FText::FromString(FunctionName);
+	}
+}
+
+FString UK2Node_CallFunction::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
 	FString FunctionName;
 	FString ContextString;
 	FString RPCString;
@@ -90,7 +126,6 @@ FString UK2Node_CallFunction::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	const FString Result = (TitleType == ENodeTitleType::ListView) ? FunctionName : FunctionName + ContextString + RPCString;
 	return Result;
 }
-
 
 void UK2Node_CallFunction::AllocateDefaultPins()
 {
@@ -249,7 +284,7 @@ void UK2Node_CallFunction::CreateExecPinsForFunctionCall(const UFunction* Functi
 		UEdGraphPin* OutputExecPin = CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Then);
 		if(Function->HasMetaData(FBlueprintMetadata::MD_Latent))
 		{
-			OutputExecPin->PinFriendlyName = K2Schema->PN_Completed;
+			OutputExecPin->PinFriendlyName = FText::FromString(K2Schema->PN_Completed);
 		}
 	}
 }
@@ -422,7 +457,7 @@ bool UK2Node_CallFunction::CreatePinsForFunctionCall(const UFunction* Function)
 	UEdGraphPin* SelfPin = CreateSelfPin(Function);
 
 	//Renamed self pin to target
-	SelfPin->PinFriendlyName =  TEXT("Target");
+	SelfPin->PinFriendlyName =  LOCTEXT("Target", "Target");
 
 	// fill out the self-pin's default tool-tip
 	GeneratePinHoverText(*SelfPin, SelfPin->PinToolTip);
@@ -876,12 +911,12 @@ FString UK2Node_CallFunction::GetCompactNodeTitle(const UFunction* Function)
 	return Function->GetName();
 }
 
-FString UK2Node_CallFunction::GetCompactNodeTitle() const
+FText UK2Node_CallFunction::GetCompactNodeTitle() const
 {
 	UFunction* Function = GetTargetFunction();
 	if (Function != NULL)
 	{
-		return GetCompactNodeTitle(Function);
+		return FText::FromString(GetCompactNodeTitle(Function));
 	}
 	else
 	{

@@ -97,7 +97,7 @@ UEdGraphSchema_Niagara::UEdGraphSchema_Niagara(const class FPostConstructInitial
 	PC_Float = TEXT("float");
 }
 
-TSharedPtr<FNiagaraSchemaAction_NewNode> AddNewNodeAction(FGraphContextMenuBuilder& ContextMenuBuilder, const FString& Category, const FString& MenuDesc, const FString& Tooltip)
+TSharedPtr<FNiagaraSchemaAction_NewNode> AddNewNodeAction(FGraphContextMenuBuilder& ContextMenuBuilder, const FString& Category, const FText& MenuDesc, const FString& Tooltip)
 {
 	TSharedPtr<FNiagaraSchemaAction_NewNode> NewAction = TSharedPtr<FNiagaraSchemaAction_NewNode>(new FNiagaraSchemaAction_NewNode(Category, MenuDesc, Tooltip, 0));
 	ContextMenuBuilder.AddAction( NewAction );
@@ -109,19 +109,22 @@ void UEdGraphSchema_Niagara::GetGraphContextActions(FGraphContextMenuBuilder& Co
 	const UNiagaraGraph* NiagaraGraph = CastChecked<UNiagaraGraph>(ContextMenuBuilder.CurrentGraph);
 	UNiagaraScriptSource* Source = NiagaraGraph->GetSource();
 
-	// First get attributes.
-	FString GetString(TEXT("Get "));
-
 	TArray<FName> InputAttributeNames;
 	Source->GetUpdateInputs(InputAttributeNames);
 	for(int32 i=0; i<InputAttributeNames.Num(); i++)
 	{
 		const FName AttrName = InputAttributeNames[i];
-		TSharedPtr<FNiagaraSchemaAction_NewNode> GetAttrAction = AddNewNodeAction(ContextMenuBuilder, TEXT("Get Attribute"), GetString + AttrName.ToString(), TEXT(""));
+
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("Attribute"), FText::FromName(AttrName));
+		const FText MenuDesc = FText::Format(NSLOCTEXT("Niagara", "GetAttribute", "Get {Attribute}"), Args);
+
+		TSharedPtr<FNiagaraSchemaAction_NewNode> GetAttrAction = AddNewNodeAction(ContextMenuBuilder, TEXT("Get Attribute"), MenuDesc, TEXT(""));
 
 		UNiagaraNodeGetAttr* GetAttrNode = NewObject<UNiagaraNodeGetAttr>(ContextMenuBuilder.OwnerOfTemporaries);
 		GetAttrNode->AttrName = AttrName;
 		GetAttrAction->NodeTemplate = GetAttrNode;
+		GetAttrAction->SearchTitle = GetAttrAction->NodeTemplate->GetNodeSearchTitle();
 	}
 
 	// Then get ops.
@@ -131,11 +134,12 @@ void UEdGraphSchema_Niagara::GetGraphContextActions(FGraphContextMenuBuilder& Co
 		VectorVM::FVectorVMOpInfo const& Info = VectorVM::GetOpCodeInfo(OpIdx);
 		if(Info.IsImplemented())
 		{
-			TSharedPtr<FNiagaraSchemaAction_NewNode> AddOpAction = AddNewNodeAction(ContextMenuBuilder, TEXT("Add Operation"), Info.FriendlyName, TEXT(""));
+			TSharedPtr<FNiagaraSchemaAction_NewNode> AddOpAction = AddNewNodeAction(ContextMenuBuilder, TEXT("Add Operation"), FText::FromString(Info.FriendlyName), TEXT(""));
 
 			UNiagaraNodeOp* OpNode = NewObject<UNiagaraNodeOp>(ContextMenuBuilder.OwnerOfTemporaries);
 			OpNode->OpIndex = OpIdx;
 			AddOpAction->NodeTemplate = OpNode;
+			AddOpAction->SearchTitle = AddOpAction->NodeTemplate->GetNodeSearchTitle();
 		}
 	}
 }

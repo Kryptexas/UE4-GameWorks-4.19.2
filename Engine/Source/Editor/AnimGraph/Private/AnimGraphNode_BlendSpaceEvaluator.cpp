@@ -8,6 +8,8 @@
 /////////////////////////////////////////////////////
 // UAnimGraphNode_BlendSpaceEvaluator
 
+#define LOCTEXT_NAMESPACE "A3Nodes"
+
 UAnimGraphNode_BlendSpaceEvaluator::UAnimGraphNode_BlendSpaceEvaluator(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
@@ -18,10 +20,39 @@ FString UAnimGraphNode_BlendSpaceEvaluator::GetTooltip() const
 	return FString::Printf(TEXT("Blendspace Evaluator'%s'"), (Node.BlendSpace != NULL) ? *(Node.BlendSpace->GetPathName()) : TEXT("(None)"));
 }
 
-FString UAnimGraphNode_BlendSpaceEvaluator::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UAnimGraphNode_BlendSpaceEvaluator::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	const FString BlendSpaceName((Node.BlendSpace != NULL) ? *(Node.BlendSpace->GetName()) : TEXT("(None)"));
+	const FText BlendSpaceName((Node.BlendSpace != NULL) ? FText::FromString(Node.BlendSpace->GetName()) : LOCTEXT("None", "(None)"));
 	
+	if (TitleType == ENodeTitleType::ListView)
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("BlendSpaceName"), BlendSpaceName);
+		return FText::Format(LOCTEXT("BlendSpaceEvaluatorListTitle", "Blendspace Evaluator '{BlendSpaceName}'"), Args);
+	}
+	else
+	{
+		FFormatNamedArguments TitleArgs;
+		TitleArgs.Add(TEXT("BlendSpaceName"), BlendSpaceName);
+		FText Title = FText::Format(LOCTEXT("BlendSpaceEvaluatorFullTitle", "{BlendSpaceName}\nBlendspace Evaluator"), TitleArgs);
+
+		if ((TitleType == ENodeTitleType::FullTitle) && (SyncGroup.GroupName != NAME_None))
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("Title"), Title);
+			Args.Add(TEXT("SyncGroupName"), FText::FromName(SyncGroup.GroupName));
+			Title = FText::Format(LOCTEXT("BlendSpaceNodeGroupSubtitle", "{Title}\nSync group {SyncGroupName}"), Args);
+		}
+
+		return Title;
+	}
+}
+
+FString UAnimGraphNode_BlendSpaceEvaluator::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
+	const FString BlendSpaceName((Node.BlendSpace != NULL) ? *(Node.BlendSpace->GetName()) : TEXT("(None)"));
+
 	if (TitleType == ENodeTitleType::ListView)
 	{
 		return FString::Printf(TEXT("Blendspace Evaluator '%s'"), *BlendSpaceName);
@@ -33,7 +64,7 @@ FString UAnimGraphNode_BlendSpaceEvaluator::GetNodeTitle(ENodeTitleType::Type Ti
 		if ((TitleType == ENodeTitleType::FullTitle) && (SyncGroup.GroupName != NAME_None))
 		{
 			Title += TEXT("\n");
-			Title += FString::Printf(*NSLOCTEXT("A3Nodes", "BlendSpaceNodeGroupSubtitle", "Sync group %s").ToString(), *SyncGroup.GroupName.ToString());
+			Title += FString::Printf(TEXT("Sync group %s"), *SyncGroup.GroupName.ToString());
 		}
 
 		return Title;
@@ -103,3 +134,5 @@ UScriptStruct* UAnimGraphNode_BlendSpaceEvaluator::GetTimePropertyStruct() const
 {
 	return FAnimNode_BlendSpaceEvaluator::StaticStruct();
 }
+
+#undef LOCTEXT_NAMESPACE

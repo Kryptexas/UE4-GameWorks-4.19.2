@@ -5,14 +5,16 @@
 /////////////////////////////////////////////////////
 // UAnimGraphNode_ModifyBone
 
+#define LOCTEXT_NAMESPACE "A3Nodes"
+
 UAnimGraphNode_ModifyBone::UAnimGraphNode_ModifyBone(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 }
 
-FString UAnimGraphNode_ModifyBone::GetControllerDescription() const
+FText UAnimGraphNode_ModifyBone::GetControllerDescription() const
 {
-	return TEXT("Transform (Modify) Bone");
+	return LOCTEXT("TransformModifyBone", "Transform (Modify) Bone");
 }
 
 FString UAnimGraphNode_ModifyBone::GetKeywords() const
@@ -22,13 +24,23 @@ FString UAnimGraphNode_ModifyBone::GetKeywords() const
 
 FString UAnimGraphNode_ModifyBone::GetTooltip() const
 {
-	return TEXT("The Transform Bone node alters the transform - i.e. Translation, Rotation, or Scale - of the bone");
+	return LOCTEXT("AnimGraphNode_ModifyBone_Tooltip", "The Transform Bone node alters the transform - i.e. Translation, Rotation, or Scale - of the bone").ToString();
 }
 
-FString UAnimGraphNode_ModifyBone::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UAnimGraphNode_ModifyBone::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	FString Result = *GetControllerDescription();
-	Result += (TitleType == ENodeTitleType::ListView) ? TEXT(" - ") : TEXT("\n");
-	Result += FString::Printf(TEXT("Bone: %s"), *Node.BoneToModify.BoneName.ToString());
-	return Result;
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("ControllerDescription"), GetControllerDescription());
+	Args.Add(TEXT("BoneName"), FText::FromName(Node.BoneToModify.BoneName));
+
+	if(TitleType == ENodeTitleType::ListView)
+	{
+		return FText::Format(LOCTEXT("AnimGraphNode_ModifyBone_Title", "{ControllerDescription} - Bone: {BoneName}"), Args);
+	}
+	else
+	{
+		return FText::Format(LOCTEXT("AnimGraphNode_ModifyBone_Title", "{ControllerDescription}\nBone: {BoneName}"), Args);
+	}
 }
+
+#undef LOCTEXT_NAMESPACE

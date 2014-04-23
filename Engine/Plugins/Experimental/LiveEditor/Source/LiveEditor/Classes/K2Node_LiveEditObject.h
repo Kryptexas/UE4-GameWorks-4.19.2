@@ -11,7 +11,8 @@ class UK2Node_LiveEditObject : public UK2Node
 #if WITH_EDITOR
 	// Begin UEdGraphNode interface.
 	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual void PinDefaultValueChanged(UEdGraphPin* Pin) OVERRIDE;
 	// End UEdGraphNode interface.
 

@@ -113,7 +113,7 @@ FString SKismetInspector::GetContextualEditingWidgetTitle() const
 
 			if (UEdGraphNode* Node = Cast<UEdGraphNode>(Object))
 			{
-				Title = Node->GetNodeTitle(ENodeTitleType::ListView);
+				Title = Node->GetNodeTitle(ENodeTitleType::ListView).ToString();
 			}
 			else if (USCS_Node* SCSNode = Cast<USCS_Node>(Object))
 			{

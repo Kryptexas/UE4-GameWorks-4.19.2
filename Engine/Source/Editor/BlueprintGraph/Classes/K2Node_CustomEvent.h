@@ -13,7 +13,8 @@ class UK2Node_CustomEvent : public UK2Node_Event
 
 	// Begin UEdGraphNode interface
 	virtual void ReconstructNode() OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual void OnRenameNode(const FString& NewName) OVERRIDE;
 	virtual TSharedPtr<class INameValidatorInterface> MakeNameValidator() const OVERRIDE;
 	virtual FString GetTooltip() const OVERRIDE;

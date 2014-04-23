@@ -6,6 +6,8 @@
 //////////////////////////////////////////////////////////////////////////
 // UK2Node_StructMemberGet
 
+#define LOCTEXT_NAMESPACE "K2Node"
+
 UK2Node_StructMemberGet::UK2Node_StructMemberGet(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
@@ -69,11 +71,22 @@ void UK2Node_StructMemberGet::AllocatePinsForSingleMemberGet(FName MemberName)
 
 FString UK2Node_StructMemberGet::GetTooltip() const
 {
-	return FString::Printf(TEXT("Get member variables of %s"), *GetVarNameString());
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("VariableName"), FText::FromString(GetVarNameString()));
+	return FText::Format(LOCTEXT("K2Node_StructMemberGet_Tooltip", "Get member variables of {VariableName}"), Args).ToString();
 }
 
-FString UK2Node_StructMemberGet::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_StructMemberGet::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("VariableName"), FText::FromString(GetVarNameString()));
+	return FText::Format(LOCTEXT("GetMembersInVariable", "Get members in {VariableName}"), Args);
+}
+
+FString UK2Node_StructMemberGet::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
+
 	return FString::Printf(TEXT("Get members in %s"), *GetVarNameString());
 }
 
@@ -81,3 +94,5 @@ FNodeHandlingFunctor* UK2Node_StructMemberGet::CreateNodeHandler(FKismetCompiler
 {
 	return new FKCHandler_StructMemberVariableGet(CompilerContext);
 }
+
+#undef LOCTEXT_NAMESPACE

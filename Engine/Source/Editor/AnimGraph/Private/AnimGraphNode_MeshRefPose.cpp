@@ -5,6 +5,8 @@
 /////////////////////////////////////////////////////
 // UAnimGraphNode_MeshRefPose
 
+#define LOCTEXT_NAMESPACE "A3Nodes"
+
 UAnimGraphNode_MeshRefPose::UAnimGraphNode_MeshRefPose(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
@@ -22,12 +24,12 @@ FLinearColor UAnimGraphNode_MeshRefPose::GetNodeTitleColor() const
 
 FString UAnimGraphNode_MeshRefPose::GetTooltip() const
 {
-	return TEXT("Returns mesh space reference pose.");
+	return LOCTEXT("AnimGraphNode_MeshRefPose_Tooltip", "Returns mesh space reference pose.").ToString();
 }
 
-FString UAnimGraphNode_MeshRefPose::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UAnimGraphNode_MeshRefPose::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return FString::Printf(TEXT("Mesh Space Ref Pose"));
+	return LOCTEXT("AnimGraphNode_MeshRefPose_Title", "Mesh Space Ref Pose");
 }
 
 void UAnimGraphNode_MeshRefPose::CreateOutputPins()
@@ -35,3 +37,5 @@ void UAnimGraphNode_MeshRefPose::CreateOutputPins()
 	const UAnimationGraphSchema* Schema = GetDefault<UAnimationGraphSchema>();
 	CreatePin(EGPD_Output, Schema->PC_Struct, TEXT(""), FComponentSpacePoseLink::StaticStruct(), /*bIsArray=*/ false, /*bIsReference=*/ false, TEXT("ComponentPose"));
 }
+
+#undef LOCTEXT_NAMESPACE

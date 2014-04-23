@@ -36,10 +36,10 @@ void UNiagaraNodeOp::AllocateDefaultPins()
 	CreatePin(EGPD_Output, Schema->PC_Float, TEXT(""), NULL, false, false, TEXT("Result"));
 }
 
-FString UNiagaraNodeOp::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UNiagaraNodeOp::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	VectorVM::FVectorVMOpInfo const& Info = VectorVM::GetOpCodeInfo(OpIndex);
-	return Info.FriendlyName;
+	return FText::FromString(Info.FriendlyName);
 }
 
 FLinearColor UNiagaraNodeOp::GetNodeTitleColor() const

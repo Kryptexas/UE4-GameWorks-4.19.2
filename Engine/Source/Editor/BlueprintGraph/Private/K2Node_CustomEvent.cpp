@@ -103,20 +103,42 @@ UK2Node_CustomEvent::UK2Node_CustomEvent(const class FPostConstructInitializePro
 	bCanRenameNode = true;
 }
 
-FString UK2Node_CustomEvent::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_CustomEvent::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
+	if (TitleType == ENodeTitleType::EditableTitle)
+	{
+		return FText::FromName(CustomFunctionName);
+	}
+	else if(TitleType == ENodeTitleType::ListView)
+	{
+		return NSLOCTEXT("K2Node", "CustomEvent_Title", "Custom Event");
+	}
+	else
+	{
+		FString RPCString = UK2Node_Event::GetLocalizedNetString(FunctionFlags, false);
+
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("FunctionName"), FText::FromName(CustomFunctionName));
+		Args.Add(TEXT("RPCString"), FText::FromString(RPCString));
+		return FText::Format(NSLOCTEXT("K2Node", "CustomEvent_Name", "{FunctionName}{RPCString}\nCustom Event"), Args);
+	}
+}
+
+FString UK2Node_CustomEvent::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
 	if (TitleType == ENodeTitleType::EditableTitle)
 	{
 		return CustomFunctionName.ToString();
 	}
 	else if(TitleType == ENodeTitleType::ListView)
 	{
-		return NSLOCTEXT("K2Node", "CustomEvent_Title", "Custom Event").ToString();
+		return TEXT("Custom Event");
 	}
 	else
 	{
 		FString RPCString = UK2Node_Event::GetLocalizedNetString(FunctionFlags, false);
-		return FString::Printf(*NSLOCTEXT("K2Node", "CustomEvent_Name", "%s\nCustom Event").ToString(), *CustomFunctionName.ToString()) + RPCString;
+		return FString::Printf(TEXT("%s\nCustom Event"), *CustomFunctionName.ToString()) + RPCString;
 	}
 }
 

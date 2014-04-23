@@ -23,7 +23,7 @@ struct FBlueprintAction_PromoteVariable : public FEdGraphSchemaAction
 		: FEdGraphSchemaAction()
 	{
 		Category = TEXT("");
-		MenuDescription = LOCTEXT("PromoteToVariable", "Promote to variable").ToString();
+		MenuDescription = LOCTEXT("PromoteToVariable", "Promote to variable");
 		TooltipDescription = LOCTEXT("PromoteToVariable", "Promote to variable").ToString();
 		Grouping = 1;
 	}

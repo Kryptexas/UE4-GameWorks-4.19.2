@@ -212,7 +212,7 @@ struct ENGINE_API FEnvDirection
 	UPROPERTY(EditDefaultsOnly, Category=Direction, meta=(DisplayName="Mode"))
 	TEnumAsByte<EEnvDirection::Type> DirMode;
 
-	FString ToString() const;
+	FText ToText() const;
 };
 
 USTRUCT()
@@ -292,7 +292,7 @@ struct ENGINE_API FEnvTraceData
 	UPROPERTY(EditDefaultsOnly, Category=Trace)
 	uint32 bCanProjectDown : 1;
 
-	FString ToString(EDescriptionMode DescMode) const;
+	FText ToText(EDescriptionMode DescMode) const;
 
 	void SetGeometryOnly();
 	void SetNavmeshOnly();
@@ -756,9 +756,9 @@ class ENGINE_API UEnvQueryTypes : public UObject
 	GENERATED_UCLASS_BODY()
 
 	UEnvQueryTypes(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP) {}
-	static FString GetShortTypeName(const UObject* Ob);
+	static FText GetShortTypeName(const UObject* Ob);
 
-	static FString DescribeContext(TSubclassOf<class UEnvQueryContext> ContextClass);
+	static FText DescribeContext(TSubclassOf<class UEnvQueryContext> ContextClass);
 	static FString DescribeIntParam(const FEnvIntParam& Param);
 	static FString DescribeFloatParam(const FEnvFloatParam& Param);
 	static FString DescribeBoolParam(const FEnvBoolParam& Param);

@@ -50,9 +50,9 @@ bool FEnvQueryInstance::PrepareContext(UClass* ContextClass, FEnvQueryContextDat
 	if (ContextData.NumValues == 0)
 	{
 		UE_LOG(LogEQS, Log, TEXT("Query [%s] is missing values for context [%s], skipping test %d:%d [%s]"),
-			*QueryName, *UEnvQueryTypes::GetShortTypeName(ContextClass),
+			*QueryName, *UEnvQueryTypes::GetShortTypeName(ContextClass).ToString(),
 			OptionIndex, CurrentTest,
-			CurrentTest >=0 ? *UEnvQueryTypes::GetShortTypeName(Options[OptionIndex].TestDelegates[CurrentTest].GetUObject()) : TEXT("Generator")
+			CurrentTest >=0 ? *UEnvQueryTypes::GetShortTypeName(Options[OptionIndex].TestDelegates[CurrentTest].GetUObject()).ToString() : TEXT("Generator")
 			);
 
 		return false;
@@ -482,7 +482,7 @@ void FEnvQueryInstance::FinalizeTest()
 #if WITH_EDITOR
 	if (bStoreDebugInfo)
 	{
-		DebugData.PerformedTestNames.Add(UEnvQueryTypes::GetShortTypeName(DefTestOb));
+		DebugData.PerformedTestNames.Add(UEnvQueryTypes::GetShortTypeName(DefTestOb).ToString());
 	}
 #endif
 

@@ -8,6 +8,8 @@
 /////////////////////////////////////////////////////
 // UAnimGraphNode_SequenceEvaluator
 
+#define LOCTEXT_NAMESPACE "A3Nodes"
+
 UAnimGraphNode_SequenceEvaluator::UAnimGraphNode_SequenceEvaluator(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
@@ -45,8 +47,26 @@ FString UAnimGraphNode_SequenceEvaluator::GetTooltip() const
 	}
 }
 
-FString UAnimGraphNode_SequenceEvaluator::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UAnimGraphNode_SequenceEvaluator::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
+	const FText SequenceName((Node.Sequence != NULL) ? FText::FromString(Node.Sequence->GetName()) : LOCTEXT("None", "(None)"));
+
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("SequenceName"), SequenceName);
+
+	if (Node.Sequence && Node.Sequence->IsValidAdditive())
+	{
+		return FText::Format(LOCTEXT("EvaluateSequence_Additive", "Evaluate {SequenceName} (additive)"), Args);
+	}
+	else
+	{
+		return FText::Format(LOCTEXT("EvaluateSequence", "Evaluate {SequenceName}"), Args);
+	}
+}
+
+FString UAnimGraphNode_SequenceEvaluator::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
 	if (Node.Sequence && Node.Sequence->IsValidAdditive())
 	{
 		return FString::Printf(TEXT("Evaluate %s (additive)"), (Node.Sequence != NULL) ? *(Node.Sequence->GetName()) : TEXT("(None)"));
@@ -112,3 +132,5 @@ UScriptStruct* UAnimGraphNode_SequenceEvaluator::GetTimePropertyStruct() const
 {
 	return FAnimNode_SequenceEvaluator::StaticStruct();
 }
+
+#undef LOCTEXT_NAMESPACE

@@ -53,7 +53,7 @@ struct ENGINE_API FEdGraphSchemaAction
 
 	/** The menu text that should be displayed for this node in the creation menu */
 	UPROPERTY()
-	FString MenuDescription;
+	FText MenuDescription;
 
 	/** The tooltip text that should be displayed for this node in the creation menu */
 	UPROPERTY()
@@ -75,6 +75,10 @@ struct ENGINE_API FEdGraphSchemaAction
 	UPROPERTY()
 	int32 SectionID;
 
+	/** Search title for the action */
+	UPROPERTY()
+	FText SearchTitle;
+
 	FEdGraphSchemaAction() 
 		: Grouping(0)
 		, SectionID(0)
@@ -82,13 +86,14 @@ struct ENGINE_API FEdGraphSchemaAction
 	
 	virtual ~FEdGraphSchemaAction() {}
 
-	FEdGraphSchemaAction(const FString& InNodeCategory, const FString& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
+	FEdGraphSchemaAction(const FString& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
 		: MenuDescription(InMenuDesc)
 		, TooltipDescription(InToolTip)
 		, Category(InNodeCategory)
 		, Grouping(InGrouping)
 		, SectionID(0)
-	{}
+	{
+	}
 
 	/** Whether or not this action can be parented to other actions of the same type */
 	virtual bool IsParentable() const { return false; }
@@ -110,6 +115,22 @@ struct ENGINE_API FEdGraphSchemaAction
 		}
 
 		return NewNode;
+	}
+
+	/** Retrieves the full searchable title for this action */
+	FText GetSearchTitle()
+	{
+		if(SearchTitle.IsEmpty())
+		{
+			if(const FString* SourceString = FTextInspector::GetSourceString(MenuDescription))
+			{
+				FFormatNamedArguments Args;
+				Args.Add(TEXT("LocalizedTitle"), MenuDescription);
+				Args.Add(TEXT("SourceTitle"), FText::FromString(*SourceString));
+				SearchTitle = FText::Format(FText::FromString("{LocalizedTitle} {SourceTitle}"), Args);
+			}
+		}
+		return SearchTitle;
 	}
 
 	// GC.
@@ -136,7 +157,7 @@ struct ENGINE_API FEdGraphSchemaAction_NewNode : public FEdGraphSchemaAction
 		, NodeTemplate(NULL)
 	{}
 
-	FEdGraphSchemaAction_NewNode(const FString& InNodeCategory, const FString& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
+	FEdGraphSchemaAction_NewNode(const FString& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
 		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping) 
 		, NodeTemplate(NULL)
 	{}
@@ -169,7 +190,7 @@ struct FEdGraphSchemaAction_Dummy : public FEdGraphSchemaAction
 	: FEdGraphSchemaAction()
 	{}
 
-	FEdGraphSchemaAction_Dummy(const FString& InNodeCategory, const FString& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
+	FEdGraphSchemaAction_Dummy(const FString& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
 		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping)		
 	{}
 };
@@ -349,6 +370,8 @@ public:
 struct FGraphDisplayInfo
 {
 public:
+	/** Plain name for this graph */
+	FText PlainName;
 	/** Friendly name to display for this graph */
 	FText DisplayName;
 	/** Text to show as tooltip for this graph */

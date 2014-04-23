@@ -96,8 +96,8 @@ void FKismetDragDropAction::HoverTargetChanged()
 	if (ActionWillShowExistingNode())
 	{
 		FSlateBrush const* ShowsExistingIcon = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.ShowNode"));
-		FText DragingText = FText::Format(LOCTEXT("ShowExistingNode", "Show '{0}'"), FText::FromString(ActionNode->MenuDescription));
-		SetSimpleFeedbackMessage(ShowsExistingIcon, FLinearColor::White, DragingText.ToString());
+		FText DragingText = FText::Format(LOCTEXT("ShowExistingNode", "Show '{0}'"), ActionNode->MenuDescription);
+		SetSimpleFeedbackMessage(ShowsExistingIcon, FLinearColor::White, DragingText);
 	}
 	// it should be obvious that we can't drop on anything but a graph, so no need to point that out
 	else if ((HoveredGraph == NULL) || !CanBeDroppedDelegate.IsBound() || CanBeDroppedDelegate.Execute(ActionNode, HoveredGraph, CannotDropReason))
@@ -107,7 +107,7 @@ void FKismetDragDropAction::HoverTargetChanged()
 	else 
 	{
 		FSlateBrush const* DropPreventedIcon = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
-		SetSimpleFeedbackMessage(DropPreventedIcon, FLinearColor::White, CannotDropReason.ToString());
+		SetSimpleFeedbackMessage(DropPreventedIcon, FLinearColor::White, CannotDropReason);
 	}
 }
 
@@ -315,12 +315,12 @@ void FKismetMacroDragDropAction::HoverTargetChanged()
 	if ((HoveredGraph == NULL) || !CanBeDroppedDelegate.IsBound() || CanBeDroppedDelegate.Execute(ActionNode, HoveredGraph, CannotDropReason))
 	{
 		FSlateBrush const* DropPreventedIcon = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.NewNode"));
-		SetSimpleFeedbackMessage(DropPreventedIcon, FLinearColor::White, MacroName.ToString());
+		SetSimpleFeedbackMessage(DropPreventedIcon, FLinearColor::White, FText::FromName(MacroName));
 	}
 	else 
 	{
 		FSlateBrush const* DropPreventedIcon = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
-		SetSimpleFeedbackMessage(DropPreventedIcon, FLinearColor::White, CannotDropReason.ToString());
+		SetSimpleFeedbackMessage(DropPreventedIcon, FLinearColor::White, CannotDropReason);
 	}
 }
 

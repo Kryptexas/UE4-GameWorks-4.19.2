@@ -174,8 +174,16 @@ void UK2Node_BreakStruct::AllocateDefaultPins()
 	}
 }
 
-FString UK2Node_BreakStruct::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_BreakStruct::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("StructName"), FText::FromString(StructType ? StructType->GetName() : FString()));
+	return FText::Format(LOCTEXT("BreakNodeTitle", "Break {StructName}"), Args);
+}
+
+FString UK2Node_BreakStruct::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
 	return FString(TEXT("Break ")) + (StructType ? StructType->GetName() : FString());
 }
 

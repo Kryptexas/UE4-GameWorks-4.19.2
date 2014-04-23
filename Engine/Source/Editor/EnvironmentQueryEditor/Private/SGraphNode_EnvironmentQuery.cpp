@@ -333,10 +333,10 @@ void SGraphNode_EnvironmentQuery::UpdateGraphNode()
 	CreatePinWidgets();
 }
 
-FString	SGraphNode_EnvironmentQuery::GetDescription() const
+FText SGraphNode_EnvironmentQuery::GetDescription() const
 {
 	UEnvironmentQueryGraphNode* StateNode = CastChecked<UEnvironmentQueryGraphNode>(GraphNode);
-	return StateNode ? StateNode->GetDescription() : FString();
+	return StateNode ? StateNode->GetDescription() : FText::GetEmpty();
 }
 
 void SGraphNode_EnvironmentQuery::CreatePinWidgets()

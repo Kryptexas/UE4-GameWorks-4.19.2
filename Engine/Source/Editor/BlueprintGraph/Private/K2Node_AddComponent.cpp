@@ -153,7 +153,10 @@ void UK2Node_AddComponent::ValidateNodeDuringCompilation(FCompilerResultsLog& Me
 		UClass* TemplateClass = Template->GetClass();
 		if (!TemplateClass->IsChildOf(UActorComponent::StaticClass()) || TemplateClass->HasAnyClassFlags(CLASS_Abstract) || !TemplateClass->HasMetaData(FBlueprintMetadata::MD_BlueprintSpawnableComponent) )
 		{
-			MessageLog.Error(*FString::Printf(*NSLOCTEXT("KismetCompiler", "InvalidComponentTemplate_Error", "Invalid class '%s' used as template by '%s' for @@").ToString(), *TemplateClass->GetName(), *GetNodeTitle(ENodeTitleType::FullTitle)), this);
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("TemplateClass"), FText::FromString(TemplateClass->GetName()));
+			Args.Add(TEXT("NodeTitle"), GetNodeTitle(ENodeTitleType::FullTitle));
+			MessageLog.Error(*FText::Format(NSLOCTEXT("KismetCompiler", "InvalidComponentTemplate_Error", "Invalid class '{TemplateClass}' used as template by '{NodeTitle}' for @@"), Args).ToString(), this);
 		}
 
 		if (UChildActorComponent const* ChildActorComponent = Cast<UChildActorComponent const>(Template))
@@ -168,14 +171,18 @@ void UK2Node_AddComponent::ValidateNodeDuringCompilation(FCompilerResultsLog& Me
 
 				if (K2Schema->IsConstructionScript(ParentGraph))
 				{
-					MessageLog.Error(*FString::Printf(*NSLOCTEXT("KismetCompiler", "AddSelfComponent_Error", "@@ cannot add a '%s' component in the construction script (could cause infinite recursion).").ToString(), *ChildActorClass->GetName()), this);
+					FFormatNamedArguments Args;
+					Args.Add(TEXT("ChildActorClass"), FText::FromString(ChildActorClass->GetName()));
+					MessageLog.Error(*FText::Format(NSLOCTEXT("KismetCompiler", "AddSelfComponent_Error", "@@ cannot add a '{ChildActorClass}' component in the construction script (could cause infinite recursion)."), Args).ToString(), this);
 				}
 			}
 		}
 	}
 	else
 	{
-		MessageLog.Error(*FString::Printf(*NSLOCTEXT("KismetCompiler", "MissingComponentTemplate_Error", "Unknown template referenced by '%s' for @@").ToString(), *GetNodeTitle(ENodeTitleType::FullTitle)), this);
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("NodeTitle"), GetNodeTitle(ENodeTitleType::FullTitle));
+		MessageLog.Error(*FText::Format(NSLOCTEXT("KismetCompiler", "MissingComponentTemplate_Error", "Unknown template referenced by '{NodeTitle}' for @@"), Args).ToString(), this);
 	}
 }
 
@@ -281,7 +288,7 @@ void UK2Node_AddComponent::PostPasteNode()
 	}
 }
 
-FString UK2Node_AddComponent::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_AddComponent::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	UEdGraphPin* TemplateNamePin = GetTemplateNamePin();
 	if (TemplateNamePin != NULL)
@@ -298,23 +305,33 @@ FString UK2Node_AddComponent::GetNodeTitle(ENodeTitleType::Type TitleType) const
 
 			if(StaticMeshComp != NULL && StaticMeshComp->StaticMesh != NULL)
 			{
-				return FString(TEXT("Add StaticMesh ")) + StaticMeshComp->StaticMesh->GetName();
+				FFormatNamedArguments Args;
+				Args.Add(TEXT("StaticMeshName"), FText::FromString(StaticMeshComp->StaticMesh->GetName()));
+				return FText::Format(LOCTEXT("AddStaticMesh", "Add StaticMesh {StaticMeshName}"), Args);
 			}
 			else if(SkelMeshComp != NULL && SkelMeshComp->SkeletalMesh != NULL)
 			{
-				return FString(TEXT("Add SkeletalMesh ")) + SkelMeshComp->SkeletalMesh->GetName();		
+				FFormatNamedArguments Args;
+				Args.Add(TEXT("SkeletalMeshName"), FText::FromString(SkelMeshComp->SkeletalMesh->GetName()));
+				return FText::Format(LOCTEXT("AddSkeletalMesh", "Add SkeletalMesh {SkeletalMeshName}"), Args);
 			}
 			else if(PSysComp != NULL && PSysComp->Template != NULL)
 			{
-				return FString(TEXT("Add ParticleSystem ")) + PSysComp->Template->GetName();		
+				FFormatNamedArguments Args;
+				Args.Add(TEXT("ParticleSystemName"), FText::FromString(PSysComp->Template->GetName()));
+				return FText::Format(LOCTEXT("AddParticleSystem", "Add ParticleSystem {ParticleSystemName}"), Args);
 			}
 			else if (SubActorComp && SubActorComp->ChildActorClass)
 			{
-				return FString(TEXT("Add ChildActorComponent ")) + SubActorComp->ChildActorClass->GetName();
+				FFormatNamedArguments Args;
+				Args.Add(TEXT("ComponentClassName"), FText::FromString(SubActorComp->ChildActorClass->GetName()));
+				return FText::Format(LOCTEXT("AddChildActorComponent", "Add ChildActorComponent {ComponentClassName}"), Args);
 			}
 			else
 			{
-				return FString(TEXT("Add ")) + SourceTemplate->GetClass()->GetName();		
+				FFormatNamedArguments Args;
+				Args.Add(TEXT("ClassName"), FText::FromString(SourceTemplate->GetClass()->GetName()));
+				return FText::Format(LOCTEXT("AddClass", "Add {ClassName}"), Args);		
 			}
 		}
 	}

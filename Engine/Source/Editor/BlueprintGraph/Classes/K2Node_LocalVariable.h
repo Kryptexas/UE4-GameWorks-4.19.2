@@ -19,7 +19,8 @@ class UK2Node_LocalVariable : public UK2Node_TemporaryVariable
 
 	// Begin UEdGraphNode interface.
  	virtual FString GetTooltip() const OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual void OnRenameNode(const FString& NewName) OVERRIDE;
 	virtual TSharedPtr<class INameValidatorInterface> MakeNameValidator() const OVERRIDE;
 	virtual void PostPlacedNewNode() OVERRIDE;

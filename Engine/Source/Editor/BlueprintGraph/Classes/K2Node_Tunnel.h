@@ -37,7 +37,7 @@ class UK2Node_Tunnel : public UK2Node_EditablePinBase
 	virtual void DestroyNode() OVERRIDE;
 	virtual void PostPasteNode() OVERRIDE;
 	virtual FString GetTooltip() const OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual bool CanUserDeleteNode() const OVERRIDE;
 	BLUEPRINTGRAPH_API virtual bool CanDuplicateNode() const OVERRIDE;
 	virtual UObject* GetJumpTargetForDoubleClick() const OVERRIDE;

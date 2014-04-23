@@ -621,7 +621,7 @@ void FMaterialEditorUtilities::AddMaterialExpressionCategory(FGraphActionMenuBui
 				const FText ToolTip = FText::Format( LOCTEXT( "NewMaterialExpressionTooltip", "Adds a {Name} node here" ), Arguments );
 				TSharedPtr<FMaterialGraphSchemaAction_NewNode> NewNodeAction(new FMaterialGraphSchemaAction_NewNode(
 					CategoryName,
-					MaterialExpression.Name,
+					FText::FromString(MaterialExpression.Name),
 					ToolTip.ToString(), 0));
 				ActionMenuBuilder.AddAction(NewNodeAction);
 				NewNodeAction->MaterialExpressionClass = MaterialExpression.MaterialClass;

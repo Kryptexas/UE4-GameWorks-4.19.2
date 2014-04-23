@@ -12,6 +12,8 @@
 //////////////////////////////////////////////////////////////////////////
 // IAnimStateTransitionNodeSharedDataHelper
 
+#define LOCTEXT_NAMESPACE "A3Nodes"
+
 class ANIMGRAPH_API IAnimStateTransitionNodeSharedDataHelper
 {
 public:
@@ -122,8 +124,34 @@ void UAnimStateTransitionNode::PostPasteNode()
 	Super::PostPasteNode();
 }
 
-FString UAnimStateTransitionNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UAnimStateTransitionNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
+	UAnimStateNodeBase* PrevState = GetPreviousState();
+	UAnimStateNodeBase* NextState = GetNextState();
+
+	if (!SharedRulesName.IsEmpty())
+	{
+		return FText::FromString(SharedRulesName);
+	}
+	else if ((PrevState != NULL) && (NextState != NULL))
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("PrevState"), FText::FromString(PrevState->GetStateName()));
+		Args.Add(TEXT("NextState"), FText::FromString(NextState->GetStateName()));
+
+		return FText::Format(LOCTEXT("PrevStateToNewState", "{PrevState} to {NextState}"), Args);
+	}
+	else
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("BoundGraph"), (BoundGraph != NULL) ? FText::FromString(BoundGraph->GetName()) : LOCTEXT("Null", "(null)") );
+		return FText::Format(LOCTEXT("TransitioNState", "Trans {BoundGraph}}"), Args);
+	}
+}
+
+FString UAnimStateTransitionNode::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
 	UAnimStateNodeBase* PrevState = GetPreviousState();
 	UAnimStateNodeBase* NextState = GetNextState();
 
@@ -577,3 +605,5 @@ FGuid& FAnimStateTransitionNodeSharedCrossfadeHelper::AccessShareDataGuid(UAnimS
 {
 	return Node->SharedCrossfadeGuid;
 }
+
+#undef LOCTEXT_NAMESPACE

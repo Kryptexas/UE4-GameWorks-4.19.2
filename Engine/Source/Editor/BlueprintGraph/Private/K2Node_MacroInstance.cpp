@@ -118,10 +118,24 @@ FString UK2Node_MacroInstance::GetTooltip() const
 	}
 }
 
-FString UK2Node_MacroInstance::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_MacroInstance::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	UEdGraph* MacroGraph = MacroGraphReference.GetGraph();
-	FString Result = NSLOCTEXT("K2Node", "MacroInstance", "Macro instance").ToString();
+	FText Result = NSLOCTEXT("K2Node", "MacroInstance", "Macro instance");
+	if (MacroGraph)
+	{
+		Result = FText::FromString(MacroGraph->GetName());
+	}
+
+	return Result;
+}
+
+FString UK2Node_MacroInstance::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
+
+	UEdGraph* MacroGraph = MacroGraphReference.GetGraph();
+	FString Result = TEXT("Macro instance");
 	if (MacroGraph)
 	{
 		Result = MacroGraph->GetName();

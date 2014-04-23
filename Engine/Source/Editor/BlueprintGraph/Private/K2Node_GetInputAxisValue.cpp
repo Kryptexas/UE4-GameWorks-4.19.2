@@ -24,9 +24,17 @@ void UK2Node_GetInputAxisValue::Initialize(const FName AxisName)
 	SetFromFunction(AActor::StaticClass()->FindFunctionByName(TEXT("GetInputAxisValue")));
 }
 
-FString UK2Node_GetInputAxisValue::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_GetInputAxisValue::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return FString::Printf(*NSLOCTEXT("K2Node", "GetInputAxis_Name", "Get %s").ToString(), *InputAxisName.ToString());
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("InputAxisName"), FText::FromName(InputAxisName));
+	return FText::Format(NSLOCTEXT("K2Node", "GetInputAxis_Name", "Get {InputAxisName}"), Args);
+}
+
+FString UK2Node_GetInputAxisValue::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
+	return FString::Printf(TEXT("Get %s"), *InputAxisName.ToString());
 }
 
 FString UK2Node_GetInputAxisValue::GetTooltip() const

@@ -49,8 +49,36 @@ FLinearColor UK2Node_DynamicCast::GetNodeTitleColor() const
 	return FLinearColor(0.0f, 0.55f, 0.62f);
 }
 
-FString UK2Node_DynamicCast::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_DynamicCast::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
+	if(TargetType != NULL)
+	{
+		// If casting to BP class, use BP name not class name (ie. remove the _C)
+		FString TargetName;
+		UBlueprint* CastToBP = UBlueprint::GetBlueprintFromClass(TargetType);
+		if(CastToBP != NULL)
+		{
+			TargetName = CastToBP->GetName();
+		}
+		else
+		{
+			TargetName = TargetType->GetName();
+		}
+
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("TargetName"), FText::FromString(TargetName));
+		return FText::Format(NSLOCTEXT("K2Node_DynamicCast", "CastTo", "Cast To {TargetName}"), Args);
+	}
+	// No target type, bad node
+	else
+	{
+		return NSLOCTEXT("K2Node_DynamicCast", "BadCastNode", "Bad cast node");
+	}
+}
+
+FString UK2Node_DynamicCast::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
 	if(TargetType != NULL)
 	{
 		// If casting to BP class, use BP name not class name (ie. remove the _C)
@@ -70,7 +98,7 @@ FString UK2Node_DynamicCast::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	// No target type, bad node
 	else
 	{
-		return FString(TEXT("Bad cast node"));
+		return TEXT("Bad cast node");
 	}
 }
 

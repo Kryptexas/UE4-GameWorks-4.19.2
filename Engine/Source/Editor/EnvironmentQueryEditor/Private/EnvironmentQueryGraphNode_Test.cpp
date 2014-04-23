@@ -35,16 +35,16 @@ void UEnvironmentQueryGraphNode_Test::DestroyNode()
 	Super::DestroyNode();
 }
 
-FString UEnvironmentQueryGraphNode_Test::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UEnvironmentQueryGraphNode_Test::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	UEnvQueryTest* TestInstance = Cast<UEnvQueryTest>(NodeInstance);
-	return TestInstance ? TestInstance->GetDescriptionTitle() : FString();
+	return TestInstance ? FText::FromString(TestInstance->GetDescriptionTitle()) : FText::GetEmpty();
 }
 
-FString UEnvironmentQueryGraphNode_Test::GetDescription() const
+FText UEnvironmentQueryGraphNode_Test::GetDescription() const
 {
 	UEnvQueryTest* TestInstance = Cast<UEnvQueryTest>(NodeInstance);
-	return TestInstance ? TestInstance->GetDescriptionDetails() : FString();
+	return TestInstance ? TestInstance->GetDescriptionDetails() : FText::GetEmpty();
 }
 
 void UEnvironmentQueryGraphNode_Test::SetDisplayedWeight(float Pct, bool bNamed)

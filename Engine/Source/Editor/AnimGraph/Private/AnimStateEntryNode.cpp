@@ -22,10 +22,10 @@ void UAnimStateEntryNode::AllocateDefaultPins()
 	UEdGraphPin* Outputs = CreatePin(EGPD_Output, Schema->PC_Exec, TEXT(""), NULL, false, false, TEXT("Entry"));
 }
 
-FString UAnimStateEntryNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UAnimStateEntryNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	UEdGraph* Graph = GetGraph();
-	return Graph->GetName();
+	return FText::FromString(Graph->GetName());
 }
 
 FString UAnimStateEntryNode::GetTooltip() const

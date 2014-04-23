@@ -44,8 +44,19 @@ FString UDEPRECATED_K2Node_SelectEnum::GetTooltip() const
 	return TEXT("Return literal value set for each enum value");
 }
 
-FString UDEPRECATED_K2Node_SelectEnum::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText  UDEPRECATED_K2Node_SelectEnum::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
+	FText EnumName = (Enum != NULL) ? FText::FromString(Enum->GetName()) : NSLOCTEXT("K2Node", "BadEnum", "(bad enum)");
+
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("EnumName"), EnumName);
+	return FText::Format(NSLOCTEXT("K2Node", "SelectByEnum", "Select by {EnumName}"), Args);
+}
+
+FString UDEPRECATED_K2Node_SelectEnum::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
+
 	FString EnumName = (Enum != NULL) ? Enum->GetName() : TEXT("(bad enum)");
 	return FString::Printf(TEXT("Select by %s"), *EnumName);
 }

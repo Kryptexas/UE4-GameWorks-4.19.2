@@ -33,7 +33,7 @@ class USoundCueGraphNode : public USoundCueGraphNode_Base
 	// End of USoundCueGraphNode_Base interface
 
 	// UEdGraphNode interface
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual void PrepareForCopying() OVERRIDE;
 	virtual void GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const OVERRIDE;
 	virtual FString GetTooltip() const OVERRIDE;

@@ -4609,7 +4609,7 @@ FText FBlueprintGraphNodeDetails::OnGetName() const
 	FText Name;
 	if(GraphNodePtr.IsValid())
 	{
-		Name = FText::FromString( GraphNodePtr->GetNodeTitle( ENodeTitleType::EditableTitle ));
+		Name = GraphNodePtr->GetNodeTitle( ENodeTitleType::EditableTitle );
 	}
 	return Name;
 }
@@ -4620,7 +4620,7 @@ void FBlueprintGraphNodeDetails::OnNameChanged(const FText& InNewText)
 
 	if( GraphNodePtr.IsValid() && BlueprintEditorPtr.IsValid() )
 	{
-		FName NodeName( *GraphNodePtr->GetNodeTitle(ENodeTitleType::EditableTitle) );
+		FName NodeName( *GraphNodePtr->GetNodeTitle(ENodeTitleType::EditableTitle).ToString() );
 		TSharedPtr<INameValidatorInterface> NameValidator = GraphNodePtr->MakeNameValidator();
 
 		if( !NameValidator.IsValid() )

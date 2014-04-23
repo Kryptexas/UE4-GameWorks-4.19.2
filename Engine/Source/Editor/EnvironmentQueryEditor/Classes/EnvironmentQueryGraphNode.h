@@ -30,8 +30,8 @@ class UEnvironmentQueryGraphNode : public UEdGraphNode
 	//
 	virtual UEdGraph* GetBoundGraph() const { return NULL; }
 
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual FString GetDescription() const;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetDescription() const;
 
 	virtual void NodeConnectionListChanged() OVERRIDE;
 

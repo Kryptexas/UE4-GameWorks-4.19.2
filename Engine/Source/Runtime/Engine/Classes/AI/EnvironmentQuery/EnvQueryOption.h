@@ -14,6 +14,6 @@ class ENGINE_API UEnvQueryOption : public UObject
 	UPROPERTY()
 	TArray<class UEnvQueryTest*> Tests;
 
-	FString GetDescriptionTitle() const;
-	FString GetDescriptionDetails() const;
+	FText GetDescriptionTitle() const;
+	FText GetDescriptionDetails() const;
 };

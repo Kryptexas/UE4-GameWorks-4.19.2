@@ -5,6 +5,8 @@
 /////////////////////////////////////////////////////
 // UAnimGraphNode_TwoWayBlend
 
+#define LOCTEXT_NAMESPACE "AnimGraphNode_TwoWayBlend"
+
 UAnimGraphNode_TwoWayBlend::UAnimGraphNode_TwoWayBlend(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
@@ -25,7 +27,10 @@ FString UAnimGraphNode_TwoWayBlend::GetTooltip() const
 	return TEXT("Blend two poses together");
 }
 
-FString UAnimGraphNode_TwoWayBlend::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UAnimGraphNode_TwoWayBlend::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return TEXT("Blend");
+	return LOCTEXT("Blend", "Blend");
 }
+
+#undef LOCTEXT_NAMESPACE
+

@@ -151,7 +151,7 @@ class UK2Node : public UEdGraphNode
 	virtual bool ShouldDrawCompact() const { return false; }
 
 	/** Return title if drawing this node in 'compact' mode */
-	virtual FString GetCompactNodeTitle() const { return GetNodeTitle(ENodeTitleType::FullTitle); }
+	virtual FText GetCompactNodeTitle() const { return GetNodeTitle(ENodeTitleType::FullTitle); }
 
 	/** */
 	BLUEPRINTGRAPH_API virtual FText GetToolTipHeading() const;

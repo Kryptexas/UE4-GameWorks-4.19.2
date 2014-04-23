@@ -33,9 +33,9 @@ void UK2Node_FormatText::AllocateDefaultPins()
 	}
 }
 
-FString UK2Node_FormatText::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_FormatText::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return LOCTEXT("FormatText_Title", "Format Text").ToString();
+	return LOCTEXT("FormatText_Title", "Format Text");
 }
 
 FString UK2Node_FormatText::GetPinDisplayName(const UEdGraphPin* Pin) const

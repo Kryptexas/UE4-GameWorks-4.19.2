@@ -28,12 +28,12 @@ void UBehaviorTreeDecoratorGraphNode_Decorator::PostPlacedNewNode()
 	}
 }
 
-FString UBehaviorTreeDecoratorGraphNode_Decorator::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UBehaviorTreeDecoratorGraphNode_Decorator::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	const UBTNode* MyNode = Cast<UBTNode>(NodeInstance);
 	if (MyNode != NULL)
 	{
-		return MyNode->GetStaticDescription();
+		return FText::FromString(MyNode->GetStaticDescription());
 	}
 
 	return Super::GetNodeTitle(TitleType);

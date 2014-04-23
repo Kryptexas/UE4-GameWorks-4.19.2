@@ -12,18 +12,39 @@ UK2Node_Message::UK2Node_Message(const class FPostConstructInitializeProperties&
 {
 }
 
-FString UK2Node_Message::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_Message::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
+	FText NodeName;
+	if (UFunction* Function = GetTargetFunction())
+	{
+		FString NodeNameStr = UK2Node_CallFunction::GetUserFacingFunctionName(Function);
+
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("NodeName"), FText::FromString(NodeNameStr));
+		Args.Add(TEXT("OuterClassName"), FText::FromString(Function->GetOuterUClass()->GetName()));
+		NodeName = FText::Format(NSLOCTEXT("K2Node", "CallInterfaceContext", "{NodeName}\nUsing Interface {OuterClassName}"), Args);
+	}
+	else
+	{
+		NodeName = NSLOCTEXT("K2Node", "InvalidMessageNode", "Invalid Message Node");
+	}
+
+	return NodeName;
+}
+
+FString UK2Node_Message::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
 	FString NodeName;
 	if (UFunction* Function = GetTargetFunction())
 	{
 		NodeName = UK2Node_CallFunction::GetUserFacingFunctionName(Function);
 		NodeName += FString(TEXT("\n"));
-		NodeName += FString::Printf(*NSLOCTEXT("K2Node", "CallInterfaceContext", "Using Interface %s").ToString(), *(Function->GetOuterUClass()->GetName()));
+		NodeName += FString::Printf(TEXT("Using Interface %s"), *(Function->GetOuterUClass()->GetName()));
 	}
 	else
 	{
-		NodeName = NSLOCTEXT("K2Node", "InvalidMessageNode", "Invalid Message Node").ToString();
+		NodeName = TEXT("Invalid Message Node");
 	}
 
 	return NodeName;

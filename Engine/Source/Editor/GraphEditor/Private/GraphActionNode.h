@@ -107,7 +107,7 @@ public:
 						TSharedPtr<FEdGraphSchemaAction> CurrentAction = NodeToAdd->Actions[0];
 
 						bFoundMatch = CurrentAction->IsParentable()
-							&& NextCategory == CurrentChild->Actions[0]->MenuDescription;
+							&& NextCategory == CurrentChild->Actions[0]->MenuDescription.ToString();
 					}
 				}
 				
@@ -270,7 +270,7 @@ public:
 				}
 				else
 				{
-					return (NodeA->Actions[0]->MenuDescription <= NodeB->Actions[0]->MenuDescription);
+					return (NodeA->Actions[0]->MenuDescription.CompareTo(NodeB->Actions[0]->MenuDescription) <= 0);
 				}
 			}
 			else
@@ -314,7 +314,7 @@ public:
 				}
 				else
 				{
-					return (NodeA->Actions[0]->MenuDescription <= NodeB->Actions[0]->MenuDescription);
+					return (NodeA->Actions[0]->MenuDescription.CompareTo(NodeB->Actions[0]->MenuDescription) <= 0);
 				}
 			}
 			else

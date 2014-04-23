@@ -23,9 +23,9 @@ FString UK2Node_GetEnumeratorNameAsString::GetTooltip() const
 	return NSLOCTEXT("K2Node", "GetEnumeratorNameAsString_Tooltip", "Returns user friendly name of enumerator").ToString();
 }
 
-FString UK2Node_GetEnumeratorNameAsString::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_GetEnumeratorNameAsString::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return NSLOCTEXT("K2Node", "GetEnumeratorNameAsString_Title", "Enum to String").ToString();
+	return NSLOCTEXT("K2Node", "GetEnumeratorNameAsString_Title", "Enum to String");
 }
 
 FName UK2Node_GetEnumeratorNameAsString::GetFunctionName() const

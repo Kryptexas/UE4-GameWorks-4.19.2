@@ -731,7 +731,7 @@ void FKismetConnectionDrawingPolicy::BuildExecutionRoadmap()
 			else 
 			{
 				UE_LOG(LogConnectionDrawingPolicy, Warning, TEXT("Looks like a wire-trace was not injected before the jump from '%s' to '%s'."), 
-					*CurNode->GetNodeTitle(ENodeTitleType::FullTitle), *NextNode->GetNodeTitle(ENodeTitleType::FullTitle));
+					*CurNode->GetNodeTitle(ENodeTitleType::FullTitle).ToString(), *NextNode->GetNodeTitle(ENodeTitleType::FullTitle).ToString());
 			}
 
 			// clear the exec-pin (we're moving to a new node and want to find 

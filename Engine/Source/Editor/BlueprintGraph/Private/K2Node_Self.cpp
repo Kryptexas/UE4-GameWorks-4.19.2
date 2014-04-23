@@ -52,9 +52,9 @@ FString UK2Node_Self::GetKeywords() const
 	return TEXT("This");
 }
 
-FString UK2Node_Self::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_Self::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return FString::Printf(*NSLOCTEXT("K2Node", "SelfReferenceName", "Self-Reference").ToString());
+	return NSLOCTEXT("K2Node", "SelfReferenceName", "Self-Reference");
 }
 
 FNodeHandlingFunctor* UK2Node_Self::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const

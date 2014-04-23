@@ -21,7 +21,8 @@ class UK2Node_ActorBoundEvent : public UK2Node_Event
 	// Begin UEdGraphNode interface
 	virtual void ReconstructNode() OVERRIDE;
 	virtual void DestroyNode() OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual FString GetTooltip() const OVERRIDE;
 	virtual FString GetDocumentationLink() const OVERRIDE;
 	virtual FString GetDocumentationExcerptName() const OVERRIDE;

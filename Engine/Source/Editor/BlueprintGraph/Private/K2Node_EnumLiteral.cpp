@@ -37,14 +37,16 @@ FName UK2Node_EnumLiteral::GetPaletteIcon(FLinearColor& OutColor) const
 
 FString UK2Node_EnumLiteral::GetTooltip() const
 {
-	const FString EnumName = Enum ? Enum->GetName() : TEXT("(bad enum)");
+	const FText EnumName = Enum ? FText::FromString(Enum->GetName()) : NSLOCTEXT("K2Node", "BadEnum", "(bad enum)");
 
-	return FString::Printf(*NSLOCTEXT("K2Node", "EnumLiteral_Tooltip", "Literal enum %s").ToString(), *EnumName);
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("EnumName"), EnumName);
+	return FText::Format(NSLOCTEXT("K2Node", "EnumLiteral_Tooltip", "Literal enum {EnumName}"), Args).ToString();
 }
 
-FString UK2Node_EnumLiteral::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_EnumLiteral::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return GetTooltip();
+	return FText::FromString(GetTooltip());
 }
 
 class FKCHandler_EnumLiteral : public FNodeHandlingFunctor

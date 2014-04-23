@@ -2,6 +2,8 @@
 
 #include "EnginePrivate.h"
 
+#define LOCTEXT_NAMESPACE "EnvQueryGenerator"
+
 UEnvQueryGenerator_OnCircle::UEnvQueryGenerator_OnCircle(const class FPostConstructInitializeProperties& PCIP) 
 	: Super(PCIP)
 {
@@ -220,28 +222,40 @@ void UEnvQueryGenerator_OnCircle::RunBoxTrace(const FVector& StartPos, const FVe
 	HitPos = bHit ? OutHit.ImpactPoint : EndPos;
 };
 
-FString UEnvQueryGenerator_OnCircle::GetDescriptionTitle() const
+FText UEnvQueryGenerator_OnCircle::GetDescriptionTitle() const
 {
-	return FString::Printf(TEXT("%s: generate items on circle around %s"),
-		*Super::GetDescriptionTitle(), *UEnvQueryTypes::DescribeContext(CircleCenter));
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("DescriptionTitle"), Super::GetDescriptionTitle());
+	Args.Add(TEXT("DescribeContext"), UEnvQueryTypes::DescribeContext(CircleCenter));
+
+	return FText::Format(LOCTEXT("DescriptionGenerateCircleAroundContext", "{DescriptionTitle}: generate items on circle around {DescribeContext}"), Args);
 }
 
-FString UEnvQueryGenerator_OnCircle::GetDescriptionDetails() const
+FText UEnvQueryGenerator_OnCircle::GetDescriptionDetails() const
 {
-	FString Desc = FString::Printf(TEXT("radius: %s, item span: %.2f\n%s"),
-		*UEnvQueryTypes::DescribeFloatParam(Radius), *UEnvQueryTypes::DescribeFloatParam(ItemSpacing),
-		*TraceData.ToString(FEnvTraceData::Detailed));
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("Radius"), FText::FromString(UEnvQueryTypes::DescribeFloatParam(Radius)));
+	Args.Add(TEXT("ItemSpacing"), FText::FromString(UEnvQueryTypes::DescribeFloatParam(ItemSpacing)));
+	Args.Add(TEXT("TraceData"), TraceData.ToText(FEnvTraceData::Detailed));
+
+	FText Desc = FText::Format(LOCTEXT("OnCircleDescription", "radius: {Radius}, item span: {ItemSpacing}\n{TraceData}"), Args);
 
 	if (bDefineArc)
 	{
-		Desc += FString::Printf(TEXT("\nLimit to %.2f angle both sides on %s"), Angle.Value, *ArcDirection.ToString());
+		FFormatNamedArguments ArcArgs;
+		ArcArgs.Add(TEXT("Description"), Desc);
+		ArcArgs.Add(TEXT("AngleValue"), Angle.Value);
+		ArcArgs.Add(TEXT("ArcDirection"), ArcDirection.ToText());
+		Desc = FText::Format(LOCTEXT("DescriptionWithArc", "{Description}\nLimit to {AngleValue} angle both sides on {ArcDirection}"), ArcArgs);
 	}
 
-	FString ProjDesc = ProjectionData.ToString(FEnvTraceData::Brief);
-	if (ProjDesc.Len() > 0)
+	FText ProjDesc = ProjectionData.ToText(FEnvTraceData::Brief);
+	if (!ProjDesc.IsEmpty())
 	{
-		Desc += TEXT(", ");
-		Desc += ProjDesc;
+		FFormatNamedArguments ProjArgs;
+		ProjArgs.Add(TEXT("Description"), Desc);
+		ProjArgs.Add(TEXT("ProjectionDescription"), ProjDesc);
+		Desc = FText::Format(LOCTEXT("DescriptionWithProjection", "{Description}, {ProjectionDescription}"), ProjArgs);
 	}
 
 	return Desc;
@@ -278,3 +292,5 @@ void UEnvQueryGenerator_OnCircle::PostEditChangeProperty( struct FPropertyChange
 }
 
 #endif // WITH_EDITOR
+
+#undef LOCTEXT_NAMESPACE

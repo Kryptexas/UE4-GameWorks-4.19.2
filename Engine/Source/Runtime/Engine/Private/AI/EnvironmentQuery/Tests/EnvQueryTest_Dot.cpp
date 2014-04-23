@@ -164,10 +164,10 @@ bool UEnvQueryTest_Dot::RequiresPerItemUpdates(TSubclassOf<class UEnvQueryContex
 
 FString UEnvQueryTest_Dot::GetDescriptionTitle() const
 {
-	return FString::Printf(TEXT("%s: %s and %s"), *Super::GetDescriptionTitle(), *LineA.ToString(), *LineB.ToString());
+	return FString::Printf(TEXT("%s: %s and %s"), *Super::GetDescriptionTitle(), *LineA.ToText().ToString(), *LineB.ToText().ToString());
 }
 
-FString UEnvQueryTest_Dot::GetDescriptionDetails() const
+FText UEnvQueryTest_Dot::GetDescriptionDetails() const
 {
 	return DescribeFloatTestParams();
 }

@@ -50,7 +50,7 @@ inline bool GetNode(UBlueprint* Blueprint, const FFindInBlueprintsResult& Result
 		for(auto It(Nodes.CreateConstIterator());It;++It)
 		{
 			NodeType* Node = *It;
-			const FString NodePath = FindInBlueprintsUtil::GetNodeTypePath(Node) + "::" + Node->GetNodeTitle(ENodeTitleType::ListView) ;
+			const FString NodePath = FindInBlueprintsUtil::GetNodeTypePath(Node) + "::" + Node->GetNodeTitle(ENodeTitleType::ListView).ToString() ;
 			if(NodePath == Result.Value)
 			{
 				if(FoundCount == Result.DuplicationIndex)
@@ -435,7 +435,7 @@ void SFindInBlueprints::MatchTokensWithinBlueprint(const TArray<FString>& Tokens
 	{
 		UK2Node* Node = *It;
 			
-		const FString NodeName = Node->GetNodeTitle(ENodeTitleType::ListView);
+		const FString NodeName = Node->GetNodeTitle(ENodeTitleType::ListView).ToString();
 		FSearchResult NodeResult(new FFindInBlueprintsResult(NodeName, RootSearchResult, Node));
 		UK2Node* K2Node = Cast<UK2Node>(Node);
 		AActor* NodeActor = K2Node ? K2Node->GetReferencedLevelActor() : NULL;
@@ -448,7 +448,7 @@ void SFindInBlueprints::MatchTokensWithinBlueprint(const TArray<FString>& Tokens
 		{
 			UEdGraphPin* Pin = *PinIt;
 			FString PinName = Pin->PinName;
-			FString PinSearchString = Pin->PinName + Pin->PinFriendlyName + Pin->DefaultValue + Pin->PinType.PinCategory + Pin->PinType.PinSubCategory + (Pin->PinType.PinSubCategoryObject.IsValid() ? Pin->PinType.PinSubCategoryObject.Get()->GetFullName() : TEXT(""));
+			FString PinSearchString = Pin->PinName + Pin->PinFriendlyName.ToString() + Pin->DefaultValue + Pin->PinType.PinCategory + Pin->PinType.PinSubCategory + (Pin->PinType.PinSubCategoryObject.IsValid() ? Pin->PinType.PinSubCategoryObject.Get()->GetFullName() : TEXT(""));
 			PinSearchString = PinSearchString.Replace( TEXT( " " ), TEXT( "" ) );
 			if ((Pin != NULL) && StringMatchesSearchTokens(Tokens, PinSearchString))
 			{

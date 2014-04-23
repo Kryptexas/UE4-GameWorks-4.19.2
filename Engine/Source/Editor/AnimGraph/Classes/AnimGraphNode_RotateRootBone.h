@@ -15,7 +15,7 @@ class UAnimGraphNode_RotateRootBone : public UAnimGraphNode_Base
 	// Begin UEdGraphNode interface.
 	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
 	virtual FString GetTooltip() const OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	// End UEdGraphNode interface.
 
 	// UAnimGraphNode_Base interface

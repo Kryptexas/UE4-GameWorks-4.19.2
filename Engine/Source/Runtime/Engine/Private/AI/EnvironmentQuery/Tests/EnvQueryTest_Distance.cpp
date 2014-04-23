@@ -97,10 +97,10 @@ FString UEnvQueryTest_Distance::GetDescriptionTitle() const
 
 	return FString::Printf(TEXT("%s%s: to %s"), 
 		*Super::GetDescriptionTitle(), *ModeDesc,
-		*UEnvQueryTypes::DescribeContext(DistanceTo));
+		*UEnvQueryTypes::DescribeContext(DistanceTo).ToString());
 }
 
-FString UEnvQueryTest_Distance::GetDescriptionDetails() const
+FText UEnvQueryTest_Distance::GetDescriptionDetails() const
 {
 	return DescribeFloatTestParams();
 }

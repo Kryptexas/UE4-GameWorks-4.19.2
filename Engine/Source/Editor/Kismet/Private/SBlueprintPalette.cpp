@@ -257,7 +257,7 @@ static void GetSubGraphIcon(FEdGraphSchemaAction_K2Graph const* const ActionIn, 
 static void GetPaletteItemIcon(TSharedPtr<FEdGraphSchemaAction> ActionIn, UBlueprint const* BlueprintIn, FSlateBrush const*& BrushOut, FSlateColor& ColorOut, FString& ToolTipOut, FString& DocLinkOut, FString& DocExcerptOut)
 {
 	// Default to tooltip based on action supplied
-	ToolTipOut = (ActionIn->TooltipDescription.Len() > 0) ? ActionIn->TooltipDescription : ActionIn->MenuDescription;
+	ToolTipOut = (ActionIn->TooltipDescription.Len() > 0) ? ActionIn->TooltipDescription : ActionIn->MenuDescription.ToString();
 
 	if (ActionIn->GetTypeId() == FEdGraphSchemaAction_K2TargetNode::StaticGetTypeId())
 	{
@@ -889,15 +889,20 @@ TSharedRef<SWidget> SBlueprintPaletteItem::CreateTextSlotWidget(const FSlateFont
 //------------------------------------------------------------------------------
 FText SBlueprintPaletteItem::GetDisplayText() const
 {
-	FString DisplayText = ActionPtr.Pin()->MenuDescription;
+	FText DisplayText;
 
 	TSharedPtr< FEdGraphSchemaAction > GraphAction = ActionPtr.Pin();
 	if (GraphAction->GetTypeId() == FEdGraphSchemaAction_K2Enum::StaticGetTypeId())
 	{
 		FEdGraphSchemaAction_K2Enum* EnumAction = (FEdGraphSchemaAction_K2Enum*)GraphAction.Get();
-		DisplayText = EnumAction->Enum->GetName();
+		DisplayText = FText::FromString(EnumAction->Enum->GetName());
 	}
-	return FText::FromString(DisplayText);
+	else
+	{
+		DisplayText = ActionPtr.Pin()->MenuDescription;
+	}
+
+	return DisplayText;
 }
 
 //------------------------------------------------------------------------------
@@ -991,7 +996,7 @@ void SBlueprintPaletteItem::OnNameTextCommitted(const FText& NewText, ETextCommi
 				GraphAction->EdGraph->GetSchema()->GetGraphDisplayInformation(*GraphAction->EdGraph, DisplayInfo);
 
 				// Check if the name is unchanged
-				if( NewText.EqualTo( DisplayInfo.DisplayName ) )
+				if( NewText.EqualTo( DisplayInfo.PlainName ) )
 				{
 					return;
 				}
@@ -1020,7 +1025,7 @@ void SBlueprintPaletteItem::OnNameTextCommitted(const FText& NewText, ETextCommi
 				Graph->GetSchema()->GetGraphDisplayInformation(*Graph, DisplayInfo);
 
 				// Check if the name is unchanged
-				if( NewText.EqualTo( DisplayInfo.DisplayName ) )
+				if( NewText.EqualTo( DisplayInfo.PlainName ) )
 				{
 					return;
 				}
@@ -1107,7 +1112,7 @@ FText SBlueprintPaletteItem::GetToolTipText() const
 	if (PaletteAction.IsValid())
 	{
 		// Default tooltip is taken from the action
-		ToolTipText = (PaletteAction->TooltipDescription.Len() > 0) ? PaletteAction->TooltipDescription : PaletteAction->MenuDescription;
+		ToolTipText = (PaletteAction->TooltipDescription.Len() > 0) ? PaletteAction->TooltipDescription : PaletteAction->MenuDescription.ToString();
 
 		if(PaletteAction->GetTypeId() == FEdGraphSchemaAction_K2AddComponent::StaticGetTypeId())
 		{
@@ -1121,6 +1126,12 @@ FText SBlueprintPaletteItem::GetToolTipText() const
 		}
 		else if (UK2Node const* const NodeTemplate = FK2SchemaActionUtils::ExtractNodeTemplateFromAction(PaletteAction))
 		{
+			// Display the native title of the node when alt is held
+			if(FSlateApplication::Get().GetModifierKeys().IsAltDown())
+			{
+				return FText::FromString(NodeTemplate->GetNodeNativeTitle(ENodeTitleType::ListView));
+			}
+
 			// If the node wants to create tooltip text, use that instead, because its probably more detailed
 			FString NodeToolTipText = NodeTemplate->GetTooltip();
 			if (NodeToolTipText.Len() > 0)
@@ -1254,7 +1265,44 @@ TSharedPtr<SToolTip> SBlueprintPaletteItem::ConstructToolTipWidget() const
 	TAttribute<FText> TextAttribute;
 	TextAttribute.Bind(this, &SBlueprintPaletteItem::GetToolTipText);
 
-	return IDocumentation::Get()->CreateToolTip(TextAttribute, NULL, DocLink, DocExcerptName);
+	TSharedRef< SToolTip > TooltipWidget = IDocumentation::Get()->CreateToolTip(TextAttribute, NULL, DocLink, DocExcerptName);
+
+	// English speakers have no real need to know this exists.
+	if(FInternationalization::GetCurrentCulture()->GetTwoLetterISOLanguageName() != TEXT("en"))
+	{
+		if (UK2Node const* const NodeTemplate = FK2SchemaActionUtils::ExtractNodeTemplateFromAction(PaletteAction))
+		{
+			struct Local
+			{
+				static EVisibility GetNativeNodeNameVisibility()
+				{
+					return FSlateApplication::Get().GetModifierKeys().IsAltDown()? EVisibility::Collapsed : EVisibility::Visible;
+				}
+			};
+
+			return 
+				SNew(SToolTip)
+				[
+					SNew(SVerticalBox)
+					+SVerticalBox::Slot()
+					[
+						TooltipWidget->GetContent()
+					]
+					+SVerticalBox::Slot()
+						.AutoHeight()
+						.HAlign( HAlign_Right )
+					[
+
+						SNew( STextBlock )
+						.ColorAndOpacity( FSlateColor::UseSubduedForeground() )
+						.Text( LOCTEXT( "NativeNodeName", "hold (Alt) for native node name" ) )
+						.TextStyle( &FEditorStyle::GetWidgetStyle<FTextBlockStyle>(TEXT("Documentation.SDocumentationTooltip")) )
+						.Visibility_Static(&Local::GetNativeNodeNameVisibility)
+					]
+				];
+		}
+	}
+	return TooltipWidget;
 }
 
 /*******************************************************************************

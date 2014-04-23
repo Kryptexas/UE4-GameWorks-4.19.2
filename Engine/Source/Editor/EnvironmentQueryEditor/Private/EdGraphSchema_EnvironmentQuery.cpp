@@ -118,14 +118,14 @@ UEdGraphSchema_EnvironmentQuery::UEdGraphSchema_EnvironmentQuery(const class FPo
 {
 }
 
-TSharedPtr<FEnvironmentQuerySchemaAction_NewNode> AddNewNodeAction(FGraphContextMenuBuilder& ContextMenuBuilder, const FString& Category, const FString& MenuDesc, const FString& Tooltip)
+TSharedPtr<FEnvironmentQuerySchemaAction_NewNode> AddNewNodeAction(FGraphContextMenuBuilder& ContextMenuBuilder, const FString& Category, const FText& MenuDesc, const FString& Tooltip)
 {
 	const TSharedRef<FEnvironmentQuerySchemaAction_NewNode> NewAction = MakeShareable( new FEnvironmentQuerySchemaAction_NewNode(Category, MenuDesc, Tooltip, 0) );
 	ContextMenuBuilder.AddAction( NewAction );
 	return NewAction;
 }
 
-TSharedPtr<FEnvironmentQuerySchemaAction_NewSubNode> AddNewSubNodeAction(FGraphContextMenuBuilder& ContextMenuBuilder, const FString& Category, const FString& MenuDesc, const FString& Tooltip)
+TSharedPtr<FEnvironmentQuerySchemaAction_NewSubNode> AddNewSubNodeAction(FGraphContextMenuBuilder& ContextMenuBuilder, const FString& Category, const FText& MenuDesc, const FString& Tooltip)
 {
 	TSharedPtr<FEnvironmentQuerySchemaAction_NewSubNode> NewAction = MakeShareable(new FEnvironmentQuerySchemaAction_NewSubNode(Category, MenuDesc, Tooltip, 0));
 	ContextMenuBuilder.AddAction( NewAction );
@@ -219,11 +219,12 @@ void UEdGraphSchema_EnvironmentQuery::GetGraphContextActions(FGraphContextMenuBu
 	
 	for (int32 i = 0; i < AllowedClasses.Num(); i++)
 	{
-		TSharedPtr<FEnvironmentQuerySchemaAction_NewNode> AddOpAction = AddNewNodeAction(ContextMenuBuilder, "Generators", GetNodeDescriptionHelper(AllowedClasses[i]), FString());
+		TSharedPtr<FEnvironmentQuerySchemaAction_NewNode> AddOpAction = AddNewNodeAction(ContextMenuBuilder, "Generators", FText::FromString(GetNodeDescriptionHelper(AllowedClasses[i])), FString());
 		
 		UEnvironmentQueryGraphNode_Option* OpNode = NewObject<UEnvironmentQueryGraphNode_Option>(ContextMenuBuilder.OwnerOfTemporaries);
 		OpNode->EnvQueryNodeClass = AllowedClasses[i];
 		AddOpAction->NodeTemplate = OpNode;		
+		AddOpAction->SearchTitle = AddOpAction->NodeTemplate->GetNodeSearchTitle();
 	}
 }
 
@@ -240,9 +241,10 @@ void UEdGraphSchema_EnvironmentQuery::GetGraphNodeContextActions(FGraphContextMe
 		UEnvironmentQueryGraphNode_Test* OpNode = NewObject<UEnvironmentQueryGraphNode_Test>(Graph);
 		OpNode->EnvQueryNodeClass = AllowedClasses[i];
 
-		TSharedPtr<FEnvironmentQuerySchemaAction_NewSubNode> AddOpAction = AddNewSubNodeAction(ContextMenuBuilder, TEXT(""), GetNodeDescriptionHelper(AllowedClasses[i]), "");
+		TSharedPtr<FEnvironmentQuerySchemaAction_NewSubNode> AddOpAction = AddNewSubNodeAction(ContextMenuBuilder, TEXT(""), FText::FromString(GetNodeDescriptionHelper(AllowedClasses[i])), "");
 		AddOpAction->ParentNode = SelectedOption;
 		AddOpAction->NodeTemplate = OpNode;
+		AddOpAction->SearchTitle = AddOpAction->NodeTemplate->GetNodeSearchTitle();
 	}
 }
 
@@ -295,7 +297,7 @@ void UEdGraphSchema_EnvironmentQuery::GetBreakLinkToSubMenuActions( class FMenuB
 	for(TArray<class UEdGraphPin*>::TConstIterator Links(InGraphPin->LinkedTo); Links; ++Links)
 	{
 		UEdGraphPin* Pin = *Links;
-		FString TitleString = Pin->GetOwningNode()->GetNodeTitle(ENodeTitleType::ListView);
+		FString TitleString = Pin->GetOwningNode()->GetNodeTitle(ENodeTitleType::ListView).ToString();
 		FText Title = FText::FromString( TitleString );
 		if ( Pin->PinName != TEXT("") )
 		{

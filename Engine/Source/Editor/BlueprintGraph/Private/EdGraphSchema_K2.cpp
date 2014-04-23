@@ -913,8 +913,8 @@ void UEdGraphSchema_K2::GetBreakLinkToSubMenuActions( class FMenuBuilder& MenuBu
 	for(TArray<class UEdGraphPin*>::TConstIterator Links(InGraphPin->LinkedTo); Links; ++Links)
 	{
 		UEdGraphPin* Pin = *Links;
-		FString TitleString = Pin->GetOwningNode()->GetNodeTitle(ENodeTitleType::ListView);
-		FText Title = FText::FromString( TitleString );
+		FText Title = Pin->GetOwningNode()->GetNodeTitle(ENodeTitleType::ListView);
+		FString TitleString = Title.ToString();
 		if ( Pin->PinName != TEXT("") )
 		{
 			TitleString = FString::Printf(TEXT("%s (%s)"), *TitleString, *Pin->PinName);
@@ -956,8 +956,8 @@ void UEdGraphSchema_K2::GetJumpToConnectionSubMenuActions( class FMenuBuilder& M
 	// Add all the links we could break from
 	for(auto PinLink : InGraphPin->LinkedTo )
 	{
-		FString TitleString = PinLink->GetOwningNode()->GetNodeTitle(ENodeTitleType::ListView);
-		FText Title = FText::FromString( TitleString );
+		FText Title = PinLink->GetOwningNode()->GetNodeTitle(ENodeTitleType::ListView);
+		FString TitleString = Title.ToString();
 		if ( PinLink->PinName != TEXT("") )
 		{
 			TitleString = FString::Printf(TEXT("%s (%s)"), *TitleString, *PinLink->PinName);
@@ -2160,50 +2160,7 @@ bool UEdGraphSchema_K2::ConvertPropertyToPinType(const UProperty* Property, /*ou
 
 FString UEdGraphSchema_K2::TypeToString(const FEdGraphPinType& Type)
 {
-	FString PropertyString;
-
-	if (Type.PinSubCategoryObject != NULL)
-	{
-		const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-		if (Type.PinCategory == Schema->PC_Byte)
-		{
-			PropertyString = FString::Printf(TEXT("enum'%s'"), *Type.PinSubCategoryObject->GetName());
-		}
-		else
-		{
-			if( !Type.bIsWeakPointer )
-			{
-				UClass* PSCOAsClass = Cast<UClass>(Type.PinSubCategoryObject.Get());
-				const bool bIsInterface = PSCOAsClass && PSCOAsClass->HasAnyClassFlags(CLASS_Interface);
-
-				FString CategoryDesc = !bIsInterface ? (*Type.PinCategory) : TEXT("interface");
-				PropertyString = FString::Printf(TEXT("%s'%s'"), *CategoryDesc, *Type.PinSubCategoryObject.Get()->GetName());
-			}
-			else
-			{
-				PropertyString = FString::Printf(TEXT("weak_ptr_%s'%s'"), *Type.PinCategory, *Type.PinSubCategoryObject->GetName());
-			}
-		}
-	}
-	else if (Type.PinSubCategory != TEXT(""))
-	{
-		PropertyString = FString::Printf(TEXT("%s'%s'"), *Type.PinCategory, *Type.PinSubCategory);
-	}
-	else
-	{
-		PropertyString = Type.PinCategory;
-	}
-
-	if (Type.bIsArray)
-	{
-		PropertyString = FString::Printf(TEXT("array[%s]"), *PropertyString);
-	}
-	else if (Type.bIsReference)
-	{
-		PropertyString += TEXT(" (by ref)"); 
-	}
-
-	return PropertyString;
+	return TypeToText(Type).ToString();
 }
 
 FString UEdGraphSchema_K2::TypeToString(UProperty* const Property)
@@ -2244,6 +2201,70 @@ FString UEdGraphSchema_K2::TypeToString(UProperty* const Property)
 	{
 		return Property->GetClass()->GetName();
 	}
+}
+
+FText UEdGraphSchema_K2::TypeToText(const FEdGraphPinType& Type)
+{
+	FText PropertyText;
+
+	if (Type.PinSubCategoryObject != NULL)
+	{
+		const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
+		if (Type.PinCategory == Schema->PC_Byte)
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("EnumName"), FText::FromString(Type.PinSubCategoryObject->GetName()));
+			PropertyText = FText::Format(LOCTEXT("EnumAsText", "enum'{EnumName}'"), Args);
+		}
+		else
+		{
+			if( !Type.bIsWeakPointer )
+			{
+				UClass* PSCOAsClass = Cast<UClass>(Type.PinSubCategoryObject.Get());
+				const bool bIsInterface = PSCOAsClass && PSCOAsClass->HasAnyClassFlags(CLASS_Interface);
+
+				FText CategoryDesc = !bIsInterface ? FText::FromString(Type.PinCategory) : LOCTEXT("Interface", "interface");
+
+				FFormatNamedArguments Args;
+				Args.Add(TEXT("Category"), CategoryDesc);
+				Args.Add(TEXT("ObjectName"), FText::FromString(Type.PinSubCategoryObject.Get()->GetName()));
+				PropertyText = FText::Format(LOCTEXT("ObjectAsText", "{Category}'{ObjectName}'"), Args);
+			}
+			else
+			{
+				FFormatNamedArguments Args;
+				Args.Add(TEXT("Category"), FText::FromString(Type.PinCategory));
+				Args.Add(TEXT("ObjectName"), FText::FromString(Type.PinSubCategoryObject.Get()->GetName()));
+				PropertyText = FText::Format(LOCTEXT("WeakPtrAsText", "weak_ptr_{Category}'{ObjectName}'"), Args);
+			}
+		}
+	}
+	else if (Type.PinSubCategory != TEXT(""))
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("Category"), FText::FromString(Type.PinCategory));
+		Args.Add(TEXT("ObjectName"), FText::FromString(Type.PinSubCategory));
+		PropertyText = FText::Format(LOCTEXT("ObjectAsText", "{Category}'{ObjectName}'"), Args);
+	}
+	else
+	{
+		PropertyText = FText::FromString(Type.PinCategory);
+	}
+
+	if (Type.bIsArray)
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("PropertyTitle"), PropertyText);
+		PropertyText = FText::Format(LOCTEXT("ArrayAsText", "array[{PropertyTitle}]"), Args);
+	}
+	else if (Type.bIsReference)
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("PropertyTitle"), PropertyText);
+		PropertyText = FText::Format(LOCTEXT("PropertyByRef", "{PropertyTitle} (by ref)"), Args);
+	}
+
+	return PropertyText;
 }
 
 void UEdGraphSchema_K2::GetVariableTypeTree( TArray< TSharedPtr<FPinTypeTreeInfo> >& TypeTree, bool bAllowExec, bool bAllowWildCard ) const
@@ -2955,7 +2976,7 @@ bool UEdGraphSchema_K2::CanPromotePinToVariable( const UEdGraphPin& Pin ) const
 void UEdGraphSchema_K2::GetGraphDisplayInformation(const UEdGraph& Graph, /*out*/ FGraphDisplayInfo& DisplayInfo) const
 {
 	DisplayInfo.DocLink = TEXT("Shared/Editors/BlueprintEditor/GraphTypes");
-	DisplayInfo.DisplayName = FText::FromString( Graph.GetName() ); // Fallback is graph name
+	DisplayInfo.PlainName = FText::FromString( Graph.GetName() ); // Fallback is graph name
 
 	UFunction* Function = NULL;
 	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(&Graph);
@@ -2972,8 +2993,8 @@ void UEdGraphSchema_K2::GetGraphDisplayInformation(const UEdGraph& Graph, /*out*
 		if (Graph.GetFName() == GN_EventGraph)
 		{
 			// localized name for the first event graph
-			DisplayInfo.DisplayName = LOCTEXT("GraphDisplayName_EventGraph", "EventGraph");
-			DisplayInfo.Tooltip = DisplayInfo.DisplayName.ToString();
+			DisplayInfo.PlainName = LOCTEXT("GraphDisplayName_EventGraph", "EventGraph");
+			DisplayInfo.Tooltip = DisplayInfo.PlainName.ToString();
 		}
 		else
 		{
@@ -2984,7 +3005,7 @@ void UEdGraphSchema_K2::GetGraphDisplayInformation(const UEdGraph& Graph, /*out*
 	{
 		if ( Graph.GetFName() == FN_UserConstructionScript )
 		{
-			DisplayInfo.DisplayName = LOCTEXT("GraphDisplayName_ConstructionScript", "ConstructionScript");
+			DisplayInfo.PlainName = LOCTEXT("GraphDisplayName_ConstructionScript", "ConstructionScript");
 
 			DisplayInfo.Tooltip = LOCTEXT("GraphTooltip_ConstructionScript", "Function executed when Blueprint is placed or modified.").ToString();
 			DisplayInfo.DocExcerptName = TEXT("ConstructionScript");
@@ -3014,7 +3035,7 @@ void UEdGraphSchema_K2::GetGraphDisplayInformation(const UEdGraph& Graph, /*out*
 	}
 	else if (GraphType == GT_Animation)
 	{
-		DisplayInfo.DisplayName = LOCTEXT("GraphDisplayName_AnimGraph", "AnimGraph");
+		DisplayInfo.PlainName = LOCTEXT("GraphDisplayName_AnimGraph", "AnimGraph");
 
 		DisplayInfo.Tooltip = LOCTEXT("GraphTooltip_AnimGraph", "Graph used to blend together different animations.").ToString();
 		DisplayInfo.DocExcerptName = TEXT("AnimGraph");
@@ -3034,8 +3055,17 @@ void UEdGraphSchema_K2::GetGraphDisplayInformation(const UEdGraph& Graph, /*out*
 	// Mark transient graphs as obviously so
 	if (Graph.HasAllFlags(RF_Transient))
 	{
-		DisplayInfo.DisplayName = FText::FromString( FString::Printf(TEXT("$$ %s $$"), *DisplayInfo.DisplayName.ToString()) );
+		DisplayInfo.PlainName = FText::FromString( FString::Printf(TEXT("$$ %s $$"), *DisplayInfo.PlainName.ToString()) );
 		DisplayInfo.Notes.Add(TEXT("intermediate build product"));
+	}
+
+	if( GEditor && GetDefault<UEditorStyleSettings>()->bShowFriendlyNames )
+	{
+		DisplayInfo.DisplayName = FText::FromString(FName::NameToDisplayString( DisplayInfo.PlainName.ToString(), false ));
+	}
+	else
+	{
+		DisplayInfo.DisplayName = DisplayInfo.PlainName;
 	}
 }
 

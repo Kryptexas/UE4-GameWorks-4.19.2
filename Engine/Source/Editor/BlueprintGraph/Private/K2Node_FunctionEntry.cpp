@@ -99,16 +99,22 @@ UK2Node_FunctionEntry::UK2Node_FunctionEntry(const class FPostConstructInitializ
 {
 }
 
-FString UK2Node_FunctionEntry::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_FunctionEntry::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	UEdGraph* Graph = GetGraph();
 	FGraphDisplayInfo DisplayInfo;
 	Graph->GetSchema()->GetGraphDisplayInformation(*Graph, DisplayInfo);
 
-	if( GEditor && GetDefault<UEditorStyleSettings>()->bShowFriendlyNames )
-	{
-		DisplayInfo.DisplayName = FText::FromString( FName::NameToDisplayString(DisplayInfo.DisplayName.ToString(), false) );
-	}
+	return DisplayInfo.DisplayName;
+}
+
+FString UK2Node_FunctionEntry::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
+	UEdGraph* Graph = GetGraph();
+	FGraphDisplayInfo DisplayInfo;
+	Graph->GetSchema()->GetGraphDisplayInformation(*Graph, DisplayInfo);
+
 	return DisplayInfo.DisplayName.ToString();
 }
 

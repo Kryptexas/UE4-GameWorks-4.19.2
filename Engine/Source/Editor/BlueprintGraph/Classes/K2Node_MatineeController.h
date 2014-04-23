@@ -16,7 +16,7 @@ class UK2Node_MatineeController : public UK2Node
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() OVERRIDE;
 	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual bool CanDuplicateNode() const OVERRIDE { return false; }
 	virtual bool NodeCausesStructuralBlueprintChange() const OVERRIDE { return true; }
 	// End UEdGraphNode interface

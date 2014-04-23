@@ -2,6 +2,8 @@
 
 #include "EnginePrivate.h"
 
+#define LOCTEXT_NAMESPACE "EnvQueryGenerator"
+
 UEnvQueryTest_Pathfinding::UEnvQueryTest_Pathfinding(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
 	ExecuteDelegate.BindUObject(this, &UEnvQueryTest_Pathfinding::RunTest);
@@ -95,41 +97,67 @@ FString UEnvQueryTest_Pathfinding::GetDescriptionTitle() const
 	FString ModeDesc[] = { TEXT("PathExist"), TEXT("PathCost"), TEXT("PathLength") };
 
 	FString DirectionDesc = PathToItem.IsNamedParam() ?
-		FString::Printf(TEXT("%s, direction: %s"), *UEnvQueryTypes::DescribeContext(Context), *UEnvQueryTypes::DescribeBoolParam(PathToItem)) :
-		FString::Printf(TEXT("%s %s"), PathToItem.Value ? TEXT("from") : TEXT("to"), *UEnvQueryTypes::DescribeContext(Context));
+		FString::Printf(TEXT("%s, direction: %s"), *UEnvQueryTypes::DescribeContext(Context).ToString(), *UEnvQueryTypes::DescribeBoolParam(PathToItem)) :
+		FString::Printf(TEXT("%s %s"), PathToItem.Value ? TEXT("from") : TEXT("to"), *UEnvQueryTypes::DescribeContext(Context).ToString());
 
 	return FString::Printf(TEXT("%s: %s"), *ModeDesc[TestMode], *DirectionDesc);
 }
 
-FString UEnvQueryTest_Pathfinding::GetDescriptionDetails() const
+FText UEnvQueryTest_Pathfinding::GetDescriptionDetails() const
 {
-	FString AdditionalDesc;
+	FText AdditionalDesc;
 	if (HierarchicalPathfinding.IsNamedParam())
 	{
-		AdditionalDesc = FString::Printf(TEXT("Hierarchical pathfinding: %s"), *HierarchicalPathfinding.ParamName.ToString());
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("PathName"), FText::FromString(HierarchicalPathfinding.ParamName.ToString()));
+		AdditionalDesc = FText::Format(LOCTEXT("HierarchicalPathfindingWithName", "Hierarchical pathfinding: {PathName}"), Args);
 	}
 	else if (HierarchicalPathfinding.Value)
 	{
-		AdditionalDesc = TEXT("Use hierarchical pathfinding");
+		AdditionalDesc = LOCTEXT("UseHierarchicalPathfinding", "Use hierarchical pathfinding");
 	}
 
 	if (DiscardUnreachable.IsNamedParam())
 	{
-		AdditionalDesc += FString::Printf(TEXT("%siscard unreachable: %s"), AdditionalDesc.Len() ? TEXT(", d") : TEXT("D"), *DiscardUnreachable.ParamName.ToString());
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("Description"), AdditionalDesc);
+		Args.Add(TEXT("UnreachableParamName"), FText::FromName(DiscardUnreachable.ParamName));
+
+		if(AdditionalDesc.IsEmpty())
+		{
+			AdditionalDesc = FText::Format(LOCTEXT("DiscardUnreachableWithParam", "Discard unreachable: {UnreachableParamName}"), Args);
+		}
+		else
+		{
+			AdditionalDesc = FText::Format(LOCTEXT("DescWithUnreachableAndParam", "{Description}, discard unreachable: {UnreachableParamName}"), Args);
+		}
 	}
 	else if (DiscardUnreachable.Value)
 	{
-		AdditionalDesc += FString::Printf(TEXT("%siscard unreachable"), AdditionalDesc.Len() ? TEXT(", d") : TEXT("D"));
+		if(AdditionalDesc.IsEmpty())
+		{
+			AdditionalDesc = LOCTEXT("DiscardUnreachable", "Discard unreachable");
+		}
+		else
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("Description"), AdditionalDesc);
+			AdditionalDesc = FText::Format(LOCTEXT("DescWithUnreachable", "{Description}, discard unreachable"), Args);
+		}
 	}
 
-	AdditionalDesc.AppendChar(TEXT('\n'));
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("Description"), AdditionalDesc);
+
 	if (bWorkOnFloatValues)
 	{
-		AdditionalDesc += DescribeFloatTestParams();
+		Args.Add(TEXT("FloatParamsDescription"), DescribeFloatTestParams());
+		AdditionalDesc = FText::Format(LOCTEXT("DescriptionWithDescribedFloatParams", "{Description}\n{FloatParamsDescription}"), Args);
 	}
 	else
 	{
-		AdditionalDesc += DescribeBoolTestParams("existing path");
+		Args.Add(TEXT("BoolParamsDescription"), DescribeBoolTestParams("existing path"));
+		AdditionalDesc = FText::Format(LOCTEXT("DescriptionWithDescribedBoolParams", "{Description}\n{BoolParamsDescription}"), Args);
 	}
 
 	return AdditionalDesc;
@@ -193,3 +221,5 @@ ANavigationData* UEnvQueryTest_Pathfinding::FindNavigationData(UNavigationSystem
 
 	return NavSys->GetMainNavData(NavigationSystem::DontCreate);
 }
+
+#undef LOCTEXT_NAMESPACE

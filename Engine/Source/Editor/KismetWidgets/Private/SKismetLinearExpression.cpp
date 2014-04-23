@@ -68,7 +68,10 @@ TSharedRef<SWidget> SKismetLinearExpression::MakeNodeWidget(const UEdGraphNode* 
 	{
 		// The source node is impure or has multiple outputs, so cannot be directly part of this pure expression
 		// Instead show it as a special sort of variable get
-		const FString EffectiveVariableName = FString::Printf(TEXT("%s_%s"), *Node->GetNodeTitle(ENodeTitleType::ListView), FromPin->PinFriendlyName.IsEmpty() ? *FromPin->PinName : *FromPin->PinFriendlyName);
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("NodeTitle"), Node->GetNodeTitle(ENodeTitleType::ListView));
+		Args.Add(TEXT("PinName"), FromPin->PinFriendlyName.IsEmpty() ? FText::FromString(FromPin->PinName) : FromPin->PinFriendlyName);
+		const FText EffectiveVariableName = FText::Format(LOCTEXT("NodeTitleWithPinName", "{NodeTitle}_{PinName}"), Args );
 
 		return SNew(SOverlay)
 			+ SOverlay::Slot()

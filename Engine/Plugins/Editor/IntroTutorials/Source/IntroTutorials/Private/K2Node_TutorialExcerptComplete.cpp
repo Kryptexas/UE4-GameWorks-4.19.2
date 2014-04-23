@@ -41,11 +41,12 @@ void UK2Node_TutorialExcerptComplete::GetMenuEntries(FGraphContextMenuBuilder& C
 
 	const FString Category = LOCTEXT("TutorialExcerptComplete_Category", "Call Function").ToString();
 	const FString SubCategory = LOCTEXT("TutorialExcerptComplete_SubCategory", "Tutorials").ToString();
-	const FString MenuDesc = LOCTEXT("TutorialExcerptComplete_Desc", "Tutorial Excerpt Complete").ToString();
+	const FText MenuDesc = LOCTEXT("TutorialExcerptComplete_Desc", "Tutorial Excerpt Complete");
 	const FString Tooltip = LOCTEXT("TutorialExcerptComplete_Tooltip", "Add a node to complete a tutorial excerpt").ToString();
 
 	TSharedPtr<FEdGraphSchemaAction_K2NewNode> NodeAction = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, Category + TEXT("|") + SubCategory, MenuDesc, Tooltip);
 	NodeAction->NodeTemplate = TemplateNode;
+	NodeAction->SearchTitle = TemplateNode->GetNodeSearchTitle();
 }
 
 void UK2Node_TutorialExcerptComplete::PinDefaultValueChanged(UEdGraphPin* Pin)
@@ -91,17 +92,29 @@ void UK2Node_TutorialExcerptComplete::PostPlacedNewNode()
 	Super::PostPlacedNewNode();
 }
 
-FString UK2Node_TutorialExcerptComplete::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_TutorialExcerptComplete::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	if(CachedExcerpt.Len() > 0)
 	{
 		FFormatNamedArguments NamedArgs;
 		NamedArgs.Add(TEXT("ExcerptName"), FText::FromString(CachedExcerpt));
-		return FText::Format(LOCTEXT("TutorialExcerptComplete_TitleWithExcerpt", "Tutorial Excerpt '{ExcerptName}' Complete"), NamedArgs).ToString();
+		return FText::Format(LOCTEXT("TutorialExcerptComplete_TitleWithExcerpt", "Tutorial Excerpt '{ExcerptName}' Complete"), NamedArgs);
 	}
 	else
 	{
-		return LOCTEXT("TutorialExcerptComplete_Title", "Tutorial Excerpt Complete").ToString();
+		return LOCTEXT("TutorialExcerptComplete_Title", "Tutorial Excerpt Complete");
+	}
+}
+
+FString UK2Node_TutorialExcerptComplete::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	if(CachedExcerpt.Len() > 0)
+	{
+		return FString::Printf(TEXT("Tutorial Excerpt '%s' Complete"), *CachedExcerpt);
+	}
+	else
+	{
+		return TEXT("Tutorial Excerpt Complete");
 	}
 }
 

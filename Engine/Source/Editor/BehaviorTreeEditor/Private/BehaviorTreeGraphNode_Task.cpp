@@ -13,12 +13,12 @@ void UBehaviorTreeGraphNode_Task::AllocateDefaultPins()
 	CreatePin(EGPD_Input, UBehaviorTreeEditorTypes::PinCategory_SingleComposite, TEXT(""), NULL, false, false, TEXT("In"));
 }
 
-FString UBehaviorTreeGraphNode_Task::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UBehaviorTreeGraphNode_Task::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	const UBTNode* MyNode = Cast<UBTNode>(NodeInstance);
 	if (MyNode != NULL)
 	{
-		return MyNode->GetNodeName();
+		return FText::FromString(MyNode->GetNodeName());
 	}
 
 	return Super::GetNodeTitle(TitleType);

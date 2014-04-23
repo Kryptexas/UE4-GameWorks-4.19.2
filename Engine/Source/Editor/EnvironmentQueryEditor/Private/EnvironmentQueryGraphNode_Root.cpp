@@ -11,7 +11,7 @@ void UEnvironmentQueryGraphNode_Root::AllocateDefaultPins()
 	UEdGraphPin* Outputs = CreatePin(EGPD_Output, TEXT("Transition"), TEXT(""), NULL, false, false, TEXT("In"));
 }
 
-FString UEnvironmentQueryGraphNode_Root::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UEnvironmentQueryGraphNode_Root::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return FString("ROOT");
+	return NSLOCTEXT("EnvironmentQueryGraphNode_Root", "Root", "ROOT");
 }

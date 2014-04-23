@@ -469,9 +469,9 @@ FLinearColor UK2Node_MultiGate::GetNodeTitleColor() const
 	return FLinearColor::White;
 }
 
-FString UK2Node_MultiGate::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_MultiGate::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return NSLOCTEXT("K2Node", "MultiGate", "MultiGate").ToString();
+	return NSLOCTEXT("K2Node", "MultiGate", "MultiGate");
 }
 
 void UK2Node_MultiGate::AllocateDefaultPins()
