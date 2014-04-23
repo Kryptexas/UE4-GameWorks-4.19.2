@@ -195,6 +195,7 @@ bool FProjectOrPlugin::DeserializeFromJSON( const FString& JSONInput, FText& Out
 
 		ReadNumberFromJSON(FileObject, TEXT("PackageFileUE4Version"), ProjectOrPluginInfo.PackageFileUE4Version);
 		ReadNumberFromJSON(FileObject, TEXT("PackageFileLicenseeUE4Version"), ProjectOrPluginInfo.PackageFileLicenseeUE4Version);
+		ReadStringFromJSON(FileObject, TEXT("EngineAssociation"), ProjectOrPluginInfo.EngineAssociation);
 		ReadStringFromJSON(FileObject, TEXT("FriendlyName"), ProjectOrPluginInfo.FriendlyName);
 		ReadStringFromJSON(FileObject, TEXT("Description"), ProjectOrPluginInfo.Description);
 
@@ -240,6 +241,7 @@ FString FProjectOrPlugin::SerializeToJSON( ) const
 	Writer->WriteValue(TEXT("EngineVersion"), ProjectOrPluginInfo.EngineVersion.ToString());
 	Writer->WriteValue(TEXT("PackageFileUE4Version"), (float)ProjectOrPluginInfo.PackageFileUE4Version);
 	Writer->WriteValue(TEXT("PackageFileLicenseeUE4Version"), (float)ProjectOrPluginInfo.PackageFileLicenseeUE4Version);
+	Writer->WriteValue(TEXT("EngineAssociation"), ProjectOrPluginInfo.EngineAssociation);
 	Writer->WriteValue(TEXT("FriendlyName"), ProjectOrPluginInfo.FriendlyName);
 	Writer->WriteValue(TEXT("Description"), ProjectOrPluginInfo.Description);
 	Writer->WriteValue(TEXT("Category"), ProjectOrPluginInfo.Category);

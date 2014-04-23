@@ -534,7 +534,7 @@ void FConfigFile::ProcessInputFileContents(const FString& Filename, FString& Con
 void FConfigFile::Read( const FString& Filename )
 {
 	// we can't read in a file if file IO is disabled
-	if (!GConfig->AreFileOperationsDisabled())
+	if (GConfig == NULL || !GConfig->AreFileOperationsDisabled())
 	{
 		Empty();
 		FString Text;

@@ -334,7 +334,13 @@ struct CORE_API FGenericPlatformProcess
 	 * Executes a process, returning the return code, stdout, and stderr. This
 	 * call blocks until the process has returned.
 	 */
-	static void ExecProcess( const TCHAR* URL, const TCHAR* Params, int32* OutReturnCode, FString* OutStdOut, FString* OutStdErr );
+	static bool ExecProcess( const TCHAR* URL, const TCHAR* Params, int32* OutReturnCode, FString* OutStdOut, FString* OutStdErr );
+
+	/**
+	* Executes a process as administrator, requesting elevation as necessary. This
+	* call blocks until the process has returned.
+	*/
+	static bool ExecElevatedProcess(const TCHAR* URL, const TCHAR* Params, int32* OutReturnCode);
 
 	/**
 	 * Attempt to launch the provided file name in its default external application. Similar to FPlatformProcess::LaunchURL,

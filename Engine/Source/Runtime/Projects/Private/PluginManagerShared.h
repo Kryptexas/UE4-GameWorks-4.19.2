@@ -138,6 +138,9 @@ public:
 	/** The licensee package file version at the time this project was last updated */
 	int32 PackageFileLicenseeUE4Version;
 
+	/** The associated engine label. Used by UnrealVersionSelector to open projects with the correct editor */
+	FString EngineAssociation;
+
 	/** Friendly name of the project or plugin */
 	FString FriendlyName;
 
