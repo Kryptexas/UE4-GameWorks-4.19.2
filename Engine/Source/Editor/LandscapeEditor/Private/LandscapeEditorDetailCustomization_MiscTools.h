@@ -30,6 +30,8 @@ protected:
 	// Splines Tool
 	static FReply OnApplyAllSplinesButtonClicked();
 	static FReply OnApplySelectedSplinesButtonClicked();
+	void OnbUseAutoRotateControlPointChanged(ESlateCheckBoxState::Type NewState);
+	ESlateCheckBoxState::Type GetbUseAutoRotateControlPoint() const;
 
 	// Ramp Tool
 	static FReply OnApplyRampButtonClicked();

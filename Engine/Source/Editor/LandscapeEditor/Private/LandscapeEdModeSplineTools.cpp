@@ -1609,6 +1609,8 @@ protected:
 	uint32 bAutoChangeConnectionsOnMove:1;
 	uint32 bDeleteLooseEnds:1;
 	uint32 bCopyMeshToNewControlPoint:1;
+
+	friend class FEdModeLandscape;
 };
 
 
@@ -1655,6 +1657,31 @@ void FEdModeLandscape::SelectAllConnectedSplineSegments()
 			GUnrealEd->RedrawLevelEditingViewports();
 		}
 	}
+}
+
+void FEdModeLandscape::SetbUseAutoRotateOnJoin(bool InbAutoRotateOnJoin)
+{
+	if (SplinesToolSet /*&& SplinesToolSet == CurrentToolSet*/)
+	{
+		if (SplinesToolSet->SetToolForTarget(CurrentToolTarget) && SplinesToolSet->GetTool())
+		{
+			FLandscapeToolSplines* SplineTool = ((FLandscapeToolSplines*)SplinesToolSet->GetTool());
+			SplineTool->bAutoRotateOnJoin = InbAutoRotateOnJoin;
+		}
+	}
+}
+
+bool FEdModeLandscape::GetbUseAutoRotateOnJoin()
+{
+	if (SplinesToolSet /*&& SplinesToolSet == CurrentToolSet*/)
+	{
+		if (SplinesToolSet->SetToolForTarget(CurrentToolTarget) && SplinesToolSet->GetTool())
+		{
+			FLandscapeToolSplines* SplineTool = ((FLandscapeToolSplines*)SplinesToolSet->GetTool());
+			return SplineTool->bAutoRotateOnJoin;
+		}
+	}
+	return true; // default value
 }
 
 void FEdModeLandscape::IntializeToolSet_Splines()

@@ -479,6 +479,8 @@ public:
 	void ShowSplineProperties();
 	virtual void SelectAllConnectedSplineControlPoints();
 	virtual void SelectAllConnectedSplineSegments();
+	void SetbUseAutoRotateOnJoin(bool InbAutoRotateOnJoin);
+	bool GetbUseAutoRotateOnJoin();
 
 	void ApplyRampTool();
 	bool CanApplyRampTool();
