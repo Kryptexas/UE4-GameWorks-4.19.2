@@ -91,6 +91,15 @@ namespace AutomationTool
 		}
 
 		/// <summary>
+		/// Allow platform to do platform specific work on archived project before it's deployed.
+		/// </summary>
+		/// <param name="Params"></param>
+		/// <param name="SC"></param>
+		public virtual void ProcessArchivedProject(ProjectParams Params, DeploymentContext SC)
+		{
+		}
+
+		/// <summary>
 		/// Deploy the application on the current platform
 		/// </summary>
 		/// <param name="Params"></param>

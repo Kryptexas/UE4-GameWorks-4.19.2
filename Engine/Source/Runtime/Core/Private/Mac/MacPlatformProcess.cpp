@@ -546,7 +546,15 @@ const TCHAR* FMacPlatformProcess::BaseDir()
 		// If it has .app extension, it's a bundle, otherwise BasePath is a full path to Binaries/Mac (in case of command line tools)
 		if ([[BasePath pathExtension] isEqual: @"app"])
 		{
-			NSString* BundledBinariesPath = [BasePath stringByAppendingPathComponent: @"Contents/UE4/Engine/Binaries/Mac"];
+			NSString* BundledBinariesPath = NULL;
+			if (GGameName[0] != 0)
+			{
+				BundledBinariesPath = [BasePath stringByAppendingPathComponent: [NSString stringWithFormat: @"Contents/UE4/%s/Binaries/Mac", TCHAR_TO_UTF8(GGameName)]];
+			}
+			if (!BundledBinariesPath)
+			{
+				BundledBinariesPath = [BasePath stringByAppendingPathComponent: @"Contents/UE4/Engine/Binaries/Mac"];
+			}
 			if ([FileManager fileExistsAtPath: BundledBinariesPath])
 			{
 				BasePath = BundledBinariesPath;

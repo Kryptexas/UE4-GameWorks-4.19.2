@@ -56,6 +56,7 @@ public partial class Project : CommandUtils
 			{
 				CreateArchiveManifest(Params, SC);
 				ApplyArchiveManifest(Params, SC);
+				SC.StageTargetPlatform.ProcessArchivedProject(Params, SC);
 			}
 		}
 		if (Params.DedicatedServer)
@@ -67,6 +68,7 @@ public partial class Project : CommandUtils
 			{
 				CreateArchiveManifest(Params, SC);
 				ApplyArchiveManifest(Params, SC);
+				SC.StageTargetPlatform.ProcessArchivedProject(Params, SC);
 			}
 		}
 	}
