@@ -124,14 +124,15 @@ private:
 	void SaveSourceToBackupFile();
 
 	/** 
-	 * Process an array which is being written to a default config and write it to the out stream
+	 * Process the property for Writing to a default file. We will need to check for array operations, as default ini's rely on this
+	 * being correct to function properly
 	 *
-	 * @param ArrayPropertyToProcess - The complete property array which we need to process for saving.
+	 * @param InCompletePropertyToProcess - The complete property which we need to process for saving.
 	 * @param OutText - The stream we are processing the array to
 	 * @param SectionName - The section name the array property is being written to
 	 * @param PropertyName - The property name of the array
 	 */
-	void ProcessArrayForSaveToDefaults( const TArray< FString >& ArrayPropertyToProcess, FString& OutText, const FString& SectionName, const FString& PropertyName );
+	void ProcessPropertyAndWriteForDefaults(const TArray< FString >& InCompletePropertyToProcess, FString& OutText, const FString& SectionName, const FString& PropertyName);
 
 };
 

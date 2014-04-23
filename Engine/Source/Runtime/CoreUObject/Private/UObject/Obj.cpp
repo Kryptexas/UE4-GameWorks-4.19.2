@@ -1546,6 +1546,11 @@ void UObject::SaveConfig( uint64 Flags, const TCHAR* InFilename, FConfigCacheIni
 		? InFilename
 		: GetConfigFilename(this);
 
+	// Determine whether the file we are writing is a default file config.
+	const bool bIsADefaultIniWrite = !Filename.Contains(FPaths::GameSavedDir())
+		&& !Filename.Contains(FPaths::EngineSavedDir())
+		&& FPaths::GetBaseFilename(Filename).StartsWith(TEXT("Default"));
+
 	const bool bPerObject = UsesPerObjectConfig(this);
 	FString Section;
 	if ( bPerObject == true )
@@ -1619,13 +1624,16 @@ void UObject::SaveConfig( uint64 Flags, const TCHAR* InFilename, FConfigCacheIni
 					FConfigSection* Sec = Config->GetSectionPrivate( *Section, 1, 0, *PropFileName );
 					check(Sec);
 					Sec->Remove( *Key );
-				
+
+					// Default ini's require the array syntax to be applied to the property name
+					FString CompleteKey = FString::Printf(TEXT("%s%s"), bIsADefaultIniWrite ? TEXT("+") : TEXT(""), *Key);
+
 					FScriptArrayHelper_InContainer ArrayHelper(Array, this);
 					for( int32 i=0; i<ArrayHelper.Num(); i++ )
 					{
 						FString	Buffer;
 						Array->Inner->ExportTextItem( Buffer, ArrayHelper.GetRawPtr(i), ArrayHelper.GetRawPtr(i), this, PortFlags );
-						Sec->Add( *Key, *Buffer );
+						Sec->Add(*CompleteKey, *Buffer);
 					}
 				}
 				else if( Property->Identical_InContainer(this, SuperClassDefaultObject) )
