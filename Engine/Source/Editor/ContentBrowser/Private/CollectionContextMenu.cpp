@@ -83,6 +83,30 @@ TSharedPtr<SWidget> FCollectionContextMenu::MakeCollectionListContextMenu(TShare
 					FCanExecuteAction::CreateSP( this, &FCollectionContextMenu::CanExecuteDestroyCollection, bAnyManagedBySCC )
 					)
 				);
+
+			if ( CollectionList.Num() == 1 )
+			{
+				// If any colors have already been set, display color options as a sub menu
+				if ( CollectionViewUtils::HasCustomColors() )
+				{
+					// Set Color (submenu)
+					MenuBuilder.AddSubMenu(
+						LOCTEXT("SetColor", "Set Color"),
+						LOCTEXT("SetCollectionColorTooltip", "Sets the color this collection should appear as."),
+						FNewMenuDelegate::CreateRaw( this, &FCollectionContextMenu::MakeSetColorSubMenu )
+						);
+				}
+				else
+				{
+					// Set Color
+					MenuBuilder.AddMenuEntry(
+						LOCTEXT("SetColor", "Set Color"),
+						LOCTEXT("SetCollectionColorTooltip", "Sets the color this collection should appear as."),
+						FSlateIcon(),
+						FUIAction( FExecuteAction::CreateSP( this, &FCollectionContextMenu::ExecutePickColor ) )
+						);
+				}
+			}
 		}
 	}
 	MenuBuilder.EndSection();
@@ -127,6 +151,60 @@ void FCollectionContextMenu::MakeNewCollectionSubMenu(FMenuBuilder& MenuBuilder)
 	MenuBuilder.EndSection();
 }
 
+void FCollectionContextMenu::MakeSetColorSubMenu(FMenuBuilder& MenuBuilder)
+{
+	// New Color
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("NewColor", "New Color"),
+		LOCTEXT("NewCollectionColorTooltip", "Changes the color this collection should appear as."),
+		FSlateIcon(),
+		FUIAction( FExecuteAction::CreateSP( this, &FCollectionContextMenu::ExecutePickColor ) )
+		);
+
+	// Clear Color (only required if any of the selection has one)
+	if ( SelectedHasCustomColors() )
+	{
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("ClearColor", "Clear Color"),
+			LOCTEXT("ClearCollectionColorTooltip", "Resets the color this collection appears as."),
+			FSlateIcon(),
+			FUIAction( FExecuteAction::CreateSP( this, &FCollectionContextMenu::ExecuteResetColor ) )
+			);
+	}
+
+	// Add all the custom colors the user has chosen so far
+	TArray< FLinearColor > CustomColors;
+	if ( CollectionViewUtils::HasCustomColors( &CustomColors ) )
+	{	
+		MenuBuilder.BeginSection("PathContextCustomColors", LOCTEXT("CustomColorsExistingColors", "Existing Colors") );
+		{
+			for ( int32 ColorIndex = 0; ColorIndex < CustomColors.Num(); ColorIndex++ )
+			{
+				const FLinearColor& Color = CustomColors[ ColorIndex ];
+				MenuBuilder.AddWidget(
+						SNew(SHorizontalBox)
+						+SHorizontalBox::Slot()
+						.AutoWidth()
+						.Padding(2, 0, 0, 0)
+						[
+							SNew(SButton)
+							.ButtonStyle( FEditorStyle::Get(), "Menu.Button" )
+							.OnClicked( this, &FCollectionContextMenu::OnColorClicked, Color )
+							[
+								SNew(SColorBlock)
+								.Color( Color )
+								.Size( FVector2D(77,16) )
+							]
+						],
+					LOCTEXT("CustomColor", ""),
+					/*bNoIndent=*/true
+				);
+			}
+		}
+		MenuBuilder.EndSection();
+	}
+}
+
 void FCollectionContextMenu::UpdateProjectSourceControl()
 {
 	// Force update of source control so that we're always showing the valid options
@@ -136,6 +214,18 @@ void FCollectionContextMenu::UpdateProjectSourceControl()
 		FSourceControlStatePtr SourceControlState = ISourceControlModule::Get().GetProvider().GetState(FPaths::GetProjectFilePath(), EStateCacheUsage::ForceUpdate);
 		bProjectUnderSourceControl = (SourceControlState->IsSourceControlled() && !SourceControlState->IsIgnored() && !SourceControlState->IsUnknown());
 	}
+}
+
+bool FCollectionContextMenu::CanRenameSelectedCollections() const
+{
+	TArray<TSharedPtr<FCollectionItem>> CollectionList = CollectionView.Pin()->CollectionListPtr->GetSelectedItems();
+	
+	if(CollectionList.Num() == 1)
+	{
+		return !(CollectionList[0]->CollectionType != ECollectionShareType::CST_Local) || (bProjectUnderSourceControl && ISourceControlModule::Get().IsEnabled() && ISourceControlModule::Get().GetProvider().IsAvailable());
+	}
+	
+	return false;
 }
 
 void FCollectionContextMenu::ExecuteNewCollection(ECollectionShareType::Type CollectionType)
@@ -228,6 +318,48 @@ FReply FCollectionContextMenu::ExecuteDestroyCollectionConfirmed(TArray<TSharedP
 	return FReply::Handled();
 }
 
+void FCollectionContextMenu::ExecuteResetColor()
+{
+	ResetColors();
+}
+
+void FCollectionContextMenu::ExecutePickColor()
+{
+	TSharedPtr<SCollectionView> CollectionViewPtr = CollectionView.Pin();
+	TArray<FCollectionNameType> SelectedCollections = CollectionViewPtr->GetSelectedCollections();
+
+	// Spawn a color picker, so the user can select which color they want
+	TArray<FLinearColor*> LinearColorArray;
+	FColorPickerArgs PickerArgs;
+	PickerArgs.bIsModal = false;
+	PickerArgs.ParentWidget = CollectionViewPtr;
+	if ( SelectedCollections.Num() > 0 )
+	{
+		// Make sure an color entry exists for all the collections, otherwise they won't update in realtime with the widget color
+		for (int32 PathIdx = SelectedCollections.Num() - 1; PathIdx >= 0; --PathIdx)
+		{
+			const FCollectionNameType& SelectedCollection = SelectedCollections[PathIdx];
+			TSharedPtr<FLinearColor> Color = CollectionViewUtils::LoadColor( SelectedCollection.Name.ToString(), SelectedCollection.Type );
+			if ( !Color.IsValid() )
+			{
+				Color = MakeShareable( new FLinearColor( CollectionViewUtils::GetDefaultColor() ) );
+				CollectionViewUtils::SaveColor( SelectedCollection.Name.ToString(), SelectedCollection.Type, Color, true );
+			}
+			else
+			{
+				// Default the color to the first valid entry
+				PickerArgs.InitialColorOverride = *Color.Get();
+			}
+			LinearColorArray.Add( Color.Get() );
+		}	
+		PickerArgs.LinearColorArray = &LinearColorArray;
+	}
+		
+	PickerArgs.OnColorPickerWindowClosed = FOnWindowClosed::CreateSP(this, &FCollectionContextMenu::NewColorComplete);
+
+	OpenColorPicker(PickerArgs);
+}
+
 bool FCollectionContextMenu::CanExecuteNewCollection(ECollectionShareType::Type CollectionType) const
 {
 	return (CollectionType == ECollectionShareType::CST_Local) || (bProjectUnderSourceControl && ISourceControlModule::Get().IsEnabled() && ISourceControlModule::Get().GetProvider().IsAvailable());
@@ -235,19 +367,78 @@ bool FCollectionContextMenu::CanExecuteNewCollection(ECollectionShareType::Type 
 
 bool FCollectionContextMenu::CanExecuteRenameCollection() const
 {
-	TArray<TSharedPtr<FCollectionItem>> CollectionList = CollectionView.Pin()->CollectionListPtr->GetSelectedItems();
-	
-	if(CollectionList.Num() == 1)
-	{
-		return !(CollectionList[0]->CollectionType != ECollectionShareType::CST_Local) || (bProjectUnderSourceControl && ISourceControlModule::Get().IsEnabled() && ISourceControlModule::Get().GetProvider().IsAvailable());
-	}
-	
-	return false;
+	return CanRenameSelectedCollections();
 }
 
 bool FCollectionContextMenu::CanExecuteDestroyCollection(bool bAnyManagedBySCC) const
 {
 	return !bAnyManagedBySCC || (bProjectUnderSourceControl && ISourceControlModule::Get().IsEnabled() && ISourceControlModule::Get().GetProvider().IsAvailable());
+}
+
+bool FCollectionContextMenu::SelectedHasCustomColors() const
+{
+	TSharedPtr<SCollectionView> CollectionViewPtr = CollectionView.Pin();
+	TArray<FCollectionNameType> SelectedCollections = CollectionViewPtr->GetSelectedCollections();
+
+	for(const FCollectionNameType& SelectedCollection : SelectedCollections)
+	{
+		// Ignore any that are the default color
+		const TSharedPtr<FLinearColor> Color = CollectionViewUtils::LoadColor( SelectedCollection.Name.ToString(), SelectedCollection.Type );
+		if ( Color.IsValid() && !Color->Equals( CollectionViewUtils::GetDefaultColor() ) )
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+void FCollectionContextMenu::NewColorComplete(const TSharedRef<SWindow>& Window)
+{
+	TSharedPtr<SCollectionView> CollectionViewPtr = CollectionView.Pin();
+	TArray<FCollectionNameType> SelectedCollections = CollectionViewPtr->GetSelectedCollections();
+
+	// Save the colors back in the config (ptr should have already updated by the widget)
+	for(const FCollectionNameType& SelectedCollection : SelectedCollections)
+	{
+		const TSharedPtr<FLinearColor> Color = CollectionViewUtils::LoadColor( SelectedCollection.Name.ToString(), SelectedCollection.Type );
+		check( Color.IsValid() );
+		CollectionViewUtils::SaveColor( SelectedCollection.Name.ToString(), SelectedCollection.Type, Color );
+	}
+}
+
+FReply FCollectionContextMenu::OnColorClicked( const FLinearColor InColor )
+{
+	TSharedPtr<SCollectionView> CollectionViewPtr = CollectionView.Pin();
+	TArray<FCollectionNameType> SelectedCollections = CollectionViewPtr->GetSelectedCollections();
+
+	// Make sure an color entry exists for all the collections, otherwise it can't save correctly
+	for(const FCollectionNameType& SelectedCollection : SelectedCollections)
+	{
+		TSharedPtr<FLinearColor> Color = CollectionViewUtils::LoadColor( SelectedCollection.Name.ToString(), SelectedCollection.Type );
+		if ( !Color.IsValid() )
+		{
+			Color = MakeShareable( new FLinearColor() );
+		}
+		*Color.Get() = InColor;
+		CollectionViewUtils::SaveColor( SelectedCollection.Name.ToString(), SelectedCollection.Type, Color );
+	}
+
+	// Dismiss the menu here, as we can't make the 'clear' option appear if a folder has just had a color set for the first time
+	FSlateApplication::Get().DismissAllMenus();
+
+	return FReply::Handled();
+}
+
+void FCollectionContextMenu::ResetColors()
+{
+	TSharedPtr<SCollectionView> CollectionViewPtr = CollectionView.Pin();
+	TArray<FCollectionNameType> SelectedCollections = CollectionViewPtr->GetSelectedCollections();
+
+	// Clear the custom colors for all the selected collections
+	for(const FCollectionNameType& SelectedCollection : SelectedCollections)
+	{
+		CollectionViewUtils::SaveColor( SelectedCollection.Name.ToString(), SelectedCollection.Type, nullptr );
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

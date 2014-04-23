@@ -8,6 +8,7 @@
 #include "DragAndDrop/AssetDragDropOp.h"
 #include "DragAndDrop/AssetPathDragDropOp.h"
 #include "ContentBrowserUtils.h"
+#include "CollectionViewUtils.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -425,6 +426,7 @@ void SCollectionListItem::Construct( const FArguments& InArgs )
 				// Type Icon
 				SNew(SImage)
 				.Image( FEditorStyle::GetBrush(*CollectionTypeImage) )
+				.ColorAndOpacity( this, &SCollectionListItem::GetCollectionColor )
 			]
 
 			+SHorizontalBox::Slot()
@@ -582,6 +584,22 @@ FText SCollectionListItem::GetNameText() const
 	{
 		return FText();
 	}
+}
+
+FSlateColor SCollectionListItem::GetCollectionColor() const
+{
+	TSharedPtr<FCollectionItem> CollectionItemPtr = CollectionItem.Pin();
+
+	if ( CollectionItemPtr.IsValid() )
+	{
+		const TSharedPtr<FLinearColor> Color = CollectionViewUtils::LoadColor(CollectionItemPtr->CollectionName, CollectionItemPtr->CollectionType);
+		if( Color.IsValid() )
+		{
+			return *Color.Get();
+		}
+	}
+	
+	return CollectionViewUtils::GetDefaultColor();
 }
 
 const FSlateBrush* SCollectionListItem::GetBorderImage() const

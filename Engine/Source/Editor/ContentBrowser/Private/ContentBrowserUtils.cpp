@@ -12,8 +12,11 @@
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
-// Keep a map of all the paths that have custom colors, so updating the color in one location updates them all
-static TMap< FString, TSharedPtr< FLinearColor > > PathColors;
+namespace ContentBrowserUtils
+{
+	// Keep a map of all the paths that have custom colors, so updating the color in one location updates them all
+	static TMap< FString, TSharedPtr< FLinearColor > > PathColors;
+}
 
 class SContentBrowserPopup : public SCompoundWidget
 {

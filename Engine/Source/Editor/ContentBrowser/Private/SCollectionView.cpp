@@ -511,7 +511,7 @@ void SCollectionView::CollectionItemScrolledIntoView( TSharedPtr<FCollectionItem
 bool SCollectionView::IsCollectionNotRenamable() const
 {
 	CollectionContextMenu->UpdateProjectSourceControl();
-	return !CollectionContextMenu->CanExecuteRenameCollection();
+	return !CollectionContextMenu->CanRenameSelectedCollections();
 }
 
 bool SCollectionView::CollectionNameChangeCommit( const TSharedPtr< FCollectionItem >& CollectionItem, const FString& NewName, bool bChangeConfirmed, FText& OutWarningMessage )
