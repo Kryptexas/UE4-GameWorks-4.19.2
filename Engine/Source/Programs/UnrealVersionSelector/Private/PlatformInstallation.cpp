@@ -22,23 +22,23 @@ int32 ParseReleaseVersion(const FString &Version)
 
 bool GetDefaultEngineId(FString &OutId)
 {
-	TMap<FString, FString> Installations;
-	FPlatformInstallation::EnumerateEngineInstallations(Installations);
+	TArray<TPair<FString, FString>> Installations;
+	FPlatformMisc::EnumerateEngineInstallations(Installations);
 
 	bool bRes = false;
 	if (Installations.Num() > 0)
 	{
 		// Default to the first install
-		OutId = TMap<FString, FString>::TConstIterator(Installations).Key();
+		OutId = Installations[0].Key;
 
 		// Try to find the highest versioned install
 		int32 BestVersion = INDEX_NONE;
-		for (TMap<FString, FString>::TConstIterator Iter(Installations); Iter; ++Iter)
+		for (TArray<TPair<FString, FString>>::TConstIterator Iter(Installations); Iter; ++Iter)
 		{
-			int32 Version = ParseReleaseVersion(Iter.Key());
+			int32 Version = ParseReleaseVersion(Iter->Key);
 			if (Version > BestVersion)
 			{
-				OutId = Iter.Key();
+				OutId = Iter->Key;
 				BestVersion = Version;
 			}
 		}
@@ -49,38 +49,5 @@ bool GetDefaultEngineId(FString &OutId)
 bool GetDefaultEngineRootDir(FString &OutDirName)
 {
 	FString Id;
-	return GetDefaultEngineId(Id) && GetEngineRootDirFromId(Id, OutDirName);
+	return GetDefaultEngineId(Id) && FPlatformMisc::GetEngineRootDirFromIdentifier(Id, OutDirName);
 }
-
-bool GetEngineRootDirFromId(const FString &Id, FString &OutDirName)
-{
-	TMap<FString, FString> Installations;
-	FPlatformInstallation::EnumerateEngineInstallations(Installations);
-
-	const FString *DirName = Installations.Find(Id);
-	if (DirName != NULL)
-	{
-		OutDirName = *DirName;
-		return true;
-	}
-
-	return false;
-}
-
-bool GetEngineIdFromRootDir(const FString &DirName, FString &OutId)
-{
-	TMap<FString, FString> Installations;
-	FPlatformInstallation::EnumerateEngineInstallations(Installations);
-
-	// Find the label for the given directory
-	for (TMap<FString, FString>::TConstIterator Iter(Installations); Iter; ++Iter)
-	{
-		if (Iter.Value() == DirName)
-		{
-			OutId = Iter.Key();
-			return true;
-		}
-	}
-	return false;
-}
-

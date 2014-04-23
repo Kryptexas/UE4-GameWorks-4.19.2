@@ -10,10 +10,11 @@ struct FWindowsPlatformInstallation : FGenericPlatformInstallation
 	/// Get the path to the installed build of the version selector
 	static bool GetLauncherVersionSelector(FString &OutFileName);
 
-	// Engine installations
+	// Register an engine installation
 	static bool RegisterEngineInstallation(const FString &Id, const FString &RootDirName);
+
+	// Unregister an engine installation
 	static bool UnregisterEngineInstallation(const FString &Id);
-	static void EnumerateEngineInstallations(TMap<FString, FString> &OutInstallations);
 
 	// Test whether a given engine root directory is a source build
 	static bool IsSourceDistribution(const FString &EngineRootDir);

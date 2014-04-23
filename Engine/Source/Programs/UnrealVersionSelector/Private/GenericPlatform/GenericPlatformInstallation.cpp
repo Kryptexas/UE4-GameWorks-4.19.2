@@ -7,10 +7,11 @@
 
 bool FGenericPlatformInstallation::GetLauncherVersionSelector(FString &OutFileName)
 {
-	FConfigFile *ConfigFile = GetConfigFile();
+	FConfigFile ConfigFile;
+	ConfigFile.Read(GetConfigFilePath());
 
 	FString InstallationPath;
-	if (!ConfigFile->GetString(TEXT("Launcher"), TEXT("InstalledPath"), InstallationPath))
+	if (!ConfigFile.GetString(TEXT("Launcher"), TEXT("InstalledPath"), InstallationPath))
 	{
 		return false;
 	}
@@ -26,31 +27,27 @@ bool FGenericPlatformInstallation::GetLauncherVersionSelector(FString &OutFileNa
 
 bool FGenericPlatformInstallation::RegisterEngineInstallation(const FString &Id, const FString &RootDirName)
 {
-	FConfigFile *ConfigFile = GetConfigFile();
-	FConfigSection &Section = ConfigFile->FindOrAdd(TEXT("Installations"));
-	Section.AddUnique(*Id, RootDirName);
-	ConfigFile->Dirty = true;
-	return ConfigFile->Write(GetConfigFilePath());
+	FString NormalizedRootDirName = RootDirName;
+	FPaths::NormalizeDirectoryName(NormalizedRootDirName);
+
+	FConfigFile ConfigFile;
+	ConfigFile.Read(GetConfigFilePath());
+
+	FConfigSection &Section = ConfigFile.FindOrAdd(TEXT("Installations"));
+	Section.AddUnique(*Id, NormalizedRootDirName);
+	ConfigFile.Dirty = true;
+	return ConfigFile.Write(GetConfigFilePath());
 }
 
 bool FGenericPlatformInstallation::UnregisterEngineInstallation(const FString &Id)
 {
-	FConfigFile *ConfigFile = GetConfigFile();
-	FConfigSection &Section = ConfigFile->FindOrAdd(TEXT("Installations"));
+	FConfigFile ConfigFile;
+	ConfigFile.Read(GetConfigFilePath());
+
+	FConfigSection &Section = ConfigFile.FindOrAdd(TEXT("Installations"));
 	Section.Remove(*Id);
-	ConfigFile->Dirty = true;
-	return ConfigFile->Write(GetConfigFilePath());
-}
-
-void FGenericPlatformInstallation::EnumerateEngineInstallations(TMap<FString, FString> &OutInstallations)
-{
-	FConfigFile *ConfigFile = GetConfigFile();
-	FConfigSection &Section = ConfigFile->FindOrAdd(TEXT("Installations"));
-
-	for (TMultiMap<FName, FString>::TConstIterator Iter(Section); Iter; ++Iter)
-	{
-		OutInstallations.Add(Iter.Key().ToString(), Iter.Value());
-	}
+	ConfigFile.Dirty = true;
+	return ConfigFile.Write(GetConfigFilePath());
 }
 
 bool FGenericPlatformInstallation::IsSourceDistribution(const FString &EngineRootDir)
@@ -134,16 +131,4 @@ FString FGenericPlatformInstallation::GetConfigFilePath()
 {
 	return FString(FPlatformProcess::ApplicationSettingsDir()) / FString(EPIC_PRODUCT_IDENTIFIER) / FString(TEXT("Install.ini"));
 }
-
-FConfigFile *FGenericPlatformInstallation::GetConfigFile()
-{
-	static FConfigFile *ConfigFile = NULL;
-	if (ConfigFile == NULL)
-	{
-		ConfigFile = new FConfigFile();
-		ConfigFile->Read(GetConfigFilePath());
-	}
-	return ConfigFile;
-}
-
 

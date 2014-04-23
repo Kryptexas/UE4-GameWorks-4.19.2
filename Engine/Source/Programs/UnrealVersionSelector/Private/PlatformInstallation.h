@@ -18,5 +18,3 @@ int32 ParseReleaseVersion(const FString &Version);
 bool GetDefaultEngineId(FString &OutId);
 bool GetDefaultEngineRootDir(FString &OutId);
 
-bool GetEngineRootDirFromId(const FString &Id, FString &OutRootDir);
-bool GetEngineIdFromRootDir(const FString &RootDir, FString &OutId);

@@ -12,6 +12,8 @@
 #include "ModuleManager.h"
 #include "VarargsHelper.h"
 #include "SecureHash.h"
+#include "Containers/Map.h"
+#include "../../Launch/Resources/Version.h"
 
 #include "UProjectInfo.h"
 
@@ -686,3 +688,58 @@ FText FGenericPlatformMisc::GetFileManagerName()
 {
 	return NSLOCTEXT("GenericPlatform", "FileManagerName", "File Manager");
 }
+
+void FGenericPlatformMisc::EnumerateEngineInstallations(TArray< TPair<FString, FString> > &OutInstallations)
+{
+	// Read the config file.
+	FConfigFile ConfigFile;
+	ConfigFile.Read(FString(FPlatformProcess::ApplicationSettingsDir()) / FString(EPIC_PRODUCT_IDENTIFIER) / FString(TEXT("Install.ini")));
+
+	// Enumerate the installation list.
+	FConfigSection &Section = ConfigFile.FindOrAdd(TEXT("Installations"));
+	for (TMultiMap<FName, FString>::TConstIterator Iter(Section); Iter; ++Iter)
+	{
+		OutInstallations.Add(TPairInitializer<FString, FString>(Iter.Key().ToString(), Iter.Value()));
+	}
+}
+
+bool FGenericPlatformMisc::GetEngineRootDirFromIdentifier(const FString &Identifier, FString &OutRootDir)
+{
+	// Get all the installations
+	TArray< TPair<FString, FString> > Installations;
+	FPlatformMisc::EnumerateEngineInstallations(Installations);
+
+	// Find the one with the right identifier
+	for (TArray< TPair<FString, FString> >::TConstIterator Iter(Installations); Iter; ++Iter)
+	{
+		if (Iter->Key == Identifier)
+		{
+			OutRootDir = Iter->Value;
+			return true;
+		}
+	}
+	return false;
+}
+
+bool FGenericPlatformMisc::GetEngineIdentifierFromRootDir(const FString &RootDir, FString &OutIdentifier)
+{
+	// Get all the installations
+	TArray< TPair<FString, FString> > Installations;
+	FPlatformMisc::EnumerateEngineInstallations(Installations);
+
+	// Normalize the root directory
+	FString NormalizedRootDir = RootDir;
+	FPaths::NormalizeDirectoryName(NormalizedRootDir);
+
+	// Find the label for the given directory
+	for (TArray< TPair<FString, FString> >::TConstIterator Iter(Installations); Iter; ++Iter)
+	{
+		if (Iter->Value == NormalizedRootDir)
+		{
+			OutIdentifier = Iter->Key;
+			return true;
+		}
+	}
+	return false;
+}
+
