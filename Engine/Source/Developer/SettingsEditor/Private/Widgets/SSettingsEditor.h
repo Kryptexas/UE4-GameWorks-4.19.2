@@ -90,6 +90,8 @@ private:
 	// Callback for clicking the 'Check Out' button.
 	FReply HandleCheckOutButtonClicked( );
 
+	// Callback for when the user's culture has changed.
+	void HandleCultureChanged( );
 
 	// Callback for determining the visibility of the 'Locked' notice.
 	EVisibility HandleDefaultConfigNoticeVisibility( ) const;
