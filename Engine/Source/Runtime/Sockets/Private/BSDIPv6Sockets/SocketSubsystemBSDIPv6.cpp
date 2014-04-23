@@ -62,7 +62,7 @@ ESocketErrors FSocketSubsystemBSDIPv6::GetHostByName(const ANSICHAR* HostName, F
 			// we are copying they will get munged data. This relies on the
 			// consumer of this class to call the resolved() accessor before
 			// attempting to read this data
-			((FInternetAddrBSDIPv6&)OutAddr).SetIp(*(in_addr6*)(*HostEnt->h_addr_list));
+			((FInternetAddrBSDIPv6&)OutAddr).SetIp(*(in6_addr*)(*HostEnt->h_addr_list));
 		}
 		else
 		{

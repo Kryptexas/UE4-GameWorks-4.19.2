@@ -49,7 +49,7 @@ public:
 		else
 		{
 			in_addr Addr;
-			Addr.S_un.S_addr= htonl(InAddr);
+			Addr.s_addr= htonl(InAddr);
 
 			SetIp(Addr);
 		}
@@ -64,7 +64,8 @@ public:
 	virtual void SetIp(const TCHAR* InAddr, bool& bIsValid) OVERRIDE
 	{
 		// check for valid IPv6 address
-		if(InetPtonW(AF_INET6, InAddr, &Addr.sin6_addr))
+		auto InAddrAnsi = StringCast<ANSICHAR>(InAddr);
+		if (inet_pton(AF_INET6, InAddrAnsi.Get(), &Addr.sin6_addr))
 		{
 			bIsValid = true;
 			return;
@@ -79,7 +80,7 @@ public:
 			// Remove the closing brace if it exists
 			CopiedAddr.RemoveFromEnd(TEXT("]"));
 
-			if(InetPtonW(AF_INET6, CopiedAddr.GetCharArray().GetTypedData(), &Addr.sin6_addr))
+			if(inet_pton(AF_INET6, StringCast<ANSICHAR>(CopiedAddr.GetCharArray().GetTypedData()).Get(), &Addr.sin6_addr))
 			{
 				bIsValid = true;
 				return;
@@ -88,7 +89,7 @@ public:
 
 		// Check if it's a valid IPv4 address, and if it is convert
 		in_addr  IPv4Addr;
-		if(InetPtonW(AF_INET, InAddr, &IPv4Addr))
+		if (inet_pton(AF_INET, InAddrAnsi.Get(), &IPv4Addr))
 		{
 			bIsValid = true;
 			SetIp(IPv4Addr);
@@ -109,13 +110,19 @@ public:
 		FMemory::Memzero(&Addr.sin6_addr,sizeof(Addr.sin6_addr));
 
 		// special mapping of ipv4 to ipv6 using a hybrid stack, won't work on a pure ipv6 implementation
-		Addr.sin6_addr.u.Word[5] = 0xffff;
-		Addr.sin6_addr.u.Byte[12] = IPv4Addr.S_un.S_un_b.s_b1;
-		Addr.sin6_addr.u.Byte[13] = IPv4Addr.S_un.S_un_b.s_b2;
-		Addr.sin6_addr.u.Byte[14] = IPv4Addr.S_un.S_un_b.s_b3;
-		Addr.sin6_addr.u.Byte[15] = IPv4Addr.S_un.S_un_b.s_b4;
+		uint8	IPv4b1 = (static_cast<uint32>(IPv4Addr.s_addr) & 0xFF),
+				IPv4b2 = ((static_cast<uint32>(IPv4Addr.s_addr) >> 8) & 0xFF),
+				IPv4b3 = ((static_cast<uint32>(IPv4Addr.s_addr) >> 16) & 0xFF),
+				IPv4b4 = ((static_cast<uint32>(IPv4Addr.s_addr) >> 24) & 0xFF);
+		
+		Addr.sin6_addr.s6_addr[10] = 0xff;
+		Addr.sin6_addr.s6_addr[11] = 0xff;
+		Addr.sin6_addr.s6_addr[12] = IPv4b1;
+		Addr.sin6_addr.s6_addr[13] = IPv4b2;
+		Addr.sin6_addr.s6_addr[14] = IPv4b3;
+		Addr.sin6_addr.s6_addr[15] = IPv4b4;
 
-		UE_LOG(LogSockets, Log, TEXT("Using IPv4 address: %d.%d.%d.%d  on an ipv6 socket"), IPv4Addr.S_un.S_un_b.s_b1, IPv4Addr.S_un.S_un_b.s_b2, IPv4Addr.S_un.S_un_b.s_b3, IPv4Addr.S_un.S_un_b.s_b4);
+		UE_LOG(LogSockets, Log, TEXT("Using IPv4 address: %d.%d.%d.%d  on an ipv6 socket"), IPv4b1, IPv4b2, IPv4b3, IPv4b4);
 	}
 
 	/**
@@ -158,7 +165,10 @@ public:
 		// in a dual stack system.
 		// This function doesn't really make sense in IPv6, but too much other code relies on it
 		// existing to not have this here.
-		OutAddr = (Addr.sin6_addr.u.Word[6] << 16) & (Addr.sin6_addr.u.Word[7]);
+
+		//OutAddr = (Addr.sin6_addr.u.Word[6] << 16) & (Addr.sin6_addr.u.Word[7]);
+		// FIXME [RCL]: original code had & here (see commented line above), which looks like a bug. 
+		OutAddr = (Addr.sin6_addr.s6_addr[12] << 24) | (Addr.sin6_addr.s6_addr[13] << 16) | (Addr.sin6_addr.s6_addr[14] << 8) | (Addr.sin6_addr.s6_addr[15]);
 	}
 #if 0
 	/**
@@ -208,6 +218,14 @@ public:
 	virtual void SetBroadcastAddress() OVERRIDE
 	{
 		// broadcast means something different in IPv6, but this is a rough equivalent
+#ifndef in6addr_allnodesonlink
+		// see RFC 4291, link-local multicast address http://tools.ietf.org/html/rfc4291
+		static in6_addr in6addr_allnodesonlink =
+		{
+			{ { 0xff, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01 } }
+		};
+#endif // in6addr_allnodesonlink
+
 		SetIp(in6addr_allnodesonlink);
 		SetPort(0);
 	}

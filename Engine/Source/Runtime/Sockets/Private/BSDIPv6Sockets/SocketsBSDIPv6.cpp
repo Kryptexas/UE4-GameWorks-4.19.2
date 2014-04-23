@@ -159,8 +159,8 @@ bool FSocketBSDIPv6::SendTo(const uint8* Data, int32 Count, int32& BytesSent, co
 	BytesSent = sendto(Socket, (const char*)Data, Count, 0, (FInternetAddrBSDIPv6&)Destination, sizeof(sockaddr_in6));
 	if(BytesSent == SOCKET_ERROR)
 	{
-		int SockError = WSAGetLastError();
-		UE_LOG(LogSockets, Log, TEXT("sendto error: %d"), SockError);
+		ESocketErrors SockError = SocketSubsystem->GetLastErrorCode();
+		UE_LOG(LogSockets, Log, TEXT("sendto error: (ESocketErrors:%d)"), SockError);
 	}
 //	NETWORK_PROFILER(FSocket::SendTo(Data,Count,BytesSent,Destination));
 
