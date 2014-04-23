@@ -136,6 +136,8 @@ class ENGINE_API UConsole : public UObject, public FOutputDevice
 	/** Currently selected auto complete index */
 	int32 AutoCompleteIndex;
 
+	int32 AutoCompleteCursor;
+
 	/** Do we need to rebuild auto complete? */
 	uint32 bIsRuntimeAutoCompleteUpToDate:1;
 
