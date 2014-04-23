@@ -2996,6 +2996,20 @@ FVector2D UEdGraphSchema_K2::CalculateAveragePositionBetweenNodes(UEdGraphPin* I
 	return (InputCorner + OutputCorner) * 0.5f;
 }
 
+bool UEdGraphSchema_K2::IsConstructionScript(const UEdGraph* TestEdGraph) const
+{
+	TArray<class UK2Node_FunctionEntry*> EntryNodes;
+	TestEdGraph->GetNodesOfClass<UK2Node_FunctionEntry>(EntryNodes);
+
+	bool bIsConstructionScript = false;
+	if (EntryNodes.Num() > 0)
+	{
+		UK2Node_FunctionEntry const* const EntryNode = EntryNodes[0];
+		bIsConstructionScript = (EntryNode->SignatureName == FN_UserConstructionScript);
+	}
+	return bIsConstructionScript;
+}
+
 bool UEdGraphSchema_K2::IsCompositeGraph( const UEdGraph* TestEdGraph ) const
 {
 	check(TestEdGraph);

@@ -155,6 +155,23 @@ void UK2Node_AddComponent::ValidateNodeDuringCompilation(FCompilerResultsLog& Me
 		{
 			MessageLog.Error(*FString::Printf(*NSLOCTEXT("KismetCompiler", "InvalidComponentTemplate_Error", "Invalid class '%s' used as template by '%s' for @@").ToString(), *TemplateClass->GetName(), *GetNodeTitle(ENodeTitleType::FullTitle)), this);
 		}
+
+		if (UChildActorComponent const* ChildActorComponent = Cast<UChildActorComponent const>(Template))
+		{
+			UBlueprint const* Blueprint = GetBlueprint();
+
+			UClass const* ChildActorClass = ChildActorComponent->ChildActorClass;
+			if (ChildActorClass == Blueprint->GeneratedClass)
+			{
+				UEdGraph const* ParentGraph = GetGraph();
+				UEdGraphSchema_K2 const* K2Schema = GetDefault<UEdGraphSchema_K2>();
+
+				if (K2Schema->IsConstructionScript(ParentGraph))
+				{
+					MessageLog.Error(*FString::Printf(*NSLOCTEXT("KismetCompiler", "AddSelfComponent_Error", "@@ cannot add a '%s' component in the construction script (could cause infinite recursion).").ToString(), *ChildActorClass->GetName()), this);
+				}
+			}
+		}
 	}
 	else
 	{

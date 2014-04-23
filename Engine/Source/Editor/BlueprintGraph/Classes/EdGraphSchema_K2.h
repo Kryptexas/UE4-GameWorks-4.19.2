@@ -433,11 +433,7 @@ public:
 	 * @param	TestEdGraph		Graph to test
 	 * @return	true if this is a construction script
 	 */
-	inline bool IsConstructionScript(const UEdGraph* TestEdGraph) const
-	{
-		const FName GraphName = TestEdGraph->GetFName();
-		return (GraphName == FN_UserConstructionScript);
-	}
+	bool IsConstructionScript(const UEdGraph* TestEdGraph) const;
 
 	/**
 	 * Checks to see if the specified graph is a composite graph
