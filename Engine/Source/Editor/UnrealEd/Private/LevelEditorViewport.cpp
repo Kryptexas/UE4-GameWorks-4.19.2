@@ -861,94 +861,109 @@ bool FLevelEditorViewportClient::DropObjectsOnActor(FViewportCursorLocation& Cur
 
 	if ( DroppedUponActor != NULL )
 	{
-		bResult = DroppedObjects.Num() > 0;
-
 		const FVector TargetLocation = DroppedLocation ? *DroppedLocation : DroppedUponActor->GetActorLocation();
-		for ( int32 DroppedObjectsIdx = 0; DroppedObjectsIdx < DroppedObjects.Num(); ++DroppedObjectsIdx )
+		if(DroppedObjects.Num() > 1)
 		{
-			UObject* AssetObj = DroppedObjects[DroppedObjectsIdx];
-			ensure( AssetObj );
+			bResult = true;
 
-			// Attempt to apply the dropped asset as a material to the actor
-			const bool bAppliedToActor = ( FactoryToUse == NULL ) ? AttemptApplyObjToActor( AssetObj, DroppedUponActor, DroppedUponSlot ) : false;
-			if ( !bAppliedToActor )
+			// Create a transaction if we have more than 1 item. This causes them all to get "un-created" together
+			FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "CreateActors", "Create Actors") );
+			for ( auto DroppedObject : DroppedObjects )
 			{
-				// Actor
-				GEditor->ClickLocation = TargetLocation;
-				GEditor->ClickPlane = FPlane(TargetLocation, FVector(0.0f, 0.0f, 1.0f));
-				TArray<FHitResult> Hits;
-				FCollisionQueryParams Param(TEXT("DragDropTrace"), true);
-				// grab the bounds of the actor we're being dropped upon
-				FVector DUAOrigin, DUAExtent;
-				DroppedUponActor->GetActorBounds(true, DUAOrigin, DUAExtent);
-				// now calculate how far back we need to be to collide a ray with it - extend it slightly
-				float WorldDistanceMultiplier = 0.0f;
-				switch( Cursor.GetViewportClient()->GetViewportType() )
-				{
-				case LVT_OrthoXY:	WorldDistanceMultiplier = DUAExtent.Z * 1.1; break; // Top
-				case LVT_OrthoXZ:	WorldDistanceMultiplier = DUAExtent.Y * 1.1; break; // Front
-				case LVT_OrthoYZ:	WorldDistanceMultiplier = DUAExtent.X * 1.1; break; // Side
-				}
-				
-				if ( GetWorld()->LineTraceMulti(Hits, Cursor.GetOrigin() - Cursor.GetDirection() * WorldDistanceMultiplier, Cursor.GetOrigin() + Cursor.GetDirection() * HALF_WORLD_MAX, ECC_Visibility, Param) )
-				{
-					bool FoundMatch = false;
-
-					// We only care about the collision with the hit proxy actor as line trace will report hits on hidden actors too.
-					for( int32 HitIdx = 0; HitIdx < Hits.Num(); HitIdx++ )
-					{
-						const FHitResult& Hit = Hits[HitIdx];
-						if ( Hit.GetActor() == DroppedUponActor )
-						{
-							GEditor->ClickLocation = Hit.Location;
-							GEditor->ClickPlane = FPlane( Hit.Location,Hit.Normal );
-							FoundMatch = true;
-							break;
-						}
-					}
-
-					// If unsuccessful, use the first visible actor/component* instead
-					// *Limit this just to models/brush for the time being as its only needed for TTP#307379
-					if ( !FoundMatch )
-					{
-						for( int32 HitIdx = 0; HitIdx < Hits.Num(); HitIdx++ )
-						{
-							const FHitResult& Hit = Hits[HitIdx];
-							if((Hit.GetActor() && !Hit.GetActor()->IsHiddenEd())
-							|| (Hit.Component.IsValid() && Hit.Component->IsVisibleInEditor() && Hit.Component->IsA(UModelComponent::StaticClass()) && DroppedUponActor->IsA(ABrush::StaticClass())))
-							{
-								GEditor->ClickLocation = Hit.Location;
-								GEditor->ClickPlane = FPlane( Hit.Location, Hit.Normal );
-								break;
-							}
-						}
-					}
-				}
-				else
-				{
-					// if the line check fails clear the hit proxy flag so that we place it on the background
-					if ( Cursor.GetViewportType() == LVT_Perspective )
-					{
-						bUsedHitProxy = false;
-					}
-				}
-
-				// Attempt to create actors from the dropped object
-				TArray<AActor*> NewActors = AttemptDropObjAsActors(GetWorld()->GetCurrentLevel(), AssetObj, Cursor, bUsedHitProxy, bSelectActors, ObjectFlags, FactoryToUse);
-
-				if ( NewActors.Num() > 0 )
-				{
-					OutNewActors.Append( NewActors );
-				}
-				else
+				if (!DropSingleObjectOnActor(Cursor, DroppedObject, DroppedUponActor, DroppedUponSlot, TargetLocation, ObjectFlags, OutNewActors, bUsedHitProxy, bSelectActors, FactoryToUse))
 				{
 					bResult = false;
 				}
 			}
 		}
+		else if (DroppedObjects.Num() == 1)
+		{
+			bResult = DropSingleObjectOnActor(Cursor, DroppedObjects[0], DroppedUponActor, DroppedUponSlot, TargetLocation, ObjectFlags, OutNewActors, bUsedHitProxy, bSelectActors, FactoryToUse);
+		}
 	}
 
 	return bResult;
+}
+
+bool FLevelEditorViewportClient::DropSingleObjectOnActor(FViewportCursorLocation& Cursor, UObject* DroppedObject, AActor* DroppedUponActor, int32 DroppedUponSlot, const FVector& DroppedLocation, EObjectFlags ObjectFlags, TArray<AActor*>& OutNewActors, bool bUsedHitProxy /*= true*/, bool bSelectActors /*= true*/, class UActorFactory* FactoryToUse /*= NULL*/ )
+{
+	if (ensure( DroppedObject ))
+	{
+		// Attempt to apply the dropped asset as a material to the actor
+		const bool bAppliedToActor = ( FactoryToUse == NULL ) ? AttemptApplyObjToActor( DroppedObject, DroppedUponActor, DroppedUponSlot ) : false;
+		if ( !bAppliedToActor )
+		{
+			// Actor
+			GEditor->ClickLocation = DroppedLocation;
+			GEditor->ClickPlane = FPlane(DroppedLocation, FVector(0.0f, 0.0f, 1.0f));
+			TArray<FHitResult> Hits;
+			FCollisionQueryParams Param(TEXT("DragDropTrace"), true);
+			// grab the bounds of the actor we're being dropped upon
+			FVector DUAOrigin, DUAExtent;
+			DroppedUponActor->GetActorBounds(true, DUAOrigin, DUAExtent);
+			// now calculate how far back we need to be to collide a ray with it - extend it slightly
+			float WorldDistanceMultiplier = 0.0f;
+			switch( Cursor.GetViewportClient()->GetViewportType() )
+			{
+			case LVT_OrthoXY:	WorldDistanceMultiplier = DUAExtent.Z * 1.1; break; // Top
+			case LVT_OrthoXZ:	WorldDistanceMultiplier = DUAExtent.Y * 1.1; break; // Front
+			case LVT_OrthoYZ:	WorldDistanceMultiplier = DUAExtent.X * 1.1; break; // Side
+			}
+
+			if ( GetWorld()->LineTraceMulti(Hits, Cursor.GetOrigin() - Cursor.GetDirection() * WorldDistanceMultiplier, Cursor.GetOrigin() + Cursor.GetDirection() * HALF_WORLD_MAX, ECC_Visibility, Param) )
+			{
+				bool FoundMatch = false;
+
+				// We only care about the collision with the hit proxy actor as line trace will report hits on hidden actors too.
+				for( int32 HitIdx = 0; HitIdx < Hits.Num(); HitIdx++ )
+				{
+					const FHitResult& Hit = Hits[HitIdx];
+					if ( Hit.GetActor() == DroppedUponActor )
+					{
+						GEditor->ClickLocation = Hit.Location;
+						GEditor->ClickPlane = FPlane( Hit.Location,Hit.Normal );
+						FoundMatch = true;
+						break;
+					}
+				}
+
+				// If unsuccessful, use the first visible actor/component* instead
+				// *Limit this just to models/brush for the time being as its only needed for TTP#307379
+				if ( !FoundMatch )
+				{
+					for( int32 HitIdx = 0; HitIdx < Hits.Num(); HitIdx++ )
+					{
+						const FHitResult& Hit = Hits[HitIdx];
+						if((Hit.GetActor() && !Hit.GetActor()->IsHiddenEd())
+							|| (Hit.Component.IsValid() && Hit.Component->IsVisibleInEditor() && Hit.Component->IsA(UModelComponent::StaticClass()) && DroppedUponActor->IsA(ABrush::StaticClass())))
+						{
+							GEditor->ClickLocation = Hit.Location;
+							GEditor->ClickPlane = FPlane( Hit.Location, Hit.Normal );
+							break;
+						}
+					}
+				}
+			}
+			else
+			{
+				// if the line check fails clear the hit proxy flag so that we place it on the background
+				if ( Cursor.GetViewportType() == LVT_Perspective )
+				{
+					bUsedHitProxy = false;
+				}
+			}
+
+			// Attempt to create actors from the dropped object
+			TArray<AActor*> NewActors = AttemptDropObjAsActors(GetWorld()->GetCurrentLevel(), DroppedObject, Cursor, bUsedHitProxy, bSelectActors, ObjectFlags, FactoryToUse);
+
+			if ( NewActors.Num() > 0 )
+			{
+				OutNewActors.Append( NewActors );
+				return true;
+			}
+		}
+	}
+	return false;
 }
 
 bool FLevelEditorViewportClient::DropObjectsOnBSPSurface( FSceneView* View, FViewportCursorLocation& Cursor, const TArray<UObject*>& DroppedObjects, HModel* TargetProxy, EObjectFlags ObjectFlags, TArray<AActor*>& OutNewActors, bool bSelectActors, UActorFactory* FactoryToUse )
