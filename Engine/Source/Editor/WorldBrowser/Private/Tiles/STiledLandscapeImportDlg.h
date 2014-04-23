@@ -6,6 +6,7 @@
 // 
 class STiledLandcapeImportDlg
 	: public SCompoundWidget
+	, public FGCObject
 {
 public:	
 	/** */		
@@ -18,15 +19,13 @@ public:
 		int32 NumQuadsPerSection;
 	};
 
-	struct FExistingLandscape
+	struct FLandscapeImportLayerData
 	{
-		FGuid	LandcapeGuid;	
-		FString LandcapeLabel;
-		int32	NumComponents;
-		int32	NumSectionsPerComponent;
-		int32	NumQuadsPerSection;
+		FString			LayerName;
+		TArray<FString> WeighmapFileList;
+		bool			bBlend;
 	};
-	
+
 	SLATE_BEGIN_ARGS( STiledLandcapeImportDlg )
 		{}
 	SLATE_END_ARGS()
@@ -37,8 +36,19 @@ public:
 	const FTiledLandscapeImportSettings& GetImportSettings() const;
 
 private:
+	/** FGCObject interface*/
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE;
+
+	/** */
+	TSharedRef<SWidget> CreateLandscapeMaterialPicker();
+	FText GetLandscapeMaterialName() const;
+
+	/** */
 	TSharedRef<SWidget> HandleTileConfigurationComboBoxGenarateWidget(TSharedPtr<FTileImportConfiguration> InItem) const;
 	FText				GetTileConfigurationText() const;
+	
+	/** */
+	TSharedRef<ITableRow> OnGenerateWidgetForLayerDataListView(TSharedPtr<FLandscapeImportLayerData> InLayerData, const TSharedRef<STableViewBase>& OwnerTable);
 
 	/** */
 	TOptional<float> GetScaleX() const;
@@ -59,12 +69,17 @@ private:
 	bool IsImportEnabled() const;
 		
 	/** */
-	FReply OnClickedSelectTiles();
+	FReply OnClickedSelectHeightmapTiles();
+	FReply OnClickedSelectWeighmapTiles(TSharedPtr<FLandscapeImportLayerData> InLayerData);
 	FReply OnClickedImport();
 	FReply OnClickedCancel();
 
 	/** */
+	void OnLandscapeMaterialChanged(const FAssetData& AssetData);
+
+	/** */
 	FText GetImportSummaryText() const;
+	FText GetWeightmapCountText(TSharedPtr<FLandscapeImportLayerData> InLayerData) const; 
 
 	/** */
 	void SetPossibleConfigurationsForResolution(int32 TargetResolutuion);
@@ -75,15 +90,22 @@ private:
 	/** */
 	FText GenerateConfigurationText(int32 NumComponents, int32 NumSectionsPerComponent,	int32 NumQuadsPerSection) const;
 
+	/** */
+	void UpdateLandscapeLayerList();
+
 private:
 	/** */
 	TSharedPtr<SWindow> ParentWindow;
-	
+		
 	/** */
 	TSharedPtr<SComboBox<TSharedPtr<FTileImportConfiguration>>> TileConfigurationComboBox;
 	
 	/** */
-	TSharedPtr<SComboBox<TSharedPtr<FExistingLandscape>>> ExistingLandscapeActors;
+	TSharedPtr<SComboButton> LandscapeMaterialComboButton;
+
+	TSharedPtr<SListView<TSharedPtr<FLandscapeImportLayerData>>>	LayerDataListView;
+	TArray<TSharedPtr<FLandscapeImportLayerData>>					LayerDataList;		
+
 	
 	/** */
 	FTiledLandscapeImportSettings ImportSettings;

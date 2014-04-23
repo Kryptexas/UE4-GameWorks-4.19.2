@@ -39,6 +39,7 @@ public:
 		// Depending on landscape guid import code will spawn Landscape actor or LandscapeProxy actor
 		FGuid								LandscapeGuid;
 		FTransform							LandscapeTransform;
+		UMaterialInterface*					LandscapeMaterial;
 		int32								ComponentSizeQuads;
 		int32								SectionsPerComponent;
 		int32								QuadsPerSection;

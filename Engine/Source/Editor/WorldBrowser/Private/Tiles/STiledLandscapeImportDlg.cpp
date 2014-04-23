@@ -38,6 +38,11 @@ static FIntPoint ExtractHeighmapTileCoordinates(FString BaseFilename)
 	return ResultPosition;
 }
 
+void STiledLandcapeImportDlg::AddReferencedObjects( FReferenceCollector& Collector )
+{
+	Collector.AddReferencedObject(ImportSettings.LandscapeMaterial);
+}
+
 void STiledLandcapeImportDlg::Construct(const FArguments& InArgs, TSharedPtr<SWindow> InParentWindow)
 {
 	ParentWindow = InParentWindow;
@@ -65,8 +70,8 @@ void STiledLandcapeImportDlg::Construct(const FArguments& InArgs, TSharedPtr<SWi
 					SNew(SButton)
 					.HAlign(HAlign_Center)
 					.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
-					.OnClicked(this, &STiledLandcapeImportDlg::OnClickedSelectTiles)
-					.Text(LOCTEXT("TiledLandscapeImport_SelectButtonText", "Select Tiles..."))
+					.OnClicked(this, &STiledLandcapeImportDlg::OnClickedSelectHeightmapTiles)
+					.Text(LOCTEXT("TiledLandscapeImport_SelectButtonText", "Select Heightmap Tiles..."))
 				]
 				
 				// Tiles origin offset
@@ -154,6 +159,42 @@ void STiledLandcapeImportDlg::Construct(const FArguments& InArgs, TSharedPtr<SWi
 					.OnYCommitted( this, &STiledLandcapeImportDlg::OnSetScale, 1 )
 					.OnZCommitted( this, &STiledLandcapeImportDlg::OnSetScale, 2 )
 				]
+
+				// Landcape material
+				+SUniformGridPanel::Slot(0, 4)
+				.VAlign(VAlign_Center)
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("TiledLandscapeImport_MaterialText", "Material"))
+				]
+			
+				+SUniformGridPanel::Slot(1, 4)
+				.VAlign(VAlign_Center)
+				[
+					SAssignNew(LandscapeMaterialComboButton, SComboButton)
+					.VAlign(EVerticalAlignment::VAlign_Center)
+					.ComboButtonStyle(FEditorStyle::Get(), "ToolbarComboButton")
+					.ForegroundColor(FLinearColor::White)
+					.ContentPadding(3)
+					.MenuPlacement(EMenuPlacement::MenuPlacement_BelowAnchor)
+					.OnGetMenuContent(this, &STiledLandcapeImportDlg::CreateLandscapeMaterialPicker)
+					.ButtonContent()
+					[
+						SNew( STextBlock )
+						.Text(this, &STiledLandcapeImportDlg::GetLandscapeMaterialName)
+					]
+				]
+			]
+
+			// Layers
+			+SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
+			[
+				SAssignNew(LayerDataListView, SListView<TSharedPtr<FLandscapeImportLayerData>>)
+				.ListItemsSource( &LayerDataList )
+				.OnGenerateRow( this, &STiledLandcapeImportDlg::OnGenerateWidgetForLayerDataListView )
+				.SelectionMode(ESelectionMode::None)
 			]
 
 			// Import summary
@@ -204,6 +245,36 @@ void STiledLandcapeImportDlg::Construct(const FArguments& InArgs, TSharedPtr<SWi
 	SetPossibleConfigurationsForResolution(0);
 }
 
+TSharedRef<SWidget> STiledLandcapeImportDlg::CreateLandscapeMaterialPicker()
+{
+	FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
+
+	FAssetPickerConfig AssetPickerConfig;
+	AssetPickerConfig.Filter.ClassNames.Add(UMaterial::StaticClass()->GetFName());
+	AssetPickerConfig.Filter.ClassNames.Add(UMaterialInstance::StaticClass()->GetFName());
+	AssetPickerConfig.OnAssetSelected = FOnAssetSelected::CreateSP(this, &STiledLandcapeImportDlg::OnLandscapeMaterialChanged);
+	AssetPickerConfig.InitialAssetViewType = EAssetViewType::List;
+	AssetPickerConfig.bAllowNullSelection = true;
+	AssetPickerConfig.ThumbnailScale = 0.0f;
+	
+	return SNew(SBox)
+		.WidthOverride(250)
+		.HeightOverride(300)
+		[
+			ContentBrowserModule.Get().CreateAssetPicker(AssetPickerConfig)
+		];
+}
+
+FText STiledLandcapeImportDlg::GetLandscapeMaterialName() const
+{
+	if (ImportSettings.LandscapeMaterial)
+	{
+		return FText::FromString(ImportSettings.LandscapeMaterial->GetName());
+	}
+
+	return LOCTEXT("TiledLandscapeImport_NoLandscapeMaterialText", "Default Material");
+}
+
 TSharedRef<SWidget> STiledLandcapeImportDlg::HandleTileConfigurationComboBoxGenarateWidget(TSharedPtr<FTileImportConfiguration> InItem) const
 {
 	const FText ItemText = GenerateConfigurationText(InItem->NumComponents, InItem->NumSectionsPerComponent, InItem->NumQuadsPerSection);
@@ -217,7 +288,7 @@ TSharedRef<SWidget> STiledLandcapeImportDlg::HandleTileConfigurationComboBoxGena
 
 FText STiledLandcapeImportDlg::GetTileConfigurationText() const
 {
-	if (ImportSettings.ImportFileList.Num() == 0)
+	if (ImportSettings.HeightmapFileList.Num() == 0)
 	{
 		return LOCTEXT("TiledLandscapeImport_NoTilesText", "No tiles selected");
 	}
@@ -228,6 +299,47 @@ FText STiledLandcapeImportDlg::GetTileConfigurationText() const
 	}
 	
 	return GenerateConfigurationText(ImportSettings.ComponentsNum, ImportSettings.SectionsPerComponent, ImportSettings.QuadsPerSection);
+}
+
+TSharedRef<ITableRow> STiledLandcapeImportDlg::OnGenerateWidgetForLayerDataListView(TSharedPtr<FLandscapeImportLayerData> InLayerData, const TSharedRef<STableViewBase>& OwnerTable)
+{
+	return 	SNew(STableRow< TSharedRef<FLandscapeImportLayerData> >, OwnerTable)
+			[
+				SNew(SBorder)
+				[
+					SNew(SHorizontalBox)
+				
+					+SHorizontalBox::Slot()
+					.VAlign(VAlign_Center)
+					.HAlign(HAlign_Left)
+					.FillWidth(1)
+					[
+						SNew(STextBlock).Text(InLayerData->LayerName)
+					]
+
+					+SHorizontalBox::Slot()
+					.VAlign(VAlign_Center)
+					.HAlign(HAlign_Right)
+					.Padding(2)
+					.AutoWidth()
+					[
+						SNew(STextBlock).Text(this, &STiledLandcapeImportDlg::GetWeightmapCountText, InLayerData)
+					]
+					
+					+SHorizontalBox::Slot()
+					.VAlign(VAlign_Center)
+					.HAlign(HAlign_Right)
+					.AutoWidth()
+					[
+						SNew(SButton)
+						.HAlign(HAlign_Center)
+						.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
+						.OnClicked(this, &STiledLandcapeImportDlg::OnClickedSelectWeighmapTiles, InLayerData)
+						.Text(LOCTEXT("TiledLandscapeImport_SelectWeightmapButtonText", "Select Weightmap Tiles..."))
+					]
+				]
+			];
+	
 }
 
 const FTiledLandscapeImportSettings& STiledLandcapeImportDlg::GetImportSettings() const
@@ -294,14 +406,14 @@ void STiledLandcapeImportDlg::OnSetImportConfiguration(TSharedPtr<FTileImportCon
 	else
 	{
 		ImportSettings.ComponentsNum = 0;
-		ImportSettings.ImportFileList.Empty();
+		ImportSettings.HeightmapFileList.Empty();
 	}
 }
 
-FReply STiledLandcapeImportDlg::OnClickedSelectTiles()
+FReply STiledLandcapeImportDlg::OnClickedSelectHeightmapTiles()
 {
 	TotalLandscapeRect = FIntRect(MAX_int32, MAX_int32, MIN_int32, MIN_int32);
-	ImportSettings.ImportFileList.Empty();
+	ImportSettings.HeightmapFileList.Empty();
 	ImportSettings.TileCoordinates.Empty();
 	
 	SetPossibleConfigurationsForResolution(0);
@@ -314,22 +426,23 @@ FReply STiledLandcapeImportDlg::OnClickedSelectTiles()
 			void* ParentWindowWindowHandle = ParentWindow->GetNativeWindow()->GetOSWindowHandle();
 
 			const FString ImportFileTypes = TEXT("Raw heightmap tiles (*.r16)|*.r16");
-			if (DesktopPlatform->OpenFileDialog(
-				ParentWindowWindowHandle,
-				LOCTEXT("SelectHeightmapTiles", "Select heightmap tiles").ToString(),
-				*FEditorDirectories::Get().GetLastDirectory(ELastDirectory::UNR),
-				TEXT(""),
-				*ImportFileTypes,
-				EFileDialogFlags::Multiple,
-				ImportSettings.ImportFileList
-				) && ImportSettings.ImportFileList.Num())
+			bool bOpened = DesktopPlatform->OpenFileDialog(
+								ParentWindowWindowHandle,
+								LOCTEXT("SelectHeightmapTiles", "Select heightmap tiles").ToString(),
+								*FEditorDirectories::Get().GetLastDirectory(ELastDirectory::UNR),
+								TEXT(""),
+								*ImportFileTypes,
+								EFileDialogFlags::Multiple,
+								ImportSettings.HeightmapFileList);
+
+			if (bOpened	&& ImportSettings.HeightmapFileList.Num())
 			{
 				IFileManager& FileManager = IFileManager::Get();
 				bool bValidTiles = true;
 
 				// All heightmap tiles have to be the same size and have correct tile position encoded into filename
-				const int64 TargetFileSize = FileManager.FileSize(*ImportSettings.ImportFileList[0]);
-				for (const FString& Filename : ImportSettings.ImportFileList)
+				const int64 TargetFileSize = FileManager.FileSize(*ImportSettings.HeightmapFileList[0]);
+				for (const FString& Filename : ImportSettings.HeightmapFileList)
 				{
 					int64 FileSize = FileManager.FileSize(*Filename);
 					if (FileSize != TargetFileSize)
@@ -362,13 +475,58 @@ FReply STiledLandcapeImportDlg::OnClickedSelectTiles()
 	return FReply::Handled();
 }
 
+FReply STiledLandcapeImportDlg::OnClickedSelectWeighmapTiles(TSharedPtr<FLandscapeImportLayerData> InLayerData)
+{
+	InLayerData->WeighmapFileList.Empty();
+
+	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+	if (DesktopPlatform)
+	{
+		if (ParentWindow->GetNativeWindow().IsValid())
+		{
+			void* ParentWindowWindowHandle = ParentWindow->GetNativeWindow()->GetOSWindowHandle();
+
+			const FString ImportFileTypes = TEXT("Raw weigtmap tiles (*.raw)|*.raw");
+			bool bOpened = DesktopPlatform->OpenFileDialog(
+								ParentWindowWindowHandle,
+								LOCTEXT("SelectHeightmapTiles", "Select weightmap tiles").ToString(),
+								*FEditorDirectories::Get().GetLastDirectory(ELastDirectory::UNR),
+								TEXT(""),
+								*ImportFileTypes,
+								EFileDialogFlags::Multiple,
+								InLayerData->WeighmapFileList);
+
+			if (bOpened	&& InLayerData->WeighmapFileList.Num())
+			{
+				// TODO: check if it's a valid weightmaps
+			}
+		}
+	}
+	
+	return FReply::Handled();
+}
+
 bool STiledLandcapeImportDlg::IsImportEnabled() const
 {
-	return ImportSettings.ImportFileList.Num() && ImportSettings.ComponentsNum > 0;
+	return ImportSettings.HeightmapFileList.Num() && ImportSettings.ComponentsNum > 0;
 }
 
 FReply STiledLandcapeImportDlg::OnClickedImport()
 {
+	// copy weightmaps list data to an import structure  
+	ImportSettings.WeightmapFileList.Empty();
+	ImportSettings.WeightmapFileList.SetNum(ImportSettings.LandscapeLayerNameList.Num());
+	check(ImportSettings.WeightmapFileList.Num() == LayerDataList.Num());
+	for (int32 LayerIdx = 0; LayerIdx < LayerDataList.Num(); ++LayerIdx)
+	{
+		ImportSettings.WeightmapFileList[LayerIdx] = LayerDataList[LayerIdx]->WeighmapFileList;
+		
+		// we assume weightmaps tiles will match heightmap tiles 
+		ImportSettings.WeightmapFileList[LayerIdx].Sort();
+	}
+
+	ImportSettings.HeightmapFileList.Sort();
+			
 	ParentWindow->RequestDestroyWindow();
 	return FReply::Handled();	
 }
@@ -377,8 +535,17 @@ FReply STiledLandcapeImportDlg::OnClickedCancel()
 {
 	ParentWindow->RequestDestroyWindow();
 	
-	ImportSettings.ImportFileList.Empty();
+	ImportSettings.HeightmapFileList.Empty();
 	return FReply::Handled();	
+}
+
+void STiledLandcapeImportDlg::OnLandscapeMaterialChanged(const FAssetData& AssetData)
+{
+	ImportSettings.LandscapeMaterial = Cast<UMaterialInterface>(AssetData.GetAsset());
+	LandscapeMaterialComboButton->SetIsOpen(false);
+
+	// pull landscape layers from a chosen material
+	UpdateLandscapeLayerList();
 }
 
 void STiledLandcapeImportDlg::SetPossibleConfigurationsForResolution(int32 TargetResolutuion)
@@ -438,13 +605,13 @@ void STiledLandcapeImportDlg::GenerateAllPossibleTileConfigurations()
 
 FText STiledLandcapeImportDlg::GetImportSummaryText() const
 {
-	if (ImportSettings.ImportFileList.Num() == 0 || ImportSettings.ComponentsNum <= 0)
+	if (ImportSettings.HeightmapFileList.Num() == 0 || ImportSettings.ComponentsNum <= 0)
 	{
 		return FText();
 	}
 	
 	// Tile information(num, resolution)
-	const FString TilesSummary = FString::Printf(TEXT("%d - %dx%d"), ImportSettings.ImportFileList.Num(), ImportSettings.TileResolution, ImportSettings.TileResolution);
+	const FString TilesSummary = FString::Printf(TEXT("%d - %dx%d"), ImportSettings.HeightmapFileList.Num(), ImportSettings.TileResolution, ImportSettings.TileResolution);
 	
 	// Total landscape size(NxN km)
 	int32 WidthInTilesX = TotalLandscapeRect.Width() + 1;
@@ -460,6 +627,12 @@ FText STiledLandcapeImportDlg::GetImportSummaryText() const
 		);
 }
 
+FText STiledLandcapeImportDlg::GetWeightmapCountText(TSharedPtr<FLandscapeImportLayerData> InLayerData) const
+{
+	int32 NumWeighmaps = InLayerData.IsValid() ? InLayerData->WeighmapFileList.Num() : 0;
+	return FText::AsNumber(NumWeighmaps);
+}
+
 FText STiledLandcapeImportDlg::GenerateConfigurationText(int32 NumComponents, int32 NumSectionsPerComponent, int32 NumQuadsPerSection) const
 {
 	const FString ComponentsStr = FString::Printf(TEXT("%dx%d"), NumComponents, NumComponents);
@@ -472,6 +645,27 @@ FText STiledLandcapeImportDlg::GenerateConfigurationText(int32 NumComponents, in
 		FText::FromString(SectionsStr),
 		FText::FromString(QuadsStr)
 		);
+}
+
+void STiledLandcapeImportDlg::UpdateLandscapeLayerList()
+{
+	ImportSettings.LandscapeLayerNameList = ALandscapeProxy::GetLayersFromMaterial(ImportSettings.LandscapeMaterial);
+	//
+	ImportSettings.WeightmapFileList.Empty();
+	ImportSettings.WeightmapFileList.SetNum(ImportSettings.LandscapeLayerNameList.Num());
+
+	//	
+	LayerDataList.Empty();
+	for (FName LayerName  : ImportSettings.LandscapeLayerNameList)
+	{
+		TSharedPtr<FLandscapeImportLayerData> LayerData = MakeShareable(new FLandscapeImportLayerData());
+		LayerData->LayerName = LayerName.ToString();
+		LayerData->bBlend = true;
+
+		LayerDataList.Add(LayerData);
+	}
+
+	LayerDataListView->RequestListRefresh();
 }
 
 #undef LOCTEXT_NAMESPACE

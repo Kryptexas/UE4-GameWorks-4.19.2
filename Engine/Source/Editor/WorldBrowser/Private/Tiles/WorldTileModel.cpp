@@ -920,6 +920,11 @@ ALandscapeProxy* FWorldTileModel::ImportLandscape(const FLandscapeImportSettings
 	
 	Landscape->SetActorTransform(Settings.LandscapeTransform);
 	
+	if (Settings.LandscapeMaterial)
+	{
+		Landscape->LandscapeMaterial = Settings.LandscapeMaterial;
+	}
+	
 	// Create landscape components	
 	Landscape->Import(
 		LandscapeGuid, 

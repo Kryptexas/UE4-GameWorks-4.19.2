@@ -521,16 +521,25 @@ struct FTiledLandscapeImportSettings
 		, QuadsPerSection(63)
 		, SectionsPerComponent(1)
 		, TilesCoordinatesOffset(0,0)
-		, TileResolution(1009)	
+		, TileResolution(1009)
+		, LandscapeMaterial(nullptr)
 	{}
 	
 	FVector				Scale3D;
 	int32				ComponentsNum;
 	int32				QuadsPerSection;
 	int32				SectionsPerComponent;
-	
-	TArray<FString>		ImportFileList;
+
+	TArray<FString>		HeightmapFileList;
 	TArray<FIntPoint>	TileCoordinates;
 	FIntPoint			TilesCoordinatesOffset;	
 	int32				TileResolution;	
+
+
+	UMaterialInterface*					LandscapeMaterial;
+	
+	TArray<FName>						LandscapeLayerNameList;
+	// list of weightmap files per each layer
+	TArray<TArray<FString>>				WeightmapFileList;
+
 };

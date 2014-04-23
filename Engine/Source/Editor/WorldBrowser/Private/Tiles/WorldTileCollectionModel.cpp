@@ -1236,7 +1236,7 @@ void FWorldTileCollectionModel::AddLandscapeProxy_Executed(FWorldTileModel::EWor
 }
 
 template<typename DataType>
-static bool ReadHeighmapFile(TArray<DataType>& Result, const TCHAR* Filename, uint32 Flags = 0)
+static bool ReadRawFile(TArray<DataType>& Result, const TCHAR* Filename, uint32 Flags = 0)
 {
 	auto Reader = TScopedPointer<FArchive>(IFileManager::Get().CreateFileReader(Filename, Flags));
 	if (!Reader)
@@ -1251,6 +1251,41 @@ static bool ReadHeighmapFile(TArray<DataType>& Result, const TCHAR* Filename, ui
 	Result.AddUninitialized(Reader->TotalSize()/Result.GetTypeSize());
 	Reader->Serialize(Result.GetTypedData(), Result.Num()*Result.GetTypeSize());
 	return Reader->Close();
+}
+
+static ULandscapeLayerInfoObject* GetandscapeLayerInfoObject(FName LayerName, FString ContentPath)
+{
+	// Build default layer object name and package name
+	FString LayerObjectName = FString::Printf(TEXT("%s_LayerInfo"), *LayerName.ToString());
+	FString Path = ContentPath + TEXT("_sharedassets/");
+	if (Path.StartsWith("/Temp/"))
+	{
+		Path = FString("/Game/") + Path.RightChop(FString("/Temp/").Len());
+	}
+	
+	FString PackageName = Path + LayerObjectName;
+	UPackage* Package = FindPackage(nullptr, *PackageName);
+	if (Package == nullptr)
+	{
+		Package = CreatePackage(nullptr, *PackageName);
+	}
+
+	ULandscapeLayerInfoObject* LayerInfo = FindObject<ULandscapeLayerInfoObject>(Package, *LayerObjectName);
+	if (LayerInfo == nullptr)
+	{
+		LayerInfo = ConstructObject<ULandscapeLayerInfoObject>(ULandscapeLayerInfoObject::StaticClass(), Package, FName(*LayerObjectName), RF_Public | RF_Standalone | RF_Transactional);
+		// Notify the asset registry
+		FAssetRegistryModule::AssetCreated(LayerInfo);
+		// Mark the package dirty...
+		Package->MarkPackageDirty();
+		//
+		TArray<UPackage*> PackagesToSave; 
+		PackagesToSave.Add(Package);
+		FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, false, false);
+	}
+		
+	LayerInfo->LayerName = LayerName;
+	return LayerInfo;
 }
 
 void FWorldTileCollectionModel::ImportTiledLandscape_Executed()
@@ -1271,13 +1306,13 @@ void FWorldTileCollectionModel::ImportTiledLandscape_Executed()
 
 	const FTiledLandscapeImportSettings& ImportSettings = ImportDialog->GetImportSettings();
 		
-	if (ImportSettings.ImportFileList.Num())
+	if (ImportSettings.HeightmapFileList.Num())
 	{
 		// Default path for imported landscape tiles
 		// Use tile prefix as a folder name under world root
 		FString WorldRootPath = FPackageName::LongPackageNameToFilename(GetWorld()->WorldComposition->GetWorldRoot());
 		// Extract tile prefix
-		FString FolderName = FPaths::GetBaseFilename(ImportSettings.ImportFileList[0]);
+		FString FolderName = FPaths::GetBaseFilename(ImportSettings.HeightmapFileList[0]);
 		int32 PrefixEnd = FolderName.Find(TEXT("_x"), ESearchCase::IgnoreCase, ESearchDir::FromEnd);
 		FolderName = FolderName.Left(PrefixEnd);
 		WorldRootPath+= FolderName;
@@ -1290,15 +1325,16 @@ void FWorldTileCollectionModel::ImportTiledLandscape_Executed()
 
 		// Import tiles
 		int32 TileIndex = 0;
-		for (const FString& Filename : ImportSettings.ImportFileList)
+		for (const FString& Filename : ImportSettings.HeightmapFileList)
 		{
 			FString TileName = FPaths::GetBaseFilename(Filename);
 			FVector TileScale = ImportSettings.Scale3D;
 
-			GWarn->StatusUpdate(TileIndex, ImportSettings.ImportFileList.Num(), FText::Format(LOCTEXT("ImportingLandscapeTiles", "Importing landscape tiles: {0}"), FText::FromString(TileName)));
+			GWarn->StatusUpdate(TileIndex, ImportSettings.HeightmapFileList.Num(), FText::Format(LOCTEXT("ImportingLandscapeTiles", "Importing landscape tiles: {0}"), FText::FromString(TileName)));
 			
 			FWorldTileModel::FLandscapeImportSettings TileImportSettings;
 			TileImportSettings.LandscapeGuid		= LandscapeGuid;
+			TileImportSettings.LandscapeMaterial	= ImportSettings.LandscapeMaterial;
 			TileImportSettings.ComponentSizeQuads	= ImportSettings.QuadsPerSection*ImportSettings.SectionsPerComponent;
 			TileImportSettings.QuadsPerSection		= ImportSettings.QuadsPerSection;
 			TileImportSettings.SectionsPerComponent = ImportSettings.SectionsPerComponent;
@@ -1307,7 +1343,24 @@ void FWorldTileCollectionModel::ImportTiledLandscape_Executed()
 			TileImportSettings.HeightmapFilename	= Filename;
 			TileImportSettings.LandscapeTransform.SetScale3D(TileScale);
 
-			if (ReadHeighmapFile(TileImportSettings.HeightData, *Filename, FILEREAD_Silent))
+			// Setup weightmaps for each layer
+			for (int32 LayerIdx = 0; LayerIdx < ImportSettings.LandscapeLayerNameList.Num(); ++LayerIdx)
+			{
+				FName LayerName = ImportSettings.LandscapeLayerNameList[LayerIdx];
+				
+				TileImportSettings.ImportLayers.Add(FLandscapeImportLayerInfo(LayerName));
+				FLandscapeImportLayerInfo& LayerImportInfo = TileImportSettings.ImportLayers.Last();
+
+				if (ImportSettings.WeightmapFileList[LayerIdx].IsValidIndex(TileIndex))
+				{
+					LayerImportInfo.SourceFilePath = ImportSettings.WeightmapFileList[LayerIdx][TileIndex];
+					ReadRawFile(LayerImportInfo.LayerData, *LayerImportInfo.SourceFilePath, FILEREAD_Silent);
+					LayerImportInfo.LayerInfo = GetandscapeLayerInfoObject(LayerImportInfo.LayerName, GetWorld()->GetOutermost()->GetName());
+					LayerImportInfo.LayerInfo->bNoWeightBlend = false; //option ?
+				}
+			}
+						
+			if (ReadRawFile(TileImportSettings.HeightData, *Filename, FILEREAD_Silent))
 			{
 				FString MapFileName = WorldRootPath + TileName + FPackageName::GetMapPackageExtension();
 				// Create a new world - so we can 'borrow' its level
@@ -1334,6 +1387,20 @@ void FWorldTileCollectionModel::ImportTiledLandscape_Executed()
 
 					if (NewLandscape)
 					{
+						// update shared LandscapeInfo objects with new layers
+						ULandscapeInfo* LandscapeInfo = NewLandscape->GetLandscapeInfo(true);
+						LandscapeInfo->UpdateLayerInfoMap(NewLandscape);
+						for (const FLandscapeImportLayerInfo& LayerImportInfo : TileImportSettings.ImportLayers)
+						{
+							NewLandscape->EditorLayerSettings.Add(FLandscapeEditorLayerSettings(LayerImportInfo.LayerInfo, LayerImportInfo.SourceFilePath));
+							int32 LayerInfoIndex = LandscapeInfo->GetLayerInfoIndex(LayerImportInfo.LayerInfo->LayerName);
+							if (ensure(LayerInfoIndex != INDEX_NONE))
+							{
+								FLandscapeInfoLayerSettings& LayerSettings = LandscapeInfo->Layers[LayerInfoIndex];
+								LayerSettings.LayerInfoObj = LayerImportInfo.LayerInfo;
+							}
+						}
+						
 						// Set landscape actor location at min corner of bounding rect, so it will be centered around origin
 						FIntRect NewLandscapeRect = NewLandscape->GetBoundingRect();
 						float WidthX = NewLandscapeRect.Width()*TileScale.X;
