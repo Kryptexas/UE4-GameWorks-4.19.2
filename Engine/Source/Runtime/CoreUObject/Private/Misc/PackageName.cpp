@@ -380,17 +380,24 @@ bool FPackageName::DoesPackageNameContainInvalidCharacters(const FString& InLong
 {
 	// See if the name contains invalid characters.
 	TCHAR CharString[] = { '\0', '\0' };
+	FString MatchedInvalidChars;
 	for (const TCHAR* InvalidCharacters = INVALID_LONGPACKAGE_CHARACTERS; *InvalidCharacters; ++InvalidCharacters)
 	{
 		CharString[0] = *InvalidCharacters;
 		if (InLongPackageName.Contains(CharString))
 		{
-			if (OutReason != NULL)
-			{
-				*OutReason = FText::Format( NSLOCTEXT("Core", "NameContainsInvalidCharacter", "Name contains an invalid character : [{0}]"), FText::FromString( CharString ) );
-			}
-			return true;
+			MatchedInvalidChars += *InvalidCharacters;
 		}
+	}
+	if (MatchedInvalidChars.Len())
+	{
+		if (OutReason)
+		{
+			FFormatNamedArguments Args;
+			Args.Add( TEXT("IllegalNameCharacters"), FText::FromString(MatchedInvalidChars) );
+			*OutReason = FText::Format( NSLOCTEXT("Core", "NameContainsInvalidCharacters", "Name may not contain the following characters: {IllegalNameCharacters}"), Args );
+		}
+		return true;
 	}
 	return false;
 }

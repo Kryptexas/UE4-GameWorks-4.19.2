@@ -81,12 +81,8 @@ bool GameProjectUtils::IsValidProjectFileForCreation(const FString& ProjectFile,
 		return false;
 	}
 
-	FString IllegalPathCharacters;
-	if ( !ProjectPathContainsOnlyLegalCharacters(FPaths::GetPath(ProjectFile), IllegalPathCharacters) )
+	if ( !FPaths::ValidatePath(FPaths::GetPath(ProjectFile), &OutFailReason) )
 	{
-		FFormatNamedArguments Args;
-		Args.Add( TEXT("IllegalPathCharacters"), FText::FromString( IllegalPathCharacters ) );
-		OutFailReason = FText::Format( LOCTEXT( "ProjectNameContainsIllegalCharacters", "Project names may not contain the following characters: {IllegalPathCharacters}" ), Args );
 		return false;
 	}
 
@@ -173,12 +169,8 @@ bool GameProjectUtils::OpenProject(const FString& ProjectFile, FText& OutFailRea
 		return false;
 	}
 
-	FString IllegalPathCharacters;
-	if ( !ProjectPathContainsOnlyLegalCharacters(FPaths::GetPath(ProjectFile), IllegalPathCharacters) )
+	if ( !FPaths::ValidatePath(FPaths::GetPath(ProjectFile), &OutFailReason) )
 	{
-		FFormatNamedArguments Args;
-		Args.Add( TEXT("IllegalPathCharacters"), FText::FromString( IllegalPathCharacters ) );
-		OutFailReason = FText::Format( LOCTEXT( "ProjectPathContainsIllegalCharacters", "A projects path may not contain the following characters: {IllegalPathCharacters}" ), Args );
 		return false;
 	}
 
@@ -1044,49 +1036,6 @@ bool GameProjectUtils::NameContainsOnlyLegalCharacters(const FString& TestName, 
 	{
 		const FString& Char = TestName.Mid( CharIdx, 1 );
 		if ( !FChar::IsAlnum(Char[0]) && Char != TEXT("_") )
-		{
-			if ( !OutIllegalCharacters.Contains( Char ) )
-			{
-				OutIllegalCharacters += Char;
-			}
-
-			bContainsIllegalCharacters = true;
-		}
-	}
-
-	return !bContainsIllegalCharacters;
-}
-
-bool GameProjectUtils::ProjectPathContainsOnlyLegalCharacters(const FString& ProjectFilePath, FString& OutIllegalCharacters)
-{
-	bool bContainsIllegalCharacters = false;
-
-	// set of characters not allowed in paths (Windows limitations)
-	FString AllIllegalCharacters = TEXT("<>\"|?*");
-
-	// Add lower-32 characters (illegal on windows)
-	for ( TCHAR IllegalChar = 0; IllegalChar < 32; IllegalChar++ )
-	{
-		AllIllegalCharacters += IllegalChar;
-	}
-
-	// @ characters are not legal. Used for revision/label specifiers in P4/SVN.
-	AllIllegalCharacters += TEXT("@");					
-	// # characters are not legal. Used for revision specifiers in P4/SVN.
-	AllIllegalCharacters += TEXT("#");					
-	// ^ characters are not legal. While the filesystem wont complain about this character, visual studio will.
-	AllIllegalCharacters += TEXT("^");					
-
-#if PLATFORM_MAC
-	// : characters are illegal on Mac OSX (but we need to allow them on Windows!)
-	AllIllegalCharacters += TEXT(":");
-#endif
-
-	for ( int32 CharIdx = 0; CharIdx < AllIllegalCharacters.Len() ; ++CharIdx )
-	{
-		const FString& Char = AllIllegalCharacters.Mid( CharIdx, 1 );
-
-		if ( ProjectFilePath.Contains( Char ) )
 		{
 			if ( !OutIllegalCharacters.Contains( Char ) )
 			{

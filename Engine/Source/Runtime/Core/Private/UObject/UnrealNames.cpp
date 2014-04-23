@@ -835,19 +835,26 @@ bool FName::IsValidXName( FString InvalidChars/*=INVALID_NAME_CHARACTERS*/, FTex
 	FString Name = ToString();
 
 	// See if the name contains invalid characters.
-	FString Char;
+	TCHAR CharString[] = { '\0', '\0' };
+	FString MatchedInvalidChars;
 	for( int32 x = 0; x < InvalidChars.Len() ; ++x )
 	{
-		Char = InvalidChars.Mid( x, 1 );
-
-		if( Name.Contains( Char ) )
+		CharString[0] = InvalidChars[x];
+		if( Name.Contains( CharString ) )
 		{
-			if ( Reason != NULL )
-			{
-				*Reason = FText::Format( NSLOCTEXT("Engine", "FNameContainsInvalidCharacter", "Name contains an invalid character : [{0}]"), FText::FromString( Char ) );
-			}
-			return false;
+			MatchedInvalidChars += CharString;
 		}
+	}
+
+	if ( MatchedInvalidChars.Len() )
+	{
+		if ( Reason )
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("IllegalNameCharacters"), FText::FromString(MatchedInvalidChars));
+			*Reason = FText::Format( NSLOCTEXT("Core", "NameContainsInvalidCharacters", "Name may not contain the following characters: {IllegalNameCharacters}"), Args );
+		}
+		return false;
 	}
 
 	return true;

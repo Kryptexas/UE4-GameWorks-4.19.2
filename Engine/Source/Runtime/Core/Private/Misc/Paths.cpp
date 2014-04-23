@@ -784,6 +784,81 @@ FString FPaths::CreateTempFilename( const TCHAR* Path, const TCHAR* Prefix, cons
 	return UniqueFilename;
 }
 
+bool FPaths::ValidatePath( const FString& InPath, FText* OutReason )
+{
+	// Windows has the most restricted file system, and since we're cross platform, we have to respect the limitations of the lowest common denominator
+	// # isn't legal. Used for revision specifiers in P4/SVN, and also not allowed on Windows anyway
+	// @ isn't legal. Used for revision/label specifiers in P4/SVN
+	// ^ isn't legal. While the file-system won't complain about this character, Visual Studio will				
+	static const FString RestrictedChars = "/?:&\\*\"<>|%#@^";
+	static const FString RestrictedNames[] = {	"CON", "PRN", "AUX", "CLOCK$", "NUL", 
+												"COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9", 
+												"LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9" };
+
+	FString Standardized = InPath;
+	NormalizeFilename(Standardized);
+	CollapseRelativeDirectories(Standardized);
+
+	// Walk each part of the path looking for name errors
+	for(int32 StartPos = 0, EndPos = Standardized.Find(TEXT("/")); ; 
+		StartPos = EndPos + 1, EndPos = Standardized.Find(TEXT("/"), ESearchCase::IgnoreCase, ESearchDir::FromStart, StartPos)
+		)
+	{
+		const bool bIsLastPart = EndPos == INDEX_NONE;
+		const FString PathPart = Standardized.Mid(StartPos, (bIsLastPart) ? MAX_int32 : EndPos - StartPos);
+
+		// If this is the first part of the path, it's possible for it to be a drive name and is allowed to contain a colon
+		if(StartPos == 0 && IsDrive(PathPart))
+		{
+			continue;
+		}
+
+		// Check for invalid characters
+		TCHAR CharString[] = { '\0', '\0' };
+		FString MatchedInvalidChars;
+		for(const TCHAR* InvalidCharacters = *RestrictedChars; *InvalidCharacters; ++InvalidCharacters)
+		{
+			CharString[0] = *InvalidCharacters;
+			if(PathPart.Contains(CharString))
+			{
+				MatchedInvalidChars += *InvalidCharacters;
+			}
+		}
+		if(MatchedInvalidChars.Len())
+		{
+			if(OutReason)
+			{
+				FFormatNamedArguments Args;
+				Args.Add(TEXT("IllegalPathCharacters"), FText::FromString(MatchedInvalidChars));
+				*OutReason = FText::Format(NSLOCTEXT("Core", "PathContainsInvalidCharacters", "Path may not contain the following characters: {IllegalPathCharacters}"), Args);
+			}
+			return false;
+		}
+
+		// Check for reserved names
+		for(const FString& RestrictedName : RestrictedNames)
+		{
+			if(PathPart.Equals(RestrictedName, ESearchCase::IgnoreCase))
+			{
+				if(OutReason)
+				{
+					FFormatNamedArguments Args;
+					Args.Add(TEXT("RestrictedName"), FText::FromString(RestrictedName));
+					*OutReason = FText::Format(NSLOCTEXT("Core", "PathContainsRestrictedName", "Path may not contain a restricted name: {RestrictedName}"), Args);
+				}
+				return false;
+			}
+		}
+
+		if(bIsLastPart)
+		{
+			break;
+		}
+	}
+
+	return true;
+}
+
 void FPaths::Split( const FString& InPath, FString& PathPart, FString& FilenamePart, FString& ExtensionPart )
 {
 	PathPart = GetPath(InPath);
