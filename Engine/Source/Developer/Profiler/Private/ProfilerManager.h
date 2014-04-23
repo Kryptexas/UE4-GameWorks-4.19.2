@@ -385,6 +385,7 @@ public:
 	void SetDataCapture( const bool bRequestedDataCaptureState );
 
 	void ProfilerSession_OnCaptureFileProcessed( const FGuid ProfilerInstanceID );
+	void ProfilerSession_OnAddThreadTime( int32 FrameIndex, const TMap<uint32, float>& ThreadMS, const FProfilerStatMetaDataRef& StatMetaData );
 
 	/*-----------------------------------------------------------------------------
 		Event graphs management

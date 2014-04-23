@@ -45,8 +45,16 @@ protected:
 	 */
 	void ScrollBar_OnUserScrolled( float ScrollOffset );
 
-	/** Called when the frame offset has been changed from the data graph widget. */
-	void DataGraph_OnGraphOffsetChanged( int InFrameOffset );
+	/** Called when the frame offset has been changed in the data graph widget. */
+	void OnDataGraphGraphOffsetChanged( int32 InFrameOffset );
+
+public:
+	/** Called when the selection box has been changed in the profiler mini-view widget. */
+	void OnMiniViewSelectionBoxChanged( int32 FrameStart, int32 FrameEnd );
+
+protected:
+	/** Sets state of the scroll bar. */
+	void SetScrollBarState();
 
 	/** Called when the data graph view mode has changed from the data graph widget. */
 	void DataGraph_OnViewModeChanged( EDataGraphViewModes::Type ViewMode );

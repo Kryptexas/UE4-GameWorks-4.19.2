@@ -35,7 +35,7 @@ void SProfilerGraphPanel::Construct( const FArguments& InArgs )
 			.FillHeight(1.0f)
 			[
 				SAssignNew(DataGraph,SDataGraph)
-				.OnGraphOffsetChanged( this, &SProfilerGraphPanel::DataGraph_OnGraphOffsetChanged )
+				.OnGraphOffsetChanged( this, &SProfilerGraphPanel::OnDataGraphGraphOffsetChanged )
 				.OnViewModeChanged( this, &SProfilerGraphPanel::DataGraph_OnViewModeChanged )
 			]
 
@@ -74,6 +74,8 @@ void SProfilerGraphPanel::ScrollBar_OnUserScrolled( float ScrollOffset )
  
 	GraphOffset = FMath::Trunc( ScrollOffset * NumDataPoints );
 	DataGraph->ScrollTo( GraphOffset );
+
+	FProfilerManager::Get()->GetProfilerWindow()->ProfilerMiniView->OnSelectionBoxMoved( GraphOffset, GraphOffset + NumVisiblePoints );
 }
 
 void SProfilerGraphPanel::ProfilerManager_OnTrackedStatChanged( const FTrackedStat& TrackedStat, bool bIsTracked )
@@ -93,12 +95,18 @@ void SProfilerGraphPanel::ProfilerManager_OnSessionInstancesUpdated()
 
 }
 
-void SProfilerGraphPanel::DataGraph_OnGraphOffsetChanged( int InGraphOffset )
+void SProfilerGraphPanel::OnDataGraphGraphOffsetChanged( int32 InGraphOffset )
 {
 	GraphOffset = InGraphOffset;
-	const float ThumbSizeFraction = FMath::Min( (float)NumVisiblePoints / (float)NumDataPoints, 1.0f );
-	const float OffsetFraction = (float)GraphOffset / (float)NumDataPoints;
-	ScrollBar->SetState( OffsetFraction, ThumbSizeFraction );
+	SetScrollBarState();
+	FProfilerManager::Get()->GetProfilerWindow()->ProfilerMiniView->OnSelectionBoxMoved( InGraphOffset, InGraphOffset + NumVisiblePoints );
+}
+
+void SProfilerGraphPanel::OnMiniViewSelectionBoxChanged( int32 FrameStart, int32 FrameEnd )
+{
+	GraphOffset = FrameStart;
+	SetScrollBarState();
+	DataGraph->ScrollTo( GraphOffset );
 }
 
 void SProfilerGraphPanel::DataGraph_OnViewModeChanged( EDataGraphViewModes::Type ViewMode )
@@ -111,19 +119,23 @@ void SProfilerGraphPanel::UpdateInternals()
 	NumVisiblePoints = DataGraph->GetNumVisiblePoints();
 	NumDataPoints = DataGraph->GetNumDataPoints();
 
-	// Note that the maximum offset is 1.0-ThumbSizeFraction.
-	// If the user can view 1/3 of the items in a single page, the maximum offset will be ~0.667f
-	const float ThumbSizeFraction = FMath::Min( (float)NumVisiblePoints / (float)NumDataPoints, 1.0f );
-	const float OffsetFraction = (float)GraphOffset / (float)NumDataPoints;
-		
-	const float Distance = ScrollBar->DistanceFromBottom();
-	ScrollBar->SetState( OffsetFraction, ThumbSizeFraction );
+	SetScrollBarState();
+	FProfilerManager::Get()->GetProfilerWindow()->ProfilerMiniView->OnSelectionBoxMoved( GraphOffset, GraphOffset + NumVisiblePoints );
 	 
 	if( FProfilerManager::Get()->IsLivePreview() )
 	{
 		// Scroll to the end.
 		ScrollBar_OnUserScrolled(1.0f);
 	}
+}
+
+void SProfilerGraphPanel::SetScrollBarState()
+{
+	// Note that the maximum offset is 1.0-ThumbSizeFraction.
+	// If the user can view 1/3 of the items in a single page, the maximum offset will be ~0.667f
+	const float ThumbSizeFraction = FMath::Min( (float)NumVisiblePoints / (float)NumDataPoints, 1.0f );
+	const float OffsetFraction = (float)GraphOffset / (float)NumDataPoints;
+	ScrollBar->SetState( OffsetFraction, ThumbSizeFraction );
 }
 
 #undef LOCTEXT_NAMESPACE

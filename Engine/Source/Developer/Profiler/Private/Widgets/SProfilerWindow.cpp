@@ -126,6 +126,34 @@ void SProfilerWindow::Construct( const FArguments& InArgs, const ISessionManager
 					.Size( FVector2D( 2.0f, 2.0f ) )
 				]
 
+				/** Profiler Mini-view. */
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				[
+					SNew(SBox)
+					.HeightOverride( 48.0f )
+					[
+						SNew( SHorizontalBox )
+						.IsEnabled( this, &SProfilerWindow::IsProfilerEnabled )
+
+						+ SHorizontalBox::Slot()
+						.FillWidth( 1.0f )
+						.Padding( 0.0f )
+						.HAlign( HAlign_Fill )
+						.VAlign( VAlign_Fill )
+						[
+							SAssignNew( ProfilerMiniView, SProfilerMiniView )
+						]
+					]
+				]
+
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				[
+					SNew( SSpacer )
+					.Size( FVector2D( 2.0f, 2.0f ) )
+				]
+
 				+SVerticalBox::Slot()
 				.FillHeight( 1.0f )
 				.Padding(0.0f, 8.0f, 0.0f, 0.0f)
@@ -270,8 +298,11 @@ void SProfilerWindow::Construct( const FArguments& InArgs, const ISessionManager
 			.Expose( OverlaySettingsSlot )
 		];
 
-	GraphPanel->GetMainDataGraph()->OnSelectionChangedForIndex().AddSP( FProfilerManager::Get().Get(), &FProfilerManager::DataGraph_OnSelectionChangedForIndex );
+	GraphPanel->GetMainDataGraph()->OnSelectionChangedForIndex().AddSP( FProfilerManager::Get().ToSharedRef(), &FProfilerManager::DataGraph_OnSelectionChangedForIndex );
+
+	ProfilerMiniView->OnSelectionBoxChanged().AddSP( GraphPanel.ToSharedRef(), &SProfilerGraphPanel::OnMiniViewSelectionBoxChanged );
 }
+
 void SProfilerWindow::ManageEventGraphTab( const FGuid ProfilerInstanceID, const bool bCreateFakeTab, const FString TabName )
 {
 	// TODO: Add support for multiple instances.

@@ -194,11 +194,12 @@ void FProfilerManager::LoadProfilerCapture( const FString& ProfilerCaptureFilepa
 	const FGuid ProfilerInstanceID = ProfilerSession->GetInstanceID();
 
 	ProfilerSession->
-		SetOnCaptureFileProcessed( FProfilerSession::FCaptureFileProcessedDelegate::CreateSP( this, &FProfilerManager::ProfilerSession_OnCaptureFileProcessed ) );
+		SetOnCaptureFileProcessed( FProfilerSession::FCaptureFileProcessedDelegate::CreateSP( this, &FProfilerManager::ProfilerSession_OnCaptureFileProcessed ) )
+		.SetOnAddThreadTime( FProfilerSession::FAddThreadTimeDelegate::CreateSP( this, &FProfilerManager::ProfilerSession_OnAddThreadTime ) );
 
 	ProfilerSessionInstances.Add( ProfilerInstanceID, ProfilerSession );
 	{
-		FProfilerScopedLogTime LC( TEXT("ProfilerClient->LoadCapture") );
+		PROFILER_SCOPE_LOG_TIME( TEXT( "ProfilerClient->LoadCapture" ), );
 		ProfilerClient->LoadCapture( ProfilerCaptureFilepath, ProfilerInstanceID );
 	}
 
@@ -211,7 +212,6 @@ void FProfilerManager::LoadProfilerCapture( const FString& ProfilerCaptureFilepa
 
 void FProfilerManager::LoadRawStatsFile( const FString& RawStatsFileFileath )
 {
-	// deselect the active session
 	if( ActiveSession.IsValid() )
 	{
 		SessionManager->SelectSession( NULL );
@@ -227,8 +227,9 @@ void FProfilerManager::LoadRawStatsFile( const FString& RawStatsFileFileath )
 	ProfilerSession_OnCaptureFileProcessed( ProfilerInstanceID );
 	TrackDefaultStats();
 
-// 	ProfilerSession->
-// 		SetOnCaptureFileProcessed( FProfilerSession::FCaptureFileProcessedDelegate::CreateSP( this, &FProfilerManager::ProfilerSession_OnCaptureFileProcessed ) );
+	ProfilerSession->
+		SetOnCaptureFileProcessed( FProfilerSession::FCaptureFileProcessedDelegate::CreateSP( this, &FProfilerManager::ProfilerSession_OnCaptureFileProcessed ) )
+		.SetOnAddThreadTime( FProfilerSession::FAddThreadTimeDelegate::CreateSP( this, &FProfilerManager::ProfilerSession_OnAddThreadTime ) );
 
 	ProfilerSessionInstances.Add( ProfilerInstanceID, ProfilerSession );
 
@@ -288,6 +289,8 @@ void FProfilerManager::ProfilerClient_OnProfilerData( const FGuid& InstanceID, c
 	if( ProfilerSession && ProfilerWindow.IsValid())
 	{
 		(*ProfilerSession)->UpdateProfilerData( Content );
+		// Game thread should always be enabled.
+		TrackDefaultStats();
 
 		// Update the notification that a file is being loaded.
 		GetProfilerWindow()->ManageLoadingProgressNotificationState( (*ProfilerSession)->GetName(), EProfilerNotificationTypes::LoadingOfflineCapture, ELoadingProgressStates::InProgress, DataLoadingProgress );
@@ -425,6 +428,7 @@ void FProfilerManager::SessionManager_OnInstanceSelectionChanged()
 			if( !bAlreadyAdded )
 			{
 				FProfilerSessionRef ProfilerSession = MakeShareable( new FProfilerSession( SessionInstanceInfo ) );
+				ProfilerSession->SetOnAddThreadTime( FProfilerSession::FAddThreadTimeDelegate::CreateSP( this, &FProfilerManager::ProfilerSession_OnAddThreadTime ) );
 
 				ProfilerSessionInstances.Add( ProfilerSession->GetInstanceID(), ProfilerSession );
 				ProfilerClient->Track( ProfilerInstanceID );
@@ -543,6 +547,7 @@ bool FProfilerManager::UntrackStat( const uint32 StatID )
 void FProfilerManager::ClearStatsAndInstances()
 {
 	CloseAllEventGraphTabs();
+	GetProfilerWindow()->ProfilerMiniView->Reset();
 
 	ProfilerType = EProfilerSessionTypes::InvalidOrMax;
 	SetDataPreview( false );
@@ -683,8 +688,13 @@ const FLinearColor& FProfilerManager::GetColorForStatID( const uint32 StatID ) c
 
 void FProfilerManager::TrackDefaultStats()
 {
-	// Set the default tracked stats only when loading the first capture or connecting to the first profiler session.
-	TrackStat( 2 );
+	// Find StatId for the game thread.
+	for( auto It = GetProfilerInstancesIterator(); It; ++It )
+	{
+		FProfilerSessionRef ProfilerSession = It.Value();
+		TrackStat( ProfilerSession->GetMetaData()->GetGameThreadStatID() );
+		break;
+	}
 }
 
 /*-----------------------------------------------------------------------------
@@ -693,7 +703,7 @@ void FProfilerManager::TrackDefaultStats()
 
 void FProfilerManager::CloseAllEventGraphTabs()
 {
-	TSharedPtr<class SProfilerWindow> ProfilerWindowPtr = GetProfilerWindow();
+	TSharedPtr<SProfilerWindow> ProfilerWindowPtr = GetProfilerWindow();
 	if( ProfilerWindowPtr.IsValid() )
 	{
 		// Iterate through all profiler sessions.
@@ -707,7 +717,7 @@ void FProfilerManager::CloseAllEventGraphTabs()
 
 void FProfilerManager::DataGraph_OnSelectionChangedForIndex( uint32 FrameStartIndex, uint32 FrameEndIndex )
 {
-	FProfilerScopedLogTime SCI( TEXT("FProfilerManager::DataGraph_OnSelectionChangedForIndex") );
+	PROFILER_SCOPE_LOG_TIME( TEXT( "FProfilerManager::DataGraph_OnSelectionChangedForIndex" ), );
 
 	for( auto It = GetProfilerInstancesIterator(); It; ++It )
 	{
@@ -717,6 +727,15 @@ void FProfilerManager::DataGraph_OnSelectionChangedForIndex( uint32 FrameStartIn
 		FEventGraphDataRef EventGraphDataMaximum = ProfilerSession->CreateEventGraphData( FrameStartIndex, FrameEndIndex, EEventGraphTypes::Maximum );
 
 		GetProfilerWindow()->UpdateEventGraph( ProfilerSession->GetInstanceID(), EventGraphDataAverage, EventGraphDataMaximum, false );
+	}
+}
+
+void FProfilerManager::ProfilerSession_OnAddThreadTime( int32 FrameIndex, const TMap<uint32, float>& ThreadMS, const FProfilerStatMetaDataRef& StatMetaData )
+{
+	TSharedPtr<SProfilerWindow> ProfilerWindowPtr = GetProfilerWindow();
+	if( ProfilerWindowPtr.IsValid() )
+	{
+		ProfilerWindowPtr->ProfilerMiniView->AddThreadTime( FrameIndex, ThreadMS, StatMetaData );
 	}
 }
 

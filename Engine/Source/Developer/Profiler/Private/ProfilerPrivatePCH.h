@@ -41,6 +41,7 @@
 #include "SEventGraph.h"
 #include "SDataGraph.h"
 #include "SProfilerGraphPanel.h"
+#include "SProfilerMiniView.h"
 #include "SProfilerFPSChartPanel.h"
 #include "SProfilerWindow.h"
 #include "SHistogram.h"

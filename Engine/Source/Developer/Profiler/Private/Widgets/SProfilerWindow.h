@@ -115,4 +115,7 @@ private:
 
 	/** Active event graphs, one event graph for each profiler instance, stored as FGuid -> SEventGraph. */
 	TMap< FGuid, TSharedRef<class SEventGraph> > ActiveEventGraphs;
+
+public:
+	TSharedPtr<SProfilerMiniView> ProfilerMiniView;
 };

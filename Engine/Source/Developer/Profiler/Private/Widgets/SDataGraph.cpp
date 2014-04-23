@@ -926,7 +926,6 @@ int32 SDataGraph::OnPaint
 	// Draw all graphs descriptions.
 	float GraphDescPosY = 100.0f;
 
-
 #if DEBUG_PROFILER_PERFORMANCE
 	// Debug text.
 	FSlateDrawElement::MakeText
@@ -970,13 +969,6 @@ int32 SDataGraph::OnPaint
 	);
 	GraphDescPosY += MaxFontCharHeight + 1.0f;
 
-
-#endif // DEBUG_PROFILER_PERFORMANCE
-
-	LayerId++;
-
-
-#if	DEBUG_PROFILER_PERFORMANCE
 	const double CurrentTime = (FPlatformTime::Seconds() - StartTime) * 1000.0f;
 	if( CurrentTime > 1.0f )
 	{

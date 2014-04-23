@@ -392,7 +392,7 @@ protected:
 	 */
 	void Update( const FStatMetaData& ClientStatMetaData )
 	{
-		FProfilerScopedLogTime Scoped( TEXT("FProfilerStatMetaData.Update") );
+		PROFILER_SCOPE_LOG_TIME( TEXT( "FProfilerStatMetaData.Update" ), );
 
 		FStatMetaData LocalCopy;
 		{
@@ -405,8 +405,6 @@ protected:
 
 		// Initialize fake stat for Self.
 		const uint32 NoGroupID = 0;
-		FString FF1 = FStatConstants::NAME_ThreadRoot.ToString();
-		FString FF2 = FStatConstants::NAME_ThreadRoot.GetPlainNameString();
 
 		InitializeGroup( NoGroupID, "NoGroup" );
 		InitializeStat( 0, NoGroupID, TEXT( "Self" ), STATTYPE_CycleCounter );
@@ -448,12 +446,12 @@ private:
 	 */
 	void InitializeGroup( const uint32 GroupID, const FString& GroupName ) 
 	{
-		FProfilerGroup** GroupPtr = GroupDescriptions.Find( GroupID );
+		FProfilerGroup* GroupPtr = GroupDescriptions.FindRef( GroupID );
 		if( !GroupPtr )
 		{
-			GroupPtr = &GroupDescriptions.Add( GroupID, new FProfilerGroup( GroupID ) );
+			GroupPtr = GroupDescriptions.Add( GroupID, new FProfilerGroup( GroupID ) );
 		}
-		(*GroupPtr)->Initialize( GroupName );
+		GroupPtr->Initialize( GroupName );
 	}
 
 	/**
@@ -469,24 +467,24 @@ private:
 	void InitializeStat( const uint32 StatID, const uint32 GroupID, const FString& StatName, const EStatType InType, FName StatFName = NAME_None )	
 	{
 		// @TODO yrx 2014-03-24 FindRef!
-		FProfilerGroup** GroupPtr = GroupDescriptions.Find( GroupID );
+		FProfilerGroup* GroupPtr = GroupDescriptions.FindRef( GroupID );
 
-		FProfilerStat** StatPtr = StatDescriptions.Find( StatID );
+		FProfilerStat* StatPtr = StatDescriptions.FindRef( StatID );
 		if( !StatPtr )
 		{
-			StatPtr = &StatDescriptions.Add( StatID, new FProfilerStat( StatID ) );
+			StatPtr = StatDescriptions.Add( StatID, new FProfilerStat( StatID ) );
 
 			if( StatFName != NAME_None )
 			{
-				StatFNameDescriptions.Add( StatFName, *StatPtr );
+				StatFNameDescriptions.Add( StatFName, StatPtr );
 			}
 		}
-		(*StatPtr)->Initialize( StatName, *GroupPtr, InType );
+		StatPtr->Initialize( StatName, GroupPtr, InType );
 
-		if( StatFName == NAME_None && (*GroupPtr)->Name() == TEXT( "Threads" ) )
+		if( StatFName == NAME_None && GroupPtr->Name() == TEXT( "Threads" ) )
 		{
 			// Check if this stat is a thread stat.
-			const uint32 ThreadID = FStatsUtils::ParseThreadID( (*StatPtr)->_Name );
+			const uint32 ThreadID = FStatsUtils::ParseThreadID( StatPtr->Name().ToString() );
 			if( ThreadID != 0 )
 			{
 				const FString* ThreadDesc = GetThreadDescriptions().Find( ThreadID );
@@ -494,15 +492,28 @@ private:
 				{
 					// Replace the stat name with a thread name.
 					const FString UniqueThreadName = FString::Printf( TEXT( "%s [0x%x]" ), **ThreadDesc, ThreadID );
-					(*StatPtr)->_Name = *UniqueThreadName;
+					StatPtr->_Name = *UniqueThreadName;
 					ThreadIDtoStatID.Add( ThreadID, StatID );
-				}
+
+					if( **ThreadDesc == FName( NAME_GameThread ) )
+					{
+						GameThreadID = ThreadID;
+					}
+					else if( **ThreadDesc == FName( NAME_RenderThread ) )
+					{
+						RenderThreadIDs.AddUnique( ThreadID );
+					}
+					else if( ThreadDesc->Contains( TEXT( "RenderingThread" ) ) )
+					{
+						RenderThreadIDs.AddUnique( ThreadID );
+					}
+				}			
 			}
 		}
 
-		if( *GroupPtr != FProfilerGroup::GetDefaultPtr() )
+		if( GroupPtr != FProfilerGroup::GetDefaultPtr() )
 		{
-			(*GroupPtr)->AddStat( *StatPtr );
+			GroupPtr->AddStat( StatPtr );
 		}
 	}
 
@@ -587,6 +598,21 @@ public:
 		return StatDescriptions.Contains( StatID );
 	}
 
+	const uint32 GetGameThreadID() const
+	{
+		return GameThreadID;
+	}
+
+	const TArray<uint32>& GetRenderThreadID() const
+	{
+		return RenderThreadIDs;
+	}
+
+	const uint32 GetGameThreadStatID() const
+	{
+		return ThreadIDtoStatID.FindChecked( GameThreadID );
+	}
+
 protected:
 	/** All initialized stat descriptions, stored as StatID -> FProfilerStat. */
 	TMap<uint32,FProfilerStat*> StatDescriptions;
@@ -608,6 +634,12 @@ protected:
 
 	/** Seconds per CPU cycle. */
 	double SecondsPerCycle;
+
+	/** Game thread id. */
+	uint32 GameThreadID;
+
+	/** Array of all render thread ids. */
+	TArray<uint32> RenderThreadIDs;
 };
 
 /** Holds the aggregated information for the specific stat across all frames that have been captured. */
@@ -934,7 +966,20 @@ public:
 	/** Updates this profiler session. */
 	bool HandleTicker( float DeltaTime );
 
+public:
+	typedef TMap<uint32, float> FThreadTimesMap;
+	DECLARE_DELEGATE_ThreeParams( FAddThreadTimeDelegate, int32 /*FrameIndex*/, const FThreadTimesMap& /*ThreadMS*/, const FProfilerStatMetaDataRef& /*StatMetaData*/ );
 
+	FProfilerSession& SetOnAddThreadTime( const FAddThreadTimeDelegate& InOnAddThreadTime )
+	{
+		OnAddThreadTime = InOnAddThreadTime;
+		return *this;
+	}
+
+protected:
+	FAddThreadTimeDelegate OnAddThreadTime;
+
+public:
 	/**
 	 * The delegate to execute when this profiler session has fully processed a capture file and profiler manager can update all widgets.
 	 *
@@ -1222,6 +1267,10 @@ class FRawProfilerSession : public FProfilerSession
 
 	/** Stats thread state, mostly used to manage the stats metadata. */
 	FStatsThreadState StatsThreadStats;
+	FStatsReadStream Stream;
+
+	/** Index of the last processed data for the mini-view. */
+	int32 CurrentMiniViewFrame;
 
 public:
 	/**
