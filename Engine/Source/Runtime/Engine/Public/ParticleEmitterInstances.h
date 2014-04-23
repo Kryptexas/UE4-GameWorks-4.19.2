@@ -1149,6 +1149,13 @@ protected:
 		EGetTrailParticleOption InGetOption,
 		FBaseParticle*& OutParticle,
 		FTrailsBaseTypeDataPayload*& OutTrailData);
+
+	/** Prints out info for a single particle. */
+	virtual void PrintParticleData(FBaseParticle* Particle, FTrailsBaseTypeDataPayload* TrailData, int32 CurrentIndex, int32 TrailIndex){}
+	/** Prints out info for all active particles. */
+	virtual void PrintAllActiveParticles(){}
+	/** Traverses all trails and prints out debugging info. */
+	virtual void PrintTrails(){}
 };
 
 struct FParticleRibbonEmitterInstance : public FParticleTrailsEmitterInstance_Base
@@ -1394,6 +1401,9 @@ struct FParticleAnimTrailEmitterInstance : public FParticleTrailsEmitterInstance
 	uint32 bRenderTessellation : 1;
 #endif
 
+	/** The number of particles in the trail which are either marked */
+	int32 HeadOnlyParticles;
+
 	/** Constructor	*/
 	FParticleAnimTrailEmitterInstance();
 
@@ -1537,4 +1547,11 @@ protected:
 	*	@param	Params			Various parameters for spawning.
 	*/
 	void SpawnParticle( int32& StartParticleIndex, const struct FAnimTrailParticleSpawnParams& Params );
+
+	/** Prints out info for a single particle. */
+	virtual void PrintParticleData(FBaseParticle* Particle, FTrailsBaseTypeDataPayload* TrailData, int32 CurrentIndex, int32 TrailIndex);
+	/** Prints out info for all active particles. */
+	virtual void PrintAllActiveParticles();
+	/** Traverses all trails and prints out debugging info. */
+	virtual void PrintTrails();
 };
