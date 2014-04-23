@@ -534,6 +534,18 @@ public:
 	/** Make sure this object has been shut down. */
 	void ConditionalShutdownAfterError();
 
+
+	/**
+	 * Starts caching of platform specific data for the target platform
+	 * Called when cooking before serialization so that object can prepare platform specific data
+	 * Not called during normal loading of objects
+	 * 
+	 * @param	TargetPlatform	target platform to cache platform specific data for
+	 * @return	true if everything went well, false will abort save...
+	 */
+	virtual void BeginCacheForCookedPlatformData( const ITargetPlatform *TargetPlatform ) {  }
+
+
 	/**
 	 * Determine if this object has SomeObject in its archetype chain.
 	 */

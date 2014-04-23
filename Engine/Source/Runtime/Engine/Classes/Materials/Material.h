@@ -766,6 +766,7 @@ public:
 	ENGINE_API virtual void Serialize(FArchive& Ar) OVERRIDE;
 	ENGINE_API virtual void PostDuplicate(bool bDuplicateForPIE) OVERRIDE;
 	ENGINE_API virtual void PostLoad() OVERRIDE;
+	ENGINE_API virtual void BeginCacheForCookedPlatformData( const ITargetPlatform *TargetPlatform ) OVERRIDE;
 #if WITH_EDITOR
 	ENGINE_API virtual void PreEditChange(UProperty* PropertyAboutToChange) OVERRIDE;
 	ENGINE_API virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;

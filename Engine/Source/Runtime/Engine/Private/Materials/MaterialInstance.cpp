@@ -4,6 +4,7 @@
 #include "EngineMaterialClasses.h"
 #include "MaterialInstance.h"
 #include "MaterialShader.h"
+#include "TargetPlatform.h"
 
 /**
  * Cache uniform expressions for the given material.
@@ -1484,6 +1485,19 @@ void TrimToOverriddenOnly(TArray<ParameterType>& Parameters)
 		{
 			Parameters.RemoveAt(ParameterIndex);
 		}
+	}
+}
+
+void UMaterialInstance::BeginCacheForCookedPlatformData( const ITargetPlatform *TargetPlatform )
+{
+	TArray<FName> DesiredShaderFormats;
+	TargetPlatform->GetShaderFormats( DesiredShaderFormats );
+	// Cache shaders for each shader format, storing the results in CachedMaterialResourcesForCooking so they will be available during saving
+	for (int32 FormatIndex = 0; FormatIndex < DesiredShaderFormats.Num(); FormatIndex++)
+	{
+		const EShaderPlatform TargetPlatform = ShaderFormatToLegacyShaderPlatform(DesiredShaderFormats[FormatIndex]);
+
+		CacheResourceShadersForCooking(TargetPlatform, CachedMaterialResourcesForCooking);
 	}
 }
 

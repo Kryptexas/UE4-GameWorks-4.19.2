@@ -261,6 +261,7 @@ public:
 	// Begin UObject interface.
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) OVERRIDE;
 	virtual void PostInitProperties() OVERRIDE;	
+	virtual void BeginCacheForCookedPlatformData(  const ITargetPlatform *TargetPlatform ) OVERRIDE;
 	virtual void Serialize(FArchive& Ar) OVERRIDE;
 	virtual void PostLoad() OVERRIDE;
 	virtual void BeginDestroy() OVERRIDE;

@@ -95,22 +95,65 @@ UCookCommandlet::UCookCommandlet( const class FPostConstructInitializeProperties
 /* UCookCommandlet interface
  *****************************************************************************/
 
+struct FFilePlatformRequest
+{
+public:
+	FFilePlatformRequest() { }
+	FFilePlatformRequest( const FString &InFilename, const FString &InPlatformname ) : Filename( FPaths::ConvertRelativePathToFull( InFilename) ), Platformname( InPlatformname ) 
+	{
+		// FPaths::ConvertRelativePathToFull(InFilename);
+	}
 
-FThreadSafeArray<FString> ThreadSafeFilenameArray;
-FThreadSafeArray<FString> UnsolicitedCookedPackages;
+	FString Filename;
+	FString Platformname;
+
+	bool IsValid()  const
+	{
+		return Filename.Len() > 0;
+	}
+
+	void Clear()
+	{
+
+		Filename = TEXT("");
+		Platformname = TEXT("");
+	}
+
+	bool operator ==( const FFilePlatformRequest &InFileRequest ) const
+	{
+		if ( InFileRequest.Filename == Filename )
+		{
+			if ( InFileRequest.Platformname == Platformname )
+				return true;
+		}
+		return false;
+	}
+
+	
+};
+uint32 GetTypeHash(const FFilePlatformRequest &Key)
+{
+	return GetTypeHash( Key.Filename ) ^ GetTypeHash( Key.Platformname );
+}
+
+FThreadSafeArray<FFilePlatformRequest> ThreadSafeFilenameArray;
+FThreadSafeArray<FFilePlatformRequest> UnsolicitedCookedPackages;
+
+
+
 
 struct FThreadSafeFilenameSet
 {
 	FCriticalSection	SynchronizationObject;
-	TSet<FString> FilesProcessed;
+	TSet<FFilePlatformRequest> FilesProcessed;
 
-	void Add(const FString& Filename)
+	void Add(const FFilePlatformRequest &Filename)
 	{
 		FScopeLock ScopeLock(&SynchronizationObject);
-		check(Filename.Len());
+		check(Filename.IsValid());
 		FilesProcessed.Add(Filename);
 	}
-	bool Exists(const FString& Filename)
+	bool Exists(const FFilePlatformRequest &Filename)
 	{
 		FScopeLock ScopeLock(&SynchronizationObject);
 		return FilesProcessed.Contains(Filename);
@@ -182,28 +225,36 @@ bool UCookCommandlet::CookOnTheFly( bool BindAnyPort, int32 Timeout, bool bForce
 
 	while (!GIsRequestingExit)
 	{
-		TSet<FString> CookedPackages;
-		FString ToBuild;
+		FFilePlatformRequest ToBuild;
 
 		while (!GIsRequestingExit)
 		{
-			while (ToBuild.Len() && !GIsRequestingExit)
+			// This is all the target platforms which we needed to process requests for this iteration
+			// we use this in the unsolicited packages processing below
+			TArray<FString> AllTargetPlatformNames;
+
+
+			while (ToBuild.IsValid() && !GIsRequestingExit)
 			{
 				bool bWasUpToDate = false;
-
-				FString Name = FPackageName::FilenameToLongPackageName(*ToBuild);
-				if (!CookedPackages.Contains(Name))
+				TArray<FString> TargetPlatformNames;
+				if( ToBuild.Platformname.Len() )
 				{
-					UPackage* Package = LoadPackage( NULL, *ToBuild, LOAD_None );
+					TargetPlatformNames.Add( ToBuild.Platformname );
+				}
+
+				FString Name = FPackageName::FilenameToLongPackageName(*ToBuild.Filename);
+				if (!ThreadSafeFilenameSet.Exists(ToBuild))
+				{
+					UPackage* Package = LoadPackage( NULL, *ToBuild.Filename, LOAD_None );
 
 					if( Package == NULL )
 					{
-						UE_LOG(LogCookCommandlet, Error, TEXT("Error loading %s!"), *ToBuild );
+						UE_LOG(LogCookCommandlet, Error, TEXT("Error loading %s!"), *ToBuild.Filename );
 					}
 					else
 					{
-						CookedPackages.Add(Name);
-						if( SaveCookedPackage(Package, SAVE_KeepGUID | SAVE_Async, bWasUpToDate) )
+						if( SaveCookedPackage(Package, SAVE_KeepGUID | SAVE_Async, bWasUpToDate, TargetPlatformNames) )
 						{
 							// Update flags used to determine garbage collection.
 							if (Package->ContainsMap())
@@ -225,9 +276,17 @@ bool UCookCommandlet::CookOnTheFly( bool BindAnyPort, int32 Timeout, bool bForce
 					}
 				}
 
-				ThreadSafeFilenameSet.Add(ToBuild);
+				for ( int Index = 0; Index < TargetPlatformNames.Num(); ++Index )
+				{
+					AllTargetPlatformNames.AddUnique(TargetPlatformNames[Index]);
 
-				ToBuild = TEXT("");
+					FFilePlatformRequest FileRequest( ToBuild.Filename, TargetPlatformNames[Index]);
+					
+					ThreadSafeFilenameSet.Add( FileRequest );
+				}
+
+
+				ToBuild.Clear();
 
 				ThreadSafeFilenameArray.Dequeue(&ToBuild);
 			}
@@ -241,25 +300,42 @@ bool UCookCommandlet::CookOnTheFly( bool BindAnyPort, int32 Timeout, bool bForce
 				if (Package)
 				{
 					FString Name = Package->GetPathName();
+					FString PackageFilename(GetPackageFilename(Package));
+					FPaths::MakeStandardFilename(PackageFilename);
 
-					if (!CookedPackages.Contains(Name))
+					const FString FullPath = FPaths::ConvertRelativePathToFull(PackageFilename);
+
+					bool AlreadyCooked = true;
+					for ( int Index = 0; Index < AllTargetPlatformNames.Num(); ++Index )
 					{
-						CookedPackages.Add(Name);
-
+						if ( !ThreadSafeFilenameSet.Exists(FFilePlatformRequest(FullPath, AllTargetPlatformNames[Index])) )
+						{
+							AlreadyCooked = false;
+							break;
+						}
+					}
+					if ( !AlreadyCooked )
+					{
 						bool bUnsolicitedWasUpdateToDate = false;
 
-						if (SaveCookedPackage(Package, SAVE_KeepGUID | SAVE_Async, bUnsolicitedWasUpdateToDate))
+						if (SaveCookedPackage(Package, SAVE_KeepGUID | SAVE_Async, bUnsolicitedWasUpdateToDate, AllTargetPlatformNames))
 						{
-							FString PackageFilename(GetPackageFilename(Package));
-							FPaths::MakeStandardFilename(PackageFilename);
+							
 
-							if ((FPaths::FileExists(PackageFilename) == true) && 
+							if ((FPaths::FileExists(PackageFilename) == true) &&
 								(PackageFilename.Len() > 0) && 
 								(bUnsolicitedWasUpdateToDate == false))
 							{
 								UE_LOG(LogCookCommandlet, Display, TEXT("UnsolicitedCookedPackages: %s"), *PackageFilename);
 
-								UnsolicitedCookedPackages.Enqueue(PackageFilename);
+								for ( int Index = 0; Index < AllTargetPlatformNames.Num(); ++Index )
+								{
+									const FFilePlatformRequest Request( FullPath, AllTargetPlatformNames[Index] );
+									UnsolicitedCookedPackages.Enqueue( Request );
+									ThreadSafeFilenameSet.Add( Request );
+
+									UE_LOG( LogCookCommandlet, Display, TEXT("Unsolicited saved package %s.%s"), *Request.Filename, *Request.Platformname );
+								}
 							}
 
 							// Update flags used to determine garbage collection.
@@ -275,24 +351,24 @@ bool UCookCommandlet::CookOnTheFly( bool BindAnyPort, int32 Timeout, bool bForce
 						}
 					}
 
-					ToBuild = TEXT("");
+					ToBuild.Clear();
 
 					ThreadSafeFilenameArray.Dequeue(&ToBuild);
 
-					if (ToBuild.Len())
+					if (ToBuild.IsValid())
 					{
 						break;
 					}
 				}
 			}
 
-			while (!ToBuild.Len() && !GIsRequestingExit)
+			while (!ToBuild.IsValid() && !GIsRequestingExit)
 			{
-				ToBuild = TEXT("");
+				ToBuild.Clear();
 
 				ThreadSafeFilenameArray.Dequeue(&ToBuild);
 
-				if (!ToBuild.Len())
+				if (!ToBuild.IsValid())
 				{
 					if (NonMapPackageCountSinceLastGC > 0)
 					{
@@ -406,9 +482,10 @@ bool UCookCommandlet::GetPackageTimestamp( const FString& InFilename, FDateTime&
 	return false;
 }
 
-bool UCookCommandlet::ShouldCook(const FString& InFileName)
+bool UCookCommandlet::ShouldCook(const FString& InFileName, const FString &InPlatformName)
 {
 	bool bDoCook = false;
+
 
 	FString PkgFile;
 	FString PkgFilename;
@@ -428,7 +505,19 @@ bool UCookCommandlet::ShouldCook(const FString& InFileName)
 	PkgFilename = SandboxFile->ConvertToAbsolutePathForExternalAppForWrite(*PkgFilename);
 
 	ITargetPlatformManagerModule& TPM = GetTargetPlatformManagerRef();
-	static const TArray<ITargetPlatform*>& Platforms =  TPM.GetActiveTargetPlatforms();
+
+	static const TArray<ITargetPlatform*> &ActiveTargetPlatforms = TPM.GetActiveTargetPlatforms();
+
+	TArray<ITargetPlatform*> Platforms;
+
+	if ( InPlatformName.Len() > 0 )
+	{
+		Platforms.Add( TPM.FindTargetPlatform( InPlatformName ) );
+	}
+	else 
+	{
+		Platforms = ActiveTargetPlatforms;
+	}
 
 	for (int32 Index = 0; Index < Platforms.Num() && !bDoCook; Index++)
 	{
@@ -451,7 +540,14 @@ bool UCookCommandlet::ShouldCook(const FString& InFileName)
 	return bDoCook;
 }
 
-bool UCookCommandlet::SaveCookedPackage( UPackage* Package, uint32 SaveFlags, bool& bOutWasUpToDate )
+
+bool UCookCommandlet::SaveCookedPackage( UPackage* Package, uint32 SaveFlags, bool& bOutWasUpToDate ) 
+{
+	TArray<FString> TargetPlatformNames; 
+	return SaveCookedPackage( Package, SaveFlags, bOutWasUpToDate, TargetPlatformNames );
+}
+
+bool UCookCommandlet::SaveCookedPackage( UPackage* Package, uint32 SaveFlags, bool& bOutWasUpToDate, TArray<FString> &TargetPlatformNames )
 {
 	bool bSavedCorrectly = true;
 
@@ -491,7 +587,41 @@ bool UCookCommandlet::SaveCookedPackage( UPackage* Package, uint32 SaveFlags, bo
 		}
 
 		ITargetPlatformManagerModule& TPM = GetTargetPlatformManagerRef();
-		static const TArray<ITargetPlatform*>& Platforms =  TPM.GetActiveTargetPlatforms();
+
+		static TArray<ITargetPlatform*> ActiveStartupPlatforms = TPM.GetActiveTargetPlatforms();
+
+		TArray<ITargetPlatform*> Platforms;
+
+		if ( TargetPlatformNames.Num() )
+		{
+			for ( int Index = 0; Index < TargetPlatformNames.Num(); ++Index )
+			{
+				const FString &TargetPlatformName = TargetPlatformNames[Index];
+
+
+				const TArray<ITargetPlatform*>& TargetPlatforms = TPM.GetTargetPlatforms();	
+
+
+				for ( int Index = 0; Index < TargetPlatforms.Num(); ++Index )
+				{
+					ITargetPlatform *TargetPlatform = TargetPlatforms[ Index ];
+					if ( TargetPlatform->PlatformName() == TargetPlatformName )
+					{
+						Platforms.Add( TargetPlatform );
+					}
+				}
+			}
+		}
+		else
+		{
+			Platforms = ActiveStartupPlatforms;
+
+			for ( int Index = 0; Index < Platforms.Num(); ++Index )
+			{
+				TargetPlatformNames.Add( Platforms[Index]->PlatformName() );
+			}
+		}
+		
 
 		for (int32 Index = 0; Index < Platforms.Num(); Index++)
 		{
@@ -973,7 +1103,7 @@ void UCookCommandlet::CollectFilesToCook(TArray<FString>& FilesInPath)
 
 	// make sure we cook the default maps
 	ITargetPlatformManagerModule& TPM = GetTargetPlatformManagerRef();
-	static const TArray<ITargetPlatform*>& Platforms =  TPM.GetActiveTargetPlatforms();
+	static const TArray<ITargetPlatform*>& Platforms =  TPM.GetTargetPlatforms();
 	for (int32 Index = 0; Index < Platforms.Num(); Index++)
 	{
 		// load the platform specific ini to get its DefaultMap
@@ -1258,26 +1388,37 @@ bool UCookCommandlet::Cook(const TArray<ITargetPlatform*>& Platforms, TArray<FSt
 /* UCookCommandlet callbacks
  *****************************************************************************/
 
-void UCookCommandlet::HandleNetworkFileServerFileRequest( const FString& Filename, TArray<FString>& UnsolicitedFiles )
+void UCookCommandlet::HandleNetworkFileServerFileRequest( const FString& Filename, const FString &Platformname, TArray<FString>& UnsolicitedFiles )
 {
 	bool bIsCookable = FPackageName::IsPackageExtension(*FPaths::GetExtension(Filename, true));
 
 	if (!bIsCookable)
 	{
-		UnsolicitedCookedPackages.DequeueAll(UnsolicitedFiles);
+		TArray<FFilePlatformRequest> FileRequests;
+		UnsolicitedCookedPackages.DequeueAll(FileRequests);
+		for ( int Index=  0; Index < FileRequests.Num(); ++Index)
+		{
+			UnsolicitedFiles.Add( FileRequests[Index].Filename);
+		}
 		UPackage::WaitForAsyncFileWrites();
 		return;
 	}
 
-	ThreadSafeFilenameArray.Enqueue(Filename);
+	FFilePlatformRequest FileRequest( Filename, Platformname );
+	ThreadSafeFilenameArray.Enqueue(FileRequest);
 
 	do
 	{
 		FPlatformProcess::Sleep(0.0f);
 	}
-	while (!ThreadSafeFilenameSet.Exists(Filename));
+	while (!ThreadSafeFilenameSet.Exists(FileRequest));
 
-	UnsolicitedCookedPackages.DequeueAll(UnsolicitedFiles);
+	TArray<FFilePlatformRequest> FileRequests;
+	UnsolicitedCookedPackages.DequeueAll(FileRequests);
+	for ( int Index=  0; Index < FileRequests.Num(); ++Index)
+	{
+		UnsolicitedFiles.Add( FileRequests[Index].Filename);
+	}
 	
 	UPackage::WaitForAsyncFileWrites();
 }

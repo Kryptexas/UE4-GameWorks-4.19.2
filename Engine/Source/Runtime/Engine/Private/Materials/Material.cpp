@@ -10,6 +10,7 @@
 #include "MaterialInstance.h"
 #include "UObjectAnnotation.h"
 #include "MaterialCompiler.h"
+#include "TargetPlatform.h"
 
 #if WITH_EDITOR
 #include "UnrealEd.h"
@@ -1929,6 +1930,24 @@ void UMaterial::PostLoad()
 		if (DefaultMaterialInstances[i])
 		{
 			DefaultMaterialInstances[i]->GameThread_UpdateDistanceFieldPenumbraScale(GetDistanceFieldPenumbraScale());
+		}
+	}
+}
+
+void UMaterial::BeginCacheForCookedPlatformData( const ITargetPlatform *TargetPlatform )
+{
+	TArray<FName> DesiredShaderFormats;
+	TargetPlatform->GetShaderFormats( DesiredShaderFormats );
+
+	if (DesiredShaderFormats.Num())
+	{
+		// Cache for all the shader formats that the cooking target requires
+		for (int32 FormatIndex = 0; FormatIndex < DesiredShaderFormats.Num(); FormatIndex++)
+		{
+			const EShaderPlatform TargetPlatform = ShaderFormatToLegacyShaderPlatform(DesiredShaderFormats[FormatIndex]);
+
+			// Begin caching shaders for the target platform and store the material resource being compiled into CachedMaterialResourcesForCooking
+			CacheResourceShadersForCooking(TargetPlatform, CachedMaterialResourcesForCooking);
 		}
 	}
 }

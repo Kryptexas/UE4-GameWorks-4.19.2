@@ -29,7 +29,13 @@ FNetworkFileServerClientConnection::FNetworkFileServerClientConnection( FSocket*
 		RecompileShadersDelegate = InRecompileShadersDelegate;
 	}
 
-	Thread = FRunnableThread::Create(this, TEXT("FNetworkFileServerClientConnection"), false, false, 8 * 1024, TPri_AboveNormal);
+#if UE_BUILD_DEBUG
+	// this thread needs more space in debug builds as it tries to log messages and such
+	const static uint32 NetworkFileServerThreadSize = 2 * 1024 * 1024; 
+#else
+	const static uint32 NetworkFileServerThreadSize = 8 * 1024; 
+#endif
+	Thread = FRunnableThread::Create(this, TEXT("FNetworkFileServerClientConnection"), false, false, NetworkFileServerThreadSize, TPri_AboveNormal);
 }
 
 
@@ -346,7 +352,7 @@ void FNetworkFileServerClientConnection::ProcessOpenFile( FArchive& In, FArchive
 	}
 
 	TArray<FString> NewUnsolictedFiles;
-	FileRequestDelegate.ExecuteIfBound(Filename, NewUnsolictedFiles);
+	FileRequestDelegate.ExecuteIfBound(Filename, ConnectedPlatformName, NewUnsolictedFiles);
 
 	FDateTime ServerTimeStamp = Sandbox->GetTimeStamp(*Filename);
 	int64 ServerFileSize = 0;
@@ -493,7 +499,7 @@ void FNetworkFileServerClientConnection::ProcessGetFileInfo( FArchive& In, FArch
 	if (Info.FileExists)
 	{
 		TArray<FString> NewUnsolictedFiles;
-		FileRequestDelegate.ExecuteIfBound(Filename, NewUnsolictedFiles);
+		FileRequestDelegate.ExecuteIfBound(Filename, ConnectedPlatformName, NewUnsolictedFiles);
 	}
 
 	// get the rest of the info
@@ -691,7 +697,7 @@ void FNetworkFileServerClientConnection::ProcessGetFileList( FArchive& In, FArch
 	ConnectedPlatformName = TEXT("");
 	// figure out the best matching target platform for the set of valid ones
 	ITargetPlatformManagerModule& TPM = GetTargetPlatformManagerRef();
-	static const TArray<ITargetPlatform*>& ActiveTargetPlatforms =  TPM.GetActiveTargetPlatforms();
+	static const TArray<ITargetPlatform*>& ActiveTargetPlatforms =  TPM.GetTargetPlatforms();
 	for (int32 TPIndex = 0; TPIndex < TargetPlatformNames.Num(); TPIndex++)
 	{
 		UE_LOG(LogFileServer, Display, TEXT("    Possible Target Platform from client: %s"), *TargetPlatformNames[TPIndex]);
@@ -949,7 +955,7 @@ void FNetworkFileServerClientConnection::ProcessSyncFile( FArchive& In, FArchive
 
 	TArray<FString> NewUnsolictedFiles;
 
-	FileRequestDelegate.ExecuteIfBound(Filename, NewUnsolictedFiles);
+	FileRequestDelegate.ExecuteIfBound(Filename, ConnectedPlatformName, NewUnsolictedFiles);
 
 	for (int32 Index = 0; Index < NewUnsolictedFiles.Num(); Index++)
 	{

@@ -2463,6 +2463,27 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 			PackageExportTagger.TagPackageExports( ExportTaggerArchive, true );
 			ExportTaggerArchive.SetFilterEditorOnly(FilterEditorOnly);
 
+
+
+
+			// Kick off any Precaching required for the target platform to save these objects
+			// only need to do this if we are cooking a different platform then the one which is currently running
+			if ( !!TargetPlatform )
+			{
+				TArray<UObject*> TagExpObjects;
+				GetObjectsWithAnyMarks(TagExpObjects, OBJECTMARK_TagExp);
+				for ( int Index =0; Index < TagExpObjects.Num(); ++Index)
+				{
+					if ( TagExpObjects[Index]->HasAnyMarks( OBJECTMARK_TagExp ) )
+					{
+						TagExpObjects[Index]->BeginCacheForCookedPlatformData( TargetPlatform );
+
+						// UE_LOG(LogSavePackage, Log, TEXT("begincache %s for %s"), *TagExpObjects[Index]->GetFullName(), *TargetPlatform->PlatformName());
+					}
+				}
+			}
+
+
 		
 			{
 				// set GIsSavingPackage here as it is now illegal to create any new object references; they potentially wouldn't be saved correctly
@@ -2584,10 +2605,10 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 					}
 				}
 
-
+				
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
 				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
-		
+
 				TArray<UObject*> PrivateObjects;
 				TArray<UObject*> ObjectsInOtherMaps;
 				TArray<UObject*> LevelObjects;
@@ -3110,7 +3131,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 					Linker->StartScriptSHAGeneration();
 				}
 
-				
+
 				// Save exports.
 				int32 LastExportSaveStep = 0;
 				for( int32 i=0; i<Linker->ExportMap.Num(); i++ )
@@ -3172,7 +3193,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 
 						// Save the object data.
 						Export.SerialOffset = Linker->Tell();
-	//						UE_LOG(LogSavePackage, Log, TEXT("export %s"), *Export.Object->GetFullName());
+						// UE_LOG(LogSavePackage, Log, TEXT("export %s for %s"), *Export.Object->GetFullName(), *Linker->CookingTarget()->PlatformName());
 						if ( Export.Object->HasAnyFlags(RF_ClassDefaultObject) )
 						{
 							Export.Object->GetClass()->SerializeDefaultObject(Export.Object, *Linker);
