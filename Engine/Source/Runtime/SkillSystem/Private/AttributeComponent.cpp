@@ -25,6 +25,11 @@ UAttributeComponent::UAttributeComponent(const class FPostConstructInitializePro
 	ActiveGameplayEffects.Owner = this;
 }
 
+UAttributeComponent::~UAttributeComponent()
+{
+	ActiveGameplayEffects.PreDestroy();
+}
+
 UAttributeSet* UAttributeComponent::InitStats(TSubclassOf<class UAttributeSet> Attributes, const UDataTable* DataTable)
 {
 	UAttributeSet* AttributeObj = NULL;
@@ -164,7 +169,7 @@ FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectSpecToTarget
 {
 	check(GameplayEffect);
 
-	FGameplayEffectSpec	Spec(GameplayEffect, TSharedPtr<FGameplayEffectLevelSpec>(new FGameplayEffectLevelSpec(Level)), GetCurveDataOverride());
+	FGameplayEffectSpec	Spec(GameplayEffect, TSharedPtr<FGameplayEffectLevelSpec>(new FGameplayEffectLevelSpec(Level, GameplayEffect->LevelInfo, GetOwner())), GetCurveDataOverride());
 	Spec.Def = GameplayEffect;
 	Spec.InstigatorStack.AddInstigator(GetOwner());
 	
@@ -180,7 +185,7 @@ FActiveGameplayEffectHandle UAttributeComponent::K2_ApplyGameplayEffectToSelf(UG
 /** This is a helper function - it seems like this will be useful as a blueprint interface at the least, but Level parameter may need to be expanded */
 FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectToSelf(UGameplayEffect *GameplayEffect, float Level, AActor *Instigator, FModifierQualifier BaseQualifier)
 {
-	FGameplayEffectSpec	Spec(GameplayEffect, TSharedPtr<FGameplayEffectLevelSpec>(new FGameplayEffectLevelSpec(Level)), GetCurveDataOverride());
+	FGameplayEffectSpec	Spec(GameplayEffect, TSharedPtr<FGameplayEffectLevelSpec>(new FGameplayEffectLevelSpec(Level, GameplayEffect->LevelInfo, GetOwner())), GetCurveDataOverride());
 	Spec.Def = GameplayEffect;
 	Spec.InstigatorStack.AddInstigator(Instigator);
 
@@ -200,7 +205,6 @@ int32 UAttributeComponent::GetNumActiveGameplayEffect() const
 bool UAttributeComponent::IsGameplayEffectActive(FActiveGameplayEffectHandle InHandle) const
 {
 	return ActiveGameplayEffects.IsGameplayEffectActive(InHandle);
-
 }
 
 void UAttributeComponent::TEMP_ApplyActiveGameplayEffects()
@@ -345,10 +349,6 @@ float UAttributeComponent::GetGameplayEffectMagnitude(FActiveGameplayEffectHandl
 {
 	return ActiveGameplayEffects.GetGameplayEffectMagnitude(Handle, Attribute);
 }
-void UAttributeComponent::RegisterAttributeModifyCallback(FGameplayAttribute Attribute, FOnGameplayAttributeEffectExecuted Delegate)
-{
-	return ActiveGameplayEffects.RegisterAttributeModifyCallback(Attribute, Delegate);
-}
 
 void UAttributeComponent::InvokeGameplayCueExecute(const FGameplayEffectSpec &Spec)
 {
@@ -438,6 +438,11 @@ void UAttributeComponent::OnRep_GameplayEffects()
 
 }
 
+void UAttributeComponent::AddDependancyToAttribute(FGameplayAttribute Attribute, const TWeakPtr<FAggregator> InDependant)
+{
+	ActiveGameplayEffects.AddDependancyToAttribute(Attribute, InDependant);
+}
+
 // ---------------------------------------------------------------------------------------
 
 void UAttributeComponent::PrintAllGameplayEffects() const
@@ -490,7 +495,6 @@ void FModifierSpec::PrintAll() const
 	SKILL_LOG(Log, TEXT("ModifierOp: %s"), *EGameplayModOpToString(Info.ModifierOp));
 	SKILL_LOG(Log, TEXT("EffectType: %s"), *EGameplayModEffectToString(Info.EffectType));
 	SKILL_LOG(Log, TEXT("RequiredTags: %s"), *Info.RequiredTags.ToString());
-	SKILL_LOG(Log, TEXT("PassedTags: %s"), *Info.PassedTags.ToString());
 	SKILL_LOG(Log, TEXT("OwnedTags: %s"), *Info.OwnedTags.ToString());
 	SKILL_LOG(Log, TEXT("(Base) Magnitude: %s"), *Info.Magnitude.ToSimpleString());
 

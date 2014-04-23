@@ -8,6 +8,9 @@ USkillSystemTestAttributeSet::USkillSystemTestAttributeSet(const class FPostCons
 	Health = 100.f;
 	Damage = 0.f;
 	CritChance = 0.f;
+	SpellDamage = 0.f;
+	PhysicalDamage = 0.f;
+	Strength = 0.f;
 }
 
 

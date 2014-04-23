@@ -26,6 +26,8 @@ class SKILLSYSTEM_API UAttributeComponent : public UActorComponent
 {
 	GENERATED_UCLASS_BODY()
 
+	virtual ~UAttributeComponent();
+
 	template <class T >
 	T*	GetSet()
 	{
@@ -63,9 +65,9 @@ class SKILLSYSTEM_API UAttributeComponent : public UActorComponent
 	FActiveGameplayEffectHandle ApplyGameplayEffectSpecToSelf(const FGameplayEffectSpec &GameplayEffect, FModifierQualifier BaseQualifier = FModifierQualifier());
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = GameplayEffects)
-	bool	RemoveActiveGameplayEffect(FActiveGameplayEffectHandle Handle);
+	bool RemoveActiveGameplayEffect(FActiveGameplayEffectHandle Handle);
 
-	float	GetGameplayEffectDuration(FActiveGameplayEffectHandle Handle) const;
+	float GetGameplayEffectDuration(FActiveGameplayEffectHandle Handle) const;
 
 	// Not happy with this interface but don't see a better way yet. How should outside code (UI, etc) ask things like 'how much is this gameplay effect modifying my damage by'
 	// (most likely we want to catch this on the backend - when damage is applied we can get a full dump/history of how the number got to where it is. But still we may need polling methods like below (how much would my damage be)
@@ -77,13 +79,13 @@ class SKILLSYSTEM_API UAttributeComponent : public UActorComponent
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = GameplayEffects)
 	bool IsGameplayEffectActive(FActiveGameplayEffectHandle InHandle) const;
-
+	
 
 	// --------------------------------------------
 	// Possibly useful but not primary API functions:
 	// --------------------------------------------
 
-	FActiveGameplayEffectHandle ApplyGameplayEffectSpecToTarget(UGameplayEffect *GameplayEffect, UAttributeComponent *Target, float Level = 1.f, FModifierQualifier BaseQualifier = FModifierQualifier()) const;
+	FActiveGameplayEffectHandle ApplyGameplayEffectSpecToTarget(UGameplayEffect *GameplayEffect, UAttributeComponent *Target, float Level = FGameplayEffectLevelSpec::INVALID_LEVEL, FModifierQualifier BaseQualifier = FModifierQualifier()) const;
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = GameplayEffects, meta=(FriendlyName = "ApplyGameplayEffectToSelf"))
 	FActiveGameplayEffectHandle K2_ApplyGameplayEffectToSelf(UGameplayEffect *GameplayEffect, float Level, AActor *Instigator);
@@ -92,11 +94,11 @@ class SKILLSYSTEM_API UAttributeComponent : public UActorComponent
 
 	int32 GetNumActiveGameplayEffect() const;
 
+	void AddDependancyToAttribute(FGameplayAttribute Attribute, const TWeakPtr<FAggregator> InDependant);
+
 	// --------------------------------------------
 	// Temp / Debug
 	// --------------------------------------------
-
-	void RegisterAttributeModifyCallback(FGameplayAttribute Attribute, FOnGameplayAttributeEffectExecuted Delegate);
 
 	void TEMP_ApplyActiveGameplayEffects();
 	

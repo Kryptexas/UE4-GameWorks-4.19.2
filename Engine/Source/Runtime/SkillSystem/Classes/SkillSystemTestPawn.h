@@ -31,9 +31,4 @@ class SKILLSYSTEM_API ASkillSystemTestPawn : public ADefaultPawn, public IGamepl
 	FGameplayCueHandler	GameplayCueHandler;
 
 	static FName AttributeComponentName;
-
-
-	void OnDamageExecute(struct FGameplayModifierEvaluatedData & Data);
-
-	void OnDidDamage(const struct FGameplayEffectSpec & Spec, struct FGameplayModifierEvaluatedData & Data);
 };
