@@ -187,8 +187,10 @@ public:
 	void FreeUnusedResources();
 
 	// for debugging purpose, assumes you call FlushRenderingCommands() be
-	// @return 0 if outside of the range
+	// @return can be 0, that doesn't mean iteration is done
 	FPooledRenderTarget* GetElementById(uint32 Id) const;
+
+	uint32 GetElementCount() const { return PooledRenderTargets.Num(); }
 
 	// @return -1 if not found
 	int32 FindIndex(IPooledRenderTarget* In) const;

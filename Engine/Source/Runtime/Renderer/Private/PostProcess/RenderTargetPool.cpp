@@ -572,8 +572,8 @@ FRenderTargetPool::SMemoryStats FRenderTargetPool::ComputeView()
 			// sort criteria
 			bool operator <(const FRTPColumn& rhs) const
 			{
-				// sort VRam first (only matters on XboxOne but nice to alwasy see it)
-				if(bVRam != rhs.bVRam) return bVRam > rhs.bVRam;
+				// sort VRam first (only matters on XboxOne but nice to always see it)
+// sorting only useful for XboxOne		if(bVRam != rhs.bVRam) return bVRam > rhs.bVRam;
 
 				// we want the large ones first
 				return SizeInBytes > rhs.SizeInBytes;
@@ -927,6 +927,8 @@ void FRenderTargetPool::TickPoolElements()
 
 		MinimumPoolSizeInKB = FMath::Clamp(CVar->GetValueOnRenderThread(), 0, 2000) * 1024;
 	}
+
+	CompactPool();
 
 	for(uint32 i = 0; i < (uint32)PooledRenderTargets.Num(); ++i)
 	{

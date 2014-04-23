@@ -671,13 +671,13 @@ void FVisualizeTexture::DebugLog(bool bExtended)
 	{
 		TArray<FSortedLines> SortedLines;
 
-		for(uint32 i = 0;; ++i)
+		for(uint32 i = 0, Num = GRenderTargetPool.GetElementCount(); i < Num; ++i)
 		{
 			FPooledRenderTarget* RT = GRenderTargetPool.GetElementById(i);
 
 			if(!RT)
 			{
-				break;
+				continue;
 			}
 
 			FPooledRenderTargetDesc Desc = RT->GetDesc();
@@ -861,12 +861,13 @@ void FVisualizeTexture::OnStartFrame(const FSceneView& View)
 
 void FVisualizeTexture::QueryInfo( FQueryVisualizeTexureInfo& Out )
 {
-	for(uint32 i = 0; ; ++i)
+	for(uint32 i = 0, Num = GRenderTargetPool.GetElementCount(); i < Num; ++i)
 	{
 		FPooledRenderTarget* RT = GRenderTargetPool.GetElementById(i);
-		if (!RT)
+
+		if(!RT)
 		{
-			break;
+			continue;
 		}
 
 		FPooledRenderTargetDesc Desc = RT->GetDesc();
