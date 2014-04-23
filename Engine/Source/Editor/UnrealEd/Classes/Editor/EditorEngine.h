@@ -2434,7 +2434,7 @@ private:
 
 	virtual void VerifyLoadMapWorldCleanup() OVERRIDE;
 
-	FPIEInstanceWindowSwitch PIEInstanceWIndowSwitchDelegate;
+	FPIEInstanceWindowSwitch PIEInstanceWindowSwitchDelegate;
 
 protected:
 

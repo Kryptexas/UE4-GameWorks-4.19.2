@@ -2697,7 +2697,7 @@ bool UEditorEngine::WorldIsPIEInNewViewport(UWorld *InWorld)
 
 void UEditorEngine::SetPIEInstanceWindowSwitchDelegate(FPIEInstanceWindowSwitch InSwitchDelegate)
 {
-	PIEInstanceWIndowSwitchDelegate = InSwitchDelegate;
+	PIEInstanceWindowSwitchDelegate = InSwitchDelegate;
 }
 
 void UEditorEngine::FocusNextPIEWorld(UWorld *CurrentPieWorld, bool previous)
@@ -2739,7 +2739,7 @@ void UEditorEngine::FocusNextPIEWorld(UWorld *CurrentPieWorld, bool previous)
 			FSlateApplication::Get().SetKeyboardFocus(SlateInfoPtr->SlatePlayInEditorWindowViewport->GetViewportWidget().Pin(), EKeyboardFocusCause::Keyboard);
 
 			// Execute notifcation delegate incase game code has to do anything else
-			PIEInstanceWIndowSwitchDelegate.ExecuteIfBound();
+			PIEInstanceWindowSwitchDelegate.ExecuteIfBound();
 		}
 	}
 }
