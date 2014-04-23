@@ -36,6 +36,9 @@ public:
 	/** Save the translations to file */
 	TSharedPtr<FUICommandInfo> PreviewAllTranslationsInEditor;
 
+	/** Export to PortableObject format (.po) */
+	TSharedPtr<FUICommandInfo> ExportToPortableObjectFormat;
+
 	/** Initialize commands */
 	virtual void RegisterCommands() OVERRIDE;
 };

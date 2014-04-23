@@ -136,8 +136,11 @@ private:
 	/** Update content when a new context selection is made */
 	void UpdateContextSelection();
 
-	/** Called when "Apply to UI" is clicked for this asset */
+	/** Called when "Preview in Editor" is clicked for this asset */
 	void PreviewAllTranslationsInEditor_Execute();
+
+	/** Called when "Export to .PO" is clicked for this asset */
+	void ExportToPortableObjectFormat_Execute();
 
 	/**	The tab id for the untranslated tab */
 	static const FName UntranslatedTabId;
