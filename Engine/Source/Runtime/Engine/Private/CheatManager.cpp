@@ -970,6 +970,12 @@ void UCheatManager::BugItStringCreator( FVector ViewLocation, FRotator ViewRotat
 	UE_LOG(LogCheatManager, Log, TEXT("%s"), *LocString);
 }
 
+void UCheatManager::FlushLog()
+{
+	GLog->FlushThreadedLogs();
+	GLog->Flush();
+}
+
 void UCheatManager::LogLoc()
 {
 	APlayerController* const MyPlayerController = GetOuterAPlayerController();

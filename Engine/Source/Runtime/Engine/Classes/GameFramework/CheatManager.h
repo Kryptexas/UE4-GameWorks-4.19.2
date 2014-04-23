@@ -281,6 +281,10 @@ class ENGINE_API UCheatManager : public UObject
 	UFUNCTION(exec)
 	virtual void BugItStringCreator(FVector ViewLocation, FRotator ViewRotation, FString& GoString, FString& LocString);
 
+	/** This will force a flush of the output log to file*/
+	UFUNCTION(exec)
+	virtual void FlushLog();
+
 	/** Logs the current location in bugit format without taking screenshot and further routing. */
 	UFUNCTION(exec)
 	virtual void LogLoc();
