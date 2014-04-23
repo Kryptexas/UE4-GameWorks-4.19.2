@@ -379,8 +379,8 @@ void UBodySetup::AddShapesToRigidActor(PxRigidActor* PDestActor, FVector& Scale3
 				HalfHeight = FMath::Max<float>(HalfHeight - Radius, 1.f);
 
 				PxCapsuleGeometry PCapsuleGeom;
-				PCapsuleGeom.halfHeight = (HalfHeight);
-				PCapsuleGeom.radius = (Radius * ScaleRadius);
+				PCapsuleGeom.halfHeight = HalfHeight;
+				PCapsuleGeom.radius = Radius;
 
 				if (ensure(PCapsuleGeom.isValid()))
 				{
