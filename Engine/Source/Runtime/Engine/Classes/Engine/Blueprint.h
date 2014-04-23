@@ -516,6 +516,8 @@ public:
 	virtual void Serialize(FArchive& Ar) OVERRIDE;
 	virtual FString GetDesc(void) OVERRIDE;
 	virtual void TagSubobjects(EObjectFlags NewFlags) OVERRIDE;
+	virtual bool NeedsLoadForClient() const OVERRIDE;
+	virtual bool NeedsLoadForServer() const OVERRIDE;
 	// End of UObject interface
 
 	/** Get the Blueprint object that generated the supplied class */

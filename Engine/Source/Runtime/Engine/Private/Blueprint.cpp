@@ -774,6 +774,29 @@ FString UBlueprint::GetDesc(void)
 	return ResultString;
 }
 
+struct FDontLoadBlueprintOutsideEditorHelper
+{
+	bool bDontLoad;
+
+	FDontLoadBlueprintOutsideEditorHelper() : bDontLoad(false)
+	{
+		GConfig->GetBool(TEXT("EditoronlyBP"), TEXT("bDontLoadBlueprintOutsideEditor"), bDontLoad, GEditorIni);
+	}
+};
+
+bool UBlueprint::NeedsLoadForClient() const
+{
+	static const FDontLoadBlueprintOutsideEditorHelper Helper;
+	return !Helper.bDontLoad;
+}
+
+bool UBlueprint::NeedsLoadForServer() const
+{
+	static const FDontLoadBlueprintOutsideEditorHelper Helper;
+	return !Helper.bDontLoad;
+}
+
+
 void UBlueprint::TagSubobjects(EObjectFlags NewFlags)
 {
 	Super::TagSubobjects(NewFlags);

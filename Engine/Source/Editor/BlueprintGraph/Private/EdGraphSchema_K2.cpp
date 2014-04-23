@@ -543,6 +543,20 @@ bool UEdGraphSchema_K2::IsAllowableBlueprintVariableType(const class UClass* InC
 			return true;
 		}
 
+		struct FBlueprintIsNotBlueprintTypeHelper
+		{
+			bool bNotBlueprintType;
+
+			FBlueprintIsNotBlueprintTypeHelper() : bNotBlueprintType(false)
+			{
+				GConfig->GetBool(TEXT("EditoronlyBP"), TEXT("bBlueprintIsNotBlueprintType"), bNotBlueprintType, GEditorIni);
+			}
+		};
+		static const FBlueprintIsNotBlueprintTypeHelper BPHelper;
+		if (BPHelper.bNotBlueprintType && InClass->IsChildOf(UBlueprint::StaticClass()))
+		{
+			return false;
+		}
 
 		const UClass* ParentClass = InClass;
 		while(ParentClass)

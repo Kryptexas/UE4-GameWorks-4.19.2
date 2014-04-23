@@ -45,7 +45,7 @@ class SGraphPinActorBasedClass : public SGraphPinObject
 			if(NULL != InClass)
 			{
 				const bool bActorBased = InClass->IsChildOf(AActor::StaticClass());
-				const bool bBlueprintType = InClass->GetBoolMetaDataHierarchical(FBlueprintMetadata::MD_AllowableBlueprintVariableType);
+				const bool bBlueprintType = UEdGraphSchema_K2::IsAllowableBlueprintVariableType(InClass);
 				const bool bNotAbstract = !InClass->HasAnyClassFlags(CLASS_Abstract);
 				return bActorBased && bBlueprintType && bNotAbstract;
 			}
