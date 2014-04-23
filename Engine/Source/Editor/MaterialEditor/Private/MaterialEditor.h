@@ -185,6 +185,7 @@ public:
 	FMaterialDevelopmentOverheadStats()
 		: EmptyMaterialWithOverhead(NULL)
 		, EmptyMaterial(NULL)
+		, bDisabled(false)
 	{
 
 	}
@@ -196,6 +197,8 @@ public:
 private:
 	UMaterial* EmptyMaterialWithOverhead;
 	UMaterial* EmptyMaterial;
+
+	bool bDisabled;
 };
 
 /**
