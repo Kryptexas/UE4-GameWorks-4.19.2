@@ -9,6 +9,7 @@
 #include "../Engine/GameViewportClient.h"
 #include "SceneManagement.h"
 #include "ForceFeedbackEffect.h"
+#include "OnlineReplStructs.h"
 #include "PlayerController.generated.h"
 
 /** delegate used to override default viewport audio listener position calculated from camera */
@@ -26,7 +27,7 @@ DECLARE_DELEGATE_ThreeParams(FGetAudioListenerPos, FVector& /*Location*/, FVecto
  */
 //=============================================================================
 
-UCLASS(config=Game, BlueprintType, Blueprintable, DependsOn=UOnlineReplStructs)
+UCLASS(config=Game, BlueprintType, Blueprintable)
 class ENGINE_API APlayerController : public AController
 {
 	GENERATED_UCLASS_BODY()

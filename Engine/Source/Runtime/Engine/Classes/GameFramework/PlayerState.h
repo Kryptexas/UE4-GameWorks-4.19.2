@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "OnlineReplStructs.h"
 #include "PlayerState.generated.h"
 
 /**
@@ -29,7 +30,7 @@ struct PingAvgData
 // such as playername, score, etc.
 //=============================================================================
 
-UCLASS(HeaderGroup=ReplicationInfo, BlueprintType, Blueprintable, notplaceable, DependsOn=UOnlineReplStructs)
+UCLASS(HeaderGroup=ReplicationInfo, BlueprintType, Blueprintable, notplaceable)
 class ENGINE_API APlayerState : public AInfo
 {
 	GENERATED_UCLASS_BODY()
