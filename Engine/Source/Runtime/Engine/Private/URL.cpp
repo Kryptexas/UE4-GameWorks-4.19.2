@@ -333,7 +333,7 @@ FURL::FURL( FURL* Base, const TCHAR* TextURL, ETravelType Type )
 			{
 				Map = FPackageName::FilenameToLongPackageName(URL);
 			}
-			else if (!FPackageName::DoesPackageNameContainInvalidCharacters(URL, &MapNameError) && FPackageName::SearchForPackageOnDisk(URL, &MapFullName))
+			else if (!FPackageName::DoesPackageNameContainInvalidCharacters(URL, &MapNameError) && FPackageName::SearchForPackageOnDisk(FString(URL) + FPackageName::GetMapPackageExtension(), &MapFullName))
 			{
 				Map = MapFullName;
 			}

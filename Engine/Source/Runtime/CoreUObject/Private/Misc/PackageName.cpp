@@ -669,7 +669,7 @@ bool FPackageName::SearchForPackageOnDisk(const FString& PackageName, FString* O
 			}
 		}
 
-		const FString PackageWildcard = PackageName + TEXT(".*");
+		const FString PackageWildcard = (PackageName.Find(TEXT(".")) != INDEX_NONE ? PackageName : PackageName + TEXT(".*"));
 		TArray<FString> Results;
 
 		for (int32 PathIndex = 0; PathIndex < Paths.Num() && !bResult; ++PathIndex)
@@ -677,7 +677,7 @@ bool FPackageName::SearchForPackageOnDisk(const FString& PackageName, FString* O
 			// Search directly on disk. Very slow!
 			IFileManager::Get().FindFilesRecursive(Results, *Paths[PathIndex], *PackageWildcard, true, false);
 
-			for (int32 FileIndex = 0; FileIndex < Results.Num() && !bResult; ++FileIndex)
+			for (int32 FileIndex = 0; FileIndex < Results.Num(); ++FileIndex)
 			{			
 				FString Filename(Results[FileIndex]);
 				if (IsPackageFilename(Results[FileIndex]))
@@ -688,12 +688,26 @@ bool FPackageName::SearchForPackageOnDisk(const FString& PackageName, FString* O
 					{
 						if (OutLongPackageName)
 						{
-							*OutLongPackageName = LongPackageName;
+							if (bResult)
+							{
+								UE_LOG(LogPackageName, Warning, TEXT("Found ambiguous long package name for '%s'. Returning '%s', but could also be '%s'."), *PackageName, **OutLongPackageName, *LongPackageName );
+							}
+							else
+							{
+								*OutLongPackageName = LongPackageName;
+							}
 						}
 						if (OutFilename)
 						{
 							FPaths::MakeStandardFilename(Filename);
-							*OutFilename = Filename;
+							if (bResult)
+							{
+								UE_LOG(LogPackageName, Warning, TEXT("Found ambiguous file name for '%s'. Returning '%s', but could also be '%s'."), *PackageName, **OutFilename, *Filename);
+							}
+							else
+							{
+								*OutFilename = Filename;
+							}
 						}
 						bResult = true;
 					}
