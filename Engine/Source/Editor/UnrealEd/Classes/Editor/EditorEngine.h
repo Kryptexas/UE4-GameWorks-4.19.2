@@ -4,6 +4,7 @@
 
 #include "EditorUserSettings.h"
 #include "Transactor.h"
+#include "../Settings/LevelEditorPlaySettings.h"
 #include "EditorEngine.generated.h"
 
 //
@@ -2315,7 +2316,7 @@ private:
 	 * @param PlayNetMode mode to create this PIE world in (as server, client, etc)
 	 * @param DataStruct data required to continue PIE creation, set at login time
 	 */
-	void CreatePIEWorldFromLogin(FWorldContext& PieWorldContext, enum EPlayNetMode PlayNetMode, FPieLoginStruct& DataStruct);
+	void CreatePIEWorldFromLogin(FWorldContext& PieWorldContext, EPlayNetMode PlayNetMode, FPieLoginStruct& DataStruct);
 
 	/**
 	 * Non Online PIE creation flow, creates all instances of PIE at once when online isn't requested/required

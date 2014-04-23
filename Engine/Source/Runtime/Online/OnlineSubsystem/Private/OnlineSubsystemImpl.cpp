@@ -6,7 +6,7 @@
 
 FOnlineSubsystemImpl::FOnlineSubsystemImpl() :
 	InstanceName(NAME_None),
-	bForceDedicated(false)
+	bForceDedicated(false),
 	NamedInterfaces(NULL)
 {
 }
