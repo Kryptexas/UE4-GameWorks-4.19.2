@@ -193,8 +193,6 @@ bool					GIsFirstInstance				= true;
 #endif
 /** Threshold for a frame to be considered a hitch (in seconds. */
 float GHitchThreshold = 0.075f;
-/** Whether to forcefully enable capturing of stats due to a profiler attached								*/
-bool					GProfilerAttached = false;
 /** Size to break up data into when saving compressed data													*/
 int32					GSavingCompressionChunkSize		= SAVING_COMPRESSION_CHUNK_SIZE;
 /** Whether we are using the seekfree/ cooked loading codepath.												*/
@@ -242,25 +240,9 @@ bool					GIsAutomationTesting					= false;
 /** Whether or not messages are being pumped outside of the main loop										*/
 bool					GPumpingMessagesOutsideOfMainLoop = false;
 
-/** Total number of calls to Malloc, if implemented by derived class.										*/
-uint64 FMalloc::TotalMallocCalls;
-/** Total number of calls to Free, if implemented by derived class.											*/
-uint64 FMalloc::TotalFreeCalls;
-/** Total number of calls to Realloc, if implemented by derived class.										*/
-uint64 FMalloc::TotalReallocCalls;
-
 /** Total blueprint compile time.																			*/
 double GBlueprintCompileTime = 0.0;
 
-
-/** Memory stats objects 
- *
- * If you add new Stat Memory stats please update:  FMemoryChartEntry so the automated memory chart has the info
- */
-
-
-DEFINE_STAT(STAT_PhysicalAllocSize);
-DEFINE_STAT(STAT_VirtualAllocSize);
 DEFINE_STAT(STAT_AudioMemory);
 DEFINE_STAT(STAT_TextureMemory);
 DEFINE_STAT(STAT_MemoryPhysXTotalAllocationSize);
@@ -285,10 +267,7 @@ DEFINE_STAT(STAT_ResourceVertexColorMemory);
 DEFINE_STAT(STAT_InstVertexColorMemory);
 DEFINE_STAT(STAT_StaticMeshIndexMemory);
 
-DEFINE_STAT(STAT_MallocCalls);
-DEFINE_STAT(STAT_ReallocCalls);
-DEFINE_STAT(STAT_FreeCalls);
-DEFINE_STAT(STAT_TotalAllocatorCalls);
+
 
 /** Threading stats objects */
 
@@ -335,6 +314,7 @@ DEFINE_LOG_CATEGORY(LogSerialization);
 DEFINE_LOG_CATEGORY(LogContentComparisonCommandlet);
 DEFINE_LOG_CATEGORY(LogNetPackageMap);
 DEFINE_LOG_CATEGORY(LogNetSerialization);
+DEFINE_LOG_CATEGORY(LogMemory);
 
 DEFINE_LOG_CATEGORY(LogTemp);
 

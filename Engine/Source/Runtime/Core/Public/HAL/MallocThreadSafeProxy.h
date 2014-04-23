@@ -77,27 +77,25 @@ public:
 		}
 	}
 
-	/**
-	 * Passes request for gathering memory allocations for both virtual and physical allocations
-	 * on to used memory manager.
-	 *
-	 * @param FMemoryAllocationStats_DEPRECATED	[out] structure containing information about the size of allocations
-	 */
-	void GetAllocationInfo( FMemoryAllocationStats_DEPRECATED& MemStats ) OVERRIDE
+	/** Called once per frame, gathers and sets all memory allocator statistics into the corresponding stats. */
+	virtual void UpdateStats()
 	{
 		FScopeLock ScopeLock( &SynchronizationObject );
-		UsedMalloc->GetAllocationInfo( MemStats );
+		UsedMalloc->UpdateStats();
 	}
 
-	/**
-	 * Dumps details about all allocations to an output device
-	 *
-	 * @param Ar	[in] Output device
-	 */
-	virtual void DumpAllocations( class FOutputDevice& Ar ) OVERRIDE
+	/** Writes allocator stats from the last update into the specified destination. */
+	virtual void GetAllocatorStats( FGenericMemoryStats& out_Stats )
 	{
-		FScopeLock Lock( &SynchronizationObject );
-		UsedMalloc->DumpAllocations( Ar );
+		FScopeLock ScopeLock( &SynchronizationObject );
+		UsedMalloc->GetAllocatorStats( out_Stats );
+	}
+
+	/** Dumps allocator stats to an output device. */
+	virtual void DumpAllocatorStats( class FOutputDevice& Ar )
+	{
+		FScopeLock ScopeLock( &SynchronizationObject );
+		UsedMalloc->DumpAllocatorStats( Ar );
 	}
 
 	/**
@@ -113,14 +111,6 @@ public:
 	{
 		FScopeLock ScopeLock( &SynchronizationObject );
 		return UsedMalloc->Exec( InWorld, Cmd, Ar);
-	}
-
-
-	/** Called every game thread tick */
-	void Tick( float DeltaTime ) OVERRIDE
-	{
-		FScopeLock ScopeLock( &SynchronizationObject );
-		return UsedMalloc->Tick( DeltaTime );
 	}
 
 	/**

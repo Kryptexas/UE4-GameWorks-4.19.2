@@ -1928,31 +1928,9 @@ void FEngineLoop::Tick()
 
 		GEngine->TickFPSChart( GDeltaTime );
 
-#if STATS	// Can't do this within the malloc classes as they get initialized before the stats
-
-		// @todo FPlatformMemory::UpdateStats();
-		FPlatformMemoryStats MemoryStats = FPlatformMemory::GetStats();
-		SET_DWORD_STAT(STAT_VirtualAllocSize,MemoryStats.PagefileUsage);
-		SET_DWORD_STAT(STAT_PhysicalAllocSize,MemoryStats.WorkingSetSize);
-
-		static uint64 LastMallocCalls		= 0;
-		static uint64 LastReallocCalls		= 0;
-		static uint64 LastFreeCalls			= 0;
-
-		uint32 CurrentFrameMallocCalls		= FMalloc::TotalMallocCalls - LastMallocCalls;
-		uint32 CurrentFrameReallocCalls		= FMalloc::TotalReallocCalls - LastReallocCalls;
-		uint32 CurrentFrameFreeCalls			= FMalloc::TotalFreeCalls - LastFreeCalls;
-		uint32 CurrentFrameAllocatorCalls	= CurrentFrameMallocCalls + CurrentFrameReallocCalls + CurrentFrameFreeCalls;
-
-		SET_DWORD_STAT( STAT_MallocCalls, CurrentFrameMallocCalls );
-		SET_DWORD_STAT( STAT_ReallocCalls, CurrentFrameReallocCalls );
-		SET_DWORD_STAT( STAT_FreeCalls, CurrentFrameFreeCalls );
-		SET_DWORD_STAT( STAT_TotalAllocatorCalls, CurrentFrameAllocatorCalls );
-
-		LastMallocCalls			= FMalloc::TotalMallocCalls;
-		LastReallocCalls		= FMalloc::TotalReallocCalls;
-		LastFreeCalls			= FMalloc::TotalFreeCalls;
-#endif
+		// Update platform memory and memory allocator stats.
+		FPlatformMemory::UpdateStats();
+		GMalloc->UpdateStats();
 	} 
 
 	FlushStatsFrame(false);

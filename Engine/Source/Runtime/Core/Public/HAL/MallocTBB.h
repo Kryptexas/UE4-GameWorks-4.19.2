@@ -42,20 +42,6 @@ public:
 	 * Free
 	 */
 	virtual void Free( void* Ptr ) OVERRIDE;
-	
-	/**
-	 * Dumps details about all allocations to an output device
-	 *
-	 * @param Ar	[in] Output device
-	 */
-	virtual void DumpAllocations( FOutputDevice& Ar ) OVERRIDE;
-
-	/**
-	 * Returns stats about current memory usage.
-	 *
-	 * @param FMemoryAllocationStats_DEPRECATED	[out] structure containing information about the size of allocations
-	 */
-	CORE_API virtual void GetAllocationInfo( FMemoryAllocationStats_DEPRECATED& MemStats ) OVERRIDE;
 
 	/**
 	 * If possible determine the size of the memory allocated at the given address

@@ -117,7 +117,7 @@ void FOutputDevice::Log( const FText& T )
 /** Number of top function calls to hide when dumping the callstack as text. */
 #define CALLSTACK_IGNOREDEPTH 2
 
-VARARG_BODY( void, FOutputDevice::CategorizedLogf, const TCHAR*, VARARG_EXTRA(ELogVerbosity::Type Verbosity) VARARG_EXTRA(const class FName& Category) )
+VARARG_BODY( void, FOutputDevice::CategorizedLogf, const TCHAR*, VARARG_EXTRA(const class FName& Category) VARARG_EXTRA(ELogVerbosity::Type Verbosity)  )
 {
 	GROWABLE_LOGF(Serialize(Buffer, Verbosity, Category))
 }

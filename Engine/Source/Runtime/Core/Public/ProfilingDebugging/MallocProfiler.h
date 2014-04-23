@@ -49,40 +49,7 @@ enum EProfilingPayloadSubType
 	/** Marker used to determine when a new frame has started. */
 	SUBTYPE_FrameTimeMarker						= 3,
 
-	/** Not used. Only for backward compatibility. Use a new snapshot marker instead. */
-	SUBTYPE_TextMarker							= 4,
-
-	// Marker types for periodic non-GMalloc memory status updates. Only for backward compatibility, replaced with SUBTYPE_MemoryAllocationStats
-
-	/** Marker used to store the total amount of memory used by the game. */
-	SUBTYPE_TotalUsed							= 5,
-
-	/** Marker used to store the total amount of memory allocated from the OS. */
-	SUBTYPE_TotalAllocated						= 6,
-
-	/** Marker used to store the allocated in use by the application virtual memory. */
-	SUBTYPE_CPUUsed								= 7,
-
-	/** Marker used to store the allocated from the OS/allocator, but not used by the application. */
-	SUBTYPE_CPUSlack							= 8,
-
-	/** Marker used to store the alignment waste from a pooled allocator plus book keeping overhead. */
-	SUBTYPE_CPUWaste							= 9,
-
-	/** Marker used to store the allocated in use by the application physical memory. */
-	SUBTYPE_GPUUsed								= 10,
-
-	/** Marker used to store the allocated from the OS, but not used by the application. */
-	SUBTYPE_GPUSlack							= 11,
-
-	/** Marker used to store the alignment waste from a pooled allocator plus book keeping overhead. */
-	SUBTYPE_GPUWaste							= 12,
-
-	/** Marker used to store the overhead of the operating system. */
-	SUBTYPE_OSOverhead							= 13,
-
-	/** Marker used to store the size of loaded executable, stack, static, and global object size. */
-	SUBTYPE_ImageSize							= 14,
+	// Markers from 4 to 20 are deprecated and have been removed.
 
 	/// Version 3
 	// Marker types for automatic snapshots.
@@ -108,7 +75,7 @@ enum EProfilingPayloadSubType
 	/** Marker used to determine when a previously streamed level has been made visible. */
 	SUBTYPE_SnapshotMarker_LevelStream_End		= 27,
 
-	/** Marker used to store a generic malloc statistics. @see FMemoryAllocationStats_DEPRECATED. */
+	/** Marker used to store a generic malloc statistics. */
 	SUBTYPE_MemoryAllocationStats				= 31,
 
 	/** Start licensee-specific subtypes from here. */
@@ -245,7 +212,7 @@ protected:
 	FCriticalSection						CriticalSection;
 
 	/** Mapping from program counter to index in program counter array.								*/
-	TMap<uint64,int32>							ProgramCounterToIndexMap;
+	TMap<uint64,int32>						ProgramCounterToIndexMap;
 	/** Array of unique call stack address infos.													*/
 	TArray<struct FCallStackAddressInfo>	CallStackAddressInfoArray;
 
@@ -266,7 +233,7 @@ protected:
 	FCriticalSection						SyncObject;
 
 	/** Whether operations should be tracked. false e.g. in tracking internal functions.			*/
-	int32										SyncObjectLockCount;
+	int32									SyncObjectLockCount;
 
 	/** The currently executing thread's id. */
 	uint32									ThreadId;
@@ -386,7 +353,7 @@ protected:
 	/** 
 	 * Gather texture memory stats. 
 	 */
-	virtual void GetTexturePoolSize( FMemoryAllocationStats_DEPRECATED& MemoryStats );
+	virtual void GetTexturePoolSize( FGenericMemoryStats& out_Stats );
 
 	/** 
 		Added for untracked memory calculation
@@ -502,27 +469,25 @@ public:
 		return true; 
 	}
 
-	/**
-	 * Passes request for gathering memory allocations for both virtual and physical allocations
-	 * on to used memory manager.
-	 *
-	 * @param FMemoryAllocationStats_DEPRECATED	[out] structure containing information about the size of allocations
-	 */
-	virtual void GetAllocationInfo( FMemoryAllocationStats_DEPRECATED& MemStats ) OVERRIDE
+	/** Called once per frame, gathers and sets all memory allocator statistics into the corresponding stats. */
+	virtual void UpdateStats() OVERRIDE
 	{
 		FScopeLock Lock( &CriticalSection );
-		UsedMalloc->GetAllocationInfo( MemStats );
+		UsedMalloc->UpdateStats();
 	}
 
-	/**
-	 * Dumps details about all allocations to an output device
-	 *
-	 * @param Ar	[in] Output device
-	 */
-	virtual void DumpAllocations( class FOutputDevice& Ar ) OVERRIDE
+	/** Writes allocator stats from the last update into the specified destination. */
+	virtual void GetAllocatorStats( FGenericMemoryStats& out_Stats ) OVERRIDE
 	{
 		FScopeLock Lock( &CriticalSection );
-		UsedMalloc->DumpAllocations( Ar );
+		UsedMalloc->GetAllocatorStats( out_Stats );
+	}
+
+	/** Dumps allocator stats to an output device. */
+	virtual void DumpAllocatorStats( class FOutputDevice& Ar ) OVERRIDE
+	{
+		FScopeLock Lock( &CriticalSection );
+		UsedMalloc->DumpAllocatorStats( Ar );
 	}
 
 	/**
@@ -559,13 +524,6 @@ public:
 	bool HandleDumpAllocsToFileCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleSnapshotMemoryCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleSnapshotMemoryFrameCommand( const TCHAR* Cmd, FOutputDevice& Ar );
-
-	/** Called every game thread tick */
-	virtual void Tick( float DeltaTime ) OVERRIDE
-	{ 
-		FScopeLock Lock( &CriticalSection );
-		UsedMalloc->Tick(DeltaTime);
-	}
 
 	virtual const TCHAR * GetDescriptiveName() OVERRIDE
 	{ 

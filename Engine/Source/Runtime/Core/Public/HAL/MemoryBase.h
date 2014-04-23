@@ -15,85 +15,10 @@
 CORE_API extern class FMalloc* GMalloc;
 
 /** Global FMallocProfiler variable to allow multiple malloc profilers to communicate. */
-MALLOC_PROFILER( extern class FMallocProfiler* GMallocProfiler; )
+MALLOC_PROFILER( CORE_API extern class FMallocProfiler* GMallocProfiler; )
 
-// Memory allocator.
-
-/** 
- * Struct used to hold memory allocation statistics. 
- * NOTE: Be sure to check hardcoded/mirrored usage found in MemoryProfiler2 StreamToken.cs
- * Only for backward compatibility with MemoryProfiler2.
- * @todo remove it later.
- * Contains only allocator specific stats.
- */
-struct FMemoryAllocationStats_DEPRECATED
-{
-	SIZE_T	TotalUsed;			/** The total amount of memory used by the game. */	
-	SIZE_T	TotalAllocated;		/** The total amount of memory allocated from the OS. */
-
-	// Virtual memory for Xbox and PC / Main memory for PS3 (tracked in the allocators)
-	SIZE_T	CPUUsed;			/** The allocated in use by the application virtual memory. */
-	SIZE_T	CPUSlack;			/** The allocated from the OS/allocator, but not used by the application. */
-	SIZE_T	CPUWaste;			/** Alignment waste from a pooled allocator plus book keeping overhead. */
-	SIZE_T	CPUAvailable;		/** MemoryStats.AvailableVirtual */
-
-	SIZE_T	NotUsed0;			
-	SIZE_T	NotUsed1;
-	SIZE_T	NotUsed2;
-	SIZE_T	NotUsed3;
-
-	SIZE_T	NotUsed4;
-	SIZE_T	OSReportedFree;		/** Free memory as reported by the operating system. (Xbox360, PS3) */
-	SIZE_T	NotUsed5;
-	SIZE_T	NotUsed6;
-
-	SIZE_T	NotUsed7;
-	SIZE_T	NotUsed8;
-	SIZE_T	NotUsed9;
-	SIZE_T	NotUsedA;
-
-	SIZE_T	AllocatedTextureMemorySize; /** Size of allocated memory in the texture pool. */
-	SIZE_T	AvailableTextureMemorySize; /** Size of available memory in the texture pool. */
-
-	/** Returns statistics count. */
-	static uint8 GetStatsNum()
-	{
-		const uint8 ItemsCount = (uint8)(sizeof(FMemoryAllocationStats_DEPRECATED) / sizeof(SIZE_T));
-		return ItemsCount;
-	}
-
-	/** 
-	 * Constructor. 
-	 */
-	FMemoryAllocationStats_DEPRECATED()
-	{
-		TotalUsed = 0;
-		TotalAllocated = 0;
-
-		CPUUsed = 0;
-		CPUSlack = 0;
-		CPUWaste = 0;
-		CPUAvailable = 0;
-
-		NotUsed0 = 0;
-		NotUsed1 = 0;	
-		NotUsed2 = 0;
-		NotUsed3 = 0;
-
-		NotUsed4 = 0;
-		OSReportedFree = 0;
-		NotUsed5 = 0;
-		NotUsed6 = 0;
-
-		NotUsed6 = 0;	
-		NotUsed8 = 0;	
-		NotUsed9 = 0;
-		NotUsedA = 0;
-
-		AllocatedTextureMemorySize = 0;
-		AvailableTextureMemorySize = 0;
-	}
-};
+/** Holds generic memory stats, internally implemented as a map. */
+struct FGenericMemoryStats;
 
 /**
  * Inherit from FUseSystemMallocForNew if you want your objects to be placed in memory
@@ -190,12 +115,17 @@ public:
 	{ 
 		return false; 
 	}
-	
-	/** 
-	 * Called every game thread tick 
-	 */
-	virtual void Tick( float DeltaTime ) 
-	{ 
+
+	/** Called once per frame, gathers and sets all memory allocator statistics into the corresponding stats. */
+	virtual void UpdateStats();
+
+	/** Writes allocator stats from the last update into the specified destination. */
+	virtual void GetAllocatorStats( FGenericMemoryStats& out_Stats );
+
+	/** Dumps current allocator stats to the log. */
+	virtual void DumpAllocatorStats( class FOutputDevice& Ar )
+	{
+		Ar.Logf( TEXT("Allocator Stats for %s: (not implemented)" ), GetDescriptiveName() );
 	}
 
 	/**
@@ -205,25 +135,6 @@ public:
 	virtual bool IsInternallyThreadSafe() const 
 	{ 
 		return false; 
-	}
-
-	/**
-	 * Gathers all current memory stats
-	 *
-	 * @param FMemoryAllocationStats_DEPRECATED	[out] structure containing information about the size of allocations
-	 */
-	virtual void GetAllocationInfo( FMemoryAllocationStats_DEPRECATED& MemStats ) 
-	{
-	}
-
-	/**
-	 * Dumps details about all allocations to an output device
-	 *
-	 * @param Ar	[in] Output device
-	 */
-	virtual void DumpAllocations( class FOutputDevice& Ar ) 
-	{
-		Ar.Logf( TEXT( "DumpAllocations not implemented" ) );
 	}
 
 	/**
@@ -254,6 +165,27 @@ public:
 	virtual const TCHAR * GetDescriptiveName()
 	{
 		return TEXT("Unspecified allocator");
+	}
+
+protected:
+	friend struct FCurrentFrameCalls;
+
+	/** Atomically increment total malloc calls. */
+	FORCEINLINE void IncrementTotalMallocCalls()
+	{
+		FPlatformAtomics::InterlockedIncrement( (volatile int64*)&FMalloc::TotalMallocCalls );
+	}
+
+	/** Atomically increment total free calls. */
+	FORCEINLINE void IncrementTotalFreeCalls()
+	{
+		FPlatformAtomics::InterlockedIncrement( (volatile int64*)&FMalloc::TotalFreeCalls );
+	}
+
+	/** Atomically increment total realloc calls. */
+	FORCEINLINE void IncrementTotalReallocCalls()
+	{
+		FPlatformAtomics::InterlockedIncrement( (volatile int64*)&FMalloc::TotalReallocCalls );
 	}
 
 	/** Total number of calls Malloc, if implemented by derived class. */

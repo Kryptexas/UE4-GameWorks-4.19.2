@@ -7,11 +7,10 @@
 
 #pragma once
 
-// TODO: @JarekS 2013-12-10, 20:36 As stats?
 /**
  *	Windows implementation of the FGenericPlatformMemoryStats.
  *	At this moment it's just the same as the FGenericPlatformMemoryStats.
- *	Can be extended as showed in the following example.
+ *	Can be extended as shown in the following example.
  */
 struct FPlatformMemoryStats : public FGenericPlatformMemoryStats
 {
@@ -64,7 +63,9 @@ struct CORE_API FWindowsPlatformMemory : public FGenericPlatformMemory
 	static void Init();
 	static class FMalloc* BaseAllocator();
 	static FPlatformMemoryStats GetStats();
+	static void GetStatsForMallocProfiler( FGenericMemoryStats& out_Stats );
 	static const FPlatformMemoryConstants& GetConstants();
+	static void UpdateStats();
 	static void* BinnedAllocFromOS( SIZE_T Size );
 	static void BinnedFreeToOS( void* Ptr );
 	static FSharedMemoryRegion * MapNamedSharedMemoryRegion(const FString & InName, bool bCreate, uint32 AccessMode, SIZE_T Size);

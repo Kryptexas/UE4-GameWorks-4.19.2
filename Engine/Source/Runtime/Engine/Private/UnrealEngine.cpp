@@ -618,9 +618,13 @@ namespace EngineDefs
   */
 void EngineMemoryWarningHandler(const FGenericMemoryWarningContext& GenericContext)
 {
-	FMemoryAllocationStats_DEPRECATED MemStats;
-	GMalloc->GetAllocationInfo( MemStats );
-	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("EngineMemoryWarningHandler: Mem Used %.2f MB, Texture Memory %.2f MB, Render Target memory %.2f MB, OS Free %.2f MB\n"), MemStats.TotalUsed / 1048576.0f, GCurrentTextureMemorySize / 1048576.0f, GCurrentRendertargetMemorySize / 1048576.0f, MemStats.OSReportedFree / 1048576.0f);
+	FPlatformMemoryStats Stats = FPlatformMemory::GetStats();
+
+	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("EngineMemoryWarningHandler: Mem Used %.2f MB, Texture Memory %.2f MB, Render Target memory %.2f MB, OS Free %.2f MB\n"), 
+		Stats.UsedPhysical / 1048576.0f, 
+		GCurrentTextureMemorySize / 1048576.0f, 
+		GCurrentRendertargetMemorySize / 1048576.0f, 
+		Stats.AvailablePhysical / 1048576.0f);
 
 #if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
 	const auto OOMMemReportVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("Debug.OOMMemReport")); 
@@ -829,7 +833,7 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 	// register screenshot capture if we are dumping a movie
 	if(GIsDumpingMovie)
 	{
-		UGameViewportClient::OnScreenshotCaptured().AddUObject(this, &UEngine::HandleScreenshotCaptured);
+		//UGameViewportClient::OnScreenshotCaptured().AddUObject(this, &UEngine::HandleScreenshotCaptured);
 	}
 #endif
 }
@@ -854,7 +858,7 @@ void UEngine::PreExit()
 	FEngineAnalytics::Shutdown();
 
 #if WITH_EDITOR
-	UGameViewportClient::OnScreenshotCaptured().RemoveUObject(this, &UEngine::HandleScreenshotCaptured);
+	//UGameViewportClient::OnScreenshotCaptured().RemoveUObject(this, &UEngine::HandleScreenshotCaptured);
 #endif
 }
 
@@ -2320,7 +2324,7 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	}
 	else if ( FParse::Command(&Cmd,TEXT("DUMPALLOCS")) )
 	{
-		return HandleDumpAllocsCommand( Cmd, Ar );
+		return HandleDumpAllocatorStats( Cmd, Ar );
 	}
 	else if ( FParse::Command(&Cmd,TEXT("HEAPCHECK")) )
 	{
@@ -3824,14 +3828,14 @@ bool UEngine::HandleMemCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 	}
 
 	FPlatformMemory::DumpStats( Ar );
+	Ar.CategorizedLogf( LogMemory.GetCategoryName(), ELogVerbosity::Log, TEXT("") );
+	GMalloc->DumpAllocatorStats( Ar );
 
 	if( bDetailed || bReport)
 	{
-		GMalloc->DumpAllocations( Ar );
-
-		Ar.Logf( TEXT("Memory Stats:") );
-		Ar.Logf( TEXT("FMemStack (gamethread) allocation size [used/ unused] = [%.2f / %.2f] MB"), FMemStack::Get().GetByteCount() / (1024.0f * 1024.0f), FMemStack::Get().GetUnusedByteCount() / (1024.0f * 1024.0f)  );
-		Ar.Logf( TEXT("Nametable memory usage = %.2f MB"), FName::GetNameTableMemorySize() / (1024.0f * 1024.0f) );
+		Ar.CategorizedLogf( LogMemory.GetCategoryName(), ELogVerbosity::Log, TEXT("Memory Stats:") );
+		Ar.CategorizedLogf( LogMemory.GetCategoryName(), ELogVerbosity::Log, TEXT("FMemStack (gamethread) allocation size [used/ unused] = [%.2f / %.2f] MB"), FMemStack::Get().GetByteCount() / (1024.0f * 1024.0f), FMemStack::Get().GetUnusedByteCount() / (1024.0f * 1024.0f)  );
+		Ar.CategorizedLogf( LogMemory.GetCategoryName(), ELogVerbosity::Log, TEXT("Nametable memory usage = %.2f MB"), FName::GetNameTableMemorySize() / (1024.0f * 1024.0f) );
 
 #if STATS
 		TArray<FStatMessage> Stats;
@@ -3848,31 +3852,10 @@ bool UEngine::HandleMemCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 			FName LastGroup = Meta.NameAndInfo.GetGroupName();
 			if ((LastGroup == NAME_STATGROUP_SceneMemory || LastGroup == NAME_STATGROUP_Memory || LastGroup == NAME_STATGROUP_TextureGroup || LastGroup == NAME_STATGROUP_RHI)  && Meta.NameAndInfo.GetFlag(EStatMetaFlags::IsMemory))
 			{
-				Ar.Logf(TEXT("%s"), *FStatsUtils::DebugPrint(Meta));
+				Ar.CategorizedLogf( LogMemory.GetCategoryName(), ELogVerbosity::Log, TEXT("%s"), *FStatsUtils::DebugPrint(Meta));
 			}
 		}
 #endif
-	}
-
-	FMemoryAllocationStats_DEPRECATED MemStats;
-	GMalloc->GetAllocationInfo( MemStats );
-
-	Ar.Logf( TEXT("") );
-
-	if( MemStats.TotalAllocated || MemStats.TotalUsed )
-	{
-		float AllocatedMB = MemStats.TotalAllocated / ( 1024.0f * 1024.0f );
-		float UsedMB = MemStats.TotalUsed / ( 1024.0f * 1024.0f );
-		float OverheadMB = ( MemStats.TotalAllocated - MemStats.TotalUsed ) / ( 1024.0f * 1024.0f );
-		Ar.Logf(TEXT("Memory allocations reported by the OS: %.2f MB (with %.2f MB used and %.2f MB overhead)"), AllocatedMB, UsedMB, OverheadMB );
-	}
-
-	if( MemStats.CPUUsed )
-	{
-		float UsedMB = MemStats.CPUUsed / ( 1024.0f * 1024.0f );
-		float WasteMB = MemStats.CPUWaste / ( 1024.0f * 1024.0f );
-		float SlackMB = MemStats.CPUSlack / ( 1024.0f * 1024.0f );
-		Ar.Logf(TEXT("Virtual memory tracked in the allocators: %.2f MB (with %.2f MB used, %.2f MB slack and %.2f MB waste)"), UsedMB + SlackMB + WasteMB, UsedMB, SlackMB, WasteMB );
 	}
 
 	return true;
@@ -4866,9 +4849,9 @@ bool UEngine::HandleDumpParticleFrameRenderingStatsCommand( const TCHAR* Cmd, FO
 	return 1;
 }
 
-bool UEngine::HandleDumpAllocsCommand( const TCHAR* Cmd, FOutputDevice& Ar )
+bool UEngine::HandleDumpAllocatorStats( const TCHAR* Cmd, FOutputDevice& Ar )
 {
-	GMalloc->DumpAllocations(Ar);
+	GMalloc->DumpAllocatorStats(Ar);
 	return true;
 }
 
@@ -6240,7 +6223,7 @@ int32 DrawMemorySummaryStats( FViewport* Viewport, FCanvas* Canvas, int32 X, int
 
 	// Retrieve allocation info.
 	FPlatformMemoryStats MemoryStats = FPlatformMemory::GetStats();
-	float MemoryInMByte = MemoryStats.WorkingSetSize / 1024.f / 1024.f;
+	float MemoryInMByte = MemoryStats.UsedPhysical / 1024.f / 1024.f;
 
 	// Draw the memory summary stats.
 	Canvas->DrawShadowedString(

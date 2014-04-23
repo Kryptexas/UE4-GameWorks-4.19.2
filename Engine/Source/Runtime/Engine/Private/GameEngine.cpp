@@ -819,12 +819,6 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 #endif
 	}
 
-	// Tick allocator
-	if( GMalloc != NULL )
-	{
-		GMalloc->Tick( DeltaSeconds );
-	}
-
 	// Tick the module manager
 	FModuleManager::Get().Tick();
 

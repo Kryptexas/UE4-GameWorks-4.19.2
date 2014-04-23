@@ -1587,7 +1587,7 @@ public:
 	bool HandleTrackParticleRenderingStatsCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleDumpParticleRenderingStatsCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleDumpParticleFrameRenderingStatsCommand( const TCHAR* Cmd, FOutputDevice& Ar );
-	bool HandleDumpAllocsCommand( const TCHAR* Cmd, FOutputDevice& Ar );
+	bool HandleDumpAllocatorStats( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleHeapCheckCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleToggleOnscreenDebugMessageDisplayCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleToggleOnscreenDebugMessageSystemCommand( const TCHAR* Cmd, FOutputDevice& Ar );	

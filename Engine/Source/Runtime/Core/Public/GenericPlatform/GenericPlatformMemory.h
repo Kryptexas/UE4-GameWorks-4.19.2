@@ -7,7 +7,8 @@
 
 #pragma once
 
-// @todo: Add stats
+/** Holds generic memory stats, internally implemented as a map. */
+struct FGenericMemoryStats;
 
 /** 
  * Struct used to hold common memory constants for all platforms.
@@ -34,13 +35,23 @@ struct FGenericPlatformMemoryConstants
 		, PageSize( 0 )
 		, TotalPhysicalGB( 1 )
 	{}
+
+	/** Copy constructor, used by the generic platform memory stats. */
+	FGenericPlatformMemoryConstants( const FGenericPlatformMemoryConstants& Other )
+		: TotalPhysical( Other.TotalPhysical )
+		, TotalVirtual( Other.TotalVirtual )
+		, PageSize( Other.PageSize )
+		, TotalPhysicalGB( Other.TotalPhysicalGB )
+	{}
 };
+
+typedef FGenericPlatformMemoryConstants FPlatformMemoryConstants;
 
 /** 
  * Struct used to hold common memory stats for all platforms.
  * These values may change over the entire life of the executable.
  */
-struct FGenericPlatformMemoryStats
+struct FGenericPlatformMemoryStats : public FPlatformMemoryConstants
 {
 	/** The amount of physical memory currently available, in bytes. */
 	SIZE_T AvailablePhysical;
@@ -48,28 +59,23 @@ struct FGenericPlatformMemoryStats
 	/** The amount of virtual memory currently available, in bytes. */
 	SIZE_T AvailableVirtual;
 
-	/** The current working set size, in bytes. This is the amount of physical memory used by the process. */
-	SIZE_T WorkingSetSize;
+	/** The amount of physical memory used by the process, in bytes. */
+	SIZE_T UsedPhysical;
 
-	/** The peak working set size, in bytes. */
-	SIZE_T PeakWorkingSetSize;
+	/** The peak amount of physical memory used by the process, in bytes. */
+	SIZE_T PeakUsedPhysical;
 
 	/** Total amount of virtual memory used by the process. */
-	SIZE_T PagefileUsage;
+	SIZE_T UsedVirtual;
+
+	/** The peak amount of virtual memory used by the process. */
+	SIZE_T PeakUsedVirtual;
 	
 	/** Default constructor, clears all variables. */
-	FGenericPlatformMemoryStats()
-		: AvailablePhysical( 0 )
-		, AvailableVirtual( 0 )
-		, WorkingSetSize( 0 )
-		, PeakWorkingSetSize( 0 )
-		, PagefileUsage( 0 )		
-	{}
+	FGenericPlatformMemoryStats();
 };
 
 struct FPlatformMemoryStats;
-
-typedef FGenericPlatformMemoryConstants FPlatformMemoryConstants;
 
 /**
  * FMemory_Alloca/alloca implementation. This can't be a function, even FORCEINLINE'd because there's no guarantee that 
@@ -90,7 +96,7 @@ struct CORE_API FGenericPlatformMemory
 	 * Various memory regions that can be used with memory stats. The exact meaning of
 	 * the enums are relatively platform-dependent, although the general ones (Physical, GPU)
 	 * are straightforward. A platform can add more of these, and it won't affect other 
-	 * platforms, other than a miniscule amount of memory for the StatManager to track the
+	 * platforms, other than a minuscule amount of memory for the StatManager to track the
 	 * max available memory for each region (uses an array FPlatformMemory::MCR_MAX big)
 	 */
 	enum EMemoryCounterRegion
@@ -171,6 +177,11 @@ struct CORE_API FGenericPlatformMemory
 	static FPlatformMemoryStats GetStats();
 
 	/**
+	 * Writes all platform specific current memory statistics in the format usable by the malloc profiler.
+	 */
+	static void GetStatsForMallocProfiler( FGenericMemoryStats& out_Stats );
+
+	/**
 	 * @return platform specific memory constants.
 	 */
 	static const FPlatformMemoryConstants& GetConstants();
@@ -179,6 +190,9 @@ struct CORE_API FGenericPlatformMemory
 	 * @return approximate physical RAM in GB.
 	 */
 	static uint32 GetPhysicalGBRam();
+
+	/** Called once per frame, gathers and sets all platform memory statistics into the corresponding stats. */
+	static void UpdateStats();
 
 	/**
 	 * Allocates pages from the OS.

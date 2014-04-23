@@ -37,8 +37,7 @@ public:
 	virtual void* Malloc( SIZE_T Size, uint32 Alignment ) OVERRIDE;
 	virtual void* Realloc( void* Ptr, SIZE_T NewSize, uint32 Alignment ) OVERRIDE;
 	virtual void Free( void* Ptr ) OVERRIDE;
-	virtual void DumpAllocations( FOutputDevice& Ar ) OVERRIDE;
-	CORE_API virtual void GetAllocationInfo( FMemoryAllocationStats_DEPRECATED& MemStats ) OVERRIDE;
+	virtual void DumpAllocatorStats( FOutputDevice& Ar ) OVERRIDE;
 	virtual bool GetAllocationSize(void *Original, SIZE_T &SizeOut) OVERRIDE;
 	virtual bool IsInternallyThreadSafe() const OVERRIDE {  return true; }
 	virtual const TCHAR * GetDescriptiveName() OVERRIDE { return TEXT("jemalloc"); }

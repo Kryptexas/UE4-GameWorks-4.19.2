@@ -7,7 +7,6 @@
 #pragma once
 
 #include "Stats.h"
-#include "Stats2.h"
 
 CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogSHA, Warning, All);
 CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogStats, Log, All);
@@ -24,8 +23,6 @@ CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogLoad, Log, All);
 
 /** Memory stats */
 DECLARE_MEMORY_STAT_EXTERN(TEXT("Audio Memory Used"),STAT_AudioMemory,STATGROUP_Memory, CORE_API);
-DECLARE_MEMORY_STAT_EXTERN(TEXT("Physical Memory Used"),STAT_PhysicalAllocSize,STATGROUP_Memory, CORE_API);
-DECLARE_MEMORY_STAT_EXTERN(TEXT("Virtual Memory Used"),STAT_VirtualAllocSize,STATGROUP_Memory, CORE_API);
 DECLARE_MEMORY_STAT_EXTERN(TEXT("Animation Memory"),STAT_AnimationMemory,STATGROUP_Memory, CORE_API);
 DECLARE_MEMORY_STAT_EXTERN(TEXT("Precomputed Visibility Memory"),STAT_PrecomputedVisibilityMemory,STATGROUP_Memory, CORE_API);
 DECLARE_MEMORY_STAT_EXTERN(TEXT("Precomputed Light Volume Memory"),STAT_PrecomputedLightVolumeMemory,STATGROUP_Memory, CORE_API);
@@ -49,12 +46,6 @@ DECLARE_MEMORY_STAT_EXTERN(TEXT("StaticMesh Index Memory"),STAT_StaticMeshIndexM
 DECLARE_MEMORY_STAT_EXTERN(TEXT("Texture Memory Used"),STAT_TextureMemory,STATGROUP_Memory, CORE_API);
 DECLARE_MEMORY_STAT_EXTERN(TEXT("Reflection Capture Texture Memory"),STAT_ReflectionCaptureTextureMemory,STATGROUP_Memory, CORE_API);
 DECLARE_MEMORY_STAT_EXTERN(TEXT("Reflection Capture Memory"),STAT_ReflectionCaptureMemory,STATGROUP_Memory, CORE_API);
-
-/** Memory churn stats. */
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Malloc calls"),STAT_MallocCalls,STATGROUP_MemoryChurn, CORE_API);
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Free calls"),STAT_FreeCalls,STATGROUP_MemoryChurn, CORE_API);
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Realloc calls"),STAT_ReallocCalls,STATGROUP_MemoryChurn, CORE_API);
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Total Allocator calls"),STAT_TotalAllocatorCalls,STATGROUP_MemoryChurn, CORE_API);
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Total Render thread idle time"),STAT_RenderingIdleTime,STATGROUP_Threading, CORE_API);
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Wait for GPU Query"),STAT_RenderingIdleTime_WaitingForGPUQuery,STATGROUP_Threading, CORE_API);

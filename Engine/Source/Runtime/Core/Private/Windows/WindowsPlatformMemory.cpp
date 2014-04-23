@@ -9,7 +9,7 @@
 #include "MallocTBB.h"
 #include "MallocAnsi.h"
 #include "GenericPlatformMemoryPoolStats.h"
-
+#include "MemoryMisc.h"
 
 #if !FORCE_ANSI_ALLOCATOR
 #include "MallocBinned.h"
@@ -18,6 +18,8 @@
 #include "AllowWindowsPlatformTypes.h"
 #include <Psapi.h>
 #pragma comment(lib, "psapi.lib")
+
+DECLARE_MEMORY_STAT(TEXT("Windows Specific Memory Stat"),	STAT_WindowsSpecificMemoryStat, STATGROUP_MemoryPlatform);
 
 /** Enable this to track down windows allocations not wrapped by our wrappers
 int WindowsAllocHook(int nAllocType, void *pvData,
@@ -47,11 +49,13 @@ void FWindowsPlatformMemory::Init()
 
 
 	const FPlatformMemoryConstants& MemoryConstants = FPlatformMemory::GetConstants();
-	UE_LOG(LogInit, Log, TEXT("Memory total: Physical=%.1fGB (%dGB approx) Pagefile=%.1fGB Virtual=%.1fGB"), 
+	UE_LOG(LogMemory, Log, TEXT("Memory total: Physical=%.1fGB (%dGB approx) Virtual=%.1fGB"), 
 		float(MemoryConstants.TotalPhysical/1024.0/1024.0/1024.0),
 		MemoryConstants.TotalPhysicalGB, 
-		float((MemoryConstants.TotalVirtual-MemoryConstants.TotalPhysical)/1024.0/1024.0/1024.0), 
 		float(MemoryConstants.TotalVirtual/1024.0/1024.0/1024.0) );
+
+	UpdateStats();
+	DumpStats( *GLog );
 }
 
 FMalloc* FWindowsPlatformMemory::BaseAllocator()
@@ -80,8 +84,9 @@ FPlatformMemoryStats FWindowsPlatformMemory::GetStats()
 	 *	GetProcessMemoryInfo
 	 *	PROCESS_MEMORY_COUNTERS
 	 *		WorkingSetSize
-	 *		PagefileUsage
-	 *	
+	 *		UsedVirtual
+	 *		PeakUsedVirtual
+	 *		
 	 *	GetPerformanceInfo
 	 *		PPERFORMANCE_INFORMATION 
 	 *		PageSize
@@ -100,11 +105,25 @@ FPlatformMemoryStats FWindowsPlatformMemory::GetStats()
 	MemoryStats.AvailablePhysical = MemoryStatusEx.ullAvailPhys;
 	MemoryStats.AvailableVirtual = MemoryStatusEx.ullAvailVirtual;
 	
-	MemoryStats.WorkingSetSize = ProcessMemoryCounters.WorkingSetSize;
-	MemoryStats.PeakWorkingSetSize = ProcessMemoryCounters.PeakWorkingSetSize;
-	MemoryStats.PagefileUsage = ProcessMemoryCounters.PagefileUsage;
+	MemoryStats.UsedPhysical = ProcessMemoryCounters.WorkingSetSize;
+	MemoryStats.PeakUsedPhysical = ProcessMemoryCounters.PeakWorkingSetSize;
+	MemoryStats.UsedVirtual = ProcessMemoryCounters.PagefileUsage;
+	MemoryStats.PeakUsedVirtual = ProcessMemoryCounters.PeakPagefileUsage;
 
 	return MemoryStats;
+}
+
+void FWindowsPlatformMemory::GetStatsForMallocProfiler( FGenericMemoryStats& out_Stats )
+{
+#if	STATS
+	FGenericPlatformMemory::GetStatsForMallocProfiler( out_Stats );
+
+	FPlatformMemoryStats Stats = GetStats();
+
+	// Windows specific stats.
+	static const FName NAME_WindowsSpecificMemoryStat   = TEXT("Windows Specific Memory Stat");
+	out_Stats.Add( NAME_WindowsSpecificMemoryStat, Stats.WindowsSpecificMemoryStat );
+#endif // STATS
 }
 
 const FPlatformMemoryConstants& FWindowsPlatformMemory::GetConstants()
@@ -129,6 +148,15 @@ const FPlatformMemoryConstants& FWindowsPlatformMemory::GetConstants()
 	}
 
 	return MemoryConstants;	
+}
+
+void FWindowsPlatformMemory::UpdateStats()
+{
+	FGenericPlatformMemory::UpdateStats();
+
+	// Windows specific stats.
+	FPlatformMemoryStats MemoryStats = FPlatformMemory::GetStats();
+	SET_MEMORY_STAT(STAT_WindowsSpecificMemoryStat,MemoryStats.WindowsSpecificMemoryStat);
 }
 
 void* FWindowsPlatformMemory::BinnedAllocFromOS( SIZE_T Size )

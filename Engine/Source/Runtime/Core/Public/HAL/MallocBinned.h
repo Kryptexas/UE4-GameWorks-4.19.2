@@ -33,6 +33,17 @@
 #include "LockFreeList.h"
 #include "Array.h"
 
+/** Malloc binned allocator specific stats. */
+DECLARE_MEMORY_STAT_EXTERN(TEXT("Binned OsCurrent"),	STAT_Binned_OsCurrent,STATGROUP_MemoryAllocator, CORE_API);
+DECLARE_MEMORY_STAT_EXTERN(TEXT("Binned OsPeak"),		STAT_Binned_OsPeak,STATGROUP_MemoryAllocator, CORE_API);
+DECLARE_MEMORY_STAT_EXTERN(TEXT("Binned WasteCurrent"),	STAT_Binned_WasteCurrent,STATGROUP_MemoryAllocator, CORE_API);
+DECLARE_MEMORY_STAT_EXTERN(TEXT("Binned WastePeak"),	STAT_Binned_WastePeak,STATGROUP_MemoryAllocator, CORE_API);
+DECLARE_MEMORY_STAT_EXTERN(TEXT("Binned UsedCurrent"),	STAT_Binned_UsedCurrent,STATGROUP_MemoryAllocator, CORE_API);
+DECLARE_MEMORY_STAT_EXTERN(TEXT("Binned UsedPeak"),		STAT_Binned_UsedPeak,STATGROUP_MemoryAllocator, CORE_API);
+DECLARE_MEMORY_STAT_EXTERN(TEXT("Binned CurrentAllocs"),STAT_Binned_CurrentAllocs,STATGROUP_MemoryAllocator, CORE_API);
+DECLARE_MEMORY_STAT_EXTERN(TEXT("Binned TotalAllocs"),	STAT_Binned_TotalAllocs,STATGROUP_MemoryAllocator, CORE_API);
+DECLARE_MEMORY_STAT_EXTERN(TEXT("Binned SlackCurrent"),	STAT_Binned_SlackCurrent,STATGROUP_MemoryAllocator, CORE_API);
+
 //
 // Optimized virtual memory allocator.
 //
@@ -292,14 +303,16 @@ private:
 #endif
 
 #if STATS
-	uint32		OsCurrent;
-	uint32		OsPeak;
-	uint32		WasteCurrent;
-	uint32		WastePeak;
-	uint32		UsedCurrent;
-	uint32		UsedPeak;
-	uint32		CurrentAllocs;
-	uint32		TotalAllocs;
+	SIZE_T		OsCurrent;
+	SIZE_T		OsPeak;
+	SIZE_T		WasteCurrent;
+	SIZE_T		WastePeak;
+	SIZE_T		UsedCurrent;
+	SIZE_T		UsedPeak;
+	SIZE_T		CurrentAllocs;
+	SIZE_T		TotalAllocs;
+	/** OsCurrent - WasteCurrent - UsedCurrent. */
+	SIZE_T		SlackCurrent;
 	double		MemTime;
 #endif
 
@@ -334,7 +347,7 @@ private:
 		{
 			OutOfMemory(IndirectPoolBlockSize * sizeof(FPoolInfo));
 		}
-        FMemory::Memset(Indirect, 0, IndirectPoolBlockSize*sizeof(FPoolInfo));
+		FMemory::Memset(Indirect, 0, IndirectPoolBlockSize*sizeof(FPoolInfo));
 		STAT(OsPeak = FMath::Max(OsPeak, OsCurrent += Align(IndirectPoolBlockSize * sizeof(FPoolInfo), PageSize)));
 		STAT(WastePeak = FMath::Max(WastePeak, WasteCurrent += Align(IndirectPoolBlockSize * sizeof(FPoolInfo), PageSize)));
 		return Indirect;
@@ -369,7 +382,7 @@ private:
 			{
 				if (!collision->FirstPool)
 				{
-                    collision->Key=Key;
+					collision->Key=Key;
 					InitializeHashBucket(collision);
 				}
 				return &collision->FirstPool[PoolIndex];
@@ -775,6 +788,7 @@ public:
 		,	UsedPeak		( 0 )
 		,	CurrentAllocs	( 0 )
 		,	TotalAllocs		( 0 )
+		,	SlackCurrent	( 0 )
 		,	MemTime			( 0.0 )
 #endif
 	{
@@ -1068,36 +1082,6 @@ public:
 	}
 
 	/**
-	 * Gathers memory allocations for both virtual and physical allocations. Subclasses should override to add additional info
-	 *
-	 * @param FMemoryAllocationStats_DEPRECATED	[out] structure containing information about the size of allocations
-	 */
-	virtual void GetAllocationInfo( FMemoryAllocationStats_DEPRECATED& MemStats ) OVERRIDE
-	{
-		const FPlatformMemoryConstants& MemoryConstants = FPlatformMemory::GetConstants();
-		FPlatformMemoryStats MemoryStats = FPlatformMemory::GetStats();
-
-		// determine how much memory has been allocated from the OS
-		MemStats.TotalUsed = MemoryStats.WorkingSetSize;
-		MemStats.TotalAllocated = MemoryConstants.TotalVirtual - MemoryStats.AvailableVirtual;
-		MemStats.CPUAvailable = MemoryStats.AvailableVirtual;
-
-#if STATS
-		MemStats.CPUUsed = UsedCurrent;
-		MemStats.CPUWaste = WasteCurrent;
-		
-		double Waste = 0.0;
-		for( int32 PoolIndex = 0; PoolIndex < POOL_COUNT; PoolIndex++ )
-		{
-			Waste += ( ( double )PoolTable[PoolIndex].TotalWaste / ( double )PoolTable[PoolIndex].TotalRequests ) * ( double )PoolTable[PoolIndex].ActiveRequests;
-			Waste += PoolTable[PoolIndex].NumActivePools * ( BINNED_ALLOC_POOL_SIZE - ( ( BINNED_ALLOC_POOL_SIZE / PoolTable[PoolIndex].BlockSize ) * PoolTable[PoolIndex].BlockSize ) );
-		}
-		MemStats.CPUWaste += ( uint32 )Waste;
-		MemStats.CPUSlack = OsCurrent - WasteCurrent - UsedCurrent;
-#endif
-	}
-
-	/**
 	 * Validates the allocator's heap
 	 */
 	virtual bool ValidateHeap() OVERRIDE
@@ -1129,32 +1113,65 @@ public:
 		return( true );
 	}
 
+
+	/** Called once per frame, gathers and sets all memory allocator statistics into the corresponding stats. */
+	virtual void UpdateStats() OVERRIDE
+	{
+#ifdef USE_INTERNAL_LOCKS
+		FScopeLock ScopedLock(&AccessGuard);
+#endif
+
+		FMalloc::UpdateStats();
+
+#if STATS
+		SET_MEMORY_STAT(STAT_Binned_OsCurrent,OsCurrent);
+		SET_MEMORY_STAT(STAT_Binned_OsPeak,OsPeak);
+		SET_MEMORY_STAT(STAT_Binned_WasteCurrent,WasteCurrent);
+		SET_MEMORY_STAT(STAT_Binned_WastePeak,WastePeak);
+		SET_MEMORY_STAT(STAT_Binned_UsedCurrent,UsedCurrent);
+		SET_MEMORY_STAT(STAT_Binned_UsedPeak,UsedPeak);
+		SET_MEMORY_STAT(STAT_Binned_CurrentAllocs,CurrentAllocs);
+		SET_MEMORY_STAT(STAT_Binned_TotalAllocs,TotalAllocs);
+		SET_MEMORY_STAT(STAT_Binned_SlackCurrent,SlackCurrent);
+#endif
+	}
+
+	/** Writes allocator stats from the last update into the specified destination. */
+	virtual void GetAllocatorStats( FGenericMemoryStats& out_Stats ) OVERRIDE;
+
 	/**
-	 * Dumps details about all allocations to an output device. Subclasses should override to add additional info
+	 * Dumps allocator stats to an output device. Subclasses should override to add additional info
 	 *
 	 * @param Ar	[in] Output device
 	 */
-	virtual void DumpAllocations( class FOutputDevice& Ar ) OVERRIDE
+	virtual void DumpAllocatorStats( class FOutputDevice& Ar ) OVERRIDE
 	{
 #ifdef USE_INTERNAL_LOCKS
 		FScopeLock ScopedLock(&AccessGuard);
 #endif
 		ValidateHeap();
-
 #if STATS
+		UpdateSlackStat();
+
 		// This is all of the memory including stuff too big for the pools
-		Ar.Logf( TEXT("Tracked Allocation Status") );
+		Ar.CategorizedLogf( LogMemory.GetCategoryName(), ELogVerbosity::Log, TEXT("Allocator Stats for %s:" ), GetDescriptiveName() );
 		// Waste is the total overhead of the memory system
-		Ar.Logf( TEXT("Current Memory %.2f MB used, plus %.2f MB waste"), UsedCurrent / ( 1024.0f * 1024.0f ), ( OsCurrent - UsedCurrent ) / ( 1024.0f * 1024.0f ) );
-		Ar.Logf( TEXT("Peak Memory %.2f MB used, plus %.2f MB waste"), UsedPeak / ( 1024.0f * 1024.0f ), ( OsPeak - UsedPeak ) / ( 1024.0f * 1024.0f ) );
-		Ar.Logf( TEXT("Allocs      % 6i Current / % 6i Total"), CurrentAllocs, TotalAllocs );
-		MEM_TIME(Ar.Logf( TEXT( "Seconds     % 5.3f" ), MemTime ));
-		MEM_TIME(Ar.Logf( TEXT( "MSec/Allc   % 5.5f" ), 1000.0 * MemTime / MemAllocs ));
+		Ar.CategorizedLogf( LogMemory.GetCategoryName(), ELogVerbosity::Log, TEXT("Current Memory %.2f MB used, plus %.2f MB waste"), UsedCurrent / ( 1024.0f * 1024.0f ), ( OsCurrent - UsedCurrent ) / ( 1024.0f * 1024.0f ) );
+		Ar.CategorizedLogf( LogMemory.GetCategoryName(), ELogVerbosity::Log, TEXT("Peak Memory %.2f MB used, plus %.2f MB waste"), UsedPeak / ( 1024.0f * 1024.0f ), ( OsPeak - UsedPeak ) / ( 1024.0f * 1024.0f ) );
+
+		Ar.CategorizedLogf( LogMemory.GetCategoryName(), ELogVerbosity::Log, TEXT("Current OS Memory %.2f MB, peak %.2f MB"), OsCurrent / ( 1024.0f * 1024.0f ), OsPeak / ( 1024.0f * 1024.0f ) );
+		Ar.CategorizedLogf( LogMemory.GetCategoryName(), ELogVerbosity::Log, TEXT("Current Waste %.2f MB, peak %.2f MB"), WasteCurrent / ( 1024.0f * 1024.0f ), WastePeak / ( 1024.0f * 1024.0f ) );
+		Ar.CategorizedLogf( LogMemory.GetCategoryName(), ELogVerbosity::Log, TEXT("Current Used %.2f MB, peak %.2f MB"), UsedCurrent / ( 1024.0f * 1024.0f ), UsedPeak / ( 1024.0f * 1024.0f ) );
+		Ar.CategorizedLogf( LogMemory.GetCategoryName(), ELogVerbosity::Log, TEXT("Current Slack %.2f MB"), SlackCurrent / ( 1024.0f * 1024.0f ) );
+
+		Ar.CategorizedLogf( LogMemory.GetCategoryName(), ELogVerbosity::Log, TEXT("Allocs      % 6i Current / % 6i Total"), CurrentAllocs, TotalAllocs );
+		MEM_TIME(Ar.CategorizedLogf( LogMemory.GetCategoryName(), ELogVerbosity::Log, TEXT( "Seconds     % 5.3f" ), MemTime ));
+		MEM_TIME(Ar.CategorizedLogf( LogMemory.GetCategoryName(), ELogVerbosity::Log, TEXT( "MSec/Allc   % 5.5f" ), 1000.0 * MemTime / MemAllocs ));
 
 		// This is the memory tracked inside individual allocation pools
-		Ar.Logf( TEXT("") );
-		Ar.Logf( TEXT("Block Size Num Pools Max Pools Cur Allocs Total Allocs Min Req Max Req Mem Used Mem Slack Mem Waste Efficiency") );
-		Ar.Logf( TEXT("---------- --------- --------- ---------- ------------ ------- ------- -------- --------- --------- ----------") );
+		Ar.CategorizedLogf( LogMemory.GetCategoryName(), ELogVerbosity::Log, TEXT("") );
+		Ar.CategorizedLogf( LogMemory.GetCategoryName(), ELogVerbosity::Log, TEXT("Block Size Num Pools Max Pools Cur Allocs Total Allocs Min Req Max Req Mem Used Mem Slack Mem Waste Efficiency") );
+		Ar.CategorizedLogf( LogMemory.GetCategoryName(), ELogVerbosity::Log, TEXT("---------- --------- --------- ---------- ------------ ------- ------- -------- --------- --------- ----------") );
 
 		uint32 TotalMemory = 0;
 		uint32 TotalWaste = 0;
@@ -1183,7 +1200,7 @@ public:
 			// Memory that is reserved in active pools and ready for future use
 			uint32 MemSlack = MemAllocated - MemUsed - PoolMemWaste;
 
-			Ar.Logf( TEXT("% 10i % 9i % 9i % 10i % 12i % 7i % 7i % 7iK % 8iK % 8iK % 9.2f%%"),
+			Ar.CategorizedLogf( LogMemory.GetCategoryName(), ELogVerbosity::Log, TEXT("% 10i % 9i % 9i % 10i % 12i % 7i % 7i % 7iK % 8iK % 8iK % 9.2f%%"),
 				Table->BlockSize,
 				Table->NumActivePools,
 				Table->MaxActivePools,
@@ -1204,16 +1221,31 @@ public:
 			TotalPools += Table->NumActivePools;
 		}
 
-		Ar.Logf( TEXT( "" ) );
-		Ar.Logf( TEXT( "%iK allocated in pools (with %iK slack and %iK waste). Efficiency %.2f%%" ), TotalMemory, TotalSlack, TotalWaste, TotalMemory ? 100.0f * (TotalMemory - TotalWaste) / TotalMemory : 100.0f );
-		Ar.Logf( TEXT( "Allocations %i Current / %i Total (in %i pools)"), TotalActiveRequests, TotalTotalRequests, TotalPools );
-		Ar.Logf( TEXT("") );
+		Ar.CategorizedLogf( LogMemory.GetCategoryName(), ELogVerbosity::Log, TEXT("") );
+		Ar.CategorizedLogf( LogMemory.GetCategoryName(), ELogVerbosity::Log, TEXT("%iK allocated in pools (with %iK slack and %iK waste). Efficiency %.2f%%"), TotalMemory, TotalSlack, TotalWaste, TotalMemory ? 100.0f * (TotalMemory - TotalWaste) / TotalMemory : 100.0f );
+		Ar.CategorizedLogf( LogMemory.GetCategoryName(), ELogVerbosity::Log, TEXT("Allocations %i Current / %i Total (in %i pools)"), TotalActiveRequests, TotalTotalRequests, TotalPools );
+		Ar.CategorizedLogf( LogMemory.GetCategoryName(), ELogVerbosity::Log, TEXT("") );
 #endif
 	}
 
 	virtual const TCHAR * GetDescriptiveName() OVERRIDE { return TEXT("binned"); }
 
 protected:
+
+	void UpdateSlackStat()
+	{
+#if	STATS
+		SIZE_T LocalWaste = WasteCurrent;
+		double Waste = 0.0;
+		for( int32 PoolIndex = 0; PoolIndex < POOL_COUNT; PoolIndex++ )
+		{
+			Waste += ( ( double )PoolTable[PoolIndex].TotalWaste / ( double )PoolTable[PoolIndex].TotalRequests ) * ( double )PoolTable[PoolIndex].ActiveRequests;
+			Waste += PoolTable[PoolIndex].NumActivePools * ( BINNED_ALLOC_POOL_SIZE - ( ( BINNED_ALLOC_POOL_SIZE / PoolTable[PoolIndex].BlockSize ) * PoolTable[PoolIndex].BlockSize ) );
+		}
+		LocalWaste += ( uint32 )Waste;
+		SlackCurrent = OsCurrent - LocalWaste - UsedCurrent;
+#endif // STATS
+	}
 
 	///////////////////////////////////
 	//// API platforms must implement

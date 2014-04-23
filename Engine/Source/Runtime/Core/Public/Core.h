@@ -35,7 +35,6 @@ template<typename T,typename Allocator = FDefaultAllocator> class TArray; // @to
 // Container forward declarations
 #include "Containers/ContainerAllocationPolicies.h"
 
-template<typename ElementType,typename Allocator = FDefaultAllocator> class TBaseArray;
 template<typename T> class TTransArray;
 template<typename KeyType,typename ValueType,bool bInAllowDuplicateKeys> struct TDefaultMapKeyFuncs;
 template<typename KeyType,typename ValueType,typename SetAllocator = FDefaultSetAllocator, typename KeyFuncs = TDefaultMapKeyFuncs<KeyType,ValueType,false> > class TMap;
@@ -318,10 +317,6 @@ extern CORE_API uint32 GFrameNumberRenderThread;
 
 /** Threshold for a frame to be considered a hitch (in seconds. */
 extern CORE_API float GHitchThreshold;
-
-
-/** Whether to forcefully enable capturing of stats due to profiler attached */
-extern CORE_API bool GProfilerAttached;
 
 /** Size to break up data into when saving compressed data */
 extern CORE_API int32 GSavingCompressionChunkSize;
