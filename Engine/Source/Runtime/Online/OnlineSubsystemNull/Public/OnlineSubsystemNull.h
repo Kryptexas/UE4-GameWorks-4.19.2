@@ -92,10 +92,6 @@ PACKAGE_SCOPE:
 		OnlineAsyncTaskThreadRunnable(NULL),
 		OnlineAsyncTaskThread(NULL)
 	{}
-	/**
-	 *	@return true if the specified Id is considered a local player, false otherwise
-	 */
-	bool IsLocalPlayer(const FUniqueNetId& UniqueId) const;
 
 private:
 

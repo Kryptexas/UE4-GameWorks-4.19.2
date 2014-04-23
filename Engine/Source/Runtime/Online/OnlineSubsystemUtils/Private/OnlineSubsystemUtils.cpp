@@ -28,19 +28,11 @@
 
 IMPLEMENT_MODULE( FOnlineSubsystemUtilsModule, OnlineSubsystemUtils );
 
-/**
- * Called right after the module DLL has been loaded and the module object has been created
- * Overloaded to allow the default subsystem a chance to load
- */
 void FOnlineSubsystemUtilsModule::StartupModule()
 {
 	
 }
 
-/**
- * Called before the module is unloaded, right before the module object is destroyed.
- * Overloaded to shut down all loaded online subsystems
- */
 void FOnlineSubsystemUtilsModule::ShutdownModule()
 {
 	
@@ -75,6 +67,30 @@ UAudioComponent* CreateVoiceAudioComponent(uint32 SampleRate)
 	}
 
 	return AudioComponent;
+}
+
+UWorld* GetWorldForOnline(FName InstanceName)
+{
+	int32 WorldContextHandle = INDEX_NONE;
+	if (InstanceName != DEFAULT_INSTANCE && InstanceName != NAME_None)
+	{
+		WorldContextHandle = atoi(TCHAR_TO_ANSI(*InstanceName.ToString()));
+	}
+
+	UWorld* World = NULL;
+	if (WorldContextHandle != INDEX_NONE)
+	{
+		FWorldContext& WorldContext = GEngine->GetWorldContextFromHandleChecked(WorldContextHandle);
+		check(WorldContext.WorldType == EWorldType::Game || WorldContext.WorldType == EWorldType::PIE);
+		World = WorldContext.World();
+	}
+	else
+	{
+		UGameEngine* GameEngine = Cast<UGameEngine>(GEngine);
+		World = GameEngine ? GameEngine->GetGameWorld() : NULL;
+	}
+
+	return World;
 }
 
 /**

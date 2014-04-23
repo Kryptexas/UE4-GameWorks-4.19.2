@@ -195,11 +195,6 @@ PACKAGE_SCOPE:
 	 */
 	void ClearUserCloudFiles();
 
-	/**
-	 *	@return true if the specified Id is considered a local player, false otherwise
-	 */
-	bool IsLocalPlayer(const FUniqueNetId& UniqueId) const;
-
 	/** 
 	 * **INTERNAL** 
 	 * Get the interface for accessing leaderboards/stats
@@ -234,6 +229,7 @@ public:
 	virtual IOnlineUserPtr GetUserInterface() const OVERRIDE;
 	virtual IOnlineMessagePtr GetMessageInterface() const OVERRIDE;
 	virtual IOnlinePresencePtr GetPresenceInterface() const OVERRIDE;
+	virtual bool IsLocalPlayer(const FUniqueNetId& UniqueId) const OVERRIDE;
 	virtual bool Init() OVERRIDE;
 	virtual bool Shutdown() OVERRIDE;
 	virtual bool Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) OVERRIDE;

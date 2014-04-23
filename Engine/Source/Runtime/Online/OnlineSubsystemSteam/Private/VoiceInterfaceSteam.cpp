@@ -53,7 +53,7 @@ bool FOnlineVoiceSteam::Init()
 		bSuccess = SessionInt && IdentityInt;
 	}
 
-	if (bSuccess && !IsRunningDedicatedServer())
+	if (bSuccess && !SteamSubsystem->IsDedicated())
 	{
 		VoiceEngine = MakeShareable(new FVoiceEngineSteam(SteamSubsystem));
 		bSuccess = VoiceEngine->Init(MaxLocalTalkers, MaxRemoteTalkers);
@@ -538,7 +538,7 @@ TSharedPtr<FVoicePacket> FOnlineVoiceSteam::SerializeRemotePacket(FArchive& Ar)
 	NewPacket->Serialize(Ar);
 	if (Ar.IsError() == false && NewPacket->GetBufferSize() > 0)
 	{
-		if (!IsRunningDedicatedServer())
+		if (!SteamSubsystem->IsDedicated())
 		{
 			FUniqueNetIdMatcher PlayerMatch(*NewPacket->GetSender());
 			if (MuteList.FindMatch(PlayerMatch) == INDEX_NONE)

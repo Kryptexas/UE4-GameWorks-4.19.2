@@ -88,20 +88,3 @@ bool IsPlayerInSessionImpl(IOnlineSession* SessionInt, FName SessionName, const 
 	return bFound;
 }
 
-bool IsLocalPlayerImpl(IOnlineIdentityPtr IdentityInt, const FUniqueNetId& UniqueId)
-{
-	if (!IsRunningDedicatedServer() && IdentityInt.IsValid())
-	{
-		for (int32 LocalUserNum = 0; LocalUserNum < MAX_LOCAL_PLAYERS; LocalUserNum++)
-		{
-			TSharedPtr<FUniqueNetId> LocalUniqueId = IdentityInt->GetUniquePlayerId(LocalUserNum);
-			if (LocalUniqueId.IsValid() && UniqueId == *LocalUniqueId)
-			{
-				return true;
-			}
-		}
-	}
-
-	return false;
-}
-

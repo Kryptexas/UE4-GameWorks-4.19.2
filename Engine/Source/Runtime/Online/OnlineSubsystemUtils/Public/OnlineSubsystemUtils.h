@@ -10,6 +10,7 @@
 /** @return an initialized audio component specifically for use with VoIP */
 #ifdef ONLINESUBSYSTEMUTILS_API
 ONLINESUBSYSTEMUTILS_API class UAudioComponent* CreateVoiceAudioComponent(uint32 SampleRate);
+ONLINESUBSYSTEMUTILS_API UWorld* GetWorldForOnline(FName InstanceName);
 #endif
 
 /** Macro to handle the boilerplate of accessing the proper online subsystem and getting the requested interface (UWorld version) */

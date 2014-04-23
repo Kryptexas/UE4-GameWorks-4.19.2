@@ -8755,48 +8755,6 @@ ENetMode UEngine::GetNetMode(const UWorld *World) const
 	return NM_Standalone;
 }
 
-ENetMode UEngine::GetNetModeForOnlineSubsystems() const
-{
-	for (auto It = WorldList.CreateConstIterator(); It; ++It)
-	{
-		const FWorldContext& Context = *It;
-		if ((Context.WorldType == EWorldType::Game || Context.WorldType == EWorldType::PIE) && Context.World())
-		{
-			return Context.World()->GetNetMode();
-		}
-	}
-
-	return NM_Standalone;
-}
-
-UNetDriver* UEngine::GetNetDriverForOnlineSubsystems(FName NetDriverName)
-{
-	for (auto It = WorldList.CreateConstIterator(); It; ++It)
-	{
-		const FWorldContext& Context = *It;
-		if ((Context.WorldType == EWorldType::Game || Context.WorldType == EWorldType::PIE) && Context.World())
-		{
-			return FindNamedNetDriver(Context.World(), NetDriverName);
-		}
-	}
-
-	return NULL;
-}
-
-UWorld* UEngine::GetWorldForOnlineSubsystem()
-{
-	for (auto It = WorldList.CreateConstIterator(); It; ++It)
-	{
-		const FWorldContext& Context = *It;
-		if ((Context.WorldType == EWorldType::Game || Context.WorldType == EWorldType::PIE) && Context.World())
-		{
-			return Context.World();
-		}
-	}
-
-	return NULL;
-}
-
 static inline void CallHandleDisconnectForFailure(UWorld* InWorld, UNetDriver* NetDriver)
 {
 	// No world will be created yet if you fail to initialize network driver while trying to connect via cmd line arg.

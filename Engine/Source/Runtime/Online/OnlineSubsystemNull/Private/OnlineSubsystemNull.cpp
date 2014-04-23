@@ -189,12 +189,6 @@ bool FOnlineSubsystemNull::Shutdown()
 	return true;
 }
 
-bool FOnlineSubsystemNull::IsLocalPlayer(const FUniqueNetId& UniqueId) const
-{
-	IOnlineIdentityPtr IdentityInt = GetIdentityInterface();
-	return IsLocalPlayerImpl(IdentityInt, UniqueId);
-}
-
 FString FOnlineSubsystemNull::GetAppId() const
 {
 	return TEXT("");

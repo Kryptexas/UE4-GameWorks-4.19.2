@@ -518,9 +518,28 @@ int32 FEngineLoop::PreInit(int32 ArgC, ANSICHAR* ArgV[], const TCHAR* Additional
 }
 
 #if WITH_ENGINE
-bool IsServerDelegateForOSS()
+bool IsServerDelegateForOSS(int32 WorldContextHandle)
 {
-	return IsRunningDedicatedServer() || (GEngine && (GEngine->GetNetModeForOnlineSubsystems() == NM_DedicatedServer || GEngine->GetNetModeForOnlineSubsystems() == NM_ListenServer));
+	if (IsRunningDedicatedServer())
+	{
+		return true;
+	}
+
+	UWorld* World = NULL;
+	if (WorldContextHandle != INDEX_NONE)
+	{
+		FWorldContext& WorldContext = GEngine->GetWorldContextFromHandleChecked(WorldContextHandle);
+		check(WorldContext.WorldType == EWorldType::Game || WorldContext.WorldType == EWorldType::PIE);
+		World = WorldContext.World();
+	}
+	else
+	{
+		UGameEngine* GameEngine = Cast<UGameEngine>(GEngine);
+		World = GameEngine->GetGameWorld();
+	}
+
+	ENetMode NetMode = World ? World->GetNetMode() : NM_Standalone;
+	return (NetMode == NM_ListenServer || NetMode == NM_DedicatedServer);
 }
 #endif
 
@@ -1030,7 +1049,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		bIsSeekFreeDedicatedServer = FPlatformProperties::RequiresCookedData();
 	}
 
-	// If std out device hasn't been initialzied yet (there was no -stdout param in the command line) and
+	// If std out device hasn't been initialized yet (there was no -stdout param in the command line) and
 	// we meet all the criteria, initialize it now.
 	if (!GScopedStdOut.IsValid() && !bHasEditorToken && !bIsRegularClient && !IsRunningDedicatedServer())
 	{

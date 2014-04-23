@@ -260,7 +260,7 @@ bool FOnlineSessionNull::NeedsToAdvertise( FNamedOnlineSession& Session )
 	// b) Not started public LAN session (same as usually)
 	// d) Joinable presence-enabled session that would be advertised with in an online service
 	// (all of that only if we're server)
-	return Session.SessionSettings.bShouldAdvertise && IsServer() &&
+	return Session.SessionSettings.bShouldAdvertise && NullSubsystem->IsServer() &&
 		(
 			(
 			  Session.SessionSettings.bIsLANMatch && 			  
@@ -575,6 +575,8 @@ bool FOnlineSessionNull::JoinSession(int32 PlayerNum, FName SessionName, const F
 bool FOnlineSessionNull::FindFriendSession(int32 LocalUserNum, const FUniqueNetId& Friend)
 {
 	// this function has to exist due to interface definition, but it does not have a meaningful implementation in Null subsystem
+	FOnlineSessionSearchResult EmptySearchResult;
+	TriggerOnFindFriendSessionCompleteDelegates(LocalUserNum, false, EmptySearchResult);
 	return false;
 };
 
@@ -705,7 +707,7 @@ FOnlineSessionSettings* FOnlineSessionNull::GetSessionSettings(FName SessionName
 
 void FOnlineSessionNull::RegisterLocalPlayers(FNamedOnlineSession* Session)
 {
-	if (!IsRunningDedicatedServer())
+	if (!NullSubsystem->IsDedicated())
 	{
 		IOnlineVoicePtr VoiceInt = NullSubsystem->GetVoiceInterface();
 		if (VoiceInt.IsValid())

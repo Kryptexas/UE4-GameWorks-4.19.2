@@ -138,9 +138,10 @@ void GetServerKeyValuePairsFromSession(const FOnlineSession* Session, FSteamSess
 /** 
  *  Update the backend with the currently defined settings
  *
+ * @param World current running world instance
  * @param SessionName name of session to update published settings
  */
-void UpdatePublishedSettings(FNamedOnlineSession* Session)
+void UpdatePublishedSettings(UWorld* World, FNamedOnlineSession* Session)
 {
 	ISteamGameServer* SteamGameServerPtr = SteamGameServer();
 	check(SteamGameServerPtr);
@@ -183,7 +184,6 @@ void UpdatePublishedSettings(FNamedOnlineSession* Session)
 	TempSessionSettings.Remove(SETTING_NUMBOTS);
 
 	// Update all the players names/scores
-	UWorld* World = GEngine->GetWorldForOnlineSubsystem();
 	if (World)
 	{
 		AGameState const* const GameState = World->GameState;
@@ -413,7 +413,8 @@ void FOnlineAsyncTaskSteamCreateServer::Finalize()
 
 			Session->SessionState = EOnlineSessionState::Pending;
 
-			UpdatePublishedSettings(Session);
+			UWorld* World = GetWorldForOnline(Subsystem->GetInstanceName());
+			UpdatePublishedSettings(World, Session);
 
 			SessionInt->RegisterLocalPlayers(Session);
 
@@ -483,8 +484,10 @@ void FOnlineAsyncTaskSteamUpdateServer::Tick()
 
 		if (bUpdateOnlineData)
 		{
+			UWorld* World = GetWorldForOnline(Subsystem->GetInstanceName());
+
 			// Master server update
-			UpdatePublishedSettings(Session);
+			UpdatePublishedSettings(World, Session);
 		}
 
 		bWasSuccessful = true;

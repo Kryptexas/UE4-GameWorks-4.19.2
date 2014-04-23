@@ -52,7 +52,7 @@ bool FOnlineVoiceImpl::Init()
 		bSuccess = SessionInt && IdentityInt;
 	}
 
-	if (bSuccess && !IsRunningDedicatedServer())
+	if (bSuccess && !OnlineSubsystem->IsDedicated())
 	{
 		VoiceEngine = MakeShareable(new FVoiceEngineImpl(OnlineSubsystem));
 		bSuccess = VoiceEngine->Init(MaxLocalTalkers, MaxRemoteTalkers);
@@ -537,7 +537,7 @@ TSharedPtr<FVoicePacket> FOnlineVoiceImpl::SerializeRemotePacket(FArchive& Ar)
 	NewPacket->Serialize(Ar);
 	if (Ar.IsError() == false && NewPacket->GetBufferSize() > 0)
 	{
-		if (!IsRunningDedicatedServer())
+		if (!OnlineSubsystem->IsDedicated())
 		{
 			FUniqueNetIdMatcher PlayerMatch(*NewPacket->GetSender());
 			if (MuteList.FindMatch(PlayerMatch) == INDEX_NONE)

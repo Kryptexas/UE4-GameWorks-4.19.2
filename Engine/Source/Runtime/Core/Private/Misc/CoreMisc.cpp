@@ -790,13 +790,13 @@ struct FTestTicker
 	Runtime functions.
 ----------------------------------------------------------------------------*/
 
-FQueryIsRunningServer IsServerDelegate;
+FQueryIsRunningServer GIsServerDelegate;
 
-bool IsServerForOnlineSubsystems()
+bool IsServerForOnlineSubsystems(int32 WorldContextHandle)
 {
-	if (IsServerDelegate.IsBound())
+	if (GIsServerDelegate.IsBound())
 	{
-		return IsServerDelegate.Execute();
+		return GIsServerDelegate.Execute(WorldContextHandle);
 	}
 	else
 	{
@@ -806,7 +806,7 @@ bool IsServerForOnlineSubsystems()
 
 void SetIsServerForOnlineSubsystemsDelegate(FQueryIsRunningServer NewDelegate)
 {
-	IsServerDelegate = NewDelegate;
+	GIsServerDelegate = NewDelegate;
 }
 
 #if UE_EDITOR

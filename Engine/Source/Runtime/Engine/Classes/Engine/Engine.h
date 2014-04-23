@@ -2161,29 +2161,7 @@ public:
 	 * Note: if there is no valid net driver, returns NM_StandAlone
 	 */
 	//virtual ENetMode GetNetMode(FName NetDriverName = NAME_GameNetDriver) const;
-
 	ENetMode GetNetMode(const UWorld *World) const;
-
-	/**
-	 * This is a global, parameterless function used by the online subsystem modules.
-	 * It should never be used in gamecode - instead use GetNetMode(UWorld*) in order
-	 * to properly support multiple concurrent UWorlds.
-	 */
-	ENetMode GetNetModeForOnlineSubsystems() const;
-
-	/**
-	 * This is a global, parameterless function used by the online subsystem modules.
-	 * It should never be used in gamecode - instead use FindNamedNetDriver(UWorld*) in order
-	 * to properly support multiple concurrent UWorlds.
-	 */
-	UNetDriver* GetNetDriverForOnlineSubsystems(FName NetDriverName);
-
-	/**
-	 * This is a global, parameterless function used by the online subsystem modules.
-	 * It should never be used in gamecode - instead use FindNamedNetDriver(UWorld*) in order
-	 * to properly support multiple concurrent UWorlds.
-	 */
-	UWorld* GetWorldForOnlineSubsystem();
 
 	/**
 	 * Creates a UNetDriver and associates a name with it.

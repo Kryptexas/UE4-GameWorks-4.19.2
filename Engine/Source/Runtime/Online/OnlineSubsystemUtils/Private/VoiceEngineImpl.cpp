@@ -115,7 +115,7 @@ bool FVoiceEngineImpl::Init(int32 MaxLocalTalkers, int32 MaxRemoteTalkers)
 {
 	bool bSuccess = false;
 
-	if (!IsRunningDedicatedServer())
+	if (!OnlineSubsystem->IsDedicated())
 	{
 		bool bHasVoiceEnabled = false;
 		if (GConfig->GetBool(TEXT("OnlineSubsystem"),TEXT("bHasVoiceEnabled"), bHasVoiceEnabled, GEngineIni) && bHasVoiceEnabled)

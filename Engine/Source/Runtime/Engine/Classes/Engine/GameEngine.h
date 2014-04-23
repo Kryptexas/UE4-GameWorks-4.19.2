@@ -146,5 +146,12 @@ public:
 	{
 		return GameViewportWidget;
 	}
+
+	/**
+	 * This is a global, parameterless function used by the online subsystem modules.
+	 * It should never be used in gamecode - instead use the appropriate world context function 
+	 * in order to properly support multiple concurrent UWorlds.
+	 */
+	UWorld* GetGameWorld();
 };
 

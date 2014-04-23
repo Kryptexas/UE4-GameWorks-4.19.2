@@ -175,7 +175,7 @@ public:
 					IOnlineVoicePtr VoiceInt = Subsystem->GetVoiceInterface();
 					if (VoiceInt.IsValid())
 					{
-						if (!IsRunningDedicatedServer())
+						if (!Subsystem->IsDedicated())
 						{
 							// Stop local talkers
 							VoiceInt->UnregisterLocalTalkers();
@@ -467,7 +467,7 @@ bool FOnlineSessionSteam::EndSession(FName SessionName)
 				// If the session should be advertised and the lan beacon was destroyed, recreate
 				if (Session->SessionSettings.bShouldAdvertise && 
 					LANSession->LanBeacon == NULL &&
-					IsServer())
+					SteamSubsystem->IsServer())
 				{
 					// Recreate the beacon
 					Result = CreateLANSession(Session->HostingPlayerNum, Session);
@@ -1272,7 +1272,7 @@ bool FOnlineSessionSteam::RegisterPlayers(FName SessionName, const TArray< TShar
 
 void FOnlineSessionSteam::RegisterLocalPlayers(FNamedOnlineSession* Session)
 {
-	if (!IsRunningDedicatedServer())
+	if (!SteamSubsystem->IsDedicated())
 	{
 		IOnlineVoicePtr VoiceInt = SteamSubsystem->GetVoiceInterface();
 		if (VoiceInt.IsValid())
@@ -1601,7 +1601,7 @@ void FOnlineSessionSteam::OnLANSearchTimeout()
 			FNamedOnlineSession& Session = Sessions[SessionIdx];
 			if (Session.SessionSettings.bShouldAdvertise &&
 				Session.SessionSettings.bIsLANMatch &&
-				IsServer())
+				SteamSubsystem->IsServer())
 			{
 				bWasHosting = true;
 				break;

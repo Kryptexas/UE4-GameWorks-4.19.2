@@ -1170,3 +1170,19 @@ void UGameEngine::CloseSecondaryViewports()
 	}
 	SecondaryViewportClients.Empty();*/
 }
+
+UWorld* UGameEngine::GetGameWorld()
+{
+	for (auto It = WorldList.CreateConstIterator(); It; ++It)
+	{
+		const FWorldContext& Context = *It;
+        // Explicitly not checking for PIE worlds here, this should only 
+        // be called outside of editor (and thus is in UGameEngine
+		if (Context.WorldType == EWorldType::Game && Context.World())
+		{
+			return Context.World();
+		}
+	}
+
+	return NULL;
+}

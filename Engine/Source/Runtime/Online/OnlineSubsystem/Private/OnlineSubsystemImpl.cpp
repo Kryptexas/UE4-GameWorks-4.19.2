@@ -5,7 +5,7 @@
 #include "NamedInterfaces.h"
 
 FOnlineSubsystemImpl::FOnlineSubsystemImpl() :
-	InstanceName(NAME_None),
+	InstanceName(DEFAULT_INSTANCE),
 	bForceDedicated(false),
 	NamedInterfaces(NULL)
 {
@@ -63,5 +63,37 @@ void FOnlineSubsystemImpl::SetNamedInterface(FName InterfaceName, UObject* NewIn
 	{
 		return NamedInterfaces->SetNamedInterface(InterfaceName, NewInterface);
 	}
+}
+
+bool FOnlineSubsystemImpl::IsServer() const
+{
+	int32 WorldContextHandle = INDEX_NONE;
+	if (InstanceName != DEFAULT_INSTANCE && InstanceName != NAME_None)
+	{
+		WorldContextHandle = atoi(TCHAR_TO_ANSI(*InstanceName.ToString()));
+	}
+
+	return IsServerForOnlineSubsystems(WorldContextHandle);
+}
+
+bool FOnlineSubsystemImpl::IsLocalPlayer(const FUniqueNetId& UniqueId) const
+{
+	if (!IsDedicated())
+	{
+		IOnlineIdentityPtr IdentityInt = GetIdentityInterface();
+		if (IdentityInt.IsValid())
+		{
+			for (int32 LocalUserNum = 0; LocalUserNum < MAX_LOCAL_PLAYERS; LocalUserNum++)
+			{
+				TSharedPtr<FUniqueNetId> LocalUniqueId = IdentityInt->GetUniquePlayerId(LocalUserNum);
+				if (LocalUniqueId.IsValid() && UniqueId == *LocalUniqueId)
+				{
+					return true;
+				}
+			}
+		}
+	}
+
+	return false;
 }
 
