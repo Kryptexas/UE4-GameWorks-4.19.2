@@ -36,7 +36,7 @@ public:
 		Singleton = NULL;
 	}
 
-	virtual ITargetPlatform* GetTargetPlatform( )
+	virtual ITargetPlatform* GetTargetPlatform( ) OVERRIDE
 	{
 		if (Singleton == NULL)
 		{
