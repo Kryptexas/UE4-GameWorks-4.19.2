@@ -1344,16 +1344,7 @@ void FWorldTileCollectionModel::ImportTiledLandscape_Executed()
 						NewTileModel->TileDetails->Bounds = NewLandscape->GetComponentsBoundingBox();
 
 						// Calculate this tile offset from world origin
-						FIntPoint TileCoordinates = ImportSettings.TileCoordinates[TileIndex];
-						
-						// Mirror Y coordinate, to match unreal coordinate system
-						// TileCoordinates.Y = TilesRect.Height() - TileCoordinates.Y; //option
-
-						// Tiles coordinates are in range [0..N], convert them to [-N/2..N/2] so whole landscape will be centered around world origin
-						int32 WidthInTilesX = ImportSettings.TotalLandscapeRect.Width() + 1;
-						int32 WidthInTilesY = ImportSettings.TotalLandscapeRect.Height() + 1;
-						TileCoordinates = TileCoordinates - FIntPoint(WidthInTilesX/2, WidthInTilesY/2);
-												
+						FIntPoint TileCoordinates = ImportSettings.TileCoordinates[TileIndex] + ImportSettings.TilesCoordinatesOffset;
 						FIntPoint TileOffset = FIntPoint(TileCoordinates.X*WidthX, TileCoordinates.Y*WidthY);
 						
 						// Place level tile at correct position in the world

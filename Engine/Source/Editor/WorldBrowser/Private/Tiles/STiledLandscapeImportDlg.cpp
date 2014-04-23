@@ -14,12 +14,11 @@ static int32 CalcLandscapeSquareResolution(int32 ComponetsNumX, int32 SectionNum
 }
 
 /**
- *	Returns heigtmap tile coordinates extracted from a specified tile filename
+ *	Returns heightmap tile coordinates extracted from a specified tile filename
  */
 static FIntPoint ExtractHeighmapTileCoordinates(FString BaseFilename)
 {
 	//We expect file name in form: <tilename>_x<number>_y<number>
-		
 	FIntPoint ResultPosition(-1,-1);
 	
 	int32 XPos = BaseFilename.Find(TEXT("_x"), ESearchCase::IgnoreCase, ESearchDir::FromEnd);
@@ -69,16 +68,59 @@ void STiledLandcapeImportDlg::Construct(const FArguments& InArgs, TSharedPtr<SWi
 					.OnClicked(this, &STiledLandcapeImportDlg::OnClickedSelectTiles)
 					.Text(LOCTEXT("TiledLandscapeImport_SelectButtonText", "Select Tiles..."))
 				]
+				
+				// Tiles origin offset
+				+SUniformGridPanel::Slot(0, 1)
+				.VAlign(VAlign_Center)
+				[
+					SNew(STextBlock)
+					.ToolTipText(LOCTEXT("TiledLandscapeImport_TilesOffsetTooltip", "For example: tile x0_y0 will be treated as x(0+offsetX)_y(0+offsetY)"))
+					.Text(LOCTEXT("TiledLandscapeImport_TilesOffsetText", "Tile Coordinates Offset"))
+				]
+
+				+SUniformGridPanel::Slot(1, 1)
+				.VAlign(VAlign_Center)
+				[
+					SNew(SHorizontalBox)
+					
+					+SHorizontalBox::Slot()
+					.Padding(0.0f, 1.0f, 2.0f, 1.0f)
+					.FillWidth(1.f)
+					[
+						SNew(SNumericEntryBox<int32>)
+						.Value(this, &STiledLandcapeImportDlg::GetTileOffsetX)
+						.OnValueChanged(this, &STiledLandcapeImportDlg::SetTileOffsetX)
+						.LabelPadding(0)
+						.Label()
+						[
+							SNumericEntryBox<int>::BuildLabel( LOCTEXT("X_Label", "X"), FLinearColor::White, SNumericEntryBox<int>::RedLabelBackgroundColor )
+						]
+					]
+					
+					+SHorizontalBox::Slot()
+					.Padding(0.0f, 1.0f, 2.0f, 1.0f)
+					.FillWidth(1.f)
+					[
+						SNew(SNumericEntryBox<int32>)
+						.Value(this, &STiledLandcapeImportDlg::GetTileOffsetY)
+						.OnValueChanged(this, &STiledLandcapeImportDlg::SetTileOffsetY)
+						.LabelPadding(0)
+						.Label()
+						[
+							SNumericEntryBox<float>::BuildLabel( LOCTEXT("Y_Label", "Y"), FLinearColor::White, SNumericEntryBox<int>::GreenLabelBackgroundColor )
+						]
+					]
+				]
 
 				// Tile configuration
-				+SUniformGridPanel::Slot(0, 1)
+				+SUniformGridPanel::Slot(0, 2)
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
 					.Text(LOCTEXT("TiledLandscapeImport_ConfigurationText", "Import Configuration"))
 				]
 
-				+SUniformGridPanel::Slot(1, 1)
+				+SUniformGridPanel::Slot(1, 2)
 				.VAlign(VAlign_Center)
 				[
 					SAssignNew(TileConfigurationComboBox, SComboBox<TSharedPtr<FTileImportConfiguration>>)
@@ -93,14 +135,14 @@ void STiledLandcapeImportDlg::Construct(const FArguments& InArgs, TSharedPtr<SWi
 				]
 
 				// Scale
-				+SUniformGridPanel::Slot(0, 2)
+				+SUniformGridPanel::Slot(0, 3)
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
 					.Text(LOCTEXT("TiledLandscapeImport_ScaleText", "Landscape Scale"))
 				]
 			
-				+SUniformGridPanel::Slot(1, 2)
+				+SUniformGridPanel::Slot(1, 3)
 				.VAlign(VAlign_Center)
 				[
 					SNew( SVectorInputBox )
@@ -112,7 +154,6 @@ void STiledLandcapeImportDlg::Construct(const FArguments& InArgs, TSharedPtr<SWi
 					.OnYCommitted( this, &STiledLandcapeImportDlg::OnSetScale, 1 )
 					.OnZCommitted( this, &STiledLandcapeImportDlg::OnSetScale, 2 )
 				]
-
 			]
 
 			// Import summary
@@ -222,6 +263,26 @@ void STiledLandcapeImportDlg::OnSetScale(float InValue, ETextCommit::Type Commit
 	}
 }
 
+TOptional<int32> STiledLandcapeImportDlg::GetTileOffsetX() const
+{
+	return ImportSettings.TilesCoordinatesOffset.X;
+}
+
+void STiledLandcapeImportDlg::SetTileOffsetX(int32 InValue)
+{
+	ImportSettings.TilesCoordinatesOffset.X = InValue;
+}
+
+TOptional<int32> STiledLandcapeImportDlg::GetTileOffsetY() const
+{
+	return ImportSettings.TilesCoordinatesOffset.Y;
+}
+
+void STiledLandcapeImportDlg::SetTileOffsetY(int32 InValue)
+{
+	ImportSettings.TilesCoordinatesOffset.Y = InValue;
+}
+
 void STiledLandcapeImportDlg::OnSetImportConfiguration(TSharedPtr<FTileImportConfiguration> InTileConfig, ESelectInfo::Type SelectInfo)
 {
 	if (InTileConfig.IsValid())
@@ -239,10 +300,10 @@ void STiledLandcapeImportDlg::OnSetImportConfiguration(TSharedPtr<FTileImportCon
 
 FReply STiledLandcapeImportDlg::OnClickedSelectTiles()
 {
+	TotalLandscapeRect = FIntRect(MAX_int32, MAX_int32, MIN_int32, MIN_int32);
 	ImportSettings.ImportFileList.Empty();
 	ImportSettings.TileCoordinates.Empty();
-	ImportSettings.TotalLandscapeRect = FIntRect(MAX_int32, MAX_int32, MIN_int32, MIN_int32);
-
+	
 	SetPossibleConfigurationsForResolution(0);
 	
 	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
@@ -284,8 +345,9 @@ FReply STiledLandcapeImportDlg::OnClickedSelectTiles()
 						break;
 					}
 
+					TotalLandscapeRect.Include(TileCoordinate);
 					ImportSettings.TileCoordinates.Add(TileCoordinate);
-					ImportSettings.TotalLandscapeRect.Include(TileCoordinate);
+					
 				}
 				
 				if (bValidTiles)
@@ -385,8 +447,8 @@ FText STiledLandcapeImportDlg::GetImportSummaryText() const
 	const FString TilesSummary = FString::Printf(TEXT("%d - %dx%d"), ImportSettings.ImportFileList.Num(), ImportSettings.TileResolution, ImportSettings.TileResolution);
 	
 	// Total landscape size(NxN km)
-	int32 WidthInTilesX = ImportSettings.TotalLandscapeRect.Width() + 1;
-	int32 WidthInTilesY = ImportSettings.TotalLandscapeRect.Height() + 1;
+	int32 WidthInTilesX = TotalLandscapeRect.Width() + 1;
+	int32 WidthInTilesY = TotalLandscapeRect.Height() + 1;
 	float WidthX = 0.00001f*ImportSettings.Scale3D.X*WidthInTilesX*ImportSettings.TileResolution;
 	float WidthY = 0.00001f*ImportSettings.Scale3D.Y*WidthInTilesY*ImportSettings.TileResolution;
 	const FString LandscapeSummary = FString::Printf(TEXT("%.3fx%.3f"), WidthX, WidthY);

@@ -520,16 +520,17 @@ struct FTiledLandscapeImportSettings
 		, ComponentsNum(8)
 		, QuadsPerSection(63)
 		, SectionsPerComponent(1)
+		, TilesCoordinatesOffset(0,0)
 		, TileResolution(1009)	
 	{}
 	
-	FVector			Scale3D;
-	int32			ComponentsNum;
-	int32			QuadsPerSection;
-	int32			SectionsPerComponent;
+	FVector				Scale3D;
+	int32				ComponentsNum;
+	int32				QuadsPerSection;
+	int32				SectionsPerComponent;
 	
 	TArray<FString>		ImportFileList;
 	TArray<FIntPoint>	TileCoordinates;
-	FIntRect			TotalLandscapeRect;	
+	FIntPoint			TilesCoordinatesOffset;	
 	int32				TileResolution;	
 };

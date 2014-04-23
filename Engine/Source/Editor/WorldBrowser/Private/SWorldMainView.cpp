@@ -282,7 +282,6 @@ TSharedRef<SWidget> SWorldMainView::ConstructCenterPane()
 {
 	return 	
 		SNew(SVerticalBox)
-		.Visibility(this, &SWorldMainView::GetGridViewVisibility)
 
 		// Layers list
 		+SVerticalBox::Slot()
@@ -470,6 +469,7 @@ TSharedRef<SWidget> SWorldMainView::CreateContentViews()
 			SNew(SBorder)
 			.Padding(FMargin(0,3,0,0))
 			.BorderImage(FEditorStyle::GetBrush(TEXT("ToolPanel.GroupBorder")))
+			.Visibility(this, &SWorldMainView::GetGridViewVisibility)
 			[
 				ConstructCenterPane()
 			]
@@ -483,9 +483,9 @@ TSharedRef<SWidget> SWorldMainView::CreateContentViews()
 		SNew(SBorder)
 		.Padding(FMargin(0,0,0,0))
 		.BorderImage(FEditorStyle::GetBrush(TEXT("ToolPanel.GroupBorder")))
+		.Visibility(this, &SWorldMainView::GetDetailsViewVisibility)
 		[
 			SNew(SWorldDetailsView)
-			.Visibility(this, &SWorldMainView::GetDetailsViewVisibility)
 			.InWorldModel(WorldModel)
 		]
 	];

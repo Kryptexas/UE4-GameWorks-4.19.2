@@ -18,7 +18,15 @@ public:
 		int32 NumQuadsPerSection;
 	};
 
-
+	struct FExistingLandscape
+	{
+		FGuid	LandcapeGuid;	
+		FString LandcapeLabel;
+		int32	NumComponents;
+		int32	NumSectionsPerComponent;
+		int32	NumQuadsPerSection;
+	};
+	
 	SLATE_BEGIN_ARGS( STiledLandcapeImportDlg )
 		{}
 	SLATE_END_ARGS()
@@ -38,6 +46,12 @@ private:
 	TOptional<float> GetScaleZ() const;
 	void OnSetScale(float InValue, ETextCommit::Type CommitType, int32 InAxis);
 
+	/** */
+	TOptional<int32> GetTileOffsetX() const;
+	TOptional<int32> GetTileOffsetY() const;
+	void SetTileOffsetX(int32 InValue);
+	void SetTileOffsetY(int32 InValue);
+	
 	/** */
 	void OnSetImportConfiguration(TSharedPtr<FTileImportConfiguration> InTileConfig, ESelectInfo::Type SelectInfo);
 
@@ -69,7 +83,13 @@ private:
 	TSharedPtr<SComboBox<TSharedPtr<FTileImportConfiguration>>> TileConfigurationComboBox;
 	
 	/** */
-	FTiledLandscapeImportSettings	ImportSettings;
+	TSharedPtr<SComboBox<TSharedPtr<FExistingLandscape>>> ExistingLandscapeActors;
+	
+	/** */
+	FTiledLandscapeImportSettings ImportSettings;
+	
+	/** */
+	FIntRect TotalLandscapeRect;	
 	
 	TArray<FTileImportConfiguration> AllConfigurations;
 	TArray<TSharedPtr<FTileImportConfiguration>> ActiveConfigurations;

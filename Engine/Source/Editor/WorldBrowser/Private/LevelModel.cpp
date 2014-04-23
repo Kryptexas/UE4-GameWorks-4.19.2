@@ -716,4 +716,9 @@ FString FLevelModel::GetFileSizeString() const
 	return MemorySizeString;
 }
 
+UClass* FLevelModel::GetStreamingClass() const
+{
+	return nullptr;
+}
+
 #undef LOCTEXT_NAMESPACE
