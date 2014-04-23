@@ -18,7 +18,7 @@ public:
 
 	virtual IOnlineSubsystemPtr CreateSubsystem(FName InstanceName)
 	{
-		FOnlineSubsystemNullPtr OnlineSub = MakeShareable(new FOnlineSubsystemNull());
+		FOnlineSubsystemNullPtr OnlineSub = MakeShareable(new FOnlineSubsystemNull(InstanceName));
 		if (OnlineSub->IsEnabled())
 		{
 			if(!OnlineSub->Init())

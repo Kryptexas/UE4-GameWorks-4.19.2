@@ -62,6 +62,11 @@ public:
 	// FOnlineSubsystemNull
 
 	/**
+	 * @return the name of the online subsystem instance
+	 */
+	FName GetInstanceName() const { return InstanceName; }
+
+	/**
 	 * Is the Null API available for use
 	 * @return true if Null functionality is available, false otherwise
 	 */
@@ -70,16 +75,30 @@ public:
 PACKAGE_SCOPE:
 
 	/** Only the factory makes instances */
-	FOnlineSubsystemNull()
-		: SessionInterface(NULL)
-		, LeaderboardsInterface(NULL)
-		, IdentityInterface(NULL)
-		, AchievementsInterface(NULL)
-		, OnlineAsyncTaskThreadRunnable(NULL)
-		, OnlineAsyncTaskThread(NULL)
+	FOnlineSubsystemNull(FName InInstanceName) :
+		InstanceName(InInstanceName),
+		SessionInterface(NULL),
+		LeaderboardsInterface(NULL),
+		IdentityInterface(NULL),
+		AchievementsInterface(NULL),
+		OnlineAsyncTaskThreadRunnable(NULL),
+		OnlineAsyncTaskThread(NULL)
+	{}
+
+	FOnlineSubsystemNull() :
+		InstanceName(NAME_None),
+		SessionInterface(NULL),
+		LeaderboardsInterface(NULL),
+		IdentityInterface(NULL),
+		AchievementsInterface(NULL),
+		OnlineAsyncTaskThreadRunnable(NULL),
+		OnlineAsyncTaskThread(NULL)
 	{}
 
 private:
+
+	/** Instance name (disambiguates PIE instances for example) */
+	FName InstanceName;
 
 	/** Interface to the session services */
 	FOnlineSessionNullPtr SessionInterface;

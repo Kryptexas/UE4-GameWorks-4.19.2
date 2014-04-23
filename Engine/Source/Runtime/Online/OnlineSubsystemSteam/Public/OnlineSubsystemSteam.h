@@ -25,6 +25,9 @@ class ONLINESUBSYSTEMSTEAM_API FOnlineSubsystemSteam :
 {
 protected:
 
+	/** Instance name (disambiguates PIE instances for example) */
+	FName InstanceName;
+
 	/** Has the STEAM client APIs been initialized */
 	bool bSteamworksClientInitialized;
 
@@ -82,7 +85,28 @@ protected:
 PACKAGE_SCOPE:
 
 	/** Only the factory makes instances */
+	FOnlineSubsystemSteam(FName InInstanceName) :
+		InstanceName(InInstanceName),
+		bSteamworksClientInitialized(false),
+		bSteamworksGameServerInitialized(false),
+		SteamAppID(0),
+		GameServerSteamPort(0),
+		GameServerGamePort(0),
+		GameServerQueryPort(0),
+		SessionInterface(NULL),
+		IdentityInterface(NULL),
+		FriendInterface(NULL),
+		SharedCloudInterface(NULL),
+		UserCloudInterface(NULL),
+		LeaderboardsInterface(NULL),
+		VoiceInterface(NULL),
+		ExternalUIInterface(NULL),
+		OnlineAsyncTaskThreadRunnable(NULL),
+		OnlineAsyncTaskThread(NULL)
+	{}
+
 	FOnlineSubsystemSteam() : 
+		InstanceName(NAME_None),
 		bSteamworksClientInitialized(false),
 		bSteamworksGameServerInitialized(false),
 		SteamAppID(0),
@@ -223,6 +247,11 @@ public:
 	virtual bool Tick(float DeltaTime) OVERRIDE;
 
 	// FOnlineSubsystemSteam
+
+	/**
+	 * @return the name of the online subsystem instance
+	 */
+	FName GetInstanceName() const { return InstanceName; }
 
 	/**
 	 * Whether or not the Steam Client interfaces are available; these interfaces are only available, if the Steam Client program is running

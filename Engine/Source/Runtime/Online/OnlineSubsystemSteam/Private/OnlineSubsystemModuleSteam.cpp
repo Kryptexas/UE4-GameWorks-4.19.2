@@ -41,7 +41,7 @@ public:
 	{
 		if (!SteamSingleton.IsValid())
 		{
-			SteamSingleton = MakeShareable(new FOnlineSubsystemSteam());
+			SteamSingleton = MakeShareable(new FOnlineSubsystemSteam(InstanceName));
 			if (SteamSingleton->IsEnabled())
 			{
 				if(!SteamSingleton->Init())
