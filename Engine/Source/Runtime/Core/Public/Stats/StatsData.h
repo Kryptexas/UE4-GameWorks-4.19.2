@@ -12,7 +12,8 @@
 */
 enum
 {
-	STAT_FRAME_SLOP = 3 
+	STAT_FRAME_SLOP = 3,
+	MAX_STAT_LAG = 4,
 };
 
 /** Holds stats related constants. */

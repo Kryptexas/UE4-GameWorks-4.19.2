@@ -829,10 +829,6 @@ void FThreadStats::StartThread()
 
 }
 
-enum 
-{
-	MAX_STAT_LAG = 4,
-};
 static FGraphEventRef LastFramesEvents[MAX_STAT_LAG];
 static int32 CurrentEventIndex = 0;
 
