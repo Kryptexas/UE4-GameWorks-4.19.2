@@ -209,7 +209,7 @@ bool FSubversionSourceControlState::IsCurrent() const
 
 bool FSubversionSourceControlState::IsSourceControlled() const
 {
-	return WorkingCopyState != EWorkingCopyState::NotControlled && WorkingCopyState != EWorkingCopyState::Unknown;
+	return WorkingCopyState != EWorkingCopyState::NotControlled && WorkingCopyState != EWorkingCopyState::Unknown && WorkingCopyState != EWorkingCopyState::NotAWorkingCopy;
 }
 
 bool FSubversionSourceControlState::IsAdded() const
@@ -240,6 +240,11 @@ bool FSubversionSourceControlState::IsUnknown() const
 bool FSubversionSourceControlState::IsModified() const
 {
 	return WorkingCopyState == EWorkingCopyState::Modified || WorkingCopyState == EWorkingCopyState::Merged || WorkingCopyState == EWorkingCopyState::Obstructed || WorkingCopyState == EWorkingCopyState::Conflicted;
+}
+
+bool FSubversionSourceControlState::CanAdd() const
+{
+	return WorkingCopyState == EWorkingCopyState::NotControlled;
 }
 
 #undef LOCTEXT_NAMESPACE

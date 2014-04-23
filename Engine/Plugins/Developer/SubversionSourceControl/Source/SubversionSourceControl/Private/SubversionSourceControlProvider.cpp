@@ -249,6 +249,16 @@ const FString& FSubversionSourceControlProvider::GetUserName() const
 	return SubversionSourceControl.AccessSettings().GetUserName();
 }
 
+const FString& FSubversionSourceControlProvider::GetWorkingCopyRoot() const
+{
+	return WorkingCopyRoot;
+}
+
+void FSubversionSourceControlProvider::SetWorkingCopyRoot(const FString& InWorkingCopyRoot)
+{
+	WorkingCopyRoot = InWorkingCopyRoot;
+}
+
 bool FSubversionSourceControlProvider::TestConnection(const FString& RepositoryName, const FString& UserName, const FString& Password)
 {
 	FMessageLog SourceControlLog("SourceControl");
@@ -256,20 +266,20 @@ bool FSubversionSourceControlProvider::TestConnection(const FString& RepositoryN
 	// run a command on the server to see check connection.
 	// If our credentials have not been cached then this will fail.
 	TArray<FString> Files;
-	Files.Add(RepositoryName);
-	TArray<FString> Results;
+	Files.Add(FPaths::GameDir());
+	TArray<class FXmlFile> ResultsXml;
 	TArray<FString> Errors;
 
-	bool bResult = SubversionSourceControlUtils::RunCommand(TEXT("info"), Files, TArray<FString>(), Results, Errors, UserName, Password);
+	bool bResult = SubversionSourceControlUtils::RunCommand(TEXT("info"), Files, TArray<FString>(), ResultsXml, Errors, UserName, Password);
+	if(bResult)
+	{
+		SubversionSourceControlUtils::ParseInfoResults(ResultsXml, WorkingCopyRoot);
+	}
 
 	// output any errors/results
 	for(TArray<FString>::TConstIterator It = Errors.CreateConstIterator(); It; It++)
 	{
 		SourceControlLog.Warning(FText::FromString(*It));
-	}
-	for(TArray<FString>::TConstIterator It = Results.CreateConstIterator(); It; It++)
-	{
-		SourceControlLog.Info(FText::FromString(*It));
 	}
 
 	if(bResult)

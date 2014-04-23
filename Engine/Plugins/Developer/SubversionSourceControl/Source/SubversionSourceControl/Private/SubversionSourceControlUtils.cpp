@@ -125,9 +125,9 @@ bool RunCommand(const FString& InCommand, const TArray<FString>& InFiles, const 
 		while(FileCount < InFiles.Num())
 		{
 			TArray<FString> FilesInBatch;
-			for(int32 FileIndex = 0; FileIndex < InFiles.Num() && FileIndex < SubversionSourceControlConstants::MaxFilesPerBatch; FileIndex++, FileCount++)
+			for(int32 FileIndex = 0; FileCount < InFiles.Num() && FileIndex < SubversionSourceControlConstants::MaxFilesPerBatch; FileIndex++, FileCount++)
 			{
-				FilesInBatch.Add(InFiles[FileIndex]);
+				FilesInBatch.Add(InFiles[FileCount]);
 			}
 
 			FString Results;
@@ -434,7 +434,47 @@ void ParseLogResults(const FString& InFilename, const TArray<FXmlFile>& ResultsX
 	}
 }
 
-void ParseStatusResults(const TArray<FXmlFile>& ResultsXml, const TArray<FString>& InErrorMessages, const FString& InUserName, TArray<FSubversionSourceControlState>& OutStates)
+void ParseInfoResults(const TArray<FXmlFile>& ResultsXml, FString& OutRepoRoot)
+{
+	static const FString Info(TEXT("info"));
+	static const FString Entry(TEXT("entry"));
+	static const FString Wc_Info(TEXT("wc-info"));
+	static const FString WcRoot_AbsPath(TEXT("wcroot-abspath"));
+
+	for(auto ResultIt(ResultsXml.CreateConstIterator()); ResultIt; ResultIt++)
+	{
+		const FXmlNode* InfoNode = ResultIt->GetRootNode();
+		if(InfoNode == NULL || InfoNode->GetTag() != Info)
+		{
+			continue;
+		}
+
+		const FXmlNode* EntryNode = InfoNode->FindChildNode(Entry);
+		if(EntryNode == NULL)
+		{
+			continue;
+		}
+
+		const FXmlNode* WcInfoNode = EntryNode->FindChildNode(Wc_Info);
+		if(WcInfoNode == NULL)
+		{
+			continue;
+		}
+
+		const FXmlNode* WcRootAbsPathNode = WcInfoNode->FindChildNode(WcRoot_AbsPath);
+		if(WcRootAbsPathNode == NULL)
+		{
+			continue;
+		}
+
+		FString WcRootAbsPath = WcRootAbsPathNode->GetContent();
+		FPaths::NormalizeDirectoryName(WcRootAbsPath);
+		OutRepoRoot = WcRootAbsPath;
+		break;
+	}
+}
+
+void ParseStatusResults(const TArray<FXmlFile>& ResultsXml, const TArray<FString>& InErrorMessages, const FString& InUserName, const FString& InWorkingCopyRoot, TArray<FSubversionSourceControlState>& OutStates)
 {
 	static const FString Status(TEXT("status"));
 	static const FString Target(TEXT("target"));
@@ -487,7 +527,14 @@ void ParseStatusResults(const TArray<FXmlFile>& ResultsXml, const TArray<FString
 					const FXmlNode* WcStatusNode = EntryNode->FindChildNode(Wc_Status);
 					if(WcStatusNode != NULL)
 					{
-						State.WorkingCopyState = GetWorkingCopyState(WcStatusNode->GetAttribute(Item));
+						if(PathAttrib.StartsWith(InWorkingCopyRoot))
+						{
+							State.WorkingCopyState = GetWorkingCopyState(WcStatusNode->GetAttribute(Item));
+						}
+						else
+						{
+							State.WorkingCopyState = EWorkingCopyState::NotAWorkingCopy;
+						}
 
 						// find the lock state (if any)
 						const FXmlNode* LockNode = WcStatusNode->FindChildNode(Lock);
@@ -544,7 +591,15 @@ void ParseStatusResults(const TArray<FXmlFile>& ResultsXml, const TArray<FString
 				FPaths::NormalizeFilename(Filename);
 				OutStates.Add(FSubversionSourceControlState(Filename));
 				FSubversionSourceControlState& State = OutStates.Last();
-				State.WorkingCopyState = EWorkingCopyState::NotControlled;
+
+				if(Filename.StartsWith(InWorkingCopyRoot))
+				{
+					State.WorkingCopyState = EWorkingCopyState::NotControlled;
+				}
+				else
+				{
+					State.WorkingCopyState = EWorkingCopyState::NotAWorkingCopy;
+				}
 			}
 		}
 	}

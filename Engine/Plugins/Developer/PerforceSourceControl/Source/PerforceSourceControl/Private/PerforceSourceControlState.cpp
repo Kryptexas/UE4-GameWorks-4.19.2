@@ -182,7 +182,7 @@ bool FPerforceSourceControlState::IsCurrent() const
 
 bool FPerforceSourceControlState::IsSourceControlled() const
 {
-	return State != EPerforceState::NotInDepot;
+	return State != EPerforceState::NotInDepot && State != EPerforceState::NotUnderClientRoot;
 }
 
 bool FPerforceSourceControlState::IsAdded() const
@@ -213,6 +213,11 @@ bool FPerforceSourceControlState::IsUnknown() const
 bool FPerforceSourceControlState::IsModified() const
 {
 	return bModifed;
+}
+
+bool FPerforceSourceControlState::CanAdd() const
+{
+	return State == EPerforceState::NotInDepot;
 }
 
 #undef LOCTEXT_NAMESPACE

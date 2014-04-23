@@ -119,6 +119,9 @@ private:
 	/** The ticket we use for login. */
 	FString Ticket;
 
+	/** the root of the workspace we are currently using */
+	FString WorkspaceRoot;
+
 	/** Indicates if source control integration is available or not. */
 	bool bServerAvailable;
 

@@ -106,5 +106,11 @@ public:
 
 	/** Get whether this file is modified compared to the version we have from source control */
 	virtual bool IsModified() const = 0;
+
+	/** 
+	 * Get whether this file can be added to source control (i.e. is part of the directory 
+	 * structure currently under source control) 
+	 */
+	virtual bool CanAdd() const = 0;
 };
 

@@ -89,7 +89,7 @@ bool FSubversionSourceControlLabel::Sync( const FString& InFilename ) const
 		StatusParameters.Add(TEXT("--show-updates"));
 
 		bCommandOK &= SubversionSourceControlUtils::RunCommand(TEXT("status"), Files, StatusParameters, ResultsXml, ErrorMessages, Provider.GetUserName());
-		SubversionSourceControlUtils::ParseStatusResults(ResultsXml, ErrorMessages, Provider.GetUserName(), OutStates);
+		SubversionSourceControlUtils::ParseStatusResults(ResultsXml, ErrorMessages, Provider.GetUserName(), Provider.GetWorkingCopyRoot(), OutStates);
 		SubversionSourceControlUtils::UpdateCachedStates(OutStates);
 	}
 

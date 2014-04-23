@@ -2772,7 +2772,7 @@ void FEditorFileUtils::FindAllSubmittablePackageFiles(TMap<FString, FSourceContr
 
 		// Only include non-map packages that are currently checked out or packages not under source control
 		if (SourceControlState.IsValid() && 
-			(SourceControlState->IsCheckedOut() || SourceControlState->IsAdded() || !SourceControlState->IsSourceControlled()) &&
+			(SourceControlState->IsCheckedOut() || SourceControlState->IsAdded() || (!SourceControlState->IsSourceControlled() && SourceControlState->CanAdd())) &&
 			(bIncludeMaps || !IsMapPackageAsset(*Filename)))
 		{
 			OutPackages.Add(PackageName, SourceControlState);

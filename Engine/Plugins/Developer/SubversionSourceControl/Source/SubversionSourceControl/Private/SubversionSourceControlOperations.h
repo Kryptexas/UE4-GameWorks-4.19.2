@@ -12,6 +12,10 @@ public:
 	virtual FName GetName() const OVERRIDE;
 	virtual bool Execute(class FSubversionSourceControlCommand& InCommand) OVERRIDE;
 	virtual bool UpdateStates() const OVERRIDE;
+
+private:
+	/** The root of our working copy */
+	FString WorkingCopyRoot;
 };
 
 class FSubversionCheckOutWorker : public ISubversionSourceControlWorker

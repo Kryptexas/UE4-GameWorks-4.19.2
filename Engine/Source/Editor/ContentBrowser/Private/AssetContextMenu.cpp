@@ -1364,11 +1364,11 @@ void FAssetContextMenu::CacheCanExecuteVars()
 					bCanExecuteSCCCheckOut = true;
 				}
 
-				if ( !SourceControlState->IsSourceControlled() )
+				if ( !SourceControlState->IsSourceControlled() && SourceControlState->CanAdd() )
 				{
 					bCanExecuteSCCOpenForAdd = true;
 				}
-				else if( !SourceControlState->IsAdded() )
+				else if( SourceControlState->IsSourceControlled() && !SourceControlState->IsAdded() )
 				{
 					bCanExecuteSCCHistory = true;
 				}

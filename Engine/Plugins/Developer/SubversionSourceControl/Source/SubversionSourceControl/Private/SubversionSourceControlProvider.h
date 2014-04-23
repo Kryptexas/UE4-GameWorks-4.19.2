@@ -41,6 +41,12 @@ public:
 	/** Get the username we use to access the repository */
 	const FString& GetUserName() const;
 
+	/** Get the root of our working copy */
+	const FString& GetWorkingCopyRoot() const;
+
+	/** Set the root of our working copy */
+	void SetWorkingCopyRoot(const FString& InWorkingCopyRoot);
+
 	/** Helper function used to update state cache */
 	TSharedRef<FSubversionSourceControlState, ESPMode::ThreadSafe> GetStateInternal(const FString& Filename);
 
@@ -95,6 +101,9 @@ private:
 	void UpdateConnectionState(class FSubversionSourceControlCommand& InCommand);
 
 private:
+
+	/** Cached working copy root */
+	FString WorkingCopyRoot;
 
 	/** Flag for working offline - i.e. we haven't been able to connect to a server yet */
 	bool bWorkingOffline;
