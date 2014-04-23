@@ -7,8 +7,8 @@
 UENUM()
 enum EAttractorParticleSelectionMethod
 {
-	EAPSM_Random,
-	EAPSM_Sequential,
+	EAPSM_Random UMETA(DisplayName="Random"),
+	EAPSM_Sequential UMETA(DisplayName="Sequential"),
 	EAPSM_MAX,
 };
 

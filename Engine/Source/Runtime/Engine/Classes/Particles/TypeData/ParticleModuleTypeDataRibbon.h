@@ -12,9 +12,9 @@
 UENUM()
 enum ETrailsRenderAxisOption
 {
-	Trails_CameraUp,
-	Trails_SourceUp,
-	Trails_WorldUp,
+	Trails_CameraUp UMETA(DisplayName="Camera Up"),
+	Trails_SourceUp UMETA(DisplayName="Source Up"),
+	Trails_WorldUp UMETA(DisplayName="World Up"),
 	Trails_MAX,
 };
 

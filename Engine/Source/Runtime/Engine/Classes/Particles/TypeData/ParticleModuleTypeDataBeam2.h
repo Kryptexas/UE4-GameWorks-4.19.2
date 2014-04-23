@@ -7,9 +7,9 @@
 UENUM()
 enum EBeam2Method
 {
-	PEB2M_Distance,
-	PEB2M_Target,
-	PEB2M_Branch,
+	PEB2M_Distance UMETA(DisplayName="Distance"),
+	PEB2M_Target UMETA(DisplayName="Target"),
+	PEB2M_Branch UMETA(DisplayName="Branch"),
 	PEB2M_MAX,
 };
 
@@ -19,9 +19,9 @@ enum EBeam2Method
 UENUM()
 enum EBeamTaperMethod
 {
-	PEBTM_None,
-	PEBTM_Full,
-	PEBTM_Partial,
+	PEBTM_None UMETA(DisplayName="None"),
+	PEBTM_Full UMETA(DisplayName="Full"),
+	PEBTM_Partial UMETA(DisplayName="Partial"),
 	PEBTM_MAX,
 };
 

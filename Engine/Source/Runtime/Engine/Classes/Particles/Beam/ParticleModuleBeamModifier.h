@@ -15,9 +15,9 @@ UENUM()
 enum BeamModifierType
 {
 	/** Modify the source of the beam.				*/
-	PEB2MT_Source,
+	PEB2MT_Source UMETA(DisplayName="Source"),
 	/** Modify the target of the beam.				*/
-	PEB2MT_Target,
+	PEB2MT_Target UMETA(DisplayName="Target"),
 	PEB2MT_MAX,
 };
 

@@ -14,21 +14,21 @@ UENUM()
 enum EModuleType
 {
 	/** General - all emitter types can use it			*/
-	EPMT_General,
+	EPMT_General UMETA(DisplayName="General"),
 	/** TypeData - TypeData modules						*/
-	EPMT_TypeData,
+	EPMT_TypeData UMETA(DisplayName="Type Data"),
 	/** Beam - only applied to beam emitters			*/
-	EPMT_Beam,
+	EPMT_Beam UMETA(DisplayName="Beam"),
 	/** Trail - only applied to trail emitters			*/
-	EPMT_Trail,
+	EPMT_Trail UMETA(DisplayName="Trail"),
 	/** Spawn - all emitter types REQUIRE it			*/
-	EPMT_Spawn,
+	EPMT_Spawn UMETA(DisplayName="Spawn"),
 	/** Required - all emitter types REQUIRE it			*/
-	EPMT_Required,
+	EPMT_Required UMETA(DisplayName="Required"),
 	/** Event - event related modules					*/
-	EPMT_Event,
+	EPMT_Event UMETA(DisplayName="Event"),
 	/** Light related modules							*/
-	EPMT_Light,
+	EPMT_Light UMETA(DisplayName="Light"),
 	EPMT_MAX,
 };
 
@@ -40,9 +40,9 @@ UENUM()
 enum EParticleSourceSelectionMethod
 {
 	/** Random		- select a particle at random		*/
-	EPSSM_Random,
+	EPSSM_Random UMETA(DisplayName="Random"),
 	/** Sequential	- select a particle in order		*/
-	EPSSM_Sequential,
+	EPSSM_Sequential UMETA(DisplayName="Sequential"),
 	EPSSM_MAX,
 };
 

@@ -9,25 +9,25 @@ UENUM()
 enum EParticleAxisLock
 {
 	/** No locking to an axis...							*/
-	EPAL_NONE,
+	EPAL_NONE UMETA(DisplayName="None"),
 	/** Lock the sprite facing towards the positive X-axis	*/
-	EPAL_X,
+	EPAL_X UMETA(DisplayName="X"),
 	/** Lock the sprite facing towards the positive Y-axis	*/
-	EPAL_Y,
+	EPAL_Y UMETA(DisplayName="Y"),
 	/** Lock the sprite facing towards the positive Z-axis	*/
-	EPAL_Z,
+	EPAL_Z UMETA(DisplayName="Z"),
 	/** Lock the sprite facing towards the negative X-axis	*/
-	EPAL_NEGATIVE_X,
+	EPAL_NEGATIVE_X UMETA(DisplayName="-X"),
 	/** Lock the sprite facing towards the negative Y-axis	*/
-	EPAL_NEGATIVE_Y,
+	EPAL_NEGATIVE_Y UMETA(DisplayName="-Y"),
 	/** Lock the sprite facing towards the negative Z-axis	*/
-	EPAL_NEGATIVE_Z,
+	EPAL_NEGATIVE_Z UMETA(DisplayName="-Z"),
 	/** Lock the sprite rotation on the X-axis				*/
-	EPAL_ROTATE_X,
+	EPAL_ROTATE_X UMETA(DisplayName="Rotate X"),
 	/** Lock the sprite rotation on the Y-axis				*/
-	EPAL_ROTATE_Y,
+	EPAL_ROTATE_Y UMETA(DisplayName="Rotate Y"),
 	/** Lock the sprite rotation on the Z-axis				*/
-	EPAL_ROTATE_Z,
+	EPAL_ROTATE_Z UMETA(DisplayName="Rotate Z"),
 	EPAL_MAX,
 };
 

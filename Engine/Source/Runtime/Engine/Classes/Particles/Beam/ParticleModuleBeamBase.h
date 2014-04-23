@@ -17,22 +17,22 @@ enum Beam2SourceTargetMethod
 	/** Default	- use the distribution. 
 	 *	This is the fallback for when other modes can't be resolved.
 	 */
-	PEB2STM_Default,
+	PEB2STM_Default UMETA(DisplayName="Default"),
 	/** UserSet	- use the user set value. 
 	 *	Primarily intended for weapon effects.
 	 */
-	PEB2STM_UserSet,
+	PEB2STM_UserSet UMETA(DisplayName="User Set"),
 	/** Emitter	- use the emitter position as the source/target.
 	 */
-	PEB2STM_Emitter,
+	PEB2STM_Emitter UMETA(DisplayName="Emitter"),
 	/** Particle	- use the particles from a given emitter in the system.		
 	 *	The name of the emitter should be set in <Source/Target>Name.
 	 */
-	PEB2STM_Particle,
+	PEB2STM_Particle UMETA(DisplayName="Particle"),
 	/** Actor		- use the actor as the source/target.
 	 *	The name of the actor should be set in <Source/Target>Name.
 	 */
-	PEB2STM_Actor,
+	PEB2STM_Actor UMETA(DisplayName="Actor"),
 	PEB2STM_MAX,
 };
 
@@ -41,13 +41,13 @@ UENUM()
 enum Beam2SourceTargetTangentMethod
 {
 	/** Direct - a direct line between source and target.				 */
-	PEB2STTM_Direct,
+	PEB2STTM_Direct UMETA(DisplayName="Direct"),
 	/** UserSet	- use the user set value.								 */
-	PEB2STTM_UserSet,
+	PEB2STTM_UserSet UMETA(DisplayName="User Set"),
 	/** Distribution - use the distribution.							 */
-	PEB2STTM_Distribution,
+	PEB2STTM_Distribution UMETA(DisplayName="Distribution"),
 	/** Emitter	- use the emitter direction.							 */
-	PEB2STTM_Emitter,
+	PEB2STTM_Emitter UMETA(DisplayName="Emitter"),
 	PEB2STTM_MAX,
 };
 

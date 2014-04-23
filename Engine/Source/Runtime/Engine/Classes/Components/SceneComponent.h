@@ -29,9 +29,9 @@ struct FOverlapInfo
 UENUM()
 enum EDetailMode
 {
-	DM_Low,
-	DM_Medium,
-	DM_High,
+	DM_Low UMETA(DisplayName="Low"),
+	DM_Medium UMETA(DisplayName="Medium"),
+	DM_High UMETA(DisplayName="High"),
 	DM_MAX,
 };
 

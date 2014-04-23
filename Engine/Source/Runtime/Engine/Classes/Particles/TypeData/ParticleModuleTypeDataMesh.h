@@ -7,39 +7,42 @@
 UENUM()
 enum EMeshScreenAlignment
 {
-	PSMA_MeshFaceCameraWithRoll,
-	PSMA_MeshFaceCameraWithSpin,
-	PSMA_MeshFaceCameraWithLockedAxis,
+	PSMA_MeshFaceCameraWithRoll UMETA(DisplayName="Face Camera With Roll"),
+	PSMA_MeshFaceCameraWithSpin UMETA(DisplayName="Face Camera With Spin"),
+	PSMA_MeshFaceCameraWithLockedAxis UMETA(DisplayName="Face Camera With Locked-Axis"),
 	PSMA_MAX,
 };
 
 UENUM()
 enum EMeshCameraFacingUpAxis
 {
-	CameraFacing_NoneUP,
-	CameraFacing_ZUp,
-	CameraFacing_NegativeZUp,
-	CameraFacing_YUp,
-	CameraFacing_NegativeYUp,
+	CameraFacing_NoneUP UMETA(DisplayName="None"),
+	CameraFacing_ZUp UMETA(DisplayName="Z Up"),
+	CameraFacing_NegativeZUp UMETA(DisplayName="-Z Up"),
+	CameraFacing_YUp UMETA(DisplayName="Y Up"),
+	CameraFacing_NegativeYUp UMETA(DisplayName="-Y Up"),
 	CameraFacing_MAX,
 };
 
 UENUM()
 enum EMeshCameraFacingOptions
 {
-	XAxisFacing_NoUp,
-	XAxisFacing_ZUp,
-	XAxisFacing_NegativeZUp,
-	XAxisFacing_YUp,
-	XAxisFacing_NegativeYUp,
-	LockedAxis_ZAxisFacing,
-	LockedAxis_NegativeZAxisFacing,
-	LockedAxis_YAxisFacing,
-	LockedAxis_NegativeYAxisFacing,
-	VelocityAligned_ZAxisFacing,
-	VelocityAligned_NegativeZAxisFacing,
-	VelocityAligned_YAxisFacing,
-	VelocityAligned_NegativeYAxisFacing,
+	XAxisFacing_NoUp UMETA(DisplayName="X Axis Facing : No Up"),
+	XAxisFacing_ZUp UMETA(DisplayName="X Axis Facing : Z Up"),
+	XAxisFacing_NegativeZUp UMETA(DisplayName="X Axis Facing : -Z Up"),
+	XAxisFacing_YUp UMETA(DisplayName="X Axis Facing : Y Up"),
+	XAxisFacing_NegativeYUp UMETA(DisplayName="X Axis Facing : -Y Up"),
+
+	LockedAxis_ZAxisFacing UMETA(DisplayName="Locked Axis : Z Axis Facing"),
+	LockedAxis_NegativeZAxisFacing UMETA(DisplayName="Locked Axis : -Z Axis Facing"),
+	LockedAxis_YAxisFacing UMETA(DisplayName="Locked Axis : Y Axis Facing"),
+	LockedAxis_NegativeYAxisFacing UMETA(DisplayName="Locked Axis : -Y Axis Facing"),
+
+	VelocityAligned_ZAxisFacing UMETA(DisplayName="Velocity Aligned : Z Axis Facing"),
+	VelocityAligned_NegativeZAxisFacing UMETA(DisplayName="Velocity Aligned : -Z Axis Facing"),
+	VelocityAligned_YAxisFacing UMETA(DisplayName="Velocity Aligned : Y Axis Facing"),
+	VelocityAligned_NegativeYAxisFacing UMETA(DisplayName="Velocity Aligned : -Y Axis Facing"),
+
 	EMeshCameraFacingOptions_MAX,
 };
 

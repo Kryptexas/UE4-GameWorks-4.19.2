@@ -8,11 +8,11 @@ UENUM()
 enum EOrbitChainMode
 {
 	/** Add the module values to the previous results						*/
-	EOChainMode_Add,
+	EOChainMode_Add UMETA(DisplayName="Add"),
 	/**	Multiply the module values by the previous results					*/
-	EOChainMode_Scale,
+	EOChainMode_Scale UMETA(DisplayName="Scale"),
 	/**	'Break' the chain and apply the values from the	previous results	*/
-	EOChainMode_Link,
+	EOChainMode_Link UMETA(DisplayName="Link"),
 	EOChainMode_MAX,
 };
 

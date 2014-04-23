@@ -12,9 +12,9 @@ UENUM()
 enum EParticleSystemUpdateMode
 {
 	/** RealTime	- update via the delta time passed in				*/
-	EPSUM_RealTime,
+	EPSUM_RealTime UMETA(DisplayName="Real-Time"),
 	/** FixedTime	- update via a fixed time step						*/
-	EPSUM_FixedTime,
+	EPSUM_FixedTime UMETA(DisplayName="Fixed-Time"),
 	EPSUM_MAX,
 };
 
@@ -24,9 +24,9 @@ enum EParticleSystemUpdateMode
 UENUM()
 enum ParticleSystemLODMethod
 {
-	PARTICLESYSTEMLODMETHOD_Automatic,
-	PARTICLESYSTEMLODMETHOD_DirectSet,
-	PARTICLESYSTEMLODMETHOD_ActivateAutomatic,
+	PARTICLESYSTEMLODMETHOD_Automatic UMETA(DisplayName="Automatic"),
+	PARTICLESYSTEMLODMETHOD_DirectSet UMETA(DisplayName="Direct Set"),
+	PARTICLESYSTEMLODMETHOD_ActivateAutomatic UMETA(DisplayName="Activate Automatic"),
 	PARTICLESYSTEMLODMETHOD_MAX,
 };
 
@@ -35,11 +35,11 @@ UENUM()
 enum EParticleSystemOcclusionBoundsMethod
 {
 	/** Don't determine occlusion on this particle system */
-	EPSOBM_None,
+	EPSOBM_None UMETA(DisplayName="None"),
 	/** Use the bounds of the particle system component when determining occlusion */
-	EPSOBM_ParticleBounds,
+	EPSOBM_ParticleBounds UMETA(DisplayName="Particle Bounds"),
 	/** Use the custom occlusion bounds when determining occlusion */
-	EPSOBM_CustomBounds,
+	EPSOBM_CustomBounds UMETA(DisplayName="Custom Bounds"),
 	EPSOBM_MAX,
 };
 

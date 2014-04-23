@@ -7,8 +7,8 @@
 UENUM()
 enum ELocationSkelVertSurfaceSource
 {
-	VERTSURFACESOURCE_Vert,
-	VERTSURFACESOURCE_Surface,
+	VERTSURFACESOURCE_Vert UMETA(DisplayName="Verticies"),
+	VERTSURFACESOURCE_Surface UMETA(DisplayName="Surfaces"),
 	VERTSURFACESOURCE_MAX,
 };
 
