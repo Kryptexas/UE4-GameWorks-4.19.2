@@ -1404,6 +1404,52 @@ void UInstancedStaticMeshComponent::ApplyWorldOffset(const FVector& InOffset, bo
 	MarkRenderStateDirty();
 }
 
+#include "AI/Navigation/RecastHelpers.h"
+bool UInstancedStaticMeshComponent::DoCustomNavigableGeometryExport(struct FNavigableGeometryExport* GeomExport) const
+{
+	if (StaticMesh != NULL)
+	{
+		UNavCollision* NavCollision = StaticMesh->NavCollision;
+		if (NavCollision != NULL && NavCollision->bHasConvexGeometry)
+		{
+			for (const FInstancedStaticMeshInstanceData& InstanceData : PerInstanceSMData)
+			{
+				const FVector Scale3D = InstanceData.Transform.GetScaleVector();
+				// if any of scales is 0 there's no point in exporting it
+				if (!Scale3D.IsZero())
+				{
+					GeomExport->ExportCustomMesh(NavCollision->ConvexCollision.VertexBuffer.GetData(), NavCollision->ConvexCollision.VertexBuffer.Num(),
+						NavCollision->ConvexCollision.IndexBuffer.GetData(), NavCollision->ConvexCollision.IndexBuffer.Num(), FTransform(InstanceData.Transform));
+
+					GeomExport->ExportCustomMesh(NavCollision->TriMeshCollision.VertexBuffer.GetData(), NavCollision->TriMeshCollision.VertexBuffer.Num(),
+						NavCollision->TriMeshCollision.IndexBuffer.GetData(), NavCollision->TriMeshCollision.IndexBuffer.Num(), FTransform(InstanceData.Transform));
+				}
+			}
+		}
+		else
+		{
+			UBodySetup* BodySetup = StaticMesh->BodySetup;
+			if (BodySetup)
+			{
+				for (const FInstancedStaticMeshInstanceData& InstanceData : PerInstanceSMData)
+				{
+					const FVector Scale3D = InstanceData.Transform.GetScaleVector();
+					// if any of scales is 0 there's no point in exporting it
+					if (!Scale3D.IsZero())
+					{
+						GeomExport->ExportRigidBodySetup(*BodySetup, FTransform(InstanceData.Transform));
+					}
+				}
+
+				//GeomExport->SlopeOverride = BodySetup->WalkableSlopeOverride;
+			}
+		}
+	}
+
+	// we don't want "regular" collision export for this component
+	return false;
+}
+
 SIZE_T UInstancedStaticMeshComponent::GetResourceSize( EResourceSizeMode::Type Mode )
 {
 	SIZE_T ResSize = 0;
