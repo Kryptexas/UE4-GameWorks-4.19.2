@@ -26,25 +26,27 @@ float3 DecodeSpecularColor(float3 SpecularColor)
 
 float3 EncodeDiffuseColor(float3 DiffuseColor)
 {
-	// Allocate more precision to the darks
-	return sqrt(saturate(DiffuseColor));
+	// we use sRGB on the render target to give more precision to the darks
+	return DiffuseColor;
 }
 
 float3 DecodeDiffuseColor(float3 DiffuseColor)
 {
-	return DiffuseColor * DiffuseColor;
+	// we use sRGB on the render target to give more precision to the darks
+	return DiffuseColor;
 }
 
 // TODO Can sRGB writes do this for us?
 float3 EncodeBaseColor(float3 BaseColor)
 {
-	// Gamma 2.0
-	return sqrt( saturate(BaseColor) );
+	// we use sRGB on the render target to give more precision to the darks
+	return BaseColor;
 }
 
 float3 DecodeBaseColor(float3 BaseColor)
 {
-	return Square( BaseColor );
+	// we use sRGB on the render target to give more precision to the darks
+	return BaseColor;
 }
 
 float3 EncodeSubsurfaceColor(float3 SubsurfaceColor)
