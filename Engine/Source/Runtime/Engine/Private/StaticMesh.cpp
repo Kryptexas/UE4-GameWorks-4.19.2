@@ -2418,7 +2418,7 @@ void UStaticMeshSocket::PostEditChangeProperty( FPropertyChangedEvent& PropertyC
 
 	if( PropertyChangedEvent.Property )
 	{
-		ChangedEvent.Broadcast( this, PropertyChangedEvent.Property );
+		ChangedEvent.Broadcast( this, PropertyChangedEvent.MemberProperty );
 	}
 }
 #endif
