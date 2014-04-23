@@ -65,7 +65,6 @@ public:
 	TMap<UEdGraphPin*, FBPTerminal*> NetMap;
 	TMap<UEdGraphPin*, FBPTerminal*> LiteralHackMap;
 
-	int32 UUIDCounter;
 	bool bIsUbergraph;
 	bool bCannotBeCalledFromOtherKismet;
 	bool bIsInterfaceStub;
@@ -186,11 +185,7 @@ public:
 		}
 	}
 
-
-	int32 GetContextUniqueID()
-	{
-		return UUIDCounter++;
-	}
+	KISMETCOMPILER_API int32 GetContextUniqueID();
 
 	UBlueprint* GetBlueprint()
 	{

@@ -848,7 +848,6 @@ FKismetFunctionContext::FKismetFunctionContext(FCompilerResultsLog& InMessageLog
 	, NewClass(InNewClass)
 	, MessageLog(InMessageLog)
 	, Schema(InSchema)
-	, UUIDCounter(1024)
 	, bIsUbergraph(false)
 	, bCannotBeCalledFromOtherKismet(false)
 	, NetFlags(0)
@@ -895,6 +894,12 @@ void FKismetFunctionContext::SetExternalNetNameMap(FNetNameMapping* NewMap)
 	bAllocatedNetNameMap = false;
 
 	NetNameMap = NewMap;
+}
+
+int32 FKismetFunctionContext::GetContextUniqueID()
+{
+	static int32 UUIDCounter = 1;
+	return UUIDCounter++;
 }
 
 #undef LOCTEXT_NAMESPACE
