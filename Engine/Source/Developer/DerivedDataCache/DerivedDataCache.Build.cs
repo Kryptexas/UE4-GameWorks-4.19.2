@@ -9,7 +9,7 @@ public class DerivedDataCache : ModuleRules
 	{
 		PrivateDependencyModuleNames.Add("Core");
 		// Internal (NoRedist) module
-		if (Directory.Exists(Path.Combine("Developer", "NoRedist", "DDCUtils")))
+		if (Directory.Exists(Path.Combine("Developer", "NoRedist", "DDCUtils")) && !UnrealBuildTool.UnrealBuildTool.BuildingRocket())
 		{
 			DynamicallyLoadedModuleNames.Add("DDCUtils");
 		}
