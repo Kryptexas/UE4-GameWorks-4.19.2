@@ -1427,7 +1427,15 @@ FDependsNode* FAssetRegistry::CreateOrFindDependsNode(FName ObjectPath)
 
 bool FAssetRegistry::RemoveDependsNode( FName PackageName )
 {
-	FDependsNode* Node = *(CachedDependsNodes.Find( PackageName ));
+	FDependsNode** NodeEntry = CachedDependsNodes.Find(PackageName);
+
+	// If it has already been removed, then we're done.
+	if ( NodeEntry == NULL )
+	{
+		return true;
+	}
+
+	FDependsNode* Node = *(NodeEntry);
 
 	if ( Node != nullptr )
 	{
