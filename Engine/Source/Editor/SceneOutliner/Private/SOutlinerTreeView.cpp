@@ -61,16 +61,16 @@ namespace SceneOutliner
 			return;
 		}
 
-		if (DragDrop::IsTypeMatch<FFolderActorDragDropOp>(Operation))
+		if (Operation->IsOfType<FFolderActorDragDropOp>())
 		{
 			DraggedFolders = &StaticCastSharedPtr<FFolderActorDragDropOp>(Operation)->Folders;
 		}
-		else if (DragDrop::IsTypeMatch<FFolderDragDropOp>(Operation))
+		else if (Operation->IsOfType<FFolderDragDropOp>())
 		{
 			DraggedFolders = &StaticCastSharedPtr<FFolderDragDropOp>(Operation)->Folders;
 		}
 
-		if (DragDrop::IsTypeMatch<FActorDragDropGraphEdOp>(Operation))
+		if (Operation->IsOfType<FActorDragDropGraphEdOp>())
 		{
 			DraggedActors = &StaticCastSharedPtr<FActorDragDropGraphEdOp>(Operation)->Actors;
 		}
@@ -433,14 +433,14 @@ namespace SceneOutliner
 		}
 
 
-		if (DragDrop::IsTypeMatch<FDecoratedDragDropOp>(DragDropEvent.GetOperation()))
+		TSharedPtr<FDecoratedDragDropOp> DecoratedDragOp = DragDropEvent.GetOperationAs<FDecoratedDragDropOp>();
+		if (DecoratedDragOp.IsValid())
 		{
 			const FDragValidationInfo ValidationInfo = ValidateRootDragDropEvent(SceneOutlinerPtr.ToSharedRef(), DragDropEvent);
 
 			if (ValidationInfo.TooltipType == FActorDragDropGraphEdOp::ToolTip_CompatibleGeneric || ValidationInfo.TooltipType == FActorDragDropGraphEdOp::ToolTip_IncompatibleGeneric)
 			{
 				// Generic messages can go through the decorated drag/drop operation base class
-				auto DecoratedDragOp = StaticCastSharedPtr<FDecoratedDragDropOp>(DragDropEvent.GetOperation());
 				DecoratedDragOp->CurrentHoverText = ValidationInfo.ValidationText;
 				if (ValidationInfo.TooltipType == FActorDragDropGraphEdOp::ToolTip_CompatibleGeneric)
 				{
@@ -451,10 +451,10 @@ namespace SceneOutliner
 					DecoratedDragOp->CurrentIconBrush = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
 				}
 			}
-			else if (DragDrop::IsTypeMatch<FActorDragDropGraphEdOp>(DragDropEvent.GetOperation()))
+			else if (DecoratedDragOp->IsOfType<FActorDragDropGraphEdOp>())
 			{
 				// Display actor specific messages
-				auto ActorDragOp = StaticCastSharedPtr<FActorDragDropGraphEdOp>(DragDropEvent.GetOperation());
+				auto ActorDragOp = StaticCastSharedPtr<FActorDragDropGraphEdOp>(DecoratedDragOp);
 				ActorDragOp->SetToolTip(ValidationInfo.TooltipType, ValidationInfo.ValidationText);
 			}
 		}
@@ -651,14 +651,16 @@ namespace SceneOutliner
 		// Perform the validation and update the tooltip if necessary
 		const FDragValidationInfo ValidationInfo = ValidateDragDropEvent(SceneOutlinerPtr.ToSharedRef(), DragDropEvent, Item.ToSharedRef());
 
-		if (DragDrop::IsTypeMatch<FActorDragDropGraphEdOp>(DragDropEvent.GetOperation()))
+		TSharedPtr<FActorDragDropGraphEdOp> ActorDragOp = DragDropEvent.GetOperationAs<FActorDragDropGraphEdOp>();
+		if (ActorDragOp.IsValid())
 		{
-			auto ActorDragOp = StaticCastSharedPtr<FActorDragDropGraphEdOp>(DragDropEvent.GetOperation());
 			ActorDragOp->SetToolTip(ValidationInfo.TooltipType, ValidationInfo.ValidationText);
+			return;
 		}
-		else if (DragDrop::IsTypeMatch<FDecoratedDragDropOp>(DragDropEvent.GetOperation()))
+
+		TSharedPtr<FDecoratedDragDropOp> DecoratedDragOp = DragDropEvent.GetOperationAs<FDecoratedDragDropOp>();
+		if (DecoratedDragOp.IsValid())
 		{
-			auto DecoratedDragOp = StaticCastSharedPtr<FDecoratedDragDropOp>(DragDropEvent.GetOperation());
 			DecoratedDragOp->CurrentHoverText = ValidationInfo.ValidationText;
 			DecoratedDragOp->CurrentIconBrush = ValidationInfo.IsValid() ? FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK")) : FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
 		}

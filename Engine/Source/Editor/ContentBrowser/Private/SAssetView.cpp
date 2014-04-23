@@ -1030,19 +1030,18 @@ void SAssetView::ProcessQueriedItems( const double TickStartTime )
 
 void SAssetView::OnDragLeave( const FDragDropEvent& DragDropEvent )
 {
-	if( DragDrop::IsTypeMatch<FAssetDragDropOp>( DragDropEvent.GetOperation() ) )
+	TSharedPtr< FAssetDragDropOp > DragAssetOp = DragDropEvent.GetOperationAs< FAssetDragDropOp >();
+	if( DragAssetOp.IsValid() )
 	{
-		TSharedPtr< FAssetDragDropOp > DragAssetOp = StaticCastSharedPtr< FAssetDragDropOp >( DragDropEvent.GetOperation() );	
 		DragAssetOp->ResetToDefaultToolTip();
 	}
 }
 
 FReply SAssetView::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FExternalDragOperation>(DragDropEvent.GetOperation()) )
+	TSharedPtr< FExternalDragOperation > DragDropOp = DragDropEvent.GetOperationAs< FExternalDragOperation >();
+	if ( DragDropOp.IsValid() )
 	{
-		TSharedPtr<FExternalDragOperation> DragDropOp = StaticCastSharedPtr<FExternalDragOperation>( DragDropEvent.GetOperation() );
-
 		if ( DragDropOp->HasFiles() )
 		{
 			return FReply::Handled();
@@ -1054,10 +1053,9 @@ FReply SAssetView::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent
 
 		if ( AssetDatas.Num() > 0 )
 		{
-			if( DragDrop::IsTypeMatch<FAssetDragDropOp>( DragDropEvent.GetOperation() ) )
+			TSharedPtr< FAssetDragDropOp > DragAssetOp = DragDropEvent.GetOperationAs< FAssetDragDropOp >();
+			if( DragAssetOp.IsValid() )
 			{
-				TSharedPtr< FAssetDragDropOp > DragAssetOp = StaticCastSharedPtr< FAssetDragDropOp >( DragDropEvent.GetOperation() );	
-
 				TArray< FName > ObjectPaths;
 				FCollectionManagerModule& CollectionManagerModule = FModuleManager::LoadModuleChecked<FCollectionManagerModule>(TEXT("CollectionManager"));
 				CollectionManagerModule.Get().GetObjectsInCollection( SourcesData.Collections[0].Name, SourcesData.Collections[0].Type, ObjectPaths );
@@ -1090,10 +1088,9 @@ FReply SAssetView::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& Dr
 	// Handle drag drop for import
 	if ( IsAssetPathSelected() )
 	{
-		if ( DragDrop::IsTypeMatch<FExternalDragOperation>(DragDropEvent.GetOperation()) )
+		TSharedPtr<FExternalDragOperation> DragDropOp = DragDropEvent.GetOperationAs<FExternalDragOperation>();
+		if (DragDropOp.IsValid())
 		{
-			TSharedPtr<FExternalDragOperation> DragDropOp = StaticCastSharedPtr<FExternalDragOperation>( DragDropEvent.GetOperation() );
-
 			if ( DragDropOp->HasFiles() )
 			{
 				FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");

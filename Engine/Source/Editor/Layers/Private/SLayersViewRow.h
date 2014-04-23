@@ -145,13 +145,11 @@ protected:
 	 */
 	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) OVERRIDE
 	{
-		if( !DragDrop::IsTypeMatch<FActorDragDropGraphEdOp>( DragDropEvent.GetOperation() ) )
+		TSharedPtr< FActorDragDropGraphEdOp > DragActorOp = DragDropEvent.GetOperationAs< FActorDragDropGraphEdOp >();
+		if (DragActorOp.IsValid())
 		{
-			return;
+			DragActorOp->ResetToDefaultToolTip();
 		}
-
-		TSharedPtr< FActorDragDropGraphEdOp > DragActorOp = StaticCastSharedPtr< FActorDragDropGraphEdOp >( DragDropEvent.GetOperation() );	
-		DragActorOp->ResetToDefaultToolTip();
 	}
 
 	/**
@@ -164,12 +162,11 @@ protected:
 	 */
 	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE
 	{
-		if( !DragDrop::IsTypeMatch<FActorDragDropGraphEdOp>( DragDropEvent.GetOperation() ) )
+		TSharedPtr< FActorDragDropGraphEdOp > DragActorOp = DragDropEvent.GetOperationAs< FActorDragDropGraphEdOp >();
+		if (!DragActorOp.IsValid())
 		{
 			return FReply::Unhandled();
 		}
-
-		TSharedPtr< FActorDragDropGraphEdOp > DragActorOp = StaticCastSharedPtr< FActorDragDropGraphEdOp >( DragDropEvent.GetOperation() );		
 
 		bool bCanAssign = false;
 		FString Message;
@@ -204,12 +201,12 @@ protected:
 	 */
 	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE
 	{
-		if ( !DragDrop::IsTypeMatch<FActorDragDropGraphEdOp>( DragDropEvent.GetOperation() ) )	
+		TSharedPtr< FActorDragDropGraphEdOp > DragActorOp = DragDropEvent.GetOperationAs< FActorDragDropGraphEdOp >();
+		if (!DragActorOp.IsValid())
 		{
 			return FReply::Unhandled();
 		}
 
-		TSharedPtr< FActorDragDropGraphEdOp > DragActorOp = StaticCastSharedPtr< FActorDragDropGraphEdOp >( DragDropEvent.GetOperation() );		
 		ViewModel->AddActors( DragActorOp->Actors );
 
 		return FReply::Handled();
@@ -245,7 +242,7 @@ private:
 		bool bCanAcceptDrop = false;
 		TSharedPtr<FDragDropOperation> DragDropOp = FSlateApplication::Get().GetDragDroppingContent();
 
-		if (DragDrop::IsTypeMatch<FActorDragDropGraphEdOp>(DragDropOp))	
+		if (DragDropOp.IsValid() && DragDropOp->IsOfType<FActorDragDropGraphEdOp>())
 		{
 			TSharedPtr<FActorDragDropGraphEdOp> DragDropActorOp = StaticCastSharedPtr<FActorDragDropGraphEdOp>(DragDropOp);
 

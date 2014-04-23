@@ -232,19 +232,18 @@ static FDockingDragOperation::FDockTarget GetDropTarget( const TSharedPtr<SDocki
 
 void SDockingCross::OnDragLeave( const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FDockingDragOperation>(DragDropEvent.GetOperation()) )
+	TSharedPtr<FDockingDragOperation> DragDropOperation = DragDropEvent.GetOperationAs<FDockingDragOperation>();
+	if ( DragDropOperation.IsValid() )
 	{
-		TSharedPtr<FDockingDragOperation> DragDropOperation = StaticCastSharedPtr<FDockingDragOperation>(DragDropEvent.GetOperation());
 		DragDropOperation->SetHoveredTarget(FDockingDragOperation::FDockTarget(), DragDropEvent);
 	}
 }
 
 FReply SDockingCross::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FDockingDragOperation>(DragDropEvent.GetOperation()) )
+	TSharedPtr<FDockingDragOperation> DragDropOperation = DragDropEvent.GetOperationAs<FDockingDragOperation>();
+	if ( DragDropOperation.IsValid() )
 	{
-		TSharedPtr<FDockingDragOperation> DragDropOperation = StaticCastSharedPtr<FDockingDragOperation>(DragDropEvent.GetOperation());
-
 		const FDockingDragOperation::FDockTarget DropTarget = GetDropTarget(OwnerNode.Pin(), MyGeometry, DragDropEvent);
 		DragDropOperation->SetHoveredTarget(DropTarget, DragDropEvent);
 
@@ -258,7 +257,7 @@ FReply SDockingCross::OnDragOver( const FGeometry& MyGeometry, const FDragDropEv
 
 FReply SDockingCross::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FDockingDragOperation>(DragDropEvent.GetOperation()) )
+	if ( DragDropEvent.GetOperationAs<FDockingDragOperation>().IsValid() )
 	{
 		const FDockingDragOperation::FDockTarget DropTarget = GetDropTarget(OwnerNode.Pin(), MyGeometry, DragDropEvent);
 		TSharedPtr<SDockingNode> DropTargetNode = DropTarget.TargetNode.Pin();

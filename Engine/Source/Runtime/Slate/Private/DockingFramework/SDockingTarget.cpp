@@ -75,38 +75,36 @@ void SDockingTarget::Construct( const FArguments& InArgs )
 
 void SDockingTarget::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FDockingDragOperation>(DragDropEvent.GetOperation()) )
+	TSharedPtr<FDockingDragOperation> DragDropOperation = DragDropEvent.GetOperationAs<FDockingDragOperation>();
+	if ( DragDropOperation.IsValid() )
 	{
 		bIsDragHovered = true;
 		// Provide feedback that this target is hovered
 		ColorAndOpacity = FCoreStyle::Get().GetColor(TEXT("Docking.Cross.HoveredTint"));
 
 		// Let the drag and drop operation know that we are currently hovering over this node
-		TSharedPtr<FDockingDragOperation> DragDropOperation = StaticCastSharedPtr<FDockingDragOperation>(DragDropEvent.GetOperation());
 		DragDropOperation->SetHoveredTarget( FDockingDragOperation::FDockTarget(OwnerNode.Pin(), GetDockDirection()), DragDropEvent );
 	}
 }
 	
 void SDockingTarget::OnDragLeave( const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FDockingDragOperation>(DragDropEvent.GetOperation()) )
+	TSharedPtr<FDockingDragOperation> DragDropOperation = DragDropEvent.GetOperationAs<FDockingDragOperation>();
+	if ( DragDropOperation.IsValid() )
 	{
 		bIsDragHovered = false;
 		// We are no longer hovered, remove the hover feedback
 		ColorAndOpacity = FCoreStyle::Get().GetColor(TEXT("Docking.Cross.Tint"));
 		
 		// Let the drag and drop operation know that we are no longer hovering over any nodes
-		TSharedPtr<FDockingDragOperation> DragDropOperation = StaticCastSharedPtr<FDockingDragOperation>(DragDropEvent.GetOperation());
 		DragDropOperation->SetHoveredTarget( FDockingDragOperation::FDockTarget(), DragDropEvent );
 	}
 }
 	
 FReply SDockingTarget::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FDockingDragOperation>(DragDropEvent.GetOperation()) )
+	if (DragDropEvent.GetOperationAs<FDockingDragOperation>().IsValid())
 	{
-		TSharedPtr<FDockingDragOperation> DragDropOperation = StaticCastSharedPtr<FDockingDragOperation>(DragDropEvent.GetOperation());
-
 		TSharedPtr<SDockingNode> PinnedOwnerNode = OwnerNode.Pin();
 
 		// We are a direction node, so re-arrange layout as desired

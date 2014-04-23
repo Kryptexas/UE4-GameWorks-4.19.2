@@ -322,10 +322,9 @@ void SDockingTabStack::SetNodeContent( const TSharedRef<SWidget>& InContent, con
 
 FReply SDockingTabStack::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FDockingDragOperation>(DragDropEvent.GetOperation()) )
-	{
-		TSharedPtr<FDockingDragOperation> DragDropOperation = StaticCastSharedPtr<FDockingDragOperation>(DragDropEvent.GetOperation());
-		
+	TSharedPtr<FDockingDragOperation> DragDropOperation = DragDropEvent.GetOperationAs<FDockingDragOperation>();
+	if ( DragDropOperation.IsValid() )
+	{	
 		if (DragDropOperation->GetTabBeingDragged()->CanDockInNode(SharedThis(this), SDockTab::DockingViaTarget))
 		{
 			FGeometry OverlayGeometry = this->FindChildGeometry( MyGeometry, OverlayManagement.ContentAreaOverlay.ToSharedRef() );
@@ -348,18 +347,16 @@ FReply SDockingTabStack::OnDragOver( const FGeometry& MyGeometry, const FDragDro
 
 void SDockingTabStack::OnDragLeave( const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FDockingDragOperation>(DragDropEvent.GetOperation()) )
+	if (DragDropEvent.GetOperationAs<FDockingDragOperation>().IsValid())
 	{
-		TSharedPtr<FDockingDragOperation> DragDropOperation = StaticCastSharedPtr<FDockingDragOperation>(DragDropEvent.GetOperation());
 		HideCross();
 	}
 }
 
 FReply SDockingTabStack::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FDockingDragOperation>(DragDropEvent.GetOperation()) )
+	if (DragDropEvent.GetOperationAs<FDockingDragOperation>().IsValid())
 	{
-		TSharedPtr<FDockingDragOperation> DragDropOperation = StaticCastSharedPtr<FDockingDragOperation>(DragDropEvent.GetOperation());
 		HideCross();
 	}
 
@@ -399,10 +396,9 @@ FReply SDockingTabStack::OnMouseButtonDown( const FGeometry& MyGeometry, const F
 
 FReply SDockingTabStack::OnUserAttemptingDock( SDockingNode::RelativeDirection Direction, const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FDockingDragOperation>(DragDropEvent.GetOperation()) )
+	TSharedPtr<FDockingDragOperation> DragDropOperation = DragDropEvent.GetOperationAs<FDockingDragOperation>();
+	if ( DragDropOperation.IsValid() )
 	{
-		TSharedPtr<FDockingDragOperation> DragDropOperation = StaticCastSharedPtr<FDockingDragOperation>(DragDropEvent.GetOperation());
-
 		// We want to replace this placeholder  with whatever is being dragged.				
 		CreateNewTabStackBySplitting( Direction )->OpenTab( DragDropOperation->GetTabBeingDragged().ToSharedRef() );
 

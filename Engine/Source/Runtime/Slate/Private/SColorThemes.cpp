@@ -97,7 +97,7 @@ void SColorTrash::Construct( const FArguments& InArgs )
 */
 void SColorTrash::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FColorDragDrop>(DragDropEvent.GetOperation()) )
+	if ( DragDropEvent.GetOperationAs<FColorDragDrop>().IsValid() )
 	{
 		bBorderActivated = true;
 	}
@@ -112,7 +112,7 @@ void SColorTrash::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent
 */
 void SColorTrash::OnDragLeave( const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FColorDragDrop>(DragDropEvent.GetOperation()) )
+	if ( DragDropEvent.GetOperationAs<FColorDragDrop>().IsValid() )
 	{
 		bBorderActivated = false;
 	}
@@ -128,10 +128,9 @@ void SColorTrash::OnDragLeave( const FDragDropEvent& DragDropEvent )
 */
 FReply SColorTrash::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FColorDragDrop>( DragDropEvent.GetOperation().ToSharedRef() ) )
+	TSharedPtr<FColorDragDrop> DragDropContent = DragDropEvent.GetOperationAs<FColorDragDrop>();
+	if ( DragDropContent.IsValid() )
 	{
-		TSharedPtr<FColorDragDrop> DragDropContent = StaticCastSharedPtr<FColorDragDrop>( DragDropEvent.GetOperation() );
-
 		DragDropContent->bSetForDeletion = true;
 
 		bBorderActivated = false;
@@ -437,10 +436,9 @@ FChildren* SThemeColorBlocksBar::GetChildren()
 
 void SThemeColorBlocksBar::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FColorDragDrop>(DragDropEvent.GetOperation()) )
+	TSharedPtr<FColorDragDrop> DragDropOperation = DragDropEvent.GetOperationAs<FColorDragDrop>();
+	if ( DragDropOperation.IsValid() )
 	{
-		TSharedPtr<FColorDragDrop> DragDropOperation = StaticCastSharedPtr<FColorDragDrop>(DragDropEvent.GetOperation());
-
 		NewColorPlaceholder = MakeShareable(new FLinearColor(DragDropOperation->Color));
 		NewColorBlockPlaceholder =
 			SNew(SThemeColorBlock) .Color(NewColorPlaceholder) .UseSRGB(bUseSRGB) .UseAlpha(bUseAlpha);
@@ -449,9 +447,9 @@ void SThemeColorBlocksBar::OnDragEnter( const FGeometry& MyGeometry, const FDrag
 
 void SThemeColorBlocksBar::OnDragLeave( const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FColorDragDrop>(DragDropEvent.GetOperation()) )
+	TSharedPtr<FColorDragDrop> DragDropOperation = DragDropEvent.GetOperationAs<FColorDragDrop>();
+	if ( DragDropOperation.IsValid() )
 	{
-		TSharedPtr<FColorDragDrop> DragDropOperation = StaticCastSharedPtr<FColorDragDrop>( DragDropEvent.GetOperation() );
 		DragDropOperation->SetDecoratorVisibility(true);
 
 		DestroyPlaceholders();
@@ -468,10 +466,9 @@ void SThemeColorBlocksBar::OnDragLeave( const FDragDropEvent& DragDropEvent )
 */
 FReply SThemeColorBlocksBar::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FColorDragDrop>(DragDropEvent.GetOperation()) )
+	TSharedPtr<FColorDragDrop> DragDropOperation = DragDropEvent.GetOperationAs<FColorDragDrop>();
+	if ( DragDropOperation.IsValid() )
 	{
-		TSharedPtr<FColorDragDrop> DragDropOperation = StaticCastSharedPtr<FColorDragDrop>( DragDropEvent.GetOperation() );
-		
 		const float ChildSizeX = MyGeometry.Size.X / (ColorBlocks.Num() + 1);
 		const float GrabOffsetX = PlaceholderInitialGrabOffset.X;
 		PlaceholderBlockOffset = MyGeometry.AbsoluteToLocal(DragDropEvent.GetScreenSpacePosition()).X -
@@ -497,10 +494,9 @@ FReply SThemeColorBlocksBar::OnDragOver( const FGeometry& MyGeometry, const FDra
 */
 FReply SThemeColorBlocksBar::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FColorDragDrop>( DragDropEvent.GetOperation().ToSharedRef() ) )
+	TSharedPtr<FColorDragDrop> DragDropOperation = DragDropEvent.GetOperationAs<FColorDragDrop>();
+	if ( DragDropOperation.IsValid() )
 	{
-		TSharedPtr<FColorDragDrop> DragDropOperation = StaticCastSharedPtr<FColorDragDrop>( DragDropEvent.GetOperation() );
-		
 		const float ChildSizeX = MyGeometry.Size.X / (ColorBlocks.Num() + 1);
 		const float CurrentDragCenter = PlaceholderBlockOffset + ChildSizeX * 0.5f;
 		const int32 LocID = FMath::Clamp(int32(CurrentDragCenter / ChildSizeX), 0, ColorBlocks.Num());

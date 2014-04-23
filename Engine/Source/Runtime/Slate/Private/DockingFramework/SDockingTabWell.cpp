@@ -263,10 +263,9 @@ FReply SDockingTabWell::StartDraggingTab( TSharedRef<SDockTab> TabToStartDraggin
 
 void SDockingTabWell::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FDockingDragOperation>(DragDropEvent.GetOperation()) )
+	TSharedPtr<FDockingDragOperation> DragDropOperation = DragDropEvent.GetOperationAs<FDockingDragOperation>();
+	if ( DragDropOperation.IsValid() )
 	{
-		TSharedPtr<FDockingDragOperation> DragDropOperation = StaticCastSharedPtr<FDockingDragOperation>(DragDropEvent.GetOperation());
-
 		if (DragDropOperation->GetTabBeingDragged()->CanDockInNode(ParentTabStackPtr.Pin().ToSharedRef(), SDockTab::DockingViaTabWell))
 		{
 			// The user dragged a tab into this TabWell.
@@ -286,9 +285,9 @@ void SDockingTabWell::OnDragEnter( const FGeometry& MyGeometry, const FDragDropE
 
 void SDockingTabWell::OnDragLeave( const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FDockingDragOperation>(DragDropEvent.GetOperation()) )
+	TSharedPtr<FDockingDragOperation> DragDropOperation = DragDropEvent.GetOperationAs<FDockingDragOperation>();
+	if ( DragDropOperation.IsValid() )
 	{
-		TSharedPtr<FDockingDragOperation> DragDropOperation = StaticCastSharedPtr<FDockingDragOperation>( DragDropEvent.GetOperation() );
 		// Check for TabBeingDraggedPtr validity as it may no longer be valid when dragging tabs in game
 		if (this->TabBeingDraggedPtr.IsValid() && DragDropOperation->GetTabBeingDragged()->CanDockInNode(ParentTabStackPtr.Pin().ToSharedRef(), SDockTab::DockingViaTabWell))
 		{
@@ -325,9 +324,9 @@ void SDockingTabWell::OnDragLeave( const FDragDropEvent& DragDropEvent )
 
 FReply SDockingTabWell::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FDockingDragOperation>(DragDropEvent.GetOperation()) )
+	TSharedPtr<FDockingDragOperation> DragDropOperation = DragDropEvent.GetOperationAs<FDockingDragOperation>();
+	if ( DragDropOperation.IsValid() )
 	{
-		TSharedPtr<FDockingDragOperation> DragDropOperation = StaticCastSharedPtr<FDockingDragOperation>( DragDropEvent.GetOperation() );
 		if (DragDropOperation->GetTabBeingDragged()->CanDockInNode(ParentTabStackPtr.Pin().ToSharedRef(), SDockTab::DockingViaTabWell))
 		{
 			// We are dragging the tab through a TabWell.
@@ -341,9 +340,9 @@ FReply SDockingTabWell::OnDragOver( const FGeometry& MyGeometry, const FDragDrop
 
 FReply SDockingTabWell::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FDockingDragOperation>( DragDropEvent.GetOperation().ToSharedRef() ) )
+	TSharedPtr<FDockingDragOperation> DragDropOperation = DragDropEvent.GetOperationAs<FDockingDragOperation>();
+	if (DragDropOperation.IsValid())
 	{
-		TSharedPtr<FDockingDragOperation> DragDropOperation = StaticCastSharedPtr<FDockingDragOperation>( DragDropEvent.GetOperation() );
 		if (DragDropOperation->GetTabBeingDragged()->CanDockInNode(ParentTabStackPtr.Pin().ToSharedRef(), SDockTab::DockingViaTabWell))
 		{
 			if ( ensure( TabBeingDraggedPtr.IsValid() ) )

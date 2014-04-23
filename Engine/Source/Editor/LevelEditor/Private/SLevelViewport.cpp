@@ -376,34 +376,38 @@ bool SLevelViewport::HandleDragObjects(const FGeometry& MyGeometry, const FDragD
 	bool bValidDrag = false;
 	TArray<FAssetData> SelectedAssetDatas;
 
-	if ( DragDrop::IsTypeMatch<FClassDragDropOp>(DragDropEvent.GetOperation()) )
+	TSharedPtr< FDragDropOperation > Operation = DragDropEvent.GetOperation();
+	if (!Operation.IsValid())
 	{
-		auto Operation = StaticCastSharedPtr<FClassDragDropOp>( DragDropEvent.GetOperation() );
+		return false;
+	}
+
+	if (Operation->IsOfType<FClassDragDropOp>())
+	{
+		auto ClassOperation = StaticCastSharedPtr<FClassDragDropOp>( Operation );
 
 		bValidDrag = true;
 
-		for (int32 DroppedAssetIdx = 0; DroppedAssetIdx < Operation->ClassesToDrop.Num(); ++DroppedAssetIdx)
+		for (int32 DroppedAssetIdx = 0; DroppedAssetIdx < ClassOperation->ClassesToDrop.Num(); ++DroppedAssetIdx)
 		{
-			new(SelectedAssetDatas) FAssetData(Operation->ClassesToDrop[DroppedAssetIdx].Get());
+			new(SelectedAssetDatas)FAssetData(ClassOperation->ClassesToDrop[DroppedAssetIdx].Get());
 		}
 	}
-	else if ( DragDrop::IsTypeMatch<FUnloadedClassDragDropOp>(DragDropEvent.GetOperation()) )
-	{
-		TSharedPtr<FUnloadedClassDragDropOp> DragDropOp = StaticCastSharedPtr<FUnloadedClassDragDropOp>( DragDropEvent.GetOperation() );
-
-		bValidDrag = true;
-	}
-	else if ( DragDrop::IsTypeMatch<FExportTextDragDropOp>(DragDropEvent.GetOperation()) )
+	else if (Operation->IsOfType<FUnloadedClassDragDropOp>())
 	{
 		bValidDrag = true;
 	}
-	else if ( DragDrop::IsTypeMatch<FBrushBuilderDragDropOp>(DragDropEvent.GetOperation()) )
+	else if (Operation->IsOfType<FExportTextDragDropOp>())
+	{
+		bValidDrag = true;
+	}
+	else if (Operation->IsOfType<FBrushBuilderDragDropOp>())
 	{
 		bValidDrag = true;
 
-		auto Operation = StaticCastSharedPtr<FBrushBuilderDragDropOp>( DragDropEvent.GetOperation() );
+		auto BrushOperation = StaticCastSharedPtr<FBrushBuilderDragDropOp>( Operation );
 
-		new(SelectedAssetDatas) FAssetData(Operation->GetBrushBuilder().Get());
+		new(SelectedAssetDatas) FAssetData(BrushOperation->GetBrushBuilder().Get());
 	}
 	else
 	{
@@ -433,10 +437,10 @@ bool SLevelViewport::HandleDragObjects(const FGeometry& MyGeometry, const FDragD
 	if (LevelViewportClient->UpdateDropPreviewActors(CachedOnDropLocalMousePos.X, CachedOnDropLocalMousePos.Y, DroppedObjects, bDroppedObjectsVisible))
 	{
 		// if dragged actors were hidden, show decorator
-		DragDropEvent.GetOperation()->SetDecoratorVisibility(! bDroppedObjectsVisible);
+		Operation->SetDecoratorVisibility(! bDroppedObjectsVisible);
 	}
 
-	DragDropEvent.GetOperation()->SetCursorOverride(TOptional<EMouseCursor::Type>());
+	Operation->SetCursorOverride(TOptional<EMouseCursor::Type>());
 
 	FText HintText;
 
@@ -456,7 +460,7 @@ bool SLevelViewport::HandleDragObjects(const FGeometry& MyGeometry, const FDragD
 		if ( !DropResult.bCanDrop )
 		{
 			// At least one of the assets can't be dropped.
-			DragDropEvent.GetOperation()->SetCursorOverride(EMouseCursor::SlashedCircle);
+			Operation->SetCursorOverride(EMouseCursor::SlashedCircle);
 			return false;
 		}
 		else
@@ -468,10 +472,10 @@ bool SLevelViewport::HandleDragObjects(const FGeometry& MyGeometry, const FDragD
 		}
 	}
 
-	if ( DragDrop::IsTypeMatch<FAssetDragDropOp>(DragDropEvent.GetOperation()) )
+	if ( Operation->IsOfType<FAssetDragDropOp>() )
 	{
-		auto Operation = StaticCastSharedPtr<FAssetDragDropOp>(DragDropEvent.GetOperation());
-		Operation->SetToolTip(HintText, NULL);
+		auto AssetOperation = StaticCastSharedPtr<FAssetDragDropOp>(DragDropEvent.GetOperation());
+		AssetOperation->SetToolTip(HintText, NULL);
 	}
 
 	return bValidDrag;
@@ -493,18 +497,24 @@ bool SLevelViewport::HandlePlaceDraggedObjects(const FDragDropEvent& DragDropEve
 	bool bValidDrop = false;
 	UActorFactory* ActorFactory = NULL;
 
-	if ( DragDrop::IsTypeMatch<FClassDragDropOp>(DragDropEvent.GetOperation()) )
+	TSharedPtr< FDragDropOperation > Operation = DragDropEvent.GetOperation();
+	if (!Operation.IsValid())
 	{
-		auto Operation = StaticCastSharedPtr<FClassDragDropOp>( DragDropEvent.GetOperation() );
+		return false;
+	}
+
+	if (Operation->IsOfType<FClassDragDropOp>())
+	{
+		auto ClassOperation = StaticCastSharedPtr<FClassDragDropOp>( Operation );
 
 		DroppedObjects.Empty();
 
 		// Check if the asset is loaded, used to see if the context menu should be available
 		bAllAssetWereLoaded = true;
 
-		for (int32 DroppedAssetIdx = 0; DroppedAssetIdx < Operation->ClassesToDrop.Num(); ++DroppedAssetIdx)
+		for (int32 DroppedAssetIdx = 0; DroppedAssetIdx < ClassOperation->ClassesToDrop.Num(); ++DroppedAssetIdx)
 		{
-			UObject* Object = Operation->ClassesToDrop[DroppedAssetIdx].Get();
+			UObject* Object = ClassOperation->ClassesToDrop[DroppedAssetIdx].Get();
 
 			if(Object)
 			{
@@ -518,9 +528,9 @@ bool SLevelViewport::HandlePlaceDraggedObjects(const FDragDropEvent& DragDropEve
 
 		bValidDrop = true;
 	}
-	else if ( DragDrop::IsTypeMatch<FUnloadedClassDragDropOp>(DragDropEvent.GetOperation()) )
+	else if (Operation->IsOfType<FUnloadedClassDragDropOp>())
 	{
-		TSharedPtr<FUnloadedClassDragDropOp> DragDropOp = StaticCastSharedPtr<FUnloadedClassDragDropOp>( DragDropEvent.GetOperation() );
+		TSharedPtr<FUnloadedClassDragDropOp> DragDropOp = StaticCastSharedPtr<FUnloadedClassDragDropOp>( Operation );
 
 		DroppedObjects.Empty();
 
@@ -568,12 +578,12 @@ bool SLevelViewport::HandlePlaceDraggedObjects(const FDragDropEvent& DragDropEve
 			}
 		}
 	}
-	else if ( DragDrop::IsTypeMatch<FAssetDragDropOp>(DragDropEvent.GetOperation()) )
+	else if (Operation->IsOfType<FAssetDragDropOp>())
 	{
 		bValidDrop = true;
 		DroppedObjects.Empty();
 
-		TSharedPtr<FAssetDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>( DragDropEvent.GetOperation() );
+		TSharedPtr<FAssetDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>( Operation );
 
 		ActorFactory = DragDropOp->ActorFactory.Get();
 
@@ -595,7 +605,7 @@ bool SLevelViewport::HandlePlaceDraggedObjects(const FDragDropEvent& DragDropEve
 	}
 	// OLE drops are blocking which causes problem when positioning and maintaining the drop preview
 	// Drop preview is disabled when dragging from external sources
-	else if ( !bCreateDropPreview && DragDrop::IsTypeMatch<FExternalDragOperation>( DragDropEvent.GetOperation() ) )
+	else if ( !bCreateDropPreview && Operation->IsOfType<FExternalDragOperation>() )
 	{
 		bValidDrop = true;
 		DroppedObjects.Empty();
@@ -618,11 +628,11 @@ bool SLevelViewport::HandlePlaceDraggedObjects(const FDragDropEvent& DragDropEve
 			}
 		}
 	}
-	else if ( DragDrop::IsTypeMatch<FExportTextDragDropOp>(DragDropEvent.GetOperation()) )
+	else if ( Operation->IsOfType<FExportTextDragDropOp>() )
 	{
 		bValidDrop = true;
 
-		TSharedPtr<FExportTextDragDropOp> DragDropOp = StaticCastSharedPtr<FExportTextDragDropOp>( DragDropEvent.GetOperation() );
+		TSharedPtr<FExportTextDragDropOp> DragDropOp = StaticCastSharedPtr<FExportTextDragDropOp>( Operation );
 
 		// Check if the asset is loaded, used to see if the context menu should be available
 		bAllAssetWereLoaded = true;
@@ -633,12 +643,12 @@ bool SLevelViewport::HandlePlaceDraggedObjects(const FDragDropEvent& DragDropEve
 		NewContainer->ExportText = DragDropOp->ActorExportText;
 		DroppedObjects.Add(NewContainer);
 	}
-	else if ( DragDrop::IsTypeMatch<FBrushBuilderDragDropOp>(DragDropEvent.GetOperation()) )
+	else if ( Operation->IsOfType<FBrushBuilderDragDropOp>() )
 	{
 		bValidDrop = true;
 		DroppedObjects.Empty();
 
-		TSharedPtr<FBrushBuilderDragDropOp> DragDropOp = StaticCastSharedPtr<FBrushBuilderDragDropOp>( DragDropEvent.GetOperation() );
+		TSharedPtr<FBrushBuilderDragDropOp> DragDropOp = StaticCastSharedPtr<FBrushBuilderDragDropOp>( Operation );
 
 		if(DragDropOp->GetBrushBuilder().IsValid())
 		{

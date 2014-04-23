@@ -93,9 +93,9 @@ void SDockingArea::Construct( const FArguments& InArgs, const TSharedRef<FTabMan
 
 void SDockingArea::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FDockingDragOperation>(DragDropEvent.GetOperation()) )
+	TSharedPtr<FDockingDragOperation> DragDropOperation = DragDropEvent.GetOperationAs<FDockingDragOperation>();
+	if ( DragDropOperation.IsValid() )
 	{
-		TSharedPtr<FDockingDragOperation> DragDropOperation = StaticCastSharedPtr<FDockingDragOperation>(DragDropEvent.GetOperation());
 		if ( DragDropOperation->GetTabBeingDragged()->CanDockInNode(SharedThis(this), SDockTab::DockingViaTarget) )
 		{
 			ShowCross();
@@ -106,7 +106,7 @@ void SDockingArea::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEven
 
 void SDockingArea::OnDragLeave( const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FDockingDragOperation>(DragDropEvent.GetOperation()) )
+	if ( DragDropEvent.GetOperationAs<FDockingDragOperation>().IsValid() )
 	{
 		HideCross();
 	}
@@ -114,7 +114,7 @@ void SDockingArea::OnDragLeave( const FDragDropEvent& DragDropEvent )
 
 FReply SDockingArea::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FDockingDragOperation>(DragDropEvent.GetOperation()) )
+	if ( DragDropEvent.GetOperationAs<FDockingDragOperation>().IsValid() )
 	{
 		HideCross();
 	}
@@ -124,13 +124,13 @@ FReply SDockingArea::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& 
 
 FReply SDockingArea::OnUserAttemptingDock( SDockingNode::RelativeDirection Direction, const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FDockingDragOperation>(DragDropEvent.GetOperation()) )
+	TSharedPtr<FDockingDragOperation> DragDropOperation = DragDropEvent.GetOperationAs<FDockingDragOperation>();
+	if ( DragDropOperation.IsValid() )
 	{
 		if (Direction == Center)
 		{
 			//check(Children.Num() <= 1);
-			TSharedPtr<FDockingDragOperation> DragDropOperation = StaticCastSharedPtr<FDockingDragOperation>(DragDropEvent.GetOperation());
-			
+
 			TSharedRef<SDockingTabStack> NewStack = SNew(SDockingTabStack, FTabManager::NewStack());
 			AddChildNode( NewStack );
 			NewStack->OpenTab( DragDropOperation->GetTabBeingDragged().ToSharedRef() );

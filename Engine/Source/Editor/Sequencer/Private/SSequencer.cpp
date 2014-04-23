@@ -428,10 +428,12 @@ FReply SSequencer::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent
 {
 	bool bIsDragSupported = false;
 
-	if( DragDrop::IsTypeMatch<FAssetDragDropOp>( DragDropEvent.GetOperation() ) ||
-		DragDrop::IsTypeMatch<FClassDragDropOp>( DragDropEvent.GetOperation() ) ||
-		DragDrop::IsTypeMatch<FUnloadedClassDragDropOp>( DragDropEvent.GetOperation() ) ||
-		DragDrop::IsTypeMatch<FActorDragDropGraphEdOp>( DragDropEvent.GetOperation() ) )
+	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+	if (Operation.IsValid() && (
+		Operation->IsOfType<FAssetDragDropOp>() ||
+		Operation->IsOfType<FClassDragDropOp>() ||
+		Operation->IsOfType<FUnloadedClassDragDropOp>() ||
+		Operation->IsOfType<FActorDragDropGraphEdOp>() ) )
 	{
 		bIsDragSupported = true;
 	}
@@ -455,33 +457,38 @@ FReply SSequencer::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& Dr
 	//		- Basically, when Sequencer is open it would take over drops into the level and auto-add puppets for these instead of regular actors
 	//		- This would let people drag smoothly and precisely into the view to drop assets/classes into the scene
 
-	if( DragDrop::IsTypeMatch<FAssetDragDropOp>( DragDropEvent.GetOperation() ) )
+	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+	if ( !Operation.IsValid() )
 	{
-		const auto& DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>( DragDropEvent.GetOperation() );
+
+	}
+	else if ( Operation->IsOfType<FAssetDragDropOp>() )
+	{
+		const auto& DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>( Operation );
 
 		OnAssetsDropped( *DragDropOp );
 
 		bWasDropHandled = true;
 	}
-	else if( DragDrop::IsTypeMatch<FClassDragDropOp>( DragDropEvent.GetOperation() ) )
+	else if( Operation->IsOfType<FClassDragDropOp>() )
 	{
-		const auto& DragDropOp = StaticCastSharedPtr<FClassDragDropOp>( DragDropEvent.GetOperation() );
+		const auto& DragDropOp = StaticCastSharedPtr<FClassDragDropOp>( Operation );
 
 		OnClassesDropped( *DragDropOp );
 
 		bWasDropHandled = true;
 	}
-	else if( DragDrop::IsTypeMatch<FUnloadedClassDragDropOp>( DragDropEvent.GetOperation() ) )
+	else if( Operation->IsOfType<FUnloadedClassDragDropOp>() )
 	{
-		const auto& DragDropOp = StaticCastSharedPtr<FUnloadedClassDragDropOp>( DragDropEvent.GetOperation() );
+		const auto& DragDropOp = StaticCastSharedPtr<FUnloadedClassDragDropOp>( Operation );
 
 		OnUnloadedClassesDropped( *DragDropOp );
 
 		bWasDropHandled = true;
 	}
-	else if( DragDrop::IsTypeMatch<FActorDragDropGraphEdOp>( DragDropEvent.GetOperation() ) )
+	else if( Operation->IsOfType<FActorDragDropGraphEdOp>() )
 	{
-		const auto& DragDropOp = StaticCastSharedPtr<FActorDragDropGraphEdOp>( DragDropEvent.GetOperation() );
+		const auto& DragDropOp = StaticCastSharedPtr<FActorDragDropGraphEdOp>( Operation );
 
 		OnActorsDropped( *DragDropOp );
 

@@ -180,11 +180,11 @@ TSharedRef< SWidget > SSkeletonTreeRow::GenerateWidgetForColumn( const FName& Co
 
 void SSkeletonTreeRow::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	// Is someone dragging a socket onto a bone?
-	if ( DragDrop::IsTypeMatch<FSocketDragDropOp>( DragDropEvent.GetOperation() ) )
-	{
-		TSharedPtr<FSocketDragDropOp> DragConnectionOp = StaticCastSharedPtr<FSocketDragDropOp>( DragDropEvent.GetOperation() );
+	TSharedPtr<FSocketDragDropOp> DragConnectionOp = DragDropEvent.GetOperationAs<FSocketDragDropOp>();
 
+	// Is someone dragging a socket onto a bone?
+	if (DragConnectionOp.IsValid())
+	{
 		if ( Item->GetType() == ESkeletonTreeRowType::Bone &&
 			( *static_cast<FName*>( Item->GetData() ) != DragConnectionOp->GetSocketInfo().Socket->BoneName ) )
 		{
@@ -205,20 +205,19 @@ void SSkeletonTreeRow::OnDragEnter( const FGeometry& MyGeometry, const FDragDrop
 
 void SSkeletonTreeRow::OnDragLeave( const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FSocketDragDropOp>( DragDropEvent.GetOperation() ) )
+	TSharedPtr<FSocketDragDropOp> DragConnectionOp = DragDropEvent.GetOperationAs<FSocketDragDropOp>();
+	if (DragConnectionOp.IsValid())
 	{
 		// Reset the drag/drop icon when leaving this row
-		TSharedPtr<FSocketDragDropOp> DragConnectionOp = StaticCastSharedPtr<FSocketDragDropOp>( DragDropEvent.GetOperation() );
 		DragConnectionOp->SetIcon( FEditorStyle::GetBrush( TEXT( "Graph.ConnectorFeedback.Error" ) ) );
 	}
 }
 
 FReply SSkeletonTreeRow::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FSocketDragDropOp>( DragDropEvent.GetOperation() ) )
+	TSharedPtr<FSocketDragDropOp> DragConnectionOp = DragDropEvent.GetOperationAs<FSocketDragDropOp>();
+	if (DragConnectionOp.IsValid())
 	{
-		TSharedPtr<FSocketDragDropOp> DragConnectionOp = StaticCastSharedPtr<FSocketDragDropOp>( DragDropEvent.GetOperation() );
-
 		FSelectedSocketInfo SocketInfo = DragConnectionOp->GetSocketInfo();
 
 		if ( DragConnectionOp->IsAltDrag() && Item->GetType() == ESkeletonTreeRowType::Bone )
@@ -248,9 +247,12 @@ FReply SSkeletonTreeRow::OnDrop( const FGeometry& MyGeometry, const FDragDropEve
 			return FReply::Handled();
 		}
 	}
-	else if( DragDrop::IsTypeMatch<FAssetDragDropOp>( DragDropEvent.GetOperation() ) )
+	else
 	{
-		SkeletonTree.Pin()->OnDropAssetToSkeletonTree( Item, DragDropEvent );
+		if (DragDropEvent.GetOperationAs<FAssetDragDropOp>().IsValid())
+		{
+			SkeletonTree.Pin()->OnDropAssetToSkeletonTree( Item, DragDropEvent );
+		}
 	}
 
 	return FReply::Unhandled();
@@ -1969,10 +1971,9 @@ void SSkeletonTree::OnSelectionChanged(TSharedPtr<FDisplayedTreeRowInfo> Selecti
 
 FReply SSkeletonTree::OnDropAssetToSkeletonTree(const FDisplayedTreeRowInfoPtr TargetItem, const FDragDropEvent& DragDropEvent)
 {
-	if( DragDrop::IsTypeMatch<FAssetDragDropOp>(DragDropEvent.GetOperation()) )
+	TSharedPtr<FAssetDragDropOp> DragDropOp = DragDropEvent.GetOperationAs<FAssetDragDropOp>();
+	if (DragDropOp.IsValid())
 	{
-		TSharedPtr<FAssetDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>( DragDropEvent.GetOperation() );
-		
 		//Do we have some assets to attach?
 		if(DragDropOp->AssetData.Num() > 0)
 		{

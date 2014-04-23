@@ -108,9 +108,9 @@ public:
 	// SWidget interface
 	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE
 	{
-		if ( DragDrop::IsTypeMatch<FGraphEditorDragDropAction>(DragDropEvent.GetOperation()) )
+		TSharedPtr<FGraphEditorDragDropAction> GraphDropOp = DragDropEvent.GetOperationAs<FGraphEditorDragDropAction>();
+		if (GraphDropOp.IsValid())
 		{
-			TSharedPtr<FGraphEditorDragDropAction> GraphDropOp = StaticCastSharedPtr<FGraphEditorDragDropAction>(DragDropEvent.GetOperation());
 			GraphDropOp->DroppedOnCategory( ActionNode.Pin()->Category );
 			return FReply::Handled();
 		}
@@ -119,18 +119,18 @@ public:
 
 	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE
 	{
-		if ( DragDrop::IsTypeMatch<FGraphEditorDragDropAction>(DragDropEvent.GetOperation()) )
+		TSharedPtr<FGraphEditorDragDropAction> GraphDropOp = DragDropEvent.GetOperationAs<FGraphEditorDragDropAction>();
+		if (GraphDropOp.IsValid())
 		{
-			TSharedPtr<FGraphEditorDragDropAction> GraphDropOp = StaticCastSharedPtr<FGraphEditorDragDropAction>(DragDropEvent.GetOperation());
 			GraphDropOp->SetHoveredCategoryName( ActionNode.Pin()->Category );
 		}
 	}
 
 	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) OVERRIDE
 	{
-		if ( DragDrop::IsTypeMatch<FGraphEditorDragDropAction>(DragDropEvent.GetOperation()) )
+		TSharedPtr<FGraphEditorDragDropAction> GraphDropOp = DragDropEvent.GetOperationAs<FGraphEditorDragDropAction>();
+		if (GraphDropOp.IsValid())
 		{
-			TSharedPtr<FGraphEditorDragDropAction> GraphDropOp = StaticCastSharedPtr<FGraphEditorDragDropAction>(DragDropEvent.GetOperation());
 			GraphDropOp->SetHoveredCategoryName( FString(TEXT("")) );
 		}
 	}

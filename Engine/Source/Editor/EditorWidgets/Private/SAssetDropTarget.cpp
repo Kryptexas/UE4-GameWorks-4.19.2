@@ -107,11 +107,13 @@ UObject* SAssetDropTarget::GetDroppedObject( const FDragDropEvent& DragDropEvent
 {
 	bOutRecognizedEvent = false;
 	UObject* DroppedObject = NULL;
+
+	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
 	// Asset being dragged from content browser
-	if ( DragDrop::IsTypeMatch<FAssetDragDropOp>(DragDropEvent.GetOperation()) )
+	if (Operation->IsOfType<FAssetDragDropOp>())
 	{
 		bOutRecognizedEvent = true;
-		TSharedPtr<FAssetDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>( DragDropEvent.GetOperation() );
+		TSharedPtr<FAssetDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>(Operation);
 
 		bool bCanDrop = DragDropOp->AssetData.Num() == 1;
 
@@ -122,16 +124,16 @@ UObject* SAssetDropTarget::GetDroppedObject( const FDragDropEvent& DragDropEvent
 			// Make sure the asset is loaded
 			DroppedObject = AssetData.GetAsset();
 		}
-		// Asset being dragged from some external source
-		else if ( DragDrop::IsTypeMatch<FExternalDragOperation>( DragDropEvent.GetOperation() ) )
-		{
-			bOutRecognizedEvent = true;
-			TArray<FAssetData> DroppedAssetData = AssetUtil::ExtractAssetDataFromDrag(DragDropEvent);
+	}
+	// Asset being dragged from some external source
+	else if (Operation->IsOfType<FExternalDragOperation>())
+	{
+		bOutRecognizedEvent = true;
+		TArray<FAssetData> DroppedAssetData = AssetUtil::ExtractAssetDataFromDrag(DragDropEvent);
 
-			if( DroppedAssetData.Num() == 1 )
-			{
-				DroppedObject = DroppedAssetData[0].GetAsset();
-			}
+		if (DroppedAssetData.Num() == 1)
+		{
+			DroppedObject = DroppedAssetData[0].GetAsset();
 		}
 	}
 

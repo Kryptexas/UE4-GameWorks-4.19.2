@@ -217,13 +217,11 @@ protected:
 	 */
 	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) OVERRIDE
 	{
-		if( !DragDrop::IsTypeMatch<FActorDragDropGraphEdOp>( DragDropEvent.GetOperation() ) )
+		TSharedPtr< FActorDragDropGraphEdOp > DragActorOp = DragDropEvent.GetOperationAs< FActorDragDropGraphEdOp >();
+		if (DragActorOp.IsValid())
 		{
-			return;
+			DragActorOp->ResetToDefaultToolTip();
 		}
-
-		TSharedPtr< FActorDragDropGraphEdOp > DragActorOp = StaticCastSharedPtr< FActorDragDropGraphEdOp >( DragDropEvent.GetOperation() );	
-		DragActorOp->ResetToDefaultToolTip();
 	}
 
 	//@todo: add actor drag + drop support
@@ -237,12 +235,13 @@ protected:
 	 */
 	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE
 	{
-		if( !DragDrop::IsTypeMatch<FActorDragDropGraphEdOp>( DragDropEvent.GetOperation() ) )
+
+		TSharedPtr< FActorDragDropGraphEdOp > DragActorOp = DragDropEvent.GetOperationAs< FActorDragDropGraphEdOp >();
+		if (!DragActorOp.IsValid())
 		{
 			return FReply::Unhandled();
 		}
 
-		TSharedPtr< FActorDragDropGraphEdOp > DragActorOp = StaticCastSharedPtr< FActorDragDropGraphEdOp >( DragDropEvent.GetOperation() );	
 		DragActorOp->SetToolTip( FActorDragDropGraphEdOp::ToolTip_CompatibleGeneric, LOCTEXT("OnDragOver", "Add Actors to New Level") );
 
 		// We leave the event unhandled so the children of the ListView get a chance to grab the drag/drop
@@ -260,14 +259,8 @@ protected:
 	 */
 	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE
 	{
-		if ( !DragDrop::IsTypeMatch<FActorDragDropGraphEdOp>( DragDropEvent.GetOperation() ) )	
-		{
-			return FReply::Unhandled();
-		}
-
-		TSharedPtr< FActorDragDropGraphEdOp > DragActorOp = StaticCastSharedPtr< FActorDragDropGraphEdOp >( DragDropEvent.GetOperation() );		
-
-		return FReply::Handled();
+		const bool bIsValidDrop = DragDropEvent.GetOperationAs<FActorDragDropGraphEdOp>().IsValid();
+		return bIsValidDrop ? FReply::Handled() : FReply::Unhandled();
 	}
 
 

@@ -174,7 +174,8 @@ void SAssetViewItem::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEv
 
 	if(IsFolder())
 	{
-		if( DragDrop::IsTypeMatch<FAssetDragDropOp>(DragDropEvent.GetOperation()) )
+		TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+		if (Operation->IsOfType<FAssetDragDropOp>())
 		{
 			TArray< FAssetData > AssetDatas = AssetUtil::ExtractAssetDataFromDrag( DragDropEvent );
 
@@ -185,7 +186,7 @@ void SAssetViewItem::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEv
 			}
 			bDraggedOver = true;
 		}
-		else if( DragDrop::IsTypeMatch<FAssetPathDragDropOp>(DragDropEvent.GetOperation()) )
+		else if (Operation->IsOfType<FAssetPathDragDropOp>())
 		{
 			TSharedPtr<FAssetPathDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetPathDragDropOp>( DragDropEvent.GetOperation() );
 			bool bCanDrop = DragDropOp->PathNames.Num() > 0;
@@ -207,9 +208,9 @@ void SAssetViewItem::OnDragLeave( const FDragDropEvent& DragDropEvent )
 {
 	if(IsFolder())
 	{
-		if( DragDrop::IsTypeMatch<FAssetDragDropOp>(DragDropEvent.GetOperation()) )
+		TSharedPtr< FAssetDragDropOp > DragDropOp = DragDropEvent.GetOperationAs< FAssetDragDropOp >();
+		if(DragDropOp.IsValid())
 		{
-			TSharedPtr< FAssetDragDropOp > DragDropOp = StaticCastSharedPtr< FAssetDragDropOp >( DragDropEvent.GetOperation() );	
 			DragDropOp->ResetToDefaultToolTip();
 		}
 	}
@@ -221,23 +222,29 @@ FReply SAssetViewItem::OnDragOver( const FGeometry& MyGeometry, const FDragDropE
 {
 	if(IsFolder())
 	{
-		if ( DragDrop::IsTypeMatch<FExternalDragOperation>(DragDropEvent.GetOperation()) )
+		TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+		if (!Operation.IsValid())
 		{
-			TSharedPtr<FExternalDragOperation> DragDropOp = StaticCastSharedPtr<FExternalDragOperation>( DragDropEvent.GetOperation() );
+			return FReply::Unhandled();
+		}
+
+		if (Operation->IsOfType<FExternalDragOperation>())
+		{
+			TSharedPtr<FExternalDragOperation> DragDropOp = StaticCastSharedPtr<FExternalDragOperation>(Operation);
 			if ( DragDropOp->HasFiles() )
 			{
 				bDraggedOver = true;
 				return FReply::Handled();
 			}
 		}
-		else if( DragDrop::IsTypeMatch<FAssetDragDropOp>(DragDropEvent.GetOperation()) )
+		else if (Operation->IsOfType<FAssetDragDropOp>())
 		{
 			bDraggedOver = true;
 			return FReply::Handled();
 		}
-		else if( DragDrop::IsTypeMatch<FAssetPathDragDropOp>(DragDropEvent.GetOperation()) )
+		else if (Operation->IsOfType<FAssetPathDragDropOp>())
 		{
-			TSharedPtr<FAssetPathDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetPathDragDropOp>( DragDropEvent.GetOperation() );
+			TSharedPtr<FAssetPathDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetPathDragDropOp>(Operation);
 			bool bCanDrop = DragDropOp->PathNames.Num() > 0;
 			if ( DragDropOp->PathNames.Contains(StaticCastSharedPtr<FAssetViewFolder>(AssetItem)->FolderPath) )
 			{
@@ -264,9 +271,15 @@ FReply SAssetViewItem::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent
 	{
 		check(AssetItem->GetType() == EAssetItemType::Folder);
 
-		if ( DragDrop::IsTypeMatch<FExternalDragOperation>(DragDropEvent.GetOperation()) )
+		TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+		if (!Operation.IsValid())
 		{
-			TSharedPtr<FExternalDragOperation> DragDropOp = StaticCastSharedPtr<FExternalDragOperation>( DragDropEvent.GetOperation() );
+			return FReply::Unhandled();
+		}
+
+		if (Operation->IsOfType<FExternalDragOperation>())
+		{
+			TSharedPtr<FExternalDragOperation> DragDropOp = StaticCastSharedPtr<FExternalDragOperation>(Operation);
 
 			if ( DragDropOp->HasFiles() )
 			{
@@ -275,9 +288,9 @@ FReply SAssetViewItem::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent
 
 			return FReply::Handled();
 		}
-		else if ( DragDrop::IsTypeMatch<FAssetPathDragDropOp>(DragDropEvent.GetOperation()) )
+		else if (Operation->IsOfType<FAssetPathDragDropOp>())
 		{
-			TSharedPtr<FAssetPathDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetPathDragDropOp>( DragDropEvent.GetOperation() );
+			TSharedPtr<FAssetPathDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetPathDragDropOp>(Operation);
 
 			bool bCanDrop = DragDropOp->PathNames.Num() > 0;
 
@@ -294,9 +307,9 @@ FReply SAssetViewItem::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent
 
 			return FReply::Handled();
 		}
-		else if ( DragDrop::IsTypeMatch<FAssetDragDropOp>(DragDropEvent.GetOperation()) )
+		else if (Operation->IsOfType<FAssetDragDropOp>())
 		{
-			TSharedPtr<FAssetDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>( DragDropEvent.GetOperation() );
+			TSharedPtr<FAssetDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>(Operation);
 
 			OnAssetsDragDropped.ExecuteIfBound(DragDropOp->AssetData, StaticCastSharedPtr<FAssetViewFolder>(AssetItem)->FolderPath);
 

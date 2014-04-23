@@ -56,7 +56,7 @@ const FMultiBoxCustomization FMultiBoxCustomization::None( NAME_None );
 
 void SMultiBlockBaseWidget::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if( DragDrop::IsTypeMatch<FUICommandDragDropOp>( DragDropEvent.GetOperation() ) )
+	if ( DragDropEvent.GetOperationAs<FUICommandDragDropOp>().IsValid() )
 	{
 		OwnerMultiBoxWidget.Pin()->OnCustomCommandDragEnter( MultiBlock.ToSharedRef(), MyGeometry, DragDropEvent );
 	}
@@ -64,7 +64,7 @@ void SMultiBlockBaseWidget::OnDragEnter( const FGeometry& MyGeometry, const FDra
 
 FReply SMultiBlockBaseWidget::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if( DragDrop::IsTypeMatch<FUICommandDragDropOp>( DragDropEvent.GetOperation() ) )
+	if ( DragDropEvent.GetOperationAs<FUICommandDragDropOp>().IsValid() )
 	{
 		OwnerMultiBoxWidget.Pin()->OnCustomCommandDragged( MultiBlock.ToSharedRef(), MyGeometry, DragDropEvent );
 		return FReply::Handled();
@@ -75,7 +75,7 @@ FReply SMultiBlockBaseWidget::OnDragOver( const FGeometry& MyGeometry, const FDr
 
 FReply SMultiBlockBaseWidget::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if( DragDrop::IsTypeMatch<FUICommandDragDropOp>( DragDropEvent.GetOperation() )  )
+	if ( DragDropEvent.GetOperationAs<FUICommandDragDropOp>().IsValid() )
 	{
 		OwnerMultiBoxWidget.Pin()->OnCustomCommandDropped();
 		return FReply::Handled();
@@ -965,7 +965,7 @@ void SMultiBoxWidget::OnDropExternal()
 
 FReply SMultiBoxWidget::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if( DragDrop::IsTypeMatch<FUICommandDragDropOp>( DragDropEvent.GetOperation() ) && MultiBox->IsInEditMode() )
+	if ( DragDropEvent.GetOperationAs<FUICommandDragDropOp>().IsValid() && MultiBox->IsInEditMode() )
 	{
 		return FReply::Handled();
 	}
@@ -975,7 +975,7 @@ FReply SMultiBoxWidget::OnDragOver( const FGeometry& MyGeometry, const FDragDrop
 
 FReply SMultiBoxWidget::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if( DragDrop::IsTypeMatch<FUICommandDragDropOp>( DragDropEvent.GetOperation() ) )
+	if ( DragDropEvent.GetOperationAs<FUICommandDragDropOp>().IsValid() )
 	{
 		OnCustomCommandDropped();
 		return FReply::Handled();

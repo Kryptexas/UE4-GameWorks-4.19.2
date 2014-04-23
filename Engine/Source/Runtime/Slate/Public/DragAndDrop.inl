@@ -6,24 +6,12 @@
 template<typename OperationType>
 TSharedPtr<OperationType> FDragDropEvent::GetOperationAs() const
 {
-	if (DragDrop::IsTypeMatch<OperationType>(Content))
+	if (Content.IsValid() && Content->IsOfType<OperationType>())
 	{
 		return StaticCastSharedPtr<OperationType>(Content);
 	}
 	else
 	{
 		return TSharedPtr<OperationType>();
-	}
-}
-
-// DragAndDrop functions that depend on classes defined after DragAndDrop.h is included in Slate.h
-
-namespace DragDrop
-{
-	/** See if this dragdrop operation matches another dragdrop operation */
-	template <typename OperatorType>
-	bool IsTypeMatch(const TSharedPtr<FDragDropOperation> Operation)
-	{
-		return Operation.IsValid() && Operation->IsOfType(OperatorType::GetTypeId());
 	}
 }

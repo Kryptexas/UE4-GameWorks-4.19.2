@@ -606,10 +606,10 @@ EVisibility SGraphNode_BehaviorTree::GetDragOverMarkerVisibility() const
 void SGraphNode_BehaviorTree::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
 	// Is someone dragging a node?
-	if ( DragDrop::IsTypeMatch<FDragNode>(DragDropEvent.GetOperation()) )
+	TSharedPtr<FDragNode> DragConnectionOp = DragDropEvent.GetOperationAs<FDragNode>();
+	if (DragConnectionOp.IsValid())
 	{
 		// Inform the Drag and Drop operation that we are hovering over this node.
-		TSharedPtr<FDragNode> DragConnectionOp = StaticCastSharedPtr<FDragNode>(DragDropEvent.GetOperation());
 		TSharedPtr<SGraphNode> SubNode = GetSubNodeUnderCursor(MyGeometry, DragDropEvent);
 		DragConnectionOp->SetHoveredNode( SubNode.IsValid() ? SubNode : SharedThis(this) );
 		if (DragConnectionOp->IsValidOperation() && Cast<UBehaviorTreeGraphNode>(GraphNode)->ParentNode)
@@ -624,10 +624,10 @@ void SGraphNode_BehaviorTree::OnDragEnter( const FGeometry& MyGeometry, const FD
 FReply SGraphNode_BehaviorTree::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
 	// Is someone dragging a node?
-	if ( DragDrop::IsTypeMatch<FDragNode>(DragDropEvent.GetOperation()) )
+	TSharedPtr<FDragNode> DragConnectionOp = DragDropEvent.GetOperationAs<FDragNode>();
+	if (DragConnectionOp.IsValid())
 	{
 		// Inform the Drag and Drop operation that we are hovering over this node.
-		TSharedPtr<FDragNode> DragConnectionOp = StaticCastSharedPtr<FDragNode>(DragDropEvent.GetOperation());
 		TSharedPtr<SGraphNode> SubNode = GetSubNodeUnderCursor(MyGeometry, DragDropEvent);
 		DragConnectionOp->SetHoveredNode( SubNode.IsValid() ? SubNode : SharedThis(this) );
 	}
@@ -636,10 +636,10 @@ FReply SGraphNode_BehaviorTree::OnDragOver( const FGeometry& MyGeometry, const F
 
 void SGraphNode_BehaviorTree::OnDragLeave( const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FDragNode>(DragDropEvent.GetOperation()) )
+	TSharedPtr<FDragNode> DragConnectionOp = DragDropEvent.GetOperationAs<FDragNode>();
+	if (DragConnectionOp.IsValid())
 	{
 		// Inform the Drag and Drop operation that we are not hovering any pins
-		TSharedPtr<FDragNode> DragConnectionOp = StaticCastSharedPtr<FDragNode>(DragDropEvent.GetOperation());
 		DragConnectionOp->SetHoveredNode( TSharedPtr<SGraphNode>(NULL) );
 	}
 	SetDragMarker(false);
@@ -649,9 +649,9 @@ void SGraphNode_BehaviorTree::OnDragLeave( const FDragDropEvent& DragDropEvent )
 
 FReply SGraphNode_BehaviorTree::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FDragNode>(DragDropEvent.GetOperation()) )
+	TSharedPtr<FDragNode> DragNodeOp = DragDropEvent.GetOperationAs<FDragNode>();
+	if (DragNodeOp.IsValid())
 	{
-		TSharedPtr<FDragNode> DragNodeOp = StaticCastSharedPtr<FDragNode>(DragDropEvent.GetOperation());
 		if (!DragNodeOp->IsValidOperation())
 		{
 			return FReply::Handled();

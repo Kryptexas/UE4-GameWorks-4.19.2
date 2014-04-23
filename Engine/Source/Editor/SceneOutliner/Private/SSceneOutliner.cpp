@@ -1161,7 +1161,7 @@ namespace SceneOutliner
 			{
 				TSharedPtr<FDragDropOperation> DragDropOp = FSlateApplication::Get().GetDragDroppingContent();
 
-				if (DragDrop::IsTypeMatch<FActorDragDropGraphEdOp>(DragDropOp))	
+				if (DragDropOp->IsOfType<FActorDragDropGraphEdOp>())
 				{
 					TSharedPtr<FActorDragDropGraphEdOp> DragDropActorOp = StaticCastSharedPtr<FActorDragDropGraphEdOp>(DragDropOp);
 

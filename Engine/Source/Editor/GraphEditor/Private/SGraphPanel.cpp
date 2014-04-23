@@ -632,43 +632,52 @@ bool SGraphPanel::OnHandleLeftMouseRelease(const FGeometry& MyGeometry, const FP
 
 void SGraphPanel::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FGraphEditorDragDropAction>(DragDropEvent.GetOperation()) )
+	TSharedPtr<FGraphEditorDragDropAction> DragConnectionOp = DragDropEvent.GetOperationAs<FGraphEditorDragDropAction>();
+	if (DragConnectionOp.IsValid())
 	{
-		TSharedPtr<FGraphEditorDragDropAction> DragConnectionOp = StaticCastSharedPtr<FGraphEditorDragDropAction>(DragDropEvent.GetOperation());
 		DragConnectionOp->SetHoveredGraph( SharedThis(this) );
 	}
 }
 
 void SGraphPanel::OnDragLeave( const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FGraphEditorDragDropAction>(DragDropEvent.GetOperation()) )
+	TSharedPtr<FGraphEditorDragDropAction> DragConnectionOp = DragDropEvent.GetOperationAs<FGraphEditorDragDropAction>();
+	if (DragConnectionOp.IsValid())
 	{
-		TSharedPtr<FGraphEditorDragDropAction> DragConnectionOp = StaticCastSharedPtr<FGraphEditorDragDropAction>(DragDropEvent.GetOperation());
 		DragConnectionOp->SetHoveredGraph( TSharedPtr<SGraphPanel>(NULL) );
 	}
-	else if( DragDrop::IsTypeMatch<FAssetDragDropOp>(DragDropEvent.GetOperation()) )
+	else
 	{
-		TSharedPtr<FAssetDragDropOp> AssetOp = StaticCastSharedPtr<FAssetDragDropOp>(DragDropEvent.GetOperation());
-		AssetOp->ResetToDefaultToolTip();
+		TSharedPtr<FAssetDragDropOp> AssetOp = DragDropEvent.GetOperationAs<FAssetDragDropOp>();
+		if (AssetOp.IsValid())
+		{
+			AssetOp->ResetToDefaultToolTip();
+		}
 	}
 }
 
 FReply SGraphPanel::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if( DragDrop::IsTypeMatch<FGraphEditorDragDropAction>(DragDropEvent.GetOperation()) )
+	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+	if (!Operation.IsValid())
+	{
+		return FReply::Unhandled();
+	}
+
+	if( Operation->IsOfType<FGraphEditorDragDropAction>() )
 	{
 		PreviewConnectorEndpoint = MyGeometry.AbsoluteToLocal( DragDropEvent.GetScreenSpacePosition() );
 		return FReply::Handled();
 	}
-	else if(DragDrop::IsTypeMatch<FExternalDragOperation>( DragDropEvent.GetOperation() ) )
+	else if (Operation->IsOfType<FExternalDragOperation>())
 	{
 		return AssetUtil::CanHandleAssetDrag(DragDropEvent);
 	}
-	else if( DragDrop::IsTypeMatch<FAssetDragDropOp>(DragDropEvent.GetOperation()) )
+	else if (Operation->IsOfType<FAssetDragDropOp>())
 	{
 		if(GraphObj != NULL && GraphObj->GetSchema())
 		{
-			TSharedPtr<FAssetDragDropOp> AssetOp = StaticCastSharedPtr<FAssetDragDropOp>(DragDropEvent.GetOperation());
+			TSharedPtr<FAssetDragDropOp> AssetOp = StaticCastSharedPtr<FAssetDragDropOp>(Operation);
 			bool bOkIcon = false;
 			FString TooltipText;
 			GraphObj->GetSchema()->GetAssetsGraphHoverMessage(AssetOp->AssetData, GraphObj, TooltipText, bOkIcon);
@@ -689,22 +698,28 @@ FReply SGraphPanel::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& D
 
 	FSlateApplication::Get().SetKeyboardFocus(AsShared(), EKeyboardFocusCause::SetDirectly);
 
-	if (DragDrop::IsTypeMatch<FGraphEditorDragDropAction>(DragDropEvent.GetOperation()))
+	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+	if (!Operation.IsValid())
+	{
+		return FReply::Unhandled();
+	}
+
+	if (Operation->IsOfType<FGraphEditorDragDropAction>())
 	{
 		check(GraphObj);
-		TSharedPtr<FGraphEditorDragDropAction> DragConn = StaticCastSharedPtr<FGraphEditorDragDropAction>(DragDropEvent.GetOperation());
+		TSharedPtr<FGraphEditorDragDropAction> DragConn = StaticCastSharedPtr<FGraphEditorDragDropAction>(Operation);
 		return DragConn->DroppedOnPanel( SharedThis( this ), DragDropEvent.GetScreenSpacePosition(), NodeAddPosition, *GraphObj);
 	}
-	else if (DragDrop::IsTypeMatch<FActorDragDropGraphEdOp>(DragDropEvent.GetOperation()))
+	else if (Operation->IsOfType<FActorDragDropGraphEdOp>())
 	{
-		TSharedPtr<FActorDragDropGraphEdOp> ActorOp = StaticCastSharedPtr<FActorDragDropGraphEdOp>(DragDropEvent.GetOperation());
+		TSharedPtr<FActorDragDropGraphEdOp> ActorOp = StaticCastSharedPtr<FActorDragDropGraphEdOp>(Operation);
 		OnDropActor.ExecuteIfBound(ActorOp->Actors, GraphObj, NodeAddPosition);
 		return FReply::Handled();
 	}
 
-	else if (DragDrop::IsTypeMatch<FLevelDragDropOp>(DragDropEvent.GetOperation()))
+	else if (Operation->IsOfType<FLevelDragDropOp>())
 	{
-		TSharedPtr<FLevelDragDropOp> LevelOp = StaticCastSharedPtr<FLevelDragDropOp>(DragDropEvent.GetOperation());
+		TSharedPtr<FLevelDragDropOp> LevelOp = StaticCastSharedPtr<FLevelDragDropOp>(Operation);
 		OnDropStreamingLevel.ExecuteIfBound(LevelOp->StreamingLevelsToDrop, GraphObj, NodeAddPosition);
 		return FReply::Handled();
 	}

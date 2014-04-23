@@ -432,9 +432,16 @@ namespace AssetUtil
 	TArray<FAssetData> ExtractAssetDataFromDrag( const FDragDropEvent &DragDropEvent )
 	{
 		TArray<FAssetData> DroppedAssetData;
-		if ( DragDrop::IsTypeMatch<FExternalDragOperation>(DragDropEvent.GetOperation()) )
+
+		TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+		if (!Operation.IsValid())
 		{
-			TSharedPtr<FExternalDragOperation> DragDropOp = StaticCastSharedPtr<FExternalDragOperation>( DragDropEvent.GetOperation() );
+			return DroppedAssetData;
+		}
+
+		if (Operation->IsOfType<FExternalDragOperation>())
+		{
+			TSharedPtr<FExternalDragOperation> DragDropOp = StaticCastSharedPtr<FExternalDragOperation>(Operation);
 			if ( DragDropOp->HasText() )
 			{
 				TArray<FString> DroppedAssetStrings;
@@ -454,9 +461,9 @@ namespace AssetUtil
 				}
 			}
 		}
-		else if ( DragDrop::IsTypeMatch<FAssetDragDropOp>(DragDropEvent.GetOperation()) )
+		else if (Operation->IsOfType<FAssetDragDropOp>())
 		{
-			TSharedPtr<FAssetDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>( DragDropEvent.GetOperation() );
+			TSharedPtr<FAssetDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>( Operation );
 			DroppedAssetData.Append( DragDropOp->AssetData );
 		}
 

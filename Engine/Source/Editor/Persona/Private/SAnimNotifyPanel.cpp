@@ -2247,14 +2247,13 @@ float SAnimNotifyTrack::CalculateTime( const FGeometry& MyGeometry, FVector2D No
 
 FReply SAnimNotifyTrack::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FNotifyDragDropOp>( DragDropEvent.GetOperation() ) )
+	TSharedPtr<FNotifyDragDropOp> DragDropOp = DragDropEvent.GetOperationAs<FNotifyDragDropOp>();
+	if (DragDropOp.IsValid())
 	{
-		TSharedPtr<FNotifyDragDropOp> DragDropOp = StaticCastSharedPtr<FNotifyDragDropOp>(DragDropEvent.GetOperation());
-
 		HandleNodeDrop(*DragDropOp);
 
 		return FReply::Handled();
-}
+	}
 
 	return FReply::Unhandled();
 }

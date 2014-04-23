@@ -692,9 +692,15 @@ FReply SBlendSpaceWidget::OnDrop( const FGeometry& MyGeometry, const FDragDropEv
 {
 	FSlateRect WindowRect = GetWindowRectFromGeometry(MyGeometry);
 
-	if ( DragDrop::IsTypeMatch<FAssetDragDropOp>( DragDropEvent.GetOperation() ) )
+	TSharedPtr< FDragDropOperation > Operation = DragDropEvent.GetOperation();
+	if (!Operation.IsValid())
 	{
-		TSharedPtr<FAssetDragDropOp> AssetOp = StaticCastSharedPtr<FAssetDragDropOp>(DragDropEvent.GetOperation());
+		return FReply::Unhandled();
+	}
+
+	if ( Operation->IsOfType<FAssetDragDropOp>() )
+	{
+		TSharedPtr<FAssetDragDropOp> AssetOp = StaticCastSharedPtr<FAssetDragDropOp>(Operation);
 		UAnimSequence *DroppedSequence = FAssetData::GetFirstAsset<UAnimSequence>(AssetOp->AssetData);
 
 		if (DroppedSequence)
@@ -703,9 +709,9 @@ FReply SBlendSpaceWidget::OnDrop( const FGeometry& MyGeometry, const FDragDropEv
 			return FReply::Handled();
 		}
 	}
-	else if ( DragDrop::IsTypeMatch<FSampleDragDropOp>( DragDropEvent.GetOperation() ) )
+	else if (Operation->IsOfType<FSampleDragDropOp>())
 	{
-		TSharedPtr<FSampleDragDropOp> DragDropOp = StaticCastSharedPtr<FSampleDragDropOp>(DragDropEvent.GetOperation());
+		TSharedPtr<FSampleDragDropOp> DragDropOp = StaticCastSharedPtr<FSampleDragDropOp>(Operation);
 		UAnimSequence *DroppedSequence = DragDropOp->Sample.Animation;
 		int32 OriginalIndex = DragDropOp->OriginalSampleIndex;
 
@@ -783,7 +789,7 @@ FReply SBlendSpaceWidget::OnMouseMove( const FGeometry& MyGeometry, const FPoint
 FReply SBlendSpaceWidget::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
 	// if being dragged, update the mouse pos
-	if ( DragDrop::IsTypeMatch<FAssetDragDropOp>( DragDropEvent.GetOperation() ) || DragDrop::IsTypeMatch<FSampleDragDropOp>( DragDropEvent.GetOperation() ) )
+	if (DragDropEvent.GetOperationAs<FAssetDragDropOp>().IsValid() || DragDropEvent.GetOperationAs<FSampleDragDropOp>().IsValid())
 	{
 		bBeingDragged = true;
 		return UpdateLastMousePosition(MyGeometry, DragDropEvent.GetScreenSpacePosition());

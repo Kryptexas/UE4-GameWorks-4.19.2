@@ -4153,7 +4153,7 @@ void FLevelEditorViewportClient::SetupViewForRendering( FSceneViewFamily& ViewFa
 	}
 
 	TSharedPtr<FDragDropOperation> DragOperation = FSlateApplication::Get().GetDragDroppingContent();
-	if( !(DragOperation.IsValid() && DragDrop::IsTypeMatch<FBrushBuilderDragDropOp>(DragOperation)) )
+	if (!(DragOperation.IsValid() && DragOperation->IsOfType<FBrushBuilderDragDropOp>()))
 	{
 		// Hide the builder brush when not in geometry mode
 		ViewFamily.EngineShowFlags.BuilderBrush = 0;

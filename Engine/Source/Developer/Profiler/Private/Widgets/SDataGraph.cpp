@@ -1238,10 +1238,9 @@ void SDataGraph::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent&
 {
 	SCompoundWidget::OnDragEnter(MyGeometry, DragDropEvent);
 
-	if( DragDrop::IsTypeMatch<FStatIDDragDropOp>( DragDropEvent.GetOperation() ) )
+	TSharedPtr<FStatIDDragDropOp> Operation = DragDropEvent.GetOperationAs<FStatIDDragDropOp>();
+	if (Operation.IsValid())
 	{
-		// D&D decorator icon
-		auto Operation = StaticCastSharedPtr<FStatIDDragDropOp>( DragDropEvent.GetOperation() );
 		Operation->ShowOK();
 	}
 }
@@ -1250,10 +1249,9 @@ void SDataGraph::OnDragLeave( const FDragDropEvent& DragDropEvent )
 {
 	SCompoundWidget::OnDragLeave(DragDropEvent);
 
-	if( DragDrop::IsTypeMatch<FStatIDDragDropOp>( DragDropEvent.GetOperation() ) )
+	TSharedPtr<FStatIDDragDropOp> Operation = DragDropEvent.GetOperationAs<FStatIDDragDropOp>();
+	if (Operation.IsValid())
 	{
-		// D&D decorator icon
-		auto Operation = StaticCastSharedPtr<FStatIDDragDropOp>( DragDropEvent.GetOperation() );
 		Operation->ShowError();
 	}
 }
@@ -1265,9 +1263,10 @@ FReply SDataGraph::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent
 
 FReply SDataGraph::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if( DragDrop::IsTypeMatch<FStatIDDragDropOp>( DragDropEvent.GetOperation() ) )
+	TSharedPtr<FStatIDDragDropOp> Operation = DragDropEvent.GetOperationAs<FStatIDDragDropOp>();
+
+	if(Operation.IsValid())
 	{
-		TSharedPtr<FStatIDDragDropOp> Operation = StaticCastSharedPtr<FStatIDDragDropOp>( DragDropEvent.GetOperation() );
 		if( Operation->IsSingleStatID() )
 		{
 			FProfilerManager::Get()->TrackStat( Operation->GetSingleStatID() );

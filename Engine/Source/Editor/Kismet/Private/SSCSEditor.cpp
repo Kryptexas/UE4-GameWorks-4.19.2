@@ -60,7 +60,8 @@ FReply SSCSEditorDragDropTree::OnDragOver( const FGeometry& MyGeometry, const FD
 
 	if ( SCSEditor != NULL )
 	{
-		if(DragDrop::IsTypeMatch<FExternalDragOperation>( DragDropEvent.GetOperation() ) )
+		const bool bIsValidDrag = DragDropEvent.GetOperationAs<FExternalDragOperation>().IsValid();
+		if (bIsValidDrag)
 		{
 			Handled = AssetUtil::CanHandleAssetDrag(DragDropEvent);
 		}
@@ -75,7 +76,8 @@ FReply SSCSEditorDragDropTree::OnDrop( const FGeometry& MyGeometry, const FDragD
 
 	if ( SCSEditor != NULL )
 	{
-		if(DragDrop::IsTypeMatch<FExternalDragOperation>( DragDropEvent.GetOperation() ) || DragDrop::IsTypeMatch<FAssetDragDropOp>(DragDropEvent.GetOperation()))
+		TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+		if (Operation.IsValid() && (Operation->IsOfType<FExternalDragOperation>() || Operation->IsOfType<FAssetDragDropOp>()))
 		{
 			TArray< FAssetData > DroppedAssetData = AssetUtil::ExtractAssetDataFromDrag( DragDropEvent );
 			const int32 NumAssets = DroppedAssetData.Num();
@@ -998,9 +1000,15 @@ FReply SSCS_RowWidget::OnDragDetected( const FGeometry& MyGeometry, const FPoint
 
 void SSCS_RowWidget::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FSCSRowDragDropOp>(DragDropEvent.GetOperation()) )
+	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+	if (!Operation.IsValid())
 	{
-		TSharedPtr<FSCSRowDragDropOp> DragRowOp = StaticCastSharedPtr<FSCSRowDragDropOp>( DragDropEvent.GetOperation() );
+		return;
+	}
+
+	if ( Operation->IsOfType<FSCSRowDragDropOp>() )
+	{
+		TSharedPtr<FSCSRowDragDropOp> DragRowOp = StaticCastSharedPtr<FSCSRowDragDropOp>( Operation );
 		check(DragRowOp.IsValid());
 
 		// If the hover text is already set, skip everything below, because it means we already know we can't drag-and-drop one or more of the selected nodes.
@@ -1199,7 +1207,7 @@ void SSCS_RowWidget::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEv
 			}
 		}
 	}
-	else if ( DragDrop::IsTypeMatch<FExternalDragOperation>( DragDropEvent.GetOperation() ) || DragDrop::IsTypeMatch<FAssetDragDropOp>(DragDropEvent.GetOperation() ) )
+	else if ( Operation->IsOfType<FExternalDragOperation>() || Operation->IsOfType<FAssetDragDropOp>() )
 	{
 		// defer to the tree widget's handler for this type of operation
 		TSharedPtr<SSCSEditor> PinnedEditor = SCSEditor.Pin();
@@ -1212,11 +1220,9 @@ void SSCS_RowWidget::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEv
 
 void SSCS_RowWidget::OnDragLeave( const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FSCSRowDragDropOp>(DragDropEvent.GetOperation()) )
+	TSharedPtr<FSCSRowDragDropOp> DragRowOp = DragDropEvent.GetOperationAs<FSCSRowDragDropOp>();
+	if (DragRowOp.IsValid())
 	{
-		TSharedPtr<FSCSRowDragDropOp> DragRowOp = StaticCastSharedPtr<FSCSRowDragDropOp>( DragDropEvent.GetOperation() );
-		check(DragRowOp.IsValid());
-
 		bool bCanReparentAllNodes = true;
 		for(auto SourceNodeIter = DragRowOp->SourceNodes.CreateConstIterator(); SourceNodeIter && bCanReparentAllNodes; ++SourceNodeIter)
 		{
@@ -1237,9 +1243,15 @@ void SSCS_RowWidget::OnDragLeave( const FDragDropEvent& DragDropEvent )
 
 FReply SSCS_RowWidget::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FSCSRowDragDropOp>(DragDropEvent.GetOperation()) && NodePtr->GetComponentTemplate()->IsA<USceneComponent>())	
+	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+	if (!Operation.IsValid())
 	{
-		TSharedPtr<FSCSRowDragDropOp> DragRowOp = StaticCastSharedPtr<FSCSRowDragDropOp>( DragDropEvent.GetOperation() );	
+		return FReply::Handled();
+	}
+
+	if ( Operation->IsOfType<FSCSRowDragDropOp>() && NodePtr->GetComponentTemplate()->IsA<USceneComponent>())	
+	{
+		TSharedPtr<FSCSRowDragDropOp> DragRowOp = StaticCastSharedPtr<FSCSRowDragDropOp>( Operation );	
 		check(DragRowOp.IsValid());
 
 		switch(DragRowOp->PendingDropAction)
@@ -1272,7 +1284,7 @@ FReply SSCS_RowWidget::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent
 			break;
 		}
 	}
-	else if ( DragDrop::IsTypeMatch<FExternalDragOperation>( DragDropEvent.GetOperation() ) || DragDrop::IsTypeMatch<FAssetDragDropOp>(DragDropEvent.GetOperation() ) )
+	else if (Operation->IsOfType<FExternalDragOperation>() || Operation->IsOfType<FAssetDragDropOp>())
 	{
 		// defer to the tree widget's handler for this type of operation
 		TSharedPtr<SSCSEditor> PinnedEditor = SCSEditor.Pin();

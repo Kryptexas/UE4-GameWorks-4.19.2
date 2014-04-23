@@ -516,9 +516,9 @@ FReply STrack::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDr
 	float CusorDataPos = LocalToDataX(CursorPos.X, MyGeometry);
 
 	// Handle TrackNodes that were dropped
-	if ( DragDrop::IsTypeMatch<FTrackNodeDragDropOp>( DragDropEvent.GetOperation() ) )
+	TSharedPtr<FTrackNodeDragDropOp> DragDropOp = DragDropEvent.GetOperationAs<FTrackNodeDragDropOp>();
+	if (DragDropOp.IsValid())
 	{
-		TSharedPtr<FTrackNodeDragDropOp> DragDropOp = StaticCastSharedPtr<FTrackNodeDragDropOp>(DragDropEvent.GetOperation());
 		TSharedPtr<STrackNode> TrackNode = DragDropOp->OriginalTrackNode.Pin();
 
 		float DataPos = GetNodeDragDropDataPos(MyGeometry, DragDropEvent);
@@ -535,9 +535,9 @@ FReply STrack::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDr
 FReply STrack::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
 	// Handle TrackNodes that were dropped
-	if ( DragDrop::IsTypeMatch<FTrackNodeDragDropOp>( DragDropEvent.GetOperation() ) )
+	TSharedPtr<FTrackNodeDragDropOp> DragDropOp = DragDropEvent.GetOperationAs<FTrackNodeDragDropOp>();
+	if (DragDropOp.IsValid())
 	{
-		TSharedPtr<FTrackNodeDragDropOp> DragDropOp = StaticCastSharedPtr<FTrackNodeDragDropOp>(DragDropEvent.GetOperation());
 		TSharedPtr<STrackNode> TrackNode = DragDropOp->OriginalTrackNode.Pin();
 
 		float DataPos = GetNodeDragDropDataPos(MyGeometry, DragDropEvent);

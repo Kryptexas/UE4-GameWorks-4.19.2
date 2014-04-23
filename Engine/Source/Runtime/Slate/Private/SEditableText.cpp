@@ -1316,9 +1316,9 @@ int32 SEditableText::OnPaint( const FGeometry& AllottedGeometry, const FSlateRec
 
 FReply SEditableText::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FExternalDragOperation>( DragDropEvent.GetOperation() ) )
+	TSharedPtr<FExternalDragOperation> DragDropOp = DragDropEvent.GetOperationAs<FExternalDragOperation>();
+	if ( DragDropOp.IsValid() )
 	{
-		TSharedPtr<FExternalDragOperation> DragDropOp = StaticCastSharedPtr<FExternalDragOperation>(DragDropEvent.GetOperation());
 		if ( DragDropOp->HasText() )
 		{
 			return FReply::Handled();
@@ -1331,9 +1331,9 @@ FReply SEditableText::OnDragOver( const FGeometry& MyGeometry, const FDragDropEv
 
 FReply SEditableText::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FExternalDragOperation>( DragDropEvent.GetOperation() ) )
+	TSharedPtr<FExternalDragOperation> DragDropOp = DragDropEvent.GetOperationAs<FExternalDragOperation>();
+	if ( DragDropOp.IsValid() )
 	{
-		TSharedPtr<FExternalDragOperation> DragDropOp = StaticCastSharedPtr<FExternalDragOperation>(DragDropEvent.GetOperation());
 		if ( DragDropOp->HasText() )
 		{
 			this->Text = FText::FromString(DragDropOp->GetText());

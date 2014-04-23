@@ -135,16 +135,22 @@ void SGraphNode::SetDisallowedPinConnectionEvent(SGraphEditor::FOnDisallowedPinC
 
 void SGraphNode::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
+	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+	if (!Operation.IsValid())
+	{
+		return;
+	}
+
 	// Is someone dragging a connection?
-	if ( DragDrop::IsTypeMatch<FGraphEditorDragDropAction>(DragDropEvent.GetOperation()) )
+	if (Operation->IsOfType<FGraphEditorDragDropAction>())
 	{
 		// Inform the Drag and Drop operation that we are hovering over this pin.
-		TSharedPtr<FGraphEditorDragDropAction> DragConnectionOp = StaticCastSharedPtr<FGraphEditorDragDropAction>(DragDropEvent.GetOperation());
+		TSharedPtr<FGraphEditorDragDropAction> DragConnectionOp = StaticCastSharedPtr<FGraphEditorDragDropAction>(Operation);
 		DragConnectionOp->SetHoveredNode( SharedThis(this) );
 	}
-	else if( DragDrop::IsTypeMatch<FActorDragDropGraphEdOp>(DragDropEvent.GetOperation()) )
+	else if (Operation->IsOfType<FActorDragDropGraphEdOp>())
 	{
-		TSharedPtr<FActorDragDropGraphEdOp> DragConnectionOp = StaticCastSharedPtr<FActorDragDropGraphEdOp>(DragDropEvent.GetOperation());
+		TSharedPtr<FActorDragDropGraphEdOp> DragConnectionOp = StaticCastSharedPtr<FActorDragDropGraphEdOp>(Operation);
 		if( GraphNode->IsA( UK2Node_Literal::StaticClass() ) )
 		{
 			//Show tool tip only if a single actor is dragged
@@ -169,7 +175,7 @@ void SGraphNode::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent&
 			DragConnectionOp->SetToolTip( (DragConnectionOp->Actors.Num() == 1) ? FActorDragDropGraphEdOp::ToolTip_Incompatible : FActorDragDropGraphEdOp::ToolTip_MultipleSelection_Incompatible);
 		}
 	}
-	else if ( DragDrop::IsTypeMatch<FBoneDragDropOp>(DragDropEvent.GetOperation()) )
+	else if (Operation->IsOfType<FBoneDragDropOp>())
 	{
 		//@TODO: A2REMOVAL: No support for A3 nodes handling this drag-drop op yet!
 	}
@@ -177,25 +183,31 @@ void SGraphNode::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent&
 
 void SGraphNode::OnDragLeave( const FDragDropEvent& DragDropEvent )
 {
+	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+	if (!Operation.IsValid())
+	{
+		return;
+	}
+
 	// Is someone dragging a connection?
-	if ( DragDrop::IsTypeMatch<FGraphEditorDragDropAction>(DragDropEvent.GetOperation()) )
+	if (Operation->IsOfType<FGraphEditorDragDropAction>())
 	{
 		// Inform the Drag and Drop operation that we are not hovering any pins
-		TSharedPtr<FGraphEditorDragDropAction> DragConnectionOp = StaticCastSharedPtr<FGraphEditorDragDropAction>(DragDropEvent.GetOperation());
+		TSharedPtr<FGraphEditorDragDropAction> DragConnectionOp = StaticCastSharedPtr<FGraphEditorDragDropAction>(Operation);
 		DragConnectionOp->SetHoveredNode( TSharedPtr<SGraphNode>(NULL) );
 	}
-	else if( DragDrop::IsTypeMatch<FActorDragDropGraphEdOp>(DragDropEvent.GetOperation()) )
+	else if (Operation->IsOfType<FActorDragDropGraphEdOp>())
 	{
 		//Default tool tip
-		TSharedPtr<FActorDragDropGraphEdOp> DragConnectionOp = StaticCastSharedPtr<FActorDragDropGraphEdOp>(DragDropEvent.GetOperation());
+		TSharedPtr<FActorDragDropGraphEdOp> DragConnectionOp = StaticCastSharedPtr<FActorDragDropGraphEdOp>(Operation);
 		DragConnectionOp->ResetToDefaultToolTip();
 	}
-	else if( DragDrop::IsTypeMatch<FAssetDragDropOp>(DragDropEvent.GetOperation()) )
+	else if (Operation->IsOfType<FAssetDragDropOp>())
 	{
-		TSharedPtr<FAssetDragDropOp> AssetOp = StaticCastSharedPtr<FAssetDragDropOp>(DragDropEvent.GetOperation());
+		TSharedPtr<FAssetDragDropOp> AssetOp = StaticCastSharedPtr<FAssetDragDropOp>(Operation);
 		AssetOp->ResetToDefaultToolTip();
 	}
-	else if ( DragDrop::IsTypeMatch<FBoneDragDropOp>(DragDropEvent.GetOperation()) )
+	else if (Operation->IsOfType<FBoneDragDropOp>())
 	{
 		//@TODO: A2REMOVAL: No support for A3 nodes handling this drag-drop op yet!
 	}
@@ -203,11 +215,11 @@ void SGraphNode::OnDragLeave( const FDragDropEvent& DragDropEvent )
 
 FReply SGraphNode::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if( DragDrop::IsTypeMatch<FAssetDragDropOp>(DragDropEvent.GetOperation()) )
+	TSharedPtr<FAssetDragDropOp> AssetOp = DragDropEvent.GetOperationAs<FAssetDragDropOp>();
+	if (AssetOp.IsValid())
 	{
 		if(GraphNode != NULL && GraphNode->GetSchema() != NULL)
 		{
-			TSharedPtr<FAssetDragDropOp> AssetOp = StaticCastSharedPtr<FAssetDragDropOp>(DragDropEvent.GetOperation());
 			bool bOkIcon = false;
 			FString TooltipText;
 			GraphNode->GetSchema()->GetAssetsNodeHoverMessage(AssetOp->AssetData, GraphNode, TooltipText, bOkIcon);
@@ -237,10 +249,16 @@ FVector2D SGraphNode::NodeCoordToGraphCoord( const FVector2D& NodeSpaceCoordinat
 
 FReply SGraphNode::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	// Is someone dropping a connection onto this node?
-	if ( DragDrop::IsTypeMatch<FGraphEditorDragDropAction>(DragDropEvent.GetOperation()) )
+	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+	if (!Operation.IsValid())
 	{
-		TSharedPtr<FGraphEditorDragDropAction> DragConnectionOp = StaticCastSharedPtr<FGraphEditorDragDropAction>(DragDropEvent.GetOperation());
+		return FReply::Unhandled();
+	}
+
+	// Is someone dropping a connection onto this node?
+	if (Operation->IsOfType<FGraphEditorDragDropAction>())
+	{
+		TSharedPtr<FGraphEditorDragDropAction> DragConnectionOp = StaticCastSharedPtr<FGraphEditorDragDropAction>(Operation);
 
 		const FVector2D NodeAddPosition = NodeCoordToGraphCoord( MyGeometry.AbsoluteToLocal( DragDropEvent.GetScreenSpacePosition() ) );
 
@@ -252,9 +270,9 @@ FReply SGraphNode::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& Dr
 		}
 		return Result;
 	}
-	else if( DragDrop::IsTypeMatch<FActorDragDropGraphEdOp>(DragDropEvent.GetOperation()) )
+	else if (Operation->IsOfType<FActorDragDropGraphEdOp>())
 	{
-		TSharedPtr<FActorDragDropGraphEdOp> DragConnectionOp = StaticCastSharedPtr<FActorDragDropGraphEdOp>(DragDropEvent.GetOperation());
+		TSharedPtr<FActorDragDropGraphEdOp> DragConnectionOp = StaticCastSharedPtr<FActorDragDropGraphEdOp>(Operation);
 		if( CanAllowInteractionUsingDragDropOp( GraphNode, DragConnectionOp ) )
 		{
 			UK2Node_Literal* LiteralNode = CastChecked< UK2Node_Literal > ( GraphNode );
@@ -271,17 +289,17 @@ FReply SGraphNode::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& Dr
 		}
 		return FReply::Handled();
 	}
-	else if( DragDrop::IsTypeMatch<FAssetDragDropOp>(DragDropEvent.GetOperation()) )
+	else if (Operation->IsOfType<FAssetDragDropOp>())
 	{
 		UEdGraphNode* Node = GetNodeObj();
 		if(Node != NULL && Node->GetSchema() != NULL)
 		{
-			TSharedPtr<FAssetDragDropOp> AssetOp = StaticCastSharedPtr<FAssetDragDropOp>(DragDropEvent.GetOperation());
+			TSharedPtr<FAssetDragDropOp> AssetOp = StaticCastSharedPtr<FAssetDragDropOp>(Operation);
 			Node->GetSchema()->DroppedAssetsOnNode(AssetOp->AssetData, DragDropEvent.GetScreenSpacePosition(), Node);
 		}
 		return FReply::Handled();
 	} 
-	else if ( DragDrop::IsTypeMatch<FBoneDragDropOp>(DragDropEvent.GetOperation()) )
+	else if (Operation->IsOfType<FBoneDragDropOp>())
 	{
 		//@TODO: A2REMOVAL: No support for A3 nodes handling this drag-drop op yet!
 	}

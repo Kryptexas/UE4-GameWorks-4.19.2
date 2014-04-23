@@ -455,10 +455,9 @@ FReply SProfilerWindow::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardE
 
 FReply SProfilerWindow::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if( DragDrop::IsTypeMatch<FExternalDragOperation>( DragDropEvent.GetOperation() ) )
+	TSharedPtr<FExternalDragOperation> DragDropOp = DragDropEvent.GetOperationAs<FExternalDragOperation>();
+	if(DragDropOp.IsValid())
 	{
-		TSharedPtr<FExternalDragOperation> DragDropOp = StaticCastSharedPtr<FExternalDragOperation>(DragDropEvent.GetOperation());
-
 		if( DragDropOp->HasFiles() )
 		{
 			const TArray<FString>& Files = DragDropOp->GetFiles();
@@ -483,10 +482,9 @@ FReply SProfilerWindow::OnDragOver( const FGeometry& MyGeometry, const FDragDrop
 
 FReply SProfilerWindow::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if( DragDrop::IsTypeMatch<FExternalDragOperation>( DragDropEvent.GetOperation() ) )
+	TSharedPtr<FExternalDragOperation> DragDropOp = DragDropEvent.GetOperationAs<FExternalDragOperation>();
+	if(DragDropOp.IsValid())
 	{
-		TSharedPtr<FExternalDragOperation> DragDropOp = StaticCastSharedPtr<FExternalDragOperation>(DragDropEvent.GetOperation());
-
 		if( DragDropOp->HasFiles() )
 		{
 			// For now, only allow a single file.

@@ -45,7 +45,7 @@ FReply SMultiBlockDragHandle::OnMouseButtonDown( const FGeometry& MyGeometry, co
 
 void SMultiBlockDragHandle::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if( DragDrop::IsTypeMatch<FUICommandDragDropOp>( DragDropEvent.GetOperation() ) )
+	if ( DragDropEvent.GetOperationAs<FUICommandDragDropOp>().IsValid() )
 	{
 		BaseWidget.Pin()->OnCustomCommandDragEnter( Block.ToSharedRef(), MyGeometry, DragDropEvent );
 	}
@@ -53,7 +53,7 @@ void SMultiBlockDragHandle::OnDragEnter( const FGeometry& MyGeometry, const FDra
 
 FReply SMultiBlockDragHandle::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if( DragDrop::IsTypeMatch<FUICommandDragDropOp>( DragDropEvent.GetOperation() ) )
+	if ( DragDropEvent.GetOperationAs<FUICommandDragDropOp>().IsValid() )
 	{
 		BaseWidget.Pin()->OnCustomCommandDragged( Block.ToSharedRef(), MyGeometry, DragDropEvent );
 		return FReply::Handled();
@@ -64,7 +64,7 @@ FReply SMultiBlockDragHandle::OnDragOver( const FGeometry& MyGeometry, const FDr
 
 FReply SMultiBlockDragHandle::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if( DragDrop::IsTypeMatch<FUICommandDragDropOp>( DragDropEvent.GetOperation() )  )
+	if ( DragDropEvent.GetOperationAs<FUICommandDragDropOp>().IsValid() )
 	{
 		BaseWidget.Pin()->OnCustomCommandDropped();
 		return FReply::Handled();

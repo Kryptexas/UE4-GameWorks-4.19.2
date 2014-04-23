@@ -18,9 +18,10 @@ public:
 
 	virtual ~FDragDropOperation();
 
-	virtual bool IsOfType(const FString& Type)
+	/** Check if this drag and drop operation can cast safely to the specified template type */
+	template<class TType> bool IsOfType() const 
 	{
-		return false;
+		return IsOfTypeImpl(TType::GetTypeId());
 	}
 
 	/**
@@ -60,6 +61,12 @@ public:
 protected:
 	/** Constructs the window and widget if applicable */
 	virtual void Construct();
+
+	/** Check if this drag and drop operation can cast safely to the specified type */
+	virtual bool IsOfTypeImpl(const FString& Type) const
+	{
+		return false;
+	}
 
 protected:
 
@@ -147,15 +154,7 @@ DECLARE_DELEGATE_OneParam( FOnDragDropUpdate,
 
 #define DRAG_DROP_OPERATOR_TYPE(TYPE, BASE) \
 	static const FString& GetTypeId() { static FString Type = TEXT(#TYPE); return Type; } \
-	virtual bool IsOfType(const FString& Type) OVERRIDE { return GetTypeId() == Type || BASE::IsOfType(Type); }
-
-namespace DragDrop
-{
-	/** See if this dragdrop operation matches another dragdrop operation */
-	template <typename OperatorType>
-	bool IsTypeMatch(const TSharedPtr<FDragDropOperation> Operation);
-}
-
+	virtual bool IsOfTypeImpl(const FString& Type) const OVERRIDE { return GetTypeId() == Type || BASE::IsOfTypeImpl(Type); }
 
 
 /**

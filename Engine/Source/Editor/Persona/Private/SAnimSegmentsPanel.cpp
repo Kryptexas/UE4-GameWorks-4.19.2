@@ -220,7 +220,7 @@ void SAnimSegmentsPanel::RemoveAnimSegment(int32 AnimSegmentIndex)
 
 void SAnimSegmentsPanel::OnTrackDragDrop( TSharedPtr<FDragDropOperation> DragDropOp, float DataPos )
 {
-	if ( DragDrop::IsTypeMatch<FAssetDragDropOp>(DragDropOp) )
+	if (DragDropOp.IsValid() && DragDropOp->IsOfType<FAssetDragDropOp>())
 	{
 		TSharedPtr<FAssetDragDropOp> AssetOp = StaticCastSharedPtr<FAssetDragDropOp>(DragDropOp);
 		UAnimSequence *DroppedSequence = FAssetData::GetFirstAsset<UAnimSequence>(AssetOp->AssetData);

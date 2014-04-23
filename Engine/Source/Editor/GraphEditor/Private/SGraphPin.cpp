@@ -499,21 +499,27 @@ void SGraphPin::OnMouseLeave( const FPointerEvent& MouseEvent )
 
 void SGraphPin::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
+	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+	if (!Operation.IsValid())
+	{
+		return;
+	}
+
 	// Is someone dragging a connection?
-	if ( DragDrop::IsTypeMatch<FGraphEditorDragDropAction>(DragDropEvent.GetOperation()) )
+	if (Operation->IsOfType<FGraphEditorDragDropAction>())
 	{
 		// Ensure that the pin is valid before using it
 		if(GraphPinObj != NULL && GraphPinObj->GetOuter() != NULL && GraphPinObj->GetOuter()->IsA(UEdGraphNode::StaticClass()))
 		{
 			// Inform the Drag and Drop operation that we are hovering over this pin.
-			TSharedPtr<FGraphEditorDragDropAction> DragConnectionOp = StaticCastSharedPtr<FGraphEditorDragDropAction>(DragDropEvent.GetOperation());
+			TSharedPtr<FGraphEditorDragDropAction> DragConnectionOp = StaticCastSharedPtr<FGraphEditorDragDropAction>(Operation);
 			DragConnectionOp->SetHoveredPin( SharedThis(this) );
 		}	
 
 		// Pins treat being dragged over the same as being hovered outside of drag and drop if they know how to respond to the drag action.
 		SBorder::OnMouseEnter( MyGeometry, DragDropEvent );
 	}
-	else if( DragDrop::IsTypeMatch<FAssetDragDropOp>(DragDropEvent.GetOperation()) )
+	else if (Operation->IsOfType<FAssetDragDropOp>())
 	{
 		TSharedPtr<SGraphNode> NodeWidget = OwnerNodePtr.Pin();
 		if (NodeWidget.IsValid())
@@ -521,7 +527,7 @@ void SGraphPin::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& 
 			UEdGraphNode* Node = NodeWidget->GetNodeObj();
 			if(Node != NULL && Node->GetSchema() != NULL)
 			{
-				TSharedPtr<FAssetDragDropOp> AssetOp = StaticCastSharedPtr<FAssetDragDropOp>(DragDropEvent.GetOperation());
+				TSharedPtr<FAssetDragDropOp> AssetOp = StaticCastSharedPtr<FAssetDragDropOp>(Operation);
 				bool bOkIcon = false;
 				FString TooltipText;
 				Node->GetSchema()->GetAssetsPinHoverMessage(AssetOp->AssetData, GraphPinObj, TooltipText, bOkIcon);
@@ -534,18 +540,25 @@ void SGraphPin::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& 
 
 void SGraphPin::OnDragLeave( const FDragDropEvent& DragDropEvent )
 {
+	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+	if (!Operation.IsValid())
+	{
+		return;
+	}
+
 	// Is someone dragging a connection?
-	if ( DragDrop::IsTypeMatch<FGraphEditorDragDropAction>(DragDropEvent.GetOperation()) )
+	if (Operation->IsOfType<FGraphEditorDragDropAction>())
 	{
 		// Inform the Drag and Drop operation that we are not hovering any pins
-		TSharedPtr<FGraphEditorDragDropAction> DragConnectionOp = StaticCastSharedPtr<FGraphEditorDragDropAction>(DragDropEvent.GetOperation());
+		TSharedPtr<FGraphEditorDragDropAction> DragConnectionOp = StaticCastSharedPtr<FGraphEditorDragDropAction>(Operation);
 		DragConnectionOp->SetHoveredPin( TSharedPtr<SGraphPin>(NULL) );
 
 		SBorder::OnMouseLeave( DragDropEvent );
 	}
-	else if( DragDrop::IsTypeMatch<FAssetDragDropOp>(DragDropEvent.GetOperation()) )
+
+	else if (Operation->IsOfType<FAssetDragDropOp>())
 	{
-		TSharedPtr<FAssetDragDropOp> AssetOp = StaticCastSharedPtr<FAssetDragDropOp>(DragDropEvent.GetOperation());
+		TSharedPtr<FAssetDragDropOp> AssetOp = StaticCastSharedPtr<FAssetDragDropOp>(Operation);
 		AssetOp->ResetToDefaultToolTip();
 	}
 }
@@ -566,10 +579,16 @@ bool SGraphPin::TryHandlePinConnection(SGraphPin& OtherSPin)
 
 FReply SGraphPin::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	// Is someone dropping a connection onto this pin?
-	if ( DragDrop::IsTypeMatch<FGraphEditorDragDropAction>(DragDropEvent.GetOperation()) )
+	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+	if (!Operation.IsValid())
 	{
-		TSharedPtr<FGraphEditorDragDropAction> DragConnectionOp = StaticCastSharedPtr<FGraphEditorDragDropAction>(DragDropEvent.GetOperation());
+		return FReply::Unhandled();
+	}
+
+	// Is someone dropping a connection onto this pin?
+	if (Operation->IsOfType<FGraphEditorDragDropAction>())
+	{
+		TSharedPtr<FGraphEditorDragDropAction> DragConnectionOp = StaticCastSharedPtr<FGraphEditorDragDropAction>(Operation);
 
 		FVector2D NodeAddPosition = FVector2D::ZeroVector;
 		TSharedPtr<SGraphNode> OwnerNode = OwnerNodePtr.Pin();
@@ -601,7 +620,7 @@ FReply SGraphPin::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& Dra
 		return DragConnectionOp->DroppedOnPin(DragDropEvent.GetScreenSpacePosition(), NodeAddPosition);
 	}
 	// handle dropping an asset on the pin
-	else if( DragDrop::IsTypeMatch<FAssetDragDropOp>(DragDropEvent.GetOperation()) )
+	else if (Operation->IsOfType<FAssetDragDropOp>())
 	{
 		TSharedPtr<SGraphNode> NodeWidget = OwnerNodePtr.Pin();
 		if (NodeWidget.IsValid())
@@ -609,7 +628,7 @@ FReply SGraphPin::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& Dra
 			UEdGraphNode* Node = NodeWidget->GetNodeObj();
 			if(Node != NULL && Node->GetSchema() != NULL)
 			{
-				TSharedPtr<FAssetDragDropOp> AssetOp = StaticCastSharedPtr<FAssetDragDropOp>(DragDropEvent.GetOperation());
+				TSharedPtr<FAssetDragDropOp> AssetOp = StaticCastSharedPtr<FAssetDragDropOp>(Operation);
 
 				Node->GetSchema()->DroppedAssetsOnPin(AssetOp->AssetData, DragDropEvent.GetScreenSpacePosition(), GraphPinObj);
 			}

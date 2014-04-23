@@ -436,10 +436,9 @@ FReply SSymbolDebugger::OnDragOver(const FGeometry& MyGeometry, const FDragDropE
 {
 	if (GetSymbolDebuggerAction() == DebugAction_None)
 	{
-		if (DragDrop::IsTypeMatch<FExternalDragOperation>(DragDropEvent.GetOperation()))
+		TSharedPtr<FExternalDragOperation> DragDropOp = DragDropEvent.GetOperationAs<FExternalDragOperation>();
+		if (DragDropOp.IsValid())
 		{
-			TSharedPtr<FExternalDragOperation> DragDropOp = StaticCastSharedPtr<FExternalDragOperation>(DragDropEvent.GetOperation());
-
 			if (DragDropOp->HasFiles())
 			{
 				if (DragDropOp->GetFiles().Num() == 1)
@@ -458,9 +457,9 @@ FReply SSymbolDebugger::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent
 	if (GetSymbolDebuggerAction() == DebugAction_None)
 	{
 		// Handle drag drop for import
-		if (DragDrop::IsTypeMatch<FExternalDragOperation>(DragDropEvent.GetOperation()))
+		TSharedPtr<FExternalDragOperation> DragDropOp = DragDropEvent.GetOperationAs<FExternalDragOperation>();
+		if (DragDropOp.IsValid())
 		{
-			TSharedPtr<FExternalDragOperation> DragDropOp = StaticCastSharedPtr<FExternalDragOperation>(DragDropEvent.GetOperation());
 			if (DragDropOp->HasFiles())
 			{
 				// Set the current method to CrashDump as that is the only thing we support dropping for
