@@ -99,6 +99,12 @@ public class GameActivity extends NativeActivity
 	// Called from event thread in NativeActivity	
 	public void AndroidThunkJava_ShowConsoleWindow(String Formats)
 	{
+		if(alert.isShowing() == true)
+		{
+			Log.debug("Console already showing.");
+			return;
+		}
+
 		alert.setMessage("[Availble texture formats: " + Formats + "]");
 		_activity.runOnUiThread(new Runnable()
 		{

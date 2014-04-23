@@ -305,8 +305,8 @@ static void AndroidProcessEvents(struct android_app* state)
 		// process this event
 		if (source)
 			source->process(state, source);
+		}
 	}
-}
 
 pthread_t G_AndroidEventThread;
 
@@ -445,7 +445,7 @@ static int32_t HandleInputCB(struct android_app* app, AInputEvent* event)
 			FAndroidInputInterface::QueueTouchInput(TouchesArray);
 
 #if !UE_BUILD_SHIPPING
-			if(pointerCount >= 4)
+			if ((pointerCount >= 4) && (type == TouchBegan))
 			{
 				GShowConsoleWindowNextTick = true;
 			}
