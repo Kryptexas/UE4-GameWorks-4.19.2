@@ -288,6 +288,10 @@ public:
 	UPROPERTY(config)
 	uint32 bHideTemporaryActors:1;
 
+	/** True when the Scene Outliner is showing only Actors that exist in the current level */
+	UPROPERTY(config)
+	uint32 bShowOnlyActorsInCurrentLevel:1;
+
 	UPROPERTY(config)
 	int32 MaterialQualityLevel;
 

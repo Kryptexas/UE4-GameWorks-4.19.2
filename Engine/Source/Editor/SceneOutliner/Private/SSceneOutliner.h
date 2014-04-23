@@ -365,6 +365,13 @@ namespace SceneOutliner
 		void ToggleHideTemporaryActors();
 		/** Enables/Disables whether the HideTemporaryActorsFilter is applied */
 		void ApplyHideTemporaryActorsFilter(bool bHideTemporaryActors);
+		
+		/** @return whether we are showing only Actors that are in the Current Level */
+		bool IsShowingOnlyCurrentLevel() const;
+		/** Toggles whether we are hiding Actors that aren't in the current level */
+		void ToggleShowOnlyCurrentLevel();
+		/** Enables/Disables whether the ShowOnlyActorsInCurrentLevelFilter is applied */
+		void ApplyShowOnlyCurrentLevelFilter(bool bShowOnlyActorsInCurrentLevel);
 
 	private:
 
@@ -422,6 +429,8 @@ namespace SceneOutliner
 		/** When applied, temporary and run-time actors are hidden */
 		TSharedPtr< TDelegateFilter< const AActor* const > > HideTemporaryActorsFilter;
 
+		/** When applied, only Actors that are in the current level are displayed */
+		TSharedPtr< TDelegateFilter< const AActor* const > > ShowOnlyActorsInCurrentLevelFilter;
 
 		/** The brush to use when in Editor mode */
 		const FSlateBrush* NoBorder;

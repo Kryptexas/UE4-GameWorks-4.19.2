@@ -169,6 +169,7 @@ namespace SceneOutliner
 		{
 			ApplyShowOnlySelectedFilter( IsShowingOnlySelected() );
 			ApplyHideTemporaryActorsFilter( IsHidingTemporaryActors() );
+			ApplyShowOnlyCurrentLevelFilter( IsShowingOnlyCurrentLevel() );
 		}
 
 
@@ -506,6 +507,19 @@ namespace SceneOutliner
 				NAME_None,
 				EUserInterfaceActionType::ToggleButton
 			);
+
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("ToggleShowOnlyCurrentLevel", "Only in Current Level"),
+				LOCTEXT("ToggleShowOnlyCurrentLevelToolTip", "When enabled, only shows Actors that are in the Current Level."),
+				FSlateIcon(),
+				FUIAction(
+				FExecuteAction::CreateSP( this, &SSceneOutliner::ToggleShowOnlyCurrentLevel ),
+				FCanExecuteAction(),
+				FIsActionChecked::CreateSP( this, &SSceneOutliner::IsShowingOnlyCurrentLevel )
+				),
+				NAME_None,
+				EUserInterfaceActionType::ToggleButton
+			);
 		}
 		MenuBuilder.EndSection();
 
@@ -514,6 +528,8 @@ namespace SceneOutliner
 
 
 	/** FILTERS */
+
+	// Show Only Selected
 	void SSceneOutliner::ToggleShowOnlySelected()
 	{
 		const bool bEnableFlag = !IsShowingOnlySelected();
@@ -543,6 +559,7 @@ namespace SceneOutliner
 		return (GEditor->AccessEditorUserSettings().bShowOnlySelectedActors);
 	}
 
+	// Hide Temporary Actors
 	void SSceneOutliner::ToggleHideTemporaryActors()
 	{
 		const bool bEnableFlag = !IsHidingTemporaryActors();
@@ -571,6 +588,37 @@ namespace SceneOutliner
 	{
 		return (GEditor->AccessEditorUserSettings().bHideTemporaryActors);
 	}
+
+	// Show Only Actors In Current Level
+	void SSceneOutliner::ToggleShowOnlyCurrentLevel()
+	{
+		const bool bEnableFlag = !IsShowingOnlyCurrentLevel();
+		GEditor->AccessEditorUserSettings().bShowOnlyActorsInCurrentLevel = bEnableFlag;
+		GEditor->AccessEditorUserSettings().PostEditChange();
+
+		ApplyShowOnlyCurrentLevelFilter(bEnableFlag);
+	}
+	void SSceneOutliner::ApplyShowOnlyCurrentLevelFilter(bool bShowOnlyActorsInCurrentLevel)
+	{
+		if ( !ShowOnlyActorsInCurrentLevelFilter.IsValid() )
+		{
+			ShowOnlyActorsInCurrentLevelFilter = SceneOutlinerFilters::CreateIsInCurrentLevelFilter();
+		}
+
+		if ( bShowOnlyActorsInCurrentLevel )
+		{			
+			CustomFilters->Add( ShowOnlyActorsInCurrentLevelFilter );
+		}
+		else
+		{
+			CustomFilters->Remove( ShowOnlyActorsInCurrentLevelFilter );
+		}
+	}
+	bool SSceneOutliner::IsShowingOnlyCurrentLevel() const
+	{
+		return (GEditor->AccessEditorUserSettings().bShowOnlyActorsInCurrentLevel);
+	}
+
 	/** END FILTERS */
 
 

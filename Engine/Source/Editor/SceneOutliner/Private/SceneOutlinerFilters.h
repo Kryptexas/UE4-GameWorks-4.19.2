@@ -17,6 +17,11 @@ namespace SceneOutlinerFilters
 		{
 			return (InActor != NULL && (InActor->GetWorld()->WorldType != EWorldType::PIE || GEditor->ObjectsThatExistInEditorWorld.Get(InActor)));
 		}
+	
+		static bool IsInCurrentLevel( const AActor* const InActor )
+		{
+			return (InActor != NULL && InActor->GetLevel() == InActor->GetWorld()->GetCurrentLevel());
+		}
 	};
 
 	TSharedPtr< TDelegateFilter< const AActor* const > > CreateSelectedActorFilter()
@@ -29,5 +34,11 @@ namespace SceneOutlinerFilters
 	{
 		return MakeShareable( new TDelegateFilter< const AActor* const >(
 			TDelegateFilter< const AActor* const >::FPredicate::CreateStatic( &FActorClassPredicate::ExistsInEditorWorld ) ) );
+	}
+
+	TSharedPtr< TDelegateFilter< const AActor* const > > CreateIsInCurrentLevelFilter()
+	{
+		return MakeShareable( new TDelegateFilter< const AActor* const >(
+			TDelegateFilter< const AActor* const >::FPredicate::CreateStatic( &FActorClassPredicate::IsInCurrentLevel ) ) );
 	}
 }
