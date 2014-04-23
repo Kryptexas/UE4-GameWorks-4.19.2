@@ -10,7 +10,6 @@ namespace UnrealBuildTool.Rules
 				new string[]
 				{
 					"Core",
-					"Messaging"
 				}
 			);
 
@@ -19,8 +18,13 @@ namespace UnrealBuildTool.Rules
 				{
 					"CoreUObject",
 					"Engine",
-					"Messaging",
 					"ProfilerMessages",
+				}
+			);
+
+			PrivateIncludePathModuleNames.AddRange(
+				new string[] {
+					"Messaging",
 				}
 			);
 		}

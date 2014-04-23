@@ -12,8 +12,6 @@ namespace UnrealBuildTool.Rules
 				new string[]
 				{
 					"Core",
-					"Messaging",
-					"SessionServices",
 				}
 			);
 
@@ -22,6 +20,13 @@ namespace UnrealBuildTool.Rules
 				{
 					"CoreUObject",
 					"ProfilerMessages",
+				}
+			);
+
+			PrivateIncludePathModuleNames.AddRange(
+				new string[] {
+					"Messaging",
+					"SessionServices",
 				}
 			);
 		}

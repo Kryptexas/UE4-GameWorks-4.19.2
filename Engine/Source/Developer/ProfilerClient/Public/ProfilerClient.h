@@ -12,9 +12,9 @@
 
 #include "Core.h"
 #include "ModuleManager.h"
-#include "Messaging.h"
 #include "SessionServices.h"
 #include "ProfilerService.h"
+
 
 /* Interfaces
  *****************************************************************************/

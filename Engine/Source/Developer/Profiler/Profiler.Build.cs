@@ -8,8 +8,7 @@ public class Profiler : ModuleRules
 	{
 		PrivateIncludePaths.AddRange
 		(
-			new string[] 
-			{
+			new string[] {
 				"Developer/Profiler/Private",
 				"Developer/Profiler/Private/Widgets",
 			}
@@ -17,25 +16,28 @@ public class Profiler : ModuleRules
 
 		PublicDependencyModuleNames.AddRange
 		(
-			 new string[]
-			{
+			new string[] {
 				"Core",
                 "InputCore",
 				"RHI",
 				"RenderCore",
 				"Slate",
                 "EditorStyle",
-				"Messaging",
-				"SessionServices",
 				"ProfilerClient",
 				"DesktopPlatform",
 			}
 		);
 
+		PrivateIncludePathModuleNames.AddRange(
+			new string[] {
+				"Messaging",
+				"SessionServices",
+			}
+		);
+
 		PublicIncludePaths.AddRange
 		(
-			new string[]
-			{
+			new string[] {
 				"Developer/Profiler/Public",
 				"Developer/Profiler/Public/Interfaces",
 			}

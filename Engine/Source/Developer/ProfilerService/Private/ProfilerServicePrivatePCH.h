@@ -11,6 +11,7 @@
  *****************************************************************************/
 
 #include "Engine.h"
+#include "Messaging.h"
 #include "ProfilerMessages.h"
 #include "Ticker.h"
 #include "StatsData.h"
