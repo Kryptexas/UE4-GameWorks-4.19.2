@@ -90,14 +90,14 @@ void SDocumentationToolTip::ConstructSimpleTipContent()
 			}
 
 			VerticalBox->AddSlot()
-				.AutoHeight()
-				.HAlign( HAlign_Right )
-				[
-					SNew( STextBlock )
-					.ColorAndOpacity( FSlateColor::UseSubduedForeground() )
-					.Text( DocumentationLink + OptionalExcerptName )
-					.TextStyle( &StyleInfo )
-				];
+			.AutoHeight()
+			.HAlign( HAlign_Right )
+			[
+				SNew( STextBlock )
+				.ColorAndOpacity( FSlateColor::UseSubduedForeground() )
+				.Text( DocumentationLink + OptionalExcerptName )
+				.TextStyle( &StyleInfo )
+			];
 		}
 
 		if ( !DocumentationPage.IsValid() )
@@ -118,33 +118,33 @@ void SDocumentationToolTip::ConstructSimpleTipContent()
 #endif
 
 			VerticalBox->AddSlot()
-				.AutoHeight()
-				.HAlign( HAlign_Right )
-				[
-					SNew( STextBlock )
-					.ColorAndOpacity( FSlateColor::UseSubduedForeground() )
-					.Text( FText::Format( NSLOCTEXT( "SToolTip", "AdvancedToolTipMessage", "hold {0} for more" ), KeyboardShortcut) )
-					.TextStyle( &StyleInfo )
-				];
+			.AutoHeight()
+			.HAlign( HAlign_Right )
+			[
+				SNew( STextBlock )
+				.ColorAndOpacity( FSlateColor::UseSubduedForeground() )
+				.Text( FText::Format( NSLOCTEXT( "SToolTip", "AdvancedToolTipMessage", "hold {0} for more" ), KeyboardShortcut) )
+				.TextStyle( &StyleInfo )
+			];
 		}
 		else
 		{
 			if ( GEditor->EditorUserSettings->bDisplayDocumentationLink && FSlateApplication::Get().SupportsSourceAccess() )
 			{
-				FString DocPath = FDocumentationLink::ToSourcePath( DocumentationLink, true );
-				if ( DocPath.IsEmpty() )
+				FString DocPath = FDocumentationLink::ToSourcePath( DocumentationLink, FInternationalization::GetCurrentCulture() );
+				if ( !FPaths::FileExists(DocPath) )
 				{
-					DocPath = FPaths::ConvertRelativePathToFull( FDocumentationLink::ToSourcePath( DocumentationLink, false ) );
+					DocPath = FPaths::ConvertRelativePathToFull(DocPath);
 				}
 
 				VerticalBox->AddSlot()
-					.AutoHeight()
-					.HAlign( HAlign_Right )
-					[
-						SNew( SHyperlink )
-						.Text( NSLOCTEXT( "SToolTip", "EditDocumentationMessage_Create", "create" ) )
-						.OnNavigate( this, &SDocumentationToolTip::CreateExcerpt, DocPath, ExcerptName )
-					];
+				.AutoHeight()
+				.HAlign( HAlign_Right )
+				[
+					SNew( SHyperlink )
+					.Text( NSLOCTEXT( "SToolTip", "EditDocumentationMessage_Create", "create" ) )
+					.OnNavigate( this, &SDocumentationToolTip::CreateExcerpt, DocPath, ExcerptName )
+				];
 			}
 		}
 	}
@@ -283,7 +283,7 @@ void SDocumentationToolTip::ConstructFullTipContent()
 				[
 					SNew( SHyperlink )
 						.Text( NSLOCTEXT( "SToolTip", "EditDocumentationMessage_Edit", "edit" ) )
-						.OnNavigate_Static( &Local::EditSource, FPaths::ConvertRelativePathToFull( FDocumentationLink::ToSourcePath( DocumentationLink ) ) + TEXT("|") + FString::FromInt( Excerpts[ ExcerptIndex ].LineNumber ) )
+						.OnNavigate_Static(&Local::EditSource, FPaths::ConvertRelativePathToFull(FDocumentationLink::ToSourcePath(DocumentationLink, FInternationalization::GetCurrentCulture())) + TEXT("|") + FString::FromInt(Excerpts[ExcerptIndex].LineNumber))
 				];
 			}
 		}

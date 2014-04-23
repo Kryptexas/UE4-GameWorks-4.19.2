@@ -20,44 +20,115 @@ public:
 
 	static FString GetHomeUrl()
 	{
+		return GetHomeUrl(FInternationalization::GetCurrentCulture());
+	}
+
+	static FString GetHomeUrl(const TSharedRef<FCulture>& Culture)
+	{
 		FString Url;
 		FUnrealEdMisc::Get().GetURL( TEXT("UDNURL"), Url, true );
 
-		Url.ReplaceInline( TEXT( "/INT/" ), *FString::Printf( TEXT( "/%s/" ), *(FInternationalization::GetCurrentCulture()->GetUnrealLegacyThreeLetterISOLanguageName()) ) );
+		Url.ReplaceInline(TEXT("/INT/"), *FString::Printf(TEXT("/%s/"), *(Culture->GetUnrealLegacyThreeLetterISOLanguageName())));
 		return Url;
 	}
 
-	static FString ToUrl( const FString& Link )
+	static FString ToUrl(const FString& Link)
+	{
+		return ToUrl(Link, FInternationalization::GetCurrentCulture());
+	}
+
+	static FString ToUrl(const FString& Link, const TSharedRef<FCulture>& Culture)
 	{
 		FString Path;
 		FString Anchor;
 		SplitLink( Link, Path, Anchor );
 
-		const FString PartialPath = FString::Printf( TEXT( "%s%s/index.html" ), *(FInternationalization::GetCurrentCulture()->GetUnrealLegacyThreeLetterISOLanguageName()), *Path );
+		const FString PartialPath = FString::Printf(TEXT("%s%s/index.html"), *(Culture->GetUnrealLegacyThreeLetterISOLanguageName()), *Path);
 		
 		return GetUrlRoot() + PartialPath + Anchor;
 	}
 
 	static FString ToFilePath( const FString& Link )
 	{
+		FString FilePath = ToFilePath(Link, FInternationalization::GetCurrentCulture());
+
+		if (!FPaths::FileExists(FilePath))
+		{
+			const TSharedPtr<FCulture> FallbackCulture = FInternationalization::GetCulture(TEXT("en"));
+			if (FallbackCulture.IsValid())
+			{
+				const FString FallbackFilePath = ToFilePath(Link, FallbackCulture.ToSharedRef());
+				if (FPaths::FileExists(FallbackFilePath))
+				{
+					FilePath = FallbackFilePath;
+				}
+			}
+		}
+
+		return FilePath;
+	}
+
+	static FString ToFilePath(const FString& Link, const TSharedRef<FCulture>& Culture)
+	{
 		FString Path;
 		FString Anchor;
-		SplitLink( Link, Path, Anchor );
+		SplitLink(Link, Path, Anchor);
 
-		const FString PartialPath = FString::Printf( TEXT( "%s%s/index.html" ), *(FInternationalization::GetCurrentCulture()->GetUnrealLegacyThreeLetterISOLanguageName()), *Path );
-		return FString::Printf( TEXT( "%sDocumentation/HTML/%s" ), *FPaths::ConvertRelativePathToFull( FPaths::EngineDir() ), *PartialPath );
+		const FString PartialPath = FString::Printf(TEXT("%s%s/index.html"), *(Culture->GetUnrealLegacyThreeLetterISOLanguageName()), *Path);
+		return FString::Printf(TEXT("%sDocumentation/HTML/%s"), *FPaths::ConvertRelativePathToFull(FPaths::EngineDir()), *PartialPath);
 	}
 
 	static FString ToFileUrl( const FString& Link )
 	{
-		FString Path;
-		FString Anchor;
-		SplitLink( Link, Path, Anchor );
+		TSharedRef<FCulture> Culture = FInternationalization::GetCurrentCulture();
+		FString FilePath = ToFilePath(Link, Culture);
 
-		return FString::Printf( TEXT( "file:///%s%s" ), *ToFilePath( Link ), *Anchor );
+		if (!FPaths::FileExists(FilePath))
+		{
+			const TSharedPtr<FCulture> FallbackCulture = FInternationalization::GetCulture(TEXT("en"));
+			if (FallbackCulture.IsValid())
+			{
+				const FString FallbackFilePath = ToFilePath(Link, FallbackCulture.ToSharedRef());
+				if (FPaths::FileExists(FallbackFilePath))
+				{
+					Culture = FallbackCulture.ToSharedRef();
+				}
+			}
+		}
+
+		return ToFileUrl(Link, Culture);
 	}
 
-	static FString ToSourcePath( const FString& Link, bool MustExist = true )
+	static FString ToFileUrl(const FString& Link, const TSharedRef<FCulture>& Culture)
+	{
+		FString Path;
+		FString Anchor;
+		SplitLink(Link, Path, Anchor);
+
+		return FString::Printf(TEXT("file:///%s%s"), *ToFilePath(Link, Culture), *Anchor);
+	}
+
+	static FString ToSourcePath(const FString& Link)
+	{
+		FString SourcePath = ToSourcePath(Link, FInternationalization::GetCurrentCulture());
+
+		if (!FPaths::FileExists(SourcePath))
+		{
+			const TSharedPtr<FCulture> FallbackCulture = FInternationalization::GetCulture(TEXT("en"));
+			if (FallbackCulture.IsValid())
+			{
+				const FString FallbackSourcePath = ToSourcePath(Link, FallbackCulture.ToSharedRef());
+				if (FPaths::FileExists(FallbackSourcePath))
+				{
+					SourcePath = FallbackSourcePath;
+				}
+			}
+		}
+
+		return SourcePath;
+	}
+
+	static FString ToSourcePath(const FString& Link, const TSharedRef<FCulture>& Culture)
 	{
 		FString Path;
 		FString Anchor;
@@ -65,25 +136,19 @@ public:
 
 		const FString FullDirectoryPath = FPaths::EngineDir() + TEXT( "Documentation/Source" ) + Path + "/";
 
-		if ( MustExist )
+		const FString WildCard = FString::Printf(TEXT("%s*.%s.udn"), *FullDirectoryPath, *(Culture->GetUnrealLegacyThreeLetterISOLanguageName()));
+
+		TArray<FString> Filenames;
+		IFileManager::Get().FindFiles(Filenames, *WildCard, true, false);
+
+		if (Filenames.Num() > 0)
 		{
-			const FString WildCard = FString::Printf( TEXT( "%s*.%s.udn" ), *FullDirectoryPath, *( FInternationalization::GetCurrentCulture()->GetUnrealLegacyThreeLetterISOLanguageName() ) );
-
-			TArray<FString> Filenames;
-			IFileManager::Get().FindFiles( Filenames, *WildCard, true, false );
-
-			if ( Filenames.Num() > 0 )
-			{
-				return FullDirectoryPath + Filenames[0];
-			}
-
-			return FString();
+			return FullDirectoryPath + Filenames[0];
 		}
-		else
-		{
-			FString Category = FPaths::GetBaseFilename( Link );
-			return FString::Printf( TEXT( "%s%s.%s.udn" ), *FullDirectoryPath, *Category, *( FInternationalization::GetCurrentCulture()->GetUnrealLegacyThreeLetterISOLanguageName() ) );
-		}
+
+		// Since the source file doesn't exist already make up a valid name for a new one
+		FString Category = FPaths::GetBaseFilename(Link);
+		return FString::Printf(TEXT("%s%s.%s.udn"), *FullDirectoryPath, *Category, *(Culture->GetUnrealLegacyThreeLetterISOLanguageName()));
 	}
 
 	static void SplitLink( const FString& Link, /*OUT*/ FString& Path, /*OUT*/ FString& Anchor )

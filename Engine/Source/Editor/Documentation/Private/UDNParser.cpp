@@ -216,8 +216,8 @@ bool FUDNParser::LoadLink( const FString& Link, TArray<FString>& ContentLines )
 	FMessageLog UDNParserLog(UDNParseErrorLog);
 
 	const FString SourcePath = FDocumentationLink::ToSourcePath( Link );
-
-	if ( SourcePath.IsEmpty() )
+	
+	if (!FPaths::FileExists(SourcePath))
 	{
 		return false;
 	}
