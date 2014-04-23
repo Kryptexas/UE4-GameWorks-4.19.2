@@ -599,6 +599,9 @@ public:
 	/** return true if it should render **/
 	bool ShouldRender() const;
 
+	/** return true if it can ever render **/
+	bool CanEverRender() const;
+
 	/** 
 	 *  Looking at various values of the component, determines if this
 	 *  component should be added to the scene

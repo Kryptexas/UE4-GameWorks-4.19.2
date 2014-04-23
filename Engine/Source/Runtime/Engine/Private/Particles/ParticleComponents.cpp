@@ -4126,7 +4126,7 @@ void UParticleSystemComponent::InitParticles()
 		if (EmitterInstances.Num() == 0)
 		{
 			const bool bDetailModeAllowsRendering	= DetailMode <= GlobalDetailMode;
-			if ( bDetailModeAllowsRendering && ( ShouldRender() ) )
+			if (bDetailModeAllowsRendering && (CanEverRender()))
 			{
 				EmitterInstances.Empty(Template->Emitters.Num());
 				for (int32 Idx = 0; Idx < Template->Emitters.Num(); Idx++)
