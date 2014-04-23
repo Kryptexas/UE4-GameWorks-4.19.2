@@ -2,34 +2,27 @@
 
 #include "../UnrealVersionSelector.h"
 #include "WindowsPlatformInstallation.h"
-#include "WindowsRegistry.h"
 #include "Runtime/Core/Public/Misc/EngineVersion.h"
 #include "AllowWindowsPlatformTypes.h"
+#include "Resources/Resource.h"
+#include <CommCtrl.h>
 #include <Shlwapi.h>
 #include <Shellapi.h>
+
+const TCHAR *InstallationsSubKey = TEXT("SOFTWARE\\Epic Games\\Unreal Engine\\Builds");
 
 struct FEngineLabelSortPredicate
 {
 	bool operator()(const FString &A, const FString &B) const
 	{
-		// Return true if A < B
-		int32 VerA = ParseReleaseVersion(A);
-		int32 VerB = ParseReleaseVersion(B);
-		if (VerA == VerB)
-		{
-			return StrCmpLogicalW(*A, *B) < 0;
-		}
-		else
-		{
-			return VerA > VerB;
-		}
+		return FDesktopPlatformModule::Get()->IsPreferredEngineIdentifier(A, B);
 	}
 };
 
 FString GetInstallationDescription(const FString &Id, const FString &RootDir)
 {
 	// Official release versions just have a version number
-	if (Id.Len() > 0 && Id[0] != '{')
+	if (Id.Len() > 0 && FChar::IsDigit(Id[0]))
 	{
 		return Id;
 	}
@@ -39,174 +32,141 @@ FString GetInstallationDescription(const FString &Id, const FString &RootDir)
 	FPaths::MakePlatformFilename(PlatformRootDir);
 
 	// Perforce build
-	if (FPlatformInstallation::IsSourceDistribution(RootDir))
+	if (FDesktopPlatformModule::Get()->IsSourceDistribution(RootDir))
 	{
-		if (FPlatformInstallation::IsPerforceBuild(RootDir))
-		{
-			return FString::Printf(TEXT("Perforce build at %s"), *PlatformRootDir);
-		}
-		else
-		{
-			return FString::Printf(TEXT("GitHub build at %s"), *PlatformRootDir);
-		}
+		return FString::Printf(TEXT("Source build at %s"), *PlatformRootDir);
 	}
 	else
 	{
-		return FString::Printf(TEXT("%s"), *PlatformRootDir);
+		return FString::Printf(TEXT("Binary build at %s"), *PlatformRootDir);
 	}
 }
 
-void GetRequiredRegistrySettings(TIndirectArray<FRegistryRootedKey> &RootedKeys)
+struct FSelectBuildDialog
 {
-	// Get the path to the executable
-	FString ExecutableFileName = FString(FPlatformProcess::BaseDir()) / FString(FPlatformProcess::ExecutableName(false));
-	FPaths::MakePlatformFilename(ExecutableFileName);
-	FString QuotedExecutableFileName = FString(TEXT("\"")) + ExecutableFileName + FString(TEXT("\""));
-
-	// HKLM\SOFTWARE\Classes\.uproject
-	FRegistryRootedKey *RootExtensionKey = new FRegistryRootedKey(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\Classes\\.uproject"));
-	RootExtensionKey->Key = new FRegistryKey();
-	RootExtensionKey->Key->SetValue(TEXT(""), TEXT("Unreal.ProjectFile"));
-	RootedKeys.AddRawItem(RootExtensionKey);
-
-	// HKLM\SOFTWARE\Classes\Unreal.ProjectFile
-	FRegistryRootedKey *RootFileTypeKey = new FRegistryRootedKey(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\Classes\\Unreal.ProjectFile"));
-	RootFileTypeKey->Key = new FRegistryKey();
-	RootFileTypeKey->Key->SetValue(TEXT(""), TEXT("Unreal Engine Project File"));
-	RootFileTypeKey->Key->FindOrAddKey(L"DefaultIcon")->SetValue(TEXT(""), QuotedExecutableFileName);
-	RootedKeys.AddRawItem(RootFileTypeKey);
-
-	// HKLM\SOFTWARE\Classes\Unreal.ProjectFile\shell
-	FRegistryKey *ShellKey = RootFileTypeKey->Key->FindOrAddKey(TEXT("shell"));
-
-	// HKLM\SOFTWARE\Classes\Unreal.ProjectFile\shell\open
-	FRegistryKey *ShellOpenKey = ShellKey->FindOrAddKey(TEXT("open"));
-	ShellOpenKey->SetValue(L"", L"Open");
-	ShellOpenKey->FindOrAddKey(L"command")->SetValue(L"", QuotedExecutableFileName + FString(TEXT(" /editor \"%1\"")));
-
-	// HKLM\SOFTWARE\Classes\Unreal.ProjectFile\shell\run
-	FRegistryKey *ShellRunKey = ShellKey->FindOrAddKey(TEXT("run"));
-	ShellRunKey->SetValue(TEXT(""), TEXT("Launch game"));
-	ShellRunKey->SetValue(TEXT("Icon"), QuotedExecutableFileName);
-	ShellRunKey->FindOrAddKey(L"command")->SetValue(TEXT(""), QuotedExecutableFileName + FString(TEXT(" /game \"%1\"")));
-
-	// HKLM\SOFTWARE\Classes\Unreal.ProjectFile\shell\rungenproj
-	FRegistryKey *ShellProjectKey = ShellKey->FindOrAddKey(TEXT("rungenproj"));
-	ShellProjectKey->SetValue(L"", L"Generate Visual Studio project files");
-	ShellProjectKey->SetValue(L"Icon", QuotedExecutableFileName);
-	ShellProjectKey->FindOrAddKey(L"command")->SetValue(TEXT(""), QuotedExecutableFileName + FString(TEXT(" /projectfiles \"%1\"")));
-
-	// HKLM\SOFTWARE\Classes\Unreal.ProjectFile\shell\switchversion
-	FRegistryKey *ShellVersionKey = ShellKey->FindOrAddKey(TEXT("switchversion"));
-	ShellVersionKey->SetValue(TEXT(""), TEXT("Switch engine version"));
-	ShellVersionKey->SetValue(TEXT("ExtendedSubCommandsKey"), TEXT("Unreal.ProjectFile\\switchversion"));
-	ShellVersionKey->SetValue(TEXT("Icon"), QuotedExecutableFileName);
-	ShellVersionKey->SetValue(TEXT("MUIVerb"), TEXT("Switch Unreal Engine version"));
-
-	// HKLM\SOFTWARE\Classes\Unreal.ProjectFile\switchversion
-	FRegistryKey *SwitchKey = RootFileTypeKey->Key->FindOrAddKey(TEXT("switchversion"));
-
-	// HKLM\SOFTWARE\Classes\Unreal.ProjectFile\switchversion\shell
-	FRegistryKey *SwitchShellKey = SwitchKey->FindOrAddKey(TEXT("shell"));
-
-	// HKLM\SOFTWARE\Classes\Unreal.ProjectFile\switchversion\shell\<Label>
+	FString Identifier;
+	TArray<FString> SortedIdentifiers;
 	TMap<FString, FString> Installations;
-	FDesktopPlatformModule::Get()->EnumerateEngineInstallations(Installations);
 
-	if (Installations.Num() > 0)
+	FSelectBuildDialog(const FString &InIdentifier)
 	{
-		// Add the default option
-		FRegistryKey *DefaultKey = SwitchShellKey->FindOrAddKey(L"000");
-		DefaultKey->SetValue(L"MUIVerb", L"Default");
-		DefaultKey->FindOrAddKey(L"command")->SetValue(L"", QuotedExecutableFileName + FString(TEXT(" /associate \"%1\" \"\"")));
+		Identifier = InIdentifier;
+	}
 
-		// Build a list of installation names
-		TMap<FString, FString> InstallationNames;
-		for (TMap<FString, FString>::TConstIterator Iter(Installations); Iter; ++Iter)
+	bool DoModal(HWND hWndParent)
+	{
+		return DialogBoxParam(GetModuleHandle(NULL), MAKEINTRESOURCE(IDD_SELECTBUILD), hWndParent, &DialogProc, (LPARAM)this) != FALSE;
+	}
+
+private:
+	static INT_PTR CALLBACK DialogProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
+	{
+		FSelectBuildDialog *Dialog = (FSelectBuildDialog*)GetWindowLongPtr(hWnd, GWLP_USERDATA);
+
+		switch (Msg)
 		{
-			const FString &Id = Iter->Key;
-			FString Description = GetInstallationDescription(Id, Iter.Value());
-			InstallationNames.Add(Description, Id);
-		}
-		InstallationNames.KeySort(FEngineLabelSortPredicate());
+		case WM_INITDIALOG:
+			Dialog = (FSelectBuildDialog*)lParam;
+			SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)Dialog);
+			Dialog->UpdateInstallations(hWnd);
+			return false;
+		case WM_COMMAND:
+			switch (LOWORD(wParam))
+			{
+			case IDC_BROWSE:
+				if (Dialog->Browse(hWnd))
+				{
+					EndDialog(hWnd, 1);
+				}
+				return false;
+			case IDOK:
+				Dialog->StoreSelection(hWnd);
+				EndDialog(hWnd, 1);
+				return false;
+			case IDCANCEL:
+				EndDialog(hWnd, 0);
+				return false;
+			}
 
-		// Add the installation options
-		INT Idx = 1;
-		for (TMap<FString, FString>::TConstIterator Iter(InstallationNames); Iter; ++Iter)
+		}
+		return FALSE;
+	}
+
+	void StoreSelection(HWND hWnd)
+	{
+		int32 Idx = SendDlgItemMessage(hWnd, IDC_BUILDLIST, CB_GETCURSEL, 0, 0);
+		Identifier = SortedIdentifiers.IsValidIndex(Idx) ? SortedIdentifiers[Idx] : TEXT("");
+	}
+
+	void UpdateInstallations(HWND hWnd)
+	{
+		FDesktopPlatformModule::Get()->EnumerateEngineInstallations(Installations);
+		Installations.GetKeys(SortedIdentifiers);
+		SortedIdentifiers.Sort<FEngineLabelSortPredicate>(FEngineLabelSortPredicate());
+
+		SendDlgItemMessage(hWnd, IDC_BUILDLIST, CB_RESETCONTENT, 0, 0);
+
+		for(int32 Idx =  0; Idx < SortedIdentifiers.Num(); Idx++)
 		{
-			wchar_t KeyName[100];
-			wsprintf(KeyName, L"%03d", Idx);
-
-			FRegistryKey *VersionKey = SwitchShellKey->FindOrAddKey(KeyName);
-			VersionKey->SetValue(TEXT("MUIVerb"), Iter.Key());
-			VersionKey->FindOrAddKey(TEXT("command"))->SetValue(TEXT(""), QuotedExecutableFileName + FString::Printf(TEXT(" /associate \"%%1\" \"%s\""), *Iter.Value()));
-			if(Idx++ == 1) VersionKey->SetValue(L"CommandFlags", 0x20);
+			const FString &Identifier = SortedIdentifiers[Idx];
+			FString Description = GetInstallationDescription(Identifier, Installations[Identifier]);
+			SendDlgItemMessage(hWnd, IDC_BUILDLIST, CB_ADDSTRING, 0, (LPARAM)*Description);
 		}
+
+		int32 NewIdx = SortedIdentifiers.IndexOfByKey(Identifier);
+		SendDlgItemMessage(hWnd, IDC_BUILDLIST, CB_SETCURSEL, NewIdx, 0);
 	}
 
-	// HKLM\SOFTWARE\Classes\Unreal.ProjectFile\switchversion\shell\browse
-	FRegistryKey *BrowseShellKey = SwitchShellKey->FindOrAddKey(TEXT("browse"));
-	BrowseShellKey->SetValue(TEXT("MUIVerb"), TEXT("Browse..."));
-	BrowseShellKey->FindOrAddKey(TEXT("command"))->SetValue(L"", QuotedExecutableFileName + FString(TEXT(" /browse \"%1\"")));
-	if (Installations.Num() > 0)
+	bool Browse(HWND hWnd)
 	{
-		BrowseShellKey->SetValue(TEXT("CommandFlags"), 0x20);
-	}
-}
+		// Get the currently bound engine directory for the project
+		const FString *RootDir = Installations.Find(Identifier);
+		FString EngineRootDir = (RootDir != NULL)? *RootDir : FString();
 
-bool FWindowsPlatformInstallation::GetLauncherVersionSelector(FString &OutFileName)
-{
-	// Get the launcher installed path
-	TCHAR InstallDir[MAX_PATH];
-	DWORD InstallDirLen = sizeof(InstallDir);
-	if (RegGetValue(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\EpicGames\\Unreal Engine"), TEXT("INSTALLDIR"), RRF_RT_REG_SZ, NULL, InstallDir, &InstallDirLen) != ERROR_SUCCESS)
-	{
-		return false;
-	}
+		// Browse for a new directory
+		FString NewEngineRootDir;
+		if (!FDesktopPlatformModule::Get()->OpenDirectoryDialog(hWnd, TEXT("Select the Unreal Engine installation to use for this project"), EngineRootDir, NewEngineRootDir))
+		{
+			return false;
+		}
 
-	// Normalize the directory
-	FString NormalizedInstallDir = InstallDir;
-	FPaths::NormalizeDirectoryName(NormalizedInstallDir);
+		// Check it's a valid directory
+		if (!FPlatformInstallation::NormalizeEngineRootDir(NewEngineRootDir))
+		{
+			FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, TEXT("The selected directory is not a valid engine installation."), TEXT("Error"));
+			return false;
+		}
 
-	// Check the version selector executable exists
-	FString LauncherFileName = NormalizedInstallDir / TEXT("Launcher/Engine/Binaries/Win64/UnrealVersionSelector.exe");
-	if (IFileManager::Get().FileSize(*LauncherFileName) < 0)
-	{
-		return false;
-	}
+		// Check that it's a registered engine directory
+		FString NewIdentifier;
+		if (!FDesktopPlatformModule::Get()->GetEngineIdentifierFromRootDir(NewEngineRootDir, NewIdentifier))
+		{
+			if(!FPlatformInstallation::RegisterEngineInstallation(NewEngineRootDir, NewIdentifier))
+			{
+				FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, TEXT("Couldn't register engine installation."), TEXT("Error"));
+				return false;
+			}
+		}
 
-	OutFileName = LauncherFileName;
-	return true;
-}
-
-bool FWindowsPlatformInstallation::RegisterEngineInstallation(const FString &Id, const FString &RootDirName)
-{
-	FString NormalizedRootDirName = RootDirName;
-	FPaths::NormalizeDirectoryName(NormalizedRootDirName);
-
-	FRegistryRootedKey RootKey(HKEY_LOCAL_MACHINE, FString::Printf(TEXT("SOFTWARE\\EpicGames\\Unreal Engine\\%s"), *Id));
-	RootKey.Key = new FRegistryKey();
-	RootKey.Key->SetValue(TEXT("InstalledDirectory"), NormalizedRootDirName);
-	return RootKey.Write(false);
-}
-
-bool FWindowsPlatformInstallation::UnregisterEngineInstallation(const FString &Id)
-{
-	FRegistryRootedKey RootKey(HKEY_LOCAL_MACHINE, FString::Printf(TEXT("SOFTWARE\\EpicGames\\Unreal Engine\\%s"), *Id));
-	return RootKey.Write(true);
-}
-
-bool FWindowsPlatformInstallation::IsSourceDistribution(const FString &EngineRootDir)
-{
-	// Check for the existence of a GenerateProjectFiles.bat file. This allows compatibility with the GitHub 4.0 release.
-	FString GenerateProjectFilesPath = EngineRootDir / TEXT("GenerateProjectFiles.bat");
-	if (IFileManager::Get().FileSize(*GenerateProjectFilesPath) >= 0)
-	{
+		// Update the identifier and return
+		Identifier = NewIdentifier;
 		return true;
 	}
+};
 
-	// Otherwise use the default test
-	return FGenericPlatformInstallation::IsSourceDistribution(EngineRootDir);
+bool FWindowsPlatformInstallation::RegisterEngineInstallation(const FString &RootDirName, FString &OutIdentifier)
+{
+	OutIdentifier = FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphensInBraces);
+
+	HKEY hRootKey;
+	if(RegCreateKeyEx(HKEY_CURRENT_USER, InstallationsSubKey, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &hRootKey, NULL) != ERROR_SUCCESS)
+	{
+		return false;
+	}
+
+	LRESULT SetResult = RegSetValueEx(hRootKey, *OutIdentifier, 0, REG_SZ, (const BYTE*)*RootDirName, (RootDirName.Len() + 1) * sizeof(TCHAR));
+	RegCloseKey(hRootKey);
+	return SetResult == ERROR_SUCCESS;
 }
 
 bool FWindowsPlatformInstallation::LaunchEditor(const FString &RootDirName, const FString &Arguments)
@@ -217,39 +177,43 @@ bool FWindowsPlatformInstallation::LaunchEditor(const FString &RootDirName, cons
 
 bool FWindowsPlatformInstallation::GenerateProjectFiles(const FString &RootDirName, const FString &Arguments)
 {
-	FString AllArguments = FString::Printf(TEXT("/c \"\"%s\" %s\""), *(RootDirName / TEXT("Engine/Build/BatchFiles/GenerateProjectFiles.bat")), *Arguments);
-	return FPlatformProcess::ExecProcess(TEXT("cmd.exe"), *AllArguments, NULL, NULL, NULL);
-}
-
-bool FWindowsPlatformInstallation::VerifyShellIntegration()
-{
-	TIndirectArray<FRegistryRootedKey> Keys;
-	GetRequiredRegistrySettings(Keys);
-
-	for (int32 Idx = 0; Idx < Keys.Num(); Idx++)
+	// Get the path to the batch file
+	FString BatchFileName;
+	if (FDesktopPlatformModule::Get()->IsSourceDistribution(RootDirName))
 	{
-		if (!Keys[Idx].IsUpToDate(true))
-		{
-			return false;
-		}
+		BatchFileName = RootDirName / TEXT("Engine/Build/BatchFiles/GenerateProjectFiles.bat");
+	}
+	else
+	{
+		BatchFileName = RootDirName / TEXT("Engine/Build/BatchFiles/RocketGenerateProjectFiles.bat");
 	}
 
+	// Check it exists
+	if (IFileManager::Get().FileSize(*BatchFileName) < 0)
+	{
+		return false;
+	}
+
+	// Build the full argument list
+	FString AllArguments = FString::Printf(TEXT("/c \"\"%s\" %s\""), *BatchFileName, *Arguments);
+
+	// Run the batch file through cmd.exe. 
+	FProcHandle Handle = FPlatformProcess::CreateProc(TEXT("cmd.exe"), *AllArguments, false, false, false, NULL, 0, NULL, NULL);
+	if (!Handle.IsValid()) return false;
+
+	FPlatformProcess::WaitForProc(Handle);
 	return true;
 }
 
-bool FWindowsPlatformInstallation::UpdateShellIntegration()
+bool FWindowsPlatformInstallation::SelectEngineInstallation(FString &Identifier)
 {
-	TIndirectArray<FRegistryRootedKey> Keys;
-	GetRequiredRegistrySettings(Keys);
-
-	for (int32 Idx = 0; Idx < Keys.Num(); Idx++)
+	FSelectBuildDialog Dialog(Identifier);
+	if(!Dialog.DoModal(NULL))
 	{
-		if (!Keys[Idx].Write(true))
-		{
-			return false;
-		}
+		return false;
 	}
 
+	Identifier = Dialog.Identifier;
 	return true;
 }
 

@@ -16,6 +16,9 @@ public:
 
 	virtual void EnumerateEngineInstallations(TMap<FString, FString> &OutInstallations) OVERRIDE;
 
+	virtual bool VerifyFileAssociations() OVERRIDE;
+	virtual bool UpdateFileAssociations() OVERRIDE;
+
 private:
 	bool FileDialogShared(bool bSave, const void* ParentWindowHandle, const FString& DialogTitle, const FString& DefaultPath, const FString& DefaultFile, const FString& FileTypes, uint32 Flags, TArray<FString>& OutFilenames);
 };

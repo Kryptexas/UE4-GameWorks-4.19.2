@@ -3,6 +3,7 @@
 #pragma once
 
 #include "../DesktopPlatformBase.h"
+#include "WindowsRegistry.h"
 
 class FDesktopPlatformWindows : public FDesktopPlatformBase
 {
@@ -16,8 +17,15 @@ public:
 
 	virtual void EnumerateEngineInstallations(TMap<FString, FString> &OutInstallations) OVERRIDE;
 
+	virtual bool IsSourceDistribution(const FString &RootDir) OVERRIDE;
+
+	virtual bool VerifyFileAssociations() OVERRIDE;
+	virtual bool UpdateFileAssociations() OVERRIDE;
+
 private:
 	bool FileDialogShared(bool bSave, const void* ParentWindowHandle, const FString& DialogTitle, const FString& DefaultPath, const FString& DefaultFile, const FString& FileTypes, uint32 Flags, TArray<FString>& OutFilenames);
+	void GetRequiredRegistrySettings(TIndirectArray<FRegistryRootedKey> &RootedKeys);
+	int32 GetShellIntegrationVersion(const FString &FileName);
 };
 
 typedef FDesktopPlatformWindows FDesktopPlatform;

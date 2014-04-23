@@ -347,27 +347,189 @@ bool FDesktopPlatformWindows::FileDialogShared(bool bSave, const void* ParentWin
 
 void FDesktopPlatformWindows::EnumerateEngineInstallations(TMap<FString, FString> &OutInstallations)
 {
+	// Enumerate the binary installations
+	EnumerateLauncherEngineInstallations(OutInstallations);
+
+	// Enumerate the per-user installations
 	HKEY hKey;
-	if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\EpicGames\\Unreal Engine"), 0, KEY_READ, &hKey) == ERROR_SUCCESS)
+	if (RegOpenKeyEx(HKEY_CURRENT_USER, TEXT("SOFTWARE\\Epic Games\\Unreal Engine\\Builds"), 0, KEY_ALL_ACCESS, &hKey) == ERROR_SUCCESS)
 	{
+		// Enumerate all the installations
 		for (::DWORD Index = 0;; Index++)
 		{
-			TCHAR KeyName[256];
-			::DWORD KeyLength = sizeof(KeyName) / sizeof(KeyName[0]);
-			if (RegEnumKeyEx(hKey, Index, KeyName, &KeyLength, NULL, NULL, NULL, NULL) != ERROR_SUCCESS) break;
+			TCHAR ValueName[256];
+			TCHAR ValueData[MAX_PATH];
+			::DWORD ValueType = 0;
+			::DWORD ValueNameLength = sizeof(ValueName) / sizeof(ValueName[0]);
+			::DWORD ValueDataSize = sizeof(ValueData);
 
-			TCHAR InstalledDirectory[MAX_PATH];
-			::DWORD InstalledDirectoryLen = sizeof(InstalledDirectory) / sizeof(InstalledDirectory[0]);
-
-			if (RegGetValue(hKey, KeyName, TEXT("InstalledDirectory"), RRF_RT_REG_SZ, NULL, InstalledDirectory, &InstalledDirectoryLen) == ERROR_SUCCESS)
+			LRESULT Result = RegEnumValue(hKey, Index, ValueName, &ValueNameLength, NULL, &ValueType, (BYTE*)&ValueData[0], &ValueDataSize);
+			if(Result == ERROR_SUCCESS)
 			{
-				FString NormalizedInstalledDirectory = InstalledDirectory;
+				int32 ValueDataLength = ValueDataSize / sizeof(TCHAR);
+				if(ValueDataLength > 0 && ValueData[ValueDataLength - 1] == 0) ValueDataLength--;
+
+				FString NormalizedInstalledDirectory(ValueDataLength, ValueData);
 				FPaths::NormalizeDirectoryName(NormalizedInstalledDirectory);
-				OutInstallations.Add(KeyName, NormalizedInstalledDirectory);
+				OutInstallations.Add(ValueName, NormalizedInstalledDirectory);
+			}
+			else if(Result == ERROR_NO_MORE_ITEMS)
+			{
+				break;
 			}
 		}
+
+		// Trim the list to everything that's valid
+		for(TMap<FString, FString>::TIterator Iter(OutInstallations); Iter; ++Iter)
+		{
+			if (!IsValidRootDirectory(Iter.Value()))
+			{
+				RegDeleteValue(hKey, *Iter.Key());
+				Iter.RemoveCurrent();
+			}
+		}
+
 		RegCloseKey(hKey);
 	}
+}
+
+bool FDesktopPlatformWindows::IsSourceDistribution(const FString &RootDir)
+{
+	// Check for the existence of a GenerateProjectFiles.bat file. This allows compatibility with the GitHub 4.0 release.
+	FString GenerateProjectFilesPath = RootDir / TEXT("GenerateProjectFiles.bat");
+	if (IFileManager::Get().FileSize(*GenerateProjectFilesPath) >= 0)
+	{
+		return true;
+	}
+
+	// Otherwise use the default test
+	return FDesktopPlatformBase::IsSourceDistribution(RootDir);
+}
+
+bool FDesktopPlatformWindows::VerifyFileAssociations()
+{
+	TIndirectArray<FRegistryRootedKey> Keys;
+	GetRequiredRegistrySettings(Keys);
+
+	for (int32 Idx = 0; Idx < Keys.Num(); Idx++)
+	{
+		if (!Keys[Idx].IsUpToDate(true))
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool FDesktopPlatformWindows::UpdateFileAssociations()
+{
+	TIndirectArray<FRegistryRootedKey> Keys;
+	GetRequiredRegistrySettings(Keys);
+
+	for (int32 Idx = 0; Idx < Keys.Num(); Idx++)
+	{
+		if (!Keys[Idx].Write(true))
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+void FDesktopPlatformWindows::GetRequiredRegistrySettings(TIndirectArray<FRegistryRootedKey> &RootedKeys)
+{
+	// Get the path to VersionSelector.exe. If we're running from UnrealVersionSelector itself, try to stick with the current configuration.
+	FString DefaultVersionSelectorName = FPlatformProcess::ExecutableName(false);
+	if (!DefaultVersionSelectorName.StartsWith(TEXT("UnrealVersionSelector")))
+	{
+		DefaultVersionSelectorName = TEXT("UnrealVersionSelector-Win64-Shipping.exe");
+	}
+	FString ExecutableFileName = FString(FPlatformProcess::BaseDir()) / DefaultVersionSelectorName;
+
+	// Defer to UnrealVersionSelector.exe in a launcher installation if it's got the same version number or greater.
+	TCHAR InstallDir[MAX_PATH];
+	::DWORD InstallDirSize = sizeof(InstallDir);
+	if(RegGetValue(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\EpicGames\\Unreal Engine"), TEXT("INSTALLDIR"), RRF_RT_REG_SZ, NULL, InstallDir, &InstallDirSize) == ERROR_SUCCESS)
+	{
+		FString NormalizedInstallDir = InstallDir;
+		FPaths::NormalizeDirectoryName(NormalizedInstallDir);
+
+		FString InstalledExecutableFileName = NormalizedInstallDir / FString("Launcher/Engine/Binaries/Win64/UnrealVersionSelector-Win64-Shipping.exe");
+		if(GetShellIntegrationVersion(InstalledExecutableFileName) == GetShellIntegrationVersion(ExecutableFileName))
+		{
+			ExecutableFileName = InstalledExecutableFileName;
+		}
+	}
+
+	// Get the path to the executable
+	FPaths::MakePlatformFilename(ExecutableFileName);
+	FString QuotedExecutableFileName = FString(TEXT("\"")) + ExecutableFileName + FString(TEXT("\""));
+
+	// HKLM\SOFTWARE\Classes\.uproject
+	FRegistryRootedKey *RootExtensionKey = new FRegistryRootedKey(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\Classes\\.uproject"));
+	RootExtensionKey->Key = new FRegistryKey();
+	RootExtensionKey->Key->SetValue(TEXT(""), TEXT("Unreal.ProjectFile"));
+	RootedKeys.AddRawItem(RootExtensionKey);
+
+	// HKLM\SOFTWARE\Classes\Unreal.ProjectFile
+	FRegistryRootedKey *RootFileTypeKey = new FRegistryRootedKey(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\Classes\\Unreal.ProjectFile"));
+	RootFileTypeKey->Key = new FRegistryKey();
+	RootFileTypeKey->Key->SetValue(TEXT(""), TEXT("Unreal Engine Project File"));
+	RootFileTypeKey->Key->FindOrAddKey(L"DefaultIcon")->SetValue(TEXT(""), QuotedExecutableFileName);
+	RootedKeys.AddRawItem(RootFileTypeKey);
+
+	// HKLM\SOFTWARE\Classes\Unreal.ProjectFile\shell
+	FRegistryKey *ShellKey = RootFileTypeKey->Key->FindOrAddKey(TEXT("shell"));
+
+	// HKLM\SOFTWARE\Classes\Unreal.ProjectFile\shell\open
+	FRegistryKey *ShellOpenKey = ShellKey->FindOrAddKey(TEXT("open"));
+	ShellOpenKey->SetValue(L"", L"Open");
+	ShellOpenKey->FindOrAddKey(L"command")->SetValue(L"", QuotedExecutableFileName + FString(TEXT(" /editor \"%1\"")));
+
+	// HKLM\SOFTWARE\Classes\Unreal.ProjectFile\shell\run
+	FRegistryKey *ShellRunKey = ShellKey->FindOrAddKey(TEXT("run"));
+	ShellRunKey->SetValue(TEXT(""), TEXT("Launch game"));
+	ShellRunKey->SetValue(TEXT("Icon"), QuotedExecutableFileName);
+	ShellRunKey->FindOrAddKey(L"command")->SetValue(TEXT(""), QuotedExecutableFileName + FString(TEXT(" /game \"%1\"")));
+
+	// HKLM\SOFTWARE\Classes\Unreal.ProjectFile\shell\rungenproj
+	FRegistryKey *ShellProjectKey = ShellKey->FindOrAddKey(TEXT("rungenproj"));
+	ShellProjectKey->SetValue(L"", L"Generate Visual Studio project files");
+	ShellProjectKey->SetValue(L"Icon", QuotedExecutableFileName);
+	ShellProjectKey->FindOrAddKey(L"command")->SetValue(TEXT(""), QuotedExecutableFileName + FString(TEXT(" /projectfiles \"%1\"")));
+
+	// HKLM\SOFTWARE\Classes\Unreal.ProjectFile\shell\switchversion
+	FRegistryKey *ShellVersionKey = ShellKey->FindOrAddKey(TEXT("switchversion"));
+	ShellVersionKey->SetValue(TEXT(""), TEXT("Switch Unreal Engine version..."));
+	ShellVersionKey->SetValue(TEXT("Icon"), QuotedExecutableFileName);
+	ShellVersionKey->FindOrAddKey(L"command")->SetValue(TEXT(""), QuotedExecutableFileName + FString(TEXT(" /switchversion \"%1\"")));
+}
+
+int32 FDesktopPlatformWindows::GetShellIntegrationVersion(const FString &FileName)
+{
+	::DWORD VersionInfoSize = GetFileVersionInfoSize(*FileName, NULL);
+	if (VersionInfoSize != 0)
+	{
+		TArray<uint8> VersionInfo;
+		VersionInfo.AddUninitialized(VersionInfoSize);
+		if (GetFileVersionInfo(*FileName, NULL, VersionInfoSize, VersionInfo.GetData()))
+		{
+			TCHAR *ShellVersion;
+			::UINT ShellVersionLen;
+			if (VerQueryValue(VersionInfo.GetData(), TEXT("\\StringFileInfo\\040904b0\\ShellIntegrationVersion"), (LPVOID*)&ShellVersion, &ShellVersionLen))
+			{
+				TCHAR *ShellVersionEnd;
+				int32 Version = FCString::Strtoi(ShellVersion, &ShellVersionEnd, 10);
+				if(*ShellVersionEnd == 0)
+				{
+					return Version;
+				}
+			}
+		}
+	}
+	return 0;
 }
 
 #undef LOCTEXT_NAMESPACE

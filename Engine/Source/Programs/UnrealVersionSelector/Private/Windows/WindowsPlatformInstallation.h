@@ -7,17 +7,8 @@
 
 struct FWindowsPlatformInstallation : FGenericPlatformInstallation
 {
-	/// Get the path to the installed build of the version selector
-	static bool GetLauncherVersionSelector(FString &OutFileName);
-
 	// Register an engine installation
-	static bool RegisterEngineInstallation(const FString &Id, const FString &RootDirName);
-
-	// Unregister an engine installation
-	static bool UnregisterEngineInstallation(const FString &Id);
-
-	// Test whether a given engine root directory is a source build
-	static bool IsSourceDistribution(const FString &EngineRootDir);
+	static bool RegisterEngineInstallation(const FString &RootDirName, FString &OutIdentifier);
 
 	// Launches the editor application
 	static bool LaunchEditor(const FString &RootDirName, const FString &Arguments);
@@ -25,10 +16,7 @@ struct FWindowsPlatformInstallation : FGenericPlatformInstallation
 	// Generate project files by running UBT
 	static bool GenerateProjectFiles(const FString &RootDirName, const FString &Arguments);
 
-	// Check whether the current settings are up to date
-	static bool VerifyShellIntegration();
-
-	// Update the installation settings
-	static bool UpdateShellIntegration();
+	// Select an engine installation
+	static bool SelectEngineInstallation(FString &Identifier);
 };
 

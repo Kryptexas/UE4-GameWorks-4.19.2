@@ -2,8 +2,6 @@
 
 #pragma once
 
-#include "../UnrealVersionSelector.h"
-
 struct FRegistryValue
 {
 	uint32 Type;
