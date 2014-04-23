@@ -1782,13 +1782,14 @@ bool FBehaviorTreeEditor::CanToggleBreakpoint() const
 
 void FBehaviorTreeEditor::JumpToNode(const UEdGraphNode* Node)
 {
-	TSharedPtr<SGraphEditor> GraphEditor;
 	TSharedPtr<SDockTab> ActiveTab = DocumentManager.GetActiveTab();
-	check(ActiveTab.IsValid());
-	GraphEditor = StaticCastSharedRef<SGraphEditor>(ActiveTab->GetContent());
-	if (GraphEditor.IsValid())
+	if (ActiveTab.IsValid())
 	{
-		GraphEditor->JumpToNode(Node,false);
+		TSharedPtr<SGraphEditor> GraphEditor = StaticCastSharedRef<SGraphEditor>(ActiveTab->GetContent());
+		if (GraphEditor.IsValid())
+		{
+			GraphEditor->JumpToNode(Node, false);
+		}
 	}
 }
 
