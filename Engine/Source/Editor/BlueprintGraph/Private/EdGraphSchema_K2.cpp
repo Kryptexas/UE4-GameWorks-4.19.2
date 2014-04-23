@@ -3363,6 +3363,7 @@ struct FBackwardCompatibilityConversionHelper
 			{
 				// LINK
 				auto CastNode = NewObject<UK2Node_ClassDynamicCast>(Graph);
+				CastNode->SetFlags(RF_Transactional);
 				CastNode->TargetType = TargetClass;
 				Graph->AddNode(CastNode, false, false);
 				CastNode->CreateNewGuid();
