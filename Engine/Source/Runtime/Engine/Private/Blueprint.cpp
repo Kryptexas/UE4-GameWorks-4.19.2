@@ -395,7 +395,7 @@ void UBlueprint::PostLoad()
 		{
 			UEdGraph* const Graph = *It;
 			const UEdGraphSchema* Schema = Graph->GetSchema();
-			Schema->BackwardCompatibilityNodeConversion(Graph);
+			Schema->BackwardCompatibilityNodeConversion(Graph, true);
 		}
 	}
 

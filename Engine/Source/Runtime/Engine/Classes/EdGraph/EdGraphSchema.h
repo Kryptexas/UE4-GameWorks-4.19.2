@@ -694,5 +694,5 @@ class ENGINE_API UEdGraphSchema : public UObject
 	/* When dragging off a pin, we want to duck the alpha of some nodes */
 	virtual bool FadeNodeWhenDraggingOffPin(const UEdGraphNode* Node, const UEdGraphPin* Pin) const { return false; }
 
-	virtual void BackwardCompatibilityNodeConversion(UEdGraph* Graph) const { }
+	virtual void BackwardCompatibilityNodeConversion(UEdGraph* Graph, bool bOnlySafeChanges) const { }
 };

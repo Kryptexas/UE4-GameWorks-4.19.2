@@ -415,7 +415,7 @@ public:
 	virtual int32 GetNodeSelectionCount(const UEdGraph* Graph) const OVERRIDE;
 	virtual TSharedPtr<FEdGraphSchemaAction> GetCreateCommentAction() const OVERRIDE;
 	virtual bool FadeNodeWhenDraggingOffPin(const UEdGraphNode* Node, const UEdGraphPin* Pin) const OVERRIDE;
-	virtual void BackwardCompatibilityNodeConversion(UEdGraph* Graph) const OVERRIDE;
+	virtual void BackwardCompatibilityNodeConversion(UEdGraph* Graph, bool bOnlySafeChanges) const OVERRIDE;
 	// End EdGraphSchema Interface
 
 	// Do validation, that doesn't require a knowledge about actual pin. 
