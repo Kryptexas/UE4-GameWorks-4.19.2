@@ -6,6 +6,9 @@
 
 #pragma once
 
+#include "Class.h"
+#include "Classes.h"
+
 //
 //	FNativeClassHeaderGenerator
 //

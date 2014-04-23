@@ -7,6 +7,7 @@
 #include "NativeClassExporter.h"
 #include "ClassMaps.h"
 #include "Classes.h"
+#include "StringUtils.h"
 
 #include "UObjectAnnotation.h"
 

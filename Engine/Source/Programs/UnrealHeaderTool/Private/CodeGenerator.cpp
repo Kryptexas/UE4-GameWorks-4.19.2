@@ -9,6 +9,7 @@
 #include "HeaderParser.h"
 #include "ClassMaps.h"
 #include "Manifest.h"
+#include "StringUtils.h"
 
 /////////////////////////////////////////////////////
 // Globals
