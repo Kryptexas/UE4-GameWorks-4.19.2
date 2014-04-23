@@ -60,7 +60,7 @@ struct SCENEOUTLINER_API TOutlinerActorTreeItem : TOutlinerTreeItem
 	/** true if this item exists in both the current world and PIE. */
 	bool bExistsInCurrentWorldAndPIE;
 
-	TOutlinerActorTreeItem(AActor* InActor)
+	TOutlinerActorTreeItem(const AActor* InActor)
 		: TOutlinerTreeItem(TOutlinerTreeItem::Actor)
 		, bExistsInCurrentWorldAndPIE(false)
 		, Actor(InActor)

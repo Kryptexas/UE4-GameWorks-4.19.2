@@ -510,6 +510,26 @@ public:
 			Private_SetItemExpansion(InItem, InShouldExpandItem);
 		}
 
+		/**
+		 * Refreshes the tree view to take into account any expanded children which have previously been set.
+		 * This will be necessary if they were expanded while the parent itself was collapsed.
+		 *
+		 * @param InItem         The item whose expansion state to refresh
+		 */
+		void RefreshItemExpansion(ItemType TheItem)
+		{
+			const FSparseItemInfo* const SparseItemInfo = SparseItemInfos.Find(TheItem);
+
+			if (SparseItemInfo)
+			{
+				SparseItemInfos.Add(TheItem, FSparseItemInfo(SparseItemInfo->bIsExpanded, true));
+			}
+			else
+			{
+				SparseItemInfos.Add(TheItem, FSparseItemInfo(false, true));
+			}
+		}
+
 		/** Collapse all the items in the tree and expand InItem */
 		void SetSingleExpandedItem( const ItemType& InItem )
 		{
@@ -528,7 +548,7 @@ public:
 		 *
 		 * @return true if the item is expanded; false otherwise.
 		 */
-		bool IsItemExpanded( const ItemType& InItem )
+		bool IsItemExpanded( const ItemType& InItem ) const
 		{
 			return Private_IsItemExpanded( InItem );
 		}

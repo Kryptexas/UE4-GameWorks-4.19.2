@@ -640,21 +640,28 @@ namespace SceneOutliner
 
 		bRepresentingPlayWorld = RepresentingWorld->WorldType == EWorldType::PIE;
 
+		// Get a collection of items and folders which were formerly collapsed
+		// TODO: this will actually include non-parent items too; ideally only add item if it has children.
+		FParentsExpansionState ExpansionStateInfo;
+		GetParentsExpansionState(ExpansionStateInfo);
+
 		bool bMadeAnySignificantChanges = false;
 		if(bFullRefresh)
 		{
 			// Clear the selection here - UpdateActorMapWithWorld will reconstruct it.
 			OutlinerTreeView->ClearSelection();
 
-			EmptyTreeItems();
-			UpdateActorMapWithWorld( RepresentingWorld );
+			FParentActorsSet ParentActors;
+			UpdateActorMapWithWorld(RepresentingWorld, ParentActors);
+
+			SetParentsExpansionState(ParentActors, ExpansionStateInfo);
 
 			bMadeAnySignificantChanges = true;
 			bFullRefresh = false;
 		}
 		else
 		{
-			TSet< AActor* > ParentActors;
+			FParentActorsSet ParentActors;
 
 			// Add actors that have been added to the world
 			for(int32 ItemIdx = 0; ItemIdx < AddedItemsList.Num(); ++ItemIdx)
@@ -753,11 +760,13 @@ namespace SceneOutliner
 			{
 				for( auto ActorIt = ParentActors.CreateConstIterator(); ActorIt; ++ActorIt )
 				{
-					AActor* Actor = *ActorIt;
+					const AActor* Actor = *ActorIt;
 
 					AddFilteredParentActorToTree(Actor);
 				}
 			}
+
+			SetParentsExpansionState(ParentActors, ExpansionStateInfo);
 		}
 		
 		AddedItemsList.Empty();
@@ -792,7 +801,7 @@ namespace SceneOutliner
 		RootTreeItems.Empty();
 	}
 
-	void SSceneOutliner::UpdateActorMapWithWorld( UWorld* World )
+	void SSceneOutliner::UpdateActorMapWithWorld(UWorld* World, FParentActorsSet& ParentActors)
 	{
 		if ( World == NULL )
 		{
@@ -800,8 +809,6 @@ namespace SceneOutliner
 		}
 
 		EmptyTreeItems();
-
-		TSet< AActor* > ParentActors;
 
 		// We only synchronize selection when in actor browsing mode
 		const bool bSyncSelection = ( InitOptions.Mode == ESceneOutlinerMode::ActorBrowsing );
@@ -919,7 +926,7 @@ namespace SceneOutliner
 		}
 	}
 
-	bool SSceneOutliner::AddItemToTree(TSharedRef<TOutlinerTreeItem> InItem, TSet<AActor*>& ParentActors)
+	bool SSceneOutliner::AddItemToTree(TSharedRef<TOutlinerTreeItem> InItem, FParentActorsSet& ParentActors)
 	{
 		if (InItem->Type == TOutlinerTreeItem::Actor)
 		{
@@ -931,7 +938,7 @@ namespace SceneOutliner
 		}
 	}
 
-	bool SSceneOutliner::AddActorToTree(TSharedRef<TOutlinerActorTreeItem> InActorItem, TSet< AActor* >& ParentActors)
+	bool SSceneOutliner::AddActorToTree(TSharedRef<TOutlinerActorTreeItem> InActorItem, FParentActorsSet& ParentActors)
 	{
 		if (!InActorItem->Actor.IsValid())
 		{
@@ -1040,15 +1047,12 @@ namespace SceneOutliner
 		// Add the item to the map, making it available for display in the tree when its parent is looking for its children.
 		FolderToTreeItemMap.Add(InFolderItem->Path, InFolderItem);
 
-		// Folders are always expanded by default
-		OutlinerTreeView->SetItemExpansion(InFolderItem, true);
-
 		NewItemActions.ItemHasBeenCreated(OutlinerTreeView.ToSharedRef(), InFolderItem);
 
 		return true;
 	}
 
-	void SSceneOutliner::AddFilteredParentActorToTree(AActor* InActor)
+	void SSceneOutliner::AddFilteredParentActorToTree(const AActor* InActor)
 	{
 		/* Parents that are filtered out (or otherwise found and added to the list) will not appear in the actor map at this point
 		   and should be added as requested. If they have no parent, they will be added to the root of the tree, otherwise they will
@@ -1060,7 +1064,7 @@ namespace SceneOutliner
 			ActorToTreeItemMap.Add( InActor, NewItem );
 
 			// Setup our root-level item list
-			const auto ParentActor = InActor->GetAttachParentActor();
+			const auto* ParentActor = InActor->GetAttachParentActor();
 			if( ParentActor == NULL )
 			{
 				RootTreeItems.Add( NewItem );
@@ -1078,11 +1082,159 @@ namespace SceneOutliner
 
 			NewItem->Flags.IsFilteredOut = true;
 		}
+	}
 
+	// Helper function which returns whether a folder is a child of another.
+	// Note that a folder is defined to not be a child of itself.
+	bool DoesFolderContainFolder(FName ParentFolder, FName ChildFolder)
+	{
+		FString Path = ChildFolder.ToString();
+		FString ParentFolderAsString = ParentFolder.ToString();
 
-		// Make sure all parent actors are expanded by default
-		// @todo Outliner: Really we should be remembering expansion state and trying to restore that
-		OutlinerTreeView->SetItemExpansion( ActorToTreeItemMap.FindChecked( InActor ), true );
+		do 
+		{
+			Path = FPaths::GetPath(Path);
+
+		} while (!Path.IsEmpty() && Path != ParentFolderAsString);
+
+		return !Path.IsEmpty();
+	}
+
+	// Helper function which returns whether an actor is a child of a folder.
+	bool DoesFolderContainActor(FName ParentFolder, const AActor* ChildActor)
+	{
+		if (ChildActor != nullptr)
+		{
+			const FName ActorFolder = ChildActor->GetFolderPath();
+			if (!ActorFolder.IsNone())
+			{
+				return (ActorFolder == ParentFolder || DoesFolderContainFolder(ParentFolder, ActorFolder));
+			}
+		}
+
+		return false;
+	}
+
+	// Helper function which returns whether an actor is a child of another.
+	// Note that an actor is defined to not be a child of itself.
+	bool IsActorParentOfActor(const AActor* ParentActor, const AActor* ChildActor)
+	{
+		const AActor* Actor = ChildActor;
+
+		if (Actor != nullptr)
+		{
+			do
+			{
+				Actor = Actor->GetAttachParentActor();
+
+			} while (Actor != nullptr && Actor != ParentActor);
+		}
+
+		return (Actor != nullptr);
+	}
+
+	bool SSceneOutliner::HasExpandedChildren(const AActor* ParentActor, const FParentActorsSet& ParentActors, const FParentsExpansionState& ExpansionStateInfo) const
+	{
+		// Iterate through all parent actors, determining whether any of them are within the subtree of the
+		// parent actor, and if so, whether they are expanded.
+		for (const auto* ParentToTest : ParentActors)
+		{
+			if (ParentToTest != ParentActor)
+			{
+				if (IsActorParentOfActor(ParentActor, ParentToTest))
+				{
+					if (!ExpansionStateInfo.CollapsedItems.Contains(ParentToTest))
+					{
+						return true;
+					}
+				}
+			}
+		}
+
+		return false;
+	}
+
+	bool SSceneOutliner::HasExpandedChildren(FName ParentFolder, const FParentActorsSet& ParentActors, const FParentsExpansionState& ExpansionStateInfo) const
+	{
+		// Iterate through all parent actors, determining whether any of them are within the subtree of the
+		// parent actor, and if so, whether they are expanded.
+		for (const auto* ParentToTest : ParentActors)
+		{
+			if (DoesFolderContainActor(ParentFolder, ParentToTest))
+			{
+				if (!ExpansionStateInfo.CollapsedItems.Contains(ParentToTest))
+				{
+					return true;
+				}
+			}
+		}
+
+		// If there were no expanded parent actors in this folder subtree, do the same check, this time with other
+		// folders.
+		for (const auto& Item : FolderToTreeItemMap)
+		{
+			if (Item.Key != ParentFolder)
+			{
+				if (DoesFolderContainFolder(ParentFolder, Item.Key))
+				{
+					if (!ExpansionStateInfo.CollapsedFolders.Contains(Item.Key))
+					{
+						return true;
+					}
+				}
+			}
+		}
+
+		return false;
+	}
+
+	void SSceneOutliner::GetParentsExpansionState(FParentsExpansionState& ExpansionStateInfo) const
+	{
+		for (const auto& Item : ActorToTreeItemMap)
+		{
+			if (!OutlinerTreeView->IsItemExpanded(Item.Value) && Item.Key.IsValid())
+			{
+				ExpansionStateInfo.CollapsedItems.Add(Item.Key.Get());
+			}
+		}
+
+		for (const auto& Item : FolderToTreeItemMap)
+		{
+			if (!OutlinerTreeView->IsItemExpanded(Item.Value))
+			{
+				ExpansionStateInfo.CollapsedFolders.Add(Item.Key);
+			}
+		}
+	}
+
+	void SSceneOutliner::SetParentsExpansionState(const FParentActorsSet& ParentActors, const FParentsExpansionState& ExpansionStateInfo) const
+	{
+		for (const auto* Actor : ParentActors)
+		{
+			// Set parent actor expansion state according to previous state
+			const auto& Item = ActorToTreeItemMap.FindChecked(Actor);
+			const bool bShouldExpand = !ExpansionStateInfo.CollapsedItems.Contains(Actor);
+			OutlinerTreeView->SetItemExpansion(Item, bShouldExpand);
+
+			// If the actor was just collapsed, this will force it to notice any expanded children nonetheless
+			if (!bShouldExpand && HasExpandedChildren(Actor, ParentActors, ExpansionStateInfo))
+			{
+				OutlinerTreeView->RefreshItemExpansion(Item);
+			}
+		}
+
+		for (const auto& Item : FolderToTreeItemMap)
+		{
+			// Expand folder according to the previous state
+			const bool bShouldExpand = !ExpansionStateInfo.CollapsedFolders.Contains(Item.Key);
+			OutlinerTreeView->SetItemExpansion(Item.Value, bShouldExpand);
+
+			// If the folder was just collapsed, this will force it to notice any expanded children nonetheless
+			if (!bShouldExpand && HasExpandedChildren(Item.Key, ParentActors, ExpansionStateInfo))
+			{
+				OutlinerTreeView->RefreshItemExpansion(Item.Value);
+			}
+		}
 	}
 
 	void SSceneOutliner::PopulateSearchStrings( const TOutlinerTreeItem& TreeItem, OUT TArray< FString >& OutSearchStrings ) const
@@ -1794,7 +1946,6 @@ namespace SceneOutliner
 		if (ExistingParent)
 		{
 			(*ExistingParent)->ChildItems.Add(TreeItem);
-			OutlinerTreeView->SetItemExpansion(*ExistingParent, true);
 			return true;
 		}
 		else
@@ -1803,7 +1954,6 @@ namespace SceneOutliner
 			if (AddFolderToTree(NewFolderItem, bIgnoreSearchFilter))
 			{
 				NewFolderItem->ChildItems.Add(TreeItem);
-				OutlinerTreeView->SetItemExpansion(NewFolderItem, true);
 				return true;
 			}
 		}
