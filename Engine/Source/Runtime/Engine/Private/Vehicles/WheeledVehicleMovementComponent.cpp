@@ -632,11 +632,6 @@ void UWheeledVehicleMovementComponent::DestroyWheels()
 
 void UWheeledVehicleMovementComponent::TickVehicle( float DeltaTime )
 {
-	if (VehicleSetupTag != FPhysXVehicleManager::VehicleSetupTag )
-	{
-		RecreatePhysicsState();
-	}
-
 	// movement updates and replication
 	if (PVehicle && UpdatedComponent)
 	{
@@ -652,6 +647,14 @@ void UWheeledVehicleMovementComponent::TickVehicle( float DeltaTime )
 	for (int32 i = 0; i < Wheels.Num(); i++)
 	{
 		Wheels[i]->Tick(DeltaTime);
+	}
+}
+
+void UWheeledVehicleMovementComponent::UpdateTuning()
+{
+	if (VehicleSetupTag != FPhysXVehicleManager::VehicleSetupTag)
+	{
+		RecreatePhysicsState();
 	}
 }
 

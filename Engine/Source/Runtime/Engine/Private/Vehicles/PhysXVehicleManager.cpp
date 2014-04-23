@@ -291,6 +291,14 @@ void FPhysXVehicleManager::Update( float DeltaTime )
 #endif //PX_DEBUG_VEHICLE_ON
 }
 
+void FPhysXVehicleManager::UpdateTuning()
+{
+	for (int32 i = 0; i < Vehicles.Num(); ++i)
+	{
+		Vehicles[i]->UpdateTuning();
+	}
+}
+
 void FPhysXVehicleManager::UpdateVehicles( float DeltaTime )
 {
 	PxVehicleUpdates( DeltaTime, GetSceneGravity(), *SurfaceTirePairs, PVehicles.Num(), PVehicles.GetTypedData(), PVehiclesWheelsStates.GetTypedData());

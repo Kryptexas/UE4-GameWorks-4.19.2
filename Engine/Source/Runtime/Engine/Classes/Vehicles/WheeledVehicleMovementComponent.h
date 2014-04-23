@@ -265,6 +265,9 @@ class ENGINE_API UWheeledVehicleMovementComponent : public UPawnMovementComponen
 	/** Tick this vehicle sim right before input is sent to the vehicle system  */
 	virtual void TickVehicle( float DeltaTime );
 
+	/** Updates the vehicle tuning data. Used when designer tweaks values while game is running */
+	virtual void UpdateTuning();
+
 	/** Used to create any physics engine information for this component */
 	virtual void CreatePhysicsState() OVERRIDE;
 

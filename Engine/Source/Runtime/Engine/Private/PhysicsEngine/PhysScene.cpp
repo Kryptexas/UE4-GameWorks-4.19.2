@@ -399,11 +399,12 @@ void FPhysScene::TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletion
 
 #if WITH_PHYSX
 
-#if WITH_SUBSTEPPING
-	if (IsSubstepping() == false)
-#endif
+	if (VehicleManager && SceneType == PST_Sync)
 	{
-		if (VehicleManager && SceneType == PST_Sync)
+		VehicleManager->UpdateTuning();
+#if WITH_SUBSTEPPING
+		if (IsSubstepping() == false)
+#endif
 		{
 			VehicleManager->Update(AveragedFrameTime[SceneType]);
 		}

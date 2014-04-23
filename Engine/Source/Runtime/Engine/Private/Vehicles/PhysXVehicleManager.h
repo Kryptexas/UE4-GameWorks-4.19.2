@@ -56,6 +56,10 @@ public:
 	 * Update vehicle data before the scene simulates
 	 */
 	void Update( float DeltaTime );
+	
+	/**
+	 * Update vehicle tuning. Used when designer tweaks values while the game is running */
+	void UpdateTuning();
 
 private:
 
