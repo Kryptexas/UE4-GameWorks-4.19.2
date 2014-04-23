@@ -156,7 +156,11 @@ void AGameState::HandleMatchIsWaitingToStart()
 
 void AGameState::HandleMatchHasStarted()
 {
-	GetWorldSettings()->NotifyMatchStarted();
+	if (Role != ROLE_Authority)
+	{
+		// Server handles this in AGameMode::HandleMatchHasStarted
+		GetWorldSettings()->NotifyMatchStarted();
+	}
 }
 
 void AGameState::HandleMatchHasEnded()
