@@ -297,6 +297,13 @@ int32 NewReportCrash( EXCEPTION_POINTERS* ExceptionInfo, const TCHAR* ErrorMessa
 			CrashReportUploaderArguments += TEXT( " -Unattended" );
 		}
 
+		if ( FApp::IsInstalled() )
+		{
+			// Temporary workaround for CrashReportClient being built in Development, not Shipping (TTP328030). The
+			// following ensures that logs are saved to the user directory when UE4 is installed.
+			CrashReportUploaderArguments += TEXT( " -Installed" );
+		}
+
 		const TCHAR* CrashClientPath = GUseCrashReportClient ?
 			TEXT("CrashReportClient.exe") :
 			TEXT("..\\..\\..\\Engine\\Binaries\\DotNET\\CrashReportUploader.exe");
