@@ -45,7 +45,6 @@ public:
 		LocalizationPathArrays.Add(FPaths::GetGameLocalizationPaths());
 		LocalizationPathArrays.Add(FPaths::GetEditorLocalizationPaths());
 		LocalizationPathArrays.Add(FPaths::GetEngineLocalizationPaths());
-		LocalizationPathArrays.Add(FPaths::GetGameLocalizationPaths());
 		LocalizationPathArrays.Add(FPaths::GetPropertyNameLocalizationPaths());
 		LocalizationPathArrays.Add(FPaths::GetToolTipLocalizationPaths());
 		for (TArray<FString> LocalizationPathArray : LocalizationPathArrays)
