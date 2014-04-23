@@ -21,21 +21,6 @@ enum EViewTargetBlendFunction
 	VTBlend_MAX,
 };
 
-UENUM()
-enum ECameraAnimPlaySpace
-{
-	/** This anim is applied in camera space */
-	CAPS_CameraLocal,
-	/** This anim is applied in world space */
-	CAPS_World,
-	/** This anim is applied in a user-specified space (defined by UserPlaySpaceMatrix) */
-	CAPS_UserDefined,
-	CAPS_MAX,
-};
-
-/** The actors which the camera shouldn't see. Used to hide actors which the camera penetrates. */
-//var TArray<Actor> HiddenActors;
-
 /* Caching Camera, for optimization */
 USTRUCT()
 struct FCameraCacheEntry
@@ -294,11 +279,20 @@ protected:
 	UPROPERTY()
 	class UCameraAnimInst* AnimInstPool[8];    /*MAX_ACTIVE_CAMERA_ANIMS @fixmeconst*/
 
+	/** Parallel arrays */
+	TArray<struct FPostProcessSettings> PostProcessBlendCache;
+	TArray<float> PostProcessBlendCacheWeights;
+
+	void AddCachedPPBlend(struct FPostProcessSettings& PPSettings, float BlendWeight);
+	void ClearCachedPPBlends();
+
 public:
 	/** Array of anim instances that are currently playing and in-use */
 	UPROPERTY()
 	TArray<class UCameraAnimInst*> ActiveAnims;
 
+	void GetCachedPostProcessBlends(TArray<struct FPostProcessSettings> const*& OutPPSettings, TArray<float> const*& OutBlendWeigthts) const;
+	
 protected:
 	/** Array of anim instances that are not playing and available */
 	UPROPERTY()
@@ -383,13 +377,6 @@ public:
 	float ViewRollMax;
 
 
-	/**
-	 * Stop playing all instances of the indicated CameraAnim.
-	 * bImmediate: true to stop it right now, false to blend it out over BlendOutTime.
-	 */
-	UFUNCTION()
-	virtual void StopAllCameraAnims(bool bImmediate = false);
-
 	/** Blueprint hook to allow blueprints to implement custom cameras. Return true to use returned values, or false to ignore them. */
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic)
 	virtual bool BlueprintUpdateCamera(AActor* CameraTarget, FVector& NewCameraLocation, FRotator& NewCameraRotation, float& NewCameraFOV);
@@ -400,19 +387,6 @@ public:
 
 	static const int32 MAX_ACTIVE_CAMERA_ANIMS = 8;
 
-protected:
-	/** Gets specified temporary CameraActor ready to update the specified Anim. */
-	void InitTempCameraActor(class ACameraActor* CamActor, class UCameraAnim* AnimToInitFor) const;
-	void ApplyAnimToCamera(class ACameraActor const* AnimatedCamActor, class UCameraAnimInst const* AnimInst, FMinimalViewInfo& InOutPOV);
-
-	/** Returns an available CameraAnimInst, or NULL if no more are available. */
-	UCameraAnimInst* AllocCameraAnimInst();
-	
-	/** Returns an available CameraAnimInst, or NULL if no more are available. */
-	void ReleaseCameraAnimInst(UCameraAnimInst* Inst);
-	
-	/** Returns first existing instance of the specified camera anim, or NULL if none exists. */
-	UCameraAnimInst* FindExistingCameraAnimInst(UCameraAnim const* Anim);
 
 	virtual void AssignViewTarget(AActor* NewTarget, FTViewTarget& VT, struct FViewTargetTransitionParams TransitionParams=FViewTargetTransitionParams());
 
@@ -564,7 +538,7 @@ public:
 	//
 
 	/** Play a camera shake */
-	virtual void PlayCameraShake(TSubclassOf<class UCameraShake> Shake, float Scale, ECameraAnimPlaySpace PlaySpace=CAPS_CameraLocal, FRotator UserPlaySpaceRot = FRotator::ZeroRotator);
+	virtual void PlayCameraShake(TSubclassOf<class UCameraShake> Shake, float Scale, enum ECameraAnimPlaySpace::Type PlaySpace=ECameraAnimPlaySpace::CameraLocal, FRotator UserPlaySpaceRot = FRotator::ZeroRotator);
 	
 	/** Stop playing a camera shake. */
 	virtual void StopCameraShake(TSubclassOf<class UCameraShake> Shake);
@@ -576,18 +550,59 @@ public:
 	//  CameraAnim support.
 	//
 	
-	/** Play the indicated CameraAnim on this camera.  Returns the CameraAnim instance, which can be stored to manipulate/stop the anim after the fact. */
-	virtual class UCameraAnimInst* PlayCameraAnim(class UCameraAnim* Anim, float Rate=1.f, float Scale=1.f, float BlendInTime = 0.f, float BlendOutTime = 0.f, bool bLoop = false, bool bRandomStartTime = false, float Duration = 0.f, bool bSingleInstance = false);
+	/**
+	 * Play the indicated CameraAnim on this camera.
+	 * 
+	 * @param Anim The animation that should play on this instance.
+	 * @param Rate				How fast to play the animation. 1.0 is normal.
+	 * @param Scale				How "intense" to play the animation. 1.0 is normal.
+	 * @param BlendInTime		Time to linearly ramp in.
+	 * @param BlendOutTime		Time to linearly ramp out.
+	 * @param bLoop				True to loop the animation if it hits the end.
+	 * @param bRandomStartTime	Whether or not to choose a random time to start playing. Useful with bLoop=true and a duration to randomize things like shakes.
+	 * @param Duration			Optional total playtime for this animation, including blends. 0 means to use animations natural duration, or infinite if looping.
+	 * @param PlaySpace			Which space to play the animation in.
+	 * @param UserPlaySpaceRot  Custom play space, used when PlaySpace is UserDefined.
+	 * @return The CameraAnim instance, which can be stored to manipulate/stop the anim after the fact.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Camera Animation")
+	virtual class UCameraAnimInst* PlayCameraAnim(class UCameraAnim* Anim, float Rate=1.f, float Scale=1.f, float BlendInTime=0.f, float BlendOutTime=0.f, bool bLoop=false, bool bRandomStartTime=false, float Duration=0.f, ECameraAnimPlaySpace::Type PlaySpace=ECameraAnimPlaySpace::CameraLocal, FRotator UserPlaySpaceRot=FRotator::ZeroRotator);
 	
 	/**
 	 * Stop playing all instances of the indicated CameraAnim.
-	 * @param bImmediate if true stop it right now, false to blend it out over BlendOutTime.
+	 * @param bImmediate	True to stop it right now and ignore blend out, false to let it blend out as indicated.
 	 */
-	virtual void StopAllCameraAnimsByType(class UCameraAnim* Anim, bool bImmediate = false);
+	UFUNCTION(BlueprintCallable, Category = "Camera Animation")
+	virtual void StopAllInstancesOfCameraAnim(class UCameraAnim* Anim, bool bImmediate = false);
 	
-	/** Stops the given CameraAnim instance from playing.  The given pointer should be considered invalid after this. */
-	virtual void StopCameraAnim(class UCameraAnimInst* AnimInst, bool bImmediate = false);
+	/** 
+	 * Stops the given CameraAnimInst from playing.  The given pointer should be considered invalid after this. 
+	 * @param bImmediate	True to stop it right now and ignore blend out, false to let it blend out as indicated.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Camera Animation")
+	virtual void StopCameraAnimInst(class UCameraAnimInst* AnimInst, bool bImmediate = false);
 	
+	/**
+	 * Stop playing all CameraAnims on this CameraManager.
+	 * @param bImmediate	True to stop it right now and ignore blend out, false to let it blend out as indicated.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Camera Animation")
+	virtual void StopAllCameraAnims(bool bImmediate = false);
+
+	/** Returns first existing instance of the specified camera anim, or NULL if none exists. */
+	UCameraAnimInst* FindInstanceOfCameraAnim(class UCameraAnim const* Anim) const;
+
+protected:
+	/** Gets specified temporary CameraActor ready to update the specified Anim. */
+	void InitTempCameraActor(class ACameraActor* CamActor, class UCameraAnimInst const* AnimInstToInitFor) const;
+	void ApplyAnimToCamera(class ACameraActor const* AnimatedCamActor, class UCameraAnimInst const* AnimInst, FMinimalViewInfo& InOutPOV);
+
+	/** Returns an available CameraAnimInst, or NULL if no more are available. */
+	UCameraAnimInst* AllocCameraAnimInst();
+
+	/** Returns an available CameraAnimInst, or NULL if no more are available. */
+	void ReleaseCameraAnimInst(UCameraAnimInst* Inst);
+
 protected:
 	/** Limit the player's view pitch.  */
 	virtual void LimitViewPitch( FRotator& ViewRotation, float InViewPitchMin, float InViewPitchMax );

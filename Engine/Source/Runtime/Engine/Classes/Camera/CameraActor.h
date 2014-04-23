@@ -17,6 +17,9 @@ public:
 	UPROPERTY(Category=CameraActor, VisibleAnywhere, BlueprintReadOnly)
 	TSubobjectPtr<class UCameraComponent> CameraComponent;
 
+	/** If this CameraActor is being used to preview a CameraAnim in the editor, this is the anim being previewed. */
+	TWeakObjectPtr<class UCameraAnim> PreviewedCameraAnim;
+
 private:
 	UPROPERTY()
 	uint32 bConstrainAspectRatio_DEPRECATED:1;
@@ -37,5 +40,7 @@ public:
 	// Begin UObject interface
 	virtual void Serialize(FArchive& Ar) OVERRIDE;
 	ENGINE_API virtual void PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph) OVERRIDE;
+	ENGINE_API virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
 	// End UObject interface
+	
 };

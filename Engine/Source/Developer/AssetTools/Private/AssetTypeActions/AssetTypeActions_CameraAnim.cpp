@@ -13,11 +13,11 @@ void FAssetTypeActions_CameraAnim::CreateMatineeActorForCameraAnim(UCameraAnim* 
 
 	FActorSpawnParameters ActorSpawnParameters;
 	ActorSpawnParameters.Name = InCameraAnim->GetFName();
-	PreviewMatinee = GEditor->GetEditorWorldContext().World()->SpawnActor<AMatineeActorCameraAnim>(ActorSpawnParameters);
-	check(PreviewMatinee.IsValid());
+	PreviewMatineeActor = GEditor->GetEditorWorldContext().World()->SpawnActor<AMatineeActorCameraAnim>(ActorSpawnParameters);
+	check(PreviewMatineeActor.IsValid());
 	UInterpData* NewData = ConstructObject<UInterpData>( UInterpData::StaticClass(), GetTransientPackage(), NAME_None, RF_Transactional);
-	PreviewMatinee.Get()->MatineeData = NewData;
-	PreviewMatinee.Get()->CameraAnim = InCameraAnim;
+	PreviewMatineeActor.Get()->MatineeData = NewData;
+	PreviewMatineeActor.Get()->CameraAnim = InCameraAnim;
 }
 
 void FAssetTypeActions_CameraAnim::CreateCameraActorForCameraAnim(UCameraAnim* InCameraAnim)
@@ -45,7 +45,9 @@ void FAssetTypeActions_CameraAnim::CreateCameraActorForCameraAnim(UCameraAnim* I
 
 	// copy data from the CamAnim to the CameraActor
 	check(PreviewCamera.Get()->CameraComponent);
+	PreviewCamera.Get()->PreviewedCameraAnim = InCameraAnim;
 	PreviewCamera.Get()->CameraComponent->FieldOfView = InCameraAnim->BaseFOV;
+	PreviewCamera.Get()->CameraComponent->PostProcessSettings = InCameraAnim->BasePostProcessSettings;
 }
 
 void FAssetTypeActions_CameraAnim::CreatePreviewPawnForCameraAnim(UCameraAnim* InCameraAnim)
@@ -102,21 +104,21 @@ UInterpGroup* FAssetTypeActions_CameraAnim::CreateInterpGroup(UCameraAnim* InCam
 	if (PreviewInfo.PawnInst)
 	{
 		// create InterpGroup so that we can play animation to this pawn
-		check(PreviewMatinee.Get()->MatineeData);
-		UInterpGroup* NewGroup = ConstructObject<UInterpGroup>( UInterpGroup::StaticClass(), PreviewMatinee.Get()->MatineeData, NAME_None, RF_Transient );
+		check(PreviewMatineeActor.Get()->MatineeData);
+		UInterpGroup* NewGroup = ConstructObject<UInterpGroup>(UInterpGroup::StaticClass(), PreviewMatineeActor.Get()->MatineeData, NAME_None, RF_Transient);
 		NewGroup->GroupName = FName(TEXT("Preview Pawn"));
 		NewGroup->EnsureUniqueName();
 
-		PreviewMatinee.Get()->MatineeData->InterpGroups.Add(NewGroup);
+		PreviewMatineeActor.Get()->MatineeData->InterpGroups.Add(NewGroup);
 
 		// now add group inst
-		UInterpGroupInst* NewGroupInst = ConstructObject<UInterpGroupInst>( UInterpGroupInst::StaticClass(), PreviewMatinee.Get(), NAME_None, RF_Transient );
+		UInterpGroupInst* NewGroupInst = ConstructObject<UInterpGroupInst>(UInterpGroupInst::StaticClass(), PreviewMatineeActor.Get(), NAME_None, RF_Transient);
 		// Initialise group instance, saving ref to actor it works on.
 		NewGroupInst->InitGroupInst(NewGroup, PreviewInfo.PawnInst);
-		const int32 NewGroupInstIndex = PreviewMatinee.Get()->GroupInst.Add(NewGroupInst);
+		const int32 NewGroupInstIndex = PreviewMatineeActor.Get()->GroupInst.Add(NewGroupInst);
 
 		//Link group with actor
-		PreviewMatinee.Get()->InitGroupActorForGroup(NewGroup, PreviewInfo.PawnInst);
+		PreviewMatineeActor.Get()->InitGroupActorForGroup(NewGroup, PreviewInfo.PawnInst);
 
 		// Now time to add AnimTrack so that we can play animation
 		int32 AnimTrackIndex = INDEX_NONE;
@@ -170,7 +172,7 @@ void FAssetTypeActions_CameraAnim::OpenAssetEditor( const TArray<UObject*>& InOb
 			// construct a temporary matinee actor
 			CreateMatineeActorForCameraAnim(CameraAnim);
 
-			if(GEditor->ShouldOpenMatinee(PreviewMatinee.Get()))
+			if (GEditor->ShouldOpenMatinee(PreviewMatineeActor.Get()))
 			{
 				// changed the actor type, but don't want to lose any properties from previous
 				// so duplicate from old, but with new class
@@ -183,14 +185,14 @@ void FAssetTypeActions_CameraAnim::OpenAssetEditor( const TArray<UObject*>& InOb
 				UInterpGroupCamera* NewInterpGroup = CastChecked<UInterpGroupCamera>(CameraAnim->CameraInterpGroup);
 				check(NewInterpGroup);
 
-				if (PreviewMatinee.Get()->MatineeData)
+				if (PreviewMatineeActor.Get()->MatineeData)
 				{
-					PreviewMatinee.Get()->MatineeData->SetFlags(RF_Transient);
-					PreviewMatinee.Get()->MatineeData->InterpLength = CameraAnim->AnimLength;
+					PreviewMatineeActor.Get()->MatineeData->SetFlags(RF_Transient);
+					PreviewMatineeActor.Get()->MatineeData->InterpLength = CameraAnim->AnimLength;
 
 					if (NewInterpGroup)
 					{
-						PreviewMatinee.Get()->MatineeData->InterpGroups.Add(NewInterpGroup);
+						PreviewMatineeActor.Get()->MatineeData->InterpGroups.Add(NewInterpGroup);
 					}
 				}
 
@@ -198,23 +200,23 @@ void FAssetTypeActions_CameraAnim::OpenAssetEditor( const TArray<UObject*>& InOb
 				CreateCameraActorForCameraAnim(CameraAnim);
 
 				// set up the group actor
-				PreviewMatinee.Get()->InitGroupActorForGroup(NewInterpGroup, PreviewCamera.Get());
+				PreviewMatineeActor.Get()->InitGroupActorForGroup(NewInterpGroup, PreviewCamera.Get());
 
 				// Create preview pawn
 				CreatePreviewPawnForCameraAnim(CameraAnim);
 
 				// this will create the instances for everything
-				PreviewMatinee.Get()->InitInterp();
+				PreviewMatineeActor.Get()->InitInterp();
 
 				// open matinee for this actor
-				GEditor->OpenMatinee(PreviewMatinee.Get());
+				GEditor->OpenMatinee(PreviewMatineeActor.Get());
 
 				// install our delegate so we can clean up when finished
 				GEditorModeTools().OnEditorModeChanged().AddRaw(this, &FAssetTypeActions_CameraAnim::OnMatineeEditorClosed);
 			}
 			else
 			{
-				GEditor->GetEditorWorldContext().World()->DestroyActor(PreviewMatinee.Get());
+				GEditor->GetEditorWorldContext().World()->DestroyActor(PreviewMatineeActor.Get());
 			}
 		}
 	}
@@ -232,10 +234,10 @@ void FAssetTypeActions_CameraAnim::OnMatineeEditorClosed(FEdMode* InEditorMode, 
 			PreviewCamera.Reset();
 		}
 
-		if(PreviewMatinee.IsValid())
+		if (PreviewMatineeActor.IsValid())
 		{
-			GEditor->GetEditorWorldContext().World()->DestroyActor(PreviewMatinee.Get(), false, false);
-			PreviewMatinee.Reset();
+			GEditor->GetEditorWorldContext().World()->DestroyActor(PreviewMatineeActor.Get(), false, false);
+			PreviewMatineeActor.Reset();
 		}
 
 		if(PreviewPawn.IsValid())

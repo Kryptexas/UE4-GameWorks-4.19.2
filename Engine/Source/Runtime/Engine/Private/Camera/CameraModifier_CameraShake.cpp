@@ -129,7 +129,7 @@ void UCameraModifier_CameraShake::UpdateCameraShake(float DeltaTime, FCameraShak
 		RotOffset.Yaw = UpdateFOscillator(Shake.SourceShake->RotOscillation.Yaw, Shake.RotSinOffset.Y, DeltaTime) * OscillationScale;
 		RotOffset.Roll = UpdateFOscillator(Shake.SourceShake->RotOscillation.Roll, Shake.RotSinOffset.Z, DeltaTime) * OscillationScale;
 
-		if (Shake.PlaySpace == CAPS_CameraLocal)
+		if (Shake.PlaySpace == ECameraAnimPlaySpace::CameraLocal)
 		{
 			// the else case will handle this as well, but this is the faster, cleaner, most common code path
 
@@ -144,7 +144,7 @@ void UCameraModifier_CameraShake::UpdateCameraShake(float DeltaTime, FCameraShak
 		else
 		{
 			// find desired space
-			FMatrix const PlaySpaceToWorld = (Shake.PlaySpace == CAPS_UserDefined) ? Shake.UserPlaySpaceMatrix : FMatrix::Identity; 
+			FMatrix const PlaySpaceToWorld = (Shake.PlaySpace == ECameraAnimPlaySpace::UserDefined) ? Shake.UserPlaySpaceMatrix : FMatrix::Identity;
 
 			// apply loc offset relative to desired space
 			InOutPOV.Location += PlaySpaceToWorld.TransformVector( LocOffset );
@@ -153,7 +153,7 @@ void UCameraModifier_CameraShake::UpdateCameraShake(float DeltaTime, FCameraShak
 
 			// find transform from camera to the "play space"
 			FRotationMatrix const CamToWorld(InOutPOV.Rotation);
-			FMatrix const CameraToPlaySpace = CamToWorld * PlaySpaceToWorld.InverseSafe();	// CameraToWorld * WorldToPlaySpace
+			FMatrix const CameraToPlaySpace = CamToWorld * PlaySpaceToWorld.InverseSafe();			// CameraToWorld * WorldToPlaySpace
 
 			// find transform from anim (applied in playspace) back to camera
 			FRotationMatrix const AnimToPlaySpace(RotOffset);
@@ -226,28 +226,28 @@ float UCameraModifier_CameraShake::InitializeOffset( const FFOscillator& Param )
 	}
 }
 
-void UCameraModifier_CameraShake::ReinitShake(int32 ActiveShakeIdx, float Scale)
+void UCameraModifier_CameraShake::ReinitShake(FCameraShakeInstance& ShakeInst, float NewScale)
 {
 	if (GEngine->IsSplitScreen(CameraOwner->GetWorld()))
 	{
-		Scale *= SplitScreenShakeScale;
+		NewScale *= SplitScreenShakeScale;
 	}
-	ActiveShakes[ActiveShakeIdx].Scale = Scale;
+	ShakeInst.Scale = NewScale;
 
-	UCameraShake* SourceShake = ActiveShakes[ActiveShakeIdx].SourceShake;
+	UCameraShake* const SourceShake = ShakeInst.SourceShake;
 
 	if (SourceShake->OscillationDuration != 0.f)
 	{
-		ActiveShakes[ActiveShakeIdx].OscillatorTimeRemaining = SourceShake->OscillationDuration;
+		ShakeInst.OscillatorTimeRemaining = SourceShake->OscillationDuration;
 
-		if (ActiveShakes[ActiveShakeIdx].bBlendingOut)
+		if (ShakeInst.bBlendingOut)
 		{
-			ActiveShakes[ActiveShakeIdx].bBlendingOut = false;
-			ActiveShakes[ActiveShakeIdx].CurrentBlendOutTime = 0.f;
+			ShakeInst.bBlendingOut = false;
+			ShakeInst.CurrentBlendOutTime = 0.f;
 
 			// stop any blendout and reverse it to a blendin
-			ActiveShakes[ActiveShakeIdx].bBlendingIn = true;
-			ActiveShakes[ActiveShakeIdx].CurrentBlendInTime = ActiveShakes[ActiveShakeIdx].SourceShake->OscillationBlendInTime * (1.f - ActiveShakes[ActiveShakeIdx].CurrentBlendOutTime / ActiveShakes[ActiveShakeIdx].SourceShake->OscillationBlendOutTime);
+			ShakeInst.bBlendingIn = true;
+			ShakeInst.CurrentBlendInTime = ShakeInst.SourceShake->OscillationBlendInTime * (1.f - ShakeInst.CurrentBlendOutTime / ShakeInst.SourceShake->OscillationBlendOutTime);
 		}
 	}
 
@@ -262,25 +262,25 @@ void UCameraModifier_CameraShake::ReinitShake(int32 ActiveShakeIdx, float Scale)
 			Duration = SourceShake->RandomAnimSegmentDuration;
 		}
 
-		ActiveShakes[ActiveShakeIdx].AnimInst = CameraOwner->PlayCameraAnim(SourceShake->Anim,
-			SourceShake->AnimPlayRate, 
-			Scale,
-			SourceShake->AnimBlendInTime,
-			SourceShake->AnimBlendOutTime,
-			bLoop,
-			bRandomStart,
-			Duration,
-			true);
+		if (ShakeInst.AnimInst != nullptr)
+		{
+			ShakeInst.AnimInst->Update(SourceShake->AnimPlayRate, NewScale, SourceShake->AnimBlendInTime, SourceShake->AnimBlendOutTime, Duration);
+		}
+		else
+		{
+			ShakeInst.AnimInst = CameraOwner->PlayCameraAnim(SourceShake->Anim, SourceShake->AnimPlayRate, NewScale, SourceShake->AnimBlendInTime, SourceShake->AnimBlendOutTime, bLoop, bRandomStart, Duration);
+		}
 	}
 }
 
-FCameraShakeInstance UCameraModifier_CameraShake::InitializeShake(TSubclassOf<class UCameraShake> NewShake, float Scale, ECameraAnimPlaySpace PlaySpace, FRotator UserPlaySpaceRot)
+FCameraShakeInstance UCameraModifier_CameraShake::InitializeShake(TSubclassOf<class UCameraShake> NewShake, float Scale, ECameraAnimPlaySpace::Type PlaySpace, FRotator UserPlaySpaceRot)
 {
 	FCameraShakeInstance Inst;
 	Inst.SourceShakeName = NewShake->GetFName();
 
 	// Create a camera shake object of class NewShake
-	Inst.SourceShake = Cast<UCameraShake>(StaticConstructObject(NewShake, this));
+	UCameraShake* const SourceShake = Cast<UCameraShake>(StaticConstructObject(NewShake, this));
+	Inst.SourceShake = SourceShake;
 
 	Inst.Scale = Scale;
 	if (GEngine->IsSplitScreen(CameraOwner->GetWorld()))
@@ -289,21 +289,21 @@ FCameraShakeInstance UCameraModifier_CameraShake::InitializeShake(TSubclassOf<cl
 	}
 
 	// init oscillations
-	if ( Inst.SourceShake->OscillationDuration != 0.f )
+	if ( SourceShake->OscillationDuration != 0.f )
 	{
-		Inst.RotSinOffset.X		= InitializeOffset( Inst.SourceShake->RotOscillation.Pitch );
-		Inst.RotSinOffset.Y		= InitializeOffset( Inst.SourceShake->RotOscillation.Yaw );
-		Inst.RotSinOffset.Z		= InitializeOffset( Inst.SourceShake->RotOscillation.Roll );
+		Inst.RotSinOffset.X		= InitializeOffset( SourceShake->RotOscillation.Pitch );
+		Inst.RotSinOffset.Y		= InitializeOffset( SourceShake->RotOscillation.Yaw );
+		Inst.RotSinOffset.Z		= InitializeOffset( SourceShake->RotOscillation.Roll );
 
-		Inst.LocSinOffset.X		= InitializeOffset( Inst.SourceShake->LocOscillation.X );
-		Inst.LocSinOffset.Y		= InitializeOffset( Inst.SourceShake->LocOscillation.Y );
-		Inst.LocSinOffset.Z		= InitializeOffset( Inst.SourceShake->LocOscillation.Z );
+		Inst.LocSinOffset.X		= InitializeOffset( SourceShake->LocOscillation.X );
+		Inst.LocSinOffset.Y		= InitializeOffset( SourceShake->LocOscillation.Y );
+		Inst.LocSinOffset.Z		= InitializeOffset( SourceShake->LocOscillation.Z );
 
-		Inst.FOVSinOffset		= InitializeOffset( Inst.SourceShake->FOVOscillation );
+		Inst.FOVSinOffset		= InitializeOffset( SourceShake->FOVOscillation );
 
-		Inst.OscillatorTimeRemaining = Inst.SourceShake->OscillationDuration;
+		Inst.OscillatorTimeRemaining = SourceShake->OscillationDuration;
 
-		if (Inst.SourceShake->OscillationBlendInTime > 0.f)
+		if (SourceShake->OscillationBlendInTime > 0.f)
 		{
 			Inst.bBlendingIn = true;
 			Inst.CurrentBlendInTime = 0.f;
@@ -311,30 +311,26 @@ FCameraShakeInstance UCameraModifier_CameraShake::InitializeShake(TSubclassOf<cl
 	}
 
 	// init anims
-	if (Inst.SourceShake->Anim != NULL)
+	if (SourceShake->Anim != NULL)
 	{
 		bool bLoop = false;
 		bool bRandomStart = false;
 		float Duration = 0.f;
-		if (Inst.SourceShake->bRandomAnimSegment)
+		if (SourceShake->bRandomAnimSegment)
 		{
 			bLoop = true;
 			bRandomStart = true;
-			Duration = Inst.SourceShake->RandomAnimSegmentDuration;
+			Duration = SourceShake->RandomAnimSegmentDuration;
 		}
 
 		if (Scale > 0.f)
 		{
-			Inst.AnimInst = CameraOwner->PlayCameraAnim(Inst.SourceShake->Anim, Inst.SourceShake->AnimPlayRate, Scale, Inst.SourceShake->AnimBlendInTime, Inst.SourceShake->AnimBlendOutTime, bLoop, bRandomStart, Duration, Inst.SourceShake->bSingleInstance);
-			if (PlaySpace != CAPS_CameraLocal && Inst.AnimInst != NULL)
-			{
-				Inst.AnimInst->SetPlaySpace(PlaySpace, UserPlaySpaceRot);
-			}
+			Inst.AnimInst = CameraOwner->PlayCameraAnim(SourceShake->Anim, SourceShake->AnimPlayRate, Scale, SourceShake->AnimBlendInTime, SourceShake->AnimBlendOutTime, bLoop, bRandomStart, Duration, PlaySpace, UserPlaySpaceRot);
 		}
 	}
 
 	Inst.PlaySpace = PlaySpace;
-	if (Inst.PlaySpace == CAPS_UserDefined)
+	if (Inst.PlaySpace == ECameraAnimPlaySpace::UserDefined)
 	{
 		Inst.UserPlaySpaceMatrix = FRotationMatrix(UserPlaySpaceRot);
 	}
@@ -343,17 +339,19 @@ FCameraShakeInstance UCameraModifier_CameraShake::InitializeShake(TSubclassOf<cl
 }
 
 
-void UCameraModifier_CameraShake::AddCameraShake( TSubclassOf<class UCameraShake> NewShake, float Scale, ECameraAnimPlaySpace PlaySpace, FRotator UserPlaySpaceRot )
+void UCameraModifier_CameraShake::AddCameraShake( TSubclassOf<class UCameraShake> NewShake, float Scale, ECameraAnimPlaySpace::Type PlaySpace, FRotator UserPlaySpaceRot )
 {
 	if (NewShake != NULL)
 	{
-		if (Cast<UCameraShake>(NewShake->GetDefaultObject())->bSingleInstance)
+		UCameraShake const* const ShakeCDO = GetDefault<UCameraShake>(NewShake);
+
+		if (ShakeCDO && ShakeCDO->bSingleInstance)
 		{
-			for (int32 i = 0; i < ActiveShakes.Num(); ++i)
+			for (FCameraShakeInstance& ShakeInst : ActiveShakes)
 			{
-				if (ActiveShakes[i].SourceShakeName == NewShake->GetFName())
+				if (ShakeInst.SourceShakeName == NewShake->GetFName())
 				{
-					ReinitShake(i, Scale);
+					ReinitShake(ShakeInst, Scale);
 					return;
 				}
 			}
@@ -375,7 +373,7 @@ void UCameraModifier_CameraShake::RemoveCameraShake(TSubclassOf<class UCameraSha
 			UCameraAnimInst* AnimInst = ActiveShakes[i].AnimInst;
 			if ( (AnimInst != NULL) && !AnimInst->bFinished )
 			{
-				CameraOwner->StopCameraAnim(AnimInst, true);
+				CameraOwner->StopCameraAnimInst(AnimInst, true);
 			}
 
 			ActiveShakes.RemoveAt(i,1);
@@ -392,7 +390,7 @@ void UCameraModifier_CameraShake::RemoveAllCameraShakes()
 		UCameraAnimInst* AnimInst = ActiveShakes[Idx].AnimInst;
 		if ( (AnimInst != NULL) && !AnimInst->bFinished )
 		{
-			CameraOwner->StopCameraAnim(AnimInst, true);
+			CameraOwner->StopCameraAnimInst(AnimInst, true);
 		}
 	}
 

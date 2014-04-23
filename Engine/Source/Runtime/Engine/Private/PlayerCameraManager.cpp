@@ -7,6 +7,7 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogPlayerCameraManager, Log, All);
 
+
 //////////////////////////////////////////////////////////////////////////
 // APlayerCameraManager
 
@@ -206,6 +207,8 @@ void APlayerCameraManager::ApplyCameraModifiers(float DeltaTime, FMinimalViewInf
 		}
 	}
 
+	ClearCachedPPBlends();
+
 	// Now apply CameraAnims
 	// these essentially behave as the highest-pri modifier.
 	for (int32 Idx = 0; Idx < ActiveAnims.Num(); ++Idx)
@@ -215,7 +218,7 @@ void APlayerCameraManager::ApplyCameraModifiers(float DeltaTime, FMinimalViewInf
 		if (!AnimInst->bFinished)
 		{
 			// clear out animated camera actor
-			InitTempCameraActor(AnimCameraActor, AnimInst->CamAnim);
+			InitTempCameraActor(AnimCameraActor, AnimInst);
 
 			// evaluate the animation at the new time
 			AnimInst->AdvanceAnim(DeltaTime, false);
@@ -225,7 +228,6 @@ void APlayerCameraManager::ApplyCameraModifiers(float DeltaTime, FMinimalViewInf
 			{
 				ApplyAnimToCamera(AnimCameraActor, AnimInst, InOutPOV);
 			}
-
 		}
 
 		// handle animations that have finished
@@ -247,13 +249,38 @@ void APlayerCameraManager::ApplyCameraModifiers(float DeltaTime, FMinimalViewInf
 	}
 }
 
-void APlayerCameraManager::ApplyAnimToCamera(class ACameraActor const* AnimatedCamActor, class UCameraAnimInst const* AnimInst, FMinimalViewInfo& InOutPOV)
+void APlayerCameraManager::AddCachedPPBlend(struct FPostProcessSettings& PPSettings, float BlendWeight)
+{
+	check(PostProcessBlendCache.Num() == PostProcessBlendCacheWeights.Num());
+	PostProcessBlendCache.Add(PPSettings);
+	PostProcessBlendCacheWeights.Add(BlendWeight);
+}
+
+void APlayerCameraManager::ClearCachedPPBlends()
+{
+	PostProcessBlendCache.Empty();
+	PostProcessBlendCacheWeights.Empty();
+}
+
+void APlayerCameraManager::GetCachedPostProcessBlends(TArray<FPostProcessSettings> const*& OutPPSettings, TArray<float> const*& OutBlendWeigthts) const
+{
+	OutPPSettings = &PostProcessBlendCache;
+	OutBlendWeigthts = &PostProcessBlendCacheWeights;
+}
+
+void APlayerCameraManager::ApplyAnimToCamera(ACameraActor const* AnimatedCamActor, UCameraAnimInst const* AnimInst, FMinimalViewInfo& InOutPOV)
 {
 	float const Scale = AnimInst->CurrentBlendWeight;
 
 	FRotationMatrix const CameraToWorld(InOutPOV.Rotation);
 
-	if (AnimInst->PlaySpace == CAPS_CameraLocal)
+	// move animated cam actor to initial-relative position
+	FTransform const AnimatedCamToWorld = AnimatedCamActor->GetTransform();
+	FTransform const AnimatedCamToInitialCam = AnimatedCamToWorld * AnimInst->InitialCamToWorld.InverseSafe();
+	ACameraActor* const MutableCamActor = const_cast<ACameraActor*>(AnimatedCamActor);
+	MutableCamActor->SetActorTransform(AnimatedCamToInitialCam);		// set it back because that's what the code below expects
+
+	if (AnimInst->PlaySpace == ECameraAnimPlaySpace::CameraLocal)
 	{
 		// the code in the else block will handle this just fine, but this path provides efficiency and simplicity for the most common case
 
@@ -270,7 +297,7 @@ void APlayerCameraManager::ApplyAnimToCamera(class ACameraActor const* AnimatedC
 		// handle playing the anim in an arbitrary space relative to the camera
 
 		// find desired space
-		FMatrix const PlaySpaceToWorld = (AnimInst->PlaySpace == CAPS_UserDefined) ? AnimInst->UserPlaySpaceMatrix : FMatrix::Identity; 
+		FMatrix const PlaySpaceToWorld = (AnimInst->PlaySpace == ECameraAnimPlaySpace::UserDefined) ? AnimInst->UserPlaySpaceMatrix : FMatrix::Identity;
 
 		// loc
 		FVector const LocalOffset = PlaySpaceToWorld.TransformVector( AnimatedCamActor->GetActorLocation()*Scale );
@@ -295,10 +322,15 @@ void APlayerCameraManager::ApplyAnimToCamera(class ACameraActor const* AnimatedC
 	}
 
 	// fov
-	ACameraActor const* const DefaultCamActor = GetDefault<ACameraActor>();
-	if (DefaultCamActor)
+	const float FOVMin = 5.f;
+	const float FOVMax = 170.f;
+	InOutPOV.FOV += AnimatedCamActor->CameraComponent->FieldOfView - AnimInst->InitialFOV;
+	InOutPOV.FOV = FMath::Clamp<float>(InOutPOV.FOV, FOVMin, FOVMax);
+
+	// postprocess
+	if (AnimatedCamActor->CameraComponent.Get()->PostProcessBlendWeight > 0.f)
 	{
-		InOutPOV.FOV += (AnimatedCamActor->CameraComponent->FieldOfView - DefaultCamActor->CameraComponent->FieldOfView) * Scale;
+		AddCachedPPBlend(AnimatedCamActor->CameraComponent.Get()->PostProcessSettings, AnimatedCamActor->CameraComponent.Get()->PostProcessBlendWeight);
 	}
 }
 
@@ -333,7 +365,7 @@ void APlayerCameraManager::ReleaseCameraAnimInst(UCameraAnimInst* Inst)
 }
 
 
-UCameraAnimInst* APlayerCameraManager::FindExistingCameraAnimInst(UCameraAnim const* Anim)
+UCameraAnimInst* APlayerCameraManager::FindInstanceOfCameraAnim(UCameraAnim const* Anim) const
 {
 	int32 const NumActiveAnims = ActiveAnims.Num();
 	for (int32 Idx=0; Idx<NumActiveAnims; Idx++)
@@ -347,28 +379,17 @@ UCameraAnimInst* APlayerCameraManager::FindExistingCameraAnimInst(UCameraAnim co
 	return NULL;
 }
 
-UCameraAnimInst* APlayerCameraManager::PlayCameraAnim(class UCameraAnim* Anim, float Rate, float Scale, float BlendInTime, float BlendOutTime, bool bLoop, bool bRandomStartTime, float Duration, bool bSingleInstance)
+UCameraAnimInst* APlayerCameraManager::PlayCameraAnim(UCameraAnim* Anim, float Rate, float Scale, float BlendInTime, float BlendOutTime, bool bLoop, bool bRandomStartTime, float Duration, ECameraAnimPlaySpace::Type PlaySpace, FRotator UserPlaySpaceRot)
 {
-	if (bSingleInstance)
-	{
-		// try to update the existing instance with the new data
-		UCameraAnimInst* ExistingInst = FindExistingCameraAnimInst(Anim);
-		if (ExistingInst)
-		{
-			ExistingInst->Update(Rate, Scale, BlendInTime, BlendOutTime, Duration);
-			return ExistingInst;
-		}
-	}
-
 	// get a new instance and play it
 	if (AnimCameraActor != NULL)
 	{
 		UCameraAnimInst* const Inst = AllocCameraAnimInst();
 		if (Inst)
 		{
-			// clear LastCameraLoc
-			Inst->LastCameraLoc = FVector::ZeroVector;
+			Inst->LastCameraLoc = FVector::ZeroVector;		// clear LastCameraLoc
 			Inst->Play(Anim, AnimCameraActor, Rate, Scale, BlendInTime, BlendOutTime, bLoop, bRandomStartTime, Duration);
+			Inst->SetPlaySpace(PlaySpace, UserPlaySpaceRot);
 			return Inst;
 		}
 	}
@@ -376,7 +397,7 @@ UCameraAnimInst* APlayerCameraManager::PlayCameraAnim(class UCameraAnim* Anim, f
 	return NULL;
 }
 
-void APlayerCameraManager::StopAllCameraAnimsByType(class UCameraAnim* Anim, bool bImmediate)
+void APlayerCameraManager::StopAllInstancesOfCameraAnim(UCameraAnim* Anim, bool bImmediate)
 {
 	// find cameraaniminst for this.
 	for (int32 Idx=0; Idx<ActiveAnims.Num(); ++Idx)
@@ -396,7 +417,7 @@ void APlayerCameraManager::StopAllCameraAnims(bool bImmediate)
 	}
 }
 
-void APlayerCameraManager::StopCameraAnim(class UCameraAnimInst* AnimInst, bool bImmediate)
+void APlayerCameraManager::StopCameraAnimInst(class UCameraAnimInst* AnimInst, bool bImmediate)
 {
 	if (AnimInst != NULL)
 	{
@@ -404,19 +425,22 @@ void APlayerCameraManager::StopCameraAnim(class UCameraAnimInst* AnimInst, bool 
 	}
 }
 
-void APlayerCameraManager::InitTempCameraActor(class ACameraActor* CamActor, class UCameraAnim* AnimToInitFor) const
+
+void APlayerCameraManager::InitTempCameraActor(ACameraActor* CamActor, UCameraAnimInst const* AnimInstToInitFor) const
 {
 	if (CamActor)
 	{
 		CamActor->TeleportTo(FVector::ZeroVector, FRotator::ZeroRotator);
 
-		if (AnimToInitFor)
+		if (AnimInstToInitFor)
 		{
 			ACameraActor const* const DefaultCamActor = GetDefault<ACameraActor>();
 			if (DefaultCamActor)
 			{
 				CamActor->CameraComponent->AspectRatio = DefaultCamActor->CameraComponent->AspectRatio;
-				CamActor->CameraComponent->FieldOfView = AnimToInitFor->BaseFOV;
+				CamActor->CameraComponent->FieldOfView = AnimInstToInitFor->CamAnim->BaseFOV;
+				CamActor->CameraComponent->PostProcessSettings = AnimInstToInitFor->CamAnim->BasePostProcessSettings;
+				CamActor->CameraComponent->PostProcessBlendWeight = AnimInstToInitFor->CamAnim->BasePostProcessBlendWeight;
 			}
 		}
 	}
@@ -583,13 +607,17 @@ void APlayerCameraManager::PostInitializeComponents()
 		FreeAnims.Add(AnimInstPool[Idx]);
 	}
 
-	// spawn the two temp CameraActors used for updating CameraAnims
-	//AnimCameraActor = SpawnActor<ADynamicCameraActor>(this, Instigator, true);
+	// spawn the temp CameraActor used for updating CameraAnims
+	FActorSpawnParameters SpawnInfo;
+	SpawnInfo.Owner = this;
+	SpawnInfo.Instigator = Instigator;
+	SpawnInfo.bNoCollisionFail = true;
+	AnimCameraActor = GetWorld()->SpawnActor<ACameraActor>(SpawnInfo);
 }
 
 void APlayerCameraManager::Destroyed()
 {
-	// clean up the temp camera actors
+	// clean up the temp camera actor
 	if (AnimCameraActor)
 	{
 		AnimCameraActor->Destroy();
@@ -966,7 +994,7 @@ AEmitterCameraLensEffectBase* APlayerCameraManager::AddCameraLensEffect(TSubclas
 			SpawnInfo.Owner = PCOwner->GetViewTarget();
 			SpawnInfo.Instigator = Instigator;
 			SpawnInfo.bNoCollisionFail = true;
-			LensEffect = GetWorld()->SpawnActor<AEmitterCameraLensEffectBase>(LensEffectEmitterClass, SpawnInfo );
+			LensEffect = GetWorld()->SpawnActor<AEmitterCameraLensEffectBase>(LensEffectEmitterClass, SpawnInfo);
 			if (LensEffect != NULL)
 			{
 				FVector CamLoc;
@@ -1008,7 +1036,7 @@ void APlayerCameraManager::ClearCameraLensEffects()
 
 
 
-void APlayerCameraManager::PlayCameraShake(TSubclassOf<UCameraShake> Shake, float Scale, ECameraAnimPlaySpace PlaySpace, FRotator UserPlaySpaceRot)
+void APlayerCameraManager::PlayCameraShake(TSubclassOf<UCameraShake> Shake, float Scale, ECameraAnimPlaySpace::Type PlaySpace, FRotator UserPlaySpaceRot)
 {
 	if (Shake != NULL)
 	{
@@ -1059,7 +1087,7 @@ void APlayerCameraManager::PlayWorldCameraShake(UWorld* InWorld, TSubclassOf<cla
 				FVector CamLoc;
 				FRotator CamRot;
 				PlayerController->PlayerCameraManager->GetCameraViewPoint(CamLoc, CamRot);
-				PlayerController->ClientPlayCameraShake(Shake, ShakeScale, CAPS_UserDefined, (Epicenter - CamLoc).Rotation());
+				PlayerController->ClientPlayCameraShake(Shake, ShakeScale, ECameraAnimPlaySpace::UserDefined, (Epicenter - CamLoc).Rotation());
 			}
 			else
 			{

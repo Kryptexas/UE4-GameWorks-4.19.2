@@ -1759,6 +1759,13 @@ void FMatinee::SetInterpEnd(float NewInterpLength)
 	IData->EdSectionStart = FMath::Clamp(IData->EdSectionStart, 0.f, IData->InterpLength);
 	IData->EdSectionEnd = FMath::Clamp(IData->EdSectionEnd, 0.f, IData->InterpLength);
 	CurveEd->SetRegionMarker(true, IData->EdSectionStart, IData->EdSectionEnd, RegionFillColor);
+
+	// Update the CameraAnim if necessary
+	AMatineeActorCameraAnim* const CamAnimMatineeActor = CastChecked<AMatineeActorCameraAnim>(MatineeActor);
+	if ( (CamAnimMatineeActor != nullptr) && (CamAnimMatineeActor->CameraAnim != nullptr) )
+	{
+		CamAnimMatineeActor->CameraAnim->AnimLength = IData->InterpLength;
+	}
 }
 
 void FMatinee::MoveLoopMarker(float NewMarkerPos, bool bIsStart)

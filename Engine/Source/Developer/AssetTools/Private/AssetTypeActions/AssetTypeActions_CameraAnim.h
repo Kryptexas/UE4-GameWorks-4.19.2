@@ -37,7 +37,7 @@ private:
 	TWeakObjectPtr<class ACameraActor> PreviewCamera;
 
 	/** The matinee actor we will use for previewing the camera anim */
-	TWeakObjectPtr<class AMatineeActorCameraAnim> PreviewMatinee;
+	TWeakObjectPtr<class AMatineeActorCameraAnim> PreviewMatineeActor;
 
 	/** The pawn we we will use for previewing the camera anim */
 	TWeakObjectPtr<class APawn> PreviewPawn;

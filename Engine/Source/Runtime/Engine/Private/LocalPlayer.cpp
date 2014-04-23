@@ -373,7 +373,7 @@ FSceneView* ULocalPlayer::CalcSceneView( class FSceneViewFamily* ViewFamily,
 	ViewInitOptions.WorldToMetersScale = PlayerController->GetWorldSettings()->WorldToMeters;
 	PlayerController->BuildHiddenComponentList(OutViewLocation, /*out*/ ViewInitOptions.HiddenPrimitives);
 
-	FSceneView* View = new FSceneView(ViewInitOptions);
+	FSceneView* const View = new FSceneView(ViewInitOptions);
 	
 	View->ViewLocation = OutViewLocation;
 	View->ViewRotation = OutViewRotation;
@@ -387,6 +387,19 @@ FSceneView* ULocalPlayer::CalcSceneView( class FSceneViewFamily* ViewFamily,
 
 	{
 		View->StartFinalPostprocessSettings(OutViewLocation);
+
+		// CameraAnim override
+		if (PlayerController && PlayerController->PlayerCameraManager)
+		{
+			TArray<FPostProcessSettings> const* CameraAnimPPSettings;
+			TArray<float> const* CameraAnimPPBlendWeights;
+			PlayerController->PlayerCameraManager->GetCachedPostProcessBlends(CameraAnimPPSettings, CameraAnimPPBlendWeights);
+			
+			for (int32 PPIdx = 0; PPIdx < CameraAnimPPBlendWeights->Num(); ++PPIdx)
+			{
+				View->OverridePostProcessSettings( (*CameraAnimPPSettings)[PPIdx], (*CameraAnimPPBlendWeights)[PPIdx]);
+			}
+		}
 
 		//	CAMERA OVERRIDE
 		//	NOTE: Matinee works through this channel

@@ -534,7 +534,7 @@ public:
 	 * @param CustomPlaySpace - Matrix used when Space = CAPS_UserDefined
 	 */
 	UFUNCTION(unreliable, client)
-	void ClientPlayCameraAnim(class UCameraAnim* AnimToPlay, float Scale = 0, float Rate = 0, float BlendInTime = 0, float BlendOutTime = 0, bool bLoop = false, bool bRandomStartTime = false, enum ECameraAnimPlaySpace Space = ECameraAnimPlaySpace(0), FRotator CustomPlaySpace = FRotator::ZeroRotator);
+	void ClientPlayCameraAnim(class UCameraAnim* AnimToPlay, float Scale=0, float Rate=0, float BlendInTime=0, float BlendOutTime=0, bool bLoop=false, bool bRandomStartTime=false, enum ECameraAnimPlaySpace::Type Space=ECameraAnimPlaySpace::CameraLocal, FRotator CustomPlaySpace=FRotator::ZeroRotator);
 
 	/** 
 	 * Play Camera Shake 
@@ -544,7 +544,7 @@ public:
 	 * @param UserPlaySpaceRot - Matrix used when PlaySpace = CAPS_UserDefined
 	 */
 	UFUNCTION(unreliable, client, BlueprintCallable, Category="Game|Feedback")
-	void ClientPlayCameraShake(TSubclassOf<class UCameraShake> Shake, float Scale = 0, enum ECameraAnimPlaySpace PlaySpace = CAPS_CameraLocal, FRotator UserPlaySpaceRot = FRotator::ZeroRotator);
+	void ClientPlayCameraShake(TSubclassOf<class UCameraShake> Shake, float Scale = 0, ECameraAnimPlaySpace::Type PlaySpace = ECameraAnimPlaySpace::CameraLocal, FRotator UserPlaySpaceRot = FRotator::ZeroRotator);
 
 	/**
 	 * Play sound client-side (so only the client will hear it)

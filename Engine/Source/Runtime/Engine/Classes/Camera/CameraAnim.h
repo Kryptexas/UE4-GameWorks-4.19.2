@@ -35,6 +35,13 @@ class UCameraAnim : public UObject
 	UPROPERTY()
 	float BaseFOV;
 
+	/** Default PP settings to put on the animated camera. For modifying PP without keyframes. */
+	UPROPERTY()
+	FPostProcessSettings BasePostProcessSettings;
+
+	/** Default PP blend weight to put on the animated camera. For modifying PP without keyframes. */
+	UPROPERTY()
+	float BasePostProcessBlendWeight;
 
 protected:
 	// @todo document

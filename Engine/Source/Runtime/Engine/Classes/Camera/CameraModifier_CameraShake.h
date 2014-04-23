@@ -1,15 +1,16 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /**
- * 
  * Camera modifier that provides support for code-based oscillating camera shakes.
  */
 
 #pragma once
+
+#include "CameraTypes.h"
 #include "CameraModifier_CameraShake.generated.h"
 
 USTRUCT()
-struct FCameraShakeInstance
+struct ENGINE_API FCameraShakeInstance
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -56,7 +57,7 @@ struct FCameraShakeInstance
 
 	/** What space to play the shake in before applying to the camera.  Affects Anim and Oscillation both. */
 	UPROPERTY()
-	TEnumAsByte<enum ECameraAnimPlaySpace> PlaySpace;
+	TEnumAsByte<ECameraAnimPlaySpace::Type> PlaySpace;
 
 	/** Matrix defining the playspace, used when PlaySpace == CAPS_UserDefined */
 	UPROPERTY()
@@ -83,7 +84,7 @@ struct FCameraShakeInstance
 };
 
 UCLASS(dependson=UCameraShake, config=Camera)
-class UCameraModifier_CameraShake : public UCameraModifier
+class ENGINE_API UCameraModifier_CameraShake : public UCameraModifier
 {
 	GENERATED_UCLASS_BODY()
 
@@ -96,20 +97,18 @@ protected:
 	UPROPERTY(EditAnywhere, Category=CameraModifier_CameraShake)
 	float SplitScreenShakeScale;
 
-public:
-
-protected:
 	/** For situational scaling of individual shakes. */
 	virtual float GetShakeScale(FCameraShakeInstance const& ShakeInst) const;
+	virtual void ReinitShake(FCameraShakeInstance& ShakeInst, float Scale);
+
 public:
 	float InitializeOffset( const FFOscillator& Param );
-	virtual void ReinitShake(int32 ActiveShakeIdx, float Scale);
 	
 	/** Initialize camera shake structure */
-	virtual FCameraShakeInstance InitializeShake(TSubclassOf<class UCameraShake> NewShake, float Scale, ECameraAnimPlaySpace PlaySpace, FRotator UserPlaySpaceRot = FRotator::ZeroRotator);
+	virtual FCameraShakeInstance InitializeShake(TSubclassOf<class UCameraShake> NewShake, float Scale, ECameraAnimPlaySpace::Type PlaySpace, FRotator UserPlaySpaceRot = FRotator::ZeroRotator);
 	
 	/** Add a new screen shake to the list */
-	virtual void AddCameraShake(TSubclassOf<class UCameraShake> NewShake, float Scale, ECameraAnimPlaySpace PlaySpace=CAPS_CameraLocal, FRotator UserPlaySpaceRot = FRotator::ZeroRotator);
+	virtual void AddCameraShake(TSubclassOf<class UCameraShake> NewShake, float Scale, ECameraAnimPlaySpace::Type PlaySpace=ECameraAnimPlaySpace::CameraLocal, FRotator UserPlaySpaceRot = FRotator::ZeroRotator);
 	
 	virtual void RemoveCameraShake(TSubclassOf<class UCameraShake> Shake);
 	virtual void RemoveAllCameraShakes();

@@ -3195,7 +3195,7 @@ void APlayerController::ProcessForceFeedback(const float DeltaTime, const bool b
 	}
 }
 
-void APlayerController::ClientPlayCameraShake_Implementation( TSubclassOf<class UCameraShake> Shake, float Scale, ECameraAnimPlaySpace PlaySpace, FRotator UserPlaySpaceRot )
+void APlayerController::ClientPlayCameraShake_Implementation( TSubclassOf<class UCameraShake> Shake, float Scale, ECameraAnimPlaySpace::Type PlaySpace, FRotator UserPlaySpaceRot )
 {
 	if (PlayerCameraManager != NULL)
 	{
@@ -3213,15 +3213,11 @@ void APlayerController::ClientStopCameraShake_Implementation( TSubclassOf<class 
 
 void APlayerController::ClientPlayCameraAnim_Implementation( UCameraAnim* AnimToPlay, float Scale, float Rate,
 						float BlendInTime, float BlendOutTime, bool bLoop,
-						bool bRandomStartTime, ECameraAnimPlaySpace Space, FRotator CustomPlaySpace )
+						bool bRandomStartTime, ECameraAnimPlaySpace::Type Space, FRotator CustomPlaySpace )
 {
 	if (PlayerCameraManager != NULL)
 	{
-		UCameraAnimInst* AnimInst = PlayerCameraManager->PlayCameraAnim(AnimToPlay, Rate, Scale, BlendInTime, BlendOutTime, bLoop, bRandomStartTime);
-		if (AnimInst != NULL && Space != CAPS_CameraLocal)
-		{
-			AnimInst->SetPlaySpace(Space, CustomPlaySpace);
-		}
+		PlayerCameraManager->PlayCameraAnim(AnimToPlay, Rate, Scale, BlendInTime, BlendOutTime, bLoop, bRandomStartTime, 0.f, Space, CustomPlaySpace);
 	}
 }
 
@@ -3229,7 +3225,7 @@ void APlayerController::ClientStopCameraAnim_Implementation(UCameraAnim* AnimToS
 {
 	if (PlayerCameraManager != NULL)
 	{
-		PlayerCameraManager->StopAllCameraAnimsByType(AnimToStop);
+		PlayerCameraManager->StopAllInstancesOfCameraAnim(AnimToStop);
 	}
 }
 
