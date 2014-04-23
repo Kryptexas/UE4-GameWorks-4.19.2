@@ -70,7 +70,7 @@ static TSharedPtr<IModuleInterface> LoadSubsystemModule(const FString& Subsystem
  */
 void ISocketSubsystem::ShutdownAllSystems()
 {
-	if (FModuleManager::Get().IsModuleLoaded(TEXT("Sockets")) == true)
+	if (IsInGameThread() && FModuleManager::Get().IsModuleLoaded(TEXT("Sockets")) == true)
 	{
 		// Unloading the Sockets module will call FSocketSubsystemModule::ShutdownSocketSubsystem()
 		const bool bIsShutdown = true;
