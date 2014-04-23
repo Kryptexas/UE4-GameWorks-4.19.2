@@ -584,6 +584,7 @@ namespace EpicGames.MCP.Config
                 ConfigMap.Add(new MapEntry("UnrealEngineLauncher", "//depot/UE4-LauncherReleases", "ProdCom"));
                 ConfigMap.Add(new MapEntry("UE", "//depot/UE4", "MainGameDevNet"));
                 ConfigMap.Add(new MapEntry("UE", "//depot/UE4-Releases/4.0", "ProdCom"));
+                ConfigMap.Add(new MapEntry("UE", "//depot/UE4-Releases/4.1", "MainGameDevNet"));
                 ConfigMap.Add(new MapEntry("Fortnite", "//depot/UE4-Fortnite", "LatestGameDevNet"));
             }
             string NormalizedBranch = CommandUtils.CombinePaths(PathSeparator.Slash, CommandUtils.P4Env.BuildRootP4, "/");
