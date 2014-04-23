@@ -13,7 +13,6 @@
 #include "Core.h"
 #include "ModuleInterface.h"
 #include "ModuleManager.h"
-#include "Messaging.h"
 #include "Runtime/Core/Public/Android/AndroidProperties.h"
 
 #if WITH_ENGINE

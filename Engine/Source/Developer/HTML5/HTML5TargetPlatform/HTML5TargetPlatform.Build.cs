@@ -17,10 +17,9 @@ public class HTML5TargetPlatform : ModuleRules
 			new string[] {
 				"Core",
 				"CoreUObject",
-				"Settings",
 				"Sockets"
 			}
-			);
+		);
 
 		if (UEBuildConfiguration.bCompileAgainstEngine)
 		{
@@ -28,9 +27,14 @@ public class HTML5TargetPlatform : ModuleRules
 //			PrivateIncludePathModuleNames.Add("TextureCompressor");
 		}
 
+		PrivateIncludePathModuleNames.AddRange(
+			new string[] {
+				"Settings",
+			}
+		);
+
 		PrivateIncludePaths.AddRange(
-			new string[]
-			{
+			new string[] {
 				"Developer/HTML5TargetPlatform/Classes"
 			}
 		);

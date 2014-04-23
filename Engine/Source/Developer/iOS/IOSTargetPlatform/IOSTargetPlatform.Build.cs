@@ -14,12 +14,18 @@ public class IOSTargetPlatform : ModuleRules
 				"Core",
 				"CoreUObject",
 				"TargetPlatform",
-				"Messaging",
-				"TargetDeviceServices",
 				"LaunchDaemonMessages",
 			}
 		);
-        PlatformSpecificDynamicallyLoadedModuleNames.Add("LaunchDaemonMessages");
+
+		PrivateIncludePathModuleNames.AddRange(
+			new string[] {
+				"Messaging",
+				"TargetDeviceServices",
+			}
+		);
+
+		PlatformSpecificDynamicallyLoadedModuleNames.Add("LaunchDaemonMessages");
 
 		//This is somehow necessary for getting iOS to build on, at least, windows. It seems like the target platform is included for cooking, and thus it requirtes a bunch of other info.
 		PublicIncludePaths.AddRange(

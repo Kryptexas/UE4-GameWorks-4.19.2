@@ -7,32 +7,30 @@ public class WindowsTargetPlatform : ModuleRules
 	public WindowsTargetPlatform(TargetInfo Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
-			new string[]
-			{
+			new string[] {
 				"Core",
 				"CoreUObject",
-				"Settings",
 				"TargetPlatform"
 			}
 		);
 
-		if (UEBuildConfiguration.bCompileAgainstEngine)
-		{
-			PrivateDependencyModuleNames.AddRange(
-				new string[]
-				{
-					"Engine"
-				}
-			);
-
-			PrivateIncludePathModuleNames.Add("TextureCompressor");
-		}
+		PrivateIncludePathModuleNames.AddRange(
+			new string[] {
+				"Settings",
+			}
+		);
 
 		PrivateIncludePaths.AddRange(
-			new string[]
-			{
+			new string[] {
 				"Developer/WindowsTargetPlatform/Classes"
 			}
 		);
+
+		// compile with Engine
+		if (UEBuildConfiguration.bCompileAgainstEngine)
+		{
+			PrivateDependencyModuleNames.Add("Engine");
+			PrivateIncludePathModuleNames.Add("TextureCompressor");
+		}
 	}
 }

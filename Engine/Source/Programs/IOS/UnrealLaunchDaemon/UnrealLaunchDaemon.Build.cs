@@ -12,13 +12,9 @@ public class UnrealLaunchDaemon : ModuleRules
 			}
 		);
 
-		PrivateIncludePaths.Add("Runtime/Launch/Private");
-
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"Core",
-				"Messaging",
-				"Networking",
 				"NetworkFile",
 				"Projects",
 				"StreamingFile",
@@ -30,5 +26,13 @@ public class UnrealLaunchDaemon : ModuleRules
 				"UdpMessaging"
 			}
 		);
+
+		PrivateIncludePathModuleNames.AddRange(
+			new string[] {
+				"Messaging",
+			}
+		);
+
+		PrivateIncludePaths.Add("Runtime/Launch/Private");
 	}
 }
