@@ -2253,6 +2253,17 @@ float AActor::GetInputAxisValue(const FName InputAxisName) const
 	return Value;
 }
 
+float AActor::GetInputAxisKeyValue(const FKey InputAxisKey) const
+{
+	float Value = 0.f;
+
+	if (InputComponent)
+	{
+		Value = InputComponent->GetAxisKeyValue(InputAxisKey);
+	}
+
+	return Value;
+}
 
 
 bool AActor::SetActorLocation(const FVector& NewLocation, bool bSweep)

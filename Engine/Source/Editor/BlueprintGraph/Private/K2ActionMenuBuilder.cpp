@@ -31,15 +31,21 @@ namespace K2ActionCategories
 	static FString const AxisValuesSubCategory   = LOCTEXT("ActionValuesCategory", "Axis Values").ToString();
 	static FString const AxisEventsSubCategory   = LOCTEXT("AxisEventsCategory",   "Axis Events").ToString();
 	static FString const KeyEventsSubCategory    = LOCTEXT("KeyEventsCategory",    "Key Events").ToString();
+	static FString const KeyValuesSubCategory    = LOCTEXT("KeyValuesCategory", "Key Values").ToString();
 	static FString const GamepadEventsSubCategory = LOCTEXT("GamepadEventsCategory", "Gamepad Events").ToString();
+	static FString const GamepadValuesSubCategory = LOCTEXT("GamepadValuesCategory", "Gamepad Values").ToString();
 	static FString const MouseEventsSubCategory = LOCTEXT("MouseEventsCategory", "Mouse Events").ToString();
+	static FString const MouseValuesSubCategory = LOCTEXT("MouseValuesCategory", "Mouse Values").ToString();
 
 	static FString const ActionEventsCategory = InputCategory + SubCategoryDelim + ActionEventsSubCategory;
 	static FString const AxisCategory         = InputCategory + SubCategoryDelim + AxisValuesSubCategory;
 	static FString const AxisEventCategory    = InputCategory + SubCategoryDelim + AxisEventsSubCategory;
 	static FString const KeyEventsCategory    = InputCategory + SubCategoryDelim + KeyEventsSubCategory;
+	static FString const KeyValuesCategory    = InputCategory + SubCategoryDelim + KeyValuesSubCategory;
 	static FString const GamepadEventsCategory = InputCategory + SubCategoryDelim + GamepadEventsSubCategory;
+	static FString const GamepadValuesCategory = InputCategory + SubCategoryDelim + GamepadValuesSubCategory;
 	static FString const MouseEventsCategory = InputCategory + SubCategoryDelim + MouseEventsSubCategory;
+	static FString const MouseValuesCategory = InputCategory + SubCategoryDelim + MouseValuesSubCategory;
 	static FString const TouchEventsCategory = InputCategory;
 
 
@@ -149,22 +155,10 @@ static void GetInputNodes(FGraphActionListBuilderBase& ActionMenuBuilder, const 
 
 				const bool bGamepad = Key.IsGamepadKey();
 				const bool bMouse = Key.IsMouseButton();
-				const FString& KeyCategory = (bGamepad ? K2ActionCategories::GamepadEventsCategory : (bMouse ? K2ActionCategories::MouseEventsCategory : K2ActionCategories::KeyEventsCategory));
+				const FString& KeyEventCategory = (bGamepad ? K2ActionCategories::GamepadEventsCategory : (bMouse ? K2ActionCategories::MouseEventsCategory : K2ActionCategories::KeyEventsCategory));
 
-				TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ActionMenuBuilder, KeyCategory, KeyName.ToString(), KeyName.ToString());
-
-				if (Key.IsAxis())
-				{
-					UK2Node_InputAxisKeyEvent* InputKeyAxisNode = ActionMenuBuilder.CreateTemplateNode<UK2Node_InputAxisKeyEvent>();
-					InputKeyAxisNode->Initialize(Key);
-					Action->NodeTemplate = InputKeyAxisNode;
-				}
-				else
-				{
-					UK2Node_InputKey* InputKeyNode = ActionMenuBuilder.CreateTemplateNode<UK2Node_InputKey>();
-					InputKeyNode->InputKey = Key;
-					Action->NodeTemplate = InputKeyNode;
-				}
+				TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ActionMenuBuilder, KeyEventCategory, KeyName.ToString(), KeyName.ToString());
+				TSharedPtr<FEdGraphSchemaAction_K2NewNode> GetAction;
 
 				if (bGamepad)
 				{
@@ -177,6 +171,26 @@ static void GetInputNodes(FGraphActionListBuilderBase& ActionMenuBuilder, const 
 				else
 				{
 					Action->Keywords = TEXT("Input Key InputKey Keyboard");
+				}
+
+				if (Key.IsAxis())
+				{
+					UK2Node_InputAxisKeyEvent* InputKeyAxisNode = ActionMenuBuilder.CreateTemplateNode<UK2Node_InputAxisKeyEvent>();
+					InputKeyAxisNode->Initialize(Key);
+					Action->NodeTemplate = InputKeyAxisNode;
+
+					const FString& KeyValuesCategory = (bGamepad ? K2ActionCategories::GamepadValuesCategory : (bMouse ? K2ActionCategories::MouseValuesCategory : K2ActionCategories::KeyValuesCategory));
+					GetAction = FK2ActionMenuBuilder::AddNewNodeAction(ActionMenuBuilder, KeyValuesCategory, KeyName.ToString(), KeyName.ToString());
+					UK2Node_GetInputAxisKeyValue* GetInputAxisKeyValue = ActionMenuBuilder.CreateTemplateNode<UK2Node_GetInputAxisKeyValue>();
+					GetInputAxisKeyValue->Initialize(Key);
+					GetAction->NodeTemplate = GetInputAxisKeyValue;
+					GetAction->Keywords = Action->Keywords;
+				}
+				else
+				{
+					UK2Node_InputKey* InputKeyNode = ActionMenuBuilder.CreateTemplateNode<UK2Node_InputKey>();
+					InputKeyNode->InputKey = Key;
+					Action->NodeTemplate = InputKeyNode;
 				}
 			}
 		}

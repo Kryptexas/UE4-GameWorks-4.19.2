@@ -26,7 +26,7 @@ void UK2Node_GetInputAxisValue::Initialize(const FName AxisName)
 
 FString UK2Node_GetInputAxisValue::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return FString::Printf(*NSLOCTEXT("K2Node", "GetInputAxis_Name", "Get InputAxis %s").ToString(), *InputAxisName.ToString());
+	return FString::Printf(*NSLOCTEXT("K2Node", "GetInputAxis_Name", "Get %s").ToString(), *InputAxisName.ToString());
 }
 
 FString UK2Node_GetInputAxisValue::GetTooltip() const
