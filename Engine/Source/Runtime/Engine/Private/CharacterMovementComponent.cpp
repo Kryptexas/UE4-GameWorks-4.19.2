@@ -2989,27 +2989,14 @@ void UCharacterMovementComponent::PhysWalking(float deltaTime, int32 Iterations)
 			// Validate the floor check
 			if (CurrentFloor.IsWalkableFloor())
 			{
-				const bool bBaseChanged = (CurrentFloor.HitResult.Component != CharacterOwner->GetMovementBase());
-				if (bBaseChanged || CurrentFloor.FloorDist > MAX_FLOOR_DIST)
+				if (ShouldCatchAir(OldFloor, CurrentFloor))
 				{
-					if ( ShouldCatchAir(OldFloor.HitResult.ImpactNormal, CurrentFloor.HitResult.ImpactNormal) )
-					{
-						StartFalling(Iterations, remainingTime, timeTick, Delta, subLoc);
-						return;
-					}
-					else
-					{
-						AdjustFloorHeight();
-						if (bBaseChanged)
-						{
-							SetBase(CurrentFloor.HitResult.Component.Get());
-						}
-					}
+					StartFalling(Iterations, remainingTime, timeTick, Delta, subLoc);
+					return;
 				}
-				else if (CurrentFloor.FloorDist < MIN_FLOOR_DIST)
-				{
-					AdjustFloorHeight();
-				}
+
+				AdjustFloorHeight();
+				SetBase(CurrentFloor.HitResult.Component.Get());
 			}
 			else if (CurrentFloor.HitResult.bStartPenetrating && remainingTime <= 0.f)
 			{
@@ -3064,7 +3051,7 @@ void UCharacterMovementComponent::PhysCustom(float deltaTime, int32 Iterations)
 }
 
 
-bool UCharacterMovementComponent::ShouldCatchAir(const FVector& OldFloor, const FVector& Floor)
+bool UCharacterMovementComponent::ShouldCatchAir(const FFindFloorResult& OldFloor, const FFindFloorResult& NewFloor)
 {
 	return false;
 }

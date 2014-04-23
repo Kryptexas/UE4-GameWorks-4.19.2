@@ -270,6 +270,7 @@ public:
 	virtual void Jump();
 
 	/**
+	 * Check if the character can jump in the current state.
 	 * Default implementation returns true if the character is on the ground and not crouching,
 	 * has a valid CharacterMovementComponent and CanEverJump() returns true.
 	 * @Return Whether the character can jump in the current state. 

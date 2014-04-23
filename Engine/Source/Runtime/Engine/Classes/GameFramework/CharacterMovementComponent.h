@@ -654,10 +654,12 @@ public:
 	/** Transition from walking to falling */
 	virtual void StartFalling(int32 Iterations, float remainingTime, float timeTick, const FVector& Delta, const FVector& subLoc);
 
-	/** Whether pawn should go into falling mode when starting down a steep decline.
-	 *  @returns false to provide traditional default behavior
-	  */
-	virtual bool ShouldCatchAir(const FVector& OldFloor, const FVector& Floor);
+	/**
+	 * Whether Character should go into falling mode when walking and changing position, based on an old and new floor result (both of which are considered walkable).
+	 * Default implementation always returns false.
+	 * @return true if Character should start falling
+	 */
+	virtual bool ShouldCatchAir(const FFindFloorResult& OldFloor, const FFindFloorResult& NewFloor);
 
 	/** Adjust distance from floor, trying to maintain a slight offset from the floor when walking (based on CurrentFloor). */
 	virtual void AdjustFloorHeight();
@@ -909,8 +911,8 @@ public:
 	float GetValidPerchRadius() const;
 
 	/** Return true if the hit result should be considered a walkable surface for the character. */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
 	virtual bool IsWalkable(const FHitResult& Hit) const;
-
 
 	/** Get the max angle in degrees of a walkable surface for the character. */
 	FORCEINLINE float GetWalkableFloorAngle() const { return WalkableFloorAngle; }
