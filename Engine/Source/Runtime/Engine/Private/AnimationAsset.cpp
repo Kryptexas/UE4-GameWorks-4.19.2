@@ -91,6 +91,8 @@ void UAnimationAsset::ReplaceReferredAnimations(const TMap<UAnimSequence*, UAnim
 {
 }
 
+#endif
+
 void UAnimationAsset::ValidateSkeleton()
 {
 	if (Skeleton && Skeleton->GetGuid() != SkeletonGuid)
@@ -99,8 +101,6 @@ void UAnimationAsset::ValidateSkeleton()
 		ResetSkeleton(Skeleton);
 	}
 }
-
-#endif
 
 void FBoneContainer::InitializeTo(const TArray<FBoneIndexType>& InRequiredBoneIndexArray, UObject& InAsset)
 {
