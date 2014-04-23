@@ -3,6 +3,7 @@
 #pragma once
 
 #include "OnlineSubsystem.h"
+#include "OnlineSubsystemImpl.h"
 #include "OnlineSubsystemFacebookPackage.h"
 
 /** Forward declarations of all interface classes */
@@ -15,7 +16,7 @@ typedef TSharedPtr<class FOnlineUserFacebook, ESPMode::ThreadSafe> FOnlineUserFa
  *	OnlineSubsystemFacebook - Implementation of the online subsystem for Facebook services
  */
 class ONLINESUBSYSTEMFACEBOOK_API FOnlineSubsystemFacebook 
-	: public IOnlineSubsystem
+	: public FOnlineSubsystemImpl
 	, public FTickerObjectBase
 {
 public:

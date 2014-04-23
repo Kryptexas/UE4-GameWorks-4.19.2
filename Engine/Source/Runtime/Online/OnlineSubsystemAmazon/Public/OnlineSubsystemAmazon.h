@@ -3,6 +3,7 @@
 #pragma once
 
 #include "OnlineSubsystem.h"
+#include "OnlineSubsystemImpl.h"
 #include "OnlineSubsystemAmazonModule.h"
 #include "OnlineSubsystemAmazonPackage.h"
 
@@ -13,7 +14,7 @@ typedef TSharedPtr<class FOnlineIdentityAmazon, ESPMode::ThreadSafe> FOnlineIden
  * Amazon subsystem
  */
 class ONLINESUBSYSTEMAMAZON_API FOnlineSubsystemAmazon :
-	public IOnlineSubsystem,
+	public FOnlineSubsystemImpl,
 	public FTickerObjectBase
 
 {

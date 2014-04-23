@@ -3,6 +3,7 @@
 #pragma once
 
 #include "OnlineSubsystem.h"
+#include "OnlineSubsystemImpl.h"
 #include "OnlineSubsystemIOSPackage.h"
 
 
@@ -10,7 +11,7 @@
  *	OnlineSubsystemIOS - Implementation of the online subsystem for IOS services
  */
 class ONLINESUBSYSTEMIOS_API FOnlineSubsystemIOS : 
-	public IOnlineSubsystem,
+	public FOnlineSubsystemImpl,
 	public FTickerObjectBase
 {
 
