@@ -27,7 +27,7 @@ class ENGINE_API ANavigationData : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY()
+	UPROPERTY(transient, duplicatetransient)
 	class UPrimitiveComponent* RenderingComp;
 
 	UPROPERTY()
