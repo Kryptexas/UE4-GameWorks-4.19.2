@@ -618,6 +618,22 @@ namespace AutomationTool
 			return Result;
 		}
 
+        /// <summary>
+        /// Gets a logfile name for a RunAndLog call
+        /// </summary>
+        /// <param name="Env">Environment to use.</param>
+        /// <param name="App">Executable to run</param>
+        /// <param name="LogName">Name of the logfile ( if null, executable name is used )</param>
+        /// <returns>The log file name.</returns>
+        public static string GetRunAndLogLogName(CommandEnvironment Env, string App, string LogName = null)
+        {
+            if (LogName == null)
+            {
+                LogName = Path.GetFileNameWithoutExtension(App);
+            }
+            return LogUtils.GetUniqueLogName(CombinePaths(Env.LogFolder, LogName));
+        }
+
 		/// <summary>
 		/// Runs external program and writes the output to a logfile.
 		/// </summary>
@@ -625,17 +641,66 @@ namespace AutomationTool
 		/// <param name="App">Executable to run</param>
 		/// <param name="CommandLine">Commandline to pass on to the executable</param>
 		/// <param name="LogName">Name of the logfile ( if null, executable name is used )</param>
-		/// <returns>Whether the program executed successfully or not.</returns>
 		public static void RunAndLog(CommandEnvironment Env, string App, string CommandLine, string LogName = null, int MaxSuccessCode = 0)
 		{
-			if (LogName == null)
-			{
-				LogName = Path.GetFileNameWithoutExtension(App);
-			}
-			string LogFile = LogUtils.GetUniqueLogName(CombinePaths(Env.LogFolder, LogName));
-
-			RunAndLog(App, CommandLine, LogFile, MaxSuccessCode);
+            RunAndLog(App, CommandLine, GetRunAndLogLogName(Env, App, LogName), MaxSuccessCode);
 		}
+        /// <summary>
+        /// Runs external program and writes the output to a logfile.
+        /// </summary>
+        /// <param name="App">Executable to run</param>
+        /// <param name="CommandLine">Commandline to pass on to the executable</param>
+        /// <param name="Logfile">Full path to the logfile, where the application output should be written to.</param>
+        /// <returns>Whether the program executed successfully or not.</returns>
+        public static void RunAndLog(string App, string CommandLine, string Logfile = null, int MaxSuccessCode = 0)
+        {
+            Log("Running {0} {1}", App, CommandLine);
+
+            ProcessResult Result = Run(App, CommandLine);
+            if (Result.Output.Length > 0 && Logfile != null)
+            {
+                WriteToFile(Logfile, Result.Output);
+            }
+            else if (Logfile == null)
+            {
+                Logfile = "[No logfile specified]";
+            }
+            else
+            {
+                Logfile = "[None!, no output produced]";
+            }
+
+            if (Result > MaxSuccessCode || Result < 0)
+            {
+                throw new AutomationException(String.Format("Command failed (Result:{3}): {0} {1}. See logfile for details: '{2}' ",
+                                                App, CommandLine, Path.GetFileName(Logfile), Result.ExitCode));
+            }
+        }
+
+        /// <summary>
+        /// Runs external program and writes the output to a logfile.
+        /// </summary>
+        /// <param name="App">Executable to run</param>
+        /// <param name="CommandLine">Commandline to pass on to the executable</param>
+        /// <param name="Logfile">Full path to the logfile, where the application output should be written to.</param>
+        /// <returns>Whether the program executed successfully or not.</returns>
+        public static string RunAndLog(string App, string CommandLine, out int SuccessCode, string Logfile = null)
+        {
+            Log("Running {0} {1}", App, CommandLine);
+
+            ProcessResult Result = Run(App, CommandLine);
+            SuccessCode = Result.ExitCode;
+            if (Result.Output.Length > 0 && Logfile != null)
+            {
+                WriteToFile(Logfile, Result.Output);
+            }
+            if (!String.IsNullOrEmpty(Result.Output))
+            {
+                return Result.Output;
+            }
+            return "";
+        }
+
 		/// <summary>
 		/// Runs UAT recursively
 		/// </summary>
@@ -737,38 +802,6 @@ namespace AutomationTool
 																				App, CommandLine, Path.GetFileName(LogFile), Result.ExitCode));
 			}
 			return LogFile;
-		}
-
-		/// <summary>
-		/// Runs external program and writes the output to a logfile.
-		/// </summary>
-		/// <param name="App">Executable to run</param>
-		/// <param name="CommandLine">Commandline to pass on to the executable</param>
-		/// <param name="Logfile">Full path to the logfile, where the application output should be written to.</param>
-		/// <returns>Whether the program executed successfully or not.</returns>
-		public static void RunAndLog(string App, string CommandLine, string Logfile = null, int MaxSuccessCode = 0)
-		{
-			Log("Running {0} {1}", App, CommandLine);
-
-			ProcessResult Result = Run(App, CommandLine);
-			if (Result.Output.Length > 0 && Logfile != null)
-			{
-				WriteToFile(Logfile, Result.Output);
-			}
-			else if (Logfile == null)
-			{
-				Logfile = "[No logfile specified]";
-			}
-			else
-			{
-				Logfile = "[None!, no output produced]";
-			}
-
-			if (Result > MaxSuccessCode || Result < 0)
-			{
-				throw new AutomationException(String.Format("Command failed (Result:{3}): {0} {1}. See logfile for details: '{2}' ",
-												App, CommandLine, Path.GetFileName(Logfile), Result.ExitCode));
-			}
 		}
 
 		protected delegate bool ProcessLog(string LogText);

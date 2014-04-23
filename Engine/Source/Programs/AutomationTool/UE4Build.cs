@@ -996,21 +996,44 @@ namespace AutomationTool
 				string Args = "\"" + TaskFilePath + "\" /Rebuild /MaxCPUS=200";
 
 				int Retries = DoRetries ? 2 : 1;
-				for (int i = 0; i < Retries; i++)
+                int ConnectionRetries = 4;
+                for (int i = 0; i < Retries; i++)
 				{
 					try
 					{
-						Log("Running XGE *******");
-						PushDir(CombinePaths(CmdEnv.LocalRoot, @"\Engine\Source"));
-						RunAndLog(CmdEnv, XGEConsole, Args);
-						PopDir();
-						Log("XGE Done *******");
-						break;
+                        while (true)
+                        {
+                            Log("Running XGE *******");
+                            PushDir(CombinePaths(CmdEnv.LocalRoot, @"\Engine\Source"));
+                            int SuccesCode;
+                            string LogFile = GetRunAndLogLogName(CmdEnv, XGEConsole);
+                            string Output = RunAndLog(XGEConsole, Args, out SuccesCode, LogFile);
+                            PopDir();
+                            if (ConnectionRetries > 0 && SuccesCode == 4 && Output.Contains("Timed out waiting for reply from local connection"))
+                            {
+                                Log(System.Diagnostics.TraceEventType.Warning, "XGE failure on the local connection timeout");
+                                if (ConnectionRetries < 2)
+                                {
+                                    System.Threading.Thread.Sleep(60000);
+                                }
+                                ConnectionRetries--;
+                                continue;
+                            }
+                            else if (SuccesCode != 0)
+                            {
+                                Log("XGE did not succeed *******");
+                                throw new AutomationException(String.Format("Command failed (Result:{3}): {0} {1}. See logfile for details: '{2}' ",
+                                                                XGEConsole, Args, Path.GetFileName(LogFile), SuccesCode));
+                            }
+                            Log("XGE Done *******");
+                            break;
+                        }
+                        break;
 					}
 					catch (Exception Ex)
 					{
 						Log("XGE failed on try {0}: {1}", i + 1, Ex.ToString());
-						if (i + 1 == Retries)
+						if (i + 1 >= Retries)
 						{
 							return false;
 						}
