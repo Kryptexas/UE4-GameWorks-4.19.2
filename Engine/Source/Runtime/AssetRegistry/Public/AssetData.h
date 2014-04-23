@@ -114,6 +114,17 @@ public:
 		return FString::Printf(TEXT("%s'%s'"), *AssetClass.ToString(), *ObjectPath.ToString());
 	}
 
+	/** Returns true if the this asset is a redirector. */
+	bool IsRedirector() const
+	{
+		if ( AssetClass == UObjectRedirector::StaticClass()->GetFName() )
+		{
+			return true;
+		}
+
+		return false;
+	}
+
 	/** Returns the class UClass if it is loaded. It is not possible to load the class if it is unloaded since we only have the short name. */
 	UClass* GetClass() const
 	{

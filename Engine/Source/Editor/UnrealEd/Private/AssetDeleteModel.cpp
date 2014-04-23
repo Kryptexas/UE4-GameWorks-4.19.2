@@ -36,22 +36,6 @@ void FAssetDeleteModel::AddObjectToDelete( UObject* InObject )
 {
 	PendingDeletes.Add(MakeShareable(new FPendingDelete(InObject)));
 
-	// Blueprints actually contain 3 assets, the UBlueprint, GeneratedClass and SkeletonGeneratedClass
-	// we need to add them all to the pending deleted objects so that the memory reference detection system
-	// can know those references don't count towards the in memory references.
-	if ( InObject->IsA(UBlueprint::StaticClass()) )
-	{
-		UBlueprint* BlueprintObj = Cast<UBlueprint>(InObject);
-
-		TSharedPtr<FPendingDelete> GeneratedClass = MakeShareable(new FPendingDelete(BlueprintObj->GeneratedClass));
-		GeneratedClass->IsInternal(true);
-		TSharedPtr<FPendingDelete> SkeletonGeneratedClass = MakeShareable(new FPendingDelete(BlueprintObj->SkeletonGeneratedClass));
-		SkeletonGeneratedClass->IsInternal(true);
-
-		PendingDeletes.Add(GeneratedClass);
-		PendingDeletes.Add(SkeletonGeneratedClass);
-	}
-
 	SetState(StartScanning);
 }
 
@@ -364,9 +348,54 @@ int32 FAssetDeleteModel::GetDeletedObjectCount() const
 	return ObjectsDeleted;
 }
 
+// FPendingDelete
+//-----------------------------------------------------------------
+
+FPendingDelete::FPendingDelete(UObject* InObject)
+	: Object(InObject)
+	, bReferencesChecked(false)
+	, bIsReferencedInMemory(false)
+	, bIsReferencedInMemoryByUndo(false)
+	, RemainingDiskReferences(0)
+	, RemainingMemoryReferences(0)
+	, bIsInternal(false)
+{
+	// Blueprints actually contain 3 assets, the UBlueprint, GeneratedClass and SkeletonGeneratedClass
+	// we need to add them all to the pending deleted objects so that the memory reference detection system
+	// can know those references don't count towards the in memory references.
+	if ( InObject->IsA(UBlueprint::StaticClass()) )
+	{
+		UBlueprint* BlueprintObj = Cast<UBlueprint>(InObject);
+
+		if ( BlueprintObj->GeneratedClass != NULL )
+		{
+			InternalObjects.Add(BlueprintObj->GeneratedClass);
+		}
+
+		if ( BlueprintObj->SkeletonGeneratedClass != NULL )
+		{
+			InternalObjects.Add(BlueprintObj->SkeletonGeneratedClass);
+		}
+	}
+
+	FAssetData InAssetData(InObject);
+	// Filter out any non assets
+	if ( !InAssetData.IsUAsset() )
+	{
+		bIsInternal = true;
+	}
+}
+
 bool FPendingDelete::IsObjectContained(const UObject* InObject) const
 {
 	const UObject* InObjectParent = InObject;
+
+	// If the objects are in the same package then it should be safe to delete them since the package
+	// will be marked for garbage collection.
+	if ( Object->GetOutermost() == InObject->GetOutermost() )
+	{
+		return true;
+	}
 
 	// We need to check if the object or any of it's parents are children of the object being deleted, and so
 	// can safely be ignored.
@@ -375,6 +404,15 @@ bool FPendingDelete::IsObjectContained(const UObject* InObject) const
 		if ( Object == InObjectParent )
 		{
 			return true;
+		}
+
+		// Also check if it's a child of any of the internal objects.
+		for ( int32 InternalIndex = 0; InternalIndex < InternalObjects.Num(); InternalIndex++ )
+		{
+			if ( InternalObjects[InternalIndex] == InObjectParent )
+			{
+				return true;
+			}
 		}
 
 		InObjectParent = InObjectParent->GetOuter();

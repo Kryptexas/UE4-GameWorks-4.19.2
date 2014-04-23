@@ -8,16 +8,7 @@
 struct FPendingDelete
 {
 public:
-	FPendingDelete( UObject* InObject )
-		: Object( InObject )
-		, bReferencesChecked( false )
-		, bIsReferencedInMemory( false )
-		, bIsReferencedInMemoryByUndo( false )
-		, RemainingDiskReferences( 0 )
-		, RemainingMemoryReferences( 0 )
-		, bIsInternal(false)
-	{
-	}
+	FPendingDelete( UObject* InObject );
 
 	/** Checks for references on disk and in memory for this object filling out all information. */
 	void CheckForReferences();
@@ -57,6 +48,9 @@ public:
 private:
 	/** The object to delete */
 	UObject* Object;
+
+	/** Internal objects being deleted that we need to make sure aren't counted as memory references. */
+	TArray<UObject*> InternalObjects;
 
 	/** A flag indicating that references have been checked, so don't check again. */
 	bool bReferencesChecked;

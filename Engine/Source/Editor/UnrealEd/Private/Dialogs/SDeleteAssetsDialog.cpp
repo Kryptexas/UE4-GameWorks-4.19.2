@@ -430,7 +430,8 @@ TSharedRef<SWidget> SDeleteAssetsDialog::BuildReplaceReferencesWidget()
 		SAssignNew( ConsolidationPickerComboButton, SComboButton )
 		.HAlign( EHorizontalAlignment::HAlign_Fill )
 		.VAlign( EVerticalAlignment::VAlign_Center )
-		.ComboButtonStyle(FEditorStyle::Get(), "ToolbarComboButton")
+		.ComboButtonStyle( FEditorStyle::Get(), "ToolbarComboButton" )
+		.ForegroundColor( FLinearColor::White )
 		.ContentPadding( 3 )
 		.MenuPlacement( EMenuPlacement::MenuPlacement_BelowAnchor )
 		.OnGetMenuContent( this, &SDeleteAssetsDialog::MakeConsolidationAssetPicker )
@@ -818,6 +819,12 @@ void SDeleteAssetsDialog::ExecuteDeleteReferencers()
 
 bool SDeleteAssetsDialog::OnShouldFilterAsset( const FAssetData& InAssetData ) const
 {
+	// Filter out any redirectors that are not to the main UAsset
+	if ( InAssetData.IsRedirector() && !InAssetData.IsUAsset() )
+	{
+		return true;
+	}
+
 	// If it's in the set of references then don't filter it.
 	if ( DeleteModel->GetAssetReferences().Contains( InAssetData.PackageName ) )
 	{
