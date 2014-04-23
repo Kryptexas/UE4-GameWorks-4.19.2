@@ -265,25 +265,23 @@ bool FDetailPropertyRow::HasEditCondition() const
 
 bool FDetailPropertyRow::GetEnabledState() const
 {
-	if( IsParentEnabled.IsBound() )
+	bool Result = IsParentEnabled.Get();
+
+	if( HasEditCondition() ) 
 	{
-		return IsParentEnabled.Get();
-	}
-	else if( HasEditCondition() ) 
-	{
-		if( PropertyEditor.IsValid() && PropertyEditor->HasEditCondition() )
+		if (CustomEditCondition.IsValid())
 		{
-			return PropertyEditor->IsEditConditionMet();
+			Result = Result && CustomEditCondition->EditConditionValue.Get();
 		}
 		else
 		{
-			return CustomEditCondition->EditConditionValue.Get();
+			Result = Result && PropertyEditor->IsEditConditionMet();
 		}
 	}
-	else
-	{
-		return CustomIsEnabledAttrib.Get();
-	}
+	
+	Result = Result && CustomIsEnabledAttrib.Get();
+
+	return Result;
 }
 
 void FDetailPropertyRow::MakeNameWidget( FDetailWidgetRow& Row, const TSharedPtr<FDetailWidgetRow> InCustomRow ) const
