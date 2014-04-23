@@ -108,6 +108,12 @@ public:
 	/** TranslateRotate Mode */
 	TSharedPtr< FUICommandInfo > TranslateRotateMode;
 
+	/** Shrink the level editor transform widget */
+	TSharedPtr< FUICommandInfo > ShrinkTransformWidget;
+
+	/** Expand the level editor transform widget */
+	TSharedPtr< FUICommandInfo > ExpandTransformWidget;
+
 	/** World relative coordinate system */
 	TSharedPtr< FUICommandInfo > RelativeCoordinateSystem_World;
 

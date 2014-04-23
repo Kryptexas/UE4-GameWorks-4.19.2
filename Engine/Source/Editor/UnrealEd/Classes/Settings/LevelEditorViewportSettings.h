@@ -356,6 +356,12 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=LookAndFeel, meta=(ClampMin = "0.01", UIMin = "0.01", UIMax = "5"))
 	float BillboardScale;
 
+	/**
+	 * The size adjustment to apply to the translate/rotate/scale widgets (in Unreal units).
+	 */
+	UPROPERTY(EditAnywhere, config, Category=LookAndFeel, meta=(ClampMin="-10",ClampMax="150") )
+	int32 TransformWidgetSizeAdjustment;
+
 public:
 
 	/**

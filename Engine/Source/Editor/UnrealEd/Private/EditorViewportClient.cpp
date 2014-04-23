@@ -3257,6 +3257,13 @@ void FEditorViewportClient::SetCurrentWidgetAxis( EAxisList::Type InAxis )
 	Widget->SetCurrentAxis( InAxis );
 }
 
+void FEditorViewportClient::AdjustTransformWidgetSize(const int32 SizeDelta)
+{
+	 ULevelEditorViewportSettings &ViewportSettings = *GetMutableDefault<ULevelEditorViewportSettings>();
+	 ViewportSettings.TransformWidgetSizeAdjustment = FMath::Clamp(ViewportSettings.TransformWidgetSizeAdjustment + SizeDelta, -10, 150);
+	 ViewportSettings.PostEditChange();
+}
+
 float FEditorViewportClient::GetNearClipPlane() const
 {
 	return (NearPlane < 0.0f) ? GNearClippingPlane : NearPlane;

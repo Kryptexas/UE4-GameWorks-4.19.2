@@ -218,6 +218,16 @@ void SEditorViewport::BindCommands()
 		);
 
 	CommandListRef.MapAction( 
+		Commands.ShrinkTransformWidget,
+		FExecuteAction::CreateSP( ClientRef, &FEditorViewportClient::AdjustTransformWidgetSize, -1 )
+		);
+
+	CommandListRef.MapAction( 
+		Commands.ExpandTransformWidget,
+		FExecuteAction::CreateSP( ClientRef, &FEditorViewportClient::AdjustTransformWidgetSize, 1 )
+		);
+
+	CommandListRef.MapAction( 
 		Commands.RelativeCoordinateSystem_World,
 		FExecuteAction::CreateSP( ClientRef, &FEditorViewportClient::SetWidgetCoordSystemSpace, COORD_World ),
 		FCanExecuteAction(),

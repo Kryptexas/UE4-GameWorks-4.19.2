@@ -500,6 +500,11 @@ public:
 	virtual void SetCurrentWidgetAxis( EAxisList::Type InAxis );
 
 	/**
+	 * Adjusts the current transform widget size by the provided delta value
+	 */
+	void AdjustTransformWidgetSize(const int32 SizeDelta);
+
+	/**
 	 * Called to do any additional set up of the view for rendering
 	 * 
 	 * @param ViewFamily	The view family being rendered

@@ -5,20 +5,12 @@
 
 IMPLEMENT_HIT_PROXY(HWidgetAxis,HHitProxy);
 
-static const float AXIS_ARROW_RADIUS = 3.5f;
-static const float AXIS_CIRCLE_RADIUS	= 48.0f;
-static const float TRANSLATE_ROTATE_AXIS_CIRCLE_RADIUS	= 20.0f;
+static const float AXIS_LENGTH = 35.0f;
+static const float TRANSLATE_ROTATE_AXIS_CIRCLE_RADIUS = 20.0f;
 static const float INNER_AXIS_CIRCLE_RADIUS = 48.0f;
 static const float OUTER_AXIS_CIRCLE_RADIUS = 56.0f;
 static const float ROTATION_TEXT_RADIUS = 75.0f;
-static const int32 AXIS_CIRCLE_SIDES		= 24;
-
-namespace WidgetDefs
-{
-	static const int32 GScreenAlignedSphereSides = 16;
-	static const float GScreenAlignedSphereRadius = 3.0f;
-}
-
+static const int32 AXIS_CIRCLE_SIDES = 24;
 
 FWidget::FWidget()
 {
@@ -227,7 +219,8 @@ void FWidget::Render_Axis( const FSceneView* View, FPrimitiveDrawInterface* PDI,
 		const bool bDisabled = EditorModeTools ? (EditorModeTools->IsModeActive(FBuiltinEditorModes::EM_Default) && GEditor->HasLockedActors() ) : false;
 		PDI->SetHitProxy( new HWidgetAxis( InAxis, bDisabled) );
 
-		const float HalfHeight = 35/2.0f;
+		const float AxisLength = AXIS_LENGTH + GetDefault<ULevelEditorViewportSettings>()->TransformWidgetSizeAdjustment;
+		const float HalfHeight = AxisLength/2.0f;
 		const float CylinderRadius = 1.2f;
 		const FVector Offset( 0,0,HalfHeight );
 
@@ -252,13 +245,15 @@ void FWidget::Render_Axis( const FSceneView* View, FPrimitiveDrawInterface* PDI,
 
 		if ( bCubeHead )
 		{
-			FVector RootPos(38, 0, 0);
+			const float CubeHeadOffset = 3.0f;
+			FVector RootPos(AxisLength + CubeHeadOffset, 0, 0);
 
 			Render_Cube(PDI, (FTranslationMatrix(RootPos) * ArrowToWorld) * FScaleMatrix(FlattenScale), InMaterial, FVector(4.0f));
 		}
 		else
 		{
-			FVector RootPos(47, 0, 0);
+			const float ConeHeadOffset = 12.0f;
+			FVector RootPos(AxisLength + ConeHeadOffset, 0, 0);
 
 			float Angle = FMath::DegreesToRadians( PI * 5 );
 			DrawCone(PDI, ( FScaleMatrix(-13) * FTranslationMatrix(RootPos) * ArrowToWorld ) * FScaleMatrix(FlattenScale), Angle, Angle, 32, false, FColor::White, InMaterial->GetRenderProxy(false), SDPG_Foreground);
@@ -734,12 +729,13 @@ void FWidget::Render_TranslateRotateZ( const FSceneView* View, FPrimitiveDrawInt
 
 		const bool bDisabled = IsWidgetDisabled();
 
+		const float ScaledRadius = (TRANSLATE_ROTATE_AXIS_CIRCLE_RADIUS * UniformScale) + GetDefault<ULevelEditorViewportSettings>()->TransformWidgetSizeAdjustment;
+
 		//ZRotation
 		if( DrawAxis&EAxisList::ZRotation && (bIsPerspective || bIsLocalSpace || View->ViewMatrices.ViewMatrix.M[0][2] != -1.f) )
 		{
 			PDI->SetHitProxy( new HWidgetAxis(EAxisList::ZRotation, bDisabled) );
 			{
-				float ScaledRadius = TRANSLATE_ROTATE_AXIS_CIRCLE_RADIUS * UniformScale;
 				FVector XAxis = CustomCoordSystem.TransformPosition( FVector(1,0,0).RotateAngleAxis( (EditorModeTools ? EditorModeTools->TranslateRotateXAxisAngle : 0 ), FVector(0,0,1)) );
 				FVector YAxis = CustomCoordSystem.TransformPosition( FVector(0,1,0).RotateAngleAxis( (EditorModeTools ? EditorModeTools->TranslateRotateXAxisAngle : 0 ), FVector(0,0,1)) );
 				FVector BaseArrowPoint = InLocation + XAxis * ScaledRadius;
@@ -753,11 +749,17 @@ void FWidget::Render_TranslateRotateZ( const FSceneView* View, FPrimitiveDrawInt
 		{
 			if( (DrawAxis & EAxisList::XY) == EAxisList::XY ) 
 			{
+				// Add more sides to the circle if we've been scaled up to keep the circle looking circular
+				// An extra side for every 5 extra unreal units seems to produce a nice result
+				const int32 CircleSides = (GetDefault<ULevelEditorViewportSettings>()->TransformWidgetSizeAdjustment > 0) 
+					? AXIS_CIRCLE_SIDES + (GetDefault<ULevelEditorViewportSettings>()->TransformWidgetSizeAdjustment / 5)
+					: AXIS_CIRCLE_SIDES;
+
 				PDI->SetHitProxy( new HWidgetAxis(EAxisList::XY, bDisabled) );
 				{
-					DrawCircle( PDI, InLocation, CustomCoordSystem.TransformPosition( FVector(1,0,0) ), CustomCoordSystem.TransformPosition( FVector(0,1,0) ), XYPlaneColor, TRANSLATE_ROTATE_AXIS_CIRCLE_RADIUS * UniformScale, AXIS_CIRCLE_SIDES, SDPG_Foreground );
+					DrawCircle( PDI, InLocation, CustomCoordSystem.TransformPosition( FVector(1,0,0) ), CustomCoordSystem.TransformPosition( FVector(0,1,0) ), XYPlaneColor, ScaledRadius, CircleSides, SDPG_Foreground );
 					XYPlaneColor.A = ((CurrentAxis&EAxisList::XY) == EAxisList::XY) ? 0x3f : 0x0f;	//make the disc transparent
-					DrawDisc  ( PDI, InLocation, CustomCoordSystem.TransformPosition( FVector(1,0,0) ), CustomCoordSystem.TransformPosition( FVector(0,1,0) ), XYPlaneColor, TRANSLATE_ROTATE_AXIS_CIRCLE_RADIUS * UniformScale, AXIS_CIRCLE_SIDES, TransparentPlaneMaterialXY->GetRenderProxy(false), SDPG_Foreground );
+					DrawDisc  ( PDI, InLocation, CustomCoordSystem.TransformPosition( FVector(1,0,0) ), CustomCoordSystem.TransformPosition( FVector(0,1,0) ), XYPlaneColor, ScaledRadius, CircleSides, TransparentPlaneMaterialXY->GetRenderProxy(false), SDPG_Foreground );
 				}
 				PDI->SetHitProxy( NULL );
 			}
@@ -1420,10 +1422,13 @@ void FWidget::DrawRotationArc(const FSceneView* View, FPrimitiveDrawInterface* P
  */
 void FWidget::DrawPartialRotationArc(const FSceneView* View, FPrimitiveDrawInterface* PDI, EAxisList::Type InAxis, const FVector& InLocation, const FVector& Axis0, const FVector& Axis1, const float InStartAngle, const float InEndAngle, const FColor& InColor, const float InScale, const FVector& InDirectionToWidget )
 {
+	const float InnerRadius = (INNER_AXIS_CIRCLE_RADIUS * InScale) + GetDefault<ULevelEditorViewportSettings>()->TransformWidgetSizeAdjustment;
+	const float OuterRadius = (OUTER_AXIS_CIRCLE_RADIUS * InScale) + GetDefault<ULevelEditorViewportSettings>()->TransformWidgetSizeAdjustment;
+
 	bool bIsPerspective = ( View->ViewMatrices.ProjMatrix.M[3][3] < 1.0f );
 	PDI->SetHitProxy( new HWidgetAxis( InAxis ) );
 	{
-		FThickArcParams OuterArcParams(PDI, InLocation, TransparentPlaneMaterialXY, INNER_AXIS_CIRCLE_RADIUS*InScale, OUTER_AXIS_CIRCLE_RADIUS*InScale);
+		FThickArcParams OuterArcParams(PDI, InLocation, TransparentPlaneMaterialXY, InnerRadius, OuterRadius);
 		FColor OuterColor = ( CurrentAxis&InAxis ? CurrentColor : InColor );
 		//Pass through alpha
 		OuterColor.A = InColor.A;
@@ -1433,7 +1438,7 @@ void FWidget::DrawPartialRotationArc(const FSceneView* View, FPrimitiveDrawInter
 
 	if (bIsPerspective)
 	{
-		FThickArcParams InnerArcParams(PDI, InLocation, GridMaterial, 0.0f, INNER_AXIS_CIRCLE_RADIUS*InScale);
+		FThickArcParams InnerArcParams(PDI, InLocation, GridMaterial, 0.0f, InnerRadius);
 		FColor InnerColor = InColor;
 		//if something is selected and it's not this
 		InnerColor.A = ((CurrentAxis & InAxis) && !bDragging) ? LargeInnerAlpha : SmallInnerAlpha;
@@ -1454,7 +1459,13 @@ void FWidget::DrawThickArc (const FThickArcParams& InParams, const FVector& Axis
 	{
 		return;
 	}
-	const int32 NumPoints = FMath::Trunc(AXIS_CIRCLE_SIDES * (InEndAngle-InStartAngle)/(PI/2)) + 1;
+
+	// Add more sides to the circle if we've been scaled up to keep the circle looking circular
+	// An extra side for every 5 extra unreal units seems to produce a nice result
+	const int32 CircleSides = (GetDefault<ULevelEditorViewportSettings>()->TransformWidgetSizeAdjustment > 0) 
+		? AXIS_CIRCLE_SIDES + (GetDefault<ULevelEditorViewportSettings>()->TransformWidgetSizeAdjustment / 5)
+		: AXIS_CIRCLE_SIDES;
+	const int32 NumPoints = FMath::Trunc(CircleSides * (InEndAngle-InStartAngle)/(PI/2)) + 1;
 
 	FColor TriangleColor = InColor;
 	FColor RingColor = InColor;
@@ -1536,8 +1547,8 @@ void FWidget::DrawThickArc (const FThickArcParams& InParams, const FVector& Axis
  */
 void FWidget::DrawSnapMarker(FPrimitiveDrawInterface* PDI, const FVector& InLocation, const FVector& Axis0, const FVector& Axis1, const FColor& InColor, const float InScale, const float InWidthPercent, const float InPercentSize)
 {
-	const float InnerDistance = (INNER_AXIS_CIRCLE_RADIUS*InScale);
-	const float OuterDistance = (OUTER_AXIS_CIRCLE_RADIUS*InScale);
+	const float InnerDistance = (INNER_AXIS_CIRCLE_RADIUS * InScale) + GetDefault<ULevelEditorViewportSettings>()->TransformWidgetSizeAdjustment;
+	const float OuterDistance = (OUTER_AXIS_CIRCLE_RADIUS * InScale) + GetDefault<ULevelEditorViewportSettings>()->TransformWidgetSizeAdjustment;
 	const float MaxMarkerHeight = OuterDistance - InnerDistance;
 	const float MarkerWidth = MaxMarkerHeight*InWidthPercent;
 	const float MarkerHeight = MaxMarkerHeight*InPercentSize;
@@ -1594,8 +1605,8 @@ void FWidget::DrawSnapMarker(FPrimitiveDrawInterface* PDI, const FVector& InLoca
 void FWidget::DrawStartStopMarker(FPrimitiveDrawInterface* PDI, const FVector& InLocation, const FVector& Axis0, const FVector& Axis1, const float InAngle, const FColor& InColor, const float InScale)
 {
 	const float ArrowHeightPercent = .8f;
-	const float InnerDistance = (INNER_AXIS_CIRCLE_RADIUS*InScale);
-	const float OuterDistance = (OUTER_AXIS_CIRCLE_RADIUS*InScale);
+	const float InnerDistance = (INNER_AXIS_CIRCLE_RADIUS * InScale) + GetDefault<ULevelEditorViewportSettings>()->TransformWidgetSizeAdjustment;
+	const float OuterDistance = (OUTER_AXIS_CIRCLE_RADIUS * InScale) + GetDefault<ULevelEditorViewportSettings>()->TransformWidgetSizeAdjustment;
 	const float RingHeight = OuterDistance - InnerDistance;
 	const float ArrowHeight = RingHeight*ArrowHeightPercent;
 	const float ThirtyDegrees = PI / 6.0f;
@@ -1649,7 +1660,7 @@ void FWidget::DrawStartStopMarker(FPrimitiveDrawInterface* PDI, const FVector& I
  */
 void FWidget::CacheRotationHUDText(const FSceneView* View, FPrimitiveDrawInterface* PDI, const FVector& InLocation, const FVector& Axis0, const FVector& Axis1, const float AngleOfChange, const float InScale)
 {
-	const float TextDistance = (ROTATION_TEXT_RADIUS*InScale);
+	const float TextDistance = (ROTATION_TEXT_RADIUS * InScale) + GetDefault<ULevelEditorViewportSettings>()->TransformWidgetSizeAdjustment;
 
 	FVector AxisVectors[4] = { Axis0, Axis1, -Axis0, -Axis1};
 
