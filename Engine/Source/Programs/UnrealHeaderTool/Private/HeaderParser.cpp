@@ -2791,7 +2791,7 @@ bool FHeaderParser::GetVarType
 		const bool bExposeOnSpawn = (NULL != ExposeOnSpawnStr);
 		if (bExposeOnSpawn)
 		{
-			if ((CPF_DisableEditOnInstance | CPF_BlueprintReadOnly) & Flags)
+			if (0 != (CPF_DisableEditOnInstance & Flags))
 			{
 				UE_LOG(LogCompile, Warning, TEXT("Property cannot have 'DisableEditOnInstance' or 'BlueprintReadOnly' and 'ExposeOnSpawn' flags"));
 			}
