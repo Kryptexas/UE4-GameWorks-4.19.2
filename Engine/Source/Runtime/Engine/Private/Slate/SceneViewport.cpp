@@ -15,9 +15,9 @@ extern EWindowMode::Type GetWindowModeType(EWindowMode::Type WindowMode);
 
 FSceneViewport::FSceneViewport( FViewportClient* InViewportClient, TSharedPtr<SViewport> InViewportWidget )
 	: FViewport( InViewportClient )
-	, CachedMousePos(-1, -1)
 	, CurrentReplyState( FReply::Unhandled() )
-	, PreCaptureMousePos( -1, -1 )
+	, CachedMousePos(-1, -1)
+	, PreCaptureMousePos(-1, -1)
 	, SoftwareCursorPosition( 0, 0 )
 	, bIsSoftwareCursorVisible( false )
 	, SlateRenderTargetHandle( NULL )

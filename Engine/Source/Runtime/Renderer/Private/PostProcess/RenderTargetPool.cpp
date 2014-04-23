@@ -98,9 +98,9 @@ static uint32 ComputeSizeInKB(FPooledRenderTarget& Element)
 FRenderTargetPool::FRenderTargetPool()
 	: AllocationLevelInKB(0)
 	, bCurrentlyOverBudget(false)
-	, bEventRecording(false)
 	, bEventRecordingTrigger(false)
 	, SizeInKBThreshold(0)
+	, bEventRecording(false)
 	, CurrentTimeStep(0)
 {
 }
