@@ -56,3 +56,11 @@ void FAnimNode_SequencePlayer::Evaluate(FPoseContext& Output)
 		Output.ResetToRefPose();
 	}
 }
+
+void FAnimNode_SequencePlayer::OverrideAsset(UAnimationAsset* NewAsset)
+{
+	if(UAnimSequenceBase* AnimSequence = Cast<UAnimSequenceBase>(NewAsset))
+	{
+		Sequence = AnimSequence;
+	}
+}

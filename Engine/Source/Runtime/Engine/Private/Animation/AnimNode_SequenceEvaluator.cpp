@@ -29,3 +29,11 @@ void FAnimNode_SequenceEvaluator::Evaluate(FPoseContext& Output)
 		Output.ResetToRefPose();
 	}
 }
+
+void FAnimNode_SequenceEvaluator::OverrideAsset(UAnimationAsset* NewAsset)
+{
+	if(UAnimSequenceBase* NewSequence = Cast<UAnimSequenceBase>(NewAsset))
+	{
+		Sequence = NewSequence;
+	}
+}

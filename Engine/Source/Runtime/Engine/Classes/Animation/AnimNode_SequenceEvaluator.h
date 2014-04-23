@@ -31,5 +31,6 @@ public:
 	virtual void CacheBones(const FAnimationCacheBonesContext & Context) OVERRIDE;
 	virtual void Update(const FAnimationUpdateContext& Context) OVERRIDE;
 	virtual void Evaluate(FPoseContext& Output) OVERRIDE;
+	virtual void OverrideAsset(UAnimationAsset* NewAsset) OVERRIDE;
 	// End of FAnimNode_Base interface
 };

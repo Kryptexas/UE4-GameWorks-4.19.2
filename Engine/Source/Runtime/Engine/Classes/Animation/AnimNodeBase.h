@@ -308,5 +308,8 @@ struct ENGINE_API FAnimNode_Base
 	virtual void Update(const FAnimationUpdateContext& Context) {}
 	virtual void Evaluate(FPoseContext& Output) { check(false); }
 	virtual void EvaluateComponentSpace(FComponentSpacePoseContext& Output) { check(false); }
+
+	// If a derived anim node should respond to asset overrides, OverrideAsset should be defined to handle changing the asset
+	virtual void OverrideAsset(UAnimationAsset* NewAsset) {}
 	// End of interface to implement
 };

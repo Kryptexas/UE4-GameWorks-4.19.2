@@ -75,3 +75,11 @@ void FAnimNode_BlendSpacePlayer::Evaluate(FPoseContext& Output)
 		Output.ResetToRefPose();
 	}
 }
+
+void FAnimNode_BlendSpacePlayer::OverrideAsset(UAnimationAsset* NewAsset)
+{
+	if(UBlendSpaceBase* NewBlendSpace = Cast<UBlendSpaceBase>(NewAsset))
+	{
+		BlendSpace = NewBlendSpace;
+	}
+}
