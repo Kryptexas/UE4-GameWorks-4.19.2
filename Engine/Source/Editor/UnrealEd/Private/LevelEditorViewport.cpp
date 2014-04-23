@@ -604,28 +604,39 @@ static bool AttemptApplyObjToActor( UObject* ObjToUse, AActor* ActorToApplyTo, b
 		UAnimBlueprint* DroppedObjAsAnimBlueprint = Cast<UAnimBlueprint>( ObjToUse );
 		if ( DroppedObjAsAnimBlueprint )
 		{
-			if ( bTest )
+			USkeleton* NeedsSkeleton = DroppedObjAsAnimBlueprint->TargetSkeleton;
+			if ( NeedsSkeleton )
 			{
-				if ( ActorToApplyTo->IsA(ASkeletalMeshActor::StaticClass()) )
+				if(bTest)
 				{
-					bResult = true;
-				}
-			}
-			else
-			{
-				if ( ASkeletalMeshActor* SkelMeshActor = Cast<ASkeletalMeshActor>(ActorToApplyTo) )
-				{
-					const FScopedTransaction Transaction( LOCTEXT( "DropAnimBlueprintOnObject", "Drop Anim Blueprint On Object" ) );
-					USkeletalMeshComponent* SkelMeshComponent = SkelMeshActor->SkeletalMeshComponent;
-					USkeleton* NeedsSkeleton = DroppedObjAsAnimBlueprint->TargetSkeleton;
-					if ( NeedsSkeleton && ! SkelMeshComponent->SkeletalMesh->Skeleton->IsCompatible(NeedsSkeleton) )
+					if(ActorToApplyTo->IsA(ASkeletalMeshActor::StaticClass()))
 					{
-						SkelMeshComponent->SetSkeletalMesh(NeedsSkeleton->GetPreviewMesh(true));
-					}
-					if ( SkelMeshComponent && SkelMeshComponent->SkeletalMesh )
-					{
-						SkelMeshComponent->SetAnimClass(DroppedObjAsAnimBlueprint->GeneratedClass);
 						bResult = true;
+					}
+				}
+				else
+				{
+					if(ASkeletalMeshActor* SkelMeshActor = Cast<ASkeletalMeshActor>(ActorToApplyTo))
+					{
+						const FScopedTransaction Transaction(LOCTEXT("DropAnimBlueprintOnObject", "Drop Anim Blueprint On Object"));
+
+						USkeletalMeshComponent* SkelMeshComponent = SkelMeshActor->SkeletalMeshComponent;
+						// if anim blueprint skeleton and mesh skeleton does not match or component does not have any mesh, then change mesh
+						bool bShouldChangeMesh = (SkelMeshComponent->SkeletalMesh == NULL ||
+								!NeedsSkeleton->IsCompatible(SkelMeshComponent->SkeletalMesh->Skeleton));
+
+						if(bShouldChangeMesh)
+						{
+							SkelMeshComponent->SetSkeletalMesh(NeedsSkeleton->GetPreviewMesh(true));
+						}
+
+						// make sure if it's compabile now, if not we're not going to change anim blueprint
+						if(SkelMeshComponent->SkeletalMesh &&
+							NeedsSkeleton->IsCompatible(SkelMeshComponent->SkeletalMesh->Skeleton))
+						{
+							SkelMeshComponent->SetAnimClass(DroppedObjAsAnimBlueprint->GeneratedClass);
+							bResult = true;
+						}
 					}
 				}
 			}
@@ -645,46 +656,55 @@ static bool AttemptApplyObjToActor( UObject* ObjToUse, AActor* ActorToApplyTo, b
 		if ( DroppedObjAsAnimationAsset ||
 			 DroppedObjAsVertexAnimation)
 		{
-			if ( bTest )
-			{
-				if ( ActorToApplyTo->IsA(ASkeletalMeshActor::StaticClass()) )
-				{
-					bResult = true;
-				}
-			}
-			else
-			{
-				if ( ASkeletalMeshActor* SkelMeshActor = Cast<ASkeletalMeshActor>(ActorToApplyTo) )
-				{
-					const FScopedTransaction Transaction( LOCTEXT( "DropAnimationOnObject", "Drop Animation On Object" ) );	
-					USkeletalMeshComponent* SkelComponent = SkelMeshActor->SkeletalMeshComponent;
-					USkeleton* NeedsSkeleton = DroppedObjAsAnimationAsset? DroppedObjAsAnimationAsset->GetSkeleton() : 
-						(DroppedObjAsVertexAnimation && DroppedObjAsVertexAnimation->BaseSkelMesh? DroppedObjAsVertexAnimation->BaseSkelMesh->Skeleton : NULL);
-					SkelComponent->Modify();
-					if ( NeedsSkeleton && ! SkelComponent->SkeletalMesh->Skeleton->IsCompatible(NeedsSkeleton) )
-					{
-						SkelComponent->SetSkeletalMesh(NeedsSkeleton->GetPreviewMesh(true));
-					}
-					if ( DroppedObjAsAnimationAsset )
-					{
-						SkelComponent->SetAnimationMode(EAnimationMode::Type::AnimationSingleNode);
-						SkelComponent->AnimationData.AnimToPlay = DroppedObjAsAnimationAsset;
+			USkeleton* NeedsSkeleton = DroppedObjAsAnimationAsset? DroppedObjAsAnimationAsset->GetSkeleton() :
+				(DroppedObjAsVertexAnimation && DroppedObjAsVertexAnimation->BaseSkelMesh? DroppedObjAsVertexAnimation->BaseSkelMesh->Skeleton : NULL);
 
-						// set runtime data
-						SkelComponent->SetAnimation(DroppedObjAsAnimationAsset);
-					}
-					if ( DroppedObjAsVertexAnimation )
-					{
-						SkelComponent->SetAnimationMode(EAnimationMode::Type::AnimationSingleNode);
-						SkelComponent->AnimationData.VertexAnimToPlay = DroppedObjAsVertexAnimation;
-
-						// set runtime data
-						SkelComponent->SetVertexAnimation(DroppedObjAsVertexAnimation);
-					}
-					if ( SkelComponent && SkelComponent->SkeletalMesh )
+			if (NeedsSkeleton)
+			{
+				if(bTest)
+				{
+					if(ActorToApplyTo->IsA(ASkeletalMeshActor::StaticClass()))
 					{
 						bResult = true;
-						SkelComponent->InitAnim(true);
+					}
+				}
+				else
+				{
+					if(ASkeletalMeshActor* SkelMeshActor = Cast<ASkeletalMeshActor>(ActorToApplyTo))
+					{
+						const FScopedTransaction Transaction(LOCTEXT("DropAnimationOnObject", "Drop Animation On Object"));
+						USkeletalMeshComponent* SkelComponent = SkelMeshActor->SkeletalMeshComponent;
+						SkelComponent->Modify();
+						// if asset skeleton and mesh skeleton does not match or component does not have any mesh, then change mesh
+						bool bShouldChangeMesh = SkelComponent->SkeletalMesh == NULL || 
+							!NeedsSkeleton->IsCompatible(SkelComponent->SkeletalMesh->Skeleton);
+
+						if(bShouldChangeMesh)
+						{
+							SkelComponent->SetSkeletalMesh(NeedsSkeleton->GetPreviewMesh(true));
+						}
+
+						if(DroppedObjAsAnimationAsset)
+						{
+							SkelComponent->SetAnimationMode(EAnimationMode::Type::AnimationSingleNode);
+							SkelComponent->AnimationData.AnimToPlay = DroppedObjAsAnimationAsset;
+
+							// set runtime data
+							SkelComponent->SetAnimation(DroppedObjAsAnimationAsset);
+						}
+						if(DroppedObjAsVertexAnimation)
+						{
+							SkelComponent->SetAnimationMode(EAnimationMode::Type::AnimationSingleNode);
+							SkelComponent->AnimationData.VertexAnimToPlay = DroppedObjAsVertexAnimation;
+
+							// set runtime data
+							SkelComponent->SetVertexAnimation(DroppedObjAsVertexAnimation);
+						}
+						if(SkelComponent && SkelComponent->SkeletalMesh)
+						{
+							bResult = true;
+							SkelComponent->InitAnim(true);
+						}
 					}
 				}
 			}

@@ -304,7 +304,7 @@ public:
 	/**
 	 *	Check if this skeleton may be used with other skeleton
 	 */
-	ENGINE_API bool IsCompatible(USkeleton const * InSkeleton) const { return this == InSkeleton; }
+	ENGINE_API bool IsCompatible(USkeleton const * InSkeleton) const { return (InSkeleton && this == InSkeleton); }
 
 	/** 
 	 * Indexing naming convention
