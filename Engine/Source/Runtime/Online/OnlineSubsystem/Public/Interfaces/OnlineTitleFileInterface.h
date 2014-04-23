@@ -57,11 +57,24 @@ public:
 	virtual bool ClearFile(const FString& FileName) = 0;
 
 	/**
+	* Requests a list of available files from the network store
+	*
+	* @param Start first file entry to enumerate (default 0)
+	* @param Count number of files to enumerate (default -1 for all)
+	*
+	* @return true if the request has started, false if not
+	*/
+	virtual bool EnumerateFiles() = 0;
+
+	/**
 	 * Requests a list of available files from the network store
+	 *
+	 * @param Start first file entry to enumerate (default 0)
+	 * @param Count number of files to enumerate (default -1 for all)
 	 *
 	 * @return true if the request has started, false if not
 	 */
-	virtual bool EnumerateFiles() = 0;
+	virtual bool EnumerateFiles(int32 Start, int32 Count) = 0;
 
 	/**
 	 * Delegate fired when the list of files has been returned from the network store

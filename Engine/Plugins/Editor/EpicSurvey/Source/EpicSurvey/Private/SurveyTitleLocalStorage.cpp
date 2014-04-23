@@ -85,6 +85,11 @@ bool FSurveyTitleLocalStorage::EnumerateFiles()
 	return true;
 }
 
+bool FSurveyTitleLocalStorage::EnumerateFiles(int32 Start, int32 Count)
+{
+	EnumerateFiles();
+}
+
 void FSurveyTitleLocalStorage::GetFileList(TArray<FCloudFileHeader>& InFileHeaders)
 {
 	InFileHeaders.Append( FileHeaders );

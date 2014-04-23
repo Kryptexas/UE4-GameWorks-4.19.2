@@ -88,6 +88,11 @@ bool FLocalNewsFeedTitleFile::EnumerateFiles()
 	return Success;
 }
 
+bool FLocalNewsFeedTitleFile::EnumerateFiles(int32 Start, int32 Count)
+{
+	EnumerateFiles();
+}
+
 
 void FLocalNewsFeedTitleFile::GetFileList(TArray<FCloudFileHeader>& InFileHeaders)
 {

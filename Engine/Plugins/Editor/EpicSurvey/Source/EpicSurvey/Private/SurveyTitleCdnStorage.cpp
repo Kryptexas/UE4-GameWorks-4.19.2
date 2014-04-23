@@ -96,6 +96,11 @@ bool FSurveyTitleCdnStorage::EnumerateFiles()
 	
 }	
 
+bool FSurveyTitleCdnStorage::EnumerateFiles(int32 Start, int32 Count)
+{
+	EnumerateFiles();
+}
+
 void FSurveyTitleCdnStorage::GetFileList(TArray<FCloudFileHeader>& OutFiles) 
 {
 	TArray<FCloudFileHeader>* FilesPtr = &FileHeaders;

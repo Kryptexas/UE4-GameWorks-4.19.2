@@ -92,6 +92,11 @@ bool FCdnNewsFeedTitleFile::EnumerateFiles()
 	
 }	
 
+bool FCdnNewsFeedTitleFile::EnumerateFiles(int32 Start, int32 Count)
+{
+	EnumerateFiles();
+}
+
 void FCdnNewsFeedTitleFile::GetFileList(TArray<FCloudFileHeader>& OutFiles) 
 {
 	TArray<FCloudFileHeader>* FilesPtr = &FileHeaders;

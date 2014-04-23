@@ -22,6 +22,8 @@ public:
 
 	virtual bool EnumerateFiles() OVERRIDE;
 
+	virtual bool EnumerateFiles(int32 Start, int32 Count) OVERRIDE;
+
 	virtual void GetFileList(TArray<FCloudFileHeader>& InFileHeaders) OVERRIDE;
 
 	virtual bool ReadFile(const FString& DLName) OVERRIDE;
