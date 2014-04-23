@@ -206,13 +206,7 @@ void UChannel::ReceivedAcks()
 
 int32 UChannel::MaxSendBytes()
 {
-	int32 ResultBits
-	=	Connection->MaxPacket*8
-	-	(Connection->Out.GetNumBits() ? 0 : MAX_PACKET_HEADER_BITS)
-	-	Connection->Out.GetNumBits()
-	-	MAX_PACKET_TRAILER_BITS
-	-	MAX_BUNCH_HEADER_BITS;
-	return FMath::Max( 0, ResultBits/8 );
+	return FMath::Max( 0, Connection->GetFreeSendBufferBits() / 8 );
 }
 
 
@@ -561,8 +555,6 @@ FPacketIdRange UChannel::SendBunch( FOutBunch* Bunch, bool Merge )
 		Merge = false;
 	}
 
-	Connection->ValidateOut();
-
 	//-----------------------------------------------------
 	// Contemplate merging.
 	//-----------------------------------------------------
@@ -573,8 +565,8 @@ FPacketIdRange UChannel::SendBunch( FOutBunch* Bunch, bool Merge )
 	&&	Connection->LastOut.ChIndex == Bunch->ChIndex
 	&&	Connection->AllowMerge
 	&&	Connection->LastEnd.GetNumBits()
-	&&	Connection->LastEnd.GetNumBits()==Connection->Out.GetNumBits()
-	&&	Connection->Out.GetNumBytes()+Bunch->GetNumBytes()+(MAX_BUNCH_HEADER_BITS+MAX_PACKET_TRAILER_BITS+7)/8<=Connection->MaxPacket )
+	&&	Connection->LastEnd.GetNumBits()==Connection->SendBuffer.GetNumBits()
+	&&	Connection->LastOut.GetNumBits() + Bunch->GetNumBits() <= MAX_SINGLE_BUNCH_SIZE_BITS )
 	{
 		// Merge.
 		check(!Connection->LastOut.IsError());
@@ -586,11 +578,9 @@ FPacketIdRange UChannel::SendBunch( FOutBunch* Bunch, bool Merge )
 		OutBunch                       = Connection->LastOutBunch;
 		Bunch                          = &Connection->LastOut;
 		check(!Bunch->IsError());
-		Connection->LastStart.Pop( Connection->Out );
+		Connection->LastStart.Pop( Connection->SendBuffer );
 		Connection->Driver->OutBunches--;
 	}
-
-	Connection->ValidateOut();
 
 	//-----------------------------------------------------
 	// Possibly split large bunch into list of smaller partial bunches
@@ -697,7 +687,7 @@ FPacketIdRange UChannel::SendBunch( FOutBunch* Bunch, bool Merge )
 
 		// Update channel sequence count.
 		Connection->LastOut = *ThisOutBunch;
-		Connection->LastEnd	= FBitWriterMark(Connection->Out);
+		Connection->LastEnd	= FBitWriterMark( Connection->SendBuffer );
 	}
 
 	// Update open range if necessary

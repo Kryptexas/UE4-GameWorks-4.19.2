@@ -33,9 +33,9 @@ class UChildConnection : public UNetConnection
 	{
 	}
 
-	virtual void InitOut() OVERRIDE
+	virtual void InitSendBuffer() OVERRIDE
 	{
-		Parent->InitOut();
+		Parent->InitSendBuffer();
 	}
 
 	virtual void AssertValid() OVERRIDE

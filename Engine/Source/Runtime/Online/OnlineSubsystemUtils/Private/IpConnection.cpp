@@ -71,7 +71,7 @@ void UIpConnection::InitLocalConnection(UNetDriver* InDriver, class FSocket* InS
 	}
 
 	// Initialize our send bunch
-	InitOut();
+	InitSendBuffer();
 }
 
 void UIpConnection::InitRemoteConnection(UNetDriver* InDriver, class FSocket* InSocket, const FURL& InURL, const class FInternetAddr& InRemoteAddr, EConnectionState InState, int32 InMaxPacket, int32 InPacketOverhead)
@@ -91,7 +91,7 @@ void UIpConnection::InitRemoteConnection(UNetDriver* InDriver, class FSocket* In
 	URL.Host = RemoteAddr->ToString(false);
 
 	// Initialize our send bunch
-	InitOut();
+	InitSendBuffer();
 
 	// This is for a client that needs to log in, setup ClientLoginState and ExpectedClientLoginMsgType to reflect that
 	SetClientLoginState( EClientLoginState::LoggingIn );

@@ -206,7 +206,7 @@ public:
 	int32 InPacketsLost, OutPacketsLost;
 
 	// Packet.
-	FBitWriter		Out;					// Outgoing packet.
+	FBitWriter		SendBuffer;				// Queued up bits waiting to send
 	double			OutLagTime[256];		// For lag measuring.
 	int32			OutLagPacketId[256];	// For lag measuring.
 	int32			InPacketId;				// Full incoming packet index.
@@ -355,11 +355,8 @@ public:
 	 */
 	virtual void LowLevelSend( void* Data, int32 Count ) PURE_VIRTUAL(UNetConnection::LowLevelSend,); //!! "Looks like an FArchive"
 
-	/** Validates the FBitWriter to make sure it's not in an error state */
-	ENGINE_API virtual void ValidateOut();
-
 	/** Resets the FBitWriter to its default state */
-	ENGINE_API virtual void InitOut();
+	ENGINE_API virtual void InitSendBuffer();
 
 	/** Make sure this connection is in a reasonable state. */
 	ENGINE_API virtual void AssertValid();
@@ -461,14 +458,21 @@ public:
 	/** Send package map to the remote. */
 	void SendPackageMap();
 
-	/** Called before sending anything. */
-	void PreSend( int32 SizeBits );
-
-	/** Called after sending anything. */
-	void PostSend();
+	/** 
+	 * Appends the passed in data to the SendBuffer to be sent when FlushNet is called
+	 * @param Bits Data as bits to be appended to the send buffer
+	 * @param SizeInBits Number of bits to append
+	 * @param ExtraBits (optional) Second set of bits to be appended to the send buffer that need to send with the first set of bits
+	 * @param ExtraSizeInBits (optional) Number of secondary bits to append
+	 */
+	void WriteBitsToSendBuffer( 
+		const uint8 *	Bits, 
+		const int32		SizeInBits, 
+		const uint8 *	ExtraBits = NULL, 
+		const int32		ExtraSizeInBits = 0 );
 
 	/** Returns number of bits left in current packet that can be used without causing a flush.  */
-	int64 GetRemainingPacketBits();
+	int64 GetFreeSendBufferBits();
 
 	/** 
 	 * parses the passed in control channel bunch and fills the given package info struct with that data

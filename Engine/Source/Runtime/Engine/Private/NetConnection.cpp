@@ -49,7 +49,7 @@ UNetConnection::UNetConnection(const class FPostConstructInitializeProperties& P
 ,	AverageFrameTime	( 0 )
 ,	CountedFrames		( 0 )
 
-,	Out					( 0 )
+,	SendBuffer			( 0 )
 ,	InPacketId			( -1 )
 ,	OutPacketId			( 0 ) // must be initialized as OutAckPacketId + 1 so loss of first packet can be detected
 ,	OutAckPacketId		( -1 )
@@ -440,30 +440,20 @@ bool UNetConnection::ClientHasInitializedLevelFor(const UObject* TestObject)
 			ClientVisibleLevelNames.Contains(Level->GetOutermost()->GetFName()) );
 }
 
-void UNetConnection::ValidateOut()
-{
-	if ( Out.IsError() )
-	{
-		UE_LOG( LogNetTraffic, Fatal, TEXT( "UNetConnection::ValidateOut: Out.IsError() == true. NumBits: %i, NumBytes: %i, MaxBits: %i" ), Out.GetNumBits(), Out.GetNumBytes(), Out.GetMaxBits() );
-	}
-}
-
-void UNetConnection::InitOut()
+void UNetConnection::InitSendBuffer()
 {
 	check(MaxPacket > 0);
 	// Initialize the one outgoing buffer.
-	if (MaxPacket * 8 == Out.GetMaxBits())
+	if (MaxPacket * 8 == SendBuffer.GetMaxBits())
 	{
 		// Reset all of our values to their initial state without a malloc/free
-		Out.Reset();
+		SendBuffer.Reset();
 	}
 	else
 	{
 		// First time initialization needs to allocate the buffer
-		Out = FBitWriter(MaxPacket * 8);
+		SendBuffer = FBitWriter(MaxPacket * 8);
 	}
-
-	ValidateOut();
 }
 
 void UNetConnection::ReceivedRawPacket( void* InData, int32 Count )
@@ -507,27 +497,28 @@ void UNetConnection::ReceivedRawPacket( void* InData, int32 Count )
 void UNetConnection::FlushNet(bool bIgnoreSimulation)
 {
 	// Update info.
-	ValidateOut();
+	check( !SendBuffer.IsError() );
+
 	LastEnd = FBitWriterMark();
 	TimeSensitive = 0;
 
 	// If there is any pending data to send, send it.
-	if( Out.GetNumBits() || Driver->Time-LastSendTime>Driver->KeepAliveTime )
+	if( SendBuffer.GetNumBits() || Driver->Time-LastSendTime>Driver->KeepAliveTime )
 	{
-		// If sending keepalive packet, still generate header.
-		if( Out.GetNumBits()==0 )
+		// If sending keepalive packet, still write the packet id
+		if ( SendBuffer.GetNumBits() == 0 )
 		{
-			PreSend( 0 );
+			WriteBitsToSendBuffer( NULL, 0 );		// This will force the packet id to be written
 		}
 
 		// Make sure packet size is byte-aligned.
-		Out.WriteBit( 1 );
-		ValidateOut();
-		while( Out.GetNumBits() & 7 )
+		SendBuffer.WriteBit( 1 );
+		while( SendBuffer.GetNumBits() & 7 )
 		{
-			Out.WriteBit( 0 );
+			SendBuffer.WriteBit( 0 );
 		}
-		ValidateOut();
+
+		check( !SendBuffer.IsError() );
 
 		// Send now.
 #if DO_ENABLE_NET_TEST
@@ -538,14 +529,14 @@ void UNetConnection::FlushNet(bool bIgnoreSimulation)
 			// Checked in FlushNet() so each child class doesn't have to implement this
 			if (Driver->IsNetResourceValid())
 			{
-				LowLevelSend(Out.GetData(), Out.GetNumBytes());
+				LowLevelSend(SendBuffer.GetData(), SendBuffer.GetNumBytes());
 			}
 		}
 		else if( PacketSimulationSettings.PktOrder )
 		{
 			DelayedPacket& B = *(new(Delayed)DelayedPacket);
-			B.Data.AddUninitialized( Out.GetNumBytes() );
-			FMemory::Memcpy( B.Data.GetTypedData(), Out.GetData(), Out.GetNumBytes() );
+			B.Data.AddUninitialized( SendBuffer.GetNumBytes() );
+			FMemory::Memcpy( B.Data.GetTypedData(), SendBuffer.GetData(), SendBuffer.GetNumBytes() );
 
 			for( int32 i=Delayed.Num()-1; i>=0; i-- )
 			{
@@ -568,8 +559,8 @@ void UNetConnection::FlushNet(bool bIgnoreSimulation)
 			if( !PacketSimulationSettings.PktLoss || FMath::FRand()*100.f > PacketSimulationSettings.PktLoss )
 			{
 				DelayedPacket& B = *(new(Delayed)DelayedPacket);
-				B.Data.AddUninitialized( Out.GetNumBytes() );
-				FMemory::Memcpy( B.Data.GetTypedData(), Out.GetData(), Out.GetNumBytes() );
+				B.Data.AddUninitialized( SendBuffer.GetNumBytes() );
+				FMemory::Memcpy( B.Data.GetTypedData(), SendBuffer.GetData(), SendBuffer.GetNumBytes() );
 				B.SendTime = FPlatformTime::Seconds() + (double(PacketSimulationSettings.PktLag)  + 2.0f * (FMath::FRand() - 0.5f) * double(PacketSimulationSettings.PktLagVariance))/ 1000.f;
 			}
 		}
@@ -579,7 +570,7 @@ void UNetConnection::FlushNet(bool bIgnoreSimulation)
 			// Checked in FlushNet() so each child class doesn't have to implement this
 			if (Driver->IsNetResourceValid())
 			{
-				LowLevelSend( Out.GetData(), Out.GetNumBytes() );
+				LowLevelSend( SendBuffer.GetData(), SendBuffer.GetNumBytes() );
 			}
 #if DO_ENABLE_NET_TEST
 			if( PacketSimulationSettings.PktDup && FMath::FRand()*100.f < PacketSimulationSettings.PktDup )
@@ -587,23 +578,23 @@ void UNetConnection::FlushNet(bool bIgnoreSimulation)
 				// Checked in FlushNet() so each child class doesn't have to implement this
 				if (Driver->IsNetResourceValid())
 				{
-					LowLevelSend( (char*)Out.GetData(), Out.GetNumBytes() );
+					LowLevelSend( (char*)SendBuffer.GetData(), SendBuffer.GetNumBytes() );
 				}
 			}
 		}
 #endif
 		// Update stuff.
-		int32 Index = OutPacketId & (ARRAY_COUNT(OutLagPacketId)-1);
+		const int32 Index = OutPacketId & (ARRAY_COUNT(OutLagPacketId)-1);
 		OutLagPacketId [Index] = OutPacketId;
 		OutLagTime     [Index] = Driver->Time;
 		OutPacketId++;
 		Driver->OutPackets++;
 		LastSendTime = Driver->Time;
-		int32 PacketBytes = Out.GetNumBytes() + PacketOverhead;
+		const int32 PacketBytes = SendBuffer.GetNumBytes() + PacketOverhead;
 		QueuedBytes += PacketBytes;
 		OutBytes += PacketBytes;
 		Driver->OutBytes += PacketBytes;
-		InitOut();
+		InitSendBuffer();
 	}
 
 	// Move acks around.
@@ -618,8 +609,8 @@ int32 UNetConnection::IsNetReady( bool Saturate )
 {
 	// Return whether we can send more data without saturation the connection.
 	if( Saturate )
-		QueuedBytes = -Out.GetNumBytes();
-	return QueuedBytes+Out.GetNumBytes() <= 0;
+		QueuedBytes = -SendBuffer.GetNumBytes();
+	return QueuedBytes+SendBuffer.GetNumBytes() <= 0;
 }
 
 void UNetConnection::ReadInput( float DeltaSeconds )
@@ -666,8 +657,6 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 		ensureMsgf(false, TEXT("Packet too small") );
 		return;
 	}
-
-	ValidateOut();
 
 	// Update receive time to avoid timeout.
 	LastReceiveTime = Driver->Time;
@@ -1010,8 +999,6 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 		}
 	}
 
-	ValidateOut();
-
 	// Acknowledge the packet.
 	if ( !bSkipAck )
 	{
@@ -1019,58 +1006,80 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 	}
 }
 
-void UNetConnection::PreSend( int32 SizeBits )
+void UNetConnection::WriteBitsToSendBuffer( 
+	const uint8 *	Bits, 
+	const int32		SizeInBits, 
+	const uint8 *	ExtraBits, 
+	const int32		ExtraSizeInBits )
 {
-	ValidateOut();
+	check( !SendBuffer.IsError() );
 
-	// Flush if not enough space.
-	if( GetRemainingPacketBits() < SizeBits)
-		FlushNet();
+	const int32 TotalSizeInBits = SizeInBits + ExtraSizeInBits;
 
-	// If start of packet, send packet id.
-	if( Out.GetNumBits()==0 )
+	// Flush if we can't add to current buffer
+	if ( TotalSizeInBits > GetFreeSendBufferBits() )
 	{
-		Out.WriteIntWrapped(OutPacketId, MAX_PACKETID);
-		check(Out.GetNumBits()<=MAX_PACKET_HEADER_BITS);
-		ValidateOut();
+		FlushNet();
 	}
 
-	// Make sure there's enough space now.
-	if( Out.GetNumBits() + SizeBits + MAX_PACKET_TRAILER_BITS > MaxPacket*8 )
+	// Remember start position in case we want to undo this write
+	LastStart = FBitWriterMark( SendBuffer );
+
+	// If this is the start of the queue, make sure to add the packet id
+	if ( SendBuffer.GetNumBits() == 0 )
 	{
-		UE_LOG(LogNet, Fatal, TEXT("PreSend overflowed: %i+%i>%i"), Out.GetNumBits(), SizeBits, MaxPacket*8 );
+		SendBuffer.WriteIntWrapped( OutPacketId, MAX_PACKETID );
+		check( !SendBuffer.IsError() );
+	}
+
+	// Add the bits to the queue
+	if ( SizeInBits )
+	{
+		SendBuffer.SerializeBits( const_cast< uint8 * >( Bits ), SizeInBits );
+		check( !SendBuffer.IsError() );
+	}
+
+	// Add any extra bits
+	if ( ExtraSizeInBits )
+	{
+		SendBuffer.SerializeBits( const_cast< uint8 * >( ExtraBits ), ExtraSizeInBits );
+		check( !SendBuffer.IsError() );
+	}
+
+	// Flush now if we are full
+	if ( GetFreeSendBufferBits() == 0 )
+	{
+		FlushNet();
 	}
 }
 
 /** Returns number of bits left in current packet that can be used without causing a flush  */
-int64 UNetConnection::GetRemainingPacketBits()
+int64 UNetConnection::GetFreeSendBufferBits()
 {
-	return (MaxPacket*8) - (Out.GetNumBits() + MAX_PACKET_TRAILER_BITS);
-}
+	// If we haven't sent anything yet, make sure to account for the packet header + trailer size
+	// Otherwise, we only need to account for trailer size
+	const int32 ExtraBits = ( SendBuffer.GetNumBits() > 0 ) ? MAX_PACKET_TRAILER_BITS : MAX_PACKET_HEADER_BITS + MAX_PACKET_TRAILER_BITS;
 
-void UNetConnection::PostSend()
-{
-	// If absolutely filled now, flush so that MaxSend() doesn't return zero unnecessarily.
-	check(Out.GetNumBits()<=MaxPacket*8);
-	if( Out.GetNumBits()==MaxPacket*8 )
-	{
-		FlushNet();
-	}
-}
+	const int32 NumberOfFreeBits = ( MaxPacket * 8 ) - ( SendBuffer.GetNumBits() + ExtraBits );
 
+	check( NumberOfFreeBits >= 0 );
+
+	return NumberOfFreeBits;
+}
 
 void UNetConnection::PurgeAcks()
 {
-	for( int32 i=0; i<ResendAcks.Num(); i++ )
+	for ( int32 i = 0; i < ResendAcks.Num(); i++ )
+	{
 		SendAck( ResendAcks[i], 0 );
+	}
+
 	ResendAcks.Empty(32);
 }
 
 
 void UNetConnection::SendAck( int32 AckPacketId, bool FirstTime/*=1*/, bool bHavePingAckData/*=0*/, uint32 PingAckData/*=0*/ )
 {
-	ValidateOut();
-
 	if( !InternalAck )
 	{
 		if( FirstTime )
@@ -1079,35 +1088,26 @@ void UNetConnection::SendAck( int32 AckPacketId, bool FirstTime/*=1*/, bool bHav
 			QueuedAcks.Add(AckPacketId);
 		}
 
-		bool bPingAck = Driver->ServerConnection != NULL && (AckPacketId % PING_ACK_PACKET_INTERVAL) == 0;
-		int32 SendSize = FMath::CeilLogTwo(MAX_PACKETID) + 1;
-		
-		if (bPingAck)
+		FBitWriter AckData( 32, true );
+
+		AckData.WriteBit( 1 );
+		AckData.WriteIntWrapped(AckPacketId, MAX_PACKETID);
+
+		const bool bPingAck = Driver->ServerConnection != NULL && (AckPacketId % PING_ACK_PACKET_INTERVAL) == 0;
+
+		if ( bPingAck )
 		{
-			const int32 PING_ACK_DATA_NUM_BITS = sizeof(uint32) * 8;
-			SendSize += 1 + (bHavePingAckData ? PING_ACK_DATA_NUM_BITS : 0);
-		}
+			AckData.WriteBit( bHavePingAckData );
 
-		PreSend(SendSize);
-		Out.WriteBit( 1 );
-		ValidateOut();
-		Out.WriteIntWrapped(AckPacketId, MAX_PACKETID);
-		ValidateOut();
-
-		if (bPingAck)
-		{
-			Out.WriteBit(bHavePingAckData);
-			ValidateOut();
-
-			if (bHavePingAckData)
+			if ( bHavePingAckData )
 			{
-				Out.Serialize(&PingAckData, sizeof(uint32));
-				ValidateOut();
+				AckData.Serialize( &PingAckData, sizeof( uint32 ) );
 			}
 		}
 
+		WriteBitsToSendBuffer( AckData.GetData(), AckData.GetNumBits() );
+
 		AllowMerge = false;
-		PostSend();
 
 		UE_LOG(LogNetTraffic, Log, TEXT("   Send ack %i"), AckPacketId);
 	}
@@ -1116,7 +1116,6 @@ void UNetConnection::SendAck( int32 AckPacketId, bool FirstTime/*=1*/, bool bHav
 
 int32 UNetConnection::SendRawBunch( FOutBunch& Bunch, bool InAllowMerge )
 {
-	ValidateOut();
 	check(!Bunch.ReceivedAck);
 	check(!Bunch.IsError());
 	Driver->OutBunches++;
@@ -1156,9 +1155,6 @@ int32 UNetConnection::SendRawBunch( FOutBunch& Bunch, bool InAllowMerge )
 	Header.WriteIntWrapped(Bunch.GetNumBits(), UNetConnection::MaxPacket * 8);
 	check(!Header.IsError());
 
-	// If this data doesn't fit in the current packet, flush it.
-	PreSend( Header.GetNumBits() + Bunch.GetNumBits() );
-
 	// Remember start position.
 	AllowMerge      = InAllowMerge;
 	Bunch.PacketId  = OutPacketId;
@@ -1176,16 +1172,7 @@ int32 UNetConnection::SendRawBunch( FOutBunch& Bunch, bool InAllowMerge )
 
 	UE_LOG(LogNetTraffic, Verbose, TEXT("UNetConnection::SendRawBunch. ChIndex: %d. Bits: %d. PacketId: %d"), Bunch.ChIndex, Bunch.GetNumBits(), OutPacketId );
 
-	// Remember start position, and write data.
-	LastStart = FBitWriterMark( Out );
-
-	Out.SerializeBits( Header.GetData(), Header.GetNumBits() );
-
-	ValidateOut();
-
-	Out.SerializeBits( Bunch .GetData(), Bunch .GetNumBits() );
-
-	ValidateOut();
+	WriteBitsToSendBuffer( Header.GetData(), Header.GetNumBits(), Bunch.GetData(), Bunch.GetNumBits() );
 
 	if ( PackageMap && Bunch.bHasGUIDs )
 	{
@@ -1196,7 +1183,6 @@ int32 UNetConnection::SendRawBunch( FOutBunch& Bunch, bool InAllowMerge )
 	{
 		Driver->NetGUIDOutBytes += (Header.GetNumBits() + Bunch.GetNumBits()) >> 3;
 	}
-
 
 	// Verified client ping tracking - caches some semi-random bytes of the packet, for ping validation
 	if (Driver->ServerConnection == NULL && OutPacketId != LastPingAckPacketId && (OutPacketId % PING_ACK_PACKET_INTERVAL) == 0 &&
@@ -1211,10 +1197,6 @@ int32 UNetConnection::SendRawBunch( FOutBunch& Bunch, bool InAllowMerge )
 		// Multiple bunches get written per-packet, but PingAck only uses the first bunch, so don't process more bunches this PacketId
 		LastPingAckPacketId = OutPacketId;
 	}
-
-
-	// Finished.
-	PostSend();
 
 	return Bunch.PacketId;
 }
