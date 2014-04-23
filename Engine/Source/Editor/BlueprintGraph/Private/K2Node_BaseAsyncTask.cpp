@@ -283,7 +283,7 @@ void UK2Node_BaseAsyncTask::ExpandNode(class FKismetCompilerContext& CompilerCon
 					OutPin->PinType.PinCategory,
 					OutPin->PinType.PinSubCategory,
 					OutPin->PinType.PinSubCategoryObject.Get(),
-					false);
+					OutPin->PinType.bIsArray);
 			}
 			UEdGraphPin* PinWithData = CurrentCENode->FindPin(OutPin->PinName);
 
