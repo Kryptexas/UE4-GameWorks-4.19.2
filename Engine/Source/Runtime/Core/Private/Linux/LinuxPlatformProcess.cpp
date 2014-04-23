@@ -206,7 +206,13 @@ FRunnableThread* FLinuxPlatformProcess::CreateRunnableThread()
 	return new FRunnableThreadLinux();
 }
 
-FProcHandle FLinuxPlatformProcess::CreateProc( const TCHAR* URL, const TCHAR* Parms, bool bLaunchDetached, bool bLaunchHidden, bool bLaunchReallyHidden, uint32* OutProcessID, int32 PriorityModifier, const TCHAR* OptionalWorkingDirectory, void* PipeWrite )
+void FLinuxPlatformProcess::LaunchURL(const TCHAR* URL, const TCHAR* Parms, FString* Error)
+{
+	// stub implementation for now
+	// TODO: consider looking for gnome-open, xdg-open, sensible-browser or just hardcoded names...
+}
+
+FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Parms, bool bLaunchDetached, bool bLaunchHidden, bool bLaunchReallyHidden, uint32* OutProcessID, int32 PriorityModifier, const TCHAR* OptionalWorkingDirectory, void* PipeWrite)
 {
 	FString AbsolutePath = FPaths::ConvertRelativePathToFull(URL);
 	FString Commandline = AbsolutePath;
