@@ -1248,6 +1248,8 @@ private:
 	bool					bTimeLimitExceeded;
 	/** Whether to use a time limit for async linker creation.																*/
 	bool					bUseTimeLimit;
+	/** Whether to use the full time limit, even if we're blocked on I/O													*/
+	bool					bUseFullTimeLimit;
 	/** Call count of IsTimeLimitExceeded.																					*/
 	int32					IsTimeLimitExceededCallCount;
 	/** Current time limit to use if bUseTimeLimit is true.																	*/
@@ -1620,10 +1622,11 @@ private:
 	 *
 	 * @param	InTimeLimit		Soft time limit to use if bInUseTimeLimit is true
 	 * @param	bInUseTimeLimit	Whether to use a (soft) timelimit
+	 * @param	bInUseFullTimeLimit	Whether to use the entire time limit, even if blocked on I/O
 	 * 
 	 * @return	true if linker has finished creation, false if it is still in flight
 	 */
-	ELinkerStatus Tick( float InTimeLimit, bool bInUseTimeLimit );
+	ELinkerStatus Tick( float InTimeLimit, bool bInUseTimeLimit, bool bInUseFullTimeLimit);
 
 	/**
 	 * Private constructor, passing arguments through from CreateLinker.

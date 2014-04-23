@@ -1067,7 +1067,8 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 	// give the async loading code more time if we're performing a high priority load or are in seamless travel
 	if (Info->bHighPriorityLoading || Info->bHighPriorityLoadingLocal || IsInSeamlessTravel())
 	{
-		ProcessAsyncLoading(true, GEngine->PriorityAsyncLoadingExtraTime);
+		// Force it to use the entire time slice, even if blocked on I/O
+		ProcessAsyncLoading(true, true, GEngine->PriorityAsyncLoadingExtraTime / 1000.0f);
 	}
 
 	// Translate world origin if requested

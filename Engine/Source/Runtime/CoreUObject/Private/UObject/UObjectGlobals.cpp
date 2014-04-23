@@ -286,7 +286,7 @@ void StaticTick( float DeltaTime, float AsyncLoadingTime )
 	check(!IsLoading());
 
 	// Spend a bit of time (pre)loading packages - currently 5 ms.
-	ProcessAsyncLoading(true, AsyncLoadingTime);
+	ProcessAsyncLoading(true, false, AsyncLoadingTime);
 
 	// Check natives.
 	extern int32 GNativeDuplicate;

@@ -336,7 +336,7 @@ ULinkerLoad* ULinkerLoad::CreateLinker( UPackage* Parent, const TCHAR* Filename,
 	{
 		FSerializedPackageLinkerGuard Guard;	
 		GSerializedPackageLinker = Linker;
-		if (Linker->Tick( 0.f, false ) == LINKER_Failed)
+		if (Linker->Tick( 0.f, false, false ) == LINKER_Failed)
 		{
 			return NULL;
 		}
@@ -454,10 +454,11 @@ ULinkerLoad* ULinkerLoad::CreateLinkerAsync( UPackage* Parent, const TCHAR* File
  *
  * @param	InTimeLimit		Soft time limit to use if bInUseTimeLimit is true
  * @param	bInUseTimeLimit	Whether to use a (soft) timelimit
+ * @param	bInUseFullTimeLimit	Whether to use the entire time limit, even if blocked on I/O
  * 
  * @return	true if linker has finished creation, false if it is still in flight
  */
-ULinkerLoad::ELinkerStatus ULinkerLoad::Tick( float InTimeLimit, bool bInUseTimeLimit )
+ULinkerLoad::ELinkerStatus ULinkerLoad::Tick( float InTimeLimit, bool bInUseTimeLimit, bool bInUseFullTimeLimit )
 {
 	ELinkerStatus Status = LINKER_Loaded;
 
@@ -467,6 +468,7 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::Tick( float InTimeLimit, bool bInUseTime
 		TickStartTime		= FPlatformTime::Seconds();
 		bTimeLimitExceeded	= false;
 		bUseTimeLimit		= bInUseTimeLimit;
+		bUseFullTimeLimit	= bInUseFullTimeLimit;
 		TimeLimit			= InTimeLimit;
 
 		do
@@ -551,8 +553,10 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::Tick( float InTimeLimit, bool bInUseTime
 				Status = FinalizeCreation();
 			}
 		}
-		// Loop till we are done if no time limit is specified.
-		while( !bUseTimeLimit && Status == LINKER_TimedOut );
+		// Loop till we are done if no time limit is specified, or loop until the real time limit is up if we want to use full time
+		while (Status == LINKER_TimedOut && 
+			(!bUseTimeLimit || (bUseFullTimeLimit && !IsTimeLimitExceeded(TEXT("Checking Full Timer"))))
+			);
 	}
 
 	// Return whether we completed or not.

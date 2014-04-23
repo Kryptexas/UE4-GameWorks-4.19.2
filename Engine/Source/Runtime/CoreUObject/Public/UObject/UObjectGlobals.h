@@ -396,11 +396,12 @@ namespace EAsyncPackageState
  * to fully load a package in a single pass given sufficient time.
  *
  * @param	bUseTimeLimit	Whether to use a time limit
+ * @param	bUseFullTimeLimit	If true, use the entire time limit even if blocked on I/O
  * @param	TimeLimit		Soft limit of time this function is allowed to consume
  * @param	ExcludeType		Do not process packages associated with this specific type name
  * @return The minimum state of any of the queued packages.
  */
-COREUOBJECT_API EAsyncPackageState::Type ProcessAsyncLoading( bool bUseTimeLimit, float TimeLimit, FName ExcludeType = NAME_None );
+COREUOBJECT_API EAsyncPackageState::Type ProcessAsyncLoading( bool bUseTimeLimit, bool bUseFullTimeLimit, float TimeLimit, FName ExcludeType = NAME_None );
 COREUOBJECT_API void BeginLoad();
 COREUOBJECT_API void EndLoad(const TCHAR* LoadContext = NULL);
 
