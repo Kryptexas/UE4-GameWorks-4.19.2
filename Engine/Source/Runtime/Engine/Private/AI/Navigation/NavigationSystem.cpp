@@ -6,6 +6,11 @@
 #if WITH_RECAST
 #include "RecastNavMeshGenerator.h"
 #endif // WITH_RECAST
+#if WITH_EDITOR
+#include "UnrealEd.h"
+#include "Editor/GeometryMode/Public/GeometryEdMode.h"
+#include "Editor/GeometryMode/Public/EditorGeometry.h"
+#endif
 
 static const uint32 INITIAL_ASYNC_QUERIES_SIZE = 32;
 static const uint32 REGISTRATION_QUEUE_SIZE = 16;	// and we'll not reallocate
@@ -295,11 +300,24 @@ UNavigationSystem::UNavigationSystem(const class FPostConstructInitializePropert
 		DefaultWalkableArea = UNavArea_Default::StaticClass();
 		DefaultObstacleArea = UNavArea_Null::StaticClass();
 	}
+
+#if WITH_EDITOR
+	if (GIsEditor && HasAnyFlags(RF_ClassDefaultObject) == false)
+	{
+		GEditorModeTools().OnEditorModeChanged().AddUObject(this, &UNavigationSystem::OnEditorModeChanged);
+	}
+#endif // WITH_EDITOR
 }
 
 UNavigationSystem::~UNavigationSystem()
 {
 	CleanUp();
+#if WITH_EDITOR
+	if (GIsEditor)
+	{
+		GEditorModeTools().OnEditorModeChanged().RemoveAll(this);
+	}
+#endif // WITH_EDITOR
 }
 
 void UNavigationSystem::DoInitialSetup()
@@ -2191,6 +2209,28 @@ void UNavigationSystem::UpdateLevelCollision(ULevel* InLevel)
 		UWorld* World = GetWorld();
 		OnLevelRemovedFromWorld(InLevel, World);
 		OnLevelAddedToWorld(InLevel, World);
+	}
+}
+
+void UNavigationSystem::OnEditorModeChanged(FEdMode* Mode, bool IsEntering)
+{
+	if (Mode == NULL)
+	{
+		return;
+	}
+
+	if (IsEntering == false && Mode->GetID() == FBuiltinEditorModes::EM_Geometry)
+	{
+		// check if any of modified brushes belongs to an ANavMeshBoundsVolume
+		FEdModeGeometry* GeometryMode = (FEdModeGeometry*)Mode;
+		for (auto GeomObjectIt = GeometryMode->GeomObjectItor(); GeomObjectIt; GeomObjectIt++)
+		{
+			ANavMeshBoundsVolume* Volume = Cast<ANavMeshBoundsVolume>((*GeomObjectIt)->GetActualBrush());
+			if (Volume)
+			{
+				OnNavigationBoundsUpdated(Volume);
+			}
+		}
 	}
 }
 #endif

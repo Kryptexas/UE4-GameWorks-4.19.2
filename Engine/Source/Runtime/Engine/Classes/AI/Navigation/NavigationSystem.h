@@ -908,6 +908,8 @@ public:
 	void EndFakeComponentChanges() { bFakeComponentChangesBeingApplied = false; }
 
 	void UpdateLevelCollision(ULevel* InLevel);
+
+	virtual void OnEditorModeChanged(class FEdMode* Mode, bool IsEntering);
 #endif // WITH_EDITOR
 
 	/** register actor important for generation (navigation data will be build around them first) */
