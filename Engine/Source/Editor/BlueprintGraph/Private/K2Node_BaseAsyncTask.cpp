@@ -350,7 +350,8 @@ void UK2Node_BaseAsyncTask::ExpandNode(class FKismetCompilerContext& CompilerCon
 		UEdGraphPin* ActivateExecPin = CallActivateProxyObjectNode->FindPinChecked(Schema->PN_Execute);
 		UEdGraphPin* ActivateThenPin = CallActivateProxyObjectNode->FindPinChecked(Schema->PN_Then);
 
-		bIsErrorFree &= CompilerContext.MovePinLinksToIntermediate(*LastThenPin, *ActivateExecPin).CanSafeConnect();
+		bIsErrorFree &= Schema->TryCreateConnection(LastThenPin, ActivateExecPin);
+
 		LastThenPin = ActivateThenPin;
 	}
 

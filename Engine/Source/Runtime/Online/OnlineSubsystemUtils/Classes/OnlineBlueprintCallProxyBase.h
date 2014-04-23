@@ -11,6 +11,6 @@ class UOnlineBlueprintCallProxyBase : public UObject
 	GENERATED_UCLASS_BODY()
 
 	// Called to trigger the actual online action once the delegates have been bound
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly="true"), Category="Online")
 	virtual void Activate();
 };
