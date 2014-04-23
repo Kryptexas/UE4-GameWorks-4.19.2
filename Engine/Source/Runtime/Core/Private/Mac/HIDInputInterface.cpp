@@ -452,7 +452,8 @@ void HIDInputInterface::OnNewHIDController( IOReturn Result, IOHIDDeviceRef Devi
 			Button.Usage = Usage;
 			DeviceInfo.Buttons.Push( Button );
 		}
-		else if( ( ( ElementType == kIOHIDElementTypeInput_Axis ) || ( ElementType == kIOHIDElementTypeInput_Misc ) ) && UsagePage == kHIDPage_GenericDesktop && Usage != kHIDUsage_GD_Hatswitch )
+		else if( ( ( ElementType == kIOHIDElementTypeInput_Axis ) || ( ElementType == kIOHIDElementTypeInput_Misc ) ) && UsagePage == kHIDPage_GenericDesktop
+				&& Usage != kHIDUsage_GD_Hatswitch && Usage != kHIDUsage_GD_Pointer )
 		{
 			IOHIDValueRef Value;
 			IOHIDDeviceGetValue( DeviceRef, Element, &Value );
