@@ -222,11 +222,11 @@ class ULandscapeEditorObject : public UObject
 	TEnumAsByte<ELandscapeToolFlattenMode::Type> FlattenMode;
 
 	// Flattens to the angle of the clicked point, instead of horizontal
-	UPROPERTY(Category="Tool Settings", EditAnywhere, meta=(ShowForTools="ToolSet_Flatten"))
+	UPROPERTY(Category="Tool Settings", EditAnywhere, meta=(ShowForTools="ToolSet_Flatten", ShowForTargetTypes="Heightmap"))
 	bool bUseSlopeFlatten;
 
 	// Constantly picks new values to flatten towards when dragging around, instead of only using the first clicked point
-	UPROPERTY(Category="Tool Settings", EditAnywhere, meta=(ShowForTools="ToolSet_Flatten"))
+	UPROPERTY(Category="Tool Settings", EditAnywhere, meta=(ShowForTools="ToolSet_Flatten", ShowForTargetTypes="Heightmap"))
 	bool bPickValuePerApply;
 
 	// Enable to flatten towards a target height
@@ -234,7 +234,7 @@ class ULandscapeEditorObject : public UObject
 	bool bUseFlattenTarget;
 
 	// Target height to flatten towards (in Unreal Units)
-	UPROPERTY(Category="Tool Settings", EditAnywhere, meta=(ShowForTools="ToolSet_Flatten", editcondition="bUseFlattenTarget", UIMin="-32768", UIMax="32768"))
+	UPROPERTY(Category="Tool Settings", EditAnywhere, meta=(ShowForTools="ToolSet_Flatten", ShowForTargetTypes="Heightmap", editcondition="bUseFlattenTarget", UIMin="-32768", UIMax="32768"))
 	float FlattenTarget;
 
 	// Ramp Tool:
