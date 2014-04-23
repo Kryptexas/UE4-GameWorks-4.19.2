@@ -22,6 +22,12 @@ enum {MAX_ARRAY_SIZE=2048};
 
 static const FName NAME_ToolTip(TEXT("ToolTip"));
 
+/**
+ * Dirty hack global variable to allow different result codes passed through
+ * exceptions. Needs to be fixed in future versions of UHT.
+ */
+extern ECompilationResult::Type GCompilationResult;
+
 /*-----------------------------------------------------------------------------
 	Utility functions.
 -----------------------------------------------------------------------------*/
@@ -2612,7 +2618,6 @@ bool FHeaderParser::GetVarType
 				{
 					FError::Throwf(TEXT("BlueprintReadWrite should not be used on private members"));
 				}
-
 				Flags |= CPF_BlueprintVisible;
 				bSeenBlueprintEditSpecifier = true;
 			}
@@ -2629,7 +2634,6 @@ bool FHeaderParser::GetVarType
 				{
 					FError::Throwf(TEXT("BlueprintReadOnly should not be used on private members"));
 				}
-
 				Flags |= CPF_BlueprintVisible|CPF_BlueprintReadOnly;
 				bSeenBlueprintEditSpecifier = true;
 			}
@@ -6177,14 +6181,14 @@ void FHeaderParser::FinalizeScriptExposedFunctions(UClass* Class)
 
 //
 // Parses the header associated with the specified class.
-// Returns 1 if parsing was a success, 0 if any errors occurred.
+// Returns result enumeration.
 //
-bool FHeaderParser::ParseHeaderForOneClass(FClassTree& AllClasses, UClass* InClass)
+ECompilationResult::Type FHeaderParser::ParseHeaderForOneClass(FClassTree& AllClasses, UClass* InClass)
 {
 	// Early-out if this class has previously failed some aspect of parsing
 	if (FailedClassesAnnotation.Get(InClass))
 	{
-		return false;
+		return ECompilationResult::OtherCompilationError;
 	}
 
 	// Reset the parser to begin a new class
@@ -6197,7 +6201,7 @@ bool FHeaderParser::ParseHeaderForOneClass(FClassTree& AllClasses, UClass* InCla
 	bHaveSeenUClass                             = false;
 	bClassHasGeneratedBody                      = false;
 
-	bool bSuccess = false;
+	ECompilationResult::Type Result = ECompilationResult::OtherCompilationError;
 
 	ClassData = GScriptHelper->AddClassData(Class);
 
@@ -6370,7 +6374,7 @@ bool FHeaderParser::ParseHeaderForOneClass(FClassTree& AllClasses, UClass* InCla
 		}
 
 		// First-pass success.
-		bSuccess = true;
+		Result = ECompilationResult::Succeeded;
 	}
 #if !PLATFORM_EXCEPTIONS_DISABLED
 	catch( TCHAR* ErrorMsg )
@@ -6386,7 +6390,7 @@ bool FHeaderParser::ParseHeaderForOneClass(FClassTree& AllClasses, UClass* InCla
 		}
 
 		FailedClassesAnnotation.Set(Class);
-		bSuccess = false;
+		Result = GCompilationResult;
 	}
 #endif
 
@@ -6394,7 +6398,7 @@ bool FHeaderParser::ParseHeaderForOneClass(FClassTree& AllClasses, UClass* InCla
 	Class->Bind();
 
 	// Finalize functions
-	if (bSuccess)
+	if (Result == ECompilationResult::Succeeded)
 	{
 		FinalizeScriptExposedFunctions( Class );
 	}
@@ -6405,7 +6409,7 @@ bool FHeaderParser::ParseHeaderForOneClass(FClassTree& AllClasses, UClass* InCla
 		FError::Throwf(TEXT("Expected an include at the top of the header: '#include \"%s\"'"), *ExpectedHeaderName);
 	}
 
-	return bSuccess; //@TODO: UCREMOVAL: This function is always returning true even on a compiler error; should this continue?
+	return Result; //@TODO: UCREMOVAL: This function is always returning succeeded even on a compiler error; should this continue?
 }
 
 /*-----------------------------------------------------------------------------
@@ -6413,16 +6417,16 @@ bool FHeaderParser::ParseHeaderForOneClass(FClassTree& AllClasses, UClass* InCla
 -----------------------------------------------------------------------------*/
 
 // Parse Class's annotated headers and optionally its child classes.  Marks the class as CLASS_Parsed.
-bool FHeaderParser::ParseHeaders(FClassTree& AllClasses, FHeaderParser& HeaderParser, UClass* Class, bool bParseSubclasses)
+ECompilationResult::Type FHeaderParser::ParseHeaders(FClassTree& AllClasses, FHeaderParser& HeaderParser, UClass* Class, bool bParseSubclasses)
 {
 	check(Class != NULL);
 
 	if (!GClassStrippedHeaderTextMap.Contains(Class))
 	{
-		return true;
+		return ECompilationResult::Succeeded;
 	}
 
-	bool bResult = true;
+	ECompilationResult::Type Result = ECompilationResult::Succeeded;
 
 	// Handle all dependencies of the class.
 	auto& DependentOn = *GClassDependentOnMap.FindOrAdd(Class);
@@ -6487,14 +6491,18 @@ bool FHeaderParser::ParseHeaders(FClassTree& AllClasses, FHeaderParser& HeaderPa
 		{
 			UClass* NextClass = ClassesToParse.Pop();
 
-			if (ParseHeaders(AllClasses, HeaderParser, NextClass, true))
+			ECompilationResult::Type ParseResult = ParseHeaders(AllClasses, HeaderParser, NextClass, true);
+
+			if (ParseResult == ECompilationResult::Succeeded)
 			{
 				break;
 			}
 
-			if (!ParseHeaders(AllClasses, HeaderParser, NextClass, false))
+			ParseResult = ParseHeaders(AllClasses, HeaderParser, NextClass, false);
+
+			if (ParseResult != ECompilationResult::Succeeded)
 			{
-				bResult = false;
+				Result = ParseResult;
 				break;
 			}
 		}
@@ -6504,10 +6512,11 @@ bool FHeaderParser::ParseHeaders(FClassTree& AllClasses, FHeaderParser& HeaderPa
 	if (!(Class->ClassFlags & CLASS_Parsed))
 	{
 		UClass* CurrentSuperClass = Class->GetSuperClass();
-		if (!HeaderParser.ParseHeaderForOneClass(AllClasses, Class))
+		ECompilationResult::Type OneClassResult = HeaderParser.ParseHeaderForOneClass(AllClasses, Class);
+		if (OneClassResult != ECompilationResult::Succeeded)
 		{
 			// if we couldn't parse this class, we won't be able to parse its children
-			return false;
+			return OneClassResult;
 		}
 
 		if (CurrentSuperClass != Class->GetSuperClass())
@@ -6532,15 +6541,22 @@ bool FHeaderParser::ParseHeaders(FClassTree& AllClasses, FHeaderParser& HeaderPa
 
 			//note: you must always pass in the root tree node here, since we may add new classes to the tree
 			// if an manual dependency (through dependson()) is encountered
-			if (!ParseHeaders(AllClasses, HeaderParser, SubClass, bParseSubclasses))
+			ECompilationResult::Type ParseResult = ParseHeaders(AllClasses, HeaderParser, SubClass, bParseSubclasses);
+
+			if (ParseResult == ECompilationResult::FailedDueToHeaderChange)
 			{
-				bResult = false;
+				return ParseResult;
+			}
+
+			if (ParseResult == ECompilationResult::OtherCompilationError)
+			{
+				Result = ECompilationResult::OtherCompilationError;
 			}
 		}
 	}
 
 	// Success.
-	return bResult;
+	return Result;
 }
 
 bool FHeaderParser::DependentClassNameFromHeader(const TCHAR* HeaderFilename, FString& OutClassName)
@@ -6693,7 +6709,7 @@ FString FHeaderParser::RequireExactlyOneSpecifierValue(const FPropertySpecifier&
 }
 
 // Parse all headers for classes that are inside LimitOuter.
-bool FHeaderParser::ParseAllHeadersInside(FFeedbackContext* Warn, UPackage* LimitOuter, bool bAllowSaveExportedHeaders, bool bUseRelativePaths)
+ECompilationResult::Type FHeaderParser::ParseAllHeadersInside(FFeedbackContext* Warn, UPackage* LimitOuter, bool bAllowSaveExportedHeaders, bool bUseRelativePaths)
 {
 	// Disable loading of objects outside of this package (or more exactly, objects which aren't UFields, CDO, or templates)
 	TGuardValue<bool> AutoRestoreVerifyObjectRefsFlag(GVerifyObjectReferencesOnly, true);
@@ -6724,7 +6740,7 @@ bool FHeaderParser::ParseAllHeadersInside(FFeedbackContext* Warn, UPackage* Limi
 	HeaderParser.Filename = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*GClassSourceFileMap[BaseClass]);
 
 	// Hierarchically parse all classes.
-	bool bSuccess = true;
+	ECompilationResult::Type Result = ECompilationResult::Succeeded;
 #if !PLATFORM_EXCEPTIONS_DISABLED
 	try
 #endif
@@ -6732,10 +6748,10 @@ bool FHeaderParser::ParseAllHeadersInside(FFeedbackContext* Warn, UPackage* Limi
 		// Parse the headers
 		const bool bParseSubclasses = true;
 
-		bSuccess = FHeaderParser::ParseHeaders(AllClasses, HeaderParser, BaseClass, bParseSubclasses);
+		Result = FHeaderParser::ParseHeaders(AllClasses, HeaderParser, BaseClass, bParseSubclasses);
 
 		// Export the autogenerated code wrappers
-		if (bSuccess)
+		if (Result == ECompilationResult::Succeeded)
 		{
 			// At this point all headers have been parsed and the header parser will
 			// no longer have up to date info about what's being done so unregister it 
@@ -6759,14 +6775,13 @@ bool FHeaderParser::ParseAllHeadersInside(FFeedbackContext* Warn, UPackage* Limi
 	catch( TCHAR* ErrorMsg )
 	{
 		Warn->Log(ELogVerbosity::Error, ErrorMsg);
-
-		bSuccess = false;
+		Result = GCompilationResult;
 	}
 #endif
 	// Unregister the header parser from the feedback context
 	Warn->SetContext(NULL);
 
-	return bSuccess;
+	return Result;
 }
 
 /** 

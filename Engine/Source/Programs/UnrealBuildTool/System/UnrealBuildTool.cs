@@ -573,7 +573,7 @@ namespace UnrealBuildTool
 				UProjectInfo.FillProjectInfo();
 			}
 
-			bool bSuccess = true;
+			ECompilationResult Result = ECompilationResult.Succeeded;
 
 			// Reset early so we can access BuildConfiguration even before RunUBT() is called
 			BuildConfiguration.Reset();
@@ -848,19 +848,24 @@ namespace UnrealBuildTool
 
                     if (bGenerateVCProjectFiles || bGenerateXcodeProjectFiles || bGenerateMakefiles)
 					{
-						bSuccess = true;
+						bool bGenerationSuccess = true;
 						if (bGenerateVCProjectFiles)
 						{
-							bSuccess &= GenerateProjectFiles(new VCProjectFileGenerator(), Arguments);
+							bGenerationSuccess &= GenerateProjectFiles(new VCProjectFileGenerator(), Arguments);
 						}
 						if (bGenerateXcodeProjectFiles)
 						{
-							bSuccess &= GenerateProjectFiles(new XcodeProjectFileGenerator(), Arguments);
+							bGenerationSuccess &= GenerateProjectFiles(new XcodeProjectFileGenerator(), Arguments);
 						}
                         if (bGenerateMakefiles)
  						{
- 							bSuccess &= GenerateProjectFiles(new MakefileGenerator(), Arguments);
+							bGenerationSuccess &= GenerateProjectFiles(new MakefileGenerator(), Arguments);
  						}
+
+						if(!bGenerationSuccess)
+						{
+							Result = ECompilationResult.OtherCompilationError;
+						}
 					}
 					else if (bRunCopyrightVerification)
 					{
@@ -876,12 +881,12 @@ namespace UnrealBuildTool
 						}
 
 						// Build our project
-						if (bSuccess)
+						if (Result == ECompilationResult.Succeeded)
 						{
 							if (UEBuildConfiguration.bPrepForDeployment == false)
 							{
 								// If we are only prepping for deployment, assume the build already occurred.
-								bSuccess = RunUBT(Arguments);
+								Result = RunUBT(Arguments);
 							}
 							else
 							{
@@ -896,7 +901,7 @@ namespace UnrealBuildTool
 
 							// If we build w/ bXGEExport true, we didn't REALLY build at this point, 
 							// so don't bother with doing the PrepTargetForDeployment call. 
-							if ((bSuccess == true) && (BuildConfiguration.bDeployAfterCompile == true) && (BuildConfiguration.bXGEExport == false) &&
+							if ((Result == ECompilationResult.Succeeded) && (BuildConfiguration.bDeployAfterCompile == true) && (BuildConfiguration.bXGEExport == false) &&
 								(UEBuildConfiguration.bGenerateManifest == false) && (UEBuildConfiguration.bCleanProject == false))
 							{
 								UEBuildDeploy DeployHandler = UEBuildDeploy.GetBuildDeploy(CheckPlatform);
@@ -947,7 +952,7 @@ namespace UnrealBuildTool
 				catch (Exception Exception)
 				{
 					Log.TraceError("UnrealBuildTool Exception: " + Exception);
-					bSuccess = false;
+					Result = ECompilationResult.OtherCompilationError;
 				}
 
 				if (bUseMutex)
@@ -964,7 +969,7 @@ namespace UnrealBuildTool
 			// Print some performance info
 			Log.TraceVerbose("Execution time: {0}", (DateTime.UtcNow - StartTime - MutexWaitTime).TotalSeconds);
 
-			return bSuccess ? 0 : 1;
+			return (int) Result;
 		}
 
 
@@ -988,7 +993,7 @@ namespace UnrealBuildTool
 
 
 		// @todo: Ideally get rid of RunUBT() and all of the Clear/Reset stuff!
-		public static bool RunUBT(string[] Arguments)
+		public static ECompilationResult RunUBT(string[] Arguments)
 		{
 			bool bSuccess = true;
 
@@ -1021,6 +1026,7 @@ namespace UnrealBuildTool
 
 			var Targets = new List<UEBuildTarget>();
 			string ExecutorName = "Unknown";
+			ECompilationResult BuildResult = ECompilationResult.Succeeded;
 
 			try
 			{
@@ -1053,8 +1059,15 @@ namespace UnrealBuildTool
 							DependencyCache.GetDependencyCachePathForTarget(Target)
 							);
 					}
-				
-					var TargetOutputItems = Target.Build();
+
+					var TargetOutputItems = new List<FileItem>();
+					BuildResult = Target.Build(TargetOutputItems);
+
+					if(BuildResult != ECompilationResult.Succeeded)
+					{
+						break;
+					}
+
 					OutputItemsForAllTargets.AddRange( TargetOutputItems );
 
 					if ( (BuildConfiguration.bXGEExport && UEBuildConfiguration.bGenerateManifest) || (!ProjectFileGenerator.bGenerateProjectFiles && !UEBuildConfiguration.bGenerateManifest && !UEBuildConfiguration.bCleanProject))
@@ -1108,7 +1121,11 @@ namespace UnrealBuildTool
 						);
 				}
 
-				if ((BuildConfiguration.bXGEExport && UEBuildConfiguration.bGenerateManifest) || (!GeneratingActionGraph && !ProjectFileGenerator.bGenerateProjectFiles && !UEBuildConfiguration.bGenerateManifest && !UEBuildConfiguration.bCleanProject))
+				if (BuildResult == ECompilationResult.Succeeded &&
+					(
+						(BuildConfiguration.bXGEExport && UEBuildConfiguration.bGenerateManifest) ||
+						(!GeneratingActionGraph && !ProjectFileGenerator.bGenerateProjectFiles && !UEBuildConfiguration.bGenerateManifest && !UEBuildConfiguration.bCleanProject)
+					))
 				{
 					// Plan the actions to execute for the build.
 					List<Action> ActionsToExecute = GetActionsToExecute(OutputItemsForAllTargets, Targets);
@@ -1140,12 +1157,12 @@ namespace UnrealBuildTool
 			{
 				// Output the message only, without the call stack
 				Log.TraceInformation(Exception.Message);
-				bSuccess = false;
+				BuildResult = ECompilationResult.OtherCompilationError;
 			}
 			catch (Exception Exception)
 			{
 				Log.TraceInformation("ERROR: {0}", Exception);
-				bSuccess = false;
+				BuildResult = ECompilationResult.OtherCompilationError;
 			}
 
 			// Figure out how long we took to execute.
@@ -1194,7 +1211,7 @@ namespace UnrealBuildTool
 					);
 			}
 
-			return bSuccess;
+			return BuildResult;
 		}
 
 		private static void ParseBuildConfigurationFlags(string[] Arguments)

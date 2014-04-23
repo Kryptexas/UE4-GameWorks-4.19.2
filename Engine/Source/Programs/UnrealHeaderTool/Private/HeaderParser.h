@@ -77,7 +77,7 @@ class FHeaderParser : public FBaseParser, public FContextSupplier
 {
 public:
 	// Parse all headers for classes that are inside LimitOuter.
-	static bool ParseAllHeadersInside(FFeedbackContext* Warn, UPackage* LimitOuter, bool bAllowSaveExportedHeaders, bool bUseRelativePaths);
+	static ECompilationResult::Type ParseAllHeadersInside(FFeedbackContext* Warn, UPackage* LimitOuter, bool bAllowSaveExportedHeaders, bool bUseRelativePaths);
 
 	// Performs a preliminary parse of the text in the specified buffer, pulling out:
 	//   Class name and parent class name
@@ -313,9 +313,9 @@ protected:
 	 * @param	Class				the class to parse
 	 * @param	bParseSubclasses	true if we should parse all child classes of Class
 	 *
-	 * @return	true if the class was successfully compiled, false otherwise
+	 * @return	Result enumeration.
 	 */
-	static bool ParseHeaders(FClassTree& AllClasses, FHeaderParser& HeaderParser, UClass* Class, bool bParseSubclasses);
+	static ECompilationResult::Type ParseHeaders(FClassTree& AllClasses, FHeaderParser& HeaderParser, UClass* Class, bool bParseSubclasses);
 
 	//@TODO: Remove this method
 	static void ParseClassName(const TCHAR* Temp, FString& ClassName);
@@ -339,7 +339,7 @@ protected:
 	// End of FContextSupplier interface.
 
 	// High-level compiling functions.
-	bool ParseHeaderForOneClass(FClassTree& AllClasses, UClass* InClass);
+	ECompilationResult::Type ParseHeaderForOneClass(FClassTree& AllClasses, UClass* InClass);
 	void CompileDirective(UClass* Class);
 	void FinalizeScriptExposedFunctions(UClass* Class);
 	UEnum* CompileEnum(UClass* Owner);

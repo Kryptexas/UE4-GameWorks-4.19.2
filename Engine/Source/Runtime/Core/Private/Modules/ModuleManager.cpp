@@ -1563,7 +1563,7 @@ bool FModuleManager::StartCompilingModuleDLLs(const FString& GameName, const TAr
 		// No longer compiling modules
 		ModulesBeingCompiled.Empty();
 
-		ModuleCompilerFinishedEvent.Broadcast(FString(), false, false);
+		ModuleCompilerFinishedEvent.Broadcast(FString(), ECompilationResult::OtherCompilationError, false);
 
 		// Fire task completion delegate 
 		
@@ -1784,7 +1784,7 @@ void FModuleManager::CheckForFinishedModuleDLLCompile( const bool bWaitForComple
 {
 #if PLATFORM_DESKTOP && !IS_MONOLITHIC
 	bCompileStillInProgress = false;
-	bCompileSucceeded = false;
+	ECompilationResult::Type CompilationResult = ECompilationResult::OtherCompilationError;
 
 	// Is there a compilation in progress?
 	if( IsCurrentlyCompiling() )
@@ -1820,7 +1820,7 @@ void FModuleManager::CheckForFinishedModuleDLLCompile( const bool bWaitForComple
 		}
 
 		// Check to see if the compile has finished yet
-		int32 ReturnCode = 1;
+		int32 ReturnCode = -1;
 		while (bCompileStillInProgress)
 		{
 			if( FPlatformProcess::GetProcReturnCode( ModuleCompileProcessHandle, &ReturnCode ) )
@@ -1860,13 +1860,13 @@ void FModuleManager::CheckForFinishedModuleDLLCompile( const bool bWaitForComple
 			// Compilation finished, now we need to grab all of the text from the output pipe
 			ModuleCompileReadPipeText += FPlatformProcess::ReadPipe(ModuleCompileReadPipe);
 
-			// Was the compile successful?
-			bCompileSucceeded = ( ReturnCode == 0 );
+			// The ReturnCode is -1 only if compilation was cancelled.
+			CompilationResult = ReturnCode != -1 ? (ECompilationResult::Type)ReturnCode : ECompilationResult::OtherCompilationError;
 
 			// If compilation succeeded for all modules, go back to the modules and update their module file names
 			// in case we recompiled the modules to a new unique file name.  This is needed so that when the module
 			// is reloaded after the recompile, we load the new DLL file name, not the old one
-			if( bCompileSucceeded )
+			if(CompilationResult == ECompilationResult::Succeeded)
 			{
 				for( int32 CurModuleIndex = 0; CurModuleIndex < ModulesThatWereBeingRecompiled.Num(); ++CurModuleIndex )
 				{
@@ -1910,10 +1910,12 @@ void FModuleManager::CheckForFinishedModuleDLLCompile( const bool bWaitForComple
 			// No longer compiling modules
 			ModulesBeingCompiled.Empty();
 
+			bCompileSucceeded = CompilationResult == ECompilationResult::Succeeded;
+
 			if ( bFireEvents )
 			{
 				const bool bShowLogOnSuccess = false;
-				ModuleCompilerFinishedEvent.Broadcast(FinalOutput, bCompileSucceeded, !bCompileSucceeded || bShowLogOnSuccess);
+				ModuleCompilerFinishedEvent.Broadcast(FinalOutput, CompilationResult, !bCompileSucceeded || bShowLogOnSuccess);
 
 				// Fire task completion delegate 
 				RecompileModulesCallback.ExecuteIfBound( true, bCompileSucceeded );

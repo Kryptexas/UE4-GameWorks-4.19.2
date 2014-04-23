@@ -4240,6 +4240,12 @@ void FNativeClassHeaderGenerator::DeleteUnusedGeneratedHeaders()
 	}
 }
 
+/**
+ * Dirty hack global variable to allow different result codes passed through
+ * exceptions. Needs to be fixed in future versions of UHT.
+ */
+ECompilationResult::Type GCompilationResult = ECompilationResult::OtherCompilationError;
+
 bool FNativeClassHeaderGenerator::SaveHeaderIfChanged(const TCHAR* HeaderPath, const TCHAR* InNewHeaderContents)
 {
 	if ( !bAllowSaveExportedHeaders )
@@ -4334,6 +4340,8 @@ bool FNativeClassHeaderGenerator::SaveHeaderIfChanged(const TCHAR* HeaderPath, c
 		{
 			FString ConflictPath = FString(HeaderPath) + TEXT(".conflict");
 			FFileHelper::SaveStringToFile(NewHeaderContents, *ConflictPath);
+
+			GCompilationResult = ECompilationResult::FailedDueToHeaderChange;
 			FError::Throwf(TEXT("ERROR: '%s': Changes to generated code are not allowed - conflicts written to '%s'"), HeaderPath, *ConflictPath);
 		}
 
@@ -4588,9 +4596,10 @@ void FNativeClassHeaderGenerator::ExportGeneratedCPP()
 }
 
 
-int32 UnrealHeaderTool_Main(const FString& ModuleInfoFilename)
+ECompilationResult::Type UnrealHeaderTool_Main(const FString& ModuleInfoFilename)
 {
 	check(GIsUCCMakeStandaloneHeaderGenerator);
+	ECompilationResult::Type Result = ECompilationResult::Succeeded;
 	
 	if ( !FParse::Param( FCommandLine::Get(), TEXT("IgnoreWarnings")) )
 	{
@@ -4607,7 +4616,7 @@ int32 UnrealHeaderTool_Main(const FString& ModuleInfoFilename)
 	catch (const TCHAR* Ex)
 	{
 		UE_LOG(LogCompile, Error, TEXT("Failed to load manifest file '%s': %s"), *ModuleInfoFilename, Ex);
-		return 3;
+		return GCompilationResult;
 	}
 
 	NameLookupCPP = new FNameLookupCPP();
@@ -4616,7 +4625,6 @@ int32 UnrealHeaderTool_Main(const FString& ModuleInfoFilename)
 	GScriptHelper = ScriptHelper;
 
 	// Load classes for editing.
-	bool Success = true;
 	int32 NumFailures = 0;
 
 	// Three passes.  1) Public 'Classes' headers (legacy)  2) Public headers   3) Private headers
@@ -4648,8 +4656,10 @@ int32 UnrealHeaderTool_Main(const FString& ModuleInfoFilename)
 
 		for (const auto& Module : GManifest.Modules)
 		{
-			if (!Success)
+			if (Result != ECompilationResult::Succeeded)
+			{
 				break;
+			}
 
 			// We'll make an ordered list of all UObject headers we care about.
 			TArray<FString> UObjectHeaders;
@@ -4744,6 +4754,7 @@ int32 UnrealHeaderTool_Main(const FString& ModuleInfoFilename)
 						}
 
 						FString FormattedErrorMessage = FString::Printf(TEXT("%sError: %s\r\n"), *Prefix, ErrorMsg);
+						Result = GCompilationResult;
 
 						UE_LOG(LogCompile, Log, TEXT("%s"), *FormattedErrorMessage);
 						GWarn->Log(ELogVerbosity::Error, FormattedErrorMessage);
@@ -4753,14 +4764,17 @@ int32 UnrealHeaderTool_Main(const FString& ModuleInfoFilename)
 				#endif
 				}
 
-				Success = NumFailures == 0;
+				if(Result == ECompilationResult::Succeeded && NumFailures != 0)
+				{
+					Result = ECompilationResult::OtherCompilationError;
+				}
 			}
 		}
 	}
 
 
 	// Save generated headers
-	if ( Success )
+	if ( Result == ECompilationResult::Succeeded )
 	{
 		// Verify that all script declared superclasses exist.
 		for( TObjectIterator<UClass> ItC; ItC; ++ItC )
@@ -4771,19 +4785,19 @@ int32 UnrealHeaderTool_Main(const FString& ModuleInfoFilename)
 			if (ScriptSuperClass && !ScriptSuperClass->HasAnyClassFlags(CLASS_Intrinsic) && GClassStrippedHeaderTextMap.Contains(ScriptClass) && !GClassStrippedHeaderTextMap.Contains(ScriptSuperClass))
 			{
 				UE_LOG(LogCompile, Error, TEXT("Superclass %s of class %s not found"), *ScriptSuperClass->GetName(), *ScriptClass->GetName());
-				Success = false;
+				Result = ECompilationResult::OtherCompilationError;
 				++NumFailures;
 			}
 		}
 
-		if (Success)
+		if (Result == ECompilationResult::Succeeded)
 		{
 			for (const auto& Module : GManifest.Modules)
 			{
 				if (UPackage* Package = Cast<UPackage>( StaticFindObjectFast( UPackage::StaticClass(), NULL, FName(*Module.LongPackageName), false, false ) ))
 				{
-					Success = FHeaderParser::ParseAllHeadersInside(GWarn, Package, Module.SaveExportedHeaders, GManifest.UseRelativePaths);
-					if (!Success)
+					Result = FHeaderParser::ParseAllHeadersInside(GWarn, Package, Module.SaveExportedHeaders, GManifest.UseRelativePaths);
+					if (Result != ECompilationResult::Succeeded)
 					{
 						++NumFailures;
 						break;
@@ -4825,8 +4839,13 @@ int32 UnrealHeaderTool_Main(const FString& ModuleInfoFilename)
 	ScriptHelper = NULL;
 
 	GIsRequestingExit = true;
+
+	if(Result == ECompilationResult::Succeeded && NumFailures > 0)
+	{
+		return ECompilationResult::OtherCompilationError;
+	}
 	
-	return NumFailures > 0 ? 4 : 0;
+	return Result;
 }
 
 UClass* GenerateCodeForHeader

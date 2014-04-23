@@ -73,17 +73,12 @@ int32 main( int32 ArgC, char* ArgV[] )
 		ModuleInfoFilename = FPaths::ConvertRelativePathToFull(FPlatformProcess::BaseDir(), TEXT("../../Source/Programs/UnrealHeaderTool/Resources/UHTDebugging.manifest"));
 	}
 
-	extern int32 UnrealHeaderTool_Main(const FString& ModuleInfoFilename);
-	int32 ErrorLevel = UnrealHeaderTool_Main(ModuleInfoFilename);
-
-	if (GWarn->Errors.Num() > 0 || GWarn->Warnings.Num() > 0)
-	{
-		ErrorLevel = 2;
-	}
+	extern ECompilationResult::Type UnrealHeaderTool_Main(const FString& ModuleInfoFilename);
+	ECompilationResult::Type Result = UnrealHeaderTool_Main(ModuleInfoFilename);
 
 	FEngineLoop::AppPreExit();
 	FEngineLoop::AppExit();
 
-	return ErrorLevel;
+	return Result;
 }
 

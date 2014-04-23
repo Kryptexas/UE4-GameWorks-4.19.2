@@ -1209,7 +1209,7 @@ namespace UnrealBuildTool
 							ArgumentsCopy[ CurEntryIndex + 1 ] = Arguments[ CurEntryIndex ];
 						}
 
-						bSuccess = UnrealBuildTool.RunUBT( ArgumentsCopy );
+						bSuccess = UnrealBuildTool.RunUBT( ArgumentsCopy ) == ECompilationResult.Succeeded;
 						if( !bSuccess )
 						{
 							break;

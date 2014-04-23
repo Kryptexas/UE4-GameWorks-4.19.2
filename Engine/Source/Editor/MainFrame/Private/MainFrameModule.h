@@ -145,7 +145,7 @@ private:
 	void OnCancelCodeCompilationClicked();
 
 	// Handles the level editor module finishing to recompile.
-	void HandleLevelEditorModuleCompileFinished( const FString& LogDump, bool bCompileSucceeded, bool bShowLog );
+	void HandleLevelEditorModuleCompileFinished( const FString& LogDump, ECompilationResult::Type CompilationResult, bool bShowLog );
 
 	// Handles the VSHandler having finished launching Visual Studio.
 	void HandleVSAccessorLaunched( const bool WasSuccessful );

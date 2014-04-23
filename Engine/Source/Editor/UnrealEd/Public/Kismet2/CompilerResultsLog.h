@@ -96,7 +96,7 @@ private:
 	static void OnGotoError(const class TSharedRef<IMessageToken>& Token);
 
 	/** Callback function for binding the global compiler dump to open the static compiler log */
-	static void GetGlobalModuleCompilerDump(const FString& LogDump, bool bCompileSucceeded, bool bShowLog);
+	static void GetGlobalModuleCompilerDump(const FString& LogDump, ECompilationResult::Type CompilationResult, bool bShowLog);
 
 	/** The log's name, for easy re-use */
 	static const FName Name;

@@ -1094,8 +1094,8 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/** Builds the target, returning a list of output files. */
-		public List<FileItem> Build()
+		/** Builds the target, appending list of output files and returns building result. */
+		public ECompilationResult Build(List<FileItem> OutputItems)
 		{
 			// Set up the global compile and link environment in GlobalCompileEnvironment and GlobalLinkEnvironment.
 			SetupGlobalEnvironment();
@@ -1352,7 +1352,7 @@ namespace UnrealBuildTool
                 GenerateManifest(AppBinaries, GlobalLinkEnvironment.Config.TargetPlatform, SpecialRocketLibFilesThatAreBuildProducts);
                 if (!BuildConfiguration.bXGEExport)
                 {
-                    return new List<FileItem>();
+                    return ECompilationResult.Succeeded;
                 }
 			}
 
@@ -1364,8 +1364,6 @@ namespace UnrealBuildTool
 				GlobalCompileEnvironment.SharedPCHHeaderFiles = SharedPCHHeaderFiles;
 			}
 
-			// Build the target's binaries.
-			var OutputItems = new List<FileItem>();
 			foreach (var Binary in AppBinaries)
 			{
 				OutputItems.AddRange(Binary.Build(GlobalCompileEnvironment, GlobalLinkEnvironment));
@@ -1418,9 +1416,12 @@ namespace UnrealBuildTool
 					// Execute the header tool
 					var TargetName = !String.IsNullOrEmpty( GameName ) ? GameName : AppName;
 					string ModuleInfoFileName = Path.GetFullPath( Path.Combine( ProjectIntermediateDirectory, "UnrealHeaderTool.manifest" ) );
-					if (!ExternalExecution.ExecuteHeaderToolIfNecessary(this, UObjectModules, ModuleInfoFileName))
+
+					ECompilationResult UHTResult = ECompilationResult.OtherCompilationError;
+					if (!ExternalExecution.ExecuteHeaderToolIfNecessary(this, UObjectModules, ModuleInfoFileName, ref UHTResult))
 					{
-						throw new BuildException( "UnrealHeaderTool failed for target '" + TargetName + "' (platform: " + Platform.ToString() + ", module info: " + ModuleInfoFileName + ")." );
+						Log.TraceInformation("UnrealHeaderTool failed for target '" + TargetName + "' (platform: " + Platform.ToString() + ", module info: " + ModuleInfoFileName + ").");
+						return UHTResult;
 					}
 				}
 
@@ -1443,10 +1444,11 @@ namespace UnrealBuildTool
 					}
 					Writer.WriteEndElement();
 				}
-				return new List<FileItem>();
+
+				OutputItems.Clear();
 			}
 
-			return OutputItems;
+			return ECompilationResult.Succeeded;
 		}
 
 		/// <summary>

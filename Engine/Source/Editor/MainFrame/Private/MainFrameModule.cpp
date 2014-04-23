@@ -659,7 +659,7 @@ void FMainFrameModule::OnCancelCodeCompilationClicked()
 	FModuleManager::Get().RequestStopCompilation();
 }
 
-void FMainFrameModule::HandleLevelEditorModuleCompileFinished( const FString& LogDump, bool bCompileSucceeded, bool bShowLog )
+void FMainFrameModule::HandleLevelEditorModuleCompileFinished(const FString& LogDump, ECompilationResult::Type CompilationResult, bool bShowLog)
 {
 	// Track stats
 	{
@@ -671,7 +671,7 @@ void FMainFrameModule::HandleLevelEditorModuleCompileFinished( const FString& Lo
 			FEngineAnalytics::GetProvider().RecordEvent( 
 				TEXT("Editor.Modules.Recompile"),
 				TEXT("Duration"), FString::Printf(TEXT("%.3f"), ModuleCompileDuration),
-				TEXT("Result"), bCompileSucceeded ? TEXT("Succeeded") : TEXT("Failed"));
+				TEXT("Result"), CompilationResult == ECompilationResult::Succeeded ? TEXT("Succeeded") : TEXT("Failed"));
 		}
 	}
 
@@ -679,7 +679,7 @@ void FMainFrameModule::HandleLevelEditorModuleCompileFinished( const FString& Lo
 
 	if (NotificationItem.IsValid())
 	{
-		if (bCompileSucceeded)
+		if (CompilationResult == ECompilationResult::Succeeded)
 		{
 			GEditor->PlayPreviewSound(CompileSuccessSound);
 			NotificationItem->SetText(NSLOCTEXT("MainFrame", "RecompileComplete", "Compile Complete!"));
@@ -697,7 +697,15 @@ void FMainFrameModule::HandleLevelEditorModuleCompileFinished( const FString& Lo
 			};
 
 			GEditor->PlayPreviewSound(CompileFailSound);
-			NotificationItem->SetText(NSLOCTEXT("MainFrame", "RecompileFailed", "Compile Failed!"));
+			if (CompilationResult == ECompilationResult::FailedDueToHeaderChange)
+			{
+				NotificationItem->SetText(NSLOCTEXT("MainFrame", "RecompileFailedDueToHeaderChange", "Compile failed due to the header changes. Close the editor and recompile project in IDE to apply changes."));
+			}
+			else
+			{
+				NotificationItem->SetText(NSLOCTEXT("MainFrame", "RecompileFailed", "Compile Failed!"));
+			}
+			
 			NotificationItem->SetCompletionState(SNotificationItem::CS_Fail);
 			NotificationItem->SetHyperlink(FSimpleDelegate::CreateStatic(&Local::ShowCompileLog));
 		}

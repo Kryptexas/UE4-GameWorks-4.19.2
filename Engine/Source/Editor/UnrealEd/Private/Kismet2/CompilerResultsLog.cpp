@@ -309,7 +309,7 @@ void FCompilerResultsLog::OnGotoError(const TSharedRef<IMessageToken>& Token)
 	}
 }
 
-void FCompilerResultsLog::GetGlobalModuleCompilerDump(const FString& LogDump, bool bCompileSucceeded, bool bShowLog)
+void FCompilerResultsLog::GetGlobalModuleCompilerDump(const FString& LogDump, ECompilationResult::Type CompilationResult, bool bShowLog)
 {
 	FMessageLog MessageLog(Name);
 

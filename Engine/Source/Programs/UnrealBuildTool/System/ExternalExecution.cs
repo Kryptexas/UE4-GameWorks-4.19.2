@@ -11,6 +11,17 @@ using System.Reflection;
 
 namespace UnrealBuildTool
 {
+	// This enum has to be compatible with the one defined in the
+	// UE4\Engine\Source\Runtime\Core\Public\Modules\ModuleManager.h
+	// to keep communication between UHT, UBT and Editor compiling
+	// processes valid.
+	public enum ECompilationResult
+	{
+		Succeeded = 0,
+		FailedDueToHeaderChange = 1,
+		OtherCompilationError = 2
+	}
+
 	/** Information about a module that needs to be passed to UnrealHeaderTool for code generation */
 	public struct UHTModuleInfo
 	{
@@ -352,7 +363,7 @@ namespace UnrealBuildTool
 		 * Builds and runs the header tool and touches the header directories.
 		 * Performs any early outs if headers need no changes, given the UObject modules, tool path, game name, and configuration
 		 */
-		public static bool ExecuteHeaderToolIfNecessary( UEBuildTarget Target, List<UHTModuleInfo> UObjectModules, string ModuleInfoFileName )
+		public static bool ExecuteHeaderToolIfNecessary( UEBuildTarget Target, List<UHTModuleInfo> UObjectModules, string ModuleInfoFileName, ref ECompilationResult UHTResult )
 		{
 			// We never want to try to execute the header tool when we're already trying to build it!
 			var bIsBuildingUHT = Target.GetTargetName().Equals( "UnrealHeaderTool", StringComparison.InvariantCultureIgnoreCase );
@@ -421,12 +432,12 @@ namespace UnrealBuildTool
 
 				Stopwatch s = new Stopwatch();
 				s.Start();
-				int ErrorCode = RunExternalExecutable(ExternalExecution.GetHeaderToolPath(), CmdLine);
+				UHTResult = (ECompilationResult) RunExternalExecutable(ExternalExecution.GetHeaderToolPath(), CmdLine);
 				s.Stop();
-					
-				if (ErrorCode != 0)
+
+				if (UHTResult != ECompilationResult.Succeeded)
 				{
-					Log.TraceInformation( "Error: Failed to generate code for {0} - error code: {1}", ActualTargetName, ErrorCode );
+					Log.TraceInformation("Error: Failed to generate code for {0} - error code: {1}", ActualTargetName, (int) UHTResult);
 					return false;
 				}
 

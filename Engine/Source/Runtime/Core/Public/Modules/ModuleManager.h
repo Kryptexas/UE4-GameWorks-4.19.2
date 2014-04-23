@@ -24,6 +24,20 @@ namespace ELoadModuleFailureReason
 	};
 }
 
+// This enum has to be compatible with the one defined in the
+// UE4\Engine\Source\Programs\UnrealBuildTool\System\ExternalExecution.cs
+// to keep communication between UHT, UBT and Editor compiling
+// processes valid.
+namespace ECompilationResult
+{
+	enum Type
+	{
+		Succeeded = 0,
+		FailedDueToHeaderChange = 1,
+		OtherCompilationError = 2
+	};
+}
+
 namespace EModuleCompileMethod
 {
 	enum Type
@@ -96,9 +110,9 @@ public:
 	FModuleCompilerStartedEvent& OnModuleCompilerStarted() { return ModuleCompilerStartedEvent; }
 
 	/** Delegate for binding functions to be called when the module compiler finishes,
-		passing in the compiler output and a boolean which indicates success or failure
+		passing in the compiler output and a enumeration with compilation result
 		as well as a second boolean which determines if the log should be shown */
-	DECLARE_EVENT_ThreeParams( FModuleManager, FModuleCompilerFinishedEvent, const FString&, bool, bool );
+	DECLARE_EVENT_ThreeParams(FModuleManager, FModuleCompilerFinishedEvent, const FString&, ECompilationResult::Type, bool);
 	FModuleCompilerFinishedEvent& OnModuleCompilerFinished() { return ModuleCompilerFinishedEvent; }
 
 	/** Called after a module recompile finishes.  First argument specifies whether the compilation has finished, 
