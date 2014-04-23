@@ -1444,6 +1444,8 @@ void SLevelViewport::OnCreateCameraActor()
 		return;
 	}
 
+	const FScopedTransaction Transaction(NSLOCTEXT("LevelViewport", "CreateCameraHere", "Create Camera Here"));
+
 	// Set new camera to match viewport
 	ACameraActor* pNewCamera = ViewportClient->GetWorld()->SpawnActor<ACameraActor>();
 	pNewCamera->SetActorLocation( ViewportClient->GetViewLocation(), false );
