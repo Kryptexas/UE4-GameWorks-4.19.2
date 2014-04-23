@@ -123,9 +123,9 @@ bool UK2Node_SpawnActor::IsSpawnVarPin(UEdGraphPin* Pin)
 }
 
 
-void UK2Node_SpawnActor::PinDefaultValueChanged(UEdGraphPin* Pin) 
+void UK2Node_SpawnActor::PinDefaultValueChanged(UEdGraphPin* ChangedPin) 
 {
-	if(Pin->PinName == BlueprintPinName)
+	if (ChangedPin->PinName == BlueprintPinName)
 	{
 		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
@@ -135,12 +135,12 @@ void UK2Node_SpawnActor::PinDefaultValueChanged(UEdGraphPin* Pin)
 
 		// Remove all pins related to archetype variables
 		TArray<UEdGraphPin*> OldPins = Pins;
-		for(int32 i=0; i<OldPins.Num(); i++)
+		for (int32 i = 0; i < OldPins.Num(); i++)
 		{
 			UEdGraphPin* OldPin = OldPins[i];
-			if(	IsSpawnVarPin(OldPin) )
+			if (IsSpawnVarPin(OldPin))
 			{
-				Pin->BreakAllPinLinks();
+				OldPin->BreakAllPinLinks();
 				Pins.Remove(OldPin);
 			}
 		}
