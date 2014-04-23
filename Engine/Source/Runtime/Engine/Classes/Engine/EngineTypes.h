@@ -400,7 +400,8 @@ namespace EWorldType
 		Game,		// The game world
 		Editor,		// A world being edited in the editor
 		PIE,		// A Play In Editor world
-		Preview		// A preview world for an editor tool
+		Preview,	// A preview world for an editor tool
+		Inactive	// An editor world that was loaded but not currently being edited in the level editor
 	};
 }
 

@@ -68,7 +68,7 @@ bool FLightmapResRatioAdjustSettings::ApplyRatioAdjustment()
 				// Store the required levels relating to this object based on the level option settings
 				UWorld* MeshWorld = StaticMeshComp->GetWorld();
 				// Exclude preview worlds				
-				if( MeshWorld->WorldType != EWorldType::Preview)
+				if( MeshWorld->WorldType != EWorldType::Preview && MeshWorld->WorldType != EWorldType::Inactive )
 				{
 					AddRequiredLevels( Settings.LevelOptions, MeshWorld , MeshLevels );
 					Worlds.AddUnique( MeshWorld );
@@ -85,7 +85,7 @@ bool FLightmapResRatioAdjustSettings::ApplyRatioAdjustment()
 			{
 				UWorld* BrushWorld = Brush->GetWorld();
 				// Exclude preview worlds
-				if( BrushWorld->WorldType != EWorldType::Preview)
+				if( BrushWorld->WorldType != EWorldType::Preview && BrushWorld->WorldType != EWorldType::Inactive )
 				{
 					AddRequiredLevels( Settings.LevelOptions, BrushWorld, BrushLevels );				
 					Worlds.AddUnique( BrushWorld );
@@ -107,7 +107,7 @@ bool FLightmapResRatioAdjustSettings::ApplyRatioAdjustment()
 						ABrush* AttachedBrush = CastChecked<ABrush>( AttachedBrushes[BrushIndex] );
 						UWorld* BrushWorld = AttachedBrush->GetWorld();
 						// Exclude preview worlds
-						if( BrushWorld->WorldType != EWorldType::Preview)
+						if( BrushWorld->WorldType != EWorldType::Preview && BrushWorld->WorldType != EWorldType::Inactive )
 						{	
 							AddRequiredLevels( Settings.LevelOptions, BrushWorld, BrushLevels );
 							Worlds.AddUnique( BrushWorld );
@@ -161,9 +161,9 @@ bool FLightmapResRatioAdjustSettings::ApplyRatioAdjustment()
 				{
 					bConvertIt = false;
 				}
-				else if( SMComp->GetWorld() && SMComp->GetWorld()->WorldType == EWorldType::Preview )
+				else if( SMComp->GetWorld() && SMComp->GetWorld()->WorldType == EWorldType::Preview && SMComp->GetWorld()->WorldType != EWorldType::Inactive )
 				{
-					// Dont do objects with a preview world
+					// Don't do objects with a preview or inactive world
 					bConvertIt = false;
 				}
 				if (bConvertIt)

@@ -6523,7 +6523,7 @@ void UEditorEngine::VerifyLoadMapWorldCleanup()
 	for( TObjectIterator<UWorld> It; It; ++It )
 	{
 		UWorld* World = *It;
-		if (World->WorldType != EWorldType::Preview && World->WorldType != EWorldType::Editor)
+		if (World->WorldType != EWorldType::Preview && World->WorldType != EWorldType::Editor && World->WorldType != EWorldType::Inactive)
 		{
 			TArray<UWorld*> OtherEditorWorlds;
 			EditorLevelUtils::GetWorlds(EditorWorld, OtherEditorWorlds, true, false);

@@ -1596,7 +1596,7 @@ void UEditorEngine::EditorDestroyWorld( FWorldContext & Context, const FText& Cl
 		WorldPackage = NULL;
 	}
 
-	if (Context.World()->WorldType != EWorldType::Preview)
+	if (Context.World()->WorldType != EWorldType::Preview && Context.World()->WorldType != EWorldType::Inactive)
 	{
 		// Go away, come again never!
 		Context.World()->ClearFlags(RF_Standalone | RF_RootSet | RF_Transactional);
@@ -1628,7 +1628,8 @@ void UEditorEngine::EditorDestroyWorld( FWorldContext & Context, const FText& Cl
 	for( TObjectIterator<UWorld> It; It; ++It )
 	{
 		UWorld* RemainingWorld = *It;
-		if( RemainingWorld->WorldType != EWorldType::Preview && !WorldHasValidContext(RemainingWorld))
+		const bool bIsPersistantWorldType = (RemainingWorld->WorldType == EWorldType::Inactive) || (RemainingWorld->WorldType == EWorldType::Preview);
+		if (!bIsPersistantWorldType && !WorldHasValidContext(RemainingWorld))
 		{
 			StaticExec(RemainingWorld, *FString::Printf(TEXT("OBJ REFS CLASS=WORLD NAME=%s"), *RemainingWorld->GetPathName()));
 

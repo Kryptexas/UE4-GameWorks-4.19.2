@@ -10462,7 +10462,8 @@ void UEngine::VerifyLoadMapWorldCleanup()
 	for( TObjectIterator<UWorld> It; It; ++It )
 	{
 		UWorld* World = *It;
-		if (World->WorldType != EWorldType::Preview && !WorldHasValidContext(World))
+		const bool bIsPersistantWorldType = (World->WorldType == EWorldType::Inactive) || (World->WorldType == EWorldType::Preview);
+		if (!bIsPersistantWorldType && !WorldHasValidContext(World))
 		{
 			// Print some debug information...
 			UE_LOG(LogLoad, Log, TEXT("%s not cleaned up by garbage collection! "), *World->GetFullName());

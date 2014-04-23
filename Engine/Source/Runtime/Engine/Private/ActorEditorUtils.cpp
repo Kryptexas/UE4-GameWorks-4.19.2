@@ -16,9 +16,10 @@ namespace FActorEditorUtils
 		return false;
 	}
 
-	bool IsAPreviewActor( const AActor* InActor )
+	bool IsAPreviewOrInactiveActor( const AActor* InActor )
 	{
-		return InActor && InActor->GetWorld() && InActor->GetWorld()->WorldType == EWorldType::Preview;
+		UWorld* World = InActor ? InActor->GetWorld() : NULL;
+		return World && (World->WorldType == EWorldType::Preview || World->WorldType == EWorldType::Inactive);
 	}
 
 	void GetEditableComponents( const AActor* InActor, TArray<UActorComponent*>& OutEditableComponents )
