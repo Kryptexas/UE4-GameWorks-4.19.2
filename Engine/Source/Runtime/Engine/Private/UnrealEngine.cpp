@@ -7186,14 +7186,14 @@ static void DrawProperty(UCanvas* CanvasObject, UObject* Obj, const FDebugDispla
 		}
 		if (Prop->ArrayDim == 1)
 		{
-			Prop->ExportText_InContainer(0, ValueText, Obj, Obj, Obj, 0);
+			Prop->ExportText_InContainer(0, ValueText, Obj, Obj, Obj, PPF_IncludeTransient);
 		}
 		else
 		{
 			ValueText += TEXT("(");
 			for (int32 i = 0; i < Prop->ArrayDim; i++)
 			{
-				Prop->ExportText_InContainer(i, ValueText, Obj, Obj, Obj, 0);
+				Prop->ExportText_InContainer(i, ValueText, Obj, Obj, Obj, PPF_IncludeTransient);
 				if (i + 1 < Prop->ArrayDim)
 				{
 					ValueText += TEXT(",");
