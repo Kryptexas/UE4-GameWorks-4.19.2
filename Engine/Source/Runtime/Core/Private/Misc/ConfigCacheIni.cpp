@@ -2066,6 +2066,17 @@ void FConfigCacheIni::SetVector
 	SetString( Section, Key, *Value.ToString(), Filename );
 }
 
+void FConfigCacheIni::SetVector4
+(
+ const TCHAR*		Section,
+ const TCHAR*		Key,
+ const FVector4		 Value,
+ const FString&	Filename
+)
+{
+	SetString(Section, Key, *Value.ToString(), Filename);
+}
+
 void FConfigCacheIni::SetRotator
 (
  const TCHAR*		Section,

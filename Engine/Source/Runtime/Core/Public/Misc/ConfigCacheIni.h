@@ -435,6 +435,13 @@ public:
 		FVector				Value,
 		const FString&	Filename
 	);
+	void SetVector4
+	(
+		const TCHAR*		Section,
+		const TCHAR*		Key,
+		FVector4			Value,
+		const FString&	Filename
+	);
 	void SetRotator
 	(
 		const TCHAR*		Section,
