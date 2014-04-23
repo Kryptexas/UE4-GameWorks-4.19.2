@@ -16,7 +16,7 @@ UTextureRenderTarget::UTextureRenderTarget(const class FPostConstructInitializeP
 	NeverStream = true;
 	SRGB = true;
 	LODGroup = TEXTUREGROUP_RenderTarget;	
-
+	bNeedsTwoCopies = false;
 #if WITH_EDITORONLY_DATA
 	CompressionNone = true;
 #endif // #if WITH_EDITORONLY_DATA

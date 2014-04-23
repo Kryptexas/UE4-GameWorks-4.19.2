@@ -19,6 +19,9 @@ class UTextureRenderTarget : public UTexture
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=TextureRenderTarget)
 	float TargetGamma;
 
+	/** If true, there will be two copies in memory - one for the texture and one for the render target. If false, they will share memory if possible. This is useful for scene capture textures that are used in the scene. */
+	uint32 bNeedsTwoCopies:1;
+
 	/**
 	 * Render thread: Access the render target resource for this texture target object
 	 * @return pointer to resource or NULL if not initialized
