@@ -61,17 +61,11 @@ void UBoxComponent::UpdateBodySetup()
 		BoxExtent.Z = 1.0f;
 	}
 
-	// apply non uniform scale factor
-	// min scale is applied when body is created
-	FVector Scale3D = ComponentToWorld.GetScale3D().GetAbs();
-	// divided by min since that will be applied to physX
-	Scale3D /= Scale3D.GetMin();
-
 	// now set the PhysX data values
 	se->SetTransform( FTransform::Identity );
-	se->X = BoxExtent.X*2*Scale3D.X;
-	se->Y = BoxExtent.Y*2*Scale3D.Y;
-	se->Z = BoxExtent.Z*2*Scale3D.Z;
+	se->X = BoxExtent.X*2;
+	se->Y = BoxExtent.Y*2;
+	se->Z = BoxExtent.Z*2;
 }
 
 bool UBoxComponent::IsZeroExtent() const

@@ -152,40 +152,10 @@ void UCapsuleComponent::UpdateBodySetup()
 
 	check(ShapeBodySetup->AggGeom.SphylElems.Num() == 1);
 	FKSphylElem* SE = ShapeBodySetup->AggGeom.SphylElems.GetTypedData();
-
-	// apply non uniform scale factor
-	// min scale is applied when body is created
-	FVector Scale3D = ComponentToWorld.GetScale3D().GetAbs();
-	float MinScale = Scale3D.GetMin();
-	float ScaleRadius;
-	float ScaleLength;
-	// do not set scale radius/length to be 0.f
-	// that will cause error on initializing physics
-	// physics will handle with min threshold number	
-	if (MinScale > 0.f)
-	{
-		// divided by min since that min scale will be applied in InitBody
-		ScaleRadius = Scale3D.GetMax() / MinScale;
-		ScaleLength = Scale3D.Z/MinScale;
-	}
-	else
-	{
-		ScaleRadius = 1.f;
-		ScaleLength = 1.f;
-	}
-
-	SE->SetTransform( FTransform::Identity );
-
-	// this is a bit confusing since radius and height is scaled
-	// first apply the scale first 
-	float Radius = FMath::Max(CapsuleRadius * ScaleRadius, 0.1f);
-	float HalfHeight = CapsuleHalfHeight * ScaleLength;
-
-	// now find half height without the caps
-	HalfHeight = FMath::Max<float>(HalfHeight - Radius, 1.f);
-	// set to final value
-	SE->Radius = Radius;
-	SE->Length = 2 * HalfHeight;
+	
+	SE->SetTransform(FTransform::Identity);
+	SE->Radius = CapsuleRadius;
+	SE->Length = 2 * CapsuleHalfHeight;
 }
 
 bool UCapsuleComponent::IsZeroExtent() const
