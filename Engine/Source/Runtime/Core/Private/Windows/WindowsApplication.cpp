@@ -1584,7 +1584,6 @@ HRESULT FWindowsApplication::OnOLEDragEnter( const HWND HWnd, const FDragDropOLE
 			break;
 		case FDragDropOLEData::None:
 		default:
-			ensureMsgf(0, TEXT("Unhandled drag/drop OLE data type: %d"), OLEData.Type);
 			break;
 	}
 
