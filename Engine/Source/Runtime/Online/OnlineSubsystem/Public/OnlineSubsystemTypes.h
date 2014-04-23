@@ -1152,7 +1152,7 @@ namespace EOnlineSharingPublishingCategory
 
 
 	/** @return the stringified version of the enum passed in */
-	inline const TCHAR* ToString(EOnlineSharingReadCategory::Type CategoryType)
+	inline const TCHAR* ToString(EOnlineSharingPublishingCategory::Type CategoryType)
 	{
 		switch (CategoryType)
 		{
