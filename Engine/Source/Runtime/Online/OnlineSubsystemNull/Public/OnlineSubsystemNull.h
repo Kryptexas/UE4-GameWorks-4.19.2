@@ -3,6 +3,8 @@
 #pragma once
 
 #include "OnlineSubsystem.h"
+#include "OnlineSubsystemImpl.h"
+#include "OnlineSubsystemNullPackage.h"
 
 /** Forward declarations of all interface classes */
 typedef TSharedPtr<class FOnlineSessionNull, ESPMode::ThreadSafe> FOnlineSessionNullPtr;
@@ -19,7 +21,7 @@ typedef TSharedPtr<class FOnlineAchievementsNull, ESPMode::ThreadSafe> FOnlineAc
  *	OnlineSubsystemNull - Implementation of the online subsystem for Null services
  */
 class ONLINESUBSYSTEMNULL_API FOnlineSubsystemNull : 
-	public IOnlineSubsystem,
+	public FOnlineSubsystemImpl,
 	public FTickerObjectBase
 {
 
@@ -62,11 +64,6 @@ public:
 	// FOnlineSubsystemNull
 
 	/**
-	 * @return the name of the online subsystem instance
-	 */
-	FName GetInstanceName() const { return InstanceName; }
-
-	/**
 	 * Is the Null API available for use
 	 * @return true if Null functionality is available, false otherwise
 	 */
@@ -76,7 +73,7 @@ PACKAGE_SCOPE:
 
 	/** Only the factory makes instances */
 	FOnlineSubsystemNull(FName InInstanceName) :
-		InstanceName(InInstanceName),
+		FOnlineSubsystemImpl(InInstanceName),
 		SessionInterface(NULL),
 		LeaderboardsInterface(NULL),
 		IdentityInterface(NULL),
@@ -86,7 +83,6 @@ PACKAGE_SCOPE:
 	{}
 
 	FOnlineSubsystemNull() :
-		InstanceName(NAME_None),
 		SessionInterface(NULL),
 		LeaderboardsInterface(NULL),
 		IdentityInterface(NULL),
@@ -96,9 +92,6 @@ PACKAGE_SCOPE:
 	{}
 
 private:
-
-	/** Instance name (disambiguates PIE instances for example) */
-	FName InstanceName;
 
 	/** Interface to the session services */
 	FOnlineSessionNullPtr SessionInterface;

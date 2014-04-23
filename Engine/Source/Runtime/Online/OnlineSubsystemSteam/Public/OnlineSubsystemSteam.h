@@ -3,6 +3,7 @@
 #pragma once
 
 #include "OnlineSubsystem.h"
+#include "OnlineSubsystemImpl.h"
 #include "OnlineSubsystemSteamPackage.h"
 
 /** Forward declarations of all interface classes */
@@ -20,13 +21,10 @@ typedef TSharedPtr<class FOnlineAchievementsSteam, ESPMode::ThreadSafe> FOnlineA
  *	OnlineSubsystemSteam - Implementation of the online subsystem for STEAM services
  */
 class ONLINESUBSYSTEMSTEAM_API FOnlineSubsystemSteam : 
-	public IOnlineSubsystem, 
+	public FOnlineSubsystemImpl, 
 	public FTickerObjectBase
 {
 protected:
-
-	/** Instance name (disambiguates PIE instances for example) */
-	FName InstanceName;
 
 	/** Has the STEAM client APIs been initialized */
 	bool bSteamworksClientInitialized;
@@ -86,7 +84,7 @@ PACKAGE_SCOPE:
 
 	/** Only the factory makes instances */
 	FOnlineSubsystemSteam(FName InInstanceName) :
-		InstanceName(InInstanceName),
+		FOnlineSubsystemImpl(InInstanceName),
 		bSteamworksClientInitialized(false),
 		bSteamworksGameServerInitialized(false),
 		SteamAppID(0),
@@ -106,7 +104,6 @@ PACKAGE_SCOPE:
 	{}
 
 	FOnlineSubsystemSteam() : 
-		InstanceName(NAME_None),
 		bSteamworksClientInitialized(false),
 		bSteamworksGameServerInitialized(false),
 		SteamAppID(0),
@@ -247,11 +244,6 @@ public:
 	virtual bool Tick(float DeltaTime) OVERRIDE;
 
 	// FOnlineSubsystemSteam
-
-	/**
-	 * @return the name of the online subsystem instance
-	 */
-	FName GetInstanceName() const { return InstanceName; }
 
 	/**
 	 * Whether or not the Steam Client interfaces are available; these interfaces are only available, if the Steam Client program is running
