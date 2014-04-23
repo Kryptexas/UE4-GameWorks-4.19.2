@@ -251,7 +251,7 @@ namespace UnrealBuildTool.IOS
 				}
 
 				// zip it up into the stub file
-				PackageStub (BinaryPath, GameName);
+				PackageStub (BinaryPath, GameName, Path.GetFileNameWithoutExtension(InExecutablePath));
 			}
 
 			// copy engine assets in
@@ -268,10 +268,10 @@ namespace UnrealBuildTool.IOS
 			return true;
 		}
 
-		private void PackageStub(string BinaryPath, string GameName)
+		private void PackageStub(string BinaryPath, string GameName, string ExeName)
 		{
 			// create the ipa
-			string IPAName = BinaryPath + "/" + GameName + ".stub";
+			string IPAName = BinaryPath + "/" + ExeName + ".stub";
 			// delete the old one
 			if (File.Exists(IPAName))
 			{

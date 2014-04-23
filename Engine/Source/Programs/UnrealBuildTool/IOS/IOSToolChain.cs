@@ -143,6 +143,12 @@ namespace UnrealBuildTool
 			}
 		}
 
+		static public void AddStubToManifest(ref FileManifest Manifest, UEBuildBinary Binary)
+		{
+			string StubFile = Path.Combine (Path.GetDirectoryName (Binary.Config.OutputFilePath), Path.GetFileNameWithoutExtension (Binary.Config.OutputFilePath) + ".stub");
+			Manifest.AddFileName(StubFile);
+		}
+
 		static bool bHasPrinted = false;
 		static string GetArchitectureArgument(CPPTargetConfiguration Configuration, string UBTArchitecture)
 		{
