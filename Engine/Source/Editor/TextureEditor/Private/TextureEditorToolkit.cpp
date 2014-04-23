@@ -666,7 +666,8 @@ void FTextureEditorToolkit::BindCommands()
 
 	ToolkitCommands->MapAction(
 		Commands.Reimport,
-		FExecuteAction::CreateSP(this, &FTextureEditorToolkit::OnReimport));
+		FExecuteAction::CreateSP(this, &FTextureEditorToolkit::OnReimport),
+		FCanExecuteAction::CreateSP(this, &FTextureEditorToolkit::OnReimportEnabled));
 
 	ToolkitCommands->MapAction(
 		Commands.Settings,
@@ -870,6 +871,14 @@ void FTextureEditorToolkit::OnReimport()
 	FReimportManager::Instance()->Reimport(Texture, /*bAskForNewFileIfMissing=*/true);
 }
 
+bool FTextureEditorToolkit::OnReimportEnabled() const
+{
+	if ( Texture->IsA<ULightMapTexture2D>() || Texture->IsA<UShadowMapTexture2D>() )
+	{
+		return false;
+	}
+	return true;
+}
 
 void FTextureEditorToolkit::HandleSettingsActionExecute()
 {

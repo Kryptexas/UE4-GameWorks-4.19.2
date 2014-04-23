@@ -164,6 +164,7 @@ private:
 	void OnCompressNow();
 	bool OnCompressNowEnabled() const;
 	void OnReimport();
+	bool OnReimportEnabled() const;
 	void HandleSettingsActionExecute();
 	bool IsCubeTexture() const;
 
