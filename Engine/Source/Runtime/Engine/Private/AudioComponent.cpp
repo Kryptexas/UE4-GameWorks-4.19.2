@@ -278,7 +278,10 @@ void UAudioComponent::Stop()
 
 void UAudioComponent::PlaybackCompleted(bool bFailedToStart)
 {
-	if (!bFailedToStart && GetWorld() != NULL && (OnAudioFinished.IsBound() || OnAudioFinishedNative.IsBound()) )
+	// Mark inactive before calling destroy to avoid recursion
+	bIsActive = false;
+
+	if (!bFailedToStart && GetWorld() != NULL && (OnAudioFinished.IsBound() || OnAudioFinishedNative.IsBound()))
 	{
 		INC_DWORD_STAT( STAT_AudioFinishedDelegatesCalled );
 		SCOPE_CYCLE_COUNTER( STAT_AudioFinishedDelegates );
@@ -286,9 +289,6 @@ void UAudioComponent::PlaybackCompleted(bool bFailedToStart)
 		OnAudioFinished.Broadcast();
 		OnAudioFinishedNative.Broadcast(this);
 	}
-
-	// Mark inactive before calling destroy to avoid recursion
-	bIsActive = false;
 
 	// Auto destruction is handled via marking object for deletion.
 	if( bAutoDestroy )
