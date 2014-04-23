@@ -2030,7 +2030,7 @@ public:
 	/**
 	* Spawns given class and returns class T pointer, forcibly sets world position. WILL NOT run Construction Script of Blueprints 
 	* to give caller an opportunity to set parameters beforehand.  Caller is responsible for invoking construction
-	* manually by calling AActor::FinishSpawningActor (see AActor::OnConstruction).
+	* manually by calling UGameplayStatics::FinishSpawningActor (see AActor::OnConstruction).
 	*/
 	template< class T >
 	T* SpawnActorDeferred(
