@@ -114,8 +114,17 @@ public:
 	{
 		FString CommandLine;
 
+		FString Platform = TEXT("Win64");
+		if (TargetPlatform.PlatformName() == TEXT("LinuxServer"))
+		{
+			Platform = TEXT("Linux");
+		}
+		else if (TargetPlatform.PlatformName() == TEXT("WindowsServer") || TargetPlatform.PlatformName() == TEXT("WindowsNoEditor") || TargetPlatform.PlatformName() == TEXT("Windows"))
+		{
+			Platform = TEXT("Win64");
+		}
 		CommandLine += FString::Printf(TEXT(" -cook -noclient -NoKill -server -serverplatform=%s"),
-			*TargetPlatform.PlatformName());
+			*Platform);
 
 		const TArray<FString>& CookedMaps = ChainState.Profile->GetCookedMaps();
 

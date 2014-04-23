@@ -76,6 +76,10 @@ public:
 		{
 			Platform = TEXT("Linux");
 		}
+		else if (TargetPlatform.PlatformName() == TEXT("WindowsServer") || TargetPlatform.PlatformName() == TEXT("WindowsNoEditor") || TargetPlatform.PlatformName() == TEXT("Windows"))
+		{
+			Platform = TEXT("Win64");
+		}
 		CommandLine += FString::Printf(TEXT(" -build -server -noclient -serverplatform=%s -skipcook"),
 			*Platform);
 

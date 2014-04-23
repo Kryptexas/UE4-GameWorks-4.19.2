@@ -121,6 +121,10 @@ public:
 		{
 			Platform = TEXT("Linux");
 		}
+		else if (TargetPlatform.PlatformName() == TEXT("WindowsServer") || TargetPlatform.PlatformName() == TEXT("WindowsNoEditor") || TargetPlatform.PlatformName() == TEXT("Windows"))
+		{
+			Platform = TEXT("Win64");
+		}
 		CommandLine = FString::Printf(TEXT(" -noclient -server -skipcook -stage -serverplatform=%s"),
 			*Platform);
 
@@ -294,6 +298,10 @@ public:
 		if (TargetPlatform.PlatformName() == TEXT("LinuxServer"))
 		{
 			Platform = TEXT("Linux");
+		}
+		else if (TargetPlatform.PlatformName() == TEXT("WindowsServer") || TargetPlatform.PlatformName() == TEXT("WindowsNoEditor") || TargetPlatform.PlatformName() == TEXT("Windows"))
+		{
+			Platform = TEXT("Win64");
 		}
 		CommandLine = FString::Printf(TEXT(" -noclient -server -skipcook -stage -package -serverplatform=%s"),
 			*Platform);

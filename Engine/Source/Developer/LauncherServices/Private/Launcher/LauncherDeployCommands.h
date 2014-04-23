@@ -159,6 +159,10 @@ public:
 		{
 			Platform = TEXT("Linux");
 		}
+		else if (TargetPlatform.PlatformName() == TEXT("WindowsServer") || TargetPlatform.PlatformName() == TEXT("WindowsNoEditor") || TargetPlatform.PlatformName() == TEXT("Windows"))
+		{
+			Platform = TEXT("Win64");
+		}
 		CommandLine = FString::Printf(TEXT(" -noclient -server -deploy -skipstage -serverplatform=%s -stagingdirectory=\"%s\" -cmdline=\"%s -InstanceName=\"Deployer (%s)\" -Messaging\""),
 			*Platform,
 			*StagePath,
@@ -342,6 +346,10 @@ public:
 		if (TargetPlatform.PlatformName() == TEXT("LinuxServer"))
 		{
 			Platform = TEXT("Linux");
+		}
+		else if (TargetPlatform.PlatformName() == TEXT("WindowsServer") || TargetPlatform.PlatformName() == TEXT("WindowsNoEditor") || TargetPlatform.PlatformName() == TEXT("Windows"))
+		{
+			Platform = TEXT("Win64");
 		}
 		CommandLine = FString::Printf(TEXT(" -noclient -server -deploy -skipstage -serverplatform=%s -stagingdirectory=\"%s\" -cmdline=\"%s -InstanceName=\"Deployer (%s)\" -Messaging\""),
 			*Platform,
