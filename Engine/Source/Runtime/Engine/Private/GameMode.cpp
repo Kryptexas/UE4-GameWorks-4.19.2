@@ -680,6 +680,8 @@ void AGameMode::SetMatchState(FName NewState)
 
 void AGameMode::Tick(float DeltaSeconds)
 {
+	Super::Tick(DeltaSeconds);
+
 	if (GetMatchState() == MatchState::WaitingToStart)
 	{
 		// Check to see if we should start the match
