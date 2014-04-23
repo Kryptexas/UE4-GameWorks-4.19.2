@@ -5124,9 +5124,10 @@ void FBlueprintEditor::ExpandNode(UEdGraphNode* InNodeToExpand, UEdGraph* InSour
 	UEdGraphPin* OutputExecPinReconnect = NULL;
 	if(UK2Node_CallFunction* CallFunction = Cast<UK2Node_CallFunction>(InNodeToExpand))
 	{
-		if(CallFunction->GetThenPin()->LinkedTo.Num())
+		auto ThenPin = CallFunction->GetThenPin();
+		if (ThenPin && ThenPin->LinkedTo.Num())
 		{
-			OutputExecPinReconnect = CallFunction->GetThenPin()->LinkedTo[0];
+			OutputExecPinReconnect = ThenPin->LinkedTo[0];
 		}
 	}
 
