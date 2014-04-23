@@ -1229,7 +1229,7 @@ void FWorldTileCollectionModel::AddLandscapeProxy_Executed(FWorldTileModel::EWor
 		ALandscapeProxy* SourceLandscape = LandscapeTileModel->GetLandcape();
 		FIntPoint SourceTileOffset = LandscapeTileModel->GetAbsoluteLevelPosition();
 
-		NewLevelModel->SetVisible(false);
+		NewLevelModel->Shelve();
 		NewLevelModel->CreateAdjacentLandscapeProxy(SourceLandscape, SourceTileOffset, InWhere);
 		ShowLevels(Levels);
 	}
@@ -1320,7 +1320,7 @@ void FWorldTileCollectionModel::ImportTiledLandscape_Executed()
 					PopulateLevelsList();
 					TSharedPtr<FWorldTileModel> NewTileModel = StaticCastSharedPtr<FWorldTileModel>(FindLevelModel(NewWorld->GetOutermost()->GetFName()));
 					// Hide level, so we do not depend on a current world origin
-					NewTileModel->SetVisible(false);
+					NewTileModel->Shelve();
 					
 					// Create landscape (actor/proxy) in a new level
 					ALandscapeProxy* NewLandscape = NewTileModel->ImportLandscape(TileImportSettings);

@@ -578,13 +578,19 @@ void FWorldTileModel::LoadLevel()
 	// Create transient level streaming object and add to persistent level
 	ULevelStreaming* LevelStreaming = GetAssosiatedStreamingLevel();
 
+	// Whether this tile should be made visible at current world bounds
+	const bool bShouldBeVisible = ShouldBeVisible(LevelCollectionModel.EditableWorldArea());
+	
 	// Load level
 	bLoadingLevel = true;
 	LevelStreaming->bShouldBeLoaded = true;
-	LevelStreaming->bShouldBeVisible = false;
-	LevelStreaming->bShouldBeVisibleInEditor = ShouldBeVisible(LevelCollectionModel.EditableWorldArea());
+	LevelStreaming->bShouldBeVisible = false; // Should be always false in the Editor
+	LevelStreaming->bShouldBeVisibleInEditor = bShouldBeVisible;
 	LevelCollectionModel.GetWorld()->FlushLevelStreaming();
 	bLoadingLevel = false;
+	// Mark tile as shelved in case it is hidden(does not fit to world bounds)
+	bWasShelved = !bShouldBeVisible;
+	//
 	LoadedLevel = LevelStreaming->GetLoadedLevel();
 	// Enable tile properties
 	TileDetails->bTileEditable = (LoadedLevel != nullptr);
