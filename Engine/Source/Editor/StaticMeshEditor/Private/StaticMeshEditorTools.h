@@ -145,9 +145,9 @@ private:
 	void OnRecomputeTangentsChanged(ESlateCheckBoxState::Type NewState);
 	void OnRemoveDegeneratesChanged(ESlateCheckBoxState::Type NewState);
 	void OnUseFullPrecisionUVsChanged(ESlateCheckBoxState::Type NewState);
-	void OnBuildScaleXChanged( float NewScaleX );
-	void OnBuildScaleYChanged( float NewScaleY );
-	void OnBuildScaleZChanged( float NewScaleZ );
+	void OnBuildScaleXChanged( float NewScaleX, ETextCommit::Type TextCommitType );
+	void OnBuildScaleYChanged( float NewScaleY, ETextCommit::Type TextCommitType );
+	void OnBuildScaleZChanged( float NewScaleZ, ETextCommit::Type TextCommitType );
 
 private:
 	TWeakPtr<FLevelOfDetailSettingsLayout> ParentLODSettings;
