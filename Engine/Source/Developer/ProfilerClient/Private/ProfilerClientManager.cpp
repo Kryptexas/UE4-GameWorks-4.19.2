@@ -424,6 +424,7 @@ void FServiceConnection::Initialize( const FProfilerServiceAuthorize2& Message, 
 void FProfilerClientManager::HandleServiceMetaDataMessage( const FProfilerServiceMetaData& Message, const IMessageContextRef& Context )
 {
 #if STATS
+	// @TODO yrx 2014-04-14 Not used.
 	if (ActiveSessionId.IsValid() && Connections.Find(Message.InstanceId) != nullptr)
 	{
 		FServiceConnection& Connection = *Connections.Find(Message.InstanceId);
@@ -797,6 +798,8 @@ void FServiceConnection::UpdateMetaData()
 	for (auto It = CurrentThreadState.ShortNameToLongName.CreateConstIterator(); It; ++It)
 	{
 		FStatMessage const& LongName = It.Value();
+		const FName GroupName = LongName.NameAndInfo.GetGroupName();
+
 		uint32 StatType = STATTYPE_Error;
 		if (LongName.NameAndInfo.GetField<EStatDataType>() == EStatDataType::ST_int64)
 		{
@@ -821,6 +824,13 @@ void FServiceConnection::UpdateMetaData()
 		{
 			FindOrAddStat(LongName.NameAndInfo, StatType);
 		}
+
+		// Threads metadata.
+		const bool bIsThread = FStatConstants::NAME_ThreadGroup == GroupName;
+		if( bIsThread )
+		{
+			FindOrAddThread( LongName.NameAndInfo );
+		}	
 	}
 }
 
@@ -867,7 +877,7 @@ int32 FServiceConnection::FindOrAddStat( const FStatNameAndInfo& StatNameAndInfo
 		}
 		StatDescription.StatType = StatType;
 
-		if( GroupName == NAME_None )
+		if( GroupName == NAME_None && Stream.Header.Version == EStatMagicNoHeader::NO_VERSION )
 		{	
 			// @todo Add more ways to group the stats.
 			const int32 Thread_Pos = StatDescription.Name.Find( TEXT("Thread_") );
@@ -919,23 +929,22 @@ int32 FServiceConnection::FindOrAddThread(const FStatNameAndInfo& Thread)
 {
 	SCOPE_CYCLE_COUNTER(STAT_PC_FindOrAddThread);
 
-	const FName LongName = Thread.GetRawName();
-	int32* const ThreadIDPtr = ThreadNameArray.Find( LongName );
-	int32 ThreadID = ThreadIDPtr != nullptr ? *ThreadIDPtr : -1;
-	if (!ThreadIDPtr)
+	CurrentThreadState.Threads;
+
+	const FName ShortName = Thread.GetShortName();
+	FString Desc;
+	Thread.GetDescription( Desc );
+	const uint32 ThreadID = FStatsUtils::ParseThreadID( Desc );
+
 	{
-		// meta data has been updated
-		CurrentData.MetaDataUpdated = true;
-
-		// get the thread description
-		FString Desc;
-		Thread.GetDescription(Desc);
-		ThreadID = FStatsUtils::ParseThreadID( FName( *Desc ) );
-		ThreadNameArray.Add(LongName, ThreadID);
-
 		// add to the meta data
-		FScopeLock ScopeLock(&CriticalSection);
-		MetaData.ThreadDescriptions.Add(ThreadID, Thread.GetShortName().ToString());
+		FScopeLock ScopeLock( &CriticalSection );
+		const int32 OldNum = MetaData.ThreadDescriptions.Num();
+		MetaData.ThreadDescriptions.Add( ThreadID, ShortName.ToString() );
+		const int32 NewNum = MetaData.ThreadDescriptions.Num();
+
+		// meta data has been updated
+		CurrentData.MetaDataUpdated = CurrentData.MetaDataUpdated || OldNum != NewNum;
 	}
 
 	return ThreadID;
