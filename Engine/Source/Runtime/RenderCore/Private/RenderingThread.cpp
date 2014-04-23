@@ -347,11 +347,11 @@ public:
 		{
 			RenderingThreadMain( TaskGraphBoundSyncEvent );
 		}
-		GRenderThreadId = 0;
 #if STATS
 		FThreadStats::ExplicitFlush();
 		FThreadStats::Shutdown();
-#endif
+#endif		
+		GRenderThreadId = 0;
 
 		return 0;
 	}
