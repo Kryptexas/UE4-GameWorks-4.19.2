@@ -262,3 +262,33 @@ static bool OnlineExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 /** Our entry point for all online exec routing */
 FStaticSelfRegisteringExec OnlineExecRegistration(OnlineExec);
 
+//////////////////////////////////////////////////////////////////////////
+// FOnlineSubsystemBPCallHelper
+
+FOnlineSubsystemBPCallHelper::FOnlineSubsystemBPCallHelper(const TCHAR* CallFunctionContext, FName SystemName)
+	: OnlineSub(IOnlineSubsystem::Get(SystemName))
+	, FunctionContext(CallFunctionContext)
+{
+	if (OnlineSub == nullptr)
+	{
+		FFrame::KismetExecutionMessage(*FString::Printf(TEXT("%s - Invalid or uninitialized OnlineSubsystem"), FunctionContext), ELogVerbosity::Warning);
+	}
+}
+
+void FOnlineSubsystemBPCallHelper::QueryIDFromPlayerController(APlayerController* PlayerController)
+{
+	UserID.Reset();
+
+	if (APlayerState* PlayerState = (PlayerController != NULL) ? PlayerController->PlayerState : NULL)
+	{
+		UserID = PlayerState->UniqueId.GetUniqueNetId();
+		if (!UserID.IsValid())
+		{
+			FFrame::KismetExecutionMessage(*FString::Printf(TEXT("%s - Cannot map local player to unique net ID"), FunctionContext), ELogVerbosity::Warning);
+		}
+	}
+	else
+	{
+		FFrame::KismetExecutionMessage(*FString::Printf(TEXT("%s - Invalid player state"), FunctionContext), ELogVerbosity::Warning);
+	}
+}
