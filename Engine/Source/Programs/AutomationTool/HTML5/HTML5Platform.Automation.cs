@@ -80,7 +80,7 @@ public class HTML5Platform : Platform
 				{
                     if (IsContentOnly)
                         InGameName = "UE4Game";
-					LineStr = LineStr.Replace("%CONFIG%", (InGameConfiguration != "Development" ? (InGameName + "-" + InGameConfiguration) : InGameName));
+					LineStr = LineStr.Replace("%CONFIG%", (InGameConfiguration != "Development" ? (InGameName + "-HTML5-" + InGameConfiguration) : InGameName));
 				}
 
 				if (LineStr.Contains("%UE4CMDLINE%"))
