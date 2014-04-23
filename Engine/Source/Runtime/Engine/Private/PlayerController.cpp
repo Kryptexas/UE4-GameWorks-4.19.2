@@ -75,12 +75,18 @@ UNetConnection* APlayerController::GetNetConnection()
 
 bool APlayerController::IsLocalController() const
 {
+	ENetMode NetMode = GetNetMode();
+	if (NetMode == NM_DedicatedServer)
+	{
+		return false;
+	}
+
 	if (Super::IsLocalController())
 	{
 		return true;
 	}
 
-	if (GetNetMode() == NM_Client)
+	if (NetMode == NM_Client)
 	{
 		// Clients only receive their own PC. We are not ROLE_AutonomousProxy until after PostInitializeComponents so we can't check that.
 		return true;
