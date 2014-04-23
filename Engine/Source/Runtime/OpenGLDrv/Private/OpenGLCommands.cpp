@@ -212,6 +212,16 @@ static FORCEINLINE GLint ModifyFilterByMips(GLint Filter, bool bHasMips)
 }
 
 
+void FOpenGLDynamicRHI::RHIGpuTimeBegin(uint32 Hash, bool bCompute)
+{
+	return;
+}
+
+void FOpenGLDynamicRHI::RHIGpuTimeEnd(uint32 Hash, bool bCompute)
+{
+	return;
+}
+
 
 // Vertex state.
 void FOpenGLDynamicRHI::RHISetStreamSource(uint32 StreamIndex,FVertexBufferRHIParamRef VertexBufferRHI,uint32 Stride,uint32 Offset)

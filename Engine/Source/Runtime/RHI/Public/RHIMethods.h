@@ -57,6 +57,25 @@
 #endif
 
 //
+// Interface for run-time gpu perf counters.
+//
+
+DEFINE_RHIMETHOD_2(
+	void,RHIGpuTimeBegin,
+	uint32,Hash,
+	bool,bCompute,
+	return,return;
+	);
+
+DEFINE_RHIMETHOD_2(
+	void,RHIGpuTimeEnd,
+	uint32,Hash,
+	bool,bCompute,
+	return,return;
+	);
+
+
+//
 // RHI resource management functions.
 //
 

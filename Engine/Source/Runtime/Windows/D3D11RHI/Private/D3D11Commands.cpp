@@ -39,6 +39,28 @@ DECLARE_ISBOUNDSHADER(ComputeShader)
 #define VALIDATE_BOUND_SHADER(s)
 #endif
 
+
+#define GPA_WINDOWS 1
+#include <GPUPerfAPI/Gpa.h>
+
+void FD3D11DynamicRHI::RHIGpuTimeBegin(uint32 Hash, bool bCompute)
+{
+	char Str[256];
+	if(GpaBegin(Str, Hash, bCompute, (void*)Direct3DDevice))
+	{
+		OutputDebugStringA(Str);
+	}
+	return;
+}
+
+void FD3D11DynamicRHI::RHIGpuTimeEnd(uint32 Hash, bool bCompute)
+{
+	GpaEnd(Hash, bCompute);
+	return;
+}
+
+
+
 // Vertex state.
 void FD3D11DynamicRHI::RHISetStreamSource(uint32 StreamIndex,FVertexBufferRHIParamRef VertexBufferRHI,uint32 Stride,uint32 Offset)
 {

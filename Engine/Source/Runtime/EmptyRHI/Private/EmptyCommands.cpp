@@ -7,6 +7,16 @@
 #include "EmptyRHIPrivate.h"
 
 
+void FEmptyDynamicRHI::RHIGpuTimeBegin(uint32 Hash, bool bCompute)
+{
+	return;
+}
+
+void FEmptyDynamicRHI::RHIGpuTimeEnd(uint32 Hash, bool bCompute)
+{
+	return;
+}
+
 
 void FEmptyDynamicRHI::RHISetStreamSource(uint32 StreamIndex,FVertexBufferRHIParamRef VertexBufferRHI,uint32 Stride,uint32 Offset)
 {
