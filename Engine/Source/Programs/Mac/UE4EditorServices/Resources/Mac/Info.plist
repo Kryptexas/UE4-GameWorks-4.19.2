@@ -24,21 +24,19 @@
 	<key>CFBundleExecutable</key>
 	<string>${EXECUTABLE_NAME}</string>
 	<key>CFBundleIconFile</key>
-	<string>UE4EditorServices</string>
+	<string>UE4</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.epicgames.${PRODUCT_NAME:rfc1034identifier}</string>
+	<string>com.epicgames.UE4EditorServices</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>${PRODUCT_NAME}</string>
+	<string>${EXECUTABLE_NAME}</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
-	<key>CFBundleShortVersionString</key>
-	<string>1.0</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleVersion</key>
-	<string>1</string>
+	<string>1.1</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.developer-tools</string>
 	<key>LSBackgroundOnly</key>
@@ -48,7 +46,7 @@
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSHumanReadableCopyright</key>
-	<string>Copyright 2014 Epic. All rights reserved.</string>
+	<string>Copyright © 2014 Epic. All rights reserved.</string>
 	<key>NSMainNibFile</key>
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
@@ -84,10 +82,35 @@
 			<key>NSMenuItem</key>
 			<dict>
 				<key>default</key>
-				<string>Generate Xcode Files</string>
+				<string>Generate Xcode Project</string>
 			</dict>
 			<key>NSMessage</key>
-			<string>generateXcodeFilesService</string>
+			<string>generateXcodeProjectService</string>
+			<key>NSPortName</key>
+			<string>${EXECUTABLE_NAME}</string>
+			<key>NSRequiredContext</key>
+			<dict>
+				<key>NSServiceCategory</key>
+				<string>public.source-code</string>
+				<key>NSTextContent</key>
+				<array>
+					<string>URL</string>
+					<string>FilePath</string>
+				</array>
+			</dict>
+			<key>NSSendFileTypes</key>
+			<array>
+				<string>com.epicgames.uproject</string>
+			</array>
+		</dict>
+		<dict>
+			<key>NSMenuItem</key>
+			<dict>
+				<key>default</key>
+				<string>Switch Unreal Engine Version</string>
+			</dict>
+			<key>NSMessage</key>
+			<string>switchUnrealEngineVersionService</string>
 			<key>NSPortName</key>
 			<string>${EXECUTABLE_NAME}</string>
 			<key>NSRequiredContext</key>

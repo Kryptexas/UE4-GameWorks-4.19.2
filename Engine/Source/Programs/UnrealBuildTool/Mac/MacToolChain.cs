@@ -858,6 +858,10 @@ namespace UnrealBuildTool
 						InfoPlistFile = EngineSourcePath + "/Programs/NoRedist/" + GameName + "/Resources/Mac/Info.plist";
 						if (!File.Exists(InfoPlistFile))
 						{
+							InfoPlistFile = EngineSourcePath + "/Programs/Mac/" + GameName + "/Resources/Mac/Info.plist";
+						}
+						if (!File.Exists(InfoPlistFile))
+						{
 							InfoPlistFile = EngineSourcePath + "/Runtime/Launch/Resources/Mac/" + (GameName.EndsWith("Editor") ? "Info-Editor.plist" : "Info.plist");
 						}
 					}
@@ -888,6 +892,10 @@ namespace UnrealBuildTool
 					if (!File.Exists(XIBFile))
 					{
 						XIBFile = EngineSourcePath + "/Programs/NoRedist/" + GameName + "/Resources/Mac/MainMenu.xib";
+						if (!File.Exists(XIBFile))
+						{
+							XIBFile = EngineSourcePath + "/Programs/Mac/" + GameName + "/Resources/Mac/MainMenu.xib";
+						}
 						if (!File.Exists(XIBFile))
 						{
 							XIBFile = EngineSourcePath + "/Runtime/Launch/Resources/Mac/English.lproj/MainMenu.xib";
