@@ -799,8 +799,8 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	{
 		for (auto It=WorldList.CreateIterator(); It; ++It)
 		{
-			// For now, kill PIE session is any of the viewports are closed
-			if (It->WorldType == EWorldType::PIE && It->GameViewport == NULL && !It->RunAsDedicated)
+			// For now, kill PIE session if any of the viewports are closed
+			if (It->WorldType == EWorldType::PIE && It->GameViewport == NULL && !It->RunAsDedicated && !It->bWaitingOnOnlineSubsystem)
 			{
 				EndPlayMap();
 				break;
@@ -1088,7 +1088,7 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 		for (auto ContextIt = WorldList.CreateIterator(); ContextIt; ++ContextIt)
 		{
 			FWorldContext &PieContext = *ContextIt;
-			if (PieContext.WorldType != EWorldType::PIE)
+			if (PieContext.WorldType != EWorldType::PIE || PieContext.World() == NULL)
 			{
 				continue;
 			}
@@ -1214,7 +1214,11 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	// If all viewports closed, close the current play level.
 	if( GameViewport == NULL && PlayWorld && !bIsSimulatingInEditor )
 	{
-		EndPlayMap();
+		FWorldContext& PieWorldContext = GetWorldContextFromWorldChecked(PlayWorld);
+		if (!PieWorldContext.RunAsDedicated && !PieWorldContext.bWaitingOnOnlineSubsystem)
+		{
+			EndPlayMap();
+		}
 	}
 
 	// Update viewports.
@@ -1338,7 +1342,7 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 			GameViewport = PieContext.GameViewport;
 
 			// Render playworld. This needs to happen after the other viewports for screenshots to work correctly in PIE.
-			if(PlayWorld && GameViewport && !bIsSimulatingInEditor )
+			if(PlayWorld && GameViewport && !bIsSimulatingInEditor)
 			{
 				// Use the PlayWorld as the GWorld, because who knows what will happen in the Tick.
 				UWorld* OldGWorld = SetPlayInEditorWorld( PlayWorld );

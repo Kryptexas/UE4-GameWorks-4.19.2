@@ -52,6 +52,62 @@ struct FSlatePlayInEditorInfo
 	{}
 };
 
+/**
+ * Data structure for storing PIE login credentials
+ */
+USTRUCT()
+struct FPIELoginInfo
+{
+public:
+
+	GENERATED_USTRUCT_BODY()
+
+	/** Type of account. Needed to identity the auth method to use (epic, internal, facebook, etc) */
+	UPROPERTY()
+	FString Type;
+	/** Id of the user logging in (email, display name, facebook id, etc) */
+	UPROPERTY()
+	FString Id;
+	/** Credentials of the user logging in (password or auth token) */
+	UPROPERTY()
+	FString Token;
+};
+
+/**
+ * Holds various data to pass to the post login delegate for PIE logins
+ */
+struct FPieLoginStruct
+{
+	/** World context handle for this login */
+	int32 WorldContextHandle;
+	/** Setting index for window positioning */
+	int32 SettingsIndex;
+	/** X location for window positioning */
+	int32 NextX;
+	/** Y location for window positioning */
+	int32 NextY;
+	/** Will this instance run as a server */
+	bool bIsServer;
+	/** Passthrough condition of blueprint compilation*/
+	bool bAnyBlueprintErrors;
+	/** Passthrough condition of spectator mode */
+	bool bStartInSpectatorMode;
+	/** Passthrough start time of PIE */
+	double PIEStartTime;
+
+	FPieLoginStruct() :
+		WorldContextHandle(INDEX_NONE),
+		SettingsIndex(0),
+		NextX(0),
+		NextY(0),
+		bIsServer(false),
+		bAnyBlueprintErrors(false),
+		bStartInSpectatorMode(false),
+		PIEStartTime(0)
+	{
+	}
+};
+
 USTRUCT()
 struct FCopySelectedInfo
 {
@@ -325,6 +381,14 @@ class UNREALED_API UEditorEngine : public UEngine
 	/** Currently targeted device for mobile previewer. */
 	UPROPERTY(config)
 	int32 BuildPlayDevice;
+
+	/** Enabled online PIE */
+	UPROPERTY(config)
+	bool bOnlinePIEEnabled;
+
+	/** Logins available for use when running PIE instances */
+	UPROPERTY(config)
+	TArray<FPIELoginInfo> PIELogins;
 
 	/** Maps world contexts to their slate data */
 	TMap<int32, FSlatePlayInEditorInfo>	SlatePlayInEditorMap;
@@ -2221,8 +2285,48 @@ private:
 
 	UWorld* CreatePIEWorldFromEntry(FWorldContext &WorldContext, UWorld* InWorld, FString &PlayWorldMapName);
 
+	/** @return true if the editor is able to launch PIE with online platform support */
+	virtual bool SupportsOnlinePIE() const;
+
+	/**
+	 * Login PIE instances with the online platform before actually creating any PIE worlds
+	 *
+	 * @param bAnyBlueprintErrors passthrough value of blueprint errors encountered during PIE creation
+	 * @param bStartInSpectatorMode passthrough value if it is expected that PIE will start in spectator mode
+	 * @param PIEStartTime passthrough value of the time that PIE was initiated by the user
+	 */
+	virtual void LoginPIEInstances(bool bAnyBlueprintErrors, bool bStartInSpectatorMode, double PIEStartTime);
+
+	/**
+	 * Delegate called as each PIE instance login is complete, continues creating the PIE world for a single instance
+	 * 
+	 * @param LocalUserNum local user id, for PIE is going to be 0 (there is no splitscreen)
+	 * @param bWasSuccessful was the login successful
+	 * @param UserId userid of the logged in account
+	 * @param ErrorString descriptive error when applicable
+	 * @param DataStruct data required to continue PIE creation, set at login time
+	 */
+	virtual void OnLoginPIEComplete(int32 LocalUserNum, bool bWasSuccessful, const FUniqueNetId& UserId, const FString& ErrorString, FPieLoginStruct DataStruct);
+
+	/**
+	 * Continue the creation of a single PIE world after a login was successful
+	 *
+	 * @param PieWorldContext world context for this PIE instance
+	 * @param PlayNetMode mode to create this PIE world in (as server, client, etc)
+	 * @param DataStruct data required to continue PIE creation, set at login time
+	 */
+	void CreatePIEWorldFromLogin(FWorldContext& PieWorldContext, enum EPlayNetMode PlayNetMode, FPieLoginStruct& DataStruct);
+
+	/**
+	 * Non Online PIE creation flow, creates all instances of PIE at once when online isn't requested/required
+	 *
+	 * @param bAnyBlueprintErrors passthrough value of blueprint errors encountered during PIE creation
+	 * @param bStartInSpectatorMode passthrough value if it is expected that PIE will start in spectator mode
+	 */
+	void SpawnIntraProcessPIEWorlds(bool bAnyBlueprintErrors, bool bStartInSpectatorMode);
+
 	/** Common init shared by CreatePIEWorldByDuplication and CreatePIEWorldBySavingToTemp */
-	void	PostCreatePIEWorld(UWorld *InWorld);
+	void PostCreatePIEWorld(UWorld *InWorld);
 
 	/**
 	 * Toggles PIE to SIE or vice-versa

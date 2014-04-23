@@ -70,6 +70,7 @@ public class UnrealEd : ModuleRules
 			{ 
 				"AnimGraph",
 				"BlueprintGraph",
+				"OnlineSubsystem",
 				"OnlineBlueprintSupport",
 				"DirectoryWatcher",
 				"EditorSettingsViewer",

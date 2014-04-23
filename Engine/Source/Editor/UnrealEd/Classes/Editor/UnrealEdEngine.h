@@ -79,8 +79,6 @@ struct FTemplateMapInfo
 	}
 };
 
-
-
 UCLASS(config=Engine, transient)
 class UNREALED_API UUnrealEdEngine : public UEditorEngine, public FNotifyHook
 {

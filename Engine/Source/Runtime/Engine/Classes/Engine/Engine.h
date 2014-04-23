@@ -274,6 +274,10 @@ struct FWorldContext
 	UPROPERTY()
 	bool	RunAsDedicated;
 
+	/** Is this world context waiting for an online login to complete (for PIE) */
+	UPROPERTY()
+	bool	bWaitingOnOnlineSubsystem;
+
 	/**************************************************************/
 
 	/** Outside pointers to CurrentWorld that should be kept in sync if current world changes  */
@@ -322,6 +326,7 @@ struct FWorldContext
 		, GameViewport(NULL)
 		, PIEInstance(INDEX_NONE)
 		, RunAsDedicated(false)
+		, bWaitingOnOnlineSubsystem(false)
 		, ThisCurrentWorld(NULL)
 	{
 	}
