@@ -3134,7 +3134,7 @@ bool FHeaderParser::GetVarType
 
 	if (MatchSymbol(TEXT("*")))
 	{
-		FError::Throwf(TEXT("Inappropriate '*' on variable of type '%s', cannot have an exposed pointer to this type (move it inside the CPP block)."), VarType.Identifier );
+		FError::Throwf(TEXT("Inappropriate '*' on variable of type '%s', cannot have an exposed pointer to this type."), VarType.Identifier );
 	}
 
 	//@TODO: UCREMOVAL: 'const' member variables that will get written post-construction by defaultproperties
