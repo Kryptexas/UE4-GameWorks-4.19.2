@@ -212,6 +212,13 @@ const FKey EKeys::Gesture_Flick("Gesture_Flick");
 // PS4-specific
 const FKey EKeys::PS4_Special("PS4_Special");
 
+// Xbox One global speech commands
+const FKey EKeys::Global_Menu("Global_Menu");
+const FKey EKeys::Global_View("Global_View");
+const FKey EKeys::Global_Pause("Global_Pause");
+const FKey EKeys::Global_Play("Global_Play");
+const FKey EKeys::Global_Back("Global_Back");
+
 const FKey EKeys::Invalid(NAME_None);
 
 bool EKeys::bInitialized = false;
@@ -424,6 +431,13 @@ void EKeys::Initialize()
 
 	// PS4-specific
 	AddKey(FKeyDetails(EKeys::PS4_Special, LOCTEXT("PS4_Special", "PS4_Special"), FKeyDetails::NotBlueprintBindableKey));
+
+	// Xbox One global speech commands
+	AddKey(FKeyDetails(EKeys::Global_Menu, LOCTEXT("Global_Menu", "Global Menu"), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::Global_View, LOCTEXT("Global_View", "Global View"), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::Global_Pause, LOCTEXT("Global_Pause", "Global Pause"), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::Global_Play, LOCTEXT("Global_Play", "Global Play"), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::Global_Back, LOCTEXT("Global_Back", "Global Back"), FKeyDetails::GamepadKey));
 }
 
 void EKeys::AddKey(const FKeyDetails& KeyDetails)

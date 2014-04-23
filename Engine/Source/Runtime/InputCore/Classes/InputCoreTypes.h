@@ -356,6 +356,13 @@ struct INPUTCORE_API EKeys
 	static const FKey Steam_Back_Left;
 	static const FKey Steam_Back_Right;
 
+	// Xbox One global speech commands
+	static const FKey Global_Menu;
+	static const FKey Global_View;
+	static const FKey Global_Pause;
+	static const FKey Global_Play;
+	static const FKey Global_Back;
+
 	static const FKey Invalid;
 
 	static const int32 NUM_TOUCH_KEYS = 10;

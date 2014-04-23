@@ -4022,6 +4022,12 @@ FKey TranslateControllerButtonToKey( EControllerButtons::Type Button )
 	case EControllerButtons::RightStickLeft: Key = EKeys::Gamepad_RightStick_Left; break;
 	case EControllerButtons::RightStickRight: Key = EKeys::Gamepad_RightStick_Right; break;
 
+	case EControllerButtons::GlobalMenu: Key = EKeys::Global_Menu; break;
+	case EControllerButtons::GlobalView: Key = EKeys::Global_View; break;
+	case EControllerButtons::GlobalPause: Key = EKeys::Global_Pause; break;
+	case EControllerButtons::GlobalPlay: Key = EKeys::Global_Play; break;
+	case EControllerButtons::GlobalBack: Key = EKeys::Global_Back; break;
+
 	case EControllerButtons::Invalid: Key = EKeys::Invalid; break;
 	}
 
