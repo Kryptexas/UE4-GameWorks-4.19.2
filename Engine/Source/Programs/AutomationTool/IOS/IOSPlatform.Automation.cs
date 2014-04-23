@@ -225,7 +225,8 @@ public class IOSPlatform : Platform
 				bWasGenerated = true;
 				Directory.SetCurrentDirectory (CWD);
 
-				if (!Directory.Exists (XcodeProj))
+				XcodeProj = RawProjectPath.Replace(".uproject", ".xcodeproj"); 
+				if (!Directory.Exists(XcodeProj))
 				{
 					// something very bad happened
 					throw new AutomationException("iOS couldn't find the appropriate Xcode Project");
