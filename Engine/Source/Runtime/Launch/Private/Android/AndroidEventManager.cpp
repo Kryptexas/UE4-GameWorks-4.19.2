@@ -222,16 +222,20 @@ void FAppEventManager::PauseAudio()
 {
 	bAudioPaused = true;
 
-	// AudioDevice::HandlePause() is called from the audio devices Update(), which isn't called when we're paused, so force it here
 	if (GEngine->GetAudioDevice())
 	{
-		GEngine->GetAudioDevice()->Update(false);
+		GEngine->GetAudioDevice()->Suspend(false);
 	}
 }
 
 void FAppEventManager::ResumeAudio()
 {
 	bAudioPaused = false;
+
+	if (GEngine->GetAudioDevice())
+	{
+		GEngine->GetAudioDevice()->Suspend(true);
+	}
 }
 
 void FAppEventManager::EnqueueAppEvent(EAppEventState InState, void* InData)

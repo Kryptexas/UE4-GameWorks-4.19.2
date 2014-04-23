@@ -233,6 +233,13 @@ public:
 	void Update(bool bGameTicking);
 
 	/**
+	 * Suspend/resume all sounds (global pause for device suspend/resume, etc.)
+	 *
+	 * @param bGameTicking Whether the game is still ticking at the time of suspend
+	 */
+	void Suspend(bool bGameTicking);
+
+	/**
 	 * Counts the bytes for the structures used in this class
 	 */
 	virtual void CountBytes(FArchive& Ar);
@@ -483,9 +490,9 @@ protected:
 	friend class FSoundSource;
 
 	/**
-	 * Handle pausing/unpausing of sources when entering or leaving pause mode
+	 * Handle pausing/unpausing of sources when entering or leaving pause mode, or global pause (like device suspend)
 	 */
-	void HandlePause( bool bGameTicking );
+	void HandlePause( bool bGameTicking, bool bGlobalPause = false );
 
 	/**
 	 * Stop sources that need to be stopped, and touch the ones that need to be kept alive
