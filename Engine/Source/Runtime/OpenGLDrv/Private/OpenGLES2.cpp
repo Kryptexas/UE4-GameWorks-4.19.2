@@ -26,15 +26,11 @@ bool FOpenGLES2::bSupportsOcclusionQueries = false;
 /** GL_EXT_disjoint_timer_query */
 bool FOpenGLES2::bSupportsDisjointTimeQueries = false;
 
-
-#if !UE_BUILD_SHIPPING
 static TAutoConsoleVariable<int32> CVarDisjointTimerQueries(
 	TEXT("r.DisjointTimerQueries"),
 	0,
 	TEXT("If set to 1, allows GPU time to be measured (e.g. STAT UNIT). It defaults to 0 because some devices supports it but very slowly."),
 	ECVF_RenderThreadSafe);
-#endif
-
 
 /** GL_OES_rgb8_rgba8 */
 bool FOpenGLES2::bSupportsRGBA8 = false;
@@ -112,9 +108,7 @@ bool FOpenGLES2::bSupportsTextureStorageEXT = false;
 bool FOpenGLES2::SupportsDisjointTimeQueries()
 {
 	bool bAllowDisjointTimerQueries = false;
-#if !UE_BUILD_SHIPPING
 	bAllowDisjointTimerQueries = (CVarDisjointTimerQueries.GetValueOnRenderThread() == 1);
-#endif
 	return bSupportsDisjointTimeQueries && bAllowDisjointTimerQueries;
 }
 
