@@ -248,6 +248,9 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=GridSnapping, meta=(DisplayName = "Enable Scale Snapping"))
 	uint32 SnapScaleEnabled:1;
 
+	/** If enabled the when dragging new objects out of the content browser, it will snap the objects Z coordinate to the floor below it (if any) instead of the Z grid snapping location */
+	UPROPERTY(EditAnywhere, config, Category=GridSnapping)
+	bool bSnapNewObjectsToFloor;
 private:
 
 	/** If enabled, use the old-style multiplicative/percentage scaling method instead of the new additive/fraction method */
