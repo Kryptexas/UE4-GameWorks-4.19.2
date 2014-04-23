@@ -54,6 +54,19 @@ public:
 	{
 	}
 
+	/**  
+	 * Construct from another weak pointer of another type, intended for derived-to-base conversions
+	 * @param Other weak pointer to copy from
+	**/
+	template <typename OtherT>
+	FORCEINLINE TWeakObjectPtr(const TWeakObjectPtr<OtherT, TWeakObjectPtrBase, TUObjectArray> &Other) :
+		TWeakObjectPtrBase(Other)
+	{
+		// It's also possible that this static_assert may fail for valid conversions because
+		// one or both of the types have only been forward-declared.
+		static_assert(CanConvertPointerFromTo<OtherT, T>::Result, "Unable to convert TWeakObjectPtr - types are incompatible");
+	}
+
 	/**
 	 * Reset the weak pointer back to the NULL state
 	 */
@@ -83,23 +96,17 @@ public:
 	}
 
 	/**  
-	 * Compare weak pointers for equality
-	 * @param Other weak pointer to compare to
-	 * Caution: Two weak pointers might not be equal to each other, but they both might return NULL.
+	 * Assign from another weak pointer, intended for derived-to-base conversions
+	 * @param Other weak pointer to copy from
 	**/
-	FORCEINLINE bool operator==(const TWeakObjectPtr<T> &Other) const
+	template <typename OtherT>
+	FORCEINLINE void operator=(const TWeakObjectPtr<OtherT, TWeakObjectPtrBase, TUObjectArray> &Other)
 	{
-		return TWeakObjectPtrBase::operator==(Other);
-	}
+		// It's also possible that this static_assert may fail for valid conversions because
+		// one or both of the types have only been forward-declared.
+		static_assert(CanConvertPointerFromTo<OtherT, T>::Result, "Unable to convert TWeakObjectPtr - types are incompatible");
 
-	/**  
-	 * Compare weak pointers for equality
-	 * @param Other weak pointer to compare to
-	 * Caution: Two weak pointers might not be equal to each other, but they both might return NULL.
-	**/
-	FORCEINLINE bool operator!=(const TWeakObjectPtr<T> &Other) const
-	{
-		return TWeakObjectPtrBase::operator!=(Other);
+		TWeakObjectPtrBase::operator=(Other);
 	}
 
 	/**  
@@ -178,7 +185,104 @@ public:
 		Ar << static_cast<TWeakObjectPtrBase&>(WeakObjectPtr);
 		return Ar;
 	}
+
+	// We declare ourselves as a friend (templated using OtherType) so we can access members as needed
+	template<class OtherT, class OtherTWeakObjectPtrBase, class OtherTUObjectArray>
+	friend struct TWeakObjectPtr;
 };
+
+template <typename LhsT, typename RhsT, typename OtherTWeakObjectPtrBase, typename OtherTUObjectArray>
+FORCENOINLINE bool operator==(const TWeakObjectPtr<LhsT, OtherTWeakObjectPtrBase, OtherTUObjectArray> &Lhs, const TWeakObjectPtr<RhsT, OtherTWeakObjectPtrBase, OtherTUObjectArray> &Rhs)
+{
+	// It's also possible that this static_assert may fail for valid conversions because
+	// one or both of the types have only been forward-declared.
+	static_assert(CanConvertPointerFromTo<LhsT, RhsT>::Result || CanConvertPointerFromTo<RhsT, LhsT>::Result, "Unable to compare TWeakObjectPtrs - types are incompatible");
+
+	return (const OtherTWeakObjectPtrBase&)Lhs == (const OtherTWeakObjectPtrBase&)Rhs;
+}
+
+template <typename LhsT, typename RhsT, typename OtherTWeakObjectPtrBase, typename OtherTUObjectArray>
+FORCENOINLINE bool operator==(const TWeakObjectPtr<LhsT, OtherTWeakObjectPtrBase, OtherTUObjectArray> &Lhs, const RhsT* Rhs)
+{
+	// It's also possible that these static_asserts may fail for valid conversions because
+	// one or both of the types have only been forward-declared.
+	static_assert(CanConvertPointerFromTo<RhsT, UObject>::Result, "TWeakObjectPtr can only be compared with UObject types");
+	static_assert(CanConvertPointerFromTo<LhsT, RhsT>::Result || CanConvertPointerFromTo<RhsT, LhsT>::Result, "Unable to compare TWeakObjectPtr with raw pointer - types are incompatible");
+
+	// NOTE: this constructs a TWeakObjectPtrBase, which has some amount of overhead, so this may not be an efficient operation
+	return (const OtherTWeakObjectPtrBase&)Lhs == OtherTWeakObjectPtrBase(Rhs);
+}
+
+template <typename LhsT, typename RhsT, typename OtherTWeakObjectPtrBase, typename OtherTUObjectArray>
+FORCENOINLINE bool operator==(const LhsT* Lhs, const TWeakObjectPtr<RhsT, OtherTWeakObjectPtrBase, OtherTUObjectArray> &Rhs)
+{
+	// It's also possible that these static_asserts may fail for valid conversions because
+	// one or both of the types have only been forward-declared.
+	static_assert(CanConvertPointerFromTo<LhsT, UObject>::Result, "TWeakObjectPtr can only be compared with UObject types");
+	static_assert(CanConvertPointerFromTo<LhsT, RhsT>::Result || CanConvertPointerFromTo<RhsT, LhsT>::Result, "Unable to compare TWeakObjectPtr with raw pointer - types are incompatible");
+
+	// NOTE: this constructs a TWeakObjectPtrBase, which has some amount of overhead, so this may not be an efficient operation
+	return OtherTWeakObjectPtrBase(Lhs) == (const OtherTWeakObjectPtrBase&)Rhs;
+}
+
+template <typename LhsT, typename OtherTWeakObjectPtrBase, typename OtherTUObjectArray>
+FORCENOINLINE bool operator==(const TWeakObjectPtr<LhsT, OtherTWeakObjectPtrBase, OtherTUObjectArray> &Lhs, decltype(nullptr))
+{
+	return !Lhs.IsValid();
+}
+
+template <typename RhsT, typename OtherTWeakObjectPtrBase, typename OtherTUObjectArray>
+FORCENOINLINE bool operator==(decltype(nullptr), const TWeakObjectPtr<RhsT, OtherTWeakObjectPtrBase, OtherTUObjectArray> &Rhs)
+{
+	return !Rhs.IsValid();
+}
+
+template <typename LhsT, typename RhsT, typename OtherTWeakObjectPtrBase, typename OtherTUObjectArray>
+FORCENOINLINE bool operator!=(const TWeakObjectPtr<LhsT, OtherTWeakObjectPtrBase, OtherTUObjectArray> &Lhs, const TWeakObjectPtr<RhsT, OtherTWeakObjectPtrBase, OtherTUObjectArray> &Rhs)
+{
+	// It's also possible that this static_assert may fail for valid conversions because
+	// one or both of the types have only been forward-declared.
+	static_assert(CanConvertPointerFromTo<LhsT, RhsT>::Result || CanConvertPointerFromTo<RhsT, LhsT>::Result, "Unable to compare TWeakObjectPtrs - types are incompatible");
+
+	return (const OtherTWeakObjectPtrBase&)Lhs != (const OtherTWeakObjectPtrBase&)Rhs;
+}
+
+template <typename LhsT, typename RhsT, typename OtherTWeakObjectPtrBase, typename OtherTUObjectArray>
+FORCENOINLINE bool operator!=(const TWeakObjectPtr<LhsT, OtherTWeakObjectPtrBase, OtherTUObjectArray> &Lhs, const RhsT* Rhs)
+{
+	// It's also possible that these static_asserts may fail for valid conversions because
+	// one or both of the types have only been forward-declared.
+	static_assert(CanConvertPointerFromTo<RhsT, UObject>::Result, "TWeakObjectPtr can only be compared with UObject types");
+	static_assert(CanConvertPointerFromTo<LhsT, RhsT>::Result || CanConvertPointerFromTo<RhsT, LhsT>::Result, "Unable to compare TWeakObjectPtr with raw pointer - types are incompatible");
+
+	// NOTE: this constructs a TWeakObjectPtrBase, which has some amount of overhead, so this may not be an efficient operation
+	return (const OtherTWeakObjectPtrBase&)Lhs != OtherTWeakObjectPtrBase(Rhs);
+}
+
+template <typename LhsT, typename RhsT, typename OtherTWeakObjectPtrBase, typename OtherTUObjectArray>
+FORCENOINLINE bool operator!=(const RhsT* Lhs, const TWeakObjectPtr<LhsT, OtherTWeakObjectPtrBase, OtherTUObjectArray> &Rhs)
+{
+	// It's also possible that these static_asserts may fail for valid conversions because
+	// one or both of the types have only been forward-declared.
+	static_assert(CanConvertPointerFromTo<LhsT, UObject>::Result, "TWeakObjectPtr can only be compared with UObject types");
+	static_assert(CanConvertPointerFromTo<LhsT, RhsT>::Result || CanConvertPointerFromTo<RhsT, LhsT>::Result, "Unable to compare TWeakObjectPtr with raw pointer - types are incompatible");
+
+	// NOTE: this constructs a TWeakObjectPtrBase, which has some amount of overhead, so this may not be an efficient operation
+	return OtherTWeakObjectPtrBase(Lhs) != (const OtherTWeakObjectPtrBase&)Rhs;
+}
+
+template <typename LhsT, typename OtherTWeakObjectPtrBase, typename OtherTUObjectArray>
+FORCENOINLINE bool operator!=(const TWeakObjectPtr<LhsT, OtherTWeakObjectPtrBase, OtherTUObjectArray> &Lhs, decltype(nullptr))
+{
+	return Lhs.IsValid();
+}
+
+template <typename RhsT, typename OtherTWeakObjectPtrBase, typename OtherTUObjectArray>
+FORCENOINLINE bool operator!=(decltype(nullptr), const TWeakObjectPtr<RhsT, OtherTWeakObjectPtrBase, OtherTUObjectArray> &Rhs)
+{
+	return Rhs.IsValid();
+}
+
 
 template<class T> struct TIsPODType<TWeakObjectPtr<T> > { enum { Value = true }; };
 template<class T> struct TIsZeroConstructType<TWeakObjectPtr<T> > { enum { Value = true }; };
