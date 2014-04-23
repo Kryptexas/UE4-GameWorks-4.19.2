@@ -329,27 +329,6 @@ bool FLinuxPlatformFile::IterateDirectory(const TCHAR* Directory, FDirectoryVisi
 	return Result;
 }
 
-bool FLinuxPlatformFile::CopyDirectoryTree(const TCHAR* DestinationDirectory, const TCHAR* Source, bool bOverwriteAllExisting)
-{
-	check(DestinationDirectory);
-	check(Source);
-	
-	// TODO: use own implementation
-
-	if (system(NULL) == 0)
-	{
-		UE_LOG(LogLinuxPlatformFile, Warning, TEXT("CopyDirectoryTree() failed: command processor is not available."));
-		return false;
-	}
-
-	FString SourceNormalized = NormalizeFilename(Source);
-	FString DestNormalized = NormalizeFilename(DestinationDirectory);
-
-	FString SysCall = FString::Printf(TEXT("cp -R \"%s\" \"%s\""), *SourceNormalized, *DestNormalized);
-	UE_LOG(LogLinuxPlatformFile, Log, TEXT("CopyDirectoryTree(): %s"), *SysCall);
-	return system(TCHAR_TO_ANSI(*SysCall)) == 0;
-}
-
 IPlatformFile& IPlatformFile::GetPlatformPhysical()
 {
 	static FLinuxPlatformFile Singleton;

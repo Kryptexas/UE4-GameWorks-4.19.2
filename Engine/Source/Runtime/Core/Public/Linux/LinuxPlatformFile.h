@@ -35,6 +35,4 @@ public:
 	virtual bool CreateDirectory(const TCHAR* Directory) OVERRIDE;
 	virtual bool DeleteDirectory(const TCHAR* Directory) OVERRIDE;
 	bool IterateDirectory(const TCHAR* Directory, FDirectoryVisitor& Visitor);
-
-	virtual bool CopyDirectoryTree(const TCHAR* DestinationDirectory, const TCHAR* Source, bool bOverwriteAllExisting);
 };

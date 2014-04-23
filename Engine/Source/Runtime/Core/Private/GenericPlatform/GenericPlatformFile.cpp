@@ -119,8 +119,79 @@ bool IPlatformFile::CopyDirectoryTree(const TCHAR* DestinationDirectory, const T
 	check(DestinationDirectory);
 	check(Source);
 
-	// TODO: can be implemented using existing functions, all bits seem to be there.
-	return false;
+	FString DestDir(DestinationDirectory);
+	FPaths::NormalizeDirectoryName(DestDir);
+
+	FString SourceDir(Source);
+	FPaths::NormalizeDirectoryName(SourceDir);
+
+	// Does Source dir exist?
+	if (!DirectoryExists(*SourceDir))
+	{
+		return false;
+	}
+
+	// Destination directory exists already or can be created ?
+	if (!DirectoryExists(*DestDir) &&
+		!CreateDirectory(*DestDir))
+	{
+		return false;
+	}
+
+	// Copy all files and directories
+	struct FCopyFilesAndDirs : public FDirectoryVisitor
+	{
+		IPlatformFile & PlatformFile;
+		const TCHAR * SourceRoot;
+		const TCHAR * DestRoot;
+		bool bOverwrite;
+
+		FCopyFilesAndDirs(IPlatformFile& InPlatformFile, const TCHAR * InSourceRoot, const TCHAR * InDestRoot, bool bInOverwrite)
+			: PlatformFile(InPlatformFile)
+			, SourceRoot(InSourceRoot)
+			, DestRoot(InDestRoot)
+			, bOverwrite(bInOverwrite)
+		{
+		}
+
+		virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory)
+		{
+			FString NewName(FilenameOrDirectory);
+			// change the root
+			NewName = NewName.Replace(SourceRoot, DestRoot);
+
+			if (bIsDirectory)
+			{
+				// create new directory structure
+				if (!PlatformFile.CreateDirectoryTree(*NewName) && !PlatformFile.DirectoryExists(*NewName))
+				{
+					return false;
+				}
+			}
+			else
+			{
+				// Delete destination file if it exists and we are overwriting
+				if (PlatformFile.FileExists(*NewName) && bOverwrite)
+				{
+					PlatformFile.DeleteFile(*NewName);
+				}
+
+				// Copy file from source
+				if (!PlatformFile.CopyFile(*NewName, FilenameOrDirectory))
+				{
+					// Not all files could be copied
+					return false;
+				}
+			}
+			return true; // continue searching
+		}
+	};
+
+	// copy files and directories visitor
+	FCopyFilesAndDirs CopyFilesAndDirs(*this, *SourceDir, *DestDir, bOverwriteAllExisting);
+
+	// create all files subdirectories and files in subdirectories!
+	return IterateDirectoryRecursively(*SourceDir, CopyFilesAndDirs);
 }
 
 FString IPlatformFile::ConvertToAbsolutePathForExternalAppForRead( const TCHAR* Filename )
