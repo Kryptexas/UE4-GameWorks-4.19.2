@@ -36,7 +36,8 @@
 	#pragma comment(lib, "psapi.lib")
 #endif
 
-
+#include <fcntl.h>
+#include <io.h>
 
 /** 
  * Whether support for integrating into the firewall is there
@@ -714,6 +715,10 @@ uint32 FWindowsPlatformMisc::GetKeyMap( uint16* KeyCodes, FString* KeyNames, uin
 	return NumMappings;
 }
 
+void FWindowsPlatformMisc::SetUTF8Output()
+{
+	_setmode(_fileno(stdout), _O_U8TEXT);
+}
 
 void FWindowsPlatformMisc::LocalPrint( const TCHAR *Message )
 {

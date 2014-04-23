@@ -171,6 +171,15 @@ namespace AutomationTool
 	/// </summary>
 	class AutomationConsoleTraceListener : TraceListener
 	{
+		public AutomationConsoleTraceListener()
+		{
+			// We use the command line directly here, because GlobalCommandLine isn't initialized early enough
+			if (SharedUtils.ParseCommandLine().Any(Arg => Arg.ToLower() == "-utf8output"))
+			{
+				Console.OutputEncoding = new System.Text.UTF8Encoding(false, false);
+			}
+		}
+
 		/// <summary>
 		/// Writes a formatted line to the console.
 		/// </summary>

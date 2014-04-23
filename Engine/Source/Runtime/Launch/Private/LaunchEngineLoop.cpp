@@ -528,6 +528,11 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 {
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Engine Pre-Initialized"), STAT_PreInit, STATGROUP_LoadTime);
 
+	if (FParse::Param(CmdLine, TEXT("UTF8Output")))
+	{
+		FPlatformMisc::SetUTF8Output();
+	}
+
 	// Switch into executable's directory.
 	FPlatformProcess::SetCurrentWorkingDirectoryToBaseDir();
 

@@ -71,7 +71,11 @@ public partial class Project : CommandUtils
 			CmdLine += " -installed";
 		}
 		CmdLine += " -order=" + CommandUtils.MakePathSafeToUseWithCommandLine(PakOrderFileLocation);
-		RunAndLog(CmdEnv, UnrealPakExe, CmdLine);
+		if (GlobalCommandLine.UTF8Output)
+		{
+			CmdLine += " -UTF8Output";
+		}
+		RunAndLog(CmdEnv, UnrealPakExe, CmdLine, Options: ERunOptions.Default | ERunOptions.UTF8Output);
 		Log("UnrealPak Done *******");
 	}
 
