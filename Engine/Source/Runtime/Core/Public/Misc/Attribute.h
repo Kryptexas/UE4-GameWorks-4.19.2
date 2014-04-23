@@ -6,7 +6,7 @@
 #include "Delegate.h"
 
 /**
- * Slate attribute object
+ * Attribute object
  */
 template< typename ObjectType >
 class TAttribute
