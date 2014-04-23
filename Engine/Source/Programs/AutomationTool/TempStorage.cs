@@ -457,7 +457,7 @@ namespace AutomationTool
                 return;
             }
             TestedForClean.Add(Directory);
-            const int MaximumDaysToKeepTempStorage = 4;
+            const int MaximumDaysToKeepTempStorage = 2;
             DirectoryInfo DirInfo = new DirectoryInfo(Directory);
             var TopLevelDirs = DirInfo.GetDirectories();
             foreach (var TopLevelDir in TopLevelDirs)
