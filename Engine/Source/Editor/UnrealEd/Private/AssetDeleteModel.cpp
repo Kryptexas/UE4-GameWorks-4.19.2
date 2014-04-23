@@ -36,6 +36,8 @@ void FAssetDeleteModel::AddObjectToDelete( UObject* InObject )
 {
 	PendingDeletes.Add(MakeShareable(new FPendingDelete(InObject)));
 
+	PrepareToDelete(InObject);
+
 	SetState(StartScanning);
 }
 
@@ -358,6 +360,54 @@ int32 FAssetDeleteModel::GetDeletedObjectCount() const
 	return ObjectsDeleted;
 }
 
+void FAssetDeleteModel::PrepareToDelete(UObject* InObject)
+{
+	if ( InObject->IsA<UObjectRedirector>() )
+	{
+		// Add all redirectors found in this package to the redirectors to delete list.
+		// All redirectors in this package should be fixed up.
+		UPackage* RedirectorPackage = InObject->GetOutermost();
+		TArray<UObject*> AssetsInRedirectorPackage;
+		
+		GetObjectsWithOuter(RedirectorPackage, AssetsInRedirectorPackage, /*bIncludeNestedObjects=*/false);
+		UMetaData* PackageMetaData = NULL;
+		bool bContainsAtLeastOneOtherAsset = false;
+
+		for ( auto ObjIt = AssetsInRedirectorPackage.CreateConstIterator(); ObjIt; ++ObjIt )
+		{
+			if ( UObjectRedirector* Redirector = Cast<UObjectRedirector>(*ObjIt) )
+			{
+				Redirector->RemoveFromRoot();
+			}
+			else if ( UMetaData* MetaData = Cast<UMetaData>(*ObjIt) )
+			{
+				PackageMetaData = MetaData;
+			}
+			else
+			{
+				bContainsAtLeastOneOtherAsset = true;
+			}
+		}
+
+		if ( !bContainsAtLeastOneOtherAsset )
+		{
+			RedirectorPackage->RemoveFromRoot();
+			ULinkerLoad* Linker = ULinkerLoad::FindExistingLinkerForPackage(RedirectorPackage);
+			if ( Linker )
+			{
+				Linker->RemoveFromRoot();
+			}
+
+			// @todo we shouldnt be worrying about metadata objects here, ObjectTools::CleanUpAfterSuccessfulDelete should
+			if ( PackageMetaData )
+			{
+				PackageMetaData->RemoveFromRoot();
+				PendingDeletes.AddUnique(MakeShareable(new FPendingDelete(PackageMetaData)));
+			}
+		}
+	}
+}
+
 // FPendingDelete
 //-----------------------------------------------------------------
 
@@ -472,6 +522,11 @@ void FPendingDelete::CheckForReferences()
 			bIsReferencedInMemoryByUndo = true;
 		}
 	}
+}
+
+bool FPendingDelete::operator == ( const FPendingDelete& Other ) const
+{
+	return Object == Other.Object;
 }
 
 #undef LOCTEXT_NAMESPACE

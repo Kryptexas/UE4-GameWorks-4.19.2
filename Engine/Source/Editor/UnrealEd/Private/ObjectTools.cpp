@@ -1302,7 +1302,7 @@ namespace ObjectTools
 		}
 	}
 
-	void CleanupAfterSuccessfulDelete (const TArray<UPackage*>& PotentialPackagesToDelete)
+	void CleanupAfterSuccessfulDelete (const TArray<UPackage*>& PotentialPackagesToDelete, bool bPerformReferenceCheck)
 	{
 		TArray<UPackage*> PackagesToDelete = PotentialPackagesToDelete;
 		TArray<FString> PackageFilesToDelete;
@@ -1318,26 +1318,31 @@ namespace ObjectTools
 			GWarn->StatusUpdate(OriginalNumPackagesToDelete - PackageIdx, OriginalNumPackagesToDelete, NSLOCTEXT("ObjectTools", "OldPackageCleanupSlowTask", "Cleaning Up Old Assets"));
 			UObject* Package = PackagesToDelete[PackageIdx];
 
-			FReferencerInformationList FoundReferences;
-			bool bIsReferenced = IsReferenced( Package, GARBAGE_COLLECTION_KEEPFLAGS, true, &FoundReferences );
-			if ( bIsReferenced )
+			bool bIsReferenced = false;
+			
+			if ( bPerformReferenceCheck )
 			{
-				// determine whether the transaction buffer is the only thing holding a reference to the object
-				// and if so, offer the user the option to reset the transaction buffer.
-				GEditor->Trans->DisableObjectSerialization();
+				FReferencerInformationList FoundReferences;
 				bIsReferenced = IsReferenced(Package, GARBAGE_COLLECTION_KEEPFLAGS, true, &FoundReferences);
-				GEditor->Trans->EnableObjectSerialization();
-
-				// only ref to this object is the transaction buffer - let the user choose whether to clear the undo buffer
-				if ( !bIsReferenced )
+				if ( bIsReferenced )
 				{
-					if ( EAppReturnType::Yes == FMessageDialog::Open( EAppMsgType::YesNo, NSLOCTEXT("UnrealEd", "ResetUndoBufferForObjectDeletionPrompt", "The only reference to this object is the undo history.  In order to delete this object, you must clear all undo history - would you like to clear undo history?")) )
+					// determine whether the transaction buffer is the only thing holding a reference to the object
+					// and if so, offer the user the option to reset the transaction buffer.
+					GEditor->Trans->DisableObjectSerialization();
+					bIsReferenced = IsReferenced(Package, GARBAGE_COLLECTION_KEEPFLAGS, true, &FoundReferences);
+					GEditor->Trans->EnableObjectSerialization();
+
+					// only ref to this object is the transaction buffer - let the user choose whether to clear the undo buffer
+					if ( !bIsReferenced )
 					{
-						GEditor->Trans->Reset( NSLOCTEXT("UnrealEd", "DeleteSelectedItem", "Delete Selected Item") );
-					}
-					else
-					{
-						bIsReferenced = true;
+						if ( EAppReturnType::Yes == FMessageDialog::Open(EAppMsgType::YesNo, NSLOCTEXT("UnrealEd", "ResetUndoBufferForObjectDeletionPrompt", "The only reference to this object is the undo history.  In order to delete this object, you must clear all undo history - would you like to clear undo history?")) )
+						{
+							GEditor->Trans->Reset(NSLOCTEXT("UnrealEd", "DeleteSelectedItem", "Delete Selected Item"));
+						}
+						else
+						{
+							bIsReferenced = true;
+						}
 					}
 				}
 			}
@@ -1581,7 +1586,8 @@ namespace ObjectTools
 				PotentialPackagesToDelete.AddUnique( ObjectsDeletedSuccessfully[ObjIdx]->GetOutermost() );
 			}
 
-			CleanupAfterSuccessfulDelete( PotentialPackagesToDelete );
+			bool bPerformReferenceCheck = false;
+			CleanupAfterSuccessfulDelete( PotentialPackagesToDelete, bPerformReferenceCheck );
 			ObjectsDeletedSuccessfully.Empty();
 		}
 
