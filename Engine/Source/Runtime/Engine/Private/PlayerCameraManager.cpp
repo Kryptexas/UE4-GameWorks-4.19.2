@@ -899,7 +899,7 @@ void APlayerCameraManager::LimitViewYaw(FRotator& ViewRotation, float InViewYawM
 	ViewRotation.Yaw = FRotator::ClampAxis(ViewRotation.Yaw);
 }
 
-void APlayerCameraManager::DisplayDebug(class UCanvas* Canvas, const TArray<FName>& DebugDisplay, float& YL, float& YPos)
+void APlayerCameraManager::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
 {
 	Canvas->SetDrawColor(255,255,255);
 

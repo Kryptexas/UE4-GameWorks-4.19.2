@@ -82,6 +82,14 @@ void FPoseLinkBase::Update(const FAnimationUpdateContext& Context)
 	}
 }
 
+void FPoseLinkBase::GatherDebugData(FNodeDebugData& DebugData)
+{
+	if(LinkedNode != NULL)
+	{
+		LinkedNode->GatherDebugData(DebugData);
+	}
+}
+
 /////////////////////////////////////////////////////
 // FPoseLink
 
@@ -206,4 +214,42 @@ bool FComponentSpacePoseContext::IsNormalized() const
 	}
 
 	return true;
+}
+
+/////////////////////////////////////////////////////
+// FNodeDebugData
+
+void FNodeDebugData::AddDebugItem(FString DebugData, bool bPoseSource)
+{
+	check(NodeChain.Num() == 0 || NodeChain.Last().ChildNodeChain.Num() == 0); //Cannot add to this chain once we have branched
+
+	NodeChain.Add( DebugItem(DebugData, bPoseSource) );
+}
+
+FNodeDebugData& FNodeDebugData::BranchFlow(float BranchWeight)
+{
+	DebugItem& LatestItem = NodeChain.Last();
+	new (LatestItem.ChildNodeChain) FNodeDebugData(AnimInstance, BranchWeight*AbsoluteWeight);
+	return LatestItem.ChildNodeChain.Last();
+}
+
+void FNodeDebugData::GetFlattenedDebugData(TArray<FFlattenedDebugData>& FlattenedDebugData, int32 Indent, int32& ChainID)
+{
+	int32 CurrChainID = ChainID;
+	for(DebugItem& Item : NodeChain)
+	{
+		FlattenedDebugData.Add( FFlattenedDebugData(Item.DebugData, AbsoluteWeight, Indent, CurrChainID, Item.bPoseSource) );
+		bool bMultiBranch = Item.ChildNodeChain.Num() > 1;
+		int32 ChildIndent = bMultiBranch ? Indent + 1 : Indent;
+		for(FNodeDebugData& Child : Item.ChildNodeChain)
+		{
+			if(bMultiBranch)
+			{
+				// If we only have one branch we treat it as the same really
+				// as we may have only changed active status
+				++ChainID;
+			}
+			Child.GetFlattenedDebugData(FlattenedDebugData, ChildIndent, ChainID);
+		}
+	}
 }

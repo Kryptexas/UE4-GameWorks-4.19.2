@@ -9,6 +9,7 @@
 #include "Net/UnrealNetwork.h"
 #include "MessageLog.h"
 #include "UObjectToken.h"
+#include "DisplayDebugHelpers.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogHUD, Log, All);
 
@@ -238,6 +239,24 @@ void AHUD::ShowDebug(FName DebugType)
 	}
 }
 
+void AHUD::ShowDebugToggleSubCategory(FName Category)
+{
+	if( Category == NAME_Reset )
+	{
+		ToggledDebugCategories.Empty();
+		SaveConfig();
+	}
+	else
+	{
+		if (0 == ToggledDebugCategories.Remove(Category))
+		{
+			ToggledDebugCategories.Add(Category);
+		}
+		SaveConfig();
+	}
+}
+
+
 bool AHUD::ShouldDisplayDebug(const FName & DebugType) const
 {
 	return bShowDebugInfo && DebugDisplay.Contains(DebugType);
@@ -245,11 +264,15 @@ bool AHUD::ShouldDisplayDebug(const FName & DebugType) const
 
 void AHUD::ShowDebugInfo(float& YL, float& YPos)
 {
-	PlayerOwner->PlayerCameraManager->ViewTarget.Target->DisplayDebug(DebugCanvas, DebugDisplay, YL, YPos);
+	FLinearColor BackgroundColor(0.f, 0.f, 0.f, 0.5f);
+	DebugCanvas->Canvas->DrawTile(0, 0, DebugCanvas->ClipX, DebugCanvas->ClipY, 0.f, 0.f, 0.f, 0.f, BackgroundColor);
+
+	FDebugDisplayInfo DisplayInfo(DebugDisplay,ToggledDebugCategories);
+	PlayerOwner->PlayerCameraManager->ViewTarget.Target->DisplayDebug(DebugCanvas, DisplayInfo, YL, YPos);
 
 	if (ShouldDisplayDebug(NAME_Game))
 	{
-		GetWorld()->GetAuthGameMode()->DisplayDebug(DebugCanvas, DebugDisplay, YL, YPos);
+		GetWorld()->GetAuthGameMode()->DisplayDebug(DebugCanvas, DisplayInfo, YL, YPos);
 	}
 }
 

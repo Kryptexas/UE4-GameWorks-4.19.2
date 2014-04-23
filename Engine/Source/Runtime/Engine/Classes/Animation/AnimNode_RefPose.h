@@ -28,6 +28,8 @@ public:
 	}
 
 	virtual void Evaluate(FPoseContext& Output) OVERRIDE;
+	virtual void GatherDebugData(FNodeDebugData& DebugData) OVERRIDE;
+
 };
 
 USTRUCT()

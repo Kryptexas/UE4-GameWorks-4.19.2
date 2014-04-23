@@ -401,11 +401,11 @@ public:
 	 * Draw important PlayerInput variables on canvas.  HUD will call DisplayDebug() on the current ViewTarget when the ShowDebug exec is used
 	 *
 	 * @param Canvas - Canvas to draw on
-	 * @param DebugDisplay - List of names specifying what debug info to display
+	 * @param DebugDisplay - Contains information about what debug data to display
 	 * @param YL - Height of the current font
 	 * @param YPos - Y position on Canvas. YPos += YL, gives position to draw text for next debug line.
 	 */
-	void DisplayDebug(class UCanvas* Canvas, const TArray<FName>& DebugDisplay, float& YL, float& YPos);
+	void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos);
 
 	bool IsPressed( FKey InKey ) const;
 	

@@ -41,6 +41,17 @@ void FAnimNode_RotateRootBone::Evaluate(FPoseContext& Output)
 	Output.Pose.Bones[0].SetRotation(Output.Pose.Bones[0].GetRotation() * MeshSpaceDeltaQuat);
 }
 
+
+void FAnimNode_RotateRootBone::GatherDebugData(FNodeDebugData& DebugData)
+{
+	FString DebugLine = DebugData.GetNodeName(this);
+	
+	DebugLine += FString::Printf(TEXT("(Pitch: %.2f Yaw: %.2f)"), Pitch, Yaw);
+	DebugData.AddDebugItem(DebugLine);
+
+	BasePose.GatherDebugData(DebugData);
+}
+
 FAnimNode_RotateRootBone::FAnimNode_RotateRootBone()
 	: Pitch(0.0f)
 	, Yaw(0.0f)

@@ -13,6 +13,7 @@
 #include "IForceFeedbackSystem.h"
 #include "Slate.h"
 #include "GameFramework/TouchInterface.h"
+#include "DisplayDebugHelpers.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogPlayerController, Log, All);
 
@@ -2542,7 +2543,7 @@ void APlayerController::ClientIgnoreLookInput_Implementation(bool bIgnore)
 }
 
 
-void APlayerController::DisplayDebug(class UCanvas* Canvas, const TArray<FName>& DebugDisplay, float& YL, float& YPos)
+void APlayerController::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
 {
 	Super::DisplayDebug(Canvas, DebugDisplay, YL, YPos);
 
@@ -2551,7 +2552,7 @@ void APlayerController::DisplayDebug(class UCanvas* Canvas, const TArray<FName>&
 	Canvas->DrawText(RenderFont, FString::Printf(TEXT("STATE %s"), *GetStateName().ToString()), 4.0f, YPos );
 	YPos += YL;
 
-	if (DebugDisplay.Contains(NAME_Camera))
+	if (DebugDisplay.IsDisplayOn(NAME_Camera))
 	{
 		if (PlayerCameraManager != NULL)
 		{
@@ -2566,7 +2567,7 @@ void APlayerController::DisplayDebug(class UCanvas* Canvas, const TArray<FName>&
 			YPos += YL;
 		}
 	}
-	if ( DebugDisplay.Contains(NAME_Input) )
+	if ( DebugDisplay.IsDisplayOn(NAME_Input) )
 	{
 		TArray<UInputComponent*> InputStack;
 		BuildInputStack(InputStack);
@@ -2601,7 +2602,7 @@ void APlayerController::DisplayDebug(class UCanvas* Canvas, const TArray<FName>&
 			YPos += YL;
 		}
 	}
-	if ( DebugDisplay.Contains("ForceFeedback"))
+	if ( DebugDisplay.IsDisplayOn("ForceFeedback"))
 	{
 		Canvas->SetDrawColor(255, 255, 255);
 		Canvas->DrawText(RenderFont, FString::Printf(TEXT("Force Feedback - LL: %.2f LS: %.2f RL: %.2f RS: %.2f"), ForceFeedbackValues.LeftLarge, ForceFeedbackValues.LeftSmall, ForceFeedbackValues.RightLarge, ForceFeedbackValues.RightSmall), 4.0f, YPos);

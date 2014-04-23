@@ -228,7 +228,7 @@ public:
 
 	// Begin AController Interface
 	virtual void Possess(class APawn* InPawn) OVERRIDE;
-	virtual void DisplayDebug(class UCanvas* Canvas, const TArray<FName>& DebugDisplay, float& YL, float& YPos) OVERRIDE;
+	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) OVERRIDE;
 
 #if ENABLE_VISUAL_LOG
 	virtual void GrabDebugSnapshot(struct FVisLogEntry* Snapshot) const OVERRIDE;

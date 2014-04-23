@@ -24,3 +24,10 @@ void FAnimNode_TransitionResult::Update(const FAnimationUpdateContext& Context)
 void FAnimNode_TransitionResult::Evaluate(FPoseContext& Output)
 {
 }
+
+
+void FAnimNode_TransitionResult::GatherDebugData(FNodeDebugData& DebugData)
+{
+	FString DebugLine = DebugData.GetNodeName(this);
+	DebugData.AddDebugItem(DebugLine);
+}

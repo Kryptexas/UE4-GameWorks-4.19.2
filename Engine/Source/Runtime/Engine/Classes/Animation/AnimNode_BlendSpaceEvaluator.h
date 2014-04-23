@@ -23,5 +23,6 @@ public:
 
 	// FAnimNode_Base interface
 	virtual void Update(const FAnimationUpdateContext& Context) OVERRIDE;
+	virtual void GatherDebugData(FNodeDebugData& DebugData) OVERRIDE;
 	// End of FAnimNode_Base interface
 };

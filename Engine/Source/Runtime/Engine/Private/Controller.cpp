@@ -445,7 +445,7 @@ void AController::GetActorEyesViewPoint( FVector& out_Location, FRotator& out_Ro
 }
 
 
-void AController::DisplayDebug(UCanvas* Canvas, const TArray<FName>& DebugDisplay, float& YL, float& YPos)
+void AController::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
 {
 	UFont* RenderFont = GEngine->GetSmallFont();
 	if ( Pawn == NULL )

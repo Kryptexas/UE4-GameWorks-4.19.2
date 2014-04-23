@@ -7,6 +7,7 @@
 
 #include "EnginePrivate.h"
 #include "Net/UnrealNetwork.h"
+#include "DisplayDebugHelpers.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCharacter, Log, All);
 DEFINE_LOG_CATEGORY_STATIC(LogAvatar, Log, All);
@@ -491,27 +492,18 @@ void ACharacter::BaseChange()
 	}
 }
 
-void ACharacter::DisplayDebug(UCanvas* Canvas, const TArray<FName>& DebugDisplay, float& YL, float& YPos)
+void ACharacter::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
 {
 	Super::DisplayDebug(Canvas, DebugDisplay, YL, YPos);
 
 	float Indent = 0.f;
 
-	class Indenter
-	{
-		float& Indent;
-
-	public:
-		Indenter(float& InIndent) : Indent(InIndent) { Indent += 4.0f; }
-		~Indenter() { Indent -= 4.0f; }
-	};
-
 	UFont* RenderFont = GEngine->GetSmallFont();
 
 	static FName NAME_Physics = FName(TEXT("Physics"));
-	if (DebugDisplay.Contains(NAME_Physics) )
+	if (DebugDisplay.IsDisplayOn(NAME_Physics) )
 	{
-		Indenter PhysicsIndent(Indent);
+		FIndenter PhysicsIndent(Indent);
 
 		FString BaseString;
 		if ( CharacterMovement == NULL || MovementBase == NULL )
@@ -535,98 +527,6 @@ void ACharacter::DisplayDebug(UCanvas* Canvas, const TArray<FName>& DebugDisplay
 		FString T = FString::Printf(TEXT("Crouched %i"), Crouched);
 		Canvas->DrawText(RenderFont, T, Indent, YPos );
 		YPos += YL;
-	}
-
-	if(Mesh && Mesh->GetAnimInstance())
-	{
-		static FName NAME_Animation = FName(TEXT("Animation"));
-		if( DebugDisplay.Contains(NAME_Animation) )
-		{
-			YPos += YL;
-
-			Canvas->DrawText(RenderFont, TEXT("Animation"), Indent, YPos );
-			YPos += YL;
-			Indenter AnimIndent(Indent);
-
-			//Display Sync Groups
-			UAnimInstance* AnimInstance = Mesh->GetAnimInstance();
-			
-			FString Heading = FString::Printf(TEXT("SyncGroups: %i"), AnimInstance->SyncGroups.Num());
-			Canvas->DrawText(RenderFont, Heading, Indent, YPos );
-			YPos += YL;
-
-			for (int32 GroupIndex = 0; GroupIndex < AnimInstance->SyncGroups.Num(); ++GroupIndex)
-			{
-				Indenter GroupIndent(Indent);
-				FAnimGroupInstance& SyncGroup = AnimInstance->SyncGroups[GroupIndex];
-
-				FString GroupLabel = FString::Printf(TEXT("Group %i - Players %i"), GroupIndex, SyncGroup.ActivePlayers.Num());
-				Canvas->DrawText(RenderFont, GroupLabel, Indent, YPos );
-				YPos += YL;
-
-				if (SyncGroup.ActivePlayers.Num() > 0)
-				{
-					const int32 GroupLeaderIndex = FMath::Max(SyncGroup.GroupLeaderIndex, 0);
-
-					for(int32 PlayerIndex = 0; PlayerIndex < SyncGroup.ActivePlayers.Num(); ++PlayerIndex)
-					{
-						Indenter PlayerIndent(Indent);
-						FAnimTickRecord& Player = SyncGroup.ActivePlayers[PlayerIndex];
-
-						Canvas->SetLinearDrawColor( (PlayerIndex == GroupLeaderIndex) ? FLinearColor::Green : FLinearColor::Yellow);
-
-						FString PlayerEntry = FString::Printf(TEXT("%i) %s W:%.3f"), PlayerIndex, *Player.SourceAsset->GetName(), Player.EffectiveBlendWeight);
-						Canvas->DrawText(RenderFont, PlayerEntry, Indent, YPos );
-						YPos += YL;
-					}
-				}
-			}
-
-			Heading = FString::Printf(TEXT("Ungrouped: %i"), AnimInstance->UngroupedActivePlayers.Num());
-			Canvas->DrawText(RenderFont, Heading, Indent, YPos );
-			YPos += YL;
-
-			Canvas->SetLinearDrawColor( FLinearColor::Yellow );
-
-			for (int32 PlayerIndex = 0; PlayerIndex < AnimInstance->UngroupedActivePlayers.Num(); ++PlayerIndex)
-			{
-				Indenter PlayerIndent(Indent);
-				const FAnimTickRecord& Player = AnimInstance->UngroupedActivePlayers[PlayerIndex];
-				FString PlayerEntry = FString::Printf(TEXT("%i) %s W:%.3f"), PlayerIndex, *Player.SourceAsset->GetName(), Player.EffectiveBlendWeight);
-				Canvas->DrawText(RenderFont, PlayerEntry, Indent, YPos );
-				YPos += YL;
-			}
-
-			Heading = FString::Printf(TEXT("Montages: %i"), AnimInstance->MontageInstances.Num());
-			Canvas->DrawText(RenderFont, Heading, Indent, YPos );
-			YPos += YL;
-
-			for (int32 MontageIndex = 0; MontageIndex < AnimInstance->MontageInstances.Num(); ++MontageIndex)
-			{
-				Indenter PlayerIndent(Indent);
-
-				Canvas->SetLinearDrawColor( (MontageIndex == (AnimInstance->MontageInstances.Num()-1)) ? FLinearColor::Green : FLinearColor::Yellow );
-
-				FAnimMontageInstance* MontageInstance = AnimInstance->MontageInstances[MontageIndex];
-
-				FString MontageEntry = FString::Printf(TEXT("%i) %s Sec: %s W:%.3f DW:%.3f"), MontageIndex, *MontageInstance->Montage->GetName(), *MontageInstance->GetCurrentSection().ToString(), MontageInstance->Weight, MontageInstance->DesiredWeight);
-				Canvas->DrawText(RenderFont, MontageEntry, Indent, YPos );
-				YPos += YL;
-			}
-
-		}
-
-		static FName NAME_SimpleBones = FName(TEXT("SimpleBones"));
-		static FName NAME_Bones = FName(TEXT("Bones"));
-
-		if( DebugDisplay.Contains(NAME_SimpleBones) )
-		{
-			Mesh->DebugDrawBones(Canvas,true);
-		}
-		else if( DebugDisplay.Contains(NAME_Bones) )
-		{
-			Mesh->DebugDrawBones(Canvas,false);
-		}
 	}
 }
 

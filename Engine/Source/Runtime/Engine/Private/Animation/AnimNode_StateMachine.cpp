@@ -634,6 +634,78 @@ void FAnimNode_StateMachine::EvaluateTransitionCustomBlend(FPoseContext& Output,
 	}
 }
 
+void AddStateWeight(TMap<int32, float>& StateWeightMap, int32 StateIndex, float Weight)
+{
+	if (!StateWeightMap.Find(StateIndex))
+	{
+		StateWeightMap.Add(StateIndex) = Weight;
+	}
+}
+
+void FAnimNode_StateMachine::GatherDebugData(FNodeDebugData& DebugData)
+{
+	FString DebugLine = DebugData.GetNodeName(this);
+	DebugLine += FString::Printf(TEXT("(%s->%s)"), *GetMachineDescription()->MachineName.ToString(), *GetStateInfo().StateName.ToString());
+
+	TMap<int32, float> StateWeightMap;
+
+	if (ActiveTransitionArray.Num() > 0)
+	{
+		for (int32 Index = 0; Index < ActiveTransitionArray.Num(); ++Index)
+		{
+			// if there is any source pose, blend it here
+			FAnimationActiveTransitionEntry& ActiveTransition = ActiveTransitionArray[Index];
+
+			if (ActiveTransition.bActive)
+			{
+				switch (ActiveTransition.LogicType)
+				{
+					case ETransitionLogicType::TLT_StandardBlend:
+					{
+						AddStateWeight(StateWeightMap, ActiveTransition.PreviousState, (1.0f - ActiveTransition.Alpha));
+						AddStateWeight(StateWeightMap, ActiveTransition.NextState, (ActiveTransition.Alpha));
+						break;
+					}
+					case ETransitionLogicType::TLT_Custom:
+					{
+						if (ActiveTransition.CustomTransitionGraph.LinkID != INDEX_NONE)
+						{
+							for (TArray<FAnimNode_TransitionPoseEvaluator*>::TIterator PoseEvaluatorListIt = ActiveTransition.PoseEvaluators.CreateIterator(); PoseEvaluatorListIt; ++PoseEvaluatorListIt)
+							{
+								FAnimNode_TransitionPoseEvaluator* Evaluator = *PoseEvaluatorListIt;
+								if (Evaluator->InputNodeNeedsUpdate())
+								{
+									const bool bUsePreviousState = (Evaluator->DataSource == EEvaluatorDataSource::EDS_SourcePose);
+									const int32 EffectiveStateIndex = bUsePreviousState ? ActiveTransition.PreviousState : ActiveTransition.NextState;
+									AddStateWeight(StateWeightMap, EffectiveStateIndex, 1.f);
+								}
+							}
+						}
+						break;
+					}
+					default:
+					{
+						break;
+					}
+				}
+			}
+		}
+	}
+	else if (!IsAConduitState(CurrentState))
+	{
+		StateWeightMap.Add(CurrentState) = 1.0f;
+	}
+
+	DebugData.AddDebugItem(DebugLine);
+	for (int32 PoseIndex = 0; PoseIndex < StatePoseLinks.Num(); ++PoseIndex)
+	{
+		float* WeightPtr = StateWeightMap.Find(PoseIndex);
+		float Weight = WeightPtr ? *WeightPtr : 0.f;
+
+		StatePoseLinks[PoseIndex].GatherDebugData(DebugData.BranchFlow(Weight));
+	}
+}
+
 void FAnimNode_StateMachine::SetStateInternal(int32 NewStateIndex)
 {
 	checkSlow(PRIVATE_MachineDescription);

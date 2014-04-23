@@ -53,6 +53,36 @@ void FAnimNode_Slot::Evaluate(FPoseContext& Output)
 	Output.AnimInstance->SlotEvaluatePose(SlotName, SourceContext.Pose, Output.Pose, SlotNodeWeight);
 }
 
+
+void FAnimNode_Slot::GatherDebugData(FNodeDebugData& DebugData)
+{
+	FString DebugLine = DebugData.GetNodeName(this);
+	DebugLine += FString::Printf(TEXT("(Slot Name: '%s' Weight:%.1f%%)"), *SlotName.ToString(), SlotNodeWeight*100.f);
+
+	bool bIsPoseSource = !bNeedToEvaluateSource;
+	DebugData.AddDebugItem(DebugLine, bIsPoseSource);
+	Source.GatherDebugData(DebugData.BranchFlow(bNeedToEvaluateSource ? 1.f : 0.f));
+
+	for (FAnimMontageInstance* MontageInstance : DebugData.AnimInstance->MontageInstances)
+	{
+		if (MontageInstance->IsValid() && MontageInstance->Montage->IsValidSlot(SlotName))
+		{
+			const FAnimTrack* Track = MontageInstance->Montage->GetAnimationData(SlotName);
+			for (const FAnimSegment& Segment : Track->AnimSegments)
+			{
+				float Weight;
+				float CurrentAnimPos;
+				if (UAnimSequenceBase* Anim = Segment.GetAnimationData(MontageInstance->Position, CurrentAnimPos, Weight))
+				{
+					FString MontageLine = FString::Printf(TEXT("Montage: '%s' Anim: '%s' Play Time:%.2f W:%.2f%%"), *MontageInstance->Montage->GetName(), *Anim->GetName(), CurrentAnimPos, Weight*100.f);
+					DebugData.BranchFlow(1.0f).AddDebugItem(MontageLine, true);
+					break;
+				}
+			}
+		}
+	}
+}
+
 FAnimNode_Slot::FAnimNode_Slot()
 	: bNeedToEvaluateSource(false)
 {

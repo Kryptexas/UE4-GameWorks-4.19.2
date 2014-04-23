@@ -208,7 +208,11 @@ class ENGINE_API AHUD : public AActor
 
 	/** Array of names specifying what debug info to display for viewtarget actor. */
 	UPROPERTY(globalconfig)
-	TArray<FName> DebugDisplay;    
+	TArray<FName> DebugDisplay;
+
+	/** Array of names specifying what subsets of debug info to display for viewtarget actor. */
+	UPROPERTY(globalconfig)
+	TArray<FName> ToggledDebugCategories;
 
 protected:
 	/** Canvas to Draw HUD on.  Only valid during PostRender() event.  */
@@ -240,6 +244,12 @@ public:
 	 */
 	UFUNCTION(exec)
 	virtual void ShowDebug(FName DebugType = NAME_None);
+
+	/**
+	 * Toggles sub categories of show debug to customize display
+	 */
+	UFUNCTION(exec)
+	void ShowDebugToggleSubCategory(FName Category);
 
 	UFUNCTION(reliable, client, SealedEvent)
 	void AddDebugText(const FString& DebugText, class AActor* SrcActor = NULL, float Duration = 0, FVector Offset = FVector(ForceInit), FVector DesiredOffset = FVector(ForceInit), FColor TextColor = FColor(ForceInit), bool bSkipOverwriteCheck = false, bool bAbsoluteLocation = false, bool bKeepAttachedToActor = false, class UFont* InFont = NULL, float FontScale = 1.0);

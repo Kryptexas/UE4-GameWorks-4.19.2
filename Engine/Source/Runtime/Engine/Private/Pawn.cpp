@@ -14,6 +14,7 @@
 #include "EngineKismetLibraryClasses.h"
 #include "ParticleDefinitions.h"
 #include "EngineComponentClasses.h"
+#include "DisplayDebugHelpers.h"
 
 DEFINE_LOG_CATEGORY(LogDamage);
 DEFINE_LOG_CATEGORY_STATIC(LogPawn, Warning, All);
@@ -649,7 +650,7 @@ FString APawn::GetHumanReadableName() const
 }
 
 
-void APawn::DisplayDebug(class UCanvas* Canvas, const TArray<FName>& DebugDisplay, float& YL, float& YPos)
+void APawn::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
 {
 // 	for (FTouchingComponentsMap::TIterator It(TouchingComponents); It; ++It)
 // 	{
@@ -678,7 +679,7 @@ void APawn::DisplayDebug(class UCanvas* Canvas, const TArray<FName>& DebugDispla
 	Canvas->SetDrawColor(255,255,255);
 
 
-	if (DebugDisplay.Contains(NAME_Camera))
+	if (DebugDisplay.IsDisplayOn(NAME_Camera))
 	{
 		Canvas->DrawText(RenderFont, FString::Printf(TEXT("BaseEyeHeight %f"), BaseEyeHeight), 4.0f, YPos);
 		YPos += YL;

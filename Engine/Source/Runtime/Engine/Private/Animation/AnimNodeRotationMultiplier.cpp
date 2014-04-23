@@ -10,6 +10,18 @@ FAnimNode_RotationMultiplier::FAnimNode_RotationMultiplier()
 {
 }
 
+void FAnimNode_RotationMultiplier::GatherDebugData(FNodeDebugData& DebugData)
+{
+	FString DebugLine = DebugData.GetNodeName(this);
+
+	DebugLine += "(";
+	AddDebugNodeData(DebugLine);
+	DebugLine += FString::Printf(TEXT(" Src: %s Dst: %s Multiplier: %.2f)"), *SourceBone.BoneName.ToString(), *TargetBone.BoneName.ToString(), Multiplier);
+	DebugData.AddDebugItem(DebugLine);
+
+	ComponentPose.GatherDebugData(DebugData);
+}
+
 FVector GetAxisVector(const EBoneAxis Axis)
 {
 	switch (Axis)

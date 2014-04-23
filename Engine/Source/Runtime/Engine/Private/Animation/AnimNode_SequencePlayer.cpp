@@ -64,3 +64,11 @@ void FAnimNode_SequencePlayer::OverrideAsset(UAnimationAsset* NewAsset)
 		Sequence = AnimSequence;
 	}
 }
+
+void FAnimNode_SequencePlayer::GatherDebugData(FNodeDebugData& DebugData)
+{
+	FString DebugLine = DebugData.GetNodeName(this);
+	
+	DebugLine += FString::Printf(TEXT("('%s' Play Time: %.3f)"), *Sequence->GetName(), InternalTimeAccumulator);
+	DebugData.AddDebugItem(DebugLine, true);
+}

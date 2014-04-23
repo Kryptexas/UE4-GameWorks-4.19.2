@@ -965,7 +965,7 @@ public:
 	virtual float GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, APlayerController* Viewer, UActorChannel* InChannel, float Time, bool bLowBandwidth) OVERRIDE;
 	virtual class UPlayer* GetNetOwningPlayer() OVERRIDE;
 	virtual class UNetConnection* GetNetConnection() OVERRIDE;
-	virtual void DisplayDebug(class UCanvas* Canvas, const TArray<FName>& DebugDisplay, float& YL, float& YPos) OVERRIDE;
+	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) OVERRIDE;
 	virtual void PostInitializeComponents() OVERRIDE;
 	virtual void EnableInput(class APlayerController* PlayerController) OVERRIDE;
 	virtual void DisableInput(class APlayerController* PlayerController) OVERRIDE;

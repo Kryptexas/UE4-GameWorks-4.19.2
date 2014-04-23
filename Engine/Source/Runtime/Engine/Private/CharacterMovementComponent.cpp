@@ -4288,7 +4288,7 @@ FString UCharacterMovementComponent::GetMovementName()
 	return TEXT("Unknown");
 }
 
-void UCharacterMovementComponent::DisplayDebug(UCanvas* Canvas, const TArray<FName>& DebugDisplay, float& YL, float& YPos)
+void UCharacterMovementComponent::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
 {
 	if ( CharacterOwner == NULL )
 	{

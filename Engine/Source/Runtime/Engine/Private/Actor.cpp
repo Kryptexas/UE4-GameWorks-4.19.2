@@ -9,6 +9,7 @@
 #include "LatentActions.h"
 #include "MessageLog.h"
 #include "Net/UnrealNetwork.h"
+#include "DisplayDebugHelpers.h"
 
 //DEFINE_LOG_CATEGORY_STATIC(LogActor, Log, All);
 DEFINE_LOG_CATEGORY(LogActor);
@@ -1712,7 +1713,7 @@ FString AActor::GetHumanReadableName() const
 	return GetName();
 }
 
-void AActor::DisplayDebug(UCanvas* Canvas, const TArray<FName>& DebugDisplay, float& YL, float& YPos)
+void AActor::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
 {
 	Canvas->SetDrawColor(255,0,0);
 
@@ -1730,7 +1731,7 @@ void AActor::DisplayDebug(UCanvas* Canvas, const TArray<FName>& DebugDisplay, fl
 
 	Canvas->SetDrawColor(255,255,255);
 
-	if( DebugDisplay.Contains(TEXT("net")) )
+	if( DebugDisplay.IsDisplayOn(TEXT("net")) )
 	{
 		if( GetNetMode() != NM_Standalone )
 		{
@@ -1749,13 +1750,13 @@ void AActor::DisplayDebug(UCanvas* Canvas, const TArray<FName>& DebugDisplay, fl
 	Canvas->DrawText(RenderFont, FString::Printf(TEXT("Location: %s Rotation: %s"), *GetActorLocation().ToString(), *GetActorRotation().ToString()), 4.0f, YPos);
 	YPos += YL;
 
-	if( DebugDisplay.Contains(TEXT("physics")) )
+	if( DebugDisplay.IsDisplayOn(TEXT("physics")) )
 	{
 		Canvas->DrawText(RenderFont,FString::Printf(TEXT("Velocity: %s Speed: %f Speed2D: %f"), *GetVelocity().ToString(), GetVelocity().Size(), GetVelocity().Size2D()), 4.0f, YPos);
 		YPos += YL;
 	}
 
-	if( DebugDisplay.Contains(TEXT("collision")) )
+	if( DebugDisplay.IsDisplayOn(TEXT("collision")) )
 	{
 		Canvas->DrawColor.B = 0;
 		float MyRadius, MyHeight;
@@ -1795,6 +1796,36 @@ void AActor::DisplayDebug(UCanvas* Canvas, const TArray<FName>& DebugDisplay, fl
 	Canvas->DrawText( RenderFont,FString::Printf(TEXT(" Instigator: %s Owner: %s"), (Instigator ? *Instigator->GetName() : TEXT("None")),
 		(Owner ? *Owner->GetName() : TEXT("None"))), 4,YPos);
 	YPos += YL;
+
+	static FName NAME_Animation(TEXT("Animation"));
+	static FName NAME_Bones = FName(TEXT("Bones"));
+	if (DebugDisplay.IsDisplayOn(NAME_Animation) || DebugDisplay.IsDisplayOn(NAME_Bones))
+	{
+		TArray<USkeletalMeshComponent*> Components;
+		GetComponents(Components);
+
+		if (DebugDisplay.IsDisplayOn(NAME_Animation))
+		{
+			for (USkeletalMeshComponent* Comp : Components)
+			{
+				UAnimInstance* AnimInstance = Comp->GetAnimInstance();
+				if (AnimInstance)
+				{
+					AnimInstance->DisplayDebug(Canvas, DebugDisplay, YL, YPos);
+				}
+			}
+		}
+
+		static FName NAME_3DBones = FName(TEXT("3DBones"));
+		if (DebugDisplay.IsDisplayOn(NAME_Bones))
+		{
+			bool bSimpleBones = !DebugDisplay.IsCategoryToggledOn(NAME_3DBones, false);
+			for (USkeletalMeshComponent* Comp : Components)
+			{
+				Comp->DebugDrawBones(Canvas, bSimpleBones);
+			}
+		}
+	}
 }
 
 void AActor::OutsideWorldBounds()

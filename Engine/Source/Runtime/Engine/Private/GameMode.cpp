@@ -998,7 +998,7 @@ APlayerController* AGameMode::Login(const FString& Portal, const FString& Option
 }
 
 
-void AGameMode::DisplayDebug(UCanvas* Canvas, const TArray<FName>& DebugDisplay, float& YL, float& YPos)
+void AGameMode::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
 {
 	Canvas->SetDrawColor(255,255,255);
 }

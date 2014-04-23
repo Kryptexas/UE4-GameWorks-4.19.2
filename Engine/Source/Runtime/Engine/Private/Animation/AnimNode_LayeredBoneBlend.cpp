@@ -108,3 +108,20 @@ void FAnimNode_LayeredBoneBlend::Evaluate(FPoseContext& Output)
 		FAnimationRuntime::BlendPosesPerBoneFilter(BasePoseContext.Pose, TargetBlendPoses, Output.Pose, CurrentBoneBlendWeights, bMeshSpaceRotationBlend, Output.AnimInstance->RequiredBones, Output.AnimInstance->CurrentSkeleton);
 	}
 }
+
+
+void FAnimNode_LayeredBoneBlend::GatherDebugData(FNodeDebugData& DebugData)
+{
+	const int NumPoses = BlendPoses.Num();
+
+	FString DebugLine = DebugData.GetNodeName(this);
+	DebugLine += FString::Printf(TEXT("(Num Poses: %i)"), NumPoses);
+	DebugData.AddDebugItem(DebugLine);
+
+	BasePose.GatherDebugData(DebugData.BranchFlow(1.f));
+	
+	for (int32 ChildIndex = 0; ChildIndex < NumPoses; ++ChildIndex)
+	{
+		BlendPoses[ChildIndex].GatherDebugData(DebugData.BranchFlow(BlendWeights[ChildIndex]));
+	}
+}

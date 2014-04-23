@@ -175,7 +175,67 @@ public:
 	bool IsNormalized() const;
 };
 
+struct FNodeDebugData
+{
+private:
+	struct DebugItem
+	{
+		DebugItem(FString Data, bool bPoseSource) : DebugData(Data), bPoseSource(bPoseSource) {}
+		
+		// This node items debug text to display
+		FString DebugData;
 
+		// Whether we are supplying a pose instead of modifying one (e.g. an playing animation)
+		bool	bPoseSource;
+
+		// Nodes that we are connected to
+		TArray<FNodeDebugData> ChildNodeChain;
+	};
+
+	// This nodes final contribution weight (based on its own weight and the weight of its parents)
+	float			AbsoluteWeight;
+
+	// Nodes that we are dependent on
+	TArray<DebugItem> NodeChain;
+
+public:
+	struct FFlattenedDebugData
+	{
+		FFlattenedDebugData(FString Line, float AbsWeight, int32 Indent, int32 ChainID, bool bPoseSource) : DebugLine(Line), AbsoluteWeight(AbsWeight), Indent(Indent), ChainID(ChainID), bPoseSource(bPoseSource){}
+		FString DebugLine;
+		float	AbsoluteWeight;
+		int32	Indent;
+		int32	ChainID;
+		bool	bPoseSource;
+
+		bool IsOnActiveBranch() { return AbsoluteWeight > ZERO_ANIMWEIGHT_THRESH; }
+	};
+
+	FNodeDebugData(const class UAnimInstance* AnimInstance) : AnimInstance(AnimInstance), AbsoluteWeight(1.f) {}
+	FNodeDebugData(const class UAnimInstance* AnimInstance, float AbsWeight) : AnimInstance(AnimInstance), AbsoluteWeight(AbsWeight) {}
+
+	void			AddDebugItem(FString DebugData, bool bPoseSource = false);
+	FNodeDebugData&	BranchFlow(float BranchWeight);
+
+	template<class Type>
+	FString GetNodeName(Type* Node)
+	{
+		return FString::Printf(TEXT("%s<W:%.1f%%>"), *Node->StaticStruct()->GetName(), AbsoluteWeight*100.f);
+	}
+
+	void GetFlattenedDebugData(TArray<FFlattenedDebugData>& FlattenedDebugData, int32 Indent, int32& ChainID);
+
+	TArray<FFlattenedDebugData> GetFlattenedDebugData()
+	{
+		TArray<FFlattenedDebugData> Data;
+		int32 ChainID = 0;
+		GetFlattenedDebugData(Data, 0, ChainID);
+		return Data;
+	}
+
+	// Anim instance that we are generating debug data for
+	const class UAnimInstance* AnimInstance;
+};
 
 // The display mode of editable values on an animation node
 UENUM()
@@ -235,6 +295,7 @@ public:
 	void Initialize(const FAnimationInitializeContext& Context);
 	void CacheBones(const FAnimationCacheBonesContext & Context) ;
 	void Update(const FAnimationUpdateContext& Context);
+	void GatherDebugData(FNodeDebugData& DebugData);
 
 	// Try to re-establish the linked node pointer
 	void AttemptRelink(const FAnimationBaseContext& Context);
@@ -285,7 +346,6 @@ struct FExposedValueHandler
 	}
 };
 
-
 // To create a new animation node:
 //   Create a struct derived from FAnimNode_Base - this is your runtime node
 //   Create a class derived from UAnimGraphNode_Base, containing an instance of your runtime as a member - this is your visual/editor-only node
@@ -311,5 +371,10 @@ struct ENGINE_API FAnimNode_Base
 
 	// If a derived anim node should respond to asset overrides, OverrideAsset should be defined to handle changing the asset
 	virtual void OverrideAsset(UAnimationAsset* NewAsset) {}
+
+	virtual void GatherDebugData(FNodeDebugData& DebugData)
+	{ 
+		DebugData.AddDebugItem(TEXT("Non Overriden GatherDebugData")); 
+	}
 	// End of interface to implement
 };

@@ -60,3 +60,12 @@ void FAnimNode_SaveCachedPose::Evaluate(FPoseContext& Output)
 	// Return the cached result
 	Output.AnimInstance->CopyPose(CachedPose, Output.Pose);
 }
+
+
+void FAnimNode_SaveCachedPose::GatherDebugData(FNodeDebugData& DebugData)
+{
+	FString DebugLine = DebugData.GetNodeName(this);
+	DebugData.AddDebugItem(DebugLine);
+
+	Pose.GatherDebugData(DebugData);
+}

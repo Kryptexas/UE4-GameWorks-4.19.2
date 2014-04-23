@@ -243,7 +243,7 @@ public:
 	virtual void PreInitializeComponents() OVERRIDE;
 	/** This sets the match state to WaitingToStart unless we're in seamless travel */
 	virtual void PostInitializeComponents() OVERRIDE; 
-	virtual void DisplayDebug(class UCanvas* Canvas, const TArray<FName>& DebugDisplay, float& YL, float& YPos) OVERRIDE;
+	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) OVERRIDE;
 	virtual void Reset() OVERRIDE;
 	virtual void Tick(float DeltaSeconds) OVERRIDE;
 	// End AActor interface

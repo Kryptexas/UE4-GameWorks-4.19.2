@@ -410,6 +410,9 @@ public:
 	// @return true if this function is implemented, false otherwise.
 	// Note: the node graph will not be evaluated if this function returns true
 	virtual bool NativeEvaluateAnimation(FPoseContext& Output);
+
+	// Debug output for this anim instance 
+	void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos);
 public:
 
 	/** Temporary array of bone indices required this frame. Should be subset of Skeleton and Mesh's RequiredBones */
@@ -502,6 +505,9 @@ public:
 	/** Get Current Active Montage in this AnimInstance **/
 	UAnimMontage * GetCurrentActiveMontage();
 
+	/** Get Currently active montage instace **/
+	FAnimMontageInstance* GetActiveMontageInstance();
+
 protected:
 	/** Update weight of montages  **/
 	virtual void Montage_UpdateWeight(float DeltaSeconds);
@@ -509,8 +515,6 @@ protected:
 	virtual void Montage_Advance(float DeltaSeconds);
 	/** Stop all montages that are active **/
 	void StopAllMontages(float BlendOut);
-	/** Get Currently active montage instace **/
-	FAnimMontageInstance* GetActiveMontageInstance();
 	/** Called by blueprint functions that modify the montages current position. */
 	void OnMontagePositionChanged(FAnimMontageInstance* MontageInstance, FName ToSectionName);
 

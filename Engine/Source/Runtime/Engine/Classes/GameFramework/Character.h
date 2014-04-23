@@ -252,7 +252,7 @@ public:
 	virtual void PawnClientRestart() OVERRIDE;
 	virtual void UnPossessed() OVERRIDE;
 	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) OVERRIDE;
-	virtual void DisplayDebug(class UCanvas* Canvas, const TArray<FName>& DebugDisplay, float& YL, float& YPos) OVERRIDE;
+	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) OVERRIDE;
 	virtual void RecalculateBaseEyeHeight() OVERRIDE;
 	// End APawn Interface
 

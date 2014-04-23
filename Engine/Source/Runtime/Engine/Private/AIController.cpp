@@ -4,7 +4,7 @@
 #include "NavigationPathBuilder.h"
 #include "VisualLog.h"
 #include "../Classes/Kismet/GameplayStatics.h"
-
+#include "DisplayDebugHelpers.h"
 
 bool AAIController::bAIIgnorePlayers = false;
 
@@ -53,12 +53,12 @@ void AAIController::Reset()
 	}
 }
 
-void AAIController::DisplayDebug(class UCanvas* Canvas, const TArray<FName>& DebugDisplay, float& YL, float& YPos)
+void AAIController::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
 {
 	Super::DisplayDebug(Canvas, DebugDisplay, YL, YPos);
 
 	static FName NAME_AI = FName(TEXT("AI"));
-	if (DebugDisplay.Contains(NAME_AI))
+	if (DebugDisplay.IsDisplayOn(NAME_AI))
 	{
 		if (PathFollowingComponent)
 		{

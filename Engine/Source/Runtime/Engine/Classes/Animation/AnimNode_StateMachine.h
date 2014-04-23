@@ -163,6 +163,7 @@ public:
 	virtual void CacheBones(const FAnimationCacheBonesContext & Context) OVERRIDE;
 	virtual void Update(const FAnimationUpdateContext& Context) OVERRIDE;
 	virtual void Evaluate(FPoseContext& Output) OVERRIDE;
+	virtual void GatherDebugData(FNodeDebugData& DebugData) OVERRIDE;
 	// End of FAnimNode_Base interface
 
 	// Returns the blend weight of the specified state, as calculated by the last call to Update()

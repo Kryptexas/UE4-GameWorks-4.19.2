@@ -40,6 +40,10 @@ struct ENGINE_API FAnimNode_RotationMultiplier : public FAnimNode_SkeletalContro
 
 	FAnimNode_RotationMultiplier();
 
+	// FAnimNode_Base interface
+	virtual void GatherDebugData(FNodeDebugData& DebugData) OVERRIDE;
+	// End of FAnimNode_Base interface
+
 	// FAnimNode_SkeletalControlBase interface
 	virtual void EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, const FBoneContainer & RequiredBones, FA2CSPose& MeshBases, TArray<FBoneTransform>& OutBoneTransforms) OVERRIDE;
 	virtual bool IsValidToEvaluate(const USkeleton * Skeleton, const FBoneContainer & RequiredBones) OVERRIDE;

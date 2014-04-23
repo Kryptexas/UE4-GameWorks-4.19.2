@@ -428,7 +428,7 @@ public:
 	virtual bool ShouldTickIfViewportsOnly() const OVERRIDE;
 	virtual void PostInitializeComponents() OVERRIDE;
 	virtual void Destroyed() OVERRIDE;
-	virtual void DisplayDebug(class UCanvas* Canvas, const TArray<FName>& DebugDisplay, float& YL, float& YPos) OVERRIDE;
+	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) OVERRIDE;
 	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) OVERRIDE;
 	// End AActor Interface
 
