@@ -832,6 +832,14 @@ void FFriendsAndChatManager::OnSendInviteComplete( int32 LocalPlayer, bool bWasS
 void FFriendsAndChatManager::OnReadFriendsComplete( int32 LocalPlayer, bool bWasSuccessful, const FString& ListName, const FString& ErrorStr )
 {
 	TArray< TSharedRef<FOnlineFriend> > Friends;
+
+	if (ReadListRequests.Num() == 0)
+	{
+		// We got a request back when we weren't expecting it
+		UE_LOG(LogOnline, Warning, TEXT("Got ReadFriends response for list %s at unexpected time"), *ListName);
+		return;
+	}
+
 	FriendsInterface->GetFriendsList( 0, ListName, Friends );
 	
 	if ( Friends.Num() > 0 )
@@ -882,6 +890,13 @@ void FFriendsAndChatManager::OnQueryUserInfoComplete( int32 LocalPlayer, bool bW
 	IOnlineUserPtr UserInterface = OnlineSubMcp->GetUserInterface();
 
 	OnlineSubMcp->GetUserInterface()->ClearOnQueryUserInfoCompleteDelegate(0, OnQueryUserInfoCompleteDelegate);
+
+	if (ReadListRequests.Num() == 0)
+	{
+		// We got a request back when we weren't expecting it
+		UE_LOG(LogOnline, Warning, TEXT("Got QueryUserInfo response for player %i at unexpected time"), LocalPlayer);
+		return;
+	}
 
 	EFriendsDisplayLists::Type DisplayList = EFriendsDisplayLists::DefaultDisplay;
 	if ( ReadListRequests[0] != EFriendsLists::Default )
