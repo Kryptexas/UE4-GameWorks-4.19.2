@@ -359,7 +359,7 @@ FWaveInstance* USoundWave::HandleStart( FActiveSound& ActiveSound, const UPTRINT
 	// Create a new wave instance and associate with the ActiveSound
 	FWaveInstance* WaveInstance = new FWaveInstance( &ActiveSound );
 	WaveInstance->WaveInstanceHash = WaveInstanceHash;
-	ActiveSound.WaveInstances.Add( WaveInstance );
+	ActiveSound.WaveInstances.Add( WaveInstanceHash, WaveInstance );
 
 	// Add in the subtitle if they exist
 	if (ActiveSound.bHandleSubtitles && Subtitles.Num() > 0)
@@ -400,7 +400,7 @@ void USoundWave::FinishDestroy()
 
 void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances )
 {
-	FWaveInstance* WaveInstance = ActiveSound.FindWaveInstance( this, NodeWaveInstanceHash);
+	FWaveInstance* WaveInstance = ActiveSound.FindWaveInstance(NodeWaveInstanceHash);
 
 	// Create a new WaveInstance if this SoundWave doesn't already have one associated with it.
 	if( WaveInstance == NULL )

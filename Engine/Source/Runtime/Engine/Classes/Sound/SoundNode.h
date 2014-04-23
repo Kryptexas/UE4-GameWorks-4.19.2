@@ -168,5 +168,11 @@ public:
 		checkf(ChildIndex < MAX_ALLOWED_CHILD_NODES, TEXT("Too many children (%d) in SoundCue '%s'"), ChildIndex, *CastChecked<USoundCue>(ChildNode->GetOuter())->GetFullName());
 		return ((ParentWaveInstanceHash << ChildIndex) ^ (UPTRINT)ChildNode);
 	}
+
+	static FORCEINLINE UPTRINT GetNodeWaveInstanceHash(const UPTRINT ParentWaveInstanceHash, const UPTRINT ChildNodeHash, const uint32 ChildIndex)
+	{
+		checkf(ChildIndex < MAX_ALLOWED_CHILD_NODES, TEXT("Too many children (%d) in SoundCue"), ChildIndex);
+		return ((ParentWaveInstanceHash << ChildIndex) ^ ChildNodeHash);
+	}
 };
 

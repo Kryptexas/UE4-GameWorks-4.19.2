@@ -75,7 +75,7 @@ bool USoundNodeLooping::NotifyWaveInstanceFinished( FWaveInstance* InWaveInstanc
 		}
 		else if (ResetNode->IsA<USoundNodeWavePlayer>())
 		{
-			FWaveInstance* WaveInstance = ActiveSound->FindWaveInstance(CastChecked<USoundNodeWavePlayer>(ResetNode)->SoundWave, NodeHashPair.NodeWaveInstanceHash);
+			FWaveInstance* WaveInstance = ActiveSound->FindWaveInstance(NodeHashPair.NodeWaveInstanceHash);
 			if (WaveInstance)
 			{
 				WaveInstance->bAlreadyNotifiedHook = true;

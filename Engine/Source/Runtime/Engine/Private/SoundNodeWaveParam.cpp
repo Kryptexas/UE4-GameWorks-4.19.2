@@ -24,7 +24,7 @@ void USoundNodeWaveParam::ParseNodes( FAudioDevice* AudioDevice, const UPTRINT N
 	ActiveSound.GetWaveParameter( WaveParameterName, NewWave );
 	if( NewWave != NULL )
 	{
-		NewWave->Parse( AudioDevice, NodeWaveInstanceHash, ActiveSound, ParseParams, WaveInstances );
+		NewWave->Parse( AudioDevice, GetNodeWaveInstanceHash(NodeWaveInstanceHash, (UPTRINT)NewWave, 0), ActiveSound, ParseParams, WaveInstances );
 	}
 	else
 	{

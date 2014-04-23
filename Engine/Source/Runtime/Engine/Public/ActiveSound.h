@@ -115,7 +115,7 @@ public:
 	float CurrentInteriorVolume;
 	float CurrentInteriorLPF;
 
-	TArray<struct FWaveInstance*> WaveInstances;
+	TMap<UPTRINT, struct FWaveInstance*> WaveInstances;
 
 	TMap<UPTRINT,uint32> SoundNodeOffsetMap;
 	TArray<uint8> SoundNodeData;
@@ -130,7 +130,7 @@ public:
 	/** 
 	 * Find an existing waveinstance attached to this audio component (if any)
 	 */
-	FWaveInstance* FindWaveInstance( const USoundWave* SoundWave, const UPTRINT WaveInstanceHash );
+	FWaveInstance* FindWaveInstance(const UPTRINT WaveInstanceHash);
 
 	/** 
 	 * Check whether to apply the radio filter
