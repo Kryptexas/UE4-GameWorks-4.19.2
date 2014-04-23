@@ -1360,7 +1360,7 @@ static FString CreateCommandLineHLSLCC( const FString& ShaderFile, const FString
  * @param Input - The input shader code and environment.
  * @param Output - Contains shader compilation results upon return.
  */
-void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompilerOutput& Output,const FString& WorkingDirectory, GLSLVersion Version, bool bCompileMicrocode)
+void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompilerOutput& Output,const FString& WorkingDirectory, GLSLVersion Version)
 {
 	FString PreprocessedShader;
 	FShaderCompilerDefinitions AdditionalDefines;
@@ -1530,27 +1530,24 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 				}
 			}
 
-			if (bCompileMicrocode)
+#if VALIDATE_GLSL_WITH_DRIVER
+			PrecompileShader(Output, Input, GlslShaderSource, Version, Frequency);
+			if (Output.bSucceeded == false)
 			{
-				PrecompileShader(Output, Input, GlslShaderSource, Version, Frequency);
-				if (Output.bSucceeded == false)
-				{
 #if DUMP_HLSCLCC_SHADERS
-					DumpFile.SetFilename( *DumpGLSL);
-					for(int i = 0; i < Output.Errors.Num(); ++i)
-					{
-						DumpFile.Logf(TEXT("%s"), *Output.Errors[i].GetErrorString());
-					}
-					DumpFile.Flush();
-#endif
+				DumpFile.SetFilename( *DumpGLSL);
+				for(int i = 0; i < Output.Errors.Num(); ++i)
+				{
+					DumpFile.Logf(TEXT("%s"), *Output.Errors[i].GetErrorString());
 				}
+				DumpFile.Flush();
+#endif
 			}
-			else
-			{
-				int32 SourceLen = FCStringAnsi::Strlen(GlslShaderSource);
-				Output.Target = Input.Target;
-				BuildShaderOutput(Output, GlslShaderSource, SourceLen, Version);
-			}
+#else // VALIDATE_GLSL_WITH_DRIVER
+			int32 SourceLen = FCStringAnsi::Strlen(GlslShaderSource);
+			Output.Target = Input.Target;
+			BuildShaderOutput(Output, GlslShaderSource, SourceLen, Version);
+#endif // VALIDATE_GLSL_WITH_DRIVER
 		}
 		else
 		{

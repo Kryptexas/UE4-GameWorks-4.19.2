@@ -13,4 +13,4 @@ enum GLSLVersion
 	GLSL_150_MAC, // Apple only
 };
 
-extern void CompileShader_Windows_OGL(const struct FShaderCompilerInput& Input,struct FShaderCompilerOutput& Output,const class FString& WorkingDirectory, GLSLVersion Version, bool bCompileMicrocode = true);
+extern void CompileShader_Windows_OGL(const struct FShaderCompilerInput& Input,struct FShaderCompilerOutput& Output,const class FString& WorkingDirectory, GLSLVersion Version);
