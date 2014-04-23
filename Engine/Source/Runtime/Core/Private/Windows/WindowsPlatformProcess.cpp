@@ -517,6 +517,11 @@ bool FWindowsPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params
 	}
 	else
 	{
+		// if CreateProcess failed, we should return a useful error code, which GetLastError will have
+		if (OutReturnCode)
+		{
+			*OutReturnCode = GetLastError();
+		}
 		if (bRedirectOutput)
 		{
 			for (int32 PipeIndex = 0; PipeIndex < MaxPipeCount; ++PipeIndex)
