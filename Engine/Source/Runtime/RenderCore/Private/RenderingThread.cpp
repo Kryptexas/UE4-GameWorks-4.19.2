@@ -23,7 +23,7 @@ RENDERCORE_API bool GUseThreadedRendering = false;
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	RENDERCORE_API bool GMainThreadBlockedOnRenderThread = false;
 #endif // #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-
+	
 static FRunnable* GRenderingThreadRunnable = NULL;
 
 /** If the rendering thread has been terminated by an unhandled exception, this contains the error message. */
@@ -311,6 +311,12 @@ public:
 	virtual uint32 Run(void)
 	{
 		GRenderThreadId = FPlatformTLS::GetCurrentThreadId();
+
+#if PLATFORM_ANDROID
+		//@TODO: This should be using the affinitymask in FRunnableThread::Create() and tested on all platforms.
+		uint64 RenderThreadAffinityMask = AffinityManagerGetAffinity( TEXT("RenderingThread 0"));
+		FPlatformProcess::SetThreadAffinityMask( RenderThreadAffinityMask );
+#endif
 
 #if PLATFORM_WINDOWS
 		if ( !FPlatformMisc::IsDebuggerPresent() || GAlwaysReportCrash )

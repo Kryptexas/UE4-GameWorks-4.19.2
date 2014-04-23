@@ -243,6 +243,9 @@ static void* AndroidEventThreadWorker( void* param )
 {
 	struct android_app* state = (struct android_app*)param;
 
+	uint64 GameThreadAffinity = AffinityManagerGetAffinity( TEXT("MainGame"));
+	FPlatformProcess::SetThreadAffinityMask( GameThreadAffinity );
+
 	FPlatformMisc::LowLevelOutputDebugString(L"Entering event processing thread engine entry point");
 
 	ALooper* looper = ALooper_prepare(ALOOPER_PREPARE_ALLOW_NON_CALLBACKS);

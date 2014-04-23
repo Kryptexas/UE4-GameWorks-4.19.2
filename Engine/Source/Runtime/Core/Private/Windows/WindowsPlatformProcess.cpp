@@ -367,6 +367,11 @@ uint32 FWindowsPlatformProcess::GetCurrentProcessId()
 	return ::GetCurrentProcessId();
 }
 
+void FWindowsPlatformProcess::SetThreadAffinityMask( uint64 AffinityMask )
+{
+	::SetThreadAffinityMask(::GetCurrentThread(), (DWORD_PTR)AffinityMask);
+}
+
 bool FWindowsPlatformProcess::GetProcReturnCode( FProcHandle & ProcHandle, int32* ReturnCode )
 {
 	return ::GetExitCodeProcess( ProcHandle.Get(), (::DWORD *)ReturnCode ) && *((uint32*)ReturnCode) != ProcessConstants::WIN_STILL_ACTIVE;

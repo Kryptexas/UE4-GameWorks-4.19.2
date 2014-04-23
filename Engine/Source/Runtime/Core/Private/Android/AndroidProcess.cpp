@@ -7,9 +7,20 @@
 #include "CorePrivate.h"
 #include "AndroidPlatformRunnableThread.h"
 
+#include <sys/syscall.h>
+#include <pthread.h>
+
+
 const TCHAR* FAndroidPlatformProcess::ComputerName()
 {
 	return TEXT("Android Device"); 
+}
+
+void FAndroidPlatformProcess::SetThreadAffinityMask( uint64 InAffinityMask )
+{
+	pid_t ThreadId = gettid();
+	int AffinityMask = (int)InAffinityMask;
+	syscall(__NR_sched_setaffinity, ThreadId, sizeof(AffinityMask), &AffinityMask);
 }
 
 const TCHAR* FAndroidPlatformProcess::BaseDir()

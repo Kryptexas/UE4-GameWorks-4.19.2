@@ -2,6 +2,8 @@
 
 #include "CorePrivate.h"
 
+//@TODO: All this should be moved into platform-specific FPlatformProcess. All platform #ifdef can then be removed.
+
 #define MAXAFFINITYMANAGERTHREADS (32)
 
 #define		MAKEAFFINITYMASK1(x) (1<<x)
@@ -54,7 +56,7 @@ uint64 AffinityManagerGetAffinity( const TCHAR* ThreadName )
 {
 	if( !GIsEditor )
 	{
-#if PLATFORM_XBOXONE
+#if PLATFORM_XBOXONE || PLATFORM_ANDROID
 		for( int i = 0; i < MAXAFFINITYMANAGERTHREADS; i++ )
 		{
 			if( gAffinityData[i].name )

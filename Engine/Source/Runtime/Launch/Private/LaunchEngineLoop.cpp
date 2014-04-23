@@ -612,9 +612,14 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		UE_LOG(LogInit, Log, TEXT("Process affinity %ld System affinity %ld."), dwProcessAffinity , dwSystemAffinity);
 	}
 	uint64 GameThreadAffinity = AffinityManagerGetAffinity( TEXT("MainGame"));
-	::SetThreadAffinityMask(::GetCurrentThread(), (DWORD_PTR)GameThreadAffinity);
+	FPlatformProcess::SetThreadAffinityMask( GameThreadAffinity );
 	UE_LOG(LogInit, Log, TEXT("Runnable thread Main Thread is on Process %d."), static_cast<uint32>(::GetCurrentProcessorNumber()) );	
 #endif // PLATFORM_XBOXONE
+
+#if PLATFORM_ANDROID
+	uint64 GameThreadAffinity = AffinityManagerGetAffinity( TEXT("MainGame"));
+	FPlatformProcess::SetThreadAffinityMask( GameThreadAffinity );
+#endif
 
 	// Figure out whether we're the editor, ucc or the game.
 	const SIZE_T CommandLineSize = FCString::Strlen(CmdLine)+1;
