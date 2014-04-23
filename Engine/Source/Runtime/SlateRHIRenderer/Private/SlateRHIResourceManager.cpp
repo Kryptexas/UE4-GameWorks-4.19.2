@@ -16,6 +16,7 @@ FSlateRHIResourceManager::FDynamicTextureResource::FDynamicTextureResource( FSla
 	, Proxy( new FSlateShaderResourceProxy )
 	, RHIRefTexture( ExistingTexture != NULL ? ExistingTexture : new FSlateTexture2DRHIRef(NULL,0,0) )
 {
+	Proxy->Resource = RHIRefTexture;
 }
 
 FSlateRHIResourceManager::FDynamicTextureResource::~FDynamicTextureResource()
@@ -392,8 +393,6 @@ TSharedRef< FSlateRHIResourceManager::FDynamicTextureResource > FSlateRHIResourc
 			TextureResource->RHIRefTexture->SetTextureData( InNewTextureData, PF_B8G8R8A8, TexCreate_SRGB );
 
 		}
-
-		TextureResource->Proxy->Resource = TextureResource->RHIRefTexture;
 
 		// Initialize and link the rendering resource
 		TextureResource->RHIRefTexture->InitResource();
