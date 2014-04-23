@@ -50,19 +50,7 @@ public:
 	/**
 	 * Default destructor
 	 */
-	virtual ~FOnlineAchievementsIOS(){}
-
-
-private:
-
-	/**
-	 * Convert the name of the achievement to one which is valid with game center. I.e. grp.InAchievementName
-	 *
-	 * @param InAchievementName - The name we will check matches the game center requirements
-	 *
-	 * @return The name in a game center compatible format.
-	 */
-	FString NormalizeAchievementName( const FString& InAchievementName );
+	virtual ~FOnlineAchievementsIOS() {}
 };
 
 typedef TSharedPtr<FOnlineAchievementsIOS, ESPMode::ThreadSafe> FOnlineAchievementsIOSPtr;
