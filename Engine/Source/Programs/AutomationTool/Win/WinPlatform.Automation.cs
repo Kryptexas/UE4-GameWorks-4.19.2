@@ -98,6 +98,8 @@ public abstract class BaseWinPlatform : Platform
         // Copy the splash screen, windows specific
         SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Content/Splash"), "Splash.bmp", false, null, null, true);
 
+		SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Content/Localization"), "*.dat", true, null, null, false, !Params.Pak);
+
 		List<string> Exes = GetExecutableNames(SC);
 
         // the first exe is the "main" one, the rest are marked as debug files
