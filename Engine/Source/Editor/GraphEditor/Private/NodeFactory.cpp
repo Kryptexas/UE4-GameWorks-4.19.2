@@ -253,6 +253,10 @@ TSharedPtr<SGraphPin> FNodeFactory::CreatePinWidget(UEdGraphPin* InPin)
 		{
 			return SNew(SGraphPinObject, InPin);
 		}
+		else if (InPin->PinType.PinCategory == K2Schema->PC_Interface)
+		{
+			return SNew(SGraphPinObject, InPin);
+		}
 		else if (InPin->PinType.PinCategory == K2Schema->PC_Class)
 		{
 			return SNew(SGraphPinClass, InPin);

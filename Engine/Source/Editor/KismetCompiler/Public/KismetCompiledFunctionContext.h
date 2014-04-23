@@ -170,7 +170,7 @@ public:
 	/** Returns a UStruct scope corresponding to the pin type passed in, if one exists */
 	UStruct* GetScopeFromPinType(FEdGraphPinType& Type, UClass* SelfClass)
 	{
-		if ((Type.PinCategory == Schema->PC_Object) || (Type.PinCategory == Schema->PC_Class))
+		if ((Type.PinCategory == Schema->PC_Object) || (Type.PinCategory == Schema->PC_Class) || (Type.PinCategory == Schema->PC_Interface))
 		{
 			UClass* SubType = (Type.PinSubCategory == Schema->PSC_Self) ? SelfClass : Cast<UClass>(Type.PinSubCategoryObject.Get());
 			return SubType;

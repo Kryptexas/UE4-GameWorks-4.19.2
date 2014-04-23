@@ -252,6 +252,14 @@ void UK2Node::PostReconstructNode()
 						}
 					}
 				}
+				else if (PinCategory == Schema->PC_Object)
+				{
+					UClass const* PinClass = Cast<UClass const>(CurrentPin->PinType.PinSubCategoryObject.Get());
+					if ((PinClass != nullptr) && PinClass->IsChildOf(UInterface::StaticClass()))
+					{
+						CurrentPin->PinType.PinCategory = Schema->PC_Interface;
+					}
+				}
 			}
 		}
 	}

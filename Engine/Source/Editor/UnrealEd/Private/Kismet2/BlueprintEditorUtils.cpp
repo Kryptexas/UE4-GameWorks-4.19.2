@@ -2734,7 +2734,7 @@ bool FBlueprintEditorUtils::AddMemberVariable(UBlueprint* Blueprint, const FName
 	{
 		NewVar.PropertyFlags |= CPF_BlueprintAssignable | CPF_BlueprintCallable;
 	}
-	else if (NewVarType.PinCategory == K2Schema->PC_Object)
+	else if ((NewVarType.PinCategory == K2Schema->PC_Object) || (NewVarType.PinCategory == K2Schema->PC_Interface))
 	{
 		// if it's a PC_Object, then it should have an associated UClass object
 		check(NewVarType.PinSubCategoryObject.IsValid());
@@ -2955,7 +2955,7 @@ void FBlueprintEditorUtils::ChangeMemberVariableType(UBlueprint* Blueprint, cons
 				// Destroy all our nodes, because the pin types could be incorrect now (as will the links)
 				RemoveVariableNodes(Blueprint, VariableName);
 
-				if (NewPinType.PinCategory == K2Schema->PC_Object)
+				if ((NewPinType.PinCategory == K2Schema->PC_Object) || (NewPinType.PinCategory == K2Schema->PC_Interface))
 				{
 					// if it's a PC_Object, then it should have an associated UClass object
 					check(NewPinType.PinSubCategoryObject.IsValid());

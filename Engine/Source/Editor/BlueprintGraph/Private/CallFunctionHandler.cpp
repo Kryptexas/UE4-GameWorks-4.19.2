@@ -451,12 +451,14 @@ UClass* FKCHandler_CallFunction::GetTrueCallingClass(FKismetFunctionContext& Con
 {
 	if (SelfPin != NULL)
 	{
+		UEdGraphSchema_K2 const* K2Schema = CompilerContext.GetSchema();
+
 		// TODO: here FBlueprintCompiledStatement::GetScopeFromPinType should be called, but since FEdGraphPinType::PinSubCategory is not always initialized properly that function works wrong
 		// return Cast<UClass>(Context.GetScopeFromPinType(SelfPin->PinType, Context.NewClass));
 		FEdGraphPinType& Type = SelfPin->PinType;
-		if ((Type.PinCategory == CompilerContext.GetSchema()->PC_Object) || (Type.PinCategory == CompilerContext.GetSchema()->PC_Class))
+		if ((Type.PinCategory == K2Schema->PC_Object) || (Type.PinCategory == K2Schema->PC_Class) || (Type.PinCategory == K2Schema->PC_Interface))
 		{
-			if (!Type.PinSubCategory.IsEmpty() && (Type.PinSubCategory != CompilerContext.GetSchema()->PSC_Self))
+			if (!Type.PinSubCategory.IsEmpty() && (Type.PinSubCategory != K2Schema->PSC_Self))
 			{
 				return Cast<UClass>(Type.PinSubCategoryObject.Get());
 			}
@@ -519,13 +521,15 @@ void FKCHandler_CallFunction::RegisterNets(FKismetFunctionContext& Context, UEdG
 			UEdGraphPin* Pin = (*It);
 			const bool bIsConnected = (Pin->LinkedTo.Num() != 0);
 
+			UEdGraphSchema_K2 const* K2Schema = CompilerContext.GetSchema();
+
 			// if this pin could use a default (it doesn't have a connection or default of its own)
 			if (!bIsConnected && (Pin->DefaultObject == NULL))
 			{
 				if (DefaultToSelfParamNames.Contains(Pin->PinName))
 				{
 					ensure(Pin->PinType.PinSubCategoryObject != NULL);
-					ensure(Pin->PinType.PinCategory == CompilerContext.GetSchema()->PC_Object);
+					ensure((Pin->PinType.PinCategory == K2Schema->PC_Object) || (Pin->PinType.PinCategory == K2Schema->PC_Interface));
 
 					FBPTerminal* Term = Context.RegisterLiteral(Pin);
 					Term->Type.PinSubCategory = CompilerContext.GetSchema()->PN_Self;

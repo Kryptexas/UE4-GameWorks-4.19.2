@@ -165,7 +165,8 @@ UK2Node::ERedirectType UK2Node_Variable::DoPinsMatchForReconstruction( const UEd
 	{
 		return ERedirectType_Name;
 	}
-	else if( (OldPin->PinName == NewPin->PinName) && (NewPin->PinType.PinCategory == K2Schema->PC_Object) && (NewPin->PinType.PinSubCategoryObject == NULL))
+	else if ((OldPin->PinName == NewPin->PinName) && ((NewPin->PinType.PinCategory == K2Schema->PC_Object) || 
+		(NewPin->PinType.PinCategory == K2Schema->PC_Interface)) && (NewPin->PinType.PinSubCategoryObject == NULL))
 	{
 		// Special Case:  If we had a pin match, and the class isn't loaded yet because of a cyclic dependency, temporarily cast away the const, and fix up.
 		// @TODO:  Fix this up to be less hacky

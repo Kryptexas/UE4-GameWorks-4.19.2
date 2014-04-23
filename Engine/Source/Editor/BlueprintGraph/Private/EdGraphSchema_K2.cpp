@@ -144,6 +144,7 @@ UEdGraphSchema_K2::UEdGraphSchema_K2(const class FPostConstructInitializePropert
 	PC_Delegate = TEXT("delegate");
 	PC_MCDelegate = TEXT("mcdelegate");
 	PC_Object = TEXT("object");
+	PC_Interface = TEXT("interface");
 	PC_String = TEXT("string");
 	PC_Text = TEXT("text");
 	PC_Struct = TEXT("struct");
@@ -1344,15 +1345,12 @@ bool UEdGraphSchema_K2::SearchForAutocastFunction(const UEdGraphPin* OutputPin, 
 			TargetFunction = TEXT("Conv_TextToString");
 		}
 	}
-	else if ((OutputPin->PinType.PinCategory == PC_Object) && (InputPin->PinType.PinCategory == PC_Object))
+	else if ((OutputPin->PinType.PinCategory == PC_Interface) && (InputPin->PinType.PinCategory == PC_Object))
 	{
-		UClass const* OutputClass = Cast<UClass const>(OutputPin->PinType.PinSubCategoryObject.Get());
-		bool const bOutputIsInterface = ((OutputClass != NULL) && OutputClass->IsChildOf(UInterface::StaticClass()));
-
 		UClass const* InputClass = Cast<UClass const>(InputPin->PinType.PinSubCategoryObject.Get());
-		bool const bInputIsUObject = ((InputClass != NULL) && (InputClass == UObject::StaticClass()));
 
-		if (bOutputIsInterface && bInputIsUObject)
+		bool const bInputIsUObject = ((InputClass != NULL) && (InputClass == UObject::StaticClass()));
+		if (bInputIsUObject)
 		{
 			TargetFunction = TEXT("Conv_InterfaceToObject");
 		}
@@ -1376,7 +1374,8 @@ bool UEdGraphSchema_K2::FindSpecializedConversionNode(const UEdGraphPin* OutputP
 		}
 	}
 	// If connecting an object to a 'call function' self pin, and not currently compatible, see if there is a property we can call a function on
-	else if( InputPin->GetOwningNode()->IsA(UK2Node_CallFunction::StaticClass()) && IsSelfPin(*InputPin) && (OutputPin->PinType.PinCategory == PC_Object) )
+	else if (InputPin->GetOwningNode()->IsA(UK2Node_CallFunction::StaticClass()) && IsSelfPin(*InputPin) && 
+		((OutputPin->PinType.PinCategory == PC_Object) || (OutputPin->PinType.PinCategory == PC_Interface)))
 	{
 		UK2Node_CallFunction* CallFunctionNode = (UK2Node_CallFunction*)(InputPin->GetOwningNode());
 		UClass* OutputPinClass = Cast<UClass>(OutputPin->PinType.PinSubCategoryObject.Get());
@@ -1680,7 +1679,7 @@ bool UEdGraphSchema_K2::DefaultValueSimpleValidation(const FEdGraphPinType& PinT
 			DVSV_RETURN_MSG( FString::Printf(TEXT("Invalid default name for pin %s"), *(PinName)) ); 
 		}
 	}
-	else if (PinCategory == PC_Object)
+	else if ((PinCategory == PC_Object) || (PinCategory == PC_Interface))
 	{
 		if(PinSubCategoryObject == NULL && PinSubCategory != PSC_Self)
 		{
@@ -1809,6 +1808,10 @@ FLinearColor UEdGraphSchema_K2::GetPinTypeColor(const FEdGraphPinType& PinType) 
 	else if (TypeString == PC_Object)
 	{
 		return Options.ObjectPinTypeColor;
+	}
+	else if (TypeString == PC_Interface)
+	{
+		return Options.InterfacePinTypeColor;
 	}
 	else if (TypeString == PC_Float)
 	{
@@ -2076,7 +2079,7 @@ bool UEdGraphSchema_K2::ConvertPropertyToPinType(const UProperty* Property, /*ou
 	}
 	else if (const UInterfaceProperty* InterfaceProperty = Cast<const UInterfaceProperty>(TestProperty))
 	{
-		TypeOut.PinCategory = PC_Object;
+		TypeOut.PinCategory = PC_Interface;
 		TypeOut.PinSubCategoryObject = InterfaceProperty->InterfaceClass;
 	}
 	else if (const UClassProperty* ClassProperty = Cast<const UClassProperty>(TestProperty))
@@ -2271,10 +2274,9 @@ void UEdGraphSchema_K2::GetVariableTypeTree( TArray< TSharedPtr<FPinTypeTreeInfo
 	// Add the types that have subtrees
 	TypeTree.Add( MakeShareable( new FPinTypeTreeInfo(PC_Struct, this, LOCTEXT("StructType", "Struct (value) types.").ToString(), true) ) );
 	TypeTree.Add( MakeShareable( new FPinTypeTreeInfo(PC_Object, this, LOCTEXT("ObjectType", "Object pointer.").ToString(), true) ) );
+	TypeTree.Add( MakeShareable( new FPinTypeTreeInfo(PC_Interface, this, LOCTEXT("InterfaceType", "Interface pointer.").ToString(), true) ) );
 	TypeTree.Add( MakeShareable( new FPinTypeTreeInfo(PC_Class, this, LOCTEXT("ClassType", "Class pointers.").ToString(), true) ) );
 	TypeTree.Add( MakeShareable( new FPinTypeTreeInfo(TEXT("Enum"), PC_Byte, this, LOCTEXT("EnumType", "Enumeration types.").ToString(), true) ) );
-
-
 }
 
 void UEdGraphSchema_K2::GetVariableIndexTypeTree( TArray< TSharedPtr<FPinTypeTreeInfo> >& TypeTree, bool bAllowExec, bool bAllowWildcard ) const
@@ -2303,7 +2305,7 @@ void UEdGraphSchema_K2::GetVariableIndexTypeTree( TArray< TSharedPtr<FPinTypeTre
 
 bool UEdGraphSchema_K2::DoesTypeHaveSubtypes(const FString& FriendlyTypeName) const
 {
-	return (FriendlyTypeName == PC_Struct) || (FriendlyTypeName == PC_Object) || (FriendlyTypeName == PC_Class) || (FriendlyTypeName == TEXT("Enum"));
+	return (FriendlyTypeName == PC_Struct) || (FriendlyTypeName == PC_Object) || (FriendlyTypeName == PC_Interface) || (FriendlyTypeName == PC_Class) || (FriendlyTypeName == TEXT("Enum"));
 }
 
 void UEdGraphSchema_K2::GetVariableSubtypes(const FString& Type, TArray<UObject*>& SubtypesList) const
@@ -2322,13 +2324,37 @@ void UEdGraphSchema_K2::GetVariableSubtypes(const FString& Type, TArray<UObject*
 			}
 		}
 	}
-	else if ((Type == PC_Object) || (Type == PC_Class))
+	else if (Type == PC_Class)
 	{
 		// Generate a list of all potential objects which have "BlueprintType=true" in their metadata
 		for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
 		{
 			UClass* CurrentClass = *ClassIt;
 			if (UEdGraphSchema_K2::IsAllowableBlueprintVariableType(CurrentClass))
+			{
+				SubtypesList.Add(CurrentClass);
+			}
+		}
+	}
+	else if (Type == PC_Object)
+	{
+		// Generate a list of all potential objects which have "BlueprintType=true" in their metadata (that aren't interfaces)
+		for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
+		{
+			UClass* CurrentClass = *ClassIt;
+			if (!CurrentClass->IsChildOf(UInterface::StaticClass()) && UEdGraphSchema_K2::IsAllowableBlueprintVariableType(CurrentClass))
+			{
+				SubtypesList.Add(CurrentClass);
+			}
+		}
+	}
+	else if (Type == PC_Interface)
+	{
+		// Generate a list of all potential objects which have "BlueprintType=true" in their metadata (only ones that are interfaces)
+		for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
+		{
+			UClass* CurrentClass = *ClassIt;
+			if (CurrentClass->IsChildOf(UInterface::StaticClass()) && UEdGraphSchema_K2::IsAllowableBlueprintVariableType(CurrentClass))
 			{
 				SubtypesList.Add(CurrentClass);
 			}
@@ -2378,12 +2404,22 @@ bool UEdGraphSchema_K2::ArePinTypesCompatible(const FEdGraphPinType& Output, con
 		{
 			return true;
 		}
+		else if (Output.PinCategory == PC_Interface)
+		{
+			UClass const* OutputClass = Cast<UClass const>(Output.PinSubCategoryObject.Get());
+			check(OutputClass && OutputClass->IsChildOf(UInterface::StaticClass()));
+
+			UClass const* InputClass = Cast<UClass const>(Input.PinSubCategoryObject.Get());
+			check(InputClass && InputClass->IsChildOf(UInterface::StaticClass()));
+			
+			return OutputClass->IsChildOf(InputClass);
+		}
 		else if ((Output.PinCategory == PC_Object) || (Output.PinCategory == PC_Struct) || (Output.PinCategory == PC_Class))
 		{
 			// Subcategory mismatch, but the two could be castable
 			// Only allow a match if the input is a superclass of the output
-			const UStruct* OutputObject = (Output.PinSubCategory == PSC_Self) ? CallingContext : Cast<UStruct>(Output.PinSubCategoryObject.Get());
-			const UStruct* InputObject  = (Input.PinSubCategory == PSC_Self) ? CallingContext : Cast<UStruct>(Input.PinSubCategoryObject.Get());
+			UStruct const* OutputObject = (Output.PinSubCategory == PSC_Self) ? CallingContext : Cast<UStruct>(Output.PinSubCategoryObject.Get());
+			UStruct const* InputObject  = (Input.PinSubCategory == PSC_Self)  ? CallingContext : Cast<UStruct>(Input.PinSubCategoryObject.Get());
 
 			if ((OutputObject != NULL) && (InputObject != NULL))
 			{
@@ -2445,6 +2481,18 @@ bool UEdGraphSchema_K2::ArePinTypesCompatible(const FEdGraphPinType& Output, con
 		}
 
 		return true;
+	}
+	else if ((Output.PinCategory == PC_Interface) && (Input.PinCategory == PC_Object))
+	{
+		UClass const* InterfaceClass = Cast<UClass const>(Output.PinSubCategoryObject.Get());
+		UClass const* InputClass     = Cast<UClass const>(Input.PinSubCategoryObject.Get());
+		return InputClass->ImplementsInterface(InterfaceClass) || InterfaceClass->IsChildOf(InputClass);
+	}
+	else if ((Output.PinCategory == PC_Object) && (Input.PinCategory == PC_Interface))
+	{
+		UClass const* OutputClass    = Cast<UClass const>(Output.PinSubCategoryObject.Get());
+		UClass const* InterfaceClass = Cast<UClass const>(Input.PinSubCategoryObject.Get());
+		return OutputClass->ImplementsInterface(InterfaceClass) || OutputClass->IsChildOf(InterfaceClass);
 	}
 
 	// Pins representing BLueprint objects and subclass of UObject can match when EditoronlyBP.bAllowClassObjAndBluepirntPinMatching=true (BaseEngine.ini)
@@ -2577,7 +2625,7 @@ void UEdGraphSchema_K2::TrySetDefaultValue(UEdGraphPin& Pin, const FString& NewD
 	UObject* UseDefaultObject = NULL;
 	FText UseDefaultText;
 
-	if ((Pin.PinType.PinCategory == PC_Object) || (Pin.PinType.PinCategory == PC_Class))
+	if ((Pin.PinType.PinCategory == PC_Object) || (Pin.PinType.PinCategory == PC_Class) || (Pin.PinType.PinCategory == PC_Interface))
 	{
 		UseDefaultObject = FindObject<UObject>(ANY_PACKAGE, *NewDefaultValue);
 		UseDefaultValue = NULL;
@@ -2803,6 +2851,11 @@ UFunction* UEdGraphSchema_K2::FindSetVariableByNameFunction(const FEdGraphPinTyp
 		static FName SetObjectName(GET_FUNCTION_NAME_CHECKED(UKismetSystemLibrary, SetObjectPropertyByName));
 		SetFunctionName = SetObjectName;
 	}
+	else if(PinType.PinCategory == K2Schema->PC_Interface)
+	{
+		static FName SetObjectName(GET_FUNCTION_NAME_CHECKED(UKismetSystemLibrary, SetObjectPropertyByName));
+		SetFunctionName = SetObjectName;
+	}
 	else if(PinType.PinCategory == K2Schema->PC_String)
 	{
 		static FName SetStringName(GET_FUNCTION_NAME_CHECKED(UKismetSystemLibrary, SetStringPropertyByName));
@@ -2870,12 +2923,15 @@ bool UEdGraphSchema_K2::CanPromotePinToVariable( const UEdGraphPin& Pin ) const
 		{
 			bCanPromote = false;
 		}
-		else if ((PinType.PinCategory == PC_Object) && (PinType.PinSubCategoryObject != NULL))
+		else if ((PinType.PinCategory == PC_Object) || (PinType.PinCategory == PC_Interface))
 		{
-			if (UClass* Class = Cast<UClass>(PinType.PinSubCategoryObject.Get()))
+			if (PinType.PinSubCategoryObject != NULL)
 			{
-				bCanPromote = UEdGraphSchema_K2::IsAllowableBlueprintVariableType(Class);
-			}	
+				if (UClass* Class = Cast<UClass>(PinType.PinSubCategoryObject.Get()))
+				{
+					bCanPromote = UEdGraphSchema_K2::IsAllowableBlueprintVariableType(Class);
+				}	
+			}
 		}
 		else if ((PinType.PinCategory == PC_Struct) && (PinType.PinSubCategoryObject != NULL))
 		{
@@ -3068,7 +3124,7 @@ void UEdGraphSchema_K2::DroppedAssetsOnNode(const TArray<FAssetData>& Assets, co
 void UEdGraphSchema_K2::DroppedAssetsOnPin(const TArray<FAssetData>& Assets, const FVector2D& GraphPosition, UEdGraphPin* Pin) const
 {
 	// If dropping onto an 'object' pin, try and set the literal
-	if(Pin->PinType.PinCategory == PC_Object)
+	if ((Pin->PinType.PinCategory == PC_Object) || (Pin->PinType.PinCategory == PC_Interface))
 	{
 		UClass* PinClass = Cast<UClass>(Pin->PinType.PinSubCategoryObject.Get());
 		if(PinClass != NULL)
@@ -3096,7 +3152,7 @@ void UEdGraphSchema_K2::GetAssetsPinHoverMessage(const TArray<FAssetData>& Asset
 	OutOkIcon = false;
 
 	// If dropping onto an 'object' pin, try and set the literal
-	if(HoverPin->PinType.PinCategory == PC_Object)
+	if ((HoverPin->PinType.PinCategory == PC_Object) || (HoverPin->PinType.PinCategory == PC_Interface))
 	{
 		UClass* PinClass = Cast<UClass>(HoverPin->PinType.PinSubCategoryObject.Get());
 		if(PinClass != NULL)

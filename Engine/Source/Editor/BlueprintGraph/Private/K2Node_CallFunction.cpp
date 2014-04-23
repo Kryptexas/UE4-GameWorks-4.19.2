@@ -202,6 +202,10 @@ UEdGraphPin* UK2Node_CallFunction::CreateSelfPin(const UFunction* Function)
 		// This means the function is defined within the blueprint, so the pin should be a true "self" pin
 		SelfPin = CreatePin(EGPD_Input, K2Schema->PC_Object, K2Schema->PSC_Self, NULL, false, false, K2Schema->PN_Self);
 	}
+	else if (FunctionClass->IsChildOf(UInterface::StaticClass()))
+	{
+		SelfPin = CreatePin(EGPD_Input, K2Schema->PC_Interface, TEXT(""), FunctionClass, false, false, K2Schema->PN_Self);
+	}
 	else
 	{
 		// This means that the function is declared in an external class, and should reference that class

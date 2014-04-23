@@ -173,13 +173,16 @@ class BLUEPRINTGRAPH_API UEdGraphSchema_K2 : public UEdGraphSchema
 	FString PC_Name;
 
 	UPROPERTY()
-	FString PC_Delegate;    // SubCategoryObject is the UFunction of the delegate signature
+	FString PC_Delegate;	// SubCategoryObject is the UFunction of the delegate signature
 
 	UPROPERTY()
-	FString PC_MCDelegate;  // SubCategoryObject is the UFunction of the delegate signature
+	FString PC_MCDelegate;	// SubCategoryObject is the UFunction of the delegate signature
 
 	UPROPERTY()
-	FString PC_Object;    // SubCategoryObject is the Class of the object passed thru this pin, or SubCategory can be 'self'. The DefaultValue string should always be empty, use DefaultObject.
+	FString PC_Object;		// SubCategoryObject is the Class of the object passed thru this pin, or SubCategory can be 'self'. The DefaultValue string should always be empty, use DefaultObject.
+
+	UPROPERTY()
+	FString PC_Interface;	// SubCategoryObject is the Class of the object passed thru this pin.
 
 	UPROPERTY()
 	FString PC_String;
@@ -191,9 +194,7 @@ class BLUEPRINTGRAPH_API UEdGraphSchema_K2 : public UEdGraphSchema
 	FString PC_Struct;    // SubCategoryObject is the ScriptStruct of the struct passed thru this pin, 'self' is not a valid SubCategory. DefaultObject should always be empty, the DefaultValue string may be used for supported structs.
 
 	UPROPERTY()
-	FString PC_Wildcard;    // Special matching rules are imposed by the node itself
-
-	// PC_Interface - not implemented yet
+	FString PC_Wildcard;  // Special matching rules are imposed by the node itself
 
 	// Common PinType.PinSubCategory values
 	UPROPERTY()

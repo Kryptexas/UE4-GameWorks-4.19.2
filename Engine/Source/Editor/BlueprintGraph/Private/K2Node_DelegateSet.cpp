@@ -233,9 +233,11 @@ UK2Node::ERedirectType UK2Node_DelegateSet::DoPinsMatchForReconstruction(const U
 	const UEdGraphSchema_K2* K2Schema = Cast<const UEdGraphSchema_K2>(GetSchema());
 	if ((ERedirectType::ERedirectType_None == OrginalResult) && K2Schema && NewPin && OldPin)
 	{
+		bool const bOldPinIsObj = (OldPin->PinType.PinCategory == K2Schema->PC_Object) || (OldPin->PinType.PinCategory == K2Schema->PC_Interface);
+		bool const bNewPinIsObj = (OldPin->PinType.PinCategory == K2Schema->PC_Object) || (OldPin->PinType.PinCategory == K2Schema->PC_Interface);
+
 		if ((NewPin->Direction == EGPD_Input && OldPin->Direction == EGPD_Input) &&
-			(OldPin->PinType.PinCategory == K2Schema->PC_Object) &&
-			(NewPin->PinType.PinCategory == K2Schema->PC_Object))
+			bOldPinIsObj && bNewPinIsObj)
 		{
 			return ERedirectType_Name;
 		}

@@ -611,7 +611,8 @@ public:
 			
 			FEdGraphPinType const& PinType = MalformedPin->PinType;
 			// only object pins would reference the unloaded blueprint
-			if (!PinType.PinSubCategoryObject.IsValid() || ((PinType.PinCategory != K2Schema->PC_Object) && (PinType.PinCategory != K2Schema->PSC_Self)))
+			if (!PinType.PinSubCategoryObject.IsValid() || ((PinType.PinCategory != K2Schema->PC_Object) && 
+				(PinType.PinCategory != K2Schema->PSC_Self) && (PinType.PinCategory != K2Schema->PC_Interface)))
 			{
 				continue;
 			}

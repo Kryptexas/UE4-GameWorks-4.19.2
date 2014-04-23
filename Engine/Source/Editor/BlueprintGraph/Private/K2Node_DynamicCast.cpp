@@ -31,8 +31,14 @@ void UK2Node_DynamicCast::AllocateDefaultPins()
 	if (TargetType != NULL)
 	{
 		FString CastResultPinName = K2Schema->PN_CastedValuePrefix + TargetType->GetName();
-		UEdGraphPin* CastResultPin = CreatePin(EGPD_Output, K2Schema->PC_Object, TEXT(""), UObject::StaticClass(), false, false, CastResultPinName);
-		CastResultPin->PinType.PinSubCategoryObject = *TargetType;
+		if (TargetType->IsChildOf(UInterface::StaticClass()))
+		{
+			CreatePin(EGPD_Output, K2Schema->PC_Interface, TEXT(""), *TargetType, false, false, CastResultPinName);
+		}
+		else 
+		{
+			CreatePin(EGPD_Output, K2Schema->PC_Object, TEXT(""), *TargetType, false, false, CastResultPinName);
+		}
 	}
 
 	Super::AllocateDefaultPins();

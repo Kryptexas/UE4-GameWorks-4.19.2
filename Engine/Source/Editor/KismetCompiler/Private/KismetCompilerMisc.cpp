@@ -160,7 +160,7 @@ bool FKismetCompilerUtilities::IsTypeCompatibleWithProperty(UEdGraphPin* SourceP
 			&& PropertyDelegate->SignatureFunction 
 			&& PropertyDelegate->SignatureFunction->IsSignatureCompatibleWith(SignatureFunction));
 	}
-	else if (PinCategory == Schema->PC_Object)
+	else if ((PinCategory == Schema->PC_Object) || (PinCategory == Schema->PC_Interface))
 	{
 		const UClass* ObjectType = (PinSubCategory == Schema->PSC_Self) ? SelfClass : Cast<const UClass>(PinSubCategoryObject);
 
@@ -536,7 +536,7 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 	}
 
 	//@TODO: Nasty string if-else tree
-	if (Type.PinCategory == Schema->PC_Object)
+	if ((Type.PinCategory == Schema->PC_Object) || (Type.PinCategory == Schema->PC_Interface))
 	{
 		UClass* SubType = (Type.PinSubCategory == Schema->PSC_Self) ? SelfClass : Cast<UClass>(Type.PinSubCategoryObject.Get());
 

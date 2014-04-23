@@ -1122,7 +1122,7 @@ void FK2ActionMenuBuilder::GetPinAllowedNodeTypes(FBlueprintGraphActionListBuild
 
 			GetAllInterfaceMessageActions(ContextMenuBuilder);		
 		}
-		else if (FromPin.PinType.PinCategory == K2Schema->PC_Object)
+		else if ((FromPin.PinType.PinCategory == K2Schema->PC_Object) || (FromPin.PinType.PinCategory == K2Schema->PC_Interface))
 		{
 			// For Object types, look for functions we can call on that object
 			UClass* PinClass = Cast<UClass>(FromPin.PinType.PinSubCategoryObject.Get());

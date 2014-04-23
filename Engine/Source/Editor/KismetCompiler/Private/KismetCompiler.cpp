@@ -261,7 +261,7 @@ void FKismetCompilerContext::ValidatePin(const UEdGraphPin* Pin) const
 	Super::ValidatePin(Pin);
 
 	// Fixing up references to the skel or the generated classes to be PSC_Self pins
-	if (Pin->PinType.PinCategory == Schema->PC_Object)
+	if ((Pin->PinType.PinCategory == Schema->PC_Object) || (Pin->PinType.PinCategory == Schema->PC_Interface))
 	{
 		//@todo:  This is modifying the model, but is acceptable to save another prepass on the pins
 		UEdGraphPin* MutablePin = const_cast<UEdGraphPin*>(Pin);
@@ -1448,7 +1448,8 @@ void FKismetCompilerContext::FinishCompilingFunction(FKismetFunctionContext& Con
 		// No defaults for object/class pins
 		if(	!Schema->IsMetaPin(*EntryPin) && 
 			(EntryPin->PinType.PinCategory != Schema->PC_Object) && 
-			(EntryPin->PinType.PinCategory != Schema->PC_Class) && 
+			(EntryPin->PinType.PinCategory != Schema->PC_Class)  && 
+			(EntryPin->PinType.PinCategory != Schema->PC_Interface) && 
 			!EntryPin->DefaultValue.IsEmpty() )
 		{
 			Function->SetMetaData(*EntryPin->PinName, *EntryPin->DefaultValue);

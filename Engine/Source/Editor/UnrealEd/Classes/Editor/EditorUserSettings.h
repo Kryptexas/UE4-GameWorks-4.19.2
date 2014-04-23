@@ -106,6 +106,10 @@ class UEditorUserSettings : public UObject
 	UPROPERTY()
 	FLinearColor ObjectPinTypeColor;
 
+	/** Interface pin type color */
+	UPROPERTY()
+	FLinearColor InterfacePinTypeColor;
+
 	/** String pin type color */
 	UPROPERTY()
 	FLinearColor StringPinTypeColor;
