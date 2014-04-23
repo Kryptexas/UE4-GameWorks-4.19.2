@@ -170,19 +170,21 @@ void FPhysSubstepTask::InterpolateKinematicActor(const FPhysTarget & PhysTarget,
 	/** Interpolate kinematic actors */
 	if (PhysTarget.bKinematicTarget)
 	{
-		//We should only be interpolating kinematic actors
-		check(!IsRigidDynamicNonKinematic(PRigidDynamic));
-		const FKinematicTarget & KinematicTarget = PhysTarget.KinematicTarget;
-		const FTransform & TargetTM = KinematicTarget.TargetTM;
-		const FTransform & StartTM = KinematicTarget.OriginalTM;
-		FTransform InterTM = FTransform::Identity;
+		//It's possible that the actor is no longer kinematic and is now simulating. In that case do nothing
+		if (!IsRigidDynamicNonKinematic(PRigidDynamic))
+		{
+			const FKinematicTarget & KinematicTarget = PhysTarget.KinematicTarget;
+			const FTransform & TargetTM = KinematicTarget.TargetTM;
+			const FTransform & StartTM = KinematicTarget.OriginalTM;
+			FTransform InterTM = FTransform::Identity;
 
-		InterTM.SetLocation(FMath::Lerp(StartTM.GetLocation(), TargetTM.GetLocation(), Alpha));
-		InterTM.SetRotation(FMath::Lerp(StartTM.GetRotation(), TargetTM.GetRotation(), Alpha));
+			InterTM.SetLocation(FMath::Lerp(StartTM.GetLocation(), TargetTM.GetLocation(), Alpha));
+			InterTM.SetRotation(FMath::Lerp(StartTM.GetRotation(), TargetTM.GetRotation(), Alpha));
 
-		const PxTransform PNewPose = U2PTransform(InterTM);
-		check(PNewPose.isValid());
-		PRigidDynamic->setKinematicTarget(PNewPose);
+			const PxTransform PNewPose = U2PTransform(InterTM);
+			check(PNewPose.isValid());
+			PRigidDynamic->setKinematicTarget(PNewPose);
+		}
 	}
 #endif
 }
