@@ -491,6 +491,7 @@ namespace UnrealBuildTool
 							{
 								UProjectPath = AlternativeProjectpath;
 								UProjectFile = UProjectFile.Substring(3);
+								Debug.Assert(UProjectFile.Length > 0);
 							}
 						}
 					}
