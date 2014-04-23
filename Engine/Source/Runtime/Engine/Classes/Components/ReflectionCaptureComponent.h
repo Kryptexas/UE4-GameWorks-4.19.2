@@ -31,6 +31,7 @@ public:
 
 	/** Constructs a key string for the DDC that uniquely identifies a FReflectionCaptureFullHDRDerivedData. */
 	static FString GetDDCKeyString(const FGuid& StateId);
+	static FString GetLegacyDDCKeyString(const FGuid& StateId);
 
 private:
 
