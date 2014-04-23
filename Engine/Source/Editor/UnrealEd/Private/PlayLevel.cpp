@@ -2571,6 +2571,11 @@ UWorld* UEditorEngine::CreatePIEWorldByDuplication(FWorldContext &WorldContext, 
 		// Reset any GUID fixups with lazy pointers
 		FLazyObjectPtr::ResetPIEFixups();
 
+		// Prepare string asset references for fixup
+		TArray<UPackage*> PackagesBeingDuplicatedForPIE;
+		PackagesBeingDuplicatedForPIE.Add(EditorWorld->GetOutermost());
+		FStringAssetReference::SetPackagesBeingDuplicatedForPIE(PackagesBeingDuplicatedForPIE);
+
 		// NULL GWorld before various PostLoad functions are called, this makes it easier to debug invalid GWorld accesses
 		GWorld = NULL;
 
@@ -2583,6 +2588,8 @@ UWorld* UEditorEngine::CreatePIEWorldByDuplication(FWorldContext &WorldContext, 
 			NULL,					// DestClass
 			SDO_DuplicateForPie		// bDuplicateForPIE
 			) );
+
+		FStringAssetReference::ClearPackagesBeingDuplicatedForPIE();
 
 		// Store prefix we used to rename this world and streaming levels package names
 		NewPIEWorld->StreamingLevelsPrefix = UWorld::BuildPIEPackagePrefix(WorldContext.PIEInstance);

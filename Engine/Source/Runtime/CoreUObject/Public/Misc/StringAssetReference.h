@@ -44,11 +44,6 @@ struct COREUOBJECT_API FStringAssetReference
 	}
 
 	/**
-	 * Fixes up this UniqueObjectID to add or remove the PIE prefix depending on what is currently active
-	 */
-	FStringAssetReference FixupForPIE() const;
-
-	/**
 	 * Attempts to find a currently loaded object that matches this object ID
 	 * @return Found UObject, or NULL if not currently loaded
 	 */
@@ -105,10 +100,19 @@ struct COREUOBJECT_API FStringAssetReference
 
 	static FStringAssetReference GetOrCreateIDForObject(const class UObject *Object);
 
+	static void SetPackagesBeingDuplicatedForPIE(const TArray<UPackage*>& InPackagesBeingDuplicatedForPIE);
+	static void ClearPackagesBeingDuplicatedForPIE();
+
 private:
+
+	/**
+	 * Fixes up this StringAssetReference to add or remove the PIE prefix depending on what is currently active
+	 */
+	void FixupForPIE();
 
 	/** Global counter that determines when we need to re-search for GUIDs because more objects have been loaded **/
 	static int32 CurrentTag;
+	static TArray<FString> PackageNamesBeingDuplicatedForPIE;
 
 };
 
