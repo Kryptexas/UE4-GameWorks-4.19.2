@@ -1362,6 +1362,7 @@ namespace AutomationTool
 						"AutomationTool.exe",
 						"AutomationTool.exe.config",
 						"UnrealBuildTool.exe",
+						"UnrealBuildTool.exe.config",
 						"DotNETUtilities.dll",
 					});
 
