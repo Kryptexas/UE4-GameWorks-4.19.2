@@ -4136,6 +4136,7 @@ void FSlateEditorStyle::FStyle::SetupClassIconsAndThumbnails()
 		Set( "ClassThumbnail.BlueprintGeneratedClass", new IMAGE_BRUSH( "Icons/icon_class_Blueprint_64x", Icon32x32 ) );
 		Set( "ClassThumbnail.BlueprintInterface", new IMAGE_BRUSH( "Icons/icon_class_Blueprint_Interface_64x", Icon32x32 ) );
 		Set( "ClassThumbnail.BlueprintMacroLibrary", new IMAGE_BRUSH( "Icons/icon_class_Blueprint_MacroLibrary_64x", Icon32x32 ) );
+		Set( "ClassThumbnail.BlueprintFunctionLibrary", new IMAGE_BRUSH("Icons/icon_class_Blueprint_FunctionLibrary_64x", Icon32x32));
 		Set( "ClassThumbnail.ButtonStyleAsset", new IMAGE_BRUSH( "Icons/icon_class_ButtonStyle_64x", Icon32x32 ) );
 		Set( "ClassThumbnail.CameraAnim", new IMAGE_BRUSH( "Icons/icon_class_CameraAnim_64px", Icon32x32 ) );
 		Set( "ClassThumbnail.CurveBase", new IMAGE_BRUSH( "Icons/icon_class_Curve_64x", Icon32x32 ) );

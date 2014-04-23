@@ -6286,7 +6286,7 @@ FText UBlueprintFunctionLibraryFactory::GetDisplayName() const
 
 FName UBlueprintFunctionLibraryFactory::GetNewAssetThumbnailOverride() const
 {
-	return TEXT("ClassThumbnail.BlueprintMacroLibrary");
+	return TEXT("ClassThumbnail.BlueprintFunctionLibrary");
 }
 
 uint32 UBlueprintFunctionLibraryFactory::GetMenuCategories() const
