@@ -2300,6 +2300,10 @@ public class GUBP : BuildCommand
         {
             return base.Priority() + 20.0f;
         }
+        public override int CISFrequencyQuantumShift(GUBP bp)
+        {
+            return base.CISFrequencyQuantumShift(bp) + 3;
+        }
 
         public override void DoBuild(GUBP bp)
         {
@@ -3957,6 +3961,7 @@ public class GUBP : BuildCommand
                 var AgentSharingGroup = "Shared_EditorTests" + HostPlatformNode.StaticGetHostPlatformSuffix(HostPlatform);
 
                 Dictionary<string, List<UnrealTargetPlatform>> NonCodeProjectNames;
+                var NonCodeFormalBuilds = new Dictionary<string, List<KeyValuePair<UnrealTargetPlatform, UnrealTargetConfiguration>>>();
                 {
                     var Target = Branch.BaseEngineProject.Properties.Targets[TargetRules.TargetType.Editor];
                     NonCodeProjectNames = Target.Rules.GUBP_NonCodeProjects_BaseEditorTypeOnly(HostPlatform);
@@ -3979,6 +3984,26 @@ public class GUBP : BuildCommand
                     if (!Options.bIsPromotable || Options.bSeparateGamePromotion)
                     {
                         throw new AutomationException("We assume that if we have shared promotable, the base engine is in it.");
+                    }
+
+                    var TempNonCodeFormalBuilds = Target.Rules.GUBP_NonCodeFormalBuilds_BaseEditorTypeOnly();
+                    var HostMonos = GetMonolithicPlatformsForUProject(UnrealTargetPlatform.Mac, Branch.BaseEngineProject, true);
+
+                    foreach (var Codeless in TempNonCodeFormalBuilds)
+                    {
+                        var PlatList = Codeless.Value;
+                        var NewPlatList = new List<KeyValuePair<UnrealTargetPlatform, UnrealTargetConfiguration>>();
+                        foreach (var PlatPair in PlatList)
+                        {
+                            if (HostMonos.Contains(PlatPair.Key))
+                            {
+                                NewPlatList.Add(PlatPair);
+                            }
+                        }
+                        if (NewPlatList.Count > 0)
+                        {
+                            NonCodeFormalBuilds.Add(Codeless.Key, NewPlatList);
+                        }
                     }
                 }
                 if (bAutomatedTesting)
@@ -4117,25 +4142,50 @@ public class GUBP : BuildCommand
                                     if (!GUBPNodes.ContainsKey(GamePlatformCookedAndCompiledNode.StaticGetFullName(HostPlatform, NonCodeProject, Plat)))
                                     {
                                         AddNode(new GamePlatformCookedAndCompiledNode(this, HostPlatform, NonCodeProject, Plat, false));
+                                        if (NonCodeFormalBuilds.ContainsKey(NonCodeProject.GameName))
+                                        {
+                                            var PlatList = NonCodeFormalBuilds[NonCodeProject.GameName];
+                                            foreach (var PlatPair in PlatList)
+                                            {
+                                                if (PlatPair.Key == Plat)
+                                                {
+                                                    AddNode(new FormalBuildNode(this, NonCodeProject, HostPlatform, new List<UnrealTargetPlatform>() { Plat }, new List<UnrealTargetConfiguration>() {PlatPair.Value}));
+                                                    // we don't want this delayed
+                                                    // this would normally wait for the testing phase, we just want to build it right away
+                                                    RemovePseudodependencyFromNode(
+                                                        CookNode.StaticGetFullName(HostPlatform, NonCodeProject, CookedPlatform),
+                                                        WaitForTestShared.StaticGetFullName());
+                                                    RemovePseudodependencyFromNode(
+                                                        CookNode.StaticGetFullName(HostPlatform, NonCodeProject, CookedPlatform),
+                                                        CookNode.StaticGetFullName(HostPlatform, Branch.BaseEngineProject, CookedPlatform));
+
+                                                    string BuildAgentSharingGroup = NonCodeProject.GameName + "_MakeFormalBuild_" + Plat.ToString();
+                                                    GUBPNodes[CookNode.StaticGetFullName(HostPlatform, NonCodeProject, CookedPlatform)].AgentSharingGroup = BuildAgentSharingGroup;
+                                                    GUBPNodes[GamePlatformCookedAndCompiledNode.StaticGetFullName(HostPlatform, NonCodeProject, Plat)].AgentSharingGroup = BuildAgentSharingGroup;
+                                                    GUBPNodes[FormalBuildNode.StaticGetFullName(NonCodeProject, HostPlatform, new List<UnrealTargetPlatform>() { Plat })].AgentSharingGroup = BuildAgentSharingGroup;
+
+                                                }
+                                            }
+                                        }
                                     }
                                     if (bAutomatedTesting)
                                     {
-                                    if (HostPlatform == UnrealTargetPlatform.Mac) continue; //temp hack till mac automated testing works
-                                    var ThisMonoGameTestNodes = new List<string>();
-                                    foreach (var Test in GameTests)
-                                    {
-                                        var TestName = Test.Key + "_" + Plat.ToString();
-                                        ThisMonoGameTestNodes.Add(AddNode(new UATTestNode(this, HostPlatform, NonCodeProject, TestName, Test.Value, CookedAgentSharingGroup, false, RequiredPlatforms)));
-                                    }
-                                    if (ThisMonoGameTestNodes.Count > 0)
-                                    {
-                                        GameTestNodes.Add(AddNode(new GameAggregateNode(this, HostPlatform, NonCodeProject, "CookedTests_" + Plat.ToString() + "_" + Kind.ToString() + HostPlatformNode.StaticGetHostPlatformSuffix(HostPlatform), ThisMonoGameTestNodes, 0.0f)));
+                                        if (HostPlatform == UnrealTargetPlatform.Mac) continue; //temp hack till mac automated testing works
+                                        var ThisMonoGameTestNodes = new List<string>();
+                                        foreach (var Test in GameTests)
+                                        {
+                                            var TestName = Test.Key + "_" + Plat.ToString();
+                                            ThisMonoGameTestNodes.Add(AddNode(new UATTestNode(this, HostPlatform, NonCodeProject, TestName, Test.Value, CookedAgentSharingGroup, false, RequiredPlatforms)));
+                                        }
+                                        if (ThisMonoGameTestNodes.Count > 0)
+                                        {
+                                            GameTestNodes.Add(AddNode(new GameAggregateNode(this, HostPlatform, NonCodeProject, "CookedTests_" + Plat.ToString() + "_" + Kind.ToString() + HostPlatformNode.StaticGetHostPlatformSuffix(HostPlatform), ThisMonoGameTestNodes, 0.0f)));
+                                        }
                                     }
                                 }
                             }
                         }
                     }
-                }
                 }
 #if false
                 //for now, non-code projects don't do client or server.

@@ -648,6 +648,14 @@ namespace UnrealBuildTool
             return new Dictionary<string, List<UnrealTargetPlatform>>();
         }
         /// <summary>
+        /// Return a list of the non-code projects to make formal builds for
+        /// </summary>
+        /// <returns>a list of the non-code projects to build cook and test</returns>
+        public virtual Dictionary<string, List<KeyValuePair<UnrealTargetPlatform, UnrealTargetConfiguration>>> GUBP_NonCodeFormalBuilds_BaseEditorTypeOnly()
+        {
+            return new Dictionary<string, List<KeyValuePair<UnrealTargetPlatform, UnrealTargetConfiguration>>>();
+        }
+        /// <summary>
         /// Return a list of "test name", "UAT command" pairs for testing the editor
         /// </summary>
         public virtual Dictionary<string, string> GUBP_GetEditorTests_EditorTypeOnly(UnrealTargetPlatform HostPlatform)
