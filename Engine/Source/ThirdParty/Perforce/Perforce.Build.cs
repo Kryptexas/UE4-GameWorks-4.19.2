@@ -15,7 +15,7 @@ public class Perforce : ModuleRules
 
 		if (Target.Platform == UnrealTargetPlatform.Win64)
 		{
-			string P4APIPath = UEBuildConfiguration.UEThirdPartyDirectory + "Perforce/p4api-2013.1-BETA/";
+			string P4APIPath = UEBuildConfiguration.UEThirdPartyDirectory + "Perforce/p4api-2014.2/";
 			PublicIncludePaths.Add(P4APIPath + "include");
 
 			LibFolder += "win64";
@@ -24,7 +24,7 @@ public class Perforce : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Win32)
 		{
-			string P4APIPath = UEBuildConfiguration.UEThirdPartyDirectory + "Perforce/p4api-2013.1-BETA/";
+			string P4APIPath = UEBuildConfiguration.UEThirdPartyDirectory + "Perforce/p4api-2014.2/";
 			PublicIncludePaths.Add(P4APIPath + "include");
 
 			LibFolder += "win32";
@@ -42,7 +42,17 @@ public class Perforce : ModuleRules
 		}
 
 		PublicAdditionalLibraries.Add(LibPrefix + "libclient" + LibPostfixAndExt);
-		PublicAdditionalLibraries.Add(LibPrefix + "libp4sslstub" + LibPostfixAndExt);
+
+		if (Target.Platform == UnrealTargetPlatform.Mac)
+		{
+			PublicAdditionalLibraries.Add(LibPrefix + "libp4sslstub" + LibPostfixAndExt);
+		}
+		else
+		{
+			PublicAdditionalLibraries.Add(LibPrefix + "libeay32" + LibPostfixAndExt);
+			PublicAdditionalLibraries.Add(LibPrefix + "ssleay32" + LibPostfixAndExt);
+		}
+
 		PublicAdditionalLibraries.Add(LibPrefix + "librpc" + LibPostfixAndExt);
 		PublicAdditionalLibraries.Add(LibPrefix + "libsupp" + LibPostfixAndExt);
 	}
