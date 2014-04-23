@@ -5,19 +5,19 @@
 FScopeLogTime::FScopeLogTime( const TCHAR* InName, FTotalTimeAndCount* InGlobal /*= nullptr */ ) 
 : StartTime( FPlatformTime::Seconds() )
 , Name( InName )
-, Global( InGlobal )
+, Cumulative( InGlobal )
 {}
 
 FScopeLogTime::~FScopeLogTime()
 {
 	const double ScopedTime = FPlatformTime::Seconds() - StartTime;
-	if( Global )
+	if( Cumulative )
 	{
-		Global->Key += ScopedTime;
-		Global->Value++;
+		Cumulative->Key += ScopedTime;
+		Cumulative->Value++;
 
-		const double Average = Global->Key / (double)Global->Value;
-		UE_LOG( LogStats, Log, TEXT( "%32s - %6.3f ms - Total %6.2f s / %5u / %6.3f ms" ), *Name, ScopedTime*1000.0f, Global->Key, Global->Value, Average*1000.0f );
+		const double Average = Cumulative->Key / (double)Cumulative->Value;
+		UE_LOG( LogStats, Log, TEXT( "%32s - %6.3f ms - Total %6.2f s / %5u / %6.3f ms" ), *Name, ScopedTime*1000.0f, Cumulative->Key, Cumulative->Value, Average*1000.0f );
 	}
 	else
 	{

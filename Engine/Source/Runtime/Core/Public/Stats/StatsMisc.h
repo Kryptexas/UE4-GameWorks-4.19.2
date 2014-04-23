@@ -54,16 +54,22 @@ struct FScopeLogTime
 	 * @param InGlobal - Pointer to the variable that holds the cumulative stats
 	 *
 	 */
-	FScopeLogTime( const TCHAR* InName, FTotalTimeAndCount* InGlobal = nullptr );
+	CORE_API FScopeLogTime( const TCHAR* InName, FTotalTimeAndCount* InCumulative = nullptr );
 
 	/** Destructor. */
-	~FScopeLogTime();
+	CORE_API ~FScopeLogTime();
 
 protected:
 	const double StartTime;
 	const FString Name;
-	FTotalTimeAndCount* Global;
+	FTotalTimeAndCount* Cumulative;
 };
 
-#define SCOPE_LOG_TIME(Name,Global) \
-	FScopeLogTime ScopeLogTime(Name,Global);
+#define SCOPE_LOG_TIME(Name,CumulativePtr) \
+	FScopeLogTime ScopeLogTime(Name,CumulativePtr);
+
+#define SCOPE_LOG_TIME_FUNC() \
+	FScopeLogTime ScopeLogTime(TEXT(__FUNCTION__));
+
+#define SCOPE_LOG_TIME_FUNC_WITH_GLOBAL(CumulativePtr) \
+	FScopeLogTime ScopeLogTime(TEXT(__FUNCTION__),CumulativePtr);
