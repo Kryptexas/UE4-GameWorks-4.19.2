@@ -29,48 +29,14 @@ void FAssetTypeActions_Skeleton::GetActions( const TArray<UObject*>& InObjects, 
 			)
 		);
 
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("Skeleton_NewAnimBlueprint", "Create Anim Blueprint"),
-		LOCTEXT("Skeleton_NewAnimBlueprintTooltip", "Creates an Anim Blueprint using the selected skeleton."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_Skeleton::ExecuteNewAnimBlueprint, Skeletons ),
-			FCanExecuteAction()
-			)
-		);
-
-	MenuBuilder.AddSubMenu( 
-		LOCTEXT( "SkeletalMesh_NewAimOffset", "Create AimOffset" ), 
-		LOCTEXT("SkeletalMesh_NewAimOffsetTooltip", "Creates an aimoffset blendspace using the selected skeleton."),
-		FNewMenuDelegate::CreateSP( this, &FAssetTypeActions_Skeleton::FillAimOffsetBlendSpaceMenu, Skeletons ) );
-
-	MenuBuilder.AddSubMenu( 
-		LOCTEXT( "SkeletalMesh_NewBlendspace", "Create BlendSpace" ), 
-		LOCTEXT( "SkeletalMesh_NewBlendspaceTooltip", "Creates a blendspace using the skeleton of the selected mesh." ),
-		FNewMenuDelegate::CreateSP( this, &FAssetTypeActions_Skeleton::FillBlendSpaceMenu, Skeletons ) );
+	// create menu
+	MenuBuilder.AddSubMenu(
+			LOCTEXT("CreateAnimSubmenu", "Create"),
+			LOCTEXT("CreateAnimSubmenu_ToolTip", "Create assets for this skeleton"),
+			FNewMenuDelegate::CreateSP(this, &FAssetTypeActions_Skeleton::FillCreateMenu, Skeletons));
 
 	MenuBuilder.AddMenuEntry(
-		LOCTEXT("Skeleton_NewAnimComposite", "Create AnimComposite"),
-		LOCTEXT("Skeleton_NewAnimCompositeTooltip", "Creates an AnimComposite using the selected skeleton."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_Skeleton::ExecuteNewAnimAsset<UAnimCompositeFactory, UAnimComposite>, Skeletons, FString("_Composite") ),
-			FCanExecuteAction()
-			)
-		);
-
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("Skeleton_NewAnimMontage", "Create AnimMontage"),
-		LOCTEXT("Skeleton_NewAnimMontageTooltip", "Creates an AnimMontage using the selected skeleton."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_Skeleton::ExecuteNewAnimAsset<UAnimMontageFactory, UAnimMontage>, Skeletons, FString("_Montage") ),
-			FCanExecuteAction()
-			)
-		);
-
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("Skeleton_Retarget", "Retarget to another Skeleton"),
+		LOCTEXT("Skeleton_Retarget", "Retarget to Another Skeleton"),
 		LOCTEXT("Skeleton_RetargetTooltip", "Allow all animation assets for this skeleton retarget to another skeleton."),
 		FSlateIcon(),
 		FUIAction(
@@ -91,6 +57,49 @@ void FAssetTypeActions_Skeleton::GetActions( const TArray<UObject*>& InObjects, 
 			)
 		);
 	*/
+}
+
+void FAssetTypeActions_Skeleton::FillCreateMenu(FMenuBuilder& MenuBuilder, TArray<TWeakObjectPtr<USkeleton>> Skeletons) const
+{
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("Skeleton_NewAnimBlueprint", "Create Anim Blueprint"),
+		LOCTEXT("Skeleton_NewAnimBlueprintTooltip", "Creates an Anim Blueprint using the selected skeleton."),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateSP(this, &FAssetTypeActions_Skeleton::ExecuteNewAnimBlueprint, Skeletons),
+			FCanExecuteAction()
+			)
+		);
+
+	MenuBuilder.AddSubMenu(
+		LOCTEXT("SkeletalMesh_NewAimOffset", "Create AimOffset"),
+		LOCTEXT("SkeletalMesh_NewAimOffsetTooltip", "Creates an aimoffset blendspace using the selected skeleton."),
+		FNewMenuDelegate::CreateSP(this, &FAssetTypeActions_Skeleton::FillAimOffsetBlendSpaceMenu, Skeletons));
+
+	MenuBuilder.AddSubMenu(
+		LOCTEXT("SkeletalMesh_NewBlendspace", "Create BlendSpace"),
+		LOCTEXT("SkeletalMesh_NewBlendspaceTooltip", "Creates a blendspace using the skeleton of the selected mesh."),
+		FNewMenuDelegate::CreateSP(this, &FAssetTypeActions_Skeleton::FillBlendSpaceMenu, Skeletons));
+
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("Skeleton_NewAnimComposite", "Create AnimComposite"),
+		LOCTEXT("Skeleton_NewAnimCompositeTooltip", "Creates an AnimComposite using the selected skeleton."),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateSP(this, &FAssetTypeActions_Skeleton::ExecuteNewAnimAsset<UAnimCompositeFactory, UAnimComposite>, Skeletons, FString("_Composite")),
+			FCanExecuteAction()
+			)
+		);
+
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("Skeleton_NewAnimMontage", "Create AnimMontage"),
+		LOCTEXT("Skeleton_NewAnimMontageTooltip", "Creates an AnimMontage using the selected skeleton."),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateSP(this, &FAssetTypeActions_Skeleton::ExecuteNewAnimAsset<UAnimMontageFactory, UAnimMontage>, Skeletons, FString("_Montage")),
+			FCanExecuteAction()
+			)
+		);
 }
 
 void FAssetTypeActions_Skeleton::FillBlendSpaceMenu( FMenuBuilder& MenuBuilder, TArray<TWeakObjectPtr<USkeleton>> Skeletons )

@@ -428,9 +428,10 @@ void FAssetTypeActions_SkeletalMesh::GetActions( const TArray<UObject*>& InObjec
 			)
 		);
 
-	MenuBuilder.AddSubMenu(	LOCTEXT("SkeletalMesh_CreateAssets", "Create Animation Assets"),
-		LOCTEXT("SkeletalMesh_CreateAssetsTooltip", "Create animation assets from this skeletal mesh."),
-		FNewMenuDelegate::CreateSP( this, &FAssetTypeActions_SkeletalMesh::GetCreateMenu, Meshes));
+	MenuBuilder.AddSubMenu(
+			LOCTEXT("CreateSkeletalMeshSubmenu", "Create"),
+			LOCTEXT("CreateSkeletalMeshSubmenu_ToolTip", "Create related assets"),
+			FNewMenuDelegate::CreateSP(this, &FAssetTypeActions_SkeletalMesh::FillCreateMenu, Meshes));
 
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("SkeletalMesh_Reimport", "Reimport"),
@@ -446,71 +447,40 @@ void FAssetTypeActions_SkeletalMesh::GetActions( const TArray<UObject*>& InObjec
 							LOCTEXT("SkeletalMesh_LODImportTooltip", "Select which LODs to import."),
 							FNewMenuDelegate::CreateSP( this, &FAssetTypeActions_SkeletalMesh::GetLODMenu, Meshes));
 
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("SkeletalMesh_FindInExplorer", "Find Source"),
-		LOCTEXT("SkeletalMesh_FindInExplorerTooltip", "Opens explorer at the location of this asset."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_SkeletalMesh::ExecuteFindInExplorer, Meshes ),
-			FCanExecuteAction::CreateSP( this, &FAssetTypeActions_SkeletalMesh::CanExecuteSourceCommands, Meshes )
-			)
-		);
-
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("SkeletalMesh_OpenInExternalEditor", "Open Source"),
-		LOCTEXT("SkeletalMesh_OpenInExternalEditorTooltip", "Opens the selected asset in an external editor."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_SkeletalMesh::ExecuteOpenInExternalEditor, Meshes ),
-			FCanExecuteAction::CreateSP( this, &FAssetTypeActions_SkeletalMesh::CanExecuteSourceCommands, Meshes )
-			)
-		);
+	// source menu
+	MenuBuilder.AddSubMenu(
+			LOCTEXT("SourceSkeletalMeshSubmenu", "Source"),
+			LOCTEXT("SourceSkeletalMeshSubmenu_ToolTip", "Source data related"),
+			FNewMenuDelegate::CreateSP(this, &FAssetTypeActions_SkeletalMesh::FillSourceMenu, Meshes));
 
 	// Add actions that do not apply to destructible meshes
 	GetNonDestructibleActions(Meshes, MenuBuilder);
 }
 
-void FAssetTypeActions_SkeletalMesh::GetNonDestructibleActions( const TArray<TWeakObjectPtr<USkeletalMesh>>& Meshes, FMenuBuilder& MenuBuilder)
+void FAssetTypeActions_SkeletalMesh::FillCreateMenu(FMenuBuilder& MenuBuilder, const TArray<TWeakObjectPtr<USkeletalMesh>> Meshes) const
 {
+	MenuBuilder.AddSubMenu(LOCTEXT("SkeletalMesh_CreateAssets", "Create Animation Assets"),
+		LOCTEXT("SkeletalMesh_CreateAssetsTooltip", "Create animation assets from this skeletal mesh."),
+		FNewMenuDelegate::CreateSP(this, &FAssetTypeActions_SkeletalMesh::GetCreateMenu, Meshes));
+
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("SkeletalMesh_NewPhysicsAsset", "Create Physics Asset"),
 		LOCTEXT("SkeletalMesh_NewPhysicsAssetTooltip", "Creates a new physics asset for each of the selected meshes."),
 		FSlateIcon(),
 		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_SkeletalMesh::ExecuteNewPhysicsAsset, Meshes ),
+			FExecuteAction::CreateSP(this, &FAssetTypeActions_SkeletalMesh::ExecuteNewPhysicsAsset, Meshes),
 			FCanExecuteAction()
 			)
 		);
+}
 
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("SkeletalMesh_NewSkeleton", "Create Skeleton"),
-		LOCTEXT("SkeletalMesh_NewSkeletonTooltip", "Creates a new skeleton for each of the selected meshes."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_SkeletalMesh::ExecuteNewSkeleton, Meshes ),
-			FCanExecuteAction()
-			)
-		);
-	
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("SkeletalMesh_AssignSkeleton", "Assign Skeleton"),
-		LOCTEXT("SkeletalMesh_AssignSkeletonTooltip", "Assigns a skeleton to the selected meshes."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_SkeletalMesh::ExecuteAssignSkeleton, Meshes ),
-			FCanExecuteAction()
-			)
-		);
-
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("SkeletalMesh_FindSkeleton", "Find Skeleton"),
-		LOCTEXT("SkeletalMesh_FindSkeletonTooltip", "Finds the skeleton used by the selected meshes in the content browser."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_SkeletalMesh::ExecuteFindSkeleton, Meshes ),
-			FCanExecuteAction()
-			)
-		);
+void FAssetTypeActions_SkeletalMesh::GetNonDestructibleActions( const TArray<TWeakObjectPtr<USkeletalMesh>>& Meshes, FMenuBuilder& MenuBuilder)
+{
+	// skeleton menu
+	MenuBuilder.AddSubMenu(
+			LOCTEXT("SkeletonSubmenu", "Skeleton"),
+			LOCTEXT("SkeletonSubmenu_ToolTip", "Skeleton related actions"),
+			FNewMenuDelegate::CreateSP(this, &FAssetTypeActions_SkeletalMesh::FillSkeletonMenu, Meshes));
 }
 
 void FAssetTypeActions_SkeletalMesh::OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<IToolkitHost> EditWithinLevelEditor )
@@ -983,6 +953,61 @@ void FAssetTypeActions_SkeletalMesh::ExecuteFindSkeleton(TArray<TWeakObjectPtr<U
 	{
 		FAssetTools::Get().SyncBrowserToAssets(ObjectsToSync);
 	}
+}
+
+void FAssetTypeActions_SkeletalMesh::FillSourceMenu(FMenuBuilder& MenuBuilder, const TArray<TWeakObjectPtr<USkeletalMesh>> Meshes) const
+{
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("SkeletalMesh_FindInExplorer", "Find Source"),
+		LOCTEXT("SkeletalMesh_FindInExplorerTooltip", "Opens explorer at the location of this asset."),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateSP(this, &FAssetTypeActions_SkeletalMesh::ExecuteFindInExplorer, Meshes),
+			FCanExecuteAction::CreateSP(this, &FAssetTypeActions_SkeletalMesh::CanExecuteSourceCommands, Meshes)
+			)
+		);
+
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("SkeletalMesh_OpenInExternalEditor", "Open Source"),
+		LOCTEXT("SkeletalMesh_OpenInExternalEditorTooltip", "Opens the selected asset in an external editor."),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateSP(this, &FAssetTypeActions_SkeletalMesh::ExecuteOpenInExternalEditor, Meshes),
+			FCanExecuteAction::CreateSP(this, &FAssetTypeActions_SkeletalMesh::CanExecuteSourceCommands, Meshes)
+			)
+		);
+}
+void FAssetTypeActions_SkeletalMesh::FillSkeletonMenu(FMenuBuilder& MenuBuilder, const TArray<TWeakObjectPtr<USkeletalMesh>> Meshes) const
+{
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("SkeletalMesh_NewSkeleton", "Create Skeleton"),
+		LOCTEXT("SkeletalMesh_NewSkeletonTooltip", "Creates a new skeleton for each of the selected meshes."),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateSP(this, &FAssetTypeActions_SkeletalMesh::ExecuteNewSkeleton, Meshes),
+			FCanExecuteAction()
+			)
+		);
+
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("SkeletalMesh_AssignSkeleton", "Assign Skeleton"),
+		LOCTEXT("SkeletalMesh_AssignSkeletonTooltip", "Assigns a skeleton to the selected meshes."),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateSP(this, &FAssetTypeActions_SkeletalMesh::ExecuteAssignSkeleton, Meshes),
+			FCanExecuteAction()
+			)
+		);
+
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("SkeletalMesh_FindSkeleton", "Find Skeleton"),
+		LOCTEXT("SkeletalMesh_FindSkeletonTooltip", "Finds the skeleton used by the selected meshes in the content browser."),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateSP(this, &FAssetTypeActions_SkeletalMesh::ExecuteFindSkeleton, Meshes),
+			FCanExecuteAction()
+			)
+		);
 }
 
 void FAssetTypeActions_SkeletalMesh::CreatePhysicsAssetFromMesh(USkeletalMesh* SkelMesh) const
