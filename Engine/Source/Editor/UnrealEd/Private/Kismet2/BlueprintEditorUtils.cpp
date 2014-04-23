@@ -2074,7 +2074,7 @@ void FBlueprintEditorUtils::GetDependentBlueprints(UBlueprint* Blueprint, TArray
 	{
 		// we know the class is correct so a fast cast is ok here
 		UBlueprint* const TestBP = (UBlueprint*) *ObjIt;
-		if ( FBlueprintEditorUtils::IsBlueprintDependentOn(TestBP, Blueprint))
+		if ( FBlueprintEditorUtils::IsBlueprintDependentOn(TestBP, Blueprint) && !TestBP->HasAnyFlags(RF_PendingKill) )
 		{
 			DependentBlueprints.Add(TestBP);
 		}
