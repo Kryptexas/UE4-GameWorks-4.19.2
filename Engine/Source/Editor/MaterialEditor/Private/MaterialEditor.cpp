@@ -30,6 +30,7 @@
 #include "SNodePanel.h"
 #include "MaterialEditorUtilities.h"
 #include "SMaterialPalette.h"
+#include "FindInMaterial.h"
 
 #include "Developer/MessageLog/Public/MessageLogModule.h"
 
