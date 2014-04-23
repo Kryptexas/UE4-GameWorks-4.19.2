@@ -1675,13 +1675,7 @@ bool UActorChannel::ReplicateActor()
 		if (!RepComp.Key().IsValid())
 		{
 			// Write a deletion content header:
-			//	-Deleted object's NetGUID
-			//	-Invalid NetGUID (interpretted as delete)
-			Bunch << RepComp.Value()->ObjectNetGUID;
-
-			FNetworkGUID InvalidNetGUID;
-			InvalidNetGUID.Reset();
-			Bunch << InvalidNetGUID;
+			BeginContentBlockForSubObjectDelete( Bunch, RepComp.Value()->ObjectNetGUID );
 
 			WroteSomethingImportant = true;
 			Bunch.bReliable = true;
@@ -1869,6 +1863,23 @@ void UActorChannel::BeginContentBlock( UObject * Obj, FOutBunch &Bunch )
 		Connection->PackageMap->ClearDebugContextString();
 	}
 #endif
+}
+
+void UActorChannel::BeginContentBlockForSubObjectDelete( FOutBunch & Bunch, FNetworkGUID & GuidToDelete )
+{
+	// Send a 0 bit to signify we are dealing with sub-objects
+	Bunch.WriteBit( 0 );
+
+	check( GuidToDelete.IsValid() );
+
+	//	-Deleted object's NetGUID
+	Bunch << GuidToDelete;
+	NET_CHECKSUM(Bunch);
+
+	//	-Invalid NetGUID (interpreted as delete)
+	FNetworkGUID InvalidNetGUID;
+	InvalidNetGUID.Reset();
+	Bunch << InvalidNetGUID;
 }
 
 void UActorChannel::EndContentBlock( UObject *Obj, FOutBunch &Bunch, FClassNetCache* ClassCache )

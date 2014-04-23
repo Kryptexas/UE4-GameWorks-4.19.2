@@ -127,6 +127,9 @@ class ENGINE_API UActorChannel : public UChannel
 	/** Writes the header for a content block of proeprties / RPCs for the given object (either the actor a subobject of the actor) */
 	void BeginContentBlock( UObject * Obj, FOutBunch &Bunch );
 
+	/** Writes the header for a content block specifically for deleting sub-objects */
+	void BeginContentBlockForSubObjectDelete( FOutBunch & Bunch, FNetworkGUID & GuidToDelete );
+
 	/** Writes the footer for a content block of proeprties / RPCs for the given object (either the actor a subobject of the actor) */
 	void EndContentBlock( UObject *Obj, FOutBunch &Bunch, FClassNetCache* ClassCache = NULL );
 
