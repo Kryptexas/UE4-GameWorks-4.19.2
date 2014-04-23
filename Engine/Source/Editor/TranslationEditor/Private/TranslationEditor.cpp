@@ -14,14 +14,12 @@
 #include "Editor/PropertyEditor/Public/PropertyHandle.h"
 #include "Editor/PropertyEditor/Public/PropertyPath.h"
 #include "CustomFontColumn.h"
-
-#include "TranslationUnit.h"
-
 #include "DesktopPlatformModule.h"
-
 #include "IPropertyTableWidgetHandle.h"
 
+#include "TranslationUnit.h"
 #include "SSearchBox.h"
+#include "InternationalizationExportSettings.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LocalizationExport, Log, All);
 
@@ -200,8 +198,8 @@ FText FTranslationEditor::GetToolkitName() const
 	const bool bDirtyState = EditingObject->GetOutermost()->IsDirty();
 
 	FFormatNamedArguments Args;
-	Args.Add( TEXT("Language"), FText::FromString( TranslationTargetLanguage ) );
-	Args.Add( TEXT("ProjectName"), FText::FromString( ProjectName ) );
+	Args.Add(TEXT("Language"), FText::FromString(FPaths::GetBaseFilename(FPaths::GetPath(ArchiveFilePath))));
+	Args.Add(TEXT("ProjectName"), FText::FromString(FPaths::GetBaseFilename(ManifestFilePath)));
 	Args.Add( TEXT("DirtyState"), bDirtyState ? FText::FromString( TEXT( "*" ) ) : FText::GetEmpty() );
 	Args.Add( TEXT("ToolkitName"), GetBaseToolkitName() );
 	return FText::Format( LOCTEXT("TranslationEditorAppLabel", "{Language}{DirtyState} - {ProjectName} - {ToolkitName}"), Args );
@@ -984,56 +982,72 @@ void FTranslationEditor::PreviewAllTranslationsInEditor_Execute()
 
 void FTranslationEditor::ExportToPortableObjectFormat_Execute()
 {
-	// TODO: Add ability to choose output location
-
-	//const FString PortableObjectFileDescription = LOCTEXT("PortableObjectFileDescription", "Portable Object File").ToString();
-	//const FString PortableObjectFileExtension = TEXT("*.po");
-	//const FString FileTypes = FString::Printf(TEXT("%s (%s)|%s"), *PortableObjectFileDescription, *PortableObjectFileExtension, *PortableObjectFileExtension);
-	TArray<FString> OpenFilenames;
-	//IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+	const FString PortableObjectFileDescription = LOCTEXT("PortableObjectFileDescription", "Portable Object File").ToString();
+	const FString PortableObjectFileExtension = TEXT("*.po");
+	const FString FileTypes = FString::Printf(TEXT("%s (%s)|%s"), *PortableObjectFileDescription, *PortableObjectFileExtension, *PortableObjectFileExtension);
+	const FString DefaultFilename = FPaths::GetBaseFilename(ManifestFilePath) + "-" + FPaths::GetBaseFilename(FPaths::GetPath(ArchiveFilePath)) + ".po";
+	const FString DefaultPath = FPaths::GameSavedDir();
+	TArray<FString> SaveFilenames;
+	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 	bool bSelected = false;
 	
-	// Prompt the user for the filenames
-	//if (DesktopPlatform)
-	//{
-	//	void* ParentWindowWindowHandle = NULL;
-
-	//	const TSharedPtr<SWindow>& ParentWindow = FSlateApplication::Get().FindWidgetWindow(PreviewTextBlock);
-	//	if (ParentWindow.IsValid() && ParentWindow->GetNativeWindow().IsValid())
-	//	{
-	//		ParentWindowWindowHandle = ParentWindow->GetNativeWindow()->GetOSWindowHandle();
-	//	}
-
-	//	bSelected = DesktopPlatform->SaveFileDialog(
-	//		ParentWindowWindowHandle,
-	//		LOCTEXT("ChooseExportLocationWindowTitle", "Choose Export Location").ToString(),
-	//		FPaths::GameSavedDir(),
-	//		"ExportedLocalization.po",
-	//		FileTypes,
-	//		EFileDialogFlags::None,
-	//		OpenFilenames
-	//		);
-	//}
-
-	FString OutFile = FPaths::EngineSavedDir() / "LocalizationExport" / "ExportedLocalization.po";
-
-	if (bSelected && OpenFilenames.Num() > 0)
+	// Prompt the user for the filename
+	if (DesktopPlatform)
 	{
-		OutFile = OpenFilenames[0];
+		void* ParentWindowWindowHandle = NULL;
+
+		const TSharedPtr<SWindow>& ParentWindow = FSlateApplication::Get().FindWidgetWindow(PreviewTextBlock);
+		if (ParentWindow.IsValid() && ParentWindow->GetNativeWindow().IsValid())
+		{
+			ParentWindowWindowHandle = ParentWindow->GetNativeWindow()->GetOSWindowHandle();
+		}
+
+		bSelected = DesktopPlatform->SaveFileDialog(
+			ParentWindowWindowHandle,
+			LOCTEXT("ChooseExportLocationWindowTitle", "Choose Export Location").ToString(),
+			FPaths::GameSavedDir(),
+			DefaultFilename,
+			FileTypes,
+			EFileDialogFlags::None,
+			SaveFilenames
+			);
 	}
 
-	// For now, just run every section in the config file
+	GWarn->BeginSlowTask(LOCTEXT("ExportingInternationalization", "Exporting Internationalization Data..."), true);
+
+	// Write translation data first to ensure all changes are exported
+	DataManager->WriteTranslationData();
+
+	UInternationalizationExportSettings* ExportSettings = NewObject<UInternationalizationExportSettings>();
+	ExportSettings->CulturesToGenerate.Empty();
+	ExportSettings->CulturesToGenerate.Add(FPaths::GetBaseFilename(FPaths::GetPath(ArchiveFilePath)));
+	ExportSettings->CommandletClass = "InternationalizationExport";
+	ExportSettings->SourcePath = FPaths::GetPath(ManifestFilePath);
+	ExportSettings->ManifestName = FPaths::GetBaseFilename(ManifestFilePath) + ".manifest";
+	ExportSettings->ArchiveName = FPaths::GetBaseFilename(ManifestFilePath) + ".archive";
+	ExportSettings->bExportLoc = true;
+	ExportSettings->bImportLoc = false;
+
+	ExportSettings->DestinationPath = DefaultPath / DefaultFilename;
+
+	if (bSelected && SaveFilenames.Num() > 0)
+	{
+		ExportSettings->DestinationPath = SaveFilenames[0];
+	}
+
+	// Write these settings to a temporary config file that the Internationalization Export Commandlet will read
+	FString TempConfigFilepath = FPaths::GameSavedDir() / "Config" / "InternationalizationExport.ini";
+	ExportSettings->SaveConfig(CPF_Config, *TempConfigFilepath);
+
+	// Using .ini config saving means these settings will be saved in the GetClass()->GetPathName() section
 	TArray<FString> ConfigSections;
-	ConfigSections.Add("GatherTextStep0");
-	ConfigSections.Add("GatherTextStep1");
-	ConfigSections.Add("GatherTextStep2");
-	ConfigSections.Add("GatherTextStep3");
+	ConfigSections.Add(ExportSettings->GetClass()->GetPathName());
 
 	for (FString& ConfigSection : ConfigSections)
 	{
 		// Spawn the LocalizationExport commandlet, and run its log output back into ours
 		FString AppURL = FPlatformProcess::ExecutableName(true);
-		FString Parameters = FString("-run=InternationalizationExport -config=") + FPaths::EngineConfigDir() / "Localization" / "PortableObjectExport.ini -section=" + ConfigSection;
+		FString Parameters = FString("-run=InternationalizationExport -config=") + TempConfigFilepath + " -section=" + ConfigSection;
 
 		void* WritePipe;
 		void* ReadPipe;
@@ -1070,6 +1084,7 @@ void FTranslationEditor::ExportToPortableObjectFormat_Execute()
 		}
 	}
 
+	GWarn->EndSlowTask();
 }
 
 void FTranslationEditor::OnFilterTextChanged(const FText& InFilterText)

@@ -15,9 +15,9 @@ public:
 	/**
 	 *	Creates a new FTranslationEditor and calls Initialize
 	 */
-	static TSharedRef< FTranslationEditor > Create( TSharedRef< FTranslationDataManager > DataManager, const FString& ProjectName, const FString& TranslationTargetLanguage )
+	static TSharedRef< FTranslationEditor > Create(TSharedRef< FTranslationDataManager > DataManager, const FString& InManifestFile, const FString& InArchiveFile)
 	{
-		TSharedRef< FTranslationEditor > TranslationEditor = MakeShareable( new FTranslationEditor( DataManager, ProjectName, TranslationTargetLanguage ) );
+		TSharedRef< FTranslationEditor > TranslationEditor = MakeShareable(new FTranslationEditor(DataManager, InManifestFile, InArchiveFile));
 
 		// Some stuff that needs to use the "this" pointer is done in Initialize (because it can't be done in the constructor)
 		TranslationEditor->Initialize();
@@ -69,8 +69,8 @@ private:
 				.Font(TranslationTargetFont))
 	, NamespaceTextBlock(SNew(STextBlock)
 				.Text(FText::FromString("")))
-	, ProjectName(FPaths::GetBaseFilename(InManifestFile))
-	, TranslationTargetLanguage(FPaths::GetBaseFilename(FPaths::GetPath(InArchiveFile)))
+	, ManifestFilePath(InManifestFile)
+	, ArchiveFilePath(InArchiveFile)
 	{}
 
 	/** Does some things we can't do in the constructor because we can't get a SharedRef to "this" there */ 
@@ -242,7 +242,7 @@ private:
 	TSharedRef<STextBlock> NamespaceTextBlock;
 
 	/** Name of the project we are translating for */
-	FString ProjectName;
+	FString ManifestFilePath;
 	/** Name of the language we are translating to */
-	FString TranslationTargetLanguage;
+	FString ArchiveFilePath;
 };
