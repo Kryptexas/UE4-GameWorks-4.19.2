@@ -850,10 +850,14 @@ void UWorld::DestroyWorld( bool bInformEngineOfWorld )
 	}
 }
 
-UWorld* UWorld::CreateWorld( const EWorldType::Type InWorldType, bool bInformEngineOfWorld )
+UWorld* UWorld::CreateWorld( const EWorldType::Type InWorldType, bool bInformEngineOfWorld, FName WorldName, UPackage* InWorldPackage, bool bAddToRoot )
 {
 	// Create a new package unless we're a commandlet in which case we keep the dummy world in the transient package.
-	UPackage*	WorldPackage		= IsRunningCommandlet() ? GetTransientPackage() : CreatePackage( NULL, NULL );
+	UPackage* WorldPackage = InWorldPackage;
+	if ( !WorldPackage )
+	{
+		WorldPackage = IsRunningCommandlet() ? GetTransientPackage() : CreatePackage( NULL, NULL );
+	}
 
 	if (InWorldType == EWorldType::PIE)
 	{
@@ -868,15 +872,19 @@ UWorld* UWorld::CreateWorld( const EWorldType::Type InWorldType, bool bInformEng
 	}
 
 	// Create new UWorld, ULevel and UModel.
-	UWorld* NewWorld = new( WorldPackage				, TEXT("NewWorld")			) UWorld(FPostConstructInitializeProperties(),FURL(NULL));
+	const FString WorldNameString = (WorldName != NAME_None) ? WorldName.ToString() : TEXT("NewWorld");
+	UWorld* NewWorld = new( WorldPackage				, *WorldNameString			) UWorld(FPostConstructInitializeProperties(),FURL(NULL));
 	NewWorld->WorldType = InWorldType;
 	NewWorld->InitializeNewWorld(UWorld::InitializationValues().ShouldSimulatePhysics(false).EnableTraceCollision(true).CreateNavigation(InWorldType == EWorldType::Editor));
 
 	// Clear the dirty flag set during SpawnActor and UpdateLevelComponents
 	WorldPackage->SetDirtyFlag(false);
 
-	// Add to root set so it doesn't get garbage collected.
-	NewWorld->AddToRoot();
+	if ( bAddToRoot )
+	{
+		// Add to root set so it doesn't get garbage collected.
+		NewWorld->AddToRoot();
+	}
 
 	// Tell the engine we are adding a world (unless we are asked not to)
 	if( ( GEngine ) && ( bInformEngineOfWorld == true ) )

@@ -27,6 +27,7 @@
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
 #include "Toolkits/AssetEditorManager.h"
 #include "AssetRegistryModule.h"
+#include "AssetToolsModule.h"
 #include "SnappingUtils.h"
 
 #include "TargetPlatform.h"
@@ -1748,11 +1749,20 @@ UWorld* UEditorEngine::NewMap()
 	const FText CleanseText = LOCTEXT("LoadingMap_Template", "New Map");
 	EditorDestroyWorld( Context, CleanseText );
 
-	// Create a new world.
-	Context.SetCurrentWorld(UWorld::CreateWorld(EWorldType::Editor, true ));
-	GWorld = Context.World();
-	GWorld->SetFlags(RF_Public|RF_Standalone);
-	
+	// Create a new world
+	UWorldFactory* Factory = ConstructObject<UWorldFactory>(UWorldFactory::StaticClass());
+	Factory->WorldType = EWorldType::Editor;
+	FString AssetName = TEXT("NewMap");
+	FString PackagePath = TEXT("/Temp");
+	FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
+	UWorld* NewWorld = Cast<UWorld>(AssetToolsModule.Get().CreateAsset(AssetName, PackagePath, UWorld::StaticClass(), Factory));
+	if ( NewWorld )
+	{
+		Context.SetCurrentWorld(NewWorld);
+		GWorld = NewWorld;
+		NewWorld->AddToRoot();
+	}
+
 	NoteSelectionChange();
 
 	// Starting a new map will wipe existing actors and add some defaults actors to the scene, so we need
@@ -1768,7 +1778,7 @@ UWorld* UEditorEngine::NewMap()
 		FLevelEditorModule& LevelEditor = FModuleManager::GetModuleChecked<FLevelEditorModule>("LevelEditor");
 
 		// Notify slate level editors of the map change
-		LevelEditor.BroadcastMapChanged( GWorld, EMapChangeType::NewMap );
+		LevelEditor.BroadcastMapChanged( NewWorld, EMapChangeType::NewMap );
 	}
 
 	// Move the brush to the origin.
@@ -1789,7 +1799,7 @@ UWorld* UEditorEngine::NewMap()
 	// Invalidate all the level viewport hit proxies
 	InvalidateAllViewportClientHitProxies();
 
-	return Context.World();
+	return NewWorld;
 }
 
 
