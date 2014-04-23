@@ -39,16 +39,16 @@ bool RegisterCurrentEngineDirectory()
 void EnumerateInvalidInstallations(TArray<FString> &OutIds)
 {
 	// Enumerate all the engine installations
-	TArray< TPair<FString, FString> > Installations;
-	FPlatformMisc::EnumerateEngineInstallations(Installations);
+	TMap<FString, FString> Installations;
+	FDesktopPlatformModule::Get()->EnumerateEngineInstallations(Installations);
 
 	// Check each one of them has a valid engine path
-	for (TArray<TPair<FString, FString>>::TConstIterator Iter(Installations); Iter; ++Iter)
+	for (TMap<FString, FString>::TConstIterator Iter(Installations); Iter; ++Iter)
 	{
-		const FString &RootDir = Iter->Value;
+		const FString &RootDir = Iter.Value();
 		if (!FPlatformInstallation::IsValidEngineRootDir(RootDir))
 		{
-			OutIds.Add(Iter->Key);
+			OutIds.Add(Iter.Key());
 		}
 	}
 }
@@ -111,7 +111,7 @@ bool RegisterEngineDirectory(const FString &EngineDir)
 {
 	// Get any existing tag name or register a new one
 	FString EngineId;
-	if (!FPlatformMisc::GetEngineIdentifierFromRootDir(EngineDir, EngineId))
+	if (!FDesktopPlatformModule::Get()->GetEngineIdentifierFromRootDir(EngineDir, EngineId))
 	{
 		EngineId = FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphensInBraces);
 	}
@@ -128,6 +128,9 @@ bool SelectEngineAssociation(const FString &ProjectFileName, const FString &Engi
 		FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, TEXT("Couldn't set association for project. Check the file is writeable."), TEXT("Error"));
 		return false;
 	}
+
+	// Notify the user that it's been changed
+	FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, TEXT("Updated project file."), TEXT("Success"));
 	return true;
 }
 
@@ -153,14 +156,14 @@ bool BrowseForEngineAssociation(const FString &ProjectFileName)
 
 	// Check that it's a registered engine directory
 	FString EngineId;
-	if (!FPlatformMisc::GetEngineIdentifierFromRootDir(NewEngineRootDir, EngineId))
+	if (!FDesktopPlatformModule::Get()->GetEngineIdentifierFromRootDir(NewEngineRootDir, EngineId))
 	{
 		int32 ExitCode;
 		if (!FPlatformProcess::ExecElevatedProcess(*FullExecutableName(), *FString::Printf(TEXT("/register \"%s\""), *NewEngineRootDir), &ExitCode) || ExitCode != 0)
 		{
 			return false;
 		}
-		if (!FPlatformMisc::GetEngineIdentifierFromRootDir(NewEngineRootDir, EngineId))
+		if (!FDesktopPlatformModule::Get()->GetEngineIdentifierFromRootDir(NewEngineRootDir, EngineId))
 		{
 			return false;
 		}

@@ -611,7 +611,7 @@ void SProjectBrowser::FindProjects(bool bAllowProjectCreate)
 		{
 			const bool bPromptIfSavedWithNewerVersionOfEngine = false;
 			FProjectStatus ProjectStatus;
-			if ( IProjectManager::Get().QueryStatusForProject(ProjectFilename, ProjectStatus) )
+			if (IProjectManager::Get().QueryStatusForProject(ProjectFilename, FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier(), ProjectStatus))
 			{
 				// @todo localized project name
 				const FText ProjectName = FText::FromString(ProjectStatus.Name);

@@ -30,6 +30,7 @@
 #include "NormalMapIdentification.h"
 #include "EngineBuildSettings.h"
 #include "Slate.h"
+#include "DesktopPlatformModule.h"
 
 #define LOCTEXT_NAMESPACE "UnrealEd"
 
@@ -335,7 +336,7 @@ void FUnrealEdMisc::InitEngineAnalytics()
 			const FString& LoadedProjectFilePath = FPaths::GetProjectFilePath();
 			FProjectStatus ProjectStatus;
 
-			if ( IProjectManager::Get().QueryStatusForProject(LoadedProjectFilePath, ProjectStatus) )
+			if (IProjectManager::Get().QueryStatusForProject(LoadedProjectFilePath, FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier(), ProjectStatus))
 			{
 				if ( ProjectStatus.bSignedSampleProject )
 				{

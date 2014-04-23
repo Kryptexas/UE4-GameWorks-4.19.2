@@ -88,11 +88,11 @@ public:
 	virtual bool LoadModulesForProject( const ELoadingPhase::Type LoadingPhase ) OVERRIDE;
 	virtual const FString& GetAutoLoadProjectFileName() OVERRIDE;
 	virtual const FString& NonStaticGetProjectFileExtension() OVERRIDE;
-	virtual bool GenerateNewProjectFile(const FString& NewProjectFilename, const TArray<FString>& ModuleNames, FText& OutFailReason) OVERRIDE;
-	virtual bool DuplicateProjectFile(const FString& SourceProjectFilename, const FString& NewProjectFilename, FText& OutFailReason) OVERRIDE;
-	virtual bool UpdateLoadedProjectFileToCurrent(const TArray<FString>* StartupModuleNames, FText& OutFailReason) OVERRIDE;
+	virtual bool GenerateNewProjectFile(const FString& NewProjectFilename, const TArray<FString>& ModuleNames, const FString& EngineIdentifier, FText& OutFailReason) OVERRIDE;
+	virtual bool DuplicateProjectFile(const FString& SourceProjectFilename, const FString& NewProjectFilename, const FString& EngineIdentifier, FText& OutFailReason) OVERRIDE;
+	virtual bool UpdateLoadedProjectFileToCurrent(const TArray<FString>* StartupModuleNames, const FString& EngineIdentifier, FText& OutFailReason) OVERRIDE;
 	virtual bool SignSampleProject(const FString& FilePath, const FString& Category, FText& OutFailReason) OVERRIDE;
-	virtual bool QueryStatusForProject(const FString& FilePath, FProjectStatus& OutProjectStatus) const OVERRIDE;
+	virtual bool QueryStatusForProject(const FString& FilePath, const FString& EngineIdentifier, FProjectStatus& OutProjectStatus) const OVERRIDE;
 
 private:
 	/** The project that is currently loaded in the editor */

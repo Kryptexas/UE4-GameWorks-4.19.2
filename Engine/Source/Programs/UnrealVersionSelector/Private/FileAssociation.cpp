@@ -2,6 +2,7 @@
 #include "FileAssociation.h"
 #include "PlatformInstallation.h"
 #include "Runtime/Core/Public/Serialization/Json/Json.h"
+#include "DesktopPlatformModule.h"
 
 TSharedPtr<FJsonObject> LoadJson(const FString &FileName)
 {
@@ -71,7 +72,7 @@ bool GetEngineIdForProject(const FString &ProjectFileName, FString &OutId)
 bool GetEngineRootDirForProject(const FString &ProjectFileName, FString &OutRootDir)
 {
 	FString Id;
-	if (GetEngineIdForProject(ProjectFileName, Id) && FPlatformMisc::GetEngineRootDirFromIdentifier(Id, OutRootDir))
+	if (GetEngineIdForProject(ProjectFileName, Id) && FDesktopPlatformModule::Get()->GetEngineRootDirFromIdentifier(Id, OutRootDir))
 	{
 		return true;
 	}

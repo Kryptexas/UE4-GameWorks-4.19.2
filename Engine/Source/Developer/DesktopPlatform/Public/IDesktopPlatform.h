@@ -116,4 +116,35 @@ public:
 	 * @return true if the marketplace was opened, false if it is not installed or could not be installed/opened.
 	 */
 	virtual bool OpenLauncher(bool Install, const FString& CommandLineParams ) = 0;
+
+	/**
+	* Gets the identifier for the currently executing engine installation
+	*
+	* @return	Identifier for the current engine installation. Empty string if it isn't registered.
+	*/
+	virtual FString GetCurrentEngineIdentifier() = 0;
+
+	/**
+	* Enumerates all the registered engine installations.
+	*
+	* @param	OutInstallations	Array which is filled in with identifier/root-directory pairs for all known installations. Identifiers are typically
+	*								version strings for canonical UE4 releases or GUID strings for GitHub releases.
+	*/
+	virtual void EnumerateEngineInstallations(TMap<FString, FString> &OutInstallations) = 0;
+
+	/**
+	* Returns the identifier for the engine with the given root directory.
+	*
+	* @param	RootDirName			Root directory for the engine.
+	* @param	OutIdentifier		Identifier used to refer to this installation.
+	*/
+	virtual bool GetEngineRootDirFromIdentifier(const FString &Identifier, FString &OutRootDir) = 0;
+
+	/**
+	* Returns the identifier for the engine with the given root directory.
+	*
+	* @param	RootDirName			Root directory for the engine.
+	* @param	OutIdentifier		Identifier used to refer to this installation.
+	*/
+	virtual bool GetEngineIdentifierFromRootDir(const FString &RootDir, FString &OutIdentifier) = 0;
 };

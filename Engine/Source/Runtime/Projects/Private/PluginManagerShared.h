@@ -221,12 +221,12 @@ public:
 	 *
 	 * @return true if the project file is up to date, false otherwise.
 	 */
-	bool IsUpToDate( ) const;
+	bool IsUpToDate( const FString &EngineIdentifier ) const;
 
 	/**
 	 * Updates all version info to match the currently running executable.
 	 */
-	void UpdateVersionToCurrent( );
+	void UpdateVersionToCurrent( const FString &EngineIdentifier );
 
 	/**
 	 * Updates the modules in the project file

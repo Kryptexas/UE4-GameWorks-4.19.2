@@ -296,7 +296,7 @@ FString FProjectOrPlugin::SerializeToJSON( ) const
 	return JSONOutput;
 }
 
-bool FProjectOrPlugin::IsUpToDate( ) const
+bool FProjectOrPlugin::IsUpToDate( const FString &EngineIdentifier ) const
 {
 	const FProjectOrPluginInfo& ProjectOrPluginInfo = GetProjectOrPluginInfo();
 
@@ -305,10 +305,7 @@ bool FProjectOrPlugin::IsUpToDate( ) const
 		return false;
 	}
 
-	FString CurrentEngineIdentifier;
-	FPlatformMisc::GetEngineIdentifierFromRootDir(FPlatformMisc::RootDir(), CurrentEngineIdentifier);
-
-	if (ProjectOrPluginInfo.EngineAssociation != CurrentEngineIdentifier)
+	if (ProjectOrPluginInfo.EngineAssociation != EngineIdentifier)
 	{
 		return false;
 	}
@@ -316,7 +313,7 @@ bool FProjectOrPlugin::IsUpToDate( ) const
 	return true;
 }
 
-void FProjectOrPlugin::UpdateVersionToCurrent( )
+void FProjectOrPlugin::UpdateVersionToCurrent( const FString &EngineIdentifier )
 {
 	FProjectOrPluginInfo& ProjectOrPluginInfo = GetProjectOrPluginInfo();
 
@@ -324,8 +321,7 @@ void FProjectOrPlugin::UpdateVersionToCurrent( )
 	ProjectOrPluginInfo.EngineVersion = GEngineVersion;
 	ProjectOrPluginInfo.PackageFileUE4Version = GPackageFileUE4Version;
 	ProjectOrPluginInfo.PackageFileLicenseeUE4Version = GPackageFileLicenseeUE4Version;
-
-	FPlatformMisc::GetEngineIdentifierFromRootDir(FPlatformMisc::RootDir(), ProjectOrPluginInfo.EngineAssociation);
+	ProjectOrPluginInfo.EngineAssociation = EngineIdentifier;
 }
 
 void FProjectOrPlugin::ReplaceModulesInProject(const TArray<FString>* StartupModuleNames)

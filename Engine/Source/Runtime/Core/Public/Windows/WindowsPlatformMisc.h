@@ -189,9 +189,6 @@ struct CORE_API FWindowsPlatformMisc : public FGenericPlatformMisc
 
 	/** @return Get the name of the platform specific file manager (Explorer) */
 	static FText GetFileManagerName();
-
-	/** Enumerate all the engine installations, using the registry */
-	static void EnumerateEngineInstallations(TArray< TPair<FString, FString> > &OutInstallations);
 };
 
 typedef FWindowsPlatformMisc FPlatformMisc;
