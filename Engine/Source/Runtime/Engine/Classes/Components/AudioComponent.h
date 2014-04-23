@@ -66,6 +66,7 @@ struct FSoundParseParameters
 	float HighFrequencyGain;
 
 	float StartTime;
+	float OmniRadius;
 
 	uint32 bUseSpatialization:1;
 	uint32 bLooping:1;
@@ -78,6 +79,7 @@ struct FSoundParseParameters
 		, Pitch(1.f)
 		, HighFrequencyGain(1.f)
 		, StartTime(-1.f)
+		, OmniRadius(0.0f)
 		, bUseSpatialization(false)
 		, bLooping(false)
 	{

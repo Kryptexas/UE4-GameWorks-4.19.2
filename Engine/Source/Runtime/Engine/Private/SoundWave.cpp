@@ -437,6 +437,7 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 		WaveInstance->bApplyRadioFilter = ActiveSound.bApplyRadioFilter;
 		WaveInstance->StartTime = ParseParams.StartTime;
 		WaveInstance->UserIndex = ActiveSound.UserIndex;
+		WaveInstance->OmniRadius = ParseParams.OmniRadius;
 
 		bool bAlwaysPlay = false;
 

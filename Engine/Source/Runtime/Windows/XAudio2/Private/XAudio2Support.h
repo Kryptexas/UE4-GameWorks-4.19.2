@@ -452,7 +452,7 @@ public:
 	 * @param	OutVolumes				An array of floats with one volume for each output channel.
 	 * @param	OutReverbLevel			The reverb volume
 	 */
-	void CalculateDolbySurroundRate( const FVector& OrientFront, const FVector& ListenerPosition, const FVector& EmitterPosition, float* OutVolumes );
+	void CalculateDolbySurroundRate( const FVector& OrientFront, const FVector& ListenerPosition, const FVector& EmitterPosition, float OmniRadius, float* OutVolumes );
 };
 
 /** Variables required for the early init */

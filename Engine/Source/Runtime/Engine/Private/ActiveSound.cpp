@@ -201,6 +201,7 @@ void FActiveSound::UpdateWaveInstances( FAudioDevice* AudioDevice, TArray<FWaveI
 		if (bHasAttenuationSettings)
 		{
 			AttenuationSettings.ApplyAttenuation(ParseParams.Transform, Listener.Transform.GetTranslation(), ParseParams.Volume, ParseParams.HighFrequencyGain );
+			ParseParams.OmniRadius = AttenuationSettings.OmniRadius;
 			ParseParams.bUseSpatialization = AttenuationSettings.bSpatialize;
 		}
 

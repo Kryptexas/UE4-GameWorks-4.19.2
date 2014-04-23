@@ -73,6 +73,10 @@ struct ENGINE_API FAttenuationSettings
 	UPROPERTY(EditAnywhere, Category=Attenuation, meta=(DisplayName = "dB Attenuation At Max", ClampMax = "0" ))
 	float dBAttenuationAtMax;
 
+	/** At what distance we start transforming into omnidirectional soundsource */
+	UPROPERTY(EditAnywhere, Category=Attenuation, meta=(ClampMin = "0"))
+	float OmniRadius;
+
 	UPROPERTY()
 	float RadiusMin_DEPRECATED;
 

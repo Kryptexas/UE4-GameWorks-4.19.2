@@ -219,6 +219,8 @@ struct FWaveInstance
 	FVector				Velocity;
 	/** Current location */
 	FVector				Location;
+	/** At what distance we start transforming into omnidirectional soundsource */
+	float				OmniRadius;
 	/** Cached type hash */
 	uint32				TypeHash;
 	/** Hash value for finding the wave instance based on the path through the cue to get to it */

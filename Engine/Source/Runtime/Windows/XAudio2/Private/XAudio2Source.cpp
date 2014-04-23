@@ -412,9 +412,13 @@ void FXAudio2SoundSource::GetChannelVolumes( float ChannelVolumes[CHANNELOUT_COU
 		{
 			// Calculate direction from listener to sound, where the sound is at the origin if unspatialised.
 			FVector Direction = FVector::ZeroVector;
+			float NormalizedOmniRadius = 0;
 			if( WaveInstance->bUseSpatialization )
 			{
-				Direction = AudioDevice->InverseTransform.TransformPosition( WaveInstance->Location ).SafeNormal();
+				FVector UnnormalizedDirection = AudioDevice->InverseTransform.TransformPosition( WaveInstance->Location );
+				Direction = UnnormalizedDirection.SafeNormal();
+				float Distance = UnnormalizedDirection.Size();
+				NormalizedOmniRadius = (Distance > 0) ? (WaveInstance->OmniRadius / Distance) : FLT_MAX;
 			}
 
 			// Calculate 5.1 channel volume
@@ -448,7 +452,7 @@ void FXAudio2SoundSource::GetChannelVolumes( float ChannelVolumes[CHANNELOUT_COU
 			ChannelVolumes[CHANNELOUT_RADIO] = 0.0f;
 
 			// Call the spatialisation magic
-			AudioDevice->SpatializationHelper.CalculateDolbySurroundRate( OrientFront, ListenerPosition, EmitterPosition, ChannelVolumes );
+			AudioDevice->SpatializationHelper.CalculateDolbySurroundRate( OrientFront, ListenerPosition, EmitterPosition, NormalizedOmniRadius, ChannelVolumes );
 
 			// Handle any special post volume processing
 			if( WaveInstance->bApplyRadioFilter )
@@ -1213,7 +1217,7 @@ void FSpatializationHelper::Init()
  * @param	OutVolumes				An array of floats with one volume for each output channel.
  * @param	OutReverbLevel			The reverb volume
  */
-void FSpatializationHelper::CalculateDolbySurroundRate( const FVector& OrientFront, const FVector& ListenerPosition, const FVector& EmitterPosition, float* OutVolumes  )
+void FSpatializationHelper::CalculateDolbySurroundRate( const FVector& OrientFront, const FVector& ListenerPosition, const FVector& EmitterPosition, float OmniRadius, float* OutVolumes  )
 {
 	uint32 CalculateFlags = X3DAUDIO_CALCULATE_MATRIX | X3DAUDIO_CALCULATE_DOPPLER | X3DAUDIO_CALCULATE_REVERB;
 
@@ -1226,6 +1230,8 @@ void FSpatializationHelper::CalculateDolbySurroundRate( const FVector& OrientFro
 	Emitter.Position.x = EmitterPosition.X;
 	Emitter.Position.y = EmitterPosition.Y;
 	Emitter.Position.z = EmitterPosition.Z;
+	Emitter.InnerRadius = OmniRadius*OmniRadius;
+	Emitter.InnerRadiusAngle = 0;
 
 	X3DAudioCalculate( X3DInstance, &Listener, &Emitter, CalculateFlags, &DSPSettings );
 
