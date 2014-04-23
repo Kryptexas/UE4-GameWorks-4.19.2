@@ -881,10 +881,9 @@ public partial class Project : CommandUtils
 		else
 		{
 			var Map = ServerParams.MapToRun;
-			if (Params.RawProjectPath.Contains("FortniteGame"))
+			if (!String.IsNullOrEmpty(ServerParams.AdditionalServerMapParams))
 			{
-				// hack, to work around a fortnite issue with not running right fromt he command line
-				Map += "?game=zone";
+				Map += ServerParams.AdditionalServerMapParams;
 			}
 			if (Params.FakeClient)
 			{

@@ -212,6 +212,7 @@ namespace AutomationTool
 			this.NoDebugInfo = InParams.NoDebugInfo;
 			this.NoCleanStage = InParams.NoCleanStage;
 			this.MapToRun = InParams.MapToRun;
+			this.AdditionalServerMapParams = InParams.AdditionalServerMapParams;
 			this.Foreign = InParams.Foreign;
 			this.ForeignCode = InParams.ForeignCode;
 			this.StageCommandline = InParams.StageCommandline;
@@ -259,7 +260,8 @@ namespace AutomationTool
 
 			CommandUtils Command = null,
 			string Device = null,			
-			string MapToRun = null,			
+			string MapToRun = null,	
+			string AdditionalServerMapParams = null,
 			string Port = null,
 			string RunCommandline = null,						
 			string StageCommandline = null,
@@ -405,6 +407,7 @@ namespace AutomationTool
 			this.NoDebugInfo = GetParamValueIfNotSpecified(Command, NoDebugInfo, this.NoDebugInfo, "nodebuginfo");
 			this.NoCleanStage = GetParamValueIfNotSpecified(Command, NoCleanStage, this.NoCleanStage, "nocleanstage");
 			this.MapToRun = ParseParamValueIfNotSpecified(Command, MapToRun, "map", String.Empty);
+			this.AdditionalServerMapParams = ParseParamValueIfNotSpecified(Command, AdditionalServerMapParams, "AdditionalServerMapParams", String.Empty);
 			this.Foreign = GetParamValueIfNotSpecified(Command, Foreign, this.Foreign, "foreign");
 			this.ForeignCode = GetParamValueIfNotSpecified(Command, ForeignCode, this.ForeignCode, "foreigncode");
 			this.StageCommandline = ParseParamValueIfNotSpecified(Command, StageCommandline, "cmdline");
@@ -879,6 +882,12 @@ namespace AutomationTool
 		/// </summary>
 		[Help("map", "map to run the game with")]
 		public string MapToRun;
+
+		/// <summary>
+		/// Run: Additional server map params.
+		/// </summary>
+		[Help("AdditionalServerMapParams", "Additional server map params, i.e ?param=value")]
+		public string AdditionalServerMapParams;
 
 		/// <summary>
 		/// Run: The target device to run the game on
@@ -1454,6 +1463,7 @@ namespace AutomationTool
 				// In alphabetical order.
 				CommandUtils.Log("Project Params **************");
 
+				CommandUtils.Log("AdditionalServerMapParams={0}", AdditionalServerMapParams);
 				CommandUtils.Log("Archive={0}", Archive);
 				CommandUtils.Log("BaseArchiveDirectory={0}", BaseArchiveDirectory);
 				CommandUtils.Log("BaseStageDirectory={0}", BaseStageDirectory);
