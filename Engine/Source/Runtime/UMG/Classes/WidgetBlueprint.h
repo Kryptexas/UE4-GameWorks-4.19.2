@@ -9,7 +9,10 @@ class UMG_API UWidgetBlueprint : public UBlueprint
 {
 	GENERATED_UCLASS_BODY()
 
-	//TODO Add Hierarchy.	
+public:
+	/** Array of templates for timelines that should be created */
+	UPROPERTY()
+	TArray<class USlateWrapperComponent*> WidgetTemplates;
 	
 #if WITH_EDITOR
 	// UBlueprint interface
@@ -18,5 +21,7 @@ class UMG_API UWidgetBlueprint : public UBlueprint
 		return false;
 	}
 	// End of UBlueprint interface
+
+	static bool ValidateGeneratedClass(const UClass* InClass);
 #endif
 };

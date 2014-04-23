@@ -9,4 +9,8 @@ class UMG_API UWidgetBlueprintGeneratedClass : public UBlueprintGeneratedClass
 {
 	GENERATED_UCLASS_BODY()
 
+	UPROPERTY()
+	TArray<class USlateWrapperComponent*> WidgetTemplates;
+
+	virtual void CreateComponentsForActor(AActor* Actor) const OVERRIDE;
 };

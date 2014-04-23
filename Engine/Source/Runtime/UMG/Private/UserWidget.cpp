@@ -44,15 +44,17 @@ void AUserWidget::RebuildWrapperWidget()
 	
 	TArray<USlateWrapperComponent*> SlateWrapperComponents;
 	GetComponents(SlateWrapperComponents);
+
 	// Place all of our top-level children Slate wrapped components into the overlay
 	for (int32 ComponentIndex = 0; ComponentIndex < SlateWrapperComponents.Num(); ++ComponentIndex)
 	{
-		if (SlateWrapperComponents[ComponentIndex]->IsRegistered() && (SlateWrapperComponents[ComponentIndex]->AttachParent == NULL))
+		if (SlateWrapperComponents[ComponentIndex]->IsRegistered())
 		{
 			MyWrapperWidget->AddSlot()
 			[
 				SlateWrapperComponents[ComponentIndex]->GetWidget()
 			];
+			break;
 		}
 	}
 	

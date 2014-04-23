@@ -7,7 +7,7 @@
 
 /** This is the base class for all Slate widget wrapper components */
 UCLASS(Abstract, hideCategories=(Activation, "Components|Activation", ComponentReplication, LOD, Rendering))
-class UMG_API USlateWrapperComponent : public USceneComponent
+class UMG_API USlateWrapperComponent : public UActorComponent
 {
 	GENERATED_UCLASS_BODY()
 

@@ -35,9 +35,10 @@ namespace ESlateSizeRule
 {
 	enum Type
 	{
+		/** The container will size to fit the needs of the child widgets */
 		Automatic,
-		AspectRatio,
-		Stretch
+		/** The container will fill the percentage of the container based on the Value 0..1 */
+		Fill
 	};
 }
 
@@ -46,15 +47,16 @@ struct FSlateChildSize
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditAnywhere, Category=Appearance)
-	float StretchValue;
+	//editcondition="SizeRule=ESlateSizeRule::Fill"
+	UPROPERTY(EditAnywhere, Category=Appearance, meta=(ClampMin="0", ClampMax="1"))
+	float Value;
 
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	TEnumAsByte<ESlateSizeRule::Type> SizeRule;
 
 	FSlateChildSize()
-		: StretchValue(1.0f)
-		, SizeRule(ESlateSizeRule::Stretch)
+		: Value(1.0f)
+		, SizeRule(ESlateSizeRule::Fill)
 	{
 	}
 };

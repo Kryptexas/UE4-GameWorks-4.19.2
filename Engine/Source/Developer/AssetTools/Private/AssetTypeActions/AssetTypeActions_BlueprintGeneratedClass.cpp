@@ -148,7 +148,7 @@ void FAssetTypeActions_BlueprintGeneratedClass::ExecuteNewDerivedBlueprint(TWeak
 		if ( ensure(Package) )
 		{
 			// Create and init a new Blueprint
-			UBlueprint* NewBP = FKismetEditorUtilities::CreateBlueprint(TargetClass, Package, FName(*Name), BPTYPE_Normal, UBlueprint::StaticClass());
+			UBlueprint* NewBP = FKismetEditorUtilities::CreateBlueprint(TargetClass, Package, FName(*Name), BPTYPE_Normal, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass());
 			if(NewBP)
 			{
 				FAssetEditorManager::Get().OpenEditorForAsset(NewBP);

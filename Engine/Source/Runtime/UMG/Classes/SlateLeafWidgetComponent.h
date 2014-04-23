@@ -11,6 +11,6 @@ class UMG_API USlateLeafWidgetComponent: public USlateWrapperComponent
 	GENERATED_UCLASS_BODY()
 
 	// USceneComponent interface
-	virtual bool CanAttachAsChild(USceneComponent* ChildComponent, FName SocketName) const OVERRIDE;
+	virtual bool CanAttachAsChild(USceneComponent* ChildComponent, FName SocketName) const;
 	// End of USceneComponent interface
 };

@@ -19,15 +19,16 @@ public:
 	/**
 	 * Create a new Blueprint and initialize it to a valid state.
 	 *
-	 * @param ParentClass			the parent class of the new blueprint
-	 * @param Outer					the outer object of the new blueprint
-	 * @param NewBPName				the name of the new blueprint
-	 * @param BlueprintType			the type of the new blueprint (normal, const, etc)
-	 * @param BlueprintClassType	the actual class of the blueprint asset (UBlueprint or a derived type)
-	 * @param CallingContext		the name of the calling method or module used to identify creation methods to engine analytics/usage stats (default None will be ignored)
-	 * @return						the new blueprint
+	 * @param ParentClass					the parent class of the new blueprint
+	 * @param Outer							the outer object of the new blueprint
+	 * @param NewBPName						the name of the new blueprint
+	 * @param BlueprintType					the type of the new blueprint (normal, const, etc)
+	 * @param BlueprintClassType			the actual class of the blueprint asset (UBlueprint or a derived type)
+	 * @param BlueprintGeneratedClassType	the actual generated class of the blueprint asset (UBlueprintGeneratedClass or a derived type)
+	 * @param CallingContext				the name of the calling method or module used to identify creation methods to engine analytics/usage stats (default None will be ignored)
+	 * @return								the new blueprint
 	 */
-	static UBlueprint* CreateBlueprint(UClass* ParentClass, UObject* Outer, const FName NewBPName, enum EBlueprintType BlueprintType, TSubclassOf<UBlueprint> BlueprintClassType, FName CallingContext = NAME_None);
+	static UBlueprint* CreateBlueprint(UClass* ParentClass, UObject* Outer, const FName NewBPName, enum EBlueprintType BlueprintType, TSubclassOf<UBlueprint> BlueprintClassType, TSubclassOf<UBlueprintGeneratedClass> BlueprintGeneratedClassType, FName CallingContext = NAME_None);
 
 	/** Create the correct event graphs for this blueprint */
 	static void CreateDefaultEventGraphs(UBlueprint* Blueprint);

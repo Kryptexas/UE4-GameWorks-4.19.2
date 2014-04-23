@@ -7,7 +7,7 @@
 #include "UObjectToken.h"
 #endif
 
-#define LOCTEXT_NAMESPACE "SlateComponentWrappers"
+#define LOCTEXT_NAMESPACE "UMG"
 
 /////////////////////////////////////////////////////
 // USlateNonLeafWidgetComponent
@@ -25,57 +25,57 @@ USlateNonLeafWidgetComponent::USlateNonLeafWidgetComponent(const FPostConstructI
 
 void USlateNonLeafWidgetComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
-	bool bNeedRebuild = false;
-	TSet<USlateWrapperComponent*> RemainingChildren;
-	for (auto SetIt = KnownChildren.CreateIterator(); SetIt; ++SetIt)
-	{
-		if (USlateWrapperComponent* Wrapper = (*SetIt).Get())
-		{
-			if (Wrapper->IsRegistered())
-			{
-				RemainingChildren.Add(Wrapper);
-			}
-		}
-	}
+	//bool bNeedRebuild = false;
+	//TSet<USlateWrapperComponent*> RemainingChildren;
+	//for (auto SetIt = KnownChildren.CreateIterator(); SetIt; ++SetIt)
+	//{
+	//	if (USlateWrapperComponent* Wrapper = (*SetIt).Get())
+	//	{
+	//		if (Wrapper->IsRegistered())
+	//		{
+	//			RemainingChildren.Add(Wrapper);
+	//		}
+	//	}
+	//}
 
-	for (int32 ComponentIndex = 0; (ComponentIndex < AttachChildren.Num()) && !bNeedRebuild; ++ComponentIndex)
-	{
-		if (USlateWrapperComponent* Wrapper = Cast<USlateWrapperComponent>(AttachChildren[ComponentIndex]))
-		{
-			if (Wrapper->IsRegistered())
-			{
-				if (KnownChildren.Contains(Wrapper))
-				{
-					RemainingChildren.Remove(Wrapper);
-				}
-				else
-				{
-					bNeedRebuild = true;
-				}
-			}
-		}
-	}
+	//for (int32 ComponentIndex = 0; (ComponentIndex < AttachChildren.Num()) && !bNeedRebuild; ++ComponentIndex)
+	//{
+	//	if (USlateWrapperComponent* Wrapper = Cast<USlateWrapperComponent>(AttachChildren[ComponentIndex]))
+	//	{
+	//		if (Wrapper->IsRegistered())
+	//		{
+	//			if (KnownChildren.Contains(Wrapper))
+	//			{
+	//				RemainingChildren.Remove(Wrapper);
+	//			}
+	//			else
+	//			{
+	//				bNeedRebuild = true;
+	//			}
+	//		}
+	//	}
+	//}
 
-	bNeedRebuild = bNeedRebuild || (RemainingChildren.Num() > 0);
+	//bNeedRebuild = bNeedRebuild || (RemainingChildren.Num() > 0);
 
-	if (bNeedRebuild)
-	{
-		// Recreate the list of known children
-		KnownChildren.Empty();
-		for (int32 ComponentIndex = 0; ComponentIndex < AttachChildren.Num(); ++ComponentIndex)
-		{
-			if (USlateWrapperComponent* Wrapper = Cast<USlateWrapperComponent>(AttachChildren[ComponentIndex]))
-			{
-				if (Wrapper->IsRegistered())
-				{
-					KnownChildren.Add(Wrapper);
-				}
-			}
-		}
+	//if (bNeedRebuild)
+	//{
+	//	// Recreate the list of known children
+	//	KnownChildren.Empty();
+	//	for (int32 ComponentIndex = 0; ComponentIndex < AttachChildren.Num(); ++ComponentIndex)
+	//	{
+	//		if (USlateWrapperComponent* Wrapper = Cast<USlateWrapperComponent>(AttachChildren[ComponentIndex]))
+	//		{
+	//			if (Wrapper->IsRegistered())
+	//			{
+	//				KnownChildren.Add(Wrapper);
+	//			}
+	//		}
+	//	}
 
-		// Let derived classes do something with the list
-		OnKnownChildrenChanged();
-	}
+	//	// Let derived classes do something with the list
+	//	OnKnownChildrenChanged();
+	//}
 }
 
 USlateWrapperComponent* USlateNonLeafWidgetComponent::GetFirstWrappedChild() const
@@ -122,12 +122,6 @@ void USlateNonLeafWidgetComponent::CheckForErrors()
 }
 
 #endif
-
-bool USlateNonLeafWidgetComponent::CanAttachAsChild(USceneComponent* ChildComponent, FName SocketName) const
-{
-	const bool bIsSlateWidgetWrapper = ChildComponent->IsA(USlateWrapperComponent::StaticClass());
-	return bIsSlateWidgetWrapper && (bCanHaveMultipleChildren ? true : (AttachChildren.Num() == 0));
-}
 
 /////////////////////////////////////////////////////
 

@@ -2,7 +2,7 @@
 
 #include "UMGPrivatePCH.h"
 
-#define LOCTEXT_NAMESPACE "SlateComponentWrappers"
+#define LOCTEXT_NAMESPACE "UMG"
 
 /////////////////////////////////////////////////////
 // USpacerComponent

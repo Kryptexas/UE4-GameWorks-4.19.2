@@ -2,22 +2,18 @@
 
 #pragma once
 
-#include "CanvasPanelComponent.generated.h"
+#include "HorizontalBoxComponent.generated.h"
 
 UCLASS(meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
-class UMG_API UCanvasPanelComponent : public USlateNonLeafWidgetComponent
+class UMG_API UHorizontalBoxComponent : public USlateNonLeafWidgetComponent
 {
 	GENERATED_UCLASS_BODY()
 
 	/** The items placed on the canvas */
 	UPROPERTY(EditAnywhere, EditInline, Category=Slots)
-	TArray<UCanvasPanelSlot*> Slots;
+	TArray<UHorizontalBoxSlot*> Slots;
 
-	/** The desired size of the canvas */
-	UPROPERTY(EditAnywhere, Category=Appearance)
-	FVector2D DesiredCanvasSize;
-
-	UCanvasPanelSlot* AddSlot(USlateWrapperComponent* Content);
+	UHorizontalBoxSlot* AddSlot(USlateWrapperComponent* Content);
 
 #if WITH_EDITOR
 	// UObject interface
@@ -27,7 +23,7 @@ class UMG_API UCanvasPanelComponent : public USlateNonLeafWidgetComponent
 
 protected:
 
-	TWeakPtr<class SFixedSizeCanvas> MyCanvas;
+	TWeakPtr<class SHorizontalBox> MyHorizontalBox;
 
 protected:
 	// USlateWrapperComponent interface

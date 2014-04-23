@@ -3,13 +3,11 @@
 #include "UMGPrivatePCH.h"
 
 /////////////////////////////////////////////////////
-// UCanvasPanelSlot
+// UVerticalBoxSlot
 
-UCanvasPanelSlot::UCanvasPanelSlot(const FPostConstructInitializeProperties& PCIP)
+UVerticalBoxSlot::UVerticalBoxSlot(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	Position = FVector2D::ZeroVector;
-	Size = FVector2D(1.0f, 1.0f);
 	HorizontalAlignment = HAlign_Left;
 	VerticalAlignment = VAlign_Top;
 }

@@ -29,7 +29,7 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("Update Instances"), EKismetCompilerStats_UpdateB
 
 //////////////////////////////////////////////////////////////////////////
 
-class FGraphCompilerContext
+class KISMETCOMPILER_API FGraphCompilerContext
 {
 public:
 	// Compiler message log (errors, warnings, notes)

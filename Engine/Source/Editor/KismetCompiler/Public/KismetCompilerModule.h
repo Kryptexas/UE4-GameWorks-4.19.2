@@ -5,11 +5,14 @@
 #include "Engine.h"
 
 class FCompilerResultsLog;
+class UBlueprint;
 
 #define KISMET_COMPILER_MODULENAME "KismetCompiler"
 
 //////////////////////////////////////////////////////////////////////////
 // IKismetCompilerInterface
+
+DECLARE_DELEGATE_RetVal_FourParams(FReply, FBlueprintCompileDelegate, UBlueprint* /*Blueprint*/, const FKismetCompilerOptions& /*CompileOptions*/, FCompilerResultsLog& /*Results*/, TArray<UObject*>* /*ObjLoaded*/);
 
 class IKismetCompilerInterface : public IModuleInterface
 {
@@ -36,6 +39,11 @@ public:
 	 * @param	Blueprint	The blueprint to clear the classes for
 	 */
 	virtual void RemoveBlueprintGeneratedClasses(class UBlueprint* Blueprint)=0;
+
+	/**
+	 * Gets a list of all compilers for blueprints.  You can register new compilers through this list.
+	 */
+	virtual TArray<FBlueprintCompileDelegate>& GetCompilers() = 0;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -51,8 +59,11 @@ public:
 	virtual void CompileBlueprint(class UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, class FBlueprintCompileReinstancer* ParentReinstancer = NULL, TArray<UObject*>* ObjLoaded = NULL) OVERRIDE;
 	virtual void RecoverCorruptedBlueprint(class UBlueprint* Blueprint) OVERRIDE;
 	virtual void RemoveBlueprintGeneratedClasses(class UBlueprint* Blueprint) OVERRIDE;
+	virtual TArray<FBlueprintCompileDelegate>& GetCompilers() OVERRIDE { return Compilers; }
 	// End implementation
 private:
 	void CompileBlueprintInner(class UBlueprint* Blueprint, bool bPrintResultSuccess, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, TArray<UObject*>* ObjLoaded);
+
+	TArray<FBlueprintCompileDelegate> Compilers;
 };
 

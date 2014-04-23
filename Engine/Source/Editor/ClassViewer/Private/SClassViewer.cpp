@@ -875,7 +875,7 @@ namespace ClassViewer
 			if(PromptUserIfExistingObject(BPName.ToString(), PackageName,FString(), Package))
 			{
 				// Create and init a new Blueprint
-				UBlueprint* NewBP = FKismetEditorUtilities::CreateBlueprint(InCreationClass, Package, BPName, BPTYPE_Normal, UBlueprint::StaticClass(), FName("ClassViewer"));
+				UBlueprint* NewBP = FKismetEditorUtilities::CreateBlueprint(InCreationClass, Package, BPName, BPTYPE_Normal, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass(), FName("ClassViewer"));
 				if(NewBP)
 				{
 					FAssetEditorManager::Get().OpenEditorForAsset(NewBP);

@@ -37,6 +37,8 @@ public class UMGEditor : ModuleRules
 				"AssetTools",
 				"UnrealEd", // for FAssetEditorManager
 				"KismetWidgets",
+                "KismetCompiler",
+                "BlueprintGraph",
 				"GraphEditor",
 				"Kismet",  // for FWorkflowCentricApplication
 				"PropertyEditor",

@@ -119,56 +119,56 @@ TSharedRef<SWidget> UBoxPanelComponent::RebuildWidget()
 
 void UBoxPanelComponent::OnKnownChildrenChanged()
 {
-	TSharedPtr<SConcreteBoxPanel> Box = MyBox.Pin();
-	if (Box.IsValid())
-	{
-		Box->ClearChildren();
+	//TSharedPtr<SConcreteBoxPanel> Box = MyBox.Pin();
+	//if (Box.IsValid())
+	//{
+	//	Box->ClearChildren();
 
-		// Add slots
-		TMap<FName, int32> SlotNameToIndex;
+	//	// Add slots
+	//	TMap<FName, int32> SlotNameToIndex;
 
-		for (int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex)
-		{
-			const FBoxPanelSlot& SlotConfig = Slots[SlotIndex];
+	//	for (int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex)
+	//	{
+	//		const FBoxPanelSlot& SlotConfig = Slots[SlotIndex];
 
-			SlotNameToIndex.Add(SlotConfig.SlotName, SlotIndex);
+	//		SlotNameToIndex.Add(SlotConfig.SlotName, SlotIndex);
 
-			FSizeParam SlotSize = USlateWrapperComponent::ConvertSerializedSizeParamToRuntime(SlotConfig.SlotSize);
+	//		FSizeParam SlotSize = USlateWrapperComponent::ConvertSerializedSizeParamToRuntime(SlotConfig.SlotSize);
 
-			auto NewSlot = Box->AddSlot()
-				.Padding(SlotConfig.Padding)
-				.HAlign(SlotConfig.HorizontalAlignment)
-				.VAlign(SlotConfig.VerticalAlignment)
-				.SetSizeParam(SlotSize)
-				.MaxWidth(SlotConfig.bHasMaximumSize ? SlotConfig.MaxSize : 0.0f)
-			[
-				SNullWidget::NullWidget
-			];
-		}
+	//		auto NewSlot = Box->AddSlot()
+	//			.Padding(SlotConfig.Padding)
+	//			.HAlign(SlotConfig.HorizontalAlignment)
+	//			.VAlign(SlotConfig.VerticalAlignment)
+	//			.SetSizeParam(SlotSize)
+	//			.MaxWidth(SlotConfig.bHasMaximumSize ? SlotConfig.MaxSize : 0.0f)
+	//		[
+	//			SNullWidget::NullWidget
+	//		];
+	//	}
 
-		// Place widgets in their slots, and add anything left over to the end
-		for (int32 ComponentIndex = 0; ComponentIndex < AttachChildren.Num(); ++ComponentIndex)
-		{
-			if (USlateWrapperComponent* Wrapper = Cast<USlateWrapperComponent>(AttachChildren[ComponentIndex]))
-			{
-				if (Wrapper->IsRegistered())
-				{
-					if (int32* pSlotIndex = SlotNameToIndex.Find(Wrapper->AttachSocketName))
-					{
-						auto Foo = (TPanelChildren<SHorizontalBox::FSlot>*)(Box->GetChildren());
-						(*Foo)[*pSlotIndex].Widget = Wrapper->GetWidget();
-					}
-					else
-					{
-						Box->AddSlot()
-						[
-							Wrapper->GetWidget()
-						];
-					}
-				}
-			}
-		}
-	}
+	//	// Place widgets in their slots, and add anything left over to the end
+	//	for (int32 ComponentIndex = 0; ComponentIndex < AttachChildren.Num(); ++ComponentIndex)
+	//	{
+	//		if (USlateWrapperComponent* Wrapper = Cast<USlateWrapperComponent>(AttachChildren[ComponentIndex]))
+	//		{
+	//			if (Wrapper->IsRegistered())
+	//			{
+	//				if (int32* pSlotIndex = SlotNameToIndex.Find(Wrapper->AttachSocketName))
+	//				{
+	//					auto Foo = (TPanelChildren<SHorizontalBox::FSlot>*)(Box->GetChildren());
+	//					(*Foo)[*pSlotIndex].Widget = Wrapper->GetWidget();
+	//				}
+	//				else
+	//				{
+	//					Box->AddSlot()
+	//					[
+	//						Wrapper->GetWidget()
+	//					];
+	//				}
+	//			}
+	//		}
+	//	}
+	//}
 }
 
 bool UBoxPanelComponent::HasAnySockets() const

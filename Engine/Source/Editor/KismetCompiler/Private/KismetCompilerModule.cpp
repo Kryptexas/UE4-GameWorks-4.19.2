@@ -56,17 +56,37 @@ void FKismet2CompilerModule::CompileBlueprintInner(class UBlueprint* Blueprint, 
 	{
 		Results.Error(*LOCTEXT("KismetCompileError_MalformedParentClasss", "Blueprint @@ has missing or NULL parent class.").ToString(), Blueprint);
 	}
-	else if (UAnimBlueprint* AnimBlueprint = Cast<UAnimBlueprint>(Blueprint))
-	{
-		FAnimBlueprintCompiler Compiler(AnimBlueprint, Results, CompileOptions, ObjLoaded);
-		Compiler.Compile();
-		check(Compiler.NewClass);
-	}
 	else
 	{
-		FKismetCompilerContext Compiler(Blueprint, Results, CompileOptions, ObjLoaded);
-		Compiler.Compile();
-		check(Compiler.NewClass);
+		// Loop through all external compiler delegates attempting to compile the blueprint.
+		FReply Handled = FReply::Unhandled();
+		for ( FBlueprintCompileDelegate& Compiler : Compilers )
+		{
+			Handled = Compiler.Execute(Blueprint, CompileOptions, Results, ObjLoaded);
+
+			// Don't allow any other compiler to handle it if they reported it was handled.
+			if ( Handled.IsEventHandled() )
+			{
+				break;
+			}
+		}
+
+		// if no one handles it, then use the default blueprint compiler.
+		if ( !Handled.IsEventHandled() )
+		{
+			if ( UAnimBlueprint* AnimBlueprint = Cast<UAnimBlueprint>(Blueprint) )
+			{
+				FAnimBlueprintCompiler Compiler(AnimBlueprint, Results, CompileOptions, ObjLoaded);
+				Compiler.Compile();
+				check(Compiler.NewClass);
+			}
+			else
+			{
+				FKismetCompilerContext Compiler(Blueprint, Results, CompileOptions, ObjLoaded);
+				Compiler.Compile();
+				check(Compiler.NewClass);
+			}
+		}
 	}
 
 	double FinishTime = FPlatformTime::Seconds();
@@ -131,7 +151,7 @@ void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const
 	// If this was a full compile, take appropriate actions depending on the success of failure of the compile
 	if( CompileOptions.IsGeneratedClassCompileType() )
 	{
- 		// Perform the full compile
+		// Perform the full compile
 		CompileBlueprintInner(Blueprint, /*bPrintResultSuccess=*/ true, CompileOptions, Results, ObjLoaded);
 
 		if (Results.NumErrors == 0)

@@ -8,6 +8,8 @@
 #include "AssetToolsModule.h"
 #include "UMGBlueprintEditorExtensionHook.h"
 #include "AssetTypeActions_WidgetBlueprint.h"
+#include "KismetCompilerModule.h"
+#include "WidgetBlueprintCompiler.h"
 
 #include "UMGEditor.generated.inl"
 
@@ -32,6 +34,12 @@ public:
 		// Register asset types
 		IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
 		RegisterAssetTypeAction(AssetTools, MakeShareable(new FAssetTypeActions_WidgetBlueprint()));
+
+		// Register blueprint compiler
+		IKismetCompilerInterface& KismetCompilerModule = FModuleManager::LoadModuleChecked<IKismetCompilerInterface>("KismetCompiler");
+		FBlueprintCompileDelegate sd;
+		sd.BindRaw(this, &FUMGEditorModule::CompileWidgetBlueprint);
+		KismetCompilerModule.GetCompilers().Add(sd);
 		
 		FUMGBlueprintEditorExtensionHook::InstallHooks();
 	}
@@ -57,6 +65,20 @@ public:
 			}
 		}
 		CreatedAssetTypeActions.Empty();
+	}
+
+	FReply CompileWidgetBlueprint(UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, TArray<UObject*>* ObjLoaded)
+	{
+		if ( UWidgetBlueprint* WidgetBlueprint = Cast<UWidgetBlueprint>(Blueprint) )
+		{
+			FWidgetBlueprintCompiler Compiler(WidgetBlueprint, Results, CompileOptions, ObjLoaded);
+			Compiler.Compile();
+			check(Compiler.NewClass);
+
+			return FReply::Handled();
+		}
+
+		return FReply::Unhandled();
 	}
 
 	virtual TSharedRef<IUMGEditor> CreateUMGEditor(const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, UParticleSystem* ParticleSystem) OVERRIDE

@@ -173,7 +173,7 @@ void FKismetEditorUtilities::CreateDefaultEventGraphs(UBlueprint* Blueprint)
 }
 
 /** Create a new Blueprint and initialize it to a valid state. */
-UBlueprint* FKismetEditorUtilities::CreateBlueprint(UClass* ParentClass, UObject* Outer, const FName NewBPName, EBlueprintType BlueprintType, TSubclassOf<UBlueprint> BlueprintClassType, FName CallingContext)
+UBlueprint* FKismetEditorUtilities::CreateBlueprint(UClass* ParentClass, UObject* Outer, const FName NewBPName, EBlueprintType BlueprintType, TSubclassOf<UBlueprint> BlueprintClassType, TSubclassOf<UBlueprintGeneratedClass> BlueprintGeneratedClassType, FName CallingContext)
 {
 	check(FindObject<UBlueprint>(Outer, *NewBPName.ToString()) == NULL); 
 
@@ -200,7 +200,7 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprint(UClass* ParentClass, UObject
 		FName NewSkelClassName, NewGenClassName;
 		NewBP->GetBlueprintClassNames(NewGenClassName, NewSkelClassName);
 		UBlueprintGeneratedClass* NewClass = ConstructObject<UBlueprintGeneratedClass>(
-			UBlueprintGeneratedClass::StaticClass(), NewBP->GetOutermost(), NewGenClassName, RF_Public|RF_Transactional);
+			*BlueprintGeneratedClassType, NewBP->GetOutermost(), NewGenClassName, RF_Public | RF_Transactional);
 		NewBP->GeneratedClass = NewClass;
 		NewClass->ClassGeneratedBy = NewBP;
 		NewClass->SetSuperStruct(ParentClass);
@@ -363,11 +363,11 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 		// Replace instances of this class
 		ReinstanceHelper.ReinstanceObjects();
 
- 		if (!bSkipGarbageCollection)
- 		{
- 			// Garbage collect to make sure the old class and actors are disposed of
- 			CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
- 		}
+		if (!bSkipGarbageCollection)
+		{
+			// Garbage collect to make sure the old class and actors are disposed of
+			CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
+		}
 
 		// If you need to verify that all old instances are taken care of, uncomment this!
 		// ReinstanceHelper.VerifyReplacement();
@@ -537,7 +537,7 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprintFromActor(const FString& Path
 			else 
 			{
 				// We don't have a factory, but we can still try to create a blueprint for this actor class
-				NewBlueprint = FKismetEditorUtilities::CreateBlueprint( Object->GetClass(), Package, BlueprintName, EBlueprintType::BPTYPE_Normal, UBlueprint::StaticClass(), FName("CreateFromActor") );
+				NewBlueprint = FKismetEditorUtilities::CreateBlueprint( Object->GetClass(), Package, BlueprintName, EBlueprintType::BPTYPE_Normal, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass(), FName("CreateFromActor") );
 			}
 		}
 
@@ -650,7 +650,7 @@ public:
 			}
 
 			UPackage* Package = CreatePackage(NULL, *PackageName);
-			Blueprint = FKismetEditorUtilities::CreateBlueprint(AActor::StaticClass(), Package, *AssetName, BPTYPE_Normal, UBlueprint::StaticClass(), FName("HarvestFromActors"));
+			Blueprint = FKismetEditorUtilities::CreateBlueprint(AActor::StaticClass(), Package, *AssetName, BPTYPE_Normal, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass(), FName("HarvestFromActors"));
 
 			check(Blueprint->SimpleConstructionScript != NULL);
 			SCS = Blueprint->SimpleConstructionScript;
@@ -945,7 +945,7 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprintFromClass(FText InWindowTitle
 		check(Package);
 
 		// Create and init a new Blueprint
-		UBlueprint* Blueprint = FKismetEditorUtilities::CreateBlueprint(InParentClass, Package, BPName, BPTYPE_Normal, UBlueprint::StaticClass(), FName("LevelEditorActions"));
+		UBlueprint* Blueprint = FKismetEditorUtilities::CreateBlueprint(InParentClass, Package, BPName, BPTYPE_Normal, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass(), FName("LevelEditorActions"));
 		if (Blueprint)
 		{
 			// Notify the asset registry

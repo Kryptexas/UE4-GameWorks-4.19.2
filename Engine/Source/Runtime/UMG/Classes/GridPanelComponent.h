@@ -73,9 +73,9 @@ class UMG_API UGridPanelComponent : public USlateNonLeafWidgetComponent
 #endif
 
 	// USceneComponent interface
-	virtual bool HasAnySockets() const OVERRIDE;
-	virtual FTransform GetSocketTransform(FName InSocketName, ERelativeTransformSpace TransformSpace = RTS_World) const OVERRIDE;
-	virtual void QuerySupportedSockets(TArray<FComponentSocketDescription>& OutSockets) const OVERRIDE;
+	virtual bool HasAnySockets() const;
+	virtual FTransform GetSocketTransform(FName InSocketName, ERelativeTransformSpace TransformSpace = RTS_World) const;
+	virtual void QuerySupportedSockets(TArray<FComponentSocketDescription>& OutSockets) const;
 	// End of USceneComponent interface
 
 protected:

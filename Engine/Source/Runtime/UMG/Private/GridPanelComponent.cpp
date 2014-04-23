@@ -24,68 +24,68 @@ TSharedRef<SWidget> UGridPanelComponent::RebuildWidget()
 
 void UGridPanelComponent::OnKnownChildrenChanged()
 {
-	TSharedPtr<SGridPanel> Grid = MyGrid.Pin();
-	if (Grid.IsValid())
-	{
-		// Create a mapping of slot names to slot indices
-		TMap<FName, int32> SlotNameToIndex;
-		for (int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex)
-		{
-			const FGridPanelSlot& SlotConfig = Slots[SlotIndex];
-			SlotNameToIndex.Add(SlotConfig.SlotName, SlotIndex);
-		}
-		
-		// Make sure all children are assigned to a slot
-		TArray<USlateWrapperComponent*> WrappedComponentsInSlotOrder;
-		WrappedComponentsInSlotOrder.AddZeroed(Slots.Num());
+	//TSharedPtr<SGridPanel> Grid = MyGrid.Pin();
+	//if (Grid.IsValid())
+	//{
+	//	// Create a mapping of slot names to slot indices
+	//	TMap<FName, int32> SlotNameToIndex;
+	//	for (int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex)
+	//	{
+	//		const FGridPanelSlot& SlotConfig = Slots[SlotIndex];
+	//		SlotNameToIndex.Add(SlotConfig.SlotName, SlotIndex);
+	//	}
+	//	
+	//	// Make sure all children are assigned to a slot
+	//	TArray<USlateWrapperComponent*> WrappedComponentsInSlotOrder;
+	//	WrappedComponentsInSlotOrder.AddZeroed(Slots.Num());
 
-		for (int32 ComponentIndex = 0; ComponentIndex < AttachChildren.Num(); ++ComponentIndex)
-		{
-			if (USlateWrapperComponent* Wrapper = Cast<USlateWrapperComponent>(AttachChildren[ComponentIndex]))
-			{
-				if (Wrapper->IsRegistered())
-				{
-					WrappedComponentsInSlotOrder.Add(Wrapper);
+	//	for (int32 ComponentIndex = 0; ComponentIndex < AttachChildren.Num(); ++ComponentIndex)
+	//	{
+	//		if (USlateWrapperComponent* Wrapper = Cast<USlateWrapperComponent>(AttachChildren[ComponentIndex]))
+	//		{
+	//			if (Wrapper->IsRegistered())
+	//			{
+	//				WrappedComponentsInSlotOrder.Add(Wrapper);
 
-					if (int32* pSlotIndex = SlotNameToIndex.Find(Wrapper->AttachSocketName))
-					{
-						WrappedComponentsInSlotOrder[*pSlotIndex] = Wrapper;
-					}
-					else
-					{
-						FGridPanelSlot& NewSlot = *new (Slots) FGridPanelSlot();
-						EnsureSlotIsUnique(NewSlot);
-						WrappedComponentsInSlotOrder.Add(Wrapper);
+	//				if (int32* pSlotIndex = SlotNameToIndex.Find(Wrapper->AttachSocketName))
+	//				{
+	//					WrappedComponentsInSlotOrder[*pSlotIndex] = Wrapper;
+	//				}
+	//				else
+	//				{
+	//					FGridPanelSlot& NewSlot = *new (Slots) FGridPanelSlot();
+	//					EnsureSlotIsUnique(NewSlot);
+	//					WrappedComponentsInSlotOrder.Add(Wrapper);
 
-						Wrapper->AttachSocketName = NewSlot.SlotName;
-					}
-				}						
-			}
-		}
+	//					Wrapper->AttachSocketName = NewSlot.SlotName;
+	//				}
+	//			}						
+	//		}
+	//	}
 
-		// Add slots to the grid panel
-		Grid->ClearChildren();
-		for (int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex)
-		{
-			const FGridPanelSlot& SlotConfig = Slots[SlotIndex];
+	//	// Add slots to the grid panel
+	//	Grid->ClearChildren();
+	//	for (int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex)
+	//	{
+	//		const FGridPanelSlot& SlotConfig = Slots[SlotIndex];
 
-			TSharedRef<SWidget> ContentWidget = SNullWidget::NullWidget;
-			if (WrappedComponentsInSlotOrder[SlotIndex] != NULL)
-			{
-				ContentWidget = WrappedComponentsInSlotOrder[SlotIndex]->GetWidget();
-			}
+	//		TSharedRef<SWidget> ContentWidget = SNullWidget::NullWidget;
+	//		if (WrappedComponentsInSlotOrder[SlotIndex] != NULL)
+	//		{
+	//			ContentWidget = WrappedComponentsInSlotOrder[SlotIndex]->GetWidget();
+	//		}
 
-			Grid->AddSlot(SlotConfig.Column, SlotConfig.Row)
-				.RowSpan(SlotConfig.RowSpan)
-				.ColumnSpan(SlotConfig.ColumnSpan)
-				.Padding(SlotConfig.Padding)
-				.HAlign(SlotConfig.HorizontalAlignment)
-				.VAlign(SlotConfig.VerticalAlignment)
-			[
-				ContentWidget
-			];
-		}
-	}
+	//		Grid->AddSlot(SlotConfig.Column, SlotConfig.Row)
+	//			.RowSpan(SlotConfig.RowSpan)
+	//			.ColumnSpan(SlotConfig.ColumnSpan)
+	//			.Padding(SlotConfig.Padding)
+	//			.HAlign(SlotConfig.HorizontalAlignment)
+	//			.VAlign(SlotConfig.VerticalAlignment)
+	//		[
+	//			ContentWidget
+	//		];
+	//	}
+	//}
 }
 
 bool UGridPanelComponent::HasAnySockets() const

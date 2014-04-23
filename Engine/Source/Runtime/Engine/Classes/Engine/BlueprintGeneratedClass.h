@@ -405,12 +405,11 @@ public:
 	 */
 	static bool GetGeneratedClassesHierarchy(const UClass* InClass, TArray<const UBlueprintGeneratedClass*>& OutBPGClasses);
 
-
 	/** Find the object in the TemplateObjects array with the supplied name */
 	UActorComponent* FindComponentTemplateByName(const FName& TemplateName);
 
 	/** Create Timeline objects for this Actor based on the Timelines array*/
-	void CreateTimelinesForActor(AActor* Actor) const;
+	virtual void CreateComponentsForActor(AActor* Actor) const;
 
 	// UObject interface
 	virtual void PostLoad() OVERRIDE;

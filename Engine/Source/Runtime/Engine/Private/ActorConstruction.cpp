@@ -272,7 +272,7 @@ void AActor::OnConstruction(const FTransform& Transform)
 					CurrentBPGClass->SimpleConstructionScript->ExecuteScriptOnActor(this, Transform);
 				}
 				// Now that the construction scripts have been run, we can create timelines and hook them up
-				CurrentBPGClass->CreateTimelinesForActor(this);
+				CurrentBPGClass->CreateComponentsForActor(this);
 			}
 
 #if WITH_EDITOR

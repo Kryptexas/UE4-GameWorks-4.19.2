@@ -12,7 +12,6 @@ USlateWrapperComponent::USlateWrapperComponent(const FPostConstructInitializePro
 
 void USlateWrapperComponent::OnRegister()
 {
-	MyWidget = RebuildWidget();
 	Super::OnRegister();
 }
 
@@ -24,14 +23,12 @@ void USlateWrapperComponent::OnUnregister()
 
 TSharedRef<SWidget> USlateWrapperComponent::GetWidget()
 {
-	if (MyWidget.IsValid())
+	if ( !MyWidget.IsValid() )
 	{
-		return MyWidget.ToSharedRef();
+		MyWidget = RebuildWidget();
 	}
-	else
-	{
-		return SNullWidget::NullWidget;
-	}
+
+	return MyWidget.ToSharedRef();
 }
 
 TSharedRef<SWidget> USlateWrapperComponent::RebuildWidget()
@@ -67,9 +64,7 @@ FSizeParam USlateWrapperComponent::ConvertSerializedSizeParamToRuntime(const FSl
 	default:
 	case ESlateSizeRule::Automatic:
 		return FAuto();
-	case ESlateSizeRule::AspectRatio:
-		return FAspectRatio();
-	case ESlateSizeRule::Stretch:
-		return FStretch(Input.StretchValue);
+	case ESlateSizeRule::Fill:
+		return FStretch(Input.Value);
 	}
 }

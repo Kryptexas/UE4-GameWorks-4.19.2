@@ -45,6 +45,8 @@ TSharedRef<SWidget> UCanvasPanelComponent::RebuildWidget()
 	TSharedRef<SFixedSizeCanvas> NewCanvas = SNew(SFixedSizeCanvas, DesiredCanvasSize);
 	MyCanvas = NewCanvas;
 
+	OnKnownChildrenChanged();
+
 	return NewCanvas;
 }
 
@@ -55,73 +57,34 @@ void UCanvasPanelComponent::OnKnownChildrenChanged()
 	{
 		Canvas->ClearChildren();
 
-		// Add slots
-		TMap<FName, int32> SlotNameToIndex;
-
 		for (int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex)
 		{
-			const UCanvasPanelSlot* Slot = Slots[SlotIndex];
+			UCanvasPanelSlot* Slot = Slots[SlotIndex];
 			if ( Slot == NULL )
 			{
-				continue;
+				Slots[SlotIndex] = Slot = ConstructObject<UCanvasPanelSlot>(UCanvasPanelSlot::StaticClass(), this);
 			}
-
-			const FCanvasSlotData& SlotConfig = Slot->Data;
-
-			SlotNameToIndex.Add(SlotConfig.SlotName, SlotIndex);
 
 			auto NewSlot = Canvas->AddSlot()
-				.Position(SlotConfig.Position)
-				.Size(SlotConfig.Size)
-				.HAlign(SlotConfig.HorizontalAlignment)
-				.VAlign(SlotConfig.VerticalAlignment)
+				.Position(Slot->Position)
+				.Size(Slot->Size)
+				.HAlign(Slot->HorizontalAlignment)
+				.VAlign(Slot->VerticalAlignment)
 			[
-				SNullWidget::NullWidget
+				Slot->Content == NULL ? SNullWidget::NullWidget : Slot->Content->GetWidget()
 			];
 		}
-
-		// Place widgets in their slots, and add anything left over to the end
-		for (int32 ComponentIndex = 0; ComponentIndex < AttachChildren.Num(); ++ComponentIndex)
-		{
-			if (USlateWrapperComponent* Wrapper = Cast<USlateWrapperComponent>(AttachChildren[ComponentIndex]))
-			{
-				if (Wrapper->IsRegistered())
-				{
-					if (int32* pSlotIndex = SlotNameToIndex.Find(Wrapper->AttachSocketName))
-					{
-						auto ExistingSlot = (TPanelChildren<SCanvas::FSlot>*)(Canvas->GetChildren());
-						(*ExistingSlot)[*pSlotIndex].Widget = Wrapper->GetWidget();
-					}
-					else
-					{
-						Canvas->AddSlot()
-						[
-							Wrapper->GetWidget()
-						];
-					}
-				}
-			}
-		}
 	}
 }
 
-bool UCanvasPanelComponent::HasAnySockets() const
+UCanvasPanelSlot* UCanvasPanelComponent::AddSlot(USlateWrapperComponent* Content)
 {
-	return true;
-}
+	UCanvasPanelSlot* Slot = ConstructObject<UCanvasPanelSlot>(UCanvasPanelSlot::StaticClass(), this);
+	Slot->Content = Content;
+	
+	Slots.Add(Slot);
 
-FTransform UCanvasPanelComponent::GetSocketTransform(FName InSocketName, ERelativeTransformSpace TransformSpace) const
-{
-	return FTransform::Identity;
-}
-
-void UCanvasPanelComponent::QuerySupportedSockets(TArray<FComponentSocketDescription>& OutSockets) const
-{
-	for (int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex)
-	{
-		FName SocketName = Slots[SlotIndex]->Data.SlotName;
-		new (OutSockets) FComponentSocketDescription(SocketName, EComponentSocketType::Socket);
-	}
+	return Slot;
 }
 
 #if WITH_EDITOR
@@ -133,17 +96,22 @@ void UCanvasPanelComponent::PostEditChangeProperty(struct FPropertyChangedEvent&
 	TSet<FName> UniqueSlotNames;
 	for (int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex)
 	{
-		FName& SlotName = Slots[SlotIndex]->Data.SlotName;
-
-		if ((SlotName == NAME_None) || UniqueSlotNames.Contains(SlotName))
+		if ( Slots[SlotIndex] == NULL )
 		{
-			do 
-			{
-				SlotName = FName(TEXT("Slot"), SlotNumbering++);
-			} while (UniqueSlotNames.Contains(SlotName));
+			Slots[SlotIndex] = ConstructObject<UCanvasPanelSlot>(UCanvasPanelSlot::StaticClass(), this);
 		}
 
-		UniqueSlotNames.Add(SlotName);
+		//FName& SlotName = Slots[SlotIndex].SlotName;
+
+		//if ((SlotName == NAME_None) || UniqueSlotNames.Contains(SlotName))
+		//{
+		//	do 
+		//	{
+		//		SlotName = FName(TEXT("Slot"), SlotNumbering++);
+		//	} while (UniqueSlotNames.Contains(SlotName));
+		//}
+
+		//UniqueSlotNames.Add(SlotName);
 	}
 }
 #endif

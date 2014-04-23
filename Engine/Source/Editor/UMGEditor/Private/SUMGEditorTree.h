@@ -15,6 +15,8 @@ public:
 
 	void Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEditor> InBlueprintEditor, USimpleConstructionScript* InSCS);
 	~SUMGEditorTree();
+
+	FReply CreateTestUI();
 	
 private:
 

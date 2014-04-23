@@ -13,7 +13,7 @@ KISMETCOMPILER_API DECLARE_LOG_CATEGORY_EXTERN(LogK2Compiler, Log, All);
 //////////////////////////////////////////////////////////////////////////
 // FKismetCompilerContext
 
-class FKismetCompilerContext : public FGraphCompilerContext
+class KISMETCOMPILER_API FKismetCompilerContext : public FGraphCompilerContext
 {
 protected:
 	typedef FGraphCompilerContext Super;
@@ -122,7 +122,7 @@ public:
 	 * @param  IntermediatePin	The pin you want the SourcePin's links moved to.
 	 * @return The result from calling the schema's MovePinLinks().
 	 */
-	KISMETCOMPILER_API FPinConnectionResponse MovePinLinksToIntermediate(UEdGraphPin& SourcePin, UEdGraphPin& IntermediatePin);
+	FPinConnectionResponse MovePinLinksToIntermediate(UEdGraphPin& SourcePin, UEdGraphPin& IntermediatePin);
 
 	/**
 	 * Copies pin links over from the source-pin to the specified intermediate, 
@@ -133,9 +133,9 @@ public:
 	 * @param  IntermediatePin	The pin you want the SourcePin's links copied to.
 	 * @return The result from calling the schema's CopyPinLinks().
 	 */
-	KISMETCOMPILER_API FPinConnectionResponse CopyPinLinksToIntermediate(UEdGraphPin& SourcePin, UEdGraphPin& IntermediatePin);
+	FPinConnectionResponse CopyPinLinksToIntermediate(UEdGraphPin& SourcePin, UEdGraphPin& IntermediatePin);
 
-	KISMETCOMPILER_API UK2Node_TemporaryVariable* SpawnInternalVariable(UEdGraphNode* SourceNode, FString Category, FString SubCategory = TEXT(""), UObject* SubcategoryObject = NULL, bool bIsArray = false);
+	UK2Node_TemporaryVariable* SpawnInternalVariable(UEdGraphNode* SourceNode, FString Category, FString SubCategory = TEXT(""), UObject* SubcategoryObject = NULL, bool bIsArray = false);
 
 protected:
 	virtual UEdGraphSchema_K2* CreateSchema();
@@ -160,7 +160,7 @@ protected:
 	 * users should be using MovePinLinksToIntermediate/CopyPinLinksToIntermediate 
 	 * instead of wrapping their own with this).
 	 */
-	KISMETCOMPILER_API void CheckConnectionResponse(const FPinConnectionResponse &Response, const UEdGraphNode *Node);
+	void CheckConnectionResponse(const FPinConnectionResponse &Response, const UEdGraphNode *Node);
 
 protected:
 	// FGraphCompilerContext interface
@@ -182,7 +182,7 @@ protected:
 
 	// Advances the macro position tracking
 	void AdvanceMacroPlacement(int32 Width, int32 Height);
-	KISMETCOMPILER_API void AutoAssignNodePosition(UEdGraphNode* Node);
+	void AutoAssignNodePosition(UEdGraphNode* Node);
 	void CreateCommentBlockAroundNodes(const TArray<UEdGraphNode*>& Nodes, UObject* SourceObject, UEdGraph* TargetGraph, FString CommentText, FLinearColor CommentColor, int32& Out_OffsetX, int32& Out_OffsetY);
 
 	/** Creates a class variable */

@@ -24,7 +24,19 @@ void SUMGEditorTree::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEd
 	ChildSlot
 	[
 		SNew(SVerticalBox)
-		+SVerticalBox::Slot()
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			SNew(SButton)
+			.OnClicked(this, &SUMGEditorTree::CreateTestUI)
+			[
+				SNew(STextBlock)
+				.Text(NSLOCTEXT("SUMGEditorTree", "CreateTestUI", "Create Test UI"))
+			]
+		]
+
+		+ SVerticalBox::Slot()
+		.FillHeight(1.0f)
 		[
 			SAssignNew(PageTreeView, STreeView<TSharedPtr<FString>>)
 			.ItemHeight(20.0f)
@@ -39,6 +51,44 @@ void SUMGEditorTree::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEd
 SUMGEditorTree::~SUMGEditorTree()
 {
 	//FCoreDelegates::OnObjectPropertyChanged.Remove( FCoreDelegates::FOnObjectPropertyChanged::FDelegate::CreateRaw(this, &SUMGEditorTree::OnObjectPropertyChanged) );
+}
+
+FReply SUMGEditorTree::CreateTestUI()
+{
+	//TSharedRef<ISCSEditor> SCSEditor = BlueprintEditor.Pin()->GetSCSEditorModel();
+	//UCanvasPanelComponent* Canvas = Cast<UCanvasPanelComponent>(SCSEditor->AddNewComponent(UCanvasPanelComponent::StaticClass(), NULL));
+	//UButtonComponent* Button = Cast<UButtonComponent>(SCSEditor->AddNewComponent(UButtonComponent::StaticClass(), NULL));
+
+	UWidgetBlueprint* BP = CastChecked<UWidgetBlueprint>(BlueprintEditor.Pin()->GetBlueprintObj());
+
+	UCanvasPanelComponent* Canvas = ConstructObject<UCanvasPanelComponent>(UCanvasPanelComponent::StaticClass(), BP);
+	UVerticalBoxComponent* Vertical = ConstructObject<UVerticalBoxComponent>(UVerticalBoxComponent::StaticClass(), BP);
+	UButtonComponent* Button1 = ConstructObject<UButtonComponent>(UButtonComponent::StaticClass(), BP);
+	Button1->ButtonText = FText::FromString("Button 1");
+	UButtonComponent* Button2 = ConstructObject<UButtonComponent>(UButtonComponent::StaticClass(), BP);
+	Button2->ButtonText = FText::FromString("Button 2");
+	UButtonComponent* Button3 = ConstructObject<UButtonComponent>(UButtonComponent::StaticClass(), BP);
+	Button3->ButtonText = FText::FromString("Button 3");
+
+	BP->WidgetTemplates.Add(Canvas);
+	BP->WidgetTemplates.Add(Vertical);
+	BP->WidgetTemplates.Add(Button1);
+	BP->WidgetTemplates.Add(Button2);
+	BP->WidgetTemplates.Add(Button3);
+
+	UCanvasPanelSlot* Slot = Canvas->AddSlot(Vertical);
+	Slot->Size.X = 100;
+	Slot->Size.Y = 100;
+	Slot->Position.X = 20;
+	Slot->Position.Y = 50;
+
+	Vertical->AddSlot(Button1);
+	Vertical->AddSlot(Button2);
+	Vertical->AddSlot(Button3);
+
+	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
+
+	return FReply::Handled();
 }
 
 //void SUMGEditorTree::AddReferencedObjects( FReferenceCollector& Collector )

@@ -19,10 +19,6 @@ class UMG_API USlateNonLeafWidgetComponent : public USlateWrapperComponent
 	// End of UActorComponent interface
 #endif
 
-	// USceneComponent interface
-	virtual bool CanAttachAsChild(USceneComponent* ChildComponent, FName SocketName) const OVERRIDE;
-	// End of USceneComponent interface
-
 protected:
 	// This function is called when the known children list has changed; use this to repopulate child slots in derived classes
 	virtual void OnKnownChildrenChanged() {}

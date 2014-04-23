@@ -14,7 +14,7 @@ class UMG_API UButtonComponent : public USlateNonLeafWidgetComponent
 {
 	GENERATED_UCLASS_BODY()
 
-protected:
+public:
 	/** Style of the button */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
 	USlateWidgetStyleAsset* ButtonStyle;

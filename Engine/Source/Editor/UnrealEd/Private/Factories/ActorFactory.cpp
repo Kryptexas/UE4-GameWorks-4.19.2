@@ -97,7 +97,7 @@ UBlueprint* UActorFactory::CreateBlueprint( UObject* Asset, UObject* Outer, cons
 	// @todo sequencer major: Needs to be overridden on any class that needs any custom setup for the new blueprint
 	//	(e.g. static mesh reference assignment.)  Basically, anywhere that PostSpawnActor() or CreateActor() is overridden,
 	//	we should consider overriding CreateBlueprint(), too.
-	UBlueprint* NewBlueprint = FKismetEditorUtilities::CreateBlueprint( NewActorClass, Outer, Name, EBlueprintType::BPTYPE_Normal, UBlueprint::StaticClass(), CallingContext );
+	UBlueprint* NewBlueprint = FKismetEditorUtilities::CreateBlueprint(NewActorClass, Outer, Name, EBlueprintType::BPTYPE_Normal, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass(), CallingContext);
 	AActor* CDO = CastChecked<AActor>( NewBlueprint->GeneratedClass->ClassDefaultObject );
 	PostCreateBlueprint( Asset, CDO );
 	return NewBlueprint;

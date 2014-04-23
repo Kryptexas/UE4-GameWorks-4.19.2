@@ -320,7 +320,7 @@ UActorComponent* UBlueprintGeneratedClass::FindComponentTemplateByName(const FNa
 	return NULL;
 }
 
-void UBlueprintGeneratedClass::CreateTimelinesForActor(AActor* Actor) const
+void UBlueprintGeneratedClass::CreateComponentsForActor(AActor* Actor) const
 {
 	check(Actor != NULL);
 	check(!Actor->IsTemplate());
