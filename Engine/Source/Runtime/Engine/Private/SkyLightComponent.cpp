@@ -85,7 +85,9 @@ USkyLightComponent::USkyLightComponent(const class FPostConstructInitializePrope
 	{
 		static ConstructorHelpers::FObjectFinder<UTexture2D> StaticTexture(TEXT("/Engine/EditorResources/LightIcons/SkyLight"));
 		StaticEditorTexture = StaticTexture.Object;
+		StaticEditorTextureScale = 1.0f;
 		DynamicEditorTexture = StaticTexture.Object;
+		DynamicEditorTextureScale = 1.0f;
 	}
 #endif
 
@@ -423,21 +425,21 @@ ASkyLight::ASkyLight(const class FPostConstructInitializeProperties& PCIP)
 #if WITH_EDITORONLY_DATA
 	if (!IsRunningCommandlet())
 	{
-		// Structure to hold one-time initialization
-		struct FConstructorStatics
-		{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
 			ConstructorHelpers::FObjectFinderOptional<UTexture2D> SkyLightTextureObject;
-			FName ID_Sky;
-			FText NAME_Sky;
+		FName ID_Sky;
+		FText NAME_Sky;
 
-			FConstructorStatics()
+		FConstructorStatics()
 				: SkyLightTextureObject(TEXT("/Engine/EditorResources/LightIcons/SkyLight"))
 				, ID_Sky(TEXT("Sky"))
-				, NAME_Sky(NSLOCTEXT( "SpriteCategory", "Sky", "Sky" ))
-			{
-			}
-		};
-		static FConstructorStatics ConstructorStatics;
+			, NAME_Sky(NSLOCTEXT( "SpriteCategory", "Sky", "Sky" ))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
 
 		if (SpriteComponent)
 		{

@@ -52,6 +52,7 @@ void UAudioComponent::OnRegister()
 		SpriteComponent = ConstructObject<UBillboardComponent>(UBillboardComponent::StaticClass(), GetOwner(), NAME_None, RF_Transactional | RF_TextExportTransient);
 
 		UpdateSpriteTexture();
+		SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
 		SpriteComponent->AttachTo(this);
 		SpriteComponent->AlwaysLoadOnClient = false;
 		SpriteComponent->AlwaysLoadOnServer = false;

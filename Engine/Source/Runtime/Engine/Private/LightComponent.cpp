@@ -55,6 +55,9 @@ void ULightComponentBase::UpdateLightSpriteTexture()
 	if (SpriteComponent != NULL)
 	{
 		SpriteComponent->SetSprite(GetEditorSprite());
+
+		float SpriteScale = GetEditorSpriteScale();
+		SpriteComponent->RelativeScale3D = FVector(SpriteScale);
 	}
 }
 
@@ -477,6 +480,7 @@ void ULightComponent::UpdateLightSpriteTexture()
 			UTexture2D* SpriteTexture = NULL;
 			SpriteTexture = LoadObject<UTexture2D>(NULL, TEXT("/Engine/EditorResources/LightIcons/S_LightError.S_LightError"));
 			SpriteComponent->SetSprite(SpriteTexture);
+			SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
 		}
 		else
 		{

@@ -83,6 +83,7 @@ APhysicsThruster::APhysicsThruster(const class FPostConstructInitializePropertie
 		if (SpriteComponent)
 		{
 			SpriteComponent->Sprite = ConstructorStatics.ThrusterTexture.Get();
+			SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
 			SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Physics;
 			SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Physics;
 			SpriteComponent->AttachParent = ThrusterComponent;

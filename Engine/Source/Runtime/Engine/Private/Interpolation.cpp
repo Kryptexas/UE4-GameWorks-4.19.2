@@ -288,6 +288,7 @@ AMatineeActor::AMatineeActor(const class FPostConstructInitializeProperties& PCI
 		static FConstructorStatics ConstructorStatics;
 
 		SpriteComponent->Sprite = ConstructorStatics.SceneManagerObject.Get();
+		SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
 		SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Matinee;
 		SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Matinee;
 		SpriteComponent->AttachParent = RootComponent;

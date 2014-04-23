@@ -26,6 +26,7 @@ ATextRenderActor::ATextRenderActor(const class FPostConstructInitializePropertie
 		static FConstructorStatics ConstructorStatics;
 
 		SpriteComponent->Sprite = ConstructorStatics.TextRenderTexture.Get();
+		SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
 		SpriteComponent->AttachParent = TextRender;
 		SpriteComponent->bIsScreenSizeScaled = true;
 		SpriteComponent->bAbsoluteScale = true;

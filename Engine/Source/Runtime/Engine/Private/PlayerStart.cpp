@@ -34,6 +34,7 @@ APlayerStart::APlayerStart(const class FPostConstructInitializeProperties& PCIP)
 		if (GoodSprite)
 		{
 			GoodSprite->Sprite = ConstructorStatics.PlayerStartTextureObject.Get();
+			GoodSprite->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
 			GoodSprite->SpriteInfo.Category = ConstructorStatics.ID_PlayerStart;
 			GoodSprite->SpriteInfo.DisplayName = ConstructorStatics.NAME_PlayerStart;
 		}

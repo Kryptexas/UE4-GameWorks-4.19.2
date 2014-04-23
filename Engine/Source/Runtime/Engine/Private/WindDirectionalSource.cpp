@@ -42,6 +42,7 @@ AWindDirectionalSource::AWindDirectionalSource(const class FPostConstructInitial
 		if (SpriteComponent)
 		{
 			SpriteComponent->Sprite = ConstructorStatics.SpriteTexture.Get();
+			SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
 			SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Wind;
 			SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Wind;
 			SpriteComponent->AttachParent = Component;

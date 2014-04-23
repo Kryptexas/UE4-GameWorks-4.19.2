@@ -54,6 +54,7 @@ ALandscapePlaceholder::ALandscapePlaceholder(const class FPostConstructInitializ
 	if (SpriteComponent.IsValid())
 	{
 		SpriteComponent->Sprite = ConstructorStatics.TerrainTexture.Get();
+		SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
 		SpriteComponent->AttachParent = RootComponent;
 		SpriteComponent->RelativeLocation = FVector(0, 0, 100);
 		SpriteComponent->bAbsoluteScale = true;

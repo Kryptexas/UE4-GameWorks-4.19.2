@@ -356,6 +356,7 @@ ALandscapeGizmoActor::ALandscapeGizmoActor(const class FPostConstructInitializeP
 		static FConstructorStatics ConstructorStatics;
 
 		SpriteComponent->Sprite = ConstructorStatics.DecalActorIconTexture.Get();
+		SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
 		SpriteComponent->bHiddenInGame = true;
 		SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Misc;
 		SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Misc;

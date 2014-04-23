@@ -74,9 +74,17 @@ class ENGINE_API ULightComponentBase : public USceneComponent
 	UPROPERTY(transient)
 	UTexture2D* StaticEditorTexture;
 
+	/** Sprite scaling for static light in the editor. */
+	UPROPERTY(transient)
+	float StaticEditorTextureScale;
+
 	/** Sprite for dynamic light in the editor. */
 	UPROPERTY(transient)
 	UTexture2D* DynamicEditorTexture;
+
+	/** Sprite scaling for dynamic light in the editor. */
+	UPROPERTY(transient)
+	float DynamicEditorTextureScale;
 #endif
 
 	virtual void Serialize(FArchive& Ar) OVERRIDE;
@@ -99,6 +107,13 @@ class ENGINE_API ULightComponentBase : public USceneComponent
 		return (Mobility == EComponentMobility::Movable) ? DynamicEditorTexture : StaticEditorTexture;
 	}
 
+	/**
+	* @return Uniform scaling factor for the sprite for the light component class
+	*/
+	float GetEditorSpriteScale() const
+	{
+		return (Mobility == EComponentMobility::Movable) ? DynamicEditorTextureScale : StaticEditorTextureScale;
+	}
 
 	/** Update the texture used on the editor sprite */
 	virtual void UpdateLightSpriteTexture();

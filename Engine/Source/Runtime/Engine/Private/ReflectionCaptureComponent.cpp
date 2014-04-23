@@ -58,6 +58,7 @@ AReflectionCapture::AReflectionCapture(const class FPostConstructInitializePrope
 		static FConstructorStatics ConstructorStatics;
 
 		SpriteComponent->Sprite = ConstructorStatics.DecalTexture.Get();
+		SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
 		SpriteComponent->bHiddenInGame = true;
 		SpriteComponent->bAbsoluteScale = true;
 		SpriteComponent->BodyInstance.bEnableCollision_DEPRECATED = false;	

@@ -46,6 +46,7 @@ AEQSTestingPawn::AEQSTestingPawn(const class FPostConstructInitializeProperties&
 		static FConstructorStatics ConstructorStatics;
 
 		SpriteComponent->Sprite = ConstructorStatics.TextureObject.Get();
+		SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
 		SpriteComponent->bHiddenInGame = true;
 		//SpriteComponent->Mobility = EComponentMobility::Static;
 		SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Misc;

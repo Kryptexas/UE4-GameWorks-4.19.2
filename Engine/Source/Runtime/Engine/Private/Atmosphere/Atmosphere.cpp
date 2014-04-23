@@ -37,6 +37,7 @@ AAtmosphericFog::AAtmosphericFog(const class FPostConstructInitializeProperties&
 		if (SpriteComponent)
 		{
 			SpriteComponent->Sprite = ConstructorStatics.FogTextureObject.Get();
+			SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
 			SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Fog;
 			SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Fog;
 			SpriteComponent->AttachParent = AtmosphericFogComponent;
