@@ -85,7 +85,7 @@ public:
 	TSubclassOf<class AAIController>  AIControllerClass;
 
 	/** If Pawn is possessed by a player, points to his playerstate.  Needed for network play as controllers are not replicated to clients. */
-	UPROPERTY(editinline, replicatedUsing=OnRep_PlayerState)
+	UPROPERTY(editinline, replicatedUsing=OnRep_PlayerState, BlueprintReadOnly, Category="Pawn")
 	class APlayerState* PlayerState;
 
 	/** Replicated so we can see where remote clients are looking. */
