@@ -33,7 +33,7 @@ public:
 	static bool IsValidClassNameForCreation(const FString& NewClassName, FText& OutFailReason);
 
 	/** Adds new source code to the project. When returning true, OutSyncFileAndLineNumber will be the the preferred target file to sync in the users code editing IDE, formatted for use with GenericApplication::GotoLineInSource */
-	static bool AddCodeToProject(const FString& NewClassName, const UClass* ParentClass, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason);
+	static bool AddCodeToProject(const FString& NewClassName, const FString& NewClassPath, const UClass* ParentClass, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason);
 
 	/** Loads a template project definitions object from the TemplateDefs.ini file in the specified project */
 	static UTemplateProjectDefs* LoadTemplateDefs(const FString& ProjectDirectory);
@@ -55,6 +55,39 @@ public:
 
 	/** Returns true if there are starter content files available for instancing into new projects. */
 	static bool IsStarterContentAvailableForNewProjects();
+
+	/** 
+	 * Get the absolute root path under which all project source code must exist
+	 *
+	 * @param	bIncludeModuleName	Whether to include the module name in the root path?
+	 * 
+	 * @return	The root path. Will always be an absolute path ending with a /
+	 */
+	static FString GetSourceRootPath(const bool bIncludeModuleName);
+
+	/** 
+	 * Check to see if the given path is a valid place to put source code for this project (exists within the source root path) 
+	 *
+	 * @param	InPath				The path to check
+	 * @param	bIncludeModuleName	Whether to require the module name in the root path? (is really used as a prefix so will allow MyModule, MyModuleEditor, etc)
+	 * @param	OutFailReason		Optional parameter to fill with failure information
+	 * 
+	 * @return	true if the path is valid, false otherwise
+	 */
+	static bool IsValidSourcePath(const FString& InPath, const bool bIncludeModuleName, FText* const OutFailReason = nullptr);
+
+	/** 
+	 * Given the path provided, work out where generated .h and .cpp files would be placed
+	 *
+	 * @param	InPath				The path to use a base
+	 * @param	OutModuleName		The module name extracted from the path (the part after GetSourceRootPath(false))
+	 * @param	OutHeaderPath		The path where the .h file should be placed
+	 * @param	OutSourcePath		The path where the .cpp file should be placed
+	 * @param	OutFailReason		Optional parameter to fill with failure information
+	 * 
+	 * @return	false if the paths are invalid
+	 */
+	static bool CalculateSourcePaths(const FString& InPath, FString& OutModuleName, FString& OutHeaderPath, FString& OutSourcePath, FText* const OutFailReason = nullptr);
 
 private:
 	/** Generates a new project without using a template project */
@@ -183,7 +216,7 @@ private:
 	static bool ProjectHasCodeFiles();
 
 	/** Internal handler for AddCodeToProject*/
-	static bool AddCodeToProject_Internal(const FString& NewClassName, const UClass* ParentClass, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason);
+	static bool AddCodeToProject_Internal(const FString& NewClassName, const FString& NewClassPath, const UClass* ParentClass, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason);
 
 private:
 	static TWeakPtr<SNotificationItem> UpdateGameProjectNotification;

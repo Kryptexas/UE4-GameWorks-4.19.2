@@ -7,6 +7,7 @@
 #include "ClassViewerModule.h"
 #include "ClassViewerFilter.h"
 #include "Editor/ClassViewer/Private/SClassViewer.h"
+#include "DesktopPlatformModule.h"
 
 #define LOCTEXT_NAMESPACE "GameProjectGeneration"
 
@@ -56,18 +57,20 @@ public:
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SNewClassDialog::Construct( const FArguments& InArgs )
 {
+	NewClassPath = GameProjectUtils::GetSourceRootPath(true/*bIncludeModuleName*/);
+
 	ParentClass = InArgs._Class;
 
 	DialogFixedWidth = 900;
 	bShowFullClassTree = false;
 
-	LastNameValidityCheckTime = 0;
-	NameValidityCheckFrequency = 4;
-	bLastNameValidityCheckSuccessful = true;
+	LastPeriodicValidityCheckTime = 0;
+	PeriodicValidityCheckFrequency = 4;
+	bLastInputValidityCheckSuccessful = true;
 	bPreventPeriodicValidityChecksUntilNextChange = false;
 
 	SetupParentClassItems();
-	UpdateClassNameValidity();
+	UpdateInputValidity();
 
 	FClassViewerInitializationOptions Options;
 	Options.Mode = EClassViewerMode::ClassPicker;
@@ -83,6 +86,8 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 	Options.ClassFilter = MakeShareable(new FNativeClassParentFilter);
 
 	ClassViewer = StaticCastSharedRef<SClassViewer>(FModuleManager::LoadModuleChecked<FClassViewerModule>("ClassViewer").CreateClassViewer(Options, FOnClassPicked::CreateSP(this, &SNewClassDialog::OnAdvancedClassSelected)));
+
+	const float EditableTextHeight = 26.0f;
 
 	ChildSlot
 	[
@@ -296,11 +301,11 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 							.AutoHeight()
 							.Padding(0)
 							[
-								SNew(SHorizontalBox)
+								SNew(SGridPanel)
+								.FillColumn(1, 1.0f)
 
 								// Name label
-								+SHorizontalBox::Slot()
-								.AutoWidth()
+								+SGridPanel::Slot(0, 0)
 								.VAlign(VAlign_Center)
 								.Padding(0, 0, 12, 0)
 								[
@@ -310,13 +315,105 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 								]
 
 								// Name edit box
-								+SHorizontalBox::Slot()
-								.FillWidth(1.f)
+								+SGridPanel::Slot(1, 0)
+								.Padding(0.0f, 3.0f)
 								.VAlign(VAlign_Center)
 								[
-									SAssignNew( ClassNameEditBox, SEditableTextBox)
-									.Text( this, &SNewClassDialog::OnGetClassNameText )
-									.OnTextChanged( this, &SNewClassDialog::OnClassNameTextChanged )
+									SNew(SBox)
+									.HeightOverride(EditableTextHeight)
+									[
+										SAssignNew( ClassNameEditBox, SEditableTextBox)
+										.Text( this, &SNewClassDialog::OnGetClassNameText )
+										.OnTextChanged( this, &SNewClassDialog::OnClassNameTextChanged )
+									]
+								]
+
+								// Path label
+								+SGridPanel::Slot(0, 1)
+								.VAlign(VAlign_Center)
+								.Padding(0, 0, 12, 0)
+								[
+									SNew(STextBlock)
+									.TextStyle( FEditorStyle::Get(), "NewClassDialog.SelectedParentClassLabel" )
+									.Text( LOCTEXT( "PathLabel", "Path" ).ToString() )
+								]
+
+								// Path edit box
+								+SGridPanel::Slot(1, 1)
+								.Padding(0.0f, 3.0f)
+								.VAlign(VAlign_Center)
+								[
+									SNew(SBox)
+									.HeightOverride(EditableTextHeight)
+									[
+										SNew(SHorizontalBox)
+
+										+SHorizontalBox::Slot()
+										.FillWidth(1.0f)
+										[
+											SNew(SEditableTextBox)
+											.Text(this, &SNewClassDialog::OnGetClassPathText)
+											.OnTextChanged(this, &SNewClassDialog::OnClassPathTextChanged)
+										]
+
+										+SHorizontalBox::Slot()
+										.AutoWidth()
+										.Padding(6.0f, 1.0f, 0.0f, 0.0f)
+										[
+											SNew(SButton)
+											.VAlign(VAlign_Center)
+											.OnClicked(this, &SNewClassDialog::HandleChooseFolderButtonClicked)
+											.Text( LOCTEXT( "BrowseButtonText", "Choose Folder" ) )
+										]
+									]
+								]
+
+								// Header output label
+								+SGridPanel::Slot(0, 2)
+								.VAlign(VAlign_Center)
+								.Padding(0, 0, 12, 0)
+								[
+									SNew(STextBlock)
+									.TextStyle( FEditorStyle::Get(), "NewClassDialog.SelectedParentClassLabel" )
+									.Text( LOCTEXT( "HeaderFileLabel", "Header File" ).ToString() )
+								]
+
+								// Header output text
+								+SGridPanel::Slot(1, 2)
+								.Padding(0.0f, 3.0f)
+								.VAlign(VAlign_Center)
+								[
+									SNew(SBox)
+									.VAlign(VAlign_Center)
+									.HeightOverride(EditableTextHeight)
+									[
+										SNew(STextBlock)
+										.Text(this, &SNewClassDialog::OnGetClassHeaderFileText)
+									]
+								]
+
+								// Source output label
+								+SGridPanel::Slot(0, 3)
+								.VAlign(VAlign_Center)
+								.Padding(0, 0, 12, 0)
+								[
+									SNew(STextBlock)
+									.TextStyle( FEditorStyle::Get(), "NewClassDialog.SelectedParentClassLabel" )
+									.Text( LOCTEXT( "SourceFileLabel", "Source File" ).ToString() )
+								]
+
+								// Source output text
+								+SGridPanel::Slot(1, 3)
+								.Padding(0.0f, 3.0f)
+								.VAlign(VAlign_Center)
+								[
+									SNew(SBox)
+									.VAlign(VAlign_Center)
+									.HeightOverride(EditableTextHeight)
+									[
+										SNew(STextBlock)
+										.Text(this, &SNewClassDialog::OnGetClassSourceFileText)
+									]
 								]
 							]
 						]
@@ -369,12 +466,12 @@ void SNewClassDialog::Tick( const FGeometry& AllottedGeometry, const double InCu
 {
 	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 
-	// Every few seconds, the class name is checked for validity in case the disk contents changed and the location is now valid or invalid.
+	// Every few seconds, the class name/path is checked for validity in case the disk contents changed and the location is now valid or invalid.
 	// After class creation, periodic checks are disabled to prevent a brief message indicating that the class you created already exists.
 	// This feature is re-enabled if the user did not restart and began editing parameters again.
-	if ( !bPreventPeriodicValidityChecksUntilNextChange && (InCurrentTime > LastNameValidityCheckTime + NameValidityCheckFrequency) )
+	if ( !bPreventPeriodicValidityChecksUntilNextChange && (InCurrentTime > LastPeriodicValidityCheckTime + PeriodicValidityCheckFrequency) )
 	{
-		UpdateClassNameValidity();
+		UpdateInputValidity();
 	}
 }
 
@@ -518,9 +615,9 @@ EVisibility SNewClassDialog::GetNameErrorLabelVisibility() const
 
 FString SNewClassDialog::GetNameErrorLabelText() const
 {
-	if ( !bLastNameValidityCheckSuccessful )
+	if ( !bLastInputValidityCheckSuccessful )
 	{
-		return LastNameValidityErrorText.ToString();
+		return LastInputValidityErrorText.ToString();
 	}
 
 	return TEXT("");
@@ -548,9 +645,20 @@ FString SNewClassDialog::GetGlobalErrorLabelText() const
 
 void SNewClassDialog::OnNamePageEntered()
 {
+	// Set the default class name based on the selected parent class, eg MyActor
+	FString PotentialNewClassName = "My";
+	PotentialNewClassName += GetSelectedParentClassName();
+
+	// Only set the default if the user hasn't changed the class name from the previous default
+	if(LastAutoGeneratedClassName.IsEmpty() || NewClassName == LastAutoGeneratedClassName)
+	{
+		NewClassName = PotentialNewClassName;
+		LastAutoGeneratedClassName = PotentialNewClassName;
+		UpdateInputValidity();
+	}
+
 	// Steal keyboard focus to accelerate name entering
 	FSlateApplication::Get().SetKeyboardFocus(ClassNameEditBox, EKeyboardFocusCause::SetDirectly);
-
 }
 
 FString SNewClassDialog::GetNameClassTitle() const
@@ -566,7 +674,28 @@ FText SNewClassDialog::OnGetClassNameText() const
 void SNewClassDialog::OnClassNameTextChanged(const FText& NewText)
 {
 	NewClassName = NewText.ToString();
-	UpdateClassNameValidity();
+	UpdateInputValidity();
+}
+
+FText SNewClassDialog::OnGetClassPathText() const
+{
+	return FText::FromString(NewClassPath);
+}
+
+void SNewClassDialog::OnClassPathTextChanged(const FText& NewText)
+{
+	NewClassPath = NewText.ToString();
+	UpdateInputValidity();
+}
+
+FText SNewClassDialog::OnGetClassHeaderFileText() const
+{
+	return FText::FromString(CalculatedClassHeaderName);
+}
+
+FText SNewClassDialog::OnGetClassSourceFileText() const
+{
+	return FText::FromString(CalculatedClassSourceName);
 }
 
 void SNewClassDialog::CancelClicked()
@@ -576,7 +705,7 @@ void SNewClassDialog::CancelClicked()
 
 bool SNewClassDialog::CanFinish() const
 {
-	return bLastNameValidityCheckSuccessful && GetSelectedParentClass() != NULL && FSourceCodeNavigation::IsCompilerAvailable();
+	return bLastInputValidityCheckSuccessful && GetSelectedParentClass() != NULL && FSourceCodeNavigation::IsCompilerAvailable();
 }
 
 void SNewClassDialog::FinishClicked()
@@ -587,7 +716,7 @@ void SNewClassDialog::FinishClicked()
 	FString CppFilePath;
 
 	FText FailReason;
-	if ( GameProjectUtils::AddCodeToProject(NewClassName, GetSelectedParentClass(), HeaderFilePath, CppFilePath, FailReason) )
+	if ( GameProjectUtils::AddCodeToProject(NewClassName, NewClassPath, GetSelectedParentClass(), HeaderFilePath, CppFilePath, FailReason) )
 	{
 		// Prevent periodic validity checks. This is to prevent a brief error message about the class already existing while you are exiting.
 		bPreventPeriodicValidityChecksUntilNextChange = true;
@@ -629,20 +758,55 @@ void SNewClassDialog::OnDownloadIDEClicked(FString URL)
 	FPlatformProcess::LaunchURL( *URL, NULL, NULL );
 }
 
-void SNewClassDialog::UpdateClassNameValidity()
+FReply SNewClassDialog::HandleChooseFolderButtonClicked()
 {
-	if ( NewClassName.IsEmpty() )
+	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+	if ( DesktopPlatform )
 	{
-		// An empty class name is not valid, but don't show error text since it implies the user did something wrong.
-		LastNameValidityErrorText = FText();
-		bLastNameValidityCheckSuccessful = false;
-	}
-	else
-	{
-		bLastNameValidityCheckSuccessful = GameProjectUtils::IsValidClassNameForCreation(NewClassName, LastNameValidityErrorText);
+		TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(AsShared());
+		void* ParentWindowWindowHandle = (ParentWindow.IsValid()) ? ParentWindow->GetNativeWindow()->GetOSWindowHandle() : nullptr;
+
+		FString FolderName;
+		const FString Title = LOCTEXT("NewClassBrowseTitle", "Choose a source location").ToString();
+		const bool bFolderSelected = DesktopPlatform->OpenDirectoryDialog(
+			ParentWindowWindowHandle,
+			Title,
+			NewClassPath,
+			FolderName
+			);
+
+		if ( bFolderSelected )
+		{
+			if ( !FolderName.EndsWith(TEXT("/")) )
+			{
+				FolderName += TEXT("/");
+			}
+
+			NewClassPath = FolderName;
+			UpdateInputValidity();
+		}
 	}
 
-	LastNameValidityCheckTime = FSlateApplication::Get().GetCurrentTime();
+	return FReply::Handled();
+}
+
+void SNewClassDialog::UpdateInputValidity()
+{
+	bLastInputValidityCheckSuccessful = true;
+
+	// Validate the path first since this has the side effect of updating the UI
+	FString ModuleName;
+	bLastInputValidityCheckSuccessful = GameProjectUtils::CalculateSourcePaths(NewClassPath, ModuleName, CalculatedClassHeaderName, CalculatedClassSourceName, &LastInputValidityErrorText);
+	CalculatedClassHeaderName /= NewClassName + ".h";
+	CalculatedClassSourceName /= NewClassName + ".cpp";
+
+	// Validate the class name only if the path is valid
+	if ( bLastInputValidityCheckSuccessful )
+	{
+		bLastInputValidityCheckSuccessful = GameProjectUtils::IsValidClassNameForCreation(NewClassName, LastInputValidityErrorText);
+	}
+
+	LastPeriodicValidityCheckTime = FSlateApplication::Get().GetCurrentTime();
 
 	// Since this function was invoked, periodic validity checks should be re-enabled if they were disabled.
 	bPreventPeriodicValidityChecksUntilNextChange = false;

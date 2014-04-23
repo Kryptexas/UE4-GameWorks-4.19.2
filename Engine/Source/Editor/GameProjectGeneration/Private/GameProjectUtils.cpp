@@ -527,9 +527,9 @@ bool GameProjectUtils::IsValidClassNameForCreation(const FString& NewClassName, 
 	return true;
 }
 
-bool GameProjectUtils::AddCodeToProject(const FString& NewClassName, const UClass* ParentClass, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason)
+bool GameProjectUtils::AddCodeToProject(const FString& NewClassName, const FString& NewClassPath, const UClass* ParentClass, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason)
 {
-	const bool bAddCodeSuccessful = AddCodeToProject_Internal(NewClassName, ParentClass, OutHeaderFilePath, OutCppFilePath, OutFailReason);
+	const bool bAddCodeSuccessful = AddCodeToProject_Internal(NewClassName, NewClassPath, ParentClass, OutHeaderFilePath, OutCppFilePath, OutFailReason);
 
 	if( FEngineAnalytics::IsAvailable() )
 	{
@@ -1388,6 +1388,127 @@ bool GameProjectUtils::IsStarterContentAvailableForNewProjects()
 	return (StarterContentFiles.Num() > 0);
 }
 
+FString GameProjectUtils::GetSourceRootPath(const bool bIncludeModuleName)
+{
+	FString SourceDir = FPaths::GameSourceDir();
+
+	if(bIncludeModuleName)
+	{
+		// Assuming the game name is the same as the primary game module name
+		const FString ModuleName = FApp::GetGameName();
+		SourceDir /= ModuleName;
+	}
+
+	SourceDir /= "";
+
+	return FPaths::ConvertRelativePathToFull(SourceDir);
+}
+
+bool GameProjectUtils::IsValidSourcePath(const FString& InPath, const bool bIncludeModuleName, FText* const OutFailReason)
+{
+	FString RootPath = GetSourceRootPath(bIncludeModuleName);
+	if(bIncludeModuleName)
+	{
+		// If we're including the module name, then we want to allow variations of it, eg) MyModule, MyModuleEditor, MyModuleClient
+		// Those variations are valid, so we trim the last / from the path so that the StartsWith check below allows these variations
+		RootPath = RootPath.LeftChop(1); // Trim trailing /
+	}
+
+	const FString AbsoluteInPath = FPaths::ConvertRelativePathToFull(InPath) / ""; // Ensure trailing /
+
+	// Validate the path contains no invalid characters
+	if(!FPaths::ValidatePath(AbsoluteInPath, OutFailReason))
+	{
+		return false;
+	}
+
+	if(!AbsoluteInPath.StartsWith(RootPath))
+	{
+		if(OutFailReason)
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("RootSourcePath"), FText::FromString(GetSourceRootPath(bIncludeModuleName)));
+			const FText FormatString = (bIncludeModuleName)
+				? LOCTEXT("SourcePathInvalidModuleRoot", "All source code must exist within a valid module folder in the projects source path, e.g. {RootSourcePath}")
+				: LOCTEXT("SourcePathInvalidRoot", "All source code must exist within the projects source path: {RootSourcePath}");
+			*OutFailReason = FText::Format( FormatString, Args );
+		}
+		return false;
+	}
+
+	return true;
+}
+
+bool GameProjectUtils::CalculateSourcePaths(const FString& InPath, FString& OutModuleName, FString& OutHeaderPath, FString& OutSourcePath, FText* const OutFailReason)
+{
+	const FString AbsoluteInPath = FPaths::ConvertRelativePathToFull(InPath) / ""; // Ensure trailing /
+	OutHeaderPath = AbsoluteInPath;
+	OutSourcePath = AbsoluteInPath;
+	OutModuleName.Empty();
+
+	if(!IsValidSourcePath(InPath, true/*bIncludeModuleName*/, OutFailReason))
+	{
+		return false;
+	}
+
+	// We've validated that this path includes a partial match for our module (eg, MyModule, MyModuleEditor, MyModuleClient)
+	// so extract the actual name of the module from the path so that we can generate the internal folder names correctly
+	const FString BaseRootPath = GetSourceRootPath(false/*bIncludeModuleName*/);
+	const int32 ModuleNameStartIndex = BaseRootPath.Len();
+	const int32 ModuleNameEndIndex = AbsoluteInPath.Find(TEXT("/"), ESearchCase::IgnoreCase, ESearchDir::FromStart, ModuleNameStartIndex);
+	check(ModuleNameEndIndex != INDEX_NONE); // this should never happen since AbsoluteInPath ends in a /, and we verified it started with BaseRootPath in IsValidSourcePath
+	OutModuleName = AbsoluteInPath.Mid(ModuleNameStartIndex, ModuleNameEndIndex - ModuleNameStartIndex);
+
+	const FString RootPath = BaseRootPath / OutModuleName / ""; // Ensure trailing /
+	const FString ClassesPath = RootPath / "Classes" / "";		// Ensure trailing /
+	const FString PublicPath = RootPath / "Public" / "";		// Ensure trailing /
+	const FString PrivatePath = RootPath / "Private" / "";		// Ensure trailing /
+
+	// The root path must exist; we will allow the creation of sub-folders, but not the module root!
+	if(!IFileManager::Get().DirectoryExists(*RootPath))
+	{
+		if(OutFailReason)
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("ModuleSourcePath"), FText::FromString(RootPath));
+			*OutFailReason = FText::Format(LOCTEXT("SourcePathMissingModuleRoot", "The specified module path does not exist on disk: {ModuleSourcePath}"), Args);
+		}
+		return false;
+	}
+
+	// If either the Public or Private path exists, and we're in the root, force the header/source file to use one of these folders
+	const bool bPublicPathExists = IFileManager::Get().DirectoryExists(*PublicPath);
+	const bool bPrivatePathExists = IFileManager::Get().DirectoryExists(*PrivatePath);
+	const bool bForceInternalPath = AbsoluteInPath == RootPath && (bPublicPathExists || bPrivatePathExists);
+
+	// The rules for placing header files are as follows:
+	// 1) If InPath is the source root, check to see if there is a Public folder within it, and if so, place the header there
+	// 2) Otherwise, just place the header at InPath (the default set above)
+	if(AbsoluteInPath == RootPath)
+	{
+		OutHeaderPath = (bPublicPathExists || bForceInternalPath) ? PublicPath : AbsoluteInPath;
+	}
+
+	// The rules for placing source files are as follows:
+	// 1) If InPath is the source root, check to see if there is a Private folder within it, and if so, place the source file there
+	// 2) If InPath is contained within the Public or Classes folder of this module, place it in the equivalent path in the Private folder
+	// 3) Otherwise, just place the source file at InPath (the default set above)
+	if(AbsoluteInPath == RootPath)
+	{
+		OutSourcePath = (bPrivatePathExists || bForceInternalPath) ? PrivatePath : AbsoluteInPath;
+	}
+	else if(AbsoluteInPath.StartsWith(ClassesPath))
+	{
+		OutSourcePath = AbsoluteInPath.Replace(*ClassesPath, *PrivatePath);
+	}
+	else if(AbsoluteInPath.StartsWith(PublicPath))
+	{
+		OutSourcePath = AbsoluteInPath.Replace(*PublicPath, *PrivatePath);
+	}
+
+	return !OutHeaderPath.IsEmpty() && !OutSourcePath.IsEmpty();
+}
+
 bool GameProjectUtils::ReadTemplateFile(const FString& TemplateFileName, FString& OutFileContents, FText& OutFailReason)
 {
 	const FString FullFileName = FPaths::EngineContentDir() / TEXT("Editor") / TEXT("Templates") / TemplateFileName;
@@ -1872,7 +1993,7 @@ bool GameProjectUtils::ProjectHasCodeFiles()
 	return GameProjectUtils::GetProjectCodeFileCount() > 0;
 }
 
-bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, const UClass* ParentClass, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason)
+bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, const FString& NewClassPath, const UClass* ParentClass, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason)
 {
 	if ( !ParentClass )
 	{
@@ -1891,19 +2012,27 @@ bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, co
 		return false;
 	}
 
+	FString ModuleName;
+	FString NewHeaderPath;
+	FString NewCppPath;
+	if ( !CalculateSourcePaths(NewClassPath, ModuleName, NewHeaderPath, NewCppPath, &OutFailReason) )
+	{
+		return false;
+	}
+
 	const bool bAllowNewSlowTask = true;
 	FStatusMessageContext SlowTaskMessage( LOCTEXT( "AddingCodeToProject", "Adding code to project..." ), bAllowNewSlowTask );
-
-	const FString SourceDir = FPaths::GameSourceDir().LeftChop(1); // Trim the trailing /
-
-	// Assuming the game name is the same as the primary game module name
-	const FString ModuleName = FApp::GetGameName();
-	const FString ModulePath = SourceDir / ModuleName;
 
 	// If the project does not already contain code, add the primary game module
 	TArray<FString> CreatedFiles;
 	if ( !ProjectHasCodeFiles() )
 	{
+		// We always add the basic source code to the root directory, not the potential sub-directory provided by NewClassPath
+		const FString SourceDir = FPaths::GameSourceDir().LeftChop(1); // Trim the trailing /
+
+		// Assuming the game name is the same as the primary game module name
+		const FString ModuleName = FApp::GetGameName();
+
 		TArray<FString> StartupModuleNames;
 		if ( GenerateBasicSourceCode(SourceDir, ModuleName, StartupModuleNames, CreatedFiles, OutFailReason) )
 		{
@@ -1918,7 +2047,7 @@ bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, co
 
 	// Class Header File
 	FString SyncLocation;
-	const FString NewHeaderFilename = ModulePath / NewClassName + TEXT(".h");
+	const FString NewHeaderFilename = NewHeaderPath / NewClassName + TEXT(".h");
 	{
 		if ( GenerateClassHeaderFile(NewHeaderFilename, ParentClass, TArray<FString>(), TEXT(""), TEXT(""), SyncLocation, OutFailReason) )
 		{
@@ -1926,22 +2055,22 @@ bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, co
 		}
 		else
 		{
-			DeleteCreatedFiles(SourceDir, CreatedFiles);
+			DeleteCreatedFiles(NewHeaderPath, CreatedFiles);
 			return false;
 		}
 	}
 
 	// Class CPP file
-	const FString NewCPPFilename = ModulePath / NewClassName + TEXT(".cpp");
+	const FString NewCppFilename = NewCppPath / NewClassName + TEXT(".cpp");
 	{
 		const FString PrefixedClassName = FString(ParentClass->GetPrefixCPP()) + NewClassName;
-		if ( GenerateClassCPPFile(NewCPPFilename, ModuleName, PrefixedClassName, TArray<FString>(), TArray<FString>(), TEXT(""), OutFailReason) )
+		if ( GenerateClassCPPFile(NewCppFilename, ModuleName, PrefixedClassName, TArray<FString>(), TArray<FString>(), TEXT(""), OutFailReason) )
 		{
-			CreatedFiles.Add(NewCPPFilename);
+			CreatedFiles.Add(NewCppFilename);
 		}
 		else
 		{
-			DeleteCreatedFiles(SourceDir, CreatedFiles);
+			DeleteCreatedFiles(NewCppPath, CreatedFiles);
 			return false;
 		}
 	}
@@ -1967,7 +2096,7 @@ bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, co
 	}
 
 	OutHeaderFilePath = NewHeaderFilename;
-	OutCppFilePath = NewCPPFilename;
+	OutCppFilePath = NewCppFilename;
 
 	return true;
 }
