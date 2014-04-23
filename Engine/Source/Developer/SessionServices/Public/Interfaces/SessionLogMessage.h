@@ -79,7 +79,6 @@ struct FSessionLogMessage
 		, Verbosity(InVerbosity)
 	{ }
 
-
 public:
 
 	/**

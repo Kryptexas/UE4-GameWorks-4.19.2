@@ -35,14 +35,6 @@ public:
 	 */
 	void Construct( const FArguments& InArgs, ISessionManagerRef InSessionManager );
 
-public:
-
-	// Begin SWidget interface
-
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
-
-	// End SWidget interface
-
 protected:
 
 	/**
@@ -51,26 +43,44 @@ protected:
 	void FilterSessions( );
 
 	/**
+	 * Gets the display name of the specified session.
+	 *
+	 * @param SessionInfo - The session to get the name for.
+	 *
+	 * @param Session name.
+	 */
+	FText GetSessionName( const ISessionInfoPtr& SessionInfo ) const;
+
+	/**
 	 * Reloads the sessions list.
 	 */
 	void ReloadSessions( );
 
 private:
 
-	// Callback for generating a context menu in the session list view.
-	TSharedPtr<SWidget> HandleSessionListViewContextMenuOpening( );
+	// Callback for generating a row in the session combo box.
+	TSharedRef<SWidget> HandleSessionComboBoxGenerateWidget( ISessionInfoPtr SessionInfo ) const;
 
-	// Callback for creating a row widget in the session list view.
-	TSharedRef<ITableRow> HandleSessionListViewGenerateRow( ISessionInfoPtr Item, const TSharedRef<STableViewBase>& OwnerTable );
+	// Callback for selection changes in the session combo box.
+	void HandleSessionComboBoxSelectionChanged( ISessionInfoPtr SelectedItem, ESelectInfo::Type SelectInfo );
 
-	// Handles changing the selection in the session tree.
-	void HandleSessionListViewSelectionChanged( ISessionInfoPtr Item, ESelectInfo::Type SelectInfo );
+	// Callback for getting the text in the session combo box.
+	FText HandleSessionComboBoxText( ) const;
 
-	// Handles changing the selected session in the session manager.
+	// Callback for getting the text of the session details area.
+	FText HandleSessionDetailsText( ) const;
+
+	// Callback for changing the selected session in the session manager.
 	void HandleSessionManagerSelectedSessionChanged( const ISessionInfoPtr& SelectedSession );
 
-	// Handles updating the session list in the session manager.
+	// Callback for updating the session list in the session manager.
 	void HandleSessionManagerSessionsUpdated( );
+
+	// Callback for clicking the 'Terminate Session' button.
+	FReply HandleTerminateSessionButtonClicked( );
+
+	// Callback for getting the enabled state of the 'Terminate Session' button.
+	bool HandleTerminateSessionButtonIsEnabled( ) const;
 
 private:
 
@@ -83,15 +93,23 @@ private:
 	// Holds the instance list view.
 	TSharedPtr<SSessionInstanceList> InstanceListView;
 
+	// Holds the session combo box.
+	TSharedPtr<SComboBox<ISessionInfoPtr> > SessionComboBox;
+
 	// Holds the filtered list of sessions to be displayed.
 	TArray<ISessionInfoPtr> SessionList;
-
-	// Holds the session list view.
-	TSharedPtr<SListView<ISessionInfoPtr> > SessionListView;
 
 	// Holds a reference to the session manager.
 	ISessionManagerPtr SessionManager;
 
-	// Holds the splitter.
-	TSharedPtr<SSplitter> Splitter;
+private:
+
+	// Callback for creating a row widget in the session list view.
+	TSharedRef<ITableRow> HandleSessionListViewGenerateRow( ISessionInfoPtr Item, const TSharedRef<STableViewBase>& OwnerTable );
+
+	// Handles changing the selection in the session tree.
+	void HandleSessionListViewSelectionChanged( ISessionInfoPtr Item, ESelectInfo::Type SelectInfo );
+
+	// Holds the session list view.
+	TSharedPtr<SListView<ISessionInfoPtr> > SessionListView;
 };

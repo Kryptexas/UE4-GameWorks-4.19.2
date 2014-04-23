@@ -35,7 +35,6 @@
 #include "SSessionBrowserInstanceListRow.h"
 #include "SSessionBrowserInstanceList.h"
 #include "SSessionBrowserSessionListRow.h"
-#include "SSessionBrowserContextMenu.h"
 #include "SSessionBrowserCommandBar.h"
 #include "SSessionBrowser.h"
 

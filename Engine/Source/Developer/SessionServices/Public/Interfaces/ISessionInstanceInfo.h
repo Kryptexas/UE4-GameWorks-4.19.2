@@ -144,7 +144,6 @@ public:
 	 */
 	virtual void Terminate( ) = 0;
 
-
 public:
 
 	/**
@@ -153,7 +152,6 @@ public:
 	 * @return The delegate.
 	 */
 	virtual FOnSessionInstanceLogReceived& OnLogReceived( ) = 0;
-
 
 public:
 

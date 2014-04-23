@@ -35,88 +35,97 @@ void SSessionBrowser::Construct( const FArguments& InArgs, ISessionManagerRef In
 		SNew(SVerticalBox)
 
 		+ SVerticalBox::Slot()
-			.FillHeight(1.0)
-			[
-				SAssignNew(Splitter, SSplitter)
-
-				+ SSplitter::Slot()
-					.Value(0.4)
-					[
-						SNew(SBorder)
-							.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
-							.Padding(0.0f)
-							[
-								// session list
-								SAssignNew(SessionListView, SListView<ISessionInfoPtr>)
-									.ItemHeight(24.0f)
-									.ListItemsSource(&SessionList)
-									.OnContextMenuOpening(this, &SSessionBrowser::HandleSessionListViewContextMenuOpening)
-									.OnGenerateRow(this, &SSessionBrowser::HandleSessionListViewGenerateRow)
-									.OnSelectionChanged(this, &SSessionBrowser::HandleSessionListViewSelectionChanged)
-									.HeaderRow
-									(
-										SNew(SHeaderRow)
-
-										+ SHeaderRow::Column("Status")
-											.DefaultLabel(FText::FromString(" "))
-											.FixedWidth(24.0f)
-
-										+ SHeaderRow::Column("Name")
-											.DefaultLabel(LOCTEXT("SessionListNameColumnTitle", "Session Name"))
-											.FillWidth(0.4f)
-
-										+ SHeaderRow::Column("Owner")
-											.DefaultLabel(LOCTEXT("SessionListOwnerColumnTitle", "Owner"))
-											.FillWidth(0.6f)
-									)
-							]
-					]
-
-				+ SSplitter::Slot()
-					.Value(0.5)
-					[
-						SNew(SBorder)
-							.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
-							.Padding(0.0f)
-							[
-								// instance list
-								SAssignNew(InstanceListView, SSessionInstanceList, SessionManager.ToSharedRef())
-									.SelectionMode(ESelectionMode::Multi)
-							]
-					]
-
-			]
-		/*
-		+ SVerticalBox::Slot()
 			.AutoHeight()
 			[
-				// command bar
-				SAssignNew(CommandBar, SSessionBrowserCommandBar)
-			]*/
+				SNew(SHorizontalBox)
+
+				+ SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						// session combo box
+						SAssignNew(SessionComboBox, SComboBox<ISessionInfoPtr>)
+							.ContentPadding(FMargin(6.0f, 2.0f))
+							.OptionsSource(&SessionList)
+							.ToolTipText(LOCTEXT("SessionComboBoxToolTip", "Select the game session to interact with.").ToString())
+							.OnGenerateWidget(this, &SSessionBrowser::HandleSessionComboBoxGenerateWidget)
+							.OnSelectionChanged(this, &SSessionBrowser::HandleSessionComboBoxSelectionChanged)
+							[
+								SNew(STextBlock)
+									.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 13))
+									.Text(this, &SSessionBrowser::HandleSessionComboBoxText)
+							]
+					]
+
+				+ SHorizontalBox::Slot()
+					.FillWidth(1.0f)
+					.Padding(4.0f, 0.0f, 0.0f, 0.0f)
+					.VAlign(VAlign_Center)
+					[
+						SNew(STextBlock)
+							.Text(this, &SSessionBrowser::HandleSessionDetailsText)
+					]
+
+				+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(8.0f, 0.0f)
+					[
+						SNew(SSeparator)
+							.Orientation(Orient_Vertical)
+					]
+
+				+ SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						// terminate button
+						SNew(SButton)
+							.ButtonStyle(FEditorStyle::Get(), "ToggleButton")
+							.ContentPadding(FMargin(6.0f, 2.0f))
+							.IsEnabled(this, &SSessionBrowser::HandleTerminateSessionButtonIsEnabled)
+							.OnClicked(this, &SSessionBrowser::HandleTerminateSessionButtonClicked)
+							.ToolTipText(LOCTEXT("TerminateButtonTooltip", "Shuts down all game instances that are part of this session.").ToString())
+							[
+								SNew(SHorizontalBox)
+
+								+ SHorizontalBox::Slot()
+									.AutoWidth()
+									.VAlign(VAlign_Center)
+									[
+										SNew(SImage)
+											.Image(FEditorStyle::GetBrush("SessionBrowser.Terminate"))
+									]
+
+								+ SHorizontalBox::Slot()
+									.AutoWidth()
+									.VAlign(VAlign_Center)
+									.Padding(4.0f, 1.0f, 0.0f, 0.0f)
+									[
+										SNew(STextBlock)
+											.TextStyle(FEditorStyle::Get(), "ContentBrowser.TopBar.Font")
+											.Text(LOCTEXT("TerminateSessionButtonLabel", "Terminate Session").ToString())
+									]
+							]
+					]
+			]
+
+		+ SVerticalBox::Slot()
+			.FillHeight(1.0f)
+			.Padding(0.0f, 4.0f, 0.0f, 0.0f)
+			[
+				SNew(SBorder)
+					.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+					.Padding(0.0f)
+					[
+						// instance list
+						SAssignNew(InstanceListView, SSessionInstanceList, SessionManager.ToSharedRef())
+							.SelectionMode(ESelectionMode::Multi)
+					]
+			]
 	];
 
 	SessionManager->OnSelectedSessionChanged().AddSP(this, &SSessionBrowser::HandleSessionManagerSelectedSessionChanged);
 	SessionManager->OnSessionsUpdated().AddSP(this, &SSessionBrowser::HandleSessionManagerSessionsUpdated);
 
 	ReloadSessions();
-}
-
-
-/* SWidget overrides
- *****************************************************************************/
-
-void SSessionBrowser::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
-{
-	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
-
-	if ((AllottedGeometry.Size.X > 512.0f) && (AllottedGeometry.Size.X > AllottedGeometry.Size.Y))
-	{
-		Splitter->SetOrientation(Orient_Horizontal);
-	}
-	else
-	{
-		Splitter->SetOrientation(Orient_Vertical);
-	}
 }
 
 
@@ -137,8 +146,48 @@ void SSessionBrowser::FilterSessions( )
 		}
 	}
 
-	SessionListView->RequestListRefresh();
-	SessionListView->SetSelection(SessionManager->GetSelectedSession());
+	SessionComboBox->RefreshOptions();
+	SessionComboBox->SetSelectedItem(SessionManager->GetSelectedSession());
+}
+
+
+FText SSessionBrowser::GetSessionName( const ISessionInfoPtr& SessionInfo ) const
+{
+	FText SessionName;
+
+	if (!SessionInfo->IsStandalone() || !SessionInfo->GetSessionName().IsEmpty())
+	{
+		SessionName = FText::FromString(SessionInfo->GetSessionName());
+	}
+	else
+	{
+		TArray<ISessionInstanceInfoPtr> Instances;
+		SessionInfo->GetInstances(Instances);
+
+		if (Instances.Num() > 0)
+		{
+			const ISessionInstanceInfoPtr& FirstInstance = Instances[0];
+
+			if ((Instances.Num() == 1) && (FirstInstance->GetInstanceId() == FApp::GetInstanceId()))
+			{
+				SessionName = LOCTEXT("ThisApplicationSessionText", "This Application");
+			}
+			else if (FirstInstance->GetDeviceName() == FPlatformProcess::ComputerName())
+			{
+				SessionName = LOCTEXT("UnnamedLocalSessionText", "Unnamed Session (Local)");
+			}
+			else
+			{
+				SessionName = LOCTEXT("UnnamedRemoteSessionText", "Unnamed Session (Remote)");
+			}
+		}
+		else
+		{
+			SessionName = LOCTEXT("UnnamedSessionText", "Unnamed Session");
+		}
+	}
+
+	return SessionName;
 }
 
 
@@ -157,16 +206,81 @@ void SSessionBrowser::ReloadSessions( )
 /* SSessionBrowser event handlers
  *****************************************************************************/
 
-TSharedPtr<SWidget> SSessionBrowser::HandleSessionListViewContextMenuOpening( )
+TSharedRef<SWidget> SSessionBrowser::HandleSessionComboBoxGenerateWidget( ISessionInfoPtr SessionInfo ) const
+{
+	return SNew(SVerticalBox)
+
+	+ SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(4.0f, 0.0f)
+		[
+			SNew(STextBlock)
+				.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 14))
+				.Text(GetSessionName(SessionInfo))
+		]
+
+	+ SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(4.0f, 0.0f)
+		[
+			SNew(SHorizontalBox)
+
+			+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.HAlign(HAlign_Left)
+				[
+					SNew(STextBlock)
+						.Text(SessionInfo->GetSessionOwner())
+				]
+
+			+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.HAlign(HAlign_Right)
+				.Padding(16.0f, 0.0f, 0.0f, 0.0f)
+				[
+					SNew(STextBlock)
+						.Text(FText::Format(LOCTEXT("InstanceCountFormat", "{0} Instance(s)"), FText::AsNumber(SessionInfo->GetNumInstances())))
+				]
+		];
+}
+
+
+void SSessionBrowser::HandleSessionComboBoxSelectionChanged( ISessionInfoPtr SelectedItem, ESelectInfo::Type SelectInfo )
+{
+	if (!SessionManager->SelectSession(SelectedItem))
+	{
+		SessionComboBox->SetSelectedItem(SessionManager->GetSelectedSession());
+	}
+}
+
+
+FText SSessionBrowser::HandleSessionComboBoxText( ) const
 {
 	const ISessionInfoPtr& SelectedSession = SessionManager->GetSelectedSession();
 
-	if (SelectedSession.IsValid() && (SelectedSession->GetSessionOwner() == FPlatformProcess::UserName(false)))
+	if (SelectedSession.IsValid())
 	{
-		return SNew(SSessionBrowserContextMenu, SessionManager.ToSharedRef());
-	}		
-	
-	return NULL;
+		return GetSessionName(SelectedSession);
+	}
+
+	return LOCTEXT("SelectSessionHint", "Select a session...");
+}
+
+
+FText SSessionBrowser::HandleSessionDetailsText( ) const
+{
+	const ISessionInfoPtr& SelectedSession = SessionManager->GetSelectedSession();
+
+	if (!SelectedSession.IsValid())
+	{
+		return FText::GetEmpty();
+	}
+
+	FFormatNamedArguments FormatArguments;
+	FormatArguments.Add(TEXT("NumInstances"), SelectedSession->GetNumInstances());
+	FormatArguments.Add(TEXT("OwnerName"), SelectedSession->GetSessionOwner().IsEmpty() ? LOCTEXT("UnknownOwner", "<unknown>") : FText::FromString(SelectedSession->GetSessionOwner()));
+
+	return FText::Format(LOCTEXT("SessionDetails", "Owner: {OwnerName}, {NumInstances} Instance(s)"), FormatArguments);
 }
 
 
@@ -189,9 +303,9 @@ void SSessionBrowser::HandleSessionListViewSelectionChanged( ISessionInfoPtr Ite
 
 void SSessionBrowser::HandleSessionManagerSelectedSessionChanged( const ISessionInfoPtr& SelectedSession )
 {
-	if (!SessionListView->IsItemSelected(SelectedSession))
+	if (SessionComboBox->GetSelectedItem() != SelectedSession)
 	{
-		SessionListView->SetSelection(SelectedSession);
+		SessionComboBox->SetSelectedItem(SelectedSession);
 	}
 }
 
@@ -199,6 +313,37 @@ void SSessionBrowser::HandleSessionManagerSelectedSessionChanged( const ISession
 void SSessionBrowser::HandleSessionManagerSessionsUpdated( )
 {
 	ReloadSessions();
+}
+
+
+FReply SSessionBrowser::HandleTerminateSessionButtonClicked( )
+{
+	int32 DialogResult = FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("TerminateSessionDialogPrompt", "Are you sure you want to terminate this session and its instances?"));
+
+	if (DialogResult == EAppReturnType::Yes)
+	{
+		const ISessionInfoPtr& SelectedSession = SessionManager->GetSelectedSession();
+
+		if (SelectedSession.IsValid())
+		{
+			if (SelectedSession->GetSessionOwner() == FPlatformProcess::UserName(false))
+			{
+				SelectedSession->Terminate();
+			}
+			else
+			{
+				FMessageDialog::Open( EAppMsgType::Ok, FText::Format( LOCTEXT("TerminateDeniedPrompt", "You are not authorized to terminate the currently selected session, because it is owned by {0}"), FText::FromString( SelectedSession->GetSessionOwner() ) ) );
+			}
+		}
+	}
+
+	return FReply::Handled();
+}
+
+
+bool SSessionBrowser::HandleTerminateSessionButtonIsEnabled( ) const
+{
+	return SessionManager->GetSelectedSession().IsValid();
 }
 
 
