@@ -132,7 +132,7 @@ void UGameplayTagsK2Node_LiteralGameplayTag::ExpandNode(class FKismetCompilerCon
 		if( OutPin && TagOutPin )
 		{
 			OutPin->PinType = TagOutPin->PinType; // Copy type so it uses the right actor subclass
-			CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*TagOutPin, *OutPin), this);
+			CompilerContext.MovePinLinksToIntermediate(*TagOutPin, *OutPin);
 		}
 
 		// Break any links to the expanded node

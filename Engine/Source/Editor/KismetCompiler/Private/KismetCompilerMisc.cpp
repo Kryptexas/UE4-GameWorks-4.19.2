@@ -728,7 +728,7 @@ FBlueprintCompiledStatement& FNodeHandlingFunctor::GenerateSimpleThenGoto(FKisme
 
 	FBlueprintCompiledStatement& GotoStatement = Context.AppendStatementForNode(&Node);
 	GotoStatement.Type = KCST_UnconditionalGoto;
-	Context.GotoFixupRequestMap.Add(&GotoStatement, TargetNode);
+	Context.GotoFixupRequestMap.Add(&GotoStatement, ThenExecPin);
 
 	return GotoStatement;
 }
@@ -854,7 +854,8 @@ FKismetFunctionContext::FKismetFunctionContext(FCompilerResultsLog& InMessageLog
 	, NetFlags(0)
 	, bIsInterfaceStub(false)
 	, bIsConstFunction(false)
-	, bCreateDebugData(true)
+	// only need debug-data when running in the editor app:
+	, bCreateDebugData(GIsEditor && !IsRunningCommandlet())
 	, bIsSimpleStubGraphWithNoParams(false)
 	, SourceEventFromStubGraph(NULL)
 {

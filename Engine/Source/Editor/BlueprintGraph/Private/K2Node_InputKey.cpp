@@ -229,7 +229,7 @@ void UK2Node_InputKey::CreateInputKeyEvent(FKismetCompilerContext& CompilerConte
 
 		if(EventOutput != NULL)
 		{
-			CompilerContext.CheckConnectionResponse(CompilerContext.GetSchema()->MovePinLinks(*InputKeyPin, *EventOutput), this);
+			CompilerContext.MovePinLinksToIntermediate(*InputKeyPin, *EventOutput);
 		}
 	}
 }

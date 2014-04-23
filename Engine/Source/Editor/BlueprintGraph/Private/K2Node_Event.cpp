@@ -531,7 +531,7 @@ void UK2Node_Event::ExpandNode(class FKismetCompilerContext& CompilerContext, UE
 
 			UK2Node_CreateDelegate* CreateDelegateNode = CompilerContext.SpawnIntermediateNode<UK2Node_CreateDelegate>(this, SourceGraph);
 			CreateDelegateNode->AllocateDefaultPins();
-			CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*OrgDelegatePin, *CreateDelegateNode->GetDelegateOutPin()), this);
+			CompilerContext.MovePinLinksToIntermediate(*OrgDelegatePin, *CreateDelegateNode->GetDelegateOutPin());
 			Schema->TryCreateConnection(SelfNode->FindPinChecked(Schema->PN_Self), CreateDelegateNode->GetObjectInPin());
 			CreateDelegateNode->SelectedFunctionName = FunctionName;
 			CreateDelegateNode->HandleAnyChangeInner();

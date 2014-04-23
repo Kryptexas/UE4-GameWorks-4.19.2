@@ -59,7 +59,7 @@ void UK2Node_GetNumEnumEntries::ExpandNode(class FKismetCompilerContext& Compile
 		UEdGraphPin* OrgReturnPin = FindPinChecked(Schema->PN_ReturnValue);
 		UEdGraphPin* NewReturnPin = MakeLiteralInt->GetReturnValuePin();
 		check(NULL != NewReturnPin);
-		CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*OrgReturnPin, *NewReturnPin), this);
+		CompilerContext.MovePinLinksToIntermediate(*OrgReturnPin, *NewReturnPin);
 
 		//INPUT PIN
 		UEdGraphPin* InputPin = MakeLiteralInt->FindPinChecked(TEXT("Value"));

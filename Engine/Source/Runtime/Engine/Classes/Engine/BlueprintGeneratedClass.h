@@ -48,6 +48,9 @@ public:
 	// Reverse map from code offset to macro instance node(s)
 	TMultiMap< int32, TWeakObjectPtr<UEdGraphNode> > LineNumberToMacroInstanceNodeMap;
 
+	// Reverse map from code offset to exec pin
+	TMap< int32, TWeakObjectPtr<UEdGraphPin> > LineNumberToPinMap;
+
 public:
 	FDebuggingInfoForSingleFunction()
 	{
@@ -233,6 +236,17 @@ public:
 		}
 	}
 
+	// Finds the macro source node associated with the code location Function+CodeOffset, or NULL if there isn't one
+	UEdGraphPin* FindExecPinFromCodeLocation(UFunction* Function, int32 CodeOffset) const
+	{
+		if (const FDebuggingInfoForSingleFunction* pFuncInfo = PerFunctionLineNumbers.Find(Function))
+		{
+			return pFuncInfo->LineNumberToPinMap.FindRef(CodeOffset).Get();
+		}
+
+		return NULL;
+	}
+
 	// Finds the breakpoint injection site(s) in bytecode if any were associated with the given node
 	void FindBreakpointInjectionSites(UEdGraphNode* Node, TArray<uint8*>& InstallSites) const
 	{
@@ -289,6 +303,12 @@ public:
 		{
 			PerFuncInfo.LineNumberToMacroInstanceNodeMap.Add(CodeOffset, *MacroInstanceNodePtrIt);
 		}
+	}
+
+	void RegisterPinToCodeAssociation(UEdGraphPin const* ExecPin, UFunction* InFunction, int32 CodeOffset)
+	{
+		FDebuggingInfoForSingleFunction& PerFuncInfo = PerFunctionLineNumbers.FindOrAdd(InFunction);
+		PerFuncInfo.LineNumberToPinMap.Add(CodeOffset, ExecPin);
 	}
 
 	// Registers an association between an object (pin or node typically) and an associated class member property

@@ -335,12 +335,12 @@ void UK2Node_SpawnActor::ExpandNode(class FKismetCompilerContext& CompilerContex
 		UEdGraphPin* CallBeginResult = CallBeginSpawnNode->GetReturnValuePin();
 
 		// Move 'exec' connection from spawn node to 'begin spawn'
-		CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*SpawnNodeExec, *CallBeginExec), this);
+		CompilerContext.MovePinLinksToIntermediate(*SpawnNodeExec, *CallBeginExec);
 
 		if(SpawnBlueprintPin->LinkedTo.Num() > 0)
 		{
 			// Copy the 'blueprint' connection from the spawn node to 'begin spawn'
-			CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*SpawnBlueprintPin, *CallBeginBlueprintPin), this);
+			CompilerContext.MovePinLinksToIntermediate(*SpawnBlueprintPin, *CallBeginBlueprintPin);
 		}
 		else
 		{
@@ -351,14 +351,14 @@ void UK2Node_SpawnActor::ExpandNode(class FKismetCompilerContext& CompilerContex
 		// Copy the world context connection from the spawn node to 'begin spawn' if necessary
 		if (SpawnWorldContextPin)
 		{
-			CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*SpawnWorldContextPin, *CallBeginWorldContextPin), this);
+			CompilerContext.MovePinLinksToIntermediate(*SpawnWorldContextPin, *CallBeginWorldContextPin);
 		}
 
 		// Copy the 'transform' connection from the spawn node to 'begin spawn'
-		CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*SpawnNodeTransform, *CallBeginTransform), this);
+		CompilerContext.MovePinLinksToIntermediate(*SpawnNodeTransform, *CallBeginTransform);
 		
 		// Copy the 'bNoCollisionFail' connection from the spawn node to 'begin spawn'
-		CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*SpawnNodeNoCollisionFail, *CallBeginNoCollisionFail), this);
+		CompilerContext.MovePinLinksToIntermediate(*SpawnNodeNoCollisionFail, *CallBeginNoCollisionFail);
 
 		//////////////////////////////////////////////////////////////////////////
 		// create 'finish spawn' call node
@@ -373,17 +373,17 @@ void UK2Node_SpawnActor::ExpandNode(class FKismetCompilerContext& CompilerContex
 		UEdGraphPin* CallFinishResult = CallFinishSpawnNode->GetReturnValuePin();
 
 		// Move 'then' connection from spawn node to 'finish spawn'
-		CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*SpawnNodeThen, *CallFinishThen), this);
+		CompilerContext.MovePinLinksToIntermediate(*SpawnNodeThen, *CallFinishThen);
 			
 		// Copy transform connection
-		CompilerContext.CheckConnectionResponse(Schema->CopyPinLinks(*CallBeginTransform, *CallFinishTransform), this);
+		CompilerContext.CopyPinLinksToIntermediate(*CallBeginTransform, *CallFinishTransform);
 		
 		// Connect output actor from 'begin' to 'finish'
 		CallBeginResult->MakeLinkTo(CallFinishActor);
 
 		// Move result connection from spawn node to 'finish spawn'
 		CallFinishResult->PinType = SpawnNodeResult->PinType; // Copy type so it uses the right actor subclass
-		CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*SpawnNodeResult, *CallFinishResult), this);
+		CompilerContext.MovePinLinksToIntermediate(*SpawnNodeResult, *CallFinishResult);
 
 		//////////////////////////////////////////////////////////////////////////
 		// create 'set var' nodes
@@ -428,7 +428,7 @@ void UK2Node_SpawnActor::ExpandNode(class FKismetCompilerContext& CompilerContex
 
 					// Move connection from the variable pin on the spawn node to the 'value' pin
 					UEdGraphPin* ValuePin = SetVarNode->FindPinChecked(ValueParamName);
-					CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*SpawnVarPin, *ValuePin), this);
+					CompilerContext.MovePinLinksToIntermediate(*SpawnVarPin, *ValuePin);
 					if(SpawnVarPin->PinType.bIsArray)
 					{
 						SetVarNode->PinConnectionListChanged(ValuePin);

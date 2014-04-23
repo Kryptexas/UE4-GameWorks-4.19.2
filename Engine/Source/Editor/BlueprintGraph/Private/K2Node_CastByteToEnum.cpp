@@ -71,7 +71,7 @@ void UK2Node_CastByteToEnum::ExpandNode(class FKismetCompilerContext& CompilerCo
 		UEdGraphPin* OrgInputPin = FindPinChecked(ByteInputPinName);
 		UEdGraphPin* FunctionIndexPin = CallValidation->FindPinChecked(TEXT("EnumeratorIndex"));
 		check(EGPD_Input == FunctionIndexPin->Direction && Schema->PC_Byte == FunctionIndexPin->PinType.PinCategory);
-		CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*OrgInputPin, *FunctionIndexPin), this);
+		CompilerContext.MovePinLinksToIntermediate(*OrgInputPin, *FunctionIndexPin);
 
 		// UNSAFE CAST NODE
 		UK2Node_CastByteToEnum* UsafeCast = CompilerContext.SpawnIntermediateNode<UK2Node_CastByteToEnum>(this, SourceGraph); 
@@ -88,7 +88,7 @@ void UK2Node_CastByteToEnum::ExpandNode(class FKismetCompilerContext& CompilerCo
 		// OPUTPUT PIN
 		UEdGraphPin* OrgReturnPin = FindPinChecked(Schema->PN_ReturnValue);
 		UEdGraphPin* NewReturnPin = UsafeCast->FindPinChecked(Schema->PN_ReturnValue);
-		CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*OrgReturnPin, *NewReturnPin), this);
+		CompilerContext.MovePinLinksToIntermediate(*OrgReturnPin, *NewReturnPin);
 
 		BreakAllNodeLinks();
 	}

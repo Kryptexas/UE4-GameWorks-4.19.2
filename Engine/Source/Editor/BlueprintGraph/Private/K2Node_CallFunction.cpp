@@ -1224,7 +1224,7 @@ void UK2Node_CallFunction::ExpandNode(class FKismetCompilerContext& CompilerCont
 							AssignNode->AllocateDefaultPins();
 
 							// Move connections from fake 'enum exec' pint to this assignment node
-							CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*Pin, *AssignNode->GetExecPin()), this);
+							CompilerContext.MovePinLinksToIntermediate(*Pin, *AssignNode->GetExecPin());
 
 							// Connect this to out temp enum var
 							Schema->TryCreateConnection(AssignNode->GetVariablePin(), TempEnumVarOutput);
@@ -1282,13 +1282,13 @@ void UK2Node_CallFunction::CallForEachElementInArrayExpansion(UK2Node* Node, UEd
 	InteratorInitialize->AllocateDefaultPins();
 	InteratorInitialize->GetValuePin()->DefaultValue = TEXT("0");
 	Schema->TryCreateConnection(IteratorVar->GetVariablePin(), InteratorInitialize->GetVariablePin());
-	CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*Node->GetExecPin(), *InteratorInitialize->GetExecPin()), Node);
+	CompilerContext.MovePinLinksToIntermediate(*Node->GetExecPin(), *InteratorInitialize->GetExecPin());
 
 	// Do loop branch
 	UK2Node_IfThenElse* Branch = CompilerContext.SpawnIntermediateNode<UK2Node_IfThenElse>(Node, SourceGraph);
 	Branch->AllocateDefaultPins();
 	Schema->TryCreateConnection(InteratorInitialize->GetThenPin(), Branch->GetExecPin());
-	CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*ThenPin, *Branch->GetElsePin()), Node);
+	CompilerContext.MovePinLinksToIntermediate(*ThenPin, *Branch->GetElsePin());
 
 	// Do loop condition
 	UK2Node_CallFunction* Condition = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(Node, SourceGraph); 
@@ -1301,7 +1301,7 @@ void UK2Node_CallFunction::CallForEachElementInArrayExpansion(UK2Node* Node, UEd
 	UK2Node_CallArrayFunction* ArrayLength = CompilerContext.SpawnIntermediateNode<UK2Node_CallArrayFunction>(Node, SourceGraph); 
 	ArrayLength->SetFromFunction(UKismetArrayLibrary::StaticClass()->FindFunctionByName(TEXT("Array_Length")));
 	ArrayLength->AllocateDefaultPins();
-	CompilerContext.CheckConnectionResponse(Schema->CopyPinLinks(*MultiSelf, *ArrayLength->GetTargetArrayPin()), Node);
+	CompilerContext.CopyPinLinksToIntermediate(*MultiSelf, *ArrayLength->GetTargetArrayPin());
 	ArrayLength->PinConnectionListChanged(ArrayLength->GetTargetArrayPin());
 	Schema->TryCreateConnection(Condition->FindPinChecked(TEXT("B")), ArrayLength->GetReturnValuePin());
 
@@ -1309,7 +1309,7 @@ void UK2Node_CallFunction::CallForEachElementInArrayExpansion(UK2Node* Node, UEd
 	UK2Node_CallArrayFunction* GetElement = CompilerContext.SpawnIntermediateNode<UK2Node_CallArrayFunction>(Node, SourceGraph); 
 	GetElement->SetFromFunction(UKismetArrayLibrary::StaticClass()->FindFunctionByName(TEXT("Array_Get")));
 	GetElement->AllocateDefaultPins();
-	CompilerContext.CheckConnectionResponse(Schema->CopyPinLinks(*MultiSelf, *GetElement->GetTargetArrayPin()), Node);
+	CompilerContext.CopyPinLinksToIntermediate(*MultiSelf, *GetElement->GetTargetArrayPin());
 	GetElement->PinConnectionListChanged(GetElement->GetTargetArrayPin());
 	Schema->TryCreateConnection(GetElement->FindPinChecked(TEXT("Index")), IteratorVar->GetVariablePin());
 

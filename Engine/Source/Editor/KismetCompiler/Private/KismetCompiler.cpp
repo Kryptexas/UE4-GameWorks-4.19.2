@@ -1321,6 +1321,12 @@ void FKismetCompilerContext::PostcompileFunction(FKismetFunctionContext& Context
 	// Sort the 'linear execution list' again by likely execution order.
 	Context.FinalSortLinearExecList();
 
+// 	if (Context.GetBlueprint()->GetLinker()->IsCooking())
+// 	{
+// 		int i = 0;
+// 		++i;
+// 	}
+
 	// Resolve goto links
 	Context.ResolveGotoFixups();
 
@@ -1632,7 +1638,7 @@ void FKismetCompilerContext::CreatePinEventNodeForTimelineFunction(UK2Node_Timel
 
 	if(UpdatePin != NULL && UpdateOutput != NULL)
 	{
-		CheckConnectionResponse(Schema->MovePinLinks(*UpdatePin, *UpdateOutput), TimelineNode);
+		MovePinLinksToIntermediate(*UpdatePin, *UpdateOutput);
 	}
 }
 
@@ -1649,7 +1655,7 @@ UK2Node_CallFunction* FKismetCompilerContext::CreateCallTimelineFunction(UK2Node
 
 	// Move any exec links from 'play' pin to the 'call play' node
 	UEdGraphPin* CallExecInput = Schema->FindExecutionPin(*CallNode, EGPD_Input);
-	CheckConnectionResponse(Schema->MovePinLinks(*TimelineFunctionPin, *CallExecInput), TimelineNode);
+	MovePinLinksToIntermediate(*TimelineFunctionPin, *CallExecInput);
 	return CallNode;
 }
 
@@ -1749,7 +1755,7 @@ void FKismetCompilerContext::ExpandTimelineNodes(UEdGraph* SourceGraph)
 						if (CallNode && NewTimePin)
 						{
 							UEdGraphPin* InputPin = CallNode->FindPinChecked(TEXT("NewTime"));
-							CheckConnectionResponse(Schema->MovePinLinks(*NewTimePin, *InputPin), CallNode);
+							MovePinLinksToIntermediate(*NewTimePin, *InputPin);
 						}
 					}
 				}
@@ -1934,7 +1940,7 @@ void FKismetCompilerContext::ExpandPlayMovieSceneNodes( UEdGraph* SourceGraph )
 					SequenceNode->AllocateDefaultPins();
 				
 					// Move input links from 'Play' to the exec pin on the Sequence node
-					CheckConnectionResponse( Schema->MovePinLinks( *PlayPin, *SequenceNode->GetExecPin() ), PlayMovieSceneNode );
+					MovePinLinksToIntermediate( *PlayPin, *SequenceNode->GetExecPin() );
 
 					SequenceNode->GetThenPinGivenIndex( 0 )->MakeLinkTo( AllocateRuntimeMovieScenePlayerExecPin );
 
@@ -1961,7 +1967,7 @@ void FKismetCompilerContext::ExpandPlayMovieSceneNodes( UEdGraph* SourceGraph )
 					SequenceNode->AllocateDefaultPins();
 				
 					// Move input links from 'Pause' to the exec pin on the Sequence node
-					CheckConnectionResponse( Schema->MovePinLinks( *PausePin, *SequenceNode->GetExecPin() ), PlayMovieSceneNode );
+					MovePinLinksToIntermediate( *PausePin, *SequenceNode->GetExecPin() );
 
 					SequenceNode->GetThenPinGivenIndex( 0 )->MakeLinkTo( AllocateRuntimeMovieScenePlayerExecPin );
 
@@ -1976,6 +1982,28 @@ void FKismetCompilerContext::ExpandPlayMovieSceneNodes( UEdGraph* SourceGraph )
 			}
 		}
 	}
+}
+
+FPinConnectionResponse FKismetCompilerContext::MovePinLinksToIntermediate(UEdGraphPin& SourcePin, UEdGraphPin& IntermediatePin)
+{
+	 UEdGraphSchema_K2 const* K2Schema = GetSchema();
+	 FPinConnectionResponse ConnectionResult = K2Schema->MovePinLinks(SourcePin, IntermediatePin);
+
+	 CheckConnectionResponse(ConnectionResult, SourcePin.GetOwningNode());
+	 MessageLog.NotifyIntermediateObjectCreation(&IntermediatePin, &SourcePin);
+
+	 return ConnectionResult;
+}
+
+FPinConnectionResponse FKismetCompilerContext::CopyPinLinksToIntermediate(UEdGraphPin& SourcePin, UEdGraphPin& IntermediatePin)
+{
+	UEdGraphSchema_K2 const* K2Schema = GetSchema();
+	FPinConnectionResponse ConnectionResult = K2Schema->CopyPinLinks(SourcePin, IntermediatePin);
+
+	CheckConnectionResponse(ConnectionResult, SourcePin.GetOwningNode());
+	MessageLog.NotifyIntermediateObjectCreation(&IntermediatePin, &SourcePin);
+
+	return ConnectionResult;
 }
 
 UK2Node_TemporaryVariable* FKismetCompilerContext::SpawnInternalVariable(UEdGraphNode* SourceNode, FString Category, FString SubCategory, UObject* SubcategoryObject, bool bIsArray)
@@ -2589,7 +2617,29 @@ void FKismetCompilerContext::ExpandTunnelsAndMacros(UEdGraph* SourceGraph)
 		}
 		else if (UK2Node_Tunnel* TunnelNode = Cast<UK2Node_Tunnel>(*NodeIt))
 		{
-			bool bSuccess = Schema->CollapseGatewayNode(TunnelNode, TunnelNode->GetInputSink(), TunnelNode->GetOutputSource());
+			UEdGraphNode* InputSink = TunnelNode->GetInputSink();
+			for (UEdGraphPin const* TunnelPin : TunnelNode->Pins)
+			{
+				if ((TunnelPin->Direction != EGPD_Input) || (TunnelPin->PinType.PinCategory != Schema->PC_Exec))
+				{
+					continue;
+				}
+				check(InputSink != NULL);
+
+				UEdGraphPin* SinkPin = InputSink->FindPin(TunnelPin->PinName);
+				if (SinkPin == NULL)
+				{
+					continue;
+				}
+				check(SinkPin->Direction == EGPD_Output);
+
+				for (UEdGraphPin* TunnelLinkedPin : TunnelPin->LinkedTo)
+				{
+					MessageLog.NotifyIntermediateObjectCreation(TunnelLinkedPin, SinkPin);
+				}
+			}
+
+			bool bSuccess = Schema->CollapseGatewayNode(TunnelNode, InputSink, TunnelNode->GetOutputSource());
 			if (!bSuccess)
 			{
 				MessageLog.Error(*LOCTEXT("CollapseTunnel_Error", "Failed to collapse tunnel @@").ToString(), TunnelNode);

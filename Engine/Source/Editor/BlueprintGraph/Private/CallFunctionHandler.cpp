@@ -152,6 +152,7 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 		// Parameter info to be stored, and assigned to all function call statements generated below
 		FBPTerminal* LHSTerm = NULL;
 		TArray<FBPTerminal*> RHSTerms;
+		UEdGraphPin* ThenExecPin = NULL;
 		UEdGraphNode* LatentTargetNode = NULL;
 		int32 LatentTargetParamIndex = INDEX_NONE;
 
@@ -224,7 +225,7 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 								if (PinMatch == LatentInfoPin)
 								{
 									// Record the (latent) output impulse from this node
-									UEdGraphPin* ThenExecPin = CompilerContext.GetSchema()->FindExecutionPin(*Node, EGPD_Output);
+									ThenExecPin = CompilerContext.GetSchema()->FindExecutionPin(*Node, EGPD_Output);
 
 									if( (ThenExecPin != NULL) && (ThenExecPin->LinkedTo.Num() > 0) )
 									{
@@ -331,8 +332,10 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 					// Fixup ubergraph calls
 					if (pSrcEventNode != NULL)
 					{
+						UEdGraphPin* ExecOut = CompilerContext.GetSchema()->FindExecutionPin(**pSrcEventNode, EGPD_Output);
+
 						check(CompilerContext.UbergraphContext);
-						CompilerContext.UbergraphContext->GotoFixupRequestMap.Add(&Statement, *pSrcEventNode);
+						CompilerContext.UbergraphContext->GotoFixupRequestMap.Add(&Statement, ExecOut);
 						Statement.UbergraphCallIndex = 0;
 					}
 				}
@@ -343,7 +346,7 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 					{
 						check(LatentTargetParamIndex != INDEX_NONE);
 						Statement.UbergraphCallIndex = LatentTargetParamIndex;
-						Context.GotoFixupRequestMap.Add(&Statement, LatentTargetNode);
+						Context.GotoFixupRequestMap.Add(&Statement, ThenExecPin);
 					}
 				}
 
@@ -640,6 +643,8 @@ void FKCHandler_CallFunction::Transform(FKismetFunctionContext& Context, UEdGrap
 
 			if ((NewInPin != NULL) && (NewOutPin != NULL))
 			{
+				CompilerContext.MessageLog.NotifyIntermediateObjectCreation(NewOutPin, OldOutPin);
+
 				while (OldOutPin->LinkedTo.Num() > 0)
 				{
 					UEdGraphPin* LinkedPin = OldOutPin->LinkedTo[0];

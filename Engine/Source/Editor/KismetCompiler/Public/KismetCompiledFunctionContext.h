@@ -45,14 +45,14 @@ public:
 	FCompilerResultsLog& MessageLog;
 	UEdGraphSchema_K2* Schema;
 
-	//
+	// An UNORDERED listing of all statements (used for cleaning up the dynamically allocated statements)
 	TArray< FBlueprintCompiledStatement* > AllGeneratedStatements;
 
 	// Individual execution lists for every node that generated code to be consumed by the backend
 	TMap< UEdGraphNode*, TArray<FBlueprintCompiledStatement*> > StatementsPerNode;
 
-	// Goto fixup requests (each statement (key) wants to goto the first statement created for the node (value))
-	TMap< FBlueprintCompiledStatement*, UEdGraphNode* > GotoFixupRequestMap;
+	// Goto fixup requests (each statement (key) wants to goto the first statement attached to the exec out-pin (value))
+	TMap< FBlueprintCompiledStatement*, UEdGraphPin* > GotoFixupRequestMap;
 
 	// Map from a net to an term (either a literal or a storage location)
 	TIndirectArray<FBPTerminal> Parameters;
@@ -325,8 +325,15 @@ public:
 
 					if (NextNode != NULL)
 					{
+						UEdGraphNode* JumpTargetNode = NULL;
+
+						UEdGraphPin const* JumpPin = GotoFixupRequestMap.FindChecked(&LastStatementInCurrentNode);
+						if ((JumpPin != NULL) && (JumpPin->LinkedTo.Num() > 0))
+						{
+							JumpTargetNode = JumpPin->LinkedTo[0]->GetOwningNode();
+						}
+
 						// Is this node the target of the last statement in the previous node?
-						UEdGraphNode* JumpTargetNode = GotoFixupRequestMap.FindChecked(&LastStatementInCurrentNode);
 						if (NextNode == JumpTargetNode)
 						{
 							// Jump and label are adjacent, can optimize it out
@@ -339,19 +346,115 @@ public:
 		}
 	}
 
+	/**
+	 * Makes sure an KCST_WireTraceSite is inserted before the specified 
+	 * statement, and associates the specified pin with the inserted wire-trace 
+	 * (so we can backwards engineer which pin triggered the goto).
+	 * 
+	 * @param  GotoStatement		The statement to insert a goto before.
+	 * @param  AssociatedExecPin	The pin responsible for executing the goto.
+	 */
+	void InsertWireTrace(FBlueprintCompiledStatement* GotoStatement, UEdGraphPin* AssociatedExecPin)
+	{
+		// only need wire traces if we're debugging the blueprint is available (not for cooked builds)
+		if (bCreateDebugData && (AssociatedExecPin != NULL))
+		{
+			UEdGraphNode* PreJumpNode = AssociatedExecPin->GetOwningNode();
+
+			TArray<FBlueprintCompiledStatement*>* NodeStatementList = StatementsPerNode.Find(PreJumpNode);
+			if (NodeStatementList != NULL)
+			{
+				// @TODO: this Find() is potentially costly (if the node initially generated a lot of statements)
+				int32 GotoIndex = NodeStatementList->Find(GotoStatement);
+				if (GotoIndex != INDEX_NONE)
+				{
+					FBlueprintCompiledStatement* PrevStatement = NULL;
+					if (GotoIndex > 0)
+					{
+						PrevStatement = (*NodeStatementList)[GotoIndex - 1];
+					}
+
+					// if a wire-trace has already been inserted for us
+					if ((PrevStatement != NULL) && (PrevStatement->Type == KCST_WireTraceSite))
+					{
+						PrevStatement->ExecContext = AssociatedExecPin;
+					}
+					else if (PrevStatement != NULL)
+					{
+						FBlueprintCompiledStatement* TraceStatement = new FBlueprintCompiledStatement();
+						TraceStatement->Type        = KCST_WireTraceSite;
+						TraceStatement->Comment     = PreJumpNode->NodeComment.IsEmpty() ? PreJumpNode->GetName() : PreJumpNode->NodeComment;
+						TraceStatement->ExecContext = AssociatedExecPin;
+
+						NodeStatementList->Insert(TraceStatement, GotoIndex);
+						// AllGeneratedStatements is an unordered list, so it doesn't matter that we throw this at the end
+						AllGeneratedStatements.Add(TraceStatement);
+					}
+				}
+			}
+		}
+	}
+
 	/** Resolves all pending goto fixups; Should only be called after all nodes have had a chance to generate code! */
 	void ResolveGotoFixups()
 	{
+		/**
+		 * This local lambda is intended to save on code duplication within this
+		 * function. It tests the supplied statement to see if it is an event 
+		 * entry point.
+		 *
+		 * @param GotoStatement		The compiled statement you wish to test.
+		 * @return True if the passed statement is an event entry point, false if not.
+		 */
+		auto IsUberGraphEventStatement = [](FBlueprintCompiledStatement* GotoStatement) -> bool 
+		{
+			return ((GotoStatement->Type == KCST_CallFunction) && (GotoStatement->UbergraphCallIndex == 0));
+		};
+
+		if (bCreateDebugData)
+		{
+			// if we're debugging, go through an insert a wire trace before  
+			// every "goto" statement so we can trace what execution pin a node
+			// was executed from
+			for (auto GotoIt = GotoFixupRequestMap.CreateIterator(); GotoIt; ++GotoIt)
+			{
+				FBlueprintCompiledStatement* GotoStatement = GotoIt.Key();
+				if (IsUberGraphEventStatement(GotoStatement))
+				{
+					continue;
+				}
+
+				InsertWireTrace(GotoIt.Key(), GotoIt.Value());
+			}
+		}
+
 		if (KismetCompilerDebugOptions::MergeAdjacentStates)
 		{
 			MergeAdjacentStates();
 		}
 
 		// Resolve the remaining fixups
-		for (TMap< FBlueprintCompiledStatement*, UEdGraphNode* >::TIterator It(GotoFixupRequestMap); It; ++It)
+		for (auto GotoIt = GotoFixupRequestMap.CreateIterator(); GotoIt; ++GotoIt)
 		{
-			FBlueprintCompiledStatement* GotoStatement = It.Key();
-			UEdGraphNode* TargetNode = It.Value();
+			FBlueprintCompiledStatement* GotoStatement = GotoIt.Key();
+
+			UEdGraphPin const* ExecNet = GotoIt.Value();
+			if (ExecNet == NULL)
+			{
+				// Execution flow ended here; pop the stack
+				GotoStatement->Type = (GotoStatement->Type == KCST_GotoIfNot) ? KCST_EndOfThreadIfNot : KCST_EndOfThread;
+				continue;
+			}
+
+			UEdGraphNode* TargetNode = NULL;
+			if (IsUberGraphEventStatement(GotoStatement))
+			{
+				TargetNode = ExecNet->GetOwningNode();
+			}
+			else if (ExecNet->LinkedTo.Num() > 0)
+			{
+				TargetNode = ExecNet->LinkedTo[0]->GetOwningNode();
+			}
 
 			if (TargetNode == NULL)
 			{
@@ -370,7 +473,7 @@ public:
 				}
 				else
 				{
-					// Wire up the jump target and notify the target that it is targetted
+					// Wire up the jump target and notify the target that it is targeted
 					FBlueprintCompiledStatement& FirstStatement = *((*StatementList)[0]);
 					GotoStatement->TargetLabel = &FirstStatement;
 					FirstStatement.bIsJumpTarget = true;

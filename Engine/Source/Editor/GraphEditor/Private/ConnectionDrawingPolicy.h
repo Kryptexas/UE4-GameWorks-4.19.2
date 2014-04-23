@@ -92,8 +92,8 @@ protected:
 	// Times for one execution pair within the current graph
 	struct FTimePair
 	{
-		double PredExecTime;
-		double ThisExecTime;
+		double PredExecTime; // time that the node with the associated exec-out was executed
+		double ThisExecTime; // time that the following node was executed
 
 		FTimePair()
 			: PredExecTime(0.0)
@@ -101,12 +101,15 @@ protected:
 		{
 		}
 	};
+	/** 
+	 * Map of exec-pins to a pair of execution times (holds timing info for the 
+	 * owning-node, paired with a time of execution for the linked node)... only 
+	 * one timing-pair per pin because exec outputs can only connect to one node
+	 */
+	typedef TMap<UEdGraphPin*, FTimePair> FExecPairingMap;
 
-	// Map of pairings
-	typedef TMap<UEdGraphNode*, FTimePair> FExecPairingMap;
-
-	// Map of nodes that preceeded before a given node in the execution sequence (one entry for each pairing)
-	TMap<UEdGraphNode*, FExecPairingMap> PredecessorNodes;
+	// Map of executed nodes, and the execution pins that lead to them being ran
+	TMap<UEdGraphNode*, FExecPairingMap> PredecessorPins;
 
 	UEdGraph* GraphObj;
 	double CurrentTime;

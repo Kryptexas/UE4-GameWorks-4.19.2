@@ -103,7 +103,7 @@ void UK2Node_MatineeController::ExpandNode(FKismetCompilerContext& CompilerConte
 				// Move connection from matinee output to event node output
 				UEdGraphPin* EventOutputPin = Schema->FindExecutionPin(*MatineeEventNode, EGPD_Output);
 				check(EventOutputPin != NULL);
-				CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*MatineePin, *EventOutputPin), this);
+				CompilerContext.MovePinLinksToIntermediate(*MatineePin, *EventOutputPin);
 			}
 		}
 	}

@@ -227,9 +227,9 @@ void UK2Node_EnumEquality::ExpandNode(class FKismetCompilerContext& CompilerCont
 		UEdGraphPin* Input2Pin = GetInput2Pin();
 		LeftSideConditionalPin->PinType = Input1Pin->PinType;
 		RightSideConditionalPin->PinType = Input2Pin->PinType;
-		CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*Input1Pin, *LeftSideConditionalPin), this);
-		CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*Input2Pin, *RightSideConditionalPin), this);
-		CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*GetReturnValuePin(), *ReturnConditionalPin), this);
+		CompilerContext.MovePinLinksToIntermediate(*Input1Pin, *LeftSideConditionalPin);
+		CompilerContext.MovePinLinksToIntermediate(*Input2Pin, *RightSideConditionalPin);
+		CompilerContext.MovePinLinksToIntermediate(*GetReturnValuePin(), *ReturnConditionalPin);
 
 		// Break all links to the Select node so it goes away for at scheduling time
 		BreakAllNodeLinks();

@@ -113,6 +113,28 @@ public:
 		return Result;
 	}
 
+	/**
+	 * Moves pin links over from the source-pin to the specified intermediate, 
+	 * and validates the result (additionally logs a redirect from the 
+	 * intermediate-pin back to the source so we can back trace for debugging, etc.)
+	 * 
+	 * @param  SourcePin		The pin you want disconnected.
+	 * @param  IntermediatePin	The pin you want the SourcePin's links moved to.
+	 * @return The result from calling the schema's MovePinLinks().
+	 */
+	KISMETCOMPILER_API FPinConnectionResponse MovePinLinksToIntermediate(UEdGraphPin& SourcePin, UEdGraphPin& IntermediatePin);
+
+	/**
+	 * Copies pin links over from the source-pin to the specified intermediate, 
+	 * and validates the result (additionally logs a redirect from the 
+	 * intermediate-pin back to the source so we can back trace for debugging, etc.)
+	 * 
+	 * @param  SourcePin		The pin whose links you want copied.
+	 * @param  IntermediatePin	The pin you want the SourcePin's links copied to.
+	 * @return The result from calling the schema's CopyPinLinks().
+	 */
+	KISMETCOMPILER_API FPinConnectionResponse CopyPinLinksToIntermediate(UEdGraphPin& SourcePin, UEdGraphPin& IntermediatePin);
+
 	KISMETCOMPILER_API UK2Node_TemporaryVariable* SpawnInternalVariable(UEdGraphNode* SourceNode, FString Category, FString SubCategory = TEXT(""), UObject* SubcategoryObject = NULL, bool bIsArray = false);
 
 	/** Checks a connection response, and errors if it didn't succeed */

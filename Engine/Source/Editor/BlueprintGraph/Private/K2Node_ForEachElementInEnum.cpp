@@ -149,9 +149,9 @@ void UK2Node_ForEachElementInEnum::ExpandNode(class FKismetCompilerContext& Comp
 
 		const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
 
-		CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*GetExecPin(), *ForLoop.StartLoopExecInPin), this);
-		CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*FindPinChecked(Schema->PN_Then), *ForLoop.LoopCompleteOutExecPin), this);
-		CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*FindPinChecked(InsideLoopPinName), *ForLoop.InsideLoopExecOutPin), this);
+		CompilerContext.MovePinLinksToIntermediate(*GetExecPin(), *ForLoop.StartLoopExecInPin);
+		CompilerContext.MovePinLinksToIntermediate(*FindPinChecked(Schema->PN_Then), *ForLoop.LoopCompleteOutExecPin);
+		CompilerContext.MovePinLinksToIntermediate(*FindPinChecked(InsideLoopPinName), *ForLoop.InsideLoopExecOutPin);
 
 		UK2Node_GetNumEnumEntries* GetNumEnumEntries = CompilerContext.SpawnIntermediateNode<UK2Node_GetNumEnumEntries>(this, SourceGraph);
 		GetNumEnumEntries->Enum = Enum;
@@ -169,7 +169,7 @@ void UK2Node_ForEachElementInEnum::ExpandNode(class FKismetCompilerContext& Comp
 		CastByteToEnum->bSafe = true;
 		CastByteToEnum->AllocateDefaultPins();
 		bResult &= Schema->TryCreateConnection(Conv_Func->FindPinChecked(Schema->PN_ReturnValue), CastByteToEnum->FindPinChecked(UK2Node_CastByteToEnum::ByteInputPinName));
-		CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*FindPinChecked(EnumOuputPinName), *CastByteToEnum->FindPinChecked(Schema->PN_ReturnValue)), this);
+		CompilerContext.MovePinLinksToIntermediate(*FindPinChecked(EnumOuputPinName), *CastByteToEnum->FindPinChecked(Schema->PN_ReturnValue));
 
 		if (!bResult)
 		{

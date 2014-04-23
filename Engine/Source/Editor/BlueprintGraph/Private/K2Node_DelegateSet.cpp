@@ -279,7 +279,7 @@ void UK2Node_DelegateSet::ExpandNode(class FKismetCompilerContext& CompilerConte
 						// Hook up the exec pin specially, since it has a different name on the dynamic delegate node
 						UEdGraphPin* OldExecPin = FindPin(Schema->PN_DelegateEntry);
 						check(OldExecPin);
-						CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*OldExecPin, *CurrentPin), this);
+						CompilerContext.MovePinLinksToIntermediate(*OldExecPin, *CurrentPin);
 					}
 					else if( CurrentPin->PinName != UK2Node_Event::DelegateOutputName )
 					{
@@ -292,7 +292,7 @@ void UK2Node_DelegateSet::ExpandNode(class FKismetCompilerContext& CompilerConte
 							return;
 						}
 
-						CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*OldPin, *CurrentPin), this);
+						CompilerContext.MovePinLinksToIntermediate(*OldPin, *CurrentPin);
 					}
 				}
 			}

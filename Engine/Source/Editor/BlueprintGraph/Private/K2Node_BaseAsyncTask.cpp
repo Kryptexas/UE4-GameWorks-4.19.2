@@ -170,7 +170,7 @@ void UK2Node_BaseAsyncTask::ExpandNode(class FKismetCompilerContext& CompilerCon
 	UK2Node_CallFunction* CallCreateMoveToProxyObjectNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(CurrentNode, SourceGraph);
 	CallCreateMoveToProxyObjectNode->FunctionReference.SetExternalMember(CreateMoveToProxyObjectBlueprintFuncName, CurrentNode->GetProxyFactoryClass());
 	CallCreateMoveToProxyObjectNode->AllocateDefaultPins();
-	CompilerContext.CheckConnectionResponse(CompilerContext.GetSchema()->MovePinLinks(*CurrentNode->FindPinChecked(Schema->PN_Execute), *CallCreateMoveToProxyObjectNode->FindPinChecked(Schema->PN_Execute)), CurrentNode);
+	CompilerContext.MovePinLinksToIntermediate(*CurrentNode->FindPinChecked(Schema->PN_Execute), *CallCreateMoveToProxyObjectNode->FindPinChecked(Schema->PN_Execute));
 
 	// match function inputs, to pass data to function from CallFunction node
 	for (int32 Index=0; Index < CurrentNode->Pins.Num(); ++Index)
@@ -183,7 +183,7 @@ void UK2Node_BaseAsyncTask::ExpandNode(class FKismetCompilerContext& CompilerCon
 
 		if (UEdGraphPin* DestPin = CallCreateMoveToProxyObjectNode->FindPin(CurrentPin->PinName))
 		{
-			CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*CurrentPin, *DestPin), CurrentNode);
+			CompilerContext.MovePinLinksToIntermediate(*CurrentPin, *DestPin);
 		}
 	}
 
@@ -325,7 +325,7 @@ void UK2Node_BaseAsyncTask::ExpandNode(class FKismetCompilerContext& CompilerCon
 		}
 
 		// connect CE output with OnSuccess output of AIMoveTo node
-		CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*PinForCurrentDelegateProperty, *LastActivatedNodeThen), CurrentNode);
+		CompilerContext.MovePinLinksToIntermediate(*PinForCurrentDelegateProperty, *LastActivatedNodeThen);
 	}
 
 	for (int32 OutIndex = 0; OutIndex < VariableOutputPins.Num(); ++OutIndex)
@@ -333,16 +333,16 @@ void UK2Node_BaseAsyncTask::ExpandNode(class FKismetCompilerContext& CompilerCon
 		UEdGraphPin* OutPin = VariableOutputPins[OutIndex];
 		TArray<UEdGraphPin*> OptionPins;
 		OutputSelectNodes[OutIndex]->GetOptionPins(OptionPins);
-		CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*OutPin, *OutputSelectNodes[OutIndex]->GetReturnValuePin()), CurrentNode);
+		CompilerContext.MovePinLinksToIntermediate(*OutPin, *OutputSelectNodes[OutIndex]->GetReturnValuePin());
 	}
 
 	if (LastThenPin != NULL)
 	{
-		CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*CurrentNode->FindPinChecked(Schema->PN_Then), *LastThenPin), CurrentNode);
+		CompilerContext.MovePinLinksToIntermediate(*CurrentNode->FindPinChecked(Schema->PN_Then), *LastThenPin);
 	}
 	else
 	{
-		CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*CurrentNode->FindPinChecked(Schema->PN_Then), *CallCreateMoveToProxyObjectNode->FindPinChecked(Schema->PN_Then)), CurrentNode);
+		CompilerContext.MovePinLinksToIntermediate(*CurrentNode->FindPinChecked(Schema->PN_Then), *CallCreateMoveToProxyObjectNode->FindPinChecked(Schema->PN_Then));
 	}
 
 	CurrentNode->BreakAllNodeLinks();

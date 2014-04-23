@@ -47,6 +47,7 @@ struct FBlueprintCompiledStatement
 		, bIsJumpTarget(false)
 		, bIsInterfaceContext(false)
 		, bIsParentContext(false)
+		, ExecContext(NULL)
 	{
 	}
 
@@ -81,6 +82,9 @@ struct FBlueprintCompiledStatement
 
 	// Is this function called on a parent class (super, etc)?  (KCST_CallFunction)
 	bool bIsParentContext;
+
+	// Exec pin about to execute (KCST_WireTraceSite)
+	class UEdGraphPin* ExecContext;
 
 	// Comment text
 	FString Comment;

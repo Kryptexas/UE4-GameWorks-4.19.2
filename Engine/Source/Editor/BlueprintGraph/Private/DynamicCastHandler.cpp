@@ -38,7 +38,7 @@ void FKCHandler_DynamicCast::Compile(FKismetFunctionContext& Context, UEdGraphNo
 	}
 
 	// Successful interface cast execution
-	const UEdGraphPin* SuccessPin = DynamicCastNode->GetValidCastPin();
+	UEdGraphPin* SuccessPin = DynamicCastNode->GetValidCastPin();
 	UEdGraphNode* SuccessNode = NULL;
 	if (SuccessPin->LinkedTo.Num() > 0)
 	{
@@ -46,7 +46,7 @@ void FKCHandler_DynamicCast::Compile(FKismetFunctionContext& Context, UEdGraphNo
 	}
 
 	// Failed interface cast execution
-	const UEdGraphPin* FailurePin = DynamicCastNode->GetInvalidCastPin();
+	UEdGraphPin* FailurePin = DynamicCastNode->GetInvalidCastPin();
 	UEdGraphNode* FailureNode = NULL;
 	if (FailurePin->LinkedTo.Num() > 0)
 	{
@@ -141,13 +141,13 @@ void FKCHandler_DynamicCast::Compile(FKismetFunctionContext& Context, UEdGraphNo
 	FBlueprintCompiledStatement& FailCastGoto = Context.AppendStatementForNode(Node);
 	FailCastGoto.Type = KCST_GotoIfNot;
 	FailCastGoto.LHS = BoolTerm;
-	Context.GotoFixupRequestMap.Add(&FailCastGoto, FailureNode);
+	Context.GotoFixupRequestMap.Add(&FailCastGoto, FailurePin);
 
 	// Successful cast...hit the success output node
 	FBlueprintCompiledStatement& SuccessCastGoto = Context.AppendStatementForNode(Node);
 	SuccessCastGoto.Type = KCST_UnconditionalGoto;
 	SuccessCastGoto.LHS = BoolTerm;
-	Context.GotoFixupRequestMap.Add(&SuccessCastGoto, SuccessNode);
+	Context.GotoFixupRequestMap.Add(&SuccessCastGoto, SuccessPin);
 }
 
 #undef LOCTEXT_NAMESPACE

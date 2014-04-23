@@ -311,10 +311,10 @@ void UK2Node_LiveEditObject::ExpandNode(class FKismetCompilerContext& CompilerCo
 			RegisterForMIDINode->AllocateDefaultPins();
 
 			UEdGraphPin *ExecPin = RegisterForMIDINode->GetExecPin();
-			CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*SourceExecPin, *ExecPin), this);
+			CompilerContext.MovePinLinksToIntermediate(*SourceExecPin, *ExecPin);
 
 			UEdGraphPin *ThenPin = RegisterForMIDINode->GetThenPin();
-			CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*SourceThenPin, *ThenPin), this);
+			CompilerContext.MovePinLinksToIntermediate(*SourceThenPin, *ThenPin);
 
 			UEdGraphPin *TargetPin = RegisterForMIDINode->FindPinChecked( FString(TEXT("Target")) );
 			TargetPin->MakeLinkTo(SelfNodeThenPin);
@@ -323,10 +323,10 @@ void UK2Node_LiveEditObject::ExpandNode(class FKismetCompilerContext& CompilerCo
 			EventNamePin->DefaultValue = EventNameGuid;
 		
 			UEdGraphPin *DescriptionPin = RegisterForMIDINode->FindPinChecked( FString(TEXT("Description")) );
-			CompilerContext.CheckConnectionResponse(Schema->CopyPinLinks( *SourceDescriptionPin, *DescriptionPin), this );
+			CompilerContext.CopyPinLinksToIntermediate( *SourceDescriptionPin, *DescriptionPin);
 
 			UEdGraphPin *PermittedBindingsPin = RegisterForMIDINode->FindPinChecked( FString(TEXT("PermittedBindings")) );
-			CompilerContext.CheckConnectionResponse(Schema->CopyPinLinks( *SourcePermittedBindingsPin, *PermittedBindingsPin), this );
+			CompilerContext.CopyPinLinksToIntermediate( *SourcePermittedBindingsPin, *PermittedBindingsPin);
 		}
 
 		//Create the event handling part of the LiveEditor binding process
@@ -361,7 +361,7 @@ void UK2Node_LiveEditObject::ExpandNode(class FKismetCompilerContext& CompilerCo
 
 				//Set A Pin to the Blueprint Pin
 				UEdGraphPin *CompareBlueprintToNullAPin = CompareBlueprintToNullNode->FindPinChecked( FString(TEXT("A")) );
-				CompilerContext.CheckConnectionResponse(Schema->CopyPinLinks( *SourceBlueprintPin, *CompareBlueprintToNullAPin), this );
+				CompilerContext.CopyPinLinksToIntermediate( *SourceBlueprintPin, *CompareBlueprintToNullAPin);
 
 				// hook for Compare Blueprint to NULL result
 				UEdGraphPin *CompareBlueprintToNullResultPin = CompareBlueprintToNullNode->GetReturnValuePin();
@@ -388,7 +388,7 @@ void UK2Node_LiveEditObject::ExpandNode(class FKismetCompilerContext& CompilerCo
 			GetClassDefaultObjectNode->AllocateDefaultPins();
 
 			UEdGraphPin *GetClassDefaultObjectBlueprintPin = GetClassDefaultObjectNode->FindPinChecked( TEXT("Blueprint") );
-			CompilerContext.CheckConnectionResponse(Schema->CopyPinLinks( *SourceBlueprintPin, *GetClassDefaultObjectBlueprintPin), this );
+			CompilerContext.CopyPinLinksToIntermediate( *SourceBlueprintPin, *GetClassDefaultObjectBlueprintPin);
 
 			//hook for later -> the pointer to the ClassDefaultObject of our BlueprintPin
 			UEdGraphPin *GetClassDefaultObjectResultPin = GetClassDefaultObjectNode->GetReturnValuePin();
@@ -425,7 +425,7 @@ void UK2Node_LiveEditObject::ExpandNode(class FKismetCompilerContext& CompilerCo
 
 				//copy our BaseClass Pin into the ClassIsChildOf Parameter
 				UEdGraphPin *ClassIsChildOfParentPin = ClassIsChildOfNode->FindPinChecked( FString(TEXT("ParentClass")) );
-				CompilerContext.CheckConnectionResponse(Schema->CopyPinLinks( *SourceBaseClassPin, *ClassIsChildOfParentPin), this );
+				CompilerContext.CopyPinLinksToIntermediate( *SourceBaseClassPin, *ClassIsChildOfParentPin);
 
 				//hook for return value
 				UEdGraphPin *ClassIsChildOfResultPin = ClassIsChildOfNode->GetReturnValuePin();
@@ -481,15 +481,15 @@ void UK2Node_LiveEditObject::ExpandNode(class FKismetCompilerContext& CompilerCo
 			if ( ShouldClampPin->DefaultValue == FString(TEXT("true")) )
 			{
 				UEdGraphPin *ModifyVarNodeShouldClampPin = ModifyVarNode->FindPinChecked( TEXT("bShouldClamp") );
-				CompilerContext.CheckConnectionResponse(Schema->CopyPinLinks( *ShouldClampPin, *ModifyVarNodeShouldClampPin), this );
+				CompilerContext.CopyPinLinksToIntermediate( *ShouldClampPin, *ModifyVarNodeShouldClampPin);
 
 				check( ClampMinPin != NULL );
 				UEdGraphPin *ModifyVarNodeClampMinPin = ModifyVarNode->FindPinChecked( TEXT("ClampMin") );
-				CompilerContext.CheckConnectionResponse(Schema->CopyPinLinks( *ClampMinPin, *ModifyVarNodeClampMinPin), this );
+				CompilerContext.CopyPinLinksToIntermediate( *ClampMinPin, *ModifyVarNodeClampMinPin);
 
 				check( ClampMaxPin != NULL );
 				UEdGraphPin *ModifyVarNodeClampMaxPin = ModifyVarNode->FindPinChecked( TEXT("ClampMax") );
-				CompilerContext.CheckConnectionResponse(Schema->CopyPinLinks( *ClampMaxPin, *ModifyVarNodeClampMaxPin), this );
+				CompilerContext.CopyPinLinksToIntermediate( *ClampMaxPin, *ModifyVarNodeClampMaxPin);
 			}
 
 			//hook for ModifyVar THEN
@@ -507,7 +507,7 @@ void UK2Node_LiveEditObject::ExpandNode(class FKismetCompilerContext& CompilerCo
 
 			// 2nd input to the Add function comes from the Current variable value
 			UEdGraphPin *MultiplyNodeSecondPin = MultiplyNode->FindPinChecked( FString(TEXT("B")) );
-			CompilerContext.CheckConnectionResponse(Schema->CopyPinLinks( *DeltaMultPin, *MultiplyNodeSecondPin), this );
+			CompilerContext.CopyPinLinksToIntermediate( *DeltaMultPin, *MultiplyNodeSecondPin);
 
 			UEdGraphPin *MultiplyNodeReturnValuePin = MultiplyNode->GetReturnValuePin();
 			MultiplyNodeReturnValuePin->MakeLinkTo( ModifyVarNodeDeltaPin );
@@ -556,7 +556,7 @@ void UK2Node_LiveEditObject::ExpandNode(class FKismetCompilerContext& CompilerCo
 			//
 			// Finally, activate our OnMidiInput pin
 			//
-			CompilerContext.CheckConnectionResponse(Schema->CopyPinLinks( *SourceOnMidiInputPin, *ReplicationNodeThenPin), this );
+			CompilerContext.CopyPinLinksToIntermediate( *SourceOnMidiInputPin, *ReplicationNodeThenPin);
 			
 		}
 

@@ -47,30 +47,18 @@ public:
 			{
 				// First skip the if, if the term is false
 				{
-					UEdGraphNode* TargetNode = NULL;
-					if (ElsePin->LinkedTo.Num() > 0)
-					{
-						TargetNode = ElsePin->LinkedTo[0]->GetOwningNode();
-					}
-
 					FBlueprintCompiledStatement& SkipIfGoto = Context.AppendStatementForNode(Node);
 					SkipIfGoto.Type = KCST_GotoIfNot;
 					SkipIfGoto.LHS = *CondTerm;
-					Context.GotoFixupRequestMap.Add(&SkipIfGoto, TargetNode);
+					Context.GotoFixupRequestMap.Add(&SkipIfGoto, ElsePin);
 				}
 
 				// Now go to the If branch
 				{
-					UEdGraphNode* TargetNode = NULL;
-					if (ThenPin->LinkedTo.Num() > 0)
-					{
-						TargetNode = ThenPin->LinkedTo[0]->GetOwningNode();
-					}
-
 					FBlueprintCompiledStatement& GotoThen = Context.AppendStatementForNode(Node);
 					GotoThen.Type = KCST_UnconditionalGoto;
 					GotoThen.LHS = *CondTerm;
-					Context.GotoFixupRequestMap.Add(&GotoThen, TargetNode);
+					Context.GotoFixupRequestMap.Add(&GotoThen, ThenPin);
 				}
 			}
 			else

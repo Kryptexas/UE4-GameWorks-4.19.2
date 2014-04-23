@@ -198,7 +198,7 @@ void UK2Node_FormatText::ExpandNode(class FKismetCompilerContext& CompilerContex
 			PinMakeStruct->GetSchema()->TrySetDefaultText(*PinMakeStruct->FindPin("ArgumentName"), FText::FromString(ArgumentPin->PinName));
 
 			// Move the connection of the argument pin to the struct's "TextValue" pin, this will move the literal value if present.
-			CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*ArgumentPin, *PinMakeStruct->FindPin("TextValue")), this);
+			CompilerContext.MovePinLinksToIntermediate(*ArgumentPin, *PinMakeStruct->FindPin("TextValue"));
 
 			// The "Make Array" node already has one pin available, so don't create one for ArgIdx == 0
 			if(ArgIdx > 0)
@@ -216,9 +216,9 @@ void UK2Node_FormatText::ExpandNode(class FKismetCompilerContext& CompilerContex
 		}
 
 		// Move connection of FormatText's "Result" pin to the call function's return value pin.
-		CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*FindPin(TEXT("Result")), *CallFunction->GetReturnValuePin()), this);
+		CompilerContext.MovePinLinksToIntermediate(*FindPin(TEXT("Result")), *CallFunction->GetReturnValuePin());
 		// Move connection of FormatText's "Format" pin to the call function's "InPattern" pin
-		CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*FindPin(TEXT("Format")), *CallFunction->FindPin(TEXT("InPattern"))), this);
+		CompilerContext.MovePinLinksToIntermediate(*FindPin(TEXT("Format")), *CallFunction->FindPin(TEXT("InPattern")));
 
 		BreakAllNodeLinks();
 	}

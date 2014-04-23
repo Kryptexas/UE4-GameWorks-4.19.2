@@ -66,8 +66,6 @@ public:
 
 				for (int32 i = 0; i < OutputPins.Num(); ++i)
 				{
-					UEdGraphNode* StateNode = OutputPins[i]->LinkedTo[0]->GetOwningNode();
-
 					// Emit the debug site and patch up the previous jump if we're on subsequent steps
 					const bool bNotFirstIndex = i > 0;
 					if (bNotFirstIndex)
@@ -95,7 +93,7 @@ public:
 					// Emit the goto to the actual state
 					FBlueprintCompiledStatement& GotoSequenceLinkedState = Context.AppendStatementForNode(Node);
 					GotoSequenceLinkedState.Type = KCST_UnconditionalGoto;
-					Context.GotoFixupRequestMap.Add(&GotoSequenceLinkedState, StateNode);
+					Context.GotoFixupRequestMap.Add(&GotoSequenceLinkedState, OutputPins[i]);
 				}
 			}
 			else
@@ -103,17 +101,16 @@ public:
 				// Directly emit pushes to execute the remaining branches
 				for (int32 i = OutputPins.Num() - 1; i > 0; i--)
 				{
-					UEdGraphNode* StateNode = OutputPins[i]->LinkedTo[0]->GetOwningNode();
 					FBlueprintCompiledStatement& PushExecutionState = Context.AppendStatementForNode(Node);
 					PushExecutionState.Type = KCST_PushState;
-					Context.GotoFixupRequestMap.Add(&PushExecutionState, StateNode);
+					Context.GotoFixupRequestMap.Add(&PushExecutionState, OutputPins[i]);
 				}
 
 				// Immediately jump to the first pin
 				UEdGraphNode* NextNode = OutputPins[0]->LinkedTo[0]->GetOwningNode();
 				FBlueprintCompiledStatement& NextExecutionState = Context.AppendStatementForNode(Node);
 				NextExecutionState.Type = KCST_UnconditionalGoto;
-				Context.GotoFixupRequestMap.Add(&NextExecutionState, NextNode);
+				Context.GotoFixupRequestMap.Add(&NextExecutionState, OutputPins[0]);
 			}
 		}
 	}

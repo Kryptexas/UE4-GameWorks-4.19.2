@@ -91,7 +91,7 @@ void UK2Node_InputAction::CreateInputActionEvent(FKismetCompilerContext& Compile
 
 		if(EventOutput != NULL)
 		{
-			CompilerContext.CheckConnectionResponse(CompilerContext.GetSchema()->MovePinLinks(*InputActionPin, *EventOutput), this);
+			CompilerContext.MovePinLinksToIntermediate(*InputActionPin, *EventOutput);
 		}
 	}
 }

@@ -1060,6 +1060,15 @@ public:
 			Writer << EX_Nothing;
 			break;
 		case KCST_WireTraceSite:
+			{
+				UEdGraphPin const* TrueSourcePin = Cast<UEdGraphPin const>(FunctionContext.MessageLog.FindSourceObject(Statement.ExecContext));
+				if (TrueSourcePin)
+				{
+					int32 Offset = Writer.ScriptBuffer.Num();
+					ClassBeingBuilt->GetDebugData().RegisterPinToCodeAssociation(TrueSourcePin, FunctionContext.Function, Offset);
+				}
+			}
+			// no break, continue down through KCST_DebugSite
 		case KCST_DebugSite:
 			if (SourceNode != NULL)
 			{

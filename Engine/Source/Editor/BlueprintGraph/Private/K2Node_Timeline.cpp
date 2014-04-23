@@ -470,7 +470,7 @@ void UK2Node_Timeline::ExpandForPin(UEdGraphPin* TimelinePin, const FName Proper
 		UEdGraphPin* ValuePin = GetVarNode->GetValuePin();
 		if (NULL != ValuePin)
 		{
-			CompilerContext.CheckConnectionResponse(CompilerContext.GetSchema()->MovePinLinks(*TimelinePin, *ValuePin), this);
+			CompilerContext.MovePinLinksToIntermediate(*TimelinePin, *ValuePin);
 		}
 		else
 		{
