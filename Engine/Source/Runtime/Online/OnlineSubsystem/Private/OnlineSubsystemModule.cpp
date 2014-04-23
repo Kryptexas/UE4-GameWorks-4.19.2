@@ -140,7 +140,7 @@ void FOnlineSubsystemModule::UnregisterPlatformService(const FName FactoryName)
 	}
 }
 
-void FOnlineSubsystemModule::ParseOnlineSubsystemName(const FName& FullName, FName& SubsystemName, FName& InstanceName)
+void FOnlineSubsystemModule::ParseOnlineSubsystemName(const FName& FullName, FName& SubsystemName, FName& InstanceName) const
 {
 	SubsystemName = DefaultPlatformService;
 	InstanceName = DEFAULT_INSTANCE;
@@ -241,11 +241,9 @@ bool FOnlineSubsystemModule::IsOnlineSubsystemLoaded(const FName InSubsystemName
 {
 	bool bIsLoaded = false;
 
-	FName SubsystemName = InSubsystemName;
-	if (SubsystemName == NAME_None)
-	{
-		SubsystemName = DefaultPlatformService;
-	}
+	FName SubsystemName, InstanceName;
+	ParseOnlineSubsystemName(InSubsystemName, SubsystemName, InstanceName);
+
 	if (SubsystemName != NAME_None)
 	{
 		if (FModuleManager::Get().IsModuleLoaded(GetOnlineModuleName(SubsystemName.ToString())))

@@ -44,7 +44,7 @@ private:
 	 * @param InstanceName parsed out value or default instance name
 	 *
 	 */
-	void ParseOnlineSubsystemName(const FName& FullName, FName& SubsystemName, FName& InstanceName);
+	void ParseOnlineSubsystemName(const FName& FullName, FName& SubsystemName, FName& InstanceName) const;
 
 	/**
 	 *	Shuts down all registered online subsystem platforms and unloads their modules
