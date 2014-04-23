@@ -92,26 +92,43 @@ void FLayerViewModel::ToggleVisibility()
 }
 
 
-void FLayerViewModel::RenameTo( const FString& NewLayerName )
+bool FLayerViewModel::CanRenameTo( const FName& NewLayerName, FString& OutMessage ) const
+{
+	if (NewLayerName.IsNone())
+	{
+		OutMessage = LOCTEXT("EmptyLayerName", "Layer must be given a name").ToString();
+		return false;
+	}
+
+	TWeakObjectPtr< ULayer > FoundLayer;
+	if ( WorldLayers->TryGetLayer( NewLayerName, FoundLayer ) && FoundLayer != Layer )
+	{
+		OutMessage = LOCTEXT("RenameFailed_AlreadyExists", "This layer already exists").ToString();
+		return false;
+	}
+
+	return true;
+}
+
+
+void FLayerViewModel::RenameTo( const FName& NewLayerName )
 {
 	if( !Layer.IsValid() )
 	{
 		return;
 	}
 
-	const FName NewLayerFName = FName( *NewLayerName );
-
-	if( Layer->LayerName == NewLayerFName)
+	if( Layer->LayerName == NewLayerName)
 	{
 		return;
 	}
 
 	int32 LayerIndex = 0;
-	FName UniqueNewLayerName = NewLayerFName;
+	FName UniqueNewLayerName = NewLayerName;
 	TWeakObjectPtr< ULayer > FoundLayer;
 	while( WorldLayers->TryGetLayer( UniqueNewLayerName, FoundLayer ) )
 	{
-		UniqueNewLayerName = FName( *FString::Printf( TEXT( "%s_%d" ), *NewLayerFName.ToString(), ++LayerIndex ) );
+		UniqueNewLayerName = FName( *FString::Printf( TEXT( "%s_%d" ), *NewLayerName.ToString(), ++LayerIndex ) );
 	}
 
 	const FScopedTransaction Transaction( LOCTEXT("RenameTo", "Rename Layer") );

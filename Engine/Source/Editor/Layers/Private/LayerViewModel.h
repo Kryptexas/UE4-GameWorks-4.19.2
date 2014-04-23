@@ -49,11 +49,20 @@ public:
 	void ToggleVisibility();
 
 	/**
+	 *	Returns whether the layer can be assigned the specified name
+	 *
+	 *	@param	NewLayerName		The Layers new name
+	 *	@param	OutMessage [OUT]	A returned description explaining the boolean result
+	 *	@return						true then the name can be assigned
+	 */
+	bool CanRenameTo( const FName& NewLayerName, FString& OutMessage ) const;
+
+	/**
 	 *	Renames the Layer to the specified name
 	 *
 	 *	@param	NewLayerName	The Layers new name
 	 */
-	void RenameTo( const FString& NewLayerName );
+	void RenameTo( const FName& NewLayerName );
 
 	/**
 	 *	Returns whether the specified actors can be assigned to the Layer

@@ -121,16 +121,17 @@ protected:
 	{
 		if (!InText.IsEmpty())
 		{
-			ViewModel->RenameTo(InText.ToString());
+			ViewModel->RenameTo(*InText.ToString());
 		}
 	}
 
 	/** Callback when the SInlineEditableTextBlock is changed, to check for error conditions. */
 	bool OnRenameLayerTextChanged(const FText& NewText, FText& OutErrorMessage)
 	{
-		if (NewText.IsEmpty())
+		FString OutMessage;
+		if ( !ViewModel->CanRenameTo( *NewText.ToString(), OutMessage ) )
 		{
-			OutErrorMessage = LOCTEXT("EmptyLayerName", "Layer must be given a name");
+			OutErrorMessage = FText::FromString( OutMessage );
 			return false;
 		}
 
