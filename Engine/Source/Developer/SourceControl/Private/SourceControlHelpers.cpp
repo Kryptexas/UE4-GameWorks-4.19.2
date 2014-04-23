@@ -26,7 +26,7 @@ const FString& GetSettingsIni()
 		static FString SourceControlSettingsIni;
 		if(SourceControlSettingsIni.Len() == 0)
 		{
-			const FString SourceControlSettingsDir = FPaths::GameSavedDir() + TEXT("Config/");
+			const FString SourceControlSettingsDir = FPaths::GeneratedConfigDir();
 			FConfigCacheIni::LoadGlobalIniFile(SourceControlSettingsIni, TEXT("SourceControlSettings"), NULL, NULL, false, false, true, *SourceControlSettingsDir);
 		}
 		return SourceControlSettingsIni;
