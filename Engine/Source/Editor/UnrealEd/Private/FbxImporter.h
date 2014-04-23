@@ -217,7 +217,7 @@ public:
 	FbxString	ConvertToFbxString(const FString& String);
 };
 
-FBXImportOptions* GetImportOptions( class FFbxImporter* FbxImporter, UFbxImportUI* ImportUI, bool bShowOptionDialog, const FString& FullPath, bool& OutOperationCanceled, bool& OutImportAll, bool bForceImportType = false, EFBXImportType ImportType = FBXIT_StaticMesh );
+FBXImportOptions* GetImportOptions( class FFbxImporter* FbxImporter, UFbxImportUI* ImportUI, bool bShowOptionDialog, const FString& FullPath, bool& OutOperationCanceled, bool& OutImportAll, bool bIsObjFormat, bool bForceImportType = false, EFBXImportType ImportType = FBXIT_StaticMesh );
 void ApplyImportUIToImportOptions(UFbxImportUI* ImportUI, FBXImportOptions& InOutImportOptions);
 
 struct FImportedMaterialData
@@ -288,7 +288,7 @@ public:
 	 * @param Filename FBX file name to import.
 	 * @returns true on success.
 	 */
-	UNREALED_API bool ImportFromFile(const TCHAR* Filename);
+	UNREALED_API bool ImportFromFile(const FString& Filename, const FString& Type);
 
 	/**
 	 * Retrieve the FBX loader's error message explaining its failure to read a given FBX file.

@@ -53,7 +53,7 @@ TSharedPtr<FFbxImporter> FFbxImporter::StaticInstance;
 
 
 
-FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImportUI* ImportUI, bool bShowOptionDialog, const FString& FullPath, bool& OutOperationCanceled, bool& bOutImportAll, bool bForceImportType, EFBXImportType ImportType )
+FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImportUI* ImportUI, bool bShowOptionDialog, const FString& FullPath, bool& OutOperationCanceled, bool& bOutImportAll, bool bIsObjFormat, bool bForceImportType, EFBXImportType ImportType )
 {
 	OutOperationCanceled = false;
 
@@ -101,6 +101,7 @@ FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImport
 			.WidgetWindow(Window)
 			.FullPath(FullPath)
 			.ForcedImportType( bForceImportType ? TOptional<EFBXImportType>( ImportType ) : TOptional<EFBXImportType>() )
+			.IsObjFormat( bIsObjFormat )
 		);
 
 		// @todo: we can make this slow as showing progress bar later
@@ -665,13 +666,10 @@ bool FFbxImporter::ImportFile(FString Filename)
 //-------------------------------------------------------------------------
 //
 //-------------------------------------------------------------------------
-bool FFbxImporter::ImportFromFile(const TCHAR* Filename)
+bool FFbxImporter::ImportFromFile(const FString& Filename, const FString& Type)
 {
 	bool Result = true;
-	// Converts the FBX data to Z-up, X-forward, Y-left.  Unreal is the same except with Y-right, 
-	// but the conversion to left-handed coordinates is not working properly
-	FbxAxisSystem::EFrontVector FrontVector = (FbxAxisSystem::EFrontVector)-FbxAxisSystem::eParityOdd;
-	const FbxAxisSystem UnrealZUp(FbxAxisSystem::eZAxis, FrontVector, FbxAxisSystem::eRightHanded);
+
 
 	switch (CurPhase)
 	{
@@ -689,23 +687,34 @@ bool FFbxImporter::ImportFromFile(const TCHAR* Filename)
 			break;
 		}
 	case IMPORTED:
-		// convert axis to Z-up
-		FbxRootNodeUtility::RemoveAllFbxRoots( Scene );
-		UnrealZUp.ConvertScene( Scene );
+		{
+			static const FString Obj(TEXT("obj"));
 
-		// Convert the scene's units to what is used in this program, if needed.
-		// The base unit used in both FBX and Unreal is centimeters.  So unless the units 
-		// are already in centimeters (ie: scalefactor 1.0) then it needs to be converted
-		//if( FbxScene->GetGlobalSettings().GetSystemUnit().GetScaleFactor() != 1.0 )
-		//{
-		//	KFbxSystemUnit::cm.ConvertScene( FbxScene );
-		//}
+			// The imported axis system is unknown for obj files
+			if( !Type.Equals( Obj, ESearchCase::IgnoreCase ) )
+			{
+				FbxAxisSystem::EFrontVector FrontVector = (FbxAxisSystem::EFrontVector) - FbxAxisSystem::eParityOdd;
+				const FbxAxisSystem UnrealZUp(FbxAxisSystem::eZAxis, FrontVector, FbxAxisSystem::eRightHanded);
 
+				if( Scene->GetGlobalSettings().GetAxisSystem() != UnrealZUp )
+				{
+					// Converts the FBX data to Z-up, X-forward, Y-left.  Unreal is the same except with Y-right, 
+					// but the conversion to left-handed coordinates is not working properly
 
-		// convert name to unreal-supported format
-		// actually, crashes...
-		//KFbxSceneRenamer renamer(FbxScene);
-		//renamer.ResolveNameClashing(false,false,true,true,true,KString(),"TestBen",false,false);
+					// convert axis to Z-up
+					FbxRootNodeUtility::RemoveAllFbxRoots(Scene);
+					UnrealZUp.ConvertScene(Scene);
+				}
+			}
+
+			// Convert the scene's units to what is used in this program, if needed.
+			// The base unit used in both FBX and Unreal is centimeters.  So unless the units 
+			// are already in centimeters (ie: scalefactor 1.0) then it needs to be converted
+			//if( FbxScene->GetGlobalSettings().GetSystemUnit().GetScaleFactor() != 1.0 )
+			//{
+			//	KFbxSystemUnit::cm.ConvertScene( FbxScene );
+			//}
+		}
 		
 	default:
 		break;

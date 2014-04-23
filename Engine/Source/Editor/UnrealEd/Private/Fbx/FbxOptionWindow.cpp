@@ -13,17 +13,20 @@ class SImportTypeButton : public SCompoundWidget
 public:
 	SLATE_BEGIN_ARGS( SImportTypeButton )
 	:	_DefaultImportType(FBXIT_StaticMesh)
+	,	_ForceImportType( false )
 	,	_OnSelectionChanged()
 	{}
 		SLATE_ARGUMENT( EFBXImportType, DefaultImportType )
+		SLATE_ARGUMENT( bool, ForceImportType )
 		SLATE_EVENT( FOnImportTypeChanged, OnSelectionChanged )
 	SLATE_END_ARGS()
 
 	void Construct( const FArguments& InArgs )
 	{
-		DetectedImportType = InArgs._DefaultImportType;
+		DefaultImportType = InArgs._DefaultImportType;
 		CurrentChoice = InArgs._DefaultImportType;
 		OnSelectionChanged = InArgs._OnSelectionChanged;
+		bForceImportType = InArgs._ForceImportType;
 
 		const UEnum* ImportTypeEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EFBXImportType"), true);
 		check(ImportTypeEnum != nullptr);
@@ -54,17 +57,17 @@ public:
 
 				+SVerticalBox::Slot().AutoHeight()
 				[
-			SNew(SUniformGridPanel)
-			+ SUniformGridPanel::Slot(0, 0)
-			[
+					SNew(SUniformGridPanel)
+					+ SUniformGridPanel::Slot(0, 0)
+					[
 						CreateRadioButton(*ImportTypeEnum, FBXIT_StaticMesh, FEditorStyle::GetBrush("FBXIcon.StaticMesh"), 0)
-			]
-			+ SUniformGridPanel::Slot(1, 0)
-			[
+					]
+					+ SUniformGridPanel::Slot(1, 0)
+					[
 						CreateRadioButton(*ImportTypeEnum, FBXIT_SkeletalMesh, FEditorStyle::GetBrush("FBXIcon.SkeletalMesh"), 1)
-			]
-			+ SUniformGridPanel::Slot(2, 0)
-			[
+					]
+					+ SUniformGridPanel::Slot(2, 0)
+					[
 						CreateRadioButton(*ImportTypeEnum, FBXIT_Animation, FEditorStyle::GetBrush("FBXIcon.Animation"), 2)
 					]
 				]
@@ -91,6 +94,7 @@ private:
 			.IsChecked( this, &SImportTypeButton::IsRadioChecked, RadioButtonChoice )
 			.OnCheckStateChanged( this, &SImportTypeButton::OnRadioChanged, RadioButtonChoice )
 			.ToolTipText(Enum.GetToolTipText(RadioButtonChoice))
+			.IsEnabled( !bForceImportType || RadioButtonChoice == DefaultImportType )
 			[
 				SNew(SHorizontalBox)
 
@@ -108,7 +112,7 @@ private:
 				.VAlign(VAlign_Center)
 				.HAlign(HAlign_Center)
 				.Padding(6, 2)
-			[
+				[
 					SNew(STextBlock)
 					.Text(Enum.GetEnumText(RadioButtonChoice))
 					.ColorAndOpacity(FLinearColor(0.72f, 0.72f, 0.72f, 1.f))
@@ -125,7 +129,7 @@ private:
 
 	EVisibility IsWarningVisible() const
 	{
-		return (CurrentChoice == DetectedImportType)
+		return (CurrentChoice == DefaultImportType)
 			? EVisibility::Collapsed
 			: EVisibility::Visible;
 	}
@@ -143,9 +147,10 @@ private:
 		}
 	}
 
-	EFBXImportType DetectedImportType;
+	EFBXImportType DefaultImportType;
 	EFBXImportType CurrentChoice;
 	FOnImportTypeChanged OnSelectionChanged;
+	bool bForceImportType;
 };
 
 DECLARE_DELEGATE_OneParam( FOnAnimImportLengthOptionChanged, EFBXAnimationLengthImportType );
@@ -264,6 +269,7 @@ void SFbxOptionWindow::Construct(const FArguments& InArgs)
 {
 	ImportUI = InArgs._ImportUI;
 	WidgetWindow = InArgs._WidgetWindow;
+	bIsObjFormat = InArgs._IsObjFormat;
 
 	check (ImportUI);
 
@@ -275,10 +281,10 @@ void SFbxOptionWindow::Construct(const FArguments& InArgs)
 		StaticMeshLODGroups.Add(MakeShareable(new FString(StaticMeshLODGroupDisplayNames[GroupIndex].ToString())));
 	}
 
-	bReimport = InArgs._ForcedImportType.IsSet();
+	bForceImportType = InArgs._ForcedImportType.IsSet();
 
 	// Force the import type
-	if( bReimport )
+	if( bForceImportType )
 	{
 		ImportUI->MeshTypeToImport = InArgs._ForcedImportType.GetValue();
 	}
@@ -313,9 +319,8 @@ void SFbxOptionWindow::Construct(const FArguments& InArgs)
 			[
 				SNew(SImportTypeButton)
 				.DefaultImportType(ImportUI->MeshTypeToImport)
-				// Do not allow users to change the import type if it is forced to a specific type
-				.IsEnabled( !bReimport )
 				.OnSelectionChanged(this, &SFbxOptionWindow::SetImportType)
+				.ForceImportType( bForceImportType )
 			]
 
 			+SVerticalBox::Slot()
@@ -533,6 +538,7 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructMiscOption()
 		SNew(SCheckBox)
 		.IsChecked(ImportUI->bOverrideFullName? true: false)
 		.OnCheckStateChanged(this, &SFbxOptionWindow::SetGeneral_OverrideFullName)
+		.IsEnabled( !bIsObjFormat )
 		[
 			SNew(STextBlock)
 			.Text(LOCTEXT("FbxOptionWindow_NameOverride", "Override FullName"))
@@ -545,14 +551,21 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructMiscOption()
 TSharedRef<SWidget> SFbxOptionWindow::ConstructNormalImportOptions()
 {
 	NormalImportOptions.Empty();
-	for( int32 i = 0; i < FBXNIM_MAX; ++i )
+	for( int32 NormalMethod = 0; NormalMethod < FBXNIM_MAX; ++NormalMethod )
 	{
-		NormalImportOptions.Add( TSharedPtr<EFBXNormalImportMethod>() );
+		if( !bIsObjFormat || NormalMethod != FBXNIM_ImportNormalsAndTangents  )
+		{
+			NormalImportOptions.Add( TSharedPtr<EFBXNormalImportMethod>() );
+		}
 	}
 
 	NormalImportOptions[FBXNIM_ComputeNormals] = MakeShareable( new EFBXNormalImportMethod( FBXNIM_ComputeNormals ) );
 	NormalImportOptions[FBXNIM_ImportNormals] = MakeShareable( new EFBXNormalImportMethod( FBXNIM_ImportNormals ) );
-	NormalImportOptions[FBXNIM_ImportNormalsAndTangents] = MakeShareable( new EFBXNormalImportMethod( FBXNIM_ImportNormalsAndTangents ) );
+
+	if( !bIsObjFormat )
+	{
+		NormalImportOptions[FBXNIM_ImportNormalsAndTangents] = MakeShareable( new EFBXNormalImportMethod( FBXNIM_ImportNormalsAndTangents ) );
+	}
 
 	return 
 	SNew( SHorizontalBox )
@@ -653,6 +666,7 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructStaticMeshAdvanced()
 		SNew(SCheckBox)
 		.IsChecked(ImportUI->StaticMeshImportData->bImportMeshLODs? true: false)
 		.OnCheckStateChanged(this, &SFbxOptionWindow::SetStaticMesh_ImportMeshLODs)
+		.IsEnabled( !bIsObjFormat )
 		[
 			SNew(STextBlock)
 			.Text(LOCTEXT("FbxOptionWindow_ImportMeshLODs", "Import Mesh LODs"))
@@ -664,6 +678,7 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructStaticMeshAdvanced()
 		SNew(SCheckBox)
 		.IsChecked(ImportUI->StaticMeshImportData->bReplaceVertexColors? true: false)
 		.OnCheckStateChanged(this, &SFbxOptionWindow::SetStaticMesh_ReplaceVertexColor)
+		.IsEnabled( !bIsObjFormat )
 		[
 			SNew(STextBlock)
 			.Text(LOCTEXT("FbxOptionWindow_ReplaceVertexColors", "Replace Vertex Colors"))
@@ -686,11 +701,13 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructStaticMeshAdvanced()
 		SNew(SCheckBox)
 		.IsChecked(ImportUI->StaticMeshImportData->bOneConvexHullPerUCX? true: false)
 		.OnCheckStateChanged(this, &SFbxOptionWindow::SetStaticMesh_OneConvexHullPerUCX)
+		.IsEnabled( !bIsObjFormat )
 		[
 			SNew(STextBlock)
 			.Text(LOCTEXT("FbxOptionWindow_OneConvexHullPerUCX", "One Convex Hull Per UCX"))
 		]
 	];
+
 
 	return NewBox;
 }
@@ -850,7 +867,7 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructSkeletalMeshAdvanced()
 		SNew(SCheckBox)
 		.IsChecked(ImportUI->bCreatePhysicsAsset? true: false)
 		.OnCheckStateChanged(this, &SFbxOptionWindow::SetSkeletalMesh_CreatePhysicsAsset)
-		.IsEnabled(!bReimport)
+		.IsEnabled(!bForceImportType)
 		[
 			SNew(STextBlock)
 			.Text(LOCTEXT("FbxOptionWindow_CreatePhysicsAsset", "Create Physics Asset"))
@@ -905,6 +922,7 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructMaterialOption()
 		SNew(SCheckBox)
 		.IsChecked(ImportUI->bImportMaterials? true: false)
 		.OnCheckStateChanged(this, &SFbxOptionWindow::SetMaterial_ImportMaterials)
+		.IsEnabled( !bIsObjFormat )
 		[
 			SNew(STextBlock)
 			.Text(LOCTEXT("FbxOptionWindow_ImportMaterials", "Import Materials"))
@@ -916,6 +934,7 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructMaterialOption()
 		SNew(SCheckBox)
 		.IsChecked(ImportUI->bImportTextures? true: false)
 		.OnCheckStateChanged(this, &SFbxOptionWindow::SetMaterial_ImportTextures)
+		.IsEnabled( !bIsObjFormat )
 		[
 			SNew(STextBlock)
 			.Text(LOCTEXT("FbxOptionWindow_ImportTextures", "Import Textures"))
@@ -927,6 +946,7 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructMaterialOption()
 		SNew(SCheckBox)
 		.IsChecked(ImportUI->TextureImportData->bInvertNormalMaps? true: false)
 		.OnCheckStateChanged(this, &SFbxOptionWindow::SetMaterial_InvertNormalMaps)
+		.IsEnabled( !bIsObjFormat )
 		[
 			SNew(STextBlock)
 			.Text(LOCTEXT("FbxOptionWindow_InvertNormalMaps", "Invert Normal Maps"))
@@ -939,13 +959,6 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructMaterialOption()
 TSharedRef<SWidget> SFbxOptionWindow::ConstructAnimationOption()
 {
 	TSharedRef<SVerticalBox> NewBox = SNew(SVerticalBox);
-
-// 	NewBox->AddSlot().AutoHeight() .Padding(4)
-// 	[
-// 		SNew(STextBlock)
-// 		.TextStyle( FEditorStyle::Get(), "FBXSmallFont" ) 
-// 		.Text( LOCTEXT("FbxOptionWindow_Animation", "Animation") )
-// 	];
 
 	NewBox->AddSlot().AutoHeight() .Padding(2, 4)
 	[
@@ -1022,7 +1035,7 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructSkeletonOptionForMesh()
 		.ContentPadding(1.f)
 		.OnGetMenuContent( this, &SFbxOptionWindow::MakeSkeletonPickerMenu )
 		.HasDownArrow(true)
-		.IsEnabled( !bReimport )
+		.IsEnabled( !bForceImportType )
 		.ButtonContent()
 		[
 			SNew(STextBlock)
@@ -1069,7 +1082,7 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructSkeletonOptionForAnim()
 		.ContentPadding(1.f)
 		.OnGetMenuContent( this, &SFbxOptionWindow::MakeSkeletonPickerMenu )
 		.HasDownArrow(true)
-		.IsEnabled( !bReimport )
+		.IsEnabled( !bForceImportType )
 		.ButtonContent()
 		[
 			SNew(STextBlock)
@@ -1409,7 +1422,7 @@ bool SFbxOptionWindow::CanImport()  const
 
 bool SFbxOptionWindow::ShouldShowPhysicsAssetPicker() const
 {
-	return (!bReimport && ImportUI->bCreatePhysicsAsset == false);
+	return (!bForceImportType && ImportUI->bCreatePhysicsAsset == false);
 }
 
 EFBXNormalImportMethod SFbxOptionWindow::GetCurrentNormalImportMethod() const

@@ -3695,13 +3695,13 @@ void FMatinee::OnMenuImport()
 			FEditorDirectories::Get().SetLastDirectory(ELastDirectory::GENERIC_IMPORT, FPaths::GetPath(FileName)); // Save path as default for next time.
 		
 			const FString FileExtension = FPaths::GetExtension(FileName);
-			const bool bIsFBX = FCString::Stricmp(*FileExtension, TEXT("FBX")) == 0;
+			const bool bIsFBX = FileExtension.Equals( TEXT("FBX"), ESearchCase::IgnoreCase );
 
 			if (bIsFBX)
 			{
 				// Import the Matinee information from the FBX document.
 				UnFbx::FFbxImporter* FFbxImporter = UnFbx::FFbxImporter::GetInstance();
-				if (FFbxImporter->ImportFromFile(*ImportFilename))
+				if (FFbxImporter->ImportFromFile(ImportFilename, FileExtension ))
 				{
 					FFbxImporter->SetProcessUnknownCameras(false);
 					

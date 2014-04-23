@@ -45,6 +45,8 @@ UFbxFactory::UFbxFactory(const class FPostConstructInitializeProperties& PCIP)
 {
 	SupportedClass = NULL;
 	Formats.Add(TEXT("fbx;FBX meshes and animations"));
+	Formats.Add(TEXT("obj;OBJ Static meshes"));
+	//Formats.Add(TEXT("dae;Collada meshes and animations"));
 
 	bCreateNew = false;
 	bText = false;
@@ -188,9 +190,18 @@ UObject* UFbxFactory::FactoryCreateBinary
 	
 	UnFbx::FFbxLoggerSetter Logger(FbxImporter);
 
+	EFBXImportType ForcedImportType = FBXIT_StaticMesh;
+
+	bool bIsObjFormat = false;
+	if( FString(Type).Equals(TEXT("obj"), ESearchCase::IgnoreCase ) )
+	{
+		bIsObjFormat = true;
+	}
+
+
 	bool bShowImportDialog = bShowOption && !GIsAutomationTesting;
 	bool bImportAll = false;
-	UnFbx::FBXImportOptions* ImportOptions = GetImportOptions(FbxImporter, ImportUI, bShowImportDialog, InParent->GetPathName(), bOperationCanceled, bImportAll);
+	UnFbx::FBXImportOptions* ImportOptions = GetImportOptions(FbxImporter, ImportUI, bShowImportDialog, InParent->GetPathName(), bOperationCanceled, bImportAll, bIsObjFormat, bIsObjFormat, ForcedImportType );
 	bOutOperationCanceled = bOperationCanceled;
 	
 	if( bImportAll )
@@ -205,7 +216,7 @@ UObject* UFbxFactory::FactoryCreateBinary
 	if (ImportOptions)
 	{
 		Warn->BeginSlowTask( NSLOCTEXT("FbxFactory", "BeginImportingFbxMeshTask", "Importing FBX mesh"), true );
-		if ( !FbxImporter->ImportFromFile( *UFactory::CurrentFilename ) )
+		if ( !FbxImporter->ImportFromFile( *UFactory::CurrentFilename, Type ) )
 		{
 			// Log the error message and fail the import.
 			Warn->Log(ELogVerbosity::Error, FbxImporter->GetErrorMessage() );
