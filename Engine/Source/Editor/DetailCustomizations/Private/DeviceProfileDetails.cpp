@@ -843,4 +843,4 @@ void FDeviceProfileConsoleVariablesPropertyDetails::OnCVarPropertyChanged()
 }
 
 
-#undef LOCTEXT_NAMESPACE // "DeviceProfileDetails"
+#undef LOCTEXT_NAMESPACE
