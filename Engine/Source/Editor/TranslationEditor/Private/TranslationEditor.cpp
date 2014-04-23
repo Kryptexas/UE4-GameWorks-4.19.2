@@ -232,7 +232,7 @@ TSharedRef<SDockTab> FTranslationEditor::SpawnTab_Untranslated( const FSpawnTabA
 	UntranslatedPropertyTable->SetOrientation( EPropertyTableOrientation::AlignPropertiesInColumns );
 	UntranslatedPropertyTable->SetShowRowHeader( true );
 	UntranslatedPropertyTable->SetShowObjectName( false );
-	UntranslatedPropertyTable->OnSelectionChanged()->AddSP( this, &FTranslationEditor::UpdateTranslationUnitSelection );
+	UntranslatedPropertyTable->OnSelectionChanged()->AddSP( this, &FTranslationEditor::UpdateUntranslatedSelection );
 
 	// we want to customize some columns
 	TArray< TSharedRef<class IPropertyTableCustomColumn>> CustomColumns;
@@ -290,7 +290,7 @@ TSharedRef<SDockTab> FTranslationEditor::SpawnTab_Review( const FSpawnTabArgs& A
 	ReviewPropertyTable->SetOrientation( EPropertyTableOrientation::AlignPropertiesInColumns );
 	ReviewPropertyTable->SetShowRowHeader( true );
 	ReviewPropertyTable->SetShowObjectName( false );
-	ReviewPropertyTable->OnSelectionChanged()->AddSP( this, &FTranslationEditor::UpdateTranslationUnitSelection );
+	ReviewPropertyTable->OnSelectionChanged()->AddSP( this, &FTranslationEditor::UpdateNeedsReviewSelection );
 
 	// we want to customize some columns
 	TArray< TSharedRef< class IPropertyTableCustomColumn > > CustomColumns;
@@ -355,7 +355,7 @@ TSharedRef<SDockTab> FTranslationEditor::SpawnTab_Completed( const FSpawnTabArgs
 	CompletedPropertyTable->SetOrientation( EPropertyTableOrientation::AlignPropertiesInColumns );
 	CompletedPropertyTable->SetShowRowHeader( true );
 	CompletedPropertyTable->SetShowObjectName( false );
-	CompletedPropertyTable->OnSelectionChanged()->AddSP( this, &FTranslationEditor::UpdateTranslationUnitSelection );
+	CompletedPropertyTable->OnSelectionChanged()->AddSP( this, &FTranslationEditor::UpdateCompletedSelection );
 
 	// we want to customize some columns
 	TArray< TSharedRef< class IPropertyTableCustomColumn > > CustomColumns;
@@ -413,7 +413,7 @@ TSharedRef<SDockTab> FTranslationEditor::SpawnTab_Search(const FSpawnTabArgs& Ar
 	SearchPropertyTable->SetOrientation(EPropertyTableOrientation::AlignPropertiesInColumns);
 	SearchPropertyTable->SetShowRowHeader(true);
 	SearchPropertyTable->SetShowObjectName(false);
-	SearchPropertyTable->OnSelectionChanged()->AddSP(this, &FTranslationEditor::UpdateTranslationUnitSelection);
+	SearchPropertyTable->OnSelectionChanged()->AddSP(this, &FTranslationEditor::UpdateSearchSelection);
 
 	// we want to customize some columns
 	TArray< TSharedRef< class IPropertyTableCustomColumn > > CustomColumns;
@@ -789,32 +789,48 @@ bool FTranslationEditor::OpenFontPicker( const FString DefaultFile, FString& Out
 	return bOpened;
 }
 
-void FTranslationEditor::UpdateTranslationUnitSelection()
+void FTranslationEditor::UpdateUntranslatedSelection()
 {
-	TSet<TSharedRef<IPropertyTableRow>> SelectedRows;
-
-	// Different Selection based on which tab is in the foreground
 	TSharedPtr<SDockTab> UntranslatedTabSharedPtr = UntranslatedTab.Pin();
-	TSharedPtr<SDockTab> ReviewTabSharedPtr = ReviewTab.Pin();
-	TSharedPtr<SDockTab> CompletedTabSharedPtr = CompletedTab.Pin();
-	TSharedPtr<SDockTab> SearchTabSharedPtr = SearchTab.Pin();
 	if (UntranslatedTabSharedPtr.IsValid() && UntranslatedTabSharedPtr->IsForeground() && UntranslatedPropertyTable.IsValid())
 	{
-		SelectedRows = UntranslatedPropertyTable->GetSelectedRows();
+		TSet<TSharedRef<IPropertyTableRow>> SelectedRows = UntranslatedPropertyTable->GetSelectedRows();
+		UpdateTranslationUnitSelection(SelectedRows);
 	}
-	else if (ReviewTab.IsValid() && ReviewTabSharedPtr->IsForeground() && ReviewPropertyTable.IsValid())
-	{
-		SelectedRows = ReviewPropertyTable->GetSelectedRows();
-	}
-	else if (CompletedTab.IsValid() && CompletedTabSharedPtr->IsForeground() && CompletedPropertyTable.IsValid())
-	{
-		SelectedRows = CompletedPropertyTable->GetSelectedRows();
-	}
-	else if (SearchTab.IsValid() && SearchTabSharedPtr->IsForeground() && SearchPropertyTable.IsValid())
-	{
-		SelectedRows = SearchPropertyTable->GetSelectedRows();
-	}
+}
 
+void FTranslationEditor::UpdateNeedsReviewSelection()
+{
+	TSharedPtr<SDockTab> ReviewTabSharedPtr = ReviewTab.Pin();
+	if (ReviewTabSharedPtr.IsValid() && ReviewTabSharedPtr->IsForeground() && ReviewPropertyTable.IsValid())
+	{
+		TSet<TSharedRef<IPropertyTableRow>> SelectedRows = ReviewPropertyTable->GetSelectedRows();
+		UpdateTranslationUnitSelection(SelectedRows);
+	}
+}
+
+void FTranslationEditor::UpdateCompletedSelection()
+{
+	TSharedPtr<SDockTab> CompletedTabSharedPtr = CompletedTab.Pin();
+	if (CompletedTabSharedPtr.IsValid() && CompletedTabSharedPtr->IsForeground() && CompletedPropertyTable.IsValid())
+	{
+		TSet<TSharedRef<IPropertyTableRow>> SelectedRows = CompletedPropertyTable->GetSelectedRows();
+		UpdateTranslationUnitSelection(SelectedRows);
+	}
+}
+
+void FTranslationEditor::UpdateSearchSelection()
+{
+	TSharedPtr<SDockTab> SearchTabSharedPtr = SearchTab.Pin();
+	if (SearchTabSharedPtr.IsValid() && SearchTabSharedPtr->IsForeground() && SearchPropertyTable.IsValid())
+	{
+		TSet<TSharedRef<IPropertyTableRow>> SelectedRows = SearchPropertyTable->GetSelectedRows();
+		UpdateTranslationUnitSelection(SelectedRows);
+	}
+}
+
+void FTranslationEditor::UpdateTranslationUnitSelection(TSet<TSharedRef<IPropertyTableRow>>& SelectedRows)
+{
 	// Can only really handle single selection
 	if (SelectedRows.Num() == 1)
 	{

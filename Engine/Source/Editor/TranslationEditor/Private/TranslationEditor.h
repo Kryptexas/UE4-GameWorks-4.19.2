@@ -136,7 +136,19 @@ private:
 	void RefreshUI();
 
 	/** Update content when a new translation unit selection is made */
-	void UpdateTranslationUnitSelection();
+	void UpdateTranslationUnitSelection(TSet<TSharedRef<IPropertyTableRow>>& SelectedRows);
+
+	/** Update content when a new translation unit selection is made in the Untranslated PropertyTable */
+	void UpdateUntranslatedSelection();
+
+	/** Update content when a new translation unit selection is made in the Needs Review PropertyTable */
+	void UpdateNeedsReviewSelection();
+
+	/** Update content when a new translation unit selection is made in the Completed PropertyTable */
+	void UpdateCompletedSelection();
+
+	/** Update content when a new translation unit selection is made in the Search PropertyTable */
+	void UpdateSearchSelection();
 
 	/** Update content when a new context selection is made */
 	void UpdateContextSelection();
