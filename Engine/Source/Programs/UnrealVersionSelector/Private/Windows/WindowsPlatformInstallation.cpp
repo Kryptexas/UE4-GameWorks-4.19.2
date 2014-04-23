@@ -217,7 +217,7 @@ bool FWindowsPlatformInstallation::LaunchEditor(const FString &RootDirName, cons
 
 bool FWindowsPlatformInstallation::GenerateProjectFiles(const FString &RootDirName, const FString &Arguments)
 {
-	FString AllArguments = FString::Printf(TEXT("/c \"%s\" %s"), *(RootDirName / TEXT("Engine/Build/BatchFiles/RocketGenerateProjectFiles.bat")), *Arguments);
+	FString AllArguments = FString::Printf(TEXT("/c \"\"%s\" %s\""), *(RootDirName / TEXT("Engine/Build/BatchFiles/GenerateProjectFiles.bat")), *Arguments);
 	return FPlatformProcess::ExecProcess(TEXT("cmd.exe"), *AllArguments, NULL, NULL, NULL);
 }
 
