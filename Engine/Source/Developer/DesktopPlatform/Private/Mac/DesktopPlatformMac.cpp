@@ -517,12 +517,12 @@ void FDesktopPlatformMac::EnumerateEngineInstallations(TMap<FString, FString> &O
 	EnumerateLauncherEngineInstallations(OutInstallations);
 }
 
-bool FDesktopPlatformMac::VerifyFileAssociations() OVERRIDE
+bool FDesktopPlatformMac::VerifyFileAssociations()
 {
 	return true;
 }
 
-bool FDesktopPlatformMac::UpdateFileAssociations() OVERRIDE
+bool FDesktopPlatformMac::UpdateFileAssociations()
 {
 	return true;
 }
