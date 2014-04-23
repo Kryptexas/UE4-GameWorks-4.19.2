@@ -547,7 +547,8 @@ public:
 	UPROPERTY(BlueprintAssignable, Category="Collision")
 	FActorHitSignature OnActorHit;
 
-	/** List of replicated components. Built at runtime */
+	/** List of replicated components, cooked builds won't rebuild this array */
+	UPROPERTY()
 	TArray< TWeakObjectPtr<class UActorComponent> >	ReplicatedComponents;
 
 	/** Called on client when Instigator is replicated (only if bReplicateInstigator is true) */
