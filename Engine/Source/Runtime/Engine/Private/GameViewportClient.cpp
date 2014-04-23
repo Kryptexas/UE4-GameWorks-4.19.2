@@ -1121,7 +1121,24 @@ ULocalPlayer* UGameViewportClient::CreatePlayer(int32 ControllerId, FString& Out
 	}
 	else if (GetOuterUEngine()->GetNumGamePlayers(this) < MaxSplitscreenPlayers)
 	{
-		NewPlayer = CastChecked<ULocalPlayer>(StaticConstructObject(GetOuterUEngine()->LocalPlayerClass, GetOuter()));	
+		// If the controller ID is not specified then find the first available
+		if (ControllerId < 0)
+		{
+			for (ControllerId = 0; ControllerId < MaxSplitscreenPlayers; ++ControllerId)
+			{
+				if (GetOuterUEngine()->GetLocalPlayerFromControllerId(this, ControllerId) == NULL)
+				{
+					break;
+				}
+			}
+			check(ControllerId < MaxSplitscreenPlayers);
+		}
+		else if (ControllerId >= MaxSplitscreenPlayers)
+		{
+			UE_LOG(LogPlayerManagement, Warning, TEXT("Controller ID (%d) is unlikely to map to any physical device, so this player will not receive input"), ControllerId);
+		}
+
+		NewPlayer = CastChecked<ULocalPlayer>(StaticConstructObject(GetOuterUEngine()->LocalPlayerClass, GetOuter()));
 		InsertIndex = AddLocalPlayer(NewPlayer, ControllerId);
 		if ( bSpawnActor && InsertIndex != INDEX_NONE )
 		{
@@ -1205,7 +1222,7 @@ void UGameViewportClient::DebugCreatePlayer(int32 ControllerId)
 	CreatePlayer(ControllerId, Error, true);
 	if (Error.Len() > 0)
 	{
-		UE_LOG(LogPlayerManagement, Warning, TEXT("Failed to DebugCreatePlayer. Error: %s"), *Error);
+		UE_LOG(LogPlayerManagement, Error, TEXT("Failed to DebugCreatePlayer: %s"), *Error);
 	}
 #endif
 }

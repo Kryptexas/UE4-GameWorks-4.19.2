@@ -59,6 +59,21 @@ APlayerCameraManager* UGameplayStatics::GetPlayerCameraManager(UObject* WorldCon
 	return PC ? PC->PlayerCameraManager : NULL;
 }
 
+APlayerController* UGameplayStatics::CreatePlayer(UObject* WorldContextObject, int32 ControllerId, bool bSpawnPawn)
+{
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	FString Error;
+
+	ULocalPlayer* LocalPlayer = World->GetGameViewport()->CreatePlayer(ControllerId, Error, bSpawnPawn);
+
+	if (Error.Len() > 0)
+	{
+		UE_LOG(LogPlayerManagement, Error, TEXT("Failed to Create Player: %s"), *Error);
+	}
+
+	return (LocalPlayer ? LocalPlayer->PlayerController : NULL);
+}
+
 AGameMode* UGameplayStatics::GetGameMode(UObject* WorldContextObject)
 {
 	UWorld* const World = GEngine->GetWorldFromContextObject(WorldContextObject);
