@@ -114,7 +114,7 @@ public class Core : ModuleRules
 				"SDL2"
                 );
 
-            if (UEBuildConfiguration.bCompileAgainstEngine == true)
+            if (UEBuildConfiguration.bCompileAgainstEngine == true && Target.Type != TargetRules.TargetType.Server)
             {
                 AddThirdPartyPrivateStaticDependencies(Target, "SteamController");
             }
