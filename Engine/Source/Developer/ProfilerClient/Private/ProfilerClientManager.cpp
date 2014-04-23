@@ -751,6 +751,8 @@ void FProfilerClientManager::BroadcastMetadataUpdate()
 {
 	while( LoadConnection->DataFrames.Num() > 0 )
 	{
+		FScopeLock ScopeLock( &(LoadConnection->CriticalSection) );
+
 		// Fire a meta data update message
 		if( LoadConnection->DataFrames[0].MetaDataUpdated )
 		{
@@ -758,7 +760,6 @@ void FProfilerClientManager::BroadcastMetadataUpdate()
 			ProfilerLoadedMetaDataDelegate.Broadcast( LoadConnection->InstanceId );
 		}
 
-		FScopeLock ScopeLock( &(LoadConnection->CriticalSection) );
 		FProfilerDataFrame& DataFrame = LoadConnection->DataFrames[0];
 		ProfilerDataDelegate.Broadcast( LoadConnection->InstanceId, DataFrame, LoadConnection->DataLoadingProgress );
 		LoadConnection->DataFrames.RemoveAt( 0 );
@@ -975,6 +976,7 @@ void FServiceConnection::GenerateAccumulators(TArray<FStatMessage>& Stats, TArra
 			const FName StatName = Stat.NameAndInfo.GetShortName();
 			if (StatName == TEXT("STAT_SecondsPerCycle"))
 			{
+				FScopeLock ScopeLock( &CriticalSection );
 				MetaData.SecondsPerCycle = Stat.GetValue_double();
 			}
 		}
@@ -1131,13 +1133,13 @@ void FServiceConnection::GenerateProfilerDataFrame()
 	DataFrame.CountAccumulators.Reset();
 	DataFrame.CycleGraphs.Reset();
 	DataFrame.FloatAccumulators.Reset();
+	DataFrame.MetaDataUpdated = false;
 
 	// get the stat stack root and the non frame stats
 	FRawStatStackNode Stack;
 	TArray<FStatMessage> NonFrameStats;
 	CurrentThreadState.UncondenseStackStats( CurrentThreadState.CurrentGameFrame, Stack, nullptr, &NonFrameStats );
 
-	// @todo updating metadata here is not thread safe?
 	// cycle graphs
 	GenerateCycleGraphs( Stack, DataFrame.CycleGraphs );
 

@@ -338,6 +338,7 @@ protected:
 	/** Constructor. */
 	FProfilerStatMetaData()
 		: SecondsPerCycle( FPlatformTime::GetSecondsPerCycle() )
+		, GameThreadID( 0 )
 	{}
 
 public:
@@ -606,6 +607,11 @@ public:
 	const TArray<uint32>& GetRenderThreadID() const
 	{
 		return RenderThreadIDs;
+	}
+
+	bool IsReady() const
+	{
+		return GameThreadID != 0;
 	}
 
 	const uint32 GetGameThreadStatID() const

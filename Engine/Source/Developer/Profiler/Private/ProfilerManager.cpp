@@ -310,7 +310,7 @@ void FProfilerManager::ProfilerClient_OnMetaDataUpdated( const FGuid& InstanceID
 
 void FProfilerManager::ProfilerClient_OnLoadedMetaData( const FGuid& InstanceID )
 {
-	TrackDefaultStats();
+	//TrackDefaultStats();
 }
 
 void FProfilerManager::ProfilerClient_OnLoadStarted( const FGuid& InstanceID )
@@ -691,7 +691,10 @@ void FProfilerManager::TrackDefaultStats()
 	for( auto It = GetProfilerInstancesIterator(); It; ++It )
 	{
 		FProfilerSessionRef ProfilerSession = It.Value();
-		TrackStat( ProfilerSession->GetMetaData()->GetGameThreadStatID() );
+		if( ProfilerSession->GetMetaData()->IsReady() )
+		{
+			TrackStat( ProfilerSession->GetMetaData()->GetGameThreadStatID() );
+		}
 		break;
 	}
 }
