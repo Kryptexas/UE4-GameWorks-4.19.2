@@ -1491,8 +1491,11 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	}
 #endif
 
+
+#else
+	EndInitTextLocalization();
 #endif
-	
+
 	//run automation smoke tests now that everything is setup to run
 	FAutomationTestFramework::GetInstance().RunSmokeTests();
 	
