@@ -191,7 +191,7 @@ TSharedPtr<SToolTip> SGraphNodeK2Base::GetComplexTooltip()
 	];
 
 	// English speakers have no real need to know this exists.
-	if(FInternationalization::GetCurrentCulture()->GetTwoLetterISOLanguageName() != TEXT("en"))
+	if(FInternationalization::Get().GetCurrentCulture()->GetTwoLetterISOLanguageName() != TEXT("en"))
 	{
 		struct Local
 		{

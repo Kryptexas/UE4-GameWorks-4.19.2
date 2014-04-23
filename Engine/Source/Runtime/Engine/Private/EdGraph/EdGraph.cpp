@@ -635,7 +635,7 @@ FText UEdGraphNode::GetNodeSearchTitle() const
 
 	FText LocalizedTitle = GetNodeTitle(ENodeTitleType::ListView);
 	FText NativeTitle = FText::FromString(GetNodeNativeTitle(ENodeTitleType::ListView));
-	if(FInternationalization::GetCurrentCulture()->GetName() == TEXT("en_US"))
+	if(FInternationalization::Get().GetCurrentCulture()->GetName() == TEXT("en_US"))
 	{
 		ensure( LocalizedTitle.CompareTo(NativeTitle) == 0 );
 	}
