@@ -99,22 +99,22 @@ namespace SceneOutliner
 				{
 					if (Actors.Num() == 1)
 					{
-						Operation->CurrentHoverText = FText::Format(LOCTEXT("DragActorAndFolder", "{NumActors} Actor, {NumFolders} Folder"), Args).ToString();
+						Operation->CurrentHoverText = FText::Format(LOCTEXT("DragActorAndFolder", "{NumActors} Actor, {NumFolders} Folder"), Args);
 					}
 					else
 					{
-						Operation->CurrentHoverText = FText::Format(LOCTEXT("DragActorsAndFolder", "{NumActors} Actors, {NumFolders} Folder"), Args).ToString();
+						Operation->CurrentHoverText = FText::Format(LOCTEXT("DragActorsAndFolder", "{NumActors} Actors, {NumFolders} Folder"), Args);
 					}
 				}
 				else
 				{
 					if (Actors.Num() == 1)
 					{
-						Operation->CurrentHoverText = FText::Format(LOCTEXT("DragActorAndFolders", "{NumActors} Actor, {NumFolders} Folders"), Args).ToString();
+						Operation->CurrentHoverText = FText::Format(LOCTEXT("DragActorAndFolders", "{NumActors} Actor, {NumFolders} Folders"), Args);
 					}
 					else
 					{
-						Operation->CurrentHoverText = FText::Format(LOCTEXT("DragActorsAndFolders", "{NumActors} Actor, {NumFolders} Folders"), Args).ToString();
+						Operation->CurrentHoverText = FText::Format(LOCTEXT("DragActorsAndFolders", "{NumActors} Actor, {NumFolders} Folders"), Args);
 					}
 				}
 			}
@@ -123,13 +123,13 @@ namespace SceneOutliner
 				auto TheFolder = Folders[0].Pin();
 				if (TheFolder.IsValid())
 				{
-					Operation->CurrentHoverText = FText::FromString(TheFolder->LeafName.ToString()).ToString();
+					Operation->CurrentHoverText = FText::FromString(TheFolder->LeafName.ToString());
 					Operation->CurrentIconBrush = FEditorStyle::Get().GetBrush(TEXT("SceneOutliner.FolderClosed"));
 				}
 			}
 			else
 			{
-				Operation->CurrentHoverText = FText::Format(LOCTEXT("DragFolders", "{NumFolders} Folders"), Args).ToString();
+				Operation->CurrentHoverText = FText::Format(LOCTEXT("DragFolders", "{NumFolders} Folders"), Args);
 			}
 		}
 

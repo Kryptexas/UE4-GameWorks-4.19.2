@@ -1,8 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-
-#ifndef __ActorDragDropGraphEdOp_h__
-#define __ActorDragDropGraphEdOp_h__
+#pragma once
 
 #include "ActorDragDropOp.h"
 
@@ -28,31 +26,31 @@ public:
 	};
 
 	/** Set the appropriate tool tip when dragging functionality is active*/
-	void SetToolTip(ToolTipTextType TextType, FString ParamText = FString(TEXT("")))
+	void SetToolTip(ToolTipTextType TextType, FText ParamText = FText::GetEmpty())
 	{
 		switch( TextType )
 		{
 		case ToolTip_Compatible:
 			{
-				CurrentHoverText = FString::Printf( *LOCTEXT("ToolTipCompatible", "'%s' is compatible to replace object reference").ToString(), *Actors[0].Get()->GetActorLabel( ) );
+				CurrentHoverText = FText::Format( LOCTEXT("ToolTipCompatible", "'{0}' is compatible to replace object reference"), FText::FromString(Actors[0].Get()->GetActorLabel()) );
 				CurrentIconBrush = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK"));
 				break;
 			}
 		case ToolTip_Incompatible:
 			{
-				CurrentHoverText = FString::Printf( *LOCTEXT("ToolTipIncompatible", "'%s' is not compatible to replace object reference").ToString(), *Actors[0].Get()->GetActorLabel( ) );
+			CurrentHoverText = FText::Format( LOCTEXT("ToolTipIncompatible", "'{0}' is not compatible to replace object reference"), FText::FromString(Actors[0].Get()->GetActorLabel()) );
 				CurrentIconBrush = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
 				break;
 			}
 		case ToolTip_MultipleSelection_Incompatible:
 			{
-				CurrentHoverText = LOCTEXT("ToolTipMultipleSelectionIncompatible", "Cannot replace object reference when multiple objects are selected").ToString();
+				CurrentHoverText = LOCTEXT("ToolTipMultipleSelectionIncompatible", "Cannot replace object reference when multiple objects are selected");
 				CurrentIconBrush = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
 				break;
 			}
 		case ToolTip_CompatibleAttach:
 			{
-				CurrentHoverText = FString::Printf( *LOCTEXT("ToolTipCompatibleAttach", "Attach %s to %s").ToString(), *Actors[0].Get()->GetActorLabel( ), *ParamText);
+				CurrentHoverText = FText::Format( LOCTEXT("ToolTipCompatibleAttach", "Attach %s to %s"), FText::FromString(Actors[0].Get()->GetActorLabel()), ParamText);
 				CurrentIconBrush = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK"));
 				break;
 			}
@@ -70,25 +68,25 @@ public:
 			}
 		case ToolTip_CompatibleMultipleAttach:
 			{
-				CurrentHoverText = FString::Printf( *LOCTEXT("ToolTipCompatibleMultipleAttach", "Attach multiple objects to %s").ToString(), *ParamText);
+				CurrentHoverText = FText::Format( LOCTEXT("ToolTipCompatibleMultipleAttach", "Attach multiple objects to %s"), ParamText);
 				CurrentIconBrush = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK"));
 				break;
 			}
 		case ToolTip_IncompatibleMultipleAttach:
 			{
-				CurrentHoverText = FString::Printf( *LOCTEXT("ToolTipIncompatibleMultipleAttach", "Cannot attach multiple objects to %s").ToString(), *ParamText);
+				CurrentHoverText = FText::Format( LOCTEXT("ToolTipIncompatibleMultipleAttach", "Cannot attach multiple objects to %s"), ParamText);
 				CurrentIconBrush = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
 				break;
 			}
 		case ToolTip_CompatibleDetach:
 			{
-				CurrentHoverText = FString::Printf( *LOCTEXT("ToolTipCompatibleDetach", "Detach %s from %s").ToString(), *Actors[0].Get()->GetActorLabel( ), *ParamText);
+				CurrentHoverText = FText::Format( LOCTEXT("ToolTipCompatibleDetach", "Detach %s from %s"), FText::FromString(Actors[0].Get()->GetActorLabel()), ParamText);
 				CurrentIconBrush = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK"));
 				break;
 			}
 		case ToolTip_CompatibleMultipleDetach:
 			{
-				CurrentHoverText = FString::Printf( *LOCTEXT("ToolTipCompatibleDetachMultiple", "Detach multiple objects from %s").ToString(), *ParamText);
+				CurrentHoverText = FText::Format( LOCTEXT("ToolTipCompatibleDetachMultiple", "Detach multiple objects from %s"), ParamText);
 				CurrentIconBrush = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK"));
 				break;
 			}
@@ -108,4 +106,3 @@ public:
 };
 
 #undef LOCTEXT_NAMESPACE
-#endif // __ActorDragDropGraphEdOp_h__

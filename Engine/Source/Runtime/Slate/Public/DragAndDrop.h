@@ -9,7 +9,7 @@
  * a drag drop operation which keeps a decorator window (optionally)
  * Implement derived types with DRAG_DROP_OPERATOR_TYPE (see below)
  */
-class SLATE_API FDragDropOperation
+class SLATE_API FDragDropOperation : public TSharedFromThis<FDragDropOperation>
 {
 public:
 	FDragDropOperation()
@@ -42,7 +42,7 @@ public:
 	virtual FCursorReply OnCursorQuery();
 
 	/** Gets the widget that will serve as the decorator unless overridden. If you do not override, you will have no decorator */
-	virtual TSharedPtr<SWidget> GetDefaultDecorator() const {return TSharedPtr<SWidget>();}
+	virtual TSharedPtr<SWidget> GetDefaultDecorator() const { return TSharedPtr<SWidget>(); }
 	
 	/** Alters the visibility of the window */
 	void SetDecoratorVisibility(bool bVisible);

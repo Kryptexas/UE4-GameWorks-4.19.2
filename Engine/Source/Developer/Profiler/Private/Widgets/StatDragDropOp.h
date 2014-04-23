@@ -3,9 +3,7 @@
 #pragma once
 
 /** Class that handles the drag dropping of the specified stat in the profiler. */
-class FStatIDDragDropOp 
-	: public FDragDropOperation
-	, public TSharedFromThis<FStatIDDragDropOp>
+class FStatIDDragDropOp : public FDragDropOperation
 {
 public:
 	DRAG_DROP_OPERATOR_TYPE(FStatIDDragDropOp, FDragDropOperation)

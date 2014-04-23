@@ -3,7 +3,7 @@
 
 //////////////////////////////////////////////////////////////////////////
 // FSocketDragDropOp
-class FSocketDragDropOp : public FDragDropOperation, public TSharedFromThis<FSocketDragDropOp>
+class FSocketDragDropOp : public FDragDropOperation
 {
 public:	
 	

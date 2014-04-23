@@ -47,7 +47,7 @@ struct FAnimWeightSorted
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-class FSampleDragDropOp : public FDragDropOperation, public TSharedFromThis<FSampleDragDropOp>
+class FSampleDragDropOp : public FDragDropOperation
 {
 public:
 	DRAG_DROP_OPERATOR_TYPE(FSampleDragDropOp, FDragDropOperation)

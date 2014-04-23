@@ -3,7 +3,7 @@
 
 //////////////////////////////////////////////////////////////////////////
 // FBoneDragDropOp
-class FBoneDragDropOp : public FDragDropOperation, public TSharedFromThis<FBoneDragDropOp>
+class FBoneDragDropOp : public FDragDropOperation
 {
 public:	
 	DRAG_DROP_OPERATOR_TYPE(FBoneDragDropOp, FDragDropOperation)

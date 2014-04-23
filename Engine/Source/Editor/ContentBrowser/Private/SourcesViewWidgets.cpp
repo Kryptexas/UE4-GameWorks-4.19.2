@@ -94,7 +94,7 @@ void SAssetTreeItem::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEv
 
 			if (bCanDrop)
 			{
-				DragDropOp->SetToolTip( LOCTEXT( "OnDragAssetsOverFolder", "Move or Copy Asset(s)" ).ToString(), FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK")) );
+				DragDropOp->SetToolTip( LOCTEXT( "OnDragAssetsOverFolder", "Move or Copy Asset(s)" ), FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK")) );
 				bDraggedOver = true;
 			}
 		}

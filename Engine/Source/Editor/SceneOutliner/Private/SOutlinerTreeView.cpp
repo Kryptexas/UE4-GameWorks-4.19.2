@@ -441,7 +441,7 @@ namespace SceneOutliner
 			{
 				// Generic messages can go through the decorated drag/drop operation base class
 				auto DecoratedDragOp = StaticCastSharedPtr<FDecoratedDragDropOp>(DragDropEvent.GetOperation());
-				DecoratedDragOp->CurrentHoverText = ValidationInfo.ValidationText.ToString();
+				DecoratedDragOp->CurrentHoverText = ValidationInfo.ValidationText;
 				if (ValidationInfo.TooltipType == FActorDragDropGraphEdOp::ToolTip_CompatibleGeneric)
 				{
 					DecoratedDragOp->CurrentIconBrush = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK"));
@@ -455,7 +455,7 @@ namespace SceneOutliner
 			{
 				// Display actor specific messages
 				auto ActorDragOp = StaticCastSharedPtr<FActorDragDropGraphEdOp>(DragDropEvent.GetOperation());
-				ActorDragOp->SetToolTip(ValidationInfo.TooltipType, ValidationInfo.ValidationText.ToString());
+				ActorDragOp->SetToolTip(ValidationInfo.TooltipType, ValidationInfo.ValidationText);
 			}
 		}
 
@@ -654,12 +654,12 @@ namespace SceneOutliner
 		if (DragDrop::IsTypeMatch<FActorDragDropGraphEdOp>(DragDropEvent.GetOperation()))
 		{
 			auto ActorDragOp = StaticCastSharedPtr<FActorDragDropGraphEdOp>(DragDropEvent.GetOperation());
-			ActorDragOp->SetToolTip(ValidationInfo.TooltipType, ValidationInfo.ValidationText.ToString());
+			ActorDragOp->SetToolTip(ValidationInfo.TooltipType, ValidationInfo.ValidationText);
 		}
 		else if (DragDrop::IsTypeMatch<FDecoratedDragDropOp>(DragDropEvent.GetOperation()))
 		{
 			auto DecoratedDragOp = StaticCastSharedPtr<FDecoratedDragDropOp>(DragDropEvent.GetOperation());
-			DecoratedDragOp->CurrentHoverText = ValidationInfo.ValidationText.ToString();
+			DecoratedDragOp->CurrentHoverText = ValidationInfo.ValidationText;
 			DecoratedDragOp->CurrentIconBrush = ValidationInfo.IsValid() ? FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK")) : FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
 		}
 	}
@@ -674,7 +674,7 @@ namespace SceneOutliner
 
 			// Attach each child
 			bool bAttached = false;
-			for(int32 i=0; i<ChildrenPtrs.Num(); i++)
+			for(int32 i = 0; i < ChildrenPtrs.Num(); i++)
 			{
 				AActor* ChildActor = ChildrenPtrs[i].Get();
 				if (GEditor->CanParentActors(ParentActor, ChildActor))
@@ -682,7 +682,6 @@ namespace SceneOutliner
 					GEditor->ParentActors(ParentActor, ChildActor, SocketName);
 					bAttached = true;
 				}
-
 			}
 
 			// refresh the tree, and ensure parent is expanded so we can still see the child if we attached something

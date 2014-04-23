@@ -1,11 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-
-#ifndef __ActorDragDropOp_h__
-#define __ActorDragDropOp_h__
+#pragma once
 
 #include "ClassIconFinder.h"
 #include "DecoratedDragDropOp.h"
+#include "Internationalization.h"
 
 class FActorDragDropOp : public FDecoratedDragDropOp
 {
@@ -30,19 +29,17 @@ public:
 		CurrentIconBrush = FClassIconFinder::FindIconForActors(Actors, CommonSelClass);
 		if(Actors.Num() == 0)
 		{
-			CurrentHoverText =  TEXT("None");
+			CurrentHoverText = NSLOCTEXT("FActorDragDropOp", "None", "None");
 		}
 		else if(Actors.Num() == 1)
 		{
 			// Find icon for actor
 			AActor* TheActor = Actors[0].Get();
-			CurrentHoverText = TheActor->GetActorLabel();
+			CurrentHoverText = FText::FromString(TheActor->GetActorLabel());
 		}
 		else
 		{
-			CurrentHoverText = FString::Printf(TEXT("%d Actors"), InActors.Num());
+			CurrentHoverText = FText::Format(NSLOCTEXT("FActorDragDropOp", "FormatActors", "{0} Actors"), FText::AsNumber(InActors.Num()));
 		}
 	}
 };
-
-#endif // __ActorDragDropOp_h__

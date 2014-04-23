@@ -323,7 +323,7 @@ static bool DiffHistoryItems(TSharedPtr<FHistoryTreeItem> const FirstSelection, 
 /**
 * A FDragDropOperation that represents dragging a source-control history tree item around.
 */
-class FSourceControlHistoryRowDragDropOp : public FDragDropOperation, public TSharedFromThis<FSourceControlHistoryRowDragDropOp>
+class FSourceControlHistoryRowDragDropOp : public FDragDropOperation
 {
 private:
 	/**
