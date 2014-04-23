@@ -3057,9 +3057,10 @@ namespace SceneOutliner
 						}
 					}
 
-					if (GUnrealEd->CanDeleteSelectedActors( GWorld, true, false ))
+					UWorld* World = GWorld;
+					if (GUnrealEd->CanDeleteSelectedActors( World, true, false ))
 					{
-						GEditor->edactDeleteSelected( GWorld );
+						GEditor->edactDeleteSelected( World );
 					}
 				}
 

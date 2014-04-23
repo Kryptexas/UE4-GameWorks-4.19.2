@@ -564,14 +564,17 @@ struct WorldReferenceGenerator : public FFindReferencedAssets
 		const bool bIncludeDefaults = false;
 		const bool bReverseReferenceGraph = true;
 
-		// Generate the reference graph for GWorld
-		FReferencedAssets* WorldReferencer = new(Referencers) FReferencedAssets(GWorld);
-		FFindAssetsArchive(GWorld, WorldReferencer->AssetList, &ReferenceGraph, MaxRecursionDepth, bIncludeClasses, bIncludeDefaults, bReverseReferenceGraph);
+
+		UWorld* World = GWorld;
+
+		// Generate the reference graph for the world
+		FReferencedAssets* WorldReferencer = new(Referencers)FReferencedAssets(World);
+		FFindAssetsArchive(World, WorldReferencer->AssetList, &ReferenceGraph, MaxRecursionDepth, bIncludeClasses, bIncludeDefaults, bReverseReferenceGraph);
 
 		// Also include all the streaming levels in the results
-		for( int32 LevelIndex = 0 ; LevelIndex < GWorld->StreamingLevels.Num() ; ++LevelIndex )
+		for (int32 LevelIndex = 0; LevelIndex < World->StreamingLevels.Num(); ++LevelIndex)
 		{
-			ULevelStreaming* StreamingLevel = GWorld->StreamingLevels[LevelIndex];
+			ULevelStreaming* StreamingLevel = World->StreamingLevels[LevelIndex];
 			if( StreamingLevel != NULL )
 			{
 				ULevel* Level = StreamingLevel->GetLoadedLevel();

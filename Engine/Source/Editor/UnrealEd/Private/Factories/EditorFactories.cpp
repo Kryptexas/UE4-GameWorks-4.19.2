@@ -946,9 +946,10 @@ UObject* UPackageFactory::FactoryCreateText( UClass* Class, UObject* InParent, F
 
 	UPackage* TopLevelPackage = NULL;
 	UPackage* RootMapPackage = NULL;
-	if (GWorld)
+	UWorld* World = GWorld;
+	if (World)
 	{
-		RootMapPackage = GWorld->GetOutermost();
+		RootMapPackage = World->GetOutermost();
 	}
 
 	if (RootMapPackage)

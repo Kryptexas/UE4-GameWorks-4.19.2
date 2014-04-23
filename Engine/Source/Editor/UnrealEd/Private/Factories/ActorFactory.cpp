@@ -386,7 +386,7 @@ void UActorFactoryEmitter::PostSpawnActor(UObject* Asset, AActor* NewActor)
 	NewEmitter->SetTemplate(ParticleSystem);
 
 	// if we're created by Kismet on the server during gameplay, we need to replicate the emitter
-	if (GWorld->HasBegunPlay() && GWorld->GetNetMode() != NM_Client)
+	if (NewEmitter->GetWorld()->HasBegunPlay() && NewEmitter->GetWorld()->GetNetMode() != NM_Client)
 	{
 		NewEmitter->SetReplicates(true);
 		NewEmitter->bAlwaysRelevant = true;

@@ -760,15 +760,16 @@ void UEditorEngine::AddReferencedObjects(UObject* InThis, FReferenceCollector& C
 
 void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 {
-	check( GWorld );
-	check( GWorld != PlayWorld || bIsSimulatingInEditor );
+	UWorld* CurrentGWorld = GWorld;
+	check( CurrentGWorld );
+	check( CurrentGWorld != PlayWorld || bIsSimulatingInEditor );
 
 	// Always ensure we've got adequate slack for any worlds that are going to get created in this frame so that
 	// our EditorContext reference doesn't get invalidated
 	WorldList.Reserve(WorldList.Num() + 10);
 
 	FWorldContext& EditorContext = GetEditorWorldContext();
-	check( GWorld == EditorContext.World() );
+	check( CurrentGWorld == EditorContext.World() );
 
 	// was there a reregister requested last frame?
 	if (bHasPendingGlobalReregister)
@@ -1676,9 +1677,10 @@ void UEditorEngine::Cleanse( bool ClearSelection, bool Redraw, const FText& Tran
 
 void UEditorEngine::EditorClearComponents()
 {
-	if( GWorld != NULL )
+	UWorld* World = GWorld;
+	if (World != NULL)
 	{
-		GWorld->ClearWorldComponents();
+		World->ClearWorldComponents();
 	}
 }
 
@@ -3804,8 +3806,9 @@ void UEditorEngine::OpenMatinee(AMatineeActor* MatineeActor, bool bWarnUser)
 void UEditorEngine::UpdateReflectionCaptures()
 {
 	// Update sky light first because it's considered direct lighting, sky diffuse will be visible in reflection capture indirect specular
-	GWorld->UpdateAllSkyCaptures();
-	GWorld->UpdateAllReflectionCaptures();
+	UWorld* World = GWorld;
+	World->UpdateAllSkyCaptures();
+	World->UpdateAllReflectionCaptures();
 }
 
 void UEditorEngine::UpdateSkyCaptures()

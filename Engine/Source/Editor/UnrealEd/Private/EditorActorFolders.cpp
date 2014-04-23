@@ -31,9 +31,10 @@ FActorFolders::FActorFolders()
 	GEngine->OnLevelActorAdded().AddRaw(this, &FActorFolders::OnLevelActorAdded);
 	FEditorDelegates::MapChange.AddRaw( this, &FActorFolders::OnMapChange );
 
-	if (GWorld)
+	UWorld* World = GWorld;
+	if (World)
 	{
-		RebuildFolderListForWorld(*GWorld);
+		RebuildFolderListForWorld(*World);
 	}
 }
 
