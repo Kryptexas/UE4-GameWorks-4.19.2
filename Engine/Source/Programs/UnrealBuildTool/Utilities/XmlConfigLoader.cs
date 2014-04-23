@@ -163,7 +163,8 @@ namespace UnrealBuildTool
 
 				if(ClassType == null)
 				{
-					throw new BuildException("XmlConfig Loading: class '{0}' doesn't exist.", XmlClass.Name);
+					Log.TraceVerbose("XmlConfig Loading: class '{0}' doesn't exist.", XmlClass.Name);
+					continue;
 				}
 
 				XmlConfigLoaderClassData ClassData;
