@@ -399,9 +399,14 @@ void FPhysScene::TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletion
 
 #if WITH_PHYSX
 
-	if ( VehicleManager && SceneType == PST_Sync )
+#if WITH_SUBSTEPPING
+	if (IsSubstepping() == false)
+#endif
 	{
-		VehicleManager->Update( AveragedFrameTime[SceneType] );
+		if (VehicleManager && SceneType == PST_Sync)
+		{
+			VehicleManager->Update(AveragedFrameTime[SceneType]);
+		}
 	}
 
 #if !WITH_APEX
@@ -1065,6 +1070,10 @@ void FPhysScene::InitPhysScene(uint32 SceneType)
 	//Initialize substeppers
 	//we don't bother sub-stepping cloth
 	PhysSubSteppers[SceneType] = SceneType == PST_Cloth ? NULL : new FPhysSubstepTask(PScene);
+	if (SceneType == PST_Sync)
+	{
+		PhysSubSteppers[SceneType]->SetVehicleManager(VehicleManager);
+	}
 	
 #endif
 
@@ -1094,6 +1103,12 @@ void FPhysScene::TermPhysScene(uint32 SceneType)
 		}
 
 #if WITH_SUBSTEPPING
+
+		if (SceneType == PST_Sync && PhysSubSteppers[SceneType])
+		{
+			PhysSubSteppers[SceneType]->SetVehicleManager(NULL);
+		}
+
 		delete PhysSubSteppers[SceneType];
 		PhysSubSteppers[SceneType] = NULL;
 #endif

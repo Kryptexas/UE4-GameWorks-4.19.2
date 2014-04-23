@@ -107,6 +107,8 @@ public:
 	void SwapBuffers();
 	float UpdateTime(float UseDelta);
 
+	void SetVehicleManager(class FPhysXVehicleManager *	InVehicleManager);
+
 #if WITH_APEX
 	void StepSimulation(NxApexScene * ApexScene, PhysXCompletionTask * Task);
 	void SubstepSimulationStart();
@@ -133,6 +135,9 @@ private:
 	float TotalSubTime;
 	uint32 CurrentSubStep;
 	FGraphEventRef CompletionEvent;
+
+	/** Vehicle scene */
+	class FPhysXVehicleManager*			VehicleManager;
 
 #if WITH_APEX
 	class NxApexScene * ApexScene;

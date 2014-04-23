@@ -4,7 +4,11 @@
 
 #if WITH_SUBSTEPPING
 
+#if WITH_PHYSX
 #include "PhysXSupport.h"
+#include "../Vehicles/PhysXVehicleManager.h"
+#endif
+
 #include "PhysSubstepTasks.h"
 
 #if WITH_PHYSX
@@ -18,6 +22,7 @@ FPhysSubstepTask::FPhysSubstepTask(PxScene * GivenPScene) :
 	StepScale(0.f),
 	TotalSubTime(0.f),
 	CurrentSubStep(0),
+	VehicleManager(NULL),
 #if WITH_APEX
 	ApexScene(NULL),
 #endif
@@ -266,21 +271,27 @@ void FPhysSubstepTask::SubstepSimulationStart()
 	FDelegateGraphTask::CreateAndDispatchWhenReady(FDelegateGraphTask::FDelegate::CreateRaw(this, &FPhysSubstepTask::SubstepSimulationEnd), TEXT("ProcessPhysSubstepSimulation"), CompletionEvent);
 
 	++CurrentSubStep;
-	if (CurrentSubStep < NumSubsteps)
+
+	bool bLastSubstep = CurrentSubStep >= NumSubsteps;
+
+	if (!bLastSubstep)
 	{
-		
+
 		Alpha += StepScale;
 		TotalSubTime += SubTime;
-		SubstepInterpolation(Alpha);
-		ApexScene->simulate(SubTime, false, SubstepTask);	
-		SubstepTask->removeReference();
 	}
-	else
+
+	float DeltaTime = bLastSubstep ? (DeltaSeconds - TotalSubTime) : SubTime;
+	float Interpolation = bLastSubstep ? 1.f : Alpha;
+
+	if (VehicleManager)
 	{
-		SubstepInterpolation(1.f);
-		ApexScene->simulate(DeltaSeconds - TotalSubTime, true, SubstepTask);
-		SubstepTask->removeReference();
+		VehicleManager->Update(DeltaTime);
 	}
+
+	SubstepInterpolation(Interpolation);
+	ApexScene->simulate(DeltaTime, bLastSubstep, SubstepTask);
+	SubstepTask->removeReference();
 }
 
 void FPhysSubstepTask::SubstepSimulationEnd(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
@@ -305,5 +316,11 @@ void FPhysSubstepTask::SubstepSimulationEnd(ENamedThreads::Type CurrentThread, c
 
 }
 #endif
+
+
+void FPhysSubstepTask::SetVehicleManager(FPhysXVehicleManager * InVehicleManager)
+{
+	VehicleManager = InVehicleManager;
+}
 
 #endif //if WITH_SUBSTEPPING
