@@ -185,6 +185,9 @@ struct CORE_API FWindowsPlatformMisc : public FGenericPlatformMisc
 	* @return Windows path separator.
 	*/
 	static const TCHAR* GetDefaultPathSeparator();
+
+	/** @return Get the name of the platform specific file manager (Explorer) */
+	static FText GetFileManagerName();
 };
 
 typedef FWindowsPlatformMisc FPlatformMisc;

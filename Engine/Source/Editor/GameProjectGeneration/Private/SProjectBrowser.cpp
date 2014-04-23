@@ -254,6 +254,7 @@ void SProjectBrowser::ConstructCategory( const TSharedRef<SVerticalBox>& InCateg
 		.SelectionMode(ESelectionMode::Single)
 		.ClearSelectionOnClick(false)
 		.OnGenerateTile(this, &SProjectBrowser::MakeProjectViewWidget)
+		.OnContextMenuOpening(this, &SProjectBrowser::OnGetContextMenuContent)
 		.OnMouseButtonDoubleClick(this, &SProjectBrowser::HandleProjectItemDoubleClick)
 		.OnSelectionChanged(TSlateDelegates<TSharedPtr<FProjectItem>>::FOnSelectionChanged::CreateSP(this, &SProjectBrowser::HandleProjectViewSelectionChanged, Category->CategoryName))
 		.ItemHeight(ThumbnailSize + ThumbnailBorderPadding + 32)
@@ -309,37 +310,173 @@ TSharedRef<ITableRow> SProjectBrowser::MakeProjectViewWidget(TSharedPtr<FProject
 			];
 	}
 
-	return
-		SNew( STableRow<TSharedPtr<FProjectItem>>, OwnerTable )
-		.Style(FEditorStyle::Get(), "GameProjectDialog.TemplateListView.TableRow")
+	TSharedRef<ITableRow> TableRow = SNew( STableRow<TSharedPtr<FProjectItem>>, OwnerTable )
+	.Style(FEditorStyle::Get(), "GameProjectDialog.TemplateListView.TableRow")
+	[
+		SNew(SBox)
+		.HeightOverride(ThumbnailSize+ThumbnailBorderPadding+5)
 		[
-			SNew(SBox).HeightOverride(ThumbnailSize+ThumbnailBorderPadding+5)
+			SNew(SVerticalBox)
+
+			// Thumbnail
+			+SVerticalBox::Slot()
+			.AutoHeight()
 			[
-				SNew(SVerticalBox)
-
-				// Thumbnail
-				+SVerticalBox::Slot()
-				.AutoHeight()
+				SNew(SBox)
+				.WidthOverride(ThumbnailSize + ThumbnailBorderPadding * 2)
+				.HeightOverride(ThumbnailSize + ThumbnailBorderPadding * 2)
 				[
-					SNew(SBox)
-					.WidthOverride(ThumbnailSize + ThumbnailBorderPadding * 2)
-					.HeightOverride(ThumbnailSize + ThumbnailBorderPadding * 2)
-					[
-						Thumbnail.ToSharedRef()
-					]
-				]
-
-				// Name
-				+SVerticalBox::Slot()
-				.HAlign(HAlign_Center)
-				.VAlign(VAlign_Top)
-				[
-					SNew(STextBlock)
-					.HighlightText(this, &SProjectBrowser::GetItemHighlightText)
-					.Text(ProjectItem->Name)
+					Thumbnail.ToSharedRef()
 				]
 			]
-		];
+
+			// Name
+			+SVerticalBox::Slot()
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Top)
+			[
+				SNew(STextBlock)
+				.HighlightText(this, &SProjectBrowser::GetItemHighlightText)
+				.Text(ProjectItem->Name)
+			]
+		]
+	];
+
+	TableRow->AsWidget()->SetToolTip(MakeProjectToolTip(ProjectItem));
+
+	return TableRow;
+}
+
+
+TSharedRef<SToolTip> SProjectBrowser::MakeProjectToolTip( TSharedPtr<FProjectItem> ProjectItem ) const
+{
+	// Create a box to hold every line of info in the body of the tooltip
+	TSharedRef<SVerticalBox> InfoBox = SNew(SVerticalBox);
+
+	if(!ProjectItem->Description.IsEmpty())
+	{
+		AddToToolTipInfoBox( InfoBox, LOCTEXT("ProjectTileTooltipDescription", "Description"), ProjectItem->Description );
+	}
+
+	{
+		const FString ProjectPath = FPaths::GetPath(ProjectItem->ProjectFile);
+		AddToToolTipInfoBox( InfoBox, LOCTEXT("ProjectTileTooltipPath", "Path"), FText::FromString(ProjectPath) );
+	}
+
+	TSharedRef<SToolTip> Tooltip = SNew(SToolTip)
+	.TextMargin(1)
+	.BorderImage( FEditorStyle::GetBrush("ProjectBrowser.TileViewTooltip.ToolTipBorder") )
+	[
+		SNew(SBorder)
+		.Padding(6)
+		.BorderImage( FEditorStyle::GetBrush("ProjectBrowser.TileViewTooltip.NonContentBorder") )
+		[
+			SNew(SVerticalBox)
+
+			+SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(0, 0, 0, 4)
+			[
+				SNew(SBorder)
+				.Padding(6)
+				.BorderImage( FEditorStyle::GetBrush("ProjectBrowser.TileViewTooltip.ContentBorder") )
+				[
+					SNew(SVerticalBox)
+
+					+SVerticalBox::Slot()
+					.AutoHeight()
+					.VAlign(VAlign_Center)
+					[
+						SNew(STextBlock)
+						.Text( ProjectItem->Name )
+						.Font( FEditorStyle::GetFontStyle("ProjectBrowser.TileViewTooltip.NameFont") )
+					]
+				]
+			]
+
+			+SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				SNew(SBorder)
+				.Padding(6)
+				.BorderImage( FEditorStyle::GetBrush("ProjectBrowser.TileViewTooltip.ContentBorder") )
+				[
+					InfoBox
+				]
+			]
+		]
+	];
+
+	return Tooltip;
+}
+
+
+void SProjectBrowser::AddToToolTipInfoBox(const TSharedRef<SVerticalBox>& InfoBox, const FText& Key, const FText& Value) const
+{
+	InfoBox->AddSlot()
+	.AutoHeight()
+	.Padding(0, 1)
+	[
+		SNew(SHorizontalBox)
+
+		+SHorizontalBox::Slot()
+		.AutoWidth()
+		.Padding(0, 0, 4, 0)
+		[
+			SNew(STextBlock) .Text( FText::Format(LOCTEXT("ProjectBrowserTooltipFormat", "{0}:"), Key ) )
+			.ColorAndOpacity(FSlateColor::UseSubduedForeground())
+		]
+
+		+SHorizontalBox::Slot()
+		.AutoWidth()
+		[
+			SNew(STextBlock) .Text( Value )
+			.ColorAndOpacity(FSlateColor::UseForeground())
+		]
+	];
+}
+
+
+TSharedPtr<SWidget> SProjectBrowser::OnGetContextMenuContent() const
+{
+	FMenuBuilder MenuBuilder(/*bInShouldCloseWindowAfterMenuSelection=*/true, nullptr);
+
+	TSharedPtr<FProjectItem> SelectedProjectItem = GetSelectedProjectItem();
+	const FText ProjectContextActionsText = (SelectedProjectItem.IsValid()) ? SelectedProjectItem->Name : LOCTEXT("ProjectActionsMenuHeading", "Project Actions");
+	MenuBuilder.BeginSection("ProjectContextActions", ProjectContextActionsText);
+
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("FileManagerName"), FPlatformMisc::GetFileManagerName());
+	const FText ExploreToText = FText::Format(NSLOCTEXT("GenericPlatform", "ShowInFileManager", "Show In {FileManagerName}"), Args);
+
+	MenuBuilder.AddMenuEntry(
+		ExploreToText,
+		LOCTEXT("FindInExplorerTooltip", "Finds this project on disk"),
+		FSlateIcon(),
+		FUIAction(
+		FExecuteAction::CreateSP( this, &SProjectBrowser::ExecuteFindInExplorer ),
+		FCanExecuteAction::CreateSP( this, &SProjectBrowser::CanExecuteFindInExplorer )
+		)
+		);
+
+	MenuBuilder.EndSection();
+
+	return MenuBuilder.MakeWidget();
+}
+
+
+void SProjectBrowser::ExecuteFindInExplorer() const
+{
+	TSharedPtr<FProjectItem> SelectedProjectItem = GetSelectedProjectItem();
+	check(SelectedProjectItem.IsValid());
+	FPlatformProcess::ExploreFolder(*SelectedProjectItem->ProjectFile);
+}
+
+
+bool SProjectBrowser::CanExecuteFindInExplorer() const
+{
+	TSharedPtr<FProjectItem> SelectedProjectItem = GetSelectedProjectItem();
+	return SelectedProjectItem.IsValid();
 }
 
 

@@ -1225,11 +1225,9 @@ FLinearColor ContentBrowserUtils::GetDefaultColor()
 
 FText ContentBrowserUtils::GetExploreFolderText()
 {
-#if PLATFORM_MAC
-	return LOCTEXT("Mac_ShowInFinder", "Show In Finder");
-#else
-	return LOCTEXT("Win_ShowInExplorer", "Show In Explorer");
-#endif
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("FileManagerName"), FPlatformMisc::GetFileManagerName());
+	return FText::Format(NSLOCTEXT("GenericPlatform", "ShowInFileManager", "Show In {FileManagerName}"), Args);
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -1107,6 +1107,11 @@ FString FMacPlatformMisc::GetDefaultLocale()
 	return FString::Printf(TEXT("%s_%s"), langCode, countryCode);
 }
 
+FText FMacPlatformMisc::GetFileManagerName()
+{
+	return NSLOCTEXT("MacPlatform", "FileManagerName", "Finder");
+}
+
 /** Global pointer to crash handler */
 void (* GCrashHandlerPointer)(const FGenericCrashContext & Context) = NULL;
 

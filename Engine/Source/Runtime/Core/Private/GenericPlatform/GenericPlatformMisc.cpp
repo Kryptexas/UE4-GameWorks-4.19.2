@@ -681,3 +681,8 @@ FString FGenericPlatformMisc::GetDefaultLocale()
 	return TEXT("en");
 #endif
 }
+
+FText FGenericPlatformMisc::GetFileManagerName()
+{
+	return NSLOCTEXT("GenericPlatform", "FileManagerName", "File Manager");
+}

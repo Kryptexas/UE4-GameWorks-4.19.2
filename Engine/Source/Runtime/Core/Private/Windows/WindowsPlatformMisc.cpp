@@ -1852,3 +1852,8 @@ const TCHAR* FWindowsPlatformMisc::GetDefaultPathSeparator()
 {
 	return TEXT( "\\" );
 }
+
+FText FWindowsPlatformMisc::GetFileManagerName()
+{
+	return NSLOCTEXT("WindowsPlatform", "FileManagerName", "Explorer");
+}

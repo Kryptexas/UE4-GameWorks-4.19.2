@@ -44,6 +44,21 @@ protected:
 	/** Creates a row in the template list */
 	TSharedRef<ITableRow> MakeProjectViewWidget( TSharedPtr<FProjectItem> ProjectItem, const TSharedRef<STableViewBase>& OwnerTable );
 
+	/** Create a tooltip for the given project item */
+	TSharedRef<SToolTip> MakeProjectToolTip( TSharedPtr<FProjectItem> ProjectItem ) const;
+
+	/** Add information to the tooltip for this project item */
+	void AddToToolTipInfoBox(const TSharedRef<SVerticalBox>& InfoBox, const FText& Key, const FText& Value) const;
+
+	/** Get the context menu to use for the selected project item */
+	TSharedPtr<SWidget> OnGetContextMenuContent() const;
+
+	/** Handler for when find in explorer is selected */
+	void ExecuteFindInExplorer() const;
+
+	/** Handler to check to see if a find in explorer command is allowed */
+	bool CanExecuteFindInExplorer() const;	
+
 	/** Gets the image to display for the specified template */
 	const FSlateBrush* GetProjectItemImage( TWeakPtr<FProjectItem> ProjectItem ) const;
 

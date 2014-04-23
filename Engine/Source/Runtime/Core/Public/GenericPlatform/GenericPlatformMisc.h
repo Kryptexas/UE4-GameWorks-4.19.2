@@ -657,6 +657,9 @@ public:
 		return false;
 	}
 
+	/** @return Get the name of the platform specific file manager (eg, Explorer on Windows, Finder on OS X) */
+	static FText GetFileManagerName();
+
 	/**
 	 * Sample the displayed pixel color from anywhere on the screen using the OS
 	 *
