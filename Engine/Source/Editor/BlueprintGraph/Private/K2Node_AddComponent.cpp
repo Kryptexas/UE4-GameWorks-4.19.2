@@ -294,6 +294,7 @@ FString UK2Node_AddComponent::GetNodeTitle(ENodeTitleType::Type TitleType) const
 			UStaticMeshComponent* StaticMeshComp = Cast<UStaticMeshComponent>(SourceTemplate);
 			USkeletalMeshComponent* SkelMeshComp = Cast<USkeletalMeshComponent>(SourceTemplate);
 			UParticleSystemComponent* PSysComp = Cast<UParticleSystemComponent>(SourceTemplate);
+			UChildActorComponent* SubActorComp = Cast<UChildActorComponent>(SourceTemplate);
 
 			if(StaticMeshComp != NULL && StaticMeshComp->StaticMesh != NULL)
 			{
@@ -306,6 +307,10 @@ FString UK2Node_AddComponent::GetNodeTitle(ENodeTitleType::Type TitleType) const
 			else if(PSysComp != NULL && PSysComp->Template != NULL)
 			{
 				return FString(TEXT("Add ParticleSystem ")) + PSysComp->Template->GetName();		
+			}
+			else if (SubActorComp && SubActorComp->ChildActorClass)
+			{
+				return FString(TEXT("Add ChildActorComponent ")) + SubActorComp->ChildActorClass->GetName();
 			}
 			else
 			{

@@ -3104,7 +3104,17 @@ void UEdGraphSchema_K2::DroppedAssetsOnGraph(const TArray<FAssetData>& Assets, c
 
 			UObject* Asset = Assets[AssetIdx].GetAsset();
 
-			TSubclassOf<UActorComponent> DestinationComponentType = FComponentAssetBrokerage::GetPrimaryComponentForAsset(Asset->GetClass());
+			UClass* AssetClass = Asset->GetClass();		
+			if (UBlueprint* BlueprintAsset = Cast<UBlueprint>(Asset))
+			{
+				AssetClass = BlueprintAsset->GeneratedClass;
+			}
+
+			TSubclassOf<UActorComponent> DestinationComponentType = FComponentAssetBrokerage::GetPrimaryComponentForAsset(AssetClass);
+			if ((DestinationComponentType == NULL) && AssetClass->IsChildOf(AActor::StaticClass()))
+			{
+				DestinationComponentType = UChildActorComponent::StaticClass();
+			}
 
 			// Make sure we have an asset type that's registered with the component list
 			if (DestinationComponentType != NULL)
