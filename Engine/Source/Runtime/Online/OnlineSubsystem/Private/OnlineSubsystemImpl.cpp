@@ -6,15 +6,15 @@
 
 FOnlineSubsystemImpl::FOnlineSubsystemImpl() :
 	InstanceName(NAME_None),
-	NamedInterfaces(NULL),
 	bForceDedicated(false)
+	NamedInterfaces(NULL)
 {
 }
 
 FOnlineSubsystemImpl::FOnlineSubsystemImpl(FName InInstanceName) :
 	InstanceName(InInstanceName),
-	NamedInterfaces(NULL),
-	bForceDedicated(false)
+	bForceDedicated(false),
+	NamedInterfaces(NULL)
 {
 }
 
