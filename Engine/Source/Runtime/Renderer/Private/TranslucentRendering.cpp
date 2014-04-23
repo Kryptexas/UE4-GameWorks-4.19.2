@@ -191,6 +191,7 @@ void FDeferredShadingSceneRenderer::CopySceneColor(const FViewInfo& View, const 
 		View.ViewRect.Width(), View.ViewRect.Height(),
 		FIntPoint(View.ViewRect.Width(), View.ViewRect.Height()),
 		GSceneRenderTargets.GetBufferSizeXY(),
+		*ScreenVertexShader,
 		EDRF_UseTriangleOptimization);
 
 	GSceneRenderTargets.FinishRenderingLightAttenuation();

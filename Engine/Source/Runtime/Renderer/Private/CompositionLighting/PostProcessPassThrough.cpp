@@ -132,6 +132,7 @@ void FRCPassPostProcessPassThrough::Process(FRenderingCompositePassContext& Cont
 		SrcRect.Width(), SrcRect.Height(),
 		DestSize,
 		SrcSize,
+		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 

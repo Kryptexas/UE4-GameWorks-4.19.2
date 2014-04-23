@@ -12,8 +12,7 @@ void Main(
 	out FScreenVertexOutput Output
 	)
 {
-	Output.Position = float4( InPosition, 0, 1 );
-    Output.UV = InUV;
+	DrawRectangle( float4( InPosition, 0, 1 ), InUV, Output.Position, Output.UV);
 }
 
 

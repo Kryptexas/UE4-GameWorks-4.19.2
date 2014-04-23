@@ -750,6 +750,7 @@ void FDeferredShadingSceneRenderer::RenderLight(const FLightSceneInfo* LightScen
 				View.ViewRect.Width(), View.ViewRect.Height(),
 				View.ViewRect.Size(),
 				GSceneRenderTargets.GetBufferSizeXY(),
+				*VertexShader,
 				EDRF_UseTriangleOptimization);
 		}
 		else

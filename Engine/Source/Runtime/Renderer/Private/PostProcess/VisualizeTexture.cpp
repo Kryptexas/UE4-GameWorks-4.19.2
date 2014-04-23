@@ -212,6 +212,7 @@ template<uint32 TextureType> void VisualizeTextureForTextureType(const FVisualiz
 		GSceneRenderTargets.GetBufferSizeXY(),
 		// TextureSize
 		FIntPoint(1, 1),
+		*VertexShader,
 		EDRF_UseTriangleOptimization);
 }
 
@@ -510,6 +511,7 @@ void FVisualizeTexture::PresentContent(const FSceneView& View)
 		VisualizeTextureRect.Width(), VisualizeTextureRect.Height(),
 		GSceneRenderTargets.GetBufferSizeXY(),
 		VisualizeTextureRect.Size(),
+		*VertexShader,
 		EDRF_Default);
 
 	// this is a helper class for FCanvas to be able to get screen size

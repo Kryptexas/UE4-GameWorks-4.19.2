@@ -264,7 +264,8 @@ void ComputeDiffuseIrradiance(FTextureRHIRef LightingSource, int32 LightingSourc
 					ViewRect.Min.X, ViewRect.Min.Y, 
 					ViewRect.Width(), ViewRect.Height(),
 					FIntPoint(ViewRect.Width(), ViewRect.Height()),
-					FIntPoint(MipSize, MipSize));
+					FIntPoint(MipSize, MipSize),
+					*VertexShader);
 
 				RHICopyToResolveTarget(EffectiveRT.TargetableTexture, EffectiveRT.ShaderResourceTexture, true, FResolveParams(FResolveRect(), (ECubeFace)CubeFace, MipIndex));
 			}
@@ -310,7 +311,8 @@ void ComputeDiffuseIrradiance(FTextureRHIRef LightingSource, int32 LightingSourc
 						ViewRect.Min.X, ViewRect.Min.Y, 
 						ViewRect.Width(), ViewRect.Height(),
 						FIntPoint(ViewRect.Width(), ViewRect.Height()),
-						FIntPoint(MipSize, MipSize));
+						FIntPoint(MipSize, MipSize),
+						*VertexShader);
 
 					RHICopyToResolveTarget(EffectiveRT.TargetableTexture, EffectiveRT.ShaderResourceTexture, true, FResolveParams(FResolveRect(), (ECubeFace)CubeFace, MipIndex));
 				}
@@ -343,7 +345,8 @@ void ComputeDiffuseIrradiance(FTextureRHIRef LightingSource, int32 LightingSourc
 				0, 0, 
 				MipSize, MipSize,
 				FIntPoint(FSHVector3::MaxSHBasis, 1),
-				FIntPoint(MipSize, MipSize));
+				FIntPoint(MipSize, MipSize),
+				*VertexShader);
 
 			RHICopyToResolveTarget(EffectiveRT.TargetableTexture, EffectiveRT.ShaderResourceTexture, true, FResolveParams());
 		}

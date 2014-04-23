@@ -20,9 +20,8 @@ void DirectionalVertexMain(
 	out float4 OutPosition : SV_POSITION
 	)
 {	
-	OutPosition = float4(InPosition, 0, 1);
-	OutTexCoord = InUV;
-	OutScreenVector = mul(float4(InPosition, 1, 0), View.ScreenToTranslatedWorld).xyz;
+	DrawRectangle(float4(InPosition.xy, 0, 1), InUV, OutPosition, OutTexCoord);
+	OutScreenVector = mul(float4(OutPosition.xy, 1, 0), View.ScreenToTranslatedWorld).xyz;
 }
 
 /** Vertex shader for rendering a point or spot light using approximate bounding geometry. */

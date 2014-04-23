@@ -155,6 +155,7 @@ protected:
  * @param SampleOffsets - A pointer to an array of NumSamples UV offsets
  * @param SampleWeights - A pointer to an array of NumSamples 4-vector weights
  * @param NumSamples - The number of samples used by the filter.
+ * @param OutVertexShader - The vertex shader used for the filter
  */
 void SetFilterShaders(
 	FSamplerStateRHIParamRef SamplerStateRHI,
@@ -163,7 +164,8 @@ void SetFilterShaders(
 	uint32 CombineMethodInt,
 	FVector2D* SampleOffsets,
 	FLinearColor* SampleWeights,
-	uint32 NumSamples
+	uint32 NumSamples,
+	FShader** OutVertexShader
 	)
 {
 	check(CombineMethodInt <= 2);
@@ -173,6 +175,7 @@ void SetFilterShaders(
 	case NumSamples: \
 	{ \
 		TShaderMapRef<TFilterVS<NumSamples> > VertexShader(GetGlobalShaderMap()); \
+		*OutVertexShader = *VertexShader; \
 		if(CombineMethodInt == 0) \
 		{ \
 			TShaderMapRef<TFilterPS<NumSamples, 0> > PixelShader(GetGlobalShaderMap()); \
@@ -422,6 +425,7 @@ void FRCPassPostProcessWeightedSampleSum::Process(FRenderingCompositePassContext
 		}
 	}
 
+	FShader* VertexShader = nullptr;
 	SetFilterShaders(
 		TStaticSamplerState<SF_Bilinear,AM_Border,AM_Border,AM_Clamp>::GetRHI(),
 		FilterTexture,
@@ -429,7 +433,8 @@ void FRCPassPostProcessWeightedSampleSum::Process(FRenderingCompositePassContext
 		CombineMethodInt,
 		BlurOffsets,
 		BlurWeights,
-		NumSamples
+		NumSamples,
+		&VertexShader
 		);
 
 	const int NumOverrideRects = Context.View.UIBlurOverrideRectangles.Num();
@@ -450,7 +455,7 @@ void FRCPassPostProcessWeightedSampleSum::Process(FRenderingCompositePassContext
 			FIntRect SrcRect =  View.ViewRect / SrcScaleFactor;
 			FIntRect DestRect = View.ViewRect / DstScaleFactor;
 
-			DrawQuad(bDoFastBlur, SrcRect, DestRect, bRequiresClear, DestSize, SrcSize);
+			DrawQuad(bDoFastBlur, SrcRect, DestRect, bRequiresClear, DestSize, SrcSize, VertexShader);
 		}
 		break;
 		case EPostProcessRectSource::GBS_UIBlurRects:
@@ -470,7 +475,7 @@ void FRCPassPostProcessWeightedSampleSum::Process(FRenderingCompositePassContext
 				FIntRect SrcRect = ScaledQuad / SrcScaleFactor;
 				FIntRect DestRect = ScaledQuad / DstScaleFactor;
 
-				DrawQuad(bDoFastBlur, SrcRect, DestRect, bRequiresClear, DestSize, SrcSize);
+				DrawQuad(bDoFastBlur, SrcRect, DestRect, bRequiresClear, DestSize, SrcSize, VertexShader);
 			}
 		}
 		break;
@@ -554,7 +559,7 @@ bool FRCPassPostProcessWeightedSampleSum::DoFastBlur() const
 	return bRet;
 }
 
-void FRCPassPostProcessWeightedSampleSum::DrawQuad( bool bDoFastBlur, FIntRect SrcRect, FIntRect DestRect, bool bRequiresClear, FIntPoint DestSize, FIntPoint SrcSize ) const
+void FRCPassPostProcessWeightedSampleSum::DrawQuad( bool bDoFastBlur, FIntRect SrcRect, FIntRect DestRect, bool bRequiresClear, FIntPoint DestSize, FIntPoint SrcSize, FShader* VertexShader ) const
 {
 	if (bDoFastBlur)
 	{
@@ -583,6 +588,7 @@ void FRCPassPostProcessWeightedSampleSum::DrawQuad( bool bDoFastBlur, FIntRect S
 		SrcRect.Width(), SrcRect.Height(),
 		DestSize,
 		SrcSize,
+		VertexShader,
 		EDRF_UseTriangleOptimization);
 }
 

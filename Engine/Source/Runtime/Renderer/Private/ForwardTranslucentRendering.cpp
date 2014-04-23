@@ -74,6 +74,7 @@ void FForwardShadingSceneRenderer::CopySceneAlpha(void)
 		X, Y,
 		FIntPoint(X, Y),
 		GSceneRenderTargets.GetBufferSizeXY(),
+		*ScreenVertexShader,
 		EDRF_UseTriangleOptimization);
 
 	GSceneRenderTargets.FinishRenderingSceneAlphaCopy();

@@ -115,8 +115,8 @@ void MainVS(
 	out float4 OutPosition : SV_POSITION
 	)
 {
-	OutPosition = InPosition;
-	OutTexCoord = float4(InTexCoord, InPosition.xy);
+	DrawRectangle(InPosition, InTexCoord, OutPosition, OutTexCoord.xy);
+	OutTexCoord = float4(OutTexCoord.xy, OutPosition.xy);
 
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
 	// texture can be GWhiteTexture which is 1x1. It's important we don't read outside bounds.
@@ -289,15 +289,15 @@ void MainVS_ES2(
 	out float4 OutPosition : SV_POSITION
 	)
 {
-	OutPosition = InPosition;
+	DrawRectangle(InPosition, InTexCoord, OutPosition, OutTexCoord.xy);
+	OutTexCoord = float4(OutTexCoord.xy, OutPosition.xy);
 
-	OutTexCoord = float4(InTexCoord, InPosition.xy);
 	// Avoiding a permutation.
 	if(GrainRandomFull.z > 0.0)
 	{
 		// Framebuffer fetch hardware uses the standard possibly non-full rectangle.
 		// Other hardware gets a full texture source.
-		OutTexCoord.xy = InPosition.xy * float2(0.5,-0.5) + 0.5;
+		OutTexCoord.xy = OutPosition.xy * float2(0.5,-0.5) + 0.5;
 	}
 
 	#if ES2_PROFILE && COMPILER_GLSL_ES2
@@ -308,7 +308,7 @@ void MainVS_ES2(
 	// Fine adjustment is inside the possible non-full viewport in the full resolution texture.
 	OutFineDofGrain.xy = OutTexCoord.xy + PostprocessInput0Size.zw * float2(-0.5,0.5);
 	// Want grain and a second UV based on the knowledge that the source texture has a full viewport.
-	OutFullViewUV.xy = InPosition.xy * float2(0.5,-0.5) + 0.5;
+	OutFullViewUV.xy = OutPosition.xy * float2(0.5,-0.5) + 0.5;
 	#if ES2_PROFILE && COMPILER_GLSL_ES2
 		// This is currently the last pass, so flip the texture on V to match D3D
 		OutFullViewUV.y = 1.0 - OutFullViewUV.y;

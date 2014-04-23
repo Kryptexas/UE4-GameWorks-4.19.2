@@ -158,6 +158,7 @@ void FRCPassPostProcessDOFSetup::Process(FRenderingCompositePassContext& Context
 		SrcRect.Width() + 1, SrcRect.Height() + 1,
 		DestSize,
 		SrcSize,
+		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(DestRenderTarget0.TargetableTexture, DestRenderTarget0.ShaderResourceTexture, false, FResolveParams());
@@ -316,6 +317,7 @@ void FRCPassPostProcessDOFRecombine::Process(FRenderingCompositePassContext& Con
 		HalfResViewRect.Width(), HalfResViewRect.Height(),
 		View.ViewRect.Size(),
 		TexSize,
+		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());

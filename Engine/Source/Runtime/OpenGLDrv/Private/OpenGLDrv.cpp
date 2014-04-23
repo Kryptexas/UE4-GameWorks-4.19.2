@@ -401,7 +401,7 @@ void FOpenGLDynamicRHI::IssueLongGPUTask()
 		RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI(), 0);
 		RHISetRasterizerState(TStaticRasterizerState<FM_Solid,CM_None>::GetRHI());
 
-		TShaderMapRef<FOneColorVS> VertexShader(GetGlobalShaderMap());
+		TShaderMapRef<TOneColorVS<true> > VertexShader(GetGlobalShaderMap());
 		TShaderMapRef<FOpenGLRHILongGPUTaskPS> PixelShader(GetGlobalShaderMap());
 
 		SetGlobalBoundShaderState(LongGPUTaskBoundShaderState, GOpenGLVector4VertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, 0);

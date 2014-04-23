@@ -1037,6 +1037,8 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 	}
 
 	// Draw a quad mapping scene color to the view's render target
+	TShaderMapRef<FPostProcessTonemapVS> VertexShader(GetGlobalShaderMap());
+
 	DrawRectangle(
 		0, 0,
 		View.ViewRect.Width(), View.ViewRect.Height(),
@@ -1044,6 +1046,7 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 		View.ViewRect.Width(), View.ViewRect.Height(),
 		View.ViewRect.Size(),
 		GSceneRenderTargets.SceneColor->GetDesc().Extent,
+		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
@@ -1391,6 +1394,8 @@ void FRCPassPostProcessTonemapES2::Process(FRenderingCompositePassContext& Conte
 	}
 
 	// Draw a quad mapping scene color to the view's render target
+	TShaderMapRef<FPostProcessTonemapVS_ES2> VertexShader(GetGlobalShaderMap());
+
 	DrawRectangle(
 		0, 0,
 		View.ViewRect.Width(), View.ViewRect.Height(),
@@ -1398,6 +1403,7 @@ void FRCPassPostProcessTonemapES2::Process(FRenderingCompositePassContext& Conte
 		View.ViewRect.Width(), View.ViewRect.Height(),
 		View.ViewRect.Size(),
 		GSceneRenderTargets.SceneColor->GetDesc().Extent,
+		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());

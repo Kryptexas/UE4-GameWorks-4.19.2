@@ -218,6 +218,8 @@ void FRCPassPostProcessDownsample::Process(FRenderingCompositePassContext& Conte
 		bHasCleared = true;
 	}
 
+	TShaderMapRef<FPostProcessDownsampleVS> VertexShader(GetGlobalShaderMap());
+
 	switch (RectSource)
 	{
 		case EPostProcessRectSource::GBS_ViewRect:
@@ -239,6 +241,7 @@ void FRCPassPostProcessDownsample::Process(FRenderingCompositePassContext& Conte
 				SrcRect.Width(), SrcRect.Height(),
 				DestSize,
 				SrcSize,
+				*VertexShader,
 				EDRF_UseTriangleOptimization);
 		}
 		break;
@@ -280,6 +283,7 @@ void FRCPassPostProcessDownsample::Process(FRenderingCompositePassContext& Conte
 					SrcRect.Width(), SrcRect.Height(),
 					DestSize,
 					SrcSize,
+					*VertexShader,
 					EDRF_UseTriangleOptimization);
 			}
 		}

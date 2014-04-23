@@ -48,8 +48,7 @@ void MainVS(
 	out FAtmosphereVSOutput Out
 	)
 {
-	Out.OutPosition = InPosition;
-	Out.OutTexCoord = InTexCoord;
+	DrawRectangle(InPosition, InTexCoord, Out.OutPosition, Out.OutTexCoord );
 }
 
 // pixel shader entry point

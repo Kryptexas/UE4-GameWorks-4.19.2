@@ -10,14 +10,24 @@
 /**
  * Vertex shader for rendering a single, constant color.
  */
-class FOneColorVS : public FGlobalShader
+template<bool bUsingNDCPositions=true>
+class TOneColorVS : public FGlobalShader
 {
-	DECLARE_EXPORTED_SHADER_TYPE(FOneColorVS,Global,ENGINE_API);
+	DECLARE_EXPORTED_SHADER_TYPE(TOneColorVS, Global, ENGINE_API);
+
+	/** Default constructor. */
+	TOneColorVS() {}
+
 public:
-	FOneColorVS( )	{ }
-	FOneColorVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
-	:	FGlobalShader( Initializer )
+
+	TOneColorVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		: FGlobalShader(Initializer)
+	{}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
+		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		OutEnvironment.SetDefine(TEXT("USING_NDC_POSITIONS"), (uint32)(bUsingNDCPositions ? 1 : 0));
 	}
 
 	static bool ShouldCache(EShaderPlatform Platform)
