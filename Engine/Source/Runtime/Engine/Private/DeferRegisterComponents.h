@@ -17,10 +17,11 @@ public:
 
 /**
  * Helper class to store components which registration should be deferred until
- * User Construction Script has completed.
- * All USceneComponents that have EComponentMobility::Static flag go here in AddComponent.
+ * the construction script has completed... generally, all components get stuck here
+ * because the construction script could modify something that is important prior to
+ * registration (transform data for physics, etc.).
  */
-class FDeferRegisterStaticComponents : public FGCObject
+class FDeferRegisterComponents : public FGCObject
 {
 	/** Map of actors and their components to register. */
 	TMap<AActor*, TArray<FDeferredComponentInfo> > ComponentsToRegister;
@@ -33,7 +34,7 @@ public:
 	 * @param Actor Actor this component belongs to.
 	 * @param Component Component to register.
 	 */
-	void DeferStaticComponent(AActor* Actor, USceneComponent* Component, EComponentMobility::Type OriginalMobility);
+	void DeferComponentRegistration(AActor* Actor, USceneComponent* Component, EComponentMobility::Type OriginalMobility);
 
 	/**
 	 * Registers all deferred components that belong to the specified actor.
@@ -45,7 +46,7 @@ public:
 	// FGCObject interface
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) OVERRIDE;
 
-	/* Gets the FDeferRegisterStaticComponents singleton. */
-	static FDeferRegisterStaticComponents& Get();
+	/* Gets the FDeferRegisterComponents singleton. */
+	static FDeferRegisterComponents& Get();
 };
 
