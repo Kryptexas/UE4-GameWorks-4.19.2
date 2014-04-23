@@ -1448,7 +1448,7 @@ bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& N
 		bMoved = InternalSetWorldLocationAndRotation(NewLocation, NewRotation, bSkipPhysicsMove);
 
 		// Handle hit notifications.
-		if( BlockingHit.GetActor() != NULL )
+		if (BlockingHit.bBlockingHit)
 		{
 			if (Actor != NULL)
 			{
