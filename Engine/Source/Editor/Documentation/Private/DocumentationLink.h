@@ -20,7 +20,7 @@ public:
 
 	static FString GetHomeUrl()
 	{
-		return GetHomeUrl(FInternationalization::GetCurrentCulture());
+		return GetHomeUrl(FInternationalization::Get().GetCurrentCulture());
 	}
 
 	static FString GetHomeUrl(const TSharedRef<FCulture>& Culture)
@@ -34,7 +34,7 @@ public:
 
 	static FString ToUrl(const FString& Link)
 	{
-		return ToUrl(Link, FInternationalization::GetCurrentCulture());
+		return ToUrl(Link, FInternationalization::Get().GetCurrentCulture());
 	}
 
 	static FString ToUrl(const FString& Link, const TSharedRef<FCulture>& Culture)
@@ -50,11 +50,13 @@ public:
 
 	static FString ToFilePath( const FString& Link )
 	{
-		FString FilePath = ToFilePath(Link, FInternationalization::GetCurrentCulture());
+		FInternationalization& I18N = FInternationalization::Get();
+
+		FString FilePath = ToFilePath(Link, I18N.GetCurrentCulture());
 
 		if (!FPaths::FileExists(FilePath))
 		{
-			const TSharedPtr<FCulture> FallbackCulture = FInternationalization::GetCulture(TEXT("en"));
+			const TSharedPtr<FCulture> FallbackCulture = I18N.GetCulture(TEXT("en"));
 			if (FallbackCulture.IsValid())
 			{
 				const FString FallbackFilePath = ToFilePath(Link, FallbackCulture.ToSharedRef());
@@ -80,12 +82,14 @@ public:
 
 	static FString ToFileUrl( const FString& Link )
 	{
-		TSharedRef<FCulture> Culture = FInternationalization::GetCurrentCulture();
+		FInternationalization& I18N = FInternationalization::Get();
+
+		TSharedRef<FCulture> Culture = I18N.GetCurrentCulture();
 		FString FilePath = ToFilePath(Link, Culture);
 
 		if (!FPaths::FileExists(FilePath))
 		{
-			const TSharedPtr<FCulture> FallbackCulture = FInternationalization::GetCulture(TEXT("en"));
+			const TSharedPtr<FCulture> FallbackCulture = I18N.GetCulture(TEXT("en"));
 			if (FallbackCulture.IsValid())
 			{
 				const FString FallbackFilePath = ToFilePath(Link, FallbackCulture.ToSharedRef());
@@ -110,11 +114,13 @@ public:
 
 	static FString ToSourcePath(const FString& Link)
 	{
-		FString SourcePath = ToSourcePath(Link, FInternationalization::GetCurrentCulture());
+		FInternationalization& I18N = FInternationalization::Get();
+
+		FString SourcePath = ToSourcePath(Link, I18N.GetCurrentCulture());
 
 		if (!FPaths::FileExists(SourcePath))
 		{
-			const TSharedPtr<FCulture> FallbackCulture = FInternationalization::GetCulture(TEXT("en"));
+			const TSharedPtr<FCulture> FallbackCulture = I18N.GetCulture(TEXT("en"));
 			if (FallbackCulture.IsValid())
 			{
 				const FString FallbackSourcePath = ToSourcePath(Link, FallbackCulture.ToSharedRef());

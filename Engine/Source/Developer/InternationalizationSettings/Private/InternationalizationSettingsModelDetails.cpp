@@ -69,15 +69,17 @@ FInternationalizationSettingsModelDetails::~FInternationalizationSettingsModelDe
 
 void FInternationalizationSettingsModelDetails::OnSettingsChanged()
 {
+	FInternationalization& I18N = FInternationalization::Get();
+
 	FString SavedCultureName = Model->GetCultureName();
-	if ( SavedCultureName != FInternationalization::GetCurrentCulture()->GetName() )
+	if ( SavedCultureName != I18N.GetCurrentCulture()->GetName() )
 	{
-		SelectedCulture = FInternationalization::GetCulture(SavedCultureName);
+		SelectedCulture = I18N.GetCulture(SavedCultureName);
 		RequiresRestart = true;
 	}
 	else
 	{
-		SelectedCulture = FInternationalization::GetCurrentCulture();
+		SelectedCulture = I18N.GetCurrentCulture();
 		RequiresRestart = false;
 	}
 	RefreshAvailableLanguages();
@@ -88,6 +90,8 @@ void FInternationalizationSettingsModelDetails::OnSettingsChanged()
 
 void FInternationalizationSettingsModelDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 {
+	FInternationalization& I18N = FInternationalization::Get();
+
 	TArray< TWeakObjectPtr<UObject> > ObjectsBeingCustomized;
 	DetailBuilder.GetObjectsBeingCustomized(ObjectsBeingCustomized);
 	check(ObjectsBeingCustomized.Num() == 1);
@@ -102,14 +106,14 @@ void FInternationalizationSettingsModelDetails::CustomizeDetails( IDetailLayoutB
 
 	// If the saved culture is not the same as the actual current culture, a restart is needed to sync them fully and properly.
 	FString SavedCultureName = Model->GetCultureName();
-	if ( SavedCultureName != FInternationalization::GetCurrentCulture()->GetName() )
+	if ( SavedCultureName != I18N.GetCurrentCulture()->GetName() )
 	{
-			SelectedCulture = FInternationalization::GetCulture(SavedCultureName);
+			SelectedCulture = I18N.GetCulture(SavedCultureName);
 			RequiresRestart = true;
 	}
 	else
 	{
-		SelectedCulture = FInternationalization::GetCurrentCulture();
+		SelectedCulture = I18N.GetCurrentCulture();
 		RequiresRestart = false;
 	}
 
@@ -241,7 +245,7 @@ void FInternationalizationSettingsModelDetails::RefreshAvailableCultures()
 
 	IPlatformFile& PlatformFile = IPlatformFile::GetPlatformPhysical();
 	TArray<FString> AllCultureNames;
-	FInternationalization::GetCultureNames(AllCultureNames);
+	FInternationalization::Get().GetCultureNames(AllCultureNames);
 	const TArray<FString> LocalizationPaths = FPaths::GetEditorLocalizationPaths();
 	for(const auto& LocalizationPath : LocalizationPaths)
 	{
@@ -261,7 +265,7 @@ void FInternationalizationSettingsModelDetails::RefreshAvailableCultures()
 				{
 					for( const auto& CultureName : AllCultureNames )
 					{
-						TSharedPtr<FCulture> Culture = FInternationalization::GetCulture(CultureName);
+						TSharedPtr<FCulture> Culture = FInternationalization::Get().GetCulture(CultureName);
 						if(Culture.IsValid() && !AvailableCultures.Contains(Culture))
 						{
 							// UE localization resource folders use "en-US" style while ICU uses "en_US" style so we replace underscores with dashes here.
@@ -456,7 +460,7 @@ void FInternationalizationSettingsModelDetails::HandleShutdownPostPackagesSaved(
 		check(Model.IsValid());
 		Model->SetCultureName(SelectedCulture->GetName());
 		Model->ShouldLoadLocalizedPropertyNames(FieldNamesCheckBox->IsChecked());
-		if(SelectedCulture != FInternationalization::GetCurrentCulture())
+		if(SelectedCulture != FInternationalization::Get().GetCurrentCulture())
 		{
 			RequiresRestart = true;
 		}

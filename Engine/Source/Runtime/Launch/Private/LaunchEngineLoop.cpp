@@ -2152,7 +2152,6 @@ void FEngineLoop::AppInit( )
 	GWarn = FPlatformOutputDevices::GetWarn();
 
 	BeginInitTextLocalization();
-	FInternationalization::Initialize();
 
 	// Avoiding potential exploits by not exposing command line overrides in the shipping games.
 #if !UE_BUILD_SHIPPING && WITH_EDITORONLY_DATA
@@ -2235,11 +2234,13 @@ void FEngineLoop::AppInit( )
 	// after the above has run we now have the REQUIRED set of engine .INIs  (all of the other .INIs)
 	// that are gotten from .h files' config() are not requires and are dynamically loaded when the .u files are loaded
 
+	FInternationalization& I18N = FInternationalization::Get();
+
 	// Set culture according to configuration now that configs are available.
 #if ENABLE_LOC_TESTING
 	if( FCommandLine::IsInitialized() && FParse::Param(FCommandLine::Get(), TEXT("LEET")) )
 	{
-		FInternationalization::SetCurrentCulture(TEXT("LEET"));
+		I18N.SetCurrentCulture(TEXT("LEET"));
 	}
 	else
 #endif
@@ -2268,10 +2269,10 @@ void FEngineLoop::AppInit( )
 		}
 		else
 		{
-			CultureName = FInternationalization::GetDefaultCulture()->GetName();
+			CultureName = I18N.GetDefaultCulture()->GetName();
 		}
 
-		FInternationalization::SetCurrentCulture(CultureName);
+		I18N.SetCurrentCulture(CultureName);
 	}
 
 #if !UE_BUILD_SHIPPING
@@ -2418,7 +2419,7 @@ void FEngineLoop::AppInit( )
 	
 	if (FParse::Value(FCommandLine::Get(), TEXT("CULTUREFORCOOKING="), CookerCulture, ARRAY_COUNT(CookerCulture)))
 	{
-		FInternationalization::SetCurrentCulture( CookerCulture );
+		FInternationalization::Get().SetCurrentCulture( CookerCulture );
 
 		// Write the culture passed in if first install...
 		if (FParse::Param(FCommandLine::Get(), TEXT("firstinstall")))
@@ -2480,7 +2481,7 @@ void FEngineLoop::AppExit( )
 		GLog->TearDown();
 	}
 
-	FInternationalization::Terminate();
+	FInternationalization::Get().Terminate();
 }
 
 #undef LOCTEXT_NAMESPACE

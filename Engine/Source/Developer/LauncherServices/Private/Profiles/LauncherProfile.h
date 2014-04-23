@@ -438,6 +438,7 @@ public:
 		}
 		
 		BuildConfiguration = FApp::GetBuildConfiguration();
+		FInternationalization& I18N = FInternationalization::Get();
 
 		// default build settings
 		BuildGame = false;
@@ -449,7 +450,7 @@ public:
 		CookIncremental = true;
 		CookUnversioned = false;
 		CookedCultures.Reset();
-		CookedCultures.Add(FInternationalization::GetCurrentCulture()->GetName());
+		CookedCultures.Add(I18N.GetCurrentCulture()->GetName());
 		CookedMaps.Reset();
 		CookedPlatforms.Reset();
         ForceClose = false;
@@ -471,7 +472,7 @@ public:
 		// default launch settings
 		LaunchMode = ELauncherProfileLaunchModes::DoNotLaunch;
 		DefaultLaunchRole->SetCommandLine(FString());
-		DefaultLaunchRole->SetInitialCulture(FInternationalization::GetCurrentCulture()->GetName());
+		DefaultLaunchRole->SetInitialCulture(I18N.GetCurrentCulture()->GetName());
 		DefaultLaunchRole->SetInitialMap(FString());
 		DefaultLaunchRole->SetName(TEXT("Default Role"));
 		DefaultLaunchRole->SetInstanceType(ELauncherProfileRoleInstanceTypes::StandaloneClient);

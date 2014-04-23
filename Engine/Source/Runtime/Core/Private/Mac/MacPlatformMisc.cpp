@@ -158,7 +158,7 @@ struct MacApplicationInfo
 		
 		AppPath = FPlatformProcess::GenerateApplicationPath(FApp::GetName(), FApp::GetBuildConfiguration());
 		
-		LCID = FString::Printf(TEXT("%d"), FInternationalization::GetCurrentCulture()->GetLCID());
+		LCID = FString::Printf(TEXT("%d"), FInternationalization::Get().GetCurrentCulture()->GetLCID());
 	}
 	
 	char AppNameUTF8[PATH_MAX+1];
@@ -466,7 +466,7 @@ void FMacPlatformMisc::SubmitErrorReport( const TCHAR* InErrorHist, EErrorReport
 			FCString::Strcpy(PlatformName, TEXT("Mac 32-bit"));
 #endif	//PLATFORM_64BITS
 			TCHAR CultureName[10];
-			FCString::Strcpy(CultureName, *FInternationalization::GetCurrentCulture()->GetName());
+			FCString::Strcpy(CultureName, *FInternationalization::Get().GetCurrentCulture()->GetName());
 			TCHAR SystemTime[256];
 			FCString::Strcpy(SystemTime, *FDateTime::Now().ToString());
 			TCHAR EngineVersionStr[32];

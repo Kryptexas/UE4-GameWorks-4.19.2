@@ -27,67 +27,66 @@
 class FInternationalization
 {
 public:
+	static CORE_API FInternationalization& Get();
 
 	static CORE_API FText ForUseOnlyByLocMacroAndGraphNodeTextLiterals_CreateText( const TCHAR* InTextLiteral, const TCHAR* Namespace, const TCHAR* Key )
 	{
 		return FText( InTextLiteral, Namespace, Key );
 	}
 
-	static CORE_API void GetTimeZonesIDs(TArray<FString>& TimeZonesIDs);
+	CORE_API void GetTimeZonesIDs(TArray<FString>& TimeZonesIDs);
 
 	//Set the current culture by name
-	static CORE_API void SetCurrentCulture(const FString& Name);
+	CORE_API void SetCurrentCulture(const FString& Name);
 
 	//@return the current culture
-	static CORE_API TSharedRef< FCulture > GetCurrentCulture();
+	CORE_API TSharedRef< FCulture > GetCurrentCulture();
 
 	//@return culture object by given name, or NULL if not found
-	static CORE_API TSharedPtr< FCulture > GetCulture(const FString& Name);
+	CORE_API TSharedPtr< FCulture > GetCulture(const FString& Name);
 
 	//@return the default culture
-	static CORE_API TSharedRef< FCulture > GetDefaultCulture()
+	CORE_API TSharedRef< FCulture > GetDefaultCulture()
 	{
 		return DefaultCulture.ToSharedRef();
 	}
 
 	//@return the invariant culture
-	static CORE_API TSharedRef< FCulture > GetInvariantCulture()
+	CORE_API TSharedRef< FCulture > GetInvariantCulture()
 	{
 		return InvariantCulture.ToSharedRef();
 	}
 
-	static CORE_API void Initialize();
-	static CORE_API void Terminate();
+	CORE_API void Initialize();
+	CORE_API void Terminate();
 
-	static CORE_API bool IsInitialized() {return bIsInitialized;}
+	CORE_API bool IsInitialized() {return bIsInitialized;}
 
 #if ENABLE_LOC_TESTING
 	static CORE_API FString& Leetify(FString& SourceString);
 #endif
 
-	static CORE_API void GetCultureNames(TArray<FString>& CultureNames);
+	CORE_API void GetCultureNames(TArray<FString>& CultureNames);
 
 private:
+	FInternationalization();
+
 	//@todo how are we going to initialize the list of cultures? below is temporary
-	static CORE_API void PopulateAllCultures(void);
+	CORE_API void PopulateAllCultures(void);
 
 	//@return index of a culture by given name, or -1 if not found
-	static CORE_API int32 GetCultureIndex(const FString& Name);
+	CORE_API int32 GetCultureIndex(const FString& Name);
 
 private:
-	static bool bIsInitialized;
+	static FInternationalization* Instance;
+	bool bIsInitialized;
 
-	struct FInternationalizationLifetimeObject
-	{
-		FInternationalizationLifetimeObject();
-	} static InternationalizationLifetimeObject;
+	TArray< TSharedRef< FCulture > > AllCultures;
 
-	static CORE_API TArray< TSharedRef< FCulture > > AllCultures;
+	int CurrentCultureIndex;
 
-	static CORE_API int CurrentCultureIndex;
-
-	static CORE_API TSharedPtr< FCulture > DefaultCulture;
-	static CORE_API TSharedPtr< FCulture > InvariantCulture;
+	TSharedPtr< FCulture > DefaultCulture;
+	TSharedPtr< FCulture > InvariantCulture;
 };
 
 #undef LOC_DEFINE_REGION

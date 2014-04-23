@@ -13,8 +13,9 @@
 
 FText FText::AsDate(const FDateTime::FDate& Date, const EDateTimeStyle::Type DateStyle, const TSharedPtr<FCulture>& TargetCulture)
 {
-	checkf(FInternationalization::IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
-	TSharedPtr<FCulture> Culture = TargetCulture.IsValid() ? TargetCulture : FInternationalization::GetCurrentCulture();
+	FInternationalization& I18N = FInternationalization::Get();
+	checkf(I18N.IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
+	TSharedPtr<FCulture> Culture = TargetCulture.IsValid() ? TargetCulture : I18N.GetCurrentCulture();
 
 	FDateTime DateTime(Date.Year, Date.Month, Date.Day);
 	int32 UNIXTimestamp = DateTime.ToUnixTimestamp();
@@ -33,8 +34,9 @@ FText FText::AsDate(const FDateTime::FDate& Date, const EDateTimeStyle::Type Dat
 
 FText FText::AsTime(const FDateTime::FTime& Time, const EDateTimeStyle::Type TimeStyle, const FString& TimeZone, const TSharedPtr<FCulture>& TargetCulture)
 {
-	checkf(FInternationalization::IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
-	TSharedPtr<FCulture> Culture = TargetCulture.IsValid() ? TargetCulture : FInternationalization::GetCurrentCulture();
+	FInternationalization& I18N = FInternationalization::Get();
+	checkf(I18N.IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
+	TSharedPtr<FCulture> Culture = TargetCulture.IsValid() ? TargetCulture : I18N.GetCurrentCulture();
 
 	FDateTime DateTime(1970, 1, 1, Time.Hour, Time.Minute, Time.Second, Time.Millisecond);
 	int32 UNIXTimestamp = DateTime.ToUnixTimestamp();
@@ -53,8 +55,9 @@ FText FText::AsTime(const FDateTime::FTime& Time, const EDateTimeStyle::Type Tim
 
 FText FText::AsTime(const FTimespan& Time, const TSharedPtr<FCulture>& TargetCulture)
 {
-	checkf(FInternationalization::IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
-	TSharedPtr<FCulture> Culture = TargetCulture.IsValid() ? TargetCulture : FInternationalization::GetCurrentCulture();
+	FInternationalization& I18N = FInternationalization::Get();
+	checkf(I18N.IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
+	TSharedPtr<FCulture> Culture = TargetCulture.IsValid() ? TargetCulture : I18N.GetCurrentCulture();
 
 	FText TimespanFormatPattern = NSLOCTEXT("Timespan", "FormatPattern", "{Hours}:{Minutes}:{Seconds}");
 
@@ -76,8 +79,9 @@ FText FText::AsTime(const FTimespan& Time, const TSharedPtr<FCulture>& TargetCul
 
 FText FText::AsDateTime(const FDateTime& DateTime, const EDateTimeStyle::Type DateStyle, const EDateTimeStyle::Type TimeStyle, const FString& TimeZone, const TSharedPtr<FCulture>& TargetCulture)
 {
-	checkf(FInternationalization::IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
-	TSharedPtr<FCulture> Culture = TargetCulture.IsValid() ? TargetCulture : FInternationalization::GetCurrentCulture();
+	FInternationalization& I18N = FInternationalization::Get();
+	checkf(I18N.IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
+	TSharedPtr<FCulture> Culture = TargetCulture.IsValid() ? TargetCulture : I18N.GetCurrentCulture();
 
 	int32 UNIXTimestamp = DateTime.ToUnixTimestamp();
 	UDate ICUDate = static_cast<double>(UNIXTimestamp) * U_MILLIS_PER_SECOND;
@@ -95,7 +99,7 @@ FText FText::AsDateTime(const FDateTime& DateTime, const EDateTimeStyle::Type Da
 
 FText FText::AsMemory(SIZE_T NumBytes, const FNumberFormattingOptions* const Options, const TSharedPtr<FCulture>& TargetCulture)
 {
-	checkf(FInternationalization::IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
+	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
 	FFormatNamedArguments Args;
 
 	if (NumBytes < 1024)
@@ -122,7 +126,7 @@ int32 FText::CompareTo( const FText& Other, const ETextComparisonLevel::Type Com
 {
 	UErrorCode ICUStatus = U_ZERO_ERROR;
 
-	const TSharedRef<const icu::Collator> Collator( FInternationalization::GetCurrentCulture()->Implementation->GetCollator(ComparisonLevel) );
+	const TSharedRef<const icu::Collator> Collator( FInternationalization::Get().GetCurrentCulture()->Implementation->GetCollator(ComparisonLevel) );
 
 	icu::UnicodeString A;
 	ICUUtilities::Convert(DisplayString.Get(), A);
@@ -142,7 +146,7 @@ bool FText::EqualTo( const FText& Other, const ETextComparisonLevel::Type Compar
 {
 	UErrorCode ICUStatus = U_ZERO_ERROR;
 
-	const TSharedRef<const icu::Collator> Collator( FInternationalization::GetCurrentCulture()->Implementation->GetCollator(ComparisonLevel) );
+	const TSharedRef<const icu::Collator> Collator( FInternationalization::Get().GetCurrentCulture()->Implementation->GetCollator(ComparisonLevel) );
 
 	icu::UnicodeString A;
 	ICUUtilities::Convert(DisplayString.Get(), A);
@@ -174,7 +178,7 @@ private:
 public:
 	FSortPredicateImplementation(const ETextComparisonLevel::Type InComparisonLevel)
 		: ComparisonLevel(InComparisonLevel)
-		, ICUCollator(FInternationalization::GetCurrentCulture()->Implementation->GetCollator(InComparisonLevel))
+		, ICUCollator(FInternationalization::Get().GetCurrentCulture()->Implementation->GetCollator(InComparisonLevel))
 	{
 	}
 
@@ -247,7 +251,7 @@ void FText::GetFormatPatternParameters(const FText& Pattern, TArray<FString>& Pa
 
 FText FText::Format(const FText& Pattern, const FFormatNamedArguments& Arguments)
 {
-	checkf(FInternationalization::IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
+	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
 	//SCOPE_CYCLE_COUNTER( STAT_TextFormat );
 
 	const bool bEnableErrorResults = ENABLE_TEXT_ERROR_CHECKING_RESULTS && bEnableErrorCheckingResults;
@@ -326,7 +330,7 @@ FText FText::Format(const FText& Pattern, const FFormatNamedArguments& Arguments
 
 FText FText::Format(const FText& Pattern, const FFormatOrderedArguments& Arguments)
 {
-	checkf(FInternationalization::IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
+	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
 	//SCOPE_CYCLE_COUNTER( STAT_TextFormat );
 
 	const bool bEnableErrorResults = ENABLE_TEXT_ERROR_CHECKING_RESULTS && bEnableErrorCheckingResults;
@@ -404,7 +408,7 @@ FText FText::Format(const FText& Pattern, const FFormatOrderedArguments& Argumen
 
 FText FText::Format(const FText& Pattern, const TArray< FFormatArgumentData > InArguments)
 {
-	checkf(FInternationalization::IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
+	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
 	//SCOPE_CYCLE_COUNTER( STAT_TextFormat );
 
 	const bool bEnableErrorResults = ENABLE_TEXT_ERROR_CHECKING_RESULTS && bEnableErrorCheckingResults;

@@ -160,7 +160,7 @@ bool UGenerateTextLocalizationReportCommandlet::ProcessWordCountReport(const FSt
 
 	for(int32 i = 0; i < CulturesToGenerate.Num(); ++i)
 	{
-		if( FInternationalization::GetCulture( CulturesToGenerate[i] ).IsValid() )
+		if( FInternationalization::Get().GetCulture( CulturesToGenerate[i] ).IsValid() )
 		{
 			UE_LOG(LogGenerateTextLocalizationReportCommandlet, Verbose, TEXT("Specified culture is not a valid runtime culture, but may be a valid base language: %s"), *(CulturesToGenerate[i]));
 		}

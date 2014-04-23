@@ -745,7 +745,7 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 		FString CultureName;
 		if( FParse::Value(Str,TEXT("CULTURE="), CultureName) )
 		{
-			FInternationalization::SetCurrentCulture( CultureName );
+			FInternationalization::Get().SetCurrentCulture( CultureName );
 		}
 	}
 
@@ -2923,7 +2923,7 @@ bool UUnrealEdEngine::Exec_Mode( const TCHAR* Str, FOutputDevice& Ar )
 	FString CultureName;
 	if( FParse::Value(Str,TEXT("CULTURE="), CultureName) )
 	{
-		FInternationalization::SetCurrentCulture( CultureName );
+		FInternationalization::Get().SetCurrentCulture( CultureName );
 	}
 
 	FString ConfigFilePath;

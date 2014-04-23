@@ -49,13 +49,14 @@ namespace
 
 bool FTextTest::RunTest (const FString& Parameters)
 {
+	FInternationalization& I18N = FInternationalization::Get();
 	const bool OriginalEnableErrorCheckingValue = FText::GetEnableErrorCheckingResults();
 	const bool OriginalSuppressWarningsValue = FText::GetSuppressWarnings();
-	const FString OriginalCulture = FInternationalization::GetCurrentCulture()->GetName();
+	const FString OriginalCulture = I18N.GetCurrentCulture()->GetName();
 
 	FText::SetEnableErrorCheckingResults(true);
 	FText::SetSuppressWarnings(true);
-	FInternationalization::SetCurrentCulture("en-US");
+	I18N.SetCurrentCulture("en-US");
 
 	FText ArgText0 = FText::FromString(TEXT("Arg0"));
 	FText ArgText1 = FText::FromString(TEXT("Arg1"));
@@ -322,7 +323,7 @@ bool FTextTest::RunTest (const FString& Parameters)
 	// Sort Testing
 	// French
 	{
-		FInternationalization::SetCurrentCulture("fr");
+		I18N.SetCurrentCulture("fr");
 		TArray<FText> CorrectlySortedValues;
 		CorrectlySortedValues.Add( FText::FromString( TEXT("cote") ) );
 		CorrectlySortedValues.Add( FText::FromString( TEXT("coté") ) );
@@ -354,14 +355,14 @@ bool FTextTest::RunTest (const FString& Parameters)
 			}
 			if( !Identical )
 			{
-				//currently failing AddError(FString::Printf(TEXT("Sort order is wrong for culture (%s)."), *FInternationalization::GetCurrentCulture()->GetEnglishName()));
+				//currently failing AddError(FString::Printf(TEXT("Sort order is wrong for culture (%s)."), *FInternationalization::Get().GetCurrentCulture()->GetEnglishName()));
 			}
 		}
 	}
 
 	// French Canadian
 	{
-		FInternationalization::SetCurrentCulture("fr-CA");
+		I18N.SetCurrentCulture("fr-CA");
 		TArray<FText> CorrectlySortedValues;
 		CorrectlySortedValues.Add( FText::FromString( TEXT("cote") ) );
 		CorrectlySortedValues.Add( FText::FromString( TEXT("côte") ) );
@@ -390,7 +391,7 @@ bool FTextTest::RunTest (const FString& Parameters)
 			}
 			if( !Identical )
 			{
-				//currently failing AddError(FString::Printf(TEXT("Sort order is wrong for culture (%s)."), *FInternationalization::GetCurrentCulture()->GetEnglishName()));
+				//currently failing AddError(FString::Printf(TEXT("Sort order is wrong for culture (%s)."), *FInternationalization::Get().GetCurrentCulture()->GetEnglishName()));
 			}
 		}
 	}
@@ -421,7 +422,7 @@ bool FTextTest::RunTest (const FString& Parameters)
 		AddError( TEXT("FromString should never produce a Transient Text") );
 	}
 
-	FInternationalization::SetCurrentCulture(OriginalCulture);
+	I18N.SetCurrentCulture(OriginalCulture);
 
 	return true;
 }

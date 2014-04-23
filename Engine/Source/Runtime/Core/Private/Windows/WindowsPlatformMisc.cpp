@@ -413,7 +413,7 @@ void FWindowsPlatformMisc::SubmitErrorReport( const TCHAR* InErrorHist, EErrorRe
 			FCString::Strcpy(PlatformName, TEXT("PC 32-bit"));
 #endif	//PLATFORM_64BITS
 			TCHAR CultureName[10];
-			FCString::Strcpy(CultureName, *FInternationalization::GetDefaultCulture()->GetName());
+			FCString::Strcpy(CultureName, *FInternationalization::Get().GetDefaultCulture()->GetName());
 			TCHAR SystemTime[256];
 			FCString::Strcpy(SystemTime, *FDateTime::Now().ToString());
 			TCHAR EngineVersionStr[32];

@@ -131,7 +131,7 @@ void SDocumentationToolTip::ConstructSimpleTipContent()
 		{
 			if ( GEditor->EditorUserSettings->bDisplayDocumentationLink && FSlateApplication::Get().SupportsSourceAccess() )
 			{
-				FString DocPath = FDocumentationLink::ToSourcePath( DocumentationLink, FInternationalization::GetCurrentCulture() );
+				FString DocPath = FDocumentationLink::ToSourcePath( DocumentationLink, FInternationalization::Get().GetCurrentCulture() );
 				if ( !FPaths::FileExists(DocPath) )
 				{
 					DocPath = FPaths::ConvertRelativePathToFull(DocPath);
@@ -283,7 +283,7 @@ void SDocumentationToolTip::ConstructFullTipContent()
 				[
 					SNew( SHyperlink )
 						.Text( NSLOCTEXT( "SToolTip", "EditDocumentationMessage_Edit", "edit" ) )
-						.OnNavigate_Static(&Local::EditSource, FPaths::ConvertRelativePathToFull(FDocumentationLink::ToSourcePath(DocumentationLink, FInternationalization::GetCurrentCulture())) + TEXT("|") + FString::FromInt(Excerpts[ExcerptIndex].LineNumber))
+						.OnNavigate_Static(&Local::EditSource, FPaths::ConvertRelativePathToFull(FDocumentationLink::ToSourcePath(DocumentationLink, FInternationalization::Get().GetCurrentCulture())) + TEXT("|") + FString::FromInt(Excerpts[ExcerptIndex].LineNumber))
 				];
 			}
 		}

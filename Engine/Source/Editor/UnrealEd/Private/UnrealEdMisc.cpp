@@ -1023,7 +1023,9 @@ FString FUnrealEdMisc::GenerateURL(const FString& InUDNPage)
 {
 	if( InUDNPage.Len() > 0 )
 	{
-		const FString PageURL = FString::Printf( TEXT( "%s/Editor/LevelEditing/MapErrors/index.html" ), *FInternationalization::GetCurrentCulture()->GetUnrealLegacyThreeLetterISOLanguageName() );
+		FInternationalization& I18N = FInternationalization::Get();
+
+		const FString PageURL = FString::Printf( TEXT( "%s/Editor/LevelEditing/MapErrors/index.html" ), *I18N.GetCurrentCulture()->GetUnrealLegacyThreeLetterISOLanguageName() );
 		const FString BookmarkURL = FString::Printf( TEXT( "#%s" ), *InUDNPage );
 
 		// Developers can browse documentation included with the engine distribution, check for file presence...
@@ -1035,7 +1037,7 @@ FString FUnrealEdMisc::GenerateURL(const FString& InUDNPage)
 		// ... if it's not present, fallback to using the online version, if the full URL is provided...
 		else if(FUnrealEdMisc::Get().GetURL( TEXT("MapErrorURL"), MapErrorURL, true ) && MapErrorURL.EndsWith( TEXT( ".html" ) ))
 		{	
-			MapErrorURL.ReplaceInline( TEXT( "/INT/" ), *FString::Printf( TEXT( "/%s/" ), *FInternationalization::GetCurrentCulture()->GetUnrealLegacyThreeLetterISOLanguageName() ) );
+			MapErrorURL.ReplaceInline( TEXT( "/INT/" ), *FString::Printf( TEXT( "/%s/" ), *I18N.GetCurrentCulture()->GetUnrealLegacyThreeLetterISOLanguageName() ) );
 			MapErrorURL += BookmarkURL;
 		}
 		// ...otherwise, attempt to create the URL from what we know here...

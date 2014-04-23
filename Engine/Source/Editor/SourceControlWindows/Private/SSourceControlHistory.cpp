@@ -510,14 +510,14 @@ public:
 				.AutoWidth()
 				[
 					SNew(STextBlock)
-					.Text( FText::AsNumber( RevisionListItem->RevisionNumber, NULL, FInternationalization::GetInvariantCulture() ) )
+					.Text( FText::AsNumber( RevisionListItem->RevisionNumber, NULL, FInternationalization::Get().GetInvariantCulture() ) )
 				];	
 		}
 		else if (ColumnName == TEXT("Changelist"))
 		{
 			return
 				SNew(STextBlock) 
-				.Text( FText::AsNumber( RevisionListItem->ChangelistNumber, NULL, FInternationalization::GetInvariantCulture() ) ) ;
+				.Text( FText::AsNumber( RevisionListItem->ChangelistNumber, NULL, FInternationalization::Get().GetInvariantCulture() ) ) ;
 		}
 		else if (ColumnName == TEXT("Date"))
 		{

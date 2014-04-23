@@ -7,34 +7,34 @@
 
 FText FText::AsDate(const FDateTime::FDate& Date, const EDateTimeStyle::Type DateStyle, const TSharedPtr<FCulture>& TargetCulture)
 {
-	checkf(FInternationalization::IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
+	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
 	FDateTime DateTime(Date.Year, Date.Month, Date.Day);
 	return FText::FromString( DateTime.ToString( TEXT("%Y.%m.%d") ) );
 }
 
 FText FText::AsTime(const FDateTime::FTime& Time, const EDateTimeStyle::Type TimeStyle, const FString& TimeZone, const TSharedPtr<FCulture>& TargetCulture)
 {
-	checkf(FInternationalization::IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
+	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
 	FDateTime DateTime(1, 1, 1, Time.Hour, Time.Minute, Time.Second, Time.Millisecond);
 	return FText::FromString( DateTime.ToString( TEXT("%H.%M.%S") ) );
 }
 
 FText FText::AsTime(const FTimespan& Time, const TSharedPtr<FCulture>& TargetCulture)
 {
-	checkf(FInternationalization::IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
+	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
 	FDateTime DateTime(Time.GetTicks());
 	return FText::FromString( DateTime.ToString( TEXT("%H.%M.%S") ) );
 }
 
 FText FText::AsDateTime(const FDateTime& DateTime, const EDateTimeStyle::Type DateStyle, const EDateTimeStyle::Type TimeStyle, const FString& TimeZone, const TSharedPtr<FCulture>& TargetCulture)
 {
-	checkf(FInternationalization::IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
+	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
 	return FText::FromString( DateTime.ToString( TEXT("%Y.%m.%d-%H.%M.%S") ) );
 }
 
 FText FText::AsMemory(SIZE_T NumBytes, const FNumberFormattingOptions* const Options, const TSharedPtr<FCulture>& TargetCulture)
 {
-	checkf(FInternationalization::IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
+	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
 	FFormatNamedArguments Args;
 
 	if (NumBytes < 1024)
@@ -242,7 +242,7 @@ public:
 
 	static FText Format(const FText& Pattern, FGetArgumentValue GetArgumentValue)
 	{
-		checkf(FInternationalization::IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
+		checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
 		//SCOPE_CYCLE_COUNTER( STAT_TextFormat );
 
 		const FString& PatternString = Pattern.ToString();
@@ -414,7 +414,7 @@ void FText::GetFormatPatternParameters(const FText& Pattern, TArray<FString>& Pa
 
 FText FText::Format(const FText& Pattern, const FFormatNamedArguments& Arguments)
 {
-	checkf(FInternationalization::IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
+	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
 	//SCOPE_CYCLE_COUNTER( STAT_TextFormat );
 
 	struct FArgumentGetter
@@ -433,7 +433,7 @@ FText FText::Format(const FText& Pattern, const FFormatNamedArguments& Arguments
 
 FText FText::Format(const FText& Pattern, const FFormatOrderedArguments& Arguments)
 {
-	checkf(FInternationalization::IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
+	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
 	//SCOPE_CYCLE_COUNTER( STAT_TextFormat );
 
 	struct FArgumentGetter
@@ -457,7 +457,7 @@ FText FText::Format(const FText& Pattern, const FFormatOrderedArguments& Argumen
 
 FText FText::Format(const FText& Pattern, const TArray< FFormatArgumentData > InArguments)
 {
-	checkf(FInternationalization::IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
+	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
 	//SCOPE_CYCLE_COUNTER( STAT_TextFormat );
 
 	struct FArgumentGetter

@@ -165,8 +165,10 @@ void FTextLocalizationManager::FLocalizationEntryTracker::ReadFromArchive(FArchi
 
 void FTextLocalizationManager::LoadResources(const bool ShouldLoadEditor, const bool ShouldLoadGame)
 {
-	const FString& CultureName = FInternationalization::GetCurrentCulture()->GetName();
-	const FString& BaseLanguageName = FInternationalization::GetCurrentCulture()->GetTwoLetterISOLanguageName();
+	FInternationalization& I18N = FInternationalization::Get();
+
+	const FString& CultureName = I18N.GetCurrentCulture()->GetName();
+	const FString& BaseLanguageName = I18N.GetCurrentCulture()->GetTwoLetterISOLanguageName();
 
 #if ENABLE_LOC_TESTING
 	if(CultureName == TEXT("LEET"))
@@ -364,7 +366,7 @@ TSharedRef<FString> FTextLocalizationManager::GetString(const FString& Namespace
 	}
 
 #if ENABLE_LOC_TESTING
-	const bool bShouldLEETIFYAll = bIsInitialized && FInternationalization::GetCurrentCulture()->GetName() == TEXT("LEET");
+	const bool bShouldLEETIFYAll = bIsInitialized && FInternationalization::Get().GetCurrentCulture()->GetName() == TEXT("LEET");
 	static const bool bShouldLEETIFYUnlocalizedString = FCommandLine::IsInitialized() && FParse::Param(FCommandLine::Get(), TEXT("LEETIFYUnlocalized"));
 #endif
 
@@ -493,6 +495,8 @@ namespace
 
 void FTextLocalizationManager::RegenerateResources(const FString& ConfigFilePath)
 {
+	FInternationalization& I18N = FInternationalization::Get();
+
 	FString SectionName = TEXT("RegenerateResources");
 
 	// Get source path.
@@ -529,9 +533,9 @@ void FTextLocalizationManager::RegenerateResources(const FString& ConfigFilePath
 
 	TArray<FString> LocaleNames;
 	{
-		const FString CultureName = FInternationalization::GetCurrentCulture()->GetName();
+		const FString CultureName = I18N.GetCurrentCulture()->GetName();
 		LocaleNames.Add(CultureName);
-		const FString BaseLanguageName = FInternationalization::GetCurrentCulture()->GetTwoLetterISOLanguageName();
+		const FString BaseLanguageName = I18N.GetCurrentCulture()->GetTwoLetterISOLanguageName();
 		if(BaseLanguageName != CultureName)
 		{
 			LocaleNames.Add(BaseLanguageName);

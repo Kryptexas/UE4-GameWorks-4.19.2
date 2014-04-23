@@ -71,9 +71,10 @@ bool FNumberFormattingRulesTest::RunTest (const FString& Parameters)
 	int32 Int32NegativeValue = -12345;
 	int64 Int64NegativeValue = -12345;
 
-	const FString OriginalCulture = FInternationalization::GetCurrentCulture()->GetName();
+	FInternationalization& I18N = FInternationalization::Get();
+	const FString OriginalCulture = I18N.GetCurrentCulture()->GetName();
 
-	FInternationalization::SetCurrentCulture("en-US");
+	I18N.SetCurrentCulture("en-US");
 
 	Test(this, TEXT("Convert a Double to a number formatted correct for en-US"),			FText::AsNumber(DoubleValue),			FText::FromString(TEXT("12,345,678.901")));
 	Test(this, TEXT("Convert a Float to a number formatted correct for en-US"),			FText::AsNumber(FloatValue),			FText::FromString(TEXT("1,234.567")));
@@ -231,7 +232,7 @@ bool FNumberFormattingRulesTest::RunTest (const FString& Parameters)
 	Test(this, TEXT("Convert a Negative Double to a percent formatted correct for en-US"),	FText::AsPercent(DoubleNegativeValue),	FText::FromString(TEXT("-1,234,567,890%")));
 	Test(this, TEXT("Convert a Negative Float to a percent formatted correct for en-US"),		FText::AsPercent(FloatNegativeValue),	FText::FromString(TEXT("-123,457%")));
 
-	FInternationalization::SetCurrentCulture("hi-IN");
+	I18N.SetCurrentCulture("hi-IN");
 
 	Test(this, TEXT("Convert a Double to a number formatted correct for hi-IN"),			FText::AsNumber(DoubleValue),			FText::FromString(TEXT("1,23,45,678.901")));
 	Test(this, TEXT("Convert a Float to a number formatted correct for hi-IN"),			FText::AsNumber(FloatValue),			FText::FromString(TEXT("1,234.567")));
@@ -252,7 +253,7 @@ bool FNumberFormattingRulesTest::RunTest (const FString& Parameters)
 
 #if UE_ENABLE_ICU
 	{
-		const TSharedPtr<FCulture>& InvariantCulture = FInternationalization::GetInvariantCulture();
+		const TSharedPtr<FCulture>& InvariantCulture = I18N.GetInvariantCulture();
 		Test(this, TEXT("Convert a Double to a number formatted correct for hi-IN but as invariant"),				FText::AsNumber(DoubleValue, NULL, InvariantCulture),			FText::FromString(TEXT("12345678.901")));
 		Test(this, TEXT("Convert a Float to a number formatted correct for hi-IN but as invariant"),				FText::AsNumber(FloatValue, NULL, InvariantCulture),			FText::FromString(TEXT("1234.567017")));
 		Test(this, TEXT("Convert a Negative Double to a number formatted correct for hi-IN but as invariant"),	FText::AsNumber(DoubleNegativeValue, NULL, InvariantCulture),	FText::FromString(TEXT("-12345678.901")));
@@ -296,7 +297,7 @@ bool FNumberFormattingRulesTest::RunTest (const FString& Parameters)
 	Test(this, TEXT("Convert a Negative Double to a percent formatted correct for hi-IN"),	FText::AsPercent(DoubleNegativeValue),	FText::FromString(TEXT("-1,23,45,67,890%")));
 	Test(this, TEXT("Convert a Negative Float to a percent formatted correct for hi-IN"),		FText::AsPercent(FloatNegativeValue),	FText::FromString(TEXT("-1,23,457%")));
 
-	FInternationalization::SetCurrentCulture( OriginalCulture );
+	I18N.SetCurrentCulture( OriginalCulture );
 
 	FText Number = FText::AsNumber(Int64NegativeValue);
 	FText Percent = FText::AsPercent(DoubleValue);
