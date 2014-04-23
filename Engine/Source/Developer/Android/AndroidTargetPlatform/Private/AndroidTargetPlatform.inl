@@ -327,13 +327,11 @@ inline bool FAndroidTargetPlatform::HandleTicker( float DeltaTime )
 
 			const FAndroidDeviceInfo& DeviceInfo = DeviceIt.Value();
 
-#if 0	// todo android: really need to filter devices differently based on deploy vs. package
 			// check if this platform is supported by the extensions and version
 			if (!SupportedByExtensionsString(DeviceInfo.GLESExtensions, DeviceInfo.GLESVersion))
 			{
 				continue;
 			}
-#endif
 
 			// create target device
 			FAndroidTargetDevicePtr& Device = Devices.Add(DeviceInfo.SerialNumber);
