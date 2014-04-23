@@ -39,6 +39,9 @@ public:
 	/** Export to PortableObject format (.po) */
 	TSharedPtr<FUICommandInfo> ExportToPortableObjectFormat;
 
+	/** Import from PortableObject format (.po) */
+	TSharedPtr<FUICommandInfo> ImportFromPortableObjectFormat;
+
 	/** Open the tab for searching */
 	TSharedPtr<FUICommandInfo> OpenSearchTab;
 

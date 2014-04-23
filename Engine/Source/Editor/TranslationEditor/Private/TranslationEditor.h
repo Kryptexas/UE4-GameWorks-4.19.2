@@ -90,6 +90,8 @@ private:
 	TSharedRef<SDockTab> SpawnTab_History( const FSpawnTabArgs& Args );
 	/**	Spawns the search tab */
 	TSharedRef<SDockTab> SpawnTab_Search( const FSpawnTabArgs& Args );
+	/**	Spawns the Changed on Import tab */
+	TSharedRef<SDockTab> SpawnTab_ChangedOnImport(const FSpawnTabArgs& Args);
 
 	/** Map actions for the UI_COMMANDS */
 	void MapActions();
@@ -150,6 +152,9 @@ private:
 	/** Update content when a new translation unit selection is made in the Search PropertyTable */
 	void UpdateSearchSelection();
 
+	/** Update content when a new translation unit selection is made in the ChangedOnImport PropertyTable */
+	void UpdateChangedOnImportSelection();
+
 	/** Update content when a new context selection is made */
 	void UpdateContextSelection();
 
@@ -158,6 +163,9 @@ private:
 
 	/** Called when "Export to .PO" is clicked for this asset */
 	void ExportToPortableObjectFormat_Execute();
+
+	/** Called when "Import from .PO" is clicked for this asset */
+	void ImportFromPortableObjectFormat_Execute();
 
 	/** Open the search tab */
 	void OpenSearchTab_Execute();
@@ -182,6 +190,8 @@ private:
 	static const FName HistoryTabId;
 	/**	The tab id for the search tab */
 	static const FName SearchTabId;
+	/**	The tab id for the changed on import tab */
+	static const FName ChangedOnImportTabId;
 
 	/** The Untranslated Tab */
 	TWeakPtr<SDockTab> UntranslatedTab;
@@ -191,6 +201,8 @@ private:
 	TWeakPtr<SDockTab> CompletedTab;
 	/** The Search Tab */
 	TWeakPtr<SDockTab> SearchTab;
+	/** The Changed On Import Tab */
+	TWeakPtr<SDockTab> ChangedOnImportTab;
 
 	/** Search box for searching the source and translation strings */
 	TSharedPtr<SSearchBox> SearchBox;
@@ -212,6 +224,8 @@ private:
 	TSharedPtr< class IPropertyTable > HistoryPropertyTable;
 	/** The table of search results */
 	TSharedPtr< class IPropertyTable > SearchPropertyTable;
+	/** The table of changed on import results */
+	TSharedPtr< class IPropertyTable > ChangedOnImportPropertyTable;
 
 	/** The slate widget table of untranslated items */
 	TSharedPtr< class IPropertyTableWidgetHandle > UntranslatedPropertyTableWidgetHandle;
@@ -225,6 +239,8 @@ private:
 	TSharedPtr< class IPropertyTableWidgetHandle > HistoryPropertyTableWidgetHandle;
 	/** The slate widget table of search results */
 	TSharedPtr< class IPropertyTableWidgetHandle > SearchPropertyTableWidgetHandle;
+	/** The slate widget table of translations that changed on import */
+	TSharedPtr< class IPropertyTableWidgetHandle > ChangedOnImportPropertyTableWidgetHandle;
 
 	/** Font to use for the source language */
 	FSlateFontInfo SourceFont;
@@ -245,4 +261,9 @@ private:
 	FString ManifestFilePath;
 	/** Name of the language we are translating to */
 	FString ArchiveFilePath;
+
+	/** Used to remember the location of the file the user last exported to */
+	FString LastExportFilePath;
+	/** Used to remember the location of the file the user last imported */
+	FString LastImportFilePath;
 };

@@ -38,10 +38,9 @@ FTranslationDataManager::FTranslationDataManager( const FString& InManifestFileP
 			TranslationEditorMessageLog.Open(EMessageSeverity::Error);
 		}
 
-		ArchivePtr = ReadArchive( ManifestAtHeadRevision);
+		ArchivePtr = ReadArchive();
 		if (ArchivePtr.IsValid())
 		{
-			TSharedRef< FInternationalizationArchive > Archive = ArchivePtr.ToSharedRef();
 			int32 NumManifestEntriesParsed = 0;
 
 			GWarn->BeginSlowTask(LOCTEXT("LoadingCurrentManifest", "Loading Entries from Current Translation Manifest..."), true);
@@ -76,66 +75,7 @@ FTranslationDataManager::FTranslationDataManager( const FString& InManifestFileP
 			// Once we have the context information, we can look up history
 			GetHistoryForTranslationUnits(TranslationUnits, ManifestFilePath);
 
-			GWarn->BeginSlowTask(LOCTEXT("LoadingArchiveEntries", "Loading Entries from Translation Archive..."), true);
-			for (int32 CurrentTranslationUnitIndex = 0; CurrentTranslationUnitIndex < TranslationUnits.Num(); ++CurrentTranslationUnitIndex)
-			{
-				UTranslationUnit* TranslationUnit = TranslationUnits[CurrentTranslationUnitIndex];
-				AllTranslations.Add(TranslationUnit);
-
-				GWarn->StatusUpdate(CurrentTranslationUnitIndex, TranslationUnits.Num(), FText::Format(LOCTEXT("LoadingCurrentArchiveEntries", "Loading Entry {0} of {1} from Translation Archive..."), FText::AsNumber(CurrentTranslationUnitIndex), FText::AsNumber(TranslationUnits.Num())));
-
-				const FLocItem SourceSearch(TranslationUnit->Source);
-				TSharedPtr<FArchiveEntry> ArchiveEntry = Archive->FindEntryBySource(TranslationUnit->Namespace, SourceSearch, NULL);
-				if ( ArchiveEntry.IsValid() )
-				{
-					const FString UnescapedTranslatedString = ArchiveEntry->Translation.Text.ReplaceEscapedCharWithChar();
-
-					if(UnescapedTranslatedString.IsEmpty())
-					{
-						bool bHasTranslationHistory = false;
-						int32 MostRecentNonNullTranslationIndex = -1;
-						int32 ContextForRecentTranslation = -1;
-
-						for (int32 ContextIndex = 0; ContextIndex < TranslationUnit->Contexts.Num(); ++ContextIndex)
-						{
-							for (int32 ChangeIndex = 0; ChangeIndex < TranslationUnit->Contexts[ContextIndex].Changes.Num(); ++ChangeIndex)
-							{
-								if (!(TranslationUnit->Contexts[ContextIndex].Changes[ChangeIndex].Translation.IsEmpty()))
-								{
-									bHasTranslationHistory = true;
-									MostRecentNonNullTranslationIndex = ChangeIndex;
-									ContextForRecentTranslation = ContextIndex;
-									break;
-								}
-							}
-					
-							if (bHasTranslationHistory)
-							{
-								break;
-							}
-						}
-
-						// If we have history, but current translation is empty, this goes in the Needs Review tab
-						if (bHasTranslationHistory)
-						{
-							// Offer the most recent translation (for the first context in the list) as a suggestion or starting point (not saved unless user checks "Has Been Reviewed")
-							TranslationUnit->Translation = TranslationUnit->Contexts[ContextForRecentTranslation].Changes[MostRecentNonNullTranslationIndex].Translation;
-							Review.Add(TranslationUnit);
-						}
-						else
-						{
-							Untranslated.Add(TranslationUnit);
-						}
-					}
-					else
-					{
-						TranslationUnit->Translation = UnescapedTranslatedString;
-						TranslationUnit->HasBeenReviewed = true;
-						Complete.Add(TranslationUnit);
-					}
-				}
-			}
-			GWarn->EndSlowTask();
+			LoadFromArchive(TranslationUnits);
 		}
 		else  // ArchivePtr.IsValid() is false
 		{
@@ -178,7 +118,7 @@ TSharedPtr< FInternationalizationManifest > FTranslationDataManager::ReadManifes
 	return InternationalizationManifest;
 }
 
-TSharedPtr< FInternationalizationArchive > FTranslationDataManager::ReadArchive(TSharedRef< FInternationalizationManifest >& InternationalizationManifest)
+TSharedPtr< FInternationalizationArchive > FTranslationDataManager::ReadArchive()
 {
 	// Read in any existing archive for this culture.
 	TSharedPtr< FJsonObject > ArchiveJsonObject = ReadJSONTextFile( ArchiveFilePath );
@@ -220,7 +160,7 @@ TSharedPtr<FJsonObject> FTranslationDataManager::ReadJSONTextFile(const FString&
 	return JSONObject;
 }
 
-void FTranslationDataManager::WriteTranslationData()
+bool FTranslationDataManager::WriteTranslationData(bool bForceWrite /*= false*/)
 {
 	check (ArchivePtr.IsValid());
 	TSharedRef< FInternationalizationArchive > Archive = ArchivePtr.ToSharedRef();
@@ -263,13 +203,17 @@ void FTranslationDataManager::WriteTranslationData()
 		}
 	}
 
-	if (bNeedsWrite)
+	bool bSuccess = true;
+
+	if (bForceWrite || bNeedsWrite)
 	{
 		TSharedRef<FJsonObject> FinalArchiveJsonObj = MakeShareable( new FJsonObject );
 		ArchiveSerializer.SerializeArchive( Archive, FinalArchiveJsonObj );
 
-		WriteJSONToTextFile( FinalArchiveJsonObj, ArchiveFilePath );
+		bSuccess = WriteJSONToTextFile( FinalArchiveJsonObj, ArchiveFilePath );
 	}
+
+	return bSuccess;
 }
 
 bool FTranslationDataManager::WriteJSONToTextFile(TSharedRef<FJsonObject>& Output, const FString& Filename)
@@ -558,6 +502,111 @@ void FTranslationDataManager::PopulateSearchResultsUsingFilter(const FString& Se
 			SearchResults.Add(TranslationUnit);
 		}
 	}
+}
+
+void FTranslationDataManager::LoadFromArchive(TArray<UTranslationUnit*>& InTranslationUnits, bool bTrackChanges /*= false*/, bool bReloadFromFile /*=false*/)
+{
+	GWarn->BeginSlowTask(LOCTEXT("LoadingArchiveEntries", "Loading Entries from Translation Archive..."), true);
+
+	if (bReloadFromFile)
+	{
+		ArchivePtr = ReadArchive();
+	}
+
+	if (ArchivePtr.IsValid())
+	{
+		TSharedRef< FInternationalizationArchive > Archive = ArchivePtr.ToSharedRef();
+
+		// Make a local copy of this array before we empty the arrays below (we might have been passed AllTranslations array)
+		TArray<UTranslationUnit*> TranslationUnits;
+		TranslationUnits.Append(InTranslationUnits);
+
+		AllTranslations.Empty();
+		Untranslated.Empty();
+		Review.Empty();
+		Complete.Empty();
+		ChangedOnImport.Empty();
+
+
+		for (int32 CurrentTranslationUnitIndex = 0; CurrentTranslationUnitIndex < TranslationUnits.Num(); ++CurrentTranslationUnitIndex)
+		{
+			UTranslationUnit* TranslationUnit = TranslationUnits[CurrentTranslationUnitIndex];
+			AllTranslations.Add(TranslationUnit);
+
+			GWarn->StatusUpdate(CurrentTranslationUnitIndex, TranslationUnits.Num(), FText::Format(LOCTEXT("LoadingCurrentArchiveEntries", "Loading Entry {0} of {1} from Translation Archive..."), FText::AsNumber(CurrentTranslationUnitIndex), FText::AsNumber(TranslationUnits.Num())));
+
+			const FLocItem SourceSearch(TranslationUnit->Source);
+			TSharedPtr<FArchiveEntry> ArchiveEntry = Archive->FindEntryBySource(TranslationUnit->Namespace, SourceSearch, NULL);
+			if (ArchiveEntry.IsValid())
+			{
+				const FString PreviousTranslation = TranslationUnit->Translation;
+				TranslationUnit->Translation = ""; // Reset to null string
+				const FString UnescapedTranslatedString = ArchiveEntry->Translation.Text.ReplaceEscapedCharWithChar();
+
+				if (UnescapedTranslatedString.IsEmpty())
+				{
+					bool bHasTranslationHistory = false;
+					int32 MostRecentNonNullTranslationIndex = -1;
+					int32 ContextForRecentTranslation = -1;
+
+					for (int32 ContextIndex = 0; ContextIndex < TranslationUnit->Contexts.Num(); ++ContextIndex)
+					{
+						for (int32 ChangeIndex = 0; ChangeIndex < TranslationUnit->Contexts[ContextIndex].Changes.Num(); ++ChangeIndex)
+						{
+							if (!(TranslationUnit->Contexts[ContextIndex].Changes[ChangeIndex].Translation.IsEmpty()))
+							{
+								bHasTranslationHistory = true;
+								MostRecentNonNullTranslationIndex = ChangeIndex;
+								ContextForRecentTranslation = ContextIndex;
+								break;
+							}
+						}
+
+						if (bHasTranslationHistory)
+						{
+							break;
+						}
+					}
+
+					// If we have history, but current translation is empty, this goes in the Needs Review tab
+					if (bHasTranslationHistory)
+					{
+						// Offer the most recent translation (for the first context in the list) as a suggestion or starting point (not saved unless user checks "Has Been Reviewed")
+						TranslationUnit->Translation = TranslationUnit->Contexts[ContextForRecentTranslation].Changes[MostRecentNonNullTranslationIndex].Translation;
+						Review.Add(TranslationUnit);
+					}
+					else
+					{
+						Untranslated.Add(TranslationUnit);
+					}
+				}
+				else
+				{
+					TranslationUnit->Translation = UnescapedTranslatedString;
+					TranslationUnit->HasBeenReviewed = true;
+					Complete.Add(TranslationUnit);
+				}
+
+				// Add to changed array if we're tracking changes
+				if (bTrackChanges && PreviousTranslation != TranslationUnit->Translation)
+				{
+					ChangedOnImport.Add(TranslationUnit);
+					TranslationUnit->TranslationBeforeImport = PreviousTranslation;
+				}
+			}
+		}
+	}
+	else  // ArchivePtr.IsValid() is false
+	{
+		FFormatNamedArguments Arguments;
+		Arguments.Add(TEXT("ArchiveFilePath"), FText::FromString(ArchiveFilePath));
+		FMessageLog TranslationEditorMessageLog("TranslationEditor");
+		TranslationEditorMessageLog.Error(FText::Format(LOCTEXT("FailedToLoadCurrentArchive", "Failed to load most current translation archive ({ArchiveFilePath}), unable to load translations."), Arguments));
+		TranslationEditorMessageLog.Notify(LOCTEXT("TranslationLoadError", "Error Loading Translations!"));
+		TranslationEditorMessageLog.Open(EMessageSeverity::Error);
+	}
+	
+	GWarn->EndSlowTask();
 }
 
 #undef LOCTEXT_NAMESPACE

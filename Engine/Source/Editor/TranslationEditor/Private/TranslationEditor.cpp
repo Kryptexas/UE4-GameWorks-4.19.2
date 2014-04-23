@@ -5,6 +5,7 @@
 #include "TranslationEditor.h"
 #include "Toolkits/IToolkitHost.h"
 #include "WorkspaceMenuStructureModule.h"
+#include "MessageLog.h"
 
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "Editor/PropertyEditor/Public/IPropertyTable.h"
@@ -32,6 +33,7 @@ const FName FTranslationEditor::PreviewTabId( TEXT( "TranslationEditor_Preview" 
 const FName FTranslationEditor::ContextTabId( TEXT( "TranslationEditor_Context" ) );
 const FName FTranslationEditor::HistoryTabId( TEXT( "TranslationEditor_History" ) );
 const FName FTranslationEditor::SearchTabId( TEXT( "TranslationEditor_Search" ) );
+const FName FTranslationEditor::ChangedOnImportTabId( TEXT( "TranslationEditor_ChangedOnImport" ) );
 
 void FTranslationEditor::Initialize()
 {
@@ -72,8 +74,12 @@ void FTranslationEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>
 		.SetDisplayName( LOCTEXT("HistoryTab", "History") )
 		.SetGroup( MenuStructure.GetAssetEditorCategory() );
 
-	TabManager->RegisterTabSpawner(SearchTabId, FOnSpawnTab::CreateSP(this, &FTranslationEditor::SpawnTab_Search))
+	TabManager->RegisterTabSpawner( SearchTabId, FOnSpawnTab::CreateSP(this, &FTranslationEditor::SpawnTab_Search) )
 		.SetDisplayName(LOCTEXT("SearchTab", "Search"))
+		.SetGroup(MenuStructure.GetAssetEditorCategory());
+
+	TabManager->RegisterTabSpawner( ChangedOnImportTabId, FOnSpawnTab::CreateSP(this, &FTranslationEditor::SpawnTab_ChangedOnImport) )
+		.SetDisplayName(LOCTEXT("ChangedOnImportTab", "ChangedOnImport"))
 		.SetGroup(MenuStructure.GetAssetEditorCategory());
 }
 
@@ -86,6 +92,7 @@ void FTranslationEditor::UnregisterTabSpawners(const TSharedRef<class FTabManage
 	TabManager->UnregisterTabSpawner( ContextTabId );
 	TabManager->UnregisterTabSpawner(HistoryTabId);
 	TabManager->UnregisterTabSpawner(SearchTabId);
+	TabManager->UnregisterTabSpawner(ChangedOnImportTabId);
 }
 
 void FTranslationEditor::InitTranslationEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost )
@@ -111,6 +118,7 @@ void FTranslationEditor::InitTranslationEditor( const EToolkitMode::Type Mode, c
 			->AddTab( ReviewTabId,  ETabState::OpenedTab )
 			->AddTab( CompletedTabId,  ETabState::OpenedTab )
 			->AddTab( SearchTabId, ETabState::ClosedTab )
+			->AddTab( ChangedOnImportTabId, ETabState::ClosedTab )
 		)
 		->Split
 		(
@@ -474,6 +482,66 @@ TSharedRef<SDockTab> FTranslationEditor::SpawnTab_Search(const FSpawnTabArgs& Ar
 	return NewDockTab;
 }
 
+TSharedRef<SDockTab> FTranslationEditor::SpawnTab_ChangedOnImport(const FSpawnTabArgs& Args)
+{
+	check(Args.GetTabId().TabType == ChangedOnImportTabId);
+
+	UProperty* SourceProperty = FindField<UProperty>(UTranslationUnit::StaticClass(), "Source");
+	UProperty* TranslationBeforeImportProperty = FindField<UProperty>(UTranslationUnit::StaticClass(), "TranslationBeforeImport");
+	UProperty* TranslationProperty = FindField<UProperty>(UTranslationUnit::StaticClass(), "Translation");
+
+	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
+
+	// create empty property table
+	ChangedOnImportPropertyTable = PropertyEditorModule.CreatePropertyTable();
+	ChangedOnImportPropertyTable->SetIsUserAllowedToChangeRoot(false);
+	ChangedOnImportPropertyTable->SetOrientation(EPropertyTableOrientation::AlignPropertiesInColumns);
+	ChangedOnImportPropertyTable->SetShowRowHeader(true);
+	ChangedOnImportPropertyTable->SetShowObjectName(false);
+	ChangedOnImportPropertyTable->OnSelectionChanged()->AddSP(this, &FTranslationEditor::UpdateSearchSelection);
+
+	// we want to customize some columns
+	TArray< TSharedRef< class IPropertyTableCustomColumn > > CustomColumns;
+	SourceColumn->AddSupportedProperty(SourceProperty);
+	TranslationColumn->AddSupportedProperty(TranslationProperty);
+	CustomColumns.Add(SourceColumn);
+	CustomColumns.Add(TranslationColumn);
+
+	ChangedOnImportPropertyTable->SetObjects((TArray<UObject*>&)DataManager->GetSearchResultsArray());
+
+	// Add the columns we want to display
+	ChangedOnImportPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>(UTranslationUnit::StaticClass(), "Source"));
+	ChangedOnImportPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>(UTranslationUnit::StaticClass(), "TranslationBeforeImport"));
+	ChangedOnImportPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>(UTranslationUnit::StaticClass(), "Translation"));
+
+	// Freeze columns, don't want user to remove them
+	TArray<TSharedRef<IPropertyTableColumn>> Columns = ChangedOnImportPropertyTable->GetColumns();
+	for (TSharedRef<IPropertyTableColumn> Column : Columns)
+	{
+		Column->SetFrozen(true);
+	}
+
+	SearchPropertyTableWidgetHandle = PropertyEditorModule.CreatePropertyTableWidgetHandle(ChangedOnImportPropertyTable.ToSharedRef(), CustomColumns);
+	TSharedRef<SWidget> PropertyTableWidget = SearchPropertyTableWidgetHandle->GetWidget();
+
+	TSharedRef<SDockTab> NewDockTab = SNew(SDockTab)
+		.Icon(FEditorStyle::GetBrush("TranslationEditor.Tabs.Properties"))
+		.Label(LOCTEXT("ChangedOnImportTabTitle", "Changed on Import"))
+		.TabColorScale(GetTabColorScale())
+		[
+			SNew(SBorder)
+			.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+			.Padding(0.0f)
+			[
+				PropertyTableWidget
+			]
+		];
+
+	ChangedOnImportTab = NewDockTab;
+
+	return NewDockTab;
+}
+
 TSharedRef<SDockTab> FTranslationEditor::SpawnTab_Preview( const FSpawnTabArgs& Args )
 {
 	check( Args.GetTabId().TabType == PreviewTabId );
@@ -675,6 +743,10 @@ void FTranslationEditor::MapActions()
 		FExecuteAction::CreateSP(this, &FTranslationEditor::ExportToPortableObjectFormat_Execute),
 		FCanExecuteAction());
 
+	ToolkitCommands->MapAction(FTranslationEditorCommands::Get().ImportFromPortableObjectFormat,
+		FExecuteAction::CreateSP(this, &FTranslationEditor::ImportFromPortableObjectFormat_Execute),
+		FCanExecuteAction());
+
 	ToolkitCommands->MapAction(FTranslationEditorCommands::Get().OpenSearchTab,
 		FExecuteAction::CreateSP(this, &FTranslationEditor::OpenSearchTab_Execute),
 		FCanExecuteAction());
@@ -741,6 +813,10 @@ void FTranslationEditor::RefreshUI()
 	if (SearchPropertyTableWidgetHandle.IsValid())
 	{
 		SearchPropertyTableWidgetHandle->RequestRefresh();
+	}
+	if (ChangedOnImportPropertyTableWidgetHandle.IsValid())
+	{
+		ChangedOnImportPropertyTableWidgetHandle->RequestRefresh();
 	}
 }
 
@@ -823,6 +899,16 @@ void FTranslationEditor::UpdateSearchSelection()
 	if (SearchTabSharedPtr.IsValid() && SearchTabSharedPtr->IsForeground() && SearchPropertyTable.IsValid())
 	{
 		TSet<TSharedRef<IPropertyTableRow>> SelectedRows = SearchPropertyTable->GetSelectedRows();
+		UpdateTranslationUnitSelection(SelectedRows);
+	}
+}
+
+void FTranslationEditor::UpdateChangedOnImportSelection()
+{
+	TSharedPtr<SDockTab> ChangedOnImportTabSharedPtr = SearchTab.Pin();
+	if (ChangedOnImportTabSharedPtr.IsValid() && ChangedOnImportTabSharedPtr->IsForeground() && ChangedOnImportPropertyTable.IsValid())
+	{
+		TSet<TSharedRef<IPropertyTableRow>> SelectedRows = ChangedOnImportPropertyTable->GetSelectedRows();
 		UpdateTranslationUnitSelection(SelectedRows);
 	}
 }
@@ -986,10 +1072,15 @@ void FTranslationEditor::ExportToPortableObjectFormat_Execute()
 	const FString PortableObjectFileExtension = TEXT("*.po");
 	const FString FileTypes = FString::Printf(TEXT("%s (%s)|%s"), *PortableObjectFileDescription, *PortableObjectFileExtension, *PortableObjectFileExtension);
 	const FString DefaultFilename = FPaths::GetBaseFilename(ManifestFilePath) + "-" + FPaths::GetBaseFilename(FPaths::GetPath(ArchiveFilePath)) + ".po";
-	const FString DefaultPath = FPaths::GameSavedDir();
+	FString DefaultPath = FPaths::GameSavedDir();
+	if (LastExportFilePath != "")
+	{
+		DefaultPath = LastExportFilePath;
+	}
 	TArray<FString> SaveFilenames;
 	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 	bool bSelected = false;
+	bool bHadError = false;
 	
 	// Prompt the user for the filename
 	if (DesktopPlatform)
@@ -1005,7 +1096,7 @@ void FTranslationEditor::ExportToPortableObjectFormat_Execute()
 		bSelected = DesktopPlatform->SaveFileDialog(
 			ParentWindowWindowHandle,
 			LOCTEXT("ChooseExportLocationWindowTitle", "Choose Export Location").ToString(),
-			FPaths::GameSavedDir(),
+			LastExportFilePath,
 			DefaultFilename,
 			FileTypes,
 			EFileDialogFlags::None,
@@ -1013,78 +1104,238 @@ void FTranslationEditor::ExportToPortableObjectFormat_Execute()
 			);
 	}
 
-	GWarn->BeginSlowTask(LOCTEXT("ExportingInternationalization", "Exporting Internationalization Data..."), true);
-
-	// Write translation data first to ensure all changes are exported
-	DataManager->WriteTranslationData();
-
-	UInternationalizationExportSettings* ExportSettings = NewObject<UInternationalizationExportSettings>();
-	ExportSettings->CulturesToGenerate.Empty();
-	ExportSettings->CulturesToGenerate.Add(FPaths::GetBaseFilename(FPaths::GetPath(ArchiveFilePath)));
-	ExportSettings->CommandletClass = "InternationalizationExport";
-	ExportSettings->SourcePath = FPaths::GetPath(ManifestFilePath);
-	ExportSettings->ManifestName = FPaths::GetBaseFilename(ManifestFilePath) + ".manifest";
-	ExportSettings->ArchiveName = FPaths::GetBaseFilename(ManifestFilePath) + ".archive";
-	ExportSettings->bExportLoc = true;
-	ExportSettings->bImportLoc = false;
-
-	ExportSettings->DestinationPath = DefaultPath / DefaultFilename;
-
-	if (bSelected && SaveFilenames.Num() > 0)
+	if (bSelected)
 	{
-		ExportSettings->DestinationPath = SaveFilenames[0];
-	}
+		GWarn->BeginSlowTask(LOCTEXT("ExportingInternationalization", "Exporting Internationalization Data..."), true);
 
-	// Write these settings to a temporary config file that the Internationalization Export Commandlet will read
-	FString TempConfigFilepath = FPaths::GameSavedDir() / "Config" / "InternationalizationExport.ini";
-	ExportSettings->SaveConfig(CPF_Config, *TempConfigFilepath);
+		// Write translation data first to ensure all changes are exported
+		DataManager->WriteTranslationData();
 
-	// Using .ini config saving means these settings will be saved in the GetClass()->GetPathName() section
-	TArray<FString> ConfigSections;
-	ConfigSections.Add(ExportSettings->GetClass()->GetPathName());
+		UInternationalizationExportSettings* ExportSettings = NewObject<UInternationalizationExportSettings>();
+		ExportSettings->CulturesToGenerate.Empty();
+		ExportSettings->CulturesToGenerate.Add(FPaths::GetBaseFilename(FPaths::GetPath(ArchiveFilePath)));
+		ExportSettings->CommandletClass = "InternationalizationExport";
+		ExportSettings->SourcePath = FPaths::GetPath(ManifestFilePath);
+		ExportSettings->ManifestName = FPaths::GetBaseFilename(ManifestFilePath) + ".manifest";
+		ExportSettings->ArchiveName = FPaths::GetBaseFilename(ManifestFilePath) + ".archive";
+		ExportSettings->bExportLoc = true;
+		ExportSettings->bImportLoc = false;
 
-	for (FString& ConfigSection : ConfigSections)
-	{
-		// Spawn the LocalizationExport commandlet, and run its log output back into ours
-		FString AppURL = FPlatformProcess::ExecutableName(true);
-		FString Parameters = FString("-run=InternationalizationExport -config=") + TempConfigFilepath + " -section=" + ConfigSection;
+		ExportSettings->DestinationPath = DefaultPath / DefaultFilename;
 
-		void* WritePipe;
-		void* ReadPipe;
-		FPlatformProcess::CreatePipe(ReadPipe, WritePipe);
-		FProcHandle ProcessHandle = FPlatformProcess::CreateProc(*AppURL, *Parameters, false, false, false, NULL, 0, NULL, WritePipe);
-
-		while (FPlatformProcess::IsProcRunning(ProcessHandle))
+		if (SaveFilenames.Num() > 0)
 		{
+			ExportSettings->DestinationPath = SaveFilenames[0];
+			LastExportFilePath = FPaths::GetPath(SaveFilenames[0]);
+		}
+
+		// Write these settings to a temporary config file that the Internationalization Export Commandlet will read
+		FString TempConfigFilepath = FPaths::GameSavedDir() / "Config" / "InternationalizationExport.ini";
+		ExportSettings->SaveConfig(CPF_Config, *TempConfigFilepath);
+
+		// Using .ini config saving means these settings will be saved in the GetClass()->GetPathName() section
+		TArray<FString> ConfigSections;
+		ConfigSections.Add(ExportSettings->GetClass()->GetPathName());
+		FMessageLog TranslationEditorMessageLog("TranslationEditor");
+
+		for (FString& ConfigSection : ConfigSections)
+		{
+			// Spawn the LocalizationExport commandlet, and run its log output back into ours
+			FString AppURL = FPlatformProcess::ExecutableName(true);
+			FString Parameters = FString("-run=InternationalizationExport -config=") + TempConfigFilepath + " -section=" + ConfigSection;
+
+			void* WritePipe;
+			void* ReadPipe;
+			FPlatformProcess::CreatePipe(ReadPipe, WritePipe);
+			FProcHandle ProcessHandle = FPlatformProcess::CreateProc(*AppURL, *Parameters, false, false, false, NULL, 0, NULL, WritePipe);
+
+			while (FPlatformProcess::IsProcRunning(ProcessHandle))
+			{
+				FString NewLine = FPlatformProcess::ReadPipe(ReadPipe);
+				if (NewLine.Len() > 0)
+				{
+					UE_LOG(LocalizationExport, Log, TEXT("%s"), *NewLine);
+					FFormatNamedArguments Arguments;
+					Arguments.Add(TEXT("LogMessage"), FText::FromString(NewLine));
+					TranslationEditorMessageLog.Info(FText::Format(LOCTEXT("LocalizationExportLog", "Localization Export Log: {LogMessage}"), Arguments));
+				}
+
+				FPlatformProcess::Sleep(0.25);
+			}
 			FString NewLine = FPlatformProcess::ReadPipe(ReadPipe);
 			if (NewLine.Len() > 0)
 			{
 				UE_LOG(LocalizationExport, Log, TEXT("%s"), *NewLine);
+				FFormatNamedArguments Arguments;
+				Arguments.Add(TEXT("LogMessage"), FText::FromString(NewLine));
+				TranslationEditorMessageLog.Info(FText::Format(LOCTEXT("LocalizationExportLog", "Localization Export Log: {LogMessage}"), Arguments));
 			}
 
 			FPlatformProcess::Sleep(0.25);
-		}
-		FString NewLine = FPlatformProcess::ReadPipe(ReadPipe);
-		if (NewLine.Len() > 0)
-		{
-			UE_LOG(LocalizationExport, Log, TEXT("%s"), *NewLine);
+			FPlatformProcess::ClosePipe(ReadPipe, WritePipe);
+
+			int32 ReturnCode;
+			if (!FPlatformProcess::GetProcReturnCode(ProcessHandle, &ReturnCode))
+			{
+				bHadError = true;
+			}
+			else if (ReturnCode != 0)
+			{
+				bHadError = true;
+			}
 		}
 
-		FPlatformProcess::Sleep(0.25);
-		FPlatformProcess::ClosePipe(ReadPipe, WritePipe);
+		GWarn->EndSlowTask();
 
-		int32 ReturnCode;
-		if (!FPlatformProcess::GetProcReturnCode(ProcessHandle, &ReturnCode))
+		if (bHadError)
 		{
-			// TODO: print some error
-		}
-		else if (ReturnCode != 0)
-		{
-			// TODO: print some error
+			TranslationEditorMessageLog.Error(LOCTEXT("FailedToExportLocalization", "Failed to export localization!"));
+			TranslationEditorMessageLog.Notify(LOCTEXT("FailedToExportLocalization", "Failed to export localization!"));
+			TranslationEditorMessageLog.Open(EMessageSeverity::Error);
 		}
 	}
+}
 
-	GWarn->EndSlowTask();
+void FTranslationEditor::ImportFromPortableObjectFormat_Execute()
+{
+	const FString PortableObjectFileDescription = LOCTEXT("PortableObjectFileDescription", "Portable Object File").ToString();
+	const FString PortableObjectFileExtension = TEXT("*.po");
+	const FString FileTypes = FString::Printf(TEXT("%s (%s)|%s"), *PortableObjectFileDescription, *PortableObjectFileExtension, *PortableObjectFileExtension);
+	FString DefaultPath = FPaths::GameSavedDir();
+	if (LastImportFilePath != "")
+	{
+		DefaultPath = LastImportFilePath;
+	}
+	TArray<FString> OpenFilenames;
+	bool bHadError = false;
+	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+
+	bool bOpened = false;
+	if (DesktopPlatform)
+	{
+		void* ParentWindowWindowHandle = NULL;
+
+		const TSharedPtr<SWindow>& ParentWindow = FSlateApplication::Get().FindWidgetWindow(PreviewTextBlock);
+		if (ParentWindow.IsValid() && ParentWindow->GetNativeWindow().IsValid())
+		{
+			ParentWindowWindowHandle = ParentWindow->GetNativeWindow()->GetOSWindowHandle();
+		}
+
+		bOpened = DesktopPlatform->OpenFileDialog(
+			ParentWindowWindowHandle,
+			LOCTEXT("ChooseImportLocationWindowTitle", "Choose File to Import").ToString(),
+			DefaultPath,
+			TEXT(""),
+			FileTypes,
+			EFileDialogFlags::None,
+			OpenFilenames
+			);
+	}
+
+	if (bOpened)
+	{
+		UInternationalizationExportSettings* ImportSettings = NewObject<UInternationalizationExportSettings>();
+		ImportSettings->CulturesToGenerate.Empty();
+		ImportSettings->CulturesToGenerate.Add(FPaths::GetBaseFilename(FPaths::GetPath(ArchiveFilePath)));
+		ImportSettings->CommandletClass = "InternationalizationExport";
+		ImportSettings->DestinationPath = FPaths::GetPath(ManifestFilePath);
+		ImportSettings->ManifestName = FPaths::GetBaseFilename(ManifestFilePath) + ".manifest";
+		ImportSettings->ArchiveName = FPaths::GetBaseFilename(ManifestFilePath) + ".archive";
+		ImportSettings->bExportLoc = false;
+		ImportSettings->bImportLoc = true;
+
+		ImportSettings->SourcePath = DefaultPath / FPaths::GetBaseFilename(ManifestFilePath);
+
+		if (OpenFilenames.Num() > 0)
+		{
+			ImportSettings->SourcePath = OpenFilenames[0];
+			LastImportFilePath = FPaths::GetPath(OpenFilenames[0]);
+		}
+
+		// Write translation data first to ensure all changes are exported
+		bHadError = !(DataManager->WriteTranslationData(true));
+
+		if (!bHadError)
+		{
+			GWarn->BeginSlowTask(LOCTEXT("ImportingInternationalization", "Importing Internationalization Data..."), true);
+
+			// Write these settings to a temporary config file that the Internationalization Export Commandlet will read
+			FString TempConfigFilepath = FPaths::GameSavedDir() / "Config" / "InternationalizationExport.ini";
+			ImportSettings->SaveConfig(CPF_Config, *TempConfigFilepath);
+
+			// Using .ini config saving means these settings will be saved in the GetClass()->GetPathName() section
+			TArray<FString> ConfigSections;
+			ConfigSections.Add(ImportSettings->GetClass()->GetPathName());
+			FMessageLog TranslationEditorMessageLog("TranslationEditor");
+
+			for (FString& ConfigSection : ConfigSections)
+			{
+				// Spawn the LocalizationExport commandlet, and run its log output back into ours
+				FString AppURL = FPlatformProcess::ExecutableName(true);
+				FString Parameters = FString("-run=InternationalizationExport -config=") + TempConfigFilepath + " -section=" + ConfigSection;
+
+				void* WritePipe;
+				void* ReadPipe;
+				FPlatformProcess::CreatePipe(ReadPipe, WritePipe);
+				FProcHandle ProcessHandle = FPlatformProcess::CreateProc(*AppURL, *Parameters, false, false, false, NULL, 0, NULL, WritePipe);
+
+				while (FPlatformProcess::IsProcRunning(ProcessHandle))
+				{
+					FString NewLine = FPlatformProcess::ReadPipe(ReadPipe);
+					if (NewLine.Len() > 0)
+					{
+						UE_LOG(LocalizationExport, Log, TEXT("%s"), *NewLine);
+						FFormatNamedArguments Arguments;
+						Arguments.Add(TEXT("LogMessage"), FText::FromString(NewLine));
+						TranslationEditorMessageLog.Info(FText::Format(LOCTEXT("LocalizationImportLog", "Localization Import Log: {LogMessage}"), Arguments));
+					}
+
+					FPlatformProcess::Sleep(0.25);
+				}
+				FString NewLine = FPlatformProcess::ReadPipe(ReadPipe);
+				if (NewLine.Len() > 0)
+				{
+					UE_LOG(LocalizationExport, Log, TEXT("%s"), *NewLine);
+					FFormatNamedArguments Arguments;
+					Arguments.Add(TEXT("LogMessage"), FText::FromString(NewLine));
+					TranslationEditorMessageLog.Info(FText::Format(LOCTEXT("LocalizationImportLog", "Localization Import Log: {LogMessage}"), Arguments));
+				}
+
+				FPlatformProcess::Sleep(0.25);
+				FPlatformProcess::ClosePipe(ReadPipe, WritePipe);
+
+				int32 ReturnCode;
+				if (!FPlatformProcess::GetProcReturnCode(ProcessHandle, &ReturnCode))
+				{
+					bHadError = true;
+				}
+				else if (ReturnCode != 0)
+				{
+					bHadError = true;
+				}
+			}
+
+			GWarn->EndSlowTask();
+
+			if (bHadError)
+			{
+				TranslationEditorMessageLog.Error(LOCTEXT("FailedToExportLocalization", "Failed to export localization!"));
+				TranslationEditorMessageLog.Notify(LOCTEXT("FailedToExportLocalization", "Failed to export localization!"), EMessageSeverity::Info, true);
+				TranslationEditorMessageLog.Open(EMessageSeverity::Error);
+			}
+			else
+			{
+				DataManager->LoadFromArchive(DataManager->GetAllTranslationsArray(), true, true);
+
+				TabManager->InvokeTab(ChangedOnImportTabId);
+				ChangedOnImportPropertyTable->SetObjects((TArray<UObject*>&)DataManager->GetChangedOnImportArray());
+				// Need to re-add the columns we want to display
+				ChangedOnImportPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>(UTranslationUnit::StaticClass(), "Source"));
+				ChangedOnImportPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>(UTranslationUnit::StaticClass(), "TranslationBeforeImport"));
+				ChangedOnImportPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>(UTranslationUnit::StaticClass(), "Translation"));
+			}
+		}
+	}
 }
 
 void FTranslationEditor::OnFilterTextChanged(const FText& InFilterText)

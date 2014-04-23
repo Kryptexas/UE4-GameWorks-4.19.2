@@ -74,6 +74,10 @@ public:
 	UPROPERTY(Category=Translation, EditAnywhere)
 	bool HasBeenReviewed;
 
+	/** If this Translation Unit had a different translation before import, it will be stored here */
+	UPROPERTY(Category=Translation, EditAnywhere)
+	FString TranslationBeforeImport;
+
 	/**
 	* Returns an event delegate that is executed when a property has changed.
 	*

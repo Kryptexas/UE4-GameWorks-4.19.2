@@ -41,9 +41,17 @@ public:
 	{
 		return SearchResults;
 	}
+
+	TArray<UTranslationUnit*>& GetChangedOnImportArray()
+	{
+		return ChangedOnImport;
+	}
 	
-	/** Write the translation data in memory out to .archive file (check out the .archive file first if necessary) */
-	void WriteTranslationData();
+	/** Write the translation data in memory out to .archive file (check out the .archive file first if necessary) 
+	* @param bForceWrite Whether or not to force a write even if the data hasn't changed
+	* @param return Whether or not the write succeeded (true is succeeded)
+	*/
+	bool WriteTranslationData(bool bForceWrite = false);
 
 	/** Delegate called when a TranslationDataObject property is changed */
 	void HandlePropertyChanged(FName PropertyName);
@@ -54,14 +62,17 @@ public:
 	/** Put items in the Search Array if they match this filter */
 	void PopulateSearchResultsUsingFilter(const FString& SearchFilter);
 
+	/** Load (or reload) Translations from Archive file */ 
+	void LoadFromArchive(TArray<UTranslationUnit*>& InTranslationUnits, bool bTrackChanges = false, bool bReloadFromFile = false);
+
 private:
 	/** Read text file into a JSON file */
 	static TSharedPtr<FJsonObject> ReadJSONTextFile( const FString& InFilePath ) ;
 
 	/** Take a path and a manifest name and return a manifest data structure */
 	TSharedPtr< FInternationalizationManifest > ReadManifest ( const FString& ManifestFilePath );
-	/** Take a path and an archive name and return an archive data structure */
-	TSharedPtr< FInternationalizationArchive > ReadArchive( TSharedRef< FInternationalizationManifest >& InternationalizationManifest );
+	/** Retrieve an archive data structure from ArchiveFilePath */
+	TSharedPtr< FInternationalizationArchive > ReadArchive();
 
 	/** Write JSON file to text file */
 	bool WriteJSONToTextFile( TSharedRef<FJsonObject>& Output, const FString& Filename );
@@ -75,6 +86,7 @@ private:
 	TArray<UTranslationUnit*> Review;
 	TArray<UTranslationUnit*> Complete;
 	TArray<UTranslationUnit*> SearchResults;
+	TArray<UTranslationUnit*> ChangedOnImport;
 
 	/** Serializes and deserializes our Archive */
 	FInternationalizationArchiveJsonSerializer ArchiveSerializer;
