@@ -59,7 +59,7 @@ public:
 #endif	//WITH_EDITOR
 
 protected:
-	void GetHeightmapData(int32 InLOD);
+	void GetHeightmapData(int32 InLOD, int32 GeometryLOD);
 
 	/** Fills in the static lighting vertex data for the Landscape vertex. */
 	void GetStaticLightingVertex(int32 VertexIndex, FStaticLightingVertex& OutVertex) const;

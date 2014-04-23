@@ -123,6 +123,7 @@ struct FLandscapeComponentDataInterface
 	FLandscapeComponentDataInterface(ULandscapeComponent* InComponent, int32 InMipLevel = 0)
 	:	Component(InComponent),
 		HeightMipData(NULL),
+		XYOffsetMipData(NULL),
 		bNeedToDeleteDataInterface(false),
 		MipLevel(InMipLevel)
 	{
@@ -150,11 +151,9 @@ struct FLandscapeComponentDataInterface
 			HeightMipData = (FColor*)DataInterface->LockMip(Component->HeightmapTexture, MipLevel);
 			if (Component->XYOffsetmapTexture)
 			{
-				XYOffsetMipData = (FColor*)DataInterface->LockMip(Component->XYOffsetmapTexture,MipLevel);
+				XYOffsetMipData = (FColor*)DataInterface->LockMip(Component->XYOffsetmapTexture, MipLevel);
 			}
 		}
-
-		XYOffsetMipData = NULL;
 	}
 
 	~FLandscapeComponentDataInterface()
@@ -224,9 +223,24 @@ struct FLandscapeComponentDataInterface
 		return HeightMipData;
 	}
 
+	FColor* GetRawXYOffsetData() const
+	{
+		return XYOffsetMipData;
+	}
+
+	void SetRawHeightData(FColor* NewHeightData)
+	{
+		HeightMipData = NewHeightData;
+	}
+
+	void SetRawXYOffsetData(FColor* NewXYOffsetData)
+	{
+		XYOffsetMipData = NewXYOffsetData;
+	}
+
 	void UnlockRawHeightData() const
 	{
-		DataInterface->UnlockMip(Component->HeightmapTexture,0);
+		DataInterface->UnlockMip(Component->HeightmapTexture, MipLevel);
 	}
 
 	/* Return the raw heightmap data exactly same size for Heightmap texture which belong to only this component */
@@ -464,11 +478,14 @@ private:
 	struct FLandscapeDataInterface* DataInterface;
 	ULandscapeComponent* Component;
 
+public:
 	// offset of this component's data into heightmap texture
 	int32 HeightmapStride;
 	int32 HeightmapComponentOffsetX;
 	int32 HeightmapComponentOffsetY;
 	int32 HeightmapSubsectionOffset;
+
+private:
 	FColor* HeightMipData;
 	FColor* XYOffsetMipData;
 

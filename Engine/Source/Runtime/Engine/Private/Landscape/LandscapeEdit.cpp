@@ -3685,7 +3685,7 @@ void ALandscape::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 	else if (GIsEditor && PropertyName == GET_MEMBER_NAME_CHECKED(ALandscapeProxy, StaticLightingLOD))
 	{
 		StaticLightingLOD = FMath::Clamp<int32>(StaticLightingLOD, 0, FMath::CeilLogTwo(SubsectionSizeQuads+1)-1);
-		InvalidateLightingCache();
+		bChangedLighting = true;
 	}
 	else if (GIsEditor && PropertyName == GET_MEMBER_NAME_CHECKED(ALandscapeProxy, ExportLOD))
 	{
@@ -3732,6 +3732,11 @@ void ALandscape::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 				{
 					// Update the MIC
 					Comp->UpdateMaterialInstances();
+				}
+
+				if (bChangedLighting)
+				{
+					Comp->InvalidateLightingCache();
 				}
 
 				// Reattach all components
@@ -3805,6 +3810,9 @@ void ULandscapeComponent::SetLOD(bool bForcedLODChanged, int32 InLODValue)
 		int32 MaxLOD = FMath::CeilLogTwo(SubsectionSizeQuads+1)-1;
 		LODBias = FMath::Clamp<int32>(InLODValue, -MaxLOD, MaxLOD);
 	}
+
+	InvalidateLightingCache();
+
 	// Update neighbor components
 	ULandscapeInfo* Info = GetLandscapeInfo(false);
 	if (Info)
@@ -3837,6 +3845,8 @@ void ULandscapeComponent::SetLOD(bool bForcedLODChanged, int32 InLODValue)
 					// Neighbor LODBias are saved in BYTE, so need to convert to range [-128:127]
 					Comp->NeighborLODBias[7-Idx] = LODBias + 128;
 				}
+
+				Comp->InvalidateLightingCache();
 				FComponentReregisterContext ReregisterContext(Comp);
 			}
 		}
