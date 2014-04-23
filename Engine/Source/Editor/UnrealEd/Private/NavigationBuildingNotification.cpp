@@ -148,7 +148,7 @@ void FNavigationBuildingNotificationImpl::Tick(float DeltaTime)
 		FWorldContext &EditorContext = EEngine->GetEditorWorldContext();
 		
 		const bool bBuildInProgress = EditorContext.World() != NULL && EditorContext.World()->GetNavigationSystem() != NULL 
-			&& EditorContext.World()->GetNavigationSystem()->IsNavigationBuildInProgress( GEditor->AccessEditorUserSettings().bNavigationAutoUpdate ? true : false) == true;
+			&& EditorContext.World()->GetNavigationSystem()->IsNavigationBuildInProgress( GetDefault<ULevelEditorViewportSettings>()->bNavigationAutoUpdate ? true : false) == true;
 
 		if (!bPreviouslyDetectedBuild && bBuildInProgress)
 		{

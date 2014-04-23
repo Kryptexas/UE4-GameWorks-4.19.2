@@ -34,26 +34,6 @@ class UEditorUserSettings : public UObject
 	// =====================================================================
 	// The following options are exposed in the Preferences Editor 
 
-	/** Allow translate/rotate widget */
-	UPROPERTY(EditAnywhere, config, Category=LevelEditing, meta=( DisplayName = "Enable Combined Translate/Rotate Widget" ))
-	uint32 bAllowTranslateRotateZWidget:1;
-
-	/** If true, Clicking a BSP selects the brush and ctrl+shift+click selects the surface. If false, vice versa */
-	UPROPERTY(EditAnywhere, config, Category=LevelEditing, meta=( DisplayName = "Clicking BSP Enables Brush" ))
-	uint32 bClickBSPSelectsBrush:1;
-
-	/** If true, BSP will auto-update */
-	UPROPERTY(EditAnywhere, config, Category=LevelEditing, meta=( DisplayName = "Update BSP Automatically" ))
-	uint32 bBSPAutoUpdate:1;
-
-	/** If true, Navigation will auto-update */
-	UPROPERTY(EditAnywhere, config, Category=LevelEditing, meta=( DisplayName = "Update Navigation Automatically" ))
-	uint32 bNavigationAutoUpdate:1;
-
-	/** If enabled, replacing actors will respect the scale of the original actor.  Otherwise, the replaced actors will have a scale of 1.0 */
-	UPROPERTY(EditAnywhere, config, Category=LevelEditing, meta=( DisplayName = "Preserve Actor Scale on Replace" ))
-	uint32 bReplaceRespectsScale:1;
-
 	/** If enabled, any newly opened UI menus, menu bars, and toolbars will show the developer hooks that would accept extensions */
 	UPROPERTY(EditAnywhere, config, Category=DeveloperTools)
 	uint32 bDisplayUIExtensionPoints:1;

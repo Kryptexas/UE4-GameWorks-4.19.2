@@ -2158,7 +2158,7 @@ bool FLevelEditorActionCallbacks::CanSetWidgetMode( FWidget::EWidgetMode WidgetM
 
 bool FLevelEditorActionCallbacks::IsTranslateRotateModeVisible()
 {
-	return GEditor->GetEditorUserSettings().bAllowTranslateRotateZWidget;
+	return GetDefault<ULevelEditorViewportSettings>()->bAllowTranslateRotateZWidget;
 }
 
 void FLevelEditorActionCallbacks::SetCoordinateSystem( ECoordSystem CoordinateSystem )

@@ -1907,7 +1907,7 @@ void FEditorModeTools::CycleWidgetMode (void)
 		do
 		{
 			Wk++;
-			if ((Wk == FWidget::WM_TranslateRotateZ) && (!GEditor->GetEditorUserSettings().bAllowTranslateRotateZWidget))
+			if ((Wk == FWidget::WM_TranslateRotateZ) && (!GetDefault<ULevelEditorViewportSettings>()->bAllowTranslateRotateZWidget))
 			{
 				Wk++;
 			}

@@ -89,22 +89,6 @@ void UEditorUserSettings::PostEditChangeProperty( FPropertyChangedEvent& Propert
 		//GDistributionType == 0 for curves
 		GDistributionType = (bUseCurvesForDistributions) ? 0 : 1;
 	}
-	else if ( Name == FName(TEXT("bAllowTranslateRotateZWidget")) )
-	{
-		if ( bAllowTranslateRotateZWidget )
-		{
-			GEditorModeTools().SetWidgetMode( FWidget::WM_TranslateRotateZ );
-		}
-		else if ( GEditorModeTools().GetWidgetMode() == FWidget::WM_TranslateRotateZ )
-		{
-			GEditorModeTools().SetWidgetMode( FWidget::WM_Translate );
-		}
-	}
-	else if ( Name == FName(TEXT("bNavigationAutoUpdate")) )
-	{
-		FWorldContext &EditorContext = GEditor->GetEditorWorldContext();
-		UNavigationSystem::SetNavigationAutoUpdateEnabled(bNavigationAutoUpdate, EditorContext.World()->GetNavigationSystem() );
-	}
 
 	GEditor->SaveEditorUserSettings();
 

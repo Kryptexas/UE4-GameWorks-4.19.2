@@ -199,7 +199,31 @@ public:
 	/** When checked, orbit the camera by using the L or U keys when unchecked, Alt and Left Mouse Drag will orbit around the look at point */
 	UPROPERTY(EditAnywhere, config, Category=Controls, meta=(DisplayName="Use UE3 Orbit Controls"), AdvancedDisplay)
 	bool bUseUE3OrbitControls;
+
 public:
+
+	/** Allow translate/rotate widget */
+	UPROPERTY(EditAnywhere, config, Category=Editing, meta=( DisplayName = "Enable Combined Translate/Rotate Widget" ))
+	uint32 bAllowTranslateRotateZWidget:1;
+
+	/** If true, Clicking a BSP selects the brush and ctrl+shift+click selects the surface. If false, vice versa */
+	UPROPERTY(EditAnywhere, config, Category=Editing, meta=( DisplayName = "Clicking BSP Enables Brush" ))
+	uint32 bClickBSPSelectsBrush:1;
+
+	/** If true, BSP will auto-update */
+	UPROPERTY(EditAnywhere, config, Category=Editing, meta=( DisplayName = "Update BSP Automatically" ))
+	uint32 bBSPAutoUpdate:1;
+
+	/** If true, Navigation will auto-update */
+	UPROPERTY(EditAnywhere, config, Category=Editing, meta=( DisplayName = "Update Navigation Automatically" ))
+	uint32 bNavigationAutoUpdate:1;
+
+	/** If enabled, replacing actors will respect the scale of the original actor.  Otherwise, the replaced actors will have a scale of 1.0 */
+	UPROPERTY(EditAnywhere, config, Category=Editing, meta=( DisplayName = "Preserve Actor Scale on Replace" ))
+	uint32 bReplaceRespectsScale:1;
+
+public:
+
 	/** If enabled will use power of 2 grid settings (e.g, 1,2,4,8,16,...,1024) instead of decimal grid sizes */
 	UPROPERTY(EditAnywhere, config, Category=GridSnapping, meta=(DisplayName = "User Power of Two Snap Size"))
 	bool bUsePowerOf2SnapSize;
@@ -231,8 +255,6 @@ public:
 	/** Grid sizes for scaling */
 	UPROPERTY(EditAnywhere, config, AdvancedDisplay, Category=GridSnapping)
 	TArray<float> ScalingGridSizes;
-
-public:
 
 	/** If enabled, actor positions will snap to the grid. */
 	UPROPERTY(EditAnywhere, config, Category=GridSnapping, meta=(DisplayName = "Enable Grid Snapping"))
@@ -346,10 +368,11 @@ public:
 	float BillboardScale;
 
 public:
+
 	/**
 	 * @return The instance settings for the given viewport; null if no settings were found for this viewport
 	 */
-	const FLevelEditorViewportInstanceSettings* GetViewportInstanceSettings(const FString& InConfigName) const
+	const FLevelEditorViewportInstanceSettings* GetViewportInstanceSettings( const FString& InConfigName ) const
 	{
 		for(auto It = PerInstanceSettings.CreateConstIterator(); It; ++It)
 		{
@@ -366,7 +389,7 @@ public:
 	/**
 	 * Set the instance settings for the given viewport
 	 */
-	void SetViewportInstanceSettings(const FString& InConfigName, const FLevelEditorViewportInstanceSettings& InConfigSettings)
+	void SetViewportInstanceSettings( const FString& InConfigName, const FLevelEditorViewportInstanceSettings& InConfigSettings )
 	{
 		check(!InConfigName.IsEmpty());
 

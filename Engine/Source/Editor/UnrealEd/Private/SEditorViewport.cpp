@@ -382,7 +382,7 @@ bool SEditorViewport::IsWidgetModeActive( FWidget::EWidgetMode Mode ) const
 
 bool SEditorViewport::IsTranslateRotateModeVisible() const
 {
-	return GEditor->GetEditorUserSettings().bAllowTranslateRotateZWidget;
+	return GetDefault<ULevelEditorViewportSettings>()->bAllowTranslateRotateZWidget;
 }
 
 bool SEditorViewport::IsCoordSystemActive( ECoordSystem CoordSystem ) const
@@ -400,7 +400,7 @@ void SEditorViewport::OnCycleWidgetMode()
 	{
 		++WidgetModeAsInt;
 
-		if ((WidgetModeAsInt == FWidget::WM_TranslateRotateZ) && (!GEditor->GetEditorUserSettings().bAllowTranslateRotateZWidget))
+		if ((WidgetModeAsInt == FWidget::WM_TranslateRotateZ) && (!GetDefault<ULevelEditorViewportSettings>()->bAllowTranslateRotateZWidget))
 		{
 			++WidgetModeAsInt;
 		}

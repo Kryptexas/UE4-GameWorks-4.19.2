@@ -390,7 +390,7 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 	
 	// Set navigation system property indicating whether navigation is supposed to rebuild automatically 
 	FWorldContext &EditorContext = GEditor->GetEditorWorldContext();
-	UNavigationSystem::SetNavigationAutoUpdateEnabled(GEditor->GetEditorUserSettings().bNavigationAutoUpdate, EditorContext.World()->GetNavigationSystem() );
+	UNavigationSystem::SetNavigationAutoUpdateEnabled(GetDefault<ULevelEditorViewportSettings>()->bNavigationAutoUpdate, EditorContext.World()->GetNavigationSystem() );
 
 	// Allocate temporary model.
 	TempModel = new UModel( FPostConstructInitializeProperties(),NULL, 1 );
@@ -4966,7 +4966,7 @@ void UEditorEngine::ReplaceSelectedActors(UActorFactory* Factory, const FAssetDa
 			USceneComponent* const NewActorRootComponent = NewActor->GetRootComponent();
 			if(NewActorRootComponent)
 			{
-				if(!GEditorModeTools().GetReplaceRespectsScale() || OldActor->GetRootComponent() == NULL )
+				if(!GetDefault<ULevelEditorViewportSettings>()->bReplaceRespectsScale || OldActor->GetRootComponent() == NULL )
 				{
 					NewActorRootComponent->SetRelativeScale3D(FVector(1.0f, 1.0f, 1.0f));
 				}

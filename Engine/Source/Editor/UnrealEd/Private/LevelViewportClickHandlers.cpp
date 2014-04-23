@@ -676,7 +676,7 @@ namespace ClickHandlers
 		else if( Click.GetKey() == EKeys::LeftMouseButton && Click.IsShiftDown() && Click.IsControlDown() )
 		{
 
-			if( !GEditorModeTools().GetClickBSPSelectsBrush() )
+			if( !GetDefault<ULevelEditorViewportSettings>()->bClickBSPSelectsBrush )
 			{
 				// Add to the actor selection set the brush actor that belongs to this BSP surface.
 				// Check Surf.Actor, as it can be NULL after deleting brushes and before rebuilding BSP.
@@ -862,7 +862,7 @@ namespace ClickHandlers
 		else
 		{	
 			bool bDeselectAlreadyHandled = false;
-			if( GEditorModeTools().GetClickBSPSelectsBrush() )
+			if( GetDefault<ULevelEditorViewportSettings>()->bClickBSPSelectsBrush )
 			{
 				// Add to the actor selection set the brush actor that belongs to this BSP surface.
 				// Check Surf.Actor, as it can be NULL after deleting brushes and before rebuilding BSP.

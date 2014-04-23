@@ -160,13 +160,29 @@ void ULevelEditorViewportSettings::PostEditChangeProperty( struct FPropertyChang
 
 	const FName Name = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
 
-	if (Name == FName(TEXT("bHighlightWithBrackets")))
+	if (Name == FName(TEXT("bAllowTranslateRotateZWidget")))
+	{
+		if (bAllowTranslateRotateZWidget)
+		{
+			GEditorModeTools().SetWidgetMode(FWidget::WM_TranslateRotateZ);
+		}
+		else if (GEditorModeTools().GetWidgetMode() == FWidget::WM_TranslateRotateZ)
+		{
+			GEditorModeTools().SetWidgetMode(FWidget::WM_Translate);
+		}
+	}
+	else if (Name == FName(TEXT("bHighlightWithBrackets")))
 	{
 		GEngine->SetSelectedMaterialColor(bHighlightWithBrackets ? FLinearColor::Black : GetDefault<UEditorStyleSettings>()->SelectionColor);
 	}
 	else if (Name == FName(TEXT("HoverHighlightIntensity")))
 	{
 		GEngine->HoverHighlightIntensity = HoverHighlightIntensity;
+	}
+	else if (Name == FName(TEXT("bNavigationAutoUpdate")))
+	{
+		FWorldContext &EditorContext = GEditor->GetEditorWorldContext();
+		UNavigationSystem::SetNavigationAutoUpdateEnabled(bNavigationAutoUpdate, EditorContext.World()->GetNavigationSystem());
 	}
 	else if (Name == FName(TEXT("SelectionHighlightIntensity")))
 	{
