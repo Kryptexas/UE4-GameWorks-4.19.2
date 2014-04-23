@@ -194,7 +194,11 @@ private:
 		/** Indicates if it is the arrival tangent, or the leave tangent */
 		bool			  bIsArrival;
 	};
+
 private:
+	/** Adds a new key to the curve. */
+	void AddNewKey(FGeometry InMyGeometry, FVector2D ScreenPosition);
+
 	/** Get the color associated with a given curve */
 	FLinearColor	GetCurveColor(FRichCurve* Curve) const;
 
@@ -209,8 +213,6 @@ private:
 
 	/** Called when new value for a key is entered */
 	void NewValueEntered( const FText& NewText, ETextCommit::Type CommitInfo );
-	/** Called when a new time for a key is entered */
-	void NewTimeEntered( const FText& NewText, ETextCommit::Type CommitInfo );
 
 	void NewHorizontalGridScaleEntered(const FString& NewText, bool bCommitFromEnter );
 	void NewVerticalGridScaleEntered(const FString& NewText, bool bCommitFromEnter );
@@ -239,9 +241,9 @@ private:
 	bool AreKeysSelected() const;
 
 	/** Get the value of the desired key as text */
-	FText GetKeyValueText(FSelectedCurveKey Key) const;
-	/** Get the time of the desired key as text */
-	FText GetKeyTimeText(FSelectedCurveKey Key) const;
+	TOptional<float> GetKeyValue(FSelectedCurveKey Key) const;
+	/** Get the time of the desired key */
+	TOptional<float> GetKeyTime(FSelectedCurveKey Key) const;
 
 	/** Move the selected keys by the supplied change in input (X) */
 	void MoveSelectedKeysByDelta(FVector2D InputDelta);
@@ -255,9 +257,17 @@ private:
 	FReply ZoomToFitHorizontal();
 	FReply ZoomToFitVertical();
 
-	FText GetInputInfoText() const;
-	FText GetOutputInfoText() const;
-	FText GetKeyInfoText() const;
+
+	TOptional<float> OnGetTime() const;
+	void OnTimeComitted(float NewValue, ETextCommit::Type CommitType);
+	void OnTimeChanged(float NewValue);
+
+	TOptional<float> OnGetValue() const;
+	void OnValueComitted(float NewValue, ETextCommit::Type CommitType);
+	void OnValueChanged(float NewValue);
+
+	void OnBeginSliderMovement(FText TransactionName);
+	void OnEndSliderMovement(float NewValue);
 
 	EVisibility GetCurveAreaVisibility() const;
 	EVisibility GetControlVisibility() const;
@@ -267,7 +277,7 @@ private:
 	bool GetInputEditEnabled() const;
 
 	/** Function to create context menu on mouse right click*/
-	void CreateContextMenu();
+	void CreateContextMenu(const FGeometry& InMyGeometry, const FVector2D& ScreenPosition);
 
 	/** Callback function called when item is select in the context menu */
 	void OnCreateExternalCurveClicked();
@@ -374,7 +384,9 @@ private:
 	bool AreCurvesVisible() const { return bAlwaysDisplayColorCurves || bAreCurvesVisible; }
 	bool IsGradientEditorVisible() const { return bIsGradientEditorVisible; }
 	bool IsLinearColorCurve() const;
+
 protected:
+
 	/** Set Default output values when range is too small **/
 	UNREALED_API virtual void SetDefaultOutput(const float MinZoomRange);
 	/** Get Time Step for vertical line drawing **/
@@ -473,6 +485,9 @@ protected:
 
 	/** True if you want the curve editor to fit to zoom **/
 	bool				bZoomToFit;
+
+	/** True if the sliders are being used to adjust point values **/
+	bool bIsUsingSlider;
 };
 
 #endif // __SCurveEditor_h__

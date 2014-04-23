@@ -769,7 +769,7 @@ void STimelineEdTrack::CopyCurveData( const FRichCurve* SrcCurve, FRichCurve* De
 
 void STimelineEdTrack::ResetExternalCurveInfo( )
 {
-	ExternalCurveName = FString( TEXT("None") );
+	ExternalCurveName = FString( TEXT( "None" ) );
 	ExternalCurvePath = FString( TEXT( "None" ) );
 }
 
@@ -784,7 +784,7 @@ void STimelineEditor::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintE
 	Kismet2Ptr = InKismet2;
 	TimelineObj = NULL;
 
-	NominalTimelineDesiredHeight = 100.0f;
+	NominalTimelineDesiredHeight = 300.0f;
 	TimelineDesiredSize = FVector2D(128.0f, NominalTimelineDesiredHeight);
 
 	// Leave these uninitialized at first.  We'll zoom to fit the tracks which will set the correct values
