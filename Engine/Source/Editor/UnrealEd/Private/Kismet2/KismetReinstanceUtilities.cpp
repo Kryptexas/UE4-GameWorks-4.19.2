@@ -277,13 +277,17 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UCl
 
 						AttachSocketName = OldRootComponent->AttachSocketName;
 
-						//detach it to remove any scaling 
+						//detach it to remove any scaling
 						OldRootComponent->DetachFromParent(true);
 					}
 
 					for (auto AttachIt = OldRootComponent->AttachChildren.CreateConstIterator(); AttachIt; ++AttachIt)
 					{
-						OldAttachChildren.Add((*AttachIt)->GetOwner());
+						USceneComponent* Child = *AttachIt;
+						if (ensure(Child != nullptr))
+						{
+							OldAttachChildren.Add(Child->GetOwner());
+						}
 					}
 
 					// Save off transform
