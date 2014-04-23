@@ -1109,7 +1109,15 @@ bool UInternationalizationExportCommandlet::DoImport( const FString& SourcePath,
 	{
 		// Load the Portable Object file if found
 		const FString CultureName = CulturesToGenerate[Culture];
-		const FString POFilePath = SourcePath / CultureName + TEXT(".po");
+		FString POFilePath;
+		if (FPaths::GetExtension(SourcePath) != "po")
+		{
+			POFilePath = SourcePath / CultureName + TEXT(".po");
+		}
+		else
+		{
+			POFilePath = SourcePath;
+		}
 
 		if( !FPaths::FileExists(POFilePath) )
 		{
