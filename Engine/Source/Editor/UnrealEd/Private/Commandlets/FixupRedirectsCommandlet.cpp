@@ -756,7 +756,7 @@ int32 UFixupRedirectsCommandlet::Main( const FString& Params )
 			FString PackageName(FPackageName::FilenameToLongPackageName(Filename));
 			FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(SourceControlHelpers::PackageFilename(Filename), EStateCacheUsage::ForceUpdate);
 
-			if( SourceControlState.IsValid() && SourceControlState->IsCheckedOut() || SourceControlState->IsAdded() || SourceControlState->IsDeleted() )
+			if( SourceControlState.IsValid() && (SourceControlState->IsCheckedOut() || SourceControlState->IsAdded() || SourceControlState->IsDeleted()) )
 			{
 				// Only submit engine packages if we're requested to
 				if( bUpdateEnginePackages || !Filename.StartsWith( FPaths::EngineDir() ) )
