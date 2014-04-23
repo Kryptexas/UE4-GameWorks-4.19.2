@@ -442,12 +442,12 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 		if( Intermediates.InputPosition.z > 0.5f )
 		{
 			SectionLod = SectionLods.w;
-			LODCalculated4 = L0 * SectionLod + (float4(1,1,1,1)-L0) * NeighborSectionLod[3];
+			LODCalculated4 = L0 * SectionLod + (float4(1, 1, 1, 1) - L0) * NeighborSectionLod[3];
 		}
 		else
 		{
 			SectionLod = SectionLods.z;
-			LODCalculated4 = L0 * SectionLod + (float4(1,1,1,1)-L0) * NeighborSectionLod[2];
+			LODCalculated4 = L0 * SectionLod + (float4(1, 1, 1, 1) - L0) * NeighborSectionLod[2];
 		}
 	}
 	else
@@ -455,12 +455,12 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 		if( Intermediates.InputPosition.z > 0.5f )
 		{
 			SectionLod = SectionLods.y;
-			LODCalculated4 = L0 * SectionLods + (float4(1,1,1,1)-L0) * NeighborSectionLod[1];
+			LODCalculated4 = L0 * SectionLod + (float4(1,1,1,1)-L0) * NeighborSectionLod[1];
 		}
 		else
 		{
 			SectionLod = SectionLods.x;
-			LODCalculated4 = L0 * SectionLod + (float4(1,1,1,1)-L0) * NeighborSectionLod[0];
+			LODCalculated4 = L0 * SectionLod + (float4(1, 1, 1, 1) - L0) * NeighborSectionLod[0];
 		}
 	}
 
