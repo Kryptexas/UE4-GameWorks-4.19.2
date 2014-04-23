@@ -67,6 +67,19 @@ void FStreamingLevelCollectionModel::OnLevelsCollectionChanged()
 	FLevelCollectionModel::OnLevelsCollectionChanged();
 }
 
+void FStreamingLevelCollectionModel::OnLevelsSelectionChanged()
+{
+	InvalidSelectedLevels.Empty();
+
+	for (TSharedPtr<FLevelModel> LevelModel : SelectedLevelsList)
+	{
+		if (!LevelModel->HasValidPackage())
+		{
+			InvalidSelectedLevels.Add(LevelModel);
+		}
+	}
+}
+
 void FStreamingLevelCollectionModel::UnloadLevels(const FLevelModelList& InLevelList)
 {
 	if (IsReadOnly())
@@ -203,31 +216,27 @@ void FStreamingLevelCollectionModel::BuildHierarchyMenu(FMenuBuilder& InMenuBuil
 {
 	const FLevelCollectionCommands& Commands = FLevelCollectionCommands::Get();
 
-	const FLevelModelList& SelectedLevels = GetSelectedLevels();
-			
-	bool bOnlyInvalidSelectedLevel	= InvalidSelectedLevels.Num() == 1 && SelectedLevels.Num() == 0;
-	bool bOnlySelectedLevel			= InvalidSelectedLevels.Num() == 0 && SelectedLevels.Num() == 1;
-			
-	if (bOnlyInvalidSelectedLevel)
+	if (IsOneLevelSelected())
 	{
 		// We only show the level missing level commands if only 1 invalid level and no valid levels
-		InMenuBuilder.BeginSection("MissingLevel", LOCTEXT("ViewHeaderRemove", "Missing Level") );
+		if (InvalidSelectedLevels.Num() == 1)
 		{
-			InMenuBuilder.AddMenuEntry( Commands.FixUpInvalidReference );
-			InMenuBuilder.AddMenuEntry( Commands.RemoveInvalidReference );
+			InMenuBuilder.BeginSection("MissingLevel", LOCTEXT("ViewHeaderRemove", "Missing Level") );
+			{
+				InMenuBuilder.AddMenuEntry( Commands.FixUpInvalidReference );
+				InMenuBuilder.AddMenuEntry( Commands.RemoveInvalidReference );
+			}
+			InMenuBuilder.EndSection();
 		}
-		InMenuBuilder.EndSection();
-	}
-	else if ( bOnlySelectedLevel )
-	{
-		const auto& LevelModel = SelectedLevels[0];
-
-		InMenuBuilder.BeginSection("Level", FText::FromName(LevelModel->GetLongPackageName()));
+		else
 		{
-			InMenuBuilder.AddMenuEntry( Commands.World_MakeLevelCurrent );
-			InMenuBuilder.AddMenuEntry( Commands.MoveActorsToSelected );
+			InMenuBuilder.BeginSection("Level", FText::FromName(GetSelectedLevels()[0]->GetLongPackageName()));
+			{
+				InMenuBuilder.AddMenuEntry( Commands.World_MakeLevelCurrent );
+				InMenuBuilder.AddMenuEntry( Commands.MoveActorsToSelected );
+			}
+			InMenuBuilder.EndSection();
 		}
-		InMenuBuilder.EndSection();
 	}
 
 	// Adds common commands
@@ -235,7 +244,7 @@ void FStreamingLevelCollectionModel::BuildHierarchyMenu(FMenuBuilder& InMenuBuil
 
 	InMenuBuilder.BeginSection("LevelsAddChangeStreaming");
 	{
-		if (AreAnyLevelsSelected())
+		if (AreAnyLevelsSelected() && !(IsOneLevelSelected() && GetSelectedLevels()[0]->IsPersistent()))
 		{
 			InMenuBuilder.AddMenuEntry(Commands.World_RemoveSelectedLevels);
 			
@@ -524,18 +533,22 @@ void FStreamingLevelCollectionModel::AddSelectedActorsToNewLevel_Executed()
 
 void FStreamingLevelCollectionModel::FixupInvalidReference_Executed()
 {
+	// Save or selected list, adding a new level will clean it up
+	FLevelModelList SavedInvalidSelectedLevels = InvalidSelectedLevels;
+
 	// Browsing is essentially the same as adding an existing level
 	if (AddExistingLevel())
 	{
+		InvalidSelectedLevels = SavedInvalidSelectedLevels;
 		RemoveInvalidSelectedLevels_Executed();
 	}
 }
 
 void FStreamingLevelCollectionModel::RemoveInvalidSelectedLevels_Executed()
 {
-	for (auto It = InvalidSelectedLevels.CreateIterator(); It; ++It )
+	for (TSharedPtr<FLevelModel> LevelModel : InvalidSelectedLevels)
 	{
-		TSharedPtr<FStreamingLevelModel> TargetModel = StaticCastSharedPtr<FStreamingLevelModel>(*It);
+		TSharedPtr<FStreamingLevelModel> TargetModel = StaticCastSharedPtr<FStreamingLevelModel>(LevelModel);
 		ULevelStreaming* LevelStreaming = TargetModel->GetLevelStreaming().Get();
 
 		if (LevelStreaming)

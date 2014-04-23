@@ -652,21 +652,21 @@ void FLevelModel::UpdateLevelActorsCount()
 
 void FLevelModel::UpdateDisplayName()
 {
+	if (IsPersistent())
+	{
+		DisplayName = LOCTEXT("PersistentTag", "Persistent Level").ToString();
+	}
+	else
+	{
+		DisplayName = GetLongPackageName().ToString();
+		if (!LevelCollectionModel.GetDisplayPathsState())
+		{
+			DisplayName = FPackageName::GetShortName(DisplayName);
+		}
+	}
+
 	if (HasValidPackage())
 	{
-		if (IsPersistent())
-		{
-			DisplayName = LOCTEXT("PersistentTag", "Persistent Level").ToString();
-		}
-		else
-		{
-			DisplayName = GetLongPackageName().ToString();
-			if (!LevelCollectionModel.GetDisplayPathsState())
-			{
-				DisplayName = FPackageName::GetShortName(DisplayName);
-			}
-		}
-
 		// Append actors count
 		if (IsLoaded())
 		{
@@ -677,10 +677,9 @@ void FLevelModel::UpdateDisplayName()
 	}
 	else
 	{
-		DisplayName = LOCTEXT("MissingLevelErrorText", " [Missing Level]").ToString();
+		DisplayName+= LOCTEXT("MissingLevelErrorText", " [Missing Level] ").ToString();
 	}
 }
-
 
 FString FLevelModel::GetLightmassSizeString() const
 {

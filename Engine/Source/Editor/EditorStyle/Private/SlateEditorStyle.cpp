@@ -1032,26 +1032,7 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 
 	// World Browser
 	{
-		Set( "WorldBrowser.Icon16x", new IMAGE_BRUSH( "Icons/levels_16x", Icon16x16 ) );
-		Set( "WorldBrowser.VisibleIcon16x", new IMAGE_BRUSH( "Icons/icon_layer_visible", Icon16x16 ) );
-		Set( "WorldBrowser.NotVisibleIcon16x", new IMAGE_BRUSH( "Icons/icon_layer_not_visible", Icon16x16 ) );
-		Set( "WorldBrowser.LockedIcon16x", new IMAGE_BRUSH( "Icons/padlock_locked_16x", Icon16x16 ) );
-		Set( "WorldBrowser.UnlockedIcon16x", new IMAGE_BRUSH( "Icons/padlock_unlocked_16x", Icon16x16 ) );
-		Set( "WorldBrowser.SaveIcon16x", new IMAGE_BRUSH( "Icons/Save_16x", Icon16x16 ) );
-		Set( "WorldBrowser.SaveModifiedIcon16x", new IMAGE_BRUSH( "Icons/SaveModified_16x", Icon16x16 ) );
-		Set( "WorldBrowser.SaveDisabledIcon16x", new IMAGE_BRUSH( "Icons/save_disabled_16x", Icon16x16 ) );
-		Set( "WorldBrowser.ScriptIcon16x", new IMAGE_BRUSH( "Icons/ActorIcons/PlayerStart_16x", Icon16x16 ) );
-		Set( "WorldBrowser.EmptyIcon16x", new IMAGE_BRUSH( "Icons/Empty_16x", Icon16x16 ) );
-		Set( "WorldBrowser.ColorIcon40x", new IMAGE_BRUSH( "Icons/icon_stop_40x", Icon16x16 ) );
-		Set( "WorldBrowser.LevelLoaded", new IMAGE_BRUSH( "Common/TaskGraph_Normal", Icon16x16 ) );
-		Set( "WorldBrowser.LevelUnloaded", new IMAGE_BRUSH( "Common/TaskGraph_Mono", Icon16x16 ) );
-		Set( "WorldBrowser.LevelPending", new IMAGE_BRUSH( "Common/TaskGraph_Selected", Icon16x16 ) );
 		Set( "WorldBrowser.AddLayer", new IMAGE_BRUSH( "Icons/icon_add_40x", Icon16x16 ) );
-		Set( "WorldBrowser.RegularTreeItemFont", TTF_CORE_FONT( "Fonts/Roboto-Regular", 10 ) );
-		Set( "WorldBrowser.BoldTreeItemFont", TTF_CORE_FONT( "Fonts/Roboto-Bold", 10 ) );
-		Set( "WorldBrowser.StreamingAlwaysLoaded", new IMAGE_BRUSH( "Icons/icon_simulate_40x", Icon16x16 ) );
-		Set( "WorldBrowser.StreamingKismet", new IMAGE_BRUSH( "Icons/icon_kismet2_40x", Icon16x16 ) );
-		Set( "WorldBrowser.StreamingLevelBounds", new IMAGE_BRUSH( "Icons/icon_box_40x", Icon16x16 ) );
 		Set( "WorldBrowser.SimulationViewPositon", new IMAGE_BRUSH( "Icons/icon_variable_used_16x", Icon16x16 ) );
 		Set( "WorldBrowser.MouseLocation", new IMAGE_BRUSH( "Icons/cursor_cardinal_cross", Icon16x16 ) );
 		Set( "WorldBrowser.MarqueeRectSize", new IMAGE_BRUSH( "Icons/icon_ViewMode_VisualisationGBuffer_16px", Icon16x16 ) );
@@ -1062,6 +1043,8 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "WorldBrowser.DirectionXNegative", new IMAGE_BRUSH( "Icons/icon_PanLeft", Icon16x16 ) );
 		Set( "WorldBrowser.DirectionYPositive", new IMAGE_BRUSH( "Icons/icon_PanUp", Icon16x16 ) );
 		Set( "WorldBrowser.DirectionYNegative", new IMAGE_BRUSH( "Icons/icon_PanDown", Icon16x16 ) );
+		Set( "WorldBrowser.LevelStreamingAlwaysLoaded", new FSlateNoResource() );
+		Set( "WorldBrowser.LevelStreamingKismet", new IMAGE_BRUSH( "Icons/ActorIcons/ComponentMobilityStationary_7x16px", Icon7x16 ) );
 
 		Set( "WorldBrowser.StatusBarText", FTextBlockStyle(NormalText)
 				.SetFont( TTF_FONT( "Fonts/Roboto-BoldCondensed", 12 ) )

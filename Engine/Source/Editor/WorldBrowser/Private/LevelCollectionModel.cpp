@@ -664,7 +664,7 @@ void FLevelCollectionModel::BuildHierarchyMenu(FMenuBuilder& InMenuBuilder) cons
 		InMenuBuilder.AddMenuEntry( Commands.AddsActors );
 		InMenuBuilder.AddMenuEntry( Commands.RemovesActors );
 
-		if (AreAnyLevelsSelected())
+		if (AreAnyLevelsSelected() && !(IsOneLevelSelected() && SelectedLevelsList[0]->IsPersistent()))
 		{
 			InMenuBuilder.AddMenuEntry( Commands.SelectStreamingVolumes );
 		}
