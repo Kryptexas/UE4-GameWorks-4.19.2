@@ -547,7 +547,6 @@ bool FProfilerManager::UntrackStat( const uint32 StatID )
 void FProfilerManager::ClearStatsAndInstances()
 {
 	CloseAllEventGraphTabs();
-	GetProfilerWindow()->ProfilerMiniView->Reset();
 
 	ProfilerType = EProfilerSessionTypes::InvalidOrMax;
 	SetDataPreview( false );
@@ -712,6 +711,8 @@ void FProfilerManager::CloseAllEventGraphTabs()
 			FProfilerSessionRef ProfilerSession = It.Value();
 			ProfilerWindowPtr->ManageEventGraphTab( ProfilerSession->GetInstanceID(), false, TEXT("") );
 		}
+
+		ProfilerWindowPtr->ProfilerMiniView->Reset();
 	}
 }
 
