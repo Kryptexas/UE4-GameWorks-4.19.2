@@ -750,21 +750,9 @@ void UAnimInstance::TriggerAnimNotifies(float DeltaSeconds)
 			continue;
 		}
 
-		// This checking-for-blueprint class is a hack to allow the old UAnimNotify_* notifies to work for a little longer until they are all removed.
-		// Once done, we can remove passing the UAnimNotify to the custom event notifies (since they cant contain custom/user data anyways).
-		// The "is blue print class" can just become a "is notify != null".
-		bool bIsBlueprintNotify = false;
-		if( AnimNotifyEvent->Notify != NULL)
+		if(AnimNotifyEvent->Notify != NULL)
 		{
-			if( !AnimNotifies[Index]->Notify->GetClass()->HasAllClassFlags(CLASS_Native) )
-			{
-				bIsBlueprintNotify = true;
-			}
-		}
-
-		if( bIsBlueprintNotify )
-		{
-			// Blueprint notify: just call Notify. UAnimNotify will forward this to the blueprintable event which will do the work.
+			// Implemented notify: just call Notify. UAnimNotify will forward this to the event which will do the work.
 			AnimNotifyEvent->Notify->Notify(SkelMeshComp, Cast<UAnimSequence>(AnimNotifyEvent->Notify->GetOuter()));
 		}
 		else if( AnimNotifyEvent->NotifyName != NAME_None )

@@ -231,7 +231,8 @@ protected:
 	// Build up a "New Notify..." menu
 	void FillNewNotifyMenu(FMenuBuilder& MenuBuilder);
 	void FillNewNotifyStateMenu(FMenuBuilder& MenuBuilder);
-	void CreateNewNotifyAtCursor(FString NewNotifyName, FString NotifyClassPath);
+	void CreateNewBlueprintNotifyAtCursor(FString NewNotifyName, FString BlueprintPath);
+	void CreateNewNotifyAtCursor(FString NewNotifyName, UClass* NotifyClass);
 	void OnNewNotifyClicked();
 	void AddNewNotify(const FText& NewNotifyName, ETextCommit::Type CommitInfo);
 	void OnSetTriggerWeightNotifyClicked(int32 NotifyIndex);
@@ -1409,13 +1410,38 @@ void SAnimNotifyTrack::FillNewNotifyStateMenu(FMenuBuilder& MenuBuilder)
 
 			FUIAction UIAction;
 			UIAction.ExecuteAction.BindRaw(
-				this, &SAnimNotifyTrack::CreateNewNotifyAtCursor,
+				this, &SAnimNotifyTrack::CreateNewBlueprintNotifyAtCursor,
 				Label,
 				BlueprintPath);
 
 			MenuBuilder.AddMenuEntry(LabelText, Description, FSlateIcon(), UIAction);
 		}
 	}
+
+	MenuBuilder.BeginSection("NativeNotifyStates", LOCTEXT("NewStateNotifyMenu_Native", "Native Notify States"));
+	{
+		for(TObjectIterator<UClass> It ; It ; ++It)
+		{
+			UClass* Class = *It;
+
+			if(Class->IsChildOf(UAnimNotifyState::StaticClass()) && !Class->HasAllClassFlags(CLASS_Abstract) && !Class->IsInBlueprint())
+			{
+				// Found a native anim notify class (that isn't UAnimNotify)
+				const FText Description = LOCTEXT("NewNotifyStateSubMenu_NativeToolTip", "Add an existing native notify state");
+				FString Label = Class->GetName();
+				const FText LabelText = FText::FromString(Label);
+
+				FUIAction UIAction;
+				UIAction.ExecuteAction.BindRaw(
+					this, &SAnimNotifyTrack::CreateNewNotifyAtCursor,
+					Label,
+					Class);
+
+				MenuBuilder.AddMenuEntry(LabelText, Description, FSlateIcon(), UIAction);
+			}
+		}
+	}
+	MenuBuilder.EndSection();
 }
 
 void SAnimNotifyTrack::FillNewNotifyMenu(FMenuBuilder& MenuBuilder)
@@ -1444,13 +1470,38 @@ void SAnimNotifyTrack::FillNewNotifyMenu(FMenuBuilder& MenuBuilder)
 
 			FUIAction UIAction;
 			UIAction.ExecuteAction.BindRaw(
-				this, &SAnimNotifyTrack::CreateNewNotifyAtCursor,
+				this, &SAnimNotifyTrack::CreateNewBlueprintNotifyAtCursor,
 				Label,
 				BlueprintPath);
 
 			MenuBuilder.AddMenuEntry(LabelText, Description, FSlateIcon(), UIAction);
 		}
 	}
+
+	MenuBuilder.BeginSection("NativeNotifies", LOCTEXT("NewNotifyMenu_Native", "Native Notifies"));
+	{
+		for(TObjectIterator<UClass> It ; It ; ++It)
+		{
+			UClass* Class = *It;
+
+			if(Class->IsChildOf(UAnimNotify::StaticClass()) && !Class->HasAllClassFlags(CLASS_Abstract) && !Class->IsInBlueprint())
+			{
+				// Found a native anim notify class (that isn't UAnimNotify)
+				const FText Description = LOCTEXT("NewNotifySubMenu_NativeToolTip", "Add an existing native notify");
+				FString Label = Class->GetName();
+				const FText LabelText = FText::FromString(Label);
+
+				FUIAction UIAction;
+				UIAction.ExecuteAction.BindRaw(
+					this, &SAnimNotifyTrack::CreateNewNotifyAtCursor,
+					Label,
+					Class);
+
+				MenuBuilder.AddMenuEntry(LabelText, Description, FSlateIcon(), UIAction);
+			}
+		}
+	}
+	MenuBuilder.EndSection();
 
 	MenuBuilder.BeginSection("AnimNotifyCustom", LOCTEXT("NewNotifySubMenu_Custom", "Custom"));
 	{
@@ -1469,7 +1520,7 @@ void SAnimNotifyTrack::FillNewNotifyMenu(FMenuBuilder& MenuBuilder)
 				UIAction.ExecuteAction.BindRaw(
 					this, &SAnimNotifyTrack::CreateNewNotifyAtCursor,
 					Label, 
-					FString());
+					(UClass*)nullptr);
 
 				MenuBuilder.AddMenuEntry( FText::FromString( Label ), Description, FSlateIcon(), UIAction);
 			}
@@ -1487,7 +1538,7 @@ void SAnimNotifyTrack::FillNewNotifyMenu(FMenuBuilder& MenuBuilder)
 	MenuBuilder.EndSection();
 }
 
-void SAnimNotifyTrack::CreateNewNotifyAtCursor(FString NewNotifyName, FString BlueprintPath)
+void SAnimNotifyTrack::CreateNewBlueprintNotifyAtCursor(FString NewNotifyName, FString BlueprintPath)
 {
 	TSubclassOf<UObject> BlueprintClass = NULL;
 	if( !BlueprintPath.IsEmpty() )
@@ -1495,7 +1546,12 @@ void SAnimNotifyTrack::CreateNewNotifyAtCursor(FString NewNotifyName, FString Bl
 		UBlueprint* BlueprintLibPtr = LoadObject<UBlueprint>(NULL, *BlueprintPath, NULL, 0, NULL);
 		BlueprintClass = Cast<UClass>(BlueprintLibPtr->GeneratedClass);
 	}
+	check(BlueprintClass)
+	CreateNewNotifyAtCursor(NewNotifyName, BlueprintClass);
+}
 
+void SAnimNotifyTrack::CreateNewNotifyAtCursor(FString NewNotifyName, UClass* NotifyClass)
+{
 	const float NewTime = LastClickedTime;
 	const FScopedTransaction Transaction( LOCTEXT("AddNotifyEvent", "Add Anim Notify") );
 	Sequence->Modify();
@@ -1508,9 +1564,9 @@ void SAnimNotifyTrack::CreateNewNotifyAtCursor(FString NewNotifyName, FString Bl
 	NewEvent.TriggerTimeOffset = GetTriggerTimeOffsetForType(Sequence->CalculateOffsetForNotify(NewTime));
 	NewEvent.TrackIndex = TrackIndex;
 
-	if( BlueprintClass )
+	if( NotifyClass )
 	{
-		class UObject * AnimNotifyClass = NewObject<UObject>(Sequence, *BlueprintClass);
+		class UObject * AnimNotifyClass = NewObject<UObject>(Sequence, NotifyClass);
 		NewEvent.NotifyStateClass = Cast<UAnimNotifyState>(AnimNotifyClass);
 		NewEvent.Notify = Cast<UAnimNotify>(AnimNotifyClass);
 
@@ -1528,24 +1584,6 @@ void SAnimNotifyTrack::CreateNewNotifyAtCursor(FString NewNotifyName, FString Bl
 
 	if(NewEvent.Notify)
 	{
-		struct FindClassPred
-		{
-			FindClassPred( const UClass* InClass )
-				: Class(InClass)
-			{
-			}
-			bool operator()( const FAssetData& AssetData ) const
-			{
-				if( AssetData.GetAsset()->IsA( Class ) )
-				{
-					return true;
-				}
-				return false;
-			}
-		private:
-			const UClass* Class;
-		};
-
 		TArray<FAssetData> SelectedAssets;
 		AssetSelectionUtils::GetSelectedAssets(SelectedAssets);
 
@@ -1553,7 +1591,12 @@ void SAnimNotifyTrack::CreateNewNotifyAtCursor(FString NewNotifyName, FString Bl
 		{
 			if(PropIt->GetBoolMetaData(TEXT("ExposeOnSpawn")))
 			{
-				const FAssetData* Asset = SelectedAssets.FindByPredicate( FindClassPred(PropIt->PropertyClass) );
+				UObjectProperty* Property = *PropIt;
+				const FAssetData* Asset = SelectedAssets.FindByPredicate([Property](const FAssetData& Other)
+				{
+					return Other.GetAsset()->IsA(Property->PropertyClass);
+				});
+
 				if( Asset )
 				{
 					uint8* Offset = (*PropIt)->ContainerPtrToValuePtr<uint8>(NewEvent.Notify);
@@ -2102,7 +2145,7 @@ void SAnimNotifyTrack::AddNewNotify(const FText& NewNotifyName, ETextCommit::Typ
 		FName NewName = FName( *NewNotifyName.ToString() );
 		SeqSkeleton->AddNewAnimationNotify(NewName);
 
-		CreateNewNotifyAtCursor(NewNotifyName.ToString(), "");
+		CreateNewNotifyAtCursor(NewNotifyName.ToString(), (UClass*)nullptr);
 	}
 
 	FSlateApplication::Get().DismissAllMenus();

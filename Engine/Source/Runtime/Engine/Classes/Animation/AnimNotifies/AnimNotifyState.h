@@ -4,8 +4,8 @@
 #pragma once
 #include "AnimNotifyState.generated.h"
 
-UCLASS(abstract, editinlinenew, Blueprintable, const, hidecategories=Object, collapsecategories, MinimalAPI, meta=(ShowHiddenSelfPins))
-class UAnimNotifyState : public UObject
+UCLASS(abstract, editinlinenew, Blueprintable, const, hidecategories=Object, collapsecategories, meta=(ShowHiddenSelfPins))
+class ENGINE_API UAnimNotifyState : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
