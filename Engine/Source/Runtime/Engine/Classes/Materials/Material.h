@@ -699,7 +699,7 @@ private:
 	FMaterialResource* MaterialResources[EMaterialQualityLevel::Num][ERHIFeatureLevel::Num];
 
 	/** Material resources being cached for cooking. */
-	TArray<FMaterialResource*> CachedMaterialResourcesForCooking;
+	TMap<const class ITargetPlatform*, TArray<FMaterialResource*>> CachedMaterialResourcesForCooking;
 
 	/** Fence used to guarantee that the RT is finished using various resources in this UMaterial before cleanup. */
 	FRenderCommandFence ReleaseFence;
@@ -767,6 +767,9 @@ public:
 	ENGINE_API virtual void PostDuplicate(bool bDuplicateForPIE) OVERRIDE;
 	ENGINE_API virtual void PostLoad() OVERRIDE;
 	ENGINE_API virtual void BeginCacheForCookedPlatformData( const ITargetPlatform *TargetPlatform ) OVERRIDE;
+	ENGINE_API virtual void ClearCachedCookedPlatformData( const ITargetPlatform *TargetPlatform ) OVERRIDE;
+	ENGINE_API virtual void ClearAllCachedCookedPlatformData() OVERRIDE;
+
 #if WITH_EDITOR
 	ENGINE_API virtual void PreEditChange(UProperty* PropertyAboutToChange) OVERRIDE;
 	ENGINE_API virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
@@ -891,6 +894,14 @@ public:
 
 	/** Determines whether each quality level has different nodes by inspecting the material's expressions. */
 	void GetQualityLevelNodeUsage(TArray<bool, TInlineAllocator<EMaterialQualityLevel::Num> >& QualityLevelsUsed);
+
+
+	/**
+	 * Cache the expression texture references for this UMaterial 
+	 * if the cache is not filled then it will rebuild the texture references
+	 * see also RebuildExpressionTextureReferences
+	 */
+	void CacheExpressionTextureReferences();
 
 private:
 	/**

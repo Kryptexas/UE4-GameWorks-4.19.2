@@ -541,9 +541,22 @@ public:
 	 * Not called during normal loading of objects
 	 * 
 	 * @param	TargetPlatform	target platform to cache platform specific data for
-	 * @return	true if everything went well, false will abort save...
 	 */
 	virtual void BeginCacheForCookedPlatformData( const ITargetPlatform *TargetPlatform ) {  }
+
+	/**
+	 * Clears cached cooked platform data for specific platform
+	 * 
+	 * @param	TargetPlatform	target platform to cache platform specific data for
+	 */
+	virtual void ClearCachedCookedPlatformData( const ITargetPlatform *TargetPlatform ) {  }
+
+	/**
+	 * Clear all cached cooked platform data
+	 * 
+	 * @param	TargetPlatform	target platform to cache platform specific data for
+	 */
+	virtual void ClearAllCachedCookedPlatformData() { }
 
 
 	/**

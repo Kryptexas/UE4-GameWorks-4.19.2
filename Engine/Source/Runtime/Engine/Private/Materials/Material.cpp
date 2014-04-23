@@ -346,23 +346,63 @@ void UMaterialInterface::AssertDefaultMaterialsPostLoaded()
 	}
 }
 
-void SerializeInlineShaderMaps(const TArray<FMaterialResource*>& MaterialResourcesToSave, FArchive& Ar, FMaterialResource* OutMaterialResourcesLoaded[][ERHIFeatureLevel::Num])
+void SerializeInlineShaderMaps(const TMap<const ITargetPlatform*,TArray<FMaterialResource*>>& PlatformMaterialResourcesToSave, FArchive& Ar, FMaterialResource* OutMaterialResourcesLoaded[][ERHIFeatureLevel::Num])
 {
+
+	/*if ( Ar.IsLoading() || (Ar.IsCooking() == false) )
+	{
+		// shouldn't ever load into this saved material resources array
+		// if we are not cooking then SerializeInlineShaderMaps will ignore the SavedMaterialResources array
+		TArray<FMaterialResource*> SavedMaterialResources;
+		SerializeInlineShaderMaps( SavedMaterialResources, Ar, MaterialResources );
+		check( SavedMaterialResources.Num() == 0);
+	}
+	else if ( Ar.IsSaving() )
+	{
+		check( Ar.IsCooking() );
+		const TArray<FMaterialResource*> *CachedMaterialResourcesForPlatform = CachedMaterialResourcesForCooking.Find(Ar.CookingTarget());
+		// check( CachedMaterialResourcesForPlatform != NULL || (!HasAnyMarks( OBJECTMARK_TagExp ))  );
+		if ( CachedMaterialResourcesForPlatform != NULL )
+		{
+			SerializeInlineShaderMaps(*CachedMaterialResourcesForPlatform, Ar, MaterialResources);
+		}
+		else
+		{
+			// if we are saving to a linker and we are cooking then we should have definatly have had a cached material for the target platform (see UPackage::SavePackage() -> UObject::BeginCacheResourceForPlatform
+			//  if this check is triggering most likely because some object didn't have BeginCacheResourceForPlatform called from SavePackage OR
+			//  the archive isn't actually saving and GetLinker is returning a valid value for some other reason
+			check( Ar.GetLinker() == NULL );
+		}
+
+	}*/
+
+
+
 	if (Ar.IsSaving())
 	{
 		int32 NumResourcesToSave = 0;
-
+		const TArray<FMaterialResource*> *MaterialResourcesToSavePtr = NULL;
 		if (Ar.IsCooking())
 		{
-			NumResourcesToSave = MaterialResourcesToSave.Num();
+			MaterialResourcesToSavePtr = PlatformMaterialResourcesToSave.Find( Ar.CookingTarget() );
+			check( MaterialResourcesToSavePtr != NULL || (Ar.GetLinker()==NULL) );
+			if (MaterialResourcesToSavePtr!= NULL )
+			{
+				NumResourcesToSave = MaterialResourcesToSavePtr->Num();
+			}
 		}
 
 		Ar << NumResourcesToSave;
 
-		for (int32 ResourceIndex = 0; ResourceIndex < NumResourcesToSave; ResourceIndex++)
+		if ( MaterialResourcesToSavePtr )
 		{
-			MaterialResourcesToSave[ResourceIndex]->SerializeInlineShaderMap(Ar);
+			const TArray<FMaterialResource*> &MaterialResourcesToSave = *MaterialResourcesToSavePtr;
+			for (int32 ResourceIndex = 0; ResourceIndex < NumResourcesToSave; ResourceIndex++)
+			{
+				MaterialResourcesToSave[ResourceIndex]->SerializeInlineShaderMap(Ar);
+			}
 		}
+		
 	}
 	else if (Ar.IsLoading())
 	{
@@ -1499,6 +1539,14 @@ void UMaterial::RebuildMaterialParameterCollectionInfo()
 	}
 }
 
+void UMaterial::CacheExpressionTextureReferences()
+{
+	if ( ExpressionTextureReferences.Num() <= 0 )
+	{
+		RebuildExpressionTextureReferences();
+	}
+}
+
 void UMaterial::RebuildExpressionTextureReferences()
 {
 	ExpressionTextureReferences.Empty();
@@ -1550,7 +1598,38 @@ void UMaterial::Serialize(FArchive& Ar)
 
 	if (Ar.UE4Ver() >= VER_UE4_PURGED_FMATERIAL_COMPILE_OUTPUTS)
 	{
-		SerializeInlineShaderMaps(CachedMaterialResourcesForCooking, Ar, MaterialResources);
+
+		SerializeInlineShaderMaps( CachedMaterialResourcesForCooking, Ar, MaterialResources );
+
+
+
+		/*if ( Ar.IsLoading() || (Ar.IsCooking() == false) )
+		{
+			// shouldn't ever load into this saved material resources array
+			// if we are not cooking then SerializeInlineShaderMaps will ignore the SavedMaterialResources array
+			TArray<FMaterialResource*> SavedMaterialResources;
+			SerializeInlineShaderMaps( SavedMaterialResources, Ar, MaterialResources );
+			check( SavedMaterialResources.Num() == 0);
+		}
+		else if ( Ar.IsSaving() )
+		{
+			check( Ar.IsCooking() );
+			const TArray<FMaterialResource*> *CachedMaterialResourcesForPlatform = CachedMaterialResourcesForCooking.Find(Ar.CookingTarget());
+			// check( CachedMaterialResourcesForPlatform != NULL || (!HasAnyMarks( OBJECTMARK_TagExp ))  );
+			if ( CachedMaterialResourcesForPlatform != NULL )
+			{
+				SerializeInlineShaderMaps(*CachedMaterialResourcesForPlatform, Ar, MaterialResources);
+			}
+			else
+			{
+				// if we are saving to a linker and we are cooking then we should have definatly have had a cached material for the target platform (see UPackage::SavePackage() -> UObject::BeginCacheResourceForPlatform
+				//  if this check is triggering most likely because some object didn't have BeginCacheResourceForPlatform called from SavePackage OR
+				//  the archive isn't actually saving and GetLinker is returning a valid value for some other reason
+				check( Ar.GetLinker() == NULL );
+			}
+			
+		}*/
+		
 	}
 	else
 	{
@@ -1899,20 +1978,7 @@ void UMaterial::PostLoad()
 	{
 		SCOPE_SECONDS_COUNTER(MaterialLoadTime);
 
-		const TArray<FName>& DesiredShaderFormats = GetTargetShaderFormats();
-
-		if (DesiredShaderFormats.Num())
-		{
-			// Cache for all the shader formats that the cooking target requires
-			for (int32 FormatIndex = 0; FormatIndex < DesiredShaderFormats.Num(); FormatIndex++)
-			{
-				const EShaderPlatform TargetPlatform = ShaderFormatToLegacyShaderPlatform(DesiredShaderFormats[FormatIndex]);
-
-				// Begin caching shaders for the target platform and store the material resource being compiled into CachedMaterialResourcesForCooking
-				CacheResourceShadersForCooking(TargetPlatform, CachedMaterialResourcesForCooking);
-			}
-		}
-		else if (GAllowCompilationInPostLoad) //@todo, this is broken, what if we want to save cooked packages out of the editor? It can't be either cooking or not; sometimes we will want both.
+		if (FApp::CanEverRender()) 
 		{
 			CacheResourceShadersForRendering(false);
 		}
@@ -1939,17 +2005,58 @@ void UMaterial::BeginCacheForCookedPlatformData( const ITargetPlatform *TargetPl
 	TArray<FName> DesiredShaderFormats;
 	TargetPlatform->GetShaderFormats( DesiredShaderFormats );
 
-	if (DesiredShaderFormats.Num())
-	{
-		// Cache for all the shader formats that the cooking target requires
-		for (int32 FormatIndex = 0; FormatIndex < DesiredShaderFormats.Num(); FormatIndex++)
-		{
-			const EShaderPlatform TargetPlatform = ShaderFormatToLegacyShaderPlatform(DesiredShaderFormats[FormatIndex]);
+	TArray<FMaterialResource*> *CachedMaterialResourcesForPlatform = CachedMaterialResourcesForCooking.Find( TargetPlatform );
 
-			// Begin caching shaders for the target platform and store the material resource being compiled into CachedMaterialResourcesForCooking
-			CacheResourceShadersForCooking(TargetPlatform, CachedMaterialResourcesForCooking);
+	if ( CachedMaterialResourcesForPlatform == NULL )
+	{
+		check( CachedMaterialResourcesForPlatform == NULL );
+
+		CachedMaterialResourcesForCooking.Add( TargetPlatform );
+		CachedMaterialResourcesForPlatform = CachedMaterialResourcesForCooking.Find( TargetPlatform );
+
+		check( CachedMaterialResourcesForPlatform != NULL );
+
+		if (DesiredShaderFormats.Num())
+		{
+			// Cache for all the shader formats that the cooking target requires
+			for (int32 FormatIndex = 0; FormatIndex < DesiredShaderFormats.Num(); FormatIndex++)
+			{
+				const EShaderPlatform TargetPlatform = ShaderFormatToLegacyShaderPlatform(DesiredShaderFormats[FormatIndex]);
+
+				// Begin caching shaders for the target platform and store the material resource being compiled into CachedMaterialResourcesForCooking
+				CacheResourceShadersForCooking(TargetPlatform, *CachedMaterialResourcesForPlatform);
+			}
 		}
 	}
+}
+
+
+
+
+void UMaterial::ClearCachedCookedPlatformData( const ITargetPlatform *TargetPlatform )
+{
+	TArray<FMaterialResource*> *CachedMaterialResourcesForPlatform = CachedMaterialResourcesForCooking.Find( TargetPlatform );
+	if ( CachedMaterialResourcesForPlatform != NULL )
+	{
+		for (int32 CachedResourceIndex = 0; CachedResourceIndex < CachedMaterialResourcesForPlatform->Num(); CachedResourceIndex++)
+		{
+			delete (*CachedMaterialResourcesForPlatform)[CachedResourceIndex];
+		}
+	}
+	CachedMaterialResourcesForCooking.Remove( TargetPlatform );
+}
+
+void UMaterial::ClearAllCachedCookedPlatformData()
+{
+	for ( auto It : CachedMaterialResourcesForCooking )
+	{
+		TArray<FMaterialResource*> &CachedMaterialResourcesForPlatform = It.Value;
+		for (int32 CachedResourceIndex = 0; CachedResourceIndex < CachedMaterialResourcesForPlatform.Num(); CachedResourceIndex++)
+		{
+			delete (CachedMaterialResourcesForPlatform)[CachedResourceIndex];
+		}
+	}
+	CachedMaterialResourcesForCooking.Empty();
 }
 
 #if WITH_EDITOR
@@ -2461,10 +2568,7 @@ void UMaterial::ReleaseResources()
 		}
 	}
 
-	for (int32 CachedResourceIndex = 0; CachedResourceIndex < CachedMaterialResourcesForCooking.Num(); CachedResourceIndex++)
-	{
-		delete CachedMaterialResourcesForCooking[CachedResourceIndex];
-	}
+	ClearAllCachedCookedPlatformData();
 
 	for (int32 InstanceIndex = 0; InstanceIndex < 3; ++InstanceIndex)
 	{

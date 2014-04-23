@@ -196,7 +196,7 @@ private:
 	FMaterialResource* StaticPermutationMaterialResources[EMaterialQualityLevel::Num][ERHIFeatureLevel::Num];
 
 	/** Material resources being cached for cooking. */
-	TArray<FMaterialResource*> CachedMaterialResourcesForCooking;
+	TMap<const class ITargetPlatform*, TArray<FMaterialResource*>> CachedMaterialResourcesForCooking;
 
 	/** Fence used to guarantee that the RT is finished using various resources in this UMaterial before cleanup. */
 	FRenderCommandFence ReleaseFence;
@@ -262,6 +262,8 @@ public:
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) OVERRIDE;
 	virtual void PostInitProperties() OVERRIDE;	
 	virtual void BeginCacheForCookedPlatformData(  const ITargetPlatform *TargetPlatform ) OVERRIDE;
+	virtual void ClearCachedCookedPlatformData( const ITargetPlatform *TargetPlatform ) OVERRIDE;
+	virtual void ClearAllCachedCookedPlatformData() OVERRIDE;
 	virtual void Serialize(FArchive& Ar) OVERRIDE;
 	virtual void PostLoad() OVERRIDE;
 	virtual void BeginDestroy() OVERRIDE;
