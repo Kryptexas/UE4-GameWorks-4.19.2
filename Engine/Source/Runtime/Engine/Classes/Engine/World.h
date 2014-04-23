@@ -1406,6 +1406,7 @@ public:
 	 */	
 	ULocalPlayer* GetFirstLocalPlayerFromController() const;
 	
+	UGameViewportClient* GetGameViewport() const;
 
 	/** Returns the default brush. */
 	ABrush* GetBrush() const;

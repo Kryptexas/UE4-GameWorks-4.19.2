@@ -2709,6 +2709,12 @@ void UWorld::CleanupWorld(bool bSessionEnded, bool bCleanupResources)
 	}
 }
 
+UGameViewportClient* UWorld::GetGameViewport() const
+{
+	FWorldContext* WorldContext = GEngine->GetWorldContextFromWorld(this);
+	return (WorldContext ? WorldContext->GameViewport : NULL);
+}
+
 FConstControllerIterator UWorld::GetControllerIterator() const
 {
 	return ControllerList.CreateConstIterator();

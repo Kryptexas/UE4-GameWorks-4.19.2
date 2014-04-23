@@ -10343,7 +10343,7 @@ FWorldContext& UEngine::GetWorldContextFromHandleChecked(int32 WorldContextHandl
 	return HandleInvalidWorldContext();
 }
 
-FWorldContext* UEngine::GetWorldContextFromWorld(UWorld *InWorld)
+FWorldContext* UEngine::GetWorldContextFromWorld(const UWorld* InWorld)
 {
 	for (FWorldContext& WorldContext : WorldList)
 	{

@@ -2292,7 +2292,7 @@ public:
 
 	virtual bool WorldIsPIEInNewViewport(UWorld *InWorld);
 
-	FWorldContext* GetWorldContextFromWorld(UWorld * InWorld);
+	FWorldContext* GetWorldContextFromWorld(const UWorld* InWorld);
 	FWorldContext* GetWorldContextFromGameViewport(const UGameViewportClient *InViewport);
 	FWorldContext* GetWorldContextFromPendingNetGame(const UPendingNetGame *InPendingNetGame);	
 	FWorldContext* GetWorldContextFromPendingNetGameNetDriver(const UNetDriver *InPendingNetGame);	
