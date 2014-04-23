@@ -346,11 +346,11 @@ public:
 		/** Force this body to sleep */
 		void PutInstanceToSleep();
 		/** Add a force to this body */
-		void AddForce(const FVector& Force);
+		void AddForce(const FVector& Force, bool bAllowSubstepping = true);
 		/** Add a force at a particular world position to this body */
-		void AddForceAtPosition(const FVector& Force, const FVector& Position);
+		void AddForceAtPosition(const FVector& Force, const FVector& Position, bool bAllowSubstepping = true);
 		/** Add a torque to this body */
-		void AddTorque(const FVector& Torque);
+		void AddTorque(const FVector& Torque, bool bAllowSubstepping = true);
 		/** Add an impulse to this body */
 		void AddImpulse(const FVector& Impulse, bool bVelChange);
 		/** Add an impulse to this body and a particular world position */
