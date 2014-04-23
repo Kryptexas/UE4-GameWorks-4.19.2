@@ -95,13 +95,17 @@ public:
 /** to interact with environments */
 struct FApexClothCollisionInfo
 {
-	enum CollisionInfoState
+	enum OverlappedComponentType
 	{
-		CIS_INVALID,
-		CIS_ADDED,
-		CIS_RETAINED
+		// static objects
+		OCT_STATIC,
+		// clothing objects
+		OCT_CLOTH,
+		OCT_MAX
 	};
 
+	OverlappedComponentType OverlapCompType;
+	// to verify validation of collision info
 	uint32 Revision;
 	// ClothingCollisions will be all released when clothing doesn't intersect with this component anymore
 	TArray<physx::apex::NxClothingCollision*> ClothingCollisions;			
@@ -326,7 +330,6 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Clothing)
 	float TeleportRotationThreshold;
-	
 
 	/** Draw the APEX Clothing Normals on clothing sections. */
 	uint32 bDisplayClothingNormals:1;
@@ -600,6 +603,7 @@ public:
 	void GetUpdateClothSimulationData(TArray<FClothSimulData>& OutClothSimData);
 	void ApplyWindForCloth(FClothingActor& ClothingActor);
 	void RemoveAllClothingActors();
+	void ReleaseAllClothingResources();
 
 	bool IsValidClothingActor(int32 ActorIndex) const;
 	/** Draws APEX Clothing simulated normals on cloth meshes **/
@@ -927,23 +931,28 @@ public:
 	/** create new collisions when newly added  */
 	FApexClothCollisionInfo* CreateNewClothingCollsions(UPrimitiveComponent* PrimitiveComponent);
 
-
-	void RemoveAllOverappedComponentMap();
+	void RemoveAllOverlappedComponentMap();
+	/** for non-static collisions which need to be updated every tick */ 
+	void UpdateOverlappedComponent(UPrimitiveComponent* PrimComp, FApexClothCollisionInfo* Info);
 
 	void ReleaseAllParentCollisions();
 	void ReleaseAllChildrenCollisions();
 
 	void ProcessClothCollisionWithEnvironment();
-
-	void CopyCollisionsToChildren();
-	// copy children's collisions to parent, where parent means this component
-	void CopyChildrenCollisionsToParent();
+	/** copy parent's cloth collisions to attached children, where parent means this component */
+	void CopyClothCollisionsToChildren();
+	/** copy children's cloth collisions to parent, where parent means this component */
+	void CopyChildrenClothCollisionsToParent();
 
 	/**
-  	 * Get collision data only for collision with clothes.
+  	 * Get collision data from a static mesh only for collision with clothes.
 	 * Returns false when failed to get cloth collision data
 	*/
-	bool GetClothCollisionData(UPrimitiveComponent* PrimComp, TArray<FClothCollisionPrimitive>& ClothCollisionPrimitives);
+	bool GetClothCollisionDataFromStaticMesh(UPrimitiveComponent* PrimComp, TArray<FClothCollisionPrimitive>& ClothCollisionPrimitives);
+	/** find if this component has collisions for clothing and return the results calculated by bone transforms */
+	void FindClothCollisions(TArray<FApexClothCollisionVolumeData>& OutCollisions);
+	/** create Apex clothing collisions from input collision info and add them to clothing actors */
+	void CreateInternalClothCollisions(TArray<FApexClothCollisionVolumeData>& InCollisions, TArray<physx::apex::NxClothingCollision*>& OutCollisions);
 
 #endif // WITH_CLOTH_COLLISION_DETECTION
 

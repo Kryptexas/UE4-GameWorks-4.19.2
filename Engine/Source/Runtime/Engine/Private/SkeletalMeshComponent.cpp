@@ -132,7 +132,7 @@ void USkeletalMeshComponent::OnUnregister()
 {
 #if WITH_APEX_CLOTHING
 	//clothing actors will be re-created in TickClothing
-	RemoveAllClothingActors();
+	ReleaseAllClothingResources();
 #endif// #if WITH_APEX_CLOTHING
 
 	Super::OnUnregister();
@@ -207,7 +207,7 @@ void USkeletalMeshComponent::CreateRenderState_Concurrent()
 
 #if WITH_APEX_CLOTHING
 	//clothing actors will be re-created in TickClothing
-	RemoveAllClothingActors();
+	ReleaseAllClothingResources();
 #endif// #if WITH_APEX_CLOTHING
 
 	Super::CreateRenderState_Concurrent();
