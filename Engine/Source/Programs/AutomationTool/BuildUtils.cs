@@ -100,10 +100,12 @@ namespace AutomationTool
         public static bool IsProbablyAMacOrIOSExe(string Filename)
         {
             return
-                (
+                Path.GetExtension(Filename) == ".sh" ||
+                Path.GetExtension(Filename) == ".command" ||
+                ((
                     CommandUtils.CombinePaths(Filename).ToLower().Contains(CommandUtils.CombinePaths("Binaries", "Mac").ToLower()) ||
                     CommandUtils.CombinePaths(Filename).ToLower().Contains(CommandUtils.CombinePaths("Binaries", "IOS").ToLower())
-                ) && (Path.GetExtension(Filename) == "" || Path.GetExtension(Filename) == ".");
+                ) && (Path.GetExtension(Filename) == "" || Path.GetExtension(Filename) == "."));
         }
 	}
 
