@@ -263,9 +263,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Pawn|Character")
 	virtual void Jump();
 
-	/** @Return Whether the character can jump in the current state. */
-	UFUNCTION(BlueprintCallable, Category="Pawn|Character")
-	virtual bool CanJump() const;
+	/**
+	 * Default implementation returns true if the character is not crouching, has a 
+	 * valid CharacterMovementComponent and CanEverJump() returns true.
+	 * @Return Whether the character can jump in the current state. 
+	 */
+	UFUNCTION(BlueprintNativeEvent, Category="Pawn|Character")
+	bool CanJump() const;
 
 	/** Play Animation Montage on the character mesh **/
 	UFUNCTION(BlueprintCallable, Category=Animation)

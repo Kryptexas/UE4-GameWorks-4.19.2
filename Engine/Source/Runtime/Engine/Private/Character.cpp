@@ -187,7 +187,7 @@ void ACharacter::Landed(const FHitResult& Hit)
 	OnLanded(Hit);
 }
 
-bool ACharacter::CanJump() const
+bool ACharacter::CanJump_Implementation() const
 {
 	return !bIsCrouched && CharacterMovement && CharacterMovement->IsMovingOnGround() && CharacterMovement->CanEverJump() && !CharacterMovement->bWantsToCrouch;
 }
