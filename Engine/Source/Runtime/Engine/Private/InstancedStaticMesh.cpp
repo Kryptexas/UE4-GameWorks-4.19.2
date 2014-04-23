@@ -799,8 +799,6 @@ public:
 	,	InstancedRenderData(InComponent)
 #if WITH_EDITOR
 	,	bHasSelectedInstances(InComponent->SelectedInstances.Num() > 0)
-#else
-	,	bHasSelectedInstances(false)
 #endif
 	{
 #if WITH_EDITOR
@@ -857,7 +855,7 @@ public:
 
 	// FPrimitiveSceneProxy interface.
 	
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View)
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) OVERRIDE
 	{
 		FPrimitiveViewRelevance Result;
 		if(View->Family->EngineShowFlags.InstancedStaticMeshes)
@@ -884,48 +882,12 @@ public:
 	virtual bool GetWireframeMeshElement(int32 LODIndex, const FMaterialRenderProxy* WireframeRenderProxy, uint8 InDepthPriorityGroup, FMeshBatch& OutMeshElement) const OVERRIDE;
 
 	/**
-	 * Returns whether or not this component is instanced.
-	 * The base implementation returns false.  You should override this method in derived classes.
-	 *
-	 * @return	true if this component represents multiple instances of a primitive.
-	 */
-	virtual bool IsInstanced() const
-	{
-		return true;
-	}
-
-	/**
-	 * For instanced components, returns the number of instances.
-	 * The base implementation returns zero.  You should override this method in derived classes.
-	 *
-	 * @return	Number of instances
-	 */
-	virtual int32 GetInstanceCount() const
-	{
-		return PerInstanceSMData.Num();
-	}
-
-	/**
-	 * For instanced components, returns the Local -> World transform for the specific instance number.
-	 * If the function is called on non-instanced components, the component's LocalToWorld will be returned.
-	 * You should override this method in derived classes that support instancing.
-	 *
-	 * @param	InInstanceIndex	The index of the instance to return the Local -> World transform for
-	 *
-	 * @return	Number of instances
-	 */
-	virtual const FMatrix& GetInstanceLocalToWorld( int32 InInstanceIndex ) const
-	{
-		return PerInstanceSMData[ InInstanceIndex ].InstanceToWorld;
-	}
-
-	/**
 	 * Creates the hit proxies are used when DrawDynamicElements is called.
 	 * Called in the game thread.
 	 * @param OutHitProxies - Hit proxes which are created should be added to this array.
 	 * @return The hit proxy to use by default for elements drawn by DrawDynamicElements.
 	 */
-	virtual HHitProxy* CreateHitProxies(UPrimitiveComponent* Component,TArray<TRefCountPtr<HHitProxy> >& OutHitProxies)
+	virtual HHitProxy* CreateHitProxies(UPrimitiveComponent* Component,TArray<TRefCountPtr<HHitProxy> >& OutHitProxies) OVERRIDE
 	{
 		if( InstancedRenderData.HitProxies.Num() )
 		{
@@ -941,6 +903,11 @@ public:
 		}
 	}
 
+	virtual bool IsDetailMesh() const OVERRIDE
+	{
+		return true;
+	}
+
 private:
 
 	/** Array of per-instance static mesh rendering data for the scene proxy */
@@ -949,8 +916,12 @@ private:
 	/** Per component render data */
 	FInstancedStaticMeshRenderData InstancedRenderData;
 
+#if WITH_EDITOR
 	/* If we we have any selected instances */
 	bool bHasSelectedInstances;
+#else
+	static const bool bHasSelectedInstances = false;
+#endif
 
 	/** LOD transition info. */
 	FInstancingUserData UserData_AllInstances;

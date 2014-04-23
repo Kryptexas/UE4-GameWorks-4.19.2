@@ -203,8 +203,9 @@ bool FViewInfo::IsDistanceCulled( float DistanceSquared, float MinDrawDistance, 
 	float FadeRadius = GDisableLODFade ? 0.0f : GDistanceFadeMaxTravel;
 	float MaxDrawDistance = InMaxDrawDistance * MaxDrawDistanceScale;
 
-	// If cull distance is disabled, always show
-	if (Family->EngineShowFlags.DistanceCulledPrimitives)
+	// If cull distance is disabled, always show (except foliage)
+	if (Family->EngineShowFlags.DistanceCulledPrimitives
+		&& !PrimitiveSceneInfo->Proxy->IsDetailMesh())
 	{
 		return false;
 	}
@@ -258,8 +259,9 @@ static int32 FrustumCull(const FScene* Scene, FViewInfo& View)
 		float DistanceSquared = (Bounds.Origin - ViewOriginForDistanceCulling).SizeSquared();
 		float MaxDrawDistance = Bounds.MaxDrawDistance * MaxDrawDistanceScale;
 
-		// If cull distance is disabled, always show
-		if (View.Family->EngineShowFlags.DistanceCulledPrimitives)
+		// If cull distance is disabled, always show (except foliage)
+		if (View.Family->EngineShowFlags.DistanceCulledPrimitives
+			&& !Scene->Primitives[BitIt.GetIndex()]->Proxy->IsDetailMesh())
 		{
 			MaxDrawDistance = FLT_MAX;
 		}
