@@ -9,16 +9,21 @@ namespace UnrealBuildTool.Rules
 			PrivateIncludePaths.Add("Runtime/LauncherAutomatedService/Private");
 
 			PrivateDependencyModuleNames.AddRange(
-				new string[]
-				{
+				new string[] {
 					"AutomationController",
 					"Core",
 					"CoreUObject",
+					"TargetPlatform",
+				}
+			);
+
+			PrivateIncludePathModuleNames.AddRange(
+				new string[] {
 					"LauncherServices",
 					"Messaging",
 					"TargetDeviceServices",
 				}
-				);
+			);
 		}
 	}
 }
