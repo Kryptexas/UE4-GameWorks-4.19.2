@@ -654,6 +654,10 @@ ULinkerLoad* GetPackageLinker
 				
 			// Create the package with the provided long package name.
 			UPackage* FilenamePkg = CreatePackage( NULL, *PackageName );
+			if (LoadFlags & LOAD_PackageForPIE)
+			{
+				FilenamePkg->PackageFlags |= PKG_PlayInEditor;
+			}
 
 			// If no package specified, use package from file.
 			if( InOuter==NULL )

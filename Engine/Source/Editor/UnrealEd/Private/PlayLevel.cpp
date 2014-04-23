@@ -2744,11 +2744,9 @@ UWorld* UEditorEngine::CreatePIEWorldBySavingToTemp(FWorldContext &WorldContext,
 	UWorld::WorldTypePreLoadMap.FindOrAdd(FName(*SavedMapNames[0])) = EWorldType::PIE;
 
 	// Load the package we saved
-	UPackage* EditorLevelPackage = LoadPackage(NULL, *SavedMapNames[0], LOAD_None);
+	UPackage* EditorLevelPackage = LoadPackage(NULL, *SavedMapNames[0], LOAD_PackageForPIE);
 	if( EditorLevelPackage )
 	{
-		EditorLevelPackage->PackageFlags |= PKG_PlayInEditor;
-
 		// Find world object and use its PersistentLevel pointer.
 		LoadedWorld = UWorld::FindWorldInPackage(EditorLevelPackage);
 
