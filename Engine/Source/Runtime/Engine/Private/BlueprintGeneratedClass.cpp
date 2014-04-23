@@ -239,6 +239,10 @@ void UBlueprintGeneratedClass::ConditionalRecompileClass(TArray<UObject*>* ObjLo
 		else if (FConditionalRecompileClassHepler::StaticLink == NecessaryAction)
 		{
 			StaticLink(true);
+			if (*GeneratingBP->SkeletonGeneratedClass)
+			{
+				GeneratingBP->SkeletonGeneratedClass->StaticLink(true);
+			}
 		}
 	}
 }

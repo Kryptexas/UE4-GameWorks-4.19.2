@@ -117,7 +117,7 @@ void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const
 		FUserDefinedStructureCompilerUtils::CompileStructs(Blueprint, Results, false);
 	}
 
-	if((CompileOptions.CompileType != EKismetCompileType::BytecodeOnly) && (CompileOptions.CompileType != EKismetCompileType::StructuresOnly))
+	if (CompileOptions.CompileType != EKismetCompileType::StructuresOnly)
 	{
 		FBlueprintCompileReinstancer SkeletonReinstancer(Blueprint->SkeletonGeneratedClass);
 
