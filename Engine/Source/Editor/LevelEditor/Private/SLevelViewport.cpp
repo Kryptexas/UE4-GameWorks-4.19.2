@@ -79,6 +79,8 @@ SLevelViewport::~SLevelViewport()
 	LevelEditor.OnActorSelectionChanged().RemoveAll( this );
 	LevelEditor.OnMapChanged().RemoveAll( this );
 	LevelEditor.OnRedrawLevelEditingViewports().RemoveAll( this );
+	GEngine->OnLevelActorDeleted().RemoveAll( this );
+
 	GetMutableDefault<ULevelEditorViewportSettings>()->OnSettingChanged().RemoveAll( this );
 
 	// If this viewport has a high res screenshot window attached to it, close it
