@@ -30,6 +30,182 @@ class TestP4_Info : BuildCommand
 	}
 }
 
+[Help("GitPullRequest")]
+[Help("Dir=", "Directory of the Git repo.")]
+[Help("PR=", "PR # to shelve, can use a range PR=5-25")]
+[RequireP4]
+class GitPullRequest : BuildCommand
+{
+    string FindExeFromPath(string ExeName, string ExpectedPathSubstring = null)
+    {
+        if (File.Exists(ExeName))
+        {
+            return Path.GetFullPath(ExeName);
+        }
+
+        foreach (string BasePath in Environment.GetEnvironmentVariable("PATH").Split(';'))
+        {
+            var FullPath = Path.Combine(BasePath, ExeName);
+            if (ExpectedPathSubstring == null || FullPath.IndexOf(ExpectedPathSubstring, StringComparison.InvariantCultureIgnoreCase) != -1)
+            {
+                if (File.Exists(FullPath))
+                {
+                    return FullPath;
+                }
+            }
+        }
+
+        return null;
+    }
+    string RunGit(string GitCommandLine)
+    {
+        string GitExePath = FindExeFromPath("Git.exe", "PortableGit");
+        if (GitExePath == null)
+        {
+            throw new AutomationException("Unable to find Git.exe in the system path under a 'PortableGit' subdirectory.  Make sure the GitHub client is installed, and you are running this script from within a GitHub Command Shell.  We want to make sure we're using the correct version of Git, in case multiple versions are on the computer, which is why we check for a PortableGit folder that the GitHub Shell uses.");
+        }
+
+        Log("Running {0} {1}", GitExePath, GitCommandLine);
+
+        ProcessResult Result = Run(App: GitExePath, CommandLine: GitCommandLine, Options: (ERunOptions.NoLoggingOfRunCommand | ERunOptions.AllowSpew | ERunOptions.AppMustExist));
+        if (Result > 0 || Result < 0)
+        {
+            throw new AutomationException(String.Format("Command failed (Result:{2}): {0} {1}", GitExePath, GitCommandLine, Result.ExitCode));
+        }
+
+        // Return the results (sans leading and trailing whitespace)
+        return Result.Output.Trim();
+    }
+
+    void ExecuteInner(string Dir, int PR)
+    {
+        string PRNum = PR.ToString();
+        RunGit("reset --hard");
+        RunGit("checkout master");
+        var Refs = RunGit("show-ref");
+        if (!Refs.Contains("refs/remotes/origin/pr/" + PRNum))
+        {
+            throw new AutomationException("This is not among the refs: refs/remotes/origin/pr/{0}", PRNum);
+        }
+        RunGit(String.Format("fetch origin refs/pull/{0}/head:pr/{1}", PRNum, PRNum));
+        RunGit(String.Format("checkout pr/{0} --", PRNum));
+        var Base = RunGit(String.Format("log --author=TimSweeney --author=UnrealBot -1 pr/{0} --", PRNum));
+        string LookFor = "Engine source (";
+        if (!Base.Contains(LookFor))
+        {
+            throw new AutomationException("Unrecognized commit.");
+        }
+        Base = Base.Substring(Base.IndexOf(LookFor) + LookFor.Length);
+        string Depot = null;
+        if (Base.StartsWith("4."))
+        {
+            Depot = "//depot/UE4-Releases/4." + Base.Substring(2, 1);
+        }
+        else if (Base.StartsWith("Main"))
+        {
+            Depot = "//depot/UE4";
+        }
+        else
+        {
+            throw new AutomationException("Unrecognized branch.");
+        }
+        Log("Depot {0}", Depot);
+        if (!Base.Contains(")"))
+        {
+            throw new AutomationException("Unrecognized commit2.");
+        }
+        Base = Base.Substring(0, Base.IndexOf(")"));
+        if (!Base.Contains(" "))
+        {
+            throw new AutomationException("Unrecognized commit3.");
+        }
+        Base = Base.Substring(Base.LastIndexOf(" "));
+        Log("CL String {0}", Base);
+        int CL = int.Parse(Base);
+        Log("CL int {0}", CL);
+        if (CL < 2000000)
+        {
+            throw new AutomationException("Unrecognized commit3.");
+        }
+
+        P4ClientInfo NewClient = P4.GetClientInfo(P4Env.Client);
+
+        foreach (var p in NewClient.View)
+        {
+            Log("{0} = {1}", p.Key, p.Value);
+        }
+
+        string TestClient = P4Env.User + "_" + Environment.MachineName + "_PullRequests_" + Depot.Replace("/", "_");
+        NewClient.Owner = P4Env.User;
+        NewClient.Host = Environment.MachineName;
+        NewClient.RootPath = Dir;
+        NewClient.Name = TestClient;
+        NewClient.View = new List<KeyValuePair<string, string>>();
+        NewClient.View.Add(new KeyValuePair<string, string>(Depot + "/...", "/..."));
+        if (!P4.DoesClientExist(TestClient))
+        {
+            P4.CreateClient(NewClient);
+        }
+
+        var P4Sub = new P4Connection(P4Env.User, TestClient, P4Env.P4Port);
+
+        P4Sub.Sync(String.Format("-f -k -q {0}/...@{1}", Depot, CL));
+
+        var Change = P4Sub.CreateChange(null, String.Format("PullRequest number {0}", PRNum));
+        P4Sub.ReconcileNoDeletes(Change, CombinePaths(Dir, "Engine", "..."));
+        P4Sub.Shelve(Change);
+        P4Sub.Revert(Change, "-k //...");
+    }
+
+    public override void ExecuteBuild()
+    {
+        var Dir = ParseParamValue("Dir", @"D:\GitHub\UnrealEngine");
+        if (!FileExists_NoExceptions(CombinePaths(Dir, ".gitignore")))
+        {
+            throw new AutomationException("Dir {0} does not exist or does not like like a repo", Dir);
+        }
+
+        var PRNum = ParseParamValue("PR");
+        if (String.IsNullOrEmpty(PRNum))
+        {
+            throw new AutomationException("Must Provide PR arg, the number of the PR, or a range.");
+        }
+        int PRMin;
+        int PRMax;
+
+        if (PRNum.Contains("-"))
+        {
+            var Nums = PRNum.Split("-".ToCharArray());
+            PRMin = int.Parse(Nums[0]);
+            PRMax = int.Parse(Nums[1]);
+        }
+        else
+        {
+            PRMin = int.Parse(PRNum);
+            PRMax = PRMin;
+        }
+        var Failures = new List<int>();
+        PushDir(Dir);
+        for (int PR = PRMin; PR <= PRMax; PR++)
+        {
+            try
+            {
+                ExecuteInner(Dir, PR);
+            }
+            catch(Exception)
+            {
+                Failures.Add(PR);
+            }
+        }
+        PopDir();
+
+        foreach (var Failed in Failures)
+        {
+            Log("FAILED! PR {0}", Failed);
+        }
+    }
+}
+
 [Help("Throws an automation exception.")]
 class TestFail : BuildCommand
 {

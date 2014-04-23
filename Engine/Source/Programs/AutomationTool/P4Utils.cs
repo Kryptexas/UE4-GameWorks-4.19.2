@@ -370,6 +370,10 @@ namespace AutomationTool
 		/// List of global options for this connection (client/user)
 		/// </summary>
 		private string GlobalOptions;
+        /// <summary>
+        /// List of global options for this connection (client/user)
+        /// </summary>
+        private string GlobalOptionsWithoutClient;
 		/// <summary>
 		/// Path where this connection's log is to go to
 		/// </summary>
@@ -388,6 +392,7 @@ namespace AutomationTool
 			var ClientOpts = String.IsNullOrEmpty(Client) ? "" : ("-c" + Client + " ");
 			var ServerOpts = String.IsNullOrEmpty(ServerAndPort) ? "" : ("-p" + ServerAndPort + " ");			
 			GlobalOptions = UserOpts + ClientOpts + ServerOpts;
+            GlobalOptionsWithoutClient = UserOpts + ServerOpts;
 
 			if (P4LogPath == null)
 			{
@@ -414,10 +419,10 @@ namespace AutomationTool
 		/// <param name="Input">Stdin</param>
 		/// <param name="AllowSpew">true for spew</param>
 		/// <returns>Exit code</returns>
-		public ProcessResult P4(string CommandLine, string Input = null, bool AllowSpew = true)
+        public ProcessResult P4(string CommandLine, string Input = null, bool AllowSpew = true, bool WithClient = true)
 		{
 			CheckP4Enabled();
-			return CommandUtils.Run(HostPlatform.Current.P4Exe, GlobalOptions + CommandLine, Input, AllowSpew ? CommandUtils.ERunOptions.AllowSpew : CommandUtils.ERunOptions.NoLoggingOfRunCommand);
+            return CommandUtils.Run(HostPlatform.Current.P4Exe, (WithClient ? GlobalOptions : GlobalOptionsWithoutClient) + CommandLine, Input, AllowSpew ? CommandUtils.ERunOptions.AllowSpew : CommandUtils.ERunOptions.NoLoggingOfRunCommand);
 		}
 
 		/// <summary>
@@ -428,12 +433,12 @@ namespace AutomationTool
 		/// <param name="Input">Stdin input.</param>
 		/// <param name="AllowSpew">Whether the command should spew.</param>
 		/// <returns>True if succeeded, otherwise false.</returns>
-		public bool P4Output(out string Output, string CommandLine, string Input = null, bool AllowSpew = true)
+        public bool P4Output(out string Output, string CommandLine, string Input = null, bool AllowSpew = true, bool WithClient = true)
 		{
 			CheckP4Enabled();
 			Output = "";
 
-			var Result = P4(CommandLine, Input, AllowSpew);
+            var Result = P4(CommandLine, Input, AllowSpew, WithClient);
 
 			Output = Result.Output;
 			return Result == 0;
@@ -445,11 +450,11 @@ namespace AutomationTool
 		/// <param name="CommandLine">Commandline to pass to p4.</param>
 		/// <param name="Input">Stdin input.</param>
 		/// <param name="AllowSpew">Whether the command is allowed to spew.</param>
-		public void LogP4(string CommandLine, string Input = null, bool AllowSpew = true)
+        public void LogP4(string CommandLine, string Input = null, bool AllowSpew = true, bool WithClient = true)
 		{
 			CheckP4Enabled();
 			string Output;
-			if (!LogP4Output(out Output, CommandLine, Input, AllowSpew))
+            if (!LogP4Output(out Output, CommandLine, Input, AllowSpew, WithClient))
 			{
 				throw new P4Exception("p4.exe {0} failed.", CommandLine);
 			}
@@ -463,7 +468,7 @@ namespace AutomationTool
 		/// <param name="Input">Stdin input.</param>
 		/// <param name="AllowSpew">Whether the command should spew.</param>
 		/// <returns>True if succeeded, otherwise false.</returns>
-		public bool LogP4Output(out string Output, string CommandLine, string Input = null, bool AllowSpew = true)
+        public bool LogP4Output(out string Output, string CommandLine, string Input = null, bool AllowSpew = true, bool WithClient = true)
 		{
 			CheckP4Enabled();
 			Output = "";
@@ -474,7 +479,7 @@ namespace AutomationTool
 				return false;
 			}
 
-			var Result = P4(CommandLine, Input, AllowSpew);
+            var Result = P4(CommandLine, Input, AllowSpew, WithClient);
 
 			CommandUtils.WriteToFile(LogPath, CommandLine + "\n");
 			CommandUtils.WriteToFile(LogPath, Result.Output);
@@ -628,6 +633,17 @@ namespace AutomationTool
 			LogP4("unshelve " + String.Format("-s {0} ", FromCL) + String.Format("-c {0} ", ToCL) + CommandLine);
 		}
 
+        /// <summary>
+        /// Invokes p4 unshelve command.
+        /// </summary>
+        /// <param name="FromCL">Changelist to unshelve.</param>
+        /// <param name="ToCL">Changelist where the checked out files should be added.</param>
+        /// <param name="CommandLine">Commandline for the command.</param>
+        public void Shelve(int FromCL, string CommandLine = "")
+        {
+            CheckP4Enabled();
+            LogP4("shelve " + String.Format("-r -c {0} ", FromCL) + CommandLine);
+        }
 		/// <summary>
 		/// Invokes p4 edit command.
 		/// </summary>
@@ -738,7 +754,7 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="CL">Changelist to revert</param>
 		/// <param name="CommandLine">Commandline for the command.</param>
-		public void Revert(int CL, string CommandLine)
+		public void Revert(int CL, string CommandLine = "")
 		{
 			CheckP4Enabled();
 			LogP4("revert " + String.Format("-c {0} ", CL) + CommandLine);
@@ -1542,8 +1558,9 @@ namespace AutomationTool
 		{
 			CheckP4Enabled();
 			CommandUtils.Log("Checking if client {0} exists", ClientName);
-			var P4Result = P4(String.Format("-c {0} where //...", ClientName), AllowSpew: false);
-			return P4Result.Output.IndexOf("unknown - use 'client' command", StringComparison.InvariantCultureIgnoreCase) < 0;
+
+            var P4Result = P4(String.Format("-c {0} where //...", ClientName), AllowSpew: false, WithClient: false);
+            return P4Result.Output.IndexOf("unknown - use 'client' command", StringComparison.InvariantCultureIgnoreCase) < 0 && P4Result.Output.IndexOf("doesn't exist", StringComparison.InvariantCultureIgnoreCase) < 0;
 		}
 
 		/// <summary>
@@ -1583,7 +1600,7 @@ namespace AutomationTool
 		public P4ClientInfo GetClientInfoInternal(string ClientName)
 		{
 			P4ClientInfo Info = new P4ClientInfo();
-			var P4Result = P4(String.Format("client -o {0}", ClientName), AllowSpew: false);
+            var P4Result = P4(String.Format("client -o {0}", ClientName), AllowSpew: false, WithClient: false);
 			if (P4Result == 0)
 			{
 				var Tags = ParseTaggedP4Output(P4Result.Output);
@@ -1659,7 +1676,7 @@ namespace AutomationTool
 			var ClientList = new List<P4ClientInfo>();
 
 			// Get all clients for this user
-			var P4Result = P4(String.Format("clients -u {0}", UserName), AllowSpew: false);
+            var P4Result = P4(String.Format("clients -u {0}", UserName), AllowSpew: false, WithClient: false);
 			if (P4Result != 0)
 			{
 				throw new AutomationException("p4 clients -u {0} failed.", UserName);
@@ -1700,7 +1717,7 @@ namespace AutomationTool
         public void DeleteClient(string Name, bool Force = false)
         {
             CheckP4Enabled();
-            LogP4(String.Format("client -d {0} {1}", (Force ? "-f" : ""), Name));
+            LogP4(String.Format("client -d {0} {1}", (Force ? "-f" : ""), Name), WithClient: false);
         }
 
         /// <summary>
@@ -1723,7 +1740,7 @@ namespace AutomationTool
                 SpecInput += "\t" + Mapping.Key + " //" + ClientSpec.Name + Mapping.Value + Environment.NewLine;
             }
 			CommandUtils.Log(SpecInput);
-            LogP4("client -i", SpecInput);
+            LogP4("client -i", SpecInput, WithClient: false);
             return ClientSpec;
         }
 
