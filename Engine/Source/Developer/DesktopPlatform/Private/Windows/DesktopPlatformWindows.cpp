@@ -129,13 +129,14 @@ bool FDesktopPlatformWindows::OpenFontDialog(const void* ParentWindowHandle, FSt
 	return bSuccess;
 }
 
-bool FDesktopPlatformWindows::OpenLauncher(bool Install, const FString& CommandLineParams )
+bool FDesktopPlatformWindows::OpenLauncher(bool Install, FString CommandLineParams )
 {
 	FString LaunchPath;
 
 	if (FParse::Param(FCommandLine::Get(), TEXT("Dev")))
 	{
 		LaunchPath = FPaths::Combine(*FPaths::EngineDir(), TEXT("Binaries"), TEXT("Win64"), TEXT("UnrealEngineLauncher-Win64-Debug.exe"));
+		CommandLineParams += TEXT(" -noselfupdate");
 	}
 	else
 	{

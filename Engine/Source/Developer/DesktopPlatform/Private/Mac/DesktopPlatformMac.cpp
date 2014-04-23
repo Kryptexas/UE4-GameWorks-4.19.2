@@ -348,7 +348,7 @@ void OpenLauncherCommandLine( const FString& InCommandLine )
 	
 }
 
-bool FDesktopPlatformMac::OpenLauncher(bool Install, const FString& CommandLineParams )
+bool FDesktopPlatformMac::OpenLauncher(bool Install, FString CommandLineParams )
 {
 	// If the launcher is already running, bring it to front
 	NSArray* RunningLaunchers = [NSRunningApplication runningApplicationsWithBundleIdentifier: @"com.epicgames.UnrealEngineLauncher"];
@@ -366,6 +366,7 @@ bool FDesktopPlatformMac::OpenLauncher(bool Install, const FString& CommandLineP
 	if (FParse::Param(FCommandLine::Get(), TEXT("Dev")))
 	{
 		LaunchPath = FPaths::Combine(*FPaths::EngineDir(), TEXT("Binaries"), TEXT("Mac"), TEXT("UnrealEngineLauncher-Mac-Debug.app/Contents/MacOS/UnrealEngineLauncher-Mac-Debug"));
+		CommandLineParams += TEXT(" -noselfupdate");
 	}
 	else
 	{
