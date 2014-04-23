@@ -73,6 +73,8 @@ public:
 
 	// Begin ITargetPlatform interface
 
+	virtual void EnableDeviceCheck(bool OnOff) OVERRIDE {}
+
 	virtual bool AddDevice( const FString& DeviceName, bool bDefault ) OVERRIDE
 	{
 		return false;
