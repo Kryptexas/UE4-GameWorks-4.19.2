@@ -10,7 +10,7 @@ FNameTableArchiveReader::FNameTableArchiveReader()
 
 bool FNameTableArchiveReader::LoadFile(const TCHAR* Filename, int32 SerializationVersion)
 {
-	if ( FFileHelper::LoadFileToArray(Reader, Filename) )
+	if ( FFileHelper::LoadFileToArray(Reader, Filename, FILEREAD_Silent) )
 	{
 		int32 MagicNumber = 0;
 		*this << MagicNumber;
