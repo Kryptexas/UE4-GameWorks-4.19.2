@@ -33,6 +33,9 @@ public:
 	/** Save the translations to file */
 	TSharedPtr<FUICommandInfo> SaveTranslations;
 
+	/** Save the translations to file */
+	TSharedPtr<FUICommandInfo> PreviewAllTranslationsInEditor;
+
 	/** Initialize commands */
 	virtual void RegisterCommands() OVERRIDE;
 };

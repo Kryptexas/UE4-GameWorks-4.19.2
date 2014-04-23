@@ -87,6 +87,11 @@ FString FPaths::GameContentDir()
 	return FPaths::GameDir() + TEXT("Content/");
 }
 
+FString FPaths::GameConfigDir()
+{
+	return FPaths::GameDir() + TEXT("Config/");
+}
+
 FString FPaths::GameSavedDir()
 {
 	return GameUserDir() + TEXT("Saved/");
@@ -840,3 +845,4 @@ void FPaths::CombineInternal(FString& OutPath, const TCHAR** Pathes, int32 NumPa
 		OutPath /= Pathes[i];
 	}
 }
+

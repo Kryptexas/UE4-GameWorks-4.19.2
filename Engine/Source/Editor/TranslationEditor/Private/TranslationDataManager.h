@@ -15,7 +15,7 @@ class FTranslationDataManager : public TSharedFromThis<FTranslationDataManager>
 {
 
 public:
-	FTranslationDataManager( const FString& ManifestFile, const FString& ArchiveFile);
+	FTranslationDataManager( const FString& InManifestFilePath, const FString& InArchiveFilePath);
 
 	UTranslationDataObject* GetTranslationDataObject() 
 	{
@@ -27,6 +27,9 @@ public:
 
 	/** Delegate called when a TranslationDataObject property is changed */
 	void HandlePropertyChanged(FName PropertyName);
+
+	/** Regenerate and reload archives to reflect modifications in the UI */
+	void PreviewAllTranslationsInEditor();
 
 private:
 	/** Read text file into a JSON file */
@@ -64,6 +67,8 @@ private:
 	FString ArchiveName;
 	/** Path to the culture (language, sort of) we are targeting */
 	FString CulturePath;
+	/** Path to the Manifest File **/
+	FString ManifestFilePath;
 	/** Path to the Archive File **/
 	FString ArchiveFilePath;
 

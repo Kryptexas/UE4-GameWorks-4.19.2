@@ -136,6 +136,9 @@ private:
 	/** Update content when a new context selection is made */
 	void UpdateContextSelection();
 
+	/** Called when "Apply to UI" is clicked for this asset */
+	void PreviewAllTranslationsInEditor_Execute();
+
 	/**	The tab id for the untranslated tab */
 	static const FName UntranslatedTabId;
 	/**	The tab id for the review tab */

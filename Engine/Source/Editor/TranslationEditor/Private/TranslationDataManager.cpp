@@ -8,18 +8,16 @@
 #include "InternationalizationArchiveJsonSerializer.h"
 #include "ISourceControlModule.h"
 #include "MessageLog.h"
+#include "TextLocalizationManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogTranslationEditor, Log, All);
 
 #define LOCTEXT_NAMESPACE "TranslationDataManager"
 
-FTranslationDataManager::FTranslationDataManager( const FString& ManifestFile, const FString& ArchiveFile )
+FTranslationDataManager::FTranslationDataManager( const FString& InManifestFilePath, const FString& InArchiveFilePath )
+: ManifestFilePath(InManifestFilePath)
+, ArchiveFilePath(InArchiveFilePath)
 {
-	FString ManifestName = FPaths::GetCleanFilename(ManifestFile);
-	FString ProjectPath = FPaths::GetPath(ManifestFile);
-	FString ArchiveName = FPaths::GetCleanFilename(ArchiveFile);
-	FString CulturePath = FPaths::GetPath(ArchiveFile);
-
 	GWarn->BeginSlowTask(LOCTEXT("LoadingTranslationData", "Loading Translation Data..."), true);
 
 	TranslationData = NewObject<UTranslationDataObject>();
@@ -28,7 +26,6 @@ FTranslationDataManager::FTranslationDataManager( const FString& ManifestFile, c
 	// We want Undo/Redo support
 	TranslationData->SetFlags(RF_Transactional);
 
-	FString ManifestFilePath = ProjectPath / ManifestName;
 	ManifestAtHeadRevisionPtr = ReadManifest( ManifestFilePath );
 	if (ManifestAtHeadRevisionPtr.IsValid())
 	{
@@ -46,7 +43,6 @@ FTranslationDataManager::FTranslationDataManager( const FString& ManifestFile, c
 			TranslationEditorMessageLog.Open(EMessageSeverity::Error);
 		}
 
-		ArchiveFilePath = CulturePath + TEXT("/") + ArchiveName;
 		ArchivePtr = ReadArchive( ManifestAtHeadRevision);
 		if (ArchivePtr.IsValid())
 		{
@@ -166,14 +162,14 @@ FTranslationDataManager::FTranslationDataManager( const FString& ManifestFile, c
 	GWarn->EndSlowTask();
 }
 
-TSharedPtr< FInternationalizationManifest > FTranslationDataManager::ReadManifest( const FString& ManifestFilePath )
+TSharedPtr< FInternationalizationManifest > FTranslationDataManager::ReadManifest( const FString& ManifestFilePathToRead )
 {
 	
-	TSharedPtr<FJsonObject> ManifestJsonObject = ReadJSONTextFile( ManifestFilePath );
+	TSharedPtr<FJsonObject> ManifestJsonObject = ReadJSONTextFile( ManifestFilePathToRead );
 
 	if( !ManifestJsonObject.IsValid() )
 	{
-		UE_LOG(LogTranslationEditor, Error, TEXT("Could not read manifest file %s."), *ManifestFilePath);
+		UE_LOG(LogTranslationEditor, Error, TEXT("Could not read manifest file %s."), *ManifestFilePathToRead);
 		return TSharedPtr< FInternationalizationManifest >();
 	}
 
@@ -524,6 +520,32 @@ void FTranslationDataManager::HandlePropertyChanged(FName PropertyName)
 {
 	// When a property changes, write the data so we don't lose changes if user forgets to save or editor crashes
 	WriteTranslationData();
+}
+
+void FTranslationDataManager::PreviewAllTranslationsInEditor()
+{
+	FString ManifestFullPath = FPaths::ConvertRelativePathToFull(ManifestFilePath);
+	FString EngineFullPath = FPaths::ConvertRelativePathToFull(FPaths::EngineContentDir());
+
+	bool IsEngineManifest = false;
+	if (ManifestFullPath.StartsWith(EngineFullPath))
+	{
+		IsEngineManifest = true;
+	}
+
+	FString ConfigDirectory;
+	if (IsEngineManifest)
+	{
+		ConfigDirectory = FPaths::EngineConfigDir();
+	}
+	else
+	{
+		ConfigDirectory = FPaths::GameConfigDir();
+	}
+
+	FString ConfigFilePath = ConfigDirectory / "Localization" / "Regenerate" + FPaths::GetBaseFilename(ManifestFilePath) + ".ini";
+
+	FTextLocalizationManager::Get().RegenerateResources(ConfigFilePath);
 }
 
 #undef LOCTEXT_NAMESPACE

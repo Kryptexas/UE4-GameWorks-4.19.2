@@ -97,6 +97,13 @@ public:
 	static FString GameContentDir();
 
 	/**
+	* Returns the directory the root configuration files are located.
+	*
+	* @return root config directory
+	*/
+	static FString GameConfigDir();
+
+	/**
 	 * Returns the saved directory of the current game by looking at the global
 	 * GGameName variable. 
 	 *

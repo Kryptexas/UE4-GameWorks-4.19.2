@@ -582,6 +582,10 @@ void FTranslationEditor::MapActions()
 	ToolkitCommands->MapAction( FTranslationEditorCommands::Get().SaveTranslations,
 		FExecuteAction::CreateSP(this, &FTranslationEditor::SaveAsset_Execute),
 		FCanExecuteAction());
+
+	ToolkitCommands->MapAction(FTranslationEditorCommands::Get().PreviewAllTranslationsInEditor,
+		FExecuteAction::CreateSP(this, &FTranslationEditor::PreviewAllTranslationsInEditor_Execute),
+		FCanExecuteAction());
 }
 
 void FTranslationEditor::ChangeSourceFont()
@@ -863,6 +867,11 @@ void FTranslationEditor::UpdateContextSelection()
 			}
 		}
 	}
+}
+
+void FTranslationEditor::PreviewAllTranslationsInEditor_Execute()
+{
+	DataManager->PreviewAllTranslationsInEditor();
 }
 
 #undef LOCTEXT_NAMESPACE
