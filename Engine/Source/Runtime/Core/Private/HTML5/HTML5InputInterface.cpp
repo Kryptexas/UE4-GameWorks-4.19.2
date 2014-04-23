@@ -43,7 +43,7 @@ void FHTML5InputInterface::SetMessageHandler( const TSharedRef< FGenericApplicat
 	MessageHandler = InMessageHandler;
 }
 
-void FHTML5InputInterface::Tick(float DeltaTime)
+void FHTML5InputInterface::Tick(float DeltaTime, const SDL_Event& Event)
 {
 #if PLATFORM_HTML5_WIN32 && SDL_MAJOR_VERSION < 2
 	// we have to emulate repeat
@@ -55,8 +55,6 @@ void FHTML5InputInterface::Tick(float DeltaTime)
 #define EVENT_KEY_REPEAT Event.key.repeat
 #endif
 
-	SDL_Event Event;
-	while (SDL_PollEvent(&Event)) 
 	{
 		if (Event.type == SDL_KEYDOWN)
 		{

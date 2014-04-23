@@ -582,9 +582,11 @@ float CalcSceneDepth( float2 ScreenUV )
 			#if IOS
 				// Only call FramebufferFetch when actually compiling for IOS ES2.
 				return FramebufferFetchES2().w;
-			#else
-				return 65000.0f;
-			#endif
+			#elif WEBGL
+				return Texture2DSampleLevel(SceneAlphaCopyTexture, SceneAlphaCopyTextureSampler, ScreenUV, 0).r;
+			#else 
+				return 65000.0f; 
+			#endif 
 		#else
 			return ConvertFromDeviceZ(Texture2DSampleLevel(SceneDepthTexture, SceneDepthTextureSampler, ScreenUV, 0).r);
 		#endif

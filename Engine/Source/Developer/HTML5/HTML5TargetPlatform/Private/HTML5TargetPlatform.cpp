@@ -220,7 +220,22 @@ void FHTML5TargetPlatform::GetTextureFormats( const UTexture* Texture, TArray<FN
 	// Determine the pixel format of the (un/)compressed texture
 	if (bNoCompression)
 	{
-		TextureFormatName = NameBGRA8;
+			if (Texture->HasHDRSource())
+			{
+				TextureFormatName = NameBGRA8;
+			}
+			else if (SourceFormat == TSF_G8 || Texture->CompressionSettings == TC_Grayscale)
+			{
+				TextureFormatName = NameG8;
+			}
+			else if (Texture->LODGroup == TEXTUREGROUP_Shadowmap)
+			{
+				TextureFormatName = NameG8;
+			}
+			else
+			{
+				TextureFormatName = NameBGRA8;
+			}
 	}
 	else if (Texture->CompressionSettings == TC_HDR)
 	{
