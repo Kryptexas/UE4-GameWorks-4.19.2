@@ -12,6 +12,9 @@ namespace MemoryProfiler2
 {
 	public static class FTimeLineChartView
 	{
+		/// <summary> Memory allocated calculated by the profiler. </summary>
+		static public string AllocatedMemory = "Allocated Memory";
+
 		/// <summary> Reference to the main memory profiler window. </summary>
 		private static MainWindow OwnerWindow;
 
@@ -32,7 +35,7 @@ namespace MemoryProfiler2
 			}
 		}
 
-		private static void AddSeries( Chart TimeLineChart, string SeriesName, FStreamSnapshot Snapshot, ESliceTypes SliceType, bool bVisible )
+		private static void AddSeriesV3( Chart TimeLineChart, string SeriesName, FStreamSnapshot Snapshot, ESliceTypesV3 SliceType, bool bVisible )
 		{
 			Series ChartSeries = TimeLineChart.Series[ SeriesName ];
 			ChartSeries.Enabled = bVisible;
@@ -44,9 +47,60 @@ namespace MemoryProfiler2
 				foreach( FMemorySlice Slice in Snapshot.OverallMemorySlice )
 				{
 					DataPoint Point = new DataPoint();
-					Point.YValues[ 0 ] = Slice.GetSliceInfo( SliceType ) / ( 1024.0 * 1024.0 );
+					Point.YValues[ 0 ] = Slice.GetSliceInfoV3( SliceType ) / ( 1024.0 * 1024.0 );
 
 					ChartSeries.Points.Add( Point );
+				}
+			}
+		}
+
+		private static void AddSeriesV4( Chart TimeLineChart, string SeriesName, FStreamSnapshot Snapshot, ESliceTypesV4 SliceType, bool bVisible )
+		{
+			Series ChartSeries = TimeLineChart.Series[SeriesName];
+			ChartSeries.Enabled = bVisible;
+
+			if( ChartSeries != null )
+			{
+				ChartSeries.Points.Clear();
+
+				foreach( FMemorySlice Slice in Snapshot.OverallMemorySlice )
+				{
+					DataPoint Point = new DataPoint();
+					Point.YValues[0] = Slice.GetSliceInfoV4( SliceType ) / ( 1024.0 * 1024.0 );
+
+					ChartSeries.Points.Add( Point );
+				}
+			}
+		}
+
+		private static void AddEmptySeries( Chart TimeLineChart, string SeriesName, int NumPoints )
+		{
+			Series ChartSeries = TimeLineChart.Series[SeriesName];
+			ChartSeries.Enabled = false;
+
+			if( ChartSeries != null )
+			{
+				ChartSeries.Points.Clear();
+
+				for( int Index = 0; Index < NumPoints; Index++ )
+				{
+					ChartSeries.Points.Add( 0 );
+				}
+			}
+		}
+
+		private static void AddFakeSeries( Chart TimeLineChart, string SeriesName, int NumPoints, int Value )
+		{
+			Series ChartSeries = TimeLineChart.Series[SeriesName];
+			ChartSeries.Enabled = true;
+
+			if( ChartSeries != null )
+			{
+				ChartSeries.Points.Clear();
+
+				for( int Index = 0; Index < NumPoints; Index++ )
+				{
+					ChartSeries.Points.Add( Value );
 				}
 			}
 		}
@@ -58,29 +112,65 @@ namespace MemoryProfiler2
 
 			TimeLineChart.Annotations.Clear();
 
-			bool bIsXbox360 = FStreamInfo.GlobalInstance.Platform == EPlatformType.Xbox360;
-			bool bIsPS3 = FStreamInfo.GlobalInstance.Platform == EPlatformType.PS3;
+			if( FStreamToken.Version >= 4 )
+			{
+				AddSeriesV4( TimeLineChart, FTimeLineChartView.AllocatedMemory, Snapshot, ESliceTypesV4.OverallAllocatedMemory, true );
+				AddSeriesV4( TimeLineChart, FMemoryAllocationStatsV4.PlatformUsedPhysical, Snapshot, ESliceTypesV4.PlatformUsedPhysical, true );
 
-			AddSeries( TimeLineChart, "Allocated Memory", Snapshot, ESliceTypes.TotalUsed, true );
+				AddSeriesV4( TimeLineChart, FMemoryAllocationStatsV4.MemoryProfilingOverhead, Snapshot, ESliceTypesV4.MemoryProfilingOverhead, true );
+				AddSeriesV4( TimeLineChart, FMemoryAllocationStatsV4.BinnedWasteCurrent, Snapshot, ESliceTypesV4.BinnedWasteCurrent, true );
+				AddSeriesV4( TimeLineChart, FMemoryAllocationStatsV4.BinnedSlackCurrent, Snapshot, ESliceTypesV4.BinnedSlackCurrent, true );
+				AddSeriesV4( TimeLineChart, FMemoryAllocationStatsV4.BinnedUsedCurrent, Snapshot, ESliceTypesV4.BinnedUsedCurrent, true );
+				
+				AddEmptySeries( TimeLineChart, "Image Size", Snapshot.OverallMemorySlice.Count );
+				AddEmptySeries( TimeLineChart, "OS Overhead", Snapshot.OverallMemorySlice.Count );
 
-			AddSeries( TimeLineChart, "Image Size", Snapshot, ESliceTypes.ImageSize, bIsXbox360 || bIsPS3 );
-			AddSeries( TimeLineChart, "OS Overhead", Snapshot, ESliceTypes.OSOverhead, bIsXbox360 );
+				AddEmptySeries( TimeLineChart, "Virtual Used", Snapshot.OverallMemorySlice.Count );
+				AddEmptySeries( TimeLineChart, "Virtual Slack", Snapshot.OverallMemorySlice.Count );
+				AddEmptySeries( TimeLineChart, "Virtual Waste", Snapshot.OverallMemorySlice.Count );
+				AddEmptySeries( TimeLineChart, "Physical Used", Snapshot.OverallMemorySlice.Count );
+				AddEmptySeries( TimeLineChart, "Physical Slack", Snapshot.OverallMemorySlice.Count );
+				AddEmptySeries( TimeLineChart, "Physical Waste", Snapshot.OverallMemorySlice.Count );
 
-			AddSeries( TimeLineChart, "Virtual Used", Snapshot, ESliceTypes.CPUUsed, true );
-			AddSeries( TimeLineChart, "Virtual Slack", Snapshot, ESliceTypes.CPUSlack, true );
-			AddSeries( TimeLineChart, "Virtual Waste", Snapshot, ESliceTypes.CPUWaste, true );
-			AddSeries( TimeLineChart, "Physical Used", Snapshot, ESliceTypes.GPUUsed, bIsPS3 || bIsXbox360 );
-			AddSeries( TimeLineChart, "Physical Slack", Snapshot, ESliceTypes.GPUSlack, bIsXbox360 );
-			AddSeries( TimeLineChart, "Physical Waste", Snapshot, ESliceTypes.GPUWaste, bIsPS3 || bIsXbox360 );
+				AddEmptySeries( TimeLineChart, "Host Used", Snapshot.OverallMemorySlice.Count );
+				AddEmptySeries( TimeLineChart, "Host Slack", Snapshot.OverallMemorySlice.Count );
+				AddEmptySeries( TimeLineChart, "Host Waste", Snapshot.OverallMemorySlice.Count );
+			}
+			else
+			{
+				bool bIsXbox360 = FStreamInfo.GlobalInstance.Platform == EPlatformType.Xbox360;
+				bool bIsPS3 = FStreamInfo.GlobalInstance.Platform == EPlatformType.PS3;
 
-			AddSeries( TimeLineChart, "Host Used", Snapshot, ESliceTypes.HostUsed, bIsPS3 );
-			AddSeries( TimeLineChart, "Host Slack", Snapshot, ESliceTypes.HostSlack, bIsPS3 );
-			AddSeries( TimeLineChart, "Host Waste", Snapshot, ESliceTypes.HostWaste, bIsPS3 );
+				AddSeriesV3( TimeLineChart, FTimeLineChartView.AllocatedMemory, Snapshot, ESliceTypesV3.OverallAllocatedMemory, true );
+
+				// Total used will be displayed as "Used Physical".
+				AddSeriesV3( TimeLineChart, FMemoryAllocationStatsV4.PlatformUsedPhysical, Snapshot, ESliceTypesV3.TotalUsed, true );
+
+				AddSeriesV3( TimeLineChart, "Image Size", Snapshot, ESliceTypesV3.ImageSize, bIsXbox360 || bIsPS3 );
+				AddSeriesV3( TimeLineChart, "OS Overhead", Snapshot, ESliceTypesV3.OSOverhead, bIsXbox360 );
+
+				AddSeriesV3( TimeLineChart, "Virtual Used", Snapshot, ESliceTypesV3.CPUUsed, true );
+				AddSeriesV3( TimeLineChart, "Virtual Slack", Snapshot, ESliceTypesV3.CPUSlack, true );
+				AddSeriesV3( TimeLineChart, "Virtual Waste", Snapshot, ESliceTypesV3.CPUWaste, true );
+				AddSeriesV3( TimeLineChart, "Physical Used", Snapshot, ESliceTypesV3.GPUUsed, bIsPS3 || bIsXbox360 );
+				AddSeriesV3( TimeLineChart, "Physical Slack", Snapshot, ESliceTypesV3.GPUSlack, bIsXbox360 );
+				AddSeriesV3( TimeLineChart, "Physical Waste", Snapshot, ESliceTypesV3.GPUWaste, bIsPS3 || bIsXbox360 );
+
+				AddSeriesV3( TimeLineChart, "Host Used", Snapshot, ESliceTypesV3.HostUsed, bIsPS3 );
+				AddSeriesV3( TimeLineChart, "Host Slack", Snapshot, ESliceTypesV3.HostSlack, bIsPS3 );
+				AddSeriesV3( TimeLineChart, "Host Waste", Snapshot, ESliceTypesV3.HostWaste, bIsPS3 );
+
+				//AddEmptySeries( TimeLineChart, FMemoryAllocationStatsV4.PlatformUsedPhysical, Snapshot.OverallMemorySlice.Count );
+				AddEmptySeries( TimeLineChart, FMemoryAllocationStatsV4.BinnedWasteCurrent, Snapshot.OverallMemorySlice.Count );
+				AddEmptySeries( TimeLineChart, FMemoryAllocationStatsV4.BinnedSlackCurrent, Snapshot.OverallMemorySlice.Count );
+				AddEmptySeries( TimeLineChart, FMemoryAllocationStatsV4.BinnedUsedCurrent, Snapshot.OverallMemorySlice.Count );
+				AddEmptySeries( TimeLineChart, FMemoryAllocationStatsV4.MemoryProfilingOverhead, Snapshot.OverallMemorySlice.Count );
+			}	
 		}
 
 		public static bool AddCustomSnapshot( Chart TimeLineChart, CursorEventArgs Event )
 		{
-			if( TimeLineChart.Series["Allocated Memory"].Points.Count == 0 )
+			if( TimeLineChart.Series[FTimeLineChartView.AllocatedMemory].Points.Count == 0 )
 			{
 				return false;
 			}

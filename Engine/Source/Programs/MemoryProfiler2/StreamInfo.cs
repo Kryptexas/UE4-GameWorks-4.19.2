@@ -49,8 +49,11 @@ namespace MemoryProfiler2
 		/// <summary> List of snapshots created by parser and used by various visualizers and dumping tools. </summary>
 		public List<FStreamSnapshot> SnapshotList = new List<FStreamSnapshot>();
 
-		/// <summary> Platform on which these statistics were collected. </summary>
+		/// <summary> Platform on which these statistics were collected V3. </summary>
 		public EPlatformType Platform;
+
+		/// <summary> Platform that was captured V4. </summary>
+		public string PlatformName;
 
 		/// <summary> Profiling options, default all options are enabled. UI is not provided yet. </summary>
 		public ProfilingOptions CreationOptions;
@@ -91,12 +94,13 @@ namespace MemoryProfiler2
 		}
 
 		/// <summary> Initializes and sizes the arrays. Size is known as soon as header is serialized. </summary>
-		public void Initialize( EPlatformType InPlatform, uint InNameArrayEntries, uint InCallStackArrayEntries, uint InCallStackAddressArrayEntries )
+		public void Initialize( FProfileDataHeader Header )
 		{
-			Platform = InPlatform;
-			NameArray = new List<string>( ( int )InNameArrayEntries );
-			CallStackArray = new List<FCallStack>( ( int )InCallStackArrayEntries );
-			CallStackAddressArray = new List<FCallStackAddress>( ( int )InCallStackAddressArrayEntries );
+			Platform = Header.Platform;
+			PlatformName = Header.PlatformName;
+			NameArray = new List<string>( (int)Header.NameTableEntries );
+			CallStackArray = new List<FCallStack>( (int)Header.CallStackTableEntries );
+			CallStackAddressArray = new List<FCallStackAddress>( (int)Header.CallStackAddressTableEntries );
 		}
 
 		/// <summary> 
@@ -150,25 +154,32 @@ namespace MemoryProfiler2
 		{
 			Debug.Assert( BankIndex >= 0 );
 
-			//private static int[][] MEMORY_BANK_SIZE = new int[][] { new int[] { 512, 1 }, new int[] { 180, 256 } };
-			//private static int[][] MEMORY_BANK_SIZE_FOR_RENDERED_GRAPHS = new int[][] { new int[] { 512 * 1024 * 1024, 1 }, new int[] { 256 * 1024 * 1024, 256 * 1024 * 1024 } };
-			if (GlobalInstance.Platform == EPlatformType.Xbox360 || GlobalInstance.Platform == EPlatformType.IPhone)
+			if( FStreamToken.Version >= 4 )
 			{
-				return BankIndex == 0 ? 512 : 0;
-			}
-			else if( GlobalInstance.Platform == EPlatformType.PS3 )
-			{
-				return BankIndex < 2 ? 256 : 0;
-			}
-			else if( ( GlobalInstance.Platform & EPlatformType.AnyWindows ) != EPlatformType.Unknown )
-			{
-				// Technically could be much larger, but the graph becomes unusable
-				// if the scale is too large.
 				return BankIndex == 0 ? 512 : 0;
 			}
 			else
 			{
-				throw new Exception( "Unsupported platform" );
+				//private static int[][] MEMORY_BANK_SIZE = new int[][] { new int[] { 512, 1 }, new int[] { 180, 256 } };
+				//private static int[][] MEMORY_BANK_SIZE_FOR_RENDERED_GRAPHS = new int[][] { new int[] { 512 * 1024 * 1024, 1 }, new int[] { 256 * 1024 * 1024, 256 * 1024 * 1024 } };
+				if( GlobalInstance.Platform == EPlatformType.Xbox360 || GlobalInstance.Platform == EPlatformType.IPhone )
+				{
+					return BankIndex == 0 ? 512 : 0;
+				}
+				else if( GlobalInstance.Platform == EPlatformType.PS3 )
+				{
+					return BankIndex < 2 ? 256 : 0;
+				}
+				else if( ( GlobalInstance.Platform & EPlatformType.AnyWindows ) != EPlatformType.Unknown )
+				{
+					// Technically could be much larger, but the graph becomes unusable
+					// if the scale is too large.
+					return BankIndex == 0 ? 512 : 0;
+				}
+				else
+				{
+					throw new Exception( "Unsupported platform" );
+				}
 			}
 		}
 

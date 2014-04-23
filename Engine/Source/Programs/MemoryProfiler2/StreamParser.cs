@@ -84,7 +84,7 @@ namespace MemoryProfiler2
             int NextDataFile = 1;
 
 			// Initialize shared information across snapshots, namely names, callstacks and addresses.
-			FStreamInfo.GlobalInstance.Initialize(Header.Platform, Header.NameTableEntries, Header.CallStackTableEntries, Header.CallStackAddressTableEntries);
+			FStreamInfo.GlobalInstance.Initialize( Header );
 
 			// Keep track of current position as it's where the token stream starts.
 			long TokenStreamOffset = ParserFileStream.Position;
@@ -320,7 +320,8 @@ namespace MemoryProfiler2
 						MarkerSnapshot.MetricArray = new List<long>( Token.Metrics );
 						MarkerSnapshot.LoadedLevels = new List<int>( Token.LoadedLevels );
 						MarkerSnapshot.OverallMemorySlice = new List<FMemorySlice>( Snapshot.OverallMemorySlice );
-						MarkerSnapshot.MemoryAllocationStats = Token.MemoryAllocationStats.DeepCopy();
+						MarkerSnapshot.MemoryAllocationStats3 = Token.MemoryAllocationStats3.DeepCopy();
+						MarkerSnapshot.MemoryAllocationStats4 = Token.MemoryAllocationStats4.DeepCopy();
 
 						FStreamInfo.GlobalInstance.SnapshotList.Add( MarkerSnapshot );
 
@@ -543,7 +544,8 @@ namespace MemoryProfiler2
 										MarkerSnapshot.SnapshotIndex = SnapshotIndex;
 										MarkerSnapshot.MetricArray = new List<long>( Token.Metrics );
 										MarkerSnapshot.LoadedLevels = new List<int>( Token.LoadedLevels );
-										MarkerSnapshot.MemoryAllocationStats = Snapshot.MemoryAllocationStats.DeepCopy();
+										MarkerSnapshot.MemoryAllocationStats3 = Snapshot.MemoryAllocationStats3.DeepCopy();
+										MarkerSnapshot.MemoryAllocationStats4 = Snapshot.MemoryAllocationStats4.DeepCopy();
 										MarkerSnapshot.OverallMemorySlice = new List<FMemorySlice>( Snapshot.OverallMemorySlice );
 
 										FStreamInfo.GlobalInstance.SnapshotList.Add( MarkerSnapshot );
@@ -558,61 +560,61 @@ namespace MemoryProfiler2
 
 								case EProfilingPayloadSubType.SUBTYPE_TotalUsed:
 								{
-									Snapshot.MemoryAllocationStats.TotalUsed = Token.Payload;
+									Snapshot.MemoryAllocationStats3.TotalUsed = Token.Payload;
 									break;
 								}
 
 								case EProfilingPayloadSubType.SUBTYPE_TotalAllocated:
 								{
-									Snapshot.MemoryAllocationStats.TotalAllocated = Token.Payload;
+									Snapshot.MemoryAllocationStats3.TotalAllocated = Token.Payload;
 									break;
 								}
 
 								case EProfilingPayloadSubType.SUBTYPE_CPUUsed:
 								{
-									Snapshot.MemoryAllocationStats.CPUUsed = Token.Payload;
+									Snapshot.MemoryAllocationStats3.CPUUsed = Token.Payload;
 									break;
 								}
 
 								case EProfilingPayloadSubType.SUBTYPE_CPUSlack:
 								{
-									Snapshot.MemoryAllocationStats.CPUSlack = Token.Payload;
+									Snapshot.MemoryAllocationStats3.CPUSlack = Token.Payload;
 									break;
 								}
 
 								case EProfilingPayloadSubType.SUBTYPE_CPUWaste:
 								{
-									Snapshot.MemoryAllocationStats.CPUWaste = Token.Payload;
+									Snapshot.MemoryAllocationStats3.CPUWaste = Token.Payload;
 									break;
 								}
 
 								case EProfilingPayloadSubType.SUBTYPE_GPUUsed:
 								{
-									Snapshot.MemoryAllocationStats.GPUUsed = Token.Payload;
+									Snapshot.MemoryAllocationStats3.GPUUsed = Token.Payload;
 									break;
 								}
 
 								case EProfilingPayloadSubType.SUBTYPE_GPUSlack:
 								{
-									Snapshot.MemoryAllocationStats.GPUSlack = Token.Payload;
+									Snapshot.MemoryAllocationStats3.GPUSlack = Token.Payload;
 									break;
 								}
 
 								case EProfilingPayloadSubType.SUBTYPE_GPUWaste:
 								{
-									Snapshot.MemoryAllocationStats.GPUWaste = Token.Payload;
+									Snapshot.MemoryAllocationStats3.GPUWaste = Token.Payload;
 									break;
 								}
 
 								case EProfilingPayloadSubType.SUBTYPE_ImageSize:
 								{
-									Snapshot.MemoryAllocationStats.ImageSize = Token.Payload;
+									Snapshot.MemoryAllocationStats3.ImageSize = Token.Payload;
 									break;
 								}
 
 								case EProfilingPayloadSubType.SUBTYPE_OSOverhead:
 								{
-									Snapshot.MemoryAllocationStats.OSOverhead = Token.Payload;
+									Snapshot.MemoryAllocationStats3.OSOverhead = Token.Payload;
 									break;
 								}
 
@@ -630,7 +632,8 @@ namespace MemoryProfiler2
 
 								case EProfilingPayloadSubType.SUBTYPE_MemoryAllocationStats:
 								{
-									Snapshot.MemoryAllocationStats = Token.MemoryAllocationStats.DeepCopy();
+									Snapshot.MemoryAllocationStats3 = Token.MemoryAllocationStats3.DeepCopy();
+									Snapshot.MemoryAllocationStats4 = Token.MemoryAllocationStats4.DeepCopy();
 									break;
 								}
 
@@ -746,7 +749,8 @@ namespace MemoryProfiler2
 			Snapshot.ElapsedTime = Token.ElapsedTime;
             Snapshot.MetricArray = new List<long>(Token.Metrics);
             Snapshot.LoadedLevels = new List<int>(Token.LoadedLevels);
-			Snapshot.MemoryAllocationStats = Token.MemoryAllocationStats.DeepCopy();
+			Snapshot.MemoryAllocationStats3 = Token.MemoryAllocationStats3.DeepCopy();
+			Snapshot.MemoryAllocationStats4 = Token.MemoryAllocationStats4.DeepCopy();
             Snapshot.FinalizeSnapshot(PointerToPointerInfoMap);
             FStreamInfo.GlobalInstance.SnapshotList.Add(Snapshot);
 
@@ -1069,47 +1073,47 @@ namespace MemoryProfiler2
 			}
 			else
 			{
-			foreach( FCallStackAddress Address in FStreamInfo.GlobalInstance.CallStackAddressArray )
-			{
-                if ((AddressIndex % NumAddressesPerTick) == 0)
-                {
-                    BGWorker.ReportProgress(AddressIndex / NumAddressesPerTick, ProgressString);
-                }
-                ++AddressIndex;
+				foreach( FCallStackAddress Address in FStreamInfo.GlobalInstance.CallStackAddressArray )
+				{
+					if( ( AddressIndex % NumAddressesPerTick ) == 0 )
+					{
+						BGWorker.ReportProgress( AddressIndex / NumAddressesPerTick, ProgressString );
+					}
+					++AddressIndex;
 
-                // Look up symbol info via console support DLL.
-				string Filename = "";
-				string Function = "";
-                FStreamInfo.GlobalInstance.ConsoleSymbolParser.ResolveAddressToSymboInfo((uint)Address.ProgramCounter, ref Filename, ref Function, ref Address.LineNumber);
-	
-				// Look up filename index.
-				if( NameToIndexMap.ContainsKey(Filename) )
-				{
-					// Use existing entry.
-					Address.FilenameIndex = NameToIndexMap[Filename];
-				}
-				// Not found, so we use global name index to set new one.
-				else
-				{
-					// Set name in map associated with global ever increasing index.
-					Address.FilenameIndex = CurrentNameIndex++;
-					NameToIndexMap.Add( Filename, Address.FilenameIndex );
-				}
+					// Look up symbol info via console support DLL.
+					string Filename = "";
+					string Function = "";
+					FStreamInfo.GlobalInstance.ConsoleSymbolParser.ResolveAddressToSymboInfo( (uint)Address.ProgramCounter, ref Filename, ref Function, ref Address.LineNumber );
 
-				// Look up function index.
-				if( NameToIndexMap.ContainsKey(Function) )
-				{
-					// Use existing entry.
-					Address.FunctionIndex = NameToIndexMap[Function];
+					// Look up filename index.
+					if( NameToIndexMap.ContainsKey( Filename ) )
+					{
+						// Use existing entry.
+						Address.FilenameIndex = NameToIndexMap[Filename];
+					}
+					// Not found, so we use global name index to set new one.
+					else
+					{
+						// Set name in map associated with global ever increasing index.
+						Address.FilenameIndex = CurrentNameIndex++;
+						NameToIndexMap.Add( Filename, Address.FilenameIndex );
+					}
+
+					// Look up function index.
+					if( NameToIndexMap.ContainsKey( Function ) )
+					{
+						// Use existing entry.
+						Address.FunctionIndex = NameToIndexMap[Function];
+					}
+					// Not found, so we use global name index to set new one.
+					else
+					{
+						// Set name in map associated with global ever increasing index.
+						Address.FunctionIndex = CurrentNameIndex++;
+						NameToIndexMap.Add( Function, Address.FunctionIndex );
+					}
 				}
-				// Not found, so we use global name index to set new one.
-				else
-				{
-					// Set name in map associated with global ever increasing index.
-					Address.FunctionIndex = CurrentNameIndex++;
-					NameToIndexMap.Add( Function, Address.FunctionIndex );
-				} 
-			}
 			}
 
 			// Create new name array based on dictionary.
