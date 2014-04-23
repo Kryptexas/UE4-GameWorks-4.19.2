@@ -46,6 +46,10 @@ class ONLINESUBSYSTEMUTILS_API UIpNetDriver : public UNetDriver
 	}
 	// End UNetDriver Interface
 
+	// Begin UIpNetDriver interface.
+	virtual FSocket * CreateSocket();
+	// End UIpNetDriver interface.
+
 	// Begin FExec Interface
 	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar=*GLog ) OVERRIDE;
 	// End FExec Interface
