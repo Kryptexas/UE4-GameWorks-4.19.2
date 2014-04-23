@@ -711,7 +711,19 @@ FPropertyAccess::Result FPropertyValueImpl::OnUseSelected()
 			{
 				if (!InterfaceThatMustBeImplemented || SelectedClass->ImplementsInterface(InterfaceThatMustBeImplemented))
 				{
-					SetValueAsString(SelectedClass->GetPathName(), EPropertyValueSetFlags::DefaultFlags);
+					FString const ClassPathName = SelectedClass->GetPathName();
+
+					TArray<FText> RestrictReasons;
+					if (PropertyNodePin->IsRestricted(ClassPathName, RestrictReasons))
+					{
+						check(RestrictReasons.Num() > 0);
+						FMessageDialog::Open(EAppMsgType::Ok, RestrictReasons[0]);
+					}
+					else 
+					{
+						
+						Res = SetValueAsString(ClassPathName, EPropertyValueSetFlags::DefaultFlags);
+					}
 				}
 			}
 		}
@@ -751,14 +763,20 @@ FPropertyAccess::Result FPropertyValueImpl::OnUseSelected()
 
 			if( SelectedObject )
 			{
-				bool bAllObjectPropertyValuesMatch = SetObject( SelectedObject, EPropertyValueSetFlags::DefaultFlags );
+				FString const ObjPathName = SelectedObject->GetPathName();
 
-				// Warn that some object assignments failed.
-				if ( !bAllObjectPropertyValuesMatch )
+				TArray<FText> RestrictReasons;
+				if (PropertyNodePin->IsRestricted(ObjPathName, RestrictReasons))
 				{
+					check(RestrictReasons.Num() > 0);
+					FMessageDialog::Open(EAppMsgType::Ok, RestrictReasons[0]);
+				}
+				else if (!SetObject(SelectedObject, EPropertyValueSetFlags::DefaultFlags))
+				{
+					// Warn that some object assignments failed.
 					FMessageDialog::Open( EAppMsgType::Ok, FText::Format(
-							NSLOCTEXT("UnrealEd", "ObjectAssignmentsFailed", "Failed to assign {0} to the {1} property, see log for details."),
-							FText::FromString(SelectedObject->GetPathName()), FText::FromString(PropertyNodePin->GetDisplayName())) );
+						NSLOCTEXT("UnrealEd", "ObjectAssignmentsFailed", "Failed to assign {0} to the {1} property, see log for details."),
+						FText::FromString(SelectedObject->GetPathName()), FText::FromString(PropertyNodePin->GetDisplayName())) );
 				}
 				else
 				{

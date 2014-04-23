@@ -634,6 +634,100 @@ namespace PropertyEditorHelpers
 		}
 	}
 
+	/**
+	 * A helper function that retrieves the path name of the currently selected 
+	 * item (the value that will be used to set the associated property from the 
+	 * "use selection" button)
+	 * 
+	 * @param  PropertyNode		The associated property that the selection is a candidate for.
+	 * @return Empty if the selection isn't compatible with the specified property, else the path-name of the object/class selected in the editor. 
+	 */
+	static FString GetSelectionPathNameForProperty(TSharedRef<FPropertyNode> PropertyNode)
+	{
+		FString SelectionPathName;
+
+		UProperty* Property = PropertyNode->GetProperty();
+		UClassProperty* ClassProperty = Cast<UClassProperty>(Property);
+		UAssetClassProperty* AssetClassProperty = Cast<UAssetClassProperty>(Property);
+
+		if (ClassProperty || AssetClassProperty)
+		{
+			UClass const* const SelectedClass = GEditor->GetFirstSelectedClass(ClassProperty ? ClassProperty->MetaClass : AssetClassProperty->MetaClass);
+			if (SelectedClass != nullptr)
+			{
+				SelectionPathName = SelectedClass->GetPathName();
+			}
+		}
+		else
+		{
+			UClass* ObjectClass = UObject::StaticClass();
+
+			bool bMustBeLevelActor = false;
+			UClass* RequiredInterface = nullptr;
+
+			if (UObjectPropertyBase* ObjectProperty = Cast<UObjectPropertyBase>(Property))
+			{
+				ObjectClass = ObjectProperty->PropertyClass;
+				bMustBeLevelActor = ObjectProperty->GetOwnerProperty()->GetBoolMetaData(TEXT("MustBeLevelActor"));
+				RequiredInterface = ObjectProperty->GetOwnerProperty()->GetClassMetaData(TEXT("MustImplement"));
+			}
+			else if (UInterfaceProperty* InterfaceProperty = Cast<UInterfaceProperty>(Property))
+			{
+				ObjectClass = InterfaceProperty->InterfaceClass;
+			}
+
+			UObject* SelectedObject = nullptr;
+			if (bMustBeLevelActor)
+			{
+				USelection* const SelectedSet = GEditor->GetSelectedActors();
+				SelectedObject = SelectedSet->GetTop(ObjectClass, RequiredInterface);
+			}
+			else 
+			{
+				USelection* const SelectedSet = GEditor->GetSelectedSet(ObjectClass);
+				SelectedObject = SelectedSet->GetTop(ObjectClass, RequiredInterface);
+			}
+
+			if (SelectedObject != nullptr)
+			{
+				SelectionPathName = SelectedObject->GetPathName();
+			}
+		}
+
+		return SelectionPathName;
+	}
+
+	/**
+	 * A helper method that checks to see if the editor's current selection is 
+	 * compatible with the specified property.
+	 * 
+	 * @param  PropertyNode		The property you desire to set from the "use selected" button.
+	 * @return False if the currently selected object is restricted for the specified property, true otherwise.
+	 */
+	static bool IsUseSelectedUnrestricted(TSharedRef<FPropertyNode> PropertyNode)
+	{
+		return !PropertyNode->IsRestricted(GetSelectionPathNameForProperty(PropertyNode));
+	}
+
+	/**
+	 * A helper method that checks to see if the editor's current selection is 
+	 * restricted, and then returns a tooltip explaining why (otherwise, it 
+	 * returns a default explanation of the "use selected" button).
+	 * 
+	 * @param  PropertyNode		The property that would be set from the "use selected" button.
+	 * @return A tooltip for the "use selected" button.
+	 */
+	static FText GetUseSelectedTooltip(TSharedRef<FPropertyNode> PropertyNode)
+	{
+		FText ToolTip;
+		if (!PropertyNode->GenerateRestrictionToolTip(GetSelectionPathNameForProperty(PropertyNode), ToolTip))
+		{
+			ToolTip = LOCTEXT("UseButtonToolTipText", "Use Selected Asset from Content Browser");
+		}
+
+		return ToolTip;
+	}
+
 	TSharedRef<SWidget> MakePropertyButton( const EPropertyButton::Type ButtonType, const TSharedRef< FPropertyEditor >& PropertyEditor )
 	{
 		TSharedPtr<SWidget> NewButton;
@@ -668,8 +762,14 @@ namespace PropertyEditorHelpers
 			break;
 
 		case EPropertyButton::Use:
-			NewButton = PropertyCustomizationHelpers::MakeUseSelectedButton( FSimpleDelegate::CreateSP( PropertyEditor, &FPropertyEditor::UseSelected ) );
-			break;
+			{
+				FSimpleDelegate OnClickDelegate = FSimpleDelegate::CreateSP(PropertyEditor, &FPropertyEditor::UseSelected);
+				TAttribute<bool>::FGetter EnabledDelegate = TAttribute<bool>::FGetter::CreateStatic(&IsUseSelectedUnrestricted, PropertyEditor->GetPropertyNode());
+				TAttribute<FText>::FGetter TooltipDelegate = TAttribute<FText>::FGetter::CreateStatic(&GetUseSelectedTooltip, PropertyEditor->GetPropertyNode());
+
+				NewButton = PropertyCustomizationHelpers::MakeUseSelectedButton(OnClickDelegate, TAttribute<FText>::Create(TooltipDelegate), TAttribute<bool>::Create(EnabledDelegate));
+				break;
+			}
 
 		case EPropertyButton::PickAsset:
 			NewButton = PropertyCustomizationHelpers::MakeAssetPickerAnchorButton( FOnGetAllowedClasses::CreateSP( PropertyEditor, &FPropertyEditor::OnGetClassesForAssetPicker ), FOnAssetSelected::CreateSP( PropertyEditor, &FPropertyEditor::OnAssetSelected ) );

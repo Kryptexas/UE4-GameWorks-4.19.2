@@ -5,9 +5,9 @@
 #include "BlueprintUtilities.h"
 #include "ScopedTransaction.h"
 #include "GraphEditor.h"
-
+#include "PropertyRestriction.h"
 #include "BlueprintEditor.h"
-
+#include "BlueprintEditorModes.h"
 #include "Editor/PropertyEditor/Public/PropertyEditing.h"
 
 #include "SKismetInspector.h"
@@ -4654,6 +4654,47 @@ void FBlueprintGraphNodeDetails::OnNameCommitted(const FText& InNewText, ETextCo
 	if( BlueprintEditorPtr.IsValid() && GraphNodePtr.IsValid() )
 	{
 		BlueprintEditorPtr.Pin()->OnNodeTitleCommitted( InNewText, InTextCommit, GraphNodePtr.Get() );
+	}
+}
+
+TSharedRef<IDetailCustomization> FChildActorComponentDetails::MakeInstance(TWeakPtr<FBlueprintEditor> BlueprintEditorPtrIn)
+{
+	return MakeShareable(new FChildActorComponentDetails(BlueprintEditorPtrIn));
+}
+
+FChildActorComponentDetails::FChildActorComponentDetails(TWeakPtr<FBlueprintEditor> BlueprintEditorPtrIn)
+	: BlueprintEditorPtr(BlueprintEditorPtrIn)
+{
+}
+
+void FChildActorComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
+{
+	TSharedPtr<IPropertyHandle> ActorClassProperty = DetailBuilder.GetProperty("ChildActorClass");
+	if (ActorClassProperty->IsValidHandle())
+	{
+		if (BlueprintEditorPtr.IsValid())
+		{
+			// only restrict for the components view (you can successfully add 
+			// a self child component in the execution graphs)
+			if (BlueprintEditorPtr.Pin()->GetCurrentMode() == FBlueprintEditorApplicationModes::BlueprintComponentsMode)
+			{
+				if (UBlueprint* Blueprint = BlueprintEditorPtr.Pin()->GetBlueprintObj())
+				{
+					FText RestrictReason = LOCTEXT("NoSelfChildActors", "Cannot append a child-actor of this blueprint type (could cause infinite recursion).");
+					TSharedPtr<FPropertyRestriction> ClassRestriction = MakeShareable(new FPropertyRestriction(RestrictReason));
+
+					ClassRestriction->AddValue(Blueprint->GetName());
+					ClassRestriction->AddValue(Blueprint->GetPathName());
+					if (Blueprint->GeneratedClass)
+					{
+						ClassRestriction->AddValue(Blueprint->GeneratedClass->GetName());
+						ClassRestriction->AddValue(Blueprint->GeneratedClass->GetPathName());
+					}
+
+					ActorClassProperty->AddRestriction(ClassRestriction.ToSharedRef());
+				}
+			}
+		}
 	}
 }
 
