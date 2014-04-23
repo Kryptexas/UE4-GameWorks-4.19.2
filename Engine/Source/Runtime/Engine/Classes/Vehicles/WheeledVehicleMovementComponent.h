@@ -259,6 +259,8 @@ class ENGINE_API UWheeledVehicleMovementComponent : public UPawnMovementComponen
 	// Used to recreate the physics if the blueprint changes.
 	uint32 VehicleSetupTag;
 
+	bool CheckSlipThreshold(float AbsLongSlipThreshold, float AbsLatSlipThreshold) const;
+
 #if WITH_PHYSX
 
 	// The instanced PhysX vehicle

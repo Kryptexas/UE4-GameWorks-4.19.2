@@ -1030,6 +1030,40 @@ void DrawTelemetryGraph( uint32 Channel, const PxVehicleGraph& PGraph, UCanvas* 
 	OutX = FMath::Max(XL,GraphWidth);
 }
 
+bool UWheeledVehicleMovementComponent::CheckSlipThreshold(float AbsLongSlipThreshold, float AbsLatSlipThreshold) const
+{
+	if (PVehicle == NULL)
+	{
+		return false;
+	}
+
+	FPhysXVehicleManager* MyVehicleManager = World->GetPhysicsScene()->GetVehicleManager();
+	PxWheelQueryResult * WheelsStates = MyVehicleManager->GetWheelsStates(this);
+	check(WheelsStates);
+
+	PxReal MaxLongSlip = 0.f;
+	PxReal MaxLatSlip = 0.f;
+
+	// draw wheel data
+	for (uint32 w = 0; w < PVehicle->mWheelsSimData.getNbWheels(); ++w)
+	{
+		const PxReal AbsLongSlip = FMath::Abs(WheelsStates[w].longitudinalSlip);
+		const PxReal AbsLatSlip = FMath::Abs(WheelsStates[w].lateralSlip);
+
+		if (AbsLongSlip > AbsLongSlipThreshold)
+		{
+			return true;
+		}
+
+		if (AbsLatSlip > AbsLatSlipThreshold)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void UWheeledVehicleMovementComponent::DrawDebug( UCanvas* Canvas, float& YL, float& YPos )
 {
 	if ( PVehicle == NULL )
