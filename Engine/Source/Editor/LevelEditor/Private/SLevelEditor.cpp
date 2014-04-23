@@ -36,12 +36,16 @@
 #include "EditorModes.h"
 #include "STutorialWrapper.h"
 #include "IDocumentation.h"
+#include "NewsFeed.h"
+
 
 static const FName LevelEditorBuildAndSubmitTab("LevelEditorBuildAndSubmit");
 static const FName LevelEditorStatsViewerTab("LevelEditorStatsViewer");
 static const FName LevelEditorWorldBrowserTab("LevelEditorWorldBrowser");
 static const FName MainFrameModuleName("MainFrame");
+static const FName NewsFeedModuleName("NewsFeed");
 static const FName LevelEditorModuleName("LevelEditor");
+
 
 namespace LevelEditorConstants
 {
@@ -213,22 +217,36 @@ void SLevelEditor::Initialize( const TSharedRef<SDockTab>& OwnerTab, const TShar
 
 void SLevelEditor::ConstructNotificationBar()
 {
-	const IMainFrameModule& MainFrameModule = FModuleManager::GetModuleChecked< IMainFrameModule >( MainFrameModuleName );
-
 	NotificationBarBox->ClearChildren();
 
+	// level editor commands
 	NotificationBarBox->AddSlot()
-	.Padding( 5, 0 )
-	.AutoWidth()
-	[
-		FLevelEditorMenu::MakeNotificationBar( LevelEditorCommands, SharedThis(this ) )
-	];
+		.AutoWidth()
+		.Padding(5.0f, 0.0f, 0.0f, 0.0f)
+		[
+			FLevelEditorMenu::MakeNotificationBar( LevelEditorCommands, SharedThis(this ) )
+		];
+
+	// news feed button
+	INewsFeedModule& NewsFeedModule = FModuleManager::LoadModuleChecked<INewsFeedModule>(NewsFeedModuleName);
 
 	NotificationBarBox->AddSlot()
-	.AutoWidth()
-	[
-		MainFrameModule.MakeDeveloperTools()
-	];
+		.AutoWidth()
+		.Padding(5.0f, 0.0f, 0.0f, 0.0f)
+		.VAlign(VAlign_Bottom)
+		[
+			NewsFeedModule.CreateNewsFeedButton()
+		];
+
+	// developer tools
+	const IMainFrameModule& MainFrameModule = FModuleManager::GetModuleChecked<IMainFrameModule>(MainFrameModuleName);
+
+	NotificationBarBox->AddSlot()
+		.AutoWidth()
+		.Padding(5.0f, 0.0f, 0.0f, 0.0f)
+		[
+			MainFrameModule.MakeDeveloperTools()
+		];
 }
 
 
