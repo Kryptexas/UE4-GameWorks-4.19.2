@@ -418,8 +418,8 @@ public:
 	// End UObject interface
 	
 	// UClass interface
-	virtual UClass* GetAuthoritativeClass() OVERRIDE;
 #if WITH_EDITOR
+	virtual UClass* GetAuthoritativeClass() OVERRIDE;
 	virtual void ConditionalRecompileClass(TArray<UObject*>* ObjLoaded) OVERRIDE;
 #endif //WITH_EDITOR
 	virtual bool IsFunctionImplementedInBlueprint(FName InFunctionName) const OVERRIDE;

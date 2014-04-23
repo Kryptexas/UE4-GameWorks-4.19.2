@@ -56,6 +56,8 @@ void UBlueprintGeneratedClass::PostLoad()
 	}
 }
 
+#if WITH_EDITOR
+
 UClass* UBlueprintGeneratedClass::GetAuthoritativeClass()
 {
 	UBlueprint* GeneratingBP = CastChecked<UBlueprint>(ClassGeneratedBy);
@@ -64,8 +66,6 @@ UClass* UBlueprintGeneratedClass::GetAuthoritativeClass()
 
 	return (GeneratingBP->GeneratedClass != NULL) ? GeneratingBP->GeneratedClass : this;
 }
-
-#if WITH_EDITOR
 
 struct FConditionalRecompileClassHepler
 {
