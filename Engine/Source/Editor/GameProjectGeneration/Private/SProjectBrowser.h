@@ -69,7 +69,7 @@ protected:
 	FText GetSelectedProjectName( ) const;
 
 	/** Populates ProjectItemsSource with projects found on disk */
-	void FindProjects( bool bAllowProjectCreate );
+	FReply FindProjects( );
 
 	/** Adds the specified project to the specified category. Creates a new category if necessary. */
 	void AddProjectToCategory( const TSharedRef<FProjectItem>& ProjectItem, const FText& ProjectCategory );
@@ -82,6 +82,16 @@ protected:
 
 	/** Populate the list of filtered project categories */
 	void PopulateFilteredProjectCategories();
+	
+	/**
+	 * Called after a key is pressed when this widget has keyboard focus (this event bubbles if not handled)
+	 *
+	 * @param MyGeometry The Geometry of the widget receiving the event
+	 * @param  InKeyboardEvent  Keyboard event
+	 *
+	 * @return  Returns whether the event was handled, along with other possible actions
+	 */
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE;
 
 private:
 
@@ -141,6 +151,8 @@ private:
 
 	bool bHasProjectFiles;
 
+	/** True if this UI will enable the creation of new projects, false otherwise */
+	bool bAllowProjectCreate;
 private:
 
 	// Holds a delegate that is executed when the new project screen is being requested.

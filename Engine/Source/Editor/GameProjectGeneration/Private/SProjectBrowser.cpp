@@ -65,18 +65,13 @@ void SProjectBrowser::Construct( const FArguments& InArgs )
 	bPreventSelectionChangeEvent = false;
 	ThumbnailBorderPadding = 5;
 	ThumbnailSize = 128.0f;
+	bAllowProjectCreate = InArgs._AllowProjectCreate;
 
 	// Prepare the categories box
 	CategoriesBox = SNew(SVerticalBox);
 
 	// Find all projects
-	FindProjects(InArgs._AllowProjectCreate);
-
-	for (auto CategoryIt = ProjectCategories.CreateConstIterator(); CategoryIt; ++CategoryIt)
-	{
-		const TSharedRef<FProjectCategory>& Category = *CategoryIt;
-		ConstructCategory( CategoriesBox.ToSharedRef(), Category );
-	}
+	FindProjects();
 
 	CategoriesBox->AddSlot()
 	.HAlign(HAlign_Center)
@@ -124,20 +119,36 @@ void SProjectBrowser::Construct( const FArguments& InArgs )
 				.VAlign(VAlign_Top)
 				.Padding(FMargin(5.f, 10.f))
 				[
-					SNew(SOverlay)
-
-					+SOverlay::Slot()
+					SNew(SHorizontalBox)
+					+SHorizontalBox::Slot()
 					[
-						SNew(SSearchBox)
-						.HintText(LOCTEXT("FilterHint", "Filter Projects..."))
-						.OnTextChanged(this, &SProjectBrowser::OnFilterTextChanged)
+						SNew(SOverlay)
+
+						+SOverlay::Slot()
+						[
+							SNew(SSearchBox)
+							.HintText(LOCTEXT("FilterHint", "Filter Projects..."))
+							.OnTextChanged(this, &SProjectBrowser::OnFilterTextChanged)
+						]
+
+						+SOverlay::Slot()
+						[
+							SNew(SBorder)
+							.Visibility(this, &SProjectBrowser::GetFilterActiveOverlayVisibility)
+							.BorderImage(FEditorStyle::Get().GetBrush("SearchBox.ActiveBorder"))
+						]
 					]
 
-					+SOverlay::Slot()
+					+SHorizontalBox::Slot()
+					.AutoWidth()
 					[
-						SNew(SBorder)
-						.Visibility(this, &SProjectBrowser::GetFilterActiveOverlayVisibility)
-						.BorderImage(FEditorStyle::Get().GetBrush("SearchBox.ActiveBorder"))
+						SNew(SButton)
+						.ButtonStyle(FCoreStyle::Get(), "NoBorder")
+						.OnClicked(this, &SProjectBrowser::FindProjects)
+						.ToolTipText(LOCTEXT("RefreshProjectList", "Refresh the project list"))
+						[
+							SNew(SImage).Image(FEditorStyle::Get().GetBrush("Icons.Refresh"))
+						]
 					]
 				]
 
@@ -522,8 +533,11 @@ FText SProjectBrowser::GetSelectedProjectName() const
 	return FText::GetEmpty();
 }
 
-void SProjectBrowser::FindProjects(bool bAllowProjectCreate)
+FReply SProjectBrowser::FindProjects()
 {
+	ProjectCategories.Empty();
+	CategoriesBox->ClearChildren();
+
 	const FText CreateProjectCategoryName = LOCTEXT("NewProjectCategoryName", "Create Project");
 	const FText MyProjectsCategoryName = LOCTEXT("MyProjectsCategoryName", "My Projects");
 	const FText ProjectsCategoryName = LOCTEXT("ProjectsCategoryName", "My Projects");
@@ -763,6 +777,14 @@ void SProjectBrowser::FindProjects(bool bAllowProjectCreate)
 	}
 
 	PopulateFilteredProjectCategories();
+
+	for (auto CategoryIt = ProjectCategories.CreateConstIterator(); CategoryIt; ++CategoryIt)
+	{
+		const TSharedRef<FProjectCategory>& Category = *CategoryIt;
+		ConstructCategory(CategoriesBox.ToSharedRef(), Category);
+	}
+
+	return FReply::Handled();
 }
 
 
@@ -806,6 +828,16 @@ void SProjectBrowser::PopulateFilteredProjectCategories()
 			Category->ProjectTileView->RequestListRefresh();
 		}
 	}
+}
+
+FReply SProjectBrowser::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+{
+	if (InKeyboardEvent.GetKey() == EKeys::F5)
+	{
+		return FindProjects();
+	}
+
+	return FReply::Unhandled();
 }
 
 
