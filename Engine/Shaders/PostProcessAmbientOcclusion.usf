@@ -34,7 +34,7 @@ float3 ReconstructCSPos(float SceneDepth, float2 ScreenPos)
 // could be moved to a more central spot
 float2 ReconstructSSPosFromCS(float3 In)
 {
-    return In.xy / In.z;
+	return In.xy / In.z;
 }
 
 // could be moved to a more central spot
@@ -74,7 +74,7 @@ float4 NoiseScale;
 
 #if USE_SAMPLESET == 0
 	#define SAMPLESET_ARRAY_SIZE 6
-	static float2 OcclusionSamplesOffsets[SAMPLESET_ARRAY_SIZE]=
+	static const float2 OcclusionSamplesOffsets[SAMPLESET_ARRAY_SIZE]=
 	{
 		// 6 points distributed on the unit disc, spiral order and distance
 		float2(0.000, 0.200), 
@@ -86,7 +86,7 @@ float4 NoiseScale;
 	};
 #else // USE_SAMPLESET == 0
 	#define SAMPLESET_ARRAY_SIZE 5
-	static float2 OcclusionSamplesOffsets[SAMPLESET_ARRAY_SIZE]=
+	static const float2 OcclusionSamplesOffsets[SAMPLESET_ARRAY_SIZE]=
 	{
 		// 5 points distributed on a unit circle
 		float2(0.156434, 0.987688),
@@ -383,7 +383,7 @@ void MainPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Targe
 
 			SamplePosition0 = ReconstructCSPos(leftAbs, ScreenSpacePosLeft) * InvFovFix;
 			SamplePosition1 = ReconstructCSPos(rightAbs, ScreenSpacePosRight) * InvFovFix;
-	    
+		
 			float3 DeltaLeft = SamplePosition0 - ViewSpacePosition;
 			float3 DeltaRight = SamplePosition1 - ViewSpacePosition;
 
