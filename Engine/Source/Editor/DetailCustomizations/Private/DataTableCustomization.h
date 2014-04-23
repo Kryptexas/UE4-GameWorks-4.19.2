@@ -52,8 +52,10 @@ public:
 					.Font( StructCustomizationUtils.GetRegularFont() )
 				]
 			.ValueContent()
+			.MaxDesiredWidth(0.0f) // don't constrain the combo button width
 				[
 					SAssignNew( RowNameComboButton, SComboButton )
+					.ToolTipText( this, &FDataTableCustomizationLayout::GetRowNameComboBoxContentText )
 					.OnGetMenuContent( this, &FDataTableCustomizationLayout::GetListContent )
 					.ContentPadding( FMargin( 2.0f, 2.0f ) )
 					.ButtonContent()
