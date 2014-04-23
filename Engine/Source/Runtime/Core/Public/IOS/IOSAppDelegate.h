@@ -121,6 +121,7 @@ UITextFieldDelegate, AVAudioSessionDelegate>
 
 @property (atomic) bool bIsSuspended;
 @property (atomic) bool bHasSuspended;
+@property (atomic) bool bHasStarted;
 - (void)ToggleSuspend:(bool)bSuspend;
 
 static void interruptionListener(void* ClientData, UInt32 Interruption);

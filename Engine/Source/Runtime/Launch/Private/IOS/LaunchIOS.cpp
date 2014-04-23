@@ -160,6 +160,9 @@ void FAppEntry::Shutdown()
 {
 	NSLog(@"%s", "Shutting down Game ULD Communications\n");
 	GCommandSystem.Shutdown();
+    
+    // kill the engine
+    GEngineLoop.Exit();
 }
 
 FString GSavedCommandLine;

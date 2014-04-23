@@ -106,6 +106,7 @@ void InstallSignalHandlers()
 
 -(void)MainAppThread:(NSDictionary*)launchOptions
 {
+    self.bHasStarted = true;
 	GIsGuarded = false;
 	GStartTime = FPlatformTime::Seconds();
 
@@ -157,6 +158,8 @@ void InstallSignalHandlers()
 
 	[AutoreleasePool release];
 	FAppEntry::Shutdown();
+    
+    self.bHasStarted = false;
 }
 
 - (void)NoUrlCommandLine
@@ -441,6 +444,15 @@ void InstallSignalHandlers()
 	 See also applicationDidEnterBackground:.
 	 */
 	FCoreDelegates::ApplicationWillTerminateDelegate.Broadcast();
+    
+    // note that we are shutting down
+    GIsRequestingExit = true;
+    
+    // wait for the game thread to shut down
+    while (self.bHasStarted == true)
+    {
+        usleep(3);
+    }
 }
 
 - (void)applicationDidReceiveMemoryWarning:(UIApplication *)application
