@@ -373,7 +373,7 @@ struct FWindowsOpenGL : public FOpenGL4
 	{
 		if (glPushDebugGroup && bDebugContext)
 		{
-			glPushDebugGroup( GL_DEBUG_SOURCE_APPLICATION, 1, -1,Name);
+			glPushDebugGroup( GL_DEBUG_SOURCE_APPLICATION, 1, FCStringAnsi::Strlen(Name),Name);
 		}
 	}
 
