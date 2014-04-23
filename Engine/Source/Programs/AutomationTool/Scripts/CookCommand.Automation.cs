@@ -70,7 +70,7 @@ public partial class Project : CommandUtils
 
 		try
 		{
-			var CommandletParams = "-unattended -buildmachine -forcelogflush -AllowStdOutLogVerbosity -Unversioned -fileopenlog";
+			var CommandletParams = "-buildmachine -Unversioned -fileopenlog";
 			if (Params.Compressed)
 			{
 				CommandletParams += " -Compressed";
