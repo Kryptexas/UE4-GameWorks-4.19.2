@@ -57,7 +57,8 @@ void SWorldMainView::Construct( const FArguments& InArgs )
 		.AutoHeight()
 		[
 			SAssignNew(MainMenuHolder, SBorder)
-			.BorderImage(FEditorStyle::GetBrush("NoBrush"))
+			.Padding(0)
+			.BorderImage(FEditorStyle::GetBrush(TEXT("NoBrush")))
 		]
 
 		// Create parent widget for all world browser views
@@ -65,8 +66,8 @@ void SWorldMainView::Construct( const FArguments& InArgs )
 		.FillHeight(1.0f)
 		[
 			SAssignNew(ContentParent, SBorder)
-			.Padding(5)
-			.BorderImage(FEditorStyle::GetBrush("NoBrush"))
+			.Padding(0)
+			.BorderImage(FEditorStyle::GetBrush(TEXT("NoBrush")))
 		]
 	];
 	
@@ -446,13 +447,18 @@ TSharedRef<SWidget> SWorldMainView::CreateContentViews()
 {
 	TSharedPtr<SSplitter> ViewSplitter;
 	SAssignNew(ViewSplitter, SSplitter);
-	
+
 	// Hierarchy view
 	ViewSplitter->AddSlot()
 	.Value(0.3f)
 	[
-		SNew(SWorldLevelsTreeView)
-		.InWorldModel(WorldModel)
+		SNew(SBorder)
+		.Padding(FMargin(0,3,0,0))
+		.BorderImage(FEditorStyle::GetBrush(TEXT("ToolPanel.GroupBorder")))
+		[
+			SNew(SWorldLevelsTreeView)
+			.InWorldModel(WorldModel)
+		]
 	];
 
 	// Grid view
@@ -461,7 +467,12 @@ TSharedRef<SWidget> SWorldMainView::CreateContentViews()
 		ViewSplitter->AddSlot()
 		.Value(0.7f)
 		[
-			ConstructCenterPane()
+			SNew(SBorder)
+			.Padding(FMargin(0,3,0,0))
+			.BorderImage(FEditorStyle::GetBrush(TEXT("ToolPanel.GroupBorder")))
+			[
+				ConstructCenterPane()
+			]
 		];
 	}
 
@@ -469,9 +480,14 @@ TSharedRef<SWidget> SWorldMainView::CreateContentViews()
 	ViewSplitter->AddSlot()
 	.Value(0.2f)
 	[
-		SNew(SWorldDetailsView)
-		.Visibility(this, &SWorldMainView::GetDetailsViewVisibility)
-		.InWorldModel(WorldModel)
+		SNew(SBorder)
+		.Padding(FMargin(0,0,0,0))
+		.BorderImage(FEditorStyle::GetBrush(TEXT("ToolPanel.GroupBorder")))
+		[
+			SNew(SWorldDetailsView)
+			.Visibility(this, &SWorldMainView::GetDetailsViewVisibility)
+			.InWorldModel(WorldModel)
+		]
 	];
 
 	return ViewSplitter.ToSharedRef();

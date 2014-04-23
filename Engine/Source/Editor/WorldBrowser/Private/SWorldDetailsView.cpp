@@ -13,7 +13,7 @@ void SWorldDetailsView::Construct(const FArguments& InArgs)
 	
 	FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 
-	FDetailsViewArgs Args(false, false, true, false, true);
+	FDetailsViewArgs Args(false, false, false, false, true);
 	Args.bShowActorLabel = false;
 	
 	DetailsView = PropertyModule.CreateDetailView(Args);

@@ -679,12 +679,7 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 			.Icon( FEditorStyle::GetBrush( "LevelEditor.Tabs.WorldBrowser" ) )
 			.Label( NSLOCTEXT("LevelEditor", "WorldBrowserTabTitle", "World Browser") )
 			[
-				SNew(SBorder)
-				.Padding( 0 )
-				.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
-				[
-					WorldBrowserModule.CreateWorldBrowser()
-				]
+				WorldBrowserModule.CreateWorldBrowser()
 			];
 	}
 	else if( TabIdentifier == TEXT("Sequencer") && FParse::Param(FCommandLine::Get(), TEXT("sequencer")) )
