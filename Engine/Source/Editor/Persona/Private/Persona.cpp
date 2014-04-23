@@ -2309,6 +2309,11 @@ void FPersona::Tick(float DeltaTime)
 {
 	FBlueprintEditor::Tick(DeltaTime);
 
+	if (Viewport.IsValid())
+	{
+		Viewport.Pin()->RefreshViewport();
+	}
+
 	if (IsAnimationBeingRecorded())
 	{
 		// make sure you don't allow switch previewcomponent
