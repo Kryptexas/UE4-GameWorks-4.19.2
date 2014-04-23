@@ -1006,27 +1006,6 @@ void FK2ActionMenuBuilder::GetContextAllowedNodeTypes(FBlueprintGraphActionListB
 			SelectionAction->SearchTitle = NodeTemplate->GetNodeSearchTitle();
 		}
 
-		if (GraphType == GT_Ubergraph && bAllowEvents && !bIsConstructionScript && bAllowImpureFuncs)
-		{
-			for ( TObjectIterator<UClass> it; it; ++it )
-			{
-				UClass* CurrentInterface = *it;
-				if (CurrentInterface->HasAnyClassFlags(CLASS_Abstract))
-				{
-					continue;
-				}
-
-				if (CurrentInterface->IsChildOf( UK2Node_BaseAsyncTask::StaticClass() ))
-				{
-					UK2Node* NodeTemplate = NewObject<UK2Node_BaseAsyncTask>(ContextMenuBuilder.OwnerOfTemporaries, CurrentInterface);
-					FString CategoryName = FString::Printf( TEXT("%s|%s"), *K2ActionCategories::GenericFunctionCategory, *CurrentInterface->GetDefaultObject<UK2Node_BaseAsyncTask>()->GetCategoryName());
-					TSharedPtr<FEdGraphSchemaAction_K2NewNode> SelectionAction = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, CategoryName, NodeTemplate->GetNodeTitle(ENodeTitleType::ListView), NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
-					SelectionAction->NodeTemplate = NodeTemplate;
-					SelectionAction->SearchTitle = NodeTemplate->GetNodeSearchTitle();
-				}
-			}
-		}
-
 		FEditorDelegates::OnBlueprintContextMenuCreated.Broadcast(ContextMenuBuilder);
 
 		GetEnumUtilitiesNodes(ContextMenuBuilder, true, true, true, true);

@@ -5,6 +5,7 @@
 
 #include "CompilerResultsLog.h"
 #include "KismetCompiler.h"
+#include "K2ActionMenuBuilder.h"
 
 #define LOCTEXT_NAMESPACE "UK2Node_BaseAsyncTask"
 
@@ -13,27 +14,48 @@ UK2Node_BaseAsyncTask::UK2Node_BaseAsyncTask(const class FPostConstructInitializ
 	, ProxyFactoryFunctionName(NAME_None)
 	, ProxyFactoryClass(NULL)
 	, ProxyClass(NULL)
+	, ProxyActivateFunctionName(NAME_None)
 {
 }
 
-FName UK2Node_BaseAsyncTask::GetProxyFactoryFunctionName()
+FString UK2Node_BaseAsyncTask::GetTooltip() const
 {
-	return ProxyFactoryFunctionName;
+	const FString FunctionToolTipText = UK2Node_CallFunction::GetDefaultTooltipForFunction(GetFactoryFunction());
+	return FunctionToolTipText;
 }
 
-UClass*	UK2Node_BaseAsyncTask::GetProxyFactoryClass()
+FText UK2Node_BaseAsyncTask::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return ProxyFactoryClass;
-}
-
-UClass* UK2Node_BaseAsyncTask::GetProxyClass()
-{
-	return ProxyClass;
+	const FString FunctionToolTipText = UK2Node_CallFunction::GetUserFacingFunctionName(GetFactoryFunction());
+	return FText::FromString(FunctionToolTipText);
 }
 
 FString UK2Node_BaseAsyncTask::GetCategoryName()
 {
-	return TEXT("Latent Execution");
+	const FString GenericFunctionCategory = LOCTEXT("FunctionCategory", "Call Function").ToString();
+	return UK2Node_CallFunction::GetDefaultCategoryForFunction(GetFactoryFunction(), GenericFunctionCategory);
+}
+
+void UK2Node_BaseAsyncTask::GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const
+{
+	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+	const bool bAllowLatentFuncs = (K2Schema->GetGraphType(ContextMenuBuilder.CurrentGraph) == GT_Ubergraph);
+
+	if (bAllowLatentFuncs)
+	{
+		UK2Node_BaseAsyncTask* NodeTemplate = NewObject<UK2Node_BaseAsyncTask>(ContextMenuBuilder.OwnerOfTemporaries, GetClass());
+		CreateDefaultMenuEntry(NodeTemplate, ContextMenuBuilder);
+	}
+}
+
+TSharedPtr<FEdGraphSchemaAction_K2NewNode> UK2Node_BaseAsyncTask::CreateDefaultMenuEntry(UK2Node_BaseAsyncTask* NodeTemplate, FGraphContextMenuBuilder& ContextMenuBuilder) const
+{
+	TSharedPtr<FEdGraphSchemaAction_K2NewNode> NodeAction = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, NodeTemplate->GetCategoryName(), NodeTemplate->GetNodeTitle(ENodeTitleType::ListView), NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
+	
+	NodeAction->NodeTemplate = NodeTemplate;
+	NodeAction->SearchTitle = NodeTemplate->GetNodeSearchTitle();
+
+	return NodeAction;
 }
 
 void UK2Node_BaseAsyncTask::AllocateDefaultPins()
@@ -46,14 +68,13 @@ void UK2Node_BaseAsyncTask::AllocateDefaultPins()
 	UFunction* DelegateSignatureFunction = NULL;
 	for (TFieldIterator<UProperty> PropertyIt(ProxyClass, EFieldIteratorFlags::ExcludeSuper); PropertyIt; ++PropertyIt)
 	{
-		UMulticastDelegateProperty* Property = Cast<UMulticastDelegateProperty>(*PropertyIt);
-		if(!Property)
-			continue;
-
-		CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, *Property->GetName());
-		if (!DelegateSignatureFunction)
+		if (UMulticastDelegateProperty* Property = Cast<UMulticastDelegateProperty>(*PropertyIt))
 		{
-			DelegateSignatureFunction = Property->SignatureFunction;
+			CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, *Property->GetName());
+			if (!DelegateSignatureFunction)
+			{
+				DelegateSignatureFunction = Property->SignatureFunction;
+			}
 		}
 	}
 
@@ -267,58 +288,81 @@ void UK2Node_BaseAsyncTask::ExpandNode(class FKismetCompilerContext& CompilerCon
 		return;
 	}
 	const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
-	UK2Node_BaseAsyncTask* const CurrentNode = this;
-	check(SourceGraph && Schema && CurrentNode);
+	check(SourceGraph && Schema);
 	bool bIsErrorFree = true;
 
-	UK2Node_CallFunction* const CallCreateMoveToProxyObjectNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(CurrentNode, SourceGraph);
-	CallCreateMoveToProxyObjectNode->FunctionReference.SetExternalMember(CurrentNode->GetProxyFactoryFunctionName(), CurrentNode->GetProxyFactoryClass());
-	CallCreateMoveToProxyObjectNode->AllocateDefaultPins();
-	bIsErrorFree &= CompilerContext.MovePinLinksToIntermediate(*CurrentNode->FindPinChecked(Schema->PN_Execute), *CallCreateMoveToProxyObjectNode->FindPinChecked(Schema->PN_Execute)).CanSafeConnect();
-	for (auto CurrentPin : CurrentNode->Pins)
+	// Create a call to factory the proxy object
+	UK2Node_CallFunction* const CallCreateProxyObjectNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this, SourceGraph);
+	CallCreateProxyObjectNode->FunctionReference.SetExternalMember(ProxyFactoryFunctionName, ProxyFactoryClass);
+	CallCreateProxyObjectNode->AllocateDefaultPins();
+	bIsErrorFree &= CompilerContext.MovePinLinksToIntermediate(*FindPinChecked(Schema->PN_Execute), *CallCreateProxyObjectNode->FindPinChecked(Schema->PN_Execute)).CanSafeConnect();
+	for (auto CurrentPin : Pins)
 	{
 		if (FBaseAsyncTaskHelper::ValidDataPin(CurrentPin, EGPD_Input, Schema))
 		{
-			UEdGraphPin* DestPin = CallCreateMoveToProxyObjectNode->FindPin(CurrentPin->PinName); // match function inputs, to pass data to function from CallFunction node
+			UEdGraphPin* DestPin = CallCreateProxyObjectNode->FindPin(CurrentPin->PinName); // match function inputs, to pass data to function from CallFunction node
 			bIsErrorFree &= DestPin && CompilerContext.MovePinLinksToIntermediate(*CurrentPin, *DestPin).CanSafeConnect();
 		}
 	}
 	
 	// GATHER OUTPUT PARAMETERS AND PAIR THEM WITH LOCAL VARIABLES
 	TArray<FBaseAsyncTaskHelper::FOutputPinAndLocalVariable> VariableOutputs;
-	for (auto CurrentPin : CurrentNode->Pins)
+	for (auto CurrentPin : Pins)
 	{
 		if (FBaseAsyncTaskHelper::ValidDataPin(CurrentPin, EGPD_Output, Schema))
 		{
 			const FEdGraphPinType& PinType = CurrentPin->PinType;
 			UK2Node_TemporaryVariable* TempVarOutput = CompilerContext.SpawnInternalVariable(
-				CurrentNode, PinType.PinCategory, PinType.PinSubCategory, PinType.PinSubCategoryObject.Get(), PinType.bIsArray);
+				this, PinType.PinCategory, PinType.PinSubCategory, PinType.PinSubCategoryObject.Get(), PinType.bIsArray);
 			bIsErrorFree &= TempVarOutput->GetVariablePin() && CompilerContext.MovePinLinksToIntermediate(*CurrentPin, *TempVarOutput->GetVariablePin()).CanSafeConnect();
 			VariableOutputs.Add(FBaseAsyncTaskHelper::FOutputPinAndLocalVariable(CurrentPin, TempVarOutput));
 		}
 	}
 
 	// FOR EACH DELEGATE DEFINE EVENT, CONNECT IT TO DELEGATE AND IMPLEMENT A CHAIN OF ASSIGMENTS
-	UEdGraphPin* LastThenPin = CallCreateMoveToProxyObjectNode->FindPinChecked(Schema->PN_Then);
-	UEdGraphPin* const ProxyObjectPin = CallCreateMoveToProxyObjectNode->GetReturnValuePin();
-	for (TFieldIterator<UMulticastDelegateProperty> PropertyIt(CurrentNode->GetProxyClass(), EFieldIteratorFlags::ExcludeSuper); PropertyIt && bIsErrorFree; ++PropertyIt)
+	UEdGraphPin* LastThenPin = CallCreateProxyObjectNode->FindPinChecked(Schema->PN_Then);
+	UEdGraphPin* const ProxyObjectPin = CallCreateProxyObjectNode->GetReturnValuePin();
+	for (TFieldIterator<UMulticastDelegateProperty> PropertyIt(ProxyClass, EFieldIteratorFlags::ExcludeSuper); PropertyIt && bIsErrorFree; ++PropertyIt)
 	{
-		bIsErrorFree &= FBaseAsyncTaskHelper::HandleDelegateImplementation(*PropertyIt, VariableOutputs, ProxyObjectPin, LastThenPin, CurrentNode, SourceGraph, CompilerContext);
+		bIsErrorFree &= FBaseAsyncTaskHelper::HandleDelegateImplementation(*PropertyIt, VariableOutputs, ProxyObjectPin, LastThenPin, this, SourceGraph, CompilerContext);
 	}
 
-	if (CallCreateMoveToProxyObjectNode->FindPinChecked(Schema->PN_Then) == LastThenPin)
+	if (CallCreateProxyObjectNode->FindPinChecked(Schema->PN_Then) == LastThenPin)
 	{
-		CompilerContext.MessageLog.Error(*LOCTEXT("MissingDelegateProperties", "BaseAsyncTask: Proxy has no delegates defined. @@").ToString(), CurrentNode);
+		CompilerContext.MessageLog.Error(*LOCTEXT("MissingDelegateProperties", "BaseAsyncTask: Proxy has no delegates defined. @@").ToString(), this);
 		return;
 	}
 
-	bIsErrorFree &= CompilerContext.MovePinLinksToIntermediate(*CurrentNode->FindPinChecked(Schema->PN_Then), *LastThenPin).CanSafeConnect();
-	if (!bIsErrorFree)
+	// Create a call to activate the proxy object if necessary
+	if (ProxyActivateFunctionName != NAME_None)
 	{
-		CompilerContext.MessageLog.Error(*LOCTEXT("InternalConnectionError", "BaseAsyncTask: Internal connection error. @@").ToString(), CurrentNode);
+		UK2Node_CallFunction* const CallActivateProxyObjectNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this, SourceGraph);
+		CallActivateProxyObjectNode->FunctionReference.SetExternalMember(ProxyActivateFunctionName, ProxyClass);
+		CallActivateProxyObjectNode->AllocateDefaultPins();
+
+		// Hook up the self connection
+		UEdGraphPin* ActivateCallSelfPin = Schema->FindSelfPin(*CallActivateProxyObjectNode, EGPD_Input);
+		check(ActivateCallSelfPin);
+
+		bIsErrorFree &= Schema->TryCreateConnection(ProxyObjectPin, ActivateCallSelfPin);
+		
+		// Hook the activate node up in the exec chain
+		UEdGraphPin* ActivateExecPin = CallActivateProxyObjectNode->FindPinChecked(Schema->PN_Execute);
+		UEdGraphPin* ActivateThenPin = CallActivateProxyObjectNode->FindPinChecked(Schema->PN_Then);
+
+		bIsErrorFree &= CompilerContext.MovePinLinksToIntermediate(*LastThenPin, *ActivateExecPin).CanSafeConnect();
+		LastThenPin = ActivateThenPin;
 	}
 
-	CurrentNode->BreakAllNodeLinks();
+	// Move the connections from the original node then pin to the last internal then pin
+	bIsErrorFree &= CompilerContext.MovePinLinksToIntermediate(*FindPinChecked(Schema->PN_Then), *LastThenPin).CanSafeConnect();
+	if (!bIsErrorFree)
+	{
+		CompilerContext.MessageLog.Error(*LOCTEXT("InternalConnectionError", "BaseAsyncTask: Internal connection error. @@").ToString(), this);
+	}
+
+	// Make sure we caught everything
+	BreakAllNodeLinks();
 }
 
 bool UK2Node_BaseAsyncTask::HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput) const
@@ -338,6 +382,19 @@ bool UK2Node_BaseAsyncTask::HasExternalBlueprintDependencies(TArray<class UStruc
 	}
 
 	return bProxyFactoryResult || bProxyResult;
+}
+
+FName UK2Node_BaseAsyncTask::GetCornerIcon() const
+{
+	return TEXT("Graph.Latent.LatentIcon");
+}
+
+UFunction* UK2Node_BaseAsyncTask::GetFactoryFunction() const
+{
+	check(ProxyFactoryClass);
+	UFunction* FactoryFunction = ProxyFactoryClass->FindFunctionByName(ProxyFactoryFunctionName);
+	check(FactoryFunction);
+	return FactoryFunction;
 }
 
 #undef LOCTEXT_NAMESPACE
