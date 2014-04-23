@@ -147,7 +147,7 @@ private:
  * Structure encapsulating all information required to play a USoundWave on a channel/source. This is required
  * as a single USoundWave object can be used in multiple active cues or multiple times in the same cue.
  */
-struct FWaveInstance
+struct ENGINE_API FWaveInstance
 {
 	/** Static helper to create good unique type hashes */
 	static uint32 TypeHashCounter;
@@ -244,7 +244,7 @@ struct FWaveInstance
 	/**
 	 * Notifies the wave instance that the current playback buffer has finished.
 	 */
-	ENGINE_API void NotifyFinished( const bool bStopped = false );
+	void NotifyFinished( const bool bStopped = false );
 
 	/**
 	 * Friend archive function used for serialization.
@@ -254,10 +254,10 @@ struct FWaveInstance
 	/**
 	 * Function used by the GC.
 	 */
-	ENGINE_API void AddReferencedObjects( FReferenceCollector& Collector );
+	void AddReferencedObjects( FReferenceCollector& Collector );
 
 	/** Returns the actual volume the wave instance will play at */
-	ENGINE_API float GetActualVolume() const;
+	float GetActualVolume() const;
 };
 
 inline uint32 GetTypeHash( FWaveInstance* A ) { return A->TypeHash; }

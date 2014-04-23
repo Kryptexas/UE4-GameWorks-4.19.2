@@ -25,8 +25,8 @@ enum EDecompressionType
 	DTYPE_MAX,
 };
 
-UCLASS(hidecategories=Object, editinlinenew, MinimalAPI, BlueprintType, dependson=USoundGroups)
-class USoundWave : public USoundBase
+UCLASS(hidecategories=Object, editinlinenew, BlueprintType, dependson=USoundGroups)
+class ENGINE_API USoundWave : public USoundBase
 {
 	GENERATED_UCLASS_BODY()
 
@@ -198,12 +198,12 @@ public:
 	/**
 	 * Frees up all the resources allocated in this class
 	 */
-	ENGINE_API void FreeResources();
+	void FreeResources();
 
 	/** 
 	 * Copy the compressed audio data from the bulk data
 	 */
-	virtual ENGINE_API void InitAudioResource( FByteBulkData& CompressedData );
+	virtual void InitAudioResource( FByteBulkData& CompressedData );
 
 	/** 
 	 * Copy the compressed audio data from derived data cache
@@ -211,12 +211,12 @@ public:
 	 * @param Format to get the compressed audio in
 	 * @return true if the resource has been successfully initialized or it was already initialized.
 	 */
-	virtual ENGINE_API bool InitAudioResource(FName Format);
+	virtual bool InitAudioResource(FName Format);
 
 	/** 
 	 * Remove the compressed audio data associated with the passed in wave
 	 */
-	ENGINE_API void RemoveAudioResource();
+	void RemoveAudioResource();
 
 	/** 
 	 * Prints the subtitle associated with the SoundWave to the console
@@ -258,12 +258,12 @@ public:
 	 * @param Format	format of compressed data
 	 * @return	compressed data, if it could be obtained
 	 */ 
-	virtual ENGINE_API FByteBulkData* GetCompressedData(FName Format);
+	virtual FByteBulkData* GetCompressedData(FName Format);
 
 	/** 
 	 * Change the guid and flush all compressed data
 	 */ 
-	ENGINE_API void InvalidateCompressedData();
+	void InvalidateCompressedData();
 
 
 };

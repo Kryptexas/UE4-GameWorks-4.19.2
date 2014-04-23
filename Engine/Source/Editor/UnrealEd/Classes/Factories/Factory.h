@@ -55,7 +55,7 @@ class UFactory : public UObject
 
 	/** For interactive object imports, this value indicates whether the user wants objects to be automatically
 		overwritten (See EAppReturnType), or -1 if the user should be prompted. */
-	static int32 OverwriteYesOrNoToAllState;
+	UNREALED_API static int32 OverwriteYesOrNoToAllState;
 
 	/** If this value is true, warning messages will be shown once for all objects being imported at the same time.  
 		This value will be reset to false each time a new import operation is started. */

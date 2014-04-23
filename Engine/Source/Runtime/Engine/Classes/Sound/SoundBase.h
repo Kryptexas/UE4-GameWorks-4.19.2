@@ -25,8 +25,8 @@ namespace EMaxConcurrentResolutionRule
 	};
 }
 
-UCLASS(config=Engine, hidecategories=Object, abstract, editinlinenew, MinimalAPI, BlueprintType)
-class USoundBase : public UObject
+UCLASS(config=Engine, hidecategories=Object, abstract, editinlinenew, BlueprintType)
+class ENGINE_API USoundBase : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
@@ -75,12 +75,12 @@ public:
 	/**
 	 * Checks to see if a location is audible
 	 */
-	ENGINE_API bool IsAudible( const FVector& SourceLocation, const FVector& ListenerLocation, AActor* SourceActor, bool& bIsOccluded, bool bCheckOcclusion );
+	bool IsAudible( const FVector& SourceLocation, const FVector& ListenerLocation, AActor* SourceActor, bool& bIsOccluded, bool bCheckOcclusion );
 
 	/** 
 	 * Does a simple range check to all listeners to test hearability
 	 */
-	ENGINE_API bool IsAudibleSimple( const FVector Location );
+	bool IsAudibleSimple( const FVector Location );
 
 	/** 
 	 * Returns the farthest distance at which the sound could be heard
@@ -98,6 +98,6 @@ public:
 	/** 
 	 * Parses the Sound to generate the WaveInstances to play
 	 */
-	virtual void Parse( class FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& AudioComponent, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances ) { }
+	virtual void Parse( class FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances ) { }
 };
 

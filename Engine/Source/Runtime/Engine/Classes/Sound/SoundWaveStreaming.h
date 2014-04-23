@@ -10,8 +10,8 @@
 
 DECLARE_DELEGATE_TwoParams( FOnSoundWaveStreamingUnderflow, class USoundWaveStreaming*, int32 );
 
-UCLASS(MinimalAPI)
-class USoundWaveStreaming : public USoundWave
+UCLASS()
+class ENGINE_API USoundWaveStreaming : public USoundWave
 {
 	GENERATED_UCLASS_BODY()
 
@@ -36,13 +36,13 @@ public:
 
 
 	/** Add data to the FIFO that feeds the audio device. */
-	void ENGINE_API QueueAudio(const uint8* AudioData, const int32 BufferSize);
+	void QueueAudio(const uint8* AudioData, const int32 BufferSize);
 
 	/** Remove all queued data from the FIFO. This is only necessary if you want to start over, or GeneratePCMData() isn't going to be called, since that will eventually drain it. */
 	void ResetAudio();
 
 	/** Query bytes queued for playback */
-	int32 ENGINE_API GetAvailableAudioByteCount();
+	int32 GetAvailableAudioByteCount();
 
 	/** Called when GeneratePCMData is called but not enough data is available. Allows more data to be added, and will try again */
 	FOnSoundWaveStreamingUnderflow OnSoundWaveStreamingUnderflow;
