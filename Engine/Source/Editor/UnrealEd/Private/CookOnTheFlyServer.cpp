@@ -75,7 +75,8 @@ UCookOnTheFlyServer::UCookOnTheFlyServer(const class FPostConstructInitializePro
 void UCookOnTheFlyServer::Tick(float DeltaTime)
 {
 	uint32 CookedPackagesCount = 0;
-	TickCookOnTheSide( 0.01f, CookedPackagesCount);
+	const static float CookOnTheSideTimeSlice = 0.01f;
+	TickCookOnTheSide( CookOnTheSideTimeSlice, CookedPackagesCount);
 	TickRecompileShaderRequests();
 }
 
@@ -148,69 +149,115 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 	// we use this in the unsolicited packages processing below
 	TArray<FString> AllTargetPlatformNames;
 	bool bCookedPackage = false;
-	while (ThreadSafeFilenameArray.HasItems() && !GIsRequestingExit)
+	while (!GIsRequestingExit)
 	{
 		FFilePlatformRequest ToBuild;
-		ThreadSafeFilenameArray.Dequeue( &ToBuild );
+
+		bool bIsUnsolicitedRequest = false;
+		if ( FileRequests.HasItems() )
+		{
+			FileRequests.Dequeue( &ToBuild );
+		}
+		else if ( UnsolicitedFileRequests.HasItems() )
+		{
+			bIsUnsolicitedRequest = true;
+			UnsolicitedFileRequests.Dequeue( &ToBuild );
+		}
+		else
+		{
+			// no more to do this tick break out and do some other stuff
+			break;
+		}
 
 		check( ToBuild.IsValid() );
-		bool bWasUpToDate = false;
 		TArray<FString> TargetPlatformNames;
+		
 		if( ToBuild.Platformname.Len() )
 		{
 			TargetPlatformNames.Add( ToBuild.Platformname );
 		}
 
+		bool bWasUpToDate = false;
 		FString Name = FPackageName::FilenameToLongPackageName(*ToBuild.Filename);
 		if (!ThreadSafeFilenameSet.Exists(ToBuild))
 		{
-			UPackage* Package = LoadPackage( NULL, *ToBuild.Filename, LOAD_None );
-
-			if( Package == NULL )
+			// if we have no target platforms then we want to cook because this will cook for all target platforms in that case
+			bool bShouldCook = TargetPlatformNames.Num() > 0 ? false : true;
+			for ( int Index = 0; Index < TargetPlatformNames.Num(); ++Index )
 			{
-				UE_LOG(LogCookCommandlet, Error, TEXT("Error loading %s!"), *ToBuild.Filename );
-				Result |= COSR_ErrorLoadingPackage;
+				bShouldCook |= ShouldCook( ToBuild.Filename, TargetPlatformNames[Index] );
 			}
-			else
+
+			if ( bShouldCook ) // if we should cook the package then cook it otherwise add it to the list of already cooked packages below
 			{
-				if( SaveCookedPackage(Package, SAVE_KeepGUID | SAVE_Async, bWasUpToDate, TargetPlatformNames) )
+				//  if the package is already loaded then don't do any work :)
+				UPackage* Package = LoadPackage( NULL, *ToBuild.Filename, LOAD_None );
+
+				if( Package == NULL )
 				{
-					// Update flags used to determine garbage collection.
-					if (Package->ContainsMap())
+					UE_LOG(LogCookCommandlet, Error, TEXT("Error loading %s!"), *ToBuild.Filename );
+					Result |= COSR_ErrorLoadingPackage;
+				}
+				else
+				{
+					if( SaveCookedPackage(Package, SAVE_KeepGUID | SAVE_Async, bWasUpToDate, TargetPlatformNames) )
 					{
-						Result |= COSR_CookedMap;
-						//bCookedAMapSinceLastGC = true;
+						// Update flags used to determine garbage collection.
+						if (Package->ContainsMap())
+						{
+							Result |= COSR_CookedMap;
+							//bCookedAMapSinceLastGC = true;
+						}
+						else
+						{
+							++CookedPackageCount;
+							Result |= COSR_CookedPackage;
+							//NonMapPackageCountSinceLastGC++;
+							// LastCookActionTime = FPlatformTime::Seconds();
+						}
+						bCookedPackage = true;
 					}
-					else
+
+					//@todo ResetLoaders outside of this (ie when Package is NULL) causes problems w/ default materials
+					if (Package->HasAnyFlags(RF_RootSet) == false)
 					{
-						++CookedPackageCount;
-						Result |= COSR_CookedPackage;
-						//NonMapPackageCountSinceLastGC++;
-						// LastCookActionTime = FPlatformTime::Seconds();
+						ResetLoaders(Package);
 					}
-					bCookedPackage = true;
+				}
+			}
+
+			for ( int Index = 0; Index < TargetPlatformNames.Num(); ++Index )
+			{
+				AllTargetPlatformNames.AddUnique(TargetPlatformNames[Index]);
+
+				FFilePlatformRequest FileRequest( ToBuild.Filename, TargetPlatformNames[Index]);
+
+				if ( bIsUnsolicitedRequest )
+				{
+					if ((FPaths::FileExists(FileRequest.Filename) == true) &&
+						(bWasUpToDate == false))
+					{
+						UnsolicitedCookedPackages.EnqueueUnique( FileRequest );
+						UE_LOG(LogCookCommandlet, Display, TEXT("UnsolicitedCookedPackages: %s"), *FileRequest.Filename);
+					}
 				}
 
-				//@todo ResetLoaders outside of this (ie when Package is NULL) causes problems w/ default materials
-				if (Package->HasAnyFlags(RF_RootSet) == false)
-				{
-					ResetLoaders(Package);
-				}
+				UnsolicitedCookedPackages.Remove( FileRequest );
+				
+				ThreadSafeFilenameSet.Add( FileRequest );
+
+
 			}
 		}
-
-		for ( int Index = 0; Index < TargetPlatformNames.Num(); ++Index )
+		else
 		{
-			AllTargetPlatformNames.AddUnique(TargetPlatformNames[Index]);
-
-			FFilePlatformRequest FileRequest( ToBuild.Filename, TargetPlatformNames[Index]);
-
-			ThreadSafeFilenameSet.Add( FileRequest );
+			UE_LOG(LogCookCommandlet, Display, TEXT("Package for platform already cooked %s, discarding request"), *ToBuild.Filename);
 		}
+		
 
 		if ( (FPlatformTime::Seconds() - StartTime) > TimeSlice)
 		{
-			return Result;
+			break;
 		}
 	}
 
@@ -220,11 +267,6 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 		GetObjectsWithOuter(NULL, ObjectsInOuter, false);
 		for( int32 Index = 0; Index < ObjectsInOuter.Num() && !GIsRequestingExit; Index++ )
 		{
-			if ( (FPlatformTime::Seconds() - StartTime) > TimeSlice)
-			{
-				return Result;
-			}
-
 			UPackage* Package = Cast<UPackage>(ObjectsInOuter[Index]);
 
 			if (Package)
@@ -246,45 +288,11 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 				}
 				if ( !AlreadyCooked )
 				{
-					bool bUnsolicitedWasUpdateToDate = false;
-
-					if (SaveCookedPackage(Package, SAVE_KeepGUID | SAVE_Async, bUnsolicitedWasUpdateToDate, AllTargetPlatformNames))
+					for ( int Index = 0; Index < AllTargetPlatformNames.Num(); ++Index )
 					{
-
-
-						if ((FPaths::FileExists(PackageFilename) == true) &&
-							(PackageFilename.Len() > 0) && 
-							(bUnsolicitedWasUpdateToDate == false))
-						{
-							UE_LOG(LogCookCommandlet, Display, TEXT("UnsolicitedCookedPackages: %s"), *PackageFilename);
-
-							for ( int Index = 0; Index < AllTargetPlatformNames.Num(); ++Index )
-							{
-								const FFilePlatformRequest Request( FullPath, AllTargetPlatformNames[Index] );
-								UnsolicitedCookedPackages.Enqueue( Request );
-								ThreadSafeFilenameSet.Add( Request );
-
-								UE_LOG( LogCookCommandlet, Display, TEXT("Unsolicited saved package %s.%s"), *Request.Filename, *Request.Platformname );
-							}
-						}
-
-						// Update flags used to determine garbage collection.
-						if (Package->ContainsMap())
-						{
-							Result |= COSR_CookedMap;
-						}
-						else
-						{
-							++CookedPackageCount;
-							Result |= COSR_CookedPackage;
-						}
+						const FFilePlatformRequest Request( FullPath, AllTargetPlatformNames[Index] );
+						UnsolicitedFileRequests.EnqueueUnique(Request);
 					}
-				}
-
-				if ( ThreadSafeFilenameArray.HasItems())
-				{
-					// break out of saving unsolicited packages if we get a real request
-					break;
 				}
 			}
 		}
@@ -329,123 +337,6 @@ void UCookOnTheFlyServer::TickRecompileShaderRequests()
 	}
 }
 
-bool UCookOnTheFlyServer::CookOnTheFly( bool BindAnyPort, int32 Timeout, bool bForceClose )
-{
-	if ( StartNetworkFileServer(BindAnyPort) == false )
-	{
-		return false;
-	}
-
-	// Garbage collection should happen when either
-	//	1. We have cooked a map
-	//	2. We have cooked non-map packages and...
-	//		a. we have accumulated 50 of these since the last GC.
-	//		b. we have been idle for 20 seconds.
-	bool bShouldGC = true;
-
-	// megamoth
-	uint32 NonMapPackageCountSinceLastGC = 0;
-	
-	const int32 PackagesPerGC = 50;
-	
-	const double IdleTimeToGC = 20.0;
-	double LastCookActionTime = FPlatformTime::Seconds();
-
-	FDateTime LastConnectionTime = FDateTime::UtcNow();
-	bool bHadConnection = false;
-
-	while (!GIsRequestingExit)
-	{
-
-		while (!GIsRequestingExit)
-		{
-			uint32 TickResults = 0;
-			
-			TickCookOnTheSide(TickResults, NonMapPackageCountSinceLastGC);
-
-			bool bCookedAMapSinceLastGC = TickResults & COSR_CookedMap;
-			if ( TickResults & (COSR_CookedMap | COSR_CookedPackage))
-			{
-				LastCookActionTime = FPlatformTime::Seconds();
-			}
-
-
-			while ( (ThreadSafeFilenameArray.HasItems() == false) && !GIsRequestingExit)
-			{
-				
-				{
-					if (NonMapPackageCountSinceLastGC > 0)
-					{
-						// We should GC if we have packages to collect and we've been idle for some time.
-						bShouldGC = (NonMapPackageCountSinceLastGC > PackagesPerGC) || 
-							((FPlatformTime::Seconds() - LastCookActionTime) >= IdleTimeToGC);
-					}
-					bShouldGC |= bCookedAMapSinceLastGC;
-
-					if (bShouldGC)
-					{
-						bShouldGC = false;
-						bCookedAMapSinceLastGC = false;
-						NonMapPackageCountSinceLastGC = 0;
-
-						UE_LOG(LogCookCommandlet, Display, TEXT("GC..."));
-
-						CollectGarbage( RF_Native );
-					}
-					else
-					{
-						TickRecompileShaderRequests();
-
-						FPlatformProcess::Sleep(0.0f);
-					}
-				}
-
-				// update task graph
-				FTaskGraphInterface::Get().ProcessThreadUntilIdle(ENamedThreads::GameThread);
-
-				// execute deferred commands
-				for (int32 DeferredCommandsIndex = 0; DeferredCommandsIndex<GEngine->DeferredCommands.Num(); ++DeferredCommandsIndex)
-				{
-					GEngine->Exec( GWorld, *GEngine->DeferredCommands[DeferredCommandsIndex], *GLog);
-				}
-
-				GEngine->DeferredCommands.Empty();
-
-				// handle server timeout
-				if (InstanceId.IsValid() || bForceClose)
-				{
-					if (NetworkFileServer && NetworkFileServer->NumConnections() > 0)
-					{
-						bHadConnection = true;
-						LastConnectionTime = FDateTime::UtcNow();
-					}
-
-					if ((FDateTime::UtcNow() - LastConnectionTime) > FTimespan::FromSeconds(Timeout))
-					{
-						uint32 Result = FMessageDialog::Open(EAppMsgType::YesNo, NSLOCTEXT("UnrealEd", "FileServerIdle", "The file server did not receive any connections in the past 3 minutes. Would you like to shut it down?"));
-
-						if (Result == EAppReturnType::No && !bForceClose)
-						{
-							LastConnectionTime = FDateTime::UtcNow();
-						}
-						else
-						{
-							GIsRequestingExit = true;
-						}
-					}
-					else if (bHadConnection && (NetworkFileServer && NetworkFileServer->NumConnections() == 0) && bForceClose) // immediately shut down if we previously had a connection and now do not
-					{
-						GIsRequestingExit = true;
-					}
-				}
-			}
-		}
-	}
-
-	EndNetworkFileServer();
-	return true;
-}
-
 
 FString UCookOnTheFlyServer::GetOutputDirectory( const FString& PlatformName ) const
 {
@@ -476,6 +367,65 @@ bool UCookOnTheFlyServer::SaveCookedPackage( UPackage* Package, uint32 SaveFlags
 {
 	TArray<FString> TargetPlatformNames; 
 	return SaveCookedPackage( Package, SaveFlags, bOutWasUpToDate, TargetPlatformNames );
+}
+
+
+bool UCookOnTheFlyServer::ShouldCook(const FString& InFileName, const FString &InPlatformName)
+{
+	bool bDoCook = false;
+
+
+	FString PkgFile;
+	FString PkgFilename;
+	FDateTime DependentTimeStamp = FDateTime::MinValue();
+
+	if (bIterativeCooking && FPackageName::DoesPackageExist(InFileName, NULL, &PkgFile))
+	{
+		PkgFilename = PkgFile;
+
+		if (GetPackageTimestamp(FPaths::GetBaseFilename(PkgFilename, false), DependentTimeStamp) == false)
+		{
+			UE_LOG(LogCookCommandlet, Display, TEXT("Failed to find dependency timestamp for: %s"), *PkgFilename);
+		}
+	}
+
+	// Use SandboxFile to do path conversion to properly handle sandbox paths (outside of standard paths in particular).
+	PkgFilename = SandboxFile->ConvertToAbsolutePathForExternalAppForWrite(*PkgFilename);
+
+	ITargetPlatformManagerModule& TPM = GetTargetPlatformManagerRef();
+
+	static const TArray<ITargetPlatform*> &ActiveTargetPlatforms = TPM.GetActiveTargetPlatforms();
+
+	TArray<ITargetPlatform*> Platforms;
+
+	if ( InPlatformName.Len() > 0 )
+	{
+		Platforms.Add( TPM.FindTargetPlatform( InPlatformName ) );
+	}
+	else 
+	{
+		Platforms = ActiveTargetPlatforms;
+	}
+
+	for (int32 Index = 0; Index < Platforms.Num() && !bDoCook; Index++)
+	{
+		ITargetPlatform* Target = Platforms[Index];
+		FString PlatFilename = PkgFilename.Replace(TEXT("[Platform]"), *Target->PlatformName());
+
+		// If we are not iterative cooking, then cook the package
+		bool bCookPackage = (bIterativeCooking == false);
+
+		if (bCookPackage == false)
+		{
+			// If the cooked package doesn't exist, or if the cooked is older than the dependent, re-cook it
+			FDateTime CookedTimeStamp = IFileManager::Get().GetTimeStamp(*PlatFilename);
+			int32 CookedTimespanSeconds = (CookedTimeStamp - DependentTimeStamp).GetTotalSeconds();
+			bCookPackage = (CookedTimeStamp == FDateTime::MinValue()) || (CookedTimespanSeconds < 0);
+		}
+		bDoCook |= bCookPackage;
+	}
+
+	return bDoCook;
 }
 
 bool UCookOnTheFlyServer::SaveCookedPackage( UPackage* Package, uint32 SaveFlags, bool& bOutWasUpToDate, TArray<FString> &TargetPlatformNames )
@@ -882,7 +832,7 @@ void UCookOnTheFlyServer::HandleNetworkFileServerFileRequest( const FString& Fil
 	}
 
 	FFilePlatformRequest FileRequest( Filename, Platformname );
-	ThreadSafeFilenameArray.Enqueue(FileRequest);
+	FileRequests.Enqueue(FileRequest);
 
 	do
 	{
@@ -894,7 +844,21 @@ void UCookOnTheFlyServer::HandleNetworkFileServerFileRequest( const FString& Fil
 	UnsolicitedCookedPackages.DequeueAll(FileRequests);
 	for ( int Index=  0; Index < FileRequests.Num(); ++Index)
 	{
-		UnsolicitedFiles.Add( FileRequests[Index].Filename);
+		const FFilePlatformRequest &Request = FileRequests[Index];
+		if ( Request.Filename == FileRequest.Filename )
+		{
+			// don't do anything we don't want this guy
+		}
+		else if ( Request.Platformname == Platformname )
+		{
+			FString StandardFilename = FileRequests[Index].Filename;
+			FPaths::MakeStandardFilename( StandardFilename );
+			UnsolicitedFiles.Add( StandardFilename );
+		}
+		else
+		{
+			UnsolicitedCookedPackages.Enqueue( Request );
+		}
 	}
 	
 	UPackage::WaitForAsyncFileWrites();

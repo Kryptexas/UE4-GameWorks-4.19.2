@@ -44,7 +44,7 @@ private:
 
 	/** Array which has been made thread safe :) */
 	template<typename Type>
-	struct FThreadSafeArray
+	struct FThreadSafeQueue
 	{
 	private:
 		mutable FCriticalSection	SynchronizationObject; // made this mutable so this class can have const functions and still be thread safe
@@ -54,6 +54,11 @@ private:
 		{
 			FScopeLock ScopeLock(&SynchronizationObject);
 			Items.Add(Item);
+		}
+		void EnqueueUnique( const Type& Item )
+		{
+			FScopeLock ScopeLock(&SynchronizationObject);
+			Items.AddUnique(Item);
 		}
 		bool Dequeue(Type* Result)
 		{
@@ -77,6 +82,55 @@ private:
 		{
 			FScopeLock ScopeLock( &SynchronizationObject );
 			return Items.Num() > 0;
+		}
+
+		void Remove( const Type& Item ) 
+		{
+			FScopeLock ScopeLock( &SynchronizationObject );
+			Items.Remove( Item );
+		}
+	};
+
+	/** Normal queue to match the interface of FThreadSafeQueue :) */
+	template<typename Type>
+	struct FQueue
+	{
+	private:
+		TArray<Type>		Items;
+	public:
+		void Enqueue(const Type& Item)
+		{
+			Items.Add(Item);
+		}
+		void EnqueueUnique( const Type& Item )
+		{
+			Items.AddUnique(Item);
+		}
+		bool Dequeue(Type* Result)
+		{
+			if (Items.Num())
+			{
+				*Result = Items[0];
+				Items.RemoveAt(0);
+				return true;
+			}
+			return false;
+		}
+		void DequeueAll(TArray<Type>& Results)
+		{
+			Results += Items;
+			Items.Empty();
+		}
+
+		bool HasItems() const
+		{
+			return Items.Num() > 0;
+		}
+
+
+		void Remove( const Type& Item ) 
+		{
+			Items.Remove( Item );
 		}
 	};
 
@@ -124,8 +178,9 @@ public:
 
 private:
 
-	FThreadSafeArray<FFilePlatformRequest> ThreadSafeFilenameArray; // list of requested files
-	FThreadSafeArray<FFilePlatformRequest> UnsolicitedCookedPackages; // list of files which haven't been requested but we think should cook based on previous requests
+	FThreadSafeQueue<FFilePlatformRequest> FileRequests; // list of requested files
+	FQueue<FFilePlatformRequest> UnsolicitedFileRequests;
+	FThreadSafeQueue<FFilePlatformRequest> UnsolicitedCookedPackages; // list of files which haven't been requested but we think should cook based on previous requests
 
 
 
@@ -150,7 +205,7 @@ private:
 	FThreadSafeFilenameSet ThreadSafeFilenameSet; // set of files which have been cooked when needing to recook a file the entry will need to be removed from here
 
 
-	FThreadSafeArray<struct FRecompileRequest*> RecompileRequests;
+	FThreadSafeQueue<struct FRecompileRequest*> RecompileRequests;
 
 
 public:
@@ -207,7 +262,8 @@ public:
 	 */
 	void TickRecompileShaderRequests();
 
-	bool HasCookRequests() const { return ThreadSafeFilenameArray.HasItems(); }
+	bool HasCookRequests() const { return FileRequests.HasItems(); }
+	bool HasUnsolicitedCookRequests() const { return UnsolicitedFileRequests.HasItems(); }
 
 	bool HasRecompileShaderRequests() const { return RecompileRequests.HasItems(); }
 
@@ -221,18 +277,6 @@ public:
 	uint32 NumConnections() const;
 
 	
-	/**
-	 * BLOCKING Run the network file server and handle cook requests 
-	 *	don't return until finished cooking or we haven't received a cook requests for a length of time
-	 *  shouldn't be used in conjunction with StartCookOnTheSide, TickCookOnTheSide, TickRecompileShaderRequests, FinishCookOnTheSide
-	 *
-	 * @param  BindAnyPort					Whether to bind on any port or the default port.
-	 * @param  Timeout						Length of time to wait for connections before attempting to close
-	 * @param  bForceClose					Whether or not the server should always shutdown after a timeout or after a user disconnects
-	 *
-	 * @return true on success, false otherwise.
-	 */
-	bool CookOnTheFly( bool BindAnyPort, int32 Timeout = 180, bool bForceClose = false );
 
 
 	virtual void BeginDestroy() OVERRIDE;
@@ -243,7 +287,7 @@ public:
 private:
 	
 
-
+	bool UCookOnTheFlyServer::ShouldCook(const FString& InFileName, const FString &InPlatformName);
 
 	/**
 	 * Returns cooker output directory.

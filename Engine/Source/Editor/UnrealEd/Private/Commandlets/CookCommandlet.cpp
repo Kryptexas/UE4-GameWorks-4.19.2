@@ -105,89 +105,87 @@ bool UCookCommandlet::CookOnTheFly( bool BindAnyPort, int32 Timeout, bool bForce
 	FDateTime LastConnectionTime = FDateTime::UtcNow();
 	bool bHadConnection = false;
 
+	
+
 	while (!GIsRequestingExit)
 	{
+		uint32 TickResults = 0;
+		static const float CookOnTheSideTimeSlice = 10.0f;
+		TickResults = CookOnTheFlyServer->TickCookOnTheSide(CookOnTheSideTimeSlice, NonMapPackageCountSinceLastGC);
 
-		while (!GIsRequestingExit)
+		bool bCookedAMapSinceLastGC = TickResults & UCookOnTheFlyServer::COSR_CookedMap;
+		if ( TickResults & (UCookOnTheFlyServer::COSR_CookedMap | UCookOnTheFlyServer::COSR_CookedPackage))
 		{
-			uint32 TickResults = 0;
-			
-			CookOnTheFlyServer->TickCookOnTheSide(TickResults, NonMapPackageCountSinceLastGC);
+			LastCookActionTime = FPlatformTime::Seconds();
+		}
 
-			bool bCookedAMapSinceLastGC = TickResults & UCookOnTheFlyServer::COSR_CookedMap;
-			if ( TickResults & (UCookOnTheFlyServer::COSR_CookedMap | UCookOnTheFlyServer::COSR_CookedPackage))
+
+		while ( (CookOnTheFlyServer->HasCookRequests() == false) && !GIsRequestingExit)
+		{
+				
 			{
-				LastCookActionTime = FPlatformTime::Seconds();
+				if (NonMapPackageCountSinceLastGC > 0)
+				{
+					// We should GC if we have packages to collect and we've been idle for some time.
+					bShouldGC = (NonMapPackageCountSinceLastGC > PackagesPerGC) || 
+						((FPlatformTime::Seconds() - LastCookActionTime) >= IdleTimeToGC);
+				}
+				bShouldGC |= bCookedAMapSinceLastGC;
+
+				if (bShouldGC)
+				{
+					bShouldGC = false;
+					bCookedAMapSinceLastGC = false;
+					NonMapPackageCountSinceLastGC = 0;
+
+					UE_LOG(LogCookCommandlet, Display, TEXT("GC..."));
+
+					CollectGarbage( RF_Native );
+				}
+				else
+				{
+					CookOnTheFlyServer->TickRecompileShaderRequests();
+
+					FPlatformProcess::Sleep(0.0f);
+				}
 			}
 
+			// update task graph
+			FTaskGraphInterface::Get().ProcessThreadUntilIdle(ENamedThreads::GameThread);
 
-			while ( (CookOnTheFlyServer->HasCookRequests() == false) && !GIsRequestingExit)
+			// execute deferred commands
+			for (int32 DeferredCommandsIndex = 0; DeferredCommandsIndex<GEngine->DeferredCommands.Num(); ++DeferredCommandsIndex)
 			{
-				
+				GEngine->Exec( GWorld, *GEngine->DeferredCommands[DeferredCommandsIndex], *GLog);
+			}
+
+			GEngine->DeferredCommands.Empty();
+
+			// handle server timeout
+			if (InstanceId.IsValid() || bForceClose)
+			{
+				if (CookOnTheFlyServer->NumConnections() > 0)
 				{
-					if (NonMapPackageCountSinceLastGC > 0)
+					bHadConnection = true;
+					LastConnectionTime = FDateTime::UtcNow();
+				}
+
+				if ((FDateTime::UtcNow() - LastConnectionTime) > FTimespan::FromSeconds(Timeout))
+				{
+					uint32 Result = FMessageDialog::Open(EAppMsgType::YesNo, NSLOCTEXT("UnrealEd", "FileServerIdle", "The file server did not receive any connections in the past 3 minutes. Would you like to shut it down?"));
+
+					if (Result == EAppReturnType::No && !bForceClose)
 					{
-						// We should GC if we have packages to collect and we've been idle for some time.
-						bShouldGC = (NonMapPackageCountSinceLastGC > PackagesPerGC) || 
-							((FPlatformTime::Seconds() - LastCookActionTime) >= IdleTimeToGC);
-					}
-					bShouldGC |= bCookedAMapSinceLastGC;
-
-					if (bShouldGC)
-					{
-						bShouldGC = false;
-						bCookedAMapSinceLastGC = false;
-						NonMapPackageCountSinceLastGC = 0;
-
-						UE_LOG(LogCookCommandlet, Display, TEXT("GC..."));
-
-						CollectGarbage( RF_Native );
+						LastConnectionTime = FDateTime::UtcNow();
 					}
 					else
 					{
-						CookOnTheFlyServer->TickRecompileShaderRequests();
-
-						FPlatformProcess::Sleep(0.0f);
-					}
-				}
-
-				// update task graph
-				FTaskGraphInterface::Get().ProcessThreadUntilIdle(ENamedThreads::GameThread);
-
-				// execute deferred commands
-				for (int32 DeferredCommandsIndex = 0; DeferredCommandsIndex<GEngine->DeferredCommands.Num(); ++DeferredCommandsIndex)
-				{
-					GEngine->Exec( GWorld, *GEngine->DeferredCommands[DeferredCommandsIndex], *GLog);
-				}
-
-				GEngine->DeferredCommands.Empty();
-
-				// handle server timeout
-				if (InstanceId.IsValid() || bForceClose)
-				{
-					if (CookOnTheFlyServer->NumConnections() > 0)
-					{
-						bHadConnection = true;
-						LastConnectionTime = FDateTime::UtcNow();
-					}
-
-					if ((FDateTime::UtcNow() - LastConnectionTime) > FTimespan::FromSeconds(Timeout))
-					{
-						uint32 Result = FMessageDialog::Open(EAppMsgType::YesNo, NSLOCTEXT("UnrealEd", "FileServerIdle", "The file server did not receive any connections in the past 3 minutes. Would you like to shut it down?"));
-
-						if (Result == EAppReturnType::No && !bForceClose)
-						{
-							LastConnectionTime = FDateTime::UtcNow();
-						}
-						else
-						{
-							GIsRequestingExit = true;
-						}
-					}
-					else if (bHadConnection && (CookOnTheFlyServer->NumConnections() == 0) && bForceClose) // immediately shut down if we previously had a connection and now do not
-					{
 						GIsRequestingExit = true;
 					}
+				}
+				else if (bHadConnection && (CookOnTheFlyServer->NumConnections() == 0) && bForceClose) // immediately shut down if we previously had a connection and now do not
+				{
+					GIsRequestingExit = true;
 				}
 			}
 		}
