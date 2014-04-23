@@ -582,6 +582,11 @@ FReply SDeleteAssetsDialog::ForceDelete()
 {
 	ParentWindow.Get()->RequestDestroyWindow();
 
+	if( DeleteModel->IsAnythingReferencedInMemoryByUndo() )
+	{
+		GEditor->Trans->Reset( LOCTEXT("DeleteSelectedItem", "Delete Selected Item") );
+	}
+
 	DeleteModel->DoForceDelete();
 
 	return FReply::Handled();

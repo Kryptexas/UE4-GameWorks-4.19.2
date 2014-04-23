@@ -510,14 +510,14 @@ void FPendingDelete::CheckForReferences()
 	bIsReferencedInMemoryByUndo = false;
 	if ( bIsReferencedInMemory )
 	{
-		// determine whether the transaction buffer is the only thing holding a reference to the object
+		FReferencerInformationList ReferencesExcludingUndo;
+		// determine whether the transaction buffer is holding a reference to the object
 		// and if so, offer the user the option to reset the transaction buffer.
 		GEditor->Trans->DisableObjectSerialization();
-		bIsReferencedInMemory = IsReferenced(Object, GARBAGE_COLLECTION_KEEPFLAGS, true, &MemoryReferences);
+		IsReferenced(Object, GARBAGE_COLLECTION_KEEPFLAGS, true, &ReferencesExcludingUndo);
 		GEditor->Trans->EnableObjectSerialization();
-
 		// only ref to this object is the transaction buffer - set a flag so we know we need to clear the undo stack
-		if ( !bIsReferencedInMemory )
+		if ( MemoryReferences.InternalReferences.Num() > ReferencesExcludingUndo.InternalReferences.Num() )
 		{
 			bIsReferencedInMemoryByUndo = true;
 		}
