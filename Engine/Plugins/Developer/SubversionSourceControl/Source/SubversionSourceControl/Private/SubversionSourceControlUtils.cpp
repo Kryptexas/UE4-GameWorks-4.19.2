@@ -96,16 +96,10 @@ static bool RunCommandInternal(const FString& InCommand, const TArray<FString>& 
 	
 #if PLATFORM_WINDOWS
 	const FString SVNBinaryPath = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/svn") / FPlatformProcess::GetBinariesSubdirectory() / TEXT("svn.exe");
+#elif PLATFORM_MAC
+	const FString SVNBinaryPath = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/svn") / FPlatformProcess::GetBinariesSubdirectory() / TEXT("bin/svn");
 #else
 	const FString SVNBinaryPath = TEXT("/usr/bin/svn");
-	#if PLATFORM_MAC
-	if (!IFileManager::Get().DirectoryExists(TEXT("/Applications/Xcode.app")))
-	{
-		// If there's no Xcode, /usr/bin/svn may be a tool that prompts users to install Xcode, not actual svn.
-		// @todo Mac: bundle svn as we do with Windows version.
-		return false;
-	}
-	#endif
 #endif
 	FPlatformProcess::ExecProcess(*SVNBinaryPath, *FullCommand, &ReturnCode, &OutResults, &StdError);
 
