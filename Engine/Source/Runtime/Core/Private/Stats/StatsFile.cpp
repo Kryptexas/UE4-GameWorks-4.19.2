@@ -227,23 +227,26 @@ void FStatsWriteFile::WriteHeader()
 	Ar << Magic;
 
 	// Serialize dummy header, overwritten in Finalize.
+	Header.Version = EStatMagicWithHeader::VERSION_2;
+	Header.PlatformName = FPlatformProperties::PlatformName();
 	Header.bRawStatFile = false;
 	Ar << Header;
 
 	// Serialize metadata.
-	FStatsThreadState const& Stats = FStatsThreadState::GetLocalState();
-	for( auto It = Stats.ShortNameToLongName.CreateConstIterator(); It; ++It )
-	{
-		WriteMessage( Ar, It.Value() );
-	}
+	WriteMetadata( Ar );
 
 	Filepos += Ar.Tell();
 }
 
-void FStatsWriteFile::WriteFrame( int64 TargetFrame )
+void FStatsWriteFile::WriteFrame( int64 TargetFrame, bool bNeedFullMetadata /*= false*/ )
 {
 	FMemoryWriter Ar( OutData, false, true );
 	const int64 PrevArPos = Ar.Tell();
+
+	if( bNeedFullMetadata )
+	{
+		WriteMetadata( Ar );
+	}
 
 	FStatsThreadState const& Stats = FStatsThreadState::GetLocalState();
 	TArray<FStatMessage> const& Data = Stats.GetCondensedHistory( TargetFrame );
@@ -277,8 +280,6 @@ void FStatsWriteFile::Finalize( FArchive* File )
 	WriteMessage( Ar, SpecialMessage );
 
 	// Real header, written at start of the file, but written out right before we close the file.
-	Header.Version = EStatMagicWithHeader::VERSION;
-	Header.PlatformName = FPlatformProperties::PlatformName();
 
 	// Write out frame table and update header with offset and count.
 	Header.FrameTableOffset = Ar.Tell();
@@ -289,7 +290,6 @@ void FStatsWriteFile::Finalize( FArchive* File )
 	// Add FNames from the stats metadata.
 	for( const auto& It : Stats.ShortNameToLongName )
 	{
-		const FName ShortName = It.Key;
 		const FStatMessage& StatMessage = It.Value;
 		FNamesSent.Add( StatMessage.NameAndInfo.GetRawName().GetIndex() );
 	}
@@ -309,10 +309,7 @@ void FStatsWriteFile::Finalize( FArchive* File )
 	// Serialize metadata messages.
 	Header.MetadataMessagesOffset = Ar.Tell();
 	Header.NumMetadataMessages = Stats.ShortNameToLongName.Num();
-	for( auto It = Stats.ShortNameToLongName.CreateConstIterator(); It; ++It )
-	{
-		WriteMessage( Ar, It.Value() );
-	}
+	WriteMetadata( Ar );
 
 	// Verify data.
 	TSet<int32> BMinA = FNamesSent.Difference( FNamesToSent );
@@ -411,6 +408,8 @@ void FRawStatsWriteFile::WriteHeader()
 	Ar << Magic;
 
 	// Serialize dummy header, overwritten in Finalize.
+	Header.Version = EStatMagicWithHeader::VERSION_2;
+	Header.PlatformName = FPlatformProperties::PlatformName();
 	Header.bRawStatFile = true;
 	Ar << Header;
 
@@ -418,15 +417,12 @@ void FRawStatsWriteFile::WriteHeader()
 	FStatsThreadState const& Stats = FStatsThreadState::GetLocalState();
 	int32 NumMetadataMessages = Stats.ShortNameToLongName.Num();
 	Ar << NumMetadataMessages;
-	for( auto It = Stats.ShortNameToLongName.CreateConstIterator(); It; ++It )
-	{
-		WriteMessage( Ar, It.Value() );
-	}
+	WriteMetadata( Ar );
 
 	Filepos += Ar.Tell();
 }
 
-void FRawStatsWriteFile::WriteFrame( int64 TargetFrame )
+void FRawStatsWriteFile::WriteFrame( int64 TargetFrame, bool bNeedFullMetadata /*= false */)
 {
 	FMemoryWriter Ar( OutData, false, true );
 	const int64 PrevArPos = Ar.Tell();

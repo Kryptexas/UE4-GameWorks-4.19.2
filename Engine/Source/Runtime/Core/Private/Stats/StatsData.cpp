@@ -24,6 +24,8 @@ const FName FStatConstants::NAME_ThreadGroup = FStatConstants::ThreadGroupName;
 const FString FStatConstants::StatsFileExtension = TEXT( ".ue4stats" );
 const FString FStatConstants::StatsFileRawExtension = TEXT( ".ue4statsraw" );
 
+const FString FStatConstants::ThreadNameMarker = TEXT( "Thread_" );
+
 /**
 * Magic numbers for stats streams
 */
@@ -1014,8 +1016,8 @@ void FStatsThreadState::GetRawStackStats(int64 TargetFrame, FRawStatStackNode& R
 		FRawStatStackNode* ThreadRoot = Root.Children.FindRef(ThreadName);
 		if (!ThreadRoot)
 		{
-			FString ThreadIdName = FString::Printf(TEXT("Thread_%x_0"), Packet.ThreadId);
-			ThreadRoot = Root.Children.Add(ThreadName, new FRawStatStackNode(FStatMessage(ThreadName, EStatDataType::ST_int64, NULL, *ThreadIdName, true, true)));
+			FString ThreadIdName = FStatsUtils::BuildUniqueThreadName( Packet.ThreadId );
+			ThreadRoot = Root.Children.Add( ThreadName, new FRawStatStackNode( FStatMessage( ThreadName, EStatDataType::ST_int64, STAT_GROUP_TO_FStatGroup( STATGROUP_Threads )::GetGroupName(), *ThreadIdName, true, true ) ) );
 			ThreadRoot->Meta.NameAndInfo.SetFlag(EStatMetaFlags::IsPackedCCAndDuration, true);
 			ThreadRoot->Meta.Clear();
 		}
@@ -1222,7 +1224,7 @@ FName FStatsThreadState::GetStatThreadName( const FStatPacket& Packet ) const
 			UE_LOG( LogStats, Warning, TEXT( "There is no thread with id: %u. Please add thread metadata for this thread." ), Packet.ThreadId );
 
 			static const FName NAME_UnknownThread = TEXT( "UnknownThread" );
-			NewThreadName = FName( *FStatsUtils::BuildUniqueThreadName( NAME_UnknownThread, Packet.ThreadId ) );
+			NewThreadName = FName( *FStatsUtils::BuildUniqueThreadName( Packet.ThreadId ) );
 			// This is an unknown thread, but still we need the metadata in the system.
 			FStartupMessages::Get().AddThreadMetadata( NAME_UnknownThread, Packet.ThreadId );
 		}
@@ -1262,7 +1264,9 @@ void FStatsThreadState::FindOrAddMetaData(FStatMessage const& Item)
 		const bool bIsThread = FStatConstants::NAME_ThreadGroup == GroupName;
 		if( bIsThread )
 		{
-			Threads.Add( FStatsUtils::ParseThreadID( ShortName ), ShortName );
+			FString Desc;
+			Item.NameAndInfo.GetDescription( Desc );
+			Threads.Add( FStatsUtils::ParseThreadID( Desc ), ShortName );
 		}
 
 		ShortNameToLongName.Add(ShortName, AsSet); // we want this to be a clear, but it should be a SetLongName

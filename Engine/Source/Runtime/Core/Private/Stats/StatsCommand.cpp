@@ -235,7 +235,7 @@ void DumpCPUSummary(FStatsThreadState const& StatsData, int64 TargetFrame)
 
 		FString Desc;
 		Item.NameAndInfo.GetDescription(Desc);
-		bool bIsThread = Desc.StartsWith("Thread_");
+		bool bIsThread = Desc.StartsWith( FStatConstants::ThreadNameMarker );
 		bool bIsStall = !bIsThread && Desc.StartsWith("CPU Stall");
 		
 		EStatOperation::Type Op = Item.NameAndInfo.GetField<EStatOperation>();

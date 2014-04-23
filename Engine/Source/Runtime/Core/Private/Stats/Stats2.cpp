@@ -89,9 +89,9 @@ FName TStatId::TStatId_NAME_None;
 void FStartupMessages::AddThreadMetadata( const FName InThreadName, uint32 InThreadID )
 {
 	// Make unique name.
-	const FString ThreadName = FStatsUtils::BuildUniqueThreadName( InThreadName, InThreadID );
+	const FString ThreadName = FStatsUtils::BuildUniqueThreadName( InThreadID );
 
-	FStartupMessages::AddMetadata( FName(*ThreadName), *ThreadName, STAT_GROUP_TO_FStatGroup( STATGROUP_Threads )::GetGroupName(), STAT_GROUP_TO_FStatGroup( STATGROUP_Threads )::GetDescription(), true, EStatDataType::ST_int64, true );
+	FStartupMessages::AddMetadata( InThreadName, *ThreadName, STAT_GROUP_TO_FStatGroup( STATGROUP_Threads )::GetGroupName(), STAT_GROUP_TO_FStatGroup( STATGROUP_Threads )::GetDescription(), true, EStatDataType::ST_int64, true );
 }
 
 

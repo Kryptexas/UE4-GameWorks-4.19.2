@@ -30,6 +30,9 @@ struct CORE_API FStatConstants
 
 	/** Extension used to save a raw stats file, may be changed to the same as a regular stats file. */
 	static const FString StatsFileRawExtension;
+
+	/** Indicates that the item is a thread. */
+	static const FString ThreadNameMarker;
 };
 
 /** Enumerates stat compare types. */
@@ -598,21 +601,28 @@ struct CORE_API FStatsUtils
 	static FString ToEscapedFString(const TCHAR* Source);
 	static FString FromEscapedFString(const TCHAR* Escaped);
 
-	static FString BuildUniqueThreadName( const FName InThreadName, uint32 InThreadID )
+	static FString BuildUniqueThreadName( uint32 InThreadID )
 	{
 		// Make unique name.
-		return FString::Printf( TEXT( "%s_%x_0" ), *InThreadName.ToString(), InThreadID );
+		return FString::Printf( TEXT( "%s%x_0" ), *FStatConstants::ThreadNameMarker, InThreadID );
 	}
 
-	static int32 ParseThreadID( const FName ThreadFName )
+	static int32 ParseThreadID( const FString& InThreadName, FString* out_ThreadName = nullptr )
 	{
 		// Extract the thread id.
-		const FString ThreadName = ThreadFName.ToString().Replace(TEXT("_0"),TEXT(""));
+		const FString ThreadName = InThreadName.Replace( TEXT( "_0" ), TEXT( "" ) );
 		int32 Index = 0;
 		ThreadName.FindLastChar(TEXT('_'),Index);
 
+		// Parse the thread name if requested.
+		if( out_ThreadName )
+		{
+			*out_ThreadName = ThreadName.Left( Index );
+		}
+
 		const FString ThreadIDStr = ThreadName.RightChop(Index+1);
 		const uint32 ThreadID = FParse::HexNumber( *ThreadIDStr );
+
 		return ThreadID;
 	}
 };
