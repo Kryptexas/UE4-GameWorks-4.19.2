@@ -689,10 +689,9 @@ FText FGenericPlatformMisc::GetFileManagerName()
 	return NSLOCTEXT("GenericPlatform", "FileManagerName", "File Manager");
 }
 
-#if PLATFORM_DESKTOP
-
 void FGenericPlatformMisc::EnumerateEngineInstallations(TArray< TPair<FString, FString> > &OutInstallations)
 {
+#if PLATFORM_DESKTOP
 	// Read the config file.
 	FConfigFile ConfigFile;
 	ConfigFile.Read(FString(FPlatformProcess::ApplicationSettingsDir()) / FString(EPIC_PRODUCT_IDENTIFIER) / FString(TEXT("Install.ini")));
@@ -703,6 +702,7 @@ void FGenericPlatformMisc::EnumerateEngineInstallations(TArray< TPair<FString, F
 	{
 		OutInstallations.Add(TPairInitializer<FString, FString>(Iter.Key().ToString(), Iter.Value()));
 	}
+#endif
 }
 
 bool FGenericPlatformMisc::GetEngineRootDirFromIdentifier(const FString &Identifier, FString &OutRootDir)
@@ -744,5 +744,3 @@ bool FGenericPlatformMisc::GetEngineIdentifierFromRootDir(const FString &RootDir
 	}
 	return false;
 }
-
-#endif
