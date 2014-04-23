@@ -616,6 +616,8 @@ FReply SProjectBrowser::FindProjects()
 		}
 	}
 
+	const FString EngineIdentifier = FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier();
+
 	// Add all discovered projects to the list
 	for ( auto ProjectFilenameIt = DiscoveredProjectFilesToCategory.CreateConstIterator(); ProjectFilenameIt; ++ProjectFilenameIt )
 	{
@@ -625,7 +627,7 @@ FReply SProjectBrowser::FindProjects()
 		{
 			const bool bPromptIfSavedWithNewerVersionOfEngine = false;
 			FProjectStatus ProjectStatus;
-			if (IProjectManager::Get().QueryStatusForProject(ProjectFilename, FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier(), ProjectStatus))
+			if (IProjectManager::Get().QueryStatusForProject(ProjectFilename, EngineIdentifier, ProjectStatus))
 			{
 				// @todo localized project name
 				const FText ProjectName = FText::FromString(ProjectStatus.Name);
