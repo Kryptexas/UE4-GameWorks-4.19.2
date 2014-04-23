@@ -164,7 +164,7 @@ bool UObject::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags
 		Redirector->DestinationObject = this;
 	}
 
-	PostRename();
+	PostRename(OldOuter, OldName);
 
 	return true;
 }

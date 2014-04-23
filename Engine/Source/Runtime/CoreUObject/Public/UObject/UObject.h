@@ -225,7 +225,7 @@ public:
 #endif // WITH_EDITOR
 
 	// @todo document
-	virtual void PostRename() {}
+	virtual void PostRename(UObject* OldOuter, const FName OldName) {}
 	
 	/**
 	 * Called after duplication & serialization and before PostLoad. Used to e.g. make sure UStaticMesh's UModel gets copied as well.
