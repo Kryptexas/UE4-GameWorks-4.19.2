@@ -168,7 +168,7 @@ void UK2Node_Timeline::PostPasteNode()
 				FTTFloatTrack& Track = *TrackIt;
 				if(Track.CurveFloat->GetOuter()->IsA(UBlueprint::StaticClass()))
 				{
-					Track.CurveFloat->Rename(*Template->MakeUniqueCurveName(Track.CurveFloat), Blueprint, REN_DontCreateRedirectors);
+					Track.CurveFloat->Rename(*Template->MakeUniqueCurveName(Track.CurveFloat, Track.CurveFloat->GetOuter()), Blueprint, REN_DontCreateRedirectors);
 				}
 			}
 
@@ -177,7 +177,7 @@ void UK2Node_Timeline::PostPasteNode()
 				FTTEventTrack& Track = *TrackIt;
 				if(Track.CurveKeys->GetOuter()->IsA(UBlueprint::StaticClass()))
 				{
-					Track.CurveKeys->Rename(*Template->MakeUniqueCurveName(Track.CurveKeys), Blueprint, REN_DontCreateRedirectors);
+					Track.CurveKeys->Rename(*Template->MakeUniqueCurveName(Track.CurveKeys, Track.CurveKeys->GetOuter()), Blueprint, REN_DontCreateRedirectors);
 				}
 			}
 
@@ -186,7 +186,7 @@ void UK2Node_Timeline::PostPasteNode()
 				FTTVectorTrack& Track = *TrackIt;
 				if(Track.CurveVector->GetOuter()->IsA(UBlueprint::StaticClass()))
 				{
-					Track.CurveVector->Rename(*Template->MakeUniqueCurveName(Track.CurveVector), Blueprint, REN_DontCreateRedirectors);
+					Track.CurveVector->Rename(*Template->MakeUniqueCurveName(Track.CurveVector, Track.CurveVector->GetOuter()), Blueprint, REN_DontCreateRedirectors);
 				}
 			}
 
@@ -195,7 +195,7 @@ void UK2Node_Timeline::PostPasteNode()
 				FTTLinearColorTrack& Track = *TrackIt;
 				if(Track.CurveLinearColor->GetOuter()->IsA(UBlueprint::StaticClass()))
 				{
-					Track.CurveLinearColor->Rename(*Template->MakeUniqueCurveName(Track.CurveLinearColor), Blueprint, REN_DontCreateRedirectors);
+					Track.CurveLinearColor->Rename(*Template->MakeUniqueCurveName(Track.CurveLinearColor, Track.CurveLinearColor->GetOuter()), Blueprint, REN_DontCreateRedirectors);
 				}
 			}
 		}
