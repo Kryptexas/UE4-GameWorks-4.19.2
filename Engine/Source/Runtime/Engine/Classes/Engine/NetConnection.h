@@ -465,7 +465,7 @@ public:
 	 * @param ExtraBits (optional) Second set of bits to be appended to the send buffer that need to send with the first set of bits
 	 * @param ExtraSizeInBits (optional) Number of secondary bits to append
 	 */
-	void WriteBitsToSendBuffer( 
+	int32 WriteBitsToSendBuffer( 
 		const uint8 *	Bits, 
 		const int32		SizeInBits, 
 		const uint8 *	ExtraBits = NULL, 
