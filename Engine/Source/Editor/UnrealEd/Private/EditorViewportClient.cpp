@@ -2868,7 +2868,7 @@ void FEditorViewportClient::UpdateGestureDelta()
 	{
 		MoveViewportCamera( CurrentGestureDragDelta, CurrentGestureRotDelta, false );
 		
-		Invalidate();
+		Invalidate( true, false );
 		
 		CurrentGestureDragDelta = FVector::ZeroVector;
 		CurrentGestureRotDelta = FRotator::ZeroRotator;
