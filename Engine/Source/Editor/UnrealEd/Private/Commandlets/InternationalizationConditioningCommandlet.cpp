@@ -504,7 +504,11 @@ bool UInternationalizationConditioningCommandlet::ProcessArchive( const FString&
 		TSharedRef<FJsonObject> FinalArchiveJsonObj = MakeShareable( new FJsonObject );
 		ArchiveSerializer.SerializeArchive( InternationalizationArchive, FinalArchiveJsonObj );
 
-		WriteJSONToTextFile( FinalArchiveJsonObj, DestinationArchiveFileName, SourceControlInfo );
+		if( !WriteJSONToTextFile( FinalArchiveJsonObj, DestinationArchiveFileName, SourceControlInfo ) )
+		{
+			UE_LOG(LogInternationalizationConditioningCommandlet, Error, TEXT("Could not save file %s"), *DestinationArchiveFileName);
+			return false;
+		}
 
 		LocPairs.Empty();
 	}

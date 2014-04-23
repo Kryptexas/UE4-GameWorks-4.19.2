@@ -341,6 +341,11 @@ public:
 	/* Sets the project name from the Project-Id-Version header entry */
 	FString GetProjectName() { return ProjectName; }
 
+	TArray< TSharedPtr< FPortableObjectEntry > >::TConstIterator GetEntriesIterator()
+	{
+		return Entries.CreateConstIterator();
+	}
+
 private:
 	/** Copying is not supported */
 	FPortableObjectFormatDOM( const FPortableObjectFormatDOM& ); 
@@ -366,6 +371,12 @@ public:
 	// Begin UCommandlet Interface
 	virtual int32 Main(const FString& Params) OVERRIDE;
 	// End UCommandlet Interface
+private:
+	bool DoExport( const FString& SourcePath, const FString& DestinationPath );
+	bool DoImport( const FString& SourcePath, const FString& DestinationPath );
 
+	TArray<FString> CulturesToGenerate;
+	FString ConfigPath;
+	FString SectionName;
 
 };

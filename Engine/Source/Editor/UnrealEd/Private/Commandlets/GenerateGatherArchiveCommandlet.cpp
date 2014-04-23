@@ -262,11 +262,11 @@ int32 UGenerateGatherArchiveCommandlet::Main( const FString& Params )
 	return 0;
 }
 
-bool UGenerateGatherArchiveCommandlet::WriteArchiveToFile(TSharedRef< FJsonObject > ManifestObject, const FString& OutputDirectoryPath, const TCHAR* Culture, const FString& FileName)
+bool UGenerateGatherArchiveCommandlet::WriteArchiveToFile(TSharedRef< FJsonObject > ArchiveJSONObject, const FString& OutputDirectoryPath, const TCHAR* Culture, const FString& FileName)
 {
 	FString FullOutPath = FPaths::ConvertRelativePathToFull(OutputDirectoryPath) / Culture / FileName;
 
-	if( !WriteJSONToTextFile(ManifestObject, FullOutPath, SourceControlInfo ) )
+	if( !WriteJSONToTextFile(ArchiveJSONObject, FullOutPath, SourceControlInfo ) )
 	{
 		return false;
 	}
