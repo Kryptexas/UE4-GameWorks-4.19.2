@@ -126,6 +126,7 @@ void FSlateEditorStyle::FStyle::Initialize()
 	SetupContentBrowserStyle();
 	SetupLandscapeEditorStyle();
 	SetupToolkitStyles();
+	SetupTranslationEditorStyles();
 	SetupMatineeStyle();
 	SetupSourceControlStyles();
 	SetupAutomationStyles();
@@ -5145,6 +5146,11 @@ void FSlateEditorStyle::FStyle::SetupAutomationStyles()
 
 		Set("FBXSmallFont", FBXSmallFont);
 	}
+}
+
+void FSlateEditorStyle::FStyle::SetupTranslationEditorStyles()
+{
+	Set("TranslationEditor.Import", new IMAGE_BRUSH("Icons/icon_Import_40x", Icon40x40));
 }
 
 #undef IMAGE_BRUSH
