@@ -2,6 +2,7 @@
 
 #include "CorePrivate.h"
 
+#include "MacWindow.h"
 #include "MacTextInputMethodSystem.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogMacTextInputMethodSystem, Log, All);
