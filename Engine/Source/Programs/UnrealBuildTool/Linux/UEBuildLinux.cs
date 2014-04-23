@@ -10,6 +10,42 @@ namespace UnrealBuildTool.Linux
 {
     class LinuxPlatform : UEBuildPlatform
     {
+        /** This is the SDK version we support */
+        static private string ExpectedSDKVersion = "v3_clang-3.3_ld-2.24_glibc-2.12.2";
+
+        /** Platform name (embeds architecture for now) */
+        static private string TargetPlatformName = "Linux_x64";
+
+        /** 
+         * Whether platform supports switching SDKs during runtime
+         * 
+         * @return true if supports
+         */
+        public override bool PlatformSupportsSDKSwitching()
+        {
+            return true;
+        }
+
+        /** 
+         * Returns platform-specific name used in SDK repository
+         * 
+         * @return path to SDK Repository
+         */
+        public override string GetSDKTargetPlatformName()
+        {
+            return TargetPlatformName;
+        }
+
+        /** 
+         * Returns SDK string as required by the platform 
+         * 
+         * @return Valid SDK string
+         */
+        public override string GetRequiredSDKString()
+        {
+            return ExpectedSDKVersion;
+        }
+
         /**
          *	Whether the required external SDKs are installed for this platform
          */
@@ -18,6 +54,12 @@ namespace UnrealBuildTool.Linux
             if (ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Linux)
             {
                 return true;
+            }
+
+            // attempt to switch SDKs
+            if (!base.HasRequiredSDKsInstalled())
+            {
+                return false;
             }
 
             string BaseLinuxPath = Environment.GetEnvironmentVariable("LINUX_ROOT");

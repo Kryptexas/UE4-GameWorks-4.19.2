@@ -374,6 +374,20 @@ namespace UnrealBuildTool
 
 				List<System.Type> ProjectGeneratorList = new List<System.Type>();
 				var AllTypes = UBTAssembly.GetTypes();
+                // register all build platforms first, since they implement SDK-switching logic that can set environment variables
+                foreach (var CheckType in AllTypes)
+                {
+                    if (CheckType.IsClass && !CheckType.IsAbstract)
+                    {
+                        if (CheckType.IsSubclassOf(typeof(UEBuildPlatform)))
+                        {
+                            Log.TraceVerbose("    Registering build platform: {0}", CheckType.ToString());
+                            UEBuildPlatform TempInst = (UEBuildPlatform)(UBTAssembly.CreateInstance(CheckType.FullName, true));
+                            TempInst.RegisterBuildPlatform();
+                        }
+                    }
+                }
+                // register all the other classes
 				foreach (var CheckType in AllTypes)
 				{
 					if (CheckType.IsClass && !CheckType.IsAbstract)
@@ -383,12 +397,6 @@ namespace UnrealBuildTool
 							Log.TraceVerbose("    Registering tool chain    : {0}", CheckType.ToString());
 							UEToolChain TempInst = (UEToolChain)(UBTAssembly.CreateInstance(CheckType.FullName, true));
 							TempInst.RegisterToolChain();
-						}
-						else if (CheckType.IsSubclassOf(typeof(UEBuildPlatform)))
-						{
-							Log.TraceVerbose("    Registering build platform: {0}", CheckType.ToString());
-							UEBuildPlatform TempInst = (UEBuildPlatform)(UBTAssembly.CreateInstance(CheckType.FullName, true));
-							TempInst.RegisterBuildPlatform();
 						}
 						else if (CheckType.IsSubclassOf(typeof(UEBuildDeploy)))
 						{
