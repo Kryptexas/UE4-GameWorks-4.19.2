@@ -197,16 +197,6 @@ void FWindowsPlatformMisc::PlatformInit()
 	_set_FMA3_enable(0);
 #endif
 
-	// Randomize.
-	if( GIsBenchmarking )
-	{
-		srand( 0 );
-	}
-	else
-	{
-		srand( (unsigned)time( NULL ) );
-	}
-
 	// Set granularity of sleep and such to 1 ms.
 	timeBeginPeriod( 1 );
 

@@ -77,16 +77,6 @@ void FIOSPlatformMisc::PlatformInit()
 	int32 Result = setrlimit(RLIMIT_NOFILE, &Limit);
 	check(Result == 0);
 
-	// Randomize.
-	if( GIsBenchmarking )
-	{
-		srand( 0 );
-	}
-    else
-	{
-		srand( (unsigned)time( NULL ) );
-	}
-
 	// Identity.
 	UE_LOG(LogInit, Log, TEXT("Computer: %s"), FPlatformProcess::ComputerName() );
 	UE_LOG(LogInit, Log, TEXT("User: %s"), FPlatformProcess::UserName() );
