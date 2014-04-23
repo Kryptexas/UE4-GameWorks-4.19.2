@@ -72,7 +72,7 @@ private:
 	/**
 	 * Draws a section(vertical lines or horizontal lines) of a viewport's grid.
 	 */
-	static void DrawGridSection(float ViewportGridY,FVector* A,FVector* B,float* AX,float* BX,int32 Axis,const FSceneView* View,FPrimitiveDrawInterface* PDI, const EAxisLines::Type LineType);
+	static void DrawGridSection(float ViewportGridY,FVector* A,FVector* B,float* AX,float* BX,int32 Axis,const FSceneView* View,FPrimitiveDrawInterface* PDI);
 
 	/**
 	 * Draws an origin axis line for the orthographic grid
