@@ -9,6 +9,7 @@ UK2Node_InputAxisKeyEvent::UK2Node_InputAxisKeyEvent(const class FPostConstructI
 {
 	bConsumeInput = true;
 	bOverrideParentBinding = true;
+	bInternalEvent = true;
 
 	EventSignatureName = TEXT("InputAxisHandlerDynamicSignature__DelegateSignature");
 	EventSignatureClass = UInputComponent::StaticClass();
