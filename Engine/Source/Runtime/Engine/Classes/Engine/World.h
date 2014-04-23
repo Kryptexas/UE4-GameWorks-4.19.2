@@ -790,9 +790,9 @@ public:
 	/** Moved from WorldSettings properties - START 														**/
 	/*****************************************************************************************************/
 		
-	/** Linked list of post processing volumes, sorted in ascending order of priority.					*/
-	TAutoWeakObjectPtr<class APostProcessVolume> LowestPriorityPostProcessVolume;
-	
+	/** An array of post processing volumes, sorted in ascending order of priority.					*/
+	TArray< IInterface_PostProcessVolume * > PostProcessVolumes;
+
 	/** Linked list of reverb volumes, sorted in descending order of priority.							*/
 	TAutoWeakObjectPtr<class AReverbVolume> HighestPriorityReverbVolume;
 

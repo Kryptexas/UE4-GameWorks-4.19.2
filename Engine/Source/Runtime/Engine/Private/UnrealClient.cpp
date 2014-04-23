@@ -509,91 +509,57 @@ void FViewport::EndRenderFrame( bool bPresent, bool bLockToVsync )
 	RHIEndDrawingViewport( GetViewportRHI(), bPresent, bLockToVsync );
 }
 
+void InsertVolume(IInterface_PostProcessVolume* Volume, TArray< IInterface_PostProcessVolume* >& VolumeArray)
+{
+	const int32 NumVolumes = VolumeArray.Num();
+	float TargetPriority = Volume->GetProperties().Priority;
+	int32 InsertIndex = 0;
+	// TODO: replace with binary search.
+	for (; InsertIndex < NumVolumes ; InsertIndex++)
+	{
+		IInterface_PostProcessVolume* CurrentVolume = VolumeArray[InsertIndex];
+		float CurrentPriority = CurrentVolume->GetProperties().Priority;
 
+		if (TargetPriority < CurrentPriority)
+		{
+			break;
+		}
+		if (CurrentVolume == Volume)
+		{
+			return;
+		}
+	}
+	VolumeArray.Insert(Volume, InsertIndex);
+}
 
 void APostProcessVolume::PostUnregisterAllComponents()
 {
 	// Route clear to super first.
 	Super::PostUnregisterAllComponents();
-
 	// World will be NULL during exit purge.
-	if( GetWorld() )
+	if (GetWorld())
 	{
-		APostProcessVolume* CurrentVolume  = GetWorld()->LowestPriorityPostProcessVolume;
-		APostProcessVolume*	PreviousVolume = NULL;
-
-		// Iterate over linked list, removing this volume if found.
-		while( CurrentVolume )
-		{
-			// Found.
-			if( CurrentVolume == this )
-			{
-				// Remove from linked list.
-				if( PreviousVolume )
-				{
-					PreviousVolume->NextHigherPriorityVolume = NextHigherPriorityVolume;
-				}
-				// Special case removal from first entry.
-				else
-				{
-					GetWorld()->LowestPriorityPostProcessVolume = NextHigherPriorityVolume;
-				}
-
-				// BREAK OUT OF LOOP
-				break;
-			}
-			// Further traverse linked list.
-			else
-			{
-				PreviousVolume	= CurrentVolume;
-				CurrentVolume	= CurrentVolume->NextHigherPriorityVolume;
-			}
-		}
-
-		// Reset next pointer to avoid dangling end bits and also for GC.
-		NextHigherPriorityVolume = NULL;
+		GetWorld()->PostProcessVolumes.RemoveSingle(this);
 	}
 }
-
 
 void APostProcessVolume::PostRegisterAllComponents()
 {
 	// Route update to super first.
 	Super::PostRegisterAllComponents();
+	InsertVolume(this, GetWorld()->PostProcessVolumes);
+}
 
-	APostProcessVolume* CurrentVolume  = GetWorld()->LowestPriorityPostProcessVolume;
-	TAutoWeakObjectPtr<APostProcessVolume>* PreviousVolumePtr = &GetWorld()->LowestPriorityPostProcessVolume;
+void UPostProcessComponent::OnRegister()
+{
+	Super::OnRegister();
+	InsertVolume(this, GetWorld()->PostProcessVolumes);
+}
 
-	// Find where to insert in sorted linked list.
-	while( CurrentVolume && CurrentVolume != this )
-	{
-		// We use < instead of <= to be sure that we are not inserting twice in the case of multiple volumes having
-		// the same priority and the current one already having being inserted after one with the same priority.
-		if( Priority < CurrentVolume->Priority )
-		{
-			// Insert before current node by fixing up previous to point to current.
-			*PreviousVolumePtr = this;
-
-			// Point to current volume, finalizing insertion.
-			NextHigherPriorityVolume = CurrentVolume;
-
-			// BREAK OUT OF LOOP.
-			return;
-		}
-		// Further traverse linked list.
-		else
-		{
-			PreviousVolumePtr = &CurrentVolume->NextHigherPriorityVolume;
-			CurrentVolume = CurrentVolume->NextHigherPriorityVolume;
-		}
-	}
-
-	// Avoid double insertion!
-	if(!CurrentVolume)
-	{
-		NextHigherPriorityVolume = *PreviousVolumePtr;
-		*PreviousVolumePtr = this;
-	}
+void UPostProcessComponent::OnUnregister()
+{
+	Super::OnUnregister();
+	GetWorld()->PostProcessVolumes.RemoveSingle(this);
 }
 
 /**

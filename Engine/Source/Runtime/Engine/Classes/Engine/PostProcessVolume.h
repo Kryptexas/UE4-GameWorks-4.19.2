@@ -10,17 +10,13 @@
 
 	// for FPostprocessSettings
 UCLASS(dependson=UScene, autoexpandcategories=PostProcessVolume, hidecategories=(Advanced, Collision, Volume, Brush, Attachment), MinimalAPI)
-class APostProcessVolume : public AVolume
+class APostProcessVolume : public AVolume, public IInterface_PostProcessVolume
 {
 	GENERATED_UCLASS_BODY()
 
 	/** Post process settings to use for this volume. */
 	UPROPERTY(interp, Category=PostProcessVolume, meta=(ShowOnlyInnerProperties))
 	struct FPostProcessSettings Settings;
-
-	/** Next volume in linked listed, sorted by priority in ascending order.							*/
-	UPROPERTY(transient)
-	TAutoWeakObjectPtr<class APostProcessVolume> NextHigherPriorityVolume;
 
 	/**
 	 * Priority of this volume. In the case of overlapping volumes the one with the highest priority
@@ -44,6 +40,21 @@ class APostProcessVolume : public AVolume
 	/** Whether this volume bounds are used or it affects the whole world.								*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PostProcessVolume)
 	uint32 bUnbound:1;
+
+	// Begin IInterface_PostProcessVolume Interface
+	ENGINE_API virtual bool EncompassesPoint(FVector Point, float SphereRadius/*=0.f*/, float* OutDistanceToPoint) OVERRIDE;
+	ENGINE_API virtual FPostProcessVolumeProperties GetProperties() const OVERRIDE
+	{
+		FPostProcessVolumeProperties Ret;
+		Ret.bIsEnabled = bEnabled != 0;
+		Ret.bIsUnbound = bUnbound != 0;
+		Ret.BlendRadius = BlendRadius;
+		Ret.BlendWeight = BlendWeight;
+		Ret.Priority = Priority;
+		Ret.Settings = &Settings;
+		return Ret;
+	}
+	// End IInterface_PostProcessVolume Interface
 
 
 	// Begin AActor Interface

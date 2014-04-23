@@ -706,6 +706,52 @@ UBlendableInterface::UBlendableInterface(const class FPostConstructInitializePro
 {
 }
 
+void DoPostProcessVolume(IInterface_PostProcessVolume* Volume, FVector ViewLocation, FSceneView* SceneView)
+{
+	const FPostProcessVolumeProperties VolumeProperties = Volume->GetProperties();
+	if (!VolumeProperties.bIsEnabled)
+	{
+		return;
+	}
+
+	float DistanceToPoint = 0.0f;
+	float LocalWeight = FMath::Clamp(VolumeProperties.BlendWeight, 0.0f, 1.0f);
+
+	if (!VolumeProperties.bIsUnbound)
+	{
+		float SquaredBlendRadius = VolumeProperties.BlendRadius * VolumeProperties.BlendRadius;
+		Volume->EncompassesPoint(ViewLocation, 0.0f, &DistanceToPoint);
+
+		if (DistanceToPoint >= 0)
+		{
+			if (DistanceToPoint > VolumeProperties.BlendRadius)
+			{
+				// outside
+				LocalWeight = 0.0f;
+			}
+			else
+			{
+				// to avoid div by 0
+				if (VolumeProperties.BlendRadius >= 1.0f)
+				{
+					LocalWeight *= 1.0f - DistanceToPoint / VolumeProperties.BlendRadius;
+
+					check(LocalWeight >= 0 && LocalWeight <= 1.0f);
+				}
+			}
+		}
+		else
+		{
+			LocalWeight = 0;
+		}
+	}
+
+	if (LocalWeight > 0)
+	{
+		SceneView->OverridePostProcessSettings(*VolumeProperties.Settings, LocalWeight);
+	}
+}
+
 void FSceneView::StartFinalPostprocessSettings(FVector InViewLocation)
 {
 	check(IsInGameThread());
@@ -724,46 +770,11 @@ void FSceneView::StartFinalPostprocessSettings(FVector InViewLocation)
 	UWorld* World = Family->Scene->GetWorld();
 
 	// Some views have no world (e.g. material preview)
-	if(World)
+	if (World)
 	{
-		APostProcessVolume* Volume = World->LowestPriorityPostProcessVolume;
-		while(Volume)
+		for (auto VolumeIt = World->PostProcessVolumes.CreateIterator(); VolumeIt; ++VolumeIt)
 		{
-			// Volume encompasses
-			if(Volume->bEnabled)
-			{
-				float DistanceToPoint = 0.0f;
-				float LocalWeight = FMath::Clamp(Volume->BlendWeight, 0.0f, 1.0f);
-
-				if(!Volume->bUnbound)
-				{
-					Volume->EncompassesPoint(InViewLocation, 0.0f, &DistanceToPoint);
-
-					if (DistanceToPoint >= 0)
-					{
-						if(DistanceToPoint > Volume->BlendRadius)
-						{
-							// outside
-							LocalWeight = 0.0f;
-						}
-						else
-						{
-							// to avoid div by 0
-							if(Volume->BlendRadius >= 1.0f)
-							{
-								LocalWeight *= 1.0f - DistanceToPoint / Volume->BlendRadius;
-
-								check(LocalWeight >=0 && LocalWeight <= 1.0f);
-							}
-						}
-					}
-				}
-
-				OverridePostProcessSettings(Volume->Settings, LocalWeight);
-			}
-
-			// further traverse linked list.
-			Volume = Volume->NextHigherPriorityVolume;
+			DoPostProcessVolume(*VolumeIt, InViewLocation, this);
 		}
 	}
 }

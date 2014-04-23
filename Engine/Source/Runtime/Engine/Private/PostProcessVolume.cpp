@@ -16,6 +16,11 @@ APostProcessVolume::APostProcessVolume(const class FPostConstructInitializePrope
 	BlendWeight = 1.0f;
 }
 
+bool APostProcessVolume::EncompassesPoint(FVector Point, float SphereRadius/*=0.f*/, float* OutDistanceToPoint)
+{
+	return Super::EncompassesPoint(Point, SphereRadius, OutDistanceToPoint);
+}
+
 #if WITH_EDITOR
 void APostProcessVolume::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
