@@ -543,6 +543,20 @@ namespace AutomationTool
             }
             return null;
         }
+        public SingleTargetProperties FindProgram(string ProgramName)
+        {
+            foreach (var Proj in BaseEngineProject.Properties.Programs)
+            {
+                if (Proj.TargetName.Equals(ProgramName, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    return Proj;
+                }
+            }
+            SingleTargetProperties Result;
+            Result.TargetName = ProgramName;
+            Result.Rules = null;
+            return Result;
+        }
     };
 
 }

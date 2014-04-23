@@ -556,11 +556,13 @@ namespace UnrealBuildTool
         }
         /// <summary>
         /// Return true if this target should always be built with the tools. Usually programs like unrealpak.
+        /// <param name="SeparateNode">If this is set to true, the program will get its own node</param>
         /// </summary>
         /// <returns>true if this target should always be built with the base editor.</returns>
-        public virtual bool GUBP_AlwaysBuildWithTools(UnrealTargetPlatform InHostPlatform, out bool bInternalToolOnly)
+        public virtual bool GUBP_AlwaysBuildWithTools(UnrealTargetPlatform InHostPlatform, out bool bInternalToolOnly, out bool SeparateNode)
         {
             bInternalToolOnly = false;
+            SeparateNode = false;
             return false;
         }
         /// <summary>

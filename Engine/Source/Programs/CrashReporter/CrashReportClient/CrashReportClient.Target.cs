@@ -70,9 +70,10 @@ public class CrashReportClientTarget : TargetRules
 		// Do NOT produce additional console app exe
 		OutLinkEnvironmentConfiguration.bBuildAdditionalConsoleApplication = false;
 	}
-    public override bool GUBP_AlwaysBuildWithTools(UnrealTargetPlatform InHostPlatform, out bool bInternalToolOnly)
+    public override bool GUBP_AlwaysBuildWithTools(UnrealTargetPlatform InHostPlatform, out bool bInternalToolOnly, out bool SeparateNode)
     {
         bInternalToolOnly = false;
+        SeparateNode = false;
         return true;
     }
     public override List<UnrealTargetPlatform> GUBP_ToolPlatforms(UnrealTargetPlatform InHostPlatform)

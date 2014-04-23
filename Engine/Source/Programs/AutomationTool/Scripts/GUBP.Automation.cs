@@ -13,6 +13,7 @@ public class GUBP : BuildCommand
 {
     public string StoreName = null;
     public int CL = 0;
+    public int TimeIndex = 0;
     public bool bSignBuildProducts = false;
     public List<UnrealTargetPlatform> ActivePlatforms = null;
     public BranchInfo Branch = null;
@@ -374,6 +375,19 @@ public class GUBP : BuildCommand
         {
             return GUBP.GetAltHostPlatform(HostPlatform);
         }
+        public override int TimeoutInMinutes()
+        {
+            return base.TimeoutInMinutes() + ((HostPlatform == UnrealTargetPlatform.Mac) ? 30 : 0); // Mac is slower and more resource constrained
+        }
+        public override int CISFrequencyQuantumShift(GUBP bp)
+        {
+            int Result = base.CISFrequencyQuantumShift(bp);
+            if (HostPlatform == UnrealTargetPlatform.Mac)
+            {
+                Result += 1; // mac only runs half as much
+            }
+            return Result;
+        }
     }
 
     public class CompileNode : HostPlatformNode
@@ -434,6 +448,10 @@ public class GUBP : BuildCommand
                 SaveRecordOfSuccessAndAddToBuildProducts("Nothing to actually compile");
             }
         }
+        public override int TimeoutInMinutes()
+        {
+            return base.TimeoutInMinutes() + ((HostPlatform == UnrealTargetPlatform.Mac) ? 30 : 0);
+        }
     }
 
     public class ToolsForCompileNode : CompileNode
@@ -457,7 +475,7 @@ public class GUBP : BuildCommand
         }
         public override int AgentMemoryRequirement(GUBP bp)
         {
-            if (bp.ParseParam("Launcher"))
+            if (bp.ParseParam("Launcher") || bp.TimeIndex != 0)
             {
                 return base.AgentMemoryRequirement(bp);
             }
@@ -663,7 +681,9 @@ public class GUBP : BuildCommand
             foreach (var ProgramTarget in bp.Branch.BaseEngineProject.Properties.Programs)
             {
                 bool bInternalOnly;
-                if (ProgramTarget.Rules.GUBP_AlwaysBuildWithTools(HostPlatform, out bInternalOnly) && ProgramTarget.Rules.SupportsPlatform(HostPlatform) && !bInternalOnly)
+                bool SeparateNode;
+
+                if (ProgramTarget.Rules.GUBP_AlwaysBuildWithTools(HostPlatform, out bInternalOnly, out SeparateNode) && ProgramTarget.Rules.SupportsPlatform(HostPlatform) && !bInternalOnly && !SeparateNode)
                 {
                     foreach (var Plat in ProgramTarget.Rules.GUBP_ToolPlatforms(HostPlatform))
                     {
@@ -678,6 +698,52 @@ public class GUBP : BuildCommand
             return Agenda;
         }
     }
+    public class SingleToolsNode : CompileNode
+    {
+        SingleTargetProperties ProgramTarget;
+        public SingleToolsNode(UnrealTargetPlatform InHostPlatform, SingleTargetProperties InProgramTarget)
+            : base(InHostPlatform)
+        {
+            ProgramTarget = InProgramTarget;
+            if (!GUBP.bBuildRocket) // more errors and more performance by just starting before the root editor is done
+            {
+                AddPseudodependency(RootEditorNode.StaticGetFullName(HostPlatform));
+            }
+            AgentSharingGroup = "Tools" + StaticGetHostPlatformSuffix(HostPlatform);
+        }
+        public static string StaticGetFullName(UnrealTargetPlatform InHostPlatform, SingleTargetProperties InProgramTarget)
+        {
+            return "Tools_" + InProgramTarget.TargetName + StaticGetHostPlatformSuffix(InHostPlatform);
+        }
+        public override string GetFullName()
+        {
+            return StaticGetFullName(HostPlatform, ProgramTarget);
+        }
+        public override float Priority()
+        {
+            return base.Priority() + 2;
+        }
+        public override bool DeleteBuildProducts()
+        {
+            return true;
+        }
+        public override UE4Build.BuildAgenda GetAgenda(GUBP bp)
+        {
+            var Agenda = new UE4Build.BuildAgenda();
+
+            string AddArgs = "-nobuilduht -skipactionhistory" + bp.RocketUBTArgs(); ;
+
+            foreach (var Plat in ProgramTarget.Rules.GUBP_ToolPlatforms(HostPlatform))
+            {
+                foreach (var Config in ProgramTarget.Rules.GUBP_ToolConfigs(HostPlatform))
+                {
+                    Agenda.AddTargets(new string[] { ProgramTarget.TargetName }, Plat, Config, InAddArgs: AddArgs);
+                }
+            }
+            return Agenda;
+        }
+    }
+
     public class InternalToolsNode : CompileNode
     {
         public InternalToolsNode(UnrealTargetPlatform InHostPlatform)
@@ -742,7 +808,9 @@ public class GUBP : BuildCommand
             foreach (var ProgramTarget in bp.Branch.BaseEngineProject.Properties.Programs)
             {
                 bool bInternalOnly;
-                if (ProgramTarget.Rules.GUBP_AlwaysBuildWithTools(HostPlatform, out bInternalOnly) && ProgramTarget.Rules.SupportsPlatform(HostPlatform) && bInternalOnly)
+                bool SeparateNode;
+
+                if (ProgramTarget.Rules.GUBP_AlwaysBuildWithTools(HostPlatform, out bInternalOnly, out SeparateNode) && ProgramTarget.Rules.SupportsPlatform(HostPlatform) && bInternalOnly && !SeparateNode)
                 {
                     foreach (var Plat in ProgramTarget.Rules.GUBP_ToolPlatforms(HostPlatform))
                     {
@@ -761,6 +829,53 @@ public class GUBP : BuildCommand
             return null;
         }
     }
+
+    public class SingleInternalToolsNode : CompileNode
+    {
+        SingleTargetProperties ProgramTarget;
+        public SingleInternalToolsNode(UnrealTargetPlatform InHostPlatform, SingleTargetProperties InProgramTarget)
+            : base(InHostPlatform)
+        {
+            ProgramTarget = InProgramTarget;
+            if (!GUBP.bBuildRocket) // more errors and more performance by just starting before the root editor is done
+            {
+                AddPseudodependency(RootEditorNode.StaticGetFullName(HostPlatform));
+            }
+            AgentSharingGroup = "Tools" + StaticGetHostPlatformSuffix(HostPlatform);
+        }
+        public static string StaticGetFullName(UnrealTargetPlatform InHostPlatform, SingleTargetProperties InProgramTarget)
+        {
+            return "InternalTools_" + InProgramTarget.TargetName + StaticGetHostPlatformSuffix(InHostPlatform);
+        }
+        public override string GetFullName()
+        {
+            return StaticGetFullName(HostPlatform, ProgramTarget);
+        }
+        public override float Priority()
+        {
+            return base.Priority() + 3;
+        }
+        public override bool DeleteBuildProducts()
+        {
+            return true;
+        }
+        public override UE4Build.BuildAgenda GetAgenda(GUBP bp)
+        {
+            var Agenda = new UE4Build.BuildAgenda();
+
+            string AddArgs = "-nobuilduht -skipactionhistory" + bp.RocketUBTArgs(); ;
+
+            foreach (var Plat in ProgramTarget.Rules.GUBP_ToolPlatforms(HostPlatform))
+            {
+                foreach (var Config in ProgramTarget.Rules.GUBP_ToolConfigs(HostPlatform))
+                {
+                    Agenda.AddTargets(new string[] { ProgramTarget.TargetName }, Plat, Config, InAddArgs: AddArgs);
+                }
+            }
+            return Agenda;
+        }
+    }
+
 
     public class EditorPlatformNode : CompileNode
     {
@@ -1770,7 +1885,7 @@ public class GUBP : BuildCommand
         }
         public override int TimeoutInMinutes()
         {
-            return bIsMassive ? 240 : 90;
+            return bIsMassive ? 240 : base.TimeoutInMinutes();
         }
 
         public override string RootIfAnyForTempStorage()
@@ -1912,7 +2027,7 @@ public class GUBP : BuildCommand
         }
         public override int TimeoutInMinutes()
         {
-            return bIsMassive ? 240 : 90;
+            return bIsMassive ? 240 : base.TimeoutInMinutes();
         }
 
         public override void DoBuild(GUBP bp)
@@ -3477,7 +3592,7 @@ public class GUBP : BuildCommand
         bool bSkipTriggers = ParseParam("SkipTriggers");
         bFake = ParseParam("fake");
         bool bFakeEC = ParseParam("FakeEC");
-        int TimeIndex = ParseParamInt("TimeIndex", 0);
+        TimeIndex = ParseParamInt("TimeIndex", 0);
         bHackRunIOSCompilesOnMac = !ParseParam("IOSOnRPCUtility") && !HostPlatforms.Contains(UnrealTargetPlatform.Mac);
 
         bNoIOSOnPC = HostPlatforms.Contains(UnrealTargetPlatform.Mac);
@@ -3756,6 +3871,24 @@ public class GUBP : BuildCommand
             }
             AddNode(new ToolsNode(HostPlatform));
             AddNode(new InternalToolsNode(HostPlatform));
+            foreach (var ProgramTarget in Branch.BaseEngineProject.Properties.Programs)
+            {
+                bool bInternalOnly;
+                bool SeparateNode;
+
+                if (ProgramTarget.Rules.GUBP_AlwaysBuildWithTools(HostPlatform, out bInternalOnly, out SeparateNode) && ProgramTarget.Rules.SupportsPlatform(HostPlatform) && SeparateNode)
+                {
+                    if (bInternalOnly)
+                    {
+                        AddNode(new SingleInternalToolsNode(HostPlatform, ProgramTarget));
+                    }
+                    else
+                    {
+                        AddNode(new SingleToolsNode(HostPlatform, ProgramTarget));
+                    }
+                }
+            }
+
             AddNode(new EditorAndToolsNode(HostPlatform));
             AddNode(new NonUnityTestNode(HostPlatform));
 
@@ -4915,16 +5048,6 @@ public class GUBP : BuildCommand
                         RunCondition = RunCondition + ") true; else false;]\"";
                     }
 
-#if false
-                    if (GUBPNodes[NodeToDo].TimeoutInMinutes() > 0)
-                    {
-                        Args = Args + String.Format(" --timeLimitUnits minutes --timeLimit {0}", GUBPNodes[NodeToDo].TimeoutInMinutes());
-                    }
-#endif
-                    if (Sticky && NodeToDo == LastSticky)
-                    {
-                        Args = Args + " --releaseMode release";
-                    }
                     if (bDoNestedJobstep)
                     {
                         if (bDoFirstNestedJobstep)
@@ -4979,6 +5102,15 @@ public class GUBP : BuildCommand
                     {
                         Args = Args + " --condition " + RunCondition;
                     }
+                    if (GUBPNodes[NodeToDo].TimeoutInMinutes() > 0)
+                    {
+                        Args = Args + String.Format(" --timeLimitUnits minutes --timeLimit {0}", GUBPNodes[NodeToDo].TimeoutInMinutes());
+                    }
+                    if (Sticky && NodeToDo == LastSticky)
+                    {
+                        Args = Args + " --releaseMode release";
+                    }
+
 
                     RunECTool(Args);
                     if (bFakeEC && 
