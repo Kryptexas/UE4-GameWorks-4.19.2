@@ -16,7 +16,12 @@ FGuid FApp::SessionId = FGuid::NewGuid();
 FString FApp::SessionName = FString();
 FString FApp::SessionOwner = FString();
 bool FApp::Standalone = true;
-
+bool FApp::bIsBenchmarking = false;
+double FApp::FixedDeltaTime = 1 / 30.0;
+bool FApp::bUseFixedTimeStep = false;
+double FApp::CurrentTime = 0.0;
+double FApp::LastTime = 0.0;
+double FApp::DeltaTime = 1 / 30.0;
 
 /* FApp static interface
  *****************************************************************************/

@@ -3906,13 +3906,13 @@ void UInterpTrackMove::UpdateTrack(float NewPosition, UInterpTrackInst* TrInst, 
 	}
 
 	FVector NewLocation = Actor->GetRootComponent()->GetComponentLocation();
-	// if GDeltaTime == 0.f, I'd think that's paused, then we won't need to update Velocity
-	if ( GDeltaTime > 0.f ) 
+	// if FApp::GetDeltaTime() == 0.f, I'd think that's paused, then we won't need to update Velocity
+	if ( FApp::GetDeltaTime() > 0.f ) 
 	{
 		// we're not using PreviPosition to NewPosition because MatineeActor itself can have different playrate
 		// so we can't guarantee that's the time it took to get there. 
 		// this should approximately safe in replication as well
-		FVector ComponentVelocity = (NewLocation-PrevLocation)/GDeltaTime;
+		FVector ComponentVelocity = (NewLocation-PrevLocation)/FApp::GetDeltaTime();
 		Actor->GetRootComponent()->ComponentVelocity = ComponentVelocity;
 	}
 }

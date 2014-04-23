@@ -265,7 +265,7 @@ void FMatinee::ConstrainFixedTimeStepFrameRate()
 	if( bSnapToFrames && bFixedTimeStepPlayback )
 	{
 		// NOTE: Its important that PlaybackStartRealTime and NumContinuousFixedTimeStepFrames are reset
-		//    when anything timing-related changes, like GFixedDeltaTime or playback direction.
+		//    when anything timing-related changes, like FApp::GetFixedDeltaTime() or playback direction.
 
 		double CurRealTime = FPlatformTime::Seconds();
 
@@ -283,7 +283,7 @@ void FMatinee::ConstrainFixedTimeStepFrameRate()
 
 		// How long should have it taken to get to the current frame?
 		const double ExpectedPlaybackTime =
-			NumContinuousFixedTimeStepFrames * GFixedDeltaTime * PlaybackSpeed;
+			NumContinuousFixedTimeStepFrames * FApp::GetFixedDeltaTime() * PlaybackSpeed;
 
 		// How long has it been (in real-time) since we started playback?
 		double RealTimeSincePlaybackStarted = CurRealTime - PlaybackStartRealTime;
@@ -1584,10 +1584,11 @@ void FMatinee::SetFixedTimeStepPlayback( bool bInValue )
 void FMatinee::UpdateFixedTimeStepPlayback()
 {
 	// Turn on 'benchmarking' mode if we're using a fixed time step
-	GIsBenchmarking = MatineeActor->bIsPlaying && bSnapToFrames && bFixedTimeStepPlayback;
+	bool bIsBenchmarking = MatineeActor->bIsPlaying && bSnapToFrames && bFixedTimeStepPlayback;
+	FApp::SetBenchmarking(bIsBenchmarking);
 
 	// Set the time interval between fixed ticks
-	GFixedDeltaTime = SnapAmount;
+	FApp::SetFixedDeltaTime(SnapAmount);
 }
 
 

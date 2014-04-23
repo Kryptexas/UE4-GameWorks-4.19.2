@@ -166,7 +166,7 @@ int32 WINAPI WinMain( HINSTANCE hInInstance, HINSTANCE hPrevInstance, char*, int
 	// The inner exception handler in GuardedMainWrapper() catches crashes/asserts in native C++ code and is the only way to get the
 	// correct callstack when running a 64-bit executable. However, XAudio2 sometimes (?) don't like this and it may result in no sound.
 #if _WIN64
-	if ( FParse::Param(CmdLine,TEXT("noinnerexception")) || GIsBenchmarking )
+	if ( FParse::Param(CmdLine,TEXT("noinnerexception")) || FApp::IsBenchmarking() )
 	{
 		GEnableInnerException = false;
 	}

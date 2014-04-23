@@ -18,7 +18,7 @@ class ENGINE_API UGameEngine : public UEngine
 	UPROPERTY(transient)
 	uint32 bCheckForMovieCapture:1;
 
-	/** Maximium delta time the engine uses to populate GDeltaTime. If 0, unbound.									*/
+	/** Maximium delta time the engine uses to populate FApp::DeltaTime. If 0, unbound.									*/
 	UPROPERTY(config)
 	float MaxDeltaTime;
 

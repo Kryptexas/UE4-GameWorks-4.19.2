@@ -80,7 +80,7 @@ public:
 		{
 			// alternates between 0 and 1 with a short pause
 			const float FracTimeScale = 2.0f;
-			float FracTime = GCurrentTime * FracTimeScale - floor(GCurrentTime * FracTimeScale);
+			float FracTime = FApp::GetCurrentTime() * FracTimeScale - floor(FApp::GetCurrentTime() * FracTimeScale);
 			float BlinkState = (FracTime > 0.5f) ? 1.0f : 0.0f;
 
 			FVector4 VisualizeParamValue[3];

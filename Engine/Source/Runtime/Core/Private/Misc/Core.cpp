@@ -111,7 +111,6 @@ bool					GSlowTaskOccurred				= false;					/* Whether a slow task began last tic
 bool					GIsRequestingExit				= false;					/* Indicates that MainLoop() should be exited at the end of the current iteration */
 /** Archive for serializing arbitrary data to and from memory												*/
 FReloadObjectArc*		GMemoryArchive					= NULL;
-bool					GIsBenchmarking					= 0;						/* Whether we are in benchmark mode or not */
 bool					GAreScreenMessagesEnabled		= true;						/* Whether onscreen warnings/messages are enabled */
 bool					GScreenMessagesRestoreState		= false;					/* Used to restore state after a screenshot */
 int32					GIsDumpingMovie					= 0;						/* Whether we are dumping screenshots (!= 0), exposed as console variable r.DumpingMovie */
@@ -133,16 +132,6 @@ FString				GGameIni;													/* Game ini filename */
 FString				GGameUserSettingsIni;										/* User Game Settings ini filename */
 
 float					GNearClippingPlane				= 10.0f;					/* Near clipping plane */
-/** Timestep if a fixed delta time is wanted.																*/
-double					GFixedDeltaTime					= 1 / 30.f;
-/** Current delta time in seconds.																			*/
-double					GDeltaTime						= 1 / 30.f;
-/** Current unclamped delta time in seconds.																*/
-double					GUnclampedDeltaTime				= 1 / 30.f;
-/* Current time																								*/
-double					GCurrentTime					= 0;						
-/* Last GCurrentTime																						*/
-double					GLastTime						= 0;						
 
 bool					GExitPurge						= false;
 
@@ -215,8 +204,6 @@ void					(*GFlushStreamingFunc)(void)	  = &appNoop;
 bool					GEmitDrawEvents					= false;
 /** Whether we want the rendering thread to be suspended, used e.g. for tracing.							*/
 bool					GShouldSuspendRenderingThread	= false;
-/** Whether we want to use a fixed time step or not.														*/
-bool					GUseFixedTimeStep				= false;
 /** Determines what kind of trace should occur, NAME_None for none.											*/
 FName					GCurrentTraceName				= NAME_None;
 /** How to print the time in log output																		*/

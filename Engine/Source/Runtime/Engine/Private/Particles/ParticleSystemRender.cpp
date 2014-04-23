@@ -6794,7 +6794,7 @@ FParticleSystemSceneProxy::FParticleSystemSceneProxy(const UParticleSystemCompon
 	, LastFramePreRendered(-1)
 {
 #if STATS
-	LastStatCaptureTime = GCurrentTime;
+	LastStatCaptureTime = FApp::GetCurrentTime();
 	bCountedThisFrame = false;
 #endif
 	LODMethod = Component->LODMethod;
@@ -6928,9 +6928,9 @@ void FParticleSystemSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI
 			// This is needed to prevent capturing particle rendering time during cinematics where the engine switches back to high detail mode
 			&& GetCachedScalabilityCVars().DetailMode != DM_High
 			&& NumDraws > 0
-			&& GCurrentTime - LastStatCaptureTime > GTimeBetweenParticleRenderStatCaptures)
+			&& FApp::GetCurrentTime() - LastStatCaptureTime > GTimeBetweenParticleRenderStatCaptures)
 		{
-			LastStatCaptureTime = GCurrentTime;
+			LastStatCaptureTime = FApp::GetCurrentTime();
 
 			const double EndTime = FPlatformTime::Seconds();
 

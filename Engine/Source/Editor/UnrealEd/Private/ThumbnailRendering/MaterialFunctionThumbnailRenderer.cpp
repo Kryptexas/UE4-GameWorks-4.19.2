@@ -27,7 +27,7 @@ void UMaterialFunctionThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y,
 			PreviewMaterial->ThumbnailInfo = MatFunc->ThumbnailInfo;
 			ThumbnailScene->SetMaterialInterface( PreviewMaterial );
 			FSceneViewFamilyContext ViewFamily( FSceneViewFamily::ConstructionValues( RenderTarget, ThumbnailScene->GetScene(), FEngineShowFlags(ESFIM_Game) )
-				.SetWorldTimes(GCurrentTime - GStartTime,GDeltaTime,GCurrentTime - GStartTime) );
+				.SetWorldTimes(FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime));
 
 			ViewFamily.EngineShowFlags.DisableAdvancedFeatures();
 			ViewFamily.EngineShowFlags.MotionBlur = 0;

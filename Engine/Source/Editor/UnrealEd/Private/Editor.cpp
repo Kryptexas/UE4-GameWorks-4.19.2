@@ -347,7 +347,7 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 
     if( !FEngineBuildSettings::IsInternalBuild() &&
 		!FEngineBuildSettings::IsPerforceBuild() && 
-		!GIsBenchmarking &&
+		!FApp::IsBenchmarking() &&
 		!GIsDemoMode && 
 		!IsRunningCommandlet() &&
 		!FPlatformProcess::IsApplicationRunning(TEXT("UnrealEngineLauncher") ) &&

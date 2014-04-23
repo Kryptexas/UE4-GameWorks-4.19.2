@@ -530,7 +530,7 @@ FReply FSceneViewport::OnControllerAnalogValueChanged( const FGeometry& MyGeomet
 		// Switch to the viewport clients world before processing input
 		FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
 
-		if( !ViewportClient->InputAxis( this, ControllerEvent.GetUserIndex(), ControllerEvent.GetEffectingButton(), ControllerEvent.GetEffectingButton() == EKeys::Gamepad_RightY ? -ControllerEvent.GetAnalogValue() : ControllerEvent.GetAnalogValue(), GDeltaTime, 1, true  ) )
+		if (!ViewportClient->InputAxis(this, ControllerEvent.GetUserIndex(), ControllerEvent.GetEffectingButton(), ControllerEvent.GetEffectingButton() == EKeys::Gamepad_RightY ? -ControllerEvent.GetAnalogValue() : ControllerEvent.GetAnalogValue(), FApp::GetDeltaTime(), 1, true))
 		{
 			CurrentReplyState = FReply::Unhandled(); 
 		}

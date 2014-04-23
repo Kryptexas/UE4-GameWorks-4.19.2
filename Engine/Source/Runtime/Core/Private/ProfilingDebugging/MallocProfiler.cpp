@@ -793,7 +793,7 @@ bool FMallocProfiler::HandleSnapshotMemoryFrameCommand( const TCHAR* Cmd, FOutpu
 {
 	if (!bEndProfilingHasBeenCalled)
 	{
-		EmbedFloatMarker(SUBTYPE_FrameTimeMarker, (float)GDeltaTime);
+		EmbedFloatMarker(SUBTYPE_FrameTimeMarker, (float)FApp::GetDeltaTime());
 	}
 	return true;
 }

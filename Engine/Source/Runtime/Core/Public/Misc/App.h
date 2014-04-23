@@ -19,7 +19,7 @@ public:
 	 *
 	 * @return true if the application can render, false otherwise.
 	 */
-	FORCEINLINE static bool CanEverRender( )
+	FORCEINLINE static bool CanEverRender()
 	{
 		return !IsRunningCommandlet() && !IsRunningDedicatedServer();
 	}
@@ -29,7 +29,7 @@ public:
 	 *
 	 * @return The branch name.
 	 */
-	static FString GetBranchName( );
+	static FString GetBranchName();
 
 	/**
 	 * Gets the application's build configuration, i.e. Debug or Shipping.
@@ -43,14 +43,14 @@ public:
 	 *
 	 * @return Build date string.
 	 */
-	static FString GetBuildDate( );
+	static FString GetBuildDate();
 
 	/**
 	 * Gets the name of the currently running game.
 	 *
 	 * @return The game name.
 	 */
-	static const TCHAR* GetGameName( )
+	FORCEINLINE static const TCHAR* GetGameName()
 	{
 		return GGameName;
 	}
@@ -65,7 +65,7 @@ public:
 	 *
 	 * @see GetSessionId
 	 */
-	static FGuid GetInstanceId( )
+	FORCEINLINE static FGuid GetInstanceId()
 	{
 		return InstanceId;
 	}
@@ -77,7 +77,7 @@ public:
 	 *
 	 * @return Instance name string.
 	 */
-	static FString GetInstanceName( )
+	static FString GetInstanceName()
 	{
 		return FString::Printf(TEXT("%s-%i"), FPlatformProcess::ComputerName(), FPlatformProcess::GetCurrentProcessId());
 	}
@@ -89,7 +89,7 @@ public:
 	 *
 	 * @return Application name string.
 	 */
-	static FString GetName( )
+	static FString GetName()
 	{
 		FString ExecutableName = FPlatformProcess::ExecutableName();
 
@@ -120,7 +120,7 @@ public:
 	 *
 	 * @see GetInstanceId
 	 */
-	static FGuid GetSessionId( )
+	FORCEINLINE static FGuid GetSessionId()
 	{
 		return SessionId;
 	}
@@ -130,7 +130,7 @@ public:
 	 *
 	 * @return Session name string.
 	 */
-	static FString GetSessionName( )
+	FORCEINLINE static FString GetSessionName()
 	{
 		return SessionName;
 	}
@@ -145,7 +145,7 @@ public:
 	 * 
 	 * @return Name of session owner.
 	 */
-	static FString GetSessionOwner( )
+	FORCEINLINE static FString GetSessionOwner()
 	{
 		return SessionOwner;
 	}
@@ -155,7 +155,7 @@ public:
 	 *
 	 * @return true if the game name has been set
 	 */
-	static bool HasGameName( )
+	static bool HasGameName()
 	{
 		return (GGameName[0] != 0) && (FCString::Stricmp(GGameName, TEXT("None")) != 0);
 	}
@@ -163,7 +163,7 @@ public:
 	/**
 	 * Initializes the application session.
 	 */
-	static void InitializeSession( );
+	static void InitializeSession();
 
 	/** 
 	 * Checks whether this application is a game.
@@ -174,7 +174,7 @@ public:
 	 *
 	 * @return true if the application is a game, false otherwise.
 	 */
-	FORCEINLINE static bool IsGame( )
+	FORCEINLINE static bool IsGame()
 	{
 #if WITH_EDITOR
 		return !GIsEditor || GIsPlayInEditorWorld || IsRunningGame();
@@ -200,15 +200,15 @@ public:
 	static bool IsInstalled();
 
 	/**
-	* Checks whether the engine components of this application have been installed.
-	*
-	* In binary UE4 releases, the engine can be installed while the game is not. The game IsInstalled()
-	* setting will take precedence over this flag.
-	* 
-	* To override, pass -engineinstalled or -enginenotinstalled on the command line.
-	*
-	* @return true if the engine is installed, false otherwise.
-	*/
+	 * Checks whether the engine components of this application have been installed.
+	 *
+	 * In binary UE4 releases, the engine can be installed while the game is not. The game IsInstalled()
+	 * setting will take precedence over this flag.
+	 * 
+	 * To override, pass -engineinstalled or -enginenotinstalled on the command line.
+	 *
+	 * @return true if the engine is installed, false otherwise.
+	 */
 	static bool IsEngineInstalled();
 
 	/**
@@ -219,7 +219,7 @@ public:
 	 *
 	 * @return true if this application is standalone, false otherwise.
 	 */
-	static bool IsStandalone( )
+	FORCEINLINE static bool IsStandalone()
 	{
 		return Standalone;
 	}
@@ -232,7 +232,7 @@ public:
 	 *
 	 * @return true if the application runs unattended, false otherwise.
 	 */
-	static bool IsUnattended( )
+	static bool IsUnattended()
 	{
 		// FCommandLine::Get() will assert that the command line has been set.
 		// This function may not be used before FCommandLine::Set() is called.
@@ -241,15 +241,123 @@ public:
 	}
 
 	/**
-	 * Checks whether the application should run mult-threaded for performance critical features.
+	 * Checks whether the application should run multi-threaded for performance critical features.
 	 *
 	 * This method is used for performance based threads (like rendering, task graph).
 	 * This will not disable async IO or similar threads needed to disable hitching
 	 *
 	 * @return true if this isn't a server, has more than one core, does not have a -onethread command line options, etc.
 	 */
-	static bool ShouldUseThreadingForPerformance( );
+	static bool ShouldUseThreadingForPerformance();
 
+	/**
+	 * Checks whether application is in benchmark mode.
+	 *
+	 * @return true if application is in benchmark mode, false otherwise.
+	 */
+	FORCEINLINE static bool IsBenchmarking()
+	{
+		return bIsBenchmarking;
+	}
+
+	/**
+	 * Sets application benchmarking mode.
+	 *
+	 * @param bVal - True sets application in benchmark mode, false sets to non-benchmark mode.
+	 */
+	static void SetBenchmarking(bool bVal)
+	{
+		bIsBenchmarking = bVal;
+	}
+
+	/**
+	 * Gets time step in seconds if a fixed delta time is wanted.
+	 *
+	 * @return Time step in seconds for fixed delta time.
+	 */
+	FORCEINLINE static double GetFixedDeltaTime()
+	{
+		return FixedDeltaTime;
+	}
+
+	/**
+	 * Sets time step in seconds if a fixed delta time is wanted.
+	 *
+	 * @param seconds - Time step in seconds for fixed delta time.
+	 */
+	static void SetFixedDeltaTime(double Seconds)
+	{
+		FixedDeltaTime = Seconds;
+	}
+
+	/**
+	 * Gets whether we want to use a fixed time step or not.
+	 *
+	 * @return True if using fixed time step, false otherwise.
+	 */
+	static bool UseFixedTimeStep()
+	{
+		static bool bUseFixedTimeStep = FParse::Param(FCommandLine::Get(), TEXT("UseFixedTimeStep"));
+		return bUseFixedTimeStep;
+	}
+
+	/**
+	 * Gets current time in seconds.
+	 *
+	 * @return Current time in seconds.
+	 */
+	FORCEINLINE static double GetCurrentTime()
+	{
+		return CurrentTime;
+	}
+
+	/**
+	 * Sets current time in seconds.
+	 *
+	 * @param seconds - Time in seconds.
+	 */
+	static void SetCurrentTime(double Seconds)
+	{
+		CurrentTime = Seconds;
+	}
+
+	/**
+	 * Gets previous value of CurrentTime.
+	 *
+	 * @return Previous value of CurrentTime.
+	 */
+	FORCEINLINE static double GetLastTime()
+	{
+		return LastTime;
+	}
+
+	/**
+	 * Updates Last time to CurrentTime.
+	 */
+	static void UpdateLastTime()
+	{
+		LastTime = CurrentTime;
+	}
+
+	/**
+	 * Gets time delta in seconds.
+	 *
+	 * @return Time delta in seconds.
+	 */
+	FORCEINLINE static double GetDeltaTime()
+	{
+		return DeltaTime;
+	}
+
+	/**
+	 * Sets time delta in seconds.
+	 *
+	 * @param seconds - Time in seconds.
+	 */
+	static void SetDeltaTime(double Seconds)
+	{
+		DeltaTime = Seconds;
+	}
 
 private:
 
@@ -267,6 +375,24 @@ private:
 
 	// Holds a flag indicating whether this is a standalone session.
 	static bool Standalone;
+
+	// Holds a flag Whether we are in benchmark mode or not.
+	static bool bIsBenchmarking;
+
+	// Holds time step if a fixed delta time is wanted.
+	static double FixedDeltaTime;
+
+	// Holds whether we want to use a fixed time step or not.
+	static bool bUseFixedTimeStep;
+
+	// Holds current time.
+	static double CurrentTime;
+
+	// Holds previous value of CurrentTime.
+	static double LastTime;
+
+	// Holds current delta time in seconds.
+	static double DeltaTime;
 };
 
 

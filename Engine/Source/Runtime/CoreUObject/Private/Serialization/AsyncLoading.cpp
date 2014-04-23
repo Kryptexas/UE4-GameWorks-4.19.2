@@ -643,7 +643,7 @@ EAsyncPackageState::Type FAsyncPackage::CreateExports()
 		// Data isn't ready yet. Give up remainder of time slice if we're not using a time limit.
 		else if( GiveUpTimeSlice() )
 		{
-			INC_FLOAT_STAT_BY(STAT_AsyncIO_AsyncPackagePrecacheWaitTime,(float)GDeltaTime);
+			INC_FLOAT_STAT_BY(STAT_AsyncIO_AsyncPackagePrecacheWaitTime, (float)FApp::GetDeltaTime());
 			return EAsyncPackageState::TimeOut;
 		}
 	}

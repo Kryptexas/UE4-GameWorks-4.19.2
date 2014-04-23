@@ -296,7 +296,7 @@ void FVertexSnappingImpl::ClearSnappingHelpers( bool bClearImmediately )
 	else if( ActorVertsToDraw.IsValid() )
 	{
 		// Fade out previous verts
-		ActorVertsToFade.Add( ActorVertsToDraw, GCurrentTime );
+		ActorVertsToFade.Add( ActorVertsToDraw, FApp::GetCurrentTime() );
 		ActorVertsToDraw.Reset();
 	}
 }
@@ -342,15 +342,15 @@ void FVertexSnappingImpl::DrawSnappingHelpers(const FSceneView* View,FPrimitiveD
 		{
 			float PointSize = View->IsPerspectiveProjection() ? 4.0f : 5.0f;
 
-			if( GCurrentTime-FadeStart <= VertexSnappingConstants::FadeTime )
+			if( FApp::GetCurrentTime()-FadeStart <= VertexSnappingConstants::FadeTime )
 			{
-				PointSize = FMath::Lerp( PointSize, 0.0f, (GCurrentTime-FadeStart)/VertexSnappingConstants::FadeTime );
+				PointSize = FMath::Lerp( PointSize, 0.0f, (FApp::GetCurrentTime()-FadeStart)/VertexSnappingConstants::FadeTime );
 
 				DrawSnapVertices( Actor.Get(), PointSize, PDI );
 			}
 		}
 	
-		if( !Actor.IsValid() || GCurrentTime-FadeStart > VertexSnappingConstants::FadeTime )
+		if( !Actor.IsValid() || FApp::GetCurrentTime()-FadeStart > VertexSnappingConstants::FadeTime )
 		{
 			It.RemoveCurrent();
 		}
@@ -547,7 +547,7 @@ FSnappingVertex FVertexSnappingImpl::GetClosestVertex( const TArray<FSnapActor>&
 
 	if( ActorVertsToDraw.IsValid() )
 	{
-		ActorVertsToFade.Add( ActorVertsToDraw, GCurrentTime );
+		ActorVertsToFade.Add( ActorVertsToDraw, FApp::GetCurrentTime() );
 	}
 
 

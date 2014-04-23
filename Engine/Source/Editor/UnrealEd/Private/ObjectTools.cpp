@@ -3284,7 +3284,7 @@ namespace ThumbnailTools
 		});
 
 		// Create a canvas for the render target and clear it to black
-		FCanvas Canvas( RenderTargetResource, NULL, GCurrentTime - GStartTime, GDeltaTime, GCurrentTime - GStartTime );
+		FCanvas Canvas( RenderTargetResource, NULL, FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime );
 		Canvas.Clear( FLinearColor::Black );
 
 

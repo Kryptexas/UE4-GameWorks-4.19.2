@@ -258,7 +258,7 @@ struct FStreamingTexture
 		MaxAllowedMips = MipCount;	//FMath::Max(Texture->ResidentMips, Texture->RequestedMips);
 		STAT( MaxAllowedOptimalMips = MaxAllowedMips );
 		STAT( MostResidentMips = FMath::Max(MostResidentMips, Texture->ResidentMips) );
-		LastRenderTime = (GCurrentTime > Texture->Resource->LastRenderTime) ? float( GCurrentTime - Texture->Resource->LastRenderTime ) : 0.0f;
+		LastRenderTime = (FApp::GetCurrentTime() > Texture->Resource->LastRenderTime) ? float( FApp::GetCurrentTime() - Texture->Resource->LastRenderTime ) : 0.0f;
 		MinDistance = MAX_STREAMINGDISTANCE;
 		bForceFullyLoad = Texture->ShouldMipLevelsBeForcedResident() || (ForceLoadRefCount > 0);
 		TextureLODBias = Texture->GetCachedLODBias();
@@ -420,7 +420,7 @@ struct FStreamingTexture
 	/** If non-zero, the most recent time an instance location was removed for this texture. */
 	double			InstanceRemovedTimestamp;
 
-	/** Set to GCurrentTime every time LastRenderTimeRefCount is modified. */
+	/** Set to FApp::GetCurrentTime() every time LastRenderTimeRefCount is modified. */
 	double			LastRenderTimeRefCountTimestamp;
 	/** Current number of instances that need LRT heuristics for this texture. */
 	int32			LastRenderTimeRefCount;
@@ -793,7 +793,7 @@ struct FTextureStreamingStats
 	,	SizeY( InTexture2D->GetSizeY() )
 	,	NumMips( InTexture2D->GetNumMips() )
 	,	LODBias( InTexture2D->GetCachedLODBias() )
-	,	LastRenderTime( FMath::Clamp( InTexture2D->Resource ? (GCurrentTime - InTexture2D->Resource->LastRenderTime) : 1000000.0, 0.0, 1000000.0) )
+	,	LastRenderTime( FMath::Clamp( InTexture2D->Resource ? (FApp::GetCurrentTime() - InTexture2D->Resource->LastRenderTime) : 1000000.0, 0.0, 1000000.0) )
 	,	StreamType( InType )
 	,	ResidentMips( InResidentMips )
 	,	WantedMips( InWantedMips )
@@ -817,7 +817,7 @@ struct FTextureStreamingStats
 	int32		NumMips;
 	/** Mirror of UTexture2D::GetCachedLODBias() */
 	int32		LODBias;
-	/** How many seconds since it was last rendered: GCurrentTime - UTexture2D::Resource->LastRenderTime */
+	/** How many seconds since it was last rendered: FApp::GetCurrentTime() - UTexture2D::Resource->LastRenderTime */
 	float		LastRenderTime;
 	/** What streaming heuristics were primarily used for this texture. */
 	ETextureStreamingType	StreamType;
@@ -2809,7 +2809,7 @@ void FStreamingManagerTexture::RemoveLevel( ULevel* Level )
 			if ( Texture2D && IsManagedStreamingTexture( Texture2D ) )
 			{
 				FStreamingTexture& StreamingTexture = GetStreamingTexture( Texture2D );
-				StreamingTexture.InstanceRemovedTimestamp = GCurrentTime;
+				StreamingTexture.InstanceRemovedTimestamp = FApp::GetCurrentTime();
 			}
 		}
 
@@ -3055,7 +3055,7 @@ void FStreamingManagerTexture::SetInstanceRemovedTimestamp( FSpawnedPrimitiveDat
 		if ( Texture2D && IsManagedStreamingTexture(Texture2D) )
 		{
 			FStreamingTexture& StreamingTexture = GetStreamingTexture( Texture2D );
-			StreamingTexture.InstanceRemovedTimestamp = GCurrentTime;
+			StreamingTexture.InstanceRemovedTimestamp = FApp::GetCurrentTime();
 		}
 	}
 }
@@ -3120,7 +3120,7 @@ void FStreamingManagerTexture::NotifyTimedPrimitiveAttached( const UPrimitiveCom
 				// Note: Doesn't have to be cycle-perfect for thread safety.
 				FStreamingTexture& StreamingTexture = GetStreamingTexture( Texture2D );
 				StreamingTexture.LastRenderTimeRefCount++;
-				StreamingTexture.LastRenderTimeRefCountTimestamp = GCurrentTime;
+				StreamingTexture.LastRenderTimeRefCountTimestamp = FApp::GetCurrentTime();
 			}
 		}
 	}
@@ -3153,7 +3153,7 @@ void FStreamingManagerTexture::NotifyTimedPrimitiveDetached( const UPrimitiveCom
 				if ( StreamingTexture.LastRenderTimeRefCount > 0 )
 				{
 					StreamingTexture.LastRenderTimeRefCount--;
-					StreamingTexture.LastRenderTimeRefCountTimestamp = GCurrentTime;
+					StreamingTexture.LastRenderTimeRefCountTimestamp = FApp::GetCurrentTime();
 				}
 			}
 		}
@@ -3731,14 +3731,14 @@ void FStreamingManagerTexture::CheckUserSettings()
 		// Only adjust the pool size once every 10 seconds, but immediately in some other cases.
 		if ( PoolSizeSetting != PreviousPoolSizeSetting ||
 			 TexturePoolSize > GTexturePoolSize ||
-			 (GCurrentTime - PreviousPoolSizeTimestamp) > 10.0 )
+			 (FApp::GetCurrentTime() - PreviousPoolSizeTimestamp) > 10.0 )
 		{
 			if ( TexturePoolSize != GTexturePoolSize )
 			{
 				UE_LOG(LogContentStreaming,Log,TEXT("Texture pool size now %d MB"), int(TexturePoolSize/1024/1024));
 			}
 			PreviousPoolSizeSetting = PoolSizeSetting;
-			PreviousPoolSizeTimestamp = GCurrentTime;
+			PreviousPoolSizeTimestamp = FApp::GetCurrentTime();
 			GTexturePoolSize = TexturePoolSize;
 		}
 	}
@@ -4127,7 +4127,7 @@ void FStreamingManagerTexture::CalcWantedMips( FStreamingTexture& StreamingTextu
 		}
 
 		bool bShouldAlsoUseLastRenderTime = false;
-		if ( StreamingTexture.LastRenderTimeRefCount > 0 || (GCurrentTime - StreamingTexture.LastRenderTimeRefCountTimestamp) < 91.0 )
+		if ( StreamingTexture.LastRenderTimeRefCount > 0 || (FApp::GetCurrentTime() - StreamingTexture.LastRenderTimeRefCountTimestamp) < 91.0 )
 		{
 			bShouldAlsoUseLastRenderTime = true;
 
@@ -4188,7 +4188,7 @@ FFloatMipLevel FStreamingManagerTexture::GetWantedMipsForOrphanedTexture( FStrea
 	FFloatMipLevel WantedMips;
 
 	// Did we recently remove instance locations for this texture?
-	const float TimeSinceInstanceWasRemoved = float(GCurrentTime - StreamingTexture.InstanceRemovedTimestamp);
+	const float TimeSinceInstanceWasRemoved = float(FApp::GetCurrentTime() - StreamingTexture.InstanceRemovedTimestamp);
 
 	// Was it less than 91 seconds ago?
 	if ( TimeSinceInstanceWasRemoved < 91.0f )
@@ -5522,7 +5522,7 @@ FFloatMipLevel FStreamingHandlerTextureLastRender::GetWantedMips( FStreamingMana
 {
 	FFloatMipLevel Ret;
 
-	float SecondsSinceLastRender = StreamingTexture.LastRenderTime;	//(GCurrentTime - Texture->Resource->LastRenderTime);;
+	float SecondsSinceLastRender = StreamingTexture.LastRenderTime;	//(FApp::GetCurrentTime() - Texture->Resource->LastRenderTime);;
 	StreamingTexture.bUsesLastRenderHeuristics = true;
 
 	if( SecondsSinceLastRender < 45.0f && GStreamWithTimeFactor )

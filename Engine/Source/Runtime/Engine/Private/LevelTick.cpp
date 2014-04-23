@@ -215,7 +215,7 @@ void FDetailedTickStats::DumpStats()
 	bool bShouldDump = false;
 	
 	// Dump request due to interval.
-	if( GCurrentTime > (LastTimeOfLogDump + TimeBetweenLogDumps) )
+	if( FApp::GetCurrentTime() > (LastTimeOfLogDump + TimeBetweenLogDumps) )
 	{
 		bShouldDump = true;
 	}
@@ -237,9 +237,9 @@ void FDetailedTickStats::DumpStats()
 
 	// Only dump every TimeBetweenLogDumps seconds.
 	if( bShouldDump 
-	&& ((GCurrentTime - LastTimeOfLogDump) > MinTimeBetweenLogDumps) )
+	&& ((FApp::GetCurrentTime() - LastTimeOfLogDump) > MinTimeBetweenLogDumps) )
 	{
-		LastTimeOfLogDump = GCurrentTime;
+		LastTimeOfLogDump = FApp::GetCurrentTime();
 
 		// Array of stats, used for sorting.
 		TArray<FTickStats> SortedTickStats;

@@ -2524,7 +2524,7 @@ namespace MaterialExportUtils
 		RHIBeginScene();
 		{
 			// Create a canvas for the render target and clear it to black
-			FCanvas Canvas(RTResource, NULL, GCurrentTime - GStartTime, GDeltaTime, GCurrentTime - GStartTime );
+			FCanvas Canvas(RTResource, NULL, FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime);
 			Canvas.Clear(FLinearColor::Black);
 			FCanvasTileItem TileItem(FVector2D(0.0f, 0.0f), MaterialProxy, FVector2D(InRenderTarget->SizeX, InRenderTarget->SizeY));
 			TileItem.bFreezeTime = true;
@@ -2670,7 +2670,7 @@ namespace MaterialExportUtils
 
 				FSceneViewFamilyContext ViewFamily(
 					FSceneViewFamily::ConstructionValues(RenderTargetResource, Scene, FEngineShowFlags(ESFIM_Game))
-						.SetWorldTimes(GCurrentTime - GStartTime, GDeltaTime, GCurrentTime - GStartTime)
+						.SetWorldTimes(FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime)
 					);
 
 				ViewFamily.EngineShowFlags.DisableAdvancedFeatures();
@@ -2720,7 +2720,7 @@ namespace MaterialExportUtils
 					}
 				}
 			
-				FCanvas Canvas(RenderTargetResource, NULL, GCurrentTime - GStartTime, GDeltaTime, GCurrentTime - GStartTime);
+				FCanvas Canvas(RenderTargetResource, NULL, FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime);
 				Canvas.Clear(FLinearColor::Black);
 				GetRendererModule().BeginRenderingViewFamily(&Canvas, &ViewFamily);
 

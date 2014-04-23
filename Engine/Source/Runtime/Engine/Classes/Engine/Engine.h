@@ -1598,7 +1598,7 @@ public:
 	virtual void Tick( float DeltaSeconds, bool bIdleMode ) PURE_VIRTUAL(UEngine::Tick,);
 
 	/**
-	 * Update GCurrentTime/ GDeltaTime while taking into account max tick rate.
+	 * Update FApp::CurrentTime/ FApp::DeltaTime while taking into account max tick rate.
 	 */
 	void UpdateTimeAndHandleMaxTickRate();
 

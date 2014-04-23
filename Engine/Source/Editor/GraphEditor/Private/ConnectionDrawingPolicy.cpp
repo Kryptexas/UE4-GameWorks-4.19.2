@@ -742,9 +742,9 @@ void FKismetConnectionDrawingPolicy::BuildExecutionRoadmap()
 		// executions (so we don't care about this sequence of statements)
 	}
 
-	// Fade only when free-running (since we're using GCurrentTime, instead of FPlatformTime::Seconds)
-	const double MaxTimeAhead = FMath::Min(GCurrentTime + 2*TracePositionBonusPeriod, LatestTimeDiscovered); //@TODO: Rough clamping; should be exposed as a parameter
-	CurrentTime = FMath::Max(GCurrentTime, MaxTimeAhead);
+	// Fade only when free-running (since we're using FApp::GetCurrentTime(), instead of FPlatformTime::Seconds)
+	const double MaxTimeAhead = FMath::Min(FApp::GetCurrentTime() + 2*TracePositionBonusPeriod, LatestTimeDiscovered); //@TODO: Rough clamping; should be exposed as a parameter
+	CurrentTime = FMath::Max(FApp::GetCurrentTime(), MaxTimeAhead);
 }
 
 void FKismetConnectionDrawingPolicy::CalculateEnvelopeAlphas(double ExecutionTime, /*out*/ float& AttackAlpha, /*out*/ float& SustainAlpha) const
@@ -1229,11 +1229,11 @@ void FSoundCueGraphConnectionDrawingPolicy::BuildAudioFlowRoadmap()
 					GraphNodes.Add(RootNode[0]);
 
 					TArray<double> NodeTimes;
-					NodeTimes.Add(GCurrentTime); // Time for the root node
+					NodeTimes.Add(FApp::GetCurrentTime()); // Time for the root node
 
 					for (int32 i = 0; i < PathToWaveInstance.Num(); ++i)
 					{
-						const double ObservationTime = GCurrentTime + 1.f;
+						const double ObservationTime = FApp::GetCurrentTime() + 1.f;
 
 						NodeTimes.Add(ObservationTime);
 						GraphNodes.Add(PathToWaveInstance[i]->GraphNode);

@@ -321,7 +321,7 @@ void FActiveSound::HandleInteriorVolumes( const FListener& Listener, FSoundParse
 	{
 		SourceInteriorVolume = CurrentInteriorVolume;
 		SourceInteriorLPF = CurrentInteriorLPF;
-		LastUpdateTime = GCurrentTime;
+		LastUpdateTime = FApp::GetCurrentTime();
 	}
 
 	if( Listener.Volume == ReverbVolume || !bAllowSpatialization )

@@ -232,7 +232,7 @@ public:
 				}
 
 				checkSlow(Value);
-				Value->LastRenderTime = GCurrentTime;
+				Value->LastRenderTime = FApp::GetCurrentTime();
 
 				SetTextureParameter(
 					ShaderRHI, 
@@ -261,7 +261,7 @@ public:
 				}
 
 				checkSlow(Value);
-				Value->LastRenderTime = GCurrentTime;
+				Value->LastRenderTime = FApp::GetCurrentTime();
 
 				SetTextureParameter(
 					ShaderRHI,

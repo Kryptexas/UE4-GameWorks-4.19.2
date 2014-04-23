@@ -202,7 +202,7 @@ struct TextureStatsGenerator : public FFindReferencedAssets
 			const FTexture* Resource = InTexture->Resource; 
 			if(Resource)
 			{
-				Entry->LastTimeRendered = (float)FMath::Max( GLastTime - Resource->LastRenderTime, 0.0 );
+				Entry->LastTimeRendered = (float)FMath::Max( FApp::GetLastTime() - Resource->LastRenderTime, 0.0 );
 			}
 
 			const UTexture2D* Texture2D = Cast<const UTexture2D>(InTexture);

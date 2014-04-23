@@ -769,13 +769,13 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 #if !UE_BUILD_SHIPPING
 	// Benchmarking.
-	GIsBenchmarking	= FParse::Param(FCommandLine::Get(),TEXT("BENCHMARK"));
+	FApp::SetBenchmarking(FParse::Param(FCommandLine::Get(),TEXT("BENCHMARK")));
 #else
-	GIsBenchmarking = false;
+	FApp::SetBenchmarking(false);
 #endif // !UE_BUILD_SHIPPING
 
 	// Initialize random number generator.
-	if( GIsBenchmarking || FParse::Param(FCommandLine::Get(),TEXT("FIXEDSEED")) )
+	if( FApp::IsBenchmarking() || FParse::Param(FCommandLine::Get(),TEXT("FIXEDSEED")) )
 	{
 		FMath::RandInit( 0 );
 		FMath::SRandInit( 0 );
@@ -1462,7 +1462,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	}
 
 	// Don't update INI files if benchmarking or -noini
-	if( GIsBenchmarking || FParse::Param(FCommandLine::Get(),TEXT("NOINI")))
+	if( FApp::IsBenchmarking() || FParse::Param(FCommandLine::Get(),TEXT("NOINI")))
 	{
 		GConfig->Detach( GEngineIni );
 		GConfig->Detach( GInputIni );
@@ -1646,7 +1646,7 @@ bool FEngineLoop::LoadStartupModules()
 void FEngineLoop::InitTime()
 {
 	// Init variables used for benchmarking and ticking.
-	GCurrentTime				= FPlatformTime::Seconds();
+	FApp::SetCurrentTime(FPlatformTime::Seconds());
 	MaxFrameCounter				= 0;
 	MaxTickTime					= 0;
 	TotalTickTime				= 0;
@@ -1657,12 +1657,12 @@ void FEngineLoop::InitTime()
 	FParse::Value(FCommandLine::Get(),TEXT("SECONDS="),FloatMaxTickTime);
 	MaxTickTime					= FloatMaxTickTime;
 
-	// look of a version of seconds that only is applied if GIsBenchmarking is set. This makes it easier on
+	// look of a version of seconds that only is applied if FApp::IsBenchmarking() is set. This makes it easier on
 	// say, iOS, where we have a toggle setting to enable benchmarking, but don't want to have to make user
 	// also disable the seconds setting as well. -seconds= will exit the app after time even if benchmarking
 	// is not enabled
 	// NOTE: This will override -seconds= if it's specified
-	if (GIsBenchmarking)
+	if (FApp::IsBenchmarking())
 	{
 		if (FParse::Value(FCommandLine::Get(),TEXT("BENCHMARKSECONDS="),FloatMaxTickTime) && FloatMaxTickTime)
 		{
@@ -1676,16 +1676,13 @@ void FEngineLoop::InitTime()
 	if( FixedFPS > 0 )
 	{
 		GEngine->MatineeCaptureFPS = (int32)FixedFPS;
-		GFixedDeltaTime = 1 / FixedFPS;
+		FApp::SetFixedDeltaTime(1 / FixedFPS);
 	}
-
-	// Whether we want to use a fixed time step or not.
-	GUseFixedTimeStep = FParse::Param( FCommandLine::Get(), TEXT( "UseFixedTimeStep" ) );
 
 #endif // !UE_BUILD_SHIPPING
 
-	// convert FloatMaxTickTime into number of frames (using 1 / GFixedDeltaTime to convert fps to seconds )
-	MaxFrameCounter				= FMath::Trunc( MaxTickTime / GFixedDeltaTime );
+	// convert FloatMaxTickTime into number of frames (using 1 / FApp::GetFixedDeltaTime() to convert fps to seconds )
+	MaxFrameCounter = FMath::Trunc(MaxTickTime / FApp::GetFixedDeltaTime());
 }
 
 void FlushStatsFrame(bool bDiscardCallstack)
@@ -1935,17 +1932,17 @@ void FEngineLoop::Tick()
 		GLog->FlushThreadedLogs();
 
 		// Exit if frame limit is reached in benchmark mode.
-		if( (GIsBenchmarking && MaxFrameCounter && (GFrameCounter > MaxFrameCounter))
+		if( (FApp::IsBenchmarking() && MaxFrameCounter && (GFrameCounter > MaxFrameCounter))
 			// or time limit is reached if set.
 			|| (MaxTickTime && (TotalTickTime > MaxTickTime)) )
 		{
 			FPlatformMisc::RequestExit(0);
 		}
 
-		// Set GCurrentTime, GDeltaTime and potentially wait to enforce max tick rate.
+		// Set FApp::CurrentTime, FApp::DeltaTime and potentially wait to enforce max tick rate.
 		GEngine->UpdateTimeAndHandleMaxTickRate();
 
-		GEngine->TickFPSChart( GDeltaTime );
+		GEngine->TickFPSChart( FApp::GetDeltaTime() );
 
 		// Update platform memory and memory allocator stats.
 		FPlatformMemory::UpdateStats();
@@ -1994,7 +1991,7 @@ void FEngineLoop::Tick()
 			FSlateApplication::Get().PollGameDeviceState();
 		}
 
-		GEngine->Tick( GDeltaTime, bIdleMode );
+		GEngine->Tick( FApp::GetDeltaTime(), bIdleMode );
 
 		if (GShaderCompilingManager)
 		{
@@ -2036,7 +2033,7 @@ void FEngineLoop::Tick()
 #if WITH_ENGINE
 			SCOPE_CYCLE_COUNTER(STAT_RHITickTime);
 #endif
-			RHITick( GDeltaTime ); // Update RHI.
+			RHITick( FApp::GetDeltaTime() ); // Update RHI.
 		}
 
 		// Increment global frame counter. Once for each engine tick.
@@ -2045,7 +2042,7 @@ void FEngineLoop::Tick()
 		// Disregard first few ticks for total tick time as it includes loading and such.
 		if( GFrameCounter > 6 )
 		{
-			TotalTickTime+=GDeltaTime;
+			TotalTickTime+=FApp::GetDeltaTime();
 		}
 
 
@@ -2072,7 +2069,7 @@ void FEngineLoop::Tick()
 			// Delete the objects which were enqueued for deferred cleanup before the previous frame.
 			delete PreviousPendingCleanupObjects;
 
-			FTicker::GetCoreTicker().Tick(GDeltaTime);
+			FTicker::GetCoreTicker().Tick(FApp::GetDeltaTime());
 
 			FSingleThreadManager::Get().Tick();
 

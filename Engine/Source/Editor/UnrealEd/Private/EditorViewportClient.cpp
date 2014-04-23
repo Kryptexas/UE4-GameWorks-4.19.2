@@ -2431,9 +2431,9 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 	if (( GetScene() != World->Scene) || (IsRealtime() == true))
 	{
 		// Use time relative to start time to avoid issues with float vs double
-		TimeSeconds = GCurrentTime - GStartTime;
-		RealTimeSeconds = GCurrentTime - GStartTime;
-		DeltaTimeSeconds = GDeltaTime;
+		TimeSeconds = FApp::GetCurrentTime() - GStartTime;
+		RealTimeSeconds = FApp::GetCurrentTime() - GStartTime;
+		DeltaTimeSeconds = FApp::GetDeltaTime();
 	}
 	else
 	{

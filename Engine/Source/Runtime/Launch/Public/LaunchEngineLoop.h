@@ -121,7 +121,7 @@ public:
 protected:
 
 	/**
-	 * Holds a dynamically expanding array of frame times in milliseconds (if GIsBenchmarking is set).
+	 * Holds a dynamically expanding array of frame times in milliseconds (if FApp::IsBenchmarking() is set).
 	 */
 	TArray<float> FrameTimes;
 

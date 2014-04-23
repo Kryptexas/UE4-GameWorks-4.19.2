@@ -2029,7 +2029,7 @@ void FMatinee::OnClose()
 	}
 
 	// Make sure benchmarking mode is disabled (we may have turned it on for 'fixed time step playback')
-	GIsBenchmarking = false;
+	FApp::SetBenchmarking(false);
 
 	// Update UI to reflect any change in realtime status
 	FEditorSupportDelegates::UpdateUI.Broadcast();

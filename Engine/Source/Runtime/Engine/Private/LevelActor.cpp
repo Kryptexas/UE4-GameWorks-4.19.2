@@ -955,7 +955,7 @@ void UWorld::SetMapNeedsLightingFullyRebuilt(int32 InNumLightingUnbuiltObjects)
 		// Update last time unbuilt lighting was encountered.
 		if (NumLightingUnbuiltObjects > 0)
 		{
-			LastTimeUnbuiltLightingWasEncountered = GCurrentTime;
+			LastTimeUnbuiltLightingWasEncountered = FApp::GetCurrentTime();
 		}
 	}
 }

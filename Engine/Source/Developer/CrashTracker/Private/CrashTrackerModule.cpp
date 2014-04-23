@@ -118,7 +118,7 @@ void FCrashTrackerModule::StartupModule()
 			false && // Disable crash tracker by default for now unless someone enables it.
 			!GIsDemoMode &&
 			!FParse::Param( FCommandLine::Get(), TEXT("disablecrashtracker") ) &&
-			!GIsBenchmarking &&
+			!FApp::IsBenchmarking() &&
 			!FPlatformMisc::IsDebuggerPresent();
 #endif
 		bool bForceEnableCrashTracker = FParse::Param( FCommandLine::Get(), TEXT("forceenablecrashtracker") );

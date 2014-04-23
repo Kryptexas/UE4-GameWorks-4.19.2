@@ -90,7 +90,7 @@ FAudioReverbEffect& FAudioReverbEffect::operator=(class UReverbEffect* InReverbE
 void FAudioReverbEffect::Interpolate( float InterpValue, const FAudioReverbEffect& Start, const FAudioReverbEffect& End )
 {
 	float InvInterpValue = 1.0f - InterpValue;
-	Time = GCurrentTime;
+	Time = FApp::GetCurrentTime();
 	Volume = ( Start.Volume * InvInterpValue ) + ( End.Volume * InterpValue );
 	Density = ( Start.Density * InvInterpValue ) + ( End.Density * InterpValue );				
 	Diffusion = ( Start.Diffusion * InvInterpValue ) + ( End.Diffusion * InterpValue );				
@@ -126,7 +126,7 @@ void FAudioEQEffect::ClampValues( void )
 void FAudioEQEffect::Interpolate( float InterpValue, const FAudioEQEffect& Start, const FAudioEQEffect& End )
 {
 	float InvInterpValue = 1.0f - InterpValue;
-	RootTime = GCurrentTime;	
+	RootTime = FApp::GetCurrentTime();
 	HFFrequency = ( Start.HFFrequency * InvInterpValue ) + ( End.HFFrequency * InterpValue );
 	HFGain = ( Start.HFGain * InvInterpValue ) + ( End.HFGain * InterpValue );
 	MFCutoffFrequency = ( Start.MFCutoffFrequency * InvInterpValue ) + ( End.MFCutoffFrequency * InterpValue );
@@ -175,7 +175,7 @@ void FAudioEffectsManager::Interpolate( FAudioReverbEffect& Current, const FAudi
 	float InterpValue = 1.0f;
 	if( End.Time - Start.Time > 0.0 )
 	{
-		InterpValue = ( float )( ( GCurrentTime - Start.Time ) / ( End.Time - Start.Time ) );
+		InterpValue = ( float )( ( FApp::GetCurrentTime() - Start.Time ) / ( End.Time - Start.Time ) );
 	}
 
 	if( InterpValue >= 1.0f )
@@ -201,7 +201,7 @@ void FAudioEffectsManager::Interpolate( FAudioEQEffect& Current, const FAudioEQE
 	float InterpValue = 1.0f;
 	if( End.RootTime - Start.RootTime > 0.0 )
 	{
-		InterpValue = ( float )( ( GCurrentTime - Start.RootTime ) / ( End.RootTime - Start.RootTime ) );
+		InterpValue = ( float )( ( FApp::GetCurrentTime() - Start.RootTime ) / ( End.RootTime - Start.RootTime ) );
 	}
 
 	if( InterpValue >= 1.0f )
@@ -278,10 +278,10 @@ void FAudioEffectsManager::SetReverbSettings( const FReverbSettings& ReverbSetti
 		}
 
 		SourceReverbEffect = CurrentReverbEffect;
-		SourceReverbEffect.Time = GCurrentTime;
+		SourceReverbEffect.Time = FApp::GetCurrentTime();
 
 		DestinationReverbEffect = ReverbSettings.ReverbEffect;
-		DestinationReverbEffect.Time = GCurrentTime + ReverbSettings.FadeTime;
+		DestinationReverbEffect.Time = FApp::GetCurrentTime() + ReverbSettings.FadeTime;
 		DestinationReverbEffect.Volume = ReverbSettings.Volume;
 		if( !ReverbSettings.ReverbEffect )
 		{
@@ -306,7 +306,7 @@ void FAudioEffectsManager::SetMixSettings( USoundMix* NewMix, bool bIgnorePriori
 			UE_LOG(LogAudio, Log, TEXT( "FAudioEffectsManager::SetMixSettings(): %s" ), *NewMix->GetName() );
 
 			SourceEQEffect = CurrentEQEffect;
-			SourceEQEffect.RootTime = GCurrentTime;
+			SourceEQEffect.RootTime = FApp::GetCurrentTime();
 
 			if( NewMix->bApplyEQ )
 			{
@@ -318,7 +318,7 @@ void FAudioEffectsManager::SetMixSettings( USoundMix* NewMix, bool bIgnorePriori
 				DestinationEQEffect = FAudioEQEffect();
 			}
 
-			DestinationEQEffect.RootTime = GCurrentTime + NewMix->FadeInTime;
+			DestinationEQEffect.RootTime = FApp::GetCurrentTime() + NewMix->FadeInTime;
 			DestinationEQEffect.ClampValues();
 
 			CurrentEQMix = NewMix;
@@ -336,11 +336,11 @@ void FAudioEffectsManager::ClearMixSettings()
 		UE_LOG(LogAudio, Log, TEXT( "FAudioEffectsManager::ClearMixSettings(): %s" ), *CurrentEQMix->GetName() );
 
 		SourceEQEffect = CurrentEQEffect;
-		SourceEQEffect.RootTime = GCurrentTime;
+		SourceEQEffect.RootTime = FApp::GetCurrentTime();
 
 		// interpolate back to default
 		DestinationEQEffect = FAudioEQEffect();
-		DestinationEQEffect.RootTime = GCurrentTime + CurrentEQMix->FadeOutTime;
+		DestinationEQEffect.RootTime = FApp::GetCurrentTime() + CurrentEQMix->FadeOutTime;
 
 		CurrentEQMix = NULL;
 	}

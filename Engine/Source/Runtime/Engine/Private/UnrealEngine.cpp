@@ -890,32 +890,32 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 	static bool bTimeWasManipulated = false;
 
 	// Figure out whether we want to use real or fixed time step.
-	const bool bUseFixedTimeStep = GIsBenchmarking || GUseFixedTimeStep;
+	const bool bUseFixedTimeStep = FApp::IsBenchmarking() || FApp::UseFixedTimeStep();
 
-	GLastTime = GCurrentTime;
+	FApp::UpdateLastTime();
 
 	// Calculate delta time and update time.
 	if( bUseFixedTimeStep )
 	{
 		bTimeWasManipulated = true;
 
-		GDeltaTime		= GFixedDeltaTime;
-		LastTime		= GCurrentTime;
-		GCurrentTime	+= GDeltaTime;
+		FApp::SetDeltaTime(FApp::GetFixedDeltaTime());
+		LastTime = FApp::GetCurrentTime();
+		FApp::SetCurrentTime(FApp::GetCurrentTime() + FApp::GetDeltaTime());
 	}
 	else
 	{
-		GCurrentTime = FPlatformTime::Seconds();
+		FApp::SetCurrentTime(FPlatformTime::Seconds());
 		// Did we just switch from a fixed time step to real-time?  If so, then we'll update our
 		// cached 'last time' so our current interval isn't huge (or negative!)
 		if( bTimeWasManipulated )
 		{
-			LastTime = GCurrentTime - GDeltaTime;
+			LastTime = FApp::GetCurrentTime() - FApp::GetDeltaTime();
 			bTimeWasManipulated = false;
 		}
 
 		// Calculate delta time.
-		float DeltaTime = GCurrentTime - LastTime;
+		float DeltaTime = FApp::GetCurrentTime() - LastTime;
 
 		// Negative delta time means something is wrong with the system. Error out so user can address issue.
 		if( DeltaTime < 0 )
@@ -938,7 +938,7 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 		STAT( double ActualWaitTime = 0.f ); 
 		if( WaitTime > 0 )
 		{
-			double WaitEndTime = GCurrentTime + WaitTime;
+			double WaitEndTime = FApp::GetCurrentTime() + WaitTime;
 			SCOPE_SECONDS_COUNTER(ActualWaitTime);
 			SCOPE_CYCLE_COUNTER(STAT_GameTickWaitTime);
 			SCOPE_CYCLE_COUNTER(STAT_GameIdleTime);
@@ -963,24 +963,23 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 					FPlatformProcess::Sleep( 0 );
 				}
 			}
-			GCurrentTime = FPlatformTime::Seconds();
+			FApp::SetCurrentTime(FPlatformTime::Seconds());
 		}
 
 
 		SET_FLOAT_STAT(STAT_GameTickWantedWaitTime,WaitTime * 1000.f);
 		SET_FLOAT_STAT(STAT_GameTickAdditionalWaitTime,FMath::Max<float>((ActualWaitTime-WaitTime)*1000.f,0.f));
 
-		GDeltaTime = GCurrentTime - LastTime;
+		FApp::SetDeltaTime(FApp::GetCurrentTime() - LastTime);
 
 		// Negative delta time means something is wrong with the system. Error out so user can address issue.
-		if( GDeltaTime < 0 )
+		if( FApp::GetDeltaTime() < 0 )
 		{
 			// AMD dual-core systems are a known issue that require AMD CPU drivers to be installed. Installer will take care of this for shipping.
 			UE_LOG(LogEngine, Fatal,TEXT("Detected negative delta time - on AMD systems please install http://files.aoaforums.com/I3199-setup.zip.html"));
-			GDeltaTime = 0.01;
+			FApp::SetDeltaTime(0.01);
 		}
-		GUnclampedDeltaTime = GDeltaTime;
-		LastTime			= GCurrentTime;
+		LastTime			= FApp::GetCurrentTime();
 
 		// Enforce a maximum delta time if wanted.
 		UGameEngine* GameEngine = Cast<UGameEngine>(this);
@@ -1008,7 +1007,7 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 				&&	World->GetAuthGameMode()->NumPlayers == NumGamePlayers ) ) )
 			{
 				// Happy clamping!
-				GDeltaTime = FMath::Min<double>( GDeltaTime, MaxDeltaTime );
+				FApp::SetDeltaTime(FMath::Min<double>(FApp::GetDeltaTime(), MaxDeltaTime));
 			}
 		}
 	}
@@ -1022,9 +1021,9 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 		if(OverrideFPS >= 0.001f)
 		{
 			// in seconds
-			GDeltaTime = 1.0f / OverrideFPS;
-			LastTime = GCurrentTime;
-			GCurrentTime += GDeltaTime;
+			FApp::SetDeltaTime(1.0f / OverrideFPS);
+			LastTime = FApp::GetCurrentTime();
+			FApp::SetCurrentTime(FApp::GetCurrentTime() + FApp::GetDeltaTime());
 			bTimeWasManipulated = true;
 		}
 	}
@@ -1035,7 +1034,7 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 void UEngine::ParseCommandline()
 {
 	// If dedicated server, the -nosound, or -benchmark parameters are used, disable sound.
-	if(FParse::Param(FCommandLine::Get(),TEXT("nosound")) || GIsBenchmarking || IsRunningDedicatedServer() || IsRunningCommandlet())
+	if(FParse::Param(FCommandLine::Get(),TEXT("nosound")) || FApp::IsBenchmarking() || IsRunningDedicatedServer() || IsRunningCommandlet())
 	{
 		bUseSound = false;
 	}
@@ -3115,7 +3114,7 @@ bool UEngine::HandleRemoteTextureStatsCommand( const TCHAR* Cmd, FOutputDevice& 
 	//SrcAddr.Addr = FCString::Atoi( *Addr );
 
 	// Gather stats.
-	double LastTime = GLastTime;
+	double LastTime = FApp::GetLastTime();
 
 	UE_LOG(LogEngine, Log,  TEXT("Remote AssetsStats request received.") );
 
@@ -7328,7 +7327,7 @@ void DrawUnitTimeGraph( FViewport* Viewport, FCanvas* Canvas, const bool bHaveGP
 
 		// Compute pulse effect for lines above alert threshold
 		const float AlertPulseFreq = 8.0f;
-		const float AlertPulse = 0.5f + 0.5f * (float)sin( ( 0.25f * PI * 2.0 ) + ( GCurrentTime * PI * 2.0 ) * AlertPulseFreq );
+		const float AlertPulse = 0.5f + 0.5f * (float)sin( ( 0.25f * PI * 2.0 ) + ( FApp::GetCurrentTime() * PI * 2.0 ) * AlertPulseFreq );
 
 
 		// For each type of statistic that we want to graph (0=Render, 1=Game, 2=GPU, 3=Frame)
@@ -7535,9 +7534,9 @@ int32 DrawUnitTimes( FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y )
 	extern uint32 GGameThreadTime;
 
 	float FrameTime;
-	if (GIsBenchmarking || GUseFixedTimeStep)
+	if (FApp::IsBenchmarking() || FApp::UseFixedTimeStep())
 	{
-		/** If we're in fixed time step mode, GCurrentTime will be incorrect for benchmarking */
+		/** If we're in fixed time step mode, FApp::GetCurrentTime() will be incorrect for benchmarking */
 		static double LastTime = 0.0;
 		const double CurrentTime = FPlatformTime::Seconds();
 		if ( LastTime == 0 )
@@ -7550,7 +7549,7 @@ int32 DrawUnitTimes( FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y )
 	else
 	{
 		/** Use the FrameTime we computed last frame, because it correctly handles the end of frame idling and corresponds better to the other unit times. */
-		FrameTime = GCurrentTime - GLastTime;
+		FrameTime = FApp::GetCurrentTime() - FApp::GetLastTime();
 	}
 	
 	GUnit_RawFrameTime		= FrameTime * 1000.0f;
@@ -7760,7 +7759,7 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 			{
 				SmallTextItem.SetColor( FLinearColor::White );
 				// Color unbuilt lighting red if encountered within the last second
-				if( GCurrentTime - World->LastTimeUnbuiltLightingWasEncountered < 1 )
+				if( FApp::GetCurrentTime() - World->LastTimeUnbuiltLightingWasEncountered < 1 )
 				{
 					SmallTextItem.SetColor( FLinearColor::Red );
 				}

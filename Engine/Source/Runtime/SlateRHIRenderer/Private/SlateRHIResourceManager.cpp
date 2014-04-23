@@ -435,7 +435,7 @@ FSlateShaderResourceProxy* FSlateRHIResourceManager::GetDynamicTextureResource( 
 				{
 					DynamicTextureResource->RHIRefTexture->SetRHIRef( InFTexture->TextureRHI->GetTexture2D(), InFTexture->GetSizeX(), InFTexture->GetSizeY() );
 					// Let the streaming manager know we are using this texture now
-					InFTexture->LastRenderTime = GCurrentTime;
+					InFTexture->LastRenderTime = FApp::GetCurrentTime();
 				});
 
 				AccessedUTextures.Add( TextureResource );

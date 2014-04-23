@@ -183,8 +183,8 @@ void FPreviewElement::DrawRenderThread( const void* InWindowBackBuffer )
 	RenderTarget->SetRenderTargetTexture( *(FTexture2DRHIRef*)InWindowBackBuffer );
 	{
 		// Check realtime mode for whether to pass current time to canvas
-		float CurrentTime = bIsRealtime ? (GCurrentTime - GStartTime) : 0.0f;
-		float DeltaTime = bIsRealtime ? GDeltaTime : 0.0f;
+		float CurrentTime = bIsRealtime ? (FApp::GetCurrentTime() - GStartTime) : 0.0f;
+		float DeltaTime = bIsRealtime ? FApp::GetDeltaTime() : 0.0f;
 
 		FCanvas Canvas(RenderTarget, NULL, CurrentTime, CurrentTime, DeltaTime);
 		{

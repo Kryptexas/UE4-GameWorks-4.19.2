@@ -1051,7 +1051,7 @@ bool FAudioDevice::ApplySoundMix( USoundMix* NewMix, FSoundMixState* SoundMixSta
 	{
 		UE_LOG(LogAudio, Log, TEXT( "FAudioDevice::ApplySoundMix(): %s" ), *NewMix->GetName() );
 
-		SoundMixState->StartTime = GCurrentTime;
+		SoundMixState->StartTime = FApp::GetCurrentTime();
 		SoundMixState->FadeInStartTime = SoundMixState->StartTime + NewMix->InitialDelay;
 		SoundMixState->FadeInEndTime = SoundMixState->FadeInStartTime + NewMix->FadeInTime;
 		SoundMixState->FadeOutStartTime = -1.0;
@@ -1079,7 +1079,7 @@ void FAudioDevice::UpdateSoundMix(class USoundMix* SoundMix, FSoundMixState* Sou
 		if (SoundMixState->CurrentState == ESoundMixState::FadingOut)
 		{
 			// In process of fading out, need to adjust timing to fade in again.
-			SoundMixState->FadeInStartTime = GCurrentTime - (SoundMixState->InterpValue * SoundMix->FadeInTime);
+			SoundMixState->FadeInStartTime = FApp::GetCurrentTime() - (SoundMixState->InterpValue * SoundMix->FadeInTime);
 			SoundMixState->FadeInEndTime = SoundMixState->FadeInStartTime + SoundMix->FadeInTime;
 			SoundMixState->FadeOutStartTime = -1.0;
 			SoundMixState->EndTime = -1.0;
@@ -1095,7 +1095,7 @@ void FAudioDevice::UpdateSoundMix(class USoundMix* SoundMix, FSoundMixState* Sou
 		else if (SoundMixState->CurrentState == ESoundMixState::Active)
 		{
 			// Duration may be -1, this guarantees the fade will at least start at the current time
-			double NewFadeOutStartTime = FMath::Max(GCurrentTime, GCurrentTime + SoundMix->Duration);
+			double NewFadeOutStartTime = FMath::Max(FApp::GetCurrentTime(), FApp::GetCurrentTime() + SoundMix->Duration);
 			if (NewFadeOutStartTime > SoundMixState->FadeOutStartTime)
 			{
 				SoundMixState->FadeOutStartTime = NewFadeOutStartTime;
@@ -1167,7 +1167,7 @@ bool FAudioDevice::TryClearingSoundMix(USoundMix* SoundMix, FSoundMixState* Soun
 				else if (SoundMixState->CurrentState == ESoundMixState::FadingIn)
 				{
 					// Currently fading up, force fade in to complete and start fade out from current fade level
-					SoundMixState->FadeOutStartTime = GCurrentTime - ((1.0f - SoundMixState->InterpValue) * SoundMix->FadeOutTime);
+					SoundMixState->FadeOutStartTime = FApp::GetCurrentTime() - ((1.0f - SoundMixState->InterpValue) * SoundMix->FadeOutTime);
 					SoundMixState->EndTime = SoundMixState->FadeOutStartTime + SoundMix->FadeOutTime;
 					SoundMixState->StartTime = SoundMixState->FadeInStartTime = SoundMixState->FadeInEndTime = SoundMixState->FadeOutStartTime - 1.0;
 
@@ -1176,7 +1176,7 @@ bool FAudioDevice::TryClearingSoundMix(USoundMix* SoundMix, FSoundMixState* Soun
 				else if (SoundMixState->CurrentState == ESoundMixState::Active)
 				{
 					// SoundMix active, start fade out early
-					SoundMixState->FadeOutStartTime = GCurrentTime;
+					SoundMixState->FadeOutStartTime = FApp::GetCurrentTime();
 					SoundMixState->EndTime = SoundMixState->FadeOutStartTime + SoundMix->FadeOutTime;
 
 					TryClearingEQSoundMix(SoundMix);
@@ -1308,29 +1308,29 @@ void FAudioDevice::UpdateSoundClassProperties()
 		FSoundMixState* SoundMixState = &(It.Value());
 
 		// Initial delay before mix is applied
-		if( GCurrentTime >= SoundMixState->StartTime && GCurrentTime < SoundMixState->FadeInStartTime )
+		if( FApp::GetCurrentTime() >= SoundMixState->StartTime && FApp::GetCurrentTime() < SoundMixState->FadeInStartTime )
 		{
 			SoundMixState->InterpValue = 0.0f;
 			SoundMixState->CurrentState = ESoundMixState::Inactive;
 		}
-		else if( GCurrentTime >= SoundMixState->FadeInStartTime && GCurrentTime < SoundMixState->FadeInEndTime )
+		else if( FApp::GetCurrentTime() >= SoundMixState->FadeInStartTime && FApp::GetCurrentTime() < SoundMixState->FadeInEndTime )
 		{
 			// Work out the fade in portion
-			SoundMixState->InterpValue = ( float )( ( GCurrentTime - SoundMixState->FadeInStartTime ) / ( SoundMixState->FadeInEndTime - SoundMixState->FadeInStartTime ) );
+			SoundMixState->InterpValue = ( float )( ( FApp::GetCurrentTime() - SoundMixState->FadeInStartTime ) / ( SoundMixState->FadeInEndTime - SoundMixState->FadeInStartTime ) );
 			SoundMixState->CurrentState = ESoundMixState::FadingIn;
 		}
-		else if( GCurrentTime >= SoundMixState->FadeInEndTime
-			&& ( SoundMixState->IsBaseSoundMix || SoundMixState->PassiveRefCount > 0 || SoundMixState->FadeOutStartTime < 0.0 || GCurrentTime < SoundMixState->FadeOutStartTime ) )
+		else if( FApp::GetCurrentTime() >= SoundMixState->FadeInEndTime
+			&& ( SoundMixState->IsBaseSoundMix || SoundMixState->PassiveRefCount > 0 || SoundMixState->FadeOutStartTime < 0.0 || FApp::GetCurrentTime() < SoundMixState->FadeOutStartTime ) )
 		{
 			// .. ensure the full mix is applied between the end of the fade in time and the start of the fade out time
 			// or if SoundMix is the base or active via a passive push - ignores duration.
 			SoundMixState->InterpValue = 1.0f;
 			SoundMixState->CurrentState = ESoundMixState::Active;
 		}
-		else if( GCurrentTime >= SoundMixState->FadeOutStartTime && GCurrentTime < SoundMixState->EndTime )
+		else if( FApp::GetCurrentTime() >= SoundMixState->FadeOutStartTime && FApp::GetCurrentTime() < SoundMixState->EndTime )
 		{
 			// Work out the fade out portion
-			SoundMixState->InterpValue = 1.0f - ( float )( ( GCurrentTime - SoundMixState->FadeOutStartTime ) / ( SoundMixState->EndTime - SoundMixState->FadeOutStartTime ) );
+			SoundMixState->InterpValue = 1.0f - ( float )( ( FApp::GetCurrentTime() - SoundMixState->FadeOutStartTime ) / ( SoundMixState->EndTime - SoundMixState->FadeOutStartTime ) );
 			if( SoundMixState->CurrentState != ESoundMixState::FadingOut )
 			{
 				// Start fading EQ at same time
@@ -1340,7 +1340,7 @@ void FAudioDevice::UpdateSoundClassProperties()
 		}
 		else
 		{
-			check( SoundMixState->EndTime >= 0.0 && GCurrentTime >= SoundMixState->EndTime );
+			check( SoundMixState->EndTime >= 0.0 && FApp::GetCurrentTime() >= SoundMixState->EndTime );
 			// Clear the effect of this SoundMix - may need to revisit for passive
 			SoundMixState->InterpValue = 0.0f;
 			SoundMixState->CurrentState = ESoundMixState::AwaitingRemoval;
@@ -1358,17 +1358,17 @@ void FAudioDevice::UpdateSoundClassProperties()
 
 float FListener::Interpolate( const double EndTime )
 {
-	if( GCurrentTime < InteriorStartTime )
+	if( FApp::GetCurrentTime() < InteriorStartTime )
 	{
 		return( 0.0f );
 	}
 
-	if( GCurrentTime >= EndTime )
+	if( FApp::GetCurrentTime() >= EndTime )
 	{
 		return( 1.0f );
 	}
 
-	float InterpValue = ( float )( ( GCurrentTime - InteriorStartTime ) / ( EndTime - InteriorStartTime ) );
+	float InterpValue = ( float )( ( FApp::GetCurrentTime() - InteriorStartTime ) / ( EndTime - InteriorStartTime ) );
 	return( InterpValue );
 }
 
@@ -1395,7 +1395,7 @@ void FListener::ApplyInteriorSettings( class AReverbVolume* InVolume, const FInt
 	if( InVolume != Volume )
 	{
 		// Use previous/ current interpolation time if we're transitioning to the default worldsettings zone.
-		InteriorStartTime = GCurrentTime;
+		InteriorStartTime = FApp::GetCurrentTime();
 		InteriorEndTime = InteriorStartTime + (Settings.bIsWorldSettings ? InteriorSettings.InteriorTime : Settings.InteriorTime);
 		ExteriorEndTime = InteriorStartTime + (Settings.bIsWorldSettings ? InteriorSettings.ExteriorTime : Settings.ExteriorTime);
 		InteriorLPFEndTime = InteriorStartTime + (Settings.bIsWorldSettings ? InteriorSettings.InteriorLPFTime : Settings.InteriorLPFTime);
@@ -1518,9 +1518,9 @@ void FAudioDevice::PopSoundMixModifier(USoundMix* SoundMix, bool bIsPassive)
 				if (SoundMixState->PassiveRefCount == 0)
 				{
 					// Check whether Fade out time was previously set and reset it to current time
-					if (SoundMixState->FadeOutStartTime >= 0.0 && GCurrentTime > SoundMixState->FadeOutStartTime)
+					if (SoundMixState->FadeOutStartTime >= 0.0 && FApp::GetCurrentTime() > SoundMixState->FadeOutStartTime)
 					{
-						SoundMixState->FadeOutStartTime = GCurrentTime;
+						SoundMixState->FadeOutStartTime = FApp::GetCurrentTime();
 						SoundMixState->EndTime = SoundMixState->FadeOutStartTime + SoundMix->FadeOutTime;
 					}
 				}
@@ -1703,7 +1703,7 @@ int32 FAudioDevice::GetSortedActiveWaveInstances(TArray<FWaveInstance*>& WaveIns
 			else
 			{
 				// If not in game, do not advance sounds unless they are UI sounds.
-				float UsedDeltaTime = GDeltaTime;
+				float UsedDeltaTime = FApp::GetDeltaTime();
 				if (GetType == ESortedActiveWaveGetType::QueryOnly || (GetType == ESortedActiveWaveGetType::PausedUpdate && !ActiveSound->bIsUISound))
 				{
 					UsedDeltaTime = 0.0f;
