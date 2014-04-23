@@ -242,11 +242,9 @@ bool FWorldTileModel::ShouldBeVisible(FBox EditableArea) const
 	{
 		return true;
 	}
-	
-	// Visible if level bounds bigger than editable area and intersects that area
-	if ((LevelBBox.GetExtent().X >= EditableArea.GetExtent().X || 
-		 LevelBBox.GetExtent().Y >= EditableArea.GetExtent().Y) &&
-		LevelBBox.IntersectXY(EditableArea))
+
+	// Visible if level bounds intersects editable area
+	if (LevelBBox.IntersectXY(EditableArea))
 	{
 		return true;
 	}
