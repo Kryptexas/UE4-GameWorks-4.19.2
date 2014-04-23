@@ -4,6 +4,7 @@
 
 #include "PreviewScene.h"
 #include "SEditorViewport.h"
+#include "IUMGEditor.h"
 
 /**
  * UMG Editor Preview viewport widget
