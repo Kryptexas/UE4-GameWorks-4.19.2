@@ -354,7 +354,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 			.bColorAxisLabels(false)
 			.OnXCommitted(this, &FMeshBuildSettingsLayout::OnBuildScaleXChanged)
 			.OnYCommitted(this, &FMeshBuildSettingsLayout::OnBuildScaleYChanged)
-			.OnZCommitted(this, &FMeshBuildSettingsLayout::OnBuildScaleXChanged)
+			.OnZCommitted(this, &FMeshBuildSettingsLayout::OnBuildScaleZChanged)
 			.Font(IDetailLayoutBuilder::GetDetailFont())
 		];
 	}
