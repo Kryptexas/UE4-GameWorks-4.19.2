@@ -2,6 +2,9 @@
 
 #include "WorldBrowserPrivatePCH.h"
 #include "STiledLandscapeImportDlg.h"
+#include "SVectorInputBox.h"
+#include "IDesktopPlatform.h"
+#include "DesktopPlatformModule.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 
