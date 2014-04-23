@@ -143,7 +143,7 @@ void FOnlineSubsystemModule::UnregisterPlatformService(const FName FactoryName)
 void FOnlineSubsystemModule::ParseOnlineSubsystemName(const FName& FullName, FName& SubsystemName, FName& InstanceName)
 {
 	SubsystemName = DefaultPlatformService;
-	InstanceName = TEXT("DefaultInstance");
+	InstanceName = DEFAULT_INSTANCE;
 
 	if (FullName != NAME_None)
 	{

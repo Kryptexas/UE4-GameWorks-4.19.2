@@ -3,6 +3,9 @@
 #pragma once
 #include "OnlineSubsystemPackage.h"
 
+/** Name given to default OSS instances (disambiguates for PIE) */
+#define DEFAULT_INSTANCE FName(TEXT("DefaultInstance"))
+
 /** Maximum players supported on a given platform */
 #if PLATFORM_XBOXONE
 #define MAX_LOCAL_PLAYERS 4
