@@ -212,6 +212,11 @@ public:
 	/** @return The force feedback interface for this application */
 	IForceFeedbackSystem *GetForceFeedbackSystem() const { return PlatformApplication->GetForceFeedbackSystem(); }
 
+	/** @return Whether or not the current platform supports system help */
+	bool SupportsSystemHelp() const { return PlatformApplication->SupportsSystemHelp(); }
+
+	void ShowSystemHelp() { PlatformApplication->ShowSystemHelp(); }
+
 	/** @return The text input method interface for this application */
 	ITextInputMethodSystem *GetTextInputMethodSystem() const { return PlatformApplication->GetTextInputMethodSystem(); }
 

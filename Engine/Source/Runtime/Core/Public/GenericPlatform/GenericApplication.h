@@ -288,6 +288,10 @@ public:
     /** Send any analytics captured by the application */
     virtual void SendAnalytics(IAnalyticsProvider* Provider) { }
 
+	virtual bool SupportsSystemHelp() const { return false; }
+
+	virtual void ShowSystemHelp() {}
+
 public:
 
 	const TSharedPtr< ICursor > Cursor;
