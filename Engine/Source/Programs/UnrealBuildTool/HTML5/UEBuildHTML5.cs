@@ -22,7 +22,7 @@ namespace UnrealBuildTool
 		public override string ModifyNMakeOutput(string ExeName)
 		{
 			// nmake Run should always run the win32 version
-			return Path.ChangeExtension(ExeName, ".exe");
+			return Path.ChangeExtension(ExeName+GetActiveArchitecture(), ".exe");
 		}
 
 		/**
