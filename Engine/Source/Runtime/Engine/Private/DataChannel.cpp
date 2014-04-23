@@ -203,13 +203,6 @@ void UChannel::ReceivedAcks()
 
 }
 
-
-int32 UChannel::MaxSendBytes()
-{
-	return FMath::Max( 0, Connection->GetFreeSendBufferBits() / 8 );
-}
-
-
 void UChannel::Tick()
 {
 	checkSlow(Connection->Channels[ChIndex]==this);
