@@ -174,7 +174,7 @@ void FAssetTypeActions_StaticMesh::ExecuteOpenInExternalEditor(TArray<TWeakObjec
 			const FString SourceFilePath = FReimportManager::ResolveImportFilename(Object->AssetImportData->SourceFilePath, Object);
 			if ( SourceFilePath.Len() && IFileManager::Get().FileSize( *SourceFilePath ) != INDEX_NONE )
 			{
-				FPlatformProcess::LaunchFileInDefaultExternalApplication( *SourceFilePath );
+				FPlatformProcess::LaunchFileInDefaultExternalApplication( *SourceFilePath, NULL, ELaunchVerb::Edit );
 			}
 		}
 	}

@@ -202,7 +202,7 @@ void FAssetTypeActions_Texture::ExecuteOpenInExternalEditor(TArray<TWeakObjectPt
 			const FString SourceFilePath = FReimportManager::ResolveImportFilename(Object->SourceFilePath, Object);
 			if ( SourceFilePath.Len() && IFileManager::Get().FileSize( *SourceFilePath ) != INDEX_NONE )
 			{
-				FPlatformProcess::LaunchFileInDefaultExternalApplication( *SourceFilePath );
+				FPlatformProcess::LaunchFileInDefaultExternalApplication( *SourceFilePath, NULL, ELaunchVerb::Edit );
 			}
 		}
 	}
