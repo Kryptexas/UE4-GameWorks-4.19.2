@@ -406,6 +406,9 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 
 	// Update the auto-load project
 	UpdateAutoLoadProject();
+
+	// Load any modules that might be required by commandlets
+	FModuleManager::Get().LoadModule(TEXT("OnlineBlueprintSupport"));
 }
 
 void UEditorEngine::HandleSettingChanged( FName Name )
