@@ -242,6 +242,9 @@ public:
 	/** Requests a rename on the socket item */
 	virtual void RequestRename() OVERRIDE;
 
+	/** Return socket name as FText for display in skeleton tree */
+	FText GetSocketNameAsText() const { return FText::FromName(SocketData->SocketName); }
+
 protected:
 	/** Hidden constructor, always use Make above */
 	FDisplayedSocketInfo( USkeletalMeshSocket* InSource, ESocketParentType::Type InParentType )

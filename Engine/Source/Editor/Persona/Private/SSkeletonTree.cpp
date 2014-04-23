@@ -507,6 +507,7 @@ void FDisplayedSocketInfo::GenerateWidgetForNameColumn( TSharedPtr< SHorizontalB
 
 	FString ToolTip = GetSocketToolTip();
 
+	TAttribute<FText> SocketNameAttr = TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateSP(this, &FDisplayedSocketInfo::GetSocketNameAsText));
 	TSharedPtr< SInlineEditableTextBlock > InlineWidget;
 
 	Box->AddSlot()
@@ -514,7 +515,7 @@ void FDisplayedSocketInfo::GenerateWidgetForNameColumn( TSharedPtr< SHorizontalB
 	[
 		SAssignNew( InlineWidget, SInlineEditableTextBlock )
 			.ColorAndOpacity( TextColor )
-			.Text( FText::FromName(SocketData->SocketName) )
+			.Text( SocketNameAttr )
 			.HighlightText( FilterText )
 			.Font( TextFont )
 			.ToolTipText( ToolTip )
