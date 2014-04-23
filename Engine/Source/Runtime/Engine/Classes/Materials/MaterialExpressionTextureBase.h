@@ -29,6 +29,12 @@ class UMaterialExpressionTextureBase : public UMaterialExpression
 #endif // WITH_EDITOR
 	// End UObject Interface
 
+	// Begin UMaterialExpression Interface
+#if WITH_EDITOR
+	virtual FString GetDescription() const OVERRIDE;
+#endif
+	// End UMaterialExpression Interface
+
 	/** 
 	 * Callback to get any texture reference this expression emits.
 	 * This is used to link the compiled uniform expressions with their default texture values. 

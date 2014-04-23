@@ -228,6 +228,8 @@ class UMaterialExpression : public UObject
 	 */
 	virtual void GetCaption(TArray<FString>& OutCaptions) const;
 #if WITH_EDITOR
+	/** Get a single line description of the material expression (used for lists) */
+	virtual FString GetDescription() const;
 	/** Get a tooltip for the specified connector. */
 	virtual void GetConnectorToolTip(int32 InputIndex, int32 OutputIndex, TArray<FString>& OutToolTip);
 

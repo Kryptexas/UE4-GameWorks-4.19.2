@@ -328,11 +328,11 @@ public:
 	/** Pushes the PreviewMesh assigned the the material instance to the thumbnail info */
 	static void UpdateThumbnailInfoPreviewMesh(UMaterialInterface* MatInterface);
 
-	/** Callback for when the canvas search next and previous are used */
-	void OnSearch(SSearchBox::SearchDirection Direction);
-
 	/** Sets the expression to be previewed. */
 	void SetPreviewExpression(UMaterialExpression* NewPreviewExpression);
+
+	/** Pan the view to center on a particular node */
+	void JumpToNode(const UEdGraphNode* Node);
 
 	// IMaterial Editor Interface
 	virtual UMaterialExpression* CreateNewMaterialExpression(UClass* NewExpressionClass, const FVector2D& NodePos, bool bAutoSelect, bool bAutoAssignResource) OVERRIDE;
@@ -346,8 +346,7 @@ public:
 	virtual void PasteNodesHere(const FVector2D& Location) OVERRIDE;
 	virtual int32 GetNumberOfSelectedNodes() const OVERRIDE;
 	virtual FMaterialRenderProxy* GetExpressionPreview(UMaterialExpression* InExpression) OVERRIDE;
-	virtual void UpdateSearch( bool bQueryChanged ) OVERRIDE;
-	
+
 public:
 	/** Set to true when modifications have been made to the material */
 	bool bMaterialDirty;
@@ -471,12 +470,6 @@ private:
 public:
 
 private:
-	/** Called when the graph search box changes text */
-	void OnGraphSearchChanged( const FText& InFilterText );
-
-	/** Called when the graph search text is committed */
-	void OnGraphSearchCommitted(const FText& NewTypeInValue, ETextCommit::Type CommitInfo);
-	
 	/**
 	 * Load editor settings from disk (docking state, window pos/size, option state, etc).
 	 */
@@ -540,8 +533,10 @@ private:
 	void OnSelectUpsteamNodes();
 	/** Command to force a refresh of all previews (triggered by space bar) */
 	void OnForceRefreshPreviews();
-	/* Create comment node on graph */
+	/** Create comment node on graph */
 	void OnCreateComment();
+	/** Bring up the search tab */
+	void OnFindInMaterial();
 
 	/** Callback from the Asset Registry when an asset is renamed. */
 	void RenameAssetFromRegistry(const FAssetData& InAddedAssetData, const FString& InNewName);
@@ -581,11 +576,6 @@ private:
 	 * Returns the expression preview for the specified material expression.
 	 */
 	FMatExpressionPreview* GetExpressionPreview(UMaterialExpression* MaterialExpression, bool& bNewlyCreated);
-
-	/**
-	  * Moves the shows the selected result in the viewport
-	  */
-	void ShowSearchResult();
 
 	/** Pointer to the object that the current color picker is working on. Can be NULL and stale. */
 	TWeakObjectPtr<UObject> ColorPickerObject;
@@ -634,6 +624,7 @@ private:
 	TSharedRef<SDockTab> SpawnTab_HLSLCode(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_Palette(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_Stats(const FSpawnTabArgs& Args);
+	TSharedRef<SDockTab> SpawnTab_Find(const FSpawnTabArgs& Args);
 private:
 	/** List of open tool panels; used to ensure only one exists at any one time */
 	TMap< FName, TWeakPtr<class SDockableTab> > SpawnedToolPanels;
@@ -662,14 +653,8 @@ private:
 	TSharedPtr<class SWidget> Stats;
 	TSharedPtr<class IMessageLogListing> StatsListing;
 
-	/** Current search query */
-	FString SearchQuery;
-
-	/** Array of expressions matching the current search terms. */
-	TArray<UMaterialExpression*> SearchResults;
-
-	/** Index in the above array of the currently selected search result */
-	int32 SelectedSearchResult;
+	/** Find results log as well as the search filter */
+	TSharedPtr<class SFindInMaterial> FindResults;
 
 	/** The current transaction. */
 	FScopedTransaction* ScopedTransaction;
@@ -705,4 +690,5 @@ private:
 	static const FName HLSLCodeTabId;	
 	static const FName PaletteTabId;
 	static const FName StatsTabId;
+	static const FName FindTabId;
 };

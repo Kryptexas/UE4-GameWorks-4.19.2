@@ -18,7 +18,6 @@ UMaterialGraphNode::UMaterialGraphNode(const class FPostConstructInitializePrope
 	: Super(PCIP)
 	, bPreviewNeedsUpdate(false)
 	, bIsErrorExpression(false)
-	, bIsCurrentSearchResult(false)
 	, bIsPreviewExpression(false)
 {
 }
@@ -131,7 +130,7 @@ FString UMaterialGraphNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	}
 	else if (TitleType == ENodeTitleType::ListView)
 	{
-		return MaterialExpression->GetClass()->GetDescription();
+		return MaterialExpression->GetDescription();
 	}
 	else
 	{

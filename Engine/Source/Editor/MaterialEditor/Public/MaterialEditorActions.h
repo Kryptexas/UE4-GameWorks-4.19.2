@@ -143,6 +143,9 @@ public:
 	/** Forces a refresh of all previews */
 	TSharedPtr< FUICommandInfo > ForceRefreshPreviews;
 
+	/** Finds expressions in current material */
+	TSharedPtr< FUICommandInfo > FindInMaterial;
+
 	/**
 	 * Initialize commands
 	 */

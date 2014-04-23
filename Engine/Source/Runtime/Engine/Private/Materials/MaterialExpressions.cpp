@@ -640,6 +640,29 @@ void UMaterialExpression::GetCaption(TArray<FString>& OutCaptions) const
 	OutCaptions.Add(TEXT("Expression"));
 }
 #if WITH_EDITOR
+FString UMaterialExpression::GetDescription() const
+{
+	// Combined captions sufficient for most expressions
+	TArray<FString> Captions;
+	GetCaption(Captions);
+
+	if (Captions.Num() > 1)
+	{
+		FString Result = Captions[0];
+		for (int32 Index = 1; Index < Captions.Num(); ++Index)
+		{
+			Result += TEXT(" ");
+			Result += Captions[Index];
+		}
+
+		return Result;
+	}
+	else
+	{
+		return Captions[0];
+	}
+}
+
 void UMaterialExpression::GetConnectorToolTip(int32 InputIndex, int32 OutputIndex, TArray<FString>& OutToolTip)
 {
 	if (InputIndex != INDEX_NONE)
@@ -873,6 +896,16 @@ void UMaterialExpressionTextureBase::PostEditChangeProperty(FPropertyChangedEven
 			}
 		}
 	}
+}
+
+FString UMaterialExpressionTextureBase::GetDescription() const
+{
+	FString Result = Super::GetDescription();
+	Result += TEXT(" (");
+	Result += Texture ? Texture->GetName() : TEXT("None");
+	Result += TEXT(")");
+
+	return Result;
 }
 #endif // WITH_EDITOR
 
@@ -1971,6 +2004,17 @@ void UMaterialExpressionConstant::GetCaption(TArray<FString>& OutCaptions) const
 	OutCaptions.Add(FString::Printf( TEXT("%.4g"), R ));
 }
 
+#if WITH_EDITOR
+FString UMaterialExpressionConstant::GetDescription() const
+{
+	FString Result = FString(*GetClass()->GetName()).Mid(FCString::Strlen(TEXT("MaterialExpression")));
+	Result += TEXT(" (");
+	Result += Super::GetDescription();
+	Result += TEXT(")");
+	return Result;
+}
+#endif // WITH_EDITOR
+
 UMaterialExpressionConstant2Vector::UMaterialExpressionConstant2Vector(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
@@ -2002,6 +2046,17 @@ void UMaterialExpressionConstant2Vector::GetCaption(TArray<FString>& OutCaptions
 {
 	OutCaptions.Add(FString::Printf( TEXT("%.3g,%.3g"), R, G ));
 }
+
+#if WITH_EDITOR
+FString UMaterialExpressionConstant2Vector::GetDescription() const
+{
+	FString Result = FString(*GetClass()->GetName()).Mid(FCString::Strlen(TEXT("MaterialExpression")));
+	Result += TEXT(" (");
+	Result += Super::GetDescription();
+	Result += TEXT(")");
+	return Result;
+}
+#endif // WITH_EDITOR
 
 UMaterialExpressionConstant3Vector::UMaterialExpressionConstant3Vector(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -2046,6 +2101,17 @@ void UMaterialExpressionConstant3Vector::GetCaption(TArray<FString>& OutCaptions
 {
 	OutCaptions.Add(FString::Printf( TEXT("%.3g,%.3g,%.3g"), Constant.R, Constant.G, Constant.B ));
 }
+
+#if WITH_EDITOR
+FString UMaterialExpressionConstant3Vector::GetDescription() const
+{
+	FString Result = FString(*GetClass()->GetName()).Mid(FCString::Strlen(TEXT("MaterialExpression")));
+	Result += TEXT(" (");
+	Result += Super::GetDescription();
+	Result += TEXT(")");
+	return Result;
+}
+#endif // WITH_EDITOR
 
 UMaterialExpressionConstant4Vector::UMaterialExpressionConstant4Vector(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -2092,6 +2158,17 @@ void UMaterialExpressionConstant4Vector::GetCaption(TArray<FString>& OutCaptions
 {
 	OutCaptions.Add(FString::Printf( TEXT("%.2g,%.2g,%.2g,%.2g"), Constant.R, Constant.G, Constant.B, Constant.A ));
 }
+
+#if WITH_EDITOR
+FString UMaterialExpressionConstant4Vector::GetDescription() const
+{
+	FString Result = FString(*GetClass()->GetName()).Mid(FCString::Strlen(TEXT("MaterialExpression")));
+	Result += TEXT(" (");
+	Result += Super::GetDescription();
+	Result += TEXT(")");
+	return Result;
+}
+#endif // WITH_EDITOR
 
 UMaterialExpressionClamp::UMaterialExpressionClamp(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -6454,6 +6531,15 @@ static FString GetInputDefaultValueString(EFunctionInputType InputType, const FV
 }
 
 #if WITH_EDITOR
+FString UMaterialExpressionMaterialFunctionCall::GetDescription() const
+{
+	FString Result = FString(*GetClass()->GetName()).Mid(FCString::Strlen(TEXT("MaterialExpression")));
+	Result += TEXT(" (");
+	Result += Super::GetDescription();
+	Result += TEXT(")");
+	return Result;
+}
+
 void UMaterialExpressionMaterialFunctionCall::GetConnectorToolTip(int32 InputIndex, int32 OutputIndex, TArray<FString>& OutToolTip) 
 {
 	if (MaterialFunction)

@@ -20,6 +20,7 @@ class UMaterialExpressionConstant2Vector : public UMaterialExpression
 	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) OVERRIDE;
 	virtual void GetCaption(TArray<FString>& OutCaptions) const OVERRIDE;
 #if WITH_EDITOR
+	virtual FString GetDescription() const OVERRIDE;
 	virtual uint32 GetOutputType(int32 OutputIndex) OVERRIDE {return MCT_Float2;}
 #endif // WITH_EDITOR
 	// End UMaterialExpression Interface
