@@ -236,11 +236,11 @@ static void GetCommentAction(UBlueprint const* BlueprintIn, FGraphActionListBuil
 }
 
 /** */
-static void GetEnumUtilitiesNodes(FBlueprintGraphActionListBuilder& ContextMenuBuilder, bool bNumEnum, bool bForEach, bool bCastFromByte, UEnum* OnlyEnum = NULL)
+static void GetEnumUtilitiesNodes(FBlueprintGraphActionListBuilder& ContextMenuBuilder, bool bNumEnum, bool bForEach, bool bCastFromByte, bool bLiteralByte, UEnum* OnlyEnum = NULL)
 {
 	struct FGetEnumUtilitiesNodes
 	{
-		static void Get(FBlueprintGraphActionListBuilder& InContextMenuBuilder, bool bInNumEnum, bool bInForEach, bool bInCastFromByte, UEnum* Enum, const FString& Category)
+		static void Get(FBlueprintGraphActionListBuilder& InContextMenuBuilder, bool bInNumEnum, bool bInForEach, bool bInCastFromByte, bool bLiteralByte, UEnum* Enum, const FString& Category)
 		{
 			const bool bIsBlueprintType = UEdGraphSchema_K2::IsAllowableBlueprintVariableType(Enum);
 			if (bIsBlueprintType)
@@ -275,13 +275,23 @@ static void GetEnumUtilitiesNodes(FBlueprintGraphActionListBuilder& ContextMenuB
 						InContextMenuBuilder, Category, NodeTemplate->GetNodeTitle(ENodeTitleType::ListView),  NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
 					Action->NodeTemplate = NodeTemplate;
 				}
+
+				if (bLiteralByte)
+				{
+					UK2Node_EnumLiteral* EnumTemplate = InContextMenuBuilder.CreateTemplateNode<UK2Node_EnumLiteral>();
+					EnumTemplate->Enum = Enum;
+					UK2Node* NodeTemplate = EnumTemplate;
+					TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(
+						InContextMenuBuilder, Category, NodeTemplate->GetNodeTitle(ENodeTitleType::ListView), NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
+					Action->NodeTemplate = NodeTemplate;
+				}
 			}
 		}
 	};
 
 	if (OnlyEnum)
 	{
-		FGetEnumUtilitiesNodes::Get(ContextMenuBuilder, bNumEnum, bForEach, bCastFromByte, OnlyEnum, K2ActionCategories::EnumCategory);
+		FGetEnumUtilitiesNodes::Get(ContextMenuBuilder, bNumEnum, bForEach, bCastFromByte, bLiteralByte, OnlyEnum, K2ActionCategories::EnumCategory);
 	}
 	else
 	{
@@ -289,7 +299,7 @@ static void GetEnumUtilitiesNodes(FBlueprintGraphActionListBuilder& ContextMenuB
 		{
 			if (UEnum* CurrentEnum = *EnumIt)
 			{
-				FGetEnumUtilitiesNodes::Get(ContextMenuBuilder, bNumEnum, bForEach, bCastFromByte, CurrentEnum, K2ActionCategories::EnumCategory);
+				FGetEnumUtilitiesNodes::Get(ContextMenuBuilder, bNumEnum, bForEach, bCastFromByte, bLiteralByte, CurrentEnum, K2ActionCategories::EnumCategory);
 			}
 		}
 	}
@@ -984,7 +994,7 @@ void FK2ActionMenuBuilder::GetContextAllowedNodeTypes(FBlueprintGraphActionListB
 
 		FEditorDelegates::OnBlueprintContextMenuCreated.Broadcast(ContextMenuBuilder);
 
-		GetEnumUtilitiesNodes(ContextMenuBuilder, true, true, true);
+		GetEnumUtilitiesNodes(ContextMenuBuilder, true, true, true, true);
 	}
 }
 
@@ -1303,7 +1313,7 @@ void FK2ActionMenuBuilder::GetPinAllowedNodeTypes(FBlueprintGraphActionListBuild
 
 		if ((FromPin.Direction == EGPD_Input) && (FromPin.PinType.PinCategory == K2Schema->PC_Int))
 		{
-			GetEnumUtilitiesNodes(ContextMenuBuilder, true, false, false);
+			GetEnumUtilitiesNodes(ContextMenuBuilder, true, false, false, true);
 		}
 		else if(FromPin.PinType.PinCategory == K2Schema->PC_Text)
 		{
@@ -1321,8 +1331,12 @@ void FK2ActionMenuBuilder::GetPinAllowedNodeTypes(FBlueprintGraphActionListBuild
 			}
 			if (FromPin.Direction == EGPD_Input)
 			{
-				GetEnumUtilitiesNodes(ContextMenuBuilder, false, true, true, Enum);
+				GetEnumUtilitiesNodes(ContextMenuBuilder, false, true, true, false, Enum);
 			}
+		}
+		else if ((FromPin.PinType.PinCategory == K2Schema->PC_Byte) && !Enum && FromPin.Direction == EGPD_Input)
+		{
+			GetEnumUtilitiesNodes(ContextMenuBuilder, false, false, false, true);
 		}
 
 		// Assignment statement for local variables
