@@ -374,18 +374,20 @@ void FUnrealEdMisc::InitEngineAnalytics()
 			bIsAssetAnalyticsPending = true;
 		}
 
-// @todo: cwood: Disabled "Editor.Usage.Modules" event due to it spamming analytics. Needs better solution.
-#if 0
 		// Record known modules' compilation methods
 		TArray<FModuleManager::FModuleStatus> Modules;
 		FModuleManager::Get().QueryModules(Modules);
-		TArray< FAnalyticsEventAttribute > ModuleAttributes;
-		for (auto ModuleIter = Modules.CreateConstIterator(); ModuleIter; ++ModuleIter)
+		for (auto& Module : Modules)
 		{
-			ModuleAttributes.Add(FAnalyticsEventAttribute(ModuleIter->Name, ModuleIter->CompilationMethod));
+			// Record only game modules as these are the only ones that should be hot-reloaded
+			if (Module.bIsGameModule)
+			{
+				TArray< FAnalyticsEventAttribute > ModuleAttributes;
+				ModuleAttributes.Add(FAnalyticsEventAttribute(FString("ModuleName"), Module.Name));
+				ModuleAttributes.Add(FAnalyticsEventAttribute(FString("CompilationMethod"), Module.CompilationMethod));
+				EngineAnalytics.RecordEvent(FString("Editor.Usage.Modules"), ModuleAttributes);
+			}
 		}
-		EngineAnalytics.RecordEvent(FString("Editor.Usage.Modules"), ModuleAttributes);
-#endif
 	}
 }
 
