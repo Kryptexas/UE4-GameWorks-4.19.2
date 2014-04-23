@@ -1123,17 +1123,20 @@ void FAssetContextMenu::ExecuteSCCSync()
 
 	TArray<UPackage*> Packages;
 	GetSelectedPackages(Packages);
-	if(PackageTools::UnloadPackages(Packages))
+
+	FText ErrorMessage;
+	PackageTools::UnloadPackages(Packages, ErrorMessage);
+	if(!ErrorMessage.IsEmpty())
+	{
+		FMessageDialog::Open( EAppMsgType::Ok, ErrorMessage );
+	}
+	else
 	{
 		ISourceControlModule::Get().GetProvider().Execute(ISourceControlOperation::Create<FSync>(), PackageFileNames);
 		for( TArray<FString>::TConstIterator PackageIter( PackageNames ); PackageIter; ++PackageIter )
 		{
 			PackageTools::LoadPackage(*PackageIter);
 		}
-	}
-	else
-	{
-		FMessageDialog::Open( EAppMsgType::Ok, LOCTEXT("SCC_Sync_PackageUnloadFailed", "Could not unload assets when syncing from source control") );
 	}
 }
 

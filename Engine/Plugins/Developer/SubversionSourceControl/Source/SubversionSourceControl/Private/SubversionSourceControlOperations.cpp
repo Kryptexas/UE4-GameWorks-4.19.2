@@ -469,10 +469,9 @@ bool FSubversionUpdateStatusWorker::Execute(FSubversionSourceControlCommand& InC
 
 	if(Operation->ShouldGetOpenedOnly())
 	{
-		// No server access if we use this option (note no "--show-updates" param)
-
 		TArray<FXmlFile> ResultsXml;
 		TArray<FString> Parameters;
+		Parameters.Add(TEXT("--show-updates"));
 		Parameters.Add(TEXT("--verbose"));
 
 		TArray<FString> Files;

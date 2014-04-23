@@ -61,6 +61,9 @@ public:
 	/** Handler for when "Checkin to source control" is selected */
 	void ExecuteSCCCheckIn();
 
+	/** Handler for when "Sync from source control" is selected */
+	void ExecuteSCCSync() const;
+
 	/** Handler for when "Connect to source control" is selected */
 	void ExecuteSCCConnect() const;
 

@@ -8,6 +8,7 @@
 #include "ContentBrowserModule.h"
 #include "ReferenceViewer.h"
 #include "AssetToolsModule.h"
+#include "Editor/UnrealEd/Public/PackageTools.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -193,6 +194,14 @@ void FPathContextMenu::MakePathViewContextMenu(FMenuBuilder& MenuBuilder)
 					FExecuteAction::CreateSP( this, &FPathContextMenu::ExecuteSCCCheckIn ),
 					FCanExecuteAction::CreateSP( this, &FPathContextMenu::CanExecuteSCCCheckIn )
 					)
+				);
+
+			// Sync
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("FolderSCCSync", "Sync"),
+				LOCTEXT("FolderSCCSyncTooltip", "Syncs all the assets in this folder to the latest version."),
+				FSlateIcon(),
+				FUIAction( FExecuteAction::CreateSP( this, &FPathContextMenu::ExecuteSCCSync ) )
 				);
 		}
 		else
@@ -643,6 +652,48 @@ void FPathContextMenu::ExecuteSCCCheckIn()
 		{
 			FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "SCC_Checkin_Aborted", "Check-in aborted as a result of save failure.") );
 		}
+	}
+}
+
+void FPathContextMenu::ExecuteSCCSync() const
+{
+	ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
+
+	// first attempt to unload all assets under this path
+	TArray<FString> PackageNames;
+	GetPackageNamesInSelectedPaths(PackageNames);
+
+	// Form a list of loaded packages to prompt for save
+	TArray<UPackage*> LoadedPackages;
+	for( const auto& PackageName : PackageNames )
+	{
+		UPackage* Package = FindPackage(nullptr, *PackageName);
+		if ( Package != nullptr )
+		{
+			LoadedPackages.Add(Package);
+		}
+	}
+
+	FText ErrorMessage;
+	PackageTools::UnloadPackages(LoadedPackages, ErrorMessage);
+
+	if(!ErrorMessage.IsEmpty())
+	{
+		FMessageDialog::Open( EAppMsgType::Ok, ErrorMessage );
+	}
+	else
+	{
+		TArray<FString> PathsOnDisk;
+		for(const auto& SelectedPath : SelectedPaths)
+		{
+			FString PathOnDisk = FPackageName::LongPackageNameToFilename(SelectedPath) / "";
+			PathsOnDisk.Add(PathOnDisk);
+		}
+
+		if ( PathsOnDisk.Num() > 0 )
+		{
+			SourceControlProvider.Execute(ISourceControlOperation::Create<FSync>(), PathsOnDisk);
+		}		
 	}
 }
 

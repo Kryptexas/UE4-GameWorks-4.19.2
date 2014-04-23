@@ -499,6 +499,16 @@ bool FPerforceSyncWorker::Execute(FPerforceSourceControlCommand& InCommand)
 		FPerforceConnection& Connection = ScopedConnection.GetConnection();
 		TArray<FString> Parameters;
 		Parameters.Append(InCommand.Files);
+
+		// check for directories and add '...'
+		for(auto& FileName : Parameters)
+		{
+			if(FileName.EndsWith(TEXT("/")))
+			{
+				FileName += TEXT("...");
+			}
+		}
+
 		FP4RecordSet Records;
 		InCommand.bCommandSuccessful = Connection.RunCommand(TEXT("sync"), Parameters, Records, InCommand.ErrorMessages, FOnIsCancelled::CreateRaw(&InCommand, &FPerforceSourceControlCommand::IsCanceled), InCommand.bConnectionDropped);
 		ParseSyncResults(Records, OutResults);
