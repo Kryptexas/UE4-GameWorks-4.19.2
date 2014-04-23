@@ -997,8 +997,14 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	static void EXPERIMENTAL_CloseAdBanner();
 
 	/**
-	 * Displays the built-in iOS leaderboard GUI (iOS only; this function will be renamed or moved in a future release)
-	*/
+	 * Displays the built-in leaderboard GUI (iOS and Android only; this function may be renamed or moved in a future release)
+	 */
 	UFUNCTION(BlueprintCallable, Category = "Utilities|Platform")
-	static void EXPERIMENTAL_ShowGameCenterLeaderboard(const FString& CategoryName);
+	static void ShowPlatformSpecificLeaderboardScreen(const FString& CategoryName);
+
+	/**
+	 * Displays the built-in achievements GUI (iOS and Android only; this function may be renamed or moved in a future release)
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Utilities|Platform")
+	static void ShowPlatformSpecificAchievementsScreen();
 };

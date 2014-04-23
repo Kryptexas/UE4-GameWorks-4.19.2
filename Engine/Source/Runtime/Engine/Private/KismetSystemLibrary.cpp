@@ -2241,7 +2241,7 @@ void UKismetSystemLibrary::EXPERIMENTAL_CloseAdBanner()
 	}
 }
 
-void UKismetSystemLibrary::EXPERIMENTAL_ShowGameCenterLeaderboard(const FString& CategoryName)
+void UKismetSystemLibrary::ShowPlatformSpecificLeaderboardScreen(const FString& CategoryName)
 {
 #if PLATFORM_IOS
 	extern CORE_API void IOSShowLeaderboardUI(const FString& CategoryName);
@@ -2252,5 +2252,16 @@ void UKismetSystemLibrary::EXPERIMENTAL_ShowGameCenterLeaderboard(const FString&
 	extern void AndroidThunkCpp_ShowLeaderboard(const FString&);
 	extern FString GetLeaderboardID(const FString&);
 	AndroidThunkCpp_ShowLeaderboard(GetLeaderboardID(CategoryName));
+#endif
+}
+
+void UKismetSystemLibrary::ShowPlatformSpecificAchievementsScreen()
+{
+#if PLATFORM_IOS
+	extern CORE_API void IOSShowAchievementsUI();
+	IOSShowAchievementsUI();
+#elif PLATFORM_ANDROID
+	extern void AndroidThunkCpp_ShowAchievements();
+	AndroidThunkCpp_ShowAchievements();
 #endif
 }
