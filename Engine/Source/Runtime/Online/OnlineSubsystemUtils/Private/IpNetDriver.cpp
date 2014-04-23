@@ -97,14 +97,20 @@ bool UIpNetDriver::InitBase( bool bInitAsClient, FNetworkNotify* InNotify, const
 
 	// Bind socket to our port.
 	LocalAddr = SocketSubsystem->GetLocalBindAddr(*GLog);
-	LocalAddr->SetPort(0);
-	if(!bInitAsClient)
-	{
-		// Init as a server.
-		LocalAddr->SetPort(URL.Port);
-	}
+	
+	// Try the specific port first, even for clients. Required for some platforms.
+	LocalAddr->SetPort(URL.Port);
+	
 	int32 AttemptPort = LocalAddr->GetPort();
 	int32 BoundPort = SocketSubsystem->BindNextPort( Socket, *LocalAddr, MaxPortCountToTry + 1, 1 );
+	if (BoundPort == 0 && bInitAsClient)
+	{
+		// If initializing as a client, and the specific port failed, retry with port 0 (any port)
+		LocalAddr->SetPort(0);
+		AttemptPort = LocalAddr->GetPort();
+		int32 BoundPort = SocketSubsystem->BindNextPort( Socket, *LocalAddr, 1, 1 );
+	}
+
 	if (BoundPort == 0)
 	{
 		Error = FString::Printf( TEXT("%s: binding to port %i failed (%i)"), SocketSubsystem->GetSocketAPIName(), AttemptPort,
