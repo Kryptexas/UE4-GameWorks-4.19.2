@@ -631,8 +631,7 @@ bool UConsole::InputKey_Typing( int32 ControllerId, FKey Key, EInputEvent Event,
 	}
 	else if( Key == EKeys::Up )
 	{
-		const bool bRequireCtrlToNavigateAutoComplete = GetDefault<UInputSettings>()->bRequireCtrlToNavigateAutoComplete;
-		if (!bNavigatingHistory && ((bRequireCtrlToNavigateAutoComplete && bCtrl) || (!bRequireCtrlToNavigateAutoComplete && !bCtrl && AutoCompleteIndices.Num() > 1)))
+		if (!bNavigatingHistory && !bCtrl && AutoCompleteIndices.Num() > 1)
 		{
 			if (++AutoCompleteIndex == AutoCompleteIndices.Num())
 			{
@@ -660,8 +659,7 @@ bool UConsole::InputKey_Typing( int32 ControllerId, FKey Key, EInputEvent Event,
 	}
 	else if( Key == EKeys::Down )
 	{
-		const bool bRequireCtrlToNavigateAutoComplete = GetDefault<UInputSettings>()->bRequireCtrlToNavigateAutoComplete;
-		if (!bNavigatingHistory && ((bRequireCtrlToNavigateAutoComplete && bCtrl) || (!bRequireCtrlToNavigateAutoComplete && !bCtrl && AutoCompleteIndices.Num() > 1)))
+		if (!bNavigatingHistory && !bCtrl && AutoCompleteIndices.Num() > 1)
 		{
 			if (--AutoCompleteIndex < 0)
 			{

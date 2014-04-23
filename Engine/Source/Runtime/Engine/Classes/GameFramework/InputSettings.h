@@ -53,10 +53,6 @@ class ENGINE_API UInputSettings : public UObject
 	UPROPERTY(config, EditAnywhere, Category="Console")
 	FKey ConsoleKey;
 
-	/** Should the user be required to hold ctrl to use the up/down arrows when navigating auto-complete */
-	UPROPERTY(config, EditAnywhere, Category="Console", AdvancedDisplay)
-	uint32 bRequireCtrlToNavigateAutoComplete : 1;
-
 	// UObject interface
 #if WITH_EDITOR
 	virtual void PostEditChangeChainProperty(struct FPropertyChangedChainEvent& PropertyChangedEvent) OVERRIDE;
