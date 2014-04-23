@@ -1401,16 +1401,6 @@ void UMaterial::CacheResourceShadersForCooking(EShaderPlatform ShaderPlatform, T
 
 void UMaterial::CacheShadersForResources(EShaderPlatform ShaderPlatform, const TArray<FMaterialResource*>& ResourcesToCache, bool bApplyCompletedShaderMapForRendering)
 {
-	// Note: builds without editor only data will have an incorrect shader map id due to skipping this
-	// That's ok, FMaterial::CacheShaders handles this 
-	if (FPlatformProperties::HasEditorOnlyData())
-	{
-		// Rebuild all transient cached material properties which are based off of the editor-only data (expressions) and need to be up to date for compiling
-		// Update the cached material function information, which will store off information about the functions this material uses
-		RebuildMaterialFunctionInfo();
-		RebuildMaterialParameterCollectionInfo();
-	}
-
 	RebuildExpressionTextureReferences();
 
 	for (int32 ResourceIndex = 0; ResourceIndex < ResourcesToCache.Num(); ResourceIndex++)
@@ -1549,6 +1539,16 @@ void UMaterial::CacheExpressionTextureReferences()
 
 void UMaterial::RebuildExpressionTextureReferences()
 {
+	// Note: builds without editor only data will have an incorrect shader map id due to skipping this
+	// That's ok, FMaterial::CacheShaders handles this 
+	if (FPlatformProperties::HasEditorOnlyData())
+	{
+		// Rebuild all transient cached material properties which are based off of the editor-only data (expressions) and need to be up to date for compiling
+		// Update the cached material function information, which will store off information about the functions this material uses
+		RebuildMaterialFunctionInfo();
+		RebuildMaterialParameterCollectionInfo();
+	}
+
 	ExpressionTextureReferences.Empty();
 	AppendReferencedTextures(ExpressionTextureReferences);
 }
