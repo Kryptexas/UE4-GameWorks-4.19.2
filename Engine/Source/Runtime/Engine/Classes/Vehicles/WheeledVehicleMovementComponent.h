@@ -385,9 +385,13 @@ protected:
 	UPROPERTY(EditAnywhere, Category=VehicleInput)
 	float IdleBrakeInput;
 
-	// Auto-brake when absolute vehicle forward speed is less than this
+	// Auto-brake when absolute vehicle forward speed is less than this (cm/s)
 	UPROPERTY(EditAnywhere, Category=VehicleInput)
 	float StopThreshold;
+
+	// Auto-brake when vehicle forward speed is opposite of player input by at least this much (cm/s)
+	UPROPERTY(EditAnywhere, Category = VehicleInput)
+	float WrongDirectionThreshold;
 
 	// Rate at which input throttle can rise and fall
 	UPROPERTY(EditAnywhere, Category=VehicleInput, AdvancedDisplay)
