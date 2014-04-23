@@ -253,6 +253,9 @@ public:
 	UPROPERTY(config)
 	TArray<struct FKeyBind> DebugExecBindings;
 
+	/** This player's version of the Axis Properties */
+	TArray<struct FInputAxisConfigEntry> AxisConfig;
+
 	/** This player's version of the Action Mappings */
 	TArray<struct FInputActionKeyMapping> ActionMappings;
 
@@ -265,7 +268,7 @@ public:
 	//=============================================================================
 	// Input related functions.
 	UFUNCTION(exec)
-	void SetMouseSensitivity(float F);
+	void SetMouseSensitivity(const float Sensitivity);
 
 	UFUNCTION(exec)
 	void SetMouseSensitivityToDefault();

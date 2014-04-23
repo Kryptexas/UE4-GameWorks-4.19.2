@@ -274,21 +274,18 @@ float UPlayerInput::GetMouseSensitivity()
 	return 1.0f;
 }
 
-void UPlayerInput::SetMouseSensitivity(float F)
+void UPlayerInput::SetMouseSensitivity(const float Sensitivity)
 {
-	ConditionalInitAxisProperties();
-
-	FInputAxisProperties* const XAxisProps = AxisProperties.Find(EKeys::MouseX);
-	if (XAxisProps)
+	for (FInputAxisConfigEntry& AxisConfigEntry : AxisConfig)
 	{
-		XAxisProps->Sensitivity = F;
+		const FKey AxisKey = AxisConfigEntry.AxisKeyName;
+		if (AxisKey == EKeys::MouseX || AxisKey == EKeys::MouseY)
+		{
+			AxisConfigEntry.AxisProperties.Sensitivity = Sensitivity;
+		}
 	}
 
-	FInputAxisProperties* const YAxisProps = AxisProperties.Find(EKeys::MouseY);
-	if (YAxisProps)
-	{
-		YAxisProps->Sensitivity = F;
-	}
+	AxisProperties.Empty();
 }
 
 void UPlayerInput::SetMouseSensitivityToDefault()
@@ -469,6 +466,7 @@ void UPlayerInput::ForceRebuildingKeyMaps(const bool bRestoreDefaults)
 {
 	if (bRestoreDefaults)
 	{
+		AxisConfig = GetDefault<UInputSettings>()->AxisConfig;
 		AxisMappings = GetDefault<UInputSettings>()->AxisMappings;
 		ActionMappings = GetDefault<UInputSettings>()->ActionMappings;
 	}
@@ -1373,7 +1371,7 @@ void UPlayerInput::ConditionalInitAxisProperties()
 	if ( AxisProperties.Num() == 0 )
 	{
 		// move stuff from config structure to our runtime structure
-		for (const FInputAxisConfigEntry& AxisConfigEntry : GetDefault<UInputSettings>()->AxisConfig)
+		for (const FInputAxisConfigEntry& AxisConfigEntry : AxisConfig)
 		{
 			const FKey AxisKey = AxisConfigEntry.AxisKeyName;
 			if (AxisKey.IsValid())
