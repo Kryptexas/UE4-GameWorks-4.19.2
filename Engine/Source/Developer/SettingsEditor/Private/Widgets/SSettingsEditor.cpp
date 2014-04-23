@@ -314,7 +314,7 @@ bool SSettingsEditor::CheckOutDefaultConfigFile( )
 			{
 				if (false)
 				{
-					if (SourceControlProvider.Execute(ISourceControlOperation::Create<FSync>(), FilesToBeCheckedOut))
+					if (SourceControlProvider.Execute(ISourceControlOperation::Create<FSync>(), FilesToBeCheckedOut) == ECommandResult::Succeeded)
 					{
 						SettingsObject->ReloadConfig();
 					}
@@ -326,7 +326,7 @@ bool SSettingsEditor::CheckOutDefaultConfigFile( )
 			}
 			else if (SourceControlState->CanCheckout() || SourceControlState->IsCheckedOutOther())
 			{
-				if (!SourceControlProvider.Execute(ISourceControlOperation::Create<FCheckOut>(), FilesToBeCheckedOut))
+				if (SourceControlProvider.Execute(ISourceControlOperation::Create<FCheckOut>(), FilesToBeCheckedOut) == ECommandResult::Failed)
 				{
 					ErrorMessage = LOCTEXT("FailedToCheckOutConfigFileError", "Error: Failed to check out the configuration file.");
 				}

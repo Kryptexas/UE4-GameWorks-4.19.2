@@ -6427,7 +6427,7 @@ void ExecuteInvalidateCachedShaders(const TArray< FString >& Args)
 	{
 		if( SourceControlState->CanCheckout() || SourceControlState->IsCheckedOutOther() )
 		{
-			if(!SourceControlProvider.Execute(ISourceControlOperation::Create<FCheckOut>(), FileName))
+			if(SourceControlProvider.Execute(ISourceControlOperation::Create<FCheckOut>(), FileName) == ECommandResult::Failed)
 			{
 				UE_LOG(LogConsoleResponse, Display, TEXT("r.InvalidateCachedShaders failed\nCouldn't check out \"ShaderVersion.usf\""));
 				return;

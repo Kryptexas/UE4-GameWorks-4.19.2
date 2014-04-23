@@ -508,7 +508,7 @@ bool FCollection::CheckoutCollection(FText& OutError)
 	// If not at the head revision, sync up
 	if (SourceControlState.IsValid() && !SourceControlState->IsCurrent())
 	{
-		if ( !SourceControlProvider.Execute(ISourceControlOperation::Create<FSync>(), FilesToBeCheckedOut) )
+		if ( SourceControlProvider.Execute(ISourceControlOperation::Create<FSync>(), FilesToBeCheckedOut) == ECommandResult::Failed )
 		{
 			// Could not sync up with the head revision
 			OutError = LOCTEXT("Error_SCCSync", "Failed to sync collection to the head revision.");
@@ -749,7 +749,7 @@ bool FCollection::RevertCollection(FText& OutError)
 		return false;
 	}
 
-	if ( SourceControlProvider.Execute(ISourceControlOperation::Create<FRevert>(), AbsoluteFilename) )
+	if ( SourceControlProvider.Execute(ISourceControlOperation::Create<FRevert>(), AbsoluteFilename) == ECommandResult::Succeeded)
 	{
 		return true;
 	}
@@ -811,7 +811,7 @@ bool FCollection::DeleteFromSourceControl(FText& OutError)
 	// If not at the head revision, sync up
 	if (SourceControlState.IsValid() && !SourceControlState->IsCurrent())
 	{
-		if ( !SourceControlProvider.Execute(ISourceControlOperation::Create<FSync>(), AbsoluteFilename) )
+		if ( SourceControlProvider.Execute(ISourceControlOperation::Create<FSync>(), AbsoluteFilename) == ECommandResult::Failed)
 		{
 			// Could not sync up with the head revision
 			GWarn->EndSlowTask();
@@ -854,7 +854,7 @@ bool FCollection::DeleteFromSourceControl(FText& OutError)
 		}
 		else if(SourceControlState->CanCheckout())
 		{
-			if ( SourceControlProvider.Execute(ISourceControlOperation::Create<FDelete>(), AbsoluteFilename) )
+			if ( SourceControlProvider.Execute(ISourceControlOperation::Create<FDelete>(), AbsoluteFilename) == ECommandResult::Succeeded )
 			{
 				// Now check in the delete
 				const FText ChangelistDesc = FText::Format( LOCTEXT("CollectionDeletedDesc", "Deleted collection: {CollectionName}"), CollectionNameText );

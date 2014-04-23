@@ -1416,7 +1416,7 @@ namespace ObjectTools
 					else
 					{
 						// Open the file for delete
-						if ( !SourceControlProvider.Execute(ISourceControlOperation::Create<FDelete>(), DeleteFilenames) )
+						if ( SourceControlProvider.Execute(ISourceControlOperation::Create<FDelete>(), DeleteFilenames) == ECommandResult::Failed )
 						{
 							UE_LOG(LogObjectTools, Warning, TEXT("SCC failed to open '%s' for delete while saving an empty package."), *PackageFilename);
 						}

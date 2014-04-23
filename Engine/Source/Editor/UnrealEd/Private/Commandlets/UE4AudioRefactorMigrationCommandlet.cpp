@@ -64,7 +64,7 @@ bool CheckoutPackage(UPackage* Package)
 		FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(PackageFilename, EStateCacheUsage::ForceUpdate);
 		if (SourceControlState.IsValid() && !SourceControlState->IsCheckedOut() && !SourceControlState->IsAdded())
 		{
-			if(!SourceControlProvider.Execute(ISourceControlOperation::Create<FCheckOut>(), Package))
+			if(SourceControlProvider.Execute(ISourceControlOperation::Create<FCheckOut>(), Package) == ECommandResult::Failed)
 			{
 				UE_LOG(LogUE4AudioRefactorMigrationCommandlet, Warning, TEXT("Could not check out package '%s'."), *PackageName);
 				return false;
