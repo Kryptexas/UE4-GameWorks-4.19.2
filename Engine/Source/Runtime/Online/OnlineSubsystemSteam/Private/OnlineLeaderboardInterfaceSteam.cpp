@@ -1218,6 +1218,9 @@ private:
 	/** Reference to write object for state tracking */
 	FOnlineAchievementsWritePtr WriteObject;
 
+	/** Delegate to call when the write finishes */
+	FOnAchievementsWrittenDelegate OnWriteFinishedDelegate;
+
 	/** Hidden on purpose */
 	FOnlineAsyncTaskSteamWriteAchievements() :
 		FOnlineAsyncTaskSteamStoreStats(),
@@ -1247,9 +1250,10 @@ private:
 	}
 
 public:
-	FOnlineAsyncTaskSteamWriteAchievements(FOnlineSubsystemSteam* InSteamSubsystem, const FUniqueNetIdSteam& InUserId, FOnlineAchievementsWriteRef& InWriteObject) :
-		FOnlineAsyncTaskSteamStoreStats(InSteamSubsystem, TEXT("Unused"), InUserId),
-		WriteObject(InWriteObject)
+	FOnlineAsyncTaskSteamWriteAchievements(FOnlineSubsystemSteam* InSteamSubsystem, const FUniqueNetIdSteam& InUserId, FOnlineAchievementsWriteRef& InWriteObject, const FOnAchievementsWrittenDelegate& InOnWriteFinishedDelegate)
+		: FOnlineAsyncTaskSteamStoreStats(InSteamSubsystem, TEXT("Unused"), InUserId)
+		, WriteObject(InWriteObject)
+		, OnWriteFinishedDelegate(InOnWriteFinishedDelegate)
 	{
 	}
 
@@ -1261,7 +1265,7 @@ public:
 		FOnlineAsyncTaskSteam::TriggerDelegates();
 		
 		FOnlineAchievementsSteamPtr Achievements = StaticCastSharedPtr<FOnlineAchievementsSteam>(Subsystem->GetAchievementsInterface());
-		Achievements->OnWriteAchievementsComplete(UserId, bWasSuccessful, WriteObject);
+		Achievements->OnWriteAchievementsComplete(UserId, bWasSuccessful, WriteObject, OnWriteFinishedDelegate);
 	}
 };
 
@@ -1292,7 +1296,7 @@ bool FOnlineLeaderboardsSteam::ReadLeaderboards(const TArray< TSharedRef<FUnique
 	return true;
 }
 
-void FOnlineLeaderboardsSteam::QueryAchievements( const FUniqueNetIdSteam &	UserId, const FOnQueryAchievementsCompleteDelegate & AchievementDelegate )
+void FOnlineLeaderboardsSteam::QueryAchievementsInternal(const FUniqueNetIdSteam& UserId, const FOnQueryAchievementsCompleteDelegate& AchievementDelegate)
 {
 	FOnlineAsyncTaskSteamGetAchievements* NewStatsTask = new FOnlineAsyncTaskSteamGetAchievements( SteamSubsystem, UserId, AchievementDelegate );
 
@@ -1366,12 +1370,11 @@ bool FOnlineLeaderboardsSteam::WriteLeaderboards(const FName& SessionName, const
 	return bWasSuccessful;
 }
 
-bool FOnlineLeaderboardsSteam::WriteAchievements(const FUniqueNetIdSteam& UserId, FOnlineAchievementsWriteRef& WriteObject)
+void FOnlineLeaderboardsSteam::WriteAchievementsInternal(const FUniqueNetIdSteam& UserId, FOnlineAchievementsWriteRef& WriteObject, const FOnAchievementsWrittenDelegate& OnWriteFinishedDelegate)
 {
 	SetUserStatsStoreState(UserId, EOnlineAsyncTaskState::InProgress);
-	FOnlineAsyncTaskSteamWriteAchievements* NewTask = new FOnlineAsyncTaskSteamWriteAchievements(SteamSubsystem, UserId, WriteObject);
+	FOnlineAsyncTaskSteamWriteAchievements* NewTask = new FOnlineAsyncTaskSteamWriteAchievements(SteamSubsystem, UserId, WriteObject, OnWriteFinishedDelegate);
 	SteamSubsystem->QueueAsyncTask(NewTask);
-	return true;
 }
 
 bool FOnlineLeaderboardsSteam::FlushLeaderboards(const FName& SessionName)

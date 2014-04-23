@@ -27,7 +27,7 @@ private:
 public:
 
 	// Begin IOnlineAchievements interface
-	virtual bool WriteAchievements( const FUniqueNetId& PlayerId, FOnlineAchievementsWriteRef& WriteObject ) OVERRIDE;
+	virtual void WriteAchievements(const FUniqueNetId& PlayerId, FOnlineAchievementsWriteRef& WriteObject, const FOnAchievementsWrittenDelegate& Delegate = FOnAchievementsWrittenDelegate()) OVERRIDE;
 	virtual void QueryAchievements(const FUniqueNetId & PlayerId, const FOnQueryAchievementsCompleteDelegate & Delegate = FOnQueryAchievementsCompleteDelegate()) OVERRIDE;
 	virtual void QueryAchievementDescriptions( const FUniqueNetId& PlayerId, const FOnQueryAchievementsCompleteDelegate & Delegate = FOnQueryAchievementsCompleteDelegate() ) OVERRIDE;
 	virtual EOnlineCachedResult::Type GetCachedAchievement(const FUniqueNetId& PlayerId, const FString& AchievementId, FOnlineAchievement& OutAchievement) OVERRIDE;

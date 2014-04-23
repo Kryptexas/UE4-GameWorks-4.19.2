@@ -110,8 +110,11 @@ void FOnlineAchievementsIOS::QueryAchievementDescriptions(const FUniqueNetId& Pl
 }
 
 
-bool FOnlineAchievementsIOS::WriteAchievements(const FUniqueNetId& PlayerId, FOnlineAchievementsWriteRef& InWriteObject)
+void FOnlineAchievementsIOS::WriteAchievements(const FUniqueNetId& PlayerId, FOnlineAchievementsWriteRef& InWriteObject, const FOnAchievementsWrittenDelegate& Delegate)
 {
+	// Make a copy of the delegate so it won't be a reference inside the FIOSAsyncTask
+	FOnAchievementsWrittenDelegate CopiedDelegate = Delegate;
+
 	// Hold a reference to the write object for the completion handler to write to.
 	FOnlineAchievementsWriteRef WriteObject = InWriteObject;
 	WriteObject->WriteState = EOnlineAsyncTaskState::InProgress;
@@ -174,9 +177,9 @@ bool FOnlineAchievementsIOS::WriteAchievements(const FUniqueNetId& PlayerId, FOn
 						FString AchievementId(achievement.identifier);
 						UE_LOG(LogOnline, Display, TEXT("Successfully reported achievement: %s, isCompleted:%d"), *AchievementId, [achievement isCompleted] ? 1 : 0);
 
+						// Report any completed achievements to the game thread
 						if ([achievement isCompleted])
 						{
-							// Report back to the game thread whether this succeeded.
 							[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void)
 							{
 								TriggerOnAchievementUnlockedDelegates(PlayerId, AchievementId);
@@ -195,11 +198,11 @@ bool FOnlineAchievementsIOS::WriteAchievements(const FUniqueNetId& PlayerId, FOn
 
 				// Report whether this succeeded or not back to whoever is listening.
 				WriteObject->WriteState = (Error == nil) ? EOnlineAsyncTaskState::Done : EOnlineAsyncTaskState::Failed;
+
 				// Report back to the game thread whether this succeeded.
-				
 				[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void)
 				{
-					TriggerOnAchievementsWrittenDelegates(PlayerId, Error == nil);
+					CopiedDelegate.ExecuteIfBound(PlayerId, Error == nil);
 					return true;
 				}];
 			}
@@ -209,11 +212,9 @@ bool FOnlineAchievementsIOS::WriteAchievements(const FUniqueNetId& PlayerId, FOn
 	else
 	{
 		UE_LOG(LogOnline, Warning, TEXT("No achievements were written to be flushed"));
-		TriggerOnAchievementsWrittenDelegates( PlayerId, false );
 		WriteObject->WriteState = EOnlineAsyncTaskState::Failed;
+		CopiedDelegate.ExecuteIfBound(PlayerId, false);
 	}
-
-	return WriteObject->WriteState != EOnlineAsyncTaskState::Failed;
 }
 
 

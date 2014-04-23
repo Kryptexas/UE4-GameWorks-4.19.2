@@ -95,10 +95,9 @@ public:
 	 *
 	 * @param PlayerId - The uid of the player we are writing achievements for
 	 * @param WriteObject - The stats holder containing the achievements we are writing.
-	 *
-	 * @return Whether we have kicked off a write attempt
+	 * @param Delegate - The delegate to call when the write has completed or failed.
 	 */
-	virtual bool WriteAchievements(const FUniqueNetId& PlayerId, FOnlineAchievementsWriteRef& WriteObject) = 0;
+	virtual void WriteAchievements(const FUniqueNetId& PlayerId, FOnlineAchievementsWriteRef& WriteObject, const FOnAchievementsWrittenDelegate& Delegate = FOnAchievementsWrittenDelegate()) = 0;
 
 	
 	/**
@@ -164,12 +163,6 @@ public:
 	 */
 	virtual bool ResetAchievements( const FUniqueNetId& PlayerId ) = 0;
 #endif // !UE_BUILD_SHIPPING
-
-	/**
-	 * Delegate fired when achievements were written to the server
-	 */
-	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnAchievementsWritten, const FUniqueNetId&, bool);
-
 
 	/**
 	 * Delegate fired when an achievement on the server was unlocked
