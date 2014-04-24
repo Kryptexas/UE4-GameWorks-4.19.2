@@ -31,6 +31,12 @@ FText UK2Node_GetInputAxisValue::GetNodeTitle(ENodeTitleType::Type TitleType) co
 	return FText::Format(NSLOCTEXT("K2Node", "GetInputAxis_Name", "Get {InputAxisName}"), Args);
 }
 
+FString UK2Node_GetInputAxisValue::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
+	return FString::Printf(TEXT("Get %s"), *InputAxisName.ToString());
+}
+
 FString UK2Node_GetInputAxisValue::GetTooltip() const
 {
 	return FString::Printf(*NSLOCTEXT("K2Node", "GetInputAxis_Tooltip", "Returns the current value of input axis %s.  If input is disabled for the actor the value will be 0.").ToString(), *InputAxisName.ToString());

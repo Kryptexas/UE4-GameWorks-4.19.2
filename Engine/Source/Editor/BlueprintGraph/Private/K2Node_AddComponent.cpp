@@ -301,10 +301,6 @@ FText UK2Node_AddComponent::GetNodeTitle(ENodeTitleType::Type TitleType) const
 				Args.Add(TEXT("ParticleSystemName"), FText::FromString(PSysComp->Template->GetName()));
 				return FText::Format(LOCTEXT("AddParticleSystem", "Add ParticleSystem {ParticleSystemName}"), Args);
 			}
-			else if (SubActorComp && SubActorComp->ChildActorClass)
-			{
-				return FString(TEXT("Add ChildActorComponent ")) + SubActorComp->ChildActorClass->GetName();
-			}
 			else
 			{
 				FFormatNamedArguments Args;
