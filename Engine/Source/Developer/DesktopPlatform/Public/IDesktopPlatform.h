@@ -133,6 +133,13 @@ public:
 	virtual void EnumerateEngineInstallations(TMap<FString, FString> &OutInstallations) = 0;
 
 	/**
+	* Enumerates all the registered binary engine installations.
+	*
+	* @param	OutInstallations	Array which is filled in with identifier/root-directory pairs for all known binary installations.
+	*/
+	virtual void EnumerateLauncherEngineInstallations(TMap<FString, FString> &OutInstallations) = 0;
+
+	/**
 	* Returns the identifier for the engine with the given root directory.
 	*
 	* @param	RootDirName			Root directory for the engine.
@@ -147,4 +154,82 @@ public:
 	* @param	OutIdentifier		Identifier used to refer to this installation.
 	*/
 	virtual bool GetEngineIdentifierFromRootDir(const FString &RootDir, FString &OutIdentifier) = 0;
+
+	/**
+	* Gets the identifier for the default engine. This will be the newest installed engine.
+	*
+	* @param	OutIdentifier	String to hold to the default engine's identifier
+	* @return	true if OutIdentifier is valid.
+	*/
+	virtual bool GetDefaultEngineIdentifier(FString &OutIdentifier) = 0;
+
+	/**
+	* Compares two identifiers and checks whether the first is preferred to the second.
+	*
+	* @param	Identifier		First identifier
+	* @param	OtherIdentifier	Second identifier
+	* @return	true if Identifier is preferred over OtherIdentifier
+	*/
+	virtual bool IsPreferredEngineIdentifier(const FString &Identifier, const FString &OtherIdentifier) = 0;
+
+	/**
+	* Gets the root directory for the default engine installation.
+	*
+	* @param	OutRootDir	String to hold to the default engine's root directory
+	* @return	true if OutRootDir is valid
+	*/
+	virtual bool GetDefaultEngineRootDir(FString &OutRootDir) = 0;
+
+	/**
+	* Tests whether an engine installation is a source distribution.
+	*
+	* @return	true if the engine contains source.
+	*/
+	virtual bool IsSourceDistribution(const FString &RootDir) = 0;
+
+	/**
+	* Tests whether an engine installation is a perforce build.
+	*
+	* @return	true if the engine is a perforce build.
+	*/
+	virtual bool IsPerforceBuild(const FString &RootDir) = 0;
+
+	/**
+	* Tests whether a root directory is a valid Unreal Engine installation
+	*
+	* @return	true if the engine is a valid installation
+	*/
+	virtual bool IsValidRootDirectory(const FString &RootDir) = 0;
+
+	/**
+	* Checks that the current file associations are correct.
+	*
+	* @return	true if file associations are up to date.
+	*/
+	virtual bool VerifyFileAssociations() = 0;
+
+	/**
+	* Updates file associations.
+	*
+	* @return	true if file associations were successfully updated.
+	*/
+	virtual bool UpdateFileAssociations() = 0;
+
+	/**
+	* Sets the engine association for a project.
+	*
+	* @param ProjectFileName	Filename of the project to update
+	* @param Identifier			Identifier of the engine to associate it with
+	* @return true if the project was successfully updated
+	*/
+	virtual bool SetEngineIdentifierForProject(const FString &ProjectFileName, const FString &Identifier) = 0;
+
+	/**
+	* Gets the engine association for a project.
+	*
+	* @param ProjectFileName	Filename of the project to update
+	* @param OutIdentifier		Identifier of the engine to associate it with
+	* @return true if OutIdentifier is set to the project's engine association
+	*/
+	virtual bool GetEngineIdentifierForProject(const FString &ProjectFileName, FString &OutIdentifier) = 0;
 };

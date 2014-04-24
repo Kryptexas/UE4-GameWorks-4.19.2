@@ -514,6 +514,17 @@ bool FDesktopPlatformMac::FileDialogShared(bool bSave, const void* ParentWindowH
 
 void FDesktopPlatformMac::EnumerateEngineInstallations(TMap<FString, FString> &OutInstallations)
 {
+	EnumerateLauncherEngineInstallations(OutInstallations);
+}
+
+bool FDesktopPlatformMac::VerifyFileAssociations() OVERRIDE
+{
+	return true;
+}
+
+bool FDesktopPlatformMac::UpdateFileAssociations() OVERRIDE
+{
+	return true;
 }
 
 #undef LOCTEXT_NAMESPACE

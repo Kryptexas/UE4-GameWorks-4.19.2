@@ -11,10 +11,3 @@
 	#include "GenericPlatform/GenericPlatformInstallation.h"
 	typedef FGenericPlatformInstallation FPlatformInstallation;
 #endif
-
-// Utility functions
-int32 ParseReleaseVersion(const FString &Version);
-
-bool GetDefaultEngineId(FString &OutId);
-bool GetDefaultEngineRootDir(FString &OutId);
-

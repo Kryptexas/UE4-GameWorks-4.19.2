@@ -2,33 +2,43 @@
 #include "RequiredProgramMainCPPInclude.h"
 #include "DesktopPlatformModule.h"
 #include "PlatformInstallation.h"
-#include "FileAssociation.h"
 
 IMPLEMENT_APPLICATION(UnrealVersionSelector, "UnrealVersionSelector")
 
-FString FullExecutableName()
-{
-	return FString(FPlatformProcess::BaseDir()) / FString(FPlatformProcess::ExecutableName(false));
-}
-
 bool RegisterCurrentEngineDirectory()
 {
-	// Get the current engine directory.
-	FString EngineRootDir = FPlatformMisc::RootDir();
-
-	// Get the canonical version selector path
-	FString VersionSelectorFileName;
-	if (!FPlatformInstallation::GetLauncherVersionSelector(VersionSelectorFileName))
-	{
-		VersionSelectorFileName = FString(FPlatformProcess::BaseDir()) / FString(FPlatformProcess::ExecutableName(false));
-	}
-
-	// Launch the installed version selector as elevated to register this directory
-	FString Arguments = FString::Printf(TEXT("/register \"%s\""), *EngineRootDir);
-	int32 ExitCode;
-	if (!FPlatformProcess::ExecElevatedProcess(*VersionSelectorFileName, *Arguments, &ExitCode) || ExitCode != 0)
+	// Prompt for registering this directory
+	if(FPlatformMisc::MessageBoxExt(EAppMsgType::YesNo, TEXT("Configure this directory as an Unreal Engine installation?"), TEXT("Question")) != EAppReturnType::Yes)
 	{
 		return false;
+	}
+
+	// Get the current engine directory.
+	FString EngineRootDir = FPlatformProcess::BaseDir();
+	FPlatformInstallation::NormalizeEngineRootDir(EngineRootDir);
+
+	// Get any existing tag name or register a new one
+	FString Identifier;
+	if (!FDesktopPlatformModule::Get()->GetEngineIdentifierFromRootDir(EngineRootDir, Identifier))
+	{
+		if(!FPlatformInstallation::RegisterEngineInstallation(EngineRootDir, Identifier))
+		{
+			FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, TEXT("Couldn't add engine installation."), TEXT("Error"));
+			return false;
+		}
+	}
+
+	// If the launcher isn't installed, set up the file associations
+	if(!FDesktopPlatformModule::Get()->VerifyFileAssociations())
+	{
+		// Relaunch as administrator
+		FString ExecutableFileName = FString(FPlatformProcess::BaseDir()) / FString(FPlatformProcess::ExecutableName(false));
+
+		int32 ExitCode;
+		if (!FPlatformProcess::ExecElevatedProcess(*ExecutableFileName, TEXT("/fileassociations"), &ExitCode) || ExitCode != 0)
+		{
+			return false;
+		}
 	}
 
 	// Notify the user that everything is awesome.
@@ -36,141 +46,44 @@ bool RegisterCurrentEngineDirectory()
 	return true;
 }
 
-void EnumerateInvalidInstallations(TArray<FString> &OutIds)
+bool UpdateFileAssociations()
 {
-	// Enumerate all the engine installations
-	TMap<FString, FString> Installations;
-	FDesktopPlatformModule::Get()->EnumerateEngineInstallations(Installations);
-
-	// Check each one of them has a valid engine path
-	for (TMap<FString, FString>::TConstIterator Iter(Installations); Iter; ++Iter)
-	{
-		const FString &RootDir = Iter.Value();
-		if (!FPlatformInstallation::IsValidEngineRootDir(RootDir))
-		{
-			OutIds.Add(Iter.Key());
-		}
-	}
-}
-
-bool VerifySettings()
-{
-	// Enumerate all the invalid installations
-	TArray<FString> InvalidInstallationIds;
-	EnumerateInvalidInstallations(InvalidInstallationIds);
-
-	// If the current settings are valid, we don't need to do anything
-	if (InvalidInstallationIds.Num() == 0 && FPlatformInstallation::VerifyShellIntegration())
-	{
-		return true;
-	}
-
-	// Otherwise relaunch as administrator
-	return FPlatformProcess::ExecElevatedProcess(*FullExecutableName(), TEXT("/update"), NULL);
-}
-
-bool UpdateSettings()
-{
-	// Enumerate all the invalid installations
-	TArray<FString> InvalidInstallationIds;
-	EnumerateInvalidInstallations(InvalidInstallationIds);
-
-	// Remove those installations
-	for (int32 Idx = 0; Idx < InvalidInstallationIds.Num(); Idx++)
-	{
-		if (!FPlatformInstallation::UnregisterEngineInstallation(InvalidInstallationIds[Idx]))
-		{
-			FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, TEXT("Couldn't update installation settings."), TEXT("Error"));
-			return false;
-		}
-	}
-
 	// Update everything
-	if (!FPlatformInstallation::UpdateShellIntegration())
+	if (!FDesktopPlatformModule::Get()->UpdateFileAssociations())
 	{
-		FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, TEXT("Couldn't update installation settings."), TEXT("Error"));
+		FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, TEXT("Couldn't update file associations."), TEXT("Error"));
 		return false;
 	}
 	return true;
 }
 
-bool RegisterEngineDirectory(const FString &EngineId, const FString &EngineDir)
+bool SwitchVersion(const FString &ProjectFileName)
 {
-	// Add the installation by name
-	if (!FPlatformInstallation::RegisterEngineInstallation(EngineId, EngineDir))
+	// Get the current identifier
+	FString Identifier;
+	FDesktopPlatformModule::Get()->GetEngineIdentifierForProject(ProjectFileName, Identifier);
+
+	// Select the new association
+	if(!FPlatformInstallation::SelectEngineInstallation(Identifier))
 	{
-		FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, TEXT("Couldn't add engine installation."), TEXT("Error"));
 		return false;
 	}
 
-	// Add an installation, then call update
-	return UpdateSettings();
-}
-
-bool RegisterEngineDirectory(const FString &EngineDir)
-{
-	// Get any existing tag name or register a new one
-	FString EngineId;
-	if (!FDesktopPlatformModule::Get()->GetEngineIdentifierFromRootDir(EngineDir, EngineId))
-	{
-		EngineId = FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphensInBraces);
-	}
-
-	// Add an installation, then call update
-	return RegisterEngineDirectory(EngineId, EngineDir);
-}
-
-bool SelectEngineAssociation(const FString &ProjectFileName, const FString &EngineId)
-{
-	// Just write the ID into the file
-	if (!SetEngineIdForProject(ProjectFileName, EngineId))
+	// Update the project file
+	if (!FDesktopPlatformModule::Get()->SetEngineIdentifierForProject(ProjectFileName, Identifier))
 	{
 		FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, TEXT("Couldn't set association for project. Check the file is writeable."), TEXT("Error"));
 		return false;
 	}
 
 	// Notify the user that it's been changed
-	FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, TEXT("Updated project file."), TEXT("Success"));
 	return true;
 }
 
-bool BrowseForEngineAssociation(const FString &ProjectFileName)
+bool GetEngineRootDirForProject(const FString &ProjectFileName, FString &OutRootDir)
 {
-	// Get the currently bound engine directory for the project
-	FString EngineRootDir;
-	GetEngineRootDirForProject(ProjectFileName, EngineRootDir);
-
-	// Browse for a new directory
-	FString NewEngineRootDir;
-	if (!FDesktopPlatformModule::Get()->OpenDirectoryDialog(NULL, TEXT("Select the Unreal Engine installation to use for this project"), EngineRootDir, NewEngineRootDir))
-	{
-		return false;
-	}
-
-	// Check it's a valid directory
-	if (!FPlatformInstallation::NormalizeEngineRootDir(NewEngineRootDir))
-	{
-		FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, TEXT("The selected directory is not a valid engine installation."), TEXT("Error"));
-		return false;
-	}
-
-	// Check that it's a registered engine directory
-	FString EngineId;
-	if (!FDesktopPlatformModule::Get()->GetEngineIdentifierFromRootDir(NewEngineRootDir, EngineId))
-	{
-		int32 ExitCode;
-		if (!FPlatformProcess::ExecElevatedProcess(*FullExecutableName(), *FString::Printf(TEXT("/register \"%s\""), *NewEngineRootDir), &ExitCode) || ExitCode != 0)
-		{
-			return false;
-		}
-		if (!FDesktopPlatformModule::Get()->GetEngineIdentifierFromRootDir(NewEngineRootDir, EngineId))
-		{
-			return false;
-		}
-	}
-
-	// Set the file association
-	return SelectEngineAssociation(ProjectFileName, EngineId);
+	FString Identifier;
+	return FDesktopPlatformModule::Get()->GetEngineIdentifierForProject(ProjectFileName, Identifier) && FDesktopPlatformModule::Get()->GetEngineRootDirFromIdentifier(Identifier, OutRootDir);
 }
 
 bool GetValidatedEngineRootDir(const FString &ProjectFileName, FString &OutRootDir)
@@ -179,7 +92,7 @@ bool GetValidatedEngineRootDir(const FString &ProjectFileName, FString &OutRootD
 	if (!GetEngineRootDirForProject(ProjectFileName, OutRootDir))
 	{
 		// Try to set an association
-		if (!BrowseForEngineAssociation(ProjectFileName))
+		if(!SwitchVersion(ProjectFileName))
 		{
 			return false;
 		}
@@ -224,7 +137,7 @@ bool GenerateProjectFiles(const FString &ProjectFileName)
 
 	// Build the argument list
 	FString Arguments = TEXT("-game");
-	if (FPlatformInstallation::IsSourceDistribution(RootDir))
+	if (FDesktopPlatformModule::Get()->IsSourceDistribution(RootDir))
 	{
 		Arguments += TEXT(" -engine");
 	}
@@ -247,35 +160,15 @@ int Main(const TArray<FString> &Arguments)
 		// Add the current directory to the list of installations
 		bRes = RegisterCurrentEngineDirectory();
 	}
-	else if (Arguments.Num() == 1 && Arguments[0] == TEXT("/verify"))
-	{
-		// Verify all the settings are correct.
-		bRes = VerifySettings();
-	}
-	else if (Arguments.Num() == 1 && Arguments[0] == TEXT("/update"))
+	else if (Arguments.Num() == 1 && Arguments[0] == TEXT("/fileassociations"))
 	{
 		// Update all the settings.
-		bRes = UpdateSettings();
+		bRes = UpdateFileAssociations();
 	}
-	else if (Arguments.Num() == 2 && Arguments[0] == TEXT("/register"))
-	{
-		// Register the given directory as an engine directory
-		bRes = RegisterEngineDirectory(Arguments[1]);
-	}
-	else if (Arguments.Num() == 3 && Arguments[0] == TEXT("/register"))
-	{
-		// Register an id corresponding to a given directory
-		bRes = RegisterEngineDirectory(Arguments[1], Arguments[2]);
-	}
-	else if (Arguments.Num() == 3 && Arguments[0] == TEXT("/associate"))
+	else if (Arguments.Num() == 2 && Arguments[0] == TEXT("/switchversion"))
 	{
 		// Associate with an engine label
-		bRes = SelectEngineAssociation(Arguments[1], Arguments[2]);
-	}
-	else if (Arguments.Num() == 2 && Arguments[0] == TEXT("/browse"))
-	{
-		// Associate the project with a user selected engine
-		bRes = BrowseForEngineAssociation(Arguments[1]);
+		bRes = SwitchVersion(Arguments[1]);
 	}
 	else if (Arguments.Num() == 2 && Arguments[0] == TEXT("/editor"))
 	{

@@ -5,70 +5,10 @@
 #include "../PlatformInstallation.h"
 #include "Runtime/Launch/Resources/Version.h"
 
-bool FGenericPlatformInstallation::GetLauncherVersionSelector(FString &OutFileName)
-{
-	FConfigFile ConfigFile;
-	ConfigFile.Read(GetConfigFilePath());
-
-	FString InstallationPath;
-	if (!ConfigFile.GetString(TEXT("Launcher"), TEXT("InstalledPath"), InstallationPath))
-	{
-		return false;
-	}
-
-	FString LauncherFileName = InstallationPath / TEXT("Engine/Binaries/Win64/UnrealVersionSelector.exe");
-	if (IFileManager::Get().FileSize(*LauncherFileName) < 0)
-	{
-		return false;
-	}
-
-	return true;
-}
-
 bool FGenericPlatformInstallation::RegisterEngineInstallation(const FString &Id, const FString &RootDirName)
 {
-	FString NormalizedRootDirName = RootDirName;
-	FPaths::NormalizeDirectoryName(NormalizedRootDirName);
-
-	FConfigFile ConfigFile;
-	ConfigFile.Read(GetConfigFilePath());
-
-	FConfigSection &Section = ConfigFile.FindOrAdd(TEXT("Installations"));
-	Section.AddUnique(*Id, NormalizedRootDirName);
-	ConfigFile.Dirty = true;
-	return ConfigFile.Write(GetConfigFilePath());
-}
-
-bool FGenericPlatformInstallation::UnregisterEngineInstallation(const FString &Id)
-{
-	FConfigFile ConfigFile;
-	ConfigFile.Read(GetConfigFilePath());
-
-	FConfigSection &Section = ConfigFile.FindOrAdd(TEXT("Installations"));
-	Section.Remove(*Id);
-	ConfigFile.Dirty = true;
-	return ConfigFile.Write(GetConfigFilePath());
-}
-
-bool FGenericPlatformInstallation::IsSourceDistribution(const FString &EngineRootDir)
-{
-	// Check for the existence of a SourceBuild.txt file
-	FString SourceBuildPath = EngineRootDir / TEXT("Engine\\Build\\SourceDistribution.txt");
-	return (IFileManager::Get().FileSize(*SourceBuildPath) >= 0);
-}
-
-bool FGenericPlatformInstallation::IsPerforceBuild(const FString &EngineRootDir)
-{
-	// Check for the existence of a SourceBuild.txt file
-	FString PerforceBuildPath = EngineRootDir / TEXT("Engine\\Build\\PerforceBuild.txt");
-	return (IFileManager::Get().FileSize(*PerforceBuildPath) >= 0);
-}
-
-bool FGenericPlatformInstallation::IsValidEngineRootDir(const FString &RootDir)
-{
-	// Check if the engine binaries directory exists
-	FString EngineBinariesDirName = RootDir / TEXT("Engine/Binaries");
-	return IFileManager::Get().DirectoryExists(*EngineBinariesDirName);
+	// No default implementation
+	return true;
 }
 
 bool FGenericPlatformInstallation::NormalizeEngineRootDir(FString &RootDir)
@@ -78,7 +18,7 @@ bool FGenericPlatformInstallation::NormalizeEngineRootDir(FString &RootDir)
 	FPaths::NormalizeDirectoryName(NormalizedRootDir);
 
 	// Check if it's valid
-	if (IsValidEngineRootDir(NormalizedRootDir))
+	if (FDesktopPlatformModule::Get()->IsValidRootDirectory(NormalizedRootDir))
 	{
 		RootDir = NormalizedRootDir;
 		return true;
@@ -94,7 +34,7 @@ bool FGenericPlatformInstallation::NormalizeEngineRootDir(FString &RootDir)
 	}
 
 	// Check if the engine binaries directory exists
-	if (IsValidEngineRootDir(NormalizedRootDir))
+	if (FDesktopPlatformModule::Get()->IsValidRootDirectory(NormalizedRootDir))
 	{
 		RootDir = NormalizedRootDir;
 		return true;
@@ -115,20 +55,8 @@ bool FGenericPlatformInstallation::GenerateProjectFiles(const FString &RootDirNa
 	return false;
 }
 
-bool FGenericPlatformInstallation::VerifyShellIntegration()
+bool FGenericPlatformInstallation::SelectEngineInstallation(FString &Identifier)
 {
-	// No shell integration by default
-	return true;
+	// No default implementation
+	return false;
 }
-
-bool FGenericPlatformInstallation::UpdateShellIntegration()
-{
-	// No shell integration by default
-	return true;
-}
-
-FString FGenericPlatformInstallation::GetConfigFilePath()
-{
-	return FString(FPlatformProcess::ApplicationSettingsDir()) / FString(EPIC_PRODUCT_IDENTIFIER) / FString(TEXT("Install.ini"));
-}
-
