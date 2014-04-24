@@ -116,7 +116,31 @@ void UActorComponent::PostInitProperties()
 	Super::PostInitProperties();
 
 	AActor* Owner = GetOwner();
-	ensureMsgf(Owner == NULL || Owner == GetOuter(), TEXT("Component %s is owned by %s by has an Outer of %s."), *GetName(), *Owner->GetName(), *GetOuter()->GetName());
+	if (Owner)
+	{
+		Owner->AddOwnedComponent(this);
+	}
+}
+
+void UActorComponent::PostRename(UObject* OldOuter, const FName OldName)
+{
+	if (OldOuter != GetOuter())
+	{
+		AActor* Owner = GetOwner();
+		AActor* OldOwner = (OldOuter->IsA<AActor>() ? CastChecked<AActor>(OldOuter) : OldOuter->GetTypedOuter<AActor>());
+
+		if (Owner != OldOwner)
+		{
+			if (OldOwner)
+			{
+				OldOwner->RemoveOwnedComponent(this);
+			}
+			if (Owner)
+			{
+				Owner->AddOwnedComponent(this);
+			}
+		}
+	}
 }
 
 #if WITH_EDITOR
@@ -546,7 +570,7 @@ void UActorComponent::RegisterComponentWithWorld(UWorld* InWorld)
 	// Follow outer chain to see if we can find an Actor
 	AActor* Owner = GetOwner();
 
-	ensureMsgf(Owner == NULL || Owner == GetOuter(), TEXT("Component %s is owned by %s by has an Outer of %s."), *GetName(), *Owner->GetName(), *GetOuter()->GetName());
+	checkSlow(Owner == NULL || Owner->OwnsComponent(this));
 
 	if ((Owner != NULL) && Owner->GetClass()->HasAnyClassFlags(CLASS_NewerVersionExists))
 	{
@@ -624,6 +648,7 @@ void UActorComponent::DestroyComponent()
 	if(Owner != NULL)
 	{
 		Owner->SerializedComponents.Remove(this);
+		Owner->RemoveOwnedComponent(this);
 		if (Owner->GetRootComponent() == this)
 		{
 			Owner->SetRootComponent(NULL);

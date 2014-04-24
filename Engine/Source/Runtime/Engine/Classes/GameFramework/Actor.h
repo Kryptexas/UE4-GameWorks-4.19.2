@@ -1891,7 +1891,7 @@ public:
 	bool IsNetStartupActor() const;
 
 	/** Searches components array and returns first encountered array by type. */
-	virtual UActorComponent* FindComponentByClass(const UClass* Class) const;
+	virtual UActorComponent* FindComponentByClass(const TSubclassOf<UActorComponent> ComponentClass) const;
 	
 	/** Templatized version for syntactic nicety. */
 	template<class T>
@@ -1908,20 +1908,45 @@ public:
 		static_assert(CanConvertPointerFromTo<T, UActorComponent>::Result, "'T' template parameter to GetComponents must be derived from ActorComponent");
 
 		SCOPE_CYCLE_COUNTER(STAT_GetComponentsTime);
-		TArray<UObject*> ChildObjects;
-		GetObjectsWithOuter(this, ChildObjects, false, RF_PendingKill);
 
-		OutComponents.Reset(ChildObjects.Num());
+		OutComponents.Reset(OwnedComponents.Num());
 
-		for (UObject* Child : ChildObjects)
+		for (UActorComponent* OwnedComponent : OwnedComponents)
 		{
-			T* const Component = Cast<T>(Child);
+			T* Component = Cast<T>(OwnedComponent);
 			if (Component)
 			{
 				OutComponents.Add(Component);
 			}
 		}
 	}
+
+	// UActorComponent specialization to avoid unnecessary casts
+	template<>
+	void GetComponents(TArray<UActorComponent*>& OutComponents) const
+	{
+		SCOPE_CYCLE_COUNTER(STAT_GetComponentsTime);
+
+		OutComponents.Reset(OwnedComponents.Num());
+
+		for (UActorComponent* Component : OwnedComponents)
+		{
+			if (Component)
+			{
+				OutComponents.Add(Component);
+			}
+		}
+	}
+
+	void AddOwnedComponent(UActorComponent* Component);
+	void RemoveOwnedComponent(UActorComponent* Component);
+#if DO_CHECK
+	bool OwnsComponent(UActorComponent* Component) const;
+#endif
+
+private:
+	UPROPERTY(transient, duplicatetransient)
+	TArray<UActorComponent*> OwnedComponents;
 
 public:
 	//=============================================================================

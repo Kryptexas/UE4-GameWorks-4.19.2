@@ -253,6 +253,25 @@ void AActor::PostInitProperties()
 	Super::PostInitProperties();
 	RegisterAllActorTickFunctions(true,false); // component will be handled when they are registered
 	RemoteRole = (bReplicates ? ROLE_SimulatedProxy : ROLE_None);
+
+	// Make sure the OwnedComponents list correct.  
+	// Under some circumstances sub-object instancing can result in bogus/duplicate entries.
+	// This is not necessary for CDOs
+	if (!HasAnyFlags(RF_ClassDefaultObject))
+	{
+		TArray<UObject*> Children;
+		OwnedComponents.Empty();
+		GetObjectsWithOuter(this, Children, true, RF_PendingKill);
+
+		for (UObject* Child : Children)
+		{
+			UActorComponent* Component = Cast<UActorComponent>(Child);
+			if (Component)
+			{
+				OwnedComponents.Add(Component);
+			}
+		}
+	}
 }
 
 UWorld* AActor::GetWorld() const
@@ -1924,20 +1943,41 @@ enum ECollisionResponse AActor::GetComponentsCollisionResponseToChannel(enum ECo
 	return OutResponse;
 };
 
-UActorComponent* AActor::FindComponentByClass(const UClass* Class) const
+void AActor::AddOwnedComponent(UActorComponent* Component)
 {
-	TArray<UObject*> ChildObjects;
-	GetObjectsWithOuter(this, ChildObjects, false, RF_PendingKill);
+	OwnedComponents.AddUnique(Component);
+}
 
-	for (UObject* Child : ChildObjects)
+void AActor::RemoveOwnedComponent(UActorComponent* Component)
+{
+	if (OwnedComponents.RemoveSwap(Component) == 0)
 	{
-		if ( Child->IsA(Class) )
+		// If we didn't remove something we expected to then it probably got NULL through the
+		// property system so take the time to pull them out now
+		OwnedComponents.RemoveSwap(NULL);
+	}
+}
+
+#if DO_CHECK
+bool AActor::OwnsComponent(UActorComponent* Component) const
+{
+	return OwnedComponents.Contains(Component);
+}
+#endif
+
+UActorComponent* AActor::FindComponentByClass(const TSubclassOf<UActorComponent> ComponentClass) const
+{
+	UActorComponent* FoundComponent = NULL;
+	for (UActorComponent* Component : OwnedComponents)
+	{
+		if (Component && Component->IsA(ComponentClass))
 		{
-			return (UActorComponent*) Child;
+			FoundComponent = Component;
+			break;
 		}
 	}
 
-	return NULL;
+	return FoundComponent;
 }
 
 void AActor::DisableComponentsSimulatePhysics()
@@ -2863,7 +2903,7 @@ void AActor::RegisterAllComponents()
 	GetComponents(SceneComponents);
 
 	for(int32 CompIdx=0; CompIdx < SceneComponents.Num(); CompIdx++)
-		{
+	{
 		USceneComponent* SceneComp = SceneComponents[CompIdx];
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 			AActor* CompOwner = SceneComp->GetOwner();

@@ -417,6 +417,7 @@ public:
 	virtual int32 GetFunctionCallspace( UFunction* Function, void* Parameters, FFrame* Stack ) OVERRIDE;
 	virtual bool CallRemoteFunction( UFunction* Function, void* Parameters, FOutParmRec* OutParms, FFrame* Stack ) OVERRIDE;
 	virtual void PostInitProperties() OVERRIDE;
+	virtual void PostRename(UObject* OldOuter, const FName OldName) OVERRIDE;
 #if WITH_EDITOR
 	virtual void PreEditChange(UProperty* PropertyThatWillChange) OVERRIDE;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
