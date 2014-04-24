@@ -503,16 +503,15 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_FOLIAGE_COLLISION,
 	// Added sky bent normal to indirect lighting cache
 	VER_UE4_SKY_BENT_NORMAL,
-
 	// Added cooking for landscape collision data
 	VER_UE4_LANDSCAPE_COLLISION_DATA_COOKING,
-	
 	// Convert CPU tangent Z delta to vector from PackedNormal since we don't get any benefit other than memory
 	// we still convert all to FVector in CPU time whenever any calculation
 	VER_UE4_MORPHTARGET_CPU_TANGENTZDELTA_FORMATCHANGE,
-
 	// Soft constraint limits will implicitly use the mass of the bodies
 	VER_UE4_SOFT_CONSTRAINTS_USE_MASS,
+	// Reflection capture data saved in packages
+	VER_UE4_REFLECTION_DATA_IN_PACKAGES,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
