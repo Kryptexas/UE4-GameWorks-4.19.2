@@ -776,6 +776,12 @@ void CaptureSceneToScratchCubemap(FSceneRenderer* SceneRenderer, ECubeFace CubeF
 		// Render the scene normally for one face of the cubemap
 		SceneRenderer->Render();
 
+#if PLATFORM_PS4 // @todo ps4 - this should be done a different way
+		// PS4 needs some code here to process the scene
+		extern void TEMP_PostReflectionCaptureRender();
+		TEMP_PostReflectionCaptureRender();
+#endif
+
 		const int32 EffectiveSize = GReflectionCaptureSize;
 		FSceneRenderTargetItem& EffectiveColorRT =  GSceneRenderTargets.ReflectionColorScratchCubemap[0]->GetRenderTargetItem();
 
@@ -1194,7 +1200,7 @@ void ClearScratchCubemaps()
 		if (GSupportsGSRenderTargetLayerSwitchingToMips)
 		{
 			RHISetRenderTarget(RT0.TargetableTexture, MipIndex, NULL);
-			RHIClear(true, FLinearColor(0, 10000, 0, 0), false, 0, false, 0, FIntRect());
+			RHIClear(true, FLinearColor(10000, 0, 0, 0), false, 0, false, 0, FIntRect());
 		}
 		else
 		{
@@ -1337,6 +1343,30 @@ void CaptureSceneIntoScratchCubemap(FScene* Scene, FVector CapturePosition, bool
 		FSceneViewInitOptions ViewInitOptions;
 		ViewInitOptions.ViewFamily = &ViewFamily;
 		ViewInitOptions.BackgroundColor = FLinearColor::Black;
+/*		switch(CubeFace )
+		{
+		case 0:
+			ViewInitOptions.BackgroundColor = FLinearColor::Blue;
+			break;
+		case 1:
+			ViewInitOptions.BackgroundColor = FLinearColor::Red;
+			break;
+		case 2:
+			ViewInitOptions.BackgroundColor = FLinearColor::Green;
+			break;
+		case 3:
+			ViewInitOptions.BackgroundColor = FLinearColor::Yellow;
+			break;
+		case 4:
+			ViewInitOptions.BackgroundColor = FLinearColor::White;
+			break;
+		case 5:
+			ViewInitOptions.BackgroundColor = FLinearColor::Gray;
+			break;
+		}
+		ViewFamily.EngineShowFlags.StaticMeshes = 0;
+		ViewFamily.EngineShowFlags.BSP = 0;
+*/
 		ViewInitOptions.OverlayColor = FLinearColor::Black;
 		ViewInitOptions.SetViewRectangle(FIntRect(0, 0, GReflectionCaptureSize * GSupersampleCaptureFactor, GReflectionCaptureSize * GSupersampleCaptureFactor));
 
