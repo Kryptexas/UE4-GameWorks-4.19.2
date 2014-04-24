@@ -55,7 +55,7 @@ public class UnrealVersionSelectorTarget : TargetRules
 	}
 	public override bool GUBP_AlwaysBuildWithTools(UnrealTargetPlatform InHostPlatform, out bool bInternalToolOnly)
 	{
-		bInternalToolOnly = false;
+		bInternalToolOnly = true;
 		return true;
 	}
 }
