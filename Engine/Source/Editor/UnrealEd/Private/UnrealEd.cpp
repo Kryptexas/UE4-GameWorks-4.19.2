@@ -101,7 +101,7 @@ int32 EditorInit( IEngineLoop& EngineLoop )
 	const bool bDoAutomatedMapBuild = FParse::Param( FCommandLine::Get(), TEXT("AutomatedMapBuild") );
 
 	// Prompt to update the game project file to the current version, if necessary
-	if ( FRocketSupport::IsRocket() && FPaths::IsProjectFilePathSet() )
+	if ( FPaths::IsProjectFilePathSet() )
 	{
 		FGameProjectGenerationModule::Get().CheckForOutOfDateGameProjectFile();
 	}
