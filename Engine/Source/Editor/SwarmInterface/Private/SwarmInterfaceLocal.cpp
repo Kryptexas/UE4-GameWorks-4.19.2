@@ -37,6 +37,7 @@ public:
 	virtual int32 CloseJob( void );
 	virtual int32 Log( TVerbosityLevel Verbosity, TLogColour TextColour, const TCHAR* Message );
 	virtual void SetJobGuid( const FGuid& JobGuid );
+	virtual bool IsJobProcessRunning( int32* OutStatus );
 
 private:
 
@@ -545,6 +546,16 @@ int32 FSwarmInterfaceLocalImpl::CloseJob( void )
 	Channels.Empty();
 	Tasks.Empty();
 	return SWARM_SUCCESS;
+}
+
+bool FSwarmInterfaceLocalImpl::IsJobProcessRunning( int32* OutStatus )
+{
+	const bool bIsRunning = FPlatformProcess::IsProcRunning(LightmassProcHandle);
+	if (!bIsRunning && OutStatus)
+	{
+		*OutStatus = FPlatformProcess::GetProcReturnCode(LightmassProcHandle, OutStatus);
+	}
+	return bIsRunning;
 }
 
 int32 FSwarmInterfaceLocalImpl::Log( TVerbosityLevel Verbosity, TLogColour TextColour, const TCHAR* Message )

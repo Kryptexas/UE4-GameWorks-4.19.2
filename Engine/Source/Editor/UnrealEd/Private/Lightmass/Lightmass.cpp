@@ -2757,6 +2757,18 @@ bool FLightmassProcessor::Update()
 
 	ProcessAlertMessages();
 
+#if USE_LOCAL_SWARM_INTERFACE
+	int32 Status = 0;
+	const bool bIsLightmassRunning = Swarm.IsJobProcessRunning(&Status);
+	if (!bIsLightmassRunning)
+	{
+		bIsFinished = true;
+		bProcessingFailed == Status != 0;
+		bProcessingSuccessful = !bProcessingFailed;
+		bQuitReceived = true;
+	}
+#endif
+
 	return bIsFinished;
 }
 

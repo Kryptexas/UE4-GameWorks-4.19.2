@@ -568,6 +568,18 @@ public:
 	{
 	}
 
+	/**
+	 * Checks if the job's process is still running
+	 *
+	 * @param OutStatus Exit status if process is no longer running
+	 *
+	 * @return bool true if process is still running
+	 */
+	virtual bool IsJobProcessRunning( int32* OutStatus )
+	{
+		return true;
+	}
+
 protected:
 	FSwarmInterface( void )
 	{

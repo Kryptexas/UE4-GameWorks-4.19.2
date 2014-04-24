@@ -106,7 +106,7 @@ public:
 	 */
 	FORCEINLINE bool Close()
 	{
-		return true;
+		return IsValid();
 	}
 
 protected:

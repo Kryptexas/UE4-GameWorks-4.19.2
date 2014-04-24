@@ -25,6 +25,7 @@ public class UnrealLightmass : ModuleRules
 				new string[] {
 					"Networking",
 					"Sockets",
+					"Messaging",
 					"UdpMessaging",
 				}
 			);
