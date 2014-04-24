@@ -22,6 +22,7 @@ public:
 	
 private:
 	FText GetItemText() const;
+	FString GetItemTooltipText() const;
 
 	TWeakPtr<class FBlueprintEditor> BlueprintEditor;
 	USlateWrapperComponent* Item;

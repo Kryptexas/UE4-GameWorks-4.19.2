@@ -23,6 +23,7 @@ void SUMGEditorTreeItem::Construct(const FArguments& InArgs, TSharedPtr<FBluepri
 	ChildSlot
 	[
 		SNew(STextBlock)
+		.ToolTipText(this, &SUMGEditorTreeItem::GetItemTooltipText)
 		.Text(this, &SUMGEditorTreeItem::GetItemText)
 	];
 }
@@ -30,6 +31,11 @@ void SUMGEditorTreeItem::Construct(const FArguments& InArgs, TSharedPtr<FBluepri
 FText SUMGEditorTreeItem::GetItemText() const
 {
 	return FText::FromString(Item->GetName());
+}
+
+FString SUMGEditorTreeItem::GetItemTooltipText() const
+{
+	return Item->GetDetailedInfo();
 }
 
 void SUMGEditorTreeItem::OnDragEnter(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
@@ -76,7 +82,8 @@ FReply SUMGEditorTreeItem::OnDrop(const FGeometry& MyGeometry, const FDragDropEv
 		{
 			UWidgetBlueprint* BP = CastChecked<UWidgetBlueprint>(BlueprintEditor.Pin()->GetBlueprintObj());
 
-			USlateWrapperComponent* Widget = ConstructObject<USlateWrapperComponent>(DragDropOp->Template->WidgetClass, BP);
+			UClass* WidgetClass = DragDropOp->Template->WidgetClass;
+			USlateWrapperComponent* Widget = ConstructObject<USlateWrapperComponent>(WidgetClass, BP);
 			
 			USlateNonLeafWidgetComponent* Parent = Cast<USlateNonLeafWidgetComponent>(Item);
 			Parent->AddChild(Widget);

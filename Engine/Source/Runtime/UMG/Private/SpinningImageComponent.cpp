@@ -17,7 +17,7 @@ USpinningImageComponent::USpinningImageComponent(const FPostConstructInitializeP
 TSharedRef<SWidget> USpinningImageComponent::RebuildWidget()
 {
 	return SNew(SSpinningImage)
-		.Image( &Image )
+		.Image( BIND_UOBJECT_ATTRIBUTE(const FSlateBrush*, GetImageBrush) )
 		.ColorAndOpacity( BIND_UOBJECT_ATTRIBUTE(FSlateColor, GetColorAndOpacity) )
 		.Period( Period );
 }

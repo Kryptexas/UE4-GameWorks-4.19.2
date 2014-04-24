@@ -19,8 +19,19 @@ UImageComponent::UImageComponent(const FPostConstructInitializeProperties& PCIP)
 TSharedRef<SWidget> UImageComponent::RebuildWidget()
 {
 	return SNew(SImage)
-		.Image( &Image )
+		.Image( BIND_UOBJECT_ATTRIBUTE(const FSlateBrush*, GetImageBrush) )
 		.ColorAndOpacity( BIND_UOBJECT_ATTRIBUTE(FSlateColor, GetColorAndOpacity) );
+}
+
+const FSlateBrush* UImageComponent::GetImageBrush() const
+{
+	if ( Image == NULL )
+	{
+		SImage::FArguments ImageDefaults;
+		return ImageDefaults._Image.Get();
+	}
+
+	return &Image->Brush;
 }
 
 FSlateColor UImageComponent::GetColorAndOpacity() const

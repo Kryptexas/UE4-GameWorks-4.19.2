@@ -26,25 +26,45 @@ bool UWidgetBlueprint::ValidateGeneratedClass(const UClass* InClass)
 {
 	bool Result = Super::ValidateGeneratedClass(InClass);
 
-	//for ( auto CompIt = Blueprint->Timelines.CreateConstIterator(); CompIt; ++CompIt )
-	//{
-	//	const UTimelineTemplate* Template = ( *CompIt );
-	//	if ( !ensure(Template && ( Template->GetOuter() == GeneratedClass )) )
-	//	{
-	//		return false;
-	//	}
-	//}
+	const UWidgetBlueprintGeneratedClass* GeneratedClass = Cast<const UWidgetBlueprintGeneratedClass>(InClass);
+	if ( !ensure(GeneratedClass) )
+	{
+		return false;
+	}
+	const UWidgetBlueprint* Blueprint = Cast<UWidgetBlueprint>(GetBlueprintFromClass(GeneratedClass));
+	if ( !ensure(Blueprint) )
+	{
+		return false;
+	}
 
-	//for ( auto CompIt = GeneratedClass->Timelines.CreateConstIterator(); CompIt; ++CompIt )
-	//{
-	//	const UTimelineTemplate* Template = ( *CompIt );
-	//	if ( !ensure(Template && ( Template->GetOuter() == GeneratedClass )) )
-	//	{
-	//		return false;
-	//	}
-	//}
+	for ( const USlateWrapperComponent* Template : Blueprint->WidgetTemplates )
+	{
+		if ( !ensure(Template && ( Template->GetOuter() == GeneratedClass )) )
+		{
+			return false;
+		}
+	}
+
+	for ( const USlateWrapperComponent* Template : GeneratedClass->WidgetTemplates )
+	{
+		if ( !ensure(Template && ( Template->GetOuter() == GeneratedClass )) )
+		{
+			return false;
+		}
+	}
 
 	return Result;
+}
+
+void UWidgetBlueprint::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph)
+{
+	Super::PostLoadSubobjects(OuterInstanceGraph);
+
+	UWidgetBlueprintGeneratedClass* BPGClass = Cast<UWidgetBlueprintGeneratedClass>(*GeneratedClass);
+	if ( BPGClass )
+	{
+		BPGClass->WidgetTemplates = WidgetTemplates;
+	}
 }
 
 #undef LOCTEXT_NAMESPACE 

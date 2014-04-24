@@ -15,6 +15,7 @@ public:
 	TArray<class USlateWrapperComponent*> WidgetTemplates;
 
 	virtual void PostLoad() OVERRIDE;
+	virtual void PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph) OVERRIDE;
 	
 #if WITH_EDITOR
 	// UBlueprint interface
