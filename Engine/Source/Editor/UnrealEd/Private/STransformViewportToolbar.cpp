@@ -599,20 +599,36 @@ FText STransformViewportToolBar::GetScaleGridLabel() const
 
 FText STransformViewportToolBar::GetCameraSpeedLabel() const
 {
-	return FText::AsNumber( GetDefault<ULevelEditorViewportSettings>()->CameraSpeed );
+	auto ViewportPin = Viewport.Pin();
+	if (ViewportPin.IsValid() && ViewportPin->GetViewportClient().IsValid())
+	{
+		return FText::AsNumber( ViewportPin->GetViewportClient()->GetCameraSpeedSetting() );
+	}
+
+	return FText();
 }	
 
 float STransformViewportToolBar::GetCamSpeedSliderPosition() const
 {
-	const int32 SpeedSetting = GetDefault<ULevelEditorViewportSettings>()->CameraSpeed;	
-	float SliderPos = (SpeedSetting - 1) / ((float)FEditorViewportClient::MaxCameraSpeeds - 1);
+	float SliderPos = 0.f;
+
+	auto ViewportPin = Viewport.Pin();
+	if (ViewportPin.IsValid() && ViewportPin->GetViewportClient().IsValid())
+	{
+		SliderPos = (ViewportPin->GetViewportClient()->GetCameraSpeedSetting() - 1) / ((float)FEditorViewportClient::MaxCameraSpeeds - 1);
+	}
+
 	return SliderPos;
 }
 
 void STransformViewportToolBar::OnSetCamSpeed(float NewValue)
 {
-	int32 SpeedSetting = NewValue * ((float)FEditorViewportClient::MaxCameraSpeeds - 1) + 1;
-	GetMutableDefault<ULevelEditorViewportSettings>()->CameraSpeed = SpeedSetting;
+	auto ViewportPin = Viewport.Pin();
+	if (ViewportPin.IsValid() && ViewportPin->GetViewportClient().IsValid())
+	{
+		const int32 SpeedSetting = NewValue * ((float)FEditorViewportClient::MaxCameraSpeeds - 1) + 1;
+		ViewportPin->GetViewportClient()->SetCameraSpeedSetting(SpeedSetting);
+	}
 }
 
 /**

@@ -826,12 +826,24 @@ public:
 
 	void SetRequiredCursorOverride( bool WantOverride, EMouseCursor::Type RequiredCursor = EMouseCursor::Default ); 
 
-	/**
-	 * Utility to get the actually mouse/camera speed (multiplier) based on the passed in setting.
-	 *
-	 * @param SpeedSetting	The desired speed steeing
-	 */
-	virtual float GetCameraSpeed(int32 SpeedSetting) const;
+	/** Get the camera speed for this viewport */
+	float GetCameraSpeed() const;
+
+	/** Get the camera speed for this viewport based on the specified speed setting */
+	float GetCameraSpeed(int32 SpeedSetting) const;
+
+	/** Set the speed setting for the camera in this viewport */
+	virtual void SetCameraSpeedSetting(int32 SpeedSetting);
+
+	/** Get the camera speed setting for this viewport */
+	virtual int32 GetCameraSpeedSetting() const;
+
+protected:
+
+	/** Camera speed setting */
+	int32 CameraSpeedSetting;
+
+public:
 
 	void DrawBoundingBox(FBox &Box, FCanvas* InCanvas, const FSceneView* InView, const FViewport* InViewport, const FLinearColor& InColor, const bool bInDrawBracket, const FString &InLabelText) ;
 

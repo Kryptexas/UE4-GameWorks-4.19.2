@@ -171,7 +171,8 @@ public:
 	virtual FSceneInterface* GetScene() const OVERRIDE;
 	virtual FLinearColor GetBackgroundColor() const OVERRIDE;
 	virtual bool IsAspectRatioConstrained() const OVERRIDE;
-	virtual float GetCameraSpeed(int32 SpeedSetting) const OVERRIDE;
+	virtual int32 GetCameraSpeedSetting() const OVERRIDE;
+	virtual void SetCameraSpeedSetting(int32 SpeedSetting) OVERRIDE;
 
 	virtual bool OverrideHighResScreenshotCaptureRegion(FIntRect& OutCaptureRegion) OVERRIDE;
 

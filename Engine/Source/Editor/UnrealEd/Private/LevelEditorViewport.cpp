@@ -4416,21 +4416,14 @@ bool FLevelEditorViewportClient::IsAspectRatioConstrained() const
 	}
 }
 
-float FLevelEditorViewportClient::GetCameraSpeed(int32 SpeedSetting) const
+int32 FLevelEditorViewportClient::GetCameraSpeedSetting() const
 {
-	
-	//previous mouse speed values were as follows...
-	//(note: these were previously all divided by 4 when used be the viewport)
-	//#define MOVEMENTSPEED_SLOW			4	~ 1
-	//#define MOVEMENTSPEED_NORMAL			12	~ 3
-	//#define MOVEMENTSPEED_FAST			32	~ 8
-	//#define MOVEMENTSPEED_VERYFAST		64	~ 16
+	return GetDefault<ULevelEditorViewportSettings>()->CameraSpeed;
+}
 
-
-	const int32 SpeedToUse = FMath::Clamp<int32>(SpeedSetting, 1, MaxCameraSpeeds);
-	const float Speed[] = {0.03125f, 0.09375f, 0.33f, 1.f, 3.f, 8.f, 16.f, 32.f};
-
-	return Speed[SpeedToUse - 1];
+void FLevelEditorViewportClient::SetCameraSpeedSetting(int32 SpeedSetting)
+{
+	GetMutableDefault<ULevelEditorViewportSettings>()->CameraSpeed = SpeedSetting;
 }
 
 bool FLevelEditorViewportClient::OverrideHighResScreenshotCaptureRegion(FIntRect& OutCaptureRegion)

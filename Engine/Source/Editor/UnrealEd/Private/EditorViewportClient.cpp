@@ -143,15 +143,34 @@ FMatrix FViewportCameraTransform::ComputeOrbitMatrix() const
 /**The Maximum Mouse/Camera Speeds Setting supported */
 const uint32 FEditorViewportClient::MaxCameraSpeeds = 8;
 
-/**
+float FEditorViewportClient::GetCameraSpeed() const
+{
+	return GetCameraSpeed(GetCameraSpeedSetting());
+}
 
- * Static: Utility to get the actual mouse/camera speed (multiplier) based on the passed in setting.
- *
- * @param SpeedSetting	The desired speed setting
- */
 float FEditorViewportClient::GetCameraSpeed(int32 SpeedSetting) const
 {
-	return 1.0f;
+	//previous mouse speed values were as follows...
+	//(note: these were previously all divided by 4 when used be the viewport)
+	//#define MOVEMENTSPEED_SLOW			4	~ 1
+	//#define MOVEMENTSPEED_NORMAL			12	~ 3
+	//#define MOVEMENTSPEED_FAST			32	~ 8
+	//#define MOVEMENTSPEED_VERYFAST		64	~ 16
+
+	const int32 SpeedToUse = FMath::Clamp<int32>(SpeedSetting, 1, MaxCameraSpeeds);
+	const float Speed[] = { 0.03125f, 0.09375f, 0.33f, 1.f, 3.f, 8.f, 16.f, 32.f };
+
+	return Speed[SpeedToUse - 1];
+}
+
+void FEditorViewportClient::SetCameraSpeedSetting(int32 SpeedSetting)
+{
+	CameraSpeedSetting = SpeedSetting;
+}
+
+int32 FEditorViewportClient::GetCameraSpeedSetting() const
+{
+	return CameraSpeedSetting;
 }
 
 float const FEditorViewportClient::SafePadding = 0.075f;
@@ -218,6 +237,7 @@ FEditorViewportClient::FEditorViewportClient(FPreviewScene* InPreviewScene)
 	, bShowStats(false)
 	, PreviewScene(InPreviewScene)
 	, bCameraLock(false)
+	, CameraSpeedSetting(4)
 {
 
 	ViewState.Allocate();
@@ -1167,7 +1187,7 @@ void FEditorViewportClient::UpdateCameraMovement( float DeltaTime )
 
 		// We'll combine the regular camera speed scale (controlled by viewport toolbar setting) with
 		// the flight camera speed scale (controlled by mouse wheel).
-		const float CameraSpeed = GetCameraSpeed(GetDefault<ULevelEditorViewportSettings>()->CameraSpeed);
+		const float CameraSpeed = GetCameraSpeed();
 		const float FinalCameraSpeedScale = FlightCameraSpeedScale * CameraSpeed;
 
 		// Only allow FOV recoil if flight camera mode is currently inactive.
@@ -1468,7 +1488,7 @@ void FEditorViewportClient::UpdateMouseDelta()
 							{
 								if( !IsOrtho())
 								{
-									const float CameraSpeed = GetCameraSpeed(GetDefault<ULevelEditorViewportSettings>()->CameraSpeed);
+									const float CameraSpeed = GetCameraSpeed();
 									Drag *= CameraSpeed;
 								}
 								MoveViewportCamera( Drag, Rot );

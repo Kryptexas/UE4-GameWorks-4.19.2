@@ -587,7 +587,7 @@ bool UGeomModifier_Edit::InputDelta(FLevelEditorViewportClient* InViewportClient
 		// Only apply camera speed modifiers to the drag if we aren't zooming in an ortho viewport.
 		if( !InViewportClient->IsOrtho() || !(InViewport->KeyState(EKeys::LeftMouseButton) && InViewport->KeyState(EKeys::RightMouseButton)) )
 		{
-			const float CameraSpeed = InViewportClient->GetCameraSpeed(GetDefault<ULevelEditorViewportSettings>()->CameraSpeed);
+			const float CameraSpeed = InViewportClient->GetCameraSpeed();
 			CameraDelta *= CameraSpeed;
 		}
 
