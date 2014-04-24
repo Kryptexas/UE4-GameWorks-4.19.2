@@ -164,14 +164,13 @@ namespace Lightmass
 					MinCoefficient[0][3] = FMath::Min( MinCoefficient[0][3], LogL );
 					MaxCoefficient[0][3] = FMath::Max( MaxCoefficient[0][3], LogL );
 
-					// Don't care about directionality for black
-					if( L > 1e-4 )
+					// Dampen dark texel's contribution on the directionality min and max
+					float DampenDirectionality = FMath::Clamp(L * 100, 0.0f, 1.0f);
+
+					for( int32 ColorIndex = 0; ColorIndex < 3; ColorIndex++ )
 					{
-						for( int32 ColorIndex = 0; ColorIndex < 3; ColorIndex++ )
-						{
-							MinCoefficient[1][ColorIndex] = FMath::Min( MinCoefficient[1][ColorIndex], SourceSample.Coefficients[1][ColorIndex] );
-							MaxCoefficient[1][ColorIndex] = FMath::Max( MaxCoefficient[1][ColorIndex], SourceSample.Coefficients[1][ColorIndex] );
-						}
+						MinCoefficient[1][ColorIndex] = FMath::Min( MinCoefficient[1][ColorIndex], DampenDirectionality * SourceSample.Coefficients[1][ColorIndex] );
+						MaxCoefficient[1][ColorIndex] = FMath::Max( MaxCoefficient[1][ColorIndex], DampenDirectionality * SourceSample.Coefficients[1][ColorIndex] );
 					}
 				}
 
@@ -195,14 +194,13 @@ namespace Lightmass
 					MinCoefficient[2][2] = FMath::Min( MinCoefficient[2][2], LogB );
 					MaxCoefficient[2][2] = FMath::Max( MaxCoefficient[2][2], LogB );
 
-					// Don't care about directionality for black
-					if( L > 1e-4 )
+					// Dampen dark texel's contribution on the directionality min and max
+					float DampenDirectionality = FMath::Clamp(L * 100, 0.0f, 1.0f);
+
+					for( int32 ColorIndex = 0; ColorIndex < 3; ColorIndex++ )
 					{
-						for( int32 ColorIndex = 0; ColorIndex < 3; ColorIndex++ )
-						{
-							MinCoefficient[3][ColorIndex] = FMath::Min( MinCoefficient[3][ColorIndex], SourceSample.Coefficients[3][ColorIndex] );
-							MaxCoefficient[3][ColorIndex] = FMath::Max( MaxCoefficient[3][ColorIndex], SourceSample.Coefficients[3][ColorIndex] );
-						}
+						MinCoefficient[3][ColorIndex] = FMath::Min( MinCoefficient[3][ColorIndex], DampenDirectionality * SourceSample.Coefficients[3][ColorIndex] );
+						MaxCoefficient[3][ColorIndex] = FMath::Max( MaxCoefficient[3][ColorIndex], DampenDirectionality * SourceSample.Coefficients[3][ColorIndex] );
 					}
 				}
 			}

@@ -1307,7 +1307,7 @@ public:
 	virtual void UpdateSceneCaptureContents(class USceneCaptureComponent2D* CaptureComponent);
 	virtual void UpdateSceneCaptureContents(class USceneCaptureComponentCube* CaptureComponent);
 	virtual void AllocateReflectionCaptures(const TArray<UReflectionCaptureComponent*>& NewCaptures);
-	virtual void UpdateSkyCaptureContents(USkyLightComponent* CaptureComponent);
+	virtual void UpdateSkyCaptureContents(const USkyLightComponent* CaptureComponent, bool bCaptureEmissiveOnly, FTexture* OutProcessedTexture, FSHVectorRGB3& OutIrradianceEnvironmentMap);
 	virtual void AddPrecomputedLightVolume(const class FPrecomputedLightVolume* Volume);
 	virtual void RemovePrecomputedLightVolume(const class FPrecomputedLightVolume* Volume);
 	virtual void UpdateLightTransform(ULightComponent* Light);

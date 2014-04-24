@@ -286,7 +286,7 @@ void DiffuseIrradianceCopyPS(
 
 	float SquaredUVs = 1 + dot(ScaledUVs, ScaledUVs);
 	// Dividing by NumSamples here to keep the sum in the range of fp16, once we get down to the 1x1 mip
-	float TexelWeight = 4 / (sqrt(SquaredUVs) * SquaredUVs * NumSamples);
+	float TexelWeight = 4 / (sqrt(SquaredUVs) * SquaredUVs);
 
 	FThreeBandSHVector SHCoefficients = SHBasisFunction3(CubeCoordinates);
 	float CurrentSHCoefficient = dot(SHCoefficients.V0, CoefficientMask0) + dot(SHCoefficients.V1, CoefficientMask1) + SHCoefficients.V2 * CoefficientMask2;
@@ -329,7 +329,7 @@ void DiffuseIrradianceAccumulatePS(
 		AccumulatedValue += SampleCubemap(CubeCoordinates);
 	}
 	
-	OutColor = AccumulatedValue;
+	OutColor = float4(AccumulatedValue.rgb / 4.0f, AccumulatedValue.a / 4.0f);
 }
 
 void AccumulateCubeFacesPS(

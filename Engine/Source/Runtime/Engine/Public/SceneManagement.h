@@ -720,6 +720,7 @@ public:
 	float SkyDistanceThreshold;
 	bool bCastShadows;
 	bool bPrecomputedLightingIsValid;
+	bool bHasStaticLighting;
 	FLinearColor LightColor;
 	FSHVectorRGB3 IrradianceEnvironmentMap;
 };
@@ -1837,7 +1838,7 @@ public:
 	 * Updates the contents of the given sky capture by rendering the scene. 
 	 * This must be called on the game thread.
 	 */
-	virtual void UpdateSkyCaptureContents(USkyLightComponent* CaptureComponent) {}
+	virtual void UpdateSkyCaptureContents(const USkyLightComponent* CaptureComponent, bool bCaptureEmissiveOnly, FTexture* OutProcessedTexture, FSHVectorRGB3& OutIrradianceEnvironmentMap) {}
 
 	/** 
 	* Updates the contents of the given scene capture by rendering the scene. 

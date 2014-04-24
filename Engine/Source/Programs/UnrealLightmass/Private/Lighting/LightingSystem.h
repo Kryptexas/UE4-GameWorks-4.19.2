@@ -75,14 +75,6 @@ public:
 	static FGatheredLightSample PointLightWorldSpace(const FLinearColor& Color, const FVector4& TangentDirection, const FVector4& WorldDirection);
 
 	/**
-	 * Constructs a light sample representing a sky light.
-	 * @param UpperColor - The color/intensity of the sky light's upper hemisphere.
-	 * @param LowerColor - The color/intensity of the sky light's lower hemisphere.
-	 * @param WorldZ - The world's +Z axis in tangent space.
-	 */
-	static FGatheredLightSample SkyLight(const FLinearColor& UpperColor,const FLinearColor& LowerColor,const FVector4& WorldZ);
-
-	/**
 	 * Adds a weighted light sample to this light sample.
 	 * @param OtherSample - The sample to add.
 	 * @param Weight - The weight to multiply the other sample by before addition.
@@ -224,6 +216,11 @@ public:
 	/** Occlusion factor of the sample, 0 is completely unoccluded, 1 is completely occluded. */
 	float Occlusion;
 
+	/** 
+	 * A light sample for sky lighting.  This has to be stored separately to support stationary sky lights only contributing to low quality lightmaps.
+	 */
+	FGatheredLightSample StationarySkyLighting;
+
 	/** Initialization constructor. */
 	FFinalGatherSample() : 
 		FGatheredLightSample(),
@@ -262,6 +259,11 @@ public:
 		AddWeighted(FGatheredLightSample::PointLightWorldSpace(IncomingRadiance, TangentSpaceDirection, WorldSpaceDirection), Weight);
 	}
 
+	inline void AddIncomingStationarySkyLight(const FLinearColor& IncomingSkyLight, float Weight, const FVector4& TangentSpaceDirection, const FVector4& WorldSpaceDirection)
+	{
+		StationarySkyLighting.AddWeighted(FGatheredLightSample::PointLightWorldSpace(IncomingSkyLight, TangentSpaceDirection, WorldSpaceDirection), Weight);
+	}
+
 	bool AreFloatsValid() const;
 
 	FFinalGatherSample operator*(float Scalar) const
@@ -269,6 +271,7 @@ public:
 		FFinalGatherSample Result;
 		(FGatheredLightSample&)Result = (const FGatheredLightSample&)(*this) * Scalar;
 		Result.Occlusion = Occlusion * Scalar;
+		Result.StationarySkyLighting = StationarySkyLighting * Scalar;
 		return Result;
 	}
 
@@ -277,6 +280,7 @@ public:
 		FFinalGatherSample Result;
 		(FGatheredLightSample&)Result = (const FGatheredLightSample&)(*this) + (const FGatheredLightSample&)SampleB;
 		Result.Occlusion = Occlusion + SampleB.Occlusion;
+		Result.StationarySkyLighting = StationarySkyLighting + SampleB.StationarySkyLighting;
 		return Result;
 	}
 };
@@ -285,13 +289,11 @@ struct FFinalGatherInfo
 {
 	FFinalGatherInfo() :
 		NumBackfaceHits(0),
-		NumSamplesOccluded(0),
-		CombinedSkyUnoccludedDirections(FVector(0))
+		NumSamplesOccluded(0)
 	{}
 
 	int32 NumBackfaceHits;
 	float NumSamplesOccluded;
-	FVector CombinedSkyUnoccludedDirections;
 };
 
 struct FTexelCorner
@@ -1244,6 +1246,136 @@ public:
 	}
 };
 
+template<typename ElementType>
+class FSimpleQuadTreeNode
+{
+public:
+	ElementType Element;
+
+	FSimpleQuadTreeNode* Children[4];
+
+	FSimpleQuadTreeNode()
+	{
+		Children[0] = NULL;
+		Children[1] = NULL;
+		Children[2] = NULL;
+		Children[3] = NULL;
+	}
+
+	void AddChild(int32 Index, FSimpleQuadTreeNode* Child)
+	{
+		Children[Index] = Child;
+	}
+};
+
+template<typename ElementType>
+class FSimpleQuadTree
+{
+public:
+
+	const ElementType& GetLeafElement(float U, float V) const
+	{
+		return GetLeafElementRecursive(U, V, &RootNode);
+	}
+
+	FSimpleQuadTreeNode<ElementType> RootNode;
+
+	~FSimpleQuadTree()
+	{
+	}
+
+	void ReturnToFreeList(TArray<FSimpleQuadTreeNode<ElementType>*>& OutNodes)
+	{
+		ReturnToFreeListRecursive(&RootNode, OutNodes);
+	}
+
+private:
+
+	const ElementType& GetLeafElementRecursive(float U, float V, const FSimpleQuadTreeNode<ElementType>* Parent) const
+	{
+		const int32 ChildX = U > .5f;
+		const int32 ChildY = V > .5f;
+		const int32 ChildIndex = ChildX * 2 + ChildY;
+
+		if (Parent->Children[ChildIndex])
+		{
+			const float ChildU = U * 2 - ChildX;
+			const float ChildV = V * 2 - ChildY;
+
+			return GetLeafElementRecursive(ChildU, ChildV, Parent->Children[ChildIndex]);
+		}
+		else
+		{
+			return Parent->Element;
+		}
+	}
+
+	void ReturnToFreeListRecursive(FSimpleQuadTreeNode<ElementType>* Node, TArray<FSimpleQuadTreeNode<ElementType>*>& OutNodes) const
+	{
+		for (int32 ChildIndex = 0; ChildIndex < ARRAY_COUNT(Node->Children); ChildIndex++)
+		{
+			if (Node->Children[ChildIndex])
+			{
+				ReturnToFreeListRecursive(Node->Children[ChildIndex], OutNodes);
+			}
+		}
+
+		if (Node != &RootNode)
+		{
+			OutNodes.Add(Node);
+		}
+	}
+};
+
+/** Lighting payload used by the adaptive refinement in final gathering. */
+class FLightingAndOcclusion
+{
+public:
+
+	FLinearColor Lighting;
+	FVector UnoccludedSkyVector;
+	FLinearColor StationarySkyLighting;
+
+	FLightingAndOcclusion() :
+		Lighting(ForceInit),
+		UnoccludedSkyVector(FVector(0)),
+		StationarySkyLighting(FLinearColor::Black)
+	{}
+
+	FLightingAndOcclusion(const FLinearColor& InLighting, FVector InUnoccludedSkyVector, const FLinearColor& InStationarySkyLighting) : 
+		Lighting(InLighting),
+		UnoccludedSkyVector(InUnoccludedSkyVector),
+		StationarySkyLighting(InStationarySkyLighting)
+	{}
+
+	friend inline FLightingAndOcclusion operator+ (const FLightingAndOcclusion& A, const FLightingAndOcclusion& B)
+	{
+		return FLightingAndOcclusion(A.Lighting + B.Lighting, A.UnoccludedSkyVector + B.UnoccludedSkyVector, A.StationarySkyLighting + B.StationarySkyLighting);
+	}
+
+	friend inline FLightingAndOcclusion operator/ (const FLightingAndOcclusion& A, float Divisor)
+	{
+		return FLightingAndOcclusion(A.Lighting / Divisor, A.UnoccludedSkyVector / Divisor, A.StationarySkyLighting / Divisor);
+	}
+};
+
+/** Data stored for a sample that may need to be refined. */
+class FRefinementElement
+{
+public:
+	FLightingAndOcclusion Lighting;
+	FVector2D Uniforms;
+
+	FRefinementElement() :
+		Uniforms(FVector2D(0, 0))
+	{}
+
+	FRefinementElement(FLightingAndOcclusion InLighting, FVector2D InUniforms) :
+		Lighting(InLighting),
+		Uniforms(InUniforms)
+	{}
+};
+
 /** Local state for a mapping, accessed only by the owning thread. */
 class FStaticLightingMappingContext
 {
@@ -1256,6 +1388,8 @@ public:
 	FCoherentRayCache RayCache;
 
 	TArray<FDebugLightingCacheRecord> DebugCacheRecords;
+
+	TArray<FSimpleQuadTreeNode<FRefinementElement>* > RefinementTreeFreePool;
 
 	class FStaticLightingSystem& System;
 
@@ -2116,6 +2250,9 @@ private:
 	/** Returns environment lighting for the given direction. */
 	FLinearColor EvaluateEnvironmentLighting(const FVector4& IncomingDirection) const;
 
+	/** Evaluates the incoming sky lighting from the scene. */
+	void EvaluateSkyLighting(const FVector4& IncomingDirection, bool bShadowed, FLinearColor& OutStaticLighting, FLinearColor& OutStationaryLighting) const;
+
 	/** Returns a light sample that represents the material attribute specified by MaterialSettings.ViewMaterialAttribute at the intersection. */
 	FGatheredLightSample GetVisualizedMaterialAttribute(const FStaticLightingMapping* Mapping, const FLightRayIntersection& Intersection) const;
 
@@ -2153,12 +2290,13 @@ private:
 		const FVector4& TriangleTangentPathDirection,
 		float SampleRadius,
 		int32 BounceNumber,
+		bool bDebugThisTexel,
 		FStaticLightingMappingContext& MappingContext,
 		FLMRandomStream& RandomStream,
 		FLightingCacheGatherInfo& GatherInfo,
 		FFinalGatherInfo& FinalGatherInfo,
-		bool bDebugThisTexel,
-		FVector& OutUnoccludedSkyVector) const;
+		FVector& OutUnoccludedSkyVector,
+		FLinearColor& OutStationarySkyLighting) const;
 
 	/** 
 	 * Final gather using adaptive sampling to estimate the incident radiance function. 
@@ -2370,7 +2508,7 @@ private:
 	/** The lights in the world which the system is building, excluding sky lights. */
 	TArray<FLight*> Lights;
 
-	TArray<FLight*> SkyLights;
+	TArray<FSkyLight*> SkyLights;
 
 	/** Mesh area lights in the world. */
 	TIndirectArray<FMeshAreaLight> MeshAreaLights;

@@ -1310,7 +1310,7 @@ private:
 
 TGlobalResource<FCaptureRenderTarget> GReflectionCaptureRenderTarget;
 
-void CaptureSceneIntoScratchCubemap(FScene* Scene, FVector CapturePosition, bool bCapturingForSkyLight, float SkyLightNearPlane, bool bLowerHemisphereIsBlack)
+void CaptureSceneIntoScratchCubemap(FScene* Scene, FVector CapturePosition, bool bCapturingForSkyLight, float SkyLightNearPlane, bool bLowerHemisphereIsBlack, bool bCaptureEmissiveOnly)
 {
 	for (int32 CubeFace = 0; CubeFace < CubeFace_MAX; CubeFace++)
 	{
@@ -1368,6 +1368,12 @@ void CaptureSceneIntoScratchCubemap(FScene* Scene, FVector CapturePosition, bool
 
 		// Force all surfaces diffuse
 		View->RoughnessOverrideParameter = FVector2D( 1.0f, 0.0f );
+
+		if (bCaptureEmissiveOnly)
+		{
+			View->DiffuseOverrideParameter = FVector4(0, 0, 0, 0);
+			View->SpecularOverrideParameter = FVector4(0, 0, 0, 0);
+		}
 
 		View->bIsReflectionCapture = true;
 		View->StartFinalPostprocessSettings(CapturePosition);
@@ -1465,7 +1471,7 @@ void FScene::UpdateReflectionCaptureContents(UReflectionCaptureComponent* Captur
 				ClearScratchCubemaps();
 			});
 			
-			CaptureSceneIntoScratchCubemap(this, CaptureComponent->GetComponentLocation(), false, 0, false);
+			CaptureSceneIntoScratchCubemap(this, CaptureComponent->GetComponentLocation(), false, 0, false, false);
 
 			ENQUEUE_UNIQUE_RENDER_COMMAND( 
 				FilterCommand,
@@ -1499,9 +1505,9 @@ void FScene::UpdateReflectionCaptureContents(UReflectionCaptureComponent* Captur
 	}
 }
 
-void CopyToSkyTexture(FScene* Scene, FSkyLightSceneProxy* SkyProxy)
+void CopyToSkyTexture(FScene* Scene, FTexture* ProcessedTexture)
 {
-	const int32 EffectiveTopMipSize = SkyProxy->ProcessedTexture->GetSizeX();
+	const int32 EffectiveTopMipSize = ProcessedTexture->GetSizeX();
 	const int32 NumMips = FMath::CeilLogTwo(EffectiveTopMipSize) + 1;
 
 	// GPU copy back to the skylight's texture, which is not a render target
@@ -1512,12 +1518,12 @@ void CopyToSkyTexture(FScene* Scene, FSkyLightSceneProxy* SkyProxy)
 
 		for (int32 CubeFace = 0; CubeFace < CubeFace_MAX; CubeFace++)
 		{
-			RHICopyToResolveTarget(EffectiveSource.ShaderResourceTexture, SkyProxy->ProcessedTexture->TextureRHI, true, FResolveParams(FResolveRect(), (ECubeFace)CubeFace, MipIndex, 0, 0));
+			RHICopyToResolveTarget(EffectiveSource.ShaderResourceTexture, ProcessedTexture->TextureRHI, true, FResolveParams(FResolveRect(), (ECubeFace)CubeFace, MipIndex, 0, 0));
 		}
 	}
 }
 
-void FScene::UpdateSkyCaptureContents(USkyLightComponent* CaptureComponent)
+void FScene::UpdateSkyCaptureContents(const USkyLightComponent* CaptureComponent, bool bCaptureEmissiveOnly, FTexture* OutProcessedTexture, FSHVectorRGB3& OutIrradianceEnvironmentMap)
 {
 	if (IsReflectionEnvironmentAvailable())
 	{
@@ -1530,7 +1536,7 @@ void FScene::UpdateSkyCaptureContents(USkyLightComponent* CaptureComponent)
 
 		if (CaptureComponent->SourceType == SLS_CapturedScene)
 		{
-			CaptureSceneIntoScratchCubemap(this, CaptureComponent->GetComponentLocation(), true, CaptureComponent->SkyDistanceThreshold, CaptureComponent->bLowerHemisphereIsBlack);
+			CaptureSceneIntoScratchCubemap(this, CaptureComponent->GetComponentLocation(), true, CaptureComponent->SkyDistanceThreshold, CaptureComponent->bLowerHemisphereIsBlack, bCaptureEmissiveOnly);
 		}
 		else if (CaptureComponent->SourceType == SLS_SpecifiedCubemap)
 		{
@@ -1547,34 +1553,27 @@ void FScene::UpdateSkyCaptureContents(USkyLightComponent* CaptureComponent)
 			check(0);
 		}
 
-		FSHVectorRGB3 IrradianceEnvironmentMap;
-
 		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER( 
 			FilterCommand,
-			FSHVectorRGB3*, IrradianceEnvironmentMap, &IrradianceEnvironmentMap,
+			FSHVectorRGB3*, IrradianceEnvironmentMap, &OutIrradianceEnvironmentMap,
 		{
 			FilterReflectionEnvironment(IrradianceEnvironmentMap);
 		});
 
-		// Wait until the SH coefficients have been written out by the RT
-		//@todo - remove the need for this
+		// Wait until the SH coefficients have been written out by the RT before returning
+		//@todo realtime skylight updates - remove the need for this
 		FlushRenderingCommands();
 
-		CaptureComponent->SetIrradianceEnvironmentMap(IrradianceEnvironmentMap);
-
-		FSkyLightSceneProxy* SkyProxy = new FSkyLightSceneProxy(CaptureComponent);
-
-		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER( 
-			CopyCommand,
-			FScene*, Scene, this,
-			FSkyLightSceneProxy*, SkyProxy, SkyProxy,
+		// Optionally copy the filtered mip chain to the output texture
+		if (OutProcessedTexture)
 		{
-			CopyToSkyTexture(Scene, SkyProxy);
-
-			// Clean up the proxy now that the rendering thread is done with it
-			delete SkyProxy;
-		});
-
-		CaptureComponent->MarkRenderStateDirty();
+			ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER( 
+				CopyCommand,
+				FScene*, Scene, this,
+				FTexture*, ProcessedTexture, OutProcessedTexture,
+			{
+				CopyToSkyTexture(Scene, ProcessedTexture);
+			});
+		}
 	}
 }

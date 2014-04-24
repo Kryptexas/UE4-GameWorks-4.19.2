@@ -128,6 +128,9 @@ class ENGINE_API USkyLightComponent : public ULightComponentBase
 	/** Called each tick to recapture and queued sky captures. */
 	static void UpdateSkyCaptureContents(UWorld* WorldToUpdate);
 
+	/** Computes an irradiance environment map using only emissive contribution from the sky light. */
+	void CaptureEmissiveIrradianceEnvironmentMap(FSHVectorRGB3& OutIrradianceMap) const;
+
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|SkyLight")
 	void SetBrightness(float NewBrightness);
 

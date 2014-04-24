@@ -936,9 +936,14 @@ void FLightmassExporter::WriteLights( int32 Channel )
 	for ( int32 LightIndex = 0; LightIndex < SkyLights.Num(); ++LightIndex )
 	{
 		const USkyLightComponent* Light = SkyLights[LightIndex];
+
 		Lightmass::FLightData LightData;
 		Lightmass::FSkyLightData SkyData;
 		Copy( Light, LightData ); 
+
+		// Capture the scene's emissive and send it to lightmass
+		Light->CaptureEmissiveIrradianceEnvironmentMap(SkyData.IrradianceEnvironmentMap);
+
 		Swarm.WriteChannel( Channel, &LightData, sizeof(LightData) );
 		Swarm.WriteChannel( Channel, &SkyData, sizeof(SkyData) );
 		UpdateExportProgress();

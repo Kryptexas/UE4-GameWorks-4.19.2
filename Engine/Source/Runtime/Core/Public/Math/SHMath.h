@@ -331,6 +331,35 @@ public:
 	}
 } GCC_ALIGN(16);
 
+/** Specialization for 2nd order to avoid expensive trig functions. */
+template<> TSHVector<2> TSHVector<2>::SHBasisFunction(const FVector& Vector) 
+{
+	TSHVector<2> Result;
+	Result.V[0] = 0.282095f; 
+	Result.V[1] = -0.488603f * Vector.Y;
+	Result.V[2] = 0.488603f * Vector.Z;
+	Result.V[3] = -0.488603f * Vector.X;
+	return Result;
+}
+
+/** Specialization for 3rd order to avoid expensive trig functions. */
+template<> TSHVector<3> TSHVector<3>::SHBasisFunction(const FVector& Vector) 
+{
+	TSHVector<3> Result;
+	Result.V[0] = 0.282095f; 
+	Result.V[1] = -0.488603f * Vector.Y;
+	Result.V[2] = 0.488603f * Vector.Z;
+	Result.V[3] = -0.488603f * Vector.X;
+
+	FVector VectorSquared = Vector * Vector;
+	Result.V[4] = 1.092548f * Vector.X * Vector.Y;
+	Result.V[5] = -1.092548f * Vector.Y * Vector.Z;
+	Result.V[6] = 0.315392f * (3.0f * VectorSquared.Z - 1.0f);
+	Result.V[7] = -1.092548f * Vector.X * Vector.Z;
+	Result.V[8] = 0.546274f * (VectorSquared.X - VectorSquared.Y);
+	return Result;
+}
+
 /** A vector of colored spherical harmonic coefficients. */
 template<int32 MaxSHOrder>
 class TSHVectorRGB
@@ -347,6 +376,15 @@ public:
 	TSHVector<MaxSHOrder> GetLuminance() const
 	{
 		return R * 0.3f + G * 0.59f + B * 0.11f;
+	}
+
+	void Desaturate(float DesaturateFraction)
+	{
+		TSHVector<MaxSHOrder> Desaturated = GetLuminance() * DesaturateFraction;
+
+		R = R * (1 - DesaturateFraction) + Desaturated;
+		G = G * (1 - DesaturateFraction) + Desaturated;
+		B = B * (1 - DesaturateFraction) + Desaturated;
 	}
 
 	/** Calculates the integral of the function over the surface of the sphere. */

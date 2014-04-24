@@ -144,6 +144,7 @@ float3 GetTranslucencyLighting(FMaterialPixelParameters MaterialParameters, floa
 			
 		// Compute diffuse lighting which takes the normal into account
 		FTwoBandSHVector DiffuseTransferSH = CalcDiffuseTransferSH(MaterialParameters.WorldNormal, 1);
+		//@todo - why is x2 needed to match opaque and non-directional?
 		float4 VolumeLighting = float4(max(half3(0,0,0), DotSH(TranslucentLighting, DiffuseTransferSH)) * 2, Vector0.a);
 		InterpolatedLighting = DiffuseColor * VolumeLighting.rgb;
 

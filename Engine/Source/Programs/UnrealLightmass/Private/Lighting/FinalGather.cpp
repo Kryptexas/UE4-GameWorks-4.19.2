@@ -150,6 +150,33 @@ FLinearColor FStaticLightingSystem::EvaluateEnvironmentLighting(const FVector4& 
 	return IncomingDirection.Z < 0 ? (MaterialSettings.EnvironmentColor / (float)PI) : FLinearColor::Black;
 }
 
+void FStaticLightingSystem::EvaluateSkyLighting(const FVector4& IncomingDirection, bool bShadowed, FLinearColor& OutStaticLighting, FLinearColor& OutStationaryLighting) const
+{
+	for (int32 LightIndex = 0; LightIndex < SkyLights.Num(); LightIndex++)
+	{
+		FSkyLight* SkyLight = SkyLights[LightIndex];
+
+		if (!bShadowed || !(SkyLight->LightFlags & GI_LIGHT_CASTSHADOWS))
+		{
+			FSHVector3 SH = FSHVector3::SHBasisFunction(IncomingDirection);
+			FLinearColor Lighting = Dot(SkyLight->IrradianceEnvironmentMap, SH) * SkyLight->Brightness * FLinearColor(SkyLight->Color);
+
+			Lighting.R = FMath::Max(Lighting.R, 0.0f);
+			Lighting.G = FMath::Max(Lighting.G, 0.0f);
+			Lighting.B = FMath::Max(Lighting.B, 0.0f);
+
+			if (SkyLight->LightFlags & GI_LIGHT_HASSTATICLIGHTING)
+			{
+				OutStaticLighting += Lighting;
+			}
+			else if (SkyLight->LightFlags & GI_LIGHT_HASSTATICSHADOWING)
+			{
+				OutStationaryLighting += Lighting;
+			}
+		}
+	}
+}
+
 /** Calculates exitant radiance at a vertex. */
 FLinearColor FStaticLightingSystem::CalculateExitantRadiance(
 	const FStaticLightingMapping* SourceMapping,
@@ -401,14 +428,16 @@ FLinearColor FStaticLightingSystem::FinalGatherSample(
 	const FVector4& TriangleTangentPathDirection,
 	float SampleRadius,
 	int32 BounceNumber,
+	bool bDebugThisTexel,
 	FStaticLightingMappingContext& MappingContext,
 	FLMRandomStream& RandomStream,
 	FLightingCacheGatherInfo& RecordGatherInfo,
 	FFinalGatherInfo& FinalGatherInfo,
-	bool bDebugThisTexel,
-	FVector& OutUnoccludedSkyVector) const
+	FVector& OutUnoccludedSkyVector,
+	FLinearColor& OutStationarySkyLighting) const
 {
 	FLinearColor Lighting = FLinearColor::Black;
+	OutStationarySkyLighting = FLinearColor::Black;
 
 	checkSlow(TriangleTangentPathDirection.Z >= 0.0f);
 	checkSlow(TriangleTangentPathDirection.IsUnit3());
@@ -521,9 +550,9 @@ FLinearColor FStaticLightingSystem::FinalGatherSample(
 			const FLinearColor EnvironmentLighting = EvaluateEnvironmentLighting(-WorldPathDirection);
 			Lighting = EnvironmentLighting;
 		}
-
-		FinalGatherInfo.CombinedSkyUnoccludedDirections += WorldPathDirection;
 	}
+
+	EvaluateSkyLighting(WorldPathDirection, RayIntersection.bIntersects, Lighting, OutStationarySkyLighting);
 
 #if ALLOW_LIGHTMAP_SAMPLE_DEBUGGING
 	if (bDebugThisTexel
@@ -541,129 +570,6 @@ FLinearColor FStaticLightingSystem::FinalGatherSample(
 
 	return Lighting;
 }
-
-template<typename ElementType>
-class FSimpleQuadTreeNode
-{
-public:
-	ElementType Element;
-
-	FSimpleQuadTreeNode* Children[4];
-
-	FSimpleQuadTreeNode()
-	{
-		Children[0] = NULL;
-		Children[1] = NULL;
-		Children[2] = NULL;
-		Children[3] = NULL;
-	}
-
-	void AddChild(int32 Index, const ElementType& ChildElement)
-	{
-		Children[Index] = new FSimpleQuadTreeNode();
-		Children[Index]->Element = ChildElement;
-	}
-};
-
-template<typename ElementType>
-class FSimpleQuadTree
-{
-public:
-
-	const ElementType& GetLeafElement(float U, float V) const
-	{
-		return GetLeafElementRecursive(U, V, &RootNode);
-	}
-
-	FSimpleQuadTreeNode<ElementType> RootNode;
-
-	~FSimpleQuadTree()
-	{
-		DestroyTreeRecursive(&RootNode);
-	}
-
-private:
-
-	const ElementType& GetLeafElementRecursive(float U, float V, const FSimpleQuadTreeNode<ElementType>* Parent) const
-	{
-		const int32 ChildX = U > .5f;
-		const int32 ChildY = V > .5f;
-		const int32 ChildIndex = ChildX * 2 + ChildY;
-
-		if (Parent->Children[ChildIndex])
-		{
-			const float ChildU = U * 2 - ChildX;
-			const float ChildV = V * 2 - ChildY;
-
-			return GetLeafElementRecursive(ChildU, ChildV, Parent->Children[ChildIndex]);
-		}
-		else
-		{
-			return Parent->Element;
-		}
-	}
-
-	void DestroyTreeRecursive(const FSimpleQuadTreeNode<ElementType>* Node) const
-	{
-		for (int32 ChildIndex = 0; ChildIndex < ARRAY_COUNT(Node->Children); ChildIndex++)
-		{
-			if (Node->Children[ChildIndex])
-			{
-				DestroyTreeRecursive(Node->Children[ChildIndex]);
-			}
-		}
-		
-		if (Node != &RootNode)
-		{
-			delete Node;
-		}
-	}
-};
-
-class FLightingAndOcclusion
-{
-public:
-
-	FLinearColor Lighting;
-	FVector UnoccludedSkyVector;
-
-	FLightingAndOcclusion() :
-		Lighting(ForceInit),
-		UnoccludedSkyVector(FVector(0))
-	{}
-
-	FLightingAndOcclusion(const FLinearColor& InLighting, FVector InUnoccludedSkyVector) : 
-		Lighting(InLighting),
-		UnoccludedSkyVector(InUnoccludedSkyVector)
-	{}
-
-	friend inline FLightingAndOcclusion operator+ (const FLightingAndOcclusion& A, const FLightingAndOcclusion& B)
-	{
-		return FLightingAndOcclusion(A.Lighting + B.Lighting, A.UnoccludedSkyVector + B.UnoccludedSkyVector);
-	}
-
-	friend inline FLightingAndOcclusion operator/ (const FLightingAndOcclusion& A, float Divisor)
-	{
-		return FLightingAndOcclusion(A.Lighting / Divisor, A.UnoccludedSkyVector / Divisor);
-	}
-};
-
-/** Data stored for a sample that may need to be refined. */
-class FRefinementElement
-{
-public:
-	FLightingAndOcclusion Lighting;
-	FVector2D Uniforms;
-
-	FRefinementElement() :
-		Uniforms(FVector2D(0, 0))
-	{}
-
-	FRefinementElement(FLightingAndOcclusion InLighting, FVector2D InUniforms) :
-		Lighting(InLighting),
-		Uniforms(InUniforms)
-	{}
-};
 
 /** Stores intermediate data during a traversal of the refinement tree. */
 class FRefinementTraversalContext
@@ -728,6 +634,14 @@ public:
 		Cells[ThetaIndex * NumPhiSteps + PhiIndex].RootNode.Element = Element;
 	}
 
+	void ReturnToFreeList(TArray<FSimpleQuadTreeNode<FRefinementElement>*>& OutNodes)
+	{
+		for (int32 CellIndex = 0; CellIndex < Cells.Num(); CellIndex++)
+		{
+			Cells[CellIndex].ReturnToFreeList(OutNodes);
+		}
+	}
+
 	void RefineIncomingRadiance(
 		const FStaticLightingSystem& LightingSystem,
 		const FStaticLightingMapping* Mapping,
@@ -787,7 +701,8 @@ public:
 			{
 				for (int32 PhiIndex = 0; PhiIndex < NumPhiSteps; PhiIndex++)
 				{
-					TotalLighting += GetFilteredValue(ThetaIndex, PhiIndex).Lighting;
+					const FLightingAndOcclusion FilteredLighting = GetFilteredValue(ThetaIndex, PhiIndex);
+					TotalLighting += FilteredLighting.Lighting + FilteredLighting.StationarySkyLighting;
 				}
 			}
 
@@ -830,7 +745,7 @@ public:
 						if (!bSuperSampleDueToImportanceCones)
 						{
 							const FLightingAndOcclusion RootElementLighting = GetRootValue(ThetaIndex, PhiIndex);
-							const FLinearColor Radiance = RootElementLighting.Lighting;
+							const FLinearColor Radiance = RootElementLighting.Lighting + RootElementLighting.StationarySkyLighting;
 							const float RelativeBrightness = Radiance.ComputeLuminance() / TotalBrightness;
 
 							for (int32 NeighborIndex = 0; NeighborIndex < ARRAY_COUNT(Neighbors); NeighborIndex++)
@@ -843,7 +758,7 @@ public:
 								if (NeighborTheta >= 0 && NeighborTheta < NumThetaSteps)
 								{
 									const FLightingAndOcclusion NeighborLighting = GetRootValue(NeighborTheta, NeighborPhi);
-									const float NeighborBrightness = NeighborLighting.Lighting.ComputeLuminance();
+									const float NeighborBrightness = (NeighborLighting.Lighting + NeighborLighting.StationarySkyLighting).ComputeLuminance();
 									const float NeighborRelativeBrightness = NeighborBrightness / TotalBrightness;
 									MaxRelativeDifference = FMath::Max(MaxRelativeDifference, FMath::Abs(RelativeBrightness - NeighborRelativeBrightness));
 									MaxSkyOcclusionDifference = FMath::Max(MaxSkyOcclusionDifference, FMath::Abs(RootElementLighting.UnoccludedSkyVector.SizeSquared() - NeighborLighting.UnoccludedSkyVector.SizeSquared()));
@@ -929,7 +844,7 @@ public:
 							if (!bSuperSampleDueToImportanceCones)
 							{
 								const FLightingAndOcclusion ChildLighting = ChildNode->Element.Lighting;
-								const FLinearColor Radiance = ChildLighting.Lighting;
+								const FLinearColor Radiance = ChildLighting.Lighting + ChildLighting.StationarySkyLighting;
 								const float RelativeBrightness = Radiance.ComputeLuminance() / TotalBrightness;
 
 								// Only search the axis neighbors past the first depth
@@ -941,7 +856,7 @@ public:
 									// Query must be done on the center of the cell
 									const FVector2D NeighborUV = FVector2D(NeighborU, NeighborV) + NodeContext.Size / 4;
 									const FLightingAndOcclusion NeighborLighting = GetValue(NeighborUV);
-									const float NeighborBrightness = NeighborLighting.Lighting.ComputeLuminance();
+									const float NeighborBrightness = (NeighborLighting.Lighting + NeighborLighting.StationarySkyLighting).ComputeLuminance();
 									const float NeighborRelativeBrightness = NeighborBrightness / TotalBrightness;
 									MaxRelativeDifference = FMath::Max(MaxRelativeDifference, FMath::Abs(RelativeBrightness - NeighborRelativeBrightness));
 									MaxSkyOcclusionDifference = FMath::Max(MaxSkyOcclusionDifference, FMath::Abs(ChildLighting.UnoccludedSkyVector.SizeSquared() - NeighborLighting.UnoccludedSkyVector.SizeSquared()));
@@ -987,7 +902,17 @@ public:
 				{
 					for (int32 SubPhiIndex = 0; SubPhiIndex < NumSubsamples; SubPhiIndex++)
 					{
-						FRefinementElement SubsampleElement;
+						FSimpleQuadTreeNode<FRefinementElement>* FreeNode = NULL;
+						
+						if (MappingContext.RefinementTreeFreePool.Num() > 0)
+						{
+							FreeNode = MappingContext.RefinementTreeFreePool.Pop(false);
+							*FreeNode = FSimpleQuadTreeNode<FRefinementElement>();
+						}
+						else
+						{
+							FreeNode = new FSimpleQuadTreeNode<FRefinementElement>();
+						}
 
 						const FVector2D ChildMin = NodeContext.Min + FVector2D(SubThetaIndex, SubPhiIndex) * NodeContext.Size / 2;
 
@@ -997,7 +922,7 @@ public:
 							&& NodeContext.Node->Element.Uniforms.X < ChildMin.X + NodeContext.Size.X / 2
 							&& NodeContext.Node->Element.Uniforms.Y < ChildMin.Y + NodeContext.Size.Y / 2)
 						{
-							SubsampleElement = NodeContext.Node->Element;
+							FreeNode->Element = NodeContext.Node->Element;
 						}
 						else
 						{
@@ -1012,20 +937,23 @@ public:
 							const FVector4 SampleDirection = UniformSampleHemisphere(Fraction1, Fraction2);
 
 							FVector UnoccludedSkyVector;
+							FLinearColor StationarySkyLighting;
+
 							const FLinearColor SubsampleLighting = LightingSystem.FinalGatherSample(
 								Mapping,
 								Vertex,
 								SampleDirection,
 								SampleRadius,
 								BounceNumber,
+								bDebugThisTexel,
 								MappingContext,
 								RandomStream,
 								SubsampleGatherInfo,
 								SubsampleFinalGatherInfo,
-								bDebugThisTexel,
-								UnoccludedSkyVector);
+								UnoccludedSkyVector,
+								StationarySkyLighting);
 
-							SubsampleElement = FRefinementElement(FLightingAndOcclusion(SubsampleLighting, UnoccludedSkyVector), FVector2D(Fraction1, Fraction2));
+							FreeNode->Element = FRefinementElement(FLightingAndOcclusion(SubsampleLighting, UnoccludedSkyVector, StationarySkyLighting), FVector2D(Fraction1, Fraction2));
 
 							Stats.NumRefiningFinalGatherSamples[RefinementDepth]++;
 
@@ -1039,7 +967,7 @@ public:
 							}
 						}
 
-						NodeContext.Node->AddChild(SubThetaIndex * NumSubsamples + SubPhiIndex, SubsampleElement);
+						NodeContext.Node->AddChild(SubThetaIndex * NumSubsamples + SubPhiIndex, FreeNode);
 					}
 				}
 			}
@@ -1049,10 +977,7 @@ public:
 			ImportanceConeAngle /= 4;
 			BrightnessThreshold *= 2;
 			ConeWeightThreshold *= 1.5f;
-
-			// Currently limiting sky occlusion refinement to only one level to keep build times down
-			//@todo - this will cap sky occlusion quality, allow scaling up
-			SkyOcclusionThreshold *= 15;
+			SkyOcclusionThreshold *= 16;
 		}
 	}
 
@@ -1132,20 +1057,23 @@ SampleType FStaticLightingSystem::IncomingRadianceAdaptive(
 			const FVector4 TriangleTangentPathDirection = UniformHemisphereSamples[SampleIndex];
 			
 			FVector UnoccludedSkyVector;
+			FLinearColor StationarySkyLighting;
+
 			const FLinearColor Radiance = FinalGatherSample(
 				Mapping,
 				Vertex,
 				TriangleTangentPathDirection,
 				SampleRadius,
 				BounceNumber,
+				bDebugThisTexel,
 				MappingContext,
 				RandomStream,
 				GatherInfo,
 				FinalGatherInfo,
-				bDebugThisTexel,
-				UnoccludedSkyVector);
+				UnoccludedSkyVector,
+				StationarySkyLighting);
 
-			RefinementGrid.SetRootElement(ThetaIndex, PhiIndex, FRefinementElement(FLightingAndOcclusion(Radiance, UnoccludedSkyVector), UniformHemisphereSampleUniforms[SampleIndex]));
+			RefinementGrid.SetRootElement(ThetaIndex, PhiIndex, FRefinementElement(FLightingAndOcclusion(Radiance, UnoccludedSkyVector, StationarySkyLighting), UniformHemisphereSampleUniforms[SampleIndex]));
 		}
 	}
 
@@ -1213,6 +1141,7 @@ SampleType FStaticLightingSystem::IncomingRadianceAdaptive(
 			CombinedSkyUnoccludedDirection += FilteredLighting.UnoccludedSkyVector;
 
 			IncomingRadiance.AddIncomingRadiance(Radiance, SampleWeight, TangentPathDirection, WorldPathDirection);
+			IncomingRadiance.AddIncomingStationarySkyLight(FilteredLighting.StationarySkyLighting, SampleWeight, TangentPathDirection, WorldPathDirection);
 			checkSlow(IncomingRadiance.AreFloatsValid());
 		}
 	}
@@ -1229,6 +1158,8 @@ SampleType FStaticLightingSystem::IncomingRadianceAdaptive(
 
 	const FVector BentNormal = CombinedSkyUnoccludedDirection / (MaxUnoccludedLength * UniformHemisphereSamples.Num());
 	IncomingRadiance.SetSkyOcclusion(BentNormal);
+
+	RefinementGrid.ReturnToFreeList(MappingContext.RefinementTreeFreePool);
 
 	return IncomingRadiance;
 }

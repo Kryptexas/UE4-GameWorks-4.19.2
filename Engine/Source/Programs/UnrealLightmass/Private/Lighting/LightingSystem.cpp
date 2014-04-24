@@ -25,8 +25,6 @@
 
 namespace Lightmass
 {
-
-
 	 
 FGatheredLightSample FGatheredLightSample::AmbientLight(const FLinearColor& Color)
 {
@@ -36,9 +34,10 @@ FGatheredLightSample FGatheredLightSample::AmbientLight(const FLinearColor& Colo
 	// Compute SHCorrection as if all the lighting was coming in along the normal
 	FVector4 TangentDirection(0, 0, 1);
 	FSHVector2 SH = FSHVector2::SHBasisFunction( TangentDirection );
-	Result.SHCorrection += Color.GetLuminance() * ( 0.282095f * SH.V[0] + 0.325735f * SH.V[2] );
-
+	Result.SHCorrection = Color.GetLuminance() * ( 0.282095f * SH.V[0] + 0.325735f * SH.V[2] );
 	Result.IncidentLighting = Color;
+
+	checkSlow(Result.SHCorrection >= 0 && Result.IncidentLighting.GetMin() >= 0);
 
 	return Result;
 }
@@ -56,8 +55,10 @@ FGatheredLightSample FGatheredLightSample::PointLightWorldSpace(const FLinearCol
 		// These scaling coefficients are SHBasisFunction and CalcDiffuseTransferSH baked down
 		// 0.325735f = 0.488603f from SHBasisFunction * 2/3 from CalcDiffuseTransferSH
 		// Only using V[2] which is the tangent space Z
-		Result.SHCorrection += Color.GetLuminance() * ( 0.282095f * SH.V[0] + 0.325735f * SH.V[2] );
+		Result.SHCorrection = Color.GetLuminance() * ( 0.282095f * SH.V[0] + 0.325735f * SH.V[2] );
 		Result.IncidentLighting = Color * FMath::Max(0.0f, TangentDirection.Z);
+
+		checkSlow(Result.SHCorrection >= 0 && Result.IncidentLighting.GetMin() >= 0);
 	}
 
 	return Result;
@@ -153,6 +154,7 @@ void FFinalGatherSample::AddWeighted(const FFinalGatherSample& OtherSample, floa
 {
 	FGatheredLightSample::AddWeighted(OtherSample, Weight);
 	Occlusion += OtherSample.Occlusion * Weight;
+	StationarySkyLighting = StationarySkyLighting + OtherSample.StationarySkyLighting * Weight;
 }
 
 bool FFinalGatherSample::AreFloatsValid() const
@@ -167,14 +169,21 @@ FStaticLightingMappingContext::FStaticLightingMappingContext(const FStaticLighti
 
 FStaticLightingMappingContext::~FStaticLightingMappingContext()
 {
-	// Update the main threads stats with the stats from this mapping
-	FScopeLock Lock(&System.Stats.StatsSync);
-	System.Stats.Cache[0] += FirstBounceCache.Stats;
-	System.Stats += Stats;
-	System.Stats.NumFirstHitRaysTraced += RayCache.NumFirstHitRaysTraced;
-	System.Stats.NumBooleanRaysTraced += RayCache.NumBooleanRaysTraced;
-	System.Stats.FirstHitRayTraceThreadTime += RayCache.FirstHitRayTraceTime;
-	System.Stats.BooleanRayTraceThreadTime += RayCache.BooleanRayTraceTime;
+	{
+		// Update the main threads stats with the stats from this mapping
+		FScopeLock Lock(&System.Stats.StatsSync);
+		System.Stats.Cache[0] += FirstBounceCache.Stats;
+		System.Stats += Stats;
+		System.Stats.NumFirstHitRaysTraced += RayCache.NumFirstHitRaysTraced;
+		System.Stats.NumBooleanRaysTraced += RayCache.NumBooleanRaysTraced;
+		System.Stats.FirstHitRayTraceThreadTime += RayCache.FirstHitRayTraceTime;
+		System.Stats.BooleanRayTraceThreadTime += RayCache.BooleanRayTraceTime;
+	}
+
+	for (int32 EntryIndex = 0; EntryIndex < RefinementTreeFreePool.Num(); EntryIndex++)
+	{
+		delete RefinementTreeFreePool[EntryIndex];
+	}
 }
 
 /**

@@ -141,6 +141,8 @@ void FViewInfo::SetupSkyIrradianceEnvironmentMapConstants(FVector4* OutSkyIrradi
 
 	if (Scene 
 		&& Scene->SkyLight 
+		// Skylights with static lighting already had their diffuse contribution baked into lightmaps
+		&& !Scene->SkyLight->bHasStaticLighting
 		&& Family->EngineShowFlags.SkyLighting)
 	{
 		const FSHVectorRGB3& SkyIrradiance = Scene->SkyLight->IrradianceEnvironmentMap;

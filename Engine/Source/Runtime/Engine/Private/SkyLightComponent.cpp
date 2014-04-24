@@ -71,6 +71,7 @@ FSkyLightSceneProxy::FSkyLightSceneProxy(const USkyLightComponent* InLightCompon
 	, SkyDistanceThreshold(InLightComponent->SkyDistanceThreshold)
 	, bCastShadows(InLightComponent->CastShadows)
 	, bPrecomputedLightingIsValid(InLightComponent->bPrecomputedLightingIsValid)
+	, bHasStaticLighting(InLightComponent->HasStaticLighting())
 	, LightColor(FLinearColor(InLightComponent->LightColor) * InLightComponent->Intensity)
 	, IrradianceEnvironmentMap(InLightComponent->IrradianceEnvironmentMap)
 {
@@ -196,8 +197,11 @@ void USkyLightComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyC
 {
 	const FName CategoryName = FObjectEditorUtils::GetCategoryFName(PropertyChangedEvent.Property);
 
-	// Other options not supported yet
-	Mobility = EComponentMobility::Stationary;
+	// Movable not supported yet
+	if (Mobility == EComponentMobility::Movable)
+	{
+		Mobility = EComponentMobility::Stationary;
+	}
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
@@ -374,13 +378,27 @@ void USkyLightComponent::UpdateSkyCaptureContents(UWorld* WorldToUpdate)
 						CaptureComponent->MarkRenderStateDirty();
 					}
 
-					WorldToUpdate->Scene->UpdateSkyCaptureContents(CaptureComponent);
+					WorldToUpdate->Scene->UpdateSkyCaptureContents(CaptureComponent, false, CaptureComponent->ProcessedSkyTexture, CaptureComponent->IrradianceEnvironmentMap);
+
+					CaptureComponent->MarkRenderStateDirty();
 				}
 
 				// Only remove queued update requests if we processed it for the right world
 				SkyCapturesToUpdate.RemoveAt(CaptureIndex);
 			}
 		}
+	}
+}
+
+void USkyLightComponent::CaptureEmissiveIrradianceEnvironmentMap(FSHVectorRGB3& OutIrradianceMap) const
+{
+	OutIrradianceMap = FSHVectorRGB3();
+
+	if (GetScene())
+	{
+		// Capture emissive scene lighting only for the lighting build
+		// This is necessary to avoid a feedback loop with the last lighting build results
+		GetScene()->UpdateSkyCaptureContents(this, true, NULL, OutIrradianceMap);
 	}
 }
 
