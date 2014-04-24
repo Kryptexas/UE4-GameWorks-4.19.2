@@ -185,6 +185,9 @@ struct CORE_API FWindowsPlatformMisc : public FGenericPlatformMisc
 	* @return Windows path separator.
 	*/
 	static const TCHAR* GetDefaultPathSeparator();
+
+	/** Enumerate all the engine installations, using the registry */
+	static void EnumerateEngineInstallations(TArray< TPair<FString, FString> > &OutInstallations);
 };
 
 typedef FWindowsPlatformMisc FPlatformMisc;

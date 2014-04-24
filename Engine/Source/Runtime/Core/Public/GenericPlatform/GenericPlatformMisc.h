@@ -9,6 +9,8 @@
 
 class FText;
 
+template<typename KeyType, typename ValueType> class TPair;
+
 namespace EBuildConfigurations
 {
 	/**
@@ -717,6 +719,32 @@ public:
 	{
 		return PLATFORM_HAS_TOUCH_MAIN_SCREEN;
 	}
+
+#if PLATFORM_DESKTOP
+	/**
+	* Enumerates all the registered engine installations.
+	*
+	* @param	OutInstallations	Array which is filled in with identifier/root-directory pairs for all known installations. Identifiers are typically
+	*								version strings for canonical UE4 releases or GUID strings for GitHub releases.
+	*/
+	static void EnumerateEngineInstallations(TArray< TPair<FString, FString> > &OutInstallations);
+
+	/**
+	* Returns the identifier for the engine with the given root directory.
+	*
+	* @param	RootDirName			Root directory for the engine.
+	* @param	OutIdentifier		Identifier used to refer to this installation.
+	*/
+	static bool GetEngineRootDirFromIdentifier(const FString &Identifier, FString &OutRootDir);
+
+	/**
+	* Returns the identifier for the engine with the given root directory.
+	*
+	* @param	RootDirName			Root directory for the engine.
+	* @param	OutIdentifier		Identifier used to refer to this installation.
+	*/
+	static bool GetEngineIdentifierFromRootDir(const FString &RootDir, FString &OutIdentifier);
+#endif
 
 #if !UE_BUILD_SHIPPING
 protected:

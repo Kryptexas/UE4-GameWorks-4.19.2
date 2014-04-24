@@ -110,8 +110,8 @@ void GetRequiredRegistrySettings(TIndirectArray<FRegistryRootedKey> &RootedKeys)
 	FRegistryKey *SwitchShellKey = SwitchKey->FindOrAddKey(TEXT("shell"));
 
 	// HKLM\SOFTWARE\Classes\Unreal.ProjectFile\switchversion\shell\<Label>
-	TMap<FString, FString> Installations;
-	FPlatformInstallation::EnumerateEngineInstallations(Installations);
+	TArray<TPair<FString, FString>> Installations;
+	FPlatformMisc::EnumerateEngineInstallations(Installations);
 
 	if (Installations.Num() > 0)
 	{
@@ -122,10 +122,10 @@ void GetRequiredRegistrySettings(TIndirectArray<FRegistryRootedKey> &RootedKeys)
 
 		// Build a list of installation names
 		TMap<FString, FString> InstallationNames;
-		for (TMap<FString, FString>::TConstIterator Iter(Installations); Iter; ++Iter)
+		for (TArray<TPair<FString, FString>>::TConstIterator Iter(Installations); Iter; ++Iter)
 		{
-			const FString &Id = Iter.Key();
-			FString Description = GetInstallationDescription(Id, Iter.Value());
+			const FString &Id = Iter->Key;
+			FString Description = GetInstallationDescription(Id, Iter->Value);
 			InstallationNames.Add(Description, Id);
 		}
 		InstallationNames.KeySort(FEngineLabelSortPredicate());
@@ -181,9 +181,12 @@ bool FWindowsPlatformInstallation::GetLauncherVersionSelector(FString &OutFileNa
 
 bool FWindowsPlatformInstallation::RegisterEngineInstallation(const FString &Id, const FString &RootDirName)
 {
+	FString NormalizedRootDirName = RootDirName;
+	FPaths::NormalizeDirectoryName(NormalizedRootDirName);
+
 	FRegistryRootedKey RootKey(HKEY_LOCAL_MACHINE, FString::Printf(TEXT("SOFTWARE\\EpicGames\\Unreal Engine\\%s"), *Id));
 	RootKey.Key = new FRegistryKey();
-	RootKey.Key->SetValue(TEXT("InstalledDirectory"), RootDirName);
+	RootKey.Key->SetValue(TEXT("InstalledDirectory"), NormalizedRootDirName);
 	return RootKey.Write(false);
 }
 
@@ -191,31 +194,6 @@ bool FWindowsPlatformInstallation::UnregisterEngineInstallation(const FString &I
 {
 	FRegistryRootedKey RootKey(HKEY_LOCAL_MACHINE, FString::Printf(TEXT("SOFTWARE\\EpicGames\\Unreal Engine\\%s"), *Id));
 	return RootKey.Write(true);
-}
-
-void FWindowsPlatformInstallation::EnumerateEngineInstallations(TMap<FString, FString> &OutInstallations)
-{
-	HKEY hKey;
-	if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\EpicGames\\Unreal Engine", 0, KEY_READ, &hKey) == ERROR_SUCCESS)
-	{
-		for (DWORD Index = 0;; Index++)
-		{
-			wchar_t KeyName[256];
-			DWORD KeyLength = sizeof(KeyName) / sizeof(KeyName[0]);
-			if (RegEnumKeyEx(hKey, Index, KeyName, &KeyLength, NULL, NULL, NULL, NULL) != ERROR_SUCCESS) break;
-
-			wchar_t InstalledDirectory[MAX_PATH];
-			DWORD InstalledDirectoryLen = sizeof(InstalledDirectory) / sizeof(InstalledDirectory[0]);
-
-			if (RegGetValue(hKey, KeyName, L"InstalledDirectory", RRF_RT_REG_SZ, NULL, InstalledDirectory, &InstalledDirectoryLen) == ERROR_SUCCESS)
-			{
-				FString NormalizedInstalledDirectory = InstalledDirectory;
-				FPaths::NormalizeDirectoryName(NormalizedInstalledDirectory);
-				OutInstallations.Add(KeyName, NormalizedInstalledDirectory);
-			}
-		}
-		RegCloseKey(hKey);
-	}
 }
 
 bool FWindowsPlatformInstallation::IsSourceDistribution(const FString &EngineRootDir)

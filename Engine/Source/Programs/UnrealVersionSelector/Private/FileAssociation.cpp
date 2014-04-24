@@ -71,7 +71,7 @@ bool GetEngineIdForProject(const FString &ProjectFileName, FString &OutId)
 bool GetEngineRootDirForProject(const FString &ProjectFileName, FString &OutRootDir)
 {
 	FString Id;
-	if (GetEngineIdForProject(ProjectFileName, Id) && GetEngineRootDirFromId(Id, OutRootDir))
+	if (GetEngineIdForProject(ProjectFileName, Id) && FPlatformMisc::GetEngineRootDirFromIdentifier(Id, OutRootDir))
 	{
 		return true;
 	}
