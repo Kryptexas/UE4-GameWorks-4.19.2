@@ -69,7 +69,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogMacTextInputMethodSystem, Log, All);
 	check(InContext);
 	if(IMMContext)
 	{
-		[self deactivateInputMethod];
+		[[self inputContext] deactivate];
+		IMMContext = NULL;
 	}
 	IMMContext = InContext;
 	[[self inputContext] activate];
