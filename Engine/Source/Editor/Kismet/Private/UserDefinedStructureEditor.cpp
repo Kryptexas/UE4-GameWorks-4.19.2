@@ -364,21 +364,23 @@ public:
 		return EVisibility::Collapsed;
 	}
 
-	void RemoveInvalidSubTypes(TSharedPtr<UEdGraphSchema_K2::FPinTypeTreeInfo> PinTypeNode, const UStruct* Parent) const
+	void RemoveInvalidSubTypes(TSharedPtr<UEdGraphSchema_K2::FPinTypeTreeInfo> PinTypeNode, const UUserDefinedStruct* Parent) const
 	{
+		if (!PinTypeNode.IsValid() || !Parent)
+		{
+			return;
+		}
+
 		for (int32 ChildIndex = 0; ChildIndex < PinTypeNode->Children.Num();)
 		{
-			auto Child = PinTypeNode->Children[ChildIndex];
+			const auto Child = PinTypeNode->Children[ChildIndex];
 			if(Child.IsValid())
 			{
-				auto ScriptStruct = Cast<const UScriptStruct>(Child->GetPinType(false).PinSubCategoryObject.Get());
-				if (ScriptStruct)
+				const bool bCanCheckSubObjectWithoutLoading = Child->GetPinType(false).PinSubCategoryObject.IsValid();
+				if (bCanCheckSubObjectWithoutLoading && !FStructureEditorUtils::CanHaveAMemberVariableOfType(Parent, Child->GetPinType(false)))
 				{
-					if (FStructureEditorUtils::EStructureError::Ok != FStructureEditorUtils::IsStructureValid(ScriptStruct, Parent))
-					{
-						PinTypeNode->Children.RemoveAt(ChildIndex);
-						continue;
-					}
+					PinTypeNode->Children.RemoveAt(ChildIndex);
+					continue;
 				}
 			}
 			++ChildIndex;
@@ -396,10 +398,7 @@ public:
 			// THE TREE HAS ONLY 2 LEVELS
 			for (auto PinTypePtr : TypeTree)
 			{
-				if (PinTypePtr.IsValid() && (K2Schema->PC_Struct == PinTypePtr->GetPinType(false).PinCategory))
-				{
-					RemoveInvalidSubTypes(PinTypePtr, Parent);
-				}
+				RemoveInvalidSubTypes(PinTypePtr, Parent);
 			}
 		}
 	}

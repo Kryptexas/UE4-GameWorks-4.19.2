@@ -170,6 +170,18 @@ bool FStructureEditorUtils::CanHaveAMemberVariableOfType(const UUserDefinedStruc
 		}
 		return false;
 	}
+	else
+	{
+		const auto PinSubCategoryClass = Cast<const UClass>(VarType.PinSubCategoryObject.Get());
+		if (PinSubCategoryClass && PinSubCategoryClass->IsChildOf(UBlueprint::StaticClass()))
+		{
+			if (OutMsg)
+			{
+				*OutMsg = LOCTEXT("StructureUseBlueprintReferences", "Struct cannot use any blueprint references").ToString();
+			}
+			return false;
+		}
+	}
 	return true;
 }
 

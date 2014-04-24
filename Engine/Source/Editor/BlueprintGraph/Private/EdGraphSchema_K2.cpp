@@ -194,6 +194,7 @@ UEdGraphSchema_K2::FPinTypeTreeInfo::FPinTypeTreeInfo(const FString& CategoryNam
 	PinType.PinCategory = CategoryName;
 
 	SubCategoryObjectAssetReference = SubCategoryObject;
+	PinType.PinSubCategoryObject = SubCategoryObjectAssetReference.ResolveObject();
 
 	bReadOnly = bInReadOnly;
 }
@@ -2054,7 +2055,7 @@ void UEdGraphSchema_K2::ConstructBasicPinTooltip(const UEdGraphPin& Pin, const F
 
 	if (!PinDescription.IsEmpty())
 	{
-		ConstructedTooltip += FString(TEXT("\n")) + PinDescription;
+	ConstructedTooltip += FString(TEXT("\n")) + PinDescription;
 	}
 	TooltipOut = ConstructedTooltip; // using a local FString, so PinDescription and TooltipOut can be the same variable
 }
