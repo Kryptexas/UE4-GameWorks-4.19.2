@@ -314,16 +314,8 @@ public class GUBP : BuildCommand
 
         public override void DoBuild(GUBP bp)
         {
-            if (CommandUtils.P4Enabled && CommandUtils.AllowSubmit)
-            {
-                // only update version files on build machines
-                var UE4Build = new UE4Build(bp);
-                BuildProducts = UE4Build.UpdateVersionFiles();
-            }
-            else
-            {
-                base.DoBuild(bp);
-            }
+            var UE4Build = new UE4Build(bp);
+            BuildProducts = UE4Build.UpdateVersionFiles(ActuallyUpdateVersionFiles: CommandUtils.P4Enabled && CommandUtils.AllowSubmit);
         }
         public override bool IsSticky()
         {
