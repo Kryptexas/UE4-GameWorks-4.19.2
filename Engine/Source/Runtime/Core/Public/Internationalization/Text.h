@@ -354,6 +354,7 @@ class CORE_API FTextBuilder
 public:
 
 	FTextBuilder()
+		: IndentCount(0)
 	{
 
 	}
