@@ -494,4 +494,6 @@ void InitDefaultGLContextState(void)
 	// Intel HD4000 under <= 10.8.4 requires GL_DITHER disabled or dithering will occur on any channel < 8bits.
 	// No other driver does this but we don't need GL_DITHER on anyway.
 	glDisable(GL_DITHER);
+	// Render targets with TexCreate_SRGB should do sRGB conversion like in D3D11
+	glEnable(GL_FRAMEBUFFER_SRGB);
 }
