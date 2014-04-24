@@ -264,6 +264,32 @@ void AGameSession::ReturnToMainMenuHost()
 	}
 }
 
+bool AGameSession::TravelToSession(int32 ControllerId, FName SessionName)
+{
+	UWorld* World = GetWorld();
+	IOnlineSubsystem* OnlineSub = Online::GetSubsystem(World);
+	if (OnlineSub)
+	{
+		FString URL;
+		IOnlineSessionPtr SessionInt = OnlineSub->GetSessionInterface();
+		if (SessionInt.IsValid() && SessionInt->GetResolvedConnectString(SessionName, URL))
+		{
+			APlayerController* PC = UGameplayStatics::GetPlayerController(World, ControllerId);
+			if (PC)
+			{
+				PC->ClientTravel(URL, TRAVEL_Absolute);
+				return true;
+			}
+		}
+		else
+		{
+			UE_LOG(LogGameSession, Warning, TEXT("Failed to resolve session connect string for %s"), *SessionName.ToString());
+		}
+	}
+
+	return false;
+}
+
 void AGameSession::PostSeamlessTravel()
 {
 }
