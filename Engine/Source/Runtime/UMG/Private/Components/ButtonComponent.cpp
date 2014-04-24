@@ -24,8 +24,8 @@ UButtonComponent::UButtonComponent(const FPostConstructInitializeProperties& PCI
 	DesiredSizeScale = ButtonDefaults._DesiredSizeScale.Get();
 	ContentScale = ButtonDefaults._ContentScale.Get();
 
-	ButtonColorAndOpacity = ButtonDefaults._ButtonColorAndOpacity.Get();
-	ForegroundColor = ButtonDefaults._ForegroundColor.Get();
+	ButtonColorAndOpacity = FLinearColor::White;
+	ForegroundColor = FLinearColor::Black;
 }
 
 TSharedRef<SWidget> UButtonComponent::RebuildWidget()

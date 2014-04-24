@@ -20,6 +20,12 @@ USlateWrapperComponent* UHorizontalBoxComponent::GetChildAt(int32 Index) const
 	return Slots[Index]->Content;
 }
 
+bool UHorizontalBoxComponent::AddChild(USlateWrapperComponent* Child)
+{
+	AddSlot(Child);
+	return true;
+}
+
 TSharedRef<SWidget> UHorizontalBoxComponent::RebuildWidget()
 {
 	TSharedRef<SHorizontalBox> NewCanvas = SNew(SHorizontalBox);

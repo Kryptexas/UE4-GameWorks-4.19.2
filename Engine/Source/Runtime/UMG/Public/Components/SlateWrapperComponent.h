@@ -16,6 +16,16 @@ class UMG_API USlateWrapperComponent : public UActorComponent
 	UPanelSlot* Slot;
 #endif
 
+	/** Sets whether this text box can actually be modified interactively by the user */
+	UPROPERTY(EditDefaultsOnly, Category=Behavior)
+	bool bIsEnabled;
+
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	bool GetIsEnabled() const;
+
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	void SetIsEnabled(bool bInIsEnabled);
+	
 	// UActorComponent interface
 	virtual void OnRegister() OVERRIDE;
 	virtual void OnUnregister() OVERRIDE;

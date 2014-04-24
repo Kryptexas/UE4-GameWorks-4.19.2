@@ -20,6 +20,12 @@ USlateWrapperComponent* UVerticalBoxComponent::GetChildAt(int32 Index) const
 	return Slots[Index]->Content;
 }
 
+bool UVerticalBoxComponent::AddChild(USlateWrapperComponent* Child)
+{
+	AddSlot(Child);
+	return true;
+}
+
 TSharedRef<SWidget> UVerticalBoxComponent::RebuildWidget()
 {
 	TSharedRef<SVerticalBox> NewCanvas = SNew(SVerticalBox);

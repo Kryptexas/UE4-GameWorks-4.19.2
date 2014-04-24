@@ -10,20 +10,19 @@ class UMG_API UTextBlockComponent : public USlateLeafWidgetComponent
 	GENERATED_UCLASS_BODY()
 
 public:
-	UPROPERTY(EditAnywhere, Category=TextBlock)
+	UPROPERTY(EditAnywhere, Category=Content)
 	FText Text;
 
-	UPROPERTY(EditAnywhere, Category=TextBlock)
+	UPROPERTY(EditAnywhere, Category=Appearance)
 	FSlateFontInfo Font;
 
-	UPROPERTY(EditAnywhere, Category=TextBlock)
+	UPROPERTY(EditAnywhere, Category=Appearance)
 	FVector2D ShadowOffset;
 
-	//@TODO: Expose FSlateColor
-	UPROPERTY(EditAnywhere, Category=TextBlock)
-	FLinearColor ColorAndOpacity;
+	UPROPERTY(EditAnywhere, Category=Appearance)
+	FSlateColor ColorAndOpacity;
 
-	UPROPERTY(EditAnywhere, Category=TextBlock)
+	UPROPERTY(EditAnywhere, Category=Appearance)
 	FLinearColor ShadowColorAndOpacity;
 
 protected:

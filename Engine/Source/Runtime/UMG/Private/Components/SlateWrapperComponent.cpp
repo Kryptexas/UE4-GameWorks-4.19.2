@@ -8,6 +8,21 @@
 USlateWrapperComponent::USlateWrapperComponent(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	bIsEnabled = true;
+}
+
+bool USlateWrapperComponent::GetIsEnabled() const
+{
+	return MyWidget.IsValid() ? MyWidget->IsEnabled() : bIsEnabled;
+}
+
+void USlateWrapperComponent::SetIsEnabled(bool bInIsEnabled)
+{
+	bIsEnabled = bInIsEnabled;
+	if ( MyWidget.IsValid() )
+	{
+		MyWidget->SetEnabled(bInIsEnabled);
+	}
 }
 
 void USlateWrapperComponent::OnRegister()
@@ -26,6 +41,7 @@ TSharedRef<SWidget> USlateWrapperComponent::GetWidget()
 	if ( !MyWidget.IsValid() )
 	{
 		MyWidget = RebuildWidget();
+		MyWidget->SetEnabled(bIsEnabled);
 	}
 
 	return MyWidget.ToSharedRef();

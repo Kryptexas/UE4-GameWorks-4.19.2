@@ -17,6 +17,7 @@ class UMG_API UContentWidget : public USlateNonLeafWidgetComponent
 
 	virtual int32 GetChildrenCount() const OVERRIDE;
 	virtual USlateWrapperComponent* GetChildAt(int32 Index) const OVERRIDE;
+	virtual bool AddChild(USlateWrapperComponent* InContent) OVERRIDE;
 
 protected:
 

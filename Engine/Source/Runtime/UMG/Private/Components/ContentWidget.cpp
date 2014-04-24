@@ -41,6 +41,12 @@ USlateWrapperComponent* UContentWidget::GetChildAt(int32 Index) const
 	return Content;
 }
 
+bool UContentWidget::AddChild(USlateWrapperComponent* InContent)
+{
+	Content = InContent;
+	return true;
+}
+
 /////////////////////////////////////////////////////
 
 #undef LOCTEXT_NAMESPACE
