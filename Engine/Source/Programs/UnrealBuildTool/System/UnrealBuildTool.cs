@@ -518,7 +518,15 @@ namespace UnrealBuildTool
 		{
 			InitLogging();
 
-			XmlConfigLoader.Init();
+			try
+			{
+				XmlConfigLoader.Init();
+			}
+			catch (BuildException Exception)
+			{
+				Log.TraceError("UnrealBuildTool Exception: " + Exception);
+				return (int) ECompilationResult.OtherCompilationError;
+			}
 
 			InitialEnvironment = Environment.GetEnvironmentVariables();
 			if (InitialEnvironment.Count < 1)

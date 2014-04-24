@@ -59,6 +59,23 @@ namespace UnrealBuildTool
 		}
 	}
 
+	/// <summary>
+	/// Class that stores info about aliased file.
+	/// </summary>
+	public class AliasedFile
+	{
+		public AliasedFile(string FileSystemPath, string ProjectPath)
+		{
+			this.FileSystemPath = FileSystemPath;
+			this.ProjectPath = ProjectPath;
+		}
+
+		// File system path.
+		public string FileSystemPath { get; private set; }
+
+		// Project path.
+		public string ProjectPath { get; private set; }
+	}
 
 	public abstract class ProjectFile : IntelliSenseGatherer
 	{
@@ -165,6 +182,17 @@ namespace UnrealBuildTool
 			}
 		}
 
+		/// Aliased (i.e. files is custom filter tree) in this project
+		public readonly List<AliasedFile> AliasedFiles = new List<AliasedFile>();
+
+		/// <summary>
+		/// Adds aliased file to the project.
+		/// </summary>
+		/// <param name="File">Aliased file.</param>
+		public void AddAliasedFileToProject(AliasedFile File)
+		{
+			AliasedFiles.Add(File);
+		}
 	
 		/// <summary>
 		/// Adds a file to this project, ignoring dupes
