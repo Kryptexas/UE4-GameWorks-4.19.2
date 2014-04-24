@@ -142,7 +142,7 @@ FAnimEditAppMode::FAnimEditAppMode(TSharedPtr<FPersona> InPersona)
 	PersonaTabFactories.RegisterFactory(MakeShareable(new FSelectionDetailsSummoner(InPersona)));
 	PersonaTabFactories.RegisterFactory(MakeShareable(new FAnimAssetPropertiesSummoner(InPersona)));
 
-	TabLayout = FTabManager::NewLayout("Persona_AnimEditMode_Layout_v5")
+	TabLayout = FTabManager::NewLayout("Persona_AnimEditMode_Layout_v6")
 		->AddArea
 		(
 			FTabManager::NewPrimaryArea() ->SetOrientation(Orient_Vertical)
