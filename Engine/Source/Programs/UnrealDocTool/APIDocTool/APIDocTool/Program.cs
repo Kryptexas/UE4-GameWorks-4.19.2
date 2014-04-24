@@ -59,6 +59,8 @@ namespace APIDocTool
 			"NotForLicensees",
 		};
 
+		public static HashSet<string> ExcludeSourceDirectoriesHash = new HashSet<string>(ExcludeSourceDirectories.Select(x => x.ToLowerInvariant()));
+
 		static string[] ExcludeSourceFiles = 
 		{
 			"*/CoreUObject/Classes/Object.h",
@@ -965,7 +967,13 @@ namespace APIDocTool
 		public static void CleanChm(string ChmPath)
 		{
 			Console.WriteLine("Cleaning '{0}'", ChmPath);
-			Utility.SafeDeleteDirectoryContents(ChmPath, true);
+			if (Directory.Exists(ChmPath))
+			{
+				foreach (string SubDir in Directory.EnumerateDirectories(ChmPath))
+				{
+					Directory.Delete(SubDir, true);
+				}
+			}
 		}
 
 		public static bool BuildChm(string ChmCompilerPath, string BaseHtmlDir, string ChmDir)

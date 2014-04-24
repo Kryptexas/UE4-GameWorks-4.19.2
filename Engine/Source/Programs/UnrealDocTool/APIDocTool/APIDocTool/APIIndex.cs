@@ -57,7 +57,7 @@ namespace APIDocTool
 			}
 
 			// Add some default categories to fix the order
-			APIModuleCategory RootCategory = new APIModuleCategory("All Modules");
+			APIModuleCategory RootCategory = new APIModuleCategory("Modules");
 			RootCategory.Categories.Add(new APIModuleCategory("Runtime Modules"));
 			RootCategory.Categories.Add(new APIModuleCategory("Editor Modules"));
 			RootCategory.Categories.Add(new APIModuleCategory("Developer Modules"));

@@ -17,24 +17,19 @@ namespace APIDocTool
 		public readonly APIFunctionType FunctionType;
 
 		public APIFunctionGroup(APIPage InParent, APIFunctionKey InKey, IEnumerable<DoxygenEntity> InEntities) 
-			: this(InParent, InKey, InEntities.Select(x => x.Node))
-		{
-		}
-
-		public APIFunctionGroup(APIPage InParent, APIFunctionKey InKey, IEnumerable<XmlNode> InNodes) 
 			: base(InParent, InKey.Name, Utility.MakeLinkPath(InParent.LinkPath, InKey.GetLinkName()))
 		{
 			FunctionType = InKey.Type;
 
 			// Build a list of prototypes for each function node, to be used for sorting
-			List<XmlNode> Nodes = new List<XmlNode>(InNodes.OrderBy(x => x.SelectNodes("param").Count));
+			List<DoxygenEntity> Entities = new List<DoxygenEntity>(InEntities.OrderBy(x => x.Node.SelectNodes("param").Count));
 
 			// Create the functions
 			int LinkIndex = 1;
-			foreach (XmlNode Node in Nodes)
+			foreach(DoxygenEntity Entity in Entities)
 			{
 				string NewLinkPath = Utility.MakeLinkPath(LinkPath, String.Format("{0}", LinkIndex));
-				APIFunction Function = new APIFunction(this, Node, InKey, NewLinkPath);
+				APIFunction Function = new APIFunction(this, Entity, InKey, NewLinkPath);
 				Children.Add(Function);
 				LinkIndex++;
 			}

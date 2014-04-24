@@ -78,7 +78,7 @@ namespace APIDocTool
 				}
 				else if (Entity.Kind == "typedef")
 				{
-					Children.Add(new APITypeDef(Parent, Entity.Node));
+					Children.Add(new APITypeDef(Parent, Entity));
 				}
 				else if (Entity.Kind == "enum")
 				{
@@ -264,6 +264,64 @@ namespace APIDocTool
 			}
 
 			Writer.LeaveTag("[/REGION]");
+		}
+
+		public void WriteReferencesSection(UdnWriter Writer, DoxygenEntity Entity)
+		{
+			List<UdnListItem> Items = new List<UdnListItem>();
+
+			// Get the module
+			for (APIPage Page = this; Page != null; Page = Page.Parent)
+			{
+				APIModule Module = Page as APIModule;
+				if(Module != null)
+				{
+					Items.Add(new UdnListItem("Module", String.Format("[{0}]({1})", Module.Name, Module.LinkPath), null));
+					break;
+				}
+			}
+
+			// Get the header file
+			if (Entity.File != null)
+			{
+				string NormalizedFileName = GetNormalizedFileName(Entity.File);
+				if (NormalizedFileName != null)
+				{
+					Items.Add(new UdnListItem("Header", Utility.EscapeText(NormalizedFileName), null));
+				}
+			}
+
+			// Get the source file
+			if(Entity.BodyFile != null && Entity.BodyFile != Entity.File)
+			{
+				string NormalizedFileName = GetNormalizedFileName(Entity.BodyFile);
+				if (NormalizedFileName != null)
+				{
+					Items.Add(new UdnListItem("Source", Utility.EscapeText(NormalizedFileName), null));
+				}
+			}
+
+			// Write the section
+			if(Items.Count > 0)
+			{
+				Writer.EnterSection("references", "References");
+				Writer.WriteList(Items);
+				Writer.LeaveSection();
+			}
+		}
+
+		public static string GetNormalizedFileName(string InFileName)
+		{
+			string NormalizedFileName = InFileName.Replace('\\', '/');
+			const string EngineSource = "/Engine/Source/";
+
+			int SourceIndex = NormalizedFileName.IndexOf(EngineSource);
+			if (SourceIndex != -1)
+			{
+				return NormalizedFileName.Substring(SourceIndex + EngineSource.Length);
+			}
+
+			return null;
 		}
 
 		public static string AnnotateAnonymousNames(string Name)
