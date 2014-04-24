@@ -5,6 +5,7 @@
 #include "WidgetBlueprintEditorUtils.h"
 #include "Kismet2NameValidators.h"
 #include "BlueprintEditorUtils.h"
+#include "K2Node_Variable.h"
 
 bool FWidgetBlueprintEditorUtils::RenameWidget(UBlueprint* Blueprint, const FName& OldName, const FName& NewName)
 {
