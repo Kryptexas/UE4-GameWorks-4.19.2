@@ -2213,3 +2213,9 @@ static TAutoConsoleVariable<float> CVarDemosaicVposOffset(
 	0.0f,
 	TEXT("This offset is added to the rasterized position used for demosaic in the ES2 tonemapping shader. It exists to workaround driver bugs on some Android devices that have a half-pixel offset."),
 	ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarRenderLastFrameInStreamingPause(
+	TEXT("r.RenderLastFrameInStreamingPause"),
+	1,
+	TEXT("If 1 the previous frame is displayed during streaming pause. If zero the screen is left black."),
+	ECVF_RenderThreadSafe);

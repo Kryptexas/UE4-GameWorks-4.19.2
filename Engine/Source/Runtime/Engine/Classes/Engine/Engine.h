@@ -462,6 +462,9 @@ namespace EMatineeCaptureType
 
 class IAnalyticsProvider;
 
+DECLARE_DELEGATE_OneParam(FBeginStreamingPauseDelegate, FViewport*);
+DECLARE_DELEGATE(FEndStreamingPauseDelegate);
+
 UCLASS(abstract, config=Engine, transient)
 class ENGINE_API UEngine : public UObject, public FExec
 {
@@ -1340,6 +1343,14 @@ public:
 	/** Used to alter the intensity level of the selection highlight on selected billboard objects */
 	UPROPERTY(transient)
 	float SelectionHighlightIntensityBillboards;
+
+	/** Delegate handling when streaming pause begins. Set initially in FStreamingPauseRenderingModule::StartupModule() but can then be overriden by games. */
+	void RegisterBeginStreamingPauseRenderingDelegate( FBeginStreamingPauseDelegate* InDelegate );
+	FBeginStreamingPauseDelegate* BeginStreamingPauseDelegate;
+
+	/** Delegate handling when streaming pause ends. Set initially in FStreamingPauseRenderingModule::StartupModule() but can then be overriden by games. */
+	void RegisterEndStreamingPauseRenderingDelegate( FEndStreamingPauseDelegate* InDelegate );
+	FEndStreamingPauseDelegate* EndStreamingPauseDelegate;
 
 	/* 
 	 * Error message event relating to server travel failures 

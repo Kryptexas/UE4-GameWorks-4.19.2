@@ -9,7 +9,7 @@ public class Engine : ModuleRules
 	{
 		SharedPCHHeaderFile = "Runtime/Engine/Public/Engine.h";
 
-		PublicIncludePathModuleNames.AddRange( new string[] { "Renderer" } );
+		PublicIncludePathModuleNames.AddRange( new string[] { "Renderer", "StreamingPauseRendering" } );
 
 		PrivateIncludePaths.AddRange(
 			new string[] {
@@ -69,6 +69,7 @@ public class Engine : ModuleRules
 				"MovieSceneCore",
 				"MovieSceneCoreTypes",
 				"HeadMountedDisplay",
+				"StreamingPauseRendering",
 			}
 		);
 

@@ -35,8 +35,6 @@ FString GRenderingThreadError;
  */
 volatile bool GIsRenderingThreadHealthy = true;
 
-RENDERCORE_API bool GGameThreadWantsToSuspendRendering = false;
-
 /** Whether the rendering thread is suspended (not even processing the tickables) */
 volatile int32 GIsRenderingThreadSuspended = 0;
 
@@ -192,9 +190,7 @@ void TickRenderingTickables()
 	{
 		return;
 	}
-
-	uint32 ObjectsThatResumedRendering = 0;
-
+	
 	// tick any rendering thread tickables
 	for (int32 ObjectIndex = 0; ObjectIndex < FTickableObjectRenderThread::RenderingThreadTickableObjects.Num(); ObjectIndex++)
 	{
@@ -202,22 +198,12 @@ void TickRenderingTickables()
 		// make sure it wants to be ticked and the rendering thread isn't suspended
 		if (TickableObject->IsTickable())
 		{
-			if (GGameThreadWantsToSuspendRendering && TickableObject->NeedsRenderingResumedForRenderingThreadTick())
-			{
-				ObjectsThatResumedRendering++;
-			}
 			STAT(FScopeCycleCounter(TickableObject->GetStatId());)
 			TickableObject->Tick(DeltaSeconds);
 		}
 	}
 	// update the last time we ticked
 	LastTickTime = CurTime;
-
-	// if no ticked objects resumed rendering, make sure we're suspended if game thread wants us to be
-	if (ObjectsThatResumedRendering == 0 && GGameThreadWantsToSuspendRendering)
-	{
-		// Nothing to do?
-	}
 }
 
 /** Accumulates how many cycles the renderthread has been idle. It's defined in RenderingThread.cpp. */

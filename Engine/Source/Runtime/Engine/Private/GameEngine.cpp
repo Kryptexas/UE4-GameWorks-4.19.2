@@ -393,6 +393,9 @@ UEngine::UEngine(const class FPostConstructInitializeProperties& PCIP)
 	bUseSound = true;
 	bPendingHardwareSurveyResults = false;
 	bIsInitialized = false;
+
+	BeginStreamingPauseDelegate = NULL;
+	EndStreamingPauseDelegate = NULL;
 }
 
 void UGameEngine::Init(IEngineLoop* InEngineLoop)
@@ -970,12 +973,18 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 					}
 				}
 
-				FStreamingPause::GameThreadWantsToSuspendRendering( GameViewport ? GameViewport->Viewport : NULL );
+				if( GameViewport && BeginStreamingPauseDelegate && BeginStreamingPauseDelegate->IsBound() )
+				{
+					BeginStreamingPauseDelegate->Execute( GameViewport->Viewport );
+				}	
 
 				// Flushes level streaming requests, blocking till completion.
 				Context.World()->FlushLevelStreaming();
 
-				FStreamingPause::GameThreadWantsToResumeRendering();
+				if( EndStreamingPauseDelegate && EndStreamingPauseDelegate->IsBound() )
+				{
+					EndStreamingPauseDelegate->Execute( );
+				}	
 			}
 			Context.World()->bRequestedBlockOnAsyncLoading = false;
 		}

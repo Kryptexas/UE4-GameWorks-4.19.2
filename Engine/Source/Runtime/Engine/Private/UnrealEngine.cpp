@@ -844,6 +844,19 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 		//UGameViewportClient::OnScreenshotCaptured().AddUObject(this, &UEngine::HandleScreenshotCaptured);
 	}
 #endif
+
+	//Load the streaming pause rendering module.
+	FModuleManager::LoadModulePtr<class FStreamingPauseRenderingModule>(TEXT("StreamingPauseRendering"));
+}
+
+void UEngine::RegisterBeginStreamingPauseRenderingDelegate( FBeginStreamingPauseDelegate* InDelegate )
+{
+	BeginStreamingPauseDelegate = InDelegate;
+}
+
+void UEngine::RegisterEndStreamingPauseRenderingDelegate( FEndStreamingPauseDelegate* InDelegate )
+{
+	EndStreamingPauseDelegate = InDelegate;
 }
 
 void UEngine::OnExternalUIChange(bool bInIsOpening)
