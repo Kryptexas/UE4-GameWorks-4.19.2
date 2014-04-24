@@ -801,7 +801,7 @@ void AGameMode::HandleSeamlessTravelPlayer(AController*& C)
 	if (PC != NULL)
 	{
 		// Track the last completed seamless travel for the player
-		PC->LastSeamlessTravelCount = PC->SeamlessTravelCount;
+		PC->LastCompletedSeamlessTravelCount = PC->SeamlessTravelCount;
 
 		PC->CleanUpAudioComponents();
 

@@ -681,16 +681,31 @@ public:
 	void ClientStopForceFeedback(class UForceFeedbackEffect* ForceFeedbackEffect, FName Tag);
 
 	/**
-	 * Travel to a different map or IP address.  Calls the PreClientTravel event before doing anything.
-	 * @param	URL				a string containing the mapname (or IP address) to travel to, along with option key/value pairs
-	 * @param	TravelType 		specifies whether the client should append URL options used in previous travels; if true is specified
+	 * Travel to a different map or IP address. Calls the PreClientTravel event before doing anything.
+	 * NOTE: This is implemented as a locally executed wrapper for ClientTravelInternal, to avoid API compatability breakage
+	 *
+	 * @param URL				A string containing the mapname (or IP address) to travel to, along with option key/value pairs
+	 * @param TravelType 		specifies whether the client should append URL options used in previous travels; if true is specified
 	 *							for the bSeamlesss parameter, this value must be TRAVEL_Relative.
-	 * @param	bSeamless		indicates whether to use seamless travel (requires TravelType of TRAVEL_Relative)
-	 * @param	MapPackageGuid	the GUID of the map package to travel to - this is used to find the file when it has been autodownloaded,
+	 * @param bSeamless			Indicates whether to use seamless travel (requires TravelType of TRAVEL_Relative)
+	 * @param MapPackageGuid	The GUID of the map package to travel to - this is used to find the file when it has been autodownloaded,
+	 * 							so it is only needed for clients
+	 */
+	UFUNCTION()
+	void ClientTravel(const FString& URL, enum ETravelType TravelType, bool bSeamless = false, FGuid MapPackageGuid = FGuid());
+
+	/**
+	 * Internal clientside implementation of ClientTravel - use ClientTravel to call this
+	 *
+	 * @param URL				A string containing the mapname (or IP address) to travel to, along with option key/value pairs
+	 * @param TravelType 		specifies whether the client should append URL options used in previous travels; if true is specified
+	 *							for the bSeamlesss parameter, this value must be TRAVEL_Relative.
+	 * @param bSeamless			Indicates whether to use seamless travel (requires TravelType of TRAVEL_Relative)
+	 * @param MapPackageGuid	The GUID of the map package to travel to - this is used to find the file when it has been autodownloaded,
 	 * 							so it is only needed for clients
 	 */
 	UFUNCTION(reliable, client)
-	void ClientTravel(const FString& URL, enum ETravelType TravelType, bool bSeamless = false, FGuid MapPackageGuid = FGuid());
+	void ClientTravelInternal(const FString& URL, enum ETravelType TravelType, bool bSeamless = false, FGuid MapPackageGuid = FGuid());
 
 	/**
 	 * Replicated Update streaming status
@@ -1288,5 +1303,5 @@ public:
 
 	/** The value of SeamlessTravelCount, upon the last call to GameMode::HandleSeamlessTravelPlayer; used to detect seamless travel */
 	UPROPERTY()
-	uint16		LastSeamlessTravelCount;
+	uint16		LastCompletedSeamlessTravelCount;
 };

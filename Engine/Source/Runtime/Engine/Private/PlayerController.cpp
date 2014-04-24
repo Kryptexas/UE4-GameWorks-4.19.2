@@ -396,39 +396,27 @@ void APlayerController::ServerNotifyLoadedWorld_Implementation(FName WorldPackag
 
 	UWorld* CurWorld = GetWorld();
 
-	// Only valid for calling, for PC's that have seamlessly traveled
-	if (CurWorld != NULL && CurWorld->IsServer() && SeamlessTravelCount > 0)
+	// Only valid for calling, for PC's in the process of seamless traveling
+	// NOTE: SeamlessTravelCount tracks client seamless travel, through the serverside gameplay code; this should not be replaced.
+	if (CurWorld != NULL && CurWorld->IsServer() && SeamlessTravelCount > 0 && LastCompletedSeamlessTravelCount < SeamlessTravelCount)
 	{
-		// Ensure this PC has not already completed seamless travel
-		if (LastSeamlessTravelCount == SeamlessTravelCount)
+		// Update our info on what world the client is in
+		UNetConnection* const Connection = Cast<UNetConnection>(Player);
+
+		if (Connection != NULL)
 		{
-			// Client sent too many ServerNotifyLoadedWorld RPC's, this is very suspicious, the client is most likely hacking
-			UE_LOG(LogPlayerController, Warning, TEXT("APlayerController::ServerNotifyLoadedWorld_Implementation: Client attempting to travel to same world twice!"));
-
-			// FIXME: Close the connection?  We need to resolve what to do when we know for certain a client is cheating.
-
-			return;	
+			Connection->ClientWorldPackageName = WorldPackageName;
+			Connection->PackageMap->SetLocked(false);
 		}
-		else
+
+		// if both the server and this client have completed the transition, handle it
+		FSeamlessTravelHandler& SeamlessTravelHandler = GEngine->SeamlessTravelHandlerForWorld(CurWorld);
+		AGameMode* CurGameMode = CurWorld->GetAuthGameMode();
+
+		if (!SeamlessTravelHandler.IsInTransition() && WorldPackageName == CurWorld->GetOutermost()->GetFName() && CurGameMode != NULL)
 		{
-			// Update our info on what world the client is in
-			UNetConnection* const Connection = Cast<UNetConnection>(Player);
-
-			if (Connection != NULL)
-			{
-				Connection->ClientWorldPackageName = WorldPackageName;
-				Connection->PackageMap->SetLocked(false);
-			}
-
-			// if both the server and this client have completed the transition, handle it
-			FSeamlessTravelHandler& SeamlessTravelHandler = GEngine->SeamlessTravelHandlerForWorld(CurWorld);
-			AGameMode* CurGameMode = CurWorld->GetAuthGameMode();
-
-			if (!SeamlessTravelHandler.IsInTransition() && WorldPackageName == CurWorld->GetOutermost()->GetFName() && CurGameMode != NULL)
-			{
-				AController* TravelPlayer = this;
-				CurGameMode->HandleSeamlessTravelPlayer(TravelPlayer);
-			}
+			AController* TravelPlayer = this;
+			CurGameMode->HandleSeamlessTravelPlayer(TravelPlayer);
 		}
 	}
 }
@@ -3456,7 +3444,19 @@ bool APlayerController::IsNetRelevantFor(APlayerController* RealViewer, AActor* 
 	return ( this==RealViewer );
 }
 
-void APlayerController::ClientTravel_Implementation(const FString& URL, ETravelType TravelType, bool bSeamless, FGuid MapPackageGuid)
+void APlayerController::ClientTravel(const FString& URL, ETravelType TravelType, bool bSeamless, FGuid MapPackageGuid)
+{
+	// Keep track of seamless travel serverside
+	if (bSeamless && TravelType == TRAVEL_Relative)
+	{
+		SeamlessTravelCount++;
+	}
+
+	// Now pass on to the RPC
+	ClientTravelInternal(URL, TravelType, bSeamless, MapPackageGuid);
+}
+
+void APlayerController::ClientTravelInternal_Implementation(const FString& URL, ETravelType TravelType, bool bSeamless, FGuid MapPackageGuid)
 {
 	UWorld* World = GetWorld();
 

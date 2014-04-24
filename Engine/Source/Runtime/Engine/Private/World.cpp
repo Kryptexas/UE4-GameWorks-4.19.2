@@ -3458,9 +3458,6 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 							FString NewLevelName = GetOutermost()->GetName();
 							UE_LOG(LogNet, Log, TEXT("Client joined but was sent to another level. Asking client to travel to: '%s'"), *NewLevelName);
 							LevelName = NewLevelName;
-
-							// Incrementing SeamlessTravelCount so that the following ServerNotifyLoadedWorld RPC will be able to call HandleSeamlessTravelPlayer
-							Connection->PlayerController->SeamlessTravelCount++;
 						}
 						if (LevelName != TEXT(""))
 						{
@@ -4176,11 +4173,6 @@ UWorld* FSeamlessTravelHandler::Tick()
 					if (Cast<AController>(TheActor))
 					{
 						LoadedWorld->AddController(Cast<AController>(TheActor) );
-
-						if (Cast<APlayerController>(TheActor))
-						{
-							Cast<APlayerController>(TheActor)->SeamlessTravelCount++;
-						}
 					}
 					else if (Cast<APawn>(TheActor))
 					{
