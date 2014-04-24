@@ -29,6 +29,8 @@
 // TODO: Remove dependencies between generic profiler code and profiler ui code
 
 // Common headers and managers.
+#include "ProfilerStream.h"
+
 #include "ProfilerSample.h"
 #include "ProfilerFPSAnalyzer.h"
 #include "ProfilerDataProvider.h"

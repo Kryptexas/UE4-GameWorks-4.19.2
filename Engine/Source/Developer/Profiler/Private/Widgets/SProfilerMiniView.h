@@ -311,7 +311,7 @@ public:
 	 *	Moves the selection box to the location specified by FrameStart and FrameEnd. 
 	 *	Called by external widgets.
 	 */
-	void OnSelectionBoxMoved( int32 FrameStart, int32 FrameEnd );
+	void OnSelectionBoxChanged( int32 FrameStart, int32 FrameEnd );
 
 	void DrawText( const FString& Text, const FSlateFontInfo& FontInfo, FVector2D Position, const FColor& TextColor, const FColor& ShadowColor, FVector2D ShadowOffset ) const;
 

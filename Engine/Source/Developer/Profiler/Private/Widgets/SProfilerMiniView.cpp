@@ -586,7 +586,7 @@ void SProfilerMiniView::AddThreadTime( int32 InFrameIndex, const TMap<uint32, fl
 	StatMetadata = InStatMetaData;
 }
 
-void SProfilerMiniView::OnSelectionBoxMoved( int32 FrameStart, int32 FrameEnd )
+void SProfilerMiniView::OnSelectionBoxChanged( int32 FrameStart, int32 FrameEnd )
 {
 	const int32 MaxFrameIndex = FMath::Max( AllFrames.Num() - 1, 0 );
 	SelectionBoxFrameStart = FMath::Clamp( FrameStart, 0, MaxFrameIndex );

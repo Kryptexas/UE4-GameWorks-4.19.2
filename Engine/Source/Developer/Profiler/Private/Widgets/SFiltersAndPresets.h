@@ -297,6 +297,8 @@ protected:
 	/** Called when the filter and presets widget should be updated with the latest data. */
 	void ProfilerManager_OnRequestFilterAndPresetsUpdate();
 
+	void ProfilerManager_OnViewModeChanged( EProfilerViewMode::Type NewViewMode );
+
 	void UpdateGroupAndStatTree( const FProfilerSessionPtr InProfilerSession );
 	void CreateGroups();
 	void SortStats();

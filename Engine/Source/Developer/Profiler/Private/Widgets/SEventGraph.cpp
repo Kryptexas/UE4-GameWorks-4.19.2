@@ -733,6 +733,17 @@ SEventGraph::SEventGraph()
 	: CurrentStateIndex( 0 )
 {}
 
+
+SEventGraph::~SEventGraph()
+{
+	// Remove ourselves from the profiler manager.
+	if( FProfilerManager::Get().IsValid() )
+	{
+		FProfilerManager::Get()->OnViewModeChanged().RemoveAll( this );
+	}
+}
+
+
 /*-----------------------------------------------------------------------------
 	Event graph construction related functions
 -----------------------------------------------------------------------------*/
@@ -804,7 +815,7 @@ void SEventGraph::Construct( const FArguments& InArgs )
 		+SVerticalBox::Slot()
 		.AutoHeight()
 		[		
-			SNew(SBox)
+			SAssignNew(FunctionDetailsBox,SBox)
 			.HeightOverride( 224.0f )
 			[
 				SNew( SBorder )
@@ -911,6 +922,8 @@ void SEventGraph::Construct( const FArguments& InArgs )
 
 	InitializeAndShowHeaderColumns();
 	BindCommands();
+
+	FProfilerManager::Get()->OnViewModeChanged().AddSP( this, &SEventGraph::ProfilerManager_OnViewModeChanged );
 }
 
 TSharedRef<SWidget> SEventGraph::GetToggleButtonForEventGraphType( const EEventGraphTypes::Type EventGraphType, const FName BrushName )
@@ -3344,6 +3357,20 @@ void SEventGraph::SelectAllFrames_Execute()
 bool SEventGraph::SelectAllFrames_CanExecute() const
 {
 	return IsEventGraphStatesHistoryValid();
+}
+
+void SEventGraph::ProfilerManager_OnViewModeChanged( EProfilerViewMode::Type NewViewMode )
+{
+	if( NewViewMode == EProfilerViewMode::LineIndexBased )
+	{
+		FunctionDetailsBox->SetVisibility( EVisibility::Visible );
+		FunctionDetailsBox->SetEnabled( true );
+	}
+	else if( NewViewMode == EProfilerViewMode::ThreadViewTimeBased )
+	{
+		FunctionDetailsBox->SetVisibility( EVisibility::Collapsed );
+		FunctionDetailsBox->SetEnabled( false );
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -17,8 +17,9 @@ SProfilerGraphPanel::~SProfilerGraphPanel()
 	// Remove ourselves from the profiler manager.
 	if( FProfilerManager::Get().IsValid() )
 	{
-		FProfilerManager::Get()->OnTrackedStatChanged().RemoveAll(this);
-		FProfilerManager::Get()->OnSessionInstancesUpdated().RemoveAll(this);
+		FProfilerManager::Get()->OnTrackedStatChanged().RemoveAll( this );
+		FProfilerManager::Get()->OnSessionInstancesUpdated().RemoveAll( this );
+		FProfilerManager::Get()->OnViewModeChanged().RemoveAll( this );
 	}
 }
 
@@ -76,6 +77,8 @@ void SProfilerGraphPanel::Construct( const FArguments& InArgs )
 	// Register ourselves with the profiler manager.
 	FProfilerManager::Get()->OnTrackedStatChanged().AddSP( this, &SProfilerGraphPanel::ProfilerManager_OnTrackedStatChanged );
 	FProfilerManager::Get()->OnSessionInstancesUpdated().AddSP( this, &SProfilerGraphPanel::ProfilerManager_OnSessionInstancesUpdated );
+
+	FProfilerManager::Get()->OnViewModeChanged().AddSP( this, &SProfilerGraphPanel::ProfilerManager_OnViewModeChanged );
 }
 
 
@@ -94,7 +97,7 @@ void SProfilerGraphPanel::HorizontalScrollBar_OnUserScrolled( float ScrollOffset
 	GraphOffset = FMath::Trunc( ScrollOffset * NumDataPoints );
 	DataGraph->ScrollTo( GraphOffset );
 
-	FProfilerManager::Get()->GetProfilerWindow()->ProfilerMiniView->OnSelectionBoxMoved( GraphOffset, GraphOffset + NumVisiblePoints );
+	FProfilerManager::Get()->GetProfilerWindow()->ProfilerMiniView->OnSelectionBoxChanged( GraphOffset, GraphOffset + NumVisiblePoints );
 }
 
 
@@ -125,7 +128,7 @@ void SProfilerGraphPanel::OnDataGraphGraphOffsetChanged( int32 InGraphOffset )
 {
 	GraphOffset = InGraphOffset;
 	SetScrollBarState();
-	FProfilerManager::Get()->GetProfilerWindow()->ProfilerMiniView->OnSelectionBoxMoved( InGraphOffset, InGraphOffset + NumVisiblePoints );
+	FProfilerManager::Get()->GetProfilerWindow()->ProfilerMiniView->OnSelectionBoxChanged( InGraphOffset, InGraphOffset + NumVisiblePoints );
 }
 
 void SProfilerGraphPanel::OnMiniViewSelectionBoxChanged( int32 FrameStart, int32 FrameEnd )
@@ -140,13 +143,31 @@ void SProfilerGraphPanel::DataGraph_OnViewModeChanged( EDataGraphViewModes::Type
 	UpdateInternals();
 }
 
+
+void SProfilerGraphPanel::ProfilerManager_OnViewModeChanged( EProfilerViewMode::Type NewViewMode )
+{
+	if( NewViewMode == EProfilerViewMode::LineIndexBased )
+	{
+		HorizontalScrollBar->SetVisibility( EVisibility::Collapsed );
+		HorizontalScrollBar->SetEnabled( false );
+	}
+	else if( NewViewMode == EProfilerViewMode::ThreadViewTimeBased )
+	{
+		HorizontalScrollBar->SetVisibility( EVisibility::Visible );
+		HorizontalScrollBar->SetEnabled( true );
+	}
+
+	//DataGraph->SetViewMode( NewViewMode );
+}
+
+
 void SProfilerGraphPanel::UpdateInternals()
 {
 	NumVisiblePoints = DataGraph->GetNumVisiblePoints();
 	NumDataPoints = DataGraph->GetNumDataPoints();
 
 	SetScrollBarState();
-	FProfilerManager::Get()->GetProfilerWindow()->ProfilerMiniView->OnSelectionBoxMoved( GraphOffset, GraphOffset + NumVisiblePoints );
+	FProfilerManager::Get()->GetProfilerWindow()->ProfilerMiniView->OnSelectionBoxChanged( GraphOffset, GraphOffset + NumVisiblePoints );
 	 
 	if( FProfilerManager::Get()->IsLivePreview() )
 	{

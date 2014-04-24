@@ -10,15 +10,6 @@
 
 #define LOCTEXT_NAMESPACE "SProfilerWindow"
 
-/** Contains names of all widgets used in the profiler window. */
-namespace FNames
-{
-	static const FName GraphView = FName("GraphViewTab");
-	static const FName SentinelView = FName("SentinelViewTab");
-	static const FName FiltersAndPresets = FName("FilterAndPreset");
-	static const FName EventGraphView = FName("EventGraphView");
-}
-
 static FText GetTextForNotification( const EProfilerNotificationTypes::Type NotificatonType, const ELoadingProgressStates::Type ProgressState, const FString& Filename, const float ProgressPercent = 0.0f )
 {
 	FText Result;
@@ -90,10 +81,8 @@ SProfilerWindow::~SProfilerWindow()
 {}
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-void SProfilerWindow::Construct( const FArguments& InArgs, const ISessionManagerRef& InSessionManager )
+void SProfilerWindow::Construct( const FArguments& InArgs )
 {
-	SessionManager = InSessionManager;
-
 	// TODO: Cleanup overlay code.
 	ChildSlot
 		[
@@ -376,6 +365,7 @@ EVisibility SProfilerWindow::IsSessionOverlayVissible() const
 
 	return EVisibility::Visible;
 }
+
 
 bool SProfilerWindow::IsProfilerEnabled() const
 {

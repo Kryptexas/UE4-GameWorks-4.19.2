@@ -26,7 +26,8 @@ DEFINE_STAT(STAT_PM_MemoryUsage);
 	Profiler manager implementation
 -----------------------------------------------------------------------------*/
 
-TSharedPtr<FProfilerManager> FProfilerManager::Instance = NULL;
+TSharedPtr<FProfilerManager> FProfilerManager::Instance = nullptr;
+FThreadSafeCounter FProfilerManager::ProcessingLock;
 
 struct FEventGraphSampleLess
 {
@@ -204,11 +205,11 @@ void FProfilerManager::LoadProfilerCapture( const FString& ProfilerCaptureFilepa
 	}
 
 	SessionInstancesUpdatedEvent.Broadcast();
-	ProfilerType = EProfilerSessionTypes::Offline;
-
+	ProfilerType = EProfilerSessionTypes::StatsFile;
+	
 	GetProfilerWindow()->ManageEventGraphTab( ProfilerInstanceID, true, ProfilerSession->GetName() );
+	SetViewMode( EProfilerViewMode::LineIndexBased );
 }
-
 
 void FProfilerManager::LoadRawStatsFile( const FString& RawStatsFileFileath )
 {
@@ -222,21 +223,22 @@ void FProfilerManager::LoadRawStatsFile( const FString& RawStatsFileFileath )
 	const FGuid ProfilerInstanceID = ProfilerSession->GetInstanceID();
 	ProfilerSessionInstances.Add( ProfilerInstanceID, ProfilerSession );
 
-	ProfilerSession->PrepareLoading();
-	RequestFilterAndPresetsUpdateEvent.Broadcast();
-	ProfilerSession_OnCaptureFileProcessed( ProfilerInstanceID );
-	TrackDefaultStats();
-
 	ProfilerSession->
-		SetOnCaptureFileProcessed( FProfilerSession::FCaptureFileProcessedDelegate::CreateSP( this, &FProfilerManager::ProfilerSession_OnCaptureFileProcessed ) )
-		.SetOnAddThreadTime( FProfilerSession::FAddThreadTimeDelegate::CreateSP( this, &FProfilerManager::ProfilerSession_OnAddThreadTime ) );
+		//SetOnCaptureFileProcessed( FProfilerSession::FCaptureFileProcessedDelegate::CreateSP( this, /&FProfilerManager::ProfilerSession_OnCaptureFileProcessed ) )
+		SetOnAddThreadTime( FProfilerSession::FAddThreadTimeDelegate::CreateSP( this, &FProfilerManager::ProfilerSession_OnAddThreadTime ) );
 
 	ProfilerSessionInstances.Add( ProfilerInstanceID, ProfilerSession );
 
-	SessionInstancesUpdatedEvent.Broadcast();
-	ProfilerType = EProfilerSessionTypes::OfflineRaw;
+	ProfilerSession->PrepareLoading();
+	RequestFilterAndPresetsUpdateEvent.Broadcast();
+	//ProfilerSession_OnCaptureFileProcessed( ProfilerInstanceID );
+	//TrackDefaultStats();
 
+	SessionInstancesUpdatedEvent.Broadcast();
+	ProfilerType = EProfilerSessionTypes::StatsFileRaw;
+	
 	GetProfilerWindow()->ManageEventGraphTab( ProfilerInstanceID, true, ProfilerSession->GetName() );
+	SetViewMode( EProfilerViewMode::ThreadViewTimeBased );
 }
 
 
@@ -549,6 +551,7 @@ void FProfilerManager::ClearStatsAndInstances()
 	CloseAllEventGraphTabs();
 
 	ProfilerType = EProfilerSessionTypes::InvalidOrMax;
+	ViewMode = EProfilerViewMode::InvalidOrMax;
 	SetDataPreview( false );
 	bLivePreview = false;
 	SetDataCapture( false );
@@ -740,6 +743,16 @@ void FProfilerManager::ProfilerSession_OnAddThreadTime( int32 FrameIndex, const 
 	if( ProfilerWindowPtr.IsValid() )
 	{
 		ProfilerWindowPtr->ProfilerMiniView->AddThreadTime( FrameIndex, ThreadMS, StatMetaData );
+	}
+}
+
+void FProfilerManager::SetViewMode( EProfilerViewMode::Type NewViewMode )
+{
+	if( NewViewMode != ViewMode )
+	{
+		// Broadcast.
+		OnViewModeChangedEvent.Broadcast( NewViewMode );
+		ViewMode = NewViewMode;
 	}
 }
 

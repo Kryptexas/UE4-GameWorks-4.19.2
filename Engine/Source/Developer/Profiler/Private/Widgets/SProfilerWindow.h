@@ -36,11 +36,8 @@ public:
 	
 	/**
 	 * Constructs this widget.
-	 *
-	 * @param InArgs					- the Slate argument list
-	 * @param InSessionManager			- the session manager to use
 	 */
-	void Construct( const FArguments& InArgs, const ISessionManagerRef& InSessionManager );
+	void Construct( const FArguments& InArgs );
 
 	void ManageEventGraphTab( const FGuid ProfilerInstanceID, const bool bCreateFakeTab, const FString TabName );
 	void UpdateEventGraph( const FGuid ProfilerInstanceID, const FEventGraphDataRef AverageEventGraph, const FEventGraphDataRef MaximumEventGraph, bool bInitial );
@@ -97,9 +94,6 @@ private:
 
 	/** Holds all event graphs. */
 	TSharedPtr<SVerticalBox> EventGraphPanel;
-
-	/** Holds the session manager. */
-	ISessionManagerPtr SessionManager;
 
 	/** Widget for the panel which contains all graphs and event graphs. */
 	TSharedPtr<SProfilerGraphPanel> GraphPanel;

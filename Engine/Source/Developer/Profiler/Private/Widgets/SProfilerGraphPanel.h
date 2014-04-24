@@ -50,6 +50,8 @@ protected:
 	/** Called when the frame offset has been changed in the data graph widget. */
 	void OnDataGraphGraphOffsetChanged( int32 InFrameOffset );
 
+	void ProfilerManager_OnViewModeChanged( EProfilerViewMode::Type NewViewMode );
+
 public:
 	/** Called when the selection box has been changed in the profiler mini-view widget. */
 	void OnMiniViewSelectionBoxChanged( int32 FrameStart, int32 FrameEnd );

@@ -13,12 +13,13 @@ namespace EProfilerSessionTypes
 	{
 		/** Based on the live connection. */
 		Live,
+		LiveRaw,
 
 		/** Based on the regular stats file. */
-		Offline,
+		StatsFile,
 
 		/** Based on the raw stats file. */
-		OfflineRaw,
+		StatsFileRaw,
 
 		Combined,
 		Summary,
@@ -40,7 +41,7 @@ namespace EProfilerSessionTypes
 		switch( ProfilerSessionType )
 		{
 			case Live: return FString("Live");
-			case Offline: return FString("Offline");
+			case StatsFile: return FString("Offline");
 
 			default: return FString("InvalidOrMax");
 		}
@@ -1021,11 +1022,11 @@ public:
 		{
 			SessionName = FString::Printf( TEXT("%s"), *SessionInstanceInfo->GetInstanceName() );
 		}
-		else if( SessionType == EProfilerSessionTypes::Offline )
+		else if( SessionType == EProfilerSessionTypes::StatsFile )
 		{
 			SessionName = FString::Printf( TEXT("%s"), *DataFilepath );
 		}
-		else if( SessionType == EProfilerSessionTypes::OfflineRaw )
+		else if( SessionType == EProfilerSessionTypes::StatsFileRaw )
 		{
 			SessionName = FString::Printf( TEXT( "%s" ), *DataFilepath );
 		}
@@ -1271,6 +1272,9 @@ class FRawProfilerSession : public FProfilerSession
 	friend class FProfilerManager;
 	friend class FProfilerActionManager;
 
+	/** Profiler stream that contains all read raw profiler frames. */
+	FProfilerStream ProfilerStream;
+
 	/** Stats thread state, mostly used to manage the stats metadata. */
 	FStatsThreadState StatsThreadStats;
 	FStatsReadStream Stream;
@@ -1297,5 +1301,5 @@ public:
 	 *	Process all stats packets and convert them to data accessible by the profiler.
 	 *	Temporary version, will be optimized later.
 	 */
-	void ProcessStatPacketArray( const FStatPacketArray& PacketArray );
+	FProfilerFrame* ProcessStatPacketArray( const FStatPacketArray& PacketArray );
 };

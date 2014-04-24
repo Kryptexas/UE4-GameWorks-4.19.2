@@ -83,7 +83,7 @@ FProfilerSession::FProfilerSession( const FString& InDataFilepath )
 , EventGraphDataCurrent( MakeShareable( new FEventGraphData() ) )
 , CreationTime( FDateTime::Now() )
 , DataFilepath( InDataFilepath.Replace( *FStatConstants::StatsFileExtension, TEXT( "" ) ) )
-, SessionType( EProfilerSessionTypes::Offline )
+, SessionType( EProfilerSessionTypes::StatsFile )
 , SessionInstanceInfo( nullptr )
 , SessionInstanceID( FGuid::NewGuid() )
 , bDataPreviewing( false )
@@ -239,7 +239,7 @@ bool FProfilerSession::HandleTicker( float DeltaTime )
 		bRequestStatMetadataUpdate = false;
 	}
 
-	const int32 FramesNumToProcess = SessionType == EProfilerSessionTypes::Offline ? 240 : 2;
+	const int32 FramesNumToProcess = SessionType == EProfilerSessionTypes::StatsFile ? 240 : 2;
 
 	for( int32 FrameNumber = 0; FrameNumber < FMath::Min(FrameToProcess.Num(),FramesNumToProcess); FrameNumber++ )
 	{	
@@ -359,7 +359,7 @@ bool FProfilerSession::HandleTicker( float DeltaTime )
 		FrameToProfilerDataMapping.Remove( FrameIndex );
 	}	
 
-	if( SessionType == EProfilerSessionTypes::Offline )
+	if( SessionType == EProfilerSessionTypes::StatsFile )
 	{
 		if( FrameToProcess.Num() == 0 && bHasAllProfilerData )
 		{
@@ -437,7 +437,7 @@ void FProfilerSession::PopulateHierarchy_Recurrent
 -----------------------------------------------------------------------------*/
 
 FRawProfilerSession::FRawProfilerSession( const FString& InRawStatsFileFileath )
-: FProfilerSession( EProfilerSessionTypes::OfflineRaw, nullptr, FGuid::NewGuid(), InRawStatsFileFileath.Replace( *FStatConstants::StatsFileRawExtension, TEXT( "" ) ) )
+: FProfilerSession( EProfilerSessionTypes::StatsFileRaw, nullptr, FGuid::NewGuid(), InRawStatsFileFileath.Replace( *FStatConstants::StatsFileRawExtension, TEXT( "" ) ) )
 , CurrentMiniViewFrame( 0 )
 {
 	OnTick = FTickerDelegate::CreateRaw( this, &FRawProfilerSession::HandleTicker );
@@ -538,9 +538,9 @@ void FRawProfilerSession::PrepareLoading()
 		}
 		int64 FrameOffset0 = Stream.FramesInfo[0].FrameOffset;
 		FileReader->Seek( FrameOffset0 );
-#if	0
+#if	1
 		// Read the raw stats messages.
-		for( int32 FrameIndex = 0; FrameIndex < 30/*Stream.FramesInfo.Num()*/; ++FrameIndex )
+		for( int32 FrameIndex = 0; FrameIndex < Stream.FramesInfo.Num(); ++FrameIndex )
 		{
 			FStatPacketArray Packet;
 
@@ -557,17 +557,33 @@ void FRawProfilerSession::PrepareLoading()
 				Packet.Packets.Add( ToRead );
 			}
 
-			ProcessStatPacketArray( Packet );
+			FProfilerFrame* ProfilerFrame = ProcessStatPacketArray( Packet );
 
 			TMap<uint32, int64> ThreadCycles;
 			// Serialize thread cycles.
 			*FileReader << ThreadCycles;
+			
+			// Update mini-view.
+			// Convert from cycles to ms.
+			TMap<uint32, float> ThreadTimesMS;
+			for( auto InnerIt = ThreadCycles.CreateConstIterator(); InnerIt; ++InnerIt )
+			{
+				ThreadTimesMS.Add( InnerIt.Key(), StatMetaData->ConvertCyclesToMS( InnerIt.Value() ) );
+			}
+
+			// Pass the reference to the stats' metadata.
+			OnAddThreadTime.ExecuteIfBound( FrameIndex, ThreadTimesMS, StatMetaData );
+
+			ProfilerFrame->ThreadTimesMS = ThreadTimesMS;
+			ProfilerStream.AddProfilerFrame( ProfilerFrame );
 		}
 #endif // 0
 	}
 
+	const int64 AllocatedSize = ProfilerStream.GetAllocatedSize();
+
 	// We have the whole metadata and basic information about the raw stats file, start ticking the profiler session.
-	FTicker::GetCoreTicker().AddTicker( OnTick, 0.25f );
+	//FTicker::GetCoreTicker().AddTicker( OnTick, 0.25f );
 
 #if	0
 	if( SessionType == EProfilerSessionTypes::OfflineRaw )
@@ -692,46 +708,23 @@ void FProfilerStatMetaData::UpdateFromStatsState( const FStatsThreadState& Stats
 				RenderThreadIDs.Add( ThreadID );
 			}
 		}
+
+		if( StatName == TEXT( "STAT_SecondsPerCycle" ) )
+		{
+			SecondsPerCycle = LongName.GetValue_double();
+		}
 	}
 
-	// @TODO yrx 2014-03-24 Fix this.
 	SecondsPerCycle = FPlatformTime::GetSecondsPerCycle();
 }
 
-/** A simple stats stack node, used as a proxy class to convert data from the stats into the profiler. */
-struct FStatStackNode
-{
-	/** Short name. */
-	FName NodeName;
-	int64 CyclesStart;
-	int64 CyclesEnd;
-	TArray<FStatStackNode*> Children;
-
-	/** Index of this node in the data provider's collection. */
-	uint32 SampleIndex;
-
-	explicit FStatStackNode( const FStatMessage& StatMessage, uint32 InSampleIndex )
-		: NodeName( StatMessage.NameAndInfo.GetShortName() )
-		, CyclesStart( StatMessage.GetValue_int64() )
-		, CyclesEnd( 0 )
-		, SampleIndex( InSampleIndex )
-	{}
-
-	~FStatStackNode()
-	{
-		for( const auto& Child : Children )
-		{
-			delete Child;
-		}
-	}
-};
-
-void FRawProfilerSession::ProcessStatPacketArray( const FStatPacketArray& StatPacketArray )
+FProfilerFrame* FRawProfilerSession::ProcessStatPacketArray( const FStatPacketArray& StatPacketArray )
 {
 	// @TODO yrx 2014-03-24 Standardize thread names and id
+	// @TODO yrx 2014-04-22 Remove all references to the data provider, event graph etc once data graph can visualize.
 
 	// Raw stats callstack for this stat packet array.
-	TMap<FName,FStatStackNode> ThreadNodes;
+	TMap<FName,FProfilerStackNode*> ThreadNodes;
 
 	const FProfilerStatMetaDataRef MetaData = GetMetaData();
 	
@@ -748,15 +741,18 @@ void FRawProfilerSession::ProcessStatPacketArray( const FStatPacketArray& StatPa
 		const FName ThreadFName = StatsThreadStats.Threads.FindChecked( StatPacket.ThreadId );
 		const uint32 NewThreadID = MetaData->ThreadIDtoStatID.FindChecked( StatPacket.ThreadId );
 
+		// @TODO yrx 2014-04-18 At this moment only for the game thread.
 		if( StatPacket.ThreadType != EThreadType::Game )
 		{
 			continue;
 		}
 
-		FStatStackNode* ThreadNode = ThreadNodes.Find( ThreadFName );
+		FProfilerStackNode* ThreadNode = ThreadNodes.FindRef( ThreadFName );
 		if( !ThreadNode )
 		{
-			FStatMessage ThreadMessage( ThreadFName, EStatDataType::ST_int64, nullptr, TEXT( "" ), true, true );
+			FString ThreadIdName = FStatsUtils::BuildUniqueThreadName( StatPacket.ThreadId );
+			FStatMessage ThreadMessage( ThreadFName, EStatDataType::ST_int64, STAT_GROUP_TO_FStatGroup( STATGROUP_Threads )::GetGroupName(), *ThreadIdName, true, true );
+			//FStatMessage ThreadMessage( ThreadFName, EStatDataType::ST_int64, nullptr, TEXT( "" ), true, true );
 			ThreadMessage.NameAndInfo.SetFlag( EStatMetaFlags::IsPackedCCAndDuration, true );
 			ThreadMessage.Clear();
 
@@ -772,7 +768,7 @@ void FRawProfilerSession::ProcessStatPacketArray( const FStatPacketArray& StatPa
 				FrameRootSampleIndex
 			);
 
-			ThreadNode = &ThreadNodes.Add( ThreadFName, FStatStackNode( ThreadMessage, ThreadRootSampleIndex ) );
+			ThreadNode = ThreadNodes.Add( ThreadFName, new FProfilerStackNode( nullptr, ThreadMessage, ThreadRootSampleIndex ) );
 		}
 
 		if( StatPacket.ThreadType == EThreadType::Game )
@@ -781,9 +777,9 @@ void FRawProfilerSession::ProcessStatPacketArray( const FStatPacketArray& StatPa
 		}
 
 		TArray<const FStatMessage*> StartStack;
-		TArray<FStatStackNode*> Stack;
+		TArray<FProfilerStackNode*> Stack;
 		Stack.Add( ThreadNode );
-		FStatStackNode* Current = Stack.Last();
+		FProfilerStackNode* Current = Stack.Last();
 
 		const TArray<FStatMessage>& Data = StatPacket.StatMessages;
 		for( int32 Index = 0; Index < Data.Num(); Index++ )
@@ -800,7 +796,7 @@ void FRawProfilerSession::ProcessStatPacketArray( const FStatPacketArray& StatPa
 				check( Item.NameAndInfo.GetFlag( EStatMetaFlags::IsCycle ) );
 				if( Op == EStatOperation::CycleScopeStart )
 				{
-					FStatStackNode* ChildNode = new FStatStackNode( Item, -1 );
+					FProfilerStackNode* ChildNode = new FProfilerStackNode( Current, Item, -1 );
 					Current->Children.Add( ChildNode );
 
 					// Add a child sample.
@@ -826,7 +822,12 @@ void FRawProfilerSession::ProcessStatPacketArray( const FStatPacketArray& StatPa
 					const FStatMessage ScopeEnd = Item;
 					const int64 Delta = int32( uint32( ScopeEnd.GetValue_int64() ) - uint32( ScopeStart.GetValue_int64() ) );
 					Current->CyclesEnd = Current->CyclesStart + int64( Delta );
-					FStatStackNode* ChildNode = Current;
+
+					Current->TimeMSStart = MetaData->ConvertCyclesToMS( Current->CyclesStart );
+					Current->TimeMSEnd = MetaData->ConvertCyclesToMS( Current->CyclesEnd );
+					check( Current->TimeMSEnd >= Current->TimeMSStart );
+
+					FProfilerStackNode* ChildNode = Current;
 
 					// Update the child sample's DurationMS.
 					MutableCollection[ChildNode->SampleIndex].SetDurationMS( MetaData->ConvertCyclesToMS( Delta ) );
@@ -841,13 +842,15 @@ void FRawProfilerSession::ProcessStatPacketArray( const FStatPacketArray& StatPa
 	// Calculate thread times.
 	for( auto It = ThreadNodes.CreateIterator(); It; ++It )
 	{
-		FStatStackNode& ThreadNode = It.Value();
+		FProfilerStackNode& ThreadNode = *It.Value();
 		const int32 ChildrenNum = ThreadNode.Children.Num();
 		if( ChildrenNum > 0 )
 		{
 			const int32 LastChildIndex = ThreadNode.Children.Num() - 1;
 			ThreadNode.CyclesStart = ThreadNode.Children[0]->CyclesStart;
 			ThreadNode.CyclesEnd = ThreadNode.Children[LastChildIndex]->CyclesEnd;
+			ThreadNode.TimeMSStart = MetaData->ConvertCyclesToMS( ThreadNode.CyclesStart );
+			ThreadNode.TimeMSEnd = MetaData->ConvertCyclesToMS( ThreadNode.CyclesEnd );
 
 			FProfilerSample& ProfilerSample = MutableCollection[ThreadNode.SampleIndex];
 			ProfilerSample.SetStartAndEndMS( MetaData->ConvertCyclesToMS( ThreadNode.CyclesStart ), MetaData->ConvertCyclesToMS( ThreadNode.CyclesEnd ) );
@@ -856,7 +859,7 @@ void FRawProfilerSession::ProcessStatPacketArray( const FStatPacketArray& StatPa
 
 	// Get the game thread time.
 	check( GameThreadFName != NAME_None );
-	const FStatStackNode& GameThreadNode = ThreadNodes.FindChecked( GameThreadFName );
+	const FProfilerStackNode& GameThreadNode = *ThreadNodes.FindChecked( GameThreadFName );
 	const double GameThreadStartMS = MetaData->ConvertCyclesToMS( GameThreadNode.CyclesStart );
 	const double GameThreadEndMS = MetaData->ConvertCyclesToMS( GameThreadNode.CyclesEnd );
 	MutableCollection[FrameRootSampleIndex].SetStartAndEndMS( GameThreadStartMS, GameThreadEndMS );
@@ -870,4 +873,13 @@ void FRawProfilerSession::ProcessStatPacketArray( const FStatPacketArray& StatPa
  
 	// Update aggregated events.
 	UpdateAggregatedEventGraphData( LastFrameIndex );
+
+	FProfilerFrame* ProfilerFrame = new FProfilerFrame();
+	for( auto It = ThreadNodes.CreateIterator(); It; ++It )
+	{
+		ProfilerFrame->Root->Children.Add( It.Value() );
+		// @TODO yrx 2014-04-22 Sort children GameThread, RenderThread, Other children sorted by total time.
+	}
+
+	return ProfilerFrame;
 }

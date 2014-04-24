@@ -101,7 +101,7 @@ protected:
 
 	void AddHeader( const TSharedRef<SGridPanel>& Grid, int32& RowPos )
 	{
-		const FString InstanceName = ProfilerSession->GetSessionType() == EProfilerSessionTypes::Offline ? FPaths::GetBaseFilename( ProfilerSession->GetName() ) : ProfilerSession->GetName();
+		const FString InstanceName = ProfilerSession->GetSessionType() == EProfilerSessionTypes::StatsFile ? FPaths::GetBaseFilename( ProfilerSession->GetName() ) : ProfilerSession->GetName();
 
 		Grid->AddSlot( 0, RowPos++ )
 		.Padding( 2.0f )
@@ -581,7 +581,8 @@ SFiltersAndPresets::~SFiltersAndPresets()
 	// Remove ourselves from the profiler manager.
 	if( FProfilerManager::Get().IsValid() )
 	{
-		FProfilerManager::Get()->OnRequestFilterAndPresetsUpdate().RemoveAll(this);
+		FProfilerManager::Get()->OnRequestFilterAndPresetsUpdate().RemoveAll( this );
+		FProfilerManager::Get()->OnViewModeChanged().RemoveAll( this );
 	}
 }
 
@@ -742,6 +743,8 @@ void SFiltersAndPresets::Construct( const FArguments& InArgs )
 	// Register ourselves with the profiler manager.
 	FProfilerManager::Get()->OnRequestFilterAndPresetsUpdate().AddSP( this, &SFiltersAndPresets::ProfilerManager_OnRequestFilterAndPresetsUpdate );
 
+	FProfilerManager::Get()->OnViewModeChanged().AddSP( this, &SFiltersAndPresets::ProfilerManager_OnViewModeChanged );
+
 	// Create the search filters: text based, stat type based etc.
 	// @TODO: HandleItemToStringArray should be moved somewhere else
 	GroupAndStatTextFilter = MakeShareable( new FGroupAndStatTextFilter( FGroupAndStatTextFilter::FItemToStringArray::CreateSP( this, &SFiltersAndPresets::HandleItemToStringArray ) ) );
@@ -756,6 +759,22 @@ void SFiltersAndPresets::ProfilerManager_OnRequestFilterAndPresetsUpdate()
 {
 	bUpdateOnNextTick = true;
 }
+
+
+void SFiltersAndPresets::ProfilerManager_OnViewModeChanged( EProfilerViewMode::Type NewViewMode )
+{
+	if( NewViewMode == EProfilerViewMode::LineIndexBased )
+	{
+		SetVisibility( EVisibility::Visible );
+		SetEnabled( true );
+	}
+	else if( NewViewMode == EProfilerViewMode::ThreadViewTimeBased )
+	{
+		SetVisibility( EVisibility::Collapsed );
+		SetEnabled( false );
+	}
+}
+
 
 void SFiltersAndPresets::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {

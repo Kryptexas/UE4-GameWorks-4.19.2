@@ -85,6 +85,7 @@ public:
 	bool bIsDefault;
 };
 
+
 /** Contains basic information about tracked stat. */
 class FTrackedStat //: public FNoncopyable, public TSharedFromThis<FTrackedStat>
 {
@@ -138,6 +139,19 @@ public:
 	FProfilerManager
 -----------------------------------------------------------------------------*/
 
+namespace EProfilerViewMode
+{
+	enum Type
+	{
+		/** Regular line graphs, for the regular stats file. */
+		LineIndexBased,
+		/** Thread view graph, for the raw stats file. */
+		ThreadViewTimeBased,
+		/** Invalid enum type, may be used as a number of enumerations. */
+		InvalidOrMax,
+	};
+}
+
 /** 
  ** This class manages following areas:
  **		Connecting/disconnecting to source or device through session manager
@@ -152,6 +166,12 @@ class FProfilerManager
 	, public IProfilerManager
 {
 	friend class FProfilerActionManager;
+
+	/**
+	 *	Global processing lock, protects from destroying the profiler while task graph is still working on the stuff.
+	 *	Assumes that there is only one instance of the profiler.
+	 */
+	static FThreadSafeCounter ProcessingLock;
 
 public:
 	/**
@@ -191,6 +211,18 @@ public:
 	void Shutdown()
 	{
 		FProfilerManager::Instance.Reset();
+	}
+
+	/** Increases processing lock count. */
+	static void IncrementProcessingLock()
+	{
+		ProcessingLock.Increment();
+	}
+
+	/** Decreases processing lock count, once reaches zero the profiler can proceed. */
+	static void DecrementProcessingLock()
+	{
+		ProcessingLock.Decrement();
 	}
 
 protected:
@@ -404,6 +436,17 @@ public:
 		Events declarations
 	-----------------------------------------------------------------------------*/
 	
+public:
+	DECLARE_EVENT_OneParam( FProfilerManager, FViewModeChangedEvent, EProfilerViewMode::Type /*NewViewMode*/ );
+	FViewModeChangedEvent& OnViewModeChanged()
+	{
+		return OnViewModeChangedEvent;
+	}
+	
+protected:
+	/** The event to execute when the profiler loaded a new stats files and the view mode needs to be changed. */
+	FViewModeChangedEvent OnViewModeChangedEvent;
+	
 
 public:
 	/**
@@ -538,6 +581,9 @@ public:
 		return ProfilerWindow.Pin();
 	}
 
+	/** Sets a new view mode for the profiler. */
+	void SetViewMode( EProfilerViewMode::Type NewViewMode );
+
 protected:
 	/** The delegate to be invoked when this profiler manager ticks. */
 	FTickerDelegate OnTick;
@@ -588,6 +634,9 @@ protected:
 
 	/** Profiler session type that is currently initialized. */
 	EProfilerSessionTypes::Type ProfilerType;
+
+	/** Profiler view mode. */
+	EProfilerViewMode::Type ViewMode;
 
 	// TODO: Bool should be replaces with type similar to ESlateCheckBoxState {Checked,Unchecked,Undertermined}
 
