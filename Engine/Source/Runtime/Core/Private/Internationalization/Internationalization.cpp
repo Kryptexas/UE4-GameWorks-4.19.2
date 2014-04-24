@@ -190,7 +190,11 @@ void FInternationalization::Initialize()
 	SetCurrentCulture( TEXT("") );
 #endif
 
+#if UE_ENABLE_ICU
 	bIsInitialized = U_FAILURE(ICUStatus) ? true : false;
+#else
+	bIsInitialized = true;
+#endif
 }
 
 void FInternationalization::Terminate()
