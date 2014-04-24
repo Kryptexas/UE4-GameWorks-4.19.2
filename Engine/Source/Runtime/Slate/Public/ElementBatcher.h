@@ -1,8 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#ifndef __SLATEELEMENTBATCHER_H__
-#define __SLATEELEMENTBATCHER_H__
-
+#pragma once
 
 class FSlateShaderResource;
 
@@ -182,7 +180,6 @@ private:
 	void AddIndices( TArray<SlateIndex>& OutIndices, FSlateElementBatch& ElementBatch, const TArray<SlateIndex>& IndexBatch );
 
 private:
-	const FSlateBrush *SplineBrush;
 	/** Element batch maps sorted by layer */
 	TMap< uint32, TSet<FSlateElementBatch> > LayerToElementBatches;
 	/** Array of vertex lists that are currently free (have no elements in them) */
@@ -207,5 +204,3 @@ private:
 	uint32 TotalIndexMemory;
 	uint32 RequiredIndexMemory;
 };
-
-#endif //__SLATEELEMENTBATCHER_H__
