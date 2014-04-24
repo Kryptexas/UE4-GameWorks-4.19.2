@@ -1,4 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
 #pragma once
 
 #include <IOKit/hid/IOHIDLib.h>
@@ -6,8 +7,7 @@
 #define MAX_NUM_HIDINPUT_CONTROLLERS 4
 
 /** Max number of controller buttons.  Must be < 256*/
-#define MAX_NUM_CONTROLLER_BUTTONS 16
-
+#define MAX_NUM_CONTROLLER_BUTTONS 24
 
 /**
  * Interface class for HID Input devices
@@ -16,48 +16,50 @@ class HIDInputInterface
 {
 public:
 
-	static TSharedRef< HIDInputInterface > Create( const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler );
-
-	void Tick( float DeltaTime );
+	static TSharedRef<HIDInputInterface> Create(const TSharedRef<FGenericApplicationMessageHandler>& InMessageHandler);
 
 	void SendControllerEvents();
 
-	void SetMessageHandler( const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler );
+	void SetMessageHandler(const TSharedRef<FGenericApplicationMessageHandler>& InMessageHandler)
+	{
+		MessageHandler = InMessageHandler;
+	}
 
 private:
 
-	HIDInputInterface( const TSharedRef< FGenericApplicationMessageHandler >& MessageHandler );
+	HIDInputInterface(const TSharedRef<FGenericApplicationMessageHandler>& MessageHandler);
 
-	static CFMutableDictionaryRef CreateDeviceMatchingDictionary( UInt32 UsagePage, UInt32 Usage );
+	void OnNewHIDController(IOReturn Result, IOHIDDeviceRef DeviceRef);
 
-	static void HIDDeviceMatchingCallback( void* Context, IOReturn Result, void* Sender, IOHIDDeviceRef DeviceRef );
-
-	static void HIDDeviceRemovalCallback( void* Context, IOReturn Result, void* Sender, IOHIDDeviceRef DeviceRef );
-
-	void OnNewHIDController( IOReturn Result, IOHIDDeviceRef DeviceRef );
+	static CFMutableDictionaryRef CreateDeviceMatchingDictionary(UInt32 UsagePage, UInt32 Usage);
+	static void HIDDeviceMatchingCallback(void* Context, IOReturn Result, void* Sender, IOHIDDeviceRef DeviceRef);
+	static void HIDDeviceRemovalCallback(void* Context, IOReturn Result, void* Sender, IOHIDDeviceRef DeviceRef);
 
 private:
 
-	struct FHIDButtonInfo
+	struct FHIDElementInfo
 	{
-		IOHIDElementRef Element;
-		uint32 Usage;
-	};
-
-	struct FHIDAxisInfo
-	{
-		IOHIDElementRef Element;
-		uint32 Usage;
-		int16 MinValue;
-		int16 MaxValue;
+		IOHIDElementRef ElementRef;
+		IOHIDElementType Type;
+		uint16 UsagePage;
+		uint16 Usage;
+		int32 MinValue;
+		int32 MaxValue;
 	};
 
 	struct FHIDDeviceInfo
 	{
 		IOHIDDeviceRef DeviceRef;
-		TArray<FHIDButtonInfo> Buttons;
-		TArray<FHIDAxisInfo> Axes;
-		FHIDAxisInfo DPad;
+		TArray<FHIDElementInfo> Elements;
+		int8 ButtonsMapping[MAX_NUM_CONTROLLER_BUTTONS];
+		uint16 LeftAnalogXMapping;
+		uint16 LeftAnalogYMapping;
+		uint16 LeftTriggerAnalogMapping;
+		uint16 RightAnalogXMapping;
+		uint16 RightAnalogYMapping;
+		uint16 RightTriggerAnalogMapping;
+
+		void SetupMappings();
 	};
 
 	struct FControllerState
@@ -69,22 +71,22 @@ private:
 		double NextRepeatTime[MAX_NUM_CONTROLLER_BUTTONS];
 
 		/** Raw Left thumb x analog value */
-		int16 LeftXAnalog;
+		int32 LeftAnalogX;
 		
 		/** Raw left thumb y analog value */
-		int16 LeftYAnalog;
+		int32 LeftAnalogY;
 
 		/** Raw Right thumb x analog value */
-		int16 RightXAnalog;
+		int32 RightAnalogX;
 
 		/** Raw Right thumb x analog value */
-		int16 RightYAnalog;
+		int32 RightAnalogY;
 
 		/** Left Trigger analog value */
-		int16 LeftTriggerAnalog;
+		int32 LeftTriggerAnalog;
 
 		/** Right trigger analog value */
-		int16 RightTriggerAnalog;
+		int32 RightTriggerAnalog;
 
 		/** Id of the controller */
 		int32 ControllerId;
@@ -93,9 +95,6 @@ private:
 	};
 
 private:
-
-	/** In the engine, all controllers map to xbox controllers for consistency */
-	uint8 HIDToXboxControllerMapping[MAX_NUM_CONTROLLER_BUTTONS];
 
 	/** Names of all the buttons */
 	EControllerButtons::Type Buttons[MAX_NUM_CONTROLLER_BUTTONS];
@@ -111,5 +110,5 @@ private:
 
 	IOHIDManagerRef HIDManager;
 
-	TSharedRef< FGenericApplicationMessageHandler > MessageHandler;
+	TSharedRef<FGenericApplicationMessageHandler> MessageHandler;
 };

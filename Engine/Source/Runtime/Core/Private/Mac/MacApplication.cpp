@@ -718,7 +718,6 @@ FSlateCocoaWindow* FMacApplication::FindEventWindow( NSEvent* Event )
 void FMacApplication::PollGameDeviceState( const float TimeDelta )
 {
 	// Poll game device state and send new events
-	HIDInput->Tick( TimeDelta );
 	HIDInput->SendControllerEvents();
 }
 
