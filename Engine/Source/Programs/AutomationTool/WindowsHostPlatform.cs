@@ -219,5 +219,25 @@ namespace AutomationTool
 		{
 			get { return ".pdb"; }
 		}
+
+		static string[] SystemServices = new string[]
+		{
+			"winlogon",
+			"system idle process",
+			"taskmgr",
+			"spoolsv",
+			"csrss",
+			"smss",
+			"svchost",
+			"services",
+			"lsass"
+		};
+		public override string[] DontKillProcessList
+		{
+			get 
+			{
+				return SystemServices;
+			}
+		}
 	}
 }
