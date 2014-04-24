@@ -132,7 +132,8 @@ bool CopyFileToPak(FArchive& InPak, const FString& InMountPoint, const FPakInput
 	return bFileExists;
 }
 
-void ProcessOrderFile(int32 ArgC, ANSICHAR* ArgV[], TMap<FString, uint64>& OrderMap)
+template<class TCommandLineChar>
+void ProcessOrderFile(int32 ArgC, TCommandLineChar* ArgV[], TMap<FString, uint64>& OrderMap)
 {
 	// List of all items to add to pak file
 	FString ResponseFile;
@@ -174,7 +175,8 @@ void ProcessOrderFile(int32 ArgC, ANSICHAR* ArgV[], TMap<FString, uint64>& Order
 	}
 }
 
-void ProcessCommandLine(int32 ArgC, ANSICHAR* ArgV[], TArray<FPakInputPair>& Entries)
+template<class TCommandLineChar>
+void ProcessCommandLine(int32 ArgC, TCommandLineChar* ArgV[], TArray<FPakInputPair>& Entries)
 {
 	// List of all items to add to pak file
 	FString ResponseFile;
@@ -241,7 +243,7 @@ void ProcessCommandLine(int32 ArgC, ANSICHAR* ArgV[], TArray<FPakInputPair>& Ent
 		for (int32 Index = 2; Index < ArgC; Index++)
 		{
 			// Skip switches and add everything else to the Entries array
-			ANSICHAR* Param = ArgV[Index];
+			TCommandLineChar* Param = ArgV[Index];
 			if (Param[0] != '-')
 			{
 				FPakInputPair Input;
