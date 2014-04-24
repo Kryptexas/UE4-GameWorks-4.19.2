@@ -245,6 +245,14 @@ class FTextureFormatPVR : public ITextureFormat
 		}
 	}
 
+	virtual FTextureFormatCompressorCaps GetFormatCapabilities() const OVERRIDE
+	{
+		FTextureFormatCompressorCaps RetCaps;
+		// PVR compressor is limited to <=4096 in any direction.
+		RetCaps.MaxTextureDimension = 4096;
+		return RetCaps;
+	}
+
 	virtual bool CompressImage(
 		const FImage& InImage,
 		const struct FTextureBuildSettings& BuildSettings,

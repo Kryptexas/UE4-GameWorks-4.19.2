@@ -404,6 +404,11 @@ class FTextureFormatDXT : public ITextureFormat
 			OutFormats.Add(GSupportedTextureFormatNames[i]);
 		}
 	}
+	
+	virtual FTextureFormatCompressorCaps GetFormatCapabilities() const OVERRIDE
+	{
+		return FTextureFormatCompressorCaps(); // Default capabilities.
+	}
 
 	virtual bool CompressImage(
 		const FImage& InImage,

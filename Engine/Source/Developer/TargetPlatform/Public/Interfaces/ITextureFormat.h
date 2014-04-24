@@ -6,6 +6,14 @@
 
 #pragma once
 
+struct FTextureFormatCompressorCaps
+{
+	FTextureFormatCompressorCaps() : MaxTextureDimension(TNumericLimits<uint32>::Max())
+	{
+	}
+
+	uint32 MaxTextureDimension;
+};
 
 /**
  * Interface for texture compression modules.
@@ -52,6 +60,15 @@ public:
 	 * @param OutFormats - Will hold the list of formats.
 	 */
 	virtual void GetSupportedFormats(TArray<FName>& OutFormats) const = 0;
+
+
+
+	/**
+	* Gets the capabilities of the texture compressor.
+	*
+	* @param OutCaps - filled with capability properties of texture format compressor.
+	*/
+	virtual FTextureFormatCompressorCaps GetFormatCapabilities() const = 0;
 
 	/**
 	 * Compresses a single image.
