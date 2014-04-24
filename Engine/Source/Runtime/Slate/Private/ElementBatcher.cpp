@@ -186,9 +186,8 @@ void FSlateElementBatcher::AddBoxElement( const FVector2D& InPosition, const FVe
 			// The actual texture for rendering.  If the texture is atlased this is the atlas
 			Resource = ResourceProxy->Resource;
 			// The width and height of the texture (non-atlased size)
-			TextureWidth = ResourceProxy->ActualSize.X;
-			TextureHeight = ResourceProxy->ActualSize.Y;
-
+			TextureWidth = ResourceProxy->ActualSize.X != 0 ? ResourceProxy->ActualSize.X : 1;
+			TextureHeight = ResourceProxy->ActualSize.Y != 0 ? ResourceProxy->ActualSize.Y : 1;
 
 			// Texel offset
 			HalfTexel = FVector2D( PixelCenterOffset/TextureWidth, PixelCenterOffset/TextureHeight );
