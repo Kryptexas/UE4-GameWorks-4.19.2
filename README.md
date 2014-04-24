@@ -8,7 +8,8 @@ You can build the editor for Windows and Mac and compile games for Android, iOS,
 One and Linux.  Source code for all tools is included as well, such as Unreal Lightmass and Unreal Frontend.
 
 Before continuing, check out this [short tutorial video](http://youtu.be/usjlNHPn-jo) about getting started
-with the engine code.
+with the engine code.  We also have a [programming guide](https://docs.unrealengine.com/latest/INT/Programming/index.html) and
+full [API documentation](https://docs.unrealengine.com/latest/INT/API/index.html).
 
 We also have a forum section where you can discuss [engine source and GitHub](https://forums.unrealengine.com/forumdisplay.php?1-Development-Discussion).
 Have fun!!  We can't wait to see what you create!!
@@ -77,9 +78,9 @@ first.  Okay, here we go!
 
 1. After compiling finishes, you can **load the editor** from Visual Studio by setting your startup project to **UE4** and pressing **F5** to debug.
 
-1. One last thing.  You'll want to setup your Windows shell so that you can interact with .uproject files.  Find the file named **RegisterShellCommands.bat** in 
-   the _UnrealEngine/Engine/Build/BatchFiles/_ folder.  Right click on the file and select **run as Administrator**.  Now, you'll be able to double-click .uproject files to load the project, or right click on
-   .uprojects to quickly update Visual Studio files.
+1. One last thing.  You'll want to setup your Windows shell so that you can interact with .uproject files.  Find the file named **UnrealVersionSelector-Win64-Shippping.exe** in 
+   the _UnrealEngine/Engine/Binaries/Win64/_ folder and run it.  Now, you'll be able to double-click .uproject files to load the project, or right click them to quickly update Visual Studio files.         
+
 
 
 ### Mac
