@@ -48,6 +48,8 @@ public class MacPlatform : Platform
 
 		// Copy the splash screen, Mac specific
 		SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Content/Splash"), "Splash.bmp", false, null, null, true);
+
+		SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Content/Localization"), "*.dat", true, null, null, false, !Params.Pak);
 	}
 
 	public override void Package(ProjectParams Params, DeploymentContext SC, int WorkingCL)
