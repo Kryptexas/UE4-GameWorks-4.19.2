@@ -235,6 +235,25 @@ class ENGINE_API UWheeledVehicleMovementComponent : public UPawnMovementComponen
 	UPROPERTY(EditAnywhere, Category = VehicleSetup)
 	float ChassisHeight;
 
+	// Drag area in cm^2
+	UPROPERTY(transient)
+	float DragArea;
+
+	// Estimated mad speed for engine
+	UPROPERTY(transient)
+	float EstimatedMaxEngineSpeed;
+
+	// Max RPM for engine
+	UPROPERTY(transient)
+	float MaxEngineRPM;
+
+	// Debug drag magnitude last applied
+	UPROPERTY(transient)
+	float DebugDragMagnitude;
+
+	/** When vehicle is created we want to compute some helper data like drag area, etc.... Derived classes should use this to properly compute things like engine RPM */
+	virtual void ComputeConstants();
+
 	/** Override center of mass offset, makes tweaking easier [uu] */
 	UPROPERTY(EditAnywhere, Category=VehicleSetup, AdvancedDisplay)
 	FVector COMOffset;
@@ -431,10 +450,6 @@ protected:
 	// Rate at which input steering can rise and fall
 	UPROPERTY(EditAnywhere, Category=VehicleInput, AdvancedDisplay)
 	FVehicleInputRate SteeringInputRate;
-
-	// Debug drag magnitude last applied
-	UPROPERTY(transient)
-	float DebugDragMagnitude;
 
 	/** Compute steering input */
 	float CalcSteeringInput();

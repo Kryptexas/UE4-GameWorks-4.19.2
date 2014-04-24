@@ -330,3 +330,9 @@ void UWheeledVehicleMovementComponent4W::Serialize(FArchive & Ar)
 	}
 }
 
+void UWheeledVehicleMovementComponent4W::ComputeConstants()
+{
+	Super::ComputeConstants();
+	MaxEngineRPM = EngineSetup.MaxRPM;
+}
+

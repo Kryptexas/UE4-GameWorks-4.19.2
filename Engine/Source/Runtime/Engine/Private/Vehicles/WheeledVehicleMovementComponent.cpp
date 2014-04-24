@@ -143,6 +143,8 @@ bool UWheeledVehicleMovementComponent::CanCreateVehicle() const
 
 void UWheeledVehicleMovementComponent::CreateVehicle()
 {
+	ComputeConstants();
+
 	if ( PVehicle == NULL )
 	{
 		if ( CanCreateVehicle() )
@@ -1103,6 +1105,13 @@ float UWheeledVehicleMovementComponent::GetMaxSpringForce() const
 
 }
 
+void UWheeledVehicleMovementComponent::ComputeConstants()
+{
+	DragArea = ChassisWidth * ChassisHeight;
+	MaxEngineRPM = 5000.f;
+}
+
+
 void UWheeledVehicleMovementComponent::DrawDebug( UCanvas* Canvas, float& YL, float& YPos )
 {
 	if ( PVehicle == NULL )
@@ -1201,6 +1210,8 @@ void UWheeledVehicleMovementComponent::DrawDebug( UCanvas* Canvas, float& YL, fl
 			YPos += YL;
 		}
 	}
+
+	DrawDebugLines();
 }
 
 void UWheeledVehicleMovementComponent::DrawDebugLines()

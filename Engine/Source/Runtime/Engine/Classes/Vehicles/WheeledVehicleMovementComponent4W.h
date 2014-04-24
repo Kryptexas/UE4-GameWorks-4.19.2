@@ -180,6 +180,7 @@ class ENGINE_API UWheeledVehicleMovementComponent4W : public UWheeledVehicleMove
 	TArray<FFloatPair> SteeringCurve;
 
 	virtual void Serialize(FArchive & Ar) OVERRIDE;
+	virtual void ComputeConstants() OVERRIDE;
 
 protected:
 
