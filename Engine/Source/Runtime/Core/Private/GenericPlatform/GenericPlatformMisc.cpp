@@ -369,42 +369,27 @@ const TCHAR* FGenericPlatformMisc::EngineDir()
 	if (EngineDirectory.Len() == 0)
 	{
 		// See if we are a root-level project
-		FString CheckDir = TEXT("../../../Engine/");
+		FString DefaultEngineDir = TEXT("../../../Engine/");
 #if PLATFORM_DESKTOP
 		//@todo. Need to have a define specific for this scenario??
-		if (FPlatformFileManager::Get().GetPlatformFile().DirectoryExists(*(CheckDir / TEXT("Binaries"))))
+		if (FPlatformFileManager::Get().GetPlatformFile().DirectoryExists(*(DefaultEngineDir / TEXT("Binaries"))))
 		{
-			EngineDirectory = CheckDir;
+			EngineDirectory = DefaultEngineDir;
 		}
-		else
+		else if (GForeignEngineDir != NULL && FPlatformFileManager::Get().GetPlatformFile().DirectoryExists(*(FString(GForeignEngineDir) / TEXT("Binaries"))))
 		{
-#ifdef UE_ENGINE_DIRECTORY
-			CheckDir = TEXT( PREPROCESSOR_TO_STRING(UE_ENGINE_DIRECTORY) );
-#endif
-			if ((CheckDir.Len() == 0) || 
-				(FPlatformFileManager::Get().GetPlatformFile().DirectoryExists(*(CheckDir / TEXT("Binaries"))) == false))
-			{
-				// Try using the registry to find the 'installed' version
-				CheckDir = FRocketSupport::GetInstalledEngineDirectory();
-				if ((CheckDir.Len() != 0) && (FPlatformFileManager::Get().GetPlatformFile().DirectoryExists(*(CheckDir / TEXT("Binaries")))))
-				{
-					EngineDirectory = CheckDir;
-				}
-			}
-			else
-			{
-				EngineDirectory = CheckDir;
-			}
+			EngineDirectory = GForeignEngineDir;
 		}
-#else
-		EngineDirectory = CheckDir;
-#endif
+
 		if (EngineDirectory.Len() == 0)
 		{
 			// Temporary work-around for legacy dependency on ../../../ (re Lightmass)
-			EngineDirectory = TEXT("../../../Engine/");
+			EngineDirectory = DefaultEngineDir;
 			UE_LOG(LogGenericPlatformMisc, Warning, TEXT("Failed to determine engine directory: Defaulting to %s"), *EngineDirectory);
 		}
+#else
+		EngineDirectory = DefaultEngineDir;
+#endif
 	}
 	return *EngineDirectory;
 }

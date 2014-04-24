@@ -158,6 +158,11 @@ TCHAR					GGameName[64];
 // macro for the game's main game module.
 #endif
 
+// Foreign engine directory. This is required to projects built outside the engine root to reference their engine directory.
+#if !IS_MONOLITHIC
+IMPLEMENT_FOREIGN_ENGINE_DIR()
+#endif
+
 /** Exec handler for game debugging tool, allowing commands like "editactor", ...							*/
 FExec*					GDebugToolExec					= NULL;
 /** Whether we're currently in the async loading codepath or not											*/
