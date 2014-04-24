@@ -96,7 +96,7 @@ void FVSAccessorModule::StartupModule()
 	FModuleManager::Get().OnModuleCompilerStarted().AddStatic( &SaveVisualStudioDocuments );
 
 	// Cache this so we don't have to do it on a background thread
-	SolutionPath = FPaths::ConvertRelativePathToFull(FModuleManager::Get().GetSolutionFilepath());
+	GetSolutionPath();
 
 	// Preferential order of VS versions
 	AddVisualStudioVersion(12); // Visual Studio 2013
@@ -194,7 +194,7 @@ bool FVSAccessorModule::OpenVisualStudioSolution()
 	bool bSuccess = false;
 
 	CComPtr<EnvDTE::_DTE> DTE;
-	if (AccessVisualStudio(DTE, SolutionPath, Locations))
+	if (AccessVisualStudio(DTE, GetSolutionPath(), Locations))
 	{
 		// Set Focus on Visual Studio
 		CComPtr<EnvDTE::Window> MainWindow;
@@ -242,7 +242,7 @@ bool FVSAccessorModule::OpenVisualStudioFilesInternal(const TArray<FileOpenReque
 	
 	bool bDefer = false, bSuccess = false;
 	CComPtr<EnvDTE::_DTE> DTE;
-	if (AccessVisualStudio(DTE, SolutionPath, Locations))
+	if (AccessVisualStudio(DTE, GetSolutionPath(), Locations))
 	{
 		// Set Focus on Visual Studio
 		CComPtr<EnvDTE::Window> MainWindow;
@@ -384,7 +384,7 @@ bool FVSAccessorModule::SaveAllOpenVisualStudioDocuments()
 	}
 	
 	CComPtr<EnvDTE::_DTE> DTE;
-	if (AccessVisualStudio(DTE, SolutionPath, Locations))
+	if (AccessVisualStudio(DTE, GetSolutionPath(), Locations))
 	{
 		// Save all documents
 		CComPtr<EnvDTE::Documents> Documents;
@@ -622,7 +622,7 @@ bool FVSAccessorModule::OpenVisualStudioSolution()
 {
 	::DWORD ProcessID = 0;
 	FString Path;
-	if (AccessVisualStudio(ProcessID, Path, SolutionPath, Locations))
+	if (AccessVisualStudio(ProcessID, Path, GetSolutionPath(), Locations))
 	{
 		// Try to bring Visual Studio to the foreground
 		::HWND VisualStudioHwnd = GetTopWindowForProcess(ProcessID);
@@ -661,14 +661,14 @@ bool FVSAccessorModule::OpenVisualStudioFileAtLineInternal(const FString& FullPa
 
 	::DWORD ProcessID = 0;
 	FString Path;
-	if (AccessVisualStudio(ProcessID, Path, SolutionPath, Locations))
+	if (AccessVisualStudio(ProcessID, Path, GetSolutionPath(), Locations))
 	{
 		return RunVisualStudioAndOpenSolutionAndFile(Path, "", FullPath, LineNumber);
 	}
 	
 	if (CanRunVisualStudio(Path))
 	{
-		return RunVisualStudioAndOpenSolutionAndFile(Path, SolutionPath, FullPath, LineNumber);
+		return RunVisualStudioAndOpenSolutionAndFile(Path, GetSolutionPath(), FullPath, LineNumber);
 	}
 
 	return false;
@@ -700,7 +700,7 @@ bool FVSAccessorModule::RunVisualStudioAndOpenSolution() const
 	FString Path;
 	if (CanRunVisualStudio(Path))
 	{
-		return RunVisualStudioAndOpenSolutionAndFile(Path, SolutionPath, "", 0);
+		return RunVisualStudioAndOpenSolutionAndFile(Path, GetSolutionPath(), "", 0);
 	}
 
 	return false;
@@ -776,4 +776,14 @@ void FVSAccessorModule::AddVisualStudioVersion(const int MajorVersion, const boo
 			Locations.Add(NewLocation);
 		}
 	}
+}
+
+FString FVSAccessorModule::GetSolutionPath() const
+{
+	FScopeLock Lock(&CachedSolutionPathCriticalSection);
+	if(IsInGameThread())
+	{
+		CachedSolutionPath = FPaths::ConvertRelativePathToFull(FModuleManager::Get().GetSolutionFilepath());
+	}
+	return CachedSolutionPath;
 }

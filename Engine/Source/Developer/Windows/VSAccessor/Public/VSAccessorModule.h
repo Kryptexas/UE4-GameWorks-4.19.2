@@ -150,8 +150,14 @@ private:
 	FLaunchVSDeferred LaunchVSDeferred;
 
 	/** String storing the solution path obtained from the module manager to avoid having to use it on a thread */
-	FString SolutionPath;
+	mutable FString CachedSolutionPath;
+
+	/** Critical section for updating SolutionPath */
+	mutable FCriticalSection CachedSolutionPathCriticalSection;
 
 	/** If !0 it represents the time at which the a VS instance was opened */
 	double	VSLaunchTime;
+
+	/** Accessor for SolutionPath. Will try to update it when called from the game thread, otherwise will use the cached value */
+	FString GetSolutionPath() const;
 };
