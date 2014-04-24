@@ -203,9 +203,9 @@ public:
 	// Logs out usage information.
 	void DumpMemoryUsage(FOutputDevice& OutputDevice);
 
-	void EnableEventRecording(uint32 InSizeInKBThreshold) { SizeInKBThreshold = InSizeInKBThreshold; bEventRecordingTrigger = true; }
+	void EnableEventRecording(uint32 InSizeInKBThreshold) { EventRecordingSizeThreshold = InSizeInKBThreshold; bEventRecordingTrigger = true; }
 	//
-	void DisableEventDisplay() { RenderTargetPoolEvents.Empty(); }
+	void DisableEventDisplay() { RenderTargetPoolEvents.Empty(); bEventRecording = false; }
 	//
 	bool IsEventRecordingEnabled() const;
 
@@ -240,22 +240,27 @@ private:
 		SMemoryStats()
 			: DisplayedUsageInBytes(0)
 			, TotalUsageInBytes(0)
+			, TotalColumnSize(0)
 		{
 		}
+		// for statistics
 		uint64 DisplayedUsageInBytes;
+		// for statistics
 		uint64 TotalUsageInBytes;
+		// for display purpose, to normalize the view width
+		uint64 TotalColumnSize;
 	};
 
 	// if next frame we want to run with bEventRecording=true
 	bool bEventRecordingTrigger;
-	// e..g 1MB = 1024, 0 to display all
-	uint32 SizeInKBThreshold;
+	// in KB, e.g. 1MB = 1024, 0 to display all
+	uint32 EventRecordingSizeThreshold;
 	// true if enabled
 	bool bEventRecording;
 	// only used if bEventRecording
 	TArray<FRenderTargetPoolEvent> RenderTargetPoolEvents;
 	//
-	uint32 CurrentTimeStep;
+	uint32 CurrentEventRecordingTime;
 
 	//
 	void AddDeallocEvents();
@@ -266,8 +271,7 @@ private:
 	//
 	void AddAllocEventsFromCurrentState();
 
-	//
-	FIntPoint ComputeEventDisplayExtent();
+	uint32 ComputeEventDisplayHeight();
 
 	// @return 0 if none was found
 	const FString* GetLastEventPhaseName();
