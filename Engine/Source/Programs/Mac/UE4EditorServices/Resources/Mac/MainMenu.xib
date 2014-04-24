@@ -649,7 +649,6 @@
         <customObject id="494" customClass="FUE4EditorServicesAppDelegate">
             <connections>
                 <outlet property="CancelButton" destination="dai-oU-OAh" id="Y25-Gw-uXO"/>
-                <outlet property="DontShow" destination="ybg-4h-4P1" id="Wj8-Eh-kTe"/>
                 <outlet property="EditorMenu" destination="f9d-HZ-HNY" id="Jab-vy-sAL"/>
                 <outlet property="OKButton" destination="L9r-Xl-0Cs" id="v9X-ut-cDR"/>
                 <outlet property="Window" destination="8oL-q8-tHX" id="Nen-IV-RKc"/>
@@ -659,14 +658,14 @@
         <window title="Choose UE4 Editor..." allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" oneShot="NO" releasedWhenClosed="NO" showsToolbarButton="NO" visibleAtLaunch="NO" animationBehavior="default" id="8oL-q8-tHX">
             <windowStyleMask key="styleMask" titled="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
-            <rect key="contentRect" x="196" y="207" width="372" height="95"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="1920" height="1058"/>
+            <rect key="contentRect" x="196" y="207" width="433" height="102"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1418"/>
             <view key="contentView" id="JTc-LF-g4a">
-                <rect key="frame" x="0.0" y="0.0" width="372" height="95"/>
+                <rect key="frame" x="0.0" y="0.0" width="433" height="102"/>
                 <autoresizingMask key="autoresizingMask"/>
                 <subviews>
                     <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="L9r-Xl-0Cs">
-                        <rect key="frame" x="276" y="13" width="82" height="32"/>
+                        <rect key="frame" x="337" y="13" width="82" height="32"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                         <buttonCell key="cell" type="push" title="OK" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="TDT-c9-kCq">
                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
@@ -680,11 +679,11 @@ DQ
                         </connections>
                     </button>
                     <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="f9d-HZ-HNY">
-                        <rect key="frame" x="18" y="51" width="337" height="26"/>
+                        <rect key="frame" x="18" y="58" width="398" height="26"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                         <popUpButtonCell key="cell" type="push" title="Item 1" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="16Y-Nr-6Ml" id="kYc-Fy-Ue0">
                             <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                            <font key="font" metaFont="system"/>
+                            <font key="font" metaFont="menu"/>
                             <menu key="menu" title="OtherViews" id="YZv-TP-bge">
                                 <items>
                                     <menuItem title="Item 1" state="on" id="16Y-Nr-6Ml"/>
@@ -694,16 +693,8 @@ DQ
                             </menu>
                         </popUpButtonCell>
                     </popUpButton>
-                    <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ybg-4h-4P1">
-                        <rect key="frame" x="18" y="18" width="133" height="18"/>
-                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                        <buttonCell key="cell" type="check" title="Don't Show Again" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="GPD-Ug-juk">
-                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                            <font key="font" metaFont="system"/>
-                        </buttonCell>
-                    </button>
                     <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="dai-oU-OAh">
-                        <rect key="frame" x="194" y="13" width="82" height="32"/>
+                        <rect key="frame" x="255" y="13" width="82" height="32"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                         <buttonCell key="cell" type="push" title="Cancel" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="HKl-nu-Poj">
                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>

@@ -105,14 +105,14 @@ bool FDesktopPlatformBase::IsPreferredEngineIdentifier(const FString &Identifier
 bool FDesktopPlatformBase::IsSourceDistribution(const FString &EngineRootDir)
 {
 	// Check for the existence of a SourceBuild.txt file
-	FString SourceBuildPath = EngineRootDir / TEXT("Engine\\Build\\SourceDistribution.txt");
+	FString SourceBuildPath = EngineRootDir / TEXT("Engine/Build/SourceDistribution.txt");
 	return (IFileManager::Get().FileSize(*SourceBuildPath) >= 0);
 }
 
 bool FDesktopPlatformBase::IsPerforceBuild(const FString &EngineRootDir)
 {
 	// Check for the existence of a SourceBuild.txt file
-	FString PerforceBuildPath = EngineRootDir / TEXT("Engine\\Build\\PerforceBuild.txt");
+	FString PerforceBuildPath = EngineRootDir / TEXT("Engine/Build/PerforceBuild.txt");
 	return (IFileManager::Get().FileSize(*PerforceBuildPath) >= 0);
 }
 
