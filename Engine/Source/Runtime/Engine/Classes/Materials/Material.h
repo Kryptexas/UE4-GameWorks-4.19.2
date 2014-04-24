@@ -647,9 +647,9 @@ public:
 	UPROPERTY(transient, duplicatetransient)
 	uint32 bAllowDevelopmentShaderCompile:1;
 
-	/** true if this is one of the materials used in development overhead calculations in the material editor. */
+	/** true if this is a special material used for stats by the material editor. */
 	UPROPERTY(transient, duplicatetransient)
-	uint32 bIsMaterialDevelopmentOverheadStatsMaterial:1;
+	uint32 bIsMaterialEditorStatsMaterial:1;
 
 	/** true if we have printed a warning about material usage for a given usage flag. */
 	UPROPERTY(transient, duplicatetransient)

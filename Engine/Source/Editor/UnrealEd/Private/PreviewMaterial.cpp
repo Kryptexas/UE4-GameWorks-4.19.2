@@ -35,6 +35,8 @@ public:
 		// only generate the needed shaders (which should be very restrictive for fast recompiling during editing)
 		// @todo: Add a FindShaderType by fname or something
 
+		bool bEditorStatsMaterial = Material->bIsMaterialEditorStatsMaterial;
+
 		// Always allow HitProxy shaders.
 		if (FCString::Stristr(ShaderType->GetName(), TEXT("HitProxy")))
 		{
@@ -46,12 +48,23 @@ public:
 		{
 			//cache for gpu skinned vertex factory if the material allows it
 			//this way we can have a preview skeletal mesh
-			if (!IsUsedWithSkeletalMesh() ||
+			if (bEditorStatsMaterial ||
+				!IsUsedWithSkeletalMesh() ||
 				(VertexFactoryType != FindVertexFactoryType(FName(TEXT("TGPUSkinVertexFactoryfalse"), FNAME_Find)) &&
 				VertexFactoryType != FindVertexFactoryType(FName(TEXT("TGPUSkinVertexFactorytrue"), FNAME_Find))))
 			{
 				return false;
 			}
+		}
+
+		if (bEditorStatsMaterial)
+		{
+			TArray<FString> ShaderTypeNames;
+			TArray<FString> ShaderTypeDescriptions;
+			GetRepresentativeShaderTypesAndDescriptions(ShaderTypeNames, ShaderTypeDescriptions);
+
+			//Only allow shaders that are used in the stats.
+			return ShaderTypeNames.Find(ShaderType->GetName()) != INDEX_NONE;
 		}
 
 		// look for any of the needed type

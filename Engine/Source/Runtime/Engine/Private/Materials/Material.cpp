@@ -517,7 +517,7 @@ UMaterial::UMaterial(const class FPostConstructInitializeProperties& PCIP)
 	MaterialDecalResponse = MDR_ColorNormalRoughness;
 
 	bAllowDevelopmentShaderCompile = true;
-	bIsMaterialDevelopmentOverheadStatsMaterial = false;
+	bIsMaterialEditorStatsMaterial = false;
 
 #if WITH_EDITORONLY_DATA
 	MaterialGraph = NULL;
@@ -1856,6 +1856,11 @@ void UMaterial::PostLoad()
 		AssertDefaultMaterialsPostLoaded();
 	}	
 
+	if ( GIsEditor && GetOuter() == GetTransientPackage() && FCString::Strstr(*GetName(), TEXT("MEStatsMaterial_")))
+	{
+		bIsMaterialEditorStatsMaterial = true;
+	}
+
 	// Ensure expressions have been postloaded before we use them for compiling
 	// Any UObjects used by material compilation must be postloaded here
 	for (int32 ExpressionIndex = 0; ExpressionIndex < Expressions.Num(); ExpressionIndex++)
@@ -1978,7 +1983,8 @@ void UMaterial::PostLoad()
 	{
 		SCOPE_SECONDS_COUNTER(MaterialLoadTime);
 
-		if (FApp::CanEverRender()) 
+		//Don't compile shaders in post load for dev overhead materials.
+		if (FApp::CanEverRender() && !bIsMaterialEditorStatsMaterial)
 		{
 			CacheResourceShadersForRendering(false);
 		}
@@ -2208,7 +2214,7 @@ void UMaterial::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEve
 		// Ensure that any components with static elements using this material are reregistered so changes
 		// are propagated to them. The preview material is only applied to the preview mesh component,
 		// and that reregister is handled by the material editor.
-		if( !bIsPreviewMaterial && !bIsMaterialDevelopmentOverheadStatsMaterial )
+		if (!bIsPreviewMaterial && !bIsMaterialEditorStatsMaterial)
 		{
 			FGlobalComponentReregisterContext RecreateComponents;
 		}

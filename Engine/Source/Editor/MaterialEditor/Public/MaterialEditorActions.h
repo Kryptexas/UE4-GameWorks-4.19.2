@@ -85,6 +85,12 @@ public:
 	/** Toggles the material stats on the canvas pane */
 	TSharedPtr< FUICommandInfo > ToggleMaterialStats;
 
+	/** Toggles whether the reported stats are for release shaders or development shaders. */
+	TSharedPtr< FUICommandInfo > ToggleReleaseStats;
+
+	/** Toggles the reporting of instructions for an empty material. i.e. The built in cost of that material. */
+	TSharedPtr< FUICommandInfo > ToggleBuiltinStats;
+
 	/** Shows material stats and errors when compiled for mobile. */
 	TSharedPtr< FUICommandInfo > ToggleMobileStats;
 	

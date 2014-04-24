@@ -175,33 +175,6 @@ struct FMaterialInfo
 };
 
 /**
-This class allows for the display of stats on the overhead introduce into shaders because they have been compiled for development.
-It compiles two empty materials with the same set up as the current preview material. One with the development overhead and one without.
-The difference in instruction counts between the two is reported to the user as the development overhead.
-*/
-class FMaterialDevelopmentOverheadStats
-{
-public:
-	FMaterialDevelopmentOverheadStats()
-		: EmptyMaterialWithOverhead(NULL)
-		, EmptyMaterial(NULL)
-		, bDisabled(false)
-	{
-
-	}
-	void Init( UMaterial* InMaterial );
-	void Update( UMaterial* InMaterial );
-	bool GetOverheadCounts( TArray<int32>& OverheadCounts, ERHIFeatureLevel::Type FeatureLevel  );
-	void AddReferencedObjects( FReferenceCollector& Collector );
-
-private:
-	UMaterial* EmptyMaterialWithOverhead;
-	UMaterial* EmptyMaterial;
-
-	bool bDisabled;
-};
-
-/**
  * Material Editor class
  */
 class FMaterialEditor : public IMaterialEditor, public FGCObject, public FTickableGameObject, public FEditorUndoClient, public FNotifyHook
@@ -347,6 +320,9 @@ public:
 	virtual int32 GetNumberOfSelectedNodes() const OVERRIDE;
 	virtual FMaterialRenderProxy* GetExpressionPreview(UMaterialExpression* InExpression) OVERRIDE;
 
+
+	void UpdateStatsMaterials();
+
 public:
 	/** Set to true when modifications have been made to the material */
 	bool bMaterialDirty;
@@ -363,8 +339,8 @@ public:
 	/** The material applied to the preview mesh when previewing an expression. */
 	UMaterial* ExpressionPreviewMaterial;
 
-	/** An helper class containing empty materials to calculate editor overhead on this material. */
-	FMaterialDevelopmentOverheadStats MaterialDevelopmentOverheadStats;
+	/** An empty copy of the preview material. Allows displaying of stats about the built in cost of the current material. */
+	UMaterial* EmptyMaterial;
 
 	/** The expression currently being previewed.  This is NULL when not in expression preview mode. */
 	UMaterialExpression* PreviewExpression;
@@ -514,6 +490,11 @@ private:
 	/** Command for the stats button */
 	void ToggleStats();
 	bool IsToggleStatsChecked() const;
+	void ToggleReleaseStats();
+	bool IsToggleReleaseStatsChecked() const;
+	void ToggleBuiltinStats();
+	bool IsToggleBuiltinStatsChecked() const;
+
 	/** Mobile stats button. */
 	void ToggleMobileStats();
 	bool IsToggleMobileStatsChecked() const;
@@ -667,6 +648,9 @@ private:
 
 	/** If true, show material stats like number of shader instructions. */
 	bool bShowStats;
+
+	/** If true, show stats for an empty material. Helps artists to judge the cost of their changes to the graph. */
+	bool bShowBuiltinStats;
 
 	/** If true, show material stats and errors for mobile. */
 	bool bShowMobileStats;

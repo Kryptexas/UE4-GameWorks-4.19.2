@@ -1770,6 +1770,8 @@ public:
 	 */
 	ENGINE_API void GetRepresentativeInstructionCounts(TArray<FString> &Descriptions, TArray<int32> &InstructionCounts) const;
 
+	ENGINE_API void GetRepresentativeShaderTypesAndDescriptions(TArray<FString> &ShaderTypeNames, TArray<FString> &ShaderTypeDescriptions) const;
+
 	ENGINE_API SIZE_T GetResourceSizeInclusive();
 
 	ENGINE_API virtual void LegacySerialize(FArchive& Ar);
