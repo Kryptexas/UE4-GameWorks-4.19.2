@@ -35,29 +35,21 @@ namespace UnrealVS
 				// CommandLineCombo
 				var ComboCommandID = new CommandID(GuidList.UnrealVSCmdSet, ComboID);
 				ComboCommand = new OleMenuCommand(new EventHandler(ComboHandler), ComboCommandID);
-				ComboCommand.BeforeQueryStatus += (sender, args) => { ComboCommand.Enabled = UnrealVSPackage.Instance.DTE.Solution.IsOpen; };
 				UnrealVSPackage.Instance.MenuCommandService.AddCommand(ComboCommand);
 
 				// CommandLineComboList
 				var ComboListCommandID = new CommandID(GuidList.UnrealVSCmdSet, ComboListID);
-				var ComboListCommand = new OleMenuCommand(new EventHandler(ComboListHandler), ComboListCommandID);
-				UnrealVSPackage.Instance.MenuCommandService.AddCommand(ComboListCommand);
+				ComboCommandList = new OleMenuCommand(new EventHandler(ComboListHandler), ComboListCommandID);
+				UnrealVSPackage.Instance.MenuCommandService.AddCommand(ComboCommandList);
 			}
 
-
 			// Register for events that we care about
-			UnrealVSPackage.Instance.OnStartupProjectChanged += OnStartupProjectChanged;
+			UnrealVSPackage.Instance.OnSolutionOpened += UpdateCommandLineCombo;
+			UnrealVSPackage.Instance.OnSolutionClosed += UpdateCommandLineCombo;
+			UnrealVSPackage.Instance.OnStartupProjectChanged += (p) => UpdateCommandLineCombo();
 			UnrealVSPackage.Instance.OnStartupProjectPropertyChanged += OnStartupProjectPropertyChanged;
 			UnrealVSPackage.Instance.OnStartupProjectConfigChanged += OnStartupProjectConfigChanged;
 
-			UpdateCommandLineCombo();
-		}
-
-		/// <summary>
-		/// Called when the startup project has changed to a new project.  We'll refresh our interface.
-		/// </summary>
-		public void OnStartupProjectChanged( Project NewStartupProject )
-		{
 			UpdateCommandLineCombo();
 		}
 
@@ -130,10 +122,12 @@ namespace UnrealVS
 			if( ProjectHierarchy != null )
 			{
 				ComboCommand.Enabled = true;
+				ComboCommandList.Enabled = true;
 			}
 			else
 			{
 				ComboCommand.Enabled = false;
+				ComboCommandList.Enabled = false;
 			}
 
 			string CommandLine = MakeCommandLineComboText();
@@ -338,6 +332,7 @@ namespace UnrealVS
 
 		/// Combo control for command-line editor
 		private OleMenuCommand ComboCommand;
+		private OleMenuCommand ComboCommandList;
 
 		/// Used to store the user edited commandline mid-edit, in the combo handler
 		private string DesiredCommandLine;
