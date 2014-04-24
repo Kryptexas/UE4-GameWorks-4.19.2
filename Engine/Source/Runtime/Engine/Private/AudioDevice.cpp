@@ -144,6 +144,11 @@ void FAudioDevice::Teardown()
 	FreeSources.Empty();
 }
 
+void FAudioDevice::Suspend(bool bGameTicking)
+{
+	HandlePause( bGameTicking, true );
+}
+
 void FAudioDevice::CountBytes(FArchive& Ar)
 {
 	Sources.CountBytes(Ar);
@@ -1634,7 +1639,7 @@ void FAudioDevice::DestroyEffect( FSoundSource* Source )
 }
 
 
-void FAudioDevice::HandlePause( bool bGameTicking )
+void FAudioDevice::HandlePause( bool bGameTicking, bool bGlobalPause )
 {
 	// Pause all sounds if transitioning to pause mode.
 	if( !bGameTicking && bGameWasTicking )
@@ -1642,7 +1647,7 @@ void FAudioDevice::HandlePause( bool bGameTicking )
 		for( int32 i = 0; i < Sources.Num(); i++ )
 		{
 			FSoundSource* Source = Sources[ i ];
-			if( Source->IsGameOnly() )
+			if( bGlobalPause || Source->IsGameOnly() )
 			{
 				Source->Pause();
 			}
@@ -1654,7 +1659,7 @@ void FAudioDevice::HandlePause( bool bGameTicking )
 		for( int32 i = 0; i < Sources.Num(); i++ )
 		{
 			FSoundSource* Source = Sources[ i ];
-			if( Source->IsGameOnly() )
+			if( bGlobalPause || Source->IsGameOnly() )
 			{
 				Source->Play();
 			}
