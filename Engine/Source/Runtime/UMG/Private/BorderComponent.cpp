@@ -34,13 +34,15 @@ TSharedRef<SWidget> UBorderComponent::RebuildWidget()
 		// SLATE_EVENT( FPointerEventHandler, OnMouseButtonUp )
 		// SLATE_EVENT( FPointerEventHandler, OnMouseMove )
 		// SLATE_EVENT( FPointerEventHandler, OnMouseDoubleClick )
-		.BorderImage(&BorderImage)
+		.BorderImage(BIND_UOBJECT_ATTRIBUTE(const FSlateBrush*, GetBorderBrush))
 		.ContentScale(ContentScale)
 		.DesiredSizeScale(DesiredSizeScale)
 		.ColorAndOpacity(BIND_UOBJECT_ATTRIBUTE(FLinearColor, GetContentColor))
 		.BorderBackgroundColor(BIND_UOBJECT_ATTRIBUTE(FSlateColor, GetBorderColor))
 		.ForegroundColor(BIND_UOBJECT_ATTRIBUTE(FSlateColor, GetForegroundColor))
 		.ShowEffectWhenDisabled(bShowEffectWhenDisabled);
+
+	NewBorder->SetContent(Content ? Content->GetWidget() : SNullWidget::NullWidget);
 
 	MyBorder = NewBorder;
 	return NewBorder;
@@ -53,7 +55,7 @@ void UBorderComponent::SetContent(USlateWrapperComponent* Content)
 	TSharedPtr<SBorder> Border = MyBorder.Pin();
 	if ( Border.IsValid() )
 	{
-		Border->SetContent(Content->GetWidget());
+		Border->SetContent(Content ? Content->GetWidget() : SNullWidget::NullWidget);
 	}
 }
 
@@ -65,6 +67,17 @@ FMargin UBorderComponent::GetContentPadding() const
 FLinearColor UBorderComponent::GetContentColor() const
 {
 	return ContentColorAndOpacity;
+}
+
+const FSlateBrush* UBorderComponent::GetBorderBrush() const
+{
+	if ( BorderBrush == NULL )
+	{
+		SBorder::FArguments BorderDefaults;
+		return BorderDefaults._BorderImage.Get();
+	}
+
+	return &BorderBrush->Brush;
 }
 
 FSlateColor UBorderComponent::GetBorderColor() const

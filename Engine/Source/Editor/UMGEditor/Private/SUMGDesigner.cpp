@@ -98,25 +98,28 @@ void SUMGDesigner::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEdit
 {
 	PreviewWidgetActor = NULL;
 	BlueprintEditor = InBlueprintEditor;
-
-	ChildSlot
-	[
-		SNew(SOverlay)
-		+ SOverlay::Slot()
-		.HAlign(HAlign_Fill)
-		.VAlign(VAlign_Fill)
+	
+	SDesignSurface::Construct(SDesignSurface::FArguments()
+		.Content()
 		[
-			SAssignNew(PreviewSurface, SBorder)
-			.Visibility(EVisibility::HitTestInvisible)
-		]
+			SNew(SOverlay)
 
-		+ SOverlay::Slot()
-		.HAlign(HAlign_Fill)
-		.VAlign(VAlign_Fill)
-		[
-			SNew(STextBlock)
+			+ SOverlay::Slot()
+			.HAlign(HAlign_Fill)
+			.VAlign(VAlign_Fill)
+			[
+				SAssignNew(PreviewSurface, SBorder)
+				.Visibility(EVisibility::HitTestInvisible)
+			]
+
+			+ SOverlay::Slot()
+			.HAlign(HAlign_Fill)
+			.VAlign(VAlign_Fill)
+			[
+				SNew(STextBlock)
+			]
 		]
-	];
+	);
 }
 
 UWidgetBlueprint* SUMGDesigner::GetBlueprint() const
@@ -229,7 +232,7 @@ bool SUMGDesigner::GetLocallyArrangedWidget(TSharedRef<SWidget> Widget, FArrange
 
 int32 SUMGDesigner::OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
-	SCompoundWidget::OnPaint(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+	SDesignSurface::OnPaint(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 
 	if ( SelectedWidget.IsValid() )
 	{

@@ -3,8 +3,10 @@
 #pragma once
 
 #include "SCompoundWidget.h"
+#include "SNodePanel.h"
+#include "SDesignSurface.h"
 
-class SUMGDesigner : public SCompoundWidget
+class SUMGDesigner : public SDesignSurface
 {
 public:
 

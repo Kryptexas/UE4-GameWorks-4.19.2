@@ -6,6 +6,7 @@
 #include "UMGEditor.h"
 #include "UMGEditorViewportClient.h"
 #include "UMGEditorActions.h"
+#include "SUMGEditorTreeItem.h"
 
 #include "PreviewScene.h"
 #include "SceneViewport.h"
@@ -26,6 +27,7 @@ void SUMGEditorTree::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEd
 	ChildSlot
 	[
 		SNew(SVerticalBox)
+
 		+ SVerticalBox::Slot()
 		.AutoHeight()
 		[
@@ -132,8 +134,7 @@ TSharedRef< ITableRow > SUMGEditorTree::WidgetHierarchy_OnGenerateRow(USlateWrap
 		.Padding(2.0f)
 //		.OnDragDetected(this, &SUMGEditorWidgetTemplates::OnDraggingWidgetTemplateItem)
 		[
-			SNew(STextBlock)
-			.Text(InItem->GetFName().ToString())
+			SNew(SUMGEditorTreeItem, BlueprintEditor.Pin(), InItem)
 		];
 }
 
@@ -156,6 +157,7 @@ FReply SUMGEditorTree::CreateTestUI()
 	UWidgetBlueprint* BP = CastChecked<UWidgetBlueprint>(BlueprintEditor.Pin()->GetBlueprintObj());
 
 	UCanvasPanelComponent* Canvas = ConstructObject<UCanvasPanelComponent>(UCanvasPanelComponent::StaticClass(), BP);
+	UBorderComponent* Border = ConstructObject<UBorderComponent>(UBorderComponent::StaticClass(), BP);
 	UVerticalBoxComponent* Vertical = ConstructObject<UVerticalBoxComponent>(UVerticalBoxComponent::StaticClass(), BP);
 	UButtonComponent* Button1 = ConstructObject<UButtonComponent>(UButtonComponent::StaticClass(), BP);
 	Button1->ButtonText = FText::FromString("Button 1");
@@ -170,6 +172,7 @@ FReply SUMGEditorTree::CreateTestUI()
 	Button4->SetContent(Text1);
 
 	BP->WidgetTemplates.Add(Canvas);
+	BP->WidgetTemplates.Add(Border);
 	BP->WidgetTemplates.Add(Vertical);
 	BP->WidgetTemplates.Add(Button1);
 	BP->WidgetTemplates.Add(Button2);
@@ -177,11 +180,13 @@ FReply SUMGEditorTree::CreateTestUI()
 	BP->WidgetTemplates.Add(Button4);
 	BP->WidgetTemplates.Add(Text1);
 
-	UCanvasPanelSlot* Slot = Canvas->AddSlot(Vertical);
-	Slot->Size.X = 100;
-	Slot->Size.Y = 100;
+	UCanvasPanelSlot* Slot = Canvas->AddSlot(Border);
+	Slot->Size.X = 200;
+	Slot->Size.Y = 300;
 	Slot->Position.X = 20;
 	Slot->Position.Y = 50;
+
+	Border->SetContent(Vertical);
 
 	Vertical->AddSlot(Button1);
 	Vertical->AddSlot(Button2);
@@ -203,16 +208,3 @@ void SUMGEditorTree::RefreshTree()
 		RootWidgets.Add(Blueprint->WidgetTemplates[0]);
 	}
 }
-
-//void SUMGEditorTree::AddReferencedObjects( FReferenceCollector& Collector )
-//{
-//	Collector.AddReferencedObject(Page);
-//}
-//
-//void SUMGEditorTree::OnObjectPropertyChanged(UObject* ObjectBeingModified)
-//{
-//	if ( !ensure(ObjectBeingModified) )
-//	{
-//		return;
-//	}
-//}

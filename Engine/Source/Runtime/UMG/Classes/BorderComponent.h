@@ -30,8 +30,8 @@ class UMG_API UBorderComponent : public UContentWidget
 	// SLATE_EVENT( FPointerEventHandler, OnMouseDoubleClick )
 
 	/** Image to use for the border */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
-	FSlateBrush BorderImage;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance, meta=( DisplayThumbnail = "true" ))
+	USlateBrushAsset* BorderBrush;
 
 	/** The scaling factor for the border */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
@@ -71,6 +71,7 @@ protected:
 
 	FMargin GetContentPadding() const;
 	FLinearColor GetContentColor() const;
+	const FSlateBrush* GetBorderBrush() const;
 	FSlateColor GetBorderColor() const;
 	FSlateColor GetForegroundColor() const;
 };
