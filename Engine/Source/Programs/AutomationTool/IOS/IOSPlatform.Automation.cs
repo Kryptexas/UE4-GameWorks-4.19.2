@@ -241,7 +241,7 @@ public class IOSPlatform : Platform
 		Arguments += " /usr/bin/xcrun xcodebuild build -project \"" + XcodeProj + "\"";
 		Arguments += " -scheme '";
 		Arguments += GameName;
-		Arguments += " - iOS (Run)'";
+		Arguments += " - iOS'";
 		Arguments += " -configuration " + TargetConfig.ToString();
 		Arguments += " CODE_SIGN_IDENTITY=" + (Distribution ? "\"iPhone Distribution\"" : "\"iPhone Developer\"");
 		Run ("/usr/bin/env", Arguments, null, ERunOptions.Default);
@@ -590,7 +590,7 @@ public class IOSPlatform : Platform
 			string Arguments = "UBT_NO_POST_DEPLOY=true /usr/bin/xcrun xcodebuild test -project \"" + XcodeProj + "\"";
 			Arguments += " -scheme '";
 			Arguments += GameName;
-			Arguments += " - iOS (Run)'";
+			Arguments += " - iOS'";
 			Arguments += " -configuration " + Params.ClientConfigsToBuild [0].ToString();
 			Arguments += " -destination 'platform=iOS,id=" + Params.Device.Substring(4) + "'";
 			Arguments += " TEST_HOST=\"";

@@ -149,16 +149,14 @@ namespace UnrealBuildTool
 			switch (Extension)
 			{
 			case ".c":
-				return "sourcecode.c.c";
-			case ".cc":
-				return "sourcecode.cpp.cpp";
-			case ".cpp":
-				return "sourcecode.cpp.cpp";
 			case ".m":
 				return "sourcecode.c.objc";
+			case ".cc":
+			case ".cpp":
 			case ".mm":
 				return "sourcecode.cpp.objcpp";
 			case ".h":
+			case ".inl":
 			case ".pch":
 				return "sourcecode.c.h";
 			case ".framework":
@@ -172,6 +170,33 @@ namespace UnrealBuildTool
 		private bool IsSourceCode(string Extension)
 		{
 			return Extension == ".c" || Extension == ".cc" || Extension == ".cpp" || Extension == ".m" || Extension == ".mm";
+		}
+
+		private bool IsPartOfUE4XcodeHelperTarget(XcodeSourceFile SourceFile)
+		{
+			string FileExtension = Path.GetExtension(SourceFile.FilePath);
+
+			if (IsSourceCode(FileExtension))// || GetFileType(FileExtension) == "sourcecode.c.h") @todo: It seemed that headers need to be added to project for live issues detection to work in them
+			{
+				foreach (string PlatformName in Enum.GetNames(typeof(UnrealTargetPlatform)))
+				{
+					string AltName = PlatformName == "Win32" || PlatformName == "Win64" ? "windows" : PlatformName.ToLower();
+					if ((SourceFile.FilePath.ToLower().Contains("/" + PlatformName.ToLower() + "/")) || (SourceFile.FilePath.ToLower().Contains("/" + AltName + "/")) && PlatformName != "Mac")
+					{
+						// UE4XcodeHelper is Mac only target, so skip other platforms files
+						return false;
+					}
+					else if (SourceFile.FilePath.EndsWith("SimplygonMeshReduction.cpp") || SourceFile.FilePath.EndsWith("Android.cpp"))
+					{
+						// @todo: We need a way to filter out files that use SDKs we don't have
+						return false;
+					}
+				}
+
+				return true;
+			}
+
+			return false;
 		}
 
 		/**
@@ -229,10 +254,19 @@ namespace UnrealBuildTool
 		/// <param name="InitFilePath">Path to the source file on disk</param>
 		/// <param name="InitProjectSubFolder">Optional sub-folder to put the file in.  If empty, this will be determined automatically from the file's path relative to the project file</param>
 		/// <returns>The newly allocated source file object</returns>
-		public override SourceFile AllocSourceFile (string InitFilePath, string InitProjectSubFolder)
+		public override SourceFile AllocSourceFile(string InitFilePath, string InitProjectSubFolder)
 		{
 			if (Path.GetFileName(InitFilePath) == ".DS_Store")
 			{
+				return null;
+			}
+			else if (InitFilePath.EndsWith("Classes/Engine/Engine.h") || InitFilePath.EndsWith("Classes/VectorField/VectorField.h") || InitFilePath.EndsWith("Classes/Materials/MaterialInstance.h")
+				|| InitFilePath.EndsWith("Classes/Engine/Canvas.h") || InitFilePath.EndsWith("Classes/Intrinsic/Model.h") || InitFilePath.EndsWith("Classes/Engine/Texture.h")
+				|| InitFilePath.EndsWith("Windows/OnlineFriendsFacebook.h") || InitFilePath.EndsWith("Windows/OnlineIdentityFacebook.h") || InitFilePath.EndsWith("HTML5/Simulator/SocketSubsystem.h")
+				|| InitFilePath.EndsWith("HTML5/Device/SocketSubsystem.h") || InitFilePath.EndsWith("ContentBrowser/Private/HistoryManager.h") || InitFilePath.EndsWith("Private/Menus/TranslationEditorMenu.h"))
+			{
+				// @todo: Get rid of this workaround when possible.
+				// Xcode has a bug (radr://15660224) that makes indexing fail if there are multiple header files with the same name, so we skip few files that cause the problem.
 				return null;
 			}
 			return new XcodeSourceFile(InitFilePath, InitProjectSubFolder);
@@ -279,7 +313,7 @@ namespace UnrealBuildTool
 				                            GetFileType(FileExtension),
                                             FilePathMac);
 
-				if (IsSourceCode(FileExtension))
+				if (IsPartOfUE4XcodeHelperTarget(SourceFile))
 				{
 					PBXSourcesBuildPhaseSection += "\t\t\t\t" + SourceFile.FileGUID + " /* " + FileName + " in Sources */," + ProjectFileGenerator.NewLine;
 				}
