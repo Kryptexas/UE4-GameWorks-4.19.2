@@ -31,7 +31,7 @@ class ENGINE_API UUserDefinedEnum : public UEnum
 	 * To sync DisplayNames with meta-data use FEnumEditorUtils::EnsureAllDisplayNamesExist.
 	 */
 	UPROPERTY()
-	TArray<FString> DisplayNames;
+	TArray<FText> DisplayNames;
 
 public:
 	/**
@@ -54,7 +54,7 @@ public:
 	/**
 	 * @return	The enum string at the specified index.
 	 */
-	virtual FString GetEnumString(int32 InIndex) const OVERRIDE;
+	virtual FText GetEnumText(int32 InIndex) const OVERRIDE;
 
 #if WITH_EDITOR
 	// Begin UObject interface

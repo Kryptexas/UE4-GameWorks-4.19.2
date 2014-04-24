@@ -341,7 +341,7 @@ FString FEnumEditorUtils::GetEnumeratorDisplayName(const UUserDefinedEnum* Enum,
 {
 	if (Enum && Enum->DisplayNames.IsValidIndex(EnumeratorIndex))
 	{
-		return Enum->DisplayNames[EnumeratorIndex];
+		return Enum->DisplayNames[EnumeratorIndex].ToString();
 	}
 	return FString();
 }
@@ -389,16 +389,16 @@ void FEnumEditorUtils::EnsureAllDisplayNamesExist(UUserDefinedEnum* Enum)
 		Enum->DisplayNames.Empty(EnumeratorsToEnsure);
 		for	(int32 Index = 0; Index < EnumeratorsToEnsure; Index++)
 		{
-			FString DisplayNameMetaData = Enum->GetMetaData(FEnumEditorUtilsHelper::DisplayName(), Index);
+			FText DisplayNameMetaData = Enum->GetEnumText(Index);
 			if (DisplayNameMetaData.IsEmpty())
 			{
 				const FString EnumName = Enum->GetEnumName(Index);
-				DisplayNameMetaData = EnumName;
-				for(int32 AddIndex = 0; !IsEnumeratorDisplayNameValid(Enum, DisplayNameMetaData); ++AddIndex)
+				DisplayNameMetaData = FText::FromString(EnumName);
+				for(int32 AddIndex = 0; !IsEnumeratorDisplayNameValid(Enum, DisplayNameMetaData.ToString()); ++AddIndex)
 				{
-					DisplayNameMetaData = FString::Printf(TEXT("%s%d"), *EnumName, AddIndex);
+					DisplayNameMetaData = FText::FromString(FString::Printf(TEXT("%s%d"), *EnumName, AddIndex));
 				}
-				Enum->SetMetaData(FEnumEditorUtilsHelper::DisplayName(), *DisplayNameMetaData, Index);
+				Enum->SetMetaData(FEnumEditorUtilsHelper::DisplayName(), *DisplayNameMetaData.ToString(), Index);
 			}
 			Enum->DisplayNames.Add(DisplayNameMetaData);
 		}

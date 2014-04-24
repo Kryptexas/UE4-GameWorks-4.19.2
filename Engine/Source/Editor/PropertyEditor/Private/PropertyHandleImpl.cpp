@@ -67,7 +67,7 @@ FPropertyAccess::Result FPropertyValueImpl::GetPropertyValueString( FString& Out
 				if ( ByteProperty != NULL && ByteProperty->Enum != NULL )
 				{
 					uint8 EnumValue = ByteProperty->GetPropertyValue(ValueAddress);
-					OutString = ByteProperty->Enum->GetEnumString(EnumValue);
+					OutString = ByteProperty->Enum->GetEnumName(EnumValue);
 				}
 			}
 			else
@@ -114,7 +114,7 @@ FPropertyAccess::Result FPropertyValueImpl::GetPropertyValueText( FText& OutText
 				if ( ByteProperty != NULL && ByteProperty->Enum != NULL )
 				{
 					uint8 EnumValueIndex = ByteProperty->GetPropertyValue(ValueAddress);
-					OutString = ByteProperty->Enum->GetEnumString(EnumValueIndex);
+					OutString = ByteProperty->Enum->GetEnumName(EnumValueIndex);
 				}
 
 				OutText = FText::FromString(OutString);

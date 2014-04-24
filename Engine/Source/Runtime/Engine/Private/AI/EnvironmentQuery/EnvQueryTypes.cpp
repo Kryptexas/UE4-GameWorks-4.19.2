@@ -106,7 +106,7 @@ FString FEnvTraceData::ToString(FEnvTraceData::EDescriptionMode DescMode) const
 		if (DescMode == FEnvTraceData::Brief)
 		{
 			static UEnum* ChannelEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("ETraceTypeQuery"), true);
-			Desc += FString::Printf(TEXT(" %s on %s"), bCanProjectDown ? TEXT("projection") : TEXT("trace"), *ChannelEnum->GetEnumString(TraceChannel));
+			Desc += FString::Printf(TEXT(" %s on %s"), bCanProjectDown ? TEXT("projection") : TEXT("trace"), *ChannelEnum->GetEnumText(TraceChannel).ToString());
 		}
 		else
 		{

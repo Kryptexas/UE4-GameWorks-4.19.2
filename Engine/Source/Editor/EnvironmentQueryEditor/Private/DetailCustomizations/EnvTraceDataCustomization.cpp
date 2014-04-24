@@ -121,15 +121,15 @@ void FEnvTraceDataCustomization::CacheTraceModes(TSharedRef<class IPropertyHandl
 	TraceModes.Reset();
 	if (bCanDisable)
 	{
-		TraceModes.Add(FStringIntPair(TraceModeEnum->GetEnumString(EEnvQueryTrace::None), EEnvQueryTrace::None));
+		TraceModes.Add(FStringIntPair(TraceModeEnum->GetEnumText(EEnvQueryTrace::None).ToString(), EEnvQueryTrace::None));
 	}
 	if (bCanNavMesh)
 	{
-		TraceModes.Add(FStringIntPair(TraceModeEnum->GetEnumString(EEnvQueryTrace::Navigation), EEnvQueryTrace::Navigation));
+		TraceModes.Add(FStringIntPair(TraceModeEnum->GetEnumText(EEnvQueryTrace::Navigation).ToString(), EEnvQueryTrace::Navigation));
 	}
 	if (bCanGeometry)
 	{
-		TraceModes.Add(FStringIntPair(TraceModeEnum->GetEnumString(EEnvQueryTrace::Geometry), EEnvQueryTrace::Geometry));
+		TraceModes.Add(FStringIntPair(TraceModeEnum->GetEnumText(EEnvQueryTrace::Geometry).ToString(), EEnvQueryTrace::Geometry));
 	}
 
 	ActiveMode = EEnvQueryTrace::None;
