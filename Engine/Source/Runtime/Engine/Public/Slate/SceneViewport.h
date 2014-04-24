@@ -156,9 +156,18 @@ public:
 	* Sets whether a PIE viewport takes mouse control on startup.
 	* @param bGetsMouseControl Takes control if true, or not if false. 
 	*/
-	void SetPlayInEditorGetsMouseControl( bool bGetsMouseControl )
+	void SetPlayInEditorGetsMouseControl(const bool bGetsMouseControl)
 	{
 		bPlayInEditorGetsMouseControl = bGetsMouseControl;
+	}
+
+	void SetPlayInEditorIsSimulate(const bool bIsSimulate)
+	{
+		bPlayInEditorIsSimulate = bIsSimulate;
+	}
+	bool GetPlayInEditorIsSimulate() const
+	{
+		return bPlayInEditorIsSimulate;
 	}
 
 	/** Updates the viewport RHI with a new size and fullscreen flag */
@@ -289,6 +298,8 @@ private:
 	FOnSceneViewportResize OnSceneViewportResizeDel;
 	/** Whether a PIE viewport should take mouse control on startup */
 	bool bPlayInEditorGetsMouseControl;
+	/** Whether the PIE viewport is currently in simulate in editor mode */
+	bool bPlayInEditorIsSimulate;
 };
 
 

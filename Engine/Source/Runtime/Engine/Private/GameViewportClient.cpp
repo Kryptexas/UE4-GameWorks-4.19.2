@@ -119,6 +119,11 @@ void UGameViewportClient::DetachViewportClient()
 	RemoveFromRoot();
 }
 
+FSceneViewport* UGameViewportClient::GetGameViewport()
+{
+	return static_cast<FSceneViewport*>(Viewport);
+}
+
 
 void UGameViewportClient::Tick( float DeltaTime )
 {
@@ -279,19 +284,42 @@ bool UGameViewportClient::InputMotion(FViewport* InViewport, int32 ControllerId,
 	return bResult;
 }
 
-void UGameViewportClient::MouseEnter(FViewport* Viewport, int32 x, int32 y)
+void UGameViewportClient::SetIsSimulateInEditorViewport(bool bInIsSimulateInEditorViewport)
 {
-	Super::MouseEnter(Viewport, x, y);
-
 	if (GetDefault<UInputSettings>()->bUseMouseForTouch)
+	{
+		FSlateApplication::Get().SetGameIsFakingTouchEvents(!bInIsSimulateInEditorViewport);
+	}
+
+	for (ULocalPlayer* LocalPlayer : GetOuterUEngine()->GetGamePlayers(this))
+	{
+		if (LocalPlayer->PlayerController)
+		{
+			if (bInIsSimulateInEditorViewport)
+			{
+				LocalPlayer->PlayerController->CleanupGameViewport();
+			}
+			else
+			{
+				LocalPlayer->PlayerController->CreateTouchInterface();
+			}
+		}
+	}
+}
+
+void UGameViewportClient::MouseEnter(FViewport* InViewport, int32 x, int32 y)
+{
+	Super::MouseEnter(InViewport, x, y);
+
+	if (GetDefault<UInputSettings>()->bUseMouseForTouch && !GetGameViewport()->GetPlayInEditorIsSimulate())
 	{
 		FSlateApplication::Get().SetGameIsFakingTouchEvents(true);
 	}
 }
 
-void UGameViewportClient::MouseLeave(FViewport* Viewport)
+void UGameViewportClient::MouseLeave(FViewport* InViewport)
 {
-	Super::MouseLeave(Viewport);
+	Super::MouseLeave(InViewport);
 
 	if (GetDefault<UInputSettings>()->bUseMouseForTouch)
 	{
@@ -331,7 +359,7 @@ bool UGameViewportClient::RequiresUncapturedAxisInput() const
 		}
 		else if (GetWorld() && GetWorld()->GetFirstPlayerController())
 		{
-			bRequired = GetWorld()->GetFirstPlayerController() ->ShouldShowMouseCursor();
+			bRequired = GetWorld()->GetFirstPlayerController()->ShouldShowMouseCursor();
 		}
 	}
 
@@ -1061,7 +1089,7 @@ void UGameViewportClient::ReceivedFocus(FViewport* InViewport)
 {
 	InViewport->CaptureJoystickInput(true);
 
-	if (GetDefault<UInputSettings>()->bUseMouseForTouch)
+	if (GetDefault<UInputSettings>()->bUseMouseForTouch && !GetGameViewport()->GetPlayInEditorIsSimulate())
 	{
 		FSlateApplication::Get().SetGameIsFakingTouchEvents(true);
 	}

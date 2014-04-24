@@ -246,6 +246,8 @@ public:
 
 	virtual void SetReferenceToWorldContext(struct FWorldContext& WorldContext);
 
+	class FSceneViewport* GetGameViewport();
+
 public:
 	// Begin UObject Interface
 	virtual void PostInitProperties() OVERRIDE;
@@ -271,6 +273,7 @@ public:
 	virtual bool IsOrtho() const OVERRIDE;
 	virtual void MouseEnter(FViewport* Viewport, int32 x, int32 y) OVERRIDE;
 	virtual void MouseLeave(FViewport* Viewport) OVERRIDE;
+	virtual void SetIsSimulateInEditorViewport(bool bInIsSimulateInEditorViewport) OVERRIDE;
 	// End of FViewportClient interface.
 
 	// Begin FExec interface.

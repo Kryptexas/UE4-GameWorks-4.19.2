@@ -75,7 +75,7 @@ public:
 	void SaveConfig(const FString& ConfigName);
 
 	/** ILevelViewport Interface */
-	virtual void StartPlayInEditorSession( UGameViewportClient* PlayClient ) OVERRIDE;
+	virtual void StartPlayInEditorSession( UGameViewportClient* PlayClient, const bool bInSimulateInEditor ) OVERRIDE;
 	virtual void EndPlayInEditorSession() OVERRIDE;
 	virtual void SwapViewportsForSimulateInEditor() OVERRIDE;
 	virtual void SwapViewportsForPlayInEditor() OVERRIDE;

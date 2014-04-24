@@ -619,6 +619,7 @@ public:
 	 */
 	virtual bool InputMotion(FViewport* Viewport, int32 ControllerId, const FVector& Tilt, const FVector& RotationRate, const FVector& Gravity, const FVector& Acceleration) { return false; }
 
+	virtual void SetIsSimulateInEditorViewport(bool bInIsSimulateInEditorViewport) { };
 
 	virtual bool WantsPollingMouseMovement(void) const { return true; }
 

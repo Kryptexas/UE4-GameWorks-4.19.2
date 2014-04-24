@@ -2266,7 +2266,7 @@ UWorld* UEditorEngine::CreatePlayInEditorWorld(FWorldContext &PieWorldContext, b
 			{
 				TSharedPtr<ILevelViewport> LevelViewportRef = SlatePlayInEditorSession.DestinationSlateViewport.Pin();
 
-				LevelViewportRef->StartPlayInEditorSession( ViewportClient );
+				LevelViewportRef->StartPlayInEditorSession( ViewportClient, bInSimulateInEditor );
 			}
 			else
 			{		
@@ -2554,6 +2554,9 @@ void UEditorEngine::ToggleBetweenPIEandSIE()
 			// The undo system may have a reference to a SIE object that is about to be destroyed, so clear the transactions
 			ResetTransaction( NSLOCTEXT("UnrealEd", "ToggleBetweenPIEandSIE", "Toggle Between PIE and SIE") );
 
+			// The Game's viewport needs to know about the change away from simluate before the PC is (potentially) created
+			GameViewport->GetGameViewport()->SetPlayInEditorIsSimulate(false);
+
 			// The editor viewport client wont be visible so temporarily disable it being realtime
 			EditorViewportClient.SetRealtime( false, true );
 
@@ -2566,7 +2569,7 @@ void UEditorEngine::ToggleBetweenPIEandSIE()
 				{
 					APlayerController* PC = World->GetFirstPlayerController();
 					PC->PlayerState->bOnlySpectator = false;
-					World->GetAuthGameMode()->RestartPlayer(World->GetFirstPlayerController());
+					World->GetAuthGameMode()->RestartPlayer(PC);
 				}
 
 				OnSwitchWorldsForPIE(false);
@@ -2576,7 +2579,8 @@ void UEditorEngine::ToggleBetweenPIEandSIE()
 			LevelViewport->SwapViewportsForPlayInEditor();
 
 			// No longer simulating
-			EditorViewportClient.SetIsSimulateInEditorViewport( false );
+			GameViewport->SetIsSimulateInEditorViewport(false);
+			EditorViewportClient.SetIsSimulateInEditorViewport(false);
 			bIsSimulatingInEditor = false;
 		}
 		else
@@ -2584,7 +2588,9 @@ void UEditorEngine::ToggleBetweenPIEandSIE()
 			// Swap to simulate from PIE
 			LevelViewport->SwapViewportsForSimulateInEditor();
 	
-			EditorViewportClient.SetIsSimulateInEditorViewport( true );
+			GameViewport->SetIsSimulateInEditorViewport(true);
+			GameViewport->GetGameViewport()->SetPlayInEditorIsSimulate(true);
+			EditorViewportClient.SetIsSimulateInEditorViewport(true);
 			bIsSimulatingInEditor = true;
 
 			// Make sure the viewport is in real-time mode

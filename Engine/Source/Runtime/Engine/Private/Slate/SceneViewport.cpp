@@ -31,6 +31,7 @@ FSceneViewport::FSceneViewport( FViewportClient* InViewportClient, TSharedPtr<SV
 	, bUseSeparateRenderTarget( InViewportWidget.IsValid() ? !InViewportWidget->ShouldRenderDirectly() : true )
 	, bIsResizing( false )
 	, bPlayInEditorGetsMouseControl( true )
+	, bPlayInEditorIsSimulate( false )
 {
 	bIsSlateViewport = true;
 }

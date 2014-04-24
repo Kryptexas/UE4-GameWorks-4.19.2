@@ -297,7 +297,7 @@ public:
 	/** Updates the rotate widget with the passed in delta rotation. */
 	void ApplyDeltaToRotateWidget( const FRotator& InRot );
 
-	void SetIsSimulateInEditorViewport( bool bInIsSimulateInEditorViewport );
+	virtual void SetIsSimulateInEditorViewport( bool bInIsSimulateInEditorViewport ) OVERRIDE;
 
 	/**
 	 * Draws a screen space bounding box around the specified actor

@@ -2873,7 +2873,7 @@ bool SLevelViewport::IsViewportConfigurationSet(FName ConfigurationName) const
 	return false;
 }
 
-void SLevelViewport::StartPlayInEditorSession( UGameViewportClient* PlayClient )
+void SLevelViewport::StartPlayInEditorSession( UGameViewportClient* PlayClient, const bool bInSimulateInEditor )
 {
 	check( !HasPlayInEditorViewport() );
 
@@ -2898,6 +2898,7 @@ void SLevelViewport::StartPlayInEditorSession( UGameViewportClient* PlayClient )
 
 	// Whether to start with the game taking mouse control or leaving it shown in the editor
 	ActiveViewport->SetPlayInEditorGetsMouseControl(GetDefault<ULevelEditorPlaySettings>()->GameGetsMouseControl);
+	ActiveViewport->SetPlayInEditorIsSimulate(bInSimulateInEditor);
 	
 	ActiveViewport->OnPlayWorldViewportSwapped( *InactiveViewport );
 
