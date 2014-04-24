@@ -88,8 +88,10 @@ public:
 	 *
 	 * @param Requestor The user requesting the profile.
 	 * @param Requestee The user for whom to show the profile.
+	 *
+	 * @return true if it was able to show the UI, false if it failed
 	 */
-	virtual void ShowProfileUI(const FUniqueNetId& Requestor, const FUniqueNetId& Requestee, const FOnProfileUIClosedDelegate& Delegate) = 0;
+	virtual bool ShowProfileUI(const FUniqueNetId& Requestor, const FUniqueNetId& Requestee, const FOnProfileUIClosedDelegate& Delegate) = 0;
 
 	/**
 	 * Delegate called when the external UI is opened or closed

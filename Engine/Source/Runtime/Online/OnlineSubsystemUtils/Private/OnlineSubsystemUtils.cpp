@@ -25,6 +25,7 @@
 #include "Tests/TestUserInterface.h"
 #include "Tests/TestMessageInterface.h"
 #include "Tests/TestVoice.h"
+#include "Tests/TestExternalUIInterface.h"
 
 IMPLEMENT_MODULE( FOnlineSubsystemUtilsModule, OnlineSubsystemUtils );
 
@@ -266,6 +267,22 @@ static bool OnlineExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 						}
 						// This class also deletes itself once done
 						(new FTestMessageInterface(SubName))->Test(InWorld, RecipientIds);
+						bWasHandled = true;
+					}
+					else if (FParse::Command(&Cmd, TEXT("EXTERNALUI")))
+					{
+						// Full command usage:    EXTERNALUI ACHIEVEMENTS FRIENDS INVITE LOGIN PROFILE WEBURL
+						// Example for one test:  EXTERNALUI WEBURL
+						// Note that tests are enabled in alphabetical order
+						bool bTestAchievementsUI = FParse::Command(&Cmd, TEXT("ACHIEVEMENTS")) ? true : false;
+						bool bTestFriendsUI = FParse::Command(&Cmd, TEXT("FRIENDS")) ? true : false;
+						bool bTestInviteUI = FParse::Command(&Cmd, TEXT("INVITE")) ? true : false;
+						bool bTestLoginUI = FParse::Command(&Cmd, TEXT("LOGIN")) ? true : false;
+						bool bTestProfileUI = FParse::Command(&Cmd, TEXT("PROFILE")) ? true : false;
+						bool bTestWebURL = FParse::Command(&Cmd, TEXT("WEBURL")) ? true : false;
+
+						// This class also deletes itself once done
+						(new FTestExternalUIInterface(SubName, bTestLoginUI, bTestFriendsUI, bTestInviteUI, bTestAchievementsUI, bTestWebURL, bTestProfileUI))->Test();
 						bWasHandled = true;
 					}
 				}

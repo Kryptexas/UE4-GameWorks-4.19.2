@@ -721,7 +721,7 @@ public:
 	/**
 	 * @return hex encoded string representation of unique id
 	 */
-	FString GetHexEncodedString()
+	FString GetHexEncodedString() const
 	{
 		if (GetSize() > 0 && GetBytes() != NULL)
 		{

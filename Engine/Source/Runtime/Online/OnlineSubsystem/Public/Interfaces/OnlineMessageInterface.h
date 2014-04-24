@@ -217,6 +217,15 @@ public:
 	virtual bool GetMessageHeaders(int32 LocalUserNum, TArray< TSharedRef<class FOnlineMessageHeader> >& OutHeaders) = 0;
 
 	/**
+	 * Clear the cached list of message headers
+	 *
+	 * @param LocalUserNum the controller number of the associated user that made the request
+	 *
+	 * @return true if messages were clear, false if there was a problem
+	 */
+	virtual bool ClearMessageHeaders(int32 LocalUserNum) = 0;
+
+	/**
 	 * Download a message and its payload from user's inbox
 	 *
 	 * @param LocalUserNum the controller number of the associated user that made the request
@@ -245,6 +254,24 @@ public:
 	 * @return pointer to message entry if found or NULL
 	 */
 	virtual TSharedPtr<class FOnlineMessage> GetMessage(int32 LocalUserNum, const FUniqueMessageId& MessageId) = 0;
+
+	/**
+	 * Clear the given cached message
+	 *
+	 * @param LocalUserNum the controller number of the associated user that made the request
+	 *
+	 * @return true if messages were clear, false if there was a problem
+	 */
+	virtual bool ClearMessage(int32 LocalUserNum, const FUniqueMessageId& MessageId) = 0;
+
+	/**
+	 * Clear all the cached messages
+	 *
+	 * @param LocalUserNum the controller number of the associated user that made the request
+	 *
+	 * @return true if messages were clear, false if there was a problem
+	 */
+	virtual bool ClearMessages(int32 LocalUserNum) = 0;
 
 	/**
 	 * Send a message from the currently logged in user to a list of recipients

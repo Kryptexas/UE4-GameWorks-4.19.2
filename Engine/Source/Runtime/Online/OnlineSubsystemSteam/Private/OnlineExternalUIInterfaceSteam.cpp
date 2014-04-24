@@ -67,9 +67,10 @@ bool FOnlineExternalUISteam::ShowWebURL(const FString& WebURL)
 	return true;
 }
 
-void FOnlineExternalUISteam::ShowProfileUI( const FUniqueNetId& Requestor, const FUniqueNetId& Requestee, const FOnProfileUIClosedDelegate& Delegate )
+bool FOnlineExternalUISteam::ShowProfileUI( const FUniqueNetId& Requestor, const FUniqueNetId& Requestee, const FOnProfileUIClosedDelegate& Delegate )
 {
 	//@todo
+	return false;
 }
 
 

@@ -302,3 +302,17 @@ bool FOnlineSharingFacebook::ReadNewsFeed(int32 LocalUserNum, int32 NumPostsToRe
 
 	return bTriggeredRequest;
 }
+
+
+EOnlineCachedResult::Type FOnlineSharingFacebook::GetCachedNewsFeed(int32 LocalUserNum, int32 NewsFeedIdx, FOnlineStatusUpdate& OutNewsFeed)
+{
+	check(NewsFeedIdx >= 0);
+	UE_LOG(LogOnline, Error, TEXT("FOnlineSharingFacebook::GetCachedNewsFeed not yet implemented"));
+	return EOnlineCachedResult::NotFound;
+}
+
+EOnlineCachedResult::Type FOnlineSharingFacebook::GetCachedNewsFeeds(int32 LocalUserNum, TArray<FOnlineStatusUpdate>& OutNewsFeeds)
+{
+	UE_LOG(LogOnline, Error, TEXT("FOnlineSharingFacebook::GetCachedNewsFeeds not yet implemented"));
+	return EOnlineCachedResult::NotFound;
+}
