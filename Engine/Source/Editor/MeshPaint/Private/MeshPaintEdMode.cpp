@@ -1951,13 +1951,13 @@ void FEdModeMeshPaint::StartPaintingTexture( UStaticMeshComponent* InStaticMeshC
 				{
 					TextureData->PaintRenderTargetTexture = NULL;
 					TextureData->PaintRenderTargetTexture = CastChecked<UTextureRenderTarget2D>( StaticConstructObject( UTextureRenderTarget2D::StaticClass(), GetTransientPackage(), NAME_None, RF_Transient ) );
+					TextureData->PaintRenderTargetTexture->bNeedsTwoCopies = true;
 					const bool bForceLinearGamma = true;
 					TextureData->PaintRenderTargetTexture->InitCustomFormat( TextureWidth, TextureHeight, PF_A16B16G16R16, bForceLinearGamma );
 					TextureData->PaintRenderTargetTexture->UpdateResourceImmediate();
 		
 					//Duplicate the texture we are painting and store it in the transient package. This texture is a backup of the data incase we want to revert before commiting.
 					TextureData->PaintingTexture2DDuplicate = (UTexture2D*)StaticDuplicateObject(Texture2D, GetTransientPackage(), *FString::Printf(TEXT("%s_TEMP"), *Texture2D->GetName()));
-
 				}
 				TextureData->PaintRenderTargetTexture->AddressX = Texture2D->AddressX;
 				TextureData->PaintRenderTargetTexture->AddressY = Texture2D->AddressY;
@@ -1974,11 +1974,11 @@ void FEdModeMeshPaint::StartPaintingTexture( UStaticMeshComponent* InStaticMeshC
 					BrushRenderTargetTexture = CastChecked<UTextureRenderTarget2D>( StaticConstructObject( UTextureRenderTarget2D::StaticClass(), GetTransientPackage(), NAME_None, RF_Transient ) );
 					const bool bForceLinearGamma = true;
 					BrushRenderTargetTexture->ClearColor = FLinearColor::Black;
+					BrushRenderTargetTexture->bNeedsTwoCopies = true;
 					BrushRenderTargetTexture->InitCustomFormat( BrushTargetTextureWidth, BrushTargetTextureHeight, PF_A16B16G16R16, bForceLinearGamma );
 					BrushRenderTargetTexture->UpdateResourceImmediate();
 					BrushRenderTargetTexture->AddressX = TextureData->PaintRenderTargetTexture->AddressX;
 					BrushRenderTargetTexture->AddressY = TextureData->PaintRenderTargetTexture->AddressY;
-
 				}
 
 				const bool bEnableSeamPainting = FMeshPaintSettings::Get().bEnableSeamPainting;
@@ -1994,6 +1994,7 @@ void FEdModeMeshPaint::StartPaintingTexture( UStaticMeshComponent* InStaticMeshC
 						BrushMaskRenderTargetTexture = CastChecked<UTextureRenderTarget2D>( StaticConstructObject( UTextureRenderTarget2D::StaticClass(), GetTransientPackage(), NAME_None, RF_Transient ) );
 						const bool bForceLinearGamma = true;
 						BrushMaskRenderTargetTexture->ClearColor = FLinearColor::Black;
+						BrushMaskRenderTargetTexture->bNeedsTwoCopies = true;
 						BrushMaskRenderTargetTexture->InitCustomFormat( BrushTargetTextureWidth, BrushTargetTextureHeight, PF_B8G8R8A8, bForceLinearGamma );
 						BrushMaskRenderTargetTexture->UpdateResourceImmediate();
 						BrushMaskRenderTargetTexture->AddressX = TextureData->PaintRenderTargetTexture->AddressX;
@@ -2009,11 +2010,11 @@ void FEdModeMeshPaint::StartPaintingTexture( UStaticMeshComponent* InStaticMeshC
 						SeamMaskRenderTargetTexture = CastChecked<UTextureRenderTarget2D>( StaticConstructObject( UTextureRenderTarget2D::StaticClass(), GetTransientPackage(), NAME_None, RF_Transient ) );
 						const bool bForceLinearGamma = true;
 						SeamMaskRenderTargetTexture->ClearColor = FLinearColor::Black;
+						SeamMaskRenderTargetTexture->bNeedsTwoCopies = true;
 						SeamMaskRenderTargetTexture->InitCustomFormat( BrushTargetTextureWidth, BrushTargetTextureHeight, PF_B8G8R8A8, bForceLinearGamma );
 						SeamMaskRenderTargetTexture->UpdateResourceImmediate();
 						SeamMaskRenderTargetTexture->AddressX = TextureData->PaintRenderTargetTexture->AddressX;
 						SeamMaskRenderTargetTexture->AddressY = TextureData->PaintRenderTargetTexture->AddressY;
-
 					}
 					bGenerateSeamMask = true;
 				}
