@@ -1,6 +1,6 @@
 ﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#define TEST_INDEX_PAGE
+//#define TEST_INDEX_PAGE
 
 using System;
 using System.Collections.Generic;
