@@ -92,8 +92,6 @@ private:
 		FCOMPtr<FTextStoreACP> TSFContext;
 		struct
 		{
-			HWND AssociatedWindow;
-			HIMC IMMContext;
 			bool IsComposing;
 			int32 CompositionBeginIndex;
 			uint32 CompositionLength;
