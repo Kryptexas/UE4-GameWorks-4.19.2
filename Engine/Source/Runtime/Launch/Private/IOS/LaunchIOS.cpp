@@ -114,6 +114,8 @@ void FAppEntry::PlatformInit()
 
 void FAppEntry::Init()
 {
+	FPlatformProcess::SetRealTimeMode();
+
 	//extern TCHAR GCmdLine[16384];
 	GEngineLoop.PreInit(FCommandLine::Get());
 

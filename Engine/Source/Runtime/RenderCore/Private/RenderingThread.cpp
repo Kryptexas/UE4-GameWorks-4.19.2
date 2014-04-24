@@ -241,6 +241,9 @@ void RenderingThreadMain( FEvent* TaskGraphBoundSyncEvent )
 		TaskGraphBoundSyncEvent->Trigger();
 	}
 
+	// set the thread back to real time mode
+	FPlatformProcess::SetRealTimeMode();
+
 	check(GIsThreadedRendering);
 	FTaskGraphInterface::Get().ProcessThreadUntilRequestReturn(ENamedThreads::RenderThread);
 	FPlatformMisc::MemoryBarrier();
