@@ -279,6 +279,46 @@ void UPhysicsConstraintComponent::PostLoad()
 		ConstraintInstance.CopyConstraintParamsFrom(&ConstraintSetup_DEPRECATED->DefaultInstance);
 		ConstraintSetup_DEPRECATED = NULL;
 	}
+
+	if (GetLinkerUE4Version() < VER_UE4_SOFT_CONSTRAINTS_USE_MASS)
+	{
+		//In previous versions the mass was placed into the spring constant. This is correct because you use different springs for different mass - however, this makes tuning hard
+		//We now multiply mass into the spring constant. To fix old data we use CalculateMass which is not perfect but close (within 0.1kg)
+		//We also use the primitive body instance directly for determining if simulated - this is potentially wrong for fixed bones in skeletal mesh, but it's much more likely right (in skeletal case we don't have access to bodies to check)
+		
+		UPrimitiveComponent * Primitive1 = GetComponentInternal(EConstraintFrame::Frame1);
+		UPrimitiveComponent * Primitive2 = GetComponentInternal(EConstraintFrame::Frame2);
+		
+		int NumDynamic = 0;
+		float TotalMass = 0.f;
+
+		if (Primitive1 && Primitive1->BodyInstance.bSimulatePhysics)
+		{
+			FName BoneName = ConstraintInstance.ConstraintBone1;
+			++NumDynamic;
+			TotalMass += Primitive1->CalculateMass(BoneName);
+		}
+
+		if (Primitive2 && Primitive2->BodyInstance.bSimulatePhysics)
+		{
+			FName BoneName = ConstraintInstance.ConstraintBone2;
+			++NumDynamic;
+			TotalMass += Primitive2->CalculateMass(BoneName);
+		}
+
+		if (NumDynamic > 0)	//we don't support cases where both constrained bodies are static or NULL, but add this anyway to avoid crash
+		{
+			float AverageMass = TotalMass / NumDynamic;
+
+			ConstraintInstance.LinearLimitStiffness /= AverageMass;
+			ConstraintInstance.SwingLimitStiffness /= AverageMass;
+			ConstraintInstance.TwistLimitStiffness /= AverageMass;
+			ConstraintInstance.LinearLimitDamping /= AverageMass;
+			ConstraintInstance.SwingLimitDamping /= AverageMass;
+			ConstraintInstance.TwistLimitDamping /= AverageMass;
+		}
+
+	}
 }
 
 #if WITH_EDITOR

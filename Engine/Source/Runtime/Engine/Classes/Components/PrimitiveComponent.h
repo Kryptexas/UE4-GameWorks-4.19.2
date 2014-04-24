@@ -1284,7 +1284,7 @@ public:
 	virtual float GetMass() const;
 	
 	/** Returns the calculated mass in kg. This is not 100% exactly the mass physx will calculate, but it is very close ( difference < 0.1kg ). */
-	virtual float CalculateMass();
+	virtual float CalculateMass(FName BoneName = NAME_None);
 
 	/**
 	 *	Force all bodies in this component to sleep.
