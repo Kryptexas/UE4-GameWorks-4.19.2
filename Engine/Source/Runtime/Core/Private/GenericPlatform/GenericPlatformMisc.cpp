@@ -684,6 +684,8 @@ FString FGenericPlatformMisc::GetDefaultLocale()
 #endif
 }
 
+#if PLATFORM_DESKTOP
+
 void FGenericPlatformMisc::EnumerateEngineInstallations(TArray< TPair<FString, FString> > &OutInstallations)
 {
 	// Read the config file.
@@ -738,3 +740,4 @@ bool FGenericPlatformMisc::GetEngineIdentifierFromRootDir(const FString &RootDir
 	return false;
 }
 
+#endif
