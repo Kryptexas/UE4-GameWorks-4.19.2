@@ -712,6 +712,12 @@ void UEditorEngine::StartQueuedPlayMapRequest()
 				NumClients++;
 			}
 		}
+		
+		if(!bPlayOnLocalPcSession && !bStartMovieCapture && PlayInSettings->PlayNetMode == PIE_Client)
+		{
+			// Editor counts as a client
+			NumClients++;
+		}
 
 		// Spawn number of clients
 		for (int32 i=NumClients; i < PlayInSettings->PlayNumberOfClients; ++i)
@@ -908,7 +914,7 @@ void UEditorEngine::PlayOnLocalPc(FString MapNameOverride, FString URLParms, FSt
 	TArray<FString> SavedMapNames;
 	if (MapNameOverride.IsEmpty())
 	{
-	FWorldContext & EditorContext = GetEditorWorldContext();
+		FWorldContext & EditorContext = GetEditorWorldContext();
 		if (EditorContext.World()->WorldComposition)
 		{
 			// Open world composition from original folder
@@ -920,6 +926,10 @@ void UEditorEngine::PlayOnLocalPc(FString MapNameOverride, FString URLParms, FSt
 		{
 			SaveWorldForPlay(SavedMapNames);
 		}
+	}
+	else
+	{
+		SavedMapNames.Add(MapNameOverride);
 	}
 
 	if (SavedMapNames.Num() == 0)
