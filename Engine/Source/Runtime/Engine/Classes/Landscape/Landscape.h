@@ -22,9 +22,6 @@ class ALandscape : public ALandscapeProxy
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY()
-	class ULandscapeSplinesComponent* SplineComponent;
-
 	// Make a key for XYtoComponentMap
 	static FIntPoint MakeKey( int32 X, int32 Y ) { return FIntPoint(X, Y); }
 	static void UnpackKey( FIntPoint Key, int32& OutX, int32& OutY ) { OutX = Key.X; OutY = Key.Y; }

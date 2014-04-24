@@ -166,6 +166,7 @@ public:
 	ENGINE_API void ExportHeightmap(const FString& Filename);
 	ENGINE_API void ExportLayer(ULandscapeLayerInfoObject* LayerInfo, const FString& Filename);
 	ENGINE_API bool ApplySplines(bool bOnlySelected);
+	bool ApplySplinesInternal(bool bOnlySelected, ALandscapeProxy* Landscape);
 
 	ENGINE_API bool GetSelectedExtent(int32& MinX, int32& MinY, int32& MaxX, int32& MaxY);
 	FVector GetLandscapeCenterPos(float& LengthZ, int32 MinX = MAX_int32, int32 MinY = MAX_int32, int32 MaxX = MIN_int32, int32 MaxY = MIN_int32);

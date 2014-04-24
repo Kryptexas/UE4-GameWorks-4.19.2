@@ -169,6 +169,9 @@ class ALandscapeProxy : public AActor, public INavRelevantActorInterface
 {
 	GENERATED_UCLASS_BODY()
 
+	UPROPERTY()
+	class ULandscapeSplinesComponent* SplineComponent;
+
 protected:
 	/** Guid for LandscapeEditorInfo **/
 	UPROPERTY()
@@ -404,8 +407,6 @@ public:
 	/** @return Current size of bounding rectangle in quads space */
 	ENGINE_API FIntRect GetBoundingRect() const;
 #endif
-
-
 };
 
 

@@ -251,4 +251,6 @@ protected:
 #if WITH_EDITOR
 	bool FixSelfIntersection(FVector FLandscapeSplineInterpPoint::* Side);
 #endif
+
+	friend class FEdModeLandscape;
 };

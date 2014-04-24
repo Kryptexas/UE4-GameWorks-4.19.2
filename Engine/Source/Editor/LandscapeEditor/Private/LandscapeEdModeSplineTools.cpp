@@ -63,7 +63,7 @@ public:
 		return true; // applied to all...
 	}
 
-	void CreateSplineComponent( ALandscape* Landscape ) 
+	void CreateSplineComponent( ALandscapeProxy* Landscape ) 
 	{
 		Landscape->SplineComponent = ConstructObject<ULandscapeSplinesComponent>(ULandscapeSplinesComponent::StaticClass(), Landscape, NAME_None, RF_Transactional);
 		Landscape->SplineComponent->RelativeScale3D = FVector(1.0f) / Landscape->GetRootComponent()->RelativeScale3D;
@@ -338,7 +338,7 @@ public:
 		NewSegment->UpdateSplinePoints();
 	}
 
-	void AddControlPoint(ALandscape* Landscape, const FVector& LocalLocation)
+	void AddControlPoint(ALandscapeProxy* Landscape, const FVector& LocalLocation)
 	{
 		FScopedTransaction Transaction( LOCTEXT("LandscapeSpline_AddControlPoint", "Add Landscape Spline Control Point") );
 
@@ -636,7 +636,7 @@ public:
 	{
 		LandscapeInfo = InTarget.LandscapeInfo.Get();
 
-		ALandscape* Landscape = LandscapeInfo->LandscapeActor.Get();
+		ALandscapeProxy* Landscape = LandscapeInfo->GetCurrentLevelLandscapeProxy(true);
 		if (!Landscape)
 		{
 			return true;
@@ -647,7 +647,7 @@ public:
 			CreateSplineComponent(Landscape);
 		}
 
-		const FTransform LandscapeToSpline = Landscape->ActorToWorld().GetRelativeTransform(Landscape->SplineComponent->ComponentToWorld);
+		const FTransform LandscapeToSpline = Landscape->LandscapeActorToWorld().GetRelativeTransform(Landscape->SplineComponent->ComponentToWorld);
 
 		AddControlPoint(Landscape, LandscapeToSpline.TransformPosition(InHitLocation));
 
@@ -1158,7 +1158,7 @@ public:
 		{
 			for (auto It = EdMode->GetLandscapeList().CreateConstIterator(); It; ++It)
 			{
-				ALandscape* Landscape = (*It).Info->LandscapeActor.Get();
+				ALandscapeProxy* Landscape = (*It).Info->GetCurrentLevelLandscapeProxy(true);
 				if (Landscape != NULL && Landscape->SplineComponent != NULL)
 				{
 					for (auto ControlPointIt = Landscape->SplineComponent->ControlPoints.CreateConstIterator(); ControlPointIt; ++ControlPointIt)
@@ -1183,7 +1183,7 @@ public:
 		{
 			for (auto It = EdMode->GetLandscapeList().CreateConstIterator(); It; ++It)
 			{
-				ALandscape* Landscape = (*It).Info->LandscapeActor.Get();
+				ALandscapeProxy* Landscape = (*It).Info->GetCurrentLevelLandscapeProxy(true);
 				if (Landscape != NULL && Landscape->SplineComponent != NULL)
 				{
 					for (auto ControlPointIt = Landscape->SplineComponent->ControlPoints.CreateConstIterator(); ControlPointIt; ++ControlPointIt)
@@ -1212,7 +1212,7 @@ public:
 
 		for (auto It = EdMode->GetLandscapeList().CreateConstIterator(); It; ++It)
 		{
-			ALandscape* Landscape = (*It).Info->LandscapeActor.Get();
+			ALandscapeProxy* Landscape = (*It).Info->GetCurrentLevelLandscapeProxy(true);
 			if (Landscape != NULL && Landscape->SplineComponent != NULL)
 			{
 				Landscape->SplineComponent->ShowSplineEditorMesh(true);
@@ -1227,7 +1227,7 @@ public:
 
 		for (auto It = EdMode->GetLandscapeList().CreateConstIterator(); It; ++It)
 		{
-			ALandscape* Landscape = (*It).Info->LandscapeActor.Get();
+			ALandscapeProxy* Landscape = (*It).Info->GetCurrentLevelLandscapeProxy(true);
 			if (Landscape != NULL && Landscape->SplineComponent != NULL)
 			{
 				Landscape->SplineComponent->ShowSplineEditorMesh(false);
@@ -1546,7 +1546,7 @@ public:
 	{
 		FScopedTransaction Transaction( LOCTEXT("LandscapeSpline_Paste", "Paste Landscape Splines") );
 
-		ALandscape* Landscape = EdMode->CurrentToolTarget.LandscapeInfo->LandscapeActor.Get();
+		ALandscapeProxy* Landscape = EdMode->CurrentToolTarget.LandscapeInfo->GetCurrentLevelLandscapeProxy(true);
 		if (!Landscape)
 		{
 			return;
@@ -1653,6 +1653,150 @@ void FEdModeLandscape::SelectAllConnectedSplineSegments()
 			SplineTool->ClearSelectedControlPoints();
 			SplineTool->SelectConnected();
 
+			SplineTool->UpdatePropertiesWindows();
+			GUnrealEd->RedrawLevelEditingViewports();
+		}
+	}
+}
+
+void FEdModeLandscape::SplineMoveToCurrentLevel()
+{
+	FScopedTransaction Transaction(LOCTEXT("LandscapeSpline_AddControlPoint", "Add Landscape Spline Control Point"));
+
+	if (SplinesToolSet /*&& SplinesToolSet == CurrentToolSet*/)
+	{
+		if (SplinesToolSet->SetToolForTarget(CurrentToolTarget) && SplinesToolSet->GetTool())
+		{
+			// Select all connected control points
+			FLandscapeToolSplines* SplineTool = ((FLandscapeToolSplines*)SplinesToolSet->GetTool());
+			SplineTool->SelectAdjacentSegments();
+			SplineTool->SelectAdjacentControlPoints();
+			SplineTool->SelectConnected();
+
+			TSet<ALandscapeProxy*> FromProxies;
+			ALandscapeProxy* Landscape = NULL;
+
+			for (auto It = SplineTool->SelectedSplineControlPoints.CreateIterator(); It; ++It)
+			{
+				ULandscapeSplineControlPoint* ControlPoint = *It;
+				ULandscapeSplinesComponent* Comp = ControlPoint->GetOuterULandscapeSplinesComponent();
+				ALandscapeProxy* FromProxy = Comp ? Cast<ALandscapeProxy>(Comp->GetOuter()) : NULL;
+				if (FromProxy)
+				{
+					if (!Landscape)
+					{
+						ULandscapeInfo* LandscapeInfo = FromProxy->GetLandscapeInfo(false);
+						if (LandscapeInfo)
+						{
+							Landscape = LandscapeInfo->GetCurrentLevelLandscapeProxy(true);
+						}
+					}
+
+					if (Landscape && Landscape != FromProxy)
+					{
+						if (Landscape->SplineComponent == NULL)
+						{
+							SplineTool->CreateSplineComponent(Landscape);
+						}
+
+						const FTransform SplineToLanscape =
+							FromProxy->LandscapeActorToWorld().GetRelativeTransform(FromProxy->SplineComponent->ComponentToWorld).InverseSafe() *
+							Landscape->LandscapeActorToWorld().GetRelativeTransform(Landscape->SplineComponent->ComponentToWorld);
+
+						//SplineTool->AddControlPoint(Landscape, SplineToLanscape.TransformPosition(ControlPoint->Location));
+						Landscape->SplineComponent->Modify();
+						if (FromProxies.Find(FromProxy) == NULL)
+						{
+							FromProxies.Add(FromProxy);
+							FromProxy->SplineComponent->Modify();
+							FromProxy->SplineComponent->MarkRenderStateDirty();
+						}
+
+						// Add/Remove Control Point/Segment/MeshComponents
+						FromProxy->SplineComponent->ControlPoints.Remove(ControlPoint);
+						ControlPoint->Rename(NULL, Landscape->SplineComponent);
+						Landscape->SplineComponent->ControlPoints.Add(ControlPoint);
+
+						ControlPoint->Location = SplineToLanscape.TransformPosition(ControlPoint->Location);
+
+						if (ControlPoint->MeshComponent)
+						{
+							UControlPointMeshComponent* Comp = ControlPoint->MeshComponent;
+							Comp->Modify();
+							Comp->UnregisterComponent();
+							Comp->DetachFromParent(true);
+							Comp->InvalidateLightingCache();
+							Comp->Rename(NULL, Landscape);
+							Comp->AttachTo(Landscape->SplineComponent);
+						}
+						
+						ControlPoint->UpdateSplinePoints();
+					}
+				}
+			}
+
+			for (auto It = SplineTool->SelectedSplineSegments.CreateIterator(); It; ++It)
+			{
+				ULandscapeSplineSegment* Segment = *It;
+				ULandscapeSplinesComponent* Comp = Segment->GetOuterULandscapeSplinesComponent();
+				ALandscapeProxy* FromProxy = Comp ? Cast<ALandscapeProxy>(Comp->GetOuter()) : NULL;
+				if (FromProxy)
+				{
+					if (!Landscape)
+					{
+						ULandscapeInfo* LandscapeInfo = FromProxy->GetLandscapeInfo(false);
+						if (LandscapeInfo)
+						{
+							Landscape = LandscapeInfo->GetCurrentLevelLandscapeProxy(true);
+						}
+					}
+
+					if (Landscape && Landscape != FromProxy)
+					{
+						if (Landscape->SplineComponent == NULL)
+						{
+							SplineTool->CreateSplineComponent(Landscape);
+						}
+
+						Landscape->SplineComponent->Modify();
+						if (FromProxies.Find(FromProxy) == NULL)
+						{
+							FromProxies.Add(FromProxy);
+							FromProxy->SplineComponent->Modify();
+							FromProxy->SplineComponent->MarkRenderStateDirty();
+						}
+
+						// Add/Remove Control Point/Segment/MeshComponents
+						FromProxy->SplineComponent->Segments.Remove(Segment);
+						Segment->Rename(NULL, Landscape->SplineComponent);
+						Landscape->SplineComponent->Segments.Add(Segment);
+
+						for (auto It = Segment->MeshComponents.CreateIterator(); It; ++It)
+						{
+							USplineMeshComponent* Comp = *It;
+							Comp->Modify();
+							Comp->UnregisterComponent();
+							Comp->DetachFromParent(true);
+							Comp->InvalidateLightingCache();
+							Comp->Rename(NULL, Landscape);
+							Comp->AttachTo(Landscape->SplineComponent);
+						}
+
+						Segment->UpdateSplinePoints();
+					}
+				}
+			}
+
+			if (!Landscape->SplineComponent->IsRegistered())
+			{
+				Landscape->SplineComponent->RegisterComponent();
+			}
+			else
+			{
+				Landscape->SplineComponent->MarkRenderStateDirty();
+			}
+
+			SplineTool->ClearSelection();
 			SplineTool->UpdatePropertiesWindows();
 			GUnrealEd->RedrawLevelEditingViewports();
 		}

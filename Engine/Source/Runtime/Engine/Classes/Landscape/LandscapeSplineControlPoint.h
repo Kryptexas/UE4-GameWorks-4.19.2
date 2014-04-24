@@ -174,4 +174,6 @@ public:
 	void UnregisterComponents();
 
 	virtual bool OwnsComponent(const class UControlPointMeshComponent* ControlPointMeshComponent) const;
+
+	friend class FEdModeLandscape;
 };
