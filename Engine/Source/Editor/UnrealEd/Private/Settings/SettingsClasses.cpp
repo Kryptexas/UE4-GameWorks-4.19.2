@@ -11,6 +11,8 @@
 /* UContentBrowserSettings interface
  *****************************************************************************/
 
+UContentBrowserSettings::FSettingChangedEvent UContentBrowserSettings::SettingChangedEvent;
+
 UContentBrowserSettings::UContentBrowserSettings( const class FPostConstructInitializeProperties& PCIP )
 	: Super(PCIP)
 { }
