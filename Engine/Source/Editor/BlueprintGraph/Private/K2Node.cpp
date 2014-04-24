@@ -795,8 +795,8 @@ void FOptionalPinManager::RebuildPropertyList(TArray<FOptionalPinFromProperty>& 
 		{
 			FOptionalPinFromProperty* Record = new (Properties) FOptionalPinFromProperty;
 			Record->PropertyName = TestProperty->GetFName();
-			const FString FriendlyName = TestProperty->GetMetaData(TEXT("FriendlyName"));
-			Record->PropertyFriendlyName = FriendlyName.IsEmpty() ? Record->PropertyName.ToString() : FriendlyName;
+			Record->PropertyFriendlyName = UEditorEngine::GetFriendlyName(TestProperty, SourceStruct);
+			Record->PropertyTooltip = TestProperty->GetToolTipText();
 
 			// Get the defaults
 			GetRecordDefaults(TestProperty, *Record);
@@ -848,6 +848,7 @@ void FOptionalPinManager::CreateVisiblePins(TArray<FOptionalPinFromProperty>& Pr
 							const FString PinName = PinFriendlyName.ToString();
 							NewPin = TargetNode->CreatePin(Direction, PinType.PinCategory, PinType.PinSubCategory, PinType.PinSubCategoryObject.Get(), PinType.bIsArray, PinType.bIsReference, PinName);
 							NewPin->PinFriendlyName = PinFriendlyName;
+							Schema->ConstructBasicPinTooltip(*NewPin, TEXT("\n") + PropertyEntry.PropertyTooltip.ToString(), NewPin->PinToolTip);
 
 							// Allow the derived class to customize the created pin
 							CustomizePinData(NewPin, PropertyEntry.PropertyName, Index, InnerProperty);
@@ -880,6 +881,7 @@ void FOptionalPinManager::CreateVisiblePins(TArray<FOptionalPinFromProperty>& Pr
 						const FString PinName = PropertyEntry.PropertyName.ToString();
 						NewPin = TargetNode->CreatePin(Direction, PinType.PinCategory, PinType.PinSubCategory, PinType.PinSubCategoryObject.Get(), PinType.bIsArray, PinType.bIsReference, PinName);
 						NewPin->PinFriendlyName = PropertyEntry.PropertyFriendlyName.IsEmpty() ? FText::FromString(PinName) : FText::FromString(PropertyEntry.PropertyFriendlyName);
+						Schema->ConstructBasicPinTooltip(*NewPin, TEXT("\n") + PropertyEntry.PropertyTooltip.ToString(), NewPin->PinToolTip);
 
 						// Allow the derived class to customize the created pin
 						CustomizePinData(NewPin, PropertyEntry.PropertyName, INDEX_NONE, OuterProperty);

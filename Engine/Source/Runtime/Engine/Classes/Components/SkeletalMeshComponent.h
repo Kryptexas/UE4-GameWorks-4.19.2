@@ -156,19 +156,19 @@ struct FSingleAnimationPlayData
 	class UVertexAnimation* VertexAnimToPlay;
 
 	// Default setting for looping for SequenceToPlay. This is not current state of looping.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Animation, meta=(FriendlyName="Looping"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Animation, meta=(DisplayName="Looping"))
 	uint32 bSavedLooping:1;
 
 	// Default setting for playing for SequenceToPlay. This is not current state of playing.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Animation, meta=(FriendlyName="Playing"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Animation, meta=(DisplayName="Playing"))
 	uint32 bSavedPlaying:1;
 
 	// Default setting for position of SequenceToPlay to play. 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Animation, meta=(FriendlyName="InitialPosition"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Animation, meta=(DisplayName="InitialPosition"))
 	float SavedPosition;
 
 	// Default setting for playrate of SequenceToPlay to play. 
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Animation, meta=(FriendlyName="PlayRate"))
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Animation, meta=(DisplayName="PlayRate"))
 	float SavedPlayRate;
 
 	FSingleAnimationPlayData()

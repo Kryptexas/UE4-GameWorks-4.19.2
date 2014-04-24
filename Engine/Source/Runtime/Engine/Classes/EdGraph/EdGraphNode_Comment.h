@@ -28,7 +28,7 @@ class UEdGraphNode_Comment : public UEdGraphNode
 	FLinearColor CommentColor;
 
 	/** Whether to use Comment Color to color the background of the comment bubble shown when zoomed out. */
-	UPROPERTY(EditAnywhere, Category=Comment, meta=(FriendlyName="Color Bubble"))
+	UPROPERTY(EditAnywhere, Category=Comment, meta=(DisplayName="Color Bubble"))
 	uint32 bColorCommentBubble:1;
 
 	/** Whether the comment should move any fully enclosed nodes around when it is moved */

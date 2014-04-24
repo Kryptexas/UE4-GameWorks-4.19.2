@@ -59,6 +59,9 @@ struct FOptionalPinFromProperty
 	UPROPERTY(EditAnywhere, Category=Hi, BlueprintReadOnly)
 	FString PropertyFriendlyName;
 
+	UPROPERTY(EditAnywhere, Category=Hi, BlueprintReadOnly)
+	FText PropertyTooltip;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Hi)
 	bool bShowPin;
 
@@ -69,11 +72,12 @@ struct FOptionalPinFromProperty
 	{
 	}
 	
-	FOptionalPinFromProperty(FName InPropertyName, bool bInShowPin, bool bInCanToggleVisibility, const FString& InFriendlyName)
+	FOptionalPinFromProperty(FName InPropertyName, bool bInShowPin, bool bInCanToggleVisibility, const FString& InFriendlyName, const FText& InTooltip)
 		: PropertyName(InPropertyName)
+		, PropertyFriendlyName(InFriendlyName)
+		, PropertyTooltip(InTooltip)
 		, bShowPin(bInShowPin)
 		, bCanToggleVisibility(bInCanToggleVisibility)
-		, PropertyFriendlyName(InFriendlyName)
 	{
 	}
 };

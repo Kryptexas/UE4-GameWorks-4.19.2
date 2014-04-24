@@ -193,7 +193,7 @@ class ENGINE_API AWorldSettings : public AInfo
 	uint32 bWorldGravitySet:1;
 
 	/** If set to true we will use GlobalGravityZ instead of project setting DefaultGravityZ */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(FriendlyName = "Override World Gravity"), Category = Physics)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(DisplayName = "Override World Gravity"), Category = Physics)
 	uint32 bGlobalGravitySet:1;
 
 	// any actor falling below this level gets destroyed

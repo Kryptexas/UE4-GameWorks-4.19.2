@@ -2052,7 +2052,10 @@ void UEdGraphSchema_K2::ConstructBasicPinTooltip(const UEdGraphPin& Pin, const F
 		}
 	}	
 
-	ConstructedTooltip += FString(TEXT("\n")) + PinDescription;
+	if (!PinDescription.IsEmpty())
+	{
+		ConstructedTooltip += FString(TEXT("\n")) + PinDescription;
+	}
 	TooltipOut = ConstructedTooltip; // using a local FString, so PinDescription and TooltipOut can be the same variable
 }
 

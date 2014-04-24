@@ -146,7 +146,6 @@ struct FUserDefinedStructureCompilerInner
 			}
 
 			NewProperty->SetPropertyFlags(CPF_Edit);
-			NewProperty->SetMetaData(TEXT("FriendlyName"), *VarDesc.FriendlyName);
 			NewProperty->SetMetaData(TEXT("DisplayName"), *VarDesc.FriendlyName);
 			NewProperty->SetMetaData(TEXT("Category"), *VarDesc.Category);
 			NewProperty->RepNotifyFunc = NAME_None;

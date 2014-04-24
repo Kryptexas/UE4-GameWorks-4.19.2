@@ -4499,7 +4499,7 @@ void UEditorEngine::SetActorLabelUnique( AActor* Actor, const FString& NewActorL
 
 
 
-FString UEditorEngine::GetFriendlyName( const UProperty* Property, UClass* OwnerClass/* = NULL*/ )
+FString UEditorEngine::GetFriendlyName( const UProperty* Property, UStruct* OwnerClass/* = NULL*/ )
 {
 	// first, try to pull the friendly name from the loc file
 	check( Property );
@@ -4512,19 +4512,24 @@ FString UEditorEngine::GetFriendlyName( const UProperty* Property, UClass* Owner
 
 	FText FoundText;
 	bool DidFindText = false;
-	UClass* CurrentClass = OwnerClass;
+	UStruct* CurrentClass = OwnerClass;
 	do 
 	{
 		FString PropertyPathName = Property->GetPathName(CurrentClass);
 
 		DidFindText = FText::FindText(*CurrentClass->GetName(), *(PropertyPathName + TEXT(".FriendlyName")), /*OUT*/FoundText );
-		CurrentClass = CurrentClass->GetSuperClass();
+		CurrentClass = CurrentClass->GetSuperStruct();
 	} while( CurrentClass != NULL && CurrentClass->IsChildOf(RealOwnerClass) && !DidFindText );
 
 	if ( !DidFindText )
 	{
-		FString DefaultFriendlyName = Property->GetMetaData(TEXT("FriendlyName"));
-		if ( DefaultFriendlyName.Len() == 0 )
+		FString DefaultFriendlyName = Property->GetMetaData(TEXT("DisplayName"));
+		if (DefaultFriendlyName.IsEmpty())
+		{
+			// Fallback for old blueprint variables that were saved as friendly name
+			DefaultFriendlyName = Property->GetMetaData(TEXT("FriendlyName"));
+		}
+		if ( DefaultFriendlyName.IsEmpty() )
 		{
 			const bool bIsBool = Cast<const UBoolProperty>(Property) != NULL;
 			return FName::NameToDisplayString( Property->GetName(), bIsBool );

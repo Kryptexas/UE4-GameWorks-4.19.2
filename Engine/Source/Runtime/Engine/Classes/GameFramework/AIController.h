@@ -165,7 +165,7 @@ public:
 	FORCEINLINE FAIRequestID GetCurrentMoveRequestID() const { return PathFollowingComponent.IsValid() ? PathFollowingComponent->GetCurrentRequestId() : FAIRequestID::InvalidRequest; }
 
 	/** Blueprint notification that we've completed the current movement request */
-	UPROPERTY(BlueprintAssignable, meta=(FriendlyName="MoveCompleted"))
+	UPROPERTY(BlueprintAssignable, meta=(DisplayName="MoveCompleted"))
 	FAIMoveCompletedSignature ReceiveMoveCompleted;
 
 	/** @returns path to actor Goal (can be incomplete if async pathfinding is used) */

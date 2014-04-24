@@ -151,7 +151,7 @@ void UK2Node_BreakStruct::AllocateDefaultPins()
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 	if(Schema && StructType)
 	{
-		CreatePin(EGPD_Input, Schema->PC_Struct, TEXT(""), StructType, false, false, StructType->GetName());
+		CreatePin(EGPD_Input, Schema->PC_Struct, TEXT(""), StructType, false, true, StructType->GetName(), true);
 		
 		UK2Node_StructMemberGet::AllocateDefaultPins();
 

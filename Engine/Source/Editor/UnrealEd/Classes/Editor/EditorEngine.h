@@ -2178,7 +2178,7 @@ public:
 	 *
 	 * @return	the friendly name for the property.  localized first, then metadata, then the property's name.
 	 */
-	static FString GetFriendlyName( const UProperty* Property, UClass* OwnerClass = NULL );
+	static FString GetFriendlyName( const UProperty* Property, UStruct* OwnerClass = NULL );
 
 	/**
 	 * Register a client tool to receive undo events 
