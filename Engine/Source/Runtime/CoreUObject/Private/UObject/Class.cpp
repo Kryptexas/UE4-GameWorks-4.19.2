@@ -2559,7 +2559,7 @@ FString UClass::GetDescription() const
 #endif
 
 	// Look up the the classes name in the legacy int file and return the class name if there is no match.
-	//Description = Localize( TEXT("Objects"), *GetName(), *(FInternationalization::GetCurrentCulture()->GetName()), true );
+	//Description = Localize( TEXT("Objects"), *GetName(), *(FInternationalization::Get().GetCurrentCulture()->GetName()), true );
 	//if (Description.Len())
 	//{
 	//	return Description;

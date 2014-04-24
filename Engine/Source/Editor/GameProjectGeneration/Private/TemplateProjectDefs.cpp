@@ -45,7 +45,7 @@ void UTemplateProjectDefs::FixupStrings(const FString& TemplateName, const FStri
 
 FText UTemplateProjectDefs::GetDisplayNameText()
 {
-	const TSharedRef< FCulture > CurrentCulture = FInternationalization::GetCurrentCulture();
+	const TSharedRef< FCulture > CurrentCulture = FInternationalization::Get().GetCurrentCulture();
 	for ( auto NameIt = LocalizedDisplayNames.CreateConstIterator(); NameIt; ++NameIt )
 	{
 		const FLocalizedTemplateString& Name = *NameIt;
@@ -60,7 +60,7 @@ FText UTemplateProjectDefs::GetDisplayNameText()
 
 FText UTemplateProjectDefs::GetLocalizedDescription()
 {
-	const TSharedRef< FCulture >  CurrentCulture = FInternationalization::GetCurrentCulture();
+	const TSharedRef< FCulture >  CurrentCulture = FInternationalization::Get().GetCurrentCulture();
 	for ( auto DescriptionIt = LocalizedDescriptions.CreateConstIterator(); DescriptionIt; ++DescriptionIt )
 	{
 		const FLocalizedTemplateString& Description = *DescriptionIt;

@@ -340,10 +340,12 @@ class SBlueprintDiffMenu : public SCompoundWidget
 					TSharedPtr<ISourceControlRevision, ESPMode::ThreadSafe> Revision = SourceControlState->GetHistoryItem(HistoryIndex);
 					if(Revision.IsValid())
 					{
-						FText Label = FText::Format( LOCTEXT("RevisionNumber", "Revision {0}"), FText::AsNumber( Revision->GetRevisionNumber(), NULL, FInternationalization::GetInvariantCulture() ) );
+						FInternationalization& I18N = FInternationalization::Get();
+
+						FText Label = FText::Format( LOCTEXT("RevisionNumber", "Revision {0}"), FText::AsNumber( Revision->GetRevisionNumber(), NULL, I18N.GetInvariantCulture() ) );
 
 						FFormatNamedArguments Args;
-						Args.Add( TEXT("CheckInNumber"), FText::AsNumber( Revision->GetCheckInIdentifier(), NULL, FInternationalization::GetInvariantCulture() ) );
+						Args.Add( TEXT("CheckInNumber"), FText::AsNumber( Revision->GetCheckInIdentifier(), NULL, I18N.GetInvariantCulture() ) );
 						Args.Add( TEXT("UserName"), FText::FromString( Revision->GetUserName() ) );
 						Args.Add( TEXT("DateTime"), FText::AsDate( Revision->GetDate().ToDate() ) );
 						Args.Add( TEXT("ChanglistDescription"), FText::FromString( Revision->GetDescription() ) );

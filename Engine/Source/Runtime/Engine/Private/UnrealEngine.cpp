@@ -9602,7 +9602,7 @@ void LoadGametypeContent_Helper(const FString& ContentStr,
 								FLoadPackageAsyncDelegate CompletionCallback, 
 								FLoadPackageAsyncDelegate LocalizedCompletionCallback)
 {
-	//const TCHAR* Language = *(FInternationalization::GetCurrentCulture()->Name);
+	//const TCHAR* Language = *(FInternationalization::Get().GetCurrentCulture()->Name);
 	//const FString LocalizedPreloadName(ContentStr + LOCALIZED_SEEKFREE_SUFFIX + TEXT("_") + Language);
 	//FString LocalizedPreloadFilename;
 	//if (FPackageName::DoesPackageExist(*LocalizedPreloadName, NULL, &LocalizedPreloadFilename))
