@@ -89,6 +89,8 @@ public:
 	// This is only called when the object goes away before the action is finished; perform normal
 	// cleanup when responding that the action is completed in UpdateOperation
 	virtual void NotifyObjectDestroyed() {}
+
+	virtual void NotifyActionAborted() {}
 #if WITH_EDITOR
 	// Returns a human readable description of the latent operation's current state
 	virtual FString GetDescription() const;

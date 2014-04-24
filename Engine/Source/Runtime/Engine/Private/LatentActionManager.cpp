@@ -16,8 +16,34 @@ FString FPendingLatentAction::GetDescription() const
 /////////////////////////////////////////////////////
 // FLatentActionManager
 
+void FLatentActionManager::RemoveActionsForObject(TWeakObjectPtr<UObject> InObject)
+{
+	ObjectsToRemove.Add(InObject);
+}
+
 void FLatentActionManager::ProcessLatentActions(UObject* InObject, float DeltaTime)
 {
+	if (ObjectsToRemove.Num())
+	{
+		for (const auto Key : ObjectsToRemove)
+		{
+			FActionList* const ObjectActionList = ObjectToActionListMap.Find(Key);
+			if (ObjectActionList)
+			{
+				for (TMultiMap<int32, FPendingLatentAction*>::TConstIterator It(*ObjectActionList); It; ++It)
+				{
+					FPendingLatentAction* Action = It.Value();
+					Action->NotifyActionAborted();
+					delete Action;
+				}
+				ObjectActionList->Empty();
+
+				ObjectToActionListMap.Remove(Key); //TODO: we should be able to obtain an Iterator from Map::Find function. "Iterator.RemoveCurrent();" should be called here.
+			}
+		}
+		ObjectsToRemove.Empty();
+	}
+
 	//@TODO: K2: Very inefficient code right now
 	if (InObject != NULL)
 	{
