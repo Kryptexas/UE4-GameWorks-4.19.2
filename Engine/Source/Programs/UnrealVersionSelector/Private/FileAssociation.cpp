@@ -9,14 +9,14 @@ TSharedPtr<FJsonObject> LoadJson(const FString &FileName)
 
 	if (!FFileHelper::LoadFileToString(FileContents, *FileName))
 	{
-		return false;
+		return TSharedPtr<FJsonObject>(NULL);
 	}
 
 	TSharedPtr< FJsonObject > JsonObject;
 	TSharedRef< TJsonReader<> > Reader = TJsonReaderFactory<>::Create(FileContents);
 	if (!FJsonSerializer::Deserialize(Reader, JsonObject) || !JsonObject.IsValid())
 	{
-		return false;
+		return TSharedPtr<FJsonObject>(NULL);
 	}
 
 	return JsonObject;
