@@ -14,7 +14,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FForEachAssetIteratorSignature, cl
 
 
 UCLASS(Abstract, hideCategories=(Object), Blueprintable)
-class UGlobalEditorUtilityBase : public UObject
+class BLUTILITY_API UGlobalEditorUtilityBase : public UObject
 {
 	GENERATED_UCLASS_BODY()
 

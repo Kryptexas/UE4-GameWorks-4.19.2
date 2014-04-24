@@ -9,7 +9,7 @@
 #include "PlacedEditorUtilityBase.generated.h"
 
 UCLASS(Abstract, hideCategories=(Object, Actor)/*, Blueprintable*/)
-class APlacedEditorUtilityBase : public AActor
+class BLUTILITY_API APlacedEditorUtilityBase : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
