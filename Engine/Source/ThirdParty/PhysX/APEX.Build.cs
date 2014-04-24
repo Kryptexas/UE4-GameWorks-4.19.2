@@ -126,12 +126,10 @@ public class APEX : ModuleRules
 			APEXLibDir += "/osx64";
 			Definitions.Add("APEX_STATICALLY_LINKED=1");
 
- // @todo Mac: temp fix for crash in APEX caused by conflicting ClothImpl
-//			ApexLibraries.Add("APEX_Legacy{0}");
-//			ApexLibraries.Add("APEX_Loader{0}");
+			ApexLibraries.Add("APEX_Legacy{0}");
+			ApexLibraries.Add("APEX_Loader{0}");
 
-			LibraryFormatString = null;//APEXLibDir + "/lib{0}" + ".a";
-			PublicAdditionalLibraries.Add(APEXLibDir + "/" + String.Format("libAPEX{0}.dylib", LibrarySuffix));
+			LibraryFormatString = APEXLibDir + "/lib{0}" + ".a";
 		}
 		else if (Target.Platform == UnrealTargetPlatform.PS4)
 		{
