@@ -1145,6 +1145,17 @@ public:
 	// For all materials, UMaterial::CacheResourceShadersForRendering
 	static void AllMaterialsCacheResourceShadersForRendering();
 
+#if WITH_EDITORONLY_DATA
+	/**
+	 * Flip the X coordinates of a material's expressions and space them out more
+	 *
+	 * @param	Expressions	Array of material expressions
+	 * @param	Comments	Array of material expression comments
+	 * @param	Material	The Material to flip its home coords (optional)
+	 */
+	static void FlipExpressionPositions(const TArray<UMaterialExpression*>& Expressions, const TArray<UMaterialExpressionComment*>& Comments, UMaterial* Material = NULL);
+#endif //WITH_EDITORONLY_DATA
+
 private:
 	static FMaterialCompilationFinished MaterialCompilationFinishedEvent;
 

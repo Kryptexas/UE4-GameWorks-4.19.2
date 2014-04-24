@@ -518,6 +518,9 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_UNDO_BREAK_MATERIALATTRIBUTES_CHANGE,
 	// Now Default custom profile name isn't NONE anymore due to copy/paste not working properly with it
 	VER_UE4_ADD_CUSTOMPROFILENAME_CHANGE, 
+	// Permanently flip and scale material expression coordinates
+	VER_UE4_FLIP_MATERIAL_COORDS,
+
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
 	VER_UE4_AUTOMATIC_VERSION_PLUS_ONE,

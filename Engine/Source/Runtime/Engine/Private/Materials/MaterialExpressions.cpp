@@ -6040,6 +6040,12 @@ void UMaterialFunction::PostLoad()
 		}
 	}
 #endif
+#if WITH_EDITORONLY_DATA
+	if (GetLinkerUE4Version() < VER_UE4_FLIP_MATERIAL_COORDS)
+	{
+		UMaterial::FlipExpressionPositions(FunctionExpressions, FunctionEditorComments);
+	}
+#endif //WITH_EDITORONLY_DATA
 }
 
 void UMaterialFunction::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const

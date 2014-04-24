@@ -608,15 +608,6 @@ private:
 	/** Adds the selected expression to the favorites list. */
 	void AddSelectedExpressionToFavorites();
 
-	/**
-	 * Flip the X coordinates of a material's expressions when loading and saving -
-	 * Remove this once new material editor is active and materials are saved inverted.
-	 *
-	 * @param	Expressions	Array of material expressions
-	 * @param	Comments	Array of material expression comments
-	 */
-	void FlipExpressionPositions(const TArray<UMaterialExpression*>& Expressions, const TArray<UMaterialExpressionComment*>& Comments, UMaterial* Material = NULL);
-
 private:
 	TSharedRef<SDockTab> SpawnTab_Preview(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_GraphCanvas(const FSpawnTabArgs& Args);

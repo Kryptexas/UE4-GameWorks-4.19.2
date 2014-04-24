@@ -1998,6 +1998,13 @@ void UMaterial::PostLoad()
 			DefaultMaterialInstances[i]->GameThread_UpdateDistanceFieldPenumbraScale(GetDistanceFieldPenumbraScale());
 		}
 	}
+
+#if WITH_EDITORONLY_DATA
+	if (GetLinkerUE4Version() < VER_UE4_FLIP_MATERIAL_COORDS)
+	{
+		FlipExpressionPositions(Expressions, EditorComments, this);
+	}
+#endif //WITH_EDITORONLY_DATA
 }
 
 void UMaterial::BeginCacheForCookedPlatformData( const ITargetPlatform *TargetPlatform )
@@ -3501,3 +3508,30 @@ bool UMaterial::IsPropertyActive(EMaterialProperty InProperty)const
 	}
 	return Active;
 }
+
+#if WITH_EDITORONLY_DATA
+void UMaterial::FlipExpressionPositions(const TArray<UMaterialExpression*>& Expressions, const TArray<UMaterialExpressionComment*>& Comments, UMaterial* InMaterial)
+{
+	// Rough estimate of average increase in node size for the new editor
+	const float PosScaling = 1.25f;
+
+	if (InMaterial)
+	{
+		InMaterial->EditorX = -InMaterial->EditorX;
+	}
+	for (int32 ExpressionIndex = 0; ExpressionIndex < Expressions.Num(); ExpressionIndex++)
+	{
+		UMaterialExpression* Expression = Expressions[ExpressionIndex];
+		Expression->MaterialExpressionEditorX = -Expression->MaterialExpressionEditorX * PosScaling;
+		Expression->MaterialExpressionEditorY *= PosScaling;
+	}
+	for (int32 ExpressionIndex = 0; ExpressionIndex < Comments.Num(); ExpressionIndex++)
+	{
+		UMaterialExpressionComment* Comment = Comments[ExpressionIndex];
+		Comment->MaterialExpressionEditorX = -Comment->MaterialExpressionEditorX * PosScaling - Comment->SizeX;
+		Comment->MaterialExpressionEditorY *= PosScaling;
+		Comment->SizeX *= PosScaling;
+		Comment->SizeY *= PosScaling;
+	}
+}
+#endif //WITH_EDITORONLY_DATA

@@ -432,8 +432,6 @@ void FMaterialEditor::InitMaterialEditor( const EToolkitMode::Type Mode, const T
 		}
 	}
 
-	// TODO: Remove this once Expressions are saved as flipped
-	FlipExpressionPositions(Material->Expressions, Material->EditorComments, Material);
 	Material->MaterialGraph->RebuildGraph();
 	RecenterEditor();
 	ForceRefreshExpressionPreviews();
@@ -1228,9 +1226,6 @@ void FMaterialEditor::UpdateOriginalMaterial()
 		MaterialFunction->ParentFunction->ThumbnailInfo = OriginalThumbnailInfo;
 		MaterialFunction->ThumbnailInfo = ThumbnailInfo;
 
-		// TODO: Remove this once Expressions are saved as flipped
-		FlipExpressionPositions(MaterialFunction->ParentFunction->FunctionExpressions, MaterialFunction->ParentFunction->FunctionEditorComments);
-
 		// Restore RF_Standalone on the original material function, as it had been removed from the preview material so that it could be GC'd.
 		MaterialFunction->ParentFunction->SetFlags( RF_Standalone );
 
@@ -1358,9 +1353,6 @@ void FMaterialEditor::UpdateOriginalMaterial()
 			// Restore the thumbnail info
 			OriginalMaterial->ThumbnailInfo = OriginalThumbnailInfo;
 			Material->ThumbnailInfo = ThumbnailInfo;
-
-			// TODO: Remove this once Expressions are saved as flipped
-			FlipExpressionPositions(OriginalMaterial->Expressions, OriginalMaterial->EditorComments, OriginalMaterial);
 
 			// Change the original material object to the new original material
 			OriginalMaterialObject = OriginalMaterial;
@@ -3730,24 +3722,6 @@ FReply FMaterialEditor::OnSpawnGraphNodeByShortcut(FInputGesture InGesture, cons
 	}
 
 	return FReply::Unhandled();
-}
-
-void FMaterialEditor::FlipExpressionPositions(const TArray<UMaterialExpression*>& Expressions, const TArray<UMaterialExpressionComment*>& Comments, UMaterial* InMaterial)
-{
-	if (InMaterial)
-	{
-		InMaterial->EditorX = -InMaterial->EditorX;
-	}
-	for (int32 ExpressionIndex = 0; ExpressionIndex < Expressions.Num(); ExpressionIndex++)
-	{
-		UMaterialExpression* Expression = Expressions[ExpressionIndex];
-		Expression->MaterialExpressionEditorX = -Expression->MaterialExpressionEditorX;
-	}
-	for (int32 ExpressionIndex = 0; ExpressionIndex < Comments.Num(); ExpressionIndex++)
-	{
-		UMaterialExpressionComment* Comment = Comments[ExpressionIndex];
-		Comment->MaterialExpressionEditorX = -Comment->MaterialExpressionEditorX - Comment->SizeX;
-	}
 }
 
 void FMaterialDevelopmentOverheadStats::Init(UMaterial* InMaterial)
