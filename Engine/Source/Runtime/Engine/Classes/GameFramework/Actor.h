@@ -1922,7 +1922,6 @@ public:
 	}
 
 	// UActorComponent specialization to avoid unnecessary casts
-	template<>
 	void GetComponents(TArray<UActorComponent*>& OutComponents) const
 	{
 		SCOPE_CYCLE_COUNTER(STAT_GetComponentsTime);
