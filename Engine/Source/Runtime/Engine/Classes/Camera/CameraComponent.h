@@ -46,6 +46,7 @@ class UCameraComponent : public USceneComponent
 
 	// UActorComponent interface
 	ENGINE_API virtual void OnRegister() OVERRIDE;
+	ENGINE_API virtual void OnUnregister() OVERRIDE;
 #if WITH_EDITOR
 	ENGINE_API virtual void CheckForErrors() OVERRIDE;
 	// End of UActorComponent interface
@@ -66,14 +67,14 @@ protected:
 #if WITH_EDITORONLY_DATA
 	// The frustum component used to show visually where the camera field of view is
 	UPROPERTY(transient)
-	TSubobjectPtr<class UDrawFrustumComponent> DrawFrustum;
+	class UDrawFrustumComponent* DrawFrustum;
 
 	UPROPERTY(transient)
 	class UStaticMesh* CameraMesh;
 
 	// The camera mesh to show visually where the camera is placed
 	UPROPERTY(transient)
-	TSubobjectPtr<class UStaticMeshComponent> ProxyMeshComponent;
+	class UStaticMeshComponent* ProxyMeshComponent;
 
 public:
 	// Refreshes the visual components to match the component state

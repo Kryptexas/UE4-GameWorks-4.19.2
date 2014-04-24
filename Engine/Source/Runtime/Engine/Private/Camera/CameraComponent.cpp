@@ -19,27 +19,6 @@ UCameraComponent::UCameraComponent(const class FPostConstructInitializePropertie
 		static ConstructorHelpers::FObjectFinder<UStaticMesh> EditorCameraMesh(TEXT("/Engine/EditorMeshes/MatineeCam_SM"));
 		CameraMesh = EditorCameraMesh.Object;
 	}
-
-	ProxyMeshComponent = PCIP.CreateEditorOnlyDefaultSubobject<UStaticMeshComponent>(GetOuter(), TEXT("CameraProxy"), true);
-	if (ProxyMeshComponent)
-	{
-		ProxyMeshComponent->AttachParent = this;
-		ProxyMeshComponent->StaticMesh = CameraMesh;
-		ProxyMeshComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
-		ProxyMeshComponent->bHiddenInGame = true;
-		ProxyMeshComponent->CastShadow = false;
-		ProxyMeshComponent->PostPhysicsComponentTick.bCanEverTick = false;
-		ProxyMeshComponent->bCreatedByConstructionScript = bCreatedByConstructionScript;
-	}
-
-	DrawFrustum = PCIP.CreateEditorOnlyDefaultSubobject<UDrawFrustumComponent>(GetOuter(), TEXT("FrustumVisualizer"), true);
-	if (DrawFrustum)
-	{
-		DrawFrustum->AttachParent = this;
-		DrawFrustum->AlwaysLoadOnClient = false;
-		DrawFrustum->AlwaysLoadOnServer = false;
-		DrawFrustum->bCreatedByConstructionScript = bCreatedByConstructionScript;
-	}
 #endif
 
 	FieldOfView = 90.0f;
@@ -54,10 +33,57 @@ UCameraComponent::UCameraComponent(const class FPostConstructInitializePropertie
 void UCameraComponent::OnRegister()
 {
 #if WITH_EDITORONLY_DATA
+	if (ProxyMeshComponent == NULL)
+	{
+		ProxyMeshComponent = ConstructObject<UStaticMeshComponent>(UStaticMeshComponent::StaticClass(), GetOuter(), NAME_None, RF_Transactional);
+		ProxyMeshComponent->AttachTo(this);
+		ProxyMeshComponent->StaticMesh = CameraMesh;
+		ProxyMeshComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
+		ProxyMeshComponent->bHiddenInGame = true;
+		ProxyMeshComponent->CastShadow = false;
+		ProxyMeshComponent->PostPhysicsComponentTick.bCanEverTick = false;
+		ProxyMeshComponent->bCreatedByConstructionScript = bCreatedByConstructionScript;
+		ProxyMeshComponent->RegisterComponentWithWorld(GetWorld());
+	}
+
+	if (DrawFrustum == NULL)
+	{
+		DrawFrustum = ConstructObject<UDrawFrustumComponent>(UDrawFrustumComponent::StaticClass(), GetOuter(), NAME_None, RF_Transactional);
+		DrawFrustum->AttachTo(this);
+		DrawFrustum->AlwaysLoadOnClient = false;
+		DrawFrustum->AlwaysLoadOnServer = false;
+		DrawFrustum->bCreatedByConstructionScript = bCreatedByConstructionScript;
+		DrawFrustum->RegisterComponentWithWorld(GetWorld());
+	}
+
 	RefreshVisualRepresentation();
 #endif
 
 	Super::OnRegister();
+}
+
+void UCameraComponent::OnUnregister()
+{
+	Super::OnUnregister();
+
+#if WITH_EDITORONLY_DATA
+	// have to removed the sub-components that we added in OnRegister (for 
+	// reinstancing, where we CopyPropertiesForUnrelatedObjects()... don't want
+	// these copied since we'll generate them on the next OnRegister)
+	if (ProxyMeshComponent != NULL)
+	{
+		ProxyMeshComponent->DetachFromParent();
+		ProxyMeshComponent->DestroyComponent();
+		ProxyMeshComponent = NULL;
+	}
+
+	if (DrawFrustum != NULL)
+	{
+		DrawFrustum->DetachFromParent();
+		DrawFrustum->DestroyComponent();
+		DrawFrustum = NULL;
+	}
+#endif
 }
 
 #if WITH_EDITORONLY_DATA

@@ -322,6 +322,8 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UCl
 				NewObject = NewActor;
 
 				OldActor->DestroyConstructedComponents(); // don't want to serialize components from the old actor
+				// Unregister native components so we don't copy any sub-components they generate for themselves (like UCameraComponent does)
+				OldActor->UnregisterAllComponents(); 
 
 				NewActor->UnregisterAllComponents(); // Unregister any native components, might have cached state based on properties we are going to overwrite
 
