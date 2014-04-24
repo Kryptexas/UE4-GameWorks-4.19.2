@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionTextureSampleParameter2D.generated.h"
 
-UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object, MinimalAPI)
+UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
 class UMaterialExpressionTextureSampleParameter2D : public UMaterialExpressionTextureSampleParameter
 {
 	GENERATED_UCLASS_BODY()

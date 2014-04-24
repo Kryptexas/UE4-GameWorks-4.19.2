@@ -8,7 +8,7 @@
 #pragma once
 #include "InterpGroupDirector.generated.h"
 
-UCLASS(HeaderGroup=Interpolation, collapsecategories, hidecategories=Object, MinimalAPI)
+UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
 class UInterpGroupDirector : public UInterpGroup
 {
 	GENERATED_UCLASS_BODY()

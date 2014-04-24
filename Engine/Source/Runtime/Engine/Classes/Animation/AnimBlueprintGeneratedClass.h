@@ -10,6 +10,7 @@ struct FBakedAnimationStateMachine;
 class  UAnimInstance;
 class  UEdGraph;
 class  UEdGraphNode;
+class  UAnimGraphNode_StateResult;
 
 // This structure represents debugging information for a single state machine
 USTRUCT()

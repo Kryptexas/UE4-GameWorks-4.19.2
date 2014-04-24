@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionObjectBounds.generated.h"
 
-UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
+UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionObjectBounds : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

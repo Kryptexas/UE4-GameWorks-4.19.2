@@ -361,7 +361,7 @@ struct FSkeletalMaterial
 
 class FSkeletalMeshResource;
 
-UCLASS(HeaderGroup=SkeletalMesh, hidecategories=Object, MinimalAPI, BlueprintType)
+UCLASS(hidecategories=Object, MinimalAPI, BlueprintType)
 class USkeletalMesh : public UObject
 {
 	GENERATED_UCLASS_BODY()

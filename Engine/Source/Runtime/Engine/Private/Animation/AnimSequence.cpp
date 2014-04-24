@@ -5,7 +5,6 @@
 =============================================================================*/ 
 
 #include "EnginePrivate.h"
-#include "EngineAnimClasses.h"
 #include "AnimationCompression.h"
 #include "AnimEncoding.h"
 #include "AnimationUtils.h"

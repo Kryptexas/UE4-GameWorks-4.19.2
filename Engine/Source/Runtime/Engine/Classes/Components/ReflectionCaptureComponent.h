@@ -66,7 +66,7 @@ private:
 };
 
 // -> will be exported to EngineDecalClasses.h
-UCLASS(abstract, hidecategories=(Collision, Object, Physics, SceneComponent, Activation, "Components|Activation", Mobility), HeaderGroup=Decal, MinimalAPI)
+UCLASS(abstract, hidecategories=(Collision, Object, Physics, SceneComponent, Activation, "Components|Activation", Mobility), MinimalAPI)
 class UReflectionCaptureComponent : public USceneComponent
 {
 	GENERATED_UCLASS_BODY()

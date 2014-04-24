@@ -32,7 +32,6 @@
 #include "Factories.h"
 #include "Engine.h"
 #include "TextureLayout.h"
-#include "EngineMaterialClasses.h"
 #include "FbxImporter.h"
 #include "ObjectTools.h"
 #include "PackageTools.h"

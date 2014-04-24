@@ -3,7 +3,6 @@
 #include "EnginePrivate.h"
 #include "BlueprintUtilities.h"
 #include "LatentActions.h"
-#include "EngineLevelScriptClasses.h"
 #include "DeferRegisterComponents.h"
 
 #if WITH_EDITOR

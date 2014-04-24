@@ -4,7 +4,7 @@
 #pragma once
 #include "DistributionFloatParticleParameter.generated.h"
 
-UCLASS(HeaderGroup=Particle, collapsecategories, hidecategories=Object, editinlinenew, MinimalAPI)
+UCLASS(collapsecategories, hidecategories=Object, editinlinenew, MinimalAPI)
 class UDistributionFloatParticleParameter : public UDistributionFloatParameterBase
 {
 	GENERATED_UCLASS_BODY()

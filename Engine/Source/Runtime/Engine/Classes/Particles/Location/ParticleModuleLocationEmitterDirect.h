@@ -11,7 +11,7 @@
 #pragma once
 #include "ParticleModuleLocationEmitterDirect.generated.h"
 
-UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, meta=(DisplayName = "Emitter Direct Location"))
+UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Emitter Direct Location"))
 class UParticleModuleLocationEmitterDirect : public UParticleModuleLocationBase
 {
 	GENERATED_UCLASS_BODY()

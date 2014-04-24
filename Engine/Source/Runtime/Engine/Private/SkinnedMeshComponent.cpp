@@ -9,7 +9,6 @@
 #include "BlueprintUtilities.h"
 #include "SkeletalRenderCPUSkin.h"
 #include "SkeletalRenderGPUSkin.h"
-#include "EngineInterpolationClasses.h"
 #include "AnimationUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSkinnedMeshComp, Log, All);

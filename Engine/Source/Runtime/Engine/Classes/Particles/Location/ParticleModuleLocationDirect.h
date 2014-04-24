@@ -10,7 +10,7 @@
 #pragma once
 #include "ParticleModuleLocationDirect.generated.h"
 
-UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Direct Location"))
+UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Direct Location"))
 class UParticleModuleLocationDirect : public UParticleModuleLocationBase
 {
 	GENERATED_UCLASS_BODY()

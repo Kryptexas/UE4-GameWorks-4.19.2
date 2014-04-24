@@ -11,7 +11,10 @@
  */
 
 #pragma once
+#include "Components/ActorComponent.h"
 #include "BehaviorTreeTypes.h"
+#include "Blackboard/BlackboardKeyType.h"
+#include "BlackboardData.h"
 #include "BlackboardComponent.generated.h"
 
 namespace EBlackboardDescription
@@ -25,7 +28,7 @@ namespace EBlackboardDescription
 	};
 }
 
-UCLASS(HeaderGroup=Component)
+UCLASS()
 class ENGINE_API UBlackboardComponent : public UActorComponent
 {
 	GENERATED_UCLASS_BODY()

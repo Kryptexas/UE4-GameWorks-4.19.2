@@ -8,7 +8,7 @@
  */
 
 
-UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
+UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionEyeAdaptation : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

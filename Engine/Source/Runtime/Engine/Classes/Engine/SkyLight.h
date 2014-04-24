@@ -4,7 +4,7 @@
 
 #include "SkyLight.generated.h"
 
-UCLASS(HeaderGroup=Light, ClassGroup=Lights, hidecategories=(Input,Collision,Replication,Info), ConversionRoot)
+UCLASS(ClassGroup=Lights, hidecategories=(Input,Collision,Replication,Info), ConversionRoot)
 class ENGINE_API ASkyLight : public AInfo
 {
 	GENERATED_UCLASS_BODY()

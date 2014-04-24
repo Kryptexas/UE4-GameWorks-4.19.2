@@ -2,7 +2,6 @@
 
 #include "UnrealEd.h"
 
-#include "EngineMaterialClasses.h"
 #include "SoundDefinitions.h"
 #include "BlueprintUtilities.h"
 #include "ImageUtils.h"

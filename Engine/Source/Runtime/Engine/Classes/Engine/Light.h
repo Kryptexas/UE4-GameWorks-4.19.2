@@ -4,7 +4,7 @@
 
 #include "Light.generated.h"
 
-UCLASS(Abstract, HeaderGroup=Light, ClassGroup=Lights, hidecategories=(Input,Collision,Replication), ConversionRoot, meta=(ChildCanTick))
+UCLASS(Abstract, ClassGroup=Lights, hidecategories=(Input,Collision,Replication), ConversionRoot, meta=(ChildCanTick))
 class ENGINE_API ALight : public AActor
 {
 	GENERATED_UCLASS_BODY()

@@ -9,7 +9,6 @@
 #include "SceneFilterRendering.h"
 #include "PostProcessing.h"
 #include "PostProcessDeferredDecals.h"
-#include "EngineDecalClasses.h"
 #include "ScreenRendering.h"
 
 static TAutoConsoleVariable<float> CVarStencilSizeThreshold(

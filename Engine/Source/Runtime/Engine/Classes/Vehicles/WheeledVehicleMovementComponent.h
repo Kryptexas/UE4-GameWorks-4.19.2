@@ -209,7 +209,7 @@ void ConvertCurve( const TArray<FFloatPair>& Pairs, struct FRichCurve& OutCurve 
 /**
  * Component to handle the vehicle simulation for an actor.
  */
-UCLASS(Abstract, HeaderGroup=Component, dependson=UCurveBase, hidecategories=(PlanarMovement, "Components|Movement|Planar", Activation, "Components|Activation"))
+UCLASS(Abstract, dependson=UCurveBase, hidecategories=(PlanarMovement, "Components|Movement|Planar", Activation, "Components|Activation"))
 class ENGINE_API UWheeledVehicleMovementComponent : public UPawnMovementComponent
 {
 	GENERATED_UCLASS_BODY()

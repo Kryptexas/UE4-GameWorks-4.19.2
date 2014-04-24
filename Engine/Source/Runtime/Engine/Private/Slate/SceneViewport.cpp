@@ -5,7 +5,6 @@
 #include "Slate.h"
 #include "Slate/SlateTextures.h"
 #include "Slate/SceneViewport.h"
-#include "EngineUserInterfaceClasses.h"
 #include "DebugCanvas.h"
 
 #include "IHeadMountedDisplay.h"

@@ -4,7 +4,7 @@
 
 #include "LandscapeLayerInfoObject.generated.h"
 
-UCLASS(HeaderGroup=Terrain, MinimalAPI)
+UCLASS(MinimalAPI)
 class ULandscapeLayerInfoObject : public UObject
 {
 	GENERATED_UCLASS_BODY()

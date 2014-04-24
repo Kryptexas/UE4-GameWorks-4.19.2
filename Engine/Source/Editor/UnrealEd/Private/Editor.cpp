@@ -7,8 +7,6 @@
 
 // needed for the RemotePropagator
 #include "SoundDefinitions.h"
-#include "EngineFoliageClasses.h"
-#include "EngineDecalClasses.h"
 #include "Database.h"
 #include "SurfaceIterators.h"
 #include "ScopedTransaction.h"

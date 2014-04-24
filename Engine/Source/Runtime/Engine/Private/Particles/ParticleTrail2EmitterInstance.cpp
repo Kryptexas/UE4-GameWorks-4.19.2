@@ -7,7 +7,6 @@
 
 #include "EnginePrivate.h"
 #include "ParticleDefinitions.h"
-#include "EngineMaterialClasses.h"
 
 /** trail stats */
 

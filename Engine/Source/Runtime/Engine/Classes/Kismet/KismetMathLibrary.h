@@ -4,7 +4,7 @@
 
 #include "KismetMathLibrary.generated.h"
 
-UCLASS(HeaderGroup=KismetLibrary,MinimalAPI)
+UCLASS(MinimalAPI)
 class UKismetMathLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()

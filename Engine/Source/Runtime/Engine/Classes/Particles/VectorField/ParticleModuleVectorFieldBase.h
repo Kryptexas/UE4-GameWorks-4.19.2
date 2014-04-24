@@ -9,7 +9,7 @@
 
 #include "ParticleModuleVectorFieldBase.generated.h"
 
-UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, abstract, meta=(DisplayName = "Vector Field"))
+UCLASS(editinlinenew, hidecategories=Object, abstract, meta=(DisplayName = "Vector Field"))
 class UParticleModuleVectorFieldBase : public UParticleModule
 {
 	GENERATED_UCLASS_BODY()

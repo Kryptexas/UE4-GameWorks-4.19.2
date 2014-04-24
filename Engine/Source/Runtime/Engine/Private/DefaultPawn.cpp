@@ -2,7 +2,6 @@
 
 
 #include "EnginePrivate.h"
-#include "EngineUserInterfaceClasses.h"
 
 FName ADefaultPawn::MovementComponentName(TEXT("MovementComponent0"));
 FName ADefaultPawn::CollisionComponentName(TEXT("CollisionComponent0"));

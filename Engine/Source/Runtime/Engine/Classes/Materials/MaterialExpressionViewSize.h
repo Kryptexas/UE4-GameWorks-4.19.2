@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionViewSize.generated.h"
 
-UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
+UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionViewSize : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

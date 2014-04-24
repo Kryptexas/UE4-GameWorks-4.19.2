@@ -5,7 +5,7 @@
 #include "PlaneReflectionCaptureComponent.generated.h"
 
 	// -> will be exported to EngineDecalClasses.h
-UCLASS(hidecategories=(Collision, Object, Physics, SceneComponent), HeaderGroup=Decal, MinimalAPI)
+UCLASS(hidecategories=(Collision, Object, Physics, SceneComponent), MinimalAPI)
 class UPlaneReflectionCaptureComponent : public UReflectionCaptureComponent
 {
 	GENERATED_UCLASS_BODY()

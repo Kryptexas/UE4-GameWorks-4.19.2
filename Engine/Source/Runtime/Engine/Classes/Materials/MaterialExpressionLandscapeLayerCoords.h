@@ -25,7 +25,7 @@ enum ELandscapeCustomizedCoordType
 	LCCT_MAX,
 };
 
-UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
+UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionLandscapeLayerCoords : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

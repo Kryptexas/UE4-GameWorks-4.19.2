@@ -5,7 +5,6 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-#include "EngineMaterialClasses.h"
 #include "MaterialCompiler.h"
 #if WITH_EDITOR
 #include "Slate.h"

@@ -7,7 +7,7 @@
 #pragma once
 #include "GameplayDebuggingControllerComponent.generated.h"
 
-UCLASS(config=Engine, HeaderGroup=Component)
+UCLASS(config=Engine)
 class ENGINE_API UGameplayDebuggingControllerComponent : public UActorComponent
 {
 	GENERATED_UCLASS_BODY()

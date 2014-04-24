@@ -39,8 +39,6 @@
 
 #include "Engine.h"
 #include "TextureLayout.h"
-#include "EngineMaterialClasses.h"
-#include "EngineInterpolationClasses.h"
 #include "ObjectTools.h"
 #include "PackageTools.h"
 #include "FbxImporter.h"

@@ -8,7 +8,7 @@
 
 #include "ParticleModuleSizeScaleBySpeed.generated.h"
 
-UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, meta=(DisplayName = "Size By Speed"))
+UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Size By Speed"))
 class UParticleModuleSizeScaleBySpeed : public UParticleModuleSizeBase
 {
 	GENERATED_UCLASS_BODY()

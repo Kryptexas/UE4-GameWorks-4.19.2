@@ -411,7 +411,7 @@ namespace EControllerAnalogStick
 	};
 }
 
-UCLASS(transient, HeaderGroup=Component, config=Input, dependson=UPlayerInput, hidecategories=(Activation, "Components|Activation"))
+UCLASS(transient, config=Input, hidecategories=(Activation, "Components|Activation"))
 class ENGINE_API UInputComponent : public UActorComponent
 {
 	GENERATED_UCLASS_BODY()

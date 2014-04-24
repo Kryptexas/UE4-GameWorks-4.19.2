@@ -3,9 +3,10 @@
 #pragma once
 
 #include "ComponentInstanceDataCache.h"
+#include "Engine/EngineTypes.h"
 #include "ActorComponent.generated.h"
 
-UCLASS(DefaultToInstanced, HeaderGroup=Component, abstract, hidecategories=(ComponentReplication))
+UCLASS(DefaultToInstanced, abstract, hidecategories=(ComponentReplication))
 class ENGINE_API UActorComponent : public UObject
 {
 	GENERATED_UCLASS_BODY()

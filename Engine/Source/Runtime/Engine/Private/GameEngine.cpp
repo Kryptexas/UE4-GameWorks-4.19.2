@@ -5,18 +5,14 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-#include "EngineUserInterfaceClasses.h"
 #include "ParticleDefinitions.h"
 #include "SoundDefinitions.h"
-#include "EnginePlatformInterfaceClasses.h"
-#include "EngineDecalClasses.h"
 #include "Net/UnrealNetwork.h"
 #include "AllocatorFixedSizeFreeList.h"
 #include "Database.h"
 #include "MallocProfiler.h"
 #include "Net/NetworkProfiler.h"
 #include "ConfigCacheIni.h"
-#include "EngineLevelScriptClasses.h"
 
 #include "AVIWriter.h"
 #include "StreamingPauseRendering.h"

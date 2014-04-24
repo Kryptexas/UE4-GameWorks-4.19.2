@@ -3,11 +3,18 @@
 #include "UnrealEd.h"
 
 #include "LatentActions.h"
-#include "EngineLevelScriptClasses.h"
 #include "Kismet2/CompilerResultsLog.h"
 
 #include "Editor/KismetCompiler/Public/KismetCompilerModule.h"
 #include "AnimGraphDefinitions.h"
+#include "AnimGraphNode_StateMachineBase.h"
+#include "AnimStateNode.h"
+#include "AnimStateNodeBase.h"
+#include "AnimStateTransitionNode.h"
+#include "AnimationTransitionSchema.h"
+#include "AnimationGraph.h"
+#include "AnimationGraphSchema.h"
+#include "AnimationStateMachineGraph.h"
 #include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
 #include "Editor/UnrealEd/Public/Kismet2/KismetDebugUtilities.h"
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
@@ -21,7 +28,6 @@
 #include "DefaultValueHelper.h"
 #include "ObjectEditorUtils.h"
 #include "ToolkitManager.h"
-
 #define LOCTEXT_NAMESPACE "Blueprint"
 
 DEFINE_LOG_CATEGORY(LogBlueprintDebug);

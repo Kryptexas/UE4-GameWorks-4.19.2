@@ -5,7 +5,6 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-#include "EngineUserInterfaceClasses.h"
 
 
 UFontImportOptions::UFontImportOptions(const class FPostConstructInitializeProperties& PCIP)

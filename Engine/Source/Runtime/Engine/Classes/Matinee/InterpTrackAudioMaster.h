@@ -4,7 +4,7 @@
 #pragma once
 #include "InterpTrackAudioMaster.generated.h"
 
-UCLASS(HeaderGroup=Interpolation, MinimalAPI, meta=( DisplayName = "Audio Master Track" ) )
+UCLASS(MinimalAPI, meta=( DisplayName = "Audio Master Track" ) )
 class UInterpTrackAudioMaster : public UInterpTrackVectorBase
 {
 	GENERATED_UCLASS_BODY()

@@ -3,7 +3,7 @@
 #pragma once
 #include "InterpTrackFloatBase.generated.h"
 
-UCLASS(HeaderGroup=Interpolation, abstract, MinimalAPI)
+UCLASS(abstract, MinimalAPI)
 class UInterpTrackFloatBase : public UInterpTrack
 {
 	GENERATED_UCLASS_BODY()

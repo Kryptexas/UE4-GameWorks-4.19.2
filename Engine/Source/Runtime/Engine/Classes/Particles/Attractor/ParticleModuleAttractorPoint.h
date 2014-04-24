@@ -4,7 +4,7 @@
 #pragma once
 #include "ParticleModuleAttractorPoint.generated.h"
 
-UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Point Attractor"))
+UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Point Attractor"))
 class UParticleModuleAttractorPoint : public UParticleModuleAttractorBase
 {
 	GENERATED_UCLASS_BODY()

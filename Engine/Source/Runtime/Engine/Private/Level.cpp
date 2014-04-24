@@ -7,7 +7,6 @@ Level.cpp: Level-related functions
 #include "EnginePrivate.h"
 #include "Net/UnrealNetwork.h"
 #include "SoundDefinitions.h"
-#include "EngineMaterialClasses.h"
 #include "PrecomputedLightVolume.h"
 #include "TickTaskManagerInterface.h"
 #include "BlueprintUtilities.h"
@@ -15,7 +14,6 @@ Level.cpp: Level-related functions
 #include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
 #endif
-#include "EngineLevelScriptClasses.h"
 #include "Runtime/Engine/Classes/MovieScene/RuntimeMovieScenePlayerInterface.h"
 #include "LevelUtils.h"
 #include "TargetPlatform.h"

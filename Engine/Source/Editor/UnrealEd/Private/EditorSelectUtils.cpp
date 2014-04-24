@@ -3,7 +3,6 @@
 
 #include "UnrealEd.h"
 #include "ScopedTransaction.h"
-#include "EngineDecalClasses.h"
 #include "LevelUtils.h"
 #include "Editor/StatsViewer/Public/StatsViewerModule.h"
 #include "SnappingUtils.h"

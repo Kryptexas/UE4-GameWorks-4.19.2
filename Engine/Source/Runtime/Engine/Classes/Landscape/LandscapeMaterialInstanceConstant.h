@@ -3,7 +3,7 @@
 #pragma once
 #include "LandscapeMaterialInstanceConstant.generated.h"
 
-UCLASS(HeaderGroup=Material, MinimalAPI)
+UCLASS(MinimalAPI)
 class ULandscapeMaterialInstanceConstant : public UMaterialInstanceConstant
 {
 	GENERATED_UCLASS_BODY()

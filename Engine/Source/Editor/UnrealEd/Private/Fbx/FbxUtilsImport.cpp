@@ -32,7 +32,6 @@
 #include "Factories.h"
 #include "Engine.h"
 #include "TextureLayout.h"
-#include "EngineMaterialClasses.h"
 #include "FbxImporter.h"
 
 using namespace UnFbx;

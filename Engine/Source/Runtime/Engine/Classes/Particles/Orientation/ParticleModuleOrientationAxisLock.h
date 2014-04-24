@@ -31,7 +31,7 @@ enum EParticleAxisLock
 	EPAL_MAX,
 };
 
-UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Lock Axis"))
+UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Lock Axis"))
 class UParticleModuleOrientationAxisLock : public UParticleModuleOrientationBase
 {
 	GENERATED_UCLASS_BODY()

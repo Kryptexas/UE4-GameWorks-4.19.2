@@ -2,7 +2,6 @@
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "ActorMaterialCategory.h"
-#include "EngineDecalClasses.h"
 #include "AssetThumbnail.h"
 #include "ActorEditorUtils.h"
 

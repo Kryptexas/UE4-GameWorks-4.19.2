@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Core.h"
+#include "Engine.h"
 #include "ModuleManager.h"
 #include "OnlineSubsystemUtilsModule.h"
 #include "Online.h"

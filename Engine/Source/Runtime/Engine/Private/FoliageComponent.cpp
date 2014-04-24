@@ -5,9 +5,6 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-#include "EngineFoliageClasses.h"
-
-
 
 /** Scene proxy class for UInteractiveFoliageComponent. */
 class FInteractiveFoliageSceneProxy : public FStaticMeshSceneProxy

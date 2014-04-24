@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "AnimGraphNode_Root.h"
 #include "AnimGraphNode_StateResult.generated.h"
 
 UCLASS(MinimalAPI)

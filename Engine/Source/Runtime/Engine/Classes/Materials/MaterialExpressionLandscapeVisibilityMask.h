@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionLandscapeVisibilityMask.generated.h"
 
-UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
+UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionLandscapeVisibilityMask : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

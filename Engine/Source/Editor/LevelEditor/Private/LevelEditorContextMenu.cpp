@@ -20,7 +20,6 @@
 #include "ClassIconFinder.h"
 #include "IPlacementModeModule.h"
 #include "AssetRegistryModule.h"
-#include "EngineDecalClasses.h"
 #include "EngineUtils.h"
 #include "EditorViewportCommands.h"
 #include "SoundDefinitions.h"

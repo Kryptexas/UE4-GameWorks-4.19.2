@@ -37,7 +37,7 @@ struct FDestructibleChunkInfo
  *
  *	The USkeletalMesh pointer in the base class (SkinnedMeshComponent) MUST be a DestructibleMesh
  */
-UCLASS(HeaderGroup=Component, ClassGroup=Physics, hidecategories=(Object,Mesh,"Components|SkinnedMesh",Mirroring,Activation,"Components|Activation"), config=Engine, editinlinenew, meta=(BlueprintSpawnableComponent))
+UCLASS(ClassGroup=Physics, hidecategories=(Object,Mesh,"Components|SkinnedMesh",Mirroring,Activation,"Components|Activation"), config=Engine, editinlinenew, meta=(BlueprintSpawnableComponent))
 class ENGINE_API UDestructibleComponent : public USkinnedMeshComponent
 {
 	GENERATED_UCLASS_BODY()

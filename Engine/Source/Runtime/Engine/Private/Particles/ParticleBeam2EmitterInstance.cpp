@@ -6,7 +6,6 @@
 =============================================================================*/
 #include "EnginePrivate.h"
 #include "ParticleDefinitions.h"
-#include "EngineMaterialClasses.h"
 
 /** Beam particle stat objects */
 

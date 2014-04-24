@@ -12,6 +12,9 @@
 #include "ConnectionDrawingPolicy.h"
 #include "IDocumentation.h"
 
+#include "AnimationTransitionGraph.h"
+#include "AnimGraphNode_TransitionResult.h"
+
 #define LOCTEXT_NAMESPACE "TransitionNodes"
 
 /////////////////////////////////////////////////////

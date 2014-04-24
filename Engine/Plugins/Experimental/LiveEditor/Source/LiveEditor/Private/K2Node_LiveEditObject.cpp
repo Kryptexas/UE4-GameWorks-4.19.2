@@ -5,7 +5,6 @@
 #include "BlueprintUtilities.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "KismetCompiler.h"
-#include "EngineKismetLibraryClasses.h"
 
 #define LOCTEXT_NAMESPACE "UK2Node_LiveEditObject"
 

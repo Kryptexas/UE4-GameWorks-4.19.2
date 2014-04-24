@@ -3,7 +3,6 @@
 #include "EnginePrivate.h"
 #include "BlueprintUtilities.h"
 #include "LatentActions.h"
-#include "EngineLevelScriptClasses.h"
 
 #if WITH_EDITOR
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"

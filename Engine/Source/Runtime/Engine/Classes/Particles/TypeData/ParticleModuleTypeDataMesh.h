@@ -46,7 +46,7 @@ enum EMeshCameraFacingOptions
 	EMeshCameraFacingOptions_MAX,
 };
 
-UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Mesh Data"))
+UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Mesh Data"))
 class UParticleModuleTypeDataMesh : public UParticleModuleTypeDataBase
 {
 	GENERATED_UCLASS_BODY()

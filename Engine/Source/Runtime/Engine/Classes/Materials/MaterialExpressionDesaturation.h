@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionDesaturation.generated.h"
 
-UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
+UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionDesaturation : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

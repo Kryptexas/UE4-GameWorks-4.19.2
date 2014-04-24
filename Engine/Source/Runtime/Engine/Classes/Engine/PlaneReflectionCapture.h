@@ -7,7 +7,7 @@
 #pragma once
 #include "PlaneReflectionCapture.generated.h"
 
-UCLASS(abstract, hidecategories=(Collision, Attachment, Actor), HeaderGroup=Decal, MinimalAPI)
+UCLASS(abstract, hidecategories=(Collision, Attachment, Actor), MinimalAPI)
 class APlaneReflectionCapture : public AReflectionCapture
 {
 	GENERATED_UCLASS_BODY()

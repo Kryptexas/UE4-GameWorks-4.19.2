@@ -30,7 +30,7 @@ struct PingAvgData
 // such as playername, score, etc.
 //=============================================================================
 
-UCLASS(HeaderGroup=ReplicationInfo, BlueprintType, Blueprintable, notplaceable)
+UCLASS(BlueprintType, Blueprintable, notplaceable)
 class ENGINE_API APlayerState : public AInfo
 {
 	GENERATED_UCLASS_BODY()

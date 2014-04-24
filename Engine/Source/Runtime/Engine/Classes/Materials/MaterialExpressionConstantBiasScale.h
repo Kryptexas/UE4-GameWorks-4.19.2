@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionConstantBiasScale.generated.h"
 
-UCLASS(HeaderGroup=Material)
+UCLASS()
 class UMaterialExpressionConstantBiasScale : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

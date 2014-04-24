@@ -7,7 +7,7 @@
 #pragma once
 #include "GameEngine.generated.h"
 
-UCLASS(HeaderGroup=GameEngine, config=Engine, transient)
+UCLASS(config=Engine, transient)
 class ENGINE_API UGameEngine : public UEngine
 {
 	GENERATED_UCLASS_BODY()

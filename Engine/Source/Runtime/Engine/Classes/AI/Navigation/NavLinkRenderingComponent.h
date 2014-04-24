@@ -3,7 +3,7 @@
 #pragma once
 #include "NavLinkRenderingComponent.generated.h"
 
-UCLASS(HeaderGroup=Component, hidecategories=Object, editinlinenew)
+UCLASS(hidecategories=Object, editinlinenew)
 class ENGINE_API UNavLinkRenderingComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()

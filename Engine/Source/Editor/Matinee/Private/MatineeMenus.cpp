@@ -7,7 +7,6 @@
 #include "MatineeModule.h"
 #include "Matinee.h"
 
-#include "EngineInterpolationClasses.h"
 #include "CameraController.h"
 #include "DesktopPlatformModule.h"
 #include "PackageTools.h"

@@ -254,7 +254,7 @@ struct FMaterialParameterCollectionInfo
  * when light from the scene hits the surface, the lighting model of the material is used to calculate how
  * that light interacts with the surface. 
  */
-UCLASS(HeaderGroup=Material, hidecategories=Object, MinimalAPI, BlueprintType)
+UCLASS(hidecategories=Object, MinimalAPI, BlueprintType)
 class UMaterial : public UMaterialInterface
 {
 	GENERATED_UCLASS_BODY()

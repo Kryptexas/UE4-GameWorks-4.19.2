@@ -6,7 +6,6 @@ LandscapeRender.cpp: New terrain rendering
 
 #include "EnginePrivate.h"
 #include "ShaderParameters.h"
-#include "EngineTerrainClasses.h"
 #include "Landscape/LandscapeRender.h"
 #include "Landscape/LandscapeEdit.h"
 #include "LevelUtils.h"

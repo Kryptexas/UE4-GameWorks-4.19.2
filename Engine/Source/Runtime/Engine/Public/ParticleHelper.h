@@ -134,6 +134,8 @@ struct FParticleSpriteEmitterInstance;
 struct FParticleMeshEmitterInstance;
 struct FParticleBeam2EmitterInstance;
 
+struct FStaticMeshLODResources;
+
 // Special module indices...
 #define INDEX_TYPEDATAMODULE	(INDEX_NONE - 1)
 #define INDEX_REQUIREDMODULE	(INDEX_NONE - 2)

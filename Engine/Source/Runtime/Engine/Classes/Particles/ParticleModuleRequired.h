@@ -27,7 +27,7 @@ enum EEmitterNormalsMode
 	ENM_MAX,
 };
 
-UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=(Object, Cascade), meta=(DisplayName = "Required"), MinimalAPI)
+UCLASS(editinlinenew, hidecategories=(Object, Cascade), meta=(DisplayName = "Required"), MinimalAPI)
 class UParticleModuleRequired : public UParticleModule
 {
 	GENERATED_UCLASS_BODY()

@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionSphericalParticleOpacity.generated.h"
 
-UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
+UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionSphericalParticleOpacity : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

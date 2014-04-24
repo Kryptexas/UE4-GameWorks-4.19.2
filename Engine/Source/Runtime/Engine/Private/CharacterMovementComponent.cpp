@@ -6,7 +6,6 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-#include "EngineInterpolationClasses.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCharacterMovement, Log, All);
 

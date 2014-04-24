@@ -31,7 +31,7 @@ namespace EMoveComponentAction
 	};
 }
 
-UCLASS(HeaderGroup=KismetLibrary,MinimalAPI)
+UCLASS(MinimalAPI)
 class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()

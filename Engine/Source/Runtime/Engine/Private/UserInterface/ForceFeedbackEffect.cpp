@@ -2,7 +2,6 @@
 
 #include "EnginePrivate.h"
 #include "IForceFeedbackSystem.h"
-#include "EngineUserInterfaceClasses.h"
 
 UForceFeedbackEffect::UForceFeedbackEffect(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

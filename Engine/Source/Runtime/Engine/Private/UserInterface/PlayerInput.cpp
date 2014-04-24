@@ -5,7 +5,6 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-#include "EngineUserInterfaceClasses.h"
 
 DEFINE_LOG_CATEGORY(LogInput);
 

@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionComponentMask.generated.h"
 
-UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object, MinimalAPI)
+UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
 class UMaterialExpressionComponentMask : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

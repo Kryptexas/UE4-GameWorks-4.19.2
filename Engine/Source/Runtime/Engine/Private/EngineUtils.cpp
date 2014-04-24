@@ -7,7 +7,6 @@
 
 #include "DiagnosticTable.h"
 #include "TargetPlatform.h"
-#include "EngineUserInterfaceClasses.h"
 #include "SoundDefinitions.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEngineUtils, Log, All);

@@ -77,7 +77,7 @@ struct FExpressionOutput
 };
 #endif
 
-UCLASS(HeaderGroup=Material, abstract, hidecategories=Object, MinimalAPI)
+UCLASS(abstract, hidecategories=Object, MinimalAPI)
 class UMaterialExpression : public UObject
 {
 	GENERATED_UCLASS_BODY()

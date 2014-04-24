@@ -15,7 +15,7 @@ enum EParticleScreenAlignment
 	PSA_MAX,
 };
 
-UCLASS(HeaderGroup=Particle, collapsecategories, hidecategories=Object, editinlinenew, MinimalAPI)
+UCLASS(collapsecategories, hidecategories=Object, editinlinenew, MinimalAPI)
 class UParticleSpriteEmitter : public UParticleEmitter
 {
 	GENERATED_UCLASS_BODY()
