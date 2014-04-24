@@ -16,6 +16,10 @@ public:
 	virtual bool HandleGetWidgetLocation(class USceneComponent* InSceneComponent, FVector& OutWidgetLocation) OVERRIDE;
 	virtual bool HandleGetWidgetTransform(class USceneComponent* InSceneComponent, FMatrix& OutWidgetTransform) OVERRIDE;
 
+protected:
+	/** Ensure that selection bits are in sync w/ the number of instances */
+	void ValidateSelectedInstances(class UInstancedStaticMeshComponent* InComponent);
+
 private:
 	/** The blueprint editor we are bound to */
 	TWeakPtr<class IBlueprintEditor> BlueprintEditorPtr;
