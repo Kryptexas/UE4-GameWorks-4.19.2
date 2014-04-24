@@ -249,6 +249,7 @@
     <Compile Include="ToolChain\UEToolChain.cs" />
     <Compile Include="System\XGE.cs" />
     <Compile Include="Utilities\CopyrightVerify.cs" />
+    <Compile Include="Utilities\DictionaryExtensions.cs" />
     <Compile Include="Utilities\GraphVisualization.cs">
       <SubType>Code</SubType>
     </Compile>

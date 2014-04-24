@@ -183,7 +183,7 @@ bool UK2Node_BaseMCDelegate::HasExternalBlueprintDependencies(TArray<class UStru
 	{
 		OptionalOutput->Add(GetDelegateSignature());
 	}
-	return bResult;
+	return bResult || Super::HasExternalBlueprintDependencies(OptionalOutput);
 }
 
 /////// UK2Node_AddDelegate ///////////
@@ -199,8 +199,9 @@ void UK2Node_AddDelegate::AllocateDefaultPins()
 
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
-	if(UEdGraphPin* DelegatePin = CreatePin(EGPD_Input, K2Schema->PC_Delegate, TEXT(""), GetDelegateSignature(), false, false, FK2Node_BaseMCDelegateHelper::DelegatePinName))
+	if(UEdGraphPin* DelegatePin = CreatePin(EGPD_Input, K2Schema->PC_Delegate, TEXT(""), NULL, false, false, FK2Node_BaseMCDelegateHelper::DelegatePinName))
 	{
+		FMemberReference::FillSimpleMemberReference<UFunction>(GetDelegateSignature(), DelegatePin->PinType.PinSubCategoryMemberReference);
 		DelegatePin->PinFriendlyName = NSLOCTEXT("K2Node", "PinFriendlyDelegatetName", "Event");
 	}
 }
@@ -263,8 +264,9 @@ void UK2Node_RemoveDelegate::AllocateDefaultPins()
 
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
-	if(UEdGraphPin* DelegatePin = CreatePin(EGPD_Input, K2Schema->PC_Delegate, TEXT(""), GetDelegateSignature(), false, false, FK2Node_BaseMCDelegateHelper::DelegatePinName))
+	if(UEdGraphPin* DelegatePin = CreatePin(EGPD_Input, K2Schema->PC_Delegate, TEXT(""), NULL, false, false, FK2Node_BaseMCDelegateHelper::DelegatePinName))
 	{
+		FMemberReference::FillSimpleMemberReference<UFunction>(GetDelegateSignature(), DelegatePin->PinType.PinSubCategoryMemberReference);
 		DelegatePin->PinFriendlyName = NSLOCTEXT("K2Node", "PinFriendlyDelegatetName", "Event");
 	}
 }

@@ -13,7 +13,7 @@
 #include "PhATEdSkeletalMeshComponent.h"
 #include "PhAT.h"
 
-#include "PhAT.generated.inl"
+
 
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"

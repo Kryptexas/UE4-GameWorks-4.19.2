@@ -271,7 +271,7 @@ public:
 	 */
 	void SerializeBinEx( FArchive& Ar, void* Data, void const* DefaultData, UStruct* DefaultStruct ) const;
 
-	void SerializeTaggedProperties( FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, uint8* Defaults ) const;
+	virtual void SerializeTaggedProperties( FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, uint8* Defaults ) const;
 
 	virtual EExprToken SerializeExpr(int32& iCode, FArchive& Ar);
 	virtual void TagSubobjects(EObjectFlags NewFlags) OVERRIDE;
@@ -1014,7 +1014,7 @@ public:
 	 * @param	ArrayDim	Number of elements in the array
 	 * @param	Stride		Stride of the array, If this default (0), then we will pull the size from the struct
 	 */
-	void CopyScriptStruct(void* Dest, void const* Src, int32 ArrayDim = 1);
+	COREUOBJECT_API void CopyScriptStruct(void* Dest, void const* Src, int32 ArrayDim = 1);
 	/**
 	 * Initialize a struct over uninitialized memory. This may be done by calling the native constructor or individually initializing properties
 	 *
@@ -1040,6 +1040,7 @@ public:
 	 */
 	COREUOBJECT_API void DestroyScriptStruct(void* Dest, int32 ArrayDim = 1);
 
+	virtual COREUOBJECT_API void RecursivelyPreload();
 };
 
 

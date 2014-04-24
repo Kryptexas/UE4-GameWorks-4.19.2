@@ -14,3 +14,4 @@ TMap<UClass*, FString>                   GClassIncludePathMap;
 TSet<UClass*>                            GPublicClassSet;
 TSet<UClass*>                            GExportedClasses;
 TMap<UProperty*, FString>                GArrayDimensions;
+TMap<UPackage*,  const FManifestModule*> GPackageToManifestModuleMap;

@@ -37,6 +37,7 @@
 #include "SClassPickerDialog.h"
 #include "MessageLog.h"
 #include "EnumEditorUtils.h"
+#include "StructureEditorUtils.h"
 
 #if PLATFORM_WINDOWS
 // Needed for DDS support.
@@ -7055,6 +7056,23 @@ UObject* UEnumFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName 
 	}
 
 	return FEnumEditorUtils::CreateUserDefinedEnum(InParent, Name, Flags);
+}
+
+/*------------------------------------------------------------------------------
+	UStructureFactory implementation.
+------------------------------------------------------------------------------*/
+UStructureFactory::UStructureFactory(const class FPostConstructInitializeProperties& PCIP)
+	: Super(PCIP)
+{
+	SupportedClass = UUserDefinedStruct::StaticClass();
+	bCreateNew = FStructureEditorUtils::UserDefinedStructEnabled();
+	bEditAfterNew = true;
+}
+
+UObject* UStructureFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
+{
+	ensure(UUserDefinedStruct::StaticClass() == Class);
+	return FStructureEditorUtils::CreateUserDefinedStruct(InParent, Name, Flags);
 }
 
 /*-----------------------------------------------------------------------------

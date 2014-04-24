@@ -3,7 +3,7 @@
 #include "Slate.h"
 #include "ModuleManager.h"
 
-#include "Slate.generated.inl"
+
 
 IMPLEMENT_MODULE( FDefaultModuleImpl, Slate );
 

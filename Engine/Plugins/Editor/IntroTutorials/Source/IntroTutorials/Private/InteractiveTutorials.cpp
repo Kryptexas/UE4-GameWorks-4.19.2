@@ -4,7 +4,7 @@
 #include "InteractiveTutorials.h"
 #include "InteractivityData.h"
 #include "K2Node_TutorialExcerptComplete.h"
-#include "IntroTutorials.generated.inl"
+
 #include "Editor/LevelEditor/Public/LevelEditor.h"
 #include "Editor/UnrealEd/Public/Toolkits/AssetEditorManager.h"
 #include "Editor/PlacementMode/Public/IPlacementModeModule.h"

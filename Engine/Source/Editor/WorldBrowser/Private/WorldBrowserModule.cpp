@@ -5,7 +5,7 @@
 #include "SWorldMainView.h"
 #include "StreamingLevels/StreamingLevelEdMode.h"
 
-#include "WorldBrowser.generated.inl"
+
 
 IMPLEMENT_MODULE( FWorldBrowserModule, WorldBrowser );
 

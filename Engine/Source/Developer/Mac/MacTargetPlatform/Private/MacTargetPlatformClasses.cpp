@@ -5,7 +5,7 @@
 =============================================================================*/
 
 #include "MacTargetPlatformPrivatePCH.h"
-#include "MacTargetPlatform.generated.inl"
+
 
 
 /* UMacTargetSettings structors

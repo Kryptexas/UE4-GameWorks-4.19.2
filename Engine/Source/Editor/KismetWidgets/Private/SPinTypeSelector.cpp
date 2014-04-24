@@ -131,7 +131,7 @@ TSharedRef<ITableRow> SPinTypeSelector::GenerateTypeTreeRow(FPinTypeTreeItem InI
 	const FString Description = InItem->GetDescription();
 
 	// Determine the best icon the to represents this item
-	const FSlateBrush* IconBrush = GetIconFromPin( InItem->PinType );
+	const FSlateBrush* IconBrush = GetIconFromPin(InItem->GetPinType(false));
 
 	// Use tooltip if supplied, otherwise just repeat description
 	const FString OrgTooltip = InItem->GetToolTip();
@@ -147,7 +147,7 @@ TSharedRef<ITableRow> SPinTypeSelector::GenerateTypeTreeRow(FPinTypeTreeItem InI
 			[
 				SNew(SImage)
 				.Image(IconBrush)
-				.ColorAndOpacity( Schema->GetPinTypeColor(InItem->PinType) )
+				.ColorAndOpacity(Schema->GetPinTypeColor(InItem->GetPinType(false)))
 				.Visibility( InItem->bReadOnly ? EVisibility::Collapsed : EVisibility::Visible )
 			]
 			+SHorizontalBox::Slot()
@@ -181,10 +181,12 @@ void SPinTypeSelector::OnTypeSelectionChanged(FPinTypeTreeItem Selection, ESelec
 			//Call delegate in order to notify pin type change is about to happen
 			OnTypePreChanged.ExecuteIfBound(NewTargetPinType);
 
+			const FEdGraphPinType& SelectionPinType = Selection->GetPinType(true);
+
 			// Change the pin's type
-			NewTargetPinType.PinCategory = Selection->PinType.PinCategory;
-			NewTargetPinType.PinSubCategory = Selection->PinType.PinSubCategory;
-			NewTargetPinType.PinSubCategoryObject = Selection->PinType.PinSubCategoryObject;
+			NewTargetPinType.PinCategory = SelectionPinType.PinCategory;
+			NewTargetPinType.PinSubCategory = SelectionPinType.PinSubCategory;
+			NewTargetPinType.PinSubCategoryObject = SelectionPinType.PinSubCategoryObject;
 
 			TypeComboButton->SetIsOpen(false);
 

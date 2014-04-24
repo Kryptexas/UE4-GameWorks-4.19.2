@@ -740,13 +740,10 @@ void UObject::Serialize( FArchive& Ar )
 	if( (!Ar.IsLoading() && !Ar.IsSaving() && !Ar.IsObjectReferenceCollector()) )
 	{
 		Ar << LoadName;
-		// We don't want to have the following potentially be clobbered by GC code.
-		Ar.AllowEliminatingReferences( false );
 		if(!Ar.IsIgnoringOuterRef())
 		{
 			Ar << LoadOuter;
 		}
-		Ar.AllowEliminatingReferences( true );
 		if ( !Ar.IsIgnoringClassRef() )
 		{
 			Ar << Class;

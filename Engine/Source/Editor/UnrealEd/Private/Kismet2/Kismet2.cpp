@@ -317,14 +317,6 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 	FCompilerResultsLog LocalResults;
 	FCompilerResultsLog& Results = (pResults != NULL) ? *pResults : LocalResults;
 
-	// STRUCTURES RECOMPILE
-	if (FStructureEditorUtils::StructureEditingEnabled())
-	{
-		FKismetCompilerOptions StructCompileOptions;
-		StructCompileOptions.CompileType = EKismetCompileType::StructuresOnly;
-		Compiler.CompileBlueprint(BlueprintObj, StructCompileOptions, Results, NULL);
-	}
-
 	FBlueprintCompileReinstancer ReinstanceHelper(OldClass);
 
 	// Suppress errors/warnings in the log if we're recompiling on load on a build machine

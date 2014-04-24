@@ -9,6 +9,12 @@ public class OnlineSubsystemSteam : ModuleRules
 	{
 		Definitions.Add("ONLINESUBSYSTEMSTEAM_PACKAGE=1");
 
+		PublicDependencyModuleNames.AddRange(
+			new string[] { 
+				"OnlineSubsystemUtils",
+			}
+		);
+
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"Core", 
@@ -17,9 +23,8 @@ public class OnlineSubsystemSteam : ModuleRules
 				"Sockets", 
 				"Voice",
 				"OnlineSubsystem", 
-				"OnlineSubsystemUtils", 
 			}
-			);
+		);
 
 		AddThirdPartyPrivateStaticDependencies(Target, "Steamworks");
 

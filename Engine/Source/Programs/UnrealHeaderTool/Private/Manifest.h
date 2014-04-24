@@ -7,42 +7,48 @@
 
 #pragma once
 
+struct FManifestModule
+{
+	/** The name of the module */
+	FString Name;
+
+	/** Long package name for this module's UObject class */
+	FString LongPackageName;
+
+	/** Base directory of this module on disk */
+	FString BaseDirectory;
+
+	/** Directory where generated include files should go */
+	FString GeneratedIncludeDirectory;
+
+	/** List of C++ public 'Classes' header files with UObjects in them (legacy) */
+	TArray<FString> PublicUObjectClassesHeaders;
+
+	/** List of C++ public header files with UObjects in them */
+	TArray<FString> PublicUObjectHeaders;
+
+	/** List of C++ private header files with UObjects in them */
+	TArray<FString> PrivateUObjectHeaders;
+
+	/** Absolute path to the module's PCH */
+	FString PCH;
+
+	/** Base (i.e. extensionless) path+filename of where to write out the module's .generated.* files */
+	FString GeneratedCPPFilenameBase;
+
+	/** Whether or not to write out headers that have changed */
+	bool SaveExportedHeaders;
+};
+
 struct FManifest
 {
-	struct FModule
-	{
-		/** The name of the module */
-		FString Name;
-
-		/** Long package name for this module's UObject class */
-		FString LongPackageName;
-
-		/** Base directory of this module on disk */
-		FString BaseDirectory;
-
-		/** Directory where generated include files should go */
-		FString GeneratedIncludeDirectory;
-
-		/** List of C++ public 'Classes' header files with UObjects in them (legacy) */
-		TArray<FString> PublicUObjectClassesHeaders;
-
-		/** List of C++ public header files with UObjects in them */
-		TArray<FString> PublicUObjectHeaders;
-
-		/** List of C++ private header files with UObjects in them */
-		TArray<FString> PrivateUObjectHeaders;
-
-		/** Whether or not to write out headers that have changed */
-		bool SaveExportedHeaders;
-	};
-
 	bool    UseRelativePaths;
 	FString RootLocalPath;
 	FString RootBuildPath;
 
 	/** Ordered list of modules that define UObjects or UStructs, which we may need to generate
 	    code for.  The list is in module dependency order, such that most dependent modules appear first. */
-	TArray<FModule> Modules;
+	TArray<FManifestModule> Modules;
 
 	/**
 	 * Loads an UnrealHeaderTool.manifest from the specified filename.

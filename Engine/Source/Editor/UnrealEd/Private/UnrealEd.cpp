@@ -170,5 +170,5 @@ void EditorExit()
 
 IMPLEMENT_MODULE( FDefaultModuleImpl, UnrealEd );
 
-#include "UnrealEd.generated.inl"
+
 

@@ -10,6 +10,7 @@ public class FriendsAndChat : ModuleRules
 			new string[]
 			{
 				"Core",
+				"CoreUObject",
                 "InputCore",
 				"Slate",
 				"OnlineSubsystem"

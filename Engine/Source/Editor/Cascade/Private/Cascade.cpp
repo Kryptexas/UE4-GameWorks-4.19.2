@@ -13,7 +13,7 @@
 #include "SCascadeEmitterCanvas.h"
 #include "CascadeActions.h"
 #include "Cascade.h"
-#include "Cascade.generated.inl"
+
 
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"

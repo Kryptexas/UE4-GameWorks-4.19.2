@@ -3466,6 +3466,18 @@ UProperty* FHeaderParser::GetVarNameAndDim
 		AddFormattedPrevCommentAsTooltipMetaData(VarProperty.MetaData);
 	}
 
+	// validate UFunction parameters
+	if (IsFunction)
+	{
+		// UFunctions with a smart pointer as input parameter wont compile anyway, because of missing P_GET_... macro.
+		// UFunctions with a smart pointer as return type will crash when called via blueprint, because they are not supported in VM.
+		// WeakPointer is supported by VM as return type (see UObject::execLetWeakObjPtr), but there is no P_GET_... macro for WeakPointer.
+		if ((VarProperty.Type == CPT_LazyObjectReference) || (VarProperty.Type == CPT_AssetObjectReference))
+		{
+			FError::Throwf(TEXT("UFunctions cannot take a smart pointer (LazyPtr, AssetPtr, etc) as a parameter."));
+		}
+	}
+
 	// If this is the first time seeing the property name, then flag it for replace instead of add
 	const EFindName FindFlag = VarProperty.PropertyFlags & CPF_Config ? GetFindFlagForPropertyName(VarProperty.Identifier) : FNAME_Add;
 	// create the FName for the property, splitting (ie Unnamed_3 -> Unnamed,3)
@@ -5758,6 +5770,36 @@ void FHeaderParser::ValidatePropertyIsDeprecatedIfNecessary(FPropertyBase& VarPr
 	}
 }
 
+struct FExposeOnSpawnValidator
+{
+	// Keep this function synced with UEdGraphSchema_K2::FindSetVariableByNameFunction
+	static bool IsSupported(const FPropertyBase& Property)
+	{
+		bool ProperNativeType = false;
+		switch (Property.Type)
+		{
+		case CPT_Int:
+		case CPT_Byte:
+		case CPT_Float:
+		case CPT_Bool:
+		case CPT_ObjectReference:
+		case CPT_String:
+		case CPT_Name:
+		case CPT_Vector:
+		case CPT_Rotation:
+			ProperNativeType = true;
+		}
+
+		if (!ProperNativeType && (CPT_Struct == Property.Type) && Property.Struct)
+		{
+			static const FName BlueprintTypeName(TEXT("BlueprintType"));
+			ProperNativeType |= Property.Struct->GetBoolMetaData(BlueprintTypeName);
+		}
+
+		return ProperNativeType;
+	}
+};
+
 void FHeaderParser::CompileVariableDeclaration(FClasses& AllClasses, UStruct* Struct, EPropertyDeclarationStyle::Type PropertyDeclarationStyle)
 {
 	uint64 DisallowFlags = CPF_ParmFlags;
@@ -5810,6 +5852,14 @@ void FHeaderParser::CompileVariableDeclaration(FClasses& AllClasses, UStruct* St
 	if (OriginalProperty.PropertyFlags & CPF_ParmFlags)
 	{
 		FError::Throwf(TEXT("Illegal type modifiers in member variable declaration") );
+	}
+
+	if (FString* ExposeOnSpawnValue = OriginalProperty.MetaData.Find(TEXT("ExposeOnSpawn")))
+	{
+		if ((*ExposeOnSpawnValue == TEXT("true")) && !FExposeOnSpawnValidator::IsSupported(OriginalProperty))
+		{
+			FError::Throwf(TEXT("ExposeOnSpawn - Property cannoty be exposed"));
+		}
 	}
 
 	// Process all variables of this type.

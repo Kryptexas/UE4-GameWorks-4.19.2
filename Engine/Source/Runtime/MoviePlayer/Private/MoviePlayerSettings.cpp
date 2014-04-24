@@ -2,7 +2,7 @@
 
 #include "MoviePlayer.h"
 #include "MoviePlayerSettings.h"
-#include "MoviePlayer.generated.inl"
+
 
 #define LOCTEXT_NAMESPACE "MoviePlayerSettings"
 

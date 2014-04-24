@@ -333,7 +333,6 @@ public:
 	/** Serializes a reference to a transaction in a given archive. */
 	friend FArchive& operator<<( FArchive& Ar, FTransaction& T )
 	{
-		check( Ar.IsAllowingReferenceElimination() == false );
 		return Ar << T.Records << T.Title << T.ObjectMap << T.Context << T.PrimaryObject;
 	}
 

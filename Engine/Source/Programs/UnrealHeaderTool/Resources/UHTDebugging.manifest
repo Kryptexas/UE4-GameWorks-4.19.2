@@ -5,7 +5,7 @@
 	"Modules":[{
 			"Name": "CoreUObject",
 			"BaseDirectory": "..\\..\\..\\Runtime\\CoreUObject",
-			"OutputDirectory": "..\\..\\..\\..\\Intermediate/Build/Include\\CoreUObject\\",
+			"OutputDirectory": "..\\..\\..\\..\\Intermediate/Build/Inc\\CoreUObject\\",
 			"ClassesHeaders": [
 				"..\\..\\..\\Runtime\\CoreUObject\\Classes\\Object.h"
 			],
@@ -13,11 +13,13 @@
 			],
 			"PrivateHeaders": [
 			],
+			"PCH": "",
+			"GeneratedCPPFilenameBase": "..\\..\\..\\..\\Intermediate/Build/Inc\\CoreUObject\\CoreUObject.generated",
 			"SaveExportedHeaders": true
 		}, {
 			"Name": "UHTDebugging",
 			"BaseDirectory": ".\\UHTDebugging",
-			"OutputDirectory": "..\\..\\..\\..\\Intermediate/Build/Include\\UHTDebugging\\",
+			"OutputDirectory": "..\\..\\..\\..\\Intermediate/Build/Inc\\UHTDebugging\\",
 			"ClassesHeaders": [
 				".\\UHTDebugging\\TestObject.h",
 				".\\UHTDebugging\\TestInterface.h",
@@ -29,6 +31,8 @@
 			],
 			"PrivateHeaders": [
 			],
+			"PCH": "",
+			"GeneratedCPPFilenameBase": "..\\..\\..\\..\\Intermediate/Build/Inc\\UHTDebugging\\UHTDebugging.generated",
 			"SaveExportedHeaders": true
 		}
 	]

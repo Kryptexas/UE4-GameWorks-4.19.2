@@ -10,6 +10,76 @@
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
+struct FCustomStructureParamHelper
+{
+	static FName GetCustomStructureParamName()
+	{
+		static FName Name(TEXT("CustomStructureParam"));
+		return Name;
+	}
+
+	static void FillCustomStructureParameterNames(const UFunction* Function, TArray<FString>& OutNames)
+	{
+		OutNames.Empty();
+		if (Function)
+		{
+			FString MetaDataValue = Function->GetMetaData(GetCustomStructureParamName());
+			if (!MetaDataValue.IsEmpty())
+			{
+				MetaDataValue.ParseIntoArray(&OutNames, TEXT(","), true);
+			}
+		}
+	}
+
+	static void HandleSinglePin(UEdGraphPin* Pin)
+	{
+		if (Pin)
+		{
+			if (Pin->LinkedTo.Num() > 0)
+			{
+				UEdGraphPin* LinkedTo = Pin->LinkedTo[0];
+				check(LinkedTo);
+				ensure(!LinkedTo->PinType.bIsArray);
+
+				Pin->PinType = LinkedTo->PinType;
+			}
+			else
+			{
+				const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
+				Pin->PinType.PinCategory = Schema->PC_Wildcard;
+				Pin->PinType.PinSubCategory = TEXT("");
+				Pin->PinType.PinSubCategoryObject = NULL;
+			}
+		}
+	}
+
+	static void UpdateCustomStructurePins(const UFunction* Function, UK2Node* Node, UEdGraphPin* SinglePin = NULL)
+	{
+		if (Function && Node)
+		{
+			TArray<FString> Names;
+			FCustomStructureParamHelper::FillCustomStructureParameterNames(Function, Names);
+			if (SinglePin)
+			{
+				if (Names.Contains(SinglePin->PinName))
+				{
+					HandleSinglePin(SinglePin);
+				}
+			}
+			else
+			{
+				for (auto& Name : Names)
+				{
+					if (auto Pin = Node->FindPin(Name))
+					{
+						HandleSinglePin(Pin);
+					}
+				}
+			}
+		}
+	}
+};
+
 UK2Node_CallFunction::UK2Node_CallFunction(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
@@ -180,6 +250,8 @@ void UK2Node_CallFunction::AllocateDefaultPins()
 	{
 		CreatePinsForFunctionCall(Function);
 	}
+
+	FCustomStructureParamHelper::UpdateCustomStructurePins(Function, this);
 
 	Super::AllocateDefaultPins();
 }
@@ -624,6 +696,11 @@ void UK2Node_CallFunction::DestroyNode()
 void UK2Node_CallFunction::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 {
 	Super::NotifyPinConnectionListChanged(Pin);
+
+	if (Pin)
+	{
+		FCustomStructureParamHelper::UpdateCustomStructurePins(GetTargetFunction(), this, Pin);
+	}
 
 	if (bIsBeadFunction)
 	{
@@ -1474,12 +1551,26 @@ bool UK2Node_CallFunction::HasExternalBlueprintDependencies(TArray<class UStruct
 	{
 		OptionalOutput->Add(GetTargetFunction());
 	}
-	return bResult;
+	return bResult || Super::HasExternalBlueprintDependencies(OptionalOutput);
 }
 
 UEdGraph* UK2Node_CallFunction::GetFunctionGraph() const
 {
 	return FindObject<UEdGraph>(GetBlueprint(), *(FunctionReference.GetMemberName().ToString()));
+}
+
+bool UK2Node_CallFunction::IsStructureWildcardProperty(const UFunction* Function, const FString& PropertyName)
+{
+	if (Function && !PropertyName.IsEmpty())
+	{
+		TArray<FString> Names;
+		FCustomStructureParamHelper::FillCustomStructureParameterNames(Function, Names);
+		if (Names.Contains(PropertyName))
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 #undef LOCTEXT_NAMESPACE

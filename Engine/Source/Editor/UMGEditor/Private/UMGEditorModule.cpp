@@ -11,8 +11,6 @@
 #include "KismetCompilerModule.h"
 #include "WidgetBlueprintCompiler.h"
 
-#include "UMGEditor.generated.inl"
-
 const FName UMGEditorAppIdentifier = FName(TEXT("UMGEditorApp"));
 
 class FUMGEditorModule : public IUMGEditorModule

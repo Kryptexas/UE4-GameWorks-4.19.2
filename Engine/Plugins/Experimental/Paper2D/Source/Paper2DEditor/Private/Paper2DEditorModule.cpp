@@ -19,7 +19,7 @@
 
 #include "ContentBrowserExtensions/ContentBrowserExtensions.h"
 
-#include "Paper2DEditor.generated.inl"
+
 
 //////////////////////////////////////////////////////////////////////////
 // FPaper2DEditor

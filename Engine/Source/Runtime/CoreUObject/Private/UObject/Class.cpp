@@ -439,7 +439,8 @@ void UStruct::Link(FArchive& Ar, bool bRelinkExistingProperties)
 				// If we don't have the editor, make sure we aren't trying to link properties that are editor only.
 				check( !Property->IsEditorOnlyProperty() );
 #endif // WITH_EDITORONLY_DATA
-
+				ensureMsgf(Property->GetOuter() == this, TEXT("Linking '%s'. Property '%s' has outer '%s'"),
+					*GetFullName(), *Property->GetName(), *Property->GetOuter()->GetFullName());
 				PropertiesSize = Property->Link(Ar);
 				MinAlignment = FMath::Max( MinAlignment, Property->GetMinAlignment() );
 			}
@@ -2135,6 +2136,8 @@ void UScriptStruct::DestroyScriptStruct(void* Dest, int32 ArrayDim)
 		}
 	}
 }
+
+void UScriptStruct::RecursivelyPreload() {}
 
 IMPLEMENT_CORE_INTRINSIC_CLASS(UScriptStruct, UStruct,
 	{

@@ -218,13 +218,9 @@ FLinearColor UK2Node_BreakStruct::GetNodeTitleColor() const
 UK2Node::ERedirectType UK2Node_BreakStruct::DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex)  const
 {
 	ERedirectType Result = UK2Node::DoPinsMatchForReconstruction(NewPin, NewPinIndex, OldPin, OldPinIndex);
-	if ((ERedirectType_None == Result) && NewPin && OldPin && (EGPD_Input == NewPin->Direction) && (EGPD_Input == OldPin->Direction))
+	if ((ERedirectType_None == Result) && DoRenamedPinsMatch(NewPin, OldPin, true))
 	{
-		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-		if (K2Schema->ArePinTypesCompatible( NewPin->PinType, OldPin->PinType))
-		{
-			Result = ERedirectType_Custom;
-		}
+		Result = ERedirectType_Custom;
 	}
 	return Result;
 }

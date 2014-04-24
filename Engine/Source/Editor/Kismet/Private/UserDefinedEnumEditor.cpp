@@ -164,12 +164,12 @@ void FEnumDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 		InputsCategory.AddCustomBuilder( Layout.ToSharedRef() );
 	}
 
-	FEnumEditorUtils::FEnumEditorManager::Get().AddEnumListener(this);
+	FEnumEditorUtils::FEnumEditorManager::Get().AddListener(this);
 }
 
 FEnumDetails::~FEnumDetails()
 {
-	FEnumEditorUtils::FEnumEditorManager::Get().RemoveEnumListener(this);
+	FEnumEditorUtils::FEnumEditorManager::Get().RemoveListener(this);
 }
 
 void FEnumDetails::OnForceRefresh()
@@ -180,7 +180,7 @@ void FEnumDetails::OnForceRefresh()
 	}
 }
 
-void FEnumDetails::OnEnumChanged(const class UUserDefinedEnum* Enum)
+void FEnumDetails::OnChanged(const class UUserDefinedEnum* Enum)
 {
 	if (Enum && (TargetEnum.Get() == Enum))
 	{

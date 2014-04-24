@@ -43,6 +43,7 @@ FAssetTools::FAssetTools()
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_DialogueVoice) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_DialogueWave) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Enum) );
+	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Struct) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Font) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_ForceFeedbackEffect) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_InstancedFoliageSettings) );

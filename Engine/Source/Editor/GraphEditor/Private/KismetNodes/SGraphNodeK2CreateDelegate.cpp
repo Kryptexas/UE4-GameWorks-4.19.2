@@ -59,17 +59,14 @@ FString SGraphNodeK2CreateDelegate::GetCurrentFunctionDescription() const
 		return TEXT("None");
 	}
 
-	for(TFieldIterator<UFunction> It(ScopeClass); It; ++It)
+	if (const auto Func = FindField<UFunction>(ScopeClass, Node->GetFunctionName()))
 	{
-		if(*It && (It->GetFName() == Node->SelectedFunctionName))
-		{
-			return FunctionDescription(*It);
-		}
+		return FunctionDescription(Func);
 	}
 
-	if(Node->SelectedFunctionName != NAME_None)
+	if (Node->GetFunctionName() != NAME_None)
 	{
-		return FString::Printf(TEXT("Error? %"), *Node->SelectedFunctionName.ToString());
+		return FString::Printf(TEXT("Error? %s"), *Node->GetFunctionName().ToString());
 	}
 
 	return TEXT("Select Function");
@@ -90,7 +87,7 @@ void SGraphNodeK2CreateDelegate::OnFunctionSelected(TSharedPtr<FFunctionItemData
 	{
 		if(UK2Node_CreateDelegate* Node = Cast<UK2Node_CreateDelegate>(GraphNode))
 		{
-			Node->SelectedFunctionName = FunctionItemData->Name;
+			Node->SetFunction(FunctionItemData->Name);
 			Node->HandleAnyChange(true);
 
 			auto SelectFunctionWidgetPtr = SelectFunctionWidget.Pin();

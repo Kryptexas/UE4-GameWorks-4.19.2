@@ -536,21 +536,6 @@ public:
 
 	virtual void IndicateSerializationMismatch() { }
 
-	/**
-	 * Whether to allow serialization code to potentially remove references. Note that this
-	 * is increasing/ decreasing an internal counter and hence supporting nesting so elimination
-	 * might not be enabled after calling it. 
-	 *
-	 * @param	Allow Whether to increase or decrease counter determining whether to allow elimination
-	 * @return	true if reference elimination is enabled, false otherwise
-	 */
-	bool AllowEliminatingReferences(bool Allow)
-	{
-		ArAllowEliminatingReferences += Allow ? 1 : -1;
-
-		return IsAllowingReferenceElimination();
-	}
-
 	// Logf implementation for convenience.
 	VARARG_DECL(void, void, {}, Logf, VARARG_NONE, const TCHAR*, VARARG_NONE, VARARG_NONE);
 
@@ -687,11 +672,6 @@ public:
 	FORCEINLINE bool IsIgnoringClassRef() const
 	{
 		return ArIgnoreClassRef;
-	}
-
-	FORCEINLINE bool IsAllowingReferenceElimination() const
-	{
-		return (ArAllowEliminatingReferences > 0) ? true : false;
 	}
 
 	FORCEINLINE bool IsAllowingLazyLoading() const
@@ -1024,9 +1004,6 @@ public:
 
 	/** Whether we are currently serializing defaults. > 0 means yes, <= 0 means no. */
 	int32 ArSerializingDefaults;
-
-	/** Whether we are allowed to potentially NULL references to UObjects, > 0 means yes, <= 0 means no. */
-	int32 ArAllowEliminatingReferences;
 
 	/** Modifier flags that be used when serializing UProperties */
 	uint32 ArPortFlags;

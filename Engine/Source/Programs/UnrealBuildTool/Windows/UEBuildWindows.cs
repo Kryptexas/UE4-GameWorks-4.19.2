@@ -53,6 +53,66 @@ namespace UnrealBuildTool
 			}
 		}
 
+		/**
+		 * Returns VisualStudio common tools path for current compiler.
+		 * 
+		 * @return Common tools path.
+		 */
+		public static string GetVSComnToolsPath()
+		{
+			return GetVSComnToolsPath(Compiler);
+		}
+
+		/**
+		 * Returns VisualStudio common tools path for given compiler.
+		 * 
+		 * @param Compiler Compiler for which to return tools path.
+		 * 
+		 * @return Common tools path.
+		 */
+		public static string GetVSComnToolsPath(WindowsCompiler Compiler)
+		{
+			int VSVersion;
+
+			switch(Compiler)
+			{
+				case WindowsCompiler.VisualStudio2012:
+					VSVersion = 11;
+					break;
+				case WindowsCompiler.VisualStudio2013:
+					VSVersion = 12;
+					break;
+				default:
+					throw new NotSupportedException("Not supported compiler.");
+			}
+
+			string[] PossibleRegPaths = new string[] {
+				@"Wow6432Node\Microsoft\VisualStudio",	// Non-express VS2013 on 64-bit machine.
+				@"Microsoft\VisualStudio",				// Non-express VS2013 on 32-bit machine.
+				@"Wow6432Node\Microsoft\WDExpress",		// Express VS2013 on 64-bit machine.
+				@"Microsoft\WDExpress"					// Express VS2013 on 32-bit machine.
+			};
+
+			string VSPath = null;
+
+			foreach(var PossibleRegPath in PossibleRegPaths)
+			{
+				VSPath = (string) Registry.GetValue(string.Format(@"HKEY_LOCAL_MACHINE\SOFTWARE\{0}\{1}.0", PossibleRegPath, VSVersion), "InstallDir", null);
+
+				if(VSPath != null)
+				{
+					break;
+				}
+			}
+
+			if(VSPath == null)
+			{
+				return null;
+			}
+
+			return new DirectoryInfo(Path.Combine(VSPath, "..", "Tools")).FullName;
+		}
+
 
 		/**
 		 *	Register the platform with the UEBuildPlatform class

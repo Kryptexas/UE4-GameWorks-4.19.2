@@ -11,6 +11,9 @@ class UK2Node_CreateDelegate : public UK2Node
 	UPROPERTY()
 	FName SelectedFunctionName;
 
+	UPROPERTY()
+	FGuid SelectedFunctionGuid;
+
 public:
 	// UEdGraphNode interface
 	virtual void AllocateDefaultPins() OVERRIDE;
@@ -29,6 +32,9 @@ public:
 
 	bool IsValid(FString* OutMsg = NULL, bool bDontUseSkeletalClassForSelf = false) const;
 
+	/** Set new Function name (Without notifying about the change) */
+	BLUEPRINTGRAPH_API void SetFunction(FName Name);
+
 	BLUEPRINTGRAPH_API UFunction* GetDelegateSignature() const;
 	BLUEPRINTGRAPH_API UClass* GetScopeClass(bool bDontUseSkeletalClassForSelf = false) const;
 
@@ -37,10 +43,10 @@ public:
 	BLUEPRINTGRAPH_API UEdGraphPin* GetObjectInPin() const;
  
 	BLUEPRINTGRAPH_API void HandleAnyChange(bool bForceModify = false);
-	BLUEPRINTGRAPH_API void HandleAnyChangeInner();
+	BLUEPRINTGRAPH_API void HandleAnyChangeWithoutNotifying();
 
 	BLUEPRINTGRAPH_API void ValidationAfterFunctionsAreCreated(class FCompilerResultsLog& MessageLog, bool bFullCompile) const;
 
-	// return Graph and Blueprint, when thay should be notified about change. It allown to call BroadcastChanged only once per blueprint.
+	// return Graph and Blueprint, when they should be notified about change. It allows to call BroadcastChanged only once per blueprint.
 	BLUEPRINTGRAPH_API void HandleAnyChange(UEdGraph* & OutGraph, UBlueprint* & OutBlueprint);
 };

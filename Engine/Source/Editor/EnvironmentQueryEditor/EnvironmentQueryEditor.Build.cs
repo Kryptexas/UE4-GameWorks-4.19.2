@@ -8,7 +8,8 @@ public class EnvironmentQueryEditor : ModuleRules
 	{
         PrivateIncludePaths.AddRange(
             new string[] {
-				"Editor/GraphEditor/Private"
+				"Editor/GraphEditor/Private",
+				"Editor/EnvironmentQueryEditor/Private",
 			}
             );
 

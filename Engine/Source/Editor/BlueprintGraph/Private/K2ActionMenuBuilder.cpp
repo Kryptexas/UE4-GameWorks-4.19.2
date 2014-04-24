@@ -1316,7 +1316,7 @@ void FK2ActionMenuBuilder::GetPinAllowedNodeTypes(FBlueprintGraphActionListBuild
 				Action->NodeTemplate = NodeTemplate;
 				Action->SearchTitle = NodeTemplate->GetNodeSearchTitle();
 
-				UFunction* Signature = Cast<UFunction>(FromPin.PinType.PinSubCategoryObject.Get());
+				UFunction* Signature = FMemberReference::ResolveSimpleMemberReference<UFunction>(FromPin.PinType.PinSubCategoryMemberReference);
 				const bool bSupportsEventGraphs = (Blueprint && FBlueprintEditorUtils::DoesSupportEventGraphs(Blueprint));
 				const bool bAllowEvents = (GraphType == GT_Ubergraph);
 				if(Signature && bSupportsEventGraphs && bAllowEvents)

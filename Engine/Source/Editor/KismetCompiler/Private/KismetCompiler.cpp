@@ -1035,11 +1035,7 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 
 		// Determine if this is a new function or if it overrides a parent function
 		//@TODO: Does not support multiple overloads for a parent virtual function
-		const UObject* ParentBlueprint = Blueprint->ParentClass->ClassGeneratedBy;
-
-		//@TODO: The parent function could be not loaded completely when the parent's blueprint is being regenerated. The condition should be removed once the GenerateBlueprintSkeleton is no longer called from Blueprint.Serialize
-		const bool bDontUseParentFunction = ParentBlueprint && ParentBlueprint->HasAnyFlags(RF_BeingRegenerated) && (EKismetCompileType::SkeletonOnly == CompileOptions.CompileType);
-		UFunction* ParentFunction = (!bDontUseParentFunction) ? Blueprint->ParentClass->FindFunctionByName(NewFunctionName) : NULL;
+		UFunction* ParentFunction = Blueprint->ParentClass->FindFunctionByName(NewFunctionName);
 
 		const FString NewFunctionNameString = NewFunctionName.ToString();
 		if (CreatedFunctionNames.Contains(NewFunctionNameString))
@@ -3149,7 +3145,7 @@ void FKismetCompilerContext::Compile()
 						}
 					}
 
-					UEditorEngine::CopyPropertiesForUnrelatedObjects(OldCDO, NewCDO);			
+					UEditorEngine::CopyPropertiesForUnrelatedObjects(OldCDO, NewCDO);
 				}
 
 				// >>> Backwards Compatibility: Propagate data from the skel CDO to the gen CDO if we haven't already done so for this blueprint

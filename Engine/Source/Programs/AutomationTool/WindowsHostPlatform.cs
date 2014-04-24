@@ -44,14 +44,11 @@ namespace AutomationTool
 		private bool FindBaseVSToolPaths(out string WindowsSDKDir, out string BaseVSToolPath)
 		{
 			WindowsSDKDir = "";
-			BaseVSToolPath = "";
+			BaseVSToolPath = WindowsPlatform.GetVSComnToolsPath();
 
 			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2013)
 			{
 				WindowsSDKDir = FindWindowsSDKInstallationFolder( "v8.1" );
-
-				// Grab path to Visual Studio binaries from the system environment
-				BaseVSToolPath = Environment.GetEnvironmentVariable("VS120COMNTOOLS");
 
 				if (string.IsNullOrEmpty(BaseVSToolPath))
 				{
@@ -62,9 +59,6 @@ namespace AutomationTool
 			else if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2012)
 			{
 				WindowsSDKDir = FindWindowsSDKInstallationFolder( "v8.0" );
-
-				// Grab path to Visual Studio binaries from the system environment
-				BaseVSToolPath = Environment.GetEnvironmentVariable("VS110COMNTOOLS");
 
 				if (string.IsNullOrEmpty(BaseVSToolPath))
 				{
@@ -149,15 +143,7 @@ namespace AutomationTool
 		public override string GetMsDevExe()
 		{
 			// Locate MsDevEnv executable
-			string PotentialMsDevExe = null;
-			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2013)
-			{
-				PotentialMsDevExe = CommandUtils.GetEnvVar("VS120COMNTOOLS") + @"..\IDE\Devenv.com";
-			}
-			else if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2012)
-			{
-				PotentialMsDevExe = CommandUtils.GetEnvVar("VS110COMNTOOLS") + @"..\IDE\Devenv.com";
-			}
+			string PotentialMsDevExe = Path.Combine(WindowsPlatform.GetVSComnToolsPath(), "..", "IDE", "Devenv.com");
 
 			var Info = new System.IO.FileInfo(PotentialMsDevExe);
 			if (Info.Exists)

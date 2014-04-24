@@ -13,7 +13,7 @@
 #include "IDistCurveEditor.h"
 
 #include "MatineeClasses.h"
-#include "Matinee.generated.inl"
+
 
 #include "CameraController.h"
 #include "MatineeConstants.h"

@@ -50,5 +50,11 @@ class MATINEE_API UInterpTrackHelper : public UObject
 	* @param KeyIndex	The index of the keyframe that as just added.  This is the index returned by AddKeyframe.
 	*/
 	virtual void  PostCreateKeyframe( UInterpTrack *Track, int32 KeyIndex ) const { }
+
+	/** Returns the name of the new keyframe that has been added, valid while in the process of a rename operation */
+	FName GetKeyframeAddDataName() const { return KeyframeAddDataName; }
+
+protected:
+	static FName	KeyframeAddDataName;
 };
 

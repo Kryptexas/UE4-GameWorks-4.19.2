@@ -811,50 +811,33 @@ int32 FString::ParseIntoArrayWS( TArray<FString>* InArray, const TCHAR* pchExtra
 
 FString FString::Replace(const TCHAR* From, const TCHAR* To, ESearchCase::Type SearchCase) const
 {
-	if (IsEmpty())
+	if (IsEmpty() || !From || !*From)
 	{
 		return *this;
 	}
-
-	FString Result;
 
 	// get a pointer into the character data
-	TCHAR* Travel = (TCHAR*)Data.GetData();
+	const TCHAR* Travel = Data.GetData();
 
-	// precalc the length of the From string
+	// precalc the lengths of the replacement strings
 	int32 FromLength = FCString::Strlen(From);
+	int32 ToLength   = FCString::Strlen(To);
 
-	// FCString::Strstr will not behave like we want on empty From string
-	if (FromLength == 0)
-	{
-		return *this;
-	}
-
+	FString Result;
 	while (true)
 	{
 		// look for From in the remaining string
-		TCHAR* FromLocation = SearchCase == ESearchCase::IgnoreCase ? FCString::Stristr(Travel, From) : FCString::Strstr(Travel, From);
-		if (FromLocation)
-		{
-			// replace the first letter of the From with 0 so we can do a strcpy (FString +=)
-			TCHAR C = *FromLocation;
-			*FromLocation = 0;
-			
-			// copy everything up to the From
-			Result += Travel;
-
-			// copy over the To
-			Result += To;
-
-			// retore the letter, just so we don't have 0's in the string
-			*FromLocation = *From;
-
-			Travel = FromLocation + FromLength;
-		}
-		else
-		{
+		const TCHAR* FromLocation = SearchCase == ESearchCase::IgnoreCase ? FCString::Stristr(Travel, From) : FCString::Strstr(Travel, From);
+		if (!FromLocation)
 			break;
-		}
+
+		// copy everything up to FromLocation
+		Result.AppendChars(Travel, FromLocation - Travel);
+
+		// copy over the To
+		Result.AppendChars(To, ToLength);
+
+		Travel = FromLocation + FromLength;
 	}
 
 	// copy anything left over

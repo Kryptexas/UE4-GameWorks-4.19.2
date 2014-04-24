@@ -6,6 +6,8 @@
 //=============================================================================
 
 #pragma once
+#include "ParticleHelper.h"
+#include "ParticleEmitterInstances.h"
 #include "ParticleEmitter.generated.h"
 
 //=============================================================================

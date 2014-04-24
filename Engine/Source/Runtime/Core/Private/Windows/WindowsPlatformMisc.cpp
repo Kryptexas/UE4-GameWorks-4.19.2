@@ -1940,6 +1940,38 @@ bool FWindowsPlatformMisc::QueryRegKey( const HKEY InKey, const TCHAR* InSubKey,
 	return bSuccess;
 }
 
+bool FWindowsPlatformMisc::GetVSComnTools(int32 Version, FString& OutData)
+{
+	checkf(11 <= Version && Version <= 12, L"Not supported Visual Studio version.");
+
+	const TCHAR* PossibleRegPaths[] = {
+		L"Wow6432Node\\Microsoft\\VisualStudio",	// Non-express VS2013 on 64-bit machine.
+		L"Microsoft\\VisualStudio",					// Non-express VS2013 on 32-bit machine.
+		L"Wow6432Node\\Microsoft\\WDExpress",		// Express VS2013 on 64-bit machine.
+		L"Microsoft\\WDExpress"						// Express VS2013 on 32-bit machine.
+	};
+
+	bool bResult = false;
+	FString IDEPath;
+
+	for (int32 Index = 0; Index < sizeof(PossibleRegPaths) / sizeof(const TCHAR *); ++Index)
+	{
+		bResult = QueryRegKey(HKEY_LOCAL_MACHINE, *FString::Printf(L"SOFTWARE\\%s\\%d.0", PossibleRegPaths[Index], Version), L"InstallDir", IDEPath);
+
+		if (bResult)
+		{
+			break;
+		}
+	}
+	
+	if(bResult)
+	{
+		OutData = FPaths::ConvertRelativePathToFull(FPaths::Combine(*IDEPath, L"..", L"Tools"));
+	}
+
+	return bResult;
+}
+
 const TCHAR* FWindowsPlatformMisc::GetDefaultPathSeparator()
 {
 	return TEXT( "\\" );

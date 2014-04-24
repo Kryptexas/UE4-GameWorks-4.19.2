@@ -4,7 +4,7 @@
 
 #include "ModuleManager.h"
 
-#include "SwarmInterface.generated.inl"
+#include "SwarmMessages.h"
 
 class FSwarmInterfaceModule : public IModuleInterface
 {

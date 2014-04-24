@@ -30,6 +30,7 @@
 #include "SBlueprintEditorToolbar.h"
 
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
+#include "Editor/UnrealEd/Public/Kismet2/StructureEditorUtils.h"
 #include "ObjectEditorUtils.h"
 #include "AssetToolsModule.h"
 #include "Editor/GraphEditor/Private/GraphActionNode.h"
@@ -52,6 +53,9 @@ void FMyBlueprintCommands::RegisterCommands()
 	UI_COMMAND( FindUserDefinedEnumInContentBrowser, "Find in Content Browser...", "Find user defined enum in content browser...", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( AddNewUserDefinedEnum, "Create Enum Asset", "Create new user defined enum asset", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( GotoNativeVarDefinition, "Goto Code Definition", "Goto the native code definition of this variable", EUserInterfaceActionType::Button, FInputGesture() );
+	UI_COMMAND( FindUserDefinedStructInContentBrowser, "Find in Content Browser...", "Find user defined struct in content browser...", EUserInterfaceActionType::Button, FInputGesture() );
+	UI_COMMAND( AddNewUserDefinedStruct, "Create Struct Asset", "Create new user defined struct asset", EUserInterfaceActionType::Button, FInputGesture() );
+
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -168,8 +172,14 @@ void SMyBlueprint::Construct(const FArguments& InArgs, TWeakPtr<FBlueprintEditor
 	InBlueprintEditor.Pin()->GetToolkitCommands()->MapAction( FMyBlueprintCommands::Get().FindUserDefinedEnumInContentBrowser,
 		FExecuteAction::CreateSP(this, &SMyBlueprint::OnFindUserDefinedEnumInContentBrowser) );
 
+	InBlueprintEditor.Pin()->GetToolkitCommands()->MapAction( FMyBlueprintCommands::Get().FindUserDefinedStructInContentBrowser,
+		FExecuteAction::CreateSP(this, &SMyBlueprint::OnFindUserDefinedStructInContentBrowser) );
+
 	InBlueprintEditor.Pin()->GetToolkitCommands()->MapAction( FMyBlueprintCommands::Get().AddNewUserDefinedEnum,
 		FExecuteAction::CreateSP(this, &SMyBlueprint::AddNewUserDefinedEnum) );
+
+	InBlueprintEditor.Pin()->GetToolkitCommands()->MapAction( FMyBlueprintCommands::Get().AddNewUserDefinedStruct,
+		FExecuteAction::CreateSP(this, &SMyBlueprint::AddNewUserDefinedStruct) );
 	
 	ToolKitCommandList->MapAction( FMyBlueprintCommands::Get().DeleteEntry,
 		FExecuteAction::CreateSP(this, &SMyBlueprint::OnDeleteEntry),
@@ -341,6 +351,9 @@ FText SMyBlueprint::OnGetSectionTitle( int32 InSectionID )
 		break;	
 	case NodeSectionID::LOCAL_VARIABLE:
 		SeperatorTitle = NSLOCTEXT("GraphActionNode", "LocalVariables", "Local Variables");
+		break;	
+	case NodeSectionID::USER_STRUCT:
+		SeperatorTitle = NSLOCTEXT("GraphActionNode", "Userstructs", "User Structs");
 		break;	
 	default:
 	case NodeSectionID::NONE:
@@ -585,10 +598,111 @@ EVisibility SMyBlueprint::GetLocalActionsListVisibility() const
 	return EVisibility::Collapsed;
 }
 
-static FString UserDefinedEnumCategoryNameStr()
+struct FActionCollectingHelper
 {
-	return LOCTEXT("UserDefinedEnumCategory", "User defined enums").ToString();
-}
+public:
+	static FString UserDefinedEnumCategoryNameStr()
+	{
+		return LOCTEXT("UserDefinedEnumCategory", "User defined enums").ToString();
+	}
+
+	static FString UserDefinedStructCategoryNameStr()
+	{
+		return LOCTEXT("UserDefinedStructCategory", "User defined structs").ToString();
+	}
+
+	static void AddUserEnumsActions(FGraphActionListBuilderBase& OutAllActions, TArray<UUserDefinedEnum*>& ElementsUsedInBlueprint)
+	{
+		for(auto Element : ElementsUsedInBlueprint)
+		{
+			if(Element)
+			{
+				const FString EnumNameStr = Element->GetName();
+				TSharedPtr<FEdGraphSchemaAction_K2Enum> NewEnumAction = MakeShareable(new FEdGraphSchemaAction_K2Enum( 
+					UserDefinedEnumCategoryNameStr(), FText::FromString(EnumNameStr), EnumNameStr, -1));
+				NewEnumAction->Enum = Element;
+				NewEnumAction->SectionID = NodeSectionID::USER_ENUM;
+				OutAllActions.AddAction(NewEnumAction);
+			}
+		}
+	}
+
+	static void AddUserStructActions(FGraphActionListBuilderBase& OutAllActions, TArray<UUserDefinedStruct*>& ElementsUsedInBlueprint)
+	{
+		for(auto Element : ElementsUsedInBlueprint)
+		{
+			if(Element)
+			{
+				const FString NameStr = Element->GetName();
+				TSharedPtr<FEdGraphSchemaAction_K2Struct> NewEnumAction = MakeShareable(new FEdGraphSchemaAction_K2Struct( 
+					UserDefinedStructCategoryNameStr(), FText::FromString(NameStr), NameStr, -1));
+				NewEnumAction->Struct = Element;
+				NewEnumAction->SectionID = NodeSectionID::USER_STRUCT;
+				OutAllActions.AddAction(NewEnumAction);
+			}
+		}
+	}
+
+	static UUserDefinedEnum* FromProperty(UByteProperty* Property)
+	{
+		return Property ? Cast<UUserDefinedEnum>(Property->GetIntPropertyEnum()) : NULL;
+	}
+
+	static UUserDefinedStruct* FromProperty(UStructProperty* Property)
+	{
+		return Property ? Cast<UUserDefinedStruct>(Property->Struct) : NULL;
+	}
+
+	template<class TClassOfType, class TPropertyType>
+	static void CollectAllUsedTypes(FGraphActionListBuilderBase& OutAllActions, TArray<TClassOfType*>& ElementsUsedInBlueprint)
+	{
+		for ( int32 GraphActionIndex = 0; GraphActionIndex < OutAllActions.GetNumActions(); GraphActionIndex++ )
+		{
+			FGraphActionListBuilderBase::ActionGroup& CurrentGraphAction = OutAllActions.GetAction(GraphActionIndex);
+			for(auto ActionIter = CurrentGraphAction.Actions.CreateIterator(); ActionIter; ActionIter++)
+			{
+				TSharedPtr<FEdGraphSchemaAction> Action = *ActionIter;
+				if(Action.IsValid())
+				{
+					if(FEdGraphSchemaAction_K2Var::StaticGetTypeId() == Action->GetTypeId())
+					{
+						FEdGraphSchemaAction_K2Var* VarAction = (FEdGraphSchemaAction_K2Var*)Action.Get();
+						if(auto Property = Cast<TPropertyType>(VarAction->GetProperty()))
+						{
+							if(auto Element = FromProperty(Property))
+							{
+								ElementsUsedInBlueprint.AddUnique(Element);
+							}
+						}
+					}
+					else if(FEdGraphSchemaAction_K2Graph::StaticGetTypeId() == Action->GetTypeId())
+					{
+						FEdGraphSchemaAction_K2Graph* GraphAction = (FEdGraphSchemaAction_K2Graph*)Action.Get();
+						if(GraphAction->EdGraph)
+						{
+							for(auto NodeIter = GraphAction->EdGraph->Nodes.CreateIterator(); NodeIter; NodeIter++)
+							{
+								if(UEdGraphNode* Node = *NodeIter)
+								{
+									for(auto PinIter = Node->Pins.CreateIterator(); PinIter; PinIter++)
+									{
+										if(UEdGraphPin* Pin = *PinIter)
+										{
+											if(auto Element =  Cast<TClassOfType>(Pin->PinType.PinSubCategoryObject.Get()))
+											{
+												ElementsUsedInBlueprint.AddUnique(Element);
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+};
 
 void SMyBlueprint::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 {
@@ -838,71 +952,39 @@ void SMyBlueprint::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 		GetChildEvents(Graph, NewFuncAction->SectionID, OutAllActions);
 	}
 
-	TArray<UUserDefinedEnum*> UserDefinedEnumUserInBlueprint;
-	for ( int32 GraphActionIndex = 0; GraphActionIndex < OutAllActions.GetNumActions(); GraphActionIndex++ )
 	{
-		FGraphActionListBuilderBase::ActionGroup& CurrentGraphAction = OutAllActions.GetAction(GraphActionIndex);
-		for(auto ActionIter = CurrentGraphAction.Actions.CreateIterator(); ActionIter; ActionIter++)
+		TArray<UUserDefinedEnum*> UserDefinedEnumUserInBlueprint;
+		FActionCollectingHelper::CollectAllUsedTypes<UUserDefinedEnum, UByteProperty>(OutAllActions, UserDefinedEnumUserInBlueprint);
+		for(auto EnumWeakIter = EnumsAddedToBlueprint.CreateIterator(); EnumWeakIter; EnumWeakIter++)
 		{
-			TSharedPtr<FEdGraphSchemaAction> Action = *ActionIter;
-			if(Action.IsValid())
+			if(EnumWeakIter->IsValid())
 			{
-				if(FEdGraphSchemaAction_K2Var::StaticGetTypeId() == Action->GetTypeId())
-				{
-					FEdGraphSchemaAction_K2Var* VarAction = (FEdGraphSchemaAction_K2Var*)Action.Get();
-					if(UByteProperty* ByteProperty = Cast<UByteProperty>(VarAction->GetProperty()))
-					{
-						if(UUserDefinedEnum* UserDefinedEnum =  Cast<UUserDefinedEnum>(ByteProperty->GetIntPropertyEnum()))
-						{
-							UserDefinedEnumUserInBlueprint.AddUnique(UserDefinedEnum);
-						}
-					}
-				}
-				else if(FEdGraphSchemaAction_K2Graph::StaticGetTypeId() == Action->GetTypeId())
-				{
-					FEdGraphSchemaAction_K2Graph* GraphAction = (FEdGraphSchemaAction_K2Graph*)Action.Get();
-					if(GraphAction->EdGraph)
-					{
-						for(auto NodeIter = GraphAction->EdGraph->Nodes.CreateIterator(); NodeIter; NodeIter++)
-						{
-							if(UEdGraphNode* Node = *NodeIter)
-							{
-								for(auto PinIter = Node->Pins.CreateIterator(); PinIter; PinIter++)
-								{
-									if(UEdGraphPin* Pin = *PinIter)
-									{
-										if(UUserDefinedEnum* UserDefinedEnum =  Cast<UUserDefinedEnum>(Pin->PinType.PinSubCategoryObject.Get()))
-										{
-											UserDefinedEnumUserInBlueprint.AddUnique(UserDefinedEnum);
-										}
-									}
-								}
-							}
-						}
-					}
-				}
+				UserDefinedEnumUserInBlueprint.AddUnique(EnumWeakIter->Get());
 			}
 		}
+		FActionCollectingHelper::AddUserEnumsActions(OutAllActions, UserDefinedEnumUserInBlueprint);
 	}
 
-	for(auto EnumWeakIter = EnumsAddedToBlueprint.CreateIterator(); EnumWeakIter; EnumWeakIter++)
+	if (FStructureEditorUtils::UserDefinedStructEnabled())
 	{
-		if(EnumWeakIter->IsValid())
+		TArray<UUserDefinedStruct*> UserDefinedStructUserInBlueprint;
+		FActionCollectingHelper::CollectAllUsedTypes<UUserDefinedStruct, UStructProperty>(OutAllActions, UserDefinedStructUserInBlueprint);
+		// Make sure, that UDStructs from invalid variables are also listed
+		for (auto& VarDesc : Blueprint->NewVariables)
 		{
-			UserDefinedEnumUserInBlueprint.AddUnique(EnumWeakIter->Get());
+			if (auto UDStruct = Cast<UUserDefinedStruct>(VarDesc.VarType.PinSubCategoryObject.Get()))
+			{
+				UserDefinedStructUserInBlueprint.AddUnique(UDStruct);
+			}
 		}
-	}
-	for(auto EnumIter = UserDefinedEnumUserInBlueprint.CreateIterator(); EnumIter; EnumIter++)
-	{
-		if(UEnum* Enum = *EnumIter)
+		for(auto StructWeakPtr : StructsAddedToBlueprint)
 		{
-			const FText EnumNameStr = FText::FromString(Enum->GetName());
-			TSharedPtr<FEdGraphSchemaAction_K2Enum> NewEnumAction = MakeShareable(new FEdGraphSchemaAction_K2Enum( 
-				UserDefinedEnumCategoryNameStr(), EnumNameStr, EnumNameStr.ToString(), -1));
-			NewEnumAction->Enum = Enum;
-			NewEnumAction->SectionID = NodeSectionID::USER_ENUM;
-			OutAllActions.AddAction(NewEnumAction);
+			if(StructWeakPtr.IsValid())
+			{
+				UserDefinedStructUserInBlueprint.AddUnique(StructWeakPtr.Get());
+			}
 		}
+		FActionCollectingHelper::AddUserStructActions(OutAllActions, UserDefinedStructUserInBlueprint);
 	}
 }
 
@@ -1082,6 +1164,15 @@ void SMyBlueprint::OnActionSelected( const TArray< TSharedPtr<FEdGraphSchemaActi
 
 			Inspector->ShowDetailsForSingleObject(EnumAction->Enum, Options);
 		}
+		else if (InAction->GetTypeId() == FEdGraphSchemaAction_K2Struct::StaticGetTypeId())
+		{
+			FEdGraphSchemaAction_K2Struct* StructAction = (FEdGraphSchemaAction_K2Struct*)InAction.Get();
+
+			SKismetInspector::FShowDetailsOptions Options(StructAction->GetPathName().ToString());
+			Options.bForceRefresh = true;
+
+			Inspector->ShowDetailsForSingleObject(StructAction->Struct, Options);
+		}
 		else if (InAction->GetTypeId() == FEdGraphSchemaAction_K2TargetNode::StaticGetTypeId())
 		{
 			FEdGraphSchemaAction_K2TargetNode* TargetNodeAction = (FEdGraphSchemaAction_K2TargetNode*)InAction.Get();
@@ -1179,6 +1270,12 @@ FEdGraphSchemaAction_K2Enum* SMyBlueprint::SelectionAsEnum() const
 	return SelectionAsType<FEdGraphSchemaAction_K2Enum>( GraphActionMenu );
 }
 
+
+FEdGraphSchemaAction_K2Struct* SMyBlueprint::SelectionAsStruct() const
+{
+	return SelectionAsType<FEdGraphSchemaAction_K2Struct>( GraphActionMenu );
+}
+
 FEdGraphSchemaAction_K2Graph* SMyBlueprint::SelectionAsGraph() const
 {
 	return SelectionAsType<FEdGraphSchemaAction_K2Graph>( GraphActionMenu );
@@ -1222,7 +1319,7 @@ bool SMyBlueprint::SelectionIsCategory() const
 
 bool SMyBlueprint::SelectionHasContextMenu() const
 {
-	return SelectionAsGraph() || SelectionAsVar() || SelectionIsCategory() || SelectionAsDelegate() || SelectionAsEnum() || SelectionAsEvent() || SelectionAsLocalVar();
+	return SelectionAsGraph() || SelectionAsVar() || SelectionIsCategory() || SelectionAsDelegate() || SelectionAsEnum() || SelectionAsEvent() || SelectionAsLocalVar() || SelectionAsStruct();
 }
 
 void SMyBlueprint::GetSelectedItemsForContextMenu(TArray<FComponentEventConstructionData>& OutSelectedItems) const
@@ -1256,6 +1353,11 @@ TSharedPtr<SWidget> SMyBlueprint::OnContextMenuOpening()
 		if(SelectionAsEnum())
 		{
 			MenuBuilder.AddMenuEntry(FMyBlueprintCommands::Get().FindUserDefinedEnumInContentBrowser);
+		}
+		
+		if(SelectionAsStruct())
+		{
+			MenuBuilder.AddMenuEntry(FMyBlueprintCommands::Get().FindUserDefinedStructInContentBrowser);
 		}
 
 		MenuBuilder.BeginSection("BasicOperations");
@@ -1316,6 +1418,10 @@ TSharedPtr<SWidget> SMyBlueprint::OnContextMenuOpening()
 			{
 				MenuBuilder.AddMenuSeparator();
 				MenuBuilder.AddMenuEntry(FMyBlueprintCommands::Get().AddNewUserDefinedEnum);
+				if (FStructureEditorUtils::UserDefinedStructEnabled())
+				{
+					MenuBuilder.AddMenuEntry(FMyBlueprintCommands::Get().AddNewUserDefinedStruct);
+				}
 			}
 		}
 	}
@@ -1333,6 +1439,20 @@ void SMyBlueprint::OnFindUserDefinedEnumInContentBrowser() const
 			TArray<UObject*> ObjectsToSync;
 				ObjectsToSync.Add(Enum);
 				GEditor->SyncBrowserToObjects( ObjectsToSync );
+		}
+	}
+}
+
+void SMyBlueprint::OnFindUserDefinedStructInContentBrowser() const
+{
+	if (FEdGraphSchemaAction_K2Struct* GraphAction = SelectionAsStruct())
+	{
+		UUserDefinedStruct* Struct = Cast<UUserDefinedStruct>(GraphAction->Struct);
+		if(Struct && Struct->IsAsset())
+		{
+			TArray<UObject*> ObjectsToSync;
+			ObjectsToSync.Add(Struct);
+			GEditor->SyncBrowserToObjects( ObjectsToSync );
 		}
 	}
 }
@@ -1367,8 +1487,46 @@ void SMyBlueprint::AddNewUserDefinedEnum()
 			Refresh();
 			if (GraphActionMenu.IsValid())
 			{
-				GraphActionMenu->ExpandCategory(UserDefinedEnumCategoryNameStr());
+				GraphActionMenu->ExpandCategory(FActionCollectingHelper::UserDefinedEnumCategoryNameStr());
 				GraphActionMenu->SelectItemByName(FName(*Enum->GetPathName()),ESelectInfo::OnMouseClick);
+				GraphActionMenu->OnRequestRenameOnActionNode();
+			}
+		}
+	}
+}
+
+void SMyBlueprint::AddNewUserDefinedStruct()
+{
+	UBlueprint* Blueprint = GetBlueprintObj();
+	if (Blueprint)
+	{
+		static FName AssetToolsModuleName = FName("AssetTools");
+		FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>(AssetToolsModuleName);
+
+		FString AssetName;
+		FString PackagePath;
+		AssetToolsModule.Get().CreateUniqueAssetName(Blueprint->GetOutermost()->GetName(), TEXT("_Struct"), PackagePath, AssetName);
+
+		UUserDefinedStruct* Struct = NULL;
+		if (!AssetName.IsEmpty())
+		{
+			auto* Factory = ConstructObject<UStructureFactory>(UStructureFactory::StaticClass());
+			if (Factory && Factory->ConfigureProperties())
+			{
+				PackagePath = FPackageName::GetLongPackagePath(Blueprint->GetPathName());
+				UObject* NewAsset = AssetToolsModule.Get().CreateAsset(AssetName, PackagePath, UUserDefinedStruct::StaticClass(), Factory );
+				Struct = Cast<UUserDefinedStruct>(NewAsset);
+			}
+		}
+
+		if (Struct)
+		{
+			StructsAddedToBlueprint.Add(Struct);
+			Refresh();
+			if (GraphActionMenu.IsValid())
+			{
+				GraphActionMenu->ExpandCategory(FActionCollectingHelper::UserDefinedStructCategoryNameStr());
+				GraphActionMenu->SelectItemByName(FName(*Struct->GetPathName()),ESelectInfo::OnMouseClick);
 				GraphActionMenu->OnRequestRenameOnActionNode();
 			}
 		}
@@ -1498,6 +1656,10 @@ void SMyBlueprint::OnFindEntry()
 	else if (FEdGraphSchemaAction_K2Enum* EnumAction = SelectionAsEnum())
 	{
 		SearchTerm = EnumAction->Enum->GetName();
+	}
+	else if (FEdGraphSchemaAction_K2Struct* StructAction = SelectionAsStruct())
+	{
+		BlueprintEditorPtr.Pin()->SummonSearchUI(true, StructAction->Struct->GetName());
 	}
 	else if (FEdGraphSchemaAction_K2Event* EventAction = SelectionAsEvent())
 	{

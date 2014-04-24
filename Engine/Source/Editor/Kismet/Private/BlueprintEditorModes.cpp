@@ -60,11 +60,6 @@ FBlueprintEditorApplicationMode::FBlueprintEditorApplicationMode(TSharedPtr<clas
 	{
 		BlueprintEditorTabFactories.RegisterFactory(MakeShareable(new FDefaultsEditorSummoner(InBlueprintEditor)));
 	}
-	if(FStructureEditorUtils::StructureEditingEnabled())
-	{
-		BlueprintEditorTabFactories.RegisterFactory(MakeShareable(new FUserDefinedStructureEditorSummoner(InBlueprintEditor)));
-	}
-
 	CoreTabFactories.RegisterFactory(MakeShareable(new FSelectionDetailsSummoner(InBlueprintEditor)));
 
 	TabLayout = FTabManager::NewLayout( "Standalone_BlueprintEditor_Layout_v5" )

@@ -820,16 +820,13 @@ bool FVisualStudioSourceCodeAccessor::OpenVisualStudioFileAtLineInternal(const F
 
 void FVisualStudioSourceCodeAccessor::AddVisualStudioVersion(const int MajorVersion, const bool bAllowExpress)
 {
-	// We can use the common tools macro to work out if this version of Visual Studio is installed
-	const FString CommonToolsEnvVar = FString::Printf(TEXT("VS%d0COMNTOOLS"), MajorVersion);
-	TCHAR CommonToolsPath[MAX_PATH];
-	FPlatformMisc::GetEnvironmentVariable(*CommonToolsEnvVar, CommonToolsPath, ARRAY_COUNT(CommonToolsPath));
-	if (!FCString::Strlen(CommonToolsPath))
+	FString CommonToolsPath;
+	if (!FPlatformMisc::GetVSComnTools(MajorVersion, CommonToolsPath))
 	{
 		return;
 	}
 
-	FString BaseExecutablePath = FPaths::Combine(CommonToolsPath, TEXT(".."), TEXT("IDE"));
+	FString BaseExecutablePath = FPaths::Combine(*CommonToolsPath, TEXT(".."), TEXT("IDE"));
 	FPaths::NormalizeDirectoryName(BaseExecutablePath);
 	FPaths::CollapseRelativeDirectories(BaseExecutablePath);
 

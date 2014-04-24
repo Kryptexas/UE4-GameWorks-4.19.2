@@ -29,6 +29,8 @@ private:
 	TUniquePtr<T> Obj_;
 };
 
+struct FManifestModule;
+
 extern TMap<UClass*, FString>                   GClassStrippedHeaderTextMap;
 extern TMap<UClass*, FString>                   GClassSourceFileMap;
 extern TMap<UClass*, TUniqueObj<TArray<FName>>> GClassDependentOnMap;
@@ -39,3 +41,4 @@ extern TMap<UClass*, FString>                   GClassIncludePathMap;
 extern TSet<UClass*>                            GExportedClasses;
 extern TSet<UClass*>                            GPublicClassSet;
 extern TMap<UProperty*, FString>                GArrayDimensions;
+extern TMap<UPackage*,  const FManifestModule*> GPackageToManifestModuleMap;

@@ -16,7 +16,8 @@ namespace NodeSectionID
 		VARIABLE,				// Variables
 		DELEGATE,				// Delegate/Event
 		USER_ENUM,				// User defined enums
-		LOCAL_VARIABLE			// Local variables
+		LOCAL_VARIABLE,			// Local variables
+		USER_STRUCT,			// User defined structs
 	};
 };
 
@@ -40,7 +41,8 @@ public:
 	TSharedPtr<FUICommandInfo> FindUserDefinedEnumInContentBrowser;
 	TSharedPtr<FUICommandInfo> AddNewUserDefinedEnum;
 	TSharedPtr<FUICommandInfo> GotoNativeVarDefinition;
-
+	TSharedPtr<FUICommandInfo> FindUserDefinedStructInContentBrowser;
+	TSharedPtr<FUICommandInfo> AddNewUserDefinedStruct;
 	// Add New Item
 	/** Initialize commands */
 	virtual void RegisterCommands() OVERRIDE;
@@ -67,6 +69,9 @@ public:
 
 	/** Accessor for getting the current selection as a K2 enum */
 	FEdGraphSchemaAction_K2Enum* SelectionAsEnum() const;
+
+	/** Accessor for getting the current selection as a K2 enum */
+	FEdGraphSchemaAction_K2Struct* SelectionAsStruct() const;
 
 	/** Accessor for getting the current selection as a K2 var */
 	FEdGraphSchemaAction_K2Var* SelectionAsVar() const;
@@ -177,6 +182,8 @@ private:
 	void OnDuplicateAction();
 	void GotoNativeCodeVarDefinition();
 	bool IsNativeVariable() const;
+	void OnFindUserDefinedStructInContentBrowser() const;
+	void AddNewUserDefinedStruct();
 
 	/** Callback when the filter is changed, forces the action tree(s) to filter */
 	void OnFilterTextChanged( const FText& InFilterText );
@@ -215,4 +222,7 @@ private:
 
 	/** Contains both the GraphActionMenu and LocalGraphActionMenu */
 	TSharedPtr< SSplitter > ActionMenuContainer;
+
+	/** Enums created from 'blueprint' level */
+	TArray<TWeakObjectPtr<UUserDefinedStruct>> StructsAddedToBlueprint;
 };

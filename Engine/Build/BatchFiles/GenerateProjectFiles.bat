@@ -28,15 +28,25 @@ if not "%INCLUDE%" == "" if not "%LIB%" == "" goto ReadyToCompile
 
 
 rem ## Check for Visual Studio 2013
-if "%VS120COMNTOOLS%" == "" goto NoVisualStudio2013Environment
-call "%VS120COMNTOOLS%/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" >NUL
+
+pushd %~dp0
+call GetVSComnToolsPath 12
+popd
+
+if "%VsComnToolsPath%" == "" goto NoVisualStudio2013Environment
+call "%VsComnToolsPath%/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" >NUL
 goto ReadyToCompile
 
 
 rem ## Check for Visual Studio 2012
+
+pushd %~dp0
+call GetVSComnToolsPath 11
+popd
+
 :NoVisualStudio2013Environment
-if "%VS110COMNTOOLS%" == "" goto NoVisualStudioEnvironment
-call "%VS110COMNTOOLS%/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" >NUL
+if "%VsComnToolsPath%" == "" goto NoVisualStudioEnvironment
+call "%VsComnToolsPath%/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" >NUL
 goto ReadyToCompile
 
 
@@ -75,7 +85,7 @@ goto Exit
 
 :Error_NoVisualStudioEnvironment
 echo.
-echo GenerateProjectFiles ERROR: We couldn't find a valid installation of Visual Studio.  This program requires either Visual Studio 2013 or Visual Studio 2012.  Please check that you have Visual Studio installed, then verify that the VS120COMNTOOLS environment variable is set.  Visual Studio configures this environment variable when it is installed, and this program expects it to be set to the '\Common7\Tools\' sub-folder under a valid Visual Studio installation directory.
+echo GenerateProjectFiles ERROR: We couldn't find a valid installation of Visual Studio.  This program requires either Visual Studio 2013 or Visual Studio 2012.  Please check that you have Visual Studio installed, then verify that the HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\VisualStudio\12.0\InstallDir (or HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\12.0\InstallDir on 32-bit machines) registry value is set.  Visual Studio configures this value when it is installed, and this program expects it to be set to the '\Common7\IDE\' sub-folder under a valid Visual Studio installation directory.
 echo.
 pause
 goto Exit

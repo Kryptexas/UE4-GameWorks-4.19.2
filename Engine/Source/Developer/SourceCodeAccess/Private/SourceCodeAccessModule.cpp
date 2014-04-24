@@ -5,7 +5,6 @@
 #include "SourceCodeAccessModule.h"
 #include "SourceCodeAccessSettings.h"
 #include "Settings.h"
-#include "SourceCodeAccess.generated.inl"
 
 IMPLEMENT_MODULE( FSourceCodeAccessModule, SourceCodeAccess );
 

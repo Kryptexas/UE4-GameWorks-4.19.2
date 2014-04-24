@@ -520,7 +520,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_ADD_CUSTOMPROFILENAME_CHANGE, 
 	// Permanently flip and scale material expression coordinates
 	VER_UE4_FLIP_MATERIAL_COORDS,
-
+	// PinSubCategoryMemberReference added to FEdGraphPinType
+	VER_UE4_MEMBERREFERENCE_IN_PINTYPE,
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
 	VER_UE4_AUTOMATIC_VERSION_PLUS_ONE,

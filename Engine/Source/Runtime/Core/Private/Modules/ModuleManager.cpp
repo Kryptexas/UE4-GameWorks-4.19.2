@@ -1610,19 +1610,14 @@ bool FModuleManager::BuildUnrealBuildTool(FOutputDevice &Ar)
 
 	// First determine the appropriate vcvars batch file to launch
 	FString VCVarsBat;
-	{
+
 #if _MSC_VER >= 1800
- 		TCHAR VS12Path[MAX_PATH];
- 		FPlatformMisc::GetEnvironmentVariable(TEXT("VS120COMNTOOLS"), VS12Path, ARRAY_COUNT(VS12Path));
- 		VCVarsBat = VS12Path;
- 		VCVarsBat += TEXT("/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat");
+	FPlatformMisc::GetVSComnTools(12, VCVarsBat);
 #else
-		TCHAR VS11Path[MAX_PATH];
-		FPlatformMisc::GetEnvironmentVariable(TEXT("VS110COMNTOOLS"), VS11Path, ARRAY_COUNT(VS11Path));
-		VCVarsBat = VS11Path;
-		VCVarsBat += TEXT("/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat");
+	FPlatformMisc::GetVSComnTools(11, VCVarsBat);
 #endif
-	}
+
+	VCVarsBat += FPaths::Combine(*VCVarsBat, L"../../VC/bin/x86_amd64/vcvarsx86_amd64.bat");
 
 	// Check to make sure we found one.
 	if ( VCVarsBat.IsEmpty() || !FPaths::FileExists(VCVarsBat) )

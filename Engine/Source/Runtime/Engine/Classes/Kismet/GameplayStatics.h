@@ -371,7 +371,7 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * @param HitComponent
 	 * @param HitBoneName
 	 */
-	UFUNCTION(BlueprintPure, Category="Collision")
+	UFUNCTION(BlueprintPure, Category = "Collision", meta=(NativeBreakFunc))
 	static void BreakHitResult(const struct FHitResult& Hit, FVector& Location, FVector& Normal, FVector& ImpactPoint, FVector& ImpactNormal, class UPhysicalMaterial*& PhysMat, class AActor*& HitActor, class UPrimitiveComponent*& HitComponent, FName& HitBoneName);
 
 	/** Returns the EPhysicalSurface type of the given Hit. 

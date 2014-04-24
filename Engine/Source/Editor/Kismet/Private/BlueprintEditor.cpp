@@ -45,7 +45,6 @@
 #include "SBlueprintActionMenu.h"
 #include "SMyBlueprint.h"
 #include "FindInBlueprints.h"
-#include "SUserDefinedStructureEditor.h"
 // End of core kismet tabs
 
 // Debugging
@@ -68,7 +67,7 @@
 #include "ISCSEditorCustomization.h"
 #include "Editor/UnrealEd/Public/SourceCodeNavigation.h"
 
-#include "Kismet.generated.inl"
+
 
 #define LOCTEXT_NAMESPACE "BlueprintEditor"
 
@@ -863,6 +862,37 @@ void FBlueprintEditor::EnsureBlueprintIsUpToDate(UBlueprint* BlueprintObj)
 	FBlueprintEditorUtils::UpdateTransactionalFlags(BlueprintObj);
 }
 
+struct FLoadObjectsFromAssetRegistryHelper
+{
+	template<class TObjectType>
+	static void Load(TSet<TWeakObjectPtr<TObjectType>>& Collection)
+	{
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+
+		const double CompileStartTime = FPlatformTime::Seconds();
+
+		TArray<FAssetData> AssetData;
+		AssetRegistryModule.Get().GetAssetsByClass(TObjectType::StaticClass()->GetFName(), AssetData);
+
+		for (int32 AssetIndex = 0; AssetIndex < AssetData.Num(); ++AssetIndex)
+		{
+			if(AssetData[AssetIndex].IsValid())
+			{
+				FString AssetPath = AssetData[AssetIndex].ObjectPath.ToString();
+				TObjectType* Object = LoadObject<TObjectType>(NULL, *AssetPath, NULL, 0, NULL);
+				if (Object)
+				{
+					Collection.Add( TWeakObjectPtr<TObjectType>(Object) );
+				}
+			}
+		}
+
+		const double FinishTime = FPlatformTime::Seconds();
+
+		UE_LOG(LogBlueprint, Log, TEXT("Loading all assets of type: %s took %.2f seconds"), *TObjectType::StaticClass()->GetName(), static_cast<float>(FinishTime - CompileStartTime));
+	}
+};
+
 void FBlueprintEditor::CommonInitialization(const TArray<UBlueprint*>& InitBlueprints)
 {
 	TSharedPtr<FBlueprintEditor> ThisPtr(SharedThis(this));
@@ -891,7 +921,7 @@ void FBlueprintEditor::CommonInitialization(const TArray<UBlueprint*>& InitBluep
 		// Load blueprint libraries
 		LoadLibrariesFromAssetRegistry();
 
-		LoadUserDefinedEnumsFromAssetRegistry();
+		FLoadObjectsFromAssetRegistryHelper::Load<UUserDefinedEnum>(UserDefinedEnumerators);
 
 		UBlueprint* InitBlueprint = InitBlueprints[0];
 
@@ -904,40 +934,11 @@ void FBlueprintEditor::CommonInitialization(const TArray<UBlueprint*>& InitBluep
 		InitBlueprint->bIsNewlyCreated = false;
 
 		// When the blueprint that we are observing changes, it will notify this wrapper widget.
-		InitBlueprint->OnChanged().AddSP( this, &FBlueprintEditor::OnBlueprintChanged );
+		InitBlueprint->OnChanged().AddSP(this, &FBlueprintEditor::OnBlueprintChanged);
 	}
 
 	CreateDefaultCommands();
 	CreateDefaultTabContents(InitBlueprints);
-	
-	if(FStructureEditorUtils::StructureEditingEnabled())
-	{
-		UserDefinedStructureEditor = SNew(SUserDefinedStructureEditor, SharedThis(this));
-	}
-}
-
-void FBlueprintEditor::LoadUserDefinedEnumsFromAssetRegistry()
-{
-	if( GetBlueprintObj() )
-	{
-		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-
-		TArray<FAssetData> AssetData;
-		AssetRegistryModule.Get().GetAssetsByClass(UUserDefinedEnum::StaticClass()->GetFName(), AssetData);
-
-		for (int32 AssetIndex = 0; AssetIndex < AssetData.Num(); ++AssetIndex)
-		{
-			if(AssetData[AssetIndex].IsValid())
-			{
-				FString AssetPath = AssetData[AssetIndex].ObjectPath.ToString();
-				UUserDefinedEnum* EnumObject = LoadObject<UUserDefinedEnum>(NULL, *AssetPath, NULL, 0, NULL);
-				if (EnumObject)
-				{
-					UserDefinedEnumerators.AddUnique( TWeakObjectPtr<UUserDefinedEnum>(EnumObject) );
-				}
-			}
-		}
-	}
 }
 
 void FBlueprintEditor::LoadLibrariesFromAssetRegistry()
@@ -2431,16 +2432,22 @@ void FBlueprintEditor::AddReferencedObjects( FReferenceCollector& Collector )
 	{
 		Collector.AddReferencedObject(StandardLibraries[Index]);
 	}
-	for (int32 Index = 0; Index < UserDefinedEnumerators.Num();)
+
+	UserDefinedEnumerators.Remove(TWeakObjectPtr<UUserDefinedEnum>()); // Remove NULLs
+	for (auto ObjectPtr : UserDefinedEnumerators)
 	{
-		if(UObject* EnumObj = UserDefinedEnumerators[Index].Get(false))
+		if(UObject* Obj = ObjectPtr.Get())
 		{
-			Collector.AddReferencedObject(EnumObj);
-			Index++;
+			Collector.AddReferencedObject(Obj);
 		}
-		else
+	}
+
+	UserDefinedStructures.Remove(TWeakObjectPtr<UUserDefinedStruct>()); // Remove NULLs
+	for (auto ObjectPtr : UserDefinedStructures)
+	{
+		if(UObject* Obj = ObjectPtr.Get())
 		{
-			UserDefinedEnumerators.RemoveAtSwap(Index);
+			Collector.AddReferencedObject(Obj);
 		}
 	}
 }
@@ -2925,12 +2932,15 @@ FEdGraphPinType FBlueprintEditor::OnGetPinType(UEdGraphPin* SelectedPin) const
 
 void FBlueprintEditor::OnChangePinTypeFinished(const FEdGraphPinType& PinType, UEdGraphPin* InSelectedPin)
 {
-	InSelectedPin->PinType = PinType;
-	if (UEdGraphPin* SelectedPin = GetCurrentlySelectedPin())
+	if (FBlueprintEditorUtils::IsPinTypeValid(PinType))
 	{
-		if (UK2Node_Select* SelectNode = Cast<UK2Node_Select>(SelectedPin->GetOwningNode()))
+		InSelectedPin->PinType = PinType;
+		if (UEdGraphPin* SelectedPin = GetCurrentlySelectedPin())
 		{
-			SelectNode->ChangePinType(SelectedPin);
+			if (UK2Node_Select* SelectNode = Cast<UK2Node_Select>(SelectedPin->GetOwningNode()))
+			{
+				SelectNode->ChangePinType(SelectedPin);
+			}
 		}
 	}
 

@@ -4,8 +4,6 @@
 
 #define LOCTEXT_NAMESPACE "BlueprintEditor"
 
-#include "SUserDefinedStructureEditor.h"
-
 /////////////////////////////////////////////////////
 // FLocalKismetCallbacks
 
@@ -108,32 +106,6 @@ public:
 	virtual FText GetTabToolTipText(const FWorkflowTabSpawnInfo& Info) const OVERRIDE
 	{
 		return LOCTEXT("DefaultsEditorTooltip", "The defaults editor lets you set the default value for all variables in your Blueprint.");
-	}
-};
-
-/////////////////////////////////////////////////////
-// FUserDefinedStructureEditorSummoner
-
-struct FUserDefinedStructureEditorSummoner : public FWorkflowTabFactory
-{
-public:
-	FUserDefinedStructureEditorSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp)
-		: FWorkflowTabFactory(FBlueprintEditorTabs::UserDefinedStructureID, InHostingApp)
-	{
-		TabLabel = LOCTEXT("BlueprintUserDefinedStructureTabTitle", "User Defined Structure");
-		TabIcon = FEditorStyle::GetBrush("LevelEditor.Tabs.Details");
-
-		bIsSingleton = true;
-
-		ViewMenuDescription = LOCTEXT("UserDefinedStructureEditorView", "Structures");
-		ViewMenuTooltip = LOCTEXT("UserDefinedStructureEditorView_ToolTip", "Shows the user defined structures editor view");
-	}
-
-	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const OVERRIDE
-	{
-		TSharedPtr<FBlueprintEditor> BlueprintEditorPtr = StaticCastSharedPtr<FBlueprintEditor>(HostingApp.Pin());
-
-		return BlueprintEditorPtr->GetUserDefinedStructureEditor();
 	}
 };
 

@@ -3,7 +3,7 @@
 #include "GameplayTagsEditorModulePrivatePCH.h"
 #include "GameplayTagsGraphPanelPinFactory.h"
 #include "GameplayTagContainerCustomization.h"
-#include "GameplayTagsEditor.generated.inl"
+
 
 
 class FGameplayTagsEditorModule : public IGameplayTagsEditorModule

@@ -473,4 +473,20 @@ void FPropertyEditorModule::RemoveDeletedObjects( TArray<UObject*>& DeletedObjec
 	}
 }
 
+bool FPropertyEditorModule::IsCustomizedStruct(const UStruct* Struct) const
+{
+	if (Struct && !Struct->IsA<UUserDefinedStruct>())
+	{
+		return StructTypeToLayoutMap.Contains(Struct->GetFName());
+	}
+	return false;
+}
 
+FOnGetStructCustomizationInstance FPropertyEditorModule::GetStructCustomizaton(const UStruct* Struct)
+{
+	if (Struct && !Struct->IsA<UUserDefinedStruct>())
+	{
+		return StructTypeToLayoutMap.FindRef(Struct->GetFName());
+	}
+	return FOnGetStructCustomizationInstance();
+}

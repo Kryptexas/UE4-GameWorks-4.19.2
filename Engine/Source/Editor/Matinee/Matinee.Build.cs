@@ -37,7 +37,8 @@ public class Matinee : ModuleRules
 				"UnrealEd",
 				"RenderCore",
 				"AssetRegistry",
-                "ContentBrowser"
+				"ContentBrowser",
+				"BlueprintGraph"
 			}
 			);
 

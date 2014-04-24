@@ -314,16 +314,11 @@ void UTransBuffer::Serialize( FArchive& Ar )
 
 	CheckState();
 
-	// Handle garbage collection.
 	Super::Serialize( Ar );
 
-	// We cannot support undoing across GC if we allow it to eliminate references so we need
-	// to suppress it.
 	if ( IsObjectSerializationEnabled() || !Ar.IsObjectReferenceCollector() )
 	{
-		Ar.AllowEliminatingReferences( false );
 		Ar << UndoBuffer;
-		Ar.AllowEliminatingReferences( true );
 	}
 	Ar << ResetReason << UndoCount << ActiveCount;
 

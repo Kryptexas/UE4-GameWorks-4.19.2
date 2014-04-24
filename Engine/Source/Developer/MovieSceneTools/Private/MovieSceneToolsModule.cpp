@@ -3,10 +3,9 @@
 #include "MovieSceneToolsPrivatePCH.h"
 #include "ModuleManager.h"
 
-// @todo sequencer uobjects: The *.generated.inl should auto-include required headers (they should always have #pragma once anyway)
 #include "MovieSceneFactory.h"
 #include "K2Node_PlayMovieScene.h"
-#include "MovieSceneTools.generated.inl"
+
 #include "ISequencerModule.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 

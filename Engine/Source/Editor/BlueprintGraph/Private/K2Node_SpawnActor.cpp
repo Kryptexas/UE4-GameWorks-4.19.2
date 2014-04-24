@@ -482,7 +482,7 @@ bool UK2Node_SpawnActor::HasExternalBlueprintDependencies(TArray<class UStruct*>
 	{
 		OptionalOutput->Add(SourceClass);
 	}
-	return bResult;
+	return bResult || Super::HasExternalBlueprintDependencies(OptionalOutput);
 }
 
 bool UK2Node_SpawnActor::IsDeprecated() const

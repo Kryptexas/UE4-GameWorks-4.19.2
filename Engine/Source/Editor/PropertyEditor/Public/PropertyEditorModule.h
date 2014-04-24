@@ -317,10 +317,8 @@ public:
 	virtual TSharedRef< FAssetEditorToolkit > CreatePropertyEditorToolkit( const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, const TArray< UObject* >& ObjectsToEdit );
 	virtual TSharedRef< FAssetEditorToolkit > CreatePropertyEditorToolkit( const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, const TArray< TWeakObjectPtr< UObject > >& ObjectsToEdit );
 
-	FOnGetStructCustomizationInstance GetStructCustomizaton( FName StructTypeName )
-	{
-		return StructTypeToLayoutMap.FindRef( StructTypeName );
-	}
+	FOnGetStructCustomizationInstance GetStructCustomizaton(const UStruct* Struct);
+	bool IsCustomizedStruct(const UStruct* Struct) const;
 
 private:
 

@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "ParticleHelper.h"
 #include "ParticleSystemComponent.generated.h"
 
 /** Enum for specifying type of a name instance parameter. */
@@ -615,7 +616,7 @@ public:
 	* @param OutTrailEmitters	The array to fill with pointers to
 	* @param bIncludeUnassociated If true, trails that have not yet been associated with an AnimNotifyState are included in OutTrailEmitters.
 	*/
-	virtual void GetTrailEmitters(UAnimNotifyState* InAnimNotifyState, TArray< FParticleAnimTrailEmitterInstance* >& OutTrailEmitters, bool bIncludeUnassociated = false);
+	virtual void GetTrailEmitters(UAnimNotifyState* InAnimNotifyState, TArray< struct FParticleAnimTrailEmitterInstance* >& OutTrailEmitters, bool bIncludeUnassociated = false);
 
 public:
 	TArray<struct FParticleEmitterInstance*> EmitterInstances;

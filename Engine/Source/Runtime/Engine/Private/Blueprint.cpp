@@ -192,20 +192,6 @@ void UBlueprint::Serialize(FArchive& Ar)
 		}
 	}
 
-	// If we don't have a skeleton class via compile-on-load, generate one now
-	if( Ar.IsLoading() && (SkeletonGeneratedClass == NULL) )
-	{
-		bool bWasRegen = bIsRegeneratingOnLoad;
-		bIsRegeneratingOnLoad = true;
-
-		FBlueprintEditorUtils::PreloadMembers(this);
-		FBlueprintEditorUtils::PreloadConstructionScript(this);
-		FBlueprintEditorUtils::RefreshInputDelegatePins(this);
-		FKismetEditorUtilities::GenerateBlueprintSkeleton(this);
-
-		bIsRegeneratingOnLoad = bWasRegen;
-	}
-
 	if (Ar.UE4Ver() < VER_UE4_BP_ACTOR_VARIABLE_DEFAULT_PREVENTING)
 	{
 		// Actor variables can't have default values (because Blueprint templates are library elements that can 
@@ -256,18 +242,6 @@ bool UBlueprint::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Fl
 		if(!bMovedOK)
 		{
 			return false;
-		}
-	}
-
-	for (auto StructIter = UserDefinedStructures.CreateIterator(); StructIter; ++StructIter)
-	{
-		if (UBlueprintGeneratedStruct* CompiledStruct = (*StructIter).CompiledStruct)
-		{
-			bool bMovedOK = CompiledStruct->Rename(*CompiledStruct->GetName(), NewOuter, Flags);
-			if(!bMovedOK)
-			{
-				return false;
-			}
 		}
 	}
 
@@ -812,17 +786,6 @@ void UBlueprint::TagSubobjects(EObjectFlags NewFlags)
 		SkeletonGeneratedClass->SetFlags(NewFlags);
 		SkeletonGeneratedClass->TagSubobjects(NewFlags);
 	}
-#if WITH_EDITORONLY_DATA
-	for (auto StructDescIter = UserDefinedStructures.CreateIterator(); StructDescIter; ++StructDescIter)
-	{
-		UBlueprintGeneratedStruct* Struct = (*StructDescIter).CompiledStruct;
-		if (Struct && !Struct->HasAnyFlags(GARBAGE_COLLECTION_KEEPFLAGS | RF_RootSet))
-		{
-			Struct->SetFlags(NewFlags);
-			Struct->TagSubobjects(NewFlags);
-		}
-	}
-#endif // WITH_EDITORONLY_DATA
 }
 
 void UBlueprint::GetAllGraphs(TArray<UEdGraph*>& Graphs) const
@@ -970,3 +933,17 @@ void UBlueprint::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph)
 }
 
 #endif
+
+#if WITH_EDITORONLY_DATA
+
+FName UBlueprint::GetFunctionNameFromClassByGuid(const UClass* InClass, const FGuid FunctionGuid)
+{
+	return FBlueprintEditorUtils::GetFunctionNameFromClassByGuid(InClass, FunctionGuid);
+}
+
+bool UBlueprint::GetFunctionGuidFromClassByFieldName(const UClass* InClass, const FName FunctionName, FGuid& FunctionGuid)
+{
+	return FBlueprintEditorUtils::GetFunctionGuidFromClassByFieldName(InClass, FunctionName, FunctionGuid);
+}
+
+#endif //WITH_EDITORONLY_DATA

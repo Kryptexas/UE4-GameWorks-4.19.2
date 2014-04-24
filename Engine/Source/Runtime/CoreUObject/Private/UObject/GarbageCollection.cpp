@@ -1196,7 +1196,9 @@ void UObject::AddReferencedObjects(UObject* This, FReferenceCollector& Collector
 	{
 		UObject* LoadOuter = This->GetOuter();
 		UClass *Class = This->GetClass();
+		Collector.AllowEliminatingReferences(false);
 		Collector.AddReferencedObject( LoadOuter, This );
+		Collector.AllowEliminatingReferences(true);
 		Collector.AddReferencedObject( Class, This );
 
 		// Serialize object properties which are defined in the class.

@@ -5,7 +5,7 @@
 #include "ModuleManager.h"
 
 #include "IPAddress.h"
-#include "OnlineSubsystemUtils.generated.inl"
+
 #include "NboSerializer.h"
 
 #include "Voice.h"

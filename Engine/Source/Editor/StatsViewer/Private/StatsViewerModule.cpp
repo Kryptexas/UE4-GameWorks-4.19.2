@@ -7,7 +7,7 @@
 #include "StaticMeshLightingInfoStatsPage.h"
 #include "TextureStatsPage.h"
 #include "ObjectHyperlinkColumn.h"
-#include "StatsViewer.generated.inl"
+
 
 #define LOCTEXT_NAMESPACE "Editor.StatsViewer"
 

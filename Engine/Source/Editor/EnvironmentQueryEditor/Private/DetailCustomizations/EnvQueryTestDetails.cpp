@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "../EnvironmentQueryEditorPrivatePCH.h"
+#include "EnvironmentQueryEditorPrivatePCH.h"
 #include "EnvQueryTestDetails.h"
 
 #define LOCTEXT_NAMESPACE "EnvQueryTestDetails"

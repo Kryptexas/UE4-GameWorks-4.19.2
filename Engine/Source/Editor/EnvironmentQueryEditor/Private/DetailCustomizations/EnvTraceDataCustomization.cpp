@@ -1,6 +1,6 @@
 // Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
 
-#include "../EnvironmentQueryEditorPrivatePCH.h"
+#include "EnvironmentQueryEditorPrivatePCH.h"
 #include "EnvTraceDataCustomization.h"
 
 #define LOCTEXT_NAMESPACE "EnvTraceDataCustomization"

@@ -176,6 +176,16 @@ struct CORE_API FWindowsPlatformMisc : public FGenericPlatformMisc
 	static bool QueryRegKey( const HKEY InKey, const TCHAR* InSubKey, const TCHAR* InValueName, FString& OutData );
 
 	/**
+	 * Gets Visual Studio common tools path.
+	 *
+	 * @param Version Version of VS to get (11 - 2012, 12 - 2013).
+	 * @param OutData Output parameter with common tools path.
+	 *
+	 * @return Returns if succeeded.
+	 */
+	static bool GetVSComnTools(int32 Version, FString& OutData);
+
+	/**
 	 * Returns the size of the cache line in bytes.
 	 *
 	 * @return The cache line size.

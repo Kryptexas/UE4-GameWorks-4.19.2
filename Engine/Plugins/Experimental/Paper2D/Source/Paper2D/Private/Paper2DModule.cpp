@@ -3,7 +3,7 @@
 #include "Paper2DPrivatePCH.h"
 #include "Paper2DModule.h"
 
-#include "Paper2D.generated.inl"
+
 
 #include "Physics/Box2DIntegration.h"
 

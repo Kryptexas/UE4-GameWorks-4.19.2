@@ -2303,3 +2303,8 @@ void UKismetSystemLibrary::ShowPlatformSpecificAchievementsScreen()
 	AndroidThunkCpp_ShowAchievements();
 #endif
 }
+void UKismetSystemLibrary::SetStructurePropertyByName(UObject* Object, FName PropertyName, const FGenericStruct& Value)
+{
+	// We should never hit these!  They're stubs to avoid NoExport on the class.
+	check(0);
+}

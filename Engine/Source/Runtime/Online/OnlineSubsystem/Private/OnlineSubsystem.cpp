@@ -5,8 +5,6 @@
 #include "OnlineIdentityInterface.h"
 #include "NboSerializer.h"
 
-#include "OnlineSubsystem.generated.inl"
-
 DEFINE_LOG_CATEGORY(LogOnline);
 DEFINE_LOG_CATEGORY(LogOnlineGame);
 

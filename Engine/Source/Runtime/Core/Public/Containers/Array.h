@@ -374,9 +374,14 @@ public:
 		CopyToEmpty(Other);
 	}
 
-	TArray(const TArray<ElementType,Allocator>& Other)
+	TArray(const TArray& Other)
 	{
 		CopyToEmpty(Other);
+	}
+
+	TArray(const TArray& Other, int32 ExtraSlack)
+	{
+		CopyToEmpty(Other, ExtraSlack);
 	}
 
 	template<typename OtherAllocator>
@@ -412,9 +417,17 @@ private:
 	}
 
 	template <typename ArrayType>
-	static FORCEINLINE typename TEnableIf<!TContainerTraits<ArrayType>::MoveWillEmptyContainer>::Type MoveOrCopy(ArrayType& ToArray, ArrayType& FromArray)
+	static FORCEINLINE typename TEnableIf<TContainerTraits<ArrayType>::MoveWillEmptyContainer>::Type MoveOrCopy(ArrayType& ToArray, ArrayType& FromArray, int32 ExtraSlack)
 	{
-		ToArray.CopyToEmpty(FromArray);
+		MoveOrCopy(ToArray, FromArray);
+
+		ToArray.Reserve(ToArray.ArrayNum + ExtraSlack);
+	}
+
+	template <typename ArrayType>
+	static FORCEINLINE typename TEnableIf<!TContainerTraits<ArrayType>::MoveWillEmptyContainer>::Type MoveOrCopy(ArrayType& ToArray, ArrayType& FromArray, int32 ExtraSlack = 0)
+	{
+		ToArray.CopyToEmpty(FromArray, ExtraSlack);
 	}
 
 public:
@@ -425,6 +438,11 @@ public:
 	TArray(TArray<ElementType,Allocator>&& Other)
 	{
 		MoveOrCopy(*this, Other);
+	}
+
+	TArray(TArray<ElementType,Allocator>&& Other, int32 ExtraSlack)
+	{
+		MoveOrCopy(*this, Other, ExtraSlack);
 	}
 
 	TArray& operator=(TArray<ElementType,Allocator>&& Other)
@@ -1490,15 +1508,17 @@ private:
 	 * @param Source the source array to copy
 	 */
 	template<typename OtherAllocator>
-	void CopyToEmpty(const TArray<ElementType,OtherAllocator>& Source)
+	void CopyToEmpty(const TArray<ElementType,OtherAllocator>& Source, int32 ExtraSlack = 0)
 	{
+		check(ExtraSlack >= 0);
+
 		int32 SourceCount = Source.Num();
-		AllocatorInstance.ResizeAllocation(0, SourceCount, sizeof(ElementType));
+		AllocatorInstance.ResizeAllocation(0, SourceCount + ExtraSlack, sizeof(ElementType));
 
 		CopyConstructItems(GetTypedData(), Source.GetTypedData(), SourceCount);
 
 		ArrayNum = SourceCount;
-		ArrayMax = SourceCount;
+		ArrayMax = SourceCount + ExtraSlack;
 	}
 
 protected:

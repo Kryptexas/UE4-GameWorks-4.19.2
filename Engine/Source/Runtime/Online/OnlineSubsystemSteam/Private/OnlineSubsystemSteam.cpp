@@ -7,7 +7,7 @@
 #include "IpAddressSteam.h"
 #include "OnlineSubsystemUtilsClasses.h"
 #include "OnlineSubsystemSteamClasses.h"
-#include "OnlineSubsystemSteam.generated.inl"
+
 
 #include "SocketSubsystemSteam.h"
 

@@ -15,7 +15,6 @@ static const uint32 MaxArrayPinTooltipLineCount = 10;
 UK2Node::UK2Node(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	RemovedPinArrayIndex = INDEX_NONE;
 }
 
 FText UK2Node::GetToolTipHeading() const
@@ -264,64 +263,6 @@ void UK2Node::PostReconstructNode()
 	}
 }
 
-void UK2Node::RemovePinsFromOldPins(TArray<UEdGraphPin*>& OldPins, int32 RemovedArrayIndex)
-{
-	TArray<FString> RemovedPropertyNames;
-	TArray<FString> NewPinNames;
-
-	// Store new pin names to compare with old pin names
-	for(int32 NewPinIndx=0; NewPinIndx < Pins.Num(); NewPinIndx++)
-	{
-		NewPinNames.Add(Pins[NewPinIndx]->PinName);
-	}
-
-	// don't know which pins are removed yet so find removed pins comparing NewPins and OldPins
-	for(int32 OldPinIdx=0; OldPinIdx < OldPins.Num(); OldPinIdx++)
-	{
-		FString& OldPinName = OldPins[OldPinIdx]->PinName;
-		if(!NewPinNames.Contains(OldPinName))
-		{
-			int32 UnderscoreIndex = OldPinName.Find(TEXT("_"));
-			if (UnderscoreIndex != INDEX_NONE)
-			{
-				FString PropertyName = OldPinName.Left(UnderscoreIndex);
-				RemovedPropertyNames.Add(PropertyName);
-			}
-		}
-	}
-
-	for(int32 PinIdx=0; PinIdx < OldPins.Num(); PinIdx++)
-	{
-		// Separate the pin name into property name and index
-		FString PropertyName;
-		int32 ArrayIndex = -1;
-		FString& OldPinName = OldPins[PinIdx]->PinName;
-
-		int32 UnderscoreIndex = OldPinName.Find(TEXT("_"));
-		if (UnderscoreIndex != INDEX_NONE)
-		{
-			PropertyName = OldPinName.Left(UnderscoreIndex);
-			ArrayIndex = FCString::Atoi(*(OldPinName.Mid(UnderscoreIndex + 1)));
-
-			if(RemovedPropertyNames.Contains(PropertyName))
-			{
-				// if array index is matched, removes pins 
-				// and if array index is greater than removed index, decrease index
-				if(ArrayIndex == RemovedArrayIndex)
-				{
-					OldPins.RemoveAt(PinIdx);
-					--PinIdx;
-				}
-				else
-				if(ArrayIndex > RemovedArrayIndex)
-				{
-					OldPinName = FString::Printf(TEXT("%s_%d"), *PropertyName, ArrayIndex-1);
-				}
-			}
-		}
-	}
-}
-
 void UK2Node::ReconstructNode()
 {
 	Modify();
@@ -350,15 +291,6 @@ void UK2Node::ReconstructNode()
 
 	// Recreate the new pins
 	ReallocatePinsDuringReconstruction(OldPins);
-
-	// Delete Pins by removed pin info 
-	if(RemovedPinArrayIndex != INDEX_NONE)
-	{
-		RemovePinsFromOldPins(OldPins, RemovedPinArrayIndex);
-		// Clears removed pin info to avoid to remove multiple times
-		// @TODO : Considering receiving RemovedPinArrayIndex as an argument of ReconstructNode()
-		RemovedPinArrayIndex = INDEX_NONE;
-	}
 
 	bool bDestroyOldPins = true;
 
@@ -567,10 +499,7 @@ void UK2Node::ReconstructSinglePin(UEdGraphPin* NewPin, UEdGraphPin* OldPin, ERe
 		}
 	}
 
-	// Try to preserve the object name of the old pin to reduce clutter in diffs
-	FString OldPinName = OldPin->GetName();
 	OldPin->Rename(NULL, GetTransientPackage(), (REN_DontCreateRedirectors|(Blueprint->bIsRegeneratingOnLoad ? REN_ForceNoResetLoaders : REN_None)));
-	NewPin->Rename(*OldPinName, NewPin->GetOuter(), (REN_DontCreateRedirectors|(Blueprint->bIsRegeneratingOnLoad ? REN_ForceNoResetLoaders : REN_None)));
 }
 
 bool UK2Node::HasValidBlueprint() const

@@ -1070,7 +1070,7 @@ void FPropertyValueImpl::AddChild()
 
 					if (const UStructProperty* StructProperty = Cast<const UStructProperty>(Array->Inner))
 					{
-						if(!FStructureEditorUtils::Fill_MakeStructureDefaultValue(Cast<const UBlueprintGeneratedStruct>(StructProperty->Struct), ArrayHelper.GetRawPtr(ArrayIndex)))
+						if(!FStructureEditorUtils::Fill_MakeStructureDefaultValue(Cast<const UUserDefinedStruct>(StructProperty->Struct), ArrayHelper.GetRawPtr(ArrayIndex)))
 						{
 							UE_LOG(LogPropertyNode, Warning, TEXT("MakeStructureDefaultValue parsing error. Property: %s "), *StructProperty->GetName());
 						}

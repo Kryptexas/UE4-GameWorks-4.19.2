@@ -9,7 +9,8 @@ public class BehaviorTreeEditor : ModuleRules
         PrivateIncludePaths.AddRange(
             new string[] {
 				"Editor/GraphEditor/Private",
-				"Editor/Kismet/Private"
+				"Editor/Kismet/Private",
+				"Editor/BehaviorTreeEditor/Private",
 			}
             );
 

@@ -1258,7 +1258,7 @@ struct FPrimitiveMaterialRef
 };
 
 /** Structure containing information about one hit of the trace */
-USTRUCT(BlueprintType)
+USTRUCT(BlueprintType, meta=(HasNativeMakeBreak="true"))
 struct ENGINE_API FHitResult
 {
 	GENERATED_USTRUCT_BODY()

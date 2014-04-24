@@ -30,7 +30,7 @@ public:
 			// Create a term to store the locally created delegate that we'll use to add to the MC delegate
 			FBPTerminal* DelegateTerm = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
 			DelegateTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Delegate;
-			DelegateTerm->Type.PinSubCategoryObject = DelegateNode->GetDelegateSignature();
+			FMemberReference::FillSimpleMemberReference<UFunction>(DelegateNode->GetDelegateSignature(), DelegateTerm->Type.PinSubCategoryMemberReference);
 			DelegateTerm->Source = Node;
 			DelegateTerm->Name = Context.NetNameMap->MakeValidName(Node) + TEXT("_TempBindingDelegate");
 			DelegateTerm->bIsLocal = true;

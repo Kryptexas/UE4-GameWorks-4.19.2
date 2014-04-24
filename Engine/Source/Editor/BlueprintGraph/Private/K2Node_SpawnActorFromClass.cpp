@@ -449,10 +449,7 @@ void UK2Node_SpawnActorFromClass::ExpandNode(class FKismetCompilerContext& Compi
 					// Move connection from the variable pin on the spawn node to the 'value' pin
 					UEdGraphPin* ValuePin = SetVarNode->FindPinChecked(ValueParamName);
 					CompilerContext.MovePinLinksToIntermediate(*SpawnVarPin, *ValuePin);
-					if(SpawnVarPin->PinType.bIsArray)
-					{
-						SetVarNode->PinConnectionListChanged(ValuePin);
-					}
+					SetVarNode->PinConnectionListChanged(ValuePin);
 
 					// Update 'last node in sequence' var
 					LastNode = SetVarNode;
@@ -478,7 +475,7 @@ bool UK2Node_SpawnActorFromClass::HasExternalBlueprintDependencies(TArray<class 
 	{
 		OptionalOutput->Add(SourceClass);
 	}
-	return bResult;
+	return bResult || Super::HasExternalBlueprintDependencies(OptionalOutput);
 }
 
 #undef LOCTEXT_NAMESPACE

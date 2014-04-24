@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "../BehaviorTreeEditorPrivatePCH.h"
+#include "BehaviorTreeEditorPrivatePCH.h"
 #include "BlackboardDecoratorDetails.h"
 
 #define LOCTEXT_NAMESPACE "BlackboardDecoratorDetails"

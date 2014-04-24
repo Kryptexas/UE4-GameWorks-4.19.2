@@ -3064,6 +3064,7 @@ void FSlateEditorStyle::FStyle::SetupGraphEditorStyles()
 		Set( "GraphEditor.EventGlyph", new IMAGE_BRUSH( "Graph/Icons/Event", Icon22x22, FLinearColor::White) );
 		Set( "GraphEditor.EventCustomGlyph", new IMAGE_BRUSH( "Graph/Icons/Event_Custom", Icon22x22, FLinearColor::White) );
 		Set( "GraphEditor.SCSGlyph", new IMAGE_BRUSH( "Graph/Icons/Hammer", Icon22x22, FLinearColor::White) );
+		Set( "GraphEditor.StructGlyph", new IMAGE_BRUSH( "Graph/Icons/Struct", Icon22x22, FLinearColor::White) );
 		// Find In Blueprints
 		Set( "GraphEditor.FIB_CallFunction", new IMAGE_BRUSH( "Graph/Icons/FIB_CallFunction", Icon22x22, FLinearColor::White) );
 		Set( "GraphEditor.FIB_MacroInstance", new IMAGE_BRUSH( "Graph/Icons/FIB_MacroInstance", Icon22x22, FLinearColor::White) );
@@ -4066,6 +4067,7 @@ void FSlateEditorStyle::FStyle::SetupClassIconsAndThumbnails()
 		Set( "ClassIcon.TextureRenderTarget2D", new IMAGE_BRUSH( "Icons/AssetIcons/TextureRenderTarget2D_16x", Icon16x16 ) );
 		Set( "ClassIcon.TextureRenderTargetCube", new IMAGE_BRUSH( "Icons/AssetIcons/TextureRenderTargetCube_16x", Icon16x16 ) );
 		Set( "ClassIcon.UserDefinedEnum", new IMAGE_BRUSH( "Icons/AssetIcons/Enumeration_16x", Icon16x16 ) );
+		Set( "ClassIcon.UserDefinedStruct", new IMAGE_BRUSH( "Icons/AssetIcons/Structure_16x", Icon16x16 ) );
 		Set( "ClassIcon.SlateWidgetStyleAsset", new IMAGE_BRUSH("Icons/AssetIcons/SlateStyle_16x", Icon16x16 ) );
 
 		// Builder brushes
@@ -4161,6 +4163,7 @@ void FSlateEditorStyle::FStyle::SetupClassIconsAndThumbnails()
 		Set( "ClassThumbnail.TextureRenderTarget2D", new IMAGE_BRUSH( "Icons/icon_class_TextureRenderTarget2D_64x", Icon32x32 ) );
 		Set( "ClassThumbnail.TextureRenderTargetCube", new IMAGE_BRUSH( "Icons/icon_class_TextureRenderTargetCube_64x", Icon32x32 ) );
 		Set( "ClassThumbnail.UserDefinedEnum", new IMAGE_BRUSH( "Icons/icon_class_Enumeration_64x", Icon32x32 ) );
+		Set( "ClassThumbnail.UserDefinedStruct", new IMAGE_BRUSH( "Icons/icon_class_Structure_64x", Icon32x32 ) );
 		Set( "ClassThumbnail.SlateWidgetStyleAsset", new IMAGE_BRUSH("Icons/icon_class_SlateStyle_64x", Icon32x32 ) );
 	}
 #endif

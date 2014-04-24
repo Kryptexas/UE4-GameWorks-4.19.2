@@ -410,7 +410,7 @@ bool UK2Node_Variable::HasExternalBlueprintDependencies(TArray<class UStruct*>* 
 	{
 		OptionalOutput->Add(SourceClass);
 	}
-	return bResult;
+	return bResult || Super::HasExternalBlueprintDependencies(OptionalOutput);
 }
 
 FString UK2Node_Variable::GetDocumentationLink() const

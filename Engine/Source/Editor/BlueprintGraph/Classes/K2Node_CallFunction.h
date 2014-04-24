@@ -150,7 +150,12 @@ public:
 
 	/** Returns the graph for this function, if available */
 	UEdGraph* GetFunctionGraph() const;
-private:
+
+	/** Checks if the property is marked as "CustomStructureParam" */
+	static bool IsStructureWildcardProperty(const UFunction* InFunction, const FString& PropertyName);
+
+private: 
+
 	/** Helper function to check if the SelfPin is wired correctly */
 	bool IsSelfPinCompatibleWithBlueprintContext (UEdGraphPin *SelfPin, UBlueprint* BlueprintObj) const;
 

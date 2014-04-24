@@ -3,7 +3,7 @@
 #include "GameProjectGenerationPrivatePCH.h"
 #include "ModuleManager.h"
 #include "GameProjectGenerationModule.h"
-#include "GameProjectGeneration.generated.inl"
+
 
 
 IMPLEMENT_MODULE( FGameProjectGenerationModule, GameProjectGeneration );

@@ -11,6 +11,8 @@
 
 #define LOCTEXT_NAMESPACE "MatineeTrackHelpers"
 
+FName	UInterpTrackHelper::KeyframeAddDataName = NAME_None;
+
 UInterpTrackHelper::UInterpTrackHelper(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
@@ -41,7 +43,6 @@ AActor* UInterpTrackHelper::GetGroupActor(const UInterpTrack* Track) const
 
 // Common FName used just for storing name information while adding Keyframes to tracks.
 static UAnimSequence*	KeyframeAddAnimSequence = NULL;
-static FName			KeyframeAddDataName = NAME_None;
 static USoundBase*		KeyframeAddSound = NULL;
 static FName			TrackAddPropName = NAME_None;
 static FName			AnimSlotName = NAME_None;
@@ -432,6 +433,7 @@ void  UMatineeTrackEventHelper::PostCreateKeyframe( UInterpTrack *Track, int32 K
 	// Update AllEventNames array now we have given it a name
 	UInterpGroup* Group = CastChecked<UInterpGroup>( EventTrack->GetOuter() );
 	UInterpData* IData = CastChecked<UInterpData>( Group->GetOuter() );
+	IData->Modify();
 	IData->UpdateEventNames();
 
 	KeyframeAddDataName = NAME_None;

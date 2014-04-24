@@ -35,7 +35,7 @@ FDetailPropertyRow::FDetailPropertyRow(TSharedPtr<FPropertyNode> InPropertyNode,
 		if (!PropertyEditorHelpers::IsStaticArray(*PropertyNodeRef) && StructProperty && StructProperty->Struct)
 		{
 			FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
-			FOnGetStructCustomizationInstance StructLayoutInstanceDelegate = PropertyEditorModule.GetStructCustomizaton(StructProperty->Struct->GetFName());
+			FOnGetStructCustomizationInstance StructLayoutInstanceDelegate = PropertyEditorModule.GetStructCustomizaton(StructProperty->Struct);
 			if (StructLayoutInstanceDelegate.IsBound())
 			{
 				if (PropertyHandle->IsValidHandle())

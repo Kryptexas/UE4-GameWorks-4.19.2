@@ -27,7 +27,16 @@ class UK2Node_MatineeController : public UK2Node
 	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) OVERRIDE;
 	// End UK2Node interface
 
+	// Begin UObject interface
+	virtual void BeginDestroy() OVERRIDE;
+	// End UObject interface
+
 	/** Gets the "finished playing matinee sequence" pin */
 	UEdGraphPin* GetFinishedPin() const;
+
+private:
+	void OnEventKeyframeAdded(const class AMatineeActor* InMatineeActor, const FName& InPinName, int32 InIndex);
+	void OnEventKeyframeRenamed(const class AMatineeActor* InMatineeActor, const FName& InOldPinName, const FName& InNewPinName);
+	void OnEventKeyframeRemoved(const class AMatineeActor* InMatineeActor, const TArray<FName>& InPinNames);
 };
 

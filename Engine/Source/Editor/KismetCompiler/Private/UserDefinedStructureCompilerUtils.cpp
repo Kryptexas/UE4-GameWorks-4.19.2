@@ -11,23 +11,24 @@
 struct FUserDefinedStructureCompilerInner
 {
 	static void ReplaceStructWithTempDuplicate(
-		UBlueprintGeneratedStruct* StructureToReinstance, 
+		UUserDefinedStruct* StructureToReinstance, 
 		TSet<UBlueprint*>& BlueprintsToRecompile,
-		TArray<UBlueprintGeneratedStruct*>& ChangedStructs)
+		TArray<UUserDefinedStruct*>& ChangedStructs)
 	{
 		if (StructureToReinstance)
 		{
-			UBlueprintGeneratedStruct* DuplicatedStruct = NULL;
+			UUserDefinedStruct* DuplicatedStruct = NULL;
 			{
 				const FString ReinstancedName = FString::Printf(TEXT("STRUCT_REINST_%s"), *StructureToReinstance->GetName());
-				const FName UniqueName = MakeUniqueObjectName(GetTransientPackage(), UBlueprintGeneratedStruct::StaticClass(), FName(*ReinstancedName));
+				const FName UniqueName = MakeUniqueObjectName(GetTransientPackage(), UUserDefinedStruct::StaticClass(), FName(*ReinstancedName));
 
 				const bool OldIsDuplicatingClassForReinstancing = GIsDuplicatingClassForReinstancing;
 				GIsDuplicatingClassForReinstancing = true;
-				DuplicatedStruct = (UBlueprintGeneratedStruct*)StaticDuplicateObject(StructureToReinstance, GetTransientPackage(), *UniqueName.ToString(), ~RF_Transactional); 
+				DuplicatedStruct = (UUserDefinedStruct*)StaticDuplicateObject(StructureToReinstance, GetTransientPackage(), *UniqueName.ToString(), ~RF_Transactional); 
 				GIsDuplicatingClassForReinstancing = OldIsDuplicatingClassForReinstancing;
 			}
-			DuplicatedStruct->Status = EBlueprintStructureStatus::BSS_Duplicate;
+			DuplicatedStruct->PrimaryStruct = StructureToReinstance;
+			DuplicatedStruct->Status = EUserDefinedStructureStatus::UDSS_Duplicate;
 			DuplicatedStruct->SetFlags(RF_Transient);
 			DuplicatedStruct->AddToRoot();
 
@@ -35,34 +36,30 @@ struct FUserDefinedStructureCompilerInner
 			{
 				if (StructProperty && (StructureToReinstance == StructProperty->Struct))
 				{
-					UBlueprint* FoundBlueprint = NULL;
 					if (auto OwnerClass = Cast<UBlueprintGeneratedClass>(StructProperty->GetOwnerClass()))
 					{
-						FoundBlueprint = Cast<UBlueprint>(OwnerClass->ClassGeneratedBy);
+						if (UBlueprint* FoundBlueprint = Cast<UBlueprint>(OwnerClass->ClassGeneratedBy))
+						{
+							BlueprintsToRecompile.Add(FoundBlueprint);
+							StructProperty->Struct = DuplicatedStruct;
+						}
 					}
-					else if (auto OwnerStruct = Cast<UBlueprintGeneratedStruct>(StructProperty->GetOwnerStruct()))
+					else if (auto OwnerStruct = Cast<UUserDefinedStruct>(StructProperty->GetOwnerStruct()))
 					{
 						check(OwnerStruct != DuplicatedStruct);
 						const bool bValidStruct = (OwnerStruct->GetOutermost() != GetTransientPackage())
 							&& !OwnerStruct->HasAnyFlags(RF_PendingKill)
-							&& (EBlueprintStructureStatus::BSS_Duplicate != OwnerStruct->Status.GetValue());
+							&& (EUserDefinedStructureStatus::UDSS_Duplicate != OwnerStruct->Status.GetValue());
 
 						if (bValidStruct)
 						{
-							FoundBlueprint = OwnerStruct->StructGeneratedBy;
 							ChangedStructs.AddUnique(OwnerStruct);
+							StructProperty->Struct = DuplicatedStruct;
 						}
-						
 					}
 					else
 					{
-						UE_LOG(LogK2Compiler, Warning, TEXT("ReplaceStructWithTempDuplicate unknown owner"));
-					}
-
-					if (NULL != FoundBlueprint)
-					{
-						StructProperty->Struct = DuplicatedStruct;
-						BlueprintsToRecompile.Add(FoundBlueprint);
+						UE_LOG(LogK2Compiler, Error, TEXT("ReplaceStructWithTempDuplicate unknown owner"));
 					}
 				}
 			}
@@ -71,34 +68,21 @@ struct FUserDefinedStructureCompilerInner
 		}
 	}
 
-	static UBlueprintGeneratedStruct* CreateNewStruct(FName Name, class UBlueprint* Blueprint)
-	{
-		check(NULL != Blueprint);
-		check(NULL != Blueprint->GetOutermost());
-		check(Name != NAME_None);
-		UBlueprintGeneratedStruct* Struct = NewNamedObject<UBlueprintGeneratedStruct>(Blueprint->GetOutermost(), Name, RF_Public|RF_Transactional /*|RF_Standalone*/);
-		check(NULL != Struct);
-		Struct->StructGeneratedBy = Blueprint;
-		return Struct;
-	}
-
-	static void CleanAndSanitizeStruct(UBlueprintGeneratedStruct* StructToClean)
+	static void CleanAndSanitizeStruct(UUserDefinedStruct* StructToClean)
 	{
 		check(StructToClean);
 
 		const FString TransientString = FString::Printf(TEXT("TRASHSTRUCT_%s"), *StructToClean->GetName());
-		const FName TransientName = MakeUniqueObjectName(GetTransientPackage(), UBlueprintGeneratedStruct::StaticClass(), FName(*TransientString));
-		UBlueprintGeneratedStruct* TransientStruct = NewNamedObject<UBlueprintGeneratedStruct>(GetTransientPackage(), TransientName, RF_Public|RF_Transient);
-
-		const bool bRecompilingOnLoad = StructToClean->StructGeneratedBy ? StructToClean->StructGeneratedBy->bIsRegeneratingOnLoad : false;
-		const ERenameFlags RenFlags = REN_DontCreateRedirectors | (bRecompilingOnLoad ? REN_ForceNoResetLoaders : 0);
+		const FName TransientName = MakeUniqueObjectName(GetTransientPackage(), UUserDefinedStruct::StaticClass(), FName(*TransientString));
+		UUserDefinedStruct* TransientStruct = NewNamedObject<UUserDefinedStruct>(GetTransientPackage(), TransientName, RF_Public|RF_Transient);
 
 		TArray<UObject*> SubObjects;
 		GetObjectsWithOuter(StructToClean, SubObjects, true);
+		SubObjects.Remove(StructToClean->EditorData);
 		for( auto SubObjIt = SubObjects.CreateIterator(); SubObjIt; ++SubObjIt )
 		{
 			UObject* CurrSubObj = *SubObjIt;
-			CurrSubObj->Rename(NULL, TransientStruct, RenFlags);
+			CurrSubObj->Rename(NULL, TransientStruct, REN_DontCreateRedirectors);
 			if( UProperty* Prop = Cast<UProperty>(CurrSubObj) )
 			{
 				FKismetCompilerUtilities::InvalidatePropertyExport(Prop);
@@ -107,11 +91,6 @@ struct FUserDefinedStructureCompilerInner
 			{
 				ULinkerLoad::InvalidateExport(CurrSubObj);
 			}
-		}
-
-		if(!bRecompilingOnLoad)
-		{
-			StructToClean->RemoveMetaData(TEXT("BlueprintType"));
 		}
 
 		StructToClean->SetSuperStruct(NULL);
@@ -125,24 +104,26 @@ struct FUserDefinedStructureCompilerInner
 		StructToClean->PropertyLink = NULL;
 	}
 
-	static void CreateVariables(UBlueprintGeneratedStruct* Struct, TArray<FBPVariableDescription>& Fields, const class UEdGraphSchema_K2* Schema, FCompilerResultsLog& MessageLog)
+	static void CreateVariables(UUserDefinedStruct* Struct, const class UEdGraphSchema_K2* Schema, FCompilerResultsLog& MessageLog)
 	{
 		check(Struct && Schema);
 
 		//FKismetCompilerUtilities::LinkAddedProperty push property to begin, so we revert the order
-		for(int32 VarDescIdx = Fields.Num() - 1; VarDescIdx >= 0; --VarDescIdx)
+		for (int32 VarDescIdx = FStructureEditorUtils::GetVarDesc(Struct).Num() - 1; VarDescIdx >= 0; --VarDescIdx)
 		{
-			FBPVariableDescription& VarDesc = Fields[VarDescIdx];
+			FStructVariableDescription& VarDesc = FStructureEditorUtils::GetVarDesc(Struct)[VarDescIdx];
 			VarDesc.bInvalidMember = true;
 
+			FEdGraphPinType VarType = VarDesc.ToPinType();
+
 			FString ErrorMsg;
-			if(!FStructureEditorUtils::CanHaveAMemberVariableOfType(Struct, VarDesc.VarType, &ErrorMsg))
+			if(!FStructureEditorUtils::CanHaveAMemberVariableOfType(Struct, VarType, &ErrorMsg))
 			{
-				MessageLog.Error(*FString::Printf(*LOCTEXT("StructureGeneric_Error", "Structure: %s Error: %s").ToString(), *Struct->GetPathName(), *ErrorMsg));
+				MessageLog.Error(*FString::Printf(*LOCTEXT("StructureGeneric_Error", "Structure: %s Error: %s").ToString(), *Struct->GetFullName(), *ErrorMsg));
 				continue;
 			}
 
-			UProperty* NewProperty = FKismetCompilerUtilities::CreatePropertyOnScope(Struct, VarDesc.VarName, VarDesc.VarType, NULL, 0, Schema, MessageLog);
+			UProperty* NewProperty = FKismetCompilerUtilities::CreatePropertyOnScope(Struct, VarDesc.VarName, VarType, NULL, 0, Schema, MessageLog);
 			if (NewProperty != NULL)
 			{
 				FKismetCompilerUtilities::LinkAddedProperty(Struct, NewProperty);
@@ -150,85 +131,73 @@ struct FUserDefinedStructureCompilerInner
 			else
 			{
 				MessageLog.Error(*FString::Printf(*LOCTEXT("VariableInvalidType_Error", "The variable %s declared in %s has an invalid type %s").ToString(),
-					*VarDesc.VarName.ToString(), *Struct->GetName(), *UEdGraphSchema_K2::TypeToString(VarDesc.VarType)));
+					*VarDesc.VarName.ToString(), *Struct->GetName(), *UEdGraphSchema_K2::TypeToString(VarType)));
 				continue;
 			}
 
-			NewProperty->SetPropertyFlags(VarDesc.PropertyFlags);
+			NewProperty->SetPropertyFlags(CPF_Edit);
 			NewProperty->SetMetaData(TEXT("FriendlyName"), *VarDesc.FriendlyName);
 			NewProperty->SetMetaData(TEXT("DisplayName"), *VarDesc.FriendlyName);
-			NewProperty->SetMetaData(TEXT("Category"), *VarDesc.Category.ToString());
-			NewProperty->RepNotifyFunc = VarDesc.RepNotifyFunc;
+			NewProperty->SetMetaData(TEXT("Category"), *VarDesc.Category);
+			NewProperty->RepNotifyFunc = NAME_None;
 
 			if (!VarDesc.DefaultValue.IsEmpty())
 			{
 				NewProperty->SetMetaData(TEXT("MakeStructureDefaultValue"), *VarDesc.DefaultValue);
 			}
-
-			// Set metadata on property
-			for (const FBPVariableMetaDataEntry& Entry : VarDesc.MetaDataArray)
-			{
-				NewProperty->SetMetaData(Entry.DataKey, *Entry.DataValue);
-			}
+			VarDesc.CurrentDefaultValue = VarDesc.DefaultValue;
 
 			VarDesc.bInvalidMember = false;
 		}
 	}
 
-	static void InnerCompileStruct(FBPStructureDescription& StructDesc, const class UEdGraphSchema_K2* K2Schema, class FCompilerResultsLog& MessageLog)
+	static void InnerCompileStruct(UUserDefinedStruct* Struct, const class UEdGraphSchema_K2* K2Schema, class FCompilerResultsLog& MessageLog)
 	{
+		check(Struct);
 		const int32 ErrorNum = MessageLog.NumErrors;
 
-		StructDesc.CompiledStruct->SetMetaData(TEXT("BlueprintType"), TEXT("true"));
+		CreateVariables(Struct, K2Schema, MessageLog);
 
-		CreateVariables(StructDesc.CompiledStruct, StructDesc.Fields, K2Schema, MessageLog);
+		Struct->Bind();
+		Struct->StaticLink(true);
 
-		StructDesc.CompiledStruct->Bind();
-		StructDesc.CompiledStruct->StaticLink(true);
+		if (Struct->GetStructureSize() <= 0)
+		{
+			MessageLog.Error(*FString::Printf(*LOCTEXT("StructurEmpty_Error", "Structure '%s' is empty ").ToString(), *Struct->GetFullName()));
+		}
 
 		const bool bNoErrorsDuringCompilation = (ErrorNum == MessageLog.NumErrors);
-		StructDesc.CompiledStruct->Status = bNoErrorsDuringCompilation ? EBlueprintStructureStatus::BSS_UpToDate : EBlueprintStructureStatus::BSS_Error;
+		Struct->Status = bNoErrorsDuringCompilation ? EUserDefinedStructureStatus::UDSS_UpToDate : EUserDefinedStructureStatus::UDSS_Error;
 	}
 
-	static bool ShouldBeCompiled(const FBPStructureDescription& StructDesc)
+	static bool ShouldBeCompiled(const UUserDefinedStruct* Struct)
 	{
-		const UBlueprintGeneratedStruct* Struct = StructDesc.CompiledStruct;
-		if (Struct && (EBlueprintStructureStatus::BSS_UpToDate == Struct->Status))
+		if (Struct && (EUserDefinedStructureStatus::UDSS_UpToDate == Struct->Status))
 		{
 			return false;
 		}
 		return true;
 	}
 
-	static void BuildDependencyMapAndCompile(TArray<UBlueprintGeneratedStruct*>& ChangedStructs, FCompilerResultsLog& MessageLog)
+	static void BuildDependencyMapAndCompile(TArray<UUserDefinedStruct*>& ChangedStructs, FCompilerResultsLog& MessageLog)
 	{
-		struct FFindStructureDescriptionPred
-		{
-			const UBlueprintGeneratedStruct* const Struct;
-			FFindStructureDescriptionPred(const UBlueprintGeneratedStruct* InStruct) : Struct(InStruct) { check(Struct); }
-			bool operator()(const FBPStructureDescription& Desc) { return (Desc.CompiledStruct == Struct); }
-		};
-
 		struct FDependencyMapEntry
 		{
-			UBlueprintGeneratedStruct* Struct;
-			TSet<UBlueprintGeneratedStruct*> StructuresToWaitFor;
+			UUserDefinedStruct* Struct;
+			TSet<UUserDefinedStruct*> StructuresToWaitFor;
 
 			FDependencyMapEntry() : Struct(NULL) {}
 
-			void Initialize(UBlueprintGeneratedStruct* ChangedStruct, TArray<UBlueprintGeneratedStruct*>& AllChangedStructs) 
+			void Initialize(UUserDefinedStruct* ChangedStruct, TArray<UUserDefinedStruct*>& AllChangedStructs) 
 			{ 
 				Struct = ChangedStruct;
-				check(Struct && Struct->StructGeneratedBy);
-				FBPStructureDescription* StructureDescription = Struct->StructGeneratedBy->UserDefinedStructures.FindByPredicate(FFindStructureDescriptionPred(Struct));
-				check(StructureDescription);
+				check(Struct);
 
 				auto Schema = GetDefault<UEdGraphSchema_K2>();
-				for (auto FieldIter = StructureDescription->Fields.CreateIterator(); FieldIter; ++FieldIter)
+				for (auto& VarDesc : FStructureEditorUtils::GetVarDesc(Struct))
 				{
-					FEdGraphPinType FieldType = (*FieldIter).VarType;
-					auto StructType = Cast<UBlueprintGeneratedStruct>(FieldType.PinSubCategoryObject.Get());
-					if (StructType && (FieldType.PinCategory == Schema->PC_Struct) && AllChangedStructs.Contains(StructType))
+					auto StructType = Cast<UUserDefinedStruct>(VarDesc.SubCategoryObject.Get());
+					if (StructType && (VarDesc.Category == Schema->PC_Struct) && AllChangedStructs.Contains(StructType))
 					{
 						StructuresToWaitFor.Add(StructType);
 					}
@@ -255,13 +224,11 @@ struct FUserDefinedStructureCompilerInner
 				}
 			}
 			check(INDEX_NONE != StructureToCompileIndex);
-			UBlueprintGeneratedStruct* Struct = DependencyMap[StructureToCompileIndex].Struct;
-			check(Struct->StructGeneratedBy);
-			FBPStructureDescription* StructureDescription = Struct->StructGeneratedBy->UserDefinedStructures.FindByPredicate(FFindStructureDescriptionPred(Struct));
-			check(StructureDescription);
+			UUserDefinedStruct* Struct = DependencyMap[StructureToCompileIndex].Struct;
+			check(Struct);
 
 			FUserDefinedStructureCompilerInner::CleanAndSanitizeStruct(Struct);
-			FUserDefinedStructureCompilerInner::InnerCompileStruct(*StructureDescription, GetDefault<UEdGraphSchema_K2>(), MessageLog);
+			FUserDefinedStructureCompilerInner::InnerCompileStruct(Struct, GetDefault<UEdGraphSchema_K2>(), MessageLog);
 
 			DependencyMap.RemoveAtSwap(StructureToCompileIndex);
 
@@ -273,45 +240,34 @@ struct FUserDefinedStructureCompilerInner
 	}
 };
 
-void FUserDefinedStructureCompilerUtils::CompileStructs(class UBlueprint* Blueprint, class FCompilerResultsLog& MessageLog, bool bForceRecompileAll)
+void FUserDefinedStructureCompilerUtils::CompileStruct(class UUserDefinedStruct* Struct, class FCompilerResultsLog& MessageLog, bool bForceRecompile)
 {
-	if (FStructureEditorUtils::StructureEditingEnabled() && Blueprint && Blueprint->UserDefinedStructures.Num())
+	if (FStructureEditorUtils::UserDefinedStructEnabled() && Struct)
 	{
 		TSet<UBlueprint*> BlueprintsToRecompile;
-		TArray<UBlueprintGeneratedStruct*> ChangedStructs; 
-		for (auto StructDescIter = Blueprint->UserDefinedStructures.CreateIterator(); StructDescIter; ++StructDescIter)
+		TArray<UUserDefinedStruct*> ChangedStructs; 
+
+		if (FUserDefinedStructureCompilerInner::ShouldBeCompiled(Struct) || bForceRecompile)
 		{
-			FBPStructureDescription& StructDesc = (*StructDescIter);
-			if (UBlueprintGeneratedStruct* Struct = StructDesc.CompiledStruct)
-			{
-				if (FUserDefinedStructureCompilerInner::ShouldBeCompiled(StructDesc) || bForceRecompileAll)
-				{
-					ChangedStructs.Add(Struct);
-					BlueprintsToRecompile.Add(Blueprint);
-				}
-			}
-			else
-			{
-				 StructDesc.CompiledStruct = FUserDefinedStructureCompilerInner::CreateNewStruct(StructDesc.Name, Blueprint);
-				 FUserDefinedStructureCompilerInner::InnerCompileStruct(StructDesc, GetDefault<UEdGraphSchema_K2>(), MessageLog);
-			}
+			ChangedStructs.Add(Struct);
 		}
 
 		for (int32 StructIdx = 0; StructIdx < ChangedStructs.Num(); ++StructIdx)
 		{
 			FUserDefinedStructureCompilerInner::ReplaceStructWithTempDuplicate(ChangedStructs[StructIdx], BlueprintsToRecompile, ChangedStructs);
-			ChangedStructs[StructIdx]->Status = EBlueprintStructureStatus::BSS_Dirty;
+			ChangedStructs[StructIdx]->Status = EUserDefinedStructureStatus::UDSS_Dirty;
 		}
 
 		// COMPILE IN PROPER ORDER
 		FUserDefinedStructureCompilerInner::BuildDependencyMapAndCompile(ChangedStructs, MessageLog);
 
+		// UPDATE ALL THINGS DEPENDENT ON COMPILED STRUCTURES
 		for (TObjectIterator<UK2Node_StructOperation> It(RF_Transient | RF_PendingKill | RF_ClassDefaultObject, true); It && ChangedStructs.Num(); ++It)
 		{
 			UK2Node_StructOperation* Node = *It;
 			if (Node && !Node->HasAnyFlags(RF_Transient|RF_PendingKill))
 			{
-				UBlueprintGeneratedStruct* StructInNode = Cast<UBlueprintGeneratedStruct>(Node->StructType);
+				UUserDefinedStruct* StructInNode = Cast<UUserDefinedStruct>(Node->StructType);
 				if (StructInNode && ChangedStructs.Contains(StructInNode))
 				{
 					if (UBlueprint* FoundBlueprint = Node->GetBlueprint())
@@ -332,7 +288,7 @@ void FUserDefinedStructureCompilerUtils::CompileStructs(class UBlueprint* Bluepr
 
 void FUserDefinedStructureCompilerUtils::DefaultUserDefinedStructs(UObject* Object, FCompilerResultsLog& MessageLog)
 {
-	if (Object && FStructureEditorUtils::StructureEditingEnabled())
+	if (Object && FStructureEditorUtils::UserDefinedStructEnabled())
 	{
 		for (TFieldIterator<UProperty> It(Object->GetClass()); It; ++It)
 		{

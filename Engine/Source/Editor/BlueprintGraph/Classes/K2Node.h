@@ -145,6 +145,12 @@ class UK2Node : public UEdGraphNode
 	 */
 	virtual bool HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput = NULL) const { return false; }
 
+	/**
+	* Returns whether or not this node has dependencies on an external user-defined structure
+	* If OptionalOutput isn't null, it should be filled with the known dependencies structures.
+	*/
+	virtual bool HasExternalUserDefinedStructDependencies(TArray<class UStruct*>* OptionalOutput = NULL) const { return false; }
+
 	/** Returns whether this node can have breakpoints placed on it in the debugger */
 	virtual bool CanPlaceBreakpoints() const { return !IsNodePure(); }
 
@@ -338,11 +344,6 @@ protected:
 			ReferencedObject->GetLinker()->Preload(ReferencedObject);
 		}
 	}
-
-	// removes removed pins and adjusts array indices of remained pins
-	void RemovePinsFromOldPins(TArray<UEdGraphPin*>& OldPins, int32 RemovedArrayIndex);
-
-	int32 RemovedPinArrayIndex;
 };
 
 
@@ -391,7 +392,6 @@ public:
 			UBlueprint::GetGuidFromClassByFieldName<TFieldType>(InField->GetOwnerClass(), InField->GetFName(), MemberGuid);
 		}
 	}
-
 
 	template<class TFieldType>
 	void SetFromField(const UField* InField, const UK2Node* SelfNode)
@@ -545,5 +545,29 @@ public:
 	TFieldType* ResolveMember(const UK2Node* SelfNode) const
 	{
 		return ResolveMember<TFieldType>( GetBlueprintClassFromNode(SelfNode) );
+	}
+
+	template<class TFieldType>
+	static void FillSimpleMemberReference(const UField* InField, FSimpleMemberReference& OutReference)
+	{
+		OutReference.Reset();
+
+		if (InField)
+		{
+			FMemberReference TempMemberReference;
+			TempMemberReference.SetFromField<TFieldType>(InField, false);
+
+			OutReference.MemberName = TempMemberReference.MemberName;
+			OutReference.MemberParentClass = TempMemberReference.MemberParentClass;
+			OutReference.MemberGuid = TempMemberReference.MemberGuid;
+		}
+	}
+
+	template<class TFieldType>
+	static TFieldType* ResolveSimpleMemberReference(const FSimpleMemberReference& Reference)
+	{
+		FMemberReference TempMemberReference;
+		TempMemberReference.SetDirect(Reference.MemberName, Reference.MemberGuid, Reference.MemberParentClass, false);
+		return TempMemberReference.ResolveMember<TFieldType>((UClass*)NULL);
 	}
 };

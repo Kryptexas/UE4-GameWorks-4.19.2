@@ -8,7 +8,7 @@
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
 
-#include "DestructibleMeshEditor.generated.inl"
+
 
 #define LOCTEXT_NAMESPACE "DestructibleMeshEditor"
 

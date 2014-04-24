@@ -450,8 +450,8 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 			else  if (auto StructProperty = Cast<const UStructProperty>(OryginalProperty))
 			{
 				// Prevent editing the default value of a stale struct
-				auto BGStruct = Cast<const UBlueprintGeneratedStruct>(StructProperty->Struct);
-				if (BGStruct && (EBlueprintStructureStatus::BSS_UpToDate != BGStruct->Status))
+				auto BGStruct = Cast<const UUserDefinedStruct>(StructProperty->Struct);
+				if (BGStruct && (EUserDefinedStructureStatus::UDSS_UpToDate != BGStruct->Status))
 				{
 					VariableProperty = NULL;
 				}
@@ -809,13 +809,16 @@ FEdGraphPinType FBlueprintVarActionDetails::OnGetVarType() const
 
 void FBlueprintVarActionDetails::OnVarTypeChanged(const FEdGraphPinType& NewPinType)
 {
-	FName VarName = GetVariableName();
-	if (VarName != NAME_None)
+	if (FBlueprintEditorUtils::IsPinTypeValid(NewPinType))
 	{
-		FBlueprintEditorUtils::ChangeMemberVariableType(GetBlueprintObj(), VarName, NewPinType);
+		FName VarName = GetVariableName();
+		if (VarName != NAME_None)
+		{
+			FBlueprintEditorUtils::ChangeMemberVariableType(GetBlueprintObj(), VarName, NewPinType);
 
-		// Set the MyBP tab's last pin type used as this, for adding lots of variables of the same type
-		MyBlueprint.Pin()->GetLastPinTypeUsed() = NewPinType;
+			// Set the MyBP tab's last pin type used as this, for adding lots of variables of the same type
+			MyBlueprint.Pin()->GetLastPinTypeUsed() = NewPinType;
+		}
 	}
 }
 
@@ -1661,13 +1664,16 @@ FEdGraphPinType FBlueprintLocalVarActionDetails::OnGetVarType() const
 
 void FBlueprintLocalVarActionDetails::OnVarTypeChanged(const FEdGraphPinType& NewPinType)
 {
-	UK2Node_LocalVariable* LocalVar = GetDetailsSelection();
-	if(LocalVar)
+	if (FBlueprintEditorUtils::IsPinTypeValid(NewPinType))
 	{
-		LocalVar->ChangeVariableType(NewPinType);
+		UK2Node_LocalVariable* LocalVar = GetDetailsSelection();
+		if (LocalVar)
+		{
+			LocalVar->ChangeVariableType(NewPinType);
 
-		// Set the MyBP tab's last pin type used as this, for adding lots of variables of the same type
-		MyBlueprint.Pin()->GetLastPinTypeUsed() = NewPinType;
+			// Set the MyBP tab's last pin type used as this, for adding lots of variables of the same type
+			MyBlueprint.Pin()->GetLastPinTypeUsed() = NewPinType;
+		}
 	}
 }
 
@@ -1983,7 +1989,7 @@ void FBlueprintGraphArgumentLayout::OnRefCheckStateChanged(ESlateCheckBoxState::
 
 void FBlueprintGraphArgumentLayout::PinInfoChanged(const FEdGraphPinType& PinType)
 {
-	if (ParamItemPtr.IsValid())
+	if (ParamItemPtr.IsValid() && FBlueprintEditorUtils::IsPinTypeValid(PinType))
 	{
 		ParamItemPtr.Pin()->PinType = PinType;
 		if (GraphActionDetailsPtr.IsValid())
@@ -3605,6 +3611,7 @@ FReply FBlueprintGraphActionDetails::OnAddNewOutputClicked()
 	{
 		FunctionResultNode->Modify();
 		FEdGraphPinType PinType = MyBlueprint.Pin()->GetLastFunctionPinTypeUsed();
+		PinType.bIsReference = false;
 
 		// Make sure that if this is an exec node we are allowed one.
 		const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();

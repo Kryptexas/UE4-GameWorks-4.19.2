@@ -1364,50 +1364,35 @@ namespace UnrealBuildTool
 				GlobalCompileEnvironment.SharedPCHHeaderFiles = SharedPCHHeaderFiles;
 			}
 
-			foreach (var Binary in AppBinaries)
-			{
-				OutputItems.AddRange(Binary.Build(GlobalCompileEnvironment, GlobalLinkEnvironment));
-			}
-
 			if( (BuildConfiguration.bXGEExport && UEBuildConfiguration.bGenerateManifest) || (!UEBuildConfiguration.bGenerateManifest && !UEBuildConfiguration.bCleanProject && !ProjectFileGenerator.bGenerateProjectFiles) )
 			{
+				var ToolChain = UEToolChain.GetPlatformToolChain(GlobalLinkEnvironment.Config.TargetPlatform);
+
 				var UObjectModules = new List<UHTModuleInfo>();
 
 				// Figure out which modules have UObjects that we may need to generate headers for
+				foreach( var Binary in AppBinaries )
 				{
-					foreach( var Binary in AppBinaries )
+					var DependencyModules = Binary.GetAllDependencyModules(bIncludeDynamicallyLoaded: false, bForceCircular: false);
+					foreach( var DependencyModuleCPP in DependencyModules.OfType<UEBuildModuleCPP>().Where( CPPModule => !UObjectModules.Any( Module => Module.ModuleName == CPPModule.Name ) ) )
 					{
-						var DependencyModules = Binary.GetAllDependencyModules(bIncludeDynamicallyLoaded: false, bForceCircular: false);
-						foreach( var DependencyModule in DependencyModules )
-						{
-							if( !DependencyModule.bIncludedInTarget )
-							{
-								throw new BuildException( "Expecting module {0} to have bIncludeInTarget set", DependencyModule.Name );
-							}
+						if( !DependencyModuleCPP.bIncludedInTarget )
+							throw new BuildException( "Expecting module {0} to have bIncludeInTarget set", DependencyModuleCPP.Name );
 
-							UEBuildModuleCPP DependencyModuleCPP = DependencyModule as UEBuildModuleCPP;
-							if( DependencyModuleCPP != null )
-							{
-								// Do we already have this module?
-								if( !UObjectModules.Any(Module => Module.ModuleName == DependencyModuleCPP.Name ) )
-								{
-									var UHTModuleInfo = DependencyModuleCPP.GetUHTModuleInfo();
-									if( UHTModuleInfo.PublicUObjectClassesHeaders.Count > 0 || UHTModuleInfo.PrivateUObjectHeaders.Count > 0 || UHTModuleInfo.PublicUObjectHeaders.Count > 0 )
-									{
-										UObjectModules.Add( UHTModuleInfo );
-										Log.TraceVerbose( "Detected UObject module: " + DependencyModuleCPP.Name );
-									}
-								}
-								else
-								{
-									// This module doesn't define any UObjects
-								}
-							}
-							else
-							{
-								// Non-C++ modules never have UObjects
-							}
-						}
+						var ModuleCompileEnvironment = DependencyModuleCPP.CreateModuleCompileEnvironment(GlobalCompileEnvironment);
+						DependencyModuleCPP.ProcessAllCppDependencies(ModuleCompileEnvironment);
+
+						var UHTModuleInfo = DependencyModuleCPP.GetUHTModuleInfo(ModuleCompileEnvironment);
+						if( UHTModuleInfo.PublicUObjectClassesHeaders.Count == 0 && UHTModuleInfo.PrivateUObjectHeaders.Count == 0 && UHTModuleInfo.PublicUObjectHeaders.Count == 0 )
+							continue;
+
+						UHTModuleInfo.PCH                      = ToolChain.ConvertPath( DependencyModuleCPP.ProcessedDependencies.UniquePCHHeaderFile.AbsolutePath );
+						UHTModuleInfo.GeneratedCPPFilenameBase = Path.Combine( UEBuildModuleCPP.GetGeneratedCodeDirectoryForModule(this, UHTModuleInfo.ModuleDirectory, UHTModuleInfo.ModuleName), UHTModuleInfo.ModuleName ) + ".generated";
+
+						DependencyModuleCPP.AutoGenerateInlInfo = new UEBuildModuleCPP.AutoGenerateInlInfoClass( UHTModuleInfo.GeneratedCPPFilenameBase + ".cpp" );
+
+						UObjectModules.Add( UHTModuleInfo );
+						Log.TraceVerbose( "Detected UObject module: " + DependencyModuleCPP.Name );
 					}
 				}
 
@@ -1424,7 +1409,12 @@ namespace UnrealBuildTool
 						return UHTResult;
 					}
 				}
+			}
 
+			// Build the target's binaries.
+			foreach (var Binary in AppBinaries)
+			{
+				OutputItems.AddRange(Binary.Build(GlobalCompileEnvironment, GlobalLinkEnvironment));
 			}
 
 			if (BuildConfiguration.WriteTargetInfoPath != null)

@@ -27,6 +27,14 @@ public:
 	virtual void CompileBlueprint(class UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, class FBlueprintCompileReinstancer* ParentReinstancer = NULL, TArray<UObject*>* ObjLoaded = NULL)=0;
 
 	/**
+	 * Compiles a user defined structure.
+	 *
+	 * @param	Struct		The structure to compile.
+	 * @param	Results  	The results log for warnings and errors.
+	 */
+	virtual void CompileStructure(class UUserDefinedStruct* Struct, FCompilerResultsLog& Results)=0;
+
+	/**
 	 * Attempts to recover a corrupted blueprint package.
 	 *
 	 * @param	Blueprint	The blueprint to recover.
@@ -57,6 +65,7 @@ class FKismet2CompilerModule : public IKismetCompilerInterface
 public:
 	// Implementation of the IKismetCompilerInterface
 	virtual void CompileBlueprint(class UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, class FBlueprintCompileReinstancer* ParentReinstancer = NULL, TArray<UObject*>* ObjLoaded = NULL) OVERRIDE;
+	virtual void CompileStructure(class UUserDefinedStruct* Struct, FCompilerResultsLog& Results) OVERRIDE;
 	virtual void RecoverCorruptedBlueprint(class UBlueprint* Blueprint) OVERRIDE;
 	virtual void RemoveBlueprintGeneratedClasses(class UBlueprint* Blueprint) OVERRIDE;
 	virtual TArray<FBlueprintCompileDelegate>& GetCompilers() OVERRIDE { return Compilers; }

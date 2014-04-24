@@ -192,7 +192,6 @@ public:
 	TSharedRef<class SSCSEditor> GetSCSEditor() const {return SCSEditor.ToSharedRef();}
 	TSharedPtr<class SSCSEditorViewport> GetSCSViewport() const {return SCSViewport;}
 	TSharedPtr<class SMyBlueprint> GetMyBlueprintWidget() const {return MyBlueprintWidget;}
-	TSharedRef<class SUserDefinedStructureEditor> GetUserDefinedStructureEditor() const {return UserDefinedStructureEditor.ToSharedRef();}
 	AActor* GetPreviewActor() const;
 
 	TSharedPtr<class FBlueprintEditorToolbar> GetToolbarBuilder() {return Toolbar;}
@@ -769,9 +768,6 @@ protected:
 	/**Load macro & function blueprint libraries from asset registry*/
 	void LoadLibrariesFromAssetRegistry();
 
-	/**Load user-defined enums from asset registry */
-	void LoadUserDefinedEnumsFromAssetRegistry();
-
 	// Begin FEditorUndoClient Interface
 	virtual void	PostUndo(bool bSuccess) OVERRIDE;
 	virtual void	PostRedo(bool bSuccess) OVERRIDE;
@@ -841,16 +837,16 @@ protected:
 	TWeakPtr<FDocumentTabFactory> GraphEditorTabFactoryPtr;
 
 	/** User-defined enumerators to keep loaded */
-	TArray<TWeakObjectPtr<UUserDefinedEnum>> UserDefinedEnumerators;
+	TSet<TWeakObjectPtr<UUserDefinedEnum>> UserDefinedEnumerators;
+
+	/** User-defined structures to keep loaded */
+	TSet<TWeakObjectPtr<UUserDefinedStruct>> UserDefinedStructures;
 	
 	/** Macro/function libraries to keep loaded */
 	TArray<UBlueprint*> StandardLibraries;
 
 	/** SCS editor */
 	TSharedPtr<class SSCSEditor> SCSEditor;
-
-	/** SCS editor */
-	TSharedPtr<class SUserDefinedStructureEditor> UserDefinedStructureEditor;
 
 	/** Viewport widget */
 	TSharedPtr<class SSCSEditorViewport> SCSViewport;

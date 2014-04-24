@@ -6,6 +6,7 @@
 
 #include "MatineeModule.h"
 #include "Matinee.h"
+#include "MatineeDelegates.h"
 
 #include "EngineInterpolationClasses.h"
 #include "CameraController.h"
@@ -2530,14 +2531,17 @@ void FMatinee::OnContextRenameEventKeyTextCommitted(const FText& InText, ETextCo
 		FName NewEventName = FName( *TempString );
 
 		// If this Event name is already in use- disallow it
-		TArray<FName> CurrentEventNames;
-		IData->GetAllEventNames(CurrentEventNames);
-		if( CurrentEventNames.Contains(NewEventName) )
+		if( IData->IsEventName( NewEventName ) )
 		{
 			FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "Error_EventNameInUse", "Sorry - Event name already in use.") );
 			return;
 		}
 	
+		InterpEdTrans->BeginSpecial( LOCTEXT( "EventRename", "Event Rename" ) );
+
+		MatineeActor->Modify();
+		IData->Modify();
+
 		// Then go through all keys, changing those with this name to the new one.
 		for(int32 i=0; i<IData->InterpGroups.Num(); i++)
 		{
@@ -2547,18 +2551,30 @@ void FMatinee::OnContextRenameEventKeyTextCommitted(const FText& InText, ETextCo
 				UInterpTrackEvent* EventTrack = Cast<UInterpTrackEvent>( Group->InterpTracks[j] );
 				if(EventTrack)
 				{
+					bool bModified = false;
 					for(int32 k=0; k<EventTrack->EventTrack.Num(); k++)
 					{
-						if(EventTrack->EventTrack[k].EventName == EventNameToChange)
+						FEventTrackKey& Key = EventTrack->EventTrack[k];
+						if(Key.EventName == EventNameToChange)
 						{
-							EventTrack->EventTrack[k].EventName = NewEventName;
+							if ( !bModified )
+							{
+								EventTrack->Modify();
+								bModified = true;
+							}
+							Key.EventName = NewEventName;
 						}	
 					}
 				}			
 			}
 		}
 
+		// Fire a delegate so other places that use the name can also update
+		FMatineeDelegates::Get().OnEventKeyframeRenamed.Broadcast( MatineeActor, EventNameToChange, NewEventName );
+
 		IData->UpdateEventNames();
+
+		InterpEdTrans->EndSpecial();
 	}
 }
 

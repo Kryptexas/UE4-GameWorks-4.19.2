@@ -13,6 +13,45 @@ enum EEdGraphPinDirection
 	EGPD_MAX,
 };
 
+USTRUCT()
+struct FSimpleMemberReference
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** Class that this member is defined in. */
+	UPROPERTY()
+	TSubclassOf<class UObject> MemberParentClass;
+
+	/** Name of the member */
+	UPROPERTY()
+	FName MemberName;
+
+	/** The Guid of the member */
+	UPROPERTY()
+	FGuid MemberGuid;
+
+	void Reset()
+	{
+		operator=(FSimpleMemberReference());
+	}
+
+	bool operator==(const FSimpleMemberReference& Other) const
+	{
+		return (MemberParentClass == Other.MemberParentClass)
+			&& (MemberName == Other.MemberName)
+			&& (MemberGuid == Other.MemberGuid);
+	}
+};
+
+FORCEINLINE FArchive& operator<<(FArchive& Ar, FSimpleMemberReference& Data)
+{
+	Ar << Data.MemberParentClass;
+	Ar << Data.MemberName;
+	Ar << Data.MemberGuid;
+	return Ar;
+}
+
+
 /** Struct used to define the type of information carried on this pin */
 USTRUCT()
 struct FEdGraphPinType
@@ -30,6 +69,10 @@ struct FEdGraphPinType
 	/** Sub-category object */
 	UPROPERTY()
 	TWeakObjectPtr<UObject> PinSubCategoryObject;
+
+	/** Sub-category member reference */
+	UPROPERTY()
+	FSimpleMemberReference PinSubCategoryMemberReference;
 
 	/** Whether or not this pin represents an array of values */
 	UPROPERTY()
@@ -71,7 +114,8 @@ public:
 			&& (PinSubCategoryObject == Other.PinSubCategoryObject) 
 			&& (bIsArray == Other.bIsArray) 
 			&& (bIsReference == Other.bIsReference)
-			&& (bIsWeakPointer == Other.bIsWeakPointer);
+			&& (bIsWeakPointer == Other.bIsWeakPointer)
+			&& (PinSubCategoryMemberReference == Other.PinSubCategoryMemberReference);
 	}
 	bool operator != ( const FEdGraphPinType& Other ) const
 	{
@@ -88,6 +132,7 @@ public:
 		PinCategory.Empty();
 		PinSubCategory.Empty();
 		PinSubCategoryObject = NULL;
+		PinSubCategoryMemberReference.Reset();
 		bIsArray = false;
 		bIsReference = false;
 		bIsWeakPointer = false;
@@ -181,6 +226,10 @@ class UEdGraphPin : public UObject
 	/** If true, the pin may be hidden by user */
 	UPROPERTY()
 	uint32 bAdvancedView:1;
+
+	/** Pin name could be changed, so whenever possible it's good to have a persistent GUID identifying Pin to reconstruct Node seamlessly */
+	UPROPERTY()
+	FGuid PersistentGuid;
 #endif // WITH_EDITORONLY_DATA
 
 public:

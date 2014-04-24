@@ -190,7 +190,7 @@ struct FBaseAsyncTaskHelper
 		CreateDelegateNode->AllocateDefaultPins();
 		bResult &= Schema->TryCreateConnection(DelegateInputPin, CreateDelegateNode->GetDelegateOutPin());
 		bResult &= Schema->TryCreateConnection(SelfNode->FindPinChecked(Schema->PN_Self), CreateDelegateNode->GetObjectInPin());
-		CreateDelegateNode->SelectedFunctionName = FunctionName;
+		CreateDelegateNode->SetFunction(FunctionName);
 
 		return bResult;
 	}
@@ -382,7 +382,7 @@ bool UK2Node_BaseAsyncTask::HasExternalBlueprintDependencies(TArray<class UStruc
 		OptionalOutput->Add(ProxyClass);
 	}
 
-	return bProxyFactoryResult || bProxyResult;
+	return bProxyFactoryResult || bProxyResult || Super::HasExternalBlueprintDependencies(OptionalOutput);
 }
 
 FName UK2Node_BaseAsyncTask::GetCornerIcon() const

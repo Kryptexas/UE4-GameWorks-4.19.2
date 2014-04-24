@@ -79,7 +79,6 @@ void FArchive::Reset()
 	ArNoDelta							= false;
 	ArIgnoreOuterRef					= false;
 	ArIgnoreClassRef					= false;
-	ArAllowEliminatingReferences		= true;
 	ArAllowLazyLoading					= false;
 	ArIsObjectReferenceCollector		= false;
 	ArIsModifyingWeakAndStrongReferences= false;
@@ -118,7 +117,6 @@ void FArchive::CopyTrivialFArchiveStatusMembers(const FArchive& ArchiveToCopy)
 	ArNoDelta                            = ArchiveToCopy.ArNoDelta;
 	ArIgnoreOuterRef                     = ArchiveToCopy.ArIgnoreOuterRef;
 	ArIgnoreClassRef                     = ArchiveToCopy.ArIgnoreClassRef;
-	ArAllowEliminatingReferences         = ArchiveToCopy.ArAllowEliminatingReferences;
 	ArAllowLazyLoading                   = ArchiveToCopy.ArAllowLazyLoading;
 	ArIsObjectReferenceCollector         = ArchiveToCopy.ArIsObjectReferenceCollector;
 	ArIsModifyingWeakAndStrongReferences = ArchiveToCopy.ArIsModifyingWeakAndStrongReferences;

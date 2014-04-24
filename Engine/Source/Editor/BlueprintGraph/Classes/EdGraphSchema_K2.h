@@ -4,6 +4,40 @@
 
 #include "EdGraphSchema_K2.generated.h"
 
+/** Reference to an structure (only used in 'docked' palette) */
+USTRUCT()
+struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2Struct : public FEdGraphSchemaAction
+{
+	GENERATED_USTRUCT_BODY()
+
+	// Simple type info
+	static FString StaticGetTypeId() {static FString Type = TEXT("FEdGraphSchemaAction_K2Struct"); return Type;}
+	virtual FString GetTypeId() const OVERRIDE { return StaticGetTypeId(); } 
+
+	UStruct* Struct;
+
+	void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE
+	{
+		if( Struct )
+		{
+			Collector.AddReferencedObject(Struct);
+		}
+	}
+
+	FName GetPathName() const
+	{
+		return Struct ? FName(*Struct->GetPathName()) : NAME_None;
+	}
+
+	FEdGraphSchemaAction_K2Struct() 
+		: FEdGraphSchemaAction()
+	{}
+
+	FEdGraphSchemaAction_K2Struct (const FString& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
+		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping)
+	{}
+};
+
 // Constants used for metadata, etc... in blueprints
 struct BLUEPRINTGRAPH_API FBlueprintMetadata
 {
@@ -305,10 +339,15 @@ public:
 		}
 
 		void Init(const FString& FriendlyCategoryName, const FString& CategoryName, const UEdGraphSchema_K2* Schema, const FString& InTooltip, bool bInReadOnly);
-	public:
+	
+	private:
 		/** The pin type corresponding to the schema type */
 		FEdGraphPinType PinType;
 
+		/** Asset Reference, used when PinType.PinSubCategoryObject is not loaded yet */
+		FStringAssetReference SubCategoryObjectAssetReference;
+
+	public:
 		/** The children of this pin type */
 		TArray< TSharedPtr<FPinTypeTreeInfo> > Children;
 
@@ -316,30 +355,38 @@ public:
 		bool bReadOnly;
 
 		/** Friendly display name of pin type; also used to see if it has subtypes */
-		FString FriendlyCategoryName;
+		FString FriendlyName;
 
 		/** Text for regular tooltip */
 		FString Tooltip;
 
 	public:
-		FPinTypeTreeInfo(const FString& FriendlyCategoryName, const FString& CategoryName, const UEdGraphSchema_K2* Schema, const FString& InTooltip, bool bInReadOnly = false);
+		const FEdGraphPinType& GetPinType(bool bForceLoadedSubCategoryObject);
+		void SetPinSubTypeCategory(const FString& SubCategory)
+		{
+			PinType.PinSubCategory = SubCategory;
+		}
+
+		FPinTypeTreeInfo(const FString& FriendlyName, const FString& CategoryName, const UEdGraphSchema_K2* Schema, const FString& InTooltip, bool bInReadOnly = false);
 		FPinTypeTreeInfo(const FString& CategoryName, const UEdGraphSchema_K2* Schema, const FString& InTooltip, bool bInReadOnly = false);
 		FPinTypeTreeInfo(const FString& CategoryName, UObject* SubCategoryObject, const FString& InTooltip, bool bInReadOnly = false);
+		FPinTypeTreeInfo(const FString& CategoryName, const FStringAssetReference& SubCategoryObject, const FString& InTooltip, bool bInReadOnly = false);
 
 		FPinTypeTreeInfo(TSharedPtr<FPinTypeTreeInfo> InInfo)
 		{
 			PinType = InInfo->PinType;
 			bReadOnly = InInfo->bReadOnly;
-			FriendlyCategoryName = InInfo->FriendlyCategoryName;
+			FriendlyName = InInfo->FriendlyName;
 			Tooltip = InInfo->Tooltip;
+			SubCategoryObjectAssetReference = InInfo->SubCategoryObjectAssetReference;
 		}
 		
 		/** Returns a succinct menu description of this type */
 		FString GetDescription() const
 		{
-			if((PinType.PinCategory != FriendlyCategoryName) && !FriendlyCategoryName.IsEmpty())
+			if ((PinType.PinCategory != FriendlyName) && !FriendlyName.IsEmpty())
 			{
-				return FriendlyCategoryName;
+				return FriendlyName;
 			}
 			else if( PinType.PinSubCategoryObject.IsValid() )
 			{

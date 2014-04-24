@@ -92,7 +92,6 @@ FKismetNameValidator::FKismetNameValidator(const class UBlueprint* Blueprint, FN
 	FBlueprintEditorUtils::GetClassVariableList(BlueprintObject, Names, true);
 	FBlueprintEditorUtils::GetAllGraphNames(BlueprintObject, Names);
 	FBlueprintEditorUtils::GetSCSVariableNameList(Blueprint, Names);
-	FStructureEditorUtils::GetAllStructureNames(Blueprint, Names);
 	FBlueprintEditorUtils::GetImplementingBlueprintsFunctionNameList(Blueprint, Names);
 }
 

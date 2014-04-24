@@ -13,8 +13,18 @@
 /////////////////////////////////////////////////////
 // UK2Node_FormatText
 
+struct FFormatTextNodeHelper
+{
+	static const FString& GetFormatPinName()
+	{
+		static const FString FormatPinName(TEXT("Format"));
+		return FormatPinName;
+	}
+};
+
 UK2Node_FormatText::UK2Node_FormatText(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
+	, CachedFormatPin(NULL)
 {
 	NodeTooltip = LOCTEXT("NodeTooltip", "Builds a formatted string using available specifier values. Use {} to denote specifiers.").ToString();
 }
@@ -24,7 +34,7 @@ void UK2Node_FormatText::AllocateDefaultPins()
 	Super::AllocateDefaultPins();
 
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	FormatPin = CreatePin(EGPD_Input, K2Schema->PC_Text, TEXT(""), NULL, false, false, TEXT("Format"));
+	CachedFormatPin = CreatePin(EGPD_Input, K2Schema->PC_Text, TEXT(""), NULL, false, false, FFormatTextNodeHelper::GetFormatPinName());
 	CreatePin(EGPD_Output, K2Schema->PC_Text, TEXT(""), NULL, false, false, TEXT("Result"));
 
 	for(auto It = PinNames.CreateConstIterator(); It; ++It)
@@ -71,6 +81,8 @@ void UK2Node_FormatText::PostEditChangeProperty(struct FPropertyChangedEvent& Pr
 
 void UK2Node_FormatText::PinConnectionListChanged(UEdGraphPin* Pin)
 {
+	const auto FormatPin = GetFormatPin();
+
 	// Clear all pins.
 	if(Pin == FormatPin && !FormatPin->DefaultTextValue.IsEmpty())
 	{
@@ -94,6 +106,7 @@ void UK2Node_FormatText::PinConnectionListChanged(UEdGraphPin* Pin)
 
 void UK2Node_FormatText::PinDefaultValueChanged(UEdGraphPin* Pin)
 {
+	const auto FormatPin = GetFormatPin();
 	if(Pin == FormatPin && FormatPin->LinkedTo.Num() == 0)
 	{
 		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
@@ -218,7 +231,7 @@ void UK2Node_FormatText::ExpandNode(class FKismetCompilerContext& CompilerContex
 		// Move connection of FormatText's "Result" pin to the call function's return value pin.
 		CompilerContext.MovePinLinksToIntermediate(*FindPin(TEXT("Result")), *CallFunction->GetReturnValuePin());
 		// Move connection of FormatText's "Format" pin to the call function's "InPattern" pin
-		CompilerContext.MovePinLinksToIntermediate(*FindPin(TEXT("Format")), *CallFunction->FindPin(TEXT("InPattern")));
+		CompilerContext.MovePinLinksToIntermediate(*GetFormatPin(), *CallFunction->FindPin(TEXT("InPattern")));
 
 		BreakAllNodeLinks();
 	}
@@ -227,6 +240,7 @@ void UK2Node_FormatText::ExpandNode(class FKismetCompilerContext& CompilerContex
 
 UEdGraphPin* UK2Node_FormatText::FindArgumentPin(const FText& InPinName) const
 {
+	const auto FormatPin = GetFormatPin();
 	FString PinNameAsString = InPinName.ToString();
 	for(int32 PinIdx=0; PinIdx<Pins.Num(); PinIdx++)
 	{
@@ -338,6 +352,15 @@ void UK2Node_FormatText::SwapArguments(int32 InIndexA, int32 InIndexB)
 	GetGraph()->NotifyGraphChanged();
 
 	FBlueprintEditorUtils::MarkBlueprintAsModified(GetBlueprint());
+}
+
+UEdGraphPin* UK2Node_FormatText::GetFormatPin() const
+{
+	if (!CachedFormatPin)
+	{
+		const_cast<UK2Node_FormatText*>(this)->CachedFormatPin = FindPinChecked(FFormatTextNodeHelper::GetFormatPinName());
+	}
+	return CachedFormatPin;
 }
 
 #undef LOCTEXT_NAMESPACE

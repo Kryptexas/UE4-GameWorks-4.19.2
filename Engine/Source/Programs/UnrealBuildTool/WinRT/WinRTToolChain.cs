@@ -876,7 +876,7 @@ namespace UnrealBuildTool
 				else
 				{
 					// Grab path to Visual Studio binaries from the system environment
-					string BaseVSToolPath = Environment.GetEnvironmentVariable("VS110COMNTOOLS");
+					string BaseVSToolPath = WindowsPlatform.GetVSComnToolsPath(WindowsCompiler.VisualStudio2012);
 					if (string.IsNullOrEmpty(BaseVSToolPath))
 					{
 						throw new BuildException("Visual Studio 2011 must be installed in order to build this target.");
@@ -929,7 +929,7 @@ namespace UnrealBuildTool
 				string VCVarsBatchFile = "";
 
 				// Grab path to Visual Studio binaries from the system environment
-				string BaseVSToolPath = Environment.GetEnvironmentVariable("VS110COMNTOOLS");
+				string BaseVSToolPath = WindowsPlatform.GetVSComnToolsPath(WindowsCompiler.VisualStudio2012);
 				if (string.IsNullOrEmpty(BaseVSToolPath))
 				{
 					BaseVSToolPath = "C:/Program Files (x86)/Microsoft Visual Studio 11.0/Common7/Tools/";

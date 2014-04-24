@@ -4,7 +4,6 @@
 
 #include "EdGraph/EdGraphPin.h"
 #include "BlueprintCore.h"
-#include "BlueprintGeneratedStruct.h"
 #include "Blueprint.generated.h"
 
 /** States a blueprint can be in */
@@ -56,7 +55,6 @@ namespace EKismetCompileType
 		Full,
 		StubAfterFailure, 
 		BytecodeOnly,
-		StructuresOnly,
 	};
 };
 
@@ -80,7 +78,7 @@ public:
 	/** Whether or not this compile type should operate on the generated class of the blueprint, as opposed to just the skeleton */
 	bool IsGeneratedClassCompileType() const
 	{
-		return (CompileType != EKismetCompileType::SkeletonOnly) && (CompileType != EKismetCompileType::StructuresOnly);
+		return (CompileType != EKismetCompileType::SkeletonOnly);
 	}
 
 	FKismetCompilerOptions()
@@ -156,10 +154,6 @@ struct FBPVariableDescription
 	/** Optional new default value stored as string*/
 	UPROPERTY(EditAnywhere, Category=BPVariableDescription)
 	FString DefaultValue;
-
-	/** Used by blueprint generated struct to mark invalid fields */
-	UPROPERTY(Transient)
-	bool bInvalidMember;
 
 	FBPVariableDescription()
 		: PropertyFlags(CPF_Edit)
@@ -242,27 +236,6 @@ struct FEditedDocumentInfo
 	friend bool operator==( const FEditedDocumentInfo& LHS, const FEditedDocumentInfo& RHS )
 	{
 		return LHS.EditedObject == RHS.EditedObject && LHS.SavedViewOffset == RHS.SavedViewOffset && LHS.SavedZoomAmount == RHS.SavedZoomAmount;
-	}
-};
-
-USTRUCT()
-struct FBPStructureDescription
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(EditAnywhere, Category=BPStructureDescription)
-	FName Name;
-
-	UPROPERTY(EditAnywhere, Category=BPStructureDescription)
-	TArray<FBPVariableDescription> Fields;
-
-	UPROPERTY()
-	UBlueprintGeneratedStruct* CompiledStruct;
-
-	FBPStructureDescription() 
-		: CompiledStruct(NULL)
-	{
-
 	}
 };
 
@@ -377,9 +350,6 @@ class ENGINE_API UBlueprint : public UBlueprintCore
 	/** Array of info about the interfaces we implement in this blueprint */
 	UPROPERTY(AssetRegistrySearchable)
 	TArray<struct FBPInterfaceDescription> ImplementedInterfaces;
-
-	UPROPERTY(EditAnywhere, Category=Blueprint)
-	TArray<struct FBPStructureDescription> UserDefinedStructures;
 	
 #endif // WITH_EDITORONLY_DATA
 
@@ -585,6 +555,9 @@ public:
 
 		return false;
 	}
+
+	static FName GetFunctionNameFromClassByGuid(const UClass* InClass, const FGuid FunctionGuid);
+	static bool GetFunctionGuidFromClassByFieldName(const UClass* InClass, const FName FunctionName, FGuid& FunctionGuid);
 #endif
 
 	/** Find a function given its name and optionally an object property name within this Blueprint */
@@ -624,45 +597,12 @@ public:
 template<>
 inline FName UBlueprint::GetFieldNameFromClassByGuid<UFunction>(const UClass* InClass, const FGuid FunctionGuid)
 {
-	TArray<UBlueprint*> Blueprints;
-	UBlueprint::GetBlueprintHierarchyFromClass(InClass, Blueprints);
-
-	for (int32 BPIndex = 0; BPIndex < Blueprints.Num(); ++BPIndex)
-	{
-		UBlueprint* Blueprint = Blueprints[BPIndex];
-		for (int32 FunctionIndex = 0; FunctionIndex < Blueprint->FunctionGraphs.Num(); ++FunctionIndex)
-		{
-			UEdGraph* FunctionGraph = Blueprint->FunctionGraphs[FunctionIndex];
-			if (FunctionGraph && FunctionGraph->GraphGuid == FunctionGuid)
-			{	
-				return FunctionGraph->GetFName();
-			}
-		}
-	}
-
-	return NAME_None;
+	return GetFunctionNameFromClassByGuid(InClass, FunctionGuid);
 }
 
 template<>
 inline bool UBlueprint::GetGuidFromClassByFieldName<UFunction>(const UClass* InClass, const FName FunctionName, FGuid& FunctionGuid)
 {
-	TArray<UBlueprint*> Blueprints;
-	UBlueprint::GetBlueprintHierarchyFromClass(InClass, Blueprints);
-
-	for (int32 BPIndex = 0; BPIndex < Blueprints.Num(); ++BPIndex)
-	{
-		UBlueprint* Blueprint = Blueprints[BPIndex];
-		for (int32 FunctionIndex = 0; FunctionIndex < Blueprint->FunctionGraphs.Num(); ++FunctionIndex)
-		{
-			UEdGraph* FunctionGraph = Blueprint->FunctionGraphs[FunctionIndex];
-			if (FunctionGraph && FunctionGraph->GetFName() == FunctionName)
-			{	
-				FunctionGuid = FunctionGraph->GraphGuid;
-				return true;
-			}
-		}
-	}
-
-	return false;
+	return GetFunctionGuidFromClassByFieldName(InClass, FunctionName, FunctionGuid);
 }
 #endif // #if WITH_EDITORONLY_DATA

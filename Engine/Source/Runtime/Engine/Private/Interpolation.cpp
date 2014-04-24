@@ -1851,7 +1851,12 @@ UInterpGroupDirector* UInterpData::FindDirectorGroup()
 	return DirGroup;
 }
 
-void UInterpData::GetAllEventNames(TArray<FName>& OutEventNames)
+bool UInterpData::IsEventName(const FName& InEventName) const
+{
+	return AllEventNames.Contains( InEventName );
+}
+
+void UInterpData::GetAllEventNames(TArray<FName>& OutEventNames) const
 {
 	OutEventNames = AllEventNames;
 }
@@ -6298,6 +6303,7 @@ void UInterpTrackEvent::RemoveKeyframe(int32 KeyIndex)
 	if ( Group )
 	{
 		UInterpData* IData = CastChecked<UInterpData>( Group->GetOuter() );
+		IData->Modify();
 		IData->UpdateEventNames();
 	}
 }

@@ -44,9 +44,10 @@ namespace BlueprintPalette
  * 
  * @param  VarClass	The class that owns the variable in question.
  * @param  VarName	The name of the variable you want the type of.
+ * @param  Detailed	If true the returned string includes SubCategoryObject
  * @return A string representing the variable's type (empty if the variable couldn't be found).
  */
-static FString GetVarType(UClass* VarClass, FName VarName, bool bUseObjToolTip)
+static FString GetVarType(UClass* VarClass, FName VarName, bool bUseObjToolTip, bool bDetailed = false)
 {
 	FString VarDesc;
 
@@ -70,7 +71,14 @@ static FString GetVarType(UClass* VarClass, FName VarName, bool bUseObjToolTip)
 				FEdGraphPinType PinType;
 				if (K2Schema->ConvertPropertyToPinType(Property, PinType)) // use schema to get the color
 				{
-					VarDesc = UEdGraphSchema_K2::TypeToString(PinType);
+					if (bDetailed && PinType.PinSubCategoryObject.IsValid())
+					{
+						VarDesc = FString::Printf(TEXT("%s '%s'"), *PinType.PinCategory, *PinType.PinSubCategoryObject->GetName());
+					}
+					else
+					{
+						VarDesc = UEdGraphSchema_K2::TypeToString(PinType);
+					}
 				}
 			}
 		}
@@ -316,15 +324,20 @@ static void GetPaletteItemIcon(TSharedPtr<FEdGraphSchemaAction> ActionIn, UBluep
 
 		UClass* VarClass = VarAction->GetVariableClass();
 		BrushOut = FBlueprintEditor::GetVarIconAndColor(VarClass, VarAction->GetVariableName(), ColorOut);
-		ToolTipOut = GetVarType(VarClass, VarAction->GetVariableName(), true);
+		ToolTipOut = GetVarType(VarClass, VarAction->GetVariableName(), true, true);
 
 		DocLinkOut = TEXT("Shared/Editor/Blueprint/VariableTypes");
-		DocExcerptOut = GetVarType(VarClass, VarAction->GetVariableName(), false);
+		DocExcerptOut = GetVarType(VarClass, VarAction->GetVariableName(), false, false);
 	}
 	else if(ActionIn->GetTypeId() == FEdGraphSchemaAction_K2Enum::StaticGetTypeId())
 	{
 		BrushOut = FEditorStyle::GetBrush(TEXT("GraphEditor.EnumGlyph"));
 		ToolTipOut = FString::Printf( *LOCTEXT("Enum_Tooltip", "Enum Asset").ToString() );
+	}
+	else if(ActionIn->GetTypeId() == FEdGraphSchemaAction_K2Struct::StaticGetTypeId())
+	{
+		BrushOut = FEditorStyle::GetBrush(TEXT("GraphEditor.StructGlyph"));
+		ToolTipOut =  FString::Printf( *LOCTEXT("Struct_Tooltip", "Struct Asset").ToString() );
 	}
 	else if (ActionIn->GetTypeId() == FEdGraphSchemaAction_K2AddComment::StaticGetTypeId() ||
 		ActionIn->GetTypeId() == FEdGraphSchemaAction_NewStateComment::StaticGetTypeId())
@@ -382,30 +395,22 @@ static TSharedRef<SToolTip> ConstructToolTipWithActionPath(TSharedPtr<FEdGraphSc
 /** A set of utilities to aid SBlueprintPaletteItem when the user attempts to rename one. */
 struct FBlueprintPaletteItemRenameUtils
 {
-	/**
-	 * Determines whether the enum node, associated with the selected action, 
-	 * can be renamed with the specified text.
-	 * 
-	 * @param  InNewText		The text you want to verify.
-	 * @param  OutErrorMessage	Text explaining why the associated node couldn't be renamed (if the return value is false).
-	 * @param  ActionPtr		The selected action that the calling palette item represents.
-	 * @return True if it is ok to rename the associated node with the given string (false if not).
-	 */
-	static bool VerifyNewEnumName(const FText& InNewText, FText& OutErrorMessage, TWeakPtr<FEdGraphSchemaAction> ActionPtr)
+private:
+	static bool VerifyNewAssetName(UObject* Object, const FText& InNewText, FText& OutErrorMessage)
 	{
-		// Should never make it here with anything but an enum action
-		check(ActionPtr.Pin()->GetTypeId() == FEdGraphSchemaAction_K2Enum::StaticGetTypeId());
+		if (!Object)
+		{
+			return false;
+		}
 
-		FEdGraphSchemaAction_K2Enum* EnumAction = (FEdGraphSchemaAction_K2Enum*)ActionPtr.Pin().Get();
-
-		if(EnumAction->Enum->GetName() == InNewText.ToString())
+		if (Object->GetName() == InNewText.ToString())
 		{
 			return true;
 		}
 
 		TArray<FAssetData> AssetData;
 		FAssetRegistryModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
-		AssetToolsModule.Get().GetAssetsByPath(FName(*FPaths::GetPath(EnumAction->Enum->GetOutermost()->GetPathName())), AssetData);
+		AssetToolsModule.Get().GetAssetsByPath(FName(*FPaths::GetPath(Object->GetOutermost()->GetPathName())), AssetData);
 
 		if(!FEditorFileUtils::IsFilenameValidForSaving(InNewText.ToString(), OutErrorMessage) || !FName(*InNewText.ToString()).IsValidObjectName( OutErrorMessage ))
 		{
@@ -429,6 +434,48 @@ struct FBlueprintPaletteItemRenameUtils
 		}
 
 		return true;
+	}
+
+	static void CommitNewAssetName(UObject* Object, FBlueprintEditor* BlueprintEditor, const FText& NewText)
+	{
+		if (Object && BlueprintEditor)
+		{
+			if(Object->GetName() != NewText.ToString())
+			{
+				TArray<FAssetRenameData> AssetsAndNames;
+				const FString PackagePath = FPackageName::GetLongPackagePath(Object->GetOutermost()->GetName());
+				new(AssetsAndNames) FAssetRenameData(Object, PackagePath, NewText.ToString());
+
+				FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
+				AssetToolsModule.Get().RenameAssets(AssetsAndNames);
+			}
+
+			auto MyBlueprint = BlueprintEditor->GetMyBlueprintWidget();
+			if (MyBlueprint.IsValid())
+			{
+				MyBlueprint->SelectItemByName(FName(*Object->GetPathName()));
+			}	
+		}
+	}
+
+public:
+	/**
+	 * Determines whether the enum node, associated with the selected action, 
+	 * can be renamed with the specified text.
+	 * 
+	 * @param  InNewText		The text you want to verify.
+	 * @param  OutErrorMessage	Text explaining why the associated node couldn't be renamed (if the return value is false).
+	 * @param  ActionPtr		The selected action that the calling palette item represents.
+	 * @return True if it is ok to rename the associated node with the given string (false if not).
+	 */
+	static bool VerifyNewEnumName(const FText& InNewText, FText& OutErrorMessage, TWeakPtr<FEdGraphSchemaAction> ActionPtr)
+	{
+		// Should never make it here with anything but an enum action
+		check(ActionPtr.Pin()->GetTypeId() == FEdGraphSchemaAction_K2Enum::StaticGetTypeId());
+
+		auto EnumAction = (FEdGraphSchemaAction_K2Enum*)ActionPtr.Pin().Get();
+		
+		return VerifyNewAssetName(EnumAction ? EnumAction->Enum : NULL, InNewText, OutErrorMessage);
 	}
 
 	/**
@@ -463,6 +510,25 @@ struct FBlueprintPaletteItemRenameUtils
 	}
 
 	/**
+	* Determines whether the struct node, associated with the selected action,
+	* can be renamed with the specified text.
+	*
+	* @param  InNewText		The text you want to verify.
+	* @param  OutErrorMessage	Text explaining why the associated node couldn't be renamed (if the return value is false).
+	* @param  ActionPtr		The selected action that the calling palette item represents.
+	* @return True if it is ok to rename the associated node with the given string (false if not).
+	*/
+	static bool VerifyNewStructName(const FText& InNewText, FText& OutErrorMessage, TWeakPtr<FEdGraphSchemaAction> ActionPtr)
+	{
+		// Should never make it here with anything but a struct action
+		check(ActionPtr.Pin()->GetTypeId() == FEdGraphSchemaAction_K2Struct::StaticGetTypeId());
+
+		auto Action = (FEdGraphSchemaAction_K2Struct*)ActionPtr.Pin().Get();
+
+		return VerifyNewAssetName(Action ? Action->Struct : NULL, InNewText, OutErrorMessage);
+	}
+
+	/**
 	 * Determines whether the event node, associated with the selected action, 
 	 * can be renamed with the specified text.
 	 * 
@@ -486,6 +552,25 @@ struct FBlueprintPaletteItemRenameUtils
 			bIsNameValid = (NodeNameValidator->IsValid(InNewText.ToString(), true) == EValidatorResult::Ok);
 		}
 		return bIsNameValid;
+	}
+
+	/**
+	 * Take the verified text and renames the struct node associated with the 
+	 * selected action.
+	 * 
+	 * @param  NewText				The new (verified) text to rename the node with.
+	 * @param  InTextCommit			A value denoting how the text was entered.
+	 * @param  ActionPtr			The selected action that the calling palette item represents.
+	 * @param  BlueprintEditorPtr	A pointer to the blueprint editor that the palette belongs to.
+	 */
+	static void CommitNewStructName(const FText& NewText, ETextCommit::Type InTextCommit, TWeakPtr<FEdGraphSchemaAction> ActionPtr, TWeakPtr<FBlueprintEditor> BlueprintEditorPtr)
+	{
+		// Should never make it here with anything but a struct action
+		check(ActionPtr.Pin()->GetTypeId() == FEdGraphSchemaAction_K2Struct::StaticGetTypeId());
+
+		FEdGraphSchemaAction_K2Struct* Action = (FEdGraphSchemaAction_K2Struct*)ActionPtr.Pin().Get();
+
+		CommitNewAssetName(Action ? Action->Struct : NULL, BlueprintEditorPtr.Pin().Get(), NewText);
 	}
 
 	/**
@@ -821,6 +906,11 @@ TSharedRef<SWidget> SBlueprintPaletteItem::CreateTextSlotWidget(const FSlateFont
 		OnVerifyTextChanged.BindStatic(&FBlueprintPaletteItemRenameUtils::VerifyNewEnumName, ActionPtr);
 		OnTextCommitted.BindStatic(&FBlueprintPaletteItemRenameUtils::CommitNewEnumName, ActionPtr, BlueprintEditorPtr);
 	}
+	else if (ActionTypeId == FEdGraphSchemaAction_K2Struct::StaticGetTypeId())
+	{
+		OnVerifyTextChanged.BindStatic(&FBlueprintPaletteItemRenameUtils::VerifyNewStructName, ActionPtr );
+		OnTextCommitted.BindStatic(&FBlueprintPaletteItemRenameUtils::CommitNewStructName, ActionPtr, BlueprintEditorPtr);
+	}
 	else if (ActionTypeId == FEdGraphSchemaAction_K2Event::StaticGetTypeId())
 	{
 		OnVerifyTextChanged.BindStatic(&FBlueprintPaletteItemRenameUtils::VerifyNewEventName, ActionPtr);
@@ -896,6 +986,11 @@ FText SBlueprintPaletteItem::GetDisplayText() const
 	{
 		FEdGraphSchemaAction_K2Enum* EnumAction = (FEdGraphSchemaAction_K2Enum*)GraphAction.Get();
 		DisplayText = FText::FromString(EnumAction->Enum->GetName());
+	}
+	else if (GraphAction->GetTypeId() == FEdGraphSchemaAction_K2Struct::StaticGetTypeId())
+	{
+		FEdGraphSchemaAction_K2Struct* StructAction = (FEdGraphSchemaAction_K2Struct*)GraphAction.Get();
+		DisplayText = StructAction->Struct ? FText::FromString(StructAction->Struct->GetName()) : FText::FromString(TEXT("None"));
 	}
 	else
 	{
@@ -1172,7 +1267,7 @@ FText SBlueprintPaletteItem::GetToolTipText() const
 			{
 				FString Result = GetVarTooltip(BlueprintEditorPtr.Pin()->GetBlueprintObj(), VarClass, VarAction->GetVariableName());
 				// Only use the variable tooltip if it has been filled out.
-				ToolTipText = !Result.IsEmpty() ? Result : GetVarType(VarClass, VarAction->GetVariableName(), true);
+				ToolTipText = !Result.IsEmpty() ? Result : GetVarType(VarClass, VarAction->GetVariableName(), true, true);
 			}
 		}
 		else if (PaletteAction->GetTypeId() == FEdGraphSchemaAction_K2Delegate::StaticGetTypeId())

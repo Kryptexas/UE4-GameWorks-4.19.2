@@ -153,7 +153,7 @@ bool FKismetCompilerUtilities::IsTypeCompatibleWithProperty(UEdGraphPin* SourceP
 	}
 	else if (PinCategory == Schema->PC_Delegate)
 	{
-		const UFunction* SignatureFunction = Cast<const UFunction>(PinSubCategoryObject);
+		const UFunction* SignatureFunction = FMemberReference::ResolveSimpleMemberReference<UFunction>(Type.PinSubCategoryMemberReference);
 		const UDelegateProperty* PropertyDelegate = Cast<const UDelegateProperty>(TestProperty);
 		bTypeMismatch = !(SignatureFunction 
 			&& PropertyDelegate 
@@ -223,11 +223,24 @@ bool FKismetCompilerUtilities::IsTypeCompatibleWithProperty(UEdGraphPin* SourceP
 			if (StructProperty != NULL)
 			{
 				DesiredSubType = StructProperty->Struct->GetName();
-				bSubtypeMismatch = bTypeMismatch = (StructType != StructProperty->Struct);
+				bool bMatchingStructs = (StructType == StructProperty->Struct);
+				if (auto UserDefinedStructFromProperty = Cast<const UUserDefinedStruct>(StructProperty->Struct))
+				{
+					bMatchingStructs |= (UserDefinedStructFromProperty->PrimaryStruct.Get() == StructType);
+				}
+				bSubtypeMismatch = bTypeMismatch = !bMatchingStructs;
 			}
 			else
 			{
 				bTypeMismatch = true;
+			}
+
+			if (OwningFunction && bTypeMismatch)
+			{
+				if (UK2Node_CallFunction::IsStructureWildcardProperty(OwningFunction, SourcePin->PinName))
+				{
+					bSubtypeMismatch = bTypeMismatch = false;
+				}
 			}
 		}
 	}
@@ -608,7 +621,7 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 	}
 	else if (Type.PinCategory == Schema->PC_Delegate)
 	{
-		if (UFunction* SignatureFunction = Cast<UFunction>(Type.PinSubCategoryObject.Get()))
+		if (UFunction* SignatureFunction = FMemberReference::ResolveSimpleMemberReference<UFunction>(Type.PinSubCategoryMemberReference))
 		{
 			UDelegateProperty* NewPropertyDelegate = NewNamedObject<UDelegateProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
 			NewPropertyDelegate->SignatureFunction = SignatureFunction;
@@ -617,7 +630,7 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 	}
 	else if (Type.PinCategory == Schema->PC_MCDelegate)
 	{
-		UFunction* const SignatureFunction = Cast<UFunction>(Type.PinSubCategoryObject.Get());
+		UFunction* const SignatureFunction = FMemberReference::ResolveSimpleMemberReference<UFunction>(Type.PinSubCategoryMemberReference);
 		UMulticastDelegateProperty* NewPropertyDelegate = NewNamedObject<UMulticastDelegateProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
 		NewPropertyDelegate->SignatureFunction = SignatureFunction;
 		NewProperty = NewPropertyDelegate;

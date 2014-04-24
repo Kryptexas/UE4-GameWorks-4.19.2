@@ -50,7 +50,8 @@ private:
 	UPackage*			Package;
 	FStringOutputDevice	PreHeaderText;
 	FStringOutputDevice	EnumForeachText;
-	FStringOutputDevice ListOfPublicClassesUObjectHeaderIncludes;
+	FStringOutputDevice ListOfPublicClassesUObjectHeaderGroupIncludes;  // This is built up each time from scratch each time for each header groups
+	FStringOutputDevice ListOfPublicClassesUObjectHeaderModuleIncludes; // This is built up for the entire module, and for all processed headers
 	FStringOutputDevice ListOfAllUObjectHeaderIncludes;
 	FStringOutputDevice FriendText;
 	FStringOutputDevice	GeneratedPackageCPP;
@@ -80,15 +81,15 @@ private:
 	/** the existing disk version of this header */
 	FString				OriginalHeader;
 
-	/** Used by certain traversal algorithms to flag if a class has been visited or not. */
-	TMap<const UClass*, bool>	VisitedMap;
-
 	/** Array of temp filenames that for files to overwrite headers */
 	TArray<FString>		TempHeaderPaths;
 
 	/** Array of all header filenames from the current package. */
 	TArray<FString>		PackageHeaderPaths;
 
+	/** Array of all generated Classes headers for the current package */
+	TArray<FString>		ClassesHeaders;
+	
 	/** if we are exporting a struct for offset determination only, replace some types with simpler ones (delegates) */
 	bool bIsExportingForOffsetDeterminationOnly;
 
@@ -231,9 +232,10 @@ private:
 	 *
 	 * @param	Class					The class to be exported.
 	 * @param	DependencyChain			Used for finding errors. Must be empty before the first call.
+	 * @param	VisitedSet				The set of classes visited so far. Must be empty before the first call.
 	 * @param	bCheckDependenciesOnly	Whether we should just keep checking for dependency errors, without exporting anything.
 	 */
-	void ExportClassHeaderRecursive( UClass* Class, TArray<UClass*>& DependencyChain, bool bCheckDependenciesOnly );
+	void ExportClassHeaderRecursive( UClass* Class, TArray<UClass*>& DependencyChain, TSet<const UClass*>& VisitedSet, bool bCheckDependenciesOnly );
 
 	/**
 	 * Returns a string in the format CLASS_Something|CLASS_Something which represents all class flags that are set for the specified

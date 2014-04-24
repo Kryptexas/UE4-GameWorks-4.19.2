@@ -68,11 +68,6 @@ public:
 	static UClass* RegenerateBlueprintClass(UBlueprint* Blueprint, UClass* ClassToRegenerate, UObject* PreviousCDO, TArray<UObject*>& ObjLoaded);
 
 	/**
-	 * Input delegate pin's PinSubCategoryObject may be obsolete. But MCDelegate node has reference to actual function's signature.
-	 */
-	static void RefreshInputDelegatePins(UBlueprint* Blueprint);
-
-	/**
 	 * Copies the default properties of all parent blueprint classes in the chain to the specified blueprint's skeleton CDO
 	 */
 	static void PropagateParentBlueprintDefaults(UClass* ClassToPropagate);
@@ -372,6 +367,15 @@ public:
 
 	//////////////////////////////////////////////////////////////////////////
 	// Variables
+
+	/**
+	 * Checks if pin type stores proper type for a variable or parameter. Especially if the UDStruct is valid.
+	 *
+	 * @param		Type	Checked pin type.
+	 *
+	 * @return				if type is valid
+	 */
+	static bool IsPinTypeValid(const FEdGraphPinType& Type);
 
 	/**
 	 * Gets the visible class variable list.  This includes both variables introduced here and in all superclasses.
@@ -797,4 +801,7 @@ protected:
 	 */
 	static bool CheckIfNodeConnectsToSelection(UEdGraphNode* InNode, const TSet<UEdGraphNode*>& InSelectionSet);
 
+public:
+	static FName GetFunctionNameFromClassByGuid(const UClass* InClass, const FGuid FunctionGuid);
+	static bool GetFunctionGuidFromClassByFieldName(const UClass* InClass, const FName FunctionName, FGuid& FunctionGuid);
 };

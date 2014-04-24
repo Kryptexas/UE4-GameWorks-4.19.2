@@ -37,7 +37,8 @@ void UK2Node_CreateDelegate::AllocateDefaultPins()
 
 bool UK2Node_CreateDelegate::IsValid(FString* OutMsg, bool bDontUseSkeletalClassForSelf) const
 {
-	if (SelectedFunctionName == NAME_None)
+
+	if (GetFunctionName() == NAME_None)
 	{
 		return false;
 	}
@@ -57,34 +58,26 @@ bool UK2Node_CreateDelegate::IsValid(FString* OutMsg, bool bDontUseSkeletalClass
 	for(int PinIter = 1; PinIter < DelegatePin->LinkedTo.Num(); PinIter++)
 	{
 		const UEdGraphPin* OtherPin = DelegatePin->LinkedTo[PinIter];
-		const UFunction* OtherSignature = OtherPin ? Cast<UFunction>(OtherPin->PinType.PinSubCategoryObject.Get()) : NULL;
+		const UFunction* OtherSignature = OtherPin ? 
+			FMemberReference::ResolveSimpleMemberReference<UFunction>(OtherPin->PinType.PinSubCategoryMemberReference) : NULL;
 		if(!OtherSignature || !Signature->IsSignatureCompatibleWith(OtherSignature))
 		{
 			return false;
 		}
 	}
 
-	const UClass* ScopeClass = GetScopeClass(bDontUseSkeletalClassForSelf);
+	UClass* ScopeClass = GetScopeClass(bDontUseSkeletalClassForSelf);
 	if(!ScopeClass)
 	{
 		return false;
 	}
 
-	const UFunction* FoundFunction = NULL;
-	for (TFieldIterator<UFunction> It(ScopeClass); It; ++It)
-	{
-		const UFunction* Func = *It;
-		if (Func->GetFName() == SelectedFunctionName)
-		{
-			if (Signature->IsSignatureCompatibleWith(Func) && 
-				UEdGraphSchema_K2::FunctionCanBeUsedInDelegate(Func))
-			{
-				FoundFunction = Func;
-				break;
-			}
-		}
-	}
-	if (!FoundFunction)
+	FMemberReference MemeberReference;
+	MemeberReference.SetDirect(SelectedFunctionName, SelectedFunctionGuid, ScopeClass, false);
+	const UFunction* FoundFunction = MemeberReference.ResolveMember<UFunction>((UClass*) NULL);
+	if (!FoundFunction || 
+		!Signature->IsSignatureCompatibleWith(FoundFunction) || 
+		!UEdGraphSchema_K2::FunctionCanBeUsedInDelegate(FoundFunction))
 	{
 		return false;
 	}
@@ -118,19 +111,39 @@ void UK2Node_CreateDelegate::ValidationAfterFunctionsAreCreated(class FCompilerR
 	}
 }
 
-void UK2Node_CreateDelegate::HandleAnyChangeInner()
+void UK2Node_CreateDelegate::HandleAnyChangeWithoutNotifying()
 {
+	const auto Blueprint = GetBlueprint();
+	const auto SelfScopeClass = Blueprint ? Blueprint->SkeletonGeneratedClass : NULL;
+	const auto ParentClass = GetScopeClass();
+	const bool bIsSelfScope = SelfScopeClass && ParentClass && ((SelfScopeClass->IsChildOf(ParentClass)) || (SelfScopeClass->ClassGeneratedBy == ParentClass->ClassGeneratedBy));
+
+	FMemberReference FunctionReference;
+	FunctionReference.SetDirect(SelectedFunctionName, SelectedFunctionGuid, GetScopeClass(), bIsSelfScope);
+
+	if (FunctionReference.ResolveMember<UFunction>(SelfScopeClass))
+	{
+		SelectedFunctionName = FunctionReference.GetMemberName();
+		SelectedFunctionGuid = FunctionReference.GetMemberGuid();
+
+		if (!SelectedFunctionGuid.IsValid())
+		{
+			UBlueprint::GetGuidFromClassByFieldName<UFunction>(ParentClass, SelectedFunctionName, SelectedFunctionGuid);
+		}
+	}
+
 	if(!IsValid())
 	{
 		SelectedFunctionName = NAME_None;
+		SelectedFunctionGuid.Invalidate();
 	}
 }
 
 void UK2Node_CreateDelegate::HandleAnyChange(UEdGraph* & OutGraph, UBlueprint* & OutBlueprint)
 {
-	const FName OldSelectedFunctionName = SelectedFunctionName;
-	HandleAnyChangeInner();
-	if(OldSelectedFunctionName != SelectedFunctionName)
+	const FName OldSelectedFunctionName = GetFunctionName();
+	HandleAnyChangeWithoutNotifying();
+	if (OldSelectedFunctionName != GetFunctionName())
 	{
 		OutGraph = GetGraph();
 		OutBlueprint = GetBlueprint();
@@ -144,9 +157,9 @@ void UK2Node_CreateDelegate::HandleAnyChange(UEdGraph* & OutGraph, UBlueprint* &
 
 void UK2Node_CreateDelegate::HandleAnyChange(bool bForceModify)
 {
-	const FName OldSelectedFunctionName = SelectedFunctionName;
-	HandleAnyChangeInner();
-	if(bForceModify || (OldSelectedFunctionName != SelectedFunctionName))
+	const FName OldSelectedFunctionName = GetFunctionName();
+	HandleAnyChangeWithoutNotifying();
+	if (bForceModify || (OldSelectedFunctionName != GetFunctionName()))
 	{
 		if(UEdGraph* Graph = GetGraph())
 		{
@@ -160,7 +173,7 @@ void UK2Node_CreateDelegate::HandleAnyChange(bool bForceModify)
 			Blueprint->BroadcastChanged();
 		}
 	}
-	else if(SelectedFunctionName == NAME_None)
+	else if (GetFunctionName() == NAME_None)
 	{
 		if(UEdGraph* Graph = GetGraph())
 		{
@@ -179,7 +192,7 @@ void UK2Node_CreateDelegate::PinConnectionListChanged(UEdGraphPin* Pin)
 	}
 	else
 	{
-		HandleAnyChangeInner();
+		HandleAnyChangeWithoutNotifying();
 	}
 }
 
@@ -187,7 +200,7 @@ void UK2Node_CreateDelegate::PinTypeChanged(UEdGraphPin* Pin)
 {
 	Super::PinTypeChanged(Pin);
 
-	HandleAnyChangeInner();
+	HandleAnyChangeWithoutNotifying();
 }
 
 void UK2Node_CreateDelegate::NodeConnectionListChanged()
@@ -200,7 +213,7 @@ void UK2Node_CreateDelegate::NodeConnectionListChanged()
 	}
 	else
 	{
-		HandleAnyChangeInner();
+		HandleAnyChangeWithoutNotifying();
 	}
 }
 
@@ -220,7 +233,7 @@ UFunction* UK2Node_CreateDelegate::GetDelegateSignature() const
 		if(UEdGraphPin* ResultPin = Pin->LinkedTo[0])
 		{
 			ensure(K2Schema->PC_Delegate == ResultPin->PinType.PinCategory);
-			return Cast<UFunction>(ResultPin->PinType.PinSubCategoryObject.Get());
+			return FMemberReference::ResolveSimpleMemberReference<UFunction>(ResultPin->PinType.PinSubCategoryMemberReference);
 		}
 	}
 	return NULL;
@@ -332,4 +345,10 @@ UObject* UK2Node_CreateDelegate::GetJumpTargetForDoubleClick() const
 FNodeHandlingFunctor* UK2Node_CreateDelegate::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const
 {
 	return new FKCHandler_CreateDelegate(CompilerContext);
+}
+
+void UK2Node_CreateDelegate::SetFunction(FName Name)
+{
+	SelectedFunctionName = Name;
+	SelectedFunctionGuid.Invalidate();
 }

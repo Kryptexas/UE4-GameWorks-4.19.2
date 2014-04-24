@@ -2,7 +2,7 @@
 
 #include "ReferenceViewerPrivatePCH.h"
 #include "ReferenceViewer.h"
-#include "ReferenceViewer.generated.inl"
+
 #include "EdGraphUtilities.h"
 
 #define LOCTEXT_NAMESPACE "ReferenceViewer"

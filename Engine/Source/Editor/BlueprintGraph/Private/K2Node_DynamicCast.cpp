@@ -172,3 +172,15 @@ FNodeHandlingFunctor* UK2Node_DynamicCast::CreateNodeHandler(FKismetCompilerCont
 {
 	return new FKCHandler_DynamicCast(CompilerContext, KCST_DynamicCast);
 }
+
+bool UK2Node_DynamicCast::HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput) const
+{
+	const UBlueprint* SourceBlueprint = GetBlueprint();
+	UClass* SourceClass = *TargetType;
+	const bool bResult = (SourceClass != NULL) && (SourceClass->ClassGeneratedBy != NULL) && (SourceClass->ClassGeneratedBy != SourceBlueprint);
+	if (bResult && OptionalOutput)
+	{
+		OptionalOutput->Add(SourceClass);
+	}
+	return bResult || Super::HasExternalBlueprintDependencies(OptionalOutput);
+}

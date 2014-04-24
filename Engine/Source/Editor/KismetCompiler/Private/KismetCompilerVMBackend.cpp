@@ -452,7 +452,7 @@ public:
 					int32 StructSize = Struct->GetStructureSize() * StructProperty->ArrayDim;
 					uint8* StructData = (uint8*)FMemory_Alloca(StructSize);
 					StructProperty->InitializeValue(StructData);
-					if(!FStructureEditorUtils::Fill_MakeStructureDefaultValue(Cast<UBlueprintGeneratedStruct>(Struct), StructData))
+					if(!FStructureEditorUtils::Fill_MakeStructureDefaultValue(Cast<UUserDefinedStruct>(Struct), StructData))
 					{
 						UE_LOG(LogK2Compiler, Warning, TEXT("MakeStructureDefaultValue parsing error. Property: %s, Struct: %s"), *StructProperty->GetName(), *Struct->GetName());
 					}

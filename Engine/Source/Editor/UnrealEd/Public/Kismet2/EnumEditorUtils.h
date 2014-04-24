@@ -6,6 +6,7 @@
 #pragma once
 
 #include "Engine.h"
+#include "ListenerManager.h"
 
 class UNREALED_API FEnumEditorUtils
 {
@@ -14,25 +15,15 @@ class UNREALED_API FEnumEditorUtils
 	/** copy full enumeratos names from given enum to OutEnumNames, the last '_MAX' enumerator is skipped */
 	static void CopyEnumeratorsWithoutMax(const UEnum* Enum, TArray<FName>& OutEnumNames);
 public:
-	
-	class UNREALED_API INotifyOnEnumChanged
-	{
-	public:
-		virtual void OnEnumChanged(const class UUserDefinedEnum* Enum) = 0;
-	};
 
-	class UNREALED_API FEnumEditorManager
+	class FEnumEditorManager : public FListenerManager<UUserDefinedEnum>
 	{
-		TSet<INotifyOnEnumChanged*> Listeners;
-
 		FEnumEditorManager();
 	public:
-		static FEnumEditorManager& Get();
-
-		void AddEnumListener(INotifyOnEnumChanged* EnumListener);
-		void RemoveEnumListener(INotifyOnEnumChanged* EnumListener);
-		void OnEnumChanged(const UUserDefinedEnum* Enum);
+		UNREALED_API static FEnumEditorManager& Get();
 	};
+
+	typedef FEnumEditorManager::ListenerType INotifyOnEnumChanged;
 
 	//////////////////////////////////////////////////////////////////////////
 	// User defined enumerations

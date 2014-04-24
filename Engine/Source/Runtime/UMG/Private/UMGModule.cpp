@@ -5,8 +5,6 @@
 #include "IUMGModule.h"
 #include "ModuleManager.h"
 
-#include "UMG.generated.inl"
-
 class FUMGModule : public IUMGModule
 {
 public:

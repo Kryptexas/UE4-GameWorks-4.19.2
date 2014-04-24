@@ -31,6 +31,15 @@ namespace EMoveComponentAction
 	};
 }
 
+USTRUCT()
+struct FGenericStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	int32 Data;
+};
+
 UCLASS(HeaderGroup=KismetLibrary,MinimalAPI)
 class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 {
@@ -335,6 +344,32 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	/** Set a TRANSFORM property by name */
 	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly = "true"))
 	static void SetTransformPropertyByName(UObject* Object, FName PropertyName, const FTransform& Value);
+
+	/** Set a custom structure property by name */
+	UFUNCTION(BlueprintCallable, CustomThunk, meta = (BlueprintInternalUseOnly = "true", CustomStructureParam = "Value"))
+	static void SetStructurePropertyByName(UObject* Object, FName PropertyName, const FGenericStruct& Value);
+
+	/** Based on UKismetArrayLibrary::execSetArrayPropertyByName */
+	DECLARE_FUNCTION(execSetStructurePropertyByName)
+	{
+		P_GET_OBJECT(UObject, OwnerObject);
+		P_GET_PROPERTY(UNameProperty, StructPropertyName);
+
+		Stack.StepCompiledIn<UStructProperty>(NULL);
+		void* SrcStructAddr = Stack.MostRecentPropertyAddress;
+
+		P_FINISH;
+
+		if (OwnerObject != NULL)
+		{
+			UStructProperty* StructProp = FindField<UStructProperty>(OwnerObject->GetClass(), StructPropertyName);
+			if (StructProp != NULL)
+			{
+				void* Dest = StructProp->ContainerPtrToValuePtr<void>(OwnerObject);
+				StructProp->CopyValuesInternal(Dest, SrcStructAddr, 1);
+			}
+		}
+	}
 
 	// --- Collision functions ------------------------------
 

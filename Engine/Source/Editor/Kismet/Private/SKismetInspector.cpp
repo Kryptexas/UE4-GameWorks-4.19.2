@@ -16,6 +16,7 @@
 #include "SMyBlueprint.h"
 #include "BlueprintDetailsCustomization.h"
 #include "UserDefinedEnumEditor.h"
+#include "UserDefinedStructureEditor.h"
 #include "FormatTextDetails.h"
 
 #define LOCTEXT_NAMESPACE "KismetInspector"
@@ -234,6 +235,9 @@ void SKismetInspector::Construct(const FArguments& InArgs)
 
 		FOnGetDetailCustomizationInstance LayoutEnumDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FEnumDetails::MakeInstance);
 		PropertyView->RegisterInstancedCustomPropertyLayout(UUserDefinedEnum::StaticClass(), LayoutEnumDetails);
+
+		FOnGetDetailCustomizationInstance LayoutStructDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FUserDefinedStructureDetails::MakeInstance);
+		PropertyView->RegisterInstancedCustomPropertyLayout(UUserDefinedStruct::StaticClass(), LayoutStructDetails);
 
 		FOnGetDetailCustomizationInstance LayoutFormatTextDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FFormatTextDetails::MakeInstance);
 		PropertyView->RegisterInstancedCustomPropertyLayout(UK2Node_FormatText::StaticClass(), LayoutFormatTextDetails);

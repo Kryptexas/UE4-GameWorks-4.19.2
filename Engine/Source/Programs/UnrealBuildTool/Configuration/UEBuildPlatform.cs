@@ -92,15 +92,7 @@ namespace UnrealBuildTool
 		public static void RegisterPlatformWithGroup(UnrealTargetPlatform InPlatform, UnrealPlatformGroup InGroup)
 		{
 			// find or add the list of groups for this platform
-			List<UnrealTargetPlatform> PlatformList;
-			if (PlatformGroupDictionary.TryGetValue(InGroup, out PlatformList) == false)
-			{
-				PlatformList = new List<UnrealTargetPlatform>();
-				PlatformGroupDictionary[InGroup] = PlatformList;
-			}
-
-			// add the platform to the list of platforms the group has
-			PlatformList.Add(InPlatform);
+			PlatformGroupDictionary.GetOrAddNew(InGroup).Add(InPlatform);
 		}
 
 		/**

@@ -10,142 +10,38 @@
 #include "Editor/UnrealEd/Public/Kismet2/CompilerResultsLog.h"
 #include "Editor/KismetCompiler/Public/KismetCompilerModule.h"
 
-
 #define LOCTEXT_NAMESPACE "Structure"
 
-FName FStructureEditorUtils::MakeUniqueStructName(UBlueprint* Blueprint, const FString& BaseName)
-{
-	FString StructNameString(BaseName);
-	FName StructName(*StructNameString);
-	FKismetNameValidator NameValidator(Blueprint);
-	int32 Index = 0;
-	while ((NameValidator.IsValid(StructName) != EValidatorResult::Ok) 
-		|| !IsUniqueObjectName(StructName, Blueprint->GetOutermost()))
-	{
-		StructName = FName(*FString::Printf(TEXT("%s%i"), *StructNameString, Index));
-		++Index;
-	}
+//////////////////////////////////////////////////////////////////////////
+// FEnumEditorManager
+FStructureEditorUtils::FStructEditorManager::FStructEditorManager() : FListenerManager<UUserDefinedStruct>()
+{}
 
-	return StructName;
+FStructureEditorUtils::FStructEditorManager& FStructureEditorUtils::FStructEditorManager::Get()
+{
+	static TSharedRef< FStructEditorManager > EditorManager( new FStructEditorManager() );
+	return *EditorManager;
 }
 
-bool FStructureEditorUtils::AddStructure(UBlueprint* Blueprint)
+//////////////////////////////////////////////////////////////////////////
+// FStructureEditorUtils
+UUserDefinedStruct* FStructureEditorUtils::CreateUserDefinedStruct(UObject* InParent, FName Name, EObjectFlags Flags)
 {
-	if(NULL != Blueprint)
+	UUserDefinedStruct* Struct = NULL;
+	
+	if (UserDefinedStructEnabled())
 	{
-		const FScopedTransaction Transaction( LOCTEXT("AddStructure", "Add Structure") );
-		Blueprint->Modify();
-
-		const FName StructName = MakeUniqueStructName(Blueprint, TEXT("NewStruct"));
-		FBPStructureDescription StructureDesc;
-		StructureDesc.Name = StructName;
-
-		Blueprint->UserDefinedStructures.Add(StructureDesc);
-		OnStructureChanged(StructureDesc, Blueprint);
-
-		return true;
-	}
-	return false;
-}
-
-bool FStructureEditorUtils::RemoveStructure(UBlueprint* Blueprint, FName StructName)
-{
-	if(NULL != Blueprint)
-	{
-		const FScopedTransaction Transaction( LOCTEXT("RemoveStructure", "Remove Structure") );
-		Blueprint->Modify();
-
-		const int32 DescIdx = Blueprint->UserDefinedStructures.IndexOfByPredicate(FFindByNameHelper(StructName));
-		if(INDEX_NONE != DescIdx)
-		{
-			if(auto Struct = Blueprint->UserDefinedStructures[DescIdx].CompiledStruct)
-			{
-				FWeakObjectPtr StructWeakPtr(Struct);
-				Blueprint->UserDefinedStructures[DescIdx].CompiledStruct = NULL;
-
-				TArray< UObject* > ObjectsToDelete;
-				ObjectsToDelete.Add(Struct);
-				if(!ObjectTools::DeleteObjects(ObjectsToDelete, false))
-				{
-					Blueprint->UserDefinedStructures[DescIdx].CompiledStruct = Struct;
-					return false;
-				}
-
-				if (auto ZombieStruct = StructWeakPtr.Get())
-				{
-					ZombieStruct->Rename(NULL, GetTransientPackage(), REN_DontCreateRedirectors);
-					ULinkerLoad::InvalidateExport(ZombieStruct);
-					ZombieStruct->MarkPendingKill();
-				}
-			}
-
-			Blueprint->UserDefinedStructures.RemoveAt(DescIdx);
-			FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
-			return true;
-		}
-	}
-	return false;
-}
-
-bool FStructureEditorUtils::RenameStructure(UBlueprint* Blueprint, FName OldStructName, const FString& NewNameStr)
-{
-	if(NULL != Blueprint)
-	{
-		const FScopedTransaction Transaction( LOCTEXT("RenameStructure", "Rename Structure") );
-		Blueprint->Modify();
-
-		const FName NewName(*NewNameStr);
-		FKismetNameValidator NameValidator(Blueprint);
-		if(NewName.IsValidXName(INVALID_OBJECTNAME_CHARACTERS) && (NameValidator.IsValid(NewName) == EValidatorResult::Ok))
-		{
-			FBPStructureDescription* StructureDesc = Blueprint->UserDefinedStructures.FindByPredicate(FFindByNameHelper(OldStructName));
-			if(StructureDesc)
-			{
-				if(StructureDesc->CompiledStruct)
-				{
-					if(!StructureDesc->CompiledStruct->Rename(*NewNameStr, NULL, REN_Test))
-					{
-						return false;
-					}
-
-					if(!StructureDesc->CompiledStruct->Rename(*NewNameStr, NULL))
-					{
-						return false;
-					}
-				}
-
-				StructureDesc->Name = NewName;
-
-				FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
-				return true;
-			}
-		}
-	}
-	return false;
-}
-
-bool FStructureEditorUtils::DuplicateStructure(UBlueprint* Blueprint, FName StructName)
-{
-	if(NULL != Blueprint)
-	{
-		const FScopedTransaction Transaction( LOCTEXT("RemoveStructure", "Remove Structure") );
-		Blueprint->Modify();
-
-		const FBPStructureDescription* StructureDesc = Blueprint->UserDefinedStructures.FindByPredicate(FFindByNameHelper(StructName));
-		if (StructureDesc)
-		{
-			FBPStructureDescription NewStructureDesc(*StructureDesc);
-			NewStructureDesc.CompiledStruct = NULL;
-			NewStructureDesc.Name = MakeUniqueStructName(Blueprint, StructureDesc->Name.ToString());
-
-			Blueprint->UserDefinedStructures.Add(NewStructureDesc);
-			OnStructureChanged(NewStructureDesc, Blueprint);
-
-			return true;
-		}
+		Struct = NewNamedObject<UUserDefinedStruct>(InParent, Name, Flags);
+		check(Struct);
+		Struct->EditorData = NewNamedObject<UUserDefinedStructEditorData>(Struct, NAME_None, RF_Transactional);
+		check(Struct->EditorData);
+		Struct->SetMetaData(TEXT("BlueprintType"), TEXT("true"));
+		Struct->Bind();
+		Struct->StaticLink(true);
+		Struct->Status = UDSS_Error;
 	}
 
-	return false;
+	return Struct;
 }
 
 FStructureEditorUtils::EStructureError FStructureEditorUtils::IsStructureValid(const UScriptStruct* Struct, const UStruct* RecursionParent, FString* OutMsg)
@@ -171,19 +67,18 @@ FStructureEditorUtils::EStructureError FStructureEditorUtils::IsStructureValid(c
 		return EStructureError::FallbackStruct;
 	}
 
-	if (const UBlueprintGeneratedStruct* BPGStruct = Cast<const UBlueprintGeneratedStruct>(Struct))
+	if (Struct->GetStructureSize() <= 0)
 	{
-		static const FName BlueprintTypeName(TEXT("BlueprintType"));
-		if (!Struct->GetBoolMetaData(BlueprintTypeName))
+		if (OutMsg)
 		{
-			if (OutMsg)
-			{
-				*OutMsg = FString::Printf(*LOCTEXT("StructureNotBlueprintType", "Struct '%s' is not BlueprintType").ToString(), *Struct->GetFullName());
-			}
-			return EStructureError::NotBlueprintType;
+			*OutMsg = FString::Printf(*LOCTEXT("StructureSizeIsZero", "Struct '%s' is empty").ToString(), *Struct->GetFullName());
 		}
+		return EStructureError::EmptyStructure;
+	}
 
-		if (BPGStruct->Status != EBlueprintStructureStatus::BSS_UpToDate)
+	if (const UUserDefinedStruct* UDStruct = Cast<const UUserDefinedStruct>(Struct))
+	{
+		if (UDStruct->Status != EUserDefinedStructureStatus::UDSS_UpToDate)
 		{
 			if (OutMsg)
 			{
@@ -194,31 +89,42 @@ FStructureEditorUtils::EStructureError FStructureEditorUtils::IsStructureValid(c
 
 		for (const UProperty * P = Struct->PropertyLink; P; P = P->PropertyLinkNext)
 		{
-			const UStructProperty* StructProp = Cast<const UStructProperty>(P);
-			if (NULL == StructProp)
 			{
-				if (const UArrayProperty* ArrayProp = Cast<const UArrayProperty>(P))
+				const UStructProperty* StructProp = Cast<const UStructProperty>(P);
+				if (NULL == StructProp)
 				{
-					StructProp = Cast<const UStructProperty>(ArrayProp->Inner);
-				}
-			}
-
-			if (StructProp)
-			{
-				if ((NULL == StructProp->Struct) || (FallbackStruct == StructProp->Struct))
-				{
-					if (OutMsg)
+					if (const UArrayProperty* ArrayProp = Cast<const UArrayProperty>(P))
 					{
-						*OutMsg = FString::Printf(*LOCTEXT("StructureUnknownProperty", "Struct unknown (deleted?). Parent '%s' Property: '%s").ToString(), 
-							*Struct->GetFullName(), *StructProp->GetName());
+						StructProp = Cast<const UStructProperty>(ArrayProp->Inner);
 					}
-					return EStructureError::FallbackStruct;
 				}
 
-				const EStructureError Result = IsStructureValid(StructProp->Struct, RecursionParent ? RecursionParent : Struct, OutMsg);
-				if (EStructureError::Ok != Result) 
+				if (StructProp)
 				{
-					return Result;
+					if ((NULL == StructProp->Struct) || (FallbackStruct == StructProp->Struct))
+					{
+						if (OutMsg)
+						{
+							*OutMsg = FString::Printf(*LOCTEXT("StructureUnknownProperty", "Struct unknown (deleted?). Parent '%s' Property: '%s'").ToString(), 
+								*Struct->GetFullName(), *StructProp->GetName());
+						}
+						return EStructureError::FallbackStruct;
+					}
+
+					FString OutMsgInner;
+					const EStructureError Result = IsStructureValid(
+						StructProp->Struct, 
+						RecursionParent ? RecursionParent : Struct, 
+						OutMsg ? &OutMsgInner : NULL);
+					if (EStructureError::Ok != Result) 
+					{
+						if (OutMsg)
+						{
+							*OutMsg = FString::Printf(*LOCTEXT("StructurePropertyErrorTemplate", "Struct '%s' Property '%s' Error ( %s )").ToString(), 
+								*Struct->GetFullName(), *StructProp->GetName(), *OutMsgInner);
+						}
+						return Result;
+					}
 				}
 			}
 		}
@@ -227,7 +133,7 @@ FStructureEditorUtils::EStructureError FStructureEditorUtils::IsStructureValid(c
 	return EStructureError::Ok;
 }
 
-bool FStructureEditorUtils::CanHaveAMemberVariableOfType(const UBlueprintGeneratedStruct* Struct, const FEdGraphPinType& VarType, FString* OutMsg)
+bool FStructureEditorUtils::CanHaveAMemberVariableOfType(const UUserDefinedStruct* Struct, const FEdGraphPinType& VarType, FString* OutMsg)
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 	if ((VarType.PinCategory == K2Schema->PC_Struct) && Struct)
@@ -249,7 +155,11 @@ bool FStructureEditorUtils::CanHaveAMemberVariableOfType(const UBlueprintGenerat
 			return false;
 		}
 	}
-	else if ((VarType.PinCategory == K2Schema->PC_Exec) || (VarType.PinCategory == K2Schema->PC_Meta) || (VarType.PinCategory == K2Schema->PC_Wildcard))
+	else if ((VarType.PinCategory == K2Schema->PC_Exec) 
+		|| (VarType.PinCategory == K2Schema->PC_Meta) 
+		|| (VarType.PinCategory == K2Schema->PC_Wildcard)
+		|| (VarType.PinCategory == K2Schema->PC_MCDelegate)
+		|| (VarType.PinCategory == K2Schema->PC_Delegate))
 	{
 		if (OutMsg)
 		{
@@ -262,7 +172,7 @@ bool FStructureEditorUtils::CanHaveAMemberVariableOfType(const UBlueprintGenerat
 
 struct FMemberVariableNameHelper
 {
-	static FName Generate(UBlueprintGeneratedStruct* Struct, const FString& NameBase)
+	static FName Generate(UUserDefinedStruct* Struct, const FString& NameBase)
 	{
 		FString Result;
 		if (!NameBase.IsEmpty())
@@ -281,7 +191,7 @@ struct FMemberVariableNameHelper
 
 		if(Struct)
 		{
-			const uint32 UniqueNameId = Struct->GenerateUniqueNameIdForMemberVariable();
+			const uint32 UniqueNameId = CastChecked<UUserDefinedStructEditorData>(Struct->EditorData)->GenerateUniqueNameIdForMemberVariable();
 			Result = FString::Printf(TEXT("%s_%u"), *Result, UniqueNameId);
 		}
 		FName NameResult = FName(*Result);
@@ -290,89 +200,85 @@ struct FMemberVariableNameHelper
 	}
 };
 
-bool FStructureEditorUtils::AddVariable(UBlueprint* Blueprint, FName StructName, const FEdGraphPinType& VarType)
+bool FStructureEditorUtils::AddVariable(UUserDefinedStruct* Struct, const FEdGraphPinType& VarType)
 {
-	if (NULL != Blueprint)
+	if (Struct)
 	{
 		const FScopedTransaction Transaction( LOCTEXT("AddVariable", "Add Variable") );
-		Blueprint->Modify();
+		ModifyStructData(Struct);
 
-		FBPStructureDescription* StructureDesc = Blueprint->UserDefinedStructures.FindByPredicate(FFindByNameHelper(StructName));
-		if (StructureDesc)
+		FString ErrorMessage;
+		if (!CanHaveAMemberVariableOfType(Struct, VarType, &ErrorMessage))
 		{
-			FString ErrorMessage;
-			if (!CanHaveAMemberVariableOfType(StructureDesc->CompiledStruct, VarType, &ErrorMessage))
-			{
-				UE_LOG(LogBlueprint, Warning, TEXT("%s"), *ErrorMessage);
-				return false;
-			}
-
-			const FName VarName = FMemberVariableNameHelper::Generate(StructureDesc->CompiledStruct, FString());
-			check(NULL == StructureDesc->Fields.FindByPredicate(FFindByNameHelper(VarName)));
-			const FString DisplayName = VarName.ToString();
-			check(IsUniqueVariableDisplayName(Blueprint, StructName, DisplayName));
-
-			FBPVariableDescription NewVar;
-			NewVar.VarName = VarName;
-			NewVar.FriendlyName = DisplayName;
-			NewVar.VarType = VarType;
-			NewVar.VarGuid = FGuid::NewGuid();
-			StructureDesc->Fields.Add(NewVar);
-
-			OnStructureChanged(*StructureDesc, Blueprint);
-			return true;
+			UE_LOG(LogBlueprint, Warning, TEXT("%s"), *ErrorMessage);
+			return false;
 		}
+
+		const FName VarName = FMemberVariableNameHelper::Generate(Struct, FString());
+		check(NULL == GetVarDesc(Struct).FindByPredicate(FStructureEditorUtils::FFindByNameHelper<FStructVariableDescription>(VarName)));
+		const FString DisplayName = VarName.ToString();
+		check(IsUniqueVariableDisplayName(Struct, DisplayName));
+
+		FStructVariableDescription NewVar;
+		NewVar.VarName = VarName;
+		NewVar.FriendlyName = DisplayName;
+		NewVar.SetPinType(VarType);
+		NewVar.VarGuid = FGuid::NewGuid();
+		GetVarDesc(Struct).Add(NewVar);
+
+		OnStructureChanged(Struct);
+		return true;
 	}
 	return false;
 }
 
-bool FStructureEditorUtils::RemoveVariable(UBlueprint* Blueprint, FName StructName, FGuid VarGuid)
+bool FStructureEditorUtils::RemoveVariable(UUserDefinedStruct* Struct, FGuid VarGuid)
 {
-	if(NULL != Blueprint)
+	if(Struct)
 	{
 		const FScopedTransaction Transaction( LOCTEXT("RemoveVariable", "Remove Variable") );
-		Blueprint->Modify();
+		ModifyStructData(Struct);
 
-		FBPStructureDescription* StructureDesc = Blueprint->UserDefinedStructures.FindByPredicate(FFindByNameHelper(StructName));
-		if(StructureDesc)
+		const auto OldNum = GetVarDesc(Struct).Num();
+		const bool bAllowToMakeEmpty = false;
+		if (bAllowToMakeEmpty || (OldNum > 1))
 		{
-			const auto OldNum = StructureDesc->Fields.Num();
-			StructureDesc->Fields.RemoveAll(FFindByGuidHelper(VarGuid));
-			if(OldNum != StructureDesc->Fields.Num())
+			GetVarDesc(Struct).RemoveAll(FFindByGuidHelper<FStructVariableDescription>(VarGuid));
+			if (OldNum != GetVarDesc(Struct).Num())
 			{
-				OnStructureChanged(*StructureDesc, Blueprint);
+				OnStructureChanged(Struct);
 				return true;
 			}
+		}
+		else
+		{
+			UE_LOG(LogBlueprint, Log, TEXT("Member variable cannot be removed. User Defined Structure cannot be empty"));
 		}
 	}
 	return false;
 }
 
-bool FStructureEditorUtils::RenameVariable(UBlueprint* Blueprint, FName StructName, FGuid VarGuid, const FString& NewDisplayNameStr)
+bool FStructureEditorUtils::RenameVariable(UUserDefinedStruct* Struct, FGuid VarGuid, const FString& NewDisplayNameStr)
 {
-	if (NULL != Blueprint)
+	if (Struct)
 	{
 		const FScopedTransaction Transaction( LOCTEXT("RenameVariable", "Rename Variable") );
-		Blueprint->Modify();
+		ModifyStructData(Struct);
 
-		FBPStructureDescription* StructureDesc = Blueprint->UserDefinedStructures.FindByPredicate(FFindByNameHelper(StructName));
-		if (StructureDesc)
+		const FName NewNameBase(*NewDisplayNameStr);
+		if (NewNameBase.IsValidXName(INVALID_OBJECTNAME_CHARACTERS) &&
+			IsUniqueVariableDisplayName(Struct, NewDisplayNameStr))
 		{
-			const FName NewNameBase(*NewDisplayNameStr);
-			if (NewNameBase.IsValidXName(INVALID_OBJECTNAME_CHARACTERS) &&
-				IsUniqueVariableDisplayName(Blueprint, StructName, NewDisplayNameStr))
+			const FName NewName = FMemberVariableNameHelper::Generate(Struct, NewDisplayNameStr);
+			if (NULL == GetVarDesc(Struct).FindByPredicate(FFindByNameHelper<FStructVariableDescription>(NewName)))
 			{
-				const FName NewName = FMemberVariableNameHelper::Generate(StructureDesc->CompiledStruct, NewDisplayNameStr);
-				if (NULL == StructureDesc->Fields.FindByPredicate(FFindByNameHelper(NewName)))
+				FStructVariableDescription* VarDesc = GetVarDesc(Struct).FindByPredicate(FFindByGuidHelper<FStructVariableDescription>(VarGuid));
+				if (VarDesc)
 				{
-					FBPVariableDescription* VarDesc = StructureDesc->Fields.FindByPredicate(FFindByGuidHelper(VarGuid));
-					if (VarDesc)
-					{
-						VarDesc->FriendlyName = NewDisplayNameStr;
-						VarDesc->VarName = NewName;
-						OnStructureChanged(*StructureDesc, Blueprint);
-						return true;
-					}
+					VarDesc->FriendlyName = NewDisplayNameStr;
+					VarDesc->VarName = NewName;
+					OnStructureChanged(Struct);
+					return true;
 				}
 			}
 		}
@@ -380,31 +286,31 @@ bool FStructureEditorUtils::RenameVariable(UBlueprint* Blueprint, FName StructNa
 	return false;
 }
 
-bool FStructureEditorUtils::ChangeVariableType(UBlueprint* Blueprint, FName StructName, FGuid VarGuid, const FEdGraphPinType& NewType)
+bool FStructureEditorUtils::ChangeVariableType(UUserDefinedStruct* Struct, FGuid VarGuid, const FEdGraphPinType& NewType)
 {
-	if(NULL != Blueprint)
+	if (Struct)
 	{
 		const FScopedTransaction Transaction( LOCTEXT("ChangeVariableType", "Change Variable Type") );
-		Blueprint->Modify();
+		ModifyStructData(Struct);
 
-		FBPStructureDescription* StructureDesc = Blueprint->UserDefinedStructures.FindByPredicate(FFindByNameHelper(StructName));
-		if(StructureDesc)
+		FString ErrorMessage;
+		if(!CanHaveAMemberVariableOfType(Struct, NewType, &ErrorMessage))
 		{
-			FString ErrorMessage;
-			if(!CanHaveAMemberVariableOfType(StructureDesc->CompiledStruct, NewType, &ErrorMessage))
-			{
-				UE_LOG(LogBlueprint, Warning, TEXT("%s"), *ErrorMessage);
-				return false;
-			}
+			UE_LOG(LogBlueprint, Warning, TEXT("%s"), *ErrorMessage);
+			return false;
+		}
 
-			FBPVariableDescription* VarDesc = StructureDesc->Fields.FindByPredicate(FFindByGuidHelper(VarGuid));
-			if(VarDesc && (NewType != VarDesc->VarType))
+		FStructVariableDescription* VarDesc = GetVarDesc(Struct).FindByPredicate(FFindByGuidHelper<FStructVariableDescription>(VarGuid));
+		if(VarDesc)
+		{
+			const bool bChangedType = (VarDesc->ToPinType() != NewType);
+			if (bChangedType)
 			{
-				VarDesc->VarName = FMemberVariableNameHelper::Generate(StructureDesc->CompiledStruct, VarDesc->FriendlyName);
+				VarDesc->VarName = FMemberVariableNameHelper::Generate(Struct, VarDesc->FriendlyName);
 				VarDesc->DefaultValue = FString();
-				VarDesc->VarType = NewType;
+				VarDesc->SetPinType(NewType);
 
-				OnStructureChanged(*StructureDesc, Blueprint);
+				OnStructureChanged(Struct);
 				return true;
 			}
 		}
@@ -412,112 +318,75 @@ bool FStructureEditorUtils::ChangeVariableType(UBlueprint* Blueprint, FName Stru
 	return false;
 }
 
-bool FStructureEditorUtils::ChangeVariableDefaultValue(UBlueprint* Blueprint, FName StructName, FGuid VarGuid, const FString& NewDefaultValue)
+bool FStructureEditorUtils::ChangeVariableDefaultValue(UUserDefinedStruct* Struct, FGuid VarGuid, const FString& NewDefaultValue)
 {
-	if(NULL != Blueprint)
+	if(Struct)
 	{
 		const FScopedTransaction Transaction( LOCTEXT("ChangeVariableDefaultValue", "Change Variable Default Value") );
-		Blueprint->Modify();
+		ModifyStructData(Struct);
 
-		FBPStructureDescription* StructureDesc = Blueprint->UserDefinedStructures.FindByPredicate(FFindByNameHelper(StructName));
-		if (StructureDesc)
+		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+		FStructVariableDescription* VarDesc = GetVarDesc(Struct).FindByPredicate(FFindByGuidHelper<FStructVariableDescription>(VarGuid));
+		if (VarDesc 
+			&& (NewDefaultValue != VarDesc->DefaultValue) 
+			&& K2Schema->DefaultValueSimpleValidation(VarDesc->ToPinType(), FString(), NewDefaultValue, NULL, FText::GetEmpty()))
 		{
-			const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-			FBPVariableDescription* VarDesc = StructureDesc->Fields.FindByPredicate(FFindByGuidHelper(VarGuid));
-			if (VarDesc 
-				&& (NewDefaultValue != VarDesc->DefaultValue) 
-				&& K2Schema->DefaultValueSimpleValidation(VarDesc->VarType, FString(), NewDefaultValue, NULL, FText::GetEmpty()))
-			{
-				VarDesc->DefaultValue = NewDefaultValue;
-
-				OnStructureChanged(*StructureDesc, Blueprint);
-				return true;
-			}
-		}
-	}
-	return false;
-}
-
-bool FStructureEditorUtils::IsUniqueVariableDisplayName(const UBlueprint* Blueprint, FName StructName, const FString& DisplayName)
-{
-	if(NULL != Blueprint)
-	{
-		const FBPStructureDescription* StructureDesc = Blueprint->UserDefinedStructures.FindByPredicate(FFindByNameHelper(StructName));
-		if (StructureDesc)
-		{
-			for (auto Iter = StructureDesc->Fields.CreateConstIterator(); Iter; ++Iter)
-			{
-				const FBPVariableDescription& VarDesc = *Iter;
-				if (VarDesc.FriendlyName == DisplayName)
-				{
-					return false;
-				}
-			}
+			VarDesc->DefaultValue = NewDefaultValue;
+			OnStructureChanged(Struct);
 			return true;
 		}
 	}
 	return false;
 }
 
-FString FStructureEditorUtils::GetDisplayName(const UBlueprint* Blueprint, FName StructName, FGuid VarGuid)
+bool FStructureEditorUtils::IsUniqueVariableDisplayName(const UUserDefinedStruct* Struct, const FString& DisplayName)
 {
-	if (Blueprint)
+	if(Struct)
 	{
-		const FBPStructureDescription* StructureDesc = Blueprint->UserDefinedStructures.FindByPredicate(FFindByNameHelper(StructName));
-		if (StructureDesc)
+		for (auto& VarDesc : GetVarDesc(Struct))
 		{
-			const FBPVariableDescription* VarDesc = StructureDesc->Fields.FindByPredicate(FFindByGuidHelper(VarGuid));
-			if (VarDesc)
+			if (VarDesc.FriendlyName == DisplayName)
 			{
-				return VarDesc->FriendlyName;
+				return false;
 			}
+		}
+		return true;
+	}
+	return false;
+}
+
+FString FStructureEditorUtils::GetVariableDisplayName(const UUserDefinedStruct* Struct, FGuid VarGuid)
+{
+	if (Struct)
+	{
+		const FStructVariableDescription* VarDesc = GetVarDesc(Struct).FindByPredicate(FFindByGuidHelper<FStructVariableDescription>(VarGuid));
+		if (VarDesc)
+		{
+			return VarDesc->FriendlyName;
 		}
 	}
 
 	return FString();
 }
 
-void FStructureEditorUtils::GetAllStructureNames(const UBlueprint* Blueprint, TArray<FName>& OutNames)
-{
-	if(NULL == Blueprint)
-	{
-		return;
-	}
-
-	TArray<UBlueprint*> BPStack;
-	UBlueprint::GetBlueprintHierarchyFromClass(Blueprint->SkeletonGeneratedClass, BPStack);
-	for(auto BPIter = BPStack.CreateConstIterator(); BPIter; ++BPIter)
-	{
-		if(const UBlueprint* BP = *BPIter)
-		{
-			for(auto StructIter = BP->UserDefinedStructures.CreateConstIterator(); StructIter; ++StructIter)
-			{
-				OutNames.AddUnique(StructIter->Name);
-			}
-		}
-	}
-}
-
-bool FStructureEditorUtils::StructureEditingEnabled()
+bool FStructureEditorUtils::UserDefinedStructEnabled()
 {
 	bool bUseUserDefinedStructure = false;
 	GConfig->GetBool( TEXT("UserDefinedStructure"), TEXT("bUseUserDefinedStructure"), bUseUserDefinedStructure, GEditorIni );
 	return bUseUserDefinedStructure;
 }
 
-bool FStructureEditorUtils::Fill_MakeStructureDefaultValue(const UBlueprintGeneratedStruct* Struct, uint8* StructData)
+bool FStructureEditorUtils::Fill_MakeStructureDefaultValue(const UUserDefinedStruct* Struct, uint8* StructData)
 {
-	static const FName MakeStructureDefaultValue = "MakeStructureDefaultValue";
 	bool bResult = true;
-
 	for (TFieldIterator<UProperty> It(Struct); It; ++It)
 	{
 		if (const UProperty* Property = *It)
 		{
-			const FString DefaultValAsString = Property->GetMetaData(MakeStructureDefaultValue);
-			if (!DefaultValAsString.IsEmpty())
+			auto VarDesc = GetVarDesc(Struct).FindByPredicate(FFindByNameHelper<FStructVariableDescription>(Property->GetFName()));
+			if (VarDesc && !VarDesc->CurrentDefaultValue.IsEmpty())
 			{
-				bResult &= FBlueprintEditorUtils::PropertyValueFromString(Property, DefaultValAsString, StructData);
+				bResult &= FBlueprintEditorUtils::PropertyValueFromString(Property, VarDesc->CurrentDefaultValue, StructData);
 			}
 			else
 			{
@@ -536,7 +405,7 @@ bool FStructureEditorUtils::Fill_MakeStructureDefaultValue(const UProperty* Prop
 
 	if (const UStructProperty* StructProperty = Cast<const UStructProperty>(Property))
 	{
-		if (const UBlueprintGeneratedStruct* InnerStruct = Cast<const UBlueprintGeneratedStruct>(StructProperty->Struct))
+		if (const UUserDefinedStruct* InnerStruct = Cast<const UUserDefinedStruct>(StructProperty->Struct))
 		{
 			bResult &= Fill_MakeStructureDefaultValue(InnerStruct, PropertyData);
 		}
@@ -544,7 +413,7 @@ bool FStructureEditorUtils::Fill_MakeStructureDefaultValue(const UProperty* Prop
 	else if (const UArrayProperty* ArrayProp = Cast<const UArrayProperty>(Property))
 	{
 		StructProperty = Cast<const UStructProperty>(ArrayProp->Inner);
-		const UBlueprintGeneratedStruct* InnerStruct = StructProperty ? Cast<const UBlueprintGeneratedStruct>(StructProperty->Struct) : NULL;
+		const UUserDefinedStruct* InnerStruct = StructProperty ? Cast<const UUserDefinedStruct>(StructProperty->Struct) : NULL;
 		if(InnerStruct)
 		{
 			FScriptArrayHelper ArrayHelper(ArrayProp, PropertyData);
@@ -559,27 +428,28 @@ bool FStructureEditorUtils::Fill_MakeStructureDefaultValue(const UProperty* Prop
 	return bResult;
 }
 
-void FStructureEditorUtils::CompileStructuresInBlueprint(UBlueprint* Blueprint)
+void FStructureEditorUtils::CompileStructure(UUserDefinedStruct* Struct)
 {
-	if (Blueprint)
+	if (Struct)
 	{
 		IKismetCompilerInterface& Compiler = FModuleManager::LoadModuleChecked<IKismetCompilerInterface>(KISMET_COMPILER_MODULENAME);
 		FCompilerResultsLog Results;
-		FKismetCompilerOptions CompileOptions;
-		CompileOptions.CompileType = EKismetCompileType::StructuresOnly;
-		Compiler.CompileBlueprint(Blueprint, CompileOptions, Results, NULL);
+		Compiler.CompileStructure(Struct, Results);
 	}
 }
 
-void FStructureEditorUtils::OnStructureChanged(FBPStructureDescription& StructureDesc, UBlueprint* Blueprint)
+void FStructureEditorUtils::OnStructureChanged(UUserDefinedStruct* Struct)
 {
-	if (StructureDesc.CompiledStruct)
+	if (Struct)
 	{
-		StructureDesc.CompiledStruct->Status = EBlueprintStructureStatus::BSS_Dirty;
+		Struct->Status = EUserDefinedStructureStatus::UDSS_Dirty;
+		CompileStructure(Struct);
+		FStructEditorManager::Get().OnChanged(Struct);
+		Struct->MarkPackageDirty();
 	}
-	CompileStructuresInBlueprint(Blueprint);
 }
 
+//TODO: Move to blueprint utils
 void FStructureEditorUtils::RemoveInvalidStructureMemberVariableFromBlueprint(UBlueprint* Blueprint)
 {
 	if (Blueprint)
@@ -622,11 +492,33 @@ void FStructureEditorUtils::RemoveInvalidStructureMemberVariableFromBlueprint(UB
 				for (auto NameIter = ZombieMemberNames.CreateConstIterator(); NameIter; ++NameIter)
 				{
 					const FName Name = *NameIter;
-					Blueprint->NewVariables.RemoveAll(FFindByNameHelper(Name)); //TODO: Add RemoveFirst to TArray
+					Blueprint->NewVariables.RemoveAll(FFindByNameHelper<FBPVariableDescription>(Name)); //TODO: Add RemoveFirst to TArray
 					FBlueprintEditorUtils::RemoveVariableNodes(Blueprint, Name);
 				}
 			}
 		}
+	}
+}
+
+TArray<FStructVariableDescription>& FStructureEditorUtils::GetVarDesc(UUserDefinedStruct* Struct)
+{
+	check(Struct);
+	return CastChecked<UUserDefinedStructEditorData>(Struct->EditorData)->VariablesDescriptions;
+}
+
+const TArray<FStructVariableDescription>& FStructureEditorUtils::GetVarDesc(const UUserDefinedStruct* Struct)
+{
+	check(Struct);
+	return CastChecked<const UUserDefinedStructEditorData>(Struct->EditorData)->VariablesDescriptions;
+}
+
+void FStructureEditorUtils::ModifyStructData(UUserDefinedStruct* Struct)
+{
+	UUserDefinedStructEditorData* EditorData = Struct ? Cast<UUserDefinedStructEditorData>(Struct->EditorData) : NULL;
+	ensure(EditorData);
+	if (EditorData)
+	{
+		EditorData->Modify();
 	}
 }
 

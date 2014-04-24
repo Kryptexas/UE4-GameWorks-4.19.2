@@ -3,6 +3,8 @@
 #include "MatineeModule.h"
 #include "MatineeOptions.h"
 #include "MatineeTransaction.h"
+#include "Editor/BlueprintGraph/Classes/K2Node.h"
+#include "Editor/BlueprintGraph/Classes/K2Node_MatineeController.h"
 
 /*-----------------------------------------------------------------------------
 	FMatineeTransaction
@@ -17,7 +19,8 @@ void FMatineeTransaction::SaveObject( UObject* Object )
 		Object->IsA( UInterpTrack::StaticClass() ) ||
 		Object->IsA( UInterpGroupInst::StaticClass() ) ||
 		Object->IsA( UInterpTrackInst::StaticClass() ) ||
-		Object->IsA( UMatineeOptions::StaticClass() ) )
+		Object->IsA( UMatineeOptions::StaticClass() ) ||
+		Object->IsA( UK2Node_MatineeController::StaticClass() ) )
 	{
 		// Save the object.
 		new( Records )FObjectRecord( this, Object, NULL, 0, 0, 0, 0, NULL, NULL );

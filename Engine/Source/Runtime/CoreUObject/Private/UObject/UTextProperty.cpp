@@ -21,7 +21,7 @@ bool UTextProperty::Identical( const void* A, const void* B, uint32 PortFlags ) 
 		{
 			//Culture invariant text don't have a namespace/key so we compare the source string
 			//Transient text don't have a namespace/key or source so we compare the display string
-			return *FTextInspector::GetDisplayString(ValueA) == *FTextInspector::GetDisplayString(ValueB);
+			return FTextInspector::GetDisplayString(ValueA) == FTextInspector::GetDisplayString(ValueB);
 		}
 
 		if (GIsEditor)

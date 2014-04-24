@@ -2,7 +2,7 @@
 
 #include "CableComponentPluginPrivatePCH.h"
 
-#include "CableComponent.generated.inl"
+
 
 
 class FCableComponentPlugin : public IModuleInterface

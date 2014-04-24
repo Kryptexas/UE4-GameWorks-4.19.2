@@ -40,6 +40,12 @@ namespace UnrealBuildTool
 		/** Private headers with UObjects */
 		public List<FileItem> PrivateUObjectHeaders;
 
+		/** Module PCH absolute path */
+		public string PCH;
+
+		/** Base (i.e. extensionless) path+filename of the .generated files */
+		public string GeneratedCPPFilenameBase;
+
 		public override string ToString()
 		{
 			return ModuleName;
@@ -56,6 +62,8 @@ namespace UnrealBuildTool
 			public List<string> ClassesHeaders;
 			public List<string> PublicHeaders;
 			public List<string> PrivateHeaders;
+			public string       PCH;
+			public string       GeneratedCPPFilenameBase;
 			public bool         SaveExportedHeaders;
 
 			public override string ToString()
@@ -71,12 +79,14 @@ namespace UnrealBuildTool
 			RootBuildPath    = InRootBuildPath;
 
 			Modules = ModuleInfo.Select(Info => new Module{
-				Name                = Info.ModuleName,
-				BaseDirectory       = Info.ModuleDirectory,
-				OutputDirectory     = UEBuildModuleCPP.GetGeneratedCodeDirectoryForModule(Target, Info.ModuleDirectory, Info.ModuleName),
-				ClassesHeaders      = Info.PublicUObjectClassesHeaders.Select((Header) => Header.AbsolutePath).ToList(),
-				PublicHeaders       = Info.PublicUObjectHeaders       .Select((Header) => Header.AbsolutePath).ToList(),
-				PrivateHeaders      = Info.PrivateUObjectHeaders      .Select((Header) => Header.AbsolutePath).ToList(),
+				Name                     = Info.ModuleName,
+				BaseDirectory            = Info.ModuleDirectory,
+				OutputDirectory          = UEBuildModuleCPP.GetGeneratedCodeDirectoryForModule(Target, Info.ModuleDirectory, Info.ModuleName),
+				ClassesHeaders           = Info.PublicUObjectClassesHeaders.Select((Header) => Header.AbsolutePath).ToList(),
+				PublicHeaders            = Info.PublicUObjectHeaders       .Select((Header) => Header.AbsolutePath).ToList(),
+				PrivateHeaders           = Info.PrivateUObjectHeaders      .Select((Header) => Header.AbsolutePath).ToList(),
+				PCH                      = Info.PCH,
+				GeneratedCPPFilenameBase = Info.GeneratedCPPFilenameBase,
 				//@todo.Rocket: This assumes Engine/Source is a 'safe' folder name to check for
 				SaveExportedHeaders = !UnrealBuildTool.RunningRocket() || !Info.ModuleDirectory.Contains("Engine\\Source\\")
 
@@ -133,9 +143,9 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Gets the timestamp of CoreUObject.generated.inl file.
+		/// Gets the timestamp of CoreUObject.generated.cpp file.
 		/// </summary>
-		/// <returns>Last write time of CoreUObject.generated.inl or DateTime.MaxValue if it doesn't exist.</returns>
+		/// <returns>Last write time of CoreUObject.generated.cpp or DateTime.MaxValue if it doesn't exist.</returns>
 		private static DateTime GetCoreGeneratedTimestamp(UEBuildTarget Target)
 		{			
 			DateTime Timestamp;
@@ -147,7 +157,7 @@ namespace UnrealBuildTool
 			else
 			{
 				var CoreUObjectModule = (UEBuildModuleCPP)Target.GetModuleByName( "CoreUObject" );
-				string CoreGeneratedFilename = Path.Combine(UEBuildModuleCPP.GetGeneratedCodeDirectoryForModule(Target, CoreUObjectModule.ModuleDirectory, CoreUObjectModule.Name), CoreUObjectModule.Name + ".generated.inl");
+				string CoreGeneratedFilename = Path.Combine(UEBuildModuleCPP.GetGeneratedCodeDirectoryForModule(Target, CoreUObjectModule.ModuleDirectory, CoreUObjectModule.Name), CoreUObjectModule.Name + ".generated.cpp");
 				if (File.Exists(CoreGeneratedFilename))
 				{
 					Timestamp = new FileInfo(CoreGeneratedFilename).LastWriteTime;
@@ -180,7 +190,7 @@ namespace UnrealBuildTool
 				HeaderToolTimestamp = new FileInfo(HeaderToolPath).LastWriteTime;
 			}
 
-			// Get CoreUObject.generated.inl timestamp.  If the source files are older than the CoreUObject generated code, we'll
+			// Get CoreUObject.generated.cpp timestamp.  If the source files are older than the CoreUObject generated code, we'll
 			// need to regenerate code for the module
 			var CoreGeneratedTimestamp = GetCoreGeneratedTimestamp(Target);
 
@@ -367,11 +377,11 @@ namespace UnrealBuildTool
 		{
 			// We never want to try to execute the header tool when we're already trying to build it!
 			var bIsBuildingUHT = Target.GetTargetName().Equals( "UnrealHeaderTool", StringComparison.InvariantCultureIgnoreCase );
-			var BuildPlatform = UEBuildPlatform.GetBuildPlatform(Target.Platform);
-			var CppPlatform = BuildPlatform.GetCPPTargetPlatform(Target.Platform);
-			var ToolChain = UEToolChain.GetPlatformToolChain(CppPlatform);
-			var RootLocalPath = Path.GetFullPath(ProjectFileGenerator.RootRelativePath);
-			var Manifest = new UHTManifest(UnrealBuildTool.BuildingRocket() || UnrealBuildTool.RunningRocket(), Target, RootLocalPath, ToolChain.ConvertPath(RootLocalPath + '\\'), UObjectModules);
+			var BuildPlatform  = UEBuildPlatform.GetBuildPlatform(Target.Platform);
+			var CppPlatform    = BuildPlatform.GetCPPTargetPlatform(Target.Platform);
+			var ToolChain      = UEToolChain.GetPlatformToolChain(CppPlatform);
+			var RootLocalPath  = Path.GetFullPath(ProjectFileGenerator.RootRelativePath);
+			var Manifest       = new UHTManifest(UnrealBuildTool.BuildingRocket() || UnrealBuildTool.RunningRocket(), Target, RootLocalPath, ToolChain.ConvertPath(RootLocalPath + '\\'), UObjectModules);
 
 			// ensure the headers are up to date
 			if (!bIsBuildingUHT && 

@@ -10988,7 +10988,7 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 
 	// Save the modified properties of the old CDO
 	{
-	FObjectWriter Writer(OldObject, SavedProperties, true, true, Params.bDoDelta);
+		FObjectWriter Writer(OldObject, SavedProperties, true, true, Params.bDoDelta);
 	}
 
 	{

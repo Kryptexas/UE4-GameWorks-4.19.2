@@ -1499,24 +1499,15 @@ namespace UnrealBuildTool
 			}
 
 			// Grab path to Visual Studio binaries from the system environment
-			var VS2012Path = Environment.GetEnvironmentVariable( "VS110COMNTOOLS" );
-			var VS2013Path = Environment.GetEnvironmentVariable( "VS120COMNTOOLS" );
-			if( WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2012 )
-			{
-				BaseVSToolPath = VS2012Path;
-			}
-			else if( WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2013 )
-			{
-				BaseVSToolPath = VS2013Path;
-			}
+			BaseVSToolPath = WindowsPlatform.GetVSComnToolsPath();
 
 			if (string.IsNullOrEmpty(BaseVSToolPath))
 			{
-				if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2012 && !String.IsNullOrEmpty( VS2013Path ) )
+				if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2012 && !String.IsNullOrEmpty(WindowsPlatform.GetVSComnToolsPath(WindowsCompiler.VisualStudio2013)))
 				{
 					throw new BuildException("Visual Studio 2012 must be installed in order to build this target.  However, Visual Studio 2013 was detected.  To compile with Visual Studio 2013, change the 'WindowsPlatform.Compiler' variable in UnrealBuildTool");
 				}
-				else if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2013 && !String.IsNullOrEmpty( VS2012Path ) )
+				else if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2013 && !String.IsNullOrEmpty(WindowsPlatform.GetVSComnToolsPath(WindowsCompiler.VisualStudio2012)))
 				{
 					throw new BuildException("Visual Studio 2013 must be installed in order to build this target.  However, Visual Studio 2012 was detected.  To compile with Visual Studio 2012, change the 'WindowsPlatform.Compiler' variable in UnrealBuildTool");
 				}

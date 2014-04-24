@@ -21,6 +21,7 @@
 #include "DefaultValueHelper.h"
 #include "ObjectEditorUtils.h"
 #include "ToolkitManager.h"
+#include "Runtime/Engine/Classes/Engine/UserDefinedStruct.h"
 
 #define LOCTEXT_NAMESPACE "Blueprint"
 
@@ -577,6 +578,18 @@ struct FRegenerationHelper
 		}
 	}
 
+	static UBlueprint* GetGeneratingBlueprint(const UObject* Obj)
+	{
+		const UBlueprintGeneratedClass* BPGC = NULL;
+		while (!BPGC && Obj)
+		{
+			BPGC = Cast<const UBlueprintGeneratedClass>(Obj);
+			Obj = Obj->GetOuter();
+		}
+
+		return UBlueprint::GetBlueprintFromClass(BPGC);
+	}
+
 	static void ProcessHierarchy(UStruct* Struct, TSet<UStruct*>& Dependencies)
 	{
 		if (Struct)
@@ -589,25 +602,13 @@ struct FRegenerationHelper
 
 				const UBlueprint* BP = GetGeneratingBlueprint(Struct);
 				const bool bProcessBPGClass = BP && !BP->bHasBeenRegenerated;
-				const bool bProcessUserDefinedStruct = false; //TODO: Struct->IsA<UUserDefinedStruct>();
+				const bool bProcessUserDefinedStruct = Struct->IsA<UUserDefinedStruct>();
 				if (bProcessBPGClass || bProcessUserDefinedStruct)
 				{
 					PreloadAndLinkIfNecessary(Struct);
 				}
 			}
 		}
-	}
-
-	static UBlueprint* GetGeneratingBlueprint(const UObject* Obj)
-	{
-		const UBlueprintGeneratedClass* BPGC = NULL;
-		while (!BPGC && Obj)
-		{
-			BPGC = Cast<const UBlueprintGeneratedClass>(Obj);
-			Obj = Obj->GetOuter();
-		}
-
-		return UBlueprint::GetBlueprintFromClass(BPGC);
 	}
 
 	static void PreloadMacroSources(TSet<UBlueprint*>& MacroSources)
@@ -666,8 +667,7 @@ struct FRegenerationHelper
 					}
 
 					LocalDependentStructures.Empty(LocalDependentStructures.Max());
-					//TODO: uncomment when UDStructures are ready
-					//Node->HasExternalUserDefinedStructDependencies(&LocalDependentStructures);
+					Node->HasExternalUserDefinedStructDependencies(&LocalDependentStructures);
 					for (auto Struct : LocalDependentStructures)
 					{
 						ProcessHierarchy(Struct, Dependencies);
@@ -691,27 +691,6 @@ struct FRegenerationHelper
 		PreloadMacroSources(MacroSources);
 	}
 };
-
-void FBlueprintEditorUtils::RefreshInputDelegatePins(UBlueprint* Blueprint)
-{
-	TArray<UEdGraph*> Graphs;
-	Blueprint->GetAllGraphs(Graphs);
-	for (auto Graph : Graphs)
-	{
-		if (!FBlueprintEditorUtils::IsGraphIntermediate(Graph))
-		{
-			TArray<UK2Node_BaseMCDelegate*> Nodes;
-			Graph->GetNodesOfClass(Nodes);
-			for (auto Node : Nodes)
-			{
-				if (auto DelegatePin = Node->GetDelegatePin())
-				{
-					DelegatePin->PinType.PinSubCategoryObject = Node->GetDelegateSignature();
-				}
-			}
-		}
-	}
-}
 
 struct FEditoronlyBlueprintHelper
 {
@@ -1000,7 +979,8 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 
 		// Make sure all used external classes/functions/structures/macros/etc are loaded and linked
 		FRegenerationHelper::LinkExternalDependencies(Blueprint);
-		FBlueprintEditorUtils::RefreshInputDelegatePins(Blueprint);
+
+		FKismetEditorUtilities::GenerateBlueprintSkeleton(Blueprint);
 
 		struct FReplaceBlueprintWithClassHelper
 		{
@@ -1363,8 +1343,6 @@ void FBlueprintEditorUtils::PostDuplicateBlueprint(UBlueprint* Blueprint)
 			UEditorEngine::CopyPropertiesForUnrelatedObjects(OldCDO, NewCDO);
 		}
 
-		Blueprint->UserDefinedStructures.Empty();
-
 		// And compile again to make sure they go into the generated class, get cleaned up, etc...
 		FKismetEditorUtilities::CompileBlueprint(Blueprint, false, true);
 
@@ -1395,7 +1373,7 @@ void FBlueprintEditorUtils::UpdateDelegatesInBlueprint(UBlueprint* Blueprint)
 			Graph->GetNodesOfClass(CreateDelegateNodes);
 			for (auto NodeIt = CreateDelegateNodes.CreateIterator(); NodeIt; ++NodeIt)
 			{
-				(*NodeIt)->HandleAnyChangeInner();
+				(*NodeIt)->HandleAnyChangeWithoutNotifying();
 			}
 
 			TArray<UK2Node_Event*> EventNodes;
@@ -2881,6 +2859,18 @@ void FBlueprintEditorUtils::GetHiddenPinsForFunction(UBlueprint const* CallingCo
 			}
 		}
 	}
+}
+
+bool FBlueprintEditorUtils::IsPinTypeValid(const FEdGraphPinType& Type)
+{
+	if (const auto UDStruct = Cast<const UUserDefinedStruct>(Type.PinSubCategoryObject.Get()))
+	{
+		if (EUserDefinedStructureStatus::UDSS_UpToDate != UDStruct->Status)
+		{
+			return false;
+		}
+	}
+	return true;
 }
 
 // Gets the visible class variable list.  This includes both variables introduced here and in all superclasses.
@@ -5587,6 +5577,95 @@ bool FBlueprintEditorUtils::IsPaletteActionReadOnly(TSharedPtr<FEdGraphSchemaAct
 	return bIsReadOnly;
 }
 
+struct FUberGraphHelper
+{
+	static void GetAll(const UBlueprint* Blueprint, TArray<UEdGraph*>& OutGraphs)
+	{
+		for (const auto UberGraph : Blueprint->UbergraphPages)
+		{
+			OutGraphs.Add(UberGraph);
+			UberGraph->GetAllChildrenGraphs(OutGraphs);
+		}
+	}
+};
+
+FName FBlueprintEditorUtils::GetFunctionNameFromClassByGuid(const UClass* InClass, const FGuid FunctionGuid)
+{
+	TArray<UBlueprint*> Blueprints;
+	UBlueprint::GetBlueprintHierarchyFromClass(InClass, Blueprints);
+
+	for (int32 BPIndex = 0; BPIndex < Blueprints.Num(); ++BPIndex)
+	{
+		UBlueprint* Blueprint = Blueprints[BPIndex];
+		for (int32 FunctionIndex = 0; FunctionIndex < Blueprint->FunctionGraphs.Num(); ++FunctionIndex)
+		{
+			UEdGraph* FunctionGraph = Blueprint->FunctionGraphs[FunctionIndex];
+			if (FunctionGraph && FunctionGraph->GraphGuid == FunctionGuid)
+			{
+				return FunctionGraph->GetFName();
+			}
+		}
+
+		//FUNCTIONS BASED ON CUSTOM EVENTS:
+		TArray<UEdGraph*> UberGraphs;
+		FUberGraphHelper::GetAll(Blueprint, UberGraphs);
+		for (const auto UberGraph : UberGraphs)
+		{
+			TArray<UK2Node_CustomEvent*> CustomEvents;
+			UberGraph->GetNodesOfClass(CustomEvents);
+			for (const auto CustomEvent : CustomEvents)
+			{
+				if (!CustomEvent->bOverrideFunction && (CustomEvent->NodeGuid == FunctionGuid))
+				{
+					ensure(CustomEvent->CustomFunctionName != NAME_None);
+					return CustomEvent->CustomFunctionName;
+				}
+			}
+		}
+	}
+
+	return NAME_None;
+}
+
+bool FBlueprintEditorUtils::GetFunctionGuidFromClassByFieldName(const UClass* InClass, const FName FunctionName, FGuid& FunctionGuid)
+{
+	TArray<UBlueprint*> Blueprints;
+	UBlueprint::GetBlueprintHierarchyFromClass(InClass, Blueprints);
+
+	for (int32 BPIndex = 0; BPIndex < Blueprints.Num(); ++BPIndex)
+	{
+		UBlueprint* Blueprint = Blueprints[BPIndex];
+		for (int32 FunctionIndex = 0; FunctionIndex < Blueprint->FunctionGraphs.Num(); ++FunctionIndex)
+		{
+			UEdGraph* FunctionGraph = Blueprint->FunctionGraphs[FunctionIndex];
+			if (FunctionGraph && FunctionGraph->GetFName() == FunctionName)
+			{
+				FunctionGuid = FunctionGraph->GraphGuid;
+				return true;
+			}
+		}
+
+		TArray<UEdGraph*> UberGraphs;
+		FUberGraphHelper::GetAll(Blueprint, UberGraphs);
+		for (const auto UberGraph : UberGraphs)
+		{
+			TArray<UK2Node_CustomEvent*> CustomEvents;
+			UberGraph->GetNodesOfClass(CustomEvents);
+			for (const auto CustomEvent : CustomEvents)
+			{
+				if (!CustomEvent->bOverrideFunction && (CustomEvent->CustomFunctionName == FunctionName))
+				{
+					ensure(CustomEvent->CustomFunctionName != NAME_None);
+					ensure(CustomEvent->NodeGuid.IsValid());
+					FunctionGuid = CustomEvent->NodeGuid;
+					return true;
+				}
+			}
+		}
+	}
+
+	return false;
+}
 
 #undef LOCTEXT_NAMESPACE
 

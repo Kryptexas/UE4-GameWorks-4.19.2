@@ -3552,7 +3552,7 @@ FText SAssetView::GetAssetShowWarningText() const
 	{
 		DropText = LOCTEXT( "DragAssetsHere", "Drag and drop assets here to add them to the collection." );
 	}
-	else
+	else if ( OnGetAssetContextMenu.IsBound() )
 	{
 		DropText = LOCTEXT( "DropFilesOrRightClick", "Drop files here or right click to create content." );
 	}

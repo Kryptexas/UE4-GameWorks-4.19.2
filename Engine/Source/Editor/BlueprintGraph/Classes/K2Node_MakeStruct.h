@@ -28,4 +28,15 @@ class UK2Node_MakeStruct : public UK2Node_StructMemberSet
 	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const OVERRIDE;
 	virtual ERedirectType DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex)  const OVERRIDE;
 	// End K2Node interface
+
+protected:
+	struct FMakeStructPinManager : public FStructOperationOptionalPinManager
+	{
+		const uint8* const SampleStructMemory;
+	public:
+		FMakeStructPinManager(const uint8* InSampleStructMemory);
+	protected:
+		virtual void CustomizePinData(UEdGraphPin* Pin, FName SourcePropertyName, int32 ArrayIndex, UProperty* Property) const OVERRIDE;
+		virtual bool CanTreatPropertyAsOptional(UProperty* TestProperty) const OVERRIDE;
+	};
 };
