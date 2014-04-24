@@ -25,11 +25,6 @@ FTranslationDataManager::FTranslationDataManager( const FString& ManifestFile, c
 	TranslationData = NewObject<UTranslationDataObject>();
 	check (TranslationData != NULL);
 
-	// Used to use this to trick the AssetEditorToolkit into giving us save buttons, 
-	// but it also added "Find in Content Browser" buttons that don't make sense at this time for Translation Editor
-	// Maybe will re-enable in the future if things change.
-	// TranslationData->SetFlags(RF_Public); //Otherwise IsAsset() fails
-
 	// We want Undo/Redo support
 	TranslationData->SetFlags(RF_Transactional);
 
@@ -394,12 +389,24 @@ void FTranslationDataManager::GetHistoryForTranslationUnits( TArray<FTranslation
 {
 	GWarn->BeginSlowTask(LOCTEXT("LoadingSourceControlHistory", "Loading Translation History from Source Control..."), true);
 
+	// Force history update
 	ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
 	TSharedRef<FUpdateStatus, ESPMode::ThreadSafe> UpdateStatusOperation = ISourceControlOperation::Create<FUpdateStatus>();
 	UpdateStatusOperation->SetUpdateHistory( true );
-	SourceControlProvider.Execute( UpdateStatusOperation, ManifestFilePath );
-	FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState( ManifestFilePath, EStateCacheUsage::ForceUpdate );
-	if ( SourceControlState.IsValid() )
+	ECommandResult::Type Result = SourceControlProvider.Execute(UpdateStatusOperation, ManifestFilePath);
+	bool bGetHistoryFromSourceControlSucceeded = Result == ECommandResult::Succeeded;
+
+	// Now we can get information about the file's history from the source control state, retrieve that
+	TArray<FString> Files;
+	TArray< TSharedRef<ISourceControlState, ESPMode::ThreadSafe> > States;
+	Files.Add(ManifestFilePath);
+	Result = SourceControlProvider.GetState( Files,  States, EStateCacheUsage::ForceUpdate );
+	bGetHistoryFromSourceControlSucceeded = bGetHistoryFromSourceControlSucceeded && (Result == ECommandResult::Succeeded);
+	check(States.Num() == 1);
+	FSourceControlStatePtr SourceControlState = States[0];
+	
+	// If all the source control operations went ok, continue
+	if (bGetHistoryFromSourceControlSucceeded && SourceControlState.IsValid())
 	{
 		int32 HistorySize = SourceControlState->GetHistorySize();
 
@@ -497,7 +504,8 @@ void FTranslationDataManager::GetHistoryForTranslationUnits( TArray<FTranslation
 			}
 		}
 	}
-	else // SourceControlState.IsValid() is false
+	// If source control operations failed, display error message
+	else // (bGetHistoryFromSourceControlSucceeded && SourceControlState.IsValid()) is false
 	{
 		FFormatNamedArguments Arguments;
 		Arguments.Add( TEXT("ManifestFilePath"), FText::FromString(ManifestFilePath) );

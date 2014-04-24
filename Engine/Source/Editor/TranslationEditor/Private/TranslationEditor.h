@@ -150,11 +150,11 @@ private:
 	static const FName HistoryTabId;
 
 	/** The Untranslated Tab */
-	TSharedPtr<SDockTab> UntranslatedTab;
+	TWeakPtr<SDockTab> UntranslatedTab;
 	/** The Review Tab */
-	TSharedPtr<SDockTab> ReviewTab;
+	TWeakPtr<SDockTab> ReviewTab;
 	/** The Review Tab */
-	TSharedPtr<SDockTab> CompletedTab;
+	TWeakPtr<SDockTab> CompletedTab;
 
 	/** UObject containing our translation information */
 	UTranslationDataObject* TranslationData;
