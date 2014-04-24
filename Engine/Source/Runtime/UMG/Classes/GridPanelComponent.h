@@ -72,12 +72,6 @@ class UMG_API UGridPanelComponent : public USlateNonLeafWidgetComponent
 	// End of UObject interface
 #endif
 
-	// USceneComponent interface
-	virtual bool HasAnySockets() const;
-	virtual FTransform GetSocketTransform(FName InSocketName, ERelativeTransformSpace TransformSpace = RTS_World) const;
-	virtual void QuerySupportedSockets(TArray<FComponentSocketDescription>& OutSockets) const;
-	// End of USceneComponent interface
-
 protected:
 	UPROPERTY(EditAnywhere, Category=Slots)
 	TArray<FGridPanelSlot> Slots;
@@ -90,10 +84,6 @@ protected:
 	// USlateWrapperComponent interface
 	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;
 	// End of USlateWrapperComponent interface
-
-	// USlateNonLeafWidgetComponent interface
-	virtual void OnKnownChildrenChanged() OVERRIDE;
-	// End of USlateNonLeafWidgetComponent
 
 	void RebuildUniqueSlotTable();
 	void EnsureSlotIsUnique(FGridPanelSlot& SlotConfig);

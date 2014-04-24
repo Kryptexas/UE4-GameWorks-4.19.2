@@ -7,7 +7,7 @@
 /** A border is a container widget that can contain one child widget, providing an opportunity to surround it with a border image and adjustable padding. */
 
 UCLASS(meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
-class UMG_API UBorderComponent : public USlateNonLeafWidgetComponent
+class UMG_API UBorderComponent : public UContentWidget
 {
 	GENERATED_UCLASS_BODY()
 
@@ -57,6 +57,10 @@ class UMG_API UBorderComponent : public USlateNonLeafWidgetComponent
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
 	bool bShowEffectWhenDisabled;
 
+	// UContentWidget interface
+	virtual void SetContent(USlateWrapperComponent* Content) OVERRIDE;
+	// End UContentWidget interface
+
 protected:
 	TWeakPtr<class SBorder> MyBorder;
 
@@ -64,10 +68,6 @@ protected:
 	// USlateWrapperComponent interface
 	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;
 	// End of USlateWrapperComponent interface
-
-	// USlateNonLeafWidgetComponent interface
-	virtual void OnKnownChildrenChanged() OVERRIDE;
-	// End of USlateNonLeafWidgetComponent
 
 	FMargin GetContentPadding() const;
 	FLinearColor GetContentColor() const;

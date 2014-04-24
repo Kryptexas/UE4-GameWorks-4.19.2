@@ -10,8 +10,6 @@
 UBorderComponent::UBorderComponent(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	bCanHaveMultipleChildren = false;
-
 	SBorder::FArguments BorderDefaults;
 
 	HorizontalAlignment = BorderDefaults._HAlign;
@@ -48,12 +46,14 @@ TSharedRef<SWidget> UBorderComponent::RebuildWidget()
 	return NewBorder;
 }
 
-void UBorderComponent::OnKnownChildrenChanged()
+void UBorderComponent::SetContent(USlateWrapperComponent* Content)
 {
+	Super::SetContent(Content);
+
 	TSharedPtr<SBorder> Border = MyBorder.Pin();
-	if (Border.IsValid())
+	if ( Border.IsValid() )
 	{
-		Border->SetContent(GetFirstChildWidget());
+		Border->SetContent(Content->GetWidget());
 	}
 }
 

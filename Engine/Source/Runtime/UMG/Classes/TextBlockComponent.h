@@ -9,9 +9,15 @@ class UMG_API UTextBlockComponent : public USlateLeafWidgetComponent
 {
 	GENERATED_UCLASS_BODY()
 
-protected:
+public:
 	UPROPERTY(EditAnywhere, Category=TextBlock)
-	FText DisplayText;
+	FText Text;
+
+	UPROPERTY(EditAnywhere, Category=TextBlock)
+	FSlateFontInfo Font;
+
+	UPROPERTY(EditAnywhere, Category=TextBlock)
+	FVector2D ShadowOffset;
 
 	//@TODO: Expose FSlateColor
 	UPROPERTY(EditAnywhere, Category=TextBlock)
@@ -25,7 +31,7 @@ protected:
 	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;
 	// End of USlateWrapperComponent interface
 
-	FString GetDisplayText() const;
+	FString GetText() const;
 	FSlateColor GetColorAndOpacity() const;
 	FLinearColor GetShadowColorAndOpacity() const;
 };

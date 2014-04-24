@@ -66,20 +66,26 @@ TSharedRef<SWidget> UButtonComponent::RebuildWidget()
 		.ContentScale(ContentScale)
 		.ButtonColorAndOpacity(BIND_UOBJECT_ATTRIBUTE(FSlateColor, GetButtonColor))
 		.ForegroundColor(BIND_UOBJECT_ATTRIBUTE(FSlateColor, GetForegroundColor));
+
+	if ( Content )
+	{
+		NewButton->SetContent(Content->GetWidget());
+	}
 	
 	MyButton = NewButton;
 	return NewButton;
 }
 
-void UButtonComponent::OnKnownChildrenChanged()
+void UButtonComponent::SetContent(USlateWrapperComponent* InContent)
 {
+	Super::SetContent(InContent);
+
 	TSharedPtr<SButton> Button = MyButton.Pin();
 	if (Button.IsValid())
 	{
-		USlateWrapperComponent* ChildComponent = GetFirstWrappedChild();
-		if (ChildComponent)
+		if ( InContent )
 		{
-			Button->SetContent(ChildComponent->GetWidget());
+			Button->SetContent(InContent->GetWidget());
 		}
 		else
 		{

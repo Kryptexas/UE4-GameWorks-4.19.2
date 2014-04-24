@@ -38,8 +38,4 @@ protected:
 	// USlateWrapperComponent interface
 	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;
 	// End of USlateWrapperComponent interface
-
-	// USlateNonLeafWidgetComponent interface
-	virtual void OnKnownChildrenChanged() OVERRIDE;
-	// End of USlateNonLeafWidgetComponent
 };

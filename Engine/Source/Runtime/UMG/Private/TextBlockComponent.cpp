@@ -10,24 +10,28 @@
 UTextBlockComponent::UTextBlockComponent(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	DisplayText = LOCTEXT("TextBlockDefaultValue", "Hello World");
+	Text = LOCTEXT("TextBlockDefaultValue", "Text Block");
+	Font = FSlateFontInfo(TEXT("Slate/Fonts/Roboto-Bold.ttf"), 24);
+	ShadowOffset = FVector2D(1.0f, 1.0f);
 	ColorAndOpacity = FLinearColor::White;
 	ShadowColorAndOpacity = FLinearColor::Transparent;
 }
 
 TSharedRef<SWidget> UTextBlockComponent::RebuildWidget()
 {
+	FString FontPath = FPaths::EngineContentDir() / Font.FontName.ToString();
+
 	return SNew(STextBlock)
-		.Text( BIND_UOBJECT_ATTRIBUTE(FString, GetDisplayText) )
-		.Font( FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 24) )
+		.Text( BIND_UOBJECT_ATTRIBUTE(FString, GetText) )
+		.Font(FSlateFontInfo(FontPath, Font.Size))
 		.ColorAndOpacity( BIND_UOBJECT_ATTRIBUTE(FSlateColor, GetColorAndOpacity) )
-		.ShadowOffset(FVector2D(1.0f, 1.0f))
+		.ShadowOffset(ShadowOffset)
 		.ShadowColorAndOpacity( BIND_UOBJECT_ATTRIBUTE(FLinearColor, GetShadowColorAndOpacity) );
 }
 
-FString UTextBlockComponent::GetDisplayText() const
+FString UTextBlockComponent::GetText() const
 {
-	return DisplayText.ToString();
+	return Text.ToString();
 }
 
 FSlateColor UTextBlockComponent::GetColorAndOpacity() const

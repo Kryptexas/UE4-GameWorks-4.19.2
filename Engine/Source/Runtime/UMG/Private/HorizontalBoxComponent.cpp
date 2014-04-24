@@ -25,19 +25,12 @@ TSharedRef<SWidget> UHorizontalBoxComponent::RebuildWidget()
 	TSharedRef<SHorizontalBox> NewCanvas = SNew(SHorizontalBox);
 	MyHorizontalBox = NewCanvas;
 
-	OnKnownChildrenChanged();
-
-	return NewCanvas;
-}
-
-void UHorizontalBoxComponent::OnKnownChildrenChanged()
-{
 	TSharedPtr<SHorizontalBox> Canvas = MyHorizontalBox.Pin();
-	if (Canvas.IsValid())
+	if ( Canvas.IsValid() )
 	{
 		Canvas->ClearChildren();
 
-		for (int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex)
+		for ( int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex )
 		{
 			UHorizontalBoxSlot* Slot = Slots[SlotIndex];
 			if ( Slot == NULL )
@@ -49,13 +42,15 @@ void UHorizontalBoxComponent::OnKnownChildrenChanged()
 				.Padding(Slot->Padding)
 				.HAlign(Slot->HorizontalAlignment)
 				.VAlign(Slot->VerticalAlignment)
-			[
-				Slot->Content == NULL ? SNullWidget::NullWidget : Slot->Content->GetWidget()
-			];
+				[
+					Slot->Content == NULL ? SNullWidget::NullWidget : Slot->Content->GetWidget()
+				];
 
 			NewSlot.SizeParam = USlateWrapperComponent::ConvertSerializedSizeParamToRuntime(Slot->Size);
 		}
 	}
+
+	return NewCanvas;
 }
 
 UHorizontalBoxSlot* UHorizontalBoxComponent::AddSlot(USlateWrapperComponent* Content)

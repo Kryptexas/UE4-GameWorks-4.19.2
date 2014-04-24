@@ -10,7 +10,7 @@ DECLARE_DYNAMIC_DELEGATE_RetVal( FText, FOnGetText );
 
 /** Buttons are clickable widgets */
 UCLASS(meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
-class UMG_API UButtonComponent : public USlateNonLeafWidgetComponent
+class UMG_API UButtonComponent : public UContentWidget
 {
 	GENERATED_UCLASS_BODY()
 
@@ -71,6 +71,10 @@ public:
 	UFUNCTION(BlueprintNativeEvent, Category=Appearance)
 	FText GetText() const;
 
+	// UContentWidget interface
+	virtual void SetContent(USlateWrapperComponent* Content) OVERRIDE;
+	// End UContentWidget interface
+
 protected:
 	TAttribute<FText> TextAttribute;
 	TWeakPtr<class SButton> MyButton;
@@ -79,10 +83,6 @@ protected:
 	// USlateWrapperComponent interface
 	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;
 	// End of USlateWrapperComponent interface
-
-	// USlateNonLeafWidgetComponent interface
-	virtual void OnKnownChildrenChanged() OVERRIDE;
-	// End of USlateNonLeafWidgetComponent
 
 	FMargin GetContentPadding() const;
 	FText GetButtonText() const;

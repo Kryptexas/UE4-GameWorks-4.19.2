@@ -55,19 +55,12 @@ TSharedRef<SWidget> UCanvasPanelComponent::RebuildWidget()
 	TSharedRef<SFixedSizeCanvas> NewCanvas = SNew(SFixedSizeCanvas, DesiredCanvasSize);
 	MyCanvas = NewCanvas;
 
-	OnKnownChildrenChanged();
-
-	return NewCanvas;
-}
-
-void UCanvasPanelComponent::OnKnownChildrenChanged()
-{
 	TSharedPtr<SFixedSizeCanvas> Canvas = MyCanvas.Pin();
-	if (Canvas.IsValid())
+	if ( Canvas.IsValid() )
 	{
 		Canvas->ClearChildren();
 
-		for (int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex)
+		for ( int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex )
 		{
 			UCanvasPanelSlot* Slot = Slots[SlotIndex];
 			if ( Slot == NULL )
@@ -80,11 +73,13 @@ void UCanvasPanelComponent::OnKnownChildrenChanged()
 				.Size(Slot->Size)
 				.HAlign(Slot->HorizontalAlignment)
 				.VAlign(Slot->VerticalAlignment)
-			[
-				Slot->Content == NULL ? SNullWidget::NullWidget : Slot->Content->GetWidget()
-			];
+				[
+					Slot->Content == NULL ? SNullWidget::NullWidget : Slot->Content->GetWidget()
+				];
 		}
 	}
+
+	return NewCanvas;
 }
 
 UCanvasPanelSlot* UCanvasPanelComponent::AddSlot(USlateWrapperComponent* Content)

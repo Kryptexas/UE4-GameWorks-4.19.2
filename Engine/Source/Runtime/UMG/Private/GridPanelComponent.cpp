@@ -17,13 +17,6 @@ TSharedRef<SWidget> UGridPanelComponent::RebuildWidget()
 	TSharedRef<SGridPanel> NewGrid = SNew(SGridPanel);
 	MyGrid = NewGrid;
 
-	//@TODO: Expose FillColumn and FillRow
-
-	return NewGrid;
-}
-
-void UGridPanelComponent::OnKnownChildrenChanged()
-{
 	//TSharedPtr<SGridPanel> Grid = MyGrid.Pin();
 	//if (Grid.IsValid())
 	//{
@@ -86,25 +79,8 @@ void UGridPanelComponent::OnKnownChildrenChanged()
 	//		];
 	//	}
 	//}
-}
 
-bool UGridPanelComponent::HasAnySockets() const
-{
-	return true;
-}
-
-FTransform UGridPanelComponent::GetSocketTransform(FName InSocketName, ERelativeTransformSpace TransformSpace) const
-{
-	return FTransform::Identity;
-}
-
-void UGridPanelComponent::QuerySupportedSockets(TArray<FComponentSocketDescription>& OutSockets) const
-{
-	for (int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex)
-	{
-		FName SocketName = Slots[SlotIndex].SlotName;
-		new (OutSockets) FComponentSocketDescription(SocketName, EComponentSocketType::Socket);
-	}
+	return NewGrid;
 }
 
 #if WITH_EDITOR

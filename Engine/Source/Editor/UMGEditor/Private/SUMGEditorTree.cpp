@@ -163,12 +163,19 @@ FReply SUMGEditorTree::CreateTestUI()
 	Button2->ButtonText = FText::FromString("Button 2");
 	UButtonComponent* Button3 = ConstructObject<UButtonComponent>(UButtonComponent::StaticClass(), BP);
 	Button3->ButtonText = FText::FromString("Button 3");
+	UButtonComponent* Button4 = ConstructObject<UButtonComponent>(UButtonComponent::StaticClass(), BP);
+
+	UTextBlockComponent* Text1 = ConstructObject<UTextBlockComponent>(UTextBlockComponent::StaticClass(), BP);
+	Text1->Text = FText::FromString(TEXT("Button!"));
+	Button4->SetContent(Text1);
 
 	BP->WidgetTemplates.Add(Canvas);
 	BP->WidgetTemplates.Add(Vertical);
 	BP->WidgetTemplates.Add(Button1);
 	BP->WidgetTemplates.Add(Button2);
 	BP->WidgetTemplates.Add(Button3);
+	BP->WidgetTemplates.Add(Button4);
+	BP->WidgetTemplates.Add(Text1);
 
 	UCanvasPanelSlot* Slot = Canvas->AddSlot(Vertical);
 	Slot->Size.X = 100;
@@ -179,6 +186,7 @@ FReply SUMGEditorTree::CreateTestUI()
 	Vertical->AddSlot(Button1);
 	Vertical->AddSlot(Button2);
 	Vertical->AddSlot(Button3);
+	Vertical->AddSlot(Button4);
 
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
 

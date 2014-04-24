@@ -25,19 +25,12 @@ TSharedRef<SWidget> UVerticalBoxComponent::RebuildWidget()
 	TSharedRef<SVerticalBox> NewCanvas = SNew(SVerticalBox);
 	MyVerticalBox = NewCanvas;
 
-	OnKnownChildrenChanged();
-
-	return NewCanvas;
-}
-
-void UVerticalBoxComponent::OnKnownChildrenChanged()
-{
 	TSharedPtr<SVerticalBox> Canvas = MyVerticalBox.Pin();
-	if (Canvas.IsValid())
+	if ( Canvas.IsValid() )
 	{
 		Canvas->ClearChildren();
 
-		for (int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex)
+		for ( int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex )
 		{
 			UVerticalBoxSlot* Slot = Slots[SlotIndex];
 			if ( Slot == NULL )
@@ -49,13 +42,15 @@ void UVerticalBoxComponent::OnKnownChildrenChanged()
 				.Padding(Slot->Padding)
 				.HAlign(Slot->HorizontalAlignment)
 				.VAlign(Slot->VerticalAlignment)
-			[
-				Slot->Content == NULL ? SNullWidget::NullWidget : Slot->Content->GetWidget()
-			];
+				[
+					Slot->Content == NULL ? SNullWidget::NullWidget : Slot->Content->GetWidget()
+				];
 
 			NewSlot.SizeParam = USlateWrapperComponent::ConvertSerializedSizeParamToRuntime(Slot->Size);
 		}
 	}
+
+	return NewCanvas;
 }
 
 UVerticalBoxSlot* UVerticalBoxComponent::AddSlot(USlateWrapperComponent* Content)
