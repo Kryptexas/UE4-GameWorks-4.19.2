@@ -384,7 +384,15 @@ void SPropertyEditorAsset::SetValue( const UObject* InObject )
 
 FPropertyAccess::Result SPropertyEditorAsset::GetValue( FObjectOrAssetData& OutValue ) const
 {
+	// Potentially accessing the value while garbage collecting or saving the package could trigger a crash.
+	// so we fail to get the value when that is occuring.
+	if ( GIsSavingPackage || GIsGarbageCollecting )
+	{
+		return FPropertyAccess::Fail;
+	}
+
 	FPropertyAccess::Result Result = FPropertyAccess::Fail;
+
 	if( PropertyEditor.IsValid() && PropertyEditor->GetPropertyHandle()->IsValidHandle() )
 	{
 		UObject* Object = NULL;
