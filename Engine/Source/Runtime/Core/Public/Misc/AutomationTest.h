@@ -645,8 +645,8 @@ public:
 	 */
 	FAutomationTestBase( const FString& InName, const bool bInComplexTask )
 		: bComplexTask( bInComplexTask )
-		, TestName( InName )
 		, bSuppressLogs( false )
+		, TestName( InName )
 	{
 		// Register the newly created automation test into the automation testing framework
 		FAutomationTestFramework::GetInstance().RegisterAutomationTest( InName, this );
