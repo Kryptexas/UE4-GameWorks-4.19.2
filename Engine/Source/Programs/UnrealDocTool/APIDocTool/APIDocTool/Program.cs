@@ -1,7 +1,5 @@
 ﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-//#define TEST_INDEX_PAGE
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -37,6 +35,7 @@ namespace APIDocTool
 		public const string TabSpaces = "&nbsp;&nbsp;&nbsp;&nbsp;";
         public const string APIFolder = "API";
 
+		public static bool bIndexOnly = false;
 		public static bool bOutputPublish = false;
 
 		static string[] ExcludeSourceDirectories =
@@ -160,6 +159,12 @@ namespace APIDocTool
 		const string SitemapContentsFileName = "API.hhc";
 		const string SitemapIndexFileName = "API.hhk";
 
+		const string TargetInfoName = "DocumentationEditor";
+		const string TargetInfoPlatform = "Win64";
+		const string TargetInfoConfig = "Debug";
+
+		const string TargetInfoProject = "Documentation\\Extras\\API\\Build\\Documentation.uproject";
+
 		static Program()
 		{
 			List<string> DelegateMacros = new List<string>();
@@ -195,12 +200,14 @@ namespace APIDocTool
 
 			bool bValidArgs = true;
 
+			bool bCleanTargetInfo = false;
 			bool bCleanMetadata = false;
 			bool bCleanXml = false;
 			bool bCleanUdn = false;
 			bool bCleanHtml = false;
 			bool bCleanChm = false;
 
+			bool bBuildTargetInfo = false;
 			bool bBuildMetadata = false;
 			bool bBuildXml = false;
 			bool bBuildUdn = false;
@@ -225,15 +232,24 @@ namespace APIDocTool
 
 				if (OptionName == "-clean")
 				{
-					bCleanMetadata = bCleanXml = bCleanUdn = bCleanHtml = true;
+					bCleanTargetInfo = bCleanMetadata = bCleanXml = bCleanUdn = bCleanHtml = true;
 				}
 				else if (OptionName == "-build")
 				{
-					bBuildMetadata = bBuildXml = bBuildUdn = bBuildHtml = true;
+					bBuildTargetInfo = bBuildMetadata = bBuildXml = bBuildUdn = bBuildHtml = true;
 				}
 				else if (OptionName == "-rebuild")
 				{
-					bCleanMetadata = bCleanXml = bCleanUdn = bCleanHtml = bCleanChm = bBuildMetadata = bBuildXml = bBuildUdn = bBuildHtml = bBuildChm = true;
+					bCleanTargetInfo = bCleanMetadata = bCleanXml = bCleanUdn = bCleanHtml = bCleanChm = true;
+					bBuildTargetInfo = bBuildMetadata = bBuildXml = bBuildUdn = bBuildHtml = bBuildChm = true;
+				}
+				else if (OptionName == "-cleantarget")
+				{
+					bCleanTargetInfo = true;
+				}
+				else if (OptionName == "-buildtarget")
+				{
+					bBuildTargetInfo = true;
 				}
 				else if (OptionName == "-cleanmeta")
 				{
@@ -319,6 +335,10 @@ namespace APIDocTool
 				{
 					bVerbose = true;
 				}
+				else if (OptionName == "-indexonly")
+				{
+					bIndexOnly = true;
+				}
 				else if (OptionName == "-filter=")
 				{
 					Filters.AddRange(OptionValue.Split(',').Select(x => x.Replace('\\', '/').Trim()));
@@ -351,17 +371,16 @@ namespace APIDocTool
 				string SettingsPath = Path.Combine(EngineDir, "Documentation\\Extras\\API\\API.ini");
 				string MetadataPath = Path.Combine(MetadataDir, "metadata.xml");
 
-				// Create all the output directories
-				Utility.SafeCreateDirectory(UdnDir);
-				Utility.SafeCreateDirectory(HtmlDir);
-				Utility.SafeCreateDirectory(ChmDir);
-
 				// Read the settings file
 				Settings = IniFile.Read(SettingsPath);
 				IgnoredFunctionMacros = new HashSet<string>(Settings.FindValueOrDefault("Input.IgnoredFunctionMacros", "").Split('\n'));
 				IncludedSourceFiles = new HashSet<string>(Settings.FindValueOrDefault("Output.IncludedSourceFiles", "").Split('\n'));
 
 				// Clean the output folders
+				if (bCleanTargetInfo)
+				{
+					CleanTargetInfo(TargetInfoPath);
+				}
 				if (bCleanMetadata)
 				{
 					CleanMetadata(MetadataDir);
@@ -384,17 +403,20 @@ namespace APIDocTool
 				}
 
 				// Build the data
-				if (!bBuildMetadata || BuildMetadata(DoxygenPath, EngineDir, MetadataDir, MetadataPath))
+				if (!bBuildTargetInfo || BuildTargetInfo(TargetInfoPath, EngineDir))
 				{
-					if (!bBuildXml || BuildXml(EngineDir, TargetInfoPath, DoxygenPath, XmlDir, Filters, bVerbose))
+					if (!bBuildMetadata || BuildMetadata(DoxygenPath, EngineDir, MetadataDir, MetadataPath))
 					{
-						if (!bBuildUdn || BuildUdn(XmlDir, UdnDir, ChmDir, MetadataPath, StatsPath, Filters))
+						if (!bBuildXml || BuildXml(EngineDir, TargetInfoPath, DoxygenPath, XmlDir, Filters, bVerbose))
 						{
-							if (!bBuildHtml || BuildHtml(EngineDir, DocToolPath, UdnDir))
+							if (!bBuildUdn || BuildUdn(XmlDir, UdnDir, ChmDir, MetadataPath, StatsPath, Filters))
 							{
-								if (!bBuildChm || BuildChm(ChmCompilerPath, HtmlDir, ChmDir))
+								if (!bBuildHtml || BuildHtml(EngineDir, DocToolPath, UdnDir, HtmlDir))
 								{
-									Console.WriteLine("Complete.");
+									if (!bBuildChm || BuildChm(ChmCompilerPath, HtmlDir, ChmDir))
+									{
+										Console.WriteLine("Complete.");
+									}
 								}
 							}
 						}
@@ -420,6 +442,46 @@ namespace APIDocTool
 				Console.WriteLine("    -filter=<...>,<...>:             Filter conversion, eg.");
 				Console.WriteLine("                                       Folders:  -filter=Core/Containers/...");
 				Console.WriteLine("                                       Entities: -filter=Core/TArray");
+			}
+		}
+
+		static void CleanTargetInfo(string TargetInfoPath)
+		{
+			Console.WriteLine("Cleaning '{0}'", TargetInfoPath);
+			Utility.SafeDeleteFile(TargetInfoPath);
+		}
+
+		static bool BuildTargetInfo(string TargetInfoPath, string EngineDir)
+		{
+			Console.WriteLine("Building target info...");
+
+			Utility.SafeCreateDirectory(Path.GetDirectoryName(TargetInfoPath));
+
+			using (Process BuildToolProcess = new Process())
+			{
+				BuildToolProcess.StartInfo.WorkingDirectory = EngineDir;
+				BuildToolProcess.StartInfo.FileName = Path.Combine(EngineDir, "Binaries\\DotNET\\UnrealBuildTool.exe");
+				BuildToolProcess.StartInfo.Arguments = String.Format("{0} {1} {2} -project=\"{3}\" -writetargetinfo=\"{4}\"", TargetInfoName, TargetInfoPlatform, TargetInfoConfig, Path.Combine(EngineDir, TargetInfoProject), TargetInfoPath);
+				BuildToolProcess.StartInfo.UseShellExecute = false;
+				BuildToolProcess.StartInfo.RedirectStandardOutput = true;
+				BuildToolProcess.StartInfo.RedirectStandardError = true;
+
+				BuildToolProcess.OutputDataReceived += new DataReceivedEventHandler(ProcessOutputReceived);
+				BuildToolProcess.ErrorDataReceived += new DataReceivedEventHandler(ProcessOutputReceived);
+
+				try
+				{
+					BuildToolProcess.Start();
+					BuildToolProcess.BeginOutputReadLine();
+					BuildToolProcess.BeginErrorReadLine();
+					BuildToolProcess.WaitForExit();
+					return BuildToolProcess.ExitCode == 0;
+				}
+				catch (Exception Ex)
+				{
+					Console.WriteLine(Ex.ToString() + "\n" + Ex.StackTrace);
+					return false;
+				}
 			}
 		}
 
@@ -494,6 +556,9 @@ namespace APIDocTool
 
 		static bool BuildXml(string EngineDir, string TargetInfoPath, string DoxygenPath, string XmlDir, List<string> Filters = null, bool bVerbose = false)
 		{
+			// Create the output directory
+			Utility.SafeCreateDirectory(XmlDir);
+
 			// Read the target that we're building
 			BuildTarget Target = BuildTarget.Read(TargetInfoPath);
 
@@ -516,79 +581,82 @@ namespace APIDocTool
 				}
 			}
 
-#if TEST_INDEX_PAGE
 			// Just use all the input modules
-			List<BuildModule> ParsedModules = new List<BuildModule>(InputModules);
-#else
-			// Filter the input module list
-			if (Filters != null && Filters.Count > 0)
-			{
-				InputModules = new List<BuildModule>(InputModules.Where(x => Filters.Exists(y => y.StartsWith(x.Name + "/", StringComparison.InvariantCultureIgnoreCase))));
-			}
-
-			// Sort all the modules into the required build order
-			Console.WriteLine("Sorting module parse order...");
-			List<BuildModule> SortedModules = SortModules(InputModules);
-
-			// List all the modules which have circular dependencies
-			foreach (BuildModule Module in SortedModules)
-			{
-				if (SortedModules.Count(x => x == Module) > 1)
-				{
-					Console.WriteLine("  Circular dependency on {0}; module will be parsed twice", Module.Name);
-				}
-			}
-
-			// Set our error mode so as to not bring up the WER dialog if Doxygen crashes (which it often does)
-			SetErrorMode(0x0007);
-
-			// Create the output directory
-			Utility.SafeCreateDirectory(XmlDir);
-
-			// Build all the modules
 			List<BuildModule> ParsedModules = new List<BuildModule>();
-			Dictionary<string, string> ModuleToTagfile = new Dictionary<string, string>();
-			for (int Idx = 0; Idx < SortedModules.Count; Idx++)
+			if(bIndexOnly)
 			{
-				BuildModule Module = SortedModules[Idx];
-				Console.WriteLine("Parsing source for {0}... ({1}/{2})", Module.Name, Idx + 1, SortedModules.Count);
-				string ModuleDir = Path.Combine(XmlDir, Module.Name);
-
-				// Build the configuration for this module
-				DoxygenConfig Config = new DoxygenConfig(Module.Name, Module.Path, ModuleDir);
-				Config.Definitions.AddRange(Module.Definitions.Select(x => x.Replace("DLLIMPORT", "").Replace("DLLEXPORT", "")));
-				Config.Definitions.AddRange(DoxygenPredefinedMacros);
-				Config.ExpandAsDefined.AddRange(DoxygenExpandedMacros);
-				Config.IncludePaths.AddRange(Module.IncludePaths.Select(x => ExpandIncludePath(EngineDir, x).TrimEnd('\\')));
-				Config.ExcludePatterns.AddRange(ExcludeSourceDirectories.Select(x => "*/" + x + "/*"));
-				Config.ExcludePatterns.AddRange(ExcludeSourceFiles);
-				Config.OutputTagfile = Path.Combine(ModuleDir, "tags.xml");
-
-				// Add all the valid tagfiles
-				foreach (string Dependency in Module.Dependencies)
+				ParsedModules.AddRange(InputModules);
+			}
+			else
+			{
+				// Filter the input module list
+				if (Filters != null && Filters.Count > 0)
 				{
-					string Tagfile;
-					if (ModuleToTagfile.TryGetValue(Dependency, out Tagfile))
+					InputModules = new List<BuildModule>(InputModules.Where(x => Filters.Exists(y => y.StartsWith(x.Name + "/", StringComparison.InvariantCultureIgnoreCase))));
+				}
+
+				// Sort all the modules into the required build order
+				Console.WriteLine("Sorting module parse order...");
+				List<BuildModule> SortedModules = SortModules(InputModules);
+
+				// List all the modules which have circular dependencies
+				foreach (BuildModule Module in SortedModules)
+				{
+					if (SortedModules.Count(x => x == Module) > 1)
 					{
-						Config.InputTagfiles.Add(Tagfile);
+						Console.WriteLine("  Circular dependency on {0}; module will be parsed twice", Module.Name);
 					}
 				}
 
-				// Run doxygen
-				if (Doxygen.Run(DoxygenPath, Path.Combine(EngineDir, "Source"), Config, bVerbose))
+				// Set our error mode so as to not bring up the WER dialog if Doxygen crashes (which it often does)
+				SetErrorMode(0x0007);
+
+				// Create the output directory
+				Utility.SafeCreateDirectory(XmlDir);
+
+				// Build all the modules
+				Dictionary<string, string> ModuleToTagfile = new Dictionary<string, string>();
+				for (int Idx = 0; Idx < SortedModules.Count; Idx++)
 				{
-					if (!ModuleToTagfile.ContainsKey(Module.Name))
+					BuildModule Module = SortedModules[Idx];
+					Console.WriteLine("Parsing source for {0}... ({1}/{2})", Module.Name, Idx + 1, SortedModules.Count);
+					string ModuleDir = Path.Combine(XmlDir, Module.Name);
+
+					// Build the configuration for this module
+					DoxygenConfig Config = new DoxygenConfig(Module.Name, Module.Path, ModuleDir);
+					Config.Definitions.AddRange(Module.Definitions.Select(x => x.Replace("DLLIMPORT", "").Replace("DLLEXPORT", "")));
+					Config.Definitions.AddRange(DoxygenPredefinedMacros);
+					Config.ExpandAsDefined.AddRange(DoxygenExpandedMacros);
+					Config.IncludePaths.AddRange(Module.IncludePaths.Select(x => ExpandIncludePath(EngineDir, x).TrimEnd('\\')));
+					Config.ExcludePatterns.AddRange(ExcludeSourceDirectories.Select(x => "*/" + x + "/*"));
+					Config.ExcludePatterns.AddRange(ExcludeSourceFiles);
+					Config.OutputTagfile = Path.Combine(ModuleDir, "tags.xml");
+
+					// Add all the valid tagfiles
+					foreach (string Dependency in Module.Dependencies)
 					{
-						ModuleToTagfile.Add(Module.Name, Config.OutputTagfile);
-						ParsedModules.Add(Module);
+						string Tagfile;
+						if (ModuleToTagfile.TryGetValue(Dependency, out Tagfile))
+						{
+							Config.InputTagfiles.Add(Tagfile);
+						}
 					}
-				}
-				else
-				{
-					Console.WriteLine("  Doxygen crashed. Skipping.");
+
+					// Run doxygen
+					if (Doxygen.Run(DoxygenPath, Path.Combine(EngineDir, "Source"), Config, bVerbose))
+					{
+						if (!ModuleToTagfile.ContainsKey(Module.Name))
+						{
+							ModuleToTagfile.Add(Module.Name, Config.OutputTagfile);
+							ParsedModules.Add(Module);
+						}
+					}
+					else
+					{
+						Console.WriteLine("  Doxygen crashed. Skipping.");
+					}
 				}
 			}
-#endif
 
 			// Write the modules file
 			WriteModulesXml(XmlDir, ParsedModules);
@@ -672,6 +740,9 @@ namespace APIDocTool
 
 		static bool BuildUdn(string XmlDir, string UdnDir, string SitemapDir, string MetadataPath, string StatsPath, List<string> Filters = null)
 		{
+			// Create the output directory
+			Utility.SafeCreateDirectory(UdnDir);
+
 			// Read the metadata
 			MetadataLookup.Load(MetadataPath);
 
@@ -690,34 +761,36 @@ namespace APIDocTool
 				}
 			}
 
-#if TEST_INDEX_PAGE
-			// Just create empty modules
 			List<DoxygenModule> Modules = new List<DoxygenModule>();
-			for (int Idx = 0; Idx < InputModules.Count; Idx++)
+			if(bIndexOnly)
 			{
-				Modules.Add(new DoxygenModule(InputModules[Idx].Key, InputModules[Idx].Value));
+				// Just create empty modules
+				for (int Idx = 0; Idx < InputModules.Count; Idx++)
+				{
+					Modules.Add(new DoxygenModule(InputModules[Idx].Key, InputModules[Idx].Value));
+				}
 			}
-#else
-			// Filter the input module list
-			if (Filters != null && Filters.Count > 0)
+			else
 			{
-				InputModules = new List<KeyValuePair<string, string>>(InputModules.Where(x => Filters.Exists(y => y.StartsWith(x.Key + "/", StringComparison.InvariantCultureIgnoreCase))));
-			}
+				// Filter the input module list
+				if (Filters != null && Filters.Count > 0)
+				{
+					InputModules = new List<KeyValuePair<string, string>>(InputModules.Where(x => Filters.Exists(y => y.StartsWith(x.Key + "/", StringComparison.InvariantCultureIgnoreCase))));
+				}
 
-			// Read all the doxygen modules
-			List<DoxygenModule> Modules = new List<DoxygenModule>();
-			for(int Idx = 0; Idx < InputModules.Count; Idx++)
-			{
-				Console.WriteLine("Reading module {0}... ({1}/{2})", InputModules[Idx].Key, Idx + 1, InputModules.Count);
-				Modules.Add(DoxygenModule.Read(InputModules[Idx].Key, InputModules[Idx].Value, Path.Combine(XmlDir, InputModules[Idx].Key, "xml")));
-			}
+				// Read all the doxygen modules
+				for(int Idx = 0; Idx < InputModules.Count; Idx++)
+				{
+					Console.WriteLine("Reading module {0}... ({1}/{2})", InputModules[Idx].Key, Idx + 1, InputModules.Count);
+					Modules.Add(DoxygenModule.Read(InputModules[Idx].Key, InputModules[Idx].Value, Path.Combine(XmlDir, InputModules[Idx].Key, "xml")));
+				}
 
-			// Now filter all the entities in each module
-			if(Filters != null && Filters.Count > 0)
-			{
-				FilterEntities(Modules, Filters);
+				// Now filter all the entities in each module
+				if(Filters != null && Filters.Count > 0)
+				{
+					FilterEntities(Modules, Filters);
+				}
 			}
-#endif
 
 			// Create the index page, and all the pages below it
 			APIIndex Index = new APIIndex(Modules);
@@ -934,8 +1007,10 @@ namespace APIDocTool
 			Utility.SafeDeleteDirectoryContents(CleanDir, true);
 		}
 
-		public static bool BuildHtml(string EngineDir, string DocToolPath, string UdnPath)
+		public static bool BuildHtml(string EngineDir, string DocToolPath, string UdnPath, string HtmlDir)
 		{
+			Utility.SafeCreateDirectory(HtmlDir);
+
 			using (Process DocToolProcess = new Process())
 			{
 				DocToolProcess.StartInfo.WorkingDirectory = EngineDir;

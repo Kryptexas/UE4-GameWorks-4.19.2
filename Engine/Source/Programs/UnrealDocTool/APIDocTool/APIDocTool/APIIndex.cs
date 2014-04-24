@@ -18,10 +18,10 @@ namespace APIDocTool
 		public List<APIModuleIndex> ChildModuleIndexes = new List<APIModuleIndex>();
 
 		public APIGettingStarted GettingStarted;
-		public APIModuleIndex ModuleIndex;
 		public APIConstantIndex ConstantIndex;
 		public APIFunctionIndex FunctionIndex;
-		public APITypeIndex TypeIndex;
+		public APIEnumIndex EnumIndex;
+		public APIRecordIndex RecordIndex;
 		public APIHierarchy RecordHierarchy;
 
 		public static APIModuleCategory FindRootCategoryByPath(List<APIModuleCategory> Categories, string InPath)
@@ -37,7 +37,7 @@ namespace APIDocTool
 				int CategoryMaxIdx = CategoryMinIdx;
 				while (CategoryMaxIdx < NormalizedSrcPath.Length && NormalizedSrcPath[CategoryMaxIdx] != '/') CategoryMaxIdx++;
 
-				string CategoryName = NormalizedSrcPath.Substring(CategoryMinIdx, CategoryMaxIdx - CategoryMinIdx) + " Modules";
+				string CategoryName = NormalizedSrcPath.Substring(CategoryMinIdx, CategoryMaxIdx - CategoryMinIdx);
 
 				APIModuleCategory Category = Categories.FirstOrDefault(x => x.Name.ToLower() == CategoryName.ToLower());
 				if(Category != null) return Category;
@@ -58,9 +58,9 @@ namespace APIDocTool
 
 			// Add some default categories to fix the order
 			APIModuleCategory RootCategory = new APIModuleCategory("Modules");
-			RootCategory.Categories.Add(new APIModuleCategory("Runtime Modules"));
-			RootCategory.Categories.Add(new APIModuleCategory("Editor Modules"));
-			RootCategory.Categories.Add(new APIModuleCategory("Developer Modules"));
+			RootCategory.Categories.Add(new APIModuleCategory("Runtime"));
+			RootCategory.Categories.Add(new APIModuleCategory("Editor"));
+			RootCategory.Categories.Add(new APIModuleCategory("Developer"));
 
 			// Add all of the modules to a category
 			Dictionary<DoxygenModule, APIModuleCategory> ModuleToCategory = new Dictionary<DoxygenModule, APIModuleCategory>();
@@ -108,10 +108,6 @@ namespace APIDocTool
 			GettingStarted = new APIGettingStarted(this);
 			Pages.Add(GettingStarted);
 
-			// Create an index of all the modules
-			ModuleIndex = new APIModuleIndex(this, RootCategory);
-			Pages.Add(ModuleIndex);
-
 			// Create an index of all the constants
 			ConstantIndex = new APIConstantIndex(this, AllMembers);
 			Pages.Add(ConstantIndex);
@@ -120,9 +116,13 @@ namespace APIDocTool
 			FunctionIndex = new APIFunctionIndex(this, AllMembers.OfType<APIFunction>().Where(x => !(x.ScopeParent is APIRecord)));
 			Pages.Add(FunctionIndex);
 
-			// Create an index of all the types
-			TypeIndex = new APITypeIndex(this, AllMembers);
-			Pages.Add(TypeIndex);
+			// Create an index of all the enums
+			EnumIndex = new APIEnumIndex(this, AllMembers);
+			Pages.Add(EnumIndex);
+
+			// Create an index of all the records
+			RecordIndex = new APIRecordIndex(this, AllMembers);
+			Pages.Add(RecordIndex);
 
 			// Create an index of all the classes
 			RecordHierarchy = APIHierarchy.Build(this, AllMembers.OfType<APIRecord>());
@@ -138,10 +138,10 @@ namespace APIDocTool
 			{
 				RootNodes.Add(ChildModuleIndex.CreateSitemapNode());
 			}
-			RootNodes.Add(new SitemapNode("All modules", ModuleIndex.SitemapLinkPath));
 			RootNodes.Add(new SitemapNode("All constants", ConstantIndex.SitemapLinkPath));
 			RootNodes.Add(new SitemapNode("All functions", FunctionIndex.SitemapLinkPath));
-			RootNodes.Add(new SitemapNode("All types", TypeIndex.SitemapLinkPath));
+			RootNodes.Add(new SitemapNode("All enums", EnumIndex.SitemapLinkPath));
+			RootNodes.Add(new SitemapNode("All classes", RecordIndex.SitemapLinkPath));
 			RootNodes.Add(new SitemapNode("Class hierarchy", RecordHierarchy.SitemapLinkPath));
 			Sitemap.WriteContentsFile(OutputPath, RootNodes);
 		}
@@ -213,24 +213,20 @@ namespace APIDocTool
 
 				Writer.WriteLine("The API reference is an early work in progress, and some information may be missing or out of date. It serves mainly as a low level index of Engine classes and functions.");
 				Writer.WriteLine("For tutorials, walkthroughs and detailed guides to programming with Unreal, please see the [Unreal Engine Programming](http://docs.unrealengine.com/latest/INT/Programming/index.html) home on the web.");
-
-				Writer.WriteHeading(2, "Introduction");
-
-				Writer.WriteLine(Manifest, "The Unreal Engine consists of a large number of modules divided into three categories: the {Runtime|ModuleIndex:Runtime Modules}, functionality for the {Editor|ModuleIndex:Editor Modules}, and {Developer|ModuleIndex:Developer Modules} utilities. Full documentation for each of these categories is below.");
 				Writer.WriteLine();
 				Writer.WriteLine("To explore the API from some of the most frequently encountered Unreal concepts and types, see the API __[getting started](" + GettingStarted.LinkPath + ")__ page.");
 
 				Writer.WriteHeading(2, "Contents");
 
 				Writer.EnterRegion("memberindexlinks");
-				Writer.WriteLine("[Getting started]({0}) &middot; [All modules]({1}) &middot; [All constants]({2}) &middot; [All functions]({3}) &middot; [All types]({4}) &middot; [Class hierarchy]({5})", GettingStarted.LinkPath, ModuleIndex.LinkPath, ConstantIndex.LinkPath, FunctionIndex.LinkPath, TypeIndex.LinkPath, RecordHierarchy.LinkPath);
+				Writer.WriteLine("[Getting started]({0}) &middot; [All constants]({1}) &middot; [All functions]({2}) &middot; [All enums]({3}) &middot; [All classes]({4}) &middot; [Class hierarchy]({5})", GettingStarted.LinkPath, ConstantIndex.LinkPath, FunctionIndex.LinkPath, EnumIndex.LinkPath, RecordIndex.LinkPath, RecordHierarchy.LinkPath);
 				Writer.LeaveRegion();
 
 				foreach(APIModuleIndex ChildModuleIndex in ChildModuleIndexes)
 				{
 					Writer.WriteHeading(2, ChildModuleIndex.Name);
 					Writer.EnterRegion("modules-list");
-					ChildModuleIndex.WriteExpandableModuleList(Writer, ChildModuleIndex.Name.Replace(' ', '_'));
+					ChildModuleIndex.WriteModuleList(Writer, 3);
 					Writer.LeaveRegion();
 				}
 

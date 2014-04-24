@@ -8,15 +8,15 @@ using System.Threading.Tasks;
 
 namespace APIDocTool
 {
-	class APITypeIndex : APIMemberIndex
+	class APIEnumIndex : APIMemberIndex
 	{
-		public const string IgnorePrefixLetters = "UAFTS"; 
+		public const string IgnorePrefixLetters = "E";
 
-		public APITypeIndex(APIPage InParent, IEnumerable<APIMember> Members) : base(InParent, "Types", "Alphabetical index of all types")
+		public APIEnumIndex(APIPage InParent, IEnumerable<APIMember> Members) : base(InParent, "Enums", "All enums")
 		{
 			foreach (APIMember Member in Members)
 			{
-				if ((Member is APIRecord && (!((APIRecord)Member).bIsTemplateSpecialization)) || (Member is APITypeDef) || (Member is APIEnum) || (Member is APIEventParameters))
+				if (Member is APIEnum)
 				{
 					Entry NewEntry = new Entry(Member);
 					if (NewEntry.SortName.Length >= 2 && IgnorePrefixLetters.Contains(NewEntry.SortName[0]) && Char.IsUpper(NewEntry.SortName[1]))
