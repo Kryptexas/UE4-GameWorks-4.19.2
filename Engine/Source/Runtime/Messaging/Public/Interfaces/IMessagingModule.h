@@ -68,7 +68,12 @@ public:
 	 */
 	static IMessagingModule& Get( )
 	{
-		return FModuleManager::LoadModuleChecked<IMessagingModule>("Messaging");
+#if PLATFORM_IOS
+        static IMessagingModule& MessageModule = FModuleManager::LoadModuleChecked<IMessagingModule>("Messaging");
+        return MessageModule;
+#else
+        return FModuleManager::LoadModuleChecked<IMessagingModule>("Messaging");
+#endif
 	}
 
 public:
