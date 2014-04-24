@@ -16,6 +16,7 @@
 #include "GraphDiffControl.h"
 
 #include "AnimationGraphSchema.h"
+#include "AnimationStateMachineSchema.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGraphPanel, Log, All);
 

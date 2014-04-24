@@ -1,11 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "AnimGraphPrivatePCH.h"
+#include "AnimGraphNode_SequencePlayer.h"
 
 #include "CompilerResultsLog.h"
 #include "GraphEditorActions.h"
 #include "AssetRegistryModule.h"
-
+#include "AnimationGraphSchema.h"
 #define LOCTEXT_NAMESPACE "A3Nodes"
 
 /////////////////////////////////////////////////////

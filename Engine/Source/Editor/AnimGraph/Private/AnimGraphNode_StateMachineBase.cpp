@@ -6,6 +6,11 @@
 #include "ScopedTransaction.h"
 #include "EdGraphUtilities.h"
 #include "Kismet2NameValidators.h"
+
+#include "AnimationGraph.h"
+#include "AnimationStateMachineGraph.h"
+#include "AnimationStateMachineSchema.h"
+#include "AnimGraphNode_StateMachine.h"
 #include "AnimGraphNode_StateMachineBase.h"
 
 /////////////////////////////////////////////////////

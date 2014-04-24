@@ -1,7 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "AnimGraphPrivatePCH.h"
-
+#include "AnimationGraphSchema.h"
+#include "AnimGraphNode_BlendSpaceBase.h"
+#include "AnimGraphNode_BlendSpacePlayer.h"
+#include "AnimGraphNode_RotationOffsetBlendSpace.h"
 #include "GraphEditorActions.h"
 
 /////////////////////////////////////////////////////

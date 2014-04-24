@@ -16,6 +16,7 @@
 #include "AnimGraphNode_BlendSpacePlayer.h"
 #include "AnimGraphNode_ComponentToLocalSpace.h"
 #include "AnimGraphNode_LocalToComponentSpace.h"
+#include "AnimGraphNode_Root.h"
 #include "AnimGraphNode_RotationOffsetBlendSpace.h"
 #include "AnimGraphNode_SequencePlayer.h"
 

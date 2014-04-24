@@ -5,7 +5,12 @@
 =============================================================================*/
 
 #include "AnimGraphPrivatePCH.h"
+#include "AnimStateNode.h"
+#include "AnimStateTransitionNode.h"
+#include "AnimationTransitionGraph.h"
 #include "AnimationTransitionSchema.h"
+#include "AnimGraphNode_Base.h"
+#include "AnimGraphNode_TransitionResult.h"
 
 #include "BlueprintUtilities.h"
 #include "AnimGraphDefinitions.h"
@@ -13,6 +18,7 @@
 #include "ScopedTransaction.h"
 #include "Kismet2/KismetDebugUtilities.h"
 #include "K2ActionMenuBuilder.h" // for FK2ActionMenuBuilder::AddNewNodeAction()
+#include "K2Node_TransitionRuleGetter.h"
 
 /////////////////////////////////////////////////////
 // UAnimationTransitionSchema

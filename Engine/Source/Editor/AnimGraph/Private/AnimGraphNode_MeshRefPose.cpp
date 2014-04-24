@@ -2,6 +2,7 @@
 
 #include "AnimGraphPrivatePCH.h"
 #include "AnimGraphNode_MeshRefPose.h"
+#include "AnimationGraphSchema.h"
 
 /////////////////////////////////////////////////////
 // UAnimGraphNode_MeshRefPose

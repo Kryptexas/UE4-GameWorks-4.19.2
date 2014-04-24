@@ -1,9 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "AnimGraphPrivatePCH.h"
-
+#include "AnimStateConduitNode.h"
+#include "AnimStateTransitionNode.h"
 #include "Kismet2NameValidators.h"
 #include "CompilerResultsLog.h"
+#include "AnimationTransitionGraph.h"
+#include "AnimationConduitGraphSchema.h"
+#include "AnimGraphNode_TransitionResult.h"
 
 /////////////////////////////////////////////////////
 // UAnimStateConduitNode

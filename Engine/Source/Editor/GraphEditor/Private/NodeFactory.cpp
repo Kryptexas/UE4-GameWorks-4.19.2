@@ -28,7 +28,11 @@
 
 #include "AnimGraphNode_Root.h"
 #include "AnimGraphNode_SequencePlayer.h"
+#include "AnimGraphNode_StateMachineBase.h"
 #include "AnimStateNode.h"
+#include "AnimStateEntryNode.h"
+#include "AnimStateConduitNode.h"
+#include "AnimStateTransitionNode.h"
 
 #include "AnimationStateMachineSchema.h"
 

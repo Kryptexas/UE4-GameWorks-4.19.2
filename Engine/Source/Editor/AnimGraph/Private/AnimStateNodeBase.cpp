@@ -5,17 +5,18 @@
 =============================================================================*/
 
 #include "AnimGraphPrivatePCH.h"
-
+#include "AnimationStateMachineGraph.h"
+#include "AnimationStateMachineSchema.h"
 #include "EdGraphUtilities.h"
 #include "Kismet2/Kismet2NameValidators.h"
-
+#include "AnimStateNodeBase.h"
 /////////////////////////////////////////////////////
 // FAnimStateNodeNameValidator
 
 class FAnimStateNodeNameValidator : public FStringSetNameValidator
 {
 public:
-	FAnimStateNodeNameValidator(const class UAnimStateNodeBase* InStateNode)
+	FAnimStateNodeNameValidator(const UAnimStateNodeBase* InStateNode)
 		: FStringSetNameValidator(FString())
 	{
 		TArray<UAnimStateNodeBase*> Nodes;

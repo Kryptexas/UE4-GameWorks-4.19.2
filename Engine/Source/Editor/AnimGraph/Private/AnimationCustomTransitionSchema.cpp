@@ -5,6 +5,7 @@
 #include "AnimGraphNode_CustomTransitionResult.h"
 #include "AnimGraphNode_TransitionPoseEvaluator.h"
 #include "AnimStateTransitionNode.h"
+#include "AnimationCustomTransitionGraph.h"
 
 /////////////////////////////////////////////////////
 // UAnimationCustomTransitionSchema

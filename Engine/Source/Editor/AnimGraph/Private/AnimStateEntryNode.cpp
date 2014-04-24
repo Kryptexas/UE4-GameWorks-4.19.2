@@ -5,8 +5,9 @@
 =============================================================================*/
 
 #include "AnimGraphPrivatePCH.h"
-
+#include "AnimStateEntryNode.h"
 #include "EdGraphUtilities.h"
+#include "AnimationStateMachineSchema.h"
 
 /////////////////////////////////////////////////////
 // UAnimStateEntryNode

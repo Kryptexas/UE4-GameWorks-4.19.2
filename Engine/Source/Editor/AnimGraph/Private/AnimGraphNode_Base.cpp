@@ -4,6 +4,7 @@
 #include "AnimGraphPrivatePCH.h"
 #include "AnimGraphNode_Base.h"
 #include "K2ActionMenuBuilder.h" // for FK2ActionMenuBuilder::AddNewNodeAction()
+#include "AnimationGraphSchema.h"
 
 /////////////////////////////////////////////////////
 // FA3NodeOptionalPinManager

@@ -1,9 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "AnimGraphPrivatePCH.h"
-
+#include "AnimationGraphSchema.h"
 #include "GraphEditorActions.h"
 #include "ScopedTransaction.h"
+#include "AnimGraphNode_LocalToComponentSpace.h"
 
 /////////////////////////////////////////////////////
 // UAnimGraphNode_LocalToComponentSpace
