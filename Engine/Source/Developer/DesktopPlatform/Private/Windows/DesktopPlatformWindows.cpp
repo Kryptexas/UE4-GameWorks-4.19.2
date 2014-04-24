@@ -5,6 +5,7 @@
 #include "AllowWindowsPlatformTypes.h"
 	#include <commdlg.h>
 	#include <shlobj.h>
+	#include <Winver.h>
 #include "HideWindowsPlatformTypes.h"
 
 #define LOCTEXT_NAMESPACE "DesktopPlatform"
