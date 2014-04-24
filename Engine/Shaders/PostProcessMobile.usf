@@ -61,8 +61,9 @@ void SunMaskVS_ES2(
 	out float4 OutPosition : SV_POSITION
 	)
 {
-	DrawRectangle(InPosition, InTexCoord, OutPosition, OutUVPos.xy);
-	OutUVPos.zw = OutPosition.xy;
+	OutPosition = InPosition;
+	OutUVPos.xy = InTexCoord;
+	OutUVPos.zw = InPosition.xy;
 }
 
 void SunMaskPS_ES2(
@@ -113,13 +114,11 @@ void BloomVS_ES2(
 	out float4 OutPosition : SV_POSITION
 	)
 {
-	float2 TransformedUV;
-	DrawRectangle(InPosition, InTexCoord, OutPosition, TransformedUV);
-
-	OutTexCoords[0] = TransformedUV + PostprocessInput0Size.zw * float2(-1, -1);
-	OutTexCoords[1] = TransformedUV + PostprocessInput0Size.zw * float2( 1, -1);
-	OutTexCoords[2] = TransformedUV + PostprocessInput0Size.zw * float2(-1,  1);
-	OutTexCoords[3] = TransformedUV + PostprocessInput0Size.zw * float2( 1,  1);
+	OutPosition = InPosition;
+	OutTexCoords[0] = InTexCoord + PostprocessInput0Size.zw * float2(-1, -1);
+	OutTexCoords[1] = InTexCoord + PostprocessInput0Size.zw * float2( 1, -1);
+	OutTexCoords[2] = InTexCoord + PostprocessInput0Size.zw * float2(-1,  1);
+	OutTexCoords[3] = InTexCoord + PostprocessInput0Size.zw * float2( 1,  1);
 }
 
 void BloomPS_ES2(
@@ -194,8 +193,7 @@ void BloomSmallVS_ES2(
 	out float4 OutPosition : SV_POSITION
 	)
 {
-
-	DrawRectangle(InPosition, InTexCoord, OutPosition, InTexCoord);
+	OutPosition = InPosition;
 	
 	float Start = 2.0/14.0;
 	float Scale = 0.66 * 4.0 * 2.0;
@@ -282,7 +280,7 @@ void BloomDownVS_ES2(
 	out float4 OutPosition : SV_POSITION
 	)
 {
-	DrawRectangle(InPosition, InTexCoord, OutPosition, InTexCoord);
+	OutPosition = InPosition;
 
 	float Start = 2.0/14.0;
 	float Scale = BloomDownScale;
@@ -359,7 +357,7 @@ void BloomUpVS_ES2(
 	out float4 OutPosition : SV_POSITION
 	)
 {
-	DrawRectangle(InPosition, InTexCoord, OutPosition, InTexCoord);
+	OutPosition = InPosition;
 
 	float Start;
 	float Scale;
@@ -454,8 +452,7 @@ void DofNearVS_ES2(
 	out float4 OutPosition : SV_POSITION
 	)
 {
-	DrawRectangle(InPosition, InTexCoord, OutPosition, InTexCoord);
-
+	OutPosition = InPosition;
 	OutTexCoords2 = InTexCoord;
 	OutTexCoords4[0].xy = InTexCoord + PostprocessInput0Size.zw * float2(-0.5,-1.0);
 	OutTexCoords4[0].zw = InTexCoord + PostprocessInput0Size.zw * float2( 1.0,-0.5);
@@ -526,10 +523,9 @@ void DofDownVS_ES2(
 	out float4 OutPosition : SV_POSITION
 	)
 {
-	DrawRectangle(InPosition, InTexCoord, OutPosition, InTexCoord);
-
+	OutPosition = InPosition;
 	// Near position fixed to use UV based out output position.
-	OutTexCoords[0] = OutPosition.xy * float2(0.5,-0.5) + 0.5;
+	OutTexCoords[0] = InPosition.xy * float2(0.5,-0.5) + 0.5;
 	// Other source UVs based on possible non-full texture.
 	OutTexCoords[1] = InTexCoord + PostprocessInput0Size.zw * float2(-0.5, -0.5);
 	OutTexCoords[2] = InTexCoord + PostprocessInput0Size.zw * float2( 0.5, -0.5);
@@ -654,8 +650,7 @@ void DofBlurVS_ES2(
 	out float4 OutPosition : SV_POSITION
 	)
 {
-	DrawRectangle(InPosition, InTexCoord, OutPosition, InTexCoord);
-
+	OutPosition = InPosition;
     OutTexCoords[0] = InTexCoord.xy;
     OutTexCoords[1] = InTexCoord.xy + float2(DOF_1) * PostprocessInput0Size.zw;
     OutTexCoords[2] = InTexCoord.xy + float2(DOF_2) * PostprocessInput0Size.zw;
@@ -753,8 +748,7 @@ void SunAlphaVS_ES2(
 	out float4 OutPosition : SV_POSITION
 	)
 {
-	DrawRectangle(InPosition, InTexCoord, OutPosition, InTexCoord);
-
+	OutPosition = InPosition;
     OutTexCoords[0] = SunShaftRect(InPosition.xy, 1.0 - SUN_P0 * SUN_M);
     OutTexCoords[1] = SunShaftRect(InPosition.xy, 1.0 - SUN_P1 * SUN_M);
     OutTexCoords[2] = SunShaftRect(InPosition.xy, 1.0 - SUN_P2 * SUN_M);
@@ -811,8 +805,7 @@ void SunBlurVS_ES2(
 	out float4 OutPosition : SV_POSITION
 	)
 {
-	DrawRectangle(InPosition, InTexCoord, OutPosition, InTexCoord);
-
+	OutPosition = InPosition;
     OutTexCoords[0] = SunShaftRect(InPosition.xy, 1.0 - SUN_P0 * SUN_M);
     OutTexCoords[1] = SunShaftRect(InPosition.xy, 1.0 - SUN_P1 * SUN_M);
     OutTexCoords[2] = SunShaftRect(InPosition.xy, 1.0 - SUN_P2 * SUN_M);
@@ -856,10 +849,9 @@ void SunMergeVS_ES2(
 	out float4 OutPosition : SV_POSITION
 	)
 {
-	DrawRectangle(InPosition, InTexCoord, OutPosition, InTexCoord);
-
+	OutPosition = InPosition;
 	OutTexCoordVignette.xy = InTexCoord.xy;
-	OutTexCoordVignette.zw =  VignetteSpace(OutPosition.xy);
+	OutTexCoordVignette.zw =  VignetteSpace(InPosition.xy);
 
 	float Start;
 	float Scale;
@@ -967,9 +959,9 @@ void SunMergeSmallVS_ES2(
 	out float4 OutPosition : SV_POSITION
 	)
 {
-	DrawRectangle(InPosition, InTexCoord, OutPosition, InTexCoord);
+	OutPosition = InPosition;
 	OutTexCoordVignette.xy = InTexCoord.xy;
-	OutTexCoordVignette.zw =  VignetteSpace(OutPosition.xy);
+	OutTexCoordVignette.zw =  VignetteSpace(InPosition.xy);
 
 	float Start;
 	float Scale;
@@ -1047,7 +1039,8 @@ void SunAvgVS_ES2(
 	out float4 OutPosition : SV_POSITION
 	)
 {
-	DrawRectangle(InPosition, InTexCoord, OutPosition, OutTexCoord);
+	OutPosition = InPosition;
+	OutTexCoord.xy = InTexCoord.xy;
 }
 
 void SunAvgPS_ES2(
@@ -1075,7 +1068,7 @@ void AaVS_ES2(
 	out float4 OutPosition : SV_POSITION
 	)
 {
-	DrawRectangle(InPosition, InTexCoord, OutPosition, InTexCoord);
+	OutPosition = InPosition;
 
 	// AA texture coordinates.
 	float AaX = View.TemporalAAParams.x;

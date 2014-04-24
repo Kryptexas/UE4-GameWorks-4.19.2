@@ -117,7 +117,6 @@ void FRCPassPostProcessAmbient::Process(FRenderingCompositePassContext& Context)
 			View.ViewRect.Width(), View.ViewRect.Height(),
 			View.ViewRect.Size(),
 			GSceneRenderTargets.SceneColor->GetDesc().Extent,
-			*VertexShader,
 			EDRF_UseTriangleOptimization);
 	}
 

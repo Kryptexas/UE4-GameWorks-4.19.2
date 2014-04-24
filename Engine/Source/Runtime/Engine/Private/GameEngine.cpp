@@ -750,10 +750,7 @@ float UGameEngine::GetMaxTickRate( float DeltaTime, bool bAllowFrameRateSmoothin
 		// Limit framerate on console if VSYNC is enabled to avoid jumps from 30 to 60 and back.
 		if( CVar->GetValueOnGameThread() != 0 )
 		{
-			if (SmoothedFrameRateRange.HasUpperBound())
-			{
-				MaxTickRate = SmoothedFrameRateRange.GetUpperBoundValue();
-			}
+			MaxTickRate = MaxSmoothedFrameRate;
 		}
 	}
 	else 

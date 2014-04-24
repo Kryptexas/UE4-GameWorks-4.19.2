@@ -114,7 +114,6 @@ void FRCPassPostProcessUIBlur::Process(FRenderingCompositePassContext& Context)
 			SrcRect.Width(), SrcRect.Height(),
 			Dest->GetDesc().Extent,
 			Dest->GetDesc().Extent,
-			*VertexShader,
 			EDRF_Default);
 	}
 

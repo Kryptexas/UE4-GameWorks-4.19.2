@@ -153,7 +153,6 @@ void FRCPassPostProcessVisualizeBuffer::Process(FRenderingCompositePassContext& 
 	SetShaderTempl<false>(Context);
 
 	// Draw a quad mapping scene color to the view's render target
-	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
 	DrawRectangle(
 		0, 0,
 		DestRect.Width(), DestRect.Height(),
@@ -161,10 +160,10 @@ void FRCPassPostProcessVisualizeBuffer::Process(FRenderingCompositePassContext& 
 		SrcRect.Width(), SrcRect.Height(),
 		DestRect.Size(),
 		SrcSize,
-		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	// Now draw the requested tiles into the grid
+	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
 	TShaderMapRef<FPostProcessVisualizeBufferPS<true> > PixelShader(GetGlobalShaderMap());
 
 	RHISetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha>::GetRHI());
@@ -210,9 +209,7 @@ void FRCPassPostProcessVisualizeBuffer::Process(FRenderingCompositePassContext& 
 				SrcRect.Width(), SrcRect.Height(),
 				DestRect.Size(),
 				SrcSize,
-				*VertexShader,
-				EDRF_Default
-				);
+				EDRF_Default);
 
 			Labels.Add(LabelRecord());
 			Labels.Last().Label = It->Name;

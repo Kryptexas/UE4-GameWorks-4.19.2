@@ -81,71 +81,70 @@ namespace UnrealBuildTool
 
 		static string GetSharedArguments_Global(CPPTargetConfiguration TargetConfiguration, string Architecture)
 		{
-            string Result = " ";
+			string Result = " ";
 
-            if (Architecture == "-win32")
-            {
+			if (Architecture == "-win32")
+			{
                 return Result;
             }
 
-            // 			Result += " -funsigned-char";
-            // 			Result += " -fno-strict-aliasing";
-            Result += " -fno-exceptions";
-            // 			Result += " -fno-short-enums";
+			// 			Result += " -funsigned-char";
+			// 			Result += " -fno-strict-aliasing";
+			Result += " -fno-exceptions";
+			// 			Result += " -fno-short-enums";
 
-            Result += " -Wno-unused-value"; // appErrorf triggers this
-            Result += " -Wno-switch"; // many unhandled cases
-            Result += " -Wno-tautological-constant-out-of-range-compare"; // disables some warnings about comparisons from TCHAR being a char
-            // this hides the "warning : comparison of unsigned expression < 0 is always false" type warnings due to constant comparisons, which are possible with template arguments
-            Result += " -Wno-tautological-compare";
+			Result += " -Wno-unused-value"; // appErrorf triggers this
+			Result += " -Wno-switch"; // many unhandled cases
+			Result += " -Wno-tautological-constant-out-of-range-compare"; // disables some warnings about comparisons from TCHAR being a char
+			// this hides the "warning : comparison of unsigned expression < 0 is always false" type warnings due to constant comparisons, which are possible with template arguments
+			Result += " -Wno-tautological-compare";
 
-            // okay, in UE4, we'd fix the code for these, but in UE3, not worth it
-            Result += " -Wno-logical-op-parentheses"; // appErrorf triggers this
-            Result += " -Wno-array-bounds"; // some VectorLoads go past the end of the array, but it's okay in that case
+			// okay, in UE4, we'd fix the code for these, but in UE3, not worth it
+			Result += " -Wno-logical-op-parentheses"; // appErrorf triggers this
+			Result += " -Wno-array-bounds"; // some VectorLoads go past the end of the array, but it's okay in that case
             Result += " -Wno-invalid-offsetof"; // too many warnings kills windows clang. 
             
 
-            // JavsScript option overrides (see src/settings.js)
+			// JavsScript option overrides (see src/settings.js)
 
-            // we have to specify the full amount of memory with Asm.JS (1.5 G)
+			// we have to specify the full amount of memory with Asm.JS (1.5 G)
             // I wonder if there's a per game way to change this. 
             Result += " -s TOTAL_MEMORY=1610612736";
 
-            // no need for exceptions
-            Result += " -s DISABLE_EXCEPTION_CATCHING=1";
-            // enable checking for missing functions at link time as opposed to runtime
-            Result += " -s WARN_ON_UNDEFINED_SYMBOLS=1";
-            // we want full ES2
-            Result += " -s FULL_ES2=1 ";
-            // don't need UTF8 string support, and it slows string ops down
-            Result += " -s UTF_STRING_SUPPORT=0";
-            // export console command handler. Export main func too because default exports ( e.g Main ) are overridden if we use custom exported functions. 
-            Result += " -s EXPORTED_FUNCTIONS=\"['_main', '_execute_console_command']\" ";
+			// no need for exceptions
+			Result += " -s DISABLE_EXCEPTION_CATCHING=1";
+			// enable checking for missing functions at link time as opposed to runtime
+			Result += " -s WARN_ON_UNDEFINED_SYMBOLS=1";
+			// we want full ES2
+			Result += " -s FULL_ES2=1 ";
+			// don't need UTF8 string support, and it slows string ops down
+			Result += " -s UTF_STRING_SUPPORT=0";
+            Result += "  ";
 
-            if (TargetConfiguration == CPPTargetConfiguration.Debug)
-            {
-	            Result += " -O0";
-            }
-            if (TargetConfiguration == CPPTargetConfiguration.Debug || TargetConfiguration == CPPTargetConfiguration.Development)
-            {
-	            Result += " -s GL_ASSERTIONS=1 ";
-            }
-            if (TargetConfiguration == CPPTargetConfiguration.Development)
-            {
+			if (TargetConfiguration == CPPTargetConfiguration.Debug)
+			{
+				Result += " -O0";
+			}
+			if (TargetConfiguration == CPPTargetConfiguration.Debug || TargetConfiguration == CPPTargetConfiguration.Development)
+			{
+				Result += " -s GL_ASSERTIONS=1 ";
+			}
+			if (TargetConfiguration == CPPTargetConfiguration.Development)
+			{
                 Result += " -O2 -s ASM_JS=1 -s OUTLINING_LIMIT=110000";
-            }
-            if (TargetConfiguration == CPPTargetConfiguration.Shipping)
-            {
-	            Result += " -O2 -s ASM_JS=1 -s OUTLINING_LIMIT=110000";
-            }
+			}
+			if (TargetConfiguration == CPPTargetConfiguration.Shipping)
+			{
+				Result += " -O2 -s ASM_JS=1 -s OUTLINING_LIMIT=110000";
+			}
 
-            // NOTE: This may slow down the compiler's startup time!
+			// NOTE: This may slow down the compiler's startup time!
             if ( !bEnableFastIteration )
-            { 
+			{ 
                 Result += " --memory-init-file 1";
-            }
+			}
 
-            return Result;
+			return Result;
 		}
 		
 		static string GetCLArguments_Global(CPPEnvironment CompileEnvironment)

@@ -5717,17 +5717,10 @@ float UEngine::GetMaxTickRate( float DeltaTime, bool bAllowFrameRateSmoothing )
 			RunningAverageDeltaTime = FMath::Lerp<float>( RunningAverageDeltaTime, FMath::Min<float>( DeltaTime, 0.2f ), 1 / 300.f );
 
 			// Work in FPS domain as that is what the function will return.
-			MaxTickRate = 1.f / RunningAverageDeltaTime;
+			float AverageFPS = 1.f / RunningAverageDeltaTime;
 
 			// Clamp FPS into ini defined min/ max range.
-			if (SmoothedFrameRateRange.HasLowerBound())
-			{
-				MaxTickRate = FMath::Max( MaxTickRate, SmoothedFrameRateRange.GetLowerBoundValue() );
-			}
-			if (SmoothedFrameRateRange.HasUpperBound())
-			{
-				MaxTickRate = FMath::Min( MaxTickRate, SmoothedFrameRateRange.GetUpperBoundValue() );
-			}
+			MaxTickRate = FMath::Clamp<float>( AverageFPS, MinSmoothedFrameRate, MaxSmoothedFrameRate );
 		}
 	}
 

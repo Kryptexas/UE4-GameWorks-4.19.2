@@ -60,7 +60,7 @@ void FRCPassPostProcessSelectionOutlineColor::Process(FRenderingCompositePassCon
 			// 0 means no object, 1 means BSP so we start with 1
 			uint32 StencilValue = 2;
 
-			TShaderMapRef< TOneColorVS<false> > VertexShader(GetGlobalShaderMap());
+			TShaderMapRef<FOneColorVS> VertexShader(GetGlobalShaderMap());
 			TShaderMapRef<FOneColorPS> PixelShader(GetGlobalShaderMap());
 
 			RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
@@ -375,7 +375,6 @@ void FRCPassPostProcessSelectionOutline::Process(FRenderingCompositePassContext&
 	}
 
 	// Draw a quad mapping scene color to the view's render target
-	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
 	DrawRectangle(
 		0, 0,
 		ViewRect.Width(), ViewRect.Height(),
@@ -383,7 +382,6 @@ void FRCPassPostProcessSelectionOutline::Process(FRenderingCompositePassContext&
 		ViewRect.Width(), ViewRect.Height(),
 		ViewRect.Size(),
 		SrcSize,
-		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());

@@ -506,7 +506,6 @@ void DownsamplePass(const FViewInfo& View, const FLightSceneInfo* LightSceneInfo
 		View.ViewRect.Width(), View.ViewRect.Height(),
 		FIntPoint(DownsampledSizeX, DownsampledSizeY), 
 		BufferSize,
-		*DownsampleLightShaftsVertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(LightShaftsDest->GetRenderTargetItem().TargetableTexture, LightShaftsDest->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams() );
@@ -626,7 +625,6 @@ void ApplyRadialBlurPasses(
 				DownSampledXY.X, DownSampledXY.Y, 
 				DownsampledSizeX, DownsampledSizeY,
 				FilterBufferSize, FilterBufferSize,
-				*ScreenVertexShader,
 				EDRF_UseTriangleOptimization);
 		}
 
@@ -668,7 +666,6 @@ void FinishOcclusionTerm(const FViewInfo& View, const FLightSceneInfo* const Lig
 			DownSampledXY.X, DownSampledXY.Y, 
 			DownsampledSizeX, DownsampledSizeY,
 			FilterBufferSize, FilterBufferSize,
-			*ScreenVertexShader,
 			EDRF_UseTriangleOptimization);
 	}
 
@@ -855,7 +852,6 @@ void ApplyLightShaftBloom(const FViewInfo& View, const FLightSceneInfo* const Li
 		DownSampledXY.X, DownSampledXY.Y, 
 		DownsampledSizeX, DownsampledSizeY,
 		FIntPoint(View.ViewRect.Width(), View.ViewRect.Height()), FilterBufferSize,
-		*ScreenVertexShader,
 		EDRF_UseTriangleOptimization);
 
 	GSceneRenderTargets.FinishRenderingSceneColor(false);

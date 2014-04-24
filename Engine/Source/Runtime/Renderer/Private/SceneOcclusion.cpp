@@ -763,7 +763,6 @@ void FHZBOcclusionTester::Submit( const FViewInfo& View )
 			SizeX, SizeY,
 			FIntPoint( SizeX, SizeY ),
 			FIntPoint( SizeX, SizeY ),
-			*VertexShader,
 			EDRF_UseTriangleOptimization);
 	}
 
@@ -905,7 +904,6 @@ void BuildHZB( const FViewInfo& View )
 			View.ViewRect.Width(), View.ViewRect.Height(),
 			HZBSize,
 			GSceneRenderTargets.GetBufferSizeXY(),
-			*VertexShader,
 			EDRF_UseTriangleOptimization);
 	}
 
@@ -936,7 +934,6 @@ void BuildHZB( const FViewInfo& View )
 			SrcSize.X, SrcSize.Y,
 			DstSize,
 			SrcSize,
-			*VertexShader,
 			EDRF_UseTriangleOptimization);
 
 		RHICopyToResolveTarget( HZBRenderTarget.TargetableTexture, HZBRenderTarget.ShaderResourceTexture, false, FResolveParams(FResolveRect(), CubeFace_PosX, MipIndex) );

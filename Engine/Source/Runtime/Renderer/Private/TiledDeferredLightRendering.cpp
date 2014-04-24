@@ -352,7 +352,6 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredLighting(const TArray<FSo
 						View.ViewRect.Width(), View.ViewRect.Height(),
 						View.ViewRect.Size(),
 						GSceneRenderTargets.GetBufferSizeXY(),
-						*ScreenVertexShader,
 						EDRF_UseTriangleOptimization);
 				}
 			}

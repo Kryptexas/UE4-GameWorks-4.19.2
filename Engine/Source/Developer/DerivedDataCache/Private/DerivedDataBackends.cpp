@@ -11,8 +11,6 @@
 #include "DerivedDataLimitKeyLengthWrapper.h"
 #include "DerivedDataBackendCorruptionWrapper.h"
 #include "DerivedDataBackendVerifyWrapper.h"
-#include "DerivedDataUtilsInterface.h"
-#include "Misc/EngineBuildSettings.h"
 
 DEFINE_LOG_CATEGORY(LogDerivedDataCache);
 
@@ -476,23 +474,6 @@ public:
 				Path = FilesystemCachePathEnv;
 				UE_LOG( LogDerivedDataCache, Log, TEXT("Found environment variable %s=%s"), *EnvPathOverride, *Path );
 			}
-		}
-		// Check if the Path is a real path or a special keyword
-		if (FEngineBuildSettings::IsInternalBuild())
-		{
-			auto DDCUtils = FModuleManager::LoadModulePtr< IDDCUtilsModuleInterface >("DDCUtils");
-			if (DDCUtils)
-			{
-				FString PathFromName = DDCUtils->GetSharedCachePath(Path);
-				if (!PathFromName.IsEmpty())
-				{
-					Path = PathFromName;
-				}
-			}
-		}
-		else if (Path.StartsWith(TEXT("?")))
-		{
-			Path = TEXT("");
 		}
 
 		if( !Path.Len() )

@@ -677,11 +677,7 @@ void FWindowsPlatformSplash::Show()
 			}
 			
 			GSplashScreenFileName = FString( FPlatformProcess::BaseDir() ) / SplashPath;
-			DWORD ThreadID = 0;
-			GSplashScreenThread = CreateThread(NULL, 128 * 1024, (LPTHREAD_START_ROUTINE)StartSplashScreenThread, (LPVOID)NULL, STACK_SIZE_PARAM_IS_A_RESERVATION, &ThreadID);
-#if	STATS
-			FStartupMessages::Get().AddThreadMetadata( FName( "SplashScreenThread" ), ThreadID );
-#endif // STATS
+			GSplashScreenThread = CreateThread(NULL, 128 * 1024, (LPTHREAD_START_ROUTINE)StartSplashScreenThread, (LPVOID)NULL, STACK_SIZE_PARAM_IS_A_RESERVATION, NULL);
 		}
 	}
 }

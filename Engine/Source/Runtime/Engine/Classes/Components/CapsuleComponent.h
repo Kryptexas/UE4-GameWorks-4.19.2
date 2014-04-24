@@ -6,8 +6,8 @@
 /** 
  * A capsule generally used for simple collision. Bounds are rendered as lines in the editor.
  */
-UCLASS(HeaderGroup=Component, ClassGroup=Shapes, editinlinenew, hidecategories=(Object,LOD,Lighting,TextureStreaming), meta=(BlueprintSpawnableComponent))
-class ENGINE_API UCapsuleComponent : public UShapeComponent
+UCLASS(HeaderGroup=Component, ClassGroup=Shapes, editinlinenew, hidecategories=(Object,LOD,Lighting,TextureStreaming), MinimalAPI, meta=(BlueprintSpawnableComponent))
+class UCapsuleComponent : public UShapeComponent
 {
 	GENERATED_UCLASS_BODY()
 
@@ -32,7 +32,7 @@ public:
 	 * @param	bUpdateOverlaps: if true and this shape is registered and collides, updates touching array for owner actor.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Components|Capsule")
-	void SetCapsuleSize(float InRadius, float InHalfHeight, bool bUpdateOverlaps=true);
+	ENGINE_API void SetCapsuleSize(float InRadius, float InHalfHeight, bool bUpdateOverlaps=true);
 
 	/**
 	 * Set the capsule radius. This is the unscaled radius, before component scale is applied.
@@ -41,7 +41,7 @@ public:
 	 * @param	bUpdateOverlaps: if true and this shape is registered and collides, updates touching array for owner actor.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Components|Capsule")
-	void SetCapsuleRadius(float Radius, bool bUpdateOverlaps=true);
+	ENGINE_API void SetCapsuleRadius(float Radius, bool bUpdateOverlaps=true);
 	
 	/**
 	 * Set the capsule half-height. This is the unscaled half-height, before component scale is applied.
@@ -50,7 +50,7 @@ public:
 	 * @param	bUpdateOverlaps: if true and this shape is registered and collides, updates touching array for owner actor.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Components|Capsule")
-	void SetCapsuleHalfHeight(float HalfHeight, bool bUpdateOverlaps=true);
+	ENGINE_API void SetCapsuleHalfHeight(float HalfHeight, bool bUpdateOverlaps=true);
 
 	// Begin UObject interface
 	virtual void Serialize(FArchive& Ar) OVERRIDE;
@@ -77,33 +77,33 @@ public:
 
 	// @return the capsule radius scaled by the component scale.
 	UFUNCTION(BlueprintCallable, Category="Components|Capsule")
-	float GetScaledCapsuleRadius() const;
+	ENGINE_API float GetScaledCapsuleRadius() const;
 
 	// @return the capsule half height scaled by the component scale.
 	UFUNCTION(BlueprintCallable, Category="Components|Capsule")
-	float GetScaledCapsuleHalfHeight() const;
+	ENGINE_API float GetScaledCapsuleHalfHeight() const;
 
 	// @return the capsule radius and half height scaled by the component scale.
 	UFUNCTION(BlueprintCallable, Category="Components|Capsule")
-	void GetScaledCapsuleSize(float& OutRadius, float& OutHalfHeight) const;
+	ENGINE_API void GetScaledCapsuleSize(float& OutRadius, float& OutHalfHeight) const;
 
 
 	// @return the capsule radius, ignoring component scaling.
 	UFUNCTION(BlueprintCallable, Category="Components|Capsule")
-	float GetUnscaledCapsuleRadius() const;
+	ENGINE_API float GetUnscaledCapsuleRadius() const;
 
 	// @return the capsule half height, ignoring component scaling.
 	UFUNCTION(BlueprintCallable, Category="Components|Capsule")
-	float GetUnscaledCapsuleHalfHeight() const;
+	ENGINE_API float GetUnscaledCapsuleHalfHeight() const;
 	
 	// @return the capsule radius and half height, ignoring component scaling.
 	UFUNCTION(BlueprintCallable, Category="Components|Capsule")
-	void GetUnscaledCapsuleSize(float& OutRadius, float& OutHalfHeight) const;
+	ENGINE_API void GetUnscaledCapsuleSize(float& OutRadius, float& OutHalfHeight) const;
 
 	// Get the scale used by this shape. This is a uniform scale that is the minimum of any non-uniform scaling.
 	// @return the scale used by this shape.
 	UFUNCTION(BlueprintCallable, Category="Components|Capsule")
-	float GetShapeScale() const;
+	ENGINE_API float GetShapeScale() const;
 
 	// Sets the capsule size without triggering a render or physics update.
 	FORCEINLINE void InitCapsuleSize(float InRadius, float InHalfHeight)

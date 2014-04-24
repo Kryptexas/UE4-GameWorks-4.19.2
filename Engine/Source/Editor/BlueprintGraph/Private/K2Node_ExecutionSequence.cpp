@@ -48,7 +48,8 @@ public:
 		// Process the pins, if there are any valid entries
 		if (OutputPins.Num() > 0)
 		{
-			if (Context.bCreateDebugData && (OutputPins.Num() > 1))
+			const bool bGenerateDebugSites = true;
+			if ((KismetCompilerDebugOptions::EmitDebuggingPlaceholders) && (OutputPins.Num() > 1))
 			{
 				const FString NodeComment = Node->NodeComment.IsEmpty() ? Node->GetName() : Node->NodeComment;
 

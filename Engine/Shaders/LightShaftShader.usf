@@ -14,8 +14,10 @@ void DownsampleLightShaftsVertexMain(
 	out float4 OutPosition : SV_POSITION
 	)
 {	
-	DrawRectangle(float4(InPosition.xy, 0, 1), InUV, OutPosition, OutTexCoord);
-	OutScreenVector = mul(float4(OutPosition.xy, 1, 0), View.ScreenToTranslatedWorld).xyz;
+	OutPosition = float4(InPosition, 0, 1);
+	OutTexCoord = InUV;
+
+	OutScreenVector = mul(float4(InPosition, 1, 0), View.ScreenToTranslatedWorld).xyz;
 }
 
 /** Origin in texture coordinates in xy. */

@@ -17,6 +17,9 @@ namespace KismetCompilerDebugOptions
 
 	// Should the compiler emit node comments to the backends?
 	enum { EmitNodeComments = DebuggingCompiler };
+
+	// Should the compiler emit a NOP in each execution state as a placeholder for breakpoints and trace instructions?
+	enum { EmitDebuggingPlaceholders = 1 };
 }
 
 //////////////////////////////////////////////////////////////////////////

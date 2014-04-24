@@ -117,7 +117,6 @@ void FRCPassPostProcessGBufferHints::Process(FRenderingCompositePassContext& Con
 		SrcRect.Width(), SrcRect.Height(),
 		DestRect.Size(),
 		SrcSize,
-		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 

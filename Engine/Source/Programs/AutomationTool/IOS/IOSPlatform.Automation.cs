@@ -148,17 +148,13 @@ public class IOSPlatform : Platform
 			}
 
 			IPPArguments += (cookonthefly ? " -cookonthefly" : "");
-			IPPArguments += " -stagedir \"" + CombinePaths(Params.BaseStageDirectory, "IOS") + "\"";
-			IPPArguments += " -projectdir \"" + Path.GetDirectoryName(Params.RawProjectPath) + "\"";
+			IPPArguments += " -stagedir " + CombinePaths(Params.BaseStageDirectory, "IOS");
+			IPPArguments += " -projectdir " + Path.GetDirectoryName(Params.RawProjectPath);
 
 			// rename the .ipa if not code based
 			if (!Params.IsCodeBasedProject)
 			{
 				ProjectIPA = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries\\IOS", Params.ShortProjectName + ".ipa");
-				if (TargetConfiguration != UnrealTargetConfiguration.Development)
-				{
-					ProjectIPA = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries\\IOS", Params.ShortProjectName + "-" + PlatformType.ToString() + "-" + TargetConfiguration.ToString() + ".ipa");
-				}
 			}
 
             // delete the .ipa to make sure it was made
@@ -513,14 +509,9 @@ public class IOSPlatform : Platform
 
 //			var ProjectStub = Params.ProjectGameExeFilename;	
 			var ProjectIPA = MakeIPAFileName(TargetConfiguration, Params.ProjectGameExeFilename);
-			// rename the .ipa if not code based
 			if (!Params.IsCodeBasedProject)
 			{
 				ProjectIPA = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries\\IOS", Params.ShortProjectName + ".ipa");
-				if (TargetConfiguration != UnrealTargetConfiguration.Development)
-				{
-					ProjectIPA = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries\\IOS", Params.ShortProjectName + "-" + PlatformType.ToString() + "-" + TargetConfiguration.ToString() + ".ipa");
-				}
 			}
 
 			var StagedIPA = SC.StageDirectory + "\\" + Path.GetFileName(ProjectIPA);
@@ -538,7 +529,7 @@ public class IOSPlatform : Platform
 			var IPPExe = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/DotNET/IOS/IPhonePackager.exe");
 
 			// check for it in the stage directory
-			RunAndLog(CmdEnv, IPPExe, "Deploy \"" + Path.GetFullPath(StagedIPA) + "\" -device " + Params.Device.Substring(4));
+			RunAndLog(CmdEnv, IPPExe, "Deploy " + Path.GetFullPath(StagedIPA) + " -device " + Params.Device.Substring(4));
 		}
         PrintRunTime();
     }

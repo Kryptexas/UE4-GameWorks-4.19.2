@@ -10,7 +10,7 @@ public class ICU : ModuleRules
 		string ICURootPath = UEBuildConfiguration.UEThirdPartyDirectory + "ICU/icu4c-51_2/";
 
 		// Includes
-		PublicSystemIncludePaths.Add(ICURootPath + "include" + "/");
+		PublicIncludePaths.Add(ICURootPath + "include" + "/");
 
 		string PlatformFolderName = Target.Platform.ToString();
 

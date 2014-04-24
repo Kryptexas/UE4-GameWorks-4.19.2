@@ -135,7 +135,6 @@ void FRCPassPostProcessHistogramReduce::Process(FRenderingCompositePassContext& 
 		SrcSize.X, 0,
 		DestSize,
 		SrcSize,
-		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());

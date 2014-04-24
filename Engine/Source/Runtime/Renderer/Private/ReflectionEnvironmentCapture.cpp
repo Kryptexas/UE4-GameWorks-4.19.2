@@ -310,8 +310,7 @@ void ComputeAverageBrightness()
 		0, 0, 
 		1, 1,
 		FIntPoint(1, 1),
-		FIntPoint(1, 1),
-		*VertexShader);
+		FIntPoint(1, 1));
 }
 
 FVector4 FilterConeImportanceSamples[MAX_TEXTURE_MIP_COUNT][NumFilterSamples];
@@ -397,7 +396,6 @@ void FilterReflectionEnvironment(FSHVectorRGB3* OutIrradianceEnvironmentMap)
 					ViewRect.Width(), ViewRect.Height(),
 					FIntPoint(ViewRect.Width(), ViewRect.Height()),
 					FIntPoint(MipSize, MipSize),
-					*VertexShader,
 					EDRF_UseTriangleOptimization);
 
 				RHICopyToResolveTarget(EffectiveRT.TargetableTexture, EffectiveRT.ShaderResourceTexture, true, FResolveParams(FResolveRect(), (ECubeFace)CubeFace, MipIndex));
@@ -429,7 +427,7 @@ void FilterReflectionEnvironment(FSHVectorRGB3* OutIrradianceEnvironmentMap)
 						ViewRect.Width(), ViewRect.Height(),
 						FIntPoint(ViewRect.Width(), ViewRect.Height()),
 						FIntPoint(MipSize, MipSize),
-						*VertexShader);
+						EDRF_UseTriangleOptimization);
 
 					RHICopyToResolveTarget(EffectiveRT.TargetableTexture, EffectiveRT.ShaderResourceTexture, true, FResolveParams(FResolveRect(), (ECubeFace)CubeFace, MipIndex));
 				}
@@ -494,7 +492,6 @@ void FilterReflectionEnvironment(FSHVectorRGB3* OutIrradianceEnvironmentMap)
 					ViewRect.Width(), ViewRect.Height(),
 					FIntPoint(ViewRect.Width(), ViewRect.Height()),
 					FIntPoint(MipSize, MipSize),
-					*VertexShader,
 					EDRF_UseTriangleOptimization);
 
 				RHICopyToResolveTarget(EffectiveRT.TargetableTexture, EffectiveRT.ShaderResourceTexture, true, FResolveParams(FResolveRect(), (ECubeFace)CubeFace, MipIndex));
@@ -527,7 +524,7 @@ void FilterReflectionEnvironment(FSHVectorRGB3* OutIrradianceEnvironmentMap)
 						ViewRect.Width(), ViewRect.Height(),
 						FIntPoint(ViewRect.Width(), ViewRect.Height()),
 						FIntPoint(MipSize, MipSize),
-						*VertexShader);
+						EDRF_UseTriangleOptimization);
 
 					RHICopyToResolveTarget(EffectiveRT.TargetableTexture, EffectiveRT.ShaderResourceTexture, true, FResolveParams(FResolveRect(), (ECubeFace)CubeFace, MipIndex));
 				}
@@ -813,7 +810,6 @@ void CaptureSceneToScratchCubemap(FSceneRenderer* SceneRenderer, ECubeFace CubeF
 				ViewRect.Width() * GSupersampleCaptureFactor, ViewRect.Height() * GSupersampleCaptureFactor,
 				FIntPoint(ViewRect.Width(), ViewRect.Height()),
 				GSceneRenderTargets.GetBufferSizeXY(),
-				*VertexShader,
 				EDRF_UseTriangleOptimization);
 
 			RHICopyToResolveTarget(EffectiveColorRT.TargetableTexture, EffectiveColorRT.ShaderResourceTexture, true, FResolveParams(FResolveRect()));
@@ -843,7 +839,7 @@ void CaptureSceneToScratchCubemap(FSceneRenderer* SceneRenderer, ECubeFace CubeF
 					ViewRect.Width() * GSupersampleCaptureFactor, ViewRect.Height() * GSupersampleCaptureFactor,
 					FIntPoint(ViewRect.Width(), ViewRect.Height()),
 					GSceneRenderTargets.GetBufferSizeXY(),
-					*VertexShader);
+					EDRF_UseTriangleOptimization);
 
 				RHICopyToResolveTarget(EffectiveColorRT.TargetableTexture, EffectiveColorRT.ShaderResourceTexture, true, FResolveParams(FResolveRect(), CubeFace));
 			}
@@ -888,8 +884,7 @@ void CopyCubemapToScratchCubemap(UTextureCube* SourceCubemap, bool bIsSkyLight, 
 				0, 0, 
 				SourceDimensions.X, SourceDimensions.Y,
 				FIntPoint(ViewRect.Width(), ViewRect.Height()),
-				SourceDimensions,
-				*VertexShader);
+				SourceDimensions);
 		}
 
 		RHICopyToResolveTarget(EffectiveColorRT.TargetableTexture, EffectiveColorRT.ShaderResourceTexture, true, FResolveParams(FResolveRect()));
@@ -921,8 +916,7 @@ void CopyCubemapToScratchCubemap(UTextureCube* SourceCubemap, bool bIsSkyLight, 
 				0, 0, 
 				SourceDimensions.X, SourceDimensions.Y,
 				FIntPoint(ViewRect.Width(), ViewRect.Height()),
-				SourceDimensions,
-				*VertexShader);
+				SourceDimensions);
 
 			RHICopyToResolveTarget(EffectiveColorRT.TargetableTexture, EffectiveColorRT.ShaderResourceTexture, true, FResolveParams(FResolveRect(), (ECubeFace)CubeFace));
 		}

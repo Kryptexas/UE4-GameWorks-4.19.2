@@ -1026,9 +1026,13 @@ public:
 	UPROPERTY(config, EditAnywhere, Category=Framerate)
 	uint32 bSmoothFrameRate:1;
 
-	/** Range of framerates in which smoothing will kick in */
-	UPROPERTY(config, EditAnywhere, Category=Framerate, meta=(UIMin=0, UIMax=200))
-	FFloatRange SmoothedFrameRateRange;
+	/** Maximum framerate to smooth. Code will try to not go over via waiting.										*/
+	UPROPERTY(config, EditAnywhere, Category=Framerate, meta=(UIMin=0, ClampMin=0))
+	float MaxSmoothedFrameRate;
+
+	/** Minimum framerate smoothing will kick in.																	*/
+	UPROPERTY(config, EditAnywhere, Category=Framerate, meta=(UIMin=0, ClampMin=0))
+	float MinSmoothedFrameRate;
 
 	/** 
 	 * Whether we should check for more than N pawns spawning in a single frame.  

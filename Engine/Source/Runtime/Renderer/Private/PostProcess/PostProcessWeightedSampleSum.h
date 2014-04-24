@@ -124,7 +124,7 @@ public:
 	static int GetIntegerKernelRadius(float KernelRadius);
 
 private:
-	void DrawQuad(bool bDoFastBlur, FIntRect SrcRect, FIntRect DestRect, bool bRequiresClear, FIntPoint DestSize, FIntPoint SrcSize, FShader* VertexShader) const;
+	void DrawQuad(bool bDoFastBlur, FIntRect SrcRect, FIntRect DestRect, bool bRequiresClear, FIntPoint DestSize, FIntPoint SrcSize) const;
 	static uint32 GetMaxNumSamples();
 
 	// e.g. EFS_Horiz or EFS_Vert

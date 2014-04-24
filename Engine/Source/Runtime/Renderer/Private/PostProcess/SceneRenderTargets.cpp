@@ -851,7 +851,7 @@ void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets()
 		{
 			const EPixelFormat DiffuseGBufferFormat = bHighPrecisionGBuffers ? PF_FloatRGBA : PF_B8G8R8A8;
 
-			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, DiffuseGBufferFormat, TexCreate_SRGB, TexCreate_RenderTargetable, false));
+			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, DiffuseGBufferFormat, TexCreate_None, TexCreate_RenderTargetable, false));
 			GRenderTargetPool.FindFreeElement(Desc, GBufferC, TEXT("GBufferC"));
 		}
 

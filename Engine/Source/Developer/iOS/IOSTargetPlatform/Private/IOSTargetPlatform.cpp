@@ -38,11 +38,6 @@ FIOSTargetPlatform::~FIOSTargetPlatform()
 /* ITargetPlatform interface
  *****************************************************************************/
 
-void FIOSTargetPlatform::EnableDeviceCheck(bool OnOff)
-{
-	FIOSDeviceHelper::EnableDeviceCheck(OnOff);
-}
-
 void FIOSTargetPlatform::GetAllDevices( TArray<ITargetDevicePtr>& OutDevices ) const
 {
 	OutDevices.Reset();

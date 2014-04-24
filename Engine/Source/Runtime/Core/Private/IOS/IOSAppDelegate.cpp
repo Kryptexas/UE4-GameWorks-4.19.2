@@ -357,9 +357,7 @@ void InstallSignalHandlers()
 
 - (BOOL)application:(UIApplication *)application handleOpenURL:(NSURL *)url
 {
-#if !NO_LOGGING
 	NSLog(@"%s", "IOSAppDelegate handleOpenURL\n");
-#endif
 
 	NSString* EncdodedURLString = [url absoluteString];
 	NSString* URLString = [EncdodedURLString stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
@@ -458,8 +456,8 @@ void InstallSignalHandlers()
 /** TRUE if the iAd banner should be on the bottom of the screen */
 BOOL bDrawOnBottom;
 
-/** true if the user wants the banner to be displayed */
-bool bWantVisibleBanner = false;
+/** TRUE when the banner is onscreen */
+BOOL bIsBannerVisible = NO;
 
 /**
 * Will show an iAd on the top or bottom of screen, on top of the GL view (doesn't resize
@@ -470,7 +468,6 @@ bool bWantVisibleBanner = false;
 -(void)ShowAdBanner:(NSNumber*)bShowOnBottomOfScreen
 {
 	bDrawOnBottom = [bShowOnBottomOfScreen boolValue];
-	bWantVisibleBanner = true;
 
 	bool bNeedsToAddSubview = false;
 	if (self.BannerView == nil)
@@ -507,11 +504,9 @@ bool bWantVisibleBanner = false;
 
 -(void)bannerViewDidLoadAd:(ADBannerView*)Banner
 {
-#if !NO_LOGGING
 	NSLog(@"Ad loaded!");
-#endif
     
-	if (self.BannerView.hidden && bWantVisibleBanner)
+	if (self.BannerView.hidden)
     {
 		self.BannerView.hidden = NO;
 		[UIView animateWithDuration:0.4f
@@ -525,9 +520,7 @@ bool bWantVisibleBanner = false;
 
 -(void)bannerView:(ADBannerView *)Banner didFailToReceiveAdWithError : (NSError *)Error
 {
-#if !NO_LOGGING
 	NSLog(@"Ad failed to load: '%@'", Error);
-#endif
 
 	// if we get an error, hide the banner 
 	[self HideAdBanner];
@@ -592,19 +585,12 @@ bool bWantVisibleBanner = false;
     }
 }
 
--(void)UserHideAdBanner
-{
-	bWantVisibleBanner = false;
-	[self HideAdBanner];
-}
-
 /**
 * Forces closed any displayed ad. Can lead to loss of revenue
 */
 -(void)CloseAd
 {
 	// boot user out of the ad
-	bWantVisibleBanner = false;
 	[self.BannerView cancelBannerViewAction];
 }
 
@@ -625,7 +611,7 @@ CORE_API void IOSShowAdBanner(bool bShowOnBottomOfScreen)
 */
 CORE_API void IOSHideAdBanner()
 {
-	[[IOSAppDelegate GetDelegate] performSelectorOnMainThread:@selector(UserHideAdBanner) withObject:nil waitUntilDone : NO];
+	[[IOSAppDelegate GetDelegate] performSelectorOnMainThread:@selector(HideAdBanner) withObject:nil waitUntilDone : NO];
 }
 
 /**

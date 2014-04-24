@@ -4420,7 +4420,7 @@ void UCharacterMovementComponent::SmoothClientPosition(float DeltaSeconds)
 
 		if (CharacterOwner->Mesh)
 		{
-			const FVector NewRelTranslation = CharacterOwner->ActorToWorld().InverseTransformVectorNoScale(ClientData->MeshTranslationOffset + CharacterOwner->GetBaseTranslationOffset());
+			const FVector NewRelTranslation = CharacterOwner->ActorToWorld().InverseTransformVector(ClientData->MeshTranslationOffset + CharacterOwner->GetBaseTranslationOffset());
 			CharacterOwner->Mesh->SetRelativeLocation(NewRelTranslation);
 		}
 	}

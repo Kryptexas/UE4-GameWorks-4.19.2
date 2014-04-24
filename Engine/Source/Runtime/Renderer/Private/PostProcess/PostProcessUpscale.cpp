@@ -168,7 +168,6 @@ void FRCPassPostProcessUpscale::Process(FRenderingCompositePassContext& Context)
 	}
 
 	// Draw a quad mapping scene color to the view's render target
-	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
 	DrawRectangle(
 		0, 0,
 		DestRect.Width(), DestRect.Height(),
@@ -176,7 +175,6 @@ void FRCPassPostProcessUpscale::Process(FRenderingCompositePassContext& Context)
 		SrcRect.Width(), SrcRect.Height(),
 		DestRect.Size(),
 		SrcSize,
-		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());

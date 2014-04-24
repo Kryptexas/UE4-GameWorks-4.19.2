@@ -158,7 +158,7 @@ namespace AutomationTool
 
 			string LogFile = LogUtils.GetUniqueLogName(CombinePaths(CmdEnv.LogFolder, Commandlet));
 			Log("Commandlet log file is {0}", LogFile);
-			var RunResult = Run(EditorExe, String.Format("{0} -run={1} {2} -abslog={3} -stdout -FORCELOGFLUSH -CrashForUAT -unattended -AllowStdOutLogVerbosity {4}", 
+            var RunResult = Run(EditorExe, String.Format("{0} -run={1} {2} -abslog={3} -stdout -FORCELOGFLUSH -CrashForUAT -unattended -AllowStdOutTraceEventType {4}", 
                 CommandUtils.MakePathSafeToUseWithCommandLine(ProjectName), 
                 Commandlet, 
 				String.IsNullOrEmpty(Parameters) ? "" : Parameters, 

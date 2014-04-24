@@ -699,7 +699,7 @@ namespace AutomationTool
 
         }
 
-        public static List<string> RetrieveFromTempStorage(CommandEnvironment Env, string StorageBlockName, out bool WasLocal, string GameFolder = "", string BaseFolder = "")
+        public static List<string> RetrieveFromTempStorage(CommandEnvironment Env, string StorageBlockName, string GameFolder = "", string BaseFolder = "")
         {
             if (String.IsNullOrEmpty(BaseFolder))
             {
@@ -726,10 +726,8 @@ namespace AutomationTool
                 {
                     throw new AutomationException("Local files in manifest {0} were tampered with.", LocalManifest);
                 }
-                WasLocal = true;
                 return Files;
             }
-            WasLocal = false;
 
             var BlockPath = CombinePaths(SharedTempStorageDirectory(StorageBlockName, GameFolder, false), "/");
             if (!BlockPath.EndsWith("/") && !BlockPath.EndsWith("\\"))

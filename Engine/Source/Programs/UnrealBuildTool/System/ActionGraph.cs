@@ -38,7 +38,6 @@ namespace UnrealBuildTool
 		public string WorkingDirectory = null;
 		public string CommandPath = null;
 		public string CommandArguments = null;
-		public string CommandDescription = null;
 		public string StatusDescription = "...";
 		public string StatusDetailedDescription = "";
 		public bool bCanExecuteRemotely = false;

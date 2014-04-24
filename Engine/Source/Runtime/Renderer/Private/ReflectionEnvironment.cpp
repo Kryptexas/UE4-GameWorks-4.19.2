@@ -606,7 +606,6 @@ void FDeferredShadingSceneRenderer::RenderDeferredReflections()
 						View.ViewRect.Width(), View.ViewRect.Height(),
 						FIntPoint(View.ViewRect.Width(), View.ViewRect.Height()),
 						GSceneRenderTargets.GetBufferSizeXY(),
-						*VertexShader,
 						EDRF_UseTriangleOptimization);
 				}
 			}
@@ -757,8 +756,7 @@ void FDeferredShadingSceneRenderer::RenderDeferredReflections()
 									View.ViewRect.Min.X, View.ViewRect.Min.Y, 
 									View.ViewRect.Width(), View.ViewRect.Height(),
 									FIntPoint(View.ViewRect.Width(), View.ViewRect.Height()),
-									GSceneRenderTargets.GetBufferSizeXY(),
-									*VertexShader);
+									GSceneRenderTargets.GetBufferSizeXY());
 							}
 						}
 					}
@@ -818,8 +816,7 @@ void FDeferredShadingSceneRenderer::RenderDeferredReflections()
 							View.ViewRect.Min.X, View.ViewRect.Min.Y, 
 							View.ViewRect.Width(), View.ViewRect.Height(),
 							FIntPoint(View.ViewRect.Width(), View.ViewRect.Height()),
-							GSceneRenderTargets.GetBufferSizeXY(),
-							*VertexShader);
+							GSceneRenderTargets.GetBufferSizeXY());
 					}
 				}
 			}
@@ -872,8 +869,7 @@ void FDeferredShadingSceneRenderer::RenderDeferredReflections()
 					View.ViewRect.Min.X, View.ViewRect.Min.Y, 
 					View.ViewRect.Width(), View.ViewRect.Height(),
 					FIntPoint(View.ViewRect.Width(), View.ViewRect.Height()),
-					GSceneRenderTargets.GetBufferSizeXY(),
-					*VertexShader);
+					GSceneRenderTargets.GetBufferSizeXY());
 			}
 		}
 		else
@@ -918,8 +914,7 @@ void FDeferredShadingSceneRenderer::RenderDeferredReflections()
 							View.ViewRect.Min.X, View.ViewRect.Min.Y, 
 							View.ViewRect.Width(), View.ViewRect.Height(),
 							FIntPoint(View.ViewRect.Width(), View.ViewRect.Height()),
-							GSceneRenderTargets.GetBufferSizeXY(),
-							*VertexShader);
+							GSceneRenderTargets.GetBufferSizeXY());
 					}
 				}
 			}

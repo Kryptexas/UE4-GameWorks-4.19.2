@@ -182,9 +182,8 @@ void FRCPassPostProcessVisualizeDOF::Process(FRenderingCompositePassContext& Con
 	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
 	// setup shader
-	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
-	
 	{
+		TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
 		TShaderMapRef<PostProcessVisualizeDOFPS> PixelShader(GetGlobalShaderMap());
 
 		static FGlobalBoundShaderState BoundShaderState;
@@ -203,7 +202,6 @@ void FRCPassPostProcessVisualizeDOF::Process(FRenderingCompositePassContext& Con
 		SrcRect.Width(), SrcRect.Height(),
 		DestSize,
 		SrcSize,
-		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
@@ -340,8 +338,8 @@ void FRCPassPostProcessBokehDOFSetup::Process(FRenderingCompositePassContext& Co
 	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
 	// setup shader
-	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
 	{
+		TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
 		TShaderMapRef<PostProcessBokehDOFSetupPS> PixelShader(GetGlobalShaderMap());
 
 		static FGlobalBoundShaderState BoundShaderState;
@@ -360,7 +358,6 @@ void FRCPassPostProcessBokehDOFSetup::Process(FRenderingCompositePassContext& Co
 		SrcRect.Width(), SrcRect.Height(),
 		DestSize,
 		SrcSize,
-		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());

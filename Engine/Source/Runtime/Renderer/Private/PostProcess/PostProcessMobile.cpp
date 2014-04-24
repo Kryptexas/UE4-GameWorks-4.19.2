@@ -208,8 +208,6 @@ void FRCPassPostProcessBloomSetupES2::Process(FRenderingCompositePassContext& Co
 
 	SetShader(Context);
 
-	TShaderMapRef<FPostProcessBloomSetupVS_ES2> VertexShader(GetGlobalShaderMap());
-
 	DrawRectangle(
 		0, 0,
 		DstX, DstY,
@@ -217,7 +215,6 @@ void FRCPassPostProcessBloomSetupES2::Process(FRenderingCompositePassContext& Co
 		SrcRect.Width(), SrcRect.Height(),
 		DstSize,
 		SrcSize,
-		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
@@ -408,7 +405,6 @@ void FRCPassPostProcessBloomSetupSmallES2::Process(FRenderingCompositePassContex
 
 	SetShader(Context);
 
-	TShaderMapRef<FPostProcessBloomSetupSmallVS_ES2> VertexShader(GetGlobalShaderMap());
 	DrawRectangle(
 		0, 0,
 		DstX, DstY,
@@ -416,7 +412,6 @@ void FRCPassPostProcessBloomSetupSmallES2::Process(FRenderingCompositePassContex
 		SrcRect.Width(), SrcRect.Height(),
 		DstSize,
 		SrcSize,
-		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
@@ -577,7 +572,6 @@ void FRCPassPostProcessBloomDownES2::Process(FRenderingCompositePassContext& Con
 		DstX, DstY,
 		SrcDstSize,
 		SrcDstSize,
-		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
@@ -746,7 +740,6 @@ void FRCPassPostProcessBloomUpES2::Process(FRenderingCompositePassContext& Conte
 		DstX, DstY,
 		SrcDstSize,
 		SrcDstSize,
-		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
@@ -941,9 +934,6 @@ void FRCPassPostProcessSunMaskES2::Process(FRenderingCompositePassContext& Conte
 	FIntPoint SrcSize;
 	FIntRect SrcRect;
 	const FSceneView& View = Context.View;
-
-	TShaderMapRef<FPostProcessSunMaskVS_ES2> VertexShader(GetGlobalShaderMap());
-
 	if(bOnChip)
 	{
 		SrcSize = DstSize;
@@ -964,7 +954,6 @@ void FRCPassPostProcessSunMaskES2::Process(FRenderingCompositePassContext& Conte
 			SrcRect.Width(), SrcRect.Height(),
 			DstSize,
 			SrcSize,
-			*VertexShader,
 			EDRF_UseTriangleOptimization);
 	}
 	else
@@ -996,7 +985,6 @@ void FRCPassPostProcessSunMaskES2::Process(FRenderingCompositePassContext& Conte
 			SrcRect.Width(), SrcRect.Height(),
 			DstSize,
 			SrcSize,
-			*VertexShader,
 			EDRF_UseTriangleOptimization);
 
 		RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
@@ -1170,7 +1158,6 @@ void FRCPassPostProcessSunAlphaES2::Process(FRenderingCompositePassContext& Cont
 	SetShader(Context);
 
 	FIntPoint SrcDstSize = PrePostSourceViewportSize / 4;
-	TShaderMapRef<FPostProcessSunAlphaVS_ES2> VertexShader(GetGlobalShaderMap());
 
 	DrawRectangle(
 		0, 0,
@@ -1179,7 +1166,6 @@ void FRCPassPostProcessSunAlphaES2::Process(FRenderingCompositePassContext& Cont
 		DstX, DstY,
 		SrcDstSize,
 		SrcDstSize,
-		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
@@ -1342,7 +1328,6 @@ void FRCPassPostProcessSunBlurES2::Process(FRenderingCompositePassContext& Conte
 		DstX, DstY,
 		SrcDstSize,
 		SrcDstSize,
-		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
@@ -1547,7 +1532,6 @@ void FRCPassPostProcessSunMergeES2::Process(FRenderingCompositePassContext& Cont
 	SetShader(Context);
 
 	FIntPoint SrcDstSize = PrePostSourceViewportSize / 4;
-	TShaderMapRef<FPostProcessSunMergeVS_ES2> VertexShader(GetGlobalShaderMap());
 
 	DrawRectangle(
 		0, 0,
@@ -1556,7 +1540,6 @@ void FRCPassPostProcessSunMergeES2::Process(FRenderingCompositePassContext& Cont
 		DstX, DstY,
 		SrcDstSize,
 		SrcDstSize,
-		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
@@ -1740,7 +1723,6 @@ void FRCPassPostProcessSunMergeSmallES2::Process(FRenderingCompositePassContext&
 	SetShader(Context);
 
 	FIntPoint SrcDstSize = PrePostSourceViewportSize / 4;
-	TShaderMapRef<FPostProcessSunMergeSmallVS_ES2> VertexShader(GetGlobalShaderMap());
 
 	DrawRectangle(
 		0, 0,
@@ -1749,7 +1731,6 @@ void FRCPassPostProcessSunMergeSmallES2::Process(FRenderingCompositePassContext&
 		DstX, DstY,
 		SrcDstSize,
 		SrcDstSize,
-		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
@@ -1962,8 +1943,6 @@ void FRCPassPostProcessDofDownES2::Process(FRenderingCompositePassContext& Conte
 
 	SetShader(Context);
 
-	TShaderMapRef<FPostProcessDofDownVS_ES2> VertexShader(GetGlobalShaderMap());
-
 	DrawRectangle(
 		0, 0,
 		DstX, DstY,
@@ -1971,7 +1950,6 @@ void FRCPassPostProcessDofDownES2::Process(FRenderingCompositePassContext& Conte
 		SrcRect.Width(), SrcRect.Height(),
 		DstSize,
 		SrcSize,
-		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
@@ -2146,7 +2124,6 @@ void FRCPassPostProcessDofNearES2::Process(FRenderingCompositePassContext& Conte
 	SetShader(Context);
 
 	FIntPoint SrcDstSize = PrePostSourceViewportSize / 4;
-	TShaderMapRef<FPostProcessDofNearVS_ES2> VertexShader(GetGlobalShaderMap());
 
 	DrawRectangle(
 		0, 0,
@@ -2155,7 +2132,6 @@ void FRCPassPostProcessDofNearES2::Process(FRenderingCompositePassContext& Conte
 		DstX, DstY,
 		SrcDstSize,
 		SrcDstSize,
-		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
@@ -2310,7 +2286,6 @@ void FRCPassPostProcessDofBlurES2::Process(FRenderingCompositePassContext& Conte
 		DstX, DstY,
 		SrcDstSize,
 		SrcDstSize,
-		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
@@ -2472,7 +2447,6 @@ void FRCPassPostProcessSunAvgES2::Process(FRenderingCompositePassContext& Contex
 	SetShader(Context);
 
 	FIntPoint SrcDstSize = PrePostSourceViewportSize / 4;
-	TShaderMapRef<FPostProcessSunAvgVS_ES2> VertexShader(GetGlobalShaderMap());
 
 	DrawRectangle(
 		0, 0,
@@ -2481,7 +2455,6 @@ void FRCPassPostProcessSunAvgES2::Process(FRenderingCompositePassContext& Contex
 		DstX, DstY,
 		SrcDstSize,
 		SrcDstSize,
-		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
@@ -2749,7 +2722,6 @@ void FRCPassPostProcessAaES2::Process(FRenderingCompositePassContext& Context)
 	SetShader(Context);
 
 	FIntPoint SrcDstSize = PrePostSourceViewportSize;
-	TShaderMapRef<FPostProcessAaVS_ES2> VertexShader(GetGlobalShaderMap());
 
 	DrawRectangle(
 		0, 0,
@@ -2758,7 +2730,6 @@ void FRCPassPostProcessAaES2::Process(FRenderingCompositePassContext& Context)
 		DstX, DstY,
 		SrcDstSize,
 		SrcDstSize,
-		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());

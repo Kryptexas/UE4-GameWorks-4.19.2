@@ -69,14 +69,13 @@ public class UE4EditorTarget : TargetRules
         NonCodeProjectNames.Add("Reflections", new List<UnrealTargetPlatform> { HostPlatform });
         NonCodeProjectNames.Add("ElementalVR", new List<UnrealTargetPlatform> { HostPlatform });
         NonCodeProjectNames.Add("VersusVR", new List<UnrealTargetPlatform> { HostPlatform });
-        NonCodeProjectNames.Add("Stylized", new List<UnrealTargetPlatform> { HostPlatform });
+        NonCodeProjectNames.Add("Stylised", new List<UnrealTargetPlatform> { HostPlatform });
         NonCodeProjectNames.Add("Landscape", new List<UnrealTargetPlatform> { HostPlatform });
         NonCodeProjectNames.Add("Matinee", new List<UnrealTargetPlatform> { HostPlatform });
         NonCodeProjectNames.Add("RealisticRendering", new List<UnrealTargetPlatform> { HostPlatform });
         NonCodeProjectNames.Add("BlackJack", new List<UnrealTargetPlatform> { HostPlatform });
         NonCodeProjectNames.Add("Card", new List<UnrealTargetPlatform> { HostPlatform });
         NonCodeProjectNames.Add("Effects", new List<UnrealTargetPlatform> { HostPlatform });
-        NonCodeProjectNames.Add("GDC2014", new List<UnrealTargetPlatform> { HostPlatform });
 
         List<UnrealTargetPlatform> MobilePlats = null;
         if (HostPlatform == UnrealTargetPlatform.Mac)

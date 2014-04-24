@@ -36,12 +36,6 @@ public:
 	/** Scrolls the scrollbar... expected range is from 0.0 to 1.0 */
 	void SetVerticalScrollBarPosition(float Position);
 
-	/**
-	 * Updates the scroll bar for the current state of the window's size and content layout.  This should be called
-	 * when either the window size changes or the vertical size of the content contained in the window changes.
-	 */
-	void AdjustScrollBar();
-
 	/** Accessors */
 	TSharedPtr<FSceneViewport> GetViewport() const;
 	TSharedPtr<FCurveEditorViewportClient> GetViewportClient() const;
@@ -49,8 +43,6 @@ public:
 	TSharedPtr<SScrollBar> GetVerticalScrollBar() const;
 
 protected:
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
-
 	/** Returns the visibility of the viewport scrollbars */
 	EVisibility GetViewportVerticalScrollBarVisibility() const;
 
@@ -72,7 +64,4 @@ private:
 
 	/** Vertical scrollbar */
 	TSharedPtr<SScrollBar> ViewportVerticalScrollBar;
-
-	/** Height of the viewport on the last call to Tick */
-	int32 PrevViewportHeight;
 };

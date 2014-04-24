@@ -141,15 +141,7 @@ namespace UnrealBuildTool
 				// Log summary if wanted.
 				else if (Action.bShouldOutputStatusDescription)
 				{
-					string CommandDescription = Action.CommandDescription != null ? Action.CommandDescription : Path.GetFileName(ExpandedCommandPath);
-					if (string.IsNullOrEmpty(CommandDescription))
-					{
-						Log.TraceInformation(Action.StatusDescription);
-					}
-					else
-					{
-						Log.TraceInformation("{0} {1}", CommandDescription, Action.StatusDescription);
-					}
+					Log.TraceInformation("{0} {1}", Path.GetFileName(ExpandedCommandPath), Action.StatusDescription);
 				}
 
 				// Try to launch the action's process, and produce a friendly error message if it fails.

@@ -582,11 +582,9 @@ float CalcSceneDepth( float2 ScreenUV )
 			#if IOS
 				// Only call FramebufferFetch when actually compiling for IOS ES2.
 				return FramebufferFetchES2().w;
-			#elif WEBGL
-				return Texture2DSampleLevel(SceneAlphaCopyTexture, SceneAlphaCopyTextureSampler, ScreenUV, 0).r;
-			#else 
-				return 65000.0f; 
-			#endif 
+			#else
+				return 65000.0f;
+			#endif
 		#else
 			return ConvertFromDeviceZ(Texture2DSampleLevel(SceneDepthTexture, SceneDepthTextureSampler, ScreenUV, 0).r);
 		#endif
@@ -929,23 +927,6 @@ struct FWriteToSliceGeometryOutput
 // Helper macro to globally ignore requests for non-offset world positions in materials when lower than shader model 4. We do this
 // because we are using an extra interpolator for this second world position, and in < SM4 there may not be enough
 #define USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS	(NEEDS_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS && FEATURE_LEVEL >= FEATURE_LEVEL_SM4)
-
-/** Used for calculating vertex positions and UVs when drawing with DrawRectangle */
-void DrawRectangle( in float4 InPosition, in float2 InTexCoord, out float4 OutPosition, out float2 OutTexCoord)
-{
-	OutPosition = InPosition;
-	OutPosition.xy = -1.0f + 2.0f * (DrawRectangleParameters.PosScaleBias.zw + (InPosition.xy * DrawRectangleParameters.PosScaleBias.xy)) * DrawRectangleParameters.InvTargetSizeAndTextureSize.xy;
-	OutPosition.xy *= float2( 1, -1 );
-	OutTexCoord.xy = (DrawRectangleParameters.UVScaleBias.zw + (InTexCoord.xy * DrawRectangleParameters.UVScaleBias.xy)) * DrawRectangleParameters.InvTargetSizeAndTextureSize.zw;
-}
-
-/** Used for calculating vertex positions when drawing with DrawRectangle */
-void DrawRectangle( in float4 InPosition, out float4 OutPosition)
-{
-	OutPosition = InPosition;
-	OutPosition.xy = -1.0f + 2.0f * (DrawRectangleParameters.PosScaleBias.zw + (InPosition.xy * DrawRectangleParameters.PosScaleBias.xy)) * DrawRectangleParameters.InvTargetSizeAndTextureSize.xy;
-	OutPosition.xy *= float2( 1, -1 );
-}
 
 //Since some platforms don't remove Nans in saturate calls, 
 //SafeSaturate function will remove nan/inf.    

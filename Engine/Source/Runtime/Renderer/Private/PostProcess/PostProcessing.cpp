@@ -1,4 +1,4 @@
-// Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessing.cpp: The center for all post processing activities.
@@ -44,9 +44,6 @@
 #include "PostProcessSubsurface.h"
 #include "PostProcessUIBlur.h"
 #include "HighResScreenshot.h"
-
-#include "PostProcessMorpheus.h"
-
 
 /** The global center for all post processing activities. */
 FPostProcessing GPostProcessing;
@@ -1063,26 +1060,12 @@ void FPostProcessing::Process(const FViewInfo& View, TRefCountPtr<IPooledRenderT
 		AddGBufferVisualization(Context, SeparateTranslucency);
 
 		bool bStereoRenderingAndHMD = View.Family->EngineShowFlags.StereoRendering && View.Family->EngineShowFlags.HMDDistortion;
+
 		if (bStereoRenderingAndHMD)
 		{
-			FRenderingCompositePass* Node = NULL;
-			const EHMDDeviceType::Type DeviceType = GEngine->HMDDevice->GetHMDDeviceType();
-			if(DeviceType == EHMDDeviceType::DT_OculusRift)
-			{
-				Node = Context.Graph.RegisterPass(new FRCPassPostProcessHMD());
-			}
-#if HAS_MORPHEUS
-			else if(DeviceType == EHMDDeviceType::DT_Morpheus)
-			{
-				Node = Context.Graph.RegisterPass(new FRCPassPostProcessMorpheus());
-			}
-#endif
-			
-			if(Node)
-			{
-				Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
-				Context.FinalOutput = FRenderingCompositeOutputRef(Node);
-			}
+			FRenderingCompositePass* Node = Context.Graph.RegisterPass(new FRCPassPostProcessHMD());
+			Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
+			Context.FinalOutput = FRenderingCompositeOutputRef(Node);
 		}
 
 		if(View.Family->EngineShowFlags.VisualizeHDR && GRHIFeatureLevel >= ERHIFeatureLevel::SM5)

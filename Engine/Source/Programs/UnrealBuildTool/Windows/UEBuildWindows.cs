@@ -284,14 +284,6 @@ namespace UnrealBuildTool
 			}
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_WINDOWS=1");
 
-			var ProjectSourceDirectory = Path.Combine( UnrealBuildTool.GetUProjectPath(), "Source" );
-
-			String MorpheusShaderPath = Path.Combine(BuildConfiguration.RelativeEnginePath, "Shaders/PS4/PostProcessHMDMorpheus.usf");
-			if (File.Exists(MorpheusShaderPath))
-			{
-				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("HAS_MORPHEUS=1");
-			}
-
 			if (InBuildTarget.Rules != null)
 			{
 				// Explicitly exclude the MS C++ runtime libraries we're not using, to ensure other libraries we link with use the same

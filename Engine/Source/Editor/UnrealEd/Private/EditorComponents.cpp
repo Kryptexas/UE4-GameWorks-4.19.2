@@ -502,7 +502,7 @@ void FEditorCommonDrawHelper::DrawGridSection(float ViewportGridY,FVector* A,FVe
 	}
 
 	// todo
-	static int32 Exponent = GEditor->IsGridSizePowerOfTwo() ? 8 : 10;
+	static int32 Exponent = 10;	// or 2?
 
 	const FMatrix InvViewProjMatrix = View->ViewMatrices.ProjMatrix.Inverse() * View->ViewMatrices.ViewMatrix.Inverse();
 	int32 FirstLine = FMath::Trunc(InvViewProjMatrix.TransformPosition(FVector(-1,-1,0.5f)).Component(Axis) / ViewportGridY);
@@ -536,7 +536,7 @@ void FEditorCommonDrawHelper::DrawGridSection(float ViewportGridY,FVector* A,FVe
 	float AlphaA = FMath::Clamp(Fract * InvTransitionRegion, 0.0f, 1.0f);
 	float AlphaB = FMath::Clamp(InvTransitionRegion - Fract * InvTransitionRegion, 0.0f, 1.0f);
 
-	if(IncValue < -0.5f)
+	if(IncValue < -1.0f)
 	{
 		// no fade in magnification case
 		AlphaA = 1.0f;

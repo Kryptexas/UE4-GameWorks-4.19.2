@@ -51,9 +51,9 @@ void FxaaVS(
 	out float4 OutPosition : SV_POSITION
 	)
 {
-	DrawRectangle(InPosition, UV, OutPosition, OutCenterUV);
-	OutCornersUV = float4(OutCenterUV.xy - 0.5f * fxaaQualityRcpFrame, OutCenterUV.xy + 0.5f * fxaaQualityRcpFrame);
-
+	OutPosition = InPosition;
+	OutCornersUV = float4(UV.xy - 0.5f * fxaaQualityRcpFrame, UV.xy + 0.5f * fxaaQualityRcpFrame);
+	OutCenterUV = UV.xy;
 }
 
 

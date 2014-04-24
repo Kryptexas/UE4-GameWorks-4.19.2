@@ -24,8 +24,9 @@ void CopyToCubeFaceVS(
 	out FCopyToCubeFaceVSOutput Out
 	)
 {	
-	DrawRectangle(float4(InPosition.xy, 0, 1), InUV, Out.Position, Out.UV);
-	Out.ScreenVector = mul(float4(Out.Position.xy, 1, 0), View.ScreenToTranslatedWorld).xyz;
+	Out.UV = InUV;
+	Out.Position = float4(InPosition, 0, 1);
+	Out.ScreenVector = mul(float4(InPosition, 1, 0), View.ScreenToTranslatedWorld).xyz;
 }
 
 struct FRouteToCubeFaceGSOut

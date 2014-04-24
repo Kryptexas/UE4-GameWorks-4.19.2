@@ -73,7 +73,6 @@ bool FTestCloudInterface::Tick( float DeltaTime )
 			break;
 		case 1:
 			// Write out N files for the user of various sizes/names and enumerate
-			// @todo: make the file count configurable on a per-platform basis, since different platforms have different file count limits
 			WriteNUserCloudFiles(*UserId, FString(TEXT("UserCloud.bin")), 15, OnWriteUserCloudFileCompleteDelegate);
 			break;
 		case 2:
@@ -187,9 +186,7 @@ void FTestCloudInterface::WriteNUserCloudFiles(const FUniqueNetId& InUserId, con
 	TArray<uint8> DummyData;
 	for (int32 FileIdx=0; FileIdx<FileCount; FileIdx++)
 	{
-		// @todo: make the dummy data size configurable on a per-platform basis, since different platforms (e.g. PS4) have different size limits
-		//WriteRandomFile(DummyData, FMath::Trunc(FMath::FRandRange(1024, 100*1024)));
-		WriteRandomFile(DummyData, FMath::Trunc(FMath::FRandRange(256, 1024)));
+		WriteRandomFile(DummyData, FMath::Trunc(FMath::FRandRange(1024, 100*1024)));
 		UserCloud->WriteUserFile(InUserId, FString::Printf(TEXT("%s%d.%s"), *FPaths::GetBaseFilename(FileName), FileIdx, *FPaths::GetExtension(FileName)), DummyData);
 	}
 }
@@ -257,13 +254,11 @@ void FTestCloudInterface::ReadEnumeratedUserFiles(FOnReadUserFileCompleteDelegat
 void FTestCloudInterface::OnReadEnumeratedUserFilesComplete(bool bWasSuccessful, const FUniqueNetId& InUserId, const FString& FileName)
 {
 	int32 FileSize = 0;
-	char *buffer = NULL;
 	if (bWasSuccessful)
 	{
 		TArray<uint8> FileContents;
 		bWasSuccessful = UserCloud->GetFileContents(InUserId, FileName, FileContents);
 		FileSize = FileContents.Num();
-		buffer = (char *) FileContents.GetData();
 	}
 
 	UE_LOG(LogOnline, Log, TEXT("Read user file complete Success:%d UserId:%s FileName:%s Size:%d"), bWasSuccessful, *InUserId.ToDebugString(), *FileName, FileSize);

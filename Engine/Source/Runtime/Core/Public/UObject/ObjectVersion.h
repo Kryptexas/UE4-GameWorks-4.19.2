@@ -511,9 +511,6 @@ enum EUnrealEngineObjectUE4Version
 	// we still convert all to FVector in CPU time whenever any calculation
 	VER_UE4_MORPHTARGET_CPU_TANGENTZDELTA_FORMATCHANGE,
 
-	// Soft constraint limits will implicitly use the mass of the bodies
-	VER_UE4_SOFT_CONSTRAINTS_USE_MASS,
-
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
 	VER_UE4_AUTOMATIC_VERSION_PLUS_ONE,

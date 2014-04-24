@@ -37,8 +37,6 @@ public:
 
 	// Begin ITargetPlatform interface
 
-	virtual void EnableDeviceCheck(bool OnOff) OVERRIDE {}
-
 	virtual void GetAllDevices( TArray<ITargetDevicePtr>& OutDevices ) const OVERRIDE
 	{
 		// TODO: ping all the machines in a local segment and/or try to connect to port 22 of those that respond

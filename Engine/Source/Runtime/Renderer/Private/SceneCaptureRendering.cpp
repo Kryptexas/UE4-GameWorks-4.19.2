@@ -65,7 +65,6 @@ void UpdateSceneCaptureContent_RenderThread(FSceneRenderer* SceneRenderer, FText
 				ViewRect.Width(), ViewRect.Height(),
 				TargetSize,
 				GSceneRenderTargets.GetBufferSizeXY(),
-				*VertexShader,
 				EDRF_UseTriangleOptimization);
 		}
 

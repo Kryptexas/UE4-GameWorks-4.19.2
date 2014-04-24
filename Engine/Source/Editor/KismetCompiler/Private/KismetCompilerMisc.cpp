@@ -860,13 +860,6 @@ FKismetFunctionContext::FKismetFunctionContext(FCompilerResultsLog& InMessageLog
 {
 	NetNameMap = new FNetNameMapping();
 	bAllocatedNetNameMap = true;
-
-	// Prevent debug generation when cooking or running other commandlets
-	// Compile-on-load will recreate it if the editor is run
-	if (IsRunningCommandlet())
-	{
-		bCreateDebugData = false;
-	}
 }
 
 FKismetFunctionContext::~FKismetFunctionContext()

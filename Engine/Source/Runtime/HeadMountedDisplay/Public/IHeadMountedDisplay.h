@@ -1,4 +1,4 @@
-// Copyright 1998-2012 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -11,15 +11,13 @@ namespace EHMDDeviceType
 {
 	enum Type
 	{
-		DT_OculusRift,
-		DT_Morpheus
+		DT_OculusRift
 	};
 }
 
 /**
  * HMD device interface
  */
-
 class HEADMOUNTEDDISPLAY_API IHeadMountedDisplay : public IModuleInterface, public IStereoRendering
 {
 
@@ -47,15 +45,6 @@ public:
 		size_t  MonitorId;
 		int		DesktopX, DesktopY;
 		int		ResolutionX, ResolutionY;
-
-		MonitorInfo() : MonitorId(0)
-			, DesktopX(0)
-			, DesktopY(0)
-			, ResolutionX(0)
-			, ResolutionY(0)
-		{
-		}
-
 	};
 
     /**
@@ -81,7 +70,7 @@ public:
 	/**
 	 * If the HMD supports positional tracking via a camera, this returns the frustum properties (all in game-world space) of the tracking camera.
 	 */
-	virtual void	GetPositionalTrackingCameraProperties(FVector& OutOrigin, FRotator& OutOrientation, float& OutHFOV, float& OutVFOV, float& OutCameraDistance, float& OutNearPlane, float& OutFarPlane) const = 0;	
+	virtual void	GetPositionalTrackingCameraProperties(FVector& OutOrigin, FRotator& OutOrientation, float& OutHFOV, float& OutVFOV, float& OutCameraDistance, float& OutNearPlane, float& OutFarPlane) const = 0;
 
 	/**
 	 * Accessors to modify the interpupillary distance (meters)
@@ -167,7 +156,7 @@ public:
 	/**
 	 * Acquires color info for latency tester rendering. Returns true if rendering should be performed.
 	 */
-	virtual bool GetLatencyTesterColor_RenderThread(FColor& Color, const FSceneView& View) {return false;}
+	virtual bool GetLatencyTesterColor_RenderThread(FColor& color, const FSceneView& view) =  0;
 
 	/**
 	 * Returns true, if head tracking is allowed. Most common case: it returns true when GEngine->IsStereoscopic3D() is true,
@@ -202,15 +191,6 @@ public:
 	 * any drawing occurs. It is called at the beginning of UGameViewportClient::Draw() method.
 	 */
 	virtual void UpdateScreenSettings(const FViewport* InViewport) = 0;
-
-	/** 
-	 * Additional optional distorion rendering parameters
-	 * @todo:  Once we can move shaders into plugins, remove these!
-	 */
-	virtual void GetImageTranslation(float& x, float& y) const {}
-	virtual void GetDistortionCenterOffset(float& x, float& y) const {}
-	virtual const FTexture*  GetDistortionTexture() {return NULL;}	
-
 private:
 	/** Stores the dimensions of the window before we moved into fullscreen mode, so they can be restored */
 	FSlateRect PreFullScreenRect;

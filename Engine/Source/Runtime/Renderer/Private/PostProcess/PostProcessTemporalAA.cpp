@@ -334,7 +334,6 @@ void FRCPassPostProcessSSRTemporalAA::Process(FRenderingCompositePassContext& Co
 		SrcRect.Width(), SrcRect.Height(),
 		SrcRect.Size(),
 		SrcSize,
-		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
@@ -409,7 +408,6 @@ void FRCPassPostProcessDOFTemporalAA::Process(FRenderingCompositePassContext& Co
 		SrcRect.Width(), SrcRect.Height(),
 		SrcRect.Size(),
 		SrcSize,
-		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
@@ -487,7 +485,6 @@ void FRCPassPostProcessLightShaftTemporalAA::Process(FRenderingCompositePassCont
 		SrcRect.Width(), SrcRect.Height(),
 		SrcRect.Size(),
 		SrcSize,
-		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
@@ -546,14 +543,13 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 	uint32 Quality = FMath::Clamp(CVar->GetValueOnRenderThread(), 1, 6);
 	bool bUseFast = Quality == 3;
 
-	TShaderMapRef< FPostProcessTonemapVS >			VertexShader( GetGlobalShaderMap() );
-
 	{	// Normal temporal feedback
 		// Draw to pixels where stencil == 0
 		RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always,true,CF_Equal,SO_Keep,SO_Keep,SO_Keep>::GetRHI(), 0);
 
 		if(bUseFast)
 		{
+			TShaderMapRef< FPostProcessTonemapVS >			VertexShader( GetGlobalShaderMap() );
 			TShaderMapRef< FPostProcessTemporalAAPS<4,0> >	PixelShader( GetGlobalShaderMap() );
 
 			static FGlobalBoundShaderState BoundShaderState;
@@ -565,6 +561,7 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 		}
 		else
 		{
+			TShaderMapRef< FPostProcessTonemapVS >			VertexShader( GetGlobalShaderMap() );
 			TShaderMapRef< FPostProcessTemporalAAPS<1,0> >	PixelShader( GetGlobalShaderMap() );
 
 			static FGlobalBoundShaderState BoundShaderState;
@@ -583,17 +580,16 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 			SrcRect.Width(), SrcRect.Height(),
 			SrcRect.Size(),
 			SrcSize,
-			*VertexShader,
 			EDRF_UseTriangleOptimization);
 	}
 
 	{	// Responsive feedback for tagged pixels
 		// Draw to pixels where stencil != 0
 		RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always,true,CF_NotEqual,SO_Keep,SO_Keep,SO_Keep>::GetRHI(), 0);
-		
-		TShaderMapRef< FPostProcessTonemapVS >			VertexShader( GetGlobalShaderMap() );
+
 		if(bUseFast)
 		{
+			TShaderMapRef< FPostProcessTonemapVS >			VertexShader( GetGlobalShaderMap() );
 			TShaderMapRef< FPostProcessTemporalAAPS<4,1> >	PixelShader( GetGlobalShaderMap() );
 
 			static FGlobalBoundShaderState BoundShaderState;
@@ -605,6 +601,7 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 		}
 		else
 		{
+			TShaderMapRef< FPostProcessTonemapVS >			VertexShader( GetGlobalShaderMap() );
 			TShaderMapRef< FPostProcessTemporalAAPS<1,1> >	PixelShader( GetGlobalShaderMap() );
 
 			static FGlobalBoundShaderState BoundShaderState;
@@ -623,7 +620,6 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 			SrcRect.Width(), SrcRect.Height(),
 			SrcRect.Size(),
 			SrcSize,
-			*VertexShader,
 			EDRF_UseTriangleOptimization);
 	}
 

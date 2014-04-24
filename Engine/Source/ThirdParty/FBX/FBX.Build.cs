@@ -10,7 +10,7 @@ public class FBX : ModuleRules
 
 		Definitions.Add("FBXSDK_NEW_API");
 
-		PublicSystemIncludePaths.AddRange(
+		PublicIncludePaths.AddRange(
 			new string[] {
 					UEBuildConfiguration.UEThirdPartyDirectory + "FBX/2013.3/include",
 					UEBuildConfiguration.UEThirdPartyDirectory + "FBX/2013.3/include/fbxsdk",

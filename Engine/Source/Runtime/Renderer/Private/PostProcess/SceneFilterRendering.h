@@ -54,15 +54,12 @@ enum EDrawRectangleFlags
  * Draws a quad with the given vertex positions and UVs in denormalized pixel/texel coordinates.
  * The platform-dependent mapping from pixels to texels is done automatically.
  * Note that the positions are affected by the current viewport.
- * NOTE: DrawRectangle should be used in the vertex shader to calculate the correct position and uv for vertices.
- *
  * X, Y							Position in screen pixels of the top left corner of the quad
  * SizeX, SizeY					Size in screen pixels of the quad
  * U, V							Position in texels of the top left corner of the quad's UV's
  * SizeU, SizeV					Size in texels of the quad's UV's
  * TargetSizeX, TargetSizeY		Size in screen pixels of the target surface
  * TextureSize                  Size in texels of the source texture
- * VertexShader					The vertex shader used for rendering
  * Flags						see EDrawRectangleFlags
  */
 extern void DrawRectangle(
@@ -76,7 +73,6 @@ extern void DrawRectangle(
 	float SizeV,
 	FIntPoint TargetSize,
 	FIntPoint TextureSize,
-	FShader* VertexShader,
 	EDrawRectangleFlags Flags = EDRF_Default
 	);
 

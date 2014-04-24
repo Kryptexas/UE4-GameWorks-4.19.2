@@ -30,7 +30,7 @@ void MainVS(
 	out float4 OutPosition : SV_POSITION
 	)
 {
-	DrawRectangle(InPosition, InTexCoord, OutPosition, InTexCoord);
+	OutPosition = InPosition;
 
 	float2 ScreenPos = UVToScreenPos(InTexCoord);
 	 

@@ -158,6 +158,5 @@ void FSceneRenderer::GammaCorrectToViewportRenderTarget(const FViewInfo* View, f
 		View->ViewRect.Width(),View->ViewRect.Height(),
 		ViewFamily.RenderTarget->GetSizeXY(),
 		GSceneRenderTargets.GetBufferSizeXY(),
-		*VertexShader,
 		EDRF_UseTriangleOptimization);
 }

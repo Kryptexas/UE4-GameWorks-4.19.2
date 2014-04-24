@@ -371,7 +371,6 @@ void StencilDecalMask(const FSceneView& View)
 		View.ViewRect.Width(), View.ViewRect.Height(),
 		FIntPoint(View.ViewRect.Width(), View.ViewRect.Height()),
 		GSceneRenderTargets.GetBufferSizeXY(),
-		*ScreenVertexShader,
 		EDRF_UseTriangleOptimization);
 }
 

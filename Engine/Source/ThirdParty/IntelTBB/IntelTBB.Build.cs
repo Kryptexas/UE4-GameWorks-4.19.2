@@ -11,7 +11,7 @@ public class IntelTBB : ModuleRules
 		if ((Target.Platform == UnrealTargetPlatform.Win64) || (Target.Platform == UnrealTargetPlatform.Win32))
 		{
 			string IntelTBBPath = UEBuildConfiguration.UEThirdPartyDirectory + "IntelTBB/IntelTBB-4.0/";
-			PublicSystemIncludePaths.Add(IntelTBBPath + "Include");
+			PublicIncludePaths.Add(IntelTBBPath + "Include");
 
 			if (Target.Platform == UnrealTargetPlatform.Win64)
 			{
@@ -50,7 +50,7 @@ public class IntelTBB : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Mac)
 		{
-			PublicSystemIncludePaths.AddRange(
+			PublicIncludePaths.AddRange(
 				new string[] {
 					UEBuildConfiguration.UEThirdPartyDirectory + "IntelTBB/IntelTBB-4.0/include",
 				}

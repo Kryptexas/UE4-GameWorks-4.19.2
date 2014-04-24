@@ -103,11 +103,6 @@ struct FHTML5OpenGL : public FOpenGLES2
 
 	static FORCEINLINE bool UseES30ShadingLanguage() { return false;}
 
-	static FORCEINLINE GLsizei GetLabelObject(GLenum Type, GLuint Object, GLsizei BufferSize, ANSICHAR* OutName)
-	{
-		return 0;
-	}
-
 protected:
 	/** http://www.khronos.org/registry/webgl/extensions/WEBGL_depth_texture/ */
 	static bool bCombinedDepthStencilAttachment;

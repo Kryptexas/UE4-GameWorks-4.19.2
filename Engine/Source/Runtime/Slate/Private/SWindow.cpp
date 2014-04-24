@@ -298,11 +298,6 @@ void SWindow::Construct(const FArguments& InArgs)
 		WindowPosition = DisplayTopLeft + ( DisplaySize - WindowSize ) * 0.5f;
 	}
 
-#if PLATFORM_HTML5 
-	// UE expects mouse coordinates in screen space. SDL/HTML5 canvas provides in client space. 
-	// Anchor the window at the top/left corner to make sure client space coordinates and screen space coordinates match up. 
-	WindowPosition.X =  WindowPosition.Y = 0; 
-#endif 
 	this->InitialDesiredScreenPosition = WindowPosition;
 	this->InitialDesiredSize = WindowSize;
 

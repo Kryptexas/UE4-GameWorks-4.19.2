@@ -236,8 +236,7 @@ class TestTempStorage : BuildCommand
 		DeleteFile(UnitTestFile2);
 		DeleteFile(UnitTestFile3);
 
-        bool WasLocal;
-        RetrieveFromTempStorage(CmdEnv, "Test", out WasLocal);
+		RetrieveFromTempStorage(CmdEnv, "Test");
 		if (!LocalTempStorageExists(CmdEnv, "Test"))
 		{
 			throw new AutomationException("local storage should exist");
@@ -291,8 +290,8 @@ class TestTempStorage : BuildCommand
 		{
 			throw new AutomationException("shared storage should not exist");
 		}
-        RetrieveFromTempStorage(CmdEnv, "Test", out WasLocal); // this should just rely on the local
-		if (!WasLocal || !LocalTempStorageExists(CmdEnv, "Test"))
+		RetrieveFromTempStorage(CmdEnv, "Test"); // this should just rely on the local
+		if (!LocalTempStorageExists(CmdEnv, "Test"))
 		{
 			throw new AutomationException("local storage should exist");
 		}
@@ -329,7 +328,7 @@ class TestTempStorage : BuildCommand
 			bool bFailedProperly = false;
 			try
 			{
-                RetrieveFromTempStorage(CmdEnv, "Test", out WasLocal);
+				RetrieveFromTempStorage(CmdEnv, "Test");
 			}
 			catch (AutomationException)
 			{
@@ -347,7 +346,7 @@ class TestTempStorage : BuildCommand
 			bool bFailedProperly = false;
 			try
 			{
-                RetrieveFromTempStorage(CmdEnv, "Test", out WasLocal);
+				RetrieveFromTempStorage(CmdEnv, "Test");
 			}
 			catch (AutomationException)
 			{

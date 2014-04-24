@@ -12,11 +12,7 @@ namespace EFriendsLists
 		/** default friends list */
 		Default,
 		/** recent players friends list */
-		RecentPlayers,
-		/** online players friends list */
-		OnlinePlayers,
-		/** list of players running the same title/game */
-		InGamePlayers,
+		RecentPlayers
 	};
 
 	/** @return the stringified version of the enum passed in */
@@ -28,10 +24,6 @@ namespace EFriendsLists
 				return TEXT("default");
 			case RecentPlayers:
 				return TEXT("recentPlayers");
-			case OnlinePlayers:
-				return TEXT("onlinePlayers");
-			case InGamePlayers:
-				return TEXT("inGamePlayers");
 		}
 		return TEXT("");
 	}

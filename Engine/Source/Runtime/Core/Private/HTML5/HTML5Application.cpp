@@ -13,7 +13,6 @@ FHTML5Application* FHTML5Application::CreateHTML5Application()
 FHTML5Application::FHTML5Application()
 	: GenericApplication( MakeShareable( new FHTML5Cursor() ) )
 	, InputInterface( FHTML5InputInterface::Create( MessageHandler, Cursor ) )
-	, ApplicationWindow(FHTML5Window::Make())
 {
 }
 
@@ -25,40 +24,36 @@ void FHTML5Application::SetMessageHandler( const TSharedRef< FGenericApplication
 
 void FHTML5Application::PollGameDeviceState( const float TimeDelta )
 {
-	SDL_Event Event;
-	while (SDL_PollEvent(&Event)) 
-	{
-		// Tick Input Interface. 
-		if ( Event.type == SDL_VIDEORESIZE )
-		{
-			SDL_ResizeEvent *r = (SDL_ResizeEvent*)&Event;
-			MessageHandler->OnSizeChanged(  ApplicationWindow, r->w,r->h); 
-		}
-		else 
-		{
-			InputInterface->Tick( TimeDelta, Event );
-		}
-	}
+	// Poll game device state and send new events
+	InputInterface->Tick( TimeDelta );
 	InputInterface->SendControllerEvents();
 }
 
 FPlatformRect FHTML5Application::GetWorkArea( const FPlatformRect& CurrentWindow ) const
 {
-	return  FHTML5Window::GetScreenRect();
+	//@todo HTML5: Use the actual device settings here.
+	FPlatformRect WorkArea;
+	WorkArea.Left = 0;
+	WorkArea.Top = 0;
+	WorkArea.Right = 800;
+	WorkArea.Bottom = 600;
+
+	return WorkArea;
 }
 
 void FHTML5Application::GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const
 {
-	OutDisplayMetrics.PrimaryDisplayWorkAreaRect = FHTML5Window::GetScreenRect();
+	//@todo HTML5: Use the actual device settings here.
+	OutDisplayMetrics.PrimaryDisplayWidth = 800;
+	OutDisplayMetrics.PrimaryDisplayHeight = 600;
 
-	OutDisplayMetrics.VirtualDisplayRect = OutDisplayMetrics.PrimaryDisplayWorkAreaRect;
-	// Total screen size of the primary monitor - or in HTML5's case- total size of the webpage. Make it arbitrary large. 
-	OutDisplayMetrics.PrimaryDisplayWidth = 4096;
-	OutDisplayMetrics.PrimaryDisplayHeight = 4096; 
+	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Left = 0;
+	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Top = 0;
+	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Right = 800;
+	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom = 600;
 
-}
-
-TSharedRef< FGenericWindow > FHTML5Application::MakeWindow()
-{
-	return ApplicationWindow;
+	OutDisplayMetrics.VirtualDisplayRect.Left = 0;
+	OutDisplayMetrics.VirtualDisplayRect.Top = 0;
+	OutDisplayMetrics.VirtualDisplayRect.Right = 800;
+	OutDisplayMetrics.VirtualDisplayRect.Bottom = 600;
 }

@@ -406,8 +406,6 @@ void FRCPassPostProcessCombineLUTs::Process(FRenderingCompositePassContext& Cont
 	else
 	{
 		// use unwrapped 2d texture 256x16
-		TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
-
 		DrawRectangle( 
 			0, 0,						// XY
 			16 * 16, 16,				// SizeXY
@@ -415,7 +413,6 @@ void FRCPassPostProcessCombineLUTs::Process(FRenderingCompositePassContext& Cont
 			16 * 16, 16,				// SizeUV
 			FIntPoint(16 * 16, 16),		// TargetSize
 			FIntPoint(16 * 16, 16),		// TextureSize
-			*VertexShader,
 			EDRF_UseTriangleOptimization);
 	}
 

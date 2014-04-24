@@ -297,8 +297,6 @@ void FRCPassPostProcessAmbientOcclusionSetup::Process(FRenderingCompositePassCon
 		SetShaderSetupTempl<0>(Context);
 	}
 
-	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
-
 	// Draw a quad mapping scene color to the view's render target
 	DrawRectangle( 
 		0, 0,
@@ -307,7 +305,6 @@ void FRCPassPostProcessAmbientOcclusionSetup::Process(FRenderingCompositePassCon
 		SrcRect.Width(), SrcRect.Height(),
 		DestRect.Size(),
 		GSceneRenderTargets.GetBufferSizeXY(),
-		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
@@ -439,7 +436,6 @@ void FRCPassPostProcessAmbientOcclusion::Process(FRenderingCompositePassContext&
 		}
 	}
 
-	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
 
 	// Draw a quad mapping scene color to the view's render target
 	DrawRectangle( 
@@ -449,7 +445,6 @@ void FRCPassPostProcessAmbientOcclusion::Process(FRenderingCompositePassContext&
 		ViewRect.Width(), ViewRect.Height(),
 		ViewRect.Size(),
 		TexSize,
-		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 
@@ -514,7 +509,6 @@ void FRCPassPostProcessBasePassAO::Process(FRenderingCompositePassContext& Conte
 		View.ViewRect.Width(), View.ViewRect.Height(),
 		View.ViewRect.Size(),
 		GSceneRenderTargets.GetBufferSizeXY(),
-		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());

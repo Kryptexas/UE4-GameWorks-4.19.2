@@ -18,8 +18,6 @@ void Main(
 	out float4 OutPosition : SV_POSITION
 	)
 {
-	DrawRectangle( InPosition, UV, OutPosition, UV);
-
 	int SampleIndex;
 	for(SampleIndex = 0;SampleIndex < NUM_SAMPLES - 1;SampleIndex += 2)
 	{
@@ -33,6 +31,7 @@ void Main(
 		OutOffsetUVs[SampleIndex] = UV.xy + OffsetUVUV.xy;
 	}
 
+	OutPosition = InPosition;
 	OutUV = UV;
 }
 
@@ -46,13 +45,11 @@ void Main(
 	out float4 OutPosition : SV_POSITION
 	)
 {
-	DrawRectangle( InPosition, UV, OutPosition, UV);
-
 	for(int OffsetIndex = 0;OffsetIndex < (NUM_SAMPLES + 1) / 2;OffsetIndex++)
 	{
 		OutOffsetUVs[OffsetIndex] = UV.xyyx + SampleOffsets[OffsetIndex];
 	}
-
+	OutPosition = InPosition;
 	OutUV = UV;
 }
 

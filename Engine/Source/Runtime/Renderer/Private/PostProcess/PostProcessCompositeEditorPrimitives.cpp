@@ -259,8 +259,6 @@ void FRCPassPostProcessCompositeEditorPrimitives::Process(FRenderingCompositePas
 		check(0);
 	}
 
-	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
-
 	// Draw a quad mapping our render targets to the view's render target
 	DrawRectangle(
 		0, 0,
@@ -269,7 +267,6 @@ void FRCPassPostProcessCompositeEditorPrimitives::Process(FRenderingCompositePas
 		SrcRect.Width(), SrcRect.Height(),
 		DestRect.Size(),
 		SrcSize,
-		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(DestRenderTargetSurface, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());

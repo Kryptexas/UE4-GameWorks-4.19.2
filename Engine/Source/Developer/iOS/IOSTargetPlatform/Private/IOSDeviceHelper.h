@@ -54,11 +54,6 @@ public:
      */
     static bool InstallIPAOnDevice(const FTargetDeviceId& DeviceId, const FString& IPAPath);
     
-	/**
-	 * Suspends/Enables the device connect/disconnect thread
-	 */
-	static void EnableDeviceCheck(bool OnOff);
-
 private:
     static void DeviceCallback(void*);
     static void DoDeviceConnect(void*);

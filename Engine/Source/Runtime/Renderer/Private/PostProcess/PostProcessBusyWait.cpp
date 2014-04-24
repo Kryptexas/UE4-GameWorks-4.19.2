@@ -109,7 +109,6 @@ void FRCPassPostProcessBusyWait::Process(FRenderingCompositePassContext& Context
 		SrcRect.Width(), SrcRect.Height(),
 		DestRect.Size(),
 		SrcRect.Size(),
-		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());

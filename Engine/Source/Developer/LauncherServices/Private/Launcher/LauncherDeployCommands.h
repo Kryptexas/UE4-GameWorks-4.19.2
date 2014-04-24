@@ -82,20 +82,6 @@ public:
 		return CommandLine;
 	}
 
-	virtual bool PreExecute(FLauncherTaskChainState& ChainState) OVERRIDE
-	{
-		// disable the device check
-		const_cast<ITargetPlatform&>(TargetPlatform).EnableDeviceCheck(false);
-		return true;
-	}
-
-	virtual bool PostExecute(FLauncherTaskChainState& ChainState) OVERRIDE
-	{
-		// disable the device check
-		const_cast<ITargetPlatform&>(TargetPlatform).EnableDeviceCheck(true);
-		return true;
-	}
-
 private:
 
 	// Holds a pointer to the device proxy to deploy to.
@@ -267,20 +253,6 @@ public:
 			&& ChainState.Profile->GetCookMode() == ELauncherProfileCookModes::ByTheBook) ? TEXT("-pak") : TEXT(""),
 			*LauncherCommandLine);
 		return CommandLine;
-	}
-
-	virtual bool PreExecute(FLauncherTaskChainState& ChainState) OVERRIDE
-	{
-		// disable the device check
-		const_cast<ITargetPlatform&>(TargetPlatform).EnableDeviceCheck(false);
-		return true;
-	}
-
-	virtual bool PostExecute(FLauncherTaskChainState& ChainState) OVERRIDE
-	{
-		// disable the device check
-		const_cast<ITargetPlatform&>(TargetPlatform).EnableDeviceCheck(true);
-		return true;
 	}
 
 private:

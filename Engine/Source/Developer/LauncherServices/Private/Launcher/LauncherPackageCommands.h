@@ -229,20 +229,6 @@ public:
 		return CommandLine;
 	}
 
-	virtual bool PreExecute(FLauncherTaskChainState& ChainState) OVERRIDE
-	{
-		// disable the device check
-		const_cast<ITargetPlatform&>(TargetPlatform).EnableDeviceCheck(false);
-		return true;
-	}
-
-	virtual bool PostExecute(FLauncherTaskChainState& ChainState) OVERRIDE
-	{
-		// disable the device check
-		const_cast<ITargetPlatform&>(TargetPlatform).EnableDeviceCheck(true);
-		return true;
-	}
-
 private:
 
 	// Holds a pointer to the target platform.

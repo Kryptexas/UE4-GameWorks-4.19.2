@@ -119,7 +119,6 @@ void FRCPassPostProcessTestImage::Process(FRenderingCompositePassContext& Contex
 		SrcRect.Width(), SrcRect.Height(),
 		DestRect.Size(),
 		GSceneRenderTargets.GetBufferSizeXY(),
-		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	{

@@ -13,5 +13,6 @@ void Main(
 	out float4 OutPosition : SV_POSITION
 	)
 {
-	DrawRectangle(InPosition, InTexCoord, OutPosition, OutTexCoord);
+	OutPosition = InPosition;
+	OutTexCoord = InTexCoord;
 }

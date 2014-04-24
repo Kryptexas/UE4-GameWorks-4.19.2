@@ -19,7 +19,8 @@ void MainBenchmarkVS(
 	out float4 OutPosition : SV_POSITION
 	) 
 {
-	DrawRectangle(InPosition, UV, OutPosition, OutUV);
+	OutPosition = InPosition;
+	OutUV = UV;
 }
 
 // pixel shader entry point

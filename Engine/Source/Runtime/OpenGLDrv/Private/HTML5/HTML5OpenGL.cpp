@@ -21,8 +21,7 @@ void FHTML5OpenGL::ProcessExtensions( const FString& ExtensionsString )
 	bSupportsBGRA8888 = ExtensionsString.Contains(TEXT("GL_APPLE_texture_format_BGRA8888")) || ExtensionsString.Contains(TEXT("GL_IMG_texture_format_BGRA8888")) || ExtensionsString.Contains(TEXT("GL_EXT_texture_format_BGRA8888"));
 	bSupportsVertexHalfFloat = false;//ExtensionsString.Contains(TEXT("GL_OES_vertex_half_float"));
 	bSupportsTextureFloat = ExtensionsString.Contains(TEXT("GL_OES_texture_float"));
-	bSupportsTextureHalfFloat = ExtensionsString.Contains(TEXT("GL_OES_texture_half_float")) &&
-        ExtensionsString.Contains(TEXT("GL_OES_texture_half_float_linear"));
+	bSupportsTextureHalfFloat = ExtensionsString.Contains(TEXT("GL_OES_texture_half_float"));
 	bSupportsSGRB = ExtensionsString.Contains(TEXT("GL_EXT_sRGB"));
 	bSupportsColorBufferHalfFloat = ExtensionsString.Contains(TEXT("GL_EXT_color_buffer_half_float"));
 	bSupportsShaderFramebufferFetch = ExtensionsString.Contains(TEXT("GL_EXT_shader_framebuffer_fetch")) || ExtensionsString.Contains(TEXT("GL_NV_shader_framebuffer_fetch"));
@@ -49,10 +48,7 @@ void FHTML5OpenGL::ProcessExtensions( const FString& ExtensionsString )
 	// This is not color-renderable in WebGL/ANGLE (ANGLE exposes this)
 	bSupportsBGRA8888 = false;
 	// ANGLE/WEBGL_depth_texture is sort of like OES_depth_texture, you just can't upload bulk data to it (via Tex*Image2D); that should be OK?
-	bSupportsDepthTexture = 
-        ExtensionsString.Contains(TEXT("WEBGL_depth_texture")) ||    // Catch "WEBGL_depth_texture", "MOZ_WEBGL_depth_texture" and "WEBKIT_WEBGL_depth_texture".
-        ExtensionsString.Contains(TEXT("GL_ANGLE_depth_texture")) || // for HTML5_WIN32 build with ANGLE
-        ExtensionsString.Contains(TEXT("GL_OES_depth_texture"));     // for a future HTML5 build without ANGLE
+	bSupportsDepthTexture = ExtensionsString.Contains(TEXT("GL_ANGLE_depth_texture")) || ExtensionsString.Contains(TEXT("WEBGL_depth_texture"));
 
 #if !PLATFORM_HTML5_WIN32
     // The core WebGL spec has a combined GL_DEPTH_STENCIL_ATTACHMENT, unlike the core GLES2 spec.
@@ -66,48 +62,12 @@ void FHTML5OpenGL::ProcessExtensions( const FString& ExtensionsString )
 	bSupportsPackedDepthStencil = ExtensionsString.Contains(TEXT("GL_OES_packed_depth_stencil"));
 #endif
 
-	if (!bSupportsDepthTexture) {
+	if (!ExtensionsString.Contains(TEXT("WEBGL_depth_texture")) && 		// Catch "WEBGL_depth_texture", "MOZ_WEBGL_depth_texture" and "WEBKIT_WEBGL_depth_texture".
+		!ExtensionsString.Contains(TEXT("GL_ANGLE_depth_texture")) &&	// for HTML5_WIN32 build with ANGLE
+		!ExtensionsString.Contains(TEXT("GL_OES_depth_texture")))		// for a future HTML5 build without ANGLE
+	{
 		UE_LOG(LogRHI, Warning, TEXT("This browser does not support WEBGL_depth_texture. Rendering will not function since fallback code is not available."));
 	}
-
-    if (bSupportsTextureHalfFloat && !bSupportsColorBufferHalfFloat) {
-        // Initial implementations of WebGL's texture_float screwed up, and allowed
-        // rendering to fp textures, even though the underlying EXT_texture_float doesn't
-        // explicitly allow anything such.  FP rendering without explicit
-        // EXT_color_buffer_half_float may be possible, so we test for that here
-        // by checking for framebuffer completeness.  The spec is "wrong" as far as
-        // clamping and the like (which WEBGL_color_buffer_float/EXT_color_buffer_half_float
-        // fixes, but in practice it might "just work").
-        //
-        // See http://www.khronos.org/webgl/public-mailing-list/archives/1211/msg00133.html
-        // for more information.
-
-        GLenum err = glGetError();
-        if (err != GL_NO_ERROR) {
-            UE_LOG(LogRHI, Warning, TEXT("Detected OpenGL error 0x%04x before checking for implicit half-float fb support"), err);
-        }
-
-        GLuint tex, fb;
-        glGenTextures(1, &tex);
-        glBindTexture(GL_TEXTURE_2D, tex);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 32, 32, 0, GL_RGBA, GL_HALF_FLOAT_OES, NULL);
-        glGenFramebuffers(1, &fb);
-        glBindFramebuffer(GL_FRAMEBUFFER, fb);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex, 0);
-
-        GLenum fbstatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-        err = glGetError();
-
-        bSupportsColorBufferHalfFloat = fbstatus == GL_FRAMEBUFFER_COMPLETE && err == GL_NO_ERROR;
-
-        if (bSupportsColorBufferHalfFloat) {
-            UE_LOG(LogRHI, Log, TEXT("Enabling implicit ColorBufferHalfFloat after checking fb completeness"));
-        }
-
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glDeleteFramebuffers(1, &fb);
-        glDeleteTextures(1, &tex);
-    }
 
 	// Report shader precision
 	int Range[2];
@@ -165,12 +125,7 @@ void PlatformDestroyOpenGLDevice(FPlatformOpenGLDevice* Device)
 
 FPlatformOpenGLContext* PlatformCreateOpenGLContext(FPlatformOpenGLDevice* Device, void* InWindowHandle)
 {
-	int Width = 800 , Height = 600;
-#if !PLATFORM_HTML5_WIN32
-	 int fs;
-	emscripten_get_canvas_size(&Width, &Height, &fs);
-#endif
-	Device->SharedContext->Context = SDL_SetVideoMode(Width,Height, 16, SDL_OPENGL| SDL_RESIZABLE | SDL_DOUBLEBUF);
+	Device->SharedContext->Context = SDL_SetVideoMode(800,600, 16, SDL_OPENGL);
 	return Device->SharedContext; 
 }
 
@@ -217,9 +172,8 @@ void PlatformResizeGLContext( FPlatformOpenGLDevice* Device, FPlatformOpenGLCont
 
 	// we can't resize with the win32 emu right now -- we have no way of resizing the window.
 #if !PLATFORM_HTML5_WIN32
-	emscripten_set_canvas_size(SizeX,SizeY);
+	emscripten_set_canvas_size(SizeX, SizeY);
 #endif
-	Device->SharedContext->Context = SDL_SetVideoMode(SizeX,SizeY, 16, SDL_OPENGL | SDL_RESIZABLE | SDL_DOUBLEBUF );
 
 	glViewport(0, 0, SizeX, SizeY);
 	//@todo-mobile Do we need to clear here?
@@ -297,14 +251,3 @@ void PlatformReleaseRenderQuery( GLuint Query, uint64 QueryContext )
 void PlatformRestoreDesktopDisplayMode()
 {
 }
-
-extern "C"
-{
-	// callback from javascript. 
-	void execute_console_command(char* command)
-	{
-		IConsoleManager::Get().ProcessUserConsoleInput(ANSI_TO_TCHAR(command), *GWarn, NULL );
-	}
-}
-
-

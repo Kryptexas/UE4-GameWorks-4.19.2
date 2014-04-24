@@ -161,11 +161,6 @@ public:
 	virtual FString IniPlatformName( ) const = 0;
 
 	/**
-	 * Enables/Disable the device check
-	 */
-	virtual void EnableDeviceCheck(bool OnOff) = 0;
-
-	/**
 	 * Returns all discoverable physical devices.
 	 *
 	 * @param OutDevices - Will contain a list of discovered devices.

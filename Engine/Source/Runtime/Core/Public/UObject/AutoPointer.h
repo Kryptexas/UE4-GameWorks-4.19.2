@@ -55,13 +55,13 @@ public:
 	/**  Compare for equality with a base pointer **/
 	FORCEINLINE bool operator==(const TBASE &Other) const
 	{
-		return (const TBASE&)*this == Other;
+		return TBASE::operator==(Other);
 	}
 	/**  Compare for equality with an auto pointer **/
 	template<class U, class UBASE>
 	FORCEINLINE bool operator==(const TAutoPointer<U,UBASE> &Other) const
 	{
-		return (const TBASE&)*this == Other;
+		return TBASE::operator==(Other);
 	}
 	/**  Compare for equality with a raw pointer **/
 	FORCEINLINE bool operator==(T* Other) const
@@ -82,13 +82,13 @@ public:
 	/**  Compare for inequality with a base pointer **/
 	FORCEINLINE bool operator!=(const TBASE &Other) const
 	{
-		return (const TBASE&)*this != Other;
+		return TBASE::operator!=(Other);
 	}
 	/**  Compare for equality with an auto pointer **/
 	template<class U, class UBASE>
 	FORCEINLINE bool operator!=(const TAutoPointer<U,UBASE> &Other) const
 	{
-		return (const TBASE&)*this != Other;
+		return TBASE::operator!=(Other);
 	}
 	/**  Compare for inequality with a raw pointer	**/
 	FORCEINLINE bool operator!=(T* Other) const

@@ -221,7 +221,6 @@ void FRCPassPostProcessScreenSpaceReflections::Process(FRenderingCompositePassCo
 
 
 	// Draw a quad mapping scene color to the view's render target
-	TShaderMapRef< FPostProcessVS > VertexShader(GetGlobalShaderMap());
 	DrawRectangle( 
 		0, 0,
 		View.ViewRect.Width(), View.ViewRect.Height(),
@@ -229,7 +228,6 @@ void FRCPassPostProcessScreenSpaceReflections::Process(FRenderingCompositePassCo
 		View.ViewRect.Width(), View.ViewRect.Height(),
 		View.ViewRect.Size(),
 		GSceneRenderTargets.GetBufferSizeXY(),
-		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
@@ -243,6 +241,7 @@ FPooledRenderTargetDesc FRCPassPostProcessScreenSpaceReflections::ComputeOutputD
 
 	return Ret;
 }
+
 void BuildHZB( const FViewInfo& View );
 
 void ScreenSpaceReflections( const FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& SSROutput )

@@ -89,8 +89,24 @@ void APawn::PostInitializeComponents()
 			SpawnDefaultController();
 		}
 
-		// update movement component's nav agent values
-		UpdateNavAgent();
+		UPawnMovementComponent* MovementComponent = GetMovementComponent();
+		// Update Nav Agent props with collision component's setup if it's not set yet
+		if (RootComponent != NULL && MovementComponent != NULL && MovementComponent->ShouldUpdateNavAgentWithOwnersCollision())
+		{
+			RootComponent->UpdateBounds();
+			MovementComponent->UpdateNavAgent(this);
+		}
+
+		//UPawnMovementComponent* MovementComponent = GetMovementComponent();
+		//if (MovementComponent != NULL)
+		//{
+		//	// Update Nav Agent props with collision component's setup if it's not set yet
+		//	float BoundRadius, BoundHalfHeight;
+		//	GetSimpleCollisionCylinder(BoundRadius, BoundHalfHeight);
+		//	FNavAgentProperties* NavAgent = MovementComponent->GetNavAgentProperties();
+		//	NavAgent->AgentRadius = BoundRadius;
+		//	NavAgent->AgentHeight = BoundHalfHeight * 2.f;
+		//}
 	}
 }
 
@@ -106,24 +122,6 @@ void APawn::PostLoad()
 
 	// A pawn should never have this enabled, so we'll aggressively disable it if it did occur.
 	AutoReceiveInput = EAutoReceiveInput::Disabled;
-}
-
-void APawn::PostRegisterAllComponents()
-{
-	Super::PostRegisterAllComponents();
-
-	UpdateNavAgent();
-}
-
-void APawn::UpdateNavAgent()
-{
-	UPawnMovementComponent* MovementComponent = GetMovementComponent();
-	//// Update Nav Agent props with collision component's setup if it's not set yet
-	if (RootComponent != NULL && MovementComponent != NULL && MovementComponent->ShouldUpdateNavAgentWithOwnersCollision())
-	{
-		RootComponent->UpdateBounds();
-		MovementComponent->UpdateNavAgent(this);
-	}
 }
 
 void APawn::PawnStartFire(uint8 FireModeNum) {}

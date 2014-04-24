@@ -1899,11 +1899,6 @@ public:
 	float GetGridSize();
 
 	/** 
-	 * @return - if the grid size is part of the 1,2,48,16,.. list or not
-	 */
-	bool IsGridSizePowerOfTwo() const;
-
-	/** 
 	 * Sets the selected positional snap grid setting
 	 *
 	 * @param InIndex - The index of the selected grid setting

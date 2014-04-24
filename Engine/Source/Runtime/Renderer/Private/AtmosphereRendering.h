@@ -69,7 +69,7 @@ public:
 private:
 	/** Atmosphere pre-computation related functions */
 	FIntPoint GetTextureSize();
-	inline void DrawQuad(const FIntRect& ViewRect, FShader* VertexShader);
+	inline void DrawQuad(const FIntRect& ViewRect);
 	void GetLayerValue(int Layer, float& AtmosphereR, FVector4& DhdH);
 	void RenderAtmosphereShaders(const FViewInfo& View, const FIntRect& ViewRect);
 	void PrecomputeAtmosphereData(const FViewInfo* View, FSceneViewFamily& ViewFamily);

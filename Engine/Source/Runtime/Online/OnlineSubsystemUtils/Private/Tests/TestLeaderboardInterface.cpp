@@ -65,7 +65,7 @@ void FTestLeaderboardInterface::WriteLeaderboards()
 	
 	// Set some data
 	WriteObject.SetIntStat("TestIntStat1", 50);
-	WriteObject.SetFloatStat("TestFloatStat1", 99.5f);
+	WriteObject.SetFloatStat("TestFloatStat1", 99.0f);
 
 	// Write it to the buffers
 	Leaderboards->WriteLeaderboards(TEXT("TEST"), *UserId, WriteObject);
@@ -91,17 +91,6 @@ void FTestLeaderboardInterface::OnLeaderboardReadComplete(bool bWasSuccessful)
 {
 	UE_LOG(LogOnline, Verbose, TEXT("OnLeaderboardReadComplete bWasSuccessful: %d"), bWasSuccessful);
 	bOverallSuccess = bOverallSuccess && bWasSuccessful;
-
-	for (int32 RowIdx = 0; RowIdx < ReadObject->Rows.Num(); ++RowIdx)
-	{
-		const FOnlineStatsRow& StatsRow = ReadObject->Rows[RowIdx];
-		UE_LOG(LogOnline, Log, TEXT("Leaderboard stats for: Nickname = %s, Rank = %d"), *StatsRow.NickName, StatsRow.Rank);
-
-		for (FStatsColumnArray::TConstIterator It(StatsRow.Columns); It; ++It)
-		{
-			UE_LOG(LogOnline, Log, TEXT("  %s = %s"), *It.Key().ToString(), *It.Value().ToString());
-		}
-	}
 
 	Leaderboards->ClearOnLeaderboardReadCompleteDelegate(LeaderboardReadCompleteDelegate);
 	TestPhase++;

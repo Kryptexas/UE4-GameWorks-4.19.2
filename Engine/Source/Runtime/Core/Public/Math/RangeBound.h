@@ -329,7 +329,7 @@ public:
 private:
 
 	// Holds the type of the bound.
-	TEnumAsByte<ERangeBoundTypes::Type> Type;
+	ERangeBoundTypes::Type Type;
 
 	// Holds the bound's value.
 	ElementType Value;

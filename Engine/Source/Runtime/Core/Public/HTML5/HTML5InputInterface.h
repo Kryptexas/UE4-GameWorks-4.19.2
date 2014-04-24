@@ -1,8 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include <SDL/SDL.h>
-
 
 /**
  * Interface class for HTML5 input devices                 
@@ -20,7 +18,8 @@ public:
 	void SetMessageHandler( const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler );
 
 	/** Tick the interface (i.e check for new controllers) */
-	void Tick( float DeltaTime, const SDL_Event& Event );
+	void Tick( float DeltaTime );
+
 	/**
 	 * Poll for controller state and send events if needed
 	 */

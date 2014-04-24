@@ -74,7 +74,6 @@ void FForwardShadingSceneRenderer::CopySceneAlpha(void)
 		X, Y,
 		FIntPoint(X, Y),
 		GSceneRenderTargets.GetBufferSizeXY(),
-		*ScreenVertexShader,
 		EDRF_UseTriangleOptimization);
 
 	GSceneRenderTargets.FinishRenderingSceneAlphaCopy();
@@ -303,15 +302,12 @@ void FForwardShadingSceneRenderer::RenderTranslucency()
 		const bool bGammaSpace = !IsMobileHDR();
 		const bool bLinearHDR64 = !bGammaSpace && !IsMobileHDR32bpp();
 
-#if PLATFORM_HTML5
 		// Copy the view so emulation of framebuffer fetch works for alpha=depth.
 		// Possible optimization: this copy shouldn't be needed unless something uses fetch of depth.
 		if(bLinearHDR64 && GSupportsRenderTargetFormat_PF_FloatRGBA && (GSupportsShaderFramebufferFetch == false) && (!IsPCPlatform(GRHIShaderPlatform)))
 		{
-			CopySceneAlpha();
+			//CopySceneAlpha();
 		}
-#endif 
-
 
 		SCOPED_DRAW_EVENT(Translucency, DEC_SCENE_ITEMS);
 

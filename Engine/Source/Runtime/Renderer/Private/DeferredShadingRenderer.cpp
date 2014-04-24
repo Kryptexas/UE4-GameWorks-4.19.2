@@ -127,7 +127,7 @@ void FDeferredShadingSceneRenderer::ClearGBufferAtMaxZ()
 
 	uint32 NumActiveRenderTargets = GSceneRenderTargets.GetNumGBufferTargets();
 	
-	TShaderMapRef<TOneColorVS<true> > VertexShader(GetGlobalShaderMap());
+	TShaderMapRef<FOneColorVS> VertexShader(GetGlobalShaderMap());
 	FOneColorPS* PixelShader = NULL; 
 
 	// Assume for now all code path supports SM4, otherwise render target numbers are changed
@@ -1035,7 +1035,6 @@ void FDeferredShadingSceneRenderer::UpdateDownsampledDepthSurface()
 				View.ViewRect.Width(), View.ViewRect.Height(),
 				FIntPoint(DownsampledSizeX, DownsampledSizeY),
 				GSceneRenderTargets.GetBufferSizeXY(),
-				*ScreenVertexShader,
 				EDRF_UseTriangleOptimization);
 		}
 	}
