@@ -5,6 +5,7 @@
 #include "SVectorInputBox.h"
 #include "IDesktopPlatform.h"
 #include "DesktopPlatformModule.h"
+#include "ContentBrowserModule.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 

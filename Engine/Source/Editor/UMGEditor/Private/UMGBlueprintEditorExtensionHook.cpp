@@ -12,6 +12,8 @@
 
 #include "SUMGEditorTree.h"
 #include "SUMGDesigner.h"
+#include "SUMGEditorWidgetTemplates.h"
+#include "SKismetInspector.h"
 
 #define LOCTEXT_NAMESPACE "UMG_EXTENSION"
 

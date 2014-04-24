@@ -12,6 +12,7 @@
 
 #include "BlueprintEditor.h"
 #include "SKismetInspector.h"
+#include "BlueprintEditorUtils.h"
 
 void SUMGEditorTree::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEditor> InBlueprintEditor, USimpleConstructionScript* InSCS)
 {

@@ -3,6 +3,7 @@
 #include "OnlineSubsystemPrivatePCH.h"
 #include "OnlineSubsystemImpl.h"
 #include "NamedInterfaces.h"
+#include "OnlineIdentityInterface.h"
 
 FOnlineSubsystemImpl::FOnlineSubsystemImpl() :
 	InstanceName(DEFAULT_INSTANCE),
