@@ -2,8 +2,6 @@
 
 
 #pragma once
-#include "LightMap.h"
-#include "ShadowMap.h"
 #include "StaticMeshComponent.generated.h"
 
 /** Cached vertex information at the time the mesh was painted. */
@@ -171,7 +169,7 @@ public:
 };
 
 /** A StaticMeshComponent is a mesh that does not animate. */
-UCLASS(ClassGroup=(Rendering, Common), hidecategories=(Object,Activation,"Components|Activation"), ShowCategories=(Mobility), dependson=ULightmassPrimitiveSettingsObject, editinlinenew, meta=(BlueprintSpawnableComponent))
+UCLASS(HeaderGroup=Component, ClassGroup=(Rendering, Common), hidecategories=(Object,Activation,"Components|Activation"), ShowCategories=(Mobility), dependson=ULightmassPrimitiveSettingsObject, editinlinenew, meta=(BlueprintSpawnableComponent))
 class ENGINE_API UStaticMeshComponent : public UMeshComponent
 {
 	GENERATED_UCLASS_BODY()

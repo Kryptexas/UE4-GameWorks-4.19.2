@@ -4,7 +4,7 @@
 #pragma once
 #include "InterpGroupInstDirector.generated.h"
 
-UCLASS(MinimalAPI)
+UCLASS(HeaderGroup=Interpolation, MinimalAPI)
 class UInterpGroupInstDirector : public UInterpGroupInst
 {
 	GENERATED_UCLASS_BODY()

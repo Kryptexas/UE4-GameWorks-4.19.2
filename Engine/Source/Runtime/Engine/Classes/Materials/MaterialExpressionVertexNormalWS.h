@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionVertexNormalWS.generated.h"
 
-UCLASS(collapsecategories, hidecategories=Object)
+UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
 class UMaterialExpressionVertexNormalWS : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

@@ -14,7 +14,7 @@ namespace EMaterialSceneAttributeInputMode
 	};
 }
 
-UCLASS(collapsecategories, hidecategories=Object)
+UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
 class UMaterialExpressionSceneColor : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

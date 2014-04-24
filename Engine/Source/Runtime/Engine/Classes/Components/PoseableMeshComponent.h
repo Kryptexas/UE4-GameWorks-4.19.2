@@ -1,7 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
+
+
+
 #pragma once
-#include "Animation/AnimationAsset.h"
 #include "PoseableMeshComponent.generated.h"
 
 UENUM()
@@ -21,7 +23,7 @@ namespace EBoneSpaces
 /**
  *	UPoseableMeshComponent that allows bone transforms to be driven by blueprint.
  */
-UCLASS(ClassGroup=Rendering, hidecategories=(Object,Physics), config=Engine, editinlinenew, meta=(BlueprintSpawnableComponent))
+UCLASS(HeaderGroup=Component, ClassGroup=Rendering, hidecategories=(Object,Physics), config=Engine, editinlinenew, meta=(BlueprintSpawnableComponent))
 class ENGINE_API UPoseableMeshComponent : public USkinnedMeshComponent
 {
 	GENERATED_UCLASS_BODY()

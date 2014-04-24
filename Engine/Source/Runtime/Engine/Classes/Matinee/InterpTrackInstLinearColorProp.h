@@ -4,7 +4,7 @@
 #pragma once
 #include "InterpTrackInstLinearColorProp.generated.h"
 
-UCLASS()
+UCLASS(HeaderGroup=Interpolation)
 class UInterpTrackInstLinearColorProp : public UInterpTrackInstProperty
 {
 	GENERATED_UCLASS_BODY()

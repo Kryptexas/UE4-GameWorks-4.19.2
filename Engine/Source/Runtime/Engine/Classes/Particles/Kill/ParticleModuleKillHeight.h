@@ -4,7 +4,7 @@
 #pragma once
 #include "ParticleModuleKillHeight.generated.h"
 
-UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Kill Height"))
+UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, meta=(DisplayName = "Kill Height"))
 class UParticleModuleKillHeight : public UParticleModuleKillBase
 {
 	GENERATED_UCLASS_BODY()

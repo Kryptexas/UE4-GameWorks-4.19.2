@@ -4,7 +4,7 @@
 #pragma once
 #include "ParticleModuleCameraBase.generated.h"
 
-UCLASS(editinlinenew, hidecategories=Object, abstract, meta=(DisplayName = "Camera"))
+UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, abstract, meta=(DisplayName = "Camera"))
 class UParticleModuleCameraBase : public UParticleModule
 {
 	GENERATED_UCLASS_BODY()

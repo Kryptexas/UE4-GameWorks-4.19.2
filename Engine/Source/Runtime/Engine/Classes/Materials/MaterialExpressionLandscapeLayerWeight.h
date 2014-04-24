@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionLandscapeLayerWeight.generated.h"
 
-UCLASS(collapsecategories, hidecategories=Object)
+UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
 class UMaterialExpressionLandscapeLayerWeight : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

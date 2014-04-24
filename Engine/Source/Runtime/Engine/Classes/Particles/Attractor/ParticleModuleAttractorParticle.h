@@ -12,7 +12,7 @@ enum EAttractorParticleSelectionMethod
 	EAPSM_MAX,
 };
 
-UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Particle Attractor"))
+UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Particle Attractor"))
 class UParticleModuleAttractorParticle : public UParticleModuleAttractorBase
 {
 	GENERATED_UCLASS_BODY()

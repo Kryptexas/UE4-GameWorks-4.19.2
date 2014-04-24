@@ -4,7 +4,7 @@
 #pragma once
 #include "ParticleModuleLifetime.generated.h"
 
-UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Lifetime"))
+UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Lifetime"))
 class UParticleModuleLifetime : public UParticleModuleLifetimeBase
 {
 	GENERATED_UCLASS_BODY()

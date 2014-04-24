@@ -4,7 +4,7 @@
 #pragma once
 #include "BrushComponent.generated.h"
 
-UCLASS(editinlinenew, MinimalAPI, showcategories=(Mobility), hidecategories=(Physics, Lighting, LOD, Rendering, TextureStreaming, Transform, Activation, "Components|Activation"))
+UCLASS(HeaderGroup=Component, editinlinenew, MinimalAPI, showcategories=(Mobility), hidecategories=(Physics, Lighting, LOD, Rendering, TextureStreaming, Transform, Activation, "Components|Activation"))
 class UBrushComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()

@@ -38,7 +38,7 @@ struct FSoundTrackKey
 	
 };
 
-UCLASS(MinimalAPI, meta=( DisplayName = "Sound Track" ) )
+UCLASS(HeaderGroup=Interpolation, MinimalAPI, meta=( DisplayName = "Sound Track" ) )
 class UInterpTrackSound : public UInterpTrackVectorBase
 {
 	GENERATED_UCLASS_BODY()

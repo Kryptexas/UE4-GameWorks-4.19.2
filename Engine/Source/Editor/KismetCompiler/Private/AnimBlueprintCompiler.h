@@ -5,14 +5,6 @@
 #include "KismetCompiler.h"
 #include "AnimGraphDefinitions.h"
 
-//
-// Forward declarations.
-//
-class UAnimationGraphSchema;
-class UAnimGraphNode_SaveCachedPose;
-class UAnimGraphNode_UseCachedPose;
-struct FPoseLinkMappingRecord;
-
 //////////////////////////////////////////////////////////////////////////
 // FAnimBlueprintCompiler
 

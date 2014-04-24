@@ -16,7 +16,7 @@ enum EDepthOfFieldFunctionValue
 	TDOF_MAX,
 };
 
-UCLASS()
+UCLASS(HeaderGroup=Material)
 class UMaterialExpressionDepthOfFieldFunction : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

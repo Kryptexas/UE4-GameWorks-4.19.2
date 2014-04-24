@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionGIReplace.generated.h"
 
-UCLASS()
+UCLASS(HeaderGroup=Material)
 class UMaterialExpressionGIReplace : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

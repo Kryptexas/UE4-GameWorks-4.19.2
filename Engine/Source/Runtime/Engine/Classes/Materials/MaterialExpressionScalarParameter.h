@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionScalarParameter.generated.h"
 
-UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
+UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object, MinimalAPI)
 class UMaterialExpressionScalarParameter : public UMaterialExpressionParameter
 {
 	GENERATED_UCLASS_BODY()

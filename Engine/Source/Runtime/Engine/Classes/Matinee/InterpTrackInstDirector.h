@@ -4,7 +4,7 @@
 #pragma once
 #include "InterpTrackInstDirector.generated.h"
 
-UCLASS(MinimalAPI)
+UCLASS(HeaderGroup=Interpolation, MinimalAPI)
 class UInterpTrackInstDirector : public UInterpTrackInst
 {
 	GENERATED_UCLASS_BODY()

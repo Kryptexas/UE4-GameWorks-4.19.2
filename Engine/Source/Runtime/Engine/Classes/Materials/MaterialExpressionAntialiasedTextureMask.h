@@ -14,7 +14,7 @@ enum ETextureColorChannel
 	TCC_MAX,
 };
 
-UCLASS(MinimalAPI)
+UCLASS(HeaderGroup=Material, MinimalAPI)
 class UMaterialExpressionAntialiasedTextureMask : public UMaterialExpressionTextureSampleParameter2D
 {
 	GENERATED_UCLASS_BODY()

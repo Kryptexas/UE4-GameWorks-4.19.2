@@ -14,7 +14,7 @@ namespace physx
 /**
  *	Utility object for moving physics objects around.
  */
-UCLASS(collapsecategories, ClassGroup=Physics, hidecategories=Object, MinimalAPI, meta=(BlueprintSpawnableComponent))
+UCLASS(collapsecategories, ClassGroup=Physics, hidecategories=Object, HeaderGroup=Component, MinimalAPI, meta=(BlueprintSpawnableComponent))
 class UPhysicsHandleComponent : public UActorComponent
 {
 	GENERATED_UCLASS_BODY()

@@ -9,7 +9,7 @@
 
 #include "MaterialExpressionParticleRelativeTime.generated.h"
 
-UCLASS(collapsecategories, hidecategories=Object)
+UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
 class UMaterialExpressionParticleRelativeTime : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

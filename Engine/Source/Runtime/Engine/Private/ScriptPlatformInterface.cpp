@@ -5,6 +5,8 @@
 =============================================================================*/ 
 
 #include "EnginePrivate.h"
+#include "EngineGameEngineClasses.h"
+#include "EnginePlatformInterfaceClasses.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogScriptPlatformInterface, Log, All);
 

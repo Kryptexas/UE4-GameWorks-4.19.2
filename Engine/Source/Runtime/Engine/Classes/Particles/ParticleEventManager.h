@@ -4,7 +4,7 @@
 #pragma once
 #include "ParticleEventManager.generated.h"
 
-UCLASS(dependson=UParticleSystemComponent, config=Game, NotBlueprintable, notplaceable)
+UCLASS(HeaderGroup=Particle, dependson=UParticleSystemComponent, config=Game, NotBlueprintable, notplaceable)
 class AParticleEventManager : public AActor
 {
 	GENERATED_UCLASS_BODY()

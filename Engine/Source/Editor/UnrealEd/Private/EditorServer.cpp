@@ -4,6 +4,7 @@
 #include "UnrealEd.h"
 #include "Factories.h"
 #include "BusyCursor.h"
+#include "EngineInterpolationClasses.h"
 #include "SoundDefinitions.h"
 #include "ParticleDefinitions.h"
 #include "AnimationUtils.h"

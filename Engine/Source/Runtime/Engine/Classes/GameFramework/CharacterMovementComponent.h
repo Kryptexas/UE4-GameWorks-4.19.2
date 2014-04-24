@@ -137,7 +137,7 @@ struct FRootMotionMovementParams
 };
 
 
-UCLASS(dependson=(UNetworkPredictionInterface))
+UCLASS(HeaderGroup=Component, dependson=(UNetworkPredictionInterface))
 class ENGINE_API UCharacterMovementComponent : public UPawnMovementComponent, public INetworkPredictionInterface
 {
 	GENERATED_UCLASS_BODY()

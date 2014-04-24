@@ -81,7 +81,7 @@ enum ESkyLightSourceType
 	SLS_MAX,
 };
 
-UCLASS(ClassGroup=Lights, HideCategories=(Trigger,Activation,"Components|Activation",Physics), meta=(BlueprintSpawnableComponent))
+UCLASS(HeaderGroup=Component, ClassGroup=Lights, HideCategories=(Trigger,Activation,"Components|Activation",Physics), meta=(BlueprintSpawnableComponent))
 class ENGINE_API USkyLightComponent : public ULightComponentBase
 {
 	GENERATED_UCLASS_BODY()

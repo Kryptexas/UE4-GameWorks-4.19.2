@@ -4,7 +4,7 @@
 #pragma once
 #include "ParticleModuleVelocityInheritParent.generated.h"
 
-UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Inherit Parent Velocity"))
+UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Inherit Parent Velocity"))
 class UParticleModuleVelocityInheritParent : public UParticleModuleVelocityBase
 {
 	GENERATED_UCLASS_BODY()

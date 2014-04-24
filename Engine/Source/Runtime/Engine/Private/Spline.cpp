@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "EngineSplineClasses.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSpline, Log, All);
 

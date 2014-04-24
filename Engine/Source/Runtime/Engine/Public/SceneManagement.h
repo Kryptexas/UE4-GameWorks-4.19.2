@@ -9,6 +9,7 @@
 // Includes the draw mesh macros
 #include "SceneUtils.h"
 #include "UniformBuffer.h"
+#include "EngineSceneClasses.h"
 #include "BufferVisualizationData.h"
 #include "ConvexVolume.h"
 #include "SystemSettings.h"

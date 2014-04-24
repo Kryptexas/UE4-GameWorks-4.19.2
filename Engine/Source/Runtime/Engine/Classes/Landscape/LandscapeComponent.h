@@ -2,8 +2,7 @@
 
 #pragma once
 #include "LandscapeLayerInfoObject.h"
-#include "LightMap.h"
-#include "ShadowMap.h"
+
 #include "LandscapeComponent.generated.h"
 
 class FLandscapeComponentDerivedData
@@ -81,7 +80,7 @@ struct FWeightmapLayerAllocationInfo
 	}
 };
 
-UCLASS(hidecategories=(Display, Attachment, Physics, Debug, Collision, Movement, Rendering, PrimitiveComponent, Object, Transform), MinimalAPI)
+UCLASS(HeaderGroup=Terrain, hidecategories=(Display, Attachment, Physics, Debug, Collision, Movement, Rendering, PrimitiveComponent, Object, Transform), MinimalAPI)
 class ULandscapeComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()

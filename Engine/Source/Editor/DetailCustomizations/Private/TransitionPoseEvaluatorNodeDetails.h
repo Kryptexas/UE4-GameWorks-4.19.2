@@ -5,11 +5,6 @@
 #include "PreviewScene.h"
 #include "AnimGraphDefinitions.h"
 
-//
-// Forward declarations.
-//
-class UAnimGraphNode_TransitionPoseEvaluator;
-
 class FTransitionPoseEvaluatorNodeDetails : public IDetailCustomization
 {
 public:

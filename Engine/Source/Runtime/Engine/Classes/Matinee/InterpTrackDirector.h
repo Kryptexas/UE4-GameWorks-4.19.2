@@ -41,7 +41,7 @@ struct FDirectorTrackCut
 
 };
 
-UCLASS(MinimalAPI, meta=( DisplayName = "Director Track" ) )
+UCLASS(HeaderGroup=Interpolation, MinimalAPI, meta=( DisplayName = "Director Track" ) )
 class UInterpTrackDirector : public UInterpTrack
 {
 	GENERATED_UCLASS_BODY()

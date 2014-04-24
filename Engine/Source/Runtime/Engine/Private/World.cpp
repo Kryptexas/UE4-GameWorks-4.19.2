@@ -6,6 +6,8 @@
 
 #include "EnginePrivate.h"
 #include "Net/UnrealNetwork.h"
+#include "EngineLevelScriptClasses.h"
+#include "EngineUserInterfaceClasses.h"
 #include "ParticleDefinitions.h"
 #include "Database.h"
 #include "Net/NetworkProfiler.h"

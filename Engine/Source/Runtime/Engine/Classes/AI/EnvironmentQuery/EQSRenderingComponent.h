@@ -2,8 +2,6 @@
 
 #pragma once
 #include "DebugRenderSceneProxy.h"
-#include "Debug/DebugDrawService.h"
-#include "EnvQueryTypes.h"
 #include "EQSRenderingComponent.generated.h"
 
 class FEQSSceneProxy : public FDebugRenderSceneProxy
@@ -30,7 +28,7 @@ private:
 	bool SafeIsActorSelected() const;
 };
 
-UCLASS(hidecategories=Object)
+UCLASS(HeaderGroup=Component, hidecategories=Object)
 class ENGINE_API UEQSRenderingComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()

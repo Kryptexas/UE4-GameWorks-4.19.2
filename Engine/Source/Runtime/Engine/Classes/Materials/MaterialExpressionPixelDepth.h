@@ -7,7 +7,7 @@
 #pragma once
 #include "MaterialExpressionPixelDepth.generated.h"
 
-UCLASS(collapsecategories, hidecategories=Object)
+UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
 class UMaterialExpressionPixelDepth : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

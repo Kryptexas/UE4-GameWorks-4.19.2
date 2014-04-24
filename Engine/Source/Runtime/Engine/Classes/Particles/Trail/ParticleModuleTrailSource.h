@@ -28,7 +28,7 @@ enum ETrail2SourceMethod
 	PET2SRCM_MAX,
 };
 
-UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Source"))
+UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Source"))
 class UParticleModuleTrailSource : public UParticleModuleTrailBase
 {
 	GENERATED_UCLASS_BODY()

@@ -3,7 +3,7 @@
 #pragma once
 #include "ReflectionCapture.generated.h"
 
-UCLASS(abstract, hidecategories=(Collision, Attachment, Actor), MinimalAPI)
+UCLASS(abstract, hidecategories=(Collision, Attachment, Actor), HeaderGroup=Decal, MinimalAPI)
 class AReflectionCapture : public AActor
 {
 	GENERATED_UCLASS_BODY()

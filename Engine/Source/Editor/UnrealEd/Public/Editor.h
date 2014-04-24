@@ -8,6 +8,7 @@
 
 #include "Engine.h"
 
+#include "EngineInterpolationClasses.h"
 #include "Commandlets/EditorCommandlets.h"
 #include "EditorUndoClient.h"
 #include "TickableEditorObject.h"

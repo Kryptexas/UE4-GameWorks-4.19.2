@@ -4,6 +4,7 @@
 #include "ScopedTransaction.h"
 #include "K2Node_PlayMovieScene.h"
 #include "BlueprintUtilities.h"
+#include "EngineLevelScriptClasses.h"		// For ALevelScriptActor
 #include "MovieScene.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "MovieSceneBindings.h"

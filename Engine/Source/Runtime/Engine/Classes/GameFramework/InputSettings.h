@@ -1,10 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "PlayerInput.h"
+
 #include "InputSettings.generated.h"
 
-UCLASS(config=Input)
+UCLASS(config=Input, HeaderGroup=UserInterface)
 class ENGINE_API UInputSettings : public UObject
 {
 	GENERATED_UCLASS_BODY()

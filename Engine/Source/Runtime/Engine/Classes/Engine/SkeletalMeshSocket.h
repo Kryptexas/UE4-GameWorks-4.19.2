@@ -4,7 +4,7 @@
 #pragma once
 #include "SkeletalMeshSocket.generated.h"
 
-UCLASS(hidecategories=Object, hidecategories=Actor, MinimalAPI)
+UCLASS(HeaderGroup=SkeletalMesh, hidecategories=Object, hidecategories=Actor, MinimalAPI)
 class USkeletalMeshSocket : public UObject
 {
 	GENERATED_UCLASS_BODY()

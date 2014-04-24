@@ -8,10 +8,6 @@
 #include "KismetNodes/KismetNodeInfoContext.h"
 #include "SoundDefinitions.h"
 #include "AnimationStateNodes/SGraphNodeAnimTransition.h"
-#include "AnimStateTransitionNode.h"
-#include "AnimStateEntryNode.h"
-#include "AnimationGraphSchema.h"
-#include "AnimGraphNode_Base.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogConnectionDrawingPolicy, Log, All);
 

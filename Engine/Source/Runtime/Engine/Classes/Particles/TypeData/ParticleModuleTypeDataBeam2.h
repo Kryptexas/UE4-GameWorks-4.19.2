@@ -49,7 +49,7 @@ struct FBeamTargetData
 
 };
 
-UCLASS(editinlinenew, dontcollapsecategories, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Beam Data"))
+UCLASS(HeaderGroup=Particle, editinlinenew, dontcollapsecategories, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Beam Data"))
 class UParticleModuleTypeDataBeam2 : public UParticleModuleTypeDataBase
 {
 	GENERATED_UCLASS_BODY()

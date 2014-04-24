@@ -2,6 +2,8 @@
 
 #include "UnrealEd.h"
 #include "AssetSelection.h"
+#include "EngineLightClasses.h"
+#include "EngineDecalClasses.h"
 #include "ScopedTransaction.h"
 
 #include "LevelUtils.h"

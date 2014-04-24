@@ -7,7 +7,7 @@
 /** 
  * A sphere generally used for simple collision. Bounds are rendered as lines in the editor.
  */
-UCLASS(collapsecategories, hidecategories=Object, editinlinenew, MinimalAPI)
+UCLASS(HeaderGroup=Component, collapsecategories, hidecategories=Object, editinlinenew, MinimalAPI)
 class UDrawSphereComponent : public USphereComponent
 {
 	GENERATED_UCLASS_BODY()

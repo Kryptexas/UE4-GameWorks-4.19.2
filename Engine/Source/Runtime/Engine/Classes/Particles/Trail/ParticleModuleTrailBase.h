@@ -9,7 +9,7 @@
 #pragma once
 #include "ParticleModuleTrailBase.generated.h"
 
-UCLASS(editinlinenew, hidecategories=Object, abstract, meta=(DisplayName = "Trail"))
+UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, abstract, meta=(DisplayName = "Trail"))
 class UParticleModuleTrailBase : public UParticleModule
 {
 	GENERATED_UCLASS_BODY()

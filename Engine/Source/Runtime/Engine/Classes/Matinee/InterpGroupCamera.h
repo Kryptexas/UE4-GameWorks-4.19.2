@@ -46,7 +46,7 @@ struct FCameraPreviewInfo
 	
 };
 
-UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
+UCLASS(HeaderGroup=Interpolation, collapsecategories, hidecategories=Object, MinimalAPI)
 class UInterpGroupCamera : public UInterpGroup
 {
 	GENERATED_UCLASS_BODY()

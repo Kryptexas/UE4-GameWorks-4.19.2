@@ -7,9 +7,13 @@
 #include "UnrealEd.h"
 #include "Factories.h"
 #include "SoundDefinitions.h"
+#include "EngineParticleClasses.h"
 #include "BlueprintUtilities.h"
 #include "Kismet2/KismetEditorUtilities.h"
+#include "EngineInterpolationClasses.h"
+#include "EngineFoliageClasses.h"
 #include "BusyCursor.h"
+#include "EngineMaterialClasses.h"
 #include "BSPOps.h"
 #include "LevelUtils.h"
 #include "ObjectTools.h"
@@ -23,6 +27,7 @@
 #include "ClassViewerModule.h"
 #include "ClassViewerFilter.h"
 #include "AssetRegistryModule.h"
+#include "EngineLevelScriptClasses.h"		// So we can filter out ALevelScriptActors
 
 #define LOCTEXT_NAMESPACE "AnimBlueprintFactory"
 

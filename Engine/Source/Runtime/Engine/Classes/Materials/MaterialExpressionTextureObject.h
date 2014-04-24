@@ -8,7 +8,7 @@
 #pragma once
 #include "MaterialExpressionTextureObject.generated.h"
 
-UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
+UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object, MinimalAPI)
 class UMaterialExpressionTextureObject : public UMaterialExpressionTextureBase
 {
 	GENERATED_UCLASS_BODY()

@@ -7,7 +7,7 @@
 /**
  *	Used to create fogging effects such as clouds but with a density that is related to the height of the fog.
  */
-UCLASS(ClassGroup=Rendering, collapsecategories, hidecategories=(Object, Mobility), editinlinenew, meta=(BlueprintSpawnableComponent))
+UCLASS(HeaderGroup=Component, ClassGroup=Rendering, collapsecategories, hidecategories=(Object, Mobility), editinlinenew, meta=(BlueprintSpawnableComponent))
 class ENGINE_API UExponentialHeightFogComponent : public USceneComponent
 {
 	GENERATED_UCLASS_BODY()

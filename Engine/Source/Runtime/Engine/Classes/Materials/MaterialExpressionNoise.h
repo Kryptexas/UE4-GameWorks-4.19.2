@@ -18,7 +18,7 @@ enum ENoiseFunction
 	NOISEFUNCTION_MAX,
 };
 
-UCLASS()
+UCLASS(HeaderGroup=Material)
 class UMaterialExpressionNoise : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

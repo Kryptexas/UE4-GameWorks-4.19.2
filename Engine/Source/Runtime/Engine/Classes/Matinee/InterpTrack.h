@@ -10,12 +10,6 @@
 
 #include "InterpTrack.generated.h"
 
-//
-// Forward declarations
-//
-class FCanvas;
-
-
 /** Required condition for this track to be enabled */
 UENUM()
 enum ETrackActiveCondition
@@ -87,7 +81,7 @@ struct FSubTrackGroup
 
 };
 
-UCLASS(collapsecategories, hidecategories=Object, abstract, MinimalAPI)
+UCLASS(HeaderGroup=Interpolation, collapsecategories, hidecategories=Object, abstract, MinimalAPI)
 class UInterpTrack : public UObject, public FCurveEdInterface, public FInterpEdInputInterface
 {
 	GENERATED_UCLASS_BODY()

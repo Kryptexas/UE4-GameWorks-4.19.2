@@ -4,7 +4,7 @@
 #pragma once
 #include "ParticleModuleColorBase.generated.h"
 
-UCLASS(editinlinenew, hidecategories=Object, abstract, meta=(DisplayName = "Color"))
+UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, abstract, meta=(DisplayName = "Color"))
 class UParticleModuleColorBase : public UParticleModule
 {
 	GENERATED_UCLASS_BODY()

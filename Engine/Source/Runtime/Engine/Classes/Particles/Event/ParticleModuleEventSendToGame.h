@@ -4,7 +4,7 @@
 #pragma once
 #include "ParticleModuleEventSendToGame.generated.h"
 
-UCLASS(abstract, editinlinenew, hidecategories=Object)
+UCLASS(HeaderGroup=Particle, abstract, editinlinenew, hidecategories=Object)
 class UParticleModuleEventSendToGame : public UObject
 {
 	GENERATED_UCLASS_BODY()

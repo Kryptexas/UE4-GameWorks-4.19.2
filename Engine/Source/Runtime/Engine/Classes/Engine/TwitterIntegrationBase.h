@@ -28,7 +28,7 @@ enum ETwitterIntegrationDelegate
 	TID_MAX,
 };
 
-UCLASS(config=Engine)
+UCLASS(HeaderGroup=PlatformInterface, config=Engine)
 class UTwitterIntegrationBase : public UPlatformInterfaceBase
 {
 	GENERATED_UCLASS_BODY()

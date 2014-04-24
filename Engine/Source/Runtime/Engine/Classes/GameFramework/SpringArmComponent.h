@@ -11,7 +11,7 @@
  * Example: Use as a 'camera boom' to keep the follow camera for a player from colliding into the world.
  */
 
-UCLASS(ClassGroup=Camera, meta=(BlueprintSpawnableComponent), hideCategories=(Mobility))
+UCLASS(HeaderGroup=Component, ClassGroup=Camera, meta=(BlueprintSpawnableComponent), hideCategories=(Mobility))
 class ENGINE_API USpringArmComponent : public USceneComponent
 {
 	GENERATED_UCLASS_BODY()

@@ -4,7 +4,7 @@
 #pragma once
 #include "StaticMeshSocket.generated.h"
 
-UCLASS(hidecategories=Object, hidecategories=Actor, MinimalAPI)
+UCLASS(HeaderGroup=StaticMesh, hidecategories=Object, hidecategories=Actor, MinimalAPI)
 class UStaticMeshSocket : public UObject
 {
 	GENERATED_UCLASS_BODY()

@@ -4,7 +4,7 @@
 #pragma once
 #include "DistributionVectorParticleParameter.generated.h"
 
-UCLASS(collapsecategories, hidecategories=Object, editinlinenew, MinimalAPI)
+UCLASS(HeaderGroup=Particle, collapsecategories, hidecategories=Object, editinlinenew, MinimalAPI)
 class UDistributionVectorParticleParameter : public UDistributionVectorParameterBase
 {
 	GENERATED_UCLASS_BODY()

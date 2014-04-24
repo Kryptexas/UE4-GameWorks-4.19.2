@@ -4,7 +4,7 @@
 #pragma once
 #include "NavMeshRenderingComponent.generated.h"
 
-UCLASS(hidecategories=Object, editinlinenew)
+UCLASS(HeaderGroup=Component, hidecategories=Object, editinlinenew)
 class UNavMeshRenderingComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()

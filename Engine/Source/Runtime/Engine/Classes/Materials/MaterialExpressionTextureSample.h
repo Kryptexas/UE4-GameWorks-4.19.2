@@ -15,7 +15,7 @@ enum ETextureMipValueMode
 	TMVM_MAX,
 };
 
-UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
+UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object, MinimalAPI)
 class UMaterialExpressionTextureSample : public UMaterialExpressionTextureBase
 {
 	GENERATED_UCLASS_BODY()

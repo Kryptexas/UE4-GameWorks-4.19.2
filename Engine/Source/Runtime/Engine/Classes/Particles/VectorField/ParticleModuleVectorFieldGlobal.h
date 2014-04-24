@@ -8,7 +8,7 @@
 
 #include "ParticleModuleVectorFieldGlobal.generated.h"
 
-UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Global Vector Fields"))
+UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, meta=(DisplayName = "Global Vector Fields"))
 class UParticleModuleVectorFieldGlobal : public UParticleModuleVectorFieldBase
 {
 	GENERATED_UCLASS_BODY()

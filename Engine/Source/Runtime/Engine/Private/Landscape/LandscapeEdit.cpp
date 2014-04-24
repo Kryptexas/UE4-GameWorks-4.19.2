@@ -5,6 +5,7 @@ LandscapeEdit.cpp: Landscape editing
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "EngineFoliageClasses.h"
 #include "Landscape/LandscapeDataAccess.h"
 #include "Landscape/LandscapeEdit.h"
 #include "Landscape/LandscapeRender.h"
@@ -2676,6 +2677,7 @@ void ULandscapeInfo::ExportLayer(ULandscapeLayerInfoObject* LayerInfo, const FSt
 //////////////////////////////////////////////////////////////////////////
 // Apply splines
 //////////////////////////////////////////////////////////////////////////
+#include "EngineSplineClasses.h"
 #include "Raster.h"
 
 class FLandscapeSplineHeightsRasterPolicy

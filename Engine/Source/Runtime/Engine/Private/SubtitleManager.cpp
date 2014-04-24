@@ -2,6 +2,7 @@
 
 
 #include "EnginePrivate.h"
+#include "EngineUserInterfaceClasses.h"
 #include "SubtitleManager.h"
 #include "SoundDefinitions.h"
 

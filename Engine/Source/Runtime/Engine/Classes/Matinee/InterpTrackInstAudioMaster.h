@@ -4,7 +4,7 @@
 #pragma once
 #include "InterpTrackInstAudioMaster.generated.h"
 
-UCLASS()
+UCLASS(HeaderGroup=Interpolation)
 class UInterpTrackInstAudioMaster : public UInterpTrackInst
 {
 	GENERATED_UCLASS_BODY()

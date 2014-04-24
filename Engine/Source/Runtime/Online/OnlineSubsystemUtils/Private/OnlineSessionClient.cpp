@@ -6,6 +6,7 @@
 =============================================================================*/
 
 #include "OnlineSubsystemUtilsPrivatePCH.h"
+#include "EngineNetworkClasses.h"
 
 #define INVALID_CONTROLLERID 255
 

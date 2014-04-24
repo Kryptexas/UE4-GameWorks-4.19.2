@@ -87,7 +87,7 @@ struct FActorDestructionInfo
 };
 
 
-UCLASS(dependson=UEngineTypes, Abstract, customConstructor, transient, MinimalAPI, config=Engine)
+UCLASS(HeaderGroup=Network, dependson=UEngineTypes, Abstract, customConstructor, transient, MinimalAPI, config=Engine)
 class UNetDriver : public UObject, public FExec
 {
 	GENERATED_UCLASS_BODY()

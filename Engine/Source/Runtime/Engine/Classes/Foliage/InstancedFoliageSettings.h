@@ -15,7 +15,7 @@ enum FoliageVertexColorMask
 };
 
 
-UCLASS(hidecategories=Object, editinlinenew, MinimalAPI)
+UCLASS(HeaderGroup=Foliage, hidecategories=Object, editinlinenew, MinimalAPI)
 class UInstancedFoliageSettings : public UObject
 {
 	GENERATED_UCLASS_BODY()

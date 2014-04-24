@@ -5,6 +5,8 @@
 =============================================================================*/ 
 
 #include "EnginePrivate.h"
+#include "EngineGameEngineClasses.h"
+#include "EnginePlatformInterfaceClasses.h"
 
 UInGameAdManager::UInGameAdManager(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

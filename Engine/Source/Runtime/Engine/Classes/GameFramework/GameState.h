@@ -8,7 +8,7 @@
 // GameState is replicated and is valid on servers and clients.
 //=============================================================================
 
-UCLASS(config=Game, notplaceable, BlueprintType, Blueprintable)
+UCLASS(config=Game, HeaderGroup=ReplicationInfo, notplaceable, BlueprintType, Blueprintable)
 class ENGINE_API AGameState : public AInfo
 {
 	GENERATED_UCLASS_BODY()

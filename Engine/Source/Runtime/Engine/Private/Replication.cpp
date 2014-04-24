@@ -6,6 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "Net/UnrealNetwork.h"
+#include "EngineInterpolationClasses.h"
 #include "NavigationPathBuilder.h"
 #include "SoundDefinitions.h"
 

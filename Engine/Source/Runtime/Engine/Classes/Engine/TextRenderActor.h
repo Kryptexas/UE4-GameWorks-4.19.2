@@ -8,7 +8,7 @@
 
 #include "TextRenderActor.generated.h"
 
-UCLASS(MinimalAPI, hidecategories=(Collision, Attachment, Actor))
+UCLASS(MinimalAPI, hidecategories=(Collision, Attachment, Actor), HeaderGroup=Decal)
 class ATextRenderActor : public AActor
 {
 	GENERATED_UCLASS_BODY()

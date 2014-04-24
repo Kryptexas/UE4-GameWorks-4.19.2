@@ -545,7 +545,7 @@ struct FExposureSettings
 };
 
 
-UCLASS(abstract, config=Engine)
+UCLASS(HeaderGroup=Base, abstract, config=Engine)
 class UEngineBaseTypes : public UObject
 {
 	GENERATED_UCLASS_BODY()

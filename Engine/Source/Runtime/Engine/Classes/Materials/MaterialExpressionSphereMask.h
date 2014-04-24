@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionSphereMask.generated.h"
 
-UCLASS()
+UCLASS(HeaderGroup=Material)
 class UMaterialExpressionSphereMask : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

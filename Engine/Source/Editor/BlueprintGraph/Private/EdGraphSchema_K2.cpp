@@ -13,6 +13,7 @@
 
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Kismet2/KismetDebugUtilities.h"
+#include "EngineKismetLibraryClasses.h"
 #include "ComponentAssetBroker.h"
 #include "AssetData.h"
 #include "Editor/UnrealEd/Public/EdGraphUtilities.h"

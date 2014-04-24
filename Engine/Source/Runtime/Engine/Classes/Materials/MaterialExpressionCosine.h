@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionCosine.generated.h"
 
-UCLASS(collapsecategories, hidecategories=Object)
+UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
 class UMaterialExpressionCosine : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

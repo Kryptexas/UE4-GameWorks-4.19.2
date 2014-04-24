@@ -42,7 +42,7 @@ struct FToggleTrackKey
 
 };
 
-UCLASS(MinimalAPI, meta=( DisplayName = "Toggle Track" ) )
+UCLASS(HeaderGroup=Interpolation, MinimalAPI, meta=( DisplayName = "Toggle Track" ) )
 class UInterpTrackToggle : public UInterpTrack
 {
 	GENERATED_UCLASS_BODY()

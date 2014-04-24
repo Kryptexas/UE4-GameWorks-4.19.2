@@ -4,7 +4,7 @@
 #pragma once
 #include "InterpTrackLinearColorBase.generated.h"
 
-UCLASS(abstract, MinimalAPI)
+UCLASS(HeaderGroup=Interpolation, abstract, MinimalAPI)
 class UInterpTrackLinearColorBase : public UInterpTrack
 {
 	GENERATED_UCLASS_BODY()

@@ -25,7 +25,7 @@ enum EParticleCollisionComplete
 	EPCC_MAX,
 };
 
-UCLASS(editinlinenew, hidecategories=Object, abstract, meta=(DisplayName = "Collision"))
+UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, abstract, meta=(DisplayName = "Collision"))
 class UParticleModuleCollisionBase : public UParticleModule
 {
 	GENERATED_UCLASS_BODY()

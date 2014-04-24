@@ -4,7 +4,7 @@
 #pragma once
 #include "InterpTrackInstBoolProp.generated.h"
 
-UCLASS()
+UCLASS(HeaderGroup=Interpolation)
 class UInterpTrackInstBoolProp : public UInterpTrackInstProperty
 {
 	GENERATED_UCLASS_BODY()

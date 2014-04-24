@@ -9,6 +9,7 @@
 #include "BlueprintUtilities.h"
 #include "SkeletalRenderCPUSkin.h"
 #include "SkeletalRenderGPUSkin.h"
+#include "EngineInterpolationClasses.h"
 #include "AnimEncoding.h"
 #include "AnimationUtils.h"
 #include "AnimationRuntime.h"

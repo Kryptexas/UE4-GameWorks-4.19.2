@@ -65,7 +65,7 @@ struct FFunctionExpressionOutput
 
 };
 
-UCLASS(hidecategories=object, MinimalAPI)
+UCLASS(HeaderGroup=Material, hidecategories=object, MinimalAPI)
 class UMaterialExpressionMaterialFunctionCall : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

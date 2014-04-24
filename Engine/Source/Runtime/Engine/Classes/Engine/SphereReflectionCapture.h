@@ -8,11 +8,7 @@
 #pragma once
 #include "SphereReflectionCapture.generated.h"
 
-//
-// Forward declarations.
-//
-class UDrawSphereComponent;
-UCLASS(hidecategories=(Collision, Attachment, Actor), MinimalAPI)
+UCLASS(hidecategories=(Collision, Attachment, Actor), HeaderGroup=Decal, MinimalAPI)
 class ASphereReflectionCapture : public AReflectionCapture
 {
 	GENERATED_UCLASS_BODY()

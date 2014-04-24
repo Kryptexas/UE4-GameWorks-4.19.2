@@ -173,7 +173,7 @@ struct ENGINE_API FNetViewer
 /**
  * Actor containing all script accessible world properties.
  */
-UCLASS(config=game, showcategories=(Rendering), hidecategories=(Actor, Advanced, Display, Events, Object, Attachment, Info, Input, Blueprint, Layers), notplaceable, dependson=(APostProcessVolume, UMusicTrackDataStructures))
+UCLASS(HeaderGroup=GameEngine, config=game, showcategories=(Rendering), hidecategories=(Actor, Advanced, Display, Events, Object, Attachment, Info, Input, Blueprint, Layers), notplaceable, dependson=(APostProcessVolume, UMusicTrackDataStructures))
 class ENGINE_API AWorldSettings : public AInfo
 {
 	GENERATED_UCLASS_BODY()

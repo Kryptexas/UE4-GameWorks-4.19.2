@@ -90,7 +90,7 @@ struct FLightmassMaterialInterfaceSettings
 	
 };
 
-UCLASS(abstract, BlueprintType,MinimalAPI)
+UCLASS(abstract, HeaderGroup=Material, BlueprintType,MinimalAPI)
 class UMaterialInterface : public UObject, public IBlendableInterface
 {
 	GENERATED_UCLASS_BODY()

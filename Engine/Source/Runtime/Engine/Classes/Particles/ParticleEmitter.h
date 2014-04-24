@@ -6,7 +6,6 @@
 //=============================================================================
 
 #pragma once
-#include "ParticleEmitterInstances.h"
 #include "ParticleEmitter.generated.h"
 
 //=============================================================================
@@ -75,7 +74,7 @@ struct FParticleBurst
 	
 };
 
-UCLASS(dependson=UParticleLODLevel, hidecategories=Object, editinlinenew, abstract, MinimalAPI)
+UCLASS(HeaderGroup=Particle, dependson=UParticleLODLevel, hidecategories=Object, editinlinenew, abstract, MinimalAPI)
 class UParticleEmitter : public UObject
 {
 	GENERATED_UCLASS_BODY()

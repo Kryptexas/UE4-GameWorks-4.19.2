@@ -8,33 +8,8 @@
 #include "../../../Runtime/Engine/Classes/Kismet/KismetMathLibrary.h"
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
 #include "Editor/UnrealEd/Public/Kismet2/KismetReinstanceUtilities.h"
-#include "AnimationGraphSchema.h"
-#include "AnimStateNode.h"
-#include "AnimStateConduitNode.h"
-#include "AnimStateEntryNode.h"
-#include "AnimStateTransitionNode.h"
-#include "AnimationCustomTransitionGraph.h"
-#include "AnimationStateGraph.h"
-#include "AnimationStateMachineGraph.h"
-#include "AnimationStateMachineSchema.h"
-#include "AnimationTransitionGraph.h"
-#include "AnimGraphNode_Base.h"
-#include "AnimGraphNode_CustomTransitionResult.h"
-#include "AnimGraphNode_Root.h"
-#include "AnimGraphNode_UseCachedPose.h"
-#include "AnimGraphNode_StateMachineBase.h"
-#include "AnimGraphNode_StateResult.h"
-#include "AnimGraphNode_SaveCachedPose.h"
-#include "AnimGraphNode_TransitionPoseEvaluator.h"
-#include "AnimGraphNode_TransitionResult.h"
-#include "K2Node_TransitionRuleGetter.h"
 
 #define LOCTEXT_NAMESPACE "AnimBlueprintCompiler"
-
-//
-// Forward declarations.
-//
-class UAnimStateNodeBase;
 
 //////////////////////////////////////////////////////////////////////////
 

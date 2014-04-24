@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "PawnMovementComponent.h"
+
 #include "Pawn.generated.h"
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogDamage, Warning, All);
@@ -11,7 +11,7 @@ ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogDamage, Warning, All);
  *	Pawns are the physical representations of players and creatures in a level.
  *	They are responsible for all physical interaction between the player or AI and the world.
  */
-UCLASS(abstract, config=Game, dependson=AController, BlueprintType, Blueprintable, hidecategories=(Navigation, "AI|Navigation"))
+UCLASS(abstract, HeaderGroup=Pawn, config=Game, dependson=AController, BlueprintType, Blueprintable, hidecategories=(Navigation, "AI|Navigation"))
 class ENGINE_API APawn : public AActor, public INavAgentInterface
 {
 	GENERATED_UCLASS_BODY()

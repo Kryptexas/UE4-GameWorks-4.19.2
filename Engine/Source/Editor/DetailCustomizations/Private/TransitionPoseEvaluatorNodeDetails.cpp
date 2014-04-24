@@ -3,7 +3,6 @@
 #include "DetailCustomizationsPrivatePCH.h"
 
 #include "AnimGraphDefinitions.h"
-#include "AnimGraphNode_TransitionPoseEvaluator.h"
 
 #include "AnimTransitionNodeDetails.h"
 #include "KismetEditorUtilities.h"

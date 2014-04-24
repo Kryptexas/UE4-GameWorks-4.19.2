@@ -3,6 +3,7 @@
 #include "EnginePrivate.h"
 #include "BlueprintUtilities.h"
 #include "LatentActions.h"
+#include "EngineLevelScriptClasses.h"
 #if WITH_EDITORONLY_DATA
 #include "Kismet2/BlueprintEditorUtils.h"
 #endif

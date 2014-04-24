@@ -3,7 +3,7 @@
 #pragma once
 #include "KismetArrayLibrary.generated.h"
 
-UCLASS(MinimalAPI)
+UCLASS(HeaderGroup=KismetLibrary,MinimalAPI)
 class UKismetArrayLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()

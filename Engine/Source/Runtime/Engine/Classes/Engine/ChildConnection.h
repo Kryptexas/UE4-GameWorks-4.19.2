@@ -5,7 +5,7 @@
 #pragma once
 #include "ChildConnection.generated.h"
 
-UCLASS(MinimalAPI,transient,config=Engine)
+UCLASS(HeaderGroup=Network, MinimalAPI,transient,config=Engine)
 class UChildConnection : public UNetConnection
 {
 	GENERATED_UCLASS_BODY()

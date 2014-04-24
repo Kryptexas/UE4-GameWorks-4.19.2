@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionCrossProduct.generated.h"
 
-UCLASS()
+UCLASS(HeaderGroup=Material)
 class UMaterialExpressionCrossProduct : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

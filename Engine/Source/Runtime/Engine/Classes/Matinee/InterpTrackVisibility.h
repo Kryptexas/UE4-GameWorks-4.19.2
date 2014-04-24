@@ -61,7 +61,7 @@ struct FVisibilityTrackKey
 
 };
 
-UCLASS(MinimalAPI, meta=( DisplayName = "Visibility Track" ) )
+UCLASS(HeaderGroup=Interpolation, MinimalAPI, meta=( DisplayName = "Visibility Track" ) )
 class UInterpTrackVisibility : public UInterpTrack
 {
 	GENERATED_UCLASS_BODY()

@@ -8,7 +8,7 @@
 /** 
  * A Component referencing a vector field.
  */
-UCLASS(ClassGroup=Rendering, hidecategories=Object, meta=(BlueprintSpawnableComponent), MinimalAPI)
+UCLASS(HeaderGroup=Component, ClassGroup=Rendering, hidecategories=Object, meta=(BlueprintSpawnableComponent), MinimalAPI)
 class UVectorFieldComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()

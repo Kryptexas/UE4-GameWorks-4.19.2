@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionBlackBody.generated.h"
 
-UCLASS()
+UCLASS(HeaderGroup=Material)
 class UMaterialExpressionBlackBody : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

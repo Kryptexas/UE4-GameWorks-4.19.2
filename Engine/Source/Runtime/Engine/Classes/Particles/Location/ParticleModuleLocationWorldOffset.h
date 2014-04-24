@@ -4,7 +4,7 @@
 #pragma once
 #include "ParticleModuleLocationWorldOffset.generated.h"
 
-UCLASS(editinlinenew, meta=(DisplayName = "World Offset"))
+UCLASS(HeaderGroup=Particle, editinlinenew, meta=(DisplayName = "World Offset"))
 class UParticleModuleLocationWorldOffset : public UParticleModuleLocation
 {
 	GENERATED_UCLASS_BODY()

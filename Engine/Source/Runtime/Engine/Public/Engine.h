@@ -602,6 +602,7 @@ struct FURL;
 #include "RenderUtils.h"					// Render utility classes.
 #include "Distributions.h"					// Distributions
 #include "PhysxUserData.h"
+#include "EngineSceneClasses.h"
 #include "EngineClasses.h"					// All actor classes.
 #include "VisualLog.h"
 #include "MaterialShared.h"					// Shared material definitions.
@@ -614,7 +615,10 @@ struct FURL;
 #include "LightMap.h"						// Light-maps.
 #include "ShadowMap.h"
 #include "Model.h"							// Model class.
-
+#include "EngineComponentClasses.h"
+#include "EngineMaterialClasses.h"
+#include "EngineStaticMeshClasses.h"
+#include "EngineNavigationClasses.h"
 #include "AI/NavDataGenerator.h"
 #include "AI/NavLinkRenderingProxy.h"
 #include "AI/NavigationModifier.h"
@@ -622,8 +626,16 @@ struct FURL;
 #include "StaticMeshResources.h"			// Static meshes.
 #include "AnimTree.h"						// Animation.
 #include "SkeletalMeshTypes.h"				// Skeletal animated mesh.
+#include "EngineSkeletalMeshClasses.h"
+#include "EngineLightClasses.h"
 #include "Animation/SkeletalMeshActor.h"
 #include "Interpolation.h"					// Matinee.
+#include "EngineInterpolationClasses.h"
+#include "EnginePawnClasses.h"
+#include "EngineReplicationInfoClasses.h"
+#include "EngineGameEngineClasses.h"		// Main Unreal engine declarations
+#include "EngineTerrainClasses.h"
+#include "EngineNetworkClasses.h"
 #include "ContentStreaming.h"				// Content streaming class definitions.
 #include "LightingBuildOptions.h"			// Definition of lighting build option struct.
 #include "PixelFormat.h"
@@ -638,6 +650,8 @@ struct FURL;
 #include "TimerManager.h"					// Game play timers
 #include "EngineService.h"
 #include "AI/NavigationSystemHelpers.h"
+#include "EngineAnimationNodeClasses.h"
+#include "EngineNavigationClasses.h"
 #include "HardwareInfo.h"
 
 /** Implements the engine module. */

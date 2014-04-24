@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "EngineDecalClasses.h"
+
 class FSkyLightComponentDetails : public IDetailCustomization
 {
 public:

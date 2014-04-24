@@ -9,7 +9,7 @@
 #pragma once
 #include "InterpFilter_Classes.generated.h"
 
-UCLASS()
+UCLASS(HeaderGroup=Interpolation)
 class UInterpFilter_Classes : public UInterpFilter
 {
 	GENERATED_UCLASS_BODY()

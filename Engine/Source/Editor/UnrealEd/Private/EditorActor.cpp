@@ -4,6 +4,7 @@
 #include "UnrealEd.h"
 #include "ScopedTransaction.h"
 #include "Factories.h"
+#include "EngineFoliageClasses.h"
 #include "LevelUtils.h"
 #include "BusyCursor.h"
 #include "BSPOps.h"
@@ -13,6 +14,7 @@
 #include "Editor/GeometryMode/Public/GeometryEdMode.h"
 #include "Editor/GeometryMode/Public/EditorGeometry.h"
 #include "ActorEditorUtils.h"
+#include "EngineLevelScriptClasses.h"
 
 #define LOCTEXT_NAMESPACE "UnrealEd.EditorActor"
 

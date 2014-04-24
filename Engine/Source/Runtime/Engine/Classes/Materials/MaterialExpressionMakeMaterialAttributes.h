@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionMakeMaterialAttributes.generated.h"
 
-UCLASS(collapsecategories, hidecategories=Object)
+UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
 class UMaterialExpressionMakeMaterialAttributes : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

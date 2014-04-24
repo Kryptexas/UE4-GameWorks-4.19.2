@@ -11,6 +11,7 @@
 #include "Editor/LevelEditor/Public/LevelEditor.h"
 #include "Editor/LevelEditor/Public/LevelEditorActions.h"
 
+#include "EngineDecalClasses.h"
 #include "IFilter.h"
 #include "FilterCollection.h"
 #include "TextFilter.h"

@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "AnimGraphNode_BlendSpaceBase.h"
+
 #include "Animation/AnimNode_BlendSpaceEvaluator.h"
 #include "AnimGraphNode_BlendSpaceEvaluator.generated.h"
 

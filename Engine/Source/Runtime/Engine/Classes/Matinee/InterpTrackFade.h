@@ -3,7 +3,7 @@
 #pragma once
 #include "InterpTrackFade.generated.h"
 
-UCLASS(meta=( DisplayName = "Fade Track" ) )
+UCLASS(HeaderGroup=Interpolation, meta=( DisplayName = "Fade Track" ) )
 class UInterpTrackFade : public UInterpTrackFloatBase
 {
 	GENERATED_UCLASS_BODY()

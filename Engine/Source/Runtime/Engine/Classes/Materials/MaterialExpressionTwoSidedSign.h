@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionTwoSidedSign.generated.h"
 
-UCLASS(collapsecategories, hidecategories=Object)
+UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
 class UMaterialExpressionTwoSidedSign : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

@@ -4,7 +4,7 @@
 #pragma once
 #include "ParticleModuleRotationRate_Seeded.generated.h"
 
-UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Init Rotation Rate (Seed)"))
+UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, meta=(DisplayName = "Init Rotation Rate (Seed)"))
 class UParticleModuleRotationRate_Seeded : public UParticleModuleRotationRate
 {
 	GENERATED_UCLASS_BODY()

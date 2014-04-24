@@ -8,7 +8,7 @@
 
 #include "ParticleModuleAccelerationDrag.generated.h"
 
-UCLASS(editinlinenew, hidecategories=(Object, Acceleration), MinimalAPI, meta=(DisplayName = "Drag"))
+UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=(Object, Acceleration), MinimalAPI, meta=(DisplayName = "Drag"))
 class UParticleModuleAccelerationDrag : public UParticleModuleAccelerationBase
 {
 	GENERATED_UCLASS_BODY()

@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "EngineUserInterfaceClasses.h"
 #include "Runtime/Engine/Classes/Debug/LogVisualizerCameraController.h"
 #include "Runtime/Engine/Classes/Debug/LogVisualizerHUD.h"
 #include "Runtime/Engine/Classes/Kismet/GameplayStatics.h"

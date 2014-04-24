@@ -4,7 +4,7 @@
 #pragma once
 #include "ParticleModuleAccelerationBase.generated.h"
 
-UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Acceleration"), abstract)
+UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, meta=(DisplayName = "Acceleration"), abstract)
 class UParticleModuleAccelerationBase : public UParticleModule
 {
 	GENERATED_UCLASS_BODY()

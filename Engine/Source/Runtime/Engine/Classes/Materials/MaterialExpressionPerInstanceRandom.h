@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionPerInstanceRandom.generated.h"
 
-UCLASS(collapsecategories, hidecategories=Object)
+UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
 class UMaterialExpressionPerInstanceRandom : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

@@ -8,6 +8,7 @@
 #include "ModuleManager.h"
 
 #include "Engine.h"
+#include "EngineKismetLibraryClasses.h"
 
 /**
  *	Example of a hosted session

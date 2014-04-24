@@ -50,7 +50,7 @@ struct FMaterialSpriteElement
 /** 
  * A 2d material that will be rendered always facing the camera.
  */
-UCLASS(ClassGroup=Rendering, collapsecategories, hidecategories=Object, editinlinenew, meta=(BlueprintSpawnableComponent))
+UCLASS(HeaderGroup=Component, ClassGroup=Rendering, collapsecategories, hidecategories=Object, editinlinenew, meta=(BlueprintSpawnableComponent))
 class UMaterialBillboardComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()

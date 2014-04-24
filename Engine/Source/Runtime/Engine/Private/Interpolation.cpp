@@ -6,11 +6,16 @@
 
 #include "EnginePrivate.h"
 #include "EngineClasses.h"
+#include "EngineInterpolationClasses.h"
+#include "EngineKismetLibraryClasses.h"
 #include "ParticleDefinitions.h"
+#include "EngineMaterialClasses.h"
+#include "EngineLevelScriptClasses.h"
 #include "SoundDefinitions.h"
 #include "InterpolationHitProxy.h"
 #include "AVIWriter.h"
 #include "AnimationUtils.h"
+#include "EngineDecalClasses.h"
 #include "MatineeUtils.h"
 
 #if WITH_EDITOR

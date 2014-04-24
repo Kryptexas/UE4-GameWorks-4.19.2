@@ -8,7 +8,7 @@
 #pragma once
 #include "SceneCaptureCube.generated.h"
 
-UCLASS(hidecategories = (Collision, Material, Attachment, Actor), MinimalAPI)
+UCLASS(hidecategories = (Collision, Material, Attachment, Actor), HeaderGroup = Decal, MinimalAPI)
 class ASceneCaptureCube : public ASceneCapture
 {
 	GENERATED_UCLASS_BODY()

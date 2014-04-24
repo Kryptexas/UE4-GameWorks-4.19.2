@@ -8,6 +8,8 @@
 #include "Net/UnrealNetwork.h"
 #include "Collision.h"
 
+#include "EngineUserInterfaceClasses.h"
+#include "EngineDecalClasses.h"
 #include "ParticleDefinitions.h"
 //#include "SoundDefinitions.h"
 #include "FXSystem.h"

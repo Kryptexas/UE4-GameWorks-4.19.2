@@ -4,6 +4,7 @@
 #include "ComponentVisualizers.h"
 
 #include "SoundDefinitions.h"
+#include "EngineSplineClasses.h"
 
 #include "PointLightComponentVisualizer.h"
 #include "SpotLightComponentVisualizer.h"

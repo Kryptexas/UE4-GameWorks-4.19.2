@@ -6,6 +6,8 @@
 
 #include "KismetCompilerPrivatePCH.h"
 #include "KismetCompilerBackend.h"
+#include "EngineKismetLibraryClasses.h"
+#include "EngineLevelScriptClasses.h"
 #include "Editor/UnrealEd/Public/Kismet2/KismetDebugUtilities.h"
 #include "Editor/UnrealEd/Public/Kismet2/KismetReinstanceUtilities.h"
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"

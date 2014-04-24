@@ -140,7 +140,7 @@ struct FLandscapeSplineMeshEntry
 };
 
 
-UCLASS(Within=LandscapeSplinesComponent,autoExpandCategories=(LandscapeSplineSegment,LandscapeSplineMeshes),MinimalAPI)
+UCLASS(HeaderGroup=Terrain,Within=LandscapeSplinesComponent,autoExpandCategories=(LandscapeSplineSegment,LandscapeSplineMeshes),MinimalAPI)
 class ULandscapeSplineSegment : public UObject
 {
 	GENERATED_UCLASS_BODY()

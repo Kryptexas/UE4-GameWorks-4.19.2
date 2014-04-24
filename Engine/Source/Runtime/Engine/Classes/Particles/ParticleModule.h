@@ -119,7 +119,7 @@ struct FParticleRandomSeedInfo
 	
 };
 
-UCLASS(editinlinenew, hidecategories=Object, abstract, MinimalAPI)
+UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, abstract, MinimalAPI)
 class UParticleModule : public UObject
 {
 	GENERATED_UCLASS_BODY()

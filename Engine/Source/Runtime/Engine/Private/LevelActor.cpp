@@ -3,6 +3,8 @@
 
 #include "EnginePrivate.h"
 #include "Net/UnrealNetwork.h"
+#include "EngineLevelScriptClasses.h"
+#include "EngineKismetLibraryClasses.h"
 #include "Collision.h"
 
 #if WITH_PHYSX

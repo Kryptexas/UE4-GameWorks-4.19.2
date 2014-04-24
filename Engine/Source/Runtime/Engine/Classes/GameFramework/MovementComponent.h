@@ -5,10 +5,10 @@
  */
 
 #pragma once
-#include "Components/SceneComponent.h"
 #include "MovementComponent.generated.h"
 
-UCLASS(ClassGroup=Movement, abstract, BlueprintType)
+
+UCLASS(HeaderGroup=Component, ClassGroup=Movement, abstract, BlueprintType)
 class ENGINE_API UMovementComponent : public UActorComponent
 {
 	GENERATED_UCLASS_BODY()

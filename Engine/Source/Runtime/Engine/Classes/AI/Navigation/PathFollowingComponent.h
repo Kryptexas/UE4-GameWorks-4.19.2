@@ -58,7 +58,7 @@ namespace EPathFollowingRequestResult
 	};
 }
 
-UCLASS(config=Engine)
+UCLASS(HeaderGroup=Component, config=Engine)
 class ENGINE_API UPathFollowingComponent : public UActorComponent, public IAIResourceInterface
 {
 	GENERATED_UCLASS_BODY()

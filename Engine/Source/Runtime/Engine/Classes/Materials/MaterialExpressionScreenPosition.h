@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionScreenPosition.generated.h"
 
-UCLASS(collapsecategories, hidecategories=Object)
+UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
 class UMaterialExpressionScreenPosition : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

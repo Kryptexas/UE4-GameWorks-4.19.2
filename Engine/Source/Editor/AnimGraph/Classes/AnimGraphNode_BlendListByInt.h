@@ -1,7 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "AnimGraphNode_BlendListBase.h"
 #include "AnimGraphNode_BlendListByInt.generated.h"
 
 UCLASS(MinimalAPI)

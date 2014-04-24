@@ -2,6 +2,7 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 
+#include "EngineLevelScriptClasses.h"
 #include "KismetCompiler.h"
 #include "EventEntryHandler.h"
 

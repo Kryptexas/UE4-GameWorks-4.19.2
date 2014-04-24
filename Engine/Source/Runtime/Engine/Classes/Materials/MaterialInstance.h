@@ -4,11 +4,6 @@
 #pragma once
 #include "MaterialInstance.generated.h"
 
-//
-// Forward declarations.
-//
-struct FMaterialInstanceBasePropertyOverrides;
-
 /** Editable font parameter. */
 USTRUCT()
 struct FFontParameterValue
@@ -126,7 +121,7 @@ struct FVectorParameterValue
 	static ValueType GetValue(const FVectorParameterValue& Parameter) { return Parameter.ParameterValue; }
 };
 
-UCLASS(abstract, BlueprintType,MinimalAPI)
+UCLASS(abstract, HeaderGroup=Material, BlueprintType,MinimalAPI)
 class UMaterialInstance : public UMaterialInterface
 {
 	GENERATED_UCLASS_BODY()

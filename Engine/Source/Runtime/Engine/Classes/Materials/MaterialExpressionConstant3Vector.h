@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionConstant3Vector.generated.h"
 
-UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
+UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object, MinimalAPI)
 class UMaterialExpressionConstant3Vector : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

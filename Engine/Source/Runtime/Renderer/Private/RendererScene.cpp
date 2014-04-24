@@ -7,6 +7,7 @@
 #include "RendererPrivate.h"
 #include "ScenePrivate.h"
 #include "ShaderCompiler.h"
+#include "EngineDecalClasses.h"
 
 
 // Enable this define to do slow checks for components being added to the wrong

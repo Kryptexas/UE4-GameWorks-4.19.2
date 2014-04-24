@@ -4,7 +4,7 @@
 #pragma once
 #include "LightComponentBase.generated.h"
 
-UCLASS(abstract, HideCategories=(Trigger,Activation,"Components|Activation",Physics), ShowCategories=(Mobility))
+UCLASS(HeaderGroup=Component, abstract, HideCategories=(Trigger,Activation,"Components|Activation",Physics), ShowCategories=(Mobility))
 class ENGINE_API ULightComponentBase : public USceneComponent
 {
 	GENERATED_UCLASS_BODY()

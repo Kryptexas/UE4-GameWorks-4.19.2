@@ -4,7 +4,7 @@
 #pragma once
 #include "InterpTrackInstVisibility.generated.h"
 
-UCLASS()
+UCLASS(HeaderGroup=Interpolation)
 class UInterpTrackInstVisibility : public UInterpTrackInst
 {
 	GENERATED_UCLASS_BODY()

@@ -6,11 +6,6 @@
 
 #include "LandscapeProxy.generated.h"
 
-//
-// Forward declarations.
-//
-class ULandscapeMaterialInstanceConstant;
-
 /** Structure storing channel usage for weightmap textures */
 USTRUCT()
 struct FLandscapeWeightmapUsage
@@ -169,7 +164,7 @@ namespace ELandscapeLayerPaintingRestriction
 	};
 }
 
-UCLASS(dependson=UEngineTypes, NotPlaceable, hidecategories=(Display, Attachment, Physics, Debug, Lighting, LOD), showcategories=(Rendering, "Utilities|Orientation"), MinimalAPI)
+UCLASS(HeaderGroup=Terrain, dependson=UEngineTypes, NotPlaceable, hidecategories=(Display, Attachment, Physics, Debug, Lighting, LOD), showcategories=(Rendering, "Utilities|Orientation"), MinimalAPI)
 class ALandscapeProxy : public AActor, public INavRelevantActorInterface
 {
 	GENERATED_UCLASS_BODY()

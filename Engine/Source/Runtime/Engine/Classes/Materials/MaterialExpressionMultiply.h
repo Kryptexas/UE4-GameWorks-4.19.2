@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionMultiply.generated.h"
 
-UCLASS(MinimalAPI)
+UCLASS(HeaderGroup=Material, MinimalAPI)
 class UMaterialExpressionMultiply : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

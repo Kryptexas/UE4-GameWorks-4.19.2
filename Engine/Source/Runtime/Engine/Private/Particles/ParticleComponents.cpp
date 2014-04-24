@@ -6,6 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "ParticleDefinitions.h"
+#include "EngineMaterialClasses.h"
 #include "LevelUtils.h"
 #include "ImageUtils.h"
 #include "FXSystem.h"

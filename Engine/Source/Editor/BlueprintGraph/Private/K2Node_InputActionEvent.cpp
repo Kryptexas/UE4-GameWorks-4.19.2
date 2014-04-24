@@ -2,6 +2,8 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 
+#include "EngineLevelScriptClasses.h"
+
 UK2Node_InputActionEvent::UK2Node_InputActionEvent(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {

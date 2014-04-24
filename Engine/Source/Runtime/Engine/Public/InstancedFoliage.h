@@ -6,12 +6,6 @@
 
 #pragma once
 
-#include "Components/SceneComponent.h"
-//
-// Forward declarations.
-//
-class UInstancedStaticMeshComponent;
-
 /**
  * Flags stored with each instance
  */

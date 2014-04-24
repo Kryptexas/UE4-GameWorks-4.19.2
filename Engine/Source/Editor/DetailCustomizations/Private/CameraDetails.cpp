@@ -2,6 +2,7 @@
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "CameraDetails.h"
+#include "EngineDecalClasses.h"
 
 #define LOCTEXT_NAMESPACE "CameraDetails"
 

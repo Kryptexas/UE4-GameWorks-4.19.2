@@ -4,8 +4,6 @@
 #include "Slate.h"
 #include "Kismet2NameValidators.h"
 #include "AnimGraphDefinitions.h"
-#include "AnimStateTransitionNode.h"
-#include "AnimationStateMachineGraph.h"
 #include "KismetEditorUtilities.h"
 #include "KismetDebugUtilities.h"
 #include "BlueprintEditorUtils.h"

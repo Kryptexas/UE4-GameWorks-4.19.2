@@ -7,7 +7,6 @@
  */
 
 #pragma once
-#include "AnimInstance.h"
 #include "AnimSingleNodeInstance.generated.h"
 
 DECLARE_DYNAMIC_DELEGATE(FPostEvaluateAnimEvent);

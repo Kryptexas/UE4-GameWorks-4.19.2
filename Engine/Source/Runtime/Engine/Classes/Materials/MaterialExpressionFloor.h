@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionFloor.generated.h"
 
-UCLASS(collapsecategories, hidecategories=Object)
+UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
 class UMaterialExpressionFloor : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

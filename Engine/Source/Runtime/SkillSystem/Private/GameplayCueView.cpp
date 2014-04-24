@@ -3,6 +3,7 @@
 #pragma once
 
 #include "SkillSystemModulePrivatePCH.h"
+#include "EngineKismetLibraryClasses.h"
 #include "ParticleDefinitions.h"
 #include "SoundDefinitions.h"
 

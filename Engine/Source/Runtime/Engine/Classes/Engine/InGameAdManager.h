@@ -31,7 +31,7 @@ DECLARE_DYNAMIC_DELEGATE( FOnUserClickedBanner );
 DECLARE_DYNAMIC_DELEGATE( FOnUserClosedAdvertisement );
 
 
-UCLASS()
+UCLASS(HeaderGroup=PlatformInterface)
 class UInGameAdManager : public UPlatformInterfaceBase
 {
 	GENERATED_UCLASS_BODY()

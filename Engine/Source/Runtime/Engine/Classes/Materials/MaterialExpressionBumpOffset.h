@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionBumpOffset.generated.h"
 
-UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
+UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object, MinimalAPI)
 class UMaterialExpressionBumpOffset : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

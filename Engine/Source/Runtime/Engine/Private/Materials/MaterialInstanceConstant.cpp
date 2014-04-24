@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "EngineMaterialClasses.h"
 #include "MaterialInstance.h"
 
 

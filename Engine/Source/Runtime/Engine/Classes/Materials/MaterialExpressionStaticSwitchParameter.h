@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionStaticSwitchParameter.generated.h"
 
-UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
+UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object, MinimalAPI)
 class UMaterialExpressionStaticSwitchParameter : public UMaterialExpressionStaticBoolParameter
 {
 	GENERATED_UCLASS_BODY()

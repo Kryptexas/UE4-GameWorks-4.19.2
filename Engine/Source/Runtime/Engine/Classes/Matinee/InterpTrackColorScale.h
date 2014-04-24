@@ -8,7 +8,7 @@
 #pragma once
 #include "InterpTrackColorScale.generated.h"
 
-UCLASS(meta=( DisplayName = "Color Scale Track" ) )
+UCLASS(HeaderGroup=Interpolation, meta=( DisplayName = "Color Scale Track" ) )
 class UInterpTrackColorScale : public UInterpTrackVectorBase
 {
 	GENERATED_UCLASS_BODY()

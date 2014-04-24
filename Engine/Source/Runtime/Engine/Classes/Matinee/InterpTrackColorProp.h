@@ -4,7 +4,7 @@
 #pragma once
 #include "InterpTrackColorProp.generated.h"
 
-UCLASS(MinimalAPI, meta=( DisplayName = "Color Property Track" ) )
+UCLASS(HeaderGroup=Interpolation, MinimalAPI, meta=( DisplayName = "Color Property Track" ) )
 class UInterpTrackColorProp : public UInterpTrackVectorBase
 {
 	GENERATED_UCLASS_BODY()

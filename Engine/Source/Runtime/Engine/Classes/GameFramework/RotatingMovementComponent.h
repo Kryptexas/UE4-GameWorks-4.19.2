@@ -6,7 +6,7 @@
 /**
  * Movement component updates position of associated PrimitiveComponent during its tick.
  */
-UCLASS(ClassGroup=Movement, meta=(BlueprintSpawnableComponent), HideCategories=(PlanarMovement, "Components|Movement|Planar", Velocity))
+UCLASS(HeaderGroup=Component, ClassGroup=Movement, meta=(BlueprintSpawnableComponent), HideCategories=(PlanarMovement, "Components|Movement|Planar", Velocity))
 class ENGINE_API URotatingMovementComponent : public UMovementComponent
 {
 	GENERATED_UCLASS_BODY()

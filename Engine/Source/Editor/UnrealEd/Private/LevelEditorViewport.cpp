@@ -2,7 +2,9 @@
 
 
 #include "UnrealEd.h"
+#include "EngineMaterialClasses.h"
 #include "SoundDefinitions.h"
+#include "EngineSplineClasses.h"
 #include "CameraController.h"
 #include "MouseDeltaTracker.h"
 #include "ScopedTransaction.h"

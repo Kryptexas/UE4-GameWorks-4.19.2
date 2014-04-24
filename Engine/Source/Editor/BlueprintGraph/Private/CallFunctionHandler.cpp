@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
+#include "EngineKismetLibraryClasses.h"
+#include "EngineLevelScriptClasses.h"
 
 #include "CallFunctionHandler.h"
 

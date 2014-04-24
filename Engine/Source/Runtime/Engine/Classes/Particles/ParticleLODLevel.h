@@ -8,7 +8,7 @@
 #pragma once
 #include "ParticleLODLevel.generated.h"
 
-UCLASS(collapsecategories, hidecategories=Object, editinlinenew, MinimalAPI)
+UCLASS(HeaderGroup=Particle, collapsecategories, hidecategories=Object, editinlinenew, MinimalAPI)
 class UParticleLODLevel : public UObject
 {
 	GENERATED_UCLASS_BODY()

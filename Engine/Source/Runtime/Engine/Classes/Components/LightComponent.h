@@ -27,7 +27,7 @@ public:
 	bool bPrecomputedLightingIsValid;
 };
 
-UCLASS(abstract, HideCategories=(Trigger,Activation,"Components|Activation",Physics), ShowCategories=(Mobility))
+UCLASS(HeaderGroup=Component, abstract, HideCategories=(Trigger,Activation,"Components|Activation",Physics), ShowCategories=(Mobility))
 class ENGINE_API ULightComponent : public ULightComponentBase
 {
 	GENERATED_UCLASS_BODY()

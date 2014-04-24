@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "EngineInterpolationClasses.h"
 #include "SoundDefinitions.h"
 #include "InterpolationHitProxy.h"
 #include "AnimationUtils.h"

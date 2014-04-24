@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "EngineLevelScriptClasses.h"
 #include "OnlineSubsystemUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGameMode, Log, All);

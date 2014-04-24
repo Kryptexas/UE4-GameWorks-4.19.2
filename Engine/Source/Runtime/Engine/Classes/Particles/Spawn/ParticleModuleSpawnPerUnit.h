@@ -4,7 +4,7 @@
 #pragma once
 #include "ParticleModuleSpawnPerUnit.generated.h"
 
-UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Spawn PerUnit"))
+UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, meta=(DisplayName = "Spawn PerUnit"))
 class UParticleModuleSpawnPerUnit : public UParticleModuleSpawnBase
 {
 	GENERATED_UCLASS_BODY()

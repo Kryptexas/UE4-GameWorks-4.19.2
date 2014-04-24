@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "EngineMaterialClasses.h"
 
 UMaterialInterface::UMaterialInterface(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

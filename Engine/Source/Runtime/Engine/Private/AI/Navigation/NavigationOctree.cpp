@@ -8,6 +8,8 @@
 #include "RecastNavMeshGenerator.h"
 #endif // NAVOCTREE_CONTAINS_COLLISION_DATA
 
+#include "EngineNavigationClasses.h"
+
 //----------------------------------------------------------------------//
 // FNavigationOctree
 //----------------------------------------------------------------------//

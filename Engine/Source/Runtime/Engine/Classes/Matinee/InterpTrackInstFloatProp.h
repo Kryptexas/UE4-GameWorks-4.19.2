@@ -4,7 +4,7 @@
 #pragma once
 #include "InterpTrackInstFloatProp.generated.h"
 
-UCLASS(MinimalAPI)
+UCLASS(HeaderGroup=Interpolation, MinimalAPI)
 class UInterpTrackInstFloatProp : public UInterpTrackInstProperty
 {
 	GENERATED_UCLASS_BODY()

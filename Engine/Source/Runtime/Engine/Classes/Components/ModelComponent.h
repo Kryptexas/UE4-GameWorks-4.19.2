@@ -4,12 +4,7 @@
 #pragma once
 #include "ModelComponent.generated.h"
 
-//
-// Forward declarations
-//
-class FModelElement;
-
-UCLASS(MinimalAPI)
+UCLASS(HeaderGroup=Component, MinimalAPI)
 class UModelComponent : public UPrimitiveComponent, public IInterface_CollisionDataProvider
 {
 	GENERATED_UCLASS_BODY()

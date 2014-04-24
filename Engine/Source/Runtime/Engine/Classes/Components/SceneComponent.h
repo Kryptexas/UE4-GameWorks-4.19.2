@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "Components.h"
 #include "SceneComponent.generated.h"
 
 /** Overlap info consisting of the primitive and the body that is overlapping */
@@ -63,7 +62,7 @@ FORCEINLINE void operator|=(EMoveComponentFlags& Dest,EMoveComponentFlags Arg)		
 
 
 /** A SceneComponent has a transform and supports attachment, but has no rendering or collision capabilities. Useful as a 'dummy' component in the hierarchy to offset others. */
-UCLASS(ClassGroup=Utility, BlueprintType, HideCategories=(Trigger), meta=(BlueprintSpawnableComponent))
+UCLASS(HeaderGroup=Component, ClassGroup=Utility, BlueprintType, HideCategories=(Trigger), meta=(BlueprintSpawnableComponent))
 class ENGINE_API USceneComponent : public UActorComponent
 {
 	GENERATED_UCLASS_BODY()

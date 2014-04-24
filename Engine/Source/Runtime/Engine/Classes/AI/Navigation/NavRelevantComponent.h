@@ -3,7 +3,7 @@
 #pragma once
 #include "NavRelevantComponent.generated.h"
 
-UCLASS()
+UCLASS(HeaderGroup=Navigation)
 class ENGINE_API UNavRelevantComponent : public UActorComponent
 {
 	GENERATED_UCLASS_BODY()

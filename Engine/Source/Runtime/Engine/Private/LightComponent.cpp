@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "EngineLightClasses.h"
 #if WITH_EDITOR
 #include "ObjectEditorUtils.h"
 #endif

@@ -11,7 +11,7 @@
  * Class that stores per-world instance parameter data for a given UMaterialParameterCollection resource. 
  * Instances of this class are always transient.
  */
-UCLASS(hidecategories=object, MinimalAPI)
+UCLASS(HeaderGroup=Material, hidecategories=object, MinimalAPI)
 class UMaterialParameterCollectionInstance : public UObject
 {
 	GENERATED_UCLASS_BODY()

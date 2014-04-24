@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "EngineDecalClasses.h"
 #include "../../Renderer/Private/ScenePrivate.h"
 
 ASceneCapture::ASceneCapture(const class FPostConstructInitializeProperties& PCIP)

@@ -10,7 +10,7 @@
 #pragma once
 #include "MaterialExpressionFresnel.generated.h"
 
-UCLASS(collapsecategories, hidecategories=Object)
+UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
 class UMaterialExpressionFresnel : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

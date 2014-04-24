@@ -17,7 +17,7 @@ enum CylinderHeightAxis
 	PMLPC_HEIGHTAXIS_MAX,
 };
 
-UCLASS(editinlinenew, hidecategories=Object, MinimalAPI)
+UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, MinimalAPI)
 class UParticleModuleLocationPrimitiveCylinder : public UParticleModuleLocationPrimitiveBase
 {
 	GENERATED_UCLASS_BODY()

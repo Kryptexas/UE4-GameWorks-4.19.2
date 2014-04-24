@@ -29,7 +29,7 @@ enum ECloudStorageDelegate
 };
 
 	// Full API exported so that platform modules can extend it (e.g. FacebookWindows in WinDrv)
-UCLASS()
+UCLASS(HeaderGroup=PlatformInterface)
 class UCloudStorageBase : public UPlatformInterfaceBase
 {
 	GENERATED_UCLASS_BODY()

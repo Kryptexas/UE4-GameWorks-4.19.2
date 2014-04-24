@@ -4,7 +4,7 @@
 #pragma once
 #include "InterpTrackInstParticleReplay.generated.h"
 
-UCLASS()
+UCLASS(HeaderGroup=Interpolation)
 class UInterpTrackInstParticleReplay : public UInterpTrackInst
 {
 	GENERATED_UCLASS_BODY()

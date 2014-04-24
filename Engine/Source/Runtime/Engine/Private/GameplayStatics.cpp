@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "EngineKismetLibraryClasses.h"
+#include "EngineDecalClasses.h"
 #include "ParticleDefinitions.h"
 #include "SoundDefinitions.h"
 #include "PlatformFeatures.h"

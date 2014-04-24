@@ -4,7 +4,7 @@
 #pragma once
 #include "InterpTrackInstVectorMaterialParam.generated.h"
 
-UCLASS()
+UCLASS(HeaderGroup=Interpolation)
 class UInterpTrackInstVectorMaterialParam : public UInterpTrackInst
 {
 	GENERATED_UCLASS_BODY()

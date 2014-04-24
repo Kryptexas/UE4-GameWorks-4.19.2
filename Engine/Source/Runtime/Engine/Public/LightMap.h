@@ -7,7 +7,6 @@
 #pragma once
 
 #include "ChunkedArray.h"
-#include "Engine/LightMapTexture2D.h"
 
 /** Whether to use bilinear filtering on lightmaps */
 extern ENGINE_API bool GUseBilinearLightmaps;

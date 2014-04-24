@@ -6,10 +6,9 @@
 //=============================================================================
 
 #pragma once
-#include "FloatingPawnMovement.h"
 #include "DefaultPawn.generated.h"
 
-UCLASS(config=Game, Blueprintable, BlueprintType)
+UCLASS(HeaderGroup=Pawn, config=Game, Blueprintable, BlueprintType)
 class ENGINE_API ADefaultPawn : public APawn
 {
 	GENERATED_UCLASS_BODY()

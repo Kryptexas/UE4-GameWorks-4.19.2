@@ -4,7 +4,7 @@
 #pragma once
 #include "InteractiveFoliageComponent.generated.h"
 
-UCLASS(hidecategories=Object)
+UCLASS(HeaderGroup=Component, hidecategories=Object)
 class UInteractiveFoliageComponent : public UStaticMeshComponent
 {
 	GENERATED_UCLASS_BODY()

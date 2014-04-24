@@ -8,6 +8,7 @@
 #include "EnginePrivate.h"
 #include "PhysicsEngine/PhysXSupport.h"
 #include "Collision/PhysXCollision.h"
+#include "EngineKismetLibraryClasses.h"
 #include "ParticleDefinitions.h"
 #include "ObjectEditorUtils.h"
 

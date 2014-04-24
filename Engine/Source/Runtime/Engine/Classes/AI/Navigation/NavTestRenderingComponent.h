@@ -3,7 +3,7 @@
 #pragma once
 #include "NavTestRenderingComponent.generated.h"
 
-UCLASS(hidecategories=Object)
+UCLASS(HeaderGroup=Component, hidecategories=Object)
 class UNavTestRenderingComponent: public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()

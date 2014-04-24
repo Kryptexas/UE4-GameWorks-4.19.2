@@ -1,7 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
-#include "AnimGraphNode_Base.h"
 #include "AssetData.h"
 #include "EditorAnimUtils.h"
 #include "BlueprintEditorUtils.h"
@@ -10,7 +9,6 @@
 #include "Developer/AssetTools/Public/AssetToolsModule.h"
 #include "NotificationManager.h"
 #include "Editor/Persona/Public/PersonaModule.h"
-
 
 #define LOCTEXT_NAMESPACE "EditorAnimUtils"
 

@@ -7,7 +7,7 @@
 #pragma once
 #include "MaterialExpressionDepthFade.generated.h"
 
-UCLASS(collapsecategories, hidecategories=Object)
+UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
 class UMaterialExpressionDepthFade : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

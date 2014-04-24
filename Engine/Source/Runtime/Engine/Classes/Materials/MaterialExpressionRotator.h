@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionRotator.generated.h"
 
-UCLASS(collapsecategories, hidecategories=Object)
+UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
 class UMaterialExpressionRotator : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionParticlePositionWS.generated.h"
 
-UCLASS(collapsecategories, hidecategories=Object)
+UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
 class UMaterialExpressionParticlePositionWS : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

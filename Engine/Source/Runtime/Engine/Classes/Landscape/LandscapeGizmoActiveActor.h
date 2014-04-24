@@ -39,7 +39,7 @@ struct FGizmoSelectData
 	
 };
 
-UCLASS(notplaceable, MinimalAPI)
+UCLASS(notplaceable, HeaderGroup=Terrain, MinimalAPI)
 class ALandscapeGizmoActiveActor : public ALandscapeGizmoActor
 {
 	GENERATED_UCLASS_BODY()

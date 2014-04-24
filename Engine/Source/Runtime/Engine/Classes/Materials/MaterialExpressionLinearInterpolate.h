@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionLinearInterpolate.generated.h"
 
-UCLASS(MinimalAPI)
+UCLASS(HeaderGroup=Material, MinimalAPI)
 class UMaterialExpressionLinearInterpolate : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

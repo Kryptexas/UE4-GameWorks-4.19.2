@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionLandscapeLayerSwitch.generated.h"
 
-UCLASS(collapsecategories, hidecategories=Object)
+UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
 class UMaterialExpressionLandscapeLayerSwitch : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

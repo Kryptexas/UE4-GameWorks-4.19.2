@@ -50,6 +50,21 @@ namespace
 		return false;
 	}
 
+	void AddHeaderGroup(UClass* Class, const FString& HeaderGroup, const TCHAR* ScopeForError)
+	{
+		if (FString* HeaderFilename = GClassHeaderFilenameMap.Find(Class))
+		{
+			if (*HeaderFilename != HeaderGroup)
+			{
+				FError::Throwf(TEXT("Found HeaderGroup (%s) in a %s declaration but the current header already had different HeaderGroup declared (%s)."), *HeaderGroup, ScopeForError, **HeaderFilename);
+			}
+		}
+		else
+		{
+			GClassHeaderFilenameMap.Add(Class, HeaderGroup);
+		}
+	}
+
 	bool ProbablyAMacro(const TCHAR* Identifier)
 	{
 		// Test for known delegate and event macros.
@@ -1099,6 +1114,17 @@ UScriptStruct* FHeaderParser::CompileStructDeclaration(FClasses& AllClasses, FCl
 		{
 			//UE_LOG(LogCompile, Warning, TEXT("Struct named %s in %s is still marked noexport"), *EffectiveStructName, *(Class->GetName()));//@TODO: UCREMOVAL: Debug printing
 			StructFlags &= ~STRUCT_Native;
+		}
+		else if (Specifier == TEXT("HeaderGroup"))
+		{
+			if (!Class)
+			{
+				// Can this ever happen?
+				FError::Throwf(TEXT("Unable to set HeaderGroup because there's no class present in the header."));
+			}
+
+			// Parse a header group filename.
+			AddHeaderGroup(Class, RequireExactlyOneSpecifierValue(*SpecifierIt), TEXT("struct"));
 		}
 		else if (Specifier == TEXT("Atomic"))
 		{
@@ -4158,7 +4184,12 @@ void FHeaderParser::CompileClassDeclaration(FClasses& AllClasses)
 	{
 		const FString& Specifier = PropSpecifier.Key;
 
-		if (Specifier == TEXT("noexport"))
+		if (Specifier == TEXT("HeaderGroup"))
+		{
+			// Parse a header group filename.
+			AddHeaderGroup(Class, RequireExactlyOneSpecifierValue(PropSpecifier), TEXT("class"));
+		}
+		else if (Specifier == TEXT("noexport"))
 		{
 			// Don't export to C++ header.
 			Class->ClassFlags |= CLASS_NoExport;
@@ -4642,7 +4673,12 @@ void FHeaderParser::CompileInterfaceDeclaration(FClasses& AllClasses)
 	{
 		const FString& Specifier = SpecifierIt->Key;
 
-		if (Specifier == TEXT("DependsOn"))
+		if (Specifier == TEXT("HeaderGroup"))
+		{
+			// Parse a header group filename.
+			AddHeaderGroup(Class, RequireExactlyOneSpecifierValue(*SpecifierIt), TEXT("interface"));
+		}
+		else if (Specifier == TEXT("DependsOn"))
 		{
 			// Make sure the syntax matches but don't do anything with it; that's handled in MakeCommandlet.cpp
 			RequireSpecifierValue(*SpecifierIt);

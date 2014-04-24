@@ -6,6 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "LevelUtils.h"
+#include "EngineDecalClasses.h"
 
 #if WITH_EDITOR
 namespace DecalEditorConstants

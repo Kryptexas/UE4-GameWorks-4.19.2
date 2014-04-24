@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionStaticSwitch.generated.h"
 
-UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
+UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object, MinimalAPI)
 class UMaterialExpressionStaticSwitch : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

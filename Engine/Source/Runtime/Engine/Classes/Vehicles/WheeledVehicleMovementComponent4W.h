@@ -138,7 +138,7 @@ struct FVehicleAutoBoxData
 	float GearAutoBoxLatency;
 };
 
-UCLASS()
+UCLASS(HeaderGroup=Component)
 class ENGINE_API UWheeledVehicleMovementComponent4W : public UWheeledVehicleMovementComponent
 {
 	GENERATED_UCLASS_BODY()

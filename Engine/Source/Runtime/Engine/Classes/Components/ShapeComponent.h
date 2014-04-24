@@ -4,7 +4,7 @@
 #pragma once
 #include "ShapeComponent.generated.h"
 
-UCLASS(abstract, hidecategories=(Object,LOD,Lighting,TextureStreaming,Activation,"Components|Activation"), editinlinenew, MinimalAPI, meta=(BlueprintSpawnableComponent), showcategories=(Mobility))
+UCLASS(abstract, HeaderGroup=Component, hidecategories=(Object,LOD,Lighting,TextureStreaming,Activation,"Components|Activation"), editinlinenew, MinimalAPI, meta=(BlueprintSpawnableComponent), showcategories=(Mobility))
 class UShapeComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()

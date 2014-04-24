@@ -86,7 +86,7 @@ struct FInterpLookupTrack
 };
 
 /** Track containing data for moving an actor around over time. */
-UCLASS(MinimalAPI, meta=( DisplayName = "Movement Track" ) )
+UCLASS(HeaderGroup=Interpolation, MinimalAPI, meta=( DisplayName = "Movement Track" ) )
 class UInterpTrackMove : public UInterpTrack
 {
 	GENERATED_UCLASS_BODY()

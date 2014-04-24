@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "Interpolation.h"
+
 #include "InterpGroup.generated.h"
 
 /**
@@ -74,7 +74,7 @@ struct FInterpEdSelKey
 	
 };
 
-UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
+UCLASS(HeaderGroup=Interpolation, collapsecategories, hidecategories=Object, MinimalAPI)
 class UInterpGroup : public UObject, public FInterpEdInputInterface
 {
 	GENERATED_UCLASS_BODY()

@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionLightVector.generated.h"
 
-UCLASS(collapsecategories, hidecategories=Object)
+UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
 class UMaterialExpressionLightVector : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

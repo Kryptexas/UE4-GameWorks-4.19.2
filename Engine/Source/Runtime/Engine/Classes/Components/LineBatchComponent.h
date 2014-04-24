@@ -104,7 +104,7 @@ public:
 	float RemainingLifeTime;
 };
 
-UCLASS(MinimalAPI)
+UCLASS(HeaderGroup=Component, MinimalAPI)
 class ULineBatchComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()

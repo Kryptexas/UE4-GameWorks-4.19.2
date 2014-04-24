@@ -4,7 +4,7 @@
 #pragma once
 #include "InterpTrackInstFloatParticleParam.generated.h"
 
-UCLASS()
+UCLASS(HeaderGroup=Interpolation)
 class UInterpTrackInstFloatParticleParam : public UInterpTrackInst
 {
 	GENERATED_UCLASS_BODY()

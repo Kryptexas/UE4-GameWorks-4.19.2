@@ -4,7 +4,7 @@
 #pragma once
 #include "InterpGroupInstCamera.generated.h"
 
-UCLASS()
+UCLASS(HeaderGroup=Interpolation)
 class UInterpGroupInstCamera : public UInterpGroupInst
 {
 	GENERATED_UCLASS_BODY()

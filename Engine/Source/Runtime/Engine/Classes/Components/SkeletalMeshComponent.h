@@ -218,7 +218,7 @@ struct FSkeletalMeshComponentPreClothTickFunction : public FTickFunction
 /**
  * SkeletalMeshComponent is a mesh that supports skeletal animation and physics.
  */
-UCLASS(ClassGroup=(Rendering, Common), hidecategories=Object, config=Engine, editinlinenew, meta=(BlueprintSpawnableComponent))
+UCLASS(HeaderGroup=Component, ClassGroup=(Rendering, Common), hidecategories=Object, config=Engine, editinlinenew, meta=(BlueprintSpawnableComponent))
 class ENGINE_API USkeletalMeshComponent : public USkinnedMeshComponent
 {
 	GENERATED_UCLASS_BODY()

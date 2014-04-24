@@ -4,7 +4,7 @@
 #pragma once
 #include "LandscapeGizmoActor.generated.h"
 
-UCLASS(notplaceable, MinimalAPI, NotBlueprintable)
+UCLASS(notplaceable, HeaderGroup=Terrain, MinimalAPI, NotBlueprintable)
 class ALandscapeGizmoActor : public AActor
 {
 	GENERATED_UCLASS_BODY()

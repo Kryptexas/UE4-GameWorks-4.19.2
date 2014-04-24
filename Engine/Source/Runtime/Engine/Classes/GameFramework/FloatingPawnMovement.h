@@ -7,7 +7,7 @@
 #pragma once
 #include "FloatingPawnMovement.generated.h"
 
-UCLASS()
+UCLASS(HeaderGroup=Component)
 class ENGINE_API UFloatingPawnMovement : public UPawnMovementComponent
 {
 	GENERATED_UCLASS_BODY()

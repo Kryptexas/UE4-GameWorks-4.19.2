@@ -51,7 +51,7 @@ enum Beam2SourceTargetTangentMethod
 	PEB2STTM_MAX,
 };
 
-UCLASS(editinlinenew, hidecategories=Object, abstract, meta=(DisplayName = "Beam"))
+UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, abstract, meta=(DisplayName = "Beam"))
 class UParticleModuleBeamBase : public UParticleModule
 {
 	GENERATED_UCLASS_BODY()

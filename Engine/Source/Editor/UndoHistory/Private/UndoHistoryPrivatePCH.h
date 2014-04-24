@@ -13,6 +13,7 @@
  *****************************************************************************/
 
 #include "Engine.h"
+#include "EngineUserInterfaceClasses.h"
 #include "ModuleManager.h"
 #include "UnrealEd.h"
 

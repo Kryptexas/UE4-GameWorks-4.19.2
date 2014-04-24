@@ -6,8 +6,12 @@ ActorFactory.cpp:
 
 #include "UnrealEd.h"
 #include "ParticleDefinitions.h"
+#include "EngineMaterialClasses.h"
+#include "EngineDecalClasses.h"
+#include "EngineFoliageClasses.h"
 #include "SoundDefinitions.h"
 #include "BlueprintUtilities.h"
+#include "EngineDecalClasses.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "AssetData.h"

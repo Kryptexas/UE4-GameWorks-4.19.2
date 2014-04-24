@@ -4,17 +4,6 @@
 #pragma once
 #include "ParticleSystemComponent.generated.h"
 
-//
-// Forward declarations.
-//
-class UAnimNotifyState;
-class FParticleDynamicData;
-class FParticleSystemSceneProxy;
-class UAnimNotifyState;
-struct FDynamicEmitterDataBase;
-struct FDynamicEmitterReplayDataBase;
-struct FParticleAnimTrailEmitterInstance;
-
 /** Enum for specifying type of a name instance parameter. */
 UENUM()
 enum EParticleSysParamType
@@ -243,7 +232,7 @@ struct FParticleEventKismetData : public FParticleEventData
 /** 
  * A particle emmitter.
  */
-UCLASS(ClassGroup=Rendering, hidecategories=Object, hidecategories=Physics, hidecategories=Collision, showcategories=Trigger, editinlinenew, dependson=(AEmitter, UParticleSystem), meta=(BlueprintSpawnableComponent))
+UCLASS(HeaderGroup=Particle, ClassGroup=Rendering, hidecategories=Object, hidecategories=Physics, hidecategories=Collision, showcategories=Trigger, editinlinenew, dependson=(AEmitter, UParticleSystem), meta=(BlueprintSpawnableComponent))
 class ENGINE_API UParticleSystemComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()

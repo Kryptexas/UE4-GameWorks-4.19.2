@@ -87,7 +87,7 @@ struct FParticleReplayTrackKey
 
 };
 
-UCLASS(MinimalAPI, meta=( DisplayName = "Particle Replay Track" ) )
+UCLASS(HeaderGroup=Interpolation, MinimalAPI, meta=( DisplayName = "Particle Replay Track" ) )
 class UInterpTrackParticleReplay : public UInterpTrack
 {
 	GENERATED_UCLASS_BODY()

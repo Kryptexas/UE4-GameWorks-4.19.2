@@ -9,7 +9,7 @@
 #pragma once
 #include "InterpTrackInst.generated.h"
 
-UCLASS(MinimalAPI)
+UCLASS(HeaderGroup=Interpolation, MinimalAPI)
 class UInterpTrackInst : public UObject
 {
 	GENERATED_UCLASS_BODY()

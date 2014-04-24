@@ -5,7 +5,9 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "EngineUserInterfaceClasses.h"
 #include "TileRendering.h"
+#include "EngineMaterialClasses.h"
 #include "RHIStaticStates.h"
 #include "WordWrapper.h"
 

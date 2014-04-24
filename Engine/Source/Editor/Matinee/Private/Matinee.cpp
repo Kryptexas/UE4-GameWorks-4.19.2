@@ -18,6 +18,7 @@
 #include "CameraController.h"
 #include "MatineeConstants.h"
 
+#include "EngineInterpolationClasses.h"
 #include "SubtitleManager.h"
 #include "InterpolationHitProxy.h"
 

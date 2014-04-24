@@ -1,6 +1,6 @@
 // Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
 
-#pragma once
+
 #include "PostProcessComponent.generated.h"
 
 /**
@@ -8,7 +8,7 @@
  *	Will use a parent UShapeComponent to provide volume data if available.
  */
 
-UCLASS(ClassGroup = Rendering, collapsecategories, hidecategories = (Object), editinlinenew, meta = (BlueprintSpawnableComponent), MinimalAPI)
+UCLASS(HeaderGroup = Component, ClassGroup = Rendering, collapsecategories, hidecategories = (Object), editinlinenew, meta = (BlueprintSpawnableComponent), MinimalAPI)
 class UPostProcessComponent : public USceneComponent, public IInterface_PostProcessVolume
 {
 	GENERATED_UCLASS_BODY()

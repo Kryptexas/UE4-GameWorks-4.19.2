@@ -1,12 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "GraphEditorCommon.h"
-#include "KismetNodes/SGraphNodeK2Base.h"
-#include "KismetNodes/SGraphNodeK2Composite.h"
+#include "../KismetNodes/SGraphNodeK2Base.h"
+#include "../KismetNodes/SGraphNodeK2Composite.h"
 #include "SGraphNodeStateMachineInstance.h"
 #include "SGraphPreviewer.h"
-#include "AnimationStateMachineGraph.h"
-#include "AnimGraphNode_StateMachineBase.h"
 
 /////////////////////////////////////////////////////
 // SGraphNodeStateMachineInstance

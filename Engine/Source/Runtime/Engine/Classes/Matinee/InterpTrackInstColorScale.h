@@ -3,7 +3,7 @@
 #pragma once
 #include "InterpTrackInstColorScale.generated.h"
 
-UCLASS()
+UCLASS(HeaderGroup=Interpolation)
 class UInterpTrackInstColorScale : public UInterpTrackInst
 {
 	GENERATED_UCLASS_BODY()

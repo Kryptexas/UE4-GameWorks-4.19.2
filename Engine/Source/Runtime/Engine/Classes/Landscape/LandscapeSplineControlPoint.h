@@ -36,7 +36,7 @@ struct FLandscapeSplineConnection
 	ENGINE_API struct FLandscapeSplineSegmentConnection& GetFarConnection() const;
 };
 
-UCLASS(Within=LandscapeSplinesComponent,autoExpandCategories=LandscapeSplineControlPoint,MinimalAPI)
+UCLASS(HeaderGroup=Terrain,Within=LandscapeSplinesComponent,autoExpandCategories=LandscapeSplineControlPoint,MinimalAPI)
 class ULandscapeSplineControlPoint : public UObject
 {
 	GENERATED_UCLASS_BODY()

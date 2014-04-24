@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionParticleColor.generated.h"
 
-UCLASS(collapsecategories, hidecategories=Object)
+UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
 class UMaterialExpressionParticleColor : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

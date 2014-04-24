@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "EngineKismetLibraryClasses.h"
 #include "CoreStats.h"
 
 UKismetMathLibrary::UKismetMathLibrary(const class FPostConstructInitializeProperties& PCIP)

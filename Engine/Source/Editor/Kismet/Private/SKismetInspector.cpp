@@ -6,6 +6,7 @@
 #include "BlueprintUtilities.h"
 #include "AnimGraphDefinitions.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
+#include "EngineKismetLibraryClasses.h"
 #include "SKismetInspector.h"
 #include "SKismetLinearExpression.h"
 #include "STutorialWrapper.h"

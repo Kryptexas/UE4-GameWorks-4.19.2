@@ -8,7 +8,7 @@
 
 #include "ParticleModuleAccelerationDragScaleOverLife.generated.h"
 
-UCLASS(editinlinenew, hidecategories=(UObject, Acceleration), MinimalAPI, meta=(DisplayName = "Drag Scale/Life"))
+UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=(UObject, Acceleration), MinimalAPI, meta=(DisplayName = "Drag Scale/Life"))
 class UParticleModuleAccelerationDragScaleOverLife : public UParticleModuleAccelerationBase
 {
 	GENERATED_UCLASS_BODY()

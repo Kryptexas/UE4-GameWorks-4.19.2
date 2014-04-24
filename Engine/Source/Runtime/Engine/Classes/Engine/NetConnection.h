@@ -91,7 +91,7 @@ struct DelayedPacket
 #define PING_ACK_DELAY 0.5
 
 
-UCLASS(customConstructor, Abstract, MinimalAPI, transient, config=Engine, dependsOn=UGameEngine)
+UCLASS(HeaderGroup=Network, customConstructor, Abstract, MinimalAPI, transient, config=Engine, dependsOn=UGameEngine)
 class UNetConnection : public UPlayer
 {
 	GENERATED_UCLASS_BODY()

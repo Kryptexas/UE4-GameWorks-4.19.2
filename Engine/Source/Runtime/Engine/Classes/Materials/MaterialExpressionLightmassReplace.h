@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionLightmassReplace.generated.h"
 
-UCLASS()
+UCLASS(HeaderGroup=Material)
 class UMaterialExpressionLightmassReplace : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

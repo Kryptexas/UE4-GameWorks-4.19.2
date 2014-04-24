@@ -11,6 +11,7 @@
 #include "UniformBuffer.h"
 #include "ShaderParameters.h"
 #include "ScreenRendering.h"
+#include "EngineDecalClasses.h"
 #include "ReflectionEnvironment.h"
 #include "ReflectionEnvironmentCapture.h"
 

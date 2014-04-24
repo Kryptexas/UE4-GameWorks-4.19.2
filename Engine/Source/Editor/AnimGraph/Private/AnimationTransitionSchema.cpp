@@ -5,7 +5,6 @@
 =============================================================================*/
 
 #include "AnimGraphPrivatePCH.h"
-#include "AnimationTransitionSchema.h"
 
 #include "BlueprintUtilities.h"
 #include "AnimGraphDefinitions.h"

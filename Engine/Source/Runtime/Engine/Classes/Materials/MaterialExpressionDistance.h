@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionDistance.generated.h"
 
-UCLASS()
+UCLASS(HeaderGroup=Material)
 class UMaterialExpressionDistance : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

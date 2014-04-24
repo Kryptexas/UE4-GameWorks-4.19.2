@@ -3,7 +3,7 @@
 #pragma once
 #include "InterpTrackInstAnimControl.generated.h"
 
-UCLASS()
+UCLASS(HeaderGroup=Interpolation)
 class UInterpTrackInstAnimControl : public UInterpTrackInst
 {
 	GENERATED_UCLASS_BODY()

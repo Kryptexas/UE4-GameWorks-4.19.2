@@ -9,7 +9,7 @@
 
 #include "ParticleModuleAttractorPointGravity.generated.h"
 
-UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Point Gravity"))
+UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, meta=(DisplayName = "Point Gravity"))
 class UParticleModuleAttractorPointGravity : public UParticleModuleAttractorBase
 {
 	GENERATED_UCLASS_BODY()

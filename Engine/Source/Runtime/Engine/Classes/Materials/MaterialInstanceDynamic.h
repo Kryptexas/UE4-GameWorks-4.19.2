@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialInstanceDynamic.generated.h"
 
-UCLASS(hidecategories=Object, collapsecategories, BlueprintType, MinimalAPI)
+UCLASS(HeaderGroup=Material, hidecategories=Object, collapsecategories, BlueprintType, MinimalAPI)
 class UMaterialInstanceDynamic : public UMaterialInstance
 {
 	GENERATED_UCLASS_BODY()

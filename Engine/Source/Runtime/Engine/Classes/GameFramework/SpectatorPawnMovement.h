@@ -7,7 +7,7 @@
 #pragma once
 #include "SpectatorPawnMovement.generated.h"
 
-UCLASS(DependsOn=UFloatingPawnMovement)
+UCLASS(HeaderGroup=Component, DependsOn=UFloatingPawnMovement)
 class ENGINE_API USpectatorPawnMovement : public UFloatingPawnMovement
 {
 	GENERATED_UCLASS_BODY()

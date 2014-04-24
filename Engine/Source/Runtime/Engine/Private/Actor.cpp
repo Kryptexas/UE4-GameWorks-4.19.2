@@ -4,6 +4,8 @@
 #include "EnginePrivate.h"
 #include "ParticleDefinitions.h"
 #include "SoundDefinitions.h"
+#include "EngineNavigationClasses.h"
+#include "EngineKismetLibraryClasses.h"
 #include "LatentActions.h"
 #include "MessageLog.h"
 #include "Net/UnrealNetwork.h"

@@ -16,6 +16,7 @@
 #include "ShaderCompiler.h"
 #include "ColorList.h"
 #include "AVIWriter.h"
+#include "EngineDecalClasses.h"
 #include "Slate/SlateSoundDevice.h"
 #include "DerivedDataCacheInterface.h"
 #include "Networking.h"

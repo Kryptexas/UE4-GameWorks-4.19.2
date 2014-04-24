@@ -5,7 +5,7 @@
 #include "PhATEdSkeletalMeshComponent.generated.h"
 
 
-UCLASS()
+UCLASS(HeaderGroup=Component)
 class UPhATEdSkeletalMeshComponent : public USkeletalMeshComponent
 {
 	GENERATED_UCLASS_BODY()

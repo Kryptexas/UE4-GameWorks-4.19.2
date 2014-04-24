@@ -4,7 +4,7 @@
 #pragma once
 #include "MeshComponent.generated.h"
 
-UCLASS(abstract)
+UCLASS(HeaderGroup=Component, abstract)
 class ENGINE_API UMeshComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()

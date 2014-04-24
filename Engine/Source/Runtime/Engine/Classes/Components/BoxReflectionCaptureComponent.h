@@ -5,7 +5,7 @@
 #include "BoxReflectionCaptureComponent.generated.h"
 
 	// -> will be exported to EngineDecalClasses.h
-UCLASS(hidecategories=(Collision, Object, Physics, SceneComponent), MinimalAPI)
+UCLASS(hidecategories=(Collision, Object, Physics, SceneComponent), HeaderGroup=Decal, MinimalAPI)
 class UBoxReflectionCaptureComponent : public UReflectionCaptureComponent
 {
 	GENERATED_UCLASS_BODY()

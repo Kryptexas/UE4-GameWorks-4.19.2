@@ -895,7 +895,7 @@ struct FPostProcessSettings
 	}
 };
 
-UCLASS()
+UCLASS(HeaderGroup=Scene)
 class UScene : public UObject
 {
 	GENERATED_UCLASS_BODY()

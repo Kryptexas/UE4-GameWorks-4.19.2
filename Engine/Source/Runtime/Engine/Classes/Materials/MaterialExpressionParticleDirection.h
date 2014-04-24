@@ -9,7 +9,7 @@
 
 #include "MaterialExpressionParticleDirection.generated.h"
 
-UCLASS(collapsecategories, hidecategories=Object)
+UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
 class UMaterialExpressionParticleDirection : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

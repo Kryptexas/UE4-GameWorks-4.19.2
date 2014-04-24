@@ -8,7 +8,7 @@
 #pragma once
 #include "SceneCapture2D.generated.h"
 
-UCLASS(hidecategories=(Collision, Material, Attachment, Actor), MinimalAPI)
+UCLASS(hidecategories=(Collision, Material, Attachment, Actor), HeaderGroup=Decal, MinimalAPI)
 class ASceneCapture2D : public ASceneCapture
 {
 	GENERATED_UCLASS_BODY()

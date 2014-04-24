@@ -49,7 +49,7 @@ struct FLayerBlendInput
 	}
 };
 
-UCLASS(collapsecategories, hidecategories=Object)
+UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
 class UMaterialExpressionLandscapeLayerBlend : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

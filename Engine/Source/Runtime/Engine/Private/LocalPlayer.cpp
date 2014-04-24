@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "EngineUserInterfaceClasses.h"
+#include "EngineInterpolationClasses.h"
 
 #include "SubtitleManager.h"
 #include "Net/UnrealNetwork.h"

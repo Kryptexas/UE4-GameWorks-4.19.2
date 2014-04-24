@@ -4,7 +4,7 @@
 #pragma once
 #include "LandscapeGizmoRenderComponent.generated.h"
 
-UCLASS(hidecategories=Object)
+UCLASS(HeaderGroup=Terrain, hidecategories=Object)
 class ULandscapeGizmoRenderComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()

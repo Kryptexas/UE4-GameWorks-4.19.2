@@ -4,7 +4,7 @@
 #pragma once
 #include "ParticleModuleSizeBase.generated.h"
 
-UCLASS(editinlinenew, hidecategories=Object, abstract, meta=(DisplayName = "Size"))
+UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, abstract, meta=(DisplayName = "Size"))
 class UParticleModuleSizeBase : public UParticleModule
 {
 	GENERATED_UCLASS_BODY()

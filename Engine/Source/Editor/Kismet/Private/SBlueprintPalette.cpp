@@ -22,11 +22,6 @@
 #include "BlueprintPaletteFavorites.h"
 #include "STutorialWrapper.h"
 #include "ClassIconFinder.h"
-#include "AnimationStateMachineGraph.h"
-#include "AnimationStateMachineSchema.h"
-#include "AnimationStateGraph.h"
-#include "AnimStateConduitNode.h"
-#include "AnimationTransitionGraph.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintPalette"
 

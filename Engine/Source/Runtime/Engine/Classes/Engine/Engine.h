@@ -462,7 +462,7 @@ namespace EMatineeCaptureType
 
 class IAnalyticsProvider;
 
-UCLASS(abstract, config=Engine, transient)
+UCLASS(HeaderGroup=GameEngine, abstract, config=Engine, transient)
 class ENGINE_API UEngine : public UObject, public FExec
 {
 	GENERATED_UCLASS_BODY()

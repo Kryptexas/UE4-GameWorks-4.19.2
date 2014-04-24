@@ -25,7 +25,7 @@ struct FBoolTrackKey
 
 };
 
-UCLASS(MinimalAPI, meta=( DisplayName = "Bool Property Track" ) )
+UCLASS(HeaderGroup=Interpolation, MinimalAPI, meta=( DisplayName = "Bool Property Track" ) )
 class UInterpTrackBoolProp : public UInterpTrack
 {
 	GENERATED_UCLASS_BODY()

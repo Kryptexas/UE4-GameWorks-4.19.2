@@ -7,6 +7,7 @@
 #include "EnginePrivate.h"
 #include "SoundDefinitions.h"
 #include "AudioEffect.h"
+#include "EngineSplineClasses.h"
 #include "Net/UnrealNetwork.h"
 #include "TargetPlatform.h"
 #include "EngineAnalytics.h"

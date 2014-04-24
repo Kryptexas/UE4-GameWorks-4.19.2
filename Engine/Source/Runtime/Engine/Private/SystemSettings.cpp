@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "EngineUserInterfaceClasses.h"
 #include "SoundDefinitions.h"
 #include "TargetPlatform.h"
 

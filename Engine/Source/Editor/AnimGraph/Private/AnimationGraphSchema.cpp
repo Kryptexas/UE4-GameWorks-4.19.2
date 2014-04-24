@@ -10,14 +10,6 @@
 #include "ScopedTransaction.h"
 #include "AssetData.h"
 #include "K2ActionMenuBuilder.h" // for FK2ActionMenuBuilder::AddNewNodeAction()
-#include "AnimationGraphSchema.h"
-#include "K2Node_TransitionRuleGetter.h"
-#include "AnimStateNode.h"
-#include "AnimGraphNode_BlendSpacePlayer.h"
-#include "AnimGraphNode_ComponentToLocalSpace.h"
-#include "AnimGraphNode_LocalToComponentSpace.h"
-#include "AnimGraphNode_RotationOffsetBlendSpace.h"
-#include "AnimGraphNode_SequencePlayer.h"
 
 #define LOCTEXT_NAMESPACE "AnimationGraphSchema"
 

@@ -2,7 +2,6 @@
 
 
 #pragma once
-#include "Audio.h"
 #include "AudioComponent.generated.h"
 
 /** called when we finish playing audio, either because it played to completion or because a Stop() call turned it off early */
@@ -90,7 +89,7 @@ struct FSoundParseParameters
 /**
  * Used to provide objects with audio.
  */
-UCLASS(ClassGroup=(Audio, Common), hidecategories=(Object, ActorComponent, Physics, Rendering, Mobility, LOD), ShowCategories=Trigger, dependson=(AReverbVolume, UEngineTypes, USoundAttenuation), meta=(BlueprintSpawnableComponent))
+UCLASS(HeaderGroup=Component, ClassGroup=(Audio, Common), hidecategories=(Object, ActorComponent, Physics, Rendering, Mobility, LOD), ShowCategories=Trigger, dependson=(AReverbVolume, UEngineTypes, USoundAttenuation), meta=(BlueprintSpawnableComponent))
 class ENGINE_API UAudioComponent : public USceneComponent
 {
 	GENERATED_UCLASS_BODY()

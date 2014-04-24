@@ -6,7 +6,7 @@
 /**
  * A Material Function is a collection of material expressions that can be reused in different materials
  */
-UCLASS(hidecategories=object, MinimalAPI)
+UCLASS(HeaderGroup=Material, hidecategories=object, MinimalAPI)
 class UMaterialFunction : public UObject
 {
 	GENERATED_UCLASS_BODY()

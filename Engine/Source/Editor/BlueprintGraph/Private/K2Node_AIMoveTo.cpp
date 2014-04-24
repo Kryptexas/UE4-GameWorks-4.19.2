@@ -2,6 +2,7 @@
 
 
 #include "BlueprintGraphPrivatePCH.h"
+#include "EngineKismetLibraryClasses.h"
 #include "CompilerResultsLog.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_AIMoveTo"

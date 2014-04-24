@@ -8,7 +8,7 @@
 #pragma once
 #include "MaterialExpressionLightmapUVs.generated.h"
 
-UCLASS(collapsecategories, hidecategories=Object)
+UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
 class UMaterialExpressionLightmapUVs : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

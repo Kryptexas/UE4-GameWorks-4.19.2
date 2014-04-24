@@ -6,6 +6,8 @@
 
 #include "UnrealEd.h"
 #include "SoundDefinitions.h"
+#include "EngineMaterialClasses.h"
+#include "EngineFoliageClasses.h"
 #include "Landscape/LandscapeDataAccess.h"
 #include "Kismet2/DebuggerCommands.h"
 #include "MaterialCompiler.h"

@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionSquareRoot.generated.h"
 
-UCLASS(collapsecategories, hidecategories=Object)
+UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
 class UMaterialExpressionSquareRoot : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

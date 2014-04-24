@@ -3,6 +3,8 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 
+#include "EngineKismetLibraryClasses.h"
+
 #include "CompilerResultsLog.h"
 #include "CallFunctionHandler.h"
 
