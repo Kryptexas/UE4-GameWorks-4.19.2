@@ -29,7 +29,7 @@ public:
 		{
 			DisplayName = Prop->GetName();
 		}
-		DisplayName = EngineUtils::SanitizeDisplayName(DisplayName, false);
+		DisplayName = FName::NameToDisplayString(DisplayName, false);
 
 		return
 			SNew(STextBlock)

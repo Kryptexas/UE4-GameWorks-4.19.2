@@ -503,7 +503,7 @@ void SGraphActionMenu::GenerateFilteredItems(bool bPreserveExpansion)
 	TArray<FString> SanitizedFilterTerms;
 	for (int32 iFilters = 0; iFilters < FilterTerms.Num() ; iFilters++)
 	{
-		FString EachString = EngineUtils::SanitizeDisplayName( FilterTerms[iFilters], false );
+		FString EachString = FName::NameToDisplayString( FilterTerms[iFilters], false );
 		EachString = EachString.Replace( TEXT( " " ), TEXT( "" ) );
 		SanitizedFilterTerms.Add( EachString );
 	}

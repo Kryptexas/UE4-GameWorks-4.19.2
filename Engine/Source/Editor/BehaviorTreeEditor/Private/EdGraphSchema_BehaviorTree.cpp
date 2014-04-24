@@ -275,7 +275,7 @@ void UEdGraphSchema_BehaviorTree::GetGraphNodeContextActions(FGraphContextMenuBu
 
 		for (int32 i = 0; i < NodeClasses.Num(); i++)
 		{
-			const FString NodeTypeName = EngineUtils::SanitizeDisplayName(NodeClasses[i].ToString(), false);
+			const FString NodeTypeName = FName::NameToDisplayString(NodeClasses[i].ToString(), false);
 
 			UBehaviorTreeGraphNode* OpNode = NewObject<UBehaviorTreeGraphNode_Decorator>(Graph);
 			OpNode->ClassData = NodeClasses[i];
@@ -290,7 +290,7 @@ void UEdGraphSchema_BehaviorTree::GetGraphNodeContextActions(FGraphContextMenuBu
 		FClassBrowseHelper::GatherClasses(UBTService::StaticClass(), NodeClasses);
 		for (int32 i = 0; i < NodeClasses.Num(); i++)
 		{
-			const FString NodeTypeName = EngineUtils::SanitizeDisplayName(NodeClasses[i].ToString(), false);
+			const FString NodeTypeName = FName::NameToDisplayString(NodeClasses[i].ToString(), false);
 
 			UBehaviorTreeGraphNode* OpNode = NewObject<UBehaviorTreeGraphNode_Service>(Graph);
 			OpNode->ClassData = NodeClasses[i];
@@ -323,7 +323,7 @@ void UEdGraphSchema_BehaviorTree::GetGraphContextActions(FGraphContextMenuBuilde
 
 		for (int32 i = 0; i < NodeClasses.Num(); i++)
 		{
-			const FString NodeTypeName = EngineUtils::SanitizeDisplayName(NodeClasses[i].ToString(), false);
+			const FString NodeTypeName = FName::NameToDisplayString(NodeClasses[i].ToString(), false);
 
 			TSharedPtr<FBehaviorTreeSchemaAction_NewNode> AddOpAction = AddNewNodeAction(ContextMenuBuilder, TEXT("Composites"), NodeTypeName, "");
 
@@ -343,7 +343,7 @@ void UEdGraphSchema_BehaviorTree::GetGraphContextActions(FGraphContextMenuBuilde
 
 		for (int32 i = 0; i < NodeClasses.Num(); i++)
 		{
-			const FString NodeTypeName = EngineUtils::SanitizeDisplayName(NodeClasses[i].ToString(), false);
+			const FString NodeTypeName = FName::NameToDisplayString(NodeClasses[i].ToString(), false);
 
 			TSharedPtr<FBehaviorTreeSchemaAction_NewNode> AddOpAction = AddNewNodeAction(ContextMenuBuilder, TEXT("Tasks"), NodeTypeName, "");
 

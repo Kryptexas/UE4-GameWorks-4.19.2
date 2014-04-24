@@ -185,6 +185,31 @@ void FInternationalizationSettingsModelDetails::CustomizeDetails( IDetailLayoutB
 		]
 	];
 
+	const FText FieldNamesToolTipText = LOCTEXT("EditorFieldNamesTooltip", "Toggle showing localized field names (requires restart to take effect)");
+
+	CategoryBuilder.AddCustomRow("FieldNames")
+	.NameContent()
+	[
+		SNew(SHorizontalBox)
+		+SHorizontalBox::Slot()
+		.Padding( FMargin( 0, 1, 0, 1 ) )
+		.FillWidth(1.0f)
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("EditorFieldNamesLabel", "Use Localized Field Names"))
+			.Font(DetailBuilder.GetDetailFont())
+			.ToolTipText(FieldNamesToolTipText)
+		]
+	]
+	.ValueContent()
+	.MaxDesiredWidth(300.0f)
+	[
+		SAssignNew(FieldNamesCheckBox, SCheckBox)
+		.IsChecked(Model->ShouldLoadLocalizedPropertyNames() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
+		.ToolTipText(FieldNamesToolTipText)
+		.OnCheckStateChanged(this, &FInternationalizationSettingsModelDetails::ShoudLoadLocalizedFieldNamesCheckChanged)
+	];
+
 	CategoryBuilder.AddCustomRow("RestartWarning")
 	.Visibility( TAttribute<EVisibility>(this, &FInternationalizationSettingsModelDetails::GetInternationalizationRestartRowVisibility) )
 	.WholeRowContent()
@@ -418,12 +443,19 @@ EVisibility FInternationalizationSettingsModelDetails::GetInternationalizationRe
 	return RequiresRestart ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
+void FInternationalizationSettingsModelDetails::ShoudLoadLocalizedFieldNamesCheckChanged(ESlateCheckBoxState::Type CheckState)
+{
+	HandleShutdownPostPackagesSaved();
+}
+
+
 void FInternationalizationSettingsModelDetails::HandleShutdownPostPackagesSaved()
 {
 	if ( SelectedCulture.IsValid() )
 	{
 		check(Model.IsValid());
 		Model->SetCultureName(SelectedCulture->GetName());
+		Model->ShouldLoadLocalizedPropertyNames(FieldNamesCheckBox->IsChecked());
 		if(SelectedCulture != FInternationalization::GetCurrentCulture())
 		{
 			RequiresRestart = true;

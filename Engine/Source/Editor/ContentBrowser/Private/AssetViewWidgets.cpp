@@ -433,7 +433,7 @@ TSharedRef<SToolTip> SAssetViewItem::CreateToolTipWidget() const
 
 						// We have no type information by this point, so no idea if it's a bool :(
 						const bool bIsBool = false;
-						AddToToolTipInfoBox( InfoBox, FText::FromString(EngineUtils::SanitizeDisplayName(TagIt.Key().ToString(), bIsBool)), FText::FromString(ValueString), bImportant );
+						AddToToolTipInfoBox( InfoBox, FText::FromString(FName::NameToDisplayString(TagIt.Key().ToString(), bIsBool)), FText::FromString(ValueString), bImportant );
 					}
 				}
 			}

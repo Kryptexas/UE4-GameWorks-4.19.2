@@ -332,7 +332,7 @@ FString SComponentClassCombo::GetSanitizedComponentName( UClass* ComponentClass 
 {
 	FString OriginalName = ComponentClass->GetName();
 	FString ComponentNameWithoutComponent = OriginalName.Replace( TEXT("Component"), TEXT(""), ESearchCase::IgnoreCase );
-	return EngineUtils::SanitizeDisplayName( ComponentNameWithoutComponent, false );
+	return FName::NameToDisplayString( ComponentNameWithoutComponent, false );
 }
 
 #undef LOCTEXT_NAMESPACE

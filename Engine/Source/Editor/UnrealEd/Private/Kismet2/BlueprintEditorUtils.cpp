@@ -2726,7 +2726,7 @@ bool FBlueprintEditorUtils::AddMemberVariable(UBlueprint* Blueprint, const FName
 
 	NewVar.VarName = NewVarName;
 	NewVar.VarGuid = FGuid::NewGuid();
-	NewVar.FriendlyName = EngineUtils::SanitizeDisplayName( NewVarName.ToString(), (NewVarType.PinCategory == K2Schema->PC_Boolean) ? true : false );
+	NewVar.FriendlyName = FName::NameToDisplayString( NewVarName.ToString(), (NewVarType.PinCategory == K2Schema->PC_Boolean) ? true : false );
 	NewVar.VarType = NewVarType;
 	// default new vars to 'kismet read/write' and 'only editable on owning CDO' 
 	NewVar.PropertyFlags |= (CPF_Edit | CPF_BlueprintVisible | CPF_DisableEditOnInstance);
@@ -2867,7 +2867,7 @@ void FBlueprintEditorUtils::RenameMemberVariable(UBlueprint* Blueprint, const FN
 			const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 			FBPVariableDescription& Variable = Blueprint->NewVariables[VarIndex];
 			Variable.VarName = NewName;
-			Variable.FriendlyName = EngineUtils::SanitizeDisplayName( NewName.ToString(), (Variable.VarType.PinCategory == K2Schema->PC_Boolean) ? true : false );
+			Variable.FriendlyName = FName::NameToDisplayString( NewName.ToString(), (Variable.VarType.PinCategory == K2Schema->PC_Boolean) ? true : false );
 
 			// Update any existing references to the old name
 			FBlueprintEditorUtils::ReplaceVariableReferences(Blueprint, OldName, NewName);

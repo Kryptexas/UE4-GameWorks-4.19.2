@@ -83,7 +83,7 @@ FString UK2Node_CallFunction::GetNodeTitle(ENodeTitleType::Type TitleType) const
 		FunctionName = FunctionReference.GetMemberName().ToString();
 		if ((GEditor != NULL) && (GetDefault<UEditorStyleSettings>()->bShowFriendlyNames))
 		{
-			FunctionName = EngineUtils::SanitizeDisplayName(FunctionName, false);
+			FunctionName = FName::NameToDisplayString(FunctionName, false);
 		}
 	}
 
@@ -693,7 +693,7 @@ FString UK2Node_CallFunction::GetUserFacingFunctionName(const UFunction* Functio
 
 	if( GEditor && GetDefault<UEditorStyleSettings>()->bShowFriendlyNames )
 	{
-		FunctionName = EngineUtils::SanitizeDisplayName(FunctionName, false);
+		FunctionName = FName::NameToDisplayString(FunctionName, false);
 	}
 	return FunctionName;
 }
@@ -727,7 +727,7 @@ FString UK2Node_CallFunction::GetDefaultCategoryForFunction(const UFunction* Fun
 		FString FuncCategory = Function->GetMetaData(FBlueprintMetadata::MD_FunctionCategory);
 		if( GEditor && GetDefault<UEditorStyleSettings>()->bShowFriendlyNames )
 		{
-			FuncCategory = EngineUtils::SanitizeDisplayName( FuncCategory, false );
+			FuncCategory = FName::NameToDisplayString( FuncCategory, false );
 		}
 		NodeCategory += FuncCategory;
 	}

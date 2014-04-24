@@ -35,7 +35,7 @@ public:
 
 	static CORE_API void GetTimeZonesIDs(TArray<FString>& TimeZonesIDs);
 
-	//Set the current culture by Name
+	//Set the current culture by name
 	static CORE_API void SetCurrentCulture(const FString& Name);
 
 	//@return the current culture
@@ -81,7 +81,6 @@ private:
 	{
 		FInternationalizationLifetimeObject();
 	} static InternationalizationLifetimeObject;
-
 
 	static CORE_API TArray< TSharedRef< FCulture > > AllCultures;
 

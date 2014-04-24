@@ -669,16 +669,6 @@ namespace EngineUtils
 {
 	/** Loads all the assets found in the specified path and subpaths */
 	ENGINE_API bool FindOrLoadAssetsByPath(const FString& Path, TArray<UObject*>& OutAssets);
-	/**
-	 * Takes a string and breaks it down into a human readable string.
-	 * For example - "bCreateSomeStuff" becomes "Create Some Stuff?" and "DrawScale3D" becomes "Draw Scale 3D".
-	 * 
-	 * @param	InDisplayName	[In, Out] The name to sanitize
-	 * @param	bIsBool				True if the name is a bool
-	 *
-	 * @return	the sanitized version of the display name
-	 */
-	ENGINE_API FString SanitizeDisplayName( const FString& InDisplayName, const bool bIsBool );
 }
 
 /** Helper class for serializing flags describing which data have been stripped (if any). */

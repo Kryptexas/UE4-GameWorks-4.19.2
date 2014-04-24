@@ -62,6 +62,9 @@ private:
 	/** Delegate called to determine whether to collapse or display the restart row. */
 	EVisibility GetInternationalizationRestartRowVisibility() const;
 
+	/** Delegate called when the the checked state of whether or not field names should be localized has changed. */
+	void ShoudLoadLocalizedFieldNamesCheckChanged(ESlateCheckBoxState::Type CheckState);
+
 	/** Write to config now the Editor is shutting down (all packages are saved) */
 	void HandleShutdownPostPackagesSaved();
 
@@ -88,6 +91,9 @@ private:
 
 	/** The dropdown for the regions */
 	TSharedPtr<SComboBox< TSharedPtr<FCulture> >> RegionComboBox;
+
+	/** The check boxc for using localized field names */
+	TSharedPtr<SCheckBox> FieldNamesCheckBox;
 
 	bool RequiresRestart;
 };

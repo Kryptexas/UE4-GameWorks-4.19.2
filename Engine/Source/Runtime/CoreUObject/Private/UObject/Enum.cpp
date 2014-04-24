@@ -274,14 +274,24 @@ bool UEnum::GenerateMaxEnum()
 FText UEnum::GetDisplayNameText(int32 NameIndex) const
 {
 	FText LocalizedDisplayName;
-	const FString NativeDisplayName = GetMetaData( TEXT("DisplayName"), NameIndex );
 
-	static const FString Namespace = TEXT("UEnumDisplayNames");
+	static const FString Namespace = TEXT("UObjectDisplayNames");
 	const FString Key =	NameIndex == INDEX_NONE
 		?			GetFullGroupName(true) + TEXT(".") + GetName()
 		:			GetFullGroupName(true) + TEXT(".") + GetName() + TEXT(".") + GetEnumName(NameIndex);
 
-	if ( !(FText::FindText( Namespace, Key, /*OUT*/LocalizedDisplayName )) || *FTextInspector::GetSourceString(LocalizedDisplayName) != NativeDisplayName)
+
+	FString NativeDisplayName;
+	if( HasMetaData( TEXT("DisplayName"), NameIndex ) )
+	{
+		NativeDisplayName = GetMetaData( TEXT("DisplayName"), NameIndex );
+	}
+	else
+	{
+		NativeDisplayName = FName::NameToDisplayString(GetEnumName(NameIndex), false);
+	}
+
+	if ( !( FText::FindText( Namespace, Key, /*OUT*/LocalizedDisplayName, &NativeDisplayName) ) )
 	{
 		LocalizedDisplayName = FText::FromString(NativeDisplayName);
 	}

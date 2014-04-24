@@ -100,7 +100,7 @@ namespace BlueprintNodeHelpers
 		}
 
 		const bool bIsBool = Prop->IsA(UBoolProperty::StaticClass());
-		return FString::Printf(TEXT("%s: %s"), *EngineUtils::SanitizeDisplayName(Prop->GetName(), bIsBool), *ExportedStringValue);
+		return FString::Printf(TEXT("%s: %s"), *FName::NameToDisplayString(Prop->GetName(), bIsBool), *ExportedStringValue);
 	}
 
 	void CollectBlackboardSelectors(const UObject* Ob, const UClass* StopAtClass, TArray<FName>& KeyNames)

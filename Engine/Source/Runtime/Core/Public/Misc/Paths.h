@@ -221,6 +221,16 @@ public:
 	static const TArray<FString>& GetEditorLocalizationPaths();
 
 	/** 
+	 * Returns a list of property name localization paths
+	 */
+	static const TArray<FString>& GetPropertyNameLocalizationPaths();
+
+		/** 
+	 * Returns a list of tool tip localization paths
+	 */
+	static const TArray<FString>& GetToolTipLocalizationPaths();
+
+	/** 
 	 * Returns a list of game-specific localization paths
 	 */
 	static const TArray<FString>& GetGameLocalizationPaths();

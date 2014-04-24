@@ -1463,7 +1463,7 @@ void FK2ActionMenuBuilder::GetAllActionsForClass(FBlueprintPaletteListBuilder& P
 					{
 						PropertyCategory = K2ActionCategories::DefaultEventDispatcherCategory;
 					}
-					PropertyCategory = EngineUtils::SanitizeDisplayName(PropertyCategory, /*bIsBool =*/false);
+					PropertyCategory = FName::NameToDisplayString(PropertyCategory, /*bIsBool =*/false);
 
 					TSharedPtr<FEdGraphSchemaAction_K2Delegate> NewFuncAction = MakeShareable(new FEdGraphSchemaAction_K2Delegate(PropertyCategory, PropertyDesc, PropertyTooltip, 0));
 					NewFuncAction->SetDelegateInfo(Property->GetFName(), InClass);

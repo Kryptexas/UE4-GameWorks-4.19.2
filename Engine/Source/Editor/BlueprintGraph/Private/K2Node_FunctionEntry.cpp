@@ -107,7 +107,7 @@ FString UK2Node_FunctionEntry::GetNodeTitle(ENodeTitleType::Type TitleType) cons
 
 	if( GEditor && GetDefault<UEditorStyleSettings>()->bShowFriendlyNames )
 	{
-		DisplayInfo.DisplayName = FText::FromString( EngineUtils::SanitizeDisplayName(DisplayInfo.DisplayName.ToString(), false) );
+		DisplayInfo.DisplayName = FText::FromString( FName::NameToDisplayString(DisplayInfo.DisplayName.ToString(), false) );
 	}
 	return DisplayInfo.DisplayName.ToString();
 }

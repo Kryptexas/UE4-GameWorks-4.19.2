@@ -159,7 +159,7 @@ void FBrushDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 				}
 				else
 				{
-					return FText::FromString(EngineUtils::SanitizeDisplayName(BrushBuilder->GetClass()->GetName(), false));
+					return FText::FromString(FName::NameToDisplayString(BrushBuilder->GetClass()->GetName(), false));
 				}
 			}
 

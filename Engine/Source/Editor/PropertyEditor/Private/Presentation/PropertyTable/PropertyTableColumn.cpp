@@ -460,7 +460,7 @@ void FPropertyTableColumn::GenerateColumnDisplayName()
 						}
 					}
 
-					PropertyName = EngineUtils::SanitizeDisplayName( PropertyName, bIsBoolProperty );
+					PropertyName = FName::NameToDisplayString( PropertyName, bIsBoolProperty );
 				}
 
 				NewName += PropertyName;
