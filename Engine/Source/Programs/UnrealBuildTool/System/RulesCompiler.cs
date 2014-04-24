@@ -453,8 +453,8 @@ namespace UnrealBuildTool
 
 		public bool SupportsPlatform(UnrealTargetPlatform InPlatform)
 		{
-			// Win32 is not supported by the editor.
-			if (IsEditorType(Type) && InPlatform == UnrealTargetPlatform.Win32)
+			// Only Win64 and Mac are supported by the editor.
+			if (IsEditorType(Type) && InPlatform != UnrealTargetPlatform.Win64 && InPlatform != UnrealTargetPlatform.Mac)
 			{
 				return false;
 			}
