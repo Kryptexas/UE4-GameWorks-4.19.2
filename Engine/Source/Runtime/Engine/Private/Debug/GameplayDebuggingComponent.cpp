@@ -103,13 +103,11 @@ protected:
 
 FName UGameplayDebuggingComponent::DefaultComponentName = TEXT("GameplayDebuggingComponent");
 FOnDebuggingTargetChanged UGameplayDebuggingComponent::OnDebuggingTargetChangedDelegate;
-uint32 UGameplayDebuggingComponent::StaticActiveViews = 0;
 const uint32 UGameplayDebuggingComponent::ShowFlagIndex = uint32(FEngineShowFlags::FindIndexByName(TEXT("GameplayDebug")));
 
 UGameplayDebuggingComponent::UGameplayDebuggingComponent(const class FPostConstructInitializeProperties& PCIP) 
 	: Super(PCIP)
 	, EQSTimestamp(0.f)
-	, ActiveViews(EAIDebugDrawDataView::Empty)
 	, bDrawEQSLabels(true)
 	, bDrawEQSFailedItems(true)
 {
@@ -127,12 +125,9 @@ UGameplayDebuggingComponent::UGameplayDebuggingComponent(const class FPostConstr
 
 	bHiddenInGame = false;
 	bEnabledTargetSelection = false;
-	NavmeshRenderData = MakeShareable(new FNavMeshSceneProxyData());
-#if WITH_RECAST
-	NavmeshRenderData->bNeedsNewData = false;
-	NavmeshRenderData->bEnableDrawing = false;
-#endif
 
+	bEnableClientEQSSceneProxy = false;
+	NextTargrtSelectionTime = 0;
 	ReplicateViewDataCounters.Init(0, EAIDebugDrawDataView::MAX);
 }
 
@@ -145,6 +140,7 @@ void UGameplayDebuggingComponent::Activate(bool bReset)
 		{
 			Super::Activate(bReset);
 		}
+		SetComponentTickEnabled(true);
 	}
 }
 
@@ -158,6 +154,7 @@ void UGameplayDebuggingComponent::Deactivate()
 		{
 			Super::Deactivate();
 		}
+		SetComponentTickEnabled(false);
 	}
 }
 
@@ -195,8 +192,9 @@ bool UGameplayDebuggingComponent::ServerEnableTargetSelection_Validate(bool bEna
 void UGameplayDebuggingComponent::ServerEnableTargetSelection_Implementation(bool bEnable)
 {
 	bEnabledTargetSelection = bEnable;
-	if (bEnabledTargetSelection && GetOwnerRole() == ROLE_Authority)
+	if (bEnabledTargetSelection && GetWorld()->GetNetMode() < NM_Client)
 	{
+		NextTargrtSelectionTime = 0;
 		SelectTargetToDebug();
 	}
 }
@@ -205,7 +203,7 @@ void UGameplayDebuggingComponent::TickComponent(float DeltaTime, enum ELevelTick
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (GetOwnerRole() == ROLE_Authority)
+	if (GetWorld()->GetNetMode() < NM_Client)
 	{
 		if (bEnabledTargetSelection)
 		{
@@ -220,15 +218,23 @@ void UGameplayDebuggingComponent::SelectTargetToDebug()
 	const APawn* MyPawn = Cast<APawn>(GetOwner());
 	APlayerController* MyPC = Cast<APlayerController>(MyPawn->Controller);
 
-	if (MyPC)
+	if (MyPC )
 	{
 		APawn* BestTarget = NULL;
 		if (MyPC->GetViewTarget() != NULL && MyPC->GetViewTarget() != MyPC->GetPawn())
 		{
 			BestTarget = Cast<APawn>(MyPC->GetViewTarget());
-			if (BestTarget && BestTarget->PlayerState && !BestTarget->PlayerState->bIsABot)
+			if ((BestTarget && BestTarget->PlayerState && !BestTarget->PlayerState->bIsABot) || BestTarget->GetActorEnableCollision() == false)
 			{
 				BestTarget = NULL;
+			}
+			else if (BestTarget)
+			{
+				// always update component for view target
+				if (UGameplayDebuggingComponent *DebuggingComponent = BestTarget->GetDebugComponent(true))
+				{
+					DebuggingComponent->ServerReplicateData_Implementation(EDebugComponentMessage::ActivateReplication, EAIDebugDrawDataView::Empty);
+				}
 			}
 		}
 
@@ -242,21 +248,33 @@ void UGameplayDebuggingComponent::SelectTargetToDebug()
 		check( World );
 
 		APawn* PossibleTarget = NULL;
+		bool bUpdateComponentsToReplicate = GetWorld() && GetWorld()->TimeSeconds > NextTargrtSelectionTime;
+		if (bUpdateComponentsToReplicate)
+		{
+			NextTargrtSelectionTime = GetWorld()->TimeSeconds + 1;
+		}
 		for (FConstPawnIterator Iterator = World->GetPawnIterator(); Iterator; ++Iterator )
 		{
 			APawn* NewTarget = *Iterator;
-			if ( NewTarget == MyPC->GetPawn() || (NewTarget->PlayerState && !NewTarget->PlayerState->bIsABot))
+			//  NewTarget->GetActorEnableCollision() == false - HACK to get rid of pawns not relevant for us 
+			if (!NewTarget || NewTarget == MyPC->GetPawn() || (NewTarget->PlayerState && !NewTarget->PlayerState->bIsABot) || NewTarget->GetActorEnableCollision() == false)
 			{
 				continue;
 			}
 			
+			UGameplayDebuggingComponent *DebuggingComponent = NewTarget->GetDebugComponent(true);
+			if (DebuggingComponent && bUpdateComponentsToReplicate)
+			{
+				DebuggingComponent->ServerReplicateData_Implementation(EDebugComponentMessage::ActivateReplication, EAIDebugDrawDataView::Empty);
+			}
+
 			if (BestTarget == NULL && NewTarget && (NewTarget != MyPC->GetPawn()))
 			{
 				// look for best controlled pawn target
 				const FVector AimDir = NewTarget->GetActorLocation() - CamLocation;
 				float FireDist = AimDir.SizeSquared();
-				// only find targets which are < 5000 units away
-				if (FireDist < 25000000.f)
+				// only find targets which are < 25000 units away
+				if (FireDist < 625000000.f)
 				{
 					FireDist = FMath::Sqrt(FireDist);
 					float newAim = FireDir | AimDir;
@@ -273,16 +291,11 @@ void UGameplayDebuggingComponent::SelectTargetToDebug()
 		BestTarget = BestTarget == NULL ? PossibleTarget : BestTarget;
 		if (BestTarget != NULL)
 		{
+			//always update component for best target
 			if (UGameplayDebuggingComponent *DebuggingComponent = BestTarget->GetDebugComponent(true))
 			{
 				TargetActor = BestTarget;
-				MyPC->ServerReplicateMessageToAIDebugView(TargetActor, EDebugComponentMessage::ActivateReplication, 0);
-
-				if (DebuggingComponent->GetActiveViews() == 0 )
-				{
-					DebuggingComponent->EnableDebugDraw(true, false);
-				}
-				DebuggingComponent->SetActiveViews(DebuggingComponent->GetActiveViews() | (1 << EAIDebugDrawDataView::OverHead));
+				DebuggingComponent->ServerReplicateData_Implementation(EDebugComponentMessage::ActivateReplication, EAIDebugDrawDataView::Empty);
 			}
 		}
 	}
@@ -291,7 +304,7 @@ void UGameplayDebuggingComponent::SelectTargetToDebug()
 void UGameplayDebuggingComponent::CollectDataToReplicate()
 {
 	CollectBasicData();
-	if (bIsSelectedForDebugging || IsViewActive(EAIDebugDrawDataView::EditorDebugAIFlag))
+	if (bIsSelectedForDebugging || ShouldReplicateData(EAIDebugDrawDataView::EditorDebugAIFlag))
 	{
 		CollectPathData();
 	}
@@ -304,7 +317,7 @@ void UGameplayDebuggingComponent::CollectDataToReplicate()
 
 void UGameplayDebuggingComponent::CollectBasicData()
 {
-	if (!ShouldReplicateData(EAIDebugDrawDataView::Basic))
+	if (!ShouldReplicateData(EAIDebugDrawDataView::Basic) && !ShouldReplicateData(EAIDebugDrawDataView::OverHead))
 	{
 		return;
 	}
@@ -376,9 +389,9 @@ void UGameplayDebuggingComponent::CollectPathData()
 void UGameplayDebuggingComponent::OnDebugAI(class UCanvas* Canvas, class APlayerController* PC)
 {
 #if WITH_EDITOR
-	if (Canvas->SceneView->Family->EngineShowFlags.DebugAI && !IsActive() && !IsPendingKill() && GetOwner() && !GetOwner()->IsPendingKill())
+	if (Canvas->SceneView->Family->EngineShowFlags.DebugAI && !IsPendingKill() && GetOwner() && !GetOwner()->IsPendingKill())
 	{
-		if (!IsActive() && GetOwnerRole() == ROLE_Authority) 
+		if (!IsComponentTickEnabled() && GetOwnerRole() == ROLE_Authority)
 		{
 			// collecting data manually here - it was activated by DebugAI flag and not by regular usage
 			CollectDataToReplicate();
@@ -392,8 +405,8 @@ void UGameplayDebuggingComponent::OnDebugAI(class UCanvas* Canvas, class APlayer
 				ServerReplicateData(EDebugComponentMessage::EnableExtendedView, EAIDebugDrawDataView::Basic);
 				bWasSelectedInEditor = true;
 			}
-			SetActiveView(EAIDebugDrawDataView::EditorDebugAIFlag);
-			EnableActiveView(EAIDebugDrawDataView::Basic, true);
+			ServerReplicateData(EDebugComponentMessage::ActivateDataView, EAIDebugDrawDataView::EditorDebugAIFlag);
+			ServerReplicateData(EDebugComponentMessage::ActivateDataView, EAIDebugDrawDataView::Basic);
 			SelectForDebugging(true);
 		}
 		else if (!MyPawn || MyPawn && !MyPawn->IsSelected())
@@ -403,7 +416,8 @@ void UGameplayDebuggingComponent::OnDebugAI(class UCanvas* Canvas, class APlayer
 				ServerReplicateData(EDebugComponentMessage::DisableExtendedView, EAIDebugDrawDataView::Basic);
 				bWasSelectedInEditor = false;
 			}
-			SetActiveView(EAIDebugDrawDataView::EditorDebugAIFlag);
+			ServerReplicateData(EDebugComponentMessage::ActivateDataView, EAIDebugDrawDataView::EditorDebugAIFlag);
+			ServerReplicateData(EDebugComponentMessage::ActivateDataView, EAIDebugDrawDataView::Basic);
 			SelectForDebugging(false);
 		}
 	}
@@ -441,86 +455,6 @@ void UGameplayDebuggingComponent::SelectForDebugging(bool bNewStatus)
 	}
 }
 
-bool UGameplayDebuggingComponent::ToggleStaticView(EAIDebugDrawDataView::Type View) 
-{ 
-	StaticActiveViews ^= 1 << View; 
-	const bool bIsActive = (StaticActiveViews & (1 << View)) != 0;
-
-#if WITH_EDITOR
-	if (View == EAIDebugDrawDataView::EQS && GCurrentLevelEditingViewportClient)
-	{
-		GCurrentLevelEditingViewportClient->EngineShowFlags.SetSingleFlag(UGameplayDebuggingComponent::ShowFlagIndex, bIsActive);
-	}
-#endif
-
-	return bIsActive; 
-}
-
-uint32 UGameplayDebuggingComponent::GetActiveViews()
-{
-	return ActiveViews;
-}
-
-void UGameplayDebuggingComponent::SetActiveViews( uint32 InActiveViews )
-{
-	ActiveViews = InActiveViews;
-	APawn* MyPawn = Cast<APawn>(GetOwner());
-	for (uint32 Index = 0; Index < EAIDebugDrawDataView::MAX; ++Index)
-	{
-		if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
-		{
-			PC->ServerReplicateMessageToAIDebugView(MyPawn, IsViewActive((EAIDebugDrawDataView::Type)Index) ? EDebugComponentMessage::ActivateDataView : EDebugComponentMessage::DeactivateDataView, (EAIDebugDrawDataView::Type)Index);
-		}
-	}
-}
-
-void UGameplayDebuggingComponent::SetActiveView( EAIDebugDrawDataView::Type NewView )
-{
-	ActiveViews = 1 << NewView;
-	APawn* MyPawn = Cast<APawn>(GetOwner());
-	if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
-	{
-		PC->ServerReplicateMessageToAIDebugView(MyPawn, EDebugComponentMessage::ActivateDataView, NewView);
-	}
-}
-
-void UGameplayDebuggingComponent::EnableActiveView( EAIDebugDrawDataView::Type View, bool bEnable )
-{
-	if (bEnable)
-	{
-		ActiveViews |= (1 << View);
-	}
-	else
-	{
-		ActiveViews &= ~(1 << View);
-	}
-
-	APawn* MyPawn = Cast<APawn>(GetOwner());
-	if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
-	{
-		PC->ServerReplicateMessageToAIDebugView(MyPawn, bEnable ? EDebugComponentMessage::ActivateDataView : EDebugComponentMessage::DeactivateDataView, View);
-	}
-}
-
-void UGameplayDebuggingComponent::ToggleActiveView(EAIDebugDrawDataView::Type NewView)
-{
-	ActiveViews ^= 1 << NewView;
-
-	const bool bCleared = !(ActiveViews & ( 1 << NewView));
-
-	APawn* MyPawn = Cast<APawn>(GetOwner());
-	if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
-	{
-		PC->ServerReplicateMessageToAIDebugView(MyPawn, !bCleared ? EDebugComponentMessage::ActivateDataView : EDebugComponentMessage::DeactivateDataView, NewView);
-	}
-
-	if (bCleared && NewView == EAIDebugDrawDataView::EQS)
-	{
-		CachedQueryInstance.Reset();
-		MarkRenderStateDirty();
-	}
-}
-
 void UGameplayDebuggingComponent::EnableDebugDraw(bool bEnable, bool InFocusedComponent)
 {
 	if (bEnable)
@@ -530,6 +464,7 @@ void UGameplayDebuggingComponent::EnableDebugDraw(bool bEnable, bool InFocusedCo
 	else
 	{
 		SelectForDebugging(false);
+		EnableClientEQSSceneProxy(false);
 	}
 }
 
@@ -541,7 +476,6 @@ bool UGameplayDebuggingComponent::ServerReplicateData_Validate( EDebugComponentM
 		case EDebugComponentMessage::DisableExtendedView:
 		case EDebugComponentMessage::ActivateReplication:
 		case EDebugComponentMessage::DeactivateReplilcation:
-		case EDebugComponentMessage::CycleReplicationView:
 		case EDebugComponentMessage::ActivateDataView:
 		case EDebugComponentMessage::DeactivateDataView:
 			break;
@@ -580,10 +514,6 @@ void UGameplayDebuggingComponent::ServerReplicateData_Implementation( EDebugComp
 		}
 		break;
 
-	case EDebugComponentMessage::CycleReplicationView:
-		CycleActiveView();
-		break;
-
 	case EDebugComponentMessage::ActivateDataView:
 		{
 			ReplicateViewDataCounters[DataView] += 1;
@@ -599,20 +529,6 @@ void UGameplayDebuggingComponent::ServerReplicateData_Implementation( EDebugComp
 	default:
 		break;
 	}
-}
-
-void UGameplayDebuggingComponent::CycleActiveView()
-{
-	int32 Index = 0;
-	for (Index = 0; Index < 32; ++Index)
-	{
-		if (ActiveViews & (1 << Index))
-			break;
-	}
-	if (++Index >= EAIDebugDrawDataView::EditorDebugAIFlag)
-		Index = EAIDebugDrawDataView::Basic;
-
-	ActiveViews = (1 << EAIDebugDrawDataView::OverHead) | (1 << Index);
 }
 
 void UGameplayDebuggingComponent::GetKeyboardDesc(TArray<FDebugCategoryView>& Categories)
@@ -825,8 +741,7 @@ void UGameplayDebuggingComponent::CollectEQSData()
 //----------------------------------------------------------------------//
 void UGameplayDebuggingComponent::OnRep_UpdateNavmesh()
 {
-	PrepareNavMeshData(NavmeshRenderData.Get());
-
+	NavMeshBounds = FBox(FVector(-HALF_WORLD_MAX, -HALF_WORLD_MAX, -HALF_WORLD_MAX), FVector(HALF_WORLD_MAX, HALF_WORLD_MAX, HALF_WORLD_MAX));
 	UpdateBounds();
 	MarkRenderStateDirty();
 }
@@ -849,56 +764,106 @@ bool UGameplayDebuggingComponent::ServerDiscardNavmeshData_Validate()
 
 namespace NavMeshDebug
 {
+	struct FShortVector
+	{
+		int16 X;
+		int16 Y;
+		int16 Z;
+
+		FShortVector()
+			:X(0), Y(0), Z(0)
+		{
+
+		}
+
+		FShortVector(const FVector& Vec)
+			: X(Vec.X)
+			, Y(Vec.Y)
+			, Z(Vec.Z)
+		{
+
+		}
+		FShortVector& operator=(const FVector& R)
+		{
+			X = R.X;
+			Y = R.Y;
+			Z = R.Z;
+			return *this;
+		}
+
+		FVector ToVector() const
+		{
+			return FVector(X, Y, Z);
+		}
+	};
+
+	struct FOffMeshLinkFlags
+	{
+		uint8 Radius : 6;
+		uint8 Direction : 1;
+		uint8 ValidEnds : 1;
+	};
 	struct FOffMeshLink
 	{
-		FVector Left;
-		FVector Right;
+		FShortVector Left;
+		FShortVector Right;
 		FColor Color;
-		float Radius;
-		uint8 Direction;
-		uint8 ValidEnds;
+		union
+		{
+			FOffMeshLinkFlags PackedFlags;
+			uint8 ByteFlags;
+		};
 	};
 
 	struct FAreaPolys
 	{
-		TArray<int32> Indices;
+		TArray<int16> Indices;
 		FColor Color;
 	};
 
 	struct FTileData
 	{
+		FVector Location;
 		TArray<FAreaPolys> Areas;
-		TArray<FVector> Verts;
-		TArray<FVector> EdgesInner;
-		TArray<FVector> EdgesOuter;
+		TArray<FShortVector> Verts;
 		TArray<FOffMeshLink> Links;
 	};
+}
+
+FArchive& operator<<(FArchive& Ar, NavMeshDebug::FShortVector& ShortVector)
+{
+	Ar << ShortVector.X;
+	Ar << ShortVector.Y;
+	Ar << ShortVector.Z;
+	return Ar;
 }
 
 FArchive& operator<<(FArchive& Ar, NavMeshDebug::FOffMeshLink& Data)
 {
 	Ar << Data.Left;
 	Ar << Data.Right;
-	Ar << Data.Color;
-	Ar << Data.Radius;
-	Ar << Data.Direction;
-	Ar << Data.ValidEnds;
+	Ar << Data.Color.R;
+	Ar << Data.Color.G;
+	Ar << Data.Color.B;
+	Ar << Data.ByteFlags;
 	return Ar;
 }
 
 FArchive& operator<<(FArchive& Ar, NavMeshDebug::FAreaPolys& Data)
 {
 	Ar << Data.Indices;
-	Ar << Data.Color;
+	Ar << Data.Color.R;
+	Ar << Data.Color.G;
+	Ar << Data.Color.B;
 	return Ar;
 }
+
 
 FArchive& operator<<(FArchive& Ar, NavMeshDebug::FTileData& Data)
 {
 	Ar << Data.Areas;
+	Ar << Data.Location;
 	Ar << Data.Verts;
-	Ar << Data.EdgesInner;
-	Ar << Data.EdgesOuter;
 	Ar << Data.Links;
 	return Ar;
 }
@@ -906,6 +871,17 @@ FArchive& operator<<(FArchive& Ar, NavMeshDebug::FTileData& Data)
 void UGameplayDebuggingComponent::ServerDiscardNavmeshData_Implementation()
 {
 	NavmeshRepData.Empty();
+}
+
+FORCEINLINE bool LineInCorrectDistance(const FVector& PlayerLoc, const FVector& Start, const FVector& End, float CorrectDistance = -1)
+{
+	const float MaxDistance = CorrectDistance > 0 ? (CorrectDistance*CorrectDistance) : ARecastNavMesh::GetDrawDistanceSq();
+
+	if ((FVector::DistSquared(Start, PlayerLoc) > MaxDistance || FVector::DistSquared(End, PlayerLoc) > MaxDistance))
+	{
+		return false;
+	}
+	return true;
 }
 
 void UGameplayDebuggingComponent::ServerCollectNavmeshData_Implementation(FVector_NetQuantize10 TargetLocation)
@@ -931,23 +907,29 @@ void UGameplayDebuggingComponent::ServerCollectNavmeshData_Implementation(FVecto
 	NavData->BeginBatchQuery();
 
 	// gather 3x3 neighborhood of player
-	NavData->GetNavMeshTileXY(MyPawn->GetActorLocation(), TileX, TileY);
-	for (int32 i = 0; i < ARRAY_COUNT(DeltaX); i++)
+	if (TargetActor == NULL || TargetActor->IsPendingKill())
 	{
-		NavData->GetNavMeshTilesAt(TileX + DeltaX[i], TileY + DeltaY[i], Indices);
+		NavData->GetNavMeshTileXY(MyPawn->GetActorLocation(), TileX, TileY);
+		for (int32 i = 0; i < ARRAY_COUNT(DeltaX); i++)
+		{
+			NavData->GetNavMeshTilesAt(TileX + DeltaX[i], TileY + DeltaY[i], Indices);
+		}
 	}
 
 	// add 3x3 neighborhood of target
-	int32 TargetTileX = 0;
-	int32 TargetTileY = 0;
-	NavData->GetNavMeshTileXY(TargetLocation, TargetTileX, TargetTileY);
-	for (int32 i = 0; i < ARRAY_COUNT(DeltaX); i++)
+	if (TargetActor != NULL && !TargetActor->IsPendingKill())
 	{
-		const int32 NeiX = TargetTileX + DeltaX[i];
-		const int32 NeiY = TargetTileY + DeltaY[i];
-		if (FMath::Abs(NeiX - TileX) > 1 || FMath::Abs(NeiY - TileY) > 1)
+		int32 TargetTileX = 0;
+		int32 TargetTileY = 0;
+		NavData->GetNavMeshTileXY(TargetActor->GetNavAgentLocation(), TargetTileX, TargetTileY);
+		for (int32 i = 0; i < ARRAY_COUNT(DeltaX); i++)
 		{
-			NavData->GetNavMeshTilesAt(NeiX, NeiY, Indices);
+			const int32 NeiX = TargetTileX + DeltaX[i];
+			const int32 NeiY = TargetTileY + DeltaY[i];
+			if (FMath::Abs(NeiX - TileX) > 1 || FMath::Abs(NeiY - TileY) > 1)
+			{
+				NavData->GetNavMeshTilesAt(NeiX, NeiY, Indices);
+			}
 		}
 	}
 
@@ -968,14 +950,18 @@ void UGameplayDebuggingComponent::ServerCollectNavmeshData_Implementation(FVecto
 	for (int32 i = 0; i < NumIndices; i++)
 	{
 		FRecastDebugGeometry NavMeshGeometry;
-		NavMeshGeometry.bGatherPolyEdges = true;
-		NavMeshGeometry.bGatherNavMeshEdges = true;
+		NavMeshGeometry.bGatherPolyEdges = false;
+		NavMeshGeometry.bGatherNavMeshEdges = false;
 		NavData->GetDebugGeometry(NavMeshGeometry, Indices[i]);
 
 		NavMeshDebug::FTileData TileData;
-		TileData.Verts = NavMeshGeometry.MeshVerts;
-		TileData.EdgesInner = NavMeshGeometry.PolyEdges;
-		TileData.EdgesOuter = NavMeshGeometry.NavMeshEdges;
+		const FBox TileBoundingBox = NavData->GetNavMeshTileBounds(Indices[i]);
+		TileData.Location = TileBoundingBox.GetCenter();
+		for (int32 VertIndex = 0; VertIndex < NavMeshGeometry.MeshVerts.Num(); ++VertIndex)
+		{
+			const NavMeshDebug::FShortVector SV = NavMeshGeometry.MeshVerts[VertIndex] - TileData.Location;
+			TileData.Verts.Add(SV);
+		}
 
 		for (int32 iArea = 0; iArea < RECAST_MAX_AREAS; iArea++)
 		{
@@ -983,7 +969,10 @@ void UGameplayDebuggingComponent::ServerCollectNavmeshData_Implementation(FVecto
 			if (NumTris)
 			{
 				NavMeshDebug::FAreaPolys AreaPolys;
-				AreaPolys.Indices = NavMeshGeometry.AreaIndices[iArea];
+				for (int32 AreaIndicesIndex = 0; AreaIndicesIndex < NavMeshGeometry.AreaIndices[iArea].Num(); ++AreaIndicesIndex)
+				{
+					AreaPolys.Indices.Add(NavMeshGeometry.AreaIndices[iArea][AreaIndicesIndex]);
+				}
 				AreaPolys.Color = NavMeshColors[iArea];
 				TileData.Areas.Add(AreaPolys);
 			}
@@ -994,12 +983,12 @@ void UGameplayDebuggingComponent::ServerCollectNavmeshData_Implementation(FVecto
 		{
 			const FRecastDebugGeometry::FOffMeshLink& SrcLink = NavMeshGeometry.OffMeshLinks[iLink];
 			NavMeshDebug::FOffMeshLink Link;
-			Link.Left = SrcLink.Left;
-			Link.Right = SrcLink.Right;
-			Link.Radius = SrcLink.Radius;
+			Link.Left = SrcLink.Left - TileData.Location;
+			Link.Right = SrcLink.Right - TileData.Location;
 			Link.Color = NavMeshColors[SrcLink.AreaID];
-			Link.Direction = SrcLink.Direction;
-			Link.ValidEnds = SrcLink.ValidEnds;
+			Link.PackedFlags.Radius = (int8)SrcLink.Radius;
+			Link.PackedFlags.Direction = SrcLink.Direction;
+			Link.PackedFlags.ValidEnds = SrcLink.ValidEnds;
 			TileData.Links.Add(Link);
 		}
 
@@ -1077,7 +1066,15 @@ void UGameplayDebuggingComponent::PrepareNavMeshData(struct FNavMeshSceneProxyDa
 			NavMeshDebug::FTileData TileData;
 			ArReader << TileData;
 
-			CurrentData->Bounds += FBox(TileData.Verts);
+			FVector OffsetLocation = TileData.Location;
+			TArray<FVector> Verts; 
+			Verts.Reserve(TileData.Verts.Num());
+			for (int32 VertIndex = 0; VertIndex < TileData.Verts.Num(); ++VertIndex)
+			{
+				const FVector Loc = TileData.Verts[VertIndex].ToVector() + OffsetLocation;
+				Verts.Add(Loc);
+			}
+			CurrentData->Bounds += FBox(Verts);
 
 			for (int32 iArea = 0; iArea < TileData.Areas.Num(); iArea++)
 			{
@@ -1085,43 +1082,39 @@ void UGameplayDebuggingComponent::PrepareNavMeshData(struct FNavMeshSceneProxyDa
 				FNavMeshSceneProxyData::FDebugMeshData DebugMeshData;
 				DebugMeshData.ClusterColor = SrcArea.Color;
 
-				for (int32 iVert = 0; iVert < TileData.Verts.Num(); iVert++)
+				for (int32 iVert = 0; iVert < Verts.Num(); iVert++)
 				{
-					AddVertexHelper(DebugMeshData, TileData.Verts[iVert] + CurrentData->NavMeshDrawOffset);
+					AddVertexHelper(DebugMeshData, Verts[iVert] + CurrentData->NavMeshDrawOffset);
 				}
 				
 				for (int32 iTri = 0; iTri < SrcArea.Indices.Num(); iTri += 3)
 				{
 					AddTriangleHelper(DebugMeshData, SrcArea.Indices[iTri], SrcArea.Indices[iTri + 1], SrcArea.Indices[iTri + 2]);
+
+					FVector V0 = Verts[SrcArea.Indices[iTri+0]];
+					FVector V1 = Verts[SrcArea.Indices[iTri+1]];
+					FVector V2 = Verts[SrcArea.Indices[iTri+2]];
+					CurrentData->TileEdgeLines.Add(FDebugRenderSceneProxy::FDebugLine(V0 + CurrentData->NavMeshDrawOffset, V1 + CurrentData->NavMeshDrawOffset, NavMeshRenderColor_Recast_TileEdges));
+					CurrentData->TileEdgeLines.Add(FDebugRenderSceneProxy::FDebugLine(V1 + CurrentData->NavMeshDrawOffset, V2 + CurrentData->NavMeshDrawOffset, NavMeshRenderColor_Recast_TileEdges));
+					CurrentData->TileEdgeLines.Add(FDebugRenderSceneProxy::FDebugLine(V2 + CurrentData->NavMeshDrawOffset, V0 + CurrentData->NavMeshDrawOffset, NavMeshRenderColor_Recast_TileEdges));
 				}
 
 				CurrentData->MeshBuilders.Add(DebugMeshData);
-			}
-
-			for (int32 i = 0; i < TileData.EdgesInner.Num(); i += 2)
-			{
-				CurrentData->TileEdgeLines.Add( FDebugRenderSceneProxy::FDebugLine(TileData.EdgesInner[i] + CurrentData->NavMeshDrawOffset, TileData.EdgesInner[i+1] + CurrentData->NavMeshDrawOffset, NavMeshRenderColor_Recast_TileEdges));
-			}
-
-			const FColor EdgesColor = DarkenColor(NavMeshRenderColor_Recast_NavMeshEdges);
-			for (int32 i = 0; i < TileData.EdgesOuter.Num(); i += 2)
-			{
-				CurrentData->NavMeshEdgeLines.Add( FDebugRenderSceneProxy::FDebugLine(TileData.EdgesOuter[i] + CurrentData->NavMeshDrawOffset, TileData.EdgesOuter[i+1] + CurrentData->NavMeshDrawOffset, EdgesColor));
 			}
 
 			for (int32 i = 0; i < TileData.Links.Num(); i++)
 			{
 				const NavMeshDebug::FOffMeshLink& SrcLink = TileData.Links[i];
 
-				const FVector V0 = SrcLink.Left + CurrentData->NavMeshDrawOffset;
-				const FVector V1 = SrcLink.Right + CurrentData->NavMeshDrawOffset;
+				const FVector V0 = SrcLink.Left.ToVector() + OffsetLocation + CurrentData->NavMeshDrawOffset;
+				const FVector V1 = SrcLink.Right.ToVector() + OffsetLocation + CurrentData->NavMeshDrawOffset;
 				const FColor LinkColor = SrcLink.Color;
 
 				CacheArc(CurrentData->NavLinkLines, V0, V1, 0.4f, 4, LinkColor, LinkLines_LineThickness);
 
 				const FVector VOffset(0, 0, FVector::Dist(V0, V1) * 1.333f);
 				CacheArrowHead(CurrentData->NavLinkLines, V1, V0+VOffset, 30.f, LinkColor, LinkLines_LineThickness);
-				if (SrcLink.Direction)
+				if (SrcLink.PackedFlags.Direction)
 				{
 					CacheArrowHead(CurrentData->NavLinkLines, V0, V1+VOffset, 30.f, LinkColor, LinkLines_LineThickness);
 				}
@@ -1129,15 +1122,15 @@ void UGameplayDebuggingComponent::PrepareNavMeshData(struct FNavMeshSceneProxyDa
 				// if the connection as a whole is valid check if there are any of ends is invalid
 				if (LinkColor != NavMeshRenderColor_OffMeshConnectionInvalid)
 				{
-					if (SrcLink.Direction && (SrcLink.ValidEnds & FRecastDebugGeometry::OMLE_Left) == 0)
+					if (SrcLink.PackedFlags.Direction && (SrcLink.PackedFlags.ValidEnds & FRecastDebugGeometry::OMLE_Left) == 0)
 					{
 						// left end invalid - mark it
-						DrawWireCylinder(CurrentData->NavLinkLines, V0, FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), NavMeshRenderColor_OffMeshConnectionInvalid, SrcLink.Radius, 30 /*NavMesh->AgentMaxStepHeight*/, 16, 0, DefaultEdges_LineThickness);
+						DrawWireCylinder(CurrentData->NavLinkLines, V0, FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), NavMeshRenderColor_OffMeshConnectionInvalid, SrcLink.PackedFlags.Radius, 30 /*NavMesh->AgentMaxStepHeight*/, 16, 0, DefaultEdges_LineThickness);
 					}
 
-					if ((SrcLink.ValidEnds & FRecastDebugGeometry::OMLE_Right) == 0)
+					if ((SrcLink.PackedFlags.ValidEnds & FRecastDebugGeometry::OMLE_Right) == 0)
 					{
-						DrawWireCylinder(CurrentData->NavLinkLines, V1, FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), NavMeshRenderColor_OffMeshConnectionInvalid, SrcLink.Radius, 30 /*NavMesh->AgentMaxStepHeight*/, 16, 0, DefaultEdges_LineThickness);
+						DrawWireCylinder(CurrentData->NavLinkLines, V1, FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), NavMeshRenderColor_OffMeshConnectionInvalid, SrcLink.PackedFlags.Radius, 30 /*NavMesh->AgentMaxStepHeight*/, 16, 0, DefaultEdges_LineThickness);
 					}
 				}
 			}
@@ -1156,14 +1149,22 @@ FPrimitiveSceneProxy* UGameplayDebuggingComponent::CreateSceneProxy()
 #if WITH_RECAST	
 	const APawn* MyPawn = Cast<APawn>(GetOwner());
 	const APlayerController* MyPC = MyPawn ? Cast<APlayerController>(MyPawn->Controller) : NULL;
-	if (IsViewActive(EAIDebugDrawDataView::NavMesh) && MyPC && MyPC->IsLocalController() && NavmeshRenderData.IsValid())
+	if (ShouldReplicateData(EAIDebugDrawDataView::NavMesh) && MyPC && MyPC->IsLocalController())
 	{
-		CompositeProxy = CompositeProxy ? CompositeProxy : (new FDebugRenderSceneCompositeProxy(this));
-		CompositeProxy->AddChild(new FRecastRenderingSceneProxy(this, NavmeshRenderData, FSimpleDelegateGraphTask::FDelegate(), true));
+		TSharedPtr<struct FNavMeshSceneProxyData, ESPMode::ThreadSafe> NewNavmeshRenderData = MakeShareable(new FNavMeshSceneProxyData());
+		NewNavmeshRenderData->bNeedsNewData = false;
+		NewNavmeshRenderData->bEnableDrawing = false;
+		PrepareNavMeshData(NewNavmeshRenderData.Get());
+		if (NewNavmeshRenderData.IsValid())
+		{
+			NavMeshBounds = NewNavmeshRenderData->Bounds;
+			CompositeProxy = CompositeProxy ? CompositeProxy : (new FDebugRenderSceneCompositeProxy(this));
+			CompositeProxy->AddChild(new FRecastRenderingSceneProxy(this, NewNavmeshRenderData, FSimpleDelegateGraphTask::FDelegate(), true));
+		}
 	}
 #endif
 
-	if (IsViewActive(EAIDebugDrawDataView::EQS))
+	if (ShouldReplicateData(EAIDebugDrawDataView::EQS) && IsClientEQSSceneProxyEnabled() )
 	{
 		CompositeProxy = CompositeProxy ? CompositeProxy : (new FDebugRenderSceneCompositeProxy(this));
 		CompositeProxy->AddChild(new FEQSSceneProxy(this, TEXT("GameplayDebug"), /*bDrawOnlyWhenSelected=*/false, EQSLocalData.SolidSpheres, EQSLocalData.Texts));
@@ -1178,15 +1179,15 @@ FBoxSphereBounds UGameplayDebuggingComponent::CalcBounds(const FTransform & Loca
 	MyBounds.Init();
 
 #if WITH_RECAST
-	if (NavmeshRenderData.IsValid())
+	if (ShouldReplicateData(EAIDebugDrawDataView::NavMesh))
 	{
-		MyBounds += NavmeshRenderData->Bounds;
+		MyBounds = NavMeshBounds;
 	}
 #endif
 
 	if (EQSRepData.Num())
 	{
-		MyBounds += FBox(FVector(-BIG_NUMBER / 3), FVector(BIG_NUMBER / 3));
+		MyBounds = FBox(FVector(-HALF_WORLD_MAX, -HALF_WORLD_MAX, -HALF_WORLD_MAX), FVector(HALF_WORLD_MAX, HALF_WORLD_MAX, HALF_WORLD_MAX));
 	}
 
 	return MyBounds;

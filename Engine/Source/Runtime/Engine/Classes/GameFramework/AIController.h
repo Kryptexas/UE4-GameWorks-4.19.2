@@ -15,7 +15,7 @@
 #include "AI/Navigation/PathFollowingComponent.h"
 #include "AIController.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FAIMoveCompletedSignature, int32, RequestID, EPathFollowingResult::Type, Result );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FAIMoveCompletedSignature, FAIRequestID, RequestID, EPathFollowingResult::Type, Result);
 
 namespace FAISystem
 {
@@ -146,17 +146,23 @@ public:
 	 *  @param CustomData - game specific data, that will be passed to pawn's movement component
 	 *  @return RequestID, or 0 when failed
 	 */
-	virtual uint32 RequestMove(FNavPathSharedPtr Path, class AActor* Goal = NULL, float AcceptanceRadius = UPathFollowingComponent::DefaultAcceptanceRadius, bool bStopOnOverlap = true, FCustomMoveSharedPtr CustomData = NULL);
+	virtual FAIRequestID RequestMove(FNavPathSharedPtr Path, class AActor* Goal = NULL, float AcceptanceRadius = UPathFollowingComponent::DefaultAcceptanceRadius, bool bStopOnOverlap = true, FCustomMoveSharedPtr CustomData = NULL);
+
+	/** if AI is currently moving due to request given by RequestToPause, then the move will be paused */
+	bool PauseMove(FAIRequestID RequestToPause);
+
+	/** resumes last AI-performed, paused request provided it's ID was equivalent to RequestToResume */
+	bool ResumeMove(FAIRequestID RequestToResume);
 
 	/** Aborts the move AI is currently performing */
 	UFUNCTION(BlueprintCallable, Category="AI|Navigation")
 	virtual void StopMovement();
 
 	/** Called on completing current movement request */
-	virtual void OnMoveCompleted(uint32 RequestID, EPathFollowingResult::Type Result);
+	virtual void OnMoveCompleted(FAIRequestID RequestID, EPathFollowingResult::Type Result);
 
 	/** Returns the Move Request ID for the current move */
-	FORCEINLINE uint32 GetCurrentMoveRequestID() const { return PathFollowingComponent.IsValid() ? PathFollowingComponent->GetCurrentRequestId() : INVALID_MOVEREQUESTID; }
+	FORCEINLINE FAIRequestID GetCurrentMoveRequestID() const { return PathFollowingComponent.IsValid() ? PathFollowingComponent->GetCurrentRequestId() : FAIRequestID::InvalidRequest; }
 
 	/** Blueprint notification that we've completed the current movement request */
 	UPROPERTY(BlueprintAssignable, meta=(FriendlyName="MoveCompleted"))
@@ -197,7 +203,7 @@ public:
 
 	/** Retrieve the final position that controller should be looking at. */
 	UFUNCTION(BlueprintCallable, Category="AI")
-	virtual FVector GetFocalPoint();
+	virtual FVector GetFocalPoint() const;
 
 	FORCEINLINE FVector GetFocalPoint(EAIFocusPriority::Type Priority) const {  return FocusInformation.Priorities.IsValidIndex(Priority) ? *FocusInformation.Priorities[Priority].Position : FAISystem::InvalidLocation; }
 

@@ -328,12 +328,7 @@ void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::UpdateMorphVertexBuffer
 		FStaticLODModel& LodModel = SkelMeshResource->LODModels[LODIndex];
 		uint32 Size = LodModel.NumVertices * sizeof(FMorphGPUSkinVertex);
 
-#if !WITH_EDITORONLY_DATA
-		// Lock the buffer.
-		FMorphGPUSkinVertex* Buffer = (FMorphGPUSkinVertex*)RHILockVertexBuffer(MorphVertexBuffer.VertexBufferRHI, 0, Size, RLM_WriteOnly);
-#else
 		FMorphGPUSkinVertex* Buffer = (FMorphGPUSkinVertex*)FMemory::Malloc(Size);
-#endif
 
 		{
 			SCOPE_CYCLE_COUNTER(STAT_MorphVertexBuffer_Init);
@@ -376,14 +371,18 @@ void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::UpdateMorphVertexBuffer
 				for( int32 MorphVertIdx=0; MorphVertIdx < NumDeltas; MorphVertIdx++ )
 				{
 					const FVertexAnimDelta& MorphVertex = Deltas[MorphVertIdx];
-					check(MorphVertex.SourceIdx < LodModel.NumVertices);
-					FMorphGPUSkinVertex& DestVertex = Buffer[MorphVertex.SourceIdx];
 
-					DestVertex.DeltaPosition += MorphVertex.PositionDelta * VertAnim.Weight;
-					// add to accumulated tangent Z
-					DeltaTangentZAccumulationArray[MorphVertex.SourceIdx] += MorphVertex.TangentZDelta * VertAnim.Weight;
-					// accumulate the weight so we can normalized it later
-					AccumulatedWeightArray[MorphVertex.SourceIdx] += VertAnim.Weight;
+					// @TODO FIXMELH : temp hack until we fix importing issue
+					if( (MorphVertex.SourceIdx < LodModel.NumVertices))
+					{
+						FMorphGPUSkinVertex& DestVertex = Buffer[MorphVertex.SourceIdx];
+
+						DestVertex.DeltaPosition += MorphVertex.PositionDelta * VertAnim.Weight;
+						// add to accumulated tangent Z
+						DeltaTangentZAccumulationArray[MorphVertex.SourceIdx] += MorphVertex.TangentZDelta * VertAnim.Weight;
+						// accumulate the weight so we can normalized it later
+						AccumulatedWeightArray[MorphVertex.SourceIdx] += VertAnim.Weight;
+					}
 				} // for all vertices
 
 				VertAnim.VertAnim->TermEval(AnimState);
@@ -413,12 +412,11 @@ void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::UpdateMorphVertexBuffer
 			}
 		} // ApplyDelta
 
-#if WITH_EDITORONLY_DATA
 		// Lock the real buffer.
 		FMorphGPUSkinVertex* ActualBuffer = (FMorphGPUSkinVertex*)RHILockVertexBuffer(MorphVertexBuffer.VertexBufferRHI, 0, Size, RLM_WriteOnly);
 		FMemory::Memcpy(ActualBuffer, Buffer, Size);
 		FMemory::Free(Buffer);
-#endif
+
 		// Unlock the buffer.
 		RHIUnlockVertexBuffer(MorphVertexBuffer.VertexBufferRHI);
 		// set update flag

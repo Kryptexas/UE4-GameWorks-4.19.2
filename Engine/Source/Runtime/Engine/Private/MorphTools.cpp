@@ -118,7 +118,7 @@ void UMorphTarget::CreateMorphMeshStreams( const FMorphMeshRawSource& BaseSource
 					FVector NormalDeltaZ (VTarget.TanZ - VBase.TanZ);
 
 					// check if position actually changed much
-					if( PositionDelta.Size() > CLOSE_TO_ZERO_DELTA || NormalDeltaZ.Size() > KINDA_SMALL_NUMBER)
+					if( PositionDelta.Size() > CLOSE_TO_ZERO_DELTA  || NormalDeltaZ.Size() > 0.1f)
 					{
 						// create a new entry
 						FVertexAnimDelta NewVertex;

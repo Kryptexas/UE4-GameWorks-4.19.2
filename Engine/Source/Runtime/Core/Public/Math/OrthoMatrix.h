@@ -26,18 +26,18 @@ public:
 
 FORCEINLINE FOrthoMatrix::FOrthoMatrix(float Width,float Height,float ZScale,float ZOffset) :
 FMatrix(
-	FPlane(1.0f / Width,	0.0f,			0.0f,				0.0f),
-	FPlane(0.0f,			1.0f / Height,	0.0f,				0.0f),
-	FPlane(0.0f,			0.0f,			ZScale,				0.0f),
-	FPlane(0.0f,			0.0f,			ZOffset * ZScale,	1.0f))
+	FPlane((Width)? (1.0f / Width) : 1.0f,	0.0f,								0.0f,				0.0f),
+	FPlane(0.0f,							(Height)? (1.0f / Height) : 1.f,	0.0f,				0.0f),
+	FPlane(0.0f,							0.0f,								ZScale,				0.0f),
+	FPlane(0.0f,							0.0f,								ZOffset * ZScale,	1.0f))
 {
 }
 
 FORCEINLINE FReversedZOrthoMatrix::FReversedZOrthoMatrix(float Width,float Height,float ZScale,float ZOffset) :
 FMatrix(
-	FPlane(1.0f / Width,	0.0f,			0.0f,					0.0f),
-	FPlane(0.0f,			1.0f / Height,	0.0f,					0.0f),
-	FPlane(0.0f,			0.0f,			-ZScale,				0.0f),
-	FPlane(0.0f,			0.0f,			1.0 - ZOffset * ZScale,	1.0f))
+	FPlane((Width)? (1.0f / Width) : 1.0f,	0.0f,								0.0f,					0.0f),
+	FPlane(0.0f,							(Height)? (1.0f / Height) : 1.f,	0.0f,					0.0f),
+	FPlane(0.0f,							0.0f,								-ZScale,				0.0f),
+	FPlane(0.0f,							0.0f,								1.0 - ZOffset * ZScale,	1.0f))
 {
 }

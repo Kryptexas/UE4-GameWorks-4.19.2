@@ -359,7 +359,7 @@ UEnvQuery* UEnvQueryManager::FindQueryTemplate(const FString& QueryName) const
 	return NULL;
 }
 
-TSharedPtr<FEnvQueryInstance> UEnvQueryManager::CreateQueryInstance(class UEnvQuery* Template, EEnvQueryRunMode::Type RunMode)
+TSharedPtr<FEnvQueryInstance> UEnvQueryManager::CreateQueryInstance(const class UEnvQuery* Template, EEnvQueryRunMode::Type RunMode)
 {
 	if (Template == NULL)
 	{

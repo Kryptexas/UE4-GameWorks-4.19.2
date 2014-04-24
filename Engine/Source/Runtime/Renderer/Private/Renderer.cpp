@@ -125,7 +125,28 @@ void FRendererModule::GPUBenchmark(FSynthBenchmarkResults& InOut, uint32 WorkSca
 	check(IsInGameThread());
 
 	FSceneViewInitOptions ViewInitOptions;
-	ViewInitOptions.SetViewRectangle(FIntRect(0, 0, 1, 1));
+	FIntRect ViewRect(0, 0, 1, 1);
+
+	FBox LevelBox(FVector(-WORLD_MAX), FVector(+WORLD_MAX));
+	ViewInitOptions.SetViewRectangle(ViewRect);
+
+	// Initialize Projection Matrix and ViewMatrix since FSceneView initialization is doing some math on them.
+	// Otherwise it trips NaN checks.
+	const FVector ViewPoint = LevelBox.GetCenter();
+	ViewInitOptions.ViewMatrix = FMatrix(
+		FPlane(1, 0, 0, 0),
+		FPlane(0, -1, 0, 0),
+		FPlane(0, 0, -1, 0),
+		FPlane(-ViewPoint.X, ViewPoint.Y, 0, 1));
+
+	const float ZOffset = WORLD_MAX;
+	ViewInitOptions.ProjectionMatrix = FReversedZOrthoMatrix(
+		LevelBox.GetSize().X / 2.f,
+		LevelBox.GetSize().Y / 2.f,
+		0.5f / ZOffset,
+		ZOffset
+		);
+
 	FSceneView DummyView(ViewInitOptions);
 
 	ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(

@@ -11,6 +11,15 @@ public:
 	// Variables.
 	float X,Y,Z;
 
+#if ENABLE_NAN_DIAGNOSTIC
+	FORCEINLINE void DiagnosticCheckNaN() const
+	{
+		checkf(!ContainsNaN(), TEXT("FVector contains NaN: %s"), *ToString());
+	}
+#else
+	FORCEINLINE void DiagnosticCheckNaN() const {}
+#endif
+
 	/** Constructor */
 	FORCEINLINE FVector();
 
@@ -957,6 +966,7 @@ FORCEINLINE float ComputeSquaredDistanceFromBoxToPoint( const FVector& Mins, con
 FORCEINLINE FVector::FVector( const FVector2D V, float InZ )
 	: X(V.X), Y(V.Y), Z(InZ)
 {
+	DiagnosticCheckNaN();
 }
 
 
@@ -1059,27 +1069,39 @@ FORCEINLINE FVector::FVector()
 
 FORCEINLINE FVector::FVector(float InF)
 	: X(InF), Y(InF), Z(InF)
-{}
+{
+	DiagnosticCheckNaN();
+}
 
 FORCEINLINE FVector::FVector( float InX, float InY, float InZ )
 	: X(InX), Y(InY), Z(InZ)
-{}
+{
+	DiagnosticCheckNaN();
+}
 
 FORCEINLINE FVector::FVector(const FLinearColor& InColor)
 	: X(InColor.R), Y(InColor.G), Z(InColor.B)
-{}
+{
+	DiagnosticCheckNaN();
+}
 
 FORCEINLINE FVector::FVector(FIntVector InVector)
 	: X(InVector.X), Y(InVector.Y), Z(InVector.Z)
-{}
+{
+	DiagnosticCheckNaN();
+}
 
 FORCEINLINE FVector::FVector( FIntPoint A )
 	: X(A.X), Y(A.Y), Z(0.f)
-{}
+{
+	DiagnosticCheckNaN();
+}
 
 FORCEINLINE FVector::FVector(EForceInit)
 	: X(0.0f), Y(0.0f), Z(0.0f)
-{}
+{
+	DiagnosticCheckNaN();
+}
 
 #ifdef IMPLEMENT_ASSIGNMENT_OPERATOR_MANUALLY
 FORCEINLINE FVector& FVector::operator=(const FVector& Other)
@@ -1087,6 +1109,8 @@ FORCEINLINE FVector& FVector::operator=(const FVector& Other)
 	this->X = Other.X;
 	this->Y = Other.Y;
 	this->Z = Other.Z;
+
+	DiagnosticCheckNaN();
 
 	return *this;
 }
@@ -1188,18 +1212,21 @@ FORCEINLINE FVector FVector::operator-() const
 FORCEINLINE FVector FVector::operator+=( const FVector& V )
 {
 	X += V.X; Y += V.Y; Z += V.Z;
+	DiagnosticCheckNaN();
 	return *this;
 }
 
 FORCEINLINE FVector FVector::operator-=( const FVector& V )
 {
 	X -= V.X; Y -= V.Y; Z -= V.Z;
+	DiagnosticCheckNaN();
 	return *this;
 }
 
 FORCEINLINE FVector FVector::operator*=( float Scale )
 {
 	X *= Scale; Y *= Scale; Z *= Scale;
+	DiagnosticCheckNaN();
 	return *this;
 }
 
@@ -1207,18 +1234,21 @@ FORCEINLINE FVector FVector::operator/=( float V )
 {
 	const float RV = 1.f/V;
 	X *= RV; Y *= RV; Z *= RV;
+	DiagnosticCheckNaN();
 	return *this;
 }
 
 FORCEINLINE FVector FVector::operator*=( const FVector& V )
 {
 	X *= V.X; Y *= V.Y; Z *= V.Z;
+	DiagnosticCheckNaN();
 	return *this;
 }
 
 FORCEINLINE FVector FVector::operator/=( const FVector& V )
 {
 	X /= V.X; Y /= V.Y; Z /= V.Z;
+	DiagnosticCheckNaN();
 	return *this;
 }
 
@@ -1261,6 +1291,7 @@ FORCEINLINE void FVector::Set( float InX, float InY, float InZ )
 	X = InX;
 	Y = InY;
 	Z = InZ;
+	DiagnosticCheckNaN();
 }
 
 FORCEINLINE float FVector::GetMax() const

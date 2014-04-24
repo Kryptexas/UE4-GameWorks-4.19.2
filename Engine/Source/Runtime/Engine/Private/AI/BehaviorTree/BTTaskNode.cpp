@@ -48,7 +48,7 @@ void UBTTaskNode::ReceivedMessage(UBrainComponent* BrainComp, const struct FAIMe
 	uint16 InstanceIdx = OwnerComp->FindInstanceContainingNode(this);
 	uint8* NodeMemory = GetNodeMemory<uint8>(OwnerComp->InstanceStack[InstanceIdx]);
 
-	OnMessage(OwnerComp, NodeMemory, Message.Message, Message.MessageID, Message.Status == FAIMessage::Success);
+	OnMessage(OwnerComp, NodeMemory, Message.MessageName, Message.RequestID, Message.Status == FAIMessage::Success);
 }
 
 void UBTTaskNode::TickTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds)

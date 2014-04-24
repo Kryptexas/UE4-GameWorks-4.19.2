@@ -92,6 +92,7 @@ public:
 	bool InEditingMode(bool bGraphIsEditable) const;
 
 	void DebuggerSwitchAsset(UBehaviorTree* NewAsset);
+	void DebuggerUpdateGraph();
 
 	EVisibility GetDebuggerDetailsVisibility() const;
 	EVisibility GetRangeLowerVisibility() const;

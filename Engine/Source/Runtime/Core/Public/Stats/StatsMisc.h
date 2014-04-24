@@ -47,6 +47,12 @@ typedef TKeyValuePair<double, uint32> FTotalTimeAndCount;
  */
 struct FScopeLogTime
 {
+	enum EScopeLogTimeUnits
+	{
+		ScopeLog_Milliseconds,
+		ScopeLog_Seconds
+	};
+
 	/**
 	 * Initialization constructor.
 	 *
@@ -54,19 +60,27 @@ struct FScopeLogTime
 	 * @param InGlobal - Pointer to the variable that holds the cumulative stats
 	 *
 	 */
-	CORE_API FScopeLogTime( const TCHAR* InName, FTotalTimeAndCount* InCumulative = nullptr );
+	CORE_API FScopeLogTime( const TCHAR* InName, FTotalTimeAndCount* InCumulative = nullptr, EScopeLogTimeUnits InUnits = ScopeLog_Milliseconds );
 
 	/** Destructor. */
 	CORE_API ~FScopeLogTime();
 
 protected:
+	virtual double GetDisplayScopedTime(double InScopedTime) const;
+	virtual FString GetDisplayUnitsString() const;
+
+protected:
 	const double StartTime;
 	const FString Name;
 	FTotalTimeAndCount* Cumulative;
+	EScopeLogTimeUnits Units;
 };
 
 #define SCOPE_LOG_TIME(Name,CumulativePtr) \
 	FScopeLogTime ScopeLogTime(Name,CumulativePtr);
+
+#define SCOPE_LOG_TIME_IN_SECONDS(Name,CumulativePtr) \
+	FScopeLogTime ScopeLogTime(Name, CumulativePtr, FScopeLogTime::ScopeLog_Seconds);
 
 #define SCOPE_LOG_TIME_FUNC() \
 	FScopeLogTime ScopeLogTime(TEXT(__FUNCTION__));

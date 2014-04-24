@@ -668,7 +668,7 @@ void UNavigationComponent::NotifyPathUpdate()
 		MyPathObserver->OnPathUpdated(this);
 	}
 
-	if (PathFollowComp && bNotifyPathFollowing)
+	if (PathFollowComp && bNotifyPathFollowing && PathFollowComp->GetMoveGoal() == GoalActor)
 	{
 		PathFollowComp->UpdateMove(Path);
 	}

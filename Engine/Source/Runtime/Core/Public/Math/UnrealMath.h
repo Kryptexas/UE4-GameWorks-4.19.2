@@ -66,6 +66,7 @@ inline FVector FVector2D::SphericalToUnitCartesian() const
 FORCEINLINE FVector::FVector( const FVector4& V )
 	: X(V.X), Y(V.Y), Z(V.Z)
 {
+	DiagnosticCheckNaN();
 }
 
 inline FVector FVector::MirrorByPlane( const FPlane& Plane ) const

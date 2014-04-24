@@ -1016,7 +1016,7 @@ void UBehaviorTreeComponent::RegisterMessageObserver(const class UBTTaskNode* Ta
 	}
 }
 
-void UBehaviorTreeComponent::RegisterMessageObserver(const class UBTTaskNode* TaskNode, FName MessageType, int32 RequestID)
+void UBehaviorTreeComponent::RegisterMessageObserver(const class UBTTaskNode* TaskNode, FName MessageType, FAIRequestID RequestID)
 {
 	if (TaskNode)
 	{

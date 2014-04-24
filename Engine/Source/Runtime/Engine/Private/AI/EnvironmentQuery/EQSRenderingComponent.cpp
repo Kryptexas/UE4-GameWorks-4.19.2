@@ -240,8 +240,7 @@ FPrimitiveSceneProxy* UEQSRenderingComponent::CreateSceneProxy()
 
 FBoxSphereBounds UEQSRenderingComponent::CalcBounds(const FTransform & LocalToWorld) const
 {
-	FBox BoundingBox(FVector(-BIG_NUMBER/3), FVector(BIG_NUMBER/3));	
-	
+	static FBox BoundingBox(FVector(-HALF_WORLD_MAX), FVector(HALF_WORLD_MAX));
 	return FBoxSphereBounds(BoundingBox);
 }
 

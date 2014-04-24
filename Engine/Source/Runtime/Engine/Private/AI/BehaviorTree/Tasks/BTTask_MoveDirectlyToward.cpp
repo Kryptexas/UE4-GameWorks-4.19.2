@@ -45,7 +45,7 @@ EBTNodeResult::Type UBTTask_MoveDirectlyToward::ExecuteTask(class UBehaviorTreeC
 
 		if (RequestResult == EPathFollowingRequestResult::RequestSuccessful)
 		{
-			const uint32 RequestID = MyController->GetCurrentMoveRequestID();
+			const FAIRequestID RequestID = MyController->GetCurrentMoveRequestID();
 
 			MyMemory->MoveRequestID = RequestID;
 			WaitForMessage(OwnerComp, UBrainComponent::AIMessage_MoveFinished, RequestID);

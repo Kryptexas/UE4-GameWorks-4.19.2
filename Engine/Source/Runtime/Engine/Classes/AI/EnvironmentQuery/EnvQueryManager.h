@@ -13,10 +13,10 @@ struct ENGINE_API FEnvQueryRequest
 	FEnvQueryRequest() : QueryTemplate(NULL), Owner(NULL), World(NULL) {}
 
 	// basic constructor: owner will be taken from finish delegate bindings
-	FEnvQueryRequest(class UEnvQuery* Query) : QueryTemplate(Query), Owner(NULL), World(NULL) {}
+	FEnvQueryRequest(const class UEnvQuery* Query) : QueryTemplate(Query), Owner(NULL), World(NULL) {}
 
 	// use when owner is different from finish delegate binding
-	FEnvQueryRequest(class UEnvQuery* Query, UObject* RequestOwner) : QueryTemplate(Query), Owner(RequestOwner), World(NULL) {}
+	FEnvQueryRequest(const class UEnvQuery* Query, UObject* RequestOwner) : QueryTemplate(Query), Owner(RequestOwner), World(NULL) {}
 
 	// set named params
 	FORCEINLINE FEnvQueryRequest& SetFloatParam(FName ParamName, float Value) { NamedParams.Add(ParamName, Value); return *this; }
@@ -44,7 +44,7 @@ protected:
 
 	/** query to run */
 	UPROPERTY()
-	class UEnvQuery* QueryTemplate;
+	const class UEnvQuery* QueryTemplate;
 
 	/** querier */
 	UPROPERTY()
@@ -146,7 +146,7 @@ protected:
 	int32 NextQueryID;
 
 	/** create new instance, using cached data is possible */
-	TSharedPtr<struct FEnvQueryInstance> CreateQueryInstance(class UEnvQuery* Template, EEnvQueryRunMode::Type RunMode);
+	TSharedPtr<struct FEnvQueryInstance> CreateQueryInstance(const class UEnvQuery* Template, EEnvQueryRunMode::Type RunMode);
 
 private:
 

@@ -1839,4 +1839,13 @@ void FBehaviorTreeEditor::DebuggerSwitchAsset(UBehaviorTree* NewAsset)
 	}
 }
 
+void FBehaviorTreeEditor::DebuggerUpdateGraph()
+{
+	UBehaviorTreeGraph* BTGraph = Script ? Cast<UBehaviorTreeGraph>(Script->BTGraph) : NULL;
+	if (BTGraph)
+	{
+		BTGraph->RebuildExecutionOrder();
+	}
+}
+
 #undef LOCTEXT_NAMESPACE

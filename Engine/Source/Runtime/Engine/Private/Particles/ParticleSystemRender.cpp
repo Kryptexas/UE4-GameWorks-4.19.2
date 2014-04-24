@@ -2295,7 +2295,8 @@ void FDynamicMeshEmitterData::GetInstanceData(void* InstanceData, void* DynamicP
 	FVector CameraPosition = View->ViewMatrices.ViewOrigin;
 	if (Source.bUseLocalSpace)
 	{
-		CameraPosition = Proxy->GetLocalToWorld().InverseTransformPosition(CameraPosition);
+		const FMatrix InvLocalToWorld = Proxy->GetLocalToWorld().InverseSafe();
+		CameraPosition = InvLocalToWorld.TransformPosition(CameraPosition);
 	}
 
 	int32 SubImagesX = Source.SubImages_Horizontal;

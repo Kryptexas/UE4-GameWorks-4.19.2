@@ -77,7 +77,8 @@ void UParticleModuleLocation::SpawnEx(FParticleEmitterInstance* Owner, int32 Off
 	check(LODLevel);
 	FVector LocationOffset;
 
-	if (DistributeOverNPoints != 0.0f)
+	// Avoid divide by zero.
+	if ((DistributeOverNPoints != 0.0f) && (DistributeOverNPoints != 1.f))
 	{
 		float RandomNum = FMath::SRand() * FMath::Fractional(Owner->EmitterTime);
 

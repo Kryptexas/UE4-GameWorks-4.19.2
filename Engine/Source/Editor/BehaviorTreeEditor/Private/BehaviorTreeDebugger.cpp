@@ -160,6 +160,7 @@ void FBehaviorTreeDebugger::OnBeginPIE(const bool bIsSimulating)
 {
 	bIsPIEActive = true;
 	EditorOwner->RegenerateMenusAndToolbars();
+	EditorOwner->DebuggerUpdateGraph();
 
 	ActiveBreakpoints.Reset();
 	CollectBreakpointsFromAsset(RootNode.Get());

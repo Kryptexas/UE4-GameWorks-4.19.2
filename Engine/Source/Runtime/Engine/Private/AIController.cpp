@@ -80,7 +80,12 @@ void AAIController::GrabDebugSnapshot(FVisLogEntry* Snapshot) const
 	FVisLogEntry::FStatusCategory MyCategory;
 	MyCategory.Category = TEXT("AI Contoller");
 	MyCategory.Add(TEXT("Pawn"), GetNameSafe(GetPawn()));
-	MyCategory.Add(TEXT("Focus"), GetDebugName(GetFocusActor()));
+	AActor* FocusActor = GetFocusActor();
+	MyCategory.Add(TEXT("Focus"), GetDebugName(FocusActor));
+	if (FocusActor == NULL)
+	{
+		MyCategory.Add(TEXT("Focus Location"), GetFocalPoint().ToString());
+	}
 	Snapshot->Status.Add(MyCategory);
 
 	if (GetPawn())
@@ -143,7 +148,7 @@ void AAIController::SetFocalPoint( FVector FP, bool bOffsetFromBase, uint8 InPri
 	Focusitem.Actor = NULL;
 }
 
-FVector AAIController::GetFocalPoint()
+FVector AAIController::GetFocalPoint() const
 {
 	FBasedPosition FinalFocus;
 	// find focus with highest priority
@@ -415,7 +420,7 @@ EPathFollowingRequestResult::Type AAIController::MoveToActor(class AActor* Goal,
 			UE_VLOG(this, LogNavigation, Log, TEXT("MoveToActor: already at goal!"));
 			PathFollowingComponent->SetLastMoveAtGoal(true);
 
-			OnMoveCompleted(0, EPathFollowingResult::Success);
+			OnMoveCompleted(FAIRequestID::CurrentRequest, EPathFollowingResult::Success);
 			Result = EPathFollowingRequestResult::AlreadyAtGoal;
 		}
 		else 
@@ -426,7 +431,7 @@ EPathFollowingRequestResult::Type AAIController::MoveToActor(class AActor* Goal,
 				bAllowStrafe = bCanStrafe;
 
 				const uint32 RequestID = RequestMove(Path, Goal, AcceptanceRadius, bStopOnOverlap);
-				Result = (RequestID != INVALID_MOVEREQUESTID) ? EPathFollowingRequestResult::RequestSuccessful : EPathFollowingRequestResult::Failed;
+				Result = (RequestID != FAIRequestID::InvalidRequest) ? EPathFollowingRequestResult::RequestSuccessful : EPathFollowingRequestResult::Failed;
 			}
 		}
 	}
@@ -438,7 +443,7 @@ EPathFollowingRequestResult::Type AAIController::MoveToActor(class AActor* Goal,
 			PathFollowingComponent->SetLastMoveAtGoal(false);
 		}
 
-		OnMoveCompleted(INVALID_MOVEREQUESTID, EPathFollowingResult::Invalid);
+		OnMoveCompleted(FAIRequestID::InvalidRequest, EPathFollowingResult::Invalid);
 	}
 
 	return Result;
@@ -478,7 +483,7 @@ EPathFollowingRequestResult::Type AAIController::MoveToLocation(const FVector& D
 		UE_VLOG(this, LogNavigation, Log, TEXT("MoveToLocation: already at goal!"));
 		PathFollowingComponent->SetLastMoveAtGoal(true);
 
-		OnMoveCompleted(0, EPathFollowingResult::Success);
+		OnMoveCompleted(FAIRequestID::CurrentRequest, EPathFollowingResult::Success);
 		Result = EPathFollowingRequestResult::AlreadyAtGoal;
 		bCanRequestMove = false;
 	}
@@ -490,8 +495,8 @@ EPathFollowingRequestResult::Type AAIController::MoveToLocation(const FVector& D
 		{
 			bAllowStrafe = bCanStrafe;
 
-			const uint32 RequestID = RequestMove(Path, NULL, AcceptanceRadius, bStopOnOverlap);
-			Result = (RequestID != INVALID_MOVEREQUESTID) ? EPathFollowingRequestResult::RequestSuccessful : EPathFollowingRequestResult::Failed;
+			const FAIRequestID RequestID = RequestMove(Path, NULL, AcceptanceRadius, bStopOnOverlap);
+			Result = RequestID.IsValid() ? EPathFollowingRequestResult::RequestSuccessful : EPathFollowingRequestResult::Failed;
 		}
 	}
 
@@ -502,21 +507,41 @@ EPathFollowingRequestResult::Type AAIController::MoveToLocation(const FVector& D
 			PathFollowingComponent->SetLastMoveAtGoal(false);
 		}
 
-		OnMoveCompleted(INVALID_MOVEREQUESTID, EPathFollowingResult::Invalid);
+		OnMoveCompleted(FAIRequestID::InvalidRequest, EPathFollowingResult::Invalid);
 	}
 
 	return Result;
 }
 
-uint32 AAIController::RequestMove(FNavPathSharedPtr Path, class AActor* Goal, float AcceptanceRadius, bool bStopOnOverlap, FCustomMoveSharedPtr CustomData)
+FAIRequestID AAIController::RequestMove(FNavPathSharedPtr Path, class AActor* Goal, float AcceptanceRadius, bool bStopOnOverlap, FCustomMoveSharedPtr CustomData)
 {
-	uint32 RequestID = INVALID_MOVEREQUESTID;
+	uint32 RequestID = FAIRequestID::InvalidRequest;
 	if (PathFollowingComponent)
 	{
 		RequestID = PathFollowingComponent->RequestMove(Path, Goal, AcceptanceRadius, bStopOnOverlap, CustomData);
 	}
 
 	return RequestID;
+}
+
+bool AAIController::PauseMove(FAIRequestID RequestToPause)
+{
+	if (PathFollowingComponent != NULL && RequestToPause.IsEquivalent(PathFollowingComponent->GetCurrentRequestId()))
+	{
+		PathFollowingComponent->PauseMove(RequestToPause);
+		return true;
+	}
+	return false;
+}
+
+bool AAIController::ResumeMove(FAIRequestID RequestToResume)
+{
+	if (PathFollowingComponent != NULL && RequestToResume.IsEquivalent(PathFollowingComponent->GetCurrentRequestId()))
+	{
+		PathFollowingComponent->ResumeMove(RequestToResume);
+		return true;
+	}
+	return false;
 }
 
 void AAIController::StopMovement()
@@ -576,7 +601,7 @@ void AAIController::SetMoveBlockDetection(bool bEnable)
 	}
 }
 
-void AAIController::OnMoveCompleted(uint32 RequestID, EPathFollowingResult::Type Result)
+void AAIController::OnMoveCompleted(FAIRequestID RequestID, EPathFollowingResult::Type Result)
 {
 	ReceiveMoveCompleted.Broadcast(RequestID, Result);
 }

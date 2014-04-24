@@ -71,7 +71,7 @@ public:
 
 	/** setup message observer for given task */
 	void RegisterMessageObserver(const class UBTTaskNode* TaskNode, FName MessageType);
-	void RegisterMessageObserver(const class UBTTaskNode* TaskNode, FName MessageType, int32 MessageID);
+	void RegisterMessageObserver(const class UBTTaskNode* TaskNode, FName MessageType, FAIRequestID MessageID);
 	
 	/** remove message observers registered with task */
 	void UnregisterMessageObserversFrom(const class UBTTaskNode* TaskNode);

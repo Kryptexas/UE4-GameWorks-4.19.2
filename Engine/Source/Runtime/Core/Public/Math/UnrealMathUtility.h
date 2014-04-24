@@ -8,6 +8,9 @@
 
 //#define IMPLEMENT_ASSIGNMENT_OPERATOR_MANUALLY
 
+// Assert on non finite numbers. Used to track NaNs.
+#define ENABLE_NAN_DIAGNOSTIC 0
+
 /*-----------------------------------------------------------------------------
 	Definitions.
 -----------------------------------------------------------------------------*/

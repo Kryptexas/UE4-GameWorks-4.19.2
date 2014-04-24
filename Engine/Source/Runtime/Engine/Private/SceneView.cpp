@@ -114,6 +114,12 @@ FVector4 CreateInvDeviceZToWorldZTransform(FMatrix const & ProjMatrix)
 	float DepthMul = ProjMatrix.M[2][2];
 	float DepthAdd = ProjMatrix.M[3][2];
 
+	if (DepthAdd == 0.f)
+	{
+		// Avoid dividing by 0 in this case
+		DepthAdd = 0.00000001f;
+	}
+
 	float SubtractValue = DepthMul / DepthAdd;
 
 	// Subtract a tiny number to avoid divide by 0 errors in the shader when a very far distance is decided from the depth buffer.

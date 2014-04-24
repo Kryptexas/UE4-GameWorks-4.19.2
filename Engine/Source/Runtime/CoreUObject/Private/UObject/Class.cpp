@@ -912,6 +912,19 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 				AdvanceProperty = true;
 				continue;
 			}
+			else if ((Tag.Type == NAME_ObjectProperty) && (Property->GetID() == NAME_AssetObjectProperty))
+			{
+				// This property used to be a raw UObjectProperty Foo* but is now a TAssetPtr<Foo>
+				UObject* PreviousValue = NULL;
+				Ar << PreviousValue;
+
+				// now copy the value into the object's address space
+				FAssetPtr PreviousValueAssetPtr(PreviousValue);
+				CastChecked<UAssetObjectProperty>(Property)->SetPropertyValue_InContainer(Data, PreviousValueAssetPtr, Tag.ArrayIndex);
+
+				AdvanceProperty = true;
+				continue;
+			}
 			else if(Tag.Type == NAME_IntProperty && Property->GetID() == NAME_BoolProperty )
 			{
 				// Property was saved as an int32, but has been changed to a bool (bitfield)

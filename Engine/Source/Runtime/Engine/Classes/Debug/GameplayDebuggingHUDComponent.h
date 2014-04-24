@@ -24,10 +24,8 @@ class ENGINE_API AGameplayDebuggingHUDComponent : public AHUD
 
 public:
 	virtual void PostRender() OVERRIDE;
-	FString GenerateAllData();
 
 protected:
-
 	//virtual void DrawOnCanvas(class UCanvas* Canvas, APlayerController* PC);
 	virtual void DrawPath(APlayerController* PC, class UGameplayDebuggingComponent *DebugComponent);
 	virtual void DrawOverHeadInformation(APlayerController* PC, class UGameplayDebuggingComponent *DebugComponent);
@@ -39,6 +37,7 @@ protected:
 	virtual void DrawNavMeshSnapshot(APlayerController* PC, class UGameplayDebuggingComponent *DebugComponent);
 
 	void PrintAllData();
+	void DrawMenu(const float X, const float Y, class UGameplayDebuggingComponent* DebugComponent);
 	static void CalulateStringSize(const AGameplayDebuggingHUDComponent::FPrintContext& DefaultContext, UFont* Font, const FString& InString, float& OutX, float& OutY);
 	static void CalulateTextSize(const AGameplayDebuggingHUDComponent::FPrintContext& DefaultContext, UFont* Font, const FText& InText, float& OutX, float& OutY);
 	static FVector ProjectLocation(const AGameplayDebuggingHUDComponent::FPrintContext& Context, const FVector& Location);
@@ -50,7 +49,6 @@ private:
 	void DrawDebugComponentData(APlayerController* PC, class UGameplayDebuggingComponent *DebugComponent);
 
 protected:
-	bool bDrawToScreen;
 	FString HugeOutputString;
 
 	FPrintContext OverHeadContext;

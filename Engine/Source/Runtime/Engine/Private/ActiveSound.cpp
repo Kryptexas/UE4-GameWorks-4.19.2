@@ -42,6 +42,7 @@ FActiveSound::FActiveSound()
 	, SubtitlePriority(0.f)
 	, OcclusionCheckInterval(0.f)
 	, LastOcclusionCheckTime(0.f)
+	, LastLocation(FVector::ZeroVector)
 	, LastReverbVolume(NULL)
 	, LastUpdateTime(0.f)
 	, SourceInteriorVolume(1.f)
@@ -185,7 +186,7 @@ void FActiveSound::UpdateWaveInstances( FAudioDevice* AudioDevice, TArray<FWaveI
 	}
 
 	// for velocity-based effects like doppler
-	ParseParams.Velocity = (ParseParams.Transform.GetTranslation() - LastLocation) / DeltaTime;
+	ParseParams.Velocity = (DeltaTime <= 0.0f) ? FVector::ZeroVector : ((ParseParams.Transform.GetTranslation() - LastLocation) / DeltaTime);
 	LastLocation = ParseParams.Transform.GetTranslation();
 
 	// if the closest listener is not the primary one, transform CurrentLocation

@@ -12,20 +12,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogHUD, Log, All);
 
 AGameplayDebuggingHUDComponent::AGameplayDebuggingHUDComponent(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
-	, bDrawToScreen(true)
 {
-}
-
-FString AGameplayDebuggingHUDComponent::GenerateAllData()
-{
-	bDrawToScreen = false;
-	HugeOutputString.Empty();
-	PrintAllData();
-	bDrawToScreen = true;
-
-	FString ReturnString = HugeOutputString;
-	HugeOutputString.Empty();
-	return ReturnString;
 }
 
 void AGameplayDebuggingHUDComponent::PostRender()
@@ -44,10 +31,14 @@ void AGameplayDebuggingHUDComponent::PrintAllData()
 	if (DefaultContext.Canvas != NULL)
 	{
 		float XL, YL;
-		CalulateStringSize(DefaultContext, DefaultContext.Font, TEXT("AI Debug ENABLED"), XL, YL);
-		PrintString(DefaultContext, FColorList::White, TEXT("AI Debug ENABLED"), DefaultContext.Canvas->ClipX/2.0f - XL/2.0f, 0);
+		CalulateStringSize(DefaultContext, DefaultContext.Font, TEXT("Gameplay Debug Tool "), XL, YL);
+		PrintString(DefaultContext, FColorList::White, TEXT("Gameplay Debug Tool "), DefaultContext.Canvas->ClipX/2.0f - XL/2.0f, 0);
 	}
 
+	const float MenuX = DefaultContext.CursorX;
+	const float MenuY = DefaultContext.CursorY;
+
+	UGameplayDebuggingComponent* SelectedDebugComponent = NULL;
 	APlayerController* const MyPC = Cast<APlayerController>(PlayerOwner);
 	if (MyPC)
 	{
@@ -55,24 +46,97 @@ void AGameplayDebuggingHUDComponent::PrintAllData()
 		for (FConstPawnIterator Iterator = World->GetPawnIterator(); Iterator; ++Iterator )
 		{
 			APawn* NewTarget = *Iterator;
-			UGameplayDebuggingComponent* DebuggingComponent = NewTarget->GetDebugComponent(false);
-			if (DebuggingComponent)
+			UGameplayDebuggingComponent* DebugComponent = NewTarget->GetDebugComponent(false);
+			if (DebugComponent)
 			{
-				if (NewTarget == MyPC->GetPawn())
+				if (DebugComponent->bIsSelectedForDebugging)
 				{
-					if (DebuggingComponent->IsViewActive(EAIDebugDrawDataView::NavMesh) && bDrawToScreen)
-					{
-						DrawNavMeshSnapshot(MyPC, DebuggingComponent);
-					}
+					SelectedDebugComponent = DebugComponent;
 				}
-				else if (NewTarget->PlayerState == NULL || NewTarget->PlayerState->bIsABot)
+				
+				if (NewTarget->PlayerState == NULL || NewTarget->PlayerState->bIsABot)
 				{
-					DrawDebugComponentData(MyPC, DebuggingComponent);
+					DrawDebugComponentData(MyPC, DebugComponent);
 				}
 			}
 		}
 	}
+
+	APawn* PCPawn = MyPC ? MyPC->GetPawn() : NULL;
+	UGameplayDebuggingComponent* PlayerDebugComp = PCPawn ? PCPawn->GetDebugComponent(false) : NULL;
+	if (PlayerDebugComp)
+	{
+		DrawDebugComponentData(MyPC, PlayerDebugComp);
+	}
+	DrawMenu(MenuX, MenuY, SelectedDebugComponent);
 #endif
+}
+
+void AGameplayDebuggingHUDComponent::DrawMenu(const float X, const float Y, class UGameplayDebuggingComponent* DebugComponent)
+{
+	const float OldX = DefaultContext.CursorX;
+	const float OldY = DefaultContext.CursorY;
+
+	APlayerController* const MyPC = Cast<APlayerController>(PlayerOwner);
+	APawn* PCPawn = MyPC ? MyPC->GetPawn() : NULL;
+	UGameplayDebuggingComponent* PlayerDebugComp = PCPawn ? PCPawn->GetDebugComponent(false) : NULL;
+	if (PlayerDebugComp/*&& !DebugComponent->IsViewActive(EAIDebugDrawDataView::EditorDebugAIFlag)*/ && DefaultContext.Canvas != NULL)
+	{
+		TArray<FDebugCategoryView> Categories;
+		PlayerDebugComp->GetKeyboardDesc(Categories);
+
+		UFont* OldFont = DefaultContext.Font;
+		DefaultContext.Font = GEngine->GetMediumFont();
+
+		TArray<float> CategoriesWidth;
+		CategoriesWidth.AddZeroed(Categories.Num());
+		float TotalWidth = 0.0f, MaxHeight = 0.0f;
+
+		FString HeaderDesc(TEXT("Tap [\"] to close, use Numpad to toggle categories"));
+		float HeaderWidth = 0.0f;
+		CalulateStringSize(DefaultContext, DefaultContext.Font, HeaderDesc, HeaderWidth, MaxHeight);
+
+		for (int32 i = 0; i < Categories.Num(); i++)
+		{
+			Categories[i].Desc = FString::Printf(TEXT("%d:%s "), i, *Categories[i].Desc);
+
+			float StrHeight = 0.0f;
+			CalulateStringSize(DefaultContext, DefaultContext.Font, Categories[i].Desc, CategoriesWidth[i], StrHeight);
+			TotalWidth += CategoriesWidth[i];
+			MaxHeight = FMath::Max(MaxHeight, StrHeight);
+		}
+
+		TotalWidth = FMath::Max(TotalWidth, HeaderWidth);
+
+		FCanvasTileItem TileItem(FVector2D(10, 10), GWhiteTexture, FVector2D(TotalWidth + 20, MaxHeight + 20), FColor(0, 0, 0, 20));
+		TileItem.BlendMode = SE_BLEND_Translucent;
+		DrawItem(DefaultContext, TileItem, 0, 0);
+
+		PrintString(DefaultContext, FColorList::LightBlue, HeaderDesc, 2, 2);
+
+		if (PlayerDebugComp)
+		{
+			float XPos = 20.0f;
+			for (int32 i = 0; i < Categories.Num(); i++)
+			{
+				const bool bIsActive = MyPC->GetDebuggingController()->IsViewActive(Categories[i].View) ? true : false;
+
+				const bool bIsDisabled = (Categories[i].View == EAIDebugDrawDataView::NavMesh) ? 	false : (DebugComponent ? false : true);
+
+				PrintString(DefaultContext, bIsActive ? FColorList::Green : (bIsDisabled ? FColorList::LightGrey : FColorList::White), Categories[i].Desc, XPos, 20);
+				XPos += CategoriesWidth[i];
+			}
+		}
+
+		if (DebugComponent == NULL)
+		{
+			PrintString(DefaultContext,"\n{red}No Pawn selected - waiting for data to replicate from server\n");
+		}
+		DefaultContext.Font = OldFont;
+	}
+
+	DefaultContext.CursorX = OldX;
+	DefaultContext.CursorY = OldY;
 }
 
 void AGameplayDebuggingHUDComponent::DrawDebugComponentData(APlayerController* MyPC, class UGameplayDebuggingComponent *DebugComponent)
@@ -83,81 +147,34 @@ void AGameplayDebuggingHUDComponent::DrawDebugComponentData(APlayerController* M
 
 	OverHeadContext = FPrintContext(GEngine->GetSmallFont(), Canvas, ScreenLoc.X, ScreenLoc.Y);
 
-	if (bDrawToScreen && (DebugComponent->IsViewActive(EAIDebugDrawDataView::OverHead) || DebugComponent->IsViewActive(EAIDebugDrawDataView::EditorDebugAIFlag)))
+	if (MyPC->GetDebuggingController()->IsViewActive(EAIDebugDrawDataView::OverHead) || MyPC->GetDebuggingController()->IsViewActive(EAIDebugDrawDataView::EditorDebugAIFlag))
+	{
 		DrawOverHeadInformation(MyPC, DebugComponent);
+	}
+
+	if (MyPC->GetDebuggingController()->IsViewActive(EAIDebugDrawDataView::NavMesh))
+	{
+		DrawNavMeshSnapshot(MyPC, DebugComponent);
+	}
 
 	if (DebugComponent->bIsSelectedForDebugging && DebugComponent->ShowExtendedInformatiomCounter > 0)
 	{
-		if (bDrawToScreen && !DebugComponent->IsViewActive(EAIDebugDrawDataView::EditorDebugAIFlag) && DefaultContext.Canvas != NULL)
-		{
-			TArray<FDebugCategoryView> Categories;
-			DebugComponent->GetKeyboardDesc(Categories);
-
-			UFont* OldFont = DefaultContext.Font;
-			DefaultContext.Font = GEngine->GetMediumFont();
-
-			TArray<float> CategoriesWidth;
-			CategoriesWidth.AddZeroed(Categories.Num());
-			float TotalWidth = 0.0f, MaxHeight = 0.0f;
-
-			FString HeaderDesc(TEXT("Tap [\"] to close, use Numpad to toggle categories"));
-			float HeaderWidth = 0.0f;
-			CalulateStringSize(DefaultContext, DefaultContext.Font, HeaderDesc, HeaderWidth, MaxHeight);
-
-			for (int32 i = 0; i < Categories.Num(); i++)
-			{
-				Categories[i].Desc = FString::Printf(TEXT("%d:%s "), i, *Categories[i].Desc);
-
-				float StrHeight = 0.0f;
-				CalulateStringSize(DefaultContext, DefaultContext.Font, Categories[i].Desc, CategoriesWidth[i], StrHeight);
-				TotalWidth += CategoriesWidth[i];
-				MaxHeight = FMath::Max(MaxHeight, StrHeight);
-			}
-
-			TotalWidth = FMath::Max(TotalWidth, HeaderWidth);
-
-			FCanvasTileItem TileItem( FVector2D(10, 10), GWhiteTexture, FVector2D( TotalWidth+20, MaxHeight+20 ), FColor(0,0,0,20) );
-			TileItem.BlendMode = SE_BLEND_Translucent;
-			DrawItem(DefaultContext, TileItem, 0, 0);
-
-			PrintString(DefaultContext, FColorList::LightBlue, HeaderDesc, 2, 2);
-
-			APawn* PCPawn = MyPC->GetPawn();
-			UGameplayDebuggingComponent* PlayerDebugComp = PCPawn ? PCPawn->GetDebugComponent(false) : NULL;
-
-			if (PlayerDebugComp)
-			{
-				float XPos = 20.0f;
-				for (int32 i = 0; i < Categories.Num(); i++)
-				{
-					const bool bIsActive = (Categories[i].View == EAIDebugDrawDataView::NavMesh) ?
-						PlayerDebugComp->IsViewActive(Categories[i].View) :
-						DebugComponent->IsViewActive(Categories[i].View);
-
-					PrintString(DefaultContext, bIsActive ? FColorList::Green : FColor::White, Categories[i].Desc, XPos, 20);
-					XPos += CategoriesWidth[i];
-				}
-			}
-
-			DefaultContext.Font = OldFont;
-		}
-
-		if (!bDrawToScreen || DebugComponent->IsViewActive(EAIDebugDrawDataView::Basic))
+		if (MyPC->GetDebuggingController()->IsViewActive(EAIDebugDrawDataView::Basic))
 		{
 			DrawBasicData(MyPC, DebugComponent);
 		}
 
-		if (!bDrawToScreen || DebugComponent->IsViewActive(EAIDebugDrawDataView::BehaviorTree))
+		if (MyPC->GetDebuggingController()->IsViewActive(EAIDebugDrawDataView::BehaviorTree))
 		{
 			DrawBehaviorTreeData(MyPC, DebugComponent);
 		}
 
-		if (!bDrawToScreen || DebugComponent->IsViewActive(EAIDebugDrawDataView::EQS))
+		if (MyPC->GetDebuggingController()->IsViewActive(EAIDebugDrawDataView::EQS))
 		{
 			DrawEQSData(MyPC, DebugComponent);
 		}
 
-		if (!bDrawToScreen || DebugComponent->IsViewActive(EAIDebugDrawDataView::Perception))
+		if (MyPC->GetDebuggingController()->IsViewActive(EAIDebugDrawDataView::Perception))
 		{
 			DrawPerception(MyPC, DebugComponent);
 		}
@@ -201,7 +218,14 @@ void AGameplayDebuggingHUDComponent::DrawOverHeadInformation(APlayerController* 
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	APawn* MyPawn = Cast<APawn>(DebugComponent->GetOwner());
-	const FVector ScreenLoc = OverHeadContext.Canvas->Project(MyPawn->GetActorLocation() + FVector(0.f, 0.f, MyPawn->GetSimpleCollisionHalfHeight()));
+	const FVector Loc3d = MyPawn->GetActorLocation() + FVector(0.f, 0.f, MyPawn->GetSimpleCollisionHalfHeight());
+
+	if (OverHeadContext.Canvas->SceneView == NULL || OverHeadContext.Canvas->SceneView->ViewFrustum.IntersectBox(Loc3d, FVector::ZeroVector) == false)
+	{
+		return;
+	}
+
+	const FVector ScreenLoc = OverHeadContext.Canvas->Project(Loc3d);
 	static const FVector2D FontScale(1.f, 1.f);
 	UFont* Font = GEngine->GetSmallFont();
 
@@ -238,7 +262,7 @@ void AGameplayDebuggingHUDComponent::DrawOverHeadInformation(APlayerController* 
 		OverHeadContext.FontRenderInfo.bEnableShadow = false;
 	}
 
-	if (DebugComponent->ActiveViews & (1 << EAIDebugDrawDataView::EditorDebugAIFlag))
+	if (PC->GetDebuggingController()->IsViewActive(EAIDebugDrawDataView::EditorDebugAIFlag))
 	{
 		PrintString(OverHeadContext, FString::Printf(TEXT("{red}%s\n"), *DebugComponent->PathErrorString));
 		DrawPath(PC, DebugComponent);
@@ -610,14 +634,8 @@ void AGameplayDebuggingHUDComponent::PrintString(FPrintContext& Context, const F
 			}
 			YMovement += YL;
 			Context.CursorX = Context.DefaultX;
-			if (!bDrawToScreen)
-				HugeOutputString += TEXT("\n");
 		}
 		const FString Str = Helper.Strings[Index].String;
-		if (!bDrawToScreen)
-		{
-			HugeOutputString += Str;
-		}
 
 		if (Str.Len() > 0 && Context.Canvas != NULL)
 		{

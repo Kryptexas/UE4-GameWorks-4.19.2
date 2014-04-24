@@ -28,6 +28,7 @@ class UBehaviorTreeGraph : public UEdGraph
 	bool UpdateInjectedNodes();
 	class UEdGraphNode* FindInjectedNode(int32 Index);
 	void ReplaceNodeConnections(UEdGraphNode* OldNode, UEdGraphNode* NewNode);
+	void RebuildExecutionOrder();
 
 	void LockUpdates();
 	void UnlockUpdates();

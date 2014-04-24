@@ -7,9 +7,9 @@ UKismetAIAsyncTaskProxy::UKismetAIAsyncTaskProxy(const class FPostConstructIniti
 {
 }
 
-void UKismetAIAsyncTaskProxy::OnMoveCompleted(int32 RequestID, EPathFollowingResult::Type MovementResult)
+void UKismetAIAsyncTaskProxy::OnMoveCompleted(FAIRequestID RequestID, EPathFollowingResult::Type MovementResult)
 {
-	if (RequestID == MoveRequestId && AIController.IsValid())
+	if (RequestID.IsEquivalent(MoveRequestId) && AIController.IsValid())
 	{
 		if (!AIController->IsPendingKill() && AIController->ReceiveMoveCompleted.IsBound())
 		{
@@ -91,18 +91,11 @@ APawn* UKismetAIHelperLibrary::SpawnAIFromClass(class UObject* WorldContextObjec
 		ActorSpawnParams.bNoCollisionFail = bNoCollisionFail;
 		NewPawn = World->SpawnActor<APawn>(*PawnClass, Location, Rotation, ActorSpawnParams);
 
-		ActorSpawnParams.bNoCollisionFail = true;
-
 		if (NewPawn != NULL)
 		{
 			if (NewPawn->Controller == NULL)
-			{
-				AAIController* NewController = World->SpawnActor<AAIController>(AAIController::StaticClass(), ActorSpawnParams);
-
-				if (NewController)
-				{
-					NewController->Possess(NewPawn);
-				}
+			{	// NOTE: SpawnDefaultController ALSO calls Possess() to possess the pawn (if a controller is successfully spawned).
+				NewPawn->SpawnDefaultController();
 			}
 
 			if (BehaviorTree != NULL)

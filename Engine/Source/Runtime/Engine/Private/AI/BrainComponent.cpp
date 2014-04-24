@@ -79,7 +79,7 @@ FAIMessageObserverHandle FAIMessageObserver::Create(AController* Controller, FNa
 	return Create(BrainComp, MessageType, Delegate);
 }
 
-FAIMessageObserverHandle FAIMessageObserver::Create(AController* Controller, FName MessageType, int32 MessageID, FOnAIMessage const& Delegate)
+FAIMessageObserverHandle FAIMessageObserver::Create(AController* Controller, FName MessageType, FAIRequestID MessageID, FOnAIMessage const& Delegate)
 {
 	UBrainComponent* BrainComp = FindBrainComponentHelper(Controller);
 	return Create(BrainComp, MessageType, MessageID, Delegate);
@@ -91,7 +91,7 @@ FAIMessageObserverHandle FAIMessageObserver::Create(APawn* Pawn, FName MessageTy
 	return Create(BrainComp, MessageType, Delegate);
 }
 
-FAIMessageObserverHandle FAIMessageObserver::Create(APawn* Pawn, FName MessageType, int32 MessageID, FOnAIMessage const& Delegate)
+FAIMessageObserverHandle FAIMessageObserver::Create(APawn* Pawn, FName MessageType, FAIRequestID MessageID, FOnAIMessage const& Delegate)
 {
 	UBrainComponent* BrainComp = FindBrainComponentHelper(Pawn);
 	return Create(BrainComp, MessageType, MessageID, Delegate);
@@ -114,7 +114,7 @@ FAIMessageObserverHandle FAIMessageObserver::Create(UBrainComponent* BrainComp, 
 	return ObserverHandle;
 }
 
-FAIMessageObserverHandle FAIMessageObserver::Create(UBrainComponent* BrainComp, FName MessageType, int32 MessageID, FOnAIMessage const& Delegate)
+FAIMessageObserverHandle FAIMessageObserver::Create(UBrainComponent* BrainComp, FName MessageType, FAIRequestID MessageID, FOnAIMessage const& Delegate)
 {
 	FAIMessageObserverHandle ObserverHandle;
 	if (BrainComp)
@@ -154,9 +154,9 @@ void FAIMessageObserver::Unregister()
 
 void FAIMessageObserver::OnMessage(const FAIMessage& Message)
 {
-	if (Message.Message == MessageType)
+	if (Message.MessageName == MessageType)
 	{
-		if (!bFilterByID || Message.MessageID == MessageID)
+		if (!bFilterByID || Message.RequestID.IsEquivalent(MessageID))
 		{
 			ObserverDelegate.ExecuteIfBound(Owner.Get(), Message);
 		}
@@ -169,7 +169,7 @@ FString FAIMessageObserver::DescribeObservedMessage() const
 	if (bFilterByID)
 	{
 		Description.AppendChar(TEXT(':'));
-		Description.AppendInt(MessageID);
+		Description.AppendInt(MessageID.GetID());
 	}
 
 	return Description;

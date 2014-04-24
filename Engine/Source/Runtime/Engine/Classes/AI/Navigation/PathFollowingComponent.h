@@ -65,7 +65,7 @@ class ENGINE_API UPathFollowingComponent : public UActorComponent, public IAIRes
 
 	DECLARE_DELEGATE_TwoParams(FPostProcessMoveSignature, UPathFollowingComponent* /*comp*/, FVector& /*velocity*/);
 	DECLARE_DELEGATE_OneParam(FRequestCompletedSignature, EPathFollowingResult::Type /*Result*/);
-	DECLARE_MULTICAST_DELEGATE_TwoParams(FMoveCompletedSignature, uint32 /*RequestID*/, EPathFollowingResult::Type /*Result*/);
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FMoveCompletedSignature, FAIRequestID /*RequestID*/, EPathFollowingResult::Type /*Result*/);
 
 	/** delegate for modifying path following velocity */
 	FPostProcessMoveSignature PostProcessMove;
@@ -83,32 +83,32 @@ class ENGINE_API UPathFollowingComponent : public UActorComponent, public IAIRes
 
 	/** start movement along path
 	 *  @returns request ID or 0 when failed */
-	virtual uint32 RequestMove(FNavPathSharedPtr Path, FRequestCompletedSignature OnComplete, const AActor* DestinationActor = NULL, float AcceptanceRadius = UPathFollowingComponent::DefaultAcceptanceRadius, bool bStopOnOverlap = true, FCustomMoveSharedPtr GameData = NULL);
+	virtual FAIRequestID RequestMove(FNavPathSharedPtr Path, FRequestCompletedSignature OnComplete, const AActor* DestinationActor = NULL, float AcceptanceRadius = UPathFollowingComponent::DefaultAcceptanceRadius, bool bStopOnOverlap = true, FCustomMoveSharedPtr GameData = NULL);
 
 	/** start movement along path
 	 *  @returns request ID or 0 when failed */
-	FORCEINLINE uint32 RequestMove(FNavPathSharedPtr InPath, const AActor* InDestinationActor = NULL, float InAcceptanceRadius = UPathFollowingComponent::DefaultAcceptanceRadius, bool InStopOnOverlap = true, FCustomMoveSharedPtr InGameData = NULL)
+	FORCEINLINE FAIRequestID RequestMove(FNavPathSharedPtr InPath, const AActor* InDestinationActor = NULL, float InAcceptanceRadius = UPathFollowingComponent::DefaultAcceptanceRadius, bool InStopOnOverlap = true, FCustomMoveSharedPtr InGameData = NULL)
 	{
 		return RequestMove(InPath, UnboundRequestDelegate, InDestinationActor, InAcceptanceRadius, InStopOnOverlap, InGameData);
 	}
 
 	/** update path for specified request
 	 *  @param RequestID - request to update */
-	virtual bool UpdateMove(FNavPathSharedPtr Path, uint32 RequestID = UPathFollowingComponent::CurrentMoveRequestMetaId);
+	virtual bool UpdateMove(FNavPathSharedPtr Path, FAIRequestID RequestID = FAIRequestID::CurrentRequest);
 
 	/** aborts following path
 	 *  @param RequestID - request to abort, 0 = current
 	 *  @param bResetVelocity - try to stop movement component
 	 *  @param bSilent - finish with Skipped result instead of Aborted */
-	virtual void AbortMove(const FString& Reason, uint32 RequestID = UPathFollowingComponent::CurrentMoveRequestMetaId, bool bResetVelocity = true, bool bSilent = false);
+	virtual void AbortMove(const FString& Reason, FAIRequestID RequestID = FAIRequestID::CurrentRequest, bool bResetVelocity = true, bool bSilent = false);
 
 	/** pause path following
-	*  @param RequestID - request to pause, 0 = current */
-	virtual void PauseMove(uint32 RequestID = UPathFollowingComponent::CurrentMoveRequestMetaId, bool bResetVelocity = true);
+	*  @param RequestID - request to pause, FAIRequestID::CurrentRequest means pause current request, regardless of its ID */
+	virtual void PauseMove(FAIRequestID RequestID = FAIRequestID::CurrentRequest, bool bResetVelocity = true);
 
 	/** resume path following
-	*  @param RequestID - request to resume, 0 = current */
-	virtual void ResumeMove(uint32 RequestID = UPathFollowingComponent::CurrentMoveRequestMetaId);
+	*  @param RequestID - request to resume, FAIRequestID::CurrentRequest means restor current request, regardless of its ID*/
+	virtual void ResumeMove(FAIRequestID RequestID = FAIRequestID::CurrentRequest);
 
 	/** notify about finished movement */
 	virtual void OnPathFinished(EPathFollowingResult::Type Result);
@@ -165,7 +165,7 @@ class ENGINE_API UPathFollowingComponent : public UActorComponent, public IAIRes
 	FORCEINLINE bool HasPartialPath() const { return Path.IsValid() && Path->IsPartial(); }
 	FORCEINLINE bool DidMoveReachGoal() const { return bLastMoveReachedGoal && (Status == EPathFollowingStatus::Idle); }
 
-	FORCEINLINE uint32 GetCurrentRequestId() const { return CurrentRequestId; }
+	FORCEINLINE FAIRequestID GetCurrentRequestId() const { return CurrentRequestId; }
 	FORCEINLINE uint32 GetCurrentPathIndex() const { return MoveSegmentStartIndex; }
 	FORCEINLINE uint32 GetNextPathIndex() const { return MoveSegmentEndIndex; }
 	FORCEINLINE FVector GetCurrentTargetLocation() const { return *CurrentDestination; }
@@ -243,6 +243,9 @@ protected:
 	/** min distance to destination to consider request successful */
 	float AcceptanceRadius;
 
+	/** min distance to end of current path segment to consider segment finished */
+	float CurrentAcceptanceRadius;
+
 	/** part of agent radius used as min acceptance radius */
 	float MinAgentRadiusPct;
 
@@ -283,6 +286,7 @@ protected:
 	uint32 bLastMoveReachedGoal : 1;
 
 	/** set when paths simplification using visibility tests are needed  (disabled by default because of performance) */
+	UPROPERTY(config)
 	uint32 bUseVisibilityTestsSimplification : 1;
 
 	/** set when UpdateMove() is called during paused move, will update path's start segment on resuming */
@@ -389,7 +393,7 @@ private:
 	/** used for debugging purposes to be able to identify which logged information
 	 *	results from which request, if there was multiple ones during one frame */
 	static uint32 NextRequestId;
-	uint32 CurrentRequestId;
+	FAIRequestID CurrentRequestId;
 
 	/** Current location on navigation data.  Lazy-updated, so read this via GetCurrentNavLocation(). 
 	 *	Since it makes conceptual sense for GetCurrentNavLocation() to be const but we may 
@@ -407,7 +411,4 @@ public:
 	 *	value to be used, it's used to detect the fact that it's requested, and 
 	 *	appropriate value from querier/doer will be pulled */
 	static const float DefaultAcceptanceRadius;
-
-	/** value to be passed as move request ID when such ID is expected and user means "current move" */
-	static const uint32 CurrentMoveRequestMetaId;
 };

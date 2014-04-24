@@ -15,23 +15,23 @@ struct ENGINE_API FAIMessage
 	};
 
 	/** type of message */
-	FName Message;
+	FName MessageName;
 
 	/** message source */
 	UObject* Sender;
 
 	/** message param: ID */
-	int32 MessageID;
+	FAIRequestID RequestID;
 
 	/** message param: status */
 	TEnumAsByte<EStatus> Status;
 
-	FAIMessage() : Message(NAME_None), Sender(NULL), MessageID(0), Status(FAIMessage::Success) {}
-	FAIMessage(FName InMessage, UObject* InSender) : Message(InMessage), Sender(InSender), MessageID(0), Status(FAIMessage::Success) {}
-	FAIMessage(FName InMessage, UObject* InSender, int32 InID, EStatus InStatus) : Message(InMessage), Sender(InSender), MessageID(InID), Status(InStatus) {}
-	FAIMessage(FName InMessage, UObject* InSender, int32 InID, bool bSuccess) : Message(InMessage), Sender(InSender), MessageID(InID), Status(bSuccess ? Success : Failure) {}
-	FAIMessage(FName InMessage, UObject* InSender, EStatus InStatus) : Message(InMessage), Sender(InSender), MessageID(0), Status(InStatus) {}
-	FAIMessage(FName InMessage, UObject* InSender, bool bSuccess) : Message(InMessage), Sender(InSender), MessageID(0), Status(bSuccess ? Success : Failure) {}
+	FAIMessage() : MessageName(NAME_None), Sender(NULL), RequestID(0), Status(FAIMessage::Success) {}
+	FAIMessage(FName InMessage, UObject* InSender) : MessageName(InMessage), Sender(InSender), RequestID(0), Status(FAIMessage::Success) {}
+	FAIMessage(FName InMessage, UObject* InSender, FAIRequestID InID, EStatus InStatus) : MessageName(InMessage), Sender(InSender), RequestID(InID), Status(InStatus) {}
+	FAIMessage(FName InMessage, UObject* InSender, FAIRequestID InID, bool bSuccess) : MessageName(InMessage), Sender(InSender), RequestID(InID), Status(bSuccess ? Success : Failure) {}
+	FAIMessage(FName InMessage, UObject* InSender, EStatus InStatus) : MessageName(InMessage), Sender(InSender), RequestID(0), Status(InStatus) {}
+	FAIMessage(FName InMessage, UObject* InSender, bool bSuccess) : MessageName(InMessage), Sender(InSender), RequestID(0), Status(bSuccess ? Success : Failure) {}
 
 	static void Send(AController* Controller, const FAIMessage& Message);
 	static void Send(APawn* Pawn, const FAIMessage& Message);
@@ -47,13 +47,13 @@ struct ENGINE_API FAIMessageObserver : public TSharedFromThis<FAIMessageObserver
 public:
 
 	static FAIMessageObserverHandle Create(AController* Controller, FName MessageType, FOnAIMessage const& Delegate);
-	static FAIMessageObserverHandle Create(AController* Controller, FName MessageType, int32 MessageID, FOnAIMessage const& Delegate);
+	static FAIMessageObserverHandle Create(AController* Controller, FName MessageType, FAIRequestID MessageID, FOnAIMessage const& Delegate);
 
 	static FAIMessageObserverHandle Create(APawn* Pawn, FName MessageType, FOnAIMessage const& Delegate);
-	static FAIMessageObserverHandle Create(APawn* Pawn, FName MessageType, int32 MessageID, FOnAIMessage const& Delegate);
+	static FAIMessageObserverHandle Create(APawn* Pawn, FName MessageType, FAIRequestID MessageID, FOnAIMessage const& Delegate);
 
 	static FAIMessageObserverHandle Create(UBrainComponent* BrainComp, FName MessageType, FOnAIMessage const& Delegate);
-	static FAIMessageObserverHandle Create(UBrainComponent* BrainComp, FName MessageType, int32 MessageID, FOnAIMessage const& Delegate);
+	static FAIMessageObserverHandle Create(UBrainComponent* BrainComp, FName MessageType, FAIRequestID MessageID, FOnAIMessage const& Delegate);
 
 	~FAIMessageObserver();
 
@@ -61,7 +61,7 @@ public:
 	FString DescribeObservedMessage() const;
 	
 	FORCEINLINE FName GetObservedMessageType() const { return MessageType; }
-	FORCEINLINE int32 GetObservedMessageID() const { return MessageID; }
+	FORCEINLINE FAIRequestID GetObservedMessageID() const { return MessageID; }
 	FORCEINLINE bool IsObservingMessageID() const { return bFilterByID; }
 
 private:
@@ -73,7 +73,7 @@ private:
 	FName MessageType;
 
 	/** filter: message ID */
-	int32 MessageID;
+	FAIRequestID MessageID;
 	bool bFilterByID;
 
 	/** delegate to call */

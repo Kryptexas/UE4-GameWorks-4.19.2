@@ -54,13 +54,15 @@ void UBTComposite_SimpleParallel::NotifyChildExecution(class UBehaviorTreeCompon
 			MyMemory->MainTaskResult = NodeResult;
 			MyMemory->bMainTaskIsActive = false;
 
-			OwnerComp->UnregisterParallelTask(Children[EBTParallelChild::MainTask].ChildTask, OwnerComp->GetActiveInstanceIdx());
+			const int32 MyInstanceIdx = OwnerComp->FindInstanceContainingNode(this);
+
+			OwnerComp->UnregisterParallelTask(Children[EBTParallelChild::MainTask].ChildTask, MyInstanceIdx);
 			if (NodeResult != EBTNodeResult::Aborted)
 			{
 				// check if subtree should be aborted when task finished with success/failed result
 				if (FinishMode == EBTParallelMode::AbortBackground)
 				{
-					OwnerComp->RequestExecution((UBTCompositeNode*)this, OwnerComp->GetActiveInstanceIdx(),
+					OwnerComp->RequestExecution((UBTCompositeNode*)this, MyInstanceIdx,
 						Children[EBTParallelChild::MainTask].ChildTask, EBTParallelChild::MainTask,
 						NodeResult);
 				}

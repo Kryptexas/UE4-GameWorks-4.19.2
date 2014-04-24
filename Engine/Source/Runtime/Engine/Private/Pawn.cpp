@@ -139,10 +139,11 @@ class UGameplayDebuggingComponent* APawn::GetDebugComponent(bool bCreateIfNotFou
 			DebugComponent = Components[0];
 		}
 
-		if (DebugComponent == NULL && bCreateIfNotFound)
+		if (DebugComponent == NULL && bCreateIfNotFound && GetNetMode() < NM_Client)
 		{
 			DebugComponent = ConstructObject<UGameplayDebuggingComponent>(GameplayDebuggingComponentClass, this, UGameplayDebuggingComponent::DefaultComponentName);
 			DebugComponent->SetIsReplicated(true);
+			DebugComponent->Activate();
 			DebugComponent->RegisterComponent();
 		}
 	}
@@ -318,10 +319,12 @@ void APawn::SpawnDefaultController()
 		SpawnInfo.Instigator = Instigator;
 		SpawnInfo.bNoCollisionFail = true;
 		SpawnInfo.OverrideLevel = GetLevel();
-		Controller = GetWorld()->SpawnActor<AController>( AIControllerClass, GetActorLocation(), GetActorRotation(), SpawnInfo );
-		if ( Controller != NULL )
+		AController* NewController = GetWorld()->SpawnActor<AController>(AIControllerClass, GetActorLocation(), GetActorRotation(), SpawnInfo);
+		if (NewController != NULL)
 		{
-			Controller->Possess( this );
+			// if successful will result in setting this->Controller 
+			// as part of possession mechanics
+			NewController->Possess(this);
 		}
 	}
 }

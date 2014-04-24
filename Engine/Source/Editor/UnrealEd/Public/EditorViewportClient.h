@@ -351,6 +351,8 @@ public:
 	/** Sets ortho zoom amount */
 	void SetOrthoZoom( float InOrthoZoom ) 
 	{
+		// A zero ortho zoom is not supported and causes NaN/div0 errors
+		check(InOrthoZoom != 0);
 		ViewTransform.SetOrthoZoom( InOrthoZoom );
 	}
 

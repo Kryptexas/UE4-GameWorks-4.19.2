@@ -8,6 +8,7 @@
 #include "BlueprintEditor.h"
 #include "BlueprintEditorModes.h"
 #include "BlueprintEditorTabs.h"
+#include "SEditorViewport.h"
 #include "SSCSEditorViewport.h"
 
 #include "SUMGEditorTree.h"

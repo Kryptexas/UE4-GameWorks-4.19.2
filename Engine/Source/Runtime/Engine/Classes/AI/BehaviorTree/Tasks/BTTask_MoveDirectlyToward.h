@@ -6,7 +6,7 @@
 struct FBTMoveDirectlyTowardMemory
 {
 	/** Move request ID */
-	uint32 MoveRequestID;
+	FAIRequestID MoveRequestID;
 };
 
 UCLASS(config=Game)

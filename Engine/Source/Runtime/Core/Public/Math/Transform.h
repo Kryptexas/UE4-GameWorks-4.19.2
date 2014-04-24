@@ -2,7 +2,6 @@
 
 
 #pragma once
-#define FTRANSFORM_TRACK_NAN_ISSUES (0 && !UE_BUILD_SHIPPING && !UE_BUILD_TEST)
 
 /** 
  * FTransform class for Quat/Translation/Scale.
@@ -29,7 +28,7 @@ public:
 	 */
 	static CORE_API const FTransform Identity;
 
-#if FTRANSFORM_TRACK_NAN_ISSUES
+#if ENABLE_NAN_DIAGNOSTIC
 	FORCEINLINE void DiagnosticCheckNaN_Scale3D() const
 	{
 		checkf(!Scale3D.ContainsNaN(), TEXT("FTransform Scale3D contains NaN: %s"), *Scale3D.ToString());

@@ -641,7 +641,7 @@ void UCheatManager::AILoggingVerbose()
 	APlayerController* PC = GetOuterAPlayerController();
 	if (PC)
 	{
-		PC->ConsoleCommand(TEXT("log lognavigation verbose | log logpathfollowing verbose | log LogCharacter verbose | log LogBehaviorTree verbose"));
+		PC->ConsoleCommand(TEXT("log lognavigation verbose | log logpathfollowing verbose | log LogCharacter verbose | log LogBehaviorTree verbose | log LogPawnAction verbose|"));
 	}
 }
 
@@ -1094,7 +1094,7 @@ void UCheatManager::ToggleGameplayDebugView(const FString& InViewName)
 	int32 ViewIndex = ViewNames.Find(InViewName);
 	if (ViewIndex != INDEX_NONE)
 	{
-		const bool bIsEnabled = UGameplayDebuggingComponent::ToggleStaticView(EAIDebugDrawDataView::Type(ViewIndex));
+		const bool bIsEnabled = UGameplayDebuggingControllerComponent::ToggleStaticView(EAIDebugDrawDataView::Type(ViewIndex));
 		GetOuterAPlayerController()->ClientMessage(FString::Printf(TEXT("View %s %s")
 			, *InViewName
 			, bIsEnabled ? TEXT("enabled") : TEXT("disabled")));

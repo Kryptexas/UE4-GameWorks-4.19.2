@@ -121,6 +121,17 @@ void UBTTask_RunBehavior::InjectNodes(UBehaviorTreeComponent* OwnerComp, uint8* 
 		{
 			FBTCompositeChild& LinkData = GetParentNode()->Children[ChildIdx];
 
+			// check if link already has injected decorators
+			bool bAlreadyInjected = false;
+			for (int32 Idx = 0; Idx < LinkData.Decorators.Num(); Idx++)
+			{
+				if (LinkData.Decorators[Idx] && LinkData.Decorators[Idx]->IsInjected())
+				{
+					bAlreadyInjected = true;
+					break;
+				}
+			}
+
 			// add decorators to link
 			const int32 NumOriginalDecorators = LinkData.Decorators.Num();
 			for (int32 Idx = 0; Idx < NumInjectedDecorators; Idx++)
@@ -129,11 +140,14 @@ void UBTTask_RunBehavior::InjectNodes(UBehaviorTreeComponent* OwnerComp, uint8* 
 				InstancedOb->InitializeFromAsset(BehaviorAsset);
 				InstancedOb->InitializeDecorator(ChildIdx);
 
-				LinkData.Decorators.Add(InstancedOb);
+				if (!bAlreadyInjected)
+				{
+					LinkData.Decorators.Add(InstancedOb);
+				}
 			}
 
 			// update composite logic operators
-			if (LinkData.DecoratorOps.Num() || BehaviorAsset->RootDecoratorOps.Num())
+			if (!bAlreadyInjected && (LinkData.DecoratorOps.Num() || BehaviorAsset->RootDecoratorOps.Num()))
 			{
 				const int32 NumOriginalOps = LinkData.DecoratorOps.Num();
 				if (NumOriginalDecorators > 0)
@@ -181,25 +195,28 @@ void UBTTask_RunBehavior::InjectNodes(UBehaviorTreeComponent* OwnerComp, uint8* 
 			}
 
 #if USE_BEHAVIORTREE_DEBUGGER
-			// insert to NextExecutionNode list for debugger
-			UBTNode* NodeIt = GetParentNode();
-			while (NodeIt && NodeIt->GetNextNode() != this)
+			if (!bAlreadyInjected)
 			{
-				NodeIt = NodeIt->GetNextNode();
-			}
-
-			if (NodeIt)
-			{
-				NodeIt->InitializeExecutionOrder(OwnerComp->NodeInstances[FirstNodeIdx]);
-				NodeIt = NodeIt->GetNextNode();
-
-				for (int32 Idx = 1; Idx < NumInjectedDecorators; Idx++)
+				// insert to NextExecutionNode list for debugger
+				UBTNode* NodeIt = GetParentNode();
+				while (NodeIt && NodeIt->GetNextNode() != this)
 				{
-					NodeIt->InitializeExecutionOrder(OwnerComp->NodeInstances[FirstNodeIdx + Idx]);
 					NodeIt = NodeIt->GetNextNode();
 				}
 
-				NodeIt->InitializeExecutionOrder((UBTNode*)this);
+				if (NodeIt)
+				{
+					NodeIt->InitializeExecutionOrder(OwnerComp->NodeInstances[FirstNodeIdx]);
+					NodeIt = NodeIt->GetNextNode();
+
+					for (int32 Idx = 1; Idx < NumInjectedDecorators; Idx++)
+					{
+						NodeIt->InitializeExecutionOrder(OwnerComp->NodeInstances[FirstNodeIdx + Idx]);
+						NodeIt = NodeIt->GetNextNode();
+					}
+
+					NodeIt->InitializeExecutionOrder((UBTNode*)this);
+				}
 			}
 #endif
 		}

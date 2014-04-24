@@ -98,7 +98,7 @@ void UBehaviorTreeGraph::UpdateAsset(EDebuggerFlags DebuggerFlags)
 		UBTNode* NodeInstance = Cast<UBTNode>(Node->NodeInstance);
 		if (NodeInstance)
 		{
-			// mark all nodes as disconnected first, path from root will replcae it with valid values later
+			// mark all nodes as disconnected first, path from root will replace it with valid values later
 			NodeInstance->InitializeNode(NULL, MAX_uint16, 0, 0);
 		}
 
@@ -259,7 +259,7 @@ namespace BTGraphHelpers
 
 		for (int32 i = 0; i < DecoratorInstances.Num(); i++)
 		{
-			if (DecoratorInstances[i] != NULL && Cast<UBehaviorTree>(DecoratorInstances[i]->GetOuter()) == NULL)
+			if (DecoratorInstances[i] && BTAsset && Cast<UBehaviorTree>(DecoratorInstances[i]->GetOuter()) == NULL)
 			{
 				DecoratorInstances[i]->Rename(NULL, BTAsset);
 			}
@@ -532,6 +532,83 @@ namespace BTGraphHelpers
 		}
 	}
 
+	void RebuildExecutionOrder(UBehaviorTreeGraphNode* RootEdNode, UBTCompositeNode* RootNode, uint16* ExecutionIndex, uint8 TreeDepth)
+	{
+		if (RootEdNode == NULL || RootEdNode == NULL)
+		{
+			return;
+		}
+
+		// collect services
+		if (RootEdNode->Services.Num())
+		{
+			for (int32 i = 0; i < RootEdNode->Services.Num(); i++)
+			{
+				UBTService* ServiceInstance = RootEdNode->Services[i] ? Cast<UBTService>(RootEdNode->Services[i]->NodeInstance) : NULL;
+				if (ServiceInstance)
+				{
+					ServiceInstance->InitializeNode(RootNode, *ExecutionIndex, 0, TreeDepth);
+					*ExecutionIndex += 1;
+				}
+			}
+		}
+
+		// gather all nodes
+		for (int32 PinIdx = 0; PinIdx < RootEdNode->Pins.Num(); PinIdx++)
+		{
+			UEdGraphPin* Pin = RootEdNode->Pins[PinIdx];
+			if (Pin->Direction != EGPD_Output)
+			{
+				continue;
+			}
+
+			// sort connections so that they're organized the same as user can see in the editor
+			TArray<UEdGraphPin*> SortedPins = Pin->LinkedTo;
+			SortedPins.Sort(FCompareNodeXLocation());
+
+			for (int32 Index = 0; Index < SortedPins.Num(); ++Index)
+			{
+				UBehaviorTreeGraphNode* GraphNode = Cast<UBehaviorTreeGraphNode>(SortedPins[Index]->GetOwningNode());
+				if (GraphNode == NULL)
+				{
+					continue;
+				}
+
+				UBTTaskNode* TaskInstance = Cast<UBTTaskNode>(GraphNode->NodeInstance);
+				UBTCompositeNode* CompositeInstance = Cast<UBTCompositeNode>(GraphNode->NodeInstance);
+				UBTNode* ChildNode = CompositeInstance ? (UBTNode*)CompositeInstance : (UBTNode*)TaskInstance;
+				if (ChildNode == NULL)
+				{
+					continue;
+				}
+
+				// collect decorators
+				TArray<UBTDecorator*> DecoratorInstances;
+				TArray<FBTDecoratorLogic> DecoratorOperations;
+				CollectDecorators(NULL, GraphNode, DecoratorInstances, DecoratorOperations, true, RootNode, ExecutionIndex, TreeDepth);
+
+
+				InitializeInjectedNodes(GraphNode, RootNode, *ExecutionIndex, TreeDepth);
+
+				// special case: subtrees
+				UBTTask_RunBehavior* SubtreeTask = Cast<UBTTask_RunBehavior>(TaskInstance);
+				if (SubtreeTask)
+				{
+					*ExecutionIndex += SubtreeTask->GetInjectedNodesCount();
+				}
+
+				ChildNode->InitializeNode(RootNode, *ExecutionIndex, 0, TreeDepth);
+				*ExecutionIndex += 1;
+
+				if (CompositeInstance)
+				{
+					RebuildExecutionOrder(GraphNode, CompositeInstance, ExecutionIndex, TreeDepth + 1);
+					CompositeInstance->InitializeComposite((*ExecutionIndex) - 1);
+				}
+			}
+		}
+	}
+
 } // namespace BTGraphHelpers
 
 void UBehaviorTreeGraph::CreateBTFromGraph(UBehaviorTreeGraphNode* RootEdNode)
@@ -697,6 +774,55 @@ UEdGraphNode* UBehaviorTreeGraph::FindInjectedNode(int32 Index)
 	}
 
 	return NULL;
+}
+
+void UBehaviorTreeGraph::RebuildExecutionOrder()
+{
+	// initial cleanup & root node search
+	UBehaviorTreeGraphNode_Root* RootNode = NULL;
+	for (int32 Index = 0; Index < Nodes.Num(); ++Index)
+	{
+		UBehaviorTreeGraphNode* Node = Cast<UBehaviorTreeGraphNode>(Nodes[Index]);
+
+		// prepare node instance
+		UBTNode* NodeInstance = Cast<UBTNode>(Node->NodeInstance);
+		if (NodeInstance)
+		{
+			// mark all nodes as disconnected first, path from root will replace it with valid values later
+			NodeInstance->InitializeNode(NULL, MAX_uint16, 0, 0);
+		}
+
+		// cache root
+		if (RootNode == NULL)
+		{
+			RootNode = Cast<UBehaviorTreeGraphNode_Root>(Nodes[Index]);
+		}
+
+		UBehaviorTreeGraphNode_CompositeDecorator* CompositeDecorator = Cast<UBehaviorTreeGraphNode_CompositeDecorator>(Nodes[Index]);
+		if (CompositeDecorator)
+		{
+			CompositeDecorator->ResetExecutionRange();
+		}
+	}
+
+	if (RootNode && RootNode->Pins.Num() > 0 && RootNode->Pins[0]->LinkedTo.Num() > 0)
+	{
+		UBehaviorTreeGraphNode* Node = Cast<UBehaviorTreeGraphNode>(RootNode->Pins[0]->LinkedTo[0]->GetOwningNode());
+		if (Node)
+		{
+			UBTCompositeNode* BTNode = Cast<UBTCompositeNode>(Node->NodeInstance);
+			if (BTNode)
+			{
+				uint16 ExecutionIndex = 0;
+				uint8 TreeDepth = 0;
+
+				BTNode->InitializeNode(NULL, ExecutionIndex, 0, TreeDepth);
+				ExecutionIndex++;
+
+				BTGraphHelpers::RebuildExecutionOrder(Node, BTNode, &ExecutionIndex, TreeDepth);
+			}
+		}
+	}
 }
 
 void UBehaviorTreeGraph::LockUpdates()

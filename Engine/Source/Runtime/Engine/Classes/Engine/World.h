@@ -262,7 +262,7 @@ struct ENGINE_API FLevelViewportInfo
 	{
 		CamPosition = FVector::ZeroVector;
 		CamRotation = FRotator::ZeroRotator;
-		CamOrthoZoom = 0.0f;
+		CamOrthoZoom = DEFAULT_ORTHOZOOM;
 		CamUpdated = false;
 	}
 

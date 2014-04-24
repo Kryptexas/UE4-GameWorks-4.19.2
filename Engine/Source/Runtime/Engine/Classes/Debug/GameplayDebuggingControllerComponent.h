@@ -7,6 +7,28 @@
 #pragma once
 #include "GameplayDebuggingControllerComponent.generated.h"
 
+UENUM()
+namespace EAIDebugDrawDataView
+{
+	enum Type
+	{
+		Empty,
+		OverHead,
+		Basic,
+		BehaviorTree,
+		EQS,
+		Perception,
+		GameView1,
+		GameView2,
+		GameView3,
+		GameView4,
+		GameView5,
+		NavMesh,
+		EditorDebugAIFlag,
+		MAX UMETA(Hidden)
+	};
+}
+
 UCLASS(config=Engine)
 class ENGINE_API UGameplayDebuggingControllerComponent : public UActorComponent
 {
@@ -17,9 +39,6 @@ class ENGINE_API UGameplayDebuggingControllerComponent : public UActorComponent
 
 	UPROPERTY(config)
 	FKey ToggleDebugComponentKey;
-
-	UPROPERTY(config)
-	FKey BugItDebugComponentKey;
 
 	UPROPERTY(config)
 	FString DebugComponentHUDClassName;
@@ -40,6 +59,28 @@ class ENGINE_API UGameplayDebuggingControllerComponent : public UActorComponent
 	virtual void OnControlPressed();
 	virtual void OnControlReleased();
 
+
+	virtual void SetActiveViews(uint32 InActiveViews);
+	virtual uint32 GetActiveViews();
+	virtual void SetActiveView(EAIDebugDrawDataView::Type NewView);
+	virtual void ToggleActiveView(EAIDebugDrawDataView::Type NewView);
+	virtual void CycleActiveView();
+	virtual void EnableActiveView(EAIDebugDrawDataView::Type View, bool bEnable);
+
+	FORCEINLINE bool IsViewActive(EAIDebugDrawDataView::Type View) const { return (ActiveViews & (1 << View)) != 0 || (StaticActiveViews & (1 << View)) != 0; }
+	static bool ToggleStaticView(EAIDebugDrawDataView::Type View);
+	FORCEINLINE static void SetEnableStaticView(EAIDebugDrawDataView::Type View, bool bEnable)
+	{
+		if (bEnable)
+		{
+			StaticActiveViews |= (1 << View);
+		}
+		else
+		{
+			StaticActiveViews &= ~(1 << View);
+		}
+	}
+
 protected:
 
 	UPROPERTY(Transient)
@@ -52,7 +93,7 @@ protected:
 	class UInputComponent* AIDebugViewInputComponent;
 
 	virtual void StartAIDebugView();
-	virtual void BeginAIDebugView(bool bJustBugIt = false);
+	virtual void BeginAIDebugView();
 	virtual void LockAIDebugView();
 	virtual void EndAIDebugView();
 
@@ -60,12 +101,8 @@ protected:
 	 *	@param MyPC used to determine which EngineFlags instance to use. If NULL component's Owner will be used */
 	void SetGameplayDebugFlag(bool bNewValue, APlayerController* PlayerController = NULL);
 
-	virtual void ToggleAIDebugView();
-	virtual void BugIt();
-	virtual void TakeScreenShot();
-	virtual void OnScreenshotCaptured(int32 Width, int32 Height, const TArray<FColor>& Bitmap);
-
 	bool CanToggleView();
+	virtual void ToggleAIDebugView();
 	virtual void ToggleAIDebugView_CycleView();
 	virtual void ToggleAIDebugView_SetView0();
 	virtual void ToggleAIDebugView_SetView1();
@@ -79,15 +116,15 @@ protected:
 	virtual void ToggleAIDebugView_SetView9();
 
 	virtual void BindAIDebugViewKeys();
-
-	void LogOutBugItGoToLogFile( const FString& InScreenShotDesc, const FString& InGoString, const FString& InLocString );
 	
+	/** flags indicating debug channels to draw. Sums up with StaticActiveViews */
+	uint32 ActiveViews;
+	/** flags indicating debug channels to draw, statically accessible. Sums up with ActiveViews */
+	static uint32 StaticActiveViews;
+
 	UClass* DebugComponentHUDClass;
-	uint32 DebugComponent_LastActiveViews;
-	int32 CurrentQuickBugNum;
 	float ControlKeyPressedTime;
 	uint32 bWasDisplayingInfo : 1;
 	uint32 bDisplayAIDebugInfo : 1;
 	uint32 bWaitingForOwnersComponent : 1;
-	uint32 bJustBugIt : 1;
 };

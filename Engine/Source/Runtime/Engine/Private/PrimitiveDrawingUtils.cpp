@@ -1057,7 +1057,10 @@ void DrawDashedLine(FPrimitiveDrawInterface* PDI, const FVector& Start, const FV
 {
 	FVector LineDir = End - Start;
 	float LineLeft = (End - Start).Size();
-	LineDir /= LineLeft;
+	if (LineLeft)
+	{
+		LineDir /= LineLeft;
+	}
 
 	const int32 nLines = FMath::Ceil(LineLeft / (DashSize*2));
 	PDI->AddReserveLines(DepthPriority, nLines, DepthBias != 0);
