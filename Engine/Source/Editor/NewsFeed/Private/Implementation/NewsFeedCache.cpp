@@ -101,54 +101,50 @@ void FNewsFeedCache::LoadTitleFile( )
 	}
 
 	// get title file source
-	FString SourceType;
+	const UNewsFeedSettings* NewsFeedSettings = GetDefault<UNewsFeedSettings>();
 
-	if (GConfig->GetString(TEXT("NewsFeed"), TEXT("Source"), SourceType, GEditorIni) && !SourceType.IsEmpty())
+	if (NewsFeedSettings->Source == NEWSFEED_Cdn)
 	{
-		if (SourceType == TEXT("CDN"))
+		if (!NewsFeedSettings->CdnSourceUrl.IsEmpty())
 		{
-			FString CdnUrl;
+			FString CdnSourceUrl;
 
-			if (GConfig->GetString(TEXT("NewsFeed"),TEXT("CdnUrl"), CdnUrl, GEditorIni) && !CdnUrl.IsEmpty())
+			if (!CultureString.IsEmpty())
 			{
-				if (!CultureString.IsEmpty())
-				{
-					CdnUrl = CdnUrl.Replace( TEXT("{Culture}"), *CultureString );
-				}
-				else
-				{
-					CdnUrl = CdnUrl.Replace(TEXT("{Culture}/"), TEXT(""));
-				}
-
-				TitleFile = FCdnNewsFeedTitleFile::Create(CdnUrl);
+				CdnSourceUrl = NewsFeedSettings->CdnSourceUrl.Replace(TEXT("{Culture}"), *CultureString);
 			}
-		}
-		else if (SourceType == TEXT("LOCAL"))
-		{
-			FString EngineContentRelativeDirectory;
-
-			if (GConfig->GetString(TEXT("NewsFeed"), TEXT("EngineContentRelativeDirectory"), EngineContentRelativeDirectory, GEditorIni) && !EngineContentRelativeDirectory.IsEmpty())
+			else
 			{
-				FString RootDirectory = FPaths::Combine(FPlatformProcess::BaseDir(), *FPaths::EngineContentDir(), *EngineContentRelativeDirectory);
-
-				if (!CultureString.IsEmpty())
-				{
-					RootDirectory = RootDirectory.Replace(TEXT("{Culture}"), *CultureString);
-				}
-				else
-				{
-					RootDirectory = RootDirectory.Replace(TEXT("{Culture}/"), TEXT(""));
-				}
-
-				TitleFile = FLocalNewsFeedTitleFile::Create(RootDirectory);
+				CdnSourceUrl = NewsFeedSettings->CdnSourceUrl.Replace(TEXT("{Culture}/"), TEXT(""));
 			}
-		}
-		else if (SourceType == TEXT("MCP"))
-		{
-			TitleFile = Online::GetTitleFileInterface(TEXT("MCP"));
+
+			TitleFile = FCdnNewsFeedTitleFile::Create(CdnSourceUrl);
 		}
 	}
+	else if (NewsFeedSettings->Source == NEWSFEED_Local)
+	{
+		if (!NewsFeedSettings->LocalSourcePath.IsEmpty())
+		{
+			FString RootDirectory = FPaths::Combine(FPlatformProcess::BaseDir(), *FPaths::EngineContentDir(), *NewsFeedSettings->LocalSourcePath);
 
+			if (!CultureString.IsEmpty())
+			{
+				RootDirectory = RootDirectory.Replace(TEXT("{Culture}"), *CultureString);
+			}
+			else
+			{
+				RootDirectory = RootDirectory.Replace(TEXT("{Culture}/"), TEXT(""));
+			}
+
+			TitleFile = FLocalNewsFeedTitleFile::Create(RootDirectory);
+		}
+	}
+	else if (NewsFeedSettings->Source == NEWSFEED_Mcp)
+	{
+		TitleFile = Online::GetTitleFileInterface(TEXT("MCP"));
+	}
+
+	// fetch news feed
 	if (TitleFile.IsValid())
 	{
 		TitleFile->AddOnEnumerateFilesCompleteDelegate(FOnEnumerateFilesCompleteDelegate::CreateRaw(this, &FNewsFeedCache::HandleEnumerateFilesComplete));
@@ -291,7 +287,7 @@ TSharedPtr<FSlateDynamicImageBrush> FNewsFeedCache::RawDataToBrush( FName Resour
 
 	if (bSucceeded && FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource(ResourceName, ImageWrapper->GetWidth(), ImageWrapper->GetHeight(), DecodedImage))
 	{
-		Brush = MakeShareable(new FSlateDynamicImageBrush( ResourceName, FVector2D(ImageWrapper->GetWidth(), ImageWrapper->GetHeight()) ) );
+		Brush = MakeShareable(new FSlateDynamicImageBrush(ResourceName, FVector2D(ImageWrapper->GetWidth(), ImageWrapper->GetHeight())));
 	}
 
 	return Brush;

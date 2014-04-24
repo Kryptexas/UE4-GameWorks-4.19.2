@@ -9,11 +9,59 @@
 #include "NewsFeedSettings.generated.h"
 
 
+/**
+ * Enumerates sources for news feed data.
+ */
+UENUM()
+enum ENewsFeedSource
+{
+	/**
+	 * Fetch the news feed from the CDN.
+	 */
+	NEWSFEED_Cdn,
+
+	/**
+	 * Fetch the news feed from the local file system (for testing purposes only).
+	 */
+	NEWSFEED_Local,
+
+	/**
+	 * Fetch the news feed with MCP (not implemented yet).
+	 */
+	NEWSFEED_Mcp,
+};
+
+
+/**
+ * Holds the settings for the news feed.
+ */
 UCLASS(config=EditorGameAgnostic)
 class UNewsFeedSettings
 	: public UObject
 {
 	GENERATED_UCLASS_BODY()
+
+public:
+
+	/**
+	 * The URL at which the news feed data files are located when using the Source=Cdn.
+	 */
+	UPROPERTY(config)
+	FString CdnSourceUrl;
+
+	/**
+	 * The path to the local data files when using Source=Local.
+	 */
+	UPROPERTY(config)
+	FString LocalSourcePath;
+
+	/**
+	 * The source from which to fetch the news feed data.
+	 *
+	 * Use Local for testing, Cdn for production.
+	 */
+	UPROPERTY(config)
+	TEnumAsByte<ENewsFeedSource> Source;
 
 public:
 
