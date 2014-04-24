@@ -251,8 +251,7 @@ void UEdGraph::RemoveOnGraphChangedHandler( const FOnGraphChanged::FDelegate& In
 
 UEdGraphNode* UEdGraph::CreateNode( TSubclassOf<UEdGraphNode> NewNodeClass, bool bSelectNewNode/* = true*/ )
 {
-	UEdGraphNode* NewNode = NewObject<UEdGraphNode>(this, NewNodeClass);
-	NewNode->SetFlags(RF_Transactional);
+	UEdGraphNode* NewNode = ConstructObject<UEdGraphNode>(NewNodeClass, this, NAME_None, RF_Transactional);
 	AddNode(NewNode, false, bSelectNewNode );
 	return NewNode;
 }
