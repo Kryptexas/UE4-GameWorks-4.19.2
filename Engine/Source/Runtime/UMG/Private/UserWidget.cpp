@@ -58,10 +58,14 @@ void AUserWidget::RebuildWrapperWidget()
 		}
 	}
 	
-	if (GEngine->GameViewport != NULL)
+	// If this is a game world add the widget to the current worlds viewport.
+	UWorld* World = GetWorld();
+	if ( World && World->IsGameWorld() )
 	{
-		GEngine->GameViewport->AddViewportWidgetContent(MyWrapperWidget.ToSharedRef());
+		UGameViewportClient* Viewport = World->GetGameViewport();
+		Viewport->AddViewportWidgetContent(MyWrapperWidget.ToSharedRef());
 	}
+
 //@TODO: Figure out how hot-reloading/etc... should work with slate wrapped components
 	//SAssignNew(ScoreboardWidgetContainer,SWeakWidget)
 	//.PossiblyNullContent(ScoreboardWidgetOverlay));
