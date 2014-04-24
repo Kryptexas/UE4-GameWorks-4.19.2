@@ -413,13 +413,13 @@ void GameProjectUtils::CheckForOutOfDateGameProjectFile()
 	}
 }
 
-bool GameProjectUtils::UpdateGameProject()
+bool GameProjectUtils::UpdateGameProject(const FString& EngineIdentifier)
 {
 	const FString& ProjectFilename = FPaths::IsProjectFilePathSet() ? FPaths::GetProjectFilePath() : FString();
 	if ( !ProjectFilename.IsEmpty() )
 	{
 		FProjectStatus ProjectStatus;
-		if ( IProjectManager::Get().QueryStatusForProject(ProjectFilename, FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier(), ProjectStatus) )
+		if ( IProjectManager::Get().QueryStatusForProject(ProjectFilename, EngineIdentifier, ProjectStatus) )
 		{
 			if ( ProjectStatus.bUpToDate )
 			{
@@ -430,7 +430,7 @@ bool GameProjectUtils::UpdateGameProject()
 			{
 				FText FailReason;
 				bool bWasCheckedOut = false;
-				if ( !UpdateGameProjectFile(ProjectFilename, NULL, bWasCheckedOut, FailReason) )
+				if ( !UpdateGameProjectFile(ProjectFilename, EngineIdentifier, NULL, bWasCheckedOut, FailReason) )
 				{
 					// The user chose to update, but the update failed. Notify the user.
 					UE_LOG(LogGameProjectGeneration, Error, TEXT("%s failed to update. %s"), *ProjectFilename, *FailReason.ToString() );
@@ -1778,7 +1778,7 @@ void GameProjectUtils::UpdateProject(const TArray<FString>* StartupModuleNames)
 	FText UpdateMessage;
 	SNotificationItem::ECompletionState NewCompletionState;
 	bool bWasCheckedOut = false;
-	if ( UpdateGameProjectFile(ProjectFilename, StartupModuleNames, bWasCheckedOut, FailReason) )
+	if ( UpdateGameProjectFile(ProjectFilename, FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier(), StartupModuleNames, bWasCheckedOut, FailReason) )
 	{
 		// The project was updated successfully.
 		FFormatNamedArguments Args;
@@ -1819,7 +1819,7 @@ void GameProjectUtils::OnUpdateProjectCancel()
 	}
 }
 
-bool GameProjectUtils::UpdateGameProjectFile(const FString& ProjectFilename, const TArray<FString>* StartupModuleNames, bool& OutbWasCheckedOut, FText& OutFailReason)
+bool GameProjectUtils::UpdateGameProjectFile(const FString& ProjectFilename, const FString& EngineIdentifier, const TArray<FString>* StartupModuleNames, bool& OutbWasCheckedOut, FText& OutFailReason)
 {
 	// First attempt to check out the file if SCC is enabled
 	if ( ISourceControlModule::Get().IsEnabled() )
@@ -1847,7 +1847,7 @@ bool GameProjectUtils::UpdateGameProjectFile(const FString& ProjectFilename, con
 	}
 
 	// Now tell the project manager to update the file
-	if (!IProjectManager::Get().UpdateLoadedProjectFileToCurrent(StartupModuleNames, FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier(), OutFailReason))
+	if (!IProjectManager::Get().UpdateLoadedProjectFileToCurrent(StartupModuleNames, EngineIdentifier, OutFailReason))
 	{
 		return false;
 	}

@@ -50,9 +50,9 @@ void FGameProjectGenerationModule::CheckForOutOfDateGameProjectFile()
 }
 
 
-bool FGameProjectGenerationModule::UpdateGameProject()
+bool FGameProjectGenerationModule::UpdateGameProject(const FString& EngineIdentifier)
 {
-	return GameProjectUtils::UpdateGameProject();
+	return GameProjectUtils::UpdateGameProject(EngineIdentifier);
 }
 
 
