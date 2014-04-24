@@ -524,6 +524,9 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_MEMBERREFERENCE_IN_PINTYPE,
 	// Vehicles use Nm for Torque instead of cm and RPM instead of rad/s
 	VER_UE4_VEHICLES_UNIT_CHANGE,
+	// removes NANs from all animations when loaded
+	// now importing should detect NaNs, so we should not have NaNs in source data
+	VER_UE4_ANIMATION_REMOVE_NANS, 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
 	VER_UE4_AUTOMATIC_VERSION_PLUS_ONE,

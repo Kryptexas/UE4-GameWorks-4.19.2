@@ -266,6 +266,15 @@ int32 UAnimSequence::GetNumberOfTracks() const
 
 void UAnimSequence::PostLoad()
 {
+#if WITH_EDITOR
+	// I have to do this first thing in here
+	// so that remove all NaNs before even being read
+	if(GetLinkerUE4Version() < VER_UE4_ANIMATION_REMOVE_NANS)
+	{
+		RemoveNaNTracks();
+	}
+#endif // WITH_EDITOR
+
 	Super::PostLoad();
 
 	// If RAW animation data exists, and needs to be recompressed, do so.
@@ -1219,9 +1228,7 @@ bool UAnimSequence::CompressRawAnimData(float MaxPosDiff, float MaxAngleDiff)
 				if (OneKeyTransform.Equals(LocalRefPoses[BoneIndex]))
 				{
 					// remove this key
-					RawAnimationData.RemoveAt(I);
-					AnimationTrackNames.RemoveAt(I);
-					TrackToSkeletonMapTable.RemoveAt(I);
+					RemoveTrack(I);
 					--I;
 					bRemovedKeys = true;
 				}
@@ -1560,9 +1567,7 @@ void UAnimSequence::RemapTracksToNewSkeleton( USkeleton * NewSkeleton )
 			else
 			{
 				// if not found, delete the track data
-				RawAnimationData.RemoveAt(TableId);
-				AnimationTrackNames.RemoveAt(TableId);
-				TrackToSkeletonMapTable.RemoveAt(TableId);
+				RemoveTrack(TableId);
 				NewTrackToSkeletonMapTable.RemoveAt(TableId);
 				--TableId;
 			}
@@ -1612,6 +1617,60 @@ void UAnimSequence::PostProcessSequence()
 #if WITH_EDITOR
 	ClampNotifiesAtEndOfSequence();
 #endif
+}
+
+#if WITH_EDITOR
+void UAnimSequence::RemoveNaNTracks()
+{
+	for( int32 TrackIndex=0; TrackIndex<RawAnimationData.Num(); ++TrackIndex )
+	{
+		const FRawAnimSequenceTrack & RawTrack = RawAnimationData[TrackIndex];
+
+		bool bContainsNaN = false;
+		for ( auto Key : RawTrack.PosKeys )
+		{
+			bContainsNaN |= Key.ContainsNaN();
+		}
+
+		if (!bContainsNaN)
+		{
+			for(auto Key : RawTrack.RotKeys)
+			{
+				bContainsNaN |= Key.ContainsNaN();
+			}
+		}
+
+		if (!bContainsNaN)
+		{
+			for(auto Key : RawTrack.ScaleKeys)
+			{
+				bContainsNaN |= Key.ContainsNaN();
+			}
+		}
+
+		if (bContainsNaN)
+		{
+			UE_LOG(LogAnimation, Warning, TEXT("Animation raw data contains NaNs - Removing the following track [%s Track (%s)]"), (GetOuter() ? *GetOuter()->GetFullName() : *GetFullName()), *AnimationTrackNames[TrackIndex].ToString());
+			// remove this track
+			RemoveTrack(TrackIndex);
+			--TrackIndex;
+		}
+	}
+
+	FAnimationUtils::CompressAnimSequence(this, false, false);
+}
+#endif // WITH_EDITOR
+
+void UAnimSequence::RemoveTrack(int32 TrackIndex)
+{
+	if (RawAnimationData.IsValidIndex(TrackIndex))
+	{
+		RawAnimationData.RemoveAt(TrackIndex);
+		AnimationTrackNames.RemoveAt(TrackIndex);
+		TrackToSkeletonMapTable.RemoveAt(TrackIndex);
+
+		check (RawAnimationData.Num() == AnimationTrackNames.Num() && AnimationTrackNames.Num() == TrackToSkeletonMapTable.Num() );
+	}
 }
 
 bool UAnimSequence::GetAllAnimationSequencesReferred(TArray<UAnimSequence*>& AnimationSequences)

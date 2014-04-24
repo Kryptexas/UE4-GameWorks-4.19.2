@@ -706,8 +706,16 @@ private:
 	 * Remap Tracks to New Skeleton
 	 */
 	void RemapTracksToNewSkeleton( USkeleton * NewSkeleton );
+	/**
+	 * Remap NaN tracks from the RawAnimation data and recompress
+	 */	
+	void RemoveNaNTracks();
 #endif
 
+	/*
+	 * Utility function that helps to remove track, you can't just remove RawAnimationData
+	 */
+	void RemoveTrack(int32 TrackIndex);
 	friend class UAnimationAsset;
 };
 
