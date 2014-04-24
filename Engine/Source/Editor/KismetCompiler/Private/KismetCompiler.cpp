@@ -114,16 +114,38 @@ void FKismetCompilerContext::SpawnNewClass(const FString& NewClassName)
 	}
 }
 
-template<typename TOBJ> struct FCullTemplateObjectsHelper
+struct FSubobjectCollection
 { 
-	const TArray<TOBJ*>& Templates;
+private:
+	TSet<const UObject*> Collection;
 
-	FCullTemplateObjectsHelper(const TArray<TOBJ*>& InComponentTemplates) : Templates(InComponentTemplates)
-	{}
+public:
+	void AddObject(const UObject* const InObject)
+	{
+		if (InObject)
+		{
+			Collection.Add(InObject);
+			TArray<UObject*> Subobjects;
+			GetObjectsWithOuter(InObject, Subobjects, true);
+			for (auto SubObject : Subobjects)
+			{
+				Collection.Add(SubObject);
+			}
+		}
+	}
+
+	template<typename TOBJ>
+	void AddObjects(const TArray<TOBJ*>& InObjects)
+	{
+		for (const auto ObjPtr : InObjects)
+		{
+			AddObject(ObjPtr);
+		}
+	}
 
 	bool operator()(const UObject* const RemovalCandidate) const
 	{
-		return (NULL != Templates.FindByKey(RemovalCandidate));
+		return (NULL != Collection.Find(RemovalCandidate));
 	}
 };
 
@@ -156,41 +178,25 @@ void FKismetCompilerContext::CleanAndSanitizeClass(UBlueprintGeneratedClass* Cla
 	TArray<UObject*> ClassSubObjects;
 	GetObjectsWithOuter(ClassToClean, ClassSubObjects, true);
 
-	if(0 != Blueprint->ComponentTemplates.Num())
-	{
-		ClassSubObjects.RemoveAllSwap(FCullTemplateObjectsHelper<UActorComponent>(Blueprint->ComponentTemplates));
-	}
-
-	if(0 != Blueprint->Timelines.Num())
-	{
-		ClassSubObjects.RemoveAllSwap(FCullTemplateObjectsHelper<UTimelineTemplate>(Blueprint->Timelines));
-	}
-
-	if(Blueprint->SimpleConstructionScript)
-	{
-		ClassSubObjects.RemoveSwap(Blueprint->SimpleConstructionScript);
-		if(const USCS_Node* DefaultScene = Blueprint->SimpleConstructionScript->GetDefaultSceneRootNode())
+	{	// Save subobjects, that won't be regenerated.
+		FSubobjectCollection SubObjectsToSave;
+		SubObjectsToSave.AddObjects(Blueprint->ComponentTemplates);
+		SubObjectsToSave.AddObjects(Blueprint->Timelines);
+		if (Blueprint->SimpleConstructionScript)
 		{
-			ClassSubObjects.RemoveSwap(DefaultScene->ComponentTemplate);
-		}
-
-		{
-			TArray<UObject*> SCSObjectsToSave;
-			GetObjectsWithOuter(Blueprint->SimpleConstructionScript, SCSObjectsToSave, true);
-			ClassSubObjects.RemoveAllSwap(FCullTemplateObjectsHelper<UObject>(SCSObjectsToSave));
-		}
-
-		{
-			TArray<USCS_Node*> SCSNodes = Blueprint->SimpleConstructionScript->GetAllNodes();
-			TArray<UActorComponent*> ActorComponents;
-			ActorComponents.Reserve(SCSNodes.Num());
-			for(auto Iter = SCSNodes.CreateIterator(); Iter; ++Iter)
+			SubObjectsToSave.AddObject(Blueprint->SimpleConstructionScript);
+			if (const USCS_Node* DefaultScene = Blueprint->SimpleConstructionScript->GetDefaultSceneRootNode())
 			{
-				USCS_Node* SCSNode = *Iter;
-				ActorComponents.Add(SCSNode->ComponentTemplate);
+				SubObjectsToSave.AddObject(DefaultScene->ComponentTemplate);
 			}
-			ClassSubObjects.RemoveAllSwap(FCullTemplateObjectsHelper<UActorComponent>(ActorComponents));
+
+			TArray<USCS_Node*> SCSNodes = Blueprint->SimpleConstructionScript->GetAllNodes();
+			for (auto SCSNode : SCSNodes)
+			{
+				SubObjectsToSave.AddObject(SCSNode->ComponentTemplate);
+			}
 		}
+		ClassSubObjects.RemoveAllSwap(SubObjectsToSave);
 	}
 
 	for( auto SubObjIt = ClassSubObjects.CreateIterator(); SubObjIt; ++SubObjIt )
