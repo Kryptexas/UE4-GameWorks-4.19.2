@@ -213,7 +213,7 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates( FVertexFactoryInput I
 		EmitterUniforms.ColorCurve.zw * RelativeTime;
 	float4 ColorCurveSample = Texture2DSampleLevel(CurveTexture, CurveTextureSampler, ColorCurveTexCoord, 0 );
 	float4 ColorScale = ColorCurveSample * EmitterUniforms.ColorScale + EmitterUniforms.ColorBias;
-	float4 Color = ColorScale * InitialColor * EmitterDynamicUniforms.ScaleColorOverLife;
+	float4 Color = ColorScale * InitialColor * EmitterDynamicUniforms.DynamicColor;
 
 	// Sample the curve containing misc. attributes.
 	float2 MiscCurveTexCoord = EmitterUniforms.MiscCurve.xy +

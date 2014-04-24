@@ -4452,6 +4452,9 @@ void UParticleModuleTypeDataGpu::Build( FParticleEmitterBuildInfo& EmitterBuildI
 
 	ResourceData.PivotOffset = EmitterBuildInfo.PivotOffset;
 
+    // Store color and scale when using particle parameters.
+	EmitterInfo.DynamicColor = EmitterBuildInfo.DynamicColor;
+	EmitterInfo.DynamicAlpha= EmitterBuildInfo.DynamicAlpha;
 	EmitterInfo.DynamicColorScale = EmitterBuildInfo.DynamicColorScale;
 	EmitterInfo.DynamicAlphaScale = EmitterBuildInfo.DynamicAlphaScale;
 

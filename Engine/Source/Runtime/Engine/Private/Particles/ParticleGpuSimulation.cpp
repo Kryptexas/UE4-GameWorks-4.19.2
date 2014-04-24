@@ -433,7 +433,7 @@ BEGIN_UNIFORM_BUFFER_STRUCT( FGPUSpriteEmitterDynamicUniformParameters, )
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER( FVector2D, LocalToWorldScale )
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER( FVector4, AxisLockRight )
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER( FVector4, AxisLockUp )
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, ScaleColorOverLife )
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER( FVector4, DynamicColor)
 END_UNIFORM_BUFFER_STRUCT( FGPUSpriteEmitterDynamicUniformParameters )
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FGPUSpriteEmitterDynamicUniformParameters,TEXT("EmitterDynamicUniforms"));
@@ -2889,15 +2889,28 @@ public:
 			DynamicData->EmitterDynamicParameters.AxisLockUp.W = 1.0f;
 		}
 
-		DynamicData->EmitterDynamicParameters.ScaleColorOverLife = FVector4(1.0f,1.0f,1.0f,1.0f);
+		
+		// Setup dynamic color parameter. Only set when using particle parameter distributions.
+		FVector4 ColorOverLife(1.0f, 1.0f, 1.0f, 1.0f);
+		FVector4 ColorScaleOverLife(1.0f, 1.0f, 1.0f, 1.0f);
 		if( EmitterInfo.DynamicColorScale.Distribution )
 		{
-			DynamicData->EmitterDynamicParameters.ScaleColorOverLife = EmitterInfo.DynamicColorScale.GetValue(0.0f,Component);
+			ColorScaleOverLife = EmitterInfo.DynamicColorScale.GetValue(0.0f,Component);
 		}
 		if( EmitterInfo.DynamicAlphaScale.Distribution )
 		{
-			DynamicData->EmitterDynamicParameters.ScaleColorOverLife.W = EmitterInfo.DynamicAlphaScale.GetValue(0.0f,Component);
+			ColorScaleOverLife.W = EmitterInfo.DynamicAlphaScale.GetValue(0.0f,Component);
 		}
+
+		if( EmitterInfo.DynamicColor.Distribution )
+		{
+			ColorOverLife = EmitterInfo.DynamicColor.GetValue(0.0f,Component);
+		}
+		if( EmitterInfo.DynamicAlpha.Distribution )
+		{
+			ColorOverLife.W = EmitterInfo.DynamicAlpha.GetValue(0.0f,Component);
+		}
+		DynamicData->EmitterDynamicParameters.DynamicColor = ColorOverLife * ColorScaleOverLife;
 
 		const bool bSimulateGPUParticles = 
 			FXConsoleVariables::bFreezeGPUSimulation == false &&

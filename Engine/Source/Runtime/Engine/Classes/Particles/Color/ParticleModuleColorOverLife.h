@@ -39,14 +39,8 @@ class UParticleModuleColorOverLife : public UParticleModuleColorBase
 	virtual void Update(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime) OVERRIDE;
 	virtual void CompileModule( struct FParticleEmitterBuildInfo& EmitterInfo ) OVERRIDE;
 	virtual void SetToSensibleDefaults(UParticleEmitter* Owner) OVERRIDE;
-
-#if WITH_EDITOR
-	virtual bool IsValidForLODLevel(UParticleLODLevel* LODLevel, FString& OutErrorString) OVERRIDE;
-#endif
 	//End UParticleModule Interface
 
-protected:
-	friend class FParticleModuleColorOverLifeDetails;
 };
 
 
