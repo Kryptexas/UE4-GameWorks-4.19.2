@@ -4652,6 +4652,8 @@ void UParticleSystemComponent::Deactivate()
 void UParticleSystemComponent::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift)
 {
 	Super::ApplyWorldOffset(InOffset, bWorldShift);
+
+	OldPosition+= InOffset;
 	
 	for (auto It = EmitterInstances.CreateIterator(); It; ++It)
 	{

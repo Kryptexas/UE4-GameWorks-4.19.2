@@ -3136,7 +3136,7 @@ void UParticleModuleKillBox::Update(FParticleEmitterInstance* Owner, int32 Offse
 
 	BEGIN_UPDATE_LOOP;
 	{
-		FVector Position = Particle.Location;
+		FVector Position = Particle.Location + Owner->PositionOffsetThisTick;
 
 		if (LODLevel->RequiredModule->bUseLocalSpace)
 		{
