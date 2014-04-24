@@ -1686,6 +1686,27 @@ void UMaterialInstance::PostLoad()
 
 		LightingGuidFixupMap.Add(GetLightingGuid(), this);
 	}
+
+	TArray<ITargetPlatform*> Platforms;
+	ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
+	if (!TPM || TPM->RestrictFormatsToRuntimeOnly())
+	{
+		// for now a runtime format and a cook format are very different, we don't put any formats here
+	}
+	else
+	{
+		Platforms = TPM->GetActiveTargetPlatforms();
+	}
+
+
+	if (Platforms.Num())
+	{
+		// Cache for all the shader formats that the cooking target requires
+		for (int32 FormatIndex = 0; FormatIndex < Platforms.Num(); FormatIndex++)
+		{
+			BeginCacheForCookedPlatformData(Platforms[FormatIndex]);
+		}
+	}
 }
 
 void UMaterialInstance::BeginDestroy()
