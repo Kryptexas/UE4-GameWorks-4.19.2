@@ -1124,31 +1124,7 @@ void FSourceCodeNavigation::GatherFunctionsForActors( TArray< AActor* >& Actors,
 			// Only bother getting the correct module if we're gathering functions, too, since it can slow down the process a bit.
 			if( GatherMode == EGatherMode::ClassesAndFunctions )
 			{
-				UPackage* ClassPackage = CurClass->GetOuterUPackage();
-				if( ClassPackage != NULL )
-				{
-					//@Package name transition
-					FName ShortClassPackageName = FPackageName::GetShortFName(ClassPackage->GetFName());
-
-					// Is this module loaded?  In many cases, we may not have a loaded module for this class' package,
-					// as it might be statically linked into the executable, etc.
-					if( FModuleManager::Get().IsModuleLoaded( ShortClassPackageName ) )
-					{
-						// Because the module loaded into memory may have a slightly mutated file name (for
-						// hot reload, etc), we ask the module manager for the actual file name being used.  This
-						// is important as we need to be sure to get the correct symbols.
-						FModuleManager::FModuleStatus ModuleStatus;
-						if( ensure( FModuleManager::Get().QueryModule( ShortClassPackageName, ModuleStatus ) ) )
-						{
-							// Use the base file name (no path, no extension) as the module name for symbol look up!
-							ModuleName = FPaths::GetBaseFilename(ModuleStatus.FilePath);
-						}
-						else
-						{
-							// This module should always be known.  Should never happen.
-						}
-					}
-				}
+				FindClassModuleName( CurClass, ModuleName );
 			}
 
 			{
@@ -1241,6 +1217,84 @@ void FSourceCodeNavigation::GatherFunctionsForActors( TArray< AActor* >& Actors,
 	}
 }
 
+bool FSourceCodeNavigation::NavigateToFunctionAsync( UFunction* InFunction )
+{
+	bool bResult = false;
+
+	if( InFunction )
+	{
+		UClass* OwningClass = InFunction->GetOwnerClass();
+
+		if(  OwningClass->HasAllClassFlags( CLASS_Native ))
+		{
+			FString ModuleName;
+			// Find module name for class
+			if( FindClassModuleName( OwningClass, ModuleName ))
+			{
+				const FString SymbolName = FString::Printf( TEXT( "%s%s::%s" ), OwningClass->GetPrefixCPP(), *OwningClass->GetName(), *InFunction->GetName() );
+				NavigateToFunctionSourceAsync( SymbolName, ModuleName, false );
+				bResult = true;
+			}
+		}
+	}
+	return bResult;
+}
+
+bool FSourceCodeNavigation::NavigateToProperty( UProperty* InProperty )
+{
+	bool bResult = false;
+
+	if( InProperty && InProperty->HasAllFlags( RF_Native ))
+	{
+		FString SourceFilePath;
+		const bool bFileLocated =	FindClassHeaderPath( InProperty, SourceFilePath ) && 
+									IFileManager::Get().FileSize( *SourceFilePath ) != INDEX_NONE;
+
+		if( bFileLocated )
+		{
+			const FString AbsoluteSourcePath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead( *SourceFilePath );
+			bResult = OpenSourceFile( AbsoluteSourcePath );
+		}
+	}
+	return bResult;
+}
+
+bool FSourceCodeNavigation::FindClassModuleName( UClass* InClass, FString& ModuleName )
+{
+	bool bResult = false;
+	// Find module name from class
+	if( InClass )
+	{
+		UPackage* ClassPackage = InClass->GetOuterUPackage();
+
+		if( ClassPackage )
+		{
+			//@Package name transition
+			FName ShortClassPackageName = FPackageName::GetShortFName(ClassPackage->GetFName());
+
+			// Is this module loaded?  In many cases, we may not have a loaded module for this class' package,
+			// as it might be statically linked into the executable, etc.
+			if( FModuleManager::Get().IsModuleLoaded( ShortClassPackageName ) )
+			{
+				// Because the module loaded into memory may have a slightly mutated file name (for
+				// hot reload, etc), we ask the module manager for the actual file name being used.  This
+				// is important as we need to be sure to get the correct symbols.
+				FModuleManager::FModuleStatus ModuleStatus;
+				if( ensure( FModuleManager::Get().QueryModule( ShortClassPackageName, ModuleStatus ) ) )
+				{
+					// Use the base file name (no path, no extension) as the module name for symbol look up!
+					ModuleName = FPaths::GetBaseFilename(ModuleStatus.FilePath);
+					bResult = true;
+				}
+				else
+				{
+					// This module should always be known.  Should never happen.
+				}
+			}
+		}
+	}
+	return bResult;
+}
 
 /** Call this to access the multi-cast delegate that you can register a callback with */
 FSourceCodeNavigation::FOnSymbolQueryFinished& FSourceCodeNavigation::AccessOnSymbolQueryFinished()

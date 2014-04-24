@@ -61,6 +61,10 @@ public:
 	// Find variable references
 	TSharedPtr< FUICommandInfo > FindVariableReferences;
 
+	// Goto native code actions
+	TSharedPtr< FUICommandInfo > GotoNativeFunctionDefinition;
+	TSharedPtr< FUICommandInfo > GotoNativeVariableDefinition;
+
 	// Pin-specific actions
 	TSharedPtr< FUICommandInfo > BreakPinLinks;
 	TSharedPtr< FUICommandInfo > PromoteToVariable;
