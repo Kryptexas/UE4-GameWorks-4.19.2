@@ -331,6 +331,9 @@ public:
 	}
 } GCC_ALIGN(16);
 
+// For non-standard specialization syntax
+#if _MSC_VER
+
 /** Specialization for 2nd order to avoid expensive trig functions. */
 template<> TSHVector<2> TSHVector<2>::SHBasisFunction(const FVector& Vector) 
 {
@@ -359,6 +362,8 @@ template<> TSHVector<3> TSHVector<3>::SHBasisFunction(const FVector& Vector)
 	Result.V[8] = 0.546274f * (VectorSquared.X - VectorSquared.Y);
 	return Result;
 }
+
+#endif
 
 /** A vector of colored spherical harmonic coefficients. */
 template<int32 MaxSHOrder>
