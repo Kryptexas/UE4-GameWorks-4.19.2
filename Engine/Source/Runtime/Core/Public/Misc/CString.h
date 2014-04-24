@@ -613,7 +613,7 @@ bool TCString<WIDECHAR>::IsPureAnsi(const WIDECHAR* Str)
 {
 	for( ; *Str; Str++ )
 	{
-		if( *Str>0xff )
+		if( *Str>0x7f )
 		{
 			return 0;
 		}
