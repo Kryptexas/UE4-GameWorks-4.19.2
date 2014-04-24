@@ -43,7 +43,7 @@ void FPropertyValueImpl::GetObjectsToModify( TArray<FObjectBaseAddress>& Objects
 	}
 }
 
-FPropertyAccess::Result FPropertyValueImpl::GetPropertyValueString( FString& OutString, FPropertyNode* InPropertyNode ) const
+FPropertyAccess::Result FPropertyValueImpl::GetPropertyValueString( FString& OutString, FPropertyNode* InPropertyNode, const bool bAllowAlternateDisplayValue ) const
 {
 	FPropertyAccess::Result Result = FPropertyAccess::Success;
 
@@ -63,11 +63,18 @@ FPropertyAccess::Result FPropertyValueImpl::GetPropertyValueString( FString& Out
 			if( Property != NULL && InPropertyNode->GetParentNode() != NULL )
 			{
 				Property->ExportText_Direct(OutString, ValueAddress, ValueAddress, NULL, PPF_PropertyWindow );
+
 				UByteProperty* ByteProperty = Cast<UByteProperty>(Property);
 				if ( ByteProperty != NULL && ByteProperty->Enum != NULL )
 				{
-					uint8 EnumValue = ByteProperty->GetPropertyValue(ValueAddress);
-					OutString = ByteProperty->Enum->GetEnumName(EnumValue);
+					const uint8 EnumValueIndex = ByteProperty->GetPropertyValue(ValueAddress);
+
+					// See if we specified an alternate name for this value using metadata
+					OutString = ByteProperty->Enum->GetDisplayNameText(EnumValueIndex).ToString();
+					if(!bAllowAlternateDisplayValue || OutString.Len() == 0) 
+					{
+						OutString = ByteProperty->Enum->GetEnumName(EnumValueIndex);
+					}
 				}
 			}
 			else
@@ -85,7 +92,7 @@ FPropertyAccess::Result FPropertyValueImpl::GetPropertyValueString( FString& Out
 	return Result;
 }
 
-FPropertyAccess::Result FPropertyValueImpl::GetPropertyValueText( FText& OutText, FPropertyNode* InPropertyNode ) const
+FPropertyAccess::Result FPropertyValueImpl::GetPropertyValueText( FText& OutText, FPropertyNode* InPropertyNode, const bool bAllowAlternateDisplayValue ) const
 {
 	FPropertyAccess::Result Result = FPropertyAccess::Success;
 
@@ -107,17 +114,25 @@ FPropertyAccess::Result FPropertyValueImpl::GetPropertyValueText( FText& OutText
 			}
 			else
 			{
-				FString OutString;
+				FString ExportedTextString;
+				Property->ExportText_Direct(ExportedTextString, ValueAddress, ValueAddress, NULL, PPF_PropertyWindow );
 
-				Property->ExportText_Direct(OutString, ValueAddress, ValueAddress, NULL, PPF_PropertyWindow );
 				UByteProperty* ByteProperty = Cast<UByteProperty>(Property);
 				if ( ByteProperty != NULL && ByteProperty->Enum != NULL )
 				{
-					uint8 EnumValueIndex = ByteProperty->GetPropertyValue(ValueAddress);
-					OutString = ByteProperty->Enum->GetEnumName(EnumValueIndex);
+					const uint8 EnumValueIndex = ByteProperty->GetPropertyValue(ValueAddress);
+					
+					// See if we specified an alternate name for this value using metadata
+					OutText = ByteProperty->Enum->GetDisplayNameText(EnumValueIndex);
+					if(!bAllowAlternateDisplayValue || OutText.IsEmpty()) 
+					{
+						OutText = ByteProperty->Enum->GetEnumText(EnumValueIndex);
+					}
 				}
-
-				OutText = FText::FromString(OutString);
+				else
+				{
+					OutText = FText::FromString(ExportedTextString);
+				}
 			}
 		}
 
@@ -541,7 +556,25 @@ FPropertyAccess::Result FPropertyValueImpl::GetValueAsString( FString& OutString
 
 	if( PropertyNodePin.IsValid() )
 	{
-		Res = GetPropertyValueString( OutString, PropertyNodePin.Get() );
+		Res = GetPropertyValueString( OutString, PropertyNodePin.Get(), false/*bAllowAlternateDisplayValue*/ );
+	}
+	else
+	{
+		Res = FPropertyAccess::Fail;
+	}
+
+	return Res;
+}
+
+FPropertyAccess::Result FPropertyValueImpl::GetValueAsDisplayString( FString& OutString ) const
+{
+	TSharedPtr<FPropertyNode> PropertyNodePin = PropertyNode.Pin();
+
+	FPropertyAccess::Result Res = FPropertyAccess::Success;
+
+	if( PropertyNodePin.IsValid() )
+	{
+		Res = GetPropertyValueString( OutString, PropertyNodePin.Get(), true/*bAllowAlternateDisplayValue*/ );
 	}
 	else
 	{
@@ -559,7 +592,25 @@ FPropertyAccess::Result FPropertyValueImpl::GetValueAsText( FText& OutText ) con
 
 	if( PropertyNodePin.IsValid() )
 	{
-		Res = GetPropertyValueText( OutText, PropertyNodePin.Get() );
+		Res = GetPropertyValueText( OutText, PropertyNodePin.Get(), false/*bAllowAlternateDisplayValue*/ );
+	}
+	else
+	{
+		Res = FPropertyAccess::Fail;
+	}
+
+	return Res;
+}
+
+FPropertyAccess::Result FPropertyValueImpl::GetValueAsDisplayText( FText& OutText ) const
+{
+	TSharedPtr<FPropertyNode> PropertyNodePin = PropertyNode.Pin();
+
+	FPropertyAccess::Result Res = FPropertyAccess::Success;
+
+	if( PropertyNodePin.IsValid() )
+	{
+		Res = GetPropertyValueText( OutText, PropertyNodePin.Get(), true/*bAllowAlternateDisplayValue*/ );
 	}
 	else
 	{
@@ -1434,6 +1485,21 @@ bool FPropertyHandleBase::IsEditConst() const
 FPropertyAccess::Result FPropertyHandleBase::GetValueAsFormattedString( FString& OutValue ) const
 {
 	return Implementation->GetValueAsString(OutValue);
+}
+
+FPropertyAccess::Result FPropertyHandleBase::GetValueAsDisplayString( FString& OutValue ) const
+{
+	return Implementation->GetValueAsDisplayString(OutValue);
+}
+
+FPropertyAccess::Result FPropertyHandleBase::GetValueAsFormattedText( FText& OutValue ) const
+{
+	return Implementation->GetValueAsText(OutValue);
+}
+
+FPropertyAccess::Result FPropertyHandleBase::GetValueAsDisplayText( FText& OutValue ) const
+{
+	return Implementation->GetValueAsDisplayText(OutValue);
 }
 
 FPropertyAccess::Result FPropertyHandleBase::SetValueFromFormattedString( const FString& InValue, EPropertyValueSetFlags::Type Flags )

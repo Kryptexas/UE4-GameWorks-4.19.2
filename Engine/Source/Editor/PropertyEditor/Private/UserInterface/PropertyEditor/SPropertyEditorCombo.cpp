@@ -78,6 +78,7 @@ void SPropertyEditorCombo::Construct( const FArguments& InArgs, const TSharedRef
 		.ComboItemList( ComboItems )
 		.RestrictedList( Restrictions )
 		.OnSelectionChanged( this, &SPropertyEditorCombo::OnComboSelectionChanged )
+		.OnComboBoxOpening( this, &SPropertyEditorCombo::OnComboOpening )
 		.VisibleText( this, &SPropertyEditorCombo::GetDisplayValueAsString )
 		.ToolTipText( InPropertyEditor, &FPropertyEditor::GetValueAsString );
 
@@ -106,28 +107,7 @@ FString SPropertyEditorCombo::GetDisplayValueAsString() const
 		}
 	}
 
-	FString ValueString = PropertyEditor->GetValueAsString();
-
-	if (bUsesAlternateDisplayValues && !Property->IsA(UStrProperty::StaticClass()))
-	{
-		// currently only enum properties can use alternate display values; this 
-		// might change, so assert here so that if support is expanded to other 
-		// property types without updating this block of code, we'll catch it quickly
-		UEnum* Enum = CastChecked<UByteProperty>(Property)->Enum;
-		check(Enum != nullptr);
-
-		int32 Index = FindEnumValueIndex(Enum, ValueString);
-		if (Index != INDEX_NONE)
-		{
-			FString DisplayString = Enum->GetDisplayNameText(Index).ToString();
-			if (DisplayString.Len() > 0)
-			{
-				ValueString = DisplayString;
-			}
-		}
-	}
-
-	return ValueString;
+	return (bUsesAlternateDisplayValues) ? PropertyEditor->GetValueAsDisplayString() : PropertyEditor->GetValueAsString();
 }
 
 void SPropertyEditorCombo::GenerateComboBoxStrings( TArray< TSharedPtr<FString> >& OutComboBoxStrings, TArray< TSharedPtr<FString> >& OutToolTips, TArray<bool>& OutRestrictedItems )
@@ -142,6 +122,14 @@ void SPropertyEditorCombo::OnComboSelectionChanged( TSharedPtr<FString> NewValue
 	{
 		SendToObjects( *NewValue );
 	}
+}
+
+void SPropertyEditorCombo::OnComboOpening()
+{
+	// try and re-sync the selection in the combo list in case it was changed since Construct was called
+	// this would fail if the displayed value doesn't match the equivalent value in the combo list
+	FString CurrentDisplayValue = GetDisplayValueAsString();
+	ComboBox->SetSelectedItem(CurrentDisplayValue);
 }
 
 void SPropertyEditorCombo::SendToObjects( const FString& NewValue )
@@ -159,7 +147,7 @@ void SPropertyEditorCombo::SendToObjects( const FString& NewValue )
 		UEnum* Enum = CastChecked<UByteProperty>(Property)->Enum;
 		check(Enum != nullptr);
 
-		int32 Index = FindEnumValueIndex(Enum, NewValue);
+		const int32 Index = FindEnumValueIndex(Enum, NewValue);
 		check( Index != INDEX_NONE );
 
 		Value = Enum->GetEnumName(Index);

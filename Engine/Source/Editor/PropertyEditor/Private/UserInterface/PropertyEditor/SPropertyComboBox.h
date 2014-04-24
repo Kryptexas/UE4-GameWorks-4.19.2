@@ -15,6 +15,7 @@ public:
 		SLATE_ATTRIBUTE( FString, VisibleText )
 		SLATE_ARGUMENT( TArray< TSharedPtr< FString > >, ToolTipList )
 		SLATE_EVENT( FOnSelectionChanged, OnSelectionChanged )
+		SLATE_EVENT( FOnComboBoxOpening, OnComboBoxOpening )
 		SLATE_ARGUMENT( FSlateFontInfo, Font )
 	SLATE_END_ARGS()
 

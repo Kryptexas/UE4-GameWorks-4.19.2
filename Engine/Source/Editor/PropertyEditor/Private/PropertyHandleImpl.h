@@ -148,13 +148,29 @@ public:
 	 */
 	FPropertyAccess::Result GetValueAsString( FString& OutString ) const;
 
-/**
+	/**
+	 * Get the value of a property as a formatted string, possibly using an alternate form more suitable for display in the UI
+	 *
+	 * @param OutValue The formatted string value to set
+	 * @return The result of attempting to get the value
+	 */
+	FPropertyAccess::Result GetValueAsDisplayString( FString& OutString ) const;
+
+	/**
 	 * Get the value of a property as FText.
 	 *
 	 * @param OutValue The formatted text value to set
 	 * @return The result of attempting to get the value
 	 */
 	FPropertyAccess::Result GetValueAsText( FText& OutText ) const;
+
+	/**
+	 * Get the value of a property as FText, possibly using an alternate form more suitable for display in the UI
+	 *
+	 * @param OutValue The formatted text value to set
+	 * @return The result of attempting to get the value
+	 */
+	FPropertyAccess::Result GetValueAsDisplayText( FText& OutText ) const;
 
 	/**
 	 * Sets the value of a property formatted from a string.
@@ -291,16 +307,18 @@ protected:
 	 * 
 	 * @param InPropertyNode	The property to get value from
 	 * @param OutText			The property formatted in a string
+	 * @param bAllowAlternateDisplayValue Allow the function to potentially use an alternate form more suitable for display in the UI
 	 * @return true if the value was retrieved successfully
 	 */
-	FPropertyAccess::Result GetPropertyValueString( FString& OutString, FPropertyNode* InPropertyNode ) const;
+	FPropertyAccess::Result GetPropertyValueString( FString& OutString, FPropertyNode* InPropertyNode, const bool bAllowAlternateDisplayValue ) const;
 
 	/**
 	 * @param InPropertyNode	The property to get value from
 	 * @param OutText			The property formatted in text
+	 * @param bAllowAlternateDisplayValue Allow the function to potentially use an alternate form more suitable for display in the UI
 	 * @return true if the value was retrieved successfully
 	 */
-	FPropertyAccess::Result GetPropertyValueText( FText& OutText, FPropertyNode* InPropertyNode ) const;
+	FPropertyAccess::Result GetPropertyValueText( FText& OutText, FPropertyNode* InPropertyNode, const bool bAllowAlternateDisplayValue ) const;
 
 protected:
 	/** Property node used to access UProperty and address of object to change */
@@ -356,6 +374,9 @@ public:
 	virtual void SetOnPropertyValueChanged( const FSimpleDelegate& InOnPropertyValueChanged ) OVERRIDE;
 	virtual int32 GetIndexInArray() const OVERRIDE;
 	virtual FPropertyAccess::Result GetValueAsFormattedString( FString& OutValue ) const OVERRIDE;
+	virtual FPropertyAccess::Result GetValueAsDisplayString( FString& OutValue ) const OVERRIDE;
+	virtual FPropertyAccess::Result GetValueAsFormattedText( FText& OutValue ) const OVERRIDE;
+	virtual FPropertyAccess::Result GetValueAsDisplayText( FText& OutValue ) const OVERRIDE;
 	virtual FPropertyAccess::Result SetValueFromFormattedString( const FString& InValue,  EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) OVERRIDE;
 	virtual TSharedPtr<IPropertyHandle> GetChildHandle( uint32 ChildIndex ) const OVERRIDE;
 	virtual TSharedPtr<IPropertyHandle> GetChildHandle( FName ChildName ) const OVERRIDE;

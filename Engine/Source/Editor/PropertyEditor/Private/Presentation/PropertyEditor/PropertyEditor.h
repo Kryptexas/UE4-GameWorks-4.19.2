@@ -15,8 +15,14 @@ public:
 	/** @return The String containing the value of the property */
 	FString GetValueAsString() const;
 
+	/** @return The String containing the value of the property, possibly using an alternate form more suitable for display in the UI */
+	FString GetValueAsDisplayString() const;
+
 	/** @return The String containing the value of the property as Text */
 	FText GetValueAsText() const;
+
+	/** @return The String containing the value of the property as Text, possibly using an alternate form more suitable for display in the UI */
+	FText GetValueAsDisplayText() const;
 
 	bool PropertyIsA(const UClass* Class) const;
 

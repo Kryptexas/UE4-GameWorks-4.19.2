@@ -36,6 +36,7 @@ void SPropertyComboBox::Construct( const FArguments& InArgs )
 		.OptionsSource(&ComboItemList)
 		.OnGenerateWidget(this, &SPropertyComboBox::OnGenerateComboWidget)
 		.OnSelectionChanged(this, &SPropertyComboBox::OnSelectionChangedInternal)
+		.OnComboBoxOpening(InArgs._OnComboBoxOpening)
 		.InitiallySelectedItem(InitiallySelectedItem)
 		);
 }

@@ -114,9 +114,40 @@ FString FPropertyEditor::GetValueAsString() const
 	return Str;
 }
 
+FString FPropertyEditor::GetValueAsDisplayString() const
+{
+	FString Str;
+
+	if( PropertyHandle->GetValueAsDisplayString( Str ) == FPropertyAccess::MultipleValues )
+	{
+		Str = NSLOCTEXT("PropertyEditor", "MultipleValues", "Multiple Values").ToString();
+	}
+
+	return Str;
+}
+
 FText FPropertyEditor::GetValueAsText() const
 {
-	return(FText::FromString(GetValueAsString()));
+	FText Text;
+
+	if( PropertyHandle->GetValueAsFormattedText( Text ) == FPropertyAccess::MultipleValues )
+	{
+		Text = NSLOCTEXT("PropertyEditor", "MultipleValues", "Multiple Values");
+	}
+
+	return Text;
+}
+
+FText FPropertyEditor::GetValueAsDisplayText() const
+{
+	FText Text;
+
+	if( PropertyHandle->GetValueAsDisplayText( Text ) == FPropertyAccess::MultipleValues )
+	{
+		Text = NSLOCTEXT("PropertyEditor", "MultipleValues", "Multiple Values");
+	}
+
+	return Text;
 }
 
 bool FPropertyEditor::PropertyIsA(const UClass* Class) const
