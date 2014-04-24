@@ -37,6 +37,8 @@ void UWidgetBlueprintGeneratedClass::CreateComponentsForActor(AActor* Actor) con
 		FArchiveReplaceObjectRef<UObject> ReplaceInCDOAr(Widget, DuplicatedObjectList, /*bNullPrivateRefs=*/ false, /*bIgnoreOuterRef=*/ false, /*bIgnoreArchetypeRef=*/ false);
 	}
 
+	AUserWidget* WidgetActor = CastChecked<AUserWidget>(Actor);
+
 	int32 i = 0;
 	for ( USlateWrapperComponent* Widget : ClonedWidgets )
 	{

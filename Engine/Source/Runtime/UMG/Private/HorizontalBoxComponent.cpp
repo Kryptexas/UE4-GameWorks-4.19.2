@@ -46,7 +46,7 @@ void UHorizontalBoxComponent::OnKnownChildrenChanged()
 			}
 
 			auto& NewSlot = Canvas->AddSlot()
-				.AutoWidth()
+				.Padding(Slot->Padding)
 				.HAlign(Slot->HorizontalAlignment)
 				.VAlign(Slot->VerticalAlignment)
 			[

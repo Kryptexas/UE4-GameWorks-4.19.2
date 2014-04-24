@@ -12,7 +12,7 @@ class UMG_API USlateWrapperComponent : public UActorComponent
 	GENERATED_UCLASS_BODY()
 
 #if WITH_EDITOR
-	UPROPERTY(Transient, EditInline, EditAnywhere, BlueprintReadWrite, Category=Layout)
+	UPROPERTY(Transient, EditInline, EditAnywhere, BlueprintReadWrite, Category=Layout, meta=( ShowOnlyInnerProperties ))
 	UPanelSlot* Slot;
 #endif
 

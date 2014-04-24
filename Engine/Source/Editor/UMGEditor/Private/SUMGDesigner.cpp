@@ -3,7 +3,9 @@
 #include "UMGEditorPrivatePCH.h"
 
 #include "SUMGDesigner.h"
+
 #include "BlueprintEditor.h"
+#include "SKismetInspector.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -95,7 +97,7 @@ static bool LocateWidgetsUnderCursor_Helper(FArrangedWidget& Candidate, FVector2
 
 void SUMGDesigner::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEditor> InBlueprintEditor)
 {
-	LastPreviewActor = NULL;
+	PreviewWidgetActor = NULL;
 	BlueprintEditor = InBlueprintEditor;
 
 	ChildSlot
@@ -118,6 +120,57 @@ void SUMGDesigner::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEdit
 	];
 }
 
+UWidgetBlueprint* SUMGDesigner::GetBlueprint() const
+{
+	if ( BlueprintEditor.IsValid() )
+	{
+		UBlueprint* BP = BlueprintEditor.Pin()->GetBlueprintObj();
+		return Cast<UWidgetBlueprint>(BP);
+	}
+
+	return NULL;
+}
+
+void SUMGDesigner::OnBlueprintChanged(UBlueprint* InBlueprint)
+{
+	if ( InBlueprint )
+	{
+		
+	}
+}
+
+void SUMGDesigner::OnObjectPropertyChanged(UObject* ObjectBeingModified)
+{
+	if ( !ensure(ObjectBeingModified) )
+	{
+		return;
+	}
+}
+
+void SUMGDesigner::ShowDetailsForObjects(TArray<USlateWrapperComponent*> Widgets)
+{
+	// @TODO COde duplication
+
+	// Convert the selection set to an array of UObject* pointers
+	FString InspectorTitle;
+	TArray<UObject*> InspectorObjects;
+	InspectorObjects.Empty(Widgets.Num());
+	for ( USlateWrapperComponent* Widget : Widgets )
+	{
+		//if ( NodePtr->CanEditDefaults() )
+		{
+			InspectorTitle = "Widget";// Widget->GetDisplayString();
+			InspectorObjects.Add(Widget);
+		}
+	}
+
+	UWidgetBlueprint* Blueprint = GetBlueprint();
+
+	// Update the details panel
+	SKismetInspector::FShowDetailsOptions Options(InspectorTitle, true);
+	BlueprintEditor.Pin()->GetInspector()->ShowDetailsForObjects(InspectorObjects, Options);
+}
+
 FReply SUMGDesigner::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	FVector2D LocalMouseCoordinates = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
@@ -130,24 +183,41 @@ FReply SUMGDesigner::OnMouseButtonDown(const FGeometry& MyGeometry, const FPoint
 
 	PreviewSurface->SetVisibility(EVisibility::HitTestInvisible);
 
+	AUserWidget* WidgetActor = PreviewWidgetActor.Get();
+	if ( WidgetActor )
+	{
+		USlateWrapperComponent* PreviewHandle = NULL;
+		for ( int32 ChildIndex = Children.Num() - 1; ChildIndex >= 0; ChildIndex-- )
+		{
+			FArrangedWidget& Child = Children.GetInternalArray()[ChildIndex];
+			PreviewHandle = WidgetActor->GetWidgetHandle(Child.Widget);
+			if ( PreviewHandle )
+			{
+				break;
+			}
+		}
+
+		UWidgetBlueprint* Blueprint = GetBlueprint();
+		// TODO we have the widgets runtime handle, we need to look at the handle's name and find the corresponding
+		// design time handle and select it!
+	}
+
 	return FReply::Handled();
 }
 
 void SUMGDesigner::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
 	AActor* PreviewActor = BlueprintEditor.Pin()->GetPreviewActor();
-	if (PreviewActor != LastPreviewActor.Get())
-	{
-		LastPreviewActor = PreviewActor;
-	}
+	AUserWidget* WidgetActor = Cast<AUserWidget>(PreviewActor);
+	PreviewWidgetActor = WidgetActor;
 
-	if (AUserWidget* WidgetActor = Cast<AUserWidget>(PreviewActor))
+	if (WidgetActor)
 	{
-		TSharedRef<SWidget> CurrentWidget = WidgetActor->GetWidget();
+		TSharedRef<SWidget> CurrentWidget = WidgetActor->GetRootWidget();
 
-		if (CurrentWidget != LastPreviewWidget.Pin())
+		if ( CurrentWidget != PreviewWidget.Pin() )
 		{
-			LastPreviewWidget = CurrentWidget;
+			PreviewWidget = CurrentWidget;
 			PreviewSurface->SetContent(CurrentWidget);
 		}
 	}

@@ -8,17 +8,17 @@
 AUserWidget::AUserWidget(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	RootWidget = SNullWidget::NullWidget;
 }
 
 void AUserWidget::PostActorCreated()
 {
-	EnsureWidgetExists();
 	Super::PostActorCreated();
 }
 
 void AUserWidget::Destroyed()
 {
-	MyWrapperWidget = NULL;
+	RootWidget.Reset();
 	Super::Destroyed();
 }
 
@@ -29,33 +29,32 @@ void AUserWidget::RerunConstructionScripts()
 	RebuildWrapperWidget();
 }
 
-void AUserWidget::EnsureWidgetExists()
+USlateWrapperComponent* AUserWidget::GetWidgetHandle(TSharedRef<SWidget> InWidget)
 {
-	if (!MyWrapperWidget.IsValid())
-	{
-		MyWrapperWidget = SNew(SOverlay);
-	}
+	return WidgetToComponent.FindRef(&InWidget.Get());
 }
 
 void AUserWidget::RebuildWrapperWidget()
 {
-	EnsureWidgetExists();
-	MyWrapperWidget->ClearChildren();
+	WidgetToComponent.Reset();
+	RootWidget = SNullWidget::NullWidget;
 	
 	TArray<USlateWrapperComponent*> SlateWrapperComponents;
 	GetComponents(SlateWrapperComponents);
 
+	// Add the first component to the root of the widget surface.
+	if ( SlateWrapperComponents.Num() > 0 )
+	{
+		RootWidget = SlateWrapperComponents[0]->GetWidget();
+	}
+
 	// Place all of our top-level children Slate wrapped components into the overlay
 	for (int32 ComponentIndex = 0; ComponentIndex < SlateWrapperComponents.Num(); ++ComponentIndex)
 	{
-		if (SlateWrapperComponents[ComponentIndex]->IsRegistered())
-		{
-			MyWrapperWidget->AddSlot()
-			[
-				SlateWrapperComponents[ComponentIndex]->GetWidget()
-			];
-			break;
-		}
+		USlateWrapperComponent* Handle = SlateWrapperComponents[ComponentIndex];
+		TSharedRef<SWidget> Widget = Handle->GetWidget();
+
+		WidgetToComponent.Add(&Widget.Get(), Handle);
 	}
 	
 	// If this is a game world add the widget to the current worlds viewport.
@@ -63,16 +62,11 @@ void AUserWidget::RebuildWrapperWidget()
 	if ( World && World->IsGameWorld() )
 	{
 		UGameViewportClient* Viewport = World->GetGameViewport();
-		Viewport->AddViewportWidgetContent(MyWrapperWidget.ToSharedRef());
+		Viewport->AddViewportWidgetContent(RootWidget.ToSharedRef());
 	}
-
-//@TODO: Figure out how hot-reloading/etc... should work with slate wrapped components
-	//SAssignNew(ScoreboardWidgetContainer,SWeakWidget)
-	//.PossiblyNullContent(ScoreboardWidgetOverlay));
 }
 
-TSharedRef<SWidget> AUserWidget::GetWidget()
+TSharedRef<SWidget> AUserWidget::GetRootWidget()
 {
-	EnsureWidgetExists();
-	return MyWrapperWidget.ToSharedRef();
+	return RootWidget.ToSharedRef();
 }

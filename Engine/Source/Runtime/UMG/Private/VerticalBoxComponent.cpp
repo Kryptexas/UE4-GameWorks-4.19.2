@@ -46,6 +46,7 @@ void UVerticalBoxComponent::OnKnownChildrenChanged()
 			}
 
 			auto& NewSlot = Canvas->AddSlot()
+				.Padding(Slot->Padding)
 				.HAlign(Slot->HorizontalAlignment)
 				.VAlign(Slot->VerticalAlignment)
 			[

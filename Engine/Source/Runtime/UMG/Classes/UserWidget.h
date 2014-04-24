@@ -15,12 +15,14 @@ class UMG_API AUserWidget : public AActor
 	virtual void RerunConstructionScripts() OVERRIDE;
 	// End of AActor interface
 
-	TSharedRef<SWidget> GetWidget();
+	USlateWrapperComponent* GetWidgetHandle(TSharedRef<SWidget> InWidget);
+
+	TSharedRef<SWidget> GetRootWidget();
 
 private:
-	TSharedPtr<SOverlay> MyWrapperWidget;
+	TSharedPtr<SWidget> RootWidget;
+	TMap< SWidget*, USlateWrapperComponent* > WidgetToComponent;
 
 private:
-	void EnsureWidgetExists();
 	void RebuildWrapperWidget();
 };

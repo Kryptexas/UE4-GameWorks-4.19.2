@@ -18,10 +18,17 @@ public:
 	// SWidget interface
 	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) OVERRIDE;
 	// End of Swidget interface
-protected:
+
+private:
+	UWidgetBlueprint* GetBlueprint() const;
+	void OnBlueprintChanged(UBlueprint* InBlueprint);
+	void OnObjectPropertyChanged(UObject* ObjectBeingModified);
+	void ShowDetailsForObjects(TArray<USlateWrapperComponent*> Widgets);
+
+private:
 	TWeakPtr<FBlueprintEditor> BlueprintEditor;
-	TWeakObjectPtr<AActor> LastPreviewActor;
-	TWeakPtr<SWidget> LastPreviewWidget;
+	TWeakObjectPtr<AUserWidget> PreviewWidgetActor;
+	TWeakPtr<SWidget> PreviewWidget;
 
 	TSharedPtr<SBorder> PreviewSurface;
 };
