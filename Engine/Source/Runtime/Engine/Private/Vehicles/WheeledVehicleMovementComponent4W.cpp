@@ -24,8 +24,8 @@ UWheeledVehicleMovementComponent4W::UWheeledVehicleMovementComponent4W(const cla
 
 	PxVehicleEngineData DefEngineData;
 	EngineSetup.MOI = DefEngineData.mMOI * LengthScale * LengthScale;
-	EngineSetup.PeakTorque = 1000 * LengthScale * LengthScale;
-	EngineSetup.MaxOmega = 1000;
+	EngineSetup.PeakTorque = 1000.f;
+	EngineSetup.MaxRPM = 7000.f;
 	EngineSetup.DampingRateFullThrottle = 0.5f * LengthScale * LengthScale;
 	EngineSetup.DampingRateZeroThrottleClutchEngaged = 2.0f * LengthScale * LengthScale;
 	EngineSetup.DampingRateZeroThrottleClutchDisengaged = 0.5f * LengthScale * LengthScale;
@@ -57,7 +57,7 @@ UWheeledVehicleMovementComponent4W::UWheeledVehicleMovementComponent4W(const cla
 	AutoBoxSetup.GearAutoBoxLatency = DefAutoBoxSetup.getLatency();
 	bUseGearAutoBox = true;
 
-	MaxSteeringSpeed = 6000.0f; // editable in vehicle blueprint
+	MaxSteeringSpeed = 100.f; // editable in vehicle blueprint
 	SteeringCurve.AddZeroed(4);
 	SteeringCurve[0].InVal = 0.0f;
 	SteeringCurve[0].OutVal = 0.75f;
@@ -115,8 +115,8 @@ static void GetVehicleDifferential4WSetup(const FVehicleDifferential4WData& Setu
 static void GetVehicleEngineSetup(const FVehicleEngineData& Setup, PxVehicleEngineData& PxSetup)
 {
 	PxSetup.mMOI = Setup.MOI; // convert from m to cm scale
-	PxSetup.mPeakTorque = Setup.PeakTorque;
-	PxSetup.mMaxOmega = Setup.MaxOmega;
+	PxSetup.mPeakTorque = M2ToCm2(Setup.PeakTorque);	//convert Nm to (kg cm^2/s^2)
+	PxSetup.mMaxOmega = RPMToOmega(Setup.MaxRPM);
 	PxSetup.mDampingRateFullThrottle = Setup.DampingRateFullThrottle;
 	PxSetup.mDampingRateZeroThrottleClutchEngaged = Setup.DampingRateZeroThrottleClutchEngaged;
 	PxSetup.mDampingRateZeroThrottleClutchDisengaged = Setup.DampingRateZeroThrottleClutchDisengaged;
@@ -228,7 +228,7 @@ void UWheeledVehicleMovementComponent4W::SetupVehicle()
 	const int MaxSteeringSamples = FMath::Min(8, SteeringCurve.Num());
 	for (int i = 0; i < 8; i++)
 	{
-		SteeringMap[i*2 + 0] = (i < MaxSteeringSamples) ? (SteeringCurve[i].InVal * MaxSteeringSpeed) : PX_MAX_F32;
+		SteeringMap[i*2 + 0] = (i < MaxSteeringSamples) ? (SteeringCurve[i].InVal * KmHToCmS(MaxSteeringSpeed)) : PX_MAX_F32;
 		SteeringMap[i*2 + 1] = (i < MaxSteeringSamples) ? FMath::Clamp<float>(SteeringCurve[i].OutVal, 0.0f, 1.0f) : PX_MAX_F32;
 	}
 }
@@ -317,3 +317,16 @@ void UWheeledVehicleMovementComponent4W::UpdateAutoBoxSetup(const FVehicleAutoBo
 	}
 #endif
 }
+
+void UWheeledVehicleMovementComponent4W::Serialize(FArchive & Ar)
+{
+	Super::Serialize(Ar);
+	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_VEHICLES_UNIT_CHANGE)
+	{
+		//we need to convert from old units to new. This backwards compatable code fails in the rare case that they were using very strange values that are the new defaults in the correct units.
+		EngineSetup.PeakTorque = EngineSetup.PeakTorque != 1000.f ? Cm2ToM2(EngineSetup.PeakTorque) : 1000.f;	//need to convert kg cm^2/s^2 into Nm
+		EngineSetup.MaxRPM = EngineSetup.MaxRPM != 7000.f ? OmegaToRPM(EngineSetup.MaxRPM) : 7000.f;	//need to convert from rad/s to RPM
+		MaxSteeringSpeed = MaxSteeringSpeed != 100.f ? CmSToKmH(MaxSteeringSpeed) : 100.f;	//we now store as km/h instead of cm/s
+	}
+}
+

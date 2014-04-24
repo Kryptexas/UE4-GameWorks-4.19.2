@@ -63,13 +63,13 @@ struct FVehicleEngineData
 	UPROPERTY(EditAnywhere, Category=Setup)
 	float MOI;
 
-	/** Maximum torque available to apply to the engine (kg m^2 s^-2). */ 
+	/** Maximum torque available to apply to the engine (Nm). */ 
 	UPROPERTY(EditAnywhere, Category=Setup)
 	float PeakTorque;
 
-	/** Maximum rotation speed of the engine (radians per second: rad s^-1) */
+	/** Maximum revolutions per minute of the engine */
 	UPROPERTY(EditAnywhere, Category=Setup)
-	float MaxOmega;
+	float MaxRPM;
 
 	/** Damping rate of engine when full throttle is applied */
 	UPROPERTY(EditAnywhere, Category=Setup, AdvancedDisplay)
@@ -171,13 +171,15 @@ class ENGINE_API UWheeledVehicleMovementComponent4W : public UWheeledVehicleMove
 	UPROPERTY(EditAnywhere, Category=VehicleSetup, AdvancedDisplay)
 	float AckermannAccuracy;
 
-	/** Max speed value in steering curve */
+	/** Max speed value in steering curve (km/h)*/
 	UPROPERTY(EditAnywhere, Category=VehicleSetup)
 	float MaxSteeringSpeed;
 
 	/** Steering strength defined for speed in normalized range [0 .. 1] */
 	UPROPERTY(EditAnywhere, Category=VehicleSetup, AdvancedDisplay)
 	TArray<FFloatPair> SteeringCurve;
+
+	virtual void Serialize(FArchive & Ar) OVERRIDE;
 
 protected:
 

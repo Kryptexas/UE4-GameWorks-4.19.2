@@ -100,12 +100,12 @@ struct FWheelSetup
 	UPROPERTY(EditAnywhere, Category=WheelsSetup)
 	float SteerAngle;
 
-	// max brake torque for this wheel
+	// max brake torque for this wheel (Nm)
 	UPROPERTY(EditAnywhere, Category=WheelsSetup)
 	float MaxBrakeTorque;
 
-	/** Max handbreak brake torque for this wheel. A handbrake should have a stronger brake torque
-		than the break. This will be ignored for wheels that are not affected by the handbrake. */
+	/** Max handbrake brake torque for this wheel (Nm). A handbrake should have a stronger brake torque
+		than the brake. This will be ignored for wheels that are not affected by the handbrake. */
 	UPROPERTY(EditAnywhere, Category=WheelsSetup)
 	float MaxHandBrakeTorque;
 
@@ -122,8 +122,8 @@ struct FWheelSetup
 		, BoneName(NAME_None)
 		, AdditionalOffset(0.0f)
 		, SteerAngle(70.0f)
-		, MaxBrakeTorque(1500 * 100 * 100)
-		, MaxHandBrakeTorque(0.0f)
+		, MaxBrakeTorque(1500.f)
+		, MaxHandBrakeTorque(3000.f)
 		, DampingRate(0.25f * 100.f * 100.f)
 		, Mass(20.f)
 	{
@@ -357,6 +357,8 @@ class ENGINE_API UWheeledVehicleMovementComponent : public UPawnMovementComponen
 	UFUNCTION(BlueprintCallable, Category="Game|Components|WheeledVehicleMovement")
 	bool GetUseAutoGears() const;
 
+	virtual void Serialize(FArchive & Ar) OVERRIDE;
+
 protected:
 
 	// replicated state of vehicle 
@@ -496,4 +498,41 @@ protected:
 	class USkinnedMeshComponent* GetMesh();
 
 #endif // WITH_PHYSX
+	
+
 };
+
+//some helper functions for converting units
+
+//rev per minute to rad/s
+inline float RPMToOmega(float RPM)
+{
+	return RPM * PI / 30.f;
+}
+
+//rad/s to rev per minute
+inline float OmegaToRPM(float Omega)
+{
+	return Omega * 30.f / PI;
+}
+
+//km/h to cm/s
+inline float KmHToCmS(float KmH)
+{
+	return KmH * 100000.f / 3600.f;
+}
+
+inline float CmSToKmH(float CmS)
+{
+	return CmS * 3600.f / 100000.f;
+}
+
+inline float M2ToCm2(float M2)
+{
+	return M2 * 100.f * 100.f;
+}
+
+inline float Cm2ToM2(float Cm2)
+{
+	return Cm2 / (100.f * 100.f);
+}

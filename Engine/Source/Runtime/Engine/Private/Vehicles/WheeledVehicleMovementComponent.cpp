@@ -283,8 +283,8 @@ void UWheeledVehicleMovementComponent::SetupWheels( PxVehicleWheelsSimData* PWhe
 		PWheelData.mRadius = Wheel->ShapeRadius;
 		PWheelData.mWidth = Wheel->ShapeWidth;	
 		PWheelData.mMaxSteer = FMath::DegreesToRadians(WheelSetups[WheelIdx].SteerAngle);
-		PWheelData.mMaxBrakeTorque = WheelSetups[WheelIdx].MaxBrakeTorque;
-		PWheelData.mMaxHandBrakeTorque = Wheel->bAffectedByHandbrake ? WheelSetups[WheelIdx].MaxHandBrakeTorque : 0.0f;
+		PWheelData.mMaxBrakeTorque = M2ToCm2(WheelSetups[WheelIdx].MaxBrakeTorque);
+		PWheelData.mMaxHandBrakeTorque = Wheel->bAffectedByHandbrake ? M2ToCm2(WheelSetups[WheelIdx].MaxHandBrakeTorque) : 0.0f;
 
 //		PWheelData.mMass = 1.0f;
 //		PWheelData.mMOI = Wheel->Inertia * Mass; // Multiply by vehicle mass so that as vehicle mass shrinks, the torque and inertia can shrink as well
@@ -295,7 +295,7 @@ void UWheeledVehicleMovementComponent::SetupWheels( PxVehicleWheelsSimData* PWhe
 		// init tire data
 		PxVehicleTireData PTireData; 
 		PTireData.mType = Wheel->TireType ? Wheel->TireType->GetTireTypeID() : GEngine->DefaultTireType->GetTireTypeID();
-		PTireData.mCamberStiffnessPerUnitGravity = 0.0f;
+		//PTireData.mCamberStiffnessPerUnitGravity = 0.0f;
 		PTireData.mLatStiffX = Wheel->LatStiffMaxLoad;
 		PTireData.mLatStiffY = Wheel->LatStiffValue;
 		PTireData.mLongitudinalStiffnessPerUnitGravity = Wheel->LongStiffValue;
@@ -706,10 +706,10 @@ void UWheeledVehicleMovementComponent::UpdateState( float DeltaTime )
 			}
 		}
 		
-		SteeringInput = SteeringInputRate.InterpInputValue( DeltaTime, SteeringInput, CalcSteeringInput() );
+		SteeringInput = SteeringInputRate.InterpInputValue(DeltaTime, SteeringInput, CalcSteeringInput());
 		ThrottleInput = ThrottleInputRate.InterpInputValue( DeltaTime, ThrottleInput, CalcThrottleInput() );
-		BrakeInput = BrakeInputRate.InterpInputValue( DeltaTime, BrakeInput, CalcBrakeInput() );
-		HandbrakeInput = HandbrakeInputRate.InterpInputValue( DeltaTime, HandbrakeInput, CalcHandbrakeInput() );
+		BrakeInput = BrakeInputRate.InterpInputValue(DeltaTime, BrakeInput, CalcBrakeInput());
+		HandbrakeInput = HandbrakeInputRate.InterpInputValue(DeltaTime, HandbrakeInput, CalcHandbrakeInput());
 
 		// and send to server
 		ServerUpdateState(SteeringInput, ThrottleInput, BrakeInput, HandbrakeInput, GetCurrentGear());
@@ -1062,6 +1062,22 @@ bool UWheeledVehicleMovementComponent::CheckSlipThreshold(float AbsLongSlipThres
 	}
 
 	return false;
+}
+
+void UWheeledVehicleMovementComponent::Serialize(FArchive & Ar)
+{
+	Super::Serialize(Ar);
+	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_VEHICLES_UNIT_CHANGE)
+	{
+		for (int32 WheelIdx = 0; WheelIdx < WheelSetups.Num(); ++WheelIdx)
+		{
+			//this backwards compatable code breaks if they were using some strange value that is exactly the new default in the new units
+			FWheelSetup & WheelSetup = WheelSetups[WheelIdx];
+			WheelSetup.MaxHandBrakeTorque = WheelSetup.MaxHandBrakeTorque != 1500.f ? Cm2ToM2(WheelSetup.MaxHandBrakeTorque) : 1500.f;	//need to convert from cm^2 to m^2
+			WheelSetup.MaxBrakeTorque = WheelSetup.MaxHandBrakeTorque != 3000.f ? Cm2ToM2(WheelSetup.MaxBrakeTorque) : 3000.f;			//need to convert from cm^2 to m^2
+		}
+
+	}
 }
 
 float UWheeledVehicleMovementComponent::GetMaxSpringForce() const

@@ -522,6 +522,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_FLIP_MATERIAL_COORDS,
 	// PinSubCategoryMemberReference added to FEdGraphPinType
 	VER_UE4_MEMBERREFERENCE_IN_PINTYPE,
+	// Vehicles use Nm for Torque instead of cm and RPM instead of rad/s
+	VER_UE4_VEHICLES_UNIT_CHANGE,
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
 	VER_UE4_AUTOMATIC_VERSION_PLUS_ONE,
