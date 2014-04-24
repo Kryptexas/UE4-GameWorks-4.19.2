@@ -394,7 +394,7 @@ void PxVehicleComputeTireForceDefault
 	tireAlignMoment=0.0f;
 
 	//If long slip/lat slip/camber are all zero than there will be zero tire force.
-	if((0==latSlip)&&(0==longSlip)&&(0==camber))
+	if (FMath::IsNearlyZero(latSlip) && FMath::IsNearlyZero(longSlip) && FMath::IsNearlyZero(camber))
 	{
 		return;
 	}
