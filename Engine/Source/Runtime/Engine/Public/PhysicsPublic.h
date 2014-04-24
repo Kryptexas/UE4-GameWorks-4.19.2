@@ -33,6 +33,8 @@ namespace physx
 	class PxMat44;
 	class PxCpuDispatcher;
 	class PxSimulationEventCallback;
+	struct PxActiveTransform;
+	class PxActor;
 	
 #if WITH_APEX
 	namespace apex
@@ -408,6 +410,15 @@ private:
 #if WITH_PHYSX
 	/** User data wrapper passed to physx */
 	struct FPhysxUserData PhysxUserData;
+
+	/** Cache of active transforms */ //TODO: this solution is not great
+	TArray<const PxActiveTransform*> ActiveTransforms[PST_MAX];
+
+	/** Updates our cache of active transforms */
+	void UpdateActiveTransforms(uint32 SceneType);
+
+	/** When actors are destroyed they must be removed from active transforms */
+	void RemoveBodyFromActiveTransforms(PxActor * PActor, uint32 SceneType);
 #endif
 
 #if WITH_SUBSTEPPING
