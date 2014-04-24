@@ -260,6 +260,7 @@ class ENGINE_API UWheeledVehicleMovementComponent : public UPawnMovementComponen
 	uint32 VehicleSetupTag;
 
 	bool CheckSlipThreshold(float AbsLongSlipThreshold, float AbsLatSlipThreshold) const;
+	float GetMaxSpringForce() const;
 
 #if WITH_PHYSX
 
