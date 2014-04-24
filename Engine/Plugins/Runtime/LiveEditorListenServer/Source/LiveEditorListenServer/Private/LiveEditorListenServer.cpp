@@ -187,7 +187,7 @@ void FLiveEditorListenServer::Tick( float DeltaTime )
 	{
 		FSocket *Client = *ClientIt;
 		uint32 DataSize = 0;
-		while ( Client->HasPendingData(DataSize) && DataSize > 0 )
+		while ( Client->HasPendingData(DataSize) )
 		{
 			FArrayReaderPtr Datagram = MakeShareable(new FArrayReader(true));
 			Datagram->Init(FMath::Min(DataSize, 65507u));

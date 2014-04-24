@@ -96,17 +96,13 @@ public:
 
 			while (Socket->HasPendingData(Size))
 			{
-				if (Size > 0)
-				{
-					FArrayReaderPtr Reader = MakeShareable(new FArrayReader(true));
-					Reader->Init(FMath::Min(Size, 65507u));
+				FArrayReaderPtr Reader = MakeShareable(new FArrayReader(true));
+				Reader->Init(FMath::Min(Size, 65507u));
 
-					int32 Read = 0;
+				int32 Read = 0;
+				Socket->RecvFrom(Reader->GetData(), Reader->Num(), Read, *Sender);
 
-					Socket->RecvFrom(Reader->GetData(), Reader->Num(), Read, *Sender);
-
-					DataReceivedDelegate.ExecuteIfBound(Reader, FIPv4Endpoint(Sender));
-				}
+				DataReceivedDelegate.ExecuteIfBound(Reader, FIPv4Endpoint(Sender));
 			}
 		}
 

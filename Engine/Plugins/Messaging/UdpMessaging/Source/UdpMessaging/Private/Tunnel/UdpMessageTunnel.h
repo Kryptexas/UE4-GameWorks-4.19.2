@@ -289,57 +289,54 @@ protected:
 
 		while (Socket->HasPendingData(DatagramSize))
 		{
-			if (DatagramSize > 0)
+			FArrayReaderPtr Datagram = MakeShareable(new FArrayReader(true));
+			Datagram->Init(FMath::Min(DatagramSize, 65507u));
+
+			int32 BytesRead = 0;
+
+			if (Socket->RecvFrom(Datagram->GetData(), Datagram->Num(), BytesRead, *Sender))
 			{
-				FArrayReaderPtr Datagram = MakeShareable(new FArrayReader(true));
-				Datagram->Init(FMath::Min(DatagramSize, 65507u));
+				FUdpMessageSegment::FHeader Header;
+				*Datagram << Header;
 
-				int32 BytesRead = 0;
-
-				if (Socket->RecvFrom(Datagram->GetData(), Datagram->Num(), BytesRead, *Sender))
+				// check protocol version
+				if (Header.ProtocolVersion != UDP_MESSAGING_TRANSPORT_PROTOCOL_VERSION)
 				{
-					FUdpMessageSegment::FHeader Header;
-					*Datagram << Header;
-
-					// check protocol version
-					if (Header.ProtocolVersion != UDP_MESSAGING_TRANSPORT_PROTOCOL_VERSION)
-					{
-						return;
-					}
-
-					// ignore loopback datagrams
-					if (RemoteNodes.Contains(Header.SenderNodeId))
-					{
-						return;
-					}
-
-					Datagram->Seek(0);
-
-					// forward datagram to remote nodes
-					if (Header.RecipientNodeId.IsValid())
-					{
-						FNodeInfo* RemoteNode = RemoteNodes.Find(Header.RecipientNodeId);
-
-						if ((RemoteNode != NULL) && (RemoteNode->Connection.IsValid()))
-						{
-							RemoteNode->Connection->Send(Datagram);
-						}
-					}
-					else
-					{
-						for (int32 ConnectionIndex = 0; ConnectionIndex < Connections.Num(); ++ConnectionIndex)
-						{
-							Connections[ConnectionIndex]->Send(Datagram);
-						}
-					}
-
-					// update local node & statistics
-					FNodeInfo& LocalNode = LocalNodes.FindOrAdd(Header.SenderNodeId);
-					LocalNode.Endpoint = FIPv4Endpoint(Sender);
-					LocalNode.LastDatagramReceivedTime = CurrentTime;
-
-					TotalOutboundBytes += Datagram->Num();
+					return;
 				}
+
+				// ignore loopback datagrams
+				if (RemoteNodes.Contains(Header.SenderNodeId))
+				{
+					return;
+				}
+
+				Datagram->Seek(0);
+
+				// forward datagram to remote nodes
+				if (Header.RecipientNodeId.IsValid())
+				{
+					FNodeInfo* RemoteNode = RemoteNodes.Find(Header.RecipientNodeId);
+
+					if ((RemoteNode != NULL) && (RemoteNode->Connection.IsValid()))
+					{
+						RemoteNode->Connection->Send(Datagram);
+					}
+				}
+				else
+				{
+					for (int32 ConnectionIndex = 0; ConnectionIndex < Connections.Num(); ++ConnectionIndex)
+					{
+						Connections[ConnectionIndex]->Send(Datagram);
+					}
+				}
+
+				// update local node & statistics
+				FNodeInfo& LocalNode = LocalNodes.FindOrAdd(Header.SenderNodeId);
+				LocalNode.Endpoint = FIPv4Endpoint(Sender);
+				LocalNode.LastDatagramReceivedTime = CurrentTime;
+
+				TotalOutboundBytes += Datagram->Num();
 			}
 		}
 	}
