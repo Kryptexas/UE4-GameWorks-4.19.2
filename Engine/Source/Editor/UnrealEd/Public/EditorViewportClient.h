@@ -837,7 +837,10 @@ public:
 
 	void SetGameView(bool bGameViewEnable);
 
-	bool IsInGameView() const { return bInGameViewMode; }
+	/** 
+	 * Returns true if this viewport is excluding non-game elements from its display
+	 */
+	virtual bool IsInGameView() const OVERRIDE { return bInGameViewMode; }
 
 	/**
 	 * Aspect ratio bar display settings

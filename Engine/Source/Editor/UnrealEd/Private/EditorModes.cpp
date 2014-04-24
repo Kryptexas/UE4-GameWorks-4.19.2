@@ -631,7 +631,8 @@ void FEdMode::Render(const FSceneView* View,FViewport* Viewport,FPrimitiveDrawIn
 		}
 	}
 
-	if (GEditorModeTools().ShouldDrawBrushVertices())
+	const bool bIsInGameView = !Viewport->GetClient() || Viewport->GetClient()->IsInGameView();
+	if (GEditorModeTools().ShouldDrawBrushVertices() && !bIsInGameView)
 	{
 		UTexture2D* VertexTexture = GetVertexTexture();
 		const float TextureSizeX = VertexTexture->GetSizeX() * 0.170f;

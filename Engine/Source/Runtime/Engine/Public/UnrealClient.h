@@ -682,6 +682,11 @@ public:
 	 */
 	virtual bool IsOrtho() const { return false; }
 
+	/** 
+	 * Returns true if this viewport is excluding non-game elements from its display
+	 */
+	virtual bool IsInGameView() const { return false; }
+
 	/**
  	 * Sets GWorld to the appropriate world for this client
 	 * 
