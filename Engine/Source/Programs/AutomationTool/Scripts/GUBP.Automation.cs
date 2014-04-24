@@ -2812,7 +2812,7 @@ public class GUBP : BuildCommand
         }
         if (BranchForEmail.Contains("UE4-Releases"))
         {
-            Emails = GUBPNode.MergeSpaceStrings(Emails, "Ben.Marsh[epic]");
+            Emails = GUBPNode.MergeSpaceStrings(Emails, "Ben.Marsh[epic] Leslie.Nivison[epic]");
         }
         return Emails;
     }
