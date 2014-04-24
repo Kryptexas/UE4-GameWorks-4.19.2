@@ -40,6 +40,7 @@ namespace AutomationTool
 		/// </summary>
 		private static object SyncObject = new object();
 
+
 		/// <summary>
 		/// Creates a new process and adds it to the tracking list.
 		/// </summary>
@@ -70,6 +71,11 @@ namespace AutomationTool
 			return Result;
 		}
 
+		public static bool CanBeKilled(string ProcessName)
+		{
+			return !HostPlatform.Current.DontKillProcessList.Contains(ProcessName, StringComparer.InvariantCultureIgnoreCase);
+		}
+
 		/// <summary>
 		/// Kills all running processes.
 		/// </summary>
@@ -80,6 +86,15 @@ namespace AutomationTool
 			{
 				ProcessesToKill = new List<ProcessResult>(ActiveProcesses);
 				ActiveProcesses.Clear();
+			}
+			// Remove processes that can't be killed
+			for (int ProcessIndex = ProcessesToKill.Count - 1; ProcessIndex >= 0; --ProcessIndex )
+			{
+				if (!CanBeKilled(ProcessesToKill[ProcessIndex].ProcessObject.ProcessName))
+				{
+					CommandUtils.Log("Ignoring process \"{0}\" because it can't be killed.", ProcessesToKill[ProcessIndex].ProcessObject.ProcessName);
+					ProcessesToKill.RemoveAt(ProcessIndex);
+				}
 			}
 			CommandUtils.Log("Trying to kill {0} spawned processes.", ProcessesToKill.Count);
 			foreach (var Proc in ProcessesToKill)
@@ -416,7 +431,7 @@ namespace AutomationTool
 				foreach (Process KillCandidate in AllProcs)
 				{
 					HashSet<int> VisitedPids = new HashSet<int>();
-					if (IsOurDescendant(ProcessToKill, KillCandidate.Id, VisitedPids))
+					if (ProcessManager.CanBeKilled(KillCandidate.ProcessName) && IsOurDescendant(ProcessToKill, KillCandidate.Id, VisitedPids))
 					{
 						CommandUtils.Log("Trying to kill descendant pid={0}, name={1}", KillCandidate.Id, KillCandidate.ProcessName);
 						try
@@ -441,12 +456,11 @@ namespace AutomationTool
         /// <param name="ProcessToCheck">Process to check</param>
         public static bool HasAnyDescendants(Process ProcessToCheck)
         {
-
             Process[] AllProcs = Process.GetProcesses();
             foreach (Process KillCandidate in AllProcs)
             {
                 HashSet<int> VisitedPids = new HashSet<int>();
-                if (IsOurDescendant(ProcessToCheck, KillCandidate.Id, VisitedPids))
+                if (ProcessManager.CanBeKilled(KillCandidate.ProcessName) && IsOurDescendant(ProcessToCheck, KillCandidate.Id, VisitedPids))
                 {
                     CommandUtils.Log("Descendant pid={0}, name={1}, filename={2}", KillCandidate.Id, KillCandidate.ProcessName,
 						KillCandidate.MainModule != null ? KillCandidate.MainModule.FileName : "unknown");

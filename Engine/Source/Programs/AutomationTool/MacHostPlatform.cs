@@ -138,5 +138,17 @@ namespace AutomationTool
 		{
 			get { return ".exe.mdb"; }
 		}
+
+		static string[] SystemServices = new string[]
+		{
+			// TODO: Add any system process names here
+		};
+		public override string[] DontKillProcessList
+		{
+			get
+			{
+				return SystemServices;
+			}
+		}
 	}
 }
