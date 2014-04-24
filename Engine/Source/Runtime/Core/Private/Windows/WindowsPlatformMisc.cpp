@@ -1858,27 +1858,3 @@ const TCHAR* FWindowsPlatformMisc::GetDefaultPathSeparator()
 	return TEXT( "\\" );
 }
 
-void FWindowsPlatformMisc::EnumerateEngineInstallations(TArray< TPair<FString, FString> > &OutInstallations)
-{
-	HKEY hKey;
-	if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\EpicGames\\Unreal Engine"), 0, KEY_READ, &hKey) == ERROR_SUCCESS)
-	{
-		for (::DWORD Index = 0;; Index++)
-		{
-			TCHAR KeyName[256];
-			::DWORD KeyLength = sizeof(KeyName) / sizeof(KeyName[0]);
-			if (RegEnumKeyEx(hKey, Index, KeyName, &KeyLength, NULL, NULL, NULL, NULL) != ERROR_SUCCESS) break;
-
-			TCHAR InstalledDirectory[MAX_PATH];
-			::DWORD InstalledDirectoryLen = sizeof(InstalledDirectory) / sizeof(InstalledDirectory[0]);
-
-			if (RegGetValue(hKey, KeyName, TEXT("InstalledDirectory"), RRF_RT_REG_SZ, NULL, InstalledDirectory, &InstalledDirectoryLen) == ERROR_SUCCESS)
-			{
-				FString NormalizedInstalledDirectory = InstalledDirectory;
-				FPaths::NormalizeDirectoryName(NormalizedInstalledDirectory);
-				OutInstallations.Add(TPairInitializer<FString, FString>(KeyName, NormalizedInstalledDirectory));
-			}
-		}
-		RegCloseKey(hKey);
-	}
-}

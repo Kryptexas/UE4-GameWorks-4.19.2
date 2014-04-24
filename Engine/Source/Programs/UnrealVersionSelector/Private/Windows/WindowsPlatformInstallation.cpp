@@ -110,8 +110,8 @@ void GetRequiredRegistrySettings(TIndirectArray<FRegistryRootedKey> &RootedKeys)
 	FRegistryKey *SwitchShellKey = SwitchKey->FindOrAddKey(TEXT("shell"));
 
 	// HKLM\SOFTWARE\Classes\Unreal.ProjectFile\switchversion\shell\<Label>
-	TArray<TPair<FString, FString>> Installations;
-	FPlatformMisc::EnumerateEngineInstallations(Installations);
+	TMap<FString, FString> Installations;
+	FDesktopPlatformModule::Get()->EnumerateEngineInstallations(Installations);
 
 	if (Installations.Num() > 0)
 	{
@@ -122,10 +122,10 @@ void GetRequiredRegistrySettings(TIndirectArray<FRegistryRootedKey> &RootedKeys)
 
 		// Build a list of installation names
 		TMap<FString, FString> InstallationNames;
-		for (TArray<TPair<FString, FString>>::TConstIterator Iter(Installations); Iter; ++Iter)
+		for (TMap<FString, FString>::TConstIterator Iter(Installations); Iter; ++Iter)
 		{
 			const FString &Id = Iter->Key;
-			FString Description = GetInstallationDescription(Id, Iter->Value);
+			FString Description = GetInstallationDescription(Id, Iter.Value());
 			InstallationNames.Add(Description, Id);
 		}
 		InstallationNames.KeySort(FEngineLabelSortPredicate());

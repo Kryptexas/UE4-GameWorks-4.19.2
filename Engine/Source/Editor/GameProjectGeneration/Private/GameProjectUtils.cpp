@@ -10,6 +10,8 @@
 #include "EngineAnalytics.h"
 #include "EngineBuildSettings.h"
 
+#include "DesktopPlatformModule.h"
+
 #define LOCTEXT_NAMESPACE "GameProjectUtils"
 
 #define MAX_PROJECT_PATH_BUFFER_SPACE 130 // Leave a reasonable buffer of additional characters to account for files created in the content directory during or after project generation
@@ -377,7 +379,7 @@ void GameProjectUtils::CheckForOutOfDateGameProjectFile()
 	if ( !LoadedProjectFilePath.IsEmpty() )
 	{
 		FProjectStatus ProjectStatus;
-		if ( IProjectManager::Get().QueryStatusForProject(LoadedProjectFilePath, ProjectStatus) )
+		if (IProjectManager::Get().QueryStatusForProject(LoadedProjectFilePath, FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier(), ProjectStatus))
 		{
 			if ( !ProjectStatus.bUpToDate )
 			{
@@ -417,7 +419,7 @@ bool GameProjectUtils::UpdateGameProject()
 	if ( !ProjectFilename.IsEmpty() )
 	{
 		FProjectStatus ProjectStatus;
-		if ( IProjectManager::Get().QueryStatusForProject(ProjectFilename, ProjectStatus) )
+		if ( IProjectManager::Get().QueryStatusForProject(ProjectFilename, FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier(), ProjectStatus) )
 		{
 			if ( ProjectStatus.bUpToDate )
 			{
@@ -613,7 +615,7 @@ bool GameProjectUtils::GenerateProjectFromScratch(const FString& NewProjectFile,
 	// Generate the project file
 	{
 		FText LocalFailReason;
-		if ( IProjectManager::Get().GenerateNewProjectFile(NewProjectFile, StartupModuleNames, LocalFailReason) )
+		if (IProjectManager::Get().GenerateNewProjectFile(NewProjectFile, StartupModuleNames, FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier(), LocalFailReason))
 		{
 			CreatedFiles.Add(NewProjectFile);
 		}
@@ -982,7 +984,7 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FString& NewProjectFile, 
 	// Generate the project file
 	{
 		FText LocalFailReason;
-		if ( IProjectManager::Get().DuplicateProjectFile(TemplateFile, NewProjectFile, LocalFailReason) )
+		if (IProjectManager::Get().DuplicateProjectFile(TemplateFile, NewProjectFile, FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier(), LocalFailReason))
 		{
 			CreatedFiles.Add(NewProjectFile);
 		}
@@ -1845,7 +1847,7 @@ bool GameProjectUtils::UpdateGameProjectFile(const FString& ProjectFilename, con
 	}
 
 	// Now tell the project manager to update the file
-	if ( !IProjectManager::Get().UpdateLoadedProjectFileToCurrent(StartupModuleNames, OutFailReason) )
+	if (!IProjectManager::Get().UpdateLoadedProjectFileToCurrent(StartupModuleNames, FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier(), OutFailReason))
 	{
 		return false;
 	}

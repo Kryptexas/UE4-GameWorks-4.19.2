@@ -1,5 +1,6 @@
 #include "UnrealVersionSelector.h"
 #include "PlatformInstallation.h"
+#include "DesktopPlatformModule.h"
 
 int32 ParseReleaseVersion(const FString &Version)
 {
@@ -22,23 +23,23 @@ int32 ParseReleaseVersion(const FString &Version)
 
 bool GetDefaultEngineId(FString &OutId)
 {
-	TArray<TPair<FString, FString>> Installations;
-	FPlatformMisc::EnumerateEngineInstallations(Installations);
+	TMap<FString, FString> Installations;
+	FDesktopPlatformModule::Get()->EnumerateEngineInstallations(Installations);
 
 	bool bRes = false;
 	if (Installations.Num() > 0)
 	{
 		// Default to the first install
-		OutId = Installations[0].Key;
+		OutId = TMap<FString, FString>::TConstIterator(Installations).Key();
 
 		// Try to find the highest versioned install
 		int32 BestVersion = INDEX_NONE;
-		for (TArray<TPair<FString, FString>>::TConstIterator Iter(Installations); Iter; ++Iter)
+		for (TMap<FString, FString>::TConstIterator Iter(Installations); Iter; ++Iter)
 		{
-			int32 Version = ParseReleaseVersion(Iter->Key);
+			int32 Version = ParseReleaseVersion(Iter.Key());
 			if (Version > BestVersion)
 			{
-				OutId = Iter->Key;
+				OutId = Iter.Key();
 				BestVersion = Version;
 			}
 		}
@@ -49,5 +50,5 @@ bool GetDefaultEngineId(FString &OutId)
 bool GetDefaultEngineRootDir(FString &OutDirName)
 {
 	FString Id;
-	return GetDefaultEngineId(Id) && FPlatformMisc::GetEngineRootDirFromIdentifier(Id, OutDirName);
+	return GetDefaultEngineId(Id) && FDesktopPlatformModule::Get()->GetEngineRootDirFromIdentifier(Id, OutDirName);
 }

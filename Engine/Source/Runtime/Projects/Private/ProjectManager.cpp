@@ -179,10 +179,10 @@ const FString& FProjectManager::NonStaticGetProjectFileExtension()
 	return GameProjectFileExtension;
 }
 
-bool FProjectManager::GenerateNewProjectFile(const FString& NewProjectFilename, const TArray<FString>& StartupModuleNames, FText& OutFailReason)
+bool FProjectManager::GenerateNewProjectFile(const FString& NewProjectFilename, const TArray<FString>& StartupModuleNames, const FString& EngineIdentifier, FText& OutFailReason)
 {
 	TSharedRef<FProject> NewProject = MakeShareable( new FProject() );
-	NewProject->UpdateVersionToCurrent();
+	NewProject->UpdateVersionToCurrent(EngineIdentifier);
 	NewProject->ReplaceModulesInProject(&StartupModuleNames);
 
 	const FString& FileContents = NewProject->SerializeToJSON();
@@ -197,7 +197,7 @@ bool FProjectManager::GenerateNewProjectFile(const FString& NewProjectFilename, 
 	}
 }
 
-bool FProjectManager::DuplicateProjectFile(const FString& SourceProjectFilename, const FString& NewProjectFilename, FText& OutFailReason)
+bool FProjectManager::DuplicateProjectFile(const FString& SourceProjectFilename, const FString& NewProjectFilename, const FString& EngineIdentifier, FText& OutFailReason)
 {
 	// Load the source project
 	TSharedRef<FProject> SourceProject = MakeShareable( new FProject() );
@@ -223,7 +223,7 @@ bool FProjectManager::DuplicateProjectFile(const FString& SourceProjectFilename,
 
 	// Create new project, update version numbers (no need to replace modules here)
 	TSharedRef<FProject> NewProject = MakeShareable( new FProject(ProjectInfo) );
-	NewProject->UpdateVersionToCurrent();
+	NewProject->UpdateVersionToCurrent(EngineIdentifier);
 
 	// Serialize and write to disk
 	const FString& FileContents = NewProject->SerializeToJSON();
@@ -238,7 +238,7 @@ bool FProjectManager::DuplicateProjectFile(const FString& SourceProjectFilename,
 	}
 }
 
-bool FProjectManager::UpdateLoadedProjectFileToCurrent(const TArray<FString>* StartupModuleNames, FText& OutFailReason)
+bool FProjectManager::UpdateLoadedProjectFileToCurrent(const TArray<FString>* StartupModuleNames, const FString& EngineIdentifier, FText& OutFailReason)
 {
 	if ( !CurrentlyLoadedProject.IsValid() )
 	{
@@ -246,7 +246,7 @@ bool FProjectManager::UpdateLoadedProjectFileToCurrent(const TArray<FString>* St
 	}
 
 	// Freshen version information
-	CurrentlyLoadedProject->UpdateVersionToCurrent();
+	CurrentlyLoadedProject->UpdateVersionToCurrent(EngineIdentifier);
 
 	// Replace the modules names, if specified
 	CurrentlyLoadedProject->ReplaceModulesInProject(StartupModuleNames);
@@ -293,7 +293,7 @@ bool FProjectManager::SignSampleProject(const FString& FilePath, const FString& 
 	}
 }
 
-bool FProjectManager::QueryStatusForProject(const FString& FilePath, FProjectStatus& OutProjectStatus) const
+bool FProjectManager::QueryStatusForProject(const FString& FilePath, const FString& EngineIdentifier, FProjectStatus& OutProjectStatus) const
 {
 	TSharedRef<FProject> NewProject = MakeShareable( new FProject() );
 	FText FailReason;
@@ -313,7 +313,7 @@ bool FProjectManager::QueryStatusForProject(const FString& FilePath, FProjectSta
 	OutProjectStatus.Description = ProjectInfo.Description;
 	OutProjectStatus.Category = ProjectInfo.Category;
 	OutProjectStatus.bSignedSampleProject = NewProject->IsSignedSampleProject(FilePath);
-	OutProjectStatus.bUpToDate = NewProject->IsUpToDate();
+	OutProjectStatus.bUpToDate = NewProject->IsUpToDate(EngineIdentifier);
 
 	return true;
 }
