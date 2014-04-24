@@ -13,104 +13,24 @@ namespace APIDocTool
 	class APIModuleCategory
 	{
 		public string Name;
-		public List<string> MajorModules = new List<string>();
-		public List<string> MinorModules = new List<string>();
+		public List<APIModule> Modules = new List<APIModule>();
 		public List<APIModuleCategory> Categories = new List<APIModuleCategory>();
+		public bool Expanded = false;
 
 		public APIModuleCategory(string InName)
 		{
 			Name = InName;
 		}
 
-		public void GetModules(List<string> Modules)
-		{
-			Modules.AddRange(MajorModules);
-			Modules.AddRange(MinorModules);
-
-			foreach (APIModuleCategory Category in Categories)
-			{
-				Category.GetModules(Modules);
-			}
-		}
-
-		public void AddModuleByPath(string Name, string BaseSrcDir, bool bIsMajorModule)
+		public void AddModule(APIModule Module)
 		{
 			// Find the description and category
-			string ModuleSettingsPath = "Module." + Name;
+			string ModuleSettingsPath = "Module." + Module.Name;
 			string CategoryText = Program.Settings.FindValueOrDefault(ModuleSettingsPath + ".Category", null);
 
-			// Get a default category based on the module directory if there's not one set
-			if (CategoryText == null)
-			{
-				const string EngineSourcePath = "Engine/Source/";
-				string NormalizedSrcPath = Path.GetFullPath(BaseSrcDir).Replace('\\', '/').TrimEnd('/');
-
-				int CategoryMinIdx = NormalizedSrcPath.IndexOf(EngineSourcePath);
-				if(CategoryMinIdx != -1) CategoryMinIdx += EngineSourcePath.Length;
-					
-				int CategoryMaxIdx = NormalizedSrcPath.LastIndexOf('/');
-				if (CategoryMinIdx >= 0 && CategoryMaxIdx > CategoryMinIdx)
-				{
-					CategoryText = NormalizedSrcPath.Substring(CategoryMinIdx, CategoryMaxIdx - CategoryMinIdx).Replace('/', '|');
-				}
-				else
-				{
-					CategoryText = "Other";
-				}
-			}
-
 			// Build a module from all the members
-			AddModuleByCategory(Name, CategoryText, bIsMajorModule);
-		}
-		
-		public void AddModuleByCategory(string Name, string CategoryText, bool bIsMajorModule)
-		{
-			APIModuleCategory Category = AddCategory(CategoryText);
-			if (bIsMajorModule)
-			{
-				Category.MajorModules.Add(Name);
-			}
-			else
-			{
-				Category.MinorModules.Add(Name);
-			}
-		}
-
-		public void AddModules(KeyValuePair<string, string>[] NamePathList)
-		{
-			// Read the layout settings from the ini file
-			string[] CategoryOrder = Program.Settings.FindValueOrDefault("Index.CategoryOrder", "").Split('\n');
-			string[] ModuleOrder = Program.Settings.FindValueOrDefault("Index.ModuleOrder", "").Split('\n');
-			HashSet<string> MajorModules = new HashSet<string>(Program.Settings.FindValueOrDefault("Index.MajorModules", "").Split('\n'));
-
-			// Add all the categories specified in the order
-			foreach (string CategoryName in CategoryOrder)
-			{
-				AddCategory(CategoryName);
-			}
-
-			// Add all the module names whose order is specified
-			foreach (string ModuleName in ModuleOrder)
-			{
-				for(int Idx = 0; Idx < NamePathList.Length; Idx++)
-				{
-					if (NamePathList[Idx].Key == ModuleName)
-					{
-						AddModuleByPath(ModuleName, NamePathList[Idx].Value, MajorModules.Contains(ModuleName));
-						break;
-					}
-				}
-			}
-
-			// Add all the other modules to the tree
-			HashSet<string> AddedModules = new HashSet<string>(ModuleOrder);
-			foreach(KeyValuePair<string, string> NamePathPair in NamePathList)
-			{
-				if (!AddedModules.Contains(NamePathPair.Key))
-				{
-					AddModuleByPath(NamePathPair.Key, NamePathPair.Value, MajorModules.Contains(NamePathPair.Key));
-				}
-			}
+			APIModuleCategory Category = String.IsNullOrEmpty(CategoryText)? this : AddCategory(CategoryText);
+			Category.Modules.Add(Module);
 		}
 
 		public APIModuleCategory AddCategory(string Path)
@@ -143,35 +63,76 @@ namespace APIDocTool
 
 		public bool IsEmpty
 		{
-			get { return MajorModules.Count == 0 && MinorModules.Count == 0 && Categories.All(x => x.IsEmpty); }
+			get { return Modules.Count == 0 && Categories.All(x => x.IsEmpty); }
 		}
 
-		public void Write(UdnWriter Writer, int Depth, Dictionary<string, APIModule> Modules)
+		public void Write(UdnWriter Writer, int Depth)
 		{
 			if (!IsEmpty)
 			{
-				// Find all the major modules in this category
-				if (MajorModules.Count > 0)
-				{
-					Writer.WriteList("Name", "Description", MajorModules.Select(x => Modules[x].GetListItem()));
-				}
+				// CSS region for indenting 
+				Writer.EnterRegion("module-sections-list");
 
-				// Write all the minor modules in this category
-				if (MinorModules.Count > 0)
+				// Find all the modules in this category
+				if(Modules.Count > 0)
 				{
-					Writer.EnterRegion("syntax");
-					Writer.WriteFilterList(MinorModules.Select(x => Modules[x].GetFilterListItem()).ToArray());
-					Writer.LeaveRegion();
+					Writer.WriteList(Modules.OrderBy(x => x.Name).Select(x => x.GetListItem()));
 				}
 
 				// Write all the subcategories
-				foreach (APIModuleCategory Category in Categories)
+				foreach (APIModuleCategory Category in Categories.OrderBy(x => x.Name))
 				{
 					Writer.WriteHeading(Depth, Category.Name);
 					Writer.WriteLine();
-					Category.Write(Writer, Depth + 1, Modules);
+					Category.Write(Writer, Depth + 1);
+				}
+
+				// End of CSS region
+				Writer.LeaveRegion();
+			}
+		}
+
+		public void WriteExpandable(UdnWriter Writer, string UniqueId)
+		{
+			// Top level modules
+			if(Modules.Count > 0)
+			{
+				Writer.WriteList(Modules.OrderBy(x => x.Name).Select(x => x.GetListItem()));
+			}
+
+			// CSS region for indenting 
+//			Writer.EnterRegion("module-sections-list");
+
+			// Expandable section for each subcategory
+			int UniqueIdSuffix = 1;
+			foreach (APIModuleCategory Category in Categories.OrderBy(x => x.Name))
+			{
+				if(!Category.IsEmpty)
+				{
+					string NewUniqueId = String.Format("{0}_{1}", UniqueId, UniqueIdSuffix);
+
+					Writer.EnterTag(Category.Expanded? "[OBJECT:ModuleSectionExpanded]" : "[OBJECT:ModuleSection]");
+
+					Writer.WriteLine("[PARAMLITERAL:id]");
+					Writer.WriteEscapedLine(NewUniqueId);
+					Writer.WriteLine("[/PARAMLITERAL]");
+
+					Writer.WriteLine("[PARAM:heading]");
+					Writer.WriteEscapedLine(Category.Name);
+					Writer.WriteLine("[/PARAM]");
+
+					Writer.EnterTag("[PARAM:content]");
+					Category.WriteExpandable(Writer, NewUniqueId);
+					Writer.LeaveTag("[/PARAM]");
+
+					Writer.LeaveTag("[/OBJECT]");
+
+					UniqueIdSuffix++;
 				}
 			}
+
+			// End of CSS region
+//			Writer.LeaveRegion();
 		}
 
 		public override string ToString()
@@ -183,34 +144,23 @@ namespace APIDocTool
 	class APIModuleIndex : APIPage
 	{
 		public APIModuleCategory Category;
-		public List<APIModule> Modules = new List<APIModule>();
-		public Dictionary<string, APIModule> ModuleLookup = new Dictionary<string,APIModule>();
+		public List<APIModule> Children = new List<APIModule>();
 
-		public APIModuleIndex(APIPage Parent, APIModuleCategory InCategory, IEnumerable<DoxygenModule> InModules)
+		public APIModuleIndex(APIPage Parent, APIModuleCategory InCategory)
 			: base(Parent, InCategory.Name)
 		{
 			Category = InCategory;
-
-			List<string> ModuleNames = new List<string>();
-			Category.GetModules(ModuleNames);
-
-			foreach (DoxygenModule InModule in InModules.Where(x => ModuleNames.Contains(x.Name)))
-			{
-				APIModule Module = APIModule.Build(this, InModule);
-				Modules.Add(Module);
-				ModuleLookup.Add(Module.Name, Module);
-			}
 		}
 
 		public override void GatherReferencedPages(List<APIPage> Pages)
 		{
-			Pages.AddRange(Modules);
+			Pages.AddRange(Children);
 		}
 
 		public override SitemapNode CreateSitemapNode()
 		{
 			SitemapNode Node = new SitemapNode(Name, SitemapLinkPath);
-			Node.Children.AddRange(Modules.OrderBy(x => x.Name).Select(x => x.CreateSitemapNode()));
+			Node.Children.AddRange(Children.OrderBy(x => x.Name).Select(x => x.CreateSitemapNode()));
 			return Node;
 		}
 
@@ -218,15 +168,20 @@ namespace APIDocTool
 		{
 			Manifest.Add("ModuleIndex:" + Name, this);
 
-			foreach (APIModule Module in Modules)
+			foreach (APIModule Child in Children)
 			{
-				Module.AddToManifest(Manifest);
+				Child.AddToManifest(Manifest);
 			}
 		}
 
 		public void WriteModuleList(UdnWriter Writer, int Depth)
 		{
-			Category.Write(Writer, Depth, ModuleLookup);
+			Category.Write(Writer, Depth);
+		}
+
+		public void WriteExpandableModuleList(UdnWriter Writer, string UniqueId)
+		{
+			Category.WriteExpandable(Writer, UniqueId);
 		}
 
 		public override void WritePage(UdnManifest Manifest, string OutputPath)
@@ -234,7 +189,9 @@ namespace APIDocTool
 			using (UdnWriter Writer = new UdnWriter(OutputPath))
 			{
 				Writer.WritePageHeader(Name, PageCrumbs, "Module Index");
+				Writer.EnterRegion("modules-list");
 				WriteModuleList(Writer, 2);
+				Writer.LeaveRegion();
 			}
 		}
 	}
