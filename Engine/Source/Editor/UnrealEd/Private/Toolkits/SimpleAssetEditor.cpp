@@ -39,7 +39,7 @@ FSimpleAssetEditor::~FSimpleAssetEditor()
 }
 
 
-void FSimpleAssetEditor::InitEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, const TArray<UObject*>& ObjectsToEdit )
+void FSimpleAssetEditor::InitEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, const TArray<UObject*>& ObjectsToEdit, FGetDetailsViewObjects GetDetailsViewObjects )
 {
 	const bool bIsUpdatable = false;
 	const bool bAllowFavorites = true;
@@ -83,16 +83,19 @@ void FSimpleAssetEditor::InitEditor( const EToolkitMode::Type Mode, const TShare
 		PropertiesTab = SpawnToolkitTab( PropertiesTabId, TabInitializationPayload, EToolkitTabSpot::Details );
 	}*/
 	
+	// Get the list of objects to edit the details of
+	const TArray<UObject*> ObjectsToEditInDetailsView = ( GetDetailsViewObjects.IsBound() ) ? GetDetailsViewObjects.Execute( ObjectsToEdit ) : ObjectsToEdit;
+
 	// Ensure all objects are transactable for undo/redo in the details panel
-	for( int32 ObjectIndex = 0; ObjectIndex < ObjectsToEdit.Num(); ++ObjectIndex )
+	for( UObject* ObjectToEditInDetailsView : ObjectsToEditInDetailsView )
 	{
-		ObjectsToEdit[ObjectIndex]->SetFlags(RF_Transactional);
+		ObjectToEditInDetailsView->SetFlags(RF_Transactional);
 	}
 
 	if( DetailsView.IsValid() )
 	{
 		// Make sure details window is pointing to our object
-		DetailsView->SetObjects( ObjectsToEdit );
+		DetailsView->SetObjects( ObjectsToEditInDetailsView );
 	}
 }
 
@@ -194,21 +197,21 @@ FString FSimpleAssetEditor::GetWorldCentricTabPrefix() const
 	return LOCTEXT("WorldCentricTabPrefix", "Generic Asset ").ToString();
 }
 
-TSharedRef<FSimpleAssetEditor> FSimpleAssetEditor::CreateEditor( const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, UObject* ObjectToEdit )
+TSharedRef<FSimpleAssetEditor> FSimpleAssetEditor::CreateEditor( const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, UObject* ObjectToEdit, FGetDetailsViewObjects GetDetailsViewObjects )
 {
 	TSharedRef< FSimpleAssetEditor > NewEditor( new FSimpleAssetEditor() );
 
 	TArray<UObject*> ObjectsToEdit;
 	ObjectsToEdit.Add( ObjectToEdit );
-	NewEditor->InitEditor( Mode, InitToolkitHost, ObjectsToEdit );
+	NewEditor->InitEditor( Mode, InitToolkitHost, ObjectsToEdit, GetDetailsViewObjects );
 
 	return NewEditor;
 }
 
-TSharedRef<FSimpleAssetEditor> FSimpleAssetEditor::CreateEditor( const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, const TArray<UObject*>& ObjectsToEdit )
+TSharedRef<FSimpleAssetEditor> FSimpleAssetEditor::CreateEditor( const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, const TArray<UObject*>& ObjectsToEdit, FGetDetailsViewObjects GetDetailsViewObjects )
 {
 	TSharedRef< FSimpleAssetEditor > NewEditor( new FSimpleAssetEditor() );
-	NewEditor->InitEditor( Mode, InitToolkitHost, ObjectsToEdit );
+	NewEditor->InitEditor( Mode, InitToolkitHost, ObjectsToEdit, GetDetailsViewObjects );
 	return NewEditor;
 }
 

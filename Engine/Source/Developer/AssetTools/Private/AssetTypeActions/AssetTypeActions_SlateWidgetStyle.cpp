@@ -24,17 +24,24 @@ void FAssetTypeActions_SlateWidgetStyle::GetActions( const TArray<UObject*>& InO
 
 void FAssetTypeActions_SlateWidgetStyle::OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<IToolkitHost> EditWithinLevelEditor )
 {
-	TArray<UObject*> SubObjects;
-	for (auto ObjIt = InObjects.CreateConstIterator(); ObjIt; ++ObjIt)
+	struct Local
 	{
-		auto Style = Cast< USlateWidgetStyleAsset >(*ObjIt);
-		if ( Style != NULL && Style->CustomStyle != NULL )
+		static TArray<UObject*> GetSubObjects(const TArray<UObject*>& InObjects)
 		{
-			SubObjects.Add( Style->CustomStyle );
+			TArray<UObject*> SubObjects;
+			for(UObject* Object : InObjects)
+			{
+				auto Style = Cast<USlateWidgetStyleAsset>(Object);
+				if(Style && Style->CustomStyle)
+				{
+					SubObjects.Add(Style->CustomStyle);
+				}
+			}
+			return SubObjects;
 		}
-	}
+	};
 
-	FSimpleAssetEditor::CreateEditor(EToolkitMode::Standalone, EditWithinLevelEditor, SubObjects);
+	FSimpleAssetEditor::CreateEditor(EToolkitMode::Standalone, EditWithinLevelEditor, InObjects, FSimpleAssetEditor::FGetDetailsViewObjects::CreateStatic(&Local::GetSubObjects));
 }
 
 void FAssetTypeActions_SlateWidgetStyle::ExecuteEdit(TArray<TWeakObjectPtr< USlateWidgetStyleAsset >> Styles)
