@@ -179,7 +179,7 @@ int main(int argc, char *argv[])
 
 	FIOSCommandLineHelper::InitCommandArgs(FString());
 	
-#if UE_BUILD_DEBUG
+#if !UE_BUILD_SHIPPING
     if (FParse::Param(FCommandLine::Get(), TEXT("WaitForDebugger")))
     {
         while(!FPlatformMisc::IsDebuggerPresent())
