@@ -534,7 +534,7 @@ bool IsServerDelegateForOSS(FName WorldContextHandle)
 	}
 	else
 	{
-		UGameEngine* GameEngine = Cast<UGameEngine>(GEngine);
+		UGameEngine* GameEngine = CastChecked<UGameEngine>(GEngine);
 		World = GameEngine->GetGameWorld();
 	}
 
