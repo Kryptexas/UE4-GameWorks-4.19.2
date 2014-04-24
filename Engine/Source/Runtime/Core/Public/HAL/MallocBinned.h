@@ -1120,22 +1120,44 @@ public:
 	/** Called once per frame, gathers and sets all memory allocator statistics into the corresponding stats. */
 	virtual void UpdateStats() OVERRIDE
 	{
-#ifdef USE_INTERNAL_LOCKS
-		FScopeLock ScopedLock(&AccessGuard);
-#endif
-
-		FMalloc::UpdateStats();
-
 #if STATS
-		SET_MEMORY_STAT(STAT_Binned_OsCurrent,OsCurrent);
-		SET_MEMORY_STAT(STAT_Binned_OsPeak,OsPeak);
-		SET_MEMORY_STAT(STAT_Binned_WasteCurrent,WasteCurrent);
-		SET_MEMORY_STAT(STAT_Binned_WastePeak,WastePeak);
-		SET_MEMORY_STAT(STAT_Binned_UsedCurrent,UsedCurrent);
-		SET_MEMORY_STAT(STAT_Binned_UsedPeak,UsedPeak);
-		SET_MEMORY_STAT(STAT_Binned_CurrentAllocs,CurrentAllocs);
-		SET_MEMORY_STAT(STAT_Binned_TotalAllocs,TotalAllocs);
-		SET_MEMORY_STAT(STAT_Binned_SlackCurrent,SlackCurrent);
+		SIZE_T	LocalOsCurrent = 0;
+		SIZE_T	LocalOsPeak = 0;
+		SIZE_T	LocalWasteCurrent = 0;
+		SIZE_T	LocalWastePeak = 0;
+		SIZE_T	LocalUsedCurrent = 0;
+		SIZE_T	LocalUsedPeak = 0;
+		SIZE_T	LocalCurrentAllocs = 0;
+		SIZE_T	LocalTotalAllocs = 0;
+		SIZE_T	LocalSlackCurrent = 0;
+
+		{
+#ifdef USE_INTERNAL_LOCKS
+			FScopeLock ScopedLock( &AccessGuard );
+#endif
+			UpdateSlackStat();
+
+			// Copy memory stats.
+			LocalOsCurrent = OsCurrent;
+			LocalOsPeak = OsPeak;
+			LocalWasteCurrent = WasteCurrent;
+			LocalWastePeak = WastePeak;
+			LocalUsedCurrent = UsedCurrent;
+			LocalUsedPeak = UsedPeak;
+			LocalCurrentAllocs = CurrentAllocs;
+			LocalTotalAllocs = TotalAllocs;
+			LocalSlackCurrent = SlackCurrent;
+		}
+
+		SET_MEMORY_STAT( STAT_Binned_OsCurrent, LocalOsCurrent );
+		SET_MEMORY_STAT( STAT_Binned_OsPeak, LocalOsPeak );
+		SET_MEMORY_STAT( STAT_Binned_WasteCurrent, LocalWasteCurrent );
+		SET_MEMORY_STAT( STAT_Binned_WastePeak, LocalWastePeak );
+		SET_MEMORY_STAT( STAT_Binned_UsedCurrent, LocalUsedCurrent );
+		SET_MEMORY_STAT( STAT_Binned_UsedPeak, LocalUsedPeak );
+		SET_MEMORY_STAT( STAT_Binned_CurrentAllocs, LocalCurrentAllocs );
+		SET_MEMORY_STAT( STAT_Binned_TotalAllocs, LocalTotalAllocs );
+		SET_MEMORY_STAT( STAT_Binned_SlackCurrent, LocalSlackCurrent );
 #endif
 	}
 
