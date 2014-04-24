@@ -39,14 +39,15 @@ DECLARE_ISBOUNDSHADER(ComputeShader)
 #define VALIDATE_BOUND_SHADER(s)
 #endif
 
-#if !PLATFORM_XBOXONE
+#define WITH_GPA (0 && !PLATFORM_XBOXONE)
+#if WITH_GPA
 	#define GPA_WINDOWS 1
 	#include <GPUPerfAPI/Gpa.h>
 #endif
 
 void FD3D11DynamicRHI::RHIGpuTimeBegin(uint32 Hash, bool bCompute)
 {
-	#if !PLATFORM_XBOXONE
+	#if WITH_GPA
 		char Str[256];
 		if(GpaBegin(Str, Hash, bCompute, (void*)Direct3DDevice))
 		{
@@ -57,7 +58,7 @@ void FD3D11DynamicRHI::RHIGpuTimeBegin(uint32 Hash, bool bCompute)
 
 void FD3D11DynamicRHI::RHIGpuTimeEnd(uint32 Hash, bool bCompute)
 {
-	#if !PLATFORM_XBOXONE
+	#if WITH_GPA
 		GpaEnd(Hash, bCompute);
 	#endif
 }
