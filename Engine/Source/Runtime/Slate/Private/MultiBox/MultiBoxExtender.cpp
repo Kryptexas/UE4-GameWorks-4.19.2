@@ -97,7 +97,7 @@ public:
 
 
 
-TSharedRef< const FMenuBarExtension > FExtender::AddMenuBarExtension( FName ExtensionHook, EExtensionHook::Position HookPosition, const TSharedPtr< FUICommandList >& CommandList, const FMenuBarExtensionDelegate& MenuBarExtensionDelegate )
+TSharedRef< const FExtensionBase > FExtender::AddMenuBarExtension( FName ExtensionHook, EExtensionHook::Position HookPosition, const TSharedPtr< FUICommandList >& CommandList, const FMenuBarExtensionDelegate& MenuBarExtensionDelegate )
 {
 	TSharedRef< FMenuBarExtension > MenuBarExtension( new FMenuBarExtension );
 	MenuBarExtension->Hook = ExtensionHook;
@@ -110,7 +110,7 @@ TSharedRef< const FMenuBarExtension > FExtender::AddMenuBarExtension( FName Exte
 }
 
 
-TSharedRef< const FMenuExtension > FExtender::AddMenuExtension( FName ExtensionHook, EExtensionHook::Position HookPosition, const TSharedPtr< FUICommandList >& CommandList, const FMenuExtensionDelegate& MenuExtensionDelegate )
+TSharedRef< const FExtensionBase > FExtender::AddMenuExtension( FName ExtensionHook, EExtensionHook::Position HookPosition, const TSharedPtr< FUICommandList >& CommandList, const FMenuExtensionDelegate& MenuExtensionDelegate )
 {
 	TSharedRef< FMenuExtension > MenuExtension( new FMenuExtension );
 	MenuExtension->Hook = ExtensionHook;
@@ -123,7 +123,7 @@ TSharedRef< const FMenuExtension > FExtender::AddMenuExtension( FName ExtensionH
 }
 
 
-TSharedRef< const FToolBarExtension > FExtender::AddToolBarExtension( FName ExtensionHook, EExtensionHook::Position HookPosition, const TSharedPtr< FUICommandList >& CommandList, const FToolBarExtensionDelegate& ToolBarExtensionDelegate )
+TSharedRef< const FExtensionBase > FExtender::AddToolBarExtension( FName ExtensionHook, EExtensionHook::Position HookPosition, const TSharedPtr< FUICommandList >& CommandList, const FToolBarExtensionDelegate& ToolBarExtensionDelegate )
 {
 	TSharedRef< FToolBarExtension > ToolBarExtension( new FToolBarExtension );
 	ToolBarExtension->Hook = ExtensionHook;
