@@ -53,7 +53,7 @@ public:
 	TEnumAsByte<EConsoleForGamepadLabels::Type> ConsoleForGamepadLabels;
 
 	/** Allows for customization of toolbars and menus throughout the editor */
-	UPROPERTY(config, Category=UserInterface, meta=(DisplayName="Toolbar Customization"))
+	UPROPERTY(config)
 	bool bToolbarCustomization;
 
 	/** Break on Exceptions allows you to trap Access Nones and other exceptional events in Blueprints. */
