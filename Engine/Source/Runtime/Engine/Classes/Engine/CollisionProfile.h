@@ -169,6 +169,9 @@ public:
 
 	/** Convert ObjectType or TraceType to CollisionChannel */
 	ECollisionChannel ConvertToCollisionChannel(bool TraceType, int32 Index) const;
+
+	/* custom collision profile name that you can modify what you'd like */
+	ENGINE_API static FName CustomCollisionProfileName;
 private:
 
 	/** 

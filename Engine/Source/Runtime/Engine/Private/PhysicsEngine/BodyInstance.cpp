@@ -182,6 +182,43 @@ void FCollisionResponse::UpdateResponseContainerFromArray()
 	}
 }
 ////////////////////////////////////////////////////////////////////////////
+
+FBodyInstance::FBodyInstance()
+: InstanceBodyIndex(INDEX_NONE)
+, Scale3D(1.0)
+, SceneIndexSync(0)
+, SceneIndexAsync(0)
+, bEnableCollision_DEPRECATED(true)
+, CollisionEnabled(ECollisionEnabled::QueryAndPhysics)
+, CollisionProfileName(UCollisionProfile::CustomCollisionProfileName)
+, ObjectType(ECC_WorldStatic)
+, bUseCCD(false)
+, bNotifyRigidBodyCollision(false)
+, bSimulatePhysics(false)
+, bStartAwake(true)
+, bEnableGravity(true)
+, bUseAsyncScene(false)
+, bUpdateMassWhenScaleChanges(false)
+, bOverrideWalkableSlopeOnInstance(false)
+, PhysMaterialOverride(NULL)
+, COMNudge(ForceInit)
+, SleepFamily(SF_Normal)
+, MassScale(1.f)
+, AngularDamping(0.0)
+, LinearDamping(0.01)
+, MaxAngularVelocity(400.f)
+, PhysicsBlendWeight(0.f)
+, PositionSolverIterationCount(8)
+, VelocitySolverIterationCount(1)
+#if WITH_PHYSX
+, RigidActorSync(NULL)
+, RigidActorAsync(NULL)
+, BodyAggregate(NULL)
+, PhysxUserData(this)
+#endif	//WITH_PHYSX
+{
+}
+
 FArchive& operator<<(FArchive& Ar,FBodyInstance& BodyInst)
 {
 	if (!Ar.IsLoading() && !Ar.IsSaving())
@@ -337,10 +374,7 @@ void FBodyInstance::UpdatePhysicalMaterials()
 
 void FBodyInstance::InvalidateCollisionProfileName()
 {
-	if ( CollisionProfileName != NAME_None )
-	{
-		CollisionProfileName = NAME_None;
-	}
+	CollisionProfileName = UCollisionProfile::CustomCollisionProfileName;
 }
 
 ECollisionResponse FBodyInstance::GetResponseToChannel(ECollisionChannel Channel) const
@@ -403,6 +437,10 @@ FName FBodyInstance::GetCollisionProfileName() const
 	return CollisionProfileName;
 }
 
+bool FBodyInstance::DoesUseCollisionProfile() const
+{
+	return IsValidCollisionProfileName(CollisionProfileName);
+}
 
 void FBodyInstance::SetCollisionEnabled(ECollisionEnabled::Type NewType, bool bUpdatePhysicsFilterData)
 {
@@ -2479,6 +2517,11 @@ bool FBodyInstance::Overlap(const PxGeometry& PGeom, const PxTransform&  ShapePo
 #endif //WITH_PHYSX
 
 
+bool FBodyInstance::IsValidCollisionProfileName(FName InCollisionProfileName)
+{
+	return (InCollisionProfileName != NAME_None && InCollisionProfileName != UCollisionProfile::CustomCollisionProfileName);
+}
+
 void FBodyInstance::LoadProfileData(bool bVerifyProfile)
 {
 	if ( bVerifyProfile )
@@ -2488,7 +2531,7 @@ void FBodyInstance::LoadProfileData(bool bVerifyProfile)
 		// if same, then keep the profile name
 		// if not same, that means it has been modified from default
 		// leave it as it is, and clear profile name
-		if ( CollisionProfileName != NAME_None )
+		if ( IsValidCollisionProfileName(CollisionProfileName) )
 		{
 			FCollisionResponseTemplate Template;
 			if ( UCollisionProfile::Get()->GetProfileTemplate(CollisionProfileName, Template) ) 
@@ -2497,31 +2540,31 @@ void FBodyInstance::LoadProfileData(bool bVerifyProfile)
 				// so that means it will have valid ResponsetoChannels value, so this is okay to access. 
 				if (Template.IsEqual(CollisionEnabled, ObjectType, CollisionResponses.GetResponseContainer()) == false)
 				{
-					CollisionProfileName = NAME_None;
+					InvalidateCollisionProfileName(); 
 				}
 			}
 			else
 			{
 				UE_LOG(LogPhysics, Warning, TEXT("COLLISION PROFILE [%s] is not found"), *CollisionProfileName.ToString());
 				// if not nothing to do
-				CollisionProfileName = NAME_None;
+				InvalidateCollisionProfileName(); 
 			}
 		}
 
 	}
 	else
 	{
-		if ( CollisionProfileName != NAME_None )
+		if ( IsValidCollisionProfileName(CollisionProfileName) )
 		{
 			if ( UCollisionProfile::Get()->ReadConfig(CollisionProfileName, *this) == false)
 			{
 				// clear the name
-				CollisionProfileName = NAME_None;
+				InvalidateCollisionProfileName();
 			}
 		}
 
 		// no profile, so it just needs to update container from array data
-		if ( CollisionProfileName == NAME_None)
+		if ( DoesUseCollisionProfile() == false )
 		{
 			CollisionResponses.UpdateResponseContainerFromArray();
 		}
@@ -2553,6 +2596,15 @@ void FBodyInstance::FixupData(class UObject * Loader)
 	check (Loader);
 
 	int32 const UE4Version = Loader->GetLinkerUE4Version();
+
+	if (UE4Version < VER_UE4_ADD_CUSTOMPROFILENAME_CHANGE)
+	{
+		if (CollisionProfileName == NAME_None)
+		{
+			CollisionProfileName = UCollisionProfile::CustomCollisionProfileName;
+		}
+	}
+
 	if(UE4Version < VER_UE4_CHANGE_BENABLECOLLISION_TO_COLLISIONENABLED)
 	{
 		UpdateFromDeprecatedEnableCollision();
@@ -2570,7 +2622,7 @@ void FBodyInstance::FixupData(class UObject * Loader)
 	LoadProfileData(bNeedToVerifyProfile);
 
 	// if profile isn't set, then fix up channel responses
-	if( CollisionProfileName == NAME_None )
+	if( CollisionProfileName == UCollisionProfile::CustomCollisionProfileName ) 
 	{
 		if (UE4Version >= VER_UE4_SAVE_COLLISIONRESPONSE_PER_CHANNEL)
 		{

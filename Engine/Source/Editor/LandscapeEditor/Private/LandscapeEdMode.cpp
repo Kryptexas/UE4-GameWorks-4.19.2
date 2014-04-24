@@ -2560,7 +2560,7 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 			Landscape->LightmassSettings           = OldLandscapeProxy->LightmassSettings;
 			Landscape->CollisionThickness          = OldLandscapeProxy->CollisionThickness;
 			Landscape->BodyInstance.SetCollisionProfileName(OldLandscapeProxy->BodyInstance.GetCollisionProfileName());
-			if (Landscape->BodyInstance.GetCollisionProfileName() == NAME_None)
+			if (Landscape->BodyInstance.DoesUseCollisionProfile() == false)
 			{
 				Landscape->BodyInstance.SetCollisionEnabled(OldLandscapeProxy->BodyInstance.GetCollisionEnabled());
 				Landscape->BodyInstance.SetObjectType(OldLandscapeProxy->BodyInstance.GetObjectType());

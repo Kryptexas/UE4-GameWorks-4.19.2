@@ -220,40 +220,7 @@ public:
 		TWeakObjectPtr<class UBodySetup>				BodySetup;
 
 		/** Constructor **/
-		FBodyInstance()
-		: InstanceBodyIndex(INDEX_NONE)
-		, Scale3D(1.0)
-		, SceneIndexSync(0)
-		, SceneIndexAsync(0)
-		, bEnableCollision_DEPRECATED(true)
-		, CollisionEnabled(ECollisionEnabled::QueryAndPhysics)
-		, ObjectType(ECC_WorldStatic)
-		, bUseCCD(false)
-		, bNotifyRigidBodyCollision(false)
-		, bSimulatePhysics(false)
-		, bStartAwake(true)
-		, bEnableGravity(true)
-		, bUseAsyncScene(false)
-		, bUpdateMassWhenScaleChanges(false)
-		, bOverrideWalkableSlopeOnInstance(false)
-		, PhysMaterialOverride(NULL)
-		, COMNudge(ForceInit)
-		, SleepFamily(SF_Normal)
-		, MassScale(1.f)
-		, AngularDamping(0.0)
-		, LinearDamping(0.01)
-		, MaxAngularVelocity(400.f)
-		, PhysicsBlendWeight(0.f)
-		, PositionSolverIterationCount(8)
-		, VelocitySolverIterationCount(1)
-#if WITH_PHYSX
-		, RigidActorSync(NULL)
-		, RigidActorAsync(NULL)
-		, BodyAggregate(NULL)
-		, PhysxUserData(this)
-#endif	//WITH_PHYSX
-		{
-		}
+		FBodyInstance();
 
 		// BodyInstance interface
 
@@ -432,6 +399,9 @@ public:
 		/** Get the current collision profile assigned to this body */
 		FName GetCollisionProfileName() const;
 
+		/** return true if it uses Collision Profile System. False otherwise*/
+		bool DoesUseCollisionProfile() const;
+
 		/** Update instance's mass properties (mass, inertia and center-of-mass offset) based on MassScale, InstanceMassScale and COMNudge. */
 		void UpdateMassProperties();
 
@@ -546,6 +516,11 @@ private:
 		 * for example, they would like to re-define CollisionEnabled or ObjectType or ResponseChannels
 		 */
 		void InvalidateCollisionProfileName();
+		
+		/**
+		 * Return true if the collision profile name is valid
+		 */
+		static bool IsValidCollisionProfileName(FName InCollisionProfileName);
 
 		friend class UCollisionProfile;
 		friend class FBodyInstanceCustomization;
