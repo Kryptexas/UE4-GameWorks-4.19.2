@@ -9,7 +9,14 @@ StreamingPauseRendering.cpp: Streaming pause implementation.
 #include "SceneViewport.h"
 #include "MoviePlayer.h"
 
-IMPLEMENT_MODULE(FStreamingPauseRenderingModule, StreamingPauseRenderingModule);
+IMPLEMENT_MODULE(FStreamingPauseRenderingModule, StreamingPauseRendering);
+
+FStreamingPauseRenderingModule::FStreamingPauseRenderingModule()
+: Viewport(NULL)
+, ViewportWidget(NULL)
+, ViewportClient(NULL)
+{
+}
 
 void FStreamingPauseRenderingModule::StartupModule()
 {
@@ -34,8 +41,6 @@ void FStreamingPauseRenderingModule::ShutdownModule()
 /** Enqueue the streaming pause to suspend rendering during blocking load. */
 void FStreamingPauseRenderingModule::BeginStreamingPause( FViewport* GameViewport )
 {
-#if WITH_STREAMING_PAUSE
-
 	//Create the viewport widget and add a throbber.
 	ViewportWidget = SNew( SViewport )
 		.EnableGammaCorrection(false);
@@ -91,10 +96,6 @@ void FStreamingPauseRenderingModule::BeginStreamingPause( FViewport* GameViewpor
 	LoadingScreen.WidgetLoadingScreen = ViewportWidget; // SViewport from above
 	GetMoviePlayer()->SetupLoadingScreen(LoadingScreen);			
 	GetMoviePlayer()->PlayMovie();
-
-#endif
-
-	FlushRenderingCommands();
 }
 
 /** Enqueue the streaming pause to resume rendering after blocking load is completed. */

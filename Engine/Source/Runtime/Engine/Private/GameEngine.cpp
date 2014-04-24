@@ -15,7 +15,6 @@
 #include "ConfigCacheIni.h"
 
 #include "AVIWriter.h"
-#include "StreamingPauseRendering.h"
 
 #include "Slate.h"
 #include "Slate/SceneViewport.h"

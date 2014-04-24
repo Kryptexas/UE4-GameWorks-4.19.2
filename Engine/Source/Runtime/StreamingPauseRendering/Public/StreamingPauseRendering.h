@@ -1,5 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
+#pragma once
+
 /*=============================================================================
 	StreamingPauseRendering.h: Streaming pause definitions.
 =============================================================================*/
@@ -10,9 +12,6 @@
 #include "Engine.h"
 #include "ModuleInterface.h"
 
-/** Allow the streaming pause only on selected platform. It is required for TRC/TCR. */
-#define WITH_STREAMING_PAUSE 1
-
 /** 
  * Module handling default behavior for streaming pause rendering. 
  * Games can override by calling RegisterBegin/EndStreamingPauseDelegate with their own delegates.
@@ -20,12 +19,7 @@
 class FStreamingPauseRenderingModule : public IModuleInterface
 {
 public:	
-	FStreamingPauseRenderingModule()
-		: Viewport(NULL)
-		, ViewportWidget(NULL)
-		, ViewportClient(NULL) 
-	{
-	}
+	FStreamingPauseRenderingModule();
 
 	virtual void StartupModule();	
 	virtual void ShutdownModule();

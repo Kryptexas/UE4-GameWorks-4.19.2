@@ -846,7 +846,7 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 #endif
 
 	//Load the streaming pause rendering module.
-	FModuleManager::LoadModulePtr<class FStreamingPauseRenderingModule>(TEXT("StreamingPauseRendering"));
+	FModuleManager::LoadModulePtr<IModuleInterface>(TEXT("StreamingPauseRendering"));
 }
 
 void UEngine::RegisterBeginStreamingPauseRenderingDelegate( FBeginStreamingPauseDelegate* InDelegate )

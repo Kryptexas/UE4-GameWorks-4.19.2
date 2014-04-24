@@ -9,7 +9,7 @@ public class Engine : ModuleRules
 	{
 		SharedPCHHeaderFile = "Runtime/Engine/Public/Engine.h";
 
-		PublicIncludePathModuleNames.AddRange( new string[] { "Renderer", "StreamingPauseRendering" } );
+		PublicIncludePathModuleNames.AddRange( new string[] { "Renderer" } );
 
 		PrivateIncludePaths.AddRange(
 			new string[] {
