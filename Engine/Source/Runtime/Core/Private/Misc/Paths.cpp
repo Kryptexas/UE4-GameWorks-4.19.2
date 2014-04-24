@@ -109,7 +109,11 @@ FString FPaths::SourceConfigDir()
 
 FString FPaths::GeneratedConfigDir()
 {
+#if PLATFORM_MAC
+	return FPlatformProcess::UserPreferencesDir();
+#else
 	return FPaths::GameSavedDir() + TEXT("Config/");
+#endif
 }
 
 FString FPaths::SandboxesDir()
@@ -139,7 +143,11 @@ FString FPaths::VideoCaptureDir()
 
 FString FPaths::GameLogDir()
 {
+#if PLATFORM_MAC
+	return FPlatformProcess::UserLogsDir();
+#else
 	return FPaths::GameSavedDir() + TEXT("Logs/");
+#endif
 }
 
 FString FPaths::AutomationDir()

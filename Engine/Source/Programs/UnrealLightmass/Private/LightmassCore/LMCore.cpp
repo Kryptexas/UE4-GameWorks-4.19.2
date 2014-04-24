@@ -31,7 +31,11 @@ FLightmassLog::FLightmassLog()
 	{
 		PathSeparatorPos--;
 	}
+#if PLATFORM_MAC
+	FString LogName = FPaths::Combine( FPlatformProcess::UserLogsDir(), *FString( ExeNameLen - PathSeparatorPos, *ExeName + PathSeparatorPos + 1 ) );
+#else
 	FString LogName( ExeNameLen - PathSeparatorPos - 5, *ExeName + PathSeparatorPos + 1 );
+#endif
 	LogName += TEXT("_");
 	LogName += FPlatformProcess::ComputerName();
 	LogName += TEXT("_");

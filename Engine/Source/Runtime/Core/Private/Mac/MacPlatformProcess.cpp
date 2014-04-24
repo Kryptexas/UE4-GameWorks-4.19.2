@@ -589,6 +589,56 @@ const TCHAR* FMacPlatformProcess::UserSettingsDir()
 	return ApplicationSettingsDir();
 }
 
+static TCHAR* UserLibrarySubDirectory()
+{
+	static TCHAR Result[MAX_PATH] = TEXT("");
+	if (!Result[0])
+	{
+		FString SubDirectory = IsRunningGame() ? GGameName : FString(TEXT("Unreal Engine")) / GGameName;
+		if (IsRunningDedicatedServer())
+		{
+			SubDirectory += TEXT("Server");
+		}
+		else if (!IsRunningGame())
+		{
+#if WITH_EDITOR
+			SubDirectory += TEXT("Editor");
+#endif
+		}
+		SubDirectory += TEXT("/");
+		FCString::Strcpy(Result, *SubDirectory);
+	}
+	return Result;
+}
+
+const TCHAR* FMacPlatformProcess::UserPreferencesDir()
+{
+	static TCHAR Result[MAX_PATH] = TEXT("");
+	if (!Result[0])
+	{
+		SCOPED_AUTORELEASE_POOL;
+		NSString *UserLibraryDirectory = [NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES) objectAtIndex: 0];
+		FPlatformString::CFStringToTCHAR((CFStringRef)UserLibraryDirectory, Result);
+		FCString::Strcat(Result, TEXT("/Preferences/"));
+		FCString::Strcat(Result, UserLibrarySubDirectory());
+	}
+	return Result;
+}
+
+const TCHAR* FMacPlatformProcess::UserLogsDir()
+{
+	static TCHAR Result[MAX_PATH] = TEXT("");
+	if (!Result[0])
+	{
+		SCOPED_AUTORELEASE_POOL;
+		NSString *UserLibraryDirectory = [NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES) objectAtIndex: 0];
+		FPlatformString::CFStringToTCHAR((CFStringRef)UserLibraryDirectory, Result);
+		FCString::Strcat(Result, TEXT("/Logs/"));
+		FCString::Strcat(Result, UserLibrarySubDirectory());
+	}
+	return Result;
+}
+
 const TCHAR* FMacPlatformProcess::ApplicationSettingsDir()
 {
 	static TCHAR Result[MAX_PATH] = TEXT("");
