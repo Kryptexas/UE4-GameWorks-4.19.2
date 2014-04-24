@@ -1239,15 +1239,15 @@ void UObject::execLetWeakObjPtr( FFrame& Stack, RESULT_DECL )
 			ObjectProperty = Cast<UObjectPropertyBase>(ArrayProp->Inner);
 		}
 	}
-
-	TWeakObjectPtr<UObject> NewValue = NULL;
+	
+	UObject* NewValue = NULL;
 	// evaluate the r-value for this expression into Value
 	Stack.Step( Stack.Object, &NewValue );
 
 	if (ObjAddr)
 	{
 		checkSlow(ObjectProperty);
-		ObjectProperty->SetObjectPropertyValue(ObjAddr, NewValue.Get());
+		ObjectProperty->SetObjectPropertyValue(ObjAddr, NewValue);
 	}
 }
 IMPLEMENT_VM_FUNCTION( EX_LetWeakObjPtr, execLetWeakObjPtr );

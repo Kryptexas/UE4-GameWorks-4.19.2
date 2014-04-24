@@ -2987,6 +2987,11 @@ bool FBlueprintEditorUtils::AddMemberVariable(UBlueprint* Blueprint, const FName
 	NewVar.Category = K2Schema->VR_DefaultCategory;
 	NewVar.DefaultValue = DefaultValue;
 
+	// user created variables should be none of these things
+	NewVar.VarType.bIsConst       = false;
+	NewVar.VarType.bIsWeakPointer = false;
+	NewVar.VarType.bIsReference   = false;
+
 	Blueprint->NewVariables.Add(NewVar);
 
 	// Potentially adjust variable names for any child blueprints
