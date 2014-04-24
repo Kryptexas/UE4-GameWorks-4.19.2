@@ -138,6 +138,7 @@ namespace UnrealBuildTool
 		{
 			UEBuildConfiguration.bCompileSimplygon = false;
 			UEBuildConfiguration.bCompileNetworkProfiler = false;
+			UEBuildConfiguration.bCompileICU = true;
 		}
 
 		public override void ValidateBuildConfiguration(CPPTargetConfiguration Configuration, CPPTargetPlatform Platform, bool bCreateDebugInfo)
@@ -154,7 +155,6 @@ namespace UnrealBuildTool
 
         public override void ValidateUEBuildConfiguration()
         {
-            UEBuildConfiguration.bCompileICU = true;
         }
 
 		/**
