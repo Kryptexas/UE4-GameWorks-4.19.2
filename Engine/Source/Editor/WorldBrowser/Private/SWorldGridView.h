@@ -56,6 +56,9 @@ public:
 protected:
 	/**  Draws background for grid view */
 	uint32 PaintBackground(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, uint32 LayerId) const;
+
+	/**  Draws current scale */
+	uint32 PaintScaleRuler(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, uint32 LayerId) const;
 	
 	/**  SWidget interface */
 	FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent);

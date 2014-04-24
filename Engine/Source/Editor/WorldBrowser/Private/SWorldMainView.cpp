@@ -321,15 +321,12 @@ TSharedRef<SWidget> SWorldMainView::ConstructCenterPane()
 						+SHorizontalBox::Slot()
 						.AutoWidth()
 						[
-							SNew(SImage)
-							.Image(FEditorStyle::GetBrush( "WorldBrowser.WorldViewScale" ))
+							SNullWidget::NullWidget
 						]
 						+SHorizontalBox::Slot()
 						.Padding(5,0,0,0)
 						[
-							SNew(STextBlock)
-							.TextStyle( FEditorStyle::Get(), "WorldBrowser.StatusBarText" )
-							.Text(this, &SWorldMainView::GetZoomText)
+							SNullWidget::NullWidget
 						]
 							
 						// World origin position
