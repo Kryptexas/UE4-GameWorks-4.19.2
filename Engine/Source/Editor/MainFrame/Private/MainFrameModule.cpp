@@ -583,10 +583,13 @@ void FMainFrameModule::ShutdownModule( )
 	FModuleManager::Get().OnModuleCompilerFinished().RemoveAll( this );
 
 #if WITH_EDITOR
-	ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>("SourceCodeAccess");
-	SourceCodeAccessModule.OnLaunchingCodeAccessor().RemoveAll( this );
-	SourceCodeAccessModule.OnDoneLaunchingCodeAccessor().RemoveAll( this );
-	SourceCodeAccessModule.OnOpenFileFailed().RemoveAll( this );
+	if(FModuleManager::Get().IsModuleLoaded("SourceCodeAccess"))
+	{
+		ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::GetModuleChecked<ISourceCodeAccessModule>("SourceCodeAccess");
+		SourceCodeAccessModule.OnLaunchingCodeAccessor().RemoveAll( this );
+		SourceCodeAccessModule.OnDoneLaunchingCodeAccessor().RemoveAll( this );
+		SourceCodeAccessModule.OnOpenFileFailed().RemoveAll( this );
+	}
 #endif
 
 	if(CompileStartSound != NULL)
