@@ -12,7 +12,7 @@ struct FAndroidDeviceInfo
 	FString SerialNumber;
 	FString Model;
 	FString DeviceName;
-	FString GLESExtenstions;		//@todo android: currently retrieved from SurfaceFlinger running 1.1, but so far seems ok for supported ES2 compression formats
+	FString GLESExtensions;		//@todo android: currently retrieved from SurfaceFlinger running 1.1, but so far seems ok for supported ES2 compression formats
 	int GLESVersion;
 };
 
