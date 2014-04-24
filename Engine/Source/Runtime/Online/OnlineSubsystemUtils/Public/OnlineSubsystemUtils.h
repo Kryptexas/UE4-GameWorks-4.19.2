@@ -33,7 +33,7 @@ namespace Online
 			FWorldContext& CurrentContext = GEngine->GetWorldContextFromWorldChecked(World);
 			if (CurrentContext.WorldType == EWorldType::PIE)
 			{ 
-				Identifier = FName(*FString::Printf(TEXT("%s:%d"), SubsystemName != NAME_None ? *SubsystemName.ToString() : TEXT(""), CurrentContext.ContextHandle));
+				Identifier = FName(*FString::Printf(TEXT("%s:%s"), SubsystemName != NAME_None ? *SubsystemName.ToString() : TEXT(""), *CurrentContext.ContextHandle.ToString()));
 			} 
 		}
 

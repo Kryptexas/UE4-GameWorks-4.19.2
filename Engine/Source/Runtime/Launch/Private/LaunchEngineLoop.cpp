@@ -518,7 +518,7 @@ int32 FEngineLoop::PreInit(int32 ArgC, TCHAR* ArgV[], const TCHAR* AdditionalCom
 }
 
 #if WITH_ENGINE
-bool IsServerDelegateForOSS(int32 WorldContextHandle)
+bool IsServerDelegateForOSS(FName WorldContextHandle)
 {
 	if (IsRunningDedicatedServer())
 	{
@@ -526,7 +526,7 @@ bool IsServerDelegateForOSS(int32 WorldContextHandle)
 	}
 
 	UWorld* World = NULL;
-	if (WorldContextHandle != INDEX_NONE)
+	if (WorldContextHandle != NAME_None)
 	{
 		FWorldContext& WorldContext = GEngine->GetWorldContextFromHandleChecked(WorldContextHandle);
 		check(WorldContext.WorldType == EWorldType::Game || WorldContext.WorldType == EWorldType::PIE);

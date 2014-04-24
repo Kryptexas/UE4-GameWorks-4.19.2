@@ -9447,7 +9447,7 @@ bool UEngine::TickWorldTravel(FWorldContext& Context, float DeltaSeconds)
 * @param GameEngine - current game engine instance
 * @param ContentType - EMPContentReferencerTypes entry for global content package type
 */
-static void SetGametypeContentObjectReferencers(UObject* GametypeContentPackage, int32 ContextHandle, EGametypeContentReferencerTypes ContentType)
+static void SetGametypeContentObjectReferencers(UObject* GametypeContentPackage, FName ContextHandle, EGametypeContentReferencerTypes ContentType)
 {
 	FWorldContext &WorldContext = GEngine->GetWorldContextFromHandleChecked(ContextHandle);
 
@@ -9495,7 +9495,7 @@ static void SetGametypeContentObjectReferencers(UObject* GametypeContentPackage,
  * @param	ContentPackage		The package that was loaded.
  * @param	GameEngine			The GameEngine.
  */
-static void AsyncLoadLocalizedMapGameTypeContentCallback(const FString& PackageName, UPackage* ContentPackage, int32 InContextHandle)
+static void AsyncLoadLocalizedMapGameTypeContentCallback(const FString& PackageName, UPackage* ContentPackage, FName InContextHandle)
 {
 	SetGametypeContentObjectReferencers(ContentPackage, InContextHandle, GametypeContent_LocalizedReferencerIndex);
 }
@@ -9507,7 +9507,7 @@ static void AsyncLoadLocalizedMapGameTypeContentCallback(const FString& PackageN
  * @param	ContentPackage		The package that was loaded.
  * @param	GameEngine			The GameEngine.
  */
-static void AsyncLoadMapGameTypeContentCallback(const FString& PackageName, UPackage* ContentPackage, int32 InContextHandle)
+static void AsyncLoadMapGameTypeContentCallback(const FString& PackageName, UPackage* ContentPackage, FName InContextHandle)
 {
 	SetGametypeContentObjectReferencers(ContentPackage, InContextHandle, GametypeContent_ReferencerIndex);
 }
@@ -10305,7 +10305,7 @@ FWorldContext& UEngine::CreateNewWorldContext(EWorldType::Type WorldType)
 {
 	FWorldContext *NewWorldContext = (new (WorldList) FWorldContext);
 	NewWorldContext->WorldType = WorldType;
-	NewWorldContext->ContextHandle = NextWorldContextHandle++;
+	NewWorldContext->ContextHandle = FName(*FString::Printf(TEXT("Context_%d"), NextWorldContextHandle++));
 	
 	return *NewWorldContext;
 }
@@ -10321,7 +10321,7 @@ FWorldContext& HandleInvalidWorldContext()
 	return GEngine->CreateNewWorldContext(EWorldType::None);
 }
 
-FWorldContext* UEngine::GetWorldContextFromHandle(int32 WorldContextHandle)
+FWorldContext* UEngine::GetWorldContextFromHandle(FName WorldContextHandle)
 {
 	for (FWorldContext& WorldContext : WorldList)
 	{
@@ -10333,7 +10333,7 @@ FWorldContext* UEngine::GetWorldContextFromHandle(int32 WorldContextHandle)
 	return NULL;
 }
 
-FWorldContext& UEngine::GetWorldContextFromHandleChecked(int32 WorldContextHandle)
+FWorldContext& UEngine::GetWorldContextFromHandleChecked(FName WorldContextHandle)
 {
 	if (FWorldContext* WorldContext = GetWorldContextFromHandle(WorldContextHandle))
 	{
@@ -10488,7 +10488,7 @@ void UEngine::VerifyLoadMapWorldCleanup()
  * @param	LevelPackage	level package that finished async loading
  * @param	InGameEngine	pointer to game engine object to associated loaded level with so it won't be GC'ed
  */
-static void AsyncMapChangeLevelLoadCompletionCallback(const FString& PackageName, UPackage* LevelPackage, int32 InWorldHandle )
+static void AsyncMapChangeLevelLoadCompletionCallback(const FString& PackageName, UPackage* LevelPackage, FName InWorldHandle )
 {
 	FWorldContext &Context = GEngine->GetWorldContextFromHandleChecked( InWorldHandle );
 

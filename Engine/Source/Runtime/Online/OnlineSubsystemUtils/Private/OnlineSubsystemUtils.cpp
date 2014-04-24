@@ -72,16 +72,10 @@ UAudioComponent* CreateVoiceAudioComponent(uint32 SampleRate)
 
 UWorld* GetWorldForOnline(FName InstanceName)
 {
-	int32 WorldContextHandle = INDEX_NONE;
+	UWorld* World = NULL;
 	if (InstanceName != DEFAULT_INSTANCE && InstanceName != NAME_None)
 	{
-		WorldContextHandle = atoi(TCHAR_TO_ANSI(*InstanceName.ToString()));
-	}
-
-	UWorld* World = NULL;
-	if (WorldContextHandle != INDEX_NONE)
-	{
-		FWorldContext& WorldContext = GEngine->GetWorldContextFromHandleChecked(WorldContextHandle);
+		FWorldContext& WorldContext = GEngine->GetWorldContextFromHandleChecked(InstanceName);
 		check(WorldContext.WorldType == EWorldType::Game || WorldContext.WorldType == EWorldType::PIE);
 		World = WorldContext.World();
 	}

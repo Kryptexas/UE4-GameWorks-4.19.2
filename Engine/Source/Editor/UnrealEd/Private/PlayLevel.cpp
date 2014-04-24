@@ -121,6 +121,8 @@ void UEditorEngine::EndPlayMap()
 	}
 
 	// Clean up each world individually
+	bool bSupportsOnlinePIE = SupportsOnlinePIE();
+	TArray<FName> OnlineIdentifiers;
 	for (int32 WorldIdx = WorldList.Num()-1; WorldIdx >= 0; --WorldIdx)
 	{
 		FWorldContext &ThisContext = WorldList[WorldIdx];
@@ -128,7 +130,23 @@ void UEditorEngine::EndPlayMap()
 		{
 			TeardownPlaySession(ThisContext);
 			WorldList.RemoveAt(WorldIdx);
+
+			if (bSupportsOnlinePIE)
+			{
+				FName OnlineIdentifier = FName(*FString::Printf(TEXT(":%s"), *ThisContext.ContextHandle.ToString()));
+				OnlineIdentifiers.Add(OnlineIdentifier);
+			}
 		}
+	}
+
+	if (OnlineIdentifiers.Num())
+	{
+        // Cleanup online subsystem shortly as we might be in a failed delegate 
+        // have to do this in batch because timer delegate doesn't recognize bound data 
+        // as a different delegate
+		FTimerDelegate DestroyTimer;
+		DestroyTimer.BindUObject(this, &UEditorEngine::CleanupPIEOnlineSessions, OnlineIdentifiers);
+		GetTimerManager()->SetTimer(DestroyTimer, 0.1f, false);
 	}
 	
 	{
@@ -243,6 +261,15 @@ void UEditorEngine::EndPlayMap()
 	FMessageLog("PIE").Notify( LOCTEXT("PIEErrorsPresent", "Errors/warnings reported while playing in editor."), EMessageSeverity::Warning );
 }
 
+void UEditorEngine::CleanupPIEOnlineSessions(TArray<FName> OnlineIdentifiers)
+{
+	for (FName& OnlineIdentifier : OnlineIdentifiers)
+	{
+		IOnlineSubsystem::Destroy(OnlineIdentifier);
+		NumOnlinePIEInstances--;
+	}
+}
+
 void UEditorEngine::TeardownPlaySession(FWorldContext &PieWorldContext)
 {
 	check(PieWorldContext.WorldType == EWorldType::PIE);
@@ -267,7 +294,7 @@ void UEditorEngine::TeardownPlaySession(FWorldContext &PieWorldContext)
 
 			if( !bIsSimulatingInEditor)
 			{
-				// Set the editor viewport location to match that of Play in Viewport if we arent simulating in the editor, we have a valid player to get the location from 
+				// Set the editor viewport location to match that of Play in Viewport if we aren't simulating in the editor, we have a valid player to get the location from 
 				if( SlatePlayInEditorSession.EditorPlayer.IsValid() && SlatePlayInEditorSession.EditorPlayer.Get()->PlayerController )
 				{
 					FVector ViewLocation;
@@ -454,13 +481,6 @@ void UEditorEngine::TeardownPlaySession(FWorldContext &PieWorldContext)
 
 		// Remove the slate info from the map (note that the UWorld* is long gone at this point, but the WorldContext still exists. It will be removed outside of this function)
 		SlatePlayInEditorMap.Remove(PieWorldContext.ContextHandle);
-	}
-
-	if (SupportsOnlinePIE())
-	{
-		FName OnlineIdentifier = FName(*FString::Printf(TEXT(":%d"), PieWorldContext.ContextHandle));
-		IOnlineSubsystem::Destroy(OnlineIdentifier);
-		NumOnlinePIEInstances--;
 	}
 }
 
@@ -1947,7 +1967,7 @@ void UEditorEngine::LoginPIEInstances(bool bAnyBlueprintErrors, bool bStartInSpe
 		DataStruct.bIsServer = true;
 
 		// Always get the interface (it will create the subsystem regardless)
-		FName OnlineIdentifier = FName(*FString::Printf(TEXT(":%d"), PieWorldContext.ContextHandle));
+		FName OnlineIdentifier = FName(*FString::Printf(TEXT(":%s"), *PieWorldContext.ContextHandle.ToString()));
 		IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get(OnlineIdentifier);
 		IOnlineIdentityPtr IdentityInt = OnlineSub->GetIdentityInterface();
 		check(IdentityInt.IsValid());
@@ -1998,7 +2018,7 @@ void UEditorEngine::LoginPIEInstances(bool bAnyBlueprintErrors, bool bStartInSpe
 		GetMultipleInstancePositions(DataStruct.SettingsIndex, NextX, NextY);
 		DataStruct.bIsServer = false;
 
-		FName OnlineIdentifier = FName(*FString::Printf(TEXT(":%d"), PieWorldContext.ContextHandle));
+		FName OnlineIdentifier = FName(*FString::Printf(TEXT(":%s"), *PieWorldContext.ContextHandle.ToString()));
 		IOnlineIdentityPtr IdentityInt = Online::GetIdentityInterface(OnlineIdentifier);
 		check(IdentityInt.IsValid());
 		NumOnlinePIEInstances++;
@@ -2023,17 +2043,18 @@ void UEditorEngine::LoginPIEInstances(bool bAnyBlueprintErrors, bool bStartInSpe
 void UEditorEngine::OnLoginPIEComplete(int32 LocalUserNum, bool bWasSuccessful, const FUniqueNetId& UserId, const FString& ErrorString, FPieLoginStruct DataStruct)
 {
 	UE_LOG(LogOnline, Verbose, TEXT("OnLoginPIEComplete LocalUserNum: %d bSuccess: %d %s"), LocalUserNum, bWasSuccessful, *ErrorString);
-
 	FWorldContext& PieWorldContext = GetWorldContextFromHandleChecked(DataStruct.WorldContextHandle);
 
-	CreatePIEWorldFromLogin(PieWorldContext, DataStruct.bIsServer ? EPlayNetMode::PIE_ListenServer : EPlayNetMode::PIE_Client, DataStruct);
-
-	FName OnlineIdentifier = FName(*FString::Printf(TEXT(":%d"), PieWorldContext.ContextHandle));
+	FName OnlineIdentifier = FName(*FString::Printf(TEXT(":%s"), *PieWorldContext.ContextHandle.ToString()));
 	IOnlineIdentityPtr IdentityInt = Online::GetIdentityInterface(OnlineIdentifier);
 
+	// Cleanup the login delegate before calling create below
 	FOnLoginCompleteDelegate Delegate;
 	Delegate.BindUObject(this, &UEditorEngine::OnLoginPIEComplete, DataStruct);
 	IdentityInt->ClearOnLoginCompleteDelegate(0, Delegate);
+
+	// Create the new world
+	CreatePIEWorldFromLogin(PieWorldContext, DataStruct.bIsServer ? EPlayNetMode::PIE_ListenServer : EPlayNetMode::PIE_Client, DataStruct);
 }
 
 UWorld* UEditorEngine::CreatePlayInEditorWorld(FWorldContext &PieWorldContext, bool bInSimulateInEditor, bool bAnyBlueprintErrors, bool bStartInSpectatorMode, float PIEStartTime)

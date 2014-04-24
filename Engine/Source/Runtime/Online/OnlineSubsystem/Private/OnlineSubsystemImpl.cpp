@@ -68,13 +68,7 @@ void FOnlineSubsystemImpl::SetNamedInterface(FName InterfaceName, UObject* NewIn
 
 bool FOnlineSubsystemImpl::IsServer() const
 {
-	int32 WorldContextHandle = INDEX_NONE;
-	if (InstanceName != DEFAULT_INSTANCE && InstanceName != NAME_None)
-	{
-		WorldContextHandle = atoi(TCHAR_TO_ANSI(*InstanceName.ToString()));
-	}
-
-	return IsServerForOnlineSubsystems(WorldContextHandle);
+	return IsServerForOnlineSubsystems(InstanceName);
 }
 
 bool FOnlineSubsystemImpl::IsLocalPlayer(const FUniqueNetId& UniqueId) const

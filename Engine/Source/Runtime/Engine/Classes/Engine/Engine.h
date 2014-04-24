@@ -201,7 +201,7 @@ struct FWorldContext
 	FSeamlessTravelHandler SeamlessTravelHandler;
 
 	UPROPERTY()
-	int32	ContextHandle;
+	FName ContextHandle;
 
 	/** URL to travel to for pending client connect */
 	UPROPERTY()
@@ -318,7 +318,7 @@ struct FWorldContext
 
 	FWorldContext()
 		: WorldType(EWorldType::None)
-		, ContextHandle(INDEX_NONE)
+		, ContextHandle(NAME_None)
 		, TravelURL()
 		, TravelType(0)
 		, PendingNetGame(NULL)
@@ -2287,13 +2287,13 @@ public:
 	FWorldContext* GetWorldContextFromGameViewport(const UGameViewportClient *InViewport);
 	FWorldContext* GetWorldContextFromPendingNetGame(const UPendingNetGame *InPendingNetGame);	
 	FWorldContext* GetWorldContextFromPendingNetGameNetDriver(const UNetDriver *InPendingNetGame);	
-	FWorldContext* GetWorldContextFromHandle(const int32 WorldContextHandle);
+	FWorldContext* GetWorldContextFromHandle(const FName WorldContextHandle);
 
 	FWorldContext& GetWorldContextFromWorldChecked(UWorld * InWorld);
 	FWorldContext& GetWorldContextFromGameViewportChecked(const UGameViewportClient *InViewport);
 	FWorldContext& GetWorldContextFromPendingNetGameChecked(const UPendingNetGame *InPendingNetGame);	
 	FWorldContext& GetWorldContextFromPendingNetGameNetDriverChecked(const UNetDriver *InPendingNetGame);	
-	FWorldContext& GetWorldContextFromHandleChecked(const int32 WorldContextHandle);
+	FWorldContext& GetWorldContextFromHandleChecked(const FName WorldContextHandle);
 
 	const TArray<FWorldContext>& GetWorldContexts() { return WorldList; }
 

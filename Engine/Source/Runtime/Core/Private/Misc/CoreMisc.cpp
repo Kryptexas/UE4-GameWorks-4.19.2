@@ -792,7 +792,7 @@ struct FTestTicker
 
 FQueryIsRunningServer GIsServerDelegate;
 
-bool IsServerForOnlineSubsystems(int32 WorldContextHandle)
+bool IsServerForOnlineSubsystems(FName WorldContextHandle)
 {
 	if (GIsServerDelegate.IsBound())
 	{

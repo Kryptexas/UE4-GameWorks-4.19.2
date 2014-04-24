@@ -134,7 +134,7 @@ private:
 	/** set when we started a new travel in the middle of a previous one and still need to clean up that previous attempt */
 	bool bNeedCancelCleanUp;
 	/** The context we are running in. Can be used to get the FWorldContext from Engine*/
-	int32 WorldContextHandle;
+	FName WorldContextHandle;
 
 	/** copy data between the old world and the new world */
 	void CopyWorldData();

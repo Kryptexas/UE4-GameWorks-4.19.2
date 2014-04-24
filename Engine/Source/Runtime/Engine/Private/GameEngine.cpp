@@ -851,7 +851,7 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	// Begin ticking worlds
 	// -----------------------------------------------------
 
-	int32 OriginalGWorldContext = INDEX_NONE;
+	FName OriginalGWorldContext = NAME_None;
 	for (int32 i=0; i < WorldList.Num(); ++i)
 	{
 		if (WorldList[i].World() == GWorld)
@@ -1028,7 +1028,7 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	// ----------------------------
 
 	// Restore original GWorld*. This will go away one day.
-	if (OriginalGWorldContext != INDEX_NONE)
+	if (OriginalGWorldContext != NAME_None)
 	{
 		GWorld = GetWorldContextFromHandleChecked(OriginalGWorldContext).World();
 	}

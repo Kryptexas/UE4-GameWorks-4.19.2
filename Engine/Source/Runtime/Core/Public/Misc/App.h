@@ -399,12 +399,12 @@ private:
 /**
  * Called to determine the result of IsServerForOnlineSubsystems()
  */
-DECLARE_DELEGATE_RetVal_OneParam(bool, FQueryIsRunningServer, int32);
+DECLARE_DELEGATE_RetVal_OneParam(bool, FQueryIsRunningServer, FName);
 
 /**
  * @return true if there is a running game world that is a server (including listen servers), false otherwise
  */
-CORE_API bool IsServerForOnlineSubsystems(int32 WorldContextHandle);
+CORE_API bool IsServerForOnlineSubsystems(FName WorldContextHandle);
 
 /**
  * Sets the delegate used for IsServerForOnlineSubsystems
