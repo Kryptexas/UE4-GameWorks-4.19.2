@@ -913,17 +913,17 @@ void APlayerController::CreateTouchInterface()
 	// do we want to show virtual joysticks?
 	if (LocalPlayer && LocalPlayer->ViewportClient && SVirtualJoystick::ShouldDisplayTouchInterface())
 	{
-		// create the joystick 
-		VirtualJoystick = SNew(SVirtualJoystick);
-
-		// add it to the player's viewport
-		LocalPlayer->ViewportClient->AddViewportWidgetContent(VirtualJoystick.ToSharedRef());
-
 		// load what the game wants to show at startup
 		FStringAssetReference DefaultTouchInterfaceName = GetDefault<UInputSettings>()->DefaultTouchInterface;
 
 		if (DefaultTouchInterfaceName.IsValid())
 		{
+			// create the joystick 
+			VirtualJoystick = SNew(SVirtualJoystick);
+
+			// add it to the player's viewport
+			LocalPlayer->ViewportClient->AddViewportWidgetContent(VirtualJoystick.ToSharedRef());
+
 			// activate this interface if we have it
 			UTouchInterface* DefaultTouchInterface = LoadObject<UTouchInterface>(NULL, *DefaultTouchInterfaceName.ToString());
 			if (DefaultTouchInterface != NULL)
