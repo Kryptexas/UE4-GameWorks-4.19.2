@@ -58,7 +58,12 @@ public class Perforce : ModuleRules
 		}
 
 		PublicAdditionalLibraries.Add(LibPrefix + "libclient" + LibPostfixAndExt);
-		PublicAdditionalLibraries.Add(LibPrefix + "libp4sslstub" + LibPostfixAndExt);
+
+		if (Target.Platform != UnrealTargetPlatform.Win64)
+		{
+			PublicAdditionalLibraries.Add(LibPrefix + "libp4sslstub" + LibPostfixAndExt);
+		}
+
 		PublicAdditionalLibraries.Add(LibPrefix + "librpc" + LibPostfixAndExt);
 		PublicAdditionalLibraries.Add(LibPrefix + "libsupp" + LibPostfixAndExt);
 	}

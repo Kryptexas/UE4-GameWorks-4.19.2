@@ -17,7 +17,11 @@ public class PerforceSourceControl : ModuleRules
 			}
             );
 
-		// Link with managed Perforce wrapper assemblies
 		AddThirdPartyPrivateStaticDependencies(Target, "Perforce");
+
+		if (Target.Platform == UnrealTargetPlatform.Win64)
+		{
+			AddThirdPartyPrivateStaticDependencies(Target, "OpenSSL");
+		}
 	}
 }
