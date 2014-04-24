@@ -104,8 +104,13 @@ bool FProjectManager::LoadProjectFile( const FString& InProjectFile )
 		}
 	}
 	
+#if PLATFORM_IOS
+    FString UpdatedMessage = FString::Printf(TEXT("%s\n%s"), *FailureReason.ToString(), TEXT("For troubleshooting, please go to https://docs.unrealengine.com/latest/INT/Platforms/iOS/GettingStarted/index.html"));
+    FailureReason = FText::FromString(UpdatedMessage);
+#endif
 	UE_LOG(LogProjectManager, Error, TEXT("%s"), *FailureReason.ToString());
 	FMessageDialog::Open(EAppMsgType::Ok, FailureReason);
+    
 	return false;
 }
 
