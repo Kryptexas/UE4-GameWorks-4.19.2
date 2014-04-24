@@ -141,7 +141,10 @@ void EngineCrashHandler(const FGenericCrashContext & GenericContext)
 - (IBAction)OnShowAboutWindow:(id)Sender
 {
 #if WITH_EDITOR
-	FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame")).ShowAboutWindow();
+	if (FModuleManager::Get().IsModuleLoaded(TEXT("MainFrame")))
+	{
+		FModuleManager::GetModuleChecked<IMainFrameModule>(TEXT("MainFrame")).ShowAboutWindow();
+	}
 #else
 	[NSApp orderFrontStandardAboutPanel: Sender];
 #endif
