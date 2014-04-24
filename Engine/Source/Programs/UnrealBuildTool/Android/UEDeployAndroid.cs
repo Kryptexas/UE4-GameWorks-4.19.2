@@ -325,7 +325,7 @@ namespace UnrealBuildTool.Android
             // This appears to be required for the build to work without errors when Play services are referenced by the game.
             // This will try to modify existing files, like project.properties, so we copy the entire library into
             // an intermediate directory and work from there.
-            string GooglePlayServicesSourcePath = Path.GetFullPath(Path.Combine(EngineDirectory, "Source/ThirdParty/Android/google-play-services_lib/"));
+            string GooglePlayServicesSourcePath = Path.GetFullPath(Path.Combine(EngineDirectory, "Build/Android/Java/google-play-services_lib/"));
 			string GooglePlayServicesIntermediatePath = Path.GetFullPath(Path.Combine(IntermediateAndroidPath, "google-play-services_lib/"));
 
 			DeleteDirectory(GooglePlayServicesIntermediatePath);
