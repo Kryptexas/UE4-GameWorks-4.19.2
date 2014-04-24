@@ -31,6 +31,16 @@ public:
 
 	virtual void Tick() OVERRIDE;
 
+	virtual void SetNumPasses(const int32 InNumPasses) OVERRIDE
+	{
+		NumTestPasses = InNumPasses;
+	}
+
+	virtual int32 GetNumPasses() OVERRIDE
+	{
+		return NumTestPasses;
+	}
+
 	virtual void SetFilter( TSharedPtr< AutomationFilterCollection > InFilter ) OVERRIDE
 	{
 		ReportManager.SetFilter( InFilter );
@@ -69,6 +79,16 @@ public:
 	virtual int32 GetEnabledTestsNum() const OVERRIDE
 	{
 		return ReportManager.GetEnabledTestsNum();
+	}
+
+	virtual void GetEnabledTestNames(TArray<FString>& OutEnabledTestNames) const OVERRIDE
+	{
+		ReportManager.GetEnabledTestNames(OutEnabledTestNames);
+	}
+
+	virtual void SetEnabledTests(const TArray<FString>& EnabledTests) OVERRIDE
+	{
+		ReportManager.SetEnabledTests(EnabledTests);
 	}
 
 	virtual EAutomationControllerModuleState::Type GetTestState( ) const OVERRIDE
@@ -314,7 +334,11 @@ private:
 	/** A array of running tests */
 	TArray< FTestRunningInfo > TestRunningArray;
 
+	/** The number of test passes to perform */
+	int32 NumTestPasses;
 
+	/** The current test pass we are on */
+	int32 CurrentTestPass;
 private:
 
 	// Holds a delegate that is invoked when the controller shuts down.

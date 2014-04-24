@@ -12,6 +12,17 @@ namespace AutomationTestWindowConstants
 	const FName Timing( TEXT("Timing") );
 }
 
+/** The type of background style to use for the test list widget */
+namespace EAutomationTestBackgroundStyle
+{
+	enum Type
+	{
+		Unknown,
+		Editor,
+		Game,
+	};
+}
+
 /**
  * Implements the main UI Window for hosting all automation tests.
  */
@@ -138,6 +149,21 @@ private:
 	static TSharedRef< SWidget > MakeAutomationWindowToolBar( const TSharedRef<FUICommandList>& InCommandList, TSharedPtr<class SAutomationWindow> InLevelEditor );
 	TSharedRef< SWidget > MakeAutomationWindowToolBar( const TSharedRef<FUICommandList>& InCommandList );
 
+	/**
+	 * Static: Creates the test options menu widget
+	 *
+	 * @return	New widget
+	 */
+	static TSharedRef< SWidget >GenerateTestsOptionsMenuContent( TWeakPtr<class SAutomationWindow> InAutomationWindow );
+	TSharedRef< SWidget > GenerateTestsOptionsMenuContent( );
+
+	/**
+	 * Creates a combo item for the preset list
+	 *
+	 * @return	New combo item widget
+	 */
+	TSharedRef<SWidget> GeneratePresetComboItem(TSharedPtr<FAutomationTestPreset> InItem);
+
 	/** 
 	 * Populates OutSearchStrings with the strings that should be used in searching
 	 * @param Report - the automation report to get a text description from
@@ -203,6 +229,14 @@ private:
 	bool IsErrorFilterOn() const;
 	/** Toggles filtering of tests based on error condition */
 	void OnToggleErrorFilter();
+	
+	/** Sets the number of times to repeat the tests */
+	void OnChangeRepeatCount(int32 InNewValue);
+	/** Returns the number of times to repeat the tests */
+	int32 GetRepeatCount() const;
+
+	/** Update the test list background style (Editor vs Game) */
+	void UpdateTestListBackgroundStyle();
 
 	/**
 	* Gets the extention for the small brush, if enabled
@@ -233,6 +267,13 @@ private:
 	FString GetRunAutomationLabel() const;
 
 	/**
+	* Gets the brush to use for the test list background
+	*
+	* @return The brush to use depending on the value of TestBackgroundType
+	*/
+	const FSlateBrush* GetTestBackgroundBorderImage() const;
+
+	/**
 	* Recursively expand the tree nodes
 	*
 	* @param InReport The current report
@@ -255,6 +296,11 @@ private:
 	* Session selection has changed in the session manager
 	*/
 	void HandleSessionManagerSelectionChanged( const ISessionInfoPtr& SelectedSession );
+
+	/** 
+	* Called when the session manager updates an instances
+	*/
+	void HandleSessionManagerInstanceChanged();
 
 	/**
 	* Should the automation run button be enabled
@@ -283,6 +329,61 @@ private:
 	*/
 	TSharedPtr<SWidget> HandleAutomationListContextMenuOpening( );
 #endif
+
+	/**
+	 * Handles the new preset button being clicked
+	 */
+	FReply HandleNewPresetClicked();
+
+	/**
+	 * Handles the save preset button being clicked
+	 */
+	FReply HandleSavePresetClicked();
+
+	/**
+	 * Handles the remove preset button being clicked
+	 */
+	FReply HandleRemovePresetClicked();
+
+	/**
+	* Should the add preset button be enabled
+	*/
+	bool IsAddButtonIsEnabled() const;
+
+	/**
+	* Should the save preset button be enabled
+	*/
+	bool IsSaveButtonIsEnabled() const;
+
+	/**
+	* Should the remove preset button be enabled
+	*/
+	bool IsRemoveButtonIsEnabled() const;
+
+	/**
+	* Handles if the preset combo box should be visible
+	*/
+	EVisibility HandlePresetComboVisibility( ) const;
+
+	/**
+	* Handles if the add preset text box should be visible
+	*/
+	EVisibility HandlePresetTextVisibility( ) const;
+
+	/**
+	* Called when the user commits the text in the add preset text box
+	*/
+	void HandlePresetTextCommited( const FText& CommittedText, ETextCommit::Type CommitType );
+
+	/**
+	* Called when the user selects a new preset from the preset combo box
+	*/
+	void HandlePresetChanged( TSharedPtr<FAutomationTestPreset> Item, ESelectInfo::Type SelectInfo );
+
+	/**
+	* Gets the text to display for the preset combo box
+	*/
+	FString GetPresetComboText() const;
 
 	/**
 	* Handle the copy button clicked in the command bar
@@ -365,4 +466,24 @@ private:
 
 	// Flag to acknowledge if the window is awaiting tests to display
 	bool bIsRequestingTests;
+
+	// Which type of window style to use for the test background
+	EAutomationTestBackgroundStyle::Type TestBackgroundType;
+
+	// True if we are creating a new preset (The add preset text box is visible)
+	bool bAddingTestPreset;
+
+	// Holds a pointer to the preset manager
+	TSharedPtr<FAutomationTestPresetManager> TestPresetManager;
+
+	// Holds the currently selected preset
+	TSharedPtr<FAutomationTestPreset> SelectedPreset;
+
+	// Holds a pointer to the preset combo box widget
+	TSharedPtr< SComboBox< TSharedPtr<FAutomationTestPreset> > > PresetComboBox;
+
+	// Holds a pointer to the preset text box
+	TSharedPtr<SEditableTextBox> PresetTextBox;
+
+
 };

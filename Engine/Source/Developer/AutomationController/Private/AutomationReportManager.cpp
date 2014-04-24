@@ -22,10 +22,10 @@ void FAutomationReportManager::Empty()
 }
 
 
-void FAutomationReportManager::ResetForExecution()
+void FAutomationReportManager::ResetForExecution(const int32 NumTestPasses)
 {
 	//Recursively prepare all tests for execution
-	ReportRoot->ResetForExecution();
+	ReportRoot->ResetForExecution(NumTestPasses);
 }
 
 
@@ -34,16 +34,16 @@ void FAutomationReportManager::StopRunningTests()
 	ReportRoot->StopRunningTest();
 }
 
-TSharedPtr<IAutomationReport> FAutomationReportManager::GetNextReportToExecute(bool& bOutAllTestsComplete, const int32 ClusterIndex, const int32 NumDevicesInCluster)
+TSharedPtr<IAutomationReport> FAutomationReportManager::GetNextReportToExecute(bool& bOutAllTestsComplete, const int32 ClusterIndex, const int32 PassIndex, const int32 NumDevicesInCluster)
 {
-	TSharedPtr<IAutomationReport> ReportToExecute = ReportRoot->GetNextReportToExecute(bOutAllTestsComplete, ClusterIndex, NumDevicesInCluster);
+	TSharedPtr<IAutomationReport> ReportToExecute = ReportRoot->GetNextReportToExecute(bOutAllTestsComplete, ClusterIndex, PassIndex, NumDevicesInCluster);
 	return ReportToExecute;
 }
 
 
-TSharedPtr<IAutomationReport> FAutomationReportManager::EnsureReportExists(FAutomationTestInfo& TestInfo, const int32 ClusterIndex)
+TSharedPtr<IAutomationReport> FAutomationReportManager::EnsureReportExists(FAutomationTestInfo& TestInfo, const int32 ClusterIndex, const int32 NumPasses)
 {
-	TSharedPtr<IAutomationReport> NewStatus = ReportRoot->EnsureReportExists (TestInfo, ClusterIndex);
+	TSharedPtr<IAutomationReport> NewStatus = ReportRoot->EnsureReportExists (TestInfo, ClusterIndex, NumPasses);
 	return NewStatus;
 }
 
@@ -71,6 +71,15 @@ int32 FAutomationReportManager::GetEnabledTestsNum() const
 	return ReportRoot->GetEnabledTestsNum();
 }
 
+void FAutomationReportManager::GetEnabledTestNames(TArray<FString>& OutEnabledTestNames) const
+{
+	ReportRoot->GetEnabledTestNames(OutEnabledTestNames,FString());
+}
+
+void FAutomationReportManager::SetEnabledTests(const TArray<FString>& EnabledTests)
+{
+	ReportRoot->SetEnabledTests(EnabledTests,FString());
+}
 
 const bool FAutomationReportManager::ExportReport(uint32 FileExportTypeMask, const int32 NumDeviceClusters)
 {
@@ -121,7 +130,7 @@ void FAutomationReportManager::AddResultReport(TSharedPtr< IAutomationReport > I
 	{
 		for (int32 ClusterIndex = 0; ClusterIndex < NumDeviceClusters; ++ClusterIndex)
 		{
-			FAutomationTestResults TestResults = InReport->GetResults( ClusterIndex );
+			FAutomationTestResults TestResults = InReport->GetResults( ClusterIndex,CurrentTestPass );
 
 			// Early out if we don't want this report
 			bool AddReport = true;
@@ -172,11 +181,11 @@ void FAutomationReportManager::AddResultReport(TSharedPtr< IAutomationReport > I
 				FString Status;
 
 				// Was the test a success
-				if (( TestResults.Warnings.Num() == 0 ) && ( TestResults.Errors.Num() == 0 ) && ( InReport->GetState( ClusterIndex ) == EAutomationState::Success ))
+				if (( TestResults.Warnings.Num() == 0 ) && ( TestResults.Errors.Num() == 0 ) && ( InReport->GetState( ClusterIndex,CurrentTestPass ) == EAutomationState::Success ))
 				{
 					Status = "Success";
 				}
-				else if( InReport->GetState( ClusterIndex ) == EAutomationState::NotEnoughParticipants )
+				else if( InReport->GetState( ClusterIndex,CurrentTestPass ) == EAutomationState::NotEnoughParticipants )
 				{
 					Status = TEXT( "Could not run." );
 				}

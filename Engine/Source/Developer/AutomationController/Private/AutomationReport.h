@@ -48,6 +48,10 @@ public:
 	virtual int32 GetTotalNumChildren() const OVERRIDE;
 	/** Recursively gets the number of enabled tests */
 	virtual int32 GetEnabledTestsNum() const OVERRIDE;
+	/** Recursively gets the names of enabled tests */
+	virtual void GetEnabledTestNames(TArray<FString>& OutEnabledTestNames, FString CurrentPath) const OVERRIDE;
+	/** Recursively sets the enabled flag based on if the current test exists in the enabled tests array */
+	virtual void SetEnabledTests(const TArray<FString>& EnabledTests, FString CurrentPath) OVERRIDE;
 
 	/** Return if this test should be executed */
 	virtual bool IsEnabled() const OVERRIDE;
@@ -82,37 +86,59 @@ public:
 	/** Returns the array of child reports */
 	virtual TArray<TSharedPtr<IAutomationReport> >& GetChildReports() OVERRIDE;
 
-	/** Recursively resets the report to "needs to be run", clears cached warnings and errors */
-	virtual void ResetForExecution() OVERRIDE;
+	/** 
+	 * Recursively resets the report to "needs to be run", clears cached warnings and errors
+	 * @param NumTestPasses - The number of test passes so we know how many results to create
+	 */
+	virtual void ResetForExecution(const int32 NumTestPasses) OVERRIDE;
+
 	/**
 	 * Sets the results of the test for use by the UI
 	 * @param ClusterIndex - Index of the platform reporting the results of this test.  See AutomationDeviceClusterManager
+	 * @param PassIndex - Which test pass these results are for
 	 * @param InResults - The new set of results
 	 */
-	virtual void SetResults( const int32 ClusterIndex, const FAutomationTestResults& InResults ) OVERRIDE;
+	virtual void SetResults( const int32 ClusterIndex, const int32 PassIndex, const FAutomationTestResults& InResults ) OVERRIDE;
 
 	/**
 	 * Returns completion statistics for this branch of the testing hierarchy
 	 * @param ClusterIndex - Index of the platform reporting the results of this test.  See AutomationDeviceClusterManager
+	 * @param PassIndex - Which test pass to get the status of
 	 * @param OutCompletionState - Collection structure for execution statistics
 	 */
-	virtual void GetCompletionStatus(const int32 ClusterIndex, FAutomationCompleteState& OutCompletionState) OVERRIDE;
+	virtual void GetCompletionStatus(const int32 ClusterIndex, const int32 PassIndex, FAutomationCompleteState& OutCompletionState) OVERRIDE;
 
 	/**
 	 * Returns the state of the test (not run, in process, success, failure)
 	 * @param ClusterIndex - Index of the platform reporting the results of this test.  See AutomationDeviceClusterManager
+	 * @param PassIndex - Which test pass to get the state of
 	 * @return the current state of the test
 	 */
-	virtual EAutomationState::Type GetState(const int32 ClusterIndex) const OVERRIDE;
+	virtual EAutomationState::Type GetState(const int32 ClusterIndex, const int32 PassIndex) const OVERRIDE;
 
 	/**
 	 * Gets a copy of errors and warnings that were found
 	 *
 	 * @param ClusterIndex - Index of the platform we are requesting test results for.
+	 * @param PassIndex - Index of the test pass to get the results for.
 	 *
 	 * @return The collection of results for the given cluster index
 	 */
-	virtual const FAutomationTestResults& GetResults( const int32 ClusterIndex ) OVERRIDE;
+	virtual const FAutomationTestResults& GetResults( const int32 ClusterIndex, const int32 PassIndex ) OVERRIDE;
+
+	/**
+	 * Gets the number of available test results for a given cluster
+	 * @param ClusterIndex - Index of the platform .
+	 * @return The number of results available for this cluster
+	 */
+	virtual const int32 GetNumResults( const int32 ClusterIndex ) OVERRIDE;
+
+	/**
+	 * Finds the current pass by looking at the current state
+	 * @param ClusterIndex - Index of the platform.
+	 * @return The current pass index
+	 */
+	virtual const int32 GetCurrentPassIndex( const int32 ClusterIndex ) OVERRIDE;
 
 	/**
 	 * Gets the name of the instance that ran the test
@@ -126,19 +152,21 @@ public:
 	 * If NewTestName is Editor.Maps.Loadall.TestName, this will create nodes for Editor, Maps, Loadall, and then a leaf node for the testname with the associated commandline
 	 * @param TestInfo - Structure containing all the test info
 	 * @param ClusterIndex - Index of the platform reporting the results of this test.  See AutomationDeviceClusterManager
+	 * @param NumPasses - The number of passes we are going to perform.  Used to make sure we have enough results.
 	 * @return - the automation report
 	 */
-	virtual TSharedPtr<IAutomationReport> EnsureReportExists(FAutomationTestInfo& TestInfo, const int32 ClusterIndex) OVERRIDE;
+	virtual TSharedPtr<IAutomationReport> EnsureReportExists(FAutomationTestInfo& TestInfo, const int32 ClusterIndex, const int32 NumPasses) OVERRIDE;
 
 	/**
 	 * Returns the next test in the hierarchy to run
 	 * @param bOutAllTestsComplete - Whether or not all enabled tests have completed execution for this platform (cluster index)
 	 * @param ClusterIndex - Index of the platform reporting the results of this test.  See AutomationDeviceClusterManager
+	 * @param PassIndex - Which test pass we are currently on
 	 * @param NumDevicesInCluster - The number of devices which are in this cluster
 	 *
 	 * @return The next report
 	 */
-	virtual TSharedPtr<IAutomationReport> GetNextReportToExecute(bool& bOutAllTestsComplete, const int32 ClusterIndex, const int32 NumDevicesInCluster) OVERRIDE;
+	virtual TSharedPtr<IAutomationReport> GetNextReportToExecute(bool& bOutAllTestsComplete, const int32 ClusterIndex, const int32 PassIndex, const int32 NumDevicesInCluster) OVERRIDE;
 
 	/** 
 	 * Have any results got errors
@@ -234,7 +262,7 @@ private:
 	TArray<TSharedPtr<IAutomationReport> >FilteredChildReports;
 
 	/** Results from execution of the test (per cluster) */
-	TArray< FAutomationTestResults > Results;
+	TArray< TArray<FAutomationTestResults> > Results;
 
 	/** Structure holding the test info */
 	FAutomationTestInfo TestInfo;

@@ -3,6 +3,7 @@
 #include "AutomationWindowPrivatePCH.h"
 
 #include "AutomationController.h"
+#include "AutomationPresetManager.h"
 #include "SAutomationWindow.h"
 
 #define LOCTEXT_NAMESPACE "AutomationTest"
@@ -62,6 +63,7 @@ SAutomationWindow::~SAutomationWindow()
 	{
 		SessionManager->OnCanSelectSession().RemoveAll(this);
 		SessionManager->OnSelectedSessionChanged().RemoveAll(this);
+		SessionManager->OnSessionInstanceUpdated().RemoveAll(this);
 	}
 
 	if (AutomationController.IsValid())
@@ -75,6 +77,10 @@ void SAutomationWindow::Construct( const FArguments& InArgs, const IAutomationCo
 {
 	FAutomationWindowCommands::Register();
 	CreateCommands();
+
+	TestPresetManager = MakeShareable(new FAutomationTestPresetManager());
+	TestPresetManager->LoadPresets();
+	bAddingTestPreset = false;
 
 	SessionManager = InSessionManager;
 	AutomationController = InAutomationController;
@@ -210,8 +216,8 @@ void SAutomationWindow::Construct( const FArguments& InArgs, const IAutomationCo
 					+SOverlay::Slot()
 					[
 						SNew(SBorder)
-						.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
-						.Padding(0.0f)
+						.BorderImage(this, &SAutomationWindow::GetTestBackgroundBorderImage)
+						.Padding(3.0f)
 						[
 							//the actual table full of tests
 							TestTable.ToSharedRef()
@@ -292,10 +298,27 @@ void SAutomationWindow::Construct( const FArguments& InArgs, const IAutomationCo
 
 	SessionManager->OnCanSelectSession().AddSP( this, &SAutomationWindow::HandleSessionManagerCanSelectSession );
 	SessionManager->OnSelectedSessionChanged().AddSP( this, &SAutomationWindow::HandleSessionManagerSelectionChanged );
+	SessionManager->OnSessionInstanceUpdated().AddSP( this, &SAutomationWindow::HandleSessionManagerInstanceChanged );
 
 	FindWorkers();
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
+const FSlateBrush* SAutomationWindow::GetTestBackgroundBorderImage() const
+{
+	switch(TestBackgroundType)
+	{
+	case EAutomationTestBackgroundStyle::Game:
+		return FEditorStyle::GetBrush("AutomationWindow.GameGroupBorder");
+
+	case EAutomationTestBackgroundStyle::Editor:
+		return FEditorStyle::GetBrush("AutomationWindow.EditorGroupBorder");
+
+	case EAutomationTestBackgroundStyle::Unknown:
+	default:
+		return FEditorStyle::GetBrush("ToolPanel.GroupBorder");
+	}
+}
 
 void SAutomationWindow::CreateCommands()
 {
@@ -356,11 +379,19 @@ TSharedRef< SWidget > SAutomationWindow::MakeAutomationWindowToolBar( const TSha
 {
 	struct Local
 	{
-		static void FillToolbar(FToolBarBuilder& ToolbarBuilder, TSharedRef<SWidget> RunTests, TSharedRef<SWidget> Searchbox)
+		static void FillToolbar(FToolBarBuilder& ToolbarBuilder, TSharedRef<SWidget> RunTests, TSharedRef<SWidget> Searchbox, TSharedRef<SWidget> PresetBox, TWeakPtr<class SAutomationWindow> InAutomationWindow )
 		{
 			ToolbarBuilder.BeginSection("Automation");
 			{
 				ToolbarBuilder.AddWidget( RunTests );
+				FUIAction DefaultAction;
+				ToolbarBuilder.AddComboButton(
+					DefaultAction,
+					FOnGetContent::CreateStatic( &SAutomationWindow::GenerateTestsOptionsMenuContent, InAutomationWindow ),
+					LOCTEXT( "TestOptions_Label", "Test Options" ),
+					LOCTEXT( "TestOptionsToolTip", "Test Options" ),
+					FSlateIcon(FEditorStyle::GetStyleSetName(), "AutomationWindow.TestOptions"),
+					true);
 				ToolbarBuilder.AddToolBarButton( FAutomationWindowCommands::Get().RefreshTests );
 				ToolbarBuilder.AddToolBarButton( FAutomationWindowCommands::Get().FindWorkers );
 			}
@@ -377,6 +408,11 @@ TSharedRef< SWidget > SAutomationWindow::MakeAutomationWindowToolBar( const TSha
 			ToolbarBuilder.BeginSection("Search");
 			{
 				ToolbarBuilder.AddWidget( Searchbox );
+			}
+			ToolbarBuilder.EndSection();
+			ToolbarBuilder.BeginSection("Presets");
+			{
+				ToolbarBuilder.AddWidget( PresetBox );
 			}
 			ToolbarBuilder.EndSection();
 		}
@@ -446,8 +482,108 @@ TSharedRef< SWidget > SAutomationWindow::MakeAutomationWindowToolBar( const TSha
 			.MinDesiredWidth(SearchWidth)
 		];
 
+	TSharedRef<SWidget> TestPresets = 
+		SNew( SHorizontalBox )
+		+SHorizontalBox::Slot()
+		.AutoWidth()
+		.Padding(2.0f)
+		.VAlign(VAlign_Bottom)
+		[
+			SNew( STextBlock )
+			.Text( LOCTEXT("AutomationPresetLabel", "Preset:") )
+		]
+		+SHorizontalBox::Slot()
+		.AutoWidth()
+		.Padding(2.0f)
+		[
+			//Preset Combo / Text
+			SNew(SOverlay)
+			+SOverlay::Slot()
+			[
+				SNew(SHorizontalBox)
+				.Visibility(this,&SAutomationWindow::HandlePresetComboVisibility)
+				+SHorizontalBox::Slot()
+				.FillWidth(1.0)
+				[
+					SAssignNew( PresetComboBox, SComboBox< TSharedPtr<FAutomationTestPreset> > )
+					.OptionsSource( &TestPresetManager->GetAllPresets() )
+					.OnGenerateWidget( this, &SAutomationWindow::GeneratePresetComboItem )
+					.OnSelectionChanged( this, &SAutomationWindow::HandlePresetChanged )
+					[
+						SNew( STextBlock )
+						.Text( this, &SAutomationWindow::GetPresetComboText )
+					]
+				]
+			]
+			+SOverlay::Slot()
+			[
+				SNew(SHorizontalBox)
+				.Visibility(this,&SAutomationWindow::HandlePresetTextVisibility)
+				+SHorizontalBox::Slot()
+				.FillWidth(1.0)
+				[
+					SAssignNew(PresetTextBox, SEditableTextBox)
+					.OnTextCommitted(this, &SAutomationWindow::HandlePresetTextCommited)
+				]
+			]
+		]
+
+		//New button
+		+SHorizontalBox::Slot()
+		.AutoWidth()
+		.Padding(2.0f)
+		[
+			SNew( SButton )
+			.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
+			.OnClicked( this, &SAutomationWindow::HandleNewPresetClicked )
+			.ToolTipText( LOCTEXT("AutomationPresetNewButtonTooltip", "Create a new preset") )
+			.IsEnabled(this, &SAutomationWindow::IsAddButtonIsEnabled)
+			.Content()
+			[
+				SNew(SImage)
+				.Image(FEditorStyle::Get().GetBrush("AutomationWindow.PresetNew"))
+			]
+		]
+
+		//Save button
+		+SHorizontalBox::Slot()
+		.AutoWidth()
+		.Padding(2.0f)
+		[
+			SNew( SButton )
+			.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
+			.OnClicked( this, &SAutomationWindow::HandleSavePresetClicked )
+			.ToolTipText( LOCTEXT("AutomationPresetSaveButtonTooltip", "Save the current test list") )
+			.IsEnabled(this, &SAutomationWindow::IsSaveButtonIsEnabled)
+			.Content()
+			[
+				SNew(SImage)
+				.Image(FEditorStyle::Get().GetBrush("AutomationWindow.PresetSave"))
+			]
+		]
+
+		//Remove button
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.Padding(2.0f)
+		[
+			// remove button
+			SNew(SButton)
+			.ContentPadding(2)
+			.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
+			.OnClicked( this, &SAutomationWindow::HandleRemovePresetClicked )
+			.ToolTipText(LOCTEXT("AutomationPresetRemoveButtonTooltip", "Remove the selected preset"))
+			.IsEnabled(this, &SAutomationWindow::IsRemoveButtonIsEnabled)
+			.Content()
+			[
+				SNew(SImage)
+				.Image(FEditorStyle::Get().GetBrush("AutomationWindow.PresetRemove"))
+			]
+		];
+
 	FToolBarBuilder ToolbarBuilder( InCommandList, FMultiBoxCustomization::None );
-	Local::FillToolbar( ToolbarBuilder, RunTests, Searchbox );
+	TWeakPtr<SAutomationWindow> AutomationWindow = SharedThis(this);
+	Local::FillToolbar( ToolbarBuilder, RunTests, Searchbox, TestPresets, AutomationWindow );
 
 	// Create the tool bar!
 	return
@@ -465,6 +601,158 @@ TSharedRef< SWidget > SAutomationWindow::MakeAutomationWindowToolBar( const TSha
 		];
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
+EVisibility SAutomationWindow::HandlePresetComboVisibility( ) const
+{
+	return bAddingTestPreset ? EVisibility::Hidden : EVisibility::Visible;
+}
+
+EVisibility SAutomationWindow::HandlePresetTextVisibility( ) const
+{
+	return bAddingTestPreset ? EVisibility::Visible : EVisibility::Hidden;
+}
+
+bool SAutomationWindow::IsAddButtonIsEnabled() const
+{
+	return !bAddingTestPreset;
+}
+
+bool SAutomationWindow::IsSaveButtonIsEnabled() const
+{
+	return (!bAddingTestPreset && SelectedPreset.IsValid());
+}
+
+bool SAutomationWindow::IsRemoveButtonIsEnabled() const
+{
+	return (!bAddingTestPreset && SelectedPreset.IsValid());
+}
+
+void SAutomationWindow::HandlePresetTextCommited( const FText& CommittedText, ETextCommit::Type CommitType )
+{
+	if( CommitType == ETextCommit::OnEnter )
+	{
+		bAddingTestPreset = false;
+		if(CommittedText.IsEmpty())
+		{
+			return;
+		}
+
+		TArray<FString> EnabledTests;
+		AutomationController->GetEnabledTestNames(EnabledTests);
+		AutomationPresetPtr NewPreset = TestPresetManager->AddNewPreset(CommittedText.ToString(),EnabledTests);
+		PresetComboBox->SetSelectedItem(NewPreset);
+		SelectedPreset = NewPreset;
+
+		PresetTextBox->SetText(FText());
+	}
+	else if( CommitType == ETextCommit::OnCleared || CommitType == ETextCommit::OnUserMovedFocus )
+	{
+		if( bAddingTestPreset )
+		{
+			bAddingTestPreset = false;
+			SelectedPreset = NULL;
+			PresetComboBox->ClearSelection();
+			PresetTextBox->SetText(FText());
+		}
+	}
+}
+
+void SAutomationWindow::HandlePresetChanged( TSharedPtr<FAutomationTestPreset> Item, ESelectInfo::Type SelectInfo )
+{
+	if( Item.IsValid() )
+	{
+		SelectedPreset = Item;
+		AutomationController->SetEnabledTests(Item->GetEnabledTests());
+		TestTable->RequestTreeRefresh();
+	}
+}
+
+FReply SAutomationWindow::HandleNewPresetClicked()
+{
+	bAddingTestPreset = true;
+	return FReply::Handled().SetKeyboardFocus(PresetTextBox.ToSharedRef(), EKeyboardFocusCause::SetDirectly);
+}
+
+FReply SAutomationWindow::HandleSavePresetClicked()
+{
+	if(SelectedPreset.IsValid())
+	{
+		TArray<FString> EnabledTests;
+		AutomationController->GetEnabledTestNames(EnabledTests);
+		SelectedPreset->SetEnabledTests(EnabledTests);
+		TestPresetManager->SavePreset(SelectedPreset.ToSharedRef());
+	}
+	return FReply::Handled();
+}
+
+FReply SAutomationWindow::HandleRemovePresetClicked()
+{
+	if(SelectedPreset.IsValid())
+	{
+		TestPresetManager->RemovePreset(SelectedPreset.ToSharedRef());
+		SelectedPreset = NULL;
+		PresetComboBox->ClearSelection();
+	}
+	return FReply::Handled();
+}
+
+FString SAutomationWindow::GetPresetComboText() const
+{
+	if( SelectedPreset.IsValid() )
+	{
+		return *SelectedPreset->GetPresetName();
+	}
+	else
+	{
+		return LOCTEXT("AutomationPresetLabel", "<Select A Preset>").ToString();
+	}
+}
+
+TSharedRef<SWidget> SAutomationWindow::GeneratePresetComboItem(TSharedPtr<FAutomationTestPreset> InItem)
+{
+	return SNew(STextBlock) 
+		.Text( InItem->GetPresetName() );
+}
+
+TSharedRef< SWidget > SAutomationWindow::GenerateTestsOptionsMenuContent( TWeakPtr<class SAutomationWindow> InAutomationWindow )
+{
+	TSharedPtr<SAutomationWindow> AutomationWindow(InAutomationWindow.Pin());
+	if( AutomationWindow.IsValid() )
+	{
+		return AutomationWindow->GenerateTestsOptionsMenuContent();
+	}
+
+	//Return empty menu
+	FMenuBuilder MenuBuilder( true, NULL );
+	MenuBuilder.BeginSection("AutomationWindowRunTest", LOCTEXT("RunTestOptions", "Advanced Settings"));
+	MenuBuilder.EndSection();
+	return MenuBuilder.MakeWidget();
+}
+
+TSharedRef< SWidget > SAutomationWindow::GenerateTestsOptionsMenuContent( )
+{
+	const bool bShouldCloseWindowAfterMenuSelection = true;
+	FMenuBuilder MenuBuilder( bShouldCloseWindowAfterMenuSelection, AutomationWindowActions );
+	TSharedRef<SWidget> NumTests = SNew(SSpinBox<int32>)
+			.MinValue(1)
+			.MaxValue(10)
+			.MinSliderValue(1)
+			.MaxSliderValue(10)
+			.Value(this,&SAutomationWindow::GetRepeatCount)
+			.OnValueChanged(this,&SAutomationWindow::OnChangeRepeatCount);
+
+	MenuBuilder.BeginSection("AutomationWindowRunTest", LOCTEXT("RunTestOptions", "Advanced Settings"));
+	{
+		MenuBuilder.AddWidget( 
+			SNew( STextBlock )
+				.ColorAndOpacity(FSlateColor::UseSubduedForeground())
+				.Text(LOCTEXT("NumTestsToolTip", "Number of runs:")),
+			FText::GetEmpty() );
+		MenuBuilder.AddWidget(NumTests, FText::GetEmpty());
+	}
+
+	return MenuBuilder.MakeWidget();
+}
 
 // Only valid in the editor
 #if WITH_EDITOR
@@ -513,10 +801,6 @@ void SAutomationWindow::OnTestSelectionChanged(TSharedPtr<IAutomationReport> Sel
 		int32 NumClusters = AutomationController->GetNumDeviceClusters();
 		for (int32 ClusterIndex = 0; ClusterIndex < NumClusters; ++ClusterIndex)
 		{
-			//get strings out of the report and populate the Log Messages
-
-			FAutomationTestResults TestResults = Selection->GetResults(ClusterIndex);
-
 			//no sense displaying device name if only one is available
 			if (NumClusters > 1)
 			{
@@ -524,24 +808,39 @@ void SAutomationWindow::OnTestSelectionChanged(TSharedPtr<IAutomationReport> Sel
 				LogMessages.Add(MakeShareable(new FAutomationOutputMessage(DeviceTypeName, TEXT("Automation.Header"))));
 			}
 
-			for (int32 ErrorIndex = 0; ErrorIndex < TestResults.Errors.Num(); ++ErrorIndex)
+			const int32 NumOfPasses = Selection->GetNumResults(ClusterIndex);
+			for( int32 PassIndex = 0; PassIndex < NumOfPasses; ++PassIndex )
 			{
-				LogMessages.Add(MakeShareable(new FAutomationOutputMessage(TestResults.Errors[ErrorIndex], TEXT("Automation.Error"))));
-			}
-			for (int32 WarningIndex = 0; WarningIndex < TestResults.Warnings.Num(); ++WarningIndex)
-			{
-				LogMessages.Add(MakeShareable(new FAutomationOutputMessage(TestResults.Warnings[WarningIndex], TEXT("Automation.Warning"))));
-			}
-			for (int32 LogIndex = 0; LogIndex < TestResults.Logs.Num(); ++LogIndex)
-			{
-				LogMessages.Add(MakeShareable(new FAutomationOutputMessage(TestResults.Logs[LogIndex], TEXT("Automation.Normal"))));
-			}
-			if ((TestResults.Warnings.Num() == 0) &&(TestResults.Errors.Num() == 0) && (Selection->GetState(ClusterIndex)==EAutomationState::Success))
-			{
-				LogMessages.Add(MakeShareable(new FAutomationOutputMessage(LOCTEXT( "AutomationTest_SuccessMessage", "Success" ).ToString(), TEXT("Automation.Normal"))));
-			}
+				//get strings out of the report and populate the Log Messages
+				FAutomationTestResults TestResults = Selection->GetResults(ClusterIndex,PassIndex);
 
-			LogMessages.Add(MakeShareable(new FAutomationOutputMessage(TEXT(""), TEXT("Log.Normal"))));
+				//no sense displaying device name if only one is available
+				if (NumOfPasses > 1)
+				{
+					FString PassHeader = LOCTEXT("TestPassHeader", "Pass:").ToString();
+					PassHeader += FString::Printf(TEXT("%i"),PassIndex+1);
+					LogMessages.Add(MakeShareable(new FAutomationOutputMessage(PassHeader, TEXT("Automation.Header"))));
+				}
+
+				for (int32 ErrorIndex = 0; ErrorIndex < TestResults.Errors.Num(); ++ErrorIndex)
+				{
+					LogMessages.Add(MakeShareable(new FAutomationOutputMessage(TestResults.Errors[ErrorIndex], TEXT("Automation.Error"))));
+				}
+				for (int32 WarningIndex = 0; WarningIndex < TestResults.Warnings.Num(); ++WarningIndex)
+				{
+					LogMessages.Add(MakeShareable(new FAutomationOutputMessage(TestResults.Warnings[WarningIndex], TEXT("Automation.Warning"))));
+				}
+				for (int32 LogIndex = 0; LogIndex < TestResults.Logs.Num(); ++LogIndex)
+				{
+					LogMessages.Add(MakeShareable(new FAutomationOutputMessage(TestResults.Logs[LogIndex], TEXT("Automation.Normal"))));
+				}
+				if ((TestResults.Warnings.Num() == 0) &&(TestResults.Errors.Num() == 0) && (Selection->GetState(ClusterIndex,PassIndex)==EAutomationState::Success))
+				{
+					LogMessages.Add(MakeShareable(new FAutomationOutputMessage(LOCTEXT( "AutomationTest_SuccessMessage", "Success" ).ToString(), TEXT("Automation.Normal"))));
+				}
+
+				LogMessages.Add(MakeShareable(new FAutomationOutputMessage(TEXT(""), TEXT("Log.Normal"))));
+			}
 		}
 		//rebuild UI
 		LogListView->RequestListRefresh();
@@ -670,7 +969,15 @@ TSharedRef<ITableRow> SAutomationWindow::OnGenerateWidgetForLog(TSharedPtr<FAuto
 
 FString SAutomationWindow::OnGetNumEnabledTestsString() const
 {
-	return FString::Printf(TEXT("%d"), AutomationController->GetEnabledTestsNum());
+	int32 NumPasses = AutomationController->GetNumPasses();
+	if( NumPasses > 1 )
+	{
+		return FString::Printf(TEXT("%d x%d"), AutomationController->GetEnabledTestsNum(),NumPasses);
+	}
+	else
+	{
+		return FString::Printf(TEXT("%d"), AutomationController->GetEnabledTestsNum());
+	}
 }
 
 
@@ -700,6 +1007,9 @@ void SAutomationWindow::OnRefreshTestCallback()
 
 	//rebuild the UI
 	TestTable->RequestTreeRefresh();
+
+	//update the background style
+	UpdateTestListBackgroundStyle();
 }
 
 
@@ -755,6 +1065,37 @@ void SAutomationWindow::FindWorkers()
 	}
 
 	MenuBar->SetEnabled( SessionIsValid );
+}
+
+void SAutomationWindow::HandleSessionManagerInstanceChanged()
+{
+	UpdateTestListBackgroundStyle();
+}
+
+void SAutomationWindow::UpdateTestListBackgroundStyle()
+{
+	TArray<ISessionInstanceInfoPtr> OutInstances;
+
+	if( ActiveSession.IsValid() )
+	{
+		ActiveSession->GetInstances(OutInstances);
+	}
+
+	TestBackgroundType = EAutomationTestBackgroundStyle::Unknown;
+
+	if( OutInstances.Num() > 0 )
+	{
+		FString FirstInstanceType = OutInstances[0]->GetInstanceType();
+
+		if( FirstInstanceType.Contains(TEXT("Editor")) )
+		{
+			TestBackgroundType = EAutomationTestBackgroundStyle::Editor;
+		}
+		else if( FirstInstanceType.Contains(TEXT("Game")) )
+		{
+			TestBackgroundType = EAutomationTestBackgroundStyle::Game;
+		}
+	}
 }
 
 
@@ -852,6 +1193,16 @@ void SAutomationWindow::OnToggleErrorFilter()
 {
 	AutomationGeneralFilter->SetShowErrors( !IsErrorFilterOn() );
 	OnRefreshTestCallback();
+}
+
+void SAutomationWindow::OnChangeRepeatCount(int32 InNewValue)
+{
+	AutomationController->SetNumPasses(InNewValue);
+}
+
+int32 SAutomationWindow::GetRepeatCount() const
+{
+	return AutomationController->GetNumPasses();
 }
 
 

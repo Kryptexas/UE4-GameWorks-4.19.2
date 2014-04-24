@@ -17,25 +17,9 @@
 #include "BlueprintGraphClasses.h"
 
 #include "SlateWordWrapper.h"
+#include "AutomationCommon.h"
 
-
-DEFINE_LOG_CATEGORY_STATIC(LogEditorAutomationTests, Log, All);
-
-
-/**
- * Wait for the given amount of time
- */
-DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FWaitLatentCommand, float, Duration);
-
-bool FWaitLatentCommand::Update()
-{
-	float NewTime = FPlatformTime::Seconds();
-	if (NewTime - StartTime >= Duration)
-	{
-		return true;
-	}
-	return false;
-}
+//DEFINE_LOG_CATEGORY_STATIC(LogEditorAutomationTests, Log, All);
 
 /**
  * Start PIE session
@@ -82,6 +66,7 @@ bool FOpenEditorForAssetCommand::Update()
 
 	return true;
 }
+
 /**
  * Close all asset editors
  */
@@ -152,6 +137,7 @@ public:
 			}
 		}
 	}
+
 	
 };
 
@@ -1845,3 +1831,62 @@ bool FTraceAllTimelinesAutomationTest::RunTest(const FString& BlueprintName)
 	return bPassed;
 }
 
+/**
+ * StaticMeshUVsTest
+ */
+IMPLEMENT_SIMPLE_AUTOMATION_TEST( FStaticMeshUVsTest, "Editor.Content.Static Mesh UVs", EAutomationTestFlags::ATF_Editor )
+
+/**
+ * Find all static meshes and check the lightmap UVs
+ */
+bool FStaticMeshUVsTest::RunTest(const FString& Parameters)
+{
+	TArray<FString> MissingUVMessages;
+	TArray<FString> BadUVMessages;
+	TArray<FString> ValidUVMessages;
+	
+	//Create our package list
+	TArray<FString> ContentPackages;
+	FPackageName::FindPackagesInDirectory(ContentPackages, *FPaths::EngineContentDir());
+	FPackageName::FindPackagesInDirectory(ContentPackages, *FPaths::GameContentDir());
+	UE_LOG(LogEditorAutomationTests, Log, TEXT("Found %i Packages."), ContentPackages.Num() );
+
+	for( int32 PackageID = 0; PackageID < ContentPackages.Num(); ++PackageID)
+	{
+		const FString PackageName = ContentPackages[PackageID];
+
+		UPackage* Package = NULL;
+		{
+			SetSuppressLogs(true);	
+			Package = LoadPackage( NULL, *PackageName, LOAD_NoWarn | LOAD_Quiet );
+			SetSuppressLogs(false);	
+		}
+		if (Package != NULL)
+		{
+			for (FObjectIterator ObjIt; ObjIt; ++ObjIt)
+			{
+				UObject* Object = *ObjIt;
+				if (Object != NULL)
+				{
+					//Call CheckLightMapUVs on all static meshes in this package
+					if( Object->IsA(UStaticMesh::StaticClass()) && Object->IsIn(Package) )
+					{
+						UStaticMesh::CheckLightMapUVs((UStaticMesh*)Object,MissingUVMessages,BadUVMessages,ValidUVMessages,true);
+					}
+				}
+			}
+		}
+		else
+		{
+			UE_LOG(LogEditorAutomationTests, Error, TEXT("Error loading package %s."), *PackageName );
+		}
+		
+		//Collect garbage on every Nth package to keep memory usage down.
+		if( ( (++PackageID % 10) == 0 ) )
+		{
+			CollectGarbage(RF_Native);
+		}
+	}
+	CollectGarbage(RF_Native);
+	return true;
+}

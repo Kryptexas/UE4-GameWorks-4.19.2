@@ -276,6 +276,7 @@ void FAutomationWorkerModule::HandleResetTests( const FAutomationWorkerResetTest
 
 void FAutomationWorkerModule::HandleRequestTestsMessage( const FAutomationWorkerRequestTests& Message, const IMessageContextRef& Context )
 {
+	FAutomationTestFramework::GetInstance().LoadTestModules();
 	FAutomationTestFramework::GetInstance().SetDeveloperDirectoryIncluded(Message.DeveloperDirectoryIncluded);
 	FAutomationTestFramework::GetInstance().SetVisualCommandletFilter(Message.VisualCommandletFilterOn);
 	FAutomationTestFramework::GetInstance().GetValidTestNames( TestInfo );

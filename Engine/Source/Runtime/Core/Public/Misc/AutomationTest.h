@@ -460,6 +460,11 @@ public:
 	bool ExecuteNetworkCommands();
 
 	/**
+	 * Load any modules that are not loaded by default and have test classes in them
+	 */
+	void LoadTestModules();
+
+	/**
 	 * Populates the provided array with the names of all tests in the framework that are valid to run for the current
 	 * application settings.
 	 *
@@ -641,6 +646,7 @@ public:
 	FAutomationTestBase( const FString& InName, const bool bInComplexTask )
 		: bComplexTask( bInComplexTask )
 		, TestName( InName )
+		, bSuppressLogs( false )
 	{
 		// Register the newly created automation test into the automation testing framework
 		FAutomationTestFramework::GetInstance().RegisterAutomationTest( InName, this );
@@ -728,6 +734,15 @@ public:
 		return bComplexTask;
 	}
 
+	/**
+	 * Used to suppress / unsuppress logs.
+	 *
+	 * @param bNewValue - True if you want to suppress logs.  False to unsuppress.
+	 */
+	void SetSuppressLogs(bool bNewValue)
+	{
+		bSuppressLogs = bNewValue;
+	}
 
 public:
 
@@ -921,6 +936,9 @@ protected:
 	//Flag to indicate if this is a complex task
 	bool bComplexTask;
 
+	/** Flag to suppress logs */
+	bool bSuppressLogs;
+
 	/** Name of the test */
 	FString TestName;
 
@@ -948,6 +966,29 @@ class CommandName : public IAutomationLatentCommand \
 
 #define DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(CommandName,ParamType,ParamName)	\
 class CommandName : public IAutomationLatentCommand \
+	{ \
+	public: \
+	CommandName(ParamType InputParam) \
+	: ParamName(InputParam) \
+		{} \
+		virtual ~CommandName() \
+		{} \
+		virtual bool Update() OVERRIDE; \
+	private: \
+	ParamType ParamName; \
+}
+
+#define DEFINE_ENGINE_LATENT_AUTOMATION_COMMAND(CommandName)	\
+class ENGINE_API CommandName : public IAutomationLatentCommand \
+	{ \
+	public: \
+	virtual ~CommandName() \
+		{} \
+		virtual bool Update() OVERRIDE; \
+}
+
+#define DEFINE_ENGINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(CommandName,ParamType,ParamName)	\
+class ENGINE_API CommandName : public IAutomationLatentCommand \
 	{ \
 	public: \
 	CommandName(ParamType InputParam) \

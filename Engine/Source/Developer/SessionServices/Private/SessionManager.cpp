@@ -242,6 +242,7 @@ void FSessionManager::HandleEnginePongMessage( const FEngineServicePong& Message
 	if (Session.IsValid())
 	{
 		Session->UpdateFromMessage(Message, Context);
+		SessionInstanceUpdatedDelegate.Broadcast();
 	}
 }
 

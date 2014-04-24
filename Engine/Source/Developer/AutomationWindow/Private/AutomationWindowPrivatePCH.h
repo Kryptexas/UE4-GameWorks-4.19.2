@@ -26,6 +26,7 @@
 #include "SAutomationWindowCommandBar.h"
 #include "SAutomationExportMenu.h"
 #include "AutomationFilter.h"
+#include "AutomationPresetManager.h"
 #include "SAutomationWindow.h"
 #include "SAutomationTestItemContextMenu.h"
 #include "SAutomationTestItem.h"

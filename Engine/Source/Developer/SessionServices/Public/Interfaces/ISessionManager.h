@@ -146,6 +146,13 @@ public:
 	 */
 	virtual FSimpleMulticastDelegate& OnSessionsUpdated( ) = 0;
 
+	/**
+	 * Returns a delegate that is executed when a session instance is updated.
+	 *
+	 * @return The delegate.
+	 */
+	virtual FSimpleMulticastDelegate& OnSessionInstanceUpdated( ) = 0;
+
 public:
 
 	/**

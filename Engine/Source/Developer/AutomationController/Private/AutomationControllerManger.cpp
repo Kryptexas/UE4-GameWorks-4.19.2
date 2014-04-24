@@ -54,6 +54,8 @@ void FAutomationControllerManager::RequestTests()
 void FAutomationControllerManager::RunTests( const bool bInIsLocalSession )
 {
 	ExecutionCount++;
+	CurrentTestPass = 0;
+	ReportManager.SetCurrentTestPass(CurrentTestPass);
 	ClusterDistributionMask = 0;
 	bTestResultsAvailable = false;
 	TestRunningArray.Empty();
@@ -64,7 +66,7 @@ void FAutomationControllerManager::RunTests( const bool bInIsLocalSession )
 	CheckTestTimer = 0.f;
 
 	//reset all tests
-	ReportManager.ResetForExecution();
+	ReportManager.ResetForExecution(NumTestPasses);
 
 	for (int32 ClusterIndex = 0; ClusterIndex < DeviceClusterManager.GetNumClusters(); ++ClusterIndex)
 	{
@@ -182,11 +184,11 @@ void FAutomationControllerManager::ExecuteNextTask( int32 ClusterIndex, OUT bool
 		if( !DeviceClusterManager.GetTest( ClusterIndex, DeviceIndex ).IsValid() && DeviceClusterManager.DeviceEnabled( ClusterIndex, DeviceIndex ) )
 		{
 			// Get the next test that should be worked on
-			TSharedPtr< IAutomationReport > NextTest = ReportManager.GetNextReportToExecute( bAllTestsCompleted, ClusterIndex, NumDevicesInCluster );
+			TSharedPtr< IAutomationReport > NextTest = ReportManager.GetNextReportToExecute( bAllTestsCompleted, ClusterIndex,CurrentTestPass, NumDevicesInCluster );
 			if( NextTest.IsValid() )
 			{
 				// Get the status of the test
-				EAutomationState::Type TestState = NextTest->GetState( ClusterIndex );
+				EAutomationState::Type TestState = NextTest->GetState( ClusterIndex,CurrentTestPass );
 				if( TestState == EAutomationState::NotRun )
 				{
 					// Reserve this device for the test
@@ -203,7 +205,7 @@ void FAutomationControllerManager::ExecuteNextTask( int32 ClusterIndex, OUT bool
 							FAutomationTestResults TestResults;
 							TestResults.State = EAutomationState::InProcess;
 							TestResults.GameInstance = DeviceClusterManager.GetClusterDeviceName( ClusterIndex, DeviceIndex );
-							NextTest->SetResults( ClusterIndex, TestResults );
+							NextTest->SetResults( ClusterIndex,CurrentTestPass, TestResults );
 							NextTest->ResetNetworkCommandResponses();
 
 							// Mark the device as busy
@@ -245,11 +247,18 @@ void FAutomationControllerManager::ExecuteNextTask( int32 ClusterIndex, OUT bool
 				TestResults.GameInstance = DeviceClusterManager.GetClusterDeviceName(ClusterIndex, 0);
 				TestResults.Warnings.Append( AutomationsWarnings );
 
-				CurrentTest->SetResults( ClusterIndex, TestResults );
+				CurrentTest->SetResults( ClusterIndex,CurrentTestPass, TestResults );
 				DeviceClusterManager.ResetAllDevicesRunningTest( ClusterIndex, CurrentTest );
 			}
-
 		}
+	}
+
+	//Check to see if we finished a pass
+	if( bAllTestsCompleted && CurrentTestPass < NumTestPasses - 1 )
+	{
+		CurrentTestPass++;
+		ReportManager.SetCurrentTestPass(CurrentTestPass);
+		bAllTestsCompleted = false;
 	}
 }
 
@@ -276,6 +285,7 @@ void FAutomationControllerManager::Startup()
 	bVisualCommandletFilterOn = false;
 
 	NumOfTestsToReceive = 0;
+	NumTestPasses = 1;
 }
 
 
@@ -307,7 +317,7 @@ void FAutomationControllerManager::SetTestNames( const FMessageAddress& Automati
 		for( int32 TestIndex = 0; TestIndex < TestInfo.Num(); ++TestIndex )
 		{
 			// Ensure our test exists. If not, add it
-			ReportManager.EnsureReportExists( TestInfo[TestIndex], DeviceClusterIndex );
+			ReportManager.EnsureReportExists( TestInfo[TestIndex], DeviceClusterIndex, NumTestPasses );
 		}
 
 		// Clear any intermediate data we had associated with the tests whilst building the full list of tests
@@ -366,7 +376,7 @@ void FAutomationControllerManager::CheckChildResult(TSharedPtr<IAutomationReport
 	{
 		for (int32 ClusterIndex = 0; ClusterIndex < GetNumDeviceClusters(); ++ClusterIndex)
 		{
-			FAutomationTestResults TestResults = InReport->GetResults( ClusterIndex );
+			FAutomationTestResults TestResults = InReport->GetResults( ClusterIndex,CurrentTestPass );
 
 			if (TestResults.Errors.Num())
 			{
@@ -456,7 +466,7 @@ void FAutomationControllerManager::UpdateTests( )
 				TestResults.GameInstance = DeviceClusterManager.GetClusterDeviceName(ClusterIndex, DeviceIndex);
 
 				// Set the results
-				Report->SetResults(ClusterIndex, TestResults );
+				Report->SetResults(ClusterIndex,CurrentTestPass, TestResults );
 				bTestResultsAvailable = true;
 
 				// Disable the device in the cluster so it is not used again
@@ -626,7 +636,7 @@ void FAutomationControllerManager::HandleRunTestsReplyMessage( const FAutomation
 		TSharedPtr <IAutomationReport> Report = DeviceClusterManager.GetTest(ClusterIndex, DeviceIndex);
 		check(Report.IsValid());
 
-		Report->SetResults(ClusterIndex, TestResults);
+		Report->SetResults(ClusterIndex,CurrentTestPass, TestResults);
 
 		// Device is now good to go
 		DeviceClusterManager.SetTest(ClusterIndex, DeviceIndex, NULL);

@@ -141,6 +141,18 @@ public:
 	virtual void Tick() = 0;
 
 	/**
+	 * Sets the number of test passes
+	 *
+	 * @param InNumPasses - the number of test passes to perform
+	 */
+	virtual void SetNumPasses(const int32 InNumPasses) = 0;
+
+	/**
+	 * Get the number of test passes
+	 */
+	virtual int32 GetNumPasses() = 0;
+
+	/**
 	 * Filters the visible list of tests.
 	 */
 	virtual void SetFilter( TSharedPtr< AutomationFilterCollection > InFilter ) = 0;
@@ -182,6 +194,20 @@ public:
 	 * Returns number of tests that will be run.
 	 */
 	virtual int32 GetEnabledTestsNum() const = 0;
+
+	/**
+	 * Gets the names of all the enabled tests
+	 *
+	 * @param OutEnabledTestNames The list to populate with enabled test names
+	 */
+	virtual void GetEnabledTestNames(TArray<FString>& OutEnabledTestNames) const = 0;
+
+	/**
+	 * Sets any tests that match a name in the enabled tests array
+	 *
+	 * @param EnabledTests An array of test names that will be enabled
+	 */
+	virtual void SetEnabledTests(const TArray<FString>& EnabledTests) = 0;
 
 	/**
 	 * Gets the controller's current test state.

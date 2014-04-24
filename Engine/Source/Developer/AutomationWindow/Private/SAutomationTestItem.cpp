@@ -215,7 +215,8 @@ const FSlateBrush* SAutomationTestItem::GetSmokeTestImage() const
 FText SAutomationTestItem::GetTestToolTip( int32 ClusterIndex ) const
 {
 	FText ToolTip;
-	EAutomationState::Type TestState = TestStatus->GetState( ClusterIndex );
+	const int32 PassIndex = TestStatus->GetCurrentPassIndex(ClusterIndex);
+	EAutomationState::Type TestState = TestStatus->GetState( ClusterIndex, PassIndex );
 	if ( TestState == EAutomationState::NotRun )
 	{
 		ToolTip = LOCTEXT("TestToolTipNotRun", "Not Run");
@@ -256,7 +257,8 @@ FSlateColor SAutomationTestItem::ItemStatus_BackgroundColor(const int32 ClusterI
 {
 	if (TestStatus->GetTotalNumChildren()==0)
 	{
-		EAutomationState::Type TestState = TestStatus->GetState(ClusterIndex);
+		const int32 PassIndex = TestStatus->GetCurrentPassIndex(ClusterIndex);
+		EAutomationState::Type TestState = TestStatus->GetState(ClusterIndex,PassIndex);
 		if (TestState == EAutomationState::Fail)
 		{
 			// Failure is marked by a red background.
@@ -315,7 +317,8 @@ FText SAutomationTestItem::ItemStatus_DurationText() const
 
 EVisibility SAutomationTestItem::ItemStatus_GetStatusVisibility(const int32 ClusterIndex, const bool bForInProcessThrobber) const
 {
-	EAutomationState::Type TestState = TestStatus->GetState(ClusterIndex);
+	const int32 PassIndex = TestStatus->GetCurrentPassIndex(ClusterIndex);
+	EAutomationState::Type TestState = TestStatus->GetState(ClusterIndex,PassIndex);
 	bool bImageVisible = TestState != EAutomationState::InProcess;
 
 	bool bFinalVisibility =  bForInProcessThrobber ? !bImageVisible : bImageVisible;
@@ -336,7 +339,8 @@ FText SAutomationTestItem::ItemStatus_NumParticipantsRequiredText() const
 FSlateColor SAutomationTestItem::ItemStatus_ProgressColor(const int32 ClusterIndex) const
 {
 	FAutomationCompleteState CompleteState;
-	TestStatus->GetCompletionStatus(ClusterIndex, CompleteState);
+	const int32 PassIndex = TestStatus->GetCurrentPassIndex(ClusterIndex);
+	TestStatus->GetCompletionStatus(ClusterIndex,PassIndex, CompleteState);
 
 	if (CompleteState.TotalEnabled > 0)
 	{
@@ -367,7 +371,8 @@ FSlateColor SAutomationTestItem::ItemStatus_ProgressColor(const int32 ClusterInd
 TOptional<float> SAutomationTestItem::ItemStatus_ProgressFraction(const int32 ClusterIndex) const
 {
 	FAutomationCompleteState CompleteState;
-	TestStatus->GetCompletionStatus(ClusterIndex, CompleteState);
+	const int32 PassIndex = TestStatus->GetCurrentPassIndex(ClusterIndex);
+	TestStatus->GetCompletionStatus(ClusterIndex,PassIndex, CompleteState);
 
 	uint32 TotalComplete = CompleteState.NumEnabledTestsPassed + CompleteState.NumEnabledTestsFailed + CompleteState.NumEnabledTestsCouldntBeRun;
 	// Only show a percentage if there is something interesting to report
@@ -382,7 +387,8 @@ TOptional<float> SAutomationTestItem::ItemStatus_ProgressFraction(const int32 Cl
 
 const FSlateBrush* SAutomationTestItem::ItemStatus_StatusImage(const int32 ClusterIndex) const
 {
-	EAutomationState::Type TestState = TestStatus->GetState(ClusterIndex);
+	const int32 PassIndex = TestStatus->GetCurrentPassIndex(ClusterIndex);
+	EAutomationState::Type TestState = TestStatus->GetState(ClusterIndex,PassIndex);
 
 	const FSlateBrush* ImageToUse;
 	switch( TestState )
@@ -390,7 +396,7 @@ const FSlateBrush* SAutomationTestItem::ItemStatus_StatusImage(const int32 Clust
 	case EAutomationState::Success:
 		{
 			FAutomationCompleteState CompleteState;
-			TestStatus->GetCompletionStatus(ClusterIndex, CompleteState);
+			TestStatus->GetCompletionStatus(ClusterIndex,PassIndex, CompleteState);
 			//If there were ANY warnings in the results
 			if (CompleteState.NumEnabledTestsWarnings || CompleteState.NumDisabledTestsWarnings)
 			{

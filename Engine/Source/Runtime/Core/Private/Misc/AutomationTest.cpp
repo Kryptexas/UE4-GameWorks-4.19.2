@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "CorePrivate.h"
+#include "ModuleManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogAutomationTest, Warning, All);
 
@@ -301,6 +302,40 @@ bool FAutomationTestFramework::ExecuteNetworkCommands()
 	return !bHadAnyNetworkCommands;
 }
 
+void FAutomationTestFramework::LoadTestModules( )
+{
+	const bool bRunningEditor = GIsEditor && !IsRunningCommandlet();
+
+	if( !bRunningSmokeTests )
+	{
+		TArray<FString> EngineTestModules;
+		GConfig->GetArray( TEXT("/Script/Engine.AutomationTestSettings"), TEXT("EngineTestModules"), EngineTestModules, GEngineIni);
+		//Load any engine level modules.
+		for( int32 EngineModuleId = 0; EngineModuleId < EngineTestModules.Num(); ++EngineModuleId)
+		{
+			const FName ModuleName = FName(*EngineTestModules[EngineModuleId]);
+			if (!FModuleManager::Get().IsModuleLoaded(ModuleName))
+			{
+				FModuleManager::Get().LoadModule(ModuleName);
+			}
+		}
+		//Load any editor modules.
+		if( bRunningEditor )
+		{
+			TArray<FString> EditorTestModules;
+			GConfig->GetArray( TEXT("/Script/Engine.AutomationTestSettings"), TEXT("EditorTestModules"), EditorTestModules, GEngineIni);
+			for( int32 EditorModuleId = 0; EditorModuleId < EditorTestModules.Num(); ++EditorModuleId )
+			{
+				const FName ModuleName = FName(*EditorTestModules[EditorModuleId]);
+				if (!FModuleManager::Get().IsModuleLoaded(ModuleName))
+				{
+					FModuleManager::Get().LoadModule(ModuleName);
+				}
+			}
+		}
+	}
+}
+
 
 void FAutomationTestFramework::GetValidTestNames( TArray<FAutomationTestInfo>& TestInfo ) const
 {
@@ -581,19 +616,28 @@ void FAutomationTestBase::ClearExecutionInfo()
 
 void FAutomationTestBase::AddError( const FString& InError )
 {
-	ExecutionInfo.Errors.Add( InError );
+	if( !bSuppressLogs )
+	{
+		ExecutionInfo.Errors.Add( InError );
+	}
 }
 
 
 void FAutomationTestBase::AddWarning( const FString& InWarning )
 {
-	ExecutionInfo.Warnings.Add( InWarning );
+	if( !bSuppressLogs )
+	{
+		ExecutionInfo.Warnings.Add( InWarning );
+	}
 }
 
 
 void FAutomationTestBase::AddLogItem( const FString& InLogItem )
 {
-	ExecutionInfo.LogItems.Add( InLogItem );
+	if( !bSuppressLogs )
+	{
+		ExecutionInfo.LogItems.Add( InLogItem );
+	}
 }
 
 
