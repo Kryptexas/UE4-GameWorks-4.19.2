@@ -243,10 +243,10 @@ public:
 	{
 		QUICK_SCOPE_CYCLE_COUNTER( STAT_CableSceneProxy_DrawDynamicElements );
 
-		const bool bWireframe = View->Family->EngineShowFlags.Wireframe;
+		const bool bWireframe = GEngine->AllowDebugViewModes() && View->Family->EngineShowFlags.Wireframe;
 
 		FColoredMaterialRenderProxy WireframeMaterialInstance(
-			GEngine->WireframeMaterial->GetRenderProxy(IsSelected()),
+			GEngine->WireframeMaterial ? GEngine->WireframeMaterial->GetRenderProxy(IsSelected()) : NULL,
 			FLinearColor(0, 0.5f, 1.f)
 			);
 
