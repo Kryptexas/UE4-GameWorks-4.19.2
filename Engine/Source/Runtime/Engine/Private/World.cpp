@@ -4068,7 +4068,7 @@ UWorld* FSeamlessTravelHandler::Tick()
 		}
 		else if ( LoadedWorld->PersistentLevel == NULL)
 		{
-			// Package isnt a level
+			// Package isn't a level
 			FString Error = FString::Printf(TEXT("Unable to travel to '%s' - package is not a level"), *LoadedPackage->GetName());
 			UE_LOG(LogWorld, Error, TEXT("%s"), *Error);
 			// abort
@@ -4293,8 +4293,21 @@ UWorld* FSeamlessTravelHandler::Tick()
 				UE_LOG(LogWorld, Log, TEXT("Sending NotifyLoadedWorld for LP: %s PC: %s"), *It->GetName(), It->PlayerController ? *It->PlayerController->GetName() : TEXT("NoPC"));
 				if (It->PlayerController != NULL)
 				{
+#if !UE_BUILD_SHIPPING
+					LOG_SCOPE_VERBOSITY_OVERRIDE(LogNet, ELogVerbosity::VeryVerbose);
+					LOG_SCOPE_VERBOSITY_OVERRIDE(LogNetTraffic, ELogVerbosity::VeryVerbose);
+					UE_LOG(LogNet, Verbose, TEXT("NotifyLoadedWorld Begin"));
+#endif
 					It->PlayerController->NotifyLoadedWorld(LoadedWorld->GetOutermost()->GetFName(), bSwitchedToDefaultMap);
 					It->PlayerController->ServerNotifyLoadedWorld(LoadedWorld->GetOutermost()->GetFName());
+#if !UE_BUILD_SHIPPING
+					UE_LOG(LogNet, Verbose, TEXT("NotifyLoadedWorld End"));
+#endif
+				}
+				else
+				{
+					UE_LOG(LogNet, Error, TEXT("No Player Controller during seamless travel for LP: %s."), *It->GetName());
+					// @todo add some kind of travel back to main menu
 				}
 			}
 

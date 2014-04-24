@@ -14,6 +14,12 @@ DEFINE_LOG_CATEGORY(LogActor);
 
 DEFINE_STAT(STAT_GetComponentsTime);
 
+#if UE_BUILD_SHIPPING
+#define DEBUG_CALLSPACE(Format, ...)
+#else
+#define DEBUG_CALLSPACE(Format, ...) UE_LOG(LogNet, VeryVerbose, Format, __VA_ARGS__);
+#endif
+
 #define LOCTEXT_NAMESPACE "Actor"
 
 FMakeNoiseDelegate AActor::MakeNoiseDelegate = FMakeNoiseDelegate::CreateStatic(&AActor::MakeNoiseImpl);
@@ -2635,12 +2641,14 @@ int32 AActor::GetFunctionCallspace( UFunction* Function, void* Parameters, FFram
 	if ((Function->FunctionFlags & FUNC_Static))
 	{
 		// Call local
+		DEBUG_CALLSPACE(TEXT("GetFunctionCallspace Local1: %s"), *Function->GetName());
 		return FunctionCallspace::Local;
 	}
 
 	if (GAllowActorScriptExecutionInEditor)
 	{
 		// Call local
+		DEBUG_CALLSPACE(TEXT("GetFunctionCallspace Local2: %s"), *Function->GetName());
 		return FunctionCallspace::Local;
 	}
 
@@ -2648,6 +2656,7 @@ int32 AActor::GetFunctionCallspace( UFunction* Function, void* Parameters, FFram
 	if (!World)
 	{
 		// Call local
+		DEBUG_CALLSPACE(TEXT("GetFunctionCallspace Local3: %s"), *Function->GetName());
 		return FunctionCallspace::Local;
 	}
 
@@ -2658,12 +2667,14 @@ int32 AActor::GetFunctionCallspace( UFunction* Function, void* Parameters, FFram
 	{
 		// Never call remote on a pending kill actor. 
 		// We can call it local or absorb it depending on authority/role check above.
+		DEBUG_CALLSPACE(TEXT("GetFunctionCallspace: IsPendingKill %s %s"), *Function->GetName(), FunctionCallspace::ToString(Callspace));
 		return Callspace;
 	}
 
 	if (Function->FunctionFlags & FUNC_NetRequest)
 	{
 		// Call remote
+		DEBUG_CALLSPACE(TEXT("GetFunctionCallspace NetRequest: %s"), *Function->GetName());
 		return FunctionCallspace::Remote;
 	}	
 	
@@ -2672,10 +2683,12 @@ int32 AActor::GetFunctionCallspace( UFunction* Function, void* Parameters, FFram
 		if (Function->RPCId > 0)
 		{
 			// Call local
+			DEBUG_CALLSPACE(TEXT("GetFunctionCallspace NetResponse Local: %s"), *Function->GetName());
 			return FunctionCallspace::Local;
 		}
 
 		// Shouldn't happen, so skip call
+		DEBUG_CALLSPACE(TEXT("GetFunctionCallspace NetResponse Absorbed: %s"), *Function->GetName());
 		return FunctionCallspace::Absorbed;
 	}
 
@@ -2686,6 +2699,7 @@ int32 AActor::GetFunctionCallspace( UFunction* Function, void* Parameters, FFram
 		if (Role < ROLE_Authority && (Function->FunctionFlags & FUNC_NetServer))
 		{
 			// Don't let clients call server functions (in edge cases where NetMode is standalone (net driver is null))
+			DEBUG_CALLSPACE(TEXT("GetFunctionCallspace No Authority Server Call Absorbed: %s"), *Function->GetName());
 			return FunctionCallspace::Absorbed;
 		}
 
@@ -2696,11 +2710,14 @@ int32 AActor::GetFunctionCallspace( UFunction* Function, void* Parameters, FFram
 	// Dedicated servers don't care about "cosmetic" functions.
 	if (NetMode == NM_DedicatedServer && Function->HasAllFunctionFlags(FUNC_BlueprintCosmetic))
 	{
+		DEBUG_CALLSPACE(TEXT("GetFunctionCallspace Blueprint Cosmetic Absorbed: %s"), *Function->GetName());
 		return FunctionCallspace::Absorbed;
 	}
 
 	if (!(Function->FunctionFlags & FUNC_Net))
 	{
+		// Not a network function
+		DEBUG_CALLSPACE(TEXT("GetFunctionCallspace Not Net: %s %s"), *Function->GetName(), FunctionCallspace::ToString(Callspace));
 		return Callspace;
 	}
 	
@@ -2719,13 +2736,17 @@ int32 AActor::GetFunctionCallspace( UFunction* Function, void* Parameters, FFram
 			// Server should execute locally and call remotely
 			if (RemoteRole != ROLE_None)
 			{
+				DEBUG_CALLSPACE(TEXT("GetFunctionCallspace Multicast: %s"), *Function->GetName());
 				return (FunctionCallspace::Local | FunctionCallspace::Remote);
 			}
+
+			DEBUG_CALLSPACE(TEXT("GetFunctionCallspace Multicast NoRemoteRole: %s"), *Function->GetName());
 			return FunctionCallspace::Local;
 		}
 		else
 		{
-			// Client should only execute locally iff it is allowed to (function is not KismetAuthorittyOnly)
+			// Client should only execute locally iff it is allowed to (function is not KismetAuthorityOnly)
+			DEBUG_CALLSPACE(TEXT("GetFunctionCallspace Multicast Client: %s %s"), *Function->GetName(), FunctionCallspace::ToString(Callspace));
 			return Callspace;
 		}
 	}
@@ -2734,12 +2755,14 @@ int32 AActor::GetFunctionCallspace( UFunction* Function, void* Parameters, FFram
 	if (bIsServer && !(Function->FunctionFlags & FUNC_NetClient))
 	{
 		// don't replicate
+		DEBUG_CALLSPACE(TEXT("GetFunctionCallspace Server calling Server function: %s %s"), *Function->GetName(), FunctionCallspace::ToString(Callspace));
 		return Callspace;
 	}
 	// if we aren't the server, and it's not a send-to-server function,
 	if (!bIsServer && !(Function->FunctionFlags & FUNC_NetServer))
 	{
 		// don't replicate
+		DEBUG_CALLSPACE(TEXT("GetFunctionCallspace Client calling Client function: %s %s"), *Function->GetName(), FunctionCallspace::ToString(Callspace));
 		return Callspace;
 	}
 
@@ -2753,17 +2776,23 @@ int32 AActor::GetFunctionCallspace( UFunction* Function, void* Parameters, FFram
 			if (ClientPlayer == NULL)
 			{
 				// No owning player, we must absorb
+				DEBUG_CALLSPACE(TEXT("GetFunctionCallspace Client NonOwner absorbed %s"), *Function->GetName());
 				return FunctionCallspace::Absorbed;
 			}
 			else if (Cast<ULocalPlayer>(ClientPlayer) != NULL)
 			{
 				// This is a local player, call locally
+				DEBUG_CALLSPACE(TEXT("GetFunctionCallspace Client local function: %s %s"), *Function->GetName(), FunctionCallspace::ToString(Callspace));
 				return Callspace;
 			}
 		}
 		else if (!NetConnection->Driver || !NetConnection->Driver->World)
 		{
 			// NetDriver does not have a world, most likely shutting down
+			DEBUG_CALLSPACE(TEXT("GetFunctionCallspace NetConnection with no driver or world absorbed: %s %s %s"),
+				*Function->GetName(), 
+				NetConnection->Driver ? *NetConnection->Driver->GetName() : TEXT("NoNetDriver"),
+				NetConnection->Driver && NetConnection->Driver->World ? *NetConnection->Driver->World->GetName() : TEXT("NoWorld"));
 			return FunctionCallspace::Absorbed;
 		}
 
@@ -2775,13 +2804,15 @@ int32 AActor::GetFunctionCallspace( UFunction* Function, void* Parameters, FFram
 	{
 		if (!bIsServer)
 		{
-			UE_LOG(LogNet, Warning,  TEXT("Client is absorbing remote function %s on actor %s because RemoteRole is ROLE_None"), *Function->GetName(), *GetName() );
+			UE_LOG(LogNet, Warning, TEXT("Client is absorbing remote function %s on actor %s because RemoteRole is ROLE_None"), *Function->GetName(), *GetName() );
 		}
 
+		DEBUG_CALLSPACE(TEXT("GetFunctionCallspace RemoteRole None absorbed %s"), *Function->GetName());
 		return FunctionCallspace::Absorbed;
 	}
 
 	// Call remotely
+	DEBUG_CALLSPACE(TEXT("GetFunctionCallspace RemoteRole Remote %s"), *Function->GetName());
 	return FunctionCallspace::Remote;
 }
 

@@ -49,6 +49,12 @@ DEFINE_STAT(STAT_VoicePacketsRecv);
 DEFINE_STAT(STAT_PercentInVoice);
 DEFINE_STAT(STAT_PercentOutVoice);
 
+#if UE_BUILD_SHIPPING
+#define DEBUG_REMOTEFUNCTION(Format, ...)
+#else
+#define DEBUG_REMOTEFUNCTION(Format, ...) UE_LOG(LogNet, VeryVerbose, Format, __VA_ARGS__);
+#endif
+
 /*-----------------------------------------------------------------------------
 	UNetDriver implementation.
 -----------------------------------------------------------------------------*/
@@ -592,6 +598,7 @@ void UNetDriver::InternalProcessRemoteFunction
 	// If saturated and function is unimportant, skip it.
 	if( !(Function->FunctionFlags & FUNC_NetReliable) && !Connection->IsNetReady(0) )
 	{
+		DEBUG_REMOTEFUNCTION(TEXT("Network saturated, not calling %s::%s"), *Actor->GetName(), *Function->GetName());
 		return;
 	}
 
@@ -606,12 +613,19 @@ void UNetDriver::InternalProcessRemoteFunction
 
 	// Make sure this function exists for both parties.
 	FClassNetCache* ClassCache = Connection->PackageMap->GetClassNetCache( TargetObj->GetClass() );
-	if( !ClassCache )
+	if (!ClassCache)
+	{
+		DEBUG_REMOTEFUNCTION(TEXT("ClassNetCache empty, not calling %s::%s"), *Actor->GetName(), *Function->GetName());
 		return;
+	}
+		
 	FFieldNetCache* FieldCache = ClassCache->GetFromField( Function );
-	if( !FieldCache )
+	if (!FieldCache)
+	{
+		DEBUG_REMOTEFUNCTION(TEXT("FieldCache empty, not calling %s::%s"), *Actor->GetName(), *Function->GetName());
 		return;
-
+	}
+		
 	// Get the actor channel.
 	UActorChannel* Ch = Connection->ActorChannels.FindRef(Actor);
 	if( !Ch )
@@ -637,17 +651,24 @@ void UNetDriver::InternalProcessRemoteFunction
 				}
 			}
 		}
-		if( !Ch )
+		if (!Ch)
+		{
 			return;
-		if( IsServer )
-			Ch->SetChannelActor( Actor );
+		}
+		if (IsServer)
+		{
+			Ch->SetChannelActor(Actor);
+		}	
 	}
 
 	// Make sure initial channel-opening replication has taken place.
 	if( Ch->OpenPacketId.First==INDEX_NONE )
 	{
-		if( !IsServer )
+		if (!IsServer)
+		{
+			DEBUG_REMOTEFUNCTION(TEXT("Initial channel replication has not occurred, not calling %s::%s"), *Actor->GetName(), *Function->GetName());
 			return;
+		}
 
 		// triggering replication of an Actor while already in the middle of replication can result in invalid data being sent and is therefore illegal
 		if (Ch->bIsReplicatingActor)
@@ -669,15 +690,19 @@ void UNetDriver::InternalProcessRemoteFunction
 
 	// Reliability.
 	//warning: RPC's might overflow, preventing reliable functions from getting thorough.
-	if( Function->FunctionFlags & FUNC_NetReliable )
+	if (Function->FunctionFlags & FUNC_NetReliable)
+	{
 		Bunch.bReliable = 1;
+	}
 
 	// Queue unreliable multicast 
 	bool QueueBunch = (!Bunch.bReliable && Function->FunctionFlags & FUNC_NetMulticast);
 
 	if (!QueueBunch)
-		Ch->BeginContentBlock( TargetObj, Bunch );
-
+	{
+		Ch->BeginContentBlock(TargetObj, Bunch);
+	}
+		
 	//UE_LOG(LogScript, Log, TEXT("   Call %s"),Function->GetFullName());
 	check( FieldCache->FieldNetIndex <= ClassCache->GetMaxIndex() );
 	Bunch.WriteIntWrapped(FieldCache->FieldNetIndex, ClassCache->GetMaxIndex()+1);
@@ -791,7 +816,6 @@ void UNetDriver::InternalProcessRemoteFunction
 	{
 		Ch->EndContentBlock( TargetObj, Bunch );
 	}
-
 
 	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("net.RPC.Debug"));
 	bool LogAsWarning = (CVar && CVar->GetValueOnGameThread() == 1);
