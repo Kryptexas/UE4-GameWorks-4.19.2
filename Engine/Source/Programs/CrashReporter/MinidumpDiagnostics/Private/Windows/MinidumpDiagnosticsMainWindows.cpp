@@ -9,7 +9,8 @@
 IMPLEMENT_APPLICATION( MinidumpDiagnostics, "MinidumpDiagnostics" )
 
 // More Windows glue
-int32 GuardedMain( int32 Argc, ANSICHAR* Argv[] )
+template<class TCommandLineChar>
+int32 GuardedMain(int32 Argc, TCommandLineChar* Argv[])
 {
 	GEngineLoop.PreInit( Argc, Argv );
 
@@ -22,7 +23,8 @@ int32 GuardedMain( int32 Argc, ANSICHAR* Argv[] )
 }
 
 // Windows glue
-int32 GuardedMainWrapper( int32 ArgC, ANSICHAR* ArgV[] )
+template<class TCommandLineChar>
+int32 GuardedMainWrapper(int32 ArgC, TCommandLineChar* ArgV[])
 {
 	int32 ReturnCode = 0;
 
