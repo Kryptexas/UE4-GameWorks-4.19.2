@@ -13,6 +13,18 @@
 
 #include "Collision/CollisionDebugDrawing.h"
 
+#if WITH_APEX
+	#include "NxParamUtils.h"
+	#include "NxApex.h"
+
+#if WITH_APEX_CLOTHING
+	#include "NxClothingAsset.h"
+	#include "NxClothingActor.h"
+	#include "NxClothingCollision.h"
+#endif// #if WITH_APEX_CLOTHING
+
+#endif//#if WITH_APEX
+
 #define LOCTEXT_NAMESPACE "SkeletalMeshComponentPhysics"
 
 #if WITH_APEX_CLOTHING
@@ -121,6 +133,9 @@ void USkeletalMesh::LoadClothCollisionVolumes(int32 AssetIndex, NxClothingAsset*
 
 	for(int32 PlaneIdx=0; PlaneIdx<NumPlanes; PlaneIdx++)
 	{
+		FClothBonePlane BonePlane;
+		FCStringAnsi::Sprintf(ParameterName, "bonePlanes[%d].boneIndex", PlaneIdx);
+		verify(NxParameterized::getParamI32(*AssetParams, ParameterName, BonePlane.BoneIndex));
 		FCStringAnsi::Sprintf(ParameterName, "bonePlanes[%d].n", PlaneIdx);
 		verify(NxParameterized::getParamVec3(*AssetParams, ParameterName, PlaneNormal));
 		FCStringAnsi::Sprintf(ParameterName, "bonePlanes[%d].d", PlaneIdx);
@@ -132,8 +147,8 @@ void USkeletalMesh::LoadClothCollisionVolumes(int32 AssetIndex, NxClothingAsset*
 		}
 
 		PlaneData[3] = PlaneDist;
-
-		Asset.ClothCollisionVolumePlanes.Add(P2UPlane(PlaneData));
+		BonePlane.PlaneData = P2UPlane(PlaneData);
+		Asset.ClothCollisionVolumePlanes.Add(BonePlane);
 	}
 
 	// load bone spheres
@@ -1789,11 +1804,11 @@ bool USkeletalMeshComponent::HasValidClothingActors()
 	return false;
 }
 
-// if any changes in clothing assets, will create new actors 
+//if any changes in clothing assets, will create new actors 
 void USkeletalMeshComponent::ValidateClothingActors()
 {
-	// newly spawned component's tick group could be "specified tick group + 1" for the first few frames
-	// but it comes back to original tick group soon
+	//newly spawned component's tick group could be "specified tick group + 1" for the first few frames
+	//but it comes back to original tick group soon
 	if(PrimaryComponentTick.GetActualTickGroup() != PrimaryComponentTick.TickGroup)
 	{
 		return;
@@ -1806,7 +1821,7 @@ void USkeletalMeshComponent::ValidateClothingActors()
 
 	int32 NumAssets = SkeletalMesh->ClothingAssets.Num();
 
-	// if clothing assets are added or removed, re-create after removing all
+	//if clothing assets are added or removed, re-create after removing all
 	if(ClothingActors.Num() != NumAssets)
 	{
 		RemoveAllClothingActors();
@@ -1833,10 +1848,10 @@ void USkeletalMeshComponent::ValidateClothingActors()
 			}
 		}
 		else 
-		{	// don't have cloth sections but clothing actor is alive
+		{	//don't have cloth sections but clothing actor is alive
 			if(IsValidClothingActor(AssetIdx))
 			{
-				// clear because mapped sections are removed
+				//clear because mapped sections are removed
 				ClothingActors[AssetIdx].Clear(true);
 			}
 		}
@@ -1851,7 +1866,7 @@ void USkeletalMeshComponent::ValidateClothingActors()
 /** 
  * APEX clothing actor is created from APEX clothing asset for cloth simulation 
  * If this is invalid, re-create actor , but if valid ,just skip to create
- */
+*/
 bool USkeletalMeshComponent::CreateClothingActor(int32 AssetIndex, TSharedPtr<FClothingAssetWrapper> ClothingAssetWrapper)
 {	
 	int32 NumActors = ClothingActors.Num();
@@ -1891,7 +1906,7 @@ bool USkeletalMeshComponent::CreateClothingActor(int32 AssetIndex, TSharedPtr<FC
 
 	FVector ScaleVector = ComponentToWorld.GetScale3D();
 
-	// support only uniform scale
+	//support only uniform scale
 	verify(NxParameterized::setParamF32(*ActorDesc, "actorScale", ScaleVector.X));
 
 	bool bUseInternalBoneOrder = true;
@@ -1966,6 +1981,12 @@ bool USkeletalMeshComponent::CreateClothingActor(int32 AssetIndex, TSharedPtr<FC
 	// 0 means no simulation
 	ClothingActor->forcePhysicalLod(1); // 1 will be changed to "GetActivePhysicalLod()" later
 	ClothingActor->setFrozen(false);
+
+	// process clothing collisions once for the case that this component doesn't move
+	if(bCollideWithEnvironment)
+	{
+		ProcessClothCollisionWithEnvironment();
+	}
 
 	return true;
 }
@@ -2165,7 +2186,7 @@ void USkeletalMeshComponent::DrawDebugClothCollisions()
 {
 	FColor Colors[6] = { FColor::Red, FColor::Green, FColor::Blue, FColor::Cyan, FColor::Yellow, FColor::Magenta };
 
-	for (auto It = ClothOverlappedComponentsMap.CreateConstIterator(); It; ++It)
+	for( auto It = ClothOverlappedComponentsMap.CreateConstIterator(); It; ++It )
 	{
 		TWeakObjectPtr<UPrimitiveComponent> PrimComp = It.Key();
 
@@ -2174,36 +2195,36 @@ void USkeletalMeshComponent::DrawDebugClothCollisions()
 		if (Channel == ECollisionChannel::ECC_WorldStatic)
 		{
 			if (!GetClothCollisionDataFromStaticMesh(PrimComp.Get(), CollisionPrims))
-			{
-				return;
-			}
+		{
+			return;
+		}
 
-			for (int32 PrimIndex = 0; PrimIndex < CollisionPrims.Num(); PrimIndex++)
+		for(int32 PrimIndex=0; PrimIndex < CollisionPrims.Num(); PrimIndex++)
+		{
+			switch(CollisionPrims[PrimIndex].PrimType)
 			{
-				switch (CollisionPrims[PrimIndex].PrimType)
-				{
-				case FClothCollisionPrimitive::SPHERE:
-					DrawDebugSphere(GetWorld(), CollisionPrims[PrimIndex].Origin, CollisionPrims[PrimIndex].Radius, 10, FColor::Red);
-					break;
+			case FClothCollisionPrimitive::SPHERE:
+				DrawDebugSphere(GetWorld(), CollisionPrims[PrimIndex].Origin, CollisionPrims[PrimIndex].Radius, 10, FColor::Red);
+				break;
 
-				case FClothCollisionPrimitive::CAPSULE:
+			case FClothCollisionPrimitive::CAPSULE:
 				{
 					FVector DiffVec = CollisionPrims[PrimIndex].SpherePos2 - CollisionPrims[PrimIndex].SpherePos1;
 					float HalfHeight = DiffVec.Size() * 0.5f;
 					FQuat Rotation = PrimComp->ComponentToWorld.GetRotation();
-					DrawDebugCapsule(GetWorld(), CollisionPrims[PrimIndex].Origin, HalfHeight, CollisionPrims[PrimIndex].Radius, Rotation, FColor::Red);
+					DrawDebugCapsule(GetWorld(), CollisionPrims[PrimIndex].Origin, HalfHeight, CollisionPrims[PrimIndex].Radius, Rotation, FColor::Red );
 				}
 
-					break;
-				case FClothCollisionPrimitive::CONVEX:
-					DrawDebugConvexFromPlanes(CollisionPrims[PrimIndex], Colors[PrimIndex % 6]);
-					break;
-				}
-
-				//draw a bounding box for double checking
-				DrawDebugBox(GetWorld(), PrimComp->Bounds.Origin, PrimComp->Bounds.BoxExtent, FColor::Red);
+				break;
+			case FClothCollisionPrimitive::CONVEX:	
+				DrawDebugConvexFromPlanes(CollisionPrims[PrimIndex], Colors[PrimIndex%6]);
+				break;
 			}
+
+			//draw a bounding box for double checking
+			DrawDebugBox(GetWorld(), PrimComp->Bounds.Origin, PrimComp->Bounds.BoxExtent, FColor::Red );
 		}
+	}
 		else if (Channel == ECollisionChannel::ECC_PhysicsBody) // supports an interaction between the character and other clothing such as a curtain
 		{
 			bool bCreatedCollisions = false;
@@ -2391,7 +2412,7 @@ bool USkeletalMeshComponent::GetClothCollisionDataFromStaticMesh(UPrimitiveCompo
 			}
 			break;
 		}
-	}		
+	}
 	return true;
 }
 
@@ -2439,12 +2460,12 @@ void USkeletalMeshComponent::FindClothCollisions(TArray<FApexClothCollisionVolum
 				NewCollision.LocalPose = LocalToWorld;
 				OutCollisions.Add(NewCollision);
 			}
+			}
 		}
 	}
-}
 
 void USkeletalMeshComponent::CreateInternalClothCollisions(TArray<FApexClothCollisionVolumeData>& InCollisions, TArray<physx::apex::NxClothingCollision*>& OutCollisions)
-{
+	{
 	int32 NumCollisions = InCollisions.Num();
 
 	const int32 MaxNumCapsules = 16;
@@ -2452,42 +2473,42 @@ void USkeletalMeshComponent::CreateInternalClothCollisions(TArray<FApexClothColl
 	NumCollisions = FMath::Min(NumCollisions, MaxNumCapsules);
 	int32 NumActors = ClothingActors.Num();
 
-	for (int32 ActorIdx = 0; ActorIdx < NumActors; ActorIdx++)
-	{
-		if (!IsValidClothingActor(ActorIdx))
+		for(int32 ActorIdx=0; ActorIdx < NumActors; ActorIdx++)
 		{
-			continue;
-		}
+		if (!IsValidClothingActor(ActorIdx))
+			{
+				continue;
+			}
 
 		NxClothingActor* Actor = ClothingActors[ActorIdx].ApexClothingActor;
 		int32 NumCurrentCapsules = SkeletalMesh->ClothingAssets[ActorIdx].ClothCollisionVolumes.Num(); // # of capsules 
 
-		for (int32 ColIdx = 0; ColIdx < NumCollisions; ColIdx++)
-		{
-			// support only capsules now 
-			if (InCollisions[ColIdx].IsCapsule() && NumCurrentCapsules < MaxNumCapsules)
+			for(int32 ColIdx=0; ColIdx < NumCollisions; ColIdx++)
 			{
+				// support only capsules now 
+			if (InCollisions[ColIdx].IsCapsule() && NumCurrentCapsules < MaxNumCapsules)
+				{
 				FVector Origin = InCollisions[ColIdx].LocalPose.GetOrigin();
-				// apex uses y-axis as the up-axis of capsule
+					// apex uses y-axis as the up-axis of capsule
 				FVector UpAxis = InCollisions[ColIdx].LocalPose.GetScaledAxis(EAxis::Y);
-
+					
 				float Radius = InCollisions[ColIdx].CapsuleRadius*UpAxis.Size();
 
 				float HalfHeight = InCollisions[ColIdx].CapsuleHeight*0.5f;
-				const FVector TopEnd = Origin + (HalfHeight * UpAxis);
-				const FVector BottomEnd = Origin - (HalfHeight * UpAxis);
+					const FVector TopEnd = Origin + (HalfHeight * UpAxis);
+					const FVector BottomEnd = Origin - (HalfHeight * UpAxis);
 
-				NxClothingSphere* Sphere1 = Actor->createCollisionSphere(U2PVector(TopEnd), Radius);
-				NxClothingSphere* Sphere2 = Actor->createCollisionSphere(U2PVector(BottomEnd), Radius);
+					NxClothingSphere* Sphere1 = Actor->createCollisionSphere(U2PVector(TopEnd), Radius);
+					NxClothingSphere* Sphere2 = Actor->createCollisionSphere(U2PVector(BottomEnd), Radius);
 
-				NxClothingCapsule* Capsule = Actor->createCollisionCapsule(*Sphere1, *Sphere2);
+					NxClothingCapsule* Capsule = Actor->createCollisionCapsule(*Sphere1, *Sphere2);
 
 				OutCollisions.Add(Capsule);
 				NumCurrentCapsules++;
+				}
 			}
 		}
 	}
-}
 
 void USkeletalMeshComponent::CopyClothCollisionsToChildren()
 {
@@ -2578,7 +2599,7 @@ void USkeletalMeshComponent::ReleaseClothingCollision(NxClothingCollision* Colli
 
 			check(Capsule);
 
-			Capsule->releaseWithSpheres(); 
+			Capsule->releaseWithSpheres();
 		}
 		break;
 
@@ -2610,76 +2631,76 @@ FApexClothCollisionInfo* USkeletalMeshComponent::CreateNewClothingCollsions(UPri
 	if (Channel == ECollisionChannel::ECC_WorldStatic)
 	{
 		if (!GetClothCollisionDataFromStaticMesh(PrimitiveComponent, CollisionPrims))
-		{
-			return NULL;
-		}
+	{
+		return NULL;
+	}
 
 		NewInfo.OverlapCompType = FApexClothCollisionInfo::OCT_STATIC;
 
-		int32 NumActors = ClothingActors.Num();
+	int32 NumActors = ClothingActors.Num();
 
-		for (int32 ActorIdx = 0; ActorIdx < NumActors; ActorIdx++)
-		{
-			NxClothingActor* Actor = ClothingActors[ActorIdx].ApexClothingActor;
+	for(int32 ActorIdx=0; ActorIdx < NumActors; ActorIdx++)
+	{
+		NxClothingActor* Actor = ClothingActors[ActorIdx].ApexClothingActor;
 
-			if (Actor)
+		if(Actor)
+		{	
+			for(int32 PrimIndex=0; PrimIndex < CollisionPrims.Num(); PrimIndex++)
 			{
-				for (int32 PrimIndex = 0; PrimIndex < CollisionPrims.Num(); PrimIndex++)
-				{
-					NxClothingCollision* ClothCol = NULL;
+				NxClothingCollision* ClothCol = NULL;
 
-					switch (CollisionPrims[PrimIndex].PrimType)
+				switch(CollisionPrims[PrimIndex].PrimType)
+				{
+				case FClothCollisionPrimitive::SPHERE:
+					ClothCol = Actor->createCollisionSphere(U2PVector(CollisionPrims[PrimIndex].Origin), CollisionPrims[PrimIndex].Radius);
+					if(ClothCol)
 					{
-					case FClothCollisionPrimitive::SPHERE:
-						ClothCol = Actor->createCollisionSphere(U2PVector(CollisionPrims[PrimIndex].Origin), CollisionPrims[PrimIndex].Radius);
-						if (ClothCol)
-						{
-							NewInfo.ClothingCollisions.Add(ClothCol);
-						}
-						break;
-					case FClothCollisionPrimitive::CAPSULE:
+						NewInfo.ClothingCollisions.Add(ClothCol);
+					}
+					break;
+				case FClothCollisionPrimitive::CAPSULE:
 					{
 						float Radius = CollisionPrims[PrimIndex].Radius;
 						NxClothingSphere* Sphere1 = Actor->createCollisionSphere(U2PVector(CollisionPrims[PrimIndex].SpherePos1), Radius);
 						NxClothingSphere* Sphere2 = Actor->createCollisionSphere(U2PVector(CollisionPrims[PrimIndex].SpherePos2), Radius);
 
 						ClothCol = Actor->createCollisionCapsule(*Sphere1, *Sphere2);
-						if (ClothCol)
+						if(ClothCol)
 						{
 							NewInfo.ClothingCollisions.Add(ClothCol);
 						}
 					}
-						break;
-					case FClothCollisionPrimitive::CONVEX:
+					break;
+				case FClothCollisionPrimitive::CONVEX:
 
-						int32 NumPlanes = CollisionPrims[PrimIndex].ConvexPlanes.Num();
+					int32 NumPlanes = CollisionPrims[PrimIndex].ConvexPlanes.Num();
 
-						TArray<NxClothingPlane*> ClothingPlanes;
+					TArray<NxClothingPlane*> ClothingPlanes;
 
-						//can not exceed 32 planes
-						NumPlanes = FMath::Min(NumPlanes, 32);
+					//can not exceed 32 planes
+					NumPlanes = FMath::Min(NumPlanes, 32);
 
-						ClothingPlanes.AddUninitialized(NumPlanes);
+					ClothingPlanes.AddUninitialized(NumPlanes);
 
-						for (int32 PlaneIdx = 0; PlaneIdx < NumPlanes; PlaneIdx++)
-						{
-							PxPlane PPlane = U2PPlane(CollisionPrims[PrimIndex].ConvexPlanes[PlaneIdx]);
+					for(int32 PlaneIdx=0; PlaneIdx < NumPlanes; PlaneIdx++)
+					{
+						PxPlane PPlane = U2PPlane(CollisionPrims[PrimIndex].ConvexPlanes[PlaneIdx]);
 
-							ClothingPlanes[PlaneIdx] = Actor->createCollisionPlane(PPlane);
-						}
-
-						ClothCol = Actor->createCollisionConvex(ClothingPlanes.GetTypedData(), ClothingPlanes.Num());
-
-						if (ClothCol)
-						{
-							NewInfo.ClothingCollisions.Add(ClothCol);
-						}
-
-						break;
+						ClothingPlanes[PlaneIdx] = Actor->createCollisionPlane(PPlane);
 					}
+
+					ClothCol = Actor->createCollisionConvex(ClothingPlanes.GetTypedData(), ClothingPlanes.Num());
+
+					if(ClothCol)
+					{
+						NewInfo.ClothingCollisions.Add(ClothCol);
+					}
+
+					break;
 				}
 			}
 		}
+	}
 	}
 	else if (Channel == ECollisionChannel::ECC_PhysicsBody) // creates new clothing collisions for clothing objects
 	{
@@ -2957,10 +2978,10 @@ void USkeletalMeshComponent::PreClothTick(float DeltaTime)
 
 	// if skeletal mesh has clothing assets, call TickClothing
 	if (SkeletalMesh && SkeletalMesh->ClothingAssets.Num() > 0)
-	{
+		{
 		TickClothing(DeltaTime + SkippedTickDeltaTime);
+		}
 	}
-}
 
 void USkeletalMeshComponent::UpdateClothState(float DeltaTime)
 {
@@ -3079,7 +3100,7 @@ void USkeletalMeshComponent::TickClothing(float DeltaTime)
 	}
 	else
 	{
-		ValidateClothingActors();
+	ValidateClothingActors();
 		UpdateClothState(DeltaTime);
 	}
 #if 0 //if turn on this flag, you can check which primitive objects are activated for collision detection
@@ -3200,7 +3221,7 @@ bool USkeletalMeshComponent::IsValidClothingActor(int32 ActorIndex) const
 
 }
 
-void USkeletalMeshComponent::DrawClothingNormals(FPrimitiveDrawInterface* PDI) const
+void USkeletalMeshComponent::DrawClothingNormals(FPrimitiveDrawInterface* PDI)
 {
 #if WITH_APEX_CLOTHING
 	if (!SkeletalMesh) 
@@ -3223,7 +3244,8 @@ void USkeletalMeshComponent::DrawClothingNormals(FPrimitiveDrawInterface* PDI) c
 		{
 			uint32 NumSimulVertices = ClothingActor->getNumSimulationVertices();
 
-			if(NumSimulVertices > 0)
+			// simulation is enabled and there exist simulated vertices
+			if(!bDisableClothSimulation && NumSimulVertices > 0)
 			{
 				const physx::PxVec3* Vertices = ClothingActor->getSimulationPositions();
 				const physx::PxVec3* Normals = ClothingActor->getSimulationNormals();
@@ -3235,6 +3257,39 @@ void USkeletalMeshComponent::DrawClothingNormals(FPrimitiveDrawInterface* PDI) c
 				{
 					Start = P2UVector(Vertices[i]);
 					End = P2UVector(Normals[i]); 
+					End *= 5.0f;
+
+					End = Start + End;
+
+					PDI->DrawLine(Start, End, LineColor, SDPG_World);
+				}
+			}
+			else // otherwise, draws initial values loaded from the asset file
+			{
+				if(SkeletalMesh->ClothingAssets[ActorIdx].ClothVisualizationInfos.Num() == 0)
+				{
+					LoadClothingVisualizationInfo(ActorIdx);
+				}
+
+				int32 PhysicalMeshLOD = PredictedLODLevel;
+
+				// if this asset doesn't have current physical mesh LOD, then skip to visualize
+				if(!SkeletalMesh->ClothingAssets[ActorIdx].ClothVisualizationInfos.IsValidIndex(PhysicalMeshLOD))
+				{
+					continue;
+				}
+
+				FClothVisualizationInfo& VisualInfo = SkeletalMesh->ClothingAssets[ActorIdx].ClothVisualizationInfos[PhysicalMeshLOD];				
+
+				uint32 NumVertices = VisualInfo.ClothPhysicalMeshVertices.Num();
+
+				FLinearColor LineColor = FColor::Red;
+				FVector Start, End;
+
+				for(uint32 i=0; i<NumVertices; i++)
+				{
+					Start = VisualInfo.ClothPhysicalMeshVertices[i];
+					End = VisualInfo.ClothPhysicalMeshNormals[i]; 
 
 					End *= 5.0f;
 
@@ -3248,7 +3303,7 @@ void USkeletalMeshComponent::DrawClothingNormals(FPrimitiveDrawInterface* PDI) c
 #endif // #if WITH_APEX_CLOTHING
 }
 
-void USkeletalMeshComponent::DrawClothingTangents(FPrimitiveDrawInterface* PDI) const
+void USkeletalMeshComponent::DrawClothingTangents(FPrimitiveDrawInterface* PDI)
 {
 #if WITH_APEX_CLOTHING
 
@@ -3272,11 +3327,9 @@ void USkeletalMeshComponent::DrawClothingTangents(FPrimitiveDrawInterface* PDI) 
 		{
 			uint32 NumSimulVertices = ClothingActor->getNumSimulationVertices();
 
-			if(NumSimulVertices == 0)
+			// simulation is enabled and there exist simulated vertices
+			if(!bDisableClothSimulation && NumSimulVertices > 0)
 			{
-				return;
-			}
-
 				uint16 ChunkIndex = 0;
 
 				FStaticLODModel& LODModel = MeshObject->GetSkeletalMeshResource().LODModels[PredictedLODLevel];
@@ -3355,19 +3408,127 @@ void USkeletalMeshComponent::DrawClothingTangents(FPrimitiveDrawInterface* PDI) 
 						End *= 5.0f;
 						End = Start + End;
 
-						PDI->DrawLine(Start, End, FColor::Red, SDPG_World);
+						PDI->DrawLine(Start, End, FColor::Green, SDPG_World);
 
 						End = Tangent; 
 						End *= 5.0f;
 						End = Start + End;
 
-						PDI->DrawLine(Start, End, FColor::Blue, SDPG_World);
+						PDI->DrawLine(Start, End, FColor::Red, SDPG_World);
 
 						End = BiNormal; 
 						End *= 5.0f;
 						End = Start + End;
 
+						PDI->DrawLine(Start, End, FColor::Blue, SDPG_World);
+					}
+				}
+			}
+			else
+			{
+				if(SkeletalMesh->ClothingAssets[ActorIdx].ClothVisualizationInfos.Num() == 0)
+				{
+					LoadClothingVisualizationInfo(ActorIdx);
+				}
+
+				int32 PhysicalMeshLOD = PredictedLODLevel;
+
+				// if this asset doesn't have current physical mesh LOD, then skip to visualize
+				if(!SkeletalMesh->ClothingAssets[ActorIdx].ClothVisualizationInfos.IsValidIndex(PhysicalMeshLOD))
+				{
+					continue;
+				}
+
+				FClothVisualizationInfo& VisualInfo = SkeletalMesh->ClothingAssets[ActorIdx].ClothVisualizationInfos[PhysicalMeshLOD];				
+
+				NumSimulVertices = VisualInfo.ClothPhysicalMeshVertices.Num();
+
+				uint16 ChunkIndex = 0;
+
+				FStaticLODModel& LODModel = MeshObject->GetSkeletalMeshResource().LODModels[PredictedLODLevel];
+
+				TArray<uint32> SectionIndices;
+				SkeletalMesh->GetClothSectionIndices(PredictedLODLevel, ActorIdx, SectionIndices);
+
+				int32 NumSections = SectionIndices.Num();
+
+				for(int32 SecIdx=0; SecIdx <NumSections; SecIdx++)
+				{
+					uint16 SectionIndex = SectionIndices[SecIdx];
+
+					ChunkIndex = LODModel.Sections[SectionIndex].ChunkIndex;
+
+					FSkelMeshChunk& Chunk = LODModel.Chunks[ChunkIndex];
+
+					const TArray<FVector>& SimulVertices = VisualInfo.ClothPhysicalMeshVertices;
+					const TArray<FVector>& SimulNormals = VisualInfo.ClothPhysicalMeshNormals;
+
+					uint32 NumMppingData = Chunk.ApexClothMappingData.Num();
+
+					FVector Start, End;		
+
+					for(uint32 MappingIndex=0; MappingIndex < NumMppingData; MappingIndex++)
+					{
+						FVector4 BaryCoordPos = Chunk.ApexClothMappingData[MappingIndex].PositionBaryCoordsAndDist;
+						FVector4 BaryCoordNormal = Chunk.ApexClothMappingData[MappingIndex].NormalBaryCoordsAndDist;
+						FVector4 BaryCoordTangent = Chunk.ApexClothMappingData[MappingIndex].TangentBaryCoordsAndDist;
+						uint16*  SimulIndices = Chunk.ApexClothMappingData[MappingIndex].SimulMeshVertIndices;
+
+						bool bFixed = (SimulIndices[3] == 0xFFFF);
+
+						check(SimulIndices[0] < NumSimulVertices && SimulIndices[1] < NumSimulVertices && SimulIndices[2] < NumSimulVertices);
+
+						FVector a = SimulVertices[SimulIndices[0]];
+						FVector b = SimulVertices[SimulIndices[1]];
+						FVector c = SimulVertices[SimulIndices[2]];
+
+						FVector na = SimulNormals[SimulIndices[0]];
+						FVector nb = SimulNormals[SimulIndices[1]];
+						FVector nc = SimulNormals[SimulIndices[2]];
+
+						FVector Position = 
+							BaryCoordPos.X*(a + BaryCoordPos.W*na)
+							+ BaryCoordPos.Y*(b + BaryCoordPos.W*nb)
+							+ BaryCoordPos.Z*(c + BaryCoordPos.W*nc);
+
+						FVector Normal = 
+							BaryCoordNormal.X*(a + BaryCoordNormal.W*na)
+							+ BaryCoordNormal.Y*(b + BaryCoordNormal.W*nb) 
+							+ BaryCoordNormal.Z*(c + BaryCoordNormal.W*nc);
+
+						FVector Tangent = 
+							BaryCoordTangent.X*(a + BaryCoordTangent.W*na) 
+							+ BaryCoordTangent.Y*(b + BaryCoordTangent.W*nb)  
+							+ BaryCoordTangent.Z*(c + BaryCoordTangent.W*nc);
+
+						Normal -= Position;
+						Normal.Normalize();
+
+						Tangent -= Position;
+						Tangent.Normalize();
+
+						FVector BiNormal = FVector::CrossProduct(Normal, Tangent);
+						BiNormal.Normalize();
+
+						Start = Position;
+						End = Normal; 
+						End *= 5.0f;
+						End = Start + End;
+
 						PDI->DrawLine(Start, End, FColor::Green, SDPG_World);
+
+						End = Tangent; 
+						End *= 5.0f;
+						End = Start + End;
+
+						PDI->DrawLine(Start, End, FColor::Red, SDPG_World);
+
+						End = BiNormal; 
+						End *= 5.0f;
+						End = Start + End;
+
+						PDI->DrawLine(Start, End, FColor::Blue, SDPG_World);
+					}
 					}
 				}
 			}
@@ -3431,7 +3592,7 @@ void USkeletalMeshComponent::DrawClothingCollisionVolumes(FPrimitiveDrawInterfac
 				DrawWireCapsule(PDI, LocalToWorld.GetOrigin(), LocalToWorld.GetUnitAxis(EAxis::X), LocalToWorld.GetUnitAxis(EAxis::Z), LocalToWorld.GetUnitAxis(EAxis::Y), CapsuleColor, Collisions[i].CapsuleRadius, CapsuleHalfHeight, CapsuleSides, SDPG_World);
 				SphereCount += 2; // 1 capsule takes 2 spheres
 			}
-		}
+			}
 
 		// draw bone spheres
 		TArray<FApexClothBoneSphereData>& Spheres = SkeletalMesh->ClothingAssets[AssetIdx].ClothBoneSpheres;
@@ -3443,7 +3604,7 @@ void USkeletalMeshComponent::DrawClothingCollisionVolumes(FPrimitiveDrawInterfac
 
 		for(int32 i=0; i<NumSpheres; i++)
 		{
-			if(Spheres[i].BoneIndex < 0) 
+			if(Spheres[i].BoneIndex < 0)
 			{
 				continue;
 			}
@@ -3487,6 +3648,603 @@ void USkeletalMeshComponent::DrawClothingCollisionVolumes(FPrimitiveDrawInterfac
 			DrawDebugLine(GetWorld(), SpherePositions[Index1], SpherePositions[Index2], FColor::Magenta, false, -1.0f, SDPG_Foreground);
 		}
 	}
+#endif // #if WITH_APEX_CLOTHING
+}
+
+void USkeletalMeshComponent::DrawClothingFixedVertices(FPrimitiveDrawInterface* PDI)
+{
+#if WITH_APEX_CLOTHING
+
+	if (!SkeletalMesh || !MeshObject)
+	{
+		return;
+	}
+
+	int32 NumActors = ClothingActors.Num();
+
+	TArray<FMatrix> RefToLocals;
+	// get local matrices for skinning
+	UpdateRefToLocalMatrices(RefToLocals, this, GetSkeletalMeshResource(), 0, NULL);
+	const float Inv_255 = 1.f/255.f;
+
+	for(int32 ActorIdx=0; ActorIdx<NumActors; ActorIdx++)
+	{
+		if(!IsValidClothingActor(ActorIdx))
+		{
+			continue;
+		}
+
+		NxClothingActor* ClothingActor = ClothingActors[ActorIdx].ApexClothingActor;
+
+		if (ClothingActor)
+		{
+			uint32 NumSimulVertices = ClothingActor->getNumSimulationVertices();
+
+			if(SkeletalMesh->ClothingAssets[ActorIdx].ClothVisualizationInfos.Num() == 0)
+			{
+				LoadClothingVisualizationInfo(ActorIdx);
+			}
+
+			int32 PhysicalMeshLOD = PredictedLODLevel;
+
+			// if this asset doesn't have current physical mesh LOD, then skip to visualize
+			if(!SkeletalMesh->ClothingAssets[ActorIdx].ClothVisualizationInfos.IsValidIndex(PhysicalMeshLOD))
+			{
+				continue;
+			}
+
+			FClothVisualizationInfo& VisualInfo = SkeletalMesh->ClothingAssets[ActorIdx].ClothVisualizationInfos[PhysicalMeshLOD];				
+
+			NumSimulVertices = VisualInfo.ClothPhysicalMeshVertices.Num();
+
+			uint16 ChunkIndex = 0;
+
+			FStaticLODModel& LODModel = MeshObject->GetSkeletalMeshResource().LODModels[PredictedLODLevel];
+
+			TArray<uint32> SectionIndices;
+			SkeletalMesh->GetClothSectionIndices(PredictedLODLevel, ActorIdx, SectionIndices);
+
+			int32 NumSections = SectionIndices.Num();
+
+			for(int32 SecIdx=0; SecIdx <NumSections; SecIdx++)
+			{
+				uint16 SectionIndex = SectionIndices[SecIdx];
+
+				ChunkIndex = LODModel.Sections[SectionIndex].ChunkIndex;
+
+				FSkelMeshChunk& Chunk = LODModel.Chunks[ChunkIndex];
+
+				const TArray<FVector>& SimulVertices = VisualInfo.ClothPhysicalMeshVertices;
+				const TArray<FVector>& SimulNormals = VisualInfo.ClothPhysicalMeshNormals;
+
+				uint32 NumMppingData = Chunk.ApexClothMappingData.Num();
+
+				FVector Start, End;		
+
+				for(uint32 MappingIndex=0; MappingIndex < NumMppingData; MappingIndex++)
+				{
+					FVector4 BaryCoordPos = Chunk.ApexClothMappingData[MappingIndex].PositionBaryCoordsAndDist;
+					FVector4 BaryCoordNormal = Chunk.ApexClothMappingData[MappingIndex].NormalBaryCoordsAndDist;
+					FVector4 BaryCoordTangent = Chunk.ApexClothMappingData[MappingIndex].TangentBaryCoordsAndDist;
+					uint16*  SimulIndices = Chunk.ApexClothMappingData[MappingIndex].SimulMeshVertIndices;
+
+					bool bFixed = (SimulIndices[3] == 0xFFFF);
+
+					if(!bFixed)
+					{
+						continue;
+					}
+
+					check(SimulIndices[0] < NumSimulVertices && SimulIndices[1] < NumSimulVertices && SimulIndices[2] < NumSimulVertices);
+					
+					FVector a = SimulVertices[SimulIndices[0]];
+					FVector b = SimulVertices[SimulIndices[1]];
+					FVector c = SimulVertices[SimulIndices[2]];
+
+					FVector na = SimulNormals[SimulIndices[0]];
+					FVector nb = SimulNormals[SimulIndices[1]];
+					FVector nc = SimulNormals[SimulIndices[2]];
+
+					FVector Position = 
+						BaryCoordPos.X*(a + BaryCoordPos.W*na)
+						+ BaryCoordPos.Y*(b + BaryCoordPos.W*nb)
+						+ BaryCoordPos.Z*(c + BaryCoordPos.W*nc);
+
+					FSoftSkinVertex& SoftVert = Chunk.SoftVertices[MappingIndex];
+
+					// skinning, APEX clothing supports up to 4 bone influences for now
+					const uint8* BoneIndices = SoftVert.InfluenceBones;
+					const uint8* BoneWeights = SoftVert.InfluenceWeights;
+				
+					FMatrix SkinningMat(ForceInitToZero);
+
+					for(int32 BoneWeightIdx=0; BoneWeightIdx < Chunk.MaxBoneInfluences; BoneWeightIdx++)
+					{
+						float Weight = BoneWeights[BoneWeightIdx]*Inv_255;
+						SkinningMat += RefToLocals[Chunk.BoneMap[BoneIndices[BoneWeightIdx]]]*Weight;
+					}
+
+					FVector SkinnedPosition = SkinningMat.TransformPosition(Position);
+					// draws a skinned fixed vertex
+					PDI->DrawPoint(SkinnedPosition, FColor::Yellow, 2, SDPG_World);
+				}
+			}
+		}
+	}
+
+#endif // #if WITH_APEX_CLOTHING
+}
+
+void USkeletalMeshComponent::LoadClothingVisualizationInfo(int32 AssetIndex)
+{
+#if WITH_APEX_CLOTHING
+
+	if (!SkeletalMesh || !SkeletalMesh->ClothingAssets.IsValidIndex(AssetIndex)) 
+	{
+		return;
+	}
+
+
+	FClothingAssetData& AssetData = SkeletalMesh->ClothingAssets[AssetIndex];
+	NxClothingAsset* ApexClothingAsset = AssetData.ApexClothingAsset->GetAsset();
+	const NxParameterized::Interface* AssetParams = ApexClothingAsset->getAssetNxParameterized();
+
+	int32 NumPhysicalLODs;
+	NxParameterized::getParamArraySize(*AssetParams, "physicalMeshes", NumPhysicalLODs);
+
+	check(NumPhysicalLODs == ApexClothingAsset->getNumGraphicalLodLevels());
+
+	// prepares to load data for each LOD
+	AssetData.ClothVisualizationInfos.Empty(NumPhysicalLODs);
+	AssetData.ClothVisualizationInfos.AddZeroed(NumPhysicalLODs);
+
+	for(int32 LODIndex=0; LODIndex<NumPhysicalLODs; LODIndex++)
+	{
+		FClothVisualizationInfo& VisualInfo = AssetData.ClothVisualizationInfos[LODIndex];
+
+		char ParameterName[MAX_SPRINTF];
+		FCStringAnsi::Sprintf(ParameterName, "physicalMeshes[%d]", LODIndex);
+
+		NxParameterized::Interface* PhysicalMeshParams;
+		uint32 NumVertices = 0;
+		uint32 NumIndices = 0;
+		// physical mesh vertices & normals
+		if (NxParameterized::getParamRef(*AssetParams, ParameterName, PhysicalMeshParams))
+		{
+			if(PhysicalMeshParams != NULL)
+			{
+				verify(NxParameterized::getParamU32(*PhysicalMeshParams, "physicalMesh.numVertices", NumVertices));
+
+				// physical mesh vertices
+				physx::PxI32 VertexCount = 0;
+				if (NxParameterized::getParamArraySize(*PhysicalMeshParams, "physicalMesh.vertices", VertexCount))
+				{
+					check(VertexCount == NumVertices);
+					VisualInfo.ClothPhysicalMeshVertices.Empty(NumVertices);
+
+					for (uint32 VertexIndex = 0; VertexIndex < NumVertices; ++VertexIndex)
+					{
+						FCStringAnsi::Sprintf( ParameterName, "physicalMesh.vertices[%d]", VertexIndex );
+						NxParameterized::Handle MeshVertexHandle(*PhysicalMeshParams);
+						if (NxParameterized::findParam(*PhysicalMeshParams, ParameterName, MeshVertexHandle) != NULL)
+						{
+							physx::PxVec3  Vertex;
+							MeshVertexHandle.getParamVec3(Vertex);
+							VisualInfo.ClothPhysicalMeshVertices.Add(P2UVector(Vertex));
+						}
+					}
+				}
+
+				// bone weights & bone indices
+
+				physx::PxI32 BoneWeightsCount = 0;
+				if (NxParameterized::getParamArraySize(*PhysicalMeshParams, "physicalMesh.boneWeights", BoneWeightsCount))
+				{
+					VisualInfo.ClothPhysicalMeshBoneWeightsInfo.AddZeroed(VertexCount);
+
+					int32 MaxBoneWeights = BoneWeightsCount / VertexCount;
+					VisualInfo.NumMaxBoneInfluences = MaxBoneWeights;
+
+					physx::PxI32 BoneIndicesCount = 0;
+					verify(NxParameterized::getParamArraySize(*PhysicalMeshParams, "physicalMesh.boneIndices", BoneIndicesCount));
+					check(BoneIndicesCount == BoneWeightsCount);
+
+					NxParameterized::Handle BoneWeightHandle(*PhysicalMeshParams);
+					for (int32 VertexIndex = 0; VertexIndex < VertexCount; ++VertexIndex)
+					{
+						for(uint8 WeightIndex=0; WeightIndex < MaxBoneWeights; ++WeightIndex)
+						{
+							uint32 CurBoneWeightIndex = VertexIndex*MaxBoneWeights + WeightIndex;
+
+							NxParameterized::Handle BoneIndexHandle(*PhysicalMeshParams);
+							FCStringAnsi::Sprintf( ParameterName, "physicalMesh.boneIndices[%d]", CurBoneWeightIndex );
+							verify(NxParameterized::findParam(*PhysicalMeshParams, ParameterName, BoneIndexHandle));
+							uint16 BoneIndex;
+							BoneIndexHandle.getParamU16(BoneIndex);
+							VisualInfo.ClothPhysicalMeshBoneWeightsInfo[VertexIndex].Indices[WeightIndex] = BoneIndex;
+
+							NxParameterized::Handle BoneWeightHandle(*PhysicalMeshParams);
+							FCStringAnsi::Sprintf( ParameterName, "physicalMesh.boneWeights[%d]", CurBoneWeightIndex );
+							verify(NxParameterized::findParam(*PhysicalMeshParams, ParameterName, BoneWeightHandle));
+							float BoneWeight;
+							BoneWeightHandle.getParamF32(BoneWeight);
+							VisualInfo.ClothPhysicalMeshBoneWeightsInfo[VertexIndex].Weights[WeightIndex] = BoneWeight;
+						}
+					}
+				}
+
+				// physical mesh normals
+				physx::PxI32 NormalCount = 0;
+				if (NxParameterized::getParamArraySize(*PhysicalMeshParams, "physicalMesh.normals", NormalCount))
+				{
+					check(NormalCount == NumVertices);
+					VisualInfo.ClothPhysicalMeshNormals.Empty(NormalCount);
+
+					for (int32 NormalIndex = 0; NormalIndex < NormalCount; ++NormalIndex)
+					{
+						FCStringAnsi::Sprintf( ParameterName, "physicalMesh.normals[%d]", NormalIndex );
+						NxParameterized::Handle MeshNormalHandle(*PhysicalMeshParams);
+						if (NxParameterized::findParam(*PhysicalMeshParams, ParameterName, MeshNormalHandle) != NULL)
+						{
+							physx::PxVec3  PxNormal;
+							MeshNormalHandle.getParamVec3(PxNormal);
+							VisualInfo.ClothPhysicalMeshNormals.Add(P2UVector(PxNormal));
+						}
+					}
+				}
+				// physical mesh indices
+				verify(NxParameterized::getParamU32(*PhysicalMeshParams, "physicalMesh.numIndices", NumIndices));
+				physx::PxI32 IndexCount = 0;
+				if (NxParameterized::getParamArraySize(*PhysicalMeshParams, "physicalMesh.indices", IndexCount))
+				{
+					check(IndexCount == NumIndices);
+					VisualInfo.ClothPhysicalMeshIndices.Empty(NumIndices);
+
+					for (uint32 IndexIdx = 0; IndexIdx < NumIndices; ++IndexIdx)
+					{
+						FCStringAnsi::Sprintf( ParameterName, "physicalMesh.indices[%d]", IndexIdx );
+						NxParameterized::Handle MeshIndexHandle(*PhysicalMeshParams);
+						if (NxParameterized::findParam(*PhysicalMeshParams, ParameterName, MeshIndexHandle) != NULL)
+						{
+							uint32 IndexParam;
+							MeshIndexHandle.getParamU32(IndexParam);
+							VisualInfo.ClothPhysicalMeshIndices.Add(IndexParam);
+						}
+					}
+				}
+
+				// constraint coefficient parameters (max distances & backstop data)
+				verify(NxParameterized::getParamF32(*PhysicalMeshParams, "physicalMesh.maximumMaxDistance", VisualInfo.MaximumMaxDistance));
+
+				physx::PxI32  ConstraintCoeffCount = 0;
+				if (NxParameterized::getParamArraySize(*PhysicalMeshParams, "physicalMesh.constrainCoefficients", ConstraintCoeffCount))
+				{
+					check(ConstraintCoeffCount == NumVertices);
+					VisualInfo.ClothConstrainCoeffs.Empty(ConstraintCoeffCount);
+					VisualInfo.ClothConstrainCoeffs.AddZeroed(ConstraintCoeffCount);
+
+					for (uint32 ConstCoeffIdx = 0; ConstCoeffIdx < NumIndices; ++ConstCoeffIdx)
+					{
+						// max distances
+						FCStringAnsi::Sprintf( ParameterName, "physicalMesh.constrainCoefficients[%d].maxDistance", ConstCoeffIdx );
+						NxParameterized::Handle MeshConstCoeffHandle(*PhysicalMeshParams);
+						if (NxParameterized::findParam(*PhysicalMeshParams, ParameterName, MeshConstCoeffHandle) != NULL)
+						{
+							float MaxDistance;
+							MeshConstCoeffHandle.getParamF32(MaxDistance);
+							VisualInfo.ClothConstrainCoeffs[ConstCoeffIdx].ClothMaxDistance = MaxDistance;
+						}
+
+						// backstop data
+						FCStringAnsi::Sprintf( ParameterName, "physicalMesh.constrainCoefficients[%d].collisionSphereRadius", ConstCoeffIdx );
+						if (NxParameterized::findParam(*PhysicalMeshParams, ParameterName, MeshConstCoeffHandle) != NULL)
+						{
+							float BackstopCollisionSphereRadius;
+							MeshConstCoeffHandle.getParamF32(BackstopCollisionSphereRadius);
+							VisualInfo.ClothConstrainCoeffs[ConstCoeffIdx].ClothBackstopRadius = BackstopCollisionSphereRadius;
+						}
+
+						FCStringAnsi::Sprintf( ParameterName, "physicalMesh.constrainCoefficients[%d].collisionSphereDistance", ConstCoeffIdx );
+						if (NxParameterized::findParam(*PhysicalMeshParams, ParameterName, MeshConstCoeffHandle) != NULL)
+						{
+							float BackstopCollisionSphereDistance;
+							MeshConstCoeffHandle.getParamF32(BackstopCollisionSphereDistance);
+							VisualInfo.ClothConstrainCoeffs[ConstCoeffIdx].ClothBackstopDistance = BackstopCollisionSphereDistance;
+						}
+					}
+				}
+			}
+		}
+	}
+
+#endif // #if WITH_APEX_CLOTHING
+}
+
+void USkeletalMeshComponent::LoadAllClothingVisualizationInfos()
+{
+#if WITH_APEX_CLOTHING
+
+	if (!SkeletalMesh || SkeletalMesh->ClothingAssets.Num() == 0) 
+	{
+		return;
+	}
+
+	int32 NumAssets = SkeletalMesh->ClothingAssets.Num();
+
+	for(int32 AssetIdx=0; AssetIdx<NumAssets; AssetIdx++)
+	{
+		LoadClothingVisualizationInfo(AssetIdx);
+	}
+#endif // #if WITH_APEX_CLOTHING
+}
+
+void USkeletalMeshComponent::DrawClothingMaxDistances(FPrimitiveDrawInterface* PDI)
+{
+#if WITH_APEX_CLOTHING
+	if (!SkeletalMesh
+		|| SkeletalMesh->ClothingAssets.Num() == 0) 
+	{
+		return;
+	}
+
+	int32 PhysicalMeshLOD = PredictedLODLevel;
+
+	int32 NumAssets = SkeletalMesh->ClothingAssets.Num();
+
+	for(int32 AssetIdx=0; AssetIdx < NumAssets; AssetIdx++)
+	{
+		if(SkeletalMesh->ClothingAssets[AssetIdx].ClothVisualizationInfos.Num() == 0)
+		{
+			LoadClothingVisualizationInfo(AssetIdx);
+		}
+
+		// if this asset doesn't have current physical mesh LOD, then skip to visualize
+		if(!SkeletalMesh->ClothingAssets[AssetIdx].ClothVisualizationInfos.IsValidIndex(PhysicalMeshLOD))
+		{
+			continue;
+		}
+
+		FClothVisualizationInfo& VisualInfo = SkeletalMesh->ClothingAssets[AssetIdx].ClothVisualizationInfos[PhysicalMeshLOD];
+
+		int32 NumMaxDistances = VisualInfo.ClothConstrainCoeffs.Num();
+		for(int32 MaxDistIdx=0; MaxDistIdx < NumMaxDistances; MaxDistIdx++)
+		{
+			float MaxDistance = VisualInfo.ClothConstrainCoeffs[MaxDistIdx].ClothMaxDistance;
+			if(MaxDistance > 0.0f)
+			{
+				FVector LineStart = VisualInfo.ClothPhysicalMeshVertices[MaxDistIdx];
+				FVector LineEnd = LineStart + (VisualInfo.ClothPhysicalMeshNormals[MaxDistIdx] * MaxDistance);
+
+				// calculates gray scale for this line color
+				uint8 GrayLevel = (uint8)((MaxDistance / VisualInfo.MaximumMaxDistance)*255);
+				PDI->DrawLine(LineStart, LineEnd, FColor(GrayLevel, GrayLevel, GrayLevel), SDPG_World);
+			}
+			else // fixed vertices
+			{
+				FVector FixedPoint = VisualInfo.ClothPhysicalMeshVertices[MaxDistIdx];
+				PDI->DrawPoint(FixedPoint, FColor::Blue, 2, SDPG_World);
+			}
+		}
+	}	
+
+#endif // #if WITH_APEX_CLOTHING
+}
+
+void USkeletalMeshComponent::DrawClothingBackstops(FPrimitiveDrawInterface* PDI)
+{
+#if WITH_APEX_CLOTHING
+	if (!SkeletalMesh
+		|| SkeletalMesh->ClothingAssets.Num() == 0) 
+	{
+		return;
+	}
+
+	int32 PhysicalMeshLOD = PredictedLODLevel;
+
+	int32 NumAssets = SkeletalMesh->ClothingAssets.Num();
+
+	for(int32 AssetIdx=0; AssetIdx < NumAssets; AssetIdx++)
+	{
+		if(SkeletalMesh->ClothingAssets[AssetIdx].ClothVisualizationInfos.Num() == 0)
+		{
+			LoadClothingVisualizationInfo(AssetIdx);
+		}
+
+		// if this asset doesn't have current physical mesh LOD, then skip to visualize
+		if(!SkeletalMesh->ClothingAssets[AssetIdx].ClothVisualizationInfos.IsValidIndex(PhysicalMeshLOD))
+		{
+			continue;
+		}
+
+		FClothVisualizationInfo& VisualInfo = SkeletalMesh->ClothingAssets[AssetIdx].ClothVisualizationInfos[PhysicalMeshLOD];
+
+		int32 NumBackstopSpheres = VisualInfo.ClothConstrainCoeffs.Num();
+		for(int32 BackstopIdx=0; BackstopIdx < NumBackstopSpheres; BackstopIdx++)
+		{
+			float Distance = VisualInfo.ClothConstrainCoeffs[BackstopIdx].ClothBackstopDistance;
+			float MaxDistance = VisualInfo.ClothConstrainCoeffs[BackstopIdx].ClothMaxDistance;
+
+			FColor FixedColor = FColor::White;
+			if(Distance > MaxDistance) // Backstop is disabled if the value is bigger than its Max Distance value
+			{
+				Distance = 0.0f;
+				FixedColor = FColor::Black;
+			}
+
+			if(Distance > 0.0f)
+			{
+				FVector LineStart = VisualInfo.ClothPhysicalMeshVertices[BackstopIdx];
+				FVector LineEnd = LineStart + (VisualInfo.ClothPhysicalMeshNormals[BackstopIdx] * Distance);
+				PDI->DrawLine(LineStart, LineEnd, FColor::Red, SDPG_World);
+			}
+			else
+			if(Distance < 0.0f)
+			{
+				FVector LineStart = VisualInfo.ClothPhysicalMeshVertices[BackstopIdx];
+				FVector LineEnd = LineStart + (VisualInfo.ClothPhysicalMeshNormals[BackstopIdx] * Distance);
+				PDI->DrawLine(LineStart, LineEnd, FColor::Blue, SDPG_World);
+			}
+			else // White means collision distance is set to 0
+			{
+				FVector FixedPoint = VisualInfo.ClothPhysicalMeshVertices[BackstopIdx];
+				PDI->DrawPoint(FixedPoint, FixedColor, 2, SDPG_World);
+			}
+		}
+	}
+
+#endif // #if WITH_APEX_CLOTHING
+}
+
+void USkeletalMeshComponent::DrawClothingPhysicalMeshWire(FPrimitiveDrawInterface* PDI)
+{
+#if WITH_APEX_CLOTHING
+	if (!SkeletalMesh
+		|| SkeletalMesh->ClothingAssets.Num() == 0) 
+	{
+		return;
+	}
+
+	int32 PhysicalMeshLOD = PredictedLODLevel;
+
+	int32 NumAssets = SkeletalMesh->ClothingAssets.Num();
+
+	TArray<FMatrix> RefToLocals;
+	// get local matrices for skinning
+	UpdateRefToLocalMatrices(RefToLocals, this, GetSkeletalMeshResource(), 0, NULL);
+
+	for(int32 AssetIdx=0; AssetIdx < NumAssets; AssetIdx++)
+	{
+		if(SkeletalMesh->ClothingAssets[AssetIdx].ClothVisualizationInfos.Num() == 0)
+		{
+			LoadClothingVisualizationInfo(AssetIdx);
+		}
+
+		// if this asset doesn't have current physical mesh LOD, then skip to visualize
+		if(!SkeletalMesh->ClothingAssets[AssetIdx].ClothVisualizationInfos.IsValidIndex(PhysicalMeshLOD))
+		{
+			continue;
+		}
+
+		FClothVisualizationInfo& VisualInfo = SkeletalMesh->ClothingAssets[AssetIdx].ClothVisualizationInfos[PhysicalMeshLOD];
+
+		uint32 NumPhysicalMeshVerts = VisualInfo.ClothPhysicalMeshVertices.Num();
+		const physx::PxVec3* SimulVertices = NULL;
+
+		bool bUseSimulatedResult = false;
+		// skinning for fixed vertices
+		TArray<FVector> SimulatedPhysicalMeshVertices;
+		// if cloth simulation is enabled and there exist a clothing actor and simulation vertices, 
+		// then draws wire frame using simulated vertices
+		if(!bDisableClothSimulation && ClothingActors.IsValidIndex(AssetIdx))
+		{
+			NxClothingActor* ClothingActor = ClothingActors[AssetIdx].ApexClothingActor;
+
+			if(ClothingActor)
+			{
+				uint32 NumSimulVertices = ClothingActor->getNumSimulationVertices();
+
+				if(NumSimulVertices > 0)
+				{
+					bUseSimulatedResult = true;
+					SimulatedPhysicalMeshVertices.AddUninitialized(NumPhysicalMeshVerts);
+
+					const physx::PxVec3* SimulVertices = ClothingActor->getSimulationPositions();
+					for(uint32 SimulVertIdx=0; SimulVertIdx < NumSimulVertices; SimulVertIdx++)
+					{
+						SimulatedPhysicalMeshVertices[SimulVertIdx] = P2UVector(SimulVertices[SimulVertIdx]);
+					}
+
+					// skinning for fixed vertices
+					for(uint32 FixedVertIdx=NumSimulVertices; FixedVertIdx < NumPhysicalMeshVerts; FixedVertIdx++)
+					{
+						FMatrix SkinningMat(ForceInitToZero);
+
+						for(uint32 BoneWeightIdx=0; BoneWeightIdx < VisualInfo.NumMaxBoneInfluences; BoneWeightIdx++)
+						{
+							uint16 ApexBoneIndex = VisualInfo.ClothPhysicalMeshBoneWeightsInfo[FixedVertIdx].Indices[BoneWeightIdx];
+
+							FName BoneName = SkeletalMesh->ClothingAssets[AssetIdx].ApexClothingAsset->GetConvertedBoneName(ApexBoneIndex);
+
+							int32 BoneIndex = GetBoneIndex(BoneName);
+
+							if(BoneIndex < 0)
+							{
+								continue;
+							}
+
+							float Weight = VisualInfo.ClothPhysicalMeshBoneWeightsInfo[FixedVertIdx].Weights[BoneWeightIdx];
+							SkinningMat += RefToLocals[BoneIndex]*Weight;
+						}
+
+						SimulatedPhysicalMeshVertices[FixedVertIdx] = SkinningMat.TransformPosition(VisualInfo.ClothPhysicalMeshVertices[FixedVertIdx]);
+					}
+				}
+			}
+		}
+
+		TArray<FVector>* PhysicalMeshVertices = &VisualInfo.ClothPhysicalMeshVertices;
+		if(bUseSimulatedResult)
+		{
+			PhysicalMeshVertices = &SimulatedPhysicalMeshVertices;
+		}
+
+		uint32 NumIndices = VisualInfo.ClothPhysicalMeshIndices.Num();
+		check(NumIndices % 3 == 0); // check triangles count
+
+		for(uint32 IndexIdx=0; IndexIdx < NumIndices; IndexIdx+=3)
+		{
+			// draw a triangle
+			uint32 Index0 = VisualInfo.ClothPhysicalMeshIndices[IndexIdx];
+			uint32 Index1 = VisualInfo.ClothPhysicalMeshIndices[IndexIdx + 1];
+			uint32 Index2 = VisualInfo.ClothPhysicalMeshIndices[IndexIdx + 2];
+
+			// If index is greater than Num of vertices, then skip 
+			if(Index0 >= NumPhysicalMeshVerts 
+			|| Index1 >= NumPhysicalMeshVerts 
+			|| Index2 >= NumPhysicalMeshVerts)
+			{
+				continue;
+			}
+
+			FVector V[3];
+			V[0] = (*PhysicalMeshVertices)[Index0];
+			V[1] = (*PhysicalMeshVertices)[Index1];
+			V[2] = (*PhysicalMeshVertices)[Index2];
+
+			float MaxDists[3];
+			MaxDists[0] = VisualInfo.ClothConstrainCoeffs[Index0].ClothMaxDistance;
+			MaxDists[1] = VisualInfo.ClothConstrainCoeffs[Index1].ClothMaxDistance;
+			MaxDists[2] = VisualInfo.ClothConstrainCoeffs[Index2].ClothMaxDistance;
+
+			for(int32 i=0; i<3; i++)
+			{
+				uint32 Index0 = i;
+				uint32 Index1 = i+1;
+				if(Index1 >= 3)
+				{
+					Index1 = 0;
+				}
+
+				// calculates gray scaled color
+				uint8 GrayLevel0 = (uint8)((MaxDists[Index0] / VisualInfo.MaximumMaxDistance)*255.0f);
+				uint8 GrayLevel1 = (uint8)((MaxDists[Index1] / VisualInfo.MaximumMaxDistance)*255.0f);
+
+				uint8 GrayMidColor = (uint8)(((uint32)GrayLevel0 + (uint32)GrayLevel1)*0.5);
+				FColor LineColor(GrayMidColor, GrayMidColor, GrayMidColor);
+				if(GrayMidColor == 0)
+				{
+					LineColor = FColor::Magenta;
+				}
+				else
+				{
+					LineColor = FColor::White;
+				}
+
+				PDI->DrawLine(V[Index0], V[Index1], LineColor, SDPG_World);
+			}
+		}
+	}
+
 #endif // #if WITH_APEX_CLOTHING
 }
 

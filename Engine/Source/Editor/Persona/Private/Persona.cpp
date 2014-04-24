@@ -454,6 +454,9 @@ FPersona::~FPersona()
 	if(PreviewComponent)
 	{
 		PreviewComponent->RemoveFromRoot();
+#if WITH_APEX_CLOTHING
+		PreviewComponent->RestoreClothSectionsVisibility();
+#endif //#if WITH_APEX_CLOTHING
 	}
 	
 	// NOTE: Any tabs that we still have hanging out when destroyed will be cleaned up by FBaseToolkit's destructor

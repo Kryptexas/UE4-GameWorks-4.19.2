@@ -342,9 +342,20 @@ public:
 	 * Supports up to 16 capsules / 32 planes per convex and ignored collisions by a max number will be drawn in Dark Gray.
 	 */
 	uint32 bDisplayClothingCollisionVolumes:1;
+	
+	/** Draw clothing physical mesh wire frame */
+	uint32 	bDisplayClothPhysicalMeshWire:1;	
 
-	/** Draw only clothing sections, disables non-clothing sections */
-	uint32 bDisplayOnlyClothSections:1;
+	/** Draw max distances of clothing simulation vertices */
+	uint32 	bDisplayClothMaxDistances:1;
+
+	/** Draw back stops of clothing simulation vertices */
+	uint32 	bDisplayClothBackstops:1;
+
+	/** To save previous state */
+	uint32 bPrevDisableClothSimulation:1;
+
+	uint32 bDisplayClothFixedVertices:1;
 	/**
 	 * Vertex Animation
 	 */
@@ -607,11 +618,28 @@ public:
 
 	bool IsValidClothingActor(int32 ActorIndex) const;
 	/** Draws APEX Clothing simulated normals on cloth meshes **/
-	void DrawClothingNormals(FPrimitiveDrawInterface* PDI) const;
+	void DrawClothingNormals(FPrimitiveDrawInterface* PDI);
 	/** Draws APEX Clothing Graphical Tangents on cloth meshes **/
-	void DrawClothingTangents(FPrimitiveDrawInterface* PDI) const;
+	void DrawClothingTangents(FPrimitiveDrawInterface* PDI);
 	/** Draws internal collision volumes which the character has, colliding with cloth **/
 	void DrawClothingCollisionVolumes(FPrimitiveDrawInterface* PDI);
+	/** Draws max distances of clothing simulation vertices 
+	  * clothing simulation will be disabled and animation will be reset when drawing this option 
+	  * because max distances do have meaning only in initial pose
+	 **/
+	void DrawClothingMaxDistances(FPrimitiveDrawInterface* PDI);
+	/** Draws Clothing back stops **/
+	void DrawClothingBackstops(FPrimitiveDrawInterface* PDI);
+	/** Draws Clothing Physical mesh wire **/
+	void DrawClothingPhysicalMeshWire(FPrimitiveDrawInterface* PDI);
+
+	void DrawClothingFixedVertices(FPrimitiveDrawInterface* PDI);
+
+	/** Loads clothing extra infos dynamically just for Previewing in Editor 
+	 *  such as MaxDistances, Physical mesh wire
+	 **/
+	void LoadClothingVisualizationInfo(int32 AssetIndex);
+	void LoadAllClothingVisualizationInfos();
 
 	/** freezing clothing actor now */
 	void FreezeClothSection(bool bFreeze);

@@ -31,7 +31,7 @@ namespace EAnimationPlaybackSpeeds
 SAnimationEditorViewport::~SAnimationEditorViewport()
 {
 	if(PersonaPtr.IsValid())
-	{
+	{		
 		PersonaPtr.Pin()->UnregisterOnPostUndo(this);
 	}
 }
@@ -559,10 +559,49 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsEnablingCollisionWithAttachedClothChildren));
 
 	CommandList.MapAction( 
-		ViewportShowMenuCommands.ShowOnlyClothSections,
-		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowOnlyClothSections),
+		ViewportShowMenuCommands.ShowClothPhysicalMeshWire,
+		FExecuteAction::CreateSP( this, &SAnimationEditorViewportTabBody::OnShowClothPhysicalMeshWire ),
 		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingOnlyClothSections));
+		FIsActionChecked::CreateSP( this, &SAnimationEditorViewportTabBody::IsShowingClothPhysicalMeshWire ) );
+
+	CommandList.MapAction( 
+		ViewportShowMenuCommands.ShowClothMaxDistances,
+		FExecuteAction::CreateSP( this, &SAnimationEditorViewportTabBody::OnShowClothMaxDistances ),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP( this, &SAnimationEditorViewportTabBody::IsShowingClothMaxDistances ) );
+
+	CommandList.MapAction( 
+		ViewportShowMenuCommands.ShowClothBackstop,
+		FExecuteAction::CreateSP( this, &SAnimationEditorViewportTabBody::OnShowClothBackstops ),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP( this, &SAnimationEditorViewportTabBody::IsShowingClothBackstops ) );
+
+	CommandList.MapAction( 
+		ViewportShowMenuCommands.ShowClothFixedVertices,
+		FExecuteAction::CreateSP( this, &SAnimationEditorViewportTabBody::OnShowClothFixedVertices ),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP( this, &SAnimationEditorViewportTabBody::IsShowingClothFixedVertices ) );
+
+	SectionsDisplayMode = ESectionDisplayMode::ShowAll;
+
+	CommandList.MapAction(
+		ViewportShowMenuCommands.ShowAllSections,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnSetSectionsDisplayMode, (int32)ESectionDisplayMode::ShowAll),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsSectionsDisplayMode, (int32)ESectionDisplayMode::ShowAll));
+
+	CommandList.MapAction(
+		ViewportShowMenuCommands.ShowOnlyClothSections,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnSetSectionsDisplayMode, (int32)ESectionDisplayMode::ShowOnlyClothSections),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsSectionsDisplayMode, (int32)ESectionDisplayMode::ShowOnlyClothSections));
+
+	CommandList.MapAction(
+		ViewportShowMenuCommands.HideOnlyClothSections,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnSetSectionsDisplayMode, (int32)ESectionDisplayMode::HideOnlyClothSections),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsSectionsDisplayMode, (int32)ESectionDisplayMode::HideOnlyClothSections));
+
 #endif// #if WITH_APEX_CLOTHING		
 
 	//Bind LOD preview menu commands
@@ -1349,6 +1388,19 @@ void SAnimationEditorViewportTabBody::OnDisableClothSimulation()
 	if( PreviewComponent )
 	{
 		PreviewComponent->bDisableClothSimulation = !PreviewComponent->bDisableClothSimulation;
+
+		// if the user turns on cloth simulation option while displaying max distances, then turns off max distance option
+		if(!PreviewComponent->bDisableClothSimulation && PreviewComponent->bDisplayClothMaxDistances)
+		{
+			PreviewComponent->bDisplayClothMaxDistances = false;
+		}
+
+		// if the user turns on cloth simulation option while displaying back stops, then turns off back stops option
+		if (!PreviewComponent->bDisableClothSimulation && PreviewComponent->bDisplayClothBackstops)
+		{
+			PreviewComponent->bDisplayClothBackstops = false;
+		}
+
 		RefreshViewport();
 	}
 }
@@ -1465,8 +1517,6 @@ bool SAnimationEditorViewportTabBody::IsShowingClothCollisionVolumes() const
 void SAnimationEditorViewportTabBody::SetGravityScale(float SliderPos)
 {
 	GetAnimationViewportClient()->SetGravityScale(SliderPos);
-
-
 	RefreshViewport();
 }
 
@@ -1503,76 +1553,158 @@ bool SAnimationEditorViewportTabBody::IsEnablingCollisionWithAttachedClothChildr
 	return false;
 }
 
-void SAnimationEditorViewportTabBody::OnShowOnlyClothSections()
+void SAnimationEditorViewportTabBody::OnShowClothPhysicalMeshWire()
 {
 	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
 
 	if( PreviewComponent )
 	{
-		PreviewComponent->bDisplayOnlyClothSections = !PreviewComponent->bDisplayOnlyClothSections;
+		PreviewComponent->bDisplayClothPhysicalMeshWire = !PreviewComponent->bDisplayClothPhysicalMeshWire;
+		RefreshViewport();
+	}
+}
 
-		PreviewComponent->PreEditChange(NULL);
+bool SAnimationEditorViewportTabBody::IsShowingClothPhysicalMeshWire() const
+{
+	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
 
-		if(PreviewComponent->bDisplayOnlyClothSections)
+	if( PreviewComponent )
+	{
+		return PreviewComponent->bDisplayClothPhysicalMeshWire;
+	}
+
+	return false;
+}
+
+void SAnimationEditorViewportTabBody::OnShowClothMaxDistances()
+{
+	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
+
+	if( PreviewComponent )
+	{
+		PreviewComponent->bDisplayClothMaxDistances = !PreviewComponent->bDisplayClothMaxDistances;
+
+		// disables cloth simulation and stop animation because showing max distances is only useful when the cloth is not moving
+		if(PreviewComponent->bDisplayClothMaxDistances)
 		{
-			// disable all except clothing sections
-			FSkeletalMeshResource* SkelMeshResource = PreviewComponent->GetSkeletalMeshResource();
-			check(SkelMeshResource);
-			const int32 LODIndex = FMath::Clamp(PreviewComponent->PredictedLODLevel, 0, SkelMeshResource->LODModels.Num()-1);
-			FStaticLODModel& LODModel = SkelMeshResource->LODModels[ LODIndex ];
-
-			for(int32 SecIdx=0; SecIdx < LODModel.Sections.Num(); SecIdx++)
-			{
-				FSkelMeshSection& Section = LODModel.Sections[SecIdx];
-
-				if(!LODModel.Chunks[Section.ChunkIndex].HasApexClothData())
-				{
-					Section.bDisabled = true;
-				}
-			}
+			PreviewComponent->bPrevDisableClothSimulation = PreviewComponent->bDisableClothSimulation;
+			PreviewComponent->bDisableClothSimulation = true;
+			PreviewComponent->InitAnim(false);
 		}
 		else
 		{
-			// restore to previous states
-			FSkeletalMeshResource* SkelMeshResource = PreviewComponent->GetSkeletalMeshResource();
-			check(SkelMeshResource);
-			const int32 LODIndex = FMath::Clamp(PreviewComponent->PredictedLODLevel, 0, SkelMeshResource->LODModels.Num()-1);
-			FStaticLODModel& LODModel = SkelMeshResource->LODModels[ LODIndex ];
-
-			for(int32 SecIdx=0; SecIdx < LODModel.Sections.Num(); SecIdx++)
-			{
-				LODModel.Sections[SecIdx].bDisabled = false;
-			}
-
-			for(int32 SecIdx=0; SecIdx < LODModel.Sections.Num(); SecIdx++)
-			{
-				FSkelMeshSection& Section = LODModel.Sections[SecIdx];
-
-				if(LODModel.Chunks[Section.ChunkIndex].HasApexClothData())
-				{
-					LODModel.Sections[Section.CorrespondClothSectionIndex].bDisabled = true;
-				}
-			}
+			// restore previous state
+			PreviewComponent->bDisableClothSimulation = PreviewComponent->bPrevDisableClothSimulation;
 		}
-
-		PreviewComponent->PostEditChange();
 
 		RefreshViewport();
 	}
 }
 
-bool SAnimationEditorViewportTabBody::IsShowingOnlyClothSections() const
+bool SAnimationEditorViewportTabBody::IsShowingClothMaxDistances() const
 {
 	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
 
 	if( PreviewComponent )
 	{
-		return PreviewComponent->bDisplayOnlyClothSections;
+		return PreviewComponent->bDisplayClothMaxDistances;
 	}
 
 	return false;
 }
-#endif // #if WITH_APEX_CLOTHING
+
+void SAnimationEditorViewportTabBody::OnShowClothBackstops()
+{
+	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
+
+	if( PreviewComponent )
+	{
+		PreviewComponent->bDisplayClothBackstops = !PreviewComponent->bDisplayClothBackstops;
+		// disables cloth simulation and stop animation because showing back stops is only useful when the cloth is not moving
+		if (PreviewComponent->bDisplayClothBackstops)
+		{
+			PreviewComponent->bPrevDisableClothSimulation = PreviewComponent->bDisableClothSimulation;
+			PreviewComponent->bDisableClothSimulation = true;
+			PreviewComponent->InitAnim(false);
+		}
+		else
+		{
+			// restore previous state
+			PreviewComponent->bDisableClothSimulation = PreviewComponent->bPrevDisableClothSimulation;
+		}
+		RefreshViewport();
+	}
+}
+
+bool SAnimationEditorViewportTabBody::IsShowingClothBackstops() const
+{
+	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
+
+	if( PreviewComponent )
+	{
+		return PreviewComponent->bDisplayClothBackstops;
+	}
+
+	return false;
+}
+
+void SAnimationEditorViewportTabBody::OnShowClothFixedVertices()
+{
+	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
+
+	if( PreviewComponent )
+	{
+		PreviewComponent->bDisplayClothFixedVertices = !PreviewComponent->bDisplayClothFixedVertices;
+		RefreshViewport();
+	}
+}
+
+bool SAnimationEditorViewportTabBody::IsShowingClothFixedVertices() const
+{
+	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
+
+	if( PreviewComponent )
+	{
+		return PreviewComponent->bDisplayClothFixedVertices;
+	}
+
+	return false;
+}
+
+void SAnimationEditorViewportTabBody::OnSetSectionsDisplayMode(int32 DisplayMode)
+{
+	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
+
+	SectionsDisplayMode = DisplayMode;
+
+	if (!PreviewComponent)
+	{
+		return;
+	}
+
+	switch (DisplayMode)
+	{
+	case ESectionDisplayMode::ShowAll:
+		// restore to the original states
+		PreviewComponent->RestoreClothSectionsVisibility();
+		break;
+	case ESectionDisplayMode::ShowOnlyClothSections:
+		// disable all except clothing sections
+		PreviewComponent->ShowOnlyClothSections(true, PreviewComponent->PredictedLODLevel);
+		break;
+	case ESectionDisplayMode::HideOnlyClothSections:
+		// disables only clothing sections
+		PreviewComponent->ShowOnlyClothSections(false, PreviewComponent->PredictedLODLevel);
+		break;
+	}
+
+	RefreshViewport();
+}
+
+bool SAnimationEditorViewportTabBody::IsSectionsDisplayMode(int32 DisplayMode) const
+{
+	return (SectionsDisplayMode == DisplayMode);
+}
 
 EVisibility SAnimationEditorViewportTabBody::GetViewportCornerTextVisibility() const
 {
@@ -1629,4 +1761,5 @@ FReply SAnimationEditorViewportTabBody::ClickedOnViewportCornerText()
 	return FReply::Handled();
 }
 
+#endif // #if WITH_APEX_CLOTHING
 #undef LOCTEXT_NAMESPACE

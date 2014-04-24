@@ -171,7 +171,7 @@ FAnimationViewportClient::FAnimationViewportClient( FPreviewScene& InPreviewScen
 
 	//wind actor's initial position, rotation and strength
 	PrevWindLocation = FVector(100, 100, 100);
-	PrevWindRotation = FRotator(0,0,0);
+	PrevWindRotation = FRotator(0,0,0); // roll, yaw, pitch
 	PrevWindStrength = 0.2f;
 
 	bDrawUVs = false;
@@ -408,6 +408,29 @@ void FAnimationViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInterf
 			PreviewSkelMeshComp->DrawClothingCollisionVolumes(PDI);
 		}
 
+		// Display collision volumes of current selected cloth
+		if ( PreviewSkelMeshComp->bDisplayClothPhysicalMeshWire )
+		{
+			PreviewSkelMeshComp->DrawClothingPhysicalMeshWire(PDI);
+		}
+
+		// Display collision volumes of current selected cloth
+		if ( PreviewSkelMeshComp->bDisplayClothMaxDistances )
+		{
+			PreviewSkelMeshComp->DrawClothingMaxDistances(PDI);
+		}
+
+		// Display collision volumes of current selected cloth
+		if ( PreviewSkelMeshComp->bDisplayClothBackstops )
+		{
+			PreviewSkelMeshComp->DrawClothingBackstops(PDI);
+		}
+
+		if( PreviewSkelMeshComp->bDisplayClothFixedVertices )
+		{
+			PreviewSkelMeshComp->DrawClothingFixedVertices(PDI);
+		}
+		
 		// Display socket hit points
 		if ( PreviewSkelMeshComp->bDrawSockets )
 		{
@@ -823,7 +846,7 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 			FMath::Round(PreviewSkelMeshComp->Bounds.BoxExtent.X * 2.0f),
 			FMath::Round(PreviewSkelMeshComp->Bounds.BoxExtent.Y * 2.0f),
 			FMath::Round(PreviewSkelMeshComp->Bounds.BoxExtent.Z * 2.0f));
-		Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
+		Canvas->DrawShadowedString( CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor );
 
 		uint32 NumNotiesWithErrors = PreviewSkelMeshComp->AnimNotifyErrors.Num();
 		for (uint32 i = 0; i < NumNotiesWithErrors; ++i)
@@ -965,16 +988,16 @@ bool FAnimationViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 			{
 				FVector RotAxis;
 				float RotAngle;
-				Rot.Quaternion().ToAxisAndAngle(RotAxis, RotAngle);
+				Rot.Quaternion().ToAxisAndAngle( RotAxis, RotAngle );
 
-				FVector4 BoneSpaceAxis = BaseTM.TransformVector(RotAxis);
+				FVector4 BoneSpaceAxis = BaseTM.TransformVector( RotAxis );
 
 				//Calculate the new delta rotation
-				FQuat DeltaQuat(BoneSpaceAxis, RotAngle);
+				FQuat DeltaQuat( BoneSpaceAxis, RotAngle );
 
-				FRotator NewRotation = (CurrentSkelControlTM * FTransform(DeltaQuat)).Rotator();
+				FRotator NewRotation = ( CurrentSkelControlTM * FTransform( DeltaQuat ) ).Rotator();
 
-				if (SelectedSocket)
+				if ( SelectedSocket )
 				{
 					SelectedSocket->RelativeRotation = NewRotation;
 				}
@@ -998,8 +1021,8 @@ bool FAnimationViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 				}
 			}
 
-			//@TODO: ANIMATION: Add scaling support here
-		}
+				//@TODO: ANIMATION: Add scaling support here
+			}
 		else if( WindActor.IsValid() )
 		{
 			if (WidgetMode == FWidget::WM_Rotate)
@@ -1039,34 +1062,34 @@ void FAnimationViewportClient::TrackingStarted( const struct FInputEventState& I
 		if(InInputState.IsLeftMouseButtonPressed() && (Widget->GetCurrentAxis() & EAxisList::XYZ) != 0)
 		{
 			if ( PreviewSkelMeshComp->SocketsOfInterest.Num() == 1 )
+		{
+			const bool bAltDown = InInputState.IsAltButtonPressed();
+
+			if ( bAltDown && PersonaPtr.IsValid() )
 			{
-				const bool bAltDown = InInputState.IsAltButtonPressed();
-
-				if ( bAltDown && PersonaPtr.IsValid() )
-				{
-					// Rather than moving/rotating the selected socket, copy it and move the copy instead
-					PersonaPtr.Pin()->DuplicateAndSelectSocket( PreviewSkelMeshComp->SocketsOfInterest[0] );
-				}
-
-				// Socket movement is transactional - we want undo/redo and saving of it
-				USkeletalMeshSocket* Socket = PreviewSkelMeshComp->SocketsOfInterest[0].Socket;
-
-				if ( Socket && bInTransaction == false )
-				{
-					if (WidgetMode == FWidget::WM_Rotate )
-					{
-						GEditor->BeginTransaction( LOCTEXT("AnimationEditorViewport_RotateSocket", "Rotate Socket" ) );
-					}
-					else
-					{
-						GEditor->BeginTransaction( LOCTEXT("AnimationEditorViewport_TranslateSocket", "Translate Socket" ) );
-					}
-
-					Socket->SetFlags( RF_Transactional );	// Undo doesn't work without this!
-					Socket->Modify();
-					bInTransaction = true;
-				}
+				// Rather than moving/rotating the selected socket, copy it and move the copy instead
+				PersonaPtr.Pin()->DuplicateAndSelectSocket( PreviewSkelMeshComp->SocketsOfInterest[0] );
 			}
+
+			// Socket movement is transactional - we want undo/redo and saving of it
+			USkeletalMeshSocket* Socket = PreviewSkelMeshComp->SocketsOfInterest[0].Socket;
+
+			if ( Socket && bInTransaction == false )
+			{
+				if (WidgetMode == FWidget::WM_Rotate )
+				{
+					GEditor->BeginTransaction( LOCTEXT("AnimationEditorViewport_RotateSocket", "Rotate Socket" ) );
+				}
+				else
+				{
+					GEditor->BeginTransaction( LOCTEXT("AnimationEditorViewport_TranslateSocket", "Translate Socket" ) );
+				}
+
+				Socket->SetFlags( RF_Transactional );	// Undo doesn't work without this!
+				Socket->Modify();
+				bInTransaction = true;
+			}
+		}
 			else if( BoneIndex >= 0 )
 			{
 				if ( bInTransaction == false )
@@ -1118,14 +1141,14 @@ FWidget::EWidgetMode FAnimationViewportClient::GetWidgetMode() const
 	FWidget::EWidgetMode Mode = FWidget::WM_None;
 	if (!PreviewSkelMeshComp->IsAnimBlueprintInstanced())
 	{
-		if ((PreviewSkelMeshComp != NULL) && ((PreviewSkelMeshComp->BonesOfInterest.Num() == 1) || (PreviewSkelMeshComp->SocketsOfInterest.Num() == 1)))
-		{
+	if ((PreviewSkelMeshComp != NULL) && ((PreviewSkelMeshComp->BonesOfInterest.Num() == 1) || (PreviewSkelMeshComp->SocketsOfInterest.Num() == 1)))
+	{
 			Mode = WidgetMode;
-		}
-		else if (SelectedWindActor.IsValid())
-		{
+	}
+	else if (SelectedWindActor.IsValid())
+	{
 			Mode = WidgetMode;
-		}
+	}
 	}
 
 	return Mode;

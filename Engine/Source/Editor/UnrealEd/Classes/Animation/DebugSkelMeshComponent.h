@@ -210,6 +210,13 @@ class UDebugSkelMeshComponent : public USkeletalMeshComponent
 	virtual void ReportAnimNotifyError(const FText& Error, UObject* InSourceNotify);
 	virtual void ClearAnimNotifyErrors(UObject* InSourceNotify);
 #endif
+
+#if WITH_APEX_CLOTHING
+	/** toggle visibility between cloth sections and non-cloth sections */
+	UNREALED_API void ShowOnlyClothSections(bool bShow, int32 LODIndex);
+	/** Restore all section visibilities to original states for all LODs */
+	UNREALED_API void RestoreClothSectionsVisibility();
+#endif //#if WITH_APEX_CLOTHING
 };
 
 

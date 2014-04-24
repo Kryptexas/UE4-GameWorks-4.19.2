@@ -157,7 +157,7 @@ public:
 				.SliderValue(AnimViewportPtr.Pin().ToSharedRef(), &SAnimationEditorViewportTabBody::GetWindStrengthSliderValue)
 				.OnSliderValueChanged(AnimViewportPtr.Pin().ToSharedRef(), &SAnimationEditorViewportTabBody::SetWindStrength)
 				.SliderTooltip( LOCTEXT("WindStrength_ToolTip", "Change wind strength") )
-				.OnPlusClicked( this, &SClothWindSettings::OnIncreasetWindStrength )
+				.OnPlusClicked( this, &SClothWindSettings::OnIncreaseWindStrength )
 				.PlusTooltip( LOCTEXT("IncreasetWindStrength_ToolTip", "Increase Wind Strength") )
 				.ExtraWidget( ExtraWidget )
 			];
@@ -173,7 +173,7 @@ protected:
 	}
 
 	/** Callback function for increasing size */
-	FReply OnIncreasetWindStrength( )
+	FReply OnIncreaseWindStrength()
 	{
 		const float DeltaValue = 0.1f;
 		AnimViewportPtr.Pin()->SetWindStrength( AnimViewportPtr.Pin()->GetWindStrengthSliderValue() + DeltaValue );
@@ -422,90 +422,80 @@ TSharedRef<SWidget> SAnimViewportToolBar::GenerateShowMenu() const
 	const bool bInShouldCloseWindowAfterMenuSelection = true;
 	FMenuBuilder ShowMenuBuilder(bInShouldCloseWindowAfterMenuSelection, Viewport.Pin()->GetCommandList());
 	{
-		ShowMenuBuilder.BeginSection("AnimViewportFOV", LOCTEXT("Viewport_FOVLabel", "Field Of View"));
-		{
-			const float FOVMin = 5.f;
-			const float FOVMax = 170.f;
+			ShowMenuBuilder.BeginSection("AnimViewportFOV", LOCTEXT("Viewport_FOVLabel", "Field Of View"));
+			{
+				const float FOVMin = 5.f;
+				const float FOVMax = 170.f;
 
-			TSharedPtr<SWidget> FOVWidget = SNew(SSpinBox<float>)
-				.Font(FEditorStyle::GetFontStyle(TEXT("MenuItem.Font")))
-				.MinValue(FOVMin)
-				.MaxValue(FOVMax)
-				.Value(this, &SAnimViewportToolBar::OnGetFOVValue)
-				.OnValueChanged(this, &SAnimViewportToolBar::OnFOVValueChanged)
-				.OnValueCommitted(this, &SAnimViewportToolBar::OnFOVValueCommitted);
+				TSharedPtr<SWidget> FOVWidget = SNew(SSpinBox<float>)
+					.Font(FEditorStyle::GetFontStyle(TEXT("MenuItem.Font")))
+					.MinValue(FOVMin)
+					.MaxValue(FOVMax)
+					.Value(this, &SAnimViewportToolBar::OnGetFOVValue)
+					.OnValueChanged(this, &SAnimViewportToolBar::OnFOVValueChanged)
+					.OnValueCommitted(this, &SAnimViewportToolBar::OnFOVValueCommitted);
 
-			ShowMenuBuilder.AddWidget(FOVWidget.ToSharedRef(), FText());
-		}
-		ShowMenuBuilder.EndSection();
+				ShowMenuBuilder.AddWidget(FOVWidget.ToSharedRef(), FText());
+			}
+			ShowMenuBuilder.EndSection();
 
-		ShowMenuBuilder.BeginSection("AnimViewportAudio", LOCTEXT("Viewport_AudioLabel", "Audio"));
-		{
-			ShowMenuBuilder.AddMenuEntry(Actions.MuteAudio);
-		}
-		ShowMenuBuilder.EndSection();
+			ShowMenuBuilder.BeginSection("AnimViewportAudio", LOCTEXT("Viewport_AudioLabel", "Audio"));
+			{
+				ShowMenuBuilder.AddMenuEntry(Actions.MuteAudio);
+			}
+			ShowMenuBuilder.EndSection();
 
-		ShowMenuBuilder.BeginSection("AnimViewportMesh", LOCTEXT("ShowMenu_Actions_Mesh", "Mesh"));
-		{
-			ShowMenuBuilder.AddMenuEntry( Actions.ShowReferencePose );
-			ShowMenuBuilder.AddMenuEntry( Actions.ShowBound );
-			ShowMenuBuilder.AddMenuEntry( Actions.ShowPreviewMesh );
-		}
-		ShowMenuBuilder.EndSection();
+			ShowMenuBuilder.BeginSection("AnimViewportMesh", LOCTEXT("ShowMenu_Actions_Mesh", "Mesh"));
+			{
+				ShowMenuBuilder.AddMenuEntry( Actions.ShowReferencePose );
+				ShowMenuBuilder.AddMenuEntry( Actions.ShowBound );
+				ShowMenuBuilder.AddMenuEntry( Actions.ShowPreviewMesh );
+			}
+			ShowMenuBuilder.EndSection();
 
-		ShowMenuBuilder.BeginSection("AnimViewportAnimation", LOCTEXT("ShowMenu_Actions_Asset", "Asset"));
-		{
-			ShowMenuBuilder.AddMenuEntry( Actions.ShowRawAnimation );
-			ShowMenuBuilder.AddMenuEntry( Actions.ShowNonRetargetedAnimation );
-			ShowMenuBuilder.AddMenuEntry( Actions.ShowAdditiveBaseBones );
-		}
-		ShowMenuBuilder.EndSection();
+			ShowMenuBuilder.BeginSection("AnimViewportAnimation", LOCTEXT("ShowMenu_Actions_Asset", "Asset"));
+			{
+				ShowMenuBuilder.AddMenuEntry( Actions.ShowRawAnimation );
+				ShowMenuBuilder.AddMenuEntry( Actions.ShowNonRetargetedAnimation );
+				ShowMenuBuilder.AddMenuEntry( Actions.ShowAdditiveBaseBones );
+			}
+			ShowMenuBuilder.EndSection();
 
-		ShowMenuBuilder.BeginSection("AnimViewportPreviewBones", LOCTEXT("ShowMenu_Actions_Bones", "Hierarchy") );
-		{
-			ShowMenuBuilder.AddMenuEntry( Actions.ShowSockets );
-			ShowMenuBuilder.AddMenuEntry( Actions.ShowBones );
-			ShowMenuBuilder.AddMenuEntry( Actions.ShowBoneNames );
-			ShowMenuBuilder.AddMenuEntry( Actions.ShowBoneWeight );
-		}
-		ShowMenuBuilder.EndSection();
+			ShowMenuBuilder.BeginSection("AnimViewportPreviewBones", LOCTEXT("ShowMenu_Actions_Bones", "Hierarchy") );
+			{
+				ShowMenuBuilder.AddMenuEntry( Actions.ShowSockets );
+				ShowMenuBuilder.AddMenuEntry( Actions.ShowBones );
+				ShowMenuBuilder.AddMenuEntry( Actions.ShowBoneNames );
+				ShowMenuBuilder.AddMenuEntry( Actions.ShowBoneWeight );
+			}
+			ShowMenuBuilder.EndSection();
 
-		ShowMenuBuilder.BeginSection("AnimviewportInfo", LOCTEXT("ShowInfo_Actions_Info", "Info") );
-		{
-			ShowMenuBuilder.AddMenuEntry( Actions.ShowDisplayInfo );
-		}
-		ShowMenuBuilder.EndSection();
+			ShowMenuBuilder.BeginSection("AnimviewportInfo", LOCTEXT("ShowInfo_Actions_Info", "Info") );
+			{
+				ShowMenuBuilder.AddMenuEntry( Actions.ShowDisplayInfo );
+			}
+			ShowMenuBuilder.EndSection();
 
 #if WITH_APEX_CLOTHING
-		UDebugSkelMeshComponent* PreviewComp = Viewport.Pin()->GetPersona().Pin()->PreviewComponent;
+			UDebugSkelMeshComponent* PreviewComp = Viewport.Pin()->GetPersona().Pin()->PreviewComponent;
 
-		if( PreviewComp && PreviewComp->HasValidClothingActors() )
-		{
-			ShowMenuBuilder.BeginSection("AnimViewportClothingOptions", LOCTEXT("ShowMenu_Actions_Clothing", "Clothing") );
+			if( PreviewComp && PreviewComp->HasValidClothingActors() )
 			{
-				ShowMenuBuilder.AddMenuEntry( Actions.DisableClothSimulation );
-				ShowMenuBuilder.AddMenuEntry( Actions.ApplyClothWind );
-				TSharedPtr<SWidget> WindWidget = SNew( SClothWindSettings ).AnimEditorViewport( Viewport );
-				ShowMenuBuilder.AddWidget( WindWidget.ToSharedRef(),  FText() );
-				ShowMenuBuilder.AddMenuEntry( Actions.ShowClothSimulationNormals );
-				ShowMenuBuilder.AddMenuEntry( Actions.ShowClothGraphicalTangents );
-				ShowMenuBuilder.AddMenuEntry( Actions.ShowClothCollisionVolumes );
-				TSharedPtr<SWidget> GravityWidget = SNew( SGravitySettings ).AnimEditorViewport( Viewport );
-				ShowMenuBuilder.AddWidget( GravityWidget.ToSharedRef(),  FText() );
-				ShowMenuBuilder.AddMenuEntry( Actions.EnableCollisionWithAttachedClothChildren );
-				ShowMenuBuilder.AddMenuEntry( Actions.ShowOnlyClothSections );
+				ShowMenuBuilder.AddMenuSeparator();
+				ShowMenuBuilder.AddSubMenu(
+					LOCTEXT("AnimViewportClothingSubMenu", "Clothing"),
+					LOCTEXT("AnimViewportClothingSubMenuToolTip", "Options relating to clothing"),
+					FNewMenuDelegate::CreateRaw(this, &SAnimViewportToolBar::FillShowClothingMenu));
 			}
-			ShowMenuBuilder.EndSection();
-		}
-		else // if skeletal mesh has clothing assets without mapping yet or assets have only collision volumes without clothing sections, then need to show collision volumes which assets include 
-		if( PreviewComp && PreviewComp->SkeletalMesh && PreviewComp->SkeletalMesh->ClothingAssets.Num() > 0)
-		{				
-			ShowMenuBuilder.BeginSection("AnimViewportClothingOptions", LOCTEXT("ShowMenu_Actions_Clothing", "Clothing") );
-			{
-				ShowMenuBuilder.AddMenuEntry( Actions.ShowClothCollisionVolumes );
+			else // if skeletal mesh has clothing assets without mapping yet or assets have only collision volumes without clothing sections, then need to show collision volumes which assets include 
+			if( PreviewComp && PreviewComp->SkeletalMesh && PreviewComp->SkeletalMesh->ClothingAssets.Num() > 0)
+			{				
+				ShowMenuBuilder.BeginSection("AnimViewportClothingOptions", LOCTEXT("ShowMenu_Actions_Clothing", "Clothing") );
+				{
+					ShowMenuBuilder.AddMenuEntry( Actions.ShowClothCollisionVolumes );
+				}
+				ShowMenuBuilder.EndSection();
 			}
-			ShowMenuBuilder.EndSection();
-		}
 #endif // #if WITH_APEX_CLOTHING
 
 		ShowMenuBuilder.AddMenuSeparator();
@@ -533,7 +523,7 @@ void SAnimViewportToolBar::FillShowSceneMenu(FMenuBuilder& MenuBuilder) const
 	{
 		MenuBuilder.AddMenuEntry(Actions.ToggleFloor);
 		MenuBuilder.AddMenuEntry(Actions.ToggleSky);
-	}
+		}
 	MenuBuilder.EndSection();
 
 	MenuBuilder.BeginSection("AnimViewportFloorOffset", LOCTEXT("Viewport_FloorOffsetLabel", "Floor Height Offset"));
@@ -591,6 +581,47 @@ void SAnimViewportToolBar::FillShowAdvancedMenu(FMenuBuilder& MenuBuilder) const
 		MenuBuilder.AddMenuEntry( Actions.ShowLocalAxesNone );
 	}
 	MenuBuilder.EndSection();
+}
+
+void SAnimViewportToolBar::FillShowClothingMenu(FMenuBuilder& MenuBuilder) const
+{
+	const FAnimViewportShowCommands& Actions = FAnimViewportShowCommands::Get();
+
+	MenuBuilder.BeginSection("ClothPreview", LOCTEXT("ClothPreview_Label", "Preview"));
+	{
+		MenuBuilder.AddMenuEntry(Actions.DisableClothSimulation);
+		MenuBuilder.AddMenuEntry(Actions.ApplyClothWind);
+		TSharedPtr<SWidget> WindWidget = SNew(SClothWindSettings).AnimEditorViewport(Viewport);
+		MenuBuilder.AddWidget(WindWidget.ToSharedRef(), FText());
+		TSharedPtr<SWidget> GravityWidget = SNew(SGravitySettings).AnimEditorViewport(Viewport);
+		MenuBuilder.AddWidget(GravityWidget.ToSharedRef(), FText());
+		MenuBuilder.AddMenuEntry(Actions.EnableCollisionWithAttachedClothChildren);
+	}
+	MenuBuilder.EndSection();
+
+	MenuBuilder.BeginSection("ClothNormalVisualization", LOCTEXT("ClothNormalVisualization_Label", "Normal Visualization"));
+	{
+		MenuBuilder.AddMenuEntry(Actions.ShowClothSimulationNormals);
+		MenuBuilder.AddMenuEntry(Actions.ShowClothGraphicalTangents);
+	}
+	MenuBuilder.EndSection();
+
+	MenuBuilder.BeginSection("ClothConstraintsVisualization", LOCTEXT("ClothConstraintsVisualization_Label", "Constraints Visualization"));
+	{
+		MenuBuilder.AddMenuEntry(Actions.ShowClothCollisionVolumes);
+		MenuBuilder.AddMenuEntry(Actions.ShowClothPhysicalMeshWire);
+		MenuBuilder.AddMenuEntry(Actions.ShowClothMaxDistances);
+		MenuBuilder.AddMenuEntry(Actions.ShowClothBackstop);
+		MenuBuilder.AddMenuEntry(Actions.ShowClothFixedVertices);
+	}
+	MenuBuilder.EndSection();
+
+	MenuBuilder.BeginSection("ClothAdditionalVisualization", LOCTEXT("ClothAdditionalVisualization_Label", "Sections Display Mode"));
+	{
+		MenuBuilder.AddMenuEntry(Actions.ShowAllSections);
+		MenuBuilder.AddMenuEntry(Actions.ShowOnlyClothSections);
+		MenuBuilder.AddMenuEntry(Actions.HideOnlyClothSections);
+	}
 }
 
 FText SAnimViewportToolBar::GetLODMenuLabel() const

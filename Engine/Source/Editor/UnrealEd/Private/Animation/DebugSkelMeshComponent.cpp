@@ -250,6 +250,14 @@ void UDebugSkelMeshComponent::EnablePreview(bool bEnable, UAnimationAsset* Previ
 
 				AnimScriptInstance = PreviewInstance;
 
+#if WITH_APEX_CLOTHING
+			    // turn off these options when playing animations because max distances / back stops don't have meaning while moving
+			    bDisplayClothMaxDistances = false;
+				bDisplayClothBackstops = false;
+			    // restore previous state
+			    bDisableClothSimulation = bPrevDisableClothSimulation;
+#endif // #if WITH_APEX_CLOTHING
+    
 				if(PreviewAsset)
 				{
 					PreviewInstance->SetVertexAnimation(NULL);
@@ -423,3 +431,81 @@ void UDebugSkelMeshComponent::ClearAnimNotifyErrors(UObject* InSourceNotify)
 	}
 }
 #endif
+
+#if WITH_APEX_CLOTHING
+
+void UDebugSkelMeshComponent::ShowOnlyClothSections(bool bShow, int32 LODIndex)
+{
+	PreEditChange(NULL);
+
+	FSkeletalMeshResource* SkelMeshResource = GetSkeletalMeshResource();
+	check(SkelMeshResource);
+	check(LODIndex >= 0 && LODIndex < SkelMeshResource->LODModels.Num());
+	FStaticLODModel& LODModel = SkelMeshResource->LODModels[LODIndex];
+
+	for (int32 SecIdx = 0; SecIdx < LODModel.Sections.Num(); SecIdx++)
+	{
+		FSkelMeshSection& Section = LODModel.Sections[SecIdx];
+
+		// toggle visibility between cloth sections and non-cloth sections
+		if (bShow)
+		{
+			// enables only cloth sections
+			if (LODModel.Chunks[Section.ChunkIndex].HasApexClothData())
+			{
+				Section.bDisabled = false;
+			}
+			else
+			{
+				Section.bDisabled = true;
+			}
+		}
+		else
+		{   // disables cloth sections and also corresponding original sections
+			if (LODModel.Chunks[Section.ChunkIndex].HasApexClothData())
+			{
+				Section.bDisabled = true;
+				LODModel.Sections[Section.CorrespondClothSectionIndex].bDisabled = true;
+			}
+			else
+			{
+				Section.bDisabled = false;
+			}
+		}
+	}
+
+	PostEditChange();
+}
+
+void UDebugSkelMeshComponent::RestoreClothSectionsVisibility()
+{
+	PreEditChange(NULL);
+
+	FSkeletalMeshResource* SkelMeshResource = GetSkeletalMeshResource();
+	check(SkelMeshResource);
+
+	for (int32 LODIndex = 0; LODIndex < SkelMeshResource->LODModels.Num(); LODIndex++)
+	{
+		FStaticLODModel& LODModel = SkelMeshResource->LODModels[LODIndex];
+
+		// enables all sections first
+		for (int32 SecIdx = 0; SecIdx < LODModel.Sections.Num(); SecIdx++)
+		{
+			LODModel.Sections[SecIdx].bDisabled = false;
+		}
+
+		// disables corresponding original section to enable the cloth section instead
+		for (int32 SecIdx = 0; SecIdx < LODModel.Sections.Num(); SecIdx++)
+		{
+			FSkelMeshSection& Section = LODModel.Sections[SecIdx];
+
+			if (LODModel.Chunks[Section.ChunkIndex].HasApexClothData())
+			{
+				LODModel.Sections[Section.CorrespondClothSectionIndex].bDisabled = true;
+			}
+		}
+	}
+
+	PostEditChange();
+}
+#endif // #if WITH_APEX_CLOTHING
