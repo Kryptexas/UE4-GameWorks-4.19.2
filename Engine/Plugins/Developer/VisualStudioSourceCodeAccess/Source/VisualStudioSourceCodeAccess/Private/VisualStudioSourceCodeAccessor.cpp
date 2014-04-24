@@ -69,7 +69,7 @@ void FVisualStudioSourceCodeAccessor::Startup()
 	FModuleManager::Get().OnModuleCompilerStarted().AddStatic( &SaveVisualStudioDocuments );
 
 	// Cache this so we don't have to do it on a background thread
-	SolutionPath = FPaths::ConvertRelativePathToFull(FModuleManager::Get().GetSolutionFilepath());
+	GetSolutionPath();
 
 	// Preferential order of VS versions
 	AddVisualStudioVersion(12); // Visual Studio 2013
@@ -111,37 +111,37 @@ EAccessVisualStudioResult AccessVisualStudioViaDTE(CComPtr<EnvDTE::_DTE>& OutDTE
 		IEnumMoniker* MonikersTable;
 		if(SUCCEEDED(RunningObjectTable->EnumRunning(&MonikersTable)))
 		{
-			MonikersTable->Reset();
+		MonikersTable->Reset();
 
-			// Look for all visual studio instances in the ROT
-			IMoniker* CurrentMoniker;
+		// Look for all visual studio instances in the ROT
+		IMoniker* CurrentMoniker;
 			while(AccessResult != EAccessVisualStudioResult::VSInstanceIsOpen && MonikersTable->Next(1, &CurrentMoniker, NULL) == S_OK)
-			{
-				IBindCtx* BindContext;
-				LPOLESTR OutName;
+		{
+			IBindCtx* BindContext;
+			LPOLESTR OutName;
 				if(SUCCEEDED(CreateBindCtx(0, &BindContext)) && SUCCEEDED(CurrentMoniker->GetDisplayName(BindContext, NULL, &OutName)))
 				{
 					if(IsVisualStudioDTEMoniker(FString(OutName), InLocations))
 					{
-						CComPtr<IUnknown> ComObject;
+			CComPtr<IUnknown> ComObject;
 						if(SUCCEEDED(RunningObjectTable->GetObject(CurrentMoniker, &ComObject)))
-						{
-							CComPtr<EnvDTE::_DTE> TempDTE;
-							TempDTE = ComObject;
+			{
+				CComPtr<EnvDTE::_DTE> TempDTE;
+				TempDTE = ComObject;
 
-							// Get the solution path for this instance
-							// If it equals the solution we would have opened above in RunVisualStudio(), we'll take that
-							CComPtr<EnvDTE::_Solution> Solution;
-							LPOLESTR OutPath;
-							if(SUCCEEDED(TempDTE->get_Solution(&Solution)) &&
-								SUCCEEDED(Solution->get_FullName(&OutPath)))
-							{
-								FString Filename(OutPath);
-								FPaths::NormalizeFilename(Filename);
+				// Get the solution path for this instance
+				// If it equals the solution we would have opened above in RunVisualStudio(), we'll take that
+				CComPtr<EnvDTE::_Solution> Solution;
+				LPOLESTR OutPath;
+				if (SUCCEEDED(TempDTE->get_Solution(&Solution)) &&
+					SUCCEEDED(Solution->get_FullName(&OutPath)))
+				{
+					FString Filename(OutPath);
+					FPaths::NormalizeFilename(Filename);
 
-								if(Filename == InSolutionPath)
-								{
-									OutDTE = TempDTE;
+					if( Filename == InSolutionPath )
+					{
+						OutDTE = TempDTE;
 									AccessResult = EAccessVisualStudioResult::VSInstanceIsOpen;
 								}
 							}
@@ -157,11 +157,11 @@ EAccessVisualStudioResult AccessVisualStudioViaDTE(CComPtr<EnvDTE::_DTE>& OutDTE
 				{
 					UE_LOG(LogVSAccessor, Warning, TEXT("Couldn't get display name"));
 					AccessResult = EAccessVisualStudioResult::VSInstanceUnknown;
-				}
-				BindContext->Release();
-				CurrentMoniker->Release();
 			}
-			MonikersTable->Release();
+			BindContext->Release();
+			CurrentMoniker->Release();
+		}
+		MonikersTable->Release();
 		}
 		else
 		{
@@ -191,32 +191,32 @@ bool FVisualStudioSourceCodeAccessor::OpenVisualStudioSolutionViaDTE()
 	bool bSuccess = false;
 
 	CComPtr<EnvDTE::_DTE> DTE;
-	switch (AccessVisualStudioViaDTE(DTE, SolutionPath, Locations))
+	switch (AccessVisualStudioViaDTE(DTE, GetSolutionPath(), Locations))
 	{
 		case EAccessVisualStudioResult::VSInstanceIsOpen:
+	{
+		// Set Focus on Visual Studio
+		CComPtr<EnvDTE::Window> MainWindow;
+		if (SUCCEEDED(DTE->get_MainWindow(&MainWindow)) &&
+			SUCCEEDED(MainWindow->Activate()))
 		{
-			// Set Focus on Visual Studio
-			CComPtr<EnvDTE::Window> MainWindow;
-			if (SUCCEEDED(DTE->get_MainWindow(&MainWindow)) &&
-				SUCCEEDED(MainWindow->Activate()))
-			{
-				bSuccess = true;
-			}
-			else
-			{
-				UE_LOG(LogVSAccessor, Warning, TEXT("Couldn't set focus on Visual Studio."));
-			}
+			bSuccess = true;
 		}
+		else
+		{
+			UE_LOG(LogVSAccessor, Warning, TEXT("Couldn't set focus on Visual Studio."));
+		}
+	}
 		break;
 
 	case EAccessVisualStudioResult::VSInstanceIsNotOpen:
+	{
+		// Automatically fail if there's already an attempt in progress
+		if (!IsVSLaunchInProgress())
 		{
-			// Automatically fail if there's already an attempt in progress
-			if (!IsVSLaunchInProgress())
-			{
-				bSuccess = RunVisualStudioAndOpenSolution();
-			}
+			bSuccess = RunVisualStudioAndOpenSolution();
 		}
+	}
 		break;
 
 	default:
@@ -244,7 +244,7 @@ bool FVisualStudioSourceCodeAccessor::OpenVisualStudioFilesInternalViaDTE(const 
 	
 	bool bDefer = false, bSuccess = false;
 	CComPtr<EnvDTE::_DTE> DTE;
-	switch (AccessVisualStudioViaDTE(DTE, SolutionPath, Locations))
+	switch (AccessVisualStudioViaDTE(DTE, GetSolutionPath(), Locations))
 	{
 	case EAccessVisualStudioResult::VSInstanceIsOpen:
 	{
@@ -272,7 +272,7 @@ bool FVisualStudioSourceCodeAccessor::OpenVisualStudioFilesInternalViaDTE(const 
 					CComBSTR COMStrFileName(ANSIPath.Get());
 					CComBSTR COMStrKind(EnvDTE::vsViewKindTextView);
 					CComPtr<EnvDTE::Window> Window;
-					if (SUCCEEDED(ItemOperations->OpenFile(COMStrFileName, COMStrKind, &Window)))
+					if ( SUCCEEDED(ItemOperations->OpenFile(COMStrFileName, COMStrKind, &Window)) )
 					{
 						// If we've made it this far - we've opened the file.  it doesn't matter if
 						// we successfully get to the line number.  Everything else is gravy.
@@ -282,10 +282,10 @@ bool FVisualStudioSourceCodeAccessor::OpenVisualStudioFilesInternalViaDTE(const 
 						CComPtr<EnvDTE::Document> Document;
 						CComPtr<IDispatch> SelectionDispatch;
 						CComPtr<EnvDTE::TextSelection> Selection;
-						if (SUCCEEDED(DTE->get_ActiveDocument(&Document)) &&
-							SUCCEEDED(Document->get_Selection(&SelectionDispatch)) &&
-							SUCCEEDED(SelectionDispatch->QueryInterface(&Selection)) &&
-							SUCCEEDED(Selection->GotoLine(Request.LineNumber, true)))
+						if ( SUCCEEDED(DTE->get_ActiveDocument(&Document)) &&
+							 SUCCEEDED(Document->get_Selection(&SelectionDispatch)) &&
+							 SUCCEEDED(SelectionDispatch->QueryInterface(&Selection)) &&
+							 SUCCEEDED(Selection->GotoLine(Request.LineNumber, true)) )
 						{
 							if ( !SUCCEEDED(Selection->MoveToLineAndOffset(Request.LineNumber, Request.ColumnNumber, false)) )
 							{
@@ -326,7 +326,7 @@ bool FVisualStudioSourceCodeAccessor::OpenVisualStudioFilesInternalViaDTE(const 
 		if ( IsInGameThread() )
 		{
 			// If we haven't already attempted to launch VS do so now
-			if (!IsVSLaunchInProgress())
+			if ( !IsVSLaunchInProgress() )
 			{
 				// If there's no valid instance of VS running, run one if we have it installed
 				if ( !RunVisualStudioAndOpenSolution() )
@@ -348,13 +348,13 @@ bool FVisualStudioSourceCodeAccessor::OpenVisualStudioFilesInternalViaDTE(const 
 		bDefer = false;
 		break;
 	}
-
+	
 	if ( !bSuccess )
 	{
 		// If we have attempted to launch VS, and it's taken too long, timeout so the user can try again
 		if ( IsVSLaunchInProgress() && ( FPlatformTime::Seconds() - VSLaunchTime ) > 300 )
 		{
-			// We need todo this incase the process died or was kill prior to the code gaining focus of it
+			// We need todo this in case the process died or was kill prior to the code gaining focus of it
 			bDefer = false;
 			VSLaunchFinished(false);
 
@@ -399,7 +399,7 @@ bool FVisualStudioSourceCodeAccessor::SaveAllOpenDocuments() const
 	}
 	
 	CComPtr<EnvDTE::_DTE> DTE;
-	if (AccessVisualStudioViaDTE(DTE, SolutionPath, Locations) == EAccessVisualStudioResult::VSInstanceIsOpen)
+	if (AccessVisualStudioViaDTE(DTE, GetSolutionPath(), Locations) == EAccessVisualStudioResult::VSInstanceIsOpen)
 	{
 		// Save all documents
 		CComPtr<EnvDTE::Documents> Documents;
@@ -636,8 +636,8 @@ EAccessVisualStudioResult AccessVisualStudioViaProcess(::DWORD& OutProcessID, FS
 							{
 								UE_LOG(LogVSAccessor, Warning, TEXT("Couldn't access module information"));
 								AccessResult = EAccessVisualStudioResult::VSInstanceUnknown;
-							}
 						}
+					}
 						}
 					else
 					{
@@ -695,25 +695,25 @@ bool FVisualStudioSourceCodeAccessor::OpenVisualStudioSolutionViaProcess()
 {
 	::DWORD ProcessID = 0;
 	FString Path;
-	switch (AccessVisualStudioViaProcess(ProcessID, Path, SolutionPath, Locations))
+	switch (AccessVisualStudioViaProcess(ProcessID, Path, GetSolutionPath(), Locations))
 {
 	case EAccessVisualStudioResult::VSInstanceIsOpen:
+	{
+		// Try to bring Visual Studio to the foreground
+		::HWND VisualStudioHwnd = GetTopWindowForProcess(ProcessID);
+		if (VisualStudioHwnd)
 		{
-			// Try to bring Visual Studio to the foreground
-			::HWND VisualStudioHwnd = GetTopWindowForProcess(ProcessID);
-			if (VisualStudioHwnd)
-			{
-				// SwitchToThisWindow isn't really intended for general use, however it can switch to 
-				// the VS window, where SetForegroundWindow will fail due to process permissions
-				::SwitchToThisWindow(VisualStudioHwnd, 0);
-			}
-			return true;
+			// SwitchToThisWindow isn't really intended for general use, however it can switch to 
+			// the VS window, where SetForegroundWindow will fail due to process permissions
+			::SwitchToThisWindow(VisualStudioHwnd, 0);
 		}
+		return true;
+	}
 		break;
 
 	case EAccessVisualStudioResult::VSInstanceIsNotOpen:
-		return RunVisualStudioAndOpenSolution();
-		
+	return RunVisualStudioAndOpenSolution();
+
 	default:
 		// Do nothing if we failed the VS detection, otherwise we could get stuck in a loop of constantly 
 		// trying to open a VS instance since we can't detect that one is already running
@@ -721,13 +721,13 @@ bool FVisualStudioSourceCodeAccessor::OpenVisualStudioSolutionViaProcess()
 	}
 
 		return false;
-	}
+}
 
 bool FVisualStudioSourceCodeAccessor::OpenVisualStudioFilesInternalViaProcess(const TArray<FileOpenRequest>& Requests)
 {
 	::DWORD ProcessID = 0;
 	FString Path;
-	switch (AccessVisualStudioViaProcess(ProcessID, Path, SolutionPath, Locations))
+	switch (AccessVisualStudioViaProcess(ProcessID, Path, GetSolutionPath(), Locations))
 	{
 	case EAccessVisualStudioResult::VSInstanceIsOpen:
 		return RunVisualStudioAndOpenSolutionAndFiles(Path, "", &Requests);
@@ -735,7 +735,7 @@ bool FVisualStudioSourceCodeAccessor::OpenVisualStudioFilesInternalViaProcess(co
 	case EAccessVisualStudioResult::VSInstanceIsNotOpen:
 		if (CanRunVisualStudio(Path))
 		{
-			return RunVisualStudioAndOpenSolutionAndFiles(Path, SolutionPath, &Requests);
+			return RunVisualStudioAndOpenSolutionAndFiles(Path, GetSolutionPath(), &Requests);
 		}
 		break;
 
@@ -766,7 +766,7 @@ bool FVisualStudioSourceCodeAccessor::RunVisualStudioAndOpenSolution() const
 	FString Path;
 	if (CanRunVisualStudio(Path))
 	{
-		return RunVisualStudioAndOpenSolutionAndFiles(Path, SolutionPath, nullptr);
+		return RunVisualStudioAndOpenSolutionAndFiles(Path, GetSolutionPath(), nullptr);
 	}
 
 	return false;
@@ -797,7 +797,7 @@ bool FVisualStudioSourceCodeAccessor::OpenFileAtLine(const FString& FullPath, in
 		LineNumber++;
 	}
 	if(ColumnNumber == 0)
-	{
+{
 		ColumnNumber++;
 	}
 
@@ -945,6 +945,16 @@ FText FVisualStudioSourceCodeAccessor::GetNameText() const
 FText FVisualStudioSourceCodeAccessor::GetDescriptionText() const
 {
 	return LOCTEXT("VisualStudioDisplayDesc", "Open source code files in Visual Studio");
+}
+
+FString FVisualStudioSourceCodeAccessor::GetSolutionPath() const
+{
+	FScopeLock Lock(&CachedSolutionPathCriticalSection);
+	if(IsInGameThread())
+	{
+		CachedSolutionPath = FPaths::ConvertRelativePathToFull(FModuleManager::Get().GetSolutionFilepath());
+	}
+	return CachedSolutionPath;
 }
 
 #undef LOCTEXT_NAMESPACE

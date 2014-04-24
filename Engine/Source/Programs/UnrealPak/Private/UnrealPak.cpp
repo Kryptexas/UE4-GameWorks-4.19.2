@@ -132,7 +132,7 @@ bool CopyFileToPak(FArchive& InPak, const FString& InMountPoint, const FPakInput
 	return bFileExists;
 }
 
-void ProcessOrderFile(int32 ArgC, ANSICHAR* ArgV[], TMap<FString, uint64>& OrderMap)
+void ProcessOrderFile(int32 ArgC, TCHAR* ArgV[], TMap<FString, uint64>& OrderMap)
 {
 	// List of all items to add to pak file
 	FString ResponseFile;
@@ -174,7 +174,7 @@ void ProcessOrderFile(int32 ArgC, ANSICHAR* ArgV[], TMap<FString, uint64>& Order
 	}
 }
 
-void ProcessCommandLine(int32 ArgC, ANSICHAR* ArgV[], TArray<FPakInputPair>& Entries)
+void ProcessCommandLine(int32 ArgC, TCHAR* ArgV[], TArray<FPakInputPair>& Entries)
 {
 	// List of all items to add to pak file
 	FString ResponseFile;
@@ -241,7 +241,7 @@ void ProcessCommandLine(int32 ArgC, ANSICHAR* ArgV[], TArray<FPakInputPair>& Ent
 		for (int32 Index = 2; Index < ArgC; Index++)
 		{
 			// Skip switches and add everything else to the Entries array
-			ANSICHAR* Param = ArgV[Index];
+			TCHAR* Param = ArgV[Index];
 			if (Param[0] != '-')
 			{
 				FPakInputPair Input;
@@ -596,7 +596,7 @@ bool ExtractFilesFromPak(const TCHAR* InPakFilename, const TCHAR* InDestPath)
  * @param	ArgC	Command-line argument count
  * @param	ArgV	Argument strings
  */
-int32 main(int32 ArgC, ANSICHAR* ArgV[])
+INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 {
 	// start up the main loop
 	GEngineLoop.PreInit(ArgC, ArgV);

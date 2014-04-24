@@ -264,11 +264,9 @@ void GameProjectUtils::GetStarterContentFiles(TArray<FString>& OutFilenames)
 {
 	FString const SrcFolder = FPaths::StarterContentDir();
 	FString const ContentFolder = SrcFolder / TEXT("Content");
-	FString const DDCFolder = SrcFolder / TEXT("DerivedDataCache");
 
-	// only copying /Content and /DerivedDataCache
+	// only copying /Content
 	IFileManager::Get().FindFilesRecursive(OutFilenames, *ContentFolder, TEXT("*"), /*Files=*/true, /*Directories=*/false);
-	IFileManager::Get().FindFilesRecursive(OutFilenames, *DDCFolder, TEXT("*"), /*Files=*/true, /*Directories=*/false, /*bClearFilenames=*/false);
 }
 
 bool GameProjectUtils::CopyStarterContent(const FString& DestProjectFolder, FText& OutFailReason)

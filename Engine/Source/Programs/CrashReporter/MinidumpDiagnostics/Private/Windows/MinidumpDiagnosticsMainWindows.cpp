@@ -9,7 +9,7 @@
 IMPLEMENT_APPLICATION( MinidumpDiagnostics, "MinidumpDiagnostics" )
 
 // More Windows glue
-int32 GuardedMain( int32 Argc, ANSICHAR* Argv[] )
+int32 GuardedMain(int32 Argc, TCHAR* Argv[])
 {
 	GEngineLoop.PreInit( Argc, Argv );
 
@@ -22,7 +22,7 @@ int32 GuardedMain( int32 Argc, ANSICHAR* Argv[] )
 }
 
 // Windows glue
-int32 GuardedMainWrapper( int32 ArgC, ANSICHAR* ArgV[] )
+int32 GuardedMainWrapper(int32 ArgC, TCHAR* ArgV[])
 {
 	int32 ReturnCode = 0;
 
@@ -54,7 +54,7 @@ int32 GuardedMainWrapper( int32 ArgC, ANSICHAR* ArgV[] )
 }
 
  // Main entry point to the application
-int32 main( int32 ArgC, ANSICHAR* ArgV[] )
+INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 {
 	const int32 Result = GuardedMainWrapper( ArgC, ArgV );
 	return Result;

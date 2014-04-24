@@ -37,6 +37,11 @@ public class BuildDocumentation : BuildCommand
 		bool bBuildHtml = bBuild || ParseParam("buildhtml");
 		bool bBuildChm = bBuild || ParseParam("buildchm");
 
+		if(ParseParam("nodoxygen"))
+		{
+			bCleanMeta = bCleanEnv = bCleanXml = bBuildMeta = bBuildEnv = bBuildXml = false;
+		}
+
 		bool bStats = ParseParam("stats");
 
 		bool bMakeArchives = ParseParam("archive");
@@ -45,7 +50,6 @@ public class BuildDocumentation : BuildCommand
 
 		// Create the intermediate folders
 		string IntermediateDir = Path.Combine(CmdEnv.LocalRoot, "Engine\\Intermediate\\Documentation");
-		CommandUtils.DeleteDirectory(IntermediateDir);
 		CommandUtils.CreateDirectory(IntermediateDir);
 		string BuildDir = Path.Combine(IntermediateDir, "build");
 		CommandUtils.CreateDirectory(BuildDir);

@@ -65,10 +65,10 @@ private:
 
 	/** Opens a file in the correct running instance of Visual Studio at a line and optionally to a column. */
 	bool OpenVisualStudioFileAtLineInternal(const FString& FullPath, int32 LineNumber, int32 ColumnNumber = 0);
-		
+
 	/** Opens multiple files in the correct running instance of Visual Studio. */
 	bool OpenVisualStudioFilesInternal(const TArray<FileOpenRequest>& Requests);
-
+		
 	/** An instance of VS it attempting to be opened */
 	void VSLaunchStarted();
 
@@ -118,8 +118,14 @@ private:
 	TArray<VisualStudioLocation> Locations;
 
 	/** String storing the solution path obtained from the module manager to avoid having to use it on a thread */
-	FString SolutionPath;
+	mutable FString CachedSolutionPath;
+
+	/** Critical section for updating SolutionPath */
+	mutable FCriticalSection CachedSolutionPathCriticalSection;
 
 	/** If !0 it represents the time at which the a VS instance was opened */
 	double	VSLaunchTime;
+
+	/** Accessor for SolutionPath. Will try to update it when called from the game thread, otherwise will use the cached value */
+	FString GetSolutionPath() const;
 };

@@ -4,7 +4,7 @@
 #include "ModuleManager.h"
 #include "CrashDebugHelperModule.h"
 
-int32 RunMinidumpDiagnostics( int32 ArgC, ANSICHAR* Argv[] )
+int32 RunMinidumpDiagnostics(int32 ArgC, TCHAR* Argv[])
 {
 	// Make sure we have at least a single parameter
 	if( ArgC < 2 )
@@ -32,7 +32,7 @@ int32 RunMinidumpDiagnostics( int32 ArgC, ANSICHAR* Argv[] )
 	IModuleInterface& PerforceSourceControlModule = FModuleManager::LoadModuleChecked<IModuleInterface>( FName( "PerforceSourceControl" ) );
 
 	// Create a report for the minidump passed in on the command line
-	FString MinidumpName = ANSI_TO_TCHAR( Argv[1] );
+	FString MinidumpName = Argv[1];
 	CrashDebugHelper->CreateMinidumpDiagnosticReport( MinidumpName );
 
 	// Write a report next to the original minidump
@@ -47,4 +47,5 @@ int32 RunMinidumpDiagnostics( int32 ArgC, ANSICHAR* Argv[] )
 	UE_LOG( LogInit, Warning, TEXT( "MinidumpDiagnostics completed successfully!" ) );
 	return 0;
 }
+
 

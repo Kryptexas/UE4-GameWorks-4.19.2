@@ -226,7 +226,7 @@ public class IOSPlatform : Platform
 				Directory.SetCurrentDirectory (CWD);
 
 				XcodeProj = RawProjectPath.Replace(".uproject", ".xcodeproj"); 
-				if (!Directory.Exists(XcodeProj))
+				if (!Directory.Exists (XcodeProj))
 				{
 					// something very bad happened
 					throw new AutomationException("iOS couldn't find the appropriate Xcode Project");
@@ -280,6 +280,10 @@ public class IOSPlatform : Platform
 		// create the file
 		using (ZipFile Zip = new ZipFile())
 		{
+            // Set encoding to support unicode filenames
+            Zip.AlternateEncodingUsage = ZipOption.Always;
+            Zip.AlternateEncoding = Encoding.UTF8;
+
 			// set the compression level
 			if (Distribution)
 			{

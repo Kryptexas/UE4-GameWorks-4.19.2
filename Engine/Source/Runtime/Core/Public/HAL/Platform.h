@@ -137,6 +137,9 @@
 #ifndef PLATFORM_COMPILER_COMMON_LANGUAGE_RUNTIME_COMPILATION
 	#define PLATFORM_COMPILER_COMMON_LANGUAGE_RUNTIME_COMPILATION 0
 #endif
+#ifndef PLATFORM_COMPILER_HAS_TCHAR_WMAIN
+	#define PLATFORM_COMPILER_HAS_TCHAR_WMAIN 0
+#endif
 #ifndef PLATFORM_TCHAR_IS_4_BYTES
 	#define PLATFORM_TCHAR_IS_4_BYTES			0
 #endif
@@ -443,6 +446,33 @@ struct THasOperatorNotEquals
 	#define SAFE_BOOL_OPERATORS(...)	\
 			void operator ==( const __VA_ARGS__ & RHS ) const; \
 			void operator !=( const __VA_ARGS__ & RHS ) const;
+#endif
+
+
+// Console ANSICHAR/TCHAR command line handling
+#if PLATFORM_COMPILER_HAS_TCHAR_WMAIN
+#define INT32_MAIN_INT32_ARGC_TCHAR_ARGV() int32 wmain(int32 ArgC, TCHAR* ArgV[])
+#else
+#define INT32_MAIN_INT32_ARGC_TCHAR_ARGV() \
+int32 tchar_main(int32 ArgC, TCHAR* ArgV[]); \
+int32 main(int32 ArgC, ANSICHAR* Utf8ArgV[]) \
+{ \
+	TCHAR** ArgV = new TCHAR*[ArgC]; \
+	for (int32 a = 0; a < ArgC; a++) \
+	{ \
+		FUTF8ToTCHAR ConvertFromUtf8(Utf8ArgV[a]); \
+		ArgV[a] = new TCHAR[ConvertFromUtf8.Length() + 1]; \
+		FCString::Strcpy(ArgV[a], ConvertFromUtf8.Length(), ConvertFromUtf8.Get()); \
+	} \
+	int32 Result = tchar_main(ArgC, ArgV); \
+	for (int32 a = 0; a < ArgC; a++) \
+	{ \
+		delete[] ArgV[a]; \
+	} \
+	delete[] ArgV; \
+	return Result; \
+} \
+int32 tchar_main(int32 ArgC, TCHAR* ArgV[])
 #endif
 
 //--------------------------------------------------------------------------------------------

@@ -476,7 +476,7 @@ FEngineLoop::FEngineLoop()
 { }
 
 
-int32 FEngineLoop::PreInit(int32 ArgC, ANSICHAR* ArgV[], const TCHAR* AdditionalCommandline)
+int32 FEngineLoop::PreInit(int32 ArgC, TCHAR* ArgV[], const TCHAR* AdditionalCommandline)
 {
 	FString CmdLine;
 
@@ -2348,6 +2348,7 @@ void FEngineLoop::AppInit( )
 	UE_LOG(LogInit, Log, TEXT("Command line: %s"), FCommandLine::Get() );
 	UE_LOG(LogInit, Log, TEXT("Base directory: %s"), FPlatformProcess::BaseDir() );
 	//UE_LOG(LogInit, Log, TEXT("Character set: %s"), sizeof(TCHAR)==1 ? TEXT("ANSI") : TEXT("Unicode") );
+	UE_LOG(LogInit, Log, TEXT("Rocket: %d"), FRocketSupport::IsRocket()? 1 : 0);
 
 	GPrintLogTimes = ELogTimes::None;
 
