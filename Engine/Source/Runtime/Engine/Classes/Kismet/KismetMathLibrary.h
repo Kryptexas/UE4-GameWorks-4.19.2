@@ -784,6 +784,18 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "NotEqual (Object)", CompactNodeTitle = "!=", Keywords = "!= not equal"), Category="Utilities")
 	static bool NotEqual_ObjectObject(class UObject* A, class UObject* B);
 
+	//
+	// Class operators and functions.
+	//
+
+	/* Returns true if A and B are equal (A == B) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Equal (Class)", CompactNodeTitle = "==", Keywords = "== equal"), Category="Utilities")
+	static bool EqualEqual_ClassClass(class UClass* A, class UClass* B);
+
+	/* Returns true if A and B are not equal (A != B) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "NotEqual (Class)", CompactNodeTitle = "!=", Keywords = "!= not equal"), Category="Utilities")
+	static bool NotEqual_ClassClass(class UClass* A, class UClass* B);
+
 	/**
 	 * Determine if a class is a child of another class.
 	 *
