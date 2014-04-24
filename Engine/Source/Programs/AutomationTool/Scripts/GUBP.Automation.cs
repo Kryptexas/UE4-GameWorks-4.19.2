@@ -458,7 +458,7 @@ public class GUBP : BuildCommand
         public override UE4Build.BuildAgenda GetAgenda(GUBP bp)
         {
             var Agenda = new UE4Build.BuildAgenda();
-            if (HostPlatform != UnrealTargetPlatform.Mac)
+            if (HostPlatform != UnrealTargetPlatform.Mac && !GUBP.bForceIncrementalCompile)
             {
                 Agenda.DotNetProjects.AddRange(
                     new string[] 
@@ -626,19 +626,26 @@ public class GUBP : BuildCommand
 
             if (HostPlatform != UnrealTargetPlatform.Mac)
             {
-                Agenda.DotNetProjects.AddRange(
-                    new string[] 
-			    {
-                    CombinePaths(@"Engine\Source\Programs\UnrealControls\UnrealControls.csproj"),
-			    }
-                    );
+                if (!GUBP.bForceIncrementalCompile)
+                {
+                    Agenda.DotNetProjects.AddRange(
+                        new string[] 
+			        {
+                        CombinePaths(@"Engine\Source\Programs\UnrealControls\UnrealControls.csproj"),
+			        }
+                        );
+                }
+
                 Agenda.DotNetSolutions.AddRange(
                     new string[] 
 			        {
 				        CombinePaths(@"Engine\Source\Programs\NetworkProfiler\NetworkProfiler.sln"),   
 			        }
                     );
-                Agenda.SwarmProject = CombinePaths(@"Engine\Source\Programs\UnrealSwarm\UnrealSwarm.sln");
+                if (!GUBP.bForceIncrementalCompile)
+                {
+                    Agenda.SwarmProject = CombinePaths(@"Engine\Source\Programs\UnrealSwarm\UnrealSwarm.sln");
+                }
                 Agenda.IOSDotNetProjects.AddRange(
                         new string[]
                     {
