@@ -2,12 +2,4 @@
 
 #pragma once
 
-// Uncommenting this like causes the FTransform linkage issue
-//#include "Core.h"
-
-#include "Engine.h"
-
-DECLARE_LOG_CATEGORY_EXTERN(LogUMG, Verbose, All);
-
-#include "UMGClasses.h"
-#include "IUMGModule.h"
+#include "UMG.h"

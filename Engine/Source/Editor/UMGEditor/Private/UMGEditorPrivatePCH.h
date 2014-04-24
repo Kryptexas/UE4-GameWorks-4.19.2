@@ -3,8 +3,10 @@
 #pragma once
 
 #include "UnrealEd.h"
-#include "UMGClasses.h"
-#include "IUMGModule.h"
+
+#include "UMG.h"
+
 #include "UMGEditorClasses.h"
+
 #include "AssetTypeActions_Base.h"
 #include "AssetTypeActions_Blueprint.h"

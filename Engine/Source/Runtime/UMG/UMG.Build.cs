@@ -6,22 +6,24 @@ public class UMG : ModuleRules
 {
 	public UMG(TargetInfo Target)
 	{
+        PrivateIncludePaths.AddRange(
+            new string[] {
+                "Runtime/UMG/Private" // For PCH includes (because they don't work with relative paths, yet)
+            });
+
 		PublicDependencyModuleNames.AddRange(
 			new string[] {
 				"Core",
 				"CoreUObject",
-				"Engine",
-				"ShaderCore",
-				"RenderCore",
+                "Engine",
                 "InputCore",
-				"RHI",
+				"Slate",
 			}
-			);
+		);
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
-				"Slate"
 			}
-			);
+		);
 	}
 }
