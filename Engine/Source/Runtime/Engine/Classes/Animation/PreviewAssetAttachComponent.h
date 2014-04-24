@@ -16,13 +16,51 @@ struct FPreviewAttachedObjectPair
 {
 	GENERATED_USTRUCT_BODY()
 
+private:
+	/** the object to be attached */
+	UPROPERTY()
+	TAssetPtr<class UObject> AttachedObject;
+
+	UPROPERTY()
+	UObject* Object_DEPRECATED;
+
+public:
+
+	FPreviewAttachedObjectPair() : Object_DEPRECATED(NULL) {}
+
 	/** The name of the attach point of the Object (for example a bone or socket name) */
 	UPROPERTY()
 	FName AttachedTo;
 
-	/** the object to be attached */
-	UPROPERTY()
-	UObject* Object;
+	void SaveAttachedObjectFromDeprecatedProperty()
+	{
+		if (Object_DEPRECATED)
+		{
+			AttachedObject = Object_DEPRECATED;
+			Object_DEPRECATED = NULL;
+		}
+	}
+
+	UObject* GetAttachedObject() const
+	{
+		UObject* AttachedObjectPtr = AttachedObject.Get();
+		if (!AttachedObjectPtr)
+		{
+			// if preview mesh isn't loaded, see if we have set
+			FStringAssetReference AttachedObjectStringRef = AttachedObject.ToStringReference();
+			// load it since now is the time to load
+			if (!AttachedObjectStringRef.AssetLongPathname.IsEmpty())
+			{
+				AttachedObjectPtr = Cast<UObject>(StaticLoadObject(UObject::StaticClass(), NULL, *AttachedObjectStringRef.AssetLongPathname, NULL, LOAD_None, NULL));
+			}
+		}
+		return AttachedObjectPtr;
+	}
+
+	void SetAttachedObject(UObject* InObject)
+	{
+		AttachedObject = InObject;
+	}
 };
 
 // Iterators
@@ -88,6 +126,16 @@ public:
 	 * RemoveAtSwap passthrough
 	 */
 	ENGINE_API void RemoveAtSwap( int32 Index, int32 Count = 1, bool bAllowShrinking = true );
+
+	/**
+	 * Helper function to fix up attached objects after property deprecation
+	 */
+	ENGINE_API void SaveAttachedObjectsFromDeprecatedProperties();
+
+	/**
+	 * Helper function to remove invalid attached object references
+	 */
+	ENGINE_API int32 ValidatePreviewAttachedObjects();
 
 private:
 	UPROPERTY()

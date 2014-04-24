@@ -675,6 +675,13 @@ public:
 	 */
 	ENGINE_API const TArray<USkeletalMeshSocket*>& GetActiveSocketList() const;
 
+	/**
+	* Makes sure all attached objects are valid and removes any that aren't.
+	*
+	* @return		NumberOfBrokenAssets
+	*/
+	ENGINE_API int32 ValidatePreviewAttachedObjects();
+
 #endif // #if WITH_EDITOR
 
 	/**

@@ -136,6 +136,11 @@ void USkeleton::Serialize( FArchive& Ar )
 	{
 		Ar << Guid;
 	}
+
+	if (Ar.UE4Ver() < VER_UE4_SKELETON_ASSET_PROPERTY_TYPE_CHANGE)
+	{
+		PreviewAttachedAssetContainer.SaveAttachedObjectsFromDeprecatedProperties();
+	}
 }
 
 /** Remove this function when VER_UE4_REFERENCE_SKELETON_REFACTOR is removed. */
@@ -741,19 +746,7 @@ void USkeleton::SetPreviewMesh(USkeletalMesh* PreviewMesh, bool bMarkAsDirty/*=t
 
 int32 USkeleton::ValidatePreviewAttachedObjects()
 {
-	int32 NumBrokenAssets = 0;
-
-	//Load up attached objects
-	for(int32 i = PreviewAttachedAssetContainer.Num()-1; i >= 0; --i)
-	{
-		FPreviewAttachedObjectPair& PreviewAttachedObject = PreviewAttachedAssetContainer[i];
-
-		if(!PreviewAttachedObject.Object)
-		{
-			PreviewAttachedAssetContainer.RemoveAtSwap(i);
-			++NumBrokenAssets;
-		}
-	}
+	int32 NumBrokenAssets = PreviewAttachedAssetContainer.ValidatePreviewAttachedObjects();
 
 	if(NumBrokenAssets > 0)
 	{

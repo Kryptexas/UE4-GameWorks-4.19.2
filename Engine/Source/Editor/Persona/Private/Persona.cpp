@@ -747,24 +747,6 @@ void FPersona::InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< clas
 	// We could modify the skeleton within Persona (add/remove sockets), so we need to enable undo/redo on it
 	TargetSkeleton->SetFlags( RF_Transactional );
 
-	// Validate the skeletons attached objects and display a notification to the user if any were broken
-	int32 NumBrokenAssets = TargetSkeleton->ValidatePreviewAttachedObjects();
-	if(NumBrokenAssets > 0)
-	{
-		// Tell the user that there were assets that could not be loaded
-		FFormatNamedArguments Args;
-		Args.Add( TEXT("NumBrokenAssets"), NumBrokenAssets );
-		FNotificationInfo Info( FText::Format( LOCTEXT( "MissingPreviewAttachedAssets", "{NumBrokenAssets} attached assets could not be found on loading and were removed" ), Args ) );
-
-		Info.bUseLargeFont = false;
-		Info.ExpireDuration = 5.0f;
-
-		TSharedPtr<SNotificationItem> Notification = FSlateNotificationManager::Get().AddNotification( Info );
-		if ( Notification.IsValid() )
-		{
-			Notification->SetCompletionState( SNotificationItem::CS_Fail );
-		}
-	}
 	// Initialize the asset editor and spawn tabs
 	const TSharedRef<FTabManager::FLayout> DummyLayout = FTabManager::NewLayout("NullLayout")->AddArea(FTabManager::NewPrimaryArea());
 	const bool bCreateDefaultStandaloneMenu = true;
@@ -858,6 +840,30 @@ void FPersona::InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< clas
 		if ( PreviewMesh )
 		{
 			SetPreviewMesh( PreviewMesh );
+		}
+	}
+
+	// Validate the skeleton/meshes attached objects and display a notification to the user if any were broken
+	int32 NumBrokenAssets = TargetSkeleton->ValidatePreviewAttachedObjects();
+	if (PreviewComponent->SkeletalMesh)
+	{
+		NumBrokenAssets += PreviewComponent->SkeletalMesh->ValidatePreviewAttachedObjects();
+	}
+
+	if (NumBrokenAssets > 0)
+	{
+		// Tell the user that there were assets that could not be loaded
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("NumBrokenAssets"), NumBrokenAssets);
+		FNotificationInfo Info(FText::Format(LOCTEXT("MissingPreviewAttachedAssets", "{NumBrokenAssets} attached assets could not be found on loading and were removed"), Args));
+
+		Info.bUseLargeFont = false;
+		Info.ExpireDuration = 5.0f;
+
+		TSharedPtr<SNotificationItem> Notification = FSlateNotificationManager::Get().AddNotification(Info);
+		if (Notification.IsValid())
+		{
+			Notification->SetCompletionState(SNotificationItem::CS_Fail);
 		}
 	}
 
@@ -1911,7 +1917,7 @@ void FPersona::DuplicateAndSelectSocket( const FSelectedSocketInfo& SocketInfoTo
 			}
 			FPreviewAttachedObjectPair NewPair = Pair;
 			NewPair.AttachedTo = NewSocket->SocketName;
-			AttachObjectToPreviewComponent( NewPair.Object, NewPair.AttachedTo, &TargetSkeleton->PreviewAttachedAssetContainer );
+			AttachObjectToPreviewComponent( NewPair.GetAttachedObject(), NewPair.AttachedTo, &TargetSkeleton->PreviewAttachedAssetContainer );
 		}
 	}
 
@@ -1988,7 +1994,7 @@ void FPersona::AddPreviewAttachedObjects()
 		{
 			FPreviewAttachedObjectPair& PreviewAttachedObject = Mesh->PreviewAttachedAssetContainer[i];
 
-			AttachObjectToPreviewComponent(PreviewAttachedObject.Object, PreviewAttachedObject.AttachedTo);
+			AttachObjectToPreviewComponent(PreviewAttachedObject.GetAttachedObject(), PreviewAttachedObject.AttachedTo);
 		}
 	}
 
@@ -1997,7 +2003,7 @@ void FPersona::AddPreviewAttachedObjects()
 	{
 		FPreviewAttachedObjectPair& PreviewAttachedObject = TargetSkeleton->PreviewAttachedAssetContainer[i];
 
-		AttachObjectToPreviewComponent(PreviewAttachedObject.Object, PreviewAttachedObject.AttachedTo);
+		AttachObjectToPreviewComponent(PreviewAttachedObject.GetAttachedObject(), PreviewAttachedObject.AttachedTo);
 	}
 }
 
@@ -2101,14 +2107,14 @@ void FPersona::RemoveAttachedComponent( bool bRemovePreviewAttached /* = true */
 	{
 		for(auto Iter = TargetSkeleton->PreviewAttachedAssetContainer.CreateConstIterator(); Iter; ++Iter)
 		{
-			PreviewAttachedObjects.FindOrAdd(Iter->Object).Add(Iter->AttachedTo);
+			PreviewAttachedObjects.FindOrAdd(Iter->GetAttachedObject()).Add(Iter->AttachedTo);
 		}
 
 		if ( USkeletalMesh* PreviewMesh = GetMesh() )
 		{
 			for(auto Iter = PreviewMesh->PreviewAttachedAssetContainer.CreateConstIterator(); Iter; ++Iter)
 			{
-				PreviewAttachedObjects.FindOrAdd(Iter->Object).Add(Iter->AttachedTo);
+				PreviewAttachedObjects.FindOrAdd(Iter->GetAttachedObject()).Add(Iter->AttachedTo);
 			}
 		}
 	}

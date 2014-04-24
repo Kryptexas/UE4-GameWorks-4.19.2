@@ -2366,6 +2366,11 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 		// now they're in the Materials array so we need to move them over
 		MoveDeprecatedShadowFlagToMaterials();
 	}
+
+	if (Ar.UE4Ver() < VER_UE4_SKELETON_ASSET_PROPERTY_TYPE_CHANGE)
+	{
+		PreviewAttachedAssetContainer.SaveAttachedObjectsFromDeprecatedProperties();
+	}
 }
 
 void USkeletalMesh::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
@@ -3098,6 +3103,17 @@ bool USkeletalMesh::IsSocketOnMesh( const FName& InSocketName ) const
 	}
 
 	return false;
+}
+
+int32 USkeletalMesh::ValidatePreviewAttachedObjects()
+{
+	int32 NumBrokenAssets = PreviewAttachedAssetContainer.ValidatePreviewAttachedObjects();
+
+	if (NumBrokenAssets > 0)
+	{
+		MarkPackageDirty();
+	}
+	return NumBrokenAssets;
 }
 
 #endif // #if WITH_EDITOR

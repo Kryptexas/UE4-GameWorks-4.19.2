@@ -1892,7 +1892,7 @@ void SSkeletonTree::DeleteAttachedObjects( FPreviewAssetAttachContainer& Attache
 	for(auto Iter = AttachedAssets.CreateIterator(); Iter; ++Iter)
 	{
 		FPreviewAttachedObjectPair& Pair = (*Iter);
-		PersonaPtr.Pin()->RemoveAttachedObjectFromPreviewComponent(Pair.Object, Pair.AttachedTo);
+		PersonaPtr.Pin()->RemoveAttachedObjectFromPreviewComponent(Pair.GetAttachedObject(), Pair.AttachedTo);
 	}
 
 	AttachedAssets.ClearAllAttachedObjects();
@@ -2306,8 +2306,8 @@ void SSkeletonTree::RenameSocketAttachments(FName& OldSocketName, FName& NewSock
 		{
 			Pair.AttachedTo = NewSocketName;
 		}
-		PersonaPtr.Pin()->RemoveAttachedObjectFromPreviewComponent(Pair.Object, OldSocketName);
-		PersonaPtr.Pin()->AttachObjectToPreviewComponent(Pair.Object, Pair.AttachedTo);
+		PersonaPtr.Pin()->RemoveAttachedObjectFromPreviewComponent(Pair.GetAttachedObject(), OldSocketName);
+		PersonaPtr.Pin()->AttachObjectToPreviewComponent(Pair.GetAttachedObject(), Pair.AttachedTo);
 	}
 
 	if ( PersonaPtr.IsValid() )
@@ -2325,8 +2325,8 @@ void SSkeletonTree::RenameSocketAttachments(FName& OldSocketName, FName& NewSock
 				{
 					Pair.AttachedTo = NewSocketName;
 				}
-				PersonaPtr.Pin()->RemoveAttachedObjectFromPreviewComponent(Pair.Object, OldSocketName);
-				PersonaPtr.Pin()->AttachObjectToPreviewComponent(Pair.Object, Pair.AttachedTo);
+				PersonaPtr.Pin()->RemoveAttachedObjectFromPreviewComponent(Pair.GetAttachedObject(), OldSocketName);
+				PersonaPtr.Pin()->AttachObjectToPreviewComponent(Pair.GetAttachedObject(), Pair.AttachedTo);
 			}
 		}
 	}
@@ -2453,12 +2453,12 @@ void SSkeletonTree::AddAttachedAssets( const FPreviewAssetAttachContainer& Attac
 	{
 		const FPreviewAttachedObjectPair& Pair = (*Iter);
 
-		if ( !FilterText.IsEmpty() && !Pair.Object->GetName().Contains( FilterText.ToString() ) )
+		if ( !FilterText.IsEmpty() && !Pair.GetAttachedObject()->GetName().Contains( FilterText.ToString() ) )
 		{
 			continue;
 		}
 
-		TSharedRef<FDisplayedAttachedAssetInfo> DisplayInfo = FDisplayedAttachedAssetInfo::Make(Pair.AttachedTo, Pair.Object, TargetSkeleton, PersonaPtr, SharedThis( this ) );
+		TSharedRef<FDisplayedAttachedAssetInfo> DisplayInfo = FDisplayedAttachedAssetInfo::Make(Pair.AttachedTo, Pair.GetAttachedObject(), TargetSkeleton, PersonaPtr, SharedThis( this ) );
 		DisplayMirror.Add(DisplayInfo);
 
 		// for now it is a failure to not find where the asset is attached. Its possible that this might have to be changed to unloading the asset
