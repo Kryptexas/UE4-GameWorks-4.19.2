@@ -782,7 +782,6 @@ FReply FLandscapeEditorDetailCustomization_NewLandscape::OnCreateButtonClicked()
 
 					if (LayerData.Num() == ImportSizeX * ImportSizeY)
 					{
-						LayerDataPointers.Add(new uint8[SizeX * SizeY]);
 						LayerInfos.Add(ImportLayer);
 					}
 					else
@@ -804,13 +803,15 @@ FReply FLandscapeEditorDetailCustomization_NewLandscape::OnCreateButtonClicked()
 					-OffsetX, -OffsetY, SizeX - OffsetX - 1, SizeY - OffsetY - 1);
 
 				// Layers
-				for (int32 LayerIdx = 0; LayerIdx < LayerDataPointers.Num(); LayerIdx++)
+				for (int32 LayerIdx = 0; LayerIdx < LayerDatas.Num(); LayerIdx++)
 				{
 					TArray<uint8>& ImportLayerData = LayerDatas[LayerIdx];
 
 					ImportLayerData = LandscapeEditorUtils::ExpandData(ImportLayerData,
 						0, 0, ImportSizeX - 1, ImportSizeY - 1,
 						-OffsetX, -OffsetY, SizeX - OffsetX - 1, SizeY - OffsetY - 1);
+
+					LayerDataPointers.Add(ImportLayerData.GetData());
 				}
 			}
 
@@ -877,12 +878,6 @@ FReply FLandscapeEditorDetailCustomization_NewLandscape::OnCreateButtonClicked()
 
 		LandscapeEdMode->SetCurrentTool("ToolSet_Select"); // change tool so switching back to the manage mode doesn't give "New Landscape" again
 		LandscapeEdMode->SetCurrentTool("ToolSet_Sculpt"); // change to sculpting mode and tool
-
-		// clean up data
-		for (int32 LayerIdx=0;LayerIdx<LayerDataPointers.Num();LayerIdx++)
-		{
-			delete[] LayerDataPointers[LayerIdx];
-		}
 	}
 
 	return FReply::Handled();
