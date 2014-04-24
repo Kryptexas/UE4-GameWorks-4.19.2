@@ -239,7 +239,7 @@ public:
 	virtual void PostNetReceiveLocation() OVERRIDE;
 	virtual void GetSimpleCollisionCylinder(float& CollisionRadius, float& CollisionHalfHeight) const OVERRIDE;
 	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) OVERRIDE;
-	virtual UActorComponent* FindComponentByClass(const UClass* Class) const OVERRIDE;
+	virtual UActorComponent* FindComponentByClass(const TSubclassOf<UActorComponent> ComponentClass) const OVERRIDE;
 	// End AActor Interface
 
 	template<class T>
