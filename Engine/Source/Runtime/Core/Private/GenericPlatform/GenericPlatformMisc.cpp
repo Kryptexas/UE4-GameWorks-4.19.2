@@ -416,7 +416,8 @@ void GenericPlatformMisc_GetProjectFilePathGameDir(FString& OutGameDir)
 	FString BasePath = FPaths::GetPath(FPaths::GetProjectFilePath());
 	FPaths::NormalizeFilename(BasePath);
 	BasePath = FFileManagerGeneric::DefaultConvertToRelativePath(*BasePath);
-	OutGameDir = FString::Printf(TEXT("%s/"), *BasePath);
+	if(!BasePath.EndsWith("/")) BasePath += TEXT("/");
+	OutGameDir = BasePath;
 }
 
 const TCHAR* FGenericPlatformMisc::GameDir()
@@ -521,6 +522,7 @@ const TCHAR* FGenericPlatformMisc::GameDir()
 				GameDir = FPaths::EngineUserDir();
 				FPaths::NormalizeFilename(GameDir);
 				GameDir = FFileManagerGeneric::DefaultConvertToRelativePath(*GameDir);
+				if(!GameDir.EndsWith(TEXT("/"))) GameDir += TEXT("/");
 			}
 		}
 	}
