@@ -159,7 +159,7 @@ public:
 	 */
 	virtual FString ToString() const OVERRIDE
 	{
-		return FString::Printf(TEXT("%I64u"), UniqueNetId);
+		return FString::Printf(TEXT("%llu"), UniqueNetId);
 	}
 
 	/**
@@ -173,20 +173,20 @@ public:
 		CSteamID SteamID(UniqueNetId);
 		if (SteamID.IsLobby())
 		{
-			return FString::Printf(TEXT("Lobby [0x%I64X]"), UniqueNetId);
+			return FString::Printf(TEXT("Lobby [0x%llX]"), UniqueNetId);
 		}
 		else if (SteamID.BAnonGameServerAccount())
 		{
-			return FString::Printf(TEXT("Server [0x%I64X]"), UniqueNetId);
+			return FString::Printf(TEXT("Server [0x%llX]"), UniqueNetId);
 		}
 		else if (SteamID.IsValid())
 		{
 			const FString NickName(SteamFriends() ? UTF8_TO_TCHAR(SteamFriends()->GetFriendPersonaName(UniqueNetId)) : TEXT("UNKNOWN"));
-			return FString::Printf(TEXT("%s [0x%I64X]"), *NickName, UniqueNetId);
+			return FString::Printf(TEXT("%s [0x%llX]"), *NickName, UniqueNetId);
 		}
 		else
 		{
-			return FString::Printf(TEXT("INVALID [0x%I64X]"), UniqueNetId);
+			return FString::Printf(TEXT("INVALID [0x%llX]"), UniqueNetId);
 		}
 	}
 
@@ -402,7 +402,7 @@ public:
 	 */
 	virtual FString ToString() const OVERRIDE
 	{
-		return FString::Printf(TEXT("%I64d"), SharedContentHandle);
+		return FString::Printf(TEXT("%lld"), SharedContentHandle);
 	}
 
 	/** 
@@ -413,7 +413,7 @@ public:
 	 */
 	virtual FString ToDebugString() const OVERRIDE
 	{
-		return FString::Printf(TEXT("0x%I64X"), SharedContentHandle);
+		return FString::Printf(TEXT("0x%llX"), SharedContentHandle);
 	}
 };
 
