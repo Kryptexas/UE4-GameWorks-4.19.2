@@ -2285,10 +2285,38 @@ EObjectMark UPackage::GetObjectMarksForTargetPlatform( const class ITargetPlatfo
  *
  * @return	true if the package was saved successfully.
  */
+#define UE_PROFILE_COOKSAVE 0
+#if UE_PROFILE_COOKSAVE
+
+#define UE_START_LOG_COOK_TIME(InFilename) double PreviousTime; double StartTime; PreviousTime = StartTime = FPlatformTime::Seconds(); \
+	UE_LOG( LogSavePackage, Log, TEXT("Starting save package for %s"), InFilename);
+
+#define UE_LOG_COOK_TIME(TimeType) \
+	{\
+		double CurrentTime = FPlatformTime::Seconds(); \
+		UE_LOG( LogSavePackage, Log, TEXT("TIMING: %s took %fms"), TimeType, (CurrentTime - PreviousTime) * 1000.0f ); \
+		PreviousTime = CurrentTime; \
+	}
+
+#define UE_FINISH_LOG_COOK_TIME()\
+	UE_LOG_COOK_TIME( TEXT("Unaccounted time")); \
+	{\
+		double CurrentTime = FPlatformTime::Seconds(); \
+		UE_LOG( LogSavePackage, Log, TEXT("Total save time: %fms"), (CurrentTime - StartTime) * 1000.0f ); \
+	}
+
+#else
+// don't do anything
+#define UE_START_LOG_COOK_TIME(InFilename)
+#define UE_LOG_COOK_TIME(TimeType) 
+#define UE_FINISH_LOG_COOK_TIME()
+#endif
+
 bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLevelFlags, const TCHAR* Filename, 
 	FOutputDevice* Error, ULinkerLoad* Conform, bool bForceByteSwapping, bool bWarnOfLongFilename, uint32 SaveFlags, 
 	const class ITargetPlatform* TargetPlatform, const FDateTime&  FinalTimeStamp)
 {
+	UE_START_LOG_COOK_TIME( Filename );
 	
 	if (FPlatformProperties::HasEditorOnlyData())
 	{
@@ -2319,6 +2347,8 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 		FlushAsyncLoading();
 		(*GFlushStreamingFunc)();
 		FIOSystem::Get().BlockTillAllRequestsFinishedAndFlushHandles();
+
+		UE_LOG_COOK_TIME(TEXT("Flush Async loading"));
 
 		check(InOuter);
 		check(Filename);
@@ -2446,6 +2476,8 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 		UnMarkAllObjects();
 
 
+		UE_LOG_COOK_TIME(TEXT("ResetLoadersForSave UnMarkAllObjects"));
+
 		// Size of serialized out package in bytes. This is before compression.
 		int32 PackageSize = INDEX_NONE;
 		{
@@ -2464,26 +2496,32 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 			ExportTaggerArchive.SetFilterEditorOnly(FilterEditorOnly);
 
 
+			UE_LOG_COOK_TIME(TEXT("TagPackageExports"));
 
 
 			// Kick off any Precaching required for the target platform to save these objects
 			// only need to do this if we are cooking a different platform then the one which is currently running
+			// TODO: if save package is cancelled then call ClearCache on each object
+			TArray<UObject*> CachedObjects;
 			if ( !!TargetPlatform )
 			{
 				TArray<UObject*> TagExpObjects;
 				GetObjectsWithAnyMarks(TagExpObjects, OBJECTMARK_TagExp);
 				for ( int Index =0; Index < TagExpObjects.Num(); ++Index)
 				{
-					if ( TagExpObjects[Index]->HasAnyMarks( OBJECTMARK_TagExp ) )
+					UObject *ExpObject = TagExpObjects[Index];
+					if ( ExpObject->HasAnyMarks( OBJECTMARK_TagExp ) )
 					{
-						TagExpObjects[Index]->BeginCacheForCookedPlatformData( TargetPlatform );
-
-						// UE_LOG(LogSavePackage, Log, TEXT("begincache %s for %s"), *TagExpObjects[Index]->GetFullName(), *TargetPlatform->PlatformName());
+						ExpObject->BeginCacheForCookedPlatformData( TargetPlatform );
+						CachedObjects.Add( ExpObject );
 					}
 				}
 			}
 
+			
 
+
+			UE_LOG_COOK_TIME(TEXT("BeginCacheForCookedPlatformData"));
 		
 			{
 				// set GIsSavingPackage here as it is now illegal to create any new object references; they potentially wouldn't be saved correctly
@@ -2501,6 +2539,8 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				// We need to serialize objects yet again to tag objects that were created by PreSave as OBJECTMARK_TagExp.
 				PackageExportTagger.TagPackageExports( ExportTaggerArchive, false );
 
+
+				UE_LOG_COOK_TIME(TEXT("TagPackageExports"));
 
 				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
 
@@ -2605,6 +2645,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 					}
 				}
 
+				UE_LOG_COOK_TIME(TEXT("Serialize Imports"));
 				
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
 				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
@@ -2678,6 +2719,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 					}
 				}
 
+				UE_LOG_COOK_TIME(TEXT("Mark Names"));
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
 				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
@@ -2839,6 +2881,8 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				SavePackageState->UpdateLinkerWithMarkedNames(Linker);
 
 
+				UE_LOG_COOK_TIME(TEXT("Serialize Summary"));
+
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
 				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
 
@@ -2858,6 +2902,8 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				}
 
 				
+				UE_LOG_COOK_TIME(TEXT("Serialize Names"));
+
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
 				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
 
@@ -2898,6 +2944,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 					}
 				}
 
+				UE_LOG_COOK_TIME(TEXT("Build Export Map"));
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
 				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
@@ -2914,6 +2961,8 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				SeekFreeSorter.SortExports( Linker, Conform );
 				Linker->Summary.ExportCount = Linker->ExportMap.Num();
 				
+				UE_LOG_COOK_TIME(TEXT("Sort Exports"));
+
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
 				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
 
@@ -2987,6 +3036,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				}
 
 
+
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
 				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
 
@@ -3045,6 +3095,8 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				}
 
 
+				UE_LOG_COOK_TIME(TEXT("Build Dependency Map"));
+
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
 				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
 
@@ -3081,6 +3133,9 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				int32 OffsetAfterImportMap = Linker->Tell();
 
 
+
+				UE_LOG_COOK_TIME(TEXT("Serialize Import Map"));
+
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
 				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
 
@@ -3094,6 +3149,8 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				int32 OffsetAfterExportMap = Linker->Tell();
 
 
+				UE_LOG_COOK_TIME(TEXT("Serialize Export Map"));
+
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
 				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
 
@@ -3105,7 +3162,9 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 					TArray<FPackageIndex>& Depends = Linker->DependsMap[ i ];
 					*Linker << Depends;
 				}
-	
+
+
+				UE_LOG_COOK_TIME(TEXT("Serialize Dependency Map"));
 	
 				// Save thumbnails
 				UPackage::SaveThumbnails( InOuter, Linker );
@@ -3131,6 +3190,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 					Linker->StartScriptSHAGeneration();
 				}
 
+				UE_LOG_COOK_TIME(TEXT("SaveThumbNails Save AssetRegistryData SaveWorldLevelInfo"));
 
 				// Save exports.
 				int32 LastExportSaveStep = 0;
@@ -3221,6 +3281,8 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				}
 
 
+				UE_LOG_COOK_TIME(TEXT("Serialize Exports"));
+
 				// if we want to generate the SHA key, get it out now that the package has finished saving
 				if (ScriptSHABytes && Linker->ContainsCode())
 				{
@@ -3268,6 +3330,8 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				uint32 Tag = PACKAGE_FILE_TAG;
 				*Linker << Tag;
 
+				UE_LOG_COOK_TIME(TEXT("Serialize BulkData"));
+
 				// We capture the package size before the first seek to work with archives that don't report the file
 				// size correctly while the file is still being written to.
 				PackageSize = Linker->Tell();
@@ -3311,6 +3375,8 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				}
 				
 
+				UE_LOG_COOK_TIME(TEXT("Serialize Import Map"));
+
 				check( Linker->Tell() == OffsetAfterImportMap );
 
 				// Save the export map.
@@ -3320,8 +3386,9 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 					*Linker << Linker->ExportMap[ i ];
 				}
 				check( Linker->Tell() == OffsetAfterExportMap );
-			
-				
+
+				UE_LOG_COOK_TIME(TEXT("Serialize Export Map"));
+
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
 				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
 
@@ -3493,6 +3560,11 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
 			
 			}
+
+			for ( int CachedObjectIndex = 0; CachedObjectIndex < CachedObjects.Num(); ++CachedObjectIndex )
+			{
+				CachedObjects[CachedObjectIndex]->ClearCachedCookedPlatformData(TargetPlatform);
+			}
 		}
 		if( Success == true )
 		{
@@ -3502,6 +3574,8 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 
 		// We're done!
 		GWarn->UpdateProgress( TotalSaveSteps, TotalSaveSteps );
+
+		UE_FINISH_LOG_COOK_TIME();
 
 		return Success;
 	}
