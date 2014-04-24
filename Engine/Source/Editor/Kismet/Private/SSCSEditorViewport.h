@@ -3,6 +3,7 @@
 #pragma once
 
 #include "PreviewScene.h"
+#include "SEditorViewport.h"
 
 /**
  * Implements the viewport widget that's hosted in the SCS editor tab.
