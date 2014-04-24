@@ -30,7 +30,8 @@ public:
 		const FMaterialRenderProxy* InMaterialRenderProxy,
 		const FMaterial& InMaterialResource,
 		bool bInOverrideWithShaderComplexity = false,
-		bool bInTwoSidedOverride = false
+		bool bInTwoSidedOverride = false,
+		bool bInWireframeOverride = false
 		);
 
 	FMeshDrawingPolicy& operator = (const FMeshDrawingPolicy& Other)
