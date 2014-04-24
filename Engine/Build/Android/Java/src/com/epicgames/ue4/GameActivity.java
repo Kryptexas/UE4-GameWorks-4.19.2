@@ -2,6 +2,9 @@
 
 package com.epicgames.ue4;
 
+import java.util.Map;
+import java.util.HashMap;
+
 import android.app.NativeActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -15,9 +18,14 @@ import android.content.res.Configuration;
 import android.content.IntentSender.SendIntentException;
 
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.PendingResult;
+import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.games.Games;
 import com.google.android.gms.common.GooglePlayServicesUtil;
+import com.google.android.gms.games.achievement.*;
+import com.google.android.gms.games.Games;
+
+
 
 // TODO: use the resources from the UE4 lib project once we've got the packager up and running
 //import com.epicgames.ue4.R;
@@ -53,14 +61,43 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 	/** Unique ID to identify Google Play Services error dialog */
 	private static final int PLAY_SERVICES_DIALOG_ID = 1;
 
+	/** Arbitrary ID for leaderboard display */
+	private static final int REQUEST_LEADERBOARDS = 0;
+	
+	/** Arbitrary ID for achievement display */
+	private static final int REQUEST_ACHIEVEMENTS = 1;
+
+	/** Stores the minimum amount of data we need to set achievement progress */
+	private class BasicAchievementData
+	{
+		public BasicAchievementData()
+		{
+			Type = Achievement.TYPE_STANDARD;
+			MaxSteps = 1;
+		}
+
+		public BasicAchievementData(int InMaxSteps)
+		{
+			Type = Achievement.TYPE_INCREMENTAL;
+			MaxSteps = InMaxSteps;
+		}
+
+		public int Type;
+		public int MaxSteps;
+	}
+
+	/**
+	 * Store achievement data upon login so that we can convert the percentage values from the game to
+	 * integer steps for Google Play
+	 */
+	private Map<String, BasicAchievementData> CachedAchievements = new HashMap<String, BasicAchievementData>();
+
 	@Override
 	public void onStart()
 	{
 		super.onStart();
 		
 		Log.debug("==================================> Inside onStart function in GameActivity");
-		
-		AndroidThunkJava_GooglePlayConnect();
 	}
 
 	@Override
@@ -136,11 +173,48 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 		googleClient.disconnect();
 	}
 
+	/** Callback that fills in CachedAchievements when the load operation completes. */
+	private class AchievementsResultStartupCallback implements ResultCallback<Achievements.LoadAchievementsResult>
+	{
+		@Override
+		public void onResult(Achievements.LoadAchievementsResult result)
+		{
+			Log.debug("Google Play Services: Loaded achievements with status " + result.getStatus().toString());
+
+			AchievementBuffer Achievements = result.getAchievements();
+
+			CachedAchievements.clear();
+			for(int i = 0; i < Achievements.getCount(); ++i)
+			{
+				Achievement CurrentAchievement = Achievements.get(i);
+
+				if(CurrentAchievement.getType() == Achievement.TYPE_STANDARD)
+				{
+					CachedAchievements.put(new String(CurrentAchievement.getAchievementId()), new BasicAchievementData());
+				}
+				else if(CurrentAchievement.getType() == Achievement.TYPE_INCREMENTAL)
+				{
+					CachedAchievements.put(new String(CurrentAchievement.getAchievementId()),
+						new BasicAchievementData(CurrentAchievement.getTotalSteps()));
+				}
+			}
+
+			Achievements.close();
+			result.release();
+		}
+	}
+
 	// Callbacks to handle connections with Google Play
-	 @Override
+	@Override
     public void onConnected(Bundle connectionHint)
 	{
         Log.debug("Connected to Google Play Services.");
+
+		// Load achievements. Since games are expected to pass in achievement progress as a percentage,
+		// we need to know what the maximum steps are in order to convert the percentage to an integer
+		// number of steps.
+		PendingResult<Achievements.LoadAchievementsResult> loadAchievementsResult = Games.Achievements.load(googleClient, false);
+		loadAchievementsResult.setResultCallback(new AchievementsResultStartupCallback());
     }
 
     @Override
@@ -254,28 +328,31 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 
 	public void AndroidThunkJava_GooglePlayConnect()
 	{
-		if(nativeIsGooglePlayEnabled())
-		{
-			googleClient.connect();
-		}
+		googleClient.connect();
 	}
 
 	public void AndroidThunkJava_ShowLeaderboard(String LeaderboardID)
 	{
 		Log.debug("In AndroidThunkJava_ShowLeaderboard, ID is " + LeaderboardID);
-		if(googleClient.isConnected())
+		if(!googleClient.isConnected())
 		{
-			startActivityForResult(Games.Leaderboards.getLeaderboardIntent(googleClient, LeaderboardID), 0);
+			Log.debug("Not connected to Google Play, can't show leaderboards UI.");
+			return;
 		}
+
+		startActivityForResult(Games.Leaderboards.getLeaderboardIntent(googleClient, LeaderboardID), REQUEST_LEADERBOARDS);
 	}
 
 	public void AndroidThunkJava_ShowAchievements()
 	{
 		Log.debug("In AndroidThunkJava_ShowAchievements");
-		if(googleClient.isConnected())
+		if(!googleClient.isConnected())
 		{
-			startActivityForResult(Games.Achievements.getAchievementsIntent(googleClient), 0);
+			Log.debug("Not connected to Google Play, can't show achievements UI.");
+			return;
 		}
+		
+		startActivityForResult(Games.Achievements.getAchievementsIntent(googleClient), REQUEST_ACHIEVEMENTS);
 	}
 
 	public void AndroidThunkJava_WriteLeaderboardValue(String LeaderboardID, long Value)
@@ -287,6 +364,55 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 		}
 	}
 
+	public void AndroidThunkJava_WriteAchievement(String AchievementID, float Percentage)
+	{
+		BasicAchievementData Data = CachedAchievements.get(AchievementID);
+
+		if(Data == null)
+		{
+			Log.debug("Couldn't find cached achievement for ID " + AchievementID + ", not setting progress.");
+			return;
+		}
+
+		if(!googleClient.isConnected())
+		{
+			Log.debug("Not connected to Google Play, can't set achievement progress.");
+			return;
+		}
+
+		// Found the one to unlock.
+		switch(Data.Type)
+		{
+			case Achievement.TYPE_INCREMENTAL:
+			{
+				float StepFraction = (Percentage / 100.0f) * Data.MaxSteps;
+				int RoundedSteps = Math.round(StepFraction);
+
+				if(RoundedSteps > 0)
+				{
+					Log.debug("Incremental achievement ID " + AchievementID + ": setting progress to " + RoundedSteps);
+					Games.Achievements.setSteps(googleClient, AchievementID, RoundedSteps);
+				}
+				else
+				{
+					Log.debug("Incremental achievement ID " + AchievementID + ": not setting progress to " + RoundedSteps);
+				}
+				break;
+			}
+
+			case Achievement.TYPE_STANDARD:
+			{
+				// Standard achievements only unlock if the progress is at least 100%.
+				if(Percentage >= 100.0f)
+				{
+					Log.debug("Standard achievement ID " + AchievementID + ": unlocking");
+					Games.Achievements.unlock(googleClient, AchievementID);
+				}
+				break;
+			}
+		}
+	}
+
 	public native boolean nativeIsShippingBuild();
 	public native void nativeSetGlobalActivity();
 	public native void nativeSetWindowInfo(boolean bIsPortrait);
@@ -294,8 +420,6 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 
 	public native void nativeConsoleCommand(String commandString);
 	
-	public native boolean nativeIsGooglePlayEnabled();
-
 	static
 	{
 		System.loadLibrary("UE4");

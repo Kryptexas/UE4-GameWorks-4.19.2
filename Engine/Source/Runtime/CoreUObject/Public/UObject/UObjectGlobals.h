@@ -7,6 +7,8 @@
 #ifndef __UNOBJGLOBALS_H__
 #define __UNOBJGLOBALS_H__
 
+#include "Script.h"
+
 COREUOBJECT_API DECLARE_LOG_CATEGORY_EXTERN(LogUObjectGlobals, Log, All);
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("ConstructObject"),STAT_ConstructObject,STATGROUP_Object, );
