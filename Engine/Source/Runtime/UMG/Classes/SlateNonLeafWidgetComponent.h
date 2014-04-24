@@ -11,4 +11,6 @@ class UMG_API USlateNonLeafWidgetComponent : public USlateWrapperComponent
 
 	virtual int32 GetChildrenCount() const { return 0; }
 	virtual USlateWrapperComponent* GetChildAt(int32 Index) const { return NULL; }
+
+	virtual bool AddChild(USlateWrapperComponent* Child) { return false; }
 };

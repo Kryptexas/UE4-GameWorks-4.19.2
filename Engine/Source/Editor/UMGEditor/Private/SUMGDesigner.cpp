@@ -243,10 +243,11 @@ int32 SUMGDesigner::OnPaint(const FGeometry& AllottedGeometry, const FSlateRect&
 
 		const FLinearColor Tint(0, 1, 0);
 
+		LayerId += 100;
+
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
-			++LayerId,
-			FPaintGeometry(
+			LayerId,			FPaintGeometry(
 			ArrangedWidget.Geometry.AbsolutePosition,
 			ArrangedWidget.Geometry.Size * ArrangedWidget.Geometry.Scale,
 			ArrangedWidget.Geometry.Scale),

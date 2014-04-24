@@ -52,7 +52,7 @@ protected:
 	/** How zoomed in/out we are. e.g. 0.25f results in quarter-sized nodes. */
 	int32 ZoomLevel;
 
-	/** Allow continous zoom interpolation? */
+	/** Allow continuous zoom interpolation? */
 	bool bAllowContinousZoomInterpolation;
 
 	/** Fade on zoom for graph */
