@@ -4,8 +4,7 @@
 #include "ModuleManager.h"
 #include "CrashDebugHelperModule.h"
 
-template<class TCommandLineChar>
-int32 RunMinidumpDiagnosticsTemplate(int32 ArgC, TCommandLineChar* Argv[])
+int32 RunMinidumpDiagnostics(int32 ArgC, TCHAR* Argv[])
 {
 	// Make sure we have at least a single parameter
 	if( ArgC < 2 )
@@ -49,12 +48,4 @@ int32 RunMinidumpDiagnosticsTemplate(int32 ArgC, TCommandLineChar* Argv[])
 	return 0;
 }
 
-int32 RunMinidumpDiagnostics(int32 ArgC, ANSICHAR* Argv[])
-{
-	return RunMinidumpDiagnosticsTemplate(ArgC, Argv);
-}
-int32 RunMinidumpDiagnostics(int32 ArgC, TCHAR* Argv[])
-{
-	return RunMinidumpDiagnosticsTemplate(ArgC, Argv);
-}
 

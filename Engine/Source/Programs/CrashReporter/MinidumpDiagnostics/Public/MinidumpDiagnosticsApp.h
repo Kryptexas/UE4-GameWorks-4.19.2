@@ -5,7 +5,6 @@
 #include "Core.h"
 
 // Extract a debugging report from a minidump
-int32 RunMinidumpDiagnostics( int32 ArgC, ANSICHAR* Argv[] );
 int32 RunMinidumpDiagnostics(int32 ArgC, TCHAR* Argv[]);
 
 
