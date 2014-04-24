@@ -62,7 +62,7 @@ public class ICU : ModuleRules
 
 			foreach (string Stem in LibraryNameStems)
 			{
-				string LibraryName = ICURootPath + "Mac/" + LibraryNamePrefix + Stem + LibraryNamePostfix + "." + LibraryExtension;
+				string LibraryName = ICURootPath + "Mac/" + "lib/" + LibraryNamePrefix + Stem + LibraryNamePostfix + "." + LibraryExtension;
 				PublicAdditionalLibraries.Add(LibraryName);
 			}
 		}

@@ -179,6 +179,8 @@ void FInternationalization::Initialize()
 #if UE_ENABLE_ICU
 	UErrorCode ICUStatus = U_ZERO_ERROR;
 	u_setMemoryFunctions(NULL, &(FICUOverrides::Malloc), &(FICUOverrides::Realloc), &(FICUOverrides::Free), &(ICUStatus));
+	FString DataDirectory = FPaths::EngineContentDir() / TEXT("Localization");
+	u_setDataDirectory(StringCast<char>(*DataDirectory).Get());
 	u_init(&(ICUStatus));
 #endif
 
@@ -191,7 +193,7 @@ void FInternationalization::Initialize()
 #endif
 
 #if UE_ENABLE_ICU
-	bIsInitialized = U_FAILURE(ICUStatus) ? true : false;
+	bIsInitialized = U_SUCCESS(ICUStatus) ? true : false;
 #else
 	bIsInitialized = true;
 #endif
