@@ -39,6 +39,9 @@ static const int32_t AxisList[] =
     //AMOTION_EVENT_AXIS_HAT_Y,
 };
 
+// map of all supported keycodes
+static TSet<uint16> MappedKeyCodes;
+
 // -nostdlib means no crtbegin_so.o, so we have to provide our own __dso_handle and atexit()
 extern "C"
 {
@@ -190,6 +193,16 @@ int32 AndroidMain(struct android_app* state)
 		{
 			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Controller interface UNsupported\n"));
 		}
+	}
+
+	// setup key filtering
+	static const uint32 MAX_KEY_MAPPINGS(256);
+	uint16 KeyCodes[MAX_KEY_MAPPINGS];
+	uint32 NumKeyCodes = FPlatformMisc::GetKeyMap(KeyCodes, nullptr, MAX_KEY_MAPPINGS);
+
+	for (int i = 0; i < NumKeyCodes; ++i)
+	{
+		MappedKeyCodes.Add(KeyCodes[i]);
 	}
 
 	// read the command line file
@@ -372,7 +385,7 @@ static int32_t HandleInputCB(struct android_app* app, AInputEvent* event)
 			ANativeWindow* Window = (ANativeWindow*)FPlatformMisc::GetHardwareWindow();
 			if (!Window)
 			{
-				return 1;
+				return 0;
 			}
 
 			int32_t Width = 0 ;
@@ -456,6 +469,12 @@ static int32_t HandleInputCB(struct android_app* app, AInputEvent* event)
 		else
 		{
 			FPlatformMisc::LowLevelOutputDebugStringf(L"Received key event: %d", keyCode);
+
+			// only handle mapped key codes
+			if (!MappedKeyCodes.Contains(keyCode))
+			{
+				return 0;
+			}
 
 			FDeferredAndroidMessage Message;
 

@@ -237,11 +237,11 @@ bool FAndroidMisc::GetUseVirtualJoysticks()
 
 uint32 FAndroidMisc::GetKeyMap( uint16* KeyCodes, FString* KeyNames, uint32 MaxMappings )
 {
-#define ADDKEYMAP(KeyCode, KeyName)		if (NumMappings<MaxMappings) { KeyCodes[NumMappings]=KeyCode; KeyNames[NumMappings]=KeyName; ++NumMappings; };
+#define ADDKEYMAP(KeyCode, KeyName)		if (NumMappings<MaxMappings) { KeyCodes[NumMappings]=KeyCode; if(KeyNames) { KeyNames[NumMappings]=KeyName; } ++NumMappings; };
 
 	uint32 NumMappings = 0;
 
-	if ( KeyCodes && KeyNames && (MaxMappings > 0) )
+	if ( KeyCodes && (MaxMappings > 0) )
 	{
 		ADDKEYMAP( AKEYCODE_0, TEXT("Zero") );
 		ADDKEYMAP( AKEYCODE_1, TEXT("One") );
