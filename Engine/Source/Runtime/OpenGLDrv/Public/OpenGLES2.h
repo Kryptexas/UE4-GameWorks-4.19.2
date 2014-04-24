@@ -100,7 +100,6 @@ struct FOpenGLES2 : public FOpenGLBase
 	static FORCEINLINE bool SupportsETC1()								{ return bSupportsETC1; }
 	static FORCEINLINE bool SupportsETC2()								{ return bSupportsETC2; }
 	static FORCEINLINE bool SupportsCombinedDepthStencilAttachment()	{ return false; }
-	static FORCEINLINE bool SupportsTextureFilterAnisotropic()			{ return bSupportsTextureFilterAnisotropic; }
 	static FORCEINLINE bool SupportsPackedDepthStencil()				{ return bSupportsPackedDepthStencil; }
 	static FORCEINLINE bool SupportsTextureCubeLodEXT()					{ return bSupportsTextureCubeLodEXT; }
 	static FORCEINLINE bool SupportsShaderTextureLod()					{ return bSupportsShaderTextureLod; }
@@ -399,9 +398,6 @@ protected:
 
 	/** GL_NV_framebuffer_blit */
 	static bool bSupportsNVFrameBufferBlit;
-
-	/** GL_EXT_texture_filter_anisotropic  */
-	static bool bSupportsTextureFilterAnisotropic;
 
 	/** GL_OES_packed_depth_stencil */
 	static bool bSupportsPackedDepthStencil;

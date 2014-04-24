@@ -115,7 +115,7 @@ public:
 	static FORCEINLINE bool SupportsFastBufferData()					{ return true; }
 	static FORCEINLINE bool SupportsCopyImage()							{ return bSupportsCopyImage; }
 	static FORCEINLINE bool SupportsCopyTextureLevels()					{ return false; }
-	static FORCEINLINE bool SupportsTextureFilterAnisotropic()			{ return false; }
+	static FORCEINLINE bool SupportsTextureFilterAnisotropic()			{ return bSupportsTextureFilterAnisotropic; }
 	static FORCEINLINE bool SupportsPackedDepthStencil()				{ return true; }
 	static FORCEINLINE bool SupportsTextureCubeLodEXT()					{ return true; }
 	static FORCEINLINE bool SupportsShaderTextureLod()					{ return false; }
@@ -304,6 +304,9 @@ protected:
 	
 	/** Can we render to texture 2D array or 3D */
 	static bool bSupportsVolumeTextureRendering;
+	
+	/** GL_EXT_texture_filter_anisotropic Can we use anisotropic filtering? */
+	static bool bSupportsTextureFilterAnisotropic;
 };
 
 /** Unreal tokens that maps to different OpenGL tokens by platform. */
