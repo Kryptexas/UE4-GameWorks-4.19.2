@@ -115,7 +115,7 @@ public:
 	 * @param Install					Whether to install the marketplace if it is missing.
 	 * @return true if the marketplace was opened, false if it is not installed or could not be installed/opened.
 	 */
-	virtual bool OpenLauncher(bool Install, const FString& CommandLineParams ) = 0;
+	virtual bool OpenLauncher(bool Install, FString CommandLineParams ) = 0;
 
 	/**
 	* Gets the identifier for the currently executing engine installation
