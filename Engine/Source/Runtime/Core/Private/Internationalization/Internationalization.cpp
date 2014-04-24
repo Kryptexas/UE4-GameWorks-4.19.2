@@ -179,7 +179,13 @@ void FInternationalization::Initialize()
 #if UE_ENABLE_ICU
 	UErrorCode ICUStatus = U_ZERO_ERROR;
 	u_setMemoryFunctions(NULL, &(FICUOverrides::Malloc), &(FICUOverrides::Realloc), &(FICUOverrides::Free), &(ICUStatus));
-	FString DataDirectory = FPaths::EngineContentDir() / TEXT("Localization");
+	FString DataDirectory;
+	DataDirectory = FPaths::EngineContentDir() / TEXT("Localization");
+	if( !FPaths::FileExists(DataDirectory / TEXT("icudt51l.dat")) )
+	{
+		DataDirectory = FString(FPlatformProcess::BaseDir()) / FPaths::EngineContentDir() / TEXT("Localization");
+	}
+	check( FPaths::FileExists(DataDirectory / TEXT("icudt51l.dat")) );
 	u_setDataDirectory(StringCast<char>(*DataDirectory).Get());
 	u_init(&(ICUStatus));
 #endif
