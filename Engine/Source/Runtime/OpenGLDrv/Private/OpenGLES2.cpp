@@ -5,9 +5,9 @@
 	OpenGLES2.cpp: OpenGL ES2 implementation.
 =============================================================================*/
 
-#if !PLATFORM_DESKTOP
-
 #include "OpenGLDrvPrivate.h"
+
+#if !PLATFORM_DESKTOP
 
 #if OPENGL_ES2
 
