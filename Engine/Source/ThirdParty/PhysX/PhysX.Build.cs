@@ -178,7 +178,7 @@ public class PhysX : ModuleRules
 
 			PhysXLibDir += "/osx64";
 			PublicLibraryPaths.Add(PhysXLibDir);
-
+#if false // @todo Mac: temp fix for crash in APEX caused by conflicting ClothImpl
 			string[] StaticLibrariesMac = new string[] {
 				PhysXLibDir + "/libLowLevel{0}.a",
 				PhysXLibDir + "/libLowLevelCloth{0}.a",
@@ -200,6 +200,9 @@ public class PhysX : ModuleRules
 			{
 				PublicAdditionalLibraries.Add(String.Format(Lib, LibrarySuffix));
 			}
+#else
+			PublicAdditionalLibraries.Add(PhysXLibDir + "/" + String.Format("libPhysX3{0}.dylib", LibrarySuffix));
+#endif
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Android)
 		{
