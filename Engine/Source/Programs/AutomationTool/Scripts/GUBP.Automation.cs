@@ -1032,7 +1032,7 @@ public class GUBP : BuildCommand
             }
             foreach (var Target in Targets)
             {
-                foreach (var FileToCopy in CommandUtils.FindFiles("*.h", true, CommandUtils.CombinePaths(CmdEnv.LocalRoot, @"Engine\Intermediate\Build\", HostPlatform.ToString(), Target)))
+                foreach (var FileToCopy in CommandUtils.FindFiles("*.h", true, CommandUtils.CombinePaths(CmdEnv.LocalRoot, @"Engine\Intermediate\Build\", HostPlatform.ToString(), Target, "Inc")))
                 {
                     AddBuildProduct(FileToCopy);
                 }
@@ -1084,32 +1084,32 @@ public class GUBP : BuildCommand
             }
             BuildProducts = new List<string>();
 
-            var PlatformDir = TargetPlatform.ToString();
-            if (TargetPlatform == UnrealTargetPlatform.Android)
-            {
-                PlatformDir = "Android-armv7";
-            }
-            if (TargetPlatform == HostPlatform)
-            {
-                PlatformDir = CommandUtils.CombinePaths(PlatformDir, "UE4Game"); // the other ones overlap with the editor, so we don't want them here
-            }
-            foreach (var FileToCopy in CommandUtils.FindFiles("*.h", true, CommandUtils.CombinePaths(CmdEnv.LocalRoot, @"Engine\Intermediate\Build\", PlatformDir)))
-            {
-                AddBuildProduct(FileToCopy);
-            }
+			if (TargetPlatform != HostPlatform)
+			{
+				// host platform overlaps with the editor, so we don't want them here
+	            var PlatformDir = TargetPlatform.ToString();
+	            if (TargetPlatform == UnrealTargetPlatform.Android)
+	            {
+	                PlatformDir = "Android-armv7";
+	            }
+				foreach (var FileToCopy in CommandUtils.FindFiles("*.h", true, CommandUtils.CombinePaths(CmdEnv.LocalRoot, @"Engine\Intermediate\Build\", PlatformDir, "Inc")))
+				{
+					AddBuildProduct(FileToCopy);
+				}
 
-            // these may not be any new build products here, but we will check anyway
-            var EnginePluginsDirectory = Path.Combine(CommandUtils.CmdEnv.LocalRoot, "Engine/Plugins");
-            var EnginePlugins = new List<PluginInfo>();
-            Plugins.FindPluginsIn(EnginePluginsDirectory, PluginInfo.LoadedFromType.Engine, ref EnginePlugins);
+	            // these may not be any new build products here, but we will check anyway
+	            var EnginePluginsDirectory = Path.Combine(CommandUtils.CmdEnv.LocalRoot, "Engine/Plugins");
+	            var EnginePlugins = new List<PluginInfo>();
+	            Plugins.FindPluginsIn(EnginePluginsDirectory, PluginInfo.LoadedFromType.Engine, ref EnginePlugins);
 
-            foreach (var EnginePlugin in EnginePlugins)
-            {
-                foreach (var FileToCopy in CommandUtils.FindFiles("*", true, CommandUtils.CombinePaths(EnginePlugin.Directory, @"Intermediate\Build", PlatformDir, "Inc")))
+                foreach (var EnginePlugin in EnginePlugins)
                 {
-                    AddBuildProduct(FileToCopy);
+                    foreach (var FileToCopy in CommandUtils.FindFiles("*", true, CommandUtils.CombinePaths(EnginePlugin.Directory, @"Intermediate\Build", PlatformDir, "Inc")))
+                    {
+                        AddBuildProduct(FileToCopy);
+                    }
                 }
-            }
+			}
             RemoveOveralppingBuildProducts();
             if (BuildProducts.Count == 0)
             {
