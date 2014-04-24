@@ -198,9 +198,9 @@ public:
 	int32 CurrentLODLevelIndex;
 	/** The currently set LOD level.									*/
 	UParticleLODLevel* CurrentLODLevel;
-	/** The offset to the TypeDate payload in the particle data.		*/
+	/** The offset to the TypeData payload in the particle data.		*/
 	int32 TypeDataOffset;
-	/** The offset to the TypeDate instance payload.					*/
+	/** The offset to the TypeData instance payload.					*/
 	int32 TypeDataInstanceOffset;
 	/** The offset to the SubUV payload in the particle data.			*/
 	int32 SubUVDataOffset;

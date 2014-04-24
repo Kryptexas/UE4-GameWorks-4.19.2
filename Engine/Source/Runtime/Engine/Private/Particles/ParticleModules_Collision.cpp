@@ -336,8 +336,15 @@ void UParticleModuleCollision::Update(FParticleEmitterInstance* Owner, int32 Off
 
 		// Determine the size
 		FVector Size = Particle.Size * ParentScale;
-
 		FVector	Extent(0.0f);
+
+		// Setup extent for mesh particles. 
+		UParticleModuleTypeDataMesh* MeshType = Cast<UParticleModuleTypeDataMesh>(LODLevel->TypeDataModule);
+		if (MeshType && MeshType->Mesh)
+		{
+			Extent = MeshType->Mesh->GetBounds().BoxExtent;
+		}
+		
 		FHitResult Hit;
 
 		Hit.Normal.X = 0.0f;
