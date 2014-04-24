@@ -250,7 +250,8 @@ public:
 			}
 			else if ( InKeyboardEvent.GetKey() == EKeys::Down )
 			{
-				int32 SelectionIndex = 0;
+				// Begin at INDEX_NONE so the first item will get selected
+				int32 SelectionIndex = INDEX_NONE;
 				if( TListTypeTraits<ItemType>::IsPtrValid(SelectorItem) )
 				{
 					SelectionIndex = ItemsSourceRef.Find( TListTypeTraits<ItemType>::NullableItemTypeConvertToItemType( SelectorItem ) );
@@ -1233,6 +1234,9 @@ protected:
 	{
 		if ( SelectionMode != ESelectionMode::None )
 		{
+			// Must be set before signaling selection changes because sometimes new items will be selected that need to stomp this value
+			SelectorItem = ItemToSelect;
+
 			if ( SelectionMode == ESelectionMode::Multi && ( InKeyboardEvent.IsShiftDown() || InKeyboardEvent.IsControlDown() ) )
 			{
 				// Range select.
@@ -1261,8 +1265,6 @@ protected:
 			{
 				this->RequestScrollIntoView( ItemToSelect );
 			}
-
-			SelectorItem = ItemToSelect;
 		}
 	}
 

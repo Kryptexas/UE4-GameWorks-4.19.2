@@ -139,7 +139,6 @@ TSharedRef<ITableRow> SPinTypeSelector::GenerateTypeTreeRow(FPinTypeTreeItem InI
 
 	return SNew( STableRow<FPinTypeTreeItem>, OwnerTree )
 		.ToolTip( IDocumentation::Get()->CreateToolTip( FText::FromString( Tooltip ), NULL, *BigTooltipDocLink, *Description) )
-		.ShowSelection(!InItem->bReadOnly)
 		[
 			SNew(SHorizontalBox)
 			+SHorizontalBox::Slot()
@@ -163,8 +162,14 @@ TSharedRef<ITableRow> SPinTypeSelector::GenerateTypeTreeRow(FPinTypeTreeItem InI
 		];
 }
 
-void SPinTypeSelector::OnTypeSelectionChanged(FPinTypeTreeItem Selection, ESelectInfo::Type /*SelectInfo*/)
+void SPinTypeSelector::OnTypeSelectionChanged(FPinTypeTreeItem Selection, ESelectInfo::Type SelectInfo)
 {
+	// When the user is navigating, do not act upon the selection change
+	if(SelectInfo == ESelectInfo::OnNavigation)
+	{
+		return;
+	}
+
 	// Only handle selection for non-read only items, since STreeViewItem doesn't actually support read-only
  	if( Selection.IsValid() )
  	{
@@ -197,7 +202,11 @@ void SPinTypeSelector::OnTypeSelectionChanged(FPinTypeTreeItem Selection, ESelec
 			{
 				const bool bIsExpanded = TypeTreeView->IsItemExpanded(Selection);
 				TypeTreeView->SetItemExpansion(Selection, !bIsExpanded);
-				TypeTreeView->ClearSelection();
+
+				if(SelectInfo == ESelectInfo::OnMouseClick)
+				{
+					TypeTreeView->ClearSelection();
+				}
 			}
 		}
  	}
@@ -215,34 +224,48 @@ TSharedRef<SWidget>	SPinTypeSelector::GetMenuContent()
 
 	if( !MenuContent.IsValid() )
 	{
-		MenuContent = SNew( SVerticalBox )
-			+SVerticalBox::Slot()
-			.AutoHeight()
-			.Padding(4.f, 4.f, 4.f, 4.f)
+		// Pre-build the tree view and search box as it is needed as a parameter for the context menu's container.
+		SAssignNew(TypeTreeView, SPinTypeTreeView)
+			.TreeItemsSource(&FilteredTypeTreeRoot)
+			.SelectionMode(ESelectionMode::Single)
+			.OnGenerateRow(this, &SPinTypeSelector::GenerateTypeTreeRow)
+			.OnSelectionChanged(this, &SPinTypeSelector::OnTypeSelectionChanged)
+			.OnGetChildren(this, &SPinTypeSelector::GetTypeChildren);
+
+		SAssignNew(FilterTextBox, SSearchBox)
+			.OnTextChanged( this, &SPinTypeSelector::OnFilterTextChanged )
+			.OnTextCommitted( this, &SPinTypeSelector::OnFilterTextCommitted );
+
+		MenuContent = SNew(SListViewSelectorDropdownMenu<FPinTypeTreeItem>, FilterTextBox, TypeTreeView)
 			[
-				SAssignNew(FilterTextBox, SSearchBox)
-				.OnTextChanged( this, &SPinTypeSelector::OnFilterTextChanged )
-				.OnTextCommitted( this, &SPinTypeSelector::OnFilterTextCommitted )
-			]
-			+SVerticalBox::Slot()
-			.AutoHeight()
-			.Padding(4.f, 4.f, 4.f, 4.f)
-			[
-				SNew(SBox)
-				.HeightOverride(TreeViewHeight)
-				.WidthOverride(TreeViewWidth)
+				SNew( SVerticalBox )
+				+SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(4.f, 4.f, 4.f, 4.f)
 				[
-					SAssignNew(TypeTreeView, SPinTypeTreeView)
-					.TreeItemsSource(&FilteredTypeTreeRoot)
-					.SelectionMode(ESelectionMode::Single)
-					.OnGenerateRow(this, &SPinTypeSelector::GenerateTypeTreeRow)
-					.OnSelectionChanged(this, &SPinTypeSelector::OnTypeSelectionChanged)
-					.OnGetChildren(this, &SPinTypeSelector::GetTypeChildren)
+					FilterTextBox.ToSharedRef()
 				]
+				+SVerticalBox::Slot()
+					.AutoHeight()
+					.Padding(4.f, 4.f, 4.f, 4.f)
+					[
+						SNew(SBox)
+						.HeightOverride(TreeViewHeight)
+						.WidthOverride(TreeViewWidth)
+						[
+							TypeTreeView.ToSharedRef()
+						]
+					]
 			];
 			
 
 			TypeComboButton->SetMenuContentWidgetToFocus(FilterTextBox);
+	}
+	else
+	{
+		// Clear the selection in such a way as to also clear the keyboard selector
+		TypeTreeView->SetSelection(NULL, ESelectInfo::OnNavigation);
+		TypeTreeView->ClearExpandedItems();
 	}
 
 	// Clear the filter text box with each opening
@@ -263,19 +286,31 @@ void SPinTypeSelector::OnFilterTextChanged(const FText& NewText)
 
 	GetChildrenMatchingSearch(NewText.ToString(), TypeTreeRoot, FilteredTypeTreeRoot);
 	TypeTreeView->RequestTreeRefresh();
+
+	// Select the first non-category item
+	auto SelectedItems = TypeTreeView->GetSelectedItems();
+	if(FilteredTypeTreeRoot.Num() > 0)
+	{
+		// Categories have children, we don't want to select categories
+		if(FilteredTypeTreeRoot[0]->Children.Num() > 0)
+		{
+			TypeTreeView->SetSelection(FilteredTypeTreeRoot[0]->Children[0], ESelectInfo::OnNavigation);
+		}
+		else
+		{
+			TypeTreeView->SetSelection(FilteredTypeTreeRoot[0], ESelectInfo::OnNavigation);
+		}
+	}
 }
 
 void SPinTypeSelector::OnFilterTextCommitted(const FText& NewText, ETextCommit::Type CommitInfo)
 {
-	if( FilteredTypeTreeRoot.Num() == 1 && CommitInfo == ETextCommit::OnEnter)
+	if(CommitInfo == ETextCommit::OnEnter)
 	{
-		if(FilteredTypeTreeRoot[0]->Children.Num() == 0)
+		auto SelectedItems = TypeTreeView->GetSelectedItems();
+		if(SelectedItems.Num() > 0)
 		{
-			OnTypeSelectionChanged(FilteredTypeTreeRoot[0], ESelectInfo::Direct);
-		}
-		else if(FilteredTypeTreeRoot[0]->Children.Num() == 1)
-		{
-			OnTypeSelectionChanged(FilteredTypeTreeRoot[0]->Children[0], ESelectInfo::Direct);
+			TypeTreeView->SetSelection(SelectedItems[0]);
 		}
 	}
 }

@@ -13,10 +13,22 @@
 
 void SComponentClassCombo::Construct(const FArguments& InArgs)
 {
+	PrevSelectedIndex = INDEX_NONE;
 	OnComponentClassSelected = InArgs._OnComponentClassSelected;
 
 	UpdateComponentClassList();
 	GenerateFilteredComponentList(FString());
+
+	SAssignNew(ComponentClassListView, SListView<FComponentClassComboEntryPtr>)
+		.ListItemsSource( &FilteredComponentClassList )
+		.OnSelectionChanged( this, &SComponentClassCombo::OnAddComponentSelectionChanged )
+		.OnGenerateRow( this, &SComponentClassCombo::GenerateAddComponentRow )
+		.SelectionMode(ESelectionMode::Single);
+
+	SAssignNew(SearchBox, SSearchBox)
+		.HintText( LOCTEXT( "BlueprintAddComponentSearchBoxHint", "Search Components" ) )
+		.OnTextChanged( this, &SComponentClassCombo::OnSearchBoxTextChanged )
+		.OnTextCommitted( this, &SComponentClassCombo::OnSearchBoxTextCommitted );
 
 	// Create the Construct arguments for the parent class (SComboButton)
 	SComboButton::FArguments Args;
@@ -27,32 +39,31 @@ void SComponentClassCombo::Construct(const FArguments& InArgs)
 	]
 	.MenuContent()
 	[
-		SNew(SVerticalBox)
-		+SVerticalBox::Slot()
-		.AutoHeight()
+
+		SNew(SListViewSelectorDropdownMenu<FComponentClassComboEntryPtr>, SearchBox, ComponentClassListView)
 		[
-			SAssignNew(SearchBox, SSearchBox)
-			.HintText( LOCTEXT( "BlueprintAddComponentSearchBoxHint", "Search Components" ) )
-			.OnTextChanged( this, &SComponentClassCombo::OnSearchBoxTextChanged )
-		]
-		+SVerticalBox::Slot()
-		.AutoHeight()
-		[
-			SNew(SSeparator)
-			.Orientation(EOrientation::Orient_Horizontal)
-		]
-		+SVerticalBox::Slot()
-		.MaxHeight(400)
-		[
-			SAssignNew(ComponentClassListView, SListView<FComponentClassComboEntryPtr>)
-			.ListItemsSource( &FilteredComponentClassList )
-			.OnSelectionChanged( this, &SComponentClassCombo::OnAddComponentSelectionChanged )
-			.OnGenerateRow( this, &SComponentClassCombo::GenerateAddComponentRow )
-			.SelectionMode(ESelectionMode::Single)
+			SNew(SVerticalBox)
+			+SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				SearchBox.ToSharedRef()
+			]
+			+SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				SNew(SSeparator)
+				.Orientation(EOrientation::Orient_Horizontal)
+			]
+			+SVerticalBox::Slot()
+			.MaxHeight(400)
+			[
+				ComponentClassListView.ToSharedRef()
+			]
 		]
 	]
 	.IsFocusable(true)
-	.ContentPadding(FMargin(2));
+	.ContentPadding(FMargin(2))
+	.OnComboBoxOpened(this, &SComponentClassCombo::ClearSelection);
 
 	SComboButton::Construct(Args);
 
@@ -62,8 +73,16 @@ void SComponentClassCombo::Construct(const FArguments& InArgs)
 
 void SComponentClassCombo::ClearSelection()
 {
-	SearchBox->SetText(FText::GetEmpty());
-	ComponentClassListView->ClearSelection();
+	PrevSelectedIndex = INDEX_NONE;
+
+	// Scroll to the first item if there is one, to reset the scroll position
+	if(FilteredComponentClassList.Num())
+	{
+		ComponentClassListView->RequestScrollIntoView(FilteredComponentClassList[0]);
+	}
+
+	// Clear the selection in such a way as to also clear the keyboard selector
+	ComponentClassListView->SetSelection(NULL, ESelectInfo::OnNavigation);
 }
 
 void SComponentClassCombo::GenerateFilteredComponentList(const FString& InSearchText)
@@ -108,9 +127,21 @@ void SComponentClassCombo::OnSearchBoxTextChanged( const FText& InSearchText )
 	ComponentClassListView->RequestListRefresh();
 }
 
+void SComponentClassCombo::OnSearchBoxTextCommitted(const FText& NewText, ETextCommit::Type CommitInfo)
+{
+	if(CommitInfo == ETextCommit::OnEnter)
+	{
+		auto SelectedItems = ComponentClassListView->GetSelectedItems();
+		if(SelectedItems.Num() > 0)
+		{
+			ComponentClassListView->SetSelection(SelectedItems[0]);
+		}
+	}
+}
+
 void SComponentClassCombo::OnAddComponentSelectionChanged( FComponentClassComboEntryPtr InItem, ESelectInfo::Type SelectInfo )
 {
-	if ( InItem.IsValid() )
+	if ( InItem.IsValid() && InItem->IsClass() && SelectInfo != ESelectInfo::OnNavigation)
 	{
 		// We don't want the item to remain selected
 		ClearSelection();
@@ -123,6 +154,32 @@ void SComponentClassCombo::OnAddComponentSelectionChanged( FComponentClassComboE
 			SetIsOpen( false, false );
 		}
 	}
+	else if ( InItem.IsValid() && SelectInfo != ESelectInfo::OnMouseClick )
+	{
+		int32 SelectedIdx = INDEX_NONE;
+		FilteredComponentClassList.Find(InItem, SelectedIdx);
+		
+		if(SelectedIdx != INDEX_NONE)
+		{
+			if(!InItem->IsClass())
+			{
+				int32 SelectionDirection = SelectedIdx - PrevSelectedIndex;
+
+				// Update the previous selected index
+				PrevSelectedIndex = SelectedIdx;
+
+				if(SelectedIdx + SelectionDirection >= 0 && SelectedIdx + SelectionDirection < FilteredComponentClassList.Num())
+				{
+					ComponentClassListView->SetSelection(FilteredComponentClassList[SelectedIdx + SelectionDirection], ESelectInfo::OnNavigation);
+				}
+			}
+			else
+			{
+				// Update the previous selected index
+				PrevSelectedIndex = SelectedIdx;
+			}
+		}
+	}
 }
 
 TSharedRef<ITableRow> SComponentClassCombo::GenerateAddComponentRow( FComponentClassComboEntryPtr Entry, const TSharedRef<STableViewBase> &OwnerTable ) const
@@ -133,6 +190,7 @@ TSharedRef<ITableRow> SComponentClassCombo::GenerateAddComponentRow( FComponentC
 	{
 		return 
 			SNew( STableRow< TSharedPtr<FString> >, OwnerTable )
+				.ShowSelection(false)
 			[
 				SNew(STextBlock)
 				.Text(Entry->GetHeadingText())
@@ -142,6 +200,7 @@ TSharedRef<ITableRow> SComponentClassCombo::GenerateAddComponentRow( FComponentC
 	{
 		return 
 			SNew( STableRow< TSharedPtr<FString> >, OwnerTable )
+				.ShowSelection(false)
 			[
 				SNew(SSeparator)
 			];
