@@ -29,7 +29,9 @@ bool FSubversionConnectWorker::Execute(FSubversionSourceControlCommand& InComman
 	{
 		TArray<FXmlFile> ResultsXml;
 		TArray<FString> Parameters;
-		Parameters.Add(FPaths::GameDir());
+		FString GameRoot = FPaths::ConvertRelativePathToFull(FPaths::GameDir());
+		SubversionSourceControlUtils::QuoteFilename(GameRoot);
+		Parameters.Add(GameRoot);
 	
 		InCommand.bCommandSuccessful = SubversionSourceControlUtils::RunCommand(TEXT("info"), TArray<FString>(), Parameters, ResultsXml, InCommand.ErrorMessages, InCommand.UserName, Password);	
 		if(InCommand.bCommandSuccessful)
@@ -42,7 +44,9 @@ bool FSubversionConnectWorker::Execute(FSubversionSourceControlCommand& InComman
 	{
 		TArray<FXmlFile> ResultsXml;
 		TArray<FString> Files;
-		Files.Add(FPaths::ConvertRelativePathToFull(FPaths::GameDir()));
+		FString GameRoot = FPaths::ConvertRelativePathToFull(FPaths::GameDir());
+		SubversionSourceControlUtils::QuoteFilename(GameRoot);
+		Files.Add(GameRoot);
 
 		TArray<FString> StatusParameters;
 		StatusParameters.Add(TEXT("--show-updates"));
