@@ -44,12 +44,19 @@ void FRendererModule::DrawTileMesh(const FSceneView& SceneView, const FMeshBatch
 	//get the blend mode of the material
 	const EBlendMode MaterialBlendMode = Material->GetBlendMode();
 
-	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM3 && !GUsingNullRHI)
+	if (!GUsingNullRHI)
 	{
 		// handle translucent material blend modes
 		if (IsTranslucentBlendMode(MaterialBlendMode))
 		{
-			FTranslucencyDrawingPolicyFactory::DrawDynamicMesh(View, FTranslucencyDrawingPolicyFactory::ContextType(), Mesh, false, false, NULL, HitProxyId);
+			if (GRHIFeatureLevel >= ERHIFeatureLevel::SM3)
+			{
+				FTranslucencyDrawingPolicyFactory::DrawDynamicMesh(View, FTranslucencyDrawingPolicyFactory::ContextType(), Mesh, false, false, NULL, HitProxyId);
+			}
+			else
+			{
+				FTranslucencyForwardShadingDrawingPolicyFactory::DrawDynamicMesh(View, FTranslucencyForwardShadingDrawingPolicyFactory::ContextType(), Mesh, false, false, NULL, HitProxyId);
+			}
 		}
 		// handle opaque materials
 		else
@@ -64,7 +71,14 @@ void FRendererModule::DrawTileMesh(const FSceneView& SceneView, const FMeshBatch
 			}
 			else
 			{
-				FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(View, FBasePassOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::SetTextures), Mesh, false, false, NULL, HitProxyId);
+				if (GRHIFeatureLevel >= ERHIFeatureLevel::SM3)
+				{
+					FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(View, FBasePassOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::SetTextures), Mesh, false, false, NULL, HitProxyId);
+				}
+				else
+				{
+					FBasePassForwardOpaqueDrawingPolicyFactory::DrawDynamicMesh(View, FBasePassForwardOpaqueDrawingPolicyFactory::ContextType(ESceneRenderTargetsMode::SetTextures), Mesh, false, false, NULL, HitProxyId);
+				}
 			}
 		}	
 	}
