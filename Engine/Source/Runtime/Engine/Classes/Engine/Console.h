@@ -136,6 +136,7 @@ class ENGINE_API UConsole : public UObject, public FOutputDevice
 	/** Currently selected auto complete index */
 	int32 AutoCompleteIndex;
 
+	/** -1: auto complete cursor is not visible, >=0 */
 	int32 AutoCompleteCursor;
 
 	/** Do we need to rebuild auto complete? */

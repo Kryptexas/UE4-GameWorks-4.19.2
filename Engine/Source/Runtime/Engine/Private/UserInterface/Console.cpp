@@ -44,6 +44,7 @@ public:
 
 UConsole::UConsole(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
+	, AutoCompleteCursor(-1)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
@@ -252,7 +253,7 @@ void UConsole::UpdateCompleteIndices()
 	}
 	bNavigatingHistory = false;
 	AutoCompleteIndex = 0;
-	AutoCompleteCursor = 0;
+	AutoCompleteCursor = -1;
 	AutoCompleteIndices.Empty();
 	FAutoCompleteNode *Node = &AutoCompleteTree;
 	FString LowerTypedStr = TypedStr.ToLower();
@@ -592,7 +593,7 @@ bool UConsole::InputKey_InputLine( int32 ControllerId, FKey Key, EInputEvent Eve
 		}
 		else if (Key == EKeys::Tab && Event == IE_Pressed)
 		{
-			if (AutoCompleteIndices.Num() > 0 && !bAutoCompleteLocked)
+			if (AutoCompleteIndices.Num() > 0 && !bAutoCompleteLocked && AutoCompleteCursor >= 0)
 			{
 				const FAutoCompleteCommand& Cmd = AutoCompleteList[AutoCompleteIndices[AutoCompleteIndex + AutoCompleteCursor]];
 
@@ -777,6 +778,20 @@ bool UConsole::InputKey_InputLine( int32 ControllerId, FKey Key, EInputEvent Eve
 		{
 			SetCursorPos(TypedStr.Len());
 			return true;
+		}
+		else
+		{
+			// auto complete is open and the user adds a key
+			if (AutoCompleteIndices.Num() > 0 && !bAutoCompleteLocked && AutoCompleteCursor >= 0)
+			{
+				const FAutoCompleteCommand& Cmd = AutoCompleteList[AutoCompleteIndices[AutoCompleteIndex + AutoCompleteCursor]];
+
+				TypedStr = Cmd.Command;
+				SetCursorPos(TypedStr.Len());
+				bAutoCompleteLocked = true;
+
+				// no "return true" so that the following key will be added the auto completed string
+			}
 		}
 	}
 
