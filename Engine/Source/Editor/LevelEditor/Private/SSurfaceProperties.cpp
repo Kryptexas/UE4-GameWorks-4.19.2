@@ -276,7 +276,7 @@ TSharedRef<SWidget> SSurfaceProperties::ConstructTextureRotate()
 	];
 
 	// Rotation button fields:
-	const static FText ButtonFields[] = { LOCTEXT("Rotate45Degrees", "45"), LOCTEXT("Rotate45Degrees", "90"), LOCTEXT("RotateCustom", "---") };
+	const static FText ButtonFields[] = { LOCTEXT("Rotate45Degrees", "45"), LOCTEXT("Rotate90Degrees", "90"), LOCTEXT("RotateCustom", "---") };
 	const static int32 RotationValues[] = {45, 90, -1};
 	const static RotationAction RotationActions[] = {Rotate,Rotate,RotateCustom};
 	
