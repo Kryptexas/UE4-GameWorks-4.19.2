@@ -1061,6 +1061,10 @@ UInstancedStaticMeshComponent::UInstancedStaticMeshComponent(const class FPostCo
 {
 	Mobility = EComponentMobility::Movable;
 	BodyInstance.bSimulatePhysics = false;
+
+	// Static lighting is not currently supported by instanced static meshes, so disable it
+	// See UInstancedStaticMeshComponent::GetStaticLightingInfo (it's empty, but it's what would add data to the Lightmass generation)
+	bCastStaticShadow = false;
 }
 
 #if WITH_EDITOR
