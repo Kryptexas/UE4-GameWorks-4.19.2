@@ -512,7 +512,7 @@ void FSourceCodeNavigationImpl::NavigateToFunctionSource( ISourceCodeAccessor* S
 							if(FunctionSymbolName == SymbolName)
 							{
 								uint64 Address = SymbolEntry.n_value;
-								FString AtoSCommand = FString::Printf(TEXT("-d -o %s 0x%x"), *FullModulePath, Address);
+								FString AtoSCommand = FString::Printf(TEXT("-nowarning -d -o %s 0x%x"), *FullModulePath, Address);
 								int32 ReturnCode = 0;
 								FString Results;
 								FPlatformProcess::ExecProcess( TEXT("/usr/bin/atos"), *AtoSCommand, &ReturnCode, &Results, NULL );
