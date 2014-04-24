@@ -55,7 +55,11 @@ namespace APIDocTool
 			"HTML5",
 			"Linux",
 			"TextureXboxOneFormat",
+			"NoRedist",
+			"NotForLicensees",
 		};
+
+		public static HashSet<string> ExcludeSourceDirectoriesHash = new HashSet<string>(ExcludeSourceDirectories.Select(x => x.ToLowerInvariant()));
 
 		static string[] ExcludeSourceFiles = 
 		{
@@ -186,6 +190,9 @@ namespace APIDocTool
 
 		static void Main(string[] Arguments)
         {
+			string EngineRootDir = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "..\\..\\..\\..\\..\\..\\..\\.."));
+			string IntermediateRootDir = Path.Combine(EngineRootDir, "Intermediate\\Documentation");
+
 			bool bValidArgs = true;
 
 			bool bCleanMetadata = false;
@@ -200,10 +207,10 @@ namespace APIDocTool
 			bool bBuildHtml = false;
 			bool bBuildChm = false;
 
-			string TargetInfoPath = null;
-			string EngineDir = null;
-			string MetadataDir = null;
-			string XmlDir = null;
+			string TargetInfoPath = Path.Combine(IntermediateRootDir, "build\\targetinfo.xml");
+			string EngineDir = EngineRootDir;
+			string MetadataDir = Path.Combine(IntermediateRootDir, "metadata");
+			string XmlDir = Path.Combine(IntermediateRootDir, "doxygen");
 			string StatsPath = null;
 
 			bool bVerbose = false;
@@ -226,7 +233,7 @@ namespace APIDocTool
 				}
 				else if (OptionName == "-rebuild")
 				{
-					bCleanMetadata = bCleanXml = bCleanUdn = bCleanHtml = bBuildMetadata = bBuildXml = bBuildUdn = bBuildHtml = true;
+					bCleanMetadata = bCleanXml = bCleanUdn = bCleanHtml = bCleanChm = bBuildMetadata = bBuildXml = bBuildUdn = bBuildHtml = bBuildChm = true;
 				}
 				else if (OptionName == "-cleanmeta")
 				{
@@ -960,7 +967,13 @@ namespace APIDocTool
 		public static void CleanChm(string ChmPath)
 		{
 			Console.WriteLine("Cleaning '{0}'", ChmPath);
-			Utility.SafeDeleteDirectoryContents(ChmPath, true);
+			if (Directory.Exists(ChmPath))
+			{
+				foreach (string SubDir in Directory.EnumerateDirectories(ChmPath))
+				{
+					Directory.Delete(SubDir, true);
+				}
+			}
 		}
 
 		public static bool BuildChm(string ChmCompilerPath, string BaseHtmlDir, string ChmDir)

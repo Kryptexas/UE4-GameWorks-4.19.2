@@ -278,6 +278,7 @@ namespace APIDocTool
     {
 		public static Dictionary<string, APIFunction> TemplateFunctions = new Dictionary<string, APIFunction>();
 
+		public readonly DoxygenEntity Entity;
 		public readonly XmlNode Node;
 		public readonly APIProtection Protection;
 		public readonly APIFunctionType FunctionType;
@@ -310,22 +311,19 @@ namespace APIDocTool
 		public List<string> Warnings = new List<string>();
 
 		public APIFunction(APIPage InParent, DoxygenEntity InEntity, APIFunctionKey InKey)
-			: this(InParent, InEntity.Node, InKey)
+			: this(InParent, InEntity, InKey, Utility.MakeLinkPath(InParent.LinkPath, InKey.GetLinkName()))
 		{
 		}
 
-		public APIFunction(APIPage InParent, XmlNode InNode, APIFunctionKey InKey)
-			: this(InParent, InNode, InKey, Utility.MakeLinkPath(InParent.LinkPath, InKey.GetLinkName()))
-		{
-		}
-
-		public APIFunction(APIPage InParent, XmlNode InNode, APIFunctionKey InKey, string InLinkPath)
-            : base(InParent, InKey.Name, InLinkPath)
+		public APIFunction(APIPage InParent, DoxygenEntity InEntity, APIFunctionKey InKey, string InLinkPath)
+            : base(InParent, InEntity.Name, InLinkPath)
         {
-			Node = InNode;
-			Protection = ParseProtection(InNode);
+			Entity = InEntity;
+			Node = Entity.Node;
+
+			Protection = ParseProtection(Node);
 			FunctionType = InKey.Type;
-			AddRefLink(Node.Attributes["id"].Value, this);
+			AddRefLink(Entity.Node.Attributes["id"].Value, this);
 
 			bIsTemplateSpecialization = Name.Contains('<');
 			if (Node.SelectSingleNode("templateparamlist") != null && !bIsTemplateSpecialization && !TemplateFunctions.ContainsKey(FullName))
@@ -459,6 +457,7 @@ namespace APIDocTool
 			}
 
 			// Parse the source lines
+			/*
 			XmlNode LocationNode = Node.SelectSingleNode("location");
 			if(LocationNode != null)
 			{
@@ -466,7 +465,7 @@ namespace APIDocTool
 				if(BodyFileAttribute != null)
 				{
 					string BodyFile = BodyFileAttribute.Value;
-					if(Program.IncludedSourceFiles.Contains(Path.GetFileName(BodyFile)))
+					if(!BodyFile.ToLowerInvariant().Split('\\', '/').Any(x => Program.ExcludeSourceDirectoriesHash.Contains(x)))
 					{
 						SourceFile File = SourceFileCache.Read(BodyFile);
 						if (File != null)
@@ -482,6 +481,7 @@ namespace APIDocTool
 					}
 				}
 			}
+			 */
 		}
 
 		public override void PostLink()
@@ -565,6 +565,61 @@ namespace APIDocTool
 				Writer.WriteLine(EscapedLine + "  ");
 			}
 			Writer.LeaveTag("[/REGION]");
+		}
+
+		private void WriteSourceSection(UdnWriter Writer)
+		{
+			if(Entity.BodyFile != null)
+			{
+				DoxygenSourceFile SourceFile = Entity.Module.FindSourceFile(Entity.BodyFile);
+				if(SourceFile != null)
+				{
+					int BodyStart = Math.Min(Math.Max(Entity.BodyStart - 1, 0), SourceFile.Lines.Count - 1);
+					int BodyEnd = Math.Min(Math.Max(Entity.BodyEnd, BodyStart), SourceFile.Lines.Count);
+					if(BodyEnd > BodyStart)
+					{
+						Writer.EnterSection("source", "Source");
+						Writer.EnterRegion("simplecode");
+
+						List<string> Lines = new List<string>();
+						int MinPrefix = int.MaxValue;
+
+						for (int LineIdx = BodyStart; LineIdx < BodyEnd; LineIdx++)
+						{
+							XmlNode Node = SourceFile.Lines[LineIdx];
+							string MarkdownLine = (Node == null)? "" : Markdown.ParseXmlCodeLine(Node, ResolveDoxygenLink);
+
+							int Prefix = 0;
+							while (Prefix < MarkdownLine.Length && MarkdownLine[Prefix] == ' ') Prefix++;
+
+							if(Prefix < MarkdownLine.Length && Prefix < MinPrefix)
+							{
+								MinPrefix = Prefix;
+							}
+
+							Lines.Add(MarkdownLine);
+						}
+
+						for (int Idx = 0; Idx < Lines.Count; Idx++)
+						{
+							int TextIdx = Math.Min(MinPrefix, Lines[Idx].Length);
+							if(TextIdx == Lines[Idx].Length)
+							{
+								Writer.Write("&nbsp;");
+							}
+							while(TextIdx < Lines[Idx].Length && Lines[Idx][TextIdx] == ' ')
+							{
+								Writer.Write("&nbsp;");
+								TextIdx++;
+							}
+							Writer.WriteLine(Lines[Idx].Substring(TextIdx) + "  ");
+						}
+
+						Writer.LeaveRegion();
+						Writer.LeaveSection();
+					}
+				}
+			}
 		}
 
 		private void WriteIcons(UdnWriter Writer)
@@ -694,12 +749,20 @@ namespace APIDocTool
 
 				// Write the source
 				Writer.EnterTag("[PARAM:source]");
+				WriteSourceSection(Writer);
+/*
+
 				if (SourceLines != null)
 				{
 					Writer.EnterSection("source", "Source");
 					WriteSource(Writer);
 					Writer.LeaveSection();
 				}
+*/				Writer.LeaveTag("[/PARAM]");
+
+				// Write the reference info
+				Writer.EnterTag("[PARAM:references]");
+				WriteReferencesSection(Writer, Entity);
 				Writer.LeaveTag("[/PARAM]");
 
 				Writer.LeaveTag("[/OBJECT]");

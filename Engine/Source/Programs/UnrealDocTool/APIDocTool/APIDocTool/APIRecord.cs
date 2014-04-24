@@ -43,7 +43,6 @@ namespace APIDocTool
 		public string TemplateSignature;
 		public string Definition;
 		public List<string> BaseDefinitions = new List<string>();
-		public string DeclarationFile;
 
 		public MetadataDirective MetadataDirective;
 
@@ -176,13 +175,6 @@ namespace APIDocTool
 					BaseDefinition += " [" + BaseRecord.Key.InnerText + "](" + BaseRecord.Value.LinkPath + ")";
 				}
 				BaseDefinitions.Add(BaseDefinition);
-			}
-
-			// Parse the file that it's declared in
-			if(Entity.File != null)
-			{
-				int SourceIndex = Entity.File.IndexOf("/Engine/Source/");
-				if (SourceIndex != -1) DeclarationFile = Entity.File.Substring(SourceIndex);
 			}
 
 			// If it's a specialization, add it to the parent class
@@ -467,14 +459,9 @@ namespace APIDocTool
 				}
 				Writer.LeaveTag("[/PARAM]");
 
-				// Write the declaration file
-				Writer.EnterTag("[PARAM:declaration]");
-				if (!Utility.IsNullOrWhitespace(DeclarationFile))
-				{
-					Writer.EnterSection("declaration", "Declaration");
-					Writer.WriteEscapedLine(DeclarationFile);
-					Writer.LeaveSection();
-				}
+				// Write the references
+				Writer.EnterTag("[PARAM:references]");
+				WriteReferencesSection(Writer, Entity);
 				Writer.LeaveTag("[/PARAM]");
 
 				Writer.LeaveTag("[/OBJECT]");
