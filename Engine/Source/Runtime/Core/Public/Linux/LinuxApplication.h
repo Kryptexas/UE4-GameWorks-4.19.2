@@ -5,6 +5,8 @@
 #include "GenericApplication.h"
 #include "LinuxWindow.h"
 
+#define STEAM_CONTROLLER_SUPPORT				(WITH_STEAMWORKS && WITH_ENGINE && !UE_SERVER)
+
 typedef SDL_GameController* SDL_HController;
 
 class FLinuxWindow;
