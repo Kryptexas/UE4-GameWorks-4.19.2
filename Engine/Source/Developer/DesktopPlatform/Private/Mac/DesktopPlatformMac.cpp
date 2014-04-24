@@ -518,7 +518,7 @@ void FDesktopPlatformMac::EnumerateEngineInstallations(TMap<FString, FString> &O
 	EnumerateLauncherEngineInstallations(OutInstallations);
 
 	// Create temp .uproject file to use with LSCopyApplicationURLsForURL
-	FString UProjectPath = FPaths::GameIntermediateDir() / "Unreal.uproject";
+	FString UProjectPath = FPlatformProcess::ApplicationSettingsDir() / "Unreal.uproject";
 	FArchive* File = IFileManager::Get().CreateFileWriter(*UProjectPath, FILEWRITE_EvenIfReadOnly);
 	if (File)
 	{
