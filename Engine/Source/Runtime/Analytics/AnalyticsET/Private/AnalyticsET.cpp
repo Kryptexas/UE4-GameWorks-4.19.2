@@ -153,9 +153,12 @@ FAnalyticsProviderET::FAnalyticsProviderET(const FAnalyticsET::Config& ConfigVal
 		: ConfigValues.APIServerET;
 
 	// default to GEngineVersion if one is not provided, append GEngineVersion otherwise.
-	AppVersion = ConfigValues.AppVersionET.IsEmpty()
-		? FString::Printf(TEXT("%s"), *GEngineVersion.ToString())
-		: FString::Printf(TEXT("%s"), *ConfigValues.AppVersionET);
+	FString ConfigAppVersion = ConfigValues.AppVersionET;
+	// Allow the cmdline to force a specific AppVersion so it can be set dynamically.
+	FParse::Value(FCommandLine::Get(), TEXT("ANALYTICSAPPVERSION="), ConfigAppVersion, false);
+	AppVersion = ConfigAppVersion.IsEmpty() 
+		? GEngineVersion.ToString() 
+		: ConfigAppVersion.Replace(TEXT("{VERSION}"), *GEngineVersion.ToString(), ESearchCase::CaseSensitive);
 
 	UE_LOG(LogAnalytics, Log, TEXT("ET APIKey = %s. APIServer = %s. AppVersion = %s"), *APIKey, *APIServer, *AppVersion);
 
