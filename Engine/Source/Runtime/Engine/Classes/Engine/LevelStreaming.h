@@ -233,6 +233,10 @@ class ULevelStreaming : public UObject
 	UFUNCTION(BlueprintCallable, Category="Game")
 	bool IsLevelLoaded() const;
 
+	/** Creates a new instance of this streaming level with a provided unique instance name */
+	UFUNCTION(BlueprintCallable, Category="Game")
+	ULevelStreaming* CreateInstance(FString UniqueInstanceName);
+
 	//==============================================================================================
 	// Delegates
 	
