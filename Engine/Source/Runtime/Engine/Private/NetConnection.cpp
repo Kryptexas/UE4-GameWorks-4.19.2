@@ -53,7 +53,8 @@ UNetConnection::UNetConnection(const class FPostConstructInitializeProperties& P
 ,	InPacketId			( -1 )
 ,	OutPacketId			( 0 ) // must be initialized as OutAckPacketId + 1 so loss of first packet can be detected
 ,	OutAckPacketId		( -1 )
-,	PartialPackedId		( 0 )
+,	PartialPacketId		( 0 )
+,	LastPartialPacketId	( -1 )
 ,	LastPingAck			( 0.f )
 ,	LastPingAckPacketId	( -1 )
 ,	ClientWorldPackageName( NAME_None )
@@ -677,10 +678,10 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 	LastReceiveTime = Driver->Time;
 
 	// Check packet ordering.
-	int32 PacketId = MakeRelative(Reader.ReadInt(MAX_PACKETID),InPacketId,MAX_PACKETID);
+	const int32 PacketId = MakeRelative(Reader.ReadInt(MAX_PACKETID),InPacketId,MAX_PACKETID);
 	if( PacketId > InPacketId )
 	{
-		int32 PacketsLost = PacketId - InPacketId - 1;
+		const int32 PacketsLost = PacketId - InPacketId - 1;
 		InPacketsLost += PacketsLost;
 		Driver->InPacketsLost += PacketsLost;
 		InPacketId = PacketId;
@@ -841,7 +842,33 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 			Bunch.ChIndex      = Reader.ReadInt( MAX_CHANNELS );
 			Bunch.bHasGUIDs	   = Reader.ReadBit();
 			Bunch.bPartial	   = Reader.ReadBit();
-			Bunch.ChSequence   = (Bunch.bReliable || Bunch.bPartial) ? MakeRelative(Reader.ReadInt(MAX_CHSEQUENCE),InReliable[Bunch.ChIndex],MAX_CHSEQUENCE) : 0;
+
+			if ( Bunch.bReliable )
+			{
+				// If this is a reliable bunch, use the last processed reliable sequence to read the new reliable sequence
+				Bunch.ChSequence = MakeRelative( Reader.ReadInt( MAX_CHSEQUENCE ), InReliable[Bunch.ChIndex], MAX_CHSEQUENCE );
+			} 
+			else if ( Bunch.bPartial )
+			{
+				// If this is a partial bunch, use the last processed partial sequence to read the new partial sequence
+				Bunch.ChSequence = MakeRelative( Reader.ReadInt( MAX_CHSEQUENCE ), LastPartialPacketId, MAX_CHSEQUENCE );
+				if ( Bunch.ChSequence > LastPartialPacketId )
+				{
+					LastPartialPacketId = Bunch.ChSequence;
+				}
+				else
+				{
+					// Well behaved clients should never hit this, since we've already thrown out packets that were older
+					// Since PartialPacketId should evolve in sync with PacketId, this should be impossible unless the 
+					// client is misbehaving...
+					UE_LOG( LogNetTraffic, Error, TEXT( "UNetConnection::ReceivedPacket: Invalid partial packet id." ) );
+				}
+			}
+			else
+			{
+				Bunch.ChSequence = 0;
+			}
+
 			Bunch.bPartialInitial = Bunch.bPartial ? Reader.ReadBit() : 0;
 			Bunch.bPartialFinal	  = Bunch.bPartial ? Reader.ReadBit() : 0;
 			Bunch.ChType       = (Bunch.bReliable||Bunch.bOpen) ? Reader.ReadInt(CHTYPE_MAX) : CHTYPE_None;

@@ -656,8 +656,8 @@ FPacketIdRange UChannel::SendBunch( FOutBunch* Bunch, bool Merge )
 		if (ThisOutBunch->bPartial && !ThisOutBunch->bReliable)
 		{
 			// If we are reliable, then partial bunches just use the reliable sequences
-			// if not reliable, we hijack ChSequence and use Connection->PartialPackedId to sequence these packets
-			ThisOutBunch->ChSequence = Connection->PartialPackedId++;
+			// if not reliable, we hijack ChSequence and use Connection->PartialPacketId to sequence these packets
+			ThisOutBunch->ChSequence = Connection->PartialPacketId++;
 		}
 
 		if (UE_LOG_ACTIVE(LogNetPartialBunch,Verbose) && (OutgoingBunches.Num() > 1)) // Don't want to call appMemcrc unless we need to
