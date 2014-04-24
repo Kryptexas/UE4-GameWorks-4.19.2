@@ -37,7 +37,7 @@ SAssetView::~SAssetView()
 	FCoreDelegates::OnObjectPropertyChanged.RemoveAll( this );
 
 	// Remove the listener for when view settings are changed
-	GetMutableDefault<UContentBrowserSettings>()->OnSettingChanged().RemoveAll( this );
+	UContentBrowserSettings::OnSettingChanged().RemoveAll(this);
 
 	if ( FrontendFilters.IsValid() )
 	{
@@ -81,7 +81,7 @@ void SAssetView::Construct( const FArguments& InArgs )
 	FCoreDelegates::OnObjectPropertyChanged.Add(FCoreDelegates::FOnObjectPropertyChanged::FDelegate::CreateSP(this, &SAssetView::OnObjectPropertyChanged));
 
 	// Listen for when view settings are changed
-	GetMutableDefault<UContentBrowserSettings>()->OnSettingChanged().Add(UContentBrowserSettings::FSettingChangedEvent::FDelegate::CreateSP(this, &SAssetView::HandleSettingChanged));
+	UContentBrowserSettings::OnSettingChanged().Add(UContentBrowserSettings::FSettingChangedEvent::FDelegate::CreateSP(this, &SAssetView::HandleSettingChanged));
 
 	// Get desktop metrics
 	FDisplayMetrics DisplayMetrics;

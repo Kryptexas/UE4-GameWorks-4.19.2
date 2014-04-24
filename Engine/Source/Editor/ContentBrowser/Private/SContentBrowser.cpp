@@ -21,7 +21,7 @@ const FString SContentBrowser::SettingsIniSection = TEXT("ContentBrowser");
 SContentBrowser::~SContentBrowser()
 {
 	// Remove the listener for when view settings are changed
-	GetMutableDefault<UContentBrowserSettings>()->OnSettingChanged().RemoveAll( this );
+	UContentBrowserSettings::OnSettingChanged().RemoveAll( this );
 }
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
@@ -41,7 +41,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 	bIsLocked = InArgs._InitiallyLocked;
 
 	// Listen for when view settings are changed
-	GetMutableDefault<UContentBrowserSettings>()->OnSettingChanged().Add(UContentBrowserSettings::FSettingChangedEvent::FDelegate::CreateSP(this, &SContentBrowser::HandleSettingChanged));
+	UContentBrowserSettings::OnSettingChanged().Add(UContentBrowserSettings::FSettingChangedEvent::FDelegate::CreateSP(this, &SContentBrowser::HandleSettingChanged));
 
 	HistoryManager.SetOnApplyHistoryData(FOnApplyHistoryData::CreateSP(this, &SContentBrowser::OnApplyHistoryData));
 	HistoryManager.SetOnUpdateHistoryData(FOnUpdateHistoryData::CreateSP(this, &SContentBrowser::OnUpdateHistoryData));
