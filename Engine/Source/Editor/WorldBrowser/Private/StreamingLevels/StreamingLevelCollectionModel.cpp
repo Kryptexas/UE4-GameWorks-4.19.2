@@ -159,7 +159,7 @@ void FStreamingLevelCollectionModel::BindCommands()
 	
 	ActionList.MapAction( Commands.World_MergeSelectedLevels,
 		FExecuteAction::CreateSP( this, &FStreamingLevelCollectionModel::MergeSelectedLevels_Executed  ),
-		FCanExecuteAction::CreateSP( this, &FStreamingLevelCollectionModel::AreAllSelectedLevelsEditable ) );
+		FCanExecuteAction::CreateSP( this, &FStreamingLevelCollectionModel::AreAllSelectedLevelsEditableAndNotPersistent ) );
 	
 	// new level streaming method
 	ActionList.MapAction( Commands.SetAddStreamingMethod_Blueprint,
@@ -565,6 +565,11 @@ void FStreamingLevelCollectionModel::RemoveInvalidSelectedLevels_Executed()
 
 void FStreamingLevelCollectionModel::MergeSelectedLevels_Executed()
 {
+	if (SelectedLevelsList.Num() <= 1)
+	{
+		return;
+	}
+	
 	// Stash off a copy of the original array, so the selection can be restored
 	FLevelModelList SelectedLevelsCopy = SelectedLevelsList;
 

@@ -181,6 +181,9 @@ public:
 	/** @return whether all the currently selected levels are editable */
 	bool AreAllSelectedLevelsEditable() const;
 
+	/** @return whether all the currently selected levels are editable and not persistent */
+	bool AreAllSelectedLevelsEditableAndNotPersistent() const;
+
 	/** @return whether all the currently selected levels are editable and visible*/
 	bool AreAllSelectedLevelsEditableAndVisible() const;
 

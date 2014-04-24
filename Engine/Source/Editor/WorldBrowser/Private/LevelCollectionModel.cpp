@@ -816,6 +816,19 @@ bool FLevelCollectionModel::AreAllSelectedLevelsEditable() const
 	return AreAnyLevelsSelected();
 }
 
+bool FLevelCollectionModel::AreAllSelectedLevelsEditableAndNotPersistent() const
+{
+	for (auto It = SelectedLevelsList.CreateConstIterator(); It; ++It)
+	{
+		if ((*It)->IsEditable() == false || (*It)->IsPersistent())
+		{
+			return false;
+		}
+	}
+	
+	return AreAnyLevelsSelected();
+}
+
 bool FLevelCollectionModel::AreAllSelectedLevelsEditableAndVisible() const
 {
 	for (auto It = SelectedLevelsList.CreateConstIterator(); It; ++It)
