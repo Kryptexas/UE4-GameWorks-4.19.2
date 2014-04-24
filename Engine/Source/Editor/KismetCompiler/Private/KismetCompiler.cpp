@@ -1206,9 +1206,9 @@ void FKismetCompilerContext::CompileFunction(FKismetFunctionContext& Context)
 		}
 
 		// Debug opcode insertion point
-		if (KismetCompilerDebugOptions::EmitDebuggingPlaceholders && !IsNodePure(Node))
+		if (Context.bCreateDebugData && !IsNodePure(Node))
 		{
-			bool bEmitDebuggingSite = Context.bCreateDebugData;
+			bool bEmitDebuggingSite = true;
 
 			if (Context.IsEventGraph() && (Node->IsA(UK2Node_FunctionEntry::StaticClass())))
 			{

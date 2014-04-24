@@ -1601,7 +1601,7 @@ void FD3D11DynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const F
 		OriginalResourceState.ClearCurrentVertexResources(StateCache);		
 
 		// Set the new shaders
-		TShaderMapRef<FOneColorVS> VertexShader(GetGlobalShaderMap());
+		TShaderMapRef<TOneColorVS<true> > VertexShader(GetGlobalShaderMap());
 
 		FOneColorPS* PixelShader = NULL;
 

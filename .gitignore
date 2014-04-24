@@ -15,11 +15,11 @@
 
 
 # Ignore project files in the root
-*.sln
+/*.sln
 *.suo
 *.opensdf
 *.sdf
-*.xcodeproj
+/*.xcodeproj
 
 # Derived data cache is never checked in
 /Engine/DerivedDataCache/**
@@ -58,7 +58,7 @@
 /Engine/Source/ThirdParty/ANGLE/**
 /Engine/Source/ThirdParty/DirectShow/**
 /Engine/Source/ThirdParty/elftoolchain/**
-/Engine/Source/ThirdParty/FaceBook/**
+/Engine/Source/ThirdParty/Facebook/**
 /Engine/Source/ThirdParty/FBX/**
 /Engine/Source/ThirdParty/ForsythTriOO/**
 /Engine/Source/ThirdParty/FreeType2/**
@@ -85,7 +85,7 @@
 /Engine/Source/ThirdParty/Perforce/**
 /Engine/Source/ThirdParty/PhysX/**
 /Engine/Source/ThirdParty/portmidi/**
-/Engine/Source/ThirdParty/Qualcomm/**
+/Engine/Source/ThirdParty/Qualcomm/TextureConverter/**
 /Engine/Source/ThirdParty/Recast/**
 /Engine/Source/ThirdParty/SDL/**
 /Engine/Source/ThirdParty/Vorbis/**

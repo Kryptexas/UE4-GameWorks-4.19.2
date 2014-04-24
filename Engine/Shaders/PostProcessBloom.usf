@@ -15,8 +15,8 @@ void MainPostprocessCommonVS(
 	out float4 OutPosition : SV_POSITION
 	)
 {
-	OutPosition = InPosition;
-	OutTexCoord = float4(InTexCoord, InPosition.xy);
+	DrawRectangle(InPosition, InTexCoord, OutPosition, OutTexCoord.xy);
+	OutTexCoord.zw =  OutPosition.xy;
 }
 
 // vertex shader entry point
@@ -28,8 +28,7 @@ void MainVS(
 	out float4 OutPosition : SV_POSITION
 	)
 {
-	OutPosition = InPosition;
-	OutTexCoord = float4(InTexCoord, InPosition.xy);
+	MainPostprocessCommonVS(InPosition, InTexCoord, OutTexCoord, OutPosition);
 
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
 	// texture can be GWhiteTexture which is 1x1. It's important we don't read outside bounds.

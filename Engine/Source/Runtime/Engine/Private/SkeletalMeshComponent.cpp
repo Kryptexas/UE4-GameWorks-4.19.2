@@ -1579,7 +1579,7 @@ FTransform USkeletalMeshComponent::ConvertLocalRootMotionToWorld(const FTransfor
 }
 
 
-float USkeletalMeshComponent::CalculateMass()
+float USkeletalMeshComponent::CalculateMass(FName BoneName)
 {
 	if (bUseSingleBodyPhysics)
 	{
@@ -1593,7 +1593,8 @@ float USkeletalMeshComponent::CalculateMass()
 		{
 			for (int32 i = 0; i < Bodies.Num(); ++i)
 			{
-				if (Bodies[i]->BodySetup.IsValid())
+				//if bone name is not provided calculate entire mass - otherwise get mass for just the bone
+				if (Bodies[i]->BodySetup.IsValid() && (BoneName == NAME_None || BoneName == Bodies[i]->BodySetup->BoneName))
 				{
 					Mass += Bodies[i]->BodySetup->CalculateMass(this);
 				}
@@ -1615,7 +1616,7 @@ float USkeletalMeshComponent::CalculateMass()
 			{
 				for (int32 i = 0; i < BodySetups->Num(); ++i)
 				{
-					if ((*BodySetups)[i])
+					if ((*BodySetups)[i] && (BoneName == NAME_None || BoneName == (*BodySetups)[i]->BoneName))
 					{
 						Mass += (*BodySetups)[i]->CalculateMass(this);
 					}

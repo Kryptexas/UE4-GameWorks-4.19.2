@@ -48,7 +48,7 @@ void DrawClearQuadMRT(bool bClearColor,int32 NumClearColors,const FLinearColor* 
 	RHISetDepthStencilState( DepthStencilStateRHI );
 
 	// Set the new shaders
-	TShaderMapRef<FOneColorVS> VertexShader(GetGlobalShaderMap());
+	TShaderMapRef<TOneColorVS<true> > VertexShader(GetGlobalShaderMap());
 
 	FOneColorPS* PixelShader = NULL;
 

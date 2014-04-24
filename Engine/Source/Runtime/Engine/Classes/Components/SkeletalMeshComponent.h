@@ -693,7 +693,7 @@ public:
 	virtual void AddRadialForce(FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff) OVERRIDE;
 	virtual void SetAllPhysicsLinearVelocity(FVector NewVel,bool bAddToCurrent = false) OVERRIDE;
 	virtual float GetMass() const OVERRIDE;
-	virtual float CalculateMass() OVERRIDE;
+	virtual float CalculateMass(FName BoneName = NAME_None) OVERRIDE;
 	// End UPrimitiveComponent interface.
 
 	// Begin USkinnedMeshComponent interface

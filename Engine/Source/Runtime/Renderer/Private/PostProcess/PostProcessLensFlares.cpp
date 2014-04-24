@@ -174,6 +174,7 @@ void FRCPassPostProcessLensFlares::Process(FRenderingCompositePassContext& Conte
 			ViewSize1.X, ViewSize1.Y,
 			ViewSize1,
 			TexSize1,
+			*VertexShader,
 			EDRF_UseTriangleOptimization);
 	}
 
@@ -226,6 +227,7 @@ void FRCPassPostProcessLensFlares::Process(FRenderingCompositePassContext& Conte
 				ViewSize2.X, ViewSize2.Y,
 				ViewSize1,
 				TexSize2,
+				*VertexShader,
 				EDRF_Default);
 		}
 	}

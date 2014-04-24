@@ -57,6 +57,8 @@ void SCurveEditorViewport::Construct(const FArguments& InArgs)
 	// The viewport widget needs an interface so it knows what should render
 	ViewportWidget->SetViewportInterface( Viewport.ToSharedRef() );
 
+	PrevViewportHeight = 0;
+	AdjustScrollBar();
 }
 
 void SCurveEditorViewport::RefreshViewport()
@@ -70,6 +72,12 @@ void SCurveEditorViewport::SetVerticalScrollBarPosition(float Position)
 	float Ratio = ViewportClient->GetViewportVerticalScrollBarRatio();
 	float MaxOffset = (Ratio < 1.0f)? 1.0f - Ratio: 0.0f;
 	OnViewportVerticalScrollBarScrolled(MaxOffset * Position);
+}
+
+void SCurveEditorViewport::AdjustScrollBar()
+{
+	// Pretend the scrollbar was scrolled by no amount; this will update the scrollbar ratio
+	OnViewportVerticalScrollBarScrolled(0.0f);
 }
 
 TSharedPtr<FSceneViewport> SCurveEditorViewport::GetViewport() const
@@ -90,6 +98,19 @@ TSharedPtr<SViewport> SCurveEditorViewport::GetViewportWidget() const
 TSharedPtr<SScrollBar> SCurveEditorViewport::GetVerticalScrollBar() const
 {
 	return ViewportVerticalScrollBar;
+}
+
+void SCurveEditorViewport::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+{
+	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+
+	// Check to see if we need to update the scrollbars due to a size change
+	const int32 CurrentHeight = AllottedGeometry.Size.Y;
+	if (CurrentHeight != PrevViewportHeight)
+	{
+		PrevViewportHeight = CurrentHeight;
+		AdjustScrollBar();
+	}
 }
 
 EVisibility SCurveEditorViewport::GetViewportVerticalScrollBarVisibility() const

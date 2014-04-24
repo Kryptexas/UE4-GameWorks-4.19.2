@@ -39,7 +39,7 @@ public:
 
 	virtual uint32 Run(void)
 	{
-		int LoopCount = 1;
+		int LoopCount = 10;
 
 		while (StopTaskCounter.GetValue() == 0)
 		{
@@ -164,7 +164,7 @@ private:
 				DeviceInfo.SerialNumber = SerialNumber;
 				DeviceInfo.Model = Model;
 				DeviceInfo.DeviceName = DeviceName;
-				DeviceInfo.GLESExtenstions = GLESExtensions;
+				DeviceInfo.GLESExtensions = GLESExtensions;
 				DeviceInfo.GLESVersion = GLESVersion;
 			}
 		}

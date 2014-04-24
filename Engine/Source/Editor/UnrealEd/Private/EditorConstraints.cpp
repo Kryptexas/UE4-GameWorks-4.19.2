@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-	EditorConstraints.cpp: Editor movement contraints.
+	EditorConstraints.cpp: Editor movement constraints.
 =============================================================================*/
 
 #include "UnrealEd.h"
@@ -11,6 +11,13 @@ float UEditorEngine::GetGridSize()
 {
 	TArray<float> PosGridSizes = GetCurrentPositionGridArray();
 	return PosGridSizes[GetDefault<ULevelEditorViewportSettings>()->CurrentPosGridSize ];
+}
+
+bool UEditorEngine::IsGridSizePowerOfTwo() const
+{
+	const ULevelEditorViewportSettings* ViewportSettings = GetDefault<ULevelEditorViewportSettings>();
+
+	return ViewportSettings->bUsePowerOf2SnapSize;
 }
 
 void UEditorEngine::SetGridSize( int32 InIndex )

@@ -258,12 +258,16 @@ static TArray<AActor*> AttemptDropObjAsActors( ULevel* InLevel, UObject* ObjToUs
 	{
 		if (bUsedHitProxy)
 		{
+			const bool bSnapNewObjectsToFloor = GetDefault<ULevelEditorViewportSettings>()->bSnapNewObjectsToFloor;
 			for (auto ActorIt = PlacedActors.CreateConstIterator(); ActorIt; ++ActorIt)
 			{
 				AActor* Actor = *ActorIt;
 
 				FVector Loc = Actor->GetActorLocation();
-				Loc.Z = PreSnapLocation.Z;
+				if( bSnapNewObjectsToFloor )
+				{
+					Loc.Z = PreSnapLocation.Z;
+				}
 
 				Actor->TeleportTo(Loc, Actor->GetActorRotation(), false, true);
 			}
@@ -1327,13 +1331,15 @@ bool FLevelEditorViewportClient::UpdateDropPreviewActors(int32 MouseX, int32 Mou
 		}
 		else
 		{
+			const bool bSnapNewObjectsToFloor = GetDefault<ULevelEditorViewportSettings>()->bSnapNewObjectsToFloor;
+
 			// Move the actor to the target location while preserving the relative offset to the other actors
 			FVector Collision = FirstDraggingActor->GetPlacementExtent();
 			FVector PreSnapLocation = MouseLocation + MousePlane * (FVector::BoxPushOut(MousePlane, Collision) + 0.1f);
 			FVector NewLocation = PreSnapLocation;
 			FSnappingUtils::SnapPointToGrid( NewLocation, FVector(0, 0, 0) );
 
-			if( HitProxy != NULL && Cursor.GetViewportType() == LVT_Perspective )
+			if( bSnapNewObjectsToFloor && HitProxy != NULL && Cursor.GetViewportType() == LVT_Perspective )
 			{
 				NewLocation.Z = PreSnapLocation.Z;
 			}

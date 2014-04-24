@@ -143,6 +143,41 @@ public:
 	}
 };
 
+
+/** Encapsulates the post processing vertex shader. */
+class FPostProcessHMDVS : public FGlobalShader
+{
+	DECLARE_SHADER_TYPE(FPostProcessHMDVS,Global);
+
+	static bool ShouldCache(EShaderPlatform Platform)
+	{
+		return true;
+	}
+
+	/** Default constructor. */
+	FPostProcessHMDVS() {}
+
+	/** to have a similar interface as all other shaders */
+	void SetParameters(const FRenderingCompositePassContext& Context)
+	{
+		FGlobalShader::SetParameters(GetVertexShader(), Context.View);
+	}
+
+	void SetParameters(const FSceneView& View)
+	{
+		FGlobalShader::SetParameters(GetVertexShader(), View);
+	}
+
+public:
+
+	/** Initialization constructor. */
+	FPostProcessHMDVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		: FGlobalShader(Initializer)
+	{
+	}
+};
+
+IMPLEMENT_SHADER_TYPE(, FPostProcessHMDVS, TEXT("PostProcessHMD"), TEXT("MainVS"), SF_Vertex);
 IMPLEMENT_SHADER_TYPE(template<>, FPostProcessHMDPS<true>, TEXT("PostProcessHMD"), TEXT("MainPS"), SF_Pixel);
 IMPLEMENT_SHADER_TYPE(template<>, FPostProcessHMDPS<false>, TEXT("PostProcessHMD"), TEXT("MainPS"), SF_Pixel);
 
@@ -223,7 +258,7 @@ void FRCPassPostProcessHMD::Process(FRenderingCompositePassContext& Context)
 	RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
-	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessHMDVS> VertexShader(GetGlobalShaderMap());
 
 	FMatrix QuadTexTransform;
 	FMatrix QuadPosTransform = FMatrix::Identity;

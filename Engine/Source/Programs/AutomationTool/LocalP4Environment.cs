@@ -73,7 +73,7 @@ namespace AutomationTool
 			var CLString = CommandUtils.GetEnvVar(EnvVarNames.Changelist);
 			if (String.IsNullOrEmpty(CLString))
 			{
-				DetectCurrentCL(Connection, ClientRootPath);
+                CLString = DetectCurrentCL(Connection, ClientRootPath);
 			}
 			CommandUtils.ConditionallySetEnvVar(EnvVarNames.Changelist, CLString);
 

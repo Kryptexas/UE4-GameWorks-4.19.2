@@ -840,6 +840,20 @@ public:
 
 
 	/**
+	 * Constructs a weak pointer from a weak pointer of another type.
+	 * This constructor is intended to allow derived-to-base conversions.
+	 *
+	 * @param  InWeakPtr  The weak pointer to create a weak pointer from
+	 */
+	template< class OtherType >
+	FORCEINLINE TWeakPtr( TWeakPtr< OtherType, Mode > const& InWeakPtr )
+		: Object( InWeakPtr.Object ),
+		  WeakReferenceCount( InWeakPtr.WeakReferenceCount )
+	{
+	}
+
+
+	/**
 	 * Assignment to a NULL pointer.  Clears this weak pointer's reference.
 	 */
 	// NOTE: The following is an Unreal extension to standard shared_ptr behavior
@@ -856,6 +870,21 @@ public:
 	 * @param  InWeakPtr  The weak pointer for the object to assign
 	 */
 	FORCEINLINE TWeakPtr& operator=( TWeakPtr const& InWeakPtr )
+	{
+		Object = InWeakPtr.Pin().Get();
+		WeakReferenceCount = InWeakPtr.WeakReferenceCount;
+		return *this;
+	}
+
+
+	/**
+	 * Assignment operator adds a weak reference to the object referenced by the specified weak pointer.
+	 * This assignment operator is intended to allow derived-to-base conversions.
+	 *
+	 * @param  InWeakPtr  The weak pointer for the object to assign
+	 */
+	template <typename OtherType>
+	FORCEINLINE TWeakPtr& operator=( TWeakPtr<OtherType, Mode> const& InWeakPtr )
 	{
 		Object = InWeakPtr.Pin().Get();
 		WeakReferenceCount = InWeakPtr.WeakReferenceCount;
@@ -951,6 +980,9 @@ private:
 		return ::PointerHash( InWeakPtr.Object );
 	}
 
+
+	// We declare ourselves as a friend (templated using OtherType) so we can access members as needed
+    template< class OtherType, ESPMode::Type OtherMode > friend class TWeakPtr;
 
 	// Declare ourselves as a friend of TSharedPtr so we can access members as needed
     template< class OtherType, ESPMode::Type OtherMode > friend class TSharedPtr;
@@ -1252,6 +1284,30 @@ FORCEINLINE bool operator==( TWeakPtr< ObjectTypeA, Mode > const& InWeakPtrA, TW
 
 
 /**
+ * Global equality operator for TWeakPtr
+ *
+ * @return  True if the weak pointer is null
+ */
+template< class ObjectTypeA, ESPMode::Type Mode >
+FORCEINLINE bool operator==( TWeakPtr< ObjectTypeA, Mode > const& InWeakPtrA, decltype(nullptr) )
+{
+	return !InWeakPtrA.IsValid();
+}
+
+
+/**
+ * Global equality operator for TWeakPtr
+ *
+ * @return  True if the weak pointer is null
+ */
+template< class ObjectTypeB, ESPMode::Type Mode >
+FORCEINLINE bool operator==( decltype(nullptr), TWeakPtr< ObjectTypeB, Mode > const& InWeakPtrB )
+{
+	return !InWeakPtrB.IsValid();
+}
+
+
+/**
  * Global inequality operator for TWeakPtr
  *
  * @return  True if the two weak pointers are not equal
@@ -1260,6 +1316,30 @@ template< class ObjectTypeA, class ObjectTypeB, ESPMode::Type Mode >
 FORCEINLINE bool operator!=( TWeakPtr< ObjectTypeA, Mode > const& InWeakPtrA, TWeakPtr< ObjectTypeB, Mode > const& InWeakPtrB )
 {
 	return InWeakPtrA.Pin().Get() != InWeakPtrB.Pin().Get();
+}
+
+
+/**
+ * Global inequality operator for TWeakPtr
+ *
+ * @return  True if the weak pointer is not null
+ */
+template< class ObjectTypeA, ESPMode::Type Mode >
+FORCEINLINE bool operator!=( TWeakPtr< ObjectTypeA, Mode > const& InWeakPtrA, decltype(nullptr) )
+{
+	return InWeakPtrA.IsValid();
+}
+
+
+/**
+ * Global inequality operator for TWeakPtr
+ *
+ * @return  True if the weak pointer is not null
+ */
+template< class ObjectTypeB, ESPMode::Type Mode >
+FORCEINLINE bool operator!=( decltype(nullptr), TWeakPtr< ObjectTypeB, Mode > const& InWeakPtrB )
+{
+	return InWeakPtrB.IsValid();
 }
 
 

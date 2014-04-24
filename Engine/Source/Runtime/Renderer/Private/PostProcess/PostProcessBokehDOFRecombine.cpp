@@ -156,6 +156,8 @@ void FRCPassPostProcessBokehDOFRecombine::Process(FRenderingCompositePassContext
 		SetShader<2>(Context);
 	}
 
+	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
+
 	// Draw a quad mapping scene color to the view's render target
 	DrawRectangle(
 		0, 0,
@@ -164,6 +166,7 @@ void FRCPassPostProcessBokehDOFRecombine::Process(FRenderingCompositePassContext
 		HalfResViewRect.Width(), HalfResViewRect.Height(),
 		View.ViewRect.Size(),
 		TexSize,
+		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());

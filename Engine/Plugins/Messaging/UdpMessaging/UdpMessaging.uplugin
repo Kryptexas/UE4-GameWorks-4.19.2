@@ -15,7 +15,8 @@
 		{
 			"Name" : "UdpMessaging",
 			"Type" : "Runtime",
-			"LoadingPhase" : "PreDefault"
+			"LoadingPhase" : "PreDefault",
+			"BlacklistPlatforms" : [ "HTML5" ]
 		}
 	],
 
