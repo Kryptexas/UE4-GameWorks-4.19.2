@@ -38,11 +38,6 @@ static FIntPoint ExtractHeighmapTileCoordinates(FString BaseFilename)
 	return ResultPosition;
 }
 
-void STiledLandcapeImportDlg::AddReferencedObjects( FReferenceCollector& Collector )
-{
-	Collector.AddReferencedObject(ImportSettings.LandscapeMaterial);
-}
-
 void STiledLandcapeImportDlg::Construct(const FArguments& InArgs, TSharedPtr<SWindow> InParentWindow)
 {
 	ParentWindow = InParentWindow;
@@ -267,12 +262,12 @@ TSharedRef<SWidget> STiledLandcapeImportDlg::CreateLandscapeMaterialPicker()
 
 FText STiledLandcapeImportDlg::GetLandscapeMaterialName() const
 {
-	if (ImportSettings.LandscapeMaterial)
+	if (ImportSettings.LandscapeMaterial.IsValid())
 	{
 		return FText::FromString(ImportSettings.LandscapeMaterial->GetName());
 	}
 
-	return LOCTEXT("TiledLandscapeImport_NoLandscapeMaterialText", "Default Material");
+	return LOCTEXT("TiledLandscapeImport_NoLandscapeMaterialText", "None");
 }
 
 TSharedRef<SWidget> STiledLandcapeImportDlg::HandleTileConfigurationComboBoxGenarateWidget(TSharedPtr<FTileImportConfiguration> InItem) const
@@ -649,7 +644,7 @@ FText STiledLandcapeImportDlg::GenerateConfigurationText(int32 NumComponents, in
 
 void STiledLandcapeImportDlg::UpdateLandscapeLayerList()
 {
-	ImportSettings.LandscapeLayerNameList = ALandscapeProxy::GetLayersFromMaterial(ImportSettings.LandscapeMaterial);
+	ImportSettings.LandscapeLayerNameList = ALandscapeProxy::GetLayersFromMaterial(ImportSettings.LandscapeMaterial.Get());
 	//
 	ImportSettings.WeightmapFileList.Empty();
 	ImportSettings.WeightmapFileList.SetNum(ImportSettings.LandscapeLayerNameList.Num());

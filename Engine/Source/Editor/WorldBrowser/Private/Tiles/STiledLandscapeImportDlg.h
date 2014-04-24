@@ -6,7 +6,6 @@
 // 
 class STiledLandcapeImportDlg
 	: public SCompoundWidget
-	, public FGCObject
 {
 public:	
 	/** */		
@@ -36,9 +35,6 @@ public:
 	const FTiledLandscapeImportSettings& GetImportSettings() const;
 
 private:
-	/** FGCObject interface*/
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE;
-
 	/** */
 	TSharedRef<SWidget> CreateLandscapeMaterialPicker();
 	FText GetLandscapeMaterialName() const;
@@ -105,8 +101,7 @@ private:
 
 	TSharedPtr<SListView<TSharedPtr<FLandscapeImportLayerData>>>	LayerDataListView;
 	TArray<TSharedPtr<FLandscapeImportLayerData>>					LayerDataList;		
-
-	
+		
 	/** */
 	FTiledLandscapeImportSettings ImportSettings;
 	

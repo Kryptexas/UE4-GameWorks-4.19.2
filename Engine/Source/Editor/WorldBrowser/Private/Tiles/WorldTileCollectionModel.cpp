@@ -1334,7 +1334,7 @@ void FWorldTileCollectionModel::ImportTiledLandscape_Executed()
 			
 			FWorldTileModel::FLandscapeImportSettings TileImportSettings;
 			TileImportSettings.LandscapeGuid		= LandscapeGuid;
-			TileImportSettings.LandscapeMaterial	= ImportSettings.LandscapeMaterial;
+			TileImportSettings.LandscapeMaterial	= ImportSettings.LandscapeMaterial.Get();
 			TileImportSettings.ComponentSizeQuads	= ImportSettings.QuadsPerSection*ImportSettings.SectionsPerComponent;
 			TileImportSettings.QuadsPerSection		= ImportSettings.QuadsPerSection;
 			TileImportSettings.SectionsPerComponent = ImportSettings.SectionsPerComponent;

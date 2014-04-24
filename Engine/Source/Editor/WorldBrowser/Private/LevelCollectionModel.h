@@ -522,7 +522,6 @@ struct FTiledLandscapeImportSettings
 		, SectionsPerComponent(1)
 		, TilesCoordinatesOffset(0,0)
 		, TileResolution(1009)
-		, LandscapeMaterial(nullptr)
 	{}
 	
 	FVector				Scale3D;
@@ -536,7 +535,7 @@ struct FTiledLandscapeImportSettings
 	int32				TileResolution;	
 
 
-	UMaterialInterface*					LandscapeMaterial;
+	TWeakObjectPtr<UMaterialInterface>	LandscapeMaterial;
 	
 	TArray<FName>						LandscapeLayerNameList;
 	// list of weightmap files per each layer
