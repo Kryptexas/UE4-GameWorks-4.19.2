@@ -10,16 +10,19 @@
 UWidgetBlueprint::UWidgetBlueprint(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	WidgetTree = ConstructObject<UWidgetTree>(UWidgetTree::StaticClass(), this);
 }
 
 void UWidgetBlueprint::PostLoad()
 {
 	Super::PostLoad();
 
-	for ( USlateWrapperComponent* Widget : WidgetTemplates )
+#if WITH_EDITOR
+	for ( USlateWrapperComponent* Widget : WidgetTree->WidgetTemplates )
 	{
 		Widget->ConnectEditorData();
 	}
+#endif
 }
 
 bool UWidgetBlueprint::ValidateGeneratedClass(const UClass* InClass)
@@ -37,21 +40,15 @@ bool UWidgetBlueprint::ValidateGeneratedClass(const UClass* InClass)
 		return false;
 	}
 
-	for ( const USlateWrapperComponent* Template : Blueprint->WidgetTemplates )
-	{
-		if ( !ensure(Template && ( Template->GetOuter() == GeneratedClass )) )
-		{
-			return false;
-		}
-	}
+	//if ( !ensure(Blueprint->WidgetTree && ( Blueprint->WidgetTree->GetOuter() == GeneratedClass )) )
+	//{
+	//	return false;
+	//}
 
-	for ( const USlateWrapperComponent* Template : GeneratedClass->WidgetTemplates )
-	{
-		if ( !ensure(Template && ( Template->GetOuter() == GeneratedClass )) )
-		{
-			return false;
-		}
-	}
+	//if ( !ensure(GeneratedClass->WidgetTree && ( GeneratedClass->WidgetTree->GetOuter() == GeneratedClass )) )
+	//{
+	//	return false;
+	//}
 
 	return Result;
 }
@@ -63,7 +60,7 @@ void UWidgetBlueprint::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceG
 	UWidgetBlueprintGeneratedClass* BPGClass = Cast<UWidgetBlueprintGeneratedClass>(*GeneratedClass);
 	if ( BPGClass )
 	{
-		BPGClass->WidgetTemplates = WidgetTemplates;
+		//BPGClass->WidgetTree = WidgetTree;
 	}
 }
 

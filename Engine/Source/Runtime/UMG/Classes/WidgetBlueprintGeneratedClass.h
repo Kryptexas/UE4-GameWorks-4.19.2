@@ -9,8 +9,9 @@ class UMG_API UWidgetBlueprintGeneratedClass : public UBlueprintGeneratedClass
 {
 	GENERATED_UCLASS_BODY()
 
+	/** A tree of the widget templates to be created */
 	UPROPERTY()
-	TArray<class USlateWrapperComponent*> WidgetTemplates;
+	class UWidgetTree* WidgetTree;
 
 	virtual void CreateComponentsForActor(AActor* Actor) const OVERRIDE;
 };

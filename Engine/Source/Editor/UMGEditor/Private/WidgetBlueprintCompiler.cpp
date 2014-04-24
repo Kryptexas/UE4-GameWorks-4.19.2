@@ -29,7 +29,7 @@ void FWidgetBlueprintCompiler::ValidateWidgetNames()
 		}
 	}
 
-	for ( USlateWrapperComponent* Widget : Blueprint->WidgetTemplates )
+	for ( USlateWrapperComponent* Widget : Blueprint->WidgetTree->WidgetTemplates )
 	{
 		if ( ParentBPNameValidator.IsValid() && ParentBPNameValidator->IsValid(Widget->GetName()) != EValidatorResult::Ok )
 		{
@@ -70,9 +70,9 @@ void FWidgetBlueprintCompiler::CleanAndSanitizeClass(UBlueprintGeneratedClass* C
 
 	UWidgetBlueprint* Blueprint = WidgetBlueprint();
 
-	if ( 0 != Blueprint->WidgetTemplates.Num() )
+	if ( 0 != Blueprint->WidgetTree->WidgetTemplates.Num() )
 	{
-		ClassSubObjects.RemoveAllSwap(FCullTemplateObjectsHelper<USlateWrapperComponent>(Blueprint->WidgetTemplates));
+		ClassSubObjects.RemoveAllSwap(FCullTemplateObjectsHelper<USlateWrapperComponent>(Blueprint->WidgetTree->WidgetTemplates));
 	}
 }
 
@@ -85,7 +85,7 @@ void FWidgetBlueprintCompiler::CreateClassVariablesFromBlueprint()
 	ValidateWidgetNames();
 
 	int32 i = 0;
-	for ( USlateWrapperComponent* Widget : Blueprint->WidgetTemplates )
+	for ( USlateWrapperComponent* Widget : Blueprint->WidgetTree->WidgetTemplates )
 	{
 		FString VariableName = Widget->GetClass()->GetName() + TEXT("_") + FString::FromInt(i);
 
@@ -101,23 +101,17 @@ void FWidgetBlueprintCompiler::CreateClassVariablesFromBlueprint()
 
 		i++;
 	}
-
-	printf("Compile");
 }
 
 void FWidgetBlueprintCompiler::FinishCompilingClass(UClass* Class)
 {
-	Super::FinishCompilingClass(Class);
-
-	UClass* ParentClass = Class->GetSuperClass();
 	UWidgetBlueprint* Blueprint = WidgetBlueprint();
 
-	{
-		UWidgetBlueprintGeneratedClass* BPGClass = CastChecked<UWidgetBlueprintGeneratedClass>(Class);
+	UWidgetBlueprintGeneratedClass* BPGClass = CastChecked<UWidgetBlueprintGeneratedClass>(Class);
+	BPGClass->WidgetTree = NULL;
+	BPGClass->WidgetTree = Blueprint->WidgetTree;
 
-		BPGClass->WidgetTemplates.Empty();
-		BPGClass->WidgetTemplates = Blueprint->WidgetTemplates;
-	}
+	Super::FinishCompilingClass(Class);
 }
 
 void FWidgetBlueprintCompiler::Compile()
@@ -150,4 +144,12 @@ void FWidgetBlueprintCompiler::SpawnNewClass(const FString& NewClassName)
 		FBlueprintCompileReinstancer GeneratedClassReinstancer(NewWidgetBlueprintClass);
 	}
 	NewClass = NewWidgetBlueprintClass;
+}
+
+bool FWidgetBlueprintCompiler::ValidateGeneratedClass(UBlueprintGeneratedClass* Class)
+{
+	bool SuperResult = Super::ValidateGeneratedClass(Class);
+	bool Result = UWidgetBlueprint::ValidateGeneratedClass(Class);
+
+	return SuperResult && Result;
 }

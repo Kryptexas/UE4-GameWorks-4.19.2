@@ -10,6 +10,7 @@
 UWidgetBlueprintGeneratedClass::UWidgetBlueprintGeneratedClass(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	WidgetTree = ConstructObject<UWidgetTree>(UWidgetTree::StaticClass(), this);
 }
 
 void UWidgetBlueprintGeneratedClass::CreateComponentsForActor(AActor* Actor) const
@@ -19,28 +20,15 @@ void UWidgetBlueprintGeneratedClass::CreateComponentsForActor(AActor* Actor) con
 	// Duplicate the graph, keeping track of what was duplicated
 	TMap<UObject*, UObject*> DuplicatedObjectList;
 
-	TArray<USlateWrapperComponent*> ClonedWidgets;
+	FObjectDuplicationParameters Parameters(const_cast<UWidgetTree*>( WidgetTree ), Actor);
+	Parameters.CreatedObjects = &DuplicatedObjectList;
 
-	// Iterate over each timeline template
-	for ( const USlateWrapperComponent* Template : WidgetTemplates )
-	{
-		FObjectDuplicationParameters Parameters(const_cast<USlateWrapperComponent*>( Template ), Actor);
-		Parameters.CreatedObjects = &DuplicatedObjectList;
-
-		USlateWrapperComponent* ClonedWidget = CastChecked<USlateWrapperComponent>(StaticDuplicateObjectEx(Parameters));
-		ClonedWidgets.Add(ClonedWidget);
-	}
-
-	// Replace references to old classes and instances on this object with the corresponding new ones
-	for ( USlateWrapperComponent* Widget : ClonedWidgets )
-	{
-		FArchiveReplaceObjectRef<UObject> ReplaceInCDOAr(Widget, DuplicatedObjectList, /*bNullPrivateRefs=*/ false, /*bIgnoreOuterRef=*/ false, /*bIgnoreArchetypeRef=*/ false);
-	}
+	UWidgetTree* ClonedTree = CastChecked<UWidgetTree>(StaticDuplicateObjectEx(Parameters));
 
 	AUserWidget* WidgetActor = CastChecked<AUserWidget>(Actor);
 
 	int32 i = 0;
-	for ( USlateWrapperComponent* Widget : ClonedWidgets )
+	for ( USlateWrapperComponent* Widget : ClonedTree->WidgetTemplates )
 	{
 		// Not fatal if NULL, but shouldn't happen
 		if ( !ensure(Widget != NULL) )
@@ -78,8 +66,6 @@ void UWidgetBlueprintGeneratedClass::CreateComponentsForActor(AActor* Actor) con
 #if WITH_EDITOR
 		Widget->ConnectEditorData();
 #endif
-
-		i++;
 	}
 }
 

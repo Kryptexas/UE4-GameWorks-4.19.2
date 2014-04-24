@@ -345,6 +345,9 @@ protected:
 	/** Ensures that all function graphs have valid names for compilation/replication */
 	void ValidateFunctionGraphNames();
 
+	/** Validates the generated class */
+	virtual bool ValidateGeneratedClass(UBlueprintGeneratedClass* Class);
+
 private:
 	/**
 	 * Handles creating a new event node for a given output on a timeline node utilizing the named function

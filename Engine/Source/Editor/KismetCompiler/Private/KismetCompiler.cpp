@@ -3269,8 +3269,14 @@ void FKismetCompilerContext::Compile()
 
 	if (bIsFullCompile && !Blueprint->bIsRegeneratingOnLoad)
 	{
-		UBlueprint::ValidateGeneratedClass(NewClass);
+		bool Result = ValidateGeneratedClass(NewClass);
+		// TODO What do we do if validation fails?
 	}
+}
+
+bool FKismetCompilerContext::ValidateGeneratedClass(UBlueprintGeneratedClass* Class)
+{
+	return UBlueprint::ValidateGeneratedClass(Class);
 }
 
 const UK2Node_FunctionEntry* FKismetCompilerContext::FindLocalEntryPoint(const UFunction* Function) const

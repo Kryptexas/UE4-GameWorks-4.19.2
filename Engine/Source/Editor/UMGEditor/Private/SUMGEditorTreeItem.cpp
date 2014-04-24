@@ -83,12 +83,12 @@ FReply SUMGEditorTreeItem::OnDrop(const FGeometry& MyGeometry, const FDragDropEv
 			UWidgetBlueprint* BP = CastChecked<UWidgetBlueprint>(BlueprintEditor.Pin()->GetBlueprintObj());
 
 			UClass* WidgetClass = DragDropOp->Template->WidgetClass;
-			USlateWrapperComponent* Widget = ConstructObject<USlateWrapperComponent>(WidgetClass, BP);
+			USlateWrapperComponent* Widget = ConstructObject<USlateWrapperComponent>(WidgetClass, BP->WidgetTree);
 			
 			USlateNonLeafWidgetComponent* Parent = Cast<USlateNonLeafWidgetComponent>(Item);
 			Parent->AddChild(Widget);
 
-			BP->WidgetTemplates.Add(Widget);
+			BP->WidgetTree->WidgetTemplates.Add(Widget);
 
 			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
 		}

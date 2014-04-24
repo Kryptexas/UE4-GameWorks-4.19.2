@@ -10,9 +10,9 @@ class UMG_API UWidgetBlueprint : public UBlueprint
 	GENERATED_UCLASS_BODY()
 
 public:
-	/** Array of templates for timelines that should be created */
+	/** A tree of the widget templates to be created */
 	UPROPERTY()
-	TArray<class USlateWrapperComponent*> WidgetTemplates;
+	class UWidgetTree* WidgetTree;
 
 	virtual void PostLoad() OVERRIDE;
 	virtual void PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph) OVERRIDE;

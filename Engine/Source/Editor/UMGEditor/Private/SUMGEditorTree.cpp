@@ -155,43 +155,44 @@ FReply SUMGEditorTree::CreateTestUI()
 	//UButtonComponent* Button = Cast<UButtonComponent>(SCSEditor->AddNewComponent(UButtonComponent::StaticClass(), NULL));
 
 	UWidgetBlueprint* BP = GetBlueprint();
+	TArray<USlateWrapperComponent*>& WidgetTemplates = BP->WidgetTree->WidgetTemplates;
 
-	if ( BP->WidgetTemplates.Num() > 0 )
+	if ( WidgetTemplates.Num() > 0 )
 	{
-		UVerticalBoxComponent* Vertical = CastChecked<UVerticalBoxComponent>(BP->WidgetTemplates[2]);
+		UVerticalBoxComponent* Vertical = CastChecked<UVerticalBoxComponent>(WidgetTemplates[2]);
 
-		UButtonComponent* NewButton = ConstructObject<UButtonComponent>(UButtonComponent::StaticClass(), BP);
+		UButtonComponent* NewButton = ConstructObject<UButtonComponent>(UButtonComponent::StaticClass(), BP->WidgetTree);
 		NewButton->ButtonText = FText::FromString("New Button");
 
 		Vertical->AddChild(NewButton);
 
-		BP->WidgetTemplates.Add(NewButton);
+		WidgetTemplates.Add(NewButton);
 	}
 	else
 	{
-		UCanvasPanelComponent* Canvas = ConstructObject<UCanvasPanelComponent>(UCanvasPanelComponent::StaticClass(), BP);
-		UBorderComponent* Border = ConstructObject<UBorderComponent>(UBorderComponent::StaticClass(), BP);
-		UVerticalBoxComponent* Vertical = ConstructObject<UVerticalBoxComponent>(UVerticalBoxComponent::StaticClass(), BP);
-		UButtonComponent* Button1 = ConstructObject<UButtonComponent>(UButtonComponent::StaticClass(), BP);
+		UCanvasPanelComponent* Canvas = ConstructObject<UCanvasPanelComponent>(UCanvasPanelComponent::StaticClass(), BP->WidgetTree);
+		UBorderComponent* Border = ConstructObject<UBorderComponent>(UBorderComponent::StaticClass(), BP->WidgetTree);
+		UVerticalBoxComponent* Vertical = ConstructObject<UVerticalBoxComponent>(UVerticalBoxComponent::StaticClass(), BP->WidgetTree);
+		UButtonComponent* Button1 = ConstructObject<UButtonComponent>(UButtonComponent::StaticClass(), BP->WidgetTree);
 		Button1->ButtonText = FText::FromString("Button 1");
-		UButtonComponent* Button2 = ConstructObject<UButtonComponent>(UButtonComponent::StaticClass(), BP);
+		UButtonComponent* Button2 = ConstructObject<UButtonComponent>(UButtonComponent::StaticClass(), BP->WidgetTree);
 		Button2->ButtonText = FText::FromString("Button 2");
-		UButtonComponent* Button3 = ConstructObject<UButtonComponent>(UButtonComponent::StaticClass(), BP);
+		UButtonComponent* Button3 = ConstructObject<UButtonComponent>(UButtonComponent::StaticClass(), BP->WidgetTree);
 		Button3->ButtonText = FText::FromString("Button 3");
-		UButtonComponent* Button4 = ConstructObject<UButtonComponent>(UButtonComponent::StaticClass(), BP);
+		UButtonComponent* Button4 = ConstructObject<UButtonComponent>(UButtonComponent::StaticClass(), BP->WidgetTree);
 
-		UTextBlockComponent* Text1 = ConstructObject<UTextBlockComponent>(UTextBlockComponent::StaticClass(), BP);
+		UTextBlockComponent* Text1 = ConstructObject<UTextBlockComponent>(UTextBlockComponent::StaticClass(), BP->WidgetTree);
 		Text1->Text = FText::FromString(TEXT("Button!"));
 		Button4->SetContent(Text1);
 
-		BP->WidgetTemplates.Add(Canvas);
-		BP->WidgetTemplates.Add(Border);
-		BP->WidgetTemplates.Add(Vertical);
-		BP->WidgetTemplates.Add(Button1);
-		BP->WidgetTemplates.Add(Button2);
-		BP->WidgetTemplates.Add(Button3);
-		BP->WidgetTemplates.Add(Button4);
-		BP->WidgetTemplates.Add(Text1);
+		WidgetTemplates.Add(Canvas);
+		WidgetTemplates.Add(Border);
+		WidgetTemplates.Add(Vertical);
+		WidgetTemplates.Add(Button1);
+		WidgetTemplates.Add(Button2);
+		WidgetTemplates.Add(Button3);
+		WidgetTemplates.Add(Button4);
+		WidgetTemplates.Add(Text1);
 
 		UCanvasPanelSlot* Slot = Canvas->AddSlot(Border);
 		Slot->Size.X = 200;
@@ -217,9 +218,11 @@ void SUMGEditorTree::RefreshTree()
 	RootWidgets.Reset();
 
 	UWidgetBlueprint* Blueprint = GetBlueprint();
-	if ( Blueprint->WidgetTemplates.Num() > 0 )
+	TArray<USlateWrapperComponent*>& WidgetTemplates = Blueprint->WidgetTree->WidgetTemplates;
+
+	if ( WidgetTemplates.Num() > 0 )
 	{
-		RootWidgets.Add(Blueprint->WidgetTemplates[0]);
+		RootWidgets.Add(WidgetTemplates[0]);
 	}
 
 	WidgetTreeView->RequestTreeRefresh();

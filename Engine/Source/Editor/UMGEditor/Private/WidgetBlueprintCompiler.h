@@ -31,6 +31,7 @@ protected:
 	virtual void CreateClassVariablesFromBlueprint() OVERRIDE;
 	virtual void FinishCompilingClass(UClass* Class) OVERRIDE;
 	virtual void CleanAndSanitizeClass(UBlueprintGeneratedClass* ClassToClean, UObject*& OldCDO) OVERRIDE;
+	virtual bool ValidateGeneratedClass(UBlueprintGeneratedClass* Class) OVERRIDE;
 	// End FKismetCompilerContext
 
 protected:
