@@ -153,6 +153,17 @@ public:
 
 	virtual void SetIncompatiblePinDrawState(const TSharedPtr<SGraphPin>& StartPin, const TSet< TSharedRef<SWidget> >& VisiblePins);
 	virtual void ResetIncompatiblePinDrawState(const TSet< TSharedRef<SWidget> >& VisiblePins);
+
+private: 
+	/**
+	* Checks that the specified nodes are connected in the graph directly by an 
+	* exec pin.
+	* 
+	* @param  InputNode	The node whose exec output(s) should be connected to OutputNode.
+	* @param  OutputNode	The node whose exec input should be coming from the InputNode.
+	* @return True if the two nodes are connected in the graph, otherwise false.
+	*/
+	bool AreNodesGraphicallySequential(UEdGraphNode* InputNode, UEdGraphNode* OutputNode) const;
 };
 
 /////////////////////////////////////////////////////

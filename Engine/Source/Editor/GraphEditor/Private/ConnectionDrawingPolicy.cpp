@@ -728,9 +728,14 @@ void FKismetConnectionDrawingPolicy::BuildExecutionRoadmap()
 					ExecTiming.PredExecTime = CurNodeTime;
 				}
 			}
-			else 
+			// if the nodes aren't graphically connected how could they be 
+			// executed back-to-back? well, this could be a pop back to a 
+			// sequence node from the end of one thread of execution, etc.
+			else if (AreNodesGraphicallySequential(CurNode, NextNode))
 			{
-				UE_LOG(LogConnectionDrawingPolicy, Verbose, TEXT("Looks like a wire-trace was not injected before the jump from '%s' to '%s'."), 
+				// only warn when the nodes are directly connected (this is all
+				// for execution flow visualization after all)
+				UE_LOG(LogConnectionDrawingPolicy, Warning, TEXT("Looks like a wire-trace was not injected before the jump from '%s' to '%s'."), 
 					*CurNode->GetNodeTitle(ENodeTitleType::FullTitle).ToString(), *NextNode->GetNodeTitle(ENodeTitleType::FullTitle).ToString());
 			}
 
@@ -771,6 +776,32 @@ bool FKismetConnectionDrawingPolicy::TreatWireAsExecutionPin(UEdGraphPin* InputP
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 
 	return (InputPin != NULL) && (Schema->IsExecPin(*OutputPin));
+}
+
+bool FKismetConnectionDrawingPolicy::AreNodesGraphicallySequential(UEdGraphNode* InputNode, UEdGraphNode* OutputNode) const
+{
+	for (UEdGraphPin* Pin : InputNode->Pins)
+	{
+		if (Pin->Direction != EGPD_Output)
+		{
+			continue;
+		}
+
+		for (UEdGraphPin* Connection : Pin->LinkedTo)
+		{
+			if (!TreatWireAsExecutionPin(Pin, Connection))
+			{
+				continue;
+			}
+
+			if (Connection->GetOwningNode() == OutputNode)
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
 }
 
 void FKismetConnectionDrawingPolicy::DetermineStyleOfExecWire(float& Thickness, FLinearColor& WireColor, bool& bDrawBubbles, const FTimePair& Times)
