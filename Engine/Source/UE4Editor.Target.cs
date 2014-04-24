@@ -109,8 +109,4 @@ public class UE4EditorTarget : TargetRules
         NonCodeProjectNames.Add("TappyChicken", new List<KeyValuePair<UnrealTargetPlatform, UnrealTargetConfiguration>>{new KeyValuePair<UnrealTargetPlatform, UnrealTargetConfiguration>(UnrealTargetPlatform.IOS, UnrealTargetConfiguration.Shipping)});
         return NonCodeProjectNames;
     }
-    public override string GUBP_GetPromotionEMails_EditorTypeOnly(string Branch)
-    {
-        return "Engine-QA[epic] Engine-QA-Team[epic]";
-    }
 }

@@ -25,7 +25,6 @@ public class GUBP : BuildCommand
     public static bool bBuildRocket = false;
     public static bool bForceIncrementalCompile = false;
     public static string ECProject = null;
-    public static string ForceAllEmailsTo = null;
 
     Dictionary<string, GUBPNode> GUBPNodes;
     Dictionary<string, bool> GUBPNodesCompleted;
@@ -94,7 +93,15 @@ public class GUBP : BuildCommand
 
     public abstract class GUBPEmailHacker
     {
-        public virtual string HackEmails(string Emails, GUBP bp, string Branch, string NodeName)
+        public virtual List<string> AddEmails(GUBP bp, string Branch, string NodeName)
+        {
+            return new List<string>();
+        }
+        public virtual string ModifyEmail(string Email, GUBP bp, string Branch, string NodeName)
+        {
+            return Email;
+        }
+        public virtual List<string> FinalizeEmails(List<string> Emails, GUBP bp, string Branch, string NodeName)
         {
             return Emails;
         }
@@ -103,7 +110,6 @@ public class GUBP : BuildCommand
     private static List<GUBPEmailHacker> EmailHackers;
     private string HackEmails(string Emails, string Branch, string NodeName)
     {
-        string Result = Emails;
         if (EmailHackers == null)
         {
             EmailHackers = new List<GUBPEmailHacker>();
@@ -124,11 +130,35 @@ public class GUBP : BuildCommand
                 }
             }
         }
+        List<string> Result = new List<string>(Emails.Split(' '));
+
         foreach (var EmailHacker in EmailHackers)
         {
-            Result = EmailHacker.HackEmails(Result, this, Branch, NodeName);
+            Result.AddRange(EmailHacker.AddEmails(this, Branch, NodeName));
         }
-        return Result;
+        foreach (var EmailHacker in EmailHackers)
+        {
+            var NewResult = new List<string>();
+            foreach (var Email in Result)
+            {
+                var NewEmail = EmailHacker.ModifyEmail(Email, this, Branch, NodeName);
+                if (!String.IsNullOrEmpty(NewEmail))
+                {
+                    NewResult.Add(NewEmail);
+                }
+            }
+            Result = NewResult;
+        }
+        foreach (var EmailHacker in EmailHackers)
+        {
+            Result = EmailHacker.FinalizeEmails(Result, this, Branch, NodeName);
+        }
+        string FinalEmails = "";
+        foreach (var Email in Result)
+        {
+            FinalEmails = GUBPNode.MergeSpaceStrings(FinalEmails, Email);
+        }
+        return FinalEmails;
     }
     public abstract class GUBPNode
     {
@@ -246,10 +276,6 @@ public class GUBP : BuildCommand
                 Result += String.Format(" --actualParameter AgentSharingGroup={0}", AgentSharingGroup);
             }
             return Result;
-        }
-        public virtual string FailureEMails(GUBP bp, string Branch)
-        {
-            return "";
         }
         public static string MergeSpaceStrings(params string[] EmailLists)
         {
@@ -954,11 +980,6 @@ public class GUBP : BuildCommand
             return Agenda;
         }
 
-        public override string FailureEMails(GUBP bp, string Branch)
-        {
-            return MergeSpaceStrings(base.FailureEMails(bp, Branch), 
-                Platform.Platforms[EditorPlatform].GUBP_GetPlatformFailureEMails(Branch));
-		}
     }
 
     public class EditorGameNode : CompileNode
@@ -1014,11 +1035,6 @@ public class GUBP : BuildCommand
                 HostPlatform, UnrealTargetConfiguration.Development, GameProj.FilePath, InAddArgs: Args);
 
             return Agenda;
-        }
-        public override string FailureEMails(GUBP bp, string Branch)
-        {
-            return MergeSpaceStrings(base.FailureEMails(bp, Branch),
-               GameProj.Properties.Targets[TargetRules.TargetType.Editor].Rules.GUBP_GetGameFailureEMails_EditorTypeOnly(Branch));
         }
     }
 
@@ -1142,12 +1158,6 @@ public class GUBP : BuildCommand
             }
 
             return Agenda;
-        }
-        public override string FailureEMails(GUBP bp, string Branch)
-        {
-            return MergeSpaceStrings(base.FailureEMails(bp, Branch),
-               GameProj.Properties.Targets[TargetRules.TargetType.Editor].Rules.GUBP_GetGameFailureEMails_EditorTypeOnly(Branch),
-               Platform.Platforms[TargetPlatform].GUBP_GetPlatformFailureEMails(Branch));
         }
     }
 
@@ -1615,11 +1625,6 @@ public class GUBP : BuildCommand
             }
             return base.TriggerRequiresRecursiveWorkflow();
         }
-        public override string FailureEMails(GUBP bp, string Branch)
-        {
-            return MergeSpaceStrings(base.FailureEMails(bp, Branch),
-               GameProj.Properties.Targets[TargetRules.TargetType.Editor].Rules.GUBP_GetPromotionEMails_EditorTypeOnly(Branch));
-        }
     }
 
     public class WaitForSharedPromotionUserInput : WaitForPromotionUserInput
@@ -1648,11 +1653,6 @@ public class GUBP : BuildCommand
         public static string StaticGetFullName(bool bInLabelPromoted)
         {
             return WaitForPromotionUserInput.StaticGetFullName("Shared", bInLabelPromoted);
-        }
-        public override string FailureEMails(GUBP bp, string Branch)
-        {
-            return MergeSpaceStrings(base.FailureEMails(bp, Branch),
-               bp.Branch.BaseEngineProject.Properties.Targets[TargetRules.TargetType.Editor].Rules.GUBP_GetPromotionEMails_EditorTypeOnly(Branch));
         }
     }
 
@@ -1776,12 +1776,6 @@ public class GUBP : BuildCommand
         {
             return GameProj.GameName;
         }
-        public override string FailureEMails(GUBP bp, string Branch)
-        {
-            return MergeSpaceStrings(base.FailureEMails(bp, Branch),
-               GameProj.Properties.Targets[TargetRules.TargetType.Editor].Rules.GUBP_GetPromotionEMails_EditorTypeOnly(Branch));
-
-        }
     }
 
     public class SharedLabelPromotableNode : LabelPromotableNode
@@ -1794,12 +1788,6 @@ public class GUBP : BuildCommand
         public static string StaticGetFullName(bool bInLabelPromoted)
         {
             return LabelPromotableNode.StaticGetFullName("Shared", bInLabelPromoted);
-        }
-        public override string FailureEMails(GUBP bp, string Branch)
-        {
-            return MergeSpaceStrings(base.FailureEMails(bp, Branch),
-               bp.Branch.BaseEngineProject.Properties.Targets[TargetRules.TargetType.Editor].Rules.GUBP_GetPromotionEMails_EditorTypeOnly(Branch));
-
         }
     }
 
@@ -1947,21 +1935,6 @@ public class GUBP : BuildCommand
                 AddBuildProduct(CookedFile);
             }
         }
-        public override string FailureEMails(GUBP bp, string Branch)
-        {
-            if (GameProj.GameName != bp.Branch.BaseEngineProject.GameName && GameProj.Properties.Targets.ContainsKey(TargetRules.TargetType.Editor))
-            {
-                return MergeSpaceStrings(base.FailureEMails(bp, Branch),
-                   GameProj.Properties.Targets[TargetRules.TargetType.Editor].Rules.GUBP_GetGameFailureEMails_EditorTypeOnly(Branch),
-                   Platform.Platforms[TargetPlatform].GUBP_GetPlatformFailureEMails(Branch));
-            }
-            else
-            {
-                return MergeSpaceStrings(base.FailureEMails(bp, Branch),
-                   bp.Branch.BaseEngineProject.Properties.Targets[TargetRules.TargetType.Editor].Rules.GUBP_GetGameFailureEMails_EditorTypeOnly(Branch),
-                   Platform.Platforms[TargetPlatform].GUBP_GetPlatformFailureEMails(Branch));
-            }
-        }
     }
 
 
@@ -2075,21 +2048,6 @@ public class GUBP : BuildCommand
 
             BuildProducts = new List<string>();
             SaveRecordOfSuccessAndAddToBuildProducts();
-        }
-        public override string FailureEMails(GUBP bp, string Branch)
-        {
-            if (GameProj.GameName != bp.Branch.BaseEngineProject.GameName && GameProj.Properties.Targets.ContainsKey(TargetRules.TargetType.Editor))
-            {
-                return MergeSpaceStrings(base.FailureEMails(bp, Branch),
-                   GameProj.Properties.Targets[TargetRules.TargetType.Editor].Rules.GUBP_GetGameFailureEMails_EditorTypeOnly(Branch),
-                   Platform.Platforms[TargetPlatform].GUBP_GetPlatformFailureEMails(Branch));
-            }
-            else
-            {
-                return MergeSpaceStrings(base.FailureEMails(bp, Branch),
-                   bp.Branch.BaseEngineProject.Properties.Targets[TargetRules.TargetType.Editor].Rules.GUBP_GetGameFailureEMails_EditorTypeOnly(Branch),
-                   Platform.Platforms[TargetPlatform].GUBP_GetPlatformFailureEMails(Branch));
-            }
         }
     }
 
@@ -2414,18 +2372,6 @@ public class GUBP : BuildCommand
             string LogFile = CommandUtils.RunUAT(CommandUtils.CmdEnv, Args);
             SaveRecordOfSuccessAndAddToBuildProducts(CommandUtils.ReadAllText(LogFile));
         }
-        public override string FailureEMails(GUBP bp, string Branch)
-        {
-            var WorkingGameProject = GameProj;
-            if (!WorkingGameProject.Properties.Targets.ContainsKey(TargetRules.TargetType.Editor))
-            {
-                // this is a codeless project, use the base project
-                WorkingGameProject = bp.Branch.BaseEngineProject;
-            }
-
-            return MergeSpaceStrings(base.FailureEMails(bp, Branch),
-               WorkingGameProject.Properties.Targets[TargetRules.TargetType.Editor].Rules.GUBP_GetPromotionEMails_EditorTypeOnly(Branch));
-        }
     }
 
 
@@ -2492,15 +2438,6 @@ public class GUBP : BuildCommand
             UE4Build.CheckBuildProducts(Build.BuildProductFiles);
             SaveRecordOfSuccessAndAddToBuildProducts();
         }
-        public override string FailureEMails(GUBP bp, string Branch)
-        {
-            string Emails;
-            Emails = MergeSpaceStrings(base.FailureEMails(bp, Branch),
-                bp.Branch.BaseEngineProject.Properties.Targets[TargetRules.TargetType.Editor].Rules.GUBP_GetGameFailureEMails_EditorTypeOnly(Branch));
-            return Emails;
-        }
-
-
     }
 
     public class UATTestNode : TestNode
@@ -2650,25 +2587,6 @@ public class GUBP : BuildCommand
             string LogFile = RunUAT(CommandUtils.CmdEnv, WorkingCommandline);
             SaveRecordOfSuccessAndAddToBuildProducts(CommandUtils.ReadAllText(LogFile));
         }
-        public override string FailureEMails(GUBP bp, string Branch)
-        {
-            string Emails;
-            if (GameProj.GameName != bp.Branch.BaseEngineProject.GameName && GameProj.Properties.Targets.ContainsKey(TargetRules.TargetType.Editor))
-            {
-                Emails = MergeSpaceStrings(base.FailureEMails(bp, Branch),
-                   GameProj.Properties.Targets[TargetRules.TargetType.Editor].Rules.GUBP_GetGameFailureEMails_EditorTypeOnly(Branch));
-            }
-            else
-            {
-                Emails = MergeSpaceStrings(base.FailureEMails(bp, Branch),
-                   bp.Branch.BaseEngineProject.Properties.Targets[TargetRules.TargetType.Editor].Rules.GUBP_GetGameFailureEMails_EditorTypeOnly(Branch));
-            }
-            foreach (var Plat in DependsOnCooked)
-            {
-                Emails = MergeSpaceStrings(Emails, Platform.Platforms[Plat].GUBP_GetPlatformFailureEMails(Branch));
-            }
-            return Emails;
-        }
     }
 
     public class GameAggregateNode : HostPlatformAggregateNode
@@ -2705,16 +2623,6 @@ public class GUBP : BuildCommand
         public override string GameNameIfAnyForTempStorage()
         {
             return GameProj.GameName;
-        }
-        public override string FailureEMails(GUBP bp, string Branch)
-        {
-            if (GameProj.GameName != bp.Branch.BaseEngineProject.GameName && GameProj.Properties.Targets.ContainsKey(TargetRules.TargetType.Editor))
-            {
-                return MergeSpaceStrings(base.FailureEMails(bp, Branch),
-                   GameProj.Properties.Targets[TargetRules.TargetType.Editor].Rules.GUBP_GetGameFailureEMails_EditorTypeOnly(Branch));
-            }
-            return MergeSpaceStrings(base.FailureEMails(bp, Branch),
-               bp.Branch.BaseEngineProject.Properties.Targets[TargetRules.TargetType.Editor].Rules.GUBP_GetGameFailureEMails_EditorTypeOnly(Branch));
         }
     };
 
@@ -2962,20 +2870,14 @@ public class GUBP : BuildCommand
             RunAndLog("ectool", Args);
         }
     }
-    string GetEMailListForNode(GUBP bp, string NodeToDo)
+    string GetEMailListForNode(GUBP bp, string NodeToDo, string Causers)
     {        
         var BranchForEmail = "";
         if (P4Enabled)
         {
             BranchForEmail = P4Env.BuildRootP4;
         }
-        var Emails = GUBPNodes[NodeToDo].FailureEMails(this, BranchForEmail);
-        if (Emails == "")
-        {
-            Emails = "Engine-QA[epic]";
-        }
-        Emails = HackEmails(Emails, BranchForEmail, NodeToDo);
-        return Emails;
+        return HackEmails(Causers, BranchForEmail, NodeToDo);
     }
 
     List<P4Connection.ChangeRecord> GetChanges(int LastOutputForChanges, int TopCL, int LastGreen)
@@ -3088,7 +2990,7 @@ public class GUBP : BuildCommand
             string EMails = "";
             if (AddEmailProps)
             {
-                EMails = GetEMailListForNode(bp, NodeToDo);
+                EMails = GetEMailListForNode(bp, NodeToDo, "");
             }
             if (bShowTriggers)
             {
@@ -3649,38 +3551,18 @@ public class GUBP : BuildCommand
             ECProps.Add(string.Format("InProgress/{0}=", NodeToDo));
         }
         {
-            string EmailOnly = ParseParamValue("EmailOnly");
-            if (bFake)
+            var AdditonalEmails = "";
+            if (ParseParam("CIS") && !GUBPNodes[NodeToDo].SendSuccessEmail())
             {
-                EMails = "kellan.carr[epic] gil.gribb[epic]";
-            }
-            else if (!String.IsNullOrEmpty(EmailOnly))
-            {
-                EMails = EmailOnly;
-            }
-            else if (!String.IsNullOrEmpty(ForceAllEmailsTo))
-            {
-                EMails = ForceAllEmailsTo;
-            }
-            else
-            {
-                EMails = GetEMailListForNode(this, NodeToDo);
-                if (ParseParam("CIS") && !GUBPNodes[NodeToDo].SendSuccessEmail())
-                {
-                    EMails = GUBPNode.MergeSpaceStrings(FailCauserEMails, EMails);
-                }
+                AdditonalEmails = FailCauserEMails;
             }
             string AddEmails = ParseParamValue("AddEmails");
             if (!String.IsNullOrEmpty(AddEmails))
             {
-                EMails = GUBPNode.MergeSpaceStrings(AddEmails, EMails);
+                AdditonalEmails = GUBPNode.MergeSpaceStrings(AddEmails, AdditonalEmails);
             }
 
-            {
-                EMails = EMails.Trim().Replace("[epic]", "@epicgames.com");
-                EMails = EMails.Replace("[phosphor]", "@phosphorgames.com");
-                EMails = EMails.Replace("[pitbull]", "@pitbullstudio.co.uk");
-            }
+            EMails = GetEMailListForNode(this, NodeToDo, AdditonalEmails);
 
             ECProps.Add("FailEmails/" + NodeToDo + "=" + EMails);
         }

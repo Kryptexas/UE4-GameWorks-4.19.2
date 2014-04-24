@@ -433,10 +433,6 @@ public class AndroidPlatform : Platform
 		}
 	}
 	#endregion
-    public override string GUBP_GetPlatformFailureEMails(string Branch)
-    {
-        return "Josh.Adams[epic] JJ.Hoesing[epic]";
-    }
 
     public override List<string> GetDebugFileExtentions()
     {

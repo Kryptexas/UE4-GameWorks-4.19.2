@@ -126,10 +126,6 @@ public class MacPlatform : Platform
 		bool bUseManifest = !bIsBuildingRemotely || BuildConfiguration.bCopyAppBundleBackToDevice;
 		return bUseManifest;
 	}
-    public override string GUBP_GetPlatformFailureEMails(string Branch)
-    {
-        return "Michael.Trepka[epic]";
-    }
     public override List<string> GetDebugFileExtentions()
     {
         return new List<string> {".dsym"};

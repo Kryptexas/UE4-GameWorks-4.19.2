@@ -192,11 +192,6 @@ public class HTML5Platform : Platform
 
 	public override bool IsSupported { get { return true; } }
 
-    public override string GUBP_GetPlatformFailureEMails(string Branch)
-    {
-        return "Peter.Sauerbrei[epic]";
-    }
-
     public override List<string> GetDebugFileExtentions()
     {
         return new List<string> { ".pdb" };

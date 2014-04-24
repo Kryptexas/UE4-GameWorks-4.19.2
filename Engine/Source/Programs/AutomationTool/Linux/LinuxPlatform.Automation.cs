@@ -279,10 +279,6 @@ chmod 700 $HOME/Desktop/{1}.desktop", DesiredGLVersion, SC.ShortProjectName.ToLo
             throw new AutomationException("must specify device for Linux target (-serverdevice=<ip>)");
         }
     }
-    public override string GUBP_GetPlatformFailureEMails(string Branch)
-    {
-        return "Dmitry.Rekman[epic]";
-    }
     public override List<string> GetDebugFileExtentions()
     {
         return new List<string> {  };

@@ -661,21 +661,6 @@ namespace UnrealBuildTool
             Result.Add("GameAutomationTest", "BuildCookRun -run -RunAutomationTests -unattended -nullrhi -NoP4" + MacOption);
             return Result;
         }
-        /// <summary>
-        /// Allow the platform to setup emails for the GUBP for folks that care about node failures relating to this platform
-        /// </summary>
-        /// <param name="Branch">p4 root of the branch we are running</param>
-        public virtual string GUBP_GetGameFailureEMails_EditorTypeOnly(string Branch)
-        {
-            return "";
-        }
-        /// <summary>
-        /// Allow the Game to set up emails for Promotable and Promotion
-        /// </summary>
-        public virtual string GUBP_GetPromotionEMails_EditorTypeOnly(string Branch)
-        {
-            return "";
-        }
 
         /// <summary>
         /// Return a list of "test name", "UAT command" pairs for testing a monolithic

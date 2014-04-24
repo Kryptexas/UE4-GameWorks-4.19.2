@@ -547,6 +547,10 @@ namespace AutomationTool
                     }
                 }
             }
+            if (String.IsNullOrEmpty(BaseEngineProject.FilePath))
+            {
+                throw new AutomationException("All branches must have the blank project /Samples/SampleGames/BlankProject");
+            }
 
             CommandUtils.Log("  Base Engine:");
             BaseEngineProject.Dump(InHostPlatforms);

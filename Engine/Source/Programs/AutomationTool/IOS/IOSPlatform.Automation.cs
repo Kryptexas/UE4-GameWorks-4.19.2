@@ -582,10 +582,6 @@ public class IOSPlatform : Platform
 	{
 		return "cookeddata/" + Dest;
 	}
-    public override string GUBP_GetPlatformFailureEMails(string Branch)
-    {
-        return "Peter.Sauerbrei[epic] Michael.Trepka[epic]";
-    }
     public override List<string> GetDebugFileExtentions()
     {
         return new List<string> { ".dsym" };
