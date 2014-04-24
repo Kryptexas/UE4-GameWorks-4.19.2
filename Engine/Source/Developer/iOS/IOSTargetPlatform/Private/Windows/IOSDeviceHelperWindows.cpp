@@ -2,6 +2,8 @@
 
 #include "../IOSTargetPlatformPrivatePCH.h"
 
+#define EABLE_IOS_DEVICE_DETECT 0
+
 struct FDeviceNotificationCallbackInformation
 {
 	FString UDID;
@@ -238,6 +240,7 @@ void FIOSDeviceHelper::Initialize()
 	Event.DeviceName = DummyDeviceName;
 	FIOSDeviceHelper::OnDeviceConnected().Broadcast(Event);
 
+#if ENABLE_IOS_DEVICE_DETECT
 	// add the message pump
 	TickDelegate = FTickerDelegate::CreateStatic(MessageTickDelegate);
 	FTicker::GetCoreTicker().AddTicker(TickDelegate, 5.0f);
@@ -246,6 +249,7 @@ void FIOSDeviceHelper::Initialize()
 	QueryTask = new FDeviceQueryTask();
 	QueryTask->OnDeviceNotification().AddStatic(FIOSDeviceHelper::DeviceCallback);
 	QueryThread = FRunnableThread::Create(QueryTask, TEXT("FIOSDeviceHelper.QueryTask"), false, false, 128 * 1024, TPri_Normal);
+#endif
 }
 
 void FIOSDeviceHelper::DeviceCallback(void* CallbackInfo)
