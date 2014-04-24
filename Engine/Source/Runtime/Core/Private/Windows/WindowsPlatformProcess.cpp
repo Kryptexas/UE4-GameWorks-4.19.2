@@ -1070,4 +1070,10 @@ bool FWindowsPlatformProcess::DeleteInterprocessSynchObject(FSemaphore * Object)
 	return bSucceeded;
 }
 
+bool FWindowsPlatformProcess::Daemonize()
+{
+	// TODO: implement
+	return true;
+}
+
 #include "HideWindowsPlatformTypes.h"

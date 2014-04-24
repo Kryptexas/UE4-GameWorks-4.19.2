@@ -455,6 +455,13 @@ struct CORE_API FGenericPlatformProcess
 	 * @param Object object to destroy
 	 */
 	static bool DeleteInterprocessSynchObject(FSemaphore * Object);
+
+	/**
+	 * Makes process run as a system service (daemon), i.e. detaches it from whatever user session it was initially run from.
+	 *
+	 * @return true if successful
+	 */
+	static bool Daemonize();
 };
 
 

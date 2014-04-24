@@ -143,6 +143,7 @@ struct CORE_API FLinuxPlatformProcess : public FGenericPlatformProcess
 	static void WaitForProc( FProcHandle & ProcessHandle );
 	static void TerminateProc( FProcHandle & ProcessHandle, bool KillTree = false );
 	static bool GetProcReturnCode( FProcHandle & ProcHandle, int32* ReturnCode );
+	static bool Daemonize();
 };
 
 typedef FLinuxPlatformProcess FPlatformProcess;

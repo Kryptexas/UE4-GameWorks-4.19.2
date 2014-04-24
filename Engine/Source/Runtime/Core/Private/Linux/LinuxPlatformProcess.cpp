@@ -421,3 +421,16 @@ bool FLinuxPlatformProcess::GetProcReturnCode( FProcHandle & ProcHandle, int32* 
 
 	return ProcHandle.GetReturnCode(ReturnCode);
 }
+
+bool FLinuxPlatformProcess::Daemonize()
+{
+	if (daemon(1, 1) == -1)
+	{
+		int ErrNo = errno;
+		UE_LOG(LogHAL, Warning, TEXT("daemon(1, 1) failed with errno = %d (%s)"), ErrNo,
+			StringCast< TCHAR >(strerror(ErrNo)).Get());
+		return false;
+	}
+
+	return true;
+}

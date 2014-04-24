@@ -412,3 +412,9 @@ bool FGenericPlatformProcess::DeleteInterprocessSynchObject(FSemaphore * Object)
 	UE_LOG(LogHAL, Fatal, TEXT("FGenericPlatformProcess::DeleteInterprocessSynchObject not implemented on this platform"));
 	return false;
 }
+
+bool FGenericPlatformProcess::Daemonize()
+{
+	UE_LOG(LogHAL, Fatal, TEXT("FGenericPlatformProcess::Daemonize not implemented on this platform"));
+	return false;
+}
