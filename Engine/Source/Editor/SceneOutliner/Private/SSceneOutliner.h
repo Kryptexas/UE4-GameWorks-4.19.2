@@ -15,6 +15,7 @@ namespace SceneOutliner
 
 	typedef TMap< TWeakObjectPtr< AActor >, TSharedRef<TOutlinerActorTreeItem> > FActorToTreeItemMap;
 	typedef TMap< FName, TSharedRef<TOutlinerFolderTreeItem> > FFolderToTreeItemMap;
+	typedef TSet< const AActor* > FParentActorsSet;
 
 	FText GetLabelForItem( const TSharedRef<TOutlinerTreeItem> TreeItem );
 
@@ -348,7 +349,19 @@ namespace SceneOutliner
 		void ToggleHideTemporaryActors();
 		/** Enables/Disables whether the HideTemporaryActorsFilter is applied */
 		void ApplyHideTemporaryActorsFilter(bool bHideTemporaryActors);
+
 	private:
+
+		/** Structure containing information relating to the expansion state of parent items in the tree */
+		struct FParentsExpansionState
+		{
+			/** The set of parent items which are not expanded */
+			TSet<const AActor*> CollapsedItems;
+
+			/** The set of folders which are not expanded */
+			TSet<FName> CollapsedFolders;
+		};
+
 
 		/** Init options, cached */
 		FSceneOutlinerInitializationOptions InitOptions;
@@ -405,28 +418,28 @@ namespace SceneOutliner
 		const FSlateBrush* MobilityStationaryBrush;
 		const FSlateBrush* MobilityMovableBrush;
 
-		/** Populates the specified ActorMap with the specified UWorld */
-		void UpdateActorMapWithWorld( UWorld* World );
+		/** Populates the actor map with the specified UWorld */
+		void UpdateActorMapWithWorld(UWorld* World, FParentActorsSet& ParentActors);
 		
 		/** 
 		 * Attempts to add an item to the tree. Will add any parent folders if required
 		 *
 		 * @param InItem			The item to add to the tree (either an actor or folder)
-		 * @param ParentActors		The list of parent actors found that may need to be added later.
+		 * @param ParentActors		A set of parent actors found that may need to be added to.
 		 *
 		 * @return					returns true if adding the actor to the tree was successful.
 		 */
-		bool AddItemToTree(TSharedRef<TOutlinerTreeItem> InItem, TSet< AActor* >& ParentActors);
+		bool AddItemToTree(TSharedRef<TOutlinerTreeItem> InItem, FParentActorsSet& ParentActors);
 		
 		/** 
 		 * Attempts to add an actor to the tree. Will add any parent folders if required
 		 *
 		 * @param InActorItem		The actor item to add to the tree.
-		 * @param ParentActors		A set of parent actors found that may need to be added later.
+		 * @param ParentActors		A set of parent actors found that may need to be added to.
 		 *
 		 * @return					returns true if adding the actor to the tree was successful.
 		 */
-		bool AddActorToTree(TSharedRef<TOutlinerActorTreeItem> InActorItem, TSet<AActor*>& ParentActors);
+		bool AddActorToTree(TSharedRef<TOutlinerActorTreeItem> InActorItem, FParentActorsSet& ParentActors);
 
 		/** Add a new folder to the tree, including any of its parents if possible */
 		bool AddFolderToTree(TSharedRef<TOutlinerFolderTreeItem> InFolderItem, bool bIgnoreSearchFilter = false);
@@ -438,9 +451,20 @@ namespace SceneOutliner
 		 * Attempts to add parent actors that were filtered out to the tree.
 		 *
 		 * @param InActor			The actor to add to the tree.
-		 * @param InActorMap		The mapping of actors to their item in the tree view.
 		 */
-		void AddFilteredParentActorToTree(AActor* InActor);
+		void AddFilteredParentActorToTree(const AActor* InActor);
+
+		/** Returns whether any of the parent items lie within the subtree of the supplied parent actor, and are in an expanded state */
+		bool HasExpandedChildren(const AActor* ParentActor, const FParentActorsSet& ParentActors, const FParentsExpansionState& ExpansionStateInfo) const;
+
+		/** Returns whether any of the parent items or folders lie within the subtree of the supplied folder, and are in an expanded state */
+		bool HasExpandedChildren(FName ParentFolder, const FParentActorsSet& ParentActors, const FParentsExpansionState& ExpansionStateInfo) const;
+
+		/** Gets the current expansion state of parent items */
+		void GetParentsExpansionState(FParentsExpansionState& ExpansionStateInfo) const;
+
+		/** Updates the expansion state of parent items after a repopulate, according to the previous state */
+		void SetParentsExpansionState(const FParentActorsSet& ParentActors, const FParentsExpansionState& ExpansionStateInfo) const;
 
 		/** Whether the scene outliner is currently displaying PlayWorld actors */
 		bool bRepresentingPlayWorld;
