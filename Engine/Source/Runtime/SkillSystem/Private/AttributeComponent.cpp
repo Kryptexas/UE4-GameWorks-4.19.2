@@ -276,12 +276,15 @@ FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectSpecToSelf(c
 		// have other modifiers. THOSE modifiers may or may not be copies of whatever.
 		//
 		// In theory, we don't modify 2nd order modifiers after they are 'attached'
-		// Long complex chains can be created but we never say 'Modify a GE that is moding another GE'
+		// Long complex chains can be created but we never say 'Modify a GE that is modding another GE'
 		OurCopyOfSpec->MakeUnique();
 	}
 
 	// Now that we have our own copy, apply our GEs that modify IncomingGEs
 	ActiveGameplayEffects.ApplyActiveEffectsTo(*OurCopyOfSpec, FModifierQualifier(BaseQualifier).Type(EGameplayMod::IncomingGE).IgnoreHandle(MyHandle));
+
+	// todo: apply some better logic to this so that we don't recalculate stacking effects as often
+	ActiveGameplayEffects.bNeedToRecalculateStacks = true;
 	
 	// Now that we have the final version of this effect, actually apply it if its going to be hanging around
 	if (Spec.GetDuration() != UGameplayEffect::INSTANT_APPLICATION )
@@ -296,10 +299,10 @@ FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectSpecToSelf(c
 	if (bInvokeGameplayCueApplied)
 	{
 		// We both added and activated the GameplayCue here.
-		// On the client, who will invoke the gameplaycue from an OnRep, he will need to look at the StartTime to determine
+		// On the client, who will invoke the gameplay cue from an OnRep, he will need to look at the StartTime to determine
 		// if the Cue was actually added+activated or just added (due to relevancy)
 
-		// Fixme: what if we wanted to scale Cue magnitde based on damage? E.g, scale an cue effect when the GE is buffed?
+		// Fixme: what if we wanted to scale Cue magnitude based on damage? E.g, scale an cue effect when the GE is buffed?
 		InvokeGameplayCueAdded(*OurCopyOfSpec);
 		InvokeGameplayCueActivated(*OurCopyOfSpec);
 	}
@@ -307,7 +310,7 @@ FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectSpecToSelf(c
 	// Execute the GE at least once (if instant, this will execute once and be done. If persistent, it was added to ActiveGameplayEffects above)
 	
 	// Execute if this is an instant application effect or if it is a periodic effect (this would be the first execution of a repeating effect)
-	if (Spec.GetDuration() == UGameplayEffect::INSTANT_APPLICATION || Spec.GetPeriod() != UGameplayEffect::NO_PERIOD)
+	if (Spec.GetDuration() == UGameplayEffect::INSTANT_APPLICATION)
 	{
 		ExecuteGameplayEffect(*OurCopyOfSpec, FModifierQualifier(BaseQualifier).IgnoreHandle(MyHandle));
 	}
@@ -328,8 +331,8 @@ void UAttributeComponent::ExecutePeriodicEffect(FActiveGameplayEffectHandle	Hand
 
 void UAttributeComponent::ExecuteGameplayEffect(const FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext)
 {
-	// Should only ever execute effects that are instant applicatin or periodic application
-	// Effects with no period and that arent instant application should never be executed
+	// Should only ever execute effects that are instant application or periodic application
+	// Effects with no period and that aren't instant application should never be executed
 	check( (Spec.GetDuration() == UGameplayEffect::INSTANT_APPLICATION || Spec.GetPeriod() != UGameplayEffect::NO_PERIOD) );
 	
 	ActiveGameplayEffects.ExecuteActiveEffectsFrom(Spec, QualifierContext);

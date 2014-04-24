@@ -124,6 +124,9 @@ bool GameplayEffectsTest_InstantDamage(UWorld *World, FAutomationTestBase * Test
 		SKILL_LOG(Log, TEXT("Final Health: %.2f"), DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health);
 	}
 
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
 	return true;
 }
 
@@ -173,6 +176,9 @@ bool GameplayEffectsTest_InstantDamageRemap(UWorld *World, FAutomationTestBase *
 			Test->TestTrue(SKILL_TEST_TEXT("Damage Applied. Actual: %.2f == Exected: %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
 		}
 	}
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
 
 	return true;
 }
@@ -232,6 +238,9 @@ bool GameplayEffectsTest_InstantDamage_Buffed(UWorld *World, FAutomationTestBase
 		SKILL_LOG(Log, TEXT("Final Health: %.2f"), DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health);
 	}
 
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
 	return true;
 }
 
@@ -286,6 +295,9 @@ bool GameplayEffectsTest_TemporaryDamage(UWorld *World, FAutomationTestBase * Te
 		Test->TestTrue(SKILL_TEST_TEXT("INFINITE_DURATION Damage Applied"), (DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health == ExpectedValue));
 		SKILL_LOG(Log, TEXT("After Removal. Health: %.2f. RemovedEffecte: %d"), DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health, RemovedEffect);
 	}
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
 
 	return true;
 }
@@ -373,6 +385,9 @@ bool GameplayEffectsTest_TemporaryDamageBuffed(UWorld *World, FAutomationTestBas
 		// Confirm no more GEs
 		Test->TestTrue(SKILL_TEST_TEXT("Number of GameplayEffects=0"), DestComponent->GetNumActiveGameplayEffect() == 0);
 	}
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
 
 	return true;
 }
@@ -480,6 +495,9 @@ bool GameplayEffectsTest_TemporaryDamageTemporaryBuff(UWorld *World, FAutomation
 		Test->TestTrue(SKILL_TEST_TEXT("GameplayEffectsTest_TemporaryDamageTemporaryBuff Number of GameplayEffects=0"), DestComponent->GetNumActiveGameplayEffect() == 0);
 	}
 
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
 	return true;
 }
 
@@ -563,6 +581,9 @@ bool GameplayEffectsTest_LinkedBuffDestroy(UWorld *World, FAutomationTestBase * 
 	}
 
 	// DestComponent->PrintAllGameplayEffects();
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
 
 	return true;
 }
@@ -650,6 +671,9 @@ bool GameplayEffectsTest_SnapshotBuffDestroy(UWorld *World, FAutomationTestBase 
 
 	// DestComponent->PrintAllGameplayEffects();
 
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
 	return true;
 }
 
@@ -736,6 +760,10 @@ bool GameplayEffectsTest_DurationBuff(UWorld *World, FAutomationTestBase * Test)
 	}
 
 	//DestComponent->PrintAllGameplayEffects();
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
 	return true;
 }
 
@@ -871,6 +899,9 @@ bool GameplayEffectsTest_DamageBuffBuff_Basic(UWorld *World, FAutomationTestBase
 	}
 
 	// DestComponent->PrintAllGameplayEffects();
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
 
 	return true;
 }
@@ -1009,6 +1040,9 @@ bool GameplayEffectsTest_DamageBuffBuff_FullLink(UWorld *World, FAutomationTestB
 
 	// DestComponent->PrintAllGameplayEffects();
 
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
 	return true;
 }
 
@@ -1143,6 +1177,9 @@ bool GameplayEffectsTest_DamageBuffBuff_FullSnapshot(UWorld *World, FAutomationT
 	}
 
 	// DestComponent->PrintAllGameplayEffects();
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
 
 	return true;
 }
@@ -1279,6 +1316,9 @@ bool GameplayEffectsTest_DamageBuffBuff_SnapshotLink(UWorld *World, FAutomationT
 
 	// DestComponent->PrintAllGameplayEffects();
 
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
 	return true;
 }
 
@@ -1307,6 +1347,9 @@ bool TimerTest(UWorld *World, FAutomationTestBase * Test)
 	World->Tick(ELevelTick::LEVELTICK_All, 3.f);
 	World->Tick(ELevelTick::LEVELTICK_All, 3.f);
 	World->Tick(ELevelTick::LEVELTICK_All, 3.f);
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
 
 	return true;
 }
@@ -1381,6 +1424,9 @@ bool GameplayEffectsTest_DurationDamage(UWorld *World, FAutomationTestBase * Tes
 		Test->TestTrue(SKILL_TEST_TEXT("NumberOfActive Dest GameplayEffects %d == 0", NumEffects), NumEffects == 0);
 	}
 
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
 	return true;
 }
 
@@ -1420,15 +1466,15 @@ bool GameplayEffectsTest_PeriodicDamage(UWorld *World, FAutomationTestBase * Tes
 		BaseDmgEffect->GameplayCues.Add( FGameplayEffectCue(FName(TEXT("GameplayCue.Burning")), 1.f, 10.f) );
 
 		SourceComponent->ApplyGameplayEffectSpecToTarget(BaseDmgEffect, DestComponent, 5.f);
-		ApplyCount++;
 
-		// The effect should instantly execute one time without ticking (for now at least)
+		// The effect should execute on the next tick
 		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
 		float ExpectedValue = StartHealth + (DamageValue * ApplyCount);
 
 		Test->TestTrue(SKILL_TEST_TEXT("Damage Applied. Actual: %.2f == Exected: %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue );
 	}
 		
+	ApplyCount++; // the effect will execute as soon as we tick any amount of time
 	for (int32 i=0; i < 10; ++i)
 	{
 		GameplayTest_TickWorld(World, 1.f);
@@ -1450,6 +1496,9 @@ bool GameplayEffectsTest_PeriodicDamage(UWorld *World, FAutomationTestBase * Tes
 		int32 NumEffects = DestComponent->GetNumActiveGameplayEffect();
 		Test->TestTrue(SKILL_TEST_TEXT("NumberOfActive Dest GameplayEffects %d == 0", NumEffects), NumEffects == 0);
 	}
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
 
 	return true;
 }
@@ -1525,10 +1574,13 @@ bool GameplayEffectsTest_LifestealExtension(UWorld *World, FAutomationTestBase *
 
 	}
 
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
 	return true;
 }
 
-bool GameplayEffectsTest_ShieldlExtension(UWorld *World, FAutomationTestBase * Test)
+bool GameplayEffectsTest_ShieldExtension(UWorld *World, FAutomationTestBase * Test)
 {
 	const float StartHealth = 100.f;
 	const float DamageValue = -10.f;
@@ -1636,10 +1688,13 @@ bool GameplayEffectsTest_ShieldlExtension(UWorld *World, FAutomationTestBase * T
 		}
 	}
 
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
 	return true;
 }
 
-bool GameplayEffectsTest_ShieldlExtensionMultiple(UWorld *World, FAutomationTestBase * Test)
+bool GameplayEffectsTest_ShieldExtensionMultiple(UWorld *World, FAutomationTestBase * Test)
 {
 	// This applies 2 instances of the shield and confirms that only 1 will absorb damage at at time
 
@@ -1780,6 +1835,9 @@ bool GameplayEffectsTest_ShieldlExtensionMultiple(UWorld *World, FAutomationTest
 		}
 	}
 
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
 	return true;
 }
 
@@ -1823,6 +1881,35 @@ UCurveTable * GetStandardDamageOverrideCurveTable(float Factor)
 	}
 	
 	return CurveTable;
+}
+
+UDataTable * SetGlobalDataTable()
+{
+	// set up a test table where SpellDamage stacks and PhysicalDamage does not.
+	FString CSV(TEXT(",BaseValue,MinValue,MaxValue,DerivedAttributeInfo,bCanStack\r\nStackingAttribute1,0.0,-999.9,999.9,,True\r\nStackingAttribute2,0.0,-999.9,999.9,,True\r\nNoStackAttribute,0.0,-999.9,999.9,,False\r\n"));
+
+	UDataTable * DataTable = Cast<UDataTable>(StaticConstructObject(UDataTable::StaticClass(), GetTransientPackage(), FName(TEXT("TempDataTable"))));
+	DataTable->RowStruct = FAttributeMetaData::StaticStruct();
+	DataTable->CreateTableFromCSVString(CSV);
+
+	FAttributeMetaData * Row = (FAttributeMetaData*)DataTable->RowMap["StackingAttribute1"];
+	if (Row)
+	{
+		check(Row->bCanStack);
+	}
+	Row = (FAttributeMetaData*)DataTable->RowMap["NoStackAttribute"];
+	if (Row)
+	{
+		check(!Row->bCanStack);
+	}
+
+	ISkillSystemModule::Get().GetSkillSystemGlobals().AutomationTestOnly_SetGlobalAttributeDataTable(DataTable);
+	return DataTable;
+}
+
+void ClearGlobalDataTable()
+{
+	ISkillSystemModule::Get().GetSkillSystemGlobals().AutomationTestOnly_SetGlobalAttributeDataTable(NULL);
 }
 
 bool GameplayEffectsTest_InstantDamage_ScalingExplicit(UWorld *World, FAutomationTestBase * Test)
@@ -1870,6 +1957,9 @@ bool GameplayEffectsTest_InstantDamage_ScalingExplicit(UWorld *World, FAutomatio
 		float ExpectedValue = StartHealth - (LevelOfDamage * SourceDamageScale);
 		Test->TestTrue(SKILL_TEST_TEXT("Damage Applied. Health: Actual: %.2f == Exected: %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
 	}
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
 	
 	return true;
 }
@@ -1915,6 +2005,10 @@ bool GameplayEffectsTest_InstantDamage_ScalingGlobal(UWorld *World, FAutomationT
 	}
 
 	ClearGlobalCurveTable();
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
 	return true;
 }
 
@@ -1963,6 +2057,10 @@ bool GameplayEffectsTest_InstantDamage_Override(UWorld *World, FAutomationTestBa
 	}
 
 	ClearGlobalCurveTable();
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
 	return true;
 }
 
@@ -2049,6 +2147,9 @@ bool GameplayEffectsTest_InstantDamageRequiredTag(UWorld *World, FAutomationTest
 		
 		Test->TestTrue(SKILL_TEST_TEXT("Damage Applied. Health: Actual: %.2f == Exected: %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
 	}
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
 
 	return true;
 }
@@ -2137,6 +2238,9 @@ bool GameplayEffectsTest_InstantDamageIgnoreTag(UWorld *World, FAutomationTestBa
 		SKILL_LOG(Log, TEXT("Final Health: %.2f"), DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health);
 	}
 
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
 	return true;
 }
 
@@ -2216,6 +2320,9 @@ bool GameplayEffectsTest_InstantDamageModifierPassesTag(UWorld *World, FAutomati
 		SKILL_LOG(Log, TEXT("Final Health: %.2f"), DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health);
 	}
 
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
 	return true;
 }
 
@@ -2294,6 +2401,9 @@ bool GameplayEffectsTest_InstantDamageModifierTag(UWorld *World, FAutomationTest
 		Test->TestTrue(SKILL_TEST_TEXT("Buff Instant Damage Applied.  Actual: %.2f == Exected: %.2f", ActualValue, ExpectedValue), (ActualValue == ExpectedValue));
 	}
 
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
 	return true;
 }
 
@@ -2347,6 +2457,10 @@ bool GameplayEffectsTest_InstantDamage_ScalingProperty(UWorld *World, FAutomatio
 	}
 
 	ClearGlobalCurveTable();
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
 	return true;
 }
 
@@ -2398,6 +2512,10 @@ bool GameplayEffectsTest_InstantDamage_ScalingPropertyNested(UWorld *World, FAut
 	}
 
 	ClearGlobalCurveTable();
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
 	return true;
 }
 
@@ -2446,11 +2564,6 @@ bool GameplayEffectsTest_DotDamage_ScalingProperty_Snapshot(UWorld *World, FAuto
 		BaseDmgEffect->LevelInfo.TakeSnapshotOnInit = true;								// But just a snapshot of their SpellDamage when we are applied
 
 		SourceComponent->ApplyGameplayEffectSpecToTarget(BaseDmgEffect, DestComponent);
-
-		// Confirm we ticked once
-		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
-		float ExpectedValue = StartHealth - (SpellDamage * GameplayEffectScaling);
-		Test->TestTrue(SKILL_TEST_TEXT("Damage Applied. Health: Actual: %.2f == Exected: %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
 	}
 
 
@@ -2473,11 +2586,15 @@ bool GameplayEffectsTest_DotDamage_ScalingProperty_Snapshot(UWorld *World, FAuto
 		GameplayTest_TickWorld(World, 1.f);
 		
 		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
-		float ExpectedValue = StartHealth - (SpellDamage * GameplayEffectScaling) * 2.f;	// We've ticked twice
+		float ExpectedValue = StartHealth - (SpellDamage * GameplayEffectScaling) * 2.f;	// we trigger twice on this tick
 		Test->TestTrue(SKILL_TEST_TEXT("Damage Applied. Health: Actual: %.2f == Exected: %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
 	}	
 
 	ClearGlobalCurveTable();
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
 	return true;
 }
 
@@ -2527,13 +2644,17 @@ bool GameplayEffectsTest_DotDamage_ScalingProperty_Dynamic(UWorld *World, FAutom
 
 		SourceComponent->ApplyGameplayEffectSpecToTarget(BaseDmgEffect, DestComponent);
 
-		// Confirm we ticked once
-		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
-		float ExpectedValue = StartHealth - (SpellDamage * GameplayEffectScaling);
-		Test->TestTrue(SKILL_TEST_TEXT("Damage Applied. Health: Actual: %.2f == Exected: %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
-
 		float SpellDamageTest = SourceComponent->GetSet<USkillSystemTestAttributeSet>()->SpellDamage;
 		check(SpellDamageTest == SpellDamage);
+	}
+
+	{
+		// Tick once
+		GameplayTest_TickWorld(World, 1.f);
+
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
+		float ExpectedValue = StartHealth - (SpellDamage * GameplayEffectScaling * 2);	// We've ticked twice
+		Test->TestTrue(SKILL_TEST_TEXT("Damage Applied. Health: Actual: %.2f == Exected: %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
 	}
 
 	{
@@ -2559,11 +2680,15 @@ bool GameplayEffectsTest_DotDamage_ScalingProperty_Dynamic(UWorld *World, FAutom
 		GameplayTest_TickWorld(World, 1.f);
 
 		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->Health;
-		float ExpectedValue = StartHealth - (SpellDamage * GameplayEffectScaling) - (SpellDamage2 * GameplayEffectScaling);	// We've ticked twice
+		float ExpectedValue = StartHealth - (SpellDamage * GameplayEffectScaling * 2) - (SpellDamage2 * GameplayEffectScaling);	// two unbuffed ticks, one buffed tick
 		Test->TestTrue(SKILL_TEST_TEXT("Damage Applied. Health: Actual: %.2f == Exected: %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
 	}
 
 	ClearGlobalCurveTable();
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
 	return true;
 }
 
@@ -2642,6 +2767,9 @@ bool GameplayEffectsTest_MetaAttributes(UWorld *World, FAutomationTestBase * Tes
 	}
 
 	ClearGlobalCurveTable();
+
+	World->EditorDestroyActor(SourceActor, false);
+
 	return true;
 }
 
@@ -2727,12 +2855,1143 @@ bool GameplayEffectsTest_TagOrdering(UWorld *World, FAutomationTestBase * Test)
 		Test->TestTrue(SKILL_TEST_TEXT("MaxHealth: Actual: %.2f == Exected: %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
 	}
 
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
+	return true;
+}
+
+// test the rule that stacks based on the highest gameplay effect
+bool GameplayEffectsTest_StackingHighest(UWorld *World, FAutomationTestBase * Test)
+{
+	const float StackingValue = 5.f;
+
+	SetGlobalCurveTable();
+	SetGlobalDataTable();
+
+	ASkillSystemTestPawn *SourceActor = World->SpawnActor<ASkillSystemTestPawn>();
+	ASkillSystemTestPawn *DestActor = World->SpawnActor<ASkillSystemTestPawn>();
+
+	UProperty *StackingProperty = FindFieldChecked<UProperty>(USkillSystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(USkillSystemTestAttributeSet, StackingAttribute1));
+
+	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
+	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply StackingEffect"));
+
+		UGameplayEffect * BaseStackedEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("StackingEffect1"))));
+		BaseStackedEffect->Modifiers.SetNum(1);
+		BaseStackedEffect->Modifiers[0].Magnitude.SetValue(StackingValue);
+		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty);
+		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
+		BaseStackedEffect->Period.Value = 1.f;
+		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Highest;
+
+		SourceComponent->ApplyGameplayEffectSpecToTarget(BaseStackedEffect, DestComponent);
+	}
+
+	{
+		// Tick once
+		GameplayTest_TickWorld(World, 1.f);
+
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->StackingAttribute1;
+		float ExpectedValue = StackingValue * 2.f;	// effect will execute twice
+		Test->TestTrue(SKILL_TEST_TEXT("Stacking Attribute: Actual: %.2f == Exected: %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+	}
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply StackingEffect"));
+
+		UGameplayEffect * BaseStackedEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("StackingEffect2"))));
+		BaseStackedEffect->Modifiers.SetNum(1);
+		BaseStackedEffect->Modifiers[0].Magnitude.SetValue(StackingValue * 2.f);
+		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty);
+		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
+		BaseStackedEffect->Period.Value = 1.f;
+		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Highest;
+
+		SourceComponent->ApplyGameplayEffectSpecToTarget(BaseStackedEffect, DestComponent);
+	}
+
+	{
+		// Tick once
+		GameplayTest_TickWorld(World, 1.f);
+
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->StackingAttribute1;
+		float ExpectedValue = StackingValue * 6.f;	// 2 for first effect, 4 for second effect executing twice
+		Test->TestTrue(SKILL_TEST_TEXT("Stacking Attribute: Actual: %.2f == Exected: %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+	}
+
+	ClearGlobalCurveTable();
+	ClearGlobalDataTable();
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
+	return true;
+}
+
+// test the rule that stacks based on the smallest gameplay effect
+bool GameplayEffectsTest_StackingLowest(UWorld *World, FAutomationTestBase * Test)
+{
+	const float StackingValue = 5.f;
+
+	SetGlobalCurveTable();
+	SetGlobalDataTable();
+
+	ASkillSystemTestPawn *SourceActor = World->SpawnActor<ASkillSystemTestPawn>();
+	ASkillSystemTestPawn *DestActor = World->SpawnActor<ASkillSystemTestPawn>();
+
+	UProperty *StackingProperty = FindFieldChecked<UProperty>(USkillSystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(USkillSystemTestAttributeSet, StackingAttribute1));
+
+	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
+	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply StackingEffect"));
+
+		UGameplayEffect * BaseStackedEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("StackingEffect1"))));
+		BaseStackedEffect->Modifiers.SetNum(1);
+		BaseStackedEffect->Modifiers[0].Magnitude.SetValue(StackingValue);
+		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty);
+		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
+		BaseStackedEffect->Period.Value = 1.f;
+		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Lowest;
+
+		SourceComponent->ApplyGameplayEffectSpecToTarget(BaseStackedEffect, DestComponent);
+	}
+
+	{
+		// Tick once
+		GameplayTest_TickWorld(World, 1.f);
+
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->StackingAttribute1;
+		float ExpectedValue = StackingValue * 2.f;	// the effect should execute twice here
+		Test->TestTrue(SKILL_TEST_TEXT("Stacking Attribute: Actual: %.2f == Exected: %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+	}
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply StackingEffect"));
+
+		UGameplayEffect * BaseStackedEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("StackingEffect2"))));
+		BaseStackedEffect->Modifiers.SetNum(1);
+		BaseStackedEffect->Modifiers[0].Magnitude.SetValue(StackingValue * 2.f);
+		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty);
+		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
+		BaseStackedEffect->Period.Value = 1.f;
+		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Lowest;
+
+		SourceComponent->ApplyGameplayEffectSpecToTarget(BaseStackedEffect, DestComponent);
+	}
+
+	{
+		// Tick once
+		GameplayTest_TickWorld(World, 1.f);
+
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->StackingAttribute1;
+		float ExpectedValue = StackingValue * 3.f;	// the first effect has executed 3 times, the second hasn't executed
+		Test->TestTrue(SKILL_TEST_TEXT("Stacking Attribute: Actual: %.2f == Exected: %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+	}
+
+	ClearGlobalCurveTable();
+	ClearGlobalDataTable();
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
+	return true;
+}
+
+// test the rule that ignores stacking
+bool GameplayEffectsTest_StackingUnlimited(UWorld *World, FAutomationTestBase * Test)
+{
+	const float StackingValue = 5.f;
+
+	SetGlobalCurveTable();
+	SetGlobalDataTable();
+
+	ASkillSystemTestPawn *SourceActor = World->SpawnActor<ASkillSystemTestPawn>();
+	ASkillSystemTestPawn *DestActor = World->SpawnActor<ASkillSystemTestPawn>();
+
+	UProperty *StackingProperty = FindFieldChecked<UProperty>(USkillSystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(USkillSystemTestAttributeSet, StackingAttribute1));
+
+	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
+	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply StackingEffect"));
+
+		UGameplayEffect * BaseStackedEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("StackingEffect1"))));
+		BaseStackedEffect->Modifiers.SetNum(1);
+		BaseStackedEffect->Modifiers[0].Magnitude.SetValue(StackingValue);
+		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty);
+		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
+		BaseStackedEffect->Period.Value = 1.f;
+		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Unlimited;
+
+		SourceComponent->ApplyGameplayEffectSpecToTarget(BaseStackedEffect, DestComponent);
+	}
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply StackingEffect"));
+
+		UGameplayEffect * BaseStackedEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("StackingEffect2"))));
+		BaseStackedEffect->Modifiers.SetNum(1);
+		BaseStackedEffect->Modifiers[0].Magnitude.SetValue(StackingValue * 2.f);
+		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty);
+		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
+		BaseStackedEffect->Period.Value = 1.f;
+		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Unlimited;
+
+		SourceComponent->ApplyGameplayEffectSpecToTarget(BaseStackedEffect, DestComponent);
+	}
+
+	{
+		// Tick once
+		GameplayTest_TickWorld(World, 1.f);
+
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->StackingAttribute1;
+		float ExpectedValue = StackingValue * 6.f;	// 1 for first GE, 2 for the second GE, 3 for both GEs during the tick
+		Test->TestTrue(SKILL_TEST_TEXT("Stacking Attribute: Actual: %.2f == Exected: %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+	}
+
+	ClearGlobalCurveTable();
+	ClearGlobalDataTable();
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
+	return true;
+}
+
+// test to make sure that stacking updates correctly when a gameplay effect is removed
+bool GameplayEffectsTest_StackingRemoval(UWorld *World, FAutomationTestBase * Test)
+{
+	const float StackingValue = 5.f;
+
+	SetGlobalCurveTable();
+	SetGlobalDataTable();
+
+	ASkillSystemTestPawn *SourceActor = World->SpawnActor<ASkillSystemTestPawn>();
+	ASkillSystemTestPawn *DestActor = World->SpawnActor<ASkillSystemTestPawn>();
+
+	UProperty *StackingProperty = FindFieldChecked<UProperty>(USkillSystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(USkillSystemTestAttributeSet, StackingAttribute1));
+
+	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
+	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply StackingEffect"));
+
+		UGameplayEffect * BaseStackedEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("StackingEffect1"))));
+		BaseStackedEffect->Modifiers.SetNum(1);
+		BaseStackedEffect->Modifiers[0].Magnitude.SetValue(StackingValue);
+		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty);
+		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
+		BaseStackedEffect->Period.Value = 1.f;
+		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Highest;
+
+		SourceComponent->ApplyGameplayEffectSpecToTarget(BaseStackedEffect, DestComponent);
+	}
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply StackingEffect"));
+
+		UGameplayEffect * BaseStackedEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("StackingEffect2"))));
+		BaseStackedEffect->Modifiers.SetNum(1);
+		BaseStackedEffect->Modifiers[0].Magnitude.SetValue(StackingValue * 2.f);
+		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty);
+		BaseStackedEffect->Duration.Value = 1.f;// UGameplayEffect::INFINITE_DURATION;
+		BaseStackedEffect->Period.Value = 1.f;
+		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Highest;
+
+		SourceComponent->ApplyGameplayEffectSpecToTarget(BaseStackedEffect, DestComponent);
+	}
+
+	{
+		// Tick once
+		GameplayTest_TickWorld(World, 1.f);
+
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->StackingAttribute1;
+		float ExpectedValue = StackingValue * 4.f;	// 2 for second effect, 2 for second effect during tick
+		Test->TestTrue(SKILL_TEST_TEXT("Stacking Attribute: Actual: %.2f == Exected: %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+
+		// Tick once
+		GameplayTest_TickWorld(World, 1.f);
+
+		ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->StackingAttribute1;
+		ExpectedValue = StackingValue * 5.f;	// 2 for second effect, 2 for second effect during first tick, 1 for first effect during second tick
+		Test->TestTrue(SKILL_TEST_TEXT("Stacking Attribute: Actual: %.2f == Exected: %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+	}
+
+	ClearGlobalCurveTable();
+	ClearGlobalDataTable();
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
+	return true;
+}
+
+// test that attributes that aren't allowed to stack won't stack even if the stacking rule says they should
+bool GameplayEffectsTest_StackingNoStack(UWorld *World, FAutomationTestBase * Test)
+{
+	const float StackingValue = 5.f;
+
+	SetGlobalCurveTable();
+	SetGlobalDataTable();
+
+	ASkillSystemTestPawn *SourceActor = World->SpawnActor<ASkillSystemTestPawn>();
+	ASkillSystemTestPawn *DestActor = World->SpawnActor<ASkillSystemTestPawn>();
+
+	UProperty *NoStackProperty = FindFieldChecked<UProperty>(USkillSystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(USkillSystemTestAttributeSet, NoStackAttribute));
+
+	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
+	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply StackingEffect"));
+
+		UGameplayEffect * UnstackableEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("NoStackEffect1"))));
+		UnstackableEffect->Modifiers.SetNum(1);
+		UnstackableEffect->Modifiers[0].Magnitude.SetValue(StackingValue);
+		UnstackableEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		UnstackableEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		UnstackableEffect->Modifiers[0].Attribute.SetUProperty(NoStackProperty);
+		UnstackableEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
+		UnstackableEffect->Period.Value = 1.f;
+		UnstackableEffect->StackingPolicy = EGameplayEffectStackingPolicy::Highest;
+
+		SourceComponent->ApplyGameplayEffectSpecToTarget(UnstackableEffect, DestComponent);
+	}
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply StackingEffect"));
+
+		UGameplayEffect * UnstackableEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("NoStackEffect2"))));
+		UnstackableEffect->Modifiers.SetNum(1);
+		UnstackableEffect->Modifiers[0].Magnitude.SetValue(StackingValue * 2.f);
+		UnstackableEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		UnstackableEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		UnstackableEffect->Modifiers[0].Attribute.SetUProperty(NoStackProperty);
+		UnstackableEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
+		UnstackableEffect->Period.Value = 1.f;
+		UnstackableEffect->StackingPolicy = EGameplayEffectStackingPolicy::Highest;
+
+		SourceComponent->ApplyGameplayEffectSpecToTarget(UnstackableEffect, DestComponent);
+	}
+
+	{
+		// Tick once
+		GameplayTest_TickWorld(World, 1.f);
+
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->NoStackAttribute;
+		float ExpectedValue = StackingValue * 6.f;	// 1 for first effect, 2 for second effect, 3 for both effects during tick
+		Test->TestTrue(SKILL_TEST_TEXT("Stacking Attribute: Actual: %.2f == Exected: %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+	}
+
+	ClearGlobalCurveTable();
+	ClearGlobalDataTable();
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
+	return true;
+}
+
+// test the custom rule that stacks based on capping the number of effects applied
+bool GameplayEffectsTest_StackingCustomCapped(UWorld *World, FAutomationTestBase * Test)
+{
+	const float StackingValue = 5.f;
+
+	SetGlobalCurveTable();
+	SetGlobalDataTable();
+
+	ASkillSystemTestPawn *SourceActor = World->SpawnActor<ASkillSystemTestPawn>();
+	ASkillSystemTestPawn *DestActor = World->SpawnActor<ASkillSystemTestPawn>();
+
+	UProperty *StackingProperty = FindFieldChecked<UProperty>(USkillSystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(USkillSystemTestAttributeSet, StackingAttribute1));
+
+	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
+	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply StackingEffect"));
+
+		UGameplayEffect * BaseStackedEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("StackingEffect1"))));
+		BaseStackedEffect->Modifiers.SetNum(1);
+		BaseStackedEffect->Modifiers[0].Magnitude.SetValue(StackingValue);
+		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty);
+		BaseStackedEffect->Modifiers[0].OwnedTags.AddTag("Stackable");
+		BaseStackedEffect->Duration.Value = 2.f;
+		BaseStackedEffect->Period.Value = 1.f;
+		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Callback;
+		BaseStackedEffect->StackingExtension = UGameplayEffectStackingExtension_CappedNumberTest::StaticClass();
+//		BaseStackedEffect->StackingExtension = UGameplayEffectStackingExtension_DiminishingReturnsTest::StaticClass();
+
+		SourceComponent->ApplyGameplayEffectSpecToTarget(BaseStackedEffect, DestComponent);
+	}
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply StackingEffect"));
+
+		UGameplayEffect * BaseStackedEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("StackingEffect2"))));
+		BaseStackedEffect->Modifiers.SetNum(1);
+		BaseStackedEffect->Modifiers[0].Magnitude.SetValue(StackingValue);
+		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty);
+		BaseStackedEffect->Modifiers[0].OwnedTags.AddTag("Stackable");
+		BaseStackedEffect->Duration.Value = 2.f;
+		BaseStackedEffect->Period.Value = 1.f;
+		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Callback;
+		BaseStackedEffect->StackingExtension = UGameplayEffectStackingExtension_CappedNumberTest::StaticClass();
+
+		SourceComponent->ApplyGameplayEffectSpecToTarget(BaseStackedEffect, DestComponent);
+	}
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply StackingEffect"));
+
+		UGameplayEffect * BaseStackedEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("StackingEffect3"))));
+		BaseStackedEffect->Modifiers.SetNum(1);
+		BaseStackedEffect->Modifiers[0].Magnitude.SetValue(StackingValue);
+		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty);
+		BaseStackedEffect->Modifiers[0].OwnedTags.AddTag("Stackable");
+		BaseStackedEffect->Duration.Value = 2.f;
+		BaseStackedEffect->Period.Value = 1.f;
+		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Callback;
+		BaseStackedEffect->StackingExtension = UGameplayEffectStackingExtension_CappedNumberTest::StaticClass();
+
+		SourceComponent->ApplyGameplayEffectSpecToTarget(BaseStackedEffect, DestComponent);
+	}
+
+	{
+		// Tick once
+		GameplayTest_TickWorld(World, 1.f);
+
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->StackingAttribute1;
+		float ExpectedValue = StackingValue * 4.f;	// 2 for effects being applied at the start of the tick, 2 for effects being applied at the end of this tick
+		Test->TestTrue(SKILL_TEST_TEXT("Stacking Attribute: Actual: %.2f == Exected: %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+	}
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply StackingEffect"));
+
+		UGameplayEffect * BaseStackedEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("StackingEffect4"))));
+		BaseStackedEffect->Modifiers.SetNum(1);
+		BaseStackedEffect->Modifiers[0].Magnitude.SetValue(StackingValue);
+		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty);
+		BaseStackedEffect->Modifiers[0].OwnedTags.AddTag("Stackable");
+		BaseStackedEffect->Duration.Value = 2.f;
+		BaseStackedEffect->Period.Value = 1.f;
+		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Callback;
+		BaseStackedEffect->StackingExtension = UGameplayEffectStackingExtension_CappedNumberTest::StaticClass();
+
+		SourceComponent->ApplyGameplayEffectSpecToTarget(BaseStackedEffect, DestComponent);
+	}
+
+	{
+		// Tick once
+		GameplayTest_TickWorld(World, 1.f);
+
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->StackingAttribute1;
+		float ExpectedValue = StackingValue * 6.f;	// 2 for effects being applied, 2 for tick, 2 for tick
+		Test->TestTrue(SKILL_TEST_TEXT("Stacking Attribute: Actual: %.2f == Exected: %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+	}
+
+	{
+		// Tick once
+		GameplayTest_TickWorld(World, 1.f);
+
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->StackingAttribute1;
+		float ExpectedValue = StackingValue * 8.f;	// the last GE should have refreshed the timer so we should have 2 for GEs applied and 3 * 2 for ticks
+		Test->TestTrue(SKILL_TEST_TEXT("Stacking Attribute: Actual: %.2f == Exected: %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+	}
+
+	{
+		// Tick once
+		GameplayTest_TickWorld(World, 1.f);
+
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->StackingAttribute1;
+		float ExpectedValue = StackingValue * 8.f;	// the effects should have timed out so we should have 2 for GEs applied and 3 * 2 for ticks
+		Test->TestTrue(SKILL_TEST_TEXT("Stacking Attribute: Actual: %.2f == Exected: %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+	}
+
+	ClearGlobalCurveTable();
+	ClearGlobalDataTable();
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
+	return true;
+}
+
+// test the custom rule that stacks based on diminishing returns
+bool GameplayEffectsTest_StackingCustomDiminishingReturns(UWorld *World, FAutomationTestBase * Test)
+{
+	const float StackingValue = 1.f;
+
+	SetGlobalCurveTable();
+	SetGlobalDataTable();
+
+	ASkillSystemTestPawn *SourceActor = World->SpawnActor<ASkillSystemTestPawn>();
+	ASkillSystemTestPawn *DestActor = World->SpawnActor<ASkillSystemTestPawn>();
+
+	UProperty *StackingProperty = FindFieldChecked<UProperty>(USkillSystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(USkillSystemTestAttributeSet, StackingAttribute1));
+
+	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
+	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply StackingEffect"));
+
+		UGameplayEffect * BaseStackedEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("StackingEffect1"))));
+		BaseStackedEffect->Modifiers.SetNum(1);
+		BaseStackedEffect->Modifiers[0].Magnitude.SetValue(StackingValue);
+		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty);
+		BaseStackedEffect->Modifiers[0].OwnedTags.AddTag("Stackable");
+		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
+		BaseStackedEffect->Period.Value = 1.f;
+		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Callback;
+		BaseStackedEffect->StackingExtension = UGameplayEffectStackingExtension_DiminishingReturnsTest::StaticClass();
+
+		SourceComponent->ApplyGameplayEffectSpecToTarget(BaseStackedEffect, DestComponent);
+	}
+
+	{
+		// Tick once
+		GameplayTest_TickWorld(World, 1.f);
+
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->StackingAttribute1;
+		float ExpectedValue = StackingValue * (5.f * 2);	// first application gets five times the result and will be applied at the start and end of the tick
+		Test->TestTrue(SKILL_TEST_TEXT("Stacking Attribute: Actual: %.2f == Exected: %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+	}
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply StackingEffect"));
+
+		UGameplayEffect * BaseStackedEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("StackingEffect2"))));
+		BaseStackedEffect->Modifiers.SetNum(1);
+		BaseStackedEffect->Modifiers[0].Magnitude.SetValue(StackingValue);
+		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty);
+		BaseStackedEffect->Modifiers[0].OwnedTags.AddTag("Stackable");
+		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
+		BaseStackedEffect->Period.Value = 1.f;
+		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Callback;
+		BaseStackedEffect->StackingExtension = UGameplayEffectStackingExtension_DiminishingReturnsTest::StaticClass();
+
+		SourceComponent->ApplyGameplayEffectSpecToTarget(BaseStackedEffect, DestComponent);
+	}
+
+	{
+		// Tick once
+		GameplayTest_TickWorld(World, 1.f);
+
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->StackingAttribute1;
+		float ExpectedValue = StackingValue * ((5.f * 2) + 7.f);	// second application gets seven times the result
+		Test->TestTrue(SKILL_TEST_TEXT("Stacking Attribute: Actual: %.2f == Exected: %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+	}
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply StackingEffect"));
+
+		UGameplayEffect * BaseStackedEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("StackingEffect3"))));
+		BaseStackedEffect->Modifiers.SetNum(1);
+		BaseStackedEffect->Modifiers[0].Magnitude.SetValue(StackingValue);
+		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty);
+		BaseStackedEffect->Modifiers[0].OwnedTags.AddTag("Stackable");
+		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
+		BaseStackedEffect->Period.Value = 1.f;
+		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Callback;
+		BaseStackedEffect->StackingExtension = UGameplayEffectStackingExtension_DiminishingReturnsTest::StaticClass();
+
+		SourceComponent->ApplyGameplayEffectSpecToTarget(BaseStackedEffect, DestComponent);
+	}
+
+	{
+		// Tick once
+		GameplayTest_TickWorld(World, 1.f);
+
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->StackingAttribute1;
+		float ExpectedValue = StackingValue * ((5.f * 2) + 7.f + 8.f);	// third application gets eight times the result
+		Test->TestTrue(SKILL_TEST_TEXT("Stacking Attribute: Actual: %.2f == Exected: %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+	}
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply StackingEffect"));
+
+		UGameplayEffect * BaseStackedEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("StackingEffect4"))));
+		BaseStackedEffect->Modifiers.SetNum(1);
+		BaseStackedEffect->Modifiers[0].Magnitude.SetValue(StackingValue);
+		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty);
+		BaseStackedEffect->Modifiers[0].OwnedTags.AddTag("Stackable");
+		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
+		BaseStackedEffect->Period.Value = 1.f;
+		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Callback;
+		BaseStackedEffect->StackingExtension = UGameplayEffectStackingExtension_DiminishingReturnsTest::StaticClass();
+
+		SourceComponent->ApplyGameplayEffectSpecToTarget(BaseStackedEffect, DestComponent);
+	}
+
+	{
+		// Tick once
+		GameplayTest_TickWorld(World, 1.f);
+
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->StackingAttribute1;
+		float ExpectedValue = StackingValue * ((5.f * 2) + 7.f + 8.f + 9.f);	// fourth application gets nine times the result
+		Test->TestTrue(SKILL_TEST_TEXT("Stacking Attribute: Actual: %.2f == Exected: %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+	}
+
+	ClearGlobalCurveTable();
+	ClearGlobalDataTable();
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
+	return true;
+}
+
+// Gameplay effects that change the same attribute but have different stacking rules shouldn't interfere with each other
+bool GameplayEffectsTest_StackingDifferentRules(UWorld *World, FAutomationTestBase * Test)
+{
+	const float StackingValue = 5.f;
+
+	SetGlobalCurveTable();
+	SetGlobalDataTable();
+
+	ASkillSystemTestPawn *SourceActor = World->SpawnActor<ASkillSystemTestPawn>();
+	ASkillSystemTestPawn *DestActor = World->SpawnActor<ASkillSystemTestPawn>();
+
+	UProperty *StackingProperty = FindFieldChecked<UProperty>(USkillSystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(USkillSystemTestAttributeSet, StackingAttribute1));
+
+	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
+	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply StackingEffect"));
+
+		UGameplayEffect * BaseStackedEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("StackingEffect1"))));
+		BaseStackedEffect->Modifiers.SetNum(1);
+		BaseStackedEffect->Modifiers[0].Magnitude.SetValue(StackingValue);
+		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty);
+		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
+		BaseStackedEffect->Period.Value = 1.f;
+		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Highest;
+
+		SourceComponent->ApplyGameplayEffectSpecToTarget(BaseStackedEffect, DestComponent);
+	}
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply StackingEffect"));
+
+		UGameplayEffect * BaseStackedEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("StackingEffect2"))));
+		BaseStackedEffect->Modifiers.SetNum(1);
+		BaseStackedEffect->Modifiers[0].Magnitude.SetValue(StackingValue * 2.f);
+		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty);
+		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
+		BaseStackedEffect->Period.Value = 1.f;
+		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Lowest;
+
+		SourceComponent->ApplyGameplayEffectSpecToTarget(BaseStackedEffect, DestComponent);
+	}
+
+	{
+		// Tick once
+		GameplayTest_TickWorld(World, 1.f);
+
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->StackingAttribute1;
+		float ExpectedValue = StackingValue * 6.f;	// 1 for first effect, 2 for the second effect, 3 during tick
+		Test->TestTrue(SKILL_TEST_TEXT("Stacking Attribute: Actual: %.2f == Exected: %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+	}
+
+	ClearGlobalCurveTable();
+	ClearGlobalDataTable();
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
+	return true;
+}
+
+// different attributes with the same stacking rule shouldn't interfere with each other
+bool GameplayEffectsTest_StackingDifferentAttributes(UWorld *World, FAutomationTestBase * Test)
+{
+	const float StackingValue = 5.f;
+
+	SetGlobalCurveTable();
+	SetGlobalDataTable();
+
+	ASkillSystemTestPawn *SourceActor = World->SpawnActor<ASkillSystemTestPawn>();
+	ASkillSystemTestPawn *DestActor = World->SpawnActor<ASkillSystemTestPawn>();
+
+	UProperty *StackingProperty1 = FindFieldChecked<UProperty>(USkillSystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(USkillSystemTestAttributeSet, StackingAttribute1));
+	UProperty *StackingProperty2 = FindFieldChecked<UProperty>(USkillSystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(USkillSystemTestAttributeSet, StackingAttribute2));
+
+	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
+	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply StackingEffect"));
+
+		UGameplayEffect * BaseStackedEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("StackingEffect1"))));
+		BaseStackedEffect->Modifiers.SetNum(1);
+		BaseStackedEffect->Modifiers[0].Magnitude.SetValue(StackingValue);
+		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty1);
+		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
+		BaseStackedEffect->Period.Value = 1.f;
+		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Highest;
+
+		SourceComponent->ApplyGameplayEffectSpecToTarget(BaseStackedEffect, DestComponent);
+	}
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply StackingEffect"));
+
+		UGameplayEffect * BaseStackedEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("StackingEffect2"))));
+		BaseStackedEffect->Modifiers.SetNum(1);
+		BaseStackedEffect->Modifiers[0].Magnitude.SetValue(StackingValue * 2.f);
+		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty2);
+		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
+		BaseStackedEffect->Period.Value = 1.f;
+		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Highest;
+
+		SourceComponent->ApplyGameplayEffectSpecToTarget(BaseStackedEffect, DestComponent);
+	}
+
+	{
+		// Tick once
+		GameplayTest_TickWorld(World, 1.f);
+
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->StackingAttribute1;
+		float ExpectedValue = StackingValue * 2.f;	// 1 for first effect, 1 for first effect during tick
+		Test->TestTrue(SKILL_TEST_TEXT("Stacking Attribute 1: %.2f == Exected: %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+		ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->StackingAttribute2;
+		ExpectedValue = StackingValue * 4.f; // 2 for the second effect, 2 for the second effect during tick
+		Test->TestTrue(SKILL_TEST_TEXT("Stacking Attribute 2: Actual: %.2f == Exected: %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+	}
+
+	ClearGlobalCurveTable();
+	ClearGlobalDataTable();
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
+	return true;
+}
+
+// test to make sure that two different custom rules don't interfere with each other
+bool GameplayEffectsTest_StackingCustomTwoRules(UWorld *World, FAutomationTestBase * Test)
+{
+	const float StackingValue = 1.f;
+
+	SetGlobalCurveTable();
+	SetGlobalDataTable();
+
+	ASkillSystemTestPawn *SourceActor = World->SpawnActor<ASkillSystemTestPawn>();
+	ASkillSystemTestPawn *DestActor = World->SpawnActor<ASkillSystemTestPawn>();
+
+	UProperty *StackingProperty = FindFieldChecked<UProperty>(USkillSystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(USkillSystemTestAttributeSet, StackingAttribute1));
+
+	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
+	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply StackingEffect"));
+
+		UGameplayEffect * BaseStackedEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("StackingEffect1"))));
+		BaseStackedEffect->Modifiers.SetNum(1);
+		BaseStackedEffect->Modifiers[0].Magnitude.SetValue(StackingValue);
+		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty);
+		BaseStackedEffect->Modifiers[0].OwnedTags.AddTag("Stackable");
+		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
+		BaseStackedEffect->Period.Value = 1.f;
+		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Callback;
+		BaseStackedEffect->StackingExtension = UGameplayEffectStackingExtension_CappedNumberTest::StaticClass();
+
+		SourceComponent->ApplyGameplayEffectSpecToTarget(BaseStackedEffect, DestComponent);
+	}
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply StackingEffect"));
+
+		UGameplayEffect * BaseStackedEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("StackingEffect2"))));
+		BaseStackedEffect->Modifiers.SetNum(1);
+		BaseStackedEffect->Modifiers[0].Magnitude.SetValue(StackingValue);
+		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty);
+		BaseStackedEffect->Modifiers[0].OwnedTags.AddTag("Stackable");
+		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
+		BaseStackedEffect->Period.Value = 1.f;
+		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Callback;
+		BaseStackedEffect->StackingExtension = UGameplayEffectStackingExtension_DiminishingReturnsTest::StaticClass();
+
+		SourceComponent->ApplyGameplayEffectSpecToTarget(BaseStackedEffect, DestComponent);
+	}
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply StackingEffect"));
+
+		UGameplayEffect * BaseStackedEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("StackingEffect3"))));
+		BaseStackedEffect->Modifiers.SetNum(1);
+		BaseStackedEffect->Modifiers[0].Magnitude.SetValue(StackingValue);
+		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty);
+		BaseStackedEffect->Modifiers[0].OwnedTags.AddTag("Stackable");
+		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
+		BaseStackedEffect->Period.Value = 1.f;
+		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Callback;
+		BaseStackedEffect->StackingExtension = UGameplayEffectStackingExtension_DiminishingReturnsTest::StaticClass();
+
+		SourceComponent->ApplyGameplayEffectSpecToTarget(BaseStackedEffect, DestComponent);
+	}
+
+	{
+		// Tick once
+		GameplayTest_TickWorld(World, 1.f);
+
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->StackingAttribute1;
+		float ExpectedValue = StackingValue * ((1 + 7) * 2);	// the capped stacking rule will apply one, the diminishing returns rule will apply seven, both rules are applied twice
+		Test->TestTrue(SKILL_TEST_TEXT("Stacking Attribute: Actual: %.2f == Exected: %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+	}
+
+	ClearGlobalCurveTable();
+	ClearGlobalDataTable();
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
+	return true;
+}
+
+// test to make sure that a custom rules applied to different attributes doesn't interfere with itself
+bool GameplayEffectsTest_StackingCustomTwoAttributes(UWorld *World, FAutomationTestBase * Test)
+{
+	const float StackingValue = 1.f;
+
+	SetGlobalCurveTable();
+	SetGlobalDataTable();
+
+	ASkillSystemTestPawn *SourceActor = World->SpawnActor<ASkillSystemTestPawn>();
+	ASkillSystemTestPawn *DestActor = World->SpawnActor<ASkillSystemTestPawn>();
+
+	UProperty *StackingProperty1 = FindFieldChecked<UProperty>(USkillSystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(USkillSystemTestAttributeSet, StackingAttribute1));
+	UProperty *StackingProperty2 = FindFieldChecked<UProperty>(USkillSystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(USkillSystemTestAttributeSet, StackingAttribute2));
+
+	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
+	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply StackingEffect"));
+
+		UGameplayEffect * BaseStackedEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("StackingEffect1"))));
+		BaseStackedEffect->Modifiers.SetNum(1);
+		BaseStackedEffect->Modifiers[0].Magnitude.SetValue(StackingValue);
+		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty1);
+		BaseStackedEffect->Modifiers[0].OwnedTags.AddTag("Stackable");
+		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
+		BaseStackedEffect->Period.Value = 1.f;
+		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Callback;
+		BaseStackedEffect->StackingExtension = UGameplayEffectStackingExtension_CappedNumberTest::StaticClass();
+
+		SourceComponent->ApplyGameplayEffectSpecToTarget(BaseStackedEffect, DestComponent);
+	}
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply StackingEffect"));
+
+		UGameplayEffect * BaseStackedEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("StackingEffect2"))));
+		BaseStackedEffect->Modifiers.SetNum(1);
+		BaseStackedEffect->Modifiers[0].Magnitude.SetValue(StackingValue);
+		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty1);
+		BaseStackedEffect->Modifiers[0].OwnedTags.AddTag("Stackable");
+		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
+		BaseStackedEffect->Period.Value = 1.f;
+		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Callback;
+		BaseStackedEffect->StackingExtension = UGameplayEffectStackingExtension_CappedNumberTest::StaticClass();
+
+		SourceComponent->ApplyGameplayEffectSpecToTarget(BaseStackedEffect, DestComponent);
+	}
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply StackingEffect"));
+
+		UGameplayEffect * BaseStackedEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("StackingEffect3"))));
+		BaseStackedEffect->Modifiers.SetNum(1);
+		BaseStackedEffect->Modifiers[0].Magnitude.SetValue(StackingValue);
+		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty2);
+		BaseStackedEffect->Modifiers[0].OwnedTags.AddTag("Stackable");
+		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
+		BaseStackedEffect->Period.Value = 1.f;
+		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Callback;
+		BaseStackedEffect->StackingExtension = UGameplayEffectStackingExtension_CappedNumberTest::StaticClass();
+
+		SourceComponent->ApplyGameplayEffectSpecToTarget(BaseStackedEffect, DestComponent);
+	}
+
+	{
+		// Tick once
+		GameplayTest_TickWorld(World, 1.f);
+
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->StackingAttribute1;
+		float ExpectedValue = StackingValue * (2 * 2);	// two effects should be applied to the first attribute, both apply twice
+		Test->TestTrue(SKILL_TEST_TEXT("Stacking Attribute: Actual: %.2f == Exected: %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+
+		ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->StackingAttribute2;
+		ExpectedValue = StackingValue * (1 * 2);	// one effect should be applied twice to the second attribute
+		Test->TestTrue(SKILL_TEST_TEXT("Stacking Attribute: Actual: %.2f == Exected: %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+	}
+
+	ClearGlobalCurveTable();
+	ClearGlobalDataTable();
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
+	return true;
+}
+
+// Test to make sure that removing a modifier causes stacks to be recalculated correctly
+bool GameplayEffectsTest_StackingRemovingModifiers(UWorld *World, FAutomationTestBase * Test)
+{
+	const float StackingValue = 5.f;
+
+	SetGlobalCurveTable();
+	SetGlobalDataTable();
+
+	ASkillSystemTestPawn *SourceActor = World->SpawnActor<ASkillSystemTestPawn>();
+	ASkillSystemTestPawn *DestActor = World->SpawnActor<ASkillSystemTestPawn>();
+
+	UProperty *StackingProperty = FindFieldChecked<UProperty>(USkillSystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(USkillSystemTestAttributeSet, StackingAttribute1));
+
+	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
+	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+
+	// Setup a GE to modify IncomingGEs
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply modifier to incoming, tagged GEs"));
+
+		UGameplayEffect* BaseModEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("ProtectBuff"))));
+		BaseModEffect->Modifiers.SetNum(1);
+		BaseModEffect->Modifiers[0].Magnitude.SetValue(4.f);
+		BaseModEffect->Modifiers[0].ModifierType = EGameplayMod::IncomingGE;
+		BaseModEffect->Modifiers[0].ModifierOp = EGameplayModOp::Multiplicitive;
+		BaseModEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty);
+		BaseModEffect->Duration.SetValue(1.f);
+		BaseModEffect->CopyPolicy = EGameplayEffectCopyPolicy::AlwaysLink;
+		BaseModEffect->GameplayEffectRequiredTags.AddTag(FName(TEXT("Stack")));
+
+		// Apply to self
+		DestComponent->ApplyGameplayEffectSpecToTarget(BaseModEffect, DestComponent, 1.f);
+	}
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply StackingEffect"));
+
+		UGameplayEffect * BaseStackedEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("StackingEffect1"))));
+		BaseStackedEffect->Modifiers.SetNum(1);
+		BaseStackedEffect->Modifiers[0].Magnitude.SetValue(StackingValue);
+		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty);
+		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
+		BaseStackedEffect->Period.Value = 1.f;
+		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Highest;
+		BaseStackedEffect->GameplayEffectTags.AddTag(FName(TEXT("Stack")));
+
+		SourceComponent->ApplyGameplayEffectSpecToTarget(BaseStackedEffect, DestComponent);
+	}
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply StackingEffect"));
+
+		UGameplayEffect * BaseStackedEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("StackingEffect2"))));
+		BaseStackedEffect->Modifiers.SetNum(1);
+		BaseStackedEffect->Modifiers[0].Magnitude.SetValue(StackingValue * 2.f);
+		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty);
+		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
+		BaseStackedEffect->Period.Value = 1.f;
+		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Highest;
+
+		SourceComponent->ApplyGameplayEffectSpecToTarget(BaseStackedEffect, DestComponent);
+	}
+
+	{
+		// Tick once
+		GameplayTest_TickWorld(World, 1.f);
+
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->StackingAttribute1;
+		float ExpectedValue = StackingValue * 8.f;	// 4 for the first GE, 4 for first GE during tick
+		Test->TestTrue(SKILL_TEST_TEXT("Stacking Attribute: Actual: %.2f == Exected: %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+
+		// At this point the modifier should be removed and the second GE should be the best match for the stacking rule
+		// Tick once
+		GameplayTest_TickWorld(World, 1.f);
+
+		ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->StackingAttribute1;
+		ExpectedValue = StackingValue * 10.f;	// 4 for the first GE, 4 for first GE during first tick, 2 for the second GE during second tick
+		Test->TestTrue(SKILL_TEST_TEXT("Stacking Attribute: Actual: %.2f == Exected: %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+	}
+
+	ClearGlobalCurveTable();
+	ClearGlobalDataTable();
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
+	return true;
+}
+
+// test to make sure that adding a modifier causes stacks to be recalculated correctly
+bool GameplayEffectsTest_StackingAddingModifiers(UWorld *World, FAutomationTestBase * Test)
+{
+	const float StackingValue = 5.f;
+
+	SetGlobalCurveTable();
+	SetGlobalDataTable();
+
+	ASkillSystemTestPawn *SourceActor = World->SpawnActor<ASkillSystemTestPawn>();
+	ASkillSystemTestPawn *DestActor = World->SpawnActor<ASkillSystemTestPawn>();
+
+	UProperty *StackingProperty = FindFieldChecked<UProperty>(USkillSystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(USkillSystemTestAttributeSet, StackingAttribute1));
+
+	UAttributeComponent * SourceComponent = SourceActor->AttributeComponent;
+	UAttributeComponent * DestComponent = DestActor->AttributeComponent;
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply StackingEffect"));
+
+		UGameplayEffect * BaseStackedEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("StackingEffect1"))));
+		BaseStackedEffect->Modifiers.SetNum(1);
+		BaseStackedEffect->Modifiers[0].Magnitude.SetValue(StackingValue);
+		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty);
+		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
+		BaseStackedEffect->Period.Value = 1.f;
+		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Highest;
+		BaseStackedEffect->GameplayEffectTags.AddTag(FName(TEXT("Stack")));
+
+		SourceComponent->ApplyGameplayEffectSpecToTarget(BaseStackedEffect, DestComponent);
+	}
+
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply StackingEffect"));
+
+		UGameplayEffect * BaseStackedEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("StackingEffect2"))));
+		BaseStackedEffect->Modifiers.SetNum(1);
+		BaseStackedEffect->Modifiers[0].Magnitude.SetValue(StackingValue * 2.f);
+		BaseStackedEffect->Modifiers[0].ModifierType = EGameplayMod::Attribute;
+		BaseStackedEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
+		BaseStackedEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty);
+		BaseStackedEffect->Duration.Value = UGameplayEffect::INFINITE_DURATION;
+		BaseStackedEffect->Period.Value = 1.f;
+		BaseStackedEffect->StackingPolicy = EGameplayEffectStackingPolicy::Highest;
+
+		SourceComponent->ApplyGameplayEffectSpecToTarget(BaseStackedEffect, DestComponent);
+	}
+
+	{
+		// Tick once
+		GameplayTest_TickWorld(World, 1.f);
+
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->StackingAttribute1;
+		float ExpectedValue = StackingValue * 4.f;	// 4 for the second GE executing twice
+		Test->TestTrue(SKILL_TEST_TEXT("Stacking Attribute: Actual: %.2f == Exected: %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+	}
+
+	// Setup a GE to modify IncomingGEs
+	{
+		SKILL_LOG_SCOPE(TEXT("Apply modifier to incoming, tagged GEs"));
+
+		UGameplayEffect* BaseModEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("ProtectBuff"))));
+		BaseModEffect->Modifiers.SetNum(1);
+		BaseModEffect->Modifiers[0].Magnitude.SetValue(3.f);
+		BaseModEffect->Modifiers[0].ModifierType = EGameplayMod::ActiveGE;
+		BaseModEffect->Modifiers[0].ModifierOp = EGameplayModOp::Multiplicitive;
+		BaseModEffect->Modifiers[0].Attribute.SetUProperty(StackingProperty);
+		BaseModEffect->Duration.SetValue(UGameplayEffect::INFINITE_DURATION);
+		BaseModEffect->CopyPolicy = EGameplayEffectCopyPolicy::AlwaysLink;
+		BaseModEffect->GameplayEffectRequiredTags.AddTag(FName(TEXT("Stack")));
+
+		// Apply to self
+		DestComponent->ApplyGameplayEffectSpecToTarget(BaseModEffect, DestComponent, 1.f);
+	}
+
+	{
+		// At this point the modifier should be removed and the second GE should be the best match for the stacking rule
+		// Tick once
+		GameplayTest_TickWorld(World, 1.f);
+
+		float ActualValue = DestComponent->GetSet<USkillSystemTestAttributeSet>()->StackingAttribute1;
+		float ExpectedValue = StackingValue * 7.f;	// 2 for the second GE, 2 for second GE during tick, 3 for the modified first GE during second tick
+		Test->TestTrue(SKILL_TEST_TEXT("Stacking Attribute: Actual: %.2f == Exected: %.2f", ActualValue, ExpectedValue), ActualValue == ExpectedValue);
+	}
+
+	ClearGlobalCurveTable();
+	ClearGlobalDataTable();
+
+	World->EditorDestroyActor(SourceActor, false);
+	World->EditorDestroyActor(DestActor, false);
+
 	return true;
 }
 
 bool FGameplayEffectsTest::RunTest( const FString& Parameters )
 {
 	UCurveTable *CurveTable = ISkillSystemModule::Get().GetSkillSystemGlobals().GetGlobalCurveTable();
+	UDataTable *DataTable = ISkillSystemModule::Get().GetSkillSystemGlobals().GetGlobalAttributeDataTable();
 
 	UWorld *World = UWorld::CreateWorld(EWorldType::Game, false);
 	FWorldContext &WorldContext = GEngine->CreateNewWorldContext(EWorldType::Game);
@@ -2762,13 +4021,14 @@ bool FGameplayEffectsTest::RunTest( const FString& Parameters )
 
 	GameplayEffectsTest_LifestealExtension(World, this);
 	
-	GameplayEffectsTest_ShieldlExtension(World, this);
-	GameplayEffectsTest_ShieldlExtensionMultiple(World, this);
+	GameplayEffectsTest_ShieldExtension(World, this);
+	GameplayEffectsTest_ShieldExtensionMultiple(World, this);
 	
 	GameplayEffectsTest_InstantDamage_ScalingExplicit(World, this);
 	GameplayEffectsTest_InstantDamage_ScalingGlobal(World, this);
 	GameplayEffectsTest_InstantDamage_Override(World, this);
 
+	// Tagging tests
 	GameplayEffectsTest_InstantDamageRequiredTag(World, this);
 	GameplayEffectsTest_InstantDamageIgnoreTag(World, this);
 	
@@ -2783,11 +4043,36 @@ bool FGameplayEffectsTest::RunTest( const FString& Parameters )
 	GameplayEffectsTest_MetaAttributes(World, this);
 	GameplayEffectsTest_TagOrdering(World, this);
 	
+	//
+	// Stacking GE tests
+	//
+
+	// basic rules
+	GameplayEffectsTest_StackingHighest(World, this);
+	GameplayEffectsTest_StackingLowest(World, this);
+	GameplayEffectsTest_StackingUnlimited(World, this);
+	GameplayEffectsTest_StackingRemoval(World, this);
+	GameplayEffectsTest_StackingNoStack(World, this);
+
+	// custom rules
+	GameplayEffectsTest_StackingCustomCapped(World, this);
+	GameplayEffectsTest_StackingCustomDiminishingReturns(World, this);
+
+	// interactions between different rules/attributes
+	GameplayEffectsTest_StackingDifferentRules(World, this);
+	GameplayEffectsTest_StackingDifferentAttributes(World, this);
+	GameplayEffectsTest_StackingCustomTwoRules(World, this);
+	GameplayEffectsTest_StackingCustomTwoAttributes(World, this);
+
+	// interactions between stacking and modifiers
+	GameplayEffectsTest_StackingRemovingModifiers(World, this);
+	GameplayEffectsTest_StackingAddingModifiers(World, this);
 
 	GEngine->DestroyWorldContext(World);
 	World->DestroyWorld(false);
 
 	ISkillSystemModule::Get().GetSkillSystemGlobals().AutomationTestOnly_SetGlobalCurveTable(CurveTable);
+	ISkillSystemModule::Get().GetSkillSystemGlobals().AutomationTestOnly_SetGlobalAttributeDataTable(DataTable);
 	return true;
 }
 

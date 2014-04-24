@@ -8,10 +8,10 @@ class USkillSystemTestAttributeSet : public UAttributeSet
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AttributeTest", meta = (HideFromModifiers))			// You can't make a GameplayEffect modifiy Health Directly (go through)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AttributeTest", meta = (HideFromModifiers))			// You can't make a GameplayEffect modify Health Directly (go through)
 	float	MaxHealth;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AttributeTest", meta = (HideFromModifiers))			// You can't make a GameplayEffect modifiy Health Directly (go through)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AttributeTest", meta = (HideFromModifiers))			// You can't make a GameplayEffect modify Health Directly (go through)
 	float	Health;
 
 	/** This Damage is just used for applying negative health mods. Its not a 'persistent' attribute. */
@@ -22,7 +22,7 @@ class USkillSystemTestAttributeSet : public UAttributeSet
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AttributeTest")
 	float	SpellDamage;
 
-	/** This Attribute is the actual physical damage for this actor. It will power spell based GameplayEffects */
+	/** This Attribute is the actual physical damage for this actor. It will power physical based GameplayEffects */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AttributeTest")
 	float	PhysicalDamage;
 
@@ -43,6 +43,15 @@ class USkillSystemTestAttributeSet : public UAttributeSet
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AttributeTest")
 	float	Strength;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AttributeTest")
+	float	StackingAttribute1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AttributeTest")
+	float	StackingAttribute2;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AttributeTest")
+	float	NoStackAttribute;
 
 	virtual void PreAttributeModify(struct FGameplayEffectModCallbackData &Data) OVERRIDE;
 	virtual void PostAttributeModify(const struct FGameplayEffectModCallbackData &Data) OVERRIDE;

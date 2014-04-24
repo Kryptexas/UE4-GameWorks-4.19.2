@@ -11,6 +11,9 @@ USkillSystemTestAttributeSet::USkillSystemTestAttributeSet(const class FPostCons
 	SpellDamage = 0.f;
 	PhysicalDamage = 0.f;
 	Strength = 0.f;
+	StackingAttribute1 = 0.f;
+	StackingAttribute2 = 0.f;
+	NoStackAttribute = 0.f;
 }
 
 

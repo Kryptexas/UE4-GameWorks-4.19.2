@@ -93,6 +93,22 @@ namespace EGameplayEffectCopyPolicy
 	};
 }
 
+UENUM(BlueprintType)
+namespace EGameplayEffectStackingPolicy
+{
+	enum Type
+	{
+		Unlimited = 0		UMETA(DisplayName = "NoRule"),
+		Highest				UMETA(DisplayName = "Strongest"),
+		Lowest				UMETA(DisplayName = "Weakest"),
+		Replaces			UMETA(DisplayName = "MostRecent"),
+		Callback			UMETA(DisplayName = "Custom"),
+
+		// This must always be at the end
+		Max					UMETA(DisplayName = "Invalid")
+	};
+}
+
 FString EGameplayModOpToString( int32 Type );
 
 FString EGameplayModToString( int32 Type );
@@ -101,6 +117,8 @@ FString EGameplayModEffectToString( int32 Type );
 
 FString EGameplayEffectCopyPolicyToString(int32 Type);
 
+FString EGameplayEffectStackingPolicyToString(int32 Type);
+
 USTRUCT()
 struct FGameplayModifierCallbacks
 {
@@ -108,6 +126,15 @@ struct FGameplayModifierCallbacks
 
 	UPROPERTY(EditDefaultsOnly, Category = GameplayModifier)
 	TArray<TSubclassOf<class UGameplayEffectExtension> >	ExtensionClasses;
+};
+
+USTRUCT()
+struct FGameplayEffectStackingCallbacks
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditDefaultsOnly, Category = GEStack)
+	TArray<TSubclassOf<class UGameplayEffectStackingExtension> >	ExtensionClasses;
 };
 
 /**
@@ -376,12 +403,20 @@ public:
 	/** Description of this combat effect. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Display)
 	FText Description;
+
+	// ----------------------------------------------
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Stacking)
+	TEnumAsByte<EGameplayEffectStackingPolicy::Type>	StackingPolicy;
+
+	UPROPERTY(EditDefaultsOnly, Category = Stacking)
+	TSubclassOf<class UGameplayEffectStackingExtension> StackingExtension;
 };
 
 /**
 * This handle is required for things outside of FActiveGameplayEffectsContainer to refer to a specific active GameplayEffect
 *	For example if a skill needs to create an active effect and then destroy that specific effect that it created, it has to do so
-*	through a handle. a pointer or index into the active list is not suffecient.
+*	through a handle. a pointer or index into the active list is not sufficient.
 */
 USTRUCT(BlueprintType)
 struct FActiveGameplayEffectHandle
@@ -960,7 +995,7 @@ private:
  *	-Const data (FGameplayModifierInfo) tells us what we modify, what we can modify
  *	-Mutable Aggregated data tells us how we modify (magnitude).
  *  
- * Modifiers can be modified. A modifier spec holds these modifications along with a refrence to the const data about the modifier.
+ * Modifiers can be modified. A modifier spec holds these modifications along with a reference to the const data about the modifier.
  * 
  */
 struct FModifierSpec
@@ -1014,6 +1049,7 @@ struct FGameplayEffectSpec
 		: ModifierLevel( TSharedPtr< FGameplayEffectLevelSpec >( new FGameplayEffectLevelSpec() ) )
 		, Duration(new FAggregator(FGameplayModifierEvaluatedData(0.f, NULL, FActiveGameplayEffectHandle()), SKILL_AGG_DEBUG(TEXT("Uninitialized Duration"))))
 		, Period(new FAggregator(FGameplayModifierEvaluatedData(0.f, NULL, FActiveGameplayEffectHandle()), SKILL_AGG_DEBUG(TEXT("Uninitialized Period"))))
+		, StackedAttribName(NAME_None)
 	{
 		// If we initialize a GameplayEffectSpec with no level object passed in.
 	}
@@ -1031,9 +1067,13 @@ struct FGameplayEffectSpec
 
 	float GetDuration() const;
 	float GetPeriod() const;
+	float GetMagnitude(const FGameplayAttribute &Attribute) const;
 
 	FAggregatorRef	Duration;
 	FAggregatorRef	Period;
+
+	EGameplayEffectStackingPolicy::Type StackingPolicy;
+	FName StackedAttribName;
 
 	// The spec needs to own these FModifierSpecs so that other people can keep TSharedPtr to it.
 	// The stuff in this array is OWNED by this spec
@@ -1048,6 +1088,8 @@ struct FGameplayEffectSpec
 	int32 ExecuteModifiersFrom(const FGameplayEffectSpec &InSpec, const FModifierQualifier &QualifierContext);
 
 	bool ShouldApplyAsSnapshot(const FModifierQualifier &QualifierContext) const;
+
+	EGameplayEffectStackingPolicy::Type GetStackingType() const;
 
 	FString ToSimpleString() const
 	{
@@ -1089,7 +1131,7 @@ struct FActiveGameplayEffect : public FFastArraySerializerItem
 		float Period = GetPeriod();
 		if (Period != UGameplayEffect::NO_PERIOD)
 		{
-			NextExecuteTime = CurrentTime + Period;
+			NextExecuteTime = CurrentTime + SMALL_NUMBER;
 		}
 
 		for (FModifierSpec &Mod : Spec.Modifiers)
@@ -1130,6 +1172,11 @@ struct FActiveGameplayEffect : public FFastArraySerializerItem
 	void PreReplicatedRemove(const struct FActiveGameplayEffectsContainer &InArray);
 	void PostReplicatedAdd(const struct FActiveGameplayEffectsContainer &InArray);
 	void PostReplicatedChange(const struct FActiveGameplayEffectsContainer &InArray) { }
+
+	bool operator==(const FActiveGameplayEffect& Other)
+	{
+		return Handle == Other.Handle;
+	}
 };
 
 /**
@@ -1137,7 +1184,7 @@ struct FActiveGameplayEffect : public FFastArraySerializerItem
  *	-Bucket of ActiveGameplayEffects
  *	-Needed for FFastArraySerialization
  *  
- * This should only be used by UAttributeComponent. All of this could just live in UAttributeComponent except that we need a distinc USTRUCT to implement FFastArraySerializer.
+ * This should only be used by UAttributeComponent. All of this could just live in UAttributeComponent except that we need a distinct USTRUCT to implement FFastArraySerializer.
  *
  */
 USTRUCT()
@@ -1145,8 +1192,10 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 {
 	GENERATED_USTRUCT_BODY();
 
+	FActiveGameplayEffectsContainer() : bNeedToRecalculateStacks(false) {};
+
 	UPROPERTY()
-	TArray<FActiveGameplayEffect >	GameplayEffects;
+	TArray< FActiveGameplayEffect >	GameplayEffects;
 	
 	FActiveGameplayEffect & CreateNewActiveGameplayEffect(const FGameplayEffectSpec &Spec, float GameTimeSeconds);
 
@@ -1166,6 +1215,8 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 
 	float GetGameplayEffectMagnitude(FActiveGameplayEffectHandle Handle, FGameplayAttribute Attribute) const;
 
+	// returns true if the handle points to an effect in this container that is not a stacking effect or an effect in this container that does stack and is applied by the current stacking rules
+	// returns false if the handle points to an effect that is not in this container or is not applied because of the current stacking rules
 	bool IsGameplayEffectActive(FActiveGameplayEffectHandle Handle) const;
 
 	void PrintAllGameplayEffects() const;
@@ -1183,12 +1234,17 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 
 	void TEMP_TickActiveEffects(float DeltaSeconds);
 
+	// recalculates all of the stacks in the current container
+	void RecalculateStacking();
+
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo & DeltaParms)
 	{
 		return FastArrayDeltaSerialize<FActiveGameplayEffect>(GameplayEffects, DeltaParms, *this);
 	}
 
 	void PreDestroy();
+
+	bool bNeedToRecalculateStacks;
 
 private:
 
