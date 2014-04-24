@@ -62,7 +62,7 @@ public class MacPlatform : Platform
 		if (!Directory.Exists(BundlePath))
 		{
 			string SourceBundlePath = CombinePaths(SC.ArchiveDirectory, SC.ShortProjectName, "Binaries", "Mac", SC.ShortProjectName + ".app");
-			if (!Directory.Exists(BundlePath))
+			if (!Directory.Exists(SourceBundlePath))
 			{
 				SourceBundlePath = CombinePaths(SC.ArchiveDirectory, "Engine", "Binaries", "Mac", "UE4Game.app");
 			}
