@@ -6,20 +6,7 @@
 #include "IUMGEditor.h"
 #include "BlueprintEditor.h"
 
-struct FWidgetTemplateDescriptor
-{
-	FText Name;
-	
-	FText ToolTip;
-
-	FSlateIcon Icon;
-
-	TSubclassOf<USlateWrapperComponent> WidgetClass;
-	
-	FWidgetTemplateDescriptor()
-	{
-	}
-};
+#include "WidgetTemplateDescriptor.h"
 
 class SUMGEditorWidgetTemplates : public SCompoundWidget
 {

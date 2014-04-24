@@ -13,21 +13,7 @@
 #include "BlueprintEditor.h"
 
 #include "DecoratedDragDropOp.h"
-
-class FWidgetTemplateDragDropOp : public FDecoratedDragDropOp
-{
-public:
-	DRAG_DROP_OPERATOR_TYPE(FWidgetTemplateDragDropOp, FDecoratedDragDropOp)
-
-	TSharedPtr<FWidgetTemplateDescriptor> Template;
-
-	void Init(const TSharedPtr<FWidgetTemplateDescriptor>& InTemplate)
-	{
-		Template = InTemplate;
-	}
-};
-
-
+#include "WidgetTemplateDragDropOp.h"
 
 class SWidgetTemplateItem : public SCompoundWidget
 {
@@ -144,13 +130,11 @@ TSharedRef<ITableRow> SUMGEditorWidgetTemplates::OnGenerateWidgetTemplateItem(TS
 
 FReply SUMGEditorWidgetTemplates::OnDraggingWidgetTemplateItem(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	FReply Reply = FReply::Unhandled();
-
 	if ( WidgetsListView->GetNumItemsSelected() > 0 )
 	{
 		TSharedPtr<FWidgetTemplateDescriptor> Template = WidgetsListView->GetSelectedItems()[0];
-//		Reply = FReply::Handled().BeginDragDrop(FWidgetTemplateDragDropOp::New(Template));
+		return FReply::Handled().BeginDragDrop(FWidgetTemplateDragDropOp::New(Template));
 	}
 
-	return Reply;
+	return FReply::Unhandled();
 }

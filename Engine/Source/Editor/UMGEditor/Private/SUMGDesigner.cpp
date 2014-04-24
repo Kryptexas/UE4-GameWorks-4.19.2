@@ -6,6 +6,7 @@
 
 #include "BlueprintEditor.h"
 #include "SKismetInspector.h"
+#include "PrimitiveTypes.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -45,8 +46,6 @@
 
 
 //////////////////////////////////////////////////////////////////////////
-
-FWorkflowApplicationModeExtender BlueprintEditorExtenderDelegate;
 
 static bool LocateWidgetsUnderCursor_Helper(FArrangedWidget& Candidate, FVector2D InAbsoluteCursorLocation, FArrangedChildren& OutWidgetsUnderCursor, bool bIgnoreEnabledStatus)
 {
@@ -193,6 +192,7 @@ FReply SUMGDesigner::OnMouseButtonDown(const FGeometry& MyGeometry, const FPoint
 			PreviewHandle = WidgetActor->GetWidgetHandle(Child.Widget);
 			if ( PreviewHandle )
 			{
+				SelectedWidget = Child.Widget;
 				break;
 			}
 		}
@@ -203,6 +203,58 @@ FReply SUMGDesigner::OnMouseButtonDown(const FGeometry& MyGeometry, const FPoint
 	}
 
 	return FReply::Handled();
+}
+
+bool SUMGDesigner::GetLocallyArrangedWidget(TSharedRef<SWidget> Widget, FArrangedWidget& ArrangedWidget) const
+{
+	// We can't screenshot the widget unless there's a valid window handle to draw it in.
+	TSharedPtr<SWindow> WidgetWindow = FSlateApplication::Get().FindWidgetWindow(Widget);
+	if ( !WidgetWindow.IsValid() )
+	{
+		return false;
+	}
+
+	TSharedRef<SWindow> CurrentWindowRef = WidgetWindow.ToSharedRef();
+
+	FWidgetPath WidgetPath;
+	if ( FSlateApplication::Get().GeneratePathToWidgetUnchecked(Widget, WidgetPath) )
+	{
+		ArrangedWidget = WidgetPath.FindArrangedWidget(Widget);
+		ArrangedWidget.Geometry.AbsolutePosition -= CurrentWindowRef->GetPositionInScreen();
+		return true;
+	}
+
+	return false;
+}
+
+int32 SUMGDesigner::OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+{
+	SCompoundWidget::OnPaint(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+
+	if ( SelectedWidget.IsValid() )
+	{
+		TSharedRef<SWidget> Widget = SelectedWidget.Pin().ToSharedRef();
+
+		FArrangedWidget ArrangedWidget(SNullWidget::NullWidget, FGeometry());
+		GetLocallyArrangedWidget(Widget, ArrangedWidget);
+
+		const FLinearColor Tint(0, 1, 0);
+
+		FSlateDrawElement::MakeBox(
+			OutDrawElements,
+			++LayerId,
+			FPaintGeometry(
+			ArrangedWidget.Geometry.AbsolutePosition,
+			ArrangedWidget.Geometry.Size * ArrangedWidget.Geometry.Scale,
+			ArrangedWidget.Geometry.Scale),
+			FCoreStyle::Get().GetBrush(TEXT("Debug.Border")),
+			MyClippingRect,
+			ESlateDrawEffect::None,
+			Tint
+		);
+	}
+
+	return LayerId;
 }
 
 void SUMGDesigner::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)

@@ -277,6 +277,8 @@ public:
 //////////////////////////////////////////////////////////////////////////
 // FUMGBlueprintEditorExtensionHook
 
+FWorkflowApplicationModeExtender BlueprintEditorExtenderDelegate;
+
 void FUMGBlueprintEditorExtensionHook::InstallHooks()
 {
 	BlueprintEditorExtenderDelegate = FWorkflowApplicationModeExtender::CreateStatic(&FBlueprintEditorExtenderForSlatePreview::OnModeCreated);
