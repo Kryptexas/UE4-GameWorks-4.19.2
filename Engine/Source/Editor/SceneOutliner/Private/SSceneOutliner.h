@@ -480,12 +480,6 @@ namespace SceneOutliner
 		 */
 		void AddFilteredParentActorToTree(const AActor* InActor);
 
-		/** Returns whether any of the parent items lie within the subtree of the supplied parent actor, and are in an expanded state */
-		bool HasExpandedChildren(const AActor* ParentActor, const FParentActorsSet& ParentActors, const FParentsExpansionState& ExpansionStateInfo) const;
-
-		/** Returns whether any of the parent items or folders lie within the subtree of the supplied folder, and are in an expanded state */
-		bool HasExpandedChildren(FName ParentFolder, const FParentActorsSet& ParentActors, const FParentsExpansionState& ExpansionStateInfo) const;
-
 		/** Gets the current expansion state of parent items */
 		void GetParentsExpansionState(FParentsExpansionState& ExpansionStateInfo) const;
 
