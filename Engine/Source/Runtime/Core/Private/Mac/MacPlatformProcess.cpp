@@ -196,7 +196,7 @@ void FMacPlatformProcess::LaunchURL( const TCHAR* URL, const TCHAR* Parms, FStri
 	}
 }
 
-void FMacPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params, int32* OutReturnCode, FString* OutStdOut, FString* OutStdErr )
+bool FMacPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params, int32* OutReturnCode, FString* OutStdOut, FString* OutStdErr )
 {
 	SCOPED_AUTORELEASE_POOL;
 
@@ -207,7 +207,7 @@ void FMacPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params, in
 	{
 		*OutReturnCode = ENOENT;
 		*OutStdErr = TEXT("No such executable");
-		return;
+		return false;
 	}
 	
 	NSTask* ProcessHandle = [[NSTask new] autorelease];
@@ -290,7 +290,9 @@ void FMacPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params, in
 				*OutStdErr = FString(StdErrString);
 			}
 		}
+		return true;
 	}
+	return false;
 }
 
 FProcHandle FMacPlatformProcess::CreateProc( const TCHAR* URL, const TCHAR* Parms, bool bLaunchDetached, bool bLaunchHidden, bool bLaunchReallyHidden, uint32* OutProcessID, int32 PriorityModifier, const TCHAR* OptionalWorkingDirectory, void* PipeWrite )

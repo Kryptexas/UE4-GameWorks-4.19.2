@@ -452,7 +452,7 @@ void FWindowsPlatformProcess::ReadFromPipes(FString* OutStrings[], HANDLE InPipe
  * Executes a process, returning the return code, stdout, and stderr. This
  * call blocks until the process has returned.
  */
-void FWindowsPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params, int32* OutReturnCode, FString* OutStdOut, FString* OutStdErr )
+bool FWindowsPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params, int32* OutReturnCode, FString* OutStdOut, FString* OutStdErr )
 {
 	PROCESS_INFORMATION ProcInfo;
 	SECURITY_ATTRIBUTES Attr;
@@ -484,6 +484,7 @@ void FWindowsPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params
 		}
 	}
 
+	bool bSuccess = false;
 	STARTUPINFO StartupInfo = { sizeof(STARTUPINFO), NULL, NULL, NULL,
 		CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
 		NULL, NULL, NULL, dwFlags, ShowWindowFlags, NULL, NULL,
@@ -512,6 +513,7 @@ void FWindowsPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params
 		}
 		::CloseHandle(ProcInfo.hProcess);
 		::CloseHandle(ProcInfo.hThread);
+		bSuccess = true;
 	}
 	else
 	{
@@ -531,6 +533,33 @@ void FWindowsPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params
 			verify(::CloseHandle(ReadablePipes[PipeIndex]));
 		}
 	}
+
+	return bSuccess;
+}
+
+bool FWindowsPlatformProcess::ExecElevatedProcess(const TCHAR* URL, const TCHAR* Params, int32* OutReturnCode)
+{
+	SHELLEXECUTEINFO ShellExecuteInfo;
+	ZeroMemory(&ShellExecuteInfo, sizeof(ShellExecuteInfo));
+	ShellExecuteInfo.cbSize = sizeof(ShellExecuteInfo);
+	ShellExecuteInfo.fMask = SEE_MASK_UNICODE | SEE_MASK_NOCLOSEPROCESS;
+	ShellExecuteInfo.lpFile = URL;
+	ShellExecuteInfo.lpVerb = TEXT("runas");
+	ShellExecuteInfo.nShow = SW_SHOW;
+	ShellExecuteInfo.lpParameters = Params;
+
+	bool bSuccess = false;
+	if (ShellExecuteEx(&ShellExecuteInfo))
+	{
+		::WaitForSingleObject(ShellExecuteInfo.hProcess, INFINITE);
+		if (OutReturnCode != NULL)
+		{
+			verify(::GetExitCodeProcess(ShellExecuteInfo.hProcess, (::DWORD*)OutReturnCode));
+		}
+		verify(::CloseHandle(ShellExecuteInfo.hProcess));
+		bSuccess = true;
+	}
+	return bSuccess;
 }
 
 void FWindowsPlatformProcess::CleanFileCache()
