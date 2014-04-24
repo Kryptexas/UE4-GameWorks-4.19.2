@@ -98,9 +98,6 @@ bool FSocketBSDIPv6::HasPendingConnection(bool& bHasPendingConnection)
 
 bool FSocketBSDIPv6::HasPendingData(uint32& PendingDataSize)
 {
-	bool bHasSucceeded = false;
-	PendingDataSize = 0;
-
 	// make sure socket has no error state
 	if (HasState(EIPv6SocketInternalState::CanRead) == EIPv6SocketInternalState::Yes)
 	{
@@ -109,11 +106,11 @@ bool FSocketBSDIPv6::HasPendingData(uint32& PendingDataSize)
 		if(ioctlsocket(Socket, FIONREAD, (u_long*)(&PendingDataSize)) == 0)
 #endif
 		{
-			bHasSucceeded = true;
+			return (PendingDataSize > 0);
 		}
 	}
 
-	return bHasSucceeded;
+	return false;
 }
 
 

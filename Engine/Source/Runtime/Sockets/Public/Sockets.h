@@ -93,7 +93,7 @@ public:
 	*
 	* @param PendingDataSize out parameter indicating how much data is on the pipe for a single recv call
 	*
-	* @return true if successful, false otherwise
+	* @return true if the socket has data, false otherwise
 	*/
 	virtual bool HasPendingData(uint32& PendingDataSize) = 0;
 

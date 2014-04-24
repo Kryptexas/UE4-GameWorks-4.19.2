@@ -68,23 +68,14 @@ bool FSocketSteam::HasPendingConnection(bool& bHasPendingConnection)
 	return false;
 }
 
-/**
- * Queries the socket to determine if there is pending data on the queue
- *
- * @param PendingDataSize out parameter indicating how much data is on the pipe for a single recv call
- *
- * @return true if successful, false otherwise
- */
 bool FSocketSteam::HasPendingData(uint32& PendingDataSize) 
 {
-	bool bSuccess = true;
-	if (!SteamNetworkingPtr->IsP2PPacketAvailable(&PendingDataSize, SteamChannel))
+	if (SteamNetworkingPtr->IsP2PPacketAvailable(&PendingDataSize, SteamChannel))
 	{
-		PendingDataSize = 0;
-		bSuccess = false;
+		return (PendingDataSize > 0);
 	}
 
-	return bSuccess;
+	return false;
 }
 
 /**
