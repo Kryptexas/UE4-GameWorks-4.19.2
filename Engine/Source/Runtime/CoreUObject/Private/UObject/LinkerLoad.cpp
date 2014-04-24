@@ -3157,7 +3157,7 @@ UObject* ULinkerLoad::CreateExport( int32 Index )
  					// Preload classes on first access.  Note that this may update the Export.Object, so ClassObject is not guaranteed to be valid after this point
 					// If we're async loading on a cooked build we can skip this as there's no chance we will need to recompile the class. 
 					// Preload will be called during async package tick when the data has been precached
-					if( !FPlatformProperties::RequiresCookedData() || !GIsAsyncLoading )
+					if( !FPlatformProperties::RequiresCookedData() )
 					{
  						Preload( Export.Object );
 					}
