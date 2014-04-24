@@ -24,7 +24,7 @@ public:
 	static void CheckForOutOfDateGameProjectFile();
 
 	/** Updates the currently loaded project. Returns true if the project was updated successfully or if no update was needed */
-	static bool UpdateGameProject();
+	static bool UpdateGameProject(const FString &EngineIdentifier);
 
 	/** Opens a dialog to add code files to a project */
 	static void OpenAddCodeToProjectDialog();
@@ -207,7 +207,7 @@ private:
 
 	 * @return true, if successful
 	 */
-	static bool UpdateGameProjectFile(const FString& ProjectFilename, const TArray<FString>* StartupModuleNames, bool& OutbWasCheckedOut, FText& OutFailReason);
+	static bool UpdateGameProjectFile(const FString& ProjectFilename, const FString& EngineIdentifier, const TArray<FString>* StartupModuleNames, bool& OutbWasCheckedOut, FText& OutFailReason);
 
 	/** Checks the specified game project file out from source control */
 	static bool CheckoutGameProjectFile(const FString& ProjectFilename, FText& OutFailReason);

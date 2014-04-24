@@ -67,9 +67,11 @@ int32 UUpdateGameProjectCommandlet::Main( const FString& InParams )
 		SourceControlProvider.Init();
 	}
 
-	UE_LOG(LogUpdateGameProjectCommandlet, Display, TEXT("Updating project file %s..."), *ProjectFilePath);
+	FString EngineIdentifier = GEngineVersion.ToString(EVersionComponent::Minor);
 
-	if ( !FGameProjectGenerationModule::Get().UpdateGameProject() )
+	UE_LOG(LogUpdateGameProjectCommandlet, Display, TEXT("Updating project file %s to %s..."), *ProjectFilePath, *EngineIdentifier);
+
+	if ( !FGameProjectGenerationModule::Get().UpdateGameProject(EngineIdentifier) )
 	{
 		// UpdateGameProject produces it's own error to the log
 		return 1;
