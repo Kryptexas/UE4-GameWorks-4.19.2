@@ -720,7 +720,6 @@ public:
 		return PLATFORM_HAS_TOUCH_MAIN_SCREEN;
 	}
 
-#if PLATFORM_DESKTOP
 	/**
 	* Enumerates all the registered engine installations.
 	*
@@ -744,7 +743,6 @@ public:
 	* @param	OutIdentifier		Identifier used to refer to this installation.
 	*/
 	static bool GetEngineIdentifierFromRootDir(const FString &RootDir, FString &OutIdentifier);
-#endif
 
 #if !UE_BUILD_SHIPPING
 protected:
