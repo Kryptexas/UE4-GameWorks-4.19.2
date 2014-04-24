@@ -4,9 +4,9 @@
 #include "LinuxWindow.h"
 #include "LinuxCursor.h"
 #include "GenericApplicationMessageHandler.h"
-#if WITH_ENGINE
+#if STEAM_CONTROLLER_SUPPORT
 #include "SteamControllerInterface.h"
-#endif
+#endif // STEAM_CONTROLLER_SUPPORT
 
 //	todo:
 //	need to change to a linux one
@@ -77,9 +77,9 @@ FLinuxApplication* FLinuxApplication::CreateLinuxApplication()
 
 
 FLinuxApplication::FLinuxApplication() : GenericApplication( MakeShareable( new FLinuxCursor() ) )
-#if WITH_ENGINE
+#if STEAM_CONTROLLER_SUPPORT
 	, SteamInput( SteamControllerInterface::Create(MessageHandler) )
-#endif
+#endif // STEAM_CONTROLLER_SUPPORT
 {
 	bUsingHighPrecisionMouseInput = false;
 	bAllowedToDeferMessageProcessing = false;

@@ -97,9 +97,9 @@ private:
 
 	SDLControllerState *ControllerStates;
 
-#if WITH_ENGINE
+#if STEAM_CONTROLLER_SUPPORT
 	TSharedPtr< class SteamControllerInterface > SteamInput;
-#endif
+#endif // STEAM_CONTROLLER_SUPPORT
 };
 
 
