@@ -231,6 +231,11 @@ public:
 			FlagsString += TEXT(" UAV");
 		}
 
+		if(LocalFlags & TexCreate_FastVRAM)
+		{
+			FlagsString += TEXT(" VRam");
+		}
+
 		FString ArrayString;
 
 		if(IsArray())
