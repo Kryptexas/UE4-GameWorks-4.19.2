@@ -4495,10 +4495,12 @@ void FNativeClassHeaderGenerator::ExportGeneratedCPP()
 																								LINE_TERMINATOR
 		);
 
+	FString ModulePCHInclude;
+
 	const auto* ModuleInfo = GPackageToManifestModuleMap.FindChecked(Package);
 	if (ModuleInfo->PCH.Len())
 	{
-		GeneratedCPPClassesIncludes.Logf(TEXT("#include \"%s\"") LINE_TERMINATOR, *ModuleInfo->PCH);
+		ModulePCHInclude = FString::Printf(TEXT("#include \"%s\"") LINE_TERMINATOR, *ModuleInfo->PCH);
 	}
 
 	// Write out the ordered class dependencies into a single header that we can easily include
@@ -4562,7 +4564,7 @@ void FNativeClassHeaderGenerator::ExportGeneratedCPP()
 
 		FString HeaderPath = ModuleInfo->GeneratedCPPFilenameBase + (GeneratedFunctionBodyTextSplit.Num() > 1 ? *FString::Printf(TEXT(".%d.cpp"), FileIdx + 1) : TEXT(".cpp"));
 		
-		SaveHeaderIfChanged(*HeaderPath, *(GeneratedCPPPreamble + GeneratedCPPClassesIncludes + FileText + GeneratedCPPEpilogue));
+		SaveHeaderIfChanged(*HeaderPath, *(GeneratedCPPPreamble + ModulePCHInclude + GeneratedCPPClassesIncludes + FileText + GeneratedCPPEpilogue));
 
 		if (GeneratedFunctionBodyTextSplit.Num() > 1)
 		{
@@ -4580,7 +4582,7 @@ void FNativeClassHeaderGenerator::ExportGeneratedCPP()
 		}
 
 		FString HeaderPath = ModuleInfo->GeneratedCPPFilenameBase + TEXT(".cpp");
-		SaveHeaderIfChanged(*HeaderPath, *(GeneratedCPPPreamble + FileText + GeneratedCPPEpilogue));
+		SaveHeaderIfChanged(*HeaderPath, *(GeneratedCPPPreamble + ModulePCHInclude + FileText + GeneratedCPPEpilogue));
 	}
 
 	if( FParse::Param( FCommandLine::Get(), TEXT("GenerateConstructors") ) && AllConstructors.Len())

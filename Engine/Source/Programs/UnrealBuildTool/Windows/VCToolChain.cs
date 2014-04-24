@@ -797,7 +797,10 @@ namespace UnrealBuildTool
 							FileArguments += string.Format(" /Yu\"{0}\"", CompileEnvironment.Config.PCHHeaderNameInCode);
 							FileArguments += string.Format(" /Fp\"{0}\"", CompileEnvironment.PrecompiledHeaderFile.AbsolutePath);
 
-							if( CompileEnvironment.Config.bForceIncludePrecompiledHeader )
+							// Is it unsafe to always force inclusion?  Clang is doing it, and .generated.cpp files
+							// won't work otherwise, because they're not located in the context of the module,
+							// so they can't access the module's PCH without an absolute path.
+							//if( CompileEnvironment.Config.bForceIncludePrecompiledHeader )
 							{
 								// Force include the precompiled header file.  This is needed because we may have selected a
 								// precompiled header that is different than the first direct include in the C++ source file, but

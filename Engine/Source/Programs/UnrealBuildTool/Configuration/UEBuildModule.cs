@@ -983,6 +983,9 @@ namespace UnrealBuildTool
 				bModuleUsesUnityBuild = false;
 			}
 
+			// The environment with which to compile the CPP files
+			var CPPCompileEnvironment = ModuleCompileEnvironment;
+
 			// Precompiled header support.
 			bool bWasModuleCodeCompiled = false;
 			if (BuildPlatform.ShouldUsePCHFiles(CompileEnvironment.Config.TargetPlatform, CompileEnvironment.Config.TargetConfiguration))
@@ -1137,9 +1140,11 @@ namespace UnrealBuildTool
 				// Only use precompiled headers for projects with enough files to make the PCH creation worthwhile.
 				if( SharedPCHHeaderFile != null || SourceFiles.CPPFiles.Count >= MinFilesUsingPrecompiledHeader )
 				{
+					FileItem PCHToUse;
+
 					if( SharedPCHHeaderFile != null )
 					{
-						ModulePCHEnvironment = ApplySharedPCH(GlobalCompileEnvironment, CompileEnvironment, ModuleCompileEnvironment, SourceFiles.CPPFiles, SharedPCHHeaderFile);
+						ModulePCHEnvironment = ApplySharedPCH(GlobalCompileEnvironment, CompileEnvironment, ModuleCompileEnvironment, SourceFiles.CPPFiles, ref SharedPCHHeaderFile);
 						if (ModulePCHEnvironment != null)
 						{
 							// @todo SharedPCH: Ideally we would exhaustively check for a compatible compile environment (definitions, imports/exports, etc)
@@ -1148,9 +1153,21 @@ namespace UnrealBuildTool
 							//    errors unexpectedly due to compile environment differences.
 							Log.TraceVerbose("Module " + Name + " uses existing SharedPCH '" + ModulePCHEnvironment.PrecompiledHeaderIncludeFilename + "' (from module " + ModulePCHEnvironment.ModuleName + ")");
 						}
-						else
+
+						PCHToUse = SharedPCHHeaderFile;
+					}
+					else
+					{
+						PCHToUse = ProcessedDependencies.UniquePCHHeaderFile;
+					}
+
+					if (PCHToUse != null)
+					{
+						// Update all CPPFiles to point to the PCH
+						foreach (var CPPFile in SourceFiles.CPPFiles)
 						{
-							SharedPCHHeaderFile = null;
+							CPPFile.PCHHeaderNameInCode              = PCHToUse.AbsolutePath;
+							CPPFile.PrecompiledHeaderIncludeFilename = PCHToUse.AbsolutePath;
 						}
 					}
 
@@ -1246,14 +1263,12 @@ namespace UnrealBuildTool
 
 						// if pch action was generated for the environment then use pch
 						ModulePCHCompileEnvironment.PrecompiledHeaderFile = ModulePCHEnvironment.PrecompiledHeaderFile;
-						LinkInputFiles.AddRange( ModulePCHCompileEnvironment.CompileFiles( CPPFilesToBuild, Name ).ObjectFiles );
+
+						// Use this compile environment from now on
+						CPPCompileEnvironment = ModulePCHCompileEnvironment;
 					}
-					else
-					{
-						// otherwise, compile non-pch
-						LinkInputFiles.AddRange( ModuleCompileEnvironment.CompileFiles( CPPFilesToBuild, Name ).ObjectFiles );
-					}
-					
+
+					LinkInputFiles.AddRange( CPPCompileEnvironment.CompileFiles( CPPFilesToBuild, Name ).ObjectFiles );
 					bWasModuleCodeCompiled = true;
 				}
 
@@ -1271,7 +1286,7 @@ namespace UnrealBuildTool
 				{
 					CPPFilesToCompile = Unity.GenerateUnityCPPs( CPPFilesToCompile, ModuleCompileEnvironment, Name );
 				}
-				LinkInputFiles.AddRange( ModuleCompileEnvironment.CompileFiles( CPPFilesToCompile, Name ).ObjectFiles );
+				LinkInputFiles.AddRange( CPPCompileEnvironment.CompileFiles( CPPFilesToCompile, Name ).ObjectFiles );
 			}
 
 			string PCHPath = null;
@@ -1284,7 +1299,7 @@ namespace UnrealBuildTool
 			{
 				var GeneratedCppFileItem = FileItem.GetItemByPath( AutoGenerateInlInfo.Filename );
 
-				LinkInputFiles.AddRange( ModuleCompileEnvironment.CompileFiles( new List<FileItem>{ GeneratedCppFileItem }, Name ).ObjectFiles );
+				LinkInputFiles.AddRange( CPPCompileEnvironment.CompileFiles( new List<FileItem>{ GeneratedCppFileItem }, Name ).ObjectFiles );
 			}
 
 			// Compile C files directly.
@@ -1321,10 +1336,11 @@ namespace UnrealBuildTool
 			return LinkInputFiles;
 		}
 
-		private PrecompileHeaderEnvironment ApplySharedPCH(CPPEnvironment GlobalCompileEnvironment, CPPEnvironment CompileEnvironment, CPPEnvironment ModuleCompileEnvironment, List<FileItem> CPPFiles, FileItem SharedPCHHeaderFile)
+		private PrecompileHeaderEnvironment ApplySharedPCH(CPPEnvironment GlobalCompileEnvironment, CPPEnvironment CompileEnvironment, CPPEnvironment ModuleCompileEnvironment, List<FileItem> CPPFiles, ref FileItem SharedPCHHeaderFile)
 		{
 			// Check to see if we have a PCH header already setup that we can use
-			var SharedPCHEnvironment = GlobalCompileEnvironment.SharedPCHEnvironments.Find(Env => Env.PrecompiledHeaderIncludeFilename == SharedPCHHeaderFile);
+			var SharedPCHHeaderFileCopy = SharedPCHHeaderFile;
+			var SharedPCHEnvironment = GlobalCompileEnvironment.SharedPCHEnvironments.Find(Env => Env.PrecompiledHeaderIncludeFilename == SharedPCHHeaderFileCopy);
 			if (SharedPCHEnvironment == null)
 				return null;
 
@@ -1332,6 +1348,7 @@ namespace UnrealBuildTool
 			if (SharedPCHEnvironment.CLRMode != ModuleCompileEnvironment.Config.CLRMode)
 			{
 				Log.TraceVerbose("Module {0} cannot use existing SharedPCH '{1}' (from module '{2}') because CLR modes don't match", Name, SharedPCHEnvironment.PrecompiledHeaderIncludeFilename.AbsolutePath, SharedPCHEnvironment.ModuleName);
+				SharedPCHHeaderFile = null;
 				return null;
 			}
 
@@ -1355,14 +1372,8 @@ namespace UnrealBuildTool
 			if (SharedPCHCodeOptimization != ModuleCodeOptimization)
 			{
 				Log.TraceVerbose("Module {0} cannot use existing SharedPCH '{1}' (from module '{2}') because optimization levels don't match", Name, SharedPCHEnvironment.PrecompiledHeaderIncludeFilename.AbsolutePath, SharedPCHEnvironment.ModuleName);
+				SharedPCHHeaderFile = null;
 				return null;
-			}
-
-			// Update all CPPFiles to point to the shared PCH
-			foreach (var CPPFile in CPPFiles)
-			{
-				CPPFile.PCHHeaderNameInCode              = SharedPCHHeaderFile.AbsolutePath;
-				CPPFile.PrecompiledHeaderIncludeFilename = SharedPCHHeaderFile.AbsolutePath;
 			}
 
 			return SharedPCHEnvironment;
