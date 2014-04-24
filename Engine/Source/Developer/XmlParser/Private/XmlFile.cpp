@@ -71,7 +71,7 @@ bool FXmlFile::LoadFile(const FString& InFile, EConstructMethod::Type ConstructM
 	else
 	{
 		// Parse input buffer into an array of lines
-		SplitLines(Input, *InFile, sizeof(TCHAR) * InFile.Len());
+		SplitLines(Input, *InFile, InFile.Len());
 	}
 
 	// Pre-process the input
