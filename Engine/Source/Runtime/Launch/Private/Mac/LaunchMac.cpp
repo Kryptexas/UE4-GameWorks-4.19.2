@@ -232,12 +232,12 @@ void EngineCrashHandler(const FGenericCrashContext & GenericContext)
 
 @end
 
-int main(int argc, char *argv[])
+INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 {
-	for (int32 Option = 1; Option < argc; Option++)
+	for (int32 Option = 1; Option < ArgC; Option++)
 	{
 		GSavedCommandLine += TEXT(" ");
-		FString Argument(ANSI_TO_TCHAR(argv[Option]));
+		FString Argument(ArgV[Option]);
 		if (Argument.Contains(TEXT(" ")))
 		{
 			if (Argument.Contains(TEXT("=")))
@@ -255,5 +255,5 @@ int main(int argc, char *argv[])
 		GSavedCommandLine += Argument;
 	}
 
-	return NSApplicationMain(argc, (const char **)argv);
+	return NSApplicationMain(ArgC, (const char **)ArgV);
 }

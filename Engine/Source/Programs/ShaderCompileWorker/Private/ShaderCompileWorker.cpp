@@ -466,7 +466,7 @@ private:
  *		The parent process Id
  *		The thread Id corresponding to this worker
  */
-int32 GuardedMain(int32 argc, ANSICHAR* argv[])
+int32 GuardedMain(int32 argc, TCHAR* argv[])
 {
 	GEngineLoop.PreInit(argc, argv, TEXT("-NOPACKAGECACHE -Multiprocess"));
 #if DEBUG_USING_CONSOLE
@@ -475,7 +475,7 @@ int32 GuardedMain(int32 argc, ANSICHAR* argv[])
 
 #if PLATFORM_WINDOWS
 	//@todo - would be nice to change application name or description to have the ThreadId in it for debugging purposes
-	SetConsoleTitle(ANSI_TO_TCHAR(argv[3]));
+	SetConsoleTitle(argv[3]);
 #endif
 
 	// We just enumerate the shader formats here for debugging.
@@ -494,7 +494,7 @@ int32 GuardedMain(int32 argc, ANSICHAR* argv[])
 
 	LastCompileTime = FPlatformTime::Seconds();
 
-	FString InCommunicating = ANSI_TO_TCHAR(argv[6]);
+	FString InCommunicating = argv[6];
 #if PLATFORM_SUPPORTS_NAMED_PIPES
 	const bool bThroughFile = (InCommunicating == FString(TEXT("-communicatethroughfile")));
 	const bool bThroughNamedPipe = (InCommunicating == FString(TEXT("-communicatethroughnamedpipe")));
@@ -507,14 +507,14 @@ int32 GuardedMain(int32 argc, ANSICHAR* argv[])
 	check((int32)bThroughFile + (int32)bThroughNamedPipe + (int32)bThroughNamedPipeOnce == 1);
 
 	FWorkLoop::ECommunicationMode Mode = bThroughFile ? FWorkLoop::ThroughFile : (bThroughNamedPipeOnce ? FWorkLoop::ThroughNamedPipeOnce : FWorkLoop::ThroughNamedPipe);
-	FWorkLoop WorkLoop(ANSI_TO_TCHAR(argv[2]), ANSI_TO_TCHAR(argv[1]), ANSI_TO_TCHAR(argv[4]), ANSI_TO_TCHAR(argv[5]), Mode);
+	FWorkLoop WorkLoop(argv[2], argv[1], argv[4], argv[5], Mode);
 
 	WorkLoop.Loop();
 
 	return 0;
 }
 
-int32 GuardedMainWrapper(int32 ArgC, ANSICHAR* ArgV[], const TCHAR* CrashOutputFile)
+int32 GuardedMainWrapper(int32 ArgC, TCHAR* ArgV[], const TCHAR* CrashOutputFile)
 {
 	int32 ReturnCode = 0;
 #if !PLATFORM_MAC
@@ -576,7 +576,8 @@ IMPLEMENT_APPLICATION(ShaderCompileWorker, "ShaderCompileWorker")
  * @param	ArgC	Command-line argument count
  * @param	ArgV	Argument strings
  */
-int32 main( int32 ArgC, ANSICHAR* ArgV[] )
+
+INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 {
 	if(ArgC < 6)
 	{
@@ -587,10 +588,9 @@ int32 main( int32 ArgC, ANSICHAR* ArgV[] )
 	// so just make sure we have at least the minimum number of parameters.
 	check(ArgC >= 6);
 
-	// ANSI_TO_TCHAR makes this need to be declared outside of a function with __try
 	TCHAR OutputFilePath[PLATFORM_MAX_FILEPATH_LENGTH];
-	FCString::Strncpy(OutputFilePath, ANSI_TO_TCHAR(ArgV[1]), PLATFORM_MAX_FILEPATH_LENGTH);
-	FCString::Strncat(OutputFilePath, ANSI_TO_TCHAR(ArgV[5]), PLATFORM_MAX_FILEPATH_LENGTH);
+	FCString::Strncpy(OutputFilePath, ArgV[1], PLATFORM_MAX_FILEPATH_LENGTH);
+	FCString::Strncat(OutputFilePath, ArgV[5], PLATFORM_MAX_FILEPATH_LENGTH);
 
 	const int32 ReturnCode = GuardedMainWrapper(ArgC,ArgV,OutputFilePath);
 	return ReturnCode;

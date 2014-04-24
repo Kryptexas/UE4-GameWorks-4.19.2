@@ -464,7 +464,7 @@ FEngineLoop::FEngineLoop()
 { }
 
 
-int32 FEngineLoop::PreInit(int32 ArgC, ANSICHAR* ArgV[], const TCHAR* AdditionalCommandline)
+int32 FEngineLoop::PreInit(int32 ArgC, TCHAR* ArgV[], const TCHAR* AdditionalCommandline)
 {
 	FString CmdLine;
 

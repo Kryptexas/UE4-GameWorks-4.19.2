@@ -596,7 +596,7 @@ bool ExtractFilesFromPak(const TCHAR* InPakFilename, const TCHAR* InDestPath)
  * @param	ArgC	Command-line argument count
  * @param	ArgV	Argument strings
  */
-int32 main(int32 ArgC, ANSICHAR* ArgV[])
+INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 {
 	// start up the main loop
 	GEngineLoop.PreInit(ArgC, ArgV);

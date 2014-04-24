@@ -54,7 +54,7 @@ int32 GuardedMainWrapper( int32 ArgC, ANSICHAR* ArgV[] )
 }
 
  // Main entry point to the application
-int32 main( int32 ArgC, ANSICHAR* ArgV[] )
+INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 {
 	const int32 Result = GuardedMainWrapper( ArgC, ArgV );
 	return Result;
