@@ -312,4 +312,19 @@ int Main(const TArray<FString> &Arguments)
 
 	#include "HideWindowsPlatformTypes.h"
 
+#else
+
+	int main(int ArgC, const char *ArgV[])
+	{
+		FCommandLine::Set(TEXT(""));
+		
+		TArray<FString> Arguments;
+		for (int Idx = 1; Idx < ArgC; Idx++)
+		{
+			Arguments.Add(ArgV[Idx]);
+		}
+		
+		return Main(Arguments);
+	}
+
 #endif
