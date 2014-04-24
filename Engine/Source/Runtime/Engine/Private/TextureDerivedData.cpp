@@ -1376,6 +1376,19 @@ void UTexture::UpdateCachedLODBias()
 void UTexture::BeginCachePlatformData()
 {
 	CachePlatformData(true);
+
+	// enable caching in postload for derived data cache commandlet and cook by the book
+	ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
+	if (TPM && (TPM->RestrictFormatsToRuntimeOnly() == false))
+	{
+		ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
+		TArray<ITargetPlatform*> Platforms = TPM->GetActiveTargetPlatforms();
+		// Cache for all the shader formats that the cooking target requires
+		for (int32 FormatIndex = 0; FormatIndex < Platforms.Num(); FormatIndex++)
+		{
+			BeginCacheForCookedPlatformData(Platforms[FormatIndex]);
+		}
+	}
 }
 
 void UTexture::BeginCacheForCookedPlatformData( const ITargetPlatform *TargetPlatform )

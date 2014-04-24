@@ -1598,38 +1598,7 @@ void UMaterial::Serialize(FArchive& Ar)
 
 	if (Ar.UE4Ver() >= VER_UE4_PURGED_FMATERIAL_COMPILE_OUTPUTS)
 	{
-
 		SerializeInlineShaderMaps( CachedMaterialResourcesForCooking, Ar, MaterialResources );
-
-
-
-		/*if ( Ar.IsLoading() || (Ar.IsCooking() == false) )
-		{
-			// shouldn't ever load into this saved material resources array
-			// if we are not cooking then SerializeInlineShaderMaps will ignore the SavedMaterialResources array
-			TArray<FMaterialResource*> SavedMaterialResources;
-			SerializeInlineShaderMaps( SavedMaterialResources, Ar, MaterialResources );
-			check( SavedMaterialResources.Num() == 0);
-		}
-		else if ( Ar.IsSaving() )
-		{
-			check( Ar.IsCooking() );
-			const TArray<FMaterialResource*> *CachedMaterialResourcesForPlatform = CachedMaterialResourcesForCooking.Find(Ar.CookingTarget());
-			// check( CachedMaterialResourcesForPlatform != NULL || (!HasAnyMarks( OBJECTMARK_TagExp ))  );
-			if ( CachedMaterialResourcesForPlatform != NULL )
-			{
-				SerializeInlineShaderMaps(*CachedMaterialResourcesForPlatform, Ar, MaterialResources);
-			}
-			else
-			{
-				// if we are saving to a linker and we are cooking then we should have definatly have had a cached material for the target platform (see UPackage::SavePackage() -> UObject::BeginCacheResourceForPlatform
-				//  if this check is triggering most likely because some object didn't have BeginCacheResourceForPlatform called from SavePackage OR
-				//  the archive isn't actually saving and GetLinker is returning a valid value for some other reason
-				check( Ar.GetLinker() == NULL );
-			}
-			
-		}*/
-		
 	}
 	else
 	{
@@ -1983,6 +1952,19 @@ void UMaterial::PostLoad()
 	{
 		SCOPE_SECONDS_COUNTER(MaterialLoadTime);
 
+		// enable caching in postload for derived data cache commandlet and cook by the book
+		ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
+		if (TPM && (TPM->RestrictFormatsToRuntimeOnly() == false))
+		{
+			ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
+			TArray<ITargetPlatform*> Platforms = TPM->GetActiveTargetPlatforms();
+			// Cache for all the shader formats that the cooking target requires
+			for (int32 FormatIndex = 0; FormatIndex < Platforms.Num(); FormatIndex++)
+			{
+				BeginCacheForCookedPlatformData(Platforms[FormatIndex]);
+			}
+		}
+
 		//Don't compile shaders in post load for dev overhead materials.
 		if (FApp::CanEverRender() && !bIsMaterialEditorStatsMaterial)
 		{
@@ -2022,8 +2004,6 @@ void UMaterial::BeginCacheForCookedPlatformData( const ITargetPlatform *TargetPl
 
 	if ( CachedMaterialResourcesForPlatform == NULL )
 	{
-		check( CachedMaterialResourcesForPlatform == NULL );
-
 		CachedMaterialResourcesForCooking.Add( TargetPlatform );
 		CachedMaterialResourcesForPlatform = CachedMaterialResourcesForCooking.Find( TargetPlatform );
 

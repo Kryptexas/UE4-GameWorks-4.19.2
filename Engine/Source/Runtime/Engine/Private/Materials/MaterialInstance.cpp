@@ -1169,8 +1169,6 @@ void UMaterialInstance::InitStaticPermutation()
 	// Allocate material resources if needed even if we are cooking, so that StaticPermutationMaterialResources will always be valid
 	UpdatePermutationAllocations();
 
-	const TArray<FName>& DesiredShaderFormats = GetTargetShaderFormats();
-
 	if ( FApp::CanEverRender() ) 
 	{
 		// Cache shaders for the current platform to be used for rendering
@@ -1656,6 +1654,19 @@ void UMaterialInstance::PostLoad()
 
 		// Make sure static parameters are up to date and shaders are cached for the current platform
 		InitStaticPermutation();
+
+		// enable caching in postload for derived data cache commandlet and cook by the book
+		ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
+		if (TPM && (TPM->RestrictFormatsToRuntimeOnly() == false)) 
+		{
+			ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
+			TArray<ITargetPlatform*> Platforms = TPM->GetActiveTargetPlatforms();
+			// Cache for all the shader formats that the cooking target requires
+			for (int32 FormatIndex = 0; FormatIndex < Platforms.Num(); FormatIndex++)
+			{
+				BeginCacheForCookedPlatformData(Platforms[FormatIndex]);
+			}
+		}
 	}
 	INC_FLOAT_STAT_BY(STAT_ShaderCompiling_MaterialLoading,(float)MaterialLoadTime);
 
