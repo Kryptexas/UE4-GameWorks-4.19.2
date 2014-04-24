@@ -1991,7 +1991,6 @@ void SWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 	
 		FSlateApplication::Get().GetRenderer()->UpdateFullscreenState( SharedThis(this), Size.X, Size.Y );
 
-
 		if( TitleArea.IsValid() )
 		{
 			// Collapse the Window title bar when switching to Fullscreen
@@ -2001,7 +2000,7 @@ void SWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 		if( bWasFullscreen )
 		{
 			// If we left fullscreen, reset the screen position;
-			ScreenPosition = PreFullscreenPosition;
+			MoveWindowTo(PreFullscreenPosition);
 		}
 	}
 
