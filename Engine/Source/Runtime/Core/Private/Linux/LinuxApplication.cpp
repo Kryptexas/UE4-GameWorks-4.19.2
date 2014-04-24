@@ -124,9 +124,9 @@ void FLinuxApplication::InitializeWindow(	const TSharedRef< FGenericWindow >& In
 void FLinuxApplication::SetMessageHandler( const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler )
 {
 	GenericApplication::SetMessageHandler(InMessageHandler);
-#if WITH_ENGINE
+#if STEAM_CONTROLLER_SUPPORT
 	SteamInput->SetMessageHandler(InMessageHandler);
-#endif
+#endif // STEAM_CONTROLLER_SUPPORT
 }
 
 static TSharedPtr< FLinuxWindow > FindWindowBySDLWindow( const TArray< TSharedRef< FLinuxWindow > >& WindowsToSearch, SDL_HWindow const WindowHandle )
@@ -686,10 +686,10 @@ void FLinuxApplication::ProcessDeferredEvents( const float TimeDelta )
 
 void FLinuxApplication::PollGameDeviceState( const float TimeDelta )
 {
-#if WITH_ENGINE
+#if STEAM_CONTROLLER_SUPPORT
 	// Poll game device states and send new events
 	SteamInput->SendControllerEvents();
-#endif
+#endif // STEAM_CONTROLLER_SUPPORT
 }
 
 TCHAR FLinuxApplication::ConvertChar( SDL_Keysym Keysym )
