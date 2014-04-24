@@ -222,6 +222,11 @@ void FGenericPlatformMisc::LowLevelOutputDebugStringf(const TCHAR *Fmt, ... )
 	);
 }
 
+void FGenericPlatformMisc::SetUTF8Output()
+{
+	// assume that UTF-8 is possible by default anyway
+}
+
 void FGenericPlatformMisc::LocalPrint( const TCHAR* Str )
 {
 #if PLATFORM_USE_LS_SPEC_FOR_WIDECHAR

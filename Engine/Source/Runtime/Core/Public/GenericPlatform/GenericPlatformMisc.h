@@ -419,6 +419,9 @@ public:
 	static void LowLevelOutputDebugString(const TCHAR *Message);
 	static void VARARGS LowLevelOutputDebugStringf(const TCHAR *Format, ... );
 
+	/** Sets the default output to UTF8 */
+	static void SetUTF8Output();
+
 	/** Prints string to the default output */
 	static void LocalPrint( const TCHAR* Str );
 

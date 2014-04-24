@@ -110,6 +110,7 @@ namespace AutomationTool
 		public static CommandLineArg Rocket = new CommandLineArg("-Rocket");
 		public static CommandLineArg NoKill = new CommandLineArg("-NoKill");
 		public static CommandLineArg Installed = new CommandLineArg("-Installed");
+		public static CommandLineArg UTF8Output = new CommandLineArg("-UTF8Output");
 
 		/// <summary>
 		/// Force initialize static members by calling this.
