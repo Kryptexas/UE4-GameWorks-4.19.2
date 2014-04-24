@@ -288,6 +288,7 @@ public:
 	{
 		return GetTimerRate( FTimerDelegate::CreateUObject(inObj, inTimerMethod) );
 	}
+
 	template< class UserClass >	
 	FORCEINLINE float GetTimerRate(UserClass* inObj, typename FTimerDelegate::TUObjectMethodDelegate_Const< UserClass >::FMethodPtr inTimerMethod)
 	{
@@ -299,23 +300,26 @@ public:
 	{
 		return InternalGetTimerRate( FTimerUnifiedDelegate(InDelegate) );
 	}
+
 	/** Version that takes a dynamic delegate (e.g. for UFunctions). */
 	FORCEINLINE float GetTimerRate(FTimerDynamicDelegate const& InDynDelegate)
 	{
 		return InternalGetTimerRate( FTimerUnifiedDelegate(InDynDelegate) );
 	}
+
 	/**
 	 * Returns true if the specified timer exists and is not paused
 	 *
-	 * @param inObj			Object to call the timer function on.
-	 * @param inTimerMethod Method to call when timer fires.
-	 * @return				true if the timer is active, false otherwise.
+	 * @param inObj			Object binding for query.
+	 * @param inTimerMethod Method binding for query.
+	 * @return				true if the timer matching the given criteria exists and is active, false otherwise.
 	 */
 	template< class UserClass >	
 	FORCEINLINE bool IsTimerActive(UserClass* inObj, typename FTimerDelegate::TUObjectMethodDelegate< UserClass >::FMethodPtr inTimerMethod)
 	{
 		return IsTimerActive( FTimerDelegate::CreateUObject(inObj, inTimerMethod) );
 	}
+		
 	template< class UserClass >	
 	FORCEINLINE bool IsTimerActive(UserClass* inObj, typename FTimerDelegate::TUObjectMethodDelegate_Const< UserClass >::FMethodPtr inTimerMethod)
 	{
@@ -328,11 +332,77 @@ public:
 		FTimerData const* const TimerData = FindTimer( FTimerUnifiedDelegate(InDelegate) );
 		return ( (TimerData != NULL) && (TimerData->Status != ETimerStatus::Paused) );
 	}
+
 	/** Version that takes a dynamic delegate (e.g. for UFunctions). */
 	FORCEINLINE bool IsTimerActive(FTimerDynamicDelegate const& InDynDelegate)
 	{
 		FTimerData const* const TimerData = FindTimer( FTimerUnifiedDelegate(InDynDelegate) );
 		return ( (TimerData != NULL) && (TimerData->Status != ETimerStatus::Paused) );
+	}
+
+	/**
+	* Returns true if the specified timer exists and is paused
+	*
+	* @param inObj			Object binding for query.
+	* @param inTimerMethod	Method binding for query.
+	* @return				true if the timer matching the given criteria exists and is paused, false otherwise.
+	*/
+	template< class UserClass >
+	FORCEINLINE bool IsTimerPaused(UserClass* inObj, typename FTimerDelegate::TUObjectMethodDelegate< UserClass >::FMethodPtr inTimerMethod) const
+	{
+		return IsTimerPaused(FTimerDelegate::CreateUObject(inObj, inTimerMethod));
+	}
+
+	template< class UserClass >
+	FORCEINLINE bool IsTimerPaused(UserClass* inObj, typename FTimerDelegate::TUObjectMethodDelegate_Const< UserClass >::FMethodPtr inTimerMethod)  const
+	{
+		return IsTimerPaused(FTimerDelegate::CreateUObject(inObj, inTimerMethod));
+	}
+
+	/** Version that takes any generic delegate. */
+	FORCEINLINE bool IsTimerPaused(FTimerDelegate const& InDelegate) const
+	{
+		FTimerData const* const TimerData = FindTimer(FTimerUnifiedDelegate(InDelegate));
+		return ((TimerData != NULL) && (TimerData->Status == ETimerStatus::Paused));
+	}
+
+	/** Version that takes a dynamic delegate (e.g. for UFunctions). */
+	FORCEINLINE bool IsTimerPaused(FTimerDynamicDelegate const& InDynDelegate) const
+	{
+		FTimerData const* const TimerData = FindTimer(FTimerUnifiedDelegate(InDynDelegate));
+		return ((TimerData != NULL) && (TimerData->Status == ETimerStatus::Paused));
+	}
+
+	/**
+	* Returns true if the specified timer exists
+	*
+	* @param inObj			Object binding for query.
+	* @param inTimerMethod	Method binding for query.
+	* @return				true if the timer matching the given criteria exists, false otherwise.
+	*/
+	template< class UserClass >
+	FORCEINLINE bool TimerExists(UserClass* inObj, typename FTimerDelegate::TUObjectMethodDelegate< UserClass >::FMethodPtr inTimerMethod) const
+	{
+		return TimerExists(FTimerDelegate::CreateUObject(inObj, inTimerMethod));
+	}
+
+	template< class UserClass >
+	FORCEINLINE bool TimerExists(UserClass* inObj, typename FTimerDelegate::TUObjectMethodDelegate_Const< UserClass >::FMethodPtr inTimerMethod) const
+	{
+		return TimerExists(FTimerDelegate::CreateUObject(inObj, inTimerMethod));
+	}
+
+	/** Version that takes any generic delegate. */
+	FORCEINLINE bool TimerExists(FTimerDelegate const& InDelegate) const
+	{
+		return FindTimer(FTimerUnifiedDelegate(InDelegate)) != NULL;
+		
+	}
+
+	/** Version that takes a dynamic delegate (e.g. for UFunctions). */
+	FORCEINLINE bool TimerExists(FTimerDynamicDelegate const& InDynDelegate) const
+	{
+		return FindTimer(FTimerUnifiedDelegate(InDynDelegate)) != NULL;
 	}
 
 	/**

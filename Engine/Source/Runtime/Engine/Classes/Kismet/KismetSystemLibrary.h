@@ -246,13 +246,29 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	static void K2_UnPauseTimer(UObject* Object, FString FunctionName);
 
 	/**
-	 * Returns true is a timer is active for the given delegate, false otherwise.
+	 * Returns true is a timer exists and is active for the given delegate, false otherwise.
 	 * @param Object		Object that implements the delegate function. Defaults to self (this blueprint)
 	 * @param FunctionName	Delegate function name. Can be a K2 function or a Custom Event.
 	 */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "IsTimerActive", DefaultToSelf = "Object"), Category="Utilities|Time")
 	static bool K2_IsTimerActive(UObject* Object, FString FunctionName);
 
+	/**
+	* Returns true is a timer exists and is paused for the given delegate, false otherwise.
+	* @param Object		Object that implements the delegate function. Defaults to self (this blueprint)
+	* @param FunctionName	Delegate function name. Can be a K2 function or a Custom Event.
+	*/
+	UFUNCTION(BlueprintPure, meta = (FriendlyName = "IsTimerPaused", DefaultToSelf = "Object"), Category = "Utilities|Time")
+	static bool K2_IsTimerPaused(UObject* Object, FString FunctionName);
+
+	/**
+	* Returns true is a timer for the given delegate exists, false otherwise.
+	* @param Object		Object that implements the delegate function. Defaults to self (this blueprint)
+	* @param FunctionName	Delegate function name. Can be a K2 function or a Custom Event.
+	*/
+	UFUNCTION(BlueprintPure, meta = (FriendlyName = "TimerExists", DefaultToSelf = "Object"), Category = "Utilities|Time")
+	static bool K2_TimerExists(UObject* Object, FString FunctionName);
+	
 	/**
 	 * Returns elapsed time for the given delegate (time since current countdown iteration began).
 	 * @param Object		Object that implements the delegate function. Defaults to self (this blueprint)
