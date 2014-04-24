@@ -2256,18 +2256,22 @@ public class GUBP : BuildCommand
             }
         }
 
-        public static string StaticGetFullName(BranchInfo.BranchUProject InGameProj, UnrealTargetPlatform InHostPlatform, List<UnrealTargetPlatform> InClientTargetPlatforms)
+        public static string StaticGetFullName(BranchInfo.BranchUProject InGameProj, UnrealTargetPlatform InHostPlatform, List<UnrealTargetPlatform> InClientTargetPlatforms, List<UnrealTargetConfiguration> InClientConfigs)
         {
             string Infix = "";
             if (InClientTargetPlatforms.Count == 1)
             {
                 Infix = "_" + InClientTargetPlatforms[0].ToString();
             }
+            if (InClientConfigs.Count == 1)
+            {
+                Infix += "_" + InClientConfigs[0].ToString();
+            }
             return InGameProj.GameName + Infix + "_MakeBuild" + HostPlatformNode.StaticGetHostPlatformSuffix(InHostPlatform);
         }
         public override string GetFullName()
         {
-            return StaticGetFullName(GameProj, HostPlatform, ClientTargetPlatforms);
+            return StaticGetFullName(GameProj, HostPlatform, ClientTargetPlatforms, ClientConfigs);
         }
         public override string GameNameIfAnyForTempStorage()
         {
@@ -4236,7 +4240,7 @@ public class GUBP : BuildCommand
                                                     string BuildAgentSharingGroup = NonCodeProject.GameName + "_MakeFormalBuild_" + Plat.ToString();
                                                     GUBPNodes[CookNode.StaticGetFullName(HostPlatform, NonCodeProject, CookedPlatform)].AgentSharingGroup = BuildAgentSharingGroup;
                                                     GUBPNodes[GamePlatformCookedAndCompiledNode.StaticGetFullName(HostPlatform, NonCodeProject, Plat)].AgentSharingGroup = BuildAgentSharingGroup;
-                                                    GUBPNodes[FormalBuildNode.StaticGetFullName(NonCodeProject, HostPlatform, new List<UnrealTargetPlatform>() { Plat })].AgentSharingGroup = BuildAgentSharingGroup;
+                                                    GUBPNodes[FormalBuildNode.StaticGetFullName(NonCodeProject, HostPlatform, new List<UnrealTargetPlatform>() { Plat }, new List<UnrealTargetConfiguration>() { PlatPair.Value })].AgentSharingGroup = BuildAgentSharingGroup;
 
                                                 }
                                             }
