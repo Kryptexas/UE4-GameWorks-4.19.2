@@ -35,7 +35,7 @@
 	
 	There are four possible location for this file:
 		a. UE4/Engine/Programs/UnrealBuildTool
-		b. UE4/Engine/Programs/NoRedist/UnrealBuildTool
+		b. UE4/Engine/Programs/NotForLicensees/UnrealBuildTool
 		c. UE4/Engine/Saved/UnrealBuildTool
 		d. My Documents/Unreal Engine/UnrealBuildTool
 	

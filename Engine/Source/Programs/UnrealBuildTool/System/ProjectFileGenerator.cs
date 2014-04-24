@@ -574,37 +574,16 @@ namespace UnrealBuildTool
 		/// <param name="EngineProject">Engine project to add files to.</param>
 		private void AddUBTConfigFilesToEngineProject(ProjectFile EngineProject)
 		{
-			/*
-			 * From the UE4/Engine/Programs/UnrealBuildTool/BuildConfiguration.xml
-			 * 
-			 * There are four possible location for this file:
-		     *   a. UE4/Engine/Programs/UnrealBuildTool
-		     *   b. UE4/Engine/Programs/NoRedist/UnrealBuildTool
-		     *   c. UE4/Engine/Saved/UnrealBuildTool
-		     *   d. My Documents/Unreal Engine/UnrealBuildTool
-			 */
-
-			var AbsoluteEnginePath = new DirectoryInfo(EngineRelativePath).FullName;
-			var AbsoluteMyDocumentsPath = System.Environment.GetFolderPath(
-				Environment.SpecialFolder.MyDocuments);
-
-			var BuildConfigurationPaths = new Tuple<string, string>[] {
-				new Tuple<string, string>("Default", Path.Combine(AbsoluteEnginePath, "Programs", "UnrealBuildTool")),
-				new Tuple<string, string>("NotForLicensees", Path.Combine(AbsoluteEnginePath, "Programs", "NoRedist", "UnrealBuildTool")),
-				new Tuple<string, string>("User", Path.Combine(AbsoluteEnginePath, "Saved", "UnrealBuildTool")),
-				new Tuple<string, string>("User_MyDocuments", Path.Combine(AbsoluteMyDocumentsPath, "Unreal Engine", "UnrealBuildTool"))
-			};
-
-			foreach(var BuildConfigurationPath in BuildConfigurationPaths)
+			foreach(var BuildConfigurationPath in XmlConfigLoader.ConfigLocationHierarchy)
 			{
-				var FilePath = Path.Combine(BuildConfigurationPath.Item2, "BuildConfiguration.xml");
+				var FilePath = Path.Combine(BuildConfigurationPath.FSLocation, "BuildConfiguration.xml");
 
 				if(!File.Exists(FilePath))
 				{
 					continue;
 				}
 
-				EngineProject.AddAliasedFileToProject(new AliasedFile(FilePath, Path.Combine("Config", "UnrealBuildTool", BuildConfigurationPath.Item1)));
+				EngineProject.AddAliasedFileToProject(new AliasedFile(FilePath, Path.Combine("Config", "UnrealBuildTool", BuildConfigurationPath.IDEFolderName)));
 			}
 		}
 
