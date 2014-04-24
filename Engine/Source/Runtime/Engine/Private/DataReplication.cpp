@@ -1103,24 +1103,30 @@ void FObjectReplicator::StartBecomingDormant()
 	bLastUpdateEmpty = false; // Ensure we get one more attempt to update properties
 }
 
-bool FObjectReplicator::UpdateUnmappedObjects()
+void FObjectReplicator::UpdateUnmappedObjects( bool & bOutHasMoreUnmapped )
 {
 	UObject * Object = GetObject();
 
 	if ( Object == NULL || Object->IsPendingKill() )
 	{
-		return false;
+		bOutHasMoreUnmapped = false;
+		return;
 	}
 
 	check( RepState->RepNotifies.Num() == 0 );
 
-	// Cache the result, since this function will return false when there are no more unmapped properties, but we still need to call any rep notifies
-	const bool Result = RepLayout->UpdateUnmappedObjects( RepState, Connection->PackageMap, Object );
+	bool bSomeObjectsWereMapped = false;
+
+	RepLayout->UpdateUnmappedObjects( RepState, Connection->PackageMap, Object, bSomeObjectsWereMapped, bOutHasMoreUnmapped );
 
 	// Call any rep notifies that need to happen when object pointers change
 	RepLayout->CallRepNotifies( RepState, Object );
 
-	return Result;
+	if ( bSomeObjectsWereMapped )
+	{
+		// If we mapped some objects, make sure to call PostNetReceive (some game code will need to think this was actually replicated to work)
+		PostNetReceive();
+	}
 }
 
 void FObjectReplicator::QueuePropertyRepNotify( UObject * Object, UProperty * Property, const int32 ElementIndex, TArray< uint8 > & MetaData )

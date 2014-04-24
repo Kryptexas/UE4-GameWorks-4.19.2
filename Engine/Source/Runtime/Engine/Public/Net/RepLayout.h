@@ -327,7 +327,7 @@ public:
 	void InitFromObjectClass( UClass * InObjectClass );
 
 	bool ReceiveProperties( UClass * InObjectClass, FRepState * RESTRICT RepState, void * RESTRICT Data, FNetBitReader & InBunch, bool bDiscard, bool & bOutHasUnmapped ) const;
-	bool UpdateUnmappedObjects( FRepState *	RepState, UPackageMap * PackageMap, void * RESTRICT Data ) const;
+	void UpdateUnmappedObjects( FRepState *	RepState, UPackageMap * PackageMap, UObject * Object, bool & bOutSomeObjectsWereMapped, bool & bOutHasMoreUnmapped ) const;
 
 	void CallRepNotifies( FRepState * RepState, UObject * Object ) const;
 	void PostReplicate( FRepState * RepState, FPacketIdRange & PacketRange, bool bReliable ) const;
@@ -459,7 +459,15 @@ private:
 		uint8 * RESTRICT	Data,
 		const bool			bDiscard ) const;
 
-	bool UpdateUnmappedObjects_r( FRepState * RepState, FUnmappedGuidMgr * UnmappedGuids, UPackageMap * PackageMap, uint8 * RESTRICT Data, const int32 MaxAbsOffset ) const;
+	void UpdateUnmappedObjects_r( 
+		FRepState *			RepState, 
+		FUnmappedGuidMgr *	UnmappedGuids, 
+		UObject *			OriginalObject,
+		UPackageMap *		PackageMap, 
+		uint8 * RESTRICT	Data, 
+		const int32			MaxAbsOffset,
+		bool &				bOutSomeObjectsWereMapped,
+		bool &				bOutHasMoreUnmapped ) const;
 
 	void ValidateWithChecksum_DynamicArray_r( const FRepLayoutCmd & Cmd, const int32 CmdIndex, const uint8 * RESTRICT Data, FArchive & Ar, const bool bDiscard ) const;
 	void ValidateWithChecksum_r( const int32 CmdStart, const int32 CmdEnd, const uint8 * RESTRICT Data, FArchive & Ar, const bool bDiscard ) const;

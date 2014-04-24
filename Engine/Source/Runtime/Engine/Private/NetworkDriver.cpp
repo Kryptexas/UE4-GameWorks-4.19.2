@@ -298,16 +298,18 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 		if ( !It->IsValid() )
 		{
 			// These are weak references, so if the object has been freed, we can stop checking
-			//UE_LOG( LogNet, Log, TEXT( "REMOVED unmapped replicator: Replicator was destroyed." ) );
 			It.RemoveCurrent();
 			continue;
 		}
 
-		if ( !It->Pin().Get()->UpdateUnmappedObjects() )
+		bool bHasMoreUnmapped = false;
+
+		It->Pin().Get()->UpdateUnmappedObjects( bHasMoreUnmapped );
+		
+		if ( !bHasMoreUnmapped )
 		{
 			// If there are no more unmapped objects, we can also stop checking
 			It.RemoveCurrent();
-			//UE_LOG( LogNet, Log, TEXT( "REMOVED unmapped replicator: No unmapped properties. NumUnmappedReplicators: %i" ), UnmappedReplicators.Num() );
 		}
 	}
 }
