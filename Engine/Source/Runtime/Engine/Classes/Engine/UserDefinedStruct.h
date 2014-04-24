@@ -34,6 +34,9 @@ public:
 	TWeakObjectPtr<UUserDefinedStruct> PrimaryStruct;
 
 	UPROPERTY()
+	FString ErrorMessage;
+
+	UPROPERTY()
 	UObject* EditorData;
 #endif // WITH_EDITORONLY_DATA
 

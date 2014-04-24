@@ -180,6 +180,23 @@ public:
 		return NULL;
 	}
 
+	FString GetStatusTooltip() const
+	{
+		auto StructureDetailsSP = StructureDetails.Pin();
+		if (StructureDetailsSP.IsValid())
+		{
+			if (auto Struct = StructureDetailsSP->GetUserDefinedStruct())
+			{
+				switch (Struct->Status.GetValue())
+				{
+				case EUserDefinedStructureStatus::UDSS_Error:
+					return Struct->ErrorMessage;
+				}
+			}
+		}
+		return FString();
+	}
+
 	/** IDetailCustomNodeBuilder Interface*/
 	virtual void SetOnRebuildChildren( FSimpleDelegate InOnRegenerateChildren ) OVERRIDE 
 	{
@@ -502,14 +519,15 @@ void FUserDefinedStructureLayout::GenerateChildContent( IDetailChildrenBuilder& 
 			[
 				SNew(SImage)
 				.Image( this, &FUserDefinedStructureLayout::OnGetStructureStatus )
+				.ToolTipText(this, &FUserDefinedStructureLayout::GetStatusTooltip )
 			]
 			+SHorizontalBox::Slot()
-				.HAlign(HAlign_Right)
-				[
-					SNew(SButton)
-					.Text(LOCTEXT("NewStructureField", "New Variable").ToString())
-					.OnClicked(this, &FUserDefinedStructureLayout::OnAddNewField)
-				]
+			.HAlign(HAlign_Right)
+			[
+				SNew(SButton)
+				.Text(LOCTEXT("NewStructureField", "New Variable").ToString())
+				.OnClicked(this, &FUserDefinedStructureLayout::OnAddNewField)
+			]
 		];
 
 	auto StructureDetailsSP = StructureDetails.Pin();

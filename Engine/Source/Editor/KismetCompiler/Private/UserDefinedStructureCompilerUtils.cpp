@@ -102,6 +102,16 @@ struct FUserDefinedStructureCompilerInner
 		StructToClean->DestructorLink = NULL;
 		StructToClean->ScriptObjectReferences.Empty();
 		StructToClean->PropertyLink = NULL;
+		StructToClean->ErrorMessage.Empty();
+	}
+
+	static void LogError(UUserDefinedStruct* Struct, FCompilerResultsLog& MessageLog, const FString& ErrorMsg)
+	{
+		MessageLog.Error(*ErrorMsg);
+		if (Struct && Struct->ErrorMessage.IsEmpty())
+		{
+			Struct->ErrorMessage = ErrorMsg;
+		}
 	}
 
 	static void CreateVariables(UUserDefinedStruct* Struct, const class UEdGraphSchema_K2* Schema, FCompilerResultsLog& MessageLog)
@@ -119,7 +129,7 @@ struct FUserDefinedStructureCompilerInner
 			FString ErrorMsg;
 			if(!FStructureEditorUtils::CanHaveAMemberVariableOfType(Struct, VarType, &ErrorMsg))
 			{
-				MessageLog.Error(*FString::Printf(*LOCTEXT("StructureGeneric_Error", "Structure: %s Error: %s").ToString(), *Struct->GetFullName(), *ErrorMsg));
+				LogError(Struct, MessageLog, FString::Printf(*LOCTEXT("StructureGeneric_Error", "Structure: %s Error: %s").ToString(), *Struct->GetFullName(), *ErrorMsg));
 				continue;
 			}
 
@@ -130,7 +140,7 @@ struct FUserDefinedStructureCompilerInner
 			}
 			else
 			{
-				MessageLog.Error(*FString::Printf(*LOCTEXT("VariableInvalidType_Error", "The variable %s declared in %s has an invalid type %s").ToString(),
+				LogError(Struct, MessageLog, FString::Printf(*LOCTEXT("VariableInvalidType_Error", "The variable %s declared in %s has an invalid type %s").ToString(),
 					*VarDesc.VarName.ToString(), *Struct->GetName(), *UEdGraphSchema_K2::TypeToString(VarType)));
 				continue;
 			}
@@ -163,7 +173,7 @@ struct FUserDefinedStructureCompilerInner
 
 		if (Struct->GetStructureSize() <= 0)
 		{
-			MessageLog.Error(*FString::Printf(*LOCTEXT("StructurEmpty_Error", "Structure '%s' is empty ").ToString(), *Struct->GetFullName()));
+			LogError(Struct, MessageLog, FString::Printf(*LOCTEXT("StructurEmpty_Error", "Structure '%s' is empty ").ToString(), *Struct->GetFullName()));
 		}
 
 		const bool bNoErrorsDuringCompilation = (ErrorNum == MessageLog.NumErrors);

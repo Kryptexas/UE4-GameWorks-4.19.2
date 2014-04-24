@@ -39,6 +39,11 @@ UUserDefinedStruct* FStructureEditorUtils::CreateUserDefinedStruct(UObject* InPa
 		Struct->Bind();
 		Struct->StaticLink(true);
 		Struct->Status = UDSS_Error;
+
+		{
+			const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+			AddVariable(Struct, FEdGraphPinType(K2Schema->PC_Boolean, FString(), NULL, false, false));
+		}
 	}
 
 	return Struct;
@@ -89,42 +94,40 @@ FStructureEditorUtils::EStructureError FStructureEditorUtils::IsStructureValid(c
 
 		for (const UProperty * P = Struct->PropertyLink; P; P = P->PropertyLinkNext)
 		{
+			const UStructProperty* StructProp = Cast<const UStructProperty>(P);
+			if (NULL == StructProp)
 			{
-				const UStructProperty* StructProp = Cast<const UStructProperty>(P);
-				if (NULL == StructProp)
+				if (const UArrayProperty* ArrayProp = Cast<const UArrayProperty>(P))
 				{
-					if (const UArrayProperty* ArrayProp = Cast<const UArrayProperty>(P))
+					StructProp = Cast<const UStructProperty>(ArrayProp->Inner);
+				}
+			}
+
+			if (StructProp)
+			{
+				if ((NULL == StructProp->Struct) || (FallbackStruct == StructProp->Struct))
+				{
+					if (OutMsg)
 					{
-						StructProp = Cast<const UStructProperty>(ArrayProp->Inner);
+						*OutMsg = FString::Printf(*LOCTEXT("StructureUnknownProperty", "Struct unknown (deleted?). Parent '%s' Property: '%s'").ToString(),
+							*Struct->GetFullName(), *StructProp->GetName());
 					}
+					return EStructureError::FallbackStruct;
 				}
 
-				if (StructProp)
+				FString OutMsgInner;
+				const EStructureError Result = IsStructureValid(
+					StructProp->Struct,
+					RecursionParent ? RecursionParent : Struct,
+					OutMsg ? &OutMsgInner : NULL);
+				if (EStructureError::Ok != Result)
 				{
-					if ((NULL == StructProp->Struct) || (FallbackStruct == StructProp->Struct))
+					if (OutMsg)
 					{
-						if (OutMsg)
-						{
-							*OutMsg = FString::Printf(*LOCTEXT("StructureUnknownProperty", "Struct unknown (deleted?). Parent '%s' Property: '%s'").ToString(), 
-								*Struct->GetFullName(), *StructProp->GetName());
-						}
-						return EStructureError::FallbackStruct;
+						*OutMsg = FString::Printf(*LOCTEXT("StructurePropertyErrorTemplate", "Struct '%s' Property '%s' Error ( %s )").ToString(),
+							*Struct->GetFullName(), *StructProp->GetName(), *OutMsgInner);
 					}
-
-					FString OutMsgInner;
-					const EStructureError Result = IsStructureValid(
-						StructProp->Struct, 
-						RecursionParent ? RecursionParent : Struct, 
-						OutMsg ? &OutMsgInner : NULL);
-					if (EStructureError::Ok != Result) 
-					{
-						if (OutMsg)
-						{
-							*OutMsg = FString::Printf(*LOCTEXT("StructurePropertyErrorTemplate", "Struct '%s' Property '%s' Error ( %s )").ToString(), 
-								*Struct->GetFullName(), *StructProp->GetName(), *OutMsgInner);
-						}
-						return Result;
-					}
+					return Result;
 				}
 			}
 		}
@@ -371,9 +374,16 @@ FString FStructureEditorUtils::GetVariableDisplayName(const UUserDefinedStruct* 
 
 bool FStructureEditorUtils::UserDefinedStructEnabled()
 {
-	bool bUseUserDefinedStructure = false;
-	GConfig->GetBool( TEXT("UserDefinedStructure"), TEXT("bUseUserDefinedStructure"), bUseUserDefinedStructure, GEditorIni );
-	return bUseUserDefinedStructure;
+	struct FUserDefinedStructEnabled
+	{
+		bool bUseUserDefinedStructure;
+		FUserDefinedStructEnabled() : bUseUserDefinedStructure(false)
+		{
+			GConfig->GetBool(TEXT("UserDefinedStructure"), TEXT("bUseUserDefinedStructure"), bUseUserDefinedStructure, GEditorIni);
+		}
+	};
+	static FUserDefinedStructEnabled Helper;
+	return Helper.bUseUserDefinedStructure;
 }
 
 bool FStructureEditorUtils::Fill_MakeStructureDefaultValue(const UUserDefinedStruct* Struct, uint8* StructData)

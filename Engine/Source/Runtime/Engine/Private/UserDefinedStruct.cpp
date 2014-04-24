@@ -19,12 +19,11 @@ void UUserDefinedStruct::Serialize(FArchive& Ar)
 
 	if (Ar.IsLoading() && (EUserDefinedStructureStatus::UDSS_UpToDate == Status))
 	{
-		FString ErrorMsg;
-		const FStructureEditorUtils::EStructureError Result = FStructureEditorUtils::IsStructureValid(this, NULL, &ErrorMsg);
+		const FStructureEditorUtils::EStructureError Result = FStructureEditorUtils::IsStructureValid(this, NULL, &ErrorMessage);
 		if (FStructureEditorUtils::EStructureError::Ok != Result)
 		{
 			Status = EUserDefinedStructureStatus::UDSS_Error;
-			UE_LOG(LogClass, Log, TEXT("UUserDefinedStruct.Serialize '%s' validation: %s"), *GetName(), *ErrorMsg);
+			UE_LOG(LogClass, Log, TEXT("UUserDefinedStruct.Serialize '%s' validation: %s"), *GetName(), *ErrorMessage);
 		}
 	}
 }
