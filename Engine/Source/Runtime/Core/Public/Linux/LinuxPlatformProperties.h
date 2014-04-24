@@ -85,4 +85,9 @@ struct FLinuxPlatformProperties
 	{
 		return !IS_DEDICATED_SERVER;
 	}
+
+	static FORCEINLINE bool SupportsQuit()
+	{
+		return true;
+	}
 };
