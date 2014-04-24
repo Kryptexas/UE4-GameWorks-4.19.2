@@ -614,9 +614,36 @@ bool UEdGraphNode::CanUserDeleteNode() const
 	return true;
 }
 
-FString UEdGraphNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UEdGraphNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return GetClass()->GetName();
+	return FText::FromString(GetClass()->GetName());
+}
+
+FString UEdGraphNode::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	FText NodeTitle = GetNodeTitle(TitleType);
+	if(const FString* SourceString = FTextInspector::GetSourceString(NodeTitle))
+	{
+		return *SourceString;
+	}
+	return NodeTitle.ToString();
+}
+
+FText UEdGraphNode::GetNodeSearchTitle() const
+{
+	TArray< FText > SearchMetadata;
+
+	FText LocalizedTitle = GetNodeTitle(ENodeTitleType::ListView);
+	FText NativeTitle = FText::FromString(GetNodeNativeTitle(ENodeTitleType::ListView));
+	if(FInternationalization::GetCurrentCulture()->GetName() == TEXT("en_US"))
+	{
+		ensure( LocalizedTitle.CompareTo(NativeTitle) == 0 );
+	}
+
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("LocalizedTitle"), LocalizedTitle);
+	Args.Add(TEXT("NativeTitle"), NativeTitle);
+	return FText::Format(LOCTEXT("NodeSearchTitle", "{LocalizedTitle} {NativeTitle}"), Args);
 }
 
 UObject* UEdGraphNode::GetJumpTargetForDoubleClick() const
@@ -689,19 +716,19 @@ FString UEdGraphNode_Comment::GetDocumentationExcerptName() const
 	return TEXT("UEdGraphNode_Comment");
 }
 
-FString UEdGraphNode_Comment::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UEdGraphNode_Comment::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	if(TitleType == ENodeTitleType::ListView)
 	{
-		return NSLOCTEXT("K2Node", "CommentBlock_Title", "Comment").ToString();
+		return NSLOCTEXT("K2Node", "CommentBlock_Title", "Comment");
 	}
 
-	return NodeComment;
+	return FText::FromString(NodeComment);
 }
 
 FString UEdGraphNode_Comment::GetPinNameOverride(const UEdGraphPin& Pin) const
 {
-	return GetNodeTitle(ENodeTitleType::ListView);
+	return GetNodeTitle(ENodeTitleType::ListView).ToString();
 }
 
 FLinearColor UEdGraphNode_Comment::GetNodeCommentColor() const
@@ -885,11 +912,11 @@ const FString UEdGraphPin::GetLinkInfoString( const FString& InFunctionName, con
 #if WITH_EDITOR
 	const FString FromPinName = PinName;
 	const UEdGraphNode* FromPinNode = Cast<UEdGraphNode>(GetOuter());
-	const FString FromPinNodeName = (FromPinNode != NULL) ? FromPinNode->GetNodeTitle(ENodeTitleType::ListView) : TEXT("Unknown");
+	const FString FromPinNodeName = (FromPinNode != NULL) ? FromPinNode->GetNodeTitle(ENodeTitleType::ListView).ToString() : TEXT("Unknown");
 	
 	const FString ToPinName = InToPin->PinName;
 	const UEdGraphNode* ToPinNode = Cast<UEdGraphNode>(InToPin->GetOuter());
-	const FString ToPinNodeName = (ToPinNode != NULL) ? ToPinNode->GetNodeTitle(ENodeTitleType::ListView) : TEXT("Unknown");
+	const FString ToPinNodeName = (ToPinNode != NULL) ? ToPinNode->GetNodeTitle(ENodeTitleType::ListView).ToString() : TEXT("Unknown");
 	const FString LinkInfo = FString::Printf( TEXT("UEdGraphPin::%s Pin '%s' on node '%s' %s '%s' on node '%s'"), *InFunctionName, *ToPinName, *ToPinNodeName, *InInfoData, *FromPinName, *FromPinNodeName);
 	return LinkInfo;
 #else
@@ -1252,7 +1279,7 @@ FPinConnectionResponse UEdGraphSchema::CopyPinLinks(UEdGraphPin& CopyFromPin, UE
 FString UEdGraphSchema::GetPinDisplayName(const UEdGraphPin* Pin) const
 {
 	check(Pin != NULL);
-	return (Pin->PinFriendlyName.Len() > 0) ? Pin->PinFriendlyName : Pin->PinName;
+	return !Pin->PinFriendlyName.IsEmpty() ? Pin->PinFriendlyName.ToString() : Pin->PinName;
 }
 
 void UEdGraphSchema::ConstructBasicPinTooltip(UEdGraphPin const& Pin, FString const& PinDescription, FString& TooltipOut) const
@@ -1289,7 +1316,8 @@ void UEdGraphSchema::ReconstructNode(UEdGraphNode& TargetNode, bool bIsBatchRequ
 
 void UEdGraphSchema::GetGraphDisplayInformation(const UEdGraph& Graph, /*out*/ FGraphDisplayInfo& DisplayInfo) const
 {
-	DisplayInfo.DisplayName = FText::FromString( Graph.GetName() );
+	DisplayInfo.PlainName = FText::FromString( Graph.GetName() );
+	DisplayInfo.DisplayName = DisplayInfo.PlainName;
 }
 
 void UEdGraphSchema::GetContextMenuActions(const UEdGraph* CurrentGraph, const UEdGraphNode* InGraphNode, const UEdGraphPin* InGraphPin, class FMenuBuilder* MenuBuilder, bool bIsDebugging) const

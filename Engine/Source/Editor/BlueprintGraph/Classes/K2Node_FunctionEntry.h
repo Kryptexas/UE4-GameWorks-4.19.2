@@ -23,7 +23,8 @@ class UK2Node_FunctionEntry : public UK2Node_FunctionTerminator
 
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual bool CanUserDeleteNode() const OVERRIDE { return false; }
 	virtual bool IsDeprecated() const OVERRIDE;
 	virtual FString GetDeprecationMessage() const OVERRIDE;

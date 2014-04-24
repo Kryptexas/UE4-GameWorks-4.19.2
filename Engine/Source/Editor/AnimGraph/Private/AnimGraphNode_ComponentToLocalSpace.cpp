@@ -5,6 +5,8 @@
 /////////////////////////////////////////////////////
 // UAnimGraphNode_ComponentToLocalSpace
 
+#define LOCTEXT_NAMESPACE "A3Nodes"
+
 UAnimGraphNode_ComponentToLocalSpace::UAnimGraphNode_ComponentToLocalSpace(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
@@ -17,12 +19,12 @@ FLinearColor UAnimGraphNode_ComponentToLocalSpace::GetNodeTitleColor() const
 
 FString UAnimGraphNode_ComponentToLocalSpace::GetTooltip() const
 {
-	return TEXT("Convert Component Space Pose to Local Pose");
+	return LOCTEXT("AnimGraphNode_ComponentToLocalSpace_Tooltip", "Convert Component Space Pose to Local Pose").ToString();
 }
 
-FString UAnimGraphNode_ComponentToLocalSpace::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UAnimGraphNode_ComponentToLocalSpace::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return TEXT("Component To Local");
+	return LOCTEXT("AnimGraphNode_ComponentToLocalSpace_Title", "Component To Local");
 }
 
 FString UAnimGraphNode_ComponentToLocalSpace::GetNodeCategory() const
@@ -34,3 +36,5 @@ void UAnimGraphNode_ComponentToLocalSpace::PostProcessPinName(const UEdGraphPin*
 {
 	DisplayName = TEXT("");
 }
+
+#undef LOCTEXT_NAMESPACE

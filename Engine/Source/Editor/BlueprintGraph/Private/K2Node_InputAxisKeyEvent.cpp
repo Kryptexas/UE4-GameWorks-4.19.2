@@ -21,9 +21,15 @@ void UK2Node_InputAxisKeyEvent::Initialize(const FKey InAxisKey)
 	CustomFunctionName = FName(*FString::Printf(TEXT("InpAxisKeyEvt_%s_%s"), *AxisKey.ToString(), *GetName()));
 }
 
-FString UK2Node_InputAxisKeyEvent::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_InputAxisKeyEvent::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return FString::Printf(*NSLOCTEXT("K2Node", "InputAxisKey_Name", "%s").ToString(), *AxisKey.GetDisplayName().ToString());
+	return AxisKey.GetDisplayName();
+}
+
+FString UK2Node_InputAxisKeyEvent::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
+	return AxisKey.GetDisplayName().ToString();
 }
 
 FString UK2Node_InputAxisKeyEvent::GetTooltip() const

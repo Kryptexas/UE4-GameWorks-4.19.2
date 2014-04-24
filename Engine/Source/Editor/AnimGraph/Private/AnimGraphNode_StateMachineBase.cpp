@@ -35,6 +35,8 @@ public:
 /////////////////////////////////////////////////////
 // UAnimGraphNode_StateMachineBase
 
+#define LOCTEXT_NAMESPACE "A3Nodes"
+
 UAnimGraphNode_StateMachineBase::UAnimGraphNode_StateMachineBase(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
@@ -50,8 +52,23 @@ FString UAnimGraphNode_StateMachineBase::GetTooltip() const
 	return TEXT("Animation State Machine");
 }
 
-FString UAnimGraphNode_StateMachineBase::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UAnimGraphNode_StateMachineBase::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
+	const FText FirstLine = (EditorStateMachineGraph != NULL) ? FText::FromString(EditorStateMachineGraph->GetName()) : LOCTEXT("ErrorNoGraph", "Error: No Graph");
+	if(TitleType == ENodeTitleType::FullTitle)
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("Title"), FirstLine);
+
+		return FText::Format(LOCTEXT("StateMachineFullTitle", "{Title}\nState Machine"), Args);
+	}
+
+	return FirstLine;
+}
+
+FString UAnimGraphNode_StateMachineBase::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
 	FString FirstLine = (EditorStateMachineGraph != NULL) ? EditorStateMachineGraph->GetName() : TEXT("Error: No Graph");
 	if(TitleType == ENodeTitleType::FullTitle)
 	{
@@ -72,8 +89,8 @@ void UAnimGraphNode_StateMachineBase::GetMenuEntries(FGraphContextMenuBuilder& C
 	{
 		TSharedPtr<FEdGraphSchemaAction_K2NewNode> MenuEntry = CreateDefaultMenuEntry(ContextMenuBuilder);
 
-		MenuEntry->MenuDescription = TEXT("Add New State Machine...");
-		MenuEntry->TooltipDescription = TEXT("Create a new state machine");
+		MenuEntry->MenuDescription = LOCTEXT("AddNewStateMachine", "Add New State Machine...");
+		MenuEntry->TooltipDescription = LOCTEXT("AddNewStateMachine_Tooltip", "Create a new state machine").ToString();
 	}
 }
 
@@ -154,3 +171,4 @@ void UAnimGraphNode_StateMachineBase::OnRenameNode(const FString& NewName)
 	FBlueprintEditorUtils::RenameGraph(EditorStateMachineGraph, NewName);
 }
 
+#undef LOCTEXT_NAMESPACE

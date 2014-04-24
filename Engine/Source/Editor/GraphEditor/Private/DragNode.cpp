@@ -80,7 +80,7 @@ void FDragNode::HoverTargetChanged()
 		SetSimpleFeedbackMessage(
 			FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error")),
 			FLinearColor::White,
-			NSLOCTEXT("GraphEditor.Feedback", "DragNode", "This node cannot be placed here.").ToString());
+			NSLOCTEXT("GraphEditor.Feedback", "DragNode", "This node cannot be placed here."));
 	}
 	else
 	{

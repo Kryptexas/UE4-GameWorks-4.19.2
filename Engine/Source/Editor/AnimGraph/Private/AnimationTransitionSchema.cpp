@@ -16,6 +16,8 @@
 /////////////////////////////////////////////////////
 // UAnimationTransitionSchema
 
+#define LOCTEXT_NAMESPACE "AnimationTransitionSchema"
+
 UAnimationTransitionSchema::UAnimationTransitionSchema(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
@@ -80,10 +82,14 @@ void UAnimationTransitionSchema::GetSourceStateActions(FGraphContextMenuBuilder&
 
 								NodeTemplate->GetterType = SequenceSpecificGetters[TypeIndex];
 
-								FString Title = FString::Printf(TEXT("%s for '%s'"), *UK2Node_TransitionRuleGetter::GetFriendlyName(NodeTemplate->GetterType), *AssetName);
+								FFormatNamedArguments Args;
+								Args.Add(TEXT("NodeName"), UK2Node_TransitionRuleGetter::GetFriendlyName(NodeTemplate->GetterType));
+								Args.Add(TEXT("AssetName"), FText::FromString(AssetName));
+								FText Title = FText::Format(LOCTEXT("TransitionFor", "{NodeName} for '{AssetName}'"), Args);
 
 								TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, Category_AssetPlayer, Title, NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
 								Action->NodeTemplate = NodeTemplate;
+								Action->SearchTitle = Action->NodeTemplate->GetNodeSearchTitle();
 							}
 						}
 					}
@@ -103,10 +109,11 @@ void UAnimationTransitionSchema::GetSourceStateActions(FGraphContextMenuBuilder&
 						UK2Node_TransitionRuleGetter* NodeTemplate = ContextMenuBuilder.CreateTemplateNode<UK2Node_TransitionRuleGetter>();
 						NodeTemplate->GetterType = NonSpecificGetters[TypeIndex];
 
-						FString Title = FString::Printf(TEXT("%s"), *UK2Node_TransitionRuleGetter::GetFriendlyName(NodeTemplate->GetterType));
+						FText Title = UK2Node_TransitionRuleGetter::GetFriendlyName(NodeTemplate->GetterType);
 
 						TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, Category_Transition, Title, NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
 						Action->NodeTemplate = NodeTemplate;
+						Action->SearchTitle = Action->NodeTemplate->GetNodeSearchTitle();
 					}
 				}
 			}
@@ -127,7 +134,7 @@ void UAnimationTransitionSchema::CreateDefaultNodesForGraph(UEdGraph& Graph) con
 
 void UAnimationTransitionSchema::GetGraphDisplayInformation(const UEdGraph& Graph, /*out*/ FGraphDisplayInfo& DisplayInfo) const
 {
-	DisplayInfo.DisplayName = FText::FromString( Graph.GetName() );
+	DisplayInfo.PlainName = FText::FromString( Graph.GetName() );
 
 	const UAnimStateTransitionNode* TransNode = Cast<const UAnimStateTransitionNode>(Graph.GetOuter());
 	if (TransNode == NULL)
@@ -142,6 +149,12 @@ void UAnimationTransitionSchema::GetGraphDisplayInformation(const UEdGraph& Grap
 
 	if (TransNode)
 	{
-		DisplayInfo.DisplayName = FText::Format( NSLOCTEXT("Animation", "TransitionRuleGraphTitle", "{0} (rule)"), FText::FromString( TransNode->GetNodeTitle(ENodeTitleType::FullTitle)) );
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("NodeTitle"), TransNode->GetNodeTitle(ENodeTitleType::FullTitle));
+		DisplayInfo.PlainName = FText::Format( NSLOCTEXT("Animation", "TransitionRuleGraphTitle", "{NodeTitle} (rule)"), Args );
 	}
+
+	DisplayInfo.DisplayName = DisplayInfo.PlainName;
 }
+
+#undef LOCTEXT_NAMESPACE

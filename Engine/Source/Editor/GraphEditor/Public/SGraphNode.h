@@ -27,7 +27,7 @@ public:
 		SLATE_ARGUMENT(FName, ExtraLineStyle)
 
 		// Title text to display, auto-binds to get the title if not set externally
-		SLATE_ATTRIBUTE(FString, Text)
+		SLATE_ATTRIBUTE(FText, Text)
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs, UEdGraphNode* InNode);
@@ -41,18 +41,18 @@ public:
 
 protected:
 	UEdGraphNode* GraphNode;
-	FString CachedString;
+	FText CachedTitle;
 	FName ExtraLineStyle;
 
 	/** The cached head title to return */
 	FText CachedHeadTitle;
 
 	/** The title text to use, auto-binds to get the title if not set externally */
-	TAttribute< FString > TitleText;
+	TAttribute< FText > TitleText;
 
 protected:
 	// Gets the expected node title
-	FString GetNodeTitle() const;
+	FText GetNodeTitle() const;
 
 	// Rebuilds the widget if needed
 	void RebuildWidget();

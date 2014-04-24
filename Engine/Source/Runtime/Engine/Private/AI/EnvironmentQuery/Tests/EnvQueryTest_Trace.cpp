@@ -2,6 +2,8 @@
 
 #include "EnginePrivate.h"
 
+#define LOCTEXT_NAMESPACE "EnvQueryGenerator"
+
 UEnvQueryTest_Trace::UEnvQueryTest_Trace(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
 	ExecuteDelegate.BindUObject(this, &UEnvQueryTest_Trace::RunTest);
@@ -98,22 +100,20 @@ FString UEnvQueryTest_Trace::GetDescriptionTitle() const
 	FString ChannelDesc = ChannelEnum->GetEnumText(TraceData.TraceChannel).ToString();
 
 	FString DirectionDesc = TraceToItem.IsNamedParam() ?
-		FString::Printf(TEXT("%s, direction: %s"), *UEnvQueryTypes::DescribeContext(Context), *UEnvQueryTypes::DescribeBoolParam(TraceToItem)) :
-		FString::Printf(TEXT("%s %s"), TraceToItem.Value ? TEXT("from") : TEXT("to"), *UEnvQueryTypes::DescribeContext(Context));
+		FString::Printf(TEXT("%s, direction: %s"), *UEnvQueryTypes::DescribeContext(Context).ToString(), *UEnvQueryTypes::DescribeBoolParam(TraceToItem)) :
+		FString::Printf(TEXT("%s %s"), TraceToItem.Value ? TEXT("from") : TEXT("to"), *UEnvQueryTypes::DescribeContext(Context).ToString());
 
 	return FString::Printf(TEXT("%s: %s on %s"), 
 		*Super::GetDescriptionTitle(), *DirectionDesc, *ChannelDesc);
 }
 
-FString UEnvQueryTest_Trace::GetDescriptionDetails() const
+FText UEnvQueryTest_Trace::GetDescriptionDetails() const
 {
-	FString Desc;
-
-	Desc = TraceData.ToString(FEnvTraceData::Detailed);
-	Desc.AppendChar(TEXT('\n'));
-	Desc += DescribeBoolTestParams("hit");
-
-	return Desc;
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("TraceData"),  TraceData.ToText(FEnvTraceData::Detailed));
+	Args.Add(TEXT("TestParams"),  DescribeBoolTestParams("hit"));
+	
+	return LOCTEXT("TraceDescription", "{TraceData}\n{TestParams}");
 }
 
 bool UEnvQueryTest_Trace::RunLineTraceTo(const FVector& ItemPos, const FVector& ContextPos, AActor* ItemActor, UWorld* World, enum ECollisionChannel Channel, const FCollisionQueryParams& Params, const FVector& Extent)
@@ -187,3 +187,5 @@ bool UEnvQueryTest_Trace::RunCapsuleTraceFrom(const FVector& ItemPos, const FVec
 	const bool bHit = World->SweepTest(ItemPos, ContextPos, FQuat::Identity, Channel, FCollisionShape::MakeCapsule(Extent.X, Extent.Z), TraceParams);
 	return bHit;
 }
+
+#undef LOCTEXT_NAMESPACE

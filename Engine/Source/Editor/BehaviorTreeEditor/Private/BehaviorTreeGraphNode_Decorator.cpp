@@ -12,12 +12,12 @@ void UBehaviorTreeGraphNode_Decorator::AllocateDefaultPins()
 	//No Pins for decorators
 }
 
-FString UBehaviorTreeGraphNode_Decorator::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UBehaviorTreeGraphNode_Decorator::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	const UBTDecorator* Decorator = Cast<UBTDecorator>(NodeInstance);
 	if (Decorator != NULL)
 	{
-		return Decorator->GetNodeName();
+		return FText::FromString(Decorator->GetNodeName());
 	}
 
 	return Super::GetNodeTitle(TitleType);

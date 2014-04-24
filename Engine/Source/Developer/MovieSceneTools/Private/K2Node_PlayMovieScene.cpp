@@ -76,12 +76,24 @@ FLinearColor UK2Node_PlayMovieScene::GetNodeTitleColor() const
 	return FLinearColor(0.8f, 0.05f, 0.05f);
 }
 
-FString UK2Node_PlayMovieScene::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_PlayMovieScene::GetNodeTitle(ENodeTitleType::Type TitleType) const
+{
+	UMovieScene* MovieScene = MovieSceneBindings != NULL ? MovieSceneBindings->GetRootMovieScene() : NULL;
+
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("SceneName"), FText::FromString(MovieScene->GetName()));
+
+	return MovieScene != NULL ?
+		( FText::Format(NSLOCTEXT("PlayMovieSceneNode", "NodeTitle", "Play Movie Scene: {SceneName}"), Args) ) :
+		NSLOCTEXT("PlayMovieSceneNode", "NodeTitleWithNoMovieScene", "Play Movie Scene (No Asset)");
+}
+
+FString UK2Node_PlayMovieScene::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
 {
 	UMovieScene* MovieScene = MovieSceneBindings != NULL ? MovieSceneBindings->GetRootMovieScene() : NULL;
 	return MovieScene != NULL ?
-		( NSLOCTEXT("PlayMovieSceneNode", "NodeTitle", "Play Movie Scene: ").ToString() + MovieScene->GetName() ) :
-		NSLOCTEXT("PlayMovieSceneNode", "NodeTitleWithNoMovieScene", "Play Movie Scene (No Asset)").ToString();
+		( FString(TEXT("Play Movie Scene: ")) + MovieScene->GetName() ) 
+		: TEXT("Play Movie Scene (No Asset)");
 }
 
 
@@ -262,7 +274,7 @@ void UK2Node_PlayMovieScene::CreatePinForBoundObject( FMovieSceneBoundObject& Bo
 	const FString PinName = BoundObject.GetPossessableGuid().ToString( EGuidFormats::DigitsWithHyphens );
 
 	// For the friendly name, we use the possessable name from the MovieScene asset that is associated with this node
-	FString PinFriendlyName = PinName;
+	FText PinFriendlyName = FText::FromString(PinName);
 	{
 		UMovieScene* MovieScene = GetMovieScene();
 		if( MovieScene != NULL )		// @todo sequencer: Need to refresh the PinFriendlyName if the MovieScene asset changes, or if the possessable slot is renamed within Sequencer
@@ -273,7 +285,7 @@ void UK2Node_PlayMovieScene::CreatePinForBoundObject( FMovieSceneBoundObject& Bo
 				if( Possessable.GetGuid() == BoundObject.GetPossessableGuid() )
 				{
 					// Found a name for this possessable
-					PinFriendlyName = Possessable.GetName();
+					PinFriendlyName = FText::FromString(Possessable.GetName());
 					break;
 				}
 			}

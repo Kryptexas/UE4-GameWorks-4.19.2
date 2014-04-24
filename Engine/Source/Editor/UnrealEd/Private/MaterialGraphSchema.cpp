@@ -163,7 +163,7 @@ void UMaterialGraphSchema::GetBreakLinkToSubMenuActions( class FMenuBuilder& Men
 	for(TArray<class UEdGraphPin*>::TConstIterator Links(InGraphPin->LinkedTo); Links; ++Links)
 	{
 		UEdGraphPin* Pin = *Links;
-		FString TitleString = Pin->GetOwningNode()->GetNodeTitle(ENodeTitleType::ListView);
+		FString TitleString = Pin->GetOwningNode()->GetNodeTitle(ENodeTitleType::ListView).ToString();
 		FText Title = FText::FromString( TitleString );
 		if ( Pin->PinName != TEXT("") )
 		{
@@ -318,7 +318,7 @@ void UMaterialGraphSchema::GetGraphContextActions(FGraphContextMenuBuilder& Cont
 	{
 		const FText PasteDesc = LOCTEXT("PasteDesc", "Paste Here");
 		const FText PasteToolTip = LOCTEXT("PasteToolTip", "Pastes copied items at this location.");
-		TSharedPtr<FMaterialGraphSchemaAction_Paste> PasteAction(new FMaterialGraphSchemaAction_Paste(TEXT(""), PasteDesc.ToString(), PasteToolTip.ToString(), 0));
+		TSharedPtr<FMaterialGraphSchemaAction_Paste> PasteAction(new FMaterialGraphSchemaAction_Paste(TEXT(""), PasteDesc, PasteToolTip.ToString(), 0));
 		ContextMenuBuilder.AddAction(PasteAction);
 	}
 }
@@ -729,7 +729,7 @@ void UMaterialGraphSchema::GetMaterialFunctionActions(FGraphActionMenuBuilder& A
 					const FString& CategoryName = LibraryCategories[CategoryIndex];
 					TSharedPtr<FMaterialGraphSchemaAction_NewFunctionCall> NewFunctionAction(new FMaterialGraphSchemaAction_NewFunctionCall(
 						CategoryName,
-						FunctionName,
+						FText::FromString(FunctionName),
 						Description, 0));
 					ActionMenuBuilder.AddAction(NewFunctionAction);
 					NewFunctionAction->FunctionPath = FunctionPathName;
@@ -748,7 +748,7 @@ void UMaterialGraphSchema::GetCommentAction(FGraphActionMenuBuilder& ActionMenuB
 		const FText MultiCommentDesc = LOCTEXT("MultiCommentDesc", "Create Comment from Selection");
 		const FText CommentToolTip = LOCTEXT("CommentToolTip", "Creates a comment.");
 		const FText MenuDescription = bIsManyNodesSelected ? MultiCommentDesc : CommentDesc;
-		TSharedPtr<FMaterialGraphSchemaAction_NewComment> NewAction(new FMaterialGraphSchemaAction_NewComment(TEXT(""), MenuDescription.ToString(), CommentToolTip.ToString(), 0));
+		TSharedPtr<FMaterialGraphSchemaAction_NewComment> NewAction(new FMaterialGraphSchemaAction_NewComment(TEXT(""), MenuDescription, CommentToolTip.ToString(), 0));
 		ActionMenuBuilder.AddAction( NewAction );
 	}
 }

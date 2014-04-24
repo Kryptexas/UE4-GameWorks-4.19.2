@@ -11,7 +11,7 @@ class USoundCueGraphNode_Root : public USoundCueGraphNode_Base
 	// UEdGraphNode interface
 	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
 	virtual FString GetTooltip() const OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual bool CanUserDeleteNode() const OVERRIDE { return false; }
 	virtual bool CanDuplicateNode() const OVERRIDE { return false; }
 	virtual void GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const OVERRIDE;

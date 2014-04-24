@@ -3536,8 +3536,10 @@ void FBlueprintEditorUtils::ConformCallsToParentFunctions(UBlueprint* Blueprint)
 						if(TargetFunction->GetOwnerClass() != CallFunctionNode->FunctionReference.GetMemberParentClass(Blueprint->ParentClass))
 						{
 							// Emit something to the log to indicate that we're making a change
-							Blueprint->Message_Note(FString::Printf(*LOCTEXT("CallParentFunctionSignatureFixed_Note", "%s (%s) had an invalid function signature - it has now been fixed.").ToString(),
-								*CallFunctionNode->GetNodeTitle(ENodeTitleType::ListView), *CallFunctionNode->GetName()));
+							FFormatNamedArguments Args;
+							Args.Add(TEXT("NodeTitle"), CallFunctionNode->GetNodeTitle(ENodeTitleType::ListView));
+							Args.Add(TEXT("FunctionNodeName"), FText::FromString(CallFunctionNode->GetName()));
+							Blueprint->Message_Note(FText::Format(LOCTEXT("CallParentFunctionSignatureFixed_Note", "{NodeTitle} ({FunctionNodeName}) had an invalid function signature - it has now been fixed."), Args).ToString() );
 
 							// Redirect to the correct parent function
 							CallFunctionNode->SetFromFunction(TargetFunction);
@@ -3588,8 +3590,10 @@ void FBlueprintEditorUtils::ConformCallsToParentFunctions(UBlueprint* Blueprint)
 						}
 
 						// Emit something to the log to indicate that we're making a change
-						Blueprint->Message_Note(FString::Printf(*LOCTEXT("CallParentNodeRemoved_Note", "%s (%s) was not valid for this Blueprint - it has been removed.").ToString(),
-							*CallFunctionNode->GetNodeTitle(ENodeTitleType::ListView), *CallFunctionNode->GetName()));
+						FFormatNamedArguments Args;
+						Args.Add(TEXT("NodeTitle"), CallFunctionNode->GetNodeTitle(ENodeTitleType::ListView));
+						Args.Add(TEXT("FunctionNodeName"), FText::FromString(CallFunctionNode->GetName()));
+						Blueprint->Message_Note( FText::Format(LOCTEXT("CallParentNodeRemoved_Note", "{NodeTitle} ({FunctionNodeName}) was not valid for this Blueprint - it has been removed."), Args).ToString() );
 
 						// Destroy the existing parent function call node (this will also break pin links and remove it from the graph)
 						CallFunctionNode->DestroyNode();
@@ -3652,9 +3656,12 @@ void FBlueprintEditorUtils::ConformImplementedEvents(UBlueprint* Blueprint)
 							if(!Blueprint->GeneratedClass->IsChildOf(EventNode->EventSignatureClass)
 								&& !ImplementedInterfaceClasses.Contains(EventNode->EventSignatureClass))
 							{
+								FFormatNamedArguments Args;
+								Args.Add(TEXT("NodeTitle"), EventNode->GetNodeTitle(ENodeTitleType::ListView));
+								Args.Add(TEXT("EventNodeName"), FText::FromString(EventNode->GetName()));
+
 								// Emit something to the log to indicate that we've made a change
-								Blueprint->Message_Note(FString::Printf(*LOCTEXT("EventSignatureFixed_Note", "%s (%s) had an invalid function signature - it has now been fixed.").ToString(),
-									*EventNode->GetNodeTitle(ENodeTitleType::ListView), *EventNode->GetName()));
+								Blueprint->Message_Note( FText::Format(LOCTEXT("EventSignatureFixed_Note", "{NodeTitle ({EventNodeName}) had an invalid function signature - it has now been fixed."), Args).ToString() );
 
 								// Fix up the event signature
 								EventNode->EventSignatureClass = Blueprint->GeneratedClass;
@@ -3666,9 +3673,12 @@ void FBlueprintEditorUtils::ConformImplementedEvents(UBlueprint* Blueprint)
 							UEdGraphNode* CustomEventNode = CurrentGraph->GetSchema()->CreateSubstituteNode(EventNode, CurrentGraph, NULL);
 							if(CustomEventNode)
 							{
+								FFormatNamedArguments Args;
+								Args.Add(TEXT("NodeTitle"), EventNode->GetNodeTitle(ENodeTitleType::ListView));
+								Args.Add(TEXT("EventNodeName"), FText::FromString(EventNode->GetName()));
+
 								// Emit something to the log to indicate that we've made a change
-								Blueprint->Message_Note(FString::Printf(*LOCTEXT("EventNodeReplaced_Note", "%s (%s) was not valid for this Blueprint - it has been converted to a custom event.").ToString(),
-									*EventNode->GetNodeTitle(ENodeTitleType::ListView), *EventNode->GetName()));
+								Blueprint->Message_Note(FText::Format(LOCTEXT("EventNodeReplaced_Note", "{NodeTitle} ({EventNodeName}) was not valid for this Blueprint - it has been converted to a custom event."), Args).ToString());
 
 								// Destroy the old event node (this will also break all pin links and remove it from the graph)
 								EventNode->DestroyNode();

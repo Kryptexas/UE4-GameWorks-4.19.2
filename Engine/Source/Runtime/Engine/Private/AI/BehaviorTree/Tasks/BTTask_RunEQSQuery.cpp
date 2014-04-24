@@ -103,7 +103,7 @@ void UBTTask_RunEQSQuery::OnQueryFinished(TSharedPtr<struct FEnvQueryResult> Res
 		if (!bSuccess)
 		{
 			UE_VLOG(MyOwner, LogBehaviorTree, Warning, TEXT("Failed to store query result! item:%s key:%s"),
-				*UEnvQueryTypes::GetShortTypeName(Result->ItemType),
+				*UEnvQueryTypes::GetShortTypeName(Result->ItemType).ToString(),
 				*UBehaviorTreeTypes::GetShortTypeName(BlackboardKey.SelectedKeyType));
 		}
 	}

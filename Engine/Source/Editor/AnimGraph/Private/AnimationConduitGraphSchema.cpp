@@ -23,10 +23,15 @@ void UAnimationConduitGraphSchema::CreateDefaultNodesForGraph(UEdGraph& Graph) c
 
 void UAnimationConduitGraphSchema::GetGraphDisplayInformation(const UEdGraph& Graph, /*out*/ FGraphDisplayInfo& DisplayInfo) const
 {
-	DisplayInfo.DisplayName = FText::FromString( Graph.GetName() );
+	DisplayInfo.PlainName = FText::FromString( Graph.GetName() );
 	
 	if (const UAnimStateConduitNode* ConduitNode = Cast<const UAnimStateConduitNode>(Graph.GetOuter()))
 	{
-		DisplayInfo.DisplayName = FText::Format( NSLOCTEXT("Animation", "ConduitRuleGraphTitle", "{0} (conduit rule)"), FText::FromString( ConduitNode->GetNodeTitle(ENodeTitleType::FullTitle) ) );
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("NodeTitle"), ConduitNode->GetNodeTitle(ENodeTitleType::FullTitle) );
+
+		DisplayInfo.PlainName = FText::Format( NSLOCTEXT("Animation", "ConduitRuleGraphTitle", "{NodeTitle} (conduit rule)"), Args);
 	}
+
+	DisplayInfo.DisplayName = DisplayInfo.PlainName;
 }

@@ -153,11 +153,12 @@ TSharedPtr<SToolTip> SGraphNodeK2Base::GetComplexTooltip()
 	};
 	TSharedRef<SGraphNodeK2Base> ThisRef = SharedThis(this);
 
+	TSharedPtr< SVerticalBox > VerticalBoxWidget;
 	SAssignNew(NodeToolTip, SToolTip)
 		.Visibility_Static(&LocalUtils::IsToolTipVisible, ThisRef)
 		.IsInteractive_Static(&LocalUtils::IsInteractive)
 	[
-		SNew(SVerticalBox)
+		SAssignNew(VerticalBoxWidget, SVerticalBox)
 		// heading container
 		+SVerticalBox::Slot()
 		[
@@ -189,6 +190,28 @@ TSharedPtr<SToolTip> SGraphNodeK2Base::GetComplexTooltip()
 		]
 	];
 
+	// English speakers have no real need to know this exists.
+	if(FInternationalization::GetCurrentCulture()->GetTwoLetterISOLanguageName() != TEXT("en"))
+	{
+		struct Local
+		{
+			static EVisibility GetNativeNodeNameVisibility()
+			{
+				return FSlateApplication::Get().GetModifierKeys().IsAltDown()? EVisibility::Collapsed : EVisibility::Visible;
+			}
+		};
+
+		VerticalBoxWidget->AddSlot()
+			.AutoHeight()
+			.HAlign( HAlign_Right )
+			[
+				SNew( STextBlock )
+				.ColorAndOpacity( FSlateColor::UseSubduedForeground() )
+				.Text( LOCTEXT( "NativeNodeName", "hold (Alt) for native node name" ) )
+				.TextStyle( &FEditorStyle::GetWidgetStyle<FTextBlockStyle>(TEXT("Documentation.SDocumentationTooltip")) )
+				.Visibility_Static(&Local::GetNativeNodeNameVisibility)
+			];
+	}
 	return NodeToolTip;
 }
 
@@ -227,7 +250,7 @@ bool SGraphNodeK2Base::RequiresSecondPassLayout() const
 	return bBeadMode;
 }
 
-FString SGraphNodeK2Base::GetNodeCompactTitle() const
+FText SGraphNodeK2Base::GetNodeCompactTitle() const
 {
 	UK2Node* K2Node = CastChecked<UK2Node>(GraphNode);
 	return K2Node->GetCompactNodeTitle();

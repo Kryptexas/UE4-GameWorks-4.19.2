@@ -3,6 +3,8 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "../../../Runtime/Engine/Classes/Kismet/KismetMathLibrary.h"
 
+#define LOCTEXT_NAMESPACE "K2Node"
+
 UK2Node_SwitchEnum::UK2Node_SwitchEnum(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
@@ -43,11 +45,23 @@ void UK2Node_SwitchEnum::SetEnum(UEnum* InEnum)
 	}
 }
 
-FString UK2Node_SwitchEnum::GetNodeTitle(ENodeTitleType::Type TitleType) const 
+FText UK2Node_SwitchEnum::GetNodeTitle(ENodeTitleType::Type TitleType) const 
 {
+	FText EnumName = (Enum != NULL) ? FText::FromString(Enum->GetName()) : LOCTEXT("BadEnum", "(bad enum)");
+
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("EnumName"), EnumName);
+
+	return FText::Format(NSLOCTEXT("K2Node", "Switch_Enum", "Switch on {EnumName}"), Args);
+}
+
+FString UK2Node_SwitchEnum::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const 
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
+
 	FString EnumName = (Enum != NULL) ? Enum->GetName() : TEXT("(bad enum)");
 
-	return FString::Printf(*NSLOCTEXT("K2Node", "Switch_Enum", "Switch on %s").ToString(), *EnumName);
+	return FString::Printf(TEXT("Switch on %s"), *EnumName);
 }
 
 FString UK2Node_SwitchEnum::GetTooltip() const
@@ -96,7 +110,7 @@ void UK2Node_SwitchEnum::CreateCasePins()
 		int32 Index = EnumIt.GetIndex();
 		if (EnumFriendlyNames.IsValidIndex(Index))
 		{
-			NewPin->PinFriendlyName = EnumFriendlyNames[Index];
+			NewPin->PinFriendlyName = FText::FromString(EnumFriendlyNames[Index]);
 		}
 		
 		if(bShouldUseAdvancedView && (EnumIt.GetIndex() > 2))
@@ -160,3 +174,5 @@ void UK2Node_SwitchEnum::RemovePinFromSwitchNode(UEdGraphPin* Pin)
 		Pin->BreakAllPinLinks();
 	}
 }
+
+#undef LOCTEXT_NAMESPACE

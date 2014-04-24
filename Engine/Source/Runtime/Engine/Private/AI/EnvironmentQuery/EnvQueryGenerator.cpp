@@ -6,14 +6,14 @@ UEnvQueryGenerator::UEnvQueryGenerator(const class FPostConstructInitializePrope
 {
 }
 
-FString UEnvQueryGenerator::GetDescriptionTitle() const
+FText UEnvQueryGenerator::GetDescriptionTitle() const
 {
 	return UEnvQueryTypes::GetShortTypeName(this);
 }
 
-FString UEnvQueryGenerator::GetDescriptionDetails() const
+FText UEnvQueryGenerator::GetDescriptionDetails() const
 {
-	return TEXT("");
+	return FText::GetEmpty();
 }
 
 #if WITH_EDITOR

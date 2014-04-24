@@ -177,17 +177,33 @@ void UK2Node_LiveEditObject::AllocateDefaultPins()
 	Super::AllocateDefaultPins();
 }
 
-FString UK2Node_LiveEditObject::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_LiveEditObject::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	UEdGraphPin* BaseClassPin = GetBaseClassPin();
 
-	FString SpawnString = NSLOCTEXT("K2Node", "None", "NONE").ToString();
+	FText SpawnString = NSLOCTEXT("K2Node", "None", "NONE");
+	if(BaseClassPin != NULL && BaseClassPin->DefaultObject != NULL )
+	{
+		SpawnString = FText::FromString(BaseClassPin->DefaultObject->GetName());
+	}
+
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("SpawnString"), SpawnString);
+	Args.Add(TEXT("ID"), GetUniqueID());
+	return FText::Format(NSLOCTEXT("K2Node", "LiveEditObject", "LiveEditObject {SpawnString}_{ID}"), Args );
+}
+
+FString UK2Node_LiveEditObject::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	UEdGraphPin* BaseClassPin = GetBaseClassPin();
+
+	FString SpawnString = TEXT("NONE");
 	if(BaseClassPin != NULL && BaseClassPin->DefaultObject != NULL )
 	{
 		SpawnString = BaseClassPin->DefaultObject->GetName();
 	}
 
-	return FString::Printf(*NSLOCTEXT("K2Node", "LiveEditObject", "LiveEditObject %s_%d").ToString(), *SpawnString, GetUniqueID());
+	return FString::Printf(TEXT("LiveEditObject %s_%d"), *SpawnString, GetUniqueID());
 }
 
 void UK2Node_LiveEditObject::PinDefaultValueChanged(UEdGraphPin* Pin) 

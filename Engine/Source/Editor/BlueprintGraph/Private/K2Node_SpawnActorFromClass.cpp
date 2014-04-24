@@ -252,11 +252,36 @@ FLinearColor UK2Node_SpawnActorFromClass::GetNodeTitleColor() const
 }
 
 
-FString UK2Node_SpawnActorFromClass::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_SpawnActorFromClass::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	UEdGraphPin* ClassPin = GetClassPin();
 
-	FString SpawnString = NSLOCTEXT("K2Node", "None", "NONE").ToString();
+	FText SpawnString = NSLOCTEXT("K2Node", "None", "NONE");
+	if(ClassPin != NULL)
+	{
+		if(ClassPin->LinkedTo.Num() > 0)
+		{
+			// Blueprint will be determined dynamically, so we don't have the name in this case
+			SpawnString = FText::GetEmpty();
+		}
+		else if(ClassPin->DefaultObject != NULL)
+		{
+			SpawnString = FText::FromString(ClassPin->DefaultObject->GetName());
+		}
+	}
+
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("ClassName"), SpawnString);
+	return FText::Format(NSLOCTEXT("K2Node", "SpawnActor", "SpawnActor {ClassName}"), Args);
+}
+
+FString UK2Node_SpawnActorFromClass::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
+	
+	UEdGraphPin* ClassPin = GetClassPin();
+
+	FString SpawnString = TEXT("NONE");
 	if(ClassPin != NULL)
 	{
 		if(ClassPin->LinkedTo.Num() > 0)
@@ -270,7 +295,7 @@ FString UK2Node_SpawnActorFromClass::GetNodeTitle(ENodeTitleType::Type TitleType
 		}
 	}
 
-	return FString::Printf(*NSLOCTEXT("K2Node", "SpawnActor", "SpawnActor %s").ToString(), *SpawnString);
+	return FString::Printf(TEXT("SpawnActor %s"), *SpawnString);
 }
 
 bool UK2Node_SpawnActorFromClass::CanPasteHere( const UEdGraph* TargetGraph, const UEdGraphSchema* Schema ) const 

@@ -8,6 +8,8 @@
 /////////////////////////////////////////////////////
 // UAnimGraphNode_LayeredBoneBlend
 
+#define LOCTEXT_NAMESPACE "A3Nodes"
+
 UAnimGraphNode_LayeredBoneBlend::UAnimGraphNode_LayeredBoneBlend(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
@@ -20,12 +22,12 @@ FLinearColor UAnimGraphNode_LayeredBoneBlend::GetNodeTitleColor() const
 
 FString UAnimGraphNode_LayeredBoneBlend::GetTooltip() const
 {
-	return FString::Printf(TEXT("Layered blend per bone"));
+	return LOCTEXT("AnimGraphNode_LayeredBoneBlend_Tooltip", "Layered blend per bone").ToString();
 }
 
-FString UAnimGraphNode_LayeredBoneBlend::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UAnimGraphNode_LayeredBoneBlend::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return FString::Printf(TEXT("Layered blend per bone"));
+	return LOCTEXT("AnimGraphNode_LayeredBoneBlend_Title", "Layered blend per bone");
 }
 
 FString UAnimGraphNode_LayeredBoneBlend::GetNodeCategory() const
@@ -35,7 +37,7 @@ FString UAnimGraphNode_LayeredBoneBlend::GetNodeCategory() const
 
 void UAnimGraphNode_LayeredBoneBlend::AddPinToBlendByFilter()
 {
-	FScopedTransaction Transaction( NSLOCTEXT("A3Nodes", "AddPinToBlend", "AddPinToBlendByFilter") );
+	FScopedTransaction Transaction( LOCTEXT("AddPinToBlend", "AddPinToBlendByFilter") );
 	Modify();
 
 	Node.AddPose();
@@ -45,7 +47,7 @@ void UAnimGraphNode_LayeredBoneBlend::AddPinToBlendByFilter()
 
 void UAnimGraphNode_LayeredBoneBlend::RemovePinFromBlendByFilter(UEdGraphPin* Pin)
 {
-	FScopedTransaction Transaction( NSLOCTEXT("A3Nodes", "RemovePinFromBlend", "RemovePinFromBlendByFilter") );
+	FScopedTransaction Transaction( LOCTEXT("RemovePinFromBlend", "RemovePinFromBlendByFilter") );
 	Modify();
 
 	UProperty* AssociatedProperty;
@@ -67,7 +69,7 @@ void UAnimGraphNode_LayeredBoneBlend::GetContextMenuActions(const FGraphNodeCont
 {
 	if (!Context.bIsDebugging)
 	{
-		Context.MenuBuilder->BeginSection("AnimGraphNodeLayeredBoneblend", NSLOCTEXT("A3Nodes", "LayeredBoneBlend", "Layered Bone Blend"));
+		Context.MenuBuilder->BeginSection("AnimGraphNodeLayeredBoneblend", LOCTEXT("LayeredBoneBlend", "Layered Bone Blend"));
 		{
 			if (Context.Pin != NULL)
 			{
@@ -86,3 +88,5 @@ void UAnimGraphNode_LayeredBoneBlend::GetContextMenuActions(const FGraphNodeCont
 		Context.MenuBuilder->EndSection();
 	}
 }
+
+#undef LOCTEXT_NAMESPACE

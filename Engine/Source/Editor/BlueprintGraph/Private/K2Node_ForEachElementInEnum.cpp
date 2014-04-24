@@ -6,6 +6,8 @@
 #include "../../../Runtime/Engine/Classes/Kismet/KismetNodeHelperLibrary.h"
 #include "../../../Runtime/Engine/Classes/Kismet/KismetMathLibrary.h"
 
+#define LOCTEXT_NAMESPACE "K2Node"
+
 struct FForExpandNodeHelper
 {
 	UEdGraphPin* StartLoopExecInPin;
@@ -121,14 +123,22 @@ void UK2Node_ForEachElementInEnum::ValidateNodeDuringCompilation(FCompilerResult
 
 FString UK2Node_ForEachElementInEnum::GetTooltip() const
 {
-	return FString::Printf( 
-		*NSLOCTEXT("K2Node", "ForEachElementInEnum_Tooltip", "ForEach %s").ToString(),
-		Enum ? *Enum->GetName() : TEXT("UNKNOWN"));
+	return GetNodeTitle(ENodeTitleType::FullTitle).ToString();
 }
 
-FString UK2Node_ForEachElementInEnum::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_ForEachElementInEnum::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return GetTooltip();
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("EnumName"), Enum ? FText::FromString(Enum->GetName()) : LOCTEXT("Unknown", "UNKNOWN"));
+	return FText::Format(LOCTEXT("ForEachElementInEnum_Title", "ForEach {EnumName}"), Args);
+}
+
+FString UK2Node_ForEachElementInEnum::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
+	return FString::Printf( 
+		TEXT("ForEach %s"),
+		Enum ? *Enum->GetName() : TEXT("UNKNOWN"));
 }
 
 void UK2Node_ForEachElementInEnum::ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)
@@ -179,3 +189,5 @@ void UK2Node_ForEachElementInEnum::ExpandNode(class FKismetCompilerContext& Comp
 		BreakAllNodeLinks();
 	}
 }
+
+#undef LOCTEXT_NAMESPACE

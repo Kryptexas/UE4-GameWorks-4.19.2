@@ -18,7 +18,8 @@ class UK2Node_ComponentBoundEvent : public UK2Node_Event
 	FName ComponentPropertyName;
 
 	// Begin UEdGraphNode interface
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual FString GetTooltip() const OVERRIDE;
 	virtual FString GetDocumentationLink() const OVERRIDE;
 	virtual FString GetDocumentationExcerptName() const OVERRIDE;

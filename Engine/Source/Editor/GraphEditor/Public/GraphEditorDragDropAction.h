@@ -26,7 +26,7 @@ public:
 	
 protected:
 	void SetFeedbackMessage(const TSharedPtr<SWidget>& Message);
-	void SetSimpleFeedbackMessage(const FSlateBrush* Icon, const FSlateColor& IconColor, const FString& Message);
+	void SetSimpleFeedbackMessage(const FSlateBrush* Icon, const FSlateColor& IconColor, const FText& Message);
 
 	UEdGraphPin* GetHoveredPin() const;
 	UEdGraphNode* GetHoveredNode() const;

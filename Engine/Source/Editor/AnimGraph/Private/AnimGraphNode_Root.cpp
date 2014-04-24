@@ -33,6 +33,8 @@ void FPoseLinkMappingRecord::PatchLinkIndex(uint8* DestinationPtr, int32 LinkID,
 /////////////////////////////////////////////////////
 // UAnimGraphNode_Root
 
+#define LOCTEXT_NAMESPACE "A3Nodes"
+
 UAnimGraphNode_Root::UAnimGraphNode_Root(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
@@ -43,14 +45,14 @@ FLinearColor UAnimGraphNode_Root::GetNodeTitleColor() const
 	return GEditor->AccessEditorUserSettings().ResultNodeTitleColor;
 }
 
-FString UAnimGraphNode_Root::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UAnimGraphNode_Root::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return TEXT("Final Animation Pose");
+	return LOCTEXT("AnimGraphNodeRoot_Title", "Final Animation Pose");
 }
 
 FString UAnimGraphNode_Root::GetTooltip() const
 {
-	return TEXT("Wire the final animation pose into this node");
+	return LOCTEXT("AnimGraphNodeRoot_Tooltip", "Wire the final animation pose into this node").ToString();
 }
 
 bool UAnimGraphNode_Root::IsSinkNode() const
@@ -67,3 +69,5 @@ FString UAnimGraphNode_Root::GetDocumentationLink() const
 {
 	return TEXT("Shared/GraphNodes/AnimationStateMachine");
 }
+
+#undef LOCTEXT_NAMESPACE

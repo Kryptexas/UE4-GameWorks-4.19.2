@@ -140,9 +140,9 @@ void UK2Node_ExecutionSequence::AllocateDefaultPins()
 	Super::AllocateDefaultPins();
 }
 
-FString UK2Node_ExecutionSequence::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_ExecutionSequence::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return NSLOCTEXT("K2Node", "Sequence", "Sequence").ToString();
+	return NSLOCTEXT("K2Node", "Sequence", "Sequence");
 }
 
 FLinearColor UK2Node_ExecutionSequence::GetNodeTitleColor() const

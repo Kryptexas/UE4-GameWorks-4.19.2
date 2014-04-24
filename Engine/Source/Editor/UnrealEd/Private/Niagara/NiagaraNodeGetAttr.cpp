@@ -14,8 +14,17 @@ void UNiagaraNodeGetAttr::AllocateDefaultPins()
 	CreatePin(EGPD_Output, Schema->PC_Float, TEXT(""), NULL, false, false, AttrName.ToString());
 }
 
-FString UNiagaraNodeGetAttr::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UNiagaraNodeGetAttr::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("Attribute"), FText::FromName(AttrName));
+	return FText::Format(NSLOCTEXT("Niagara", "GetAttribute", "Get {Attribute}"), Args);
+}
+
+FString UNiagaraNodeGetAttr::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
+	
 	return FString::Printf(TEXT("Get %s"), *AttrName.ToString());
 }
 

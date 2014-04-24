@@ -31,9 +31,9 @@ static FString DescribeLogicModeHelper(const EDecoratorLogicMode::Type& Mode)
 	return Desc[Mode];
 }
 
-FString UBehaviorTreeDecoratorGraphNode_Logic::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UBehaviorTreeDecoratorGraphNode_Logic::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return DescribeLogicModeHelper(LogicMode);
+	return FText::FromString(DescribeLogicModeHelper(LogicMode));
 }
 
 void UBehaviorTreeDecoratorGraphNode_Logic::GetMenuEntries(struct FGraphContextMenuBuilder& ContextMenuBuilder) const
@@ -42,11 +42,12 @@ void UBehaviorTreeDecoratorGraphNode_Logic::GetMenuEntries(struct FGraphContextM
 	const int32 NumModes = sizeof(Modes) / sizeof(Modes[0]);
 	for (int32 i = 0; i < NumModes; i++)
 	{
-		TSharedPtr<FDecoratorSchemaAction_NewNode> AddOpAction = UEdGraphSchema_BehaviorTreeDecorator::AddNewDecoratorAction(ContextMenuBuilder, TEXT("Logic"), DescribeLogicModeHelper(Modes[i]), "");
+		TSharedPtr<FDecoratorSchemaAction_NewNode> AddOpAction = UEdGraphSchema_BehaviorTreeDecorator::AddNewDecoratorAction(ContextMenuBuilder, TEXT("Logic"), FText::FromString(DescribeLogicModeHelper(Modes[i])), "");
 
 		UBehaviorTreeDecoratorGraphNode_Logic* OpNode = NewObject<UBehaviorTreeDecoratorGraphNode_Logic>(ContextMenuBuilder.OwnerOfTemporaries);
 		OpNode->LogicMode = Modes[i];
 		AddOpAction->NodeTemplate = OpNode;
+		AddOpAction->SearchTitle = AddOpAction->NodeTemplate->GetNodeSearchTitle();
 	}
 }
 

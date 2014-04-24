@@ -5,6 +5,8 @@
 /////////////////////////////////////////////////////
 // UAnimGraphNode_LocalRefPose
 
+#define LOCTEXT_NAMESPACE "A3Nodes"
+
 UAnimGraphNode_LocalRefPose::UAnimGraphNode_LocalRefPose(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
@@ -13,11 +15,12 @@ UAnimGraphNode_LocalRefPose::UAnimGraphNode_LocalRefPose(const FPostConstructIni
 
 FString UAnimGraphNode_LocalRefPose::GetTooltip() const
 {
-	return TEXT("Returns local space reference pose.");
+	return LOCTEXT("UAnimGraphNode_LocalRefPose_Tooltip", "Returns local space reference pose.").ToString();
 }
 
-FString UAnimGraphNode_LocalRefPose::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UAnimGraphNode_LocalRefPose::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return FString::Printf(TEXT("Local Space Ref Pose"));
+	return LOCTEXT("UAnimGraphNode_LocalRefPose_Title", "Local Space Ref Pose");
 }
 
+#undef LOCTEXT_NAMESPACE

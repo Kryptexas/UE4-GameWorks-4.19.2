@@ -35,7 +35,7 @@ class UK2Node_Timeline : public UK2Node
 	virtual void PostPasteNode() OVERRIDE;
 	virtual void PrepareForCopying() OVERRIDE;
 	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual bool CanPasteHere(const UEdGraph* TargetGraph, const UEdGraphSchema* Schema) const OVERRIDE;
 	virtual void FindDiffs(class UEdGraphNode* OtherNode, struct FDiffResults& Results )  OVERRIDE;
 	virtual void OnRenameNode(const FString& NewName) OVERRIDE;

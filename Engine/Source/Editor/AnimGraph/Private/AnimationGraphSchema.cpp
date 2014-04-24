@@ -50,10 +50,11 @@ void UAnimationGraphSchema::GetStateMachineMenuItems(FGraphContextMenuBuilder& C
 			NodeTemplate->GetterType = ETransitionGetter::ArbitraryState_GetBlendWeight;
 
 			const FString OwnerName = StateNode->GetOuter()->GetName();
-			const FString Title = FString::Printf(TEXT("Current %s for state '%s.%s'"), *UK2Node_TransitionRuleGetter::GetFriendlyName(NodeTemplate->GetterType), *OwnerName, *StateNode->GetStateName());
+			const FString Title = FString::Printf(TEXT("Current %s for state '%s.%s'"), *UK2Node_TransitionRuleGetter::GetFriendlyName(NodeTemplate->GetterType).ToString(), *OwnerName, *StateNode->GetStateName());
 
-			TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, StateCategory, Title, NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
+			TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, StateCategory, FText::FromString(Title), NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
 			Action->NodeTemplate = NodeTemplate;
+			Action->SearchTitle = NodeTemplate->GetNodeSearchTitle();
 		}
 	}
 }

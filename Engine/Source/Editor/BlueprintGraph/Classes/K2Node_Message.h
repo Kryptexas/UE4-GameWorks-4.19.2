@@ -11,7 +11,8 @@ class UK2Node_Message : public UK2Node_CallFunction
 
 
 	// Begin UEdGraphNode interface.
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	// End UEdGraphNode interface.
 
 	// Begin K2Node interface.

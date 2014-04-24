@@ -81,9 +81,9 @@ FNodeHandlingFunctor* UK2Node_MakeArray::CreateNodeHandler(FKismetCompilerContex
 	return new FKCHandler_MakeArray(CompilerContext);
 }
 
-FString UK2Node_MakeArray::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_MakeArray::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return LOCTEXT("NodeTitle", "Make Array").ToString();
+	return LOCTEXT("NodeTitle", "Make Array");
 }
 
 UEdGraphPin* UK2Node_MakeArray::GetOutputPin() const

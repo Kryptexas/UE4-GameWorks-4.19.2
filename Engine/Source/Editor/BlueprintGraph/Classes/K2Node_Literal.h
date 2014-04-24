@@ -20,7 +20,7 @@ public:
 	virtual void AllocateDefaultPins() OVERRIDE;
 	virtual FString GetTooltip() const OVERRIDE;
 	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual bool ShouldOverridePinNames() const OVERRIDE { return true; }
 	virtual FName GetPaletteIcon(FLinearColor& OutColor) const OVERRIDE;
 	// End UEdGraphNode interface

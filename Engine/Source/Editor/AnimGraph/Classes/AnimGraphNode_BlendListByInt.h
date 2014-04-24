@@ -18,7 +18,7 @@ class UAnimGraphNode_BlendListByInt : public UAnimGraphNode_BlendListBase
 
 	// UEdGraphNode interface
 	virtual FString GetTooltip() const OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual void PostPlacedNewNode() OVERRIDE;
 	// End of UEdGraphNode interface
 

@@ -2,6 +2,8 @@
 
 #include "EnginePrivate.h"
 
+#define LOCTEXT_NAMESPACE "EnvQueryGenerator"
+
 UEnvQueryGenerator_SimpleGrid::UEnvQueryGenerator_SimpleGrid(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
 	GenerateDelegate.BindUObject(this, &UEnvQueryGenerator_SimpleGrid::GenerateItems);
@@ -76,24 +78,33 @@ void UEnvQueryGenerator_SimpleGrid::GenerateItems(struct FEnvQueryInstance& Quer
 	}
 }
 
-FString UEnvQueryGenerator_SimpleGrid::GetDescriptionTitle() const
+FText UEnvQueryGenerator_SimpleGrid::GetDescriptionTitle() const
 {
-	return FString::Printf(TEXT("%s: generate around %s"),
-		*Super::GetDescriptionTitle(), *UEnvQueryTypes::DescribeContext(GenerateAround));
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("DescriptionTitle"), Super::GetDescriptionTitle());
+	Args.Add(TEXT("DescribeContext"), UEnvQueryTypes::DescribeContext(GenerateAround));
+
+	return FText::Format(LOCTEXT("DescriptionGenerateSimpleGridAroundContext", "{DescriptionTitle}: generate around {DescribeContext}"), Args);
 };
 
-FString UEnvQueryGenerator_SimpleGrid::GetDescriptionDetails() const
+FText UEnvQueryGenerator_SimpleGrid::GetDescriptionDetails() const
 {
-	FString Desc = FString::Printf(TEXT("radius: %s, density: %s"),
-		*UEnvQueryTypes::DescribeFloatParam(Radius),
-		*UEnvQueryTypes::DescribeFloatParam(Density));
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("Radius"), FText::FromString(UEnvQueryTypes::DescribeFloatParam(Radius)));
+	Args.Add(TEXT("Density"), FText::FromString(UEnvQueryTypes::DescribeFloatParam(Density)));
 
-	FString ProjDesc = ProjectionData.ToString(FEnvTraceData::Brief);
-	if (ProjDesc.Len() > 0)
+	FText Desc = FText::Format(LOCTEXT("SimpleGridDescription", "radius: {Radius}, density: {Density}"), Args);
+
+	FText ProjDesc = ProjectionData.ToText(FEnvTraceData::Brief);
+	if (!ProjDesc.IsEmpty())
 	{
-		Desc += TEXT(", ");
-		Desc += ProjDesc;
+		FFormatNamedArguments ProjArgs;
+		ProjArgs.Add(TEXT("Description"), Desc);
+		ProjArgs.Add(TEXT("ProjectionDescription"), ProjDesc);
+		Desc = FText::Format(LOCTEXT("DescriptionWithProjection", "{Description}, {ProjectionDescription}"), ProjArgs);
 	}
 
 	return Desc;
 }
+
+#undef LOCTEXT_NAMESPACE

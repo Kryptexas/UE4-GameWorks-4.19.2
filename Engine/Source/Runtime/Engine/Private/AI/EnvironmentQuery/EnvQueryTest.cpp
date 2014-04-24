@@ -2,6 +2,8 @@
 
 #include "EnginePrivate.h"
 
+#define LOCTEXT_NAMESPACE "EnvQueryGenerator"
+
 UEnvQueryTest::UEnvQueryTest(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
 	Cost = EEnvTestCost::Low;
@@ -126,12 +128,12 @@ AActor* UEnvQueryTest::GetItemActor(struct FEnvQueryInstance& QueryInstance, int
 
 FString UEnvQueryTest::GetDescriptionTitle() const
 {
-	return UEnvQueryTypes::GetShortTypeName(this);
+	return UEnvQueryTypes::GetShortTypeName(this).ToString();
 }
 
-FString UEnvQueryTest::GetDescriptionDetails() const
+FText UEnvQueryTest::GetDescriptionDetails() const
 {
-	return FString();
+	return FText::GetEmpty();
 }
 
 #if WITH_EDITOR
@@ -142,67 +144,98 @@ void UEnvQueryTest::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 }
 #endif //WITH_EDITOR
 
-FString UEnvQueryTest::DescribeFloatTestParams() const
+FText UEnvQueryTest::DescribeFloatTestParams() const
 {
-	FString ParamDesc;
+	FText ParamDesc;
 
 	if (Condition != EEnvTestCondition::NoCondition)
 	{
-		FString InvalidConditionDesc("invalid condition");
-		ParamDesc =
-			(Condition == EEnvTestCondition::AtLeast) ? FString::Printf(TEXT("at least %s"), *UEnvQueryTypes::DescribeFloatParam(FloatFilter)) :
-			(Condition == EEnvTestCondition::UpTo) ? FString::Printf(TEXT("up to %s"), *UEnvQueryTypes::DescribeFloatParam(FloatFilter)) :
-			InvalidConditionDesc;
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("Filter"), FText::FromString(UEnvQueryTypes::DescribeFloatParam(FloatFilter)));
 
-		ParamDesc += TEXT(", ");
+		FText InvalidConditionDesc = LOCTEXT("InvalidCondition", "invalid condition");
+		ParamDesc =
+			(Condition == EEnvTestCondition::AtLeast) ? FText::Format(LOCTEXT("AtLeastFiltered", "at least {Filter}"), Args) :
+			(Condition == EEnvTestCondition::UpTo) ? FText::Format(LOCTEXT("UpToFiltered", "up to %s"), Args) :
+			InvalidConditionDesc;
 	}
+
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("ParmDesc"), ParamDesc);
 
 	if (WeightModifier == EEnvTestWeight::Flat)
 	{
-		ParamDesc += TEXT("don't score");
+		ParamDesc = FText::Format(LOCTEXT("ParmDescWithDontScore", "{ParmDesc}, don't score"), Args);
 	}
 	else if (Weight.IsNamedParam())
 	{
-		ParamDesc += FString::Printf(TEXT("weight: %s"), *Weight.ParamName.ToString());
+		Args.Add(TEXT("WeightName"), FText::FromName(Weight.ParamName));
+		ParamDesc = FText::Format(LOCTEXT("ParmDescWithWeight", "{ParmDesc}, weight: {WeightName}"), Args);
 	}
 	else
 	{
-		ParamDesc += FString::Printf(TEXT("prefer %s [x%.2f]"), (Weight.Value > 0) ? TEXT("greater") : TEXT("lesser"), Weight.Value);
+		FNumberFormattingOptions NumberFormattingOptions;
+		NumberFormattingOptions.MaximumFractionalDigits = 2;
+
+		Args.Add(TEXT("WeightCondition"), (Weight.Value > 0) ? LOCTEXT("Greater", "greater") : LOCTEXT("Lesser", "lesser"));
+		Args.Add(TEXT("WeightValue"), FText::AsNumber(Weight.Value, &NumberFormattingOptions));
+		ParamDesc = FText::Format(LOCTEXT("DescriptionPreferWeightValue", "{ParmDesc}, prefer {WeightCondition} [x{WeightValue}]"), Args);
 	}
 
 	return ParamDesc;
 }
 
-FString UEnvQueryTest::DescribeBoolTestParams(const FString& ConditionDesc) const
+FText UEnvQueryTest::DescribeBoolTestParams(const FString& ConditionDesc) const
 {
-	FString ParamDesc;
+	FText ParamDesc;
 
 	if (Condition != EEnvTestCondition::NoCondition)
 	{
-		FString InvalidConditionDesc("invalid condition");
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("ConditionDesc"), FText::FromString(ConditionDesc));
+
+		if(BoolFilter.IsNamedParam())
+		{
+			Args.Add(TEXT("Filter"), FText::FromString(UEnvQueryTypes::DescribeBoolParam(BoolFilter)));
+		}
+		else
+		{
+			Args.Add(TEXT("Filter"), BoolFilter.Value ? FText::GetEmpty() : LOCTEXT("NotWithSpace", "not "));
+		}
+		FText InvalidConditionDesc = LOCTEXT("InvalidCondition", "invalid condition");
 		ParamDesc =
 			(Condition == EEnvTestCondition::Match) ?
 				(BoolFilter.IsNamedParam() ?
-					FString::Printf(TEXT("require %s: %s"), *ConditionDesc, *UEnvQueryTypes::DescribeBoolParam(BoolFilter)) :
-					FString::Printf(TEXT("require %s%s"), BoolFilter.Value ? TEXT("") : TEXT("not "), *ConditionDesc)
+					FText::Format(LOCTEXT("RequiresCondition", "require {ConditionDesc}: {Filter}"), Args) :
+					FText::Format(LOCTEXT("RequiresFilter", "require {Filter}{ConditionDesc}%s"), Args)
 				) :
 			InvalidConditionDesc;
-
-		ParamDesc += TEXT(", ");
 	}
+
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("ParmDesc"), ParamDesc);
 
 	if (WeightModifier == EEnvTestWeight::Flat)
 	{
-		ParamDesc += TEXT("don't score");
+		ParamDesc = FText::Format(LOCTEXT("ParmDescWithDontScore", "{ParmDesc}, don't score"), Args);
 	}
 	else if (Weight.IsNamedParam())
 	{
-		ParamDesc += FString::Printf(TEXT("weight: %s"), *Weight.ParamName.ToString());
+		Args.Add(TEXT("WeightName"), FText::FromName(Weight.ParamName));
+		ParamDesc = FText::Format(LOCTEXT("ParmDescWithWeight", "{ParmDesc}, weight: {WeightName}"), Args);
 	}
 	else
 	{
-		ParamDesc += FString::Printf(TEXT("prefer %s%s [x%.2f]"), (Weight.Value > 0) ? TEXT("") : TEXT("not "), *ConditionDesc, Weight.Value);
+		FNumberFormattingOptions NumberFormattingOptions;
+		NumberFormattingOptions.MaximumFractionalDigits = 2;
+
+		Args.Add(TEXT("ConditionDesc"), FText::FromString(ConditionDesc));
+		Args.Add(TEXT("WeightCondition"), (Weight.Value > 0) ? FText::GetEmpty() : LOCTEXT("NotWithSpace", "not "));
+		Args.Add(TEXT("WeightValue"), FText::AsNumber(Weight.Value, &NumberFormattingOptions));
+		ParamDesc = FText::Format(LOCTEXT("ParmDescWithPreference", "{ParmDesc}, prefer {WeightCondition}{ConditionDesc} [x{WeightValue}]"), Args);
 	}
 
 	return ParamDesc;
 }
+
+#undef LOCTEXT_NAMESPACE

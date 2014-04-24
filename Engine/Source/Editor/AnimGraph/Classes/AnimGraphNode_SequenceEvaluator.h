@@ -12,8 +12,9 @@ class UAnimGraphNode_SequenceEvaluator : public UAnimGraphNode_Base
 	FAnimNode_SequenceEvaluator Node;
 
 	// UEdGraphNode interface
-	FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	FString GetTooltip() const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FString GetTooltip() const OVERRIDE;
 	// End of UEdGraphNode
 
 	// UAnimGraphNode_Base interface

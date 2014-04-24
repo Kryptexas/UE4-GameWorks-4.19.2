@@ -17,7 +17,7 @@ public:
 	virtual void PinConnectionListChanged(UEdGraphPin* Pin) OVERRIDE;
 	virtual void PinTypeChanged(UEdGraphPin* Pin) OVERRIDE;
 	virtual void NodeConnectionListChanged() OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual UObject* GetJumpTargetForDoubleClick() const OVERRIDE;
 	// End of UEdGraphNode interface
 

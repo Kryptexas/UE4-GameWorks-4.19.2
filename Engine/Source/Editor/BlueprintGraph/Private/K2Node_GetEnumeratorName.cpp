@@ -26,14 +26,14 @@ FString UK2Node_GetEnumeratorName::GetTooltip() const
 	return NSLOCTEXT("K2Node", "GetEnumeratorName_Tooltip", "Returns name of enumerator").ToString();
 }
 
-FString UK2Node_GetEnumeratorName::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_GetEnumeratorName::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return NSLOCTEXT("K2Node", "GetNode_Title", "Enum to Name").ToString();
+	return NSLOCTEXT("K2Node", "GetNode_Title", "Enum to Name");
 }
 
-FString UK2Node_GetEnumeratorName::GetCompactNodeTitle() const
+FText UK2Node_GetEnumeratorName::GetCompactNodeTitle() const
 {
-	return TEXT("\x2022");
+	return NSLOCTEXT("K2Node", "CastSymbol", "\x2022");
 }
 
 UEnum* UK2Node_GetEnumeratorName::GetEnum() const

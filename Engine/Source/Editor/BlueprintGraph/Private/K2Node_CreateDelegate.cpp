@@ -24,12 +24,12 @@ void UK2Node_CreateDelegate::AllocateDefaultPins()
 
 	if(UEdGraphPin* ObjPin = CreatePin(EGPD_Input, K2Schema->PC_Object, TEXT(""), UObject::StaticClass(), false, false, FK2Node_CreateDelegate_Helper::ObjectInputName))
 	{
-		ObjPin->PinFriendlyName = *NSLOCTEXT("K2Node", "CreateDelegate_ObjectInputName", "Object").ToString();
+		ObjPin->PinFriendlyName = NSLOCTEXT("K2Node", "CreateDelegate_ObjectInputName", "Object");
 	}
 
 	if(UEdGraphPin* DelegatePin = CreatePin(EGPD_Output, K2Schema->PC_Delegate, TEXT(""), NULL, false, false, FK2Node_CreateDelegate_Helper::DelegateOutputName))
 	{
-		DelegatePin->PinFriendlyName = *NSLOCTEXT("K2Node", "CreateDelegate_DelegateOutName", "Event").ToString();
+		DelegatePin->PinFriendlyName = NSLOCTEXT("K2Node", "CreateDelegate_DelegateOutName", "Event");
 	}
 
 	Super::AllocateDefaultPins();
@@ -275,9 +275,9 @@ UEdGraphPin* UK2Node_CreateDelegate::GetObjectInPin() const
 	return FindPinChecked(FK2Node_CreateDelegate_Helper::ObjectInputName);
 }
 
-FString UK2Node_CreateDelegate::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_CreateDelegate::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return FString::Printf(*NSLOCTEXT("K2Node", "CreateDelegate", "Create Event").ToString());
+	return NSLOCTEXT("K2Node", "CreateDelegate", "Create Event");
 }
 
 UObject* UK2Node_CreateDelegate::GetJumpTargetForDoubleClick() const

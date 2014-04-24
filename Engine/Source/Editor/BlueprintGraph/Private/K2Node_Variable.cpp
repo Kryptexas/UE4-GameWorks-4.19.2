@@ -90,7 +90,7 @@ void UK2Node_Variable::CreatePinForSelf()
 		else
 		{
 			UEdGraphPin* TargetPin = CreatePin(EGPD_Input, K2Schema->PC_Object, TEXT(""), VariableReference.GetMemberParentClass(this), false, false, K2Schema->PN_Self);
-			TargetPin->PinFriendlyName =  TEXT("Target");
+			TargetPin->PinFriendlyName =  LOCTEXT("Target", "Target");
 		}
 	}
 	else

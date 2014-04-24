@@ -36,7 +36,7 @@ class UK2Node_Select : public UK2Node
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() OVERRIDE;
 	virtual FString GetTooltip() const OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual void NodeConnectionListChanged() OVERRIDE;
 	virtual void PinTypeChanged(UEdGraphPin* Pin) OVERRIDE;
 	virtual void PostPasteNode() OVERRIDE;

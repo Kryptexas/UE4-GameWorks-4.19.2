@@ -120,8 +120,52 @@ bool UMaterialGraphNode::CanPasteHere(const UEdGraph* TargetGraph, const UEdGrap
 	return false;
 }
 
-FString UMaterialGraphNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UMaterialGraphNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
+	TArray<FString> Captions;
+	MaterialExpression->GetCaption(Captions);
+
+	if (TitleType == ENodeTitleType::EditableTitle)
+	{
+		return FText::FromString(GetParameterName());
+	}
+	else if (TitleType == ENodeTitleType::ListView)
+	{
+		return FText::FromString(MaterialExpression->GetClass()->GetDescription());
+	}
+	else
+	{
+		// More useful to display multi line parameter captions in reverse order
+		// TODO: May have to choose order based on expression type if others need correct order
+		int32 CaptionIndex = Captions.Num() -1;
+
+		FTextBuilder NodeTitle;
+		NodeTitle.AppendLine(Captions[CaptionIndex]);
+
+		for (; CaptionIndex > 0; )
+		{
+			CaptionIndex--;
+			NodeTitle.AppendLine(Captions[CaptionIndex]);
+		}
+
+		if ( MaterialExpression->bShaderInputData && (MaterialExpression->bHidePreviewWindow || MaterialExpression->bCollapsed))
+		{
+			NodeTitle.AppendLine(LOCTEXT("InputData", "Input Data"));
+		}
+
+		if (bIsPreviewExpression)
+		{
+			NodeTitle.AppendLine(LOCTEXT("PreviewExpression", "\nPreviewing"));
+		}
+
+		return NodeTitle.ToText();
+	}
+}
+
+FString UMaterialGraphNode::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
+	
 	TArray<FString> Captions;
 	MaterialExpression->GetCaption(Captions);
 
@@ -154,7 +198,7 @@ FString UMaterialGraphNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
 
 		if (bIsPreviewExpression)
 		{
-			NodeTitle += LOCTEXT("PreviewExpression", "\nPreviewing").ToString();
+			NodeTitle += TEXT("\nPreviewing");
 		}
 
 		return NodeTitle;
@@ -433,7 +477,7 @@ void UMaterialGraphNode::CreateInputPins()
 		{
 			// Makes sure pin has a name for lookup purposes but user will never see it
 			NewPin->PinName = CreateUniquePinName(TEXT("Input"));
-			NewPin->PinFriendlyName = TEXT(" ");
+			NewPin->PinFriendlyName = FText::FromString(TEXT(" "));
 		}
 	}
 }
@@ -483,7 +527,7 @@ void UMaterialGraphNode::CreateOutputPins()
 		{
 			// Makes sure pin has a name for lookup purposes but user will never see it
 			NewPin->PinName = CreateUniquePinName(TEXT("Output"));
-			NewPin->PinFriendlyName = TEXT(" ");
+			NewPin->PinFriendlyName = FText::FromString(TEXT(" "));
 		}
 	}
 }

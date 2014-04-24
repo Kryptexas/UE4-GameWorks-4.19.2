@@ -162,11 +162,26 @@ FLinearColor UK2Node_Composite::GetNodeTitleColor() const
 	return FLinearColor::White;
 }
 
-FString UK2Node_Composite::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_Composite::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	if(TitleType == ENodeTitleType::FullTitle)
 	{
-		return FString::Printf(*LOCTEXT("Collapsed_Name", "%s\nCollapsed Graph").ToString(), (BoundGraph)?*BoundGraph->GetName() : TEXT("Invalid Graph"));
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("BoundGraphName"), (BoundGraph)? FText::FromString(BoundGraph->GetName()) : LOCTEXT("InvalidGraph", "Invalid Graph"));
+		return FText::Format(LOCTEXT("Collapsed_Name", "{BoundGraphName}\nCollapsed Graph"), Args);
+	}
+	else
+	{
+		return (BoundGraph)? FText::FromString(BoundGraph->GetName()) : LOCTEXT("InvalidGraph", "Invalid Graph");
+	}
+}
+
+FString UK2Node_Composite::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
+	if(TitleType == ENodeTitleType::FullTitle)
+	{
+		return FString::Printf(TEXT("%s\nCollapsed Graph"), (BoundGraph)?*BoundGraph->GetName() : TEXT("Invalid Graph"));
 	}
 	else
 	{

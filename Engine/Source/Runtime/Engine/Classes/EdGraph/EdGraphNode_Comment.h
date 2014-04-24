@@ -46,7 +46,7 @@ public:
 	virtual void AllocateDefaultPins() OVERRIDE {}
 	ENGINE_API virtual FString GetTooltip() const OVERRIDE;
 	ENGINE_API virtual FLinearColor GetNodeCommentColor() const OVERRIDE;
-	ENGINE_API virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	ENGINE_API virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual bool ShouldOverridePinNames() const OVERRIDE { return true; }
 	ENGINE_API virtual FString GetPinNameOverride(const UEdGraphPin& Pin) const OVERRIDE;
 	ENGINE_API virtual void ResizeNode(const FVector2D& NewSize) OVERRIDE;

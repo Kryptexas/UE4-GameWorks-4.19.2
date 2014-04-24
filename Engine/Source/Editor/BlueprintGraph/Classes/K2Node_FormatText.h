@@ -14,7 +14,7 @@ class UK2Node_FormatText : public UK2Node
 
 	// Begin UEdGraphNode interface.
 	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual bool ShouldShowNodeProperties() const OVERRIDE { return true; }
 	virtual void PinConnectionListChanged(UEdGraphPin* Pin) OVERRIDE;
 	virtual void PinDefaultValueChanged(UEdGraphPin* Pin) OVERRIDE;

@@ -14,7 +14,7 @@ class UK2Node_Self : public UK2Node
 	TSubclassOf<class UObject>  SelfClass;
 
 	// Begin UEdGraphNode interface
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual FString GetTooltip() const OVERRIDE;
 	virtual FString GetKeywords() const OVERRIDE;
 	virtual void AllocateDefaultPins() OVERRIDE;

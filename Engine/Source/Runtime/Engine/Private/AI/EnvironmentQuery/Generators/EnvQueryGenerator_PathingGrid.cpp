@@ -2,6 +2,8 @@
 
 #include "EnginePrivate.h"
 
+#define LOCTEXT_NAMESPACE "EnvQueryGenerator"
+
 UEnvQueryGenerator_PathingGrid::UEnvQueryGenerator_PathingGrid(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
 	GenerateDelegate.BindUObject(this, &UEnvQueryGenerator_PathingGrid::GenerateItems);
@@ -81,18 +83,23 @@ void UEnvQueryGenerator_PathingGrid::GenerateItems(struct FEnvQueryInstance& Que
 #endif // WITH_RECAST
 }
 
-FString UEnvQueryGenerator_PathingGrid::GetDescriptionTitle() const
+FText UEnvQueryGenerator_PathingGrid::GetDescriptionTitle() const
 {
-	return FString::Printf(TEXT("%s: generate around %s"),
-		*Super::GetDescriptionTitle(), *UEnvQueryTypes::DescribeContext(GenerateAround));
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("DescriptionTitle"), Super::GetDescriptionTitle());
+	Args.Add(TEXT("DescribeContext"), UEnvQueryTypes::DescribeContext(GenerateAround));
+
+	return FText::Format(LOCTEXT("DescriptionGenerateAroundContext", "{DescriptionTitle}: generate around {DescribeContext}"), Args);
 };
 
-FString UEnvQueryGenerator_PathingGrid::GetDescriptionDetails() const
+FText UEnvQueryGenerator_PathingGrid::GetDescriptionDetails() const
 {
-	return FString::Printf(TEXT("max distance: %s, density: %s, path from context: %s"),
-		*UEnvQueryTypes::DescribeFloatParam(MaxPathDistance),
-		*UEnvQueryTypes::DescribeFloatParam(Density),
-		*UEnvQueryTypes::DescribeBoolParam(PathFromContext));
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("MaxPathDistance"), FText::FromString(UEnvQueryTypes::DescribeFloatParam(MaxPathDistance)));
+	Args.Add(TEXT("Density"), FText::FromString(UEnvQueryTypes::DescribeFloatParam(Density)));
+	Args.Add(TEXT("PathFromContext"), FText::FromString(UEnvQueryTypes::DescribeBoolParam(PathFromContext)));
+
+	return FText::Format(LOCTEXT("DescriptionDetailsPathingGrid", "max distance: {MaxPathDistance}, density: {Density}, path from context: {PathFromContext}"), Args);
 }
 
 #if WITH_RECAST
@@ -154,3 +161,5 @@ bool UEnvQueryGenerator_PathingGrid::IsNavLocationInPathDistance(const class ARe
 #undef ENVQUERY_CLUSTER_SEARCH
 
 #endif // WITH_RECAST
+
+#undef LOCTEXT_NAMESPACE

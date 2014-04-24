@@ -12,9 +12,9 @@ UK2Node_SwitchInteger::UK2Node_SwitchInteger(const class FPostConstructInitializ
 	FunctionClass = UKismetMathLibrary::StaticClass();
 }
 
-FString UK2Node_SwitchInteger::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_SwitchInteger::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return NSLOCTEXT("K2Node", "Switch_Interger", "Switch on Int").ToString();
+	return NSLOCTEXT("K2Node", "Switch_Interger", "Switch on Int");
 }
 
 FString UK2Node_SwitchInteger::GetTooltip() const

@@ -44,7 +44,7 @@ void USoundCueGraphNode::PostLoad()
 			{
 				Pin->PinName = CreateUniquePinName(TEXT("Output"));
 			}
-			Pin->PinFriendlyName = TEXT(" ");
+			Pin->PinFriendlyName = FText::FromString(TEXT(" "));
 		}
 	}
 }
@@ -62,7 +62,7 @@ void USoundCueGraphNode::CreateInputPin()
 	{
 		// Makes sure pin has a name for lookup purposes but user will never see it
 		NewPin->PinName = CreateUniquePinName(TEXT("Input"));
-		NewPin->PinFriendlyName = TEXT(" ");
+		NewPin->PinFriendlyName = FText::FromString(TEXT(" "));
 	}
 }
 
@@ -112,7 +112,7 @@ void USoundCueGraphNode::RemoveInputPin(UEdGraphPin* InGraphPin)
 int32 USoundCueGraphNode::EstimateNodeWidth() const
 {
 	const int32 EstimatedCharWidth = 6;
-	FString NodeTitle = GetNodeTitle(ENodeTitleType::FullTitle);
+	FString NodeTitle = GetNodeTitle(ENodeTitleType::FullTitle).ToString();
 	UFont* Font = GetDefault<UEditorEngine>()->EditorFont;
 	int32 Result = NodeTitle.Len()*EstimatedCharWidth;
 
@@ -130,11 +130,11 @@ bool USoundCueGraphNode::CanAddInputPin() const
 	return SoundNode->ChildNodes.Num() < SoundNode->GetMaxChildNodes();
 }
 
-FString USoundCueGraphNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText USoundCueGraphNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	if (SoundNode)
 	{
-		return SoundNode->GetTitle();
+		return FText::FromString(SoundNode->GetTitle());
 	}
 	else
 	{
@@ -241,7 +241,7 @@ FString USoundCueGraphNode::GetTooltip() const
 	}
 	if (Tooltip.Len() == 0)
 	{
-		Tooltip = GetNodeTitle(ENodeTitleType::ListView);
+		Tooltip = GetNodeTitle(ENodeTitleType::ListView).ToString();
 	}
 	return Tooltip;
 }

@@ -38,9 +38,9 @@ void UK2Node_SwitchString::PostEditChangeProperty(struct FPropertyChangedEvent& 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 
-FString UK2Node_SwitchString::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_SwitchString::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return NSLOCTEXT("K2Node", "Switch_String", "Switch on String").ToString();
+	return NSLOCTEXT("K2Node", "Switch_String", "Switch on String");
 }
 
 FString UK2Node_SwitchString::GetTooltip() const

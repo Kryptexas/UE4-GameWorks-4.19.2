@@ -64,25 +64,31 @@ public:
 	virtual void HoverTargetChanged() OVERRIDE
 	{
 		const FSlateBrush* StatusSymbol = FEditorStyle::GetBrush(TEXT("NoBrush")); 
-		FString Message = DraggedCategory;
+		FText Message = FText::FromString(DraggedCategory);
 
 		if (HoveredCategoryName.Len() > 0)
 		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("DraggedCategory"), FText::FromString(DraggedCategory));
+
 			if(HoveredCategoryName == DraggedCategory)
 			{
 				StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
-				Message = FString::Printf( *LOCTEXT("MoveCatOverSelf", "Cannot insert category '%s' before itself.").ToString(), *DraggedCategory );
+
+				
+				Message = FText::Format( LOCTEXT("MoveCatOverSelf", "Cannot insert category '{DraggedCategory}' before itself."), Args );
 			}
 			else
 			{
 				StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK"));
-				Message = FString::Printf( *LOCTEXT("MoveCatOK", "Move category '%s' before '%s'").ToString(),  *DraggedCategory, *HoveredCategoryName );
+				Args.Add(TEXT("HoveredCategory"), FText::FromString(HoveredCategoryName));
+				Message = FText::Format( LOCTEXT("MoveCatOK", "Move category '{DraggedCategory}' before '{HoveredCategory}'"), Args );
 			}
 		}
 		else if (HoveredAction.IsValid())
 		{
 			StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
-			Message = FString::Printf( *LOCTEXT("MoveCatOverAction", "Can only insert before another category.").ToString() );
+			Message = LOCTEXT("MoveCatOverAction", "Can only insert before another category.");
 		}
 
 		SetSimpleFeedbackMessage(StatusSymbol, FLinearColor::White, Message);
@@ -494,12 +500,12 @@ void SMyBlueprint::GetChildGraphs(UEdGraph* EdGraph, FGraphActionListBuilderBase
 		FGraphDisplayInfo ChildGraphDisplayInfo;
 		ChildSchema->GetGraphDisplayInformation(*Graph, ChildGraphDisplayInfo);
 
-		FString DisplayString = ChildGraphDisplayInfo.DisplayName.ToString();
-		const FName DisplayName =  FName(*DisplayString);
+		FText DisplayText = ChildGraphDisplayInfo.DisplayName;
 
 		FString Category = ((ParentCategory.IsEmpty()) ? "" : ParentCategory + "|") + EdGraphDisplayName.ToString();
-		FString FunctionTooltip = DisplayString;
-		FString FunctionDesc = DisplayString;
+		FString FunctionTooltip = DisplayText.ToString();
+		FText FunctionDesc = DisplayText;
+		const FName DisplayName =  FName(*DisplayText.ToString());
 
 		TSharedPtr<FEdGraphSchemaAction_K2Graph> NewFuncAction = MakeShareable(new FEdGraphSchemaAction_K2Graph(EEdGraphSchemaAction_K2Graph::Subgraph, Category, FunctionDesc, FunctionTooltip, 1));
 		NewFuncAction->FuncName = DisplayName;
@@ -533,10 +539,11 @@ void SMyBlueprint::GetChildEvents(UEdGraph const* EdGraph, int32 const SectionId
 		UK2Node_Event* const EventNode = (*It);
 
 		FString const Tooltip = EventNode->GetTooltip();
-		FString const Description = EventNode->GetNodeTitle(ENodeTitleType::EditableTitle);
+		FText const Description = EventNode->GetNodeTitle(ENodeTitleType::EditableTitle);
 
 		TSharedPtr<FEdGraphSchemaAction_K2Event> EventNodeAction = MakeShareable(new FEdGraphSchemaAction_K2Event(ActionCategory, Description, Tooltip, 0));
 		EventNodeAction->NodeTemplate = EventNode;
+		EventNodeAction->SearchTitle = EventNodeAction->NodeTemplate->GetNodeSearchTitle();
 		EventNodeAction->SectionID = SectionId;
 		OutAllActions.AddAction(EventNodeAction);
 	}
@@ -559,10 +566,11 @@ void SMyBlueprint::GetLocalVariables(FGraphActionListBuilderBase& OutAllActions)
 		for (UK2Node_LocalVariable* const LocalVariable : LocalVariableNodes)
 		{
 			FString const Tooltip = LocalVariable->GetTooltip();
-			FString const Description = LocalVariable->GetNodeTitle(ENodeTitleType::EditableTitle);
+			FText const Description = LocalVariable->GetNodeTitle(ENodeTitleType::EditableTitle);
 
 			TSharedPtr<FEdGraphSchemaAction_K2TargetNode> TargetNodeAction = MakeShareable(new FEdGraphSchemaAction_K2TargetNode(ActionCategory, Description, Tooltip, 0));
 			TargetNodeAction->NodeTemplate = LocalVariable;
+			TargetNodeAction->SearchTitle = TargetNodeAction->NodeTemplate->GetNodeSearchTitle();
 			OutAllActions.AddAction(TargetNodeAction);
 		}
 	}
@@ -618,9 +626,9 @@ void SMyBlueprint::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 			continue;
 		}
 
-		const FString PropertyTooltip = Property->GetToolTipText().ToString();
+		const FText PropertyTooltip = Property->GetToolTipText();
 		const FName PropertyName = Property->GetFName();
-		const FString PropertyDesc = PropertyName.ToString();
+		const FText PropertyDesc = FText::FromName(PropertyName);
 
 		FName CategoryName = FObjectEditorUtils::GetCategoryFName(Property);
 		FString PropertyCategory = FObjectEditorUtils::GetCategory(Property);
@@ -632,7 +640,7 @@ void SMyBlueprint::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 
 		if (bShouldShowAsVar)
 		{
-			TSharedPtr<FEdGraphSchemaAction_K2Var> NewVarAction = MakeShareable(new FEdGraphSchemaAction_K2Var(PropertyCategory, PropertyDesc, PropertyTooltip, 0));
+			TSharedPtr<FEdGraphSchemaAction_K2Var> NewVarAction = MakeShareable(new FEdGraphSchemaAction_K2Var(PropertyCategory, PropertyDesc, PropertyTooltip.ToString(), 0));
 			NewVarAction->SetVariableInfo(PropertyName, Blueprint->SkeletonGeneratedClass);
 			NewVarAction->SectionID = NodeSectionID::VARIABLE;
 			OutAllActions.AddAction(NewVarAction);
@@ -643,7 +651,7 @@ void SMyBlueprint::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 			// Delegate is visible in MyBlueprint when not-native or its category name is not empty.
 			if (Property->HasAllPropertyFlags(CPF_Edit) || !PropertyCategory.IsEmpty())
 			{
-				NewFuncAction = MakeShareable(new FEdGraphSchemaAction_K2Delegate(PropertyCategory, PropertyDesc, PropertyTooltip, 0));
+				NewFuncAction = MakeShareable(new FEdGraphSchemaAction_K2Delegate(PropertyCategory, PropertyDesc, PropertyTooltip.ToString(), 0));
 				NewFuncAction->SetDelegateInfo(PropertyName, Blueprint->SkeletonGeneratedClass);
 				NewFuncAction->EdGraph = NULL;
 				NewFuncAction->SectionID = NodeSectionID::DELEGATE;				
@@ -674,7 +682,7 @@ void SMyBlueprint::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 		FGraphDisplayInfo DisplayInfo;
 		Graph->GetSchema()->GetGraphDisplayInformation(*Graph, DisplayInfo);
 
-		TSharedPtr<FEdGraphSchemaAction_K2Graph> NewFuncAction = MakeShareable(new FEdGraphSchemaAction_K2Graph(EEdGraphSchemaAction_K2Graph::Function, FString(), DisplayInfo.DisplayName.ToString(), DisplayInfo.Tooltip, bIsConstructionScript ? 2 : 1));
+		TSharedPtr<FEdGraphSchemaAction_K2Graph> NewFuncAction = MakeShareable(new FEdGraphSchemaAction_K2Graph(EEdGraphSchemaAction_K2Graph::Function, FString(), DisplayInfo.PlainName, DisplayInfo.Tooltip, bIsConstructionScript ? 2 : 1));
 		NewFuncAction->FuncName = Graph->GetFName();
 		NewFuncAction->EdGraph = Graph;
 		NewFuncAction->SectionID = NodeSectionID::FUNCTION;
@@ -703,7 +711,7 @@ void SMyBlueprint::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 		FGraphDisplayInfo DisplayInfo;
 		Graph->GetSchema()->GetGraphDisplayInformation(*Graph, DisplayInfo);
 
-		TSharedPtr<FEdGraphSchemaAction_K2Graph> NewFuncAction = MakeShareable(new FEdGraphSchemaAction_K2Graph(EEdGraphSchemaAction_K2Graph::Macro, FString(), DisplayInfo.DisplayName.ToString(), DisplayInfo.Tooltip, 1));
+		TSharedPtr<FEdGraphSchemaAction_K2Graph> NewFuncAction = MakeShareable(new FEdGraphSchemaAction_K2Graph(EEdGraphSchemaAction_K2Graph::Macro, FString(), DisplayInfo.PlainName, DisplayInfo.Tooltip, 1));
 		NewFuncAction->SectionID = NodeSectionID::MACRO;
 		NewFuncAction->FuncName = FunctionName;
 		NewFuncAction->EdGraph = Graph;
@@ -724,8 +732,11 @@ void SMyBlueprint::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 		if (UEdGraphSchema_K2::CanKismetOverrideFunction(Function) && !ImplementedFunctions.Contains(FunctionName) && !UEdGraphSchema_K2::FunctionCanBePlacedAsEvent(Function))
 		{
 			FString FunctionTooltip = Function->GetToolTipText().ToString();
-			FString FunctionDesc = Function->GetMetaData(TEXT("FriendlyName"));
-			if (FunctionDesc.IsEmpty()) {FunctionDesc = Function->GetName();}
+			FText FunctionDesc = FText::FromString(Function->GetMetaData(TEXT("FriendlyName")));
+			if (FunctionDesc.IsEmpty())
+			{
+				FunctionDesc = FText::FromString(Function->GetName());
+			}
 
 			FString FunctionCategory = Function->GetMetaData(FBlueprintMetadata::MD_FunctionCategory);
 
@@ -748,7 +759,7 @@ void SMyBlueprint::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 			const FName FunctionName = Graph->GetFName();
 			FString FunctionTooltip = FunctionName.ToString();
 			FString FunctionDesc = FunctionName.ToString();
-			TSharedPtr<FEdGraphSchemaAction_K2Graph> NewFuncAction = MakeShareable(new FEdGraphSchemaAction_K2Graph(EEdGraphSchemaAction_K2Graph::Interface, FString(), FunctionDesc, FunctionTooltip, 1));
+			TSharedPtr<FEdGraphSchemaAction_K2Graph> NewFuncAction = MakeShareable(new FEdGraphSchemaAction_K2Graph(EEdGraphSchemaAction_K2Graph::Interface, FString(), FText::FromString(FunctionDesc), FunctionTooltip, 1));
 			NewFuncAction->FuncName = FunctionName;
 			NewFuncAction->EdGraph = Graph;
 			NewFuncAction->SectionID = NodeSectionID::INTERFACE;
@@ -781,7 +792,7 @@ void SMyBlueprint::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 
 						FString FunctionCategory = Function->GetMetaData(FBlueprintMetadata::MD_FunctionCategory);
 
-						TSharedPtr<FEdGraphSchemaAction_K2Graph> NewFuncAction = MakeShareable(new FEdGraphSchemaAction_K2Graph(EEdGraphSchemaAction_K2Graph::Function, FunctionCategory, FunctionDesc, FunctionTooltip, 1));
+						TSharedPtr<FEdGraphSchemaAction_K2Graph> NewFuncAction = MakeShareable(new FEdGraphSchemaAction_K2Graph(EEdGraphSchemaAction_K2Graph::Function, FunctionCategory, FText::FromString(FunctionDesc), FunctionTooltip, 1));
 						NewFuncAction->FuncName = FunctionName;
 						OutAllActions.AddAction(NewFuncAction);
 					}
@@ -799,7 +810,7 @@ void SMyBlueprint::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 		FGraphDisplayInfo DisplayInfo;
 		Graph->GetSchema()->GetGraphDisplayInformation(*Graph, DisplayInfo);
 
-		TSharedPtr<FEdGraphSchemaAction_K2Graph> NewFuncAction = MakeShareable(new FEdGraphSchemaAction_K2Graph(EEdGraphSchemaAction_K2Graph::Graph, FString(), DisplayInfo.DisplayName.ToString(), DisplayInfo.Tooltip, 2));
+		TSharedPtr<FEdGraphSchemaAction_K2Graph> NewFuncAction = MakeShareable(new FEdGraphSchemaAction_K2Graph(EEdGraphSchemaAction_K2Graph::Graph, FString(), DisplayInfo.PlainName, DisplayInfo.Tooltip, 2));
 		NewFuncAction->FuncName = Graph->GetFName();
 		NewFuncAction->EdGraph = Graph;
 		NewFuncAction->SectionID = NodeSectionID::GRAPH;
@@ -818,7 +829,7 @@ void SMyBlueprint::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 		const FName FunctionName(*(FString(TEXT("$INTERMEDIATE$_")) + Graph->GetName()));
 		FString FunctionTooltip = FunctionName.ToString();
 		FString FunctionDesc = FunctionName.ToString();
-		TSharedPtr<FEdGraphSchemaAction_K2Graph> NewFuncAction = MakeShareable(new FEdGraphSchemaAction_K2Graph(EEdGraphSchemaAction_K2Graph::Graph, FString(), FunctionDesc, FunctionTooltip, 1));
+		TSharedPtr<FEdGraphSchemaAction_K2Graph> NewFuncAction = MakeShareable(new FEdGraphSchemaAction_K2Graph(EEdGraphSchemaAction_K2Graph::Graph, FString(), FText::FromString(FunctionDesc), FunctionTooltip, 1));
 		NewFuncAction->FuncName = FunctionName;
 		NewFuncAction->EdGraph = Graph;
 		OutAllActions.AddAction(NewFuncAction);
@@ -885,9 +896,9 @@ void SMyBlueprint::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 	{
 		if(UEnum* Enum = *EnumIter)
 		{
-			const FString EnumNameStr = Enum->GetName();
+			const FText EnumNameStr = FText::FromString(Enum->GetName());
 			TSharedPtr<FEdGraphSchemaAction_K2Enum> NewEnumAction = MakeShareable(new FEdGraphSchemaAction_K2Enum( 
-				UserDefinedEnumCategoryNameStr(), EnumNameStr, EnumNameStr, -1));
+				UserDefinedEnumCategoryNameStr(), EnumNameStr, EnumNameStr.ToString(), -1));
 			NewEnumAction->Enum = Enum;
 			NewEnumAction->SectionID = NodeSectionID::USER_ENUM;
 			OutAllActions.AddAction(NewEnumAction);
@@ -1042,7 +1053,7 @@ void SMyBlueprint::OnActionSelected( const TArray< TSharedPtr<FEdGraphSchemaActi
 			{
 				FGraphDisplayInfo DisplayInfo;
 				GraphAction->EdGraph->GetSchema()->GetGraphDisplayInformation(*GraphAction->EdGraph, DisplayInfo);
-				Inspector->ShowDetailsForSingleObject(GraphAction->EdGraph, SKismetInspector::FShowDetailsOptions(DisplayInfo.DisplayName.ToString()));
+				Inspector->ShowDetailsForSingleObject(GraphAction->EdGraph, SKismetInspector::FShowDetailsOptions(DisplayInfo.PlainName.ToString()));
 			}
 		}
 		else if (InAction->GetTypeId() == FEdGraphSchemaAction_K2Delegate::StaticGetTypeId())
@@ -1074,7 +1085,7 @@ void SMyBlueprint::OnActionSelected( const TArray< TSharedPtr<FEdGraphSchemaActi
 		else if (InAction->GetTypeId() == FEdGraphSchemaAction_K2TargetNode::StaticGetTypeId())
 		{
 			FEdGraphSchemaAction_K2TargetNode* TargetNodeAction = (FEdGraphSchemaAction_K2TargetNode*)InAction.Get();
-			SKismetInspector::FShowDetailsOptions Options(TargetNodeAction->NodeTemplate->GetNodeTitle(ENodeTitleType::EditableTitle));
+			SKismetInspector::FShowDetailsOptions Options(TargetNodeAction->NodeTemplate->GetNodeTitle(ENodeTitleType::EditableTitle).ToString());
 			Inspector->ShowDetailsForSingleObject(TargetNodeAction->NodeTemplate, Options);
 		}
 		else
@@ -1490,7 +1501,7 @@ void SMyBlueprint::OnFindEntry()
 	}
 	else if (FEdGraphSchemaAction_K2Event* EventAction = SelectionAsEvent())
 	{
-		SearchTerm = EventAction->MenuDescription;
+		SearchTerm = EventAction->MenuDescription.ToString();
 	}
 
 	if(!SearchTerm.IsEmpty())

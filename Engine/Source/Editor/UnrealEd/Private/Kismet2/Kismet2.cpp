@@ -1356,7 +1356,7 @@ inline void AddSearchMetaInfo( TArray<UObject::FAssetRegistryTag> &OutTags, cons
 		{
 			continue;
 		}
-		Result += FString("::") + Node->GetNodeTitle(ENodeTitleType::ListView);
+		Result += FString("::") + Node->GetNodeTitle(ENodeTitleType::ListView).ToString();
 
 		if(int* Count = AllPaths.Find(Result))
 		{

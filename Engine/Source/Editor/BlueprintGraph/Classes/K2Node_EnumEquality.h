@@ -12,7 +12,7 @@ class UK2Node_EnumEquality : public UK2Node
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() OVERRIDE;
 	virtual FString GetTooltip() const OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual FString GetKeywords() const OVERRIDE;
 	// End UEdGraphNode interface
 
@@ -21,7 +21,7 @@ class UK2Node_EnumEquality : public UK2Node
 	virtual bool IsNodeSafeToIgnore() const OVERRIDE { return true; }
 	virtual bool IsNodePure() const OVERRIDE { return true; }
 	virtual bool ShouldDrawCompact() const OVERRIDE { return true; }
-	virtual FString GetCompactNodeTitle() const OVERRIDE { return TEXT("=="); }
+	virtual FText GetCompactNodeTitle() const OVERRIDE { return NSLOCTEXT("K2Node", "EqualEqual", "=="); }
 	virtual void GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const OVERRIDE;
 	virtual void NotifyPinConnectionListChanged(UEdGraphPin* Pin) OVERRIDE;
 	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const OVERRIDE;

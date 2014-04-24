@@ -26,16 +26,33 @@ FString UAnimGraphNode_BlendListByEnum::GetTooltip() const
 {
 	if (BoundEnum != NULL)
 	{
-		return FString::Printf(TEXT("Blend Poses based on enum (%s). Use context menu to add new entries."), *BoundEnum->GetName());
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("EnumName"), FText::FromString(BoundEnum->GetName()));
+		return FText::Format(LOCTEXT("AnimGraphNode_BlendListByEnum_Tooltip", "Blend Poses based on enum ({EnumName}). Use context menu to add new entries."), Args).ToString();
 	}
 	else
 	{
-		return FString::Printf(TEXT("ERROR: Blend Poses (by missing enum)"));
+		return LOCTEXT("AnimGraphNode_BlendListByEnum_TooltipError", "ERROR: Blend Poses (by missing enum)").ToString();
 	}
 }
 
-FString UAnimGraphNode_BlendListByEnum::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UAnimGraphNode_BlendListByEnum::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
+	if (BoundEnum != NULL)
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("EnumName"), FText::FromString(BoundEnum->GetName()));
+		return FText::Format(LOCTEXT("AnimGraphNode_BlendListByEnum_Title", "Blend Poses ({EnumName})"), Args);
+	}
+	else
+	{
+		return LOCTEXT("AnimGraphNode_BlendListByEnum_TitleError", "ERROR: Blend Poses (by missing enum)");
+	}
+}
+
+FString UAnimGraphNode_BlendListByEnum::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
 	if (BoundEnum != NULL)
 	{
 		return FString::Printf(TEXT("Blend Poses (%s)"), *BoundEnum->GetName());
@@ -69,6 +86,7 @@ void UAnimGraphNode_BlendListByEnum::GetMenuEntries(FGraphContextMenuBuilder& Co
 
 			TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, EnumTemplate->GetNodeCategory(), EnumTemplate->GetNodeTitle(ENodeTitleType::ListView), EnumTemplate->GetTooltip(), 0, EnumTemplate->GetKeywords());
 			Action->NodeTemplate = EnumTemplate;
+			Action->SearchTitle = EnumTemplate->GetNodeSearchTitle();
 		}
 	}
 }
@@ -219,32 +237,36 @@ void UAnimGraphNode_BlendListByEnum::CustomizePinData(UEdGraphPin* Pin, FName So
 				const int32 EnumIndex = BoundEnum->FindEnumIndex(EnumElementName);
 				if (EnumIndex != INDEX_NONE)
 				{
-					Pin->PinFriendlyName = BoundEnum->GetEnumText(EnumIndex).ToString();
+					Pin->PinFriendlyName = BoundEnum->GetEnumText(EnumIndex);
 				}
 				else
 				{
-					Pin->PinFriendlyName = EnumElementName.ToString();
+					Pin->PinFriendlyName = FText::FromName(EnumElementName);
 				}
 			}
 			else
 			{
-				Pin->PinFriendlyName = TEXT("Invalid index");
+				Pin->PinFriendlyName = LOCTEXT("InvalidIndex", "Invalid index");
 			}
 		}
 		else if (ensure(RawArrayIndex == 0))
 		{
-			Pin->PinFriendlyName = TEXT("Default");
+			Pin->PinFriendlyName = LOCTEXT("Default", "Default");
 		}
 
 		// Append the pin type
 		if (bIsPosePin)
 		{
-			Pin->PinFriendlyName += TEXT(" Pose");
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("PinFriendlyName"), Pin->PinFriendlyName);
+			Pin->PinFriendlyName = FText::Format(LOCTEXT("FriendlyNamePose", "{PinFriendlyName} Pose"), Args);
 		}
 
 		if (bIsTimePin)
 		{
-			Pin->PinFriendlyName += TEXT(" Blend Time");
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("PinFriendlyName"), Pin->PinFriendlyName);
+			Pin->PinFriendlyName = FText::Format(LOCTEXT("FriendlyNameBlendTime", "{PinFriendlyName} Blend Time"), Args);
 		}
 	}
 }

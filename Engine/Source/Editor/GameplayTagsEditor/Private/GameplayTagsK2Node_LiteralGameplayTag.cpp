@@ -25,9 +25,9 @@ FLinearColor UGameplayTagsK2Node_LiteralGameplayTag::GetNodeTitleColor() const
 	return FLinearColor(1.0f, 0.51f, 0.0f);
 }
 
-FString UGameplayTagsK2Node_LiteralGameplayTag::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UGameplayTagsK2Node_LiteralGameplayTag::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return NSLOCTEXT("K2Node", "LiteralGameplayTag", "Make Literal GameplayTagContainer").ToString();
+	return NSLOCTEXT("K2Node", "LiteralGameplayTag", "Make Literal GameplayTagContainer");
 }
 
 bool UGameplayTagsK2Node_LiteralGameplayTag::CanCreateUnderSpecifiedSchema( const UEdGraphSchema* Schema ) const
@@ -44,12 +44,13 @@ void UGameplayTagsK2Node_LiteralGameplayTag::GetMenuEntries( FGraphContextMenuBu
 	UK2Node* EnumNodeTemplate = ContextMenuBuilder.CreateTemplateNode<UGameplayTagsK2Node_LiteralGameplayTag>();
 
 	const FString Category = FunctionCategory + TEXT("|Game");
-	const FString MenuDesc = EnumNodeTemplate->GetNodeTitle(ENodeTitleType::ListView);
+	const FText MenuDesc = EnumNodeTemplate->GetNodeTitle(ENodeTitleType::ListView);
 	const FString Tooltip = EnumNodeTemplate->GetTooltip();
 	const FString Keywords = EnumNodeTemplate->GetKeywords();
 
 	TSharedPtr<FEdGraphSchemaAction_K2NewNode> NodeAction = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, Category, MenuDesc, Tooltip, 0, Keywords);
 	NodeAction->NodeTemplate = EnumNodeTemplate;
+	NodeAction->SearchTitle = EnumNodeTemplate->GetNodeSearchTitle();
 }
 
 void UGameplayTagsK2Node_LiteralGameplayTag::ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)

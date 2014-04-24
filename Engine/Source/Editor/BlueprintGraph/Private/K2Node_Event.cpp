@@ -50,7 +50,7 @@ FLinearColor UK2Node_Event::GetNodeTitleColor() const
 	return GEditor->AccessEditorUserSettings().EventNodeTitleColor;
 }
 
-FString UK2Node_Event::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_Event::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	if (bOverrideFunction || (CustomFunctionName == NAME_None))
 	{
@@ -61,7 +61,9 @@ FString UK2Node_Event::GetNodeTitle(ENodeTitleType::Type TitleType) const
 			FunctionName = UEdGraphSchema_K2::GetFriendlySignitureName(Function);
 		}
 
-		FString TitleString = NSLOCTEXT("K2Node", "Event_Name", "Event ").ToString() + FunctionName;
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("FunctionName"), FText::FromString(FunctionName));
+		FText Title = FText::Format(NSLOCTEXT("K2Node", "Event_Name", "Event {FunctionName}"), Args);
 
 		if(TitleType == ENodeTitleType::FullTitle && EventSignatureClass != NULL && EventSignatureClass->IsChildOf(UInterface::StaticClass()))
 		{
@@ -73,7 +75,46 @@ FString UK2Node_Event::GetNodeTitle(ENodeTitleType::Type TitleType) const
 				SourceString = SourceString.LeftChop(2);
 			}
 
-			TitleString += FString(TEXT("\n")) + FString::Printf(*LOCTEXT("EventFromInterface", "From %s").ToString(), *SourceString);
+			FFormatNamedArguments FullTitleArgs;
+			FullTitleArgs.Add(TEXT("Title"), Title);
+			FullTitleArgs.Add(TEXT("InterfaceClass"), FText::FromString(SourceString));
+
+			Title = FText::Format(LOCTEXT("EventFromInterface", "{Title}\nFrom {InterfaceClass}"), FullTitleArgs);
+		}
+
+		return Title;
+	}
+	else
+	{
+		return FText::FromName(CustomFunctionName);
+	}
+}
+
+FString UK2Node_Event::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
+	if (bOverrideFunction || (CustomFunctionName == NAME_None))
+	{
+		FString FunctionName = EventSignatureName.ToString(); // If we fail to find the function, still want to write something on the node.
+
+		if (UFunction* Function = FindField<UFunction>(EventSignatureClass, EventSignatureName))
+		{
+			FunctionName = UEdGraphSchema_K2::GetFriendlySignitureName(Function);
+		}
+
+		FString TitleString = FString(TEXT("Event ")) + FunctionName;
+
+		if(TitleType == ENodeTitleType::FullTitle && EventSignatureClass != NULL && EventSignatureClass->IsChildOf(UInterface::StaticClass()))
+		{
+			FString SourceString = EventSignatureClass->GetName();
+
+			// @todo: This action won't be necessary once the new name convention is used.
+			if(SourceString.EndsWith(TEXT("_C")))
+			{
+				SourceString = SourceString.LeftChop(2);
+			}
+
+			TitleString += FString(TEXT("\n")) + FString::Printf(TEXT("From %s"), *SourceString);
 		}
 
 		return TitleString;

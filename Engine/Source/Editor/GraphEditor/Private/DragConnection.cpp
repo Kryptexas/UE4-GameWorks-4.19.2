@@ -98,7 +98,7 @@ void FDragConnection::HoverTargetChanged()
 		SetSimpleFeedbackMessage(
 			FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.NewNode")),
 			FLinearColor::White,
-			NSLOCTEXT("GraphEditor.Feedback", "PlaceNewNode", "Place a new node.").ToString());
+			NSLOCTEXT("GraphEditor.Feedback", "PlaceNewNode", "Place a new node."));
 	}
 	else
 	{

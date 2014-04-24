@@ -42,8 +42,8 @@ class UEnvQueryGenerator_OnCircle : public UEnvQueryGenerator_ProjectedPoints
 
 	void GenerateItems(struct FEnvQueryInstance& QueryInstance); 
 
-	virtual FString GetDescriptionTitle() const OVERRIDE;
-	virtual FString GetDescriptionDetails() const OVERRIDE;
+	virtual FText GetDescriptionTitle() const OVERRIDE;
+	virtual FText GetDescriptionDetails() const OVERRIDE;
 
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;

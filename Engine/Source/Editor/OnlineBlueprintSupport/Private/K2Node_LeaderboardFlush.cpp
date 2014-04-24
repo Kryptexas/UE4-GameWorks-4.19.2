@@ -4,6 +4,8 @@
 #include "LeaderboardFlushCallbackProxy.h"
 #include "K2Node_LeaderboardFlush.h"
 
+#define LOCTEXT_NAMESPACE "K2Node"
+
 UK2Node_LeaderboardFlush::UK2Node_LeaderboardFlush(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
@@ -15,15 +17,17 @@ UK2Node_LeaderboardFlush::UK2Node_LeaderboardFlush(const FPostConstructInitializ
 
 FString UK2Node_LeaderboardFlush::GetTooltip() const
 {
-	return TEXT("Flushes leaderboards for a session");
+	return LOCTEXT("K2Node_LeaderboardFlush_Tooltip", "Flushes leaderboards for a session").ToString();
 }
 
-FString UK2Node_LeaderboardFlush::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_LeaderboardFlush::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return TEXT("Flush Leaderboards");
+	return LOCTEXT("FlushLeaderboards", "Flush Leaderboards");
 }
 
 FString UK2Node_LeaderboardFlush::GetCategoryName()
 {
 	return TEXT("Online|Leaderboard");
 }
+
+#undef LOCTEXT_NAMESPACE

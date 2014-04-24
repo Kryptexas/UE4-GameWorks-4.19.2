@@ -31,7 +31,7 @@ void SGraphNodeK2Var::UpdateGraphNode()
 	RightNodeBox.Reset();
 	LeftNodeBox.Reset();
 
-	FString TitleText;
+	FText TitleText;
 	bool bPadTitle = false;
 	float HorizontalTitleMargin = 0.0f;
 	float VerticalTitleMargin = 8.0f;
@@ -44,27 +44,31 @@ void SGraphNodeK2Var::UpdateGraphNode()
 		UK2Node_VariableSet *SetNode = Cast<UK2Node_VariableSet>(GraphNode);
 		if(SetNode->HasLocalRepNotify())
 		{
-			TitleText = NSLOCTEXT("GraphEditor", "VariableSetWithNotify", "SET w/ Notify").ToString();
+			TitleText = NSLOCTEXT("GraphEditor", "VariableSetWithNotify", "SET w/ Notify");
 			//+ FString::Printf(TEXT("\n(%s)"), *SetNode->GetRepNotifyName().ToString());
 		}
 		else
 		{
-			TitleText = NSLOCTEXT("GraphEditor", "VariableSet", "SET").ToString();
+			TitleText = NSLOCTEXT("GraphEditor", "VariableSet", "SET");
 		}
 	}
 	else if (UK2Node_StructOperation* StructOp = Cast<UK2Node_StructOperation>(GraphNode))
 	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("VariableName"), StructOp->GetVarNameText());
 		if (GraphNode->IsA(UK2Node_StructMemberGet::StaticClass()))
 		{
-			TitleText = FString::Printf(*NSLOCTEXT("GraphEditor", "StructMemberGet", "Get in %s").ToString(), *(StructOp->GetVarNameString()));
+			TitleText = FText::Format(NSLOCTEXT("GraphEditor", "StructMemberGet", "Get in {VariableName}"), Args);
 		}
 		else if (GraphNode->IsA(UK2Node_StructMemberSet::StaticClass()))
 		{
-			TitleText = FString::Printf(*NSLOCTEXT("GraphEditor", "StructMemberSet", "Set in %s").ToString(), *(StructOp->GetVarNameString()));
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("VariableName"), StructOp->GetVarNameText());
+			TitleText = FText::Format(NSLOCTEXT("GraphEditor", "StructMemberSet", "Set in {VariableName}"), Args);
 		}
 		else if (GraphNode->IsA(UK2Node_MakeStruct::StaticClass()))
 		{
-			TitleText = FString::Printf(*NSLOCTEXT("GraphEditor", "MakeStruct", "Make %s").ToString(), *(StructOp->GetVarNameString()));
+			TitleText = FText::Format(NSLOCTEXT("GraphEditor", "MakeStruct", "Make {VariableName}"), Args);
 		}
 		else
 		{
@@ -76,25 +80,25 @@ void SGraphNodeK2Var::UpdateGraphNode()
 	}
 	else if (UK2Node_Literal* LiteralRef = Cast<UK2Node_Literal>(GraphNode))
 	{
-		FString SubTitleText;
+		FText SubTitleText;
 
 		// Get the name of the level the object is in.
 		if(AActor* Actor = Cast<AActor>(LiteralRef->GetObjectRef()))
 		{
-			FString LevelName;
+			FText LevelName;
 
 			if(ULevel* Level = Actor->GetLevel())
 			{
 				if ( Level->IsPersistentLevel() )
 				{
-					LevelName = NSLOCTEXT("GraphEditor", "PersistentTag", "Persistent Level").ToString();
+					LevelName = NSLOCTEXT("GraphEditor", "PersistentTag", "Persistent Level");
 				}
 				else
 				{
-					LevelName = FPaths::GetCleanFilename(Actor->GetOutermost()->GetName());
+					LevelName = FText::FromString(FPaths::GetCleanFilename(Actor->GetOutermost()->GetName()));
 				}
 			}
-			SubTitleText = FText::Format(NSLOCTEXT("GraphEditor", "ActorRef", "from {0}"), FText::FromString(LevelName)).ToString();
+			SubTitleText = FText::Format(NSLOCTEXT("GraphEditor", "ActorRef", "from {0}"), LevelName);
 		}
 
 		TitleText = GraphNode->GetNodeTitle(ENodeTitleType::ListView);

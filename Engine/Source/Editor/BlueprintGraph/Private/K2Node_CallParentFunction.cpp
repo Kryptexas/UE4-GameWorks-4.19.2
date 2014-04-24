@@ -10,12 +10,28 @@ UK2Node_CallParentFunction::UK2Node_CallParentFunction(const class FPostConstruc
 	bIsFinalFunction = true;
 }
 
-FString UK2Node_CallParentFunction::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_CallParentFunction::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	UFunction* Function = FunctionReference.ResolveMember<UFunction>(this);
 	FString FunctionName = Function ? GetUserFacingFunctionName( Function ) : FunctionReference.GetMemberName().ToString();
-	FString Result = FText::Format( LOCTEXT( "CallSuperFunction", "Parent: {0}" ), FText::FromString( FunctionName )).ToString();
-	
+
+	if( GEditor && GetDefault<UEditorStyleSettings>()->bShowFriendlyNames )
+	{
+		FunctionName = FName::NameToDisplayString(FunctionName, false);
+	}
+
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("FunctionName"),  FText::FromString( FunctionName ));
+	return FText::Format( LOCTEXT( "CallSuperFunction", "Parent: {FunctionName}" ), Args);
+}
+
+FString UK2Node_CallParentFunction::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
+	UFunction* Function = FunctionReference.ResolveMember<UFunction>(this);
+	FString FunctionName = Function ? GetUserFacingFunctionName( Function ) : FunctionReference.GetMemberName().ToString();
+	FString Result = FString::Printf( TEXT("Parent: %s" ), *FunctionName);
+
 	if( GEditor && GetDefault<UEditorStyleSettings>()->bShowFriendlyNames )
 	{
 		Result = FName::NameToDisplayString(Result, false);

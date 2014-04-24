@@ -16,7 +16,8 @@ class UAnimGraphNode_SaveCachedPose : public UAnimGraphNode_Base
 
 	// UEdGraphNode interface
 	virtual FString GetTooltip() const OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual void OnRenameNode(const FString& NewName) OVERRIDE;
 	virtual TSharedPtr<class INameValidatorInterface> MakeNameValidator() const OVERRIDE;
 	// End of UEdGraphNode interface

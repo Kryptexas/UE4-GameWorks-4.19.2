@@ -17,7 +17,7 @@ struct FNewSequencePlayerAction : public FEdGraphSchemaAction_K2NewNode
 protected:
 	FAssetData AssetInfo;
 public:
-	FNewSequencePlayerAction(const FAssetData& InAssetInfo, FString Title)
+	FNewSequencePlayerAction(const FAssetData& InAssetInfo, FText Title)
 	{
 		AssetInfo = InAssetInfo;
 
@@ -71,32 +71,52 @@ FLinearColor UAnimGraphNode_SequencePlayer::GetNodeTitleColor() const
 FString UAnimGraphNode_SequencePlayer::GetTooltip() const
 {
 	const bool bAdditive = ((Node.Sequence != NULL) && Node.Sequence->IsValidAdditive());
-	return GetTitleGivenAssetInfo(Node.Sequence->GetPathName(), bAdditive);
+	return GetTitleGivenAssetInfo(FText::FromString(Node.Sequence->GetPathName()), bAdditive).ToString();
 }
 
-FString UAnimGraphNode_SequencePlayer::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UAnimGraphNode_SequencePlayer::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	const bool bAdditive = ((Node.Sequence != NULL) && Node.Sequence->IsValidAdditive());
-	FString Title = GetTitleGivenAssetInfo((Node.Sequence != NULL) ? Node.Sequence->GetName() : FString(TEXT("(None)")), bAdditive);
+	FText Title = GetTitleGivenAssetInfo((Node.Sequence != NULL) ? FText::FromString(Node.Sequence->GetName()) : LOCTEXT("None", "(None)"), bAdditive);
 
 	if ((TitleType == ENodeTitleType::FullTitle) && (SyncGroup.GroupName != NAME_None))
 	{
-		Title += TEXT("\n");
-		Title += FString::Printf(*LOCTEXT("SequenceNodeGroupSubtitle", "Sync group %s").ToString(), *SyncGroup.GroupName.ToString());
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("Title"), Title);
+
+		Title = FText::Format(LOCTEXT("SequenceNodeGroupWithSubtitle", "{Title}\nSync group {Title}"), Args);
 	}
 
 	return Title;
 }
 
-FString UAnimGraphNode_SequencePlayer::GetTitleGivenAssetInfo(const FString& AssetName, bool bKnownToBeAdditive)
+FString UAnimGraphNode_SequencePlayer::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
 {
+	// Do not setup this function for localization, intentionally left unlocalized!
+	const bool bAdditive = ((Node.Sequence != NULL) && Node.Sequence->IsValidAdditive());
+	FString Title = GetTitleGivenAssetInfo((Node.Sequence != NULL) ? FText::FromString(Node.Sequence->GetName()) : LOCTEXT("None", "(None)"), bAdditive).ToString();
+
+	if ((TitleType == ENodeTitleType::FullTitle) && (SyncGroup.GroupName != NAME_None))
+	{
+		Title += TEXT("\n");
+		Title += FString::Printf(TEXT("Sync group %s"), *SyncGroup.GroupName.ToString());
+	}
+
+	return Title;
+}
+
+FText UAnimGraphNode_SequencePlayer::GetTitleGivenAssetInfo(const FText& AssetName, bool bKnownToBeAdditive)
+{
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("AssetName"), AssetName);
+
 	if (bKnownToBeAdditive)
 	{
-		return FString::Printf(*LOCTEXT("SequenceNodeTitleAdditive", "Play %s (additive)").ToString(), *AssetName);
+		return FText::Format(LOCTEXT("SequenceNodeTitleAdditive", "Play {AssetName} (additive)"), Args);
 	}
 	else
 	{
-		return FString::Printf(*LOCTEXT("SequenceNodeTitle", "Play %s").ToString(), *AssetName);
+		return FText::Format(LOCTEXT("SequenceNodeTitle", "Play {AssetName}"), Args);
 	}
 }
 
@@ -138,7 +158,7 @@ void UAnimGraphNode_SequencePlayer::GetMenuEntries(FGraphContextMenuBuilder& Con
 				}
 
 				// Create the menu item
-				const FString Title = UAnimGraphNode_SequencePlayer::GetTitleGivenAssetInfo(Asset.AssetName.ToString(), bAdditive);
+				const FText Title = UAnimGraphNode_SequencePlayer::GetTitleGivenAssetInfo(FText::FromName(Asset.AssetName), bAdditive);
 				TSharedPtr<FNewSequencePlayerAction> NewAction(new FNewSequencePlayerAction(Asset, Title));
 				ContextMenuBuilder.AddAction( NewAction );
 			}
