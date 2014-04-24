@@ -515,6 +515,17 @@ TSharedPtr<SWidget> FPersona::CreateEditorWidgetForAnimDocument(UObject* InAnimA
 	return Result;
 }
 
+void FPersona::ReinitMode()
+{
+	FName CurrentMode = GetCurrentMode();
+
+	if (CurrentMode == FPersonaModes::AnimationEditMode)
+	{
+		// if opening animation edit mode, open the animation editor
+		OpenNewAnimationDocumentTab(GetPreviewAnimationAsset());
+	}
+}
+
 TSharedPtr<SDockTab> FPersona::OpenNewAnimationDocumentTab(UObject* InAnimAsset)
 {
 	TSharedPtr<SDockTab> OpenedTab;
