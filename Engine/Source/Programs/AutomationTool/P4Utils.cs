@@ -1974,7 +1974,7 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="UserName"></param>
 		/// <returns>List of clients owned by the user.</returns>
-		public P4ClientInfo[] GetClientsForUser(string UserName)
+		public P4ClientInfo[] GetClientsForUser(string UserName, string PathUnderClientRoot = null)
 		{
 			CheckP4Enabled();
 
@@ -1995,11 +1995,11 @@ namespace AutomationTool
 				P4ClientInfo Info = null;
 
 				// Retrieve the client name and info.
-				for (int i = 0; i < Tokens.Length; ++i)
+				for (int TokenIndex = 0; TokenIndex < Tokens.Length; ++TokenIndex)
 				{
-					if (Tokens[i] == "Client")
+					if (Tokens[TokenIndex] == "Client")
 					{
-						var ClientName = Tokens[++i];
+						var ClientName = Tokens[++TokenIndex];
 						Info = GetClientInfoInternal(ClientName);
 						break;
 					}
@@ -2009,8 +2009,23 @@ namespace AutomationTool
 				{
 					throw new AutomationException("Failed to retrieve p4 client info for user {0}. Unable to set up local environment", UserName);
 				}
+				
+				bool bAddClient = true;
+				// Filter the client out if the specified path is not under the client root
+				if (!String.IsNullOrEmpty(PathUnderClientRoot) && !String.IsNullOrEmpty(Info.RootPath))
+				{
+					var ClientRootPathWithSlash = Info.RootPath;
+					if (!ClientRootPathWithSlash.EndsWith("\\") && !ClientRootPathWithSlash.EndsWith("/"))
+					{
+						ClientRootPathWithSlash = CommandUtils.ConvertSeparators(PathSeparator.Default, ClientRootPathWithSlash + "/");
+					}
+					bAddClient = PathUnderClientRoot.StartsWith(ClientRootPathWithSlash, StringComparison.CurrentCultureIgnoreCase);
+				}
 
-				ClientList.Add(Info);
+				if (bAddClient)
+				{
+					ClientList.Add(Info);
+				}
 			}
 			return ClientList.ToArray();
 		}

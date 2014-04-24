@@ -70,12 +70,15 @@ namespace AutomationTool
 			CommandUtils.ConditionallySetEnvVar(EnvVarNames.BuildRootP4, BuildRootPath);
 			CommandUtils.ConditionallySetEnvVar(EnvVarNames.ClientRoot, ClientRootPath);
 
-			var CLString = CommandUtils.GetEnvVar(EnvVarNames.Changelist);
-			if (String.IsNullOrEmpty(CLString))
+			var CLString = CommandUtils.GetEnvVar(EnvVarNames.Changelist, null);
+			if (String.IsNullOrEmpty(CLString) && GlobalCommandLine.P4CL)
 			{
                 CLString = DetectCurrentCL(Connection, ClientRootPath);
 			}
-			CommandUtils.ConditionallySetEnvVar(EnvVarNames.Changelist, CLString);
+			if (!String.IsNullOrEmpty(CLString))
+			{
+				CommandUtils.ConditionallySetEnvVar(EnvVarNames.Changelist, CLString);
+			}
 
 			CommandUtils.ConditionallySetEnvVar(EnvVarNames.LabelToSync, "");
 			CommandUtils.ConditionallySetEnvVar("P4USER", UserName);
@@ -113,6 +116,8 @@ namespace AutomationTool
 		/// <returns>Changelist number as a string.</returns>
 		private static string DetectCurrentCL(P4Connection Connection, string ClientRootPath)
 		{
+			CommandUtils.Log("uebp_CL not set, detecting 'have' CL...");
+
 			// Retrieve the current changelist 
 			var P4Result = Connection.P4("changes -m 1 " + CommandUtils.CombinePaths(PathSeparator.Depot, ClientRootPath, "/...#have"), AllowSpew: false);
 			var CLTokens = P4Result.Output.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
@@ -172,8 +177,10 @@ namespace AutomationTool
 		/// <returns>Client to use.</returns>
 		private static P4ClientInfo DetectClient(P4Connection Connection, string UserName, string HostName, string UATLocation)
 		{
+			CommandUtils.Log("uebp_CLIENT not set, detecting current client...");
+
 			var MatchingClients = new List<P4ClientInfo>();
-			P4ClientInfo[] P4Clients = Connection.GetClientsForUser(UserName);
+			P4ClientInfo[] P4Clients = Connection.GetClientsForUser(UserName, UATLocation);
 			foreach (var Client in P4Clients)
 			{
 				if (String.IsNullOrEmpty(Client.Host) || String.Compare(Client.Host, HostName, true) != 0)
@@ -182,16 +189,7 @@ namespace AutomationTool
 					continue;
 				}
 				
-				var ClientRootPathWithSlash = Client.RootPath;
-				if (!ClientRootPathWithSlash.EndsWith("\\") && !ClientRootPathWithSlash.EndsWith("/"))
-				{
-					ClientRootPathWithSlash = CommandUtils.ConvertSeparators(PathSeparator.Default, ClientRootPathWithSlash + "/");
-				}
-				Log.TraceInformation("Checking clientspec {0} {1}", Client.Name, ClientRootPathWithSlash);
-				if (!String.IsNullOrEmpty(Client.RootPath) && UATLocation.StartsWith(ClientRootPathWithSlash, StringComparison.CurrentCultureIgnoreCase))
-				{
-					MatchingClients.Add(Client);
-				}
+				MatchingClients.Add(Client);
 			}
 
 			P4ClientInfo ClientToUse = null;
