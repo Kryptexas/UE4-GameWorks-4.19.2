@@ -10,6 +10,12 @@ DEFINE_LOG_CATEGORY_STATIC(LogStandardPlatformString, Log, All);
 
 #if !PLATFORM_USE_SYSTEM_VSWPRINTF
 
+#if PLATFORM_IOS
+#define VA_LIST_REF va_list&
+#else
+#define VA_LIST_REF va_list
+#endif
+
 struct FFormatInfo
 {
 	WIDECHAR Format[32];
@@ -32,7 +38,7 @@ static int32 GetFormattingInfo(const WIDECHAR* Format, FFormatInfo& OutInfo)
 	OutInfo.HasDynamicWidth = false;
 
 	// Skip width
-	while (*Format >= LITERAL(WIDECHAR, '0') && *Format <= LITERAL(WIDECHAR, '9') || *Format == LITERAL(WIDECHAR, '*'))
+	while ((*Format >= LITERAL(WIDECHAR, '0') && *Format <= LITERAL(WIDECHAR, '9')) || *Format == LITERAL(WIDECHAR, '*'))
 	{
 		if (*Format == LITERAL(WIDECHAR, '*'))
 		{
@@ -45,7 +51,7 @@ static int32 GetFormattingInfo(const WIDECHAR* Format, FFormatInfo& OutInfo)
 	if (*Format == LITERAL(WIDECHAR, '.'))
 	{
 		Format++;
-		while (*Format >= LITERAL(WIDECHAR, '0') && *Format <= LITERAL(WIDECHAR, '9') || *Format == LITERAL(WIDECHAR, '*'))
+		while ((*Format >= LITERAL(WIDECHAR, '0') && *Format <= LITERAL(WIDECHAR, '9')) || *Format == LITERAL(WIDECHAR, '*'))
 		{
 			if (*Format == LITERAL(WIDECHAR, '*'))
 			{
@@ -83,7 +89,7 @@ static int32 GetFormattingInfo(const WIDECHAR* Format, FFormatInfo& OutInfo)
 }
 
 template <typename T1, typename T2>
-static int32 FormatString(const FFormatInfo& Info, va_list ArgPtr, WIDECHAR* Formatted, int32 Length)
+static int32 FormatString(const FFormatInfo& Info, VA_LIST_REF ArgPtr, WIDECHAR* Formatted, int32 Length)
 {
 	if (Info.HasDynamicWidth)
 	{
@@ -114,7 +120,7 @@ static int32 FormatString(const FFormatInfo& Info, va_list ArgPtr, WIDECHAR* For
 	}
 }
 
-static const WIDECHAR* GetFormattedArgument(const FFormatInfo& Info, va_list ArgPtr, WIDECHAR* Formatted, int32 &InOutLength)
+static const WIDECHAR* GetFormattedArgument(const FFormatInfo& Info, VA_LIST_REF ArgPtr, WIDECHAR* Formatted, int32 &InOutLength)
 {
 	if (FChar::ToLower(Info.Type) == LITERAL(WIDECHAR, 's'))
 	{
@@ -158,7 +164,7 @@ static const WIDECHAR* GetFormattedArgument(const FFormatInfo& Info, va_list Arg
 
 int32 FStandardPlatformString::GetVarArgs( WIDECHAR* Dest, SIZE_T DestSize, int32 Count, const WIDECHAR*& Fmt, va_list ArgPtr )
 {
-	const WIDECHAR* Format = Fmt;
+  	const WIDECHAR* Format = Fmt;
 	const WIDECHAR* DestStart = Dest;
 
 	while (Count > 1 &&  *Format)

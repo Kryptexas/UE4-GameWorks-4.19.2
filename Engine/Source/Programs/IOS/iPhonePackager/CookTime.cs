@@ -75,6 +75,10 @@ namespace iPhonePackager
 				Program.ReturnCode = 129;
 			}
 
+            // Set encoding to support unicode filenames
+            Stub.AlternateEncodingUsage = ZipOption.Always;
+            Stub.AlternateEncoding = Encoding.UTF8;
+
 			return Stub;
 		}
 

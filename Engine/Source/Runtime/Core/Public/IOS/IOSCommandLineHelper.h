@@ -70,7 +70,7 @@ class FIOSCommandLineHelper
 					CommandLine[strlen(CommandLine) - 1] = 0;
 				}
 
-				FCommandLine::Append(ANSI_TO_TCHAR(CommandLine));
+				FCommandLine::Append(UTF8_TO_TCHAR(CommandLine));
 			}
 			else
 			{

@@ -144,7 +144,7 @@ void FIOSPlatformMisc::GetEnvironmentVariable(const TCHAR* VariableName, TCHAR* 
 void FIOSPlatformMisc::LowLevelOutputDebugString( const TCHAR *Message )
 {
 	//NsLog will out to all iOS output consoles, instead of just the Xcode console.
-	NSLog(@"%s", TCHAR_TO_ANSI(Message));
+	NSLog(@"%@", [NSString stringWithUTF8String:TCHAR_TO_UTF8(Message)]);
 }
 
 const TCHAR* FIOSPlatformMisc::GetSystemErrorMessage(TCHAR* OutBuffer, int32 BufferCount, int32 Error)
@@ -541,3 +541,4 @@ FString FIOSPlatformMisc::GetUniqueDeviceId()
 	}
 	return FPlatformMisc::GetHashedMacAddressString();
 }
+

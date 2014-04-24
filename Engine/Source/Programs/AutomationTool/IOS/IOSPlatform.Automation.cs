@@ -275,6 +275,10 @@ public class IOSPlatform : Platform
 		// create the file
 		using (ZipFile Zip = new ZipFile())
 		{
+            // Set encoding to support unicode filenames
+            Zip.AlternateEncodingUsage = ZipOption.Always;
+            Zip.AlternateEncoding = Encoding.UTF8;
+
 			// set the compression level
 			if (Distribution)
 			{
