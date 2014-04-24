@@ -12,7 +12,7 @@ class UMG_API USlateWrapperComponent : public UActorComponent
 	GENERATED_UCLASS_BODY()
 
 #if WITH_EDITOR
-	UPROPERTY(Transient, EditAnywhere, BlueprintReadWrite, Category=Layout)
+	UPROPERTY(Transient, EditInline, EditAnywhere, BlueprintReadWrite, Category=Layout)
 	UPanelSlot* Slot;
 #endif
 
@@ -22,6 +22,10 @@ class UMG_API USlateWrapperComponent : public UActorComponent
 	// End of UActorComponent interface
 
 	TSharedRef<SWidget> GetWidget();
+
+#if WITH_EDITOR
+	virtual void ConnectEditorData() { }
+#endif
 
 	// Utility methods
 	//@TODO: Should move elsewhere

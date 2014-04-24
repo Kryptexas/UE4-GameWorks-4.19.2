@@ -19,6 +19,7 @@ public:
 private:
 	UWidgetBlueprint* GetBlueprint() const;
 
+	void OnBlueprintChanged(UBlueprint* InBlueprint);
 	void OnObjectPropertyChanged(UObject* ObjectBeingModified);
 
 	void ShowDetailsForObjects(TArray<USlateWrapperComponent*> Widgets);
@@ -28,6 +29,7 @@ private:
 	void WidgetHierarchy_OnSelectionChanged(USlateWrapperComponent* SelectedItem, ESelectInfo::Type SelectInfo);
 
 	FReply CreateTestUI();
+	void RefreshTree();
 	
 private:
 

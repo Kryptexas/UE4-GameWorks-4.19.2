@@ -13,6 +13,8 @@ public:
 	/** Array of templates for timelines that should be created */
 	UPROPERTY()
 	TArray<class USlateWrapperComponent*> WidgetTemplates;
+
+	virtual void PostLoad() OVERRIDE;
 	
 #if WITH_EDITOR
 	// UBlueprint interface

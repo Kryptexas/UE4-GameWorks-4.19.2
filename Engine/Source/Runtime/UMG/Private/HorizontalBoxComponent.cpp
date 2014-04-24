@@ -45,13 +45,15 @@ void UHorizontalBoxComponent::OnKnownChildrenChanged()
 				Slots[SlotIndex] = Slot = ConstructObject<UHorizontalBoxSlot>(UHorizontalBoxSlot::StaticClass(), this);
 			}
 
-			auto NewSlot = Canvas->AddSlot()
+			auto& NewSlot = Canvas->AddSlot()
 				.AutoWidth()
 				.HAlign(Slot->HorizontalAlignment)
 				.VAlign(Slot->VerticalAlignment)
 			[
 				Slot->Content == NULL ? SNullWidget::NullWidget : Slot->Content->GetWidget()
 			];
+
+			NewSlot.SizeParam = USlateWrapperComponent::ConvertSerializedSizeParamToRuntime(Slot->Size);
 		}
 	}
 }
@@ -60,6 +62,10 @@ UHorizontalBoxSlot* UHorizontalBoxComponent::AddSlot(USlateWrapperComponent* Con
 {
 	UHorizontalBoxSlot* Slot = ConstructObject<UHorizontalBoxSlot>(UHorizontalBoxSlot::StaticClass(), this);
 	Slot->Content = Content;
+
+#if WITH_EDITOR
+	Content->Slot = Slot;
+#endif
 	
 	Slots.Add(Slot);
 
@@ -67,6 +73,14 @@ UHorizontalBoxSlot* UHorizontalBoxComponent::AddSlot(USlateWrapperComponent* Con
 }
 
 #if WITH_EDITOR
+void UHorizontalBoxComponent::ConnectEditorData()
+{
+	for ( UHorizontalBoxSlot* Slot : Slots )
+	{
+		Slot->Content->Slot = Slot;
+	}
+}
+
 void UHorizontalBoxComponent::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
 	// Ensure the slots have unique names

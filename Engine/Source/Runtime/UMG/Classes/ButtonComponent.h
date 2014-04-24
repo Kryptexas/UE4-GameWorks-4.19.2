@@ -16,7 +16,7 @@ class UMG_API UButtonComponent : public USlateNonLeafWidgetComponent
 
 public:
 	/** Style of the button */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Style)
 	USlateWidgetStyleAsset* ButtonStyle;
 
 	/** Horizontal positioning of the content within the button */
@@ -40,7 +40,7 @@ public:
 	FText ButtonText;
 
 	/** Text to display as the content of the button */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance, meta=(EditCondition="bDisplayText"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Style, meta=( EditCondition="bDisplayText" ))
 	USlateWidgetStyleAsset* ButtonTextStyle;
 
 	/** The scaling factor for the button border */

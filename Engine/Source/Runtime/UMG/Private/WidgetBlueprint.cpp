@@ -12,6 +12,16 @@ UWidgetBlueprint::UWidgetBlueprint(const FPostConstructInitializeProperties& PCI
 {
 }
 
+void UWidgetBlueprint::PostLoad()
+{
+	Super::PostLoad();
+
+	for ( USlateWrapperComponent* Widget : WidgetTemplates )
+	{
+		Widget->ConnectEditorData();
+	}
+}
+
 bool UWidgetBlueprint::ValidateGeneratedClass(const UClass* InClass)
 {
 	bool Result = Super::ValidateGeneratedClass(InClass);

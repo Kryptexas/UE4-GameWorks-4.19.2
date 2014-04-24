@@ -73,6 +73,10 @@ void UWidgetBlueprintGeneratedClass::CreateComponentsForActor(AActor* Actor) con
 
 		Widget->RegisterComponent();
 
+#if WITH_EDITOR
+		Widget->ConnectEditorData();
+#endif
+
 		i++;
 	}
 }

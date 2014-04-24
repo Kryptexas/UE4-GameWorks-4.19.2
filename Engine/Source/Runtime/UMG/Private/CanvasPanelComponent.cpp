@@ -91,6 +91,10 @@ UCanvasPanelSlot* UCanvasPanelComponent::AddSlot(USlateWrapperComponent* Content
 {
 	UCanvasPanelSlot* Slot = ConstructObject<UCanvasPanelSlot>(UCanvasPanelSlot::StaticClass(), this);
 	Slot->Content = Content;
+
+#if WITH_EDITOR
+	Content->Slot = Slot;
+#endif
 	
 	Slots.Add(Slot);
 
@@ -98,6 +102,15 @@ UCanvasPanelSlot* UCanvasPanelComponent::AddSlot(USlateWrapperComponent* Content
 }
 
 #if WITH_EDITOR
+
+void UCanvasPanelComponent::ConnectEditorData()
+{
+	for ( UCanvasPanelSlot* Slot : Slots )
+	{
+		Slot->Content->Slot = Slot;
+	}
+}
+
 void UCanvasPanelComponent::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
 	// Ensure the slots have unique names

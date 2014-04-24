@@ -24,6 +24,10 @@ class UMG_API UHorizontalBoxComponent : public USlateNonLeafWidgetComponent
 	// UObject interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
 	// End of UObject interface
+
+	// USlateWrapperComponent interface
+	virtual void ConnectEditorData() OVERRIDE;
+	// End USlateWrapperComponent interface
 #endif
 
 protected:

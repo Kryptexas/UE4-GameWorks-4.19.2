@@ -45,13 +45,14 @@ void UVerticalBoxComponent::OnKnownChildrenChanged()
 				Slots[SlotIndex] = Slot = ConstructObject<UVerticalBoxSlot>(UVerticalBoxSlot::StaticClass(), this);
 			}
 
-			auto NewSlot = Canvas->AddSlot()
-				.AutoHeight()
+			auto& NewSlot = Canvas->AddSlot()
 				.HAlign(Slot->HorizontalAlignment)
 				.VAlign(Slot->VerticalAlignment)
 			[
 				Slot->Content == NULL ? SNullWidget::NullWidget : Slot->Content->GetWidget()
 			];
+
+			NewSlot.SizeParam = USlateWrapperComponent::ConvertSerializedSizeParamToRuntime(Slot->Size);
 		}
 	}
 }
@@ -60,6 +61,10 @@ UVerticalBoxSlot* UVerticalBoxComponent::AddSlot(USlateWrapperComponent* Content
 {
 	UVerticalBoxSlot* Slot = ConstructObject<UVerticalBoxSlot>(UVerticalBoxSlot::StaticClass(), this);
 	Slot->Content = Content;
+
+#if WITH_EDITOR
+	Content->Slot = Slot;
+#endif
 	
 	Slots.Add(Slot);
 
@@ -67,6 +72,14 @@ UVerticalBoxSlot* UVerticalBoxComponent::AddSlot(USlateWrapperComponent* Content
 }
 
 #if WITH_EDITOR
+void UVerticalBoxComponent::ConnectEditorData()
+{
+	for ( UVerticalBoxSlot* Slot : Slots )
+	{
+		Slot->Content->Slot = Slot;
+	}
+}
+
 void UVerticalBoxComponent::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
 	// Ensure the slots have unique names

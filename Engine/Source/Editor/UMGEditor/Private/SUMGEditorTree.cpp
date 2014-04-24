@@ -18,7 +18,7 @@ void SUMGEditorTree::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEd
 	BlueprintEditor = InBlueprintEditor;
 
 	UWidgetBlueprint* Blueprint = GetBlueprint();
-	RootWidgets.Add(Blueprint->WidgetTemplates[0]);
+	Blueprint->OnChanged().AddSP(this, &SUMGEditorTree::OnBlueprintChanged);
 
 	FCoreDelegates::OnObjectPropertyChanged.Add( FCoreDelegates::FOnObjectPropertyChanged::FDelegate::CreateRaw(this, &SUMGEditorTree::OnObjectPropertyChanged) );
 
@@ -48,10 +48,15 @@ void SUMGEditorTree::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEd
 			.TreeItemsSource(&RootWidgets)
 		]
 	];
+
+	RefreshTree();
 }
 
 SUMGEditorTree::~SUMGEditorTree()
 {
+	UWidgetBlueprint* Blueprint = GetBlueprint();
+	Blueprint->OnChanged().RemoveAll(this);
+
 	FCoreDelegates::OnObjectPropertyChanged.Remove( FCoreDelegates::FOnObjectPropertyChanged::FDelegate::CreateRaw(this, &SUMGEditorTree::OnObjectPropertyChanged) );
 }
 
@@ -66,6 +71,13 @@ UWidgetBlueprint* SUMGEditorTree::GetBlueprint() const
 	return NULL;
 }
 
+void SUMGEditorTree::OnBlueprintChanged(UBlueprint* InBlueprint)
+{
+	if ( InBlueprint )
+	{
+		RefreshTree();
+	}
+}
 
 void SUMGEditorTree::OnObjectPropertyChanged(UObject* ObjectBeingModified)
 {
@@ -89,6 +101,8 @@ void SUMGEditorTree::ShowDetailsForObjects(TArray<USlateWrapperComponent*> Widge
 			InspectorObjects.Add(Widget);
 		}
 	}
+
+	UWidgetBlueprint* Blueprint = GetBlueprint();
 
 	// Update the details panel
 	SKismetInspector::FShowDetailsOptions Options(InspectorTitle, true);
@@ -165,6 +179,17 @@ FReply SUMGEditorTree::CreateTestUI()
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
 
 	return FReply::Handled();
+}
+
+void SUMGEditorTree::RefreshTree()
+{
+	RootWidgets.Reset();
+
+	UWidgetBlueprint* Blueprint = GetBlueprint();
+	if ( Blueprint->WidgetTemplates.Num() > 0 )
+	{
+		RootWidgets.Add(Blueprint->WidgetTemplates[0]);
+	}
 }
 
 //void SUMGEditorTree::AddReferencedObjects( FReferenceCollector& Collector )
