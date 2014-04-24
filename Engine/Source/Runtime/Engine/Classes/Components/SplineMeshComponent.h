@@ -156,7 +156,7 @@ class USplineMeshComponent : public UStaticMeshComponent, public IInterface_Coll
 	 * Calculates the spline transform, including roll, scale, and offset along the spline at a specified distance
 	 * @Note:  This is mirrored to Lightmass::CalcSliceTransform() and LocalVertexShader.usf.  If you update one of these, please update them all! 
 	 */
-	FTransform CalcSliceTransform(const float DistanceAlong) const;
+	ENGINE_API FTransform CalcSliceTransform(const float DistanceAlong) const;
 };
 
 
