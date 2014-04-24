@@ -106,7 +106,13 @@ public class UE4EditorTarget : TargetRules
     public override Dictionary<string, List<KeyValuePair<UnrealTargetPlatform, UnrealTargetConfiguration>>> GUBP_NonCodeFormalBuilds_BaseEditorTypeOnly()
     {
         var NonCodeProjectNames = new Dictionary<string, List<KeyValuePair<UnrealTargetPlatform, UnrealTargetConfiguration>>>();
-        NonCodeProjectNames.Add("TappyChicken", new List<KeyValuePair<UnrealTargetPlatform, UnrealTargetConfiguration>>{new KeyValuePair<UnrealTargetPlatform, UnrealTargetConfiguration>(UnrealTargetPlatform.IOS, UnrealTargetConfiguration.Shipping)});
+        NonCodeProjectNames.Add("TappyChicken", 
+            new List<KeyValuePair<UnrealTargetPlatform, UnrealTargetConfiguration>>
+            {
+                    new KeyValuePair<UnrealTargetPlatform, UnrealTargetConfiguration>(UnrealTargetPlatform.IOS, UnrealTargetConfiguration.Shipping),
+                    new KeyValuePair<UnrealTargetPlatform, UnrealTargetConfiguration>(UnrealTargetPlatform.Android, UnrealTargetConfiguration.Shipping)
+            }
+        );
         return NonCodeProjectNames;
     }
 }

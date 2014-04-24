@@ -4061,7 +4061,7 @@ public class GUBP : BuildCommand
                     }
 
                     var TempNonCodeFormalBuilds = Target.Rules.GUBP_NonCodeFormalBuilds_BaseEditorTypeOnly();
-                    var HostMonos = GetMonolithicPlatformsForUProject(UnrealTargetPlatform.Mac, Branch.BaseEngineProject, true);
+                    var HostMonos = GetMonolithicPlatformsForUProject(HostPlatform, Branch.BaseEngineProject, true);
 
                     foreach (var Codeless in TempNonCodeFormalBuilds)
                     {
@@ -4072,7 +4072,7 @@ public class GUBP : BuildCommand
                             if (HostMonos.Contains(PlatPair.Key))
                             {
                                 NewPlatList.Add(PlatPair);
-                }
+                            }
                         }
                         if (NewPlatList.Count > 0)
                         {
