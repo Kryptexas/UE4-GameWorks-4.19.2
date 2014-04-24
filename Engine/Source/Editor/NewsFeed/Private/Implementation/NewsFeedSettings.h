@@ -9,7 +9,7 @@
 #include "NewsFeedSettings.generated.h"
 
 
-UCLASS(config=Editor)
+UCLASS(config=EditorGameAgnostic)
 class UNewsFeedSettings
 	: public UObject
 {
