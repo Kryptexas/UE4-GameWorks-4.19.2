@@ -5026,20 +5026,21 @@ TSharedRef<SWidget> FBlueprintEditorUtils::ConstructBlueprintParentClassPicker( 
 		{
 			// Don't allow conversion outside of the Actor hierarchy
 			Filter->AllowedChildrenOfClasses.Add( AActor::StaticClass() );
+
+			// Don't allow non-LevelScriptActor->LevelScriptActor conversion
+			Filter->DisallowedChildrenOfClasses.Add( ALevelScriptActor::StaticClass() );
 		}
 	}
-
-	if(!bIsLevelScriptActor)
-	{
-		// Don't allow non-LevelScriptActor->LevelScriptActor conversion
-		Filter->DisallowedChildrenOfClasses.Add( ALevelScriptActor::StaticClass() );
-	}
-
-	if (bIsAnimBlueprint)
+	else if (bIsAnimBlueprint)
 	{
 		// If it's an anim blueprint, do not allow conversion to non anim
 		Filter->AllowedChildrenOfClasses.Add( UAnimInstance::StaticClass() );
 	}
+	else
+	{
+		Filter->DisallowedChildrenOfClasses.Add( AActor::StaticClass() );
+	}
+
 
 	for( auto BlueprintIter = Blueprints.CreateConstIterator(); BlueprintIter; ++BlueprintIter )
 	{
