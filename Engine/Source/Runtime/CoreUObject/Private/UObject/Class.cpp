@@ -3246,6 +3246,10 @@ const FString UClass::GetConfigName() const
 	{
 		return GGameIni;
 	}
+	else if ( ClassConfigName == NAME_EditorGameAgnostic )
+	{
+		return GEditorGameAgnosticIni;
+	}
 	else if( ClassConfigName == NAME_None )
 	{
 		UE_LOG(LogClass, Fatal,TEXT("UObject::GetConfigName() called on class with config name 'None'. Class flags = %d"), ClassFlags );
