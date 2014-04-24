@@ -91,7 +91,7 @@ struct FVertexFactoryInput
 	/** added to the Position */
 	float3	DeltaPosition	: ATTRIBUTE9;	//POSITION1;
 	/** added to the TangentZ and then used to derive new TangentX,TangentY */
-	half3	DeltaTangentZ	: ATTRIBUTE10;	//NORMAL1;
+	half4	DeltaTangentZ	: ATTRIBUTE10;	//NORMAL1;
 #elif GPUSKIN_APEX_CLOTH // exclusive with GPUSKIN_MORPH_BLEND
 	// APEX cloth mesh-mesh mapping data
 	// Barycentric Coordinate Data
@@ -392,7 +392,7 @@ float3x3 SkinTangents( FVertexFactoryInput Input, FVertexFactoryIntermediates In
 	float3 DeltaTangentZ = TangentBias(Input.DeltaTangentZ)*2;
 
 	// calc new normal by offseting it with the delta
-	Tangents[1] = normalize( float3(TangentZ.x,TangentZ.y,TangentZ.z) + DeltaTangentZ );
+	Tangents[1] = normalize( TangentZ.xyz + Input.DeltaTangentZ.w * DeltaTangentZ);
 	// derive the new tangent by orthonormalizing the new normal against
 	// the base tangent vector (assuming these are normalized)
 	Tangents[0] = normalize( TangentX - (dot(TangentX,Tangents[1]) * Tangents[1]) );
