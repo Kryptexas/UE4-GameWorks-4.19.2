@@ -2,9 +2,10 @@
 
 
 #pragma once
+#include "InstancedFoliage.h"
 #include "InstancedFoliageActor.generated.h"
 
-UCLASS(notplaceable, HeaderGroup = Foliage, hidecategories = Object, MinimalAPI, NotBlueprintable)
+UCLASS(notplaceable, hidecategories = Object, MinimalAPI, NotBlueprintable)
 class AInstancedFoliageActor : public AActor
 {
 	GENERATED_UCLASS_BODY()

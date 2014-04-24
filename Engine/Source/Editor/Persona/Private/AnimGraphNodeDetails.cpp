@@ -16,6 +16,7 @@
 #include "IDetailPropertyRow.h"
 #include "IDetailCustomNodeBuilder.h"
 #include "PropertyCustomizationHelpers.h"
+#include "AnimGraphNode_Base.h"
 
 #define LOCTEXT_NAMESPACE "KismetNodeWithOptionalPinsDetails"
 

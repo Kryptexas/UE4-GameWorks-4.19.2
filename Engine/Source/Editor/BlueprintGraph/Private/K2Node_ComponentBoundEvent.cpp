@@ -2,8 +2,6 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 
-#include "EngineLevelScriptClasses.h"
-
 #define LOCTEXT_NAMESPACE "K2Node"
 
 UK2Node_ComponentBoundEvent::UK2Node_ComponentBoundEvent(const class FPostConstructInitializeProperties& PCIP)

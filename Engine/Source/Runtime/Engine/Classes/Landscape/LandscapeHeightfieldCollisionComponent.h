@@ -4,7 +4,7 @@
 #pragma once
 #include "LandscapeHeightfieldCollisionComponent.generated.h"
 
-UCLASS(HeaderGroup=Terrain, MinimalAPI)
+UCLASS(MinimalAPI)
 class ULandscapeHeightfieldCollisionComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()

@@ -23,7 +23,7 @@ enum EWorldPositionIncludedOffsets
 	WPT_MAX
 };
 
-UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object, MinimalAPI)
+UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
 class UMaterialExpressionWorldPosition : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

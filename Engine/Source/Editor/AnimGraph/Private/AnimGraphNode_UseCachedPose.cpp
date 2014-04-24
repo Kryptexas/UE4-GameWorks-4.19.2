@@ -5,6 +5,7 @@
 #include "GraphEditorActions.h"
 #include "ScopedTransaction.h"
 #include "K2ActionMenuBuilder.h" // for FK2ActionMenuBuilder::AddNewNodeAction()
+#include "AnimGraphNode_UseCachedPose.h"
 
 /////////////////////////////////////////////////////
 // UAnimGraphNode_UseCachedPose

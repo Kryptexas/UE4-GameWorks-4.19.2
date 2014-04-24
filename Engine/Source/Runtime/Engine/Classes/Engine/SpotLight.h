@@ -5,7 +5,7 @@
 
 #include "SpotLight.generated.h"
 
-UCLASS(HeaderGroup=Light, ClassGroup=(Lights, SpotLights), meta=(ChildCanTick))
+UCLASS(ClassGroup=(Lights, SpotLights), meta=(ChildCanTick))
 class ENGINE_API ASpotLight : public ALight
 {
 	GENERATED_UCLASS_BODY()

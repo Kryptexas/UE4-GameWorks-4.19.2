@@ -9,7 +9,7 @@
 
 #include "KismetNodeHelperLibrary.generated.h"
 
-UCLASS(HeaderGroup=KismetLibrary,MinimalAPI)
+UCLASS(MinimalAPI)
 class UKismetNodeHelperLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()

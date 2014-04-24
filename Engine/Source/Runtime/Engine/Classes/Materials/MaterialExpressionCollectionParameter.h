@@ -7,7 +7,7 @@
 #pragma once
 #include "MaterialExpressionCollectionParameter.generated.h"
 
-UCLASS(HeaderGroup=Material, hidecategories=object, MinimalAPI)
+UCLASS(hidecategories=object, MinimalAPI)
 class UMaterialExpressionCollectionParameter : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

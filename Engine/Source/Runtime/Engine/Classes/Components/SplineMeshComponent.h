@@ -81,7 +81,7 @@ struct FSplineMeshParams
 
 };
 
-UCLASS(HeaderGroup=Component, MinimalAPI)
+UCLASS(MinimalAPI)
 class USplineMeshComponent : public UStaticMeshComponent, public IInterface_CollisionDataProvider
 {
 	GENERATED_UCLASS_BODY()

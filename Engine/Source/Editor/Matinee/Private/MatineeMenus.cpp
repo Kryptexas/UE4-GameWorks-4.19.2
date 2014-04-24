@@ -8,7 +8,6 @@
 #include "Matinee.h"
 #include "MatineeDelegates.h"
 
-#include "EngineInterpolationClasses.h"
 #include "CameraController.h"
 #include "DesktopPlatformModule.h"
 #include "PackageTools.h"

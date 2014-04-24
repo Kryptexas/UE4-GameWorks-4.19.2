@@ -4,7 +4,7 @@
 #pragma once
 #include "ParticleModuleParameterDynamic_Seeded.generated.h"
 
-UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, meta=(DisplayName = "Dynamic (Seed)"))
+UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Dynamic (Seed)"))
 class UParticleModuleParameterDynamic_Seeded : public UParticleModuleParameterDynamic
 {
 	GENERATED_UCLASS_BODY()

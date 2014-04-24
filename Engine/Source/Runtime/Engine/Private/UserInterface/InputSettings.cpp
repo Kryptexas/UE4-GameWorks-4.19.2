@@ -5,7 +5,6 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-#include "EngineUserInterfaceClasses.h"
 
 UInputSettings::UInputSettings(const class FPostConstructInitializeProperties& PCIP)
 : Super(PCIP)

@@ -70,7 +70,7 @@ struct FActiveForceFeedbackEffect
 /**
  * A predefined force-feedback effect to be played on a controller
  */
-UCLASS(BlueprintType, headergroup=UserInterface, MinimalAPI)
+UCLASS(BlueprintType, MinimalAPI)
 class UForceFeedbackEffect : public UObject
 {
 	GENERATED_UCLASS_BODY()

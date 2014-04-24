@@ -3,7 +3,7 @@
 #pragma once
 #include "NavigationGraphNodeComponent.generated.h"
 
-UCLASS(HeaderGroup=Component, config=Engine, dependson=ANavigationGraph, MinimalAPI, HideCategories=(Mobility))
+UCLASS(config=Engine, dependson=ANavigationGraph, MinimalAPI, HideCategories=(Mobility))
 class UNavigationGraphNodeComponent : public USceneComponent
 {
 	GENERATED_UCLASS_BODY()

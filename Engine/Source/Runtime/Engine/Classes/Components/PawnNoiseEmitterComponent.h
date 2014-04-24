@@ -9,7 +9,7 @@
  * PawnNoiseEmitterComponent tracks noise event data used by SensingComponents to hear a Pawn.
  * This component is intended to exist on either a Pawn or its Controller. It does nothing on network clients.
  */
-UCLASS(HeaderGroup=Component, ClassGroup=AI, meta=(BlueprintSpawnableComponent))
+UCLASS(ClassGroup=AI, meta=(BlueprintSpawnableComponent))
 class ENGINE_API UPawnNoiseEmitterComponent : public UActorComponent
 {
 	GENERATED_UCLASS_BODY()

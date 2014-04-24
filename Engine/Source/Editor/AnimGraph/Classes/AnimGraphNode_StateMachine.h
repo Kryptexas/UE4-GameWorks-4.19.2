@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "AnimGraphNode_StateMachineBase.h"
 #include "AnimGraphNode_StateMachine.generated.h"
 
 UCLASS(MinimalAPI)

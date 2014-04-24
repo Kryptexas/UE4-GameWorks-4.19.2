@@ -6,6 +6,9 @@
 
 #include "AnimGraphPrivatePCH.h"
 
+#include "AnimationStateMachineSchema.h"
+#include "AnimStateEntryNode.h"
+
 #include "ScopedTransaction.h"
 #include "GraphEditorActions.h"
 

@@ -5,7 +5,7 @@
 #include "SceneCaptureComponent.generated.h"
 
 	// -> will be exported to EngineDecalClasses.h
-UCLASS(hidecategories=(abstract, Collision, Object, Physics, SceneComponent, Mobility), HeaderGroup=Decal, MinimalAPI)
+UCLASS(hidecategories=(abstract, Collision, Object, Physics, SceneComponent, Mobility), MinimalAPI)
 class USceneCaptureComponent : public USceneComponent
 {
 	GENERATED_UCLASS_BODY()

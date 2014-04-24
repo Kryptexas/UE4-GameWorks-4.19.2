@@ -2,7 +2,6 @@
 
 #include "GameplayTagsEditorModulePrivatePCH.h"
 #include "KismetCompiler.h"
-#include "EngineKismetLibraryClasses.h"
 #include "GameplayTags.h"
 #include "K2ActionMenuBuilder.h" // for FK2ActionMenuBuilder::AddNewNodeAction()
 

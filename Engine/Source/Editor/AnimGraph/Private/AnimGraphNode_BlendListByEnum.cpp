@@ -6,6 +6,7 @@
 #include "ScopedTransaction.h"
 #include "CompilerResultsLog.h"
 #include "K2ActionMenuBuilder.h" // for FK2ActionMenuBuilder::AddNewNodeAction()
+#include "AnimGraphNode_BlendListByEnum.h"
 
 #define LOCTEXT_NAMESPACE "BlendListByEnum"
 

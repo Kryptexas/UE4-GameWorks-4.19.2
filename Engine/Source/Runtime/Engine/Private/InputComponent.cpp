@@ -1,8 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-#include "EngineUserInterfaceClasses.h"
-#include "EngineLevelScriptClasses.h"		// For ALevelScriptActor
 
 FInputChord::RelationshipType FInputChord::GetRelationship(const FInputChord& OtherChord) const
 {

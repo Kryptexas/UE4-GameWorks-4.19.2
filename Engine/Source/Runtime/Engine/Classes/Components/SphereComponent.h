@@ -7,7 +7,7 @@
 /** 
  * A sphere generally used for simple collision. Bounds are rendered as lines in the editor.
  */
-UCLASS(HeaderGroup=Component, ClassGroup=Shapes, editinlinenew, hidecategories=(Object,LOD,Lighting,TextureStreaming), meta=(BlueprintSpawnableComponent))
+UCLASS(ClassGroup=Shapes, editinlinenew, hidecategories=(Object,LOD,Lighting,TextureStreaming), meta=(BlueprintSpawnableComponent))
 class ENGINE_API USphereComponent : public UShapeComponent
 {
 	GENERATED_UCLASS_BODY()

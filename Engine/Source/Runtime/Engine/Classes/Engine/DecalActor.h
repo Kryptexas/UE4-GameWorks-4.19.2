@@ -8,7 +8,12 @@
 #pragma once
 #include "DecalActor.generated.h"
 
-UCLASS(hidecategories=(Collision, Attachment, Actor, Input, Replication), HeaderGroup=Decal, MinimalAPI)
+//
+// Forward declarations.
+//
+class UBoxComponent;
+
+UCLASS(hidecategories=(Collision, Attachment, Actor, Input, Replication), MinimalAPI)
 class ADecalActor : public AActor
 {
 	GENERATED_UCLASS_BODY()

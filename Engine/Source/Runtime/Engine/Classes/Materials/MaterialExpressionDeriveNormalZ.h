@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionDeriveNormalZ.generated.h"
 
-UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
+UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionDeriveNormalZ : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionRotateAboutAxis.generated.h"
 
-UCLASS(HeaderGroup=Material, MinimalAPI)
+UCLASS(MinimalAPI)
 class UMaterialExpressionRotateAboutAxis : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

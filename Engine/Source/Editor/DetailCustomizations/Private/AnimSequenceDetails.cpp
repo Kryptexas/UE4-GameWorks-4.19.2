@@ -3,6 +3,7 @@
 #include "DetailCustomizationsPrivatePCH.h"
 #include "AnimSequenceDetails.h"
 #include "AnimMontageSegmentDetails.h"
+#include "AnimPreviewInstance.h"
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
 #include "Editor/KismetWidgets/Public/SScrubControlPanel.h"
 #include "Runtime/Engine/Public/FXSystem.h"

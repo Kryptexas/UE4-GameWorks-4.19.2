@@ -96,7 +96,7 @@ struct FLandscapeInfoLayerSettings
 #endif
 };
 
-UCLASS(HeaderGroup=Terrain)
+UCLASS()
 class ULandscapeInfo : public UObject
 {
 	GENERATED_UCLASS_BODY()

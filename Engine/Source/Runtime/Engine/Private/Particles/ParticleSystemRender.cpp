@@ -5,7 +5,6 @@
 =============================================================================*/
 #include "EnginePrivate.h"
 #include "ParticleDefinitions.h"
-#include "EngineMaterialClasses.h"
 #include "DiagnosticTable.h"
 #include "ParticleResources.h"
 

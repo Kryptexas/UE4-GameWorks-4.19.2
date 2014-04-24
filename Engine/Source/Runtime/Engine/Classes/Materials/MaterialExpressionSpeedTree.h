@@ -30,7 +30,7 @@ enum ESpeedTreeLODType
 };
 
 
-UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object, MinimalAPI)
+UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
 class UMaterialExpressionSpeedTree : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()	

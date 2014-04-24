@@ -6,7 +6,6 @@
 #include "AssetData.h"
 #include "AssetThumbnail.h"
 #include "AssetRegistryModule.h"
-#include "EngineDecalClasses.h"
 #include "ClassIconFinder.h"
 #include "LevelEditorActions.h"
 #include "IPlacementModeModule.h"

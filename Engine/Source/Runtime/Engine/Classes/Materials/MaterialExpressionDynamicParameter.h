@@ -9,7 +9,7 @@
 #pragma once
 #include "MaterialExpressionDynamicParameter.generated.h"
 
-UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object, MinimalAPI)
+UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
 class UMaterialExpressionDynamicParameter : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

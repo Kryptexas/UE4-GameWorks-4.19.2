@@ -8,7 +8,7 @@
 #pragma once
 #include "MaterialExpressionParticleMacroUV.generated.h"
 
-UCLASS(HeaderGroup=Material)
+UCLASS()
 class UMaterialExpressionParticleMacroUV : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

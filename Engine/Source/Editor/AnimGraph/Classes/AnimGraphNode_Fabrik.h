@@ -1,7 +1,7 @@
 // Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "AnimGraphNode_SkeletalControlBase.h"
 #include "AnimGraphNode_Fabrik.generated.h"
 
 // Editor node for FABRIK IK skeletal controller

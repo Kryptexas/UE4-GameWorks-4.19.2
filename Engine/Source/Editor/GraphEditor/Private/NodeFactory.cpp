@@ -26,6 +26,12 @@
 #include "KismetNodes/SGraphNodeFormatText.h"
 #include "KismetNodes/SGraphNodeK2ArrayFunction.h"
 
+#include "AnimGraphNode_Root.h"
+#include "AnimGraphNode_SequencePlayer.h"
+#include "AnimStateNode.h"
+
+#include "AnimationStateMachineSchema.h"
+
 #include "AnimationStateNodes/SGraphNodeAnimState.h"
 #include "AnimationStateNodes/SGraphNodeAnimTransition.h"
 #include "AnimationStateNodes/SGraphNodeAnimStateEntry.h"

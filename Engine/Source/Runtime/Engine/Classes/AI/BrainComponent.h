@@ -83,7 +83,7 @@ private:
 	TWeakObjectPtr<UBrainComponent> Owner;
 };
 
-UCLASS(HeaderGroup=Component, abstract, BlueprintType)
+UCLASS(abstract, BlueprintType)
 class ENGINE_API UBrainComponent : public UActorComponent, public IAIResourceInterface
 {
 	GENERATED_UCLASS_BODY()

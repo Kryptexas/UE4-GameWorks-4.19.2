@@ -48,7 +48,7 @@ struct FBeamModifierOptions
 
 };
 
-UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, meta=(DisplayName = "Beam Modifier"))
+UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Beam Modifier"))
 class UParticleModuleBeamModifier : public UParticleModuleBeamBase
 {
 	GENERATED_UCLASS_BODY()

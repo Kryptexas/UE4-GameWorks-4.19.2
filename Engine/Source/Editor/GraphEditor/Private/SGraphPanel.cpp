@@ -15,6 +15,8 @@
 #include "KismetNodes/KismetNodeInfoContext.h"
 #include "GraphDiffControl.h"
 
+#include "AnimationGraphSchema.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogGraphPanel, Log, All);
 
 /**

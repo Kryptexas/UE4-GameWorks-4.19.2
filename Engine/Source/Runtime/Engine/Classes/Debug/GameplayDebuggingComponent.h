@@ -84,7 +84,7 @@ namespace EQSDebug
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnDebuggingTargetChanged, class AActor* /*Owner of debugging component*/, bool /*is being debugged now*/);
 
-UCLASS(HeaderGroup=Component)
+UCLASS()
 class ENGINE_API UGameplayDebuggingComponent : public UPrimitiveComponent, public IEQSQueryResultSourceInterface
 {
 	GENERATED_UCLASS_BODY()

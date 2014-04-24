@@ -5,6 +5,10 @@
 #include "../Sound/DialogueTypes.h"
 #include "GameplayStatics.generated.h"
 
+//
+// Forward declarations.
+//
+class USaveGame;
 struct FDialogueContext;
 
 UENUM()
@@ -18,7 +22,7 @@ namespace ESuggestProjVelocityTraceOption
 	};
 }
 
-UCLASS(HeaderGroup=KismetLibrary)
+UCLASS()
 class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()

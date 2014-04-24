@@ -4,7 +4,7 @@
 #pragma once
 #include "SplineComponent.generated.h"
 
-UCLASS(HeaderGroup=Spline, MinimalAPI)
+UCLASS(MinimalAPI)
 class USplineComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()

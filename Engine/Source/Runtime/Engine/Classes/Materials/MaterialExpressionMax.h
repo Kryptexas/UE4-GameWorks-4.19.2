@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionMax.generated.h"
 
-UCLASS(HeaderGroup=Material, MinimalAPI)
+UCLASS(MinimalAPI)
 class UMaterialExpressionMax : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

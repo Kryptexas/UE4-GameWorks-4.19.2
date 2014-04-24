@@ -3,7 +3,7 @@
 #pragma once
 #include "WheeledVehicle.generated.h"
 
-UCLASS(abstract, HeaderGroup=Pawn, config=Game, dependson=(AController), BlueprintType)
+UCLASS(abstract, config=Game, dependson=(AController), BlueprintType)
 class ENGINE_API AWheeledVehicle : public APawn
 {
 	GENERATED_UCLASS_BODY()

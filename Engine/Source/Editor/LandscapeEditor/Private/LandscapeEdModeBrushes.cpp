@@ -5,7 +5,6 @@
 #include "ObjectTools.h"
 #include "LandscapeEdMode.h"
 #include "ScopedTransaction.h"
-#include "EngineTerrainClasses.h"
 #include "Runtime/Engine/Public/Landscape/LandscapeEdit.h"
 #include "Runtime/Engine/Public/Landscape/LandscapeRender.h"
 

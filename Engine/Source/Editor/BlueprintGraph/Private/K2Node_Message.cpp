@@ -3,8 +3,6 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "KismetCompiler.h"
 
-#include "EngineKismetLibraryClasses.h"
-
 #define LOCTEXT_NAMESPACE "K2Node_Message"
 
 UK2Node_Message::UK2Node_Message(const class FPostConstructInitializeProperties& PCIP)

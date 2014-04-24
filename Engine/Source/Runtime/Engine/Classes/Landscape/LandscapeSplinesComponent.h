@@ -4,7 +4,7 @@
 #pragma once
 #include "LandscapeSplinesComponent.generated.h"
 
-UCLASS(HeaderGroup=Terrain,MinimalAPI)
+UCLASS(MinimalAPI)
 class ULandscapeSplinesComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()

@@ -10,7 +10,6 @@
 #include "UniformBuffer.h"
 #include "ShaderParameters.h"
 #include "ScreenRendering.h"
-#include "EngineDecalClasses.h"
 #include "PostProcessAmbient.h"
 #include "PostProcessing.h"
 

@@ -13,6 +13,7 @@
 #include "AnimViewportLODCommands.h"
 #include "AnimViewportPlaybackCommands.h"
 #include "AnimGraphDefinitions.h"
+#include "AnimPreviewInstance.h"
 #include "AnimationEditorViewportClient.h"
 #include "ScopedTransaction.h"
 #include "Editor/UnrealEd/Public/LODUtilities.h"

@@ -8,6 +8,7 @@
 
 #include "EdGraphUtilities.h"
 #include "Kismet2/Kismet2NameValidators.h"
+#include "AnimGraphNode_StateResult.h"
 
 /////////////////////////////////////////////////////
 // UAnimStateNode

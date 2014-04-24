@@ -4,7 +4,7 @@
 #pragma once
 #include "ParticleModuleLocationBase.generated.h"
 
-UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, abstract, meta=(DisplayName = "Location"))
+UCLASS(editinlinenew, hidecategories=Object, abstract, meta=(DisplayName = "Location"))
 class UParticleModuleLocationBase : public UParticleModule
 {
 	GENERATED_UCLASS_BODY()

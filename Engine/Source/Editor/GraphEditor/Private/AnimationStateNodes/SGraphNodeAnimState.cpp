@@ -6,6 +6,8 @@
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
 #include "SGraphNode.h"
 #include "IDocumentation.h"
+#include "AnimStateConduitNode.h"
+#include "AnimationStateMachineGraph.h"
 
 /////////////////////////////////////////////////////
 // SStateMachineOutputPin

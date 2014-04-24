@@ -4,7 +4,7 @@
 
 #include "PointLight.generated.h"
 
-UCLASS(HeaderGroup=Light, ClassGroup=(Lights, PointLights), meta=(ChildCanTick))
+UCLASS(ClassGroup=(Lights, PointLights), meta=(ChildCanTick))
 class ENGINE_API APointLight : public ALight
 {
 	GENERATED_UCLASS_BODY()

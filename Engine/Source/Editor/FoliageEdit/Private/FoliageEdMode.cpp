@@ -8,7 +8,6 @@
 #include "ObjectTools.h"
 #include "FoliageEdMode.h"
 #include "ScopedTransaction.h"
-#include "EngineFoliageClasses.h"
 
 #include "FoliageEdModeToolkit.h"
 #include "ModuleManager.h"

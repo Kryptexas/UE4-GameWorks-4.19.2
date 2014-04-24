@@ -21,7 +21,7 @@ struct SKILLSYSTEM_API FAttributeDefaults
 /** 
  * 
  */
-UCLASS(HeaderGroup=Component, ClassGroup=SkillSystem, hidecategories=(Object,LOD,Lighting,Transform,Sockets,TextureStreaming), editinlinenew, meta=(BlueprintSpawnableComponent))
+UCLASS(ClassGroup=SkillSystem, hidecategories=(Object,LOD,Lighting,Transform,Sockets,TextureStreaming), editinlinenew, meta=(BlueprintSpawnableComponent))
 class SKILLSYSTEM_API UAttributeComponent : public UActorComponent
 {
 	GENERATED_UCLASS_BODY()

@@ -5,7 +5,6 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-#include "EngineMaterialClasses.h"
 #include "MaterialShader.h"
 #include "MaterialInstance.h"
 #include "UObjectAnnotation.h"

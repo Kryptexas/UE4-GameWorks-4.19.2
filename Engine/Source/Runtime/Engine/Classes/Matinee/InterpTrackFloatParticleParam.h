@@ -3,7 +3,7 @@
 #pragma once
 #include "InterpTrackFloatParticleParam.generated.h"
 
-UCLASS(HeaderGroup=Interpolation, meta=( DisplayName = "Float Particle Param Track" ) )
+UCLASS(meta=( DisplayName = "Float Particle Param Track" ) )
 class UInterpTrackFloatParticleParam : public UInterpTrackFloatBase
 {
 	GENERATED_UCLASS_BODY()

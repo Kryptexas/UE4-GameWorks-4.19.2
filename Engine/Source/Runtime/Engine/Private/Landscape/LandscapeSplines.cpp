@@ -5,7 +5,6 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-#include "EngineTerrainClasses.h"
 #include "Landscape/LandscapeSplineProxies.h"
 
 IMPLEMENT_HIT_PROXY(HLandscapeSplineProxy, HHitProxy);

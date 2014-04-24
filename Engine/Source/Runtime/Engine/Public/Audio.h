@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #pragma once
+#include "Sound/SoundClass.h"
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogAudio, Warning, All);
 
@@ -97,6 +98,8 @@ enum EAudioSpeakers
 
 // Forward declarations.
 class UAudioComponent;
+class USoundNode;
+struct FWaveInstance;
 struct FReverbSettings;
 struct FSampleLoop;
 

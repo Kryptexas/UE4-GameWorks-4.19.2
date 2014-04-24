@@ -40,7 +40,7 @@ struct FGenericStruct
 	int32 Data;
 };
 
-UCLASS(HeaderGroup=KismetLibrary,MinimalAPI)
+UCLASS(MinimalAPI)
 class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()

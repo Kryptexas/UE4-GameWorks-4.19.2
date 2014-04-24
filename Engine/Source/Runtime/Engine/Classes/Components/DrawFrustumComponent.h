@@ -8,7 +8,7 @@
  *	Utility component for drawing a view frustum. Origin is at the component location, frustum points down position X axis.
  */ 
 
-UCLASS(HeaderGroup=Component, collapsecategories, hidecategories=Object, editinlinenew, MinimalAPI)
+UCLASS(collapsecategories, hidecategories=Object, editinlinenew, MinimalAPI)
 class UDrawFrustumComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()

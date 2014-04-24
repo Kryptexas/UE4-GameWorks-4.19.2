@@ -1,6 +1,7 @@
 // Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
 
 #include "AnimGraphPrivatePCH.h"
+#include "AnimGraphNode_Fabrik.h"
 
 /////////////////////////////////////////////////////
 // UAnimGraphNode_Fabrik 

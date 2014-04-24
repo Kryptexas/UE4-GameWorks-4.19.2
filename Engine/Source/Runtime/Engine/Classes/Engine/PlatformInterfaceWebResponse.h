@@ -10,7 +10,7 @@
 #pragma once
 #include "PlatformInterfaceWebResponse.generated.h"
 
-UCLASS(HeaderGroup=PlatformInterface, transient,MinimalAPI)
+UCLASS(transient,MinimalAPI)
 class UPlatformInterfaceWebResponse : public UObject
 {
 	GENERATED_UCLASS_BODY()

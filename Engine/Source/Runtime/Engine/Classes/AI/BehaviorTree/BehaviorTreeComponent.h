@@ -26,7 +26,7 @@ struct FBTNodeExecutionInfo
 	FBTNodeExecutionInfo() : ExecuteNode(NULL) { }
 };
 
-UCLASS(HeaderGroup=Component)
+UCLASS()
 class ENGINE_API UBehaviorTreeComponent : public UBrainComponent
 {
 	GENERATED_UCLASS_BODY()

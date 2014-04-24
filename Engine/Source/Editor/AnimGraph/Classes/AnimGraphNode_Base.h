@@ -1,10 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "K2Node.h"
 #include "AnimGraphNode_Base.generated.h"
 
 //
+// Forward declarations.
+//
+struct FEdGraphSchemaAction_K2NewNode;
 
 struct FPoseLinkMappingRecord
 {

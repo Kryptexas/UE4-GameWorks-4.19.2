@@ -46,7 +46,7 @@ private:
  *	There may be several spawned in the case of splitscreen/coop
  *	There may be 0 spawned on servers
  */
-UCLASS(HeaderGroup=Network, Within=Engine, config=Engine, transient)
+UCLASS(Within=Engine, config=Engine, transient)
 class ENGINE_API ULocalPlayer : public UPlayer
 {
 	GENERATED_UCLASS_BODY()

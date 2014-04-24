@@ -53,7 +53,7 @@ struct FOrbitOptions
 	
 };
 
-UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=(Object, Orbit), MinimalAPI, meta=(DisplayName = "Orbit"))
+UCLASS(editinlinenew, hidecategories=(Object, Orbit), MinimalAPI, meta=(DisplayName = "Orbit"))
 class UParticleModuleOrbit : public UParticleModuleOrbitBase
 {
 	GENERATED_UCLASS_BODY()

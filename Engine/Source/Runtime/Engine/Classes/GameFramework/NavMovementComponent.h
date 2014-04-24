@@ -8,7 +8,7 @@
 #include "AI/Navigation/NavAgentInterface.h"
 #include "NavMovementComponent.generated.h"
 
-UCLASS(HeaderGroup=Component, abstract, dependson=(UNavigationSystem, UPrimitiveComponent, INavAgentInterface))
+UCLASS(abstract, dependson=(UNavigationSystem, UPrimitiveComponent, INavAgentInterface))
 class ENGINE_API UNavMovementComponent : public UMovementComponent
 {
 	GENERATED_UCLASS_BODY()

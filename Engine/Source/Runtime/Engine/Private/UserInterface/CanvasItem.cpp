@@ -6,9 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "CanvasItem.h"
-#include "EngineUserInterfaceClasses.h"
 #include "TileRendering.h"
-#include "EngineMaterialClasses.h"
 #include "RHIStaticStates.h"
 #include "Engine.h"
 #include "Internationalization.h"

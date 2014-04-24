@@ -3,7 +3,7 @@
 #pragma once
 #include "MaterialExpressionAtmosphericFogColor.generated.h"
 
-UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
+UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionAtmosphericFogColor : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

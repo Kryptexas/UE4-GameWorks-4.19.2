@@ -11,7 +11,6 @@
 #include "UniformBuffer.h"
 #include "ShaderParameters.h"
 #include "ScreenRendering.h"
-#include "EngineDecalClasses.h"
 #include "ScreenSpaceReflections.h"
 #include "PostProcessTemporalAA.h"
 #include "PostProcessDownsample.h"

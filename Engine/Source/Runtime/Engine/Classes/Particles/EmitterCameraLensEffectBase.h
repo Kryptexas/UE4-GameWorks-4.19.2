@@ -9,7 +9,7 @@
 #pragma once
 #include "EmitterCameraLensEffectBase.generated.h"
 
-UCLASS(abstract, Blueprintable, dependson=AEmitter, HeaderGroup=Particle, MinimalAPI)
+UCLASS(abstract, Blueprintable, dependson=AEmitter, MinimalAPI)
 class AEmitterCameraLensEffectBase : public AEmitter
 {
 	GENERATED_UCLASS_BODY()

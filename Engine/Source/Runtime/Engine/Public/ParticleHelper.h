@@ -125,6 +125,8 @@ class UParticleModuleOrientationAxisLock;
 
 class UParticleLODLevel;
 
+class USkeletalMeshComponent;
+
 class FParticleSystemSceneProxy;
 class FParticleDynamicData;
 struct FDynamicBeam2EmitterData;
@@ -133,6 +135,8 @@ struct FDynamicTrail2EmitterData;
 struct FParticleSpriteEmitterInstance;
 struct FParticleMeshEmitterInstance;
 struct FParticleBeam2EmitterInstance;
+
+struct FStaticMeshLODResources;
 
 // Special module indices...
 #define INDEX_TYPEDATAMODULE	(INDEX_NONE - 1)

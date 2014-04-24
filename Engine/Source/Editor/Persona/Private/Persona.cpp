@@ -40,7 +40,12 @@
 #include "Editor/Persona/Private/AnimationEditorViewportClient.h"
 
 #include "ComponentAssetBroker.h"
-
+#include "AnimGraphNode_BlendListByInt.h"
+#include "AnimGraphNode_BlendSpaceEvaluator.h"
+#include "AnimGraphNode_BlendSpacePlayer.h"
+#include "AnimGraphNode_LayeredBoneBlend.h"
+#include "AnimGraphNode_SequencePlayer.h"
+#include "AnimGraphNode_SequenceEvaluator.h"
 #define LOCTEXT_NAMESPACE "FPersona"
 
 /////////////////////////////////////////////////////

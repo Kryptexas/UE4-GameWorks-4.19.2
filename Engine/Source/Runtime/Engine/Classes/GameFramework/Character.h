@@ -4,6 +4,10 @@
 
 #include "Character.generated.h"
 
+//
+// Forward declarations
+//
+struct FAnimMontageInstance;
 /** Replicated data when playing a root motion montage. */
 USTRUCT()
 struct FRepRootMotionMontage
@@ -130,7 +134,7 @@ struct FRepRelativeMovement
 // to a CharacterMovementComponent that handles movement of the collision capsule, and they
 // also have implementations of basic networking and input models.
 //=============================================================================
-UCLASS(abstract, HeaderGroup=Pawn, config=Game, dependson=(AController, UCharacterMovementComponent), BlueprintType)
+UCLASS(abstract, config=Game, dependson=(AController, UCharacterMovementComponent), BlueprintType)
 class ENGINE_API ACharacter : public APawn
 {
 	GENERATED_UCLASS_BODY()

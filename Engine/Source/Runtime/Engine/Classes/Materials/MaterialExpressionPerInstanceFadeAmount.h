@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionPerInstanceFadeAmount.generated.h"
 
-UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
+UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionPerInstanceFadeAmount : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

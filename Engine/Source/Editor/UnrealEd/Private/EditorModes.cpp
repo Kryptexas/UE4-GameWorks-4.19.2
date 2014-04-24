@@ -4,7 +4,6 @@
 #include "MouseDeltaTracker.h"
 #include "ScopedTransaction.h"
 #include "SurfaceIterators.h"
-#include "EngineSplineClasses.h"
 #include "SoundDefinitions.h"
 #include "Editor/PlacementMode/Public/IPlacementModeModule.h"
 #include "Editor/LandscapeEditor/Public/LandscapeEditorModule.h"

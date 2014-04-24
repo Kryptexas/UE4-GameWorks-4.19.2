@@ -3,7 +3,6 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 
-#include "EngineLevelScriptClasses.h"
 #include "Kismet2NameValidators.h"
 #include "K2Node_BaseMCDelegate.h"
 #include "CompilerResultsLog.h"

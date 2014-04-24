@@ -59,7 +59,7 @@ struct FAutoCompleteNode
 	
 };
 
-UCLASS(Within=GameViewportClient, transient, config=Input, HeaderGroup=UserInterface)
+UCLASS(Within=GameViewportClient, transient, config=Input)
 class ENGINE_API UConsole : public UObject, public FOutputDevice
 {
 	GENERATED_UCLASS_BODY()

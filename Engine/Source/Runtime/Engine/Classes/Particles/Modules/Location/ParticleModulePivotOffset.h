@@ -3,7 +3,7 @@
 #pragma once
 #include "ParticleModulePivotOffset.generated.h"
 
-UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, MinimalAPI, DisplayName="Pivot Offset")
+UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, DisplayName="Pivot Offset")
 class UParticleModulePivotOffset : public UParticleModuleLocationBase
 {
 	GENERATED_UCLASS_BODY()

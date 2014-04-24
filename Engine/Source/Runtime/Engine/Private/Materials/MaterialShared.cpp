@@ -5,7 +5,6 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-#include "EngineMaterialClasses.h"
 #include "PixelFormat.h"
 #include "ShaderCompiler.h"
 #include "MaterialCompiler.h"

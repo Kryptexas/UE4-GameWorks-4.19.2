@@ -8,7 +8,7 @@
 
 #include "GeneratedMeshAreaLight.generated.h"
 
-UCLASS(HeaderGroup=Light, notplaceable, MinimalAPI)
+UCLASS(notplaceable, MinimalAPI)
 class AGeneratedMeshAreaLight : public ASpotLight
 {
 	GENERATED_UCLASS_BODY()

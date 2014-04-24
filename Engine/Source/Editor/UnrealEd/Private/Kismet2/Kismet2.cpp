@@ -4,6 +4,8 @@
 #include "UnrealEd.h"
 #include "BlueprintUtilities.h"
 #include "AnimGraphDefinitions.h"
+#include "AnimationGraph.h"
+#include "AnimationGraphSchema.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Kismet2/KismetReinstanceUtilities.h"
 #include "Kismet2/BlueprintEditorUtils.h"

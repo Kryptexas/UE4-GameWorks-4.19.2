@@ -79,7 +79,7 @@ struct FLODSoloTrack
  * in a system, the designer can create elaborate particle effects that are held in a single system. Once created using
  * Cascade, a ParticleSystem can then be inserted into a level or created in script.
  */
-UCLASS(HeaderGroup=Particle, hidecategories=Object, MinimalAPI, BlueprintType)
+UCLASS(hidecategories=Object, MinimalAPI, BlueprintType)
 class UParticleSystem : public UObject
 {
 	GENERATED_UCLASS_BODY()

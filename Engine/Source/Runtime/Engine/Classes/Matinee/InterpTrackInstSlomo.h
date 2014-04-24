@@ -4,7 +4,7 @@
 #pragma once
 #include "InterpTrackInstSlomo.generated.h"
 
-UCLASS(HeaderGroup=Interpolation)
+UCLASS()
 class UInterpTrackInstSlomo : public UInterpTrackInst
 {
 	GENERATED_UCLASS_BODY()

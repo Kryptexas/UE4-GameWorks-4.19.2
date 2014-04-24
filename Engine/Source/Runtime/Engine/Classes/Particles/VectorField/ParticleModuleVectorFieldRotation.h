@@ -9,7 +9,7 @@
 
 #include "ParticleModuleVectorFieldRotation.generated.h"
 
-UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, meta=(DisplayName = "VF Init Rotation"))
+UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "VF Init Rotation"))
 class UParticleModuleVectorFieldRotation : public UParticleModuleVectorFieldBase
 {
 	GENERATED_UCLASS_BODY()

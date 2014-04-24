@@ -3,7 +3,7 @@
 #pragma once
 #include "NavigationComponent.generated.h"
 
-UCLASS(HeaderGroup=Component, dependson=(UNavAgentInterface, UNavPathObserverInterface, UNavigationSystem), config=Engine)
+UCLASS(dependson=(UNavAgentInterface, UNavPathObserverInterface, UNavigationSystem), config=Engine)
 class ENGINE_API UNavigationComponent : public UActorComponent, public INavigationPathGenerator
 {
 	GENERATED_UCLASS_BODY()

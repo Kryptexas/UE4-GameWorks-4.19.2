@@ -6,6 +6,7 @@
 #include "ScopedTransaction.h"
 #include "EdGraphUtilities.h"
 #include "Kismet2NameValidators.h"
+#include "AnimGraphNode_StateMachineBase.h"
 
 /////////////////////////////////////////////////////
 // FAnimStateMachineNodeNameValidator
@@ -21,9 +22,8 @@ public:
 		UAnimationGraph* StateMachine = CastChecked<UAnimationGraph>(InStateMachineNode->GetOuter());
 		StateMachine->GetNodesOfClassEx<UAnimGraphNode_StateMachine, UAnimGraphNode_StateMachineBase>(Nodes);
 
-		for (auto NodeIt = Nodes.CreateIterator(); NodeIt; ++NodeIt)
+		for (auto Node : Nodes)
 		{
-			auto Node = *NodeIt;
 			if (Node != InStateMachineNode)
 			{
 				Names.Add(Node->GetStateMachineName());

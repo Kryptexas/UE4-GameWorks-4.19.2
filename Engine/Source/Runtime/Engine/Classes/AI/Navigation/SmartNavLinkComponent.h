@@ -22,7 +22,7 @@ namespace ESmartNavLinkDir
 	};
 }
 
-UCLASS(HeaderGroup=Navigation)
+UCLASS()
 class ENGINE_API USmartNavLinkComponent : public UNavRelevantComponent
 {
 	GENERATED_UCLASS_BODY()

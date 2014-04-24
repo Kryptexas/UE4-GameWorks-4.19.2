@@ -4,7 +4,7 @@
 #pragma once
 #include "ParticleModuleTypeDataBase.generated.h"
 
-UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, abstract, MinimalAPI)
+UCLASS(editinlinenew, hidecategories=Object, abstract, MinimalAPI)
 class UParticleModuleTypeDataBase : public UParticleModule
 {
 	GENERATED_UCLASS_BODY()

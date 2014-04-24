@@ -5,7 +5,6 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-#include "EngineDecalClasses.h"
 #include "DerivedDataCacheInterface.h"
 #include "TargetPlatform.h"
 

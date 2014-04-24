@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionFeatureLevelSwitch.generated.h"
 
-UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object, MinimalAPI)
+UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
 class UMaterialExpressionFeatureLevelSwitch : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

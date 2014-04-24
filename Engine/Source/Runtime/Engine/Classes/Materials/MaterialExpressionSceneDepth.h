@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionSceneDepth.generated.h"
 
-UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
+UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionSceneDepth : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()
