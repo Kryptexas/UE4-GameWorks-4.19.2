@@ -206,7 +206,6 @@ DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN( TEXT("Num Dynamic Textures"), STAT_SlateN
 #include "STutorialWrapper.h"
 #include "ScrollyZoomy.h"
 #include "SSafeZone.h"
-#include "SListViewSelectorDropdownMenu.h"
 
 // Docking Framework
 #include "DockingFramework/WorkspaceItem.h"

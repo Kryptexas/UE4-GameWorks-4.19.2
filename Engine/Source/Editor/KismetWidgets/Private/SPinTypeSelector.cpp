@@ -4,6 +4,7 @@
 #include "ClassIconFinder.h"
 #include "SPinTypeSelector.h"
 #include "IDocumentation.h"
+#include "Editor/UnrealEd/Public/SListViewSelectorDropdownMenu.h"
 
 #define LOCTEXT_NAMESPACE "PinTypeSelector"
 

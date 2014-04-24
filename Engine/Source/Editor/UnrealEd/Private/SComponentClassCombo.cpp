@@ -7,6 +7,7 @@
 #include "ClassIconFinder.h"
 #include "BlueprintGraphDefinitions.h"
 #include "IDocumentation.h"
+#include "SListViewSelectorDropdownMenu.h"
 
 #define LOCTEXT_NAMESPACE "ComponentClassCombo"
 
