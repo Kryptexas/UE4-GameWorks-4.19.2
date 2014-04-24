@@ -874,9 +874,6 @@ void UEdGraphPin::CopyPersistentDataFromOldPin(const UEdGraphPin& SourcePin)
 		UEdGraphPin* OtherPin = SourcePin.LinkedTo[LinkIndex];
 		check(NULL != OtherPin);
 		
-		Modify();
-		OtherPin->Modify();
-
 		OtherPin->MakeLinkTo(this);
 	}
 
