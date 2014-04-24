@@ -7,6 +7,7 @@
 #include "DelayAction.h"
 #include "InterpolateComponentToAction.h"
 #include "Advertising.h"
+#include "Online.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UKismetSystemLibrary
@@ -2293,14 +2294,27 @@ void UKismetSystemLibrary::ShowPlatformSpecificLeaderboardScreen(const FString& 
 #endif
 }
 
-void UKismetSystemLibrary::ShowPlatformSpecificAchievementsScreen()
+void UKismetSystemLibrary::ShowPlatformSpecificAchievementsScreen(class APlayerController* SpecificPlayer)
 {
 #if PLATFORM_IOS
 	extern CORE_API void IOSShowAchievementsUI();
 	IOSShowAchievementsUI();
-#elif PLATFORM_ANDROID
-	extern void AndroidThunkCpp_ShowAchievements();
-	AndroidThunkCpp_ShowAchievements();
+#else
+	IOnlineExternalUIPtr ExternalUI = Online::GetExternalUIInterface();
+	if(ExternalUI.IsValid())
+	{
+		// Get the controller id from the player
+		int LocalUserNum = 0;
+		if(SpecificPlayer)
+		{
+			ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(SpecificPlayer->Player);
+			if(LocalPlayer)
+			{
+				LocalUserNum = LocalPlayer->ControllerId;
+			}
+		}
+		ExternalUI->ShowAchievementsUI(LocalUserNum);
+	}
 #endif
 }
 void UKismetSystemLibrary::SetStructurePropertyByName(UObject* Object, FName PropertyName, const FGenericStruct& Value)

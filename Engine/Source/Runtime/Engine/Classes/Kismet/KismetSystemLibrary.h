@@ -1055,7 +1055,9 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 
 	/**
 	 * Displays the built-in achievements GUI (iOS and Android only; this function may be renamed or moved in a future release)
+	 *
+	 * @param SpecificPlayer Specific player's achievements to show. May not be supported on all platforms. If null, defaults to the player with ControllerId 0
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Utilities|Platform")
-	static void ShowPlatformSpecificAchievementsScreen();
+	static void ShowPlatformSpecificAchievementsScreen(class APlayerController* SpecificPlayer);
 };

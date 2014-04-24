@@ -62,7 +62,7 @@ IOnlineVoicePtr FOnlineSubsystemGooglePlay::GetVoiceInterface() const
 
 IOnlineExternalUIPtr FOnlineSubsystemGooglePlay::GetExternalUIInterface() const
 {
-	return nullptr;
+	return ExternalUIInterface;
 }
 
 
@@ -95,6 +95,7 @@ bool FOnlineSubsystemGooglePlay::Init()
 	
 	IdentityInterface = MakeShareable(new FOnlineIdentityGooglePlay(this));
 	AchievementsInterface = MakeShareable(new FOnlineAchievementsGooglePlay(this));
+	ExternalUIInterface = MakeShareable(new FOnlineExternalUIGooglePlay());
 
 	extern void AndroidThunkCpp_GooglePlayConnect();
 	AndroidThunkCpp_GooglePlayConnect();
@@ -120,6 +121,7 @@ bool FOnlineSubsystemGooglePlay::Shutdown()
 	}
 
 	// Destruct the interfaces
+	DESTRUCT_INTERFACE(ExternalUIInterface);
 	DESTRUCT_INTERFACE(AchievementsInterface);
 	DESTRUCT_INTERFACE(IdentityInterface);
 #undef DESTRUCT_INTERFACE

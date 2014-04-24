@@ -5,6 +5,7 @@
 #include "OnlineSubsystem.h"
 #include "OnlineIdentityInterfaceGooglePlay.h"
 #include "OnlineAchievementsInterfaceGooglePlay.h"
+#include "OnlineExternalUIInterfaceGooglePlay.h"
 
 /**
  * OnlineSubsystemGooglePlay - Implementation of the online subsystem for Google Play services
@@ -69,6 +70,9 @@ private:
 
 	/** Interface to the online achievements */
 	FOnlineAchievementsGooglePlayPtr AchievementsInterface;
+
+	/** Interface to the external UI services */
+	FOnlineExternalUIGooglePlayPtr ExternalUIInterface;
 };
 
 typedef TSharedPtr<FOnlineSubsystemGooglePlay, ESPMode::ThreadSafe> FOnlineSubsystemGooglePlayPtr;
