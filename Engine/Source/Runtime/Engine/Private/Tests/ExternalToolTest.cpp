@@ -14,7 +14,7 @@ namespace ExternalProcessHelper
 	struct ExternalProcessInfo
 	{
 		ExternalProcessInfo()
-			: ProcessHandle(NULL)
+			: ProcessHandle()
 			, ReadPipe(NULL)
 			, WritePipe(NULL)
 		{
