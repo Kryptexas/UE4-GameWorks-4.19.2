@@ -58,8 +58,15 @@ public:
 				.VAlign(VAlign_Top)
 				.Padding(4.0f)
 				[
-					SNew(SImage)
-						.Image(this, &SNewsFeedListRow::HandleIconImage)
+					SNew(SBox)
+						.HAlign(HAlign_Fill)
+						.VAlign(VAlign_Fill)
+						.HeightOverride(40.0f)
+						.WidthOverride(40.0f)
+						[
+							SNew(SImage)
+								.Image(this, &SNewsFeedListRow::HandleIconImage)
+						]
 				];
 		}
 		else if (ColumnName == TEXT("Content"))

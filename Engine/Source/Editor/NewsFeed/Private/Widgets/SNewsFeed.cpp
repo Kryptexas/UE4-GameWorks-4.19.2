@@ -90,16 +90,34 @@ void SNewsFeed::Construct( const FArguments& InArgs, const FNewsFeedCacheRef& In
 					.VAlign(VAlign_Center)
 					.Padding(4.0f, 0.0f)
 					[
-						// settings button
-						SNew(SButton)
-							.ButtonStyle(FEditorStyle::Get(), "NoBorder")
-							.ContentPadding(0.0f)
-							.OnClicked(this, &SNewsFeed::HandleRefreshButtonClicked)
-							.ToolTipText(LOCTEXT("RefreshButtonToolTip", "Reload the latest news from the server."))
-							.Visibility(this, &SNewsFeed::HandleRefreshButtonVisibility)
+						SNew(SOverlay)
+
+						+ SOverlay::Slot()
+							.HAlign(HAlign_Center)
+							.VAlign(VAlign_Center)
 							[
-								SNew(SImage)
-									.Image(FEditorStyle::GetBrush("NewsFeed.ReloadButton"))
+								// settings button
+								SNew(SButton)
+									.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+									.ContentPadding(0.0f)
+									.OnClicked(this, &SNewsFeed::HandleRefreshButtonClicked)
+									.ToolTipText(LOCTEXT("RefreshButtonToolTip", "Reload the latest news from the server."))
+									.Visibility(this, &SNewsFeed::HandleRefreshButtonVisibility)
+									[
+										SNew(SImage)
+											.Image(FEditorStyle::GetBrush("NewsFeed.ReloadButton"))
+									]
+							]
+
+						+ SOverlay::Slot()
+							.HAlign(HAlign_Center)
+							.VAlign(VAlign_Center)
+							[
+								// refresh throbber
+								SNew(SCircularThrobber)
+									.Radius(10.0f)
+									.ToolTipText(LOCTEXT("RefreshThrobberToolTip", "Loading latest news..."))
+									.Visibility(this, &SNewsFeed::HandleRefreshThrobberVisibility)
 							]
 					]
 
@@ -120,34 +138,16 @@ void SNewsFeed::Construct( const FArguments& InArgs, const FNewsFeedCacheRef& In
 					.VAlign(VAlign_Center)
 					.Padding(4.0f, 0.0f)
 					[
-						SNew(SOverlay)
-
-						+ SOverlay::Slot()
-							.HAlign(HAlign_Center)
-							.VAlign(VAlign_Center)
+						// settings button
+						SNew(SButton)
+							.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+							.ContentPadding(0.0f)
+							.OnClicked(this, &SNewsFeed::HandleSettingsButtonClicked)
+							.ToolTipText(LOCTEXT("SettingsButtonToolTip", "News feed settings."))	
 							[
-								// reload button
-								SNew(SButton)
-									.ButtonStyle(FEditorStyle::Get(), "NoBorder")
-									.ContentPadding(0.0f)
-									.OnClicked(this, &SNewsFeed::HandleSettingsButtonClicked)
-									.ToolTipText(LOCTEXT("SettingsButtonToolTip", "News feed settings."))
-									[
-										SNew(SImage)
-											.Image(FEditorStyle::GetBrush("NewsFeed.SettingsButton"))
-									]
-							]
-
-						+ SOverlay::Slot()
-							.HAlign(HAlign_Center)
-							.VAlign(VAlign_Center)
-							[
-								// refresh throbber
-								SNew(SCircularThrobber)
-									.Radius(10.0f)
-									.ToolTipText(LOCTEXT("RefreshThrobberToolTip", "Loading latest news..."))
-									.Visibility(this, &SNewsFeed::HandleRefreshThrobberVisibility)
-							]
+								SNew(SImage)
+									.Image(FEditorStyle::GetBrush("NewsFeed.SettingsButton"))
+							]	
 					]
 			]
 	];

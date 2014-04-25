@@ -3578,6 +3578,7 @@ void FSlateEditorStyle::FStyle::SetupLevelEditorStyle()
 	// News Feed
 	{
 		Set( "NewsFeed.ToolbarIcon.Small", new IMAGE_BRUSH( "NewsFeed/ToolbarIcon_16x", Icon16x16 ) );
+		Set( "NewsFeed.PendingIcon", new IMAGE_BRUSH( "NewsFeed/PendingIcon", Icon16x16 ) );
 		Set( "NewsFeed.ReloadButton", new IMAGE_BRUSH( "NewsFeed/ReloadButton", Icon16x16 ) );
 		Set( "NewsFeed.SettingsButton", new IMAGE_BRUSH( "NewsFeed/SettingsButton", Icon16x16 ) );
 		Set( "NewsFeed.UnreadCountBackground", new IMAGE_BRUSH( "NewsFeed/UnreadCountBackground", Icon16x16 ) );
