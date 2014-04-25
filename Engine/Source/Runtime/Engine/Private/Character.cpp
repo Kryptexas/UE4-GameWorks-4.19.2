@@ -50,6 +50,9 @@ ACharacter::ACharacter(const class FPostConstructInitializeProperties& PCIP)
 	CapsuleComponent->bCheckAsyncSceneOnMove = false;	
 	RootComponent = CapsuleComponent;
 
+	JumpKeyHoldTime = 0.0f;
+	JumpMaxHoldTime = 0.0f;
+
 #if WITH_EDITORONLY_DATA
 	ArrowComponent = PCIP.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("Arrow"));
 	if (ArrowComponent)
@@ -189,7 +192,18 @@ void ACharacter::Landed(const FHitResult& Hit)
 
 bool ACharacter::CanJump_Implementation() const
 {
-	return !bIsCrouched && CharacterMovement && CharacterMovement->IsMovingOnGround() && CharacterMovement->CanEverJump() && !CharacterMovement->bWantsToCrouch;
+	const bool bCanHoldToJumpHigher = (GetJumpMaxHoldTime() > 0.0f) && IsJumping();
+
+	return !bIsCrouched && CharacterMovement && (CharacterMovement->IsMovingOnGround() || bCanHoldToJumpHigher) && CharacterMovement->CanEverJump() && !CharacterMovement->bWantsToCrouch;
+}
+
+void ACharacter::OnJumped_Implementation()
+{
+}
+
+bool ACharacter::IsJumping() const
+{
+	return (bPressedJump && JumpKeyHoldTime > 0.0f && JumpKeyHoldTime < GetJumpMaxHoldTime());
 }
 
 bool ACharacter::DoJump( bool bReplayingMoves )
@@ -623,19 +637,46 @@ bool ACharacter::NotifyLanded(const FHitResult& Hit)
 	return true;
 }
 
+void ACharacter::Jump()
+{
+	bPressedJump = true;
+	JumpKeyHoldTime = 0.0f;
+}
+
+void ACharacter::StopJumping()
+{
+	bPressedJump = false;
+	JumpKeyHoldTime = 0.0f;
+}
 
 void ACharacter::CheckJumpInput(float DeltaTime)
 {
+	const bool bWasJumping = bPressedJump && JumpKeyHoldTime > 0.0f;
 	if (bPressedJump)
 	{
-		DoJump(bClientUpdating);
+		// Incrememnt our timer first so calls to IsJumping() will return true
+		JumpKeyHoldTime += DeltaTime;
+		const bool bDidJump = DoJump(bClientUpdating);
+		if(!bWasJumping && bDidJump)
+		{
+			OnJumped();
+		}
 	}
 }
 
 
 void ACharacter::ClearJumpInput()
 {
-	bPressedJump = false;
+	// Don't disable bPressedJump right away if it's still held
+	if (bPressedJump && (JumpKeyHoldTime >= GetJumpMaxHoldTime()))
+	{
+		bPressedJump = false;
+	}
+}
+
+float ACharacter::GetJumpMaxHoldTime() const
+{
+	return JumpMaxHoldTime;
 }
 
 bool ACharacter::ServerMove_Validate(float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 MoveFlags, uint8 ClientRoll, uint32 View, class UPrimitiveComponent* ClientMovementBase, uint8 ClientMovementMode)
@@ -1034,8 +1075,16 @@ void ACharacter::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLi
 
 void ACharacter::UpdateFromCompressedFlags(uint8 Flags)
 {
+	const bool bWasJumping = bPressedJump;
+
 	bPressedJump = ((Flags & FSavedMove_Character::FLAG_JumpPressed) != 0);	
 	CharacterMovement->bWantsToCrouch = ((Flags & FSavedMove_Character::FLAG_WantsToCrouch) != 0);
+
+	// Reset JumpKeyHoldTime when player presses Jump key on server as well.
+	if (!bWasJumping && bPressedJump)
+	{
+		JumpKeyHoldTime = 0.0f;
+	}
 }
 
 bool ACharacter::IsPlayingRootMotion() const

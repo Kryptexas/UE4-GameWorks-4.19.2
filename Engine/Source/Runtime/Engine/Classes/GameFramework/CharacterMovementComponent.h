@@ -1301,6 +1301,7 @@ public:
 	float TimeStamp;    // Time of this move.
 	float DeltaTime;    // amount of time for this move
 	float CustomTimeDilation;
+	float JumpKeyHoldTime;
 	uint8 MovementMode;	// packed movement mode
 
 	// Information at the start of the move

@@ -234,6 +234,22 @@ public:
 	UPROPERTY()
 	uint32 bSimGravityDisabled:1;
 
+	/** 
+	 * Jump key Held Time.
+	 * This is the time that the player has held the jump key, in seconds.
+	 */
+	UPROPERTY(Transient, BlueprintReadOnly, VisibleInstanceOnly, Category=Character)
+	float JumpKeyHoldTime;
+
+	/** 
+	 * The max time the jump key can be held.
+	 * Note that if StopJumping() is not called before the max jump hold time is reached,
+	 * then the character will carry on receiving vertical velocity. Therefore it is usually 
+	 * best to call StopJumping() when jump input has ceased (such as a button up event).
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category=Character)
+	float JumpMaxHoldTime;
+
 	// Begin AActor Interface.
 	virtual void TeleportSucceeded(bool bIsATest) OVERRIDE;
 	virtual void ClearCrossLevelReferences() OVERRIDE;
@@ -269,18 +285,42 @@ public:
 	/** Apply momentum caused by damage. */
 	virtual void ApplyDamageMomentum(float DamageTaken, FDamageEvent const& DamageEvent, APawn* PawnInstigator, AActor* DamageCauser);
 
-	/**  Make the character jump on the next update.	 */
+	/** 
+	 * Make the character jump on the next update.	 
+	 * If you want your character to jump according to the time that the jump key is held,
+	 * then you can set JumpKeyHoldTime to some non-zero value. Make sure in this case to
+	 * call StopJumping() when you want the jump's z-velocity to stop being applied (such 
+	 * as on a button up event), otherwise the character will carry on receiving the 
+	 * velocity until JumpKeyHoldTime is reached.
+	 */
 	UFUNCTION(BlueprintCallable, Category="Pawn|Character")
 	virtual void Jump();
+
+	/** 
+	 * Stop the character from jumping on the next update. 
+	 * Call this from an input event (such as a button 'up' event) to cease applying
+	 * jump Z-velocity. If this is not called, then jump z-velocity will be applied
+	 * until JumpMaxHoldTime is reached.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Character")
+	virtual void StopJumping();
 
 	/**
 	 * Check if the character can jump in the current state.
 	 * Default implementation returns true if the character is on the ground and not crouching,
 	 * has a valid CharacterMovementComponent and CanEverJump() returns true.
+	 * Default implementation also allows for 'hold to jump higher' functionality: 
+	 * As well as returning true when on the ground, it also returns true when GetMaxJumpTime is more
+	 * than zero and IsJumping returns true.
+	 * 
 	 * @Return Whether the character can jump in the current state. 
 	 */
 	UFUNCTION(BlueprintNativeEvent, Category="Pawn|Character")
 	bool CanJump() const;
+
+	/** True if currently jumping; i.e. jump key is held and the time it has been held is less than JumpMaxHoldTime */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Character")
+	virtual bool IsJumping() const;
 
 	/** Play Animation Montage on the character mesh **/
 	UFUNCTION(BlueprintCallable, Category=Animation)
@@ -317,6 +357,10 @@ public:
 	/** Let blueprint know that we were launched */
 	UFUNCTION(BlueprintImplementableEvent)
 	virtual void OnLaunched(FVector LaunchVelocity, bool bXYOverride, bool bZOverride);
+
+	/** Event fired when the character has just started jumping */
+	UFUNCTION(BlueprintNativeEvent, Category="Pawn|Character")
+	void OnJumped();
 
 	/** Called when the character's movement enters falling */
 	virtual void Falling() {}
@@ -409,6 +453,16 @@ public:
 	/** Reset jump input state after having checked input. */
 	virtual void ClearJumpInput();
 
+	/**
+	 * Get the maximum jump time for the character.
+	 * Note that if StopJumping() is not called before the max jump hold time is reached,
+	 * then the character will carry on receiving vertical velocity. Therefore it is usually 
+	 * best to call StopJumping() when jump input has ceased (such as a button up event).
+	 * 
+	 * @return Maximum jump time for the character
+	 */
+	virtual float GetJumpMaxHoldTime() const;
+
 	/** Unpack compressed flags from a saved move and set state accordingly. See FSavedMove_Character. */
 	virtual void UpdateFromCompressedFlags(uint8 Flags);
 
@@ -497,12 +551,3 @@ public:
 	/** Called on the actor right before replication occurs */
 	virtual void PreReplication( IRepChangedPropertyTracker & ChangedPropertyTracker ) OVERRIDE;
 };
-
-
-//////////////////////////////////////////////////////////////////////////
-// Inlines
-
-inline void ACharacter::Jump()
-{
-	bPressedJump = true;
-}

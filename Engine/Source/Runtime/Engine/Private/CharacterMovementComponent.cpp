@@ -5681,6 +5681,7 @@ void FSavedMove_Character::Clear()
 	TimeStamp = 0.f;
 	DeltaTime = 0.f;
 	CustomTimeDilation = 1.0f;
+	JumpKeyHoldTime = 0.0f;
 	MovementMode = 0;
 
 	StartLocation = FVector::ZeroVector;
@@ -5715,10 +5716,11 @@ void FSavedMove_Character::SetMoveFor(ACharacter* Character, float InDeltaTime, 
 	Acceleration = NewAccel;
 
 	bPressedJump = Character->bPressedJump;
+	JumpKeyHoldTime = Character->JumpKeyHoldTime;
 	bWantsToCrouch = Character->CharacterMovement->bWantsToCrouch;
 	bForceMaxAccel = Character->CharacterMovement->bForceMaxAccel;
 	MovementMode = Character->CharacterMovement->PackNetworkMovementMode();
-	
+
 	TimeStamp = ClientData.CurrentTimeStamp;
 }
 
@@ -5862,6 +5864,7 @@ void FSavedMove_Character::PrepMoveFor(ACharacter* Character)
 	}
 
 	Character->CharacterMovement->bForceMaxAccel = bForceMaxAccel;
+	Character->JumpKeyHoldTime = JumpKeyHoldTime;
 }
 
 
