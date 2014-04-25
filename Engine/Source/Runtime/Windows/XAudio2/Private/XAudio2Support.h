@@ -200,8 +200,8 @@ public:
 		FXWMABufferInfo			XWMA;			// Xenon only
 	};
 
-	/** Wrapper to handle the decompression of vorbis code */
-	class FVorbisAudioInfo*		DecompressionState;
+	/** Wrapper to handle the decompression of audio codecs */
+	class ICompressedAudioInfo*		DecompressionState;
 	/** Set to true when the PCM data should be freed when the buffer is destroyed */
 	bool						bDynamicResource;
 };

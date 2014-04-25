@@ -182,7 +182,7 @@ int32 FXAudio2SoundBuffer::GetSize( void )
 		break;
 
 	case SoundFormat_PCMRT:
-		TotalSize = (DecompressionState ? DecompressionState->SrcBufferDataSize : 0) + ( MONO_PCM_BUFFER_SIZE * 2 * NumChannels );
+		TotalSize = (DecompressionState ? DecompressionState->GetSourceBufferSize() : 0) + ( MONO_PCM_BUFFER_SIZE * 2 * NumChannels );
 		break;
 
 	case SoundFormat_XMA2:
@@ -326,7 +326,13 @@ FXAudio2SoundBuffer* FXAudio2SoundBuffer::CreateQueuedBuffer( FXAudio2Device* XA
 	// Prime the first two buffers and prepare the decompression
 	FSoundQualityInfo QualityInfo = { 0 };
 
-	Buffer->DecompressionState = new FVorbisAudioInfo();
+	const IAudioFormat* Format = NULL;
+	ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
+	if (TPM)
+	{
+		Format = TPM->FindAudioFormat(XAudio2Device->GetRuntimeFormat());
+	}
+	Buffer->DecompressionState = Format->CreateCompressedAudioInfo();
 
 	Wave->InitAudioResource(XAudio2Device->GetRuntimeFormat());
 
@@ -422,11 +428,10 @@ FXAudio2SoundBuffer* FXAudio2SoundBuffer::CreatePreviewBuffer( FXAudio2Device* X
  */
 FXAudio2SoundBuffer* FXAudio2SoundBuffer::CreateNativeBuffer( FXAudio2Device* XAudio2Device, USoundWave* Wave )
 {
-#if WITH_OGGVORBIS
 	// Check to see if thread has finished decompressing on the other thread
-	if( Wave->VorbisDecompressor != NULL )
+	if( Wave->AudioDecompressor != NULL )
 	{
-		if( !Wave->VorbisDecompressor->IsDone() )
+		if (!Wave->AudioDecompressor->IsDone())
 		{
 			// Don't play this sound just yet
 			UE_LOG(LogAudio, Log, TEXT( "Waiting for sound to decompress: %s" ), *Wave->GetName() );
@@ -434,10 +439,9 @@ FXAudio2SoundBuffer* FXAudio2SoundBuffer::CreateNativeBuffer( FXAudio2Device* XA
 		}
 
 		// Remove the decompressor
-		delete Wave->VorbisDecompressor;
-		Wave->VorbisDecompressor = NULL;
+		delete Wave->AudioDecompressor;
+		Wave->AudioDecompressor = NULL;
 	}
-#endif	//WITH_OGGVORBIS
 
 	// Create new buffer.
 	FXAudio2SoundBuffer* Buffer = new FXAudio2SoundBuffer( XAudio2Device, SoundFormat_PCM );

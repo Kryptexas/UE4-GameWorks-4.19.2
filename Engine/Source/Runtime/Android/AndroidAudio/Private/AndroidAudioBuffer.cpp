@@ -5,6 +5,7 @@
 #include "Engine.h"
 #include "IAudioFormat.h"
 #include "AudioDecompress.h"
+#include "TargetPlatform.h"
 
 /*------------------------------------------------------------------------------------
 	FSLESSoundBuffer.
@@ -51,8 +52,14 @@ FSLESSoundBuffer* FSLESSoundBuffer::CreateQueuedBuffer( FSLESAudioDevice* AudioD
 	// Prime the first two buffers and prepare the decompression
 	FSoundQualityInfo QualityInfo = { 0 };
 	
-	Buffer->DecompressionState = new FVorbisAudioInfo();
-	
+	const IAudioFormat* Format = NULL;
+	ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
+	if (TPM)
+	{
+		Format = TPM->FindAudioFormat(AudioDevice->GetRuntimeFormat());
+	}
+	Buffer->DecompressionState = Format->CreateCompressedAudioInfo();
+
 	InWave->InitAudioResource( AudioDevice->GetRuntimeFormat() );
 	
 	if( Buffer->DecompressionState->ReadCompressedInfo( InWave->ResourceData, InWave->ResourceSize, &QualityInfo ) )
@@ -109,9 +116,9 @@ FSLESSoundBuffer* FSLESSoundBuffer::CreateNativeBuffer( FSLESAudioDevice* AudioD
 {
 #if WITH_OGGVORBIS
 	// Check to see if thread has finished decompressing on the other thread
-	if( InWave->VorbisDecompressor != NULL )
+	if( InWave->AudioDecompressor != NULL )
 	{
-		if( !InWave->VorbisDecompressor->IsDone() )
+		if( !InWave->AudioDecompressor->IsDone() )
 		{
 			// Don't play this sound just yet
 			UE_LOG(LogAndroidAudio, Log, TEXT( "Waiting for sound to decompress: %s mode(%d)" ), *InWave->GetName(), int32(InWave->DecompressionType) );
@@ -119,8 +126,8 @@ FSLESSoundBuffer* FSLESSoundBuffer::CreateNativeBuffer( FSLESAudioDevice* AudioD
 		}
 
 		// Remove the decompressor
-		delete InWave->VorbisDecompressor;
-		InWave->VorbisDecompressor = NULL;
+		delete InWave->AudioDecompressor;
+		InWave->AudioDecompressor = NULL;
 	}
 #endif	//WITH_OGGVORBIS
 

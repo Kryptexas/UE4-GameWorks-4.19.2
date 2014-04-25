@@ -116,6 +116,11 @@ public:
 	 */
 	virtual int32 Recompress( FName Format, const TArray<uint8>& SrcBuffer, FSoundQualityInfo& QualityInfo, TArray<uint8>& OutBuffer ) const = 0;
 
+	/** Whether this audio format has an associated info class to decompress it */
+	virtual bool HasCompressedAudioInfoClass() const = 0;
+
+	/** Creates a Compressed audio info class suitable for decompressing this audio format */
+	virtual class ICompressedAudioInfo* CreateCompressedAudioInfo() const = 0;
 
 public:
 

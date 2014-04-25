@@ -14,6 +14,7 @@
 #include "CoreAudioEffects.h"
 #include "Engine.h"
 #include "IAudioFormat.h"
+#include "TargetPlatform.h"
 
 /*------------------------------------------------------------------------------------
  FCoreAudioSoundBuffer.
@@ -77,7 +78,7 @@ int32 FCoreAudioSoundBuffer::GetSize( void )
 			break;
 			
 		case SoundFormat_PCMRT:
-			TotalSize = (DecompressionState ? DecompressionState->SrcBufferDataSize : 0) + ( MONO_PCM_BUFFER_SIZE * 2 * NumChannels );
+			TotalSize = (DecompressionState ? DecompressionState->GetSourceBufferSize() : 0) + ( MONO_PCM_BUFFER_SIZE * 2 * NumChannels );
 			break;
 	}
 	
@@ -146,8 +147,14 @@ FCoreAudioSoundBuffer* FCoreAudioSoundBuffer::CreateQueuedBuffer( FCoreAudioDevi
 	
 	// Prime the first two buffers and prepare the decompression
 	FSoundQualityInfo QualityInfo = { 0 };
-	
-	Buffer->DecompressionState = new FVorbisAudioInfo();
+
+	const IAudioFormat* Format = NULL;
+	ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
+	if (TPM)
+	{
+		Format = TPM->FindAudioFormat(CoreAudioDevice->GetRuntimeFormat());
+	}
+	Buffer->DecompressionState = Format->CreateCompressedAudioInfo();
 	
 	Wave->InitAudioResource( CoreAudioDevice->GetRuntimeFormat() );
 	
@@ -244,9 +251,9 @@ FCoreAudioSoundBuffer* FCoreAudioSoundBuffer::CreatePreviewBuffer( FCoreAudioDev
 FCoreAudioSoundBuffer* FCoreAudioSoundBuffer::CreateNativeBuffer( FCoreAudioDevice* CoreAudioDevice, USoundWave* Wave )
 {
 	// Check to see if thread has finished decompressing on the other thread
-	if( Wave->VorbisDecompressor != NULL )
+	if( Wave->AudioDecompressor != NULL )
 	{
-		if( !Wave->VorbisDecompressor->IsDone() )
+		if (!Wave->AudioDecompressor->IsDone())
 		{
 			// Don't play this sound just yet
 			UE_LOG(LogAudio, Log, TEXT( "Waiting for sound to decompress: %s" ), *Wave->GetName() );
@@ -254,8 +261,8 @@ FCoreAudioSoundBuffer* FCoreAudioSoundBuffer::CreateNativeBuffer( FCoreAudioDevi
 		}
 		
 		// Remove the decompressor
-		delete Wave->VorbisDecompressor;
-		Wave->VorbisDecompressor = NULL;
+		delete Wave->AudioDecompressor;
+		Wave->AudioDecompressor = NULL;
 	}
 	
 	// Create new buffer.

@@ -2252,6 +2252,13 @@ void FAudioDevice::Precache(USoundWave* SoundWave, bool bSynchronous, bool bTrac
 		return;
 	}
 
+	const IAudioFormat* Format = NULL;
+	ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
+	if (TPM)
+	{
+		Format = TPM->FindAudioFormat(GetRuntimeFormat());
+	}
+
 	// calculate the decompression type
 	// @todo audio: maybe move this into SoundWave?
 	if( SoundWave->NumChannels == 0 )
@@ -2269,12 +2276,11 @@ void FAudioDevice::Precache(USoundWave* SoundWave, bool bSynchronous, bool bTrac
 		// Streaming data, created programmatically.
 		SoundWave->DecompressionType = DTYPE_Procedural;
 	}
-#if WITH_OGGVORBIS
-	else
+	else if (Format->HasCompressedAudioInfoClass())
 	{
 		const FSoundGroup& SoundGroup = GetDefault<USoundGroups>()->GetSoundGroup(SoundWave->SoundGroup);
 
-	// handle OggVorbis decompression
+		// handle audio decompression
 		if (bDisableAudioCaching || (!SoundGroup.bAlwaysDecompressOnLoad && SoundWave->Duration > SoundGroup.DecompressedDuration))
 		{
 			// Store as compressed data and decompress in realtime
@@ -2285,7 +2291,7 @@ void FAudioDevice::Precache(USoundWave* SoundWave, bool bSynchronous, bool bTrac
 		}
 		else
 		{
-			// Fully expand loaded vorbis data into PCM
+			// Fully expand loaded audio data into PCM
 			SoundWave->DecompressionType = DTYPE_Native;
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 			++PrecachedNative;
@@ -2295,37 +2301,37 @@ void FAudioDevice::Precache(USoundWave* SoundWave, bool bSynchronous, bool bTrac
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		}
 
-		// Grab the compressed vorbis data
+		// Grab the compressed audio data
 		SoundWave->InitAudioResource(GetRuntimeFormat());
 
-		if( SoundWave->VorbisDecompressor == NULL && SoundWave->DecompressionType == DTYPE_Native )
+		if (SoundWave->AudioDecompressor == NULL && SoundWave->DecompressionType == DTYPE_Native)
 		{
-			check(!SoundWave->VorbisDecompressor); // should not have had a valid pointer at this point
-			// Create a worker to decompress the vorbis data
+			check(!SoundWave->AudioDecompressor); // should not have had a valid pointer at this point
+			// Create a worker to decompress the audio data
 			if (bSynchronous)
 			{
 				// Create a worker to decompress the vorbis data
-				FAsyncVorbisDecompress TempDecompress(SoundWave);
+				FAsyncAudioDecompress TempDecompress(SoundWave);
 				TempDecompress.StartSynchronousTask();
 			}
 			else
 			{
-				SoundWave->VorbisDecompressor = new FAsyncVorbisDecompress(SoundWave);
-				SoundWave->VorbisDecompressor->StartBackgroundTask();
+				SoundWave->AudioDecompressor = new FAsyncAudioDecompress(SoundWave);
+				SoundWave->AudioDecompressor->StartBackgroundTask();
 			}
 
-			SoundWave->bDecompressedFromOgg = true;
+			static FName NAME_OGG(TEXT("OGG"));
+			SoundWave->bDecompressedFromOgg = GetRuntimeFormat() == NAME_OGG;
 
-			// the vorbis decompressor will track memory
+			// the audio decompressor will track memory
 			bTrackMemory = false;
 		}
 	}
-#else
 	else
 	{
+		// Preserve old behavior if there is no compressed audio info class for this audio format
 		SoundWave->DecompressionType = DTYPE_Native;
 	}
-#endif
 
 	if (bTrackMemory)
 	{

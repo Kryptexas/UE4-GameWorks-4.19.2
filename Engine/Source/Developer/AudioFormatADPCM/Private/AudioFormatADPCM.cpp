@@ -475,6 +475,17 @@ public:
 		// Recompress is only necessary during editor previews
 		return 0;
 	}
+
+	virtual bool HasCompressedAudioInfoClass() const
+	{
+		return false;
+	}
+
+	virtual class ICompressedAudioInfo* CreateCompressedAudioInfo() const
+	{
+		// There is no equivalent of FVorbisAudioInfo for ADPCM
+		return NULL;
+	}
 };
 
 

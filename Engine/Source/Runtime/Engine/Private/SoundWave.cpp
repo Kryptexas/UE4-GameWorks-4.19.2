@@ -382,7 +382,7 @@ FWaveInstance* USoundWave::HandleStart( FActiveSound& ActiveSound, const UPTRINT
 bool USoundWave::IsReadyForFinishDestroy()
 {
 	// Wait till vorbis decompression finishes before deleting resource.
-	return( ( VorbisDecompressor == NULL ) || VorbisDecompressor->IsDone() );
+	return( ( AudioDecompressor == NULL ) || AudioDecompressor->IsDone() );
 }
 
 

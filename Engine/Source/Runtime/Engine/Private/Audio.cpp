@@ -34,6 +34,7 @@ DEFINE_STAT(STAT_VorbisDecompressTime);
 DEFINE_STAT(STAT_VorbisPrepareDecompressionTime);
 DEFINE_STAT(STAT_AudioDecompressTime);
 DEFINE_STAT(STAT_AudioPrepareDecompressionTime);
+DEFINE_STAT(STAT_OpusDecompressTime);
 
 DEFINE_STAT(STAT_AudioUpdateEffects);
 DEFINE_STAT(STAT_AudioUpdateSources);

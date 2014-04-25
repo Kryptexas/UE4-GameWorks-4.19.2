@@ -33,6 +33,8 @@
 #define VORBIS_BYTE_ORDER 1
 #endif
 
+#include "opus.h"
+
 /*------------------------------------------------------------------------------------
 	FVorbisFileWrapper. Hides Vorbis structs from public headers.
 ------------------------------------------------------------------------------------*/
@@ -58,6 +60,7 @@ struct FVorbisFileWrapper
 #endif
 };
 
+#if WITH_OGGVORBIS
 /*------------------------------------------------------------------------------------
 	FVorbisAudioInfo.
 ------------------------------------------------------------------------------------*/
@@ -110,9 +113,6 @@ int FVorbisAudioInfo::Seek( uint32 offset, int whence )
 	return( BufferOffset );
 }
 
-
-#if WITH_OGGVORBIS
-
 static int OggSeek( void *datasource, ogg_int64_t offset, int whence )
 {
 	FVorbisAudioInfo* OggInfo = ( FVorbisAudioInfo* )datasource;
@@ -146,7 +146,7 @@ static long OggTell( void *datasource )
  * 
  * @param	Resource		Info about vorbis data
  */
-bool FVorbisAudioInfo::ReadCompressedInfo( uint8* InSrcBufferData, uint32 InSrcBufferDataSize, FSoundQualityInfo* QualityInfo )
+bool FVorbisAudioInfo::ReadCompressedInfo( const uint8* InSrcBufferData, uint32 InSrcBufferDataSize, FSoundQualityInfo* QualityInfo )
 {
 	SCOPE_CYCLE_COUNTER( STAT_VorbisPrepareDecompressionTime );
 
@@ -218,7 +218,7 @@ void FVorbisAudioInfo::ExpandFile( uint8* DstBuffer, FSoundQualityInfo* QualityI
  *
  * @return	bool		true if the end of the data was reached (for both single shot and looping sounds)
  */
-bool FVorbisAudioInfo::ReadCompressedData( const uint8* InDestination, bool bLooping, uint32 BufferSize )
+bool FVorbisAudioInfo::ReadCompressedData( uint8* InDestination, bool bLooping, uint32 BufferSize )
 {
 	bool		bLooped;
 	uint32		BytesRead, TotalBytesRead;
@@ -309,16 +309,227 @@ void LoadVorbisLibraries()
 
 #endif		// WITH_OGGVORBIS
 
+/*------------------------------------------------------------------------------------
+FOpusDecoderWrapper
+------------------------------------------------------------------------------------*/
+#define USE_UE4_MEM_ALLOC 1
+#define OPUS_SAMPLE_RATE 48000
+#define OPUS_MAX_FRAME_SIZE 5760
+#define SAMPLE_SIZE			( ( uint32 )sizeof( short ) )
+
+struct FOpusDecoderWrapper
+{
+	FOpusDecoderWrapper(uint8 NumChannels)
+	{
+#if USE_UE4_MEM_ALLOC
+		int32 DecSize = opus_decoder_get_size(NumChannels);
+		Decoder = (OpusDecoder*)FMemory::Malloc(DecSize);
+		DecError = opus_decoder_init(Decoder, OPUS_SAMPLE_RATE, NumChannels);
+#else
+		Decoder = opus_decoder_create(OPUS_SAMPLE_RATE, NumChannels, &DecError);
+#endif
+	}
+
+	~FOpusDecoderWrapper()
+	{
+#if USE_UE4_MEM_ALLOC
+		FMemory::Free(Decoder);
+#else
+		opus_encoder_destroy(Decoder);
+#endif
+	}
+
+	OpusDecoder* Decoder;
+	int32 DecError;
+};
+
+/*------------------------------------------------------------------------------------
+FOpusAudioInfo.
+------------------------------------------------------------------------------------*/
+FOpusAudioInfo::FOpusAudioInfo(void)
+	: OpusDecoderWrapper(NULL)
+	, SrcBufferData(NULL)
+	, SrcBufferDataSize(0)
+	, SrcBufferOffset(0)
+	, AudioDataOffset(0)
+	, TrueSampleCount(0)
+	, CurrentSampleCount(0)
+	, NumChannels(0)
+	, LastPCMByteSize(0)
+	, LastPCMOffset(0)
+{
+}
+
+FOpusAudioInfo::~FOpusAudioInfo(void)
+{
+	if (OpusDecoderWrapper != NULL)
+	{
+		delete OpusDecoderWrapper;
+	}
+}
+
+size_t FOpusAudioInfo::Read(void *ptr, uint32 size)
+{
+	size_t BytesToRead = FMath::Min(size, SrcBufferDataSize - SrcBufferOffset);
+	FMemory::Memcpy(ptr, SrcBufferData + SrcBufferOffset, BytesToRead);
+	SrcBufferOffset += BytesToRead;
+	return(BytesToRead);
+}
+
+bool FOpusAudioInfo::ReadCompressedInfo(const uint8* InSrcBufferData, uint32 InSrcBufferDataSize, struct FSoundQualityInfo* QualityInfo)
+{
+	SrcBufferData = InSrcBufferData;
+	SrcBufferDataSize = InSrcBufferDataSize;
+	SrcBufferOffset = 0;
+	CurrentSampleCount = 0;
+
+	// Read True Sample Count, Number of channels and Frames to Encode first
+	Read(&TrueSampleCount, sizeof(uint32));
+	Read(&NumChannels, sizeof(uint8));
+	uint16 SerializedFrames = 0;
+	Read(&SerializedFrames, sizeof(uint16));
+	AudioDataOffset = SrcBufferOffset;
+
+	OpusDecoderWrapper = new FOpusDecoderWrapper(NumChannels);
+	LastDecodedPCM.Empty();
+	LastDecodedPCM.AddUninitialized(OPUS_MAX_FRAME_SIZE * SAMPLE_SIZE * NumChannels);
+	if (OpusDecoderWrapper->DecError != OPUS_OK)
+	{
+		delete OpusDecoderWrapper;
+		return false;
+	}
+
+	if (QualityInfo)
+	{
+		QualityInfo->SampleRate = OPUS_SAMPLE_RATE;
+		QualityInfo->NumChannels = NumChannels;
+		QualityInfo->SampleDataSize = TrueSampleCount * QualityInfo->NumChannels * SAMPLE_SIZE;
+		QualityInfo->Duration = (float)TrueSampleCount / QualityInfo->SampleRate;
+	}
+
+	return true;
+}
+
+bool FOpusAudioInfo::ReadCompressedData(uint8* Destination, bool bLooping, uint32 BufferSize /*= 0*/)
+{
+	check(OpusDecoderWrapper);
+	check(Destination);
+
+	SCOPE_CYCLE_COUNTER(STAT_OpusDecompressTime);
+
+	const uint32 kSampleStride = SAMPLE_SIZE * NumChannels;
+	uint32 RawPCMOffset = 0;
+	bool bLooped = false;
+	uint16 FrameSize = 0;
+
+	if (LastPCMOffset > 0 && LastPCMByteSize > 0)
+	{
+		uint32 BytesToCopy = FMath::Min(BufferSize - RawPCMOffset, LastPCMByteSize - LastPCMOffset);
+		FMemory::Memcpy(Destination + RawPCMOffset, LastDecodedPCM.GetTypedData() + LastPCMOffset, BytesToCopy);
+		LastPCMOffset = (BytesToCopy < LastPCMByteSize - LastPCMOffset) ? LastPCMOffset + BytesToCopy : 0;
+		RawPCMOffset += BytesToCopy;
+	}
+
+	while (RawPCMOffset < BufferSize)
+	{
+		Read(&FrameSize, sizeof(uint16));
+		int32 DecodedSamples = opus_decode(OpusDecoderWrapper->Decoder, SrcBufferData + SrcBufferOffset, FrameSize, (int16*)(LastDecodedPCM.GetTypedData()), OPUS_MAX_FRAME_SIZE, 0);
+		SrcBufferOffset += FrameSize;
+		if (DecodedSamples < 0)
+		{
+			LastPCMByteSize = 0;
+			LastPCMOffset = 0;
+			return false;
+		}
+		else
+		{
+			if (CurrentSampleCount + DecodedSamples > TrueSampleCount)
+			{
+				DecodedSamples = TrueSampleCount - CurrentSampleCount;
+				CurrentSampleCount = TrueSampleCount;
+			}
+			else
+			{
+				CurrentSampleCount += DecodedSamples;
+			}
+			LastPCMByteSize = DecodedSamples * kSampleStride;
+			uint32 BytesToCopy = FMath::Min(BufferSize - RawPCMOffset, LastPCMByteSize);
+			FMemory::Memcpy(Destination + RawPCMOffset, LastDecodedPCM.GetTypedData(), BytesToCopy);
+			RawPCMOffset += BytesToCopy;
+			LastPCMOffset = (BytesToCopy < LastPCMByteSize) ? BytesToCopy : 0;
+			
+			if (SrcBufferOffset >= SrcBufferDataSize)
+			{
+				bLooped = true;
+				if (bLooping)
+				{
+					SrcBufferOffset = AudioDataOffset;
+					CurrentSampleCount = 0;
+				}
+				else
+				{
+					int32 Count = (BufferSize - RawPCMOffset);
+					if (Count > 0)
+					{
+						FMemory::Memzero(Destination + RawPCMOffset, Count);
+						RawPCMOffset += Count;
+					}
+				}
+			}
+		}
+	}
+
+	return bLooped;
+}
+
+void FOpusAudioInfo::ExpandFile(uint8* DstBuffer, struct FSoundQualityInfo* QualityInfo)
+{
+	check(OpusDecoderWrapper);
+	check(DstBuffer);
+	check(QualityInfo);
+
+	const uint32 kSampleStride = SAMPLE_SIZE * NumChannels;
+	uint32 RawPCMOffset = 0;
+	uint16 FrameSize = 0;
+
+	TArray<uint8> TempPCMData;
+	TempPCMData.AddUninitialized(OPUS_MAX_FRAME_SIZE * kSampleStride);
+
+	while (RawPCMOffset < QualityInfo->SampleDataSize)
+	{
+		Read(&FrameSize, sizeof(uint16));
+		int32 DecodedSamples = opus_decode(OpusDecoderWrapper->Decoder, (const unsigned char*)(SrcBufferData + SrcBufferOffset), FrameSize, (int16*)(TempPCMData.GetTypedData()), OPUS_MAX_FRAME_SIZE, 0);
+		if (DecodedSamples < 0)
+		{
+			break;
+		}
+		else
+		{
+			uint32 DecodedBytes = DecodedSamples * kSampleStride;
+			uint32 BytesToCopy = FMath::Min(QualityInfo->SampleDataSize - RawPCMOffset, DecodedBytes);
+			FMemory::Memcpy( DstBuffer + RawPCMOffset, TempPCMData.GetTypedData(), BytesToCopy );
+			SrcBufferOffset += FrameSize;
+			RawPCMOffset += BytesToCopy;
+		}
+	}
+}
+
 /**
  * Worker for decompression on a separate thread
  */
-void FAsyncVorbisDecompressWorker::DoWork( void )
+void FAsyncAudioDecompressWorker::DoWork( void )
 {
-	FVorbisAudioInfo	OggInfo;
+	const IAudioFormat* Format = NULL;
+	ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
+	if (TPM)
+	{
+		Format = TPM->FindAudioFormat(GEngine->GetAudioDevice()->GetRuntimeFormat());
+	}
+	ICompressedAudioInfo* AudioInfo = Format->CreateCompressedAudioInfo();
 	FSoundQualityInfo	QualityInfo = { 0 };
 
-	// Parse the ogg vorbis header for the relevant information
-	if( OggInfo.ReadCompressedInfo( Wave->ResourceData, Wave->ResourceSize, &QualityInfo ) )
+	// Parse the audio header for the relevant information
+	if (AudioInfo->ReadCompressedInfo(Wave->ResourceData, Wave->ResourceSize, &QualityInfo))
 	{
 
 #if PLATFORM_ANDROID
@@ -331,7 +542,7 @@ void FAsyncVorbisDecompressWorker::DoWork( void )
 			QualityInfo.SampleRate = QualityInfo.SampleRate / 2;
 			SampleCount /= 2;
 			QualityInfo.SampleDataSize = SampleCount * QualityInfo.NumChannels * sizeof(uint16);
-			OggInfo.EnableHalfRate(true);
+			AudioInfo->EnableHalfRate(true);
 		}
 #endif
 		// Extract the data
@@ -343,7 +554,7 @@ void FAsyncVorbisDecompressWorker::DoWork( void )
 		Wave->RawPCMData = ( uint8* )FMemory::Malloc( Wave->RawPCMDataSize );
 
 		// Decompress all the sample data into preallocated memory
-		OggInfo.ExpandFile( Wave->RawPCMData, &QualityInfo );
+		AudioInfo->ExpandFile(Wave->RawPCMData, &QualityInfo);
 
 		const SIZE_T ResSize = Wave->GetResourceSize(EResourceSizeMode::Exclusive);
 		INC_DWORD_STAT_BY( STAT_AudioMemorySize, ResSize );
@@ -352,6 +563,8 @@ void FAsyncVorbisDecompressWorker::DoWork( void )
 
 	// Delete the compressed data
 	Wave->RemoveAudioResource();
+
+	delete AudioInfo;
 }
 
 // end

@@ -465,14 +465,14 @@ void FXAudio2Device::TimeTest( FOutputDevice& Ar, const TCHAR* WaveAssetName )
 	if( Wave )
 	{
 		// Wait for initial decompress
-		if( Wave->VorbisDecompressor )
+		if (Wave->AudioDecompressor)
 		{
-			while( !Wave->VorbisDecompressor->IsDone() )
+			while (!Wave->AudioDecompressor->IsDone())
 			{
 			}
 
-			delete Wave->VorbisDecompressor;
-			Wave->VorbisDecompressor = NULL;
+			delete Wave->AudioDecompressor;
+			Wave->AudioDecompressor = NULL;
 		}
 		
 		// If the wave loaded in fine, time the decompression

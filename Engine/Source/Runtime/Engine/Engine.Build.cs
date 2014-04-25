@@ -174,7 +174,8 @@ public class Engine : ModuleRules
 			AddThirdPartyPrivateStaticDependencies(Target,
 				"UEOgg",
 				"Vorbis",
-				"VorbisFile"
+				"VorbisFile",
+				"libOpus"
 				);
 
 			if (UEBuildConfiguration.bCompileLeanAndMeanUE == false)
