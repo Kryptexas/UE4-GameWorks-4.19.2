@@ -563,7 +563,10 @@ namespace UnrealBuildTool
 						FileArguments += string.Format(" /Yu\"{0}\"", CompileEnvironment.Config.PCHHeaderNameInCode);
 						FileArguments += string.Format(" /Fp\"{0}\"", CompileEnvironment.PrecompiledHeaderFile.AbsolutePath);
 
-						if (CompileEnvironment.Config.bForceIncludePrecompiledHeader)
+						// Is it unsafe to always force inclusion?  Clang is doing it, and .generated.cpp files
+						// won't work otherwise, because they're not located in the context of the module,
+						// so they can't access the module's PCH without an absolute path.
+						//if (CompileEnvironment.Config.bForceIncludePrecompiledHeader)
 						{
 							// Force include the precompiled header file.  This is needed because we may have selected a
 							// precompiled header that is different than the first direct include in the C++ source file, but
@@ -879,7 +882,7 @@ namespace UnrealBuildTool
 					string BaseVSToolPath = WindowsPlatform.GetVSComnToolsPath(WindowsCompiler.VisualStudio2012);
 					if (string.IsNullOrEmpty(BaseVSToolPath))
 					{
-						throw new BuildException("Visual Studio 2011 must be installed in order to build this target.");
+						throw new BuildException("Visual Studio 2012 must be installed in order to build this target.");
 					}
 
 					if (Platform == CPPTargetPlatform.WinRT_ARM)
@@ -935,7 +938,7 @@ namespace UnrealBuildTool
 					BaseVSToolPath = "C:/Program Files (x86)/Microsoft Visual Studio 11.0/Common7/Tools/";
 					if (Directory.Exists("C:/Program Files (x86)/Microsoft Visual Studio 11.0/Common7/Tools/") == false)
 					{
-						throw new BuildException("Visual Studio 2011 must be installed in order to build this target.");
+						throw new BuildException("Visual Studio 2012 must be installed in order to build this target.");
 					}
 				}
 

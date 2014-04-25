@@ -1484,8 +1484,9 @@ namespace UnrealBuildTool
 				string LinkerFixupsName = "UELinkerFixups";
 
 				// Include an empty header so UEBuildModule.Compile does not complain about a lack of PCH
-				string HeaderFilename = LinkerFixupsName + "Name.h";
-				LinkerFixupsFileContents.Add("#include \"" + HeaderFilename + "\"");
+				string HeaderFilename                    = LinkerFixupsName + "Name.h";
+				string LinkerFixupHeaderFilenameWithPath = Path.Combine(GlobalCompileEnvironment.Config.OutputDirectory, HeaderFilename);
+				LinkerFixupsFileContents.Add("#include \"" + LinkerFixupHeaderFilenameWithPath + "\"");
 
 				// Add a function that is not referenced by anything that invokes all the empty functions in the different static libraries
 				LinkerFixupsFileContents.Add("void " + LinkerFixupsName + "()");
@@ -1517,7 +1518,6 @@ namespace UnrealBuildTool
 				// If we determined that we should write the file, write it now.
 				if (bShouldWriteFile)
 				{
-					string LinkerFixupHeaderFilenameWithPath = Path.Combine(GlobalCompileEnvironment.Config.OutputDirectory, HeaderFilename);
 					ResponseFile.Create(LinkerFixupHeaderFilenameWithPath, new List<string>());
 					ResponseFile.Create(LinkerFixupCPPFilename, LinkerFixupsFileContents);
 				}

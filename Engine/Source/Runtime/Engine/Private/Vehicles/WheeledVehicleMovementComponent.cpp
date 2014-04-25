@@ -1066,22 +1066,6 @@ bool UWheeledVehicleMovementComponent::CheckSlipThreshold(float AbsLongSlipThres
 	return false;
 }
 
-void UWheeledVehicleMovementComponent::Serialize(FArchive & Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_VEHICLES_UNIT_CHANGE)
-	{
-		for (int32 WheelIdx = 0; WheelIdx < WheelSetups.Num(); ++WheelIdx)
-		{
-			//this backwards compatable code breaks if they were using some strange value that is exactly the new default in the new units
-			FWheelSetup & WheelSetup = WheelSetups[WheelIdx];
-			WheelSetup.MaxHandBrakeTorque = WheelSetup.MaxHandBrakeTorque != 1500.f ? Cm2ToM2(WheelSetup.MaxHandBrakeTorque) : 1500.f;	//need to convert from cm^2 to m^2
-			WheelSetup.MaxBrakeTorque = WheelSetup.MaxHandBrakeTorque != 3000.f ? Cm2ToM2(WheelSetup.MaxBrakeTorque) : 3000.f;			//need to convert from cm^2 to m^2
-		}
-
-	}
-}
-
 float UWheeledVehicleMovementComponent::GetMaxSpringForce() const
 {
 	if (PVehicle == NULL)
@@ -1104,13 +1088,6 @@ float UWheeledVehicleMovementComponent::GetMaxSpringForce() const
 	return MaxSpringCompression;
 
 }
-
-void UWheeledVehicleMovementComponent::ComputeConstants()
-{
-	DragArea = ChassisWidth * ChassisHeight;
-	MaxEngineRPM = 5000.f;
-}
-
 
 void UWheeledVehicleMovementComponent::DrawDebug( UCanvas* Canvas, float& YL, float& YPos )
 {
@@ -1312,4 +1289,26 @@ void UWheeledVehicleMovementComponent::GetLifetimeReplicatedProps( TArray< FLife
 	Super::GetLifetimeReplicatedProps( OutLifetimeProps );
 
 	DOREPLIFETIME( UWheeledVehicleMovementComponent, ReplicatedState );
+}
+
+void UWheeledVehicleMovementComponent::ComputeConstants()
+{
+	DragArea = ChassisWidth * ChassisHeight;
+	MaxEngineRPM = 5000.f;
+}
+
+void UWheeledVehicleMovementComponent::Serialize(FArchive & Ar)
+{
+	Super::Serialize(Ar);
+	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_VEHICLES_UNIT_CHANGE)
+	{
+		for (int32 WheelIdx = 0; WheelIdx < WheelSetups.Num(); ++WheelIdx)
+		{
+			//this backwards compatable code breaks if they were using some strange value that is exactly the new default in the new units
+			FWheelSetup & WheelSetup = WheelSetups[WheelIdx];
+			WheelSetup.MaxHandBrakeTorque = WheelSetup.MaxHandBrakeTorque != 1500.f ? Cm2ToM2(WheelSetup.MaxHandBrakeTorque) : 1500.f;	//need to convert from cm^2 to m^2
+			WheelSetup.MaxBrakeTorque = WheelSetup.MaxHandBrakeTorque != 3000.f ? Cm2ToM2(WheelSetup.MaxBrakeTorque) : 3000.f;			//need to convert from cm^2 to m^2
+		}
+
+	}
 }

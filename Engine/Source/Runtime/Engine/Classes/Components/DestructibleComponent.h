@@ -139,7 +139,7 @@ public:
 
 
 	// Begin DestructibleComponent interface.
-	
+#if WITH_APEX
 	struct FFakeBodyInstanceState
 	{
 		physx::PxRigidActor* ActorSync;
@@ -147,7 +147,6 @@ public:
 		int32 InstanceIndex;
 	};
 
-#if WITH_APEX
 	/** Changes the body instance to have the specified actor and instance id. */
 	void SetupFakeBodyInstance(physx::PxRigidActor* NewRigidActor, int32 InstanceIdx, FFakeBodyInstanceState* PrevState = NULL);
 	
