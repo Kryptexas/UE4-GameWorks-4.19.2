@@ -33,7 +33,7 @@ public:
 		}
 
 		// Only compile for the default material and masked materials
-		return (Material->IsSpecialEngineMaterial() || Material->IsMasked() || Material->MaterialModifiesMeshPosition())
+		return (Material->IsSpecialEngineMaterial() || Material->IsMasked() || Material->MaterialMayModifyMeshPosition())
 			 && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
 	}
 

@@ -18,7 +18,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return (Material->IsSpecialEngineMaterial() || Material->IsMasked() || Material->MaterialModifiesMeshPosition())
+		return (Material->IsSpecialEngineMaterial() || Material->IsMasked() || Material->MaterialMayModifyMeshPosition())
 				&& LightMapPolicyType::ShouldCache(Platform,Material,VertexFactoryType)
 				&& IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
 	}
@@ -131,7 +131,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return (Material->IsSpecialEngineMaterial() || Material->IsMasked() || Material->MaterialModifiesMeshPosition()) 
+		return (Material->IsSpecialEngineMaterial() || Material->IsMasked() || Material->MaterialMayModifyMeshPosition())
 				&& LightMapPolicyType::ShouldCache(Platform,Material,VertexFactoryType)
 				&& IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
 	}

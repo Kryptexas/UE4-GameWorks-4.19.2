@@ -318,6 +318,10 @@ void FMaterialCompilationOutput::Serialize(FArchive& Ar)
 	}
 
 	Ar << bNeedsSceneTextures;
+
+	Ar << bUsesEyeAdaptation;
+
+	Ar << bModifiesMeshPosition;
 }
 
 void FMaterial::GetShaderMapId(EShaderPlatform Platform, FMaterialShaderMapId& OutId) const
@@ -451,7 +455,17 @@ bool FMaterial::UsesEyeAdaptation() const
 
 bool FMaterial::MaterialModifiesMeshPosition() const 
 { 
-	return HasVertexPositionOffsetConnected() || GetTessellationMode() != MTM_NoTessellation;
+	FMaterialShaderMap* ShaderMap = IsInRenderingThread() ? RenderingThreadShaderMap : GameThreadShaderMap.GetReference();
+	bool bUsesWPO = ShaderMap ? ShaderMap->ModifiesMeshPosition() : false;
+
+	return bUsesWPO || GetTessellationMode() != MTM_NoTessellation;
+}
+
+bool FMaterial::MaterialMayModifyMeshPosition() const
+{
+	// Conservative estimate when called before material translation has occurred. 
+    // This function is only intended for use in deciding whether or not shader permutations are required.
+	return HasVertexPositionOffsetConnected() || HasMaterialAttributesConnected() || GetTessellationMode() != MTM_NoTessellation;
 }
 
 FMaterialShaderMap* FMaterial::GetRenderingThreadShaderMap() const 
@@ -657,7 +671,8 @@ bool FMaterialResource::IsLightFunction() const { return Material->MaterialDomai
 bool FMaterialResource::IsUsedWithEditorCompositing() const { return Material->bUsedWithEditorCompositing; }
 bool FMaterialResource::IsUsedWithDeferredDecal() const { return Material->MaterialDomain == MD_DeferredDecal; }
 bool FMaterialResource::IsSpecialEngineMaterial() const { return Material->bUsedAsSpecialEngineMaterial; }
-bool FMaterialResource::HasVertexPositionOffsetConnected() const { return Material->WorldPositionOffset.Expression != NULL; }
+bool FMaterialResource::HasVertexPositionOffsetConnected() const { return !Material->bUseMaterialAttributes && Material->WorldPositionOffset.Expression != NULL; }
+bool FMaterialResource::HasMaterialAttributesConnected() const { return Material->bUseMaterialAttributes && Material->MaterialAttributes.Expression != NULL; }
 FString FMaterialResource::GetBaseMaterialPathName() const { return Material->GetPathName(); }
 
 bool FMaterialResource::IsUsedWithSkeletalMesh() const

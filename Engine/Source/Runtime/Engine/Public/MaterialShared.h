@@ -257,7 +257,8 @@ public:
 	FMaterialCompilationOutput() :
 		bUsesSceneColor(false),
 		bNeedsSceneTextures(false),
-		bUsesEyeAdaptation(false)
+		bUsesEyeAdaptation(false),
+		bModifiesMeshPosition(false)
 	{}
 
 	ENGINE_API void Serialize(FArchive& Ar);
@@ -274,6 +275,9 @@ public:
 
 	/** true if the material uses the EyeAdaptationLookup */
 	bool bUsesEyeAdaptation;
+
+	/** true if the material modifies the the mesh position. */
+	bool bModifiesMeshPosition;
 };
 
 /**
@@ -796,6 +800,7 @@ public:
 	bool UsesSceneColor() const { return MaterialCompilationOutput.bUsesSceneColor; }
 	bool NeedsSceneTextures() const { return MaterialCompilationOutput.bNeedsSceneTextures; }
 	bool UsesEyeAdaptation() const { return MaterialCompilationOutput.bUsesEyeAdaptation; }
+	bool ModifiesMeshPosition() const { return MaterialCompilationOutput.bModifiesMeshPosition; }
 
 	bool IsValidForRendering() const
 	{
@@ -1111,6 +1116,7 @@ public:
 	virtual bool UseTranslucencyVertexFog() const { return false; }
 	virtual FString GetFriendlyName() const = 0;
 	virtual bool HasVertexPositionOffsetConnected() const { return false; }
+	virtual bool HasMaterialAttributesConnected() const { return false; }
 	virtual uint32 GetDecalBlendMode() const { return 0; }
 	virtual uint32 GetMaterialDecalResponse() const { return 0; }
 	virtual bool HasNormalConnected() const { return false; }
@@ -1154,7 +1160,12 @@ public:
 	ENGINE_API bool UsesSceneColor() const;
 	ENGINE_API bool NeedsSceneTextures() const;
 	ENGINE_API bool UsesEyeAdaptation() const;	
+
+	/** Does the material modify the mesh position. */
 	ENGINE_API bool MaterialModifiesMeshPosition() const;
+
+	/** Note: This function is only intended for use in deciding whether or not shader permutations are required before material translation occurs. */
+	ENGINE_API bool MaterialMayModifyMeshPosition() const;
 
 	class FMaterialShaderMap* GetGameThreadShaderMap() const 
 	{ 
@@ -1786,6 +1797,7 @@ protected:
 	/** Entry point for compiling a specific material property.  This must call SetMaterialProperty. */
 	ENGINE_API virtual int32 CompileProperty(EMaterialProperty Property,EShaderFrequency InShaderFrequency,class FMaterialCompiler* Compiler) const;
 	ENGINE_API virtual bool HasVertexPositionOffsetConnected() const;
+	ENGINE_API virtual bool HasMaterialAttributesConnected() const;
 	/** Useful for debugging. */
 	ENGINE_API virtual FString GetBaseMaterialPathName() const;
 };
