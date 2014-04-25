@@ -8,6 +8,19 @@
 #include "PostProcessCommon.usf"				
 #include "DeferredShadingCommon.usf"
 
+// set by C++:
+//
+// 0:low / 1:high
+// SAMPLESET_QUALITY
+//
+// 0:no / 1:yes
+// USE_AO_SETUP_AS_INPUT
+//
+// 0:no / 1:yes
+// USE_UPSAMPLE
+
+
+
 // 0:does not use normals (slightly faster, lower quality, WIP = not finished), 1: uses normals (slower but higher quality)
 #define SSAO_NORMAL_AFFECTED 1
 
@@ -15,7 +28,8 @@
 // AO_SAMPLE_QUALITY = 0 : no AO sampling, only upsampling
 // AO_SAMPLE_QUALITY = 1 : no dither/per pixel randomization
 // AO_SAMPLE_QUALITY = 2 : efficient high frequency 4x4 pattern
-// AO_SAMPLE_QUALITY = 3 : extreme sample count
+// AO_SAMPLE_QUALITY = 3 : efficient high frequency 4x4 pattern changing over time
+// AO_SAMPLE_QUALITY = 4 : extreme sample count
 
 // [0]: .x:AmbientOcclusionPower, .y:AmbientOcclusionBias/BiasDistance, .z:1/AmbientOcclusionDistance, .w:AmbientOcclusionIntensity
 // [1]: .xy:ViewportUVToRandomUV, .z:AORadiusInShader, .w:Ratio
@@ -57,13 +71,22 @@ const static float Constant_Float16F_Scale =  4096.0f * 32.0f;
 	#define AO_UPSAMPLE_QUALITY 1
 #else
 	// full resolution is expensive, do lower quality
-	#define AO_SAMPLE_QUALITY 1
+	#define AO_SAMPLE_QUALITY 3
 	#define AO_UPSAMPLE_QUALITY 0
 #endif
 
 // 0: near the surface very large, softly fading out (6 points)
 // 1: more evenly spread (5 points - slightly faster, stronger effect, better with multiple levels?)
-#define USE_SAMPLESET 1
+// 2: 3 points
+// 3: 1 point (for testing)
+//#define USE_SAMPLESET 2
+
+#if SAMPLESET_QUALITY
+	#define USE_SAMPLESET 0
+#else
+	#define USE_SAMPLESET 2
+#endif
+
 
 // only for MainSetupPS()
 // .x:ScaleFactor(e.g. 4 if current RT is a quarter in size), .y:InvThreshold, .zw: unused
@@ -84,7 +107,7 @@ float4 NoiseScale;
 		float2(-0.711, 0.274), 
 		float2(0.060, 0.900) 
 	};
-#else // USE_SAMPLESET == 0
+#elif USE_SAMPLESET == 1
 	#define SAMPLESET_ARRAY_SIZE 5
 	static const float2 OcclusionSamplesOffsets[SAMPLESET_ARRAY_SIZE]=
 	{
@@ -95,7 +118,23 @@ float4 NoiseScale;
 		float2(-0.707107, -0.707107),
 		float2(-0.891006, 0.453991),
 	};
-#endif // USE_SAMPLESET == 0
+#elif USE_SAMPLESET == 2
+	#define SAMPLESET_ARRAY_SIZE 3
+	static const float2 OcclusionSamplesOffsets[SAMPLESET_ARRAY_SIZE]=
+	{
+		// 3 points distributed on the unit disc, spiral order and distance
+		float2(0, -1.0f) * 0.3f, 
+		float2(0.81f, 0.5) * 0.7f, 
+		float2(-0.81f, 0.5) 
+	};
+#else // USE_SAMPLESET == 3
+	#define SAMPLESET_ARRAY_SIZE 1
+	static const float2 OcclusionSamplesOffsets[SAMPLESET_ARRAY_SIZE]=
+	{
+		// 6 points distributed on the unit disc, spiral order and distance
+		float2(0.500, 0.500), 
+	};
+#endif // USE_SAMPLESET
 
 /** RGBA8 linear texture containing random normals */
 Texture2D RandomNormalTexture;
@@ -276,7 +315,7 @@ float acosApproxNormAngle(float x)
 {
 	// todo: expose
 	// 1: is a good linear approximation, 0.9f seems to look good
-	float4 ContrastTweak = 0.9f;
+	float ContrastTweak = 0.9f;
 
 	// correct: acos(x) / PI
 	// linear approximation: saturate((1 - x) * 0.5f);
@@ -339,7 +378,15 @@ void MainPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Targe
 	// extract one of 16 base vectors (rotation and scale) from a texture that repeats 4x4
 	float4 RandomBase = (Texture2DSample(RandomNormalTexture, RandomNormalTextureSampler, UV * ViewportUVToRandomUV) * 2 - 1 ) * float4(AORadiusInShader, AORadiusInShader);
 	{
-#else // AO_SAMPLE_QUALITY == 3
+#elif AO_SAMPLE_QUALITY == 3
+	// extract one of 16 base vectors (rotation and scale) from a texture that repeats 4x4, changing over time if TemporalAA is enabled
+	float2 TemporalOffset = (View.TemporalAAParams.r % 8) * float2(3.5, 7) / 64.0f;
+
+	float4 RandomNorm = Texture2DSample(RandomNormalTexture, RandomNormalTextureSampler, TemporalOffset + UV * ViewportUVToRandomUV);
+	float4 RandomBase = (RandomNorm * 2 - 1) * float4(AORadiusInShader, AORadiusInShader);
+
+	{
+#else // AO_SAMPLE_QUALITY == 4
 	// can be optimized
 	int2 PixelPos = int2(UVAndScreenPos.zw * ScreenPosToPixel.xy + ScreenPosToPixel.zw + 0.5f);
 	// repeat a cross pattern in a 5x5 tile
