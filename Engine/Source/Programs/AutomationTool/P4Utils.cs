@@ -14,6 +14,10 @@ namespace AutomationTool
 	{
 	}
 
+	public class DoesNotNeedP4CLAttribute : Attribute
+	{
+	}
+
 	public class P4Exception : AutomationException
 	{
 		public P4Exception() { }
@@ -246,7 +250,7 @@ namespace AutomationTool
 		#endregion
 
 		/// <summary>
-		/// Check is P4 is commands are supported.
+		/// Check if P4 is supported.
 		/// </summary>		
 		public static bool P4Enabled
 		{
@@ -264,6 +268,26 @@ namespace AutomationTool
 			}
 		}
 		private static bool? bP4Enabled;
+
+		/// <summary>
+		/// Check if P4CL is required.
+		/// </summary>		
+		public static bool P4CLRequired
+		{
+			get
+			{
+				if (!bP4CLRequired.HasValue)
+				{
+					throw new AutomationException("Trying to access P4CLRequired property before it was initialized.");
+				}
+				return (bool)bP4CLRequired;
+			}
+			private set
+			{
+				bP4CLRequired = value;
+			}
+		}
+		private static bool? bP4CLRequired;
 
 		/// <summary>
 		/// Throws an exception when P4 is disabled. This should be called in every P4 function.
@@ -323,17 +347,19 @@ namespace AutomationTool
 			if (Automation.IsBuildMachine)
 			{
 				P4Enabled = !GlobalCommandLine.NoP4;
+				P4CLRequired = P4Enabled;
 			}
 			else
 			{
-				P4Enabled = GlobalCommandLine.P4;
-				if (!P4Enabled && !GlobalCommandLine.NoP4)
-				{
-					// Check if any of the commands to execute require P4
-					P4Enabled = CheckIfCommandsRequireP4(CommandsToExecute, Commands);
-				}
+				bool bRequireP4;
+				bool bRequireCL;
+				CheckIfCommandsRequireP4(CommandsToExecute, Commands, out bRequireP4, out bRequireCL);
+
+				P4Enabled = GlobalCommandLine.P4 || bRequireP4;
+				P4CLRequired = GlobalCommandLine.P4 || bRequireCL;
 			}
 			Log("P4Enabled={0}", P4Enabled);
+			Log("P4CLRequired={0}", P4CLRequired);
 		}
 
 		/// <summary>
@@ -341,23 +367,30 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="CommandsToExecute">List of commands to be executed.</param>
 		/// <param name="Commands">Commands.</param>
-		/// <returns>True if any of the commands to execute has [RequireP4] attribute.</returns>
-		private static bool CheckIfCommandsRequireP4(List<CommandInfo> CommandsToExecute, CaselessDictionary<Type> Commands)
+		private static void CheckIfCommandsRequireP4(List<CommandInfo> CommandsToExecute, CaselessDictionary<Type> Commands, out bool bRequireP4, out bool bRequireCL)
 		{
+			bRequireP4 = false;
+			bRequireCL = false;
+
 			foreach (var CommandInfo in CommandsToExecute)
 			{
 				Type Command;
 				if (Commands.TryGetValue(CommandInfo.CommandName, out Command))
 				{
-					var RequireP4Attributes = Command.GetCustomAttributes(typeof(RequireP4Attribute), true);
+					var RequireP4Attributes = Command.GetCustomAttributes(typeof(RequireP4Attribute), true);	
 					if (!CommandUtils.IsNullOrEmpty(RequireP4Attributes))
 					{
 						Log("Command {0} requires P4 functionality.", Command.Name);
-						return true;
+						bRequireP4 = true;
+
+						var DoesNotNeedP4CLAttributes = Command.GetCustomAttributes(typeof(DoesNotNeedP4CLAttribute), true);
+						if (CommandUtils.IsNullOrEmpty(DoesNotNeedP4CLAttributes))
+						{
+							bRequireCL = true;
+						}
 					}
 				}
 			}
-			return false;
 		}
 	}
 

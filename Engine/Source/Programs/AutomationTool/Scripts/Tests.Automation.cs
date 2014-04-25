@@ -15,6 +15,7 @@ using UnrealBuildTool;
 
 [Help("Tests P4 functionality. Runs 'p4 info'.")]
 [RequireP4]
+[DoesNotNeedP4CL]
 class TestP4_Info : BuildCommand
 {
 	public override void ExecuteBuild()

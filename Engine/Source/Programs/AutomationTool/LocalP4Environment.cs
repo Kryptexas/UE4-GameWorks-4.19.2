@@ -71,7 +71,7 @@ namespace AutomationTool
 			CommandUtils.ConditionallySetEnvVar(EnvVarNames.ClientRoot, ClientRootPath);
 
 			var CLString = CommandUtils.GetEnvVar(EnvVarNames.Changelist, null);
-			if (String.IsNullOrEmpty(CLString) && GlobalCommandLine.P4CL)
+			if (String.IsNullOrEmpty(CLString) && CommandUtils.P4CLRequired)
 			{
                 CLString = DetectCurrentCL(Connection, ClientRootPath);
 			}
