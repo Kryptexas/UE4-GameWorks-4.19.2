@@ -2767,7 +2767,7 @@ namespace ObjectTools
 				UExporter* Exporter = Exporters[ExporterIndex];
 				if( Exporter->SupportedClass )
 				{
-					const bool bObjectIsSupported = ObjectToExport->IsA( Exporter->SupportedClass );
+					const bool bObjectIsSupported = Exporter->SupportsObject(ObjectToExport);
 					if ( bObjectIsSupported )
 					{
 						// Get a string representing of the exportable types.
@@ -2931,7 +2931,7 @@ namespace ObjectTools
 				for( int32 ExporterIndex = 0 ; ExporterIndex < Exporters.Num(); ++ExporterIndex )
 				{
 					UExporter* Exporter = Exporters[ExporterIndex];
-					if( Exporter->SupportedClass && ObjectToExport->IsA(Exporter->SupportedClass) )
+					if( Exporter->SupportsObject(ObjectToExport) )
 					{
 						check( Exporter->FormatExtension.Num() == Exporter->FormatDescription.Num() );
 						for( int32 FormatIndex = 0 ; FormatIndex < Exporter->FormatExtension.Num() ; ++FormatIndex )

@@ -39,6 +39,13 @@ void UExporter::Serialize( FArchive& Ar )
 	Ar << PreferredFormatIndex;
 }
 
+// Returns whether this exporter supports the specific object
+bool UExporter::SupportsObject(UObject* Object) const
+{
+	return (SupportedClass && Object->IsA(SupportedClass));
+}
+
+
 UExporter* UExporter::FindExporter( UObject* Object, const TCHAR* FileType )
 {
 	check(Object);
@@ -51,7 +58,7 @@ UExporter* UExporter::FindExporter( UObject* Object, const TCHAR* FileType )
 		if(Default)
 		{
 			check( Default->FormatExtension.Num() == Default->FormatDescription.Num() );
-			if( Default->SupportedClass && Object->IsA(Default->SupportedClass) )
+			if (Default->SupportsObject(Object))
 			{
 				for( int32 i=0; i<Default->FormatExtension.Num(); i++ )
 				{

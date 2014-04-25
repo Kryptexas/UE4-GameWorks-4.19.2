@@ -62,6 +62,17 @@ USoundExporterWAV::USoundExporterWAV(const class FPostConstructInitializePropert
 
 }
 
+bool USoundExporterWAV::SupportsObject(UObject* Object) const
+{
+	bool bSupportsObject = false;
+	if (Super::SupportsObject(Object))
+	{
+		USoundWave* SoundWave = CastChecked<USoundWave>(Object);
+		bSupportsObject = (SoundWave->NumChannels <= 2);
+	}
+	return bSupportsObject;
+}
+
 bool USoundExporterWAV::ExportBinary( UObject* Object, const TCHAR* Type, FArchive& Ar, FFeedbackContext* Warn, int32 FileIndex, uint32 PortFlags )
 {
 	USoundWave* Sound = CastChecked<USoundWave>( Object );
@@ -86,12 +97,23 @@ USoundExporterOGG::USoundExporterOGG(const class FPostConstructInitializePropert
 
 }
 
+bool USoundExporterOGG::SupportsObject(UObject* Object) const
+{
+	bool bSupportsObject = false;
+	if (Super::SupportsObject(Object))
+	{
+		USoundWave* SoundWave = CastChecked<USoundWave>(Object);
+		bSupportsObject = (SoundWave->GetCompressedData("OGG") != NULL);
+	}
+	return bSupportsObject;
+}
+
+
 bool USoundExporterOGG::ExportBinary( UObject* Object, const TCHAR* Type, FArchive& Ar, FFeedbackContext* Warn, int32 FileIndex, uint32 PortFlags )
 {
 	USoundWave* Sound = CastChecked<USoundWave>( Object );
 
-	static FName NAME_OGG(TEXT("OGG"));
-	FByteBulkData* Bulk = Sound->GetCompressedData(NAME_OGG);
+	FByteBulkData* Bulk = Sound->GetCompressedData("OGG");
 	if (Bulk)
 	{
 		Ar.Serialize(Bulk->Lock(LOCK_READ_ONLY), Bulk->GetBulkDataSize());
@@ -114,6 +136,17 @@ USoundSurroundExporterWAV::USoundSurroundExporterWAV(const class FPostConstructI
 	FormatExtension.Add(TEXT("WAV"));
 	FormatDescription.Add(TEXT("Multichannel Sound"));
 
+}
+
+bool USoundSurroundExporterWAV::SupportsObject(UObject* Object) const
+{
+	bool bSupportsObject = false;
+	if (Super::SupportsObject(Object))
+	{
+		USoundWave* SoundWave = CastChecked<USoundWave>(Object);
+		bSupportsObject = (SoundWave->NumChannels > 2);
+	}
+	return bSupportsObject;
 }
 
 int32 USoundSurroundExporterWAV::GetFileCount( void ) const
