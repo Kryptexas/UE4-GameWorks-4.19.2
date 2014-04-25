@@ -1811,7 +1811,7 @@ void ULandscapeComponent::PostDuplicate(bool bDuplicateForPIE)
 }
 
 // Generate a new guid to force a recache of all landscape derived data
-#define LANDSCAPE_FULL_DERIVEDDATA_VER			TEXT("d17ce2a02ccc11e3aa6e0800200c9a66")
+#define LANDSCAPE_FULL_DERIVEDDATA_VER			TEXT("28f0da4d085e48a680482c9835907e2f")
 
 FString FLandscapeComponentDerivedData::GetDDCKeyString(const FGuid& StateId)
 {

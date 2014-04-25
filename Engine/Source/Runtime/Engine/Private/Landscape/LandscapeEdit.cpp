@@ -4852,7 +4852,7 @@ UMaterialInstance* ULandscapeComponent::GeneratePlatformPixelData(TArray<UTextur
 void ULandscapeComponent::GeneratePlatformVertexData()
 {
 	if (IsTemplate())
-{
+	{
 		return;
 	}
 	check(HeightmapTexture);
@@ -4861,93 +4861,149 @@ void ULandscapeComponent::GeneratePlatformVertexData()
 	TArray<uint8> NewPlatformData;
 	int32 NewPlatformDataSize = 0;
 
-	int32 MaxLOD = FMath::CeilLogTwo(SubsectionSizeQuads+1)-1;
+	int32 SubsectionSizeVerts = SubsectionSizeQuads + 1;
+	int32 MaxLOD = FMath::CeilLogTwo(SubsectionSizeVerts) - 1;
 
-	float HeightmapSubsectionOffsetU = (float)(SubsectionSizeQuads+1) / (float)HeightmapTexture->Source.GetSizeX();
-	float HeightmapSubsectionOffsetV = (float)(SubsectionSizeQuads+1) / (float)HeightmapTexture->Source.GetSizeY();
+	float HeightmapSubsectionOffsetU = (float)(SubsectionSizeVerts) / (float)HeightmapTexture->Source.GetSizeX();
+	float HeightmapSubsectionOffsetV = (float)(SubsectionSizeVerts) / (float)HeightmapTexture->Source.GetSizeY();
 
-	NewPlatformDataSize += sizeof(FLandscapeMobileVertex) * FMath::Square( (SubsectionSizeQuads+1) * NumSubsections );
+	NewPlatformDataSize += sizeof(FLandscapeMobileVertex) * FMath::Square(SubsectionSizeVerts * NumSubsections);
+	NewPlatformData.AddZeroed(NewPlatformDataSize);
+
+	// Get the required mip data
 	TArray<FColor*> HeightmapMipData;
-
 	for( int32 MipIdx=0; MipIdx < FMath::Min(LANDSCAPE_MAX_ES_LOD, HeightmapTexture->Source.GetNumMips()); MipIdx++ )
 	{
-		int32 MipSubsectionSizeVerts = (SubsectionSizeQuads+1) >> MipIdx;
+		int32 MipSubsectionSizeVerts = (SubsectionSizeVerts) >> MipIdx;
 		if( MipSubsectionSizeVerts > 1)
 		{
 			HeightmapMipData.Add( (FColor*)HeightmapTexture->Source.LockMip(MipIdx) );
 		}
 	}
+	
+	TMap<uint64, int32> VertexMap;
+	TArray<FLandscapeVertexRef> VertexOrder;
+	VertexOrder.Empty(FMath::Square(SubsectionSizeVerts * NumSubsections));
 
-	NewPlatformData.AddZeroed(NewPlatformDataSize);
-	FLandscapeMobileVertex* DstVert = (FLandscapeMobileVertex*)NewPlatformData.GetTypedData();
-
-	int32 SubsectionSizeVerts = SubsectionSizeQuads+1;
-	for( int32 SubY=0;SubY<NumSubsections;SubY++ )
+	// Layout index buffer to determine best vertex order
+	for (int32 Mip = MaxLOD; Mip >= 0; Mip--)
 	{
-		for( int32 SubX=0;SubX<NumSubsections;SubX++ )
+		int32 LodSubsectionSizeQuads = (SubsectionSizeVerts >> Mip) - 1;
+		float MipRatio = (float)SubsectionSizeQuads / (float)LodSubsectionSizeQuads; // Morph current MIP to base MIP
+
+		for (int32 SubY = 0; SubY < NumSubsections; SubY++)
 		{
-			float HeightmapScaleBiasZ = HeightmapScaleBias.Z + HeightmapSubsectionOffsetU * (float)SubX;
-			float HeightmapScaleBiasW = HeightmapScaleBias.W + HeightmapSubsectionOffsetV * (float)SubY; 
-			int32 BaseMipOfsX = FMath::Round(HeightmapScaleBiasZ * (float)HeightmapTexture->Source.GetSizeX());
-			int32 BaseMipOfsY = FMath::Round(HeightmapScaleBiasW * (float)HeightmapTexture->Source.GetSizeY());
-
-			for( int32 Y=0; Y<SubsectionSizeVerts; Y++ )
+			for (int32 SubX = 0; SubX < NumSubsections; SubX++)
 			{
-				for( int32 X=0; X<SubsectionSizeVerts; X++ )
+				for (int32 y = 0; y < LodSubsectionSizeQuads; y++)
 				{
-					DstVert->Position[0] = X;
-					DstVert->Position[1] = Y;
-					DstVert->Position[2] = SubX;
-					DstVert->Position[3] = SubY;
-
-					TArray<int32> MipHeights;
-					MipHeights.AddZeroed(HeightmapMipData.Num());
-					int32 LastIndex = 0;
-					uint16 MaxHeight = 0, MinHeight = 65535;
-
-					for (int32 Mip = 0; Mip < HeightmapMipData.Num(); ++Mip)
+					for (int32 x = 0; x < LodSubsectionSizeQuads; x++)
 					{
-						int32 MipSizeX = HeightmapTexture->Source.GetSizeX() >> Mip;
+						int32 x0 = FMath::Round((float)x * MipRatio);
+						int32 y0 = FMath::Round((float)y * MipRatio);
+						int32 x1 = FMath::Round((float)(x + 1) * MipRatio);
+						int32 y1 = FMath::Round((float)(y + 1) * MipRatio);
 
-						int32 MipSubsectionSizeVerts = (SubsectionSizeVerts >> Mip);
-						int32 MipSubsectionSizeQuads = MipSubsectionSizeVerts - 1;
+						FLandscapeVertexRef V1(x0, y0, SubX, SubY);
+						FLandscapeVertexRef V2(x1, y0, SubX, SubY);
+						FLandscapeVertexRef V3(x1, y1, SubX, SubY);
+						FLandscapeVertexRef V4(x0, y1, SubX, SubY);
 
-						int32 CurrentMipOfsX = BaseMipOfsX >> Mip;
-						int32 CurrentMipOfsY = BaseMipOfsY >> Mip;
-
-						float MipRatio = (float)MipSubsectionSizeQuads / (float)SubsectionSizeQuads; // Morph Base to current MIP
-						int32 MipX = FMath::Round( (float)X * MipRatio );
-						int32 MipY = FMath::Round( (float)Y * MipRatio );
-
-						FColor* CurrentMipSrcRow = HeightmapMipData[Mip] + (CurrentMipOfsY + MipY) * MipSizeX + CurrentMipOfsX;
-						uint16 Height = CurrentMipSrcRow[MipX].R << 8 | CurrentMipSrcRow[MipX].G;
-
-						MipHeights[Mip] = Height;
-						MaxHeight = FMath::Max(MaxHeight, Height);
-						MinHeight = FMath::Min(MinHeight, Height);
-					}
-
-					DstVert->LODHeights[0] = MinHeight >> 8;
-					DstVert->LODHeights[1] = (MinHeight & 255);
-					DstVert->LODHeights[2] = MaxHeight >> 8;
-					DstVert->LODHeights[3] = (MaxHeight & 255);
-
-					for (int32 Mip = 0; Mip < HeightmapMipData.Num(); ++Mip)
-					{
-						if (Mip < 4)
+						uint64 Key1 = V1.MakeKey();
+						if (VertexMap.Find(Key1) == NULL)
 						{
-							DstVert->LODHeights[4+Mip] = FMath::Round(float(MipHeights[Mip] - MinHeight) / (MaxHeight - MinHeight) * 255);
+							VertexMap.Add(Key1, VertexOrder.Num());
+							VertexOrder.Add(V1);
 						}
-						else // Mip 4 5 packed into SubX, SubY
+						uint64 Key2 = V2.MakeKey();
+						if (VertexMap.Find(Key2) == NULL)
 						{
-							DstVert->Position[Mip-2] += (FMath::Round(float(MipHeights[Mip] - MinHeight) / (MaxHeight - MinHeight) * 255)) & (0xfffe);
+							VertexMap.Add(Key2, VertexOrder.Num());
+							VertexOrder.Add(V2);
+						}
+						uint64 Key3 = V3.MakeKey();
+						if (VertexMap.Find(Key3) == NULL)
+						{
+							VertexMap.Add(Key3, VertexOrder.Num());
+							VertexOrder.Add(V3);
+						}
+						uint64 Key4 = V4.MakeKey();
+						if (VertexMap.Find(Key4) == NULL)
+						{
+							VertexMap.Add(Key4, VertexOrder.Num());
+							VertexOrder.Add(V4);
 						}
 					}
-
-					DstVert++;
 				}
 			}
 		}
+	}
+	check(VertexOrder.Num() == FMath::Square(SubsectionSizeVerts) * FMath::Square(NumSubsections));
+
+	// Fill in the vertices in the specified order
+	FLandscapeMobileVertex* DstVert = (FLandscapeMobileVertex*)NewPlatformData.GetTypedData();
+	for (int32 Idx = 0; Idx < VertexOrder.Num(); Idx++)
+	{
+		int32 X = VertexOrder[Idx].X;
+		int32 Y = VertexOrder[Idx].Y;
+		int32 SubX = VertexOrder[Idx].SubX;
+		int32 SubY = VertexOrder[Idx].SubY;
+
+		float HeightmapScaleBiasZ = HeightmapScaleBias.Z + HeightmapSubsectionOffsetU * (float)SubX;
+		float HeightmapScaleBiasW = HeightmapScaleBias.W + HeightmapSubsectionOffsetV * (float)SubY;
+		int32 BaseMipOfsX = FMath::Round(HeightmapScaleBiasZ * (float)HeightmapTexture->Source.GetSizeX());
+		int32 BaseMipOfsY = FMath::Round(HeightmapScaleBiasW * (float)HeightmapTexture->Source.GetSizeY());
+
+		DstVert->Position[0] = X;
+		DstVert->Position[1] = Y;
+		DstVert->Position[2] = SubX;
+		DstVert->Position[3] = SubY;
+
+		TArray<int32> MipHeights;
+		MipHeights.AddZeroed(HeightmapMipData.Num());
+		int32 LastIndex = 0;
+		uint16 MaxHeight = 0, MinHeight = 65535;
+
+		for (int32 Mip = 0; Mip < HeightmapMipData.Num(); ++Mip)
+		{
+			int32 MipSizeX = HeightmapTexture->Source.GetSizeX() >> Mip;
+
+			int32 MipSubsectionSizeVerts = (SubsectionSizeVerts >> Mip);
+			int32 MipSubsectionSizeQuads = MipSubsectionSizeVerts - 1;
+
+			int32 CurrentMipOfsX = BaseMipOfsX >> Mip;
+			int32 CurrentMipOfsY = BaseMipOfsY >> Mip;
+
+			float MipRatio = (float)MipSubsectionSizeQuads / (float)SubsectionSizeQuads; // Morph Base to current MIP
+			int32 MipX = FMath::Round((float)X * MipRatio);
+			int32 MipY = FMath::Round((float)Y * MipRatio);
+
+			FColor* CurrentMipSrcRow = HeightmapMipData[Mip] + (CurrentMipOfsY + MipY) * MipSizeX + CurrentMipOfsX;
+			uint16 Height = CurrentMipSrcRow[MipX].R << 8 | CurrentMipSrcRow[MipX].G;
+
+			MipHeights[Mip] = Height;
+			MaxHeight = FMath::Max(MaxHeight, Height);
+			MinHeight = FMath::Min(MinHeight, Height);
+		}
+
+		DstVert->LODHeights[0] = MinHeight >> 8;
+		DstVert->LODHeights[1] = (MinHeight & 255);
+		DstVert->LODHeights[2] = MaxHeight >> 8;
+		DstVert->LODHeights[3] = (MaxHeight & 255);
+
+		for (int32 Mip = 0; Mip < HeightmapMipData.Num(); ++Mip)
+		{
+			if (Mip < 4)
+			{
+				DstVert->LODHeights[4 + Mip] = FMath::Round(float(MipHeights[Mip] - MinHeight) / (MaxHeight - MinHeight) * 255);
+			}
+			else // Mip 4 5 packed into SubX, SubY
+			{
+				DstVert->Position[Mip - 2] += (FMath::Round(float(MipHeights[Mip] - MinHeight) / (MaxHeight - MinHeight) * 255)) & (0xfffe);
+			}
+		}
+
+		DstVert++;
 	}
 
 	for( int32 MipIdx=0;MipIdx<HeightmapTexture->Source.GetNumMips();MipIdx++ )

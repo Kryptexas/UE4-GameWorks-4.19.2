@@ -38,6 +38,26 @@ public:
 	friend FArchive& operator<<(FArchive& Ar, FLandscapeComponentDerivedData& Data);
 };
 
+/* Used to uniquely reference a landscape vertex in a component, and generate a key suitable for a TMap. */
+struct FLandscapeVertexRef
+{
+	FLandscapeVertexRef(int16 InX, int16 InY, int8 InSubX, int8 InSubY)
+	: X(InX)
+	, Y(InY)
+	, SubX(InSubX)
+	, SubY(InSubY)
+	{}
+	int16 X;
+	int16 Y;
+	int8 SubX;
+	int8 SubY;
+
+	uint64 MakeKey() const
+	{
+		return (uint64)X << 32 | (uint64)Y << 16 | (uint64)SubX << 8 | (uint64)SubY;
+	}
+};
+
 /** Stores information about which weightmap texture and channel each layer is stored */
 USTRUCT()
 struct FWeightmapLayerAllocationInfo

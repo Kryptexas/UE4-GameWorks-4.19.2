@@ -270,6 +270,14 @@ public:
 class FLandscapeSharedBuffers : public FRefCountedObject
 {
 public:
+	struct FLandscapeIndexRanges
+	{
+		int32 MinIndex[LANDSCAPE_MAX_SUBSECTION_NUM][LANDSCAPE_MAX_SUBSECTION_NUM];
+		int32 MaxIndex[LANDSCAPE_MAX_SUBSECTION_NUM][LANDSCAPE_MAX_SUBSECTION_NUM];
+		int32 MinIndexFull;
+		int32 MaxIndexFull;
+	};
+
 	int32 SharedBuffersKey;
 	int32 NumIndexBuffers;
 	int32 SubsectionSizeVerts;
@@ -278,9 +286,14 @@ public:
 	FLandscapeVertexFactory* VertexFactory;
 	FLandscapeVertexBuffer* VertexBuffer;
 	FIndexBuffer** IndexBuffers;
+	FLandscapeIndexRanges* IndexRanges;
 	FLandscapeSharedAdjacencyIndexBuffer* AdjacencyIndexBuffers;
 
 	FLandscapeSharedBuffers(int32 SharedBuffersKey, int32 SubsectionSizeQuads, int32 NumSubsections);
+
+	template <typename INDEX_TYPE>
+	void CreateIndexBuffers();
+
 	virtual ~FLandscapeSharedBuffers();
 };
 
