@@ -14,6 +14,9 @@
 
 #include "AnimationTransitionGraph.h"
 #include "AnimGraphNode_TransitionResult.h"
+#include "AnimGraphNode_StateMachineBase.h"
+#include "AnimStateTransitionNode.h"
+#include "AnimationStateMachineGraph.h"
 
 #define LOCTEXT_NAMESPACE "TransitionNodes"
 
