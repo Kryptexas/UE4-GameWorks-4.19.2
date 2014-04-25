@@ -5,6 +5,7 @@
 #include "OnlineSubsystem.h"
 #include "OnlineIdentityInterfaceGooglePlay.h"
 #include "OnlineAchievementsInterfaceGooglePlay.h"
+#include "OnlineLeaderboardInterfaceGooglePlay.h"
 #include "OnlineExternalUIInterfaceGooglePlay.h"
 
 /**
@@ -67,6 +68,9 @@ private:
 
 	/** Interface to the online identity system */
 	FOnlineIdentityGooglePlayPtr IdentityInterface;
+
+	/** Interface to the online leaderboards */
+	FOnlineLeaderboardsGooglePlayPtr LeaderboardsInterface;
 
 	/** Interface to the online achievements */
 	FOnlineAchievementsGooglePlayPtr AchievementsInterface;

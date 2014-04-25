@@ -6,9 +6,10 @@
 #include "AndroidApplication.h"
 
 FOnlineSubsystemGooglePlay::FOnlineSubsystemGooglePlay()
-	: OnlineAsyncTaskThread(NULL)
-	, IdentityInterface(NULL)
-	, AchievementsInterface(NULL)
+	: OnlineAsyncTaskThread(nullptr)
+	, IdentityInterface(nullptr)
+	, LeaderboardsInterface(nullptr)
+	, AchievementsInterface(nullptr)
 {
 
 }
@@ -50,7 +51,7 @@ IOnlineUserCloudPtr FOnlineSubsystemGooglePlay::GetUserCloudInterface() const
 
 IOnlineLeaderboardsPtr FOnlineSubsystemGooglePlay::GetLeaderboardsInterface() const
 {
-	return nullptr;
+	return LeaderboardsInterface;
 }
 
 
@@ -94,6 +95,7 @@ bool FOnlineSubsystemGooglePlay::Init()
 	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("FOnlineSubsystemAndroid::Init"));
 	
 	IdentityInterface = MakeShareable(new FOnlineIdentityGooglePlay(this));
+	LeaderboardsInterface = MakeShareable(new FOnlineLeaderboardsGooglePlay(this));
 	AchievementsInterface = MakeShareable(new FOnlineAchievementsGooglePlay(this));
 	ExternalUIInterface = MakeShareable(new FOnlineExternalUIGooglePlay());
 
@@ -123,6 +125,7 @@ bool FOnlineSubsystemGooglePlay::Shutdown()
 	// Destruct the interfaces
 	DESTRUCT_INTERFACE(ExternalUIInterface);
 	DESTRUCT_INTERFACE(AchievementsInterface);
+	DESTRUCT_INTERFACE(LeaderboardsInterface);
 	DESTRUCT_INTERFACE(IdentityInterface);
 #undef DESTRUCT_INTERFACE
 

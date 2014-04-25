@@ -79,6 +79,7 @@ public:
 	virtual bool ShowFriendsUI(int32 LocalUserNum) OVERRIDE;
 	virtual bool ShowInviteUI(int32 LocalUserNum) OVERRIDE;
 	virtual bool ShowAchievementsUI(int32 LocalUserNum) OVERRIDE;
+	virtual bool ShowLeaderboardUI(const FString& LeaderboardName) OVERRIDE;
 	virtual bool ShowWebURL(const FString& WebURL) OVERRIDE;
 	virtual bool ShowProfileUI(const FUniqueNetId& Requestor, const FUniqueNetId& Requestee, const FOnProfileUIClosedDelegate& Delegate) OVERRIDE;
 };

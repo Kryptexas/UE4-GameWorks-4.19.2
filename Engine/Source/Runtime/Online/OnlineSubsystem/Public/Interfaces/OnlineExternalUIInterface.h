@@ -73,6 +73,15 @@ public:
 	virtual bool ShowAchievementsUI(int32 LocalUserNum) = 0;
 
 	/**
+	 *	Displays the UI that shows a specific leaderboard
+	 *
+	 * @param LeaderboardName the name of the leaderboard to show
+	 *
+	 * @return true if it was able to show the UI, false if it failed
+	 */
+	virtual bool ShowLeaderboardUI(const FString& LeaderboardName) = 0;
+
+	/**
 	 *	Displays a web page in the external UI
 	 *
 	 * @param WebURL fully formed web address (http://www.google.com)

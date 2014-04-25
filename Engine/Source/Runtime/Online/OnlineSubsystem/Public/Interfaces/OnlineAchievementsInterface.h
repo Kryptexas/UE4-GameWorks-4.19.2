@@ -89,6 +89,7 @@ struct FOnlineAchievementDesc
 class IOnlineAchievements
 {
 public:
+	virtual ~IOnlineAchievements() {}
 
 	/**
 	 * Write the achievements provided to the server

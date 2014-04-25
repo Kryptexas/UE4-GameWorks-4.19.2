@@ -75,6 +75,9 @@ private:
 
 	/** Interface to the online achievements */
 	FOnlineAchievementsIOSPtr AchievementsInterface;
+
+	/** Interface to the external UI services */
+	FOnlineExternalUIIOSPtr ExternalUIInterface;
 };
 
 typedef TSharedPtr<FOnlineSubsystemIOS, ESPMode::ThreadSafe> FOnlineSubsystemIOSPtr;

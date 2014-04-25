@@ -2280,24 +2280,15 @@ void UKismetSystemLibrary::EXPERIMENTAL_CloseAdBanner()
 
 void UKismetSystemLibrary::ShowPlatformSpecificLeaderboardScreen(const FString& CategoryName)
 {
-#if PLATFORM_IOS
-	extern CORE_API void IOSShowLeaderboardUI(const FString& CategoryName);
-	IOSShowLeaderboardUI(CategoryName);
-#elif PLATFORM_ANDROID
-	UE_LOG(LogTemp, Log, TEXT("Showing leaderboard!"));
-
-	extern void AndroidThunkCpp_ShowLeaderboard(const FString&);
-	extern FString GetLeaderboardID(const FString&);
-	AndroidThunkCpp_ShowLeaderboard(GetLeaderboardID(CategoryName));
-#endif
+	IOnlineExternalUIPtr ExternalUI = Online::GetExternalUIInterface();
+	if(ExternalUI.IsValid())
+	{
+		ExternalUI->ShowLeaderboardUI(CategoryName);
+	}
 }
 
 void UKismetSystemLibrary::ShowPlatformSpecificAchievementsScreen(class APlayerController* SpecificPlayer)
 {
-#if PLATFORM_IOS
-	extern CORE_API void IOSShowAchievementsUI();
-	IOSShowAchievementsUI();
-#else
 	IOnlineExternalUIPtr ExternalUI = Online::GetExternalUIInterface();
 	if(ExternalUI.IsValid())
 	{
@@ -2313,7 +2304,6 @@ void UKismetSystemLibrary::ShowPlatformSpecificAchievementsScreen(class APlayerC
 		}
 		ExternalUI->ShowAchievementsUI(LocalUserNum);
 	}
-#endif
 }
 void UKismetSystemLibrary::SetStructurePropertyByName(UObject* Object, FName PropertyName, const FGenericStruct& Value)
 {

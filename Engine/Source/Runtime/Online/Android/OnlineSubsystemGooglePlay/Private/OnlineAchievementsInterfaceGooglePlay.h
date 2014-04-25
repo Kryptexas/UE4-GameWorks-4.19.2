@@ -17,13 +17,12 @@ private:
 	class FOnlineSubsystemGooglePlay* AndroidSubsystem;
 	
 	/** hide the default constructor, we need a reference to our OSS */
-	FOnlineAchievementsGooglePlay() : CurrentWriteObject(MakeShareable(new FOnlineAchievementsWrite()))
-	{}
+	FOnlineAchievementsGooglePlay() {}
 
-	// Android only supports loading achievements for local player. This is where they are cached.
+	/** Android only supports loading achievements for local player. This is where they are cached. */
 	TArray< FOnlineAchievement > Achievements;
 
-	// Cached achievement descriptions for an Id
+	/** Cached achievement descriptions for an Id */
 	TMap< FString, FOnlineAchievementDesc > AchievementDescriptions;
 
 public:
@@ -39,14 +38,6 @@ public:
 	virtual bool ResetAchievements( const FUniqueNetId& PlayerId ) OVERRIDE;
 #endif // !UE_BUILD_SHIPPING
 	// End IOnlineAchievements interface
-	
-	//platform specific members
-
-	/** Sets unique ID of current logged-in player */
-	void SetUniqueID(const FUniqueNetId& InUserID);
-	
-	/** Reset unique ID of current logged-in player */
-	void ResetUniqueID();
 
 	/**
 	 * Constructor
@@ -54,20 +45,6 @@ public:
 	 * @param InSubsystem - A reference to the owning subsystem
 	 */
 	FOnlineAchievementsGooglePlay( class FOnlineSubsystemGooglePlay* InSubsystem );
-
-	/**
-	 * Default destructor
-	 */
-	virtual ~FOnlineAchievementsGooglePlay() {}
-
-
-private:
-
-	TArray<FGooglePlayAchievementMapping> AchievementConfigMap;
-
-	TSharedPtr< FUniqueNetIdString > CurrentPlayerID;
-
-	TSharedRef<FOnlineAchievementsWrite> CurrentWriteObject;
 };
 
 typedef TSharedPtr<FOnlineAchievementsGooglePlay, ESPMode::ThreadSafe> FOnlineAchievementsGooglePlayPtr;

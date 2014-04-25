@@ -53,6 +53,11 @@ bool FOnlineExternalUISteam::ShowAchievementsUI(int32 LocalUserNum)
 	return true;
 }
 
+bool FOnlineExternalUISteam::ShowLeaderboardUI(const FString& LeaderboardName)
+{
+	return false;
+}
+
 bool FOnlineExternalUISteam::ShowWebURL(const FString& WebURL)
 {
 	if (!WebURL.StartsWith(TEXT("https://")))

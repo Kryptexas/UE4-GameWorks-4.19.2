@@ -1,56 +1,15 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-// Module includes
 #include "OnlineSubsystemGooglePlayPrivatePCH.h"
 
-#include <jni.h>
-
 FOnlineAchievementsGooglePlay::FOnlineAchievementsGooglePlay( FOnlineSubsystemGooglePlay* InSubsystem )
-	: CurrentWriteObject(MakeShareable(new FOnlineAchievementsWrite()))
+	: AndroidSubsystem(InSubsystem)
 {
-	AndroidSubsystem = InSubsystem;
-	CurrentPlayerID = MakeShareable( new FUniqueNetIdString(FString("")));
-	
-	TArray<FString> MapAsStrings;
-
-	// Use the config to find the Google Play-assigned achievement ID corresponding to the name the game passed in.
-	GConfig->GetArray(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("AchievementMap"), MapAsStrings, GEngineIni);
-
-	for(int32 x = 0; x < MapAsStrings.Num(); ++x)
-	{
-		FGooglePlayAchievementMapping Mapping;
-
-		if(!FParse::Value(*MapAsStrings[x], TEXT("Name="), Mapping.Name))
-		{
-			// Could not find an achievement name, cannot continue with this line
-			continue;
-		}
-
-		if(!FParse::Value(*MapAsStrings[x], TEXT("AchievementID="), Mapping.AchievementID))
-		{
-			// Could not find an achievement id, cannot continue with this line
-			continue;
-		}
-
-		UE_LOG(LogOnline, Log, TEXT("Found achievement mapping: %s to %s"), *Mapping.Name, *Mapping.AchievementID);
-		AchievementConfigMap.Add(Mapping);
-	}
-}
-
-void FOnlineAchievementsGooglePlay::SetUniqueID(const FUniqueNetId& InUserID)
-{
-	CurrentPlayerID = MakeShareable( new FUniqueNetIdString(InUserID));
-}
-
-void FOnlineAchievementsGooglePlay::ResetUniqueID()
-{
-	CurrentPlayerID.Reset();
 }
 
 void FOnlineAchievementsGooglePlay::QueryAchievements(const FUniqueNetId& PlayerId, const FOnQueryAchievementsCompleteDelegate& Delegate)
 {
 	Delegate.ExecuteIfBound( PlayerId, false );
-	return;
 }
 
 
@@ -97,7 +56,9 @@ void FOnlineAchievementsGooglePlay::WriteAchievements( const FUniqueNetId& Playe
 		}
 
 		// Find the ID in the mapping
-		for(const auto& Mapping : AchievementConfigMap)
+		auto DefaultSettings = GetDefault<UAndroidRuntimeSettings>();
+
+		for(const auto& Mapping : DefaultSettings->AchievementMap)
 		{
 			if(Mapping.Name == AchievementName)
 			{

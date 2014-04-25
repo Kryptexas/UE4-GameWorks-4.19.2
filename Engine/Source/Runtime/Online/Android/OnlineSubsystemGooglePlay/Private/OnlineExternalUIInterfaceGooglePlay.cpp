@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemGooglePlayPrivatePCH.h"
+#include "AndroidRuntimeSettings.h"
+#include "CoreUObject.h"
 
 FOnlineExternalUIGooglePlay::FOnlineExternalUIGooglePlay() 
 {
@@ -28,6 +30,23 @@ bool FOnlineExternalUIGooglePlay::ShowAchievementsUI(int32 LocalUserNum)
 	extern void AndroidThunkCpp_ShowAchievements();
 	AndroidThunkCpp_ShowAchievements();
 	return true;
+}
+
+bool FOnlineExternalUIGooglePlay::ShowLeaderboardUI(const FString& LeaderboardName)
+{
+	auto DefaultSettings = GetDefault<UAndroidRuntimeSettings>();
+
+	for(const auto& Mapping : DefaultSettings->LeaderboardMap)
+	{
+		if(Mapping.Name == LeaderboardName)
+		{
+			extern void AndroidThunkCpp_ShowLeaderboard(const FString&);
+			AndroidThunkCpp_ShowLeaderboard(Mapping.LeaderboardID);
+			return true;
+		}
+	}
+	
+	return false;
 }
 
 bool FOnlineExternalUIGooglePlay::ShowWebURL(const FString& WebURL) 
