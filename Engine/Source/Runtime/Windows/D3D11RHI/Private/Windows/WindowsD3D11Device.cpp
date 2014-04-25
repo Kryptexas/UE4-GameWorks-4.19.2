@@ -254,12 +254,23 @@ void FD3D11DynamicRHIModule::FindAdapter()
 				const bool bIsIntegrated = FCString::Stristr(AdapterDesc.Description,TEXT("Intel")) != 0;
 				// PerfHUD is for performance profiling
 				const bool bIsPerfHUD = !FCString::Stricmp(AdapterDesc.Description,TEXT("NVIDIA PerfHUD"));
+				// Software renderer
+				const bool bIsSoftware = !FCString::Stricmp(AdapterDesc.Description,TEXT("Software Adapter"))
+					|| !FCString::Stricmp(AdapterDesc.Description,TEXT("Microsoft Basic Render Driver"));
 
 				FD3D11Adapter CurrentAdapter(AdapterIndex, ActualFeatureLevel);
 
 				if(bIsPerfHUD && !bAllowPerfHUD)
 				{
 					// we don't allow the PerfHUD adapter
+					continue;
+				}
+
+				if(bIsSoftware)
+				{
+					// We don't want software renderer. Ideally we specify D3D_DRIVER_TYPE_HARDWARE on creation but
+					// wen we specify an adapter we need to specify D3D_DRIVER_TYPE_UNKNOWN (otherwise the call fails).
+					// We cannot check the device type later (seems this is missing functionality in D3D).
 					continue;
 				}
 
