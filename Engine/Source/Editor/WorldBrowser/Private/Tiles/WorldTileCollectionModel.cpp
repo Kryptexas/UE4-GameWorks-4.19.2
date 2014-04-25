@@ -1332,7 +1332,7 @@ void FWorldTileCollectionModel::ImportTiledLandscape_Executed()
 
 			GWarn->StatusUpdate(TileIndex, ImportSettings.HeightmapFileList.Num(), FText::Format(LOCTEXT("ImportingLandscapeTiles", "Importing landscape tiles: {0}"), FText::FromString(TileName)));
 			
-			FWorldTileModel::FLandscapeImportSettings TileImportSettings;
+			FWorldTileModel::FLandscapeImportSettings TileImportSettings = {};
 			TileImportSettings.LandscapeGuid		= LandscapeGuid;
 			TileImportSettings.LandscapeMaterial	= ImportSettings.LandscapeMaterial.Get();
 			TileImportSettings.ComponentSizeQuads	= ImportSettings.QuadsPerSection*ImportSettings.SectionsPerComponent;

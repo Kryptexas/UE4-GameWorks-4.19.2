@@ -837,7 +837,7 @@ bool FWorldTileModel::CreateAdjacentLandscapeProxy(ALandscapeProxy* SourceLandsc
 	FIntRect SourceLandscapeRect = SourceLandscape->GetBoundingRect();
 	FIntPoint SourceLandscapeSize = SourceLandscapeRect.Size();
 
-	FLandscapeImportSettings ImportSettings;
+	FLandscapeImportSettings ImportSettings = {};
 	ImportSettings.LandscapeGuid = SourceLandscape->GetLandscapeGuid();
 	ImportSettings.ComponentSizeQuads = SourceLandscape->ComponentSizeQuads;
 	ImportSettings.SectionsPerComponent = SourceLandscape->NumSubsections;
