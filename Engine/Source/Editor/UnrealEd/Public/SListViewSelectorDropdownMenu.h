@@ -53,7 +53,7 @@ public:
 		else
 		{
 			TSharedPtr< SWidget > DefaultFocusWidgetPtr = DefaultFocusWidget.Pin();
-			return DefaultFocusWidgetPtr->OnKeyDown(FindChildGeometry(MyGeometry, TargetListViewPtr.ToSharedRef()), KeyboardEvent).SetKeyboardFocus(DefaultFocusWidgetPtr.ToSharedRef(), EKeyboardFocusCause::SetDirectly); //FReply::Unhandled().SetKeyboardFocus(TargetListViewPtr.ToSharedRef(), EKeyboardFocusCause::SetDirectly);
+			return DefaultFocusWidgetPtr->OnKeyDown(FindChildGeometry(MyGeometry, TargetListViewPtr.ToSharedRef()), KeyboardEvent).SetKeyboardFocus(DefaultFocusWidgetPtr.ToSharedRef(), EKeyboardFocusCause::OtherWidgetLostFocus);
 		}
 		return FReply::Unhandled();
 	}

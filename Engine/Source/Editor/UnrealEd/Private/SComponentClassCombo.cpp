@@ -258,10 +258,10 @@ TSharedRef<ITableRow> SComponentClassCombo::GenerateAddComponentRow( FComponentC
 		FString DocExcerptName = FString::Printf(TEXT("object'%s'"), *Entry->GetComponentClass()->GetName());
 
 		return
-			SNew( STableRow< TSharedPtr<FString> >, OwnerTable )
+			SNew( SComboRow< TSharedPtr<FString> >, OwnerTable )
 			.ToolTip( IDocumentation::Get()->CreateToolTip(Entry->GetComponentClass()->GetToolTipText(), NULL, DocLink, DocExcerptName) )
-			.Padding(1.0f)
-			[
+			.RowContent
+			(
 				SNew(SHorizontalBox)
 				+SHorizontalBox::Slot()
 				.AutoWidth()
@@ -271,6 +271,7 @@ TSharedRef<ITableRow> SComponentClassCombo::GenerateAddComponentRow( FComponentC
 					.Size(FVector2D(8.0f,1.0f))
 				]
 				+SHorizontalBox::Slot()
+				.Padding(1.0f)
 				.AutoWidth()
 				[
 					SNew(SImage)
@@ -290,7 +291,7 @@ TSharedRef<ITableRow> SComponentClassCombo::GenerateAddComponentRow( FComponentC
 					.HighlightText(this, &SComponentClassCombo::GetCurrentSearchString)
 					.Text( FriendlyComponentName )
 				]
-			];
+			);
 	}
 }
 
