@@ -38,10 +38,9 @@ struct FTrackScaleInfo
 	}
 
 	/** Local Widget Space -> Curve Input domain. */
-	float LocalXToInput(float ScreenX)
+	float LocalXToInput(float ScreenX) const
 	{
-		float LocalX = ScreenX;
-		return (LocalX/PixelsPerInput) + ViewMinInput;
+		return (ScreenX/PixelsPerInput) + ViewMinInput;
 	}
 
 	/** Curve Input domain -> local Widget Space */
@@ -51,20 +50,18 @@ struct FTrackScaleInfo
 	}
 
 	/** Local Widget Space -> Curve Output domain. */
-	float LocalYToOutput(float ScreenY)
+	float LocalYToOutput(float ScreenY) const
 	{
 		return (ViewOutputRange + ViewMinOutput) - (ScreenY/PixelsPerOutput);
-		//float LocalY = ScreenY;
-		//return (LocalY/PixelsPerOutput) + ViewMinOutput;
 	}
 
 	/** Curve Output domain -> local Widget Space */
-	float OutputToLocalY(float Output)
+	float OutputToLocalY(float Output) const
 	{
 		return (ViewOutputRange - (Output - ViewMinOutput)) * PixelsPerOutput;
 	}
 
-	float GetTrackCenterY()
+	float GetTrackCenterY() const
 	{
 		return (0.5f * WidgetSize.Y);
 	}

@@ -11,14 +11,45 @@
 #include "SAnimEditorBase.h"
 
 DECLARE_DELEGATE_OneParam( FOnSelectionChanged, const FGraphPanelSelectionSet& )
+DECLARE_DELEGATE( FOnTrackSelectionChanged )
 DECLARE_DELEGATE( FOnUpdatePanel )
 DECLARE_DELEGATE_RetVal( float, FOnGetScrubValue )
 DECLARE_DELEGATE( FRefreshOffsetsRequest )
 DECLARE_DELEGATE( FDeleteNotify )
+DECLARE_DELEGATE( FDeselectAllNotifies )
+DECLARE_DELEGATE( FCopyNotifies )
 
 class SAnimNotifyNode;
 class SAnimNotifyTrack;
 class FNotifyDragDropOp;
+
+namespace ENotifyPasteMode
+{
+	enum Type
+	{
+		MousePosition,
+		OriginalTime
+	};
+}
+
+namespace ENotifyPasteMultipleMode
+{
+	enum Type
+	{
+		Relative,
+		Absolute
+	};
+}
+
+namespace ENotifyStateHandleHit
+{
+	enum Type
+	{
+		Start,
+		End,
+		None
+	};
+}
 
 //////////////////////////////////////////////////////////////////////////
 // SAnimNotifyPanel
@@ -73,9 +104,12 @@ public:
 	float CalculateDraggedNodePos() const;
 
 	/**Handler for when a notify node drag has been initiated */
-	FReply OnNotifyNodeDragStarted(TSharedRef<SAnimNotifyNode> NotifyNode, const FVector2D& ScreenCursorPos, const FVector2D& ScreenNodePosition, const bool bDragOnMarker);
+	FReply SAnimNotifyPanel::OnNotifyNodeDragStarted(TArray<TSharedPtr<SAnimNotifyNode>> NotifyNodes, TSharedRef<SWidget> Decorator, const FVector2D& ScreenCursorPos, const FVector2D& ScreenNodePosition, const bool bDragOnMarker);
 
 	virtual float GetSequenceLength() const OVERRIDE {return Sequence->SequenceLength;}
+
+	void CopySelectedNotifiesToClipboard() const;
+	void OnPasteNotifies(SAnimNotifyTrack* RequestTrack, float ClickTime, ENotifyPasteMode::Type PasteMode, ENotifyPasteMultipleMode::Type MultiplePasteType);
 
 private:
 	TSharedPtr<SBorder> PanelArea;
@@ -94,6 +128,9 @@ private:
 	/** Cached list of anim tracks for notify node drag drop */
 	TArray<TSharedPtr<SAnimNotifyTrack>> NotifyAnimTracks;
 
+	// Read common info from the clipboard
+	bool ReadNotifyPasteHeader(FString& OutPropertyString, const TCHAR*& OutBuffer, float& OutOriginalTime, float& OutOriginalLength, int32& OutTrackSpan) const;
+
 	// this just refresh notify tracks - UI purpose only
 	// do not call this from here. This gets called by asset. 
 	void RefreshNotifyTracks();
@@ -107,6 +144,12 @@ private:
 	{
 		return true;
 	}
+
+	// Called when a track changes it's selection; iterates all tracks collecting selected items
+	void OnTrackSelectionChanged();
+
+	// Called to deselect all notifies across all tracks
+	void DeselectAllNotifies();
 
 	/** Persona reference **/
 	TWeakPtr<FPersona> PersonaPtr;
