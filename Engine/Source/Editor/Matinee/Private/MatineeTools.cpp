@@ -1787,7 +1787,7 @@ void FMatinee::SetInterpEnd(float NewInterpLength)
 	CurveEd->SetRegionMarker(true, IData->EdSectionStart, IData->EdSectionEnd, RegionFillColor);
 
 	// Update the CameraAnim if necessary
-	AMatineeActorCameraAnim* const CamAnimMatineeActor = CastChecked<AMatineeActorCameraAnim>(MatineeActor);
+	AMatineeActorCameraAnim* const CamAnimMatineeActor = Cast<AMatineeActorCameraAnim>(MatineeActor);
 	if ( (CamAnimMatineeActor != nullptr) && (CamAnimMatineeActor->CameraAnim != nullptr) )
 	{
 		CamAnimMatineeActor->CameraAnim->AnimLength = IData->InterpLength;
