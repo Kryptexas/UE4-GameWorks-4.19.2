@@ -126,18 +126,27 @@ public:
 				.SelectedClass(this, &FGameModeInfoCustomizer::GetCurrentGameModeClass)
 				.OnSetClass(FOnSetClass::CreateSP(this, &FGameModeInfoCustomizer::SetCurrentGameModeClass))
 			]
+
 			+SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding( 2.0f, 1.0f, 2.0f, 0.0f )
+			[
+				SNew(SButton)
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				.ContentPadding(FMargin(2.0f,0.0f))
+				.OnClicked(this, &FGameModeInfoCustomizer::OnClickNewGameMode)
+				.ToolTipText(LOCTEXT("NewGameMode_ToolTip", "Create a new Game Mode"))
+				[
+					SNew( STextBlock )
+					.Text(LOCTEXT("NewGameMode", "New.."))
+					.Font( IDetailLayoutBuilder::GetDetailFont() )
+				]
+			]
+			+ SHorizontalBox::Slot()
 			.AutoWidth()
 			[
 				PropertyCustomizationHelpers::MakeBrowseButton(FSimpleDelegate::CreateSP(this, &FGameModeInfoCustomizer::OnBrowseGameModeClicked), FText(), CanBrowseAtrribute)
-			]
-			+SHorizontalBox::Slot()
-			.AutoWidth()
-			[
-				SNew(SButton)
-				.Text(LOCTEXT("NewGameMode", "New.."))
-				.ContentPadding( FMargin(4.f, 0.f) )
-				.OnClicked(this, &FGameModeInfoCustomizer::OnClickNewGameMode)
 			]
 		];
 
