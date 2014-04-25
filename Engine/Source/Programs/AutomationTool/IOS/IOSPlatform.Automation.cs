@@ -203,34 +203,28 @@ public class IOSPlatform : Platform
 	{
 		// first check for ue4.xcodeproj
 		bWasGenerated = false;
-		string XcodeProj = RawProjectPath.Replace(".uproject", ".xcodeproj");
+		string XcodeProj = RawProjectPath.Replace(".uproject", "_IOS.xcodeproj");
 		Console.WriteLine ("Project: " + XcodeProj);
 		if (!Directory.Exists (XcodeProj))
 		{
-			// project.xcodeproj doesn't exist, so check for ue4.xcodeproj
-			XcodeProj = CombinePaths(CmdEnv.LocalRoot, "UE4.xcodeproj");
+			// project.xcodeproj doesn't exist, so generate temp project
+			string Arguments = "-project=\"" + RawProjectPath + "\"";
+			Arguments += " -platforms=IOS -game -nointellisense -iosdeployonly -ignorejunk";
+			string Script = CombinePaths(CmdEnv.LocalRoot, "Engine/Build/BatchFiles/Mac/GenerateProjectFiles.sh");
+			if (GlobalCommandLine.Rocket)
+			{
+				Script = CombinePaths(CmdEnv.LocalRoot, "Engine/Build/BatchFiles/Mac/RocketGenerateProjectFiles.sh");
+			}
+			string CWD = Directory.GetCurrentDirectory ();
+			Directory.SetCurrentDirectory (Path.GetDirectoryName (Script));
+			Run (Script, Arguments, null, ERunOptions.Default);
+			bWasGenerated = true;
+			Directory.SetCurrentDirectory (CWD);
+
 			if (!Directory.Exists (XcodeProj))
 			{
-				// ue4.xcodeproj doesn't exist, so generate temp project
-				string Arguments = "-project=\"" + RawProjectPath + "\"";
-				Arguments += " -game -nointellisense";
-				string Script = CombinePaths(CmdEnv.LocalRoot, "Engine/Build/BatchFiles/Mac/GenerateProjectFiles.sh");
-				if (GlobalCommandLine.Rocket)
-				{
-					Script = CombinePaths(CmdEnv.LocalRoot, "Engine/Build/BatchFiles/Mac/RocketGenerateProjectFiles.sh");
-				}
-				string CWD = Directory.GetCurrentDirectory ();
-				Directory.SetCurrentDirectory (Path.GetDirectoryName (Script));
-				Run (Script, Arguments, null, ERunOptions.Default);
-				bWasGenerated = true;
-				Directory.SetCurrentDirectory (CWD);
-
-				XcodeProj = RawProjectPath.Replace(".uproject", ".xcodeproj"); 
-				if (!Directory.Exists (XcodeProj))
-				{
-					// something very bad happened
-					throw new AutomationException("iOS couldn't find the appropriate Xcode Project");
-				}
+				// something very bad happened
+				throw new AutomationException("iOS couldn't find the appropriate Xcode Project");
 			}
 		}
 

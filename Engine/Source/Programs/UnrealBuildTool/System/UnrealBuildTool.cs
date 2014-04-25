@@ -633,6 +633,7 @@ namespace UnrealBuildTool
                     var bGenerateMakefiles = false;
 					var bValidPlatformsOnly = false;
 					var bSpecificModulesOnly = false;
+					var bIgnoreJunk = false;
 
 					// We need to be able to identify if one of the arguments is the platform...
 					// Leverage the existing parser function in UEBuildTarget to get this information.
@@ -766,6 +767,10 @@ namespace UnrealBuildTool
 						{
 							UEBuildConfiguration.bCompileSpeedTree = false;
 						}
+						else if (LowercaseArg == "-ignorejunk")
+						{
+							bIgnoreJunk = true;
+						}
 						else if (LowercaseArg == "-define")
 						{
 							// Skip -define
@@ -831,7 +836,7 @@ namespace UnrealBuildTool
 					ProjectFileGenerator.bGenerateProjectFiles = false;
 
 					// now that we know the available platforms, we can delete other platforms' junk. if we're only building specific modules from the editor, don't touch anything else (it may be in use).
-					if (!bSpecificModulesOnly)
+					if (!bSpecificModulesOnly && !bIgnoreJunk)
 					{
 						JunkDeleter.DeleteJunk();
 					}

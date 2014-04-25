@@ -1624,12 +1624,16 @@ namespace UnrealBuildTool
 
 						// @todo: Remove target platform param and merge Mac and iOS targets. For now BuildTarget knows how to build iOS, but cannot run iOS apps, so we need separate DeployTarget.
 						bool bIsMacOnly = !SupportedPlatforms.Contains(UnrealTargetPlatform.IOS);
+
 						XcodeProjectTarget BuildTarget = new XcodeProjectTarget(TargetName + " - Mac", TargetName, "Legacy", "", UnrealTargetPlatform.Mac, bIsMacOnly);
-						ProjectTargets.Add(BuildTarget);
+						if (!bGeneratingRunIOSProject)
+						{
+							ProjectTargets.Add(BuildTarget);
+						}
 
 						if (ProjectFilePlatform.HasFlag(XcodeProjectFilePlatform.iOS) && SupportedPlatforms.Contains(UnrealTargetPlatform.IOS))
 						{
-							if (bGeneratingRocketProjectFiles && TargetName == "UE4Game")
+							if ((bGeneratingRocketProjectFiles && TargetName == "UE4Game") || bGeneratingRunIOSProject)
 							{
 								// Generate Framework references.
 								List<XcodeFrameworkRef> FrameworkRefs = new List<XcodeFrameworkRef>();

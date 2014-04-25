@@ -824,7 +824,7 @@ namespace UnrealBuildTool
 					// generate the dummy project so signing works
 					if (Target.GameName == "UE4Game" || Target.GameName == "UE4Client" || Utils.IsFileUnderDirectory(Target.ProjectDirectory + "/" + Target.GameName + ".uproject", Path.GetFullPath("../..")))
 					{
-						UnrealBuildTool.GenerateProjectFiles (new XcodeProjectFileGenerator (), new string[] {"-platforms=IOS", "-NoIntellIsense"});
+						UnrealBuildTool.GenerateProjectFiles (new XcodeProjectFileGenerator (), new string[] {"-platforms=IOS", "-NoIntellIsense", "-iosdeployonly", "-ignorejunk"});
 						Project = Path.GetFullPath("../..") + "/UE4_IOS.xcodeproj";
 					}
 					else
