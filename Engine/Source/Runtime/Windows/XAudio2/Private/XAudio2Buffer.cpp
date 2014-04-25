@@ -326,13 +326,7 @@ FXAudio2SoundBuffer* FXAudio2SoundBuffer::CreateQueuedBuffer( FXAudio2Device* XA
 	// Prime the first two buffers and prepare the decompression
 	FSoundQualityInfo QualityInfo = { 0 };
 
-	const IAudioFormat* Format = NULL;
-	ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
-	if (TPM)
-	{
-		Format = TPM->FindAudioFormat(XAudio2Device->GetRuntimeFormat());
-	}
-	Buffer->DecompressionState = Format->CreateCompressedAudioInfo();
+	Buffer->DecompressionState = new FVorbisAudioInfo();
 
 	Wave->InitAudioResource(XAudio2Device->GetRuntimeFormat());
 

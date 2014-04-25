@@ -5,7 +5,6 @@
 #include "Engine.h"
 #include "IAudioFormat.h"
 #include "AudioDecompress.h"
-#include "TargetPlatform.h"
 
 /*------------------------------------------------------------------------------------
 	FSLESSoundBuffer.
@@ -52,13 +51,7 @@ FSLESSoundBuffer* FSLESSoundBuffer::CreateQueuedBuffer( FSLESAudioDevice* AudioD
 	// Prime the first two buffers and prepare the decompression
 	FSoundQualityInfo QualityInfo = { 0 };
 	
-	const IAudioFormat* Format = NULL;
-	ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
-	if (TPM)
-	{
-		Format = TPM->FindAudioFormat(AudioDevice->GetRuntimeFormat());
-	}
-	Buffer->DecompressionState = Format->CreateCompressedAudioInfo();
+	Buffer->DecompressionState = new FVorbisAudioInfo();
 
 	InWave->InitAudioResource( AudioDevice->GetRuntimeFormat() );
 	

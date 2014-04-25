@@ -14,7 +14,6 @@
 #include "CoreAudioEffects.h"
 #include "Engine.h"
 #include "IAudioFormat.h"
-#include "TargetPlatform.h"
 
 /*------------------------------------------------------------------------------------
  FCoreAudioSoundBuffer.
@@ -148,13 +147,7 @@ FCoreAudioSoundBuffer* FCoreAudioSoundBuffer::CreateQueuedBuffer( FCoreAudioDevi
 	// Prime the first two buffers and prepare the decompression
 	FSoundQualityInfo QualityInfo = { 0 };
 
-	const IAudioFormat* Format = NULL;
-	ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
-	if (TPM)
-	{
-		Format = TPM->FindAudioFormat(CoreAudioDevice->GetRuntimeFormat());
-	}
-	Buffer->DecompressionState = Format->CreateCompressedAudioInfo();
+	Buffer->DecompressionState = new FVorbisAudioInfo();
 	
 	Wave->InitAudioResource( CoreAudioDevice->GetRuntimeFormat() );
 	

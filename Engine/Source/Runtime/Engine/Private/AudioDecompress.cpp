@@ -541,13 +541,7 @@ void FOpusAudioInfo::ExpandFile(uint8* DstBuffer, struct FSoundQualityInfo* Qual
  */
 void FAsyncAudioDecompressWorker::DoWork( void )
 {
-	const IAudioFormat* Format = NULL;
-	ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
-	if (TPM)
-	{
-		Format = TPM->FindAudioFormat(GEngine->GetAudioDevice()->GetRuntimeFormat());
-	}
-	ICompressedAudioInfo* AudioInfo = Format->CreateCompressedAudioInfo();
+	ICompressedAudioInfo* AudioInfo = new FVorbisAudioInfo;
 	FSoundQualityInfo	QualityInfo = { 0 };
 
 	// Parse the audio header for the relevant information

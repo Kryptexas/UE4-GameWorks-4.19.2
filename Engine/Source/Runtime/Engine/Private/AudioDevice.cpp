@@ -2252,13 +2252,6 @@ void FAudioDevice::Precache(USoundWave* SoundWave, bool bSynchronous, bool bTrac
 		return;
 	}
 
-	const IAudioFormat* Format = NULL;
-	ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
-	if (TPM)
-	{
-		Format = TPM->FindAudioFormat(GetRuntimeFormat());
-	}
-
 	// calculate the decompression type
 	// @todo audio: maybe move this into SoundWave?
 	if( SoundWave->NumChannels == 0 )
@@ -2276,7 +2269,8 @@ void FAudioDevice::Precache(USoundWave* SoundWave, bool bSynchronous, bool bTrac
 		// Streaming data, created programmatically.
 		SoundWave->DecompressionType = DTYPE_Procedural;
 	}
-	else if (Format->HasCompressedAudioInfoClass())
+#if WITH_OGGVORBIS
+	else
 	{
 		const FSoundGroup& SoundGroup = GetDefault<USoundGroups>()->GetSoundGroup(SoundWave->SoundGroup);
 
@@ -2327,11 +2321,13 @@ void FAudioDevice::Precache(USoundWave* SoundWave, bool bSynchronous, bool bTrac
 			bTrackMemory = false;
 		}
 	}
+#else
 	else
 	{
 		// Preserve old behavior if there is no compressed audio info class for this audio format
 		SoundWave->DecompressionType = DTYPE_Native;
 	}
+#endif
 
 	if (bTrackMemory)
 	{
