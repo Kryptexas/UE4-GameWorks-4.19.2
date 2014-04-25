@@ -64,8 +64,10 @@ private:
 	// IMM Implementation
 	bool InitializeIMM();
 	void UpdateIMMProperty(HKL KeyboardLatoutHandle);
-	bool ShouldDrawCompositionString() const;
-	void UpdateWindowPositions(HIMC IMMContext);
+	bool ShouldDrawIMMCompositionString() const;
+	void UpdateIMMWindowPositions(HIMC IMMContext);
+	void BeginIMMComposition();
+	void EndIMMComposition();
 
 	// TSF Implementation
 	bool InitializeTSF();
