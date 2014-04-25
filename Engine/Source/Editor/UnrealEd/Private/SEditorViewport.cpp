@@ -440,7 +440,7 @@ void SEditorViewport::OnCycleCoordinateSystem()
 
 void SEditorViewport::HandleViewportStatsEnabled()
 {
-	if(Client.Get() == GCurrentLevelEditingViewportClient)
+	if(!GIsPlayInEditorWorld && Client.Get() == GCurrentLevelEditingViewportClient)
 	{
 		Client->SetShowStats( true );
 		Client->SetRealtime( true );
