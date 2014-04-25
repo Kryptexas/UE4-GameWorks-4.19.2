@@ -977,8 +977,8 @@ public:
 	  * Create a task and dispatch it when the prerequisites are complete
 	  * @param InTaskDelegate - delegate to execute when the prerequisites are complete
 	  * @param InTaskName - Name of task for debugging or analysis tools, must be static memory valid forever
-	  * @param InDesiredThread - Thread to run on
 	  * @param InPrerequisite - Handle for a single prerequisite for this task
+	  * @param InDesiredThread - Thread to run on
 	  * @return completion handle for the new task 
 	**/
 	static FGraphEventRef CreateAndDispatchWhenReady(const FDelegate& InTaskDeletegate, const TCHAR* InTaskName, const FGraphEventRef& InPrerequisite, ENamedThreads::Type InDesiredThread = ENamedThreads::AnyThread)
