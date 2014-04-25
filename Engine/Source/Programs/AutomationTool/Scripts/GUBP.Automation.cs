@@ -824,6 +824,11 @@ public class GUBP : BuildCommand
         {
             return base.Priority() - 2;
         }
+        public override int CISFrequencyQuantumShift(GUBP bp)
+        {
+            int Result = base.CISFrequencyQuantumShift(bp) + 1;
+            return Result;
+        }
         public override bool DeleteBuildProducts()
         {
             return true;
@@ -907,6 +912,11 @@ public class GUBP : BuildCommand
         public override string GetFullName()
         {
             return StaticGetFullName(HostPlatform, ProgramTarget);
+        }
+        public override int CISFrequencyQuantumShift(GUBP bp)
+        {
+            int Result = base.CISFrequencyQuantumShift(bp) + 1;
+            return Result;
         }
         public override float Priority()
         {
