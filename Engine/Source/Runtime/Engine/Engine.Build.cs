@@ -201,7 +201,8 @@ public class Engine : ModuleRules
 		{
 			AddThirdPartyPrivateStaticDependencies(Target, 
 				"UEOgg",
-				"Vorbis"
+				"Vorbis",
+				"libOpus"
 				);
 		}
 
@@ -219,7 +220,8 @@ public class Engine : ModuleRules
 			AddThirdPartyPrivateStaticDependencies(Target,
 				"UEOgg",
 				"Vorbis",
-				"VorbisFile"
+				"VorbisFile",
+				"libOpus"
 				);
 		}
 
