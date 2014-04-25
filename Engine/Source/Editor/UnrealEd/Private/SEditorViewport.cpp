@@ -39,15 +39,15 @@ void SEditorViewport::Construct( const FArguments& InArgs )
 			.ShowEffectWhenDisabled( false )
 			.EnableGammaCorrection( false ) // Scene rendering handles this
 			[
-				SNew( SBorder )
-				.BorderImage( this, &SEditorViewport::OnGetViewportBorderBrush )
-				.BorderBackgroundColor( this, &SEditorViewport::OnGetViewportBorderColorAndOpacity )
-				.Visibility( this, &SEditorViewport::OnGetViewportContentVisibility )
-				.Padding(0.0f)
-				.ShowEffectWhenDisabled( false )
+				SAssignNew( ViewportOverlay, SOverlay )
+				+SOverlay::Slot()
 				[
-					SAssignNew( ViewportOverlay, SOverlay )
-			
+					SNew( SBorder )
+					.BorderImage( this, &SEditorViewport::OnGetViewportBorderBrush )
+					.BorderBackgroundColor( this, &SEditorViewport::OnGetViewportBorderColorAndOpacity )
+					.Visibility( this, &SEditorViewport::OnGetViewportContentVisibility )
+					.Padding(0.0f)
+					.ShowEffectWhenDisabled( false )
 				]
 			]
 		]
