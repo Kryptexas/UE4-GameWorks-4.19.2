@@ -293,6 +293,7 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 	glGetObjectLabelEXT = (PFNGLGETOBJECTLABELEXTPROC)((void*)eglGetProcAddress("glGetObjectLabelEXT"));
 
 	bSupportsETC2 = bES30Support;
+	bUseES30ShadingLanguage = bES30Support;
 
 	// Attempt to find ES 3.0 glTexStorage2D if we're on an Adreno device that supports it.
 	if( FString(ANSI_TO_TCHAR((const ANSICHAR*)glGetString(GL_RENDERER))).Contains(TEXT("Adreno")) )
@@ -301,10 +302,6 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 		if( glTexStorage2D != NULL )
 		{
 			bUseAdrenoHalfFloatTexStorage = true;
-			if( bES30Support )
-			{
-				bUseES30ShadingLanguage = true;
-			}
 		}
 		else
 		{
