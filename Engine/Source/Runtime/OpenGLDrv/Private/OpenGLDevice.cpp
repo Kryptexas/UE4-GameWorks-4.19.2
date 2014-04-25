@@ -789,18 +789,6 @@ FOpenGLDynamicRHI::FOpenGLDynamicRHI()
 
 extern void DestroyShadersAndPrograms();
 
-FOpenGLDynamicRHI::~FOpenGLDynamicRHI()
-{
-	check(IsInGameThread() && IsInRenderingThread()); // require that the render thread has been shut down
-
-	Cleanup();
-
-	DestroyShadersAndPrograms();
-	PlatformDestroyOpenGLDevice(PlatformDevice);
-
-	PrivateOpenGLDevicePtr = NULL;
-}
-
 void FOpenGLDynamicRHI::Init()
 {
 	check(!GIsRHIInitialized);
@@ -838,6 +826,18 @@ void FOpenGLDynamicRHI::Init()
 
 	// Set the RHI initialized flag.
 	GIsRHIInitialized = true;
+}
+
+void FOpenGLDynamicRHI::Shutdown()
+{
+	check(IsInGameThread() && IsInRenderingThread()); // require that the render thread has been shut down
+
+	Cleanup();
+
+	DestroyShadersAndPrograms();
+	PlatformDestroyOpenGLDevice(PlatformDevice);
+
+	PrivateOpenGLDevicePtr = NULL;
 }
 
 void FOpenGLDynamicRHI::Cleanup()

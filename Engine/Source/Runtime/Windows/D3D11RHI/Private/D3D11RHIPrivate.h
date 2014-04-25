@@ -312,13 +312,14 @@ public:
 	FD3D11DynamicRHI(IDXGIFactory* InDXGIFactory,D3D_FEATURE_LEVEL InFeatureLevel,int32 InChosenAdapter);
 
 	/** Destructor */
-	virtual ~FD3D11DynamicRHI();
+	virtual ~FD3D11DynamicRHI() {}
 
 	/** If it hasn't been initialized yet, initializes the D3D device. */
 	virtual void InitD3DDevice();
 
 	// FDynamicRHI interface.
 	virtual void Init() OVERRIDE;
+	virtual void Shutdown() OVERRIDE;
 	virtual void PushEvent(const TCHAR* Name) OVERRIDE { GPUProfilingData.PushEvent(Name); }
 	virtual void PopEvent() OVERRIDE { GPUProfilingData.PopEvent(); }
 

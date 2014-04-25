@@ -26,11 +26,12 @@ public:
 	FEmptyDynamicRHI();
 
 	/** Destructor */
-	~FEmptyDynamicRHI();
+	~FEmptyDynamicRHI() {}
 
 
 	// FDynamicRHI interface.
 	virtual void Init();
+	virtual void Shutdown();
 	virtual void PushEvent(const TCHAR* Name);
 	virtual void PopEvent();
 

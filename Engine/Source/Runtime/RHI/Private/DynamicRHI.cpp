@@ -76,6 +76,7 @@ void RHIExit()
 	if ( !GUsingNullRHI )
 	{
 		// Destruct the dynamic RHI.
+		GDynamicRHI->Shutdown();
 		delete GDynamicRHI;
 		GDynamicRHI = NULL;
 	}

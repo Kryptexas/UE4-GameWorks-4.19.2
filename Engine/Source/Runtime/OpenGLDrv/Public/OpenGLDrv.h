@@ -292,10 +292,11 @@ public:
 	FOpenGLDynamicRHI();
 
 	/** Destructor */
-	~FOpenGLDynamicRHI();
+	~FOpenGLDynamicRHI() {}
 
 	// FDynamicRHI interface.
 	virtual void Init();
+	virtual void Shutdown();
 
 	virtual void PushEvent(const TCHAR* Name);
 	virtual void PopEvent();
