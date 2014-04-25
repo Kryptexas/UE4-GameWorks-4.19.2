@@ -70,6 +70,23 @@ public:
 	 */
 	UNREALED_API static FString ResolveImportFilename(const FString& InRelativePath, const UObject* Obj);
 
+	/**
+	 * Gets the delegate that's fired prior to reimporting an asset
+	 *
+	 * @return The event delegate.
+	 */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FPreReimportNotification, UObject*);
+	FPreReimportNotification& OnPreReimport(){ return PreReimport; }
+
+	/**
+	 * Gets the delegate that's fired after to reimporting an asset
+	 *
+	 * @param Whether the reimport was a success
+	 * @return The event delegate.
+	 */
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FPostReimportNotification, UObject*, bool);
+	FPostReimportNotification& OnPostReimport(){ return PostReimport; }
+
 private:
 	/** Opens a file dialog to request a new reimport path */
 	void GetNewReimportPath(UObject* Obj, TArray<FString>& InOutFilenames);
@@ -77,6 +94,12 @@ private:
 private:
 	/** Reimport handlers registered with this manager */
 	TArray<FReimportHandler*> Handlers;
+
+	/** Delegate to call before the asset is reimported */
+	FPreReimportNotification PreReimport;
+
+	/** Delegate to call after the asset is reimported */
+	FPostReimportNotification PostReimport;
 
 	/** Constructor */
 	FReimportManager();

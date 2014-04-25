@@ -127,23 +127,6 @@ public:
 	/** True if this actually is editing an asset */
 	bool IsActuallyAnAsset() const;
 
-	/**
-	 * Gets the delegate that's fired prior to reimporting an asset
-	 *
-	 * @return The event delegate.
-	 */
-	DECLARE_MULTICAST_DELEGATE_OneParam(FPreReimportNotification, UObject*);
-	FPreReimportNotification& OnPreReimport(){ return PreReimport; }
-
-	/**
-	 * Gets the delegate that's fired after to reimporting an asset
-	 *
-	 * @param Whether the reimport was a success
-	 * @return The event delegate.
-	 */
-	DECLARE_MULTICAST_DELEGATE_TwoParams(FPostReimportNotification, UObject*, bool);
-	FPostReimportNotification& OnPostReimport(){ return PostReimport; }
-
 protected:
 
 	/**	Returns the single object currently being edited. Asserts if currently editing no object or multiple objects */
@@ -243,12 +226,6 @@ private:
 
 	/** Whether the buttons on the default toolbar can receive keyboard focus */
 	bool bIsToolbarFocusable;
-
-	/** Delegate to call before the asset is reimported */
-	FPreReimportNotification PreReimport;
-
-	/** Delegate to call after the asset is reimported */
-	FPostReimportNotification PostReimport;
 
 	/**	The tab ids for all the tabs used */
 	static const FName ToolbarTabId;

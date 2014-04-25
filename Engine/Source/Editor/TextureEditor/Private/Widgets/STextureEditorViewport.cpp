@@ -28,6 +28,7 @@ void STextureEditorViewport::AddReferencedObjects( FReferenceCollector& Collecto
 void STextureEditorViewport::Construct( const FArguments& InArgs, const TSharedRef<ITextureEditorToolkit>& InToolkit )
 {
 	ExposureBias = 0;
+	bIsRenderingEnabled = true;
 	ToolkitPtr = InToolkit;
 	
 	// create zoom menu
@@ -247,6 +248,15 @@ void STextureEditorViewport::ModifyCheckerboardTextureColors( )
 	}
 }
 
+void STextureEditorViewport::EnableRendering()
+{
+	bIsRenderingEnabled = true;
+}
+
+void STextureEditorViewport::DisableRendering()
+{
+	bIsRenderingEnabled = false;
+}
 
 TSharedPtr<FSceneViewport> STextureEditorViewport::GetViewport( ) const
 {
@@ -274,8 +284,11 @@ TSharedPtr<SScrollBar> STextureEditorViewport::GetHorizontalScrollBar( ) const
 
 void STextureEditorViewport::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
-	Viewport->Invalidate();
-	Viewport->InvalidateDisplay();
+	if (bIsRenderingEnabled)
+	{
+		Viewport->Invalidate();
+		Viewport->InvalidateDisplay();
+	}
 }
 
 

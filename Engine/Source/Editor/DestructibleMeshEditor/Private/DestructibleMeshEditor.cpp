@@ -35,7 +35,7 @@ void FDestructibleMeshEditorCommands::RegisterCommands()
 
 FDestructibleMeshEditor::~FDestructibleMeshEditor()
 {
-	FAssetEditorToolkit::OnPostReimport().RemoveAll(this);
+	FReimportManager::Instance()->OnPostReimport().RemoveAll(this);
 
 	GEditor->OnObjectReimported().RemoveAll(this);
 }
@@ -75,7 +75,7 @@ void FDestructibleMeshEditor::UnregisterTabSpawners(const TSharedRef<class FTabM
 
 void FDestructibleMeshEditor::InitDestructibleMeshEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UDestructibleMesh* InDestructibleMesh )
 {
-	FAssetEditorToolkit::OnPostReimport().AddRaw(this, &FDestructibleMeshEditor::OnPostReimport);
+	FReimportManager::Instance()->OnPostReimport().AddRaw(this, &FDestructibleMeshEditor::OnPostReimport);
 
 	// Register our commands. This will only register them if not previously registered
 	FDestructibleMeshEditorCommands::Register();

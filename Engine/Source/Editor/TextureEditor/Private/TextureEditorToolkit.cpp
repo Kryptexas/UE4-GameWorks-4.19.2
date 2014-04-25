@@ -28,8 +28,8 @@ const FName FTextureEditorToolkit::PropertiesTabId(TEXT("TextureEditor_Propertie
 
 FTextureEditorToolkit::~FTextureEditorToolkit( )
 {
-	FAssetEditorToolkit::OnPreReimport().RemoveAll(this);
-	FAssetEditorToolkit::OnPostReimport().RemoveAll(this);
+	FReimportManager::Instance()->OnPreReimport().RemoveAll(this);
+	FReimportManager::Instance()->OnPostReimport().RemoveAll(this);
 
 	GEditor->UnregisterForUndo(this);
 }
@@ -65,8 +65,8 @@ void FTextureEditorToolkit::UnregisterTabSpawners( const TSharedRef<class FTabMa
 
 void FTextureEditorToolkit::InitTextureEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UObject* ObjectToEdit )
 {
-	FAssetEditorToolkit::OnPreReimport().AddRaw(this, &FTextureEditorToolkit::OnPreReimport);
-	FAssetEditorToolkit::OnPostReimport().AddRaw(this, &FTextureEditorToolkit::OnPostReimport);
+	FReimportManager::Instance()->OnPreReimport().AddRaw(this, &FTextureEditorToolkit::OnPreReimport);
+	FReimportManager::Instance()->OnPostReimport().AddRaw(this, &FTextureEditorToolkit::OnPostReimport);
 
 	Texture = CastChecked<UTexture>(ObjectToEdit);
 
@@ -827,6 +827,9 @@ void FTextureEditorToolkit::OnPreReimport(UObject* InObject)
 	}
 
 	Texture->SourceFileTimestamp = TimeStamp.ToString();
+
+	// Disable viewport rendering until the texture has finished re-importing
+	TextureViewport->DisableRendering();
 }
 
 
@@ -843,6 +846,9 @@ void FTextureEditorToolkit::OnPostReimport(UObject* InObject, bool bSuccess)
 		// Failed, restore the compression flag
 		Texture->DeferCompression = SavedCompressionSetting;
 	}
+
+	// Re-enable viewport rendering now that the texture should be in a known state again
+	TextureViewport->EnableRendering();
 }
 
 

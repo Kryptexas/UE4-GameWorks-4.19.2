@@ -440,7 +440,7 @@ FPersona::FPersona()
 
 FPersona::~FPersona()
 {
-	FAssetEditorToolkit::OnPostReimport().RemoveAll(this);
+	FReimportManager::Instance()->OnPostReimport().RemoveAll(this);
 
 	FPersonaModule* PersonaModule = &FModuleManager::LoadModuleChecked<FPersonaModule>( "Persona" );
 	PersonaModule->GetMenuExtensibilityManager()->RemoveExtender(PersonaMenuExtender);
@@ -664,7 +664,7 @@ UObject* FPersona::GetAnimBlueprintAsObject() const
 
 void FPersona::InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, USkeleton* InitSkeleton, UAnimBlueprint* InitAnimBlueprint, UAnimationAsset* InitAnimationAsset, class USkeletalMesh * InitMesh)
 {
-	FAssetEditorToolkit::OnPostReimport().AddRaw(this, &FPersona::OnPostReimport);
+	FReimportManager::Instance()->OnPostReimport().AddRaw(this, &FPersona::OnPostReimport);
 
 	AssetDirtyBrush = FEditorStyle::GetBrush("ContentBrowser.ContentDirty");
 

@@ -46,6 +46,12 @@ public:
 		return ExposureBias;
 	}
 
+	/** Enable viewport rendering */
+	void EnableRendering();
+
+	/** Disable viewport rendering */
+	void DisableRendering();
+
 	TSharedPtr<FSceneViewport> GetViewport( ) const;
 	TSharedPtr<SViewport> GetViewportWidget( ) const;
 	TSharedPtr<SScrollBar> GetVerticalScrollBar( ) const;
@@ -127,4 +133,7 @@ private:
 
 	// Horizontal scrollbar.
 	TSharedPtr<SScrollBar> TextureViewportHorizontalScrollBar;
+
+	// Is rendering currently enabled? (disabled when reimporting a texture)
+	bool bIsRenderingEnabled;
 };

@@ -2469,6 +2469,9 @@ bool FReimportManager::CanReimport( UObject* Obj ) const
 
 bool FReimportManager::Reimport( UObject* Obj, bool bAskForNewFileIfMissing )
 {
+	// Warn that were about to reimport, so prep for it
+	PreReimport.Broadcast( Obj );
+
 	bool bSuccess = false;
 	if ( Obj )
 	{
@@ -2589,6 +2592,9 @@ bool FReimportManager::Reimport( UObject* Obj, bool bAskForNewFileIfMissing )
 			}
 		}
 	}
+
+	// Let listeners know whether the reimport was successful or not
+	PostReimport.Broadcast( Obj, bSuccess );
 
 	return bSuccess;
 }
