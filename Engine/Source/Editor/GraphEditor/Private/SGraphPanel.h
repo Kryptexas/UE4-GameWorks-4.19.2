@@ -4,7 +4,7 @@
 
 #include "GraphEditor.h"
 
-class SGraphPanel;
+struct FGraphPinHandle;
 class SGraphNode;
 class SGraphPin;
 class UEdGraphNode;
@@ -135,6 +135,14 @@ public:
 	/** Pin marked via shift-clicking */
 	TWeakPtr<SGraphPin> MarkedPin;
 
+	/** Get a graph node widget from the specified GUID, if it applies to any nodes in this graph */
+	TSharedPtr<SGraphNode> GetNodeWidgetFromGuid(FGuid Guid) const;
+
+private:
+
+	/** A map of guid -> graph nodes */
+	TMap<FGuid, TWeakPtr<SGraphNode>> NodeGuidMap;
+
 protected:
 	UEdGraph* GraphObj;
 	UEdGraph* GraphObjToDiff;//if it exists, this is 
@@ -156,7 +164,7 @@ protected:
 	double TimeSinceMouseLeftPin;
 
 	/** Sometimes the panel draws a preview connector; e.g. when the user is connecting pins */
-	TArray< TSharedPtr<SGraphPin> > PreviewConnectorFromPins;
+	TArray< FGraphPinHandle > PreviewConnectorFromPins;
 	FVector2D PreviewConnectorEndpoint;
 
 	/** Invoked when we need to summon a context menu */
