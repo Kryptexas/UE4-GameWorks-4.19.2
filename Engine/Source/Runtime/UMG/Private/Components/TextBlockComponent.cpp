@@ -10,6 +10,8 @@
 UTextBlockComponent::UTextBlockComponent(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	bIsVariable = false;
+
 	Text = LOCTEXT("TextBlockDefaultValue", "Text Block");
 	ShadowOffset = FVector2D(1.0f, 1.0f);
 	ColorAndOpacity = FLinearColor::White;

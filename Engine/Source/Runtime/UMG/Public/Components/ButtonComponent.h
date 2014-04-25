@@ -4,7 +4,7 @@
 
 #include "ButtonComponent.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE( FOnButtonComponentClicked );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnButtonClickedEvent);
 
 DECLARE_DYNAMIC_DELEGATE_RetVal( FText, FOnGetText );
 
@@ -61,7 +61,7 @@ public:
 
 	/** Called when the button is clicked */
 	UPROPERTY(BlueprintAssignable)
-	FOnButtonComponentClicked OnClicked;
+	FOnButtonClickedEvent OnClicked;
 
 	/** Called when the controller has instigated damage in any way */
 	UPROPERTY(BlueprintReadWrite, Category=Appearance)

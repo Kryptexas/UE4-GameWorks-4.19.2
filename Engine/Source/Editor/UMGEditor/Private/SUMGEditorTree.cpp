@@ -150,10 +150,6 @@ void SUMGEditorTree::WidgetHierarchy_OnSelectionChanged(USlateWrapperComponent* 
 
 FReply SUMGEditorTree::CreateTestUI()
 {
-	//TSharedRef<ISCSEditor> SCSEditor = BlueprintEditor.Pin()->GetSCSEditorModel();
-	//UCanvasPanelComponent* Canvas = Cast<UCanvasPanelComponent>(SCSEditor->AddNewComponent(UCanvasPanelComponent::StaticClass(), NULL));
-	//UButtonComponent* Button = Cast<UButtonComponent>(SCSEditor->AddNewComponent(UButtonComponent::StaticClass(), NULL));
-
 	UWidgetBlueprint* BP = GetBlueprint();
 	TArray<USlateWrapperComponent*>& WidgetTemplates = BP->WidgetTree->WidgetTemplates;
 
@@ -161,38 +157,27 @@ FReply SUMGEditorTree::CreateTestUI()
 	{
 		UVerticalBoxComponent* Vertical = CastChecked<UVerticalBoxComponent>(WidgetTemplates[2]);
 
-		UButtonComponent* NewButton = ConstructObject<UButtonComponent>(UButtonComponent::StaticClass(), BP->WidgetTree);
+		UButtonComponent* NewButton = BP->WidgetTree->ConstructWidget<UButtonComponent>(UButtonComponent::StaticClass());
 		NewButton->ButtonText = FText::FromString("New Button");
 
 		Vertical->AddChild(NewButton);
-
-		WidgetTemplates.Add(NewButton);
 	}
 	else
 	{
-		UCanvasPanelComponent* Canvas = ConstructObject<UCanvasPanelComponent>(UCanvasPanelComponent::StaticClass(), BP->WidgetTree);
-		UBorderComponent* Border = ConstructObject<UBorderComponent>(UBorderComponent::StaticClass(), BP->WidgetTree);
-		UVerticalBoxComponent* Vertical = ConstructObject<UVerticalBoxComponent>(UVerticalBoxComponent::StaticClass(), BP->WidgetTree);
-		UButtonComponent* Button1 = ConstructObject<UButtonComponent>(UButtonComponent::StaticClass(), BP->WidgetTree);
+		UCanvasPanelComponent* Canvas = BP->WidgetTree->ConstructWidget<UCanvasPanelComponent>(UCanvasPanelComponent::StaticClass());
+		UBorderComponent* Border = BP->WidgetTree->ConstructWidget<UBorderComponent>(UBorderComponent::StaticClass());
+		UVerticalBoxComponent* Vertical = BP->WidgetTree->ConstructWidget<UVerticalBoxComponent>(UVerticalBoxComponent::StaticClass());
+		UButtonComponent* Button1 = BP->WidgetTree->ConstructWidget<UButtonComponent>(UButtonComponent::StaticClass());
 		Button1->ButtonText = FText::FromString("Button 1");
-		UButtonComponent* Button2 = ConstructObject<UButtonComponent>(UButtonComponent::StaticClass(), BP->WidgetTree);
+		UButtonComponent* Button2 = BP->WidgetTree->ConstructWidget<UButtonComponent>(UButtonComponent::StaticClass());
 		Button2->ButtonText = FText::FromString("Button 2");
-		UButtonComponent* Button3 = ConstructObject<UButtonComponent>(UButtonComponent::StaticClass(), BP->WidgetTree);
+		UButtonComponent* Button3 = BP->WidgetTree->ConstructWidget<UButtonComponent>(UButtonComponent::StaticClass());
 		Button3->ButtonText = FText::FromString("Button 3");
-		UButtonComponent* Button4 = ConstructObject<UButtonComponent>(UButtonComponent::StaticClass(), BP->WidgetTree);
+		UButtonComponent* Button4 = BP->WidgetTree->ConstructWidget<UButtonComponent>(UButtonComponent::StaticClass());
 
-		UTextBlockComponent* Text1 = ConstructObject<UTextBlockComponent>(UTextBlockComponent::StaticClass(), BP->WidgetTree);
+		UTextBlockComponent* Text1 = BP->WidgetTree->ConstructWidget<UTextBlockComponent>(UTextBlockComponent::StaticClass());
 		Text1->Text = FText::FromString(TEXT("Button!"));
 		Button4->SetContent(Text1);
-
-		WidgetTemplates.Add(Canvas);
-		WidgetTemplates.Add(Border);
-		WidgetTemplates.Add(Vertical);
-		WidgetTemplates.Add(Button1);
-		WidgetTemplates.Add(Button2);
-		WidgetTemplates.Add(Button3);
-		WidgetTemplates.Add(Button4);
-		WidgetTemplates.Add(Text1);
 
 		UCanvasPanelSlot* Slot = Canvas->AddSlot(Border);
 		Slot->Size.X = 200;

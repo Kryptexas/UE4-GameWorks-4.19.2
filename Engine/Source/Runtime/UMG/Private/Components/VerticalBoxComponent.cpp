@@ -8,6 +8,7 @@
 UVerticalBoxComponent::UVerticalBoxComponent(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	bIsVariable = false;
 }
 
 int32 UVerticalBoxComponent::GetChildrenCount() const

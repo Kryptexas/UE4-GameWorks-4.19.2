@@ -11,6 +11,12 @@ class UMG_API USlateWrapperComponent : public UActorComponent
 {
 	GENERATED_UCLASS_BODY()
 
+	UPROPERTY(EditAnywhere, Category=Variable)
+	FString Name;
+
+	UPROPERTY(EditAnywhere, Category=Variable)
+	bool bIsVariable;
+
 #if WITH_EDITOR
 	UPROPERTY(Transient, EditInline, EditAnywhere, BlueprintReadWrite, Category=Layout, meta=( ShowOnlyInnerProperties ))
 	UPanelSlot* Slot;
@@ -35,6 +41,12 @@ class UMG_API USlateWrapperComponent : public UActorComponent
 
 #if WITH_EDITOR
 	virtual void ConnectEditorData() { }
+#endif
+
+#if WITH_EDITOR
+	// UObject interface
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	// End of UObject interface
 #endif
 
 	// Utility methods

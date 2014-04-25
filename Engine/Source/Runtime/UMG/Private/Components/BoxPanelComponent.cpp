@@ -105,6 +105,7 @@ protected:
 UBoxPanelComponent::UBoxPanelComponent(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	bIsVariable = false;
 }
 
 TSharedRef<SWidget> UBoxPanelComponent::RebuildWidget()

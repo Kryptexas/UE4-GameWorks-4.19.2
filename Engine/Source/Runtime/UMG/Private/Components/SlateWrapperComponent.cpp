@@ -9,6 +9,7 @@ USlateWrapperComponent::USlateWrapperComponent(const FPostConstructInitializePro
 	: Super(PCIP)
 {
 	bIsEnabled = true;
+	bIsVariable = true;
 }
 
 bool USlateWrapperComponent::GetIsEnabled() const
@@ -34,6 +35,11 @@ void USlateWrapperComponent::OnUnregister()
 {
 	MyWidget = NULL;
 	Super::OnUnregister();
+}
+
+void USlateWrapperComponent::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+{
+	// TODO Rename?
 }
 
 TSharedRef<SWidget> USlateWrapperComponent::GetWidget()

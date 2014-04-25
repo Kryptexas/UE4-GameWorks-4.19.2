@@ -13,7 +13,7 @@ UImageComponent::UImageComponent(const FPostConstructInitializeProperties& PCIP)
 	, ColorAndOpacity(FLinearColor::White)
 {
 	//@TODO: Would like to default to the checkerboard, but TextureName always wins over TextureObject :(
-//	Image = *FEditorStyle::GetDefaultBrush();
+	//	Image = *FEditorStyle::GetDefaultBrush();
 }
 
 TSharedRef<SWidget> UImageComponent::RebuildWidget()

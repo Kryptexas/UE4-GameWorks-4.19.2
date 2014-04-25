@@ -11,6 +11,7 @@ USpacerComponent::USpacerComponent(const FPostConstructInitializeProperties& PCI
 	: Super(PCIP)
 	, Size(1.0f, 1.0f)
 {
+	bIsVariable = false;
 }
 
 TSharedRef<SWidget> USpacerComponent::RebuildWidget()

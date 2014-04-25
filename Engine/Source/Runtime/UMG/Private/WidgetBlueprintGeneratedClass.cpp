@@ -26,8 +26,8 @@ void UWidgetBlueprintGeneratedClass::CreateComponentsForActor(AActor* Actor) con
 	UWidgetTree* ClonedTree = CastChecked<UWidgetTree>(StaticDuplicateObjectEx(Parameters));
 
 	AUserWidget* WidgetActor = CastChecked<AUserWidget>(Actor);
+	UClass* ActorClass = Actor->GetClass();
 
-	int32 i = 0;
 	for ( USlateWrapperComponent* Widget : ClonedTree->WidgetTemplates )
 	{
 		// Not fatal if NULL, but shouldn't happen
@@ -38,23 +38,13 @@ void UWidgetBlueprintGeneratedClass::CreateComponentsForActor(AActor* Actor) con
 
 		FName NewName = *( FString::Printf(TEXT("WidgetComponent__%d"), Actor->SerializedComponents.Num()) );
 
-		////Serialize object properties using write/read operations.
-		//TArray<uint8> SavedProperties;
-		//FObjectWriter Writer(ComponentTemplate, SavedProperties);
-		//FObjectReader(ClonedComponent, SavedProperties);
+		FString VariableName = Widget->GetName();
 
-
-		FString VariableName = Widget->GetClass()->GetName() + TEXT("_") + FString::FromInt(i);
-
-
-		//USlateWrapperComponent* Widget = ConstructObject<USlateWrapperComponent>(Template->GetClass(), Actor, NewName);
 		Widget->bCreatedByConstructionScript = true; // Indicate it comes from a blueprint so it gets cleared when we rerun construction scripts
 		Actor->SerializedComponents.Add(Widget); // Add to array so it gets saved
 		Widget->SetNetAddressable();	// This component has a stable name that can be referenced for replication
 
 		// Find property with the same name as the template and assign the new Timeline to it
-		UClass* ActorClass = Actor->GetClass();
-		//UTimelineTemplate::TimelineTemplateNameToVariableName(Template->GetFName())
 		UObjectPropertyBase* Prop = FindField<UObjectPropertyBase>(ActorClass, *VariableName);
 		if ( Prop )
 		{

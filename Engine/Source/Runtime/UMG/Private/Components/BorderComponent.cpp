@@ -10,6 +10,8 @@
 UBorderComponent::UBorderComponent(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	bIsVariable = false;
+
 	SBorder::FArguments BorderDefaults;
 
 	HorizontalAlignment = BorderDefaults._HAlign;

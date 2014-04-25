@@ -4,6 +4,9 @@
 
 #include "EditableTextBlockComponent.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEditableTextBlock_TextChangedEvent, const FText&, Text);
+//DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnEditableTextBlock_TextCommittedEvent, const FText&, Text, ETextCommit::Type, Type);
+
 /** Editable text box widget */
 UCLASS(meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
 class UMG_API UEditableTextBlockComponent : public USlateWrapperComponent
@@ -73,10 +76,12 @@ protected:
 	bool SelectAllTextOnCommit;
 
 	/** Called whenever the text is changed interactively by the user */
-	//SLATE_EVENT(FOnTextChanged, OnTextChanged)
+	UPROPERTY(BlueprintAssignable)
+	FOnEditableTextBlock_TextChangedEvent OnTextChanged;
 
-	/** Called whenever the text is committed.  This happens when the user presses enter or the text box loses focus. */
-	//SLATE_EVENT(FOnTextCommitted, OnTextCommitted)
+	/** Called whenever the text is committed.  This happens when the user presses enter or the text box loses focus. *///
+	//UPROPERTY(BlueprintAssignable)
+	//FOnTextCommittedEvent OnTextCommitted;
 
 	/** Provide a alternative mechanism for error reporting. */
 	//SLATE_ARGUMENT(TSharedPtr<class IErrorReportingWidget>, ErrorReporting)
@@ -85,4 +90,6 @@ protected:
 	// USlateWrapperComponent interface
 	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;
 	// End of USlateWrapperComponent
+
+	void SlateOnTextChanged(const FText& Text);
 };

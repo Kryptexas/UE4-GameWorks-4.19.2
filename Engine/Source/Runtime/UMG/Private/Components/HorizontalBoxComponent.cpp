@@ -8,6 +8,7 @@
 UHorizontalBoxComponent::UHorizontalBoxComponent(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	bIsVariable = false;
 }
 
 int32 UHorizontalBoxComponent::GetChildrenCount() const

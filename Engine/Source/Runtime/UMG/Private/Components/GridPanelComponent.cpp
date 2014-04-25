@@ -8,6 +8,7 @@
 UGridPanelComponent::UGridPanelComponent(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	bIsVariable = false;
 }
 
 TSharedRef<SWidget> UGridPanelComponent::RebuildWidget()

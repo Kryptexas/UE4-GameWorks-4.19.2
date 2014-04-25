@@ -84,10 +84,15 @@ void FWidgetBlueprintCompiler::CreateClassVariablesFromBlueprint()
 
 	ValidateWidgetNames();
 
-	int32 i = 0;
 	for ( USlateWrapperComponent* Widget : Blueprint->WidgetTree->WidgetTemplates )
 	{
-		FString VariableName = Widget->GetClass()->GetName() + TEXT("_") + FString::FromInt(i);
+		// Skip non-variable widgets
+		if ( !Widget->bIsVariable )
+		{
+			continue;
+		}
+
+		FString VariableName = Widget->GetName();
 
 		FEdGraphPinType WidgetPinType(Schema->PC_Object, TEXT(""), Widget->GetClass(), false, false);
 		UProperty* WidgetProperty = CreateVariable(FName(*VariableName), WidgetPinType);
@@ -98,8 +103,6 @@ void FWidgetBlueprintCompiler::CreateClassVariablesFromBlueprint()
 
 			WidgetToMemberVariableMap.Add(Widget, WidgetProperty);
 		}
-
-		i++;
 	}
 }
 

@@ -49,7 +49,14 @@ TSharedRef<SWidget> UEditableTextBlockComponent::RebuildWidget()
 		.SelectAllTextWhenFocused(SelectAllTextWhenFocused)
 		.RevertTextOnEscape(RevertTextOnEscape)
 		.ClearKeyboardFocusOnCommit(ClearKeyboardFocusOnCommit)
-		.SelectAllTextOnCommit(SelectAllTextOnCommit);
+		.SelectAllTextOnCommit(SelectAllTextOnCommit)
+		.OnTextChanged(BIND_UOBJECT_DELEGATE(FOnTextChanged, SlateOnTextChanged))
+		;
+}
+
+void UEditableTextBlockComponent::SlateOnTextChanged(const FText& Text)
+{
+	OnTextChanged.Broadcast(Text);
 }
 
 /////////////////////////////////////////////////////

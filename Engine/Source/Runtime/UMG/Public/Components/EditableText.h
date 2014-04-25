@@ -4,6 +4,9 @@
 
 #include "EditableText.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEditableTextChangedEvent, const FText&, Text);
+//DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnEditableTextCommittedEvent, const FText&, Text, ETextCommit::Type, Type);
+
 /** Editable text box widget */
 UCLASS(meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
 class UMG_API UEditableText : public USlateWrapperComponent
@@ -76,8 +79,18 @@ protected:
 	///** Image brush used for the caret (overrides Style) */
 	//SLATE_ATTRIBUTE(const FSlateBrush*, CaretImage)
 
+	/** Called whenever the text is changed interactively by the user */
+	UPROPERTY(BlueprintAssignable)
+	FOnEditableTextChangedEvent OnTextChanged;
+
+	/** Called whenever the text is committed.  This happens when the user presses enter or the text box loses focus. */
+	//UPROPERTY(BlueprintAssignable)
+	//FOnTextCommittedEvent OnTextCommitted;
+
 protected:
 	// USlateWrapperComponent interface
 	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;
 	// End of USlateWrapperComponent
+
+	void SlateOnTextChanged(const FText& Text);
 };

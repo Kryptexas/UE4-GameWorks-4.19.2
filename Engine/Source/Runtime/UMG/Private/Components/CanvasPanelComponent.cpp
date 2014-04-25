@@ -37,6 +37,7 @@ class SFixedSizeCanvas : public SCanvas
 UCanvasPanelComponent::UCanvasPanelComponent(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	bIsVariable = false;
 	DesiredCanvasSize = FVector2D(128.0f, 128.0f);
 }
 

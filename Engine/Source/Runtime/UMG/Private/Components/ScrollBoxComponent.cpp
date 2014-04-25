@@ -10,6 +10,7 @@
 UScrollBoxComponent::UScrollBoxComponent(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	bIsVariable = false;
 }
 
 TSharedRef<SWidget> UScrollBoxComponent::RebuildWidget()
