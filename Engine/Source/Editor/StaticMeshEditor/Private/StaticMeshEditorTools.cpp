@@ -447,17 +447,26 @@ void FMeshBuildSettingsLayout::OnUseFullPrecisionUVsChanged(ESlateCheckBoxState:
 
 void FMeshBuildSettingsLayout::OnBuildScaleXChanged( float NewScaleX, ETextCommit::Type TextCommitType )
 {
-	BuildSettings.BuildScale3D.X = NewScaleX;
+	if (!FMath::IsNearlyEqual(NewScaleX, 0.0f))
+	{
+		BuildSettings.BuildScale3D.X = NewScaleX;
+	}
 }
 
 void FMeshBuildSettingsLayout::OnBuildScaleYChanged( float NewScaleY, ETextCommit::Type TextCommitType )
 {
-	BuildSettings.BuildScale3D.Y = NewScaleY;
+	if (!FMath::IsNearlyEqual(NewScaleY, 0.0f))
+	{
+		BuildSettings.BuildScale3D.Y = NewScaleY;
+	}
 }
 
 void FMeshBuildSettingsLayout::OnBuildScaleZChanged( float NewScaleZ, ETextCommit::Type TextCommitType )
 {
-	BuildSettings.BuildScale3D.Z = NewScaleZ;
+	if (!FMath::IsNearlyEqual(NewScaleZ, 0.0f))
+	{
+		BuildSettings.BuildScale3D.Z = NewScaleZ;
+	}
 }
 
 FMeshReductionSettingsLayout::FMeshReductionSettingsLayout( TSharedRef<FLevelOfDetailSettingsLayout> InParentLODSettings )
