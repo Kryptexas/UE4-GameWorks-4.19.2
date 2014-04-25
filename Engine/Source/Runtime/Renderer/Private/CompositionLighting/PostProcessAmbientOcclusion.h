@@ -146,3 +146,18 @@ public:
 private:
 	FShaderParameter ScreenSpaceAOandSSRShaderParams;
 };
+
+/** Pixel shader parameters needed for screen space TemporalAA and SSAO passes. */
+class FCameraMotionParameters
+{
+public:
+
+	void Bind(const FShaderParameterMap& ParameterMap);
+
+	void Set(const FSceneView& View, const FPixelShaderRHIParamRef ShaderRHI) const;
+
+	friend FArchive& operator<<(FArchive& Ar, FCameraMotionParameters& This);
+
+private:
+	FShaderParameter CameraMotion;
+};
