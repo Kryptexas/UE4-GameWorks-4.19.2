@@ -954,18 +954,16 @@ FString FString::ReplaceQuotesWithEscapedQuotes() const
 	return *this;
 }
 
-#define MAX_SUPPORTED_ESCAPE_CHARS 3
+#define MAX_SUPPORTED_ESCAPE_CHARS 6
 
 static const TCHAR* CharToEscapeSeqMap[MAX_SUPPORTED_ESCAPE_CHARS][2] =
 {
 	{ TEXT("\n"), TEXT("\\n")  },
 	{ TEXT("\r"), TEXT("\\r")  },
-	{ TEXT("\t"), TEXT("\\t")  }
-
-	// these are currently disabled as the escaped backslash causes problems, the escaped ' and " cause too much churn in the inis
-// 	{ TEXT("\'"), TEXT("\\'")  },
-//	{ TEXT("\\"), TEXT("\\\\") },
-// 	{ TEXT("\""), TEXT("\\\"") }
+	{ TEXT("\t"), TEXT("\\t")  },
+	{ TEXT("\'"), TEXT("\\'")  },
+	{ TEXT("\\"), TEXT("\\\\") },
+	{ TEXT("\""), TEXT("\\\"") }
 };
 
 /**
