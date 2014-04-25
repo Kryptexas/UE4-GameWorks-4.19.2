@@ -1520,6 +1520,29 @@ public:
 private:
 
 	UObject* CreateExport( int32 Index );
+
+	/**
+	 * Creates export and preload if requested.
+	 *
+	 * @param Index Index of the export in export map.
+	 * @param bForcePreload Whether to explicitly call Preload (serialize)
+	 *        right away instead of being called from EndLoad().
+	 *
+	 * @return Created object.
+	 */
+	UObject* CreateExportAndPreload(int32 ExportIndex, bool bForcePreload = false);
+
+	/** 
+	 * Looks for and loads meta data object from export map.
+	 *
+	 * @param bForcePreload Whether to explicitly call Preload (serialize)
+	 *        right away instead of being called from EndLoad().
+	 * 
+	 * @return If found returns index of meta data object in the export map,
+	 *         INDEX_NONE otherwise.
+	 */
+	int32 LoadMetaDataFromExportMap(bool bForcePreload = false);
+
 	UObject* CreateImport( int32 Index );
 	UObject* IndexToObject( FPackageIndex Index );
 

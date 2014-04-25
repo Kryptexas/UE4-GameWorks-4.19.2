@@ -20,6 +20,4 @@ class USceneThumbnailInfoWithPrimitive : public USceneThumbnailInfo
 	/** The custom mesh used when the primitive type is TPT_None */
 	UPROPERTY()
 	FStringAssetReference PreviewMesh;
-
-	virtual void PostLoad() OVERRIDE;
 };

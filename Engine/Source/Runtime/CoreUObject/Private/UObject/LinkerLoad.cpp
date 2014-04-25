@@ -2421,6 +2421,51 @@ bool ULinkerLoad::VerifyImportInner(const int32 ImportIndex, FString& WarningSuf
 	return false;
 }
 
+UObject* ULinkerLoad::CreateExportAndPreload(int32 ExportIndex, bool bForcePreload /* = false */)
+{
+	UObject *Object = CreateExport(ExportIndex);
+	if (Object && (bForcePreload || (Cast<UClass>(Object) != NULL) || Object->IsTemplate() || (Cast<UObjectRedirector>(Object) != NULL)))
+	{
+		Preload(Object);
+	}
+
+	return Object;
+}
+
+int32 ULinkerLoad::LoadMetaDataFromExportMap(bool bForcePreload/* = false */)
+{
+	int32 MetaDataIndex = INDEX_NONE;
+
+	// Try to find MetaData and load it first as other objects can depend on it.
+	for (int32 ExportIndex = 0; ExportIndex < ExportMap.Num(); ++ExportIndex)
+	{
+		if (ExportMap[ExportIndex].ObjectName == NAME_PackageMetaData)
+		{
+			CreateExportAndPreload(ExportIndex, bForcePreload);
+			MetaDataIndex = ExportIndex;
+			break;
+		}
+	}
+
+	// If not found then try to use old name and rename.
+	if (MetaDataIndex == INDEX_NONE)
+	{
+		for (int32 ExportIndex = 0; ExportIndex < ExportMap.Num(); ++ExportIndex)
+		{
+			if (ExportMap[ExportIndex].ObjectName == *UMetaData::StaticClass()->GetName())
+			{
+				UObject* Object = CreateExportAndPreload(ExportIndex, bForcePreload);
+				Object->Rename(*FName(NAME_PackageMetaData).ToString(), NULL, REN_ForceNoResetLoaders);
+
+				MetaDataIndex = ExportIndex;
+				break;
+			}
+		}
+	}
+
+	return MetaDataIndex;
+}
+
 /**
  * Loads all objects in package.
  *
@@ -2437,13 +2482,22 @@ void ULinkerLoad::LoadAllObjects( bool bForcePreload )
 	bool bAllowedToShowStatusUpdate = (LoadFlags & ( LOAD_Quiet | LOAD_SeekFree ) ) == 0;
 	double StartTime = FPlatformTime::Seconds();
 
-	for( int32 i=0; i< ExportMap.Num(); i++ )
+	// MetaData object index in this package.
+	int32 MetaDataIndex = INDEX_NONE;
+
+	if(!FPlatformProperties::RequiresCookedData())
 	{
-		UObject* Object = CreateExport( i );
-		if( Object && (bForcePreload || (Cast<UClass>(Object) != NULL) || Object->IsTemplate() || (Cast<UObjectRedirector>(Object) != NULL)) )
+		MetaDataIndex = LoadMetaDataFromExportMap(bForcePreload);
+	}
+
+	for(int32 ExportIndex = 0; ExportIndex < ExportMap.Num(); ++ExportIndex)
+	{
+		if(ExportIndex == MetaDataIndex)
 		{
-			Preload( Object );
+			continue;
 		}
+
+		CreateExportAndPreload(ExportIndex, bForcePreload);
 	}
 
 	// Mark package as having been fully loaded.
