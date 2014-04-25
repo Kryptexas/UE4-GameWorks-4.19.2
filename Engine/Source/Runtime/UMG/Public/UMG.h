@@ -45,6 +45,7 @@
 #include "Components/ButtonComponent.h"
 #include "Components/CheckBoxComponent.h"
 #include "Components/CircularThrobberComponent.h"
+#include "Components/EditableText.h"
 #include "Components/EditableTextBlockComponent.h"
 #include "Components/GridPanelComponent.h"
 #include "Components/ImageComponent.h"
