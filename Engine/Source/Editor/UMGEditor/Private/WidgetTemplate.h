@@ -6,17 +6,19 @@
 #include "IUMGEditor.h"
 #include "BlueprintEditor.h"
 
-struct FWidgetTemplateDescriptor
+class FWidgetTemplate : public TSharedFromThis<FWidgetTemplate>
 {
+public:
+	FWidgetTemplate();
+
+	virtual FText GetCategory() = 0;
+
+	virtual USlateWrapperComponent* Create(UWidgetTree* Tree) = 0;
+
+public:
 	FText Name;
 
 	FText ToolTip;
 
 	FSlateIcon Icon;
-
-	TSubclassOf<USlateWrapperComponent> WidgetClass;
-
-	FWidgetTemplateDescriptor()
-	{
-	}
 };

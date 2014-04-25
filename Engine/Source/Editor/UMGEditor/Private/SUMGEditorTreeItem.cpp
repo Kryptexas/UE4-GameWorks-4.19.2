@@ -80,15 +80,12 @@ FReply SUMGEditorTreeItem::OnDrop(const FGeometry& MyGeometry, const FDragDropEv
 	{
 		if ( Item->IsA(USlateNonLeafWidgetComponent::StaticClass()) )
 		{
-			UWidgetBlueprint* BP = CastChecked<UWidgetBlueprint>(BlueprintEditor.Pin()->GetBlueprintObj());
-
-			UClass* WidgetClass = DragDropOp->Template->WidgetClass;
-			USlateWrapperComponent* Widget = ConstructObject<USlateWrapperComponent>(WidgetClass, BP->WidgetTree);
-			
+			UWidgetBlueprint* BP = CastChecked<UWidgetBlueprint>(BlueprintEditor.Pin()->GetBlueprintObj());			
 			USlateNonLeafWidgetComponent* Parent = Cast<USlateNonLeafWidgetComponent>(Item);
-			Parent->AddChild(Widget);
 
-			BP->WidgetTree->WidgetTemplates.Add(Widget);
+			USlateWrapperComponent* Widget = DragDropOp->Template->Create(BP->WidgetTree);
+
+			Parent->AddChild(Widget);
 
 			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
 		}

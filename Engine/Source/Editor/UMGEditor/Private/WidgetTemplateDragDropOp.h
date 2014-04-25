@@ -3,16 +3,16 @@
 #pragma once
 
 #include "DecoratedDragDropOp.h"
-#include "WidgetTemplateDescriptor.h"
+#include "WidgetTemplate.h"
 
 class FWidgetTemplateDragDropOp : public FDecoratedDragDropOp
 {
 public:
 	DRAG_DROP_OPERATOR_TYPE(FWidgetTemplateDragDropOp, FDecoratedDragDropOp)
 
-	TSharedPtr<FWidgetTemplateDescriptor> Template;
+	TSharedPtr<FWidgetTemplate> Template;
 
-	static TSharedRef<FWidgetTemplateDragDropOp> New(const TSharedPtr<FWidgetTemplateDescriptor>& InTemplate);
+	static TSharedRef<FWidgetTemplateDragDropOp> New(const TSharedPtr<FWidgetTemplate>& InTemplate);
 
 	//virtual TSharedPtr<SWidget> GetDefaultDecorator() const OVERRIDE;
 };

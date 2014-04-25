@@ -6,7 +6,7 @@
 #include "IUMGEditor.h"
 #include "BlueprintEditor.h"
 
-#include "WidgetTemplateDescriptor.h"
+#include "WidgetTemplate.h"
 
 class SUMGEditorWidgetTemplates : public SCompoundWidget
 {
@@ -21,15 +21,21 @@ private:
 	UWidgetBlueprint* GetBlueprint() const;
 
 	void BuildWidgetList();
+	void BuildClassWidgetList();
+	void BuildSpecialWidgetList();
 
-	TSharedRef<ITableRow> OnGenerateWidgetTemplateItem(TSharedPtr<FWidgetTemplateDescriptor> Item, const TSharedRef<STableViewBase>& OwnerTable);
+	TSharedRef<ITableRow> OnGenerateWidgetTemplateItem(TSharedPtr<FWidgetTemplate> Item, const TSharedRef<STableViewBase>& OwnerTable);
 
 	FReply OnDraggingWidgetTemplateItem(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
 
 private:
+	void AddWidgetTemplate(TSharedPtr<FWidgetTemplate> Template);
 
 	TWeakPtr<class FBlueprintEditor> BlueprintEditor;
 
-	TArray< TSharedPtr<FWidgetTemplateDescriptor> > WidgetTemplates;
-	TSharedPtr< SListView< TSharedPtr<FWidgetTemplateDescriptor> > > WidgetsListView;
+	typedef TArray< TSharedPtr<FWidgetTemplate> > WidgetTemplateArray;
+	TMap< FString, WidgetTemplateArray > WidgetTemplateCategories;
+	WidgetTemplateArray WidgetTemplates;
+
+	TSharedPtr< SListView< TSharedPtr<FWidgetTemplate> > > WidgetsListView;
 };

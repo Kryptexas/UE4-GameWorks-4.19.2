@@ -15,6 +15,10 @@
 #include "DecoratedDragDropOp.h"
 #include "WidgetTemplateDragDropOp.h"
 
+#include "WidgetTemplate.h"
+#include "WidgetTemplateClass.h"
+#include "WidgetTemplateButton.h"
+
 class SWidgetTemplateItem : public SCompoundWidget
 {
 public:
@@ -27,7 +31,7 @@ public:
 	*
 	* @param InArgs    Declaration from which to construct the widget
 	*/
-	void Construct(const FArguments& InArgs, TSharedPtr<FWidgetTemplateDescriptor> InTemplate)
+	void Construct(const FArguments& InArgs, TSharedPtr<FWidgetTemplate> InTemplate)
 	{
 		Template = InTemplate;
 
@@ -54,7 +58,7 @@ public:
 	}
 
 private:
-	TSharedPtr<FWidgetTemplateDescriptor> Template;
+	TSharedPtr<FWidgetTemplate> Template;
 };
 
 void SUMGEditorWidgetTemplates::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEditor> InBlueprintEditor, USimpleConstructionScript* InSCS)
@@ -74,7 +78,7 @@ void SUMGEditorWidgetTemplates::Construct(const FArguments& InArgs, TSharedPtr<F
 		+ SVerticalBox::Slot()
 		.FillHeight(1.0f)
 		[
-			SAssignNew(WidgetsListView, SListView< TSharedPtr<FWidgetTemplateDescriptor> >)
+			SAssignNew(WidgetsListView, SListView< TSharedPtr<FWidgetTemplate> >)
 			.OnGenerateRow(this, &SUMGEditorWidgetTemplates::OnGenerateWidgetTemplateItem)
 			.ListItemsSource(&WidgetTemplates)
 			.SelectionMode(ESelectionMode::Single)
@@ -101,26 +105,54 @@ UWidgetBlueprint* SUMGEditorWidgetTemplates::GetBlueprint() const
 void SUMGEditorWidgetTemplates::BuildWidgetList()
 {
 	WidgetTemplates.Reset();
+	WidgetTemplateCategories.Reset();
 
-	for ( TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt )
+	BuildClassWidgetList();
+	BuildSpecialWidgetList();
+
+	for ( auto& Entry : WidgetTemplateCategories )
 	{
-		UClass* WidgetClass = *ClassIt;
-		if ( WidgetClass->IsChildOf(USlateWrapperComponent::StaticClass()) )
+		for ( auto& Template : Entry.Value )
 		{
-			TSharedPtr<FWidgetTemplateDescriptor> Template = MakeShareable(new FWidgetTemplateDescriptor());
-			Template->Name = WidgetClass->GetDisplayNameText();
-			Template->ToolTip = WidgetClass->GetDisplayNameText();
-			Template->WidgetClass = WidgetClass;
-
 			WidgetTemplates.Add(Template);
 		}
 	}
 }
 
-TSharedRef<ITableRow> SUMGEditorWidgetTemplates::OnGenerateWidgetTemplateItem(TSharedPtr<FWidgetTemplateDescriptor> Item, const TSharedRef<STableViewBase>& OwnerTable)
+void SUMGEditorWidgetTemplates::BuildClassWidgetList()
+{
+	for ( TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt )
+	{
+		UClass* WidgetClass = *ClassIt;
+		if ( WidgetClass->IsChildOf(USlateWrapperComponent::StaticClass()) )
+		{
+			TSharedPtr<FWidgetTemplateClass> Template = MakeShareable(new FWidgetTemplateClass(WidgetClass));
+			Template->Name = WidgetClass->GetDisplayNameText();
+			Template->ToolTip = WidgetClass->GetDisplayNameText();
+
+			AddWidgetTemplate(Template);
+		}
+	}
+}
+
+void SUMGEditorWidgetTemplates::BuildSpecialWidgetList()
+{
+	AddWidgetTemplate(MakeShareable(new FWidgetTemplateButton()));
+
+	//TODO Make this pluggable.
+}
+
+void SUMGEditorWidgetTemplates::AddWidgetTemplate(TSharedPtr<FWidgetTemplate> Template)
+{
+	FString Category = Template->GetCategory().ToString();
+	WidgetTemplateArray& Group = WidgetTemplateCategories.FindOrAdd(Category);
+	Group.Add(Template);
+}
+
+TSharedRef<ITableRow> SUMGEditorWidgetTemplates::OnGenerateWidgetTemplateItem(TSharedPtr<FWidgetTemplate> Item, const TSharedRef<STableViewBase>& OwnerTable)
 {
 	return
-		SNew(STableRow< TSharedPtr<FWidgetTemplateDescriptor> >, OwnerTable)
+		SNew(STableRow< TSharedPtr<FWidgetTemplate> >, OwnerTable)
 		.Padding(2.0f)
 		.OnDragDetected(this, &SUMGEditorWidgetTemplates::OnDraggingWidgetTemplateItem)
 		[
@@ -132,7 +164,7 @@ FReply SUMGEditorWidgetTemplates::OnDraggingWidgetTemplateItem(const FGeometry& 
 {
 	if ( WidgetsListView->GetNumItemsSelected() > 0 )
 	{
-		TSharedPtr<FWidgetTemplateDescriptor> Template = WidgetsListView->GetSelectedItems()[0];
+		TSharedPtr<FWidgetTemplate> Template = WidgetsListView->GetSelectedItems()[0];
 		return FReply::Handled().BeginDragDrop(FWidgetTemplateDragDropOp::New(Template));
 	}
 

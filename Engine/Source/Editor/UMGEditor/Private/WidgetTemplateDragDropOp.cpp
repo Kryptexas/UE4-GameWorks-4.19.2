@@ -6,7 +6,7 @@
 
 #define LOCTEXT_NAMESPACE "UMG"
 
-TSharedRef<FWidgetTemplateDragDropOp> FWidgetTemplateDragDropOp::New(const TSharedPtr<FWidgetTemplateDescriptor>& InTemplate)
+TSharedRef<FWidgetTemplateDragDropOp> FWidgetTemplateDragDropOp::New(const TSharedPtr<FWidgetTemplate>& InTemplate)
 {
 	TSharedRef<FWidgetTemplateDragDropOp> Operation = MakeShareable(new FWidgetTemplateDragDropOp());
 	Operation->Template = InTemplate;

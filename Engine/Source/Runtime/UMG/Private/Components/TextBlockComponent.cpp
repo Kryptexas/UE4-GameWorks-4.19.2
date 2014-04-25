@@ -17,6 +17,8 @@ UTextBlockComponent::UTextBlockComponent(const FPostConstructInitializePropertie
 	ColorAndOpacity = FLinearColor::White;
 	ShadowColorAndOpacity = FLinearColor::Transparent;
 
+	Style = NULL;
+
 	// HACK Special font initialization hack since there are no font assets yet for slate.
 	Font = FSlateFontInfo(TEXT("Slate/Fonts/Roboto-Bold.ttf"), 24);
 }
@@ -25,8 +27,16 @@ TSharedRef<SWidget> UTextBlockComponent::RebuildWidget()
 {
 	FString FontPath = FPaths::EngineContentDir() / Font.FontName.ToString();
 
+	const FTextBlockStyle* StylePtr = ( Style != NULL ) ? Style->GetStyle<FTextBlockStyle>() : NULL;
+	if ( StylePtr == NULL )
+	{
+		STextBlock::FArguments Defaults;
+		StylePtr = Defaults._TextStyle;
+	}
+
 	return SNew(STextBlock)
-		.Text( BIND_UOBJECT_ATTRIBUTE(FString, GetText) )
+		.Text(BIND_UOBJECT_ATTRIBUTE(FString, GetText))
+		.TextStyle(StylePtr)
 		.Font(FSlateFontInfo(FontPath, Font.Size))
 		.ColorAndOpacity( BIND_UOBJECT_ATTRIBUTE(FSlateColor, GetColorAndOpacity) )
 		.ShadowOffset(ShadowOffset)

@@ -25,6 +25,10 @@ public:
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	FLinearColor ShadowColorAndOpacity;
 
+	/** Text to display as the content of the button */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Style, meta=( DisplayThumbnail = "true" ))
+	USlateWidgetStyleAsset* Style;
+
 protected:
 	// USlateWrapperComponent interface
 	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;

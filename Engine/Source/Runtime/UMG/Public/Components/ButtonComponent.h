@@ -6,8 +6,6 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnButtonClickedEvent);
 
-DECLARE_DYNAMIC_DELEGATE_RetVal( FText, FOnGetText );
-
 /** Buttons are clickable widgets */
 UCLASS(meta=(BlueprintSpawnableComponent), ClassGroup=UserInterface)
 class UMG_API UButtonComponent : public UContentWidget
@@ -16,8 +14,8 @@ class UMG_API UButtonComponent : public UContentWidget
 
 public:
 	/** Style of the button */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Style)
-	USlateWidgetStyleAsset* ButtonStyle;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Style, meta=( DisplayThumbnail = "true" ))
+	USlateWidgetStyleAsset* Style;
 
 	/** Horizontal positioning of the content within the button */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
@@ -30,18 +28,6 @@ public:
 	/** The padding to add around the button content. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
 	FMargin ContentPadding;
-
-	/** Should the button have text content inside? */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
-	bool bDisplayText;
-
-	/** Text to display as the content of the button */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance, meta=(EditCondition="bDisplayText"))
-	FText ButtonText;
-
-	/** Text to display as the content of the button */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Style, meta=( EditCondition="bDisplayText" ))
-	USlateWidgetStyleAsset* ButtonTextStyle;
 
 	/** The scaling factor for the button border */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
@@ -63,20 +49,11 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnButtonClickedEvent OnClicked;
 
-	/** Called when the controller has instigated damage in any way */
-	UPROPERTY(BlueprintReadWrite, Category=Appearance)
-	FOnGetText OnGetText;
-
-	/** Called when the controller has instigated damage in any way */
-	UFUNCTION(BlueprintNativeEvent, Category=Appearance)
-	FText GetText() const;
-
 	// UContentWidget interface
 	virtual void SetContent(USlateWrapperComponent* Content) OVERRIDE;
 	// End UContentWidget interface
 
 protected:
-	TAttribute<FText> TextAttribute;
 	TWeakPtr<class SButton> MyButton;
 
 protected:
@@ -85,7 +62,6 @@ protected:
 	// End of USlateWrapperComponent interface
 
 	FMargin GetContentPadding() const;
-	FText GetButtonText() const;
 	FSlateColor GetButtonColor() const;
 	FSlateColor GetForegroundColor() const;
 
