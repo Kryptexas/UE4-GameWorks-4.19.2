@@ -45,6 +45,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
 	FSlateColor ForegroundColor;
 
+	UPROPERTY(EditAnywhere, Category=Sound)
+	FSlateSound PressedSound;
+
+	UPROPERTY(EditAnywhere, Category=Sound)
+	FSlateSound HoveredSound;
+	
 	/** Called when the button is clicked */
 	UPROPERTY(BlueprintAssignable)
 	FOnButtonClickedEvent OnClicked;

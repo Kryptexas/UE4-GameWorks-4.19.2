@@ -12,29 +12,54 @@ UCheckBoxComponent::UCheckBoxComponent(const FPostConstructInitializeProperties&
 {
 	SCheckBox::FArguments CheckBoxDefaults;
 
-	CheckBoxStyleName = NAME_None;
 	bIsChecked = false;
 
 	HorizontalAlignment = CheckBoxDefaults._HAlign;
 	Padding = CheckBoxDefaults._Padding.Get();
 
-	ForegroundColor = CheckBoxDefaults._ForegroundColor.Get();
-	BorderBackgroundColor = CheckBoxDefaults._BorderBackgroundColor.Get();
+	ForegroundColor = FLinearColor::White;
+	BorderBackgroundColor = FLinearColor::White;
 }
 
 TSharedRef<SWidget> UCheckBoxComponent::RebuildWidget()
 {
+	const FCheckBoxStyle* StylePtr = ( Style != NULL ) ? Style->GetStyle<FCheckBoxStyle>() : NULL;
+	if ( StylePtr == NULL )
+	{
+		SCheckBox::FArguments Defaults;
+		StylePtr = Defaults._Style;
+	}
+
+	TOptional<FSlateSound> OptionalCheckedSound;
+	if ( CheckedSound.GetResourceObject() )
+	{
+		OptionalCheckedSound = CheckedSound;
+	}
+
+	TOptional<FSlateSound> OptionalUncheckedSound;
+	if ( UncheckedSound.GetResourceObject() )
+	{
+		OptionalUncheckedSound = UncheckedSound;
+	}
+
+	TOptional<FSlateSound> OptionalHoveredSound;
+	if ( HoveredSound.GetResourceObject() )
+	{
+		OptionalHoveredSound = HoveredSound;
+	}
+
 	return SNew(SCheckBox)
-// 		SLATE_ATTRIBUTE( ESlateCheckBoxType::Type, Type )
-// 		SLATE_DEFAULT_SLOT( FArguments, Content )
-		//.Style( FEditorStyle::Get(), CheckBoxStyleName )
-// 		SLATE_ARGUMENT( const FCheckBoxStyle *, CheckBoxStyle )
+		.Style(StylePtr)
 		.OnCheckStateChanged( BIND_UOBJECT_DELEGATE(FOnCheckStateChanged, SlateOnCheckStateChangedCallback) )
 		.IsChecked( BIND_UOBJECT_ATTRIBUTE(ESlateCheckBoxState::Type, GetCheckState) )
 		.HAlign( HorizontalAlignment )
 		.Padding( Padding )
 		.ForegroundColor( ForegroundColor )
-		.BorderBackgroundColor( BorderBackgroundColor );
+		.BorderBackgroundColor( BorderBackgroundColor )
+		.CheckedSoundOverride(OptionalCheckedSound)
+		.UncheckedSoundOverride(OptionalUncheckedSound)
+		.HoveredSoundOverride(OptionalHoveredSound)
+		;
 // 		SLATE_ATTRIBUTE( bool, ReadOnly )
 // 		SLATE_ARGUMENT( bool, IsFocusable )
 // 		SLATE_EVENT( FOnGetContent, OnGetMenuContent )

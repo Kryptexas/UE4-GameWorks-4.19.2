@@ -14,22 +14,8 @@ class UMG_API UCheckBoxComponent : public USlateWrapperComponent
 
 protected:
 	/** Style of the check box */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
-	USlateWidgetStyleAsset* CheckBoxStyle;
-
-
-	/** Type of check box */
-	//SLATE_ATTRIBUTE( ESlateCheckBoxType::Type, Type )
-
-	/** Content to be placed next to the check box, or for a toggle button, the content to be placed inside the button */
-	//SLATE_DEFAULT_SLOT( FArguments, Content )
-
-	/** The name of the visual style for this checkbox */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
-	FName CheckBoxStyleName;
-
-	/** The style structure (image references) for this checkbox' various states */
-	//SLATE_ARGUMENT( const FCheckBoxStyle *, CheckBoxStyle )
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Style)
+	USlateWidgetStyleAsset* Style;
 
 	/** Called when the checked state has changed */
 	UPROPERTY(BlueprintAssignable)
@@ -59,6 +45,15 @@ protected:
 	//SLATE_ARGUMENT( bool, IsFocusable )
 
 	//SLATE_EVENT( FOnGetContent, OnGetMenuContent )
+
+	UPROPERTY(EditAnywhere, Category=Sound)
+	FSlateSound CheckedSound;
+
+	UPROPERTY(EditAnywhere, Category=Sound)
+	FSlateSound UncheckedSound;
+
+	UPROPERTY(EditAnywhere, Category=Sound)
+	FSlateSound HoveredSound;
 
 protected:
 	// USlateWrapperComponent interface

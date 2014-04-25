@@ -34,6 +34,18 @@ TSharedRef<SWidget> UButtonComponent::RebuildWidget()
 		StylePtr = ButtonDefaults._ButtonStyle;
 	}
 
+	TOptional<FSlateSound> OptionalPressedSound;
+	if ( PressedSound.GetResourceObject() )
+	{
+		OptionalPressedSound = PressedSound;
+	}
+
+	TOptional<FSlateSound> OptionalHoveredSound;
+	if ( HoveredSound.GetResourceObject() )
+	{
+		OptionalHoveredSound = HoveredSound;
+	}
+
 	TSharedRef<SButton> NewButton = SNew(SButton)
 		.ButtonStyle(StylePtr)
 		.HAlign(HorizontalAlignment)
@@ -43,7 +55,10 @@ TSharedRef<SWidget> UButtonComponent::RebuildWidget()
 		.DesiredSizeScale(DesiredSizeScale)
 		.ContentScale(ContentScale)
 		.ButtonColorAndOpacity(BIND_UOBJECT_ATTRIBUTE(FSlateColor, GetButtonColor))
-		.ForegroundColor(BIND_UOBJECT_ATTRIBUTE(FSlateColor, GetForegroundColor));
+		.ForegroundColor(BIND_UOBJECT_ATTRIBUTE(FSlateColor, GetForegroundColor))
+		.PressedSoundOverride(OptionalPressedSound)
+		.HoveredSoundOverride(OptionalHoveredSound)
+		;
 
 	NewButton->SetContent(Content ? Content->GetWidget() : SNullWidget::NullWidget);
 	
