@@ -2482,6 +2482,13 @@ void FEngineLoop::AppPreExit( )
 	{
 		GThreadPool->Destroy();
 	}
+
+#if WITH_ENGINE
+	if ( GShaderCompilingManager )
+	{
+		GShaderCompilingManager->Shutdown();
+	}
+#endif
 }
 
 

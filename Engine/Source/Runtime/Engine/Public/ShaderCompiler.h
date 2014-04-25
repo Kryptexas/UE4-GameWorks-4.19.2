@@ -70,15 +70,17 @@ private:
 	/** Tracks the last time that this thread checked if the workers were still active. */
 	double LastCheckForWorkersTime;
 
+	volatile bool bForceFinish;
+	volatile bool bIsRunning;
 public:
 	/** Initialization constructor. */
 	FShaderCompileThreadRunnable(class FShaderCompilingManager* InManager);
 	virtual ~FShaderCompileThreadRunnable();
 
 	// FRunnable interface.
-	virtual bool Init(void) { return true; }
-	virtual void Exit(void) {}
-	virtual void Stop(void) {}
+	virtual bool Init(void) { return true; bIsRunning = true; }
+	virtual void Exit(void) { bIsRunning = false; }
+	virtual void Stop(void) { bForceFinish = true; }
 	virtual uint32 Run(void);
 
 	/** Checks the thread's health, and passes on any errors that have occured.  Called by the main thread. */
@@ -109,6 +111,8 @@ private:
 
 	/** Used when compiling through workers, launches worker processes if needed. */
 	void LaunchWorkerIfNeeded(FShaderCompileWorkerInfo & CurrentWorkerInfo, uint32 WorkerIndex);
+
+	inline bool IsRunning() { return bIsRunning; }
 };
 
 /** Results for a single compiled shader map. */
@@ -266,6 +270,7 @@ public:
 		return AbsoluteShaderDebugInfoDirectory;
 	}
 
+
 	/** 
 	 * Adds shader jobs to be asynchronously compiled. 
 	 * FinishCompilation or ProcessAsyncResults must be used to get the results.
@@ -283,6 +288,13 @@ public:
 	 * This should be called before exit if the DDC needs to be made up to date. 
 	 */
 	ENGINE_API void FinishAllCompilation();
+
+
+	/** 
+	 * Shutdown the shader compiler manager, this will shutdown immediately and not process any more shader compile requests. 
+	 */
+	ENGINE_API void Shutdown();
+
 
 	/** 
 	 * Processes completed asynchronous shader maps, and assigns them to relevant materials.

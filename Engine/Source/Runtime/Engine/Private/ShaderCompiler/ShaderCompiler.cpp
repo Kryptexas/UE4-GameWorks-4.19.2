@@ -427,7 +427,9 @@ struct FShaderCompileWorkerInfo
 FShaderCompileThreadRunnable::FShaderCompileThreadRunnable(FShaderCompilingManager* InManager) :
 	Manager(InManager),
 	Thread(NULL),
-	bTerminatedByError(false)
+	bTerminatedByError(false),
+	bForceFinish( false ),
+	bIsRunning( false )
 {
 	LastCheckForWorkersTime = 0;
 
@@ -464,7 +466,7 @@ uint32 FShaderCompileThreadRunnable::Run()
 		{
 			check(Manager->bAllowAsynchronousShaderCompiling);
 			// Do the work
-			while (true)
+			while (!bForceFinish)
 			{
 				CompilingLoop();
 			}
@@ -493,7 +495,7 @@ uint32 FShaderCompileThreadRunnable::Run()
 #endif
 	{
 		check(Manager->bAllowAsynchronousShaderCompiling);
-		while (true)
+		while (!bForceFinish)
 		{
 			CompilingLoop();
 		}
@@ -1471,6 +1473,22 @@ void FShaderCompilingManager::ProcessCompiledShaderMaps(
 #endif // WITH_EDITOR
 	}
 }
+
+
+/**
+ * Shutdown the shader compile manager
+ * this function should be used when ending the game to shutdown shader compile threads
+ * will not complete current pending shader compilation
+ */
+void FShaderCompilingManager::Shutdown()
+{
+	Thread->Stop();
+	while ( Thread->IsRunning() )
+	{
+		FPlatformProcess::Sleep(0.01f);
+	}
+}
+
 
 bool FShaderCompilingManager::HandlePotentialRetryOnError(TMap<int32, FShaderMapFinalizeResults>& CompletedShaderMaps)
 {
