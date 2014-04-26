@@ -211,12 +211,17 @@ bool SNewsFeed::HandleMarkAllAsReadIsEnabled( ) const
 
 void SNewsFeed::HandleMarkAllAsReadNavigate( )
 {
+	UNewsFeedSettings* NewsFeedSettings = GetMutableDefault<UNewsFeedSettings>();
+
 	for (auto NewsFeedItem : NewsFeedItemList)
 	{
+		NewsFeedSettings->ReadItems.AddUnique(NewsFeedItem->ItemId);
 		NewsFeedItem->Read = true;
 	}
 
-	if (GetDefault<UNewsFeedSettings>()->ShowOnlyUnreadItems)
+	NewsFeedSettings->SaveConfig();
+
+	if (NewsFeedSettings->ShowOnlyUnreadItems)
 	{
 		ReloadNewsFeedItems();
 	}
@@ -253,9 +258,9 @@ void SNewsFeed::HandleNewsListViewSelectionChanged( FNewsFeedItemPtr Selection, 
 	if (Selection.IsValid() && (SelectInfo == ESelectInfo::OnMouseClick))
 	{
 		TArray<FAnalyticsEventAttribute> EventAttributes;
-
 		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("ItemID"), Selection->ItemId.ToString()));
 
+		// execute item action
 		IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 
 		if (DesktopPlatform != nullptr)
@@ -284,12 +289,16 @@ void SNewsFeed::HandleNewsListViewSelectionChanged( FNewsFeedItemPtr Selection, 
 			}
 		}
 
-		// hack: mark as read
+		// mark item as read
+		UNewsFeedSettings* NewsFeedSettings = GetMutableDefault<UNewsFeedSettings>();
+		NewsFeedSettings->ReadItems.AddUnique(Selection->ItemId);
+		NewsFeedSettings->SaveConfig();
 		Selection->Read = true;
-		
+
+		// refresh list view
 		NewsFeedItemListView->SetSelection(nullptr);
 
-		if (GetDefault<UNewsFeedSettings>()->ShowOnlyUnreadItems)
+		if (NewsFeedSettings->ShowOnlyUnreadItems)
 		{
 			ReloadNewsFeedItems();
 		}

@@ -111,11 +111,11 @@ void FNewsFeedCache::LoadTitleFile( )
 
 			if (!CultureString.IsEmpty())
 			{
-				CdnSourceUrl = NewsFeedSettings->CdnSourceUrl.Replace(TEXT("{Culture}"), *CultureString);
+				CdnSourceUrl = NewsFeedSettings->CdnSourceUrl.Replace(TEXT("[[Culture]]"), *CultureString);
 			}
 			else
 			{
-				CdnSourceUrl = NewsFeedSettings->CdnSourceUrl.Replace(TEXT("{Culture}/"), TEXT(""));
+				CdnSourceUrl = NewsFeedSettings->CdnSourceUrl.Replace(TEXT("[[Culture]]/"), TEXT(""));
 			}
 
 			TitleFile = FCdnNewsFeedTitleFile::Create(CdnSourceUrl);
@@ -129,11 +129,11 @@ void FNewsFeedCache::LoadTitleFile( )
 
 			if (!CultureString.IsEmpty())
 			{
-				RootDirectory = RootDirectory.Replace(TEXT("{Culture}"), *CultureString);
+				RootDirectory = RootDirectory.Replace(TEXT("[[Culture]]"), *CultureString);
 			}
 			else
 			{
-				RootDirectory = RootDirectory.Replace(TEXT("{Culture}/"), TEXT(""));
+				RootDirectory = RootDirectory.Replace(TEXT("[[Culture]]/"), TEXT(""));
 			}
 
 			TitleFile = FLocalNewsFeedTitleFile::Create(RootDirectory);

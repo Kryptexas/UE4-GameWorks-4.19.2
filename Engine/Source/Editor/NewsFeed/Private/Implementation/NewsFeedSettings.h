@@ -58,7 +58,7 @@ public:
 	/**
 	 * The source from which to fetch the news feed data.
 	 *
-	 * Use Local for testing, Cdn for production.
+	 * Use Local for testing, NEWSFEED_Cdn for production.
 	 */
 	UPROPERTY(config)
 	TEnumAsByte<ENewsFeedSource> Source;
