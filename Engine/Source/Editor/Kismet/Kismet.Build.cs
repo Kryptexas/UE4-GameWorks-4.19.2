@@ -22,6 +22,7 @@ public class Kismet : ModuleRules
 				"Core",
 				"CoreUObject",
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
 				"Engine",
 				"MessageLog",

@@ -14,10 +14,11 @@ public class CurveTableEditor : ModuleRules
 				"CoreUObject", 
 				"Engine", 
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
 				"UnrealEd"
 			}
-			);
+		);
 
 		DynamicallyLoadedModuleNames.Add("WorkspaceMenuStructure");
 	}

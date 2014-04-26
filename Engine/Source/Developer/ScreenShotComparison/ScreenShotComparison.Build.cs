@@ -6,13 +6,19 @@ public class ScreenShotComparison : ModuleRules
 {
 	public ScreenShotComparison(TargetInfo Target)
 	{
-		PrivateDependencyModuleNames.AddRange(
+		PublicDependencyModuleNames.AddRange(
 			new string[] {
 				"Core",
-                "InputCore",
-				"Slate",
+			}
+		);
+
+		PrivateDependencyModuleNames.AddRange(
+			new string[] {
                 "EditorStyle",
+                "InputCore",
 				"ScreenShotComparisonTools",
+				"Slate",
+				"SlateCore",
 			}
 		);
 

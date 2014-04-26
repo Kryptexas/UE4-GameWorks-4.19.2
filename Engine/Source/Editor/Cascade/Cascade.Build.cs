@@ -11,7 +11,7 @@ public class Cascade : ModuleRules
 				"Editor/DistCurveEditor/Public",
 				"Editor/UnrealEd/Public",
 			}
-			);
+		);
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
@@ -20,17 +20,18 @@ public class Cascade : ModuleRules
                 "InputCore",
 				"Engine",
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
 				"DistCurveEditor",
 				"UnrealEd"
 			}
-			);
+		);
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
 				"MainFrame",
 				"PropertyEditor"
 			}
-			);
+		);
 	}
 }

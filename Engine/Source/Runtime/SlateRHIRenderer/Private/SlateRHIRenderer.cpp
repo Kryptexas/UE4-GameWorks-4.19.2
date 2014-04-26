@@ -5,12 +5,11 @@
 #include "SlateRHIRenderer.h"
 #include "SlateRHIFontTexture.h"
 #include "SlateRHIResourceManager.h"
-#include "Runtime/Slate/Public/ElementBatcher.h"
+#include "SlateCore.h"
 #include "SlateRHIRenderingPolicy.h"
 #include "Runtime/Engine/Public/ScreenRendering.h"
 #include "Runtime/Engine/Public/ShaderCompiler.h"
 #include "SlateShaders.h"
-#include "FontCache.h"
 
 DECLARE_CYCLE_STAT(TEXT("Map Staging Buffer"),STAT_MapStagingBuffer,STATGROUP_CrashTracker);
 DECLARE_CYCLE_STAT(TEXT("Generate Capture Buffer"),STAT_GenerateCaptureBuffer,STATGROUP_CrashTracker);

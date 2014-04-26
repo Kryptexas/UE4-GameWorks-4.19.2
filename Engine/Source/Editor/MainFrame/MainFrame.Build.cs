@@ -24,6 +24,7 @@ public class MainFrame : ModuleRules
 				"RHI",
 				"ShaderCore",
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
 				"SourceControl",
 				"SourceControlWindows",

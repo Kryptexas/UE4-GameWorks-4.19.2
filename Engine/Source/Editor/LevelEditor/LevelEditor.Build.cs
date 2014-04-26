@@ -30,6 +30,8 @@ public class LevelEditor : ModuleRules
 				"DesktopPlatform",
                 "InputCore",
 				"Slate",
+				"SlateCore",
+				"SlateReflector",
                 "EditorStyle",
 				"Engine",
 				"MessageLog",

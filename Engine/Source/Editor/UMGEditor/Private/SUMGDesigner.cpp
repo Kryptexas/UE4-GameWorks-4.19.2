@@ -3,10 +3,8 @@
 #include "UMGEditorPrivatePCH.h"
 
 #include "SUMGDesigner.h"
-
 #include "BlueprintEditor.h"
 #include "SKismetInspector.h"
-#include "PrimitiveTypes.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

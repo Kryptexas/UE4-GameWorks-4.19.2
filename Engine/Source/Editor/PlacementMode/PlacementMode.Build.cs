@@ -15,6 +15,7 @@ public class PlacementMode : ModuleRules
                 "Engine", 
                 "InputCore",
                 "Slate",
+				"SlateCore",
                 "UnrealEd",
                 "ContentBrowser",
                 "CollectionManager",

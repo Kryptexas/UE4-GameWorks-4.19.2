@@ -13,6 +13,7 @@ namespace UnrealBuildTool.Rules
 				    "InputCore",
 				    "Engine",
 				    "Slate",
+					"SlateCore",
 				    "EditorStyle",
 				    "PropertyEditor",
 				    "SharedSettingsWidgets",

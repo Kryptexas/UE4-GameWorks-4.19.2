@@ -48,7 +48,9 @@ public class UMGEditor : ModuleRules
                 "DistCurveEditor",
 				"ContentBrowser",
 				"WorkspaceMenuStructure",
-				"EditorStyle"
+				"EditorStyle",
+				"Slate",
+				"SlateCore",
 			}
 			);
 

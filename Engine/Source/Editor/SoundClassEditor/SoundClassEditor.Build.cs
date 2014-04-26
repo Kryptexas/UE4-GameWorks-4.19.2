@@ -11,7 +11,7 @@ public class SoundClassEditor : ModuleRules
 				"AssetRegistry",
 				"Kismet"
 			}
-			);
+		);
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
@@ -19,11 +19,12 @@ public class SoundClassEditor : ModuleRules
 				"CoreUObject",
 				"Engine",
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
 				"UnrealEd",
 				"GraphEditor"
 			}
-			);
+		);
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
@@ -34,6 +35,6 @@ public class SoundClassEditor : ModuleRules
 				"ContentBrowser",
 				"WorkspaceMenuStructure"
 			}
-			);
+		);
 	}
 }

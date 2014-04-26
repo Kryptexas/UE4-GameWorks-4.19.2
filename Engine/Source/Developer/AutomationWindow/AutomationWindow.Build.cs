@@ -18,6 +18,7 @@ namespace UnrealBuildTool.Rules
 					"DesktopPlatform",
                     "InputCore",
 					"Slate",
+					"SlateCore",
                     "EditorStyle",
 				}
 			);

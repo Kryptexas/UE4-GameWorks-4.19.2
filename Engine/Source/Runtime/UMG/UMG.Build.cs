@@ -9,7 +9,8 @@ public class UMG : ModuleRules
         PrivateIncludePaths.AddRange(
             new string[] {
                 "Runtime/UMG/Private" // For PCH includes (because they don't work with relative paths, yet)
-            });
+            })
+		;
 
 		PublicDependencyModuleNames.AddRange(
 			new string[] {
@@ -18,6 +19,7 @@ public class UMG : ModuleRules
                 "Engine",
                 "InputCore",
 				"Slate",
+				"SlateCore",
 			}
 		);
 

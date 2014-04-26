@@ -88,7 +88,7 @@ public:
 
 private:
 	// SWidget interface start
-	virtual TSharedPtr<SToolTip> GetToolTip() OVERRIDE;
+	virtual TSharedPtr<IToolTip> GetToolTip() OVERRIDE;
 	virtual FVector2D ComputeDesiredSize() const OVERRIDE;
 	virtual bool OnHitTest(const FGeometry& MyGeometry, FVector2D InAbsoluteCursorPosition) OVERRIDE;
 	virtual int32 OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, 

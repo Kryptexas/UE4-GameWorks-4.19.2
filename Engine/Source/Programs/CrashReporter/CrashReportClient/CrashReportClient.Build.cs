@@ -25,6 +25,8 @@ public class CrashReportClient : ModuleRules
 				new string[] 
 				{
 					"Slate",
+					"SlateCore",
+					"SlateReflector",
 					"StandaloneRenderer",
 					"DesktopPlatform",
 					"MessageLog",

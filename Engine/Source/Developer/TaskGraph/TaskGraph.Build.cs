@@ -10,10 +10,11 @@ public class TaskGraph : ModuleRules
 			new string[] {
 				"Core",
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
 				"Engine",
                 "InputCore"
 			}
-			);
+		);
 	}
 }

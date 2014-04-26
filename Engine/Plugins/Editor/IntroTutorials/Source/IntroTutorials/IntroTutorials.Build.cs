@@ -31,7 +31,8 @@ namespace UnrealBuildTool.Rules
 				new string[] {				
                     "UnrealEd",
                     "Kismet",
-                    "PlacementMode"
+                    "PlacementMode",
+					"SlateCore",
 				}
 			);
 

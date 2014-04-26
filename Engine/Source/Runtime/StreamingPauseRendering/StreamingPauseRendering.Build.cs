@@ -23,6 +23,7 @@ public class StreamingPauseRendering : ModuleRules
                     "RenderCore",
                     "CoreUObject",
                     "RHI",
+					"SlateCore",
 				}
         );
 	}

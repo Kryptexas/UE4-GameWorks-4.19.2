@@ -19,6 +19,7 @@ public class Toolbox : ModuleRules
 				"Core",
                 "InputCore",
 				"Slate",
+				"SlateCore",
                 "EditorStyle"
 			}
 		);

@@ -6,15 +6,20 @@ public class SourceCodeAccess : ModuleRules
 {
 	public SourceCodeAccess(TargetInfo Target)
 	{
-        PrivateIncludePaths.Add("Developer/SourceCodeAccess/Private");
-
 		PublicDependencyModuleNames.AddRange(
 			new string[] {
 				"Core",
-				"CoreUObject",
 				"Settings",
-				"Slate"
 			}
 			);
+
+		PrivateDependencyModuleNames.AddRange(
+			new string[] {
+				"CoreUObject",
+				"Slate",
+			}
+		);
+
+		PrivateIncludePaths.Add("Developer/SourceCodeAccess/Private");
 	}
 }

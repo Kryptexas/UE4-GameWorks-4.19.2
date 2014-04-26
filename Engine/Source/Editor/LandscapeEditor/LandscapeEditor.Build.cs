@@ -11,6 +11,7 @@ public class LandscapeEditor : ModuleRules
 				"Core",
 				"CoreUObject",
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
 				"Engine",
 				"RenderCore",

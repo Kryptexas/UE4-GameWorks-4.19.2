@@ -11,40 +11,41 @@ public class WorldBrowser : ModuleRules
         PrivateIncludePathModuleNames.AddRange(
         new string[] {
 				"AssetTools",
-                "MeshUtilities",	
-                "ContentBrowser"	
+                "MeshUtilities",
+                "ContentBrowser",
 			}
         );
      
         PrivateDependencyModuleNames.AddRange(
             new string[] {    
                 "Core", 
-                "CoreUObject", 
-                "RenderCore", 
+                "CoreUObject",
+                "RenderCore",
                 "InputCore",
-                "Engine", 
-                "Slate", 
+                "Engine",
+                "Slate",
+				"SlateCore",
                 "EditorStyle",
                 "UnrealEd",
-                "GraphEditor", 
-                "LevelEditor", 
-                "PropertyEditor", 
+                "GraphEditor",
+                "LevelEditor",
+                "PropertyEditor",
                 "DesktopPlatform",
                 "MainFrame",
                 "SourceControl",
 				"SourceControlWindows",
                 "RawMesh",
-                "MeshUtilities"
+                "MeshUtilities",
             }
-            );
+		);
 
         DynamicallyLoadedModuleNames.AddRange(
             new string[] {
 				"AssetTools",
 				"SceneOutliner",
                 "MeshUtilities",
-                "ContentBrowser"
+                "ContentBrowser",
 			}
-            );
+		);
     }
 }

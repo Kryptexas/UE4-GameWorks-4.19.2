@@ -12,10 +12,11 @@ public class PerforceSourceControl : ModuleRules
 				"CoreUObject",
                 "InputCore",
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
 				"SourceControl",
 			}
-            );
+		);
 
 		AddThirdPartyPrivateStaticDependencies(Target, "Perforce");
 

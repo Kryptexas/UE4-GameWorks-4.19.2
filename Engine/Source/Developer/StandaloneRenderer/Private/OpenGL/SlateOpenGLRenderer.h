@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "Renderer.h"
 
 class FSlateOpenGLTextureManager;
 class FSlateOpenGLRenderingPolicy;

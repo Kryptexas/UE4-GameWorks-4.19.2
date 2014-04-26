@@ -13,13 +13,15 @@ public class GeometryMode : ModuleRules
 				"Engine",
                 "InputCore",
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
 				"UnrealEd",
 				"RenderCore",
 				"LevelEditor"
 			}
-			);
-        DynamicallyLoadedModuleNames.AddRange(
+		);
+
+		DynamicallyLoadedModuleNames.AddRange(
             new string[] {
 				"PropertyEditor",
                 "BspMode"

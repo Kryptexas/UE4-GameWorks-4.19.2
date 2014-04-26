@@ -9,8 +9,9 @@ public class InputBindingEditor : ModuleRules
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
+				"EditorStyle",
 				"Slate",
-                "EditorStyle"
+                "SlateCore",
 			}
 		);
 

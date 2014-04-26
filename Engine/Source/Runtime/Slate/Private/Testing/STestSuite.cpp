@@ -3366,8 +3366,6 @@ void RestoreSlateTestSuite()
 {
 	FTestStyle::ResetToDefault();
 
-	FSlateApplication::Get().RegisterWidgetReflectorTabSpawner( TestSuiteMenu::DeveloperCategory );
-
 	FGlobalTabmanager::Get()->RegisterTabSpawner("TestSuite1", FOnSpawnTab::CreateStatic( &SpawnTestSuite1 ) );
 	FGlobalTabmanager::Get()->RegisterTabSpawner("TestSuite2", FOnSpawnTab::CreateStatic( &SpawnTestSuite2 ) );
 

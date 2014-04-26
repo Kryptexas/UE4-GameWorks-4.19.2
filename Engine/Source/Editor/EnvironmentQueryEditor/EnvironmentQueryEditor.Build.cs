@@ -11,7 +11,7 @@ public class EnvironmentQueryEditor : ModuleRules
 				"Editor/GraphEditor/Private",
 				"Editor/EnvironmentQueryEditor/Private",
 			}
-            );
+		);
 
         PrivateIncludePathModuleNames.AddRange(
             new string[] {
@@ -19,7 +19,7 @@ public class EnvironmentQueryEditor : ModuleRules
 				"AssetTools",
                 "PropertyEditor"
 			}
-            );
+		);
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
@@ -28,7 +28,8 @@ public class EnvironmentQueryEditor : ModuleRules
                 "InputCore",
 				"Engine", 
                 "RenderCore",
-				"Slate", 
+				"Slate",
+				"SlateCore",
                 "EditorStyle",
 				"UnrealEd", 
 				"MessageLog", 
@@ -37,7 +38,7 @@ public class EnvironmentQueryEditor : ModuleRules
 				"AnimGraph",
 				"BlueprintGraph"
 			}
-			);
+		);
 
 		PublicIncludePathModuleNames.Add("LevelEditor");
 
@@ -46,7 +47,6 @@ public class EnvironmentQueryEditor : ModuleRules
                 "WorkspaceMenuStructure",
                 "PropertyEditor"
             }
-            );
-
+		);
 	}
 }

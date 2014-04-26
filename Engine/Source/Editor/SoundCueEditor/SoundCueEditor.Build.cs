@@ -12,17 +12,18 @@ public class SoundCueEditor : ModuleRules
 				"CoreUObject",
 				"Engine",
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
 				"UnrealEd",
 				"GraphEditor",
 			}
-		   );
+		);
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
 				"PropertyEditor",
 				"WorkspaceMenuStructure"
 			}
-			);
+		);
 	}
 }

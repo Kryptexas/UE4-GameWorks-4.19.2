@@ -14,13 +14,14 @@ public class Persona : ModuleRules
 				"MainFrame",
 				"DesktopPlatform"
 			}
-			);
+		);
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"Core", 
 				"CoreUObject", 
 				"Slate", 
+				"SlateCore",
                 "EditorStyle",
 				"Engine", 
 				"UnrealEd", 
@@ -33,7 +34,7 @@ public class Persona : ModuleRules
 				"EditorWidgets",
                 "BlueprintGraph",
 			}
-			);
+		);
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
@@ -43,6 +44,6 @@ public class Persona : ModuleRules
 				"DesktopPlatform",
                 "PropertyEditor"
 			}
-			);
+		);
 	}
 }

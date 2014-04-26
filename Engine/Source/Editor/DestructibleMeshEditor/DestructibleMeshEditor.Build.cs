@@ -25,6 +25,7 @@ public class DestructibleMeshEditor : ModuleRules
                 "InputCore",
 				"RenderCore",
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
 				"UnrealEd",
 				"DesktopPlatform"

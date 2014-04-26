@@ -14,6 +14,7 @@ public class SharedSettingsWidgets : ModuleRules
 				"InputCore",
 				"Engine",
 				"Slate",
+				"SlateCore",
 				"EditorStyle",
 				"SourceControl",
 			}

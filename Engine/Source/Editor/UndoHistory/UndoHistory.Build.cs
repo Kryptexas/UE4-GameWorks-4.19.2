@@ -7,27 +7,25 @@ namespace UnrealBuildTool.Rules
 		public UndoHistory(TargetInfo Target)
 		{
 			PublicDependencyModuleNames.AddRange(
-				new string[]
-				{
+				new string[] {
 					"Core",
 				}
 			);
 
 			PrivateDependencyModuleNames.AddRange(
-				new string[]
-				{
+				new string[] {
 					"CoreUObject",
 					"EditorStyle",
 					"Engine",
 					"InputCore",
 					"Slate",
+					"SlateCore",
 					"UnrealEd",
 				}
 			);
 
 			PrivateIncludePaths.AddRange(
-				new string[]
-				{
+				new string[] {
 					"Editor/UndoHistory/Private",
 					"Editor/UndoHistory/Private/Widgets",
 				}

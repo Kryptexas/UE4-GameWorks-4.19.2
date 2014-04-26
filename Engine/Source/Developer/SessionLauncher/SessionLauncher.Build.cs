@@ -25,6 +25,7 @@ public class SessionLauncher : ModuleRules
 				"DesktopPlatform",
                 "InputCore",
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
 			}
 		);

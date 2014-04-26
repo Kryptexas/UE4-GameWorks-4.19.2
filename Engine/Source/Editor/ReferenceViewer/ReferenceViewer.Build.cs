@@ -13,10 +13,11 @@ namespace UnrealBuildTool.Rules
 				    "Engine",
                     "InputCore",
 				    "Slate",
+					"SlateCore",
                     "EditorStyle",
 				    "RenderCore",
                     "GraphEditor",
-				    "UnrealEd"
+				    "UnrealEd",
 			    }
 			);
 

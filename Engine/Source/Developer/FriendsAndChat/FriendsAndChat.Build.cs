@@ -20,6 +20,7 @@ public class FriendsAndChat : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 		new string[]
 			{
+				"SlateCore",
 				"Sockets",
 				"OnlineSubsystem"
 			}

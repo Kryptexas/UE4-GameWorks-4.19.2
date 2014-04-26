@@ -71,6 +71,7 @@
 #include "Components/WindDirectionalSourceComponent.h"
 #include "Components/TimelineComponent.h"
 #include "Slate.h"
+#include "SlateReflector.h"
 #include "AI/NavDataGenerator.h"
 #include "OnlineSubsystemUtils.h"
 
@@ -886,11 +887,11 @@ void UCheatManager::WidgetReflector()
 	if( !WidgetReflectorWindow.IsValid() )
 	{
 		const TSharedRef<SWindow> ReflectorWindow = SNew(SWindow)
-		.AutoCenter(EAutoCenter::PrimaryWorkArea)
-		.ClientSize(FVector2D(600,400))
-		[
-			FSlateApplication::Get().GetWidgetReflector()
-		];
+			.AutoCenter(EAutoCenter::PrimaryWorkArea)
+			.ClientSize(FVector2D(600,400))
+			[
+				FModuleManager::LoadModuleChecked<ISlateReflectorModule>("SlateReflector").GetWidgetReflector()
+			];
 		
 		WidgetReflectorWindow = ReflectorWindow;
 		

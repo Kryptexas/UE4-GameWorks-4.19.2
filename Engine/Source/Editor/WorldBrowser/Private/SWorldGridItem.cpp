@@ -297,7 +297,7 @@ FSlateRect SWorldGridItem::GetItemRect() const
 	return FSlateRect(LevelPos, LevelPos + LevelSize);
 }
 
-TSharedPtr<SToolTip> SWorldGridItem::GetToolTip()
+TSharedPtr<IToolTip> SWorldGridItem::GetToolTip()
 {
 	// Hide tooltip in case item is being dragged now
 	if (LevelModel->GetLevelTranslationDelta().Size() > KINDA_SMALL_NUMBER)

@@ -24,6 +24,7 @@ public class SessionFrontend : ModuleRules
 			new string[] {
 				"DesktopPlatform",
                 "InputCore",
+				"SlateCore",
 
 				// @todo gmp: remove these dependencies by making the session front-end extensible
 				"AutomationWindow",

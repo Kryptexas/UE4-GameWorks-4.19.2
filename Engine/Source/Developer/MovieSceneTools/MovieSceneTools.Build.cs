@@ -16,7 +16,7 @@ public class MovieSceneTools : ModuleRules
                 "InputCore",
 				"UnrealEd"
 			}
-			);
+		);
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
@@ -24,11 +24,12 @@ public class MovieSceneTools : ModuleRules
 				"MovieSceneCoreTypes",
 				"BlueprintGraph",
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
 				"RenderCore",
 				"RHI"
 			}
-			);
+		);
 
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {
@@ -36,7 +37,7 @@ public class MovieSceneTools : ModuleRules
 				"Sequencer",
 				"PropertyEditor"
 			}
-			);
+		);
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
@@ -44,7 +45,6 @@ public class MovieSceneTools : ModuleRules
 				"Sequencer",
 				"PropertyEditor"
 			}
-			);
-
+		);
 	}
 }

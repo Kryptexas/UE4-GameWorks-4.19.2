@@ -13,25 +13,26 @@ public class MessageLog : ModuleRules
 				"Developer/MessageLog/Private/UserInterface",
                 "Developer/MessageLog/Private/Model",
 			}
-            );
+        );
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"Core",
 				"CoreUObject",
 				"Slate",
+				"SlateCore",
                 "InputCore",
-                "EditorStyle"
+                "EditorStyle",
 			}
-			);
+		);
 
 		if (UEBuildConfiguration.bBuildEditor)
 		{
 			PrivateDependencyModuleNames.AddRange(
 				new string[] {
-					"Documentation"
+					"Documentation",
 				}
-				);		
+			);		
 		}
 	}
 }

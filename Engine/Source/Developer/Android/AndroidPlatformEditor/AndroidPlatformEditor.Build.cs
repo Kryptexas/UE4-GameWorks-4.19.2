@@ -15,6 +15,7 @@ public class AndroidPlatformEditor : ModuleRules
 				"InputCore",
 				"Engine",
 				"Slate",
+				"SlateCore",
 				"EditorStyle",
 				"PropertyEditor",
 				"SharedSettingsWidgets",

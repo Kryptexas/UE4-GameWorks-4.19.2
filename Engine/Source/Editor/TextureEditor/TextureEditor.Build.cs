@@ -40,6 +40,7 @@ public class TextureEditor : ModuleRules
 				"ShaderCore",
 				"RHI",
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
 				"UnrealEd"
 			}

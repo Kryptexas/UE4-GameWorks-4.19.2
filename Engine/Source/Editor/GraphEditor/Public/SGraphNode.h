@@ -74,7 +74,7 @@ public:
 	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
 	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) OVERRIDE;
 
-	virtual TSharedPtr<SToolTip> GetToolTip() OVERRIDE;
+	virtual TSharedPtr<IToolTip> GetToolTip() OVERRIDE;
 	virtual void OnToolTipClosing() OVERRIDE;
 
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;

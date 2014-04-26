@@ -14,16 +14,17 @@ public class SourceControl : ModuleRules
 				"CoreUObject",
 				"InputCore",
 			}
-			);
+		);
 
 		if (Target.Platform != UnrealTargetPlatform.Linux)
 		{
 			PrivateDependencyModuleNames.AddRange(
 				new string[] {
 					"Slate",
+					"SlateCore",
                     "EditorStyle"
 				}
-				);
+			);
 		}
 
         if (UEBuildConfiguration.bBuildEditor)
@@ -33,13 +34,13 @@ public class SourceControl : ModuleRules
 					"Engine",
 					"UnrealEd",
 				}
-                );
+			);
 
 			DynamicallyLoadedModuleNames.AddRange(
 				new string[] {
 					"AssetTools"
 				}
-				);
+			);
         }
 
 		if (UEBuildConfiguration.bBuildDeveloperTools)
@@ -48,7 +49,7 @@ public class SourceControl : ModuleRules
 				new string[] {
 					"MessageLog",
 				}
-				);
+			);
 		}
 	}
 }

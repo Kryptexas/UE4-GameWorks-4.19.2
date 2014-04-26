@@ -8,15 +8,16 @@ public class NewLevelDialog : ModuleRules
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
-				"Core", 
-				"CoreUObject", 
+				"Core",
+				"CoreUObject",
                 "InputCore",
-				"RenderCore", 
-				"Engine", 
-				"Slate", 
+				"RenderCore",
+				"Engine",
+				"Slate",
+				"SlateCore",
                 "EditorStyle",
-				"UnrealEd"
+				"UnrealEd",
 			}
-			);
+		);
 	}
 }

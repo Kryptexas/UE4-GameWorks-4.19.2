@@ -15,17 +15,18 @@ public class DistCurveEditor : ModuleRules
 				"Engine",
                 "InputCore",
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
 				"LevelEditor",
 				"UnrealEd"
 			}
-			);
+		);
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
 				"MainFrame",
 				"PropertyEditor"
 			}
-			);
+		);
 	}
 }

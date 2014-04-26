@@ -20,6 +20,7 @@ namespace UnrealBuildTool.Rules
 					"MessageLog",
 					"SettingsEditor",
 					"Slate",
+					"SlateCore",
 					"UnrealEd",
                     "InternationalizationSettings"
 				}

@@ -15,6 +15,7 @@ public class Sequencer : ModuleRules
                 "InputCore",
 				"Engine", 
 				"Slate", 
+				"SlateCore",
                 "EditorStyle",
 				"UnrealEd", 
 				"MovieSceneCore", 
@@ -24,20 +25,20 @@ public class Sequencer : ModuleRules
 				"SequencerWidgets",
 				"BlueprintGraph"
 			}
-			);
+		);
 
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {
 				"PropertyEditor",
 				"Kismet"
 			}
-			);
+		);
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
 				"PropertyEditor",
 				"WorkspaceMenuStructure"
 			}
-			);
+		);
 	}
 }

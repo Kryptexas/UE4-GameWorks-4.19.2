@@ -334,9 +334,9 @@ FReply SGraphNode::OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, cons
 	return FReply::Unhandled();
 }
 
-TSharedPtr<SToolTip> SGraphNode::GetToolTip()
+TSharedPtr<IToolTip> SGraphNode::GetToolTip()
 {
-	TSharedPtr<SToolTip> CurrentTooltip = SWidget::GetToolTip();
+	TSharedPtr<IToolTip> CurrentTooltip = SWidget::GetToolTip();
 	if (!CurrentTooltip.IsValid())
 	{
 		TSharedPtr<SToolTip> ComplexTooltip = GetComplexTooltip();

@@ -19,6 +19,7 @@ public class NewsFeed : ModuleRules
                 "InputCore",
 				"OnlineSubsystem",
 				"Slate",
+				"SlateCore",
 			}
 		);
 

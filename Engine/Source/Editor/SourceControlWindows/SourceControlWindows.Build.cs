@@ -12,12 +12,13 @@ public class SourceControlWindows : ModuleRules
 				"CoreUObject", 
                 "InputCore",
 				"Engine", 
-				"Slate", 
+				"Slate",
+				"SlateCore",
                 "EditorStyle",
 				"SourceControl", 
 				"AssetTools",
                 "UnrealEd"			// We need this dependency here because we use PackageTools.
 			}
-			);
+		);
 	}
 }

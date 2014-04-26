@@ -360,9 +360,9 @@ static void GetPaletteItemIcon(TSharedPtr<FEdGraphSchemaAction> ActionIn, UBluep
  * @param  OldToolTip	The tooltip that you're replacing (we fold it into the new one)/
  * @return The newly created tooltip (now with the action's path tacked on the bottom).
  */
-static TSharedRef<SToolTip> ConstructToolTipWithActionPath(TSharedPtr<FEdGraphSchemaAction> ActionIn, TSharedPtr<SToolTip> OldToolTip)
+static TSharedRef<IToolTip> ConstructToolTipWithActionPath(TSharedPtr<FEdGraphSchemaAction> ActionIn, TSharedPtr<IToolTip> OldToolTip)
 {
-	TSharedRef<SToolTip> NewToolTip = OldToolTip.ToSharedRef();
+	TSharedRef<IToolTip> NewToolTip = OldToolTip.ToSharedRef();
 
 	FFavoritedBlueprintPaletteItem ActionItem(ActionIn);
 	if (ActionItem.IsValid())
@@ -376,7 +376,7 @@ static TSharedRef<SToolTip> ConstructToolTipWithActionPath(TSharedPtr<FEdGraphSc
 			SNew(SVerticalBox)
 			+SVerticalBox::Slot()
 			[
-				OldToolTip->GetContent()
+				OldToolTip->GetContentWidget()
 			]
 
 			+SVerticalBox::Slot()
@@ -968,7 +968,7 @@ TSharedRef<SWidget> SBlueprintPaletteItem::CreateTextSlotWidget(const FSlateFont
 	if (GEditor->EditorUserSettings->bDisplayActionListItemRefIds && ActionPtr.IsValid())
 	{
 		check(InlineRenameWidget.IsValid());
-		TSharedPtr<SToolTip> ExistingToolTip = InlineRenameWidget->GetToolTip();
+		TSharedPtr<IToolTip> ExistingToolTip = InlineRenameWidget->GetToolTip();
 
 		DisplayWidget->AddSlot(0)
 			[

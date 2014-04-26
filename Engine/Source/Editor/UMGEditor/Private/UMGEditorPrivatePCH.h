@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "Slate.h"
+#include "SlateCore.h"
 #include "UnrealEd.h"
 
 #include "UMG.h"

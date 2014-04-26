@@ -8,9 +8,11 @@ public class UserFeedback : ModuleRules
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
+				"SlateCore",
 				"UnrealEd",
 			}
 		);
+
 		PublicDependencyModuleNames.AddRange(
 			new string[] {
 				"Core",

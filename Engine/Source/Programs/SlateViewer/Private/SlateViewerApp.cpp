@@ -2,7 +2,6 @@
 
 #include "SlateViewerApp.h"
 #include "RequiredProgramMainCPPInclude.h"
-#include "Runtime/Slate/Private/SWidgetReflector.h"
 
 
 IMPLEMENT_APPLICATION(SlateViewer, "SlateViewer");
@@ -24,6 +23,7 @@ void RunSlateViewer( const TCHAR* CommandLine )
 
 	// set the application name
 	FGlobalTabmanager::Get()->SetApplicationTitle(NSLOCTEXT("SlateViewer", "AppTitle", "Slate Viewer"));
+	FModuleManager::LoadModuleChecked<ISlateReflectorModule>("SlateReflector").RegisterTabSpawner(WorkspaceMenu::DeveloperMenu);
 
 	// Bring up the test suite.
 	RestoreSlateTestSuite();

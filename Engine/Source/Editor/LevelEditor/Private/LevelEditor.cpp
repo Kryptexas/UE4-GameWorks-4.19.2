@@ -15,6 +15,7 @@
 #include "LevelViewportActions.h"
 #include "GlobalEditorCommonCommands.h"
 #include "IUserFeedbackModule.h"
+#include "SlateReflector.h"
 
 // @todo Editor: remove this circular dependency
 #include "Editor/MainFrame/Public/Interfaces/IMainFrameModule.h"
@@ -90,7 +91,6 @@ TSharedRef<SDockTab> SpawnLevelEditor( const FSpawnTabArgs& InArgs )
 				.AutoWidth()
 				[
 					SNew(SBox)
-					.Padding( FMargin( 0, 1, 20, 0 ) )
 					.Visibility( EVisibility::HitTestInvisible )
 					[
 						SNew( STextBlock )
@@ -102,6 +102,8 @@ TSharedRef<SDockTab> SpawnLevelEditor( const FSpawnTabArgs& InArgs )
 
 				+SHorizontalBox::Slot()
 				.AutoWidth()
+				.Padding(16.0f, 0.0f, 0.0f, 0.0f)
+				.VAlign(VAlign_Center)
 				[
 					UserFeedbackWidget
 				]
@@ -142,7 +144,7 @@ void FLevelEditorModule::StartupModule()
 	FGlobalTabmanager::Get()->RegisterTabSpawner("LevelEditor", FOnSpawnTab::CreateStatic( &SpawnLevelEditor ) )
 		.SetDisplayName( NSLOCTEXT("LevelEditor", "LevelEditorTab", "Level Editor") );
 
-	FSlateApplication::Get().RegisterWidgetReflectorTabSpawner( MenuStructure.GetDeveloperToolsCategory() );
+	FModuleManager::LoadModuleChecked<ISlateReflectorModule>("SlateReflector").RegisterTabSpawner(MenuStructure.GetDeveloperToolsCategory());
 
 	FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
 	MessageLogModule.RegisterLogListing("BuildAndSubmitErrors", LOCTEXT("BuildAndSubmitErrors", "Build and Submit Errors"));
@@ -187,7 +189,7 @@ void FLevelEditorModule::ShutdownModule()
 	if ( FSlateApplication::IsInitialized() )
 	{
 		FGlobalTabmanager::Get()->UnregisterTabSpawner("LevelEditor");
-		FSlateApplication::Get().UnregisterWidgetReflectorTabSpawner();
+		FModuleManager::LoadModuleChecked<ISlateReflectorModule>("SlateReflector").UnregisterTabSpawner();
 	}	
 
 	FLevelEditorCommands::Unregister();

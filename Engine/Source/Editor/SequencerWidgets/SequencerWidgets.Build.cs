@@ -15,8 +15,9 @@ public class SequencerWidgets : ModuleRules
 				"Engine",
                 "InputCore",
 				"Slate",
+				"SlateCore",
 				"UnrealEd"
 			}
-			);
+		);
 	}
 }

@@ -165,12 +165,8 @@ private:
 	/** The borders that hold any potential inline content areas. */
 	SHorizontalBox::FSlot* InlineContentAreaLeft;
 	SHorizontalBox::FSlot* InlineContentAreaRight;
-
-	/** Slot for left title area content */
-	SHorizontalBox::FSlot* TitleAreaLeftSlot;
-
-	/** Slot for right title area content */
-	SHorizontalBox::FSlot* TitleAreaRightSlot;
+	SVerticalBox::FSlot* TitleBarSlot;
+	TSharedPtr<SWidget> TitleBarContent;
 
 	TSharedPtr<SBorder> ContentSlot;
 

@@ -17,6 +17,7 @@ public class Paper2DEditor : ModuleRules
 				"Core",
 				"CoreUObject",
 				"Slate",
+				"SlateCore",
 				"Engine",
                 "InputCore",
 				"AssetTools",

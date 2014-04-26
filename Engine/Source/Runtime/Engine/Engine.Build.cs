@@ -58,7 +58,8 @@ public class Engine : ModuleRules
 			new string[] {
 				"Networking",
 				"Sockets",
-				"Slate",
+				"SlateCore",
+				"SlateReflector",
 				"VectorVM",
 			}
 		);

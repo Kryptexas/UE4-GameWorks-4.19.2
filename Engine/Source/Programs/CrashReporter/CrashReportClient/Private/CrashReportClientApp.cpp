@@ -11,6 +11,7 @@
 #include "AsyncWork.h"
 
 #include "MainLoopTiming.h"
+#include "SlateReflector.h"
 
 /** Default main window size */
 const FVector2D InitialWindowDimensions(640, 560);
@@ -122,7 +123,7 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 				SNew(SWindow)
 				.ClientSize(FVector2D(800, 600))
 				[
-					FSlateApplication::Get().GetWidgetReflector()
+					FModuleManager::LoadModuleChecked<ISlateReflectorModule>().GetWidgetReflector()
 				]);
 		}
 

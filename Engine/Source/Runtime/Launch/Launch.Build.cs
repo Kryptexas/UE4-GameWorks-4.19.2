@@ -31,6 +31,7 @@ public class Launch : ModuleRules
 				"SandboxFile",
 				"ShaderCore",
 				"Slate",
+				"SlateCore",
 				"Sockets",
 			}
 		);

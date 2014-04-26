@@ -22,6 +22,7 @@ public class MoviePlayer : ModuleRules
                     "CoreUObject",
                     "RHI",
                     "Slate",
+					"SlateCore",
 				}
         );
 	}

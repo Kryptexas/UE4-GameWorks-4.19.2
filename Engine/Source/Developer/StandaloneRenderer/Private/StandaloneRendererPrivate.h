@@ -5,7 +5,7 @@
 
 
 #include "Core.h"
-#include "Slate.h"
+#include "SlateCore.h"
 
 #if PLATFORM_WINDOWS
 #include "AllowWindowsPlatformTypes.h"
@@ -31,12 +31,6 @@
 
 #include "HideWindowsPlatformTypes.h"
 #endif		// PLATFORM_WINDOWS
-
-
-#include "RenderingCommon.h"
-#include "Renderer.h"
-#include "RenderingPolicy.h"
-#include "TextureManager.h"
 
 #if PLATFORM_WINDOWS
 #include "Windows/D3D/SlateD3DTextures.h"

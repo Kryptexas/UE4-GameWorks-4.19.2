@@ -14,6 +14,7 @@ public class MessagingDebugger : ModuleRules
                 "InputCore",
                 "PropertyEditor",
 				"Slate",
+				"SlateCore",
                 "EditorStyle"
 			}
 		);

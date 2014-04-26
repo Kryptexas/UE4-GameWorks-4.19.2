@@ -28,6 +28,8 @@ public class UnrealFrontend : ModuleRules
 				"SessionLauncher",
 				"SessionServices",
 				"Slate",
+				"SlateCore",
+				"SlateReflector",
 				"StandaloneRenderer",
 				"TargetDeviceServices",
 				"TargetPlatform",

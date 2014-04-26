@@ -15,54 +15,58 @@
 #include "Engine.h"
 #include "InputCore.h"
 #include "Slate.h"
+#include "SlateCore.h"
+
 
 /* Components
  *****************************************************************************/
 
-#include "Components/SlateWrapperTypes.h"
+#include "SlateWrapperTypes.h"
 
-#include "Components/PanelSlot.h"
+#include "PanelSlot.h"
 
-#include "Components/SlateWrapperComponent.h"
+#include "SlateWrapperComponent.h"
 
-#include "Components/SlateLeafWidgetComponent.h"
-#include "Components/SlateNonLeafWidgetComponent.h"
+#include "SlateLeafWidgetComponent.h"
+#include "SlateNonLeafWidgetComponent.h"
 
-#include "Components/ContentWidget.h"
+#include "ContentWidget.h"
 
-#include "Components/BoxPanelComponent.h"
+#include "BoxPanelComponent.h"
 
-#include "Components/CanvasPanelSlot.h"
-#include "Components/CanvasPanelComponent.h"
+#include "CanvasPanelSlot.h"
+#include "CanvasPanelComponent.h"
 
-#include "Components/HorizontalBoxSlot.h"
-#include "Components/HorizontalBoxComponent.h"
+#include "HorizontalBoxSlot.h"
+#include "HorizontalBoxComponent.h"
 
-#include "Components/VerticalBoxSlot.h"
-#include "Components/VerticalBoxComponent.h"
+#include "VerticalBoxSlot.h"
+#include "VerticalBoxComponent.h"
 
-#include "Components/BorderComponent.h"
-#include "Components/ButtonComponent.h"
-#include "Components/CheckBoxComponent.h"
-#include "Components/CircularThrobberComponent.h"
-#include "Components/EditableText.h"
-#include "Components/EditableTextBlockComponent.h"
-#include "Components/GridPanelComponent.h"
-#include "Components/ImageComponent.h"
-#include "Components/ScrollBoxComponent.h"
-#include "Components/SpacerComponent.h"
-#include "Components/SpinningImageComponent.h"
-#include "Components/TextBlockComponent.h"
-#include "Components/ThrobberComponent.h"
+#include "BorderComponent.h"
+#include "ButtonComponent.h"
+#include "CheckBoxComponent.h"
+#include "CircularThrobberComponent.h"
+#include "EditableText.h"
+#include "EditableTextBlockComponent.h"
+#include "GridPanelComponent.h"
+#include "ImageComponent.h"
+#include "ScrollBoxComponent.h"
+#include "SpacerComponent.h"
+#include "SpinningImageComponent.h"
+#include "TextBlockComponent.h"
+#include "ThrobberComponent.h"
+
 
 /* Blueprint
  *****************************************************************************/
 
-#include "Blueprint/WidgetTree.h"
-#include "Blueprint/UserWidget.h"
-#include "Blueprint/WidgetBlueprint.h"
-#include "Blueprint/WidgetBlueprintGeneratedClass.h"
+#include "WidgetTree.h"
+#include "UserWidget.h"
+#include "WidgetBlueprint.h"
+#include "WidgetBlueprintGeneratedClass.h"
  
+
 /* Interfaces
  *****************************************************************************/
 

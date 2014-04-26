@@ -41,6 +41,7 @@ public class PropertyEditor : ModuleRules
 				"Engine",
 				"InputCore",
 				"Slate",
+				"SlateCore",
 				"EditorWidgets",
 				"Documentation",
 			}

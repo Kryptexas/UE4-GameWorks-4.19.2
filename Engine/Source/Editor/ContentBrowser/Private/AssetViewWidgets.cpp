@@ -163,7 +163,7 @@ void SAssetViewItem::Tick( const FGeometry& AllottedGeometry, const double InCur
 	UpdateSourceControlState((float)InDeltaTime);
 }
 
-TSharedPtr<SToolTip> SAssetViewItem::GetToolTip()
+TSharedPtr<IToolTip> SAssetViewItem::GetToolTip()
 {
 	return ShouldAllowToolTip.Get() ? SCompoundWidget::GetToolTip() : NULL;
 }

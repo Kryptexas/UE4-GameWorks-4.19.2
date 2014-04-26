@@ -4,8 +4,33 @@
 #include "DockingPrivate.h"
 
 
+#define LOCTEXT_NAMESPACE "DockTabStack"
+
+
 static const FVector2D ContextButtonTargetSize(24,24);
 static const float TriggerAreaFraction = 0.24f;
+
+
+/**
+ * Like a missing widget, but says it's a document area
+ */
+class SDocumentAreaWidget
+{
+public:
+	static TSharedRef<class SWidget> MakeDocumentAreaWidget()
+	{
+		return 
+			SNew(SBorder)
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Center)
+			[
+				SNew( STextBlock )
+				.Text(LOCTEXT("DocumentArea", "Document Area") )
+				.TextStyle( FCoreStyle::Get(), "EmbossedText" )
+			];
+	}
+};
+
 
 void SDockingTabStack::Construct( const FArguments& InArgs, const TSharedRef<FTabManager::FStack>& PersistentNode  )
 {
@@ -16,9 +41,7 @@ void SDockingTabStack::Construct( const FArguments& InArgs, const TSharedRef<FTa
 
 	InlineContentAreaLeft = NULL;
 	InlineContentAreaRight = NULL;
-
-	TitleAreaLeftSlot = NULL;
-	TitleAreaRightSlot = NULL;
+	TitleBarSlot = NULL;
 
 	this->TabStackGeometry = FGeometry();
 
@@ -52,7 +75,46 @@ void SDockingTabStack::Construct( const FArguments& InArgs, const TSharedRef<FTa
 
 	const FButtonStyle* const UnhideTabWellButtonStyle = &FCoreStyle::Get().GetWidgetStyle< FButtonStyle >( "Docking.UnhideTabwellButton" );
 
-	this->ChildSlot
+	// create inline title bar content
+	TitleBarContent = SNew(SHorizontalBox)
+		.Visibility(EVisibility::SelfHitTestInvisible)
+
+	+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.Expose(InlineContentAreaLeft)
+
+	+ SHorizontalBox::Slot() 
+		.FillWidth(1.0f)
+		.VAlign(VAlign_Bottom)
+		.Padding(4.0f, 0.0f, 0.0f, 0.0f)
+		[
+			SNew(SVerticalBox)
+				.Visibility(EVisibility::SelfHitTestInvisible)
+
+			+ SVerticalBox::Slot()
+				.AutoHeight()
+				[
+					SNew(SSpacer)
+						.Visibility(this, &SDockingTabStack::GetMaximizeSpacerVisibility)
+						.Size(FVector2D(0.0f, 10.0f))
+				]
+
+			+ SVerticalBox::Slot()
+				.AutoHeight()
+				[
+					// TabWell
+					SAssignNew(TabWell, SDockingTabWell)
+						.ParentStackNode(SharedThis(this))
+				]
+		]
+
+	+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.Expose(InlineContentAreaRight)
+		.Padding(5.0f, 0.0f, 0.0f, 0.0f)
+		.VAlign((VAlign_Center));
+
+	ChildSlot
 	[
 		SNew(SVerticalBox)
 		.Visibility( EVisibility::SelfHitTestInvisible )
@@ -72,64 +134,9 @@ void SDockingTabStack::Construct( const FArguments& InArgs, const TSharedRef<FTa
 				.Visibility( EVisibility::SelfHitTestInvisible )
 				+SVerticalBox::Slot()
 				.AutoHeight()
+				.Expose(TitleBarSlot)
 				[
-
-					SNew(SHorizontalBox)
-					.Visibility( EVisibility::SelfHitTestInvisible )
-
-					// Left title area (if we have one)
-					+SHorizontalBox::Slot()
-					.AutoWidth()
-					.Expose( TitleAreaLeftSlot )
-					.HAlign(HAlign_Left)
-					.VAlign(VAlign_Top)
-					[
-						SNew(SSpacer)	// Will be filled in later, in SetParentNode()
-					]
-
-					// Inline Content Left
-					+SHorizontalBox::Slot()
-					.AutoWidth()
-					.Expose( InlineContentAreaLeft )
-					.Padding( 0,0,5,0 )				
-
-					+SHorizontalBox::Slot() 
-					.FillWidth(1)
-					.VAlign(VAlign_Bottom)
-					[
-						SNew(SVerticalBox)
-						.Visibility( EVisibility::SelfHitTestInvisible )
-						+SVerticalBox::Slot()
-						. AutoHeight()
-						[
-							SNew(SSpacer)
-							.Visibility(this, &SDockingTabStack::GetMaximizeSpacerVisibility)
-							.Size(FVector2D(0.0f, 10.0f))
-						]
-						+SVerticalBox::Slot()
-						. AutoHeight()
-						[
-							// TabWell
-							SAssignNew(TabWell, SDockingTabWell)
-							.ParentStackNode( SharedThis(this) )
-						]
-					]
-
-					// Inline Content Right
-					+SHorizontalBox::Slot()
-					.AutoWidth()
-					.Expose( InlineContentAreaRight )
-					.Padding(5,0,0,0)
-
-					// Right title area (if we have one)
-					+SHorizontalBox::Slot()
-					.AutoWidth()
-					.Expose( TitleAreaRightSlot )
-					.HAlign(HAlign_Right)
-					.VAlign(VAlign_Top)
-					[
-						SNew(SSpacer)	// Will be filled in later, in SetParentNode()
-					]
+					SNew(SSpacer)
 				]
 				+SVerticalBox::Slot()
 				.AutoHeight()
@@ -151,7 +158,7 @@ void SDockingTabStack::Construct( const FArguments& InArgs, const TSharedRef<FTa
 				[
 					// Selected CONTENT AREA
 					SNew(STextBlock)
-					. Text( NSLOCTEXT("DockTabStack", "EmptyTabMessage", "Empty Tab!") )
+					. Text( LOCTEXT("EmptyTabMessage", "Empty Tab!") )
 				]
 			]
 			+SOverlay::Slot()
@@ -489,11 +496,11 @@ TSharedRef<SWidget> SDockingTabStack::MakeContextMenu()
 	const bool bCloseSelfOnly = false;
 	FMenuBuilder MenuBuilder( bCloseAfterSelection, NULL, TSharedPtr<FExtender>(), bCloseSelfOnly, &FCoreStyle::Get() );
 	{
-		MenuBuilder.BeginSection("DockingTabStackOptions", NSLOCTEXT("Docking", "TabOptionsHeading", "Options") );
+		MenuBuilder.BeginSection("DockingTabStackOptions", LOCTEXT("TabOptionsHeading", "Options") );
 		{
 			MenuBuilder.AddMenuEntry(
-				NSLOCTEXT("Docking", "HideTabWell", "Hide Tab"),
-				NSLOCTEXT("Docking", "HideTabWellTooltip", "Hide the tabs to save room."),
+				LOCTEXT("HideTabWell", "Hide Tab"),
+				LOCTEXT("HideTabWellTooltip", "Hide the tabs to save room."),
 				FSlateIcon(),
 				FUIAction(
 					FExecuteAction::CreateSP( this, &SDockingTabStack::ToggleTabWellVisibility ),
@@ -506,8 +513,8 @@ TSharedRef<SWidget> SDockingTabStack::MakeContextMenu()
 		MenuBuilder.BeginSection("DockingTabStackCloseTabs");
 		{
 			MenuBuilder.AddMenuEntry(
-				NSLOCTEXT("Docking", "CloseTab", "Close"),
-				NSLOCTEXT("Docking", "CloseTabTooltil", "Close this tab."),
+				LOCTEXT("CloseTab", "Close"),
+				LOCTEXT("CloseTabTooltil", "Close this tab."),
 				FSlateIcon(),
 				FUIAction(
 					FExecuteAction::CreateSP( this, &SDockingTabStack::CloseForegroundTab ),
@@ -522,8 +529,8 @@ TSharedRef<SWidget> SDockingTabStack::MakeContextMenu()
 				const ETabsToClose TabsToClose = CloseDocumentTabs;
 
 				MenuBuilder.AddMenuEntry(
-					NSLOCTEXT("Docking", "CloseOtherTabs", "Close Other Tabs"),
-					NSLOCTEXT("Docking", "CloseOtherTabsTooltil", "Closes all tabs except for the active tab."),
+					LOCTEXT("CloseOtherTabs", "Close Other Tabs"),
+					LOCTEXT("CloseOtherTabsTooltil", "Closes all tabs except for the active tab."),
 					FSlateIcon(),
 					FUIAction(
 						FExecuteAction::CreateSP( this, &SDockingTabStack::CloseAllButForegroundTab, TabsToClose ),
@@ -705,18 +712,11 @@ void SDockingTabStack::SetParentNode( TSharedRef<class SDockingSplitter> InParen
 		//                  and only the first one!  Currently, all SDockingAreas with a parent window set will get
 		//                  title area widgets added!
 		const TSharedRef<SWindow>& ParentWindow = DockArea->GetParentWindow().ToSharedRef();
+		TSharedPtr<IWindowTitleBar> TitleBar;
+		TSharedRef<SWidget> TitleBarWidget = FSlateApplication::Get().MakeWindowTitleBar(ParentWindow, TitleBarContent, TitleBar);
 
-		TSharedPtr< SWidget > LeftContent, RightContent;
-		TSharedPtr< SWidget > CenterContent;	// NOTE: We don't care about center title area content.  No space to put it!
-		ParentWindow->MakeTitleBarContentWidgets( LeftContent, CenterContent, RightContent );
-		
-		TitleAreaLeftSlot->Widget = LeftContent.IsValid() ? LeftContent.ToSharedRef() : TSharedRef<SWidget>( SNew( SSpacer ) );
-		TitleAreaRightSlot->Widget = RightContent.IsValid() ? RightContent.ToSharedRef() : TSharedRef<SWidget>( SNew( SSpacer ) );
-	}
-	else
-	{
-		TitleAreaLeftSlot->Widget = SNew( SSpacer );
-		TitleAreaRightSlot->Widget = SNew( SSpacer );
+		(*TitleBarSlot)[TitleBarWidget];
+		ParentWindow->SetTitleBar(TitleBar);
 	}
 }
 
@@ -958,3 +958,5 @@ FString SDockingTabStack::ShowPersistentTabs() const
 
 #endif
 
+
+#undef LOCTEXT_NAMESPACE

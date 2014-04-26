@@ -30,6 +30,7 @@ public class Matinee : ModuleRules
 				"CoreUObject",
 				"Engine",
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
                 "InputCore",
 				"LevelEditor",

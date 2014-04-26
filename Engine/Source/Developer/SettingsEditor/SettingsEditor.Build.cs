@@ -26,6 +26,7 @@ public class SettingsEditor : ModuleRules
                 "InputCore",
 				"DesktopPlatform",
 				"PropertyEditor",
+				"SlateCore",
 				"SourceControl",
             }
         );

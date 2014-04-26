@@ -14,6 +14,7 @@ public class SlateRHIRenderer : ModuleRules
 				"CoreUObject",
                 "InputCore",
 				"Slate",
+				"SlateCore",
                 "Engine",
                 "RHI",
                 "RenderCore",
@@ -21,7 +22,5 @@ public class SlateRHIRenderer : ModuleRules
                 "ImageWrapper"
 			}
 		);
-
-
 	}
 }

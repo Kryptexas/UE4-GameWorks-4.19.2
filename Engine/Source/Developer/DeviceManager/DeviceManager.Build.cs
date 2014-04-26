@@ -18,6 +18,7 @@ public class DeviceManager : ModuleRules
 				"EditorStyle",
                 "InputCore",
 				"Slate",
+				"SlateCore",
 				"TargetPlatform",
 			}
 		);

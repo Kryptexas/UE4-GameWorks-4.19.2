@@ -6,11 +6,8 @@ namespace UnrealBuildTool.Rules
 	{
         public AppleMoviePlayer(TargetInfo Target)
 		{
-			PrivateIncludePaths.Add("Runtime/AppleMoviePlayer/Private");
-
 			PublicDependencyModuleNames.AddRange(
-				new string[]
-				{
+				new string[] {
 					"Core",
 				    "CoreUObject",
 				    "Engine",
@@ -19,11 +16,23 @@ namespace UnrealBuildTool.Rules
                     "RHI",
                     "Slate"
 				}
-				);
-				
+			);
+
+			PrivateDependencyModuleNames.AddRange(
+				new string[] {
+					"SlateCore",
+				}
+			);
+
+			PrivateIncludePaths.Add("Runtime/AppleMoviePlayer/Private");
+
 			if (Target.Platform == UnrealTargetPlatform.Mac)
 			{
-				PublicFrameworks.AddRange(new string[] { "QuartzCore" });
+				PublicFrameworks.AddRange(
+					new string[] {
+						"QuartzCore"
+					}
+				);
 			}
 		}
 	}
