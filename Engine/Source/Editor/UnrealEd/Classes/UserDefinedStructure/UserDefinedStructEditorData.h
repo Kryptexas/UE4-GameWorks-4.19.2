@@ -41,6 +41,9 @@ struct FStructVariableDescription
 	UPROPERTY()
 	FString CurrentDefaultValue;
 
+	UPROPERTY()
+	FString ToolTip;
+
 	UNREALED_API bool SetPinType(const struct FEdGraphPinType& VarType);
 
 	UNREALED_API FEdGraphPinType ToPinType() const;
@@ -59,6 +62,9 @@ private:
 public:
 	UPROPERTY()
 	TArray<FStructVariableDescription> VariablesDescriptions;
+
+	UPROPERTY()
+	FString ToolTip;
 
 	// UObject interface.
 	virtual void PostEditUndo() OVERRIDE;

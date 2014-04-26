@@ -27,4 +27,18 @@ void FAssetTypeActions_Struct::OpenAssetEditor( const TArray<UObject*>& InObject
 	}
 }
 
+FText FAssetTypeActions_Struct::GetAssetDescription(const FAssetData& AssetData) const
+{
+	if (const FString* pDescription = AssetData.TagsAndValues.Find(TEXT("Tooltip")))
+	{
+		if (!pDescription->IsEmpty())
+		{
+			const FString DescriptionStr(*pDescription);
+			return FText::FromString(DescriptionStr.Replace(TEXT("\\n"), TEXT("\n")));
+		}
+	}
+
+	return FText::GetEmpty();
+}
+
 #undef LOCTEXT_NAMESPACE

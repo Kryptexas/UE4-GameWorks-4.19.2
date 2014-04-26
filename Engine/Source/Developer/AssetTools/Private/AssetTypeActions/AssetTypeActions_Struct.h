@@ -11,5 +11,6 @@ public:
 	virtual UClass* GetSupportedClass() const OVERRIDE { return UUserDefinedStruct::StaticClass(); }
 	virtual uint32 GetCategories() OVERRIDE { return EAssetTypeCategories::Misc; }
 
+	virtual FText GetAssetDescription(const FAssetData& AssetData) const OVERRIDE;
 	virtual void OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<class IToolkitHost> EditWithinLevelEditor = TSharedPtr<IToolkitHost>() ) OVERRIDE;
 };

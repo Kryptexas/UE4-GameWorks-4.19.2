@@ -84,6 +84,10 @@ public:
 
 	static void CompileStructure(UUserDefinedStruct* Struct);
 
+	static FString GetTooltip(const UUserDefinedStruct* Struct);
+
+	static bool ChangeTooltip(UUserDefinedStruct* Struct, const FString& InTooltip);
+
 	//VARIABLE
 	static bool AddVariable(UUserDefinedStruct* Struct, const FEdGraphPinType& VarType);
 
@@ -98,6 +102,10 @@ public:
 	static bool IsUniqueVariableDisplayName(const UUserDefinedStruct* Struct, const FString& DisplayName);
 
 	static FString GetVariableDisplayName(const UUserDefinedStruct* Struct, FGuid VarGuid);
+
+	static FString GetVariableTooltip(const UUserDefinedStruct* Struct, FGuid VarGuid);
+	
+	static bool ChangeVariableTooltip(UUserDefinedStruct* Struct, FGuid VarGuid, const FString& InTooltip);
 
 	//MISC
 	static TArray<FStructVariableDescription>& GetVarDesc(UUserDefinedStruct* Struct);

@@ -44,8 +44,8 @@ public:
 	// UObject interface.
 	virtual void Serialize(FArchive& Ar) OVERRIDE;
 	virtual void PostDuplicate(bool bDuplicateForPIE) OVERRIDE;
+	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const OVERRIDE;
 	// End of UObject interface.
-
 #endif	// WITH_EDITOR
 
 	virtual void SerializeTaggedProperties( FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, uint8* Defaults ) const OVERRIDE;

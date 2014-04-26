@@ -148,6 +148,7 @@ struct FUserDefinedStructureCompilerInner
 			NewProperty->SetPropertyFlags(CPF_Edit);
 			NewProperty->SetMetaData(TEXT("DisplayName"), *VarDesc.FriendlyName);
 			NewProperty->SetMetaData(TEXT("Category"), *VarDesc.Category);
+			NewProperty->SetMetaData(FBlueprintMetadata::MD_Tooltip, *VarDesc.ToolTip);
 			NewProperty->RepNotifyFunc = NAME_None;
 
 			if (!VarDesc.DefaultValue.IsEmpty())
@@ -164,6 +165,8 @@ struct FUserDefinedStructureCompilerInner
 	{
 		check(Struct);
 		const int32 ErrorNum = MessageLog.NumErrors;
+
+		Struct->SetMetaData(FBlueprintMetadata::MD_Tooltip, *FStructureEditorUtils::GetTooltip(Struct));
 
 		CreateVariables(Struct, K2Schema, MessageLog);
 

@@ -534,6 +534,65 @@ const TArray<FStructVariableDescription>& FStructureEditorUtils::GetVarDesc(cons
 	return CastChecked<const UUserDefinedStructEditorData>(Struct->EditorData)->VariablesDescriptions;
 }
 
+FString FStructureEditorUtils::GetTooltip(const UUserDefinedStruct* Struct)
+{
+	const auto StructEditorData = Struct ? Cast<const UUserDefinedStructEditorData>(Struct->EditorData) : NULL;
+	return StructEditorData ? StructEditorData->ToolTip : FString();
+}
+
+bool FStructureEditorUtils::ChangeTooltip(UUserDefinedStruct* Struct, const FString& InTooltip)
+{
+	auto StructEditorData = Struct ? Cast<UUserDefinedStructEditorData>(Struct->EditorData) : NULL;
+	if (StructEditorData && (InTooltip != StructEditorData->ToolTip))
+	{
+		const FScopedTransaction Transaction(LOCTEXT("ChangeTooltip", "Change UDS Tooltip"));
+		StructEditorData->Modify();
+		StructEditorData->ToolTip = InTooltip;
+
+		Struct->SetMetaData(FBlueprintMetadata::MD_Tooltip, *StructEditorData->ToolTip);
+
+		return true;
+	}
+	return false;
+}
+
+FString FStructureEditorUtils::GetVariableTooltip(const UUserDefinedStruct* Struct, FGuid VarGuid)
+{
+	if (Struct)
+	{
+		const FStructVariableDescription* VarDesc = GetVarDesc(Struct).FindByPredicate(FFindByGuidHelper<FStructVariableDescription>(VarGuid));
+		if (VarDesc)
+		{
+			return VarDesc->ToolTip;
+		}
+	}
+
+	return FString();
+}
+
+bool FStructureEditorUtils::ChangeVariableTooltip(UUserDefinedStruct* Struct, FGuid VarGuid, const FString& InTooltip)
+{
+	if (Struct)
+	{
+		FStructVariableDescription* VarDesc = GetVarDesc(Struct).FindByPredicate(FFindByGuidHelper<FStructVariableDescription>(VarGuid));
+		if (VarDesc && (InTooltip != VarDesc->ToolTip))
+		{
+			const FScopedTransaction Transaction(LOCTEXT("ChangeVariableTooltip", "Change UDS Variable Tooltip"));
+			ModifyStructData(Struct);
+			VarDesc->ToolTip = InTooltip;
+
+			auto Property = FindField<UProperty>(Struct, VarDesc->VarName);
+			if (Property)
+			{
+				Property->SetMetaData(FBlueprintMetadata::MD_Tooltip, *VarDesc->ToolTip);
+			}
+
+			return true;
+		}
+	}
+	return false;
+}
+
 void FStructureEditorUtils::ModifyStructData(UUserDefinedStruct* Struct)
 {
 	UUserDefinedStructEditorData* EditorData = Struct ? Cast<UUserDefinedStructEditorData>(Struct->EditorData) : NULL;

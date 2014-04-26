@@ -84,15 +84,16 @@ UEdGraphSchema_K2::FPinTypeTreeInfo::FPinTypeTreeInfo(const FString& CategoryNam
 
 struct FGatherStructTypesFromAssetsHelper
 {
+	typedef TSharedPtr<UEdGraphSchema_K2::FPinTypeTreeInfo> FPinTypeTreeInfoPtr;
 	struct FCompareChildren
 	{
-		FORCEINLINE bool operator()(const TSharedPtr<UEdGraphSchema_K2::FPinTypeTreeInfo> A, const TSharedPtr<UEdGraphSchema_K2::FPinTypeTreeInfo> B) const
+		FORCEINLINE bool operator()(const FPinTypeTreeInfoPtr A, const FPinTypeTreeInfoPtr B) const
 		{
 			return (A->GetDescription() < B->GetDescription());
 		}
 	};
 
-	static void Gather(const FString& CategoryName, const UEdGraphSchema_K2* Schema, TArray< TSharedPtr<UEdGraphSchema_K2::FPinTypeTreeInfo> >& OutChildren)
+	static void Gather(const FString& CategoryName, const UEdGraphSchema_K2* Schema, TArray<FPinTypeTreeInfoPtr>& OutChildren)
 	{
 		const FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 		TArray<FAssetData> AssetData;
@@ -102,8 +103,10 @@ struct FGatherStructTypesFromAssetsHelper
 			const FAssetData& Asset = AssetData[AssetIndex];
 			if (Asset.IsValid() && !Asset.IsAssetLoaded())
 			{
-				TSharedPtr<UEdGraphSchema_K2::FPinTypeTreeInfo> TypeTreeInfo = 
-					MakeShareable(new UEdGraphSchema_K2::FPinTypeTreeInfo(CategoryName, Asset.ToStringReference(), Asset.ObjectPath.ToString()));
+				const FString* pDescription = Asset.TagsAndValues.Find(TEXT("Tooltip"));
+				const FString Tooltip = (pDescription && !pDescription->IsEmpty()) ? *pDescription : Asset.ObjectPath.ToString();
+
+				FPinTypeTreeInfoPtr TypeTreeInfo = MakeShareable(new UEdGraphSchema_K2::FPinTypeTreeInfo(CategoryName, Asset.ToStringReference(), Tooltip));
 				TypeTreeInfo->FriendlyName = Asset.AssetName.ToString();
 				OutChildren.Add(TypeTreeInfo);
 			}
