@@ -123,7 +123,7 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 				SNew(SWindow)
 				.ClientSize(FVector2D(800, 600))
 				[
-					FModuleManager::LoadModuleChecked<ISlateReflectorModule>().GetWidgetReflector()
+					FModuleManager::LoadModuleChecked<ISlateReflectorModule>("SlateReflector").GetWidgetReflector()
 				]);
 		}
 
