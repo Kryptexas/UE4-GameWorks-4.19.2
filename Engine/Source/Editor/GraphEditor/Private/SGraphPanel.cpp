@@ -21,45 +21,32 @@
 DEFINE_LOG_CATEGORY_STATIC(LogGraphPanel, Log, All);
 
 
-/** A handle to a pin, defined by its owning node's GUID, and the pin's name. Used to reference a pin without referring to its widget */
-struct FGraphPinHandle
+SGraphPanel::FGraphPinHandle::FGraphPinHandle(UEdGraphPin* InPin)
 {
-	/** The GUID of the node to which this pin belongs */
-	FGuid NodeGuid;
-
-	/** The name of the pin we are referencing */
-	FString PinName;
-
-	/** Constructor */
-	FGraphPinHandle(UEdGraphPin* InPin)
+	if (auto* Node = InPin->GetOwningNode())
 	{
-		if (auto* Node = InPin->GetOwningNode())
+		PinName = InPin->PinName;
+		NodeGuid = Node->NodeGuid;
+	}
+}
+
+TSharedPtr<SGraphPin> SGraphPanel::FGraphPinHandle::FindInGraphPanel(const SGraphPanel& InPanel) const
+{
+	// First off, find the node
+	TSharedPtr<SGraphNode> GraphNode = InPanel.GetNodeWidgetFromGuid(NodeGuid);
+	if (GraphNode.IsValid())
+	{
+		UEdGraphNode* Node = GraphNode->GetNodeObj();
+		UEdGraphPin* Pin = Node->FindPin(PinName);
+
+		if (Pin)
 		{
-			PinName = InPin->PinName;
-			NodeGuid = Node->NodeGuid;
+			return GraphNode->FindWidgetForPin(Pin);
 		}
 	}
 
-	/** Find a pin widget in the specified panel from this handle */
-	TSharedPtr<SGraphPin> FindInGraphPanel(const SGraphPanel& InPanel) const
-	{
-		// First off, find the node
-		TSharedPtr<SGraphNode> GraphNode = InPanel.GetNodeWidgetFromGuid(NodeGuid);
-		if (GraphNode.IsValid())
-		{
-			UEdGraphNode* Node = GraphNode->GetNodeObj();
-			UEdGraphPin* Pin = Node->FindPin(PinName);
-
-			if (Pin)
-			{
-				return GraphNode->FindWidgetForPin(Pin);
-			}
-		}
-
-		return TSharedPtr<SGraphPin>();
-	}
-};
-
+	return TSharedPtr<SGraphPin>();
+}
 
 /**
  * Construct a widget
