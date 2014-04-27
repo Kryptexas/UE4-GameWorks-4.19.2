@@ -1,5 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
+/*=============================================================================
+	SEditableTextBlock.cpp: Declares the SEditableTextBlock class.
+=============================================================================*/
+
 #pragma once
 
 /**
@@ -24,7 +28,6 @@ public:
 	 */
 	FEditableTextBlock( const FText& InLabel, const FText& InToolTip, const FSlateIcon& InIcon, const TAttribute< FText >& InTextAttribute, bool bInReadOnly, const FOnTextCommitted& InOnTextCommitted, const FOnTextChanged& InOnTextChanged );
 
-
 private:
 
 	/**
@@ -32,8 +35,7 @@ private:
 	 *
 	 * @return  MultiBlock widget object
 	 */
-	virtual TSharedRef< class IMultiBlockBaseWidget > ConstructWidget() const;
-
+	virtual TSharedRef<class IMultiBlockBaseWidget> ConstructWidget() const;
 
 private:
 
@@ -64,8 +66,6 @@ private:
 };
 
 
-
-
 /**
  * Editable text block widget
  */
@@ -78,7 +78,6 @@ public:
 	SLATE_BEGIN_ARGS( SEditableTextBlock ){}
 	SLATE_END_ARGS()
 
-
 	/**
 	 * Builds this MultiBlock widget up from the MultiBlock associated with it
 	 */
@@ -89,7 +88,7 @@ public:
 	 *
 	 * @param	InArgs	The declaration data for this widget
 	 */
-	void Construct( const FArguments& InArgs );
+	void Construct( const FArguments& InArgs ) { }
 
 protected:
 
@@ -99,7 +98,6 @@ protected:
 	 * @return True if the widget is enabled, false otherwise
 	 */
 	bool IsEnabled() const;
-
 
 private:
 

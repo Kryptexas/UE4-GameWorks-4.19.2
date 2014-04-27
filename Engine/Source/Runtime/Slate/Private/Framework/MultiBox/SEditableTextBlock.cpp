@@ -1,7 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
+/*=============================================================================
+	SEditableTextBlock.h: Implements the SEditableTextBlock class.
+=============================================================================*/
+
 #include "SlatePrivatePCH.h"
-#include "MultiBox.h"
+#include "SEditableTextBlock.h"
 
 
 FEditableTextBlock::FEditableTextBlock( const FText& InLabel, const FText& InToolTip, const FSlateIcon& InIcon, const TAttribute< FText >& InTextAttribute, bool bInReadOnly, const FOnTextCommitted& InOnTextCommitted, const FOnTextChanged& InOnTextChanged )
@@ -13,25 +17,17 @@ FEditableTextBlock::FEditableTextBlock( const FText& InLabel, const FText& InToo
 	  OnTextCommitted( InOnTextCommitted ),
 	  OnTextChanged( InOnTextChanged ),
 	  bReadOnly( bInReadOnly )
-{
-}
+{ }
 
 
-TSharedRef< class IMultiBlockBaseWidget > FEditableTextBlock::ConstructWidget() const
+TSharedRef<class IMultiBlockBaseWidget> FEditableTextBlock::ConstructWidget() const
 {
 	return SNew( SEditableTextBlock )
-			.Cursor(EMouseCursor::Default);
+		.Cursor(EMouseCursor::Default);
 }
 
 
-
-void SEditableTextBlock::Construct( const FArguments& InArgs )
-{
-}
-
-
-
-void SEditableTextBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet, const FName& StyleName)
+void SEditableTextBlock::BuildMultiBlockWidget( const ISlateStyle* StyleSet, const FName& StyleName )
 {
 	TSharedPtr< const FMultiBox > MultiBox = OwnerMultiBoxWidget.Pin()->GetMultiBox();
 	TSharedPtr< const FEditableTextBlock > EditableTextBlock = StaticCastSharedRef< const FEditableTextBlock >( MultiBlock.ToSharedRef() );
@@ -57,8 +53,7 @@ void SEditableTextBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet, cons
 		const FSlateBrush* IconBrush = ActualIcon.GetIcon();
 		if( IconBrush->GetResourceName() != NAME_None )
 		{
-			IconWidget =
-				SNew( SImage )
+			IconWidget = SNew( SImage )
 				.Image( IconBrush );
 		}
 	}
@@ -128,7 +123,6 @@ void SEditableTextBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet, cons
 }
 
 
-
 bool SEditableTextBlock::IsEnabled() const
 {
 	TSharedPtr< const FUICommandList > ActionList = MultiBlock->GetActionList();
@@ -148,4 +142,3 @@ bool SEditableTextBlock::IsEnabled() const
 
 	return bEnabled;
 }
-
