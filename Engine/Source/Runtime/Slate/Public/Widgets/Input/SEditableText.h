@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include "MultiBox/MultiBoxExtender.h"
 #include "ITextEditorWidget.h"
 #include "ITextInputMethodSystem.h"
+
 
 /**
  * Editable text widget

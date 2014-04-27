@@ -1,7 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "Slate.h"
+#include "SlatePrivatePCH.h"
 #include "SWindowTitleBar.h"
+
 
 // Statics
 //// @todo checkin: Should this go in an almost empty Events.cpp?

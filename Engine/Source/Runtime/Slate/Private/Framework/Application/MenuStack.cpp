@@ -4,7 +4,7 @@
 	MenuStack.cpp: Implements the FMenuStack class.
 =============================================================================*/
 
-#include "Slate.h"
+#include "SlatePrivatePCH.h"
 
 
 namespace FMenuStackDefs

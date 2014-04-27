@@ -1,5 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
+/*=============================================================================
+	SViewport.h: Declares the SViewport class.
+=============================================================================*/
+
 #pragma once
 
 
@@ -44,13 +48,18 @@ public:
 	SLATE_END_ARGS()
 
 	/**
+	 * Default constructor.
+	 */
+	SViewport( );
+
+	/**
 	 * Construct the widget.
 	 *
 	 * @param InArgs  Declaration from which to construct the widget.
 	 */
 	void Construct(const FArguments& InArgs);
-	
-	SViewport();
+
+public:
 
 	/** SViewport wants keyboard focus */
 	virtual bool SupportsKeyboardFocus() const OVERRIDE { return true; }
@@ -116,7 +125,10 @@ public:
 		WidgetToFocusOnActivate.Reset();
 	}
 
+public:
+
 	// SWidget interface
+
 	virtual int32 OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const OVERRIDE;
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
 	virtual FReply OnTouchStarted( const FGeometry& MyGeometry, const FPointerEvent& TouchEvent ) OVERRIDE;
@@ -140,27 +152,37 @@ public:
 	virtual FReply OnControllerButtonReleased( const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent ) OVERRIDE;
 	virtual FReply OnControllerAnalogValueChanged( const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent ) OVERRIDE;
 	virtual FReply OnMotionDetected( const FGeometry& MyGeometry, const FMotionEvent& MotionEvent ) OVERRIDE;
+
 	// End of SWidget interface
 
-
 private:
-	FSimpleSlot& Decl_GetContent() { return ChildSlot; }
+
+	FSimpleSlot& Decl_GetContent()
+	{
+		return ChildSlot;
+	}
 	
 private:
-	/** Interface to the rendering and I/O implementation of the viewport */
+
+	// Interface to the rendering and I/O implementation of the viewport.
 	TWeakPtr<ISlateViewport> ViewportInterface;
-	/** Whether or not to show the disabled effect when this viewport is disabled */
+
+	// Whether or not to show the disabled effect when this viewport is disabled.
 	TAttribute<bool> ShowDisabledEffect;
-	/** Whether or not this viewport renders directly to the window backbuffer */
+
+	// Whether or not this viewport renders directly to the window back-buffer.
 	bool bRenderDirectlyToWindow;
-	/** Whether or not to apply gamma correction on the render target supplied by the ISlateViewport */
+
+	// Whether or not to apply gamma correction on the render target supplied by the ISlateViewport.
 	bool bEnableGammaCorrection;
-	/** Whether or not to blend this viewport with the background */
+
+	// Whether or not to blend this viewport with the background.
 	bool bEnableBlending;
-	/** Whether or not to allow texture alpha to be used in blending calculations */
+
+	// Whether or not to allow texture alpha to be used in blending calculations.
 	bool bIgnoreTextureAlpha;
 
-	/** Widget to transfer keyboard focus to when this window becomes active, if any.  This is used to
-	    restore focus to a widget after a popup has been dismissed. */
+	// Widget to transfer keyboard focus to when this window becomes active, if any.
+	// This is used to restore focus to a widget after a popup has been dismissed.
 	TWeakPtr< SWidget > WidgetToFocusOnActivate;
 };

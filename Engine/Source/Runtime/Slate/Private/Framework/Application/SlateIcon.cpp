@@ -4,7 +4,7 @@
 	SlateIcon.cpp: Implements the FSlateIcon structure.
 =============================================================================*/
 
-#include "Slate.h"
+#include "SlatePrivatePCH.h"
 
 
 /* FSlateIcon structors

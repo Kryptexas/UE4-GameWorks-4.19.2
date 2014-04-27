@@ -4,7 +4,7 @@
 	InputGesture.cpp: Implements the FInputGesture class.
 =============================================================================*/
 
-#include "Slate.h"
+#include "SlatePrivatePCH.h"
 
 
 #define LOCTEXT_NAMESPACE "FInputGesture"

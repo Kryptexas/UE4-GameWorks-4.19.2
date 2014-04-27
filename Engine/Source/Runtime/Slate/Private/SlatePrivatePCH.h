@@ -6,25 +6,24 @@
 
 #pragma once
 
-//#include "Slate.h"
+#include "Slate.h"
 
 
 /* Dependencies
  *****************************************************************************/
 
+#include "InputCore.h"
+#include "Json.h"
+#include "ModuleManager.h"
+#include "Regex.h"
+#include "RemoteConfigIni.h"
 
 
 /* Private includes
  *****************************************************************************/
 
-
-
-/* Global functions
- *****************************************************************************/
-
-/**
- * Creates a widget reflector widget.
- *
- * @todo Slate: move this into a plug-in.
- */
-//TSharedRef<SWidgetReflector> MakeWidgetReflector( );
+#include "ButtonWidgetStyle.h"
+#include "CheckBoxWidgetStyle.h"
+#include "ComboBoxWidgetStyle.h"
+#include "ComboButtonWidgetStyle.h"
+#include "TextBlockWidgetStyle.h"

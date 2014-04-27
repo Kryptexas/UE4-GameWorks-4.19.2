@@ -4,7 +4,7 @@
 	.cpp: Implements the  class.
 =============================================================================*/
 
-#include "Slate.h"
+#include "SlatePrivatePCH.h"
 
 
 FSimpleMulticastDelegate FBindingContext::CommandsChanged;

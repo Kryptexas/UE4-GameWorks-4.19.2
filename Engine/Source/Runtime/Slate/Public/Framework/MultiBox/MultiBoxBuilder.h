@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "MultiBoxDefs.h"
 #include "MultiBoxExtender.h"
 
 

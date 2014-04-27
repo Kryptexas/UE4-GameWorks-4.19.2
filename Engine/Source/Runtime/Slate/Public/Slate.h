@@ -93,6 +93,13 @@ DECLARE_CYCLE_STAT_EXTERN( TEXT("Slate Misc Time"), STAT_SlateMiscTime, STATGROU
 #include "SHeader.h"
 #include "SGridPanel.h"
 #include "SUniformGridPanel.h"
+#include "SMenuAnchor.h"
+#include "MultiBoxDefs.h"
+////
+#include "MultiBox.h"
+////
+#include "MultiBoxBuilder.h"
+#include "MultiBoxExtender.h"
 #include "SMultiLineEditableText.h"
 #include "SEditableText.h"
 #include "SEditableTextBox.h"
@@ -100,7 +107,7 @@ DECLARE_CYCLE_STAT_EXTERN( TEXT("Slate Misc Time"), STAT_SlateMiscTime, STATGROU
 #include "SButton.h"
 #include "SToolTip.h"
 #include "SScrollBar.h"
-#include "SMenuAnchor.h"
+#include "SScrollBorder.h"
 #include "SErrorText.h"
 #include "SErrorHint.h"
 #include "SPopUpErrorText.h"
@@ -125,8 +132,10 @@ DECLARE_CYCLE_STAT_EXTERN( TEXT("Slate Misc Time"), STAT_SlateMiscTime, STATGROU
 #include "SColorWheel.h"
 #include "SColorThemes.h"
 #include "SColorPicker.h"
-#include "MultiBoxBuilder.h"
-#include "MultiBoxExtender.h"
+///
+#include "SToolBarButtonBlock.h"
+#include "SToolBarComboButtonBlock.h"
+///
 #include "SComboButton.h"
 #include "SComboBox.h"
 #include "SHyperlink.h"
@@ -139,6 +148,7 @@ DECLARE_CYCLE_STAT_EXTERN( TEXT("Slate Misc Time"), STAT_SlateMiscTime, STATGROU
 #include "SNotificationList.h"
 #include "SWidgetSwitcher.h"
 #include "SSuggestionTextBox.h"
+#include "SBreadcrumbTrail.h"
 #include "SWizard.h"
 #include "STextComboBox.h"
 #include "SNumericEntryBox.h"
@@ -151,6 +161,9 @@ DECLARE_CYCLE_STAT_EXTERN( TEXT("Slate Misc Time"), STAT_SlateMiscTime, STATGROU
 #include "ScrollyZoomy.h"
 #include "SSafeZone.h"
 #include "MarqueeRect.h"
+#include "SRotatorInputBox.h"
+#include "SVectorInputBox.h"
+#include "SVirtualJoystick.h"
 
 // Docking Framework
 #include "WorkspaceItem.h"

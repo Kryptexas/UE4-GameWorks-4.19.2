@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "MultiBoxDefs.h"
 
 /** Called on your extension to add new pull-down menus to a menu bar */
 DECLARE_DELEGATE_OneParam( FMenuBarExtensionDelegate, class FMenuBarBuilder& );

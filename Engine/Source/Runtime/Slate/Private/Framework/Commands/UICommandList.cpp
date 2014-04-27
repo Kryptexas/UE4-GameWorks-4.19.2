@@ -4,7 +4,7 @@
 	UICommandList.cpp: Implements the FUICommandList class.
 =============================================================================*/
 
-#include "Slate.h"
+#include "SlatePrivatePCH.h"
 
 
 /* FUICommandList interface

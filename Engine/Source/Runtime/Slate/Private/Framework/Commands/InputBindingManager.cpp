@@ -4,8 +4,7 @@
 	InputBindingManager.cpp: Implements the FInputBindingManager class.
 =============================================================================*/
 
-#include "Slate.h"
-#include "RemoteConfigIni.h"
+#include "SlatePrivatePCH.h"
 
 
 /* FUserDefinedGestures helper class
