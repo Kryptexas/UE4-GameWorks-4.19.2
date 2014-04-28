@@ -37,7 +37,7 @@ public class IOSPlatform : Platform
 	protected bool GetCodeSignDesirability(ProjectParams Params)
 	{
 		//@TODO: Would like to make this true, as it's the common case for everyone else
-		bool bDefaultNeedsSign = false;
+		bool bDefaultNeedsSign = true;
 
 		bool bNeedsSign = false;
 		string EnvVar = InternalUtils.GetEnvironmentVariable(IOSEnvVarNames.CodeSignWhenStaging, bDefaultNeedsSign ? "1" : "0", /*bQuiet=*/ false);
