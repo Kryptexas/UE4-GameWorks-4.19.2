@@ -432,3 +432,21 @@ void FCoreAudioDevice::SetFreeMatrixMixerInput( int32 Input )
 {
 	MatrixMixerInputStatus[ Input ] = false;
 }
+
+bool FCoreAudioDevice::HasCompressedAudioInfoClass(USoundWave* SoundWave)
+{
+#if WITH_OGGVORBIS
+	return true;
+#else
+	return false;
+#endif
+}
+
+class ICompressedAudioInfo* FCoreAudioDevice::CreateCompressedAudioInfo(USoundWave* SoundWave)
+{
+#if WITH_OGGVORBIS
+	return new FVorbisAudioInfo();
+#else
+	return NULL;
+#endif
+}

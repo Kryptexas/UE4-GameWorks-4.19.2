@@ -226,6 +226,24 @@ FSoundSource* FXAudio2Device::CreateSoundSource()
 	return new FXAudio2SoundSource(this);
 }
 
+bool FXAudio2Device::HasCompressedAudioInfoClass(USoundWave* SoundWave)
+{
+#if WITH_OGGVORBIS
+	return true;
+#else
+	return false;
+#endif
+}
+
+class ICompressedAudioInfo* FXAudio2Device::CreateCompressedAudioInfo(USoundWave* SoundWave)
+{
+#if WITH_OGGVORBIS
+	return new FVorbisAudioInfo();
+#else
+	return NULL;
+#endif
+}
+
 /**  
  * Check for errors and output a human readable string 
  */

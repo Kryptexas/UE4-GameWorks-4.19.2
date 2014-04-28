@@ -473,6 +473,12 @@ public:
 
 	virtual FName GetRuntimeFormat() PURE_VIRTUAL(FAudioDevice::GetRuntimeFormat,return NAME_None;);
 
+	/** Whether this SoundWave has an associated info class to decompress it */
+	virtual bool HasCompressedAudioInfoClass(USoundWave* SoundWave) { return false; }
+
+	/** Creates a Compressed audio info class suitable for decompressing this SoundWave */
+	virtual class ICompressedAudioInfo* CreateCompressedAudioInfo(USoundWave* SoundWave) { return NULL; }
+
 	/**
 	 * Check for errors and output a human readable string
 	 */

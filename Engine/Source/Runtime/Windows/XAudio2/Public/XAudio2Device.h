@@ -102,6 +102,10 @@ class FXAudio2Device : public FAudioDevice
 #endif //WITH_OGGVORBIS
 	}
 
+	virtual bool HasCompressedAudioInfoClass(USoundWave* SoundWave) OVERRIDE;
+
+	virtual class ICompressedAudioInfo* CreateCompressedAudioInfo(USoundWave* SoundWave) OVERRIDE;
+
 	/** 
 	 * Check for errors and output a human readable string 
 	 */

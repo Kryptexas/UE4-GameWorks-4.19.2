@@ -147,7 +147,7 @@ FCoreAudioSoundBuffer* FCoreAudioSoundBuffer::CreateQueuedBuffer( FCoreAudioDevi
 	// Prime the first two buffers and prepare the decompression
 	FSoundQualityInfo QualityInfo = { 0 };
 
-	Buffer->DecompressionState = new FVorbisAudioInfo();
+	Buffer->DecompressionState = CoreAudioDevice->CreateCompressedAudioInfo(Wave);
 	
 	Wave->InitAudioResource( CoreAudioDevice->GetRuntimeFormat() );
 	

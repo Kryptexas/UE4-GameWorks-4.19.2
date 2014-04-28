@@ -541,8 +541,9 @@ void FOpusAudioInfo::ExpandFile(uint8* DstBuffer, struct FSoundQualityInfo* Qual
  */
 void FAsyncAudioDecompressWorker::DoWork( void )
 {
-#if WITH_OGGVORBIS
-	ICompressedAudioInfo* AudioInfo = new FVorbisAudioInfo;
+	check(GEngine);
+	check(GEngine->GetAudioDevice());
+	ICompressedAudioInfo* AudioInfo = GEngine->GetAudioDevice()->CreateCompressedAudioInfo(Wave);
 	FSoundQualityInfo	QualityInfo = { 0 };
 
 	// Parse the audio header for the relevant information
@@ -582,9 +583,6 @@ void FAsyncAudioDecompressWorker::DoWork( void )
 	Wave->RemoveAudioResource();
 
 	delete AudioInfo;
-#else
-	check(0);
-#endif
 }
 
 // end

@@ -241,6 +241,10 @@ public:
 		return NAME_OGG;
 	}
 
+	virtual bool HasCompressedAudioInfoClass(USoundWave* SoundWave) OVERRIDE;
+
+	virtual class ICompressedAudioInfo* CreateCompressedAudioInfo(USoundWave* SoundWave) OVERRIDE;
+
 	/** Starts up any platform specific hardware/APIs */
 	virtual bool InitializeHardware() OVERRIDE;
  

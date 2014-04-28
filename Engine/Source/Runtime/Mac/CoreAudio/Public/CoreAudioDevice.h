@@ -360,6 +360,10 @@ class FCoreAudioDevice : public FAudioDevice
 		return NAME_OGG;
 	}
 
+	virtual bool HasCompressedAudioInfoClass(USoundWave* SoundWave) OVERRIDE;
+
+	virtual class ICompressedAudioInfo* CreateCompressedAudioInfo(USoundWave* SoundWave) OVERRIDE;
+
 	FORCEINLINE uint32 CalculateMatrixElement( uint32 InputNum, uint32 OutputNum )
 	{
 		return ( ( InputNum << 16 ) | ( OutputNum & 0x0000FFFF ) );

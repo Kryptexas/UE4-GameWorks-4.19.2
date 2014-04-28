@@ -2269,8 +2269,7 @@ void FAudioDevice::Precache(USoundWave* SoundWave, bool bSynchronous, bool bTrac
 		// Streaming data, created programmatically.
 		SoundWave->DecompressionType = DTYPE_Procedural;
 	}
-#if WITH_OGGVORBIS
-	else
+	else if ( HasCompressedAudioInfoClass(SoundWave) )
 	{
 		const FSoundGroup& SoundGroup = GetDefault<USoundGroups>()->GetSoundGroup(SoundWave->SoundGroup);
 
@@ -2321,13 +2320,11 @@ void FAudioDevice::Precache(USoundWave* SoundWave, bool bSynchronous, bool bTrac
 			bTrackMemory = false;
 		}
 	}
-#else
 	else
 	{
 		// Preserve old behavior if there is no compressed audio info class for this audio format
 		SoundWave->DecompressionType = DTYPE_Native;
 	}
-#endif
 
 	if (bTrackMemory)
 	{

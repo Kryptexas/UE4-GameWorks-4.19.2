@@ -204,7 +204,7 @@ public:
 	virtual int32 Recompress(FName Format, const TArray<uint8>& SrcBuffer, FSoundQualityInfo& QualityInfo, TArray<uint8>& OutBuffer) const
 	{
 		check(Format == NAME_OPUS);
-		ICompressedAudioInfo*	AudioInfo = CreateCompressedAudioInfo();
+		FOpusAudioInfo	AudioInfo;
 
 		// Cannot quality preview multichannel sounds
 		if( QualityInfo.NumChannels > 2 )
@@ -219,7 +219,7 @@ public:
 		}
 
 		// Parse the opus header for the relevant information
-		if( !AudioInfo->ReadCompressedInfo( CompressedDataStore.GetTypedData(), CompressedDataStore.Num(), &QualityInfo ) )
+		if( !AudioInfo.ReadCompressedInfo( CompressedDataStore.GetTypedData(), CompressedDataStore.Num(), &QualityInfo ) )
 		{
 			return 0;
 		}
@@ -227,7 +227,7 @@ public:
 		// Decompress all the sample data
 		OutBuffer.Empty(QualityInfo.SampleDataSize);
 		OutBuffer.AddZeroed(QualityInfo.SampleDataSize);
-		AudioInfo->ExpandFile( OutBuffer.GetTypedData(), &QualityInfo );
+		AudioInfo.ExpandFile( OutBuffer.GetTypedData(), &QualityInfo );
 
 		return CompressedDataStore.Num();
 	}
@@ -239,16 +239,6 @@ public:
 #else
 		opus_encoder_destroy(Encoder);
 #endif
-	}
-
-	virtual bool HasCompressedAudioInfoClass() const
-	{
-		return true;
-	}
-
-	virtual class ICompressedAudioInfo* CreateCompressedAudioInfo() const
-	{
-		return new FOpusAudioInfo();
 	}
 };
 

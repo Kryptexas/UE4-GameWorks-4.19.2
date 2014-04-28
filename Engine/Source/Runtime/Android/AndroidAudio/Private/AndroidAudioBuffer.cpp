@@ -51,7 +51,7 @@ FSLESSoundBuffer* FSLESSoundBuffer::CreateQueuedBuffer( FSLESAudioDevice* AudioD
 	// Prime the first two buffers and prepare the decompression
 	FSoundQualityInfo QualityInfo = { 0 };
 	
-	Buffer->DecompressionState = new FVorbisAudioInfo();
+	Buffer->DecompressionState = AudioDevice->CreateCompressedAudioInfo(InWave);
 
 	InWave->InitAudioResource( AudioDevice->GetRuntimeFormat() );
 	
