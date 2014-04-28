@@ -17,6 +17,8 @@ import android.content.Intent;
 import android.content.res.Configuration;
 import android.content.IntentSender.SendIntentException;
 
+import android.media.AudioManager;
+
 import android.view.Gravity;
 import android.view.ViewGroup.LayoutParams;
 import android.view.ViewGroup.MarginLayoutParams;
@@ -128,6 +130,9 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 		}
 
 		_activity = this;
+
+		// tell Android that we want volume controls to change the media volume, aka music
+		setVolumeControlStream(AudioManager.STREAM_MUSIC);
 
 		// tell the engine if this is a portrait app
 		nativeSetGlobalActivity();
