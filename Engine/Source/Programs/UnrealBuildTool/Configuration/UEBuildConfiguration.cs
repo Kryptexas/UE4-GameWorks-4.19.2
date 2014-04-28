@@ -142,7 +142,7 @@ namespace UnrealBuildTool
 			XmlConfigLoader.Load(typeof(UEBuildConfiguration));
 
 			// Configuration overrides.
-			string SteamVersion = "Steamv128";
+			string SteamVersion = "Steamv129";
 			bCompileSteamOSS = bCompileSteamOSS
 			   && Directory.Exists(UEBuildConfiguration.UEThirdPartyDirectory + "Steamworks/" + SteamVersion) == true;
 
