@@ -28,6 +28,13 @@ static TAutoConsoleVariable<float> CVarSSRMaxRoughness(
 	ECVF_RenderThreadSafe);
 #endif
 
+static TAutoConsoleVariable<float> CVarSSAOFadeRadiusScale(
+	TEXT("r.AmbientOcclusion.FadeRadiusScale"),
+	1.0f,
+	TEXT("Allows to scale the ambient occlusion fade radius (SSAO).\n")
+	TEXT(" 0.01:smallest .. 1.0:normal (default), <1:smaller, >1:larger"),
+	ECVF_Cheat | ECVF_RenderThreadSafe);
+
 /** Global vertex color view mode setting when SHOW_VertexColors show flag is set */
 EVertexColorViewMode::Type GVertexColorViewMode = EVertexColorViewMode::Color;
 
@@ -917,6 +924,12 @@ void FSceneView::EndFinalPostprocessSettings()
 		float Scale = FMath::Clamp(CVar->GetValueOnGameThread(), 0.1f, 5.0f);
 		
 		FinalPostProcessSettings.AmbientOcclusionRadius *= Scale;
+	}
+
+	{
+		float Scale = FMath::Clamp(CVarSSAOFadeRadiusScale.GetValueOnGameThread(), 0.01f, 50.0f);
+
+		FinalPostProcessSettings.AmbientOcclusionDistance *= Scale;
 	}
 
 	if(!Family->EngineShowFlags.Lighting || !Family->EngineShowFlags.GlobalIllumination)
