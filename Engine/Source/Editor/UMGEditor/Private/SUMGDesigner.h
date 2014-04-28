@@ -14,6 +14,7 @@ public:
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs, TSharedPtr<class FBlueprintEditor> InBlueprintEditor);
+	virtual ~SUMGDesigner();
 
 	// SWidget interface
 	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) OVERRIDE;
@@ -61,6 +62,8 @@ private:
 		DH_MAX,
 	};
 
+	TArray< FVector2D > DragDirections;
+
 private:
 	void DrawDragHandles(const FPaintGeometry& SelectionGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle) const;
 	DragHandle HitTestDragHandles(const FGeometry& AllottedGeometry, const FPointerEvent& PointerEvent) const;
@@ -70,6 +73,7 @@ private:
 	TWeakObjectPtr<AUserWidget> PreviewWidgetActor;
 	TWeakPtr<SWidget> PreviewWidget;
 
+	USlateWrapperComponent* SelectedTemplate;
 	TWeakPtr<SWidget> SelectedWidget;
 
 	TSharedPtr<SBorder> PreviewSurface;

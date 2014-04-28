@@ -11,4 +11,8 @@ class UMG_API UPanelSlot : public UObject
 
 	UPROPERTY()
 	class USlateWrapperComponent* Content;
+
+	virtual void Resize(const FVector2D& Direction, const FVector2D& Amount);
+
+	virtual bool CanResize(const FVector2D& Direction) const;
 };

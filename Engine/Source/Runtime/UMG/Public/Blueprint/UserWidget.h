@@ -19,9 +19,12 @@ class UMG_API AUserWidget : public AActor
 
 	TSharedRef<SWidget> GetRootWidget();
 
+	TSharedPtr<SWidget> GetWidgetFromName(const FString& Name) const;
+	USlateWrapperComponent* GetHandleFromName(const FString& Name) const;
+
 private:
 	TSharedPtr<SWidget> RootWidget;
-	TMap< SWidget*, USlateWrapperComponent* > WidgetToComponent;
+	TMap< TWeakPtr<SWidget>, USlateWrapperComponent* > WidgetToComponent;
 
 private:
 	void RebuildWrapperWidget();

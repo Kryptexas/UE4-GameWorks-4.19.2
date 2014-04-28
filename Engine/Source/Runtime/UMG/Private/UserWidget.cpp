@@ -31,7 +31,7 @@ void AUserWidget::RerunConstructionScripts()
 
 USlateWrapperComponent* AUserWidget::GetWidgetHandle(TSharedRef<SWidget> InWidget)
 {
-	return WidgetToComponent.FindRef(&InWidget.Get());
+	return WidgetToComponent.FindRef(InWidget);
 }
 
 void AUserWidget::RebuildWrapperWidget()
@@ -54,7 +54,7 @@ void AUserWidget::RebuildWrapperWidget()
 		USlateWrapperComponent* Handle = SlateWrapperComponents[ComponentIndex];
 		TSharedRef<SWidget> Widget = Handle->GetWidget();
 
-		WidgetToComponent.Add(&Widget.Get(), Handle);
+		WidgetToComponent.Add(Widget, Handle);
 	}
 	
 	// If this is a game world add the widget to the current worlds viewport.
@@ -64,6 +64,32 @@ void AUserWidget::RebuildWrapperWidget()
 		UGameViewportClient* Viewport = World->GetGameViewport();
 		Viewport->AddViewportWidgetContent(RootWidget.ToSharedRef());
 	}
+}
+
+TSharedPtr<SWidget> AUserWidget::GetWidgetFromName(const FString& Name) const
+{
+	for ( auto& Entry : WidgetToComponent )
+	{
+		if ( Entry.Value->GetName().Equals(Name, ESearchCase::IgnoreCase) )
+		{
+			return Entry.Key.Pin();
+		}
+	}
+
+	return TSharedPtr<SWidget>();
+}
+
+USlateWrapperComponent* AUserWidget::GetHandleFromName(const FString& Name) const
+{
+	for ( auto& Entry : WidgetToComponent )
+	{
+		if ( Entry.Value->GetName().Equals(Name, ESearchCase::IgnoreCase) )
+		{
+			return Entry.Value;
+		}
+	}
+
+	return NULL;
 }
 
 TSharedRef<SWidget> AUserWidget::GetRootWidget()

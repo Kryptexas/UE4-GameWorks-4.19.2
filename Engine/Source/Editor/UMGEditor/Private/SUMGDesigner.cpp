@@ -100,7 +100,23 @@ void SUMGDesigner::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEdit
 	PreviewWidgetActor = NULL;
 	BlueprintEditor = InBlueprintEditor;
 	CurrentHandle = DH_NONE;
-	
+	SelectedTemplate = NULL;
+
+	DragDirections.Init((int32)DH_MAX);
+	DragDirections[DH_TOP_LEFT] = FVector2D(-1, -1);
+	DragDirections[DH_TOP_CENTER] = FVector2D(0, -1);
+	DragDirections[DH_TOP_RIGHT] = FVector2D(1, -1);
+
+	DragDirections[DH_MIDDLE_LEFT] = FVector2D(-1, 0);
+	DragDirections[DH_MIDDLE_RIGHT] = FVector2D(1, 0);
+
+	DragDirections[DH_BOTTOM_LEFT] = FVector2D(-1, 1);
+	DragDirections[DH_BOTTOM_CENTER] = FVector2D(0, 1);
+	DragDirections[DH_BOTTOM_RIGHT] = FVector2D(1, 1);
+
+	UWidgetBlueprint* Blueprint = GetBlueprint();
+	Blueprint->OnChanged().AddSP(this, &SUMGDesigner::OnBlueprintChanged);
+
 	SDesignSurface::Construct(SDesignSurface::FArguments()
 		.Content()
 		[
@@ -124,6 +140,15 @@ void SUMGDesigner::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEdit
 	);
 }
 
+SUMGDesigner::~SUMGDesigner()
+{
+	UWidgetBlueprint* Blueprint = GetBlueprint();
+	if ( Blueprint )
+	{
+		Blueprint->OnChanged().RemoveAll(this);
+	}
+}
+
 UWidgetBlueprint* SUMGDesigner::GetBlueprint() const
 {
 	if ( BlueprintEditor.IsValid() )
@@ -139,7 +164,6 @@ void SUMGDesigner::OnBlueprintChanged(UBlueprint* InBlueprint)
 {
 	if ( InBlueprint )
 	{
-		
 	}
 }
 
@@ -222,20 +246,20 @@ FReply SUMGDesigner::OnMouseButtonDown(const FGeometry& MyGeometry, const FPoint
 	if ( CurrentHandle == DH_NONE )
 	{
 		FArrangedWidget ArrangedWidget(SNullWidget::NullWidget, FGeometry());
-		USlateWrapperComponent* Template = GetTemplateAtCursor(MyGeometry, MouseEvent, ArrangedWidget);
+		SelectedTemplate = GetTemplateAtCursor(MyGeometry, MouseEvent, ArrangedWidget);
 
-		if ( Template )
+		if ( SelectedTemplate )
 		{
-			// Set the selected widget so that we can draw the highlight
-			//@TODO UMG Don't store the transient Widget as the selected object, store the template component and lookup the widget from that.
-			SelectedWidget = ArrangedWidget.Widget;
-
 			//@TODO UMG primary FBlueprintEditor needs to be inherited and selection control needs to be centralized.
 			// Set the template as selected in the details panel
 			TArray<USlateWrapperComponent*> SelectedTemplates;
-			SelectedTemplates.Add(Template);
+			SelectedTemplates.Add(SelectedTemplate);
 			ShowDetailsForObjects(SelectedTemplates);
 		}
+	}
+	else
+	{
+		return FReply::Handled().PreventThrottling().CaptureMouse(AsShared());
 	}
 
 	return FReply::Handled();
@@ -244,14 +268,22 @@ FReply SUMGDesigner::OnMouseButtonDown(const FGeometry& MyGeometry, const FPoint
 FReply SUMGDesigner::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	CurrentHandle = DH_NONE;
-	return FReply::Handled();
+	return FReply::Handled().ReleaseMouseCapture();
 }
 
 FReply SUMGDesigner::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	if ( CurrentHandle != DH_NONE )
 	{
+		if ( SelectedTemplate->Slot && !MouseEvent.GetCursorDelta().IsZero() )
+		{
+			//@TODO UMG - Implement some system to query slots to know if they support dragging so we can provide visual feedback by hiding handles that wouldnt work and such.
+			//SelectedTemplate->Slot->CanResize(DH_TOP_CENTER)
 
+			SelectedTemplate->Slot->Resize(DragDirections[CurrentHandle], MouseEvent.GetCursorDelta());
+			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetBlueprint());
+			return FReply::Handled().PreventThrottling();
+		}
 	}
 
 	return FReply::Handled();
@@ -338,40 +370,51 @@ int32 SUMGDesigner::OnPaint(const FGeometry& AllottedGeometry, const FSlateRect&
 
 void SUMGDesigner::DrawDragHandles(const FPaintGeometry& SelectionGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle) const
 {
-	float X = SelectionGeometry.DrawPosition.X;
-	float Y = SelectionGeometry.DrawPosition.Y;
-	float Width = SelectionGeometry.DrawSize.X;
-	float Height = SelectionGeometry.DrawSize.Y;
-
-	TArray<FVector2D> Handles;
-	Handles.Add(FVector2D(X, Y));					// Top - Left
-	Handles.Add(FVector2D(X + Width * 0.5f, Y));	// Top - Middle
-	Handles.Add(FVector2D(X + Width, Y));			// Top - Right
-
-	Handles.Add(FVector2D(X, Y + Height * 0.5f));			// Middle - Left
-	Handles.Add(FVector2D(X + Width, Y + Height * 0.5f));	// Middle - Right
-
-	Handles.Add(FVector2D(X, Y + Height));					// Bottom - Left
-	Handles.Add(FVector2D(X + Width * 0.5f, Y + Height));	// Bottom - Middle
-	Handles.Add(FVector2D(X + Width, Y + Height));			// Bottom - Right
-
-	const FVector2D HandleSize = FVector2D(10, 10);
-
-	// @TODO UMG - Don't use the curve editors brushes
-	const FSlateBrush* KeyBrush = FEditorStyle::GetBrush("CurveEd.CurveKey");
-	FLinearColor KeyColor = InWidgetStyle.GetColorAndOpacityTint();// IsEditingEnabled() ? InWidgetStyle.GetColorAndOpacityTint() : FLinearColor(0.1f, 0.1f, 0.1f, 1.f);
-
-	for ( FVector2D Handle : Handles )
+	if ( SelectedTemplate && SelectedTemplate->Slot )
 	{
-		FSlateDrawElement::MakeBox(
-			OutDrawElements,
-			++LayerId,
-			FPaintGeometry(FVector2D(Handle.X - HandleSize.X * 0.5f, Handle.Y - HandleSize.Y * 0.5f), HandleSize, 1.0f),
-			KeyBrush,
-			MyClippingRect,
-			ESlateDrawEffect::None,
-			KeyBrush->GetTint(InWidgetStyle) * InWidgetStyle.GetColorAndOpacityTint() * KeyColor
-			);
+
+		float X = SelectionGeometry.DrawPosition.X;
+		float Y = SelectionGeometry.DrawPosition.Y;
+		float Width = SelectionGeometry.DrawSize.X;
+		float Height = SelectionGeometry.DrawSize.Y;
+
+		TArray<FVector2D> Handles;
+		Handles.Add(FVector2D(X, Y));					// Top - Left
+		Handles.Add(FVector2D(X + Width * 0.5f, Y));	// Top - Middle
+		Handles.Add(FVector2D(X + Width, Y));			// Top - Right
+
+		Handles.Add(FVector2D(X, Y + Height * 0.5f));			// Middle - Left
+		Handles.Add(FVector2D(X + Width, Y + Height * 0.5f));	// Middle - Right
+
+		Handles.Add(FVector2D(X, Y + Height));					// Bottom - Left
+		Handles.Add(FVector2D(X + Width * 0.5f, Y + Height));	// Bottom - Middle
+		Handles.Add(FVector2D(X + Width, Y + Height));			// Bottom - Right
+
+		const FVector2D HandleSize = FVector2D(10, 10);
+
+		// @TODO UMG - Don't use the curve editors brushes
+		const FSlateBrush* KeyBrush = FEditorStyle::GetBrush("CurveEd.CurveKey");
+		FLinearColor KeyColor = InWidgetStyle.GetColorAndOpacityTint();// IsEditingEnabled() ? InWidgetStyle.GetColorAndOpacityTint() : FLinearColor(0.1f, 0.1f, 0.1f, 1.f);
+
+		for ( int32 HandleIndex = 0; HandleIndex < Handles.Num(); HandleIndex++ )
+		{
+			const FVector2D& Handle = Handles[HandleIndex];
+			if ( !SelectedTemplate->Slot->CanResize(DragDirections[HandleIndex]) )
+			{
+				// This isn't a valid handle
+				continue;
+			}
+
+			FSlateDrawElement::MakeBox(
+				OutDrawElements,
+				++LayerId,
+				FPaintGeometry(FVector2D(Handle.X - HandleSize.X * 0.5f, Handle.Y - HandleSize.Y * 0.5f), HandleSize, 1.0f),
+				KeyBrush,
+				MyClippingRect,
+				ESlateDrawEffect::None,
+				KeyBrush->GetTint(InWidgetStyle) * InWidgetStyle.GetColorAndOpacityTint() * KeyColor
+				);
+		}
 	}
 }
 
@@ -379,7 +422,7 @@ SUMGDesigner::DragHandle SUMGDesigner::HitTestDragHandles(const FGeometry& Allot
 {
 	FVector2D LocalPointer = AllottedGeometry.AbsoluteToLocal(PointerEvent.GetScreenSpacePosition());
 
-	if ( SelectedWidget.IsValid() )
+	if ( SelectedTemplate && SelectedTemplate->Slot && SelectedWidget.IsValid() )
 	{
 		TSharedRef<SWidget> Widget = SelectedWidget.Pin().ToSharedRef();
 
@@ -412,6 +455,12 @@ SUMGDesigner::DragHandle SUMGDesigner::HitTestDragHandles(const FGeometry& Allot
 			FSlateRect Rect(FVector2D(Handle.X - HandleSize.X * 0.5f, Handle.Y - HandleSize.Y * 0.5f), Handle + HandleSize);
 			if ( Rect.ContainsPoint(LocalPointer) )
 			{
+				if ( !SelectedTemplate->Slot->CanResize(DragDirections[i]) )
+				{
+					// This isn't a valid handle
+					break;
+				}
+
 				return (DragHandle)i;
 			}
 			i++;
@@ -472,6 +521,20 @@ void SUMGDesigner::Tick(const FGeometry& AllottedGeometry, const double InCurren
 				.Text(LOCTEXT("NoWrappedWidget", "No actor; Open the viewport and tab back"))
 			]
 		];
+	}
+
+	// Update the selected widget to match the selected template.
+	if ( SelectedTemplate )
+	{
+		AUserWidget* WidgetActor = PreviewWidgetActor.Get();
+		if ( WidgetActor )
+		{
+			// Set the selected widget so that we can draw the highlight
+			//@TODO UMG Don't store the transient Widget as the selected object, store the template component and lookup the widget from that.
+			//SelectedWidget = ArrangedWidget.Widget;
+
+			SelectedWidget = WidgetActor->GetWidgetFromName(SelectedTemplate->GetName());
+		}
 	}
 
 	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
