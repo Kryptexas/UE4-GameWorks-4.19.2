@@ -27,7 +27,7 @@
 
 #define LOCTEXT_NAMESPACE "SkeletalMeshComponentPhysics"
 
-#if WITH_APEX_CLOTHING
+
 void FSkeletalMeshComponentPreClothTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 {
 	if ((TickType == LEVELTICK_All) && Target && !Target->HasAnyFlags(RF_PendingKill | RF_Unreachable))
@@ -41,6 +41,8 @@ FString FSkeletalMeshComponentPreClothTickFunction::DiagnosticMessage()
 	return TEXT("FSkeletalMeshComponentPreClothTickFunction");
 }
 
+
+#if WITH_APEX_CLOTHING
 //
 //	FClothingActor
 //
