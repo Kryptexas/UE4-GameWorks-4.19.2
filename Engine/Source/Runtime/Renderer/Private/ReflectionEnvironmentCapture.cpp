@@ -637,12 +637,24 @@ public:
 			TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
 			GSceneRenderTargets.SceneColor->GetRenderTargetItem().ShaderResourceTexture);		
 
-		FVector SkyLightParametersValue(1, 0, bLowerHemisphereIsBlack ? 1.0f : 0.0f);
+		FVector SkyLightParametersValue = FVector::ZeroVector;
 		FScene* Scene = (FScene*)View.Family->Scene;
 
-		if (Scene->SkyLight && !bCapturingForSkyLight)
+		if (bCapturingForSkyLight)
 		{
-			SkyLightParametersValue = FVector(0, Scene->SkyLight->SkyDistanceThreshold, 0);
+			// When capturing reflection captures, support forcing all low hemisphere lighting to be black
+			SkyLightParametersValue = FVector(0, 0, bLowerHemisphereIsBlack ? 1.0f : 0.0f);
+		}
+		else if (Scene->SkyLight && !Scene->SkyLight->bHasStaticLighting)
+		{
+			// When capturing reflection captures and there's a stationary sky light, mask out any pixels whose depth classify it as part of the sky
+			// This will allow changing the stationary sky light at runtime
+			SkyLightParametersValue = FVector(1, Scene->SkyLight->SkyDistanceThreshold, 0);
+		}
+		else
+		{
+			// When capturing reflection captures and there's no sky light, or only a static sky light, capture all depth ranges
+			SkyLightParametersValue = FVector(2, 0, 0);
 		}
 
 		SetShaderValue(ShaderRHI, SkyLightCaptureParameters, SkyLightParametersValue);
