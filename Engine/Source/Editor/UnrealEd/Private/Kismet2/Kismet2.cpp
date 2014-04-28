@@ -1208,7 +1208,7 @@ const UK2Node_ActorBoundEvent* FKismetEditorUtilities::FindBoundEventForActor(AA
 	const UK2Node_ActorBoundEvent* Node = NULL;
 	if(Actor != NULL && EventName != NAME_None)
 	{
-		ULevelScriptBlueprint* LSB = Actor->GetLevel()->GetLevelScriptBlueprint();
+		ULevelScriptBlueprint* LSB = Actor->GetLevel()->GetLevelScriptBlueprint(true);
 		if(LSB != NULL)
 		{
 			TArray<UK2Node_ActorBoundEvent*> EventNodes;
