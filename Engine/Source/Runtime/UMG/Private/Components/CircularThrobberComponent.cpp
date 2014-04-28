@@ -15,13 +15,16 @@ UCircularThrobberComponent::UCircularThrobberComponent(const FPostConstructIniti
 	NumberOfPieces = DefaultArgs._NumPieces;
 	Period = DefaultArgs._Period;
 	Radius = DefaultArgs._Radius;
-	PieceImage = *DefaultArgs._PieceImage;
 }
 
 TSharedRef<SWidget> UCircularThrobberComponent::RebuildWidget()
 {
+	SCircularThrobber::FArguments DefaultArgs;
+
+	const FSlateBrush* Image = PieceImage ? &PieceImage->Brush : DefaultArgs._PieceImage;
+	
 	return SNew(SCircularThrobber)
-		.PieceImage(&PieceImage)
+		.PieceImage(Image)
 		.NumPieces(NumberOfPieces)
 		.Period(Period)
 		.Radius(Radius);

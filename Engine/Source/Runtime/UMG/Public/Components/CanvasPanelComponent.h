@@ -18,6 +18,7 @@ class UMG_API UCanvasPanelComponent : public USlateNonLeafWidgetComponent
 	FVector2D DesiredCanvasSize;
 
 	UCanvasPanelSlot* AddSlot(USlateWrapperComponent* Content);
+	virtual bool AddChild(USlateWrapperComponent* Child, FVector2D Position) OVERRIDE;
 
 	// USlateNonLeafWidgetComponent
 	virtual int32 GetChildrenCount() const OVERRIDE;

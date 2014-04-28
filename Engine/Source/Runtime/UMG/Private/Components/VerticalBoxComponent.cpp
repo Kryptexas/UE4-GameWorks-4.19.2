@@ -21,7 +21,7 @@ USlateWrapperComponent* UVerticalBoxComponent::GetChildAt(int32 Index) const
 	return Slots[Index]->Content;
 }
 
-bool UVerticalBoxComponent::AddChild(USlateWrapperComponent* Child)
+bool UVerticalBoxComponent::AddChild(USlateWrapperComponent* Child, FVector2D Position)
 {
 	AddSlot(Child);
 	return true;

@@ -6,6 +6,8 @@
 #include "BlueprintEditor.h"
 #include "SKismetInspector.h"
 
+#include "WidgetTemplateDragDropOp.h"
+
 #define LOCTEXT_NAMESPACE "UMG"
 
 //class SDesignerWidget : public SBorder
@@ -61,7 +63,7 @@ static bool LocateWidgetsUnderCursor_Helper(FArrangedWidget& Candidate, FVector2
 
 		// Check to see if we were asked to still allow children to be hit test visible
 		bool bHitChildWidget = false;
-		if ( ( Candidate.Widget->GetVisibility().AreChildrenHitTestVisible() ) != 0 )
+		//if ( ( Candidate.Widget->GetVisibility().AreChildrenHitTestVisible() ) != 0 || OutWidgetsUnderCursor. )
 		{
 			FArrangedChildren ArrangedChildren(OutWidgetsUnderCursor.GetFilter());
 			Candidate.Widget->ArrangeChildren(Candidate.Geometry, ArrangedChildren);
@@ -75,7 +77,7 @@ static bool LocateWidgetsUnderCursor_Helper(FArrangedWidget& Candidate, FVector2
 		}
 
 		// If we hit a child widget or we hit our candidate widget then we'll append our widgets
-		const bool bHitCandidateWidget = Candidate.Widget->GetVisibility().IsHitTestVisible();
+		const bool bHitCandidateWidget = OutWidgetsUnderCursor.Accepts(Candidate.Widget->GetVisibility());
 		bHitAnyWidget = bHitChildWidget || bHitCandidateWidget;
 		if ( !bHitAnyWidget )
 		{
@@ -171,9 +173,9 @@ void SUMGDesigner::ShowDetailsForObjects(TArray<USlateWrapperComponent*> Widgets
 	BlueprintEditor.Pin()->GetInspector()->ShowDetailsForObjects(InspectorObjects, Options);
 }
 
-FReply SUMGDesigner::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+USlateWrapperComponent* SUMGDesigner::GetTemplateAtCursor(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, FArrangedWidget& ArrangedWidget)
 {
-	FVector2D LocalMouseCoordinates = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
+	//@TODO UMG Make it so you can request dropable widgets only, to find the first parentable.
 
 	FArrangedChildren Children(EVisibility::All);
 
@@ -193,14 +195,40 @@ FReply SUMGDesigner::OnMouseButtonDown(const FGeometry& MyGeometry, const FPoint
 			PreviewHandle = WidgetActor->GetWidgetHandle(Child.Widget);
 			if ( PreviewHandle )
 			{
-				SelectedWidget = Child.Widget;
+				ArrangedWidget = Child;
 				break;
 			}
 		}
 
 		UWidgetBlueprint* Blueprint = GetBlueprint();
-		// TODO we have the widgets runtime handle, we need to look at the handle's name and find the corresponding
-		// design time handle and select it!
+
+		if ( PreviewHandle )
+		{
+			FString Name = PreviewHandle->GetName();
+			USlateWrapperComponent* Template = Blueprint->WidgetTree->FindWidget(Name);
+			return Template;
+		}
+	}
+
+	return NULL;
+}
+
+FReply SUMGDesigner::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	FArrangedWidget ArrangedWidget(SNullWidget::NullWidget, FGeometry());
+	USlateWrapperComponent* Template = GetTemplateAtCursor(MyGeometry, MouseEvent, ArrangedWidget);
+
+	if ( Template )
+	{
+		// Set the selected widget so that we can draw the highlight
+		//@TODO UMG Don't store the transient Widget as the selected object, store the template component and lookup the widget from that.
+		SelectedWidget = ArrangedWidget.Widget;
+
+		//@TODO UMG primary FBlueprintEditor needs to be inherited and selection control needs to be centralized.
+		// Set the template as selected in the details panel
+		TArray<USlateWrapperComponent*> SelectedTemplates;
+		SelectedTemplates.Add(Template);
+		ShowDetailsForObjects(SelectedTemplates);
 	}
 
 	return FReply::Handled();
@@ -243,17 +271,56 @@ int32 SUMGDesigner::OnPaint(const FGeometry& AllottedGeometry, const FSlateRect&
 
 		LayerId += 100;
 
-		FSlateDrawElement::MakeBox(
-			OutDrawElements,
-			LayerId,			FPaintGeometry(
+		FPaintGeometry SelectionGeometry(
 			ArrangedWidget.Geometry.AbsolutePosition,
 			ArrangedWidget.Geometry.Size * ArrangedWidget.Geometry.Scale,
-			ArrangedWidget.Geometry.Scale),
+			ArrangedWidget.Geometry.Scale);
+
+		FSlateDrawElement::MakeBox(
+			OutDrawElements,
+			LayerId,
+			SelectionGeometry,
 			FCoreStyle::Get().GetBrush(TEXT("Debug.Border")),
 			MyClippingRect,
 			ESlateDrawEffect::None,
 			Tint
 		);
+
+		float X = SelectionGeometry.DrawPosition.X;
+		float Y = SelectionGeometry.DrawPosition.Y;
+		float Width = SelectionGeometry.DrawSize.X;
+		float Height = SelectionGeometry.DrawSize.Y;
+		
+		TArray<FVector2D> Handles;
+		Handles.Add(FVector2D(X, Y));					// Top - Left
+		Handles.Add(FVector2D(X + Width * 0.5f, Y));	// Top - Middle
+		Handles.Add(FVector2D(X + Width, Y));			// Top - Right
+
+		Handles.Add(FVector2D(X, Y + Height));					// Bottom - Left
+		Handles.Add(FVector2D(X + Width * 0.5f, Y + Height));	// Bottom - Middle
+		Handles.Add(FVector2D(X + Width, Y + Height));			// Bottom - Right
+
+		Handles.Add(FVector2D(X, Y + Height * 0.5f));			// Middle - Left
+		Handles.Add(FVector2D(X + Width, Y + Height * 0.5f));	// Middle - Right
+
+		const FVector2D HandleSize = FVector2D(10, 10);
+
+		// @TODO UMG - Don't use the curve editors brushes
+		const FSlateBrush* KeyBrush = FEditorStyle::GetBrush("CurveEd.CurveKey");
+		FLinearColor KeyColor = InWidgetStyle.GetColorAndOpacityTint();// IsEditingEnabled() ? InWidgetStyle.GetColorAndOpacityTint() : FLinearColor(0.1f, 0.1f, 0.1f, 1.f);
+
+		for ( FVector2D Handle : Handles )
+		{
+			FSlateDrawElement::MakeBox(
+				OutDrawElements,
+				++LayerId,
+				FPaintGeometry(FVector2D(Handle.X - HandleSize.X * 0.5f, Handle.Y - HandleSize.Y * 0.5f), HandleSize, 1.0f),
+				KeyBrush,
+				MyClippingRect,
+				ESlateDrawEffect::None,
+				KeyBrush->GetTint(InWidgetStyle) * InWidgetStyle.GetColorAndOpacityTint() * KeyColor
+				);
+		}
 	}
 
 	return LayerId;
@@ -292,5 +359,61 @@ void SUMGDesigner::Tick(const FGeometry& AllottedGeometry, const double InCurren
 
 	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 }
+
+void SUMGDesigner::OnDragEnter(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
+{
+	//@TODO UMG Drop Feedback
+}
+
+void SUMGDesigner::OnDragLeave(const FDragDropEvent& DragDropEvent)
+{
+	TSharedPtr<FWidgetTemplateDragDropOp> DragDropOp = DragDropEvent.GetOperationAs<FWidgetTemplateDragDropOp>();
+	if ( DragDropOp.IsValid() )
+	{
+		DragDropOp->ResetToDefaultToolTip();
+	}
+}
+
+FReply SUMGDesigner::OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
+{
+	TSharedPtr<FWidgetTemplateDragDropOp> DragDropOp = DragDropEvent.GetOperationAs<FWidgetTemplateDragDropOp>();
+	if ( DragDropOp.IsValid() )
+	{
+		//@TODO UMG Drop Feedback
+		return FReply::Handled();
+	}
+
+	return FReply::Unhandled();
+}
+
+FReply SUMGDesigner::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
+{
+	TSharedPtr<FWidgetTemplateDragDropOp> DragDropOp = DragDropEvent.GetOperationAs<FWidgetTemplateDragDropOp>();
+	if ( DragDropOp.IsValid() )
+	{
+		FArrangedWidget ArrangedWidget(SNullWidget::NullWidget, FGeometry());
+		USlateWrapperComponent* Template = GetTemplateAtCursor(MyGeometry, DragDropEvent, ArrangedWidget);
+
+		if ( Template && Template->IsA(USlateNonLeafWidgetComponent::StaticClass()) )
+		{
+			UWidgetBlueprint* BP = CastChecked<UWidgetBlueprint>(BlueprintEditor.Pin()->GetBlueprintObj());
+			USlateNonLeafWidgetComponent* Parent = Cast<USlateNonLeafWidgetComponent>(Template);
+
+			USlateWrapperComponent* Widget = DragDropOp->Template->Create(BP->WidgetTree);
+
+			FVector2D LocalPosition = ArrangedWidget.Geometry.AbsoluteToLocal(DragDropEvent.GetScreenSpacePosition());
+			Parent->AddChild(Widget, LocalPosition);
+			//@TODO UMG When we add a child blindly we need to default the slot size to the preferred size of the widget if the container supports such things.
+			//@TODO UMG We may need a desired size canvas, where the slots have no size, they only give you position, alternatively, maybe slots that don't clip, so center is still easy.
+
+			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
+
+			return FReply::Handled();
+		}
+	}
+
+	return FReply::Unhandled();
+}
+
 
 #undef LOCTEXT_NAMESPACE

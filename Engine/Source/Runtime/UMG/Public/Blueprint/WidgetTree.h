@@ -28,4 +28,19 @@ class UMG_API UWidgetTree : public UObject
 
 		return (T*)Widget;
 	}
+
+	class USlateWrapperComponent* FindWidget(FString& Name) const
+	{
+		FString ExistingName;
+		for ( USlateWrapperComponent* Widget : WidgetTemplates )
+		{
+			Widget->GetName(ExistingName);
+			if ( ExistingName.Equals(Name, ESearchCase::IgnoreCase) )
+			{
+				return Widget;
+			}
+		}
+
+		return NULL;
+	}
 };

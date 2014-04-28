@@ -27,8 +27,8 @@ class UMG_API UThrobberComponent : public USlateLeafWidgetComponent
 	bool bAnimateOpacity;
 
 	/** Image to use for each segment of the throbber */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
-	FSlateBrush PieceImage;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance, meta=( DisplayThumbnail = "true" ))
+	USlateBrushAsset* PieceImage;
 
 protected:
 	// USlateWrapperComponent interface

@@ -97,6 +97,15 @@ UCanvasPanelSlot* UCanvasPanelComponent::AddSlot(USlateWrapperComponent* Content
 	return Slot;
 }
 
+bool UCanvasPanelComponent::AddChild(USlateWrapperComponent* Child, FVector2D Position)
+{
+	UCanvasPanelSlot* Slot = AddSlot(Child);
+	Slot->Position = Position;
+	Slot->Size = FVector2D(100, 25);
+
+	return true;
+}
+
 #if WITH_EDITOR
 
 void UCanvasPanelComponent::ConnectEditorData()

@@ -159,7 +159,7 @@ FReply SUMGEditorTree::CreateTestUI()
 
 		UButtonComponent* NewButton = BP->WidgetTree->ConstructWidget<UButtonComponent>(UButtonComponent::StaticClass());
 
-		Vertical->AddChild(NewButton);
+		Vertical->AddChild(NewButton, FVector2D(0,0));
 	}
 	else
 	{
@@ -208,3 +208,6 @@ void SUMGEditorTree::RefreshTree()
 
 	WidgetTreeView->RequestTreeRefresh();
 }
+
+
+//@TODO UMG Drop widgets onto the tree, when nothing is present, if there is a root node present, what happens then, let the root node attempt to place it?

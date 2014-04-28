@@ -21,7 +21,7 @@ USlateWrapperComponent* UHorizontalBoxComponent::GetChildAt(int32 Index) const
 	return Slots[Index]->Content;
 }
 
-bool UHorizontalBoxComponent::AddChild(USlateWrapperComponent* Child)
+bool UHorizontalBoxComponent::AddChild(USlateWrapperComponent* Child, FVector2D Position)
 {
 	AddSlot(Child);
 	return true;

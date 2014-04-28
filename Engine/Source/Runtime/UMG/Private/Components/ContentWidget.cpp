@@ -41,7 +41,7 @@ USlateWrapperComponent* UContentWidget::GetChildAt(int32 Index) const
 	return Content;
 }
 
-bool UContentWidget::AddChild(USlateWrapperComponent* InContent)
+bool UContentWidget::AddChild(USlateWrapperComponent* InContent, FVector2D Position)
 {
 	Content = InContent;
 	return true;

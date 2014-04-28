@@ -12,7 +12,6 @@ UThrobberComponent::UThrobberComponent(const FPostConstructInitializeProperties&
 {
 	SThrobber::FArguments DefaultArgs;
 
-	PieceImage = *DefaultArgs._PieceImage;
 	NumberOfPieces = DefaultArgs._NumPieces;
 
 	bAnimateVertically = (DefaultArgs._Animate & SThrobber::Vertical) != 0;
@@ -22,12 +21,16 @@ UThrobberComponent::UThrobberComponent(const FPostConstructInitializeProperties&
 
 TSharedRef<SWidget> UThrobberComponent::RebuildWidget()
 {
+	SThrobber::FArguments DefaultArgs;
+
+	const FSlateBrush* Image = PieceImage ? &PieceImage->Brush : DefaultArgs._PieceImage;
+
 	const int32 AnimationParams = (bAnimateVertically ? SThrobber::Vertical : 0) |
 		(bAnimateHorizontally ? SThrobber::Horizontal : 0) |
 		(bAnimateOpacity ? SThrobber::Opacity : 0);
 
 	return SNew(SThrobber)
-		.PieceImage(&PieceImage)
+		.PieceImage(Image)
 		.NumPieces(NumberOfPieces)
 		.Animate(static_cast<SThrobber::EAnimation>(AnimationParams));
 }

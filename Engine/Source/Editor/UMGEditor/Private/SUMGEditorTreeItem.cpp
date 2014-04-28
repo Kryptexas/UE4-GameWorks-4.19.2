@@ -85,7 +85,7 @@ FReply SUMGEditorTreeItem::OnDrop(const FGeometry& MyGeometry, const FDragDropEv
 
 			USlateWrapperComponent* Widget = DragDropOp->Template->Create(BP->WidgetTree);
 
-			Parent->AddChild(Widget);
+			Parent->AddChild(Widget, FVector2D(0,0));
 
 			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
 		}
