@@ -245,7 +245,7 @@ public:
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
 	FRotator RotationRate;
 
-	/** If true, rotate the Character toward the Controller's desired rotation, using RotationRate as the rate of rotation change. */
+	/** If true, smoothly rotate the Character toward the Controller's desired rotation, using RotationRate as the rate of rotation change. Overridden by OrientRotationToMovement. */
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, AdvancedDisplay)
 	uint32 bUseControllerDesiredRotation:1;
 
@@ -1130,7 +1130,7 @@ public:
 	virtual float GetNetworkSafeRandomAngleDegrees() const;
 
 	//--------------------------------
-	// INetworkPredictable implementation
+	// INetworkPredictionInterface implementation
 
 	//--------------------------------
 	// Server hook
