@@ -15,9 +15,13 @@ public:
 
 	void Construct(const FArguments& InArgs, TSharedPtr<class FBlueprintEditor> InBlueprintEditor);
 
-	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) OVERRIDE;
-
 	// SWidget interface
+	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) OVERRIDE;
+	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) OVERRIDE;
+	virtual FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) OVERRIDE;
+
+	virtual FCursorReply OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const OVERRIDE;
+
 	virtual int32 OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const OVERRIDE;
 	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) OVERRIDE;
 
@@ -35,7 +39,31 @@ private:
 	void OnObjectPropertyChanged(UObject* ObjectBeingModified);
 	void ShowDetailsForObjects(TArray<USlateWrapperComponent*> Widgets);
 
-	bool GetLocallyArrangedWidget(TSharedRef<SWidget> Widget, FArrangedWidget& ArrangedWidget) const;
+	bool GetArrangedWidget(TSharedRef<SWidget> Widget, FArrangedWidget& ArrangedWidget) const;
+	bool GetArrangedWidgetRelativeToWindow(TSharedRef<SWidget> Widget, FArrangedWidget& ArrangedWidget) const;
+
+private:
+	enum DragHandle
+	{
+		DH_NONE = -1,
+
+		DH_TOP_LEFT = 0,
+		DH_TOP_CENTER,
+		DH_TOP_RIGHT,
+
+		DH_MIDDLE_LEFT,
+		DH_MIDDLE_RIGHT,
+
+		DH_BOTTOM_LEFT,
+		DH_BOTTOM_CENTER,
+		DH_BOTTOM_RIGHT,
+		
+		DH_MAX,
+	};
+
+private:
+	void DrawDragHandles(const FPaintGeometry& SelectionGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle) const;
+	DragHandle HitTestDragHandles(const FGeometry& AllottedGeometry, const FPointerEvent& PointerEvent) const;
 
 private:
 	TWeakPtr<FBlueprintEditor> BlueprintEditor;
@@ -45,4 +73,6 @@ private:
 	TWeakPtr<SWidget> SelectedWidget;
 
 	TSharedPtr<SBorder> PreviewSurface;
+
+	DragHandle CurrentHandle;
 };
