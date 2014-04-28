@@ -95,6 +95,9 @@ bool FOpenGLES2::bSupportsTextureCubeLodEXT = true;
 /** GL_EXT_shader_texture_lod */
 bool FOpenGLES2::bSupportsShaderTextureLod = false;
 
+/** textureCubeLod */
+bool FOpenGLES2::bSupportsShaderTextureCubeLod = true;
+
 /** GL_APPLE_copy_texture_levels */
 bool FOpenGLES2::bSupportsCopyTextureLevels = false;
 

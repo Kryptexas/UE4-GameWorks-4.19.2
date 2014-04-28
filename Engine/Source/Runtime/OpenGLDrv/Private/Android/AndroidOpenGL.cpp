@@ -323,6 +323,12 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 	//On Android, there are problems compiling shaders with textureCubeLodEXT calls in the glsl code,
 	// so we set this to false to modify the glsl manually at compile-time.
 	bSupportsTextureCubeLodEXT = false;
+
+	// On some Android devices with Mali GPUs textureCubeLod is not available.
+	if( FString(ANSI_TO_TCHAR((const ANSICHAR*)glGetString(GL_RENDERER))).Contains(TEXT("Mali-400")) )
+	{
+		bSupportsShaderTextureCubeLod = false;
+	}
 }
 
 class FAndroidGPUInfo

@@ -119,6 +119,7 @@ public:
 	static FORCEINLINE bool SupportsPackedDepthStencil()				{ return true; }
 	static FORCEINLINE bool SupportsTextureCubeLodEXT()					{ return true; }
 	static FORCEINLINE bool SupportsShaderTextureLod()					{ return false; }
+	static FORCEINLINE bool SupportsShaderTextureCubeLod()				{ return true; }
 	static FORCEINLINE bool SupportsSeparateAlphaBlend()				{ return false; }
 	static FORCEINLINE bool SupportsTessellation()						{ return false; }
 	static FORCEINLINE bool SupportsComputeShaders()					{ return false; }

@@ -361,7 +361,7 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& Code)
 				ReplaceShaderSubstring(const_cast<ANSICHAR*>(GlslCode), "varying", "in");
 			}
 		}
-		else if(!FOpenGL::SupportsShaderTextureLod())
+		else if(!FOpenGL::SupportsShaderTextureLod() || !FOpenGL::SupportsShaderTextureCubeLod())
 		{
 			Prologue = "#define textureCubeLodEXT(a, b, c) textureCube(a, b) \n";
 		}
