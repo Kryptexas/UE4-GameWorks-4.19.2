@@ -20,43 +20,39 @@ UWheeledVehicleMovementComponent4W::UWheeledVehicleMovementComponent4W(const cla
 	DifferentialSetup.FrontBias = DefDifferentialSetup.mFrontBias;
 	DifferentialSetup.RearBias = DefDifferentialSetup.mRearBias;
 
-	const PxReal LengthScale = 100.f; // Convert default from m to cm
-
 	PxVehicleEngineData DefEngineData;
-	EngineSetup.MOI = DefEngineData.mMOI * LengthScale * LengthScale;
-	EngineSetup.PeakTorque = 1000.f;
-	EngineSetup.MaxRPM = 7000.f;
-	EngineSetup.DampingRateFullThrottle = 0.5f * LengthScale * LengthScale;
-	EngineSetup.DampingRateZeroThrottleClutchEngaged = 2.0f * LengthScale * LengthScale;
-	EngineSetup.DampingRateZeroThrottleClutchDisengaged = 0.5f * LengthScale * LengthScale;
+	EngineSetup.MOI = M2ToCm2(DefEngineData.mMOI);
+	EngineSetup.PeakTorque = DefEngineData.mPeakTorque;
+	EngineSetup.MaxRPM = OmegaToRPM(DefEngineData.mMaxOmega);
+	EngineSetup.DampingRateFullThrottle = M2ToCm2(DefEngineData.mDampingRateFullThrottle);
+	EngineSetup.DampingRateZeroThrottleClutchEngaged = M2ToCm2(DefEngineData.mDampingRateZeroThrottleClutchEngaged);
+	EngineSetup.DampingRateZeroThrottleClutchDisengaged = M2ToCm2(DefEngineData.mDampingRateZeroThrottleClutchDisengaged);
 
 	PxVehicleClutchData DefClutchData;
-	ClutchStrength = DefClutchData.mStrength * LengthScale * LengthScale; // convert from m to cm scale
+	TransmissionSetup.ClutchStrength = M2ToCm2(DefClutchData.mStrength); // convert from m to cm scale
 
 	PxVehicleAckermannGeometryData DefAckermannSetup;
 	AckermannAccuracy = DefAckermannSetup.mAccuracy;
 
 	PxVehicleGearsData DefGearSetup;
-	GearSetup.GearSwitchTime = DefGearSetup.mSwitchTime;
-	GearSetup.ReverseGearRatio = DefGearSetup.mRatios[PxVehicleGearsData::eREVERSE];
-	for (uint32 i = PxVehicleGearsData::eFIRST; i < DefGearSetup.mNbRatios; i++)
-	{
-		GearSetup.ForwardGearRatios.Add(DefGearSetup.mRatios[i]);
-	}
-	GearSetup.RatioMultiplier =  DefGearSetup.mFinalRatio; 
+	TransmissionSetup.GearSwitchTime = DefGearSetup.mSwitchTime;
+	TransmissionSetup.ReverseGearRatio = DefGearSetup.mRatios[PxVehicleGearsData::eREVERSE];
+	TransmissionSetup.FinalRatio = DefGearSetup.mFinalRatio;
 
 	PxVehicleAutoBoxData DefAutoBoxSetup;
-	for (uint32 i = PxVehicleGearsData::eFIRST; i < PxVehicleGearsData::eGEARSRATIO_COUNT; i++)
-	{
-		FGearUpDownRatio RatioData;
-		RatioData.UpRatio = DefAutoBoxSetup.mUpRatios[i];
-		RatioData.DownRatio = DefAutoBoxSetup.mUpRatios[i];
-		AutoBoxSetup.ForwardGearAutoBox.Add(RatioData);
-	}
-	AutoBoxSetup.NeutralGearUpRatio = DefAutoBoxSetup.mUpRatios[PxVehicleGearsData::eNEUTRAL];
-	AutoBoxSetup.GearAutoBoxLatency = DefAutoBoxSetup.getLatency();
-	bUseGearAutoBox = true;
+	TransmissionSetup.NeutralGearUpRatio = DefAutoBoxSetup.mUpRatios[PxVehicleGearsData::eNEUTRAL];
+	TransmissionSetup.GearAutoBoxLatency = DefAutoBoxSetup.getLatency();
+	TransmissionSetup.bUseGearAutoBox = true;
 
+	for (uint32 i = PxVehicleGearsData::eFIRST; i < DefGearSetup.mNbRatios; i++)
+	{
+		FVehicleGearData GearData;
+		GearData.DownRatio = DefAutoBoxSetup.mDownRatios[i];
+		GearData.UpRatio = DefAutoBoxSetup.mUpRatios[i];
+		GearData.Ratio = DefGearSetup.mRatios[i];
+		TransmissionSetup.ForwardGears.Add(GearData);
+	}
+	
 	MaxSteeringSpeed = 100.f; // editable in vehicle blueprint
 	SteeringCurve.AddZeroed(4);
 	SteeringCurve[0].InVal = 0.0f;
@@ -74,6 +70,28 @@ UWheeledVehicleMovementComponent4W::UWheeledVehicleMovementComponent4W(const cla
 		WheelSetups[i].WheelClass = UVehicleWheel::StaticClass();
 	}
 #endif // WITH_PHYSX
+}
+
+void UWheeledVehicleMovementComponent4W::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+{
+	const FName PropertyName = PropertyChangedEvent.Property ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+
+	if (PropertyName == TEXT("DownRatio"))
+	{
+		for (int32 GearIdx = 0; GearIdx < TransmissionSetup.ForwardGears.Num(); ++GearIdx)
+		{
+			FVehicleGearData & GearData = TransmissionSetup.ForwardGears[GearIdx];
+			GearData.DownRatio = FMath::Min(GearData.DownRatio, GearData.UpRatio);
+		}
+	}
+	else if (PropertyName == TEXT("UpRatio"))
+	{
+		for (int32 GearIdx = 0; GearIdx < TransmissionSetup.ForwardGears.Num(); ++GearIdx)
+		{
+			FVehicleGearData & GearData = TransmissionSetup.ForwardGears[GearIdx];
+			GearData.UpRatio = FMath::Max(GearData.DownRatio, GearData.UpRatio);
+		}
+	}
 }
 
 #if WITH_PHYSX
@@ -122,24 +140,25 @@ static void GetVehicleEngineSetup(const FVehicleEngineData& Setup, PxVehicleEngi
 	PxSetup.mDampingRateZeroThrottleClutchDisengaged = Setup.DampingRateZeroThrottleClutchDisengaged;
 }
 
-static void GetVehicleGearSetup(const FVehicleGearData& Setup, PxVehicleGearsData& PxSetup)
+static void GetVehicleGearSetup(const FVehicleTransmissionData& Setup, PxVehicleGearsData& PxSetup)
 {
 	PxSetup.mSwitchTime = Setup.GearSwitchTime;
 	PxSetup.mRatios[PxVehicleGearsData::eREVERSE] = Setup.ReverseGearRatio;
-	for (int32 i = 0; i < Setup.ForwardGearRatios.Num(); i++)
+	for (int32 i = 0; i < Setup.ForwardGears.Num(); i++)
 	{
-		PxSetup.mRatios[i + PxVehicleGearsData::eFIRST] = Setup.ForwardGearRatios[i];
+		PxSetup.mRatios[i + PxVehicleGearsData::eFIRST] = Setup.ForwardGears[i].Ratio;
 	}
-	PxSetup.mFinalRatio = Setup.RatioMultiplier;
+	PxSetup.mFinalRatio = Setup.FinalRatio;
+	PxSetup.mNbRatios = Setup.ForwardGears.Num() + PxVehicleGearsData::eFIRST;
 }
 
-static void GetVehicleAutoBoxSetup(const FVehicleAutoBoxData& Setup, PxVehicleAutoBoxData& PxSetup)
+static void GetVehicleAutoBoxSetup(const FVehicleTransmissionData& Setup, PxVehicleAutoBoxData& PxSetup)
 {
-	for (uint32 i = PxVehicleGearsData::eFIRST; i < PxVehicleGearsData::eGEARSRATIO_COUNT; i++)
+	for (int32 i = 0; i < Setup.ForwardGears.Num(); i++)
 	{
-		const FGearUpDownRatio& RatioData = Setup.ForwardGearAutoBox[i - PxVehicleGearsData::eFIRST];
-		PxSetup.mUpRatios[i] = RatioData.UpRatio;
-		PxSetup.mDownRatios[i] = RatioData.DownRatio;
+		const FVehicleGearData& GearData = Setup.ForwardGears[i];
+		PxSetup.mUpRatios[i] = GearData.UpRatio;
+		PxSetup.mDownRatios[i] = GearData.DownRatio;
 	}
 	PxSetup.mUpRatios[PxVehicleGearsData::eNEUTRAL] = Setup.NeutralGearUpRatio;
 	PxSetup.setLatency(Setup.GearAutoBoxLatency);
@@ -157,7 +176,7 @@ void SetupDriveHelper(const UWheeledVehicleMovementComponent4W* VehicleData, con
 	DriveData.setEngineData(EngineSetup);
 
 	PxVehicleClutchData ClutchSetup;
-	ClutchSetup.mStrength = VehicleData->ClutchStrength;
+	ClutchSetup.mStrength = VehicleData->TransmissionSetup.ClutchStrength;
 	DriveData.setClutchData(ClutchSetup);
 
 	FVector WheelCentreOffsets[4];
@@ -174,11 +193,11 @@ void SetupDriveHelper(const UWheeledVehicleMovementComponent4W* VehicleData, con
 	DriveData.setAckermannGeometryData(AckermannSetup);
 
 	PxVehicleGearsData GearSetup;
-	GetVehicleGearSetup(VehicleData->GearSetup, GearSetup);	
+	GetVehicleGearSetup(VehicleData->TransmissionSetup, GearSetup);	
 	DriveData.setGearsData(GearSetup);
 
 	PxVehicleAutoBoxData AutoBoxSetup;
-	GetVehicleAutoBoxSetup(VehicleData->AutoBoxSetup, AutoBoxSetup);
+	GetVehicleAutoBoxSetup(VehicleData->TransmissionSetup, AutoBoxSetup);
 	DriveData.setAutoBoxData(AutoBoxSetup);
 }
 
@@ -290,44 +309,39 @@ void UWheeledVehicleMovementComponent4W::UpdateDifferentialSetup(const FVehicleD
 #endif
 }
 
-void UWheeledVehicleMovementComponent4W::UpdateGearSetup(const FVehicleGearData& NewGearSetup)
+void UWheeledVehicleMovementComponent4W::UpdateTransmissionSetup(const FVehicleTransmissionData& NewTransmissionSetup)
 {
 #if WITH_PHYSX
 	if (PVehicleDrive)
 	{
 		PxVehicleGearsData GearData;
-		GetVehicleGearSetup(NewGearSetup, GearData);
+		GetVehicleGearSetup(NewTransmissionSetup, GearData);
+
+		PxVehicleAutoBoxData AutoBoxData;
+		GetVehicleAutoBoxSetup(NewTransmissionSetup, AutoBoxData);
 
 		PxVehicleDrive4W* PVehicleDrive4W = (PxVehicleDrive4W*)PVehicleDrive;
 		PVehicleDrive4W->mDriveSimData.setGearsData(GearData);
-	}
-#endif
-}
-
-void UWheeledVehicleMovementComponent4W::UpdateAutoBoxSetup(const FVehicleAutoBoxData& NewAutoBoxSetup)
-{
-#if WITH_PHYSX
-	if (PVehicleDrive)
-	{
-		PxVehicleAutoBoxData AutoBoxData;
-		GetVehicleAutoBoxSetup(NewAutoBoxSetup, AutoBoxData);
-
-		PxVehicleDrive4W* PVehicleDrive4W = (PxVehicleDrive4W*)PVehicleDrive;
 		PVehicleDrive4W->mDriveSimData.setAutoBoxData(AutoBoxData);
 	}
 #endif
 }
-
 void UWheeledVehicleMovementComponent4W::Serialize(FArchive & Ar)
 {
 	Super::Serialize(Ar);
+#if WITH_PHYSX
 	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_VEHICLES_UNIT_CHANGE)
 	{
+		PxVehicleEngineData DefEngineData;
+		float DefaultTorque = DefEngineData.mPeakTorque;
+		float DefaultRPM = OmegaToRPM(DefEngineData.mMaxOmega);
+		
 		//we need to convert from old units to new. This backwards compatable code fails in the rare case that they were using very strange values that are the new defaults in the correct units.
-		EngineSetup.PeakTorque = EngineSetup.PeakTorque != 1000.f ? Cm2ToM2(EngineSetup.PeakTorque) : 1000.f;	//need to convert kg cm^2/s^2 into Nm
-		EngineSetup.MaxRPM = EngineSetup.MaxRPM != 7000.f ? OmegaToRPM(EngineSetup.MaxRPM) : 7000.f;	//need to convert from rad/s to RPM
+		EngineSetup.PeakTorque = EngineSetup.PeakTorque != DefaultTorque ? Cm2ToM2(EngineSetup.PeakTorque) : DefaultTorque;	//need to convert kg cm^2/s^2 into Nm
+		EngineSetup.MaxRPM = EngineSetup.MaxRPM != DefaultRPM ? OmegaToRPM(EngineSetup.MaxRPM) : DefaultRPM;	//need to convert from rad/s to RPM
 		MaxSteeringSpeed = MaxSteeringSpeed != 100.f ? CmSToKmH(MaxSteeringSpeed) : 100.f;	//we now store as km/h instead of cm/s
 	}
+#endif
 }
 
 void UWheeledVehicleMovementComponent4W::ComputeConstants()

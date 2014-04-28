@@ -59,10 +59,6 @@ struct FVehicleEngineData
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** Moment of inertia of the engine around the axis of rotation. */
-	UPROPERTY(EditAnywhere, Category=Setup)
-	float MOI;
-
 	/** Maximum torque available to apply to the engine (Nm). */ 
 	UPROPERTY(EditAnywhere, Category=Setup)
 	float PeakTorque;
@@ -70,6 +66,10 @@ struct FVehicleEngineData
 	/** Maximum revolutions per minute of the engine */
 	UPROPERTY(EditAnywhere, Category=Setup)
 	float MaxRPM;
+
+	/** Moment of inertia of the engine around the axis of rotation. */
+	UPROPERTY(EditAnywhere, Category = Setup)
+	float MOI;
 
 	/** Damping rate of engine when full throttle is applied */
 	UPROPERTY(EditAnywhere, Category=Setup, AdvancedDisplay)
@@ -84,58 +84,60 @@ struct FVehicleEngineData
 	float DampingRateZeroThrottleClutchDisengaged;
 };
 
+
 USTRUCT()
 struct FVehicleGearData
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** Time it takes to switch gear (seconds) */
-	UPROPERTY(EditAnywhere, Category=Setup)
-	float GearSwitchTime;
+	/** Determines the amount of torque multiplication*/
+	UPROPERTY(EditAnywhere, Category = Setup)
+	float Ratio;
 
-	/** Reverse gear ratio */
-	UPROPERTY(EditAnywhere, Category=Setup)
-	float ReverseGearRatio;
+	/** Value of engineRevs/maxEngineRevs that is low enough to gear down*/
+	UPROPERTY(EditAnywhere, meta = (ClampMin = "0.0", UIMin = "0.0", ClampMax = "1.0", UIMax = "1.0"), Category = Setup)
+	float DownRatio;
+
+	/** Value of engineRevs/maxEngineRevs that is high enough to gear up*/
+	UPROPERTY(EditAnywhere, meta = (ClampMin = "0.0", UIMin = "0.0", ClampMax = "1.0", UIMax = "1.0"), Category = Setup)
+	float UpRatio;
+};
+
+USTRUCT()
+struct FVehicleTransmissionData
+{
+	GENERATED_USTRUCT_BODY()
+	/** Whether to use automatic transmission */
+	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta=(FriendlyName = "Automatic Transmission"))
+	bool bUseGearAutoBox;
+
+	/** Time it takes to switch gears (seconds) */
+	UPROPERTY(EditAnywhere, Category = Setup)
+	float GearSwitchTime;
+	
+	/** Minimum time it takes the automatic transmission to initiate a gear change (seconds)*/
+	UPROPERTY(EditAnywhere, Category = Setup, meta = (editcondition = "bUseGearAutoBox"))
+	float GearAutoBoxLatency;
+
+	/** The final gear ratio multiplies the transmission gear ratios.*/
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = Setup)
+	float FinalRatio;
 
 	/** Forward gear ratios (up to 30) */
-	UPROPERTY(EditAnywhere, Category=Setup)
-	TArray<float> ForwardGearRatios;
+	UPROPERTY(EditAnywhere, Category = Setup, AdvancedDisplay)
+	TArray<FVehicleGearData> ForwardGears;
 
-	/** Gear ratio multiplier */
-	UPROPERTY(EditAnywhere, Category=Setup)
-	float RatioMultiplier;
-};
+	/** Reverse gear ratio */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = Setup)
+	float ReverseGearRatio;
 
-USTRUCT()
-struct FGearUpDownRatio
-{
-	GENERATED_USTRUCT_BODY()
-
-	/** Value of engineRevs/maxEngineRevs that is high enough to increment gear (range 0..1) */
-	UPROPERTY(EditAnywhere, Category=Setup)
-	float UpRatio;
-
-	/** Value of engineRevs/maxEngineRevs that is low enough to decrement gear (range 0..1) */
-	UPROPERTY(EditAnywhere, Category=Setup)
-	float DownRatio;
-};
-
-USTRUCT()
-struct FVehicleAutoBoxData
-{
-	GENERATED_USTRUCT_BODY()
-
-	/** Value of engineRevs/maxEngineRevs for auto gear change (range 0..1) */ 
-	UPROPERTY(EditAnywhere, Category=Setup, EditFixedSize)
-	TArray<FGearUpDownRatio> ForwardGearAutoBox;
-
-	/** Value of engineRevs/maxEngineRevs that is high enough to increment gear (range 0..1) */ 
-	UPROPERTY(EditAnywhere, Category=Setup)
+	/** Value of engineRevs/maxEngineRevs that is high enough to increment gear*/
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = Setup, meta = (ClampMin = "0.0", UIMin = "0.0", ClampMax = "1.0", UIMax = "1.0"))
 	float NeutralGearUpRatio;
 
-	/** Latency time is the minimum time that must pass between each gear change that is initiated by the autobox */ 
-	UPROPERTY(EditAnywhere, Category=Setup)
-	float GearAutoBoxLatency;
+	/** Strength of clutch */
+	UPROPERTY(EditAnywhere, Category = Setup, AdvancedDisplay)
+	float ClutchStrength;
 };
 
 UCLASS()
@@ -144,43 +146,32 @@ class ENGINE_API UWheeledVehicleMovementComponent4W : public UWheeledVehicleMove
 	GENERATED_UCLASS_BODY()
 
 	/** Engine */
-	UPROPERTY(EditAnywhere, Category=VehicleSetup)
+	UPROPERTY(EditAnywhere, Category = MechanicalSetup)
 	FVehicleEngineData EngineSetup;
 
 	/** Differential */
-	UPROPERTY(EditAnywhere, Category=VehicleSetup, AdvancedDisplay)
+	UPROPERTY(EditAnywhere, Category = MechanicalSetup)
 	FVehicleDifferential4WData DifferentialSetup;
 
-	/** Gears */
-	UPROPERTY(EditAnywhere, Category=VehicleSetup, AdvancedDisplay)
-	FVehicleGearData GearSetup;
-	
-	/** Automatic gear switching */
-	UPROPERTY(EditAnywhere, Category=VehicleSetup, AdvancedDisplay)
-	FVehicleAutoBoxData AutoBoxSetup;
-
-	/** Should use auto gear switching by default? */
-	UPROPERTY(EditAnywhere, Category=VehicleSetup)
-	bool bUseGearAutoBox;
-
-	/** Strength of clutch */
-	UPROPERTY(EditAnywhere, Category=VehicleSetup, AdvancedDisplay)
-	float ClutchStrength;
-
-	/** Accuracy of Ackermann steer calculation (range: 0..1) */
-	UPROPERTY(EditAnywhere, Category=VehicleSetup, AdvancedDisplay)
-	float AckermannAccuracy;
+	/** Transmission data */
+	UPROPERTY(EditAnywhere, Category = MechanicalSetup)
+	FVehicleTransmissionData TransmissionSetup;
 
 	/** Max speed value in steering curve (km/h)*/
-	UPROPERTY(EditAnywhere, Category=VehicleSetup)
+	UPROPERTY(EditAnywhere, Category=SteeringSetup)
 	float MaxSteeringSpeed;
 
+	/** Accuracy of Ackermann steer calculation (range: 0..1) */
+	UPROPERTY(EditAnywhere, Category = SteeringSetup, AdvancedDisplay)
+	float AckermannAccuracy;
+
 	/** Steering strength defined for speed in normalized range [0 .. 1] */
-	UPROPERTY(EditAnywhere, Category=VehicleSetup, AdvancedDisplay)
+	UPROPERTY(EditAnywhere, Category=SteeringSetup)
 	TArray<FFloatPair> SteeringCurve;
 
 	virtual void Serialize(FArchive & Ar) OVERRIDE;
 	virtual void ComputeConstants() OVERRIDE;
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
 
 protected:
 
@@ -201,10 +192,7 @@ protected:
 	/** update simulation data: differential */
 	void UpdateDifferentialSetup(const FVehicleDifferential4WData& NewDifferentialSetup);
 
-	/** update simulation data: gears */
-	void UpdateGearSetup(const FVehicleGearData& NewGearSetup);
-
-	/** update simulation data: auto box */
-	void UpdateAutoBoxSetup(const FVehicleAutoBoxData& NewAutoBoxSetup);
+	/** update simulation data: transmission */
+	void UpdateTransmissionSetup(const FVehicleTransmissionData& NewGearSetup);
 };
 
