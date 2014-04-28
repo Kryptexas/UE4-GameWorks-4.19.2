@@ -19,8 +19,6 @@
 // 0:no / 1:yes
 // USE_UPSAMPLE
 
-
-
 // 0:does not use normals (slightly faster, lower quality, WIP = not finished), 1: uses normals (slower but higher quality)
 #define SSAO_NORMAL_AFFECTED 1
 
@@ -31,12 +29,99 @@
 // AO_SAMPLE_QUALITY = 3 : efficient high frequency 4x4 pattern changing over time
 // AO_SAMPLE_QUALITY = 4 : extreme sample count
 
+#if SAMPLESET_QUALITY == 0
+	// low
+	#define USE_SAMPLESET 1
+#else
+	// high
+	#define USE_SAMPLESET 3
+#endif
+
+// 0:4 samples, 1:9 samples (only really noticable with dither usage ??)
+//#define AO_UPSAMPLE_QUALITY 
+
+#if USE_AO_SETUP_AS_INPUT == 1
+	// lower resolution
+	#define AO_SAMPLE_QUALITY 3
+	#undef USE_SAMPLESET
+	#define USE_SAMPLESET 3
+	#define AO_UPSAMPLE_QUALITY 1
+#else
+	// full resolution is expensive, do lower quality
+	#define AO_SAMPLE_QUALITY 3
+	#define AO_UPSAMPLE_QUALITY 0
+#endif
+
+// 0: 1 point (for testing)
+// 1: 3 points
+// 2: more evenly spread (5 points - slightly faster, stronger effect, better with multiple levels?)
+// 3: near the surface very large, softly fading out (6 points)
+//#define USE_SAMPLESET 2
+#if USE_SAMPLESET == 0
+	#define SAMPLESET_ARRAY_SIZE 1
+	static const float2 OcclusionSamplesOffsets[SAMPLESET_ARRAY_SIZE]=
+	{
+		// 6 points distributed on the unit disc, spiral order and distance
+		float2(0.500, 0.500), 
+	};
+#elif USE_SAMPLESET == 1
+	#define SAMPLESET_ARRAY_SIZE 3
+	static const float2 OcclusionSamplesOffsets[SAMPLESET_ARRAY_SIZE]=
+	{
+		// 3 points distributed on the unit disc, spiral order and distance
+		float2(0, -1.0f) * 0.3f, 
+		float2(0.58f, 0.814f) * 0.7f, 
+		float2(-0.58f, 0.814f) 
+	};
+#elif USE_SAMPLESET == 2
+	#define SAMPLESET_ARRAY_SIZE 5
+	static const float2 OcclusionSamplesOffsets[SAMPLESET_ARRAY_SIZE]=
+	{
+		// 5 points distributed on a unit circle
+		float2(0.156434, 0.987688),
+		float2(0.987688, 0.156434),
+		float2(0.453990, -0.891007),
+		float2(-0.707107, -0.707107),
+		float2(-0.891006, 0.453991),
+	};
+#else // USE_SAMPLESET == 3
+	#define SAMPLESET_ARRAY_SIZE 6
+	static const float2 OcclusionSamplesOffsets[SAMPLESET_ARRAY_SIZE]=
+	{
+		// 6 points distributed on the unit disc, spiral order and distance
+		float2(0.000, 0.200), 
+		float2(0.325, 0.101), 
+		float2(0.272, -0.396), 
+		float2(-0.385, -0.488), 
+		float2(-0.711, 0.274), 
+		float2(0.060, 0.900) 
+	};
+#endif // USE_SAMPLESET
+	
+
+
+
 // [0]: .x:AmbientOcclusionPower, .y:AmbientOcclusionBias/BiasDistance, .z:1/AmbientOcclusionDistance, .w:AmbientOcclusionIntensity
 // [1]: .xy:ViewportUVToRandomUV, .z:AORadiusInShader, .w:Ratio
 // [2]: .x:ScaleFactor(e.g. 4 if current RT is a quarter in size), .y:InvThreshold, .z:ScaleRadiusInWorldSpace(0:VS/1:WS), .w:MipBlend
 // [3]: .x:SSR StepCount, .y:SSR StepSize, .z:StaticFraction, .w: unused
 // [4]: .x:Multipler for FadeDistance/Radius, .y:Additive for FadeDistance/Radius, .zw: unused
 float4 ScreenSpaceAOandSSRShaderParams[5];
+
+// needed to prevent AO seam near 16 bit float maximum, this feactor pushed the problem far out and it seems to not have a visual degradion nearby
+const static float Constant_Float16F_Scale =  4096.0f * 32.0f;
+
+// only for MainSetupPS()
+// .x:ScaleFactor(e.g. 4 if current RT is a quarter in size), .y:InvThreshold, .zw: unused
+float4 AmbientOcclusionSetupParams;
+
+// 
+float4 NoiseScale;
+
+/** RGBA8 linear texture containing random normals */
+Texture2D RandomNormalTexture;
+SamplerState RandomNormalTextureSampler;
+
 
 // could be moved to a more central spot
 // @param ScreenPos -1 .. 1
@@ -59,98 +144,12 @@ float2 ScreenPosToUV(float2 ScreenPos, float4 InputSize)
 	return (ScreenPos * ScreenPosToPixel.xy + ScreenPosToPixel.zw + 0.5f) * InputSize.zw;
 }
 
-// needed to prevent AO seam near 16 bit float maximum, this feactor pushed the problem far out and it seems to not have a visual degradion nearby
-const static float Constant_Float16F_Scale =  4096.0f * 32.0f;
-
-
-#if SAMPLESET_QUALITY
-	#define USE_SAMPLESET 2
-#else
-	#define USE_SAMPLESET 3
-#endif
-
-// 0:4 samples, 1:9 samples (only really noticable with dither usage ??)
-//#define AO_UPSAMPLE_QUALITY 
-
-#if USE_AO_SETUP_AS_INPUT == 1
-	// lower resolution
-	#define AO_SAMPLE_QUALITY 3
-	#undef USE_SAMPLESET
-	#define USE_SAMPLESET 0
-	#define AO_UPSAMPLE_QUALITY 1
-#else
-	// full resolution is expensive, do lower quality
-	#define AO_SAMPLE_QUALITY 3
-	#define AO_UPSAMPLE_QUALITY 0
-#endif
-
-// 0: near the surface very large, softly fading out (6 points)
-// 1: more evenly spread (5 points - slightly faster, stronger effect, better with multiple levels?)
-// 2: 3 points
-// 3: 1 point (for testing)
-//#define USE_SAMPLESET 2
-
-
-
-// only for MainSetupPS()
-// .x:ScaleFactor(e.g. 4 if current RT is a quarter in size), .y:InvThreshold, .zw: unused
-float4 AmbientOcclusionSetupParams;
-
-// 
-float4 NoiseScale;
-
-#if USE_SAMPLESET == 0
-	#define SAMPLESET_ARRAY_SIZE 6
-	static const float2 OcclusionSamplesOffsets[SAMPLESET_ARRAY_SIZE]=
-	{
-		// 6 points distributed on the unit disc, spiral order and distance
-		float2(0.000, 0.200), 
-		float2(0.325, 0.101), 
-		float2(0.272, -0.396), 
-		float2(-0.385, -0.488), 
-		float2(-0.711, 0.274), 
-		float2(0.060, 0.900) 
-	};
-#elif USE_SAMPLESET == 1
-	#define SAMPLESET_ARRAY_SIZE 5
-	static const float2 OcclusionSamplesOffsets[SAMPLESET_ARRAY_SIZE]=
-	{
-		// 5 points distributed on a unit circle
-		float2(0.156434, 0.987688),
-		float2(0.987688, 0.156434),
-		float2(0.453990, -0.891007),
-		float2(-0.707107, -0.707107),
-		float2(-0.891006, 0.453991),
-	};
-#elif USE_SAMPLESET == 2
-	#define SAMPLESET_ARRAY_SIZE 3
-	static const float2 OcclusionSamplesOffsets[SAMPLESET_ARRAY_SIZE]=
-	{
-		// 3 points distributed on the unit disc, spiral order and distance
-		float2(0, -1.0f) * 0.3f, 
-		float2(0.81f, 0.5) * 0.7f, 
-		float2(-0.81f, 0.5) 
-	};
-#else // USE_SAMPLESET == 3
-	#define SAMPLESET_ARRAY_SIZE 1
-	static const float2 OcclusionSamplesOffsets[SAMPLESET_ARRAY_SIZE]=
-	{
-		// 6 points distributed on the unit disc, spiral order and distance
-		float2(0.500, 0.500), 
-	};
-#endif // USE_SAMPLESET
-
-/** RGBA8 linear texture containing random normals */
-Texture2D RandomNormalTexture;
-SamplerState RandomNormalTextureSampler;
-
 // @return true: inside, false outside
 bool IsScreenPosInsideBounds(float2 ScreenPos)
 {
 	// in range -1..1 for x and y
 	return all(abs(ScreenPos) < 1);
 }
-
 
 // 0: not similar .. 1:very similar
 float ComputeDepthSimilarity(float DepthA, float DepthB, float TweakScale)
