@@ -229,8 +229,8 @@ void EKeys::Initialize()
 	if (bInitialized) return;
 	bInitialized = true;
 
-	AddKey(FKeyDetails(EKeys::MouseX, LOCTEXT("MouseX", "Mouse X"), FKeyDetails::Axis | FKeyDetails::MouseButton));
-	AddKey(FKeyDetails(EKeys::MouseY, LOCTEXT("MouseY", "Mouse Y"), FKeyDetails::Axis | FKeyDetails::MouseButton));
+	AddKey(FKeyDetails(EKeys::MouseX, LOCTEXT("MouseX", "Mouse X"), FKeyDetails::FloatAxis | FKeyDetails::MouseButton));
+	AddKey(FKeyDetails(EKeys::MouseY, LOCTEXT("MouseY", "Mouse Y"), FKeyDetails::FloatAxis | FKeyDetails::MouseButton));
 	AddKey(FKeyDetails(EKeys::MouseScrollUp, LOCTEXT("MouseScrollUp", "Mouse Wheel Up"), FKeyDetails::MouseButton));
 	AddKey(FKeyDetails(EKeys::MouseScrollDown, LOCTEXT("MouseScrollDown", "Mouse Wheel Down"), FKeyDetails::MouseButton));
 
@@ -242,7 +242,7 @@ void EKeys::Initialize()
 	AddKey(FKeyDetails(EKeys::MiddleMouseButton, LOCTEXT("MiddleMouseButton", "Middle Mouse Button"), FKeyDetails::MouseButton));
 	AddKey(FKeyDetails(EKeys::ThumbMouseButton, LOCTEXT("ThumbMouseButton", "Thumb Mouse Button"), FKeyDetails::MouseButton));
 	AddKey(FKeyDetails(EKeys::ThumbMouseButton2, LOCTEXT("ThumbMouseButton2", "Thumb Mouse Button 2"), FKeyDetails::MouseButton));
-	
+    
 	AddKey(FKeyDetails(EKeys::Tab, LOCTEXT("Tab", "Tab")));
 	AddKey(FKeyDetails(EKeys::Enter, LOCTEXT("Enter", "Enter")));
 	AddKey(FKeyDetails(EKeys::Pause, LOCTEXT("Pause", "Pause")));
@@ -261,13 +261,13 @@ void EKeys::Initialize()
 	AddKey(FKeyDetails(EKeys::Down, LOCTEXT("Down", "Down")));
 
 	AddKey(FKeyDetails(EKeys::Insert, LOCTEXT("Insert", "Insert")));
-	
+    
 #if PLATFORM_MAC
-	AddKey(FKeyDetails(EKeys::BackSpace, LOCTEXT("Delete", "Delete")));
-	AddKey(FKeyDetails(EKeys::Delete, LOCTEXT("ForwardDelete", "Fn+Delete")));
+    AddKey(FKeyDetails(EKeys::BackSpace, LOCTEXT("Delete", "Delete")));
+    AddKey(FKeyDetails(EKeys::Delete, LOCTEXT("ForwardDelete", "Fn+Delete")));
 #else
-	AddKey(FKeyDetails(EKeys::BackSpace, LOCTEXT("BackSpace", "Backspace")));
-	AddKey(FKeyDetails(EKeys::Delete, LOCTEXT("Delete", "Delete")));
+    AddKey(FKeyDetails(EKeys::BackSpace, LOCTEXT("BackSpace", "Backspace")));
+    AddKey(FKeyDetails(EKeys::Delete, LOCTEXT("Delete", "Delete")));
 #endif
 
 	AddKey(FKeyDetails(EKeys::Zero, FText::FromString("0")));
@@ -363,13 +363,13 @@ void EKeys::Initialize()
 	AddKey(FKeyDetails(EKeys::Quote, LOCTEXT("Quote", "'")));
 
 	// Setup Gamepad keys
-	AddKey(FKeyDetails(EKeys::Gamepad_LeftX, LOCTEXT("Gamepad_LeftX", "Gamepad Left X"), FKeyDetails::GamepadKey | FKeyDetails::Axis));
-	AddKey(FKeyDetails(EKeys::Gamepad_LeftY, LOCTEXT("Gamepad_LeftY", "Gamepad Left Y"), FKeyDetails::GamepadKey | FKeyDetails::Axis));
-	AddKey(FKeyDetails(EKeys::Gamepad_RightX, LOCTEXT("Gamepad_RightX", "Gamepad Right X"), FKeyDetails::GamepadKey | FKeyDetails::Axis));
-	AddKey(FKeyDetails(EKeys::Gamepad_RightY, LOCTEXT("Gamepad_RightY", "Gamepad Right Y"), FKeyDetails::GamepadKey | FKeyDetails::Axis));
+	AddKey(FKeyDetails(EKeys::Gamepad_LeftX, LOCTEXT("Gamepad_LeftX", "Gamepad Left X"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
+	AddKey(FKeyDetails(EKeys::Gamepad_LeftY, LOCTEXT("Gamepad_LeftY", "Gamepad Left Y"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
+	AddKey(FKeyDetails(EKeys::Gamepad_RightX, LOCTEXT("Gamepad_RightX", "Gamepad Right X"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
+	AddKey(FKeyDetails(EKeys::Gamepad_RightY, LOCTEXT("Gamepad_RightY", "Gamepad Right Y"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
 
-	AddKey(FKeyDetails(EKeys::Gamepad_LeftTriggerAxis, LOCTEXT("Gamepad_LeftTriggerAxis", "Gamepad Left Trigger Axis"), FKeyDetails::GamepadKey | FKeyDetails::Axis));
-	AddKey(FKeyDetails(EKeys::Gamepad_RightTriggerAxis, LOCTEXT("Gamepad_RightTriggerAxis", "Gamepad Right Trigger Axis"), FKeyDetails::GamepadKey | FKeyDetails::Axis));
+	AddKey(FKeyDetails(EKeys::Gamepad_LeftTriggerAxis, LOCTEXT("Gamepad_LeftTriggerAxis", "Gamepad Left Trigger Axis"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
+	AddKey(FKeyDetails(EKeys::Gamepad_RightTriggerAxis, LOCTEXT("Gamepad_RightTriggerAxis", "Gamepad Right Trigger Axis"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
 
 	AddKey(FKeyDetails(EKeys::Gamepad_LeftThumbstick, LOCTEXT("Gamepad_LeftThumbstick", "Gamepad Left Thumbstick"), FKeyDetails::GamepadKey));
 	AddKey(FKeyDetails(EKeys::Gamepad_RightThumbstick, LOCTEXT("Gamepad_RightThumbstick", "Gamepad Right Thumbstick"), FKeyDetails::GamepadKey));
@@ -392,7 +392,7 @@ void EKeys::Initialize()
 	AddKey(FKeyDetails(EKeys::Gamepad_RightStick_Up, LOCTEXT("Gamepad_RightStick_Up", "Gamepad Right Stick Up"), FKeyDetails::GamepadKey));
 	AddKey(FKeyDetails(EKeys::Gamepad_RightStick_Down, LOCTEXT("Gamepad_RightStick_Down", "Gamepad Right Stick Down"), FKeyDetails::GamepadKey));
 	AddKey(FKeyDetails(EKeys::Gamepad_RightStick_Right, LOCTEXT("Gamepad_RightStick_Right", "Gamepad Right Stick Right"), FKeyDetails::GamepadKey));
-	AddKey(FKeyDetails(EKeys::Gamepad_RightStick_Left, LOCTEXT("Gamepad_RightStick_Left", "Gamepad Right Stick Left"), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::Gamepad_RightStick_Left, LOCTEXT("Gamepad_RightStick_Left", "Gamepad Right StickLeft"), FKeyDetails::GamepadKey));
 
 	FGetKeyDisplayNameSignature GetKeyNameDelegate = FGetKeyDisplayNameSignature::CreateStatic(&EKeys::GetGamepadDisplayName);
 
@@ -404,10 +404,10 @@ void EKeys::Initialize()
 	AddKey(FKeyDetails(EKeys::Gamepad_FaceButton_Top, GetKeyNameDelegate, FKeyDetails::GamepadKey));
 
 	// Vector axes (FVector, not float)
-	AddKey(FKeyDetails(EKeys::Tilt, LOCTEXT("Tilt", "Tilt"), FKeyDetails::NotBlueprintBindableKey));
-	AddKey(FKeyDetails(EKeys::RotationRate, LOCTEXT("RotationRate", "Rotation Rate"), FKeyDetails::NotBlueprintBindableKey));
-	AddKey(FKeyDetails(EKeys::Gravity, LOCTEXT("Gravity", "Gravity"), FKeyDetails::NotBlueprintBindableKey));
-	AddKey(FKeyDetails(EKeys::Acceleration, LOCTEXT("Acceleration", "Acceleration"), FKeyDetails::NotBlueprintBindableKey));
+	AddKey(FKeyDetails(EKeys::Tilt, LOCTEXT("Tilt", "Tilt"), FKeyDetails::VectorAxis));
+	AddKey(FKeyDetails(EKeys::RotationRate, LOCTEXT("RotationRate", "Rotation Rate"), FKeyDetails::VectorAxis));
+	AddKey(FKeyDetails(EKeys::Gravity, LOCTEXT("Gravity", "Gravity"), FKeyDetails::VectorAxis));
+	AddKey(FKeyDetails(EKeys::Acceleration, LOCTEXT("Acceleration", "Acceleration"), FKeyDetails::VectorAxis));
 
 	// Fingers
 	AddKey(FKeyDetails(EKeys::TouchKeys[ETouchIndex::Touch1], LOCTEXT("Touch1", "Touch 1"), FKeyDetails::NotBlueprintBindableKey));
@@ -588,10 +588,16 @@ bool FKey::IsMouseButton() const
 	return (KeyDetails.IsValid() ? KeyDetails->IsMouseButton() : false);
 }
 
-bool FKey::IsAxis() const
+bool FKey::IsFloatAxis() const
 {
 	ConditionalLookupKeyDetails();
-	return (KeyDetails.IsValid() ? KeyDetails->IsAxis() : false);
+	return (KeyDetails.IsValid() ? KeyDetails->IsFloatAxis() : false);
+}
+
+bool FKey::IsVectorAxis() const
+{
+	ConditionalLookupKeyDetails();
+	return (KeyDetails.IsValid() ? KeyDetails->IsVectorAxis() : false);
 }
 
 bool FKey::IsBindableInBlueprints() const

@@ -133,8 +133,22 @@ struct FInputActionUnifiedDelegate : public TInputUnifiedDelegate<FInputActionHa
 	}
 };
 
+struct FInputBinding
+{
+	/** Whether the binding should consume the input or allow it to pass to another component */
+	uint32 bConsumeInput:1;
+
+	/** Whether the binding should execute while paused */
+	uint32 bExecuteWhenPaused:1;
+
+	FInputBinding()
+		: bConsumeInput(true)
+		, bExecuteWhenPaused(false)
+	{}
+};
+
 /** Binds a game-defined action. */
-struct FInputActionBinding
+struct FInputActionBinding : public FInputBinding
 {
 	/** Friendly name of action, e.g "jump" */
 	FName ActionName;
@@ -142,35 +156,27 @@ struct FInputActionBinding
 	/** Key event to bind it to, e.g. pressed, released, dblclick */
 	TEnumAsByte<EInputEvent> KeyEvent;
 
-	/** Whether the binding should consume the input or allow it to pass to another component */
-	uint32 bConsumeInput:1;
-
-	/** Whether the binding should execute while paused */
-	uint32 bExecuteWhenPaused:1;
-
 	/** Whether the binding is part of a paired (both pressed and released events bound) action */
 	uint32 bPaired:1;
 
 	FInputActionUnifiedDelegate ActionDelegate;
 
 	FInputActionBinding()
-		: ActionName(NAME_None)
+		: FInputBinding()
+		, ActionName(NAME_None)
 		, KeyEvent(EInputEvent::IE_Pressed)
-		, bConsumeInput(true)
-		, bExecuteWhenPaused(false)
 		, bPaired(false)
 	{}
 
 	FInputActionBinding(const FName InActionName, const enum EInputEvent InKeyEvent)
-		: ActionName(InActionName)
+		: FInputBinding()
+		, ActionName(InActionName)
 		, KeyEvent(InKeyEvent)
-		, bConsumeInput(true)
-		, bExecuteWhenPaused(false)
 		, bPaired(false)
 	{}
 };
 
-struct FInputKeyBinding
+struct FInputKeyBinding : public FInputBinding
 {
 	/** Raw key to bind to */
 	FInputChord Chord;
@@ -178,23 +184,17 @@ struct FInputKeyBinding
 	/** Key event to bind it to, e.g. pressed, released, dblclick */
 	TEnumAsByte<EInputEvent> KeyEvent;
 
-	uint32 bConsumeInput:1;
-
-	uint32 bExecuteWhenPaused:1;
-
 	FInputActionUnifiedDelegate KeyDelegate;
 
 	FInputKeyBinding()
-		: KeyEvent(EInputEvent::IE_Pressed)
-		, bConsumeInput(true)
-		, bExecuteWhenPaused(false)
+		: FInputBinding()
+		, KeyEvent(EInputEvent::IE_Pressed)
 	{}
 
 	FInputKeyBinding(const FInputChord InChord, const enum EInputEvent InKeyEvent)
-		: Chord(InChord)
+		: FInputBinding()
+		, Chord(InChord)
 		, KeyEvent(InKeyEvent)
-		, bConsumeInput(true)
-		, bExecuteWhenPaused(false)
 	{}
 };
 
@@ -222,27 +222,21 @@ struct FInputTouchUnifiedDelegate : public TInputUnifiedDelegate<FInputTouchHand
 };
 
 
-struct FInputTouchBinding
+struct FInputTouchBinding : public FInputBinding
 {
 	/** Key event to bind it to, e.g. pressed, released, dblclick */
 	TEnumAsByte<EInputEvent> KeyEvent;
 
-	uint32 bConsumeInput:1;
-
-	uint32 bExecuteWhenPaused:1;
-
 	FInputTouchUnifiedDelegate TouchDelegate;
 
 	FInputTouchBinding()
-		: KeyEvent(EInputEvent::IE_Pressed)
-		, bConsumeInput(true)
-		, bExecuteWhenPaused(false)
+		: FInputBinding()
+		, KeyEvent(EInputEvent::IE_Pressed)
 	{}
 
 	FInputTouchBinding(const enum EInputEvent InKeyEvent)
-		: KeyEvent(InKeyEvent)
-		, bConsumeInput(true)
-		, bExecuteWhenPaused(false)
+		: FInputBinding()
+		, KeyEvent(InKeyEvent)
 	{}
 };
 
@@ -272,60 +266,91 @@ struct FInputAxisUnifiedDelegate : public TInputUnifiedDelegate<FInputAxisHandle
 
 
 /** Binds a game-defined axis to a function */
-struct FInputAxisBinding
+struct FInputAxisBinding : public FInputBinding
 {
 	FName AxisName;
 
 	FInputAxisUnifiedDelegate AxisDelegate;
 
-	uint32 bConsumeInput:1;
-
-	uint32 bExecuteWhenPaused:1;
-
 	float AxisValue;
 
 	FInputAxisBinding()
-		: AxisName(NAME_None)
-		, bConsumeInput(true)
-		, bExecuteWhenPaused(false)
+		: FInputBinding()
+		, AxisName(NAME_None)
 		, AxisValue(0.f)
 	{}
 
 	FInputAxisBinding(const FName InAxisName)
-		: AxisName(InAxisName)
-		, bConsumeInput(true)
-		, bExecuteWhenPaused(false)
+		: FInputBinding()
+		, AxisName(InAxisName)
 		, AxisValue(0.f)
 	{}
 };
 
 /** Binds a raw axis to a function */
-struct FInputAxisKeyBinding
+struct FInputAxisKeyBinding : public FInputBinding
 {
 	FKey AxisKey;
 
 	FInputAxisUnifiedDelegate AxisDelegate;
 
-	uint32 bConsumeInput : 1;
-
-	uint32 bExecuteWhenPaused : 1;
-
 	float AxisValue;
 
 	FInputAxisKeyBinding()
-		: bConsumeInput(true)
-		, bExecuteWhenPaused(false)
+		: FInputBinding()
 		, AxisValue(0.f)
 	{}
 
 	FInputAxisKeyBinding(const FKey InAxisKey)
-		: AxisKey(InAxisKey)
-		, bConsumeInput(true)
-		, bExecuteWhenPaused(false)
+		: FInputBinding()
+		, AxisKey(InAxisKey)
 		, AxisValue(0.f)
-	{}
+	{
+		ensure(AxisKey.IsFloatAxis());
+	}
 };
 
+/**
+* Delegate signature for vector axis handlers.
+* @AxisValue: "Value" to pass to the axis.
+*/
+DECLARE_DELEGATE_OneParam(FInputVectorAxisHandlerSignature, FVector);
+DECLARE_DYNAMIC_DELEGATE_OneParam(FInputVectorAxisHandlerDynamicSignature, FVector, AxisValue);
+
+struct FInputVectorAxisUnifiedDelegate : public TInputUnifiedDelegate<FInputVectorAxisHandlerSignature, FInputVectorAxisHandlerDynamicSignature>
+{
+	inline void Execute(const FVector AxisValue) const
+	{
+		if (FuncDelegate.IsBound())
+		{
+			FuncDelegate.Execute(AxisValue);
+		}
+		else if (FuncDynDelegate.IsBound())
+		{
+			FuncDynDelegate.Execute(AxisValue);
+		}
+	}
+};
+
+struct FInputVectorAxisBinding : public FInputBinding
+{
+	FKey AxisKey;
+
+	FInputVectorAxisUnifiedDelegate AxisDelegate;
+
+	FVector AxisValue;
+
+	FInputVectorAxisBinding()
+		: FInputBinding()
+	{}
+
+	FInputVectorAxisBinding(const FKey InAxisKey)
+		: FInputBinding()
+		, AxisKey(InAxisKey)
+	{
+		ensure(AxisKey.IsVectorAxis());
+	}
+};
 
 /** 
  * Delegate signature for gesture handlers. 
@@ -351,31 +376,24 @@ struct FInputGestureUnifiedDelegate : public TInputUnifiedDelegate<FInputGesture
 };
 
 /** Binds a gesture to a function. */
-struct FInputGestureBinding
+struct FInputGestureBinding : public FInputBinding
 {
 	FKey GestureKey;
 
 	FInputGestureUnifiedDelegate GestureDelegate;
 
-	uint32 bConsumeInput : 1;
-
-	uint32 bExecuteWhenPaused : 1;
-
 	/** Value parameter, meaning is dependent on the gesture. */
 	float GestureValue;
 
 	FInputGestureBinding()
-		: bConsumeInput(true)
-		, bExecuteWhenPaused(false)
+		: FInputBinding()
 		, GestureValue(0.f)
 	{}
 
 	FInputGestureBinding(const FKey InGestureKey)
-		: GestureKey(InGestureKey)
-		, bConsumeInput(true)
-		, bExecuteWhenPaused(false)
+		: FInputBinding()
+		, GestureKey(InGestureKey)
 		, GestureValue(0.f)
-
 	{}
 };
 
@@ -424,6 +442,7 @@ public:
 	TArray<struct FInputTouchBinding> TouchBindings;
 	TArray<struct FInputAxisBinding> AxisBindings;
 	TArray<struct FInputAxisKeyBinding> AxisKeyBindings;
+	TArray<struct FInputVectorAxisBinding> VectorAxisBindings;
 	TArray<struct FInputGestureBinding> GestureBindings;
 
 	// Whether any components lower on the input stack should be allowed to receive input
@@ -431,6 +450,7 @@ public:
 
 	float GetAxisValue(const FName AxisName) const;
 	float GetAxisKeyValue(const FKey AxisKey) const;
+	FVector GetVectorAxisValue(const FKey AxisKey) const;
 
 	bool HasBindings() const;
 
@@ -458,6 +478,15 @@ public:
 		AB.AxisDelegate.BindDelegate(Object, Func);
 		AxisKeyBindings.Add(AB);
 		return AxisKeyBindings.Last();
+	}
+
+	template<class UserClass>
+	FInputVectorAxisBinding& BindVectorAxis(const FKey AxisKey, UserClass* Object, typename FInputVectorAxisHandlerSignature::TUObjectMethodDelegate< UserClass >::FMethodPtr Func)
+	{
+		FInputVectorAxisBinding AB(AxisKey);
+		AB.AxisDelegate.BindDelegate(Object, Func);
+		VectorAxisBindings.Add(AB);
+		return VectorAxisBindings.Last();
 	}
 
 	template<class UserClass>

@@ -45,9 +45,9 @@ void UK2Node_InputAxisKeyEvent::ValidateNodeDuringCompilation(class FCompilerRes
 	{
 		MessageLog.Warning(*FText::Format(NSLOCTEXT("KismetCompiler", "Invalid_InputAxisKey_Warning", "InputAxisKey Event specifies invalid FKey'{0}' for @@"), FText::FromString(AxisKey.ToString())).ToString(), this);
 	}
-	else if (!AxisKey.IsAxis())
+	else if (!AxisKey.IsFloatAxis())
 	{
-		MessageLog.Warning(*FText::Format(NSLOCTEXT("KismetCompiler", "NotAxis_InputAxisKey_Warning", "InputAxisKey Event specifies non-axis FKey'{0}' for @@"), FText::FromString(AxisKey.ToString())).ToString(), this);
+		MessageLog.Warning(*FText::Format(NSLOCTEXT("KismetCompiler", "NotAxis_InputAxisKey_Warning", "InputAxisKey Event specifies FKey'{0}' which is not a float axis for @@"), FText::FromString(AxisKey.ToString())).ToString(), this);
 	}
 	else if (!AxisKey.IsBindableInBlueprints())
 	{

@@ -203,7 +203,7 @@ void UK2Node_InputKey::ValidateNodeDuringCompilation(class FCompilerResultsLog& 
 	{
 		MessageLog.Warning(*FText::Format(NSLOCTEXT("KismetCompiler", "Invalid_InputKey_Warning", "InputKey Event specifies invalid FKey'{0}' for @@"), FText::FromString(InputKey.ToString())).ToString(), this);
 	}
-	else if (InputKey.IsAxis())
+	else if (InputKey.IsFloatAxis())
 	{
 		MessageLog.Warning(*FText::Format(NSLOCTEXT("KismetCompiler", "Axis_InputKey_Warning", "InputKey Event specifies axis FKey'{0}' for @@"), FText::FromString(InputKey.ToString())).ToString(), this);
 	}

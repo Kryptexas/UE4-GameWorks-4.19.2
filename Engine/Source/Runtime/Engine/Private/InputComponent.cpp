@@ -39,35 +39,60 @@ UInputComponent::UInputComponent(const class FPostConstructInitializeProperties&
 
 float UInputComponent::GetAxisValue(const FName AxisName) const
 {
-	for (int32 Index = 0; Index < AxisBindings.Num(); ++Index)
+	float AxisValue = 0.f;
+
+	for (const FInputAxisBinding& AxisBinding : AxisBindings)
 	{
-		const FInputAxisBinding& AxisBinding = AxisBindings[Index];
 		if (AxisBinding.AxisName == AxisName)
 		{
-			return AxisBinding.AxisValue;
+			AxisValue = AxisBinding.AxisValue;
+			break;
 		}
 	}
 
-	return 0.f;
+	return AxisValue;
 }
 
 float UInputComponent::GetAxisKeyValue(const FKey AxisKey) const
 {
-	for (int32 Index = 0; Index < AxisKeyBindings.Num(); ++Index)
+	float AxisValue = 0.f;
+
+	for (const FInputAxisKeyBinding& AxisBinding : AxisKeyBindings)
 	{
-		const FInputAxisKeyBinding& AxisBinding = AxisKeyBindings[Index];
 		if (AxisBinding.AxisKey == AxisKey)
 		{
-			return AxisBinding.AxisValue;
+			AxisValue = AxisBinding.AxisValue;
+			break;
 		}
 	}
 
-	return 0.f;
+	return AxisValue;
+}
+
+FVector UInputComponent::GetVectorAxisValue(const FKey AxisKey) const
+{
+	FVector AxisValue;
+	for (const FInputVectorAxisBinding& AxisBinding : VectorAxisBindings)
+	{
+		if (AxisBinding.AxisKey == AxisKey)
+		{
+			AxisValue = AxisBinding.AxisValue;
+			break;
+		}
+	}
+
+	return AxisValue;
 }
 
 bool UInputComponent::HasBindings() const
 {
-	return ((ActionBindings.Num() > 0) || (AxisBindings.Num() > 0) || (AxisKeyBindings.Num() > 0) || (KeyBindings.Num() > 0) || (TouchBindings.Num() > 0));
+	return (   (ActionBindings.Num() > 0) 
+			|| (AxisBindings.Num() > 0) 
+			|| (AxisKeyBindings.Num() > 0) 
+			|| (KeyBindings.Num() > 0) 
+			|| (TouchBindings.Num() > 0) 
+			|| (GestureBindings.Num() > 0)
+			|| (VectorAxisBindings.Num() > 0));
 }
 
 FInputActionBinding& UInputComponent::AddActionBinding(const FInputActionBinding& Binding)

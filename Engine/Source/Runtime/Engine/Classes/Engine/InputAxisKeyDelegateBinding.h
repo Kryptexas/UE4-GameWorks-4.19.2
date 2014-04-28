@@ -4,7 +4,7 @@
 #include "InputAxisKeyDelegateBinding.generated.h"
 
 USTRUCT()
-struct ENGINE_API FBlueprintInputAxisKeyDelegateBinding
+struct ENGINE_API FBlueprintInputAxisKeyDelegateBinding : public FBlueprintInputDelegateBinding
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -14,20 +14,9 @@ struct ENGINE_API FBlueprintInputAxisKeyDelegateBinding
 	UPROPERTY()
 	FName FunctionNameToBind;
 
-	UPROPERTY()
-	uint32 bConsumeInput:1;
-
-	UPROPERTY()
-	uint32 bExecuteWhenPaused:1;
-
-	UPROPERTY()
-	uint32 bOverrideParentBinding:1;
-
 	FBlueprintInputAxisKeyDelegateBinding()
-		: FunctionNameToBind(NAME_None)
-		, bConsumeInput(true)
-		, bExecuteWhenPaused(false)
-		, bOverrideParentBinding(true)
+		: FBlueprintInputDelegateBinding()
+		, FunctionNameToBind(NAME_None)
 	{
 	}
 };

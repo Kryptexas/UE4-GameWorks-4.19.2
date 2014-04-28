@@ -4,7 +4,7 @@
 #include "InputAxisDelegateBinding.generated.h"
 
 USTRUCT()
-struct ENGINE_API FBlueprintInputAxisDelegateBinding
+struct ENGINE_API FBlueprintInputAxisDelegateBinding : public FBlueprintInputDelegateBinding
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -14,21 +14,10 @@ struct ENGINE_API FBlueprintInputAxisDelegateBinding
 	UPROPERTY()
 	FName FunctionNameToBind;
 
-	UPROPERTY()
-	uint32 bConsumeInput:1;
-
-	UPROPERTY()
-	uint32 bExecuteWhenPaused:1;
-
-	UPROPERTY()
-	uint32 bOverrideParentBinding:1;
-
 	FBlueprintInputAxisDelegateBinding()
-		: InputAxisName(NAME_None)
+		: FBlueprintInputDelegateBinding()
+		, InputAxisName(NAME_None)
 		, FunctionNameToBind(NAME_None)
-		, bConsumeInput(true)
-		, bExecuteWhenPaused(false)
-		, bOverrideParentBinding(true)
 	{
 	}
 };

@@ -784,7 +784,19 @@ void UPlayerInput::ProcessInputStack(const TArray<UInputComponent*>& InputCompon
 		{
 		}
 	};
+	struct FVectorAxisDelegateDetails
+	{
+		FInputVectorAxisUnifiedDelegate Delegate;
+		FVector Value;
+
+		FVectorAxisDelegateDetails(const FInputVectorAxisUnifiedDelegate& InDelegate, const FVector InValue)
+			: Delegate(InDelegate)
+			, Value(InValue)
+		{
+		}
+	};
 	TArray<FAxisDelegateDetails> AxisDelegates;
+	TArray<FVectorAxisDelegateDetails> VectorAxisDelegates;
 	TArray<FDelegateDispatchDetails> NonAxisDelegates;
 	struct FDelegateDispatchDetailsSorter
 	{
@@ -903,20 +915,16 @@ void UPlayerInput::ProcessInputStack(const TArray<UInputComponent*>& InputCompon
 			}
 
 			// Run though game axis bindings and accumulate axis values
-			for (int32 AxisIndex=0; AxisIndex<IC->AxisBindings.Num(); ++AxisIndex)
+			for (FInputAxisBinding& AB : IC->AxisBindings)
 			{
-				FInputAxisBinding& AB = IC->AxisBindings[AxisIndex];
-
 				AB.AxisValue = DetermineAxisValue(AB, bGamePaused, KeysToConsume);
 				if (AB.AxisDelegate.IsBound())
 				{
 					AxisDelegates.Add(FAxisDelegateDetails(AB.AxisDelegate, AB.AxisValue));
 				}
 			}
-			for (int32 AxisIndex = 0; AxisIndex < IC->AxisKeyBindings.Num(); ++AxisIndex)
+			for (FInputAxisKeyBinding& AxisKeyBinding : IC->AxisKeyBindings)
 			{
-				FInputAxisKeyBinding& AxisKeyBinding = IC->AxisKeyBindings[AxisIndex];
-
 				if (!IsKeyConsumed(AxisKeyBinding.AxisKey))
 				{
 					if (!bGamePaused || AxisKeyBinding.bExecuteWhenPaused)
@@ -937,6 +945,30 @@ void UPlayerInput::ProcessInputStack(const TArray<UInputComponent*>& InputCompon
 				if (AxisKeyBinding.AxisDelegate.IsBound())
 				{
 					AxisDelegates.Add(FAxisDelegateDetails(AxisKeyBinding.AxisDelegate, AxisKeyBinding.AxisValue));
+				}
+			}
+			for (FInputVectorAxisBinding& VectorAxisBinding : IC->VectorAxisBindings)
+			{
+				if (!IsKeyConsumed(VectorAxisBinding.AxisKey))
+				{
+					if (!bGamePaused || VectorAxisBinding.bExecuteWhenPaused)
+					{
+						VectorAxisBinding.AxisValue = GetVectorKeyValue(VectorAxisBinding.AxisKey);
+					}
+					else
+					{
+						VectorAxisBinding.AxisValue = FVector::ZeroVector;
+					}
+
+					if (VectorAxisBinding.bConsumeInput)
+					{
+						KeysToConsume.AddUnique(VectorAxisBinding.AxisKey);
+					}
+				}
+
+				if (VectorAxisBinding.AxisDelegate.IsBound())
+				{
+					VectorAxisDelegates.Add(FVectorAxisDelegateDetails(VectorAxisBinding.AxisDelegate, VectorAxisBinding.AxisValue));
 				}
 			}
 
@@ -970,6 +1002,10 @@ void UPlayerInput::ProcessInputStack(const TArray<UInputComponent*>& InputCompon
 			{
 				AxisKeyBinding.AxisValue = 0.f;
 			}
+			for (FInputVectorAxisBinding& VectorAxisBinding : IC->VectorAxisBindings)
+			{
+				VectorAxisBinding.AxisValue = FVector::ZeroVector;
+			}
 		}
 	}
 
@@ -992,6 +1028,13 @@ void UPlayerInput::ProcessInputStack(const TArray<UInputComponent*>& InputCompon
 	}
 	// Now dispatch delegates for summed axes
 	for (const FAxisDelegateDetails& Details : AxisDelegates)
+	{
+		if (Details.Delegate.IsBound())
+		{
+			Details.Delegate.Execute(Details.Value);
+		}
+	}
+	for (const FVectorAxisDelegateDetails& Details : VectorAxisDelegates)
 	{
 		if (Details.Delegate.IsBound())
 		{
@@ -1115,7 +1158,7 @@ void UPlayerInput::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& 
 
 			if ( KeyState->bDown || (KeyState->Value.X != 0.f) )
 			{
-				if (!Key.IsAxis())
+				if (!Key.IsFloatAxis())
 				{
 					Str += FString::Printf(TEXT(" time: %.2f"), World->TimeSince(KeyState->LastUpDownTransitionTime));
 				}

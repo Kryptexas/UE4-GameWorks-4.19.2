@@ -3741,6 +3741,10 @@ bool APlayerController::PopInputComponent(UInputComponent* InputComponent)
 			{
 				AxisKeyBinding.AxisValue = 0.f;
 			}
+			for (FInputVectorAxisBinding& VectorAxisBinding : InputComponent->VectorAxisBindings)
+			{
+				VectorAxisBinding.AxisValue = FVector::ZeroVector;
+			}
 
 			return true;
 		}

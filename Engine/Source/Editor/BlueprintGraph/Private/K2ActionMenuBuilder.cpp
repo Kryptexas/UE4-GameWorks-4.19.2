@@ -177,7 +177,7 @@ static void GetInputNodes(FGraphActionListBuilderBase& ActionMenuBuilder, const 
 					Action->Keywords = TEXT("Input Key InputKey Keyboard");
 				}
 
-				if (Key.IsAxis())
+				if (Key.IsFloatAxis())
 				{
 					UK2Node_InputAxisKeyEvent* InputKeyAxisNode = ActionMenuBuilder.CreateTemplateNode<UK2Node_InputAxisKeyEvent>();
 					InputKeyAxisNode->Initialize(Key);
@@ -189,6 +189,20 @@ static void GetInputNodes(FGraphActionListBuilderBase& ActionMenuBuilder, const 
 					UK2Node_GetInputAxisKeyValue* GetInputAxisKeyValue = ActionMenuBuilder.CreateTemplateNode<UK2Node_GetInputAxisKeyValue>();
 					GetInputAxisKeyValue->Initialize(Key);
 					GetAction->NodeTemplate = GetInputAxisKeyValue;
+					GetAction->Keywords = Action->Keywords;
+				}
+				else if (Key.IsVectorAxis())
+				{
+					UK2Node_InputVectorAxisEvent* InputVectorAxisNode = ActionMenuBuilder.CreateTemplateNode<UK2Node_InputVectorAxisEvent>();
+					InputVectorAxisNode->Initialize(Key);
+					Action->NodeTemplate = InputVectorAxisNode;
+					Action->SearchTitle = Action->NodeTemplate->GetNodeSearchTitle();
+
+					const FString& KeyValuesCategory = (bGamepad ? K2ActionCategories::GamepadValuesCategory : (bMouse ? K2ActionCategories::MouseValuesCategory : K2ActionCategories::KeyValuesCategory));
+					GetAction = FK2ActionMenuBuilder::AddNewNodeAction(ActionMenuBuilder, KeyValuesCategory, KeyName, KeyName.ToString());
+					UK2Node_GetInputVectorAxisValue* GetInputVectorAxisValue = ActionMenuBuilder.CreateTemplateNode<UK2Node_GetInputVectorAxisValue>();
+					GetInputVectorAxisValue->Initialize(Key);
+					GetAction->NodeTemplate = GetInputVectorAxisValue;
 					GetAction->Keywords = Action->Keywords;
 				}
 				else
