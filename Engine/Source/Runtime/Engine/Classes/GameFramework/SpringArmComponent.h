@@ -40,17 +40,39 @@ class ENGINE_API USpringArmComponent : public USceneComponent
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=CameraSettings)
 	uint32 bUseControllerViewRotation:1;
 
+	/** Should we inherit pitch from parent component. Does nothing if using Absolute Rotation. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=CameraSettings)
+	uint32 bInheritPitch : 1;
+
+	/** Should we inherit yaw from parent component. Does nothing if using Absolute Rotation. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=CameraSettings)
+	uint32 bInheritYaw : 1;
+
+	/** Should we inherit roll from parent component. Does nothing if using Absolute Rotation. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=CameraSettings)
+	uint32 bInheritRoll : 1;
+
 	/** If true, camera lags behind target position to smooth its movement */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Lag)
 	uint32 bEnableCameraLag : 1;
+
+	/** If true, camera lags behind target position to smooth its movement */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Lag)
+	uint32 bEnableCameraRotationLag : 1;
 
 	/** If bEnableCameraLag is true, controls how quickly camera reaches target position */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Lag, meta=(editcondition="bEnableCameraLag"))
 	float CameraLagSpeed;
 
-	/** Temporary variable when using camera log, to record previous camera position */
-	FVector PreviousDesiredLoc;
+	/** If bEnableCameraLag is true, controls how quickly camera reaches target position */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Lag, meta=(editcondition = "bEnableCameraRotationLag"))
+	float CameraRotationLagSpeed;
 
+
+	/** Temporary variable when using camera lag, to record previous camera position */
+	FVector PreviousDesiredLoc;
+	/** Temporary variable for lagging camera rotation, for previous rotation */
+	FRotator PreviousDesiredRot;
 
 	// UActorComponent interface
 	virtual void OnRegister() OVERRIDE;
@@ -68,10 +90,12 @@ class ENGINE_API USpringArmComponent : public USceneComponent
 protected:
 	/** Cached component-space socket location */
 	FVector RelativeSocketLocation;
+	/** Cached component-space socket rotation */
+	FQuat RelativeSocketRotation;
 
 protected:
 	/** Updates the desired arm location, calling BlendLocations to do the actual blending if a trace is done */
-	virtual void UpdateDesiredArmLocation(const FVector& Origin, const FRotator& Direction, bool bDoTrace, bool bAllowLag, float DeltaTime);
+	virtual void UpdateDesiredArmLocation(bool bDoTrace, bool bDoLocationLag, bool bDoRotationLag, float DeltaTime);
 
 	/**
 	 * This function allows subclasses to blend the trace hit location with the desired arm location;
