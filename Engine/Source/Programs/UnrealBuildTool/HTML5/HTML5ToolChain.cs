@@ -13,50 +13,19 @@ namespace UnrealBuildTool
 	{
 		// cache the location of SDK tools
 		static string EMCCPath;
-        static string EMLinkPath;
 		static string PythonPath;
-
-		static private bool bEnableFastIteration = UnrealBuildTool.CommandLineContains("-fastiteration");
 
 		public override void RegisterToolChain()
 		{
 			// Make sure the SDK is installed
             // look up installed SDK. 
-            string BaseSDKPath = ""; 
-			if (!Utils.IsRunningOnMono)
-			{
-				Microsoft.Win32.RegistryKey LocalKey = Microsoft.Win32.RegistryKey.OpenBaseKey(Microsoft.Win32.RegistryHive.LocalMachine, Microsoft.Win32.RegistryView.Registry64); 
-				Microsoft.Win32.RegistryKey Key = LocalKey.OpenSubKey("Software\\Emscripten64"); 
-	            if (Key != null)
-	            {
-	                string SDKDir = Key.GetValue("Install_Dir") as string;
-					if (SDKDir != null)
-					{
-						SDKDir = Path.Combine(SDKDir, "emscripten");
-						if (Directory.Exists(SDKDir))
-						{
-							// emscripten path is the highest numbered directory 
-							DirectoryInfo DirInfo = new DirectoryInfo(SDKDir);
-							string Latest_Ver = (from S in DirInfo.GetDirectories() select S.Name).ToList().Last();
-							BaseSDKPath = Path.Combine(SDKDir, Latest_Ver);
-						}
-					}
-	            }
-			}
-
-			// if the above didn't set the SDK path, use the environment variable (for anyone who installed by unzipping or similar)
-			if (BaseSDKPath == "")
-			{
-                BaseSDKPath = Environment.GetEnvironmentVariable("EMSCRIPTEN");
-			}
-
+			string BaseSDKPath = Environment.GetEnvironmentVariable("EMSCRIPTEN");
 			if (!String.IsNullOrEmpty(BaseSDKPath))
 			{
 				BaseSDKPath = BaseSDKPath.Replace("\"", "");
 				if (!String.IsNullOrEmpty(BaseSDKPath))
                 {
 					EMCCPath = Path.Combine(BaseSDKPath, "emcc");
-                    EMLinkPath = Path.Combine(BaseSDKPath, "emlink.py");
 					// also figure out where python lives (if no envvar, assume it's in the path)
 					PythonPath = Environment.GetEnvironmentVariable("PYTHON");
 					if (PythonPath == null)
@@ -64,14 +33,11 @@ namespace UnrealBuildTool
 						PythonPath = Utils.IsRunningOnMono ? "python" : "python.exe";
 					}
                     EMCCPath = "\"" + EMCCPath + "\""; 
-
 					// set some environment variable we'll need
-
 					//Environment.SetEnvironmentVariable("EMCC_DEBUG", "cache");
 					Environment.SetEnvironmentVariable("EMCC_CORES", "8");
 					Environment.SetEnvironmentVariable("EMCC_FORCE_STDLIBS", "1");
 					Environment.SetEnvironmentVariable("EMCC_OPTIMIZE_NORMALLY", "1");
-
 					// finally register the toolchain that is now ready to go
                     Log.TraceVerbose("        Registered for {0}", CPPTargetPlatform.HTML5.ToString());
 					UEToolChain.RegisterPlatformToolChain(CPPTargetPlatform.HTML5, this);
@@ -140,7 +106,6 @@ namespace UnrealBuildTool
             }
 
             // NOTE: This may slow down the compiler's startup time!
-            if ( !bEnableFastIteration )
             { 
                 Result += " --memory-init-file 1";
             }
@@ -351,14 +316,13 @@ namespace UnrealBuildTool
 				}
 
 				// Add the source file path to the command-line.
-                string bfastlinkstring = bEnableFastIteration ? "" : " -c ";
-                string FileArguments = string.Format(bfastlinkstring + " \"{0}\"", SourceFile.AbsolutePath);
+                string FileArguments = string.Format(" \"{0}\"", SourceFile.AbsolutePath);
 
             	// Add the object file to the produced item list.
 				FileItem ObjectFile = FileItem.GetItemByPath(
 					Path.Combine(
 						CompileEnvironment.Config.OutputDirectory,
-						Path.GetFileName(SourceFile.AbsolutePath) + (bEnableFastIteration ? ".js" : ".o")
+						Path.GetFileName(SourceFile.AbsolutePath) + (".o")
 						)
 					);
 				CompileAction.ProducedItems.Add(ObjectFile);
@@ -377,8 +341,7 @@ namespace UnrealBuildTool
 				CompileAction.WorkingDirectory = Path.GetFullPath(".");
 				CompileAction.CommandPath = PythonPath;
                 
-                string fastlinkString = SourceFile.Info.FullName.Contains("Launch") ?  " -s MAIN_MODULE=1 " : "-s SIDE_MODULE=1";
-                CompileAction.CommandArguments = EMCCPath + Arguments + (bEnableFastIteration ? fastlinkString : "" )+ FileArguments + CompileEnvironment.Config.AdditionalArguments;
+				CompileAction.CommandArguments = EMCCPath + Arguments + FileArguments + CompileEnvironment.Config.AdditionalArguments;
                
                 System.Console.WriteLine(CompileAction.CommandArguments); 
 				CompileAction.StatusDescription = Path.GetFileName(SourceFile.AbsolutePath);
@@ -485,15 +448,14 @@ namespace UnrealBuildTool
 			LinkAction.bCanExecuteRemotely = false;
 			LinkAction.WorkingDirectory = Path.GetFullPath(".");
 			LinkAction.CommandPath = PythonPath;
-			LinkAction.CommandArguments = bEnableFastIteration ? EMLinkPath : EMCCPath;
+			LinkAction.CommandArguments = EMCCPath;
 		    LinkAction.CommandArguments += GetLinkArguments(LinkEnvironment);
 
 			// Add the input files to a response file, and pass the response file on the command-line.
 			foreach (FileItem InputFile in LinkEnvironment.InputFiles)
 			{
                 System.Console.WriteLine("File  {0} ", InputFile.AbsolutePath);
-                string fastlinkString = InputFile.AbsolutePath.Contains("Launch.cpp") ?  " -m " : " -s ";
-                LinkAction.CommandArguments += string.Format((bEnableFastIteration ? fastlinkString : "") + " \"{0}\"", InputFile.AbsolutePath);
+                LinkAction.CommandArguments += string.Format(" \"{0}\"", InputFile.AbsolutePath);
 				LinkAction.PrerequisiteItems.Add(InputFile);
 			}
             foreach (string InputFile in LinkEnvironment.Config.AdditionalLibraries)
@@ -509,12 +471,10 @@ namespace UnrealBuildTool
 			OutputFile = FileItem.GetItemByPath(LinkEnvironment.Config.OutputFilePath);
 			LinkAction.ProducedItems.Add(OutputFile);
 			LinkAction.CommandArguments += string.Format(" -o \"{0}\"", OutputFile.AbsolutePath);
-            if ( !bEnableFastIteration ) 
-            { 
- 			    FileItem OutputBC = FileItem.GetItemByPath(LinkEnvironment.Config.OutputFilePath.Replace(".js", ".bc").Replace(".html", ".bc"));
- 			    LinkAction.ProducedItems.Add(OutputBC);
- 			    LinkAction.CommandArguments += string.Format(" --save-bc \"{0}\"", OutputBC.AbsolutePath);
-            } 
+
+		    FileItem OutputBC = FileItem.GetItemByPath(LinkEnvironment.Config.OutputFilePath.Replace(".js", ".bc").Replace(".html", ".bc"));
+		    LinkAction.ProducedItems.Add(OutputBC);
+		    LinkAction.CommandArguments += string.Format(" --save-bc \"{0}\"", OutputBC.AbsolutePath);
 
      		LinkAction.StatusDescription = Path.GetFileName(OutputFile.AbsolutePath);
 			LinkAction.OutputEventHandler = new DataReceivedEventHandler(RemoteOutputReceivedEventHandler);

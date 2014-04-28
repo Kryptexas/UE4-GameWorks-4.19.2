@@ -113,8 +113,9 @@ public class Engine : ModuleRules
 			{
 				DynamicallyLoadedModuleNames.AddRange(
 					new string[] {
-						"MacTargetPlatform",
-						"MacNoEditorTargetPlatform"
+					    "MacTargetPlatform",
+					    "MacNoEditorTargetPlatform",
+					    "HTML5TargetPlatform"
 					}
 				);
 			}
