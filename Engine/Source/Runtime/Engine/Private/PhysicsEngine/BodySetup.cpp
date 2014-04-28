@@ -342,7 +342,7 @@ void UBodySetup::AddShapesToRigidActor(PxRigidActor* PDestActor, FVector& Scale3
 			PBoxGeom.halfExtents.z = (0.5f * BoxElem->Z * Scale3DAbs.Z);
 
 			FTransform BoxTransform = RelativeTM ? BoxElem->GetTransform() * *RelativeTM : BoxElem->GetTransform();
-			if(ensure(PBoxGeom.isValid() && BoxTransform.IsValid()))
+			if(PBoxGeom.isValid() && BoxTransform.IsValid())
 			{
 				PxTransform PLocalPose( U2PTransform( BoxTransform ));
 				PLocalPose.p.x *= Scale3D.X;
@@ -382,7 +382,7 @@ void UBodySetup::AddShapesToRigidActor(PxRigidActor* PDestActor, FVector& Scale3
 				PCapsuleGeom.halfHeight = HalfHeight;
 				PCapsuleGeom.radius = Radius;
 
-				if (ensure(PCapsuleGeom.isValid()))
+				if (PCapsuleGeom.isValid())
 				{
 					// The stored sphyl transform assumes the sphyl axis is down Z. In PhysX, it points down X, so we twiddle the matrix a bit here (swap X and Z and negate Y).
 					PxTransform PLocalPose(U2PVector(RelativeTM ? RelativeTM->TransformPosition(SphylElem->Center) : SphylElem->Center), U2PQuat(SphylElem->Orientation) * U2PSphylBasis);
@@ -417,13 +417,13 @@ void UBodySetup::AddShapesToRigidActor(PxRigidActor* PDestActor, FVector& Scale3
 				PConvexGeom.convexMesh = bUseNegX ? ConvexElem->ConvexMeshNegX : ConvexElem->ConvexMesh;
 				PConvexGeom.scale.scale = U2PVector(Scale3DAbs * ConvexElem->GetTransform().GetScale3D().GetAbs());
 				FTransform ConvexTransform = ConvexElem->GetTransform();
-				if (ensure(ConvexTransform.IsValid()))
+				if (ConvexTransform.IsValid())
 				{
 					PxTransform PElementTransform = U2PTransform(RelativeTM ? ConvexTransform * *RelativeTM : ConvexTransform);
 					PLocalPose.q *= PElementTransform.q;
 					PLocalPose.p += PElementTransform.p * MinScale;
 
-					if(ensure(PConvexGeom.isValid()))
+					if(PConvexGeom.isValid())
 					{
 						PxVec3 PBoundsExtents = PConvexGeom.convexMesh->getLocalBounds().getExtents();
 
