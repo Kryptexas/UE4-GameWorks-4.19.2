@@ -2853,39 +2853,19 @@ bool FDeferredShadingSceneRenderer::RenderProjectedShadows( const FLightSceneInf
 
 			GSceneRenderTargets.BeginRenderingShadowDepth();	
 
-			// keep track of the max RECT needed for resolving the depth surface	
-			FResolveRect ResolveRect;
-			ResolveRect.X1 = 0;
-			ResolveRect.Y1 = 0;
-			bool bResolveRectInit = false;
+			RHIClear(false,FColor(255,255,255),true,1.0f,false,0, FIntRect());
+
 			// render depth for each shadow
 			for (int32 ShadowIndex = 0; ShadowIndex < Shadows.Num(); ShadowIndex++)
 			{
 				FProjectedShadowInfo* ProjectedShadowInfo = Shadows[ShadowIndex];
 				if (ProjectedShadowInfo->bAllocated && !ProjectedShadowInfo->bTranslucentShadow)
 				{
-					ProjectedShadowInfo->ClearDepth(this);
-
 					ProjectedShadowInfo->RenderDepth(this);
-
-					// init values
-					if (!bResolveRectInit)
-					{
-						ResolveRect.X2 = ProjectedShadowInfo->X + ProjectedShadowInfo->ResolutionX + SHADOW_BORDER * 2;
-						ResolveRect.Y2 = ProjectedShadowInfo->Y + ProjectedShadowInfo->ResolutionY + SHADOW_BORDER * 2;
-						bResolveRectInit = true;
-					}
-					// keep track of max extents
-					else 
-					{
-						ResolveRect.X2 = FMath::Max<uint32>(ProjectedShadowInfo->X + ProjectedShadowInfo->ResolutionX + SHADOW_BORDER * 2, ResolveRect.X2);
-						ResolveRect.Y2 = FMath::Max<uint32>(ProjectedShadowInfo->Y + ProjectedShadowInfo->ResolutionY + SHADOW_BORDER * 2, ResolveRect.Y2);
-					}
 				}
 			}
 
-			// only resolve the portion of the shadow buffer that we rendered to
-			GSceneRenderTargets.FinishRenderingShadowDepth(ResolveRect);
+			GSceneRenderTargets.FinishRenderingShadowDepth();
 		}
 
 		// Render the shadow projections.

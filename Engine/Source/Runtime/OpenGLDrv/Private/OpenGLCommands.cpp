@@ -1523,7 +1523,7 @@ void FOpenGLDynamicRHI::RHISetRenderTargets(
 
 	if (PendingState.FirstNonzeroRenderTarget != -1)
 	{
-		// Set viewport size to new render target size. (I see D3D11 doesn't set it in case of depth buffers with no render targets, so doing the same here).
+		// Set viewport size to new render target size.
 		PendingState.Viewport.Min.X = 0;
 		PendingState.Viewport.Min.Y = 0;
 
@@ -1576,6 +1576,13 @@ void FOpenGLDynamicRHI::RHISetRenderTargets(
 
 		PendingState.Viewport.Max.X = PendingState.RenderTargetWidth = Width;
 		PendingState.Viewport.Max.Y = PendingState.RenderTargetHeight = Height;
+	}
+	else if( NewDepthStencilTargetRHI )
+	{
+		// Set viewport size to new depth target size.
+		FOpenGLTexture2D* NewDepthTargetTexture = (FOpenGLTexture2D*)NewDepthStencilTargetRHI->GetTexture2D();
+		PendingState.Viewport.Max.X = NewDepthTargetTexture->GetSizeX();
+		PendingState.Viewport.Max.Y = NewDepthTargetTexture->GetSizeY();
 	}
 }
 

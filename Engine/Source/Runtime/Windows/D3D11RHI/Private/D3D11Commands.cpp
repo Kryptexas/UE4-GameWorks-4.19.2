@@ -889,6 +889,15 @@ void FD3D11DynamicRHI::RHISetRenderTargets(
 		FRTVDesc RTTDesc = GetRenderTargetViewDesc(NewRenderTargetViews[0]);
 		RHISetViewport(0, 0, 0.0f, RTTDesc.Width, RTTDesc.Height, 1.0f);
 	}
+	else if( DepthStencilView )
+	{
+		TRefCountPtr<ID3D11Texture2D> DepthTargetTexture;
+		DepthStencilView->GetResource((ID3D11Resource**)DepthTargetTexture.GetInitReference());
+
+		D3D11_TEXTURE2D_DESC DTTDesc;
+		DepthTargetTexture->GetDesc(&DTTDesc);
+		RHISetViewport(0, 0, 0.0f, DTTDesc.Width, DTTDesc.Height, 1.0f);
+	}
 }
 
 void FD3D11DynamicRHI::RHIDiscardRenderTargets(bool Depth, bool Stencil, uint32 ColorBitMask)
