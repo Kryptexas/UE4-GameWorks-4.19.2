@@ -195,7 +195,51 @@ namespace UnrealBuildTool.IOS
 
 				return PrepForUATPackageOrDeploy(GameName, ProjectDirectory, BuildPath + "/" + DecoratedGameName, "../../Engine", false);
 			}
+			else
+			{
+				// If it is requested, send the app bundle back to the platform executing these commands.
+				if (BuildConfiguration.bCopyAppBundleBackToDevice)
+				{
+					Log.TraceInformation("Copying binaries back to this device...");
 
+					IOSToolChain Toolchain = UEToolChain.GetPlatformToolChain(CPPTargetPlatform.IOS) as IOSToolChain;
+					bool bIsStaticLibrary = InTarget.OutputPath.EndsWith(".a");
+
+					try
+					{
+						string BinaryDir = Path.GetDirectoryName(InTarget.OutputPath) + "\\";
+						if (BinaryDir.EndsWith(InTarget.AppName + "\\Binaries\\IOS\\") && InTarget.Rules.Type != TargetRules.TargetType.Game)
+						{
+							BinaryDir = BinaryDir.Replace(InTarget.Rules.Type.ToString(), "Game");
+						}
+
+						string RemoteBinariesDir = Toolchain.ConvertPath(BinaryDir);
+						string LocalBinariesDir = BinaryDir;
+
+						// Get the app bundle's name
+						string AppFullName = InTarget.AppName;
+						if (InTarget.Configuration != UnrealTargetConfiguration.Development)
+						{
+							AppFullName += "-" + InTarget.Platform.ToString();
+							AppFullName += "-" + InTarget.Configuration.ToString();
+						}
+
+						List<string> NotBundledBinaries = new List<string>();
+						foreach (string BinaryPath in Toolchain.BuiltBinaries)
+						{
+							if (!BinaryPath.Contains("Dummy"))
+							{
+								RPCUtilHelper.CopyFile(Toolchain.ConvertPath(BinaryPath), BinaryPath, false);
+							}
+						}
+						Log.TraceInformation("Copied binaries successfully.");
+					}
+					catch (Exception)
+					{
+						Log.TraceInformation("Copying binaries back to this device failed.");
+					}
+				}
+			}
 			return true;
 		}
 

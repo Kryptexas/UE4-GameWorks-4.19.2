@@ -53,6 +53,7 @@ namespace UnrealBuildTool
             ErrorMessageTokens.Add("IPP ERROR");
             ErrorMessageTokens.Add("System.Net.Sockets.SocketException");
 
+			BranchDirectory = BranchDirectory.Replace("Engine\\Binaries\\DotNET", "");
 			BranchDirectory = BranchDirectory.Replace("Engine\\Source\\", "");
 			BranchDirectoryMac = BranchDirectory.Replace("\\", "/");
         }

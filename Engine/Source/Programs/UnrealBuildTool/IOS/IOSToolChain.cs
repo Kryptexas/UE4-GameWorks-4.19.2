@@ -4,6 +4,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.IO;
 using System.Diagnostics;
 using System.Security.AccessControl;
@@ -62,6 +63,8 @@ namespace UnrealBuildTool
 
 		/** Which library archiver to use */
 		private static string IOSArchiver = "libtool";
+
+		public List<string> BuiltBinaries = new List<string>();
 
 		/// <summary>
 		/// Function to call to reset default data.
@@ -543,7 +546,7 @@ namespace UnrealBuildTool
 						LinkAction.PrerequisiteItems.Add(RemoteLibFile);
 
 						// and add to the commandline
-						LinkAction.CommandArguments += string.Format(" \"{0}\"", ConvertPath(AdditionalLibrary));
+						LinkAction.CommandArguments += string.Format(" \"{0}\"", ConvertPath(Path.GetFullPath(AdditionalLibrary)));
 					}
 					else
 					{
@@ -780,6 +783,16 @@ namespace UnrealBuildTool
 			}
 		}
 
+		public override void PreBuildSync()
+		{
+			if (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
+			{
+				BuiltBinaries = new List<string>();
+			}
+
+			base.PreBuildSync();
+		}
+
 		public override void PostBuildSync(UEBuildTarget Target)
 		{
 			base.PostBuildSync(Target);
@@ -878,6 +891,28 @@ namespace UnrealBuildTool
 			}
 			else
 			{
+				// store off the binaries
+				foreach (UEBuildBinary Binary in Target.AppBinaries)
+				{
+					BuiltBinaries.Add(Path.GetFullPath(Binary.ToString()));
+				}
+
+				// Generate static libraries for monolithic games in Rocket
+				if ((UnrealBuildTool.BuildingRocket() || UnrealBuildTool.RunningRocket()) && TargetRules.IsAGame(Target.Rules.Type))
+				{
+					List<UEBuildModule> Modules = Target.AppBinaries[0].GetAllDependencyModules(true, false);
+					foreach (UEBuildModuleCPP Module in Modules.OfType<UEBuildModuleCPP>())
+					{
+						if (Utils.IsFileUnderDirectory(Module.ModuleDirectory, BuildConfiguration.RelativeEnginePath) && Module.Binary == Target.AppBinaries[0])
+						{
+							if (Module.bBuildingRedistStaticLibrary)
+							{
+								BuiltBinaries.Add(Path.GetFullPath(Module.RedistStaticLibraryPath));
+							}
+						}
+					}
+				}
+
 				// check to see if the DangerouslyFast mode is valid (in other words, a build has gone through since a Rebuild/Clean operation)
 				string DangerouslyFastValidFile = Path.Combine(Target.GlobalLinkEnvironment.Config.IntermediateDirectory, "DangerouslyFastIsNotDangerous");
 				bool bUseDangerouslyFastModeWasRequested = bUseDangerouslyFastMode;
