@@ -692,11 +692,6 @@ protected:
 	/** Engages or disengages application throttling based on user behavior */
 	void ThrottleApplicationBasedOnMouseMovement();
 
-	/**
-	 * Allow the Remote Slate (aka UDKRemote) server class to have time
-	 */
-	void TickRemoteSlateServer();
-
 protected:
 
 	/**
@@ -1377,11 +1372,6 @@ private:
 
 	/** Keeps track of whether or not the UI for services such as Steam is open. */
 	bool bIsExternalUIOpened;
-
-	/**
-	 * Remote Slate server
-	 */
-	TSharedPtr<class FRemoteSlateServer> RemoteSlateServer;
 
 	/** Handle to a throttle request made to ensure the window is responsive in low FPS situations */
 	FThrottleRequest ThrottleHandle;

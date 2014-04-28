@@ -1,13 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
+/*=============================================================================
+	SlateApplication.cpp: Implements the FSlateApplication class.
+=============================================================================*/
+
 #include "SlatePrivatePCH.h"
 #include "SWindowTitleBar.h"
-
-
-// Statics
-//// @todo checkin: Should this go in an almost empty Events.cpp?
-FTouchKeySet FPointerEvent::StandardTouchKeySet(EKeys::LeftMouseButton);
-FTouchKeySet FPointerEvent::EmptyTouchKeySet(EKeys::Invalid);
 
 
 DECLARE_CYCLE_STAT( TEXT("Message Tick Time"), STAT_SlateMessageTick, STATGROUP_Slate );
@@ -15,8 +13,10 @@ DECLARE_CYCLE_STAT( TEXT("Update Tooltip Time"), STAT_SlateUpdateTooltip, STATGR
 DECLARE_CYCLE_STAT( TEXT("Tick Window And Children Time"), STAT_SlateTickWindowAndChildren, STATGROUP_Slate );
 DECLARE_CYCLE_STAT( TEXT("FindPathToWidget"), STAT_FindPathToWidget, STATGROUP_Slate );
 
+
 // Slate Event Logging is enabled to allow crash log dumping
 #define LOG_SLATE_EVENTS 0
+
 
 #if LOG_SLATE_EVENTS
 	#define LOG_EVENT_CONTENT( EventType, AdditionalContent, WidgetOrReply ) LogSlateEvent(EventLogger, EventType, AdditionalContent, WidgetOrReply);
@@ -466,15 +466,6 @@ FSlateApplication::FSlateApplication()
 	FGenericCommands::Register();
 
 	NormalExecutionGetter.BindRaw( this, &FSlateApplication::IsNormalExecution );
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) && !PLATFORM_HTML5 && !PLATFORM_HTML5_WIN32  
-	bool bEnableRemoteSlateServer = false;
-	if (GConfig && GConfig->GetBool(TEXT("MobileSupport"), TEXT("EnableUDKRemote"), bEnableRemoteSlateServer, GEngineIni) && bEnableRemoteSlateServer)
-	{
-		// @todo gmp: temporarily disabled. remote server is being refactored into plug-in.
-//		RemoteSlateServer = MakeShareable(new FRemoteSlateServer);
-	}
-#endif
 }
 
 FSlateApplication::~FSlateApplication()
@@ -951,14 +942,6 @@ void FSlateApplication::Tick()
 
 	// Draw all windows
 	DrawWindows();
-
-/* @todo gmp: temporarily disabled. remote server is being refactored into plug-in.
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (RemoteSlateServer.IsValid())
-	{
-		RemoteSlateServer->Tick();
-	}
-#endif*/
 }
 
 

@@ -22,8 +22,6 @@ public class Slate : ModuleRules
 			AddThirdPartyPrivateStaticDependencies(Target, "FreeType2");
         }
 
-		PrivateDependencyModuleNames.Add("Sockets");
-
 		PrivateIncludePaths.AddRange(
 			new string[] {
 				"Runtime/Slate/Private",
