@@ -134,11 +134,23 @@ public:
 	}
 
 	/**
-	 * Gets string representation for this endpoint.
+	 * Gets a string representation for this endpoint.
 	 *
 	 * @return String representation.
+	 *
+	 * @see Parse
 	 */
-	NETWORKING_API FText ToText( ) const;
+	NETWORKING_API FString ToString( ) const;
+
+	/**
+	 * Gets the display text representation for this endpoint.
+	 *
+	 * @return Text representation.
+	 */
+	FText ToText( ) const
+	{
+		return FText::FromString(ToString());
+	}
 
 public:
 
@@ -168,6 +180,8 @@ public:
 	 * @param OutEndpoint - Will contain the parsed endpoint.
 	 *
 	 * @return true if the string was converted successfully, false otherwise.
+	 *
+	 * @see ToString
 	 */
 	static NETWORKING_API bool Parse( const FString& EndpointString, FIPv4Endpoint& OutEndpoint );
 
