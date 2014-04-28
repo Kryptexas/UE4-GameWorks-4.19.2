@@ -17,6 +17,13 @@ import android.content.Intent;
 import android.content.res.Configuration;
 import android.content.IntentSender.SendIntentException;
 
+import android.view.Gravity;
+import android.view.ViewGroup.LayoutParams;
+import android.view.ViewGroup.MarginLayoutParams;
+import android.view.WindowManager;
+import android.widget.LinearLayout;
+import android.widget.PopupWindow;
+
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.PendingResult;
 import com.google.android.gms.common.api.ResultCallback;
@@ -25,7 +32,9 @@ import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.games.achievement.*;
 import com.google.android.gms.games.Games;
 
-
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.AdView;
+import com.google.android.gms.ads.AdSize;
 
 // TODO: use the resources from the UE4 lib project once we've got the packager up and running
 //import com.epicgames.ue4.R;
@@ -51,6 +60,13 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 	private GoogleApiClient googleClient;
 	private boolean bResolvingGoogleServicesError = false;
 	private int dialogError = 0;
+
+	/** AdMob support */
+	private PopupWindow adPopupWindow;
+	private AdView adView;
+	private boolean adInit = false;
+	private LinearLayout adLayout;
+	private LinearLayout activityLayout;
 
 	/** Request code to use when launching the Google Services resolution activity */
     private static final int GOOGLE_SERVICES_REQUEST_RESOLVE_ERROR = 1001;
@@ -158,11 +174,11 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 
 		// Connect to Google Play Services
 		googleClient = new GoogleApiClient.Builder(this)
-         .addApi(Games.API)
-         .addScope(Games.SCOPE_GAMES)
-         .addConnectionCallbacks(this)
-         .addOnConnectionFailedListener(this)
-         .build();
+		 .addApi(Games.API)
+		 .addScope(Games.SCOPE_GAMES)
+		 .addConnectionCallbacks(this)
+		 .addOnConnectionFailedListener(this)
+		 .build();
 	}
 
 	@Override
@@ -205,7 +221,7 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 	}
 
 	// Callbacks to handle connections with Google Play
-	@Override
+	 @Override
     public void onConnected(Bundle connectionHint)
 	{
         Log.debug("Connected to Google Play Services.");
@@ -328,8 +344,8 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 
 	public void AndroidThunkJava_GooglePlayConnect()
 	{
-		googleClient.connect();
-	}
+			googleClient.connect();
+		}
 
 	public void AndroidThunkJava_ShowLeaderboard(String LeaderboardID)
 	{
@@ -411,6 +427,131 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 				break;
 			}
 		}
+	}
+
+	public void AndroidThunkJava_ShowAdBanner(String AdMobAdUnitID, boolean bShowOnBottonOfScreen)
+	{
+		Log.debug("In AndroidThunkJava_ShowAdBanner");
+		Log.debug("AdID: " + AdMobAdUnitID);
+
+		final int adGravity = bShowOnBottonOfScreen ? Gravity.BOTTOM : Gravity.TOP;
+
+		if (adInit)
+		{
+			// already created, make it visible
+			_activity.runOnUiThread(new Runnable()
+			{
+				@Override
+				public void run()
+				{
+					if ((adPopupWindow == null) || adPopupWindow.isShowing())
+					{
+						return;
+					}
+
+					adPopupWindow.showAtLocation(activityLayout, adGravity, 0, 0);
+					adPopupWindow.update();
+				}
+			});
+
+			return;
+		}
+
+		// init our AdMob window
+		adView = new AdView(this);
+		adView.setAdUnitId(AdMobAdUnitID);
+		adView.setAdSize(AdSize.BANNER);
+
+		if (adView != null)
+		{
+			_activity.runOnUiThread(new Runnable()
+			{
+				@Override
+				public void run()
+				{
+					adInit = true;
+
+					adPopupWindow = new PopupWindow(_activity);
+					adPopupWindow.setWidth(320);
+					adPopupWindow.setHeight(50);
+					adPopupWindow.setWindowLayoutMode(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
+					adPopupWindow.setClippingEnabled(false);
+
+					adLayout = new LinearLayout(_activity);
+					activityLayout = new LinearLayout(_activity);
+
+					adLayout.setPadding(-5,-5,-5,-5);
+
+					MarginLayoutParams params = new MarginLayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);;
+
+					params.setMargins(0,0,0,0);
+
+					adLayout.setOrientation(LinearLayout.VERTICAL);
+					adLayout.addView(adView, params);
+					adPopupWindow.setContentView(adLayout);
+
+					_activity.setContentView(activityLayout, params);
+
+					AdRequest adRequest = new AdRequest.Builder().build();		// add test devices here
+
+					_activity.adView.loadAd(adRequest);
+
+					adPopupWindow.showAtLocation(activityLayout, adGravity, 0, 0);
+					adPopupWindow.update();
+				}
+			});
+		}
+	}
+
+	public void AndroidThunkJava_HideAdBanner()
+	{
+		Log.debug("In AndroidThunkJava_HideAdBanner");
+
+		if (!adInit)
+		{
+			return;
+		}
+
+		_activity.runOnUiThread(new Runnable()
+		{
+			@Override
+			public void run()
+			{
+				if ((adPopupWindow == null) || !adPopupWindow.isShowing())
+				{
+					return;
+				}
+
+				adPopupWindow.dismiss();
+				adPopupWindow.update();
+			}
+		});
+	}
+
+	public void AndroidThunkJava_CloseAdBanner()
+	{
+		Log.debug("In AndroidThunkJava_CloseAdBanner");
+
+		if (!adInit)
+		{
+			return;
+		}
+
+		// currently the same as hide.  should we do a full teardown?
+		_activity.runOnUiThread(new Runnable()
+		{
+			@Override
+			public void run()
+			{
+				if ((adPopupWindow == null) || !adPopupWindow.isShowing())
+				{
+					return;
+				}
+
+				adPopupWindow.dismiss();
+				adPopupWindow.update();
+			}
+		});
 	}
 
 	public native boolean nativeIsShippingBuild();

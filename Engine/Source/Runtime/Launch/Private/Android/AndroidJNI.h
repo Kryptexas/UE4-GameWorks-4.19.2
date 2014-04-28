@@ -26,6 +26,9 @@ public:
 	static jmethodID AndroidThunkJava_WriteLeaderboardValue;
 	static jmethodID AndroidThunkJava_GooglePlayConnect;
 	static jmethodID AndroidThunkJava_WriteAchievement;
+	static jmethodID AndroidThunkJava_ShowAdBanner;
+	static jmethodID AndroidThunkJava_HideAdBanner;
+	static jmethodID AndroidThunkJava_CloseAdBanner;
 };
 
 // Returns the java environment
