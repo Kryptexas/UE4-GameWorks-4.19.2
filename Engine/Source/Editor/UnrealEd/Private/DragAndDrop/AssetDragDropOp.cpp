@@ -109,7 +109,7 @@ TSharedPtr<SWidget> FAssetDragDropOp::GetDefaultDecorator() const
 			// Right slot is for optional tooltip
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
-			.VAlign(VAlign_Fill)
+			.VAlign(VAlign_Center)
 			[
 				SNew(SBox)
 				.Visibility(this, &FAssetDragDropOp::GetTooltipVisibility)
