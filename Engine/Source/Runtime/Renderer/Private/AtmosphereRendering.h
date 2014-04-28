@@ -39,6 +39,7 @@ public:
 	float RHeight;
 	float StartDistance;
 	float DistanceOffset;
+	float SunDiscScale;
 	FLinearColor DefaultSunColor;
 	FVector DefaultSunDirection;
 	uint32 RenderFlag;

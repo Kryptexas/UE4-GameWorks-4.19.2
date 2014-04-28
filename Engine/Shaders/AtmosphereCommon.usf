@@ -520,7 +520,7 @@ float3 GetSunColor(float3 X, float T, float3 V, float3 S, float Radius, float Mu
     }
 	else 
 	{
-        float SunIntensity = step(cos(PI / 180.0), dot(V, S)); // Lsun
+		float SunIntensity = step(cos(PI * View.AtmosphericFogSunDiscScale / 180.0), dot(V, S)); // Lsun
         return TransmittanceValue * SunIntensity; // Eq (9)
     }
 }

@@ -150,6 +150,10 @@ class UAtmosphericFogComponent : public USceneComponent
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, interp, Category=Atmosphere)
 	float StartDistance;
 
+	/** Distance offset, in km (to handle large distance) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, interp, Category = Atmosphere)
+	float SunDiscScale;
+
 	/** Default light brightness. Used when there is no sunlight placed in the level. Unit is lumens */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, interp, Category=Lighting)
 	float DefaultBrightness;
