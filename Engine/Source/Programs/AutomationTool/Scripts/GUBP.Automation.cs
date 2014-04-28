@@ -559,7 +559,9 @@ public class GUBP : BuildCommand
 			    }
                     );
             }
-            Agenda.AddTargets(new string[] { "UnrealHeaderTool" }, HostPlatform, UnrealTargetConfiguration.Development);
+            string AddArgs = "-CopyAppBundleBackToDevice" + bp.RocketUBTArgs();
+
+            Agenda.AddTargets(new string[] { "UnrealHeaderTool" }, HostPlatform, UnrealTargetConfiguration.Development, InAddArgs: AddArgs);
             return Agenda;
         }
         public override void PostBuild(GUBP bp, UE4Build UE4Build)
@@ -747,7 +749,7 @@ public class GUBP : BuildCommand
                     );
             }
 
-            string AddArgs = "-nobuilduht -skipactionhistory" + bp.RocketUBTArgs(); ;
+            string AddArgs = "-nobuilduht -skipactionhistory -CopyAppBundleBackToDevice" + bp.RocketUBTArgs(); ;
 
             foreach (var ProgramTarget in bp.Branch.BaseEngineProject.Properties.Programs)
             {
@@ -802,7 +804,7 @@ public class GUBP : BuildCommand
         {
             var Agenda = new UE4Build.BuildAgenda();
 
-            string AddArgs = "-nobuilduht -skipactionhistory" + bp.RocketUBTArgs(); ;
+            string AddArgs = "-nobuilduht -skipactionhistory -CopyAppBundleBackToDevice" + bp.RocketUBTArgs(); ;
 
             foreach (var Plat in ProgramTarget.Rules.GUBP_ToolPlatforms(HostPlatform))
             {
@@ -879,7 +881,7 @@ public class GUBP : BuildCommand
 			        }
                     );
             }
-            string AddArgs = "-nobuilduht -skipactionhistory" + bp.RocketUBTArgs(); ;
+            string AddArgs = "-nobuilduht -skipactionhistory -CopyAppBundleBackToDevice" + bp.RocketUBTArgs(); ;
 
             foreach (var ProgramTarget in bp.Branch.BaseEngineProject.Properties.Programs)
             {
@@ -944,7 +946,7 @@ public class GUBP : BuildCommand
         {
             var Agenda = new UE4Build.BuildAgenda();
 
-            string AddArgs = "-nobuilduht -skipactionhistory" + bp.RocketUBTArgs(); ;
+            string AddArgs = "-nobuilduht -skipactionhistory -CopyAppBundleBackToDevice" + bp.RocketUBTArgs(); ;
 
             foreach (var Plat in ProgramTarget.Rules.GUBP_ToolPlatforms(HostPlatform))
             {
@@ -993,12 +995,12 @@ public class GUBP : BuildCommand
 
             Agenda.AddTargets(
                 new string[] { bp.Branch.BaseEngineProject.Properties.Targets[TargetRules.TargetType.Editor].TargetName },
-                HostPlatform, UnrealTargetConfiguration.Development, InAddArgs: "-nobuilduht -skipactionhistory -onlyplatformspecificfor=" + EditorPlatform.ToString());
+                HostPlatform, UnrealTargetConfiguration.Development, InAddArgs: "-nobuilduht -skipactionhistory -CopyAppBundleBackToDevice -onlyplatformspecificfor=" + EditorPlatform.ToString());
             foreach (var ProgramTarget in bp.Branch.BaseEngineProject.Properties.Programs)
             {
                 if (ProgramTarget.Rules.GUBP_AlwaysBuildWithBaseEditor() && ProgramTarget.Rules.SupportsPlatform(HostPlatform) && ProgramTarget.Rules.GUBP_NeedsPlatformSpecificDLLs())
                 {
-                    Agenda.AddTargets(new string[] { ProgramTarget.TargetName }, HostPlatform, UnrealTargetConfiguration.Development, InAddArgs: "-nobuilduht -skipactionhistory -onlyplatformspecificfor=" + EditorPlatform.ToString());
+                    Agenda.AddTargets(new string[] { ProgramTarget.TargetName }, HostPlatform, UnrealTargetConfiguration.Development, InAddArgs: "-nobuilduht -skipactionhistory -CopyAppBundleBackToDevice -onlyplatformspecificfor=" + EditorPlatform.ToString());
                 }
             }
             return Agenda;
@@ -1052,7 +1054,7 @@ public class GUBP : BuildCommand
         {
             var Agenda = new UE4Build.BuildAgenda();
 
-            string Args = "-nobuilduht -skipactionhistory -skipnonhostplatforms -forceheadergeneration" + bp.RocketUBTArgs(true);
+            string Args = "-nobuilduht -skipactionhistory -skipnonhostplatforms -CopyAppBundleBackToDevice -forceheadergeneration" + bp.RocketUBTArgs(true);
 
             Agenda.AddTargets(
                 new string[] { GameProj.Properties.Targets[TargetRules.TargetType.Editor].TargetName },
@@ -1138,7 +1140,7 @@ public class GUBP : BuildCommand
             }
             var Agenda = new UE4Build.BuildAgenda();
 
-            string Args = "-nobuilduht -skipactionhistory" + bp.RocketUBTArgs();
+            string Args = "-nobuilduht -skipactionhistory -CopyAppBundleBackToDevice" + bp.RocketUBTArgs();
 
             foreach (var Kind in BranchInfo.MonolithicKinds)
             {

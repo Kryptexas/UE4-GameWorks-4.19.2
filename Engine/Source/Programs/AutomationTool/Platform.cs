@@ -355,7 +355,7 @@ namespace AutomationTool
 
 		}
 
-		public virtual bool ShouldUseManifestForUBTBuilds()
+		public virtual bool ShouldUseManifestForUBTBuilds(string AddArgs)
 		{
 			return true;
 		}

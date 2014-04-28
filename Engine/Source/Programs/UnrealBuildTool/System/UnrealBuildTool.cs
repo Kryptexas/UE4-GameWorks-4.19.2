@@ -1303,6 +1303,11 @@ namespace UnrealBuildTool
 				BuildConfiguration.bDeployAfterCompile = true;
 			}
 
+            if (Utils.ParseCommandLineFlag(Arguments, "-CopyAppBundleBackToDevice", out ArgumentIndex))
+            {
+                BuildConfiguration.bCopyAppBundleBackToDevice = true;
+            }
+
 			if (Utils.ParseCommandLineFlag(Arguments, "-flushmac", out ArgumentIndex))
 			{
 				BuildConfiguration.bFlushBuildDirOnRemoteMac = true;

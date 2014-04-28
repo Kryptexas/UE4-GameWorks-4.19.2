@@ -304,7 +304,7 @@ namespace AutomationTool
 			PrepareUBT();
 
 			// let the platform determine when to use the manifest
-			bool UseManifest = Platform.Platforms[TargetPlatform].ShouldUseManifestForUBTBuilds();
+            bool UseManifest = Platform.Platforms[TargetPlatform].ShouldUseManifestForUBTBuilds(AddArgs);
 
 			if (UseManifest)
 			{
