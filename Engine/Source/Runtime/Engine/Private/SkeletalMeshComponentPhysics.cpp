@@ -2860,6 +2860,41 @@ void USkeletalMeshComponent::ProcessClothCollisionWithEnvironment()
 
 #endif// #if WITH_CLOTH_COLLISION_DETECTION
 
+void USkeletalMeshComponent::PreClothTick(float DeltaTime)
+{
+	// if physics is disabled on dedicated server, no reason to be here. 
+	if (!bEnablePhysicsOnDedicatedServer && IsRunningDedicatedServer())
+	{
+		return;
+	}
+
+	if (IsRegistered() && IsSimulatingPhysics())
+	{
+		SyncComponentToRBPhysics();
+	}
+
+	// this used to not run if not rendered, but that causes issues such as bounds not updated
+	// causing it to not rendered, at the end, I think we should blend body positions
+	// for example if you're only simulating, this has to happen all the time
+	// whether looking at it or not, otherwise
+	// @todo better solution is to check if it has moved by changing SyncComponentToRBPhysics to return true if anything modified
+	// and run this if that is true or rendered
+	// that will at least reduce the chance of mismatch
+	// generally if you move your actor position, this has to happen to approximately match their bounds
+	if (Bodies.Num() > 0 && IsRegistered())
+	{
+		BlendInPhysics();
+	}
+
+#if WITH_APEX_CLOTHING
+	// if skeletal mesh has clothing assets, call TickClothing
+	if (SkeletalMesh && SkeletalMesh->ClothingAssets.Num() > 0)
+	{
+		TickClothing(DeltaTime + SkippedTickDeltaTime);
+	}
+#endif
+}
+
 #if WITH_APEX_CLOTHING
 
 void USkeletalMeshComponent::UpdateClothTransform()
@@ -2949,39 +2984,6 @@ void USkeletalMeshComponent::CheckClothTeleport(float DeltaTime)
 
 	PrevRootBoneMatrix = CurRootBoneMat;
 }
-
-void USkeletalMeshComponent::PreClothTick(float DeltaTime)
-{
-	// if physics is disabled on dedicated server, no reason to be here. 
-	if (!bEnablePhysicsOnDedicatedServer && IsRunningDedicatedServer())
-	{
-		return;
-	}
-
-	if (IsRegistered() && IsSimulatingPhysics())
-	{
-		SyncComponentToRBPhysics();
-	}
-
-	// this used to not run if not rendered, but that causes issues such as bounds not updated
-	// causing it to not rendered, at the end, I think we should blend body positions
-	// for example if you're only simulating, this has to happen all the time
-	// whether looking at it or not, otherwise
-	// @todo better solution is to check if it has moved by changing SyncComponentToRBPhysics to return true if anything modified
-	// and run this if that is true or rendered
-	// that will at least reduce the chance of mismatch
-	// generally if you move your actor position, this has to happen to approximately match their bounds
-	if (Bodies.Num() > 0 && IsRegistered())
-	{
-		BlendInPhysics();
-	}
-
-	// if skeletal mesh has clothing assets, call TickClothing
-	if (SkeletalMesh && SkeletalMesh->ClothingAssets.Num() > 0)
-		{
-		TickClothing(DeltaTime + SkippedTickDeltaTime);
-		}
-	}
 
 void USkeletalMeshComponent::UpdateClothState(float DeltaTime)
 {

@@ -196,7 +196,6 @@ struct FSkeletalMeshComponentPreClothTickFunction : public FTickFunction
 {
 	GENERATED_USTRUCT_BODY()
 
-#if WITH_APEX_CLOTHING
 	/** World this tick function belongs to **/
 	class USkeletalMeshComponent*	Target;
 
@@ -210,8 +209,6 @@ struct FSkeletalMeshComponentPreClothTickFunction : public FTickFunction
 	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) OVERRIDE;
 	/** Abstract function to describe this tick. Used to print messages about illegal cycles in the dependency graph **/
 	virtual FString DiagnosticMessage();
-
-#endif
 };
 
 
@@ -556,9 +553,9 @@ public:
 
 #endif	//WITH_PHYSX
 
-#if WITH_APEX_CLOTHING
-
 	FSkeletalMeshComponentPreClothTickFunction PreClothTickFunction;
+
+#if WITH_APEX_CLOTHING
 	/** 
 	* clothing actors will be created from clothing assets for cloth simulation 
 	* 1 actor should correspond to 1 asset
@@ -920,6 +917,9 @@ public:
 	 */
 	FVector GetClosestCollidingRigidBodyLocation(const FVector& TestLocation) const;
 
+	/** Calls needed cloth updates */
+	void PreClothTick(float DeltaTime);
+
 #if WITH_APEX_CLOTHING
 	/** 
 	* APEX clothing actor is created from APEX clothing asset for cloth simulation 
@@ -934,8 +934,6 @@ public:
 	void SetClothingLOD(int32 LODIndex);
 	/** check whether clothing teleport is needed or not to avoid a weird simulation result */
 	void CheckClothTeleport(float DeltaTime);
-	/** Calls needed cloth updates */
-	void PreClothTick(float DeltaTime);
 	/** 
 	 * Updates all clothing animation states including ComponentToWorld-related states.
 	 */
