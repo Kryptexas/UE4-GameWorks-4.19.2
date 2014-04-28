@@ -73,6 +73,7 @@ public:
 	FSlateDataPayload()
 		: Tint(FLinearColor::White)
 		, BrushResource(nullptr)
+		, RotationPoint(FVector2D::ZeroVector)
 		, Viewport(nullptr)
 	{ }
 
@@ -88,6 +89,7 @@ public:
 		Tint = InTint;
 		BrushResource = InBrush;
 		RotationPoint = LocalRotationPoint;
+		RotationPoint.DiagnosticCheckNaN();
 		Angle = InAngle;
 	}
 

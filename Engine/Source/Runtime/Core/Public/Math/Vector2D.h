@@ -433,6 +433,15 @@ struct FVector2D
 		return Ar << V.X << V.Y;
 	}
 
+#if ENABLE_NAN_DIAGNOSTIC
+	FORCEINLINE void DiagnosticCheckNaN() const
+	{
+		checkf(!ContainsNaN(), TEXT("FVector contains NaN: %s"), *ToString());
+	}
+#else
+	FORCEINLINE void DiagnosticCheckNaN() const {}
+#endif
+
 	/**
 	 * Utility to check if there are any NaNs in this vector.
 	 *
