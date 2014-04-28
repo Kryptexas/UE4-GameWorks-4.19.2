@@ -4500,7 +4500,20 @@ void FNativeClassHeaderGenerator::ExportGeneratedCPP()
 	const auto* ModuleInfo = GPackageToManifestModuleMap.FindChecked(Package);
 	if (ModuleInfo->PCH.Len())
 	{
-		ModulePCHInclude = FString::Printf(TEXT("#include \"%s\"") LINE_TERMINATOR, *ModuleInfo->PCH);
+		FString PCH = ModuleInfo->PCH;
+		if(bUseRelativePaths)
+		{
+			// When building Rocket, we need relative paths in the generated headers so that they can be installed to any directory.
+			FPaths::MakePathRelativeTo(PCH, *ModuleInfo->GeneratedCPPFilenameBase);
+			PCH.ReplaceInline(TEXT("\\"), TEXT("/"));
+		}
+		// ...we cannot rebase paths relative to the install directory. It may be on a different drive.
+		else if (FPaths::MakePathRelativeTo(PCH, *GManifest.RootLocalPath))
+		{
+			PCH = GManifest.RootBuildPath / PCH;
+		}
+
+		ModulePCHInclude = FString::Printf(TEXT("#include \"%s\"") LINE_TERMINATOR, *PCH);
 	}
 
 	// Write out the ordered class dependencies into a single header that we can easily include

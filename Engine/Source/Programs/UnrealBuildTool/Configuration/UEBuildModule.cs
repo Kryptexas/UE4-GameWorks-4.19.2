@@ -706,12 +706,12 @@ namespace UnrealBuildTool
 	/** A module that is compiled from C++ code. */
 	public class UEBuildModuleCPP : UEBuildModule
 	{
-		public class AutoGenerateInlInfoClass
+		public class AutoGenerateCppInfoClass
 		{
 			/** The filename of the *.generated.cpp file which was generated for the module */
 			public readonly string Filename;
 
-			public AutoGenerateInlInfoClass(string InFilename)
+			public AutoGenerateCppInfoClass(string InFilename)
 			{
 				Debug.Assert(InFilename != null);
 
@@ -720,9 +720,9 @@ namespace UnrealBuildTool
 		}
 
 		/** Information about the .inl file . */
-		public AutoGenerateInlInfoClass AutoGenerateInlInfo = null;
+		public AutoGenerateCppInfoClass AutoGenerateCppInfo = null;
 
-		private class SourceFilesClass
+		public class SourceFilesClass
 		{
 			public readonly List<FileItem> MissingFiles = new List<FileItem>();
 			public readonly List<FileItem> CPPFiles     = new List<FileItem>();
@@ -731,10 +731,24 @@ namespace UnrealBuildTool
 			public readonly List<FileItem> MMFiles      = new List<FileItem>();
 			public readonly List<FileItem> RCFiles      = new List<FileItem>();
 			public readonly List<FileItem> OtherFiles   = new List<FileItem>();
+
+			public int Count
+			{
+				get
+				{
+					return MissingFiles.Count +
+					       CPPFiles    .Count +
+					       CFiles      .Count +
+					       CCFiles     .Count +
+					       MMFiles     .Count +
+					       RCFiles     .Count +
+					       OtherFiles  .Count;
+				}
+			}
 		}
 
 		/** A list of the absolute paths of source files in the module. */
-		readonly SourceFilesClass SourceFiles = new SourceFilesClass();
+		public readonly SourceFilesClass SourceFiles = new SourceFilesClass();
 
 		/** The preprocessor definitions used to compile this module's private implementation. */
 		List<string> Definitions;
@@ -1295,9 +1309,9 @@ namespace UnrealBuildTool
 				PCHPath = UEToolChain.GetPlatformToolChain(ModuleCompileEnvironment.Config.TargetPlatform).ConvertPath( ProcessedDependencies.UniquePCHHeaderFile.AbsolutePath );
 			}
 
-			if (AutoGenerateInlInfo != null && !ModuleCompileEnvironment.bHackHeaderGenerator)
+			if (AutoGenerateCppInfo != null && !ModuleCompileEnvironment.bHackHeaderGenerator)
 			{
-				var GeneratedCppFileItem = FileItem.GetItemByPath( AutoGenerateInlInfo.Filename );
+				var GeneratedCppFileItem = FileItem.GetItemByPath( AutoGenerateCppInfo.Filename );
 
 				LinkInputFiles.AddRange( CPPCompileEnvironment.CompileFiles( new List<FileItem>{ GeneratedCppFileItem }, Name ).ObjectFiles );
 			}

@@ -1386,10 +1386,20 @@ namespace UnrealBuildTool
 						if( UHTModuleInfo.PublicUObjectClassesHeaders.Count == 0 && UHTModuleInfo.PrivateUObjectHeaders.Count == 0 && UHTModuleInfo.PublicUObjectHeaders.Count == 0 )
 							continue;
 
-						UHTModuleInfo.PCH                      = ToolChain.ConvertPath( DependencyModuleCPP.ProcessedDependencies.UniquePCHHeaderFile.AbsolutePath );
+						UHTModuleInfo.PCH                      = "";
 						UHTModuleInfo.GeneratedCPPFilenameBase = Path.Combine( UEBuildModuleCPP.GetGeneratedCodeDirectoryForModule(this, UHTModuleInfo.ModuleDirectory, UHTModuleInfo.ModuleName), UHTModuleInfo.ModuleName ) + ".generated";
 
-						DependencyModuleCPP.AutoGenerateInlInfo = new UEBuildModuleCPP.AutoGenerateInlInfoClass( UHTModuleInfo.GeneratedCPPFilenameBase + ".cpp" );
+						if (DependencyModuleCPP.ProcessedDependencies.UniquePCHHeaderFile != null)
+						{
+							UHTModuleInfo.PCH = DependencyModuleCPP.ProcessedDependencies.UniquePCHHeaderFile.AbsolutePath;
+						}
+
+						// If we've got this far and there are no source files then it's likely we're running Rocket and ignoring
+						// engine files, so we don't need a .generated.cpp either
+						if (DependencyModuleCPP.SourceFiles.Count != 0)
+						{
+							DependencyModuleCPP.AutoGenerateCppInfo = new UEBuildModuleCPP.AutoGenerateCppInfoClass( UHTModuleInfo.GeneratedCPPFilenameBase + ".cpp" );
+						}
 
 						UObjectModules.Add( UHTModuleInfo );
 						Log.TraceVerbose( "Detected UObject module: " + DependencyModuleCPP.Name );
