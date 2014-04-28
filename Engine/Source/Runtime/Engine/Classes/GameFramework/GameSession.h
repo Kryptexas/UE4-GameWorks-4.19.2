@@ -58,9 +58,6 @@ class ENGINE_API AGameSession : public AInfo
     /** Delegate triggered on auto login completion */
 	virtual void OnLoginComplete(int32 LocalUserNum, bool bWasSuccessful, const FUniqueNetId& UserId, const FString& Error);
 
-    /** Delegate triggered on auto login success */ 
-	virtual void OnLoginChanged(int32 LocalUserNum);
-
 	/** 
 	 * Called from GameMode.PreLogin() and Login().
 	 * @param	Options	The URL options (e.g. name/spectator) the player has passed

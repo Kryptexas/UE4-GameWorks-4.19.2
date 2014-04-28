@@ -66,7 +66,6 @@ bool AGameSession::ProcessAutoLogin()
 	IOnlineIdentityPtr IdentityInt = Online::GetIdentityInterface(World);
 	if (IdentityInt.IsValid())
 	{
-		IdentityInt->AddOnLoginChangedDelegate(FOnLoginChangedDelegate::CreateUObject(this, &AGameSession::OnLoginChanged));
 		IdentityInt->AddOnLoginCompleteDelegate(0, FOnLoginCompleteDelegate::CreateUObject(this, &AGameSession::OnLoginComplete));
 		if (!IdentityInt->AutoLogin(0))
 		{
@@ -87,22 +86,14 @@ void AGameSession::OnLoginComplete(int32 LocalUserNum, bool bWasSuccessful, cons
 	IOnlineIdentityPtr IdentityInt = Online::GetIdentityInterface(World);
 	if (IdentityInt.IsValid())
 	{
-		IdentityInt->ClearOnLoginChangedDelegate(FOnLoginChangedDelegate::CreateUObject(this, &AGameSession::OnLoginChanged));
-		IdentityInt->ClearOnLoginCompleteDelegate(0, FOnLoginCompleteDelegate::CreateUObject(this, &AGameSession::OnLoginComplete));
-	}
-}
-
-void AGameSession::OnLoginChanged(int32 LocalUserNum)
-{
-	UWorld* World = GetWorld();
-	IOnlineIdentityPtr IdentityInt = Online::GetIdentityInterface(World);
-	if (IdentityInt.IsValid())
-	{
-		IdentityInt->ClearOnLoginChangedDelegate(FOnLoginChangedDelegate::CreateUObject(this, &AGameSession::OnLoginChanged));
 		IdentityInt->ClearOnLoginCompleteDelegate(0, FOnLoginCompleteDelegate::CreateUObject(this, &AGameSession::OnLoginComplete));
 		if (IdentityInt->GetLoginStatus(0) == ELoginStatus::LoggedIn)
 		{
 			RegisterServer();
+		}
+		else
+		{
+			UE_LOG(LogGameMode, Warning, TEXT("Autologin attempt failed, unable to register server!"));
 		}
 	}
 }
