@@ -8101,6 +8101,11 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 		{
 			for (TObjectIterator<UObject> It(true); It; ++It)
 			{
+				if (It->GetWorld() && It->GetWorld() != World)
+				{
+					continue;
+				}
+
 				for (int32 i = 0; i < DebugClasses.Num(); i++)
 				{
 					if ( It->IsA(DebugClasses[i].Class) && !It->IsTemplate() &&
