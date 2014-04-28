@@ -38,7 +38,6 @@ private:
 
 	UClass*				CurrentClass;
 	TArray<FClass*>		Classes;
-	FString				ClassHeaderFilename;
 	FString				API;
 	FString			ClassesHeaderPath;
 	/** the name of the cpp file where the implementation functions are generated, without the .cpp extension */
@@ -139,30 +138,6 @@ private:
 	 * @return true if an inter-dependency was found.
 	 */
 	bool FindInterDependencyRecursive( TMap<const FString*, HeaderDependents>& HeaderDependencyMap, const FString* HeaderIndex, TSet<const FString*>& VisitedHeaders, const FString*& OutHeader1, const FString*& OutHeader2 );
-
-	/**
-	 * Finds a dependency chain between two class header files.
-	 * Wrapper around FindDependencyChainRecursive().
-	 *
-	 * @param	Class				A class to scan for a dependency chain between the two headers.
-	 * @param	Header1				First class header filename.
-	 * @param	Header2				Second class header filename.
-	 * @param	DependencyChain		[out] Receives dependency chain, if found.
-	 * @return	true if a dependency chain was found and filled in.
-	 */
-	bool FindDependencyChain( FClass* Class, const FString& Header1, const FString& Header2, TArray<FClass*>& DependencyChain );
-
-	/**
-	 * Finds a dependency chain between two class header files.
-	 *
-	 * @param	Class				A class to scan for a dependency chain between the two headers.
-	 * @param	Header1				First class header filename.
-	 * @param	Header2				Second class header filename.
-	 * @param	bChainStarted		Whether Header1 has been found and we've started to fill in DependencyChain. Must be false to begin with.
-	 * @param	DependencyChain		[out] Receives dependency chain, if found. Must be empty before the call.
-	 * @return	true if a dependency chain was found and filled in.
-	 */
-	bool FindDependencyChainRecursive( FClass* Class, const FString& Header1, const FString& Header2, bool bChainStarted, TArray<FClass*>& DependencyChain );
 
 	/**
 	 * Determines whether the glue version of the specified native function
