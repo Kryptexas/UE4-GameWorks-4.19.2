@@ -702,7 +702,7 @@ public class GUBP : BuildCommand
             {
                 AddPseudodependency(RootEditorNode.StaticGetFullName(HostPlatform));
             }
-            AgentSharingGroup = "Tools" + StaticGetHostPlatformSuffix(HostPlatform);
+            AgentSharingGroup = "ToolsGroup" + StaticGetHostPlatformSuffix(HostPlatform);
         }
         public static string StaticGetFullName(UnrealTargetPlatform InHostPlatform)
         {
@@ -789,7 +789,7 @@ public class GUBP : BuildCommand
             {
                 AddPseudodependency(RootEditorNode.StaticGetFullName(HostPlatform));
             }
-            AgentSharingGroup = "Tools" + StaticGetHostPlatformSuffix(HostPlatform);
+            AgentSharingGroup = "ToolsGroup" + StaticGetHostPlatformSuffix(HostPlatform);
         }
         public static string StaticGetFullName(UnrealTargetPlatform InHostPlatform, SingleTargetProperties InProgramTarget)
         {
@@ -833,7 +833,7 @@ public class GUBP : BuildCommand
             {
                 AddPseudodependency(RootEditorNode.StaticGetFullName(HostPlatform));
             }
-            AgentSharingGroup = "Tools" + StaticGetHostPlatformSuffix(HostPlatform);
+            AgentSharingGroup = "ToolsGroup" + StaticGetHostPlatformSuffix(HostPlatform);
         }
         public static string StaticGetFullName(UnrealTargetPlatform InHostPlatform)
         {
@@ -926,7 +926,7 @@ public class GUBP : BuildCommand
             {
                 AddPseudodependency(RootEditorNode.StaticGetFullName(HostPlatform));
             }
-            AgentSharingGroup = "Tools" + StaticGetHostPlatformSuffix(HostPlatform);
+            AgentSharingGroup = "ToolsGroup" + StaticGetHostPlatformSuffix(HostPlatform);
         }
         public static string StaticGetFullName(UnrealTargetPlatform InHostPlatform, SingleTargetProperties InProgramTarget)
         {
