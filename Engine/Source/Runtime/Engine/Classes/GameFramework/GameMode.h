@@ -146,7 +146,7 @@ public:
 	FString OptionsString;
 
 	/** The default pawn class used by players. */
-	UPROPERTY(EditAnywhere, noclear, BlueprintReadWrite, Category=GameMode)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=GameMode)
 	TSubclassOf<class APawn>  DefaultPawnClass;
 
 	/** HUD class this game uses. */

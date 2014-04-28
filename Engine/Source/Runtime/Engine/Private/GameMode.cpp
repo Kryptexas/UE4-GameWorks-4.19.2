@@ -441,13 +441,13 @@ void AGameMode::RestartPlayer(AController* NewPlayer)
 		}
 	}
 	// try to create a pawn to use of the default class for this player
-	if (NewPlayer->GetPawn() == NULL)
+	if (NewPlayer->GetPawn() == NULL && GetDefaultPawnClassForController(NewPlayer) != NULL)
 	{
 		NewPlayer->SetPawn(SpawnDefaultPawnFor(NewPlayer, StartSpot));
 	}
+
 	if (NewPlayer->GetPawn() == NULL)
 	{
-		UE_LOG(LogGameMode, Warning, TEXT("failed to spawn player at %s"), *StartSpot->GetName());
 		NewPlayer->FailedToSpawnPawn();
 	}
 	else

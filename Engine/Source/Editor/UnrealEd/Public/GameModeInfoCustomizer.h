@@ -44,10 +44,12 @@ public:
 		// Find the metaclass of this property
 		UClass* MetaClass = UObject::StaticClass();
 		const UClass* GameModeClass = GetCurrentGameModeClass();
+		bool bAllowNone = false;
 		if (GameModeClass != NULL)
 		{
 			UClassProperty* ClassProp = FindFieldChecked<UClassProperty>(GameModeClass, DefaultClassPropertyName);
 			MetaClass = ClassProp->MetaClass;
+			bAllowNone = !(ClassProp->PropertyFlags & CPF_NoClear);
 		}
 
 		TAttribute<bool> CanBrowseAtrribute = TAttribute<bool>::Create( TAttribute<bool>::FGetter::CreateSP( this, &FGameModeInfoCustomizer::CanBrowseDefaultClass, DefaultClassPropertyName) ) ;
@@ -66,7 +68,7 @@ public:
 			.AutoWidth()
 			[
 				SNew(SClassPropertyEntryBox)
-				.AllowNone(false)
+				.AllowNone(bAllowNone)
 				.MetaClass(MetaClass)
 				.IsEnabled(this, &FGameModeInfoCustomizer::AllowModifyGameMode)
 				.SelectedClass(this, &FGameModeInfoCustomizer::OnGetDefaultClass, DefaultClassPropertyName)
@@ -217,7 +219,7 @@ public:
 	void OnSetDefaultClass(const UClass* NewDefaultClass, FName ClassPropertyName)
 	{
 		const UClass* GameModeClass = GetCurrentGameModeClass();
-		if (GameModeClass != NULL && NewDefaultClass != NULL && AllowModifyGameMode())
+		if (GameModeClass != NULL && AllowModifyGameMode())
 		{
 			UClassProperty* ClassProp = FindFieldChecked<UClassProperty>(GameModeClass, ClassPropertyName);
 			const UClass** DefaultClassPtr = ClassProp->ContainerPtrToValuePtr<const UClass*>(GetCurrentGameModeCDO());
