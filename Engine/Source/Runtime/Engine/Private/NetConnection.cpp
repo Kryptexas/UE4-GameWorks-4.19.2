@@ -1486,6 +1486,7 @@ void UNetConnection::HandleClientPlayer( APlayerController *PC, UNetConnection* 
 	PC->SetPlayer(LocalPlayer);
 	PC->NetConnection = NetConnection;
 	UE_LOG(LogNet, Log, TEXT("%s setplayer %s"),*PC->GetName(),*LocalPlayer->GetName());
+	LastReceiveTime = Driver->Time;
 	State = USOCK_Open;
 	PlayerController = PC;
 	OwningActor = PC;
