@@ -596,6 +596,8 @@ bool UGeomModifier_Edit::InputDelta(FLevelEditorViewportClient* InViewportClient
 
 	EndTrans();
 
+	GEditor->RedrawLevelEditingViewports(true);
+
 	return true;
 }
 

@@ -1596,11 +1596,12 @@ bool UEditorEngine::UpdateSingleViewportClient(FEditorViewportClient* InViewport
 		// Redraw any linked ortho viewports that need to be updated this frame.
 		else if( InViewportClient->IsOrtho() && bLinkedOrthoMovement && InViewportClient->IsVisible() )
 		{
-			if( InViewportClient->bNeedsLinkedRedraw  )
+			if( InViewportClient->bNeedsLinkedRedraw || InViewportClient->bNeedsRedraw )
 			{
 				// Redraw this viewport
 				InViewportClient->Viewport->Draw();
 				InViewportClient->bNeedsLinkedRedraw = false;
+				InViewportClient->bNeedsRedraw = false;
 			}
 			else
 			{
