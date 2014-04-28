@@ -57,6 +57,7 @@ void FLandscapeSplineDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuil
 			.Text(LOCTEXT("Move Selected ControlPnts+Segs to Current level", "Move to current level"))
 			.HAlign(HAlign_Center)
 			.OnClicked(this, &FLandscapeSplineDetails::OnMoveToCurrentLevelButtonClicked)
+			.IsEnabled(this, &FLandscapeSplineDetails::IsMoveToCurrentLevelButtonEnabled)
 		]
 	];
 }
@@ -91,12 +92,18 @@ FReply FLandscapeSplineDetails::OnSelectConnectedSegmentsButtonClicked()
 FReply FLandscapeSplineDetails::OnMoveToCurrentLevelButtonClicked()
 {
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
-	if (LandscapeEdMode && LandscapeEdMode->CurrentToolTarget.LandscapeInfo.IsValid())
+	if (LandscapeEdMode && LandscapeEdMode->CurrentToolTarget.LandscapeInfo.IsValid() && LandscapeEdMode->CurrentToolTarget.LandscapeInfo->GetCurrentLevelLandscapeProxy(true))
 	{
 		LandscapeEdMode->SplineMoveToCurrentLevel();
 	}
 
 	return FReply::Handled();
+}
+
+bool FLandscapeSplineDetails::IsMoveToCurrentLevelButtonEnabled() const
+{
+	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
+	return (LandscapeEdMode && LandscapeEdMode->CurrentToolTarget.LandscapeInfo.IsValid() && LandscapeEdMode->CurrentToolTarget.LandscapeInfo->GetCurrentLevelLandscapeProxy(true));
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -16,4 +16,5 @@ private:
 	FReply OnSelectConnectedControlPointsButtonClicked();
 	FReply OnSelectConnectedSegmentsButtonClicked();
 	FReply OnMoveToCurrentLevelButtonClicked();
+	bool IsMoveToCurrentLevelButtonEnabled() const;
 };
