@@ -270,7 +270,7 @@ const TArray<FString>& FPaths::GetPropertyNameLocalizationPaths()
 		}
 		else
 		{
-			Results.AddUnique(TEXT("../../../Engine/Content/Localization/Editor/PropertyNames")); // Hardcoded convention.
+			Results.AddUnique(TEXT("../../../Engine/Content/Localization/PropertyNames")); // Hardcoded convention.
 		}
 	}
 
@@ -295,7 +295,7 @@ const TArray<FString>& FPaths::GetToolTipLocalizationPaths()
 		}
 		else
 		{
-			Results.AddUnique(TEXT("../../../Engine/Content/Localization/Editor/ToolTips")); // Hardcoded convention.
+			Results.AddUnique(TEXT("../../../Engine/Content/Localization/ToolTips")); // Hardcoded convention.
 		}
 	}
 
