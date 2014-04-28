@@ -294,9 +294,11 @@ public:
 			//       may not wish to support SM4 or OpenGL.
 			static FName NAME_PCD3D_SM5(TEXT("PCD3D_SM5"));
 			static FName NAME_PCD3D_SM4(TEXT("PCD3D_SM4"));
+			static FName NAME_GLSL_150(TEXT("GLSL_150"));
 
 			OutFormats.AddUnique(NAME_PCD3D_SM5);
 			OutFormats.AddUnique(NAME_PCD3D_SM4);
+			OutFormats.AddUnique(NAME_GLSL_150);
 		}
 	}
 

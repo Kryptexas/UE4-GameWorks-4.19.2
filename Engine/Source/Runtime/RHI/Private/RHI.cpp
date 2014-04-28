@@ -144,8 +144,8 @@ int32 GNumActiveGPUsForRendering = 1;
 
 FVertexElementTypeSupportInfo GVertexElementTypeSupport;
 
-RHI_API int64 volatile GCurrentTextureMemorySize = 0;
-RHI_API int64 volatile GCurrentRendertargetMemorySize = 0;
+RHI_API int32 volatile GCurrentTextureMemorySize = 0;
+RHI_API int32 volatile GCurrentRendertargetMemorySize = 0;
 RHI_API int64 GTexturePoolSize = 0 * 1024 * 1024;
 RHI_API bool GReadTexturePoolSizeFromIni = false;
 RHI_API int32 GPoolSizeVRAMPercentage = 0;

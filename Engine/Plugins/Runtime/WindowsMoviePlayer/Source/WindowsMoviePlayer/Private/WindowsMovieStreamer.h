@@ -106,7 +106,7 @@ private:
 
 private:
 	/** Media Foundation boilerplate */
-	int64 RefCount;
+	int32 RefCount;
 
 	/** The media session which handles all playback */
 	IMFMediaSession* MediaSession;
@@ -155,7 +155,7 @@ public:
 
 private:
 	/** Media Foundation boilerplate */
-	int64 RefCount;
+	int32 RefCount;
 
 	/** Counter which determines when a sample can be safely read back */
 	FThreadSafeCounter VideoSampleReady;

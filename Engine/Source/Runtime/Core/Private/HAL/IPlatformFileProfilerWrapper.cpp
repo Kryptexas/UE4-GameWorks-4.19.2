@@ -25,7 +25,7 @@ bool FPlatformFileReadStatsHandle::Read( uint8* Destination, int64 BytesToRead )
 	if (Delta > SMALL_NUMBER)
 	{
 		float BytesPerSec = (BytesToRead/1024.0f)/Delta;
-		FPlatformAtomics::InterlockedAdd(BytesPerSecCounter, (int64)(BytesPerSec));
+		FPlatformAtomics::InterlockedAdd(BytesPerSecCounter, (int32)(BytesPerSec));
 	}
 	FPlatformAtomics::InterlockedAdd(BytesReadCounter, BytesToRead);
 	FPlatformAtomics::InterlockedIncrement(ReadsCounter);
@@ -35,9 +35,9 @@ bool FPlatformFileReadStatsHandle::Read( uint8* Destination, int64 BytesToRead )
 bool FPlatformFileReadStats::Tick( float Delta )
 {
 	float RealDelta = (float)(FPlatformTime::Seconds()-Timer);
-	uint64 BytesPerSec = FPlatformAtomics::InterlockedExchange(&BytePerSecThisTick, 0);
-	uint64 BytesReadTick = FPlatformAtomics::InterlockedExchange(&BytesReadThisTick, 0);
-	uint64 Reads = FPlatformAtomics::InterlockedExchange(&ReadsThisTick, 0);
+	uint32 BytesPerSec = FPlatformAtomics::InterlockedExchange(&BytePerSecThisTick, 0);
+	uint32 BytesReadTick = FPlatformAtomics::InterlockedExchange(&BytesReadThisTick, 0);
+	uint32 Reads = FPlatformAtomics::InterlockedExchange(&ReadsThisTick, 0);
 
 	uint64 ReadKBs = 0;
 	float  ReadSize = 0.f;
@@ -65,7 +65,7 @@ bool FPlatformFileReadStats::Tick( float Delta )
 }
 
 // Wrapper function prevents Android Clang ICE (v3.3)
-FORCENOINLINE void ExchangeNoInline( volatile int64* Value )
+FORCENOINLINE void ExchangeNoInline( volatile int32* Value )
 {
 	FPlatformAtomics::InterlockedExchange(Value, 0);
 }

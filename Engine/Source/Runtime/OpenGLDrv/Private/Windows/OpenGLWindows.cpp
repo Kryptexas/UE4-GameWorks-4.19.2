@@ -173,7 +173,8 @@ static void PlatformCreateDummyGLWindow(FPlatformOpenGLContext* OutContext)
 
 static bool PlatformOpenGL3()
 {
-	return FParse::Param(FCommandLine::Get(),TEXT("opengl")) || FParse::Param(FCommandLine::Get(),TEXT("opengl3"));
+	// OpenGL3 is our default platform for Windows XP
+	return FWindowsPlatformMisc::VerifyWindowsMajorVersion(6) == false || FParse::Param(FCommandLine::Get(),TEXT("opengl")) || FParse::Param(FCommandLine::Get(),TEXT("opengl3"));
 }
 static bool PlatformOpenGL4()
 {

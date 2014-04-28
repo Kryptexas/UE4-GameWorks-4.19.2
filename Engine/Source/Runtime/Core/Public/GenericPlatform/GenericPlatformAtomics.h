@@ -44,10 +44,11 @@ struct FGenericPlatformAtomics
 		return RetVal + 1;
 	}
 
+#if PLATFORM_64BITS
 	/**
 	 * Atomically increments the value pointed to and returns that to the caller
 	 */
-	static FORCEINLINE int64 InterlockedIncrement (volatile int64* Value)
+	static FORCEINLINE int64 InterlockedIncrement(volatile int64* Value)
 	{
 		int64 RetVal;
 		do
@@ -56,6 +57,7 @@ struct FGenericPlatformAtomics
 		} while (InterlockedCompareExchange((int64*)Value, RetVal + 1, RetVal) != RetVal);
 		return RetVal + 1;
 	}
+#endif
 
 	/**
 	 * Atomically decrements the value pointed to and returns that to the caller
@@ -70,10 +72,11 @@ struct FGenericPlatformAtomics
 		return RetVal - 1;
 	}
 
+#if PLATFORM_64BITS
 	/**
 	 * Atomically decrements the value pointed to and returns that to the caller
 	 */
-	static FORCEINLINE int64 InterlockedDecrement (volatile int64* Value)
+	static FORCEINLINE int64 InterlockedDecrement(volatile int64* Value)
 	{
 		int64 RetVal;
 		do
@@ -82,6 +85,7 @@ struct FGenericPlatformAtomics
 		} while (InterlockedCompareExchange((int64*)Value, RetVal - 1, RetVal) != RetVal);
 		return RetVal - 1;
 	}
+#endif
 
 	/**
 	 * Atomically adds the amount to the value pointed to and returns the old
@@ -97,11 +101,12 @@ struct FGenericPlatformAtomics
 		return RetVal;
 	}
 
+#if PLATFORM_64BITS
 	/**
 	 * Atomically adds the amount to the value pointed to and returns the old
 	 * value to the caller
 	 */
-	static FORCEINLINE int64 InterlockedAdd (volatile int64* Value, int64 Amount)
+	static FORCEINLINE int64 InterlockedAdd(volatile int64* Value, int64 Amount)
 	{
 		int64 RetVal;
 		do
@@ -110,6 +115,7 @@ struct FGenericPlatformAtomics
 		} while (InterlockedCompareExchange((int64*)Value, RetVal + Amount, RetVal) != RetVal);
 		return RetVal;
 	}
+#endif
 
 	/**
 	 * Atomically swaps two values returning the original value to the caller
@@ -124,6 +130,7 @@ struct FGenericPlatformAtomics
 		return RetVal;
 	}
 
+#if PLATFORM_64BITS
 	/**
 	 * Atomically swaps two values returning the original value to the caller
 	 */
@@ -136,6 +143,7 @@ struct FGenericPlatformAtomics
 		} while (InterlockedCompareExchange((int64*)Value, Exchange, RetVal) != RetVal);
 		return RetVal;
 	}
+#endif
 
 	/**
 	 * Atomically swaps two pointers returning the original pointer to the caller

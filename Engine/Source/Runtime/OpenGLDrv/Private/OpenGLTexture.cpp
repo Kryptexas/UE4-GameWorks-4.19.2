@@ -93,7 +93,7 @@ void OpenGLTextureAllocated(FRHITexture* Texture, uint32 Flags)
 
 	if( bRenderTarget )
 	{
-		GCurrentRendertargetMemorySize += TextureSize;
+		GCurrentRendertargetMemorySize += TextureSize / 1024;
 	}
 	else
 	{
@@ -160,7 +160,7 @@ void OpenGLTextureDeleted( FRHITexture* Texture )
 
 	if( bRenderTarget )
 	{
-		GCurrentRendertargetMemorySize -= TextureSize;
+		GCurrentRendertargetMemorySize -= TextureSize / 1024;
 	}
 	else
 	{
@@ -175,7 +175,7 @@ void OpenGLTextureDeleted( FRHITexture* Texture )
  */
 void FOpenGLDynamicRHI::RHIGetTextureMemoryStats(FTextureMemoryStats& OutStats)
 {
-	OutStats.AllocatedMemorySize = GCurrentTextureMemorySize;
+	OutStats.AllocatedMemorySize = GCurrentTextureMemorySize * 1024;
 	OutStats.TexturePoolSize = GTexturePoolSize;
 	OutStats.PendingMemoryAdjustment = 0;
 }

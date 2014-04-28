@@ -3719,7 +3719,7 @@ void FStreamingManagerTexture::CheckUserSettings()
 				int64 TotalGraphicsMemory = Stats.TotalGraphicsMemory;
 				if ( GCurrentRendertargetMemorySize > 0 )
 				{
-					TotalGraphicsMemory -= GCurrentRendertargetMemorySize;
+					TotalGraphicsMemory -= GCurrentRendertargetMemorySize * 1024;
 				}
 				float PoolSize = float(GPoolSizeVRAMPercentage) * 0.01f * float(TotalGraphicsMemory);
 

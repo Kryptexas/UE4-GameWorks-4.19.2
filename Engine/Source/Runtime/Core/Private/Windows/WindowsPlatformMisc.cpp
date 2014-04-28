@@ -1587,7 +1587,11 @@ int32 FWindowsPlatformMisc::NumberOfCoresIncludingHyperthreads()
 
 void FWindowsPlatformMisc::LoadPreInitModules()
 {
-	FModuleManager::Get().LoadModule(TEXT("D3D11RHI"));
+	// D3D11 is not supported on WinXP, so in this case we use the OpenGL RHI
+	if(FWindowsPlatformMisc::VerifyWindowsMajorVersion(6))
+	{
+		FModuleManager::Get().LoadModule(TEXT("D3D11RHI"));
+	}
 	FModuleManager::Get().LoadModule(TEXT("OpenGLDrv"));
 }
 

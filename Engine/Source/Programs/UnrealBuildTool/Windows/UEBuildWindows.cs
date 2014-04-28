@@ -33,7 +33,7 @@ namespace UnrealBuildTool
 
 		/// True if we're targeting Windows XP as a minimum spec.  In Visual Studio 2012 and higher, this may change how
 		/// we compile and link the application (http://blogs.msdn.com/b/vcblog/archive/2012/10/08/10357555.aspx)
-		public static readonly bool SupportWindowsXP = false;
+		public static bool SupportWindowsXP = false;
 
 		/** True if VS EnvDTE is available (false when building using Visual Studio Express) */
 		public static bool bHasVisualStudioDTE
@@ -331,6 +331,13 @@ namespace UnrealBuildTool
 		public override void SetUpEnvironment(UEBuildTarget InBuildTarget)
 		{
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WIN32=1");
+
+			// Win32 XP is only supported at this time.
+			// The XP compilation is currently only supported with a VS2013 build.
+            SupportWindowsXP = false 
+				&& InBuildTarget.Platform == UnrealTargetPlatform.Win32
+				&& Compiler == WindowsCompiler.VisualStudio2013;
+
 			if( SupportWindowsXP )
 			{
 				// Windows XP SP3 or higher required

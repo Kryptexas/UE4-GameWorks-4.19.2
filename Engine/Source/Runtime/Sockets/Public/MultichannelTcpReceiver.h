@@ -56,7 +56,7 @@ public:
 	/**
 	 * Gets the number of payload bytes actually sent to the socket.
 	 */
-	uint64 GetBytesReceived( )
+	int32 GetBytesReceived()
 	{
 		return BytesReceived;
 	}
@@ -104,7 +104,7 @@ public:
 
 			ReceiveDelegate.Execute(InnerPayload, Channel, Payload.ForceByteSwapping());
 
-			FPlatformAtomics::InterlockedAdd(&BytesReceived, (int64)InnerPayload.Num());
+			FPlatformAtomics::InterlockedAdd(&BytesReceived, InnerPayload.Num());
 		}
 
 		return 0;
@@ -120,7 +120,7 @@ public:
 private:
 
 	// Holds the number of bytes received so far.
-	int64 BytesReceived;
+	int32 BytesReceived;
 
 	// Holds the socket to use for communication.
 	FSocket* Socket;

@@ -193,10 +193,10 @@ extern RHI_API bool GTriggerGPUHitchProfile;
 
 /** True if the RHI supports texture streaming */
 extern RHI_API bool GRHISupportsTextureStreaming;
-/** Amount of memory allocated by textures. In bytes. */
-extern RHI_API volatile int64 GCurrentTextureMemorySize;
-/** Amount of memory allocated by rendertargets. In bytes. */
-extern RHI_API volatile int64 GCurrentRendertargetMemorySize;
+/** Amount of memory allocated by textures. In kilobytes. */
+extern RHI_API volatile int32 GCurrentTextureMemorySize;
+/** Amount of memory allocated by rendertargets. In kilobytes. */
+extern RHI_API volatile int32 GCurrentRendertargetMemorySize;
 /** Current texture streaming pool size, in bytes. 0 means unlimited. */
 extern RHI_API int64 GTexturePoolSize;
 /** Whether to read the texture pool size from engine.ini. Can be turned on with -UseTexturePool on the command line. */

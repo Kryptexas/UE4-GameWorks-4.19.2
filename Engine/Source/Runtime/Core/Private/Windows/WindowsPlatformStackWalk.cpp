@@ -693,6 +693,7 @@ bool FWindowsPlatformStackWalk::InitStackWalking()
 		GNeedToRefreshSymbols = false;
 		GStackWalkingInitialized = true;
 	}
+#if WINVER > 0x502
 	else if (GNeedToRefreshSymbols)
 	{
 		// Refresh and reload symbols
@@ -700,6 +701,7 @@ bool FWindowsPlatformStackWalk::InitStackWalking()
 		LoadProcessModules();
 		GNeedToRefreshSymbols = false;
 	}
+#endif
 
 	return GStackWalkingInitialized;
 }

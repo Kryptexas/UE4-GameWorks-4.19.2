@@ -76,11 +76,11 @@ void UpdateD3D11TextureStats(uint32 BindFlags, uint32 MiscFlags, int64 TextureSi
 	
 	if(ShouldCountAsTextureMemory(BindFlags))
 	{
-		FPlatformAtomics::InterlockedAdd( &GCurrentTextureMemorySize, TextureSize );
+		FPlatformAtomics::InterlockedAdd( &GCurrentTextureMemorySize, TextureSize / 1024 );
 	}
 	else
 	{
-		FPlatformAtomics::InterlockedAdd( &GCurrentRendertargetMemorySize, TextureSize );
+		FPlatformAtomics::InterlockedAdd( &GCurrentRendertargetMemorySize, TextureSize / 1024 );
 	}
 
 	bool bCubeMap = (MiscFlags & D3D11_RESOURCE_MISC_TEXTURECUBE) != 0;
@@ -218,7 +218,7 @@ void FD3D11DynamicRHI::RHIGetTextureMemoryStats(FTextureMemoryStats& OutStats)
     OutStats.SharedSystemMemory = GSharedSystemMemory;
 	OutStats.TotalGraphicsMemory = GTotalGraphicsMemory ? GTotalGraphicsMemory : -1;
 
-	OutStats.AllocatedMemorySize = GCurrentTextureMemorySize;
+	OutStats.AllocatedMemorySize = GCurrentTextureMemorySize * 1024;
 	OutStats.TexturePoolSize = GTexturePoolSize;
 	OutStats.PendingMemoryAdjustment = 0;
 }

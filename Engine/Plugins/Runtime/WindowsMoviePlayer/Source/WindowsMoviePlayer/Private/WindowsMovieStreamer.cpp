@@ -195,7 +195,7 @@ STDMETHODIMP_(ULONG) FVideoPlayer::AddRef()
 
 STDMETHODIMP_(ULONG) FVideoPlayer::Release()
 {
-    int64 Ref = FPlatformAtomics::InterlockedDecrement(&RefCount);
+    int32 Ref = FPlatformAtomics::InterlockedDecrement(&RefCount);
 	if (Ref == 0) {delete this;}
 	return Ref;
 }
@@ -491,7 +491,7 @@ STDMETHODIMP_(ULONG) FSampleGrabberCallback::AddRef()
 
 STDMETHODIMP_(ULONG) FSampleGrabberCallback::Release()
 {
-    int64 Ref = FPlatformAtomics::InterlockedDecrement(&RefCount);
+    int32 Ref = FPlatformAtomics::InterlockedDecrement(&RefCount);
 	if (Ref == 0)
 	{
 		delete this;

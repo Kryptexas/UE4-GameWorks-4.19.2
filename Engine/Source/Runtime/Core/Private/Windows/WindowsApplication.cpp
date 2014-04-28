@@ -934,7 +934,10 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 		case WM_IME_ENDCOMPOSITION:
 		case WM_IME_CHAR:
 			{
-				TextInputMethodSystem->ProcessMessage(hwnd, msg, wParam, lParam);
+				if(TextInputMethodSystem.IsValid())
+				{
+					TextInputMethodSystem->ProcessMessage(hwnd, msg, wParam, lParam);
+				}
 				return 0;
 			}
 			break;
