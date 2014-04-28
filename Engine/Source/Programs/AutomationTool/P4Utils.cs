@@ -597,6 +597,15 @@ namespace AutomationTool
         static Dictionary<string, List<ChangeRecord>> ChangesCache = new Dictionary<string, List<ChangeRecord>>();
         public bool Changes(out List<ChangeRecord> ChangeRecords, string CommandLine, bool AllowSpew = true, bool UseCaching = false, bool LongComment = false)
         {
+            // If the user specified '-l' or '-L', the summary will appear on subsequent lines (no quotes) instead of the same line (surrounded by single quotes)
+            bool bSummaryIsOnSameLine = CommandLine.IndexOf("-L", StringComparison.InvariantCultureIgnoreCase) == -1;
+            if (bSummaryIsOnSameLine && LongComment)
+            {
+                CommandLine = "-L " + CommandLine;
+                bSummaryIsOnSameLine = false;
+            }
+
+
             if (UseCaching && ChangesCache.ContainsKey(CommandLine))
             {
                 ChangeRecords = ChangesCache[CommandLine];
@@ -607,14 +616,6 @@ namespace AutomationTool
             try
             {
                 // Change 1999345 on 2014/02/16 by buildmachine@BuildFarm_BUILD-23_buildmachine_++depot+UE4 'GUBP Node Shadow_LabelPromotabl'
-
-				// If the user specified '-l' or '-L', the summary will appear on subsequent lines (no quotes) instead of the same line (surrounded by single quotes)
-				bool bSummaryIsOnSameLine = CommandLine.IndexOf( "-L", StringComparison.InvariantCultureIgnoreCase ) == -1;
-				if( bSummaryIsOnSameLine && LongComment )
-				{
-					CommandLine = "-L " + CommandLine;
-					bSummaryIsOnSameLine = false;
-				}
 
                 string Output;
                 if (!LogP4Output(out Output, "changes " + CommandLine, null, AllowSpew))

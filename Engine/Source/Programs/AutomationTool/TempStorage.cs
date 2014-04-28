@@ -888,6 +888,11 @@ namespace AutomationTool
                             {
                                 throw new AutomationException("Dir {0} didn't have any string to fit the star in the wildcard {1}", ThisSubDir, WildCard);
                             }
+                            // these are a bunch of false positives
+                            if (StarReplacement.Contains("-"))
+                            {
+                                continue;
+                            }
                             if (!Files.Contains(StarReplacement))
                             {
                                 Files.Add(StarReplacement);
