@@ -23,7 +23,6 @@ public:
 	virtual void SetAccessor(const FName& InName) OVERRIDE;
 	virtual FLaunchingCodeAccessor& OnLaunchingCodeAccessor() OVERRIDE;
 	virtual FDoneLaunchingCodeAccessor& OnDoneLaunchingCodeAccessor() OVERRIDE;
-	virtual FLaunchCodeAccessorDeferred& OnLaunchCodeAccessorDeferred() OVERRIDE;
 	virtual FOpenFileFailed& OnOpenFileFailed() OVERRIDE;
 
 private:
@@ -36,9 +35,6 @@ private:
 
 	/** Event delegate fired when done launching code accessor  */
 	FDoneLaunchingCodeAccessor DoneLaunchingCodeAccessorDelegate;
-
-	/** Event delegate fired when launching code accessor deferred */
-	FLaunchCodeAccessorDeferred LaunchCodeAccessorDeferredDelegate;
 
 	/** Event delegate fired when opening a file has failed */
 	FOpenFileFailed OpenFileFailedDelegate;

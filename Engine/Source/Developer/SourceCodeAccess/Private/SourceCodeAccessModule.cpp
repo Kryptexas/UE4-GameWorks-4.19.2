@@ -97,11 +97,6 @@ FDoneLaunchingCodeAccessor& FSourceCodeAccessModule::OnDoneLaunchingCodeAccessor
 	return DoneLaunchingCodeAccessorDelegate;
 }
 
-FLaunchCodeAccessorDeferred& FSourceCodeAccessModule::OnLaunchCodeAccessorDeferred()
-{
-	return LaunchCodeAccessorDeferredDelegate;
-}
-
 FOpenFileFailed& FSourceCodeAccessModule::OnOpenFileFailed()
 {
 	return OpenFileFailedDelegate;

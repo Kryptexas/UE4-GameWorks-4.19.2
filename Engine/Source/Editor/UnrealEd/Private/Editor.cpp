@@ -30,6 +30,7 @@
 
 #include "AssetRegistryModule.h"
 #include "ContentBrowserModule.h"
+#include "ISourceCodeAccessModule.h"
 
 #include "Editor/MainFrame/Public/MainFrame.h"
 #include "AnimationUtils.h"
@@ -955,6 +956,8 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	// Tick the asset registry
 	FAssetRegistryModule::TickAssetRegistry(DeltaSeconds);
 
+	ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>("SourceCodeAccess");
+	SourceCodeAccessModule.GetAccessor().Tick(DeltaSeconds);
 
 	// tick the directory watcher
 	// @todo: Put me into an FTicker that is created when the DW module is loaded

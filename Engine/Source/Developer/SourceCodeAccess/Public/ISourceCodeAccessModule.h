@@ -14,12 +14,6 @@ DECLARE_MULTICAST_DELEGATE( FLaunchingCodeAccessor );
 DECLARE_MULTICAST_DELEGATE_OneParam( FDoneLaunchingCodeAccessor, const bool /*bSuccess*/);
 
 /**
- * Event fired when launching code accessor deferred
- * @param	InFilename	The command being deferred
- */
-DECLARE_MULTICAST_DELEGATE_OneParam( FLaunchCodeAccessorDeferred, const FString& /*InFilename*/);
-
-/**
  * Event fired when opening a file has failed
  * @param	InFilename	The filename that failed to open
  */
@@ -54,9 +48,6 @@ public:
 
 	/** Gets the Event that is broadcasted when an attempted launch of this code accessor was successful or failed */
 	virtual FDoneLaunchingCodeAccessor& OnDoneLaunchingCodeAccessor() = 0;
-
-	/** Gets a delegate to be invoked when the the open command needs to be deferred */
-	virtual FLaunchCodeAccessorDeferred& OnLaunchCodeAccessorDeferred() = 0;
 
 	/** Gets the Event that is broadcast when an attempt to load a file through Visual Studio failed */
 	virtual FOpenFileFailed& OnOpenFileFailed() = 0;

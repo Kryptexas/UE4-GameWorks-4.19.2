@@ -3,7 +3,7 @@
 
 #include "ISourceCodeAccessor.h"
 
-class FVisualStudioSourceCodeAccessor : public ISourceCodeAccessor, FSelfRegisteringExec
+class FVisualStudioSourceCodeAccessor : public ISourceCodeAccessor
 {
 public:
 	/** Struct representing identifying information about Visual Studio versions */
@@ -30,6 +30,7 @@ public:
 	virtual bool OpenFileAtLine(const FString& FullPath, int32 LineNumber, int32 ColumnNumber = 0) OVERRIDE;
 	virtual bool OpenSourceFiles(const TArray<FString>& AbsoluteSourcePaths) OVERRIDE;
 	virtual bool SaveAllOpenDocuments() const OVERRIDE;
+	virtual void Tick(const float DeltaTime) OVERRIDE;
 
 private:
 
@@ -52,10 +53,6 @@ private:
 		{
 		}
 	};
-
-	// Begin Exec Interface
-	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) OVERRIDE;
-	// End Exec Interface
 
 	/** Checks to see if we can run visual studio, also outputs the executable path if it's needed */
 	bool CanRunVisualStudio(FString& OutPath) const;
@@ -125,6 +122,12 @@ private:
 
 	/** If !0 it represents the time at which the a VS instance was opened */
 	double	VSLaunchTime;
+
+	/** Critical section for updating DeferredRequests */
+	FCriticalSection DeferredRequestsCriticalSection;
+
+	/** Array of file open requests that have been deferred because Visual Studio was not available when the request was made */
+	TArray<FileOpenRequest> DeferredRequests;
 
 	/** Accessor for SolutionPath. Will try to update it when called from the game thread, otherwise will use the cached value */
 	FString GetSolutionPath() const;

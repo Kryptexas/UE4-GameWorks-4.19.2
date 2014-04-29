@@ -45,4 +45,8 @@ bool FDefaultSourceCodeAccessor::SaveAllOpenDocuments() const
 	return false;
 }
 
+void FDefaultSourceCodeAccessor::Tick(const float DeltaTime)
+{
+}
+
 #undef LOCTEXT_NAMESPACE

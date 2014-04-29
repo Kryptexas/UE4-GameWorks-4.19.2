@@ -368,11 +368,8 @@ bool FVisualStudioSourceCodeAccessor::OpenVisualStudioFilesInternalViaDTE(const 
 		// Defer the request until VS is available to take hold of
 		if ( bDefer )
 		{
-			for ( const FileOpenRequest& Request : Requests )
-			{
-				const FString DeferCommand = FString::Printf(TEXT("OPEN_VS %s %d %d"), *Request.FullPath, Request.LineNumber, Request.ColumnNumber);
-				SourceCodeAccessModule.OnLaunchCodeAccessorDeferred().Broadcast( DeferCommand );
-			}
+			FScopeLock Lock(&DeferredRequestsCriticalSection);
+			DeferredRequests.Append(Requests);
 		}
 		else if ( !bSuccess )
 		{
@@ -424,36 +421,6 @@ bool FVisualStudioSourceCodeAccessor::SaveAllOpenDocuments() const
 	return bSuccess;
 }
 
-bool FVisualStudioSourceCodeAccessor::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
-{
-	const TCHAR *Str = Cmd;
-	if( FParse::Command(&Str,TEXT("OPEN_VS")) )
-	{
-		// Valid column number?
-		const FString Params( Str );
-		const FString Space( TEXT(" ") );
-		const int32 ColumnIndex = Params.Find( Space, ESearchCase::CaseSensitive, ESearchDir::FromEnd );
-		if ( ColumnIndex != INDEX_NONE )
-		{
-			// Valid line number?
-			const int32 ColumnNumber = FCString::Atoi( *Params.RightChop( ColumnIndex+Space.Len() ) );
-			const int32 LineIndex = Params.Find( Space, ESearchCase::CaseSensitive, ESearchDir::FromEnd, ColumnIndex );
-			if ( LineIndex != INDEX_NONE )
-			{
-				// Valid source path?
-				const int32 LineNumber = FCString::Atoi( *Params.Mid( LineIndex+Space.Len(), ColumnIndex-LineIndex-Space.Len() ) );
-				const FString FullPath = Params.LeftChop( Params.Len() - LineIndex );
-				if ( FullPath.Len() > 0 )
-				{
-					OpenVisualStudioFileAtLineInternal( FullPath, LineNumber, ColumnNumber );
-				}
-			}
-		}
-		return true;
-	}
-	return false;
-}
-
 void FVisualStudioSourceCodeAccessor::VSLaunchStarted()
 {
 	// Broadcast the info and hope that MainFrame is around to receive it
@@ -473,10 +440,9 @@ void FVisualStudioSourceCodeAccessor::VSLaunchFinished( bool bSuccess )
 #else
 
 // VS Express-only dummy versions
-bool FVSAccessorModule::SaveAllOpenVisualStudioDocuments() { return false; }
-bool FVSAccessorModule::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) { return false; }
-void FVSAccessorModule::VSLaunchStarted() {}
-void FVSAccessorModule::VSLaunchFinished( bool bSuccess ) {}
+bool FVisualStudioSourceCodeAccessor::SaveAllOpenDocuments() const { return false; }
+void FVisualStudioSourceCodeAccessor::VSLaunchStarted() {}
+void FVisualStudioSourceCodeAccessor::VSLaunchFinished( bool bSuccess ) {}
 
 #endif
 
@@ -952,6 +918,24 @@ FString FVisualStudioSourceCodeAccessor::GetSolutionPath() const
 		CachedSolutionPath = FPaths::ConvertRelativePathToFull(FModuleManager::Get().GetSolutionFilepath());
 	}
 	return CachedSolutionPath;
+}
+
+void FVisualStudioSourceCodeAccessor::Tick(const float DeltaTime)
+{
+	if (IsVSLaunchInProgress())
+	{
+		TArray<FileOpenRequest> TmpDeferredRequests;
+		{
+			FScopeLock Lock(&DeferredRequestsCriticalSection);
+
+			// Copy the DeferredRequests array, as OpenVisualStudioFilesInternal may update it
+			TmpDeferredRequests = DeferredRequests;
+			DeferredRequests.Empty();
+		}
+
+		// Try and open any pending files in VS first (this will update the VS launch state appropriately)
+		OpenVisualStudioFilesInternal(TmpDeferredRequests);
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

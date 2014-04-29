@@ -61,4 +61,10 @@ public:
 	 * @return true if successful
 	 */
 	virtual bool SaveAllOpenDocuments() const = 0;
+
+	/**
+	 * Tick this source code accessor
+	 * @param DeltaTime Delta time (in seconds) since the last call to Tick
+	 */
+	virtual void Tick(const float DeltaTime) = 0;
 };
