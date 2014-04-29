@@ -98,38 +98,6 @@ DECLARE_DELEGATE_OneParam( FOnTextChanged, const FText& );
 /** Delegate for validating typed-in characters in SEditableText. Only invoked for typed characters */
 DECLARE_DELEGATE_RetVal_OneParam( bool, FOnIsTypedCharValid, const TCHAR /*TypedCharacter*/ );
 
-/** Additional information about a text committal */
-namespace ETextCommit
-{
-	enum Type
-	{
-		/** Losing focus or similar event caused implicit commit */
-		Default,
-		/** User committed via the enter key */
-		OnEnter,
-		/** User committed via tabbing away or moving focus explicitly away */
-		OnUserMovedFocus,
-		/** Keyboard focus was explicitly cleared via the escape key or other similar action */
-		OnCleared
-	};
-}
-
-
-/** Additional information about a selection event */
-namespace ESelectInfo
-{
-	enum Type
-	{
-		/** User selected via a key press */
-		OnKeyPress,
-		/** User selected by navigating to the item */
-		OnNavigation,
-		/** User selected by clicking on the item */
-		OnMouseClick,
-		/** Selection was directly set in code */
-		Direct
-	};
-}
 
 
 /** Delegate for hooking up to an editable text box's 'OnTextCommitted' 

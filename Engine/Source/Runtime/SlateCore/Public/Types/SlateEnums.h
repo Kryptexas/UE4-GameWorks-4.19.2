@@ -8,7 +8,7 @@
 
 #include "SlateEnums.generated.h"
 
-
+UENUM()
 namespace EButtonClickMethod
 {
 	/**
@@ -35,7 +35,7 @@ namespace EButtonClickMethod
 	};
 }
 
-
+UENUM()
 namespace EFocusMoveDirection
 {
 	/**
@@ -129,6 +129,7 @@ enum EOrientation
 /**
  * Enumerates scroll directions.
  */
+UENUM()
 enum EScrollDirection
 {
 	/** Scroll down. */
@@ -137,3 +138,42 @@ enum EScrollDirection
 	/** Scroll up. */
 	Scroll_Up UMETA(DisplayName="Up"),
 };
+
+/**
+ * Additional information about a text committal
+ */
+UENUM()
+namespace ETextCommit
+{
+	enum Type
+	{
+		/** Losing focus or similar event caused implicit commit */
+		Default,
+		/** User committed via the enter key */
+		OnEnter,
+		/** User committed via tabbing away or moving focus explicitly away */
+		OnUserMovedFocus,
+		/** Keyboard focus was explicitly cleared via the escape key or other similar action */
+		OnCleared
+	};
+}
+
+
+/**
+ * Additional information about a selection event
+ */
+UENUM()
+namespace ESelectInfo
+{
+	enum Type
+	{
+		/** User selected via a key press */
+		OnKeyPress,
+		/** User selected by navigating to the item */
+		OnNavigation,
+		/** User selected by clicking on the item */
+		OnMouseClick,
+		/** Selection was directly set in code */
+		Direct
+	};
+}
