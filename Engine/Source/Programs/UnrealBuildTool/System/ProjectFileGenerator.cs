@@ -576,14 +576,17 @@ namespace UnrealBuildTool
 		{
 			foreach(var BuildConfigurationPath in XmlConfigLoader.ConfigLocationHierarchy)
 			{
-				var FilePath = Path.Combine(BuildConfigurationPath.FSLocation, "BuildConfiguration.xml");
-
-				if(!File.Exists(FilePath))
+				if(!BuildConfigurationPath.bExists)
 				{
 					continue;
 				}
 
-				EngineProject.AddAliasedFileToProject(new AliasedFile(FilePath, Path.Combine("Config", "UnrealBuildTool", BuildConfigurationPath.IDEFolderName)));
+				EngineProject.AddAliasedFileToProject(
+						new AliasedFile(
+							BuildConfigurationPath.FSLocation,
+							Path.Combine("Config", "UnrealBuildTool", BuildConfigurationPath.IDEFolderName)
+						)
+					);
 			}
 		}
 
