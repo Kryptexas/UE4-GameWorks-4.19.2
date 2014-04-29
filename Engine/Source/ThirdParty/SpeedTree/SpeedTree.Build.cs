@@ -18,7 +18,7 @@ public class SpeedTree : ModuleRules
 			Definitions.Add("WITH_SPEEDTREE=1");
 			Definitions.Add("EPIC_INTERNAL_SPEEDTREE_KEY=B62562037E6717DA");
 
-			string SpeedTreePath = UEBuildConfiguration.UEThirdPartyDirectory + "NoRedist/SpeedTree/SpeedTree-v6.3/";
+			string SpeedTreePath = UEBuildConfiguration.UEThirdPartyDirectory + "NotForLicensees/SpeedTree/SpeedTree-v6.3/";
 			PublicIncludePaths.Add(SpeedTreePath + "Include");
 
 			if (Target.Platform == UnrealTargetPlatform.Win64)
