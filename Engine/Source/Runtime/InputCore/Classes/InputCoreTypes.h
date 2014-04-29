@@ -186,9 +186,6 @@ struct INPUTCORE_API EKeys
 	static const FKey MouseScrollUp;
 	static const FKey MouseScrollDown;
 
-	//@static const FKey todo Slate: Unify MouseScrollUp, Down; Spin.  The viewport clients use Up and Down and slate uses Spin
-	static const FKey MouseWheelSpin;
-
 	static const FKey LeftMouseButton;
 	static const FKey RightMouseButton;
 	static const FKey MiddleMouseButton;

@@ -3617,7 +3617,7 @@ bool FSlateApplication::OnMouseWheel( const float Delta )
 		CurrentCursorPosition, 	
 		CurrentCursorPosition,
 		PressedMouseButtons,
-		EKeys::MouseWheelSpin,
+		EKeys::Invalid,
 		Delta,
 		PlatformApplication->GetModifierKeys()
 		);
@@ -4120,7 +4120,7 @@ bool FSlateApplication::OnTouchGesture( EGestureEvent::Type GestureType, const F
 		CurrentCursorPosition,
 		CurrentCursorPosition,
 		PressedMouseButtons,
-		EKeys::MouseWheelSpin,
+		EKeys::Invalid,
 		MouseWheelDelta,
 		PlatformApplication->GetModifierKeys()
 	);

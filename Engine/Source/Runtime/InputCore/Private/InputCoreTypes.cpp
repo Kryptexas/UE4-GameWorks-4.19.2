@@ -15,9 +15,6 @@ const FKey EKeys::MouseY("MouseY");
 const FKey EKeys::MouseScrollUp("MouseScrollUp");
 const FKey EKeys::MouseScrollDown("MouseScrollDown");
 
-//@const FKey EKeys::todo Slate: Unify MouseScrollUp, Down("todo Slate: Unify MouseScrollUp, Down"); Spin.  The viewport clients use Up and Down and slate uses Spin
-const FKey EKeys::MouseWheelSpin("MouseWheelSpin");
-
 const FKey EKeys::LeftMouseButton("LeftMouseButton");
 const FKey EKeys::RightMouseButton("RightMouseButton");
 const FKey EKeys::MiddleMouseButton("MiddleMouseButton");
@@ -233,9 +230,6 @@ void EKeys::Initialize()
 	AddKey(FKeyDetails(EKeys::MouseY, LOCTEXT("MouseY", "Mouse Y"), FKeyDetails::FloatAxis | FKeyDetails::MouseButton));
 	AddKey(FKeyDetails(EKeys::MouseScrollUp, LOCTEXT("MouseScrollUp", "Mouse Wheel Up"), FKeyDetails::MouseButton));
 	AddKey(FKeyDetails(EKeys::MouseScrollDown, LOCTEXT("MouseScrollDown", "Mouse Wheel Down"), FKeyDetails::MouseButton));
-
-	//@todo Slate: Unify MouseScrollUp, Down, Spin.  The viewport clients use Up and Down and slate uses Spin
-	AddKey(FKeyDetails(EKeys::MouseWheelSpin, LOCTEXT("MouseWheelSpin", "Mouse Wheel Spin"), FKeyDetails::NotBlueprintBindableKey | FKeyDetails::MouseButton));
 
 	AddKey(FKeyDetails(EKeys::LeftMouseButton, LOCTEXT("LeftMouseButton", "Left Mouse Button"), FKeyDetails::MouseButton));
 	AddKey(FKeyDetails(EKeys::RightMouseButton, LOCTEXT("RightMouseButton", "Right Mouse Button"), FKeyDetails::MouseButton));
