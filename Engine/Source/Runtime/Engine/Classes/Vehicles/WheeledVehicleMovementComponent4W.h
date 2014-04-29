@@ -67,19 +67,19 @@ struct FVehicleEngineData
 	UPROPERTY(EditAnywhere, Category=Setup)
 	float MaxRPM;
 
-	/** Moment of inertia of the engine around the axis of rotation. */
+	/** Moment of inertia of the engine around the axis of rotation (Kgm^2). */
 	UPROPERTY(EditAnywhere, Category = Setup)
 	float MOI;
 
-	/** Damping rate of engine when full throttle is applied */
+	/** Damping rate of engine when full throttle is applied (Kgm^2/s) */
 	UPROPERTY(EditAnywhere, Category=Setup, AdvancedDisplay)
 	float DampingRateFullThrottle;
 
-	/** Damping rate of engine in at zero throttle when the clutch is engaged */
+	/** Damping rate of engine in at zero throttle when the clutch is engaged (Kgm^2/s)*/
 	UPROPERTY(EditAnywhere, Category=Setup, AdvancedDisplay)
 	float DampingRateZeroThrottleClutchEngaged;
 
-	/** Damping rate of engine in at zero throttle when the clutch is disengaged (in neutral gear) */
+	/** Damping rate of engine in at zero throttle when the clutch is disengaged (in neutral gear) (Kgm^2/s)*/
 	UPROPERTY(EditAnywhere, Category=Setup, AdvancedDisplay)
 	float DampingRateZeroThrottleClutchDisengaged;
 };
@@ -135,7 +135,7 @@ struct FVehicleTransmissionData
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = Setup, meta = (ClampMin = "0.0", UIMin = "0.0", ClampMax = "1.0", UIMax = "1.0"))
 	float NeutralGearUpRatio;
 
-	/** Strength of clutch */
+	/** Strength of clutch (Kgm^2/s)*/
 	UPROPERTY(EditAnywhere, Category = Setup, AdvancedDisplay)
 	float ClutchStrength;
 };

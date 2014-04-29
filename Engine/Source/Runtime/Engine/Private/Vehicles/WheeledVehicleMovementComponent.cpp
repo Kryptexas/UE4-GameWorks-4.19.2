@@ -288,9 +288,7 @@ void UWheeledVehicleMovementComponent::SetupWheels( PxVehicleWheelsSimData* PWhe
 		PWheelData.mMaxBrakeTorque = M2ToCm2(WheelSetups[WheelIdx].MaxBrakeTorque);
 		PWheelData.mMaxHandBrakeTorque = Wheel->bAffectedByHandbrake ? M2ToCm2(WheelSetups[WheelIdx].MaxHandBrakeTorque) : 0.0f;
 
-//		PWheelData.mMass = 1.0f;
-//		PWheelData.mMOI = Wheel->Inertia * Mass; // Multiply by vehicle mass so that as vehicle mass shrinks, the torque and inertia can shrink as well
-		PWheelData.mDampingRate = WheelSetups[WheelIdx].DampingRate;
+		PWheelData.mDampingRate = M2ToCm2(WheelSetups[WheelIdx].DampingRate);
 		PWheelData.mMass = WheelSetups[WheelIdx].Mass;
 		PWheelData.mMOI = 0.5f * PWheelData.mMass * FMath::Square(PWheelData.mRadius);
 		
@@ -1308,6 +1306,17 @@ void UWheeledVehicleMovementComponent::Serialize(FArchive & Ar)
 			FWheelSetup & WheelSetup = WheelSetups[WheelIdx];
 			WheelSetup.MaxHandBrakeTorque = WheelSetup.MaxHandBrakeTorque != 1500.f ? Cm2ToM2(WheelSetup.MaxHandBrakeTorque) : 1500.f;	//need to convert from cm^2 to m^2
 			WheelSetup.MaxBrakeTorque = WheelSetup.MaxHandBrakeTorque != 3000.f ? Cm2ToM2(WheelSetup.MaxBrakeTorque) : 3000.f;			//need to convert from cm^2 to m^2
+		}
+
+	}
+
+	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_VEHICLES_UNIT_CHANGE2)
+	{
+		for (int32 WheelIdx = 0; WheelIdx < WheelSetups.Num(); ++WheelIdx)
+		{
+			//this backwards compatable code breaks if they were using some strange value that is exactly the new default in the new units
+			FWheelSetup & WheelSetup = WheelSetups[WheelIdx];
+			WheelSetup.DampingRate = WheelSetup.DampingRate != 0.25f ? Cm2ToM2(WheelSetup.DampingRate) : 0.25;
 		}
 
 	}

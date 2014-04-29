@@ -21,15 +21,15 @@ UWheeledVehicleMovementComponent4W::UWheeledVehicleMovementComponent4W(const cla
 	DifferentialSetup.RearBias = DefDifferentialSetup.mRearBias;
 
 	PxVehicleEngineData DefEngineData;
-	EngineSetup.MOI = M2ToCm2(DefEngineData.mMOI);
+	EngineSetup.MOI = DefEngineData.mMOI;
 	EngineSetup.PeakTorque = DefEngineData.mPeakTorque;
 	EngineSetup.MaxRPM = OmegaToRPM(DefEngineData.mMaxOmega);
-	EngineSetup.DampingRateFullThrottle = M2ToCm2(DefEngineData.mDampingRateFullThrottle);
-	EngineSetup.DampingRateZeroThrottleClutchEngaged = M2ToCm2(DefEngineData.mDampingRateZeroThrottleClutchEngaged);
-	EngineSetup.DampingRateZeroThrottleClutchDisengaged = M2ToCm2(DefEngineData.mDampingRateZeroThrottleClutchDisengaged);
+	EngineSetup.DampingRateFullThrottle = DefEngineData.mDampingRateFullThrottle;
+	EngineSetup.DampingRateZeroThrottleClutchEngaged = DefEngineData.mDampingRateZeroThrottleClutchEngaged;
+	EngineSetup.DampingRateZeroThrottleClutchDisengaged = DefEngineData.mDampingRateZeroThrottleClutchDisengaged;
 
 	PxVehicleClutchData DefClutchData;
-	TransmissionSetup.ClutchStrength = M2ToCm2(DefClutchData.mStrength); // convert from m to cm scale
+	TransmissionSetup.ClutchStrength = DefClutchData.mStrength;
 
 	PxVehicleAckermannGeometryData DefAckermannSetup;
 	AckermannAccuracy = DefAckermannSetup.mAccuracy;
@@ -75,6 +75,7 @@ UWheeledVehicleMovementComponent4W::UWheeledVehicleMovementComponent4W(const cla
 #if WITH_EDITOR
 void UWheeledVehicleMovementComponent4W::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
+	Super::PostEditChangeProperty(PropertyChangedEvent);
 	const FName PropertyName = PropertyChangedEvent.Property ? PropertyChangedEvent.Property->GetFName() : NAME_None;
 
 	if (PropertyName == TEXT("DownRatio"))
@@ -134,12 +135,12 @@ static void GetVehicleDifferential4WSetup(const FVehicleDifferential4WData& Setu
 
 static void GetVehicleEngineSetup(const FVehicleEngineData& Setup, PxVehicleEngineData& PxSetup)
 {
-	PxSetup.mMOI = Setup.MOI; // convert from m to cm scale
+	PxSetup.mMOI = M2ToCm2(Setup.MOI);
 	PxSetup.mPeakTorque = M2ToCm2(Setup.PeakTorque);	//convert Nm to (kg cm^2/s^2)
 	PxSetup.mMaxOmega = RPMToOmega(Setup.MaxRPM);
-	PxSetup.mDampingRateFullThrottle = Setup.DampingRateFullThrottle;
-	PxSetup.mDampingRateZeroThrottleClutchEngaged = Setup.DampingRateZeroThrottleClutchEngaged;
-	PxSetup.mDampingRateZeroThrottleClutchDisengaged = Setup.DampingRateZeroThrottleClutchDisengaged;
+	PxSetup.mDampingRateFullThrottle = M2ToCm2(Setup.DampingRateFullThrottle);
+	PxSetup.mDampingRateZeroThrottleClutchEngaged = M2ToCm2(Setup.DampingRateZeroThrottleClutchEngaged);
+	PxSetup.mDampingRateZeroThrottleClutchDisengaged = M2ToCm2(Setup.DampingRateZeroThrottleClutchDisengaged);
 }
 
 static void GetVehicleGearSetup(const FVehicleTransmissionData& Setup, PxVehicleGearsData& PxSetup)
@@ -178,7 +179,7 @@ void SetupDriveHelper(const UWheeledVehicleMovementComponent4W* VehicleData, con
 	DriveData.setEngineData(EngineSetup);
 
 	PxVehicleClutchData ClutchSetup;
-	ClutchSetup.mStrength = VehicleData->TransmissionSetup.ClutchStrength;
+	ClutchSetup.mStrength = M2ToCm2(VehicleData->TransmissionSetup.ClutchStrength);
 	DriveData.setClutchData(ClutchSetup);
 
 	FVector WheelCentreOffsets[4];
@@ -328,6 +329,15 @@ void UWheeledVehicleMovementComponent4W::UpdateTransmissionSetup(const FVehicleT
 	}
 #endif
 }
+
+void BackwardsConvertCm2ToM2(float & val, float defaultValue)
+{
+	if (val != defaultValue)
+	{
+		val = Cm2ToM2(val);
+	}
+}
+
 void UWheeledVehicleMovementComponent4W::Serialize(FArchive & Ar)
 {
 	Super::Serialize(Ar);
@@ -335,13 +345,26 @@ void UWheeledVehicleMovementComponent4W::Serialize(FArchive & Ar)
 	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_VEHICLES_UNIT_CHANGE)
 	{
 		PxVehicleEngineData DefEngineData;
-		float DefaultTorque = DefEngineData.mPeakTorque;
 		float DefaultRPM = OmegaToRPM(DefEngineData.mMaxOmega);
 		
 		//we need to convert from old units to new. This backwards compatable code fails in the rare case that they were using very strange values that are the new defaults in the correct units.
-		EngineSetup.PeakTorque = EngineSetup.PeakTorque != DefaultTorque ? Cm2ToM2(EngineSetup.PeakTorque) : DefaultTorque;	//need to convert kg cm^2/s^2 into Nm
+		BackwardsConvertCm2ToM2(EngineSetup.PeakTorque, DefEngineData.mPeakTorque);
 		EngineSetup.MaxRPM = EngineSetup.MaxRPM != DefaultRPM ? OmegaToRPM(EngineSetup.MaxRPM) : DefaultRPM;	//need to convert from rad/s to RPM
 		MaxSteeringSpeed = MaxSteeringSpeed != 100.f ? CmSToKmH(MaxSteeringSpeed) : 100.f;	//we now store as km/h instead of cm/s
+	}
+
+	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_VEHICLES_UNIT_CHANGE2)
+	{
+		PxVehicleEngineData DefEngineData;
+		PxVehicleClutchData DefClutchData;
+		float DefaultRPM = OmegaToRPM(DefEngineData.mMaxOmega);
+
+		//we need to convert from old units to new. This backwards compatable code fails in the rare case that they were using very strange values that are the new defaults in the correct units.
+		BackwardsConvertCm2ToM2(EngineSetup.DampingRateFullThrottle, DefEngineData.mDampingRateFullThrottle);
+		BackwardsConvertCm2ToM2(EngineSetup.DampingRateZeroThrottleClutchDisengaged, DefEngineData.mDampingRateZeroThrottleClutchDisengaged);
+		BackwardsConvertCm2ToM2(EngineSetup.DampingRateZeroThrottleClutchEngaged, DefEngineData.mDampingRateZeroThrottleClutchEngaged);
+		BackwardsConvertCm2ToM2(EngineSetup.MOI, DefEngineData.mMOI);
+		BackwardsConvertCm2ToM2(TransmissionSetup.ClutchStrength, DefClutchData.mStrength);
 	}
 #endif
 }

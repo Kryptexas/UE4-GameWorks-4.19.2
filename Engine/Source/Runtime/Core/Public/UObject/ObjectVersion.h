@@ -532,7 +532,9 @@ enum EUnrealEngineObjectUE4Version
  	// Fix some blueprint variables that have the CPF_DisableEditOnTemplate flag set
 	// when they shouldn't
 	VER_UE4_FIX_BLUEPRINT_VARIABLE_FLAGS,
-
+	// Vehicles use Nm for Torque instead of cm and RPM instead of rad/s part two (missed conversion for some variables
+	VER_UE4_VEHICLES_UNIT_CHANGE2,
+ 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
 	VER_UE4_AUTOMATIC_VERSION_PLUS_ONE,

@@ -109,7 +109,7 @@ struct FWheelSetup
 	UPROPERTY(EditAnywhere, Category=WheelsSetup)
 	float MaxHandBrakeTorque;
 
-	// damping rate for this wheel
+	// damping rate for this wheel (Kgm^2/s)
 	UPROPERTY(EditAnywhere, Category=WheelsSetup)
 	float DampingRate;
 
@@ -124,7 +124,7 @@ struct FWheelSetup
 		, SteerAngle(70.0f)
 		, MaxBrakeTorque(1500.f)
 		, MaxHandBrakeTorque(3000.f)
-		, DampingRate(0.25f * 100.f * 100.f)
+		, DampingRate(0.25f)
 		, Mass(20.f)
 	{
 	}
