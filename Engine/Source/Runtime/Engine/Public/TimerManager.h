@@ -81,7 +81,6 @@ struct FTimerUnifiedDelegate
 	}
 };
 
-UENUM()
 namespace ETimerStatus
 {
 	enum Type
