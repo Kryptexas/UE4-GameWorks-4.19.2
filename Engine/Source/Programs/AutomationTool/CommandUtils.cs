@@ -569,6 +569,23 @@ namespace AutomationTool
 			}
 		}
 
+        /// <summary>
+        /// Creates a directory(or directories).
+        /// If the creation of the directory fails, this function throws an Exception.
+        /// </summary>
+        /// <param name="Directory">Directory</param>
+        public static void CreateDirectory(bool bQuiet, params string[] Directories)
+        {
+            foreach (var DirectoryName in Directories)
+            {
+                var NormalizedDirectory = ConvertSeparators(PathSeparator.Default, DirectoryName);
+                if (!InternalUtils.SafeCreateDirectory(NormalizedDirectory, bQuiet))
+                {
+                    throw new AutomationException(String.Format("Failed to create directory '{0}'", NormalizedDirectory));
+                }
+            }
+        }
+
 		/// <summary>
 		/// Creates a directory (or directories).
 		/// If the creation of the directory fails, this function prints a warning.
@@ -595,11 +612,11 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="OldName">Old name</param>
 		/// <param name="NewName">new name</param>
-		public static void RenameFile(string OldName, string NewName)
+        public static void RenameFile(string OldName, string NewName, bool bQuiet = false)
 		{
 			var OldNormalized = ConvertSeparators(PathSeparator.Default, OldName);
 			var NewNormalized = ConvertSeparators(PathSeparator.Default, NewName);
-			if (!InternalUtils.SafeRenameFile(OldNormalized, NewNormalized))
+			if (!InternalUtils.SafeRenameFile(OldNormalized, NewNormalized, bQuiet))
 			{
 				throw new AutomationException(String.Format("Failed to rename/move file '{0}' to '{1}'", OldNormalized, NewNormalized));
 			}

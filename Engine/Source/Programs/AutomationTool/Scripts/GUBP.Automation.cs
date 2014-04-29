@@ -2878,11 +2878,11 @@ public class GUBP : BuildCommand
         bool Result;
         if (LocalOnly)
         {
-            Result = LocalTempStorageExists(CmdEnv, NodeStoreName);
+            Result = LocalTempStorageExists(CmdEnv, NodeStoreName, bQuiet : true);
         }
         else
         {
-            Result = TempStorageExists(CmdEnv, NodeStoreName, GameNameIfAny);
+            Result = TempStorageExists(CmdEnv, NodeStoreName, GameNameIfAny, bQuiet: true);
         }
         if (Result)
         {
@@ -2895,7 +2895,7 @@ public class GUBP : BuildCommand
         GUBPNodesCompleted.Add(NodeToDo, Result);
         return Result;
     }
-    void RunECTool(string Args)
+    void RunECTool(string Args, bool bQuiet = false)
     {
         if (ParseParam("FakeEC"))
         {
@@ -2903,7 +2903,12 @@ public class GUBP : BuildCommand
         }
         else
         {
-            RunAndLog("ectool", Args);
+            ERunOptions Opts = ERunOptions.Default;
+            if (bQuiet)
+            {
+                Opts = Opts & ~ERunOptions.AllowSpew;
+            }
+            RunAndLog("ectool", Args, Options: Opts);
         }
     }
     string GetEMailListForNode(GUBP bp, string NodeToDo, string Causers)
@@ -3650,7 +3655,7 @@ public class GUBP : BuildCommand
             foreach (var Prop in Props)
             {
                 var Parts = Prop.Split("=".ToCharArray());
-                RunECTool(String.Format("setProperty \"/myWorkflow/{0}\" \"{1}\"", Parts[0], Parts[1]));
+                RunECTool(String.Format("setProperty \"/myWorkflow/{0}\" \"{1}\"", Parts[0], Parts[1]), true);
             }
         }
         catch (Exception Ex)

@@ -143,17 +143,14 @@ namespace AutomationTool
                     ManifestDirectory.Add(new TempStorageFileInfo(Filename, RelativeFile));
                 }
 
-                Log("Created manifest:");
-                Stats();
+                Stats("Created manifest");
 
             }
 
-            public void Stats()
+            public void Stats(string Description)
             {
 
-                Log("Directories={0}", Directories.Count);
-                Log("Files={0}", GetFileCount());
-                Log("Size={0}", GetTotalSize());
+                Log("{0}: Directories={1} Files={2} Size={3}", Description, Directories.Count, GetFileCount(), GetTotalSize());
             }
             
             public bool Compare(TempStorageManifest Other)
@@ -264,7 +261,7 @@ namespace AutomationTool
             }
 
 
-            public void Load(string Filename)
+            public void Load(string Filename, bool bQuiet = false)
             {
                 XmlDocument File = new XmlDocument();
                 try
@@ -296,9 +293,10 @@ namespace AutomationTool
                     throw new AutomationException("Bad root node ({0}).", RootNode != null ? RootNode.Name : "null");
                 }
 
-                Log("Loaded manifest {0}:", Filename);
-
-                Stats();
+                if (!bQuiet)
+                {
+                    Stats(String.Format("Loaded manifest {0}", Filename));
+                }
                 if (GetFileCount() <= 0 || GetTotalSize() <= 0)
                 {
                     throw new AutomationException("Attempt to load empty manifest.");
@@ -587,24 +585,24 @@ namespace AutomationTool
             {
                 throw new AutomationException("Temp manifest file already exists {0}", TempFilename);
             }
-            CreateDirectory(Path.GetDirectoryName(FinalFilename));
+            CreateDirectory(true, Path.GetDirectoryName(FinalFilename));
             Saver.Save(TempFilename);
 
             var Tester = new TempStorageManifest();
-            Tester.Load(TempFilename);
+            Tester.Load(TempFilename, true);
 
             if (!Saver.Compare(Tester))
             {
                 throw new AutomationException("Temp manifest differs {0}", TempFilename);
             }
 
-            RenameFile(TempFilename, FinalFilename);
-            if (FileExists_NoExceptions(TempFilename))
+            RenameFile(TempFilename, FinalFilename, true);
+            if (FileExists_NoExceptions(true, TempFilename))
             {
                 throw new AutomationException("Temp manifest didn't go away {0}", TempFilename);
             }
             var FinalTester = new TempStorageManifest();
-            FinalTester.Load(FinalFilename);
+            FinalTester.Load(FinalFilename, true);
 
             if (!Saver.Compare(FinalTester))
             {
@@ -637,27 +635,27 @@ namespace AutomationTool
         {
             DeleteDirectory(true, SharedTempStorageDirectory(StorageBlockName, GameFolder));
         }
-        public static bool LocalTempStorageExists(CommandEnvironment Env, string StorageBlockName)
+        public static bool LocalTempStorageExists(CommandEnvironment Env, string StorageBlockName, bool bQuiet = false)
         {
             var LocalManifest = LocalTempStorageManifestFilename(Env, StorageBlockName);
-            if (FileExists_NoExceptions(LocalManifest))
+            if (FileExists_NoExceptions(bQuiet, LocalManifest))
             {
                 return true;
             }
             return false;
         }
-        public static bool SharedTempStorageExists(CommandEnvironment Env, string StorageBlockName, string GameFolder = "")
+        public static bool SharedTempStorageExists(CommandEnvironment Env, string StorageBlockName, string GameFolder = "", bool bQuiet = false)
         {
             var SharedManifest = SharedTempStorageManifestFilename(Env, StorageBlockName, GameFolder, false);
-            if (FileExists_NoExceptions(SharedManifest))
+            if (FileExists_NoExceptions(bQuiet, SharedManifest))
             {
                 return true;
             }
             return false;
         }
-        public static bool TempStorageExists(CommandEnvironment Env, string StorageBlockName, string GameFolder = "", bool bLocalOnly = false)
+        public static bool TempStorageExists(CommandEnvironment Env, string StorageBlockName, string GameFolder = "", bool bLocalOnly = false, bool bQuiet = false)
         {
-            return LocalTempStorageExists(Env, StorageBlockName) || (!bLocalOnly && SharedTempStorageExists(Env, StorageBlockName, GameFolder));
+            return LocalTempStorageExists(Env, StorageBlockName, bQuiet) || (!bLocalOnly && SharedTempStorageExists(Env, StorageBlockName, GameFolder, bQuiet));
         }
         public static void StoreToTempStorage(CommandEnvironment Env, string StorageBlockName, List<string> Files, bool bLocalOnly = false, string GameFolder = "", string BaseFolder = "")
         {
@@ -681,7 +679,7 @@ namespace AutomationTool
                 {
                     throw new AutomationException("Storage Block Already Exists! {0}", BlockPath);
                 }
-                CreateDirectory(BlockPath);
+                CreateDirectory(true, BlockPath);
                 if (!DirectoryExists_NoExceptions(BlockPath))
                 {
                     throw new AutomationException("Storage Block Could Not Be Created! {0}", BlockPath);
@@ -907,7 +905,7 @@ namespace AutomationTool
             {
                 var NewBlock = StorageBlockName.Replace("*", StarReplacement);
 
-                if (TempStorageExists(Env, NewBlock, GameFolder, LocalOnly))
+                if (TempStorageExists(Env, NewBlock, GameFolder, LocalOnly, true))
                 {
                     OutFiles.Add(StarReplacement);
                 }
