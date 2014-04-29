@@ -740,42 +740,42 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 
 	// Add the stats to the list, note this is also the order that they get rendered in if active.
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	SimpleStats.Add(FSimpleStatFuncs(TEXT("STAT_Version"), TEXT("STATCAT_Simple"), FText::GetEmpty(), &UEngine::RenderStatVersion, NULL, true));
+	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_Version"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatVersion, NULL, true));
 #endif
-	SimpleStats.Add(FSimpleStatFuncs(TEXT("STAT_NamedEvents"), TEXT("STATCAT_Simple"), FText::GetEmpty(), &UEngine::RenderStatNamedEvents, &UEngine::ToggleStatNamedEvents, true));
-	SimpleStats.Add(FSimpleStatFuncs(TEXT("STAT_FPS"), TEXT("STATCAT_Simple"), FText::GetEmpty(), &UEngine::RenderStatFPS, &UEngine::ToggleStatFPS, true));
-	SimpleStats.Add(FSimpleStatFuncs(TEXT("STAT_Summary"), TEXT("STATCAT_Simple"), FText::GetEmpty(), &UEngine::RenderStatSummary, NULL, true));
-	SimpleStats.Add(FSimpleStatFuncs(TEXT("STAT_Unit"), TEXT("STATCAT_Simple"), FText::GetEmpty(), &UEngine::RenderStatUnit, &UEngine::ToggleStatUnit, true));
+	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_NamedEvents"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatNamedEvents, &UEngine::ToggleStatNamedEvents, true));
+	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_FPS"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatFPS, &UEngine::ToggleStatFPS, true));
+	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_Summary"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatSummary, NULL, true));
+	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_Unit"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatUnit, &UEngine::ToggleStatUnit, true));
 #if STATS
-	SimpleStats.Add(FSimpleStatFuncs(TEXT("STAT_SlateBatches"), TEXT("STATCAT_Simple"), FText::GetEmpty(), &UEngine::RenderStatSlateBatches, NULL, true));
+	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_SlateBatches"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatSlateBatches, NULL, true));
 #endif
-	SimpleStats.Add(FSimpleStatFuncs(TEXT("STAT_Hitches"), TEXT("STATCAT_Simple"), FText::GetEmpty(), &UEngine::RenderStatHitches, &UEngine::ToggleStatHitches, true));
-	SimpleStats.Add(FSimpleStatFuncs(TEXT("STAT_AI"), TEXT("STATCAT_Simple"), FText::GetEmpty(), &UEngine::RenderStatAI, NULL, true));
+	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_Hitches"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatHitches, &UEngine::ToggleStatHitches, true));
+	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_AI"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatAI, NULL, true));
 
-	SimpleStats.Add(FSimpleStatFuncs(TEXT("STAT_ColorList"), TEXT("STATCAT_Simple"), FText::GetEmpty(), &UEngine::RenderStatColorList, NULL));
-	SimpleStats.Add(FSimpleStatFuncs(TEXT("STAT_Levels"), TEXT("STATCAT_Simple"), FText::GetEmpty(), &UEngine::RenderStatLevels, NULL));
+	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_ColorList"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatColorList, NULL));
+	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_Levels"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatLevels, NULL));
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	SimpleStats.Add(FSimpleStatFuncs(TEXT("STAT_SoundMixes"), TEXT("STATCAT_Simple"), FText::GetEmpty(), &UEngine::RenderStatSoundMixes, NULL));
-	SimpleStats.Add(FSimpleStatFuncs(TEXT("STAT_Reverb"), TEXT("STATCAT_Simple"), FText::GetEmpty(), &UEngine::RenderStatReverb, NULL));
-	SimpleStats.Add(FSimpleStatFuncs(TEXT("STAT_SoundWaves"), TEXT("STATCAT_Simple"), FText::GetEmpty(), &UEngine::RenderStatSoundWaves, NULL));
-	SimpleStats.Add(FSimpleStatFuncs(TEXT("STAT_SoundCues"), TEXT("STATCAT_Simple"), FText::GetEmpty(), &UEngine::RenderStatSoundCues, NULL));
+	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_SoundMixes"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatSoundMixes, NULL));
+	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_Reverb"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatReverb, NULL));
+	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_SoundWaves"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatSoundWaves, NULL));
+	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_SoundCues"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatSoundCues, NULL));
 #endif
-	SimpleStats.Add(FSimpleStatFuncs(TEXT("STAT_Sounds"), TEXT("STATCAT_Simple"), FText::GetEmpty(), &UEngine::RenderStatSounds, &UEngine::ToggleStatSounds));
-	SimpleStats.Add(FSimpleStatFuncs(TEXT("STAT_LevelMap"), TEXT("STATCAT_Simple"), FText::GetEmpty(), &UEngine::RenderStatLevelMap, NULL));
+	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_Sounds"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatSounds, &UEngine::ToggleStatSounds));
+	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_LevelMap"), TEXT("STATCAT_Engine"), FText::GetEmpty(), &UEngine::RenderStatLevelMap, NULL));
 
-	SimpleStats.Add(FSimpleStatFuncs(TEXT("STAT_Detailed"), TEXT("STATCAT_Simple"), FText::GetEmpty(), NULL, &UEngine::ToggleStatDetailed));
+	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_Detailed"), TEXT("STATCAT_Engine"), FText::GetEmpty(), NULL, &UEngine::ToggleStatDetailed));
 #if !UE_BUILD_SHIPPING
-	SimpleStats.Add(FSimpleStatFuncs(TEXT("STAT_UnitMax"), TEXT("STATCAT_Simple"), FText::GetEmpty(), NULL, &UEngine::ToggleStatUnitMax));
-	SimpleStats.Add(FSimpleStatFuncs(TEXT("STAT_UnitGraph"), TEXT("STATCAT_Simple"), FText::GetEmpty(), NULL, &UEngine::ToggleStatUnitGraph));
-	SimpleStats.Add(FSimpleStatFuncs(TEXT("STAT_UnitTime"), TEXT("STATCAT_Simple"), FText::GetEmpty(), NULL, NULL));
-	SimpleStats.Add(FSimpleStatFuncs(TEXT("STAT_Raw"), TEXT("STATCAT_Simple"), FText::GetEmpty(), NULL, &UEngine::ToggleStatRaw));
+	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_UnitMax"), TEXT("STATCAT_Engine"), FText::GetEmpty(), NULL, &UEngine::ToggleStatUnitMax));
+	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_UnitGraph"), TEXT("STATCAT_Engine"), FText::GetEmpty(), NULL, &UEngine::ToggleStatUnitGraph));
+	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_UnitTime"), TEXT("STATCAT_Engine"), FText::GetEmpty(), NULL, NULL));
+	EngineStats.Add(FEngineStatFuncs(TEXT("STAT_Raw"), TEXT("STATCAT_Engine"), FText::GetEmpty(), NULL, &UEngine::ToggleStatRaw));
 #endif
 
 	// Let any listeners know about the new stats
-	for (int32 StatIdx = 0; StatIdx < SimpleStats.Num(); StatIdx++)
+	for (int32 StatIdx = 0; StatIdx < EngineStats.Num(); StatIdx++)
 	{
-		const FSimpleStatFuncs& SimpleStat = SimpleStats[StatIdx];
-		NewStatDelegate.Broadcast(SimpleStat.CommandName, SimpleStat.CategoryName, SimpleStat.DescriptionString);
+		const FEngineStatFuncs& EngineStat = EngineStats[StatIdx];
+		NewStatDelegate.Broadcast(EngineStat.CommandName, EngineStat.CategoryName, EngineStat.DescriptionString);
 	}
 }
 
@@ -4910,15 +4910,15 @@ bool UEngine::HandleDumpParticleMemCommand( const TCHAR* Cmd, FOutputDevice& Ar 
 bool UEngine::HandleStatCommand( UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	const TCHAR* Temp = Cmd;
-	for (int32 StatIdx = 0; StatIdx < SimpleStats.Num(); StatIdx++)
+	for (int32 StatIdx = 0; StatIdx < EngineStats.Num(); StatIdx++)
 	{
-		const FSimpleStatFuncs& SimpleStat = SimpleStats[StatIdx];
-		FString CommandName = SimpleStat.CommandName.ToString();
+		const FEngineStatFuncs& EngineStat = EngineStats[StatIdx];
+		FString CommandName = EngineStat.CommandName.ToString();
 		if (CommandName.RemoveFromStart(TEXT("STAT_")) && (FParse::Command(&Temp, *CommandName)))
 		{
-			if (SimpleStat.ToggleFunc)
+			if (EngineStat.ToggleFunc)
 			{
-				return (this->*(SimpleStat.ToggleFunc))(World, ViewportClient, Temp);
+				return (this->*(EngineStat.ToggleFunc))(World, ViewportClient, Temp);
 			}
 			return true;
 		}
@@ -6391,7 +6391,7 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 #endif
 
 		// Render all the simple stats
-		GEngine->RenderSimpleStats(World, Viewport, Canvas, StatsXOffset, MessageY, X, Y, &ViewLocation, &ViewRotation);
+		GEngine->RenderEngineStats(World, Viewport, Canvas, StatsXOffset, MessageY, X, Y, &ViewLocation, &ViewRotation);
 
 #if STATS
 		extern void RenderStats(FViewport* Viewport, class FCanvas* Canvas, int32 X, int32 Y);
@@ -9715,7 +9715,7 @@ FColor GetColorForLevelStatus(int32 Status)
 	return Color;
 }
 
-void UEngine::ExecSimpleStat(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* InName)
+void UEngine::ExecEngineStat(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* InName)
 {
 	// Store a ptr to the viewport that needs to process this stat command
 	GStatProcessingViewportClient = ViewportClient;
@@ -9725,12 +9725,12 @@ void UEngine::ExecSimpleStat(UWorld* World, FCommonViewportClient* ViewportClien
 	Exec(World, *StatCommand, *GLog);
 }
 
-bool UEngine::IsSimpleStat(const FString& InName)
+bool UEngine::IsEngineStat(const FString& InName)
 {
-	for (int32 StatIdx = 0; StatIdx < SimpleStats.Num(); StatIdx++)
+	for (int32 StatIdx = 0; StatIdx < EngineStats.Num(); StatIdx++)
 	{
-		const FSimpleStatFuncs& SimpleStat = SimpleStats[StatIdx];
-		FString CommandName = SimpleStat.CommandName.ToString();
+		const FEngineStatFuncs& EngineStat = EngineStats[StatIdx];
+		FString CommandName = EngineStat.CommandName.ToString();
 		if (CommandName.RemoveFromStart(TEXT("STAT_")) && CommandName == InName)
 		{
 			return true;
@@ -9739,37 +9739,37 @@ bool UEngine::IsSimpleStat(const FString& InName)
 	return false;
 }
 
-void UEngine::SetSimpleStat(UWorld* World, FCommonViewportClient* ViewportClient, const FString& InName, const bool bShow)
+void UEngine::SetEngineStat(UWorld* World, FCommonViewportClient* ViewportClient, const FString& InName, const bool bShow)
 {
 	check(ViewportClient);
-	if (IsSimpleStat(InName) && ViewportClient->IsStatEnabled(*InName) != bShow)
+	if (IsEngineStat(InName) && ViewportClient->IsStatEnabled(*InName) != bShow)
 	{
-		ExecSimpleStat(World, ViewportClient, *InName);
+		ExecEngineStat(World, ViewportClient, *InName);
 	}
 }
 
-void UEngine::SetSimpleStats(UWorld* World, FCommonViewportClient* ViewportClient, const TArray<FString>& InNames, const bool bShow)
+void UEngine::SetEngineStats(UWorld* World, FCommonViewportClient* ViewportClient, const TArray<FString>& InNames, const bool bShow)
 {
 	for (int32 StatIdx = 0; StatIdx < InNames.Num(); StatIdx++)
 	{
 		// If we need to disable, do it in the reverse order incase one stat affects another
 		const int32 StatIndex = bShow ? StatIdx : (InNames.Num() - 1) - StatIdx;
-		SetSimpleStat(World, ViewportClient, *InNames[StatIndex], bShow);
+		SetEngineStat(World, ViewportClient, *InNames[StatIndex], bShow);
 	}
 }
 
-void UEngine::RenderSimpleStats(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 LHSX, int32& InOutLHSY, int32 RHSX, int32& InOutRHSY, const FVector* ViewLocation, const FRotator* ViewRotation)
+void UEngine::RenderEngineStats(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 LHSX, int32& InOutLHSY, int32 RHSX, int32& InOutRHSY, const FVector* ViewLocation, const FRotator* ViewRotation)
 {
-	for (int32 StatIdx = 0; StatIdx < SimpleStats.Num(); StatIdx++)
+	for (int32 StatIdx = 0; StatIdx < EngineStats.Num(); StatIdx++)
 	{
-		const FSimpleStatFuncs& SimpleStat = SimpleStats[StatIdx];
-		FString CommandName = SimpleStat.CommandName.ToString();
-		if (SimpleStat.RenderFunc && CommandName.RemoveFromStart(TEXT("STAT_")) && (!Viewport->GetClient() || Viewport->GetClient()->IsStatEnabled(*CommandName)))
+		const FEngineStatFuncs& EngineStat = EngineStats[StatIdx];
+		FString CommandName = EngineStat.CommandName.ToString();
+		if (EngineStat.RenderFunc && CommandName.RemoveFromStart(TEXT("STAT_")) && (!Viewport->GetClient() || Viewport->GetClient()->IsStatEnabled(*CommandName)))
 		{
 			// Render the stat either on the left or right hand side of the screen, keeping track of the new Y position
-			const int32 StatX = SimpleStat.bIsRHS ? RHSX : LHSX;
-			int32* StatY = SimpleStat.bIsRHS ? &InOutRHSY : &InOutLHSY;
-			*StatY = (this->*(SimpleStat.RenderFunc))(World, Viewport, Canvas, StatX, *StatY, ViewLocation, ViewRotation);
+			const int32 StatX = EngineStat.bIsRHS ? RHSX : LHSX;
+			int32* StatY = EngineStat.bIsRHS ? &InOutRHSY : &InOutLHSY;
+			*StatY = (this->*(EngineStat.RenderFunc))(World, Viewport, Canvas, StatX, *StatY, ViewLocation, ViewRotation);
 		}
 	}
 }
@@ -9816,10 +9816,10 @@ bool UEngine::ToggleStatDetailed(UWorld* World, FCommonViewportClient* ViewportC
 	{
 		// Enable or disable all the other stats depending on the current state
 		const bool bShowDetailed = ViewportClient->IsStatEnabled(TEXT("Detailed"));
-		SetSimpleStats(World, ViewportClient, DetailedStats, bShowDetailed);
+		SetEngineStats(World, ViewportClient, DetailedStats, bShowDetailed);
 
 		// Extra stat, needs to do the opposite of the others (order of exec unimportant)
-		SetSimpleStat(World, ViewportClient, TEXT("UnitTime"), !bShowDetailed);
+		SetEngineStat(World, ViewportClient, TEXT("UnitTime"), !bShowDetailed);
 	}
 
 	return true;
@@ -9833,7 +9833,7 @@ bool UEngine::ToggleStatFPS(UWorld* World, FCommonViewportClient* ViewportClient
 	if (!bShowFPS && bShowDetailed)
 	{
 		// Since we're turning this off, we also need to toggle off detailed too
-		ExecSimpleStat(World, ViewportClient, TEXT("Detailed -Skip"));
+		ExecEngineStat(World, ViewportClient, TEXT("Detailed -Skip"));
 	}
 
 	return true;
@@ -10156,10 +10156,10 @@ bool UEngine::ToggleStatUnit(UWorld* World, FCommonViewportClient* ViewportClien
 	if (bShowUnitMaxTimes != false)
 	{
 		// Toggle UnitMax back to Inactive
-		ExecSimpleStat(World, ViewportClient, TEXT("UnitMax"));
+		ExecEngineStat(World, ViewportClient, TEXT("UnitMax"));
 
 		// Force Unit back to Active if turning UnitMax off
-		SetSimpleStat(World, ViewportClient, TEXT("Unit"), true);
+		SetEngineStat(World, ViewportClient, TEXT("Unit"), true);
 	}
 
 	const bool bShowUnitTimes = ViewportClient->IsStatEnabled(TEXT("Unit"));
@@ -10167,7 +10167,7 @@ bool UEngine::ToggleStatUnit(UWorld* World, FCommonViewportClient* ViewportClien
 	if (!bShowUnitTimes && bShowDetailed)
 	{
 		// Since we're turning this off, we also need to toggle off detailed too
-		ExecSimpleStat(World, ViewportClient, TEXT("Detailed -Skip"));
+		ExecEngineStat(World, ViewportClient, TEXT("Detailed -Skip"));
 	}
 
 	return true;
@@ -10193,10 +10193,10 @@ bool UEngine::ToggleStatUnitMax(UWorld* World, FCommonViewportClient* ViewportCl
 	if (bShowUnitMaxTimes)
 	{
 		// Force Unit to Active
-		SetSimpleStat(World, ViewportClient, TEXT("Unit"), true);
+		SetEngineStat(World, ViewportClient, TEXT("Unit"), true);
 
 		// Force UnitMax to true as Unit will have Toggled it back to false
-		SetSimpleStat(World, ViewportClient, TEXT("UnitMax"), true);
+		SetEngineStat(World, ViewportClient, TEXT("UnitMax"), true);
 	}
 	else
 	{
@@ -10204,7 +10204,7 @@ bool UEngine::ToggleStatUnitMax(UWorld* World, FCommonViewportClient* ViewportCl
 		if (bShowDetailed)
 		{
 			// Since we're turning this off, we also need to toggle off detailed too
-			ExecSimpleStat(World, ViewportClient, TEXT("Detailed -Skip"));
+			ExecEngineStat(World, ViewportClient, TEXT("Detailed -Skip"));
 		}
 	}
 	return true;
@@ -10218,10 +10218,10 @@ bool UEngine::ToggleStatUnitGraph(UWorld* World, FCommonViewportClient* Viewport
 	if (bShowUnitTimeGraph)
 	{
 		// Force Unit to Active
-		SetSimpleStat(World, ViewportClient, TEXT("Unit"), true);
+		SetEngineStat(World, ViewportClient, TEXT("Unit"), true);
 
 		// Force UnitTime to Active
-		SetSimpleStat(World, ViewportClient, TEXT("UnitTime"), true);	
+		SetEngineStat(World, ViewportClient, TEXT("UnitTime"), true);	
 	}
 	else
 	{
@@ -10229,7 +10229,7 @@ bool UEngine::ToggleStatUnitGraph(UWorld* World, FCommonViewportClient* Viewport
 		if (bShowDetailed)
 		{
 			// Since we're turning this off, we also need to toggle off detailed too
-			ExecSimpleStat(World, ViewportClient, TEXT("Detailed -Skip"));
+			ExecEngineStat(World, ViewportClient, TEXT("Detailed -Skip"));
 		}
 	}
 	return true;
@@ -10243,7 +10243,7 @@ bool UEngine::ToggleStatRaw(UWorld* World, FCommonViewportClient* ViewportClient
 	if (!bShowRaw && bShowDetailed)
 	{
 		// Since we're turning this off, we also need to toggle off detailed too
-		ExecSimpleStat(World, ViewportClient, TEXT("Detailed -Skip"));
+		ExecEngineStat(World, ViewportClient, TEXT("Detailed -Skip"));
 	}
 
 	return true;

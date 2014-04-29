@@ -2449,7 +2449,7 @@ public:
 	 * @param ViewportClient - The viewport to apply the exec to
 	 * @param InName - The exec string
 	 */
-	void ExecSimpleStat(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* InName);
+	void ExecEngineStat(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* InName);
 
 	/**
 	 * Check to see if the specified stat name is a simple stat
@@ -2457,7 +2457,7 @@ public:
 	 * @param InName - The name of the stat we're checking
 	 * @returns true if the stat is a registered simple stat
 	 */
-	bool IsSimpleStat(const FString& InName);
+	bool IsEngineStat(const FString& InName);
 
 	/**
 	 * Set the state of the specified stat
@@ -2467,7 +2467,7 @@ public:
 	 * @param InName - The stat name
 	 * @param bShow - The state we would like the stat to be in
 	 */
-	void SetSimpleStat(UWorld* World, FCommonViewportClient* ViewportClient, const FString& InName, const bool bShow);
+	void SetEngineStat(UWorld* World, FCommonViewportClient* ViewportClient, const FString& InName, const bool bShow);
 
 	/**
 	 * Set the state of the specified stats (note: array processed in reverse order when !bShow)
@@ -2477,7 +2477,7 @@ public:
 	 * @param InNames - The stat names
 	 * @param bShow - The state we would like the stat to be in
 	 */
-	void SetSimpleStats(UWorld* World, FCommonViewportClient* ViewportClient, const TArray<FString>& InNames, const bool bShow);
+	void SetEngineStats(UWorld* World, FCommonViewportClient* ViewportClient, const TArray<FString>& InNames, const bool bShow);
 
 	/**
 	 * Function to render all the simple stats
@@ -2492,7 +2492,7 @@ public:
 	 * @param ViewLocation - The world space view location
 	 * @param ViewRotation - The world space view rotation
 	 */
-	void RenderSimpleStats(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 LHSX, int32& InOutLHSY, int32 RHSX, int32& InOutRHSY, const FVector* ViewLocation, const FRotator* ViewRotation);
+	void RenderEngineStats(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 LHSX, int32& InOutLHSY, int32 RHSX, int32& InOutRHSY, const FVector* ViewLocation, const FRotator* ViewRotation);
 
 private:
 	/**
@@ -2506,7 +2506,7 @@ private:
 	 * @param ViewLocation - The world space view location
 	 * @param ViewRotation - The world space view rotation
 	 */
-	typedef int32 (UEngine::*SimpleStatRender)(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation, const FRotator* ViewRotation);
+	typedef int32 (UEngine::*EngineStatRender)(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation, const FRotator* ViewRotation);
 
 	/**
 	 * Function definition for those stats which have their own toggle funcsions (or toggle other stats)
@@ -2515,10 +2515,10 @@ private:
 	 * @param ViewportClient - The viewport being drawn to
 	 * @param Stream - The remaining characters from the Exec call
 	 */
-	typedef bool (UEngine::*SimpleStatToggle)(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream);
+	typedef bool (UEngine::*EngineStatToggle)(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream);
 
 	/** Struct for keeping track off all the info regarding a specific simple stat exec */
-	struct FSimpleStatFuncs
+	struct FEngineStatFuncs
 	{
 		/** The name of the command, e.g. STAT FPS would just have FPS as it's CommandName */
 		FName CommandName;
@@ -2531,17 +2531,17 @@ private:
 
 		/** The function needed to render the stat when it's enabled 
 		 *  Note: This is only called when it should be rendered */
-		SimpleStatRender RenderFunc;
+		EngineStatRender RenderFunc;
 
 		/** The function we call after the stat has been toggled 
 		 *  Note: This is only needed if you need to do something else depending on the state of the stat */
-		SimpleStatToggle ToggleFunc;
+		EngineStatToggle ToggleFunc;
 
 		/** If true, this stat should render on the right side of the viewport, otherwise left */
 		bool bIsRHS;
 
 		/** Constructor */
-		FSimpleStatFuncs(const FName& InCommandName, const FName& InCategoryName, const FText& InDescriptionString, SimpleStatRender InRenderFunc = NULL, SimpleStatToggle InToggleFunc = NULL, const bool bInIsRHS = false)
+		FEngineStatFuncs(const FName& InCommandName, const FName& InCategoryName, const FText& InDescriptionString, EngineStatRender InRenderFunc = NULL, EngineStatToggle InToggleFunc = NULL, const bool bInIsRHS = false)
 			: CommandName(InCommandName)
 			, CategoryName(InCategoryName)
 			, DescriptionString(InDescriptionString)
@@ -2553,11 +2553,11 @@ private:
 	};
 
 	/** A list of all the simple stats functions that have been registered */
-	TArray<FSimpleStatFuncs> SimpleStats;
+	TArray<FEngineStatFuncs> EngineStats;
 
 private:
 	/**
-	 * Functions for performing other actions when the stat is toggled, should only be used when registering with SimpleStats
+	 * Functions for performing other actions when the stat is toggled, should only be used when registering with EngineStats
 	 *
 	 * @param World	- The world being drawn to
 	 * @param ViewportClient - The viewport being drawn to
@@ -2576,7 +2576,7 @@ private:
 	bool ToggleStatSounds(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = NULL);
 
 	/**
-	 * Functions for rendering the various simple stats, should only be used when registering with SimpleStats
+	 * Functions for rendering the various simple stats, should only be used when registering with EngineStats
 	 *
 	 * @param World	- The world being drawn to
 	 * @param ViewportClient - The viewport being drawn to

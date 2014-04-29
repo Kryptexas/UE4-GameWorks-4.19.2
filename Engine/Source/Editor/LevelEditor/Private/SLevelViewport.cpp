@@ -289,12 +289,12 @@ void SLevelViewport::ConstructLevelEditorViewportClient( const FArguments& InArg
 	LevelViewportClient->SetShowStats(ViewportInstanceSettings.bShowStats);
 	if (ViewportInstanceSettings.bShowFPS_DEPRECATED)
 	{
-		GetMutableDefault<ULevelEditorViewportSettings>()->bSaveSimpleStats = true;
+		GetMutableDefault<ULevelEditorViewportSettings>()->bSaveEngineStats = true;
 		ViewportInstanceSettings.EnabledStats.AddUnique(TEXT("FPS"));
 	}
-	if (GetDefault<ULevelEditorViewportSettings>()->bSaveSimpleStats)
+	if (GetDefault<ULevelEditorViewportSettings>()->bSaveEngineStats)
 	{
-		GEngine->SetSimpleStats(GetWorld(), LevelViewportClient.Get(), ViewportInstanceSettings.EnabledStats, true);
+		GEngine->SetEngineStats(GetWorld(), LevelViewportClient.Get(), ViewportInstanceSettings.EnabledStats, true);
 	}
 	LevelViewportClient->VisibilityDelegate.BindSP( this, &SLevelViewport::IsVisible );
 	LevelViewportClient->ImmersiveDelegate.BindSP( this, &SLevelViewport::IsImmersive );
@@ -1710,7 +1710,7 @@ void SLevelViewport::OnToggleAllStatCommands( bool bVisible )
 
 void SLevelViewport::ToggleStatCommand(FString CommandName)
 {
-	GEngine->ExecSimpleStat(GetWorld(), LevelViewportClient.Get(), *CommandName);
+	GEngine->ExecEngineStat(GetWorld(), LevelViewportClient.Get(), *CommandName);
 }
 
 bool SLevelViewport::IsShowFlagEnabled( uint32 EngineShowFlagIndex ) const
@@ -1768,7 +1768,7 @@ void SLevelViewport::SaveConfig(const FString& ConfigName)
 	ViewportInstanceSettings.FOVAngle = LevelViewportClient->FOVAngle;
 	ViewportInstanceSettings.bIsRealtime = LevelViewportClient->IsRealtime();
 	ViewportInstanceSettings.bShowStats = LevelViewportClient->ShouldShowStats();
-	if (GetDefault<ULevelEditorViewportSettings>()->bSaveSimpleStats)
+	if (GetDefault<ULevelEditorViewportSettings>()->bSaveEngineStats)
 	{
 		const TArray<FString>* EnabledStats = NULL;
 

@@ -368,9 +368,9 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=LookAndFeel, meta=(ClampMin="-10",ClampMax="150") )
 	int32 TransformWidgetSizeAdjustment;
 
-	/** When enabled, simple stats that are enabled in level viewports are preserved between editor sessions */
+	/** When enabled, engine stats that are enabled in level viewports are preserved between editor sessions */
 	UPROPERTY(EditAnywhere, config, Category = LookAndFeel)
-	uint32 bSaveSimpleStats : 1;
+	uint32 bSaveEngineStats : 1;
 
 public:
 
