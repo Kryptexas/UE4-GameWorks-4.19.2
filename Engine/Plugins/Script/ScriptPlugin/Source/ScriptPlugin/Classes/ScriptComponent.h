@@ -12,6 +12,7 @@ public:
 	virtual void Tick(float DeltaTime) = 0;
 	virtual void Destroy() = 0;
 	virtual bool CanTick() = 0;
+	virtual ~FScriptContextBase() {}
 };
 
 /** Component that allows you to specify custom triangle mesh geometry */
