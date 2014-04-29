@@ -65,16 +65,6 @@ void SBorder::ClearContent()
 	ChildSlot = FSimpleSlot();
 }
 
-void SBorder::SetBorderBackgroundColor( const TAttribute<FSlateColor>& InColorAndOpacity )
-{
-	BorderBackgroundColor = InColorAndOpacity;
-}
-
-void SBorder::SetDesiredSizeScale( const TAttribute<FVector2D>& InDesiredSizeScale )
-{
-	DesiredSizeScale = InDesiredSizeScale;
-}
-
 
 /**
  * The widget should respond by populating the OutDrawElements array with FDrawElements 

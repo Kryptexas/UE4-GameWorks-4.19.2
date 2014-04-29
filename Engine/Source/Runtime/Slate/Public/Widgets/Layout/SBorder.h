@@ -86,11 +86,29 @@ public:
 	/** Clears out the content for the border */
 	void ClearContent();
 
+	/** Gets the color and opacity of the background image of this border. */
+	FSlateColor GetBorderBackgroundColor()
+	{
+		return BorderBackgroundColor.Get();
+	}
+
 	/** Sets the color and opacity of the background image of this border. */
-	void SetBorderBackgroundColor( const TAttribute<FSlateColor>& InColorAndOpacity );
+	void SetBorderBackgroundColor( const TAttribute<FSlateColor>& InColorAndOpacity )
+	{
+		BorderBackgroundColor = InColorAndOpacity;
+	}
 
 	/** Set the desired size scale multiplier */
-	void SetDesiredSizeScale( const TAttribute<FVector2D>& InDesiredSizeScale );
+	FVector2D GetDesiredSizeScale()
+	{
+		return DesiredSizeScale.Get();
+	}
+
+	/** Set the desired size scale multiplier */
+	void SetDesiredSizeScale( const TAttribute<FVector2D>& InDesiredSizeScale )
+	{
+		DesiredSizeScale = InDesiredSizeScale;
+	}
 
 public:
 	// SWidget interface

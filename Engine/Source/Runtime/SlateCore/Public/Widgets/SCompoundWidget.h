@@ -39,6 +39,14 @@ public:
 	}
 
 	/**
+	 * Gets the widget's color.
+	 */
+	FLinearColor GetColorAndOpacity() const
+	{
+		return ColorAndOpacity.Get();
+	}
+
+	/**
 	 * Sets the widget's color.
 	 *
 	 * @param InColorAndOpacity The ColorAndOpacity to be applied to this widget and all its contents.
