@@ -10,7 +10,7 @@
 // Behavior tree debugger in editor
 #define USE_BEHAVIORTREE_DEBUGGER	(1 && WITH_EDITORONLY_DATA)
 
-DECLARE_STATS_GROUP(TEXT("BehaviorTree"),STATGROUP_AIBehaviorTree);
+DECLARE_STATS_GROUP(TEXT("Behavior Tree"), STATGROUP_AIBehaviorTree, STATCAT_Advanced);
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Tick"),STAT_AI_BehaviorTree_Tick,STATGROUP_AIBehaviorTree, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Load Time"),STAT_AI_BehaviorTree_LoadTime,STATGROUP_AIBehaviorTree, );

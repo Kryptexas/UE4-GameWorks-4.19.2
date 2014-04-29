@@ -8,7 +8,7 @@
 bool bSuppressProfiledFileLog = false;
 DEFINE_LOG_CATEGORY(LogProfiledFile);
 
-DECLARE_STATS_GROUP(TEXT("File Stats"), STATGROUP_FileStats);
+DECLARE_STATS_GROUP(TEXT("File Stats"), STATGROUP_FileStats, STATCAT_Advanced);
 DECLARE_FLOAT_COUNTER_STAT(TEXT("Read Speed MB/s"), STAT_ReadSpeedMBs, STATGROUP_FileStats);
 DECLARE_DWORD_COUNTER_STAT(TEXT("Read Calls"), STAT_ReadIssued, STATGROUP_FileStats);
 DECLARE_FLOAT_COUNTER_STAT(TEXT("Read Size KB"), STAT_ReadSize, STATGROUP_FileStats);

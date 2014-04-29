@@ -250,6 +250,9 @@ public:
 	/** See if the specified actor's ActorPreview is pinned or not */
 	bool IsActorPreviewPinned(TWeakObjectPtr<AActor> PreviewActor);
 
+	/** Actions to perform whenever the viewports floating buttons are pressed */
+	void OnFloatingButtonClicked();
+
 protected:
 	/** SEditorViewport interface */
 	virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() OVERRIDE;
@@ -300,12 +303,6 @@ private:
 	bool AreStatsEnabled() const;
 
 	/**
-	 * Called when FPS should be visible in the viewport                   
-	 * NOTE: This enables realtime as well because we cant render fps without the viewport being realtime
-	 */
-	void OnToggleFPS();
-
-	/**
 	 * @return true if FPS is visible in the viewport                   
 	 */
 	bool IsShowingFPS() const;
@@ -345,7 +342,7 @@ private:
 	 *
 	 * @param Visible					true if volumes should be visible, false otherwise
 	 */
-	void OnToggleAllVolumeActors( int32 Visible );
+	void OnToggleAllVolumeActors( bool bVisible );
 
 	/**
 	 * Toggles volume classes visibility
@@ -366,28 +363,42 @@ private:
 	 *
 	 * @param Visible					true if layers should be visible, false otherwise
 	 */
-	void OnToggleAllLayers( int32 Visible );
+	void OnToggleAllLayers( bool bVisible );
 
 	/**
 	 * Toggles all sprite categories visibility
 	 *
 	 * @param Visible					true if sprites should be visible, false otherwise
 	 */
-	void OnToggleAllSpriteCategories( int32 Visible );
+	void OnToggleAllSpriteCategories( bool bVisible );
 
 	/**
 	 * Toggles sprite category visibility in this viewport
 	 *
-	 * @param CategoryID					Index of the category
+	 * @param CategoryID				Index of the category
 	 */
 	void ToggleSpriteCategory( int32 CategoryID );
 
 	/**
 	 * Checks if sprite category is visible in this viewport
 	 *
-	 * @param LayerID					Index of the category
+	 * @param CategoryID				Index of the category
 	 */
 	bool IsSpriteCategoryVisible( int32 CategoryID ) const;
+
+	/**
+	 * Toggles all Stat commands visibility
+	 *
+	 * @param Visible					true if Stats should be visible, false otherwise
+	 */
+	void OnToggleAllStatCommands(bool bVisible);
+
+	/**
+	 * Toggles Stat command visibility in this viewport
+	 *
+	 * @param CommandName				Name of the command
+	 */
+	virtual void ToggleStatCommand(FString CommandName) OVERRIDE;
 
 	/**
 	 * Called when show flags for this viewport should be reset to default
@@ -525,6 +536,14 @@ private:
 	 * @param CommandList	The list to bind commands to
 	 */
 	void BindDropCommands( FUICommandList& CommandList );
+
+	/**
+	* Binds commands for our stat menu, also used as a delegate listener
+	*
+	* @param InMenuItem		The menu item we need to bind
+	* @param InCommandName	The command used by the functions
+	*/
+	void BindStatCommand(const TSharedPtr<FUICommandInfo> InMenuItem, const FString& InCommandName);
 
 	/**
 	 * Called to get the visibility of the level viewport toolbar

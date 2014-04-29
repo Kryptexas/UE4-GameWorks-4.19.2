@@ -468,6 +468,12 @@ public:
 
 	void RenderDragTool( const FSceneView* View,FCanvas* Canvas );
 
+	/** Set the global ptr to the current viewport */
+	void SetCurrentViewport();
+
+	/** Set the global ptr to the last viewport to receive a key press */
+	void SetLastKeyViewport();
+
 	/** 
 	 * Gets the world space cursor info from the current mouse position
 	 * 
@@ -523,6 +529,87 @@ public:
 		return ActorLockedByMatinee.IsValid();
 	}
 
+	/**
+	 * Get a ptr to the stat unit data for this viewport
+	 */
+	virtual FStatUnitData* GetStatUnitData() const OVERRIDE
+	{
+		return StatUnitData;
+	}
+
+	/**
+	 * Get a ptr to the stat unit data for this viewport
+	 */
+	virtual FStatHitchesData* GetStatHitchesData() const OVERRIDE
+	{
+		return StatHitchesData;
+	}
+
+	/**
+	 * Get a ptr to the enabled stats list
+	 */
+	virtual const TArray<FString>* GetEnabledStats() const OVERRIDE
+	{
+		return &EnabledStats;
+	}
+
+	/**
+	 * Sets all the stats that should be enabled for the viewport
+	 */
+	virtual void SetEnabledStats(const TArray<FString>& InEnabledStats) OVERRIDE
+	{
+		EnabledStats = InEnabledStats;
+	}
+
+	/**
+	 * Check whether a specific stat is enabled for this viewport
+	 */
+	virtual bool IsStatEnabled(const TCHAR* InName) const OVERRIDE
+	{
+		return EnabledStats.Contains(InName);
+	}
+
+	/**
+	 * Get the sound stat flags enabled for this viewport
+	 */
+	virtual ESoundShowFlags::Type GetSoundShowFlags() const OVERRIDE
+	{ 
+		return ESoundShowFlags::Disabled;
+	}
+
+	/**
+	 * Set the sound stat flags enabled for this viewport
+	 */
+	virtual void SetSoundShowFlags(const ESoundShowFlags::Type InSoundShowFlags) OVERRIDE
+	{
+		SoundShowFlags = InSoundShowFlags;
+	}
+
+private:
+	/**
+	 * Set a specific stat to either enabled or disabled (returns true if there are any stats enabled)
+	 */
+	int32 SetStatEnabled(const TCHAR* InName, const bool bEnable, const bool bAll = false)
+	{
+		if (bEnable)
+		{
+			check(!bAll);	// Not possible to enable all
+			EnabledStats.AddUnique(InName);
+		}
+		else
+		{
+			if (bAll)
+			{
+				EnabledStats.Empty();
+			}
+			else
+			{
+				EnabledStats.Remove(InName);
+			}
+		}
+		return EnabledStats.Num();
+	}
+
 protected:
 	/** 
 	 * Checks the viewport to see if the given blueprint asset can be dropped on the viewport.
@@ -531,7 +618,6 @@ protected:
 	 * @return true if asset can be dropped, false otherwise
 	 */
 	bool CanDropBlueprintAsset ( const struct FSelectedAssetInfo& );
-
 
 	/** Called when editor cleanse event is triggered */
 	void OnEditorCleanse();
@@ -661,6 +747,18 @@ private:
 	void ModifyScale( AActor* InActor, FVector& ScaleDelta, bool bCheckSmallExtent = false ) const;
 	void ValidateScale( const FVector& CurrentScale, const FVector& BoxExtent, FVector& ScaleDelta, bool bCheckSmallExtent = false ) const;
 
+	/** Delegate handler to see if a stat is enabled on this viewport */
+	void HandleViewportStatCheckEnabled(const TCHAR* InName, bool& bOutCurrentEnabled, bool& bOutOthersEnabled);
+
+	/** Delegate handler for when stats are enabled in a viewport */
+	void HandleViewportStatEnabled(const TCHAR* InName);
+
+	/** Delegate handler for when stats are disabled in a viewport */
+	void HandleViewportStatDisabled(const TCHAR* InName);
+
+	/** Delegate handler for when all stats are disabled in a viewport */
+	void HandleViewportStatDisableAll(const bool bInAnyViewport);
+
 public:
 	/** Static: List of objects we're hovering over */
 	static TSet< FViewportHoverTarget > HoveredObjects;
@@ -714,11 +812,11 @@ public:
 	*/
 	bool					bDuplicateActorsInProgress;
 
-
 	/**
 	 * true when a brush is being transformed by its Widget
 	 */
 	bool					bIsTrackingBrushModification;
+
 private:
 	/** The actors that are currently being placed in the viewport via dragging */
 	static TArray< TWeakObjectPtr< AActor > > DropPreviewActors;
@@ -753,4 +851,16 @@ private:
 
 	/** When the viewpoint is locked to an actor (by Matinee) this references the actor, invalid if not locked */
 	TWeakObjectPtr<AActor>	ActorLockedByMatinee;
+
+	/** Data needed to display perframe stat tracking when STAT UNIT is enabled */
+	FStatUnitData*			StatUnitData;
+
+	/** Data needed to display perframe stat tracking when STAT HITCHES is enabled */
+	FStatHitchesData*		StatHitchesData;
+
+	/** A list of all the stat names which are enabled for this viewport */
+	TArray<FString>			EnabledStats;
+
+	/** Those sound stat flags which are enabled on this viewport */
+	ESoundShowFlags::Type	SoundShowFlags;
 };

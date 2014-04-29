@@ -1064,6 +1064,26 @@ void FSceneViewport::OnPlayWorldViewportSwapped( const FSceneViewport& OtherView
 		// as they continue to resize the window.
 		Invalidate();
 	}
+
+	// Play world viewports should transfer active stats so it doesn't appear like a seperate viewport
+	SwapStatCommands(OtherViewport);
+}
+
+
+void FSceneViewport::SwapStatCommands( const FSceneViewport& OtherViewport )
+{
+	FViewportClient* ClientA = GetClient();
+	FViewportClient* ClientB = OtherViewport.GetClient();
+	check(ClientA && ClientB);
+	// Only swap if both viewports have stats
+	const TArray<FString>* StatsA = ClientA->GetEnabledStats();
+	const TArray<FString>* StatsB = ClientB->GetEnabledStats();
+	if (StatsA && StatsB)
+	{
+		const TArray<FString> StatsCopy = *StatsA;
+		ClientA->SetEnabledStats(*StatsB);
+		ClientB->SetEnabledStats(StatsCopy);
+	}
 }
 
 void FSceneViewport::InitDynamicRHI()

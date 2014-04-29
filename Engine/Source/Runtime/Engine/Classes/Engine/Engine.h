@@ -1538,7 +1538,7 @@ public:
 	bool HandleFlushLogCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleExitCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleGameVerCommand( const TCHAR* Cmd, FOutputDevice& Ar );
-	bool HandleStatCommand( const TCHAR* Cmd, FOutputDevice& Ar );
+	bool HandleStatCommand( UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleStartMovieCaptureCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleStopMovieCaptureCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleCrackURLCommand( const TCHAR* Cmd, FOutputDevice& Ar );
@@ -1651,6 +1651,11 @@ public:
 	 * Returns the average game/render/gpu/total time since this function was last called
 	 */
 	void GetAverageUnitTimes( TArray<float>& AverageTimes );
+
+	/**
+	 * Updates the values used to calculate the average game/render/gpu/total time
+	 */
+	void SetAverageUnitTimes(float FrameTime, float RenderThreadTime, float GameThreadTime, float GPUFrameTime);
 
 protected:
 	/** 
@@ -2425,4 +2430,182 @@ public:
 
 private:
 	void CreateGameUserSettings();
+
+public:
+	/**
+	 * Delegate we fire every time a new stat has been registered
+	 *
+	 * @param FName	- The name of the new stat
+	 * @param FName - The category of the new stat
+	 * @param FText - The description of the new stat
+	 */
+	DECLARE_EVENT_ThreeParams(UEngine, FOnNewStatRegistered, const FName&, const FName&, const FText&);
+	static FOnNewStatRegistered NewStatDelegate;
+	
+	/**
+	 * Wrapper for firing a simple stat exec
+	 *
+	 * @param World	- The world to apply the exec to
+	 * @param ViewportClient - The viewport to apply the exec to
+	 * @param InName - The exec string
+	 */
+	void ExecSimpleStat(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* InName);
+
+	/**
+	 * Check to see if the specified stat name is a simple stat
+	 *
+	 * @param InName - The name of the stat we're checking
+	 * @returns true if the stat is a registered simple stat
+	 */
+	bool IsSimpleStat(const FString& InName);
+
+	/**
+	 * Set the state of the specified stat
+	 *
+	 * @param World	- The world to apply the exec to
+	 * @param ViewportClient - The viewport to apply the exec to
+	 * @param InName - The stat name
+	 * @param bShow - The state we would like the stat to be in
+	 */
+	void SetSimpleStat(UWorld* World, FCommonViewportClient* ViewportClient, const FString& InName, const bool bShow);
+
+	/**
+	 * Set the state of the specified stats (note: array processed in reverse order when !bShow)
+	 *
+	 * @param World	- The world to apply the exec to
+	 * @param ViewportClient - The viewport to apply the exec to
+	 * @param InNames - The stat names
+	 * @param bShow - The state we would like the stat to be in
+	 */
+	void SetSimpleStats(UWorld* World, FCommonViewportClient* ViewportClient, const TArray<FString>& InNames, const bool bShow);
+
+	/**
+	 * Function to render all the simple stats
+	 *
+	 * @param World	- The world being drawn to
+	 * @param ViewportClient - The viewport being drawn to
+	 * @param Canvas - The canvas to use when drawing
+	 * @param LHSX - The left hand side X position to start drawing from
+	 * @param InOutLHSY - The left hand side Y position to start drawing from
+	 * @param RHSX - The right hand side X position to start drawing from
+	 * @param InOutRHSY - The right hand side Y position to start drawing from
+	 * @param ViewLocation - The world space view location
+	 * @param ViewRotation - The world space view rotation
+	 */
+	void RenderSimpleStats(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 LHSX, int32& InOutLHSY, int32 RHSX, int32& InOutRHSY, const FVector* ViewLocation, const FRotator* ViewRotation);
+
+private:
+	/**
+	 * Function definition for those stats which have their own render funcsions (or affect another render functions)
+	 *
+	 * @param World	- The world being drawn to
+	 * @param ViewportClient - The viewport being drawn to
+	 * @param Canvas - The canvas to use when drawing
+	 * @param X - The X position to draw to
+	 * @param Y - The Y position to draw to
+	 * @param ViewLocation - The world space view location
+	 * @param ViewRotation - The world space view rotation
+	 */
+	typedef int32 (UEngine::*SimpleStatRender)(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation, const FRotator* ViewRotation);
+
+	/**
+	 * Function definition for those stats which have their own toggle funcsions (or toggle other stats)
+	 *
+	 * @param World	- The world being drawn to
+	 * @param ViewportClient - The viewport being drawn to
+	 * @param Stream - The remaining characters from the Exec call
+	 */
+	typedef bool (UEngine::*SimpleStatToggle)(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream);
+
+	/** Struct for keeping track off all the info regarding a specific simple stat exec */
+	struct FSimpleStatFuncs
+	{
+		/** The name of the command, e.g. STAT FPS would just have FPS as it's CommandName */
+		FName CommandName;
+
+		/** The category the command falls into (only used by UI) */
+		FName CategoryName;
+
+		/** The description of what this command does (only used by UI) */
+		FText DescriptionString;
+
+		/** The function needed to render the stat when it's enabled 
+		 *  Note: This is only called when it should be rendered */
+		SimpleStatRender RenderFunc;
+
+		/** The function we call after the stat has been toggled 
+		 *  Note: This is only needed if you need to do something else depending on the state of the stat */
+		SimpleStatToggle ToggleFunc;
+
+		/** If true, this stat should render on the right side of the viewport, otherwise left */
+		bool bIsRHS;
+
+		/** Constructor */
+		FSimpleStatFuncs(const FName& InCommandName, const FName& InCategoryName, const FText& InDescriptionString, SimpleStatRender InRenderFunc = NULL, SimpleStatToggle InToggleFunc = NULL, const bool bInIsRHS = false)
+			: CommandName(InCommandName)
+			, CategoryName(InCategoryName)
+			, DescriptionString(InDescriptionString)
+			, RenderFunc(InRenderFunc)
+			, ToggleFunc(InToggleFunc)
+			, bIsRHS(bInIsRHS)
+		{
+		}
+	};
+
+	/** A list of all the simple stats functions that have been registered */
+	TArray<FSimpleStatFuncs> SimpleStats;
+
+private:
+	/**
+	 * Functions for performing other actions when the stat is toggled, should only be used when registering with SimpleStats
+	 *
+	 * @param World	- The world being drawn to
+	 * @param ViewportClient - The viewport being drawn to
+	 * @param Stream - The remaining characters from the Exec call (optional)
+	 */
+	bool ToggleStatFPS(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = NULL);
+	bool ToggleStatDetailed(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = NULL);
+	bool ToggleStatHitches(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = NULL);
+	bool ToggleStatNamedEvents(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = NULL);
+	bool ToggleStatUnit(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = NULL);
+#if !UE_BUILD_SHIPPING
+	bool ToggleStatUnitMax(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = NULL);
+	bool ToggleStatUnitGraph(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = NULL);
+	bool ToggleStatRaw(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = NULL);
+#endif
+	bool ToggleStatSounds(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = NULL);
+
+	/**
+	 * Functions for rendering the various simple stats, should only be used when registering with SimpleStats
+	 *
+	 * @param World	- The world being drawn to
+	 * @param ViewportClient - The viewport being drawn to
+	 * @param Canvas - The canvas to use when drawing
+	 * @param X - The X position to draw to
+	 * @param Y - The Y position to draw to
+	 * @param ViewLocation - The world space view location
+	 * @param ViewRotation - The world space view rotation
+	 */
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	int32 RenderStatVersion(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
+#endif
+	int32 RenderStatFPS(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
+	int32 RenderStatHitches(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
+	int32 RenderStatSummary(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
+	int32 RenderStatNamedEvents(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
+	int32 RenderStatColorList(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
+	int32 RenderStatLevels(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
+	int32 RenderStatLevelMap(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
+	int32 RenderStatUnit(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	int32 RenderStatReverb(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
+	int32 RenderStatSoundMixes(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
+	int32 RenderStatSoundWaves(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
+	int32 RenderStatSoundCues(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
+#endif
+	int32 RenderStatSounds(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
+	int32 RenderStatAI(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
+#if STATS
+	int32 RenderStatSlateBatches(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
+#endif
 };

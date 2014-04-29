@@ -216,8 +216,21 @@ public:
 	// save state when ApplicationWillEnterBackgroundDelegate is called instead.
 	static FApplicationLifetimeDelegate ApplicationWillTerminateDelegate;
 
-	/** Sent after stats are enabled */
-	static FSimpleMulticastDelegate StatsEnabled;
+	/** Checks to see if the stat is already enabled */
+	DECLARE_MULTICAST_DELEGATE_ThreeParams(FStatCheckEnabled, const TCHAR*, bool&, bool&);
+	static FStatCheckEnabled StatCheckEnabled;
+
+	/** Sent after each stat is enabled */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FStatEnabled, const TCHAR*);
+	static FStatEnabled StatEnabled;
+
+	/** Sent after each stat is disabled */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FStatDisabled, const TCHAR*);
+	static FStatDisabled StatDisabled;
+
+	/** Sent when all stats need to be disabled */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FStatDisableAll, const bool);
+	static FStatDisableAll StatDisableAll;
 
 private:
 	// Callbacks for hotfixes

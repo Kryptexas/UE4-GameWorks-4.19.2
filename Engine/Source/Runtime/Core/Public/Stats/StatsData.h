@@ -26,6 +26,9 @@ struct CORE_API FStatConstants
 	static const char* ThreadGroupName;
 	static const FName NAME_ThreadGroup;
 
+	/** Special case category, when we want to Stat to appear at the root of the menu (leaving the category blank omits it from the menu entirely) */
+	static const FName NAME_NoCategory;
+
 	/** Extension used to save a stats file. */
 	static const FString StatsFileExtension;
 
@@ -164,7 +167,7 @@ struct CORE_API FRawStatStackNode
 
 	/** Constructor, this always and only builds the thread root node. The thread root is not a numeric stat! **/
 	FRawStatStackNode()
-		: Meta(FStatConstants::NAME_ThreadRoot, EStatDataType::ST_None, nullptr, nullptr, false, false)
+		: Meta(FStatConstants::NAME_ThreadRoot, EStatDataType::ST_None, nullptr, nullptr, nullptr, false, false)
 	{
 	}
 
@@ -750,6 +753,47 @@ struct CORE_API FHUDGroupGameThreadRenderer
 	}
 
 	static FHUDGroupGameThreadRenderer& Get();
+};
+
+/**
+ * Singleton that holds a list of newly registered group stats to inform the game thread of
+ */
+struct CORE_API FStatGroupGameThreadNotifier
+{
+public:
+	static FStatGroupGameThreadNotifier& Get();
+
+	void NewData(FStatNameAndInfo NameAndInfo)
+	{
+		NameAndInfos.Add(NameAndInfo);
+	}
+
+	void SendData()
+	{
+		if (NameAndInfos.Num() > 0)
+		{
+			// Should only do this if the delegate has been registered!
+			check(NewStatGroupDelegate.IsBound());
+			NewStatGroupDelegate.Execute(NameAndInfos);
+			ClearData();
+		}
+	}
+
+	void ClearData()
+	{
+		NameAndInfos.Empty();
+	}
+
+	/** Delegate we fire every time new stat groups have been registered */
+	DECLARE_DELEGATE_OneParam(FOnNewStatGroupRegistered, const TArray<FStatNameAndInfo>&);
+	FOnNewStatGroupRegistered NewStatGroupDelegate;
+
+private:
+	FStatGroupGameThreadNotifier(){}
+	~FStatGroupGameThreadNotifier(){}
+
+	/** A list of all the stat groups which need broadcasting */
+	TArray<FStatNameAndInfo> NameAndInfos;
 };
 
 #endif

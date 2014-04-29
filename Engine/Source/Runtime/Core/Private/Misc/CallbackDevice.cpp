@@ -61,4 +61,7 @@ FCoreDelegates::FApplicationLifetimeDelegate FCoreDelegates::ApplicationWillEnte
 FCoreDelegates::FApplicationLifetimeDelegate FCoreDelegates::ApplicationHasEnteredForegroundDelegate;
 FCoreDelegates::FApplicationLifetimeDelegate FCoreDelegates::ApplicationWillTerminateDelegate; 
 
-FSimpleMulticastDelegate FCoreDelegates::StatsEnabled;
+FCoreDelegates::FStatCheckEnabled FCoreDelegates::StatCheckEnabled;
+FCoreDelegates::FStatEnabled FCoreDelegates::StatEnabled;
+FCoreDelegates::FStatDisabled FCoreDelegates::StatDisabled;
+FCoreDelegates::FStatDisableAll FCoreDelegates::StatDisableAll;

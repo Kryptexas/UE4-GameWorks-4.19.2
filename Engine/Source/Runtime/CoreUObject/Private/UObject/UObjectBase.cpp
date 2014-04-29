@@ -173,9 +173,9 @@ void UObjectBase::CreateStatID() const
 	}
 
 	const FName StatName = FName( *LongName );
-	FStartupMessages::Get().AddMetadata( StatName, *LongName, STAT_GROUP_TO_FStatGroup( STATGROUP_UObjects )::GetGroupName(), STAT_GROUP_TO_FStatGroup( STATGROUP_UObjects )::GetDescription(), true, EStatDataType::ST_int64, true );
+	FStartupMessages::Get().AddMetadata( StatName, *LongName, STAT_GROUP_TO_FStatGroup( STATGROUP_UObjects )::GetGroupName(), STAT_GROUP_TO_FStatGroup( STATGROUP_UObjects )::GetGroupCategory(), STAT_GROUP_TO_FStatGroup( STATGROUP_UObjects )::GetDescription(), true, EStatDataType::ST_int64, true );
 
-	StatID = IStatGroupEnableManager::Get().GetHighPerformanceEnableForStat(StatName, STAT_GROUP_TO_FStatGroup(STATGROUP_UObjects)::GetGroupName(), STAT_GROUP_TO_FStatGroup(STATGROUP_UObjects)::DefaultEnable, true, EStatDataType::ST_int64, *LongName, true);
+	StatID = IStatGroupEnableManager::Get().GetHighPerformanceEnableForStat(StatName, STAT_GROUP_TO_FStatGroup(STATGROUP_UObjects)::GetGroupName(), STAT_GROUP_TO_FStatGroup(STATGROUP_UObjects)::GetGroupCategory(), STAT_GROUP_TO_FStatGroup(STATGROUP_UObjects)::DefaultEnable, true, EStatDataType::ST_int64, *LongName, true);
 }
 #endif
 

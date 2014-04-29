@@ -3,6 +3,7 @@
 #include "CorePrivate.h"
 #if STATS
 
+#include "TaskGraphInterfaces.h"
 #include "StatsData.h"
 #include "AllocatorFixedSizeFreeList.h"
 #include "LockFreeFixedSizeAllocator.h"
@@ -20,6 +21,7 @@ DECLARE_DWORD_COUNTER_STAT(TEXT("Frame Messages Condensed"),STAT_StatFramePacket
 const FName FStatConstants::NAME_ThreadRoot = "ThreadRoot";
 const char* FStatConstants::ThreadGroupName = STAT_GROUP_TO_FStatGroup( STATGROUP_Threads )::GetGroupName();
 const FName FStatConstants::NAME_ThreadGroup = FStatConstants::ThreadGroupName;
+const FName FStatConstants::NAME_NoCategory = FName(TEXT("STATCAT_None"));
 
 const FString FStatConstants::StatsFileExtension = TEXT( ".ue4stats" );
 const FString FStatConstants::StatsFileRawExtension = TEXT( ".ue4statsraw" );
@@ -117,7 +119,7 @@ void FRawStatStackNode::Cull(int64 MinCycles, int32 NoCullLevels)
 		{
 			if (!Culled)
 			{
-				Culled = new FRawStatStackNode(FStatMessage(NAME_OtherChildren, EStatDataType::ST_int64, NULL, NULL, true, true));
+				Culled = new FRawStatStackNode(FStatMessage(NAME_OtherChildren, EStatDataType::ST_int64, NULL, NULL, NULL, true, true));
 				Culled->Meta.NameAndInfo.SetFlag(EStatMetaFlags::IsPackedCCAndDuration, true);
 				Culled->Meta.Clear();
 			}
@@ -1017,7 +1019,7 @@ void FStatsThreadState::GetRawStackStats(int64 TargetFrame, FRawStatStackNode& R
 		if (!ThreadRoot)
 		{
 			FString ThreadIdName = FStatsUtils::BuildUniqueThreadName( Packet.ThreadId );
-			ThreadRoot = Root.Children.Add( ThreadName, new FRawStatStackNode( FStatMessage( ThreadName, EStatDataType::ST_int64, STAT_GROUP_TO_FStatGroup( STATGROUP_Threads )::GetGroupName(), *ThreadIdName, true, true ) ) );
+			ThreadRoot = Root.Children.Add( ThreadName, new FRawStatStackNode( FStatMessage( ThreadName, EStatDataType::ST_int64, STAT_GROUP_TO_FStatGroup( STATGROUP_Threads )::GetGroupName(), NULL, *ThreadIdName, true, true ) ) );
 			ThreadRoot->Meta.NameAndInfo.SetFlag(EStatMetaFlags::IsPackedCCAndDuration, true);
 			ThreadRoot->Meta.Clear();
 		}
@@ -1237,7 +1239,7 @@ FName FStatsThreadState::GetStatThreadName( const FStatPacket& Packet ) const
 
 void FStatsThreadState::Condense(int64 TargetFrame, TArray<FStatMessage>& OutStats) const
 {
-	static FStatNameAndInfo Adv(NAME_AdvanceFrame, "", TEXT(""), EStatDataType::ST_int64, true, false);
+	static FStatNameAndInfo Adv(NAME_AdvanceFrame, "", "", TEXT(""), EStatDataType::ST_int64, true, false);
 	new (OutStats) FStatMessage(Adv.GetEncodedName(), EStatOperation::AdvanceFrameEventGameThread, TargetFrame, false);
 	new (OutStats) FStatMessage(Adv.GetEncodedName(), EStatOperation::AdvanceFrameEventRenderThread, TargetFrame, false);
 	FRawStatStackNode Root;
@@ -1249,7 +1251,6 @@ void FStatsThreadState::Condense(int64 TargetFrame, TArray<FStatMessage>& OutSta
 
 void FStatsThreadState::FindOrAddMetaData(FStatMessage const& Item)
 {
-	FName GroupName = Item.NameAndInfo.GetGroupName();
 	FName LongName = Item.NameAndInfo.GetRawName();
 	FName ShortName = Item.NameAndInfo.GetShortName();
 
@@ -1260,12 +1261,14 @@ void FStatsThreadState::FindOrAddMetaData(FStatMessage const& Item)
 		FStatMessage AsSet(Item);
 		AsSet.Clear();
 		
+		const FName GroupName = Item.NameAndInfo.GetGroupName();
+
 		// Whether to add to the threads group.
 		const bool bIsThread = FStatConstants::NAME_ThreadGroup == GroupName;
 		if( bIsThread )
 		{
-			FString Desc;
-			Item.NameAndInfo.GetDescription( Desc );
+			// The description of a thread group contains the thread id
+			const FString Desc = Item.NameAndInfo.GetDescription();
 			Threads.Add( FStatsUtils::ParseThreadID( Desc ), ShortName );
 		}
 
@@ -1290,6 +1293,14 @@ void FStatsThreadState::FindOrAddMetaData(FStatMessage const& Item)
 				MemoryPoolToCapacityLongName.Add(Region, LongName);
 			}
 		}
+
+		// Add the info to the task graph so we can inform the game thread
+		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady
+		(
+			FSimpleDelegateGraphTask::FDelegate::CreateRaw(&FStatGroupGameThreadNotifier::Get(), &FStatGroupGameThreadNotifier::NewData, Item.NameAndInfo)
+			, TEXT("StatsGroupToGame")
+			, nullptr, ENamedThreads::GameThread
+		);
 	}
 	else
 	{
@@ -1350,11 +1361,13 @@ FString FStatsUtils::DebugPrint(FStatMessage const& Item)
 
 	FString Desc;
 	FName Group;
+	FName Category;
 	FName ShortName;
 
 	ShortName = Item.NameAndInfo.GetShortName();
 	Group = Item.NameAndInfo.GetGroupName();
-	Item.NameAndInfo.GetDescription(Desc);
+	Category = Item.NameAndInfo.GetGroupCategory();
+	Desc = Item.NameAndInfo.GetDescription();
 	Desc.Trim();
 
 	if (Desc.Len())
@@ -1368,6 +1381,11 @@ FString FStatsUtils::DebugPrint(FStatMessage const& Item)
 	{
 		GroupStr = TEXT(" - ");
 		GroupStr += *Group.ToString();
+	}
+	if (Category != NAME_None)
+	{
+		GroupStr = TEXT(" - ");
+		GroupStr += *Category.ToString();
 	}
 
 	return FString::Printf(TEXT("  %s  -  %s%s"), *Result, *Desc, *GroupStr);
@@ -1712,5 +1730,16 @@ void FComplexStatUtils::DiviveStatArray( TArray<FComplexStatMessage>& Dest, uint
 	}
 }
 
+/** Broadcast the name and info data about any newly registered stat groups */
+CORE_API void CheckForRegisteredStatGroups()
+{
+	FStatGroupGameThreadNotifier::Get().SendData();
+}
+
+/** Clear the data that's pending to be sent to prevent it accumulating when not claimed by a delegate */
+CORE_API void ClearPendingStatGroups()
+{
+	FStatGroupGameThreadNotifier::Get().ClearData();
+}
 
 #endif

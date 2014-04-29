@@ -243,8 +243,8 @@ void DumpCPUSummary(FStatsThreadState const& StatsData, int64 TargetFrame)
 		FStatMessage const& Item = Data[Index];
 		FName LongName = Item.NameAndInfo.GetRawName();
 
-		FString Desc;
-		Item.NameAndInfo.GetDescription(Desc);
+		// The description of a thread group contains the thread name marker
+		const FString Desc = Item.NameAndInfo.GetDescription();
 		bool bIsThread = Desc.StartsWith( FStatConstants::ThreadNameMarker );
 		bool bIsStall = !bIsThread && Desc.StartsWith("CPU Stall");
 		
@@ -442,11 +442,18 @@ FHUDGroupGameThreadRenderer& FHUDGroupGameThreadRenderer::Get()
 	return Singleton;
 }
 
+FStatGroupGameThreadNotifier& FStatGroupGameThreadNotifier::Get()
+{
+	static FStatGroupGameThreadNotifier Singleton;
+	return Singleton;
+}
+
 struct FInternalGroup
 {
 	/** Initialization constructor. */
-	FInternalGroup( const FName InGroupName, const EStatDisplayMode::Type InDisplayMode, TSet<FName>& InEnabledItems, FString& InGroupDescription )
+	FInternalGroup(const FName InGroupName, const FName InGroupCategory, const EStatDisplayMode::Type InDisplayMode, TSet<FName>& InEnabledItems, FString& InGroupDescription)
 		: GroupName( InGroupName )
+		, GroupCategory(InGroupCategory)
 		, DisplayMode( InDisplayMode )
 	{
 		// To avoid copy.
@@ -459,6 +466,9 @@ struct FInternalGroup
 
 	/** Name of this stat group. */
 	FName GroupName;
+
+	/** Category of this stat group. */
+	FName GroupCategory;
 
 	/** Description of this stat group. */
 	FString GroupDescription;
@@ -531,47 +541,76 @@ struct FHUDGroupManager
 
 		ResizeFramesHistory( Params.MaxHistoryFrames.Get() );
 
-		/** -group=[name] */
-		const FString MaybeGroup = FString(TEXT("STATGROUP_")) + Params.Group.Get().GetPlainNameString();
-		FName MaybeGroupFName(*MaybeGroup);
-		const bool bValidGroupName = Stats.Groups.Contains(MaybeGroupFName);
-		FInternalGroup* InternalGroup = EnabledGroups.Find(MaybeGroupFName);
-
 		static const FName FName_StatGroup_None = TEXT("STATGROUP_None");
-
-		if( bValidGroupName )
+		const FString MaybeStatString = Params.Group.Get().GetPlainNameString();
+		const FName MaybeGroupFName = FName(*(FString(TEXT("STATGROUP_")) + MaybeStatString));
+		if (MaybeGroupFName == FName_StatGroup_None)
 		{
-			if( InternalGroup )
+			// Iterate through all enabled groups.
+			FCoreDelegates::StatDisableAll.Broadcast(true);
+
+			// Remove all groups.
+			EnabledGroups.Empty();
+		}
+		else
+		{
+			// Is this a group stat (as opposed to a simple stat?)
+			const bool bGroupStat = Stats.Groups.Contains(MaybeGroupFName);
+
+			// Check to see if/how this is already enabled.. (default to these incase it's not bound)
+			bool bCurrentEnabled = true;
+			bool bOthersEnabled = false;
+			if (FCoreDelegates::StatCheckEnabled.IsBound())
 			{
-				if( (InternalGroup->DisplayMode & EStatDisplayMode::Hierarchical) && !bHierarchy )
+				FCoreDelegates::StatCheckEnabled.Broadcast(*MaybeStatString, bCurrentEnabled, bOthersEnabled);
+				if (!bCurrentEnabled)
 				{
-					InternalGroup->DisplayMode = EStatDisplayMode::Flat;
-				}
-				else if( (InternalGroup->DisplayMode & EStatDisplayMode::Flat) && bHierarchy )
-				{
-					InternalGroup->DisplayMode = EStatDisplayMode::Hierarchical;
+					FCoreDelegates::StatEnabled.Broadcast(*MaybeStatString);
 				}
 				else
 				{
-					EnabledGroups.Remove( MaybeGroupFName );
-					NumTotalStackFrames = 0;
+					FCoreDelegates::StatDisabled.Broadcast(*MaybeStatString);
 				}
 			}
-			else
+
+			if (bGroupStat)
 			{
-				TSet<FName> EnabledItems;
-				GetStatsForGroup( EnabledItems, MaybeGroupFName );
+				// Is this group stat currently enabled?
+				if (FInternalGroup* InternalGroup = EnabledGroups.Find(MaybeGroupFName))
+				{
+					// If this was only being used by the current viewport, remove it
+					if (bCurrentEnabled && !bOthersEnabled)
+					{
+						if ((InternalGroup->DisplayMode & EStatDisplayMode::Hierarchical) && !bHierarchy)
+						{
+							InternalGroup->DisplayMode = EStatDisplayMode::Flat;
+						}
+						else if ((InternalGroup->DisplayMode & EStatDisplayMode::Flat) && bHierarchy)
+						{
+							InternalGroup->DisplayMode = EStatDisplayMode::Hierarchical;
+						}
+						else
+						{
+							EnabledGroups.Remove(MaybeGroupFName);
+							NumTotalStackFrames = 0;
+						}
+					}
+				}
+				else
+				{
+					// If InternalGroup is null, it shouldn't be being used by any viewports					
+					TSet<FName> EnabledItems;
+					GetStatsForGroup(EnabledItems, MaybeGroupFName);
 
-				FString GroupDescription;
-				Stats.ShortNameToLongName.FindChecked(MaybeGroupFName).NameAndInfo.GetDescription(GroupDescription);
+					const FStatMessage& Group = Stats.ShortNameToLongName.FindChecked(MaybeGroupFName);
 
-				EnabledGroups.Add( MaybeGroupFName, FInternalGroup( MaybeGroupFName, bHierarchy?EStatDisplayMode::Hierarchical:EStatDisplayMode::Flat, EnabledItems, GroupDescription ) );
+					const FName GroupCategory = Group.NameAndInfo.GetGroupCategory();
+
+					FString GroupDescription = Group.NameAndInfo.GetDescription();
+
+					EnabledGroups.Add(MaybeGroupFName, FInternalGroup(MaybeGroupFName, GroupCategory, bHierarchy ? EStatDisplayMode::Hierarchical : EStatDisplayMode::Flat, EnabledItems, GroupDescription));
+				}
 			}
-		}
-		else if( MaybeGroupFName == FName_StatGroup_None )
-		{
-			// Remove all groups.
-			EnabledGroups.Empty();
 		}
 
 		if( EnabledGroups.Num() && !bEnabled )
@@ -579,7 +618,6 @@ struct FHUDGroupManager
 			bEnabled = true;
 			Stats.NewFrameDelegate.AddRaw( this, &FHUDGroupManager::NewFrame );
 			StatsMasterEnableAdd();
-			FCoreDelegates::StatsEnabled.Broadcast();
 		}
 		else if( !EnabledGroups.Num() && bEnabled )
 		{
@@ -775,7 +813,7 @@ struct FHUDGroupManager
 			// Iterate through all enabled groups.
 			for( auto It = EnabledGroups.CreateIterator(); It; ++It )
 			{
-				const FName GroupName = It.Key();
+				const FName& GroupName = It.Key();
 				FInternalGroup& InternalGroup = It.Value();
 
 				// Create a new hud group.
@@ -1243,7 +1281,8 @@ public:
 	/** Console commands, see embeded usage statement **/
 	virtual bool Exec( UWorld*, const TCHAR* Cmd, FOutputDevice& Ar ) OVERRIDE
 	{
-		return DirectStatsCommand(Cmd,false,&Ar);
+		// Block the thread as this affects external stat states now
+		return DirectStatsCommand(Cmd,true,&Ar);
 	}
 } StatCmdExec;
 
@@ -1322,7 +1361,10 @@ bool DirectStatsCommand(const TCHAR* Cmd, bool bBlockForCompletion /*= false*/, 
 		check(IsInGameThread());
 		if( !bIsEmpty )
 		{
-			FHUDGroupGameThreadRenderer::Get();  // make sure this is initialized on the game thread
+			// make sure these are initialized on the game thread
+			FHUDGroupGameThreadRenderer::Get();
+			FStatGroupGameThreadNotifier::Get();
+
 			FGraphEventRef CompleteHandle = FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
 				FSimpleDelegateGraphTask::FDelegate::CreateStatic(&StatCmd, FString(Cmd) + AddArgs)
 				, TEXT("StatCmd")

@@ -73,6 +73,7 @@ SLevelViewport::~SLevelViewport()
 	}
 	PreviewActors( TArray< AActor* >() );
 
+	FLevelViewportCommands::NewStatCommandDelegate.RemoveAll(this);
 
 	FLevelEditorModule& LevelEditor = FModuleManager::GetModuleChecked<FLevelEditorModule>( LevelEditorName );
 	LevelEditor.OnRedrawLevelEditingViewports().RemoveAll( this );
@@ -285,8 +286,16 @@ void SLevelViewport::ConstructLevelEditorViewportClient( const FArguments& InArg
 		LevelViewportClient->SetAllowMatineePreview(true);
 	}
 	LevelViewportClient->SetRealtime(ViewportInstanceSettings.bIsRealtime);
-	LevelViewportClient->SetShowFPS(ViewportInstanceSettings.bShowFPS);
 	LevelViewportClient->SetShowStats(ViewportInstanceSettings.bShowStats);
+	if (ViewportInstanceSettings.bShowFPS_DEPRECATED)
+	{
+		GetMutableDefault<ULevelEditorViewportSettings>()->bSaveSimpleStats = true;
+		ViewportInstanceSettings.EnabledStats.AddUnique(TEXT("FPS"));
+	}
+	if (GetDefault<ULevelEditorViewportSettings>()->bSaveSimpleStats)
+	{
+		GEngine->SetSimpleStats(GetWorld(), LevelViewportClient.Get(), ViewportInstanceSettings.EnabledStats, true);
+	}
 	LevelViewportClient->VisibilityDelegate.BindSP( this, &SLevelViewport::IsVisible );
 	LevelViewportClient->ImmersiveDelegate.BindSP( this, &SLevelViewport::IsImmersive );
 	LevelViewportClient->bDrawBaseInfo = true;
@@ -756,6 +765,12 @@ void SLevelViewport::Tick( const FGeometry& AllottedGeometry, const double InCur
 
 	// Update actor preview viewports, if we have any
 	UpdateActorPreviewViewports();
+
+#if STATS
+	// Check to see if there are any new stat group which need registering with the viewports
+	extern CORE_API void CheckForRegisteredStatGroups();
+	CheckForRegisteredStatGroups();
+#endif
 }
 
 
@@ -1161,11 +1176,11 @@ void SLevelViewport::BindShowCommands( FUICommandList& CommandList )
 		// Map 'Show All' and 'Hide All' commands
 		CommandList.MapAction(
 			FLevelViewportCommands::Get().ShowAllVolumes,
-			FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleAllVolumeActors, 1 ) );
+			FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleAllVolumeActors, true ) );
 
 		CommandList.MapAction(
 			FLevelViewportCommands::Get().HideAllVolumes,
-			FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleAllVolumeActors, 0 ) );
+			FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleAllVolumeActors, false ) );
 
 		// Get all known volume classes
 		TArray< UClass* > VolumeClasses;
@@ -1186,11 +1201,11 @@ void SLevelViewport::BindShowCommands( FUICommandList& CommandList )
 		// Map 'Show All' and 'Hide All' commands
 		CommandList.MapAction(
 			FLevelViewportCommands::Get().ShowAllLayers,
-			FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleAllLayers, 1 ) );
+			FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleAllLayers, true ) );
 
 		CommandList.MapAction(
 			FLevelViewportCommands::Get().HideAllLayers,
-			FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleAllLayers, 0 ) );
+			FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleAllLayers, false ) );
 	}
 
 	// Show Sprite Categories
@@ -1198,11 +1213,11 @@ void SLevelViewport::BindShowCommands( FUICommandList& CommandList )
 		// Map 'Show All' and 'Hide All' commands
 		CommandList.MapAction(
 			FLevelViewportCommands::Get().ShowAllSprites,
-			FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleAllSpriteCategories, 1 ) );
+			FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleAllSpriteCategories, true ) );
 
 		CommandList.MapAction(
 			FLevelViewportCommands::Get().HideAllSprites,
-			FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleAllSpriteCategories, 0 ) );
+			FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleAllSpriteCategories, false ) );
 
 		// Bind each show flag to the same delegate.  We use the delegate payload system to figure out what show flag we are dealing with
 		for( int32 CategoryIndex = 0; CategoryIndex < GUnrealEd->SpriteIDToIndexMap.Num(); ++CategoryIndex )
@@ -1214,6 +1229,27 @@ void SLevelViewport::BindShowCommands( FUICommandList& CommandList )
 				FIsActionChecked::CreateSP( this, &SLevelViewport::IsSpriteCategoryVisible, CategoryIndex ) );
 		}
 	}
+
+	// Show Stat Categories
+	{
+		// Map 'Hide All' command
+		CommandList.MapAction(
+			FLevelViewportCommands::Get().HideAllStats,
+			FExecuteAction::CreateSP(this, &SLevelViewport::OnToggleAllStatCommands, false));
+
+		for (auto StatCatIt = FLevelViewportCommands::Get().ShowStatCatCommands.CreateConstIterator(); StatCatIt; ++StatCatIt)
+		{
+			const TArray< FLevelViewportCommands::FShowMenuCommand >& ShowStatCommands = StatCatIt.Value();
+			for (int32 StatIndex = 0; StatIndex < ShowStatCommands.Num(); ++StatIndex)
+			{
+				const FLevelViewportCommands::FShowMenuCommand& StatCommand = ShowStatCommands[StatIndex];
+				BindStatCommand(StatCommand.ShowMenuItem, StatCommand.LabelOverride.ToString());
+			}
+		}
+
+		// Bind a listener here for any additional stat commands that get registered later.
+		FLevelViewportCommands::NewStatCommandDelegate.AddRaw(this, &SLevelViewport::BindStatCommand);
+	}
 }
 
 void SLevelViewport::BindDropCommands( FUICommandList& CommandList )
@@ -1221,6 +1257,16 @@ void SLevelViewport::BindDropCommands( FUICommandList& CommandList )
 	CommandList.MapAction( 
 		FLevelViewportCommands::Get().ApplyMaterialToActor,
 		FExecuteAction::CreateSP( this, &SLevelViewport::OnApplyMaterialToViewportTarget ) );
+}
+
+
+void SLevelViewport::BindStatCommand(const TSharedPtr<FUICommandInfo> InMenuItem, const FString& InCommandName)
+{
+	CommandList->MapAction(
+		InMenuItem,
+		FExecuteAction::CreateSP(this, &SLevelViewport::ToggleStatCommand, InCommandName),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SLevelViewport::IsStatCommandVisible, InCommandName));
 }
 
 const FSlateBrush* SLevelViewport::OnGetViewportBorderBrush() const
@@ -1541,10 +1587,10 @@ void SLevelViewport::ToggleShowFlag( uint32 EngineShowFlagIndex )
 	LevelViewportClient->Invalidate();
 }
 
-void SLevelViewport::OnToggleAllVolumeActors( int32 Visible )
+void SLevelViewport::OnToggleAllVolumeActors( bool bVisible )
 {
 	// Reinitialize the volume actor visibility flags to the new state.  All volumes should be visible if "Show All" was selected and hidden if it was not selected.
-	LevelViewportClient->VolumeActorVisibility.Init( !!Visible, LevelViewportClient->VolumeActorVisibility.Num() );
+	LevelViewportClient->VolumeActorVisibility.Init( bVisible, LevelViewportClient->VolumeActorVisibility.Num() );
 
 	// Update visibility based on the new state
 	// All volume actor types should be taken since the user clicked on show or hide all to get here
@@ -1573,9 +1619,9 @@ bool SLevelViewport::IsVolumeVisible( int32 VolumeID ) const
 }
 
 /** Called when a user selects show or hide all from the layers visibility menu. **/
-void SLevelViewport::OnToggleAllLayers( int32 Visible )
+void SLevelViewport::OnToggleAllLayers( bool bVisible )
 {	
-	if ( Visible )
+	if (bVisible)
 	{
 		// clear all hidden layers
 		LevelViewportClient->ViewHiddenLayers.Empty();
@@ -1630,9 +1676,9 @@ void SLevelViewport::OnFocusViewportToSelection()
 }
 
 /** Called when the user selects show or hide all from the sprite sub-menu. **/
-void SLevelViewport::OnToggleAllSpriteCategories( int32 Visible )
+void SLevelViewport::OnToggleAllSpriteCategories( bool bVisible )
 {
-	LevelViewportClient->SetAllSpriteCategoryVisibility( !!Visible );
+	LevelViewportClient->SetAllSpriteCategoryVisibility( bVisible );
 	LevelViewportClient->Invalidate();
 }
 
@@ -1647,6 +1693,24 @@ void SLevelViewport::ToggleSpriteCategory( int32 CategoryID )
 bool SLevelViewport::IsSpriteCategoryVisible( int32 CategoryID ) const
 {
 	return LevelViewportClient->GetSpriteCategoryVisibility( CategoryID );
+}
+
+void SLevelViewport::OnToggleAllStatCommands( bool bVisible )
+{
+	check(bVisible == 0);
+	// If it's in the array, it's visible so just toggle it again
+	const TArray<FString>* EnabledStats = LevelViewportClient->GetEnabledStats();
+	check(EnabledStats);
+	while (EnabledStats->Num() > 0)
+	{
+		const FString& CommandName = EnabledStats->Last();
+		ToggleStatCommand(CommandName);
+	}
+}
+
+void SLevelViewport::ToggleStatCommand(FString CommandName)
+{
+	GEngine->ExecSimpleStat(GetWorld(), LevelViewportClient.Get(), *CommandName);
 }
 
 bool SLevelViewport::IsShowFlagEnabled( uint32 EngineShowFlagIndex ) const
@@ -1703,8 +1767,25 @@ void SLevelViewport::SaveConfig(const FString& ConfigName)
 	ViewportInstanceSettings.ExposureSettings = LevelViewportClient->ExposureSettings;
 	ViewportInstanceSettings.FOVAngle = LevelViewportClient->FOVAngle;
 	ViewportInstanceSettings.bIsRealtime = LevelViewportClient->IsRealtime();
-	ViewportInstanceSettings.bShowFPS = LevelViewportClient->ShouldShowFPS();
 	ViewportInstanceSettings.bShowStats = LevelViewportClient->ShouldShowStats();
+	if (GetDefault<ULevelEditorViewportSettings>()->bSaveSimpleStats)
+	{
+		const TArray<FString>* EnabledStats = NULL;
+
+		// If the selected viewport is currently hosting a PIE session, we need to make sure we copy to stats from the active viewport
+		// Note: This happens if you close the editor while it's running because SwapStatCommands gets called after the config save when shutting down.
+		if (IsPlayInEditorViewportActive())
+		{
+			EnabledStats = ActiveViewport->GetClient()->GetEnabledStats();
+		}
+		else
+		{
+			EnabledStats = LevelViewportClient->GetEnabledStats();
+		}
+
+		check(EnabledStats);
+		ViewportInstanceSettings.EnabledStats = *EnabledStats;
+	}
 	GetMutableDefault<ULevelEditorViewportSettings>()->SetViewportInstanceSettings(ConfigName, ViewportInstanceSettings);
 }
 
@@ -1774,8 +1855,8 @@ FLevelEditorViewportInstanceSettings SLevelViewport::LoadLegacyConfigFromIni(con
 	}
 
 	GConfig->GetBool(*IniSection, *(ConfigKey + TEXT(".bIsRealtime")), ViewportInstanceSettings.bIsRealtime, GEditorUserSettingsIni);
-	GConfig->GetBool(*IniSection, *(ConfigKey + TEXT(".bWantFPS")), ViewportInstanceSettings.bShowFPS, GEditorUserSettingsIni);
 	GConfig->GetBool(*IniSection, *(ConfigKey + TEXT(".bWantStats")), ViewportInstanceSettings.bShowStats, GEditorUserSettingsIni);
+	GConfig->GetBool(*IniSection, *(ConfigKey + TEXT(".bWantFPS")), ViewportInstanceSettings.bShowFPS_DEPRECATED, GEditorUserSettingsIni);
 	GConfig->GetFloat(*IniSection, *(ConfigKey + TEXT(".FOVAngle")), ViewportInstanceSettings.FOVAngle, GEditorUserSettingsIni);
 
 	return ViewportInstanceSettings;
@@ -2058,6 +2139,8 @@ FReply SLevelViewport::OnToggleMaximize()
 	TSharedPtr<FLevelViewportLayout> ParentLayoutPinned = ParentLayout.Pin();
 	if (ParentLayoutPinned.IsValid() && ParentLayoutPinned->IsMaximizeSupported())
 	{
+		OnFloatingButtonClicked();
+
 		bool bWantImmersive = IsImmersive();
 		bool bWantMaximize = IsMaximized();
 
@@ -3066,6 +3149,8 @@ void SLevelViewport::EndPlayInEditorSession()
 
 	if( IsPlayInEditorViewportActive() )
 	{
+		ActiveViewport->OnPlayWorldViewportSwapped(*InactiveViewport);
+
 		// Play in editor viewport was active, swap back to our level editor viewport
 		ActiveViewport->SetViewportClient( NULL );
 
@@ -3073,6 +3158,7 @@ void SLevelViewport::EndPlayInEditorSession()
 		check( ActiveViewport.IsUnique() );
 
 		ActiveViewport = InactiveViewport;
+	
 		// Ensure our active viewport is for level editing
 		check( ActiveViewport->GetClient() == LevelViewportClient.Get() );
 
@@ -3170,6 +3256,7 @@ void SLevelViewport::SwapViewportsForPlayInEditor()
 	// Resize the viewport to be the same size the previously active viewport
 	// When starting in immersive mode its possible that the viewport has not been resized yet
 	ActiveViewport->OnPlayWorldViewportSwapped( *InactiveViewport );
+
 	InactiveViewportWidgetEditorContent = ViewportWidget->GetContent();
 	ViewportWidget->SetViewportInterface( ActiveViewport.ToSharedRef() );
 
@@ -3312,6 +3399,12 @@ void SLevelViewport::TakeHighResScreenShot()
 	{
 		LevelViewportClient->TakeHighResScreenShot();
 	}
+}
+
+void SLevelViewport::OnFloatingButtonClicked()
+{
+	// if one of the viewports floating buttons has been clicked, update the global viewport ptr
+	LevelViewportClient->SetLastKeyViewport();
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -166,8 +166,6 @@ void FGPUProfilerEventNodeFrame::DumpEventTree()
 	{
 		float RootResult = GetRootTimingResults();
 
-		//extern ENGINE_API float GUnit_GPUFrameTime;
-		//UE_LOG(LogRHI, Warning, TEXT("Perf marker hierarchy, total GPU time %.2fms (%.2fms smoothed)"), RootResult * 1000.0f, GUnit_GPUFrameTime);
 		UE_LOG(LogRHI, Warning, TEXT("Perf marker hierarchy, total GPU time %.2fms"), RootResult * 1000.0f);
 
 		LogDisjointQuery();

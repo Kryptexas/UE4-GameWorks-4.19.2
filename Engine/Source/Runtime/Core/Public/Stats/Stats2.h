@@ -255,8 +255,8 @@ public:
 	/**
 	 * Build with stat metadata
 	 */
-	FORCEINLINE_STATS FStatNameAndInfo(FName InStatName, char const* InGroup, TCHAR const* InDescription, EStatDataType::Type InStatType, bool bShouldClearEveryFrame, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion MemoryRegion = FPlatformMemory::MCR_Invalid)
-		: NameAndInfo(ToLongName(InStatName, InGroup, InDescription))
+	FORCEINLINE_STATS FStatNameAndInfo(FName InStatName, char const* InGroup, char const* InCategory, TCHAR const* InDescription, EStatDataType::Type InStatType, bool bShouldClearEveryFrame, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion MemoryRegion = FPlatformMemory::MCR_Invalid)
+		: NameAndInfo(ToLongName(InStatName, InGroup, InCategory, InDescription))
 	{
 		int32 Number = NameAndInfo.GetNumber();
 		// ok, you can't have numbered stat FNames too large
@@ -349,12 +349,21 @@ public:
 	}
 
 	/**
-	 * Expensive! Extracts the description if this is a long name or just returns the empty string
+	 * Expensive! Extracts the group category if this is a long name or just returns none
 	 */
-	FORCEINLINE_STATS void GetDescription(class FString& OutDescription) const
+	FORCEINLINE_STATS FName GetGroupCategory() const
 	{
 		CheckInvariants();
-		GetDescriptionFrom(GetRawName(), OutDescription);
+		return GetGroupCategoryFrom(GetRawName());
+	}
+
+	/**
+	 * Expensive! Extracts the description if this is a long name or just returns the empty string
+	 */
+	FORCEINLINE_STATS FString GetDescription() const
+	{
+		CheckInvariants();
+		return GetDescriptionFrom(GetRawName());
 	}
 
 	/**
@@ -435,13 +444,15 @@ public:
 	 * Builds a long name from the three parts
 	 * @param InStatName, Short name
 	 * @param InGroup, Group name
+	 * @param InCategory, Category name
 	 * @param InDescription, Description
 	 * @return the packed FName
 	 */
-	CORE_API static FName ToLongName(FName InStatName, char const* InGroup, TCHAR const* InDescription);
+	CORE_API static FName ToLongName(FName InStatName, char const* InGroup, char const* InCategory, TCHAR const* InDescription);
 	CORE_API static FName GetShortNameFrom(FName InLongName);
 	CORE_API static FName GetGroupNameFrom(FName InLongName);
-	CORE_API static void GetDescriptionFrom(FName InLongName, class FString& OutDescription);
+	CORE_API static FName GetGroupCategoryFrom(FName InLongName);
+	CORE_API static FString GetDescriptionFrom(FName InLongName);
 };
 
 
@@ -499,8 +510,8 @@ struct FStatMessage
 	/**
 	* Build a meta data message
 	*/
-	FStatMessage(FName InStatName, EStatDataType::Type InStatType, char const* InGroup, TCHAR const* InDescription, bool bShouldClearEveryFrame, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion MemoryRegion = FPlatformMemory::MCR_Invalid)
-		: NameAndInfo(InStatName, InGroup, InDescription, InStatType, bShouldClearEveryFrame, bCycleStat, MemoryRegion)
+	FStatMessage(FName InStatName, EStatDataType::Type InStatType, char const* InGroup, char const* InCategory, TCHAR const* InDescription, bool bShouldClearEveryFrame, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion MemoryRegion = FPlatformMemory::MCR_Invalid)
+		: NameAndInfo(InStatName, InGroup, InCategory, InDescription, InStatType, bShouldClearEveryFrame, bCycleStat, MemoryRegion)
 	{
 		NameAndInfo.SetField<EStatOperation>(EStatOperation::SetLongName);
 	}
@@ -817,11 +828,14 @@ struct TStatMessage
 		return Value;
 	}
 
+	FORCEINLINE_STATS FName GetShortName() const
+	{
+		return NameAndInfo.GetShortName();
+	}
+
 	FORCEINLINE_STATS FString GetDescription() const
 	{
-		FString Result;			
-		NameAndInfo.GetDescription(Result);
-		return Result;
+		return NameAndInfo.GetDescription();
 	}
 };
 
@@ -1159,7 +1173,7 @@ public:
 	void AddThreadMetadata( const FName InThreadFName, uint32 InThreadID );
 
 	/** Adds a regular metadata. */
-	void AddMetadata( FName InStatName, const TCHAR* InStatDesc, const char* InGroupName, const TCHAR* InGroupDesc, bool bCanBeDisabled, EStatDataType::Type InStatType, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion InMemoryRegion = FPlatformMemory::MCR_Invalid );
+	void AddMetadata( FName InStatName, const TCHAR* InStatDesc, const char* InGroupName, const char* InGroupCategory, const TCHAR* InGroupDesc, bool bCanBeDisabled, EStatDataType::Type InStatType, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion InMemoryRegion = FPlatformMemory::MCR_Invalid );
 
 	/** Access the singleton. */
 	static FStartupMessages& Get();
@@ -1182,12 +1196,13 @@ public:
 	/**
 	 * Returns a pointer to a bool (valid forever) that determines if this group is active
 	 * This should be CACHED. We will get a few calls from different stats and different threads and stuff, but once things are "warmed up", this should NEVER be called.
-	 * @param Group, group to look up
+	 * @param InGroup, group to look up
+	 * @param InCategory, the category the group belongs to
 	 * @param bDefaultEnable, If this is the first time this group has been set up, this sets the default enable value for this group.
 	 * @param bCanBeDisabled, If this is true, this is a memory counter or something and can never be disabled
 	 * @return a pointer to a FName (valid forever) that determines if this group is active
 	 */
-	virtual TStatId GetHighPerformanceEnableForStat(FName StatShortName, const char* InGroup, bool bDefaultEnable, bool bCanBeDisabled, EStatDataType::Type InStatType, TCHAR const* InDescription, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion MemoryRegion = FPlatformMemory::MCR_Invalid)=0;
+	virtual TStatId GetHighPerformanceEnableForStat(FName StatShortName, const char* InGroup, const char* InCategory, bool bDefaultEnable, bool bCanBeDisabled, EStatDataType::Type InStatType, TCHAR const* InDescription, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion MemoryRegion = FPlatformMemory::MCR_Invalid) = 0;
 
 	/**
 	 * Enables or disabled a particular group of stats
@@ -1224,7 +1239,7 @@ struct FThreadSafeStaticStatBase
 {
 protected:
 	mutable FName* HighPerformanceEnable; // must be uninitialized, because we need atomic initialization
-	CORE_API void DoSetup(const char* InStatName, const TCHAR* InStatDesc, const char* InGroupName, const TCHAR* InGroupDesc, bool bDefaultEnable, bool bCanBeDisabled, EStatDataType::Type InStatType, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion InMemoryRegion) const;
+	CORE_API void DoSetup(const char* InStatName, const TCHAR* InStatDesc, const char* InGroupName, const char* InGroupCategory, const TCHAR* InGroupDesc, bool bDefaultEnable, bool bCanBeDisabled, EStatDataType::Type InStatType, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion InMemoryRegion) const;
 };
 
 template<class TStatData, bool TCompiledIn>
@@ -1235,7 +1250,7 @@ struct FThreadSafeStaticStatInner : public FThreadSafeStaticStatBase
 		checkAtCompileTime(sizeof(HighPerformanceEnable) == sizeof(TStatId), unsafe_cast_requires_these_to_be_the_same_thing);
 		if (!HighPerformanceEnable)
 		{
-			DoSetup(TStatData::GetStatName(), TStatData::GetDescription(), TStatData::TGroup::GetGroupName(), TStatData::TGroup::GetDescription(), TStatData::TGroup::IsDefaultEnabled(), TStatData::IsClearEveryFrame(), TStatData::GetStatType(), TStatData::IsCycleStat(), TStatData::GetMemoryRegion() );
+			DoSetup(TStatData::GetStatName(), TStatData::GetDescription(), TStatData::TGroup::GetGroupName(), TStatData::TGroup::GetGroupCategory(), TStatData::TGroup::GetDescription(), TStatData::TGroup::IsDefaultEnabled(), TStatData::IsClearEveryFrame(), TStatData::GetStatType(), TStatData::IsCycleStat(), TStatData::GetMemoryRegion() );
 		}
 		return *(TStatId*)(&HighPerformanceEnable);
 	}
@@ -1263,7 +1278,7 @@ struct FThreadSafeStaticStat : public FThreadSafeStaticStatInner<TStatData, TSta
 {
 };
 
-#define DECLARE_STAT_GROUP(Description, StatName, InDefaultEnable, InCompileTimeEnable) \
+#define DECLARE_STAT_GROUP(Description, StatName, StatCategory, InDefaultEnable, InCompileTimeEnable) \
 struct FStatGroup_##StatName\
 { \
 	enum \
@@ -1274,6 +1289,10 @@ struct FStatGroup_##StatName\
 	static FORCEINLINE const char* GetGroupName() \
 	{ \
 		return #StatName; \
+	} \
+	static FORCEINLINE const char* GetGroupCategory() \
+	{ \
+		return #StatCategory; \
 	} \
 	static FORCEINLINE const TCHAR* GetDescription() \
 	{ \
@@ -1379,14 +1398,14 @@ struct FStat_##StatName\
 	extern API DEFINE_STAT(StatId);
 
 /** Macro for declaring group factory instances */
-#define DECLARE_STATS_GROUP(GroupDesc,GroupId) \
-	DECLARE_STAT_GROUP(GroupDesc, GroupId, true, true);
+#define DECLARE_STATS_GROUP(GroupDesc, GroupId, GroupCat) \
+	DECLARE_STAT_GROUP(GroupDesc, GroupId, GroupCat, true, true);
 
-#define DECLARE_STATS_GROUP_VERBOSE(GroupDesc, GroupId) \
-	DECLARE_STAT_GROUP(GroupDesc, GroupId, false, true);
+#define DECLARE_STATS_GROUP_VERBOSE(GroupDesc, GroupId, GroupCat) \
+	DECLARE_STAT_GROUP(GroupDesc, GroupId, GroupCat, false, true);
 
-#define DECLARE_STATS_GROUP_MAYBE_COMPILED_OUT(GroupDesc, GroupId, CompileIn) \
-	DECLARE_STAT_GROUP(GroupDesc, GroupId, false, CompileIn);
+#define DECLARE_STATS_GROUP_MAYBE_COMPILED_OUT(GroupDesc, GroupId, GroupCat, CompileIn) \
+	DECLARE_STAT_GROUP(GroupDesc, GroupId, GroupCat, false, CompileIn);
 
 
 #define DECLARE_SCOPE_CYCLE_COUNTER(CounterName,StatId,GroupId) \
@@ -1520,67 +1539,66 @@ struct FStat_##StatName\
  * but they do have to be unique. You're better off defining these in your
  * own headers/cpp files
  */
-DECLARE_STATS_GROUP(TEXT("AI"),STATGROUP_AI);
-DECLARE_STATS_GROUP(TEXT("Anim"),STATGROUP_Anim);
-DECLARE_STATS_GROUP(TEXT("AsyncIO"),STATGROUP_AsyncIO);
-DECLARE_STATS_GROUP(TEXT("Audio"), STATGROUP_Audio);
-DECLARE_STATS_GROUP(TEXT("BeamParticles"),STATGROUP_BeamParticles);
-DECLARE_STATS_GROUP(TEXT("CPUStalls"), STATGROUP_CPUStalls);
-DECLARE_STATS_GROUP(TEXT("Canvas"),STATGROUP_Canvas);
-DECLARE_STATS_GROUP(TEXT("Collision"),STATGROUP_Collision);
-DECLARE_STATS_GROUP(TEXT("CrashTracker"),STATGROUP_CrashTracker);
-DECLARE_STATS_GROUP(TEXT("D3D11RHI"),STATGROUP_D3D11RHI);
-DECLARE_STATS_GROUP(TEXT("DDC"),STATGROUP_DDC);
-DECLARE_STATS_GROUP(TEXT("DefaultStatGroup"),STATGROUP_Default);
-DECLARE_STATS_GROUP(TEXT("Engine"),STATGROUP_Engine);
-DECLARE_STATS_GROUP(TEXT("FPSChart"),STATGROUP_FPSChart);
-DECLARE_STATS_GROUP(TEXT("GPUParticles"),STATGROUP_GPUParticles);
-DECLARE_STATS_GROUP(TEXT("Game"),STATGROUP_Game);
-DECLARE_STATS_GROUP(TEXT("Gnm"),STATGROUP_PS4RHI);
-DECLARE_STATS_GROUP(TEXT("InitViews"),STATGROUP_InitViews);
-DECLARE_STATS_GROUP(TEXT("Landscape"),STATGROUP_Landscape);
-DECLARE_STATS_GROUP(TEXT("LightRendering"),STATGROUP_LightRendering);
-DECLARE_STATS_GROUP(TEXT("Load Time"), STATGROUP_LoadTime);
-DECLARE_STATS_GROUP(TEXT("Memory"),STATGROUP_Memory);
-DECLARE_STATS_GROUP(TEXT("MemoryStaticMesh"),STATGROUP_MemoryStaticMesh);
-DECLARE_STATS_GROUP(TEXT("MeshParticles"),STATGROUP_MeshParticles);
-DECLARE_STATS_GROUP(TEXT("Morph"),STATGROUP_MorphTarget);
-DECLARE_STATS_GROUP(TEXT("Navigation"),STATGROUP_Navigation);
-DECLARE_STATS_GROUP(TEXT("Net"),STATGROUP_Net);
-DECLARE_STATS_GROUP(TEXT("Niagara"),STATGROUP_Niagara);
-DECLARE_STATS_GROUP(TEXT("Object"),STATGROUP_Object);
-DECLARE_STATS_GROUP(TEXT("OpenGLRHI"),STATGROUP_OpenGLRHI);
-DECLARE_STATS_GROUP(TEXT("PakFile"),STATGROUP_PakFile);
-DECLARE_STATS_GROUP(TEXT("ParticleMem"),STATGROUP_ParticleMem);
-DECLARE_STATS_GROUP(TEXT("Particles"),STATGROUP_Particles);
-DECLARE_STATS_GROUP(TEXT("Physics"),STATGROUP_Physics);
-DECLARE_STATS_GROUP(TEXT("Profiler"), STATGROUP_Profiler);
-DECLARE_STATS_GROUP(TEXT("Quick"), STATGROUP_Quick);
-DECLARE_STATS_GROUP(TEXT("RHI"),STATGROUP_RHI);
-DECLARE_STATS_GROUP(TEXT("RenderThread"),STATGROUP_RenderThreadProcessing);
-DECLARE_STATS_GROUP(TEXT("SceneMemory"),STATGROUP_SceneMemory);
-DECLARE_STATS_GROUP(TEXT("SceneRendering"),STATGROUP_SceneRendering);
-DECLARE_STATS_GROUP(TEXT("SceneUpdate"),STATGROUP_SceneUpdate);
-DECLARE_STATS_GROUP(TEXT("ServerCPU"),STATGROUP_ServerCPU);
-DECLARE_STATS_GROUP(TEXT("ShaderCompiling"),STATGROUP_ShaderCompiling);
-DECLARE_STATS_GROUP(TEXT("ShaderCompression"),STATGROUP_Shaders);
-DECLARE_STATS_GROUP(TEXT("ShadowRendering"),STATGROUP_ShadowRendering);
-DECLARE_STATS_GROUP(TEXT("Slate Memory"), STATGROUP_SlateMemory );
-DECLARE_STATS_GROUP(TEXT("Slate"), STATGROUP_Slate );
-DECLARE_STATS_GROUP(TEXT("StatSystem"),STATGROUP_StatSystem);
-DECLARE_STATS_GROUP(TEXT("Streaming"),STATGROUP_Streaming);
-DECLARE_STATS_GROUP(TEXT("StreamingDetails"),STATGROUP_StreamingDetails);
-DECLARE_STATS_GROUP(TEXT("Text"),STATGROUP_Text);
-DECLARE_STATS_GROUP(TEXT("Threading"),STATGROUP_Threading);
-DECLARE_STATS_GROUP(TEXT("Threads"),STATGROUP_Threads);
-DECLARE_STATS_GROUP(TEXT("Tickables"),STATGROUP_Tickables);
-DECLARE_STATS_GROUP(TEXT("TrailParticles"),STATGROUP_TrailParticles);
-DECLARE_STATS_GROUP(TEXT("UI"),STATGROUP_UI);
-DECLARE_STATS_GROUP(TEXT("UObjects"),STATGROUP_UObjects);
-DECLARE_STATS_GROUP(TEXT("User"),STATGROUP_User);
-
-DECLARE_STATS_GROUP(TEXT("MemoryAllocator"),STATGROUP_MemoryAllocator);
-DECLARE_STATS_GROUP(TEXT("MemoryPlatform"),STATGROUP_MemoryPlatform);
+DECLARE_STATS_GROUP(TEXT("AI"),STATGROUP_AI, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Anim"),STATGROUP_Anim, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Async I/O"),STATGROUP_AsyncIO, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Audio"), STATGROUP_Audio, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Beam Particles"),STATGROUP_BeamParticles, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("CPU Stalls"), STATGROUP_CPUStalls, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Canvas"),STATGROUP_Canvas, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Collision"),STATGROUP_Collision, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Crash Tracker"),STATGROUP_CrashTracker, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("D3D11RHI"),STATGROUP_D3D11RHI, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("DDC"),STATGROUP_DDC, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Default Stat Group"),STATGROUP_Default, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Engine"),STATGROUP_Engine, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("FPS Chart"),STATGROUP_FPSChart, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("GPU Particles"),STATGROUP_GPUParticles, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Game"),STATGROUP_Game, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Gnm"),STATGROUP_PS4RHI, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Init Views"),STATGROUP_InitViews, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Landscape"),STATGROUP_Landscape, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Light Rendering"),STATGROUP_LightRendering, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Load Time"), STATGROUP_LoadTime, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Memory"),STATGROUP_Memory, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Memory Allocator"),STATGROUP_MemoryAllocator, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Memory Platform"),STATGROUP_MemoryPlatform, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Memory StaticMesh"),STATGROUP_MemoryStaticMesh, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Mesh Particles"),STATGROUP_MeshParticles, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Morph"),STATGROUP_MorphTarget, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Navigation"),STATGROUP_Navigation, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Net"),STATGROUP_Net, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Niagara"),STATGROUP_Niagara, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Object"),STATGROUP_Object, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("OpenGL RHI"),STATGROUP_OpenGLRHI, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Pak File"),STATGROUP_PakFile, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Particle Mem"),STATGROUP_ParticleMem, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Particles"),STATGROUP_Particles, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Physics"),STATGROUP_Physics, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Profiler"), STATGROUP_Profiler, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Quick"), STATGROUP_Quick, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("RHI"),STATGROUP_RHI, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Render Thread"),STATGROUP_RenderThreadProcessing, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Scene Memory"),STATGROUP_SceneMemory, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Scene Rendering"),STATGROUP_SceneRendering, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Scene Update"),STATGROUP_SceneUpdate, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Server CPU"),STATGROUP_ServerCPU, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Shader Compiling"),STATGROUP_ShaderCompiling, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Shader Compression"),STATGROUP_Shaders, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Shadow Rendering"),STATGROUP_ShadowRendering, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Slate Memory"), STATGROUP_SlateMemory, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Slate"), STATGROUP_Slate, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Stat System"),STATGROUP_StatSystem, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Streaming"),STATGROUP_Streaming, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Streaming Details"),STATGROUP_StreamingDetails, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Text"),STATGROUP_Text, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Threading"),STATGROUP_Threading, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Threads"),STATGROUP_Threads, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Tickables"),STATGROUP_Tickables, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("Trail Particles"),STATGROUP_TrailParticles, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("UI"),STATGROUP_UI, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("UObjects"),STATGROUP_UObjects, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("User"),STATGROUP_User, STATCAT_Advanced);
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("FrameTime"),STAT_FrameTime,STATGROUP_Engine, CORE_API);
 DECLARE_FLOAT_COUNTER_STAT_EXTERN(TEXT("StatUnit FPS"), STAT_FPS, STATGROUP_Engine, CORE_API);

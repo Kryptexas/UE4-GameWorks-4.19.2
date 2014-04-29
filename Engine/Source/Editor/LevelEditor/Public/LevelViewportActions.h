@@ -40,6 +40,7 @@ public:
 		)
 	{
 	}
+	virtual ~FLevelViewportCommands();
 
 	struct FShowMenuCommand
 	{
@@ -106,12 +107,17 @@ public:
 	/** Shows all sprite categories */
 	TSharedPtr< FUICommandInfo > ShowAllSprites;
 
-	/** Hides all sprite categries  */
+	/** Hides all sprite categories  */
 	TSharedPtr< FUICommandInfo > HideAllSprites;
 
 	/** List of commands for showing sprite categories and their localized names.  One for each command */
 	TArray< FShowMenuCommand > ShowSpriteCommands;
 
+	/** Hides all Stats categories  */
+	TSharedPtr< FUICommandInfo > HideAllStats;
+
+	/** A map of stat categories and the commands that belong in them */
+	TMap< FString, TArray< FShowMenuCommand > > ShowStatCatCommands;
 
 	/** Applys a material to an actor */
 	TSharedPtr< FUICommandInfo > ApplyMaterialToActor;
@@ -156,7 +162,17 @@ public:
 
 	TSharedPtr< FUICommandInfo > EnablePreviewMesh;
 	TSharedPtr< FUICommandInfo > CyclePreviewMesh;
+
+	/** Delegate we fire every time a new stat has been had a command added */
+	DECLARE_EVENT_TwoParams(FLevelViewportCommands, FOnNewStatCommandAdded, const TSharedPtr<FUICommandInfo>, const FString&);
+	static FOnNewStatCommandAdded NewStatCommandDelegate;
+
 public:
 	/** Registers our commands with the binding system */
 	virtual void RegisterCommands() OVERRIDE;
+private:
+	/** Registers additional commands as they are loaded */
+	void HandleNewStatGroup(const TArray<FStatNameAndInfo>& NameAndInfos);
+	void HandleNewStat(const FName& InStatName, const FName& InStatCategory, const FText& InStatDescription);
+	int32 FindStatIndex(const TArray< FShowMenuCommand >* ShowStatCommands, const FString& InCommandName) const;
 };

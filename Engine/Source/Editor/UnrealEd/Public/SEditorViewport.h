@@ -48,7 +48,20 @@ protected:
 	/** UI Command delegate bindings */
 	void OnToggleRealtime();
 	void OnToggleStats();
-	void OnToggleFPS();
+
+	/**
+	 * Toggles Stat command visibility in this viewport
+	 *
+	 * @param CommandName				Name of the command
+	 */
+	virtual void ToggleStatCommand(FString CommandName){}
+
+	/**
+	 * Checks if Stat command is visible in this viewport
+	 *
+	 * @param CommandName				Name of the command
+	 */
+	virtual bool IsStatCommandVisible(FString CommandName) const;
 
 	/**
 	 * Changes the exposure setting for this viewport
@@ -103,8 +116,6 @@ protected:
 	 */
 	virtual void OnFocusViewportToSelection(){}
 
-	/** Delegate handler for when stats are enabled in a viewport */
-	void HandleViewportStatsEnabled();
 protected:
 	TSharedPtr<SOverlay> ViewportOverlay;
 	/** Viewport that renders the scene provided by the viewport client */

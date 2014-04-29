@@ -15,7 +15,7 @@
 DEFINE_LOG_CATEGORY(LogTexture);
 
 #if STATS
-DECLARE_STATS_GROUP(TEXT("TextureGroup"),STATGROUP_TextureGroup);
+DECLARE_STATS_GROUP(TEXT("Texture Group"), STATGROUP_TextureGroup, STATCAT_Advanced);
 
 // Declare the stats for each Texture Group.
 #define DECLARETEXTUREGROUPSTAT(Group) DECLARE_MEMORY_STAT(TEXT(#Group),STAT_##Group,STATGROUP_TextureGroup);

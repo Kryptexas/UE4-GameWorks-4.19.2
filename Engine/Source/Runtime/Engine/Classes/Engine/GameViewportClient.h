@@ -170,6 +170,8 @@ class ENGINE_API UGameViewportClient : public UScriptViewportClient, public FExe
 	GENERATED_UCLASS_BODY()
 
 public:
+	virtual ~UGameViewportClient();
+
 	/** The viewport's console.   Might be null on consoles */
 	UPROPERTY()
 	class UConsole* ViewportConsole;
@@ -612,6 +614,99 @@ public:
 		bSuppressTransitionMessage = bSuppress;
 	}
 
+	/**
+	 * Get a ptr to the stat unit data for this viewport
+	 */
+	virtual FStatUnitData* GetStatUnitData() const OVERRIDE
+	{
+		return StatUnitData;
+	}
+
+	/**
+	 * Get a ptr to the stat unit data for this viewport
+	 */
+	virtual FStatHitchesData* GetStatHitchesData() const OVERRIDE
+	{
+		return StatHitchesData;
+	}
+
+	/**
+	 * Get a ptr to the enabled stats list
+	 */
+	virtual const TArray<FString>* GetEnabledStats() const OVERRIDE
+	{
+		return &EnabledStats;
+	}
+
+	/**
+	 * Sets all the stats that should be enabled for the viewport
+	 */
+	virtual void SetEnabledStats(const TArray<FString>& InEnabledStats) OVERRIDE
+	{
+		EnabledStats = InEnabledStats;
+	}
+
+	/**
+	 * Check whether a specific stat is enabled for this viewport
+	 */
+	virtual bool IsStatEnabled(const TCHAR* InName) const OVERRIDE
+	{
+		return EnabledStats.Contains(InName);
+	}
+
+	/**
+	 * Get the sound stat flags enabled for this viewport
+	 */
+	virtual ESoundShowFlags::Type GetSoundShowFlags() const OVERRIDE
+	{ 
+		return ESoundShowFlags::Disabled;
+	}
+
+	/**
+	 * Set the sound stat flags enabled for this viewport
+	 */
+	virtual void SetSoundShowFlags(const ESoundShowFlags::Type InSoundShowFlags) OVERRIDE
+	{
+		SoundShowFlags = InSoundShowFlags;
+	}
+
+private:
+	/**
+	 * Set a specific stat to either enabled or disabled (returns the number of remaining enabled stats)
+	 */
+	int32 SetStatEnabled(const TCHAR* InName, const bool bEnable, const bool bAll = false)
+	{
+		if (bEnable)
+		{
+			check(!bAll);	// Not possible to enable all
+			EnabledStats.AddUnique(InName);
+		}
+		else
+		{
+			if (bAll)
+			{
+				EnabledStats.Empty();
+			}
+			else
+			{
+				EnabledStats.Remove(InName);
+			}
+		}
+		return EnabledStats.Num();
+	}
+
+	/** Delegate handler to see if a stat is enabled on this viewport */
+	void HandleViewportStatCheckEnabled(const TCHAR* InName, bool& bOutCurrentEnabled, bool& bOutOthersEnabled);
+
+	/** Delegate handler for when stats are enabled in a viewport */
+	void HandleViewportStatEnabled(const TCHAR* InName);
+
+	/** Delegate handler for when stats are disabled in a viewport */
+	void HandleViewportStatDisabled(const TCHAR* InName);
+
+	/** Delegate handler for when all stats are disabled in a viewport */
+	void HandleViewportStatDisableAll(const bool bInAnyViewport);
+
 private:
 	/** Slate window associated with this viewport client.  The same window may host more than one viewport client. */
 	TWeakPtr<class SWindow> Window;
@@ -639,6 +734,18 @@ private:
 
 	/** Delegate called at the end of the frame when a screenshot is captured */
 	static FOnScreenshotCaptured ScreenshotCapturedDelegate;
+
+	/** Data needed to display perframe stat tracking when STAT UNIT is enabled */
+	FStatUnitData* StatUnitData;
+
+	/** Data needed to display perframe stat tracking when STAT HITCHES is enabled */
+	FStatHitchesData* StatHitchesData;
+
+	/** A list of all the stat names which are enabled for this viewport (static so they persist between runs) */
+	static TArray<FString> EnabledStats;
+
+	/** Those sound stat flags which are enabled on this viewport */
+	static ESoundShowFlags::Type SoundShowFlags;
 };
 
 

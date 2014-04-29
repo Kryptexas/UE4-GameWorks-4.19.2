@@ -28,7 +28,7 @@ struct UNREALED_API FLevelEditorViewportInstanceSettings
 		, ExposureSettings()
 		, FOVAngle(EditorViewportDefs::DefaultPerspectiveFOVAngle)
 		, bIsRealtime(false)
-		, bShowFPS(false)
+		, bShowFPS_DEPRECATED(false)
 		, bShowStats(false)
 	{
 	}
@@ -93,13 +93,19 @@ struct UNREALED_API FLevelEditorViewportInstanceSettings
 	 * Should this viewport show an FPS count?
 	 */
 	UPROPERTY()
-	bool bShowFPS;
+	bool bShowFPS_DEPRECATED;
 
 	/*
 	 * Should this viewport show statistics?
 	 */
 	UPROPERTY()
 	bool bShowStats;
+
+	/*
+	 * Should this viewport have any stats enabled by default?
+	 */
+	UPROPERTY()
+	TArray<FString> EnabledStats;
 };
 
 
@@ -361,6 +367,10 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, config, Category=LookAndFeel, meta=(ClampMin="-10",ClampMax="150") )
 	int32 TransformWidgetSizeAdjustment;
+
+	/** When enabled, simple stats that are enabled in level viewports are preserved between editor sessions */
+	UPROPERTY(EditAnywhere, config, Category = LookAndFeel)
+	uint32 bSaveSimpleStats : 1;
 
 public:
 

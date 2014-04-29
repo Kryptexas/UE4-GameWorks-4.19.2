@@ -4,8 +4,19 @@
 #include "LevelEditor.h"
 #include "LevelViewportActions.h"
 #include "EditorShowFlags.h"
+#include "StatsData.h"
 
 #define LOCTEXT_NAMESPACE "LevelViewportActions"
+
+FLevelViewportCommands::FOnNewStatCommandAdded FLevelViewportCommands::NewStatCommandDelegate;
+
+FLevelViewportCommands::~FLevelViewportCommands()
+{
+	UEngine::NewStatDelegate.RemoveAll(this);
+#if STATS
+	FStatGroupGameThreadNotifier::Get().NewStatGroupDelegate.Unbind();
+#endif
+}
 
 /** UI_COMMAND takes long for the compile to optimize */
 PRAGMA_DISABLE_OPTIMIZATION
@@ -182,6 +193,17 @@ void FLevelViewportCommands::RegisterCommands()
 		}
 	}
 
+	// Generate a command for each Stat category
+	{
+		UI_COMMAND(HideAllStats, "Hide All Stats", "Hides all Stats", EUserInterfaceActionType::Button, FInputGesture());
+
+		// Bind a listener here for any additional stat commands that get registered later.
+		UEngine::NewStatDelegate.AddRaw(this, &FLevelViewportCommands::HandleNewStat);
+#if STATS
+		FStatGroupGameThreadNotifier::Get().NewStatGroupDelegate.BindRaw(this, &FLevelViewportCommands::HandleNewStatGroup);
+#endif
+	}
+
 	// Map the bookmark index to default key.
 	// If the max bookmark number ever increases the new bookmarks will not have default keys
 	TArray< FKey > NumberKeyNames;
@@ -236,6 +258,87 @@ void FLevelViewportCommands::RegisterCommands()
 	UI_COMMAND( EnablePreviewMesh, "Hold To Enable Preview Mesh", "When held down a preview mesh appears under the cursor", EUserInterfaceActionType::Button, FInputGesture(EKeys::Backslash) );
 	UI_COMMAND( CyclePreviewMesh, "Cycles Preview Mesh", "Cycles available preview meshes", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Shift, EKeys::Backslash ) );
 
+}
+
+void FLevelViewportCommands::HandleNewStatGroup(const TArray<FStatNameAndInfo>& NameAndInfos)
+{
+	for (int32 InfoIdx = 0; InfoIdx < NameAndInfos.Num(); InfoIdx++)
+	{
+		const FStatNameAndInfo& NameAndInfo = NameAndInfos[InfoIdx];
+		const FName GroupName = NameAndInfo.GetGroupName();
+		const FName GroupCategory = NameAndInfo.GetGroupCategory();
+		const FText GroupDescription = FText::FromString(NameAndInfo.GetDescription());	// @todo localize description?
+		HandleNewStat(GroupName, GroupCategory, GroupDescription);
+	}
+}
+
+void FLevelViewportCommands::HandleNewStat(const FName& InStatName, const FName& InStatCategory, const FText& InStatDescription)
+{
+	FString CommandName = InStatName.ToString();
+	if (CommandName.RemoveFromStart(TEXT("STATGROUP_")) || CommandName.RemoveFromStart(TEXT("STAT_")))
+	{
+		// Trim the front to get our category name
+		FString GroupCategory = InStatCategory.ToString();
+		if (!GroupCategory.RemoveFromStart(TEXT("STATCAT_")))
+		{
+			GroupCategory.Empty();
+		}
+
+		// If we already have an entry (which can happen if a category has changed [when loading older saved stat data]) or we don't have a valid category then skip adding
+		if (!FInputBindingManager::Get().FindCommandInContext(this->GetContextName(), InStatName).IsValid() && !GroupCategory.IsEmpty())
+		{
+			// Find or Add the category
+			TArray< FShowMenuCommand >* ShowStatCommands = ShowStatCatCommands.Find(GroupCategory);
+			if (!ShowStatCommands)
+			{
+				// New category means we'll need to resort
+				ShowStatCatCommands.Add(GroupCategory);
+				ShowStatCatCommands.KeySort(TLess<FString>());
+				ShowStatCommands = ShowStatCatCommands.Find(GroupCategory);
+			}
+
+			const int32 NewIndex = FindStatIndex(ShowStatCommands, CommandName);
+			if (NewIndex != INDEX_NONE)
+			{
+				const FText DisplayName = FText::FromString(CommandName);
+
+				FText DescriptionName = InStatDescription;
+				FFormatNamedArguments Args;
+				Args.Add(TEXT("StatName"), DisplayName);
+				if (DescriptionName.IsEmpty())
+				{
+					DescriptionName = FText::Format(NSLOCTEXT("UICommands", "StatShowCommandName", "Show {StatName} Stat"), Args);
+				}
+
+				TSharedPtr<FUICommandInfo> StatCommand
+					= FUICommandInfoDecl(this->AsShared(), InStatName, FText::GetEmpty(), DescriptionName)
+					.UserInterfaceType(EUserInterfaceActionType::ToggleButton);
+
+				FLevelViewportCommands::FShowMenuCommand ShowStatCommand(StatCommand, DisplayName);
+				ShowStatCommands->Insert(ShowStatCommand, NewIndex);
+				NewStatCommandDelegate.Broadcast(ShowStatCommand.ShowMenuItem, ShowStatCommand.LabelOverride.ToString());
+			}
+		}
+	}
+}
+
+int32 FLevelViewportCommands::FindStatIndex(const TArray< FShowMenuCommand >* ShowStatCommands, const FString& InCommandName) const
+{
+	check(ShowStatCommands);
+	for (int32 StatIndex = 0; StatIndex < ShowStatCommands->Num(); ++StatIndex)
+	{
+		const FString CommandName = (*ShowStatCommands)[StatIndex].LabelOverride.ToString();
+		const int32 Compare = InCommandName.Compare(CommandName);
+		if (Compare == 0)
+		{
+			return INDEX_NONE;
+		}
+		else if (Compare < 0)
+		{
+			return StatIndex;
+		}
+	}
+	return ShowStatCommands->Num();
 }
 
 PRAGMA_ENABLE_OPTIMIZATION

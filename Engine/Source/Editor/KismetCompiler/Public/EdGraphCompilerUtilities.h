@@ -10,7 +10,7 @@
 #include "BlueprintUtilities.h"
 #include "EdGraphUtilities.h"
 
-DECLARE_STATS_GROUP(TEXT("KismetCompiler"), STATGROUP_KismetCompiler);
+DECLARE_STATS_GROUP(TEXT("Kismet Compiler"), STATGROUP_KismetCompiler, STATCAT_Advanced);
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Compile Time"), EKismetCompilerStats_CompileTime, STATGROUP_KismetCompiler, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Create Schema"), EKismetCompilerStats_CreateSchema, STATGROUP_KismetCompiler, );

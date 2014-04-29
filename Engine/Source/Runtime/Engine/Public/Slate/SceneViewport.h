@@ -126,6 +126,13 @@ public:
 	void OnPlayWorldViewportSwapped( const FSceneViewport& OtherViewport );
 
 	/**
+	 * Swaps the active stats with another viewports
+	 *
+	 * @param OtherViewport	The previously active viewport
+	 */
+	void SwapStatCommands(const FSceneViewport& OtherViewport);
+
+	/**
 	 * Indicate that the viewport should be block for vsync.
 	 */
 	virtual void SetRequiresVsync(bool bShouldVsync) OVERRIDE { bRequiresVsync = bShouldVsync; }

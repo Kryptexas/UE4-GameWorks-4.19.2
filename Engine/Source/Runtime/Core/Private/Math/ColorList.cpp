@@ -75,20 +75,6 @@ const FString& FColorList::GetColorNameByIndex( int32 ColorIndex ) const
 	return BadIndex;
 }
 
-/** Whether to show the color list table. */
-CORE_API bool GShowColorList = false;
-
-bool FColorList::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
-{
-	if( FParse::Command( &Cmd,TEXT("ToggleShowColorList") ) )
-	{
-		GShowColorList = !GShowColorList;
-		Ar.Logf( TEXT( "Color list table is now %s" ), GShowColorList ? TEXT( "visible" ) : TEXT( "hidden" ) );
-		return true;
-	}
-	return false;
-}
-
 void FColorList::CreateColorMap()
 {
 	int32 Index = 0;

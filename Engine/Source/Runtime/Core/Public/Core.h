@@ -353,14 +353,6 @@ extern CORE_API FName GLongCorePackageName;
 //@Package name transition, remove the double checks 
 extern CORE_API FName GLongCoreUObjectPackageName;
 
-/**
- * Whether to show slate batches.
- * @todo UE4: This does not belong here but is needed at the core level so slate will compile
- */
-#if STATS
-	extern CORE_API bool GShowSlateBatches;
-#endif
-
 /** Whether or not a unit test is currently being run. */
 extern CORE_API bool GIsAutomationTesting;
 

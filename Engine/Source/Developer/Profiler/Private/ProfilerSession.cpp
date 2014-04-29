@@ -643,9 +643,6 @@ void FProfilerStatMetaData::UpdateFromStatsState( const FStatsThreadState& Stats
 		}
 		const int32 GroupID = GroupFNameIDs.FindChecked( GroupName );
 
-		FString StatDesc;
-		LongName.NameAndInfo.GetDescription( StatDesc );
-
 		const FName StatName = It.Key();
 		UniqueID++;
 
@@ -679,10 +676,8 @@ void FProfilerStatMetaData::UpdateFromStatsState( const FStatsThreadState& Stats
 			StatID = 2;
 		}
 
-		if( StatDesc.Len() == 0 )
-		{
-			StatDesc = StatName.ToString();
-		}
+		const FString Description = LongName.NameAndInfo.GetDescription();
+		const FString StatDesc = !Description.IsEmpty() ? Description : StatName.ToString();
 
 		InitializeStat( StatID, GroupID, StatDesc, StatType, StatName );
 
@@ -751,8 +746,8 @@ FProfilerFrame* FRawProfilerSession::ProcessStatPacketArray( const FStatPacketAr
 		if( !ThreadNode )
 		{
 			FString ThreadIdName = FStatsUtils::BuildUniqueThreadName( StatPacket.ThreadId );
-			FStatMessage ThreadMessage( ThreadFName, EStatDataType::ST_int64, STAT_GROUP_TO_FStatGroup( STATGROUP_Threads )::GetGroupName(), *ThreadIdName, true, true );
-			//FStatMessage ThreadMessage( ThreadFName, EStatDataType::ST_int64, nullptr, TEXT( "" ), true, true );
+			FStatMessage ThreadMessage( ThreadFName, EStatDataType::ST_int64, STAT_GROUP_TO_FStatGroup( STATGROUP_Threads )::GetGroupName(), STAT_GROUP_TO_FStatGroup( STATGROUP_Threads )::GetGroupCategory(), *ThreadIdName, true, true );
+			//FStatMessage ThreadMessage( ThreadFName, EStatDataType::ST_int64, nullptr, nullptr, TEXT( "" ), true, true );
 			ThreadMessage.NameAndInfo.SetFlag( EStatMetaFlags::IsPackedCCAndDuration, true );
 			ThreadMessage.Clear();
 

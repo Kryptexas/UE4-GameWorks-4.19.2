@@ -275,7 +275,7 @@ void FStatsWriteFile::Finalize( FArchive* File )
 	FArchive& Ar = *File;
 
 	// Write special marker message.
-	static FStatNameAndInfo Adv( NAME_None, "", TEXT( "" ), EStatDataType::ST_int64, true, false );
+	static FStatNameAndInfo Adv(NAME_None, "", "", TEXT(""), EStatDataType::ST_int64, true, false);
 	FStatMessage SpecialMessage( Adv.GetEncodedName(), EStatOperation::SpecialMessageMarker, 0LL, false );
 	WriteMessage( Ar, SpecialMessage );
 

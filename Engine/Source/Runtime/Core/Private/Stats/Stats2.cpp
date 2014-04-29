@@ -91,16 +91,16 @@ void FStartupMessages::AddThreadMetadata( const FName InThreadName, uint32 InThr
 	// Make unique name.
 	const FString ThreadName = FStatsUtils::BuildUniqueThreadName( InThreadID );
 
-	FStartupMessages::AddMetadata( InThreadName, *ThreadName, STAT_GROUP_TO_FStatGroup( STATGROUP_Threads )::GetGroupName(), STAT_GROUP_TO_FStatGroup( STATGROUP_Threads )::GetDescription(), true, EStatDataType::ST_int64, true );
+	FStartupMessages::AddMetadata( InThreadName, *ThreadName, STAT_GROUP_TO_FStatGroup( STATGROUP_Threads )::GetGroupName(), STAT_GROUP_TO_FStatGroup( STATGROUP_Threads )::GetGroupCategory(), STAT_GROUP_TO_FStatGroup( STATGROUP_Threads )::GetDescription(), true, EStatDataType::ST_int64, true );
 }
 
 
-void FStartupMessages::AddMetadata( FName InStatName, const TCHAR* InStatDesc, const char* InGroupName, const TCHAR* InGroupDesc, bool bCanBeDisabled, EStatDataType::Type InStatType, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion InMemoryRegion /*= FPlatformMemory::MCR_Invalid*/ )
+void FStartupMessages::AddMetadata( FName InStatName, const TCHAR* InStatDesc, const char* InGroupName, const char* InGroupCategory, const TCHAR* InGroupDesc, bool bCanBeDisabled, EStatDataType::Type InStatType, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion InMemoryRegion /*= FPlatformMemory::MCR_Invalid*/ )
 {
 	FScopeLock Lock( &CriticalSection );
 
-	new (DelayedMessages) FStatMessage( InGroupName, EStatDataType::ST_None, "Groups", InGroupDesc, false, false );
-	new (DelayedMessages) FStatMessage( InStatName, InStatType, InGroupName, InStatDesc, bCanBeDisabled, bCycleStat, InMemoryRegion );
+	new (DelayedMessages)FStatMessage( InGroupName, EStatDataType::ST_None, "Groups", InGroupCategory, InGroupDesc, false, false );
+	new (DelayedMessages)FStatMessage( InStatName, InStatType, InGroupName, InGroupCategory, InStatDesc, bCanBeDisabled, bCycleStat, InMemoryRegion );
 }
 
 
@@ -115,14 +115,14 @@ FStartupMessages& FStartupMessages::Get()
 	return *Messages;
 }
 
-void FThreadSafeStaticStatBase::DoSetup(const char* InStatName, const TCHAR* InStatDesc, const char* InGroupName, const TCHAR* InGroupDesc, bool bDefaultEnable, bool bCanBeDisabled, EStatDataType::Type InStatType, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion InMemoryRegion) const
+void FThreadSafeStaticStatBase::DoSetup(const char* InStatName, const TCHAR* InStatDesc, const char* InGroupName, const char* InGroupCategory, const TCHAR* InGroupDesc, bool bDefaultEnable, bool bCanBeDisabled, EStatDataType::Type InStatType, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion InMemoryRegion) const
 {
 	FName TempName(InStatName);
 
 	// send meta data, we don't use normal messages because the stats thread might not be running yet
-	FStartupMessages::Get().AddMetadata( TempName, InStatDesc, InGroupName, InGroupDesc, bCanBeDisabled, InStatType, bCycleStat, InMemoryRegion );
+	FStartupMessages::Get().AddMetadata(TempName, InStatDesc, InGroupName, InGroupCategory, InGroupDesc, bCanBeDisabled, InStatType, bCycleStat, InMemoryRegion);
 
-	FName const* LocalHighPerformanceEnable(IStatGroupEnableManager::Get().GetHighPerformanceEnableForStat(FName(InStatName), InGroupName, bDefaultEnable, bCanBeDisabled, InStatType, InStatDesc, bCycleStat, InMemoryRegion).GetRawPointer());
+	FName const* LocalHighPerformanceEnable(IStatGroupEnableManager::Get().GetHighPerformanceEnableForStat(FName(InStatName), InGroupName, InGroupCategory, bDefaultEnable, bCanBeDisabled, InStatType, InStatDesc, bCycleStat, InMemoryRegion).GetRawPointer());
 	FName const* OldHighPerformanceEnable = (FName const*)FPlatformAtomics::InterlockedCompareExchangePointer((void**)&HighPerformanceEnable, (void*)LocalHighPerformanceEnable, NULL);
 	check(!OldHighPerformanceEnable || HighPerformanceEnable == OldHighPerformanceEnable); // we are assigned two different groups?
 }
@@ -268,15 +268,15 @@ public:
 		FThreadStats::MasterDisableChangeTagLockSubtract();
 	}
 
-	virtual TStatId GetHighPerformanceEnableForStat(FName StatShortName, const char* InGroup, bool bDefaultEnable, bool bCanBeDisabled, EStatDataType::Type InStatType, TCHAR const* InDescription, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion MemoryRegion = FPlatformMemory::MCR_Invalid) OVERRIDE
+	virtual TStatId GetHighPerformanceEnableForStat(FName StatShortName, const char* InGroup, const char* InCategory, bool bDefaultEnable, bool bCanBeDisabled, EStatDataType::Type InStatType, TCHAR const* InDescription, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion MemoryRegion = FPlatformMemory::MCR_Invalid) OVERRIDE
 	{
 		FScopeLock ScopeLock(&SynchronizationObject);
 
-		FName Group(InGroup);
-		FStatNameAndInfo LongName(StatShortName, InGroup, InDescription, InStatType, bCanBeDisabled, bCycleStat, MemoryRegion);
+		FStatNameAndInfo LongName(StatShortName, InGroup, InCategory, InDescription, InStatType, bCanBeDisabled, bCycleStat, MemoryRegion);
 
 		FName Stat = LongName.GetEncodedName();
 
+		FName Group(InGroup);
 		FGroupEnable* Found = HighPerformanceEnable.Find(Group);
 		if (Found)
 		{
@@ -453,7 +453,7 @@ DECLARE_CYCLE_STAT(TEXT("StatsNew Tick"),STAT_StatsNewTick,STATGROUP_StatSystem)
 DECLARE_CYCLE_STAT(TEXT("Parse Meta"),STAT_StatsNewParseMeta,STATGROUP_StatSystem);
 DECLARE_CYCLE_STAT(TEXT("Add To History"),STAT_StatsNewAddToHistory,STATGROUP_StatSystem);
 
-FName FStatNameAndInfo::ToLongName(FName InStatName, char const* InGroup, TCHAR const* InDescription)
+FName FStatNameAndInfo::ToLongName(FName InStatName, char const* InGroup, char const* InCategory, TCHAR const* InDescription)
 {
 	FString LongName;
 	if (InGroup)
@@ -469,6 +469,12 @@ FName FStatNameAndInfo::ToLongName(FName InStatName, char const* InGroup, TCHAR 
 		LongName += FStatsUtils::ToEscapedFString(InDescription);
 		LongName += TEXT("///");
 	}
+	if (InCategory)
+	{
+		LongName += TEXT("////");
+		LongName += InCategory;
+		LongName += TEXT("////");
+	}
 	return FName(*LongName);
 }
 
@@ -479,7 +485,7 @@ FName FStatNameAndInfo::GetShortNameFrom(FName InLongName)
 	if (Input.StartsWith(TEXT("//")))
 	{
 		Input = Input.RightChop(2);
-		int32 IndexEnd = Input.Find(TEXT("//"));
+		const int32 IndexEnd = Input.Find(TEXT("//"));
 		if (IndexEnd == INDEX_NONE)
 		{
 			checkStats(0);
@@ -487,13 +493,10 @@ FName FStatNameAndInfo::GetShortNameFrom(FName InLongName)
 		}
 		Input = Input.RightChop(IndexEnd + 2);
 	}
-	if (Input.EndsWith(TEXT("///")))
+	const int32 IndexEnd = Input.Find(TEXT("///"));
+	if (IndexEnd != INDEX_NONE)
 	{
-		int32 Index = Input.Find(TEXT("///"));
-		if (Index != INDEX_NONE)
-		{
-			Input = Input.Left(Index);
-		}
+		Input = Input.Left(IndexEnd);
 	}
 	return FName(*Input);
 }
@@ -505,7 +508,7 @@ FName FStatNameAndInfo::GetGroupNameFrom(FName InLongName)
 	if (Input.StartsWith(TEXT("//")))
 	{
 		Input = Input.RightChop(2);
-		int32 IndexEnd = Input.Find(TEXT("//"));
+		const int32 IndexEnd = Input.Find(TEXT("//"));
 		if (IndexEnd != INDEX_NONE)
 		{
 			return FName(*Input.Left(IndexEnd));
@@ -515,20 +518,39 @@ FName FStatNameAndInfo::GetGroupNameFrom(FName InLongName)
 	return NAME_None;
 }
 
-void FStatNameAndInfo::GetDescriptionFrom(FName InLongName, FString& OutDescription)
+FString FStatNameAndInfo::GetDescriptionFrom(FName InLongName)
 {
-	OutDescription = TEXT("");
 	FString Input(InLongName.ToString());
 
-	if (Input.EndsWith(TEXT("///")))
+	const int32 IndexStart = Input.Find(TEXT("///"));
+	if (IndexStart != INDEX_NONE)
 	{
-		Input = Input.LeftChop(3);
-		int32 Index = Input.Find(TEXT("///"));
-		if (Index != INDEX_NONE)
+		Input = Input.RightChop(IndexStart + 3);
+		const int32 IndexEnd = Input.Find(TEXT("///"));
+		if (IndexEnd != INDEX_NONE)
 		{
-			OutDescription = FStatsUtils::FromEscapedFString(*Input.RightChop(Index + 3));
+			return FStatsUtils::FromEscapedFString(*Input.Left(IndexEnd));
 		}
 	}
+	return FString();
+}
+
+FName FStatNameAndInfo::GetGroupCategoryFrom(FName InLongName)
+{
+	FString Input(InLongName.ToString());
+
+	const int32 IndexStart = Input.Find(TEXT("///////"), ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+	if (IndexStart != INDEX_NONE)
+	{
+		Input = Input.RightChop(IndexStart + 7);
+		const int32 IndexEnd = Input.Find(TEXT("////"));
+		if (IndexEnd != INDEX_NONE)
+		{
+			return FName(*Input.Left(IndexEnd));
+		}
+		checkStats(0);
+	}
+	return NAME_None;
 }
 
 uint32 StatsThreadId = 0;

@@ -219,14 +219,6 @@ int32                     GScreenshotBitmapIndex           = -1;
 bool					GCycleStatsShouldEmitNamedEvents= false;
 /** Disables some warnings and minor features that would interrupt a demo presentation						*/
 bool					GIsDemoMode						= false;
-/*
- * Whether to show slate batches 
- * @todo UE4: This does not belong here but is needed at the core level so slate will compile
-*/
-#if STATS
-bool					GShowSlateBatches			= false;
-#endif
-
 /** Whether or not a unit test is currently being run														*/
 bool					GIsAutomationTesting					= false;
 /** Whether or not messages are being pumped outside of the main loop										*/

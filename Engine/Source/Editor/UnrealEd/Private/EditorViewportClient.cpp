@@ -231,9 +231,7 @@ FEditorViewportClient::FEditorViewportClient(FPreviewScene* InPreviewScene)
 	, CurrentMousePos(-1, -1)
 	, bIsRealtime(false)
 	, bStoredRealtime(false)
-	, bStoredShowFPS(false)
 	, bStoredShowStats(false)
-	, bShowFPS(false)
 	, bShowStats(false)
 	, PreviewScene(InPreviewScene)
 	, bCameraLock(false)
@@ -2561,13 +2559,6 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 	FCanvas* DebugCanvas = Viewport->GetDebugCanvas();
 
 	UDebugDrawService::Draw(ViewFamily.EngineShowFlags, Viewport, View, DebugCanvas);
-	// Frame rate display
-	int32 NextYPos = 75;
-	if( IsRealtime() && ShouldShowFPS() && DebugCanvas)
-	{
-		const int32 XPos = FMath::Max( 10, (int32)Viewport->GetSizeXY().X - 90 );
-		NextYPos = DrawFPSCounter( Viewport, DebugCanvas, XPos, NextYPos );
-	}
 
 	// Stats display
 	if( IsRealtime() && ShouldShowStats() && DebugCanvas)
@@ -3142,7 +3133,6 @@ bool FEditorViewportClient::IsVisible() const
 
 	return bIsVisible;
 }
-
 
 void FEditorViewportClient::GetViewportDimensions( FIntPoint& OutOrigin, FIntPoint& Outize )
 {

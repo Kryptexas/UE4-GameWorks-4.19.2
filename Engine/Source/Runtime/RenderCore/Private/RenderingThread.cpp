@@ -254,7 +254,7 @@ void RenderingThreadTick(int64 StatsFrame, int32 MasterDisableChangeTagStartFram
 	{
 		Frame = -StatsFrame; // mark this as a bad frame
 	}
-	static FStatNameAndInfo Adv(NAME_AdvanceFrame, "", TEXT(""), EStatDataType::ST_int64, true, false);
+	static FStatNameAndInfo Adv(NAME_AdvanceFrame, "", "", TEXT(""), EStatDataType::ST_int64, true, false);
 	FThreadStats::AddMessage(Adv.GetEncodedName(), EStatOperation::AdvanceFrameEventRenderThread, Frame);
 	if( IsInActualRenderingThread() )
 	{

@@ -256,6 +256,386 @@ FString FScreenshotRequest::NextScreenshotName;
 bool FScreenshotRequest::bShowUI = false;
 TArray<FColor> FScreenshotRequest::HighresScreenshotMaskColorArray;
 
+
+int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 InX, int32 InY)
+{
+	float FrameTime;
+	if (FApp::IsBenchmarking() || FApp::UseFixedTimeStep())
+	{
+		/** If we're in fixed time step mode, FApp::GetCurrentTime() will be incorrect for benchmarking */
+		const double CurrentTime = FPlatformTime::Seconds();
+		if (LastTime == 0)
+		{
+			LastTime = CurrentTime;
+		}
+		FrameTime = CurrentTime - LastTime;
+		LastTime = CurrentTime;
+	}
+	else
+	{
+		/** Use the FrameTime we computed last frame, because it correctly handles the end of frame idling and corresponds better to the other unit times. */
+		FrameTime = FApp::GetCurrentTime() - FApp::GetLastTime();
+	}
+
+	RawFrameTime = FrameTime * 1000.0f;
+	FrameTime = 0.9 * FrameTime + 0.1 * RawFrameTime;
+
+	/** Number of milliseconds the gamethread was used last frame. */
+	RawGameThreadTime = FPlatformTime::ToMilliseconds(GGameThreadTime);
+	GameThreadTime = 0.9 * GameThreadTime + 0.1 * RawGameThreadTime;
+	appSetCounterValue(TEXT("Game thread time"), FPlatformTime::ToMilliseconds(GGameThreadTime));
+
+	/** Number of milliseconds the renderthread was used last frame. */
+	RawRenderThreadTime = FPlatformTime::ToMilliseconds(GRenderThreadTime);
+	RenderThreadTime = 0.9 * RenderThreadTime + 0.1 * RawRenderThreadTime;
+	appSetCounterValue(TEXT("Render thread time"), FPlatformTime::ToMilliseconds(GRenderThreadTime));
+
+	/** Number of milliseconds the GPU was busy last frame. */
+	const uint32 GPUCycles = RHIGetGPUFrameCycles();
+	RawGPUFrameTime = FPlatformTime::ToMilliseconds(GPUCycles);
+	GPUFrameTime = 0.9 * GPUFrameTime + 0.1 * RawGPUFrameTime;
+	appSetCounterValue(TEXT("GPU time"), FPlatformTime::ToMilliseconds(GPUCycles));
+
+	SET_FLOAT_STAT(STAT_FPSChart_UnitFrame, FrameTime);
+	SET_FLOAT_STAT(STAT_FPSChart_UnitRender, RenderThreadTime);
+	SET_FLOAT_STAT(STAT_FPSChart_UnitGame, GameThreadTime);
+	SET_FLOAT_STAT(STAT_FPSChart_UnitGPU, GPUFrameTime);
+
+	GEngine->SetAverageUnitTimes(FrameTime, RenderThreadTime, GameThreadTime, GPUFrameTime);
+
+	float Max_RenderThreadTime = 0.0f;
+	float Max_GameThreadTime = 0.0f;
+	float Max_GPUFrameTime = 0.0f;
+	float Max_FrameTime = 0.0f;
+
+	const bool bShowUnitMaxTimes = InViewport->GetClient() ? InViewport->GetClient()->IsStatEnabled(TEXT("UnitMax")) : false;
+#if !UE_BUILD_SHIPPING
+	const bool bShowRawUnitTimes = InViewport->GetClient() ? InViewport->GetClient()->IsStatEnabled(TEXT("Raw")) : false;
+	RenderThreadTimes[CurrentIndex] = bShowRawUnitTimes ? RawRenderThreadTime : RenderThreadTime;
+	GameThreadTimes[CurrentIndex] = bShowRawUnitTimes ? RawGameThreadTime : GameThreadTime;
+	GPUFrameTimes[CurrentIndex] = bShowRawUnitTimes ? RawGPUFrameTime : GPUFrameTime;
+	FrameTimes[CurrentIndex] = bShowRawUnitTimes ? RawFrameTime : FrameTime;
+	CurrentIndex++;
+	if (CurrentIndex == NumberOfSamples)
+	{
+		CurrentIndex = 0;
+	}
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	if (bShowUnitMaxTimes)
+	{
+		for (int32 MaxIndex = 0; MaxIndex < NumberOfSamples; MaxIndex++)
+		{
+			if (Max_RenderThreadTime < RenderThreadTimes[MaxIndex])
+			{
+				Max_RenderThreadTime = RenderThreadTimes[MaxIndex];
+			}
+			if (Max_GameThreadTime < GameThreadTimes[MaxIndex])
+			{
+				Max_GameThreadTime = GameThreadTimes[MaxIndex];
+			}
+			if (Max_GPUFrameTime < GPUFrameTimes[MaxIndex])
+			{
+				Max_GPUFrameTime = GPUFrameTimes[MaxIndex];
+			}
+			if (Max_FrameTime < FrameTimes[MaxIndex])
+			{
+				Max_FrameTime = FrameTimes[MaxIndex];
+			}
+		}
+	}
+#endif // #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#endif // #if !UE_BUILD_SHIPPING
+
+	// Render CPU thread and GPU frame times.
+	UFont* Font = (!FPlatformProperties::SupportsWindowedMode() && GEngine->GetMediumFont()) ? GEngine->GetMediumFont() : GEngine->GetSmallFont();
+	const int32 SafeZone = FPlatformProperties::SupportsWindowedMode() ? 0 : FMath::Trunc(InViewport->GetSizeXY().X * 0.05f);
+
+	FColor Color;
+	int32 X3 = InViewport->GetSizeXY().X - SafeZone;
+	if (bShowUnitMaxTimes)
+	{
+		X3 -= Font->GetStringSize(TEXT(" 0000.00 ms "));
+	}
+	const int32 X2 = X3 - Font->GetStringSize(TEXT(" 000.00 ms "));
+	const int32 X1 = X2 - Font->GetStringSize(TEXT("Frame: "));
+	const int32 RowHeight = FMath::Trunc(Font->GetMaxCharHeight() * 1.1f);
+	const bool bShowUnitTimeGraph = InViewport->GetClient() ? InViewport->GetClient()->IsStatEnabled(TEXT("UnitGraph")) : false;
+
+	// 0-34 ms: Green, 34-50 ms: Yellow, 50+ ms: Red
+	Color = FrameTime < 34.0f ? FColor(0, 255, 0) : (FrameTime < 50.0f ? FColor(255, 255, 0) : FColor(255, 0, 0));
+	InCanvas->DrawShadowedString(X1, InY, TEXT("Frame:"), Font, bShowUnitTimeGraph ? FColor(100, 255, 100) : FColor(255, 255, 255));
+	InCanvas->DrawShadowedString(X2, InY, *FString::Printf(TEXT("%3.2f ms"), FrameTime), Font, Color);
+	if (bShowUnitMaxTimes)
+	{
+		InCanvas->DrawShadowedString(X3, InY, *FString::Printf(TEXT("%4.2f ms"), Max_FrameTime), Font, Color);
+	}
+	InY += RowHeight;
+
+	Color = GameThreadTime < 34.0f ? FColor(0, 255, 0) : (GameThreadTime < 50.0f ? FColor(255, 255, 0) : FColor(255, 0, 0));
+	InCanvas->DrawShadowedString(X1, InY, TEXT("Game:"), Font, bShowUnitTimeGraph ? FColor(255, 100, 100) : FColor(255, 255, 255));
+	InCanvas->DrawShadowedString(X2, InY, *FString::Printf(TEXT("%3.2f ms"), GameThreadTime), Font, Color);
+	if (bShowUnitMaxTimes)
+	{
+		InCanvas->DrawShadowedString(X3, InY, *FString::Printf(TEXT("%4.2f ms"), Max_GameThreadTime), Font, Color);
+	}
+	InY += RowHeight;
+
+	Color = RenderThreadTime < 34.0f ? FColor(0, 255, 0) : (RenderThreadTime < 50.0f ? FColor(255, 255, 0) : FColor(255, 0, 0));
+	InCanvas->DrawShadowedString(X1, InY, TEXT("Draw:"), Font, bShowUnitTimeGraph ? FColor(100, 100, 255) : FColor(255, 255, 255));
+	InCanvas->DrawShadowedString(X2, InY, *FString::Printf(TEXT("%3.2f ms"), RenderThreadTime), Font, Color);
+	if (bShowUnitMaxTimes)
+	{
+		InCanvas->DrawShadowedString(X3, InY, *FString::Printf(TEXT("%4.2f ms"), Max_RenderThreadTime), Font, Color);
+	}
+	InY += RowHeight;
+
+	const bool bHaveGPUData = GPUCycles > 0;
+	if (bHaveGPUData)
+	{
+		Color = GPUFrameTime < 34.0f ? FColor(0, 255, 0) : (GPUFrameTime < 50.0f ? FColor(255, 255, 0) : FColor(255, 0, 0));
+		InCanvas->DrawShadowedString(X1, InY, TEXT("GPU:"), Font, bShowUnitTimeGraph ? FColor(255, 255, 100) : FColor(255, 255, 255));
+		InCanvas->DrawShadowedString(X2, InY, *FString::Printf(TEXT("%3.2f ms"), GPUFrameTime), Font, Color);
+		if (bShowUnitMaxTimes)
+		{
+			InCanvas->DrawShadowedString(X3, InY, *FString::Printf(TEXT("%4.2f ms"), Max_GPUFrameTime), Font, Color);
+		}
+		InY += RowHeight;
+	}
+
+#if !UE_BUILD_SHIPPING
+	// Draw simple unit time graph
+	if (bShowUnitTimeGraph)
+	{
+		UFont* Font = GEngine->GetSmallFont();
+		check(Font);
+		int32 AlertPrintWidth = Font->GetStringSize(TEXT("000.0"));
+		int32 AlertPrintHeight = Font->GetStringHeightSize(TEXT("000.0"));
+
+		// The vertical axis is time in milliseconds
+		// The horizontal axis is the frame number (NOT time!!!)
+
+		// Threshold where graph lines will pulsate for slow frames
+		const float AlertTimeMS = 33.33f;
+
+		// Graph layout
+		const float GraphLeftXPos = 80.0f;
+		const float GraphBottomYPos = InViewport->GetSizeXY().Y - 50.0f;
+		const float GraphHorizPixelsPerFrame = 2.0f;
+		const float GraphVerticalPixelsPerMS = 10.0f;
+		const float GraphHeightInMS = 40.0f;
+
+		const FLinearColor GraphBorderColor(0.1f, 0.1f, 0.1f);
+		const FLinearColor AlertLineColor(0.1f, 0.03f, 0.03f);
+
+		// Compute pulse effect for lines above alert threshold
+		const float AlertPulseFreq = 8.0f;
+		const float AlertPulse = 0.5f + 0.5f * (float)sin((0.25f * PI * 2.0) + (FApp::GetCurrentTime() * PI * 2.0) * AlertPulseFreq);
+
+
+		// For each type of statistic that we want to graph (0=Render, 1=Game, 2=GPU, 3=Frame)
+		enum EGraphStats
+		{
+			EGS_Render = 0,
+			EGS_Game,
+			EGS_GPU,
+			EGS_Frame,
+
+			EGS_Count
+		};
+
+
+		FBatchedElements* BatchedElements = InCanvas->GetBatchedElements(FCanvas::ET_Line);
+		FHitProxyId HitProxyId = InCanvas->GetHitProxyId();
+
+		// Reserve line vertices (4 border lines, then up to the maximum number of graph lines)
+		BatchedElements->AddReserveLines(4 + EGS_Count * NumberOfSamples);
+
+
+		// Left
+		BatchedElements->AddLine(
+			FVector(GraphLeftXPos - 1.0f, GraphBottomYPos - GraphVerticalPixelsPerMS * GraphHeightInMS, 0.0f),
+			FVector(GraphLeftXPos - 1.0f, GraphBottomYPos - 1.0f, 0.0f),
+			GraphBorderColor,
+			HitProxyId);
+
+		// Right
+		BatchedElements->AddLine(
+			FVector(GraphLeftXPos + GraphHorizPixelsPerFrame * NumberOfSamples + 1.0f, GraphBottomYPos - GraphVerticalPixelsPerMS * GraphHeightInMS, 0.0f),
+			FVector(GraphLeftXPos + GraphHorizPixelsPerFrame * NumberOfSamples + 1.0f, GraphBottomYPos - 1.0f, 0.0f),
+			GraphBorderColor,
+			HitProxyId);
+
+		// Bottom
+		BatchedElements->AddLine(
+			FVector(GraphLeftXPos - 1.0f, GraphBottomYPos - 1.0f, 0.0f),
+			FVector(GraphLeftXPos + GraphHorizPixelsPerFrame * NumberOfSamples + 1.0f, GraphBottomYPos - 1.0f, 0.0f),
+			GraphBorderColor,
+			HitProxyId);
+
+		// Alert line
+		BatchedElements->AddLine(
+			FVector(GraphLeftXPos - 8.0f, GraphBottomYPos - AlertTimeMS * GraphVerticalPixelsPerMS, 0.0f),
+			FVector(GraphLeftXPos + GraphHorizPixelsPerFrame * NumberOfSamples + 8.0f, GraphBottomYPos - AlertTimeMS * GraphVerticalPixelsPerMS, 0.0f),
+			AlertLineColor,
+			HitProxyId);
+
+		int32 PrintY = GraphBottomYPos - AlertTimeMS * GraphVerticalPixelsPerMS - 2 * AlertPrintHeight;
+
+		const bool bShowFrameTimeInUnitGraph = InViewport->GetClient() ? InViewport->GetClient()->IsStatEnabled(TEXT("UnitTime")) : false;
+		for (int32 StatIndex = 0; StatIndex < EGS_Count; ++StatIndex)
+		{
+			int32 LastPrintX = 0xFFFFFFFF;
+			PrintY -= AlertPrintHeight;
+
+			// If we don't have GPU data to display, then skip this line
+			if ((StatIndex == EGS_GPU && !bHaveGPUData)
+				|| (StatIndex == EGS_Frame && bShowFrameTimeInUnitGraph == false && bHaveGPUData))
+			{
+				continue;
+			}
+
+			FLinearColor StatColor;
+			float* TimeValues = NULL;
+			switch (StatIndex)
+			{
+			case EGS_Render:
+				TimeValues = RenderThreadTimes.GetData();
+				StatColor = FLinearColor(0.1f, 0.1f, 1.0f);		// Blue
+				break;
+
+			case EGS_Game:
+				TimeValues = GameThreadTimes.GetData();
+				StatColor = FLinearColor(1.0f, 0.1f, 0.1f);		// Red
+				break;
+
+			case EGS_GPU:
+				TimeValues = GPUFrameTimes.GetData();
+				StatColor = FLinearColor(1.0f, 1.0f, 0.1f);		// Yellow
+				break;
+
+			case EGS_Frame:
+				TimeValues = FrameTimes.GetData();
+				StatColor = FLinearColor(0.1f, 1.0f, 0.1f);		// Green
+				break;
+			}
+
+			// For each sample in our data set
+			for (int32 CurFrameIndex = 0; CurFrameIndex < NumberOfSamples; ++CurFrameIndex)
+			{
+				const int32 PrevFrameIndex = FMath::Max(0, CurFrameIndex - 1);
+
+				int32 PrevUnitIndex = (CurrentIndex - NumberOfSamples) + PrevFrameIndex;
+				if (PrevUnitIndex < 0)
+				{
+					PrevUnitIndex += NumberOfSamples;
+				}
+				const FVector LineStart(
+					GraphLeftXPos + (float)PrevFrameIndex * GraphHorizPixelsPerFrame,
+					GraphBottomYPos - TimeValues[PrevUnitIndex] * GraphVerticalPixelsPerMS,
+					0.0f);
+
+				int32 CurUnitIndex = (CurrentIndex - NumberOfSamples) + CurFrameIndex;
+				if (CurUnitIndex < 0)
+				{
+					CurUnitIndex += NumberOfSamples;
+				}
+				const FVector LineEnd(
+					GraphLeftXPos + (float)CurFrameIndex * GraphHorizPixelsPerFrame,
+					GraphBottomYPos - TimeValues[CurUnitIndex] * GraphVerticalPixelsPerMS,
+					0.0f);
+
+				FLinearColor FinalLineColor = StatColor;
+				if (false && TimeValues[CurUnitIndex] > AlertTimeMS)
+				{
+					// Alert!
+					FinalLineColor.R *= AlertPulse;
+					FinalLineColor.G *= AlertPulse;
+					FinalLineColor.B *= AlertPulse;
+				}
+
+				BatchedElements->AddLine(LineStart, LineEnd, FinalLineColor, HitProxyId);
+
+				if (TimeValues[CurUnitIndex] > AlertTimeMS && (CurFrameIndex == 0 || TimeValues[PrevUnitIndex] <= AlertTimeMS))
+				{
+					const int32 AlertPadding = 1;
+					float MaxValue = TimeValues[CurUnitIndex];
+					int32 MinCheckFrames = FMath::Min<int32>(FPlatformMath::Ceil((float)AlertPrintWidth / GraphHorizPixelsPerFrame) + 10, NumberOfSamples);
+					int32 CheckIndex = CurUnitIndex + 1;
+					for (; CheckIndex < MinCheckFrames; ++CheckIndex)
+					{
+						MaxValue = FMath::Max<float>(MaxValue, TimeValues[CheckIndex]);
+					}
+					for (; CheckIndex < NumberOfSamples; ++CheckIndex)
+					{
+						if (TimeValues[CheckIndex] <= AlertTimeMS)
+						{
+							break;
+						}
+						MaxValue = FMath::Max<float>(MaxValue, TimeValues[CheckIndex]);
+					}
+
+					int32 StartX = GraphLeftXPos + (float)PrevFrameIndex * GraphHorizPixelsPerFrame - AlertPrintWidth;
+					if (StartX > LastPrintX)
+					{
+
+						InCanvas->DrawShadowedString(StartX, PrintY, *FString::Printf(TEXT("%3.1f"), TimeValues[CurUnitIndex]), Font, StatColor);
+						LastPrintX = StartX + AlertPrintWidth + AlertPadding;
+					}
+				}
+			}
+		}
+	}
+#endif	// !UE_BUILD_SHIPPING
+
+	return InY;
+}
+
+int32 FStatHitchesData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 InX, int32 InY)
+{
+	const double CurrentTime = FPlatformTime::Seconds();
+	if (LastTime > 0)
+	{
+		float DeltaSeconds = CurrentTime - LastTime;
+		if (DeltaSeconds > GHitchThreshold)
+		{
+			Hitches[OverwriteIndex] = DeltaSeconds;
+			When[OverwriteIndex] = CurrentTime;
+			OverwriteIndex = (OverwriteIndex + 1) % NumHitches;
+			if (GEngine->ActiveMatinee.IsValid())
+			{
+				float MatineeTime = GEngine->ActiveMatinee.Get()->InterpPosition;
+				float MatineeMM = FPlatformMath::TruncFloat(MatineeTime / 60.0f);
+				float MatineeSS = FPlatformMath::TruncFloat(MatineeTime - MatineeMM * 60.0f);
+				float MatineeMS = FPlatformMath::TruncFloat((MatineeTime - MatineeMM * 60.0f - MatineeSS) * 1000.0f);
+				UE_LOG(LogClient, Warning, TEXT("HITCH @ %02dm:%02d.%03ds,%d,%d,%d"),
+					(int32)MatineeMM, (int32)MatineeSS, (int32)MatineeMS, int32(MatineeTime * 1000), int32(DeltaSeconds * 1000), Count++);
+			}
+			else
+			{
+				UE_LOG(LogClient, Warning, TEXT("HITCH %d              running cnt = %5d"), int32(DeltaSeconds * 1000), Count++);
+			}
+		}
+		int32	MaxY = InViewport->GetSizeXY().Y;
+		static const double TravelTime = 4.2;
+		for (int32 i = 0; i < NumHitches; i++)
+		{
+			if (When[i] > 0 && When[i] <= CurrentTime && When[i] >= CurrentTime - TravelTime)
+			{
+				FColor MyColor = FColor(0, 255, 0);
+				if (Hitches[i] > 0.2f) MyColor = FColor(255, 255, 0);
+				if (Hitches[i] > 0.3f) MyColor = FColor(255, 0, 0);
+				int32 MyY = InY + int32(float(MaxY - InY) * float((CurrentTime - When[i]) / TravelTime));
+				FString Hitch = FString::Printf(TEXT("%5d"), int32(Hitches[i] * 1000.0f));
+				InCanvas->DrawShadowedString(InX, MyY, *Hitch, GEngine->GetSmallFont(), MyColor);
+			}
+		}
+	}
+	LastTime = CurrentTime;
+	return InY;
+}
+
+
 /*=============================================================================
 //
 // FViewport implementation.
@@ -1255,6 +1635,9 @@ ENGINE_API bool GetHighResScreenShotInput(const TCHAR* Cmd, FOutputDevice& Ar, u
 
 	return false;
 }
+
+/** Tracks the viewport client that should process the stat command, can be NULL */
+FCommonViewportClient* GStatProcessingViewportClient = NULL;
 
 void FCommonViewportClient::DrawHighResScreenshotCaptureRegion(FCanvas& Canvas)
 {

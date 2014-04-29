@@ -30,6 +30,12 @@ extern ENGINE_API FLightMap2D* GDebugSelectedLightmap;
 /** Delegate called at the end of the frame when a screenshot is captured */
 FOnScreenshotCaptured UGameViewportClient::ScreenshotCapturedDelegate;
 
+/** A list of all the stat names which are enabled for this viewport (static so they persist between runs) */
+TArray<FString> UGameViewportClient::EnabledStats;
+
+/** Those sound stat flags which are enabled on this viewport */
+FViewportClient::ESoundShowFlags::Type UGameViewportClient::SoundShowFlags = FViewportClient::ESoundShowFlags::Disabled;
+
 DEFINE_STAT(STAT_UIDrawingTime);
 
 /**
@@ -96,6 +102,35 @@ UGameViewportClient::UGameViewportClient(const class FPostConstructInitializePro
 
 	MaxSplitscreenPlayers = 4;
 	bSuppressTransitionMessage = false;
+
+	if (HasAnyFlags(RF_ClassDefaultObject) == false)
+	{
+		StatUnitData = new FStatUnitData();
+		StatHitchesData = new FStatHitchesData();
+		FCoreDelegates::StatCheckEnabled.AddUObject(this, &UGameViewportClient::HandleViewportStatCheckEnabled);
+		FCoreDelegates::StatEnabled.AddUObject(this, &UGameViewportClient::HandleViewportStatEnabled);
+		FCoreDelegates::StatDisabled.AddUObject(this, &UGameViewportClient::HandleViewportStatDisabled);
+		FCoreDelegates::StatDisableAll.AddUObject(this, &UGameViewportClient::HandleViewportStatDisableAll);
+	}
+}
+
+
+UGameViewportClient::~UGameViewportClient()
+{
+	FCoreDelegates::StatCheckEnabled.RemoveAll(this);
+	FCoreDelegates::StatEnabled.RemoveAll(this);
+	FCoreDelegates::StatDisabled.RemoveAll(this);
+	FCoreDelegates::StatDisableAll.RemoveAll(this);
+	if (StatHitchesData)
+	{
+		delete StatHitchesData;
+		StatHitchesData = NULL;
+	}
+	if (StatUnitData)
+	{
+		delete StatUnitData;
+		StatUnitData = NULL;
+	}
 }
 
 
@@ -1913,10 +1948,6 @@ bool UGameViewportClient::Exec( UWorld* InWorld, const TCHAR* Cmd,FOutputDevice&
 	{
 		return true;
 	}
-	else if( GColorList.Exec( InWorld, Cmd,Ar) )
-	{
-		return true;
-	}
 	else
 	{
 		return false;
@@ -2738,3 +2769,45 @@ bool UGameViewportClient::RequestBugScreenShot(const TCHAR* Cmd, bool bDisplayHU
 
 	return true;
 }
+
+void UGameViewportClient::HandleViewportStatCheckEnabled(const TCHAR* InName, bool& bOutCurrentEnabled, bool& bOutOthersEnabled)
+{
+	// Check to see which viewports have this enabled (current, non-current)
+	const bool bEnabled = IsStatEnabled(InName);
+	if (GStatProcessingViewportClient == this && GEngine->GameViewport == this)
+	{
+		bOutCurrentEnabled = bEnabled;
+	}
+	else
+	{
+		bOutOthersEnabled |= bEnabled;
+	}
+}
+
+void UGameViewportClient::HandleViewportStatEnabled(const TCHAR* InName)
+{
+	// Just enable this on the active viewport
+	if (GStatProcessingViewportClient == this && GEngine->GameViewport == this)
+	{
+		SetStatEnabled(InName, true);
+	}
+}
+
+void UGameViewportClient::HandleViewportStatDisabled(const TCHAR* InName)
+{
+	// Just disable this on the active viewport
+	if (GStatProcessingViewportClient == this && GEngine->GameViewport == this)
+	{
+		SetStatEnabled(InName, false);
+	}
+}
+
+void UGameViewportClient::HandleViewportStatDisableAll(const bool bInAnyViewport)
+{
+	// Disable all on either all or the current viewport (depending on the flag)
+	if (bInAnyViewport || (GStatProcessingViewportClient == this && GEngine->GameViewport == this))
+	{
+		SetStatEnabled(NULL, false, true);
+	}
+}
+

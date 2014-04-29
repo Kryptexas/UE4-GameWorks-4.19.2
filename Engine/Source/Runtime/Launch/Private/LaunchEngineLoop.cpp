@@ -1732,7 +1732,7 @@ void FlushStatsFrame(bool bDiscardCallstack)
 	{
 		Frame = -StatsFrame; // mark this as a bad frame
 	}
-	static FStatNameAndInfo Adv(NAME_AdvanceFrame, "", TEXT(""), EStatDataType::ST_int64, true, false);
+	static FStatNameAndInfo Adv(NAME_AdvanceFrame, "", "", TEXT(""), EStatDataType::ST_int64, true, false);
 	FThreadStats::AddMessage(Adv.GetEncodedName(), EStatOperation::AdvanceFrameEventGameThread, Frame); // we need to flush here if we aren't collecting stats to make sure the meta data is up to date
 	if (FPlatformProperties::IsServerOnly())
 	{
@@ -2033,6 +2033,12 @@ void FEngineLoop::Tick()
 			// Tick Slate application
 			FSlateApplication::Get().Tick();
 		}
+
+#if STATS
+		// Clear any stat group notifications we have pending just incase they weren't claimed during FSlateApplication::Get().Tick
+		extern CORE_API void ClearPendingStatGroups();
+		ClearPendingStatGroups();
+#endif
 
 #if WITH_EDITOR
 		if( GIsEditor )

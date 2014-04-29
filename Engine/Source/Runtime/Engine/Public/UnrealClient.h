@@ -148,6 +148,82 @@ private:
 	static TArray<FColor> HighresScreenshotMaskColorArray;
 };
 
+/** Data needed to display perframe stat tracking when STAT UNIT is enabled */
+struct FStatUnitData
+{
+	/** Unit frame times filtered with a simple running average */
+	float RenderThreadTime;
+	float GameThreadTime;
+	float GPUFrameTime;
+	float FrameTime;
+
+	/** Raw equivalents of the above variables */
+	float RawRenderThreadTime;
+	float RawGameThreadTime;
+	float RawGPUFrameTime;
+	float RawFrameTime;
+
+	/** Time that has transpired since the last draw call */
+	double LastTime;
+
+#if !UE_BUILD_SHIPPING
+	static const int32 NumberOfSamples = 200;
+
+	int32 CurrentIndex;
+	TArray<float> RenderThreadTimes;
+	TArray<float> GameThreadTimes;
+	TArray<float> GPUFrameTimes;
+	TArray<float> FrameTimes;
+#endif //!UE_BUILD_SHIPPING
+
+	FStatUnitData()
+		: RenderThreadTime(0.0f)
+		, GameThreadTime(0.0f)
+		, GPUFrameTime(0.0f)
+		, FrameTime(0.0f)
+		, RawRenderThreadTime(0.0f)
+		, RawGameThreadTime(0.0f)
+		, RawGPUFrameTime(0.0f)
+		, RawFrameTime(0.0f)
+		, LastTime(0.0)
+	{
+#if !UE_BUILD_SHIPPING
+		CurrentIndex = 0;
+		RenderThreadTimes.AddZeroed(NumberOfSamples);
+		GameThreadTimes.AddZeroed(NumberOfSamples);
+		GPUFrameTimes.AddZeroed(NumberOfSamples);
+		FrameTimes.AddZeroed(NumberOfSamples);
+#endif //!UE_BUILD_SHIPPING
+	}
+
+	/** Render function to display the stat */
+	int32 DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 InX, int32 InY);
+};
+
+/** Data needed to display perframe stat tracking when STAT HITCHES is enabled */
+struct FStatHitchesData
+{
+	double LastTime;
+
+	static const int32 NumHitches = 20;
+	TArray<float> Hitches;
+	TArray<double> When;
+	int32 OverwriteIndex;
+	int32 Count;
+
+	FStatHitchesData()
+		: LastTime(0.0)
+		, OverwriteIndex(0)
+		, Count(0)
+	{
+		Hitches.AddZeroed(NumHitches);
+		When.AddZeroed(NumHitches);
+	}
+
+	/** Render function to display the stat */
+	int32 DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 InX, int32 InY);
+};
+
 /**
  * Encapsulates the I/O of a viewport.
  * The viewport display is implemented using the platform independent RHI.
@@ -415,12 +491,6 @@ protected:
 	 */
 	void HighResScreenshot();
 
-	/**
-	 * Open the screendir directory in the platform file explorer
-	 */
-	void OpenScreenshotDir();
-
-
 protected:
 
 	/** A map from 2D coordinates to cached hit proxies. */
@@ -512,7 +582,7 @@ protected:
 	/** Delay in frames to disable present (but still render scene) and stopping of a movie. This is useful to keep playing a movie while driver caches things on the first frame, which can be slow. */
 	static int32 PresentAndStopMovieDelay;
 
-		/** Triggers the taking of a high res screen shot for this viewport. */
+	/** Triggers the taking of a high res screen shot for this viewport. */
 	bool bTakeHighResScreenShot;
 	// FRenderResource interface.
 	ENGINE_API virtual void InitDynamicRHI();
@@ -536,6 +606,22 @@ extern ENGINE_API bool GetHighResScreenShotInput(const TCHAR* Cmd, FOutputDevice
 class FViewportClient
 {
 public:
+	/** The different types of sound stat flags */
+	struct ESoundShowFlags
+	{
+		enum Type
+		{
+			Disabled = 0x00,
+			Debug = 0x01,
+			Sort_Distance = 0x02,
+			Sort_Class = 0x04,
+			Sort_Name = 0x08,
+			Sort_WavesNum = 0x10,
+			Sort_Disabled = 0x20,
+			Long_Names = 0x40,
+		};
+	};
+
 	virtual ~FViewportClient(){}
 	virtual void Precache() {}
 	virtual void RedrawRequested(FViewport* Viewport) { Viewport->Draw(); }
@@ -709,7 +795,45 @@ public:
 	 * @return true if capture region has been overridden, false otherwise
 	 */
 	virtual bool OverrideHighResScreenshotCaptureRegion(FIntRect& OutCaptureRegion) { return false; }
+
+	/**
+	 * Get a ptr to the stat unit data for this viewport
+	 */
+	virtual FStatUnitData* GetStatUnitData() const { return NULL; }
+
+	/**
+	* Get a ptr to the stat unit data for this viewport
+	*/
+	virtual FStatHitchesData* GetStatHitchesData() const { return NULL; }
+
+	/**
+	 * Get a ptr to the enabled stats list
+	 */
+	virtual const TArray<FString>* GetEnabledStats() const { return NULL; }
+
+	/**
+	 * Sets all the stats that should be enabled for the viewport
+	 */
+	virtual void SetEnabledStats(const TArray<FString>& InEnabledStats) {}
+	
+	/**
+	 * Check whether a specific stat is enabled for this viewport
+	 */
+	virtual bool IsStatEnabled(const TCHAR* InName) const { return false; }
+
+	/**
+	 * Get the sound stat flags enabled for this viewport
+	 */
+	virtual ESoundShowFlags::Type GetSoundShowFlags() const { return ESoundShowFlags::Disabled; }
+
+	/**
+	 * Set the sound stat flags enabled for this viewport
+	 */
+	virtual void SetSoundShowFlags(const ESoundShowFlags::Type InSoundShowFlags) {}
 };
+
+/** Tracks the viewport client that should process the stat command, can be NULL */
+extern ENGINE_API class FCommonViewportClient* GStatProcessingViewportClient;
 
 /**
  * Common functionality for game and editor viewport clients
@@ -718,6 +842,14 @@ public:
 class FCommonViewportClient : public FViewportClient
 {
 public:
+	virtual ~FCommonViewportClient()
+	{
+		//make to clean up the global "stat" client when we delete the active one.
+		if (GStatProcessingViewportClient == this)
+		{
+			GStatProcessingViewportClient = NULL;
+		}
+	}
 
 	ENGINE_API void DrawHighResScreenshotCaptureRegion(FCanvas& Canvas);
 };

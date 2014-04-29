@@ -240,9 +240,8 @@ public:
 	{ 
 		if( bStoreCurrentValue )
 		{
-			//Cache the realtime, showFPS and ShowStats flags
+			//Cache the Realtime and ShowStats flags
 			bStoredRealtime = bIsRealtime;
-			bStoredShowFPS = bShowFPS;
 			bStoredShowStats = bShowStats;
 		}
 		
@@ -250,7 +249,6 @@ public:
 
 		if( !bIsRealtime )
 		{
-			SetShowFPS(false);
 			SetShowStats(false);
 		}
 	}
@@ -270,13 +268,11 @@ public:
 		if( bAllowDisable )
 		{
 			bIsRealtime = bStoredRealtime;
-			bShowFPS = bStoredShowFPS;
 			bShowStats = bStoredShowStats;
 		}
 		else
 		{
 			bIsRealtime |= bStoredRealtime;
-			bShowFPS |= bStoredShowFPS;
 			bShowStats |= bStoredShowStats;
 		}
 	}
@@ -608,27 +604,9 @@ public:
 	/** True if the window is maximized or floating */
 	bool IsVisible() const;
 
-	bool IsSimulateInEditorViewport() const { return bIsSimulateInEditorViewport; }
-
-	/**
-	 * Returns true if FPS information should be displayed over the viewport
-	 *
-	 * @return	true if frame rate should be displayed
-	 */
-	bool ShouldShowFPS() const
-	{
-		return bShowFPS;
-	}
-
-
-	/**
-	 * Sets whether or not frame rate info is displayed over the viewport
-	 *
-	 * @param	bWantFPS	true if frame rate should be displayed
-	 */
-	void SetShowFPS( bool bWantFPS )
-	{
-		bShowFPS = bWantFPS;
+	bool IsSimulateInEditorViewport() const 
+	{ 
+		return bIsSimulateInEditorViewport;
 	}
 
 	/**
@@ -1216,14 +1194,8 @@ protected:
 	/** Cached realtime flag */
 	bool bStoredRealtime;
 	
-	/** Cached show FPS flag */	
-	bool bStoredShowFPS;
-
 	/** Cached show statistics flag */	
 	bool bStoredShowStats;
-
-	/** True if we should draw FPS info over the viewport */
-	bool bShowFPS;
 
 	/** True if we should draw stats over the viewport */
 	bool bShowStats;

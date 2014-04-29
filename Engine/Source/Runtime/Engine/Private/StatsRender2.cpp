@@ -130,7 +130,6 @@ static int32 RenderCycle( const FComplexStatMessage& Item, class FCanvas* Canvas
 {
 	FColor Color = StatGlobals.StatColor;	
 
-	const FString CounterName = Item.GetDescription();
 	check(Item.NameAndInfo.GetFlag(EStatMetaFlags::IsCycle));
 
 	const bool bIsInitialized = Item.NameAndInfo.GetField<EStatDataType>() == EStatDataType::ST_int64;
@@ -142,6 +141,8 @@ static int32 RenderCycle( const FComplexStatMessage& Item, class FCanvas* Canvas
 		float InMs = FPlatformTime::ToMilliseconds(Item.GetValue_Duration(EComplexStatField::IncAve));
 		// Color will be determined by the average value of history
 		// If show inclusive and and show exclusive is on, then it will choose color based on inclusive average
+		FString CounterName = Item.GetShortName().ToString();
+		CounterName.RemoveFromStart(TEXT("STAT_"));
 		GEngine->GetStatValueColoration(CounterName, InMs, Color);
 
 		const float MaxMeter = 33.3f; // the time of a "full bar" in ms
@@ -163,8 +164,7 @@ static int32 RenderCycle( const FComplexStatMessage& Item, class FCanvas* Canvas
 
 
 
-
-	Canvas->DrawShadowedString(X+IndentWidth,Y,*ShortenName(*CounterName),STAT_FONT,Color);
+	Canvas->DrawShadowedString(X + IndentWidth, Y, *ShortenName(*Item.GetDescription()), STAT_FONT, Color);
 
 	int32 CurrX = X + StatGlobals.AfterNameColumnOffset;
 	// Now append the call count
@@ -481,7 +481,7 @@ static int32 RenderFlatCycle( const FGameThreadHudData& ViewData, const FComplex
  * @param X the X location to start rendering at
  * @param Y the Y location to start rendering at
  */
-static void RenderGroupedWithHierarchy(const FGameThreadHudData& ViewData, class FCanvas* Canvas,int32 X,int32& Y)
+static void RenderGroupedWithHierarchy(const FGameThreadHudData& ViewData, FViewport* Viewport, class FCanvas* Canvas, int32 X, int32& Y)
 {
 	// Grab texture for rendering text background.
 	UTexture2D* BackgroundTexture = UCanvas::StaticClass()->GetDefaultObject<UCanvas>()->DefaultTexture;
@@ -489,15 +489,22 @@ static void RenderGroupedWithHierarchy(const FGameThreadHudData& ViewData, class
 	// Render all groups.
 	for( int32 GroupIndex = 0; GroupIndex < ViewData.HudGroups.Num(); ++GroupIndex )
 	{
-		const FHudGroup& HudGroup = ViewData.HudGroups[GroupIndex];
+		// If the stat isn't enabled for this particular viewport, skip
+		FString StatName = ViewData.GroupNames[GroupIndex].ToString();
+		StatName.RemoveFromStart(TEXT("STATGROUP_"));
+		if (!Viewport->GetClient() || !Viewport->GetClient()->IsStatEnabled(*StatName))
+		{
+			continue;
+		}
 
 		// Render header.
-		const FString& GroupDesc = ViewData.GroupDescriptions[GroupIndex];
 		const FName& GroupName = ViewData.GroupNames[GroupIndex];
+		const FString GroupDesc = ViewData.GroupDescriptions[GroupIndex];
 		const FString GroupLongName = FString::Printf( TEXT("%s [%s]"), *GroupDesc, *GroupName.GetPlainNameString() );
 		Canvas->DrawShadowedString( X, Y, *GroupLongName, STAT_FONT, StatGlobals.GroupColor );
 		Y += FONT_HEIGHT;
 
+		const FHudGroup& HudGroup = ViewData.HudGroups[GroupIndex];
 		const bool bHasHierarchy = !!HudGroup.HierAggregate.Num();
 		const bool bHasFlat = !!HudGroup.FlatAggregate.Num();
 
@@ -542,11 +549,12 @@ static void RenderGroupedWithHierarchy(const FGameThreadHudData& ViewData, class
 /**
  * Renders the stats data
  *
- * @param RI the render interface to draw with
- * @param X the X location to start rendering at
- * @param Y the Y location to start rendering at
+ * @param Viewport	The viewport to render to
+ * @param Canvas	Canvas object to use for rendering
+ * @param X			the X location to start rendering at
+ * @param Y			the Y location to start rendering at
  */
-void RenderStats(class FCanvas* Canvas,int32 X,int32 Y)
+void RenderStats(FViewport* Viewport, class FCanvas* Canvas, int32 X, int32 Y)
 {
 	FGameThreadHudData* ViewData = FHUDGroupGameThreadRenderer::Get().Latest;
 	if (!ViewData)
@@ -569,7 +577,7 @@ void RenderStats(class FCanvas* Canvas,int32 X,int32 Y)
  	STAT_FONT->SetFontScalingFactor(StatGlobals.StatFontScale);
 
 	StatGlobals.Initialize();
-	RenderGroupedWithHierarchy(*ViewData, Canvas,X,Y);
+	RenderGroupedWithHierarchy(*ViewData, Viewport, Canvas, X, Y);
 
 	STAT_FONT->SetFontScalingFactor(SavedFontScale);
 }

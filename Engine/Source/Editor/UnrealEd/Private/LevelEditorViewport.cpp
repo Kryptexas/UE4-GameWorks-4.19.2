@@ -1630,17 +1630,7 @@ bool FLevelEditorViewportClient::DropObjectsAtCoordinates(int32 MouseX, int32 Mo
 			// Give the viewport focus
 			//SetFocus( static_cast<HWND>( Viewport->GetWindow() ) );
 
-			// Set the current level editing viewport client to the dropped-in viewport client
-			if ( GCurrentLevelEditingViewportClient != this )
-			{
-				// Invalidate the old vp client to remove its special selection box
-				if ( GCurrentLevelEditingViewportClient )
-				{
-					GCurrentLevelEditingViewportClient->Invalidate();
-				}
-				GCurrentLevelEditingViewportClient = this;
-			}
-			Invalidate();
+			SetCurrentViewport();
 		}
 	}
 
@@ -1808,6 +1798,13 @@ FLevelEditorViewportClient::FLevelEditorViewportClient()
 
 	// Sign up for notifications about users changing settings.
 	GetMutableDefault<ULevelEditorViewportSettings>()->OnSettingChanged().AddRaw(this, &FLevelEditorViewportClient::HandleViewportSettingChanged);
+
+	StatUnitData = new FStatUnitData();
+	StatHitchesData = new FStatHitchesData();
+	FCoreDelegates::StatCheckEnabled.AddRaw(this, &FLevelEditorViewportClient::HandleViewportStatCheckEnabled);
+	FCoreDelegates::StatEnabled.AddRaw(this, &FLevelEditorViewportClient::HandleViewportStatEnabled);
+	FCoreDelegates::StatDisabled.AddRaw(this, &FLevelEditorViewportClient::HandleViewportStatDisabled);
+	FCoreDelegates::StatDisableAll.AddRaw(this, &FLevelEditorViewportClient::HandleViewportStatDisableAll);
 }
 
 //
@@ -1825,13 +1822,32 @@ FLevelEditorViewportClient::~FLevelEditorViewportClient()
 	// make sure all actors have this view removed from their visibility bits
 	GEditor->Layers->RemoveViewFromActorViewVisibility( this );
 
-	//make to clean up the global "current" client when we delete the active one.
+	//make to clean up the global "current" & "last" clients when we delete the active one.
 	if (GCurrentLevelEditingViewportClient == this)
 	{
 		GCurrentLevelEditingViewportClient = NULL;
 	}
+	if (GLastKeyLevelEditingViewportClient == this)
+	{
+		GLastKeyLevelEditingViewportClient = NULL;
+	}
 
 	GetMutableDefault<ULevelEditorViewportSettings>()->OnSettingChanged().RemoveAll(this);
+
+	FCoreDelegates::StatCheckEnabled.RemoveAll(this);
+	FCoreDelegates::StatEnabled.RemoveAll(this);
+	FCoreDelegates::StatDisabled.RemoveAll(this);
+	FCoreDelegates::StatDisableAll.RemoveAll(this);
+	if (StatHitchesData)
+	{
+		delete StatHitchesData;
+		StatHitchesData = NULL;
+	}
+	if (StatUnitData)
+	{
+		delete StatUnitData;
+		StatUnitData = NULL;
+	}
 
 	GEditor->LevelViewportClients.Remove(this);
 
@@ -2418,6 +2434,39 @@ static const FLevelViewportCommands& GetLevelViewportCommands()
 	return LevelEditor.GetLevelViewportCommands();
 }
 
+void FLevelEditorViewportClient::SetCurrentViewport()
+{
+	// Set the current level editing viewport client to the dropped-in viewport client
+	if (GCurrentLevelEditingViewportClient != this)
+	{
+		// Invalidate the old vp client to remove its special selection box
+		if (GCurrentLevelEditingViewportClient)
+		{
+			GCurrentLevelEditingViewportClient->Invalidate();
+		}
+		GCurrentLevelEditingViewportClient = this;
+	}
+	Invalidate();
+}
+
+void FLevelEditorViewportClient::SetLastKeyViewport()
+{
+	// Store a reference to the last viewport that received a keypress.
+	GLastKeyLevelEditingViewportClient = this;
+
+	if (GCurrentLevelEditingViewportClient != this)
+	{
+		if (GCurrentLevelEditingViewportClient)
+		{
+			//redraw without yellow selection box
+			GCurrentLevelEditingViewportClient->Invalidate();
+		}
+		//cause this viewport to redraw WITH yellow selection box
+		Invalidate();
+		GCurrentLevelEditingViewportClient = this;
+	}
+}
+
 bool FLevelEditorViewportClient::InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed, bool bGamepad)
 {
 	if (bDisableInput)
@@ -2431,20 +2480,7 @@ bool FLevelEditorViewportClient::InputKey(FViewport* Viewport, int32 ControllerI
 
 	FInputEventState InputState( Viewport, Key, Event );
 
-	// Store a reference to the last viewport that received a keypress.
-	GLastKeyLevelEditingViewportClient = this;
-
-	if( GCurrentLevelEditingViewportClient != this )
-	{
-		if (GCurrentLevelEditingViewportClient)
-		{
-			//redraw without yellow selection box
-			GCurrentLevelEditingViewportClient->Invalidate();
-		}
-		//cause this viewport to redraw WITH yellow selection box
-		Invalidate();
-		GCurrentLevelEditingViewportClient = this;
-	}
+	SetLastKeyViewport();
 
 	// Compute a view.
 	FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
@@ -4594,6 +4630,56 @@ void FLevelEditorViewportClient::SetIsSimulateInEditorViewport( bool bInIsSimula
 	else
 	{
 		GEditorModeTools().UnregisterMode(Mode.ToSharedRef());
+	}
+}
+
+void FLevelEditorViewportClient::HandleViewportStatCheckEnabled(const TCHAR* InName, bool& bOutCurrentEnabled, bool& bOutOthersEnabled)
+{
+	// Check to see which viewports have this enabled (current, non-current)
+	const bool bEnabled = IsStatEnabled(InName);
+	if (GStatProcessingViewportClient == this)
+	{
+		// Only if realtime and stats are also enabled should we show the stat as visible
+		bOutCurrentEnabled = IsRealtime() && ShouldShowStats() && bEnabled;
+	}
+	else
+	{
+		bOutOthersEnabled |= bEnabled;
+	}
+}
+
+void FLevelEditorViewportClient::HandleViewportStatEnabled(const TCHAR* InName)
+{
+	// Just enable this on the active viewport
+	if (GStatProcessingViewportClient == this)
+	{
+		SetShowStats(true);
+		SetRealtime(true);
+		SetStatEnabled(InName, true);
+	}
+}
+
+void FLevelEditorViewportClient::HandleViewportStatDisabled(const TCHAR* InName)
+{
+	// Just disable this on the active viewport
+	if (GStatProcessingViewportClient == this)
+	{
+		if (SetStatEnabled(InName, false) == 0)
+		{
+			SetShowStats(false);
+			// Note: we can't disable realtime as we don't know the setting it was previously
+		}
+	}
+}
+
+void FLevelEditorViewportClient::HandleViewportStatDisableAll(const bool bInAnyViewport)
+{
+	// Disable all on either all or the current viewport (depending on the flag)
+	if (bInAnyViewport || GStatProcessingViewportClient == this)
+	{
+		SetShowStats(false);
+		// Note: we can't disable realtime as we don't know the setting it was previously
+		SetStatEnabled(NULL, false, true);
 	}
 }
 

@@ -697,7 +697,15 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 		Pkg = GeneratePackageThumbnailsIfRequired( Str, Ar, ThumbNamesToUnload );
 	}
 
+	// If we don't have a viewport specified to catch the stat commands (and there's no game viewport), use to the active viewport
+	if (GStatProcessingViewportClient == NULL && GameViewport == NULL)
+	{
+		GStatProcessingViewportClient = GLastKeyLevelEditingViewportClient ? GLastKeyLevelEditingViewportClient : GCurrentLevelEditingViewportClient;
+	}
+
 	bool bExecSucceeded = UEditorEngine::Exec( InWorld, Stream, Ar );
+
+	GStatProcessingViewportClient = NULL;
 
 	//if we loaded thumbs for saving, purge them back from the package
 	//append loaded thumbs onto the existing thumbs list
@@ -720,10 +728,10 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 	}
 
 	if( FParse::Command(&Str, TEXT("ModalTest") ) )
-		{
+	{
 		HandleModalTestCommand( Str, Ar );
-			return true;
-		}
+		return true;
+	}
 
 	if( FParse::Command(&Str, TEXT("DumpBPClasses")) )
 	{

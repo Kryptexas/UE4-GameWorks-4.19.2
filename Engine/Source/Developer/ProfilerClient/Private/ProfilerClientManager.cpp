@@ -407,7 +407,7 @@ void FServiceConnection::Initialize( const FProfilerServiceAuthorize2& Message, 
 			// read the message
 			new (StatMessages) FStatMessage(Stream.ReadMessage(ArrayReader));
 		}
-		static FStatNameAndInfo Adv(NAME_AdvanceFrame, "", TEXT(""), EStatDataType::ST_int64, true, false);
+		static FStatNameAndInfo Adv(NAME_AdvanceFrame, "", "", TEXT(""), EStatDataType::ST_int64, true, false);
 		new (StatMessages) FStatMessage(Adv.GetEncodedName(), EStatOperation::AdvanceFrameEventGameThread, 1LL, false);
 	}
 
@@ -849,8 +849,7 @@ int32 FServiceConnection::FindOrAddStat( const FStatNameAndInfo& StatNameAndInfo
 
 		const FName StatName = StatNameAndInfo.GetShortName();
 		FName GroupName = StatNameAndInfo.GetGroupName();
-		FString Description;
-		StatNameAndInfo.GetDescription( Description );
+		const FString Description = StatNameAndInfo.GetDescription();
 
 		// do some special stats first
 		if (StatName == TEXT("STAT_FrameTime"))
@@ -871,7 +870,7 @@ int32 FServiceConnection::FindOrAddStat( const FStatNameAndInfo& StatNameAndInfo
 		// add a new stat description to the meta data
 		FStatDescription StatDescription;
 		StatDescription.ID = StatID;
-		StatDescription.Name = Description.Len() > 0 ? Description : StatName.ToString();
+		StatDescription.Name = !Description.IsEmpty() ? Description : StatName.ToString();
 		if( StatDescription.Name.Contains( TEXT("STAT_") ) )
 		{
 			StatDescription.Name = StatDescription.Name.RightChop(FString(TEXT("STAT_")).Len());
@@ -907,10 +906,7 @@ int32 FServiceConnection::FindOrAddStat( const FStatNameAndInfo& StatNameAndInfo
 			FStatGroupDescription GroupDescription;
 			GroupDescription.ID = GroupID;
 			GroupDescription.Name = GroupName.ToString();
-			if( GroupDescription.Name.Contains( TEXT("STATGROUP_") ) )
-			{
-				GroupDescription.Name = GroupDescription.Name.RightChop(FString(TEXT("STATGROUP_")).Len());
-			}
+			GroupDescription.Name.RemoveFromStart(TEXT("STATGROUP_"));
 
 			// add to the meta data
 			FScopeLock ScopeLock(&CriticalSection);
@@ -932,14 +928,15 @@ int32 FServiceConnection::FindOrAddThread(const FStatNameAndInfo& Thread)
 
 	CurrentThreadState.Threads;
 
-	const FName ShortName = Thread.GetShortName();
-	FString Desc;
-	Thread.GetDescription( Desc );
+	// The description of a thread group contains the thread id
+	const FString Desc = Thread.GetDescription();
 	const uint32 ThreadID = FStatsUtils::ParseThreadID( Desc );
 
 	{
+		const FName ShortName = Thread.GetShortName();
+
 		// add to the meta data
-		FScopeLock ScopeLock( &CriticalSection );
+		FScopeLock ScopeLock(&CriticalSection);
 		const int32 OldNum = MetaData.ThreadDescriptions.Num();
 		MetaData.ThreadDescriptions.Add( ThreadID, ShortName.ToString() );
 		const int32 NewNum = MetaData.ThreadDescriptions.Num();

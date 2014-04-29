@@ -589,18 +589,6 @@ private:
  */
 ENGINE_API void DrawStatsHUD( UWorld* InWorld, FViewport* Viewport, FCanvas* Canvas, UCanvas* CanvasObject, TArray<FDebugDisplayProperty>& DebugProperties, const FVector& ViewLocation, const FRotator& ViewRotation );
 
-
-/**
- *	Renders the FPS counter
- *
- *	@param Viewport	The viewport to render to
- *	@param Canvas	Canvas object to use for rendering
- *	@param X		Suggested X coordinate for where to start drawing
- *	@param Y		Suggested Y coordinate for where to start drawing
- *	@return			Y coordinate of the next line after this output
- */
-ENGINE_API int32 DrawFPSCounter( FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y );
-
 /** This will set the StreamingLevels TMap with the current Streaming Level Status and also set which level the player is in **/
 void GetLevelStreamingStatus( UWorld* InWorld, TMap<FName,int32>& StreamingLevels, FString& LevelPlayerIsInName );
 
