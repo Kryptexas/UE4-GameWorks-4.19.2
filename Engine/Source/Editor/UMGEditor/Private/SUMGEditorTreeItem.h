@@ -3,7 +3,6 @@
 #pragma once
 
 #include "SCompoundWidget.h"
-#include "IUMGEditor.h"
 #include "BlueprintEditor.h"
 
 //TODO rename SUMGEditorHierarchy

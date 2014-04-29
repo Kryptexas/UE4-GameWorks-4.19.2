@@ -2,10 +2,6 @@
 
 #pragma once
 
-#include "SCompoundWidget.h"
-#include "IUMGEditor.h"
-#include "BlueprintEditor.h"
-
 class FWidgetTemplate : public TSharedFromThis<FWidgetTemplate>
 {
 public:
@@ -13,7 +9,7 @@ public:
 
 	virtual FText GetCategory() = 0;
 
-	virtual USlateWrapperComponent* Create(UWidgetTree* Tree) = 0;
+	virtual USlateWrapperComponent* Create(class UWidgetTree* Tree) = 0;
 
 public:
 	FText Name;

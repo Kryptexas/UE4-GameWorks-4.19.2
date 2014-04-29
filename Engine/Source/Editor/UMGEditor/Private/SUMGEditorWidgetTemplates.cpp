@@ -3,8 +3,6 @@
 #include "UMGEditorPrivatePCH.h"
 
 #include "SUMGEditorWidgetTemplates.h"
-#include "UMGEditor.h"
-#include "UMGEditorViewportClient.h"
 #include "UMGEditorActions.h"
 
 #include "PreviewScene.h"

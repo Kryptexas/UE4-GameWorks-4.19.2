@@ -372,12 +372,12 @@ void SUMGDesigner::DrawDragHandles(const FPaintGeometry& SelectionGeometry, cons
 {
 	if ( SelectedTemplate && SelectedTemplate->Slot )
 	{
-
 		float X = SelectionGeometry.DrawPosition.X;
 		float Y = SelectionGeometry.DrawPosition.Y;
 		float Width = SelectionGeometry.DrawSize.X;
 		float Height = SelectionGeometry.DrawSize.Y;
 
+		// @TODO UMG Handles should come from the slot/container to express how its slots can be transformed.
 		TArray<FVector2D> Handles;
 		Handles.Add(FVector2D(X, Y));					// Top - Left
 		Handles.Add(FVector2D(X + Width * 0.5f, Y));	// Top - Middle

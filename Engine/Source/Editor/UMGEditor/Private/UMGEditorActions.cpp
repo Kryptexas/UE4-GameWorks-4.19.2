@@ -2,9 +2,7 @@
 
 #include "UMGEditorPrivatePCH.h"
 
-#include "UMGEditor.h"
 #include "UMGEditorActions.h"
-#include "SUMGEditorViewport.h"
 
 void FUMGEditorCommands::RegisterCommands()
 {

@@ -3,8 +3,6 @@
 #include "UMGEditorPrivatePCH.h"
 
 #include "SUMGEditorTree.h"
-#include "UMGEditor.h"
-#include "UMGEditorViewportClient.h"
 #include "UMGEditorActions.h"
 #include "SUMGEditorTreeItem.h"
 

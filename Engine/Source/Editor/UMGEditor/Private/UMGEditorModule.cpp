@@ -4,7 +4,7 @@
 
 #include "UMGEditorModule.h"
 #include "ModuleManager.h"
-#include "UMGEditor.h"
+
 #include "AssetToolsModule.h"
 #include "UMGBlueprintEditorExtensionHook.h"
 #include "AssetTypeActions_WidgetBlueprint.h"
@@ -77,35 +77,6 @@ public:
 		}
 
 		return FReply::Unhandled();
-	}
-
-	virtual TSharedRef<IUMGEditor> CreateUMGEditor(const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, UParticleSystem* ParticleSystem) OVERRIDE
-	{
-		TSharedRef<FUMGEditor> NewUMGEditor(new FUMGEditor());
-		NewUMGEditor->Initialize(Mode, InitToolkitHost, ParticleSystem);
-		UMGEditorToolkits.Add(&*NewUMGEditor);
-		return NewUMGEditor;
-	}
-
-	virtual void UMGEditorClosed(FUMGEditor* UMGEditorInstance) OVERRIDE
-	{
-		UMGEditorToolkits.Remove(UMGEditorInstance);
-	}
-
-	virtual void RefreshUMGEditor(UParticleSystem* ParticleSystem) OVERRIDE
-	{
-		for (int32 Idx = 0; Idx < UMGEditorToolkits.Num(); ++Idx)
-		{
-			//if (UMGEditorToolkits[Idx]->GetParticleSystem() == ParticleSystem)
-			//{
-			//	UMGEditorToolkits[Idx]->ForceUpdate();
-			//}
-		}
-	}
-
-	virtual void ConvertModulesToSeeded(UParticleSystem* ParticleSystem) OVERRIDE
-	{
-		//FUMGEditor::ConvertAllModulesToSeeded( ParticleSystem );
 	}
 
 	/** Gets the extensibility managers for outside entities to extend gui page editor's menus and toolbars */
