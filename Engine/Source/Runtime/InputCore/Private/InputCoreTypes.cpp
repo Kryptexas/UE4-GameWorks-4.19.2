@@ -735,4 +735,10 @@ FKey FInputKeyManager::GetKeyFromCodes( const uint16 KeyCode, const uint16 CharC
 	return KeyPtr ? *KeyPtr : EKeys::Invalid;
 }
 
+void FInputKeyManager::GetCodesFromKey(const FKey Key, const uint16*& KeyCode, const uint16*& CharCode) const
+{
+	KeyCode = KeyMapCharToEnum.FindKey(Key);
+	CharCode = KeyMapVirtualToEnum.FindKey(Key);
+}
+
 #undef LOCTEXT_NAMESPACE

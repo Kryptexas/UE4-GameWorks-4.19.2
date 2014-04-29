@@ -433,7 +433,7 @@ struct INPUTCORE_API FInputKeyManager
 public:
 	static FInputKeyManager& Get();
 
-	const uint16* GetKeyCodeFromKey( FKey Key ) const;
+	void GetCodesFromKey(const FKey Key, const uint16*& KeyCode, const uint16*& CharCode) const;
 
 	/**
 	 * Retrieves the key mapped to the specified character code.
