@@ -4462,11 +4462,11 @@ void FSlateApplication::PrivateDestroyWindow( const TSharedRef<SWindow>& Destroy
 	// This MUST be done before destroying the native window as the native window is required to be valid before releasing rendering resources with some API's
 	Renderer->OnWindowDestroyed( DestroyedWindow );
 
+	// Remove the window and all its children from the Slate window list
+	RemoveWindowFromList(SlateWindows, DestroyedWindow);
+
 	// Destroy the native window
 	DestroyedWindow->DestroyWindowImmediately();
-
-	// Remove the window and all its children from the Slate window list
-	RemoveWindowFromList( SlateWindows, DestroyedWindow );
 
 	// Shutdown the application if there are no more windows
 	{
