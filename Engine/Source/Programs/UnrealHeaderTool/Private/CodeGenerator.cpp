@@ -4605,22 +4605,26 @@ ECompilationResult::Type UnrealHeaderTool_Main(const FString& ModuleInfoFilename
 					bCanGenerateScripts = false;
 				}
 			}
+			if (!bCanGenerateScripts)
+			{
+				ScriptPlugins.Empty();
+			}
+
+			for (const auto& Module : GManifest.Modules)
+			{
+				if (UPackage* Package = Cast<UPackage>(StaticFindObjectFast(UPackage::StaticClass(), NULL, FName(*Module.LongPackageName), false, false)))
+				{
+					Result = FHeaderParser::ParseAllHeadersInside(GWarn, Package, Module.SaveExportedHeaders, GManifest.UseRelativePaths, ScriptPlugins);
+					if (Result != ECompilationResult::Succeeded)
+					{
+						++NumFailures;
+						break;
+					}
+				}
+			}
 
 			if (bCanGenerateScripts)
 			{
-				for (const auto& Module : GManifest.Modules)
-				{
-					if (UPackage* Package = Cast<UPackage>(StaticFindObjectFast(UPackage::StaticClass(), NULL, FName(*Module.LongPackageName), false, false)))
-					{
-						Result = FHeaderParser::ParseAllHeadersInside(GWarn, Package, Module.SaveExportedHeaders, GManifest.UseRelativePaths, ScriptPlugins);
-						if (Result != ECompilationResult::Succeeded)
-						{
-							++NumFailures;
-							break;
-						}
-					}
-				}
-
 				for (auto ScriptGenerator : ScriptPlugins)
 				{
 					ScriptGenerator->FinishExport();

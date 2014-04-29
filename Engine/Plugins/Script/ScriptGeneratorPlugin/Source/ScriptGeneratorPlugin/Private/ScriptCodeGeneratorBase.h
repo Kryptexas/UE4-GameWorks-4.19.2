@@ -41,9 +41,11 @@ protected:
 	/** Returns true if the specified property can be exported */
 	virtual bool CanExportProperty(const FString& ClassNameCPP, UClass* Class, UProperty* Property);
 	/** Generates a lookup table for exported proeprties. */
-	virtual int32 FScriptCodeGeneratorBase::GenerateExportedPropertyTable(const FString& ClassNameCPP, UClass* Class, FString& OutFunction, TArray<UProperty*>& OutExportedProperties);
+	virtual int32 GenerateExportedPropertyTable(const FString& ClassNameCPP, UClass* Class, FString& OutFunction, TArray<UProperty*>& OutExportedProperties);
 
 public:
+
+	virtual ~FScriptCodeGeneratorBase() {}
 
 	// IScriptGeneratorPlugin interface
 	virtual void ExportClass(UClass* Class, const FString& SourceHeaderFilename, const FString& GeneratedHeaderFilename, bool bHasChanged) = 0;
