@@ -326,20 +326,17 @@ static void OnGenerateActorLockingMenuSection( TWeakPtr<SLevelViewport> Viewport
 	InitOptions.bShowHeaderRow = false;
 	InitOptions.CustomColumnFixedWidth = SLevelViewport::GetActorLockSceneOutlinerColumnWidth();
 	InitOptions.CustomColumnFactory = FCreateSceneOutlinerColumnDelegate::CreateSP( Viewport.Pin().ToSharedRef(), &SLevelViewport::CreateActorLockSceneOutlinerColumn );
-	InitOptions.ActorFilters = MakeShareable( new TFilterCollection< const AActor* const >() );
 
 	// Predicate for selecting actors by class
 	struct FActorClassPredicate
 	{
-		static bool IsLockableActor( const AActor* const InActor )
+		static bool IsLockableActor( const AActor* InActor )
 		{			
 			return InActor != NULL && InActor->IsA(ActorClass::StaticClass()) && !InActor->IsPendingKill();
 		}
 	};
 
-	InitOptions.ActorFilters->Add(
-		MakeShareable(new TDelegateFilter< const AActor* const >(
-			TDelegateFilter< const AActor* const >::FPredicate::CreateStatic( &FActorClassPredicate::IsLockableActor ) ) ) );
+	InitOptions.Filters->AddFilterPredicate( SceneOutliner::FActorFilterPredicate::CreateStatic(&FActorClassPredicate::IsLockableActor) );
 
 	// Create an outliner with the options from above. It sits in a box with a max height limit to stop it getting too tall when lots of actors are added.
 	FSceneOutlinerModule& SceneOutlinerModule = FModuleManager::LoadModuleChecked<FSceneOutlinerModule>("SceneOutliner");

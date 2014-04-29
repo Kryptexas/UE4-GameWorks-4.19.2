@@ -12,7 +12,7 @@ public:
 	{}
 		SLATE_ARGUMENT( AActor*, InitialActor )
 		SLATE_ARGUMENT( bool, AllowClear )
-		SLATE_ARGUMENT( TSharedPtr< TFilterCollection<const AActor* const> >, ActorFilters )
+		SLATE_ARGUMENT( TSharedPtr< SceneOutliner::FOutlinerFilters >, ActorFilters )
 		SLATE_EVENT( FOnActorSelected, OnSet )
 		SLATE_EVENT( FSimpleDelegate, OnClose )
 		SLATE_EVENT( FSimpleDelegate, OnUseSelected )
@@ -75,7 +75,7 @@ private:
 	/** Whether the asset can be 'None' in this case */
 	bool bAllowClear;
 
-	TSharedPtr< TFilterCollection<const AActor* const> > ActorFilters;
+	TSharedPtr< SceneOutliner::FOutlinerFilters > ActorFilters;
 
 	/** Delegate to call when our object value should be set */
 	FOnActorSelected OnSet;

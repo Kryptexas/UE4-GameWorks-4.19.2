@@ -1003,9 +1003,6 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateMatineeMenuContent( TSharedRe
 		// @todo: Might be useful to have this sometimes, actually.  Ideally the user could summon it.
 		InitOptions.bShowHeaderRow = false;
 
-		// Only display Matinee actors
-		InitOptions.ActorFilters = MakeShareable( new TFilterCollection< const AActor* const >() );
-
 		struct Local
 		{
 			static bool IsMatineeActor( const AActor* const Actor )
@@ -1014,7 +1011,8 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateMatineeMenuContent( TSharedRe
 			}
 		};
 
-		InitOptions.ActorFilters->Add( MakeShareable( new TDelegateFilter< const AActor* const >( TDelegateFilter< const AActor* const >::FPredicate::CreateStatic( &Local::IsMatineeActor ) ) ) );
+		// Only display Matinee actors
+		InitOptions.Filters->AddFilterPredicate( SceneOutliner::FActorFilterPredicate::CreateStatic( &Local::IsMatineeActor ) );
 	}
 
 	// actor selector to allow the user to choose a Matinee actor

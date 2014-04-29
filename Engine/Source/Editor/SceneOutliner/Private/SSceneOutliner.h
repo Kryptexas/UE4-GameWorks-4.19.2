@@ -11,7 +11,6 @@ namespace SceneOutliner
 	typedef TArray< FOutlinerTreeItemPtr > FOutlinerData;
 
 	typedef TTextFilter< const TOutlinerTreeItem& > TreeItemTextFilter;
-	typedef TFilterCollection< const AActor* const > ActorFilterCollection;
 
 	typedef TMap< TWeakObjectPtr< AActor >, TSharedRef<TOutlinerActorTreeItem> > FActorToTreeItemMap;
 	typedef TMap< FName, TSharedRef<TOutlinerFolderTreeItem> > FFolderToTreeItemMap;
@@ -517,9 +516,9 @@ namespace SceneOutliner
 		/* Widget containing the filtering text box */
 		TSharedPtr< SSearchBox > FilterTextBoxWidget;
 
-		/** A collection of filters used to filter the displayed actors in the scene outliner */
-		TSharedPtr< ActorFilterCollection > CustomFilters;
-
+		/** A collection of filters used to filter the displayed actors and folders in the scene outliner */
+		TSharedPtr< FOutlinerFilters > Filters;
+		
 		/** The TextFilter attached to the SearchBox widget of the Scene Outliner */
 		TSharedPtr< TreeItemTextFilter > SearchBoxFilter;
 

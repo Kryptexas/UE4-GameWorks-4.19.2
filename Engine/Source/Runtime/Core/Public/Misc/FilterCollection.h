@@ -115,7 +115,7 @@ public:
 	FChangedEvent& OnChanged() { return ChangedEvent; }
 
 
-private:
+protected:
 
 	/** 
 	 *	Called when a child Filter restrictions change and broadcasts the FilterChanged delegate
@@ -125,9 +125,6 @@ private:
 	{
 		ChangedEvent.Broadcast();
 	}
-
-
-private:
 
 	/** The array of child filters */
 	TArray< TSharedPtr< IFilter< ItemType > > > ChildFilters;

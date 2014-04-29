@@ -24,7 +24,7 @@ namespace SceneOutliner
 		void FlashHighlightOnItem( FOutlinerTreeItemPtr FlashHighlightOnItem );
 
 		/** Check that it is valid to move the current selection to the specified folder path */
-		bool ValidateMoveSelectionTo(FName NewParent);
+		bool ValidateMoveSelectionTo(FName NewParent, FText* OutValidationText = nullptr);
 
 	protected:
 

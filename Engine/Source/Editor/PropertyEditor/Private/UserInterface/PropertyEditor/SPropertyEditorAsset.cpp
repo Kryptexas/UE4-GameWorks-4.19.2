@@ -271,7 +271,7 @@ TSharedRef<SWidget> SPropertyEditorAsset::OnGetMenuContent()
 
 	if(bIsActor)
 	{
-		TSharedPtr<TFilterCollection<const AActor* const> > ActorFilters = MakeShareable( new TFilterCollection< const AActor* const >() );
+		TSharedPtr<SceneOutliner::FOutlinerFilters> ActorFilters = MakeShareable( new SceneOutliner::FOutlinerFilters );
 		ActorFilters->Add( MakeShareable( new TDelegateFilter< const AActor* const >( TDelegateFilter< const AActor* const >::FPredicate::CreateSP( this, &SPropertyEditorAsset::IsFilteredActor ) ) ) );
 
 		return PropertyCustomizationHelpers::MakeActorPickerWithMenu(Cast<AActor>(Value.Object), bAllowClear, ActorFilters, FOnActorSelected::CreateSP( this, &SPropertyEditorAsset::OnActorSelected), FSimpleDelegate::CreateSP( this, &SPropertyEditorAsset::CloseComboButton ), FSimpleDelegate::CreateSP( this, &SPropertyEditorAsset::OnUse ) );

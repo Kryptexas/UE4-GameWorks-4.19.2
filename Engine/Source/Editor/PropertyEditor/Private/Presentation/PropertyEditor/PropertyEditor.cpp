@@ -345,7 +345,7 @@ void FPropertyEditor::OnActorSelected( AActor* InActor )
 	OnAssetSelected(InActor);
 }
 
-void FPropertyEditor::OnGetActorFiltersForSceneOutliner( TSharedPtr<TFilterCollection<const AActor* const> >& OutFilters )
+void FPropertyEditor::OnGetActorFiltersForSceneOutliner( TSharedPtr<SceneOutliner::FOutlinerFilters>& OutFilters )
 {
 	struct Local
 	{
@@ -363,7 +363,6 @@ void FPropertyEditor::OnGetActorFiltersForSceneOutliner( TSharedPtr<TFilterColle
 		}
 	};
 
-	OutFilters = MakeShareable( new TFilterCollection< const AActor* const >() );
 	OutFilters->Add( MakeShareable( new TDelegateFilter< const AActor* const >( TDelegateFilter< const AActor* const >::FPredicate::CreateStatic( &Local::IsFilteredActor, AsShared() ) ) ) );
 }
 

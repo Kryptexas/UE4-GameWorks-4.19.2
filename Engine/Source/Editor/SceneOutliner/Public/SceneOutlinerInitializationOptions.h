@@ -3,8 +3,7 @@
 
 #include "ModuleInterface.h"
 
-#include "IFilter.h"
-#include "FilterCollection.h"
+#include "SceneOutlinerFilters.h"
 #include "ISceneOutlinerColumn.h"
 #include "ISceneOutliner.h"
 
@@ -78,8 +77,8 @@ public:
 	/** True if we should draw the header row above the tree view */
 	bool bShowHeaderRow;
 
-	/** Optional collection of filters to use when filtering actors in the Scene Outliner */
-	TSharedPtr< TFilterCollection< const AActor* const > > ActorFilters;
+	/** Optional collection of filters to use when filtering in the Scene Outliner */
+	TSharedPtr< SceneOutliner::FOutlinerFilters > Filters;
 
 	/** Whether the Scene Outliner should display parenta actors in a Tree */
 	bool bShowParentTree;
@@ -117,7 +116,7 @@ public:
 	FSceneOutlinerInitializationOptions()
 		: Mode( ESceneOutlinerMode::ActorPicker )
 		, bShowHeaderRow( true )
-		, ActorFilters( new TFilterCollection< const AActor* const >() )
+		, Filters( new SceneOutliner::FOutlinerFilters )
 		, bShowParentTree( true )
 		, bShowSearchBox( true )
 		, CustomColumnFixedWidth( 0.0f )

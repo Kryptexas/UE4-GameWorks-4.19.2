@@ -164,7 +164,7 @@ public:
 			InitOptions.CustomDelete = FCustomSceneOutlinerDeleteDelegate::CreateSP( this, &SLayerBrowser::RemoveActorsFromSelectedLayer );
 			InitOptions.CustomColumnFactory = FCreateSceneOutlinerColumnDelegate::CreateSP( this, &SLayerBrowser::CreateCustomLayerColumn );
 
-			InitOptions.ActorFilters->Add( SelectedLayersFilter );
+			InitOptions.Filters->Add( SelectedLayersFilter );
 		}
 
 		SAssignNew( LayerContentsSection, SBorder )

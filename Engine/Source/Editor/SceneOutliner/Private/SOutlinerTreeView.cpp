@@ -114,10 +114,8 @@ namespace SceneOutliner
 					// The folder already exists
 					FFormatNamedArguments Args;
 					Args.Add(TEXT("DragName"), FText::FromString(LeafName));
-					
 					return FDragValidationInfo(FActorDragDropGraphEdOp::ToolTip_IncompatibleGeneric,
-						FText::Format(LOCTEXT("FolderAlreadyExists", "A folder called \"{DragName}\" already exists at this level"), Args));
-
+						FText::Format(LOCTEXT("FolderAlreadyExistsRoot", "A folder called \"{DragName}\" already exists at this level"), Args));
 				}
 				else if (DragFolderPath == DstFolderPath || DstFolderPath.StartsWith(DragFolderPath + "/"))
 				{
@@ -290,7 +288,7 @@ namespace SceneOutliner
 				for (const auto& WeakActor : *DraggedActors)
 				{
 					AActor* DragActor = WeakActor.Get();
-					if (DragActor && DragActor->GetFolderPath() == DropFolder->Path)
+					if (DragActor && !DragActor->GetAttachParentActor() && DragActor->GetFolderPath() == DropFolder->Path)
 					{
 						Args.Add(TEXT("SourceName"), FText::FromString(DragActor->GetActorLabel()));
 						const FText Text = FText::Format(LOCTEXT("MoveToFolderAlreadyAssigned", "{SourceName} is already assigned to {DestName}"), Args);
@@ -376,7 +374,7 @@ namespace SceneOutliner
 		}
 	}
 
-	bool SOutlinerTreeView::ValidateMoveSelectionTo(FName NewParent)
+	bool SOutlinerTreeView::ValidateMoveSelectionTo(FName NewParent, FText* OutValidationText)
 	{
 		auto SceneOutlinerPtr = SceneOutlinerWeak.Pin();
 		if (!SceneOutlinerPtr.IsValid())
@@ -413,6 +411,10 @@ namespace SceneOutliner
 			}
 		}
 
+		if (OutValidationText)
+		{
+			*OutValidationText = ValidationInfo.ValidationText;
+		}
 		return ValidationInfo.IsValid();
 	}
 

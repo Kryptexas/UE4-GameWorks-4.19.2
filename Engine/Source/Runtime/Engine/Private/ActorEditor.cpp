@@ -490,7 +490,11 @@ const FName& AActor::GetFolderPath() const
 
 void AActor::SetFolderPath(const FName& NewFolderPath)
 {
-	if (NewFolderPath == FolderPath)
+	// Detach the actor if it is attached
+	USceneComponent* RootComp = GetRootComponent();
+	const bool bIsAttached = RootComp  && RootComp->AttachParent;
+
+	if (NewFolderPath == FolderPath && !bIsAttached)
 	{
 		return;
 	}
@@ -501,8 +505,7 @@ void AActor::SetFolderPath(const FName& NewFolderPath)
 	FolderPath = NewFolderPath;
 	
 	// Detach the actor if it is attached
-	USceneComponent* RootComp = GetRootComponent();
-	if (RootComp  && RootComp->AttachParent)
+	if (bIsAttached)
 	{
 		AActor* OldParentActor = RootComp->AttachParent->GetOwner();
 		OldParentActor->Modify();

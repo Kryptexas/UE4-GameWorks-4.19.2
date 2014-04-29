@@ -8,6 +8,8 @@ template< typename ItemType >
 class IFilter
 {
 public:
+	typedef ItemType ItemType;
+
 	virtual ~IFilter(){ }
 
 	/** Returns whether the specified Item passes the Filter's restrictions */

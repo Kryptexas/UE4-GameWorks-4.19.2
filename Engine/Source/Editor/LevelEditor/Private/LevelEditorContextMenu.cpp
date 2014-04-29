@@ -710,9 +710,6 @@ void FLevelEditorContextMenuImpl::FillActorMenu( FMenuBuilder& MenuBuilder )
 		InitOptions.bShowHeaderRow = false;
 		InitOptions.bFocusSearchBoxWhenOpened = true;
 
-		// Only display Actors that we can attach too
-		InitOptions.ActorFilters = MakeShareable( new TFilterCollection< const AActor* const >() );
-
 		struct Local
 		{
 			static bool IsAttachableActor( const AActor* const ParentActor )
@@ -737,7 +734,8 @@ void FLevelEditorContextMenuImpl::FillActorMenu( FMenuBuilder& MenuBuilder )
 			}
 		};
 
-		InitOptions.ActorFilters->Add( MakeShareable( new TDelegateFilter< const AActor* const >( TDelegateFilter< const AActor* const >::FPredicate::CreateStatic( &Local::IsAttachableActor ) ) ) );
+		// Only display Actors that we can attach too
+		InitOptions.Filters->AddFilterPredicate( SceneOutliner::FActorFilterPredicate::CreateStatic( &Local::IsAttachableActor ) );
 	}		
 
 	// Actor selector to allow the user to choose a parent actor
