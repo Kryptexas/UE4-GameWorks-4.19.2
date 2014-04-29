@@ -7,6 +7,9 @@
 #pragma once
 
 
+/**
+ * Implements a draw buffer for Slate.
+ */
 class SLATECORE_API FSlateDrawBuffer
 {
 public:
@@ -14,19 +17,19 @@ public:
 	/**
 	 * Default constructor.
 	 */
-	explicit FSlateDrawBuffer( );
-
-	/**
-	 * Destructor.
-	 */
-	~FSlateDrawBuffer( );
+	explicit FSlateDrawBuffer( )
+		: Locked(0)
+	{ }
 
 public:
 
 	/**
 	 * Removes all data from the buffer.
 	 */
-	void ClearBuffer( );
+	void ClearBuffer( )
+	{
+		WindowElementLists.Empty();
+	}
 
 	/**
 	 * Creates a new FSlateWindowElementList and returns a reference to it so it can have draw elements added to it

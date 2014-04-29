@@ -7,16 +7,6 @@
 #include "SlateCorePrivatePCH.h"
 
 
-/* FSlateRenderer structors
- *****************************************************************************/
-
-FSlateRenderer::~FSlateRenderer()
-{
-	// debug check to make sure we are properly cleaning up draw buffers
-	checkSlow( GDrawBuffers == 0 );
-}
-
-
 /* FSlateRenderer interface
  *****************************************************************************/
 

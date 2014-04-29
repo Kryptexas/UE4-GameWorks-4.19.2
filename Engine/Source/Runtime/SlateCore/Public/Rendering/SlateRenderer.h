@@ -16,7 +16,6 @@ class SWindow;
 class FSlateRenderer
 {
 public:
-	virtual SLATECORE_API ~FSlateRenderer();
 
 	/** Returns a draw buffer that can be used by Slate windows to draw window elements */
 	virtual FSlateDrawBuffer& GetDrawBuffer() = 0;
