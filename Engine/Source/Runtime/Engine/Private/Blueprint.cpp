@@ -191,7 +191,7 @@ void UBlueprint::Serialize(FArchive& Ar)
 		}
 	}
 
-	if (Ar.UE4Ver() < VER_UE4_BP_ACTOR_VARIABLE_DEFAULT_PREVENTING)
+	if (Ar.UE4Ver() < VER_UE4_FIX_BLUEPRINT_VARIABLE_FLAGS)
 	{
 		// Actor variables can't have default values (because Blueprint templates are library elements that can 
 		// bridge multiple levels and different levels might not have the actor that the default is referencing).
@@ -200,17 +200,26 @@ void UBlueprint::Serialize(FArchive& Ar)
 			FBPVariableDescription& Variable = NewVariables[i];
 
 			const FEdGraphPinType& VarType = Variable.VarType;
-			if (!VarType.PinSubCategoryObject.IsValid()) // ignore variables that don't have associated objects
+
+			bool bDisableEditOnTemplate = false;
+			if (VarType.PinSubCategoryObject.IsValid()) // ignore variables that don't have associated objects
 			{
-				continue;
+				const UClass* ClassObject = Cast<UClass>(VarType.PinSubCategoryObject.Get());
+				// if the object type is an actor...
+				if ((ClassObject != NULL) && ClassObject->IsChildOf(AActor::StaticClass()))
+				{
+					// hide the default value field
+					bDisableEditOnTemplate = true;
+				}
 			}
 
-			const UClass* ClassObject = Cast<UClass>(VarType.PinSubCategoryObject.Get());
-			// if the object type is an actor...
-			if ((ClassObject != NULL) && ClassObject->IsChildOf(AActor::StaticClass()))
+			if(bDisableEditOnTemplate)
 			{
-				// hide the default value field
 				Variable.PropertyFlags |= CPF_DisableEditOnTemplate;
+			}
+			else
+			{
+				Variable.PropertyFlags &= ~CPF_DisableEditOnTemplate;
 			}
 		}
 	}
