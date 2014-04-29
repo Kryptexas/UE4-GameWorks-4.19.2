@@ -66,6 +66,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 		.Font(IDetailLayoutBuilder::GetDetailFont())
 	]
 	.ValueContent()
+	.MaxDesiredWidth(250.0f)
 	[
 		SAssignNew(VarNameEditableTextBox, SEditableTextBox)
 		.Text(this, &FBlueprintVarActionDetails::OnGetVarName)
