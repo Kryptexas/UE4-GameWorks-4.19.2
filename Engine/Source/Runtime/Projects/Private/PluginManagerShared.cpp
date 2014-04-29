@@ -76,11 +76,19 @@ void FProjectOrPlugin::LoadModules( const ELoadingPhase::Type LoadingPhase, TMap
 				case FProjectOrPluginInfo::EModuleType::EditorNoCommandlet:
 					{
 #if WITH_EDITOR
-						if( GIsEditor && !IsRunningCommandlet() )
+						if (GIsEditor && !IsRunningCommandlet())
 						{
 							bShouldLoadModule = true;
 						}
 #endif		// WITH_EDITOR
+					}
+					break;
+
+				case FProjectOrPluginInfo::EModuleType::Program:
+					{
+#if WITH_PLUGIN_SUPPORT && IS_PROGRAM
+						bShouldLoadModule = true;
+#endif		// WITH_PLUGIN_SUPPORT
 					}
 					break;
 				}

@@ -16,7 +16,9 @@ namespace UnrealBuildTool
 			RuntimeNoCommandlet,
 			Developer,
 			Editor,
-			EditorNoCommandlet
+			EditorNoCommandlet,
+			/** Program-only plugin */
+			Program,
 		}
 
 		public enum LoadedFromType

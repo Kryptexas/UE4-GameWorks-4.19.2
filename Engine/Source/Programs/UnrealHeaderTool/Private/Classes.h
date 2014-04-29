@@ -93,6 +93,11 @@ public:
 	 */
 	void Validate();
 
+	FORCEINLINE FClassTree& GetClassTree()
+	{
+		return ClassTree;
+	}
+
 #endif
 
 private:

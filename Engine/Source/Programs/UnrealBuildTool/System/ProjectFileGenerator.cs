@@ -395,6 +395,7 @@ namespace UnrealBuildTool
 						if( IncludeConfigFiles )
 						{
 							AddEngineConfigFiles( EngineProject );
+							AddUnrealHeaderToolConfigFiles(EngineProject);
 							AddUBTConfigFilesToEngineProject(EngineProject);
 						}
 
@@ -814,6 +815,18 @@ namespace UnrealBuildTool
 			}
 		}
 
+		/// Adds UnrealHeaderTool config files to the specified project
+		private void AddUnrealHeaderToolConfigFiles(ProjectFile EngineProject)
+		{
+			var UHTConfigDirectory = Path.Combine(EngineRelativePath, "Programs", "UnrealHeaderTool", "Config");
+			if (Directory.Exists(UHTConfigDirectory))
+			{
+				var DirectoriesToSearch = new List<string>();
+				DirectoriesToSearch.Add(UHTConfigDirectory);
+
+				EngineProject.AddFilesToProject(SourceFileSearch.FindFiles(DirectoriesToSearch, ExcludeNoRedistFiles: bExcludeNoRedistFiles), EngineRelativePath);
+			}
+		}
 
 		/// <summary>
 		/// Finds all module files (filtering by platform)

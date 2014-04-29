@@ -1918,6 +1918,9 @@ namespace UnrealBuildTool
 					case PluginInfo.PluginModuleType.Editor:
 					case PluginInfo.PluginModuleType.EditorNoCommandlet:
 						return UEBuildConfiguration.bBuildEditor;
+
+					case PluginInfo.PluginModuleType.Program:
+						return Rules.Type == TargetRules.TargetType.Program;
 				}
 			}
 			return false;
@@ -1954,6 +1957,11 @@ namespace UnrealBuildTool
 					if (UEBuildConfiguration.bCompileAgainstEngine)
 					{
 						EngineConfiguration.ReadArray(ProjectDirectory, Platform, "Engine", "Plugins", "EnabledPlugins", FilterPluginNames);
+					}
+					else if (Rules.Type == TargetRules.TargetType.Program)
+					{
+						var ProgramDirectory = Path.Combine(ProjectDirectory, "Programs", GetTargetName());
+						EngineConfiguration.ReadArray(ProgramDirectory, Platform, "Engine", "Plugins", "ProgramEnabledPlugins", FilterPluginNames);
 					}
 					EnabledPlugins.AddRange(ValidPlugins.Where(x => FilterPluginNames.Contains(x.Name)));
 				}

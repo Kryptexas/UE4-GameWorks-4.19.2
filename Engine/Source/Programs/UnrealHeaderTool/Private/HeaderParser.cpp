@@ -2,16 +2,14 @@
 
 
 #include "UnrealHeaderTool.h"
-
 #include "HeaderParser.h"
 #include "NativeClassExporter.h"
 #include "ClassMaps.h"
 #include "Classes.h"
 #include "StringUtils.h"
-
 #include "UObjectAnnotation.h"
-
 #include "DefaultValueHelper.h"
+#include "IScriptGeneratorPluginInterface.h"
 
 /*-----------------------------------------------------------------------------
 	Constants & declarations.
@@ -5177,6 +5175,7 @@ void FHeaderParser::CompileFunctionDeclaration(FClasses& AllClasses)
 					{
 						FError::Throwf(TEXT("'%s' must not be used on methods of a class that is marked '%s' itself."), *RequiredAPIMacroIfPresent, *RequiredAPIMacroIfPresent);
 					}
+					FuncInfo.FunctionFlags |= FUNC_RequiredAPI;
 					FuncInfo.FunctionExportFlags |= FUNCEXPORT_RequiredAPI;
 				}
 			}
@@ -6543,8 +6542,33 @@ FString FHeaderParser::RequireExactlyOneSpecifierValue(const FPropertySpecifier&
 	return Specifier.Values[0];
 }
 
+// Exports the class to all vailable plugins
+void ExportClassToScriptPlugins(UClass* Class, TArray<IScriptGeneratorPluginInterface*>& ScriptPlugins)
+{
+	for (auto Plugin : ScriptPlugins)
+	{
+		auto ClassHeaderInfo = GClassGeneratedFileMap.FindRef(Class);
+		Plugin->ExportClass(Class, ClassHeaderInfo.SourceFilename, ClassHeaderInfo.GeneratedFilename, ClassHeaderInfo.bHasChanged);
+	}
+}
+// Exports class tree to all available plugins
+void ExportClassTreeToScriptPlugins(const FClassTree* Node, TArray<IScriptGeneratorPluginInterface*>& ScriptPlugins)
+{
+	for (int32 ChildIndex = 0; ChildIndex < Node->NumChildren(); ++ChildIndex)
+	{
+		auto ChildNode = Node->GetChild(ChildIndex);
+		ExportClassToScriptPlugins(ChildNode->GetClass(), ScriptPlugins);
+	}
+
+	for (int32 ChildIndex = 0; ChildIndex < Node->NumChildren(); ++ChildIndex)
+	{
+		auto ChildNode = Node->GetChild(ChildIndex);
+		ExportClassTreeToScriptPlugins(ChildNode, ScriptPlugins);
+	}
+}
+
 // Parse all headers for classes that are inside CurrentPackage.
-ECompilationResult::Type FHeaderParser::ParseAllHeadersInside(FFeedbackContext* Warn, UPackage* CurrentPackage, bool bAllowSaveExportedHeaders, bool bUseRelativePaths)
+ECompilationResult::Type FHeaderParser::ParseAllHeadersInside(FFeedbackContext* Warn, UPackage* CurrentPackage, bool bAllowSaveExportedHeaders, bool bUseRelativePaths, TArray<IScriptGeneratorPluginInterface*>& ScriptPlugins)
 {
 	// Disable loading of objects outside of this package (or more exactly, objects which aren't UFields, CDO, or templates)
 	TGuardValue<bool> AutoRestoreVerifyObjectRefsFlag(GVerifyObjectReferencesOnly, true);
@@ -6603,6 +6627,13 @@ ECompilationResult::Type FHeaderParser::ParseAllHeadersInside(FFeedbackContext* 
 #endif
 	// Unregister the header parser from the feedback context
 	Warn->SetContext(NULL);
+
+	if (Result == ECompilationResult::Succeeded && ScriptPlugins.Num())
+	{
+		auto RootNode = &AllClasses.GetClassTree();
+		ExportClassToScriptPlugins(RootNode->GetClass(), ScriptPlugins);
+		ExportClassTreeToScriptPlugins(&AllClasses.GetClassTree(), ScriptPlugins);
+	}
 
 	return Result;
 }

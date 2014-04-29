@@ -28,9 +28,12 @@ public class UnrealHeaderToolTarget : TargetRules
 
 	public override bool ShouldCompileMonolithic(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
 	{
-		// Always compile UHT monolithically.  It's a bit faster to compile, and we rarely need to iterate on code
-		// using only Unreal Header Tool.  This can be switched off if you need to though.
-		return true;
+		if (UnrealBuildTool.UnrealBuildTool.CommandLineContains("-monolithic") == true)
+		{
+			return true;
+		}
+		// Don't build monolithic because we want plugin support
+		return false;
 	}
 
 	public override void SetupGlobalEnvironment(
@@ -58,6 +61,10 @@ public class UnrealHeaderToolTarget : TargetRules
 
 		// Force execption handling across all modules.
 		UEBuildConfiguration.bForceEnableExceptions = true;
+
+		// Plugin support
+		UEBuildConfiguration.bCompileWithPluginSupport = true;
+		UEBuildConfiguration.bBuildDeveloperTools = true;
 
 		// UnrealHeaderTool is a console application, not a Windows app (sets entry point to main(), instead of WinMain())
 		OutLinkEnvironmentConfiguration.bIsBuildingConsoleApplication = true;

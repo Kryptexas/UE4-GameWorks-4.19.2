@@ -1984,6 +1984,21 @@ UActorComponent* AActor::FindComponentByClass(const TSubclassOf<UActorComponent>
 	return FoundComponent;
 }
 
+UActorComponent* AActor::GetComponentByClass(TSubclassOf<UActorComponent> ComponentClass)
+{
+	UActorComponent* FoundComponent = NULL;
+	for (UActorComponent* Component : OwnedComponents)
+	{
+		if (Component && Component->IsA(ComponentClass))
+		{
+			FoundComponent = Component;
+			break;
+		}
+	}
+
+	return FoundComponent;
+}
+
 void AActor::DisableComponentsSimulatePhysics()
 {
 	TArray<UPrimitiveComponent*> Components;

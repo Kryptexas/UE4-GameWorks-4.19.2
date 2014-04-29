@@ -33,6 +33,8 @@ public:
 			Developer,
 			Editor,
 			EditorNoCommandlet,
+			/** Program-only plugin type */
+			Program,
 			// NOTE: If you add a new value, make sure to update the ToString() method below!
 
 			Max
@@ -64,6 +66,9 @@ public:
 
 				case EditorNoCommandlet:
 					return TEXT( "EditorNoCommandlet" );
+
+				case Program:
+					return TEXT("Program");
 
 				default:
 					ensureMsgf( false, TEXT( "Unrecognized EModuleType value: %i" ), Value );

@@ -6,6 +6,7 @@
 
 TMap<UClass*, FString>                   GClassStrippedHeaderTextMap;
 TMap<UClass*, FString>                   GClassSourceFileMap;
+TMap<UClass*, FClassHeaderInfo>          GClassGeneratedFileMap;
 TMap<UClass*, TUniqueObj<TArray<FName>>> GClassDependentOnMap;
 TMap<UClass*, FString>                   GClassHeaderNameWithNoPathMap;
 TMap<UClass*, FString>                   GClassModuleRelativePathMap;

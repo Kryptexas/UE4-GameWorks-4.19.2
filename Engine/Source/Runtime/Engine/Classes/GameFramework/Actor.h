@@ -1896,6 +1896,10 @@ public:
 	/** Searches components array and returns first encountered array by type. */
 	virtual UActorComponent* FindComponentByClass(const TSubclassOf<UActorComponent> ComponentClass) const;
 	
+	/** Script exposed version of FindComponentByClass */
+	UFUNCTION()
+	virtual UActorComponent* GetComponentByClass(TSubclassOf<UActorComponent> ComponentClass);
+
 	/** Templatized version for syntactic nicety. */
 	template<class T>
 	T* FindComponentByClass() const

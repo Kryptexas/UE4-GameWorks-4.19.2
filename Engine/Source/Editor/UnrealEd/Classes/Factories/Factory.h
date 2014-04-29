@@ -51,7 +51,7 @@ class UFactory : public UObject
 	TArray<FString> ValidGameNames;
 
 	UNREALED_API static FString GetCurrentFilename() { return CurrentFilename; }
-	static FString	CurrentFilename;
+	UNREALED_API static FString	CurrentFilename;
 
 	/** For interactive object imports, this value indicates whether the user wants objects to be automatically
 		overwritten (See EAppReturnType), or -1 if the user should be prompted. */

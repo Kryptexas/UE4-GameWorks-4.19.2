@@ -585,6 +585,21 @@ public:
 			ChildNode->DumpClassTree(IndentCount + 2, Ar);
 		}
 	}
+
+	/**
+	* Get the number of child nodes of this node
+	*
+	* @return	the number of child nodes of this node
+	*/
+	FORCEINLINE int32 NumChildren() const
+	{
+		return Children.Num();
+	}
+
+	FORCEINLINE const FClassTree* GetChild(int32 Index) const
+	{
+		return Children[Index];
+	}
 };
 
 #endif	// __CLASSTREE_H__

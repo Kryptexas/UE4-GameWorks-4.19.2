@@ -10,6 +10,7 @@
 #include "ClassMaps.h"
 #include "Manifest.h"
 #include "StringUtils.h"
+#include "IScriptGeneratorPluginInterface.h"
 
 /////////////////////////////////////////////////////
 // Globals
@@ -2005,7 +2006,10 @@ void FNativeClassHeaderGenerator::ExportClassHeaderWrapper( UClass* Class, bool 
 			LINE_TERMINATOR);
 		GeneratedHeaderTextWithCopyright.Log(*GeneratedHeaderText);
 
-		SaveHeaderIfChanged(*ClassHeaderPath, *GeneratedHeaderTextWithCopyright);
+		auto ClassHeaderInfo = GClassGeneratedFileMap.Find(Class);
+		check(ClassHeaderInfo != NULL);
+		ClassHeaderInfo->GeneratedFilename = ClassHeaderPath;
+		ClassHeaderInfo->bHasChanged = SaveHeaderIfChanged(*ClassHeaderPath, *GeneratedHeaderTextWithCopyright);
 
 		check(SourceFilename.EndsWith(TEXT(".h")));
 
@@ -4386,6 +4390,20 @@ void FNativeClassHeaderGenerator::ExportGeneratedCPP()
 	}
 }
 
+/** Get all script plugins based on ini setting */
+void GetScriptPlugins(TArray<IScriptGeneratorPluginInterface*>& ScriptPlugins)
+{
+	TArray<FString> ScriptPluginNames;
+	GConfig->GetArray(TEXT("Plugins"), TEXT("ScriptPlugins"), ScriptPluginNames, GEngineIni);
+	for (auto& PluginName : ScriptPluginNames)
+	{
+		auto GeneratorInterface = FModuleManager::LoadModulePtr<IScriptGeneratorPluginInterface>(*PluginName);
+		if (GeneratorInterface)
+		{
+			ScriptPlugins.Add(GeneratorInterface);
+		}
+	}
+}
 
 ECompilationResult::Type UnrealHeaderTool_Main(const FString& ModuleInfoFilename)
 {
@@ -4477,10 +4495,13 @@ ECompilationResult::Type UnrealHeaderTool_Main(const FString& ModuleInfoFilename
 
 					FString HeaderFile;
 					if (!FFileHelper::LoadFileToString(HeaderFile, *FullModulePath))
+					{
 						FError::Throwf(TEXT( "UnrealHeaderTool was unable to load source file '%s'"), *FullModulePath);
+					}
 
 					UClass* ResultClass = GenerateCodeForHeader(Package, *ClassName, RF_Public|RF_Standalone, *HeaderFile, ClassDeclLine);
 					GClassSourceFileMap.Add(ResultClass, Filename);
+					GClassGeneratedFileMap.Add(ResultClass, FClassHeaderInfo(IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*Filename)));
 
 					if( CurrentlyProcessing == PublicClassesHeaders )
 					{
@@ -4558,16 +4579,51 @@ ECompilationResult::Type UnrealHeaderTool_Main(const FString& ModuleInfoFilename
 
 		if (Result == ECompilationResult::Succeeded)
 		{
-			for (const auto& Module : GManifest.Modules)
+			TArray<IScriptGeneratorPluginInterface*> ScriptPlugins;
+			GetScriptPlugins(ScriptPlugins);
+
+			for (auto ScriptGenerator : ScriptPlugins)
 			{
-				if (UPackage* Package = Cast<UPackage>( StaticFindObjectFast( UPackage::StaticClass(), NULL, FName(*Module.LongPackageName), false, false ) ))
+				// Find the right output direcotry for this plugin base on its target (Engine-side) plugin name.
+				FString GeneratedCodeModule = ScriptGenerator->GetGeneratedCodeModuleName();
+				FString OutputDirectory;
+				for (const auto& Module : GManifest.Modules)
 				{
-					Result = FHeaderParser::ParseAllHeadersInside(GWarn, Package, Module.SaveExportedHeaders, GManifest.UseRelativePaths);
-					if (Result != ECompilationResult::Succeeded)
+					if (Module.Name == GeneratedCodeModule)
 					{
-						++NumFailures;
-						break;
+						OutputDirectory = Module.GeneratedIncludeDirectory;
 					}
+				}
+				if (!OutputDirectory.IsEmpty())
+				{
+					ScriptGenerator->Initialize(GManifest.RootLocalPath, GManifest.RootBuildPath, OutputDirectory);
+				}
+				else
+				{
+					UE_LOG(LogCompile, Error, TEXT("Unable to determine output directory for %s. Cannot export script glue."), *GeneratedCodeModule);
+					Result = ECompilationResult::OtherCompilationError;
+					++NumFailures;
+				}
+			}
+
+			if (Result == ECompilationResult::Succeeded)
+			{
+				for (const auto& Module : GManifest.Modules)
+				{
+					if (UPackage* Package = Cast<UPackage>(StaticFindObjectFast(UPackage::StaticClass(), NULL, FName(*Module.LongPackageName), false, false)))
+					{
+						Result = FHeaderParser::ParseAllHeadersInside(GWarn, Package, Module.SaveExportedHeaders, GManifest.UseRelativePaths, ScriptPlugins);
+						if (Result != ECompilationResult::Succeeded)
+						{
+							++NumFailures;
+							break;
+						}
+					}
+				}
+
+				for (auto ScriptGenerator : ScriptPlugins)
+				{
+					ScriptGenerator->FinishExport();
 				}
 			}
 		}
