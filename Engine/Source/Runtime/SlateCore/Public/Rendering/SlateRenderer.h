@@ -17,6 +17,13 @@ class FSlateRenderer
 {
 public:
 
+	/**
+	 * Virtual destructor.
+	 */
+	virtual ~FSlateRenderer( ) { }
+
+public:
+
 	/** Returns a draw buffer that can be used by Slate windows to draw window elements */
 	virtual FSlateDrawBuffer& GetDrawBuffer() = 0;
 
