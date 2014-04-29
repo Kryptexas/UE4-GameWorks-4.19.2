@@ -171,7 +171,9 @@ class ENGINE_API UWheeledVehicleMovementComponent4W : public UWheeledVehicleMove
 
 	virtual void Serialize(FArchive & Ar) OVERRIDE;
 	virtual void ComputeConstants() OVERRIDE;
+#if WITH_EDITOR
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+#endif
 
 protected:
 

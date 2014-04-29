@@ -72,6 +72,7 @@ UWheeledVehicleMovementComponent4W::UWheeledVehicleMovementComponent4W(const cla
 #endif // WITH_PHYSX
 }
 
+#if WITH_EDITOR
 void UWheeledVehicleMovementComponent4W::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
 	const FName PropertyName = PropertyChangedEvent.Property ? PropertyChangedEvent.Property->GetFName() : NAME_None;
@@ -93,6 +94,7 @@ void UWheeledVehicleMovementComponent4W::PostEditChangeProperty(struct FProperty
 		}
 	}
 }
+#endif
 
 #if WITH_PHYSX
 
