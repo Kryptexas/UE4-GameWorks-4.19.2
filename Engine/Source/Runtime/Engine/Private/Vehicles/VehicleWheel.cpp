@@ -29,7 +29,7 @@ UVehicleWheel::UVehicleWheel(const class FPostConstructInitializeProperties& PCI
 	LatStiffMaxLoad = 2.0f;
 	LatStiffValue = 17.0f;
 	LatStiffFactor = 1.0f;
-	LongStiffValue = 10.0f;
+	LongStiffValue = 1000.0f;
 	SuspensionForceOffset = 0.0f;
 	SuspensionMaxRaise = 20.0f;
 	SuspensionMaxDrop = 20.0f;
