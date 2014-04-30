@@ -66,6 +66,9 @@ namespace UnrealBuildTool
 
 		public List<string> BuiltBinaries = new List<string>();
 
+		/** List of third party framework files that need to be unzipped */
+		public List<string> ThirdPartyFrameworkZips = new List<string>();
+
 		/// <summary>
 		/// Function to call to reset default data.
 		/// </summary>
@@ -319,6 +322,16 @@ namespace UnrealBuildTool
 			}
 			foreach (string Framework in LinkEnvironment.Config.AdditionalFrameworks)
 			{
+				// If we see ThirdPartyFrameworks in the string, assume we need to treat this as a path + name
+				if ( Framework.Contains( "ThirdPartyFrameworks/" ) )
+				{
+					string FrameworkName = Framework.Substring( Framework.LastIndexOf( '/' ) + 1 );
+					string FrameworkPath = Framework.Replace( FrameworkName, "" );
+					Result += " -F " + FrameworkPath;
+					Result += " -framework " + FrameworkName;
+					continue;
+				}
+
 				Result += " -framework " + Framework;
 			}
 			foreach (string Framework in LinkEnvironment.Config.WeakFrameworks)
@@ -560,6 +573,11 @@ namespace UnrealBuildTool
 				// Add any additional files that we'll need in order to link the app
 				foreach (string AdditionalShadowFile in LinkEnvironment.Config.AdditionalShadowFiles)
 				{
+					if ( AdditionalShadowFile.Contains( "ThirdPartyFrameworks/" ) && AdditionalShadowFile.Contains( ".zip" ) )
+					{
+						ThirdPartyFrameworkZips.Add( AdditionalShadowFile );
+					}
+
 					FileItem ShadowFile = FileItem.GetExistingItemByPath(AdditionalShadowFile);
 					if (ShadowFile != null)
 					{
@@ -791,6 +809,41 @@ namespace UnrealBuildTool
 			}
 
 			base.PreBuildSync();
+
+			// Unzip any third party frameworks that are stored as zips
+			foreach ( string FrameworkZip in ThirdPartyFrameworkZips )
+			{
+				FileItem FrameworkZipItem = FileItem.GetExistingItemByPath( FrameworkZip );
+
+				if ( FrameworkZipItem == null )
+				{
+					Log.TraceInformation( "FrameworkZipItem not found for {0}", FrameworkZip );
+					continue;
+				}
+
+				if ( ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Mac )
+				{
+					// If we're on the mac, just unzip using the shell
+					string ResultsText;
+					string LocalZipPath = FrameworkZipItem.AbsolutePath.Substring( 0, FrameworkZipItem.AbsolutePath.LastIndexOf( '/' ) );
+					RunExecutableAndWait( "unzip", String.Format( "-o {0} -d {1}", FrameworkZipItem.AbsolutePath, LocalZipPath ), out ResultsText );
+					continue;
+				}
+
+				// We copied using RPC utility, we need to unzip using RPC utility as well
+				FileItem RemoteShadowFile = LocalToRemoteFileItem( FrameworkZipItem, false );
+
+				string ZipPath = RemoteShadowFile.AbsolutePath.Substring( 0, RemoteShadowFile.AbsolutePath.LastIndexOf( '/' ) );
+
+				Log.TraceInformation( "Unzipping: {0}", RemoteShadowFile.AbsolutePath );
+
+				Hashtable Result = RPCUtilHelper.Command( "/", String.Format( "unzip -o {0} -d {1}", RemoteShadowFile.AbsolutePath, ZipPath ), "", null );
+
+				foreach ( DictionaryEntry Entry in Result )
+				{
+					Log.TraceInformation( "{0}", Entry.Value );
+				}
+			}
 		}
 
 		public override void PostBuildSync(UEBuildTarget Target)
@@ -1033,6 +1086,21 @@ namespace UnrealBuildTool
 					}
 				}
 			}
+		}
+
+		public static int RunExecutableAndWait( string ExeName, string ArgumentList, out string StdOutResults )
+		{
+			// Create the process
+			ProcessStartInfo PSI = new ProcessStartInfo( ExeName, ArgumentList );
+			PSI.RedirectStandardOutput = true;
+			PSI.UseShellExecute = false;
+			PSI.CreateNoWindow = true;
+			Process NewProcess = Process.Start( PSI );
+
+			// Wait for the process to exit and grab it's output
+			StdOutResults = NewProcess.StandardOutput.ReadToEnd();
+			NewProcess.WaitForExit();
+			return NewProcess.ExitCode;
 		}
 	};
 }

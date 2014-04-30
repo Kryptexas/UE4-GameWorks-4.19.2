@@ -167,6 +167,9 @@ namespace UnrealBuildTool.IOS
 			{
 				CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "*.png", true);
 			}
+			
+			// copy additional engine framework assets in
+			CopyFiles( InEngineDir + "/Build/IOS/Resources/FrameworkAssets", AppDirectory, "*.*", true );
 
 			//CopyFiles(BuildDirectory, PayloadDirectory, null, "iTunesArtwork", null);
 			CopyFolder(InEngineDir + "/Content/Stats", AppDirectory + "/cookeddata/engine/content/stats", true);

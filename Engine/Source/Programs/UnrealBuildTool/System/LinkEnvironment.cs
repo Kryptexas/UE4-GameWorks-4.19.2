@@ -117,6 +117,7 @@ namespace UnrealBuildTool
 			ExcludedLibraries.AddRange(InCopyEnvironment.ExcludedLibraries);
 			AdditionalLibraries.AddRange(InCopyEnvironment.AdditionalLibraries);
 			Frameworks.AddRange(InCopyEnvironment.Frameworks);
+			AdditionalShadowFiles.AddRange( InCopyEnvironment.AdditionalShadowFiles );
 			AdditionalFrameworks.AddRange(InCopyEnvironment.AdditionalFrameworks);
 			WeakFrameworks.AddRange(InCopyEnvironment.WeakFrameworks);
 			DelayLoadDLLs.AddRange(InCopyEnvironment.DelayLoadDLLs);
