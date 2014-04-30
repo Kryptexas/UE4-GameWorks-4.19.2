@@ -8363,13 +8363,6 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 
 	// Initialize gameplay for the level.
 	WorldContext.World()->InitializeActorsForPlay(URL);
-	WorldContext.World()->BeginPlay();
-
-	AGameMode* const GameMode = WorldContext.World()->GetAuthGameMode();
-	if (GameMode)
-	{
-		GameMode->StartPlay();
-	}
 
 	// Remember the URL. Put this before spawning player controllers so that
 	// a player controller can get the map name during initialization and
@@ -8400,6 +8393,8 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 
 	// Prime texture streaming.
 	GStreamingManager->NotifyLevelChange();
+
+	WorldContext.World()->BeginPlay();
 	}
 
 	// send a callback message

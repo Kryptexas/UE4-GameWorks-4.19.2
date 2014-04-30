@@ -486,6 +486,12 @@ void AGameMode::StartPlay()
 	{
 		SetMatchState(MatchState::WaitingToStart);
 	}
+
+	// Check to see if we should immediately transfer to match start
+	if (MatchState == MatchState::WaitingToStart && ReadyToStartMatch())
+	{
+		StartMatch();
+	}
 }
 
 void AGameMode::HandleMatchIsWaitingToStart()
@@ -495,8 +501,12 @@ void AGameMode::HandleMatchIsWaitingToStart()
 		GameSession->HandleMatchIsWaitingToStart();
 	}
 
-	// Calls begin play on actors
-	GetWorldSettings()->NotifyBeginPlay();
+	// Calls begin play on actors, unless we're about to transition to match start
+
+	if (!ReadyToStartMatch())
+	{
+		GetWorldSettings()->NotifyBeginPlay();
+	}
 }
 
 bool AGameMode::ReadyToStartMatch()
@@ -553,7 +563,10 @@ void AGameMode::HandleMatchHasStarted()
 	// Make sure level streaming is up to date before triggering NotifyMatchStarted
 	GetWorld()->FlushLevelStreaming();
 
-	// fire off any level startup events
+	// First fire BeginPlay, if we haven't already in waiting to start match
+	GetWorldSettings()->NotifyBeginPlay();
+
+	// Then fire off match started
 	GetWorldSettings()->NotifyMatchStarted();
 
 	// if passed in bug info, send player to right location
