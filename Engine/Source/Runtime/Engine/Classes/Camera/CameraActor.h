@@ -7,7 +7,7 @@
 #pragma once
 #include "CameraActor.generated.h"
 
-UCLASS(ClassGroup=Common, hideCategories=(Input, Rendering), MinimalAPI, Blueprintable)
+UCLASS(ClassGroup=Common, hideCategories=(Input, Rendering), showcategories=("Input|MouseInput", "Input|TouchInput"), MinimalAPI, Blueprintable)
 class ACameraActor : public AActor
 {
 	GENERATED_UCLASS_BODY()

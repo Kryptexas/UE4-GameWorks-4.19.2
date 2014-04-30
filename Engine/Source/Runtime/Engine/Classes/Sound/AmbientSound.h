@@ -6,7 +6,7 @@
 #pragma once
 #include "AmbientSound.generated.h"
 
-UCLASS(AutoExpandCategories=Audio, ClassGroup=Sounds, MinimalAPI, hidecategories(Collision, Input, Game))
+UCLASS(AutoExpandCategories=Audio, ClassGroup=Sounds, MinimalAPI, hidecategories(Collision, Input, Game), showcategories=("Input|MouseInput", "Input|TouchInput", "Game|Damage"))
 class AAmbientSound : public AActor
 {
 	GENERATED_UCLASS_BODY()

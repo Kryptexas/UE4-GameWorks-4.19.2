@@ -49,7 +49,7 @@ struct FInterpGroupActorInfo
 
 };
 
-UCLASS(dependson=UEngineBaseTypes, MinimalAPI, NotBlueprintable, hidecategories=(Collision, Game, Input))
+UCLASS(dependson=UEngineBaseTypes, MinimalAPI, NotBlueprintable, hidecategories=(Collision, Game, Input), showcategories=("Input|MouseInput", "Input|TouchInput", "Game|Damage"))
 class AMatineeActor : public AActor
 {
 	GENERATED_UCLASS_BODY()

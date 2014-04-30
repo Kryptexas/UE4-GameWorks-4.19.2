@@ -151,7 +151,7 @@ private:
 // Base class of the heads-up display.
 //
 //=============================================================================
-UCLASS(config=Game, hidecategories=(Rendering,Actor,Input,Replication), notplaceable, transient, dependson=UCanvas, BlueprintType, Blueprintable)
+UCLASS(config=Game, hidecategories=(Rendering,Actor,Input,Replication), showcategories=("Input|MouseInput", "Input|TouchInput"), notplaceable, transient, dependson=UCanvas, BlueprintType, Blueprintable)
 class ENGINE_API AHUD : public AActor
 {
 	GENERATED_UCLASS_BODY()

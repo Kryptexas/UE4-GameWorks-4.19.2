@@ -1526,6 +1526,10 @@ void FKismetCompilerContext::FinishCompilingClass(UClass* Class)
 		{
 			Class->SetMetaData(TEXT("HideCategories"), *ParentClass->GetMetaData("HideCategories"));
 		}
+		if (ParentClass->HasMetaData(TEXT("ShowCategories")))
+		{
+			Class->SetMetaData(TEXT("ShowCategories"), *ParentClass->GetMetaData("ShowCategories"));
+		}
 		if (ParentClass->HasMetaData(TEXT("HideFunctions")))
 		{
 			Class->SetMetaData(TEXT("HideFunctions"), *ParentClass->GetMetaData("HideFunctions"));

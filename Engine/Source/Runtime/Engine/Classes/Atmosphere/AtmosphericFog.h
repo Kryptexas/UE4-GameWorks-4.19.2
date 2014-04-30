@@ -4,7 +4,7 @@
 #pragma once
 #include "AtmosphericFog.generated.h"
 
-UCLASS(showcategories=(Movement, Rendering, "Utilities|Orientation"), ClassGroup=Fog, hidecategories=(Info,Object,Input), MinimalAPI)
+UCLASS(showcategories=(Movement, Rendering, "Utilities|Orientation", "Input|MouseInput", "Input|TouchInput"), ClassGroup=Fog, hidecategories=(Info,Object,Input), MinimalAPI)
 class AAtmosphericFog : public AInfo
 {
 	GENERATED_UCLASS_BODY()

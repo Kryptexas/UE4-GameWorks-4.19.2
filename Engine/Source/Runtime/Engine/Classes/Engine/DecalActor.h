@@ -13,7 +13,7 @@
 //
 class UBoxComponent;
 
-UCLASS(hidecategories=(Collision, Attachment, Actor, Input, Replication), MinimalAPI)
+UCLASS(hidecategories=(Collision, Attachment, Actor, Input, Replication), showcategories=("Input|MouseInput", "Input|TouchInput"), MinimalAPI)
 class ADecalActor : public AActor
 {
 	GENERATED_UCLASS_BODY()

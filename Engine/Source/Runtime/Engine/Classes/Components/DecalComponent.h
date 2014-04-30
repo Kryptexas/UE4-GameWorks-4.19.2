@@ -9,7 +9,7 @@
 /** 
  * A material that is rendered onto the surface of a mesh. A kind of 'bumper sticker' for a model.
  */
-UCLASS(hidecategories=(Collision, Object, Physics, SceneComponent, Activation, "Components|Activation", Physics, Mobility), ClassGroup=Rendering, MinimalAPI, meta=(BlueprintSpawnableComponent))
+UCLASS(hidecategories=(Collision, Object, Physics, SceneComponent, Activation, "Components|Activation", Mobility), ClassGroup=Rendering, MinimalAPI, meta=(BlueprintSpawnableComponent))
 class UDecalComponent : public USceneComponent
 {
 	GENERATED_UCLASS_BODY()
