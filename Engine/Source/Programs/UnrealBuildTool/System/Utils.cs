@@ -707,12 +707,17 @@ namespace UnrealBuildTool
 		/// <returns>Clean filename.</returns>
 		public static string GetFilenameWithoutAnyExtensions(string Filename)
 		{
-			do
+			Filename = Path.GetFileName(Filename);
+
+			var DotIndex = Filename.IndexOf('.');
+			if (DotIndex == -1)
 			{
-				Filename = Path.GetFileNameWithoutExtension(Filename);
+				return Filename; // No need to copy string
 			}
-			while (Filename.IndexOf('.') >= 0);
-			return Filename;
+			else
+			{
+				return Filename.Substring(0, DotIndex);
+			}
 		}
 
 		/// <summary>
