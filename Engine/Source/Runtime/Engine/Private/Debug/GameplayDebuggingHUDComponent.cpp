@@ -127,12 +127,16 @@ void AGameplayDebuggingHUDComponent::DrawMenu(const float X, const float Y, clas
 				XPos += CategoriesWidth[i];
 			}
 		}
-
-		if (DebugComponent == NULL)
-		{
-			PrintString(DefaultContext,"\n{red}No Pawn selected - waiting for data to replicate from server\n");
-		}
 		DefaultContext.Font = OldFont;
+	}
+	else if (GetWorld()->GetNetMode() == NM_Client)
+	{
+			PrintString(DefaultContext, "\n{red}Waiting for player data to replicate from server....\n");
+	}
+
+	if (PlayerDebugComp && !DebugComponent && GetWorld()->GetNetMode() == NM_Client)
+	{
+		PrintString(DefaultContext, "\n{red}No Pawn selected - waiting for data to replicate from server. {green}Press and hold \" to select Pawn \n");
 	}
 
 	DefaultContext.CursorX = OldX;

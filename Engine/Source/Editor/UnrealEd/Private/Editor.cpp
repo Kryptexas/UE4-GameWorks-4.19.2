@@ -1123,6 +1123,13 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 			// Updates 'connecting' message in PIE network games
 			UpdateTransitionType(PlayWorld);
 
+			// Update streaming for dedicated servers in PIE
+			if (PieContext.RunAsDedicated)
+			{
+				SCOPE_CYCLE_COUNTER(STAT_UpdateLevelStreaming);
+				PlayWorld->UpdateLevelStreaming();
+			}
+
 			// Release mouse if the game is paused. The low level input code might ignore the request when e.g. in fullscreen mode.
 			if ( GameViewport != NULL && GameViewport->Viewport != NULL )
 			{

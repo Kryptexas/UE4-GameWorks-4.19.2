@@ -46,23 +46,30 @@ void UBehaviorTreeComponent::PauseLogic(const FString& Reason)
 	}
 }
 
-void UBehaviorTreeComponent::ResumeLogic(const FString& Reason)
+EAILogicResuming::Type UBehaviorTreeComponent::ResumeLogic(const FString& Reason)
 {
-	UE_VLOG(GetOwner(), LogBehaviorTree, Log, TEXT("Execution updates: RESUMED (%s)"), *Reason);
-	if (bIsPaused)
+	const EAILogicResuming::Type SuperResumeResult = Super::ResumeLogic(Reason);
+	if (!!bIsPaused)
 	{
 		bIsPaused = false;
 
-		if (BlackboardComp)
+		if (SuperResumeResult == EAILogicResuming::Continue)
 		{
-			BlackboardComp->ResumeUpdates();
-		}
+			if (BlackboardComp)
+			{
+				BlackboardComp->ResumeUpdates();
+			}
 
-		if (ExecutionRequest.ExecuteNode)
-		{
-			ScheduleExecutionUpdate();
+			if (ExecutionRequest.ExecuteNode)
+			{
+				ScheduleExecutionUpdate();
+			}
+
+			return EAILogicResuming::Continue;
 		}
 	}
+
+	return SuperResumeResult;
 }
 
 bool UBehaviorTreeComponent::TreeHasBeenStarted() const
@@ -264,32 +271,76 @@ bool UBehaviorTreeComponent::IsExecutingBranch(const class UBTNode* Node, int32 
 	return (ActiveExecutionIndex >= Node->GetExecutionIndex()) && (ActiveExecutionIndex < NextChildExecutionIndex);
 }
 
+bool UBehaviorTreeComponent::IsAuxNodeActive(const class UBTAuxiliaryNode* AuxNode) const
+{
+	if (AuxNode == NULL)
+	{
+		return false;
+	}
+
+	const uint16 AuxExecutionIndex = AuxNode->GetExecutionIndex();
+	for (int32 i = 0; i < InstanceStack.Num(); i++)
+	{
+		const FBehaviorTreeInstance& InstanceInfo = InstanceStack[i];
+		for (int32 iAux = 0; iAux < InstanceInfo.ActiveAuxNodes.Num(); iAux++)
+		{
+			const UBTAuxiliaryNode* TestAuxNode = InstanceInfo.ActiveAuxNodes[iAux];
+
+			// check template version
+			if (TestAuxNode == AuxNode)
+			{
+				return true;
+			}
+
+			// check instanced version
+			if (AuxNode->IsInstanced() && TestAuxNode && TestAuxNode->GetExecutionIndex() == AuxExecutionIndex)
+			{
+				const uint8* NodeMemory = TestAuxNode->GetNodeMemory<uint8>(InstanceInfo);
+				UBTNode* NodeInstance = TestAuxNode->GetNodeInstance(this, (uint8*)NodeMemory);
+
+				if (NodeInstance == AuxNode)
+				{
+					return true;
+				}
+			}
+		}
+	}
+
+	return false;
+}
+
 EBTTaskStatus::Type UBehaviorTreeComponent::GetTaskStatus(const class UBTTaskNode* TaskNode) const
 {
 	EBTTaskStatus::Type Status = EBTTaskStatus::Inactive;
 	const int32 InstanceIdx = FindInstanceContainingNode(TaskNode);
-	
+
 	if (InstanceIdx != INDEX_NONE)
 	{
+		const uint16 ExecutionIndex = TaskNode->GetExecutionIndex();
 		const FBehaviorTreeInstance& InstanceInfo = InstanceStack[InstanceIdx];
 
 		// always check parallel execution first, it takes priority over ActiveNodeType
 		for (int32 i = 0; i < InstanceInfo.ParallelTasks.Num(); i++)
 		{
 			const FBehaviorTreeParallelTask& ParallelInfo = InstanceInfo.ParallelTasks[i];
-			if (ParallelInfo.TaskNode == TaskNode)
+			if (ParallelInfo.TaskNode == TaskNode ||
+				(TaskNode->IsInstanced() && ParallelInfo.TaskNode && ParallelInfo.TaskNode->GetExecutionIndex() == ExecutionIndex))
 			{
 				Status = ParallelInfo.Status;
 				break;
 			}
 		}
 
-		if (InstanceInfo.ActiveNode == TaskNode && Status == EBTTaskStatus::Inactive)
+		if (Status == EBTTaskStatus::Inactive)
 		{
-			Status =
-				(InstanceInfo.ActiveNodeType == EBTActiveNode::ActiveTask) ? EBTTaskStatus::Active :
-				(InstanceInfo.ActiveNodeType == EBTActiveNode::AbortingTask) ? EBTTaskStatus::Aborting :
-				EBTTaskStatus::Inactive;
+			if (InstanceInfo.ActiveNode == TaskNode ||
+				(TaskNode->IsInstanced() && InstanceInfo.ActiveNode && InstanceInfo.ActiveNode->GetExecutionIndex() == ExecutionIndex))
+			{
+				Status =
+					(InstanceInfo.ActiveNodeType == EBTActiveNode::ActiveTask) ? EBTTaskStatus::Active :
+					(InstanceInfo.ActiveNodeType == EBTActiveNode::AbortingTask) ? EBTTaskStatus::Aborting :
+					EBTTaskStatus::Inactive;
+			}
 		}
 	}
 
@@ -697,6 +748,7 @@ void UBehaviorTreeComponent::ProcessExecutionRequest()
 	bRequestedFlowUpdate = false;
 	if (bIsPaused)
 	{
+		UE_VLOG(GetOwner(), LogBehaviorTree, Verbose, TEXT("Ignoring ProcessExecutionRequest call due to BTComponent still being paused"));
 		return;
 	}
 

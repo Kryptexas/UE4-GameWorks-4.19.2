@@ -58,7 +58,6 @@ UNetConnection::UNetConnection(const class FPostConstructInitializeProperties& P
 ,	LastPingAck			( 0.f )
 ,	LastPingAckPacketId	( -1 )
 ,	ClientWorldPackageName( NAME_None )
-,	OwnedConsiderListSize( 0 )
 {
 }
 
@@ -368,7 +367,7 @@ void UNetConnection::AddReferencedObjects(UObject* InThis, FReferenceCollector& 
 {
 	UNetConnection* This = CastChecked<UNetConnection>(InThis);
 	// Let GC know that we're potentially referencing some Actor objects
-	for (int32 ActorIndex = 0; ActorIndex < This->OwnedConsiderListSize; ++ActorIndex)
+	for (int32 ActorIndex = 0; ActorIndex < This->OwnedConsiderList.Num(); ++ActorIndex)
 	{
 		Collector.AddReferencedObject( This->OwnedConsiderList[ActorIndex], This );
 	}
@@ -1392,7 +1391,11 @@ void UNetConnection::Tick()
 	{
 		Timeout = bPendingDestroy ? 2.f : Driver->ConnectionTimeout;
 	}
-	if( Driver->Time - LastReceiveTime > Timeout )
+	bool bUseTimeout = true;
+#if WITH_EDITOR
+	bUseTimeout = !(Driver->GetWorld() && Driver->GetWorld()->WorldType == EWorldType::PIE);
+#endif
+	if ( bUseTimeout && Driver->Time - LastReceiveTime > Timeout )
 	{
 		// Timeout.
 		FString Error = FString::Printf(TEXT("UNetConnection::Tick: Connection TIMED OUT. Closing connection. Driver: %s, Elapsed: %f, Threshold: %f, RemoteAddr: %s, PC: %s, Owner: %s"),

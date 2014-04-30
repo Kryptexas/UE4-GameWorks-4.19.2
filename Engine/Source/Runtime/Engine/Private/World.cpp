@@ -2839,6 +2839,11 @@ void UWorld::AddNetworkActor( AActor * Actor )
 	}
 #endif
 
+	if ( !ContainsLevel(Actor->GetLevel()) )
+	{
+		return;
+	}
+
 	NetworkActors.AddUnique( Actor );
 }
 

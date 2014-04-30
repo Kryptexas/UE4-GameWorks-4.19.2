@@ -29,6 +29,8 @@
 
 #define LOCTEXT_NAMESPACE "ActorDetails"
 
+FExtendActorDetails OnExtendActorDetails;
+
 TSharedRef<IDetailCustomization> FActorDetails::MakeInstance()
 {
 	return MakeShareable( new FActorDetails );

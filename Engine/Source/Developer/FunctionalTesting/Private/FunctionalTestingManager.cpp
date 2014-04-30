@@ -70,9 +70,9 @@ bool UFunctionalTestingManager::RunAllFunctionalTests(UObject* WorldContext, boo
 	Manager->bWaitForNavigationBuildFinish = bInWaitForNavigationBuildFinish;
 	Manager->CurrentIteration = 0;
 
-	for ( FActorIterator It(GWorld); It; ++It )
+	for (TActorIterator<AFunctionalTest> It(GWorld); It; ++It)
 	{
-		AFunctionalTest* Test = Cast<AFunctionalTest>(*It);
+		AFunctionalTest* Test = (*It);
 		if (Test != NULL && Test->bIsEnabled == true)
 		{
 			Manager->AllTests.Add(Test);

@@ -407,9 +407,9 @@ void UNavigationSystem::OnWorldInitDone(NavigationSystem::EMode Mode)
 		&& OperationMode != NavigationSystem::SimulationMode)
 	{
 		// remove all navigation data instances
-		for (FActorIterator It(World); It; ++It)
+		for (TActorIterator<ANavigationData> It(World); It; ++It)
 		{
-			ANavigationData* Nav = Cast<ANavigationData>(*It);
+			ANavigationData* Nav = (*It);
 			if (Nav != NULL && Nav->IsPendingKill() == false)
 			{
 				UnregisterNavData(Nav);
@@ -432,9 +432,9 @@ void UNavigationSystem::OnWorldInitDone(NavigationSystem::EMode Mode)
 		// (since it's quite possible navigation system was not ready by the time
 		// those instances were serialized-in or spawned)
 		bool bProcessRegistration = false;
-		for (FActorIterator It(World); It; ++It)
+		for (TActorIterator<ANavigationData> It(World); It; ++It)
 		{
-			ANavigationData* Nav = Cast<ANavigationData>(*It);
+			ANavigationData* Nav = (*It);
 			if (Nav != NULL && Nav->IsPendingKill() == false && Nav->IsRegistered() == false)
 			{
 				RequestRegistration(Nav, false);
@@ -477,9 +477,9 @@ void UNavigationSystem::OnWorldInitDone(NavigationSystem::EMode Mode)
 			if (GetMainNavData(NavigationSystem::DontCreate) != NULL)
 			{
 				// trigger navmesh update
-				for( FActorIterator It(World); It; ++It )
+				for (TActorIterator<ANavigationData> It(World); It; ++It)
 				{
-					ANavigationData* NavData = Cast<ANavigationData>(*It);
+					ANavigationData* NavData = (*It);
 					if (NavData != NULL)
 					{
 						ERegistrationResult Result = RegisterNavData(NavData);
@@ -1102,9 +1102,9 @@ bool UNavigationSystem::IsThereAnywhereToBuildNavigation() const
 	// code (like Navigation System's subclass maybe)
 	bool bCreateNavigation = false;
 
-	for( FActorIterator It(GetWorld()); It; ++It )
+	for (TActorIterator<ANavMeshBoundsVolume> It(GetWorld()); It; ++It)
 	{
-		ANavMeshBoundsVolume const* const V = Cast<ANavMeshBoundsVolume>(*It);
+		ANavMeshBoundsVolume const* const V = (*It);
 		if (V != NULL)
 		{
 			bCreateNavigation = true;
@@ -2331,9 +2331,9 @@ void UNavigationSystem::SpawnMissingNavigationData()
 	UWorld* NavWorld = GetWorld();
 
 	// 1. check whether any of required navigation data has already been instantiated
-	for (FActorIterator It(NavWorld); It && NumberFound < SupportedAgentsCount; ++It)
+	for (TActorIterator<ARecastNavMesh> It(NavWorld); It && NumberFound < SupportedAgentsCount; ++It)
 	{
-		ARecastNavMesh* Nav = Cast<ARecastNavMesh>(*It);
+		ARecastNavMesh* Nav = (*It);
 		if (Nav != NULL && Nav->GetTypedOuter<UWorld>() == NavWorld && Nav->IsPendingKill() == false)
 		{
 			// find out which one it is

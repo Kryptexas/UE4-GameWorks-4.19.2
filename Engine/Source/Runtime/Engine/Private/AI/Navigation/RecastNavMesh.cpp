@@ -483,9 +483,9 @@ ANavigationData* ARecastNavMesh::CreateNavigationInstances(UNavigationSystem* Na
 		uint8 NumberFound = 0;
 
 		// 1. check whether any of required navmeshes has already been instantiated
-		for (FActorIterator It(NavSys->GetWorld()); It && NumberFound < SupportedAgentsCount; ++It)
+		for (TActorIterator<ARecastNavMesh> It(NavSys->GetWorld()); It && NumberFound < SupportedAgentsCount; ++It)
 		{
-			ARecastNavMesh* Nav = Cast<ARecastNavMesh>(*It);
+			ARecastNavMesh* Nav = (*It);
 			if (Nav != NULL && Nav->GetTypedOuter<UWorld>() == NavSys->GetWorld() && Nav->IsPendingKill() == false)
 			{
 				// find out which one it is
@@ -527,9 +527,9 @@ ANavigationData* ARecastNavMesh::CreateNavigationInstances(UNavigationSystem* Na
 	else
 	{
 		ARecastNavMesh* Instance = NULL;
-		for( FActorIterator It(NavSys->GetWorld()) ; It; ++It )
+		for (TActorIterator<ARecastNavMesh> It(NavSys->GetWorld()); It; ++It)
 		{
-			ARecastNavMesh* Nav = Cast<ARecastNavMesh>(*It);
+			ARecastNavMesh* Nav = (*It);
 			if( Nav != NULL && Nav->GetTypedOuter<UWorld>() == NavSys->GetWorld())
 			{
 				Instance = Nav;

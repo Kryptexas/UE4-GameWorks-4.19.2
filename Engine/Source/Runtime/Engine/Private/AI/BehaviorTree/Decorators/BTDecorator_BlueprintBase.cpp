@@ -140,6 +140,20 @@ void UBTDecorator_BlueprintBase::FinishConditionCheck(bool bAllowExecution)
 	CurrentCallResult = bAllowExecution;
 }
 
+bool UBTDecorator_BlueprintBase::IsDecoratorExecutionActive() const
+{
+	UBehaviorTreeComponent* OwnerComp = Cast<UBehaviorTreeComponent>(GetOuter());
+	const bool bIsActive = OwnerComp->IsExecutingBranch(GetMyNode(), GetChildIndex());
+	return bIsActive;
+}
+
+bool UBTDecorator_BlueprintBase::IsDecoratorObserverActive() const
+{
+	UBehaviorTreeComponent* OwnerComp = Cast<UBehaviorTreeComponent>(GetOuter());
+	const bool bIsActive = OwnerComp->IsAuxNodeActive(this);
+	return bIsActive;
+}
+
 FString UBTDecorator_BlueprintBase::GetStaticDescription() const
 {
 	FString ReturnDesc = Super::GetStaticDescription();

@@ -530,6 +530,11 @@ bool UNavigationComponent::FindPathToActor(const AActor* NewGoalActor, TSharedPt
 	{
 		if (NewGoalActor != NULL)
 		{
+			if (QueryFilter.IsValid() == false)
+			{
+				QueryFilter = GetStoredQueryFilter();
+			}
+
 			const FVector NewGoalActorLocation = GetCurrentMoveGoal(NewGoalActor, GetOwner());
 			if (bDoAsyncPathfinding == true)
 			{
@@ -620,6 +625,11 @@ bool UNavigationComponent::FindPathToLocation(const FVector& DestLocation, TShar
 	if (bPathGenerationSucceeded == false)
 	{
 		ResetTransientData();
+
+		if (QueryFilter.IsValid() == false)
+		{
+			QueryFilter = GetStoredQueryFilter();
+		}
 
 		if (bDoAsyncPathfinding == true)
 		{

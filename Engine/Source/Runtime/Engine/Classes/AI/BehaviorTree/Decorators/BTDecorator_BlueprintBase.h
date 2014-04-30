@@ -3,6 +3,20 @@
 #pragma once
 #include "BTDecorator_BlueprintBase.generated.h"
 
+/**
+ *  Base class for blueprint based decorator nodes. Do NOT use it for creating native c++ classes!
+ *
+ *  Unlike task and services, decorator have two execution chains: 
+ *   ExecutionStart-ExecutionFinish and ObserverActivated-ObserverDeactivated
+ *  which makes automatic latent action cleanup impossible. Keep in mind, that
+ *  you HAVE TO verify is given chain is still active after resuming from any
+ *  latent action (like Delay, Timelines, etc).
+ *
+ *  Helper functions:
+ *  - IsDecoratorExecutionActive (true after ExecutionStart, until ExecutionFinish)
+ *  - IsDecoratorObserverActive (true after ObserverActivated, until ObserverDeactivated)
+ */
+
 UCLASS(Abstract, Blueprintable)
 class ENGINE_API UBTDecorator_BlueprintBase : public UBTDecorator
 {
@@ -90,5 +104,13 @@ protected:
 	UFUNCTION(BlueprintCallable, Category="AI|BehaviorTree")
 	void FinishConditionCheck(bool bAllowExecution);
 		
+	/** check if decorator is part of currently active branch */
+	UFUNCTION(BlueprintCallable, Category="AI|BehaviorTree")
+	bool IsDecoratorExecutionActive() const;
+
+	/** check if decorator's observer is currently active */
+	UFUNCTION(BlueprintCallable, Category="AI|BehaviorTree")
+	bool IsDecoratorObserverActive() const;
+
 	friend class FBehaviorBlueprintDetails;
 };

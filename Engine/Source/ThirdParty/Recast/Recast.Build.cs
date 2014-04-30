@@ -15,7 +15,8 @@ public class Recast : ModuleRules
 		PublicIncludePaths.Add(RecastPath + "Recast/Include");
 		PublicIncludePaths.Add(RecastPath + "Detour/Include");
 		PublicIncludePaths.Add(RecastPath + "DetourTileCache/Include");
-		// @todo remove when rcChunkyTriMesh gets reimplemented
+        PublicIncludePaths.Add(RecastPath + "DetourCrowd/Include");
+        // @todo remove when rcChunkyTriMesh gets reimplemented
 		PublicIncludePaths.Add(RecastPath + "RecastDemo/Include");
 
 		string RecastLibName = "recast";

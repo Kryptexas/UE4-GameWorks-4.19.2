@@ -8,6 +8,8 @@
 #include "GameplayDebuggingControllerComponent.h"
 #include "GameplayDebuggingComponent.generated.h"
 
+DECLARE_LOG_CATEGORY_EXTERN(LogGDT, Display, All);
+
 UENUM()
 namespace EDebugComponentMessage
 {
@@ -163,7 +165,6 @@ class ENGINE_API UGameplayDebuggingComponent : public UPrimitiveComponent, publi
 	void OnDebugAI(class UCanvas* Canvas, class APlayerController* PC);
 
 	virtual void CollectDataToReplicate();
-	virtual bool LogGameSpecificBugIt(FOutputDevice& OutputFile) {return true;}
 
 	//=============================================================================
 	// controller related stuff

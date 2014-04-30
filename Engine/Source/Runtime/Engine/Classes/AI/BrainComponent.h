@@ -6,6 +6,8 @@
 
 DECLARE_DELEGATE_TwoParams(FOnAIMessage, UBrainComponent*, const struct FAIMessage&);
 
+DECLARE_LOG_CATEGORY_EXTERN(LogBrain, Warning, All);
+
 struct ENGINE_API FAIMessage
 {
 	enum EStatus
@@ -93,14 +95,25 @@ protected:
 	UPROPERTY(transient)
 	class UBlackboardComponent* BlackboardComp;
 
+	// @TODO this is a temp contraption to implement delayed messages delivering
+	// until proper AI messaging is implemented
+	TArray<FAIMessage> MessagesToProcess;
+
 public:
 	virtual FString GetDebugInfoString() const { return TEXT(""); }
 
+	/** To be called in case we want to restart AI logic while it's still being locked.
+	 *	On subsequent ResumeLogic instead RestartLogic will be called. 
+	 *	@note this call does nothing if logic is not locked at the moment of call */
+	void RequestLogicRestartOnUnlock();
 	virtual void RestartLogic() {}
 protected:
 	virtual void StopLogic(const FString& Reason) {}
 	virtual void PauseLogic(const FString& Reason) {}
-	virtual void ResumeLogic(const FString& Reason) {}
+	/** MUST be called by child implementations!
+	 *	@return indicates whether child class' ResumeLogic should be called (true) or has it been 
+	 *	handled in a different way and no other actions are required (false)*/
+	virtual EAILogicResuming::Type ResumeLogic(const FString& Reason);
 public:
 	virtual bool IsRunning() const { return false; }
 	virtual bool IsPaused() const { return false; }
@@ -115,9 +128,12 @@ public:
 	virtual void ForceUnlockResource() OVERRIDE;
 	virtual bool IsResourceLocked() const OVERRIDE;
 	// IAIResourceInterface end
-
+	
+	virtual void HandleMessage(const FAIMessage& Message);
+	
 	/** BEGIN UActorComponent overrides */
 	virtual void InitializeComponent() OVERRIDE;
+	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction);
 	/** END UActorComponent overrides */
 
 	/** caches BlackboardComponent's pointer to be used with this brain component */
@@ -140,6 +156,8 @@ protected:
 private:
 	/** used to keep track of which subsystem requested this AI resource be locked */
 	FAIResourceLock ResourceLock;
+
+	uint32 bDoLogicRestartOnUnlock : 1;
 
 public:
 	// static names to be used with SendMessage. Fell free to define game-specific

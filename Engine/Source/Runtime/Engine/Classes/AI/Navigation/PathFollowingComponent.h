@@ -160,6 +160,7 @@ class ENGINE_API UPathFollowingComponent : public UActorComponent, public IAIRes
 
 	FORCEINLINE EPathFollowingStatus::Type GetStatus() const { return Status; }
 	FORCEINLINE float GetAcceptanceRadius() const { return AcceptanceRadius; }
+	FORCEINLINE float GetDefaultAcceptanceRadius() const { return MyDefaultAcceptanceRadius; }
 	FORCEINLINE void SetAcceptanceRadius(float InAcceptanceRadius) { AcceptanceRadius = InAcceptanceRadius; }
 	FORCEINLINE AActor* GetMoveGoal() const { return DestinationActor.Get(); }
 	FORCEINLINE bool HasPartialPath() const { return Path.IsValid() && Path->IsPartial(); }

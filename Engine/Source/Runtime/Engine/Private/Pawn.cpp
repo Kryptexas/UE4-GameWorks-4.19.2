@@ -141,6 +141,7 @@ class UGameplayDebuggingComponent* APawn::GetDebugComponent(bool bCreateIfNotFou
 
 		if (DebugComponent == NULL && bCreateIfNotFound && GetNetMode() < NM_Client)
 		{
+			UE_VLOG(GetOwner(), LogGDT, Log, TEXT("APawn: Creating GDT Component for Pawn: '%s'"), *GetName());
 			DebugComponent = ConstructObject<UGameplayDebuggingComponent>(GameplayDebuggingComponentClass, this, UGameplayDebuggingComponent::DefaultComponentName);
 			DebugComponent->SetIsReplicated(true);
 			DebugComponent->Activate();

@@ -93,7 +93,7 @@ void UBTTask_RunEQSQuery::OnQueryFinished(TSharedPtr<struct FEnvQueryResult> Res
 		return;
 	}
 
-	bool bSuccess = (Result->Items.Num() == 1);
+	bool bSuccess = (Result->Items.Num() >= 1);
 	if (bSuccess)
 	{
 		UBlackboardComponent* MyBlackboard = MyComp->GetBlackboardComponent();

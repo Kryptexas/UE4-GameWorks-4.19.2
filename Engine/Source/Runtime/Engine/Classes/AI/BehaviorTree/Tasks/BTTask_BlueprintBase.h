@@ -3,6 +3,14 @@
 #pragma once
 #include "BTTask_BlueprintBase.generated.h"
 
+/**
+ *  Base class for blueprint based task nodes. Do NOT use it for creating native c++ classes!
+ *
+ *  When task receives Abort event, all latent actions associated this instance are being removed.
+ *  This prevents from resuming activity started by Execute, but does not handle external events.
+ *  Please use them safely (unregister at abort) and call IsTaskExecuting() when in doubt.
+ */
+
 UCLASS(Abstract, Blueprintable)
 class ENGINE_API UBTTask_BlueprintBase : public UBTTaskNode
 {
@@ -69,6 +77,10 @@ protected:
 	/** task execution will be finished (with result \'Success\') after receiving specified message with indicated ID */
 	UFUNCTION(BlueprintCallable, Category="AI|BehaviorTree")
 	void SetFinishOnMessageWithId(FName MessageName, int32 RequestID = -1);
+
+	/** check if task is currently being executed */
+	UFUNCTION(BlueprintCallable, Category="AI|BehaviorTree")
+	bool IsTaskExecuting() const;
 
 	/** ticks this task */
 	virtual void TickTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) OVERRIDE;

@@ -35,6 +35,15 @@ namespace FAIMoveFlag
 	static const bool IgnorePathfinding = false;
 }
 
+namespace EAILogicResuming
+{
+	enum Type
+	{
+		Continue,
+		RestartedInstead,
+	};
+}
+
 USTRUCT()
 struct FGenericTeamId
 {

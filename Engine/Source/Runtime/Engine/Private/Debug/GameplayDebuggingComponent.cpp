@@ -11,6 +11,8 @@
 #include "UnrealEd.h"
 #endif
 
+DEFINE_LOG_CATEGORY(LogGDT);
+
 //----------------------------------------------------------------------//
 // Composite Scene proxy
 //----------------------------------------------------------------------//
@@ -303,25 +305,32 @@ void UGameplayDebuggingComponent::SelectTargetToDebug()
 
 void UGameplayDebuggingComponent::CollectDataToReplicate()
 {
-	CollectBasicData();
+	if (ShouldReplicateData(EAIDebugDrawDataView::Basic) || ShouldReplicateData(EAIDebugDrawDataView::OverHead))
+	{
+		CollectBasicData();
+	}
+
 	if (bIsSelectedForDebugging || ShouldReplicateData(EAIDebugDrawDataView::EditorDebugAIFlag))
 	{
 		CollectPathData();
 	}
+
 	if (ShowExtendedInformatiomCounter > 0)
 	{
-		CollectBehaviorTreeData();
-		CollectEQSData();
+		if (ShouldReplicateData(EAIDebugDrawDataView::BehaviorTree))
+		{
+			CollectBehaviorTreeData();
+		}
+		
+		if (ShouldReplicateData(EAIDebugDrawDataView::EQS))
+		{
+			CollectEQSData();
+		}
 	}
 }
 
 void UGameplayDebuggingComponent::CollectBasicData()
 {
-	if (!ShouldReplicateData(EAIDebugDrawDataView::Basic) && !ShouldReplicateData(EAIDebugDrawDataView::OverHead))
-	{
-		return;
-	}
-
 	const APawn* MyPawn = Cast<APawn>(GetOwner());
 	PawnName = MyPawn->GetHumanReadableName();
 	PawnClass = MyPawn->GetClass()->GetName();
@@ -907,29 +916,26 @@ void UGameplayDebuggingComponent::ServerCollectNavmeshData_Implementation(FVecto
 	NavData->BeginBatchQuery();
 
 	// gather 3x3 neighborhood of player
-	if (TargetActor == NULL || TargetActor->IsPendingKill())
-	{
-		NavData->GetNavMeshTileXY(MyPawn->GetActorLocation(), TileX, TileY);
-		for (int32 i = 0; i < ARRAY_COUNT(DeltaX); i++)
-		{
-			NavData->GetNavMeshTilesAt(TileX + DeltaX[i], TileY + DeltaY[i], Indices);
-		}
-	}
+	//if (TargetActor == NULL || TargetActor->IsPendingKill())
+	//{
+	//	NavData->GetNavMeshTileXY(MyPawn->GetActorLocation(), TileX, TileY);
+	//	for (int32 i = 0; i < ARRAY_COUNT(DeltaX); i++)
+	//	{
+	//		NavData->GetNavMeshTilesAt(TileX + DeltaX[i], TileY + DeltaY[i], Indices);
+	//	}
+	//}
 
 	// add 3x3 neighborhood of target
-	if (TargetActor != NULL && !TargetActor->IsPendingKill())
+	int32 TargetTileX = 0;
+	int32 TargetTileY = 0;
+	NavData->GetNavMeshTileXY(TargetLocation, TargetTileX, TargetTileY);
+	for (int32 i = 0; i < ARRAY_COUNT(DeltaX); i++)
 	{
-		int32 TargetTileX = 0;
-		int32 TargetTileY = 0;
-		NavData->GetNavMeshTileXY(TargetActor->GetNavAgentLocation(), TargetTileX, TargetTileY);
-		for (int32 i = 0; i < ARRAY_COUNT(DeltaX); i++)
+		const int32 NeiX = TargetTileX + DeltaX[i];
+		const int32 NeiY = TargetTileY + DeltaY[i];
+		if (FMath::Abs(NeiX - TileX) > 1 || FMath::Abs(NeiY - TileY) > 1)
 		{
-			const int32 NeiX = TargetTileX + DeltaX[i];
-			const int32 NeiY = TargetTileY + DeltaY[i];
-			if (FMath::Abs(NeiX - TileX) > 1 || FMath::Abs(NeiY - TileY) > 1)
-			{
-				NavData->GetNavMeshTilesAt(NeiX, NeiY, Indices);
-			}
+			NavData->GetNavMeshTilesAt(NeiX, NeiY, Indices);
 		}
 	}
 

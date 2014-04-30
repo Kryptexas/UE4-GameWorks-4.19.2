@@ -317,6 +317,7 @@ void UPathFollowingComponent::ResumeMove(FAIRequestID RequestID)
 		const bool bIsOnPath = IsOnPath();
 		if (bIsOnPath)
 		{
+			Status = EPathFollowingStatus::Moving;
 			if (bMovedDuringPause || bPendingPathStartUpdate)
 			{
 				const uint32 CurrentSegment = DetermineStartingPathPoint(Path.Get());
@@ -327,14 +328,12 @@ void UPathFollowingComponent::ResumeMove(FAIRequestID RequestID)
 			{
 				UpdateMoveFocus();
 			}
-
-			Status = EPathFollowingStatus::Moving;
 		}
 		else if (Path.IsValid() && Path->IsValid() && Path->GetOwner() == NULL)
 		{
 			// this means it's a scripted path, just resume
-			UpdateMoveFocus();
 			Status = EPathFollowingStatus::Moving;
+			UpdateMoveFocus();
 		}
 		else
 		{

@@ -11,7 +11,7 @@ UBTService_BlueprintBase::UBTService_BlueprintBase(const class FPostConstructIni
 	bImplementsReceiveDeactivation = BlueprintNodeHelpers::HasBlueprintFunction(TEXT("ReceiveDeactivation"), this, StopAtClass);
 
 	bNotifyBecomeRelevant = bImplementsReceiveActivation || bImplementsReceiveTick;
-	bNotifyCeaseRelevant = bImplementsReceiveDeactivation;
+	bNotifyCeaseRelevant = bNotifyBecomeRelevant;
 	bNotifyTick = bImplementsReceiveTick;
 	bShowPropertyDetails = true;
 
@@ -43,11 +43,16 @@ void UBTService_BlueprintBase::OnBecomeRelevant(class UBehaviorTreeComponent* Ow
 
 void UBTService_BlueprintBase::OnCeaseRelevant(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
+	// force dropping all pending latent actions associated with this blueprint
+	// we can't have those resuming activity when node is/was aborted
+	BlueprintNodeHelpers::AbortLatentActions(OwnerComp->GetOwner(), this);
+
 	Super::OnCeaseRelevant(OwnerComp, NodeMemory);
 
-	// skip flag, will be handled by bNotifyCeaseRelevant
-
-	ReceiveDeactivation(OwnerComp->GetOwner());
+	if (bImplementsReceiveDeactivation)
+	{
+		ReceiveDeactivation(OwnerComp->GetOwner());
+	}
 }
 
 void UBTService_BlueprintBase::TickNode(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds)
@@ -57,6 +62,13 @@ void UBTService_BlueprintBase::TickNode(class UBehaviorTreeComponent* OwnerComp,
 	// skip flag, will be handled by bNotifyTick
 
 	ReceiveTick(OwnerComp->GetOwner(), DeltaSeconds);
+}
+
+bool UBTService_BlueprintBase::IsServiceActive() const
+{
+	UBehaviorTreeComponent* OwnerComp = Cast<UBehaviorTreeComponent>(GetOuter());
+	const bool bIsActive = OwnerComp->IsAuxNodeActive(this);
+	return bIsActive;
 }
 
 FString UBTService_BlueprintBase::GetStaticDescription() const

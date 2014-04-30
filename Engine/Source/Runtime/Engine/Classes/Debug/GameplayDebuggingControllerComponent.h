@@ -124,6 +124,7 @@ protected:
 
 	UClass* DebugComponentHUDClass;
 	float ControlKeyPressedTime;
+	float PlayersComponentRequestTime;
 	uint32 bWasDisplayingInfo : 1;
 	uint32 bDisplayAIDebugInfo : 1;
 	uint32 bWaitingForOwnersComponent : 1;

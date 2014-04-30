@@ -3242,9 +3242,9 @@ void FRecastNavMeshGenerator::SetUpGeneration(float CellSize, float CellHeight, 
 		TArray<const ANavMeshBoundsVolume*> InclusionVolumes;
 		InclusionBounds.Empty();
 
-		for( FActorIterator It(NavSys->GetWorld()); It; ++It )
+		for (TActorIterator<ANavMeshBoundsVolume> It(NavSys->GetWorld()); It; ++It)
 		{
-			ANavMeshBoundsVolume const* const V = Cast<ANavMeshBoundsVolume>(*It);
+			ANavMeshBoundsVolume const* const V = (*It);
 			if (V != NULL)
 			{
 				InclusionVolumes.Add(V);

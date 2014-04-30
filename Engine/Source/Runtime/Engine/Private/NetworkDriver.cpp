@@ -1353,13 +1353,12 @@ void UNetDriver::NotifyActorDestroyed( AActor* ThisActor, bool IsSeamlessTravel 
 			}
 
 			// This should be rare, but remove from OwnedConsiderList
-			for (int32 ActorIdx=0; ActorIdx < Connection->OwnedConsiderListSize; ++ActorIdx)
+			for (int32 ActorIdx=0; ActorIdx < Connection->OwnedConsiderList.Num(); ++ActorIdx)
 			{
 				if (Connection->OwnedConsiderList[ActorIdx] == ThisActor)
 				{
 					// Swap with last element, shrink list size by 1
-					Connection->OwnedConsiderList[ActorIdx] = Connection->OwnedConsiderList[Connection->OwnedConsiderListSize - 1];
-					Connection->OwnedConsiderListSize--;
+					Connection->OwnedConsiderList.RemoveAtSwap(ActorIdx, 1, false);
 					break;
 				}
 			}
@@ -1786,8 +1785,7 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 			
 			Connection->Viewer = Connection->PlayerController ? Connection->PlayerController->GetViewTarget() : OwningActor->GetOwner();
 			//@todo - eliminate this mallocs if the connection isn't going to actually be updated this frame (currently needed to verify owner relevancy below)
-			Connection->OwnedConsiderList = new(FMemStack::Get(),NetRelevantActorCount)AActor*;
-			Connection->OwnedConsiderListSize = 0;
+			Connection->OwnedConsiderList.Empty(NetRelevantActorCount);
 
 			for (int32 ChildIdx = 0; ChildIdx < Connection->Children.Num(); ChildIdx++)
 			{
@@ -1796,8 +1794,7 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 				if (ChildPlayerController != NULL)
 				{
 					Child->Viewer = ChildPlayerController->GetViewTarget();
-					Child->OwnedConsiderList = new(FMemStack::Get(), NetRelevantActorCount) AActor*;
-					Child->OwnedConsiderListSize = 0;
+					Child->OwnedConsiderList.Empty(NetRelevantActorCount);
 				}
 				else
 				{
@@ -1825,8 +1822,9 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 	check(World);
 
 	// make list of actors to consider to relevancy checking and replication
-	AActor **ConsiderList = new(FMemStack::Get(),NetRelevantActorCount)AActor*;
-	int32 ConsiderListSize = 0;
+	TArray<AActor*> ConsiderList;
+	ConsiderList.Reserve(NetRelevantActorCount);
+
 	int32 NumInitiallyDormant = 0;
 
 	// Add WorldSettings to consider list if we have one
@@ -1835,8 +1833,9 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 	{
 		if (WorldSettings->GetRemoteRole() != ROLE_None && WorldSettings->NetDriverName == NetDriverName)
 		{
-			ConsiderList[0] = WorldSettings;
-			ConsiderListSize++;
+			// For performance reasons, make sure we don't resize the array. It should already be appropriately sized above!
+			ensure(ConsiderList.Num() < ConsiderList.Max());
+			ConsiderList.Add(WorldSettings);
 		}
 	}
 
@@ -1881,7 +1880,7 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 			}
 
 			ULevel* Level = Actor->GetLevel();
-			if ( Level->HasVisibilityRequestPending() && !Level->bIsAssociatingLevel )
+			if ( Level->HasVisibilityRequestPending() || Level->bIsAssociatingLevel )
 			{
 				continue;
 			}
@@ -1927,8 +1926,9 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 				if ( !Actor->bOnlyRelevantToOwner ) 
 				{
 					// add it to the list to consider below
-					ConsiderList[ConsiderListSize] = Actor;
-					ConsiderListSize++;
+					// For performance reasons, make sure we don't resize the array. It should already be appropriately sized above!
+					ensure(ConsiderList.Num() < ConsiderList.Max());
+					ConsiderList.Add(Actor);
 
 					bWasConsidered = true;
 				}
@@ -1956,8 +1956,9 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 										(Connection->PlayerController && ActorOwner == Connection->PlayerController->GetPawn()) ||
 										Connection->Viewer->IsRelevancyOwnerFor(Actor, ActorOwner, Connection->OwningActor))
 									{
-										Connection->OwnedConsiderList[Connection->OwnedConsiderListSize] = Actor;
-										Connection->OwnedConsiderListSize++;
+										// For performance reasons, make sure we don't resize the array. It should already be appropriately sized above!
+										ensure(Connection->OwnedConsiderList.Num() < Connection->OwnedConsiderList.Max());
+										Connection->OwnedConsiderList.Add(Actor);
 										bCloseChannel = false;
 										
 										bWasConsidered = true;
@@ -2002,7 +2003,7 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 	}
 
 	SET_DWORD_STAT(STAT_NumInitiallyDormantActors,NumInitiallyDormant);
-	SET_DWORD_STAT(STAT_NumConsideredActors,ConsiderListSize);
+	SET_DWORD_STAT(STAT_NumConsideredActors,ConsiderList.Num());
 
 	for( int32 i=0; i < ClientConnections.Num(); i++ )
 	{
@@ -2016,7 +2017,7 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 		{
 			//UE_LOG(LogNet, Log, TEXT("skipping update to %s"),*Connection->GetName());
 			// then mark each considered actor as bPendingNetUpdate so that they will be considered again the next frame when the connection is actually ticked
-			for (int32 ConsiderIdx = 0; ConsiderIdx < ConsiderListSize; ConsiderIdx++)
+			for (int32 ConsiderIdx = 0; ConsiderIdx < ConsiderList.Num(); ConsiderIdx++)
 			{
 				AActor *Actor = ConsiderList[ConsiderIdx];
 				// if the actor hasn't already been flagged by another connection,
@@ -2036,14 +2037,12 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 			// clear the time sensitive flag to avoid sending an extra packet to this connection
 			Connection->TimeSensitive = false;
 
-			Connection->OwnedConsiderList = NULL;
-			Connection->OwnedConsiderListSize = 0;
+			Connection->OwnedConsiderList.Empty();
 			for (int32 ChildIdx = 0; ChildIdx < Connection->Children.Num(); ChildIdx++)
 			{
 				if (Connection->Children[ChildIdx])
 				{
-					Connection->Children[ChildIdx]->OwnedConsiderList = NULL;
-					Connection->Children[ChildIdx]->OwnedConsiderListSize = 0;
+					Connection->Children[ChildIdx]->OwnedConsiderList.Empty();
 				}
 			}
 		}
@@ -2117,7 +2116,7 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 				AGameMode const* const GameMode = World->GetAuthGameMode();
 				bool bLowNetBandwidth = !bCPUSaturated && (Connection->CurrentNetSpeed / float(GameMode->NumPlayers + GameMode->NumBots) < 500.f );
 
-				for( j=0; j<ConsiderListSize; j++ )
+				for( j=0; j<ConsiderList.Num(); j++ )
 				{
 					AActor* Actor = ConsiderList[j];
 					UActorChannel* Channel = Connection->ActorChannels.FindRef(Actor);
@@ -2226,7 +2225,7 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 				int32 ChildIndex = 0;
 				while (NextConnection != NULL)
 				{
-					for (int32 j = 0; j < NextConnection->OwnedConsiderListSize; j++)
+					for (int32 j = 0; j < NextConnection->OwnedConsiderList.Num(); j++)
 					{
 						AActor* Actor = NextConnection->OwnedConsiderList[j];
 						UE_LOG(LogNetTraffic, Log, TEXT("Consider owned %s always relevant %d frequency %f  "),*Actor->GetName(), Actor->bAlwaysRelevant,Actor->NetUpdateFrequency);
@@ -2244,8 +2243,7 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 							}
 						}
 					}
-					NextConnection->OwnedConsiderList = NULL;
-					NextConnection->OwnedConsiderListSize = 0;
+					NextConnection->OwnedConsiderList.Empty();
 
 					NextConnection = (ChildIndex < Connection->Children.Num()) ? Connection->Children[ChildIndex++] : NULL;
 				}
@@ -2475,7 +2473,7 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 			}
 			RelevantActorMark.Pop();
 			UE_LOG(LogNetTraffic, Log, TEXT("Potential %04i ConsiderList %03i ConsiderCount %03i Prune=%01.4f "),NetRelevantCount, 
-						ConsiderListSize, ConsiderCount, FPlatformTime::ToMilliseconds(PruneActors) );
+						ConsiderList.Num(), ConsiderCount, FPlatformTime::ToMilliseconds(PruneActors) );
 
 			SET_DWORD_STAT(STAT_NumReplicatedActorAttempts,ActorUpdatesThisConnection);
 			SET_DWORD_STAT(STAT_NumReplicatedActors,ActorUpdatesThisConnectionSent);

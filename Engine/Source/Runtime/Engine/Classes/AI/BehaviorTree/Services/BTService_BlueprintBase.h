@@ -3,6 +3,14 @@
 #pragma once
 #include "BTService_BlueprintBase.generated.h"
 
+/**
+ *  Base class for blueprint based service nodes. Do NOT use it for creating native c++ classes!
+ *
+ *  When service receives Deactivation event, all latent actions associated this instance are being removed.
+ *  This prevents from resuming activity started by Activation, but does not handle external events.
+ *  Please use them safely (unregister at abort) and call IsServiceActive() when in doubt.
+ */
+
 UCLASS(Abstract, Blueprintable)
 class ENGINE_API UBTService_BlueprintBase : public UBTService
 {
@@ -46,6 +54,10 @@ protected:
 	/** service became inactive */
 	UFUNCTION(BlueprintImplementableEvent)
 	virtual void ReceiveDeactivation(AActor* OwnerActor);
+
+	/** check if service is currently being active */
+	UFUNCTION(BlueprintCallable, Category="AI|BehaviorTree")
+	bool IsServiceActive() const;
 
 	friend class FBehaviorBlueprintDetails;
 };

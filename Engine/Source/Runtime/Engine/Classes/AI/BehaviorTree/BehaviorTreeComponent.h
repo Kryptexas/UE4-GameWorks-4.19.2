@@ -36,7 +36,7 @@ class ENGINE_API UBehaviorTreeComponent : public UBrainComponent
 protected:
 	virtual void StopLogic(const FString& Reason) OVERRIDE;
 	virtual void PauseLogic(const FString& Reason) OVERRIDE;
-	virtual void ResumeLogic(const FString& Reason) OVERRIDE;
+	virtual EAILogicResuming::Type ResumeLogic(const FString& Reason) OVERRIDE;
 
 	/** indicates instance has been initialized to work with specific BT asset */
 	bool TreeHasBeenStarted() const;
@@ -122,6 +122,9 @@ public:
 
 	/** @return true if active node is one of child nodes of given one */
 	bool IsExecutingBranch(const class UBTNode* Node, int32 ChildIndex = -1) const;
+
+	/** @return true if aux node is currently active */
+	bool IsAuxNodeActive(const class UBTAuxiliaryNode* AuxNode) const;
 
 	/** @return status of speficied task */
 	EBTTaskStatus::Type GetTaskStatus(const class UBTTaskNode* TaskNode) const;

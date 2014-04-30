@@ -280,7 +280,20 @@ struct ENGINE_API FLevelViewportInfo
 		{
 			I.CamUpdated = true;
 		}
-		return Ar << I.CamPosition << I.CamRotation << I.CamOrthoZoom;
+
+		Ar << I.CamPosition;
+		Ar << I.CamRotation;
+		Ar << I.CamOrthoZoom;
+
+		if ( Ar.IsLoading() )
+		{
+			if ( I.CamOrthoZoom == 0 )
+			{
+				I.CamOrthoZoom = DEFAULT_ORTHOZOOM;
+			}
+		}
+
+		return Ar;
 	}
 };
 

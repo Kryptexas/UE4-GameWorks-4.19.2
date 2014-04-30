@@ -190,18 +190,9 @@ struct ENGINE_API FVisLogEntry
 	} \
 }
 
-#define UE_CVLOG(Condition, Actor, CategoryName, Verbosity, Format, ...) UE_CLOG(Condition, CategoryName, Verbosity, Format, ##__VA_ARGS__) \
+#define UE_CVLOG(Condition, Actor, CategoryName, Verbosity, Format, ...) if(Condition) \
 { \
-	SCOPE_CYCLE_COUNTER(STAT_VisualLog); \
-	checkAtCompileTime((ELogVerbosity::Verbosity & ELogVerbosity::VerbosityMask) < ELogVerbosity::NumVerbosity && ELogVerbosity::Verbosity > 0, Verbosity_must_be_constant_and_in_range); \
-	FVisualLog::Get()->LogLine(Actor, CategoryName.GetCategoryName(), ELogVerbosity::Verbosity, FString::Printf(Format, ##__VA_ARGS__)); \
-	if (UE_LOG_CHECK_COMPILEDIN_VERBOSITY(CategoryName, Verbosity)) \
-	{ \
-		if (!CategoryName.IsSuppressed(ELogVerbosity::Verbosity) && (Actor) != NULL && (Condition)) \
-		{ \
-			TO_TEXT_LOG(CategoryName, Verbosity, Format, ##__VA_ARGS__); \
-		} \
-	} \
+	UE_VLOG(Actor, CategoryName, Verbosity, Format, ##__VA_ARGS__); \
 }
 
 #define UE_VLOG_SEGMENT(Actor, SegmentStart, SegmentEnd, Color, DescriptionFormat, ...) \

@@ -276,9 +276,7 @@ public:
 	TArray<FName> ClientVisibleLevelNames;
 
 	/** @todo document */
-	class AActor **OwnedConsiderList;
-	/** @todo document */
-	int32 OwnedConsiderListSize;
+	class TArray<AActor*> OwnedConsiderList;
 
 #if DO_ENABLE_NET_TEST
 	// For development.

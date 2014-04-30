@@ -305,22 +305,31 @@ void UGameplayDebuggingControllerComponent::BeginAIDebugView()
 	Activate();
 	SetComponentTickEnabled(true);
 	
-	if (!bDisplayAIDebugInfo && !bWaitingForOwnersComponent)
+	UDebugDrawService::Unregister(FDebugDrawDelegate::CreateUObject(this, &UGameplayDebuggingControllerComponent::OnDebugAI));
+	UDebugDrawService::Register(TEXT("Game"), FDebugDrawDelegate::CreateUObject(this, &UGameplayDebuggingControllerComponent::OnDebugAI));
+
+	AHUD* GameHUD = PC->GetHUD();
+	if (GameHUD)
 	{
-		PC->ServerReplicateMessageToAIDebugView(Pawn, EDebugComponentMessage::ActivateReplication, 0); //create component for my player's pawn, to replicate non pawn's related data
+		GameHUD->bShowHUD = false;
 	}
 
 	bWaitingForOwnersComponent = false;
-	if (UGameplayDebuggingComponent* OwnerComp = Pawn->GetDebugComponent(false))
+	UGameplayDebuggingComponent* OwnerComp = Pawn->GetDebugComponent(GetNetMode() < NM_Client  ? true : false);
+	if (!OwnerComp)
 	{
-		OwnerComp->ServerEnableTargetSelection(true);
-	}
-	else
-	{
-		bWaitingForOwnersComponent = true;
-		return;
+		UE_VLOG(GetOwner(), LogGDT, Log, TEXT("UGameplayDebuggingControllerComponent: Requesting server to create player's component"));
+		PC->ServerReplicateMessageToAIDebugView(Pawn, EDebugComponentMessage::ActivateReplication, 0); //create component for my player's pawn, to replicate non pawn's related data
+		OwnerComp = Pawn->GetDebugComponent(false);
+		if (!OwnerComp)
+		{
+			PlayersComponentRequestTime = GetWorld()->TimeSeconds;
+			bWaitingForOwnersComponent = true;
+			return;
+		}
 	}
 
+	OwnerComp->ServerEnableTargetSelection(true);
 	SetGameplayDebugFlag(true, PC);
 
 	if (DebugAITargetActor != NULL && DebugAITargetActor->GetDebugComponent() == NULL)
@@ -333,15 +342,7 @@ void UGameplayDebuggingControllerComponent::BeginAIDebugView()
 	if (!bDisplayAIDebugInfo)
 	{
 		bDisplayAIDebugInfo = true;
-
-		UDebugDrawService::Unregister(FDebugDrawDelegate::CreateUObject(this, &UGameplayDebuggingControllerComponent::OnDebugAI));
-		UDebugDrawService::Register(TEXT("Game"), FDebugDrawDelegate::CreateUObject(this, &UGameplayDebuggingControllerComponent::OnDebugAI));
-
-		AHUD* GameHUD = PC->GetHUD();
-		if (GameHUD)
-		{
-			GameHUD->bShowHUD = false;
-		}
+		
 	}
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
@@ -600,7 +601,15 @@ void UGameplayDebuggingControllerComponent::TickComponent(float DeltaTime, enum 
 	APawn* MyPawn = MyPC ? MyPC->GetPawn() : NULL;
 
 	UGameplayDebuggingComponent* OwnerComp = MyPawn ? MyPawn->GetDebugComponent(false) : NULL;
-	if (OwnerComp && bDisplayAIDebugInfo)
+	if (MyPC && MyPawn && !OwnerComp && bWaitingForOwnersComponent && GetWorld()->TimeSeconds - PlayersComponentRequestTime > 5)
+	{
+		// repeat replication request from server
+		UE_VLOG(GetOwner(), LogGDT, Warning, TEXT("UGameplayDebuggingControllerComponent: Requesting server to create again player's component after 5 seconds!"));
+		MyPC->ServerReplicateMessageToAIDebugView(MyPawn, EDebugComponentMessage::ActivateReplication, 0); //create component for my player's pawn, to replicate non pawn's related data
+		PlayersComponentRequestTime = GetWorld()->TimeSeconds;
+	}
+
+	if (MyPC && OwnerComp && bDisplayAIDebugInfo)
 	{
 		if(bWaitingForOwnersComponent)
 		{
@@ -661,6 +670,9 @@ void UGameplayDebuggingControllerComponent::UpdateNavMeshTimer()
 			Pawn ? Pawn->GetActorLocation() : 
 			FVector::ZeroVector;
 
-		OwnerComp->ServerCollectNavmeshData(AdditionalTargetLoc);
+		if (AdditionalTargetLoc != FVector::ZeroVector)
+		{
+			OwnerComp->ServerCollectNavmeshData(AdditionalTargetLoc);
+		}
 	}
 }
