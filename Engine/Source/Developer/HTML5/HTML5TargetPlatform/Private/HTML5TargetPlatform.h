@@ -30,8 +30,6 @@ public:
 
 	virtual ECompressionFlags GetBaseCompressionMethod( ) const OVERRIDE;
 
-	virtual bool GetBuildArtifacts( const FString& ProjectPath, EBuildTargets::Type BuildTarget, EBuildConfigurations::Type BuildConfiguration, ETargetPlatformBuildArtifacts::Type Artifacts, TMap<FString, FString>& OutFile, TArray<FString>& OutMissingFiless ) const;
-
 	virtual bool GenerateStreamingInstallManifest(const TMultiMap<FString, int32>& ChunkMap, const TSet<int32>& ChunkIDsInUse) const OVERRIDE
 	{
 		return true;

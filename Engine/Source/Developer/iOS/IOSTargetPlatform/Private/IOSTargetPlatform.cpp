@@ -54,30 +54,6 @@ void FIOSTargetPlatform::GetAllDevices( TArray<ITargetDevicePtr>& OutDevices ) c
 }
 
 
-bool FIOSTargetPlatform::GetBuildArtifacts( const FString& ProjectPath, EBuildTargets::Type BuildTarget, EBuildConfigurations::Type Config, ETargetPlatformBuildArtifacts::Type Artifacts, TMap<FString, FString>& OutFiles, TArray<FString>& OutMissingFiles ) const
-{
-	/*
-	//Using this as the signal that deployment will happen.
-	//Gather all necessary information and store it to the Target Device, such that, the device will save the state for deployment.
-	ITargetDevicePtr CurrentDevice = NULL;
-	TSharedPtr<FIOSTargetDevice> CurrentIOSDevice = NULL;
-
-	auto Iter = Devices.CreateConstIterator();
-
-	while(Iter)
-	{
-		CurrentDevice = Iter.Value();
-		CurrentIOSDevice = StaticCastSharedPtr<FIOSTargetDevice, ITargetDevice, ESPMode::Fast>(CurrentDevice);
-		CurrentIOSDevice->SetAppId(GameName);
-		CurrentIOSDevice->SetAppConfiguration(Config);
-		++Iter;
-	}
-	*/
-
-	return false;
-}
-
-
 ITargetDevicePtr FIOSTargetPlatform::GetDefaultDevice() const
 {
 	if (Devices.Num() > 0)

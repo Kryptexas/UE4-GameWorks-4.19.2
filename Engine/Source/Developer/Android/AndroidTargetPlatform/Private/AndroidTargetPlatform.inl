@@ -64,13 +64,6 @@ inline ITargetDevicePtr FAndroidTargetPlatform::GetDefaultDevice( ) const
 }
 
 
-inline bool FAndroidTargetPlatform::GetBuildArtifacts( const FString& ProjectPath, EBuildTargets::Type BuildTarget, EBuildConfigurations::Type BuildConfiguration, ETargetPlatformBuildArtifacts::Type Artifacts, TMap<FString, FString>& OutFiles, TArray<FString>& OutMissingFiles ) const
-{
-	//@todo android: implement build artifacts gathering
-	return false;
-}
-
-
 inline ITargetDevicePtr FAndroidTargetPlatform::GetDevice( const FTargetDeviceId& DeviceId )
 {
 	if (DeviceId.GetPlatformName() == PlatformName())
