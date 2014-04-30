@@ -10,13 +10,16 @@ UAchievementWriteCallbackProxy::UAchievementWriteCallbackProxy(const class FPost
 {
 }
 
-UAchievementWriteCallbackProxy* UAchievementWriteCallbackProxy::WriteAchievementProgress(class APlayerController* PlayerController, FName AchievementName, float Progress)
+UAchievementWriteCallbackProxy* UAchievementWriteCallbackProxy::WriteAchievementProgress(class APlayerController* PlayerController, FName AchievementName, float Progress, int32 UserTag)
 {
 	UAchievementWriteCallbackProxy* Proxy = NewObject<UAchievementWriteCallbackProxy>();
 
 	Proxy->WriteObject = MakeShareable(new FOnlineAchievementsWrite);
 	Proxy->WriteObject->SetFloatStat(AchievementName, Progress);
 	Proxy->PlayerControllerWeakPtr = PlayerController;
+	Proxy->AchievementName = AchievementName;
+	Proxy->AchievementProgress = Progress;
+	Proxy->UserTag = UserTag;
 
 	return Proxy;
 }
@@ -45,7 +48,7 @@ void UAchievementWriteCallbackProxy::Activate()
 	}
 
 	// Fail immediately
-	OnFailure.Broadcast();
+	OnFailure.Broadcast(AchievementName, AchievementProgress, UserTag);
 	WriteObject.Reset();
 }
 
@@ -53,11 +56,11 @@ void UAchievementWriteCallbackProxy::OnAchievementWritten(const FUniqueNetId& Us
 {
 	if (bSuccess)
 	{
-		OnSuccess.Broadcast();
+		OnSuccess.Broadcast(AchievementName, AchievementProgress, UserTag);
 	}
 	else
 	{
-		OnFailure.Broadcast();
+		OnFailure.Broadcast(AchievementName, AchievementProgress, UserTag);
 	}
 
 	WriteObject.Reset();

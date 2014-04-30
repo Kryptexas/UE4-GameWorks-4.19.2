@@ -4,6 +4,8 @@
 #include "Runtime/Online/OnlineSubsystem/Public/Interfaces/OnlineAchievementsInterface.h"
 #include "AchievementWriteCallbackProxy.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FAchievementWriteDelegate, FName, WrittenAchievementName, float, WrittenProgress, int32, WrittenUserTag);
+
 UCLASS(MinimalAPI)
 class UAchievementWriteCallbackProxy : public UOnlineBlueprintCallProxyBase
 {
@@ -11,15 +13,18 @@ class UAchievementWriteCallbackProxy : public UOnlineBlueprintCallProxyBase
 
 	// Called when there is a successful achievement write
 	UPROPERTY(BlueprintAssignable)
-	FEmptyOnlineDelegate OnSuccess;
+	FAchievementWriteDelegate OnSuccess;
 
 	// Called when there is an unsuccessful achievement write
 	UPROPERTY(BlueprintAssignable)
-	FEmptyOnlineDelegate OnFailure;
+	FAchievementWriteDelegate OnFailure;
 
 	// Writes progress about an achievement to the default online subsystem
+	//   AchievementName is the ID of the achievement to update progress on
+	//   Progress is the reported progress toward accomplishing the achievement
+	//   UserTag is not used internally, but it is returned on success or failure
 	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly = "true"), Category="Online|Achievements")
-	static UAchievementWriteCallbackProxy* WriteAchievementProgress(class APlayerController* PlayerController, FName AchievementName, float Progress = 100.0f);
+	static UAchievementWriteCallbackProxy* WriteAchievementProgress(class APlayerController* PlayerController, FName AchievementName, float Progress = 100.0f, int32 UserTag = 0);
 
 	// UOnlineBlueprintCallProxyBase interface
 	virtual void Activate() OVERRIDE;
@@ -39,4 +44,13 @@ private:
 
 	/** The achievements write object */
 	FOnlineAchievementsWritePtr WriteObject;
+
+	/** The achievement name */
+	FName AchievementName;
+
+	/** The amount of progress made towards the achievement */
+	float AchievementProgress;
+
+	/** The specified user tag */
+	int32 UserTag;
 };
