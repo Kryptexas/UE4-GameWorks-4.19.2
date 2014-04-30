@@ -1319,7 +1319,7 @@ void AGameMode::StartNewPlayer(APlayerController* NewPlayer)
 	NewPlayer->ClientSetHUD(HUDClass);
 
 	// If players should start as spectators, leave them in the spectator state
-	if (!bStartPlayersAsSpectators)
+	if (!bStartPlayersAsSpectators && !NewPlayer->PlayerState->bOnlySpectator)
 	{
 		// If match is in progress, start the player
 		if (IsMatchInProgress())
