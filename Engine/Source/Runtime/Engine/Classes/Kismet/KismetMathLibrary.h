@@ -375,6 +375,11 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta=(Keywords = "* multiply"), Category="Math|Float")
 	static float MultiplyByPi(float Value);
 
+	/** Interpolate between A and B, applying an ease in/out function.  Exp controls the degree of the curve. */
+	UFUNCTION(BlueprintPure, Category = "Math|Float")
+	static float FInterpEaseInOut(float A, float B, float Alpha, float Exponent);
+
+
 	//
 	// Vector functions.
 	//
@@ -460,6 +465,14 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	/* Returns a random vector with length of 1 */
 	UFUNCTION(BlueprintPure, Category="Math|Random")
 	static FVector RandomUnitVector();
+
+	/* 
+	 * Returns a random vector with length of 1, within the specified cone, with uniform random distribution. 
+	 * @param ConeDir	The base "center" direction of the cone.
+	 * @param ConeHalfAngle		The half-angle of the cone (from ConeDir to edge), in degrees.
+	 */
+	UFUNCTION(BlueprintPure, Category = "Math|Random")
+	static FVector RandomUnitVectorInCone(FVector ConeDir, float ConeHalfAngle);
 
 	// Mirrors a vector by a normal
 	UFUNCTION(BlueprintPure, Category="Math|Vector")

@@ -479,6 +479,11 @@ float UKismetMathLibrary::MultiplyByPi(float Value)
 	return Value * PI;
 }
 
+float UKismetMathLibrary::FInterpEaseInOut(float A, float B, float Alpha, float Exponent)
+{
+	return FMath::InterpEaseInOut<float>(A, B, Alpha, Exponent);
+}
+
 float UKismetMathLibrary::RandomFloat()
 {
 	return FMath::FRand();
@@ -637,6 +642,11 @@ FVector UKismetMathLibrary::VInterpTo(FVector Current, FVector Target, float Del
 FVector UKismetMathLibrary::RandomUnitVector()
 {
 	return FMath::VRand();
+}
+
+FVector UKismetMathLibrary::RandomUnitVectorInCone(FVector ConeDir, float ConeHalfAngle)
+{
+	return FMath::VRandCone(ConeDir, ConeHalfAngle);
 }
 
 FVector UKismetMathLibrary::MirrorVectorByNormal(FVector A, FVector B)
