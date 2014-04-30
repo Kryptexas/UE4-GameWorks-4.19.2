@@ -903,7 +903,7 @@ struct FTextureLODSettings
 	 * @param	bIncTextureMips	If true, takes the textures LOD & Cinematic mips into consideration
 	 * @return	LOD bias
 	 */
-	ENGINE_API int32 CalculateLODBias(UTexture* Texture, bool bIncTextureMips = true) const;
+	ENGINE_API int32 CalculateLODBias(const UTexture* Texture, bool bIncTextureMips = true) const;
 
 	/**
 	 * Calculates and returns the LOD bias based on the information provided.
