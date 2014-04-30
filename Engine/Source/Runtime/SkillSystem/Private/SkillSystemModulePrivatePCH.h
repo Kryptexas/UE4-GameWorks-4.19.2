@@ -15,6 +15,9 @@
 #include "Engine/DataTable.h"
 #include "SkillSystemClasses.h"
 
+#include "SKillSystem.h"
 #include "SkillSystemModule.h"
 #include "SkillSystemLog.h"
 
+#include "PlayMontageAndWaitAction.h"
+#include "BlueprintPlayMontageAndWaitTaskProxy.h"

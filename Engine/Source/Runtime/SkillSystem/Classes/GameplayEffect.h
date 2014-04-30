@@ -611,8 +611,11 @@ struct FGameplayEffectInstigatorContext
  *		the buff expires on the source, the applied DOT is still buffed.
  *
  */
+USTRUCT()
 struct FAggregatorRef
 {
+	GENERATED_USTRUCT_BODY()
+
 	friend struct FAggregatorRef;
 
 	FAggregatorRef()
@@ -668,13 +671,27 @@ struct FAggregatorRef
 	/** Become a hard reference to a new copy of what we are reference AND make new copies/hard refs of the complete modifier chain in our FAggregator */
 	void MakeUniqueDeep();
 
+	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);	
+
 	FString ToString() const;
 	void PrintAll() const;
+
+	UPROPERTY()
+	int32	Foo;
 
 private:
 
 	TSharedPtr<struct FAggregator>	SharedPtr;
 	TWeakPtr<struct FAggregator> WeakPtr;
+};
+
+template<>
+struct TStructOpsTypeTraits< FAggregatorRef > : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithNetSerializer = true
+	};
 };
 
 /**
@@ -831,6 +848,8 @@ struct FAggregator : public TSharedFromThis<FAggregator>
 	void PrintAll() const;
 	void RefreshDependencies();
 	void MakeUniqueDeep();
+
+	void SetFromNetSerialize(float NetSerialize);
 
 	// ----------------------------------------------------------------------------
 	// This is data only used in debugging/tracking where aggregator's came from
@@ -1069,7 +1088,9 @@ struct FGameplayEffectSpec
 	float GetPeriod() const;
 	float GetMagnitude(const FGameplayAttribute &Attribute) const;
 
+	UPROPERTY()
 	FAggregatorRef	Duration;
+
 	FAggregatorRef	Period;
 
 	EGameplayEffectStackingPolicy::Type StackingPolicy;
@@ -1116,22 +1137,24 @@ struct FActiveGameplayEffect : public FFastArraySerializerItem
 	GENERATED_USTRUCT_BODY()
 
 	FActiveGameplayEffect()
-		: StartTime(0.f)
+		: StartGameStateTime(0)
+		, StartWorldTime(0.f)
 		, NextExecuteTime(0.f)
 	{
 	}
 
-	FActiveGameplayEffect(FActiveGameplayEffectHandle InHandle, const FGameplayEffectSpec &InSpec, float CurrentTime = 0.f)
+	FActiveGameplayEffect(FActiveGameplayEffectHandle InHandle, const FGameplayEffectSpec &InSpec, float CurrentWorldTime, int32 InStartGameStateTime)
 		: Handle(InHandle)
 		, Spec(InSpec)
-		, StartTime(CurrentTime)
+		, StartGameStateTime(InStartGameStateTime)
+		, StartWorldTime(CurrentWorldTime)
 		, NextExecuteTime(0.f)
 	{
 		// Init NextExecuteTime if necessary
 		float Period = GetPeriod();
 		if (Period != UGameplayEffect::NO_PERIOD)
 		{
-			NextExecuteTime = CurrentTime + SMALL_NUMBER;
+			NextExecuteTime = CurrentWorldTime + SMALL_NUMBER;
 		}
 
 		for (FModifierSpec &Mod : Spec.Modifiers)
@@ -1147,7 +1170,10 @@ struct FActiveGameplayEffect : public FFastArraySerializerItem
 
 	/** Game time this started */
 	UPROPERTY()
-	float StartTime;
+	int32 StartGameStateTime;
+
+	UPROPERTY(NotReplicated)
+	float StartWorldTime;
 
 	UPROPERTY(NotReplicated)
 	float NextExecuteTime;
@@ -1179,6 +1205,58 @@ struct FActiveGameplayEffect : public FFastArraySerializerItem
 	}
 };
 
+
+USTRUCT()
+struct FActiveGameplayEffectData
+{
+	GENERATED_USTRUCT_BODY()
+
+	FActiveGameplayEffectData()
+		: Handle()
+		, Duration(0.f)
+		, Magnitude(0.f)
+	{
+	}
+
+	FActiveGameplayEffectData(const FActiveGameplayEffectHandle InHandle, const float InDuration, const float InMagnitude)
+		: Handle(InHandle)
+		, Duration(InDuration)
+		, Magnitude(InMagnitude)
+	{
+	}
+
+	UPROPERTY()
+	FActiveGameplayEffectHandle	Handle;
+
+	UPROPERTY()
+	float	Duration;
+
+	UPROPERTY()
+	float	Magnitude;
+};
+
+/** Generic querying data structure for active GameplayEffects. Lets us ask things like:
+ *		-Give me duration/magnitude of active gameplay effects with these tags
+ *		-
+ */
+USTRUCT()
+struct FActiveGameplayEffectQuery
+{
+	GENERATED_USTRUCT_BODY()
+
+	FActiveGameplayEffectQuery()
+		: TagContainer(NULL)
+	{
+	}
+
+	FActiveGameplayEffectQuery(const FGameplayTagContainer * InTagContainer)
+		: TagContainer(InTagContainer)
+	{
+	}
+
+	const FGameplayTagContainer *	TagContainer;
+};
+
 /**
  * Active GameplayEffects Container
  *	-Bucket of ActiveGameplayEffects
@@ -1197,7 +1275,7 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 	UPROPERTY()
 	TArray< FActiveGameplayEffect >	GameplayEffects;
 	
-	FActiveGameplayEffect & CreateNewActiveGameplayEffect(const FGameplayEffectSpec &Spec, float GameTimeSeconds);
+	FActiveGameplayEffect & CreateNewActiveGameplayEffect(const FGameplayEffectSpec &Spec);
 
 	void ApplyActiveEffectsTo(OUT FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext) const;
 
@@ -1245,6 +1323,15 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 	void PreDestroy();
 
 	bool bNeedToRecalculateStacks;
+
+	bool HasAnyTags(FGameplayTagContainer &Tags);
+
+	bool CanApplyAttributeModifiers(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator);
+	
+	TArray<float> GetActiveEffectsTimeRemaining(const FActiveGameplayEffectQuery Query) const;
+
+	int32 GetGameStateTime() const;
+	float GetWorldTime() const;
 
 private:
 

@@ -18,11 +18,15 @@ DEFINE_LOG_CATEGORY(LogAttributeComponent);
 UAttributeComponent::UAttributeComponent(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	bWantsInitializeComponent = true;
+
 	PrimaryComponentTick.TickGroup = TG_DuringPhysics;
 	PrimaryComponentTick.bStartWithTickEnabled = true; // FIXME! Just temp until timer manager figured out
 	PrimaryComponentTick.bCanEverTick = true;
 	
 	ActiveGameplayEffects.Owner = this;
+
+	SetIsReplicated(true);
 }
 
 UAttributeComponent::~UAttributeComponent()
@@ -177,13 +181,13 @@ FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectSpecToTarget
 }
 
 /** Helper function since we can't have default/optional values for FModifierQualifier in K2 function */
-FActiveGameplayEffectHandle UAttributeComponent::K2_ApplyGameplayEffectToSelf(UGameplayEffect *GameplayEffect, float Level, AActor *Instigator)
+FActiveGameplayEffectHandle UAttributeComponent::K2_ApplyGameplayEffectToSelf(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator)
 {
 	return ApplyGameplayEffectToSelf(GameplayEffect, Level, Instigator);
 }
 
 /** This is a helper function - it seems like this will be useful as a blueprint interface at the least, but Level parameter may need to be expanded */
-FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectToSelf(UGameplayEffect *GameplayEffect, float Level, AActor *Instigator, FModifierQualifier BaseQualifier)
+FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectToSelf(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator, FModifierQualifier BaseQualifier)
 {
 	FGameplayEffectSpec	Spec(GameplayEffect, TSharedPtr<FGameplayEffectLevelSpec>(new FGameplayEffectLevelSpec(Level, GameplayEffect->LevelInfo, GetOwner())), GetCurveDataOverride());
 	Spec.Def = GameplayEffect;
@@ -205,6 +209,12 @@ int32 UAttributeComponent::GetNumActiveGameplayEffect() const
 bool UAttributeComponent::IsGameplayEffectActive(FActiveGameplayEffectHandle InHandle) const
 {
 	return ActiveGameplayEffects.IsGameplayEffectActive(InHandle);
+}
+
+bool UAttributeComponent::HasAnyTags(FGameplayTagContainer &Tags)
+{
+	// Fixme: we could aggregate our current tags into a map to avoid this type of iteration
+	return ActiveGameplayEffects.HasAnyTags(Tags);
 }
 
 void UAttributeComponent::TEMP_ApplyActiveGameplayEffects()
@@ -240,14 +250,7 @@ FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectSpecToSelf(c
 		float Duration = Spec.GetDuration();
 		if (Duration != UGameplayEffect::INSTANT_APPLICATION)
 		{
-			float GameTime = GetWorld()->GetTimeSeconds();
-			// if we have a game state use the ElapsedTime so client server time replication is more accurate else use the time seconds of the game world.
-			if (GetWorld()->GetGameState<AGameState>())
-			{
-				GameTime = GetWorld()->GetGameState<AGameState>()->ElapsedTime;
-			}
-
-			FActiveGameplayEffect &NewActiveEffect = ActiveGameplayEffects.CreateNewActiveGameplayEffect(Spec, GameTime);
+			FActiveGameplayEffect &NewActiveEffect = ActiveGameplayEffects.CreateNewActiveGameplayEffect(Spec);
 			MyHandle = NewActiveEffect.Handle;
 			OurCopyOfSpec = &NewActiveEffect.Spec;
 
@@ -446,6 +449,16 @@ void UAttributeComponent::AddDependancyToAttribute(FGameplayAttribute Attribute,
 	ActiveGameplayEffects.AddDependancyToAttribute(Attribute, InDependant);
 }
 
+bool UAttributeComponent::CanApplyAttributeModifiers(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator)
+{
+	return ActiveGameplayEffects.CanApplyAttributeModifiers(GameplayEffect, Level, Instigator);
+}
+
+TArray<float> UAttributeComponent::GetActiveEffectsTimeRemaining(const FActiveGameplayEffectQuery Query) const
+{
+	return ActiveGameplayEffects.GetActiveEffectsTimeRemaining(Query);
+}
+
 // ---------------------------------------------------------------------------------------
 
 void UAttributeComponent::PrintAllGameplayEffects() const
@@ -467,7 +480,7 @@ void FActiveGameplayEffectsContainer::PrintAllGameplayEffects() const
 void FActiveGameplayEffect::PrintAll() const
 {
 	SKILL_LOG(Log, TEXT("Handle: %s"), *Handle.ToString());
-	SKILL_LOG(Log, TEXT("StartTime: %.2f"), StartTime);
+	SKILL_LOG(Log, TEXT("StartWorldTime: %.2f"), StartWorldTime);
 	SKILL_LOG(Log, TEXT("NextExecuteTime: %.2f"), NextExecuteTime);
 	Spec.PrintAll();
 }
@@ -598,6 +611,7 @@ void UAttributeComponent::TEMP_TimerTestCallback(int32 x)
 
 void UAttributeComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
+	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsTick);
 	SKILL_LOG_SCOPE(TEXT("Ticking %s"), *GetName());
 
 	// This should be tmep until timer manager stuff is figured out

@@ -17,20 +17,20 @@ void UGameplayEffectStackingExtension_CappedNumberTest::CalculateStack(TArray<FA
 	int32 EffectiveCount = FMath::Min(CustomGameplayEffects.Num() + 1, MaxNumInStack);
 	
 	// find the most recent time one of these was applied
-	float StartTime = CurrentEffect.StartTime;
+	float StartTime = CurrentEffect.StartWorldTime;
 
 	for (FActiveGameplayEffect* Effect : CustomGameplayEffects)
 	{
-		StartTime = FMath::Max(StartTime, Effect->StartTime);
+		StartTime = FMath::Max(StartTime, Effect->StartWorldTime);
 	}
 
 	{
 		// set the start time to be equal to the most recent start time so that the stacked effects stick around if a new effect has been added
-		CurrentEffect.StartTime = StartTime;
+		CurrentEffect.StartWorldTime = StartTime;
 		int32 Idx = 0;
 		while (Idx < FMath::Min(MaxNumInStack - 1, CustomGameplayEffects.Num()))
 		{
-			CustomGameplayEffects[Idx]->StartTime = StartTime;
+			CustomGameplayEffects[Idx]->StartWorldTime = StartTime;
 			++Idx;
 		}
 

@@ -443,6 +443,39 @@ FString FAggregatorRef::ToString() const
 	return FString(TEXT("Invalid"));
 }
 
+bool FAggregatorRef::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
+{
+	float EvaluatedMagnitude=0.f;
+
+	if (Ar.IsSaving())
+	{
+		if (IsValid())
+		{
+			EvaluatedMagnitude = Get()->Evaluate().Magnitude;
+		}
+	}
+
+	Ar << EvaluatedMagnitude;
+
+	if (Ar.IsLoading())
+	{
+		if (!IsValid())
+		{
+			SharedPtr = TSharedPtr<struct FAggregator>(new FAggregator);
+			WeakPtr = SharedPtr;
+		}
+
+		Get()->SetFromNetSerialize(EvaluatedMagnitude);
+	}
+	return true;
+}
+
+void FAggregator::SetFromNetSerialize(float SerializedValue)
+{
+	BaseData = FGameplayModifierData(SerializedValue, NULL);
+	CachedData = FGameplayModifierEvaluatedData(SerializedValue);
+}
+
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //
 //	FAggregator
@@ -976,21 +1009,23 @@ void FActiveGameplayEffect::PreReplicatedRemove(const struct FActiveGameplayEffe
 
 void FActiveGameplayEffect::PostReplicatedAdd(const struct FActiveGameplayEffectsContainer &InArray)
 {
-	static const float MAX_DELTA_TIME = 3.f;
+	static const int32 MAX_DELTA_TIME = 3;
 
 	InArray.Owner->InvokeGameplayCueAdded(Spec);
 	// Was this actually just activated, or are we just finding out about it due to relevancy/join in progress?
-	float WorldTimeSeconds = InArray.Owner->GetWorld()->GetTimeSeconds();
-	if (InArray.Owner->GetWorld()->GetGameState<AGameState>())
-	{
-		WorldTimeSeconds = InArray.Owner->GetWorld()->GetGameState<AGameState>()->ElapsedTime;
-	}
-	float DeltaTime = WorldTimeSeconds - StartTime;
+	float WorldTimeSeconds = InArray.GetWorldTime();
+	int32 GameStateTime = InArray.GetGameStateTime();
 
-	if (WorldTimeSeconds > 0.f && FMath::Abs(DeltaTime) < MAX_DELTA_TIME)
+	int32 DeltaGameStateTime = GameStateTime - StartGameStateTime;	// How long we think the effect has been playing (only 1 second precision!)
+
+	if (GameStateTime > 0 && FMath::Abs(DeltaGameStateTime) < MAX_DELTA_TIME)
 	{
 		InArray.Owner->InvokeGameplayCueActivated(Spec);
 	}
+
+	// Set our local start time accordingly
+
+	StartWorldTime = WorldTimeSeconds - static_cast<float>(DeltaGameStateTime);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1289,10 +1324,10 @@ void FActiveGameplayEffectsContainer::OnPropertyAggregatorDirty(FAggregator* Agg
 	Owner->SetNumericAttribute(Attribute, NewPropertyValue);
 }
 
-FActiveGameplayEffect & FActiveGameplayEffectsContainer::CreateNewActiveGameplayEffect(const FGameplayEffectSpec &Spec, float GameTimeSeconds)
+FActiveGameplayEffect & FActiveGameplayEffectsContainer::CreateNewActiveGameplayEffect(const FGameplayEffectSpec &Spec)
 {
 	LastAssignedHandle = LastAssignedHandle.GetNextHandle();
-	FActiveGameplayEffect & NewEffect = *new (GameplayEffects)FActiveGameplayEffect(LastAssignedHandle, Spec, GameTimeSeconds);
+	FActiveGameplayEffect & NewEffect = *new (GameplayEffects)FActiveGameplayEffect(LastAssignedHandle, Spec, GetWorldTime(), GetGameStateTime());
 	
 	MarkItemDirty(NewEffect);
 	return NewEffect;
@@ -1335,6 +1370,24 @@ void FActiveGameplayEffectsContainer::PreDestroy()
 	}
 }
 
+int32 FActiveGameplayEffectsContainer::GetGameStateTime() const
+{
+	UWorld *World = Owner->GetWorld();
+	AGameState * GameState = World->GetGameState<AGameState>();
+	if (GameState)
+	{
+		return GameState->ElapsedTime;
+	}
+
+	return static_cast<int32>(World->GetTimeSeconds());
+}
+
+float FActiveGameplayEffectsContainer::GetWorldTime() const
+{
+	UWorld *World = Owner->GetWorld();
+	return World->GetTimeSeconds();
+}
+
 void FActiveGameplayEffectsContainer::TEMP_TickActiveEffects(float DeltaSeconds)
 {
 	if (!IsNetAuthority())
@@ -1344,13 +1397,7 @@ void FActiveGameplayEffectsContainer::TEMP_TickActiveEffects(float DeltaSeconds)
 		return;
 	}
 
-
-	float CurrentTime = Owner->GetWorld()->GetTimeSeconds();
-	// if we have a game state use the ElapsedTime so client server time replication is more accurate else use the time seconds of the game world.
-	if (Owner->GetWorld()->GetGameState<AGameState>())
-	{
-		CurrentTime = Owner->GetWorld()->GetGameState<AGameState>()->ElapsedTime;
-	}
+	float CurrentTime = GetWorldTime();
 
 	// effects may have been added outside of the tick during the last frame
 	if (bNeedToRecalculateStacks)
@@ -1379,7 +1426,7 @@ void FActiveGameplayEffectsContainer::TEMP_TickActiveEffects(float DeltaSeconds)
 		}
 
 		float Duration = Effect.GetDuration();
-		if (Duration > 0.f && Effect.StartTime + Effect.GetDuration() < CurrentTime)
+		if (Duration > 0.f && Effect.StartWorldTime + Effect.GetDuration() < CurrentTime)
 		{
 			Owner->InvokeGameplayCueRemoved(Effect.Spec);
 
@@ -1504,6 +1551,78 @@ void FActiveGameplayEffectsContainer::RecalculateStacking()
 	{
 		StackedEffect->Spec.StackedAttribName = FName(*StackedEffect->Spec.Def->Modifiers[0].Attribute.GetName());
 	}
+}
+
+bool FActiveGameplayEffectsContainer::HasAnyTags(FGameplayTagContainer &Tags)
+{
+	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsHasAnyTag);
+
+	for (FActiveGameplayEffect &ActiveEffect : GameplayEffects)
+	{
+		// Fixme: check stacking rules!
+		if (ActiveEffect.Spec.Def->OwnedTagsContainer.HasAnyTag(Tags))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool FActiveGameplayEffectsContainer::CanApplyAttributeModifiers(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator)
+{
+	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsCanApplyAttributeModifiers);
+
+	FGameplayEffectSpec	Spec(GameplayEffect, TSharedPtr<FGameplayEffectLevelSpec>(new FGameplayEffectLevelSpec(Level, GameplayEffect->LevelInfo, Instigator)), Owner->GetCurveDataOverride());
+	Spec.Def = GameplayEffect;
+	Spec.InstigatorStack.AddInstigator(Instigator);
+
+	ApplyActiveEffectsTo(Spec, FModifierQualifier().Type(EGameplayMod::IncomingGE));
+	
+	for (const FModifierSpec & Mod : Spec.Modifiers)
+	{
+		// It only makes sense to check additive operators
+		if (Mod.Info.ModifierOp == EGameplayModOp::Additive)
+		{
+			UAttributeSet * Set = Owner->GetAttributeSubobject(Mod.Info.Attribute.GetAttributeSetClass());
+			float CurrentValue = Mod.Info.Attribute.GetNumericValueChecked(Set);
+			float CostValue = Mod.Aggregator.Get()->Evaluate().Magnitude;
+
+			if (CurrentValue + CostValue < 0.f)
+			{
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
+TArray<float> FActiveGameplayEffectsContainer::GetActiveEffectsTimeRemaining(const FActiveGameplayEffectQuery Query) const
+{
+	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsGetActiveEffectsData);
+
+	float CurrentTime = GetWorldTime();
+
+	TArray<float>	ReturnList;
+
+	for (const FActiveGameplayEffect &Effect : GameplayEffects)
+	{
+		if (Query.TagContainer)
+		{
+			if (!Effect.Spec.Def->OwnedTagsContainer.HasAnyTag(*Query.TagContainer))
+			{
+				continue;
+			}
+		}
+
+		float Elapsed = CurrentTime - Effect.StartWorldTime;
+		float Duration = Effect.GetDuration();
+
+		ReturnList.Add(Duration - Elapsed);
+	}
+
+	// Note: keep one return location to avoid copy operation.
+	return ReturnList;
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------

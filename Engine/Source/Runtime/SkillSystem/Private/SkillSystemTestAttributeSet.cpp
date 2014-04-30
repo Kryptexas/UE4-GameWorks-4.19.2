@@ -5,7 +5,9 @@
 USkillSystemTestAttributeSet::USkillSystemTestAttributeSet(const class FPostConstructInitializeProperties& PCIP)
 : Super(PCIP)
 {
-	Health = 100.f;
+	Health = MaxHealth = 100.f;
+	Mana = MaxMana = 100.f;
+	
 	Damage = 0.f;
 	CritChance = 0.f;
 	SpellDamage = 0.f;
@@ -99,4 +101,25 @@ void USkillSystemTestAttributeSet::PostAttributeModify(const struct FGameplayEff
 		//  -This could be defined here or at the actor level.
 		//  -Doing it here makes a lot of sense to me, but we have legacy code in ::TakeDamage function, so some games may just want to punt to that pipeline from here.
 	}
+}
+
+
+void USkillSystemTestAttributeSet::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
+{
+	DOREPLIFETIME(USkillSystemTestAttributeSet, MaxHealth);
+	DOREPLIFETIME(USkillSystemTestAttributeSet, Health);
+	DOREPLIFETIME(USkillSystemTestAttributeSet, Mana);
+	DOREPLIFETIME(USkillSystemTestAttributeSet, MaxMana);
+
+	DOREPLIFETIME(USkillSystemTestAttributeSet, SpellDamage);
+	DOREPLIFETIME(USkillSystemTestAttributeSet, PhysicalDamage);
+
+	DOREPLIFETIME(USkillSystemTestAttributeSet, CritChance);
+	DOREPLIFETIME(USkillSystemTestAttributeSet, CritMultiplier);
+	DOREPLIFETIME(USkillSystemTestAttributeSet, ArmorDamageReduction);
+
+	DOREPLIFETIME(USkillSystemTestAttributeSet, DodgeChance);
+	DOREPLIFETIME(USkillSystemTestAttributeSet, LifeSteal);
+
+	DOREPLIFETIME(USkillSystemTestAttributeSet, Strength);
 }

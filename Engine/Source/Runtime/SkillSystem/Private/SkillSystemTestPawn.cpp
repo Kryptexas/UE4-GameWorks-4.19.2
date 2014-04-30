@@ -9,6 +9,8 @@ ASkillSystemTestPawn::ASkillSystemTestPawn(const class FPostConstructInitializeP
 {
 	AttributeComponent = PCIP.CreateDefaultSubobject<UAttributeComponent>(this, ASkillSystemTestPawn::AttributeComponentName);
 	AttributeComponent->SetIsReplicated(true);
+
+	//DefaultAbilitySet = NULL;
 }
 
 void ASkillSystemTestPawn::PostInitializeComponents()
@@ -18,6 +20,13 @@ void ASkillSystemTestPawn::PostInitializeComponents()
 	Super::PostInitializeComponents();
 	GameplayCueHandler.Owner = this;
 	AttributeComponent->InitStats(USkillSystemTestAttributeSet::StaticClass(), NULL);
+
+	/*
+	if (DefaultAbilitySet != NULL)
+	{
+		AttributeComponent->InitializeAbilities(DefaultAbilitySet);
+	}
+	*/
 }
 
 void ASkillSystemTestPawn::GameplayCueActivated(const FGameplayTagContainer & GameplayCueTags, float NormalizedMagnitude)
