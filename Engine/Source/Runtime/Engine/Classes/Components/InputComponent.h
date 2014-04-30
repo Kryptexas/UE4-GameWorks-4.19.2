@@ -45,6 +45,12 @@ struct TInputUnifiedDelegate
 		FuncDynDelegate.SetFunctionName(FuncName);
 	}
 
+	DelegateType & GetDelegateForManualSet()
+	{
+		FuncDynDelegate.Unbind();
+		return FuncDelegate;
+	}
+
 	inline void Unbind()
 	{
 		FuncDelegate.Unbind();
