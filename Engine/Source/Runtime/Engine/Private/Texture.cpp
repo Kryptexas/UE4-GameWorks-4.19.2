@@ -287,7 +287,7 @@ void UTexture::PostLoad()
 	if( !IsTemplate() )
 	{
 		// Update cached LOD bias.
-		CachedCombinedLODBias = GSystemSettings.TextureLODSettings.CalculateLODBias( this );
+		UpdateCachedLODBias();
 
 		// The texture will be cached by the cubemap it is contained within on consoles.
 		UTextureCube* CubeMap = Cast<UTextureCube>(GetOuter());
@@ -446,7 +446,7 @@ bool UTexture::ForceUpdateTextureStreaming()
 			UTexture* Texture = *It;
 
 			// Update cached LOD bias.
-			Texture->CachedCombinedLODBias = GSystemSettings.TextureLODSettings.CalculateLODBias( Texture );
+			Texture->UpdateCachedLODBias();
 		}
 
 		// Make sure we iterate over all textures by setting it to high value.
@@ -585,45 +585,19 @@ void FTextureLODSettings::ReadEntry( int32 GroupId, const TCHAR* GroupName, cons
 	}
 }
 
-int32 FTextureLODSettings::CalculateLODBias( UTexture* Texture, bool bIncTextureBias ) const
+int32 FTextureLODSettings::CalculateLODBias( UTexture* Texture, bool bIncTextureMips ) const
 {	
-	// Find LOD group.
 	check( Texture );
-	const FTextureLODGroup& LODGroup = TextureLODGroups[Texture->LODGroup];
-
-	// Calculate maximum number of miplevels.
-	int32 TextureMaxLOD	= FMath::CeilLogTwo( FMath::Trunc( FMath::Max( Texture->GetSurfaceWidth(), Texture->GetSurfaceHeight() ) ) );
-
-	// Calculate LOD bias.
-	int32 UsedLODBias		= Texture->NumCinematicMipLevels + LODGroup.LODBias + (bIncTextureBias ? Texture->LODBias : 0);
-	int32 MinLOD			= LODGroup.MinLODMipCount;
-	int32 MaxLOD			= LODGroup.MaxLODMipCount;
-	int32 WantedMaxLOD	= FMath::Clamp( TextureMaxLOD - UsedLODBias, MinLOD, MaxLOD );
-	WantedMaxLOD		= FMath::Clamp( WantedMaxLOD, 0, TextureMaxLOD );
-	UsedLODBias			= TextureMaxLOD - WantedMaxLOD;
-
-	return UsedLODBias;
+	return CalculateLODBias(Texture->GetSurfaceWidth(), Texture->GetSurfaceHeight(), Texture->LODGroup, (bIncTextureMips ? Texture->LODBias : 0), (bIncTextureMips ? Texture->NumCinematicMipLevels : 0), Texture->MipGenSettings);
 }
 
-/**
-	* Calculates and returns the LOD bias based on the information provided.
-	*
-	* @param	Width						Width of the texture
-	* @param	Height						Height of the texture
-	* @param	LODGroup					Which LOD group the texture belongs to
-	* @param	LODBias						LOD bias to include in the calculation
-	* @param	NumCinematicMipLevels		The texture cinematic mip levels to include in the calculation
-	* @return	LOD bias
-	*/
 int32 FTextureLODSettings::CalculateLODBias( int32 Width, int32 Height, int32 LODGroup, int32 LODBias, int32 NumCinematicMipLevels, TextureMipGenSettings InMipGenSetting ) const
 {	
 	// Find LOD group.
 	const FTextureLODGroup& LODGroupInfo = TextureLODGroups[LODGroup];
 
 	// Test to see if we have no mip generation as in which case the LOD bias will be ignored
-
 	const TextureMipGenSettings FinalMipGenSetting = (InMipGenSetting == TMGS_FromTextureGroup) ? LODGroupInfo.MipGenSettings : InMipGenSetting;
-
 	if ( FinalMipGenSetting == TMGS_NoMipmaps )
 	{
 		return 0;
@@ -633,9 +607,9 @@ int32 FTextureLODSettings::CalculateLODBias( int32 Width, int32 Height, int32 LO
 	int32 TextureMaxLOD	= FMath::CeilLogTwo( FMath::Trunc( FMath::Max( Width, Height ) ) );
 
 	// Calculate LOD bias.
-	int32 UsedLODBias		= LODGroupInfo.LODBias + LODBias + NumCinematicMipLevels;
-	int32 MinLOD			= LODGroupInfo.MinLODMipCount;
-	int32 MaxLOD			= LODGroupInfo.MaxLODMipCount;
+	int32 UsedLODBias	= LODGroupInfo.LODBias + LODBias + NumCinematicMipLevels;
+	int32 MinLOD		= LODGroupInfo.MinLODMipCount;
+	int32 MaxLOD		= LODGroupInfo.MaxLODMipCount;
 	int32 WantedMaxLOD	= FMath::Clamp( TextureMaxLOD - UsedLODBias, MinLOD, MaxLOD );
 	WantedMaxLOD		= FMath::Clamp( WantedMaxLOD, 0, TextureMaxLOD );
 	UsedLODBias			= TextureMaxLOD - WantedMaxLOD;

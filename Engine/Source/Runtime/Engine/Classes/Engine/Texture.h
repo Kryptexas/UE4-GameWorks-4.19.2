@@ -460,10 +460,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LevelOfDetail, meta=(DisplayName="LOD Bias"), AssetRegistrySearchable)
 	int32 LODBias;
 
-	/** Cached combined group and texture LOD bias to use.	*/
-	UPROPERTY(transient)
-	int32 CachedCombinedLODBias;
-
 	/** Number of mip-levels to use for cinematic quality. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LevelOfDetail, AdvancedDisplay)
 	int32 NumCinematicMipLevels;
@@ -484,6 +480,10 @@ public:
 	uint32 bUseCinematicMipLevels:1;
 
 private:
+	/** Cached combined group and texture LOD bias to use.	*/
+	UPROPERTY(transient)
+	int32 CachedCombinedLODBias;
+
 	/** Whether the async resource release process has already been kicked off or not */
 	UPROPERTY(transient)
 	uint32 bAsyncResourceReleaseHasBeenStarted:1;
@@ -603,7 +603,7 @@ public:
 	 */
 	void ForceRebuildPlatformData();
 
-	void UpdateCachedLODBias();
+	ENGINE_API void UpdateCachedLODBias( bool bIncTextureMips = true );
 
 	/**
 	 * Marks platform data as transient. This optionally removes persistent or cached data associated with the platform.

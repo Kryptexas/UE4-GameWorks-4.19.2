@@ -522,10 +522,9 @@ FString UTexture2D::GetDesc()
 	uint32 EffectiveSizeX;
 	uint32 EffectiveSizeY;
 
-	// platform dependent
-	CachedCombinedLODBias = uint32( GSystemSettings.TextureLODSettings.CalculateLODBias(this) );
+	UpdateCachedLODBias();
 
-	GSystemSettings.TextureLODSettings.ComputeInGameMaxResolution(CachedCombinedLODBias, *this, EffectiveSizeX, EffectiveSizeY);
+	GSystemSettings.TextureLODSettings.ComputeInGameMaxResolution(GetCachedLODBias(), *this, EffectiveSizeX, EffectiveSizeY);
 
 	return FString::Printf( TEXT("%s %dx%d -> %dx%d[%s]"), 
 		NeverStream ? TEXT("NeverStreamed") : TEXT("Streamed"), 

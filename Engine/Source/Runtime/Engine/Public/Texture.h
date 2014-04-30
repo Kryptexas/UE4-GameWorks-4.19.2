@@ -900,10 +900,10 @@ struct FTextureLODSettings
 	 * Calculates and returns the LOD bias based on texture LOD group, LOD bias and maximum size.
 	 *
 	 * @param	Texture			Texture object to calculate LOD bias for.
-	 * @param	bIncTextureBias	If true, takes the texures LOD bias into consideration
+	 * @param	bIncTextureMips	If true, takes the textures LOD & Cinematic mips into consideration
 	 * @return	LOD bias
 	 */
-	ENGINE_API int32 CalculateLODBias( UTexture* Texture, bool bIncTextureBias = true ) const;
+	ENGINE_API int32 CalculateLODBias(UTexture* Texture, bool bIncTextureMips = true) const;
 
 	/**
 	 * Calculates and returns the LOD bias based on the information provided.

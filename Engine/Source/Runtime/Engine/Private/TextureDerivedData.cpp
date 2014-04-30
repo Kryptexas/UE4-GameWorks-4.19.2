@@ -1368,9 +1368,9 @@ void UTexture::CachePlatformData(bool bAsyncCache)
 	}
 }
 
-void UTexture::UpdateCachedLODBias()
+void UTexture::UpdateCachedLODBias( bool bIncTextureMips )
 {
-	CachedCombinedLODBias = GSystemSettings.TextureLODSettings.CalculateLODBias( this );
+	CachedCombinedLODBias = GSystemSettings.TextureLODSettings.CalculateLODBias(this, bIncTextureMips);
 }
 
 void UTexture::BeginCachePlatformData()
@@ -1518,7 +1518,6 @@ void UTexture::FinishCachePlatformData()
 	}
 
 	UpdateCachedLODBias();
-
 }
 
 void UTexture::ForceRebuildPlatformData()

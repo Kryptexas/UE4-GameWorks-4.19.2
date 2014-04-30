@@ -84,6 +84,7 @@ void FTextureEditorToolkit::InitTextureEditor( const EToolkitMode::Type Mode, co
 	PreviewEffectiveTextureWidth = 0;
 	PreviewEffectiveTextureHeight = 0;
 	SpecifiedMipLevel = 0;
+	bUseSpecifiedMipLevel = false;
 
 	SavedCompressionSetting = false;
 
@@ -270,9 +271,6 @@ void FTextureEditorToolkit::PopulateQuickInfo( )
 
 	uint32 ImportedWidth = Texture->Source.GetSizeX();
 	uint32 ImportedHeight = Texture->Source.GetSizeY();
-	uint32 Width, Height;
-
-	Texture->CachedCombinedLODBias = GSystemSettings.TextureLODSettings.CalculateLODBias(Texture, !GetUseSpecifiedMip());
 
 	// If Original Width and Height are 0, use the saved current width and height
 	if (ImportedWidth == 0 && ImportedHeight == 0)
@@ -281,25 +279,28 @@ void FTextureEditorToolkit::PopulateQuickInfo( )
 		ImportedHeight = Texture->GetSurfaceHeight();
 	}
 
-	const int32 MipLevel = FMath::Max( GetMipLevel(), Texture->CachedCombinedLODBias );
+	// In game max bias and dimensions
+	uint32 MaxInGameWidth, MaxInGameHeight;
+	int32 MipLevel = GSystemSettings.TextureLODSettings.CalculateLODBias(Texture);
+	CalculateEffectiveTextureDimensions(MipLevel, MaxInGameWidth, MaxInGameHeight);
+
+	// Editor bias and dimensions (takes user specified mip setting into account)
+	Texture->UpdateCachedLODBias(!GetUseSpecifiedMip());
+	MipLevel = FMath::Max(GetMipLevel(), Texture->GetCachedLODBias());
 	CalculateEffectiveTextureDimensions(MipLevel, PreviewEffectiveTextureWidth, PreviewEffectiveTextureHeight);
-	uint32 MaxInGameWidth = PreviewEffectiveTextureWidth;
-	uint32 MaxInGameHeight = PreviewEffectiveTextureHeight;
 
 	// Cubes are previewed as unwrapped 2D textures.
 	// These have 2x the width of a cube face.
 	PreviewEffectiveTextureWidth *= IsCubeTexture() ? 2 : 1;
 
-	CalculateTextureDimensions(Width, Height);
-
 	FNumberFormattingOptions Options;
 	Options.UseGrouping = false;
 
 	ImportedText->SetText( FText::Format( NSLOCTEXT("TextureEditor", "QuickInfo_Imported", "Imported: {0}x{1}"), FText::AsNumber( ImportedWidth, &Options ), FText::AsNumber( ImportedHeight, &Options ) ) );
-	CurrentText->SetText(  FText::Format( NSLOCTEXT("TextureEditor", "QuickInfo_Current", "Current: {0}x{1}"), FText::AsNumber( FMath::Max((uint32)1, ImportedWidth >> MipLevel), &Options ), FText::AsNumber( FMath::Max((uint32)1, ImportedHeight >> MipLevel), &Options) ) );
+	CurrentText->SetText(  FText::Format( NSLOCTEXT("TextureEditor", "QuickInfo_Displayed", "Displayed: {0}x{1}"), FText::AsNumber( FMath::Max((uint32)1, ImportedWidth >> MipLevel), &Options ), FText::AsNumber( FMath::Max((uint32)1, ImportedHeight >> MipLevel), &Options) ) );
 	MaxInGameText->SetText(FText::Format( NSLOCTEXT("TextureEditor", "QuickInfo_MaxInGame", "Max In-Game: {0}x{1}"), FText::AsNumber( MaxInGameWidth, &Options ), FText::AsNumber( MaxInGameHeight, &Options )));
 	MethodText->SetText(   FText::Format( NSLOCTEXT("TextureEditor", "QuickInfo_Method", "Method: {0}"), Texture->NeverStream ? NSLOCTEXT("TextureEditor", "QuickInfo_MethodNotStreamed", "Not Streamed") : NSLOCTEXT("TextureEditor", "QuickInfo_MethodStreamed", "Streamed")));
-	LODBiasText->SetText(  FText::Format( NSLOCTEXT("TextureEditor", "QuickInfo_LODBias", "Combined LOD Bias: {0}"), FText::AsNumber( Texture->CachedCombinedLODBias )));
+	LODBiasText->SetText(FText::Format(NSLOCTEXT("TextureEditor", "QuickInfo_LODBias", "Combined LOD Bias: {0}"), FText::AsNumber(Texture->GetCachedLODBias())));
 	
 	int32 TextureFormatIndex = PF_MAX;
 	
@@ -962,7 +963,7 @@ TOptional<int32> FTextureEditorToolkit::GetMaxMipLevel()const
 
 bool FTextureEditorToolkit::GetUseSpecifiedMip() const
 {
-	if( GetMaxMipLevel().Get(MIPLEVEL_MAX) > 0.0f )
+	if( GetMaxMipLevel().Get(MIPLEVEL_MAX) > 0 )
 	{
 		if( OnGetUseSpecifiedMipEnabled() )
 		{
@@ -1028,7 +1029,7 @@ bool FTextureEditorToolkit::OnGetUseSpecifiedMipEnabled() const
 {
 	UTextureCube* TextureCube = Cast<UTextureCube>(Texture);
 
-	if( GetMaxMipLevel().Get(MIPLEVEL_MAX) <= 0.0f || TextureCube )
+	if( GetMaxMipLevel().Get(MIPLEVEL_MAX) <= 0 || TextureCube )
 	{
 		return false;
 	}
