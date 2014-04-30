@@ -14,8 +14,7 @@ UPaperRenderComponent::UPaperRenderComponent(const FPostConstructInitializePrope
 
 	SetCollisionProfileName(UCollisionProfile::BlockAllDynamic_ProfileName);
 
-	static ConstructorHelpers::FObjectFinder<UMaterial> DefaultMaterial(TEXT("/Paper2D/DefaultSpriteMaterial.DefaultSpriteMaterial"));
-	TestMaterial = DefaultMaterial.Object;
+	MaterialOverride = nullptr;
 
 	SpriteColor = FLinearColor::White;
 

@@ -14,8 +14,9 @@ protected:
 	UPROPERTY(Category=Sprite, EditAnywhere, BlueprintReadOnly, meta=(DisplayThumbnail = "true"))
 	UPaperSprite* SourceSprite;
 
+	// The material override for this sprite component (if any)
 	UPROPERTY(Category=Sprite, EditAnywhere, BlueprintReadOnly)
-	UMaterialInterface* TestMaterial;
+	UMaterialInterface* MaterialOverride;
 
 	/** Physics scene information for this component, holds a single rigid body with multiple shapes. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Collision)//, meta=(ShowOnlyInnerProperties))

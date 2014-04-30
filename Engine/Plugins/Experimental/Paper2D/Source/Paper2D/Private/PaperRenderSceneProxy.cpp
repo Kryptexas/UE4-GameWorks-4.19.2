@@ -151,9 +151,17 @@ FPaperRenderSceneProxy::FPaperRenderSceneProxy(const UPrimitiveComponent* InComp
 {
 	if (const UPaperRenderComponent* RenderComp = Cast<const UPaperRenderComponent>(InComponent))
 	{
-		Material = RenderComp->TestMaterial;
-		
 		SourceSprite = RenderComp->SourceSprite; //@TODO: This is totally not threadsafe, and won't keep up to date if the actor's sprite changes, etc....
+		if (SourceSprite)
+		{
+			Material = SourceSprite->GetDefaultMaterial();
+		}
+		
+		if (RenderComp->MaterialOverride)
+		{
+			Material = RenderComp->MaterialOverride;
+		}
+
 		if (Material)
 		{
 			MaterialRelevance = Material->GetRelevance();

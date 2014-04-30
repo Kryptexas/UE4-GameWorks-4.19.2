@@ -153,6 +153,8 @@ public:
 
 	UTexture2D* GetPrimaryAtlasTexture() const { return SourceTexture; }
 
+	UMaterialInterface* GetDefaultMaterial() const { return DefaultMaterial; }
+
 	// Returns the render bounds of this sprite
 	FBoxSphereBounds GetRenderBounds() const;
 
