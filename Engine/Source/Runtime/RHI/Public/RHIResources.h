@@ -167,7 +167,9 @@ public:
 	uint32 GetNumSamples() const { return NumSamples; }
 
 	/** @return Whether the texture is multi sampled. */
-	bool IsMultisampled() const { return NumSamples > 1; }		
+	bool IsMultisampled() const { return NumSamples > 1; }
+
+	FRHIResourceInfo ResourceInfo;
 
 private:
 	uint32 NumMips;

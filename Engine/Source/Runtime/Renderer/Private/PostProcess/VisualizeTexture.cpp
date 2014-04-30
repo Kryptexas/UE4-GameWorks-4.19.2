@@ -727,6 +727,35 @@ void FVisualizeTexture::DebugLog(bool bExtended)
 					check(0);
 				}
 
+				if(Desc.Flags & TexCreate_FastVRAM)
+				{
+					FRHIResourceInfo Info;
+
+					FTextureRHIParamRef Texture = RT->GetRenderTargetItem().ShaderResourceTexture;
+
+					if(!IsValidRef(Texture))
+					{
+						RT->GetRenderTargetItem().TargetableTexture;
+					}
+
+					if(IsValidRef(Texture))
+					{
+						RHIGetResourceInfo(Texture, Info);
+					}
+
+					if(Info.VRamAllocation.AllocationSize)
+					{
+						// note we do KB for more readable numbers but this can cause quantization loss
+						Element.Line += FString::Printf(TEXT(" VRamInKB(Start/Size):%d/%d"), 
+							Info.VRamAllocation.AllocationStart / 1024, 
+							(Info.VRamAllocation.AllocationSize + 1023) / 1024);
+					}
+					else
+					{
+						Element.Line += TEXT(" VRamInKB(Start/Size):<NONE>");
+					}
+				}
+
 				SortedLines.Add(Element);
 			}
 		}

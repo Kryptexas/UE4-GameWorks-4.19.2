@@ -482,7 +482,8 @@ protected:
 	int32 ChosenAdapter;
 
 	template<typename BaseResourceType>
-	TD3D11Texture2D<BaseResourceType>* CreateD3D11Texture2D(uint32 SizeX,uint32 SizeY,uint32 SizeZ,bool bTextureArray,bool CubeTexture,uint8 Format,uint32 NumMips,uint32 NumSamples,uint32 Flags,FResourceBulkDataInterface* BulkData = NULL);
+	TD3D11Texture2D<BaseResourceType>* CreateD3D11Texture2D(uint32 SizeX,uint32 SizeY,uint32 SizeZ,bool bTextureArray,bool CubeTexture,uint8 Format,
+		uint32 NumMips,uint32 NumSamples,uint32 Flags,FResourceBulkDataInterface* BulkData = NULL);
 
 	FD3D11Texture3D* CreateD3D11Texture3D(uint32 SizeX,uint32 SizeY,uint32 SizeZ,uint8 Format,uint32 NumMips,uint32 Flags,FResourceBulkDataInterface* BulkData);
 
@@ -715,25 +716,25 @@ public:
 	/**
 	 *	IMPORTANT: This function CAN modify the TextureDesc!
 	 */
-	virtual bool AllocTexture2D(D3D11_TEXTURE2D_DESC& TextureDesc)
+	virtual FVRamAllocation AllocTexture2D(D3D11_TEXTURE2D_DESC& TextureDesc)
 	{
-		return false;
+		return FVRamAllocation();
 	}
 
 	/**
 	 *	IMPORTANT: This function CAN modify the TextureDesc!
 	 */
-	virtual bool AllocTexture3D(D3D11_TEXTURE3D_DESC& TextureDesc)
+	virtual FVRamAllocation AllocTexture3D(D3D11_TEXTURE3D_DESC& TextureDesc)
 	{
-		return false;
+		return FVRamAllocation();
 	}
 
 	/**
 	 *	IMPORTANT: This function CAN modify the BufferDesc!
 	 */
-	virtual bool AllocUAVBuffer(D3D11_BUFFER_DESC& BufferDesc)
+	virtual FVRamAllocation AllocUAVBuffer(D3D11_BUFFER_DESC& BufferDesc)
 	{
-		return false;
+		return FVRamAllocation();
 	}
 
 	template< typename t_A, typename t_B >

@@ -6,6 +6,53 @@
 
 #pragma once
 
+/** The reference to a pooled render target, use like this: TRefCountPtr<IPooledRenderTarget> */
+struct FPooledRenderTarget : public IPooledRenderTarget
+{
+	/** constructor */
+	FPooledRenderTarget(const FPooledRenderTargetDesc& InDesc) 
+		: NumRefs(0)
+		, Desc(InDesc)
+		, UnusedForNFrames(0)
+	{
+	}
+
+	virtual ~FPooledRenderTarget()
+	{
+		check(!NumRefs);
+		RenderTargetItem.SafeRelease();
+	}
+
+	uint32 GetUnusedForNFrames() const { return UnusedForNFrames; }
+
+	// interface IPooledRenderTarget --------------
+
+	virtual uint32 AddRef() const;
+	virtual uint32 Release() const;
+	virtual uint32 GetRefCount() const;
+	virtual bool IsFree() const;
+	virtual void SetDebugName(const TCHAR *InName);
+	virtual const FPooledRenderTargetDesc& GetDesc() const;
+	virtual uint32 ComputeMemorySize() const;
+
+// todo private:
+	FVRamAllocation VRamAllocation;
+
+private:
+
+	/** For pool management (only if NumRef == 0 the element can be reused) */
+	mutable int32 NumRefs;
+	/** All necessary data to create the render target */
+	FPooledRenderTargetDesc Desc;
+	/** Allows to defer the release to save performance on some hardware (DirectX) */
+	uint32 UnusedForNFrames;
+
+	/** @return true:release this one, false otherwise */
+	bool OnFrameStart();
+
+	friend class FRenderTargetPool;
+};
+
 enum ERenderTargetPoolEventType
 {
 	ERTPE_Alloc,
@@ -16,7 +63,7 @@ enum ERenderTargetPoolEventType
 struct FRenderTargetPoolEvent
 {
 	// constructor for ERTPE_Alloc
-	FRenderTargetPoolEvent(uint32 InPoolEntryId, uint32 InTimeStep, IPooledRenderTarget* InPointer)
+	FRenderTargetPoolEvent(uint32 InPoolEntryId, uint32 InTimeStep, FPooledRenderTarget* InPointer)
 		: PoolEntryId(InPoolEntryId)
 		, TimeStep(InTimeStep)
 		, Pointer(InPointer)
@@ -27,6 +74,7 @@ struct FRenderTargetPoolEvent
 	{
 		Desc = Pointer->GetDesc();
 		SizeInBytes = Pointer->ComputeMemorySize();
+		VRamAllocation = Pointer->VRamAllocation;
 	}
 
 	// constructor for ERTPE_Alloc
@@ -84,7 +132,9 @@ private:
 	//
 	uint32 TimeStep;
 	// valid EventType==ERTPE_Alloc, 0 if not set
-	IPooledRenderTarget* Pointer;
+	FPooledRenderTarget* Pointer;
+	//
+	FVRamAllocation VRamAllocation;
 	// valid if EventType==ERTPE_Phase TEXT("") if not set
 	FString PhaseName;
 	// valid if EventType==ERTPE_Alloc || EventType==ERTPE_Dealloc
@@ -104,50 +154,6 @@ private:
 	uint32 ColumnSize;
 };
 
-
-/** The reference to a pooled render target, use like this: TRefCountPtr<IPooledRenderTarget> */
-struct FPooledRenderTarget : public IPooledRenderTarget
-{
-	/** constructor */
-	FPooledRenderTarget(const FPooledRenderTargetDesc& InDesc) 
-		: NumRefs(0)
-		, Desc(InDesc)
-		, UnusedForNFrames(0)
-	{
-	}
-
-	virtual ~FPooledRenderTarget()
-	{
-		check(!NumRefs);
-		RenderTargetItem.SafeRelease();
-	}
-
-	uint32 GetUnusedForNFrames() const { return UnusedForNFrames; }
-
-	// interface IPooledRenderTarget --------------
-
-	virtual uint32 AddRef() const;
-	virtual uint32 Release() const;
-	virtual uint32 GetRefCount() const;
-	virtual bool IsFree() const;
-	virtual void SetDebugName(const TCHAR *InName);
-	virtual const FPooledRenderTargetDesc& GetDesc() const;
-	virtual uint32 ComputeMemorySize() const;
-
-private:
-
-	/** For pool management (only if NumRef == 0 the element can be reused) */
-	mutable int32 NumRefs;
-	/** All necessary data to create the render target */
-	FPooledRenderTargetDesc Desc;
-	/** Allows to defer the release to save performance on some hardware (DirectX) */
-	uint32 UnusedForNFrames;
-
-	/** @return true:release this one, false otherwise */
-	bool OnFrameStart();
-
-	friend class FRenderTargetPool;
-};
 
 #include "VisualizeTexture.h"
 

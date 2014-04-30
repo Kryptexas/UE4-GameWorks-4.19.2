@@ -499,6 +499,16 @@ DEFINE_RHIMETHOD_7(
 	);
 
 /**
+ * @param Ref may be 0
+ */
+DEFINE_RHIMETHOD_2(
+	void,RHIGetResourceInfo,
+	FTextureRHIParamRef,Ref,
+	FRHIResourceInfo&,OutInfo,
+	return,return;
+	);
+
+/**
 * Creates a shader resource view for a 2d texture, viewing only a single
 * mip level. Useful when rendering to one mip while sampling from another.
 */
@@ -509,7 +519,7 @@ DEFINE_RHIMETHOD_2(
 	return,return new FRHIShaderResourceView();
 	);
 
-/**
+/**FRHIResourceInfo
 * Creates a shader resource view for a 2d texture, with a different
 * format from the original.  Useful when sampling stencil.
 */
@@ -520,7 +530,7 @@ DEFINE_RHIMETHOD_4(
 	uint8, NumMipLevels,
 	uint8, Format,		
 	return,return new FRHIShaderResourceView();
-);
+	);
 
 /**
 * Generates mip maps for a texture.

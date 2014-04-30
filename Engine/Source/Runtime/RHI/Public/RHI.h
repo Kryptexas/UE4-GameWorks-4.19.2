@@ -1208,6 +1208,27 @@ enum ETextureCreateFlags
 	TexCreate_Shared = 1 << 24,
 };
 
+struct FVRamAllocation
+{
+	FVRamAllocation(uint32 InAllocationStart = 0, uint32 InAllocationSize = 0)
+		: AllocationStart(InAllocationStart)
+		, AllocationSize(InAllocationSize)
+	{
+	}
+
+	bool IsValid() { return AllocationSize > 0; }
+
+	// in bytes
+	uint32 AllocationStart;
+	// in bytes
+	uint32 AllocationSize;
+};
+
+struct FRHIResourceInfo
+{
+	FVRamAllocation VRamAllocation;
+};
+
 // Forward-declaration.
 struct FResolveParams;
 
