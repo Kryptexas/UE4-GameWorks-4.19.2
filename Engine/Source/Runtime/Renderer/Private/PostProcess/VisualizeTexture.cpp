@@ -735,7 +735,7 @@ void FVisualizeTexture::DebugLog(bool bExtended)
 
 					if(!IsValidRef(Texture))
 					{
-						RT->GetRenderTargetItem().TargetableTexture;
+						Texture = RT->GetRenderTargetItem().TargetableTexture;
 					}
 
 					if(IsValidRef(Texture))
