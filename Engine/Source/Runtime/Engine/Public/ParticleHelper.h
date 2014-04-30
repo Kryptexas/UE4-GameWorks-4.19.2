@@ -1080,7 +1080,7 @@ struct FAsyncParticleFill
 
 	FORCEINLINE TStatId GetStatId() const
 	{
-		RETURN_QUICK_DECLARE_CYCLE_STAT(FAsyncParticleFill, STATGROUP_TaskGraphTasks);
+		return GET_STATID( STAT_ParticleAsyncTime );
 	}
 
 	static ENamedThreads::Type GetDesiredThread()

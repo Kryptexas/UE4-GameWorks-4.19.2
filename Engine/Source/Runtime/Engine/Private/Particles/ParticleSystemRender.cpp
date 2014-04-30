@@ -553,7 +553,6 @@ FORCEINLINE FVector GetCameraOffsetFromPayload(
 void FAsyncParticleFill::DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 {
 	// Test integrity of async particle fill: FPlatformProcess::Sleep(.01);
-	SCOPE_CYCLE_COUNTER(STAT_ParticleAsyncTime);
 	Parent->DoBufferFill();
 }
 
