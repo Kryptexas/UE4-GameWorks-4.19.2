@@ -1617,7 +1617,7 @@ bool FModuleManager::BuildUnrealBuildTool(FOutputDevice &Ar)
 	FPlatformMisc::GetVSComnTools(11, VCVarsBat);
 #endif
 
-	VCVarsBat += FPaths::Combine(*VCVarsBat, L"../../VC/bin/x86_amd64/vcvarsx86_amd64.bat");
+	VCVarsBat = FPaths::Combine(*VCVarsBat, L"../../VC/bin/x86_amd64/vcvarsx86_amd64.bat");
 
 	// Check to make sure we found one.
 	if ( VCVarsBat.IsEmpty() || !FPaths::FileExists(VCVarsBat) )
