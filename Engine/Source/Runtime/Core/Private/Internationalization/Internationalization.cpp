@@ -181,11 +181,11 @@ void FInternationalization::Initialize()
 	u_setMemoryFunctions(NULL, &(FICUOverrides::Malloc), &(FICUOverrides::Realloc), &(FICUOverrides::Free), &(ICUStatus));
 	FString DataDirectory;
 	DataDirectory = FPaths::EngineContentDir() / TEXT("Localization");
-	if( !FPaths::FileExists(DataDirectory / TEXT("icudt51l.dat")) )
+	if( !FPaths::FileExists(DataDirectory / TEXT("icudt53l.dat")) )
 	{
 		DataDirectory = FString(FPlatformProcess::BaseDir()) / FPaths::EngineContentDir() / TEXT("Localization");
 	}
-	check( FPaths::FileExists(DataDirectory / TEXT("icudt51l.dat")) );
+	check( FPaths::FileExists(DataDirectory / TEXT("icudt53l.dat")) );
 	u_setDataDirectory(StringCast<char>(*DataDirectory).Get());
 	u_init(&(ICUStatus));
 #endif
