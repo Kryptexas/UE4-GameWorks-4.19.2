@@ -268,7 +268,9 @@ void FDefaultGameMoviePlayer::SetupLoadingScreenFromIni()
 		{
 			// fill out the attributes
 			FLoadingScreenAttributes LoadingScreen;
-			LoadingScreen.bAutoCompleteWhenLoadingCompletes = true;
+			LoadingScreen.bAutoCompleteWhenLoadingCompletes = !GetDefault<UMoviePlayerSettings>()->bWaitForMoviesToComplete;
+			LoadingScreen.bMoviesAreSkippable = GetDefault<UMoviePlayerSettings>()->bMoviesAreSkippable;
+
 			for(const auto& Movie : StartupMovies)
 			{
 				if(Movie.FilePath.Len() > 0)

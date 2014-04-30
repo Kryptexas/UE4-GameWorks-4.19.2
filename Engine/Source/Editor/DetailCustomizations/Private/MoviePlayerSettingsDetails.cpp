@@ -108,6 +108,9 @@ void FMoviePlayerSettingsDetails::CustomizeDetails( IDetailLayoutBuilder& Detail
 	TSharedRef<FDetailArrayBuilder> StartupMoviesBuilder = MakeShareable( new FDetailArrayBuilder( StartupMoviesPropertyHandle.ToSharedRef() ) );
 	StartupMoviesBuilder->OnGenerateArrayElementWidget( FOnGenerateArrayElementWidget::CreateSP(this, &FMoviePlayerSettingsDetails::GenerateArrayElementWidget) );
 
+	MoviesCategory.AddProperty( "bWaitForMoviesToComplete" );
+	MoviesCategory.AddProperty( "bMoviesAreSkippable" );
+
 	const bool bForAdvanced = false;
 	MoviesCategory.AddCustomBuilder( StartupMoviesBuilder, bForAdvanced );
 }
