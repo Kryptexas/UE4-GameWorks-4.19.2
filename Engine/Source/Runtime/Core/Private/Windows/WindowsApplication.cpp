@@ -709,9 +709,17 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 					if ( CurrentNativeEventWindow->IsRegularWindow() )
 					{
 						EWindowZone::Type Zone;
-						// Assumes this is not allowed to leave Slate or touch rendering
+					
+						if( MessageHandler->ShouldProcessUserInputMessages( CurrentNativeEventWindowPtr ) )
 						{
+							// Assumes this is not allowed to leave Slate or touch rendering
 							Zone = MessageHandler->GetWindowZoneForPoint( CurrentNativeEventWindow, LocalMouseX, LocalMouseY );
+						}
+						else
+						{
+							// Default to client area so that we are able to see the feedback effect when attempting to click on a non-modal window when a modal window is active
+							// Any other window zones could have side effects and NotInWindow prevents the feedback effect.
+							Zone = EWindowZone::ClientArea;
 						}
 
 						static const LRESULT Results[] = {HTNOWHERE, HTTOPLEFT, HTTOP, HTTOPRIGHT, HTLEFT, HTCLIENT,
