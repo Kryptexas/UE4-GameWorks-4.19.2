@@ -1580,9 +1580,8 @@ void FOpenGLDynamicRHI::RHISetRenderTargets(
 	else if( NewDepthStencilTargetRHI )
 	{
 		// Set viewport size to new depth target size.
-		FOpenGLTexture2D* NewDepthTargetTexture = (FOpenGLTexture2D*)NewDepthStencilTargetRHI->GetTexture2D();
-		PendingState.Viewport.Max.X = NewDepthTargetTexture->GetSizeX();
-		PendingState.Viewport.Max.Y = NewDepthTargetTexture->GetSizeY();
+		PendingState.Viewport.Max.X = GetOpenGLTextureSizeXFromRHITexture(NewDepthStencilTargetRHI);
+		PendingState.Viewport.Max.Y = GetOpenGLTextureSizeYFromRHITexture(NewDepthStencilTargetRHI);
 	}
 }
 
