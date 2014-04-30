@@ -437,10 +437,14 @@ namespace UnrealBuildTool
 		/// <returns>true if successful, false if not</returns>
 		public virtual bool GetSupportedPlatforms(ref List<UnrealTargetPlatform> OutPlatforms)
 		{
-			if ((Type == TargetType.Program) || IsEditorType(Type))
+			if(Type == TargetType.Program)
 			{
 				// By default, all programs are desktop only.
 				return UnrealBuildTool.GetAllDesktopPlatforms(ref OutPlatforms, false);
+			}
+			else if(IsEditorType(Type))
+			{
+				return UnrealBuildTool.GetAllEditorPlatforms(ref OutPlatforms, false);
 			}
 			else if (TargetRules.IsGameType(Type))
 			{
@@ -453,12 +457,6 @@ namespace UnrealBuildTool
 
 		public bool SupportsPlatform(UnrealTargetPlatform InPlatform)
 		{
-			// Only Win64 and Mac are supported by the editor.
-			if (IsEditorType(Type) && InPlatform != UnrealTargetPlatform.Win64 && InPlatform != UnrealTargetPlatform.Mac)
-			{
-				return false;
-			}
-
 			List<UnrealTargetPlatform> SupportedPlatforms = new List<UnrealTargetPlatform>();
 			if (GetSupportedPlatforms(ref SupportedPlatforms) == true)
 			{
