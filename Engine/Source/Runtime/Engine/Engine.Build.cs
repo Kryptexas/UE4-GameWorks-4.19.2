@@ -115,6 +115,8 @@ public class Engine : ModuleRules
 					new string[] {
 					    "MacTargetPlatform",
 					    "MacNoEditorTargetPlatform",
+						"MacServerTargetPlatform",
+						"MacClientTargetPlatform",
 					    "HTML5TargetPlatform"
 					}
 				);

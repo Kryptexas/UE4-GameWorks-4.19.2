@@ -10,11 +10,13 @@
 /**
  * Template for Mac target platforms
  */
-template<bool HAS_EDITOR_DATA, bool IS_DEDICATED_SERVER>
+template<bool HAS_EDITOR_DATA, bool IS_DEDICATED_SERVER, bool IS_CLIENT_ONLY>
 class TGenericMacTargetPlatform
-	: public TTargetPlatformBase<FMacPlatformProperties<HAS_EDITOR_DATA, IS_DEDICATED_SERVER> >
+	: public TTargetPlatformBase<FMacPlatformProperties<HAS_EDITOR_DATA, IS_DEDICATED_SERVER, IS_CLIENT_ONLY> >
 {
 public:
+
+	typedef TTargetPlatformBase<FMacPlatformProperties<HAS_EDITOR_DATA, IS_DEDICATED_SERVER, IS_CLIENT_ONLY> > TSuper;
 
 	/**
 	 * Default constructor.
@@ -127,7 +129,7 @@ public:
 			return (HAS_EDITOR_DATA || !IS_DEDICATED_SERVER);
 		}
 
-		return TTargetPlatformBase<FMacPlatformProperties<HAS_EDITOR_DATA, IS_DEDICATED_SERVER> >::SupportsFeature(Feature);
+return TSuper::SupportsFeature(Feature);
 	}
 
 #if WITH_ENGINE

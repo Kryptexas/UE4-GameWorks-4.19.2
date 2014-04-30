@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-	MacNoEditorTargetPlatformModule.cpp: Implements the FMacNoEditorTargetPlatformModule class.
+	MacClientTargetPlatformModule.cpp: Implements the FMacClientTargetPlatformModule class.
 =============================================================================*/
 
 #if PLATFORM_MAC
@@ -14,7 +14,7 @@
 #undef FVector
 #endif
 
-#include "MacNoEditorTargetPlatformPrivatePCH.h"
+#include "MacClientTargetPlatformPrivatePCH.h"
 
 
 /**
@@ -26,12 +26,12 @@ static ITargetPlatform* Singleton = NULL;
 /**
  * Module for the Mac target platform (without editor).
  */
-class FMacNoEditorTargetPlatformModule
+class FMacClientTargetPlatformModule
 	: public ITargetPlatformModule
 {
 public:
 
-	virtual ~FMacNoEditorTargetPlatformModule( )
+	virtual ~FMacClientTargetPlatformModule( )
 	{
 		Singleton = NULL;
 	}
@@ -40,7 +40,7 @@ public:
 	{
 		if (Singleton == NULL)
 		{
-			Singleton = new TGenericMacTargetPlatform<false, false, false>();
+			Singleton = new TGenericMacTargetPlatform<false, false, true>();
 		}
 
 		return Singleton;
@@ -48,4 +48,4 @@ public:
 };
 
 
-IMPLEMENT_MODULE(FMacNoEditorTargetPlatformModule, MacNoEditorTargetPlatform);
+IMPLEMENT_MODULE(FMacClientTargetPlatformModule, MacClientTargetPlatform);

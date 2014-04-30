@@ -104,5 +104,4 @@ struct RECT
 #error "WITH_EDITORONLY_DATA must be defined"
 #endif
 
-typedef FMacPlatformProperties<WITH_EDITORONLY_DATA, UE_SERVER> FPlatformProperties;
-
+typedef FMacPlatformProperties<WITH_EDITORONLY_DATA, UE_SERVER, !WITH_SERVER_CODE> FPlatformProperties;
