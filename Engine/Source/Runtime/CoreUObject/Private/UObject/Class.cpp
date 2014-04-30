@@ -2958,6 +2958,7 @@ void UClass::PurgeClass(bool bRecompilingOnLoad)
 	{
 		// this is not safe to do at COL time. The meta data is not loaded yet, so if we attempt to load it, we recursively load the package and that will fail
 		RemoveMetaData("HideCategories");
+		RemoveMetaData("ShowCategories");
 		RemoveMetaData("HideFunctions");
 		RemoveMetaData("AutoExpandCategories");
 		RemoveMetaData("AutoCollapseCategories");
@@ -3291,26 +3292,62 @@ void UClass::GetHideCategories(TArray<FString>& OutHideCategories) const
 	}
 }
 
+void UClass::GetShowCategories(TArray<FString>& OutShowCategories) const
+{
+	static const FName NAME_ShowCategories(TEXT("ShowCategories"));
+	if (HasMetaData(NAME_ShowCategories))
+	{
+		const FString& ShowCategories = GetMetaData(NAME_ShowCategories);
+		ShowCategories.ParseIntoArray(&OutShowCategories, TEXT(" "), true);
+	}
+}
+
 bool UClass::IsCategoryHidden(const FString& InCategory) const
 {
 	bool bHidden = false;
-	static const FName NAME_HideCategories(TEXT("HideCategories"));
+	static FName const NAME_HideCategories(TEXT("HideCategories"));
+	static FName const NAME_ShowCategories(TEXT("ShowCategories"));
 	if (HasMetaData(NAME_HideCategories))
 	{
-		const FString& HideCategories = GetMetaData(NAME_HideCategories);
+		FString ShowCategories;
+		if (HasMetaData(NAME_ShowCategories))
+		{
+			ShowCategories = GetMetaData(NAME_ShowCategories);
+		}
+
+		FString const& HideCategories = GetMetaData(NAME_HideCategories);
 		bHidden = !!FCString::StrfindDelim(*HideCategories, *InCategory, TEXT(" "));
 		if (!bHidden)
 		{
 			TArray<FString> SubCategoryList;
 			InCategory.ParseIntoArray(&SubCategoryList, TEXT("|"), true);
-			for (const FString& SubCategory : SubCategoryList)
+
+			FString SubCategoryPath;
+			for (int32 SubCatIndex = 0; SubCatIndex < SubCategoryList.Num(); ++SubCatIndex)
 			{
+				FString SubCategory = SubCategoryList[SubCatIndex];
+				SubCategory = SubCategory.Replace(TEXT(" "), TEXT(""));
+				SubCategoryPath += SubCategory;
+
 				if (!!FCString::StrfindDelim(*HideCategories, *SubCategory, TEXT(" ")))
 				{
 					bHidden = true;
-					break;
 				}
-			}		
+				else if (!!FCString::StrfindDelim(*HideCategories, *SubCategoryPath, TEXT(" ")))
+				{
+					bHidden = true;
+				}
+
+				if (bHidden && !ShowCategories.IsEmpty() && !!FCString::StrfindDelim(*ShowCategories, *SubCategoryPath, TEXT(" ")))
+				{
+					bHidden = false;
+				}
+				SubCategoryPath += "|";
+			}	
+		}
+		else if (!ShowCategories.IsEmpty() && !!FCString::StrfindDelim(*ShowCategories, *InCategory, TEXT(" ")))
+		{
+			bHidden = false;
 		}
 	}
 	return bHidden;

@@ -1628,6 +1628,7 @@ public:
 #if WITH_EDITOR || HACK_HEADER_GENERATOR 
 	// Editor only properties
 	void GetHideCategories(TArray<FString>& OutHideCategories) const;
+	void GetShowCategories(TArray<FString>& OutShowCategories) const;
 	bool IsCategoryHidden(const FString& InCategory) const;
 	void GetHideFunctions(TArray<FString>& OutHideFunctions) const;
 	bool IsFunctionHidden(const TCHAR* InFunction) const;

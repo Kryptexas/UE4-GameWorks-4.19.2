@@ -4117,10 +4117,12 @@ void FHeaderParser::CompileClassDeclaration(FClasses& AllClasses)
 
 	// Get categories inherited from the parent.
 	TArray<FString> HideCategories;
+	TArray<FString> ShowSubCatgories;
 	TArray<FString> HideFunctions;
 	TArray<FString> AutoExpandCategories;
 	TArray<FString> AutoCollapseCategories;
 	Class->GetHideCategories        (HideCategories);
+	Class->GetShowCategories        (ShowSubCatgories);
 	Class->GetHideFunctions			(HideFunctions);
 	Class->GetAutoExpandCategories  (AutoExpandCategories);
 	Class->GetAutoCollapseCategories(AutoCollapseCategories);
@@ -4325,7 +4327,26 @@ void FHeaderParser::CompileClassDeclaration(FClasses& AllClasses)
 
 			for (const FString& Value : PropSpecifier.Values)
 			{
-				HideCategories.Remove(Value);
+				// if we didn't find this specific category path in the HideCategories metadata
+				if (HideCategories.Remove(Value) == 0)
+				{
+					TArray<FString> SubCategoryList;
+					Value.ParseIntoArray(&SubCategoryList, TEXT("|"), true);
+
+					FString SubCategoryPath;
+					// look to see if any of the parent paths are excluded in the HideCategories list
+					for (int32 CategoryPathIndex = 0; CategoryPathIndex < SubCategoryList.Num()-1; ++CategoryPathIndex)
+					{
+						SubCategoryPath += SubCategoryList[CategoryPathIndex];
+						// if we're hiding a parent category, then we need to flag this sub category for show
+						if (HideCategories.Contains(SubCategoryPath))
+						{
+							ShowSubCatgories.AddUnique(Value);
+							break;
+						}
+						SubCategoryPath += "|";
+					}
+				}
 			}
 		}
 		else if (Specifier == TEXT("hideCategories"))
@@ -4421,6 +4442,7 @@ void FHeaderParser::CompileClassDeclaration(FClasses& AllClasses)
 	if (ClassGroupNames       .Num()) { MetaData.Add("ClassGroupNames",        FString::Join(ClassGroupNames,        TEXT(" "))); }
 	if (AutoCollapseCategories.Num()) { MetaData.Add("AutoCollapseCategories", FString::Join(AutoCollapseCategories, TEXT(" "))); }
 	if (HideCategories        .Num()) { MetaData.Add("HideCategories",         FString::Join(HideCategories,         TEXT(" "))); }
+	if (ShowSubCatgories      .Num()) { MetaData.Add("ShowCategories",         FString::Join(ShowSubCatgories,       TEXT(" "))); }
 	if (HideFunctions         .Num()) { MetaData.Add("HideFunctions",          FString::Join(HideFunctions,          TEXT(" "))); }
 	if (AutoExpandCategories  .Num()) { MetaData.Add("AutoExpandCategories",   FString::Join(AutoExpandCategories,   TEXT(" "))); }
 
@@ -6091,6 +6113,10 @@ ECompilationResult::Type FHeaderParser::ParseHeaderForOneClass(FClasses& AllClas
 		if (SuperClass->HasMetaData(TEXT("HideCategories")))
 		{
 			Class->SetMetaData(TEXT("HideCategories"), *SuperClass->GetMetaData("HideCategories"));
+		}
+		if (SuperClass->HasMetaData(TEXT("ShowCategories")))
+		{
+			Class->SetMetaData(TEXT("ShowCategories"), *SuperClass->GetMetaData("ShowCategories"));
 		}
 		if (SuperClass->HasMetaData(TEXT("HideFunctions")))
 		{
