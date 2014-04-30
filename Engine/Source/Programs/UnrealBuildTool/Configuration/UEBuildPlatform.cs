@@ -395,6 +395,8 @@ namespace UnrealBuildTool
                     HookProcess.StartInfo.FileName = HookExe;
                     HookProcess.StartInfo.Arguments = "";
 
+                    //installers may require administrator access to succeed. so run as an admmin.
+					HookProcess.StartInfo.Verb = "runas";
                     HookProcess.Start();
                     HookProcess.WaitForExit();
 
