@@ -284,12 +284,12 @@ void UWheeledVehicleMovementComponent::SetupWheels( PxVehicleWheelsSimData* PWhe
 		PxVehicleWheelData PWheelData;
 		PWheelData.mRadius = Wheel->ShapeRadius;
 		PWheelData.mWidth = Wheel->ShapeWidth;	
-		PWheelData.mMaxSteer = FMath::DegreesToRadians(WheelSetups[WheelIdx].SteerAngle);
-		PWheelData.mMaxBrakeTorque = M2ToCm2(WheelSetups[WheelIdx].MaxBrakeTorque);
-		PWheelData.mMaxHandBrakeTorque = Wheel->bAffectedByHandbrake ? M2ToCm2(WheelSetups[WheelIdx].MaxHandBrakeTorque) : 0.0f;
+		PWheelData.mMaxSteer = FMath::DegreesToRadians(Wheel->SteerAngle);
+		PWheelData.mMaxBrakeTorque = M2ToCm2(Wheel->MaxBrakeTorque);
+		PWheelData.mMaxHandBrakeTorque = Wheel->bAffectedByHandbrake ? M2ToCm2(Wheel->MaxHandBrakeTorque) : 0.0f;
 
-		PWheelData.mDampingRate = M2ToCm2(WheelSetups[WheelIdx].DampingRate);
-		PWheelData.mMass = WheelSetups[WheelIdx].Mass;
+		PWheelData.mDampingRate = M2ToCm2(Wheel->DampingRate);
+		PWheelData.mMass = Wheel->Mass;
 		PWheelData.mMOI = 0.5f * PWheelData.mMass * FMath::Square(PWheelData.mRadius);
 		
 		// init tire data
@@ -1295,29 +1295,3 @@ void UWheeledVehicleMovementComponent::ComputeConstants()
 	MaxEngineRPM = 5000.f;
 }
 
-void UWheeledVehicleMovementComponent::Serialize(FArchive & Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_VEHICLES_UNIT_CHANGE)
-	{
-		for (int32 WheelIdx = 0; WheelIdx < WheelSetups.Num(); ++WheelIdx)
-		{
-			//this backwards compatable code breaks if they were using some strange value that is exactly the new default in the new units
-			FWheelSetup & WheelSetup = WheelSetups[WheelIdx];
-			WheelSetup.MaxHandBrakeTorque = WheelSetup.MaxHandBrakeTorque != 1500.f ? Cm2ToM2(WheelSetup.MaxHandBrakeTorque) : 1500.f;	//need to convert from cm^2 to m^2
-			WheelSetup.MaxBrakeTorque = WheelSetup.MaxHandBrakeTorque != 3000.f ? Cm2ToM2(WheelSetup.MaxBrakeTorque) : 3000.f;			//need to convert from cm^2 to m^2
-		}
-
-	}
-
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_VEHICLES_UNIT_CHANGE2)
-	{
-		for (int32 WheelIdx = 0; WheelIdx < WheelSetups.Num(); ++WheelIdx)
-		{
-			//this backwards compatable code breaks if they were using some strange value that is exactly the new default in the new units
-			FWheelSetup & WheelSetup = WheelSetups[WheelIdx];
-			WheelSetup.DampingRate = WheelSetup.DampingRate != 0.25f ? Cm2ToM2(WheelSetup.DampingRate) : 0.25;
-		}
-
-	}
-}

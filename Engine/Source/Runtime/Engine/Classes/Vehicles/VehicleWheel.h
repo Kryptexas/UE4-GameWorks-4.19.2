@@ -12,90 +12,113 @@ class ENGINE_API UVehicleWheel : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	// Static mesh with collision setup for wheel, will be used to create wheel shape
-	// (if empty, sphere will be added as wheel shape, check bDontCreateShape flag)
+	/** 
+	 * Static mesh with collision setup for wheel, will be used to create wheel shape
+	 * (if empty, sphere will be added as wheel shape, check bDontCreateShape flag)
+	 */
 	UPROPERTY(EditDefaultsOnly, Category=Shape)
 	class UStaticMesh*								CollisionMesh;
 
-	// If set, shape won't be created, but mapped from chassis mesh
+	/** If set, shape won't be created, but mapped from chassis mesh */
 	UPROPERTY(EditDefaultsOnly, Category=Shape)
 	bool											bDontCreateShape;
 
-	// If BoneName is specified, offset the wheel from the bone's location.
-	// Otherwise this offsets the wheel from the vehicle's origin.
-	// (X=Forward, Y=Right, Z=Up)
-	UPROPERTY(EditAnywhere, Category=Wheel)
-	FVector											Offset;
-
-	// Radius of the wheel
-	UPROPERTY(EditAnywhere, Category=Wheel)
-	float											ShapeRadius;
-
-	// Width of the wheel
-	UPROPERTY(EditAnywhere, Category=Wheel)
-	float											ShapeWidth;
-
-	// If true, ShapeRadius and ShapeWidth will be used to automatically scale collision taken from CollisionMesh to match wheel size.
-	// If false, size of CollisionMesh won't be changed. Use if you want to scale wheels manually.
+	/** 
+	 *	If true, ShapeRadius and ShapeWidth will be used to automatically scale collision taken from CollisionMesh to match wheel size.
+	 *	If false, size of CollisionMesh won't be changed. Use if you want to scale wheels manually.
+	 */
 	UPROPERTY(EditAnywhere, Category=Shape)
 	bool											bAutoAdjustCollisionSize;
 
-	// How strongly this wheel opposes acceleration
+	/** 
+	 * If BoneName is specified, offset the wheel from the bone's location.
+	 * Otherwise this offsets the wheel from the vehicle's origin.
+	 */
 	UPROPERTY(EditAnywhere, Category=Wheel)
-	float											Inertia;
+	FVector											Offset;
 
-	// Damping rate for how quickly the wheel slows down on its own
-	//UPROPERTY(EditAnywhere, Category=Wheel)
-	//float											DampingRate;
+	/** Radius of the wheel */
+	UPROPERTY(EditAnywhere, Category=Wheel)
+	float											ShapeRadius;
 
-	// Whether handbrake should affect this wheel
+	/** Width of the wheel */
+	UPROPERTY(EditAnywhere, Category=Wheel)
+	float											ShapeWidth;
+
+	/** Mass of this wheel */
+	UPROPERTY(EditAnywhere, Category=Wheel)
+	float											Mass;
+
+	/** Damping rate for this wheel (Kgm^2/s) */
+	UPROPERTY(EditAnywhere, Category=Wheel)
+	float											DampingRate;
+
+	// steer angle in degrees for this wheel
+	UPROPERTY(EditAnywhere, Category = WheelsSetup)
+	float SteerAngle;
+
+	/** Whether handbrake should affect this wheel */
 	UPROPERTY(EditAnywhere, Category=Wheel)
 	bool											bAffectedByHandbrake;
 
-	// Tire type for the wheel. Determines friction
+	/** Tire type for the wheel. Determines friction */
 	UPROPERTY(EditAnywhere, Category=Tire)
 	class UTireType*								TireType;
 
-	// Max normalized tire load at which the tire can deliver no more lateral stiffness no matter how much extra load is applied to the tire.
+	/** Max normalized tire load at which the tire can deliver no more lateral stiffness no matter how much extra load is applied to the tire. */
 	UPROPERTY(EditAnywhere, Category=Tire, meta=(ClampMin = "0.01", UIMin = "0.01"))
 	float											LatStiffMaxLoad;
 
-	// How much lateral stiffness to have given lateral slip
+	/** How much lateral stiffness to have given lateral slip */
 	UPROPERTY(EditAnywhere, Category=Tire, meta=(ClampMin = "0.01", UIMin = "0.01"))
 	float											LatStiffValue;
 
-	// Multiplier for the output lateral tire forces
+	/** Multiplier for the output lateral tire forces */
 	UPROPERTY(EditAnywhere, Category=Tire)
 	float											LatStiffFactor;
 
-	// How much longitudinal stiffness to have given longitudinal slip
+	/** How much longitudinal stiffness to have given longitudinal slip */
 	UPROPERTY(EditAnywhere, Category=Tire)
 	float											LongStiffValue;
 
-	// Vertical offset from vehicle center of mass where suspension forces are applied
+	/** Vertical offset from vehicle center of mass where suspension forces are applied */
 	UPROPERTY(EditAnywhere, Category=Suspension)
 	float											SuspensionForceOffset;
 
-	// How far the wheel can drop below the resting position
+	/** How far the wheel can drop below the resting position */
 	UPROPERTY(EditAnywhere, Category=Suspension)
 	float											SuspensionMaxDrop;
 
-	// How far the wheel can go above the resting position
+	/** How far the wheel can go above the resting position */
 	UPROPERTY(EditAnywhere, Category=Suspension)
 	float											SuspensionMaxRaise;
 
-	// Oscillation frequency of suspension. Standard cars have values between 5 and 10
+	/** Oscillation frequency of suspension. Standard cars have values between 5 and 10 */
 	UPROPERTY(EditAnywhere, Category=Suspension)
 	float											SuspensionNaturalFrequency;
 
-	// The rate at which energy is dissipated from the spring. Standard cars have values between 0.8 and 1.2.
-	// values < 1 are more sluggish, values > 1 or more twitchy
+	/**
+	 *	The rate at which energy is dissipated from the spring. Standard cars have values between 0.8 and 1.2.
+	 *	values < 1 are more sluggish, values > 1 or more twitchy
+	 */
 	UPROPERTY(EditAnywhere, Category=Suspension)
 	float											SuspensionDampingRatio;
 
-	// The vehicle that owns us
+	/** max brake torque for this wheel (Nm) */
+	UPROPERTY(EditAnywhere, Category=Brakes)
+	float											MaxBrakeTorque;
+
+	/** 
+	 *	Max handbrake brake torque for this wheel (Nm). A handbrake should have a stronger brake torque
+	 *	than the brake. This will be ignored for wheels that are not affected by the handbrake. 
+	 */
+	UPROPERTY(EditAnywhere, Category=Brakes)
+	float											MaxHandBrakeTorque;
+
+
+	/** The vehicle that owns us */
 	UPROPERTY(transient)
-	class UWheeledVehicleMovementComponent*								VehicleSim;
+	class UWheeledVehicleMovementComponent*			VehicleSim;
 
 	// Our index in the vehicle's (and setup's) wheels array
 	UPROPERTY(transient)

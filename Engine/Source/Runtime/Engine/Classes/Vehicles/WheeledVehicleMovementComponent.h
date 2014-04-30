@@ -90,43 +90,17 @@ struct FWheelSetup
 	TSubclassOf<UVehicleWheel> WheelClass;
 
 	// Bone name on mesh to create wheel at
-	UPROPERTY(EditAnywhere, Category=WheelsSetup)
+	UPROPERTY(EditAnywhere, Category=WheelSetup)
 	FName BoneName;
 
 	// Additional offset to give the wheels for this axle.
-	UPROPERTY(EditAnywhere, Category=WheelsSetup)
+	UPROPERTY(EditAnywhere, Category=WheelSetup)
 	FVector AdditionalOffset;
-
-	// steer angle in degrees for this wheel
-	UPROPERTY(EditAnywhere, Category=WheelsSetup)
-	float SteerAngle;
-
-	// max brake torque for this wheel (Nm)
-	UPROPERTY(EditAnywhere, Category=WheelsSetup)
-	float MaxBrakeTorque;
-
-	/** Max handbrake brake torque for this wheel (Nm). A handbrake should have a stronger brake torque
-		than the brake. This will be ignored for wheels that are not affected by the handbrake. */
-	UPROPERTY(EditAnywhere, Category=WheelsSetup)
-	float MaxHandBrakeTorque;
-
-	// damping rate for this wheel (Kgm^2/s)
-	UPROPERTY(EditAnywhere, Category=WheelsSetup)
-	float DampingRate;
-
-	// mass of this wheel
-	UPROPERTY(EditAnywhere, Category=WheelsSetup)
-	float Mass;
 
 	FWheelSetup()
 		: WheelClass(UVehicleWheel::StaticClass())
 		, BoneName(NAME_None)
 		, AdditionalOffset(0.0f)
-		, SteerAngle(70.0f)
-		, MaxBrakeTorque(1500.f)
-		, MaxHandBrakeTorque(3000.f)
-		, DampingRate(0.25f)
-		, Mass(20.f)
 	{
 	}
 };
@@ -367,8 +341,6 @@ class ENGINE_API UWheeledVehicleMovementComponent : public UPawnMovementComponen
 	/** Are gears being changed automatically? */
 	UFUNCTION(BlueprintCallable, Category="Game|Components|WheeledVehicleMovement")
 	bool GetUseAutoGears() const;
-
-	virtual void Serialize(FArchive & Ar) OVERRIDE;
 
 protected:
 
