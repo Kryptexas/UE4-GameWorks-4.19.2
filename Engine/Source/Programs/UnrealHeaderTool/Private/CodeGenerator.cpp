@@ -4403,6 +4403,40 @@ void GetScriptPlugins(TArray<IScriptGeneratorPluginInterface*>& ScriptPlugins)
 			ScriptPlugins.Add(GeneratorInterface);
 		}
 	}
+
+	// Check if we can use these plugins and initialize them
+	for (int32 PluginIndex = ScriptPlugins.Num() - 1; PluginIndex >= 0; --PluginIndex)
+	{
+		auto ScriptGenerator = ScriptPlugins[PluginIndex];
+		bool bSupportedPlugin = ScriptGenerator->SupportsTarget(GManifest.TargetName);
+		if (bSupportedPlugin)
+		{
+			// Find the right output direcotry for this plugin base on its target (Engine-side) plugin name.
+			FString GeneratedCodeModule = ScriptGenerator->GetGeneratedCodeModuleName();
+			FString OutputDirectory;
+			for (const auto& Module : GManifest.Modules)
+			{
+				if (Module.Name == GeneratedCodeModule)
+				{
+					OutputDirectory = Module.GeneratedIncludeDirectory;
+				}
+			}
+			if (!OutputDirectory.IsEmpty())
+			{
+				ScriptGenerator->Initialize(GManifest.RootLocalPath, GManifest.RootBuildPath, OutputDirectory);
+			}
+			else
+			{
+				// Can't use this plugin
+				UE_LOG(LogCompile, Log, TEXT("Unable to determine output directory for %s. Cannot export script glue."), *GeneratedCodeModule);
+				bSupportedPlugin = false;				
+			}
+		}
+		if (!bSupportedPlugin)
+		{
+			ScriptPlugins.RemoveAt(PluginIndex);
+		}
+	}
 }
 
 ECompilationResult::Type UnrealHeaderTool_Main(const FString& ModuleInfoFilename)
@@ -4580,34 +4614,10 @@ ECompilationResult::Type UnrealHeaderTool_Main(const FString& ModuleInfoFilename
 		if (Result == ECompilationResult::Succeeded)
 		{
 			TArray<IScriptGeneratorPluginInterface*> ScriptPlugins;
-			GetScriptPlugins(ScriptPlugins);
-
-			bool bCanGenerateScripts = true;
-			for (auto ScriptGenerator : ScriptPlugins)
-			{
-				// Find the right output direcotry for this plugin base on its target (Engine-side) plugin name.
-				FString GeneratedCodeModule = ScriptGenerator->GetGeneratedCodeModuleName();
-				FString OutputDirectory;
-				for (const auto& Module : GManifest.Modules)
-				{
-					if (Module.Name == GeneratedCodeModule)
-					{
-						OutputDirectory = Module.GeneratedIncludeDirectory;
-					}
-				}
-				if (!OutputDirectory.IsEmpty())
-				{
-					ScriptGenerator->Initialize(GManifest.RootLocalPath, GManifest.RootBuildPath, OutputDirectory);
-				}
-				else
-				{
-					UE_LOG(LogCompile, Log, TEXT("Unable to determine output directory for %s. Cannot export script glue."), *GeneratedCodeModule);
-					bCanGenerateScripts = false;
-				}
-			}
-			if (!bCanGenerateScripts)
-			{
-				ScriptPlugins.Empty();
+			// Can only export scripts for game targets
+			if (GManifest.IsGameTarget)
+			{				
+				GetScriptPlugins(ScriptPlugins);
 			}
 
 			for (const auto& Module : GManifest.Modules)
@@ -4623,12 +4633,9 @@ ECompilationResult::Type UnrealHeaderTool_Main(const FString& ModuleInfoFilename
 				}
 			}
 
-			if (bCanGenerateScripts)
+			for (auto ScriptGenerator : ScriptPlugins)
 			{
-				for (auto ScriptGenerator : ScriptPlugins)
-				{
-					ScriptGenerator->FinishExport();
-				}
+				ScriptGenerator->FinishExport();
 			}
 		}
 	}

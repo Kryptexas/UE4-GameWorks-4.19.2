@@ -43,9 +43,11 @@ struct FManifestModule
 struct FManifest
 {
 	bool    UseRelativePaths;
+	bool IsGameTarget;
 	FString RootLocalPath;
 	FString RootBuildPath;
-
+	FString TargetName;
+	
 	/** Ordered list of modules that define UObjects or UStructs, which we may need to generate
 	    code for.  The list is in module dependency order, such that most dependent modules appear first. */
 	TArray<FManifestModule> Modules;

@@ -75,8 +75,10 @@ namespace UnrealBuildTool
 		public UHTManifest(bool InUseRelativePaths, UEBuildTarget Target, string InRootLocalPath, string InRootBuildPath, IEnumerable<UHTModuleInfo> ModuleInfo)
 		{
 			UseRelativePaths = InUseRelativePaths;
+			IsGameTarget = TargetRules.IsGameType(Target.Rules.Type);
 			RootLocalPath    = InRootLocalPath;
 			RootBuildPath    = InRootBuildPath;
+			TargetName = Target.GetTargetName();			
 
 			Modules = ModuleInfo.Select(Info => new Module{
 				Name                     = Info.ModuleName,
@@ -94,8 +96,10 @@ namespace UnrealBuildTool
 		}
 
 		public bool         UseRelativePaths; // Generate relative paths or absolute paths
+		public bool         IsGameTarget;     // True if the current target is a game target
 		public string       RootLocalPath;    // The engine path on the local machine
 		public string       RootBuildPath;    // The engine path on the build machine, if different (e.g. Mac/iOS builds)
+		public string		TargetName;       // Name of the target currently being compiled		
 		public List<Module> Modules;
 	}
 

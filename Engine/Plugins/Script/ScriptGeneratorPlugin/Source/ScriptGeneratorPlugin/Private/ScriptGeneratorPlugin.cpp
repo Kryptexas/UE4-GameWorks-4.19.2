@@ -18,6 +18,7 @@ class FScriptGeneratorPlugin : public IScriptGeneratorPlugin
 
 	/** IScriptGeneratorPlugin interface */
 	virtual FString GetGeneratedCodeModuleName() const OVERRIDE { return TEXT("ScriptPlugin"); }
+	virtual bool SupportsTarget(const FString& TargetName) const OVERRIDE { return true; }
 	virtual void Initialize(const FString& RootLocalPath, const FString& RootBuildPath, const FString& OutputDirectory) OVERRIDE;
 	virtual void ExportClass(UClass* Class, const FString& SourceHeaderFilename, const FString& GeneratedHeaderFilename, bool bHasChanged) OVERRIDE;
 	virtual void FinishExport() OVERRIDE;
