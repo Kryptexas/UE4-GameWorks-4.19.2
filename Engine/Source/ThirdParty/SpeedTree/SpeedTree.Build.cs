@@ -29,11 +29,11 @@ public class SpeedTree : ModuleRules
 
 					if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
 					{
-						PublicAdditionalLibraries.Add("SpeedTreeCore_Windows_v6.3_VC12_MT64_Static_d.lib");
+						PublicAdditionalLibraries.Add("SpeedTreeCore_Windows_v6.3_VC12_MTDLL64_Static_d.lib");
 					}
 					else
 					{
-						PublicAdditionalLibraries.Add("SpeedTreeCore_Windows_v6.3_VC12_MT64_Static.lib");
+						PublicAdditionalLibraries.Add("SpeedTreeCore_Windows_v6.3_VC12_MTDLL64_Static.lib");
 					}
 				}
 				else if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2012)
@@ -42,11 +42,11 @@ public class SpeedTree : ModuleRules
 
 					if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
 					{
-						PublicAdditionalLibraries.Add("SpeedTreeCore_Windows_v6.3_VC11_MT64_Static_d.lib");
+						PublicAdditionalLibraries.Add("SpeedTreeCore_Windows_v6.3_VC11_MTDLL64_Static_d.lib");
 					}
 					else
 					{
-						PublicAdditionalLibraries.Add("SpeedTreeCore_Windows_v6.3_VC11_MT64_Static.lib");
+						PublicAdditionalLibraries.Add("SpeedTreeCore_Windows_v6.3_VC11_MTDLL64_Static.lib");
 					}
 				}
 			}
@@ -58,11 +58,11 @@ public class SpeedTree : ModuleRules
 
 					if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
 					{
-						PublicAdditionalLibraries.Add("SpeedTreeCore_Windows_v6.3_VC12_MT_Static_d.lib");
+						PublicAdditionalLibraries.Add("SpeedTreeCore_Windows_v6.3_VC12_MTDLL_Static_d.lib");
 					}
 					else
 					{
-						PublicAdditionalLibraries.Add("SpeedTreeCore_Windows_v6.3_VC12_MT_Static.lib");
+						PublicAdditionalLibraries.Add("SpeedTreeCore_Windows_v6.3_VC12_MTDLL_Static.lib");
 					}
 				}
 				else if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2012)
@@ -71,11 +71,11 @@ public class SpeedTree : ModuleRules
 
 					if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
 					{
-						PublicAdditionalLibraries.Add("SpeedTreeCore_Windows_v6.3_VC11_MT_Static_d.lib");
+						PublicAdditionalLibraries.Add("SpeedTreeCore_Windows_v6.3_VC11_MTDLL_Static_d.lib");
 					}
 					else
 					{
-						PublicAdditionalLibraries.Add("SpeedTreeCore_Windows_v6.3_VC11_MT_Static.lib");
+						PublicAdditionalLibraries.Add("SpeedTreeCore_Windows_v6.3_VC11_MTDLL_Static.lib");
 					}
 				}
 			}
