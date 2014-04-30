@@ -608,7 +608,7 @@ void FRCPassPostProcessBokehDOF::Process(FRenderingCompositePassContext& Context
 	FIntPoint TexSize = InputDesc->Extent;
 
 	// usually 1, 2, 4 or 8
-	uint32 ScaleToFullRes = GSceneRenderTargets.SceneColor->GetDesc().Extent.X / TexSize.X;
+	uint32 ScaleToFullRes = GSceneRenderTargets.GetBufferSizeXY().X / TexSize.X;
 
 	// don't use DivideAndRoundUp as this could cause cause lookups into areas we don't have setup 
 	FIntRect LocalViewRect = View.ViewRect / ScaleToFullRes;

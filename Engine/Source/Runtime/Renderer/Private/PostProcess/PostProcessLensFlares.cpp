@@ -129,8 +129,8 @@ void FRCPassPostProcessLensFlares::Process(FRenderingCompositePassContext& Conte
 	FIntPoint TexSize1 = InputDesc1->Extent;
 	FIntPoint TexSize2 = InputDesc2->Extent;
 
-	uint32 ScaleToFullRes1 = GSceneRenderTargets.SceneColor->GetDesc().Extent.X / TexSize1.X;
-	uint32 ScaleToFullRes2 = GSceneRenderTargets.SceneColor->GetDesc().Extent.X / TexSize2.X;
+	uint32 ScaleToFullRes1 = GSceneRenderTargets.GetBufferSizeXY().X / TexSize1.X;
+	uint32 ScaleToFullRes2 = GSceneRenderTargets.GetBufferSizeXY().X / TexSize2.X;
 
 	FIntRect ViewRect1 = FIntRect::DivideAndRoundUp(View.ViewRect, ScaleToFullRes1);
 	FIntRect ViewRect2 = FIntRect::DivideAndRoundUp(View.ViewRect, ScaleToFullRes2);

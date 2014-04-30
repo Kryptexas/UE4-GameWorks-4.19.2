@@ -130,14 +130,15 @@ void FRCPassPostProcessBokehDOFRecombine::Process(FRenderingCompositePassContext
 
 	SCOPED_DRAW_EVENTF(BokehDOFRecombine, DEC_SCENE_ITEMS, TEXT("BokehDOFRecombine#%d"), Method);
 
-	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input1);
+	const FPooledRenderTargetDesc* InputDesc0 = GetInputDesc(ePId_Input0);
+	const FPooledRenderTargetDesc* InputDesc1 = GetInputDesc(ePId_Input1);
 	
 	const FSceneView& View = Context.View;
 
-	FIntPoint TexSize = InputDesc ? InputDesc->Extent : GSceneRenderTargets.SceneColor->GetDesc().Extent;
+	FIntPoint TexSize = InputDesc1 ? InputDesc1->Extent : InputDesc0->Extent;
 
 	// usually 1, 2, 4 or 8
-	uint32 ScaleToFullRes = GSceneRenderTargets.SceneColor->GetDesc().Extent.X / TexSize.X;
+	uint32 ScaleToFullRes = GSceneRenderTargets.GetBufferSizeXY().X / TexSize.X;
 
 	FIntRect HalfResViewRect = FIntRect::DivideAndRoundUp(View.ViewRect, ScaleToFullRes);
 
