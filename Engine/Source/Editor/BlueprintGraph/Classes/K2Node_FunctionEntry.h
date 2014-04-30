@@ -46,6 +46,7 @@ class UK2Node_FunctionEntry : public UK2Node_FunctionTerminator
 	// Removes an output pin from the node
 	BLUEPRINTGRAPH_API void RemoveOutputPin(UEdGraphPin* PinToRemove);
 
+	// Returns pin for the automatically added WorldContext parameter (used only by BlueprintFunctionLibrary).
 	BLUEPRINTGRAPH_API UEdGraphPin* GetWorldContextPin() const;
 };
 
